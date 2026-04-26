@@ -20,8 +20,8 @@
 
 ## Phase 3: Lint 与命名约束
 
-- [ ] 3.1 落地 `backend/.golangci.yml`（启用 `revive var-naming`）+ 本地可执行错误码校验，确保 `make lint` 能拦截非 `UPPER_SNAKE_CASE` 错误码
-- [ ] 3.2 落地 `frontend/.eslintrc.cjs`（或 `eslint.config.js`）+ 本地可执行边界校验，拒绝在 `lib/conventions/errors.ts` 之外定义错误码字面量
+- [x] 3.1 落地 `backend/.golangci.yml`（启用 `revive var-naming`）+ 本地可执行错误码校验，确保 `make lint` 能拦截非 `UPPER_SNAKE_CASE` 错误码
+- [x] 3.2 落地 `frontend/.eslintrc.cjs`（或 `eslint.config.js`）+ 本地可执行边界校验，拒绝在 `lib/conventions/errors.ts` 之外定义错误码字面量
 
 ## Phase 4: Verification
 

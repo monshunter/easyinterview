@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint test build dev-up dev-down codegen codegen-conventions migrate install-hooks
+.PHONY: help fmt lint lint-conventions test build dev-up dev-down codegen codegen-conventions migrate install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -15,9 +15,13 @@ fmt: ## Format Go and frontend sources (delegates to backend/ and frontend/)
 	@$(call recurse_target,fmt,backend/Makefile,backend)
 	@$(call recurse_target,fmt,frontend/Makefile,frontend)
 
-lint: ## Lint Go and frontend sources (delegates to backend/ and frontend/)
+lint: lint-conventions ## Lint Go and frontend sources (delegates to backend/ and frontend/ after the cross-language conventions gate)
 	@$(call recurse_target,lint,backend/Makefile,backend)
 	@$(call recurse_target,lint,frontend/Makefile,frontend)
+
+lint-conventions: ## Validate shared/conventions.yaml structure and error-code casing/boundary (B1 local gate)
+	@python3 "$(ROOT_DIR)/scripts/lint/conventions_yaml.py" "$(ROOT_DIR)/shared/conventions.yaml"
+	@python3 "$(ROOT_DIR)/scripts/lint/error_codes.py"
 
 test: ## Run unit tests (delegates to backend/ and frontend/)
 	@$(call recurse_target,test,backend/Makefile,backend)

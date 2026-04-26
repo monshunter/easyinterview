@@ -1,0 +1,21 @@
+# golangci-lint v2 config — local development only.
+# A5 ci-pipeline-baseline owns CI wiring; do not relax these rules without
+# revising shared-conventions-codified spec D-5 / D-6.
+version: "2"
+
+run:
+  timeout: 2m
+
+linters:
+  default: none
+  enable:
+    - govet
+    - revive
+
+linters-settings:
+  revive:
+    rules:
+      # Enforce var / type / function naming conventions to keep generated
+      # constants and hand-written helpers consistent (00-shared-conventions
+      # §2.1).
+      - name: var-naming
