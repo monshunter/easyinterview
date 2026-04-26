@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-26](2026-04-26.md) | `docs(repo-scaffold): close 001-bootstrap plan lifecycle to completed` | #docs |
 | [2026-04-26](2026-04-26.md) | `chore(repo-scaffold): mark verification phase complete` | #chore |
 | [2026-04-26](2026-04-26.md) | `feat(repo-scaffold): land top-level makefile and git hook placeholders` | #feat |
 | [2026-04-26](2026-04-26.md) | `feat(repo-scaffold): land root container dirs and config files` | #feat |
