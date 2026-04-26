@@ -18,7 +18,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| repo-scaffold（待 W0 spawn） | – | _pending_ | – | – |
+| [repo-scaffold](./repo-scaffold/spec.md) | 1.0 | active | 2026-04-26 | [plans](./repo-scaffold/plans/) |
 | local-dev-stack（待 W1 spawn） | – | _pending_ | – | – |
 | ai-gateway-and-model-routing（待 W1 spawn） | – | _pending_ | – | – |
 | secrets-and-config（待 W1 spawn） | – | _pending_ | – | – |
@@ -28,7 +28,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| shared-conventions-codified（待 W0 spawn） | – | _pending_ | – | – |
+| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.0 | active | 2026-04-26 | [plans](./shared-conventions-codified/plans/) |
 | openapi-v1-contract（待 W1 spawn） | – | _pending_ | – | – |
 | event-and-outbox-contract（待 W1 spawn） | – | _pending_ | – | – |
 | db-migrations-baseline（待 W1 spawn） | – | _pending_ | – | – |

@@ -1,0 +1,37 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: shared-conventions-codified
+  name: 001-bootstrap
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: docs
+  discovery:
+    aliases:
+      - shared-conventions-codified
+      - 001-bootstrap
+      - shared-conventions
+      - cross-language-types
+    keywords:
+      - shared conventions
+      - cross-language types
+      - error codes
+      - enum codegen
+      - uuidv7
+      - idempotency key
+      - go module
+      - pnpm workspace
+  targets:
+    docs:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - docs/spec/shared-conventions-codified
+        uiRoutes: []
+        apiNames: []

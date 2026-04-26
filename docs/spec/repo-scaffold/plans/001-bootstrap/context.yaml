@@ -1,0 +1,36 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: repo-scaffold
+  name: 001-bootstrap
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: docs
+  discovery:
+    aliases:
+      - repo-scaffold
+      - 001-bootstrap
+      - monorepo-skeleton
+      - root-makefile
+    keywords:
+      - repo scaffold
+      - monorepo skeleton
+      - root makefile
+      - editorconfig
+      - tool-versions
+      - git hooks
+      - bootstrap script
+  targets:
+    docs:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - docs/spec/repo-scaffold
+        uiRoutes: []
+        apiNames: []
