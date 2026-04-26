@@ -36,9 +36,9 @@
 Spec-centric plan 补充约定：
 
 - 新 plan 默认采用串行 phase 格式，并位于 `docs/spec/<subspec>/plans/<NNN-plan>/`
-- 每个 subspec 的计划规范与索引位于 `docs/spec/<subspec>/plans/README.md`、`TEMPLATES.md`、`INDEX.md`
+- 每个 subspec 的计划索引位于 `docs/spec/<subspec>/plans/INDEX.md`
 - `context.yaml` 是 plan 机器入口的唯一真理源
-- 模板示例统一放在各目录的 `TEMPLATES.md`
+- spec / plan / checklist / context 模板示例统一放在 `docs/spec/TEMPLATES.md`
 
 ### 2.2 Markdown 层级规范
 
@@ -63,12 +63,13 @@ Spec-centric plan 补充约定：
 
 协作前必须先阅读目标目录 `README.md` 中的规则说明。
 起草或修改正文时，必须参考同目录 `TEMPLATES.md`。
+创建或修改 spec-centric plan 时，必须参考 `docs/spec/README.md` 与 `docs/spec/TEMPLATES.md`，不得在每个 `plans/` 目录重复 README 或模板文件。
 不得把 `README.md` 当作可复制模板。
 
 ## 3 使用方式
 
 1. 先读目标目录的 `README.md`，确认命名、状态、检查清单和索引要求。
-2. 再参考同目录的 `TEMPLATES.md` 起草文档正文。
+2. 再参考对应模板文件起草文档正文；spec-centric plan 统一参考 `docs/spec/TEMPLATES.md`。
 3. 文档落地后同步更新对应 `INDEX.md`。
 
 ## 4 项目目录映射

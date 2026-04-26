@@ -5,9 +5,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SKILL_PATH = REPO_ROOT / ".agent-skills" / "design" / "SKILL.md"
-PLAN_TEMPLATE_PATH = REPO_ROOT / ".agent-skills" / "init-docs" / "templates" / "subspec-plans-templates.md"
 SPEC_TEMPLATE_PATH = REPO_ROOT / "docs" / "spec" / "TEMPLATES.md"
-INIT_PLAN_TEMPLATE_PATH = REPO_ROOT / ".agent-skills" / "init-docs" / "templates" / "subspec-plans-templates.md"
 INIT_SPEC_TEMPLATE_PATH = REPO_ROOT / ".agent-skills" / "init-docs" / "templates" / "spec-templates.md"
 
 
@@ -37,8 +35,8 @@ def test_design_skill_prohibits_hard_coverage_gates_in_test_plans():
 
 
 def test_plan_docs_use_scenario_ids_for_bdd_gate_examples():
-    plan_template = _read(PLAN_TEMPLATE_PATH)
-    init_template = _read(INIT_PLAN_TEMPLATE_PATH)
+    plan_template = _read(SPEC_TEMPLATE_PATH)
+    init_template = _read(INIT_SPEC_TEMPLATE_PATH)
 
     assert "BDD-Gate: 验证 E2E.P0.001 通过" in plan_template
     assert "BDD-Gate: 验证 E2E.P0.001 通过" in init_template
@@ -48,12 +46,10 @@ def test_plan_docs_use_scenario_ids_for_bdd_gate_examples():
 
 def test_design_skill_generates_bdd_plan_and_checklist_together():
     text = _read(SKILL_PATH)
-    plan_template = _read(PLAN_TEMPLATE_PATH)
     spec_template = _read(SPEC_TEMPLATE_PATH)
 
     assert "generate bdd-plan.md and bdd-checklist.md" in text
     assert "add `bddPlan` and `bddChecklist` to context.yaml" in text
-    assert "bdd-checklist.md" in plan_template
     assert "bdd-checklist.md" in spec_template
 
 
@@ -75,8 +71,8 @@ def test_spec_templates_include_user_decision_section():
 
 
 def test_plan_templates_prohibit_hard_coverage_threshold_items():
-    plan_template = _read(PLAN_TEMPLATE_PATH)
-    init_template = _read(INIT_PLAN_TEMPLATE_PATH)
+    plan_template = _read(SPEC_TEMPLATE_PATH)
+    init_template = _read(INIT_SPEC_TEMPLATE_PATH)
 
     assert "coverage >= N%" not in plan_template
     assert "覆盖率 ≥ N%" not in init_template

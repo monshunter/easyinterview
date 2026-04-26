@@ -1,6 +1,6 @@
 # Decompose Subspecs Checklist
 
-> **版本**: 1.3
+> **版本**: 1.5
 > **状态**: active
 > **更新日期**: 2026-04-26
 
@@ -19,8 +19,9 @@
 
 - [x] 2.1 spawn `repo-scaffold`：spec.md + history.md + plans 脚手架 + 至少 1 个 plan / checklist / context.yaml
 - [x] 2.2 spawn `shared-conventions-codified`：spec.md + history.md + plans 脚手架 + 至少 1 个 plan
-- [x] 2.3 W0 收口验证：A1 / B1 docs 结构完整（spec + history + plans/{README,TEMPLATES,INDEX} + 001-bootstrap 三件套）；`validate_context.py --target docs` 对 A1 / B1 / engineering-roadmap 三个 context.yaml 全部通过；A1 / B1 bootstrap 实现（make 占位 / Go module / TS lib / generator）随后由各自 child 的 `/implement` 继续推进，W1 末闭合 spec C-2；`make dev-up` 延后到 A2/W1 gate
+- [x] 2.3 W0 收口验证：A1 / B1 docs 结构完整（spec + history + plans/INDEX.md + 001-bootstrap 三件套），plan 规则统一引用 `docs/spec/README.md`，plan / checklist / context 模板统一引用 `docs/spec/TEMPLATES.md`；`validate_context.py --target docs` 对 A1 / B1 / engineering-roadmap 三个 context.yaml 全部通过；A1 / B1 bootstrap 实现（make 占位 / Go module / TS lib / generator）随后由各自 child 的 `/implement` 继续推进，W1 末闭合 spec C-2；`make dev-up` 延后到 A2/W1 gate
 - [x] 2.4 `docs/spec/INDEX.md` 中 A1 / B1 两行由占位切换为指向真实 `spec.md` 的链接，状态 `active`、版本 1.0、更新日期 2026-04-26
+- [x] 2.5 W0 脚手架结构修复：移除已生成的 `docs/spec/*/plans/README.md` 与 `docs/spec/*/plans/TEMPLATES.md`，并同步 `init-docs` / `create-doc` / `design` skill 与契约测试，防止后续 child subspec spawn 再次复制局部规则或模板
 
 ## Phase 3: Wave 1（基础设施 + 契约骨架）
 

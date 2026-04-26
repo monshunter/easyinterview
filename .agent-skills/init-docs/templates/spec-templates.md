@@ -7,8 +7,6 @@ docs/spec/${subspec}/
 ├── spec.md
 ├── history.md
 └── plans/
-    ├── README.md
-    ├── TEMPLATES.md
     ├── INDEX.md
     └── ${NNN-plan}/
         ├── context.yaml
@@ -93,7 +91,7 @@ docs/spec/${subspec}/
 
 ## 4 `plan.md` 模板
 
-`plans/README.md`、`plans/TEMPLATES.md`、`plans/INDEX.md` 使用 `/init-docs` 的 `subspec-plans-*` 模板生成，作用域只限当前 `subspec`。
+`plans/INDEX.md` 使用 `/init-docs` 的 `subspec-plans` scaffold 生成，作用域只限当前 `subspec`。plan / checklist / context / BDD 模板集中维护在本文，禁止复制到每个 `plans/` 目录。
 
 ```markdown
 # ${Plan Name}

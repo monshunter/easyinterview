@@ -90,7 +90,7 @@ docs/spec/${subspec}/
 - `bdd-plan.md` (optional) - BDD scenario plan
 - `bdd-checklist.md` (optional) - BDD scenario asset and execution checklist
 
-If `docs/spec/${subspec}/plans/README.md`, `TEMPLATES.md`, or `INDEX.md` is missing, initialize those files from `/init-docs` `subspec-plans-*` templates before creating the plan directory.
+If `docs/spec/${subspec}/plans/INDEX.md` is missing, initialize it from `/init-docs` `subspec-plans` scaffold before creating the plan directory. Do not create `docs/spec/${subspec}/plans/README.md` or `docs/spec/${subspec}/plans/TEMPLATES.md`; plan rules are centralized in `docs/spec/README.md`, and spec, plan, checklist, context, and BDD templates are centralized in `docs/spec/TEMPLATES.md`.
 
 **context.yaml** must be generated with the plan. Minimal template lives in `docs/spec/TEMPLATES.md`.
 

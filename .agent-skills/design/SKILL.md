@@ -116,7 +116,7 @@ owns the repository's document creation mechanics.
 - Plan path: `docs/spec/{subspec}/plans/{NNN-plan}/plan.md`
 - Checklist path: `docs/spec/{subspec}/plans/{NNN-plan}/checklist.md`
 - Template source: `docs/spec/TEMPLATES.md` plan/checklist sections
-- Ensure `docs/spec/{subspec}/plans/README.md`, `TEMPLATES.md`, and `INDEX.md` exist using `/init-docs` `subspec-plans-*` templates before writing the first plan for a subject
+- Ensure `docs/spec/{subspec}/plans/INDEX.md` exists using `/init-docs` `subspec-plans` scaffold before writing the first plan for a subject; do not create local `plans/README.md` or `plans/TEMPLATES.md`
 - When BDD is needed: add `BDD-Gate:` items at the end of each behavior phase per `docs/spec/TEMPLATES.md`, using scenario IDs from `bdd-plan.md`; track scenario asset readiness and execution in `bdd-checklist.md`
 - Phase design must follow the phase closability principle from spec 4.4:
   each behavior phase is a vertical behavior slice that can be independently deployed and verified

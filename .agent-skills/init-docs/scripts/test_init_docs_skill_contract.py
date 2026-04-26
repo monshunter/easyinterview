@@ -61,8 +61,6 @@ def test_init_docs_template_resources_include_split_assets():
     expected = [
         "work-journal-templates.md",
         "spec-templates.md",
-        "subspec-plans-readme.md",
-        "subspec-plans-templates.md",
         "subspec-plans-index.md",
         "reports-templates.md",
         "apis-templates.md",
@@ -78,10 +76,23 @@ def test_new_project_scaffold_omits_plan_projection_assets():
     text = _read(SKILL_PATH)
 
     assert not (DOC_ROOT / "plan").exists()
-    assert (INIT_TEMPLATE_ROOT / "subspec-plans-readme.md").exists()
-    assert (INIT_TEMPLATE_ROOT / "subspec-plans-templates.md").exists()
     assert (INIT_TEMPLATE_ROOT / "subspec-plans-index.md").exists()
     assert "top-level `docs/plan/`" in text
+    assert "plan templates live only in `docs/spec/TEMPLATES.md`" in text
+    assert "plan rules live in `docs/spec/README.md`" in text
+
+
+def test_subspec_plan_scaffold_uses_central_spec_rules_and_templates():
+    text = _read(SKILL_PATH)
+
+    assert not (INIT_TEMPLATE_ROOT / "subspec-plans-readme.md").exists()
+    assert not (INIT_TEMPLATE_ROOT / "subspec-plans-templates.md").exists()
+    assert "plans/README.md" not in text
+    assert "plans/TEMPLATES.md" not in text
+    assert "docs/spec/README.md" in text
+    assert "docs/spec/TEMPLATES.md" in text
+    assert not list((DOC_ROOT / "spec").glob("*/plans/README.md"))
+    assert not list((DOC_ROOT / "spec").glob("*/plans/TEMPLATES.md"))
 
 
 # --- Phase 7.1: test-framework scaffold ---
@@ -130,9 +141,8 @@ def test_plan_scaffold_prohibits_hard_coverage_threshold_gates():
 def test_bdd_checklist_templates_are_declared_in_spec_scaffolds():
     spec_template = _read(DOC_ROOT / "spec" / "TEMPLATES.md")
     init_spec_template = _read(INIT_TEMPLATE_ROOT / "spec-templates.md")
-    plans_template = _read(INIT_TEMPLATE_ROOT / "subspec-plans-templates.md")
 
-    for text in (spec_template, init_spec_template, plans_template):
+    for text in (spec_template, init_spec_template):
         assert "bdd-plan.md" in text
         assert "bdd-checklist.md" in text
         assert "BDD-Gate" in text

@@ -11,8 +11,6 @@ docs/spec/
     ├── spec.md
     ├── history.md
     └── plans/
-        ├── README.md
-        ├── TEMPLATES.md
         ├── INDEX.md
         └── ${NNN-plan}/
             ├── context.yaml
@@ -30,7 +28,7 @@ docs/spec/
 2. **边界清晰**：一个 plan 只覆盖一个可独立实施/验证的目标。
 3. **成对创建**：每个 `plan.md` 必须有对应 `checklist.md`。
 4. **Context 必填**：每个 plan 目录必须有 `context.yaml`，作为 `/implement`、`/plan-review`、`/plan-code-review` 的入口。
-5. **局部计划索引**：每个 `plans/` 目录必须有自己的 `README.md`、`TEMPLATES.md`、`INDEX.md`。
+5. **局部计划索引**：每个 `plans/` 目录只保留 `INDEX.md`；规则与模板统一使用 `docs/spec/README.md` 和 `docs/spec/TEMPLATES.md`。
 6. **索引投影**：`docs/spec/INDEX.md` 和 `docs/spec/${subspec}/plans/INDEX.md` 只反映 Header，不作为状态真理源。
 7. **原地修订**：同主题后续修订优先原地更新原 spec 和原 plan，不创建同主题 sibling bugfix/follow-up。
 
@@ -92,4 +90,5 @@ docs/spec/
 
 协作前必须先阅读本目录 `README.md` 的命名与状态规则。
 起草或修改正文时，必须参考同目录 `TEMPLATES.md`。
+创建或修改 plan 时，不得在 `docs/spec/${subspec}/plans/` 下复制 `README.md` 或 `TEMPLATES.md`；统一参考本目录 `README.md` 与 `TEMPLATES.md`。
 不得把 `README.md` 当作可复制模板。

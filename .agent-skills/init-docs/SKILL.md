@@ -30,8 +30,6 @@ docs/
 │       ├── spec.md
 │       ├── history.md
 │       └── plans/
-│           ├── README.md                  # Plan rules scoped to this subspec
-│           ├── TEMPLATES.md               # Plan/checklist/context templates for this subspec
 │           ├── INDEX.md                   # Plan index scoped to this subspec
 │           └── ${NNN-plan}/
 │               ├── context.yaml
@@ -83,7 +81,7 @@ For each subdirectory, create README.md, `TEMPLATES.md` (when applicable), and I
 | `docs/` | [docs-readme.md](./templates/docs-readme.md) | N/A | N/A |
 | `work-journal/` | [work-journal-readme.md](./templates/work-journal-readme.md) | [work-journal-templates.md](./templates/work-journal-templates.md) | [work-journal-index.md](./templates/work-journal-index.md) |
 | `spec/` | [spec-readme.md](./templates/spec-readme.md) | [spec-templates.md](./templates/spec-templates.md) | [spec-index.md](./templates/spec-index.md) |
-| `spec/<subspec>/plans/` | [subspec-plans-readme.md](./templates/subspec-plans-readme.md) | [subspec-plans-templates.md](./templates/subspec-plans-templates.md) | [subspec-plans-index.md](./templates/subspec-plans-index.md) |
+| `spec/<subspec>/plans/` | N/A — use `docs/spec/README.md` | N/A — use `docs/spec/TEMPLATES.md` | [subspec-plans-index.md](./templates/subspec-plans-index.md) |
 | `reports/` | [reports-readme.md](./templates/reports-readme.md) | [reports-templates.md](./templates/reports-templates.md) | [reports-index.md](./templates/reports-index.md) |
 | `apis/` | [apis-readme.md](./templates/apis-readme.md) | [apis-templates.md](./templates/apis-templates.md) | [apis-index.md](./templates/apis-index.md) |
 | `discuss/` | [discuss-readme.md](./templates/discuss-readme.md) | [discuss-templates.md](./templates/discuss-templates.md) | [discuss-index.md](./templates/discuss-index.md) |
@@ -92,9 +90,9 @@ For each subdirectory, create README.md, `TEMPLATES.md` (when applicable), and I
 Template rule:
 
 - `docs/*/README.md` and the matching `*-readme.md` template must stay semantically aligned.
-- `docs/*/TEMPLATES.md` and the matching `*-templates.md` template must stay semantically aligned.
+- `docs/*/TEMPLATES.md` and the matching `*-templates.md` template must stay semantically aligned when the directory owns a local template asset.
 - New project scaffold 默认只输出当前项目契约，不应在 README 或 `TEMPLATES.md` 中混入历史兼容 patch 正文。
-- Latest flow is spec-centric: executable plans live under `docs/spec/<subspec>/plans/<NNN-plan>/`; plan README/TEMPLATES/INDEX live under `docs/spec/<subspec>/plans/`; do not create top-level `docs/plan/`.
+- Latest flow is spec-centric: executable plans live under `docs/spec/<subspec>/plans/<NNN-plan>/`; only the per-subspec plan index lives under `docs/spec/<subspec>/plans/INDEX.md`; plan rules live in `docs/spec/README.md`; plan templates live only in `docs/spec/TEMPLATES.md`; do not create top-level `docs/plan/`.
 
 ### Step 4: Report results
 
@@ -108,7 +106,7 @@ User can specify which directories to initialize:
 - `work-journal` - Only the work-journal directory
 - `spec` - Only the spec directory
 - `minimal` - Only work-journal and spec
-- `subspec-plans` - Only the per-subspec `plans/` README/TEMPLATES/INDEX scaffold when a subject is created
+- `subspec-plans` - Only the per-subspec `plans/INDEX.md` scaffold when a subject is created
 - `test-framework` - Scaffold `test/scenarios/` framework directory
 
 ## Existing Files
