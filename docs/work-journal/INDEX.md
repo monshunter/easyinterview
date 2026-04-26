@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-26](2026-04-26.md) | `feat(ui): import easyinterview UI prototype` | #feat #ui |
 | [2026-04-26](2026-04-26.md) | `docs(spec): import product spec and P0/P1 technical docs` | #docs |
 | [2026-04-26](2026-04-26.md) | `docs(skeleton): initialize project documentation directories` | #docs |
 | [2026-04-26](2026-04-26.md) | `chore(governance): bootstrap agent governance and shared skills` | #chore |
