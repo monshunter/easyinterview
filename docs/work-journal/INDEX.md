@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-26](2026-04-26.md) | `docs(spec): tighten repo-scaffold A1 scope and verification` | #docs |
 | [2026-04-26](2026-04-26.md) | `docs(spec): collapse per-subspec plan scaffold` | #docs |
 | [2026-04-26](2026-04-26.md) | `docs(spec): spawn W0 child subspecs repo-scaffold and shared-conventions-codified` | #docs |
 | [2026-04-26](2026-04-26.md) | `docs(spec): reconcile roadmap ADR decisions` | #docs |

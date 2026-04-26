@@ -9,7 +9,7 @@ metadata:
     from: null
     to: 1.0
 spec:
-  defaultTarget: docs
+  defaultTarget: repo
   discovery:
     aliases:
       - repo-scaffold
@@ -25,12 +25,23 @@ spec:
       - git hooks
       - bootstrap script
   targets:
-    docs:
+    repo:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
       discovery:
         packages:
-          - docs/spec/repo-scaffold
+          - backend
+          - frontend
+          - openapi
+          - migrations
+          - scripts
+          - test
+          - deploy
+          - Makefile
+          - README.md
+          - .editorconfig
+          - .gitignore
+          - .tool-versions
         uiRoutes: []
         apiNames: []

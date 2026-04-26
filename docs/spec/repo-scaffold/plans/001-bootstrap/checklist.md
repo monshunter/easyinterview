@@ -8,7 +8,7 @@
 
 ## Phase 1: 根目录与配置文件
 
-- [ ] 1.1 创建 7 个根容器目录（`backend/` / `frontend/` / `openapi/` / `migrations/` / `scripts/` / `test/` / `deploy/`），每个目录补 `README.md`（1 行说明 + owner subspec 链接）；保留现有 `test/scenarios/`
+- [ ] 1.1 创建 7 个根容器目录（`backend/` / `frontend/` / `openapi/` / `migrations/` / `scripts/` / `test/` / `deploy/`），每个目录补 `README.md`（1 行说明 + owner subspec 链接）；A1 只创建 `test/README.md`，如 `test/scenarios/` 已存在则保留且不初始化 scenarios 框架
 - [ ] 1.2 写入根 `.editorconfig`（UTF-8 / LF / 末行换行 / Go Tab=4 / 其余 Space=2）
 - [ ] 1.3 写入根 `.gitignore`（覆盖 Go / Node / Python / IDE / OS / build artifacts）
 - [ ] 1.4 写入根 `.tool-versions`（声明 `golang` / `nodejs` / `pnpm` / `python` 字段与版本号）
@@ -24,4 +24,4 @@
 
 - [ ] 3.1 在干净仓库跑 `make help` / `fmt` / `lint` / `test` / `build` / `dev-up` / `dev-down` / `codegen` / `migrate`，9 条命令全部 `exit 0`
 - [ ] 3.2 跑 `make install-hooks`，确认 `.git/hooks/pre-commit` 与 `commit-msg` 为指向 `scripts/git-hooks/` 的符号链接；重复执行幂等
-- [ ] 3.3 更新 `docs/spec/INDEX.md` 中 `repo-scaffold` 行为真实链接 + 真实状态；同步 `engineering-roadmap/001-decompose-subspecs/checklist.md` Phase 2.1 勾选与备注
+- [ ] 3.3 运行共享 `context.yaml` validator 确认 `repo` target 解析通过；运行 `/sync-doc-index --check` 确认 `docs/spec/INDEX.md` 与 `docs/spec/repo-scaffold/plans/INDEX.md` 对 Header 无 drift；不重复修改父 roadmap checklist

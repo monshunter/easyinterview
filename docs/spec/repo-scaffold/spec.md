@@ -25,7 +25,7 @@
 
 ### 2.1 In Scope
 
-- 仓库根目录结构：`backend/`、`frontend/`、`openapi/`、`migrations/`、`scripts/`、`test/`、`deploy/` 等顶层目录的语义边界与 README 占位。
+- 仓库根目录结构：`backend/`、`frontend/`、`openapi/`、`migrations/`、`scripts/`、`test/`、`deploy/` 7 个顶层目录的语义边界与 README 占位；A1 只创建 `test/README.md`，不创建 `test/scenarios/` 场景测试框架。
 - 顶层 `Makefile`：`help` / `fmt` / `lint` / `test` / `build` / `dev-up` 等 phony target 的命名与最小占位实现（占位实现可以仅打印 "TODO: implemented by <child>"）。
 - 顶层配置文件：`.editorconfig`、`.tool-versions`、`.gitignore` 的最小内容与编辑约束。
 - Git hooks：`scripts/git-hooks/` 目录的占位骨架与 `make install-hooks` target；具体 lint / commit-msg 规则由 B1 / A5 在后续 plan 加挂。
@@ -40,6 +40,7 @@
 - OpenAPI codegen 入口、fixtures 拆分：归 B2 `openapi-v1-contract`。
 - Helm chart / Kind cluster / staging 部署：归 A2、E4。
 - AI Gateway、secrets 管理：归 A3 / A4。
+- `test/scenarios/` 场景测试框架目录与场景资产：归 E2 `e2e-scenarios-p0` 与 `/scenario-*` 流程。
 - 业务代码与领域模块目录（`backend/internal/auth/...`、`frontend/src/features/...`）：仅锁定根级容器目录名，业务子目录由对应 child subspec 创建。
 
 ## 3 用户决策 / 待确认事项
@@ -55,7 +56,7 @@
 
 ### 3.2 待确认事项
 
-- 是否引入 `go.work` 多 module 模式：默认单 module（`backend/` 一个 `go.mod`）；如 W2 出现需要拆 module（例如把 `migrations/` 独立成 cmd），由 001-bootstrap plan 在执行阶段视情况升级，并回填到 spec D-2。
+- 是否引入 `go.work` 多 module 模式：A1 默认不创建 `go.work` 或 `go.mod`；如 W2 出现需要拆 module（例如把 `migrations/` 独立成 cmd），由 B1 `shared-conventions-codified` 修订后再落地。
 - 顶层是否接入 `pre-commit` 框架（python-based）vs 纯 shell hooks：默认纯 shell，B1 / A5 接管时可重审。
 
 ## 4 设计约束
@@ -63,7 +64,7 @@
 ### 4.1 结构约束
 
 - 顶层目录数量保持稳定，新增根目录必须先在本 spec §3.1 表中登记。
-- 任何 child plan 不得创建 `backend/` / `frontend/` / `openapi/` / `migrations/` 之外的平行业务根目录。
+- 任何 child plan 不得创建 D-1 锁定的 7 个根容器之外的平行业务根目录。
 - README 占位采用统一模板：1 行说明 + 1 行 owner subspec 链接，避免空目录。
 
 ### 4.2 工具链约束
@@ -93,7 +94,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 根目录 spawn | 空仓库（除 docs/ 与 AGENTS.md 之外没有 backend/ frontend/ 等根目录） | 执行 001-bootstrap plan 全部 checklist | 7 个根容器目录、根 Makefile、`.editorconfig`、`.tool-versions`、`scripts/git-hooks/` 全部存在；`make help` 成功列出所有 target | 001-bootstrap |
+| C-1 | 根目录 spawn | 当前 worktree 尚未落地 A1 根容器目录（除 docs/、AGENTS.md、原型和输入资料外没有 backend/ frontend/ 等根目录） | 执行 001-bootstrap plan 全部 checklist | 7 个根容器目录、根 Makefile、`.editorconfig`、`.tool-versions`、`scripts/git-hooks/` 全部存在；`test/README.md` 存在且不创建 `test/scenarios/`；`make help` 成功列出所有 target | 001-bootstrap |
 | C-2 | 占位 target 不阻塞 | 根 Makefile 已落地 | 在空环境跑 `make fmt` / `make lint` / `make test` / `make build` | 全部 exit 0；缺失工具时打印 "TODO: implemented by <child>" 并以 0 退出 | 001-bootstrap |
 | C-3 | git hooks 安装 | 根仓库 clone 后 | 执行 `make install-hooks` | `.git/hooks/pre-commit`、`.git/hooks/commit-msg` 链接到 `scripts/git-hooks/` 下文件；不修改其它 hook | 001-bootstrap |
 | C-4 | 工具版本声明 | `.tool-versions` 已落地 | `asdf install`（或等价的 mise / nvm）按文件读取 | Go / Node / pnpm / Python 各能解析出锁定的最低版本 | 001-bootstrap |

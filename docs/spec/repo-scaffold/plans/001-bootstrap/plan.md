@@ -25,7 +25,7 @@
 
 #### 1.1 7 个根容器目录与占位 README
 
-创建 `backend/`、`frontend/`、`openapi/`、`migrations/`、`scripts/`、`test/`、`deploy/` 共 7 个根目录，每个目录写入 `README.md`：1 行说明 + 1 行 owner subspec 链接（指向对应 child spec 占位行）。其中 `test/scenarios/` 已存在，仅需补 `test/README.md` 不覆盖现有 scenarios 框架文档。
+创建 `backend/`、`frontend/`、`openapi/`、`migrations/`、`scripts/`、`test/`、`deploy/` 共 7 个根目录，每个目录写入 `README.md`：1 行说明 + 1 行 owner subspec 链接（指向对应 child spec 占位行）。A1 只创建 `test/README.md`；如 `test/scenarios/` 已存在则必须保留，不在本 plan 中创建或初始化 scenarios 框架。
 
 #### 1.2 根 `.editorconfig` / `.gitignore` / `.tool-versions`
 
@@ -67,15 +67,15 @@
 
 在 worktree 内执行 `make install-hooks`，确认 `.git/hooks/pre-commit` 与 `.git/hooks/commit-msg` 出现且为指向 `scripts/git-hooks/` 的符号链接；删除链接后再次跑 `make install-hooks` 必须幂等。
 
-#### 3.3 文档同步
+#### 3.3 文档一致性自检
 
-更新 [engineering-roadmap/001-decompose-subspecs/checklist.md](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) Phase 2 的 2.1 / 2.3 / 2.4；同步 `docs/spec/INDEX.md` 的 `repo-scaffold` 行从占位切到真实链接。
+运行共享 `context.yaml` validator，确认本 plan 的 `repo` target 解析到 `spec` / `plan` / `checklist` 三件套；运行 `/sync-doc-index --check`，确认 `docs/spec/INDEX.md` 与 `docs/spec/repo-scaffold/plans/INDEX.md` 对 Header 无 drift。父 roadmap Phase 2 的 spawn / index 收口已经由 `engineering-roadmap/001-decompose-subspecs` owner 完成，本 plan 不再修改父 owner 文档。
 
 ## 4 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-4 全部成立。
 - 本 plan checklist 全部勾选；Phase 3 的 `make` 自检命令日志贴入工作日志。
-- engineering-roadmap/001 Phase 2 checklist 中的 2.1（spawn repo-scaffold）项可由本 plan 完结状态作为证据。
+- engineering-roadmap/001 Phase 2 的 spawn / index 收口已完成；本 plan 只提供 A1 仓库脚手架实现与验证证据，不重复修改父 roadmap checklist。
 
 ## 5 风险与应对
 
