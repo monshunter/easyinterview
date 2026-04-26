@@ -28,7 +28,8 @@ TS_SRC_ROOT = ROOT / "frontend" / "src"
 
 ERROR_CODE_RE = re.compile(r"^[A-Z][A-Z0-9_]+$")
 GO_CONST_RE = re.compile(r'\bCode([A-Za-z0-9]+)\s*=\s*"([^"]+)"')
-TS_ENTRY_RE = re.compile(r"^\s+([A-Z][A-Z0-9_]*)\s*:\s*'([^']+)'\s*,?\s*$", re.MULTILINE)
+TS_OBJECT_RE = re.compile(r"\bERROR_CODES\s*=\s*\{(?P<body>.*?)\}\s*as\s+const", re.DOTALL)
+TS_ENTRY_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*'([^']+)'\s*$")
 TS_BOUNDARY_RE = re.compile(r"\bERROR_CODES\s*=\s*\{")
 
 
@@ -54,11 +55,16 @@ def check_ts_codes() -> list[str]:
     if not TS_CODES.exists():
         return [f"missing {TS_CODES.relative_to(ROOT)}"]
     src = TS_CODES.read_text(encoding="utf-8")
-    matches = TS_ENTRY_RE.findall(src)
-    if not matches:
+    matches, parse_errs = parse_ts_error_entries(src)
+    errs.extend(parse_errs)
+    if not matches and not parse_errs:
         errs.append(f"{TS_CODES.relative_to(ROOT)}: no ERROR_CODES entries found")
         return errs
     for key, value in matches:
+        if not ERROR_CODE_RE.match(key):
+            errs.append(
+                f"{TS_CODES.relative_to(ROOT)}: ERROR_CODES key {key!r} is not UPPER_SNAKE_CASE"
+            )
         if not ERROR_CODE_RE.match(value):
             errs.append(
                 f"{TS_CODES.relative_to(ROOT)}: ERROR_CODES.{key} = {value!r} is not UPPER_SNAKE_CASE"
@@ -68,6 +74,29 @@ def check_ts_codes() -> list[str]:
                 f"{TS_CODES.relative_to(ROOT)}: ERROR_CODES key {key!r} != value {value!r}"
             )
     return errs
+
+
+def parse_ts_error_entries(src: str) -> tuple[list[tuple[str, str]], list[str]]:
+    match = TS_OBJECT_RE.search(src)
+    if not match:
+        return [], [f"{TS_CODES.relative_to(ROOT)}: ERROR_CODES object not found"]
+
+    entries: list[tuple[str, str]] = []
+    errs: list[str] = []
+    for lineno, raw in enumerate(match.group("body").splitlines(), start=1):
+        line = raw.strip()
+        if not line or line.startswith("//"):
+            continue
+        if line.endswith(","):
+            line = line[:-1].rstrip()
+        entry = TS_ENTRY_RE.match(line)
+        if not entry:
+            errs.append(
+                f"{TS_CODES.relative_to(ROOT)}: unparseable ERROR_CODES entry near object line {lineno}: {raw.strip()!r}"
+            )
+            continue
+        entries.append((entry.group(1), entry.group(2)))
+    return entries, errs
 
 
 def check_ts_boundary() -> list[str]:
@@ -99,7 +128,8 @@ def main() -> int:
             print(f"FAIL: {e}", file=sys.stderr)
         return 1
     go_count = len(GO_CONST_RE.findall(GO_CODES.read_text(encoding="utf-8")))
-    ts_count = len(TS_ENTRY_RE.findall(TS_CODES.read_text(encoding="utf-8")))
+    ts_entries, _ = parse_ts_error_entries(TS_CODES.read_text(encoding="utf-8"))
+    ts_count = len(ts_entries)
     print(
         f"OK: {go_count} Go constants, {ts_count} TS entries; boundary clean"
     )

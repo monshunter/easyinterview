@@ -17,11 +17,13 @@
 - [x] 2.2 在 `backend/internal/shared/idx/` 实现 `NewID()` (UUIDv7) 与 `RequireServerID()`（拒绝 `tmp_` 前缀）；在 `backend/internal/shared/errors/` 实现 `APIError struct` 与 `Wrap()` helper
 - [x] 2.3 落地 `frontend/package.json`（name `@easyinterview/frontend`、私有、`build`/`lint`/`test` script 占位，依赖 `uuid >=10`）+ 仓库根 `pnpm-workspace.yaml`
 - [x] 2.4 在 `frontend/src/lib/{conventions,ids}/` 创建占位 `index.ts`，并实现 `requireServerId()`、`newId()`（UUIDv7）、`Idempotency-Key` 24h TTL 工具
+- [x] 2.5 L2 remediation: TS `parseIdempotencyKey` 拒绝指数 / 十六进制 / 空白等非十进制时间戳，保持与 Go `ParseIdempotencyKey` 的 wire-format 校验一致
 
 ## Phase 3: Lint 与命名约束
 
 - [x] 3.1 落地 `backend/.golangci.yml`（启用 `revive var-naming`）+ 本地可执行错误码校验，确保 `make lint` 能拦截非 `UPPER_SNAKE_CASE` 错误码
 - [x] 3.2 落地 `frontend/.eslintrc.cjs`（或 `eslint.config.js`）+ 本地可执行边界校验，拒绝在 `lib/conventions/errors.ts` 之外定义错误码字面量
+- [x] 3.3 L2 remediation: `scripts/lint/error_codes.py` 必须拒绝 `ERROR_CODES` 对象内任何小写 / 非法 key 或 value，不能因正则只匹配合法条目而漏报
 
 ## Phase 4: Verification
 
@@ -29,3 +31,4 @@
 - [x] 4.2 `go test ./backend/internal/shared/...` 与 `go vet ./backend/...` 通过；`idx_test.go` / `errors_test.go` 覆盖 spec C-3 / 错误响应结构
 - [x] 4.3 `pnpm --filter @easyinterview/frontend exec tsc --noEmit` 通过；最小 vitest / node:test 用例覆盖 `requireServerId('tmp_x')` 抛错与枚举 union 类型
 - [x] 4.4 确认 `docs/spec/INDEX.md` 中 `shared-conventions-codified` 行为真实链接 + 真实状态；不改写已经完成的 `engineering-roadmap/001-decompose-subspecs` Phase 2 spawn 项；将 generator / Go test / TS test 输出贴入工作日志
+- [x] 4.5 L2 remediation: 仓库根级 `go test ./backend/internal/shared/...` 与 `go vet ./backend/...` 必须真实通过，不依赖手动切换到 `backend/`

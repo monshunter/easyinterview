@@ -8,6 +8,8 @@ import { IDEMPOTENCY_KEY_TTL_SECONDS } from './pagination';
 /** Wire-format version. Bumping signals an incompatible format change. */
 export const IDEMPOTENCY_KEY_VERSION = 'v1';
 
+const DECIMAL_UNIX_SECONDS = /^\d+$/;
+
 export interface IdempotencyKey {
   version: string;
   issuedAt: Date;
@@ -43,9 +45,12 @@ export function parseIdempotencyKey(raw: string): IdempotencyKey {
   if (version !== IDEMPOTENCY_KEY_VERSION) {
     throw new Error(`parseIdempotencyKey: version ${version} (only ${IDEMPOTENCY_KEY_VERSION} accepted)`);
   }
+  if (!DECIMAL_UNIX_SECONDS.test(unixStr)) {
+    throw new Error(`parseIdempotencyKey: timestamp not decimal Unix seconds: ${unixStr}`);
+  }
   const unixSec = Number(unixStr);
-  if (!Number.isInteger(unixSec)) {
-    throw new Error(`parseIdempotencyKey: timestamp not numeric: ${unixStr}`);
+  if (!Number.isSafeInteger(unixSec)) {
+    throw new Error(`parseIdempotencyKey: timestamp outside safe integer range: ${unixStr}`);
   }
   // requireServerId throws on tmp_ prefix and on non-UUIDv7 strings, dual to Go side.
   requireServerId(uuid);

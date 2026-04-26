@@ -53,6 +53,7 @@
 - 在 `frontend/src/lib/conventions/` 与 `frontend/src/lib/ids/` 下创建占位 `index.ts`，由 generator 写入实际内容。
 - `frontend/src/lib/ids/index.ts` 中手写 `requireServerId(s: string)` 与 `newId()`（基于 `uuid >=10` 的 UUIDv7 实现）。
 - `frontend/src/lib/conventions/idempotency.ts` 与 Go 端对偶：生成 24h TTL 的 `Idempotency-Key`（UUIDv7 + 时间戳头）。
+- L2 remediation: TS 端 `parseIdempotencyKey` 的时间戳解析必须与 Go 端 `strconv.ParseInt(..., 10, 64)` 的十进制语义保持一致，拒绝指数、十六进制、空白等非十进制秒数字符串。
 
 ### Phase 3: Lint 与命名约束
 
@@ -63,6 +64,8 @@
 #### 3.2 TS lint 与错误码边界
 
 在 `frontend/.eslintrc.cjs`（或 `eslint.config.js`）中加入最小可执行规则或脚本入口：拒绝在 `frontend/src/lib/conventions/errors.ts` 之外定义错误码字面量；约束错误码必须 `UPPER_SNAKE_CASE`。D1 可在前端壳 plan 中扩展 ESLint 体系，但不得放宽 B1 的错误码边界。
+
+L2 remediation: `scripts/lint/error_codes.py` 必须解析 `ERROR_CODES = { ... }` 内的全部条目并拒绝任何非 `UPPER_SNAKE_CASE` 的 key/value，不能只匹配已经合法的条目。
 
 ### Phase 4: Verification
 
@@ -77,6 +80,7 @@
   - `idx_test.go` 验证 `NewID()` 返回 UUIDv7 字符串、`RequireServerID("tmp_xxx")` 返回 error。
   - `errors_test.go` 验证 `Wrap(...)` 输出 JSON 满足 [00-shared-conventions.md §3.2](../../../../easyinterview-tech-docs/00-shared-conventions.md#32-错误响应) 结构。
 - `go vet ./backend/...` 通过。
+- L2 remediation: 仓库根必须提供 Go workspace 或等价入口，使上述根级 `go test ./backend/...` / `go vet ./backend/...` 命令无需手动 `cd backend` 即可真实运行。
 
 #### 4.3 TS test 自检
 

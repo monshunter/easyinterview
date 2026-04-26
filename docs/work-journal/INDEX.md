@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-27](2026-04-27.md) | `fix(shared-conventions): tighten ts decimal parse, error-code lint, and add go.work` | #fix |
 | [2026-04-27](2026-04-27.md) | `docs(reports): land shared-conventions-codified/001-bootstrap delivery retrospective` | #docs |
 | [2026-04-27](2026-04-27.md) | `docs(shared-conventions): close 001-bootstrap plan lifecycle to completed` | #docs |
 | [2026-04-27](2026-04-27.md) | `test(shared-conventions): wire ts test runner and verify cross-language helpers` | #test |

@@ -31,6 +31,10 @@ describe('parseIdempotencyKey', () => {
     ['v1.123', 'two-parts'],
     ['v0.123.0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e', 'bad-version'],
     ['v1.notnum.0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e', 'bad-timestamp'],
+    ['v1.1e3.0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e', 'exponent-timestamp'],
+    ['v1.0x10.0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e', 'hex-timestamp'],
+    ['v1. 123.0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e', 'spaced-timestamp'],
+    ['v1..0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e', 'empty-timestamp'],
     ['v1.123.not-a-uuid', 'bad-uuid'],
     ['v1.123.tmp_0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e', 'tmp-prefix'],
   ])('rejects %s case', (input) => {
