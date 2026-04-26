@@ -8,17 +8,17 @@
 
 ## Phase 1: 决策与冻结（W0 入口）
 
-- [ ] 1.1 5 项 W0 hard gate 决策完成（Q-1 认证 / Q-2 异步编排 / Q-3 分析平台 / Q-4 云部署 / Q-5 隐私节奏），每项产出一份 ADR
+- [ ] 1.1 5 项 W0 hard gate 决策完成（Q-1 认证 / Q-2 异步编排 / Q-3 分析平台 / Q-4 云部署 / Q-5 隐私节奏），每项在 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md` 产出一份 ADR
 - [ ] 1.2 spec §3.2 表中 5 项决策的最终结论同步更新（ADR 通过后回填）
-- [ ] 1.3 `docs/spec/INDEX.md` 中 38 行 child subspec 占位行齐全（按 Layer A-F × Phase P0/P1/P2 两轴分组，状态 `pending`，链接占位）
-- [ ] 1.4 顶层 `engineering-roadmap` spec 通过 `/plan-review`，反馈原地修订完毕
-- [ ] 1.5 验证 `docs/spec/INDEX.md` 与 `engineering-roadmap/spec.md` Header 一致（运行 `/sync-doc-index --check`）
+- [x] 1.3 `docs/spec/INDEX.md` 中 38 行 child subspec 占位行齐全（按 Layer A-F × Phase P0/P1/P2 两轴分组，状态 `pending`，链接占位）
+- [x] 1.4 顶层 `engineering-roadmap` spec 通过 `/plan-review`，反馈原地修订完毕
+- [x] 1.5 验证 `docs/spec/INDEX.md` 与 `engineering-roadmap/spec.md` Header 一致（运行 `/sync-doc-index --check`）
 
 ## Phase 2: Wave 0（共识与骨架）
 
 - [ ] 2.1 spawn `repo-scaffold`：spec.md + history.md + plans 脚手架 + 至少 1 个 plan / checklist / context.yaml
 - [ ] 2.2 spawn `shared-conventions-codified`：spec.md + history.md + plans 脚手架 + 至少 1 个 plan
-- [ ] 2.3 W0 收口验证：本地 `make dev-up` 一键起 docker-compose 全部健康检查通过
+- [ ] 2.3 W0 收口验证：A1 / B1 各自 checklist 与 `context.yaml` validator 通过；`make dev-up` 延后到 A2/W1 gate
 - [ ] 2.4 `docs/spec/INDEX.md` 中 A1 / B1 两行状态由 `pending` 调整为 `active`
 
 ## Phase 3: Wave 1（基础设施 + 契约骨架）
@@ -28,6 +28,7 @@
 - [ ] 3.3 B2 `openapi-v1-contract` 完成 v1.0.0 freeze（结构与字段名锁定，后续只允许 additive 变更）
 - [ ] 3.4 F1 `observability-stack` baseline 指标命名约定锁定
 - [ ] 3.5 F3 `prompt-rubric-registry` baseline prompt 模板（含 `feature_key + version`）就绪
+- [ ] 3.6 A2 `local-dev-stack` 完成 `make dev-up` 一键健康检查
 
 ## Phase 4: Wave 2（前后端 mock-first 并行）
 
@@ -57,13 +58,13 @@
 - [ ] 6.5 E2 全场景通过
 - [ ] 6.6 `04-metrics-observability.md` §15 最低上线门槛全勾
 - [ ] 6.7 E4 staging 灰度演练 + 回滚演练通过
-- [ ] 6.8 删除/导出最小通路可运行（即使 Q-5 选 P0 仅删除，导出至少要走通占位接口返回 202）
+- [ ] 6.8 Q-5 ADR 决定的 P0 隐私范围完成验证；若 Q-5 选择 P0 完整导出+删除，C12/F4 已在 W4 前升格并通过各自 gate
 - [ ] 6.9 P0 准入
 
 ## Phase 7: 收尾
 
 - [ ] 7.1 `engineering-roadmap` spec 状态由 `active` 调整为 `completed`（仅当 P0 全部上线）
-- [ ] 7.2 P1 child 占位 spec 创建：C9 / C10 / C11 / C12 / D5 / D6 / E3 / F4（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`）
-- [ ] 7.3 P2 child 占位行：C13 / C14 / D7 仅在 INDEX.md 占位（不创建目录）
+- [ ] 7.2 P1 child draft spec 创建：C9 / C10 / C11 / C12 / D5 / D6 / E3 / F4（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`）
+- [ ] 7.3 P2 child draft spec 创建：C13 / C14 / D7（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`），INDEX 行从占位切为真实链接
 - [ ] 7.4 触发 `/retrospective` 生成 P0 交付复盘报告
 - [ ] 7.5 同步 `docs/work-journal/INDEX.md` 与最近一条工作日志，记录 P0 收尾

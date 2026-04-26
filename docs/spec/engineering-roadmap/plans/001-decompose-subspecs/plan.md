@@ -9,7 +9,7 @@
 
 ## 1 目标
 
-把 [engineering-roadmap spec](../../spec.md) §5 列出的 6 层 38 份 child subspec 按 6 个 wave 完整 spawn，并保证每份 child 都有自己的 spec.md / plan / checklist / context.yaml 通过 `/plan-review`。本 plan 是 `engineering-roadmap` 的唯一 plan；其他治理类 plan（灰度发布、release gate、隐私链路）归入对应的 child（E4 `release-gate-and-rollout` / F4 `privacy-and-audit-runtime`），不堆在顶层。
+把 [engineering-roadmap spec](../../spec.md) §5 列出的 6 层 38 份 child subspec 按 6 个 wave 逐步落地：P0 child 必须完整 spawn 为 spec.md / plan / checklist / context.yaml 并通过 `/plan-review`；P1/P2 child 在 P0 收尾先创建最小 draft spec，占位进入 Wave 6+ 前再补齐 plan 链。本 plan 是 `engineering-roadmap` 的唯一 plan；其他治理类 plan（灰度发布、release gate、隐私链路）归入对应的 child（E4 `release-gate-and-rollout` / F4 `privacy-and-audit-runtime`），不堆在顶层。
 
 ## 2 背景
 
@@ -26,7 +26,7 @@
 
 #### 1.1 5 项 W0 hard gate 决策
 
-为 [spec §3.2](../../spec.md#32-w0-待决策事项hard-gate) 中 Q-1（认证）/ Q-2（异步编排）/ Q-3（分析平台）/ Q-4（云部署）/ Q-5（隐私节奏）每项产出一份 ADR。ADR 通过即视为决策锁定，本 plan 在 spec §3.2 表中同步更新最终结论。
+为 [spec §3.2](../../spec.md#32-w0-待决策事项hard-gate) 中 Q-1（认证）/ Q-2（异步编排）/ Q-3（分析平台）/ Q-4（云部署）/ Q-5（隐私节奏）每项产出一份 ADR。ADR 文件固定放在 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md`，通过即视为决策锁定，本 plan 在 spec §3.2 表中同步更新最终结论。
 
 #### 1.2 docs/spec/INDEX.md 占位 38 行
 
@@ -44,7 +44,7 @@
 
 #### 2.2 W0 收口验证
 
-执行 A1 与 B1 各自 plan 的 checklist；本地 `make dev-up` 一键起 docker-compose；通过 `docs/spec/INDEX.md` 中 A1 / B1 两行状态由 `pending` 调整为 `active`。
+执行 A1 与 B1 各自 plan 的 checklist；验证两份 child 的 `context.yaml` 可被共享 validator 解析；通过 `docs/spec/INDEX.md` 中 A1 / B1 两行状态由 `pending` 调整为 `active`。`make dev-up` 由 A2 `local-dev-stack` 在 W1 收口验证。
 
 ### Phase 3: Wave 1（基础设施 + 契约骨架）
 
@@ -54,7 +54,7 @@
 
 #### 3.2 W1 collective gate
 
-9 份 spec 同时通过 `/plan-review`（建议批量发起，集中讨论 cross-spec 一致性）；B2 `openapi-v1-contract` 完成 v1.0.0 freeze（结构与字段名锁定，后续只允许 additive 变更）。
+9 份 spec 同时通过 `/plan-review`（建议批量发起，集中讨论 cross-spec 一致性）；A2 `local-dev-stack` 完成 `make dev-up` 一键健康检查；B2 `openapi-v1-contract` 完成 v1.0.0 freeze（结构与字段名锁定，后续只允许 additive 变更）。
 
 ### Phase 4: Wave 2（前后端 mock-first 并行）
 
@@ -94,7 +94,7 @@ E2 `e2e-scenarios-p0` 创建跨前后端的 P0 主漏斗 BDD；E4 `release-gate-
 
 #### 6.3 W4 + W5 collective gate
 
-E2 全场景通过；`04-metrics-observability.md` §15 最低上线门槛全勾；E4 staging 灰度演练 + 回滚演练通过；删除/导出最小通路可运行；P0 准入。
+E2 全场景通过；`04-metrics-observability.md` §15 最低上线门槛全勾；E4 staging 灰度演练 + 回滚演练通过；Q-5 ADR 决定的 P0 隐私范围完成验证（若 Q-5 选择 P0 完整导出+删除，则 C12/F4 必须在 W4 前升格并通过各自 gate）；P0 准入。
 
 ### Phase 7: 收尾
 
@@ -102,9 +102,9 @@ E2 全场景通过；`04-metrics-observability.md` §15 最低上线门槛全勾
 
 `engineering-roadmap` spec 状态由 `active` 调整为 `completed`（仅当 P0 全部上线）。本 plan 状态保持 `active` 直到 P1 child 全部 spawn。
 
-#### 7.2 P1 / P2 child 占位
+#### 7.2 P1 / P2 child draft
 
-为 C9-C12（P1 后端 4 份）、D5-D6（P1 前端 2 份）、E3 `e2e-scenarios-p1`、F4 `privacy-and-audit-runtime` 创建空壳 spec.md（只含 §1 §2 §3 §7，标 `状态: draft`）；为 C13/C14（P2）、D7（P2）创建占位行（不创建目录）。
+为 C9-C12（P1 后端 4 份）、D5-D6（P1 前端 2 份）、E3 `e2e-scenarios-p1`、F4 `privacy-and-audit-runtime` 创建 draft spec.md（只含 §1 §2 §3 §7，标 `状态: draft`）；为 C13/C14（P2）、D7（P2）也创建同等最小 draft spec.md，避免 P2 只停留在 INDEX 占位。
 
 #### 7.3 交付复盘
 
