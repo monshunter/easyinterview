@@ -1,3 +1,84 @@
+# ── Build artifacts ──────────────────────────────────────────────
+bin/
+dist/
+build/
+out/
+target/
+*.exe
+*.test
+*.out
+coverage.out
+coverage.txt
+*.cover
+
+# ── Go ───────────────────────────────────────────────────────────
+*.exe~
+*.dll
+*.so
+*.dylib
+vendor/
+go.work.sum
+
+# ── Node / Frontend ──────────────────────────────────────────────
+node_modules/
+.npm
+.pnpm-store/
+.pnpm-debug.log*
+.yarn/cache
+.yarn/install-state.gz
+.next/
+.nuxt/
+.svelte-kit/
+.parcel-cache/
+.cache/
+.turbo/
+.vite/
+.tmp/
+*.log
+
+# ── Python ───────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.venv/
+venv/
+env/
+
+# ── Env / Secrets ────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+.secret/
+
+# ── Editors / IDE ────────────────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+.history/
+
+# ── OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── Local tool / agent caches ────────────────────────────────────
+.claude/cache/
+.codex/cache/
+.gemini/cache/
+.agent/cache/
+
+# ── Local override scripts ───────────────────────────────────────
+scripts/local/

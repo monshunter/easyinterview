@@ -1,1 +1,48 @@
 # easyinterview
+
+围绕具体目标岗位、JD 与真实面试流程设计的 AI 面试训练产品。把「看到岗位 → 准备 → 模拟练习 → 证据化反馈 → 修正表达 → 复练 → 面后复盘」标准化、重复化、可视化，帮助高意图求职者在 24–72 小时内围绕一份真实 JD 完成高质量准备。
+
+P0 主闭环：`JD 导入 → 目标岗位工作台 → 模拟面试 → 证据化报告 → 错题本 → 针对性复练`。
+
+## 仓库结构
+
+| 目录 | 说明 |
+|------|------|
+| [`backend/`](./backend/README.md) | Go 后端服务（HTTP API、领域模块、异步运行时） |
+| [`frontend/`](./frontend/README.md) | TypeScript / React 前端工程（壳层与 P0 主屏幕） |
+| [`openapi/`](./openapi/README.md) | OpenAPI v3 契约与 codegen 输入 |
+| [`migrations/`](./migrations/README.md) | PostgreSQL schema 迁移脚本 |
+| [`scripts/`](./scripts/README.md) | 跨语言运维脚本与 git hooks 占位 |
+| [`test/`](./test/README.md) | 跨服务测试根目录（场景测试由 E2 在 W4 spawn） |
+| [`deploy/`](./deploy/README.md) | Helm chart、Kind cluster、staging / 生产部署清单 |
+| [`docs/`](./docs/README.md) | 项目文档：spec、plan、报告、工作日志、Bug 知识库 |
+
+## Agent 协作
+
+- 根级 Agent 治理：[AGENTS.md](./AGENTS.md)（`CLAUDE.md` / `GEMINI.md` 指向同一文件）
+- 共享技能：[`.agent-skills/`](./.agent-skills/)，由 `.claude/` / `.codex/` / `.gemini/` 软链接接入各 Agent 客户端
+
+## 文档索引
+
+- 文档导航：[docs/README.md](./docs/README.md)
+- Spec 索引：[docs/spec/INDEX.md](./docs/spec/INDEX.md)
+- 顶层规划：[engineering-roadmap](./docs/spec/engineering-roadmap/spec.md)（6 层 38 child subspec，6 wave 实施顺序）
+- 工作日志：[docs/work-journal/INDEX.md](./docs/work-journal/INDEX.md)
+
+## 开发入口
+
+| 入口 | 说明 |
+|------|------|
+| `make help` | 列出全部 phony target |
+| `make fmt` / `make lint` / `make test` / `make build` | 递归至 `backend/Makefile` / `frontend/Makefile`，子目录未实现时占位 exit 0 |
+| `make dev-up` / `make dev-down` | 本地依赖编排，由 [`local-dev-stack`](./docs/spec/INDEX.md#21-layer-a--foundation) 落地 |
+| `make codegen` | OpenAPI / 共享约定代码生成入口（B1 / B2 接管） |
+| `make migrate` | DB schema 迁移入口（B4 接管） |
+| `make install-hooks` | 把 `scripts/git-hooks/` 软链到 `.git/hooks/` |
+| `scripts/bootstrap.sh` | 打印当前环境与 `.tool-versions` 声明值，作为 onboarding 自检 |
+
+工具链版本由 [.tool-versions](./.tool-versions) 锁定（asdf / mise 兼容）。编辑器格式由 [.editorconfig](./.editorconfig) 锁定。
+
+## License
+
+源码与文档许可证待 [release-gate-and-rollout](./docs/spec/INDEX.md#25-layer-e--integrationp0) 在 W4 仓库公开前确定。
