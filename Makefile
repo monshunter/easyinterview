@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint test build dev-up dev-down codegen migrate install-hooks
+.PHONY: help fmt lint test build dev-up dev-down codegen codegen-conventions migrate install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -33,8 +33,13 @@ dev-up: ## Start local dev dependencies; implemented by A2 local-dev-stack
 dev-down: ## Stop local dev dependencies; implemented by A2 local-dev-stack
 	@echo "TODO: implemented by A2 local-dev-stack"
 
-codegen: ## Run code generators; implemented by B2 openapi-v1-contract
-	@echo "TODO: implemented by B2 openapi-v1-contract"
+codegen: codegen-conventions ## Run code generators; OpenAPI codegen is added later by B2 openapi-v1-contract
+	@echo "TODO: OpenAPI codegen pending B2 openapi-v1-contract"
+
+codegen-conventions: ## Render shared/conventions.yaml into Go and TS shared lib files
+	@cd "$(ROOT_DIR)/backend" && go run ./cmd/codegen/conventions \
+		-yaml "$(ROOT_DIR)/shared/conventions.yaml" \
+		-repo-root "$(ROOT_DIR)"
 
 migrate: ## Run DB schema migrations; implemented by B4 db-migrations-baseline
 	@echo "TODO: implemented by B4 db-migrations-baseline"

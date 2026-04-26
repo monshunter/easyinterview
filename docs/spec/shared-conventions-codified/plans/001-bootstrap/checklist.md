@@ -8,12 +8,12 @@
 
 ## Phase 1: 跨语言真理源与 generator
 
-- [ ] 1.1 写入 `shared/conventions.yaml`：13 类枚举 + 6 个已记录错误码示例 + Job 状态 + `PageInfo` / `ApiError` 结构（与 [00-shared-conventions.md](../../../../easyinterview-tech-docs/00-shared-conventions.md) §3 / §4 / §5 严格对齐）
-- [ ] 1.2 落地 `backend/cmd/codegen/conventions/main.go`：从 YAML 渲染 Go 与 TS 文件，输出 idempotent；接入根 `Makefile` 的 `codegen-conventions` target
+- [x] 1.1 写入 `shared/conventions.yaml`：13 类枚举 + 6 个已记录错误码示例 + Job 状态 + `PageInfo` / `ApiError` 结构（与 [00-shared-conventions.md](../../../../easyinterview-tech-docs/00-shared-conventions.md) §3 / §4 / §5 严格对齐）
+- [x] 1.2 落地 `backend/cmd/codegen/conventions/main.go`：从 YAML 渲染 Go 与 TS 文件，输出 idempotent；接入根 `Makefile` 的 `codegen-conventions` target
 
 ## Phase 2: Go / TS 共享 module 骨架
 
-- [ ] 2.1 落地 `backend/go.mod`（module path `github.com/monshunter/easyinterview/backend`）+ `backend/internal/shared/{types,errors,idx}/` 目录与 `doc.go` 占位
+- [x] 2.1 落地 `backend/go.mod`（module path `github.com/monshunter/easyinterview/backend`）+ `backend/internal/shared/{types,errors,idx}/` 目录与 `doc.go` 占位
 - [ ] 2.2 在 `backend/internal/shared/idx/` 实现 `NewID()` (UUIDv7) 与 `RequireServerID()`（拒绝 `tmp_` 前缀）；在 `backend/internal/shared/errors/` 实现 `APIError struct` 与 `Wrap()` helper
 - [ ] 2.3 落地 `frontend/package.json`（name `@easyinterview/frontend`、私有、`build`/`lint`/`test` script 占位，依赖 `uuid >=10`）+ 仓库根 `pnpm-workspace.yaml`
 - [ ] 2.4 在 `frontend/src/lib/{conventions,ids}/` 创建占位 `index.ts`，并实现 `requireServerId()`、`newId()`（UUIDv7）、`Idempotency-Key` 24h TTL 工具

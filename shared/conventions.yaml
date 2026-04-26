@@ -1,0 +1,232 @@
+# shared/conventions.yaml — cross-language single source of truth
+#
+# Owner spec: docs/spec/shared-conventions-codified/spec.md (D-1 locks this file as canonical)
+# Upstream truth: easyinterview-tech-docs/00-shared-conventions.md §3 / §4 / §5
+# Generator:    backend/cmd/codegen/conventions/main.go (consumed via `make codegen-conventions`)
+# Validator:    scripts/lint/conventions_yaml.py (run by `make lint`)
+#
+# Naming contract (00-shared-conventions §2.1):
+#   enum values        → lower_snake_case (TS union literal, Go const value)
+#   error codes        → UPPER_SNAKE_CASE (TS const map key+value, Go const)
+#   JSON fields        → camelCase
+#   Go type names      → PascalCase
+#   Go const naming    → <TypeName><Value>, e.g. PracticeModeCoreInterview
+#
+# Counting note: §5 has 13 sections (5.1..5.13). §5.13 ("PrivacyRequest") covers
+# two parallel field domains (type + status), so the catalogue below contains 14
+# enum entries grouped by `sourceSection`. The validator confirms all 13 sections
+# are present.
+
+version: 1.0
+schemaVersion: 1
+
+# UUIDv7 (00-shared-conventions §2.2): all business primary keys are UUIDv7 strings.
+# The sample below is the same exemplar used in the upstream §4.1 Job snippet, so
+# Go and TS round-trip tests can pin against a fixed value.
+sampleUuidV7: "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e"
+uuidV7Regex: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+
+# Front-end browser-only temp prefix; backend idx.RequireServerID() rejects it.
+tmpIdPrefix: "tmp_"
+
+# Cursor pagination defaults (§3.3)
+pagination:
+  defaultPageSize: 20
+  maxPageSize: 100
+
+# Idempotency-Key TTL (§3.4): 24 hours.
+# Wire format is implementation-detail and lives in code; only the TTL is contractual.
+idempotency:
+  ttlSeconds: 86400
+
+# Documented error codes (§3.2). The catalogue is intentionally minimal — domains
+# add codes via spec revision. D-5 locks UPPER_SNAKE_CASE; codegen keeps the list
+# in lockstep on Go and TS sides.
+errors:
+  - code: AUTH_UNAUTHORIZED
+    message: "authentication required or invalid"
+    retryable: false
+  - code: TARGET_IMPORT_FAILED
+    message: "failed to import target job"
+    retryable: true
+  - code: PRACTICE_SESSION_CONFLICT
+    message: "practice session is in conflicting state"
+    retryable: false
+  - code: REPORT_NOT_READY
+    message: "report is not ready yet"
+    retryable: true
+  - code: VALIDATION_FAILED
+    message: "request validation failed"
+    retryable: false
+  - code: RATE_LIMITED
+    message: "rate limit exceeded"
+    retryable: true
+
+# Async Job statuses (§4.2).
+jobStatuses:
+  - queued
+  - running
+  - succeeded
+  - failed
+  - cancelled
+  - dead
+
+# Enum catalogue (§5). Entries are ordered by sourceSection then field domain.
+enums:
+  - name: TargetJobStatus
+    sourceSection: "5.1"
+    jsonField: status
+    values:
+      - draft
+      - preparing
+      - applied
+      - interviewing
+      - offer
+      - rejected
+      - archived
+
+  - name: TargetJobParseStatus
+    sourceSection: "5.2"
+    jsonField: parseStatus
+    values:
+      - queued
+      - processing
+      - ready
+      - failed
+
+  - name: PracticeMode
+    sourceSection: "5.3"
+    jsonField: mode
+    values:
+      - warmup
+      - core_interview
+      - single_drill
+      - counter_questions
+      - debrief_replay
+
+  - name: PracticeGoal
+    sourceSection: "5.4"
+    jsonField: goal
+    values:
+      - baseline
+      - sprint
+      - fix_mistake
+      - debrief
+
+  - name: InterviewerRole
+    sourceSection: "5.5"
+    jsonField: interviewerRole
+    values:
+      - generalist
+      - hr
+      - hiring_manager
+      - technical_manager
+      - peer
+
+  - name: SessionStatus
+    sourceSection: "5.6"
+    jsonField: sessionStatus
+    values:
+      - queued
+      - running
+      - waiting_user_input
+      - completing
+      - completed
+      - failed
+      - cancelled
+
+  - name: ReportStatus
+    sourceSection: "5.7"
+    jsonField: reportStatus
+    values:
+      - queued
+      - generating
+      - ready
+      - failed
+
+  - name: ReadinessTier
+    sourceSection: "5.8"
+    jsonField: readinessTier
+    values:
+      - not_ready
+      - needs_practice
+      - basically_ready
+      - well_prepared
+
+  - name: DimensionStatus
+    sourceSection: "5.9"
+    jsonField: dimensionStatus
+    values:
+      - strong
+      - meets_bar
+      - needs_work
+
+  - name: Confidence
+    sourceSection: "5.10"
+    jsonField: confidence
+    values:
+      - high
+      - medium
+      - low
+
+  - name: MistakeStatus
+    sourceSection: "5.11"
+    jsonField: mistakeStatus
+    values:
+      - open
+      - improving
+      - mastered
+
+  - name: DebriefStatus
+    sourceSection: "5.12"
+    jsonField: debriefStatus
+    values:
+      - draft
+      - completed
+
+  # §5.13 covers two parallel enum domains for privacy requests; both share the
+  # same source section but are distinct generated types in Go and TS.
+  - name: PrivacyRequestType
+    sourceSection: "5.13"
+    jsonField: privacyRequestType
+    values:
+      - export
+      - delete
+
+  - name: PrivacyRequestStatus
+    sourceSection: "5.13"
+    jsonField: privacyRequestStatus
+    values:
+      - queued
+      - processing
+      - completed
+      - failed
+      - cancelled
+
+# Wire structures (§3.1, §3.2). `optional: true` means generator emits Go pointer /
+# omitempty and TS optional `?` field. `nullable: true` means JSON null is a valid
+# value (TS uses `T | null`, Go keeps non-pointer with explicit null tagging).
+structures:
+  PageInfo:
+    fields:
+      - name: nextCursor
+        type: string
+        nullable: true
+      - name: pageSize
+        type: int
+      - name: hasMore
+        type: bool
+
+  ApiError:
+    fields:
+      - name: code
+        type: string
+      - name: message
+        type: string
+      - name: requestId
+        type: string
+      - name: retryable
+        type: bool
+      - name: details
+        type: object
+        optional: true
