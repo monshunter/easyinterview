@@ -1,0 +1,15 @@
+{
+  "name": "@easyinterview/frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "easyinterview frontend workspace package; surfaces JD onboarding, target job workspace, mock interview, and report screens.",
+  "scripts": {
+    "build": "echo 'TODO: build implemented by D1 frontend-shell' && exit 0",
+    "lint": "echo 'TODO: full lint wired by D1; B1 only enforces error-code boundary in scripts/lint' && exit 0",
+    "test": "echo 'TODO: test runner wired by Phase 4.3 of shared-conventions-codified/001-bootstrap' && exit 0"
+  },
+  "dependencies": {
+    "uuid": "^11.0.0"
+  }
+}

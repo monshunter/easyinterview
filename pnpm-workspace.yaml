@@ -1,0 +1,5 @@
+# pnpm workspace topology — owned by docs/spec/shared-conventions-codified (D-3).
+# Additional TS packages are added by their owning subspec; the path list is the
+# only declarative gate on which directories pnpm treats as workspace packages.
+packages:
+  - frontend

@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-26](2026-04-26.md) | `feat(shared-conventions): land go and ts shared lib helpers` | #feat |
 | [2026-04-26](2026-04-26.md) | `feat(shared-conventions): land cross-language truth source and codegen` | #feat |
 | [2026-04-26](2026-04-26.md) | `docs(governance): pin default parent branch to dev` | #docs |
 | [2026-04-26](2026-04-26.md) | `feat(skills): auto-migrate plans/INDEX rows between status groups` | #feat |

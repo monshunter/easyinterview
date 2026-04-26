@@ -324,7 +324,9 @@ func renderGoIdx(s *Spec) ([]byte, error) {
 	buf.WriteString("// SampleUUIDv7 is the canonical UUIDv7 used in cross-language fixtures.\n")
 	fmt.Fprintf(&buf, "const SampleUUIDv7 = %q\n\n", s.SampleUuidV7)
 	buf.WriteString("// UUIDv7RegexExpr is the regex (string form) used by both Go and TS validators.\n")
-	fmt.Fprintf(&buf, "const UUIDv7RegexExpr = %q\n", s.UuidV7Regex)
+	fmt.Fprintf(&buf, "const UUIDv7RegexExpr = %q\n\n", s.UuidV7Regex)
+	buf.WriteString("// IdempotencyKeyTTLSeconds mirrors 00-shared-conventions §3.4 (24h TTL).\n")
+	fmt.Fprintf(&buf, "const IdempotencyKeyTTLSeconds = %d\n", s.Idempotency.TtlSeconds)
 
 	return formatGo(buf.Bytes())
 }

@@ -14,9 +14,9 @@
 ## Phase 2: Go / TS 共享 module 骨架
 
 - [x] 2.1 落地 `backend/go.mod`（module path `github.com/monshunter/easyinterview/backend`）+ `backend/internal/shared/{types,errors,idx}/` 目录与 `doc.go` 占位
-- [ ] 2.2 在 `backend/internal/shared/idx/` 实现 `NewID()` (UUIDv7) 与 `RequireServerID()`（拒绝 `tmp_` 前缀）；在 `backend/internal/shared/errors/` 实现 `APIError struct` 与 `Wrap()` helper
-- [ ] 2.3 落地 `frontend/package.json`（name `@easyinterview/frontend`、私有、`build`/`lint`/`test` script 占位，依赖 `uuid >=10`）+ 仓库根 `pnpm-workspace.yaml`
-- [ ] 2.4 在 `frontend/src/lib/{conventions,ids}/` 创建占位 `index.ts`，并实现 `requireServerId()`、`newId()`（UUIDv7）、`Idempotency-Key` 24h TTL 工具
+- [x] 2.2 在 `backend/internal/shared/idx/` 实现 `NewID()` (UUIDv7) 与 `RequireServerID()`（拒绝 `tmp_` 前缀）；在 `backend/internal/shared/errors/` 实现 `APIError struct` 与 `Wrap()` helper
+- [x] 2.3 落地 `frontend/package.json`（name `@easyinterview/frontend`、私有、`build`/`lint`/`test` script 占位，依赖 `uuid >=10`）+ 仓库根 `pnpm-workspace.yaml`
+- [x] 2.4 在 `frontend/src/lib/{conventions,ids}/` 创建占位 `index.ts`，并实现 `requireServerId()`、`newId()`（UUIDv7）、`Idempotency-Key` 24h TTL 工具
 
 ## Phase 3: Lint 与命名约束
 

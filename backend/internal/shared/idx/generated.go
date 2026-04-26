@@ -11,3 +11,6 @@ const SampleUUIDv7 = "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e"
 
 // UUIDv7RegexExpr is the regex (string form) used by both Go and TS validators.
 const UUIDv7RegexExpr = "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+
+// IdempotencyKeyTTLSeconds mirrors 00-shared-conventions §3.4 (24h TTL).
+const IdempotencyKeyTTLSeconds = 86400
