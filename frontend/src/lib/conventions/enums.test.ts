@@ -1,0 +1,31 @@
+import { describe, it, expect } from 'vitest';
+import {
+  ALL_PRACTICE_MODES,
+  ALL_SESSION_STATUSES,
+  ALL_JOB_STATUSES,
+  ALL_PRIVACY_REQUEST_TYPES,
+  ALL_PRIVACY_REQUEST_STATUSES,
+  type PracticeMode,
+  type SessionStatus,
+  type JobStatus,
+} from './enums';
+
+describe('enum union literals', () => {
+  it('PracticeMode allows core_interview', () => {
+    const mode: PracticeMode = 'core_interview';
+    expect(ALL_PRACTICE_MODES).toContain(mode);
+  });
+  it('SessionStatus allows waiting_user_input', () => {
+    const status: SessionStatus = 'waiting_user_input';
+    expect(ALL_SESSION_STATUSES).toContain(status);
+  });
+  it('JobStatus allows dead', () => {
+    const status: JobStatus = 'dead';
+    expect(ALL_JOB_STATUSES).toContain(status);
+  });
+  it('PrivacyRequest splits into two enums (§5.13)', () => {
+    expect(ALL_PRIVACY_REQUEST_TYPES).toEqual(['export', 'delete']);
+    expect(ALL_PRIVACY_REQUEST_STATUSES).toContain('queued');
+    expect(ALL_PRIVACY_REQUEST_STATUSES).toContain('cancelled');
+  });
+});

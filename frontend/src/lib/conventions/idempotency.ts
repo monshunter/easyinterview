@@ -38,7 +38,8 @@ export function parseIdempotencyKey(raw: string): IdempotencyKey {
   if (parts.length !== 3) {
     throw new Error(`parseIdempotencyKey: expected 3 parts, got ${parts.length}`);
   }
-  const [version, unixStr, uuid] = parts;
+  // Length check above narrows the array contract; cast lets noUncheckedIndexedAccess pass.
+  const [version, unixStr, uuid] = parts as [string, string, string];
   if (version !== IDEMPOTENCY_KEY_VERSION) {
     throw new Error(`parseIdempotencyKey: version ${version} (only ${IDEMPOTENCY_KEY_VERSION} accepted)`);
   }
