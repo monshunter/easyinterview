@@ -204,6 +204,6 @@ easyinterview 是一款围绕具体目标岗位、JD 与真实面试流程设计
 
 ## 7 Git 分支策略
 
-- 默认父分支: 仓库默认分支（优先自动探测；若未配置则使用当前主开发分支）
+- 默认父分支: dev（优先自动探测；若未配置则使用当前主开发分支）
 - `/implement` 自动从父分支创建 feature branch
 - phase commit 后自动 merge 回父分支
