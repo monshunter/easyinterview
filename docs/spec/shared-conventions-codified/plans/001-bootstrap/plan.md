@@ -9,13 +9,15 @@
 
 ## 1 目标
 
-把 [shared-conventions-codified spec](../../spec.md) §3.1 锁定的 6 项决策落到代码：建立 `shared/conventions.yaml` 真理源、跨语言 generator、Go 共享 module（`backend/go.mod` + `internal/shared/{types,errors,idx}/`）、TS 共享 lib（`frontend/package.json` + `src/lib/{conventions,ids}/`）、UUIDv7 / Idempotency-Key 工具、错误码与枚举命名 lint 规则占位，并通过本 plan 的 verification phase 证明 Go / TS 双侧测试可以编译并通过最小用例。
+把 [shared-conventions-codified spec](../../spec.md) §3.1 锁定的 6 项决策落到代码：建立 `shared/conventions.yaml` 真理源、跨语言 generator、Go 共享 module（`backend/go.mod` + `internal/shared/{types,errors,idx}/`）、TS 共享 lib（`frontend/package.json` + `src/lib/{conventions,ids}/`）、UUIDv7 / Idempotency-Key 工具、错误码与枚举命名的本地可执行 lint gate，并通过本 plan 的 verification phase 证明 Go / TS 双侧测试可以编译并通过最小用例。
 
 本 plan 只覆盖 W0 必须冻结的最小集合；后续如需扩展（CI drift detection、prompt registry 接入、跨语言 contract test），递增 spec 与本 plan 版本，必要时 spawn `002-codegen-pipeline` 等续集 plan。
 
 ## 2 背景
 
 [engineering-roadmap spec §5.7 / §5.8](../../../engineering-roadmap/spec.md#57-实施-wave-顺序) 把 B1 安排在 W0，与 [A1 `repo-scaffold`](../../../repo-scaffold/spec.md) 同时落地：A1 提供根目录与 Make 入口，B1 在 A1 创建的 `backend/` 与 `frontend/` 容器里写入第一份 `go.mod` / `package.json` 与共享 lib。这两件事必须先于 W1 9 份 spec 进 `/plan-review`，否则 B2 / C 全域 / D 全域会缺少共享枚举与错误码常量。
+
+执行本 plan 前必须确认 A1 已创建根 `Makefile`、`backend/`、`frontend/`、`scripts/` 等容器目录；若 A1 尚未完成，先暂停本 plan 并实施 `repo-scaffold/001-bootstrap`。
 
 本 plan 不接入 OpenAPI codegen（B2 持有），不实现业务 handler，不依赖 docker / db。所有产出限于仓库内文件 + Go test / TS test 跑得通。
 
@@ -29,9 +31,9 @@
 
 #### 1.2 写入 generator
 
-在 `scripts/codegen/conventions/` 下落地 generator：
+在 `backend/cmd/codegen/conventions/` 下落地 generator，使 generator 归属 `backend/go.mod`：
 
-- `main.go`（Go 实现，由 `make codegen-conventions` 调用）：读取 `shared/conventions.yaml`，按模板渲染 `backend/internal/shared/types/enums.go`、`errors/codes.go`、`idx/idx.go` 头部、`http_dto.go`（`PageInfo` / `APIError`）。
+- `main.go`（Go 实现，由 `make codegen-conventions` 调用 `go run ./backend/cmd/codegen/conventions`）：读取 `shared/conventions.yaml`，按模板渲染 `backend/internal/shared/types/enums.go`、`errors/codes.go`、`idx/idx.go` 头部、`http_dto.go`（`PageInfo` / `APIError`）。
 - 同一个二进制额外渲染 TS 文件到 `frontend/src/lib/conventions/{enums,errors,pagination}.ts`、`frontend/src/lib/ids/index.ts` 头部。
 - 输出必须 idempotent：再跑一次 `git diff --exit-code` 不变。
 
@@ -47,20 +49,20 @@
 #### 2.2 TS 共享 lib 初始化
 
 - 在 `frontend/` 下落地最小 `package.json`（name `@easyinterview/frontend`、private true、script `build` / `lint` / `test` 占位）。
-- 在仓库根落地 `pnpm-workspace.yaml`，packages 字段含 `frontend` 与 `scripts/codegen`（如使用 TS）。
+- 在仓库根落地 `pnpm-workspace.yaml`，packages 字段含 `frontend`；若后续新增 TS 工具包，再由对应 plan 扩展 workspace packages。
 - 在 `frontend/src/lib/conventions/` 与 `frontend/src/lib/ids/` 下创建占位 `index.ts`，由 generator 写入实际内容。
-- `frontend/src/lib/ids/index.ts` 中手写 `requireServerId(s: string)` 与 `newId()`（基于 `uuid` v9+ 的 UUIDv7 实现）。
+- `frontend/src/lib/ids/index.ts` 中手写 `requireServerId(s: string)` 与 `newId()`（基于 `uuid >=10` 的 UUIDv7 实现）。
 - `frontend/src/lib/conventions/idempotency.ts` 与 Go 端对偶：生成 24h TTL 的 `Idempotency-Key`（UUIDv7 + 时间戳头）。
 
 ### Phase 3: Lint 与命名约束
 
-#### 3.1 Go lint 配置占位
+#### 3.1 Go lint 与错误码校验
 
-在 `backend/.golangci.yml` 落地最小配置：启用 `revive` 的 `var-naming` 规则；通过 `staticcheck` 自定义检查或 `revive` 自定义规则强制错误码常量名 `UPPER_SNAKE_CASE`。具体启用与 CI 接入归 [A5 `ci-pipeline-baseline`](../../../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0)。
+在 `backend/.golangci.yml` 落地最小配置：启用 `revive` 的 `var-naming` 规则；同时提供本地可执行的错误码校验（可放在 generator 或 `scripts/lint/` 下），扫描 `backend/internal/shared/errors/` 与 `frontend/src/lib/conventions/errors.ts`，强制错误码常量和值为 `UPPER_SNAKE_CASE`。CI 接入归 [A5 `ci-pipeline-baseline`](../../../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0)，但 B1 必须让 `make lint` 在本地能验证该规则。
 
-#### 3.2 TS lint 配置占位
+#### 3.2 TS lint 与错误码边界
 
-在 `frontend/.eslintrc.cjs`（或 `eslint.config.js`）中加入自定义规则占位：拒绝在 `frontend/src/lib/conventions/errors.ts` 之外定义错误码字面量；约束错误码必须 `UPPER_SNAKE_CASE`。具体规则实现可由 A5 / D1 在后续 plan 中落实。
+在 `frontend/.eslintrc.cjs`（或 `eslint.config.js`）中加入最小可执行规则或脚本入口：拒绝在 `frontend/src/lib/conventions/errors.ts` 之外定义错误码字面量；约束错误码必须 `UPPER_SNAKE_CASE`。D1 可在前端壳 plan 中扩展 ESLint 体系，但不得放宽 B1 的错误码边界。
 
 ### Phase 4: Verification
 
@@ -83,15 +85,15 @@
 
 #### 4.4 文档同步
 
-- 更新 [engineering-roadmap/001-decompose-subspecs/checklist.md](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) Phase 2 的 2.2 / 2.3 / 2.4。
-- 同步 `docs/spec/INDEX.md` 的 `shared-conventions-codified` 行从占位切到真实链接。
+- 确认 `docs/spec/INDEX.md` 的 `shared-conventions-codified` 行已指向真实链接且状态 / 版本 / 更新日期与 spec Header 一致；若已有内容一致，不重复改写。
+- 不修改 [engineering-roadmap/001-decompose-subspecs/checklist.md](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) 中已经完成的 Phase 2 spawn 项；若需要重新打开父 plan，必须由 roadmap owner 明确触发。
 - 把 generator 命令、Go test、TS test 的输出贴入工作日志。
 
 ## 4 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-5 全部成立（C-6 由 B2 plan 在引用 B1 时验证）。
 - 本 plan checklist 全部勾选；Phase 4 的关键命令日志贴入工作日志。
-- engineering-roadmap/001 Phase 2.2（spawn shared-conventions-codified）以本 plan 完结状态作为证据。
+- engineering-roadmap/001 Phase 2.2 已完成 spawn；本 plan 完结状态作为 B1 后续实施证据记录在本 checklist 与工作日志中。
 
 ## 5 风险与应对
 

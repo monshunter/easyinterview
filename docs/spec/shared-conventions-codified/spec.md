@@ -14,7 +14,7 @@
 
 目标是：
 
-1. **真理源即代码**：把 00-shared-conventions.md 中的 13 类枚举、9 类错误码示例、ID 规则、时间规则、金额规则同时落到 Go（`backend/internal/shared/types/`）与 TypeScript（`frontend/src/lib/conventions/`）。
+1. **真理源即代码**：把 00-shared-conventions.md 中的 13 类枚举、6 个已记录错误码示例、ID 规则、时间规则、金额规则同时落到 Go（`backend/internal/shared/types/`）与 TypeScript（`frontend/src/lib/conventions/`）。
 2. **跨语言对齐**：Go 与 TS 类型必须共用同一份枚举 / 错误码源（YAML 或 JSON），由本 spec 唯一的 generator 在两侧吐出代码。
 3. **lint 强约束**：`UPPER_SNAKE_CASE` 错误码、`lower_snake_case` 枚举值、`camelCase` JSON tag 通过 lint 规则在 PR 阶段拦截，而不是依赖代码 review。
 4. **monorepo 名称锁定**：在落地任何业务代码前，先把 `go.mod` 名称、`package.json` 名称、pnpm workspace（如启用）拓扑、共享 lib 目录定下来，避免 W2 多个 child 各自重命名雪球。
@@ -30,7 +30,7 @@
 - Go 共享 module：`backend/internal/shared/types/`、`backend/internal/shared/idx/`（UUIDv7 + tmp_ id 工具）、`backend/internal/shared/errors/`（错误码常量与 `APIError` 类型）。
 - TS 共享 lib：`frontend/src/lib/conventions/`（`PageInfo` / `ApiError` / 枚举字面量类型）、`frontend/src/lib/ids/`（UUID 字符串工具与 tmp_ 前缀校验）。
 - monorepo 名称：`go.mod` module name（拟 `github.com/monshunter/easyinterview/backend`）、`frontend/package.json` name、可选 `pnpm-workspace.yaml`。
-- Lint 规则：`UPPER_SNAKE_CASE` 错误码常量名、`lower_snake_case` 枚举字面量、`camelCase` JSON tag；落点为 `golangci-lint` config 与 `eslint` config 占位条目（具体启用的 linter 由 A5 接管）。
+- Lint 规则：`UPPER_SNAKE_CASE` 错误码常量名、`lower_snake_case` 枚举字面量、`camelCase` JSON tag；B1 提供本地可执行的最小校验，A5 负责把这些校验接入 CI。
 - Idempotency-Key 工具：Go 与 TS 双端的 24h TTL 校验 / 生成工具骨架。
 
 ### 2.2 Out of Scope
@@ -89,7 +89,7 @@
 | pnpm workspace | B1 + A2 | B1 锁名称 + workspace.yaml；A2 在 dev stack 中保证可装 |
 | OpenAPI / fixtures | B2 | 引用 B1 的枚举与错误码常量 |
 | 事件 envelope | B3 | 引用 B1 的 `eventName` 命名约束、`eventVersion` 字段 |
-| Lint 接入 CI | A5 | 把 B1 提供的 lint config 接到 PR pipeline |
+| Lint 接入 CI | A5 | 把 B1 提供的本地 lint/config 接到 PR pipeline |
 
 ## 6 验收标准
 
@@ -99,11 +99,11 @@
 | C-2 | 真理源生成 TS 类型 | 同 C-1 | 同 C-1 | `frontend/src/lib/conventions/*.ts` 中 13 类 union string literal、`ApiError` / `PageInfo` interface 按 D-6 生成；`pnpm tsc --noEmit` 通过 | 001-bootstrap |
 | C-3 | UUIDv7 工具可用 | A1 已落地仓库根 | 在 Go test 与 TS test 中调用 idx 工具 | Go `idx.NewID()` / TS `newId()` 返回 UUIDv7 字符串；输入 `tmp_xxx` 时 `idx.RequireServerID()` / `requireServerId()` 抛错 | 001-bootstrap |
 | C-4 | Idempotency-Key 工具 | A1 已落地仓库根 | 生成 + 校验 idempotency key（24h TTL） | Go 与 TS 双端工具产出格式一致的 key；TTL 过期后校验返回 false | 001-bootstrap |
-| C-5 | Lint 拦截违规命名 | 任意 PR 中提交一个 `auth_unauthorized`（小写）错误码常量 | 跑 `make lint` | golangci-lint / eslint 报错：错误码必须 `UPPER_SNAKE_CASE` | 001-bootstrap |
+| C-5 | Lint 拦截违规命名 | 任意 PR 中提交一个 `auth_unauthorized`（小写）错误码常量 | 跑 `make lint` | B1 本地 lint/config 能报错：错误码必须 `UPPER_SNAKE_CASE`；A5 只负责 CI 接入，不改变规则语义 | 001-bootstrap |
 | C-6 | OpenAPI codegen 复用 B1 | B2 在自己 plan 里生成 OpenAPI types | B2 codegen 完成 | 任何枚举字段直接 import B1 的常量；不出现重复定义 enum 字面量 | engineering-roadmap/001 Phase 3 + B2 自身 plan |
 
 ## 7 关联计划
 
-- [001-bootstrap](./plans/001-bootstrap/plan.md)：W0 落地真理源 YAML、generator 框架、Go / TS 共享 lib 骨架、UUID / idempotency 工具、lint 配置占位、monorepo 名称（go.mod / pnpm workspace）。
+- [001-bootstrap](./plans/001-bootstrap/plan.md)：W0 落地真理源 YAML、generator 框架、Go / TS 共享 lib 骨架、UUID / idempotency 工具、本地 lint gate、monorepo 名称（go.mod / pnpm workspace）。
 
 后续可在本 spec 修订递增版本后追加 `002-codegen-pipeline` 等 plan（覆盖 generator 在 CI 中的 drift detection、prompt / rubric registry 接入、跨语言测试），由 W1 阶段决定是否升格；本 spec 不预先 spawn 第二份 plan。
