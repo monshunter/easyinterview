@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Repo-scaffold A1 placeholder commit-msg hook.
+# Extended by B1 shared-conventions-codified (commit message rules) and A5 ci-pipeline-baseline
+# in later plans. Filename and location are locked by repo-scaffold spec D-4.
+set -euo pipefail
+
+exit 0

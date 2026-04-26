@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-26](2026-04-26.md) | `feat(repo-scaffold): land top-level makefile and git hook placeholders` | #feat |
 | [2026-04-26](2026-04-26.md) | `feat(repo-scaffold): land root container dirs and config files` | #feat |
 | [2026-04-26](2026-04-26.md) | `docs(spec): tighten shared-conventions B1 lint gate and generator path` | #docs |
 | [2026-04-26](2026-04-26.md) | `docs(spec): tighten repo-scaffold A1 scope and verification` | #docs |
