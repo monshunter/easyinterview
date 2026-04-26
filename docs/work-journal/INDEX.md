@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-26](2026-04-26.md) | `docs(spec): reconcile roadmap ADR decisions` | #docs |
 | [2026-04-26](2026-04-26.md) | `docs(spec): land engineering-roadmap W0 ADRs and bump to v1.2` | #docs |
 | [2026-04-26](2026-04-26.md) | `docs(spec): add ai gateway model routing gate` | #docs |
 | [2026-04-26](2026-04-26.md) | `docs(spec): reconcile engineering-roadmap plan review findings` | #docs |

@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.2
+    to: 1.3
 spec:
   defaultTarget: docs
   discovery:
@@ -25,6 +25,7 @@ spec:
       - W0 hard gate
       - AI gateway
       - model routing
+      - self-hosted PostHog
   targets:
     docs:
       plan: ./plan.md

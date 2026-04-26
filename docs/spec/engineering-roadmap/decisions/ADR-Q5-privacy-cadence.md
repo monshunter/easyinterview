@@ -1,6 +1,6 @@
 # ADR-Q5 · 隐私节奏
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: accepted
 > **更新日期**: 2026-04-26
 
@@ -71,22 +71,22 @@
 2. **删除范围**（P0 必须覆盖）：users / user_settings / candidate_profiles / experience_cards / target_jobs / resumes / file_objects / practice_sessions / practice_session_events / question_assessments / feedback_reports / mistake_entries / async_jobs / outbox_events / sessions / auth_challenges / audit_events（最后才删；先写 `delete_completed` audit）
 3. **保留例外**：billing 类（如未来引入）/ 法律强制留存的合规日志按对应法规另行 ADR；P0 暂无
 4. **SLA**：删除请求 99% 在 24h 内完成（与 `04-metrics-observability.md` §「Privacy Completion」对齐）；超期写 audit + Sentry alert
-5. **导出占位**：`POST /privacy/exports` 在 OpenAPI v1.0.0 freeze 中**预留 endpoint 但返回 `501 Not Implemented`**；前端 D6 settings 显示「导出功能即将上线」（i18n 文案锁定）
+5. **导出占位 / 产品例外**：`POST /privacy/exports` 在 OpenAPI v1.0.0 freeze 中**预留 endpoint 但返回 `501 Not Implemented`**；前端 D6 settings 显示「导出功能即将上线」（i18n 文案锁定）。这显式覆盖产品 spec P0 验收项「删除与导出路径可用」中的导出部分：P0 只保证删除路径可运行，导出路径仅保证契约预留、可观测、可解释地不可用；E4 release gate 必须把该 W0 tradeoff 记录为准入例外
 6. **审计**：所有 privacy 状态变迁（request_created / step_started / step_completed / completed / failed）全部进 `audit_events`；F4 P1 升格时这些事件已就位
 7. **自助 vs 工单**：P0 用户自助 UI 直接触发；同时保留 `support@` 邮箱兜底路径
 8. **可观测性**：`privacy_request_duration_seconds` + `privacy_request_in_flight` 指标 P0 即上
 
 ## 4 影响范围
 
-- **C12 `backend-privacy`** —— 维持 P1 占位（draft spec），但删除链路核心实现下沉到 P0：在 C8 `backend-async-runtime` 中以 `privacy.delete` job 落地；C12 升格时只接管 export + 完整 worker 管理面
+- **C12 `backend-privacy`** —— 维持 P1 占位（draft spec），但删除链路核心实现下沉到 P0：在 C8 `backend-async-runtime` 中以 public `jobType=privacy_delete` 落地，内部 Asynq handler 可映射为 `privacy.delete`；C12 升格时只接管 export + 完整 worker 管理面
 - **F4 `privacy-and-audit-runtime`** —— 维持 P1，但 audit_events schema 与 retention 在 W1 锁定（B4 / B1）
 - **B2 `openapi-v1-contract`** —— 冻结 `/privacy/deletions` + `/privacy/exports`（后者 stub 501）+ `DELETE /me`
 - **B4 `db-migrations-baseline`** —— `privacy_requests` / `audit_events` 0001 迁移
-- **C8 `backend-async-runtime`** —— `privacy.delete` job_type；优先级 critical
+- **C8 `backend-async-runtime`** —— public `privacy_delete` job_type；内部 handler 可为 `privacy.delete`；优先级 critical
 - **D6 `frontend-debrief-and-growth`**（P1） + **D1 `frontend-shell` Settings 面板**（P0 子功能） —— 「删除我的账号」UI + 「导出即将上线」占位
 - **F1 `observability-stack`** —— privacy 指标接入
 - **E4 `release-gate-and-rollout`** —— W4 gate 校验 P0 删除链路 SLA 与 audit 完整性
-- **`engineering-roadmap/spec.md`** —— §6 C-6 验收行的「Q-5 ADR 决定的 P0 隐私范围」具体化为「P0 仅删除」
+- **`engineering-roadmap/spec.md`** —— §6 C-6 验收行的「Q-5 ADR 决定的 P0 隐私范围」具体化为「P0 仅删除」，并显式记录导出延后是 W0 产品验收例外
 
 ## 5 失效与修订条件
 

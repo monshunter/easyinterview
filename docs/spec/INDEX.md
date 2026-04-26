@@ -10,7 +10,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 1.2 | active | 2026-04-26 | [plans](./engineering-roadmap/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 1.3 | active | 2026-04-26 | [plans](./engineering-roadmap/plans/) |
 
 ## 2 P0 MVP（Wave 0–5）
 

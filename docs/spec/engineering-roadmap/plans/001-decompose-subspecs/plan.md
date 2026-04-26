@@ -1,6 +1,6 @@
 # Decompose Subspecs
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
 > **更新日期**: 2026-04-26
 
@@ -26,7 +26,7 @@
 
 #### 1.1 6 项 W0 hard gate 决策
 
-为 [spec §3.2](../../spec.md#32-w0-已锁定决策hard-gate--全部-accepted) 中 Q-1（认证）/ Q-2（异步编排）/ Q-3（分析平台）/ Q-4（云部署）/ Q-5（隐私节奏）/ Q-6（AI 网关与模型路由）每项产出一份 ADR。ADR 文件固定放在 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md`，通过即视为决策锁定，本 plan 在 spec §3.2 表中同步更新最终结论。**已于 2026-04-26 全部 accepted**：ADR-Q1（自建 passwordless）/ ADR-Q2（Asynq+Redis）/ ADR-Q3（PostHog Cloud EU）/ ADR-Q4（Kubernetes）/ ADR-Q5（P0 仅删除）/ ADR-Q6（AIClient + Model Profile + 外部 AI Gateway）。
+为 [spec §3.2](../../spec.md#32-w0-已锁定决策hard-gate--全部-accepted) 中 Q-1（认证）/ Q-2（异步编排）/ Q-3（分析平台）/ Q-4（云部署）/ Q-5（隐私节奏）/ Q-6（AI 网关与模型路由）每项产出一份 ADR。ADR 文件固定放在 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md`，通过即视为决策锁定，本 plan 在 spec §3.2 表中同步更新最终结论。**已于 2026-04-26 全部 accepted**：ADR-Q1（自建 passwordless）/ ADR-Q2（Asynq+Redis）/ ADR-Q3（自托管 PostHog，不依赖第三方 Cloud）/ ADR-Q4（Kubernetes）/ ADR-Q5（P0 仅删除，导出延后作为 W0 例外）/ ADR-Q6（AIClient + Model Profile + 外部 AI Gateway）。
 
 #### 1.2 docs/spec/INDEX.md 占位 38 行
 
@@ -35,6 +35,8 @@
 #### 1.3 顶层 spec 自身审查
 
 对 `engineering-roadmap` spec 跑 `/plan-review`；如有反馈在原文件原地修订，不创建 sibling。
+
+L2 remediation 约束：公共 API / DB / event / metrics 中的 `jobType` 沿用技术真理源既有 snake_case 值，内部 Asynq handler 可用 dotted task name，但必须由 C8 / B3 / B4 显式维护映射；Q-5 导出延后必须作为产品验收项例外写入 ADR 与 release gate；Q-3 分析平台按用户决策切换为自托管 PostHog 优先，部署路径由 F2 / A2 / E4 在后续 child spec 中验证，不依赖 PostHog Cloud。
 
 ### Phase 2: Wave 0（共识与骨架）
 
@@ -126,3 +128,4 @@ E2 全场景通过；`04-metrics-observability.md` §15 最低上线门槛全勾
 | **D3 体量过大**（5 模式 + followup-tree + drill + STAR editor 集中在一份 spec） | D3 内部 4 个 plan 拆分（workspace / practice-core / practice-modes / followup-and-star），每个 plan 单独 review、单独 PR；W2 优先完成 workspace + practice-core，practice-modes / followup-and-star 可滑到 W2 末或 W3 |
 | **F3 `prompt-rubric-registry` 没有 baseline 时 W2 业务域偷偷 hardcode prompt** | W1 必须有最小 baseline prompt（含 `feature_key + version`）；W2 业务域 spec 必须显式引用 F3 prompt id，不得在自己 spec 中 hardcode prompt 文本 |
 | **6 项 W0 待决策方案未签字就进入 W1** | Phase 1.1 设为 hard gate；任一 ADR 未签字时 W1 不得开始；具体由 Phase 2 收口的 `/plan-review` 强制执行 |
+| **自托管 PostHog 运维复杂度超过 P0 带宽** | ADR-Q3 锁定“不依赖第三方 Cloud”，但不锁已废弃的 K8s Helm chart；F2 / A2 / E4 必须先验证可运维 self-host path、备份、升级与漏斗对账，再允许 W4 release gate 通过 |

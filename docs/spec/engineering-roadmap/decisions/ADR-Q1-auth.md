@@ -1,6 +1,6 @@
 # ADR-Q1 · 认证方案
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: accepted
 > **更新日期**: 2026-04-26
 
@@ -85,7 +85,7 @@
 - **D1 `frontend-shell`** —— 实现 `/welcome` 登录页（`screens-welcome.jsx` 重构）+ auth gate + session 自动续期
 - **B2 `openapi-v1-contract`** —— 在 `auth` tag 下冻结 `/auth/email/{start,verify}` + `/auth/logout` + `/me`
 - **B4 `db-migrations-baseline`** —— `auth_challenges` / `sessions` / `external_identities`（空表）三张表的 0001 迁移
-- **C8 `backend-async-runtime`** —— 邮件发送作为 `email_dispatch` job_type，复用 outbox dispatcher
+- **C8 `backend-async-runtime`** —— 邮件发送作为 public `email_dispatch` job_type（由 B3 / B4 additive 加入契约），复用 outbox dispatcher
 - **F1 `observability-stack`** —— `auth_challenge_started_total` / `auth_session_minted_total` / `auth_failure_total` 指标接入
 - **F4 `privacy-and-audit-runtime`** —— magic link / session 创建 / 撤销均进 audit_events
 

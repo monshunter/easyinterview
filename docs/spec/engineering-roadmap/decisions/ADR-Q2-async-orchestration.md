@@ -1,6 +1,6 @@
 # ADR-Q2 · 异步编排
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: accepted
 > **更新日期**: 2026-04-26
 
@@ -10,8 +10,8 @@
 
 P0 已识别的异步链路：
 
-- JD 解析（`target_job.parse`）
-- 模拟面试报告生成（`practice.report_generate`）
+- JD 解析（public `jobType=target_import`，internal Asynq handler 可映射为 `target_job.parse`）
+- 模拟面试报告生成（public `jobType=report_generate`，internal Asynq handler 可映射为 `practice.report_generate`）
 - 简历定制（`resume.tailor`）
 - Mistake / Drill 物化（`review.materialize_mistakes`）
 - Email magic link / 通知派发（`email_dispatch`）
@@ -75,10 +75,10 @@ P0 已识别的异步链路：
 落地约束：
 
 1. **进程拓扑**：`api` 进程负责 enqueue + outbox 写入；`worker` 进程独占 Asynq consumer + outbox dispatcher
-2. **任务命名**：`<domain>.<action>`，例如 `target_job.parse`、`practice.report_generate`，与 `04-metrics-observability.md` §「`async_jobs_*`」label 对齐
+2. **任务命名边界**：API / DB / event / metrics 暴露的 public `jobType` 必须沿用 `easyinterview-tech-docs` 已冻结的 snake_case 值（例如 `target_import`、`report_generate`、`privacy_delete`）；Asynq 内部 handler 可使用 `<domain>.<action>` dotted name（例如 `target_job.parse`、`practice.report_generate`、`privacy.delete`），但 C8 必须维护双向映射，B3 / B4 新增 job 时必须先 additive 更新 public `jobType`
 3. **幂等**：所有 task payload 必须含 `dedupe_key`；进 `async_jobs.dedupe_key` unique index（per `job_type`）
 4. **重试策略**：默认指数退避（30s/2m/10m/1h/6h），最多 5 次；超限后落 `dead_letter` 并写 audit_event
-5. **优先级队列**：`critical`（user-facing：report_generate）/ `default`（target_job.parse / resume.tailor）/ `low`（email_dispatch / batch）
+5. **优先级队列**：`critical`（user-facing：`report_generate` / `privacy_delete`）/ `default`（`target_import` / `resume_tailor`）/ `low`（`email_dispatch` / `analytics_dispatch` / batch）；新增 `email_dispatch` / `analytics_dispatch` 前必须由 B3 / B4 明确加入契约
 6. **可观测性**：每个 task 必须落 `async_job_duration_seconds` + `async_jobs_processed_total{result=succ|fail|retry}` + Sentry breadcrumb
 7. **outbox**：`outbox_events` 表由业务事务写入；dispatcher 独立 cron job（每 5s 扫一次未发布行）→ Asynq enqueue → publish 到事件 bus（P0 内网直发）
 8. **Asynq Web UI**：本地 dev / staging 默认开启；prod 通过 ingress + auth 暴露给 ops

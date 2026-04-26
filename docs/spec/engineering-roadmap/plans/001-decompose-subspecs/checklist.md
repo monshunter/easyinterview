@@ -1,6 +1,6 @@
 # Decompose Subspecs Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
 > **更新日期**: 2026-04-26
 
@@ -13,6 +13,7 @@
 - [x] 1.3 `docs/spec/INDEX.md` 中 38 行 child subspec 占位行齐全（按 Layer A-F × Phase P0/P1/P2 两轴分组，状态 `pending`，链接占位）
 - [x] 1.4 顶层 `engineering-roadmap` spec 通过 `/plan-review`，反馈原地修订完毕
 - [x] 1.5 验证 `docs/spec/INDEX.md` 与 `engineering-roadmap/spec.md` Header 一致（运行 `/sync-doc-index --check`）
+- [x] 1.6 L2 remediation：修复 async `jobType` 命名漂移、Q-5 P0 导出例外记录、ADR-Q3 自托管 PostHog 决策切换，并同步 spec / plan / history / context / INDEX
 
 ## Phase 2: Wave 0（共识与骨架）
 
