@@ -1,0 +1,103 @@
+[
+  {
+    "query": "/implement docs-scaffold",
+    "should_trigger": true,
+    "notes": "canonical slash-command invocation with plan name"
+  },
+  {
+    "query": "帮我开始实施 docs-scaffold 这个 plan，default target 就行，spec 和 checklist 都在 docs/plan/docs-scaffold/ 下",
+    "should_trigger": true,
+    "notes": "Chinese casual with plan name + target semantics"
+  },
+  {
+    "query": "继续",
+    "should_trigger": true,
+    "notes": "terse resume — description explicitly promises this triggers when session/branch identifies owner"
+  },
+  {
+    "query": "把 docs/plan/docs-scaffold 这个计划跑起来，按 checklist 顺序一个个来",
+    "should_trigger": true,
+    "notes": "natural Chinese implementation intent, references plan path"
+  },
+  {
+    "query": "now that the plan is written and you already reviewed it, please start executing it from the top of the checklist",
+    "should_trigger": true,
+    "notes": "English formal execution intent"
+  },
+  {
+    "query": "可以 implement docs-scaffold 的 frontend target 了，前面的 spec 都过了",
+    "should_trigger": true,
+    "notes": "explicit target argument in natural phrasing"
+  },
+  {
+    "query": "resume implementing the current plan, I had to leave for lunch and git branch is already feat/docs-scaffold-0417",
+    "should_trigger": true,
+    "notes": "resume intent with branch hint"
+  },
+  {
+    "query": "execute the unit-test target of docs-scaffold, the test-checklist is ready under docs/plan/docs-scaffold/unit-test-checklist.md",
+    "should_trigger": true,
+    "notes": "English direct, target + checklist path"
+  },
+  {
+    "query": "docs/plan/docs-scaffold/checklist.md 里还有三项没打勾，帮我接着往下做完",
+    "should_trigger": true,
+    "notes": "references checklist file + 'finish the rest' implementation intent"
+  },
+  {
+    "query": "spec、plan、checklist 都齐了，你开工吧",
+    "should_trigger": true,
+    "notes": "implicit implementation intent, no explicit skill keyword"
+  },
+
+  {
+    "query": "这个面试复盘模块的架构我还没想清楚，要不要拆成独立服务？我们先讨论一下再定",
+    "should_trigger": false,
+    "notes": "design discussion, no plan exists yet → /design"
+  },
+  {
+    "query": "刚才跑 CI 的时候 test/scenarios/docs-scaffold/case-02 挂了一个，报了 manifest not found，帮我看看是环境还是用例的问题",
+    "should_trigger": false,
+    "notes": "bug/scenario investigation → /change-intake or /scenario-investigate"
+  },
+  {
+    "query": "帮我检查 docs-scaffold 的 plan.md 和 checklist.md 之间是不是一致，我刚改了几个小节标题怕漏同步",
+    "should_trigger": false,
+    "notes": "document consistency check → /plan-review, not implement"
+  },
+  {
+    "query": "提交前审一下我刚写的 docs-scaffold PlanContext 这几个 commit，有没有跟 spec 条款对不上的地方",
+    "should_trigger": false,
+    "notes": "code-vs-spec review → /plan-code-review"
+  },
+  {
+    "query": "我想给 interview-coach 加个面试复盘视图，先帮我起草一份 spec 和对应的 plan 骨架",
+    "should_trigger": false,
+    "notes": "new spec/plan creation, no existing plan to implement → /design"
+  },
+  {
+    "query": "把今天修 docs-scaffold 边界问题的事情记到工作日志，commit message 就叫 fix(docs-scaffold): tighten boundary checks",
+    "should_trigger": false,
+    "notes": "journal + commit → /work-journal"
+  },
+  {
+    "query": "跑一下 test/scenarios/docs-scaffold/ 下面全部场景用例，看有没有 regression",
+    "should_trigger": false,
+    "notes": "scenario test execution → /scenario-run"
+  },
+  {
+    "query": "我想写一个新 skill 用来自动生成 API changelog，帮我起个草稿并设计 eval 用例",
+    "should_trigger": false,
+    "notes": "skill authoring → /skill-creator"
+  },
+  {
+    "query": "docs/plan/docs-scaffold/checklist.md 第 12 行那条验收标准措辞有点模糊，帮我改清楚一些，不要动其他地方",
+    "should_trigger": false,
+    "notes": "near-miss: edits checklist text but is NOT executing it → /plan-review --fix (doc fix, not implement)"
+  },
+  {
+    "query": "docs-scaffold 已经全绿跑完了，帮我做个 retrospective 沉淀一下改进建议",
+    "should_trigger": false,
+    "notes": "post-delivery retrospective → /retrospective, not implement"
+  }
+]

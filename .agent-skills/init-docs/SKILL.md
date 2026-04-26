@@ -1,0 +1,117 @@
+---
+name: init-docs
+description: Initialize docs directory structure with README.md, TEMPLATES.md, INDEX.md, and supporting templates for work journals, plans, specs, and other documentation. Run this skill once when setting up a new project or adding documentation infrastructure. Triggers on /init-docs.
+---
+
+# Initialize Docs Skill
+
+Sets up the `docs/` directory structure with separated rule docs and template assets.
+
+## When to Use
+
+- Setting up a new project
+- Adding documentation infrastructure to an existing project
+- Before using `/work-journal`, `/create-doc`, `/tdd`, or `/bug-report`
+
+## Directory Structure Created
+
+```
+docs/
+├── README.md              # Main navigation hub
+├── work-journal/
+│   ├── README.md          # Rules and maintenance checklist
+│   ├── TEMPLATES.md       # Copyable journal templates
+│   └── INDEX.md           # Journal index
+├── plan/
+│   ├── README.md          # Plan rules and lifecycle contract
+│   ├── TEMPLATES.md       # Plan/checklist/context templates
+│   └── INDEX.md           # Plan index
+├── spec/
+│   ├── README.md          # Design doc rules
+│   ├── TEMPLATES.md       # Design doc templates
+│   └── INDEX.md           # Spec index
+├── reports/
+│   ├── README.md          # Report rules
+│   ├── TEMPLATES.md       # Report templates
+│   └── INDEX.md           # Report index
+├── apis/
+│   ├── README.md          # API doc rules
+│   ├── TEMPLATES.md       # API templates
+│   └── INDEX.md           # API index
+├── discuss/
+│   ├── README.md          # Discussion archive rules
+│   ├── TEMPLATES.md       # Discussion templates
+│   └── INDEX.md           # Discussion index
+└── bugs/
+    ├── README.md          # Bug record rules
+    ├── TEMPLATES.md       # Bug record template
+    ├── INDEX.md           # Bug index
+    └── PATTERNS.md        # Bug pattern library
+```
+
+`README.md`、`TEMPLATES.md` 和 INDEX.md 的职责必须分离：
+
+README.md、`TEMPLATES.md` 和 INDEX.md 分别承载规则、模板和索引，不得混排。
+
+- README 只承载目录规范、命名规则、流程约束和检查清单
+- `TEMPLATES.md` 只承载可复制模板和结构示例
+- `INDEX.md` 只承载目录索引
+
+## Workflow
+
+### Step 1: Check existing structure
+
+Check whether `docs/` exists and which subdirectories/files are already present.
+
+### Step 2: Create missing directories
+
+Create any missing subdirectories from the list above.
+
+### Step 3: Create scaffold files
+
+For each subdirectory, create README.md, `TEMPLATES.md` (when applicable), and INDEX.md from templates:
+
+| Directory | README Template | `TEMPLATES.md` Template | INDEX Template |
+|-----------|-----------------|-------------------------|----------------|
+| `docs/` | [docs-readme.md](./templates/docs-readme.md) | N/A | N/A |
+| `work-journal/` | [work-journal-readme.md](./templates/work-journal-readme.md) | [work-journal-templates.md](./templates/work-journal-templates.md) | [work-journal-index.md](./templates/work-journal-index.md) |
+| `plan/` | [plan-readme.md](./templates/plan-readme.md) | [plan-templates.md](./templates/plan-templates.md) | [plan-index.md](./templates/plan-index.md) |
+| `spec/` | [spec-readme.md](./templates/spec-readme.md) | [spec-templates.md](./templates/spec-templates.md) | [spec-index.md](./templates/spec-index.md) |
+| `reports/` | [reports-readme.md](./templates/reports-readme.md) | [reports-templates.md](./templates/reports-templates.md) | [reports-index.md](./templates/reports-index.md) |
+| `apis/` | [apis-readme.md](./templates/apis-readme.md) | [apis-templates.md](./templates/apis-templates.md) | [apis-index.md](./templates/apis-index.md) |
+| `discuss/` | [discuss-readme.md](./templates/discuss-readme.md) | [discuss-templates.md](./templates/discuss-templates.md) | [discuss-index.md](./templates/discuss-index.md) |
+| `bugs/` | [bugs-readme.md](./templates/bugs-readme.md) | [bugs-templates.md](./templates/bugs-templates.md) | [bugs-index.md](./templates/bugs-index.md) + [bugs-patterns.md](./templates/bugs-patterns.md) |
+
+Template rule:
+
+- `docs/*/README.md` and the matching `*-readme.md` template must stay semantically aligned.
+- `docs/*/TEMPLATES.md` and the matching `*-templates.md` template must stay semantically aligned.
+- New project scaffold 默认只输出当前项目契约，不应在 README 或 `TEMPLATES.md` 中混入历史兼容 patch 正文。
+
+### Step 4: Report results
+
+Report which files were created and which already existed.
+
+## Options
+
+User can specify which directories to initialize:
+
+- `all` (default) - Initialize all directories
+- `work-journal` - Only the work-journal directory
+- `plan` - Only the plan directory
+- `spec` - Only the spec directory
+- `minimal` - Only work-journal and plan
+- `test-framework` - Scaffold `test/scenarios/` framework directory
+
+## Skip Existing Files
+
+**Never overwrite existing files**. If README.md, `TEMPLATES.md`, INDEX.md, or `PATTERNS.md` already exists, skip it and report to the user.
+
+## Post-Initialization
+
+After running `/init-docs`, you can use:
+
+- `/work-journal` - Record daily work progress
+- `/create-doc` - Create new documents in any directory
+- `/tdd` - Follow TDD workflow with plan checklists
+- `/bug-report` - Create Bug knowledge base records

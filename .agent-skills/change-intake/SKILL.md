@@ -1,0 +1,186 @@
+---
+name: change-intake
+description: "IMPORTANT: Use this skill when the user reports a bug, regression, broken behavior, screenshot-based issue, or asks to revise an existing feature without naming the exact plan. This is the default entry point for issue-driven work: it locates the most relevant plan/spec/bug context, decides whether the problem is implementation drift or a design/feature change, revises the matched spec/plan/checklist in place when the subject already exists, and routes the session to the right owner skill."
+---
+
+# Change Intake Skill
+
+Route issue-driven requests before coding. `/change-intake` is the user-facing
+entry point for:
+
+- bug reports without a plan name
+- screenshots or vague UI/API failures
+- regressions against recently delivered work
+- feature revisions that may require spec/plan updates first
+
+This skill does **not** replace `/implement`, `/plan-review`, or
+`/plan-code-review`. It decides which one should run next.
+
+## Usage
+
+- `/change-intake "login page blank after refresh"`
+- `/change-intake "secret edit page still posts intentBlocks"`
+- `/change-intake "need to revise selector behavior for authored blocks"`
+
+## Required Inputs
+
+The user can provide any combination of:
+
+- free-form issue text
+- screenshot / visible error text
+- API name, route, CLI command, field name, or BUG ID
+
+If a screenshot is present, extract any visible strings, labels, field names,
+or request/response errors before ranking candidates.
+
+## Shared Inputs To Read First
+
+Before matching a plan, read:
+
+1. `docs/work-journal/INDEX.md`
+2. the latest work-journal entry relevant to the topic
+3. `docs/bugs/PATTERNS.md` when the request is a bug or regression
+
+Use the new matcher script for deterministic candidate ranking:
+
+```bash
+python3 .agent-skills/change-intake/scripts/match_change_context.py \
+  --plan-root docs/plan \
+  --query "<issue text>"
+```
+
+## Matching Workflow
+
+### Step 1: Collect signals
+
+Extract and normalize:
+
+- user wording
+- screenshot OCR / visible UI text
+- API names
+- routes
+- commands
+- field names
+- BUG IDs
+
+Build one combined query string and pass it to the matcher script.
+
+### Step 2: Rank candidate plan targets
+
+Interpret matcher output as:
+
+- `high` confidence: top candidate is clear; load it directly
+- `medium` confidence: top candidate is preferred, but compare the next result
+- `low` confidence: present 2-3 candidates to the user before mutating anything
+- `none`: fall back to manual repo search and explain the gap
+
+Rules:
+
+- Prefer the `recommended` candidate unless confidence is `low`
+- If confidence is `low`, show the top candidates with reasons and ask the user
+- If the matcher finds nothing, search by BUG ID / API / route / command manually
+
+### Step 3: Decide plan lifecycle handling
+
+After selecting a candidate:
+
+1. Read the candidate `context.yaml`
+2. Validate it with:
+
+```bash
+python3 .agent-skills/implement/shared/scripts/validate_context.py \
+  --context docs/plan/<name>/context.yaml \
+  --docs-root docs \
+  --target <target>
+```
+
+3. Read the validated plan / checklist / spec / references
+4. Inspect the selected plan Header `状态`
+
+Routing rule:
+
+- `active` / `draft`: the plan is still live; continue with the original plan context
+- `completed`: revise the original spec / plan / checklist in place before coding
+- Do not create sibling follow-up / bugfix docs for same-subject revisions by default.
+- `superseded` / `deprecated`: do not implement against it; locate the successor or ask the user
+
+## Classification Workflow
+
+### Step 4: Determine change type
+
+Classify the request before coding:
+
+- `implementation drift`
+  - intended design is still correct
+  - code, generated artifacts, tests, or deployment drifted from the plan/spec
+- `design/feature change`
+  - user expectation changes the design, contract, workflow, or target behavior
+  - new user-visible behavior, schema, API, or compatibility rule is needed
+- `uncertain`
+  - the issue may be design drift, but the documents are ambiguous or stale
+
+### Step 5: Route to the next skill
+
+#### A. Active/Draft/Completed + implementation drift
+
+- If the selected plan is `completed`, first revise the original plan directory in place:
+  - update the original spec / plan / checklist together
+  - increment the affected document versions
+  - set the plan/checklist `状态` back to `active` before execution
+- If the issue is already within the current plan scope, continue with `/implement`
+- If the scope is already implemented but needs remediation, prefer `/plan-code-review --fix`
+- If document drift is the blocker, use `/plan-review --fix` first
+
+#### B. Design/Feature change
+
+Do not code first.
+
+1. Revise the original spec first
+2. Revise the original plan/checklist in the same directory
+3. Run `/plan-review --fix` if the updated docs need consistency cleanup
+4. Only then continue to implementation
+
+Create a new spec/plan subject only when:
+
+- no existing plan/spec cleanly matches the requested change
+- the user explicitly requests a separate standalone workstream
+
+#### C. Uncertain classification
+
+Stop and show:
+
+- the candidate plan
+- the conflicting evidence
+- whether the ambiguity is in spec, plan, or current code
+
+If the ambiguity is document-owned, resolve it through spec/plan updates before
+coding.
+
+## In-place Revision Contract
+
+When `/change-intake` revises an existing subject:
+
+- update spec/plan/checklist before code changes
+- keep using the original plan directory and `context.yaml`
+- refresh `context.yaml` discovery metadata when the issue vocabulary changes materially
+- add or refresh a `## 修订记录` section when the change benefits from an explicit delta trail
+- preserve references to related bug records and reports inside the same subject docs when relevant
+
+If the user currently wants proposal/backlog guidance only, stop before mutating
+the original docs and present the recommended in-place revision scope instead.
+
+Do not create sibling follow-up docs as passive notes for the same subject.
+
+## Close-out Workflow
+
+After the fix or revision is complete and verified:
+
+1. run `plan-review` on the relevant plan if spec/plan changed
+2. run `sync-doc-index` when Header / INDEX projections changed
+3. evaluate `bug-report` when the session fixed a real bug
+4. invoke `/retrospective --this` before final close-out
+
+`/change-intake` is an entry skill, not a delivery owner. Once it has routed the
+session into a concrete plan flow, the downstream delivery skill still owns its
+normal testing and lifecycle duties. Once `/change-intake` has aligned the
+original docs in place, it must hand off to the next owner in the same session.

@@ -1,0 +1,155 @@
+"""Contract checks for the /init-docs scaffold layout."""
+
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SKILL_PATH = REPO_ROOT / ".agent-skills" / "init-docs" / "SKILL.md"
+INIT_TEMPLATE_ROOT = REPO_ROOT / ".agent-skills" / "init-docs" / "templates"
+DOC_ROOT = REPO_ROOT / "docs"
+DOC_SUBDIRS = [
+    "work-journal",
+    "plan",
+    "spec",
+    "reports",
+    "apis",
+    "discuss",
+    "bugs",
+]
+COLLAB_SENTENCE = "起草或修改正文时，必须参考同目录 `TEMPLATES.md`。"
+
+
+def _read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def test_docs_subdirectories_have_separate_template_assets():
+    for name in DOC_SUBDIRS:
+        assert (DOC_ROOT / name / "TEMPLATES.md").exists(), name
+
+
+def test_readmes_no_longer_inline_full_template_sections():
+    banned_headings = {
+        DOC_ROOT / "work-journal" / "README.md": "## 日志模板",
+        DOC_ROOT / "plan" / "README.md": "## 5 文档模板",
+        DOC_ROOT / "spec" / "README.md": "## 4 文档模板",
+        DOC_ROOT / "reports" / "README.md": "## 4 文档模板",
+        DOC_ROOT / "apis" / "README.md": "## 5 文档模板",
+        DOC_ROOT / "discuss" / "README.md": "## 4 文档模板",
+        DOC_ROOT / "bugs" / "README.md": "## 6 模板",
+    }
+
+    for path, heading in banned_headings.items():
+        assert heading not in _read(path), path.name
+
+
+def test_readmes_explicitly_require_template_reference_for_collaboration():
+    assert COLLAB_SENTENCE in _read(DOC_ROOT / "README.md")
+
+    for name in DOC_SUBDIRS:
+        assert COLLAB_SENTENCE in _read(DOC_ROOT / name / "README.md"), name
+        assert COLLAB_SENTENCE in _read(INIT_TEMPLATE_ROOT / f"{name}-readme.md"), name
+
+
+def test_init_docs_skill_declares_readme_templates_split():
+    text = _read(SKILL_PATH)
+
+    assert "README.md、`TEMPLATES.md` 和 INDEX.md" in text
+    assert "README 只承载目录规范" in text
+    assert "TEMPLATES.md" in text
+
+
+def test_init_docs_template_resources_include_split_assets():
+    expected = [
+        "work-journal-templates.md",
+        "plan-templates.md",
+        "spec-templates.md",
+        "reports-templates.md",
+        "apis-templates.md",
+        "discuss-templates.md",
+        "bugs-templates.md",
+    ]
+
+    for name in expected:
+        assert (INIT_TEMPLATE_ROOT / name).exists(), name
+
+
+def test_new_project_plan_scaffold_omits_legacy_compatibility_markers():
+    text = _read(INIT_TEMPLATE_ROOT / "plan-templates.md")
+
+    assert "Legacy 兼容说明" not in text
+    assert "phase-mapping" not in text
+    assert "parallel|sequential" not in text
+    assert "AC-*" not in text
+
+
+# --- Phase 7.1: test-framework scaffold ---
+
+TEST_FRAMEWORK_TEMPLATES = [
+    "scenarios-readme.md",
+    "scenarios-shared-readme.md",
+    "scenarios-e2e-readme.md",
+    "scenarios-e2e-index.md",
+]
+
+
+def test_init_docs_declares_test_framework_option():
+    """SKILL.md must declare test-framework as a scaffold option (C-15)."""
+    text = _read(SKILL_PATH)
+    assert "test-framework" in text, "SKILL.md must declare test-framework option"
+
+
+def test_init_docs_test_framework_templates_exist():
+    """All 4 test-framework template files must exist (C-15)."""
+    for name in TEST_FRAMEWORK_TEMPLATES:
+        assert (INIT_TEMPLATE_ROOT / name).exists(), \
+            f"Template missing: {name}"
+
+
+def test_plan_readmes_and_templates_default_to_in_place_revision():
+    plan_readme = _read(DOC_ROOT / "plan" / "README.md")
+    init_plan_readme = _read(INIT_TEMPLATE_ROOT / "plan-readme.md")
+    plan_template = _read(DOC_ROOT / "plan" / "TEMPLATES.md")
+    init_plan_template = _read(INIT_TEMPLATE_ROOT / "plan-templates.md")
+
+    expected_sentence = "对于 `completed` 计划，同主题后续修订应直接在原计划目录内更新 spec / plan / checklist。"
+
+    assert expected_sentence in plan_readme
+    assert expected_sentence in init_plan_readme
+    assert "## 修订记录" in plan_template
+    assert "## 修订记录" in init_plan_template
+    assert "## 后续修复 / Follow-ups" not in plan_template
+    assert "## 后续修复 / Follow-ups" not in init_plan_template
+
+
+def test_plan_scaffold_prohibits_hard_coverage_threshold_gates():
+    plan_readme = _read(DOC_ROOT / "plan" / "README.md")
+    init_plan_readme = _read(INIT_TEMPLATE_ROOT / "plan-readme.md")
+    plan_template = _read(DOC_ROOT / "plan" / "TEMPLATES.md")
+    init_plan_template = _read(INIT_TEMPLATE_ROOT / "plan-templates.md")
+
+    expected_rule = "禁止把代码覆盖率百分比写成 Checklist、提交或 phase exit 的硬门槛"
+
+    assert expected_rule in plan_readme
+    assert expected_rule in init_plan_readme
+    assert "禁止创建 `coverage >= N%`、`覆盖率 ≥ N%`、`line coverage` 等百分比阈值型 Checklist 项" in plan_template
+    assert "禁止创建 `coverage >= N%`、`覆盖率 ≥ N%`、`line coverage` 等百分比阈值型 Checklist 项" in init_plan_template
+
+
+def test_bdd_checklist_templates_are_declared_in_plan_and_spec_scaffolds():
+    plan_readme = _read(DOC_ROOT / "plan" / "README.md")
+    init_plan_readme = _read(INIT_TEMPLATE_ROOT / "plan-readme.md")
+    plan_template = _read(DOC_ROOT / "plan" / "TEMPLATES.md")
+    init_plan_template = _read(INIT_TEMPLATE_ROOT / "plan-templates.md")
+    spec_template = _read(DOC_ROOT / "spec" / "TEMPLATES.md")
+    init_spec_template = _read(INIT_TEMPLATE_ROOT / "spec-templates.md")
+
+    for text in (plan_readme, init_plan_readme):
+        assert "bddChecklist" in text
+        assert "bdd-checklist" in text
+
+    for text in (plan_template, init_plan_template, spec_template, init_spec_template):
+        assert "bdd-plan.md" in text
+        assert "bdd-checklist.md" in text
+        assert "BDD-Gate" in text
+        assert "BDD-Gate` 通过前，相关 `bdd-checklist.md`" in text or "主 `implementation-checklist.md` 只保留阶段级 `BDD-Gate`" in text
