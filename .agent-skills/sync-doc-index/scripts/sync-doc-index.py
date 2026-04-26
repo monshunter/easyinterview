@@ -414,12 +414,21 @@ def check_plan_drift(plan_dir, root):
             # Status group drift
             if "状态" in std and std["状态"] != entry["expected_status"]:
                 severity = "advisory" if entry["is_sub"] else "error"
+                # Auto-fixable when both source and target sections share the same
+                # column shape: active / draft / completed. Superseded uses a different
+                # schema (no version/date columns), so leave it for human judgment.
+                same_shape = {"active", "draft", "completed"}
+                auto_fixable = (
+                    not entry["is_sub"]
+                    and entry["expected_status"] in same_shape
+                    and std["状态"] in same_shape
+                )
                 drifts.append({
                     "file": rel,
                     "field": "状态(group)",
                     "header_value": std["状态"],
                     "index_value": entry["expected_status"],
-                    "auto_fixable": False,
+                    "auto_fixable": auto_fixable,
                     "severity": severity,
                 })
             if "状态" in std and entry.get("status") and std["状态"] != entry["status"]:
@@ -741,10 +750,15 @@ def fix_headers(root, dry_run=False):
 
 
 def fix_index_columns(root, dry_run=False):
-    """Auto-fix INDEX column values (version/date) to match headers. Returns summary."""
+    """Auto-fix INDEX column values (version/date) to match headers, and migrate
+    rows to the section that matches their underlying doc Header `状态`. Returns
+    (fixes, skipped) — skipped covers transitions that share status mismatch but
+    cannot be auto-migrated (e.g., superseded → active, where column shape differs).
+    """
     fixes = []
+    skipped = []
 
-    # Spec INDEX
+    # Spec INDEX (column-only fix; spec INDEX uses domain grouping not status grouping)
     spec_dir = root / "docs" / "spec"
     spec_index = spec_dir / "INDEX.md"
     if spec_index.exists():
@@ -753,11 +767,247 @@ def fix_index_columns(root, dry_run=False):
 
     for plans_dir in sorted(spec_dir.glob("*/plans")):
         plan_index = plans_dir / "INDEX.md"
-        if plan_index.exists():
-            plan_fixes = _fix_plan_index(plans_dir, plan_index, root, dry_run)
-            fixes.extend(plan_fixes)
+        if not plan_index.exists():
+            continue
+        # Pass 1: column values inside whichever section currently holds the row.
+        plan_col_fixes = _fix_plan_index(plans_dir, plan_index, root, dry_run)
+        fixes.extend(plan_col_fixes)
+        # Pass 2: relocate rows whose doc 状态 doesn't match their containing section.
+        # Pass 1 already updated the row's 状态 cell on disk (when not dry-run), so the
+        # migration sees a consistent row whether or not column drift was repaired.
+        mig_fixes, mig_skipped = _migrate_plan_index_rows(plans_dir, plan_index, root, dry_run)
+        fixes.extend(mig_fixes)
+        skipped.extend(mig_skipped)
 
-    return fixes
+    return fixes, skipped
+
+
+def _new_plan_section(status, number):
+    """Return (heading_line, table_header_line, separator_line) bytes for a brand-new
+    plans/INDEX.md section matching the active/draft/completed conventions used by
+    /init-docs `subspec-plans-index.md` and `docs/spec/TEMPLATES.md`.
+    """
+    label = {
+        "active": "进行中（Active）",
+        "completed": "已完成（Completed）",
+        "draft": "草稿（Draft）",
+    }.get(status, status)
+    date_label = "完成日期" if status == "completed" else "更新日期"
+    heading = f"## {number} {label}\n"
+    table_header = f"| 计划 | 文件 | 版本 | 状态 | {date_label} |\n"
+    separator = "|------|------|------|------|----------|\n"
+    return heading, table_header, separator
+
+
+def _migrate_plan_index_rows(plans_dir, index_path, root, dry_run):
+    """Move plans/INDEX.md rows to the section whose group `状态` matches the row's
+    underlying plan doc Header `状态`. Same-shape transitions (active / draft /
+    completed) are auto-fixed; superseded transitions are returned as `skipped`
+    because their section drops the version/date columns and the migration would
+    have to fabricate or drop column data.
+
+    Returns (fixes, skipped). Each entry in `fixes` describes the migration; each
+    entry in `skipped` matches the schema used by `format_fix_result`'s Skipped
+    section (`{file, skipped: [{action, field, reason}]}`).
+    """
+    fixes = []
+    skipped = []
+
+    with open(index_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    # Walk lines to build a list of sections and classify each line. We track HTML
+    # comment ranges so example tables inside `<!-- -->` blocks don't count as
+    # data rows.
+    in_comment = False
+    sections = []  # ordered list of section dicts
+    current = None
+
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+
+        if not in_comment and "<!--" in stripped:
+            # Single-line comment? if "-->" follows on the same line, it's contained.
+            comment_open_idx = stripped.find("<!--")
+            after_open = stripped[comment_open_idx + 4 :]
+            if "-->" not in after_open:
+                in_comment = True
+                continue
+        if in_comment:
+            if "-->" in stripped:
+                in_comment = False
+            continue
+
+        m = re.match(r"^##\s+(\d+)\s+(.+)$", stripped)
+        if m:
+            section_number = int(m.group(1))
+            section_name = m.group(2)
+            status = None
+            for keyword, st in PLAN_GROUP_STATUS.items():
+                if keyword in section_name:
+                    status = st
+                    break
+            current = {
+                "heading_line": i,
+                "number": section_number,
+                "name": section_name,
+                "status": status,
+                "table_header_line": None,
+                "separator_line": None,
+                "row_lines": [],
+            }
+            sections.append(current)
+            continue
+
+        if current is None:
+            continue
+
+        if SEPARATOR_RE.match(stripped):
+            current["separator_line"] = i
+            if i > 0 and lines[i - 1].strip().startswith("|"):
+                current["table_header_line"] = i - 1
+            continue
+
+        if (
+            stripped.startswith("|")
+            and current.get("separator_line") is not None
+        ):
+            current["row_lines"].append(i)
+
+    # Identify migrations: rows whose doc 状态 doesn't match the section status.
+    same_shape = {"active", "draft", "completed"}
+    delete_lines = set()
+    pending_inserts = {}  # target_status -> list[row_text]
+
+    for sec_idx, sec in enumerate(sections):
+        if sec["status"] is None:
+            continue
+        for row_line_idx in sec["row_lines"]:
+            row_text = lines[row_line_idx]
+            row_stripped = row_text.strip()
+            cells = [c.strip() for c in row_stripped.split("|") if c.strip()]
+            if len(cells) < 2:
+                continue
+            # cells[0] = plan cell, cells[1] = files cell
+            file_links = LINK_RE.findall(cells[1])
+            if not file_links:
+                continue
+            first_file = file_links[0][1]
+            doc_path = (plans_dir / first_file).resolve()
+            if not doc_path.exists():
+                continue
+
+            header = parse_header(doc_path)
+            doc_status = header["standard"].get("状态")
+            if doc_status is None or doc_status == sec["status"]:
+                continue
+
+            rel = str(doc_path.relative_to(root))
+
+            # Sub-rows (`↳` indented continuations of the previous plan) are
+            # advisory drift — leave them alone so we don't split an entry from
+            # its parent.
+            if cells[0].startswith("↳"):
+                skipped.append({
+                    "file": rel,
+                    "skipped": [{
+                        "action": "migrate_row",
+                        "field": "状态(group)",
+                        "reason": f"sub-row continuation; manual placement required (header={doc_status}, section={sec['status']})",
+                    }],
+                })
+                continue
+
+            if sec["status"] not in same_shape or doc_status not in same_shape:
+                skipped.append({
+                    "file": rel,
+                    "skipped": [{
+                        "action": "migrate_row",
+                        "field": "状态(group)",
+                        "reason": f"superseded sections use a different column shape; migrate manually (header={doc_status}, section={sec['status']})",
+                    }],
+                })
+                continue
+
+            delete_lines.add(row_line_idx)
+            pending_inserts.setdefault(doc_status, []).append(row_text)
+            fixes.append({
+                "index": str(index_path.relative_to(root)),
+                "file": str(doc_path.relative_to(plans_dir)),
+                "action": "migrate_row",
+                "from_section": sec["name"],
+                "to_status": doc_status,
+            })
+
+    if not delete_lines and not pending_inserts:
+        return fixes, skipped
+
+    # Compute per-section row insertion anchors. The anchor is the original
+    # line index where new rows should be inserted (before that line in the
+    # original file). For a section that already has surviving rows, we
+    # insert directly after the last surviving row. For a section whose rows
+    # are all being moved out (or that has none), we insert immediately after
+    # the separator line.
+    insertion_point = {}  # status -> original line idx where new rows go before
+    for sec in sections:
+        if sec["status"] is None or sec["status"] not in same_shape:
+            continue
+        if sec["status"] not in pending_inserts:
+            continue
+        survivors = [r for r in sec["row_lines"] if r not in delete_lines]
+        if survivors:
+            insertion_point[sec["status"]] = survivors[-1] + 1
+        elif sec["separator_line"] is not None:
+            insertion_point[sec["status"]] = sec["separator_line"] + 1
+        # If neither rows nor separator exist, the section is malformed; we
+        # treat it as missing and append a fresh section at EOF below.
+
+    # Walk original lines and build new file content.
+    new_lines = []
+    pending_remaining = {st: list(rows) for st, rows in pending_inserts.items()}
+    next_section_number = max((sec["number"] for sec in sections), default=0)
+
+    for i, line in enumerate(lines):
+        if i in delete_lines:
+            continue
+        new_lines.append(line)
+        next_orig_idx = i + 1
+        for status, point_idx in list(insertion_point.items()):
+            if point_idx == next_orig_idx and pending_remaining.get(status):
+                rows = pending_remaining.pop(status)
+                # Make sure the row text ends with a newline for clean append.
+                for row in rows:
+                    new_lines.append(row if row.endswith("\n") else row + "\n")
+
+    # Any target status that has no existing section gets a new section at EOF.
+    new_section_status_in_order = [
+        st for st in pending_remaining if pending_remaining.get(st)
+    ]
+    if new_section_status_in_order:
+        if new_lines and not new_lines[-1].endswith("\n"):
+            new_lines[-1] = new_lines[-1] + "\n"
+        # Ensure a blank line before the first newly created section.
+        if new_lines and new_lines[-1].strip() != "":
+            new_lines.append("\n")
+        for status in new_section_status_in_order:
+            rows = pending_remaining[status]
+            if not rows:
+                continue
+            next_section_number += 1
+            heading, table_header, separator = _new_plan_section(status, next_section_number)
+            new_lines.append(heading)
+            new_lines.append("\n")
+            new_lines.append(table_header)
+            new_lines.append(separator)
+            for row in rows:
+                new_lines.append(row if row.endswith("\n") else row + "\n")
+            new_lines.append("\n")
+
+    if (delete_lines or new_section_status_in_order) and not dry_run:
+        with open(index_path, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+
+    return fixes, skipped
 
 
 def _fix_spec_index(spec_dir, index_path, root, dry_run):
@@ -957,6 +1207,9 @@ def format_fix_result(fixes, skipped, mode, dry_run):
                 lines.append(f"  {fix['file']}:")
                 for f in fix["fixes"]:
                     lines.append(f"    - {f.get('action', 'unknown')}: {json.dumps({k: v for k, v in f.items() if k != 'action'}, ensure_ascii=False)}")
+            elif fix.get("action") == "migrate_row":
+                lines.append(f"  {fix['index']} → {fix.get('file', '?')}:")
+                lines.append(f"    - migrate_row: from \"{fix.get('from_section', '?')}\" → status={fix.get('to_status', '?')}")
             elif "index" in fix:
                 lines.append(f"  {fix['index']} → {fix.get('file', '?')}:")
                 for field, change in fix.get("changes", {}).items():
@@ -1026,8 +1279,8 @@ def main():
             for f in report["orphans"]["missing_from_index"]:
                 print(f"  - [orphan] {f}")
     elif args.fix_index:
-        fixes = fix_index_columns(root, dry_run=args.dry_run)
-        print(format_fix_result(fixes, [], "--fix-index", args.dry_run))
+        fixes, skipped = fix_index_columns(root, dry_run=args.dry_run)
+        print(format_fix_result(fixes, skipped, "--fix-index", args.dry_run))
         # Section 3: Post-fix verification
         print("")
         print("## Post-fix Verification")

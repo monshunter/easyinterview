@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-26](2026-04-26.md) | `feat(skills): auto-migrate plans/INDEX rows between status groups` | #feat |
 | [2026-04-26](2026-04-26.md) | `fix(repo-scaffold): support hook install from linked worktrees` | #fix |
 | [2026-04-26](2026-04-26.md) | `docs(reports): land repo-scaffold/001-bootstrap delivery retrospective` | #docs |
 | [2026-04-26](2026-04-26.md) | `docs(repo-scaffold): close 001-bootstrap plan lifecycle to completed` | #docs |

@@ -131,9 +131,10 @@ Review the output. If Post-fix Verification shows zero issues, done. Otherwise p
 
 ### Step 3: Handle remaining issues
 
-The **Post-fix Verification** section lists all items that need LLM intervention. For each:
+`--fix-index` automatically migrates plan rows between active / draft / completed sections in `docs/spec/<subspec>/plans/INDEX.md` (creating the destination section if absent). The **Post-fix Verification** section only lists items that still need LLM intervention. For each:
 
-- **INDEX row in wrong status group** (`状态(group)` drift): Read the relevant `docs/spec/INDEX.md` or `docs/spec/<subspec>/plans/INDEX.md`. Move the row to the correct group matching the Header `状态`. Use Edit tool.
+- **INDEX row migration involving `superseded`** (column shape differs): Read the affected `docs/spec/<subspec>/plans/INDEX.md`. Move the row to the correct group manually because the superseded section drops version/date columns. Use Edit tool.
+- **Sub-row (`↳`) status mismatch**: These are advisory continuations of the parent plan. Decide whether the parent's status changed by mistake or whether the sub-row should be detached, then edit manually.
 - **Orphan: document not in INDEX** (`missing_from_index`): Read the document's Header. Determine the correct INDEX group and position. Use Edit tool to add a new row.
 - **Orphan: dangling INDEX entry** (`dangling_index_entries`): Report to the user. Do NOT delete the entry — let the user decide.
 
@@ -150,11 +151,13 @@ python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check --json
 | Wrong field order | Yes | — |
 | Missing `更新日期` | Yes | — |
 | INDEX version/date column mismatch | Yes | — |
+| INDEX row in wrong status group (active / draft / completed) | Yes | — |
+| INDEX row migration involving `superseded` (column shape differs) | **No** | Move row manually; superseded section has different columns |
+| Sub-row (`↳`) status mismatch | **No** | Decide parent vs. sub-row resolution manually |
 | Missing `状态` | **No** | Read INDEX context, set via Edit |
 | Missing `版本` | **No** | Read INDEX context, set via Edit |
 | No header at all | **No** | Construct full header via Edit |
 | Orphan files not in INDEX | **No** | Determine placement, add row via Edit |
-| INDEX row in wrong status group | **No** | Move row(s) via Edit |
 | Dangling INDEX entry | **No** | Report to user, do not delete |
 
 ## Non-Standard Entry Handling
