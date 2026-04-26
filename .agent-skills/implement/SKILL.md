@@ -1,6 +1,6 @@
 ---
 name: implement
-description: "IMPORTANT: Invoke this skill automatically when the user asks to implement an existing plan. Do NOT implement a plan without invoking this skill first. Thin plan execution entry point: resolves plan + target, validates docs/plan/<name>/context.yaml structure and referenced content through implement-owned shared scripts, reads the referenced markdown directly, then hands checklist execution to /tdd. Triggers on /implement or when user says 'implement plan', 'execute plan', 'start implementing', 'continue implementing', or wants to resume an in-flight plan, including terse follow-ups like '继续' when the current session or branch already identifies the plan owner. Supports /implement <plan-name> [target] syntax."
+description: "IMPORTANT: Invoke this skill automatically when the user asks to implement an existing plan. Do NOT implement a plan without invoking this skill first. Thin plan execution entry point: resolves a spec-centric plan at docs/spec/<subspec>/plans/<plan>/context.yaml, validates referenced content through implement-owned shared scripts, reads the referenced markdown directly, then hands checklist execution to /tdd. Triggers on /implement or when user says 'implement plan', 'execute plan', 'start implementing', 'continue implementing', or wants to resume an in-flight plan, including terse follow-ups like '继续' when the current session or branch already identifies the plan owner. Supports /implement <subspec>/<plan> [target] syntax."
 ---
 
 # Implement Skill
@@ -13,8 +13,8 @@ does **not** run extra markdown format checkers.
 ## Usage
 
 - `/implement` - List latest candidate plans and let user choose
-- `/implement <plan-name>` - Implement the default target of the named plan
-- `/implement <plan-name> <target>` - Implement a specific target (for example `frontend`, `unit-test`)
+- `/implement <subspec>/<plan>` - Implement the default target of the named spec-centric plan
+- `/implement <subspec>/<plan> <target>` - Implement a specific target (for example `frontend`, `unit-test`)
 - `/implement` - Resume the current in-flight plan when the current session or branch already identifies the owner
 - `/implement -h` - Show help only, do not execute workflow
 - `/implement -h -v` - Show verbose help (including full workflow), do not execute
@@ -47,8 +47,8 @@ If the user asks for one of these removed modes, stop and redirect:
 
 ## Prerequisites
 
-- Plan directory exists under `docs/plan/<name>/`
-- Manifest exists at `docs/plan/<name>/context.yaml`
+- Plan directory exists under `docs/spec/<subspec>/plans/<plan>/`
+- Manifest exists at `docs/spec/<subspec>/plans/<plan>/context.yaml`
 - `python3` is available and can run bundled scripts
 - `PyYAML` is installed (required by shared validator and candidate scripts)
 
@@ -63,10 +63,10 @@ If the user asks for one of these removed modes, stop and redirect:
 
 ### Step 1: Resolve plan name
 
-**With argument** (`/implement target-workspace`):
+**With argument** (`/implement target-workspace/001-frontend`):
 
-1. Check if `docs/plan/{name}/` exists.
-2. If not found, read `docs/plan/INDEX.md` and fuzzy-match plan names.
+1. Check if `docs/spec/{subspec}/plans/{plan}/` exists when the argument contains `/`.
+2. If the argument is a bare name, fuzzy-match against spec-centric candidates from `docs/spec/*/plans/*/context.yaml`.
 3. If multiple matches, list candidates and ask user to choose.
 4. If no match, stop and report available plan names.
 
@@ -76,8 +76,7 @@ If the user asks for one of these removed modes, stop and redirect:
 
 ```bash
 python3 .agent-skills/implement/shared/scripts/list_context_candidates.py \
-  --plan-index docs/plan/INDEX.md \
-  --plan-root docs/plan
+  --plan-root docs
 ```
 
 2. Display numbered candidates with reasons.
@@ -87,7 +86,7 @@ python3 .agent-skills/implement/shared/scripts/list_context_candidates.py \
 
 ### Step 2: Read manifest and determine target scope
 
-1. Read `docs/plan/{name}/context.yaml`.
+1. Read `docs/spec/{subspec}/plans/{plan}/context.yaml`.
 2. Determine target:
    - If user passed `<target>`, use it.
    - Otherwise use `spec.defaultTarget`.
@@ -99,7 +98,7 @@ Run validator for the selected target:
 
 ```bash
 python3 .agent-skills/implement/shared/scripts/validate_context.py \
-  --context docs/plan/{name}/context.yaml \
+  --context docs/spec/{subspec}/plans/{plan}/context.yaml \
   --docs-root docs \
   --target {target}
 ```
@@ -167,7 +166,7 @@ Insert branch creation and checkout between Step 4 and Step 5.
 
 ```bash
 python3 .agent-skills/implement/shared/scripts/detect_session_branch.py \
-  --plan-name {plan-name} \
+  --plan-name {subspec}-{plan} \
   --current-branch "$(git branch --show-current)"
 ```
 
@@ -180,26 +179,25 @@ If `metadata.branch` exists, pass it as `--branch-stem`.
    - `context.yaml` `metadata.baseBranch`
    - `AGENTS.md` project-level Git branch strategy
    - Git default branch auto-detection
-7. Resolve the feature branch stem from `metadata.branch` when present; otherwise derive it from the plan name.
+7. Resolve the feature branch stem from `metadata.branch` when present; otherwise derive it from `{subspec}-{plan}`.
 8. Otherwise, create or switch branches using the naming convention below.
 
 Branch naming convention:
 
-- `{type}/{plan-name}-{MMDD}`
+- `{type}/{subspec}-{plan}-{MMDD}`
 - Collision handling: append `-{N}` after the date suffix.
 - type inference: `fix/`, `opt/`, `docs/`, otherwise `feat/`.
 
 ### Step 5: Execute through sequential `/tdd`
 
-`/implement` no longer performs DAG parsing, Wave dispatch, teammate fan-out, or
-markdown-format linting. All plans, including legacy `parallel` plans, execute
-through the same sequential `/tdd` path using checklist order as the source of
-truth.
+`/implement` does not perform DAG parsing, Wave dispatch, teammate fan-out, or
+markdown-format linting. All plans execute through the same sequential `/tdd`
+path using checklist order as the source of truth.
 
 Invoke `/tdd` directly:
 
 ```text
-/tdd --file {checklist-path} --references {ref1},{ref2},... --phase-commit {plan-name}
+/tdd --file {checklist-path} --references {ref1},{ref2},... --phase-commit {subspec}/{plan}
 ```
 
 If a `test-checklist` exists, add `--test-checklist`.
@@ -209,8 +207,6 @@ Rules:
 - `--file` uses the validated checklist path only.
 - `--test-checklist` uses the validated test-checklist path when present.
 - `--references` includes all other validated markdown files.
-- Legacy Wave/Phase sections may still exist in the loaded documents; treat them
-  as compatibility hints, not a dispatch contract.
 - Never write implementation code against checklist items before `/tdd` takes over.
 
 ### Step 6: Completion check

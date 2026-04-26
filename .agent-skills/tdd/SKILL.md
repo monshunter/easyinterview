@@ -91,7 +91,7 @@ After loading documents:
    - Update Header `状态` to `active`.
    - Update `更新日期` to today (`YYYY-MM-DD`).
    - If Header field order/enum/date is non-compliant, invoke `/sync-doc-index --fix-header` first.
-   - Invoke `/sync-doc-index --fix-index` to sync INDEX projection.
+   - Invoke `/sync-doc-index --fix-index` to sync `docs/spec/INDEX.md`.
 
 ### Step 3: Select next checklist item (strict order)
 

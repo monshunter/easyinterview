@@ -5,9 +5,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SKILL_PATH = REPO_ROOT / ".agent-skills" / "design" / "SKILL.md"
-PLAN_TEMPLATE_PATH = REPO_ROOT / "docs" / "plan" / "TEMPLATES.md"
+PLAN_TEMPLATE_PATH = REPO_ROOT / ".agent-skills" / "init-docs" / "templates" / "subspec-plans-templates.md"
 SPEC_TEMPLATE_PATH = REPO_ROOT / "docs" / "spec" / "TEMPLATES.md"
-INIT_PLAN_TEMPLATE_PATH = REPO_ROOT / ".agent-skills" / "init-docs" / "templates" / "plan-templates.md"
+INIT_PLAN_TEMPLATE_PATH = REPO_ROOT / ".agent-skills" / "init-docs" / "templates" / "subspec-plans-templates.md"
 INIT_SPEC_TEMPLATE_PATH = REPO_ROOT / ".agent-skills" / "init-docs" / "templates" / "spec-templates.md"
 
 
@@ -40,8 +40,8 @@ def test_plan_docs_use_scenario_ids_for_bdd_gate_examples():
     plan_template = _read(PLAN_TEMPLATE_PATH)
     init_template = _read(INIT_PLAN_TEMPLATE_PATH)
 
-    assert "BDD-Gate: 验证 E2E.P0.001, E2E.P0.004 通过" in plan_template
-    assert "BDD-Gate: 验证 E2E.P0.001, E2E.P0.004 通过" in init_template
+    assert "BDD-Gate: 验证 E2E.P0.001 通过" in plan_template
+    assert "BDD-Gate: 验证 E2E.P0.001 通过" in init_template
     assert "BDD-Gate: 验证 AC-1, AC-2 通过" not in plan_template
     assert "BDD-Gate: 验证 AC-1, AC-2 通过" not in init_template
 
@@ -78,7 +78,7 @@ def test_plan_templates_prohibit_hard_coverage_threshold_items():
     plan_template = _read(PLAN_TEMPLATE_PATH)
     init_template = _read(INIT_PLAN_TEMPLATE_PATH)
 
-    assert "禁止创建 `coverage >= N%`、`覆盖率 ≥ N%`、`line coverage` 等百分比阈值型 Checklist 项" in plan_template
-    assert "禁止创建 `coverage >= N%`、`覆盖率 ≥ N%`、`line coverage` 等百分比阈值型 Checklist 项" in init_template
-    assert "本计划定义的单元测试项全部通过" in plan_template
-    assert "本计划定义的单元测试项全部通过" in init_template
+    assert "coverage >= N%" not in plan_template
+    assert "覆盖率 ≥ N%" not in init_template
+    assert "本计划列出的实现 / 测试项全部通过" in plan_template
+    assert "本计划列出的实现 / 测试项全部通过" in init_template

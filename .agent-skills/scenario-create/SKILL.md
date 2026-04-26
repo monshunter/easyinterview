@@ -12,8 +12,7 @@ directory structure required by the repository's active suite.
 
 ```text
 /scenario-create --suite <suite-id> --ref docs/spec/<subspec>/plans/<plan>/bdd-plan.md
-/scenario-create --suite <suite-id> --ref docs/plan/<subject>/bdd-test-plan.md
-/scenario-create --suite <suite-id> --ref docs/spec/<subject>-design.md
+/scenario-create --suite <suite-id> --ref docs/spec/<subspec>/spec.md
 ```
 
 ## Required Inputs

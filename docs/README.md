@@ -4,8 +4,7 @@
 
 | 目录 | 用途 | 入口 |
 |------|------|------|
-| [设计文档](./spec/) | 架构设计、模块规格 | [INDEX](./spec/INDEX.md) |
-| [计划文档](./plan/) | 实施计划、Checklist | [INDEX](./plan/INDEX.md) |
+| [Spec 文档](./spec/) | Spec-centric 规格、计划、Checklist、context | [INDEX](./spec/INDEX.md) |
 | [审查报告](./reports/) | Review、评估报告 | [INDEX](./reports/INDEX.md) |
 | [讨论存档](./discuss/) | Agent 分析讨论 | [INDEX](./discuss/INDEX.md) |
 | [API 定义](./apis/) | 接口定义（JSON） | [INDEX](./apis/INDEX.md) |
@@ -34,9 +33,10 @@
 | `superseded` | 已被取代，需注明新文档路径 |
 | `deprecated` | 已废弃，不再适用 |
 
-计划文档补充约定：
+Spec-centric plan 补充约定：
 
-- 新 plan 默认采用串行 phase 格式
+- 新 plan 默认采用串行 phase 格式，并位于 `docs/spec/<subspec>/plans/<NNN-plan>/`
+- 每个 subspec 的计划规范与索引位于 `docs/spec/<subspec>/plans/README.md`、`TEMPLATES.md`、`INDEX.md`
 - `context.yaml` 是 plan 机器入口的唯一真理源
 - 模板示例统一放在各目录的 `TEMPLATES.md`
 

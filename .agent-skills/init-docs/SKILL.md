@@ -1,6 +1,6 @@
 ---
 name: init-docs
-description: Initialize docs directory structure with README.md, TEMPLATES.md, INDEX.md, and supporting templates for work journals, plans, specs, and other documentation. Run this skill once when setting up a new project or adding documentation infrastructure. Triggers on /init-docs.
+description: Initialize docs directory structure with README.md, TEMPLATES.md, INDEX.md, and supporting templates for work journals, spec-centric plans, specs, and other documentation. Run this skill once when setting up a new project or adding documentation infrastructure. Triggers on /init-docs.
 ---
 
 # Initialize Docs Skill
@@ -22,14 +22,21 @@ docs/
 │   ├── README.md          # Rules and maintenance checklist
 │   ├── TEMPLATES.md       # Copyable journal templates
 │   └── INDEX.md           # Journal index
-├── plan/
-│   ├── README.md          # Plan rules and lifecycle contract
-│   ├── TEMPLATES.md       # Plan/checklist/context templates
-│   └── INDEX.md           # Plan index
 ├── spec/
-│   ├── README.md          # Design doc rules
-│   ├── TEMPLATES.md       # Design doc templates
-│   └── INDEX.md           # Spec index
+│   ├── README.md          # Spec-centric subject rules
+│   ├── TEMPLATES.md       # Spec/plan/checklist/context templates
+│   ├── INDEX.md           # Spec subject index
+│   └── ${subspec}/
+│       ├── spec.md
+│       ├── history.md
+│       └── plans/
+│           ├── README.md                  # Plan rules scoped to this subspec
+│           ├── TEMPLATES.md               # Plan/checklist/context templates for this subspec
+│           ├── INDEX.md                   # Plan index scoped to this subspec
+│           └── ${NNN-plan}/
+│               ├── context.yaml
+│               ├── plan.md
+│               └── checklist.md
 ├── reports/
 │   ├── README.md          # Report rules
 │   ├── TEMPLATES.md       # Report templates
@@ -75,8 +82,8 @@ For each subdirectory, create README.md, `TEMPLATES.md` (when applicable), and I
 |-----------|-----------------|-------------------------|----------------|
 | `docs/` | [docs-readme.md](./templates/docs-readme.md) | N/A | N/A |
 | `work-journal/` | [work-journal-readme.md](./templates/work-journal-readme.md) | [work-journal-templates.md](./templates/work-journal-templates.md) | [work-journal-index.md](./templates/work-journal-index.md) |
-| `plan/` | [plan-readme.md](./templates/plan-readme.md) | [plan-templates.md](./templates/plan-templates.md) | [plan-index.md](./templates/plan-index.md) |
 | `spec/` | [spec-readme.md](./templates/spec-readme.md) | [spec-templates.md](./templates/spec-templates.md) | [spec-index.md](./templates/spec-index.md) |
+| `spec/<subspec>/plans/` | [subspec-plans-readme.md](./templates/subspec-plans-readme.md) | [subspec-plans-templates.md](./templates/subspec-plans-templates.md) | [subspec-plans-index.md](./templates/subspec-plans-index.md) |
 | `reports/` | [reports-readme.md](./templates/reports-readme.md) | [reports-templates.md](./templates/reports-templates.md) | [reports-index.md](./templates/reports-index.md) |
 | `apis/` | [apis-readme.md](./templates/apis-readme.md) | [apis-templates.md](./templates/apis-templates.md) | [apis-index.md](./templates/apis-index.md) |
 | `discuss/` | [discuss-readme.md](./templates/discuss-readme.md) | [discuss-templates.md](./templates/discuss-templates.md) | [discuss-index.md](./templates/discuss-index.md) |
@@ -87,6 +94,7 @@ Template rule:
 - `docs/*/README.md` and the matching `*-readme.md` template must stay semantically aligned.
 - `docs/*/TEMPLATES.md` and the matching `*-templates.md` template must stay semantically aligned.
 - New project scaffold 默认只输出当前项目契约，不应在 README 或 `TEMPLATES.md` 中混入历史兼容 patch 正文。
+- Latest flow is spec-centric: executable plans live under `docs/spec/<subspec>/plans/<NNN-plan>/`; plan README/TEMPLATES/INDEX live under `docs/spec/<subspec>/plans/`; do not create top-level `docs/plan/`.
 
 ### Step 4: Report results
 
@@ -98,14 +106,16 @@ User can specify which directories to initialize:
 
 - `all` (default) - Initialize all directories
 - `work-journal` - Only the work-journal directory
-- `plan` - Only the plan directory
 - `spec` - Only the spec directory
-- `minimal` - Only work-journal and plan
+- `minimal` - Only work-journal and spec
+- `subspec-plans` - Only the per-subspec `plans/` README/TEMPLATES/INDEX scaffold when a subject is created
 - `test-framework` - Scaffold `test/scenarios/` framework directory
 
-## Skip Existing Files
+## Existing Files
 
-**Never overwrite existing files**. If README.md, `TEMPLATES.md`, INDEX.md, or `PATTERNS.md` already exists, skip it and report to the user.
+Default behavior is non-destructive: if README.md, `TEMPLATES.md`, INDEX.md, or `PATTERNS.md` already exists, skip it and report to the user.
+
+When the user explicitly says this is a new project and asks to reinitialize docs with the latest flow, reset the scaffold files from templates and remove generated spec/plan subject documents that came from an incorrect structure. Preserve committed source inputs and work-journal history unless the user explicitly asks to delete them.
 
 ## Post-Initialization
 

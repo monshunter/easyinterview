@@ -1,11 +1,11 @@
 [
   {
-    "query": "/implement docs-scaffold",
+    "query": "/implement docs-scaffold/001-foundation",
     "should_trigger": true,
-    "notes": "canonical slash-command invocation with plan name"
+    "notes": "canonical slash-command invocation with spec-centric plan name"
   },
   {
-    "query": "帮我开始实施 docs-scaffold 这个 plan，default target 就行，spec 和 checklist 都在 docs/plan/docs-scaffold/ 下",
+    "query": "帮我开始实施 docs-scaffold/001-foundation 这个 plan，default target 就行，spec 和 checklist 都在 docs/spec/docs-scaffold/plans/001-foundation/ 下",
     "should_trigger": true,
     "notes": "Chinese casual with plan name + target semantics"
   },
@@ -15,7 +15,7 @@
     "notes": "terse resume — description explicitly promises this triggers when session/branch identifies owner"
   },
   {
-    "query": "把 docs/plan/docs-scaffold 这个计划跑起来，按 checklist 顺序一个个来",
+    "query": "把 docs/spec/docs-scaffold/plans/001-foundation 这个计划跑起来，按 checklist 顺序一个个来",
     "should_trigger": true,
     "notes": "natural Chinese implementation intent, references plan path"
   },
@@ -25,22 +25,22 @@
     "notes": "English formal execution intent"
   },
   {
-    "query": "可以 implement docs-scaffold 的 frontend target 了，前面的 spec 都过了",
+    "query": "可以 implement docs-scaffold/001-frontend 的 frontend target 了，前面的 spec 都过了",
     "should_trigger": true,
     "notes": "explicit target argument in natural phrasing"
   },
   {
-    "query": "resume implementing the current plan, I had to leave for lunch and git branch is already feat/docs-scaffold-0417",
+    "query": "resume implementing the current plan, I had to leave for lunch and git branch is already feat/docs-scaffold-001-foundation-0417",
     "should_trigger": true,
     "notes": "resume intent with branch hint"
   },
   {
-    "query": "execute the unit-test target of docs-scaffold, the test-checklist is ready under docs/plan/docs-scaffold/unit-test-checklist.md",
+    "query": "execute the unit-test target of docs-scaffold/007-unit-test, the checklist is ready under docs/spec/docs-scaffold/plans/007-unit-test/checklist.md",
     "should_trigger": true,
     "notes": "English direct, target + checklist path"
   },
   {
-    "query": "docs/plan/docs-scaffold/checklist.md 里还有三项没打勾，帮我接着往下做完",
+    "query": "docs/spec/docs-scaffold/plans/001-foundation/checklist.md 里还有三项没打勾，帮我接着往下做完",
     "should_trigger": true,
     "notes": "references checklist file + 'finish the rest' implementation intent"
   },
@@ -91,7 +91,7 @@
     "notes": "skill authoring → /skill-creator"
   },
   {
-    "query": "docs/plan/docs-scaffold/checklist.md 第 12 行那条验收标准措辞有点模糊，帮我改清楚一些，不要动其他地方",
+    "query": "docs/spec/docs-scaffold/plans/001-foundation/checklist.md 第 12 行那条验收标准措辞有点模糊，帮我改清楚一些，不要动其他地方",
     "should_trigger": false,
     "notes": "near-miss: edits checklist text but is NOT executing it → /plan-review --fix (doc fix, not implement)"
   },

@@ -1,6 +1,6 @@
 ---
 name: plan-code-review
-description: "Review or fix code against spec/plan/checklist context. Use when the user wants L2 code review or remediation for already-implemented checklist phases. Reuses implement-owned shared context validator to resolve the target docs, then performs code review directly against the validated markdown and current codebase instead of running parser-heavy precheck scripts. Supports /plan-code-review <plan-name> [target] [--base-rev <git-rev>] [--fix]."
+description: "Review or fix code against spec/plan/checklist context. Use when the user wants L2 code review or remediation for already-implemented checklist phases. Reuses implement-owned shared context validator to resolve the target docs, then performs code review directly against the validated markdown and current codebase instead of running parser-heavy precheck scripts. Supports /plan-code-review <subspec/plan> [target] [--base-rev <git-rev>] [--fix]."
 ---
 
 # Plan Code Review Skill
@@ -11,11 +11,11 @@ reports drift, and, when the user confirms fixes, routes remediation through
 
 ## Usage
 
-- `/plan-code-review <plan-name>` - Review the default target of the named plan
-- `/plan-code-review <plan-name> <target>` - Review a specific target
-- `/plan-code-review <plan-name> [target] --base-rev <git-rev>` - Include git diff context
-- `/plan-code-review <plan-name> [target] --fix` - Review, preview, confirm, and fix via `/tdd --section`
-- `/plan-code-review <plan-name> [target] --fix --base-rev <git-rev>` - Same with git diff context
+- `/plan-code-review <subspec>/<plan>` - Review the default target of the named spec-centric plan
+- `/plan-code-review <subspec>/<plan> <target>` - Review a specific target
+- `/plan-code-review <subspec>/<plan> [target] --base-rev <git-rev>` - Include git diff context
+- `/plan-code-review <subspec>/<plan> [target] --fix` - Review, preview, confirm, and fix via `/tdd --section`
+- `/plan-code-review <subspec>/<plan> [target] --fix --base-rev <git-rev>` - Same with git diff context
 - `/plan-code-review -h` - Show help only
 - `/plan-code-review -h -v` - Show verbose help (including workflow)
 
@@ -40,8 +40,7 @@ Reviewer rule:
   code review.
 - New plan docs are sequential-only by default.
 - Checked checklist items define the primary implementation scope.
-- Phase `<!-- files: -->` metadata and task `**文件**:` declarations are optional
-  hints, not required scope contracts.
+- Task `**文件**:` declarations are optional hints, not required scope contracts.
 
 ## Workflow
 
@@ -52,8 +51,8 @@ Reviewer rule:
 
 ### Step 1: Resolve plan and target
 
-1. Require an explicit `plan-name`.
-2. Read `docs/plan/{name}/context.yaml`.
+1. Require an explicit `subspec/plan` name.
+2. Read `docs/spec/{subspec}/plans/{plan}/context.yaml`.
 3. Determine target from the explicit argument or `spec.defaultTarget`.
 4. If target is missing, stop and show available targets.
 
@@ -63,7 +62,7 @@ Run:
 
 ```bash
 python3 .agent-skills/implement/shared/scripts/validate_context.py \
-  --context docs/plan/{name}/context.yaml \
+  --context docs/spec/{subspec}/plans/{plan}/context.yaml \
   --docs-root docs \
   --target {target}
 ```
@@ -79,7 +78,7 @@ paths. After validation, read the returned markdown files directly.
 2. Gather concrete code scope from the strongest available sources, in this order:
    - `--base-rev` git diff filtered to files relevant to the current target
    - target-level discovery in `context.yaml` (`packages`, `uiRoutes`, `apiNames`, `commands`)
-   - plan task declarations such as `**文件**:` or legacy `<!-- files: -->`
+   - plan task declarations such as `**文件**:`
 3. Missing phase file declarations do not invalidate the review by themselves.
 4. If no concrete file set can be derived, fall back to target-level advisory review.
 5. `--fix` requires a concrete checklist-section mapping; target-level-only findings stay preview-only until the user confirms the section.
@@ -88,7 +87,7 @@ Code scope sources:
 
 - **Source A (git diff)**: if `--base-rev` is provided, `git diff --name-only {base}..HEAD`
 - **Source B (context discovery)**: target `packages` plus other target discovery hints from validated `context.yaml`
-- **Source C (plan declarations)**: `**文件**:` exact paths and legacy `<!-- files: -->` globs when present
+- **Source C (plan declarations)**: `**文件**:` exact paths when present
 
 ### Step 4: Execute L2 semantic review directly
 

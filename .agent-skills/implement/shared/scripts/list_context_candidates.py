@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
-"""List candidate plans for /implement (no-arg mode).
+"""List candidate plans for /implement no-arg mode.
 
-Reads docs/plan/INDEX.md to find Active + Draft plans,
-filters to those with context.yaml, and outputs a numbered
-candidate list with reasons.
-
-Usage:
-    python3 list_context_candidates.py \
-      --plan-index docs/plan/INDEX.md \
-      --plan-root docs/plan
+Current project scaffolds use spec-centric plan contexts:
+  docs/spec/<subspec>/plans/<plan>/context.yaml
 """
+
+from __future__ import annotations
 
 import argparse
 import os
@@ -27,85 +23,70 @@ except ImportError:
     sys.exit(2)
 
 
-def parse_index(index_path: str) -> list[dict]:
-    """Parse INDEX.md to extract plan entries from Active and Draft sections.
+HEADER_STATUS_RE = re.compile(r"^\s*>\s*\*\*状态\*\*:\s*(.+?)\s*$", re.MULTILINE)
+HEADER_DATE_RE = re.compile(r"^\s*>\s*\*\*更新日期\*\*:\s*(\d{4}-\d{2}-\d{2})\s*$", re.MULTILINE)
+STATUS_ORDER = {"active": 0, "draft": 1, "completed": 2, "superseded": 3, "deprecated": 4, "unknown": 5}
 
-    Returns list of dicts with keys: name, dir_name, status, version, date
-    """
-    if not os.path.isfile(index_path):
-        print(f"ERROR: INDEX file not found: {index_path}", file=sys.stderr)
-        sys.exit(1)
 
-    with open(index_path, "r", encoding="utf-8") as f:
-        content = f.read()
+def find_contexts(root: str) -> list[str]:
+    """Find spec-centric context.yaml files below a caller-provided root."""
+    abs_root = os.path.abspath(root)
+    candidates: list[str] = []
 
-    entries = []
-    current_status = None
+    roots: list[str]
+    if os.path.basename(abs_root) == "plan":
+        docs_root = os.path.dirname(abs_root)
+        roots = [os.path.join(docs_root, "spec")]
+    elif os.path.basename(abs_root) == "docs":
+        roots = [os.path.join(abs_root, "spec")]
+    else:
+        roots = [os.path.join(abs_root, "docs", "spec"), abs_root]
 
-    for line in content.splitlines():
-        stripped = line.strip()
-
-        # Detect section headers
-        if re.match(r"^##\s+\d+\s+进行中", stripped):
-            current_status = "Active"
+    for search_root in roots:
+        if not os.path.isdir(search_root):
             continue
-        elif re.match(r"^##\s+\d+\s+草稿", stripped):
-            current_status = "Draft"
+        if os.path.isfile(os.path.join(search_root, "context.yaml")):
+            candidates.append(os.path.join(search_root, "context.yaml"))
             continue
-        elif re.match(r"^##\s+\d+\s+已完成", stripped):
-            current_status = None  # Stop collecting
-            continue
-        elif re.match(r"^##\s+\d+\s+已取代", stripped):
-            current_status = None
-            continue
+        for dirpath, _, files in os.walk(search_root):
+            if "context.yaml" not in files:
+                continue
+            context = os.path.join(dirpath, "context.yaml")
+            parts = os.path.normpath(dirpath).split(os.sep)
+            if "plans" in parts:
+                candidates.append(context)
 
-        if current_status is None:
-            continue
+    return sorted(set(candidates))
 
-        # Skip sub-plan rows (↳) and header rows
-        if (
-            stripped.startswith("| ↳")
-            or stripped.startswith("|--")
-            or stripped.startswith("| 计划")
-        ):
-            continue
 
-        # Parse table rows: | [Name](./dir/) | ... | version | date |
-        match = re.match(
-            r"\|\s*\[([^\]]+)\]\(\./([^/]+)/\)\s*\|.*?\|\s*([\d.]+)\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|",
-            stripped,
-        )
-        if match:
-            name = match.group(1)
-            dir_name = match.group(2)
-            version = match.group(3)
-            date = match.group(4)
-            entries.append(
-                {
-                    "name": name,
-                    "dir_name": dir_name,
-                    "status": current_status,
-                    "version": version,
-                    "date": date,
-                }
-            )
+def read_manifest(context_path: str) -> dict | None:
+    try:
+        with open(context_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+    except (OSError, yaml.YAMLError):
+        return None
+    return data if isinstance(data, dict) else None
 
-    return entries
+
+def plan_status_and_date(plan_path: str | None) -> tuple[str, str]:
+    if not plan_path or not os.path.isfile(plan_path):
+        return "unknown", "0000-00-00"
+    with open(plan_path, "r", encoding="utf-8") as f:
+        text = f.read()
+    status_match = HEADER_STATUS_RE.search(text)
+    date_match = HEADER_DATE_RE.search(text)
+    status = status_match.group(1).strip() if status_match else "unknown"
+    date = date_match.group(1).strip() if date_match else "0000-00-00"
+    return status, date
 
 
 def count_checklist_progress(plan_dir: str) -> tuple[int, int] | None:
-    """Count checked/total items across all checklist files in a plan directory.
-
-    Returns (checked, total) or None if no checklists found.
-    """
     checked = 0
     total = 0
-
     for fname in os.listdir(plan_dir):
-        if not fname.endswith("-checklist.md"):
+        if fname not in {"checklist.md"} and not fname.endswith("-checklist.md"):
             continue
-        fpath = os.path.join(plan_dir, fname)
-        with open(fpath, "r", encoding="utf-8") as f:
+        with open(os.path.join(plan_dir, fname), "r", encoding="utf-8") as f:
             for line in f:
                 stripped = line.strip()
                 if stripped.startswith("- [x]") or stripped.startswith("- [X]"):
@@ -113,150 +94,83 @@ def count_checklist_progress(plan_dir: str) -> tuple[int, int] | None:
                     total += 1
                 elif stripped.startswith("- [ ]"):
                     total += 1
+    return (checked, total) if total else None
 
-    if total == 0:
+
+def candidate_from_context(context_path: str) -> dict | None:
+    data = read_manifest(context_path)
+    if not data:
         return None
-    return checked, total
-
-
-def load_target_metadata(context_path: str) -> tuple[list[str], str]:
-    """Load target names and manifest status from context.yaml."""
-    try:
-        with open(context_path, "r", encoding="utf-8") as f:
-            manifest = yaml.safe_load(f)
-    except (yaml.YAMLError, OSError):
-        return [], "invalid"
-
-    if not isinstance(manifest, dict):
-        return [], "invalid"
-
-    spec = manifest.get("spec")
-    if not isinstance(spec, dict):
-        return [], "invalid"
-
+    spec = data.get("spec")
+    metadata = data.get("metadata")
+    if not isinstance(spec, dict) or not isinstance(metadata, dict):
+        return None
     targets = spec.get("targets")
     if not isinstance(targets, dict):
-        return [], "invalid"
+        return None
 
-    return sorted(targets.keys()), "ready"
+    plan_dir = os.path.dirname(context_path)
+    target_names = sorted(targets.keys())
+    default_target = spec.get("defaultTarget")
+    target = targets.get(default_target) if isinstance(default_target, str) else None
+    if not isinstance(target, dict) and target_names:
+        target = targets[target_names[0]]
+
+    plan_path = None
+    if isinstance(target, dict) and isinstance(target.get("plan"), str):
+        plan_path = os.path.normpath(os.path.join(plan_dir, target["plan"]))
+    status, date = plan_status_and_date(plan_path)
+    progress = count_checklist_progress(plan_dir)
+
+    subspec = metadata.get("subspec")
+    name = metadata.get("name") or os.path.basename(plan_dir)
+    display = f"{subspec}/{name}" if subspec else name
+
+    return {
+        "display": display,
+        "context": context_path,
+        "status": status,
+        "date": date,
+        "targets": target_names,
+        "progress": progress,
+    }
 
 
-def count_all_contexts(plan_root: str) -> int:
-    """Count all docs/plan/*/context.yaml on disk."""
-    if not os.path.isdir(plan_root):
-        return 0
-    total = 0
-    for entry in os.listdir(plan_root):
-        plan_dir = os.path.join(plan_root, entry)
-        if not os.path.isdir(plan_dir):
-            continue
-        if os.path.isfile(os.path.join(plan_dir, "context.yaml")):
-            total += 1
-    return total
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="List candidate plans for /implement"
-    )
-    parser.add_argument(
-        "--plan-index", default="docs/plan/INDEX.md", help="Path to docs/plan/INDEX.md"
-    )
-    parser.add_argument(
-        "--plan-root", default="docs/plan", help="Path to docs/plan/ directory"
-    )
-    parser.add_argument(
-        "--max-candidates",
-        type=int,
-        default=5,
-        help="Maximum number of latest candidates to recommend (default: 5)",
-    )
+def main() -> None:
+    parser = argparse.ArgumentParser(description="List candidate plans for /implement")
+    parser.add_argument("--plan-root", default="docs", help="Search root: docs, docs/spec, repo root, or spec-centric plan dir")
+    parser.add_argument("--max-candidates", type=int, default=5)
     args = parser.parse_args()
 
     if args.max_candidates <= 0:
         print("ERROR: --max-candidates must be > 0", file=sys.stderr)
         sys.exit(2)
 
-    entries = parse_index(args.plan_index)
-    if not entries:
-        print(
-            "No plans with context.yaml found in Active/Draft status.\n"
-            "To make a plan available for /implement:\n"
-            "1. Ensure the plan is registered in docs/plan/INDEX.md\n"
-            "2. Create docs/plan/{name}/context.yaml (see docs/plan/TEMPLATES.md for template)"
-        )
-        sys.exit(0)
-
-    # Deduplicate by dir_name (keep first occurrence)
-    seen_dirs = set()
-    unique_entries = []
-    for entry in entries:
-        if entry["dir_name"] not in seen_dirs:
-            seen_dirs.add(entry["dir_name"])
-            unique_entries.append(entry)
-    entries = unique_entries
-
-    # Filter to plans with context.yaml
-    candidates = []
-    for entry in entries:
-        plan_dir = os.path.join(args.plan_root, entry["dir_name"])
-        context_path = os.path.join(plan_dir, "context.yaml")
-        if os.path.isfile(context_path):
-            entry["has_manifest"] = True
-            entry["plan_dir"] = plan_dir
-
-            # Read manifest metadata
-            targets, manifest_status = load_target_metadata(context_path)
-            entry["targets"] = targets
-            entry["manifest_status"] = manifest_status
-
-            # Count checklist progress
-            progress = count_checklist_progress(plan_dir)
-            entry["progress"] = progress
-
-            candidates.append(entry)
-
+    candidates = [c for c in (candidate_from_context(p) for p in find_contexts(args.plan_root)) if c]
+    candidates = [c for c in candidates if c["status"] in {"active", "draft"}]
     if not candidates:
         print(
-            "No plans with context.yaml found in Active/Draft status.\n"
-            "To make a plan available for /implement:\n"
-            "1. Ensure the plan is registered in docs/plan/INDEX.md\n"
-            "2. Create docs/plan/{name}/context.yaml (see docs/plan/TEMPLATES.md for template)"
+            "No active/draft plan contexts found.\n"
+            "Create docs/spec/<subspec>/plans/<plan>/context.yaml using the spec-centric v2 template."
         )
         sys.exit(0)
 
-    # Recommend only the latest plans by index date (YYYY-MM-DD).
-    candidates = sorted(
-        candidates,
-        key=lambda c: (c["date"], c["dir_name"]),
-        reverse=True,
-    )
+    candidates.sort(key=lambda c: (STATUS_ORDER.get(c["status"], 9), c["date"], c["display"]), reverse=False)
     recommended = candidates[: args.max_candidates]
 
-    total_contexts = count_all_contexts(args.plan_root)
-
-    # Output numbered list with reasons
     print("Available plans for /implement (latest recommendations):\n")
     for i, c in enumerate(recommended, 1):
-        reasons = []
-        reasons.append(f"Status: {c['status']}")
-        reasons.append(f"Updated: {c['date']}")
+        reasons = [f"Status: {c['status']}", f"Updated: {c['date']}", f"Targets: {', '.join(c['targets'])}"]
         if c["progress"]:
-            done, tot = c["progress"]
-            pct = int(done / tot * 100) if tot > 0 else 0
-            reasons.append(f"Progress: {done}/{tot} ({pct}%)")
-        reasons.append(f"Manifest: {c['manifest_status']}")
-        reasons.append(f"Targets: {', '.join(c['targets'])}")
-
-        print(f"  {i}. {c['name']} ({c['dir_name']})")
+            done, total = c["progress"]
+            pct = int(done / total * 100) if total else 0
+            reasons.insert(2, f"Progress: {done}/{total} ({pct}%)")
+        print(f"  {i}. {c['display']}")
+        print(f"     Context: {c['context']}")
         print(f"     {' | '.join(reasons)}")
         print()
 
-    print(
-        f"Summary: recommended={len(recommended)} (latest by Updated date, max={args.max_candidates}) "
-        f"| candidates={len(candidates)} (Active/Draft in INDEX) "
-        f"| all_contexts={total_contexts} (docs/plan/*/context.yaml on disk)"
-    )
+    print(f"Summary: recommended={len(recommended)} | candidates={len(candidates)} | contexts={len(find_contexts(args.plan_root))}")
     print(f"Enter a number (1-{len(recommended)}) to select a plan.")
 
 

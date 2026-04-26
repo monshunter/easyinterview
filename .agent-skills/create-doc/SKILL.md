@@ -16,8 +16,8 @@ If not, run `/init-docs` first to initialize the documentation structure.
 
 | Type | Directory | When to Use |
 |------|-----------|-------------|
-| Architecture/Module design | `docs/spec/` | System design, module specs |
-| Implementation/Refactor/Test plans | `docs/plan/${subject}/` | Work plans with checklists |
+| Architecture/Module design | `docs/spec/${subspec}/spec.md` | System design, module specs |
+| Implementation/Refactor/Test plans | `docs/spec/${subspec}/plans/${NNN-plan}/` | Work plans with checklists |
 | Code review/Validation reports | `docs/reports/` | Review results, validation, post-pass retrospectives |
 | Agent analysis discussions | `docs/discuss/` | Analysis, decision records |
 | API definitions | `docs/apis/` | Interface specifications |
@@ -33,7 +33,7 @@ If not, run `/init-docs` first to initialize the documentation structure.
 | Activity | Read First |
 |----------|------------|
 | Architecture/Module design | `docs/spec/README.md` + `docs/spec/TEMPLATES.md` |
-| Implementation/Test plans | `docs/plan/README.md` + `docs/plan/TEMPLATES.md` |
+| Implementation/Test plans | `docs/spec/README.md` + `docs/spec/TEMPLATES.md` |
 | Code review/Validation reports | `docs/reports/README.md` + `docs/reports/TEMPLATES.md` |
 | Agent analysis discussions | `docs/discuss/README.md` + `docs/discuss/TEMPLATES.md` |
 | API definitions | `docs/apis/README.md` + `docs/apis/TEMPLATES.md` |
@@ -47,7 +47,7 @@ Follow naming conventions from the README and structure examples from `TEMPLATES
 
 **Standard Header is mandatory.** Every new document must include the Header in the exact field order defined below.
 
-**Spec documents** (`docs/spec/*.md`):
+**Spec documents** (`docs/spec/${subspec}/spec.md` and supporting spec markdown):
 
 ```markdown
 > **版本**: 1.0
@@ -55,7 +55,7 @@ Follow naming conventions from the README and structure examples from `TEMPLATES
 > **更新日期**: YYYY-MM-DD
 ```
 
-**Plan documents** (`docs/plan/${subject}/*.md`, excluding checklist):
+**Plan documents** (`docs/spec/${subspec}/plans/${NNN-plan}/plan.md`, excluding checklist):
 
 ```markdown
 > **版本**: 1.0
@@ -74,16 +74,25 @@ Follow naming conventions from the README and structure examples from `TEMPLATES
 Valid status values: `draft`, `active`, `completed`, `superseded`, `deprecated`.
 New documents default to `draft`. Field order is fixed and must not be rearranged.
 
-**For plans**: Create a directory `docs/plan/${subject}/` containing:
+**For specs**: create a spec-centric directory. Do not create flat `docs/spec/${subject}-design.md` files for new projects.
+
+```text
+docs/spec/${subspec}/
+├── spec.md
+├── history.md
+└── plans/
+```
+
+**For plans**: Create a directory `docs/spec/${subspec}/plans/${NNN-plan}/` containing:
 - `context.yaml` - **Required** plan-context manifest for `/implement`, `/plan-review`, and `/plan-code-review`
-- `implementation.md` - Implementation plan
-- `implementation-checklist.md` - Implementation checklist
-- `unit-test-plan.md` (optional) - Unit test plan
-- `unit-test-plan-checklist.md` (optional) - Unit test checklist
+- `plan.md` - Plan document
+- `checklist.md` - Checklist
 - `bdd-plan.md` (optional) - BDD scenario plan
 - `bdd-checklist.md` (optional) - BDD scenario asset and execution checklist
 
-**context.yaml** must be generated with the plan. Minimal template lives in `docs/plan/TEMPLATES.md`.
+If `docs/spec/${subspec}/plans/README.md`, `TEMPLATES.md`, or `INDEX.md` is missing, initialize those files from `/init-docs` `subspec-plans-*` templates before creating the plan directory.
+
+**context.yaml** must be generated with the plan. Minimal template lives in `docs/spec/TEMPLATES.md`.
 
 Minimal shape:
 
@@ -91,19 +100,26 @@ Minimal shape:
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  name: ${subject}
+  subspec: ${subspec}
+  name: ${NNN-plan}
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
 spec:
   defaultTarget: backend
   discovery:
     aliases:
-      - ${subject}
+      - ${subspec}
+      - ${NNN-plan}
     keywords:
       - TODO: add issue keywords
   targets:
     backend:
-      plan: ./implementation.md
-      checklist: ./implementation-checklist.md
-      spec: ../../spec/${subject}-design.md
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
       discovery:
         packages:
           - TODO: add primary packages/modules
@@ -117,15 +133,15 @@ The plan-context manifest is the shared contract consumed by the implement-owned
 
 For revisions to an existing `completed` plan:
 
-- update the original plan directory instead of creating a sibling follow-up directory
-- revise the original spec / plan / checklist together
+- update the original `docs/spec/${subspec}/plans/${NNN-plan}/` directory instead of creating a sibling follow-up directory
+- revise the original `spec.md` / `plan.md` / `checklist.md` together
 - increment affected document versions
 - set the plan/checklist `状态` back to `active` while execution is pending, then restore `completed` after verification
-- keep `context.yaml` as the same subject manifest and refresh discovery metadata only when needed
+- keep `context.yaml` in the same plan directory and refresh discovery metadata only when needed
 - use a `## 修订记录` block when an explicit delta trail is useful
 - only create a new plan subject when no existing subject matches or the user explicitly requests a separate workstream
 
-For **new plans**, follow the canonical sequential forms from `docs/plan/README.md` and `docs/plan/TEMPLATES.md`:
+For **new plans**, follow the canonical sequential forms from `docs/spec/README.md` and `docs/spec/TEMPLATES.md`:
 - plan phase heading: `### Phase N: ...`
 - plan task heading: `#### N.M ...`
 - checklist section heading: `## Phase N: ...`
@@ -138,8 +154,6 @@ For test plans and test checklists:
 - Use completion language tied to the enumerated tests, for example `Phase 2 本计划定义的单元测试项全部通过`.
 - Do not create checklist items or acceptance criteria that use hard code coverage percentages such as `coverage >= 75%` or `覆盖率 ≥ 80%`.
 - If coverage is worth recording, keep it as observational context only; never make it a completion, commit, or phase-exit gate.
-
-Legacy forms such as `### 3.1 Phase 1: ...`, `#### 3.1.1 ...`, `## 1 Phase 1: ...`, `### W1.Auth: ...`, or explicit `<!-- phase-mapping: -->` comments are compatibility formats for existing documents, not the default for new ones.
 
 For **spec documents**, if the design contains confirmed tradeoffs or open product/architecture choices, explicitly include:
 - `设计决策记录` for decisions already confirmed
@@ -159,14 +173,10 @@ If Header is invalid, **abort INDEX update** and fix the Header first.
 - Fill in `版本`, `状态`, `更新日期` columns from the Header.
 - Domain groups are managed manually — do not create new groups without user approval.
 
-**For `docs/plan/INDEX.md`**:
-- Add the new document to the **status group** matching the Header `状态`:
-  - `draft` → "草稿（Draft）" section
-  - `active` → "进行中（Active）" section
-  - `completed` → "已完成（Completed）" section
-  - `superseded` → "已取代（Superseded）" section
-- Fill in `版本` and `更新日期` columns from the Header.
-- `↳` sub-plan rows follow their parent plan's group.
+**For `docs/spec/${subspec}/plans/INDEX.md`**:
+- Add the plan to the status group matching the Header `状态`.
+- Fill in `版本`, `状态`, `更新日期` columns from the plan Header.
+- Links must point to `./${NNN-plan}/plan.md`, `./${NNN-plan}/checklist.md`, and `./${NNN-plan}/context.yaml`.
 
 ## Markdown Format
 
@@ -194,5 +204,5 @@ Checklists are the single source of truth for task completion:
 - Creating documents without reading the corresponding README.md and `TEMPLATES.md` when available
 - Forgetting to update INDEX.md after creation
 - Skipping heading levels in markdown
-- Creating plan files directly in `docs/plan/` instead of a subdirectory
+- Creating plan files outside `docs/spec/${subspec}/plans/${NNN-plan}/`
 - Writing test plan acceptance criteria or checklist items that treat code coverage percentages as hard gates

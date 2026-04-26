@@ -1,11 +1,11 @@
 ---
 name: sync-doc-index
-description: "Check and repair document Header / INDEX drift. Validates Header field compliance (order, status enum, dates) and INDEX projection consistency across docs/spec/ and docs/plan/. Supports --check (audit), --fix-header (normalize Headers), and --fix-index (sync INDEX to Headers). Triggers on /sync-doc-index or when checking/repairing document Header/INDEX drift."
+description: "Check and repair document Header / INDEX drift. Validates Header field compliance (order, status enum, dates), docs/spec/INDEX, and per-subspec plans/INDEX projections for spec-centric docs/spec/* subjects. Supports --check (audit), --fix-header (normalize Headers), and --fix-index (sync INDEX to Headers). Triggers on /sync-doc-index or when checking/repairing document Header/INDEX drift."
 ---
 
 # Sync Doc Index Skill
 
-Checks and repairs document Header / INDEX drift across `docs/spec/` and `docs/plan/`.
+Checks and repairs document Header / INDEX drift across spec-centric `docs/spec/*/` subjects, `docs/spec/INDEX.md`, and each `docs/spec/<subspec>/plans/INDEX.md`.
 
 **Architecture**: Deterministic checks and auto-fixes are handled by `scripts/sync-doc-index.py` (bundled in this skill). The LLM only intervenes for judgment items the script cannot resolve automatically.
 
@@ -17,11 +17,11 @@ Checks and repairs document Header / INDEX drift across `docs/spec/` and `docs/p
 |-------|-------------|---------|
 | Task completion | Checklist checkboxes | Whether implementation tasks are done |
 | Document lifecycle | Header `状态` field | Whether document is draft/active/completed etc. |
-| Directory display | `INDEX.md` | Read-only projection view, never a status source |
+| Directory display | `docs/spec/INDEX.md` and per-subspec `plans/INDEX.md` | Read-only projection views, never status sources |
 
 ### Standard Header Contract
 
-**Spec documents** (`docs/spec/*.md`, excluding `README.md`, `TEMPLATES.md`, and `INDEX.md`):
+**Spec documents** (`docs/spec/*/spec.md` and `docs/spec/*/history.md`):
 
 ```
 > **版本**: X.Y
@@ -29,7 +29,7 @@ Checks and repairs document Header / INDEX drift across `docs/spec/` and `docs/p
 > **更新日期**: YYYY-MM-DD
 ```
 
-**Plan documents** (`docs/plan/*/*.md`, excluding `README.md`, `TEMPLATES.md`, and top-level `INDEX.md`):
+**Plan documents** (`docs/spec/*/plans/*/*.md`):
 
 ```
 > **版本**: X.Y
@@ -38,11 +38,6 @@ Checks and repairs document Header / INDEX drift across `docs/spec/` and `docs/p
 ```
 
 Field order is **fixed**. Fields must appear in exactly this order.
-
-Legacy note:
-
-- Existing historical plan docs may still carry `> **执行模式**: parallel|sequential`.
-- The checker must tolerate that optional extra field, but new-format plans no longer require it.
 
 **Checklist documents** (`*-checklist.md`): same as spec (3 fields).
 
@@ -138,7 +133,7 @@ Review the output. If Post-fix Verification shows zero issues, done. Otherwise p
 
 The **Post-fix Verification** section lists all items that need LLM intervention. For each:
 
-- **INDEX row in wrong status group** (`状态(group)` drift): Read `docs/plan/INDEX.md`. Move the row (and its `↳` sub-plan rows) from the current group to the correct group matching the Header `状态`. Use Edit tool.
+- **INDEX row in wrong status group** (`状态(group)` drift): Read the relevant `docs/spec/INDEX.md` or `docs/spec/<subspec>/plans/INDEX.md`. Move the row to the correct group matching the Header `状态`. Use Edit tool.
 - **Orphan: document not in INDEX** (`missing_from_index`): Read the document's Header. Determine the correct INDEX group and position. Use Edit tool to add a new row.
 - **Orphan: dangling INDEX entry** (`dangling_index_entries`): Report to the user. Do NOT delete the entry — let the user decide.
 

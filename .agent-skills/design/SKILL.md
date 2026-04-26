@@ -76,11 +76,11 @@ user toggle. This prevents users from accidentally under-scoping or over-generat
    - No (pure implementation of existing design) -> skip spec, but require an explicit reusable spec path from current context or the user and store it as `source_spec`
 
 2. **Needs execution plan?** (multi-step implementation, checklist tracking, team coordination)
-   - Yes -> generate implementation.md + implementation-checklist.md + context.yaml
+   - Yes -> generate `docs/spec/{subspec}/plans/{NNN-plan}/plan.md` + `checklist.md` + `context.yaml`
    - No (spec-only crystallization) -> stop after spec
 
 3. **Needs test plan?** (unit testable components, complex logic, regression risk)
-   - Yes -> generate unit-test-plan.md + unit-test-plan-checklist.md
+   - Yes -> generate a dedicated `{NNN-unit-test}` plan directory with `plan.md` + `checklist.md`
    - No -> skip test plan
 
 4. **Needs BDD phase gates?** (behavior phases that can be independently deployed and verified,
@@ -102,37 +102,39 @@ owns the repository's document creation mechanics.
 
 #### 4.1 Spec Document
 
-- Path: `docs/spec/{subject}-{type}.md`
-- Template source: `docs/spec/TEMPLATES.md` 1
-- Naming: follow `docs/spec/README.md` 3 naming table (choose suffix by document type)
+- Path: `docs/spec/{subspec}/spec.md`
+- Supporting history path: `docs/spec/{subspec}/history.md`
+- Template source: `docs/spec/TEMPLATES.md`
+- Naming: follow `docs/spec/README.md` spec-centric v2 naming rules
 - Include Acceptance Criteria section (8) when criteria are present in the Brief
 - Keep Acceptance Criteria descriptive; do not use `AC-*` as BDD-Gate machine references in new documents
 - Use the spec's section numbering: 1-Overview through 10-Related Documents
-- When Step 3 chose spec reuse instead of new spec generation, do not create a new spec file; keep the reused path in `source_spec`
+- When Step 3 chose spec reuse instead of new spec generation, do not create a new spec directory; keep the reused path in `source_spec`
 
 #### 4.2 Implementation Plan + Checklist
 
-- Plan path: `docs/plan/{subject}/implementation.md`
-- Checklist path: `docs/plan/{subject}/implementation-checklist.md`
-- Template source: `docs/plan/TEMPLATES.md` 1 / 2 / 4
-- When BDD is needed: add `BDD-Gate:` items at the end of each behavior phase per `docs/plan/TEMPLATES.md` 4, using scenario IDs from `bdd-plan.md`; track scenario asset readiness and execution in `bdd-checklist.md`
+- Plan path: `docs/spec/{subspec}/plans/{NNN-plan}/plan.md`
+- Checklist path: `docs/spec/{subspec}/plans/{NNN-plan}/checklist.md`
+- Template source: `docs/spec/TEMPLATES.md` plan/checklist sections
+- Ensure `docs/spec/{subspec}/plans/README.md`, `TEMPLATES.md`, and `INDEX.md` exist using `/init-docs` `subspec-plans-*` templates before writing the first plan for a subject
+- When BDD is needed: add `BDD-Gate:` items at the end of each behavior phase per `docs/spec/TEMPLATES.md`, using scenario IDs from `bdd-plan.md`; track scenario asset readiness and execution in `bdd-checklist.md`
 - Phase design must follow the phase closability principle from spec 4.4:
   each behavior phase is a vertical behavior slice that can be independently deployed and verified
 
 #### 4.3 Unit Test Plan + Checklist
 
-- Plan path: `docs/plan/{subject}/unit-test-plan.md`
-- Checklist path: `docs/plan/{subject}/unit-test-plan-checklist.md`
+- Default path: `docs/spec/{subspec}/plans/{NNN-unit-test}/plan.md`
+- Checklist path: `docs/spec/{subspec}/plans/{NNN-unit-test}/checklist.md`
 - Use phase-number section headings that directly mirror the implementation checklist by default.
-- Only emit `<!-- phase-mapping: -->` when repairing or extending a legacy plan that already uses that annotation.
 - Write unit-test completion items against the planned test set itself, for example `Phase N 本计划定义的单元测试项全部通过`.
 - Do not generate hard coverage-percentage gates in acceptance criteria or checklist items.
 - If coverage is mentioned at all, keep it as observational background rather than a completion, commit, or phase-exit condition.
 
 #### 4.4 BDD Test Plan + Checklist
 
-- Plan path: `docs/plan/{subject}/bdd-plan.md`
-- Checklist path: `docs/plan/{subject}/bdd-checklist.md`
+- BDD files live inside the relevant plan directory:
+  `docs/spec/{subspec}/plans/{NNN-plan}/bdd-plan.md` and
+  `docs/spec/{subspec}/plans/{NNN-plan}/bdd-checklist.md`
 - Only generated when Step 3 inferred BDD is needed
 - Before allocating IDs, read `test/scenarios/README.md` and the target suite `README.md` / `INDEX.md`
 - `bdd-plan.md` contains detailed Given/When/Then scenarios grouped by Phase and does not contain execution progress checkboxes
@@ -141,11 +143,11 @@ owns the repository's document creation mechanics.
 
 #### 4.5 context.yaml
 
-- Path: `docs/plan/{subject}/context.yaml`
+- Path: `docs/spec/{subspec}/plans/{NNN-plan}/context.yaml`
 - Generated whenever implementation plan is generated
-- Template reference: `docs/plan/TEMPLATES.md` 5
+- Template reference: `docs/spec/TEMPLATES.md` context section
 - Generator reference: `.agent-skills/implement/shared/scripts/generate_context_yaml.py`
-- `spec` must point to either the newly generated spec path or `source_spec`; if neither exists, stop and ask for clarification before writing the plan set
+- `spec` must point to either `../../spec.md` or `source_spec`; if neither exists, stop and ask for clarification before writing the plan set
 - Include `bddPlan` and `bddChecklist` fields only when BDD artifacts are generated
 - Fill `spec.discovery` with aliases and keywords from the Brief
 - Fill `spec.targets.<target>.discovery.packages` from the component list
@@ -154,13 +156,13 @@ owns the repository's document creation mechanics.
 
 ### Step 5: Update INDEX Files
 
-Update the relevant INDEX files for each generated document type:
+Update the relevant INDEX files:
 
-- `docs/spec/INDEX.md` — if a spec was generated
-- `docs/plan/INDEX.md` — if a plan was generated
+- `docs/spec/INDEX.md` when a spec subject is generated or revised
+- `docs/spec/{subspec}/plans/INDEX.md` when a plan is generated or revised
 
-Follow the existing INDEX format and sorting conventions. Add new entries in the
-appropriate status group.
+Plans remain inside the subject directory and are indexed only by that subject's
+local `plans/INDEX.md`.
 
 ### Step 6: Verify and Summarize
 
@@ -169,7 +171,7 @@ Run validation and present a summary:
 1. **context.yaml validation** (when generated):
    ```bash
    python3 .agent-skills/implement/shared/scripts/validate_context.py \
-     --context docs/plan/{subject}/context.yaml \
+     --context docs/spec/{subspec}/plans/{NNN-plan}/context.yaml \
      --docs-root docs \
      --target {default-target}
    ```
@@ -178,7 +180,6 @@ Run validation and present a summary:
    - Every scenario ID in the checklist has a corresponding entry in `bdd-plan.md`
    - Every scenario ID in `bdd-plan.md` has a corresponding asset/execution section in `bdd-checklist.md`
 - Every generated scenario ID follows the relevant layer `README.md` / `INDEX.md` numbering convention
-   - Legacy `AC-*` coverage checks only apply when explicitly repairing an existing historical plan
    - Report any gaps as errors
 
 3. **Output summary**:

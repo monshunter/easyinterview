@@ -3,10 +3,11 @@
 
 Usage:
     # Single context
-    python3 validate_context.py --context docs/plan/local-auth/context.yaml
-    python3 validate_context.py --context docs/plan/local-auth/context.yaml --target backend
+    python3 validate_context.py --context docs/spec/local-auth/plans/001-backend/context.yaml
+    python3 validate_context.py --context docs/spec/local-auth/plans/001-backend/context.yaml --target backend
 
-    # Batch mode (default): validate docs/plan/*/context.yaml
+    # Batch mode (default): validate plan contexts under:
+    #   docs/spec/*/plans/*/context.yaml
     python3 validate_context.py
 
 Exit codes:
@@ -429,10 +430,10 @@ def collect_target_files(
 def normalize_docs_root(docs_root: str) -> str:
     """Normalize docs root input.
 
-    If user passes docs/plan, auto-upcast to docs.
+    If user passes docs/spec, keep docs as the validation root.
     """
     abs_root = os.path.abspath(docs_root)
-    if os.path.basename(abs_root) == "plan":
+    if os.path.basename(abs_root) in {"plan", "spec"}:
         parent = os.path.dirname(abs_root)
         if os.path.isdir(abs_root):
             return parent
@@ -444,39 +445,60 @@ def infer_docs_root(context_path: str | None, plan_root: str) -> str:
     if context_path:
         cursor = os.path.abspath(os.path.dirname(context_path))
         while True:
-            if os.path.basename(cursor) == "plan":
-                return os.path.dirname(cursor)
+            if os.path.basename(cursor) == "docs":
+                return cursor
             parent = os.path.dirname(cursor)
             if parent == cursor:
                 break
             cursor = parent
 
     abs_plan_root = os.path.abspath(plan_root)
-    if os.path.basename(abs_plan_root) == "plan":
+    if os.path.basename(abs_plan_root) in {"plan", "spec"}:
         return os.path.dirname(abs_plan_root)
 
-    maybe_plan = os.path.join(abs_plan_root, "plan")
-    if os.path.isdir(maybe_plan):
+    maybe_spec = os.path.join(abs_plan_root, "spec")
+    if os.path.isdir(maybe_spec):
         return abs_plan_root
 
     return os.path.abspath("docs")
 
 
 def collect_contexts(plan_root: str) -> list[str]:
-    """Collect docs/plan/*/context.yaml under plan root."""
-    abs_plan_root = os.path.abspath(plan_root)
-    if not os.path.isdir(abs_plan_root):
-        return []
+    """Collect plan context manifests.
 
-    contexts = []
-    for entry in sorted(os.listdir(abs_plan_root)):
-        plan_dir = os.path.join(abs_plan_root, entry)
-        if not os.path.isdir(plan_dir):
+    The current scaffold is spec-centric:
+    docs/spec/<subspec>/plans/<plan>/context.yaml.
+    """
+    abs_plan_root = os.path.abspath(plan_root)
+    contexts: list[str] = []
+
+    candidates: list[str] = []
+    if os.path.basename(abs_plan_root) == "plan":
+        docs_root = os.path.dirname(abs_plan_root)
+        candidates.append(os.path.join(docs_root, "spec"))
+    elif os.path.basename(abs_plan_root) == "docs":
+        candidates.append(os.path.join(abs_plan_root, "spec"))
+    else:
+        candidates.extend([
+            os.path.join(abs_plan_root, "docs", "spec"),
+            abs_plan_root,
+        ])
+
+    for candidate in candidates:
+        if not os.path.isdir(candidate):
             continue
-        context_path = os.path.join(plan_dir, "context.yaml")
-        if os.path.isfile(context_path):
-            contexts.append(context_path)
-    return contexts
+
+        if os.path.basename(candidate) == "spec":
+            for root, _, files in os.walk(candidate):
+                if "context.yaml" not in files:
+                    continue
+                parts = os.path.normpath(root).split(os.sep)
+                if "plans" in parts:
+                    contexts.append(os.path.join(root, "context.yaml"))
+        elif os.path.isfile(os.path.join(candidate, "context.yaml")):
+            contexts.append(os.path.join(candidate, "context.yaml"))
+
+    return sorted(set(contexts))
 
 
 def validate_context(
@@ -597,8 +619,8 @@ def main():
     )
     parser.add_argument(
         "--plan-root",
-        default="docs/plan",
-        help="Plan root directory for batch mode (default: docs/plan)",
+        default="docs",
+        help="Batch root. Accepts docs, docs/spec, repo root, or a single spec-centric plan dir (default: docs)",
     )
     parser.add_argument(
         "--docs-root",
@@ -640,7 +662,7 @@ def main():
 
     contexts = collect_contexts(args.plan_root)
     if not contexts:
-        print(f"No context.yaml found under {args.plan_root}/*/context.yaml")
+        print(f"No context.yaml found under {args.plan_root}")
         sys.exit(0)
 
     failures = []

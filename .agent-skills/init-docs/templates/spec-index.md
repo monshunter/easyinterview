@@ -1,37 +1,24 @@
-# 设计文档索引
+# Spec 索引
 
-> 本索引按模块/领域分组，记录所有设计文档的版本和状态。
+> 本索引按 subject 分组记录 `docs/spec/*/spec.md` 的版本和状态。
 
 ---
 
-*暂无设计文档*
+*暂无 Spec 文档*
 
 <!--
 示例格式：
 
-## 1 系统架构
+## 1 P0 MVP
 
-| 文档 | 版本 | 状态 | 更新日期 |
-|------|------|------|----------|
-| [系统架构](./system-architecture.md) | 1.2 | active | 2025-12-27 |
+| Subject | Spec | 版本 | 状态 | 更新日期 | Plans |
+|---------|------|------|------|----------|-------|
+| target-job-workspace | [spec](./target-job-workspace/spec.md) | 1.0 | active | 2026-04-26 | [plans](./target-job-workspace/plans/) |
 
-## 2 核心模块
+## 2 Foundation
 
-| 文档 | 版本 | 状态 | 更新日期 |
-|------|------|------|----------|
-| [字体渲染器](./font-renderer-design.md) | 1.0 | active | 2025-12-26 |
-| [布局引擎](./layout-engine-design.md) | 1.1 | active | 2025-12-27 |
-
-## 3 数据结构
-
-| 文档 | 版本 | 状态 | 更新日期 |
-|------|------|------|----------|
-| [配置 Schema](./config-schema.md) | 1.0 | active | 2025-12-25 |
-
-## 4 已废弃文档
-
-| 文档 | 原版本 | 替代文档 |
-|------|--------|----------|
-| [旧布局设计](./layout-design-v1.md) | 1.0 | layout-engine-design.md |
+| Subject | Spec | 版本 | 状态 | 更新日期 | Plans |
+|---------|------|------|------|----------|-------|
+| repo-scaffold | [spec](./repo-scaffold/spec.md) | 1.0 | active | 2026-04-26 | [plans](./repo-scaffold/plans/) |
 
 -->

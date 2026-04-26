@@ -1,6 +1,6 @@
 ---
 name: plan-review
-description: "Review or fix spec/plan/checklist/context documents for a plan target. Use when the user wants L1 review or document remediation for spec/plan/checklist consistency, including spec-owned issues that should be repaired in the same fix pass. Reuses implement-owned shared context validator to resolve the target docs, then performs semantic review directly on the validated markdown instead of running parser-heavy format checkers. Supports /plan-review [plan-name] [target] [--fix]."
+description: "Review or fix spec/plan/checklist/context documents for a spec-centric plan target. Use when the user wants L1 review or document remediation for spec/plan/checklist consistency, including spec-owned issues that should be repaired in the same fix pass. Reuses implement-owned shared context validator to resolve the target docs, then performs semantic review directly on the validated markdown instead of running parser-heavy format checkers. Supports /plan-review [subspec/plan] [target] [--fix]."
 ---
 
 # Plan Review Skill
@@ -13,9 +13,9 @@ directly. It does **not** implement code and does **not** hand off to `/tdd`.
 ## Usage
 
 - `/plan-review` - List latest candidate plans and let user choose, then run review
-- `/plan-review <plan-name>` - Review the default target of the named plan
-- `/plan-review <plan-name> <target>` - Review a specific target
-- `/plan-review <plan-name> [target] --fix` - Preview, confirm, and apply spec/plan/checklist/context fixes
+- `/plan-review <subspec>/<plan>` - Review the default target of the named spec-centric plan
+- `/plan-review <subspec>/<plan> <target>` - Review a specific target
+- `/plan-review <subspec>/<plan> [target] --fix` - Preview, confirm, and apply spec/plan/checklist/context fixes
 - `/plan-review -h` - Show help only
 - `/plan-review -h -v` - Show verbose help (including workflow)
 
@@ -40,8 +40,6 @@ Reviewer rule:
 - Do not add python markdown-format validators or parser-only gatekeeping for
   plan/checklist/spec documents.
 - New plan docs are sequential-only by default.
-- Legacy Wave/Phase content remains compatibility input when present, but it is
-  not a hard formatting contract.
 
 ## Workflow
 
@@ -54,8 +52,8 @@ Reviewer rule:
 
 **With argument**:
 
-1. Check if `docs/plan/{name}/` exists.
-2. If not found, read `docs/plan/INDEX.md` and fuzzy-match plan names.
+1. Check if `docs/spec/{subspec}/plans/{plan}/` exists when the argument contains `/`.
+2. If the argument is a bare name, fuzzy-match against spec-centric candidates from `docs/spec/*/plans/*/context.yaml`.
 3. If multiple matches, ask the user to choose.
 4. If no match, stop and report available plan names.
 
@@ -65,8 +63,7 @@ Reviewer rule:
 
 ```bash
 python3 .agent-skills/implement/shared/scripts/list_context_candidates.py \
-  --plan-index docs/plan/INDEX.md \
-  --plan-root docs/plan
+  --plan-root docs
 ```
 
 2. Display numbered candidates with reasons.
@@ -76,7 +73,7 @@ python3 .agent-skills/implement/shared/scripts/list_context_candidates.py \
 
 ### Step 2: Read manifest and determine target scope
 
-1. Read `docs/plan/{name}/context.yaml`.
+1. Read `docs/spec/{subspec}/plans/{plan}/context.yaml`.
 2. Determine target:
    - If user passed `<target>`, use it.
    - Otherwise use `spec.defaultTarget`.
@@ -88,7 +85,7 @@ Run:
 
 ```bash
 python3 .agent-skills/implement/shared/scripts/validate_context.py \
-  --context docs/plan/{name}/context.yaml \
+  --context docs/spec/{subspec}/plans/{plan}/context.yaml \
   --docs-root docs \
   --target {target}
 ```
@@ -107,7 +104,7 @@ Read the validated files for the current target:
 - `checklist`
 - `spec` when present
 - `test-plan`, `test-checklist`, `bdd-plan`, `bdd-checklist`, and `reference` files when present
-- `docs/plan/{name}/context.yaml` itself when the finding or fix involves target
+- `docs/spec/{subspec}/plans/{plan}/context.yaml` itself when the finding or fix involves target
   wiring, branch metadata, or target discovery fields
 
 ### Step 5: Branch by mode

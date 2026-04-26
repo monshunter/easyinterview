@@ -44,6 +44,7 @@ FIELD_WEIGHTS = {
     "uiRoutes": (6, 3),
     "apiNames": (6, 3),
     "contextName": (4, 2),
+    "displayName": (4, 2),
     "targetName": (3, 1),
     "planFile": (2, 1),
     "specFile": (2, 1),
@@ -103,20 +104,39 @@ def make_abs(plan_dir: str, rel_path: str | None) -> str | None:
     return os.path.normpath(os.path.join(plan_dir, rel_path))
 
 
-def iter_context_targets(plan_root: str):
-    """Yield one record per plan target across docs/plan/*/context.yaml."""
+def find_contexts(plan_root: str) -> list[str]:
+    """Find spec-centric plan contexts."""
     abs_plan_root = os.path.abspath(plan_root)
-    if not os.path.isdir(abs_plan_root):
-        return
+    roots = []
+    if os.path.basename(abs_plan_root) == "plan":
+        docs_root = os.path.dirname(abs_plan_root)
+        roots.append(os.path.join(docs_root, "spec"))
+    elif os.path.basename(abs_plan_root) == "docs":
+        roots.append(os.path.join(abs_plan_root, "spec"))
+    else:
+        roots.extend([os.path.join(abs_plan_root, "docs", "spec"), abs_plan_root])
 
-    for entry in sorted(os.listdir(abs_plan_root)):
-        plan_dir = os.path.join(abs_plan_root, entry)
-        if not os.path.isdir(plan_dir):
+    contexts = []
+    for root in roots:
+        if not os.path.isdir(root):
             continue
+        if os.path.isfile(os.path.join(root, "context.yaml")):
+            contexts.append(os.path.join(root, "context.yaml"))
+            continue
+        for dirpath, _, files in os.walk(root):
+            if "context.yaml" not in files:
+                continue
+            parts = os.path.normpath(dirpath).split(os.sep)
+            if "plans" in parts:
+                contexts.append(os.path.join(dirpath, "context.yaml"))
+    return sorted(set(contexts))
 
-        context_path = os.path.join(plan_dir, "context.yaml")
-        if not os.path.isfile(context_path):
-            continue
+
+def iter_context_targets(plan_root: str):
+    """Yield one record per target across all plan context manifests."""
+    for context_path in find_contexts(plan_root):
+        plan_dir = os.path.dirname(context_path)
+        entry = os.path.basename(plan_dir)
 
         with open(context_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
@@ -136,6 +156,8 @@ def iter_context_targets(plan_root: str):
             continue
 
         context_name = metadata.get("name", entry)
+        subspec = metadata.get("subspec")
+        display_name = f"{subspec}/{context_name}" if isinstance(subspec, str) else context_name
         for target_name, target in sorted(targets.items()):
             if not isinstance(target, dict):
                 continue
@@ -156,6 +178,7 @@ def iter_context_targets(plan_root: str):
 
             yield {
                 "contextName": context_name,
+                "displayName": display_name,
                 "contextPath": context_path,
                 "planDir": plan_dir,
                 "target": target_name,
@@ -242,6 +265,7 @@ def score_candidate(query_text: str, query_tokens: set[str], candidate: dict) ->
 
     fallback_values = {
         "contextName": [candidate["contextName"]],
+        "displayName": [candidate.get("displayName", candidate["contextName"])],
         "targetName": [candidate["target"]],
         "planFile": [],
         "specFile": [],
@@ -313,6 +337,7 @@ def match_change_contexts(plan_root: str, query: str, limit: int = 3) -> dict:
         scored.append(
             {
                 "plan": os.path.basename(candidate["planDir"]),
+                "displayPlan": candidate.get("displayName", os.path.basename(candidate["planDir"])),
                 "target": candidate["target"],
                 "status": candidate["status"],
                 "score": score,
@@ -328,6 +353,7 @@ def match_change_contexts(plan_root: str, query: str, limit: int = 3) -> dict:
             -item["score"],
             STATUS_PRIORITY.get(item["status"], STATUS_PRIORITY["unknown"]),
             item["plan"],
+            item.get("displayPlan", ""),
             item["target"],
         )
     )
@@ -345,7 +371,7 @@ def match_change_contexts(plan_root: str, query: str, limit: int = 3) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description="Match a free-form issue to plan targets")
-    parser.add_argument("--plan-root", default="docs/plan", help="Path to docs/plan root")
+    parser.add_argument("--plan-root", default="docs", help="Search root: docs, docs/spec, repo root, or spec-centric plan dir")
     parser.add_argument("--query", required=True, help="Free-form bug/change description")
     parser.add_argument("--limit", type=int, default=3, help="Max candidates to return")
     args = parser.parse_args()

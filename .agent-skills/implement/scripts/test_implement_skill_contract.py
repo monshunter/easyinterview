@@ -58,10 +58,9 @@ class TestImplementSkillContract:
 
     def test_legacy_parallel_docs_no_longer_drive_dispatch(self):
         text = _skill_text()
-        assert "`/implement` no longer performs DAG parsing, Wave dispatch, teammate fan-out, or" in text
+        assert "`/implement` does not perform DAG parsing, Wave dispatch, teammate fan-out, or" in text
         assert "markdown-format linting." in text
-        assert "All plans, including legacy `parallel` plans, execute" in text
-        assert "through the same sequential `/tdd` path using checklist order as the source of" in text
+        assert "All plans execute through the same sequential `/tdd`" in text
         assert "`/implement` owns the retrospective trigger before final close-out" in text
 
     def test_branch_resolution_step_exists_before_tdd_handoff(self):
@@ -72,13 +71,13 @@ class TestImplementSkillContract:
 
     def test_branch_resolution_defines_naming_convention(self):
         text = _skill_text()
-        assert "`{type}/{plan-name}-{MMDD}`" in text
+        assert "`{type}/{subspec}-{plan}-{MMDD}`" in text
         assert "Collision handling: append `-{N}` after the date suffix." in text
         assert "type inference: `fix/`, `opt/`, `docs/`, otherwise `feat/`." in text
 
     def test_tdd_handoff_passes_phase_commit_plan_name(self):
         text = _skill_text()
-        assert "/tdd --file {checklist-path} --references {ref1},{ref2},... --phase-commit {plan-name}" in text
+        assert "/tdd --file {checklist-path} --references {ref1},{ref2},... --phase-commit {subspec}/{plan}" in text
 
     def test_branch_resolution_checks_for_dirty_working_tree(self):
         text = _skill_text()

@@ -21,9 +21,7 @@ def test_run_check_ignores_templates_assets(tmp_path):
     module = _load_module()
 
     spec_dir = tmp_path / "docs" / "spec"
-    plan_dir = tmp_path / "docs" / "plan"
     spec_dir.mkdir(parents=True)
-    plan_dir.mkdir(parents=True)
 
     (spec_dir / "INDEX.md").write_text(
         "# 设计文档索引\n\n"
@@ -31,15 +29,7 @@ def test_run_check_ignores_templates_assets(tmp_path):
         "|------|------|------|----------|\n",
         encoding="utf-8",
     )
-    (plan_dir / "INDEX.md").write_text(
-        "# 计划文档索引\n\n"
-        "## 1 草稿（Draft）\n\n"
-        "| 计划 | 文件 | 版本 | 更新日期 |\n"
-        "|------|------|------|----------|\n",
-        encoding="utf-8",
-    )
     (spec_dir / "TEMPLATES.md").write_text("# 模板资产\n", encoding="utf-8")
-    (plan_dir / "TEMPLATES.md").write_text("# 模板资产\n", encoding="utf-8")
 
     report = module.run_check(tmp_path)
 

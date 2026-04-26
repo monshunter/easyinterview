@@ -29,19 +29,19 @@ def _write_context_fixture(
     metadata_overrides=None,
 ):
     docs_root = tmp_path / "docs"
-    plan_dir = docs_root / "plan" / "demo"
-    spec_dir = docs_root / "spec"
+    spec_dir = docs_root / "spec" / "demo"
+    plan_dir = spec_dir / "plans" / "001-backend"
     plan_dir.mkdir(parents=True)
-    spec_dir.mkdir(parents=True)
+    spec_dir.mkdir(parents=True, exist_ok=True)
 
-    (plan_dir / "implementation.md").write_text(
+    (plan_dir / "plan.md").write_text(
         "# Plan\n\n"
         "> **版本**: 1.0\n"
         "> **状态**: active\n"
         "> **更新日期**: 2026-04-04\n",
         encoding="utf-8",
     )
-    (plan_dir / "implementation-checklist.md").write_text(
+    (plan_dir / "checklist.md").write_text(
         "# Checklist\n\n"
         "> **版本**: 1.0\n"
         "> **状态**: active\n"
@@ -49,17 +49,23 @@ def _write_context_fixture(
         "## Phase 1\n\n- [ ] 1.1 Item\n",
         encoding="utf-8",
     )
-    (spec_dir / "demo-design.md").write_text("# Spec\n", encoding="utf-8")
+    (spec_dir / "spec.md").write_text("# Spec\n", encoding="utf-8")
 
     target = {
-        "plan": "./implementation.md",
-        "checklist": "./implementation-checklist.md",
-        "spec": "../../spec/demo-design.md",
+        "plan": "./plan.md",
+        "checklist": "./checklist.md",
+        "spec": "../../spec.md",
     }
     if target_discovery is not None:
         target["discovery"] = target_discovery
 
-    metadata = {"name": "demo"}
+    metadata = {
+        "subspec": "demo",
+        "name": "001-backend",
+        "sequence": 1,
+        "supersedes": [],
+        "specVersion": {"from": None, "to": 1.0},
+    }
     if metadata_overrides:
         metadata.update(metadata_overrides)
 
@@ -82,7 +88,7 @@ def _write_context_fixture(
     return docs_root, plan_dir, context_path
 
 
-def test_validate_context_accepts_legacy_manifest_without_discovery(tmp_path):
+def test_validate_context_accepts_spec_centric_manifest_without_discovery(tmp_path):
     validator = _load_module(VALIDATE_PATH, "validate_context")
     docs_root, _, context_path = _write_context_fixture(tmp_path)
 
@@ -104,7 +110,7 @@ def test_validate_context_accepts_top_and_target_discovery(tmp_path):
             "aliases": ["demo", "change-intake"],
             "keywords": ["issue intake"],
             "relatedBugs": ["BUG-0042"],
-            "relatedSpecs": ["../../spec/demo-design.md"],
+            "relatedSpecs": ["../../spec.md"],
         },
         target_discovery={
             "packages": ["internal/practice"],
@@ -119,7 +125,7 @@ def test_validate_context_accepts_top_and_target_discovery(tmp_path):
         target="backend",
     )
 
-    assert result["name"] == "demo"
+    assert result["name"] == "001-backend"
     assert result["defaultTarget"] == "backend"
     assert result["discovery"]["aliases"] == ["demo", "change-intake"]
     assert result["targetDiscovery"]["packages"] == ["internal/practice"]
@@ -156,8 +162,8 @@ def test_validate_context_includes_bdd_checklist_role(tmp_path):
     assert "bdd-checklist" in roles
 
 
-def test_validate_context_rejects_legacy_api_version(tmp_path):
-    validator = _load_module(VALIDATE_PATH, "validate_context_legacy_api_version")
+def test_validate_context_rejects_wrong_api_version(tmp_path):
+    validator = _load_module(VALIDATE_PATH, "validate_context_wrong_api_version")
     docs_root, _, context_path = _write_context_fixture(tmp_path)
 
     payload = yaml.safe_load(context_path.read_text(encoding="utf-8"))
@@ -246,7 +252,7 @@ def test_validate_context_rejects_reference_outside_docs_boundary(tmp_path):
     docs_root, _, context_path = _write_context_fixture(tmp_path)
 
     payload = yaml.safe_load(context_path.read_text(encoding="utf-8"))
-    payload["spec"]["targets"]["backend"]["references"] = ["../../../outside-docs.md"]
+    payload["spec"]["targets"]["backend"]["references"] = ["../../../../../outside-docs.md"]
     context_path.write_text(
         yaml.safe_dump(payload, sort_keys=False, allow_unicode=True),
         encoding="utf-8",
@@ -325,19 +331,21 @@ def test_generate_context_yaml_preserves_manual_discovery(tmp_path):
 
     config = generator.scan_directory_targets(
         plan_dir_path=str(plan_dir),
-        dir_name="demo",
+        dir_name=plan_dir.name,
         spec_dir=str(docs_root / "spec"),
         docs_root=str(docs_root),
     )
     config = generator.normalize_target_config(config)
     existing = generator.load_existing_manifest(str(context_path))
     config = generator.merge_preserved_discovery(config, existing)
-    rendered = yaml.safe_load(generator.format_yaml("demo", config))
+    rendered = yaml.safe_load(generator.format_yaml("001-backend", config))
 
     assert rendered["spec"]["discovery"]["keywords"] == ["manual keyword"]
     assert rendered["spec"]["discovery"]["customSignals"] == ["do-not-drop"]
     assert rendered["spec"]["targets"]["backend"]["discovery"]["packages"] == ["internal/demo"]
     assert rendered["spec"]["targets"]["backend"]["discovery"]["custom"] == ["manual-target-signal"]
+    assert rendered["metadata"]["subspec"] == "demo"
+    assert rendered["metadata"]["name"] == "001-backend"
 
 
 def test_generate_context_yaml_uses_shared_api_version(tmp_path):
@@ -346,14 +354,14 @@ def test_generate_context_yaml_uses_shared_api_version(tmp_path):
 
     config = generator.scan_directory_targets(
         plan_dir_path=str(plan_dir),
-        dir_name="demo",
+        dir_name=plan_dir.name,
         spec_dir=str(docs_root / "spec"),
         docs_root=str(docs_root),
     )
     config = generator.normalize_target_config(config)
     existing = generator.load_existing_manifest(str(context_path))
     config = generator.merge_preserved_discovery(config, existing)
-    rendered = yaml.safe_load(generator.format_yaml("demo", config))
+    rendered = yaml.safe_load(generator.format_yaml("001-backend", config))
 
     assert rendered["apiVersion"] == "plancontext.agent.dev/v1alpha1"
 
@@ -371,14 +379,14 @@ def test_generate_context_yaml_drops_deprecated_commands_discovery(tmp_path):
 
     config = generator.scan_directory_targets(
         plan_dir_path=str(plan_dir),
-        dir_name="demo",
+        dir_name=plan_dir.name,
         spec_dir=str(docs_root / "spec"),
         docs_root=str(docs_root),
     )
     config = generator.normalize_target_config(config)
     existing = generator.load_existing_manifest(str(context_path))
     config = generator.merge_preserved_discovery(config, existing)
-    rendered = yaml.safe_load(generator.format_yaml("demo", config))
+    rendered = yaml.safe_load(generator.format_yaml("001-backend", config))
 
     target_discovery = rendered["spec"]["targets"]["backend"]["discovery"]
     assert target_discovery["packages"] == ["internal/demo"]
@@ -398,14 +406,14 @@ def test_generate_context_yaml_preserves_branch_metadata(tmp_path):
 
     config = generator.scan_directory_targets(
         plan_dir_path=str(plan_dir),
-        dir_name="demo",
+        dir_name=plan_dir.name,
         spec_dir=str(docs_root / "spec"),
         docs_root=str(docs_root),
     )
     config = generator.normalize_target_config(config)
     existing = generator.load_existing_manifest(str(context_path))
     config = generator.merge_preserved_discovery(config, existing)
-    rendered = yaml.safe_load(generator.format_yaml("demo", config))
+    rendered = yaml.safe_load(generator.format_yaml("001-backend", config))
 
     assert rendered["metadata"]["baseBranch"] == "dev"
     assert rendered["metadata"]["branch"] == "execution-automation-closure"
@@ -420,14 +428,14 @@ def test_generate_context_yaml_promotes_bdd_plan_and_checklist(tmp_path):
 
     config = generator.scan_directory_targets(
         plan_dir_path=str(plan_dir),
-        dir_name="demo",
+        dir_name=plan_dir.name,
         spec_dir=str(docs_root / "spec"),
         docs_root=str(docs_root),
     )
     config = generator.normalize_target_config(config)
     existing = generator.load_existing_manifest(str(context_path))
     config = generator.merge_preserved_discovery(config, existing)
-    rendered = yaml.safe_load(generator.format_yaml("demo", config))
+    rendered = yaml.safe_load(generator.format_yaml("001-backend", config))
 
     target = rendered["spec"]["targets"]["backend"]
     assert target["bddPlan"] == "./bdd-plan.md"

@@ -53,20 +53,26 @@ Recognized roles (output-side) and their source YAML keys (input-side):
 
 > YAML field keys are strictly camelCase; normalized output roles are strictly kebab-case. Do not mix the two conventions. `validate_context.py` silently ignores kebab-case YAML keys, which drops files from the normalized set.
 
-Minimal full example:
+Spec-centric full example:
 
 ```yaml
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  name: example
+  subspec: example
+  name: 001-backend
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
 spec:
   defaultTarget: backend
   targets:
     backend:
-      plan: ./implementation.md
-      checklist: ./implementation-checklist.md
-      spec: ../../spec/example-design.md
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
       testPlan: ./test-plan.md            # optional
       testChecklist: ./test-checklist.md  # optional, feeds /tdd --test-checklist
       bddPlan: ./bdd-plan.md              # optional, feeds /tdd BDD-Gate
@@ -79,7 +85,7 @@ Role mapping rules:
 
 - There must be exactly one `checklist`.
 - `test-checklist`, when present, is passed to `/tdd --test-checklist`.
-- `bdd-plan`, when present, is passed as a reference to `/tdd` for BDD-Gate item verification; `/tdd` treats `bdd-plan.md` or `bdd-test-plan.md` as the BDD scenario source keyed by layer scenario IDs. Legacy `AC-*` mappings remain compatibility input for historical plans only.
+- `bdd-plan`, when present, is passed as a reference to `/tdd` for BDD-Gate item verification; `/tdd` treats `bdd-plan.md` as the BDD scenario source keyed by layer scenario IDs.
 - `bdd-checklist`, when present, is passed as a reference to `/tdd`; all referenced scenario asset/execution items must be complete before the related main checklist `BDD-Gate` can be marked complete.
 - All other markdown files remain read-only references.
 - Consumers must keep file order stable and deduplicate by absolute path.
@@ -95,8 +101,8 @@ Execution-focused consumers such as `/implement`, `/plan-review`, and
 `/plan-code-review` must treat these fields as read-only metadata and must not
 change their execution semantics based on them.
 
-The shared validator applies backward-compatible type checks when these fields
-are present, but their absence must not break legacy manifests.
+The shared validator applies type checks when these fields are present; their
+absence is allowed.
 
 Allowed discovery fields:
 
@@ -138,8 +144,8 @@ the generated suffixes such as `-{MMDD}` and collision suffixes like `-{MMDD}-2`
 ### Missing `context.yaml`
 
 ```text
-ERROR: docs/plan/{name}/context.yaml not found.
-Create a context.yaml manifest to use plan-context skills. See docs/plan/TEMPLATES.md for template.
+ERROR: docs/spec/{subspec}/plans/{plan}/context.yaml not found.
+Create a context.yaml manifest to use plan-context skills. See docs/spec/TEMPLATES.md for template.
 ```
 
 ### Unknown target

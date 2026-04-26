@@ -77,7 +77,7 @@
 > **日期**: YYYY-MM-DD
 > **验证人**: xxx
 
-**关联计划**: [计划文档](../plan/xxx/implementation.md)
+**关联计划**: [计划文档](../spec/xxx/plans/001-plan/plan.md)
 
 ## 1 验证范围
 

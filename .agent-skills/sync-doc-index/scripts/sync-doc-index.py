@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """sync-doc-index.py — Deterministic checker for document Header / INDEX drift.
 
-Scans docs/spec/ and docs/plan/ for:
+Scans spec-centric docs for:
   - Header field violations (missing, wrong order, invalid values)
   - INDEX drift (Header vs INDEX mismatch)
   - Orphans (files not in INDEX, INDEX entries without files)
@@ -100,11 +100,39 @@ def parse_header(filepath):
 SEPARATOR_RE = re.compile(r"^\|[\s\-:|]+\|$")
 
 
+def strip_html_comment_lines(lines):
+    """Remove HTML comment blocks so examples do not count as live INDEX rows."""
+    filtered = []
+    in_comment = False
+    for line in lines:
+        cursor = line
+        while cursor:
+            if in_comment:
+                end = cursor.find("-->")
+                if end == -1:
+                    cursor = ""
+                    break
+                cursor = cursor[end + 3 :]
+                in_comment = False
+                continue
+            start = cursor.find("<!--")
+            if start == -1:
+                filtered.append(cursor)
+                cursor = ""
+            else:
+                before = cursor[:start]
+                if before:
+                    filtered.append(before + "\n")
+                cursor = cursor[start + 4 :]
+                in_comment = True
+    return filtered
+
+
 def parse_spec_index(index_path):
     """Parse spec INDEX.md. Returns list of {name, file, version, status, date, non_standard}."""
     entries = []
     with open(index_path, "r", encoding="utf-8") as f:
-        all_lines = f.readlines()
+        all_lines = strip_html_comment_lines(f.readlines())
 
     # Build set of table-header line indices (line immediately before a separator row)
     header_lines = set()
@@ -151,7 +179,7 @@ def parse_plan_index(index_path):
     has_version_col = True  # Superseded group has no version/date columns
 
     with open(index_path, "r", encoding="utf-8") as f:
-        all_lines = f.readlines()
+        all_lines = strip_html_comment_lines(f.readlines())
 
     # Build set of table-header line indices (line immediately before a separator row)
     header_lines = set()
@@ -191,7 +219,10 @@ def parse_plan_index(index_path):
         plan_cell = cells[0]
         files_cell = cells[1] if len(cells) > 1 else ""
         version = cells[2] if len(cells) > 2 and has_version_col else ""
-        date = cells[3] if len(cells) > 3 and has_version_col else ""
+        status_col = cells[3] if len(cells) > 3 and has_version_col else current_status
+        date = cells[4] if len(cells) > 4 and has_version_col else (
+            cells[3] if len(cells) > 3 and has_version_col else ""
+        )
         is_sub = plan_cell.strip().startswith("↳")
 
         # Extract all linked files
@@ -204,6 +235,7 @@ def parse_plan_index(index_path):
             "expected_status": current_status,
             "linked_files": linked_files,
             "version": version,
+            "status": status_col,
             "date": date,
             "has_version_col": has_version_col,
             "non_standard": not linked_files,
@@ -390,6 +422,14 @@ def check_plan_drift(plan_dir, root):
                     "auto_fixable": False,
                     "severity": severity,
                 })
+            if "状态" in std and entry.get("status") and std["状态"] != entry["status"]:
+                drifts.append({
+                    "file": rel,
+                    "field": "状态",
+                    "header_value": std["状态"],
+                    "index_value": entry["status"],
+                    "auto_fixable": True,
+                })
 
         # Version/date drift: use first existing linked file
         for linked_file in entry["linked_files"]:
@@ -429,7 +469,7 @@ def check_plan_drift(plan_dir, root):
 # ── Orphan Detector ────────────────────────────────────────────────────
 
 
-def detect_orphans(spec_dir, plan_dir, root):
+def detect_orphans(spec_dir, root):
     """Detect files not in INDEX and INDEX entries pointing to missing files."""
     missing_from_index = []
     dangling = []
@@ -440,10 +480,11 @@ def detect_orphans(spec_dir, plan_dir, root):
         entries = parse_spec_index(spec_index_path)
         indexed_files = {e["file"] for e in entries if e["file"]}
 
-        for md in sorted(spec_dir.glob("*.md")):
+        spec_docs = list(spec_dir.glob("*.md")) + list(spec_dir.glob("*/spec.md"))
+        for md in sorted(spec_docs):
             if md.name in SKIP_FILES:
                 continue
-            rel_to_spec = "./" + md.name
+            rel_to_spec = "./" + str(md.relative_to(spec_dir))
             if rel_to_spec not in indexed_files:
                 missing_from_index.append(str(md.relative_to(root)))
 
@@ -453,31 +494,33 @@ def detect_orphans(spec_dir, plan_dir, root):
                 if not full.exists():
                     dangling.append(e["file"])
 
-    # Plan orphans
-    plan_index_path = plan_dir / "INDEX.md"
-    if plan_index_path.exists():
+    # Per-subspec plan orphans
+    for plans_dir in sorted(spec_dir.glob("*/plans")):
+        plan_index_path = plans_dir / "INDEX.md"
+        if not plan_index_path.exists():
+            continue
+
         entries = parse_plan_index(plan_index_path)
         indexed_files = set()
-        for e in entries:
-            for lf in e["linked_files"]:
-                indexed_files.add(lf)
+        for entry in entries:
+            for linked_file in entry["linked_files"]:
+                indexed_files.add(linked_file)
 
-        for md in sorted(plan_dir.rglob("*.md")):
+        plan_docs = list(plans_dir.glob("*/*.md"))
+        for md in sorted(plan_docs):
             if md.name in SKIP_FILES:
                 continue
-            # Skip files not directly under plan subdirs
-            rel_to_plan = md.relative_to(plan_dir)
-            if len(rel_to_plan.parts) < 2:
+            if md.name not in {"plan.md", "checklist.md", "bdd-plan.md", "bdd-checklist.md"} and not md.name.endswith("-plan.md") and not md.name.endswith("-checklist.md"):
                 continue
-            rel_link = "./" + str(rel_to_plan)
+            rel_link = "./" + str(md.relative_to(plans_dir))
             if rel_link not in indexed_files:
                 missing_from_index.append(str(md.relative_to(root)))
 
-        for e in entries:
-            for lf in e["linked_files"]:
-                full = (plan_dir / lf).resolve()
+        for entry in entries:
+            for linked_file in entry["linked_files"]:
+                full = (plans_dir / linked_file).resolve()
                 if not full.exists():
-                    dangling.append(lf)
+                    dangling.append(str((plans_dir / linked_file).relative_to(root)))
 
     return {"missing_from_index": missing_from_index, "dangling_index_entries": dangling}
 
@@ -488,24 +531,25 @@ def detect_orphans(spec_dir, plan_dir, root):
 def run_check(root):
     """Run full check. Returns report dict."""
     spec_dir = root / "docs" / "spec"
-    plan_dir = root / "docs" / "plan"
 
     violations = []
     all_warnings = []
 
-    # Spec headers
-    for md in sorted(spec_dir.glob("*.md")):
+    # Spec headers: docs/spec/*/spec.md and docs/spec/*/history.md.
+    spec_docs = list(spec_dir.glob("*/spec.md")) + list(spec_dir.glob("*/history.md"))
+    for md in sorted(spec_docs):
         if md.name in SKIP_FILES:
             continue
         header = parse_header(md)
         violations.extend(validate_header(md, header, SPEC_FIELDS, root))
 
-    # Plan headers
-    for md in sorted(plan_dir.rglob("*.md")):
+    # Plan headers: docs/spec/*/plans/*/*.md.
+    plan_docs = list(spec_dir.glob("*/plans/*/*.md"))
+    for md in sorted(plan_docs):
         if md.name in SKIP_FILES:
             continue
-        rel = md.relative_to(plan_dir)
-        if len(rel.parts) < 2:
+        rel = md.relative_to(spec_dir)
+        if "plans" not in rel.parts:
             continue
         required = CHECKLIST_FIELDS if is_checklist(md) else PLAN_FIELDS
         header = parse_header(md)
@@ -513,13 +557,18 @@ def run_check(root):
 
     # INDEX drifts
     spec_drifts, spec_warns = check_spec_drift(spec_dir, root)
-    plan_drifts, plan_warns = check_plan_drift(plan_dir, root)
+    plan_drifts = []
+    plan_warns = []
+    for plans_dir in sorted(spec_dir.glob("*/plans")):
+        drifts_for_dir, warnings_for_dir = check_plan_drift(plans_dir, root)
+        plan_drifts.extend(drifts_for_dir)
+        plan_warns.extend(warnings_for_dir)
     drifts = spec_drifts + plan_drifts
     all_warnings.extend(spec_warns)
     all_warnings.extend(plan_warns)
 
     # Orphans
-    orphans = detect_orphans(spec_dir, plan_dir, root)
+    orphans = detect_orphans(spec_dir, root)
 
     auto_fixable = sum(1 for v in violations if v.get("auto_fixable")) + sum(1 for d in drifts if d.get("auto_fixable"))
     needs_llm = (
@@ -654,7 +703,6 @@ def fix_header_file(filepath, header, required_fields, dry_run=False):
 def fix_headers(root, dry_run=False):
     """Auto-fix all fixable header violations. Returns (all_fixes, all_skipped)."""
     spec_dir = root / "docs" / "spec"
-    plan_dir = root / "docs" / "plan"
     all_fixes = []
     all_skipped = []
 
@@ -673,12 +721,9 @@ def fix_headers(root, dry_run=False):
             if skipped:
                 all_skipped.append({"file": rel, "skipped": skipped})
 
-    # Plan docs
-    for md in sorted(plan_dir.rglob("*.md")):
+    # Plan docs inside spec-centric subjects
+    for md in sorted(spec_dir.glob("*/plans/*/*.md")):
         if md.name in SKIP_FILES:
-            continue
-        rel = md.relative_to(plan_dir)
-        if len(rel.parts) < 2:
             continue
         required = CHECKLIST_FIELDS if is_checklist(md) else PLAN_FIELDS
         header = parse_header(md)
@@ -706,12 +751,11 @@ def fix_index_columns(root, dry_run=False):
         spec_fixes = _fix_spec_index(spec_dir, spec_index, root, dry_run)
         fixes.extend(spec_fixes)
 
-    # Plan INDEX
-    plan_dir = root / "docs" / "plan"
-    plan_index = plan_dir / "INDEX.md"
-    if plan_index.exists():
-        plan_fixes = _fix_plan_index(plan_dir, plan_index, root, dry_run)
-        fixes.extend(plan_fixes)
+    for plans_dir in sorted(spec_dir.glob("*/plans")):
+        plan_index = plans_dir / "INDEX.md"
+        if plan_index.exists():
+            plan_fixes = _fix_plan_index(plans_dir, plan_index, root, dry_run)
+            fixes.extend(plan_fixes)
 
     return fixes
 
@@ -781,18 +825,16 @@ def _fix_spec_index(spec_dir, index_path, root, dry_run):
     return fixes
 
 
-def _fix_plan_index(plan_dir, index_path, root, dry_run):
-    """Fix plan INDEX column values (version/date only, not group moves)."""
+def _fix_plan_index(plans_dir, index_path, root, dry_run):
+    """Fix per-subspec plans/INDEX.md column values."""
     fixes = []
     with open(index_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
-    # Build set of table-header line indices
     header_lines = set()
     for i, line in enumerate(lines):
-        if SEPARATOR_RE.match(line.strip()):
-            if i > 0:
-                header_lines.add(i - 1)
+        if SEPARATOR_RE.match(line.strip()) and i > 0:
+            header_lines.add(i - 1)
 
     modified = False
     for i, line in enumerate(lines):
@@ -803,36 +845,39 @@ def _fix_plan_index(plan_dir, index_path, root, dry_run):
             continue
         cells = [c.strip() for c in stripped.split("|")]
         cells_raw = [c for c in cells if c]
-        if len(cells_raw) < 4:
+        if len(cells_raw) < 5:
             continue
 
-        files_cell = cells_raw[1]
-        file_links = LINK_RE.findall(files_cell)
+        file_links = LINK_RE.findall(cells_raw[1])
         if not file_links:
             continue
 
-        # Check first linked file
         first_file = file_links[0][1]
-        doc_path = (plan_dir / first_file).resolve()
+        doc_path = (plans_dir / first_file).resolve()
         if not doc_path.exists():
             continue
 
         header = parse_header(doc_path)
         std = header["standard"]
-        idx_ver, idx_date = cells_raw[2], cells_raw[3]
+        idx_ver, idx_status, idx_date = cells_raw[2], cells_raw[3], cells_raw[4]
         new_ver = std.get("版本", idx_ver)
+        new_status = std.get("状态", idx_status)
         new_date = std.get("更新日期", idx_date)
 
-        if new_ver != idx_ver or new_date != idx_date:
-            new_line = f"| {cells_raw[0]} | {cells_raw[1]} | {new_ver} | {new_date} |\n"
+        if new_ver != idx_ver or new_status != idx_status or new_date != idx_date:
+            new_line = f"| {cells_raw[0]} | {cells_raw[1]} | {new_ver} | {new_status} | {new_date} |\n"
             lines[i] = new_line
             modified = True
             fixes.append({
-                "index": "docs/plan/INDEX.md",
+                "index": str(index_path.relative_to(root)),
                 "file": first_file,
                 "changes": {
                     k: {"from": old, "to": new}
-                    for k, old, new in [("版本", idx_ver, new_ver), ("更新日期", idx_date, new_date)]
+                    for k, old, new in [
+                        ("版本", idx_ver, new_ver),
+                        ("状态", idx_status, new_status),
+                        ("更新日期", idx_date, new_date),
+                    ]
                     if old != new
                 },
             })
@@ -941,9 +986,9 @@ def find_root():
     """Find project root by looking for docs/ directory."""
     cwd = Path.cwd()
     for candidate in [cwd, *cwd.parents]:
-        if (candidate / "docs" / "spec").is_dir() and (candidate / "docs" / "plan").is_dir():
+        if (candidate / "docs" / "spec").is_dir():
             return candidate
-    print("Error: Cannot find project root (no docs/spec/ and docs/plan/ found)", file=sys.stderr)
+    print("Error: Cannot find project root (no docs/spec/ found)", file=sys.stderr)
     sys.exit(1)
 
 

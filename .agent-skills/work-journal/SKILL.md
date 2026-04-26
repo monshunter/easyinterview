@@ -105,10 +105,10 @@ Add entry to `docs/work-journal/INDEX.md`. **Each commit gets its own line**:
 
 ### Step 4.5: Check staged document Header/INDEX drift
 
-Before committing, check if any staged files are documents under `docs/spec/` or `docs/plan/`:
+Before committing, check if any staged files are documents under `docs/spec/`:
 
 1. Run `git diff --cached --name-only` to get the list of staged files.
-2. For each staged `.md` file under `docs/spec/` or `docs/plan/` (excluding README.md, INDEX.md):
+2. For each staged `.md` file under `docs/spec/` (excluding README.md, INDEX.md):
    - Read its Header `状态`, `版本`, `更新日期`.
    - Compare against the corresponding INDEX entry.
 3. If drift is detected, present to user:

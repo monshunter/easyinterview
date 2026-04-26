@@ -20,18 +20,18 @@ def _load_module():
 
 
 def _write_plan(root: Path, name: str, status: str, context: dict):
-    plan_dir = root / name
+    spec_dir = root / name
+    plan_dir = spec_dir / "plans" / "001-backend"
     plan_dir.mkdir(parents=True)
-    (plan_dir / "implementation.md").write_text(
+    (plan_dir / "plan.md").write_text(
         "# Plan\n\n"
         "> **版本**: 1.0\n"
         f"> **状态**: {status}\n"
         "> **更新日期**: 2026-04-04\n"
-        "> **执行模式**: sequential\n\n"
         "## 1 Goal\n\nText.\n",
         encoding="utf-8",
     )
-    (plan_dir / "implementation-checklist.md").write_text(
+    (plan_dir / "checklist.md").write_text(
         "# Checklist\n\n"
         "> **版本**: 1.0\n"
         f"> **状态**: {status}\n"
@@ -39,8 +39,7 @@ def _write_plan(root: Path, name: str, status: str, context: dict):
         "## Phase 1\n\n- [ ] 1.1 Item\n",
         encoding="utf-8",
     )
-    (root.parent / "spec").mkdir(exist_ok=True)
-    (root.parent / "spec" / f"{name}-design.md").write_text("# Spec\n", encoding="utf-8")
+    (spec_dir / "spec.md").write_text("# Spec\n", encoding="utf-8")
     with open(plan_dir / "context.yaml", "w", encoding="utf-8") as f:
         yaml.safe_dump(context, f, sort_keys=False, allow_unicode=True)
 
@@ -49,14 +48,20 @@ def _base_context(name: str) -> dict:
     return {
         "apiVersion": "plancontext.agent.dev/v1alpha1",
         "kind": "PlanContext",
-        "metadata": {"name": name},
+        "metadata": {
+            "subspec": name,
+            "name": "001-backend",
+            "sequence": 1,
+            "supersedes": [],
+            "specVersion": {"from": None, "to": 1.0},
+        },
         "spec": {
             "defaultTarget": "backend",
             "targets": {
                 "backend": {
-                    "plan": "./implementation.md",
-                    "checklist": "./implementation-checklist.md",
-                    "spec": f"../../spec/{name}-design.md",
+                    "plan": "./plan.md",
+                    "checklist": "./checklist.md",
+                    "spec": "../../spec.md",
                 }
             },
         },
@@ -65,7 +70,7 @@ def _base_context(name: str) -> dict:
 
 def test_prefers_active_candidate_with_discovery(tmp_path):
     module = _load_module()
-    plan_root = tmp_path / "docs" / "plan"
+    plan_root = tmp_path / "docs" / "spec"
 
     local_auth = _base_context("local-auth")
     local_auth["spec"]["discovery"] = {
@@ -87,13 +92,14 @@ def test_prefers_active_candidate_with_discovery(tmp_path):
     )
 
     assert result["confidence"] in {"high", "medium"}
-    assert result["recommended"]["plan"] == "local-auth"
+    assert result["recommended"]["plan"] == "001-backend"
+    assert result["recommended"]["displayPlan"] == "local-auth/001-backend"
     assert "aliases=login" in result["recommended"]["reasons"]
 
 
 def test_fallback_to_plan_and_target_names_when_discovery_missing(tmp_path):
     module = _load_module()
-    plan_root = tmp_path / "docs" / "plan"
+    plan_root = tmp_path / "docs" / "spec"
 
     context = _base_context("manifest-commit-ordering-fix")
     _write_plan(plan_root, "manifest-commit-ordering-fix", "active", context)
@@ -103,13 +109,13 @@ def test_fallback_to_plan_and_target_names_when_discovery_missing(tmp_path):
         query="need a fix for manifest commit ordering",
     )
 
-    assert result["recommended"]["plan"] == "manifest-commit-ordering-fix"
-    assert any(reason.startswith("contextName=") for reason in result["recommended"]["reasons"])
+    assert result["recommended"]["displayPlan"] == "manifest-commit-ordering-fix/001-backend"
+    assert any(reason.startswith("displayName=") for reason in result["recommended"]["reasons"])
 
 
 def test_completed_candidate_marks_in_place_revision(tmp_path):
     module = _load_module()
-    plan_root = tmp_path / "docs" / "plan"
+    plan_root = tmp_path / "docs" / "spec"
 
     sealed = _base_context("sealed-secrets")
     sealed["spec"]["discovery"] = {
@@ -124,14 +130,14 @@ def test_completed_candidate_marks_in_place_revision(tmp_path):
         query="BUG-0037 selector mismatch on sealed secret edit",
     )
 
-    assert result["recommended"]["plan"] == "sealed-secrets"
+    assert result["recommended"]["displayPlan"] == "sealed-secrets/001-backend"
     assert result["recommended"]["status"] == "completed"
     assert result["recommended"]["reviseInPlace"] is True
 
 
 def test_ignores_deprecated_commands_discovery(tmp_path):
     module = _load_module()
-    plan_root = tmp_path / "docs" / "plan"
+    plan_root = tmp_path / "docs" / "spec"
 
     commands_only = _base_context("commands-only")
     commands_only["spec"]["targets"]["backend"]["discovery"] = {

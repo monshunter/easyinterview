@@ -45,7 +45,7 @@ Use the new matcher script for deterministic candidate ranking:
 
 ```bash
 python3 .agent-skills/change-intake/scripts/match_change_context.py \
-  --plan-root docs/plan \
+  --plan-root docs \
   --query "<issue text>"
 ```
 
@@ -89,7 +89,7 @@ After selecting a candidate:
 
 ```bash
 python3 .agent-skills/implement/shared/scripts/validate_context.py \
-  --context docs/plan/<name>/context.yaml \
+  --context docs/spec/<subspec>/plans/<plan>/context.yaml \
   --docs-root docs \
   --target <target>
 ```
@@ -161,7 +161,7 @@ coding.
 When `/change-intake` revises an existing subject:
 
 - update spec/plan/checklist before code changes
-- keep using the original plan directory and `context.yaml`
+- keep using the original spec-centric plan directory and `context.yaml`
 - refresh `context.yaml` discovery metadata when the issue vocabulary changes materially
 - add or refresh a `## 修订记录` section when the change benefits from an explicit delta trail
 - preserve references to related bug records and reports inside the same subject docs when relevant
