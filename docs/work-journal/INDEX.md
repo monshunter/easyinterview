@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-26](2026-04-26.md) | `docs(skeleton): initialize project documentation directories` | #docs |
 | [2026-04-26](2026-04-26.md) | `chore(governance): bootstrap agent governance and shared skills` | #chore |
 
 <!--
