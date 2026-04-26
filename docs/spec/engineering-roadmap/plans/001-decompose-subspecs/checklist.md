@@ -1,0 +1,69 @@
+# Decompose Subspecs Checklist
+
+> **版本**: 1.0
+> **状态**: active
+> **更新日期**: 2026-04-26
+
+**关联计划**: [plan](./plan.md)
+
+## Phase 1: 决策与冻结（W0 入口）
+
+- [ ] 1.1 5 项 W0 hard gate 决策完成（Q-1 认证 / Q-2 异步编排 / Q-3 分析平台 / Q-4 云部署 / Q-5 隐私节奏），每项产出一份 ADR
+- [ ] 1.2 spec §3.2 表中 5 项决策的最终结论同步更新（ADR 通过后回填）
+- [ ] 1.3 `docs/spec/INDEX.md` 中 38 行 child subspec 占位行齐全（按 Layer A-F × Phase P0/P1/P2 两轴分组，状态 `pending`，链接占位）
+- [ ] 1.4 顶层 `engineering-roadmap` spec 通过 `/plan-review`，反馈原地修订完毕
+- [ ] 1.5 验证 `docs/spec/INDEX.md` 与 `engineering-roadmap/spec.md` Header 一致（运行 `/sync-doc-index --check`）
+
+## Phase 2: Wave 0（共识与骨架）
+
+- [ ] 2.1 spawn `repo-scaffold`：spec.md + history.md + plans 脚手架 + 至少 1 个 plan / checklist / context.yaml
+- [ ] 2.2 spawn `shared-conventions-codified`：spec.md + history.md + plans 脚手架 + 至少 1 个 plan
+- [ ] 2.3 W0 收口验证：本地 `make dev-up` 一键起 docker-compose 全部健康检查通过
+- [ ] 2.4 `docs/spec/INDEX.md` 中 A1 / B1 两行状态由 `pending` 调整为 `active`
+
+## Phase 3: Wave 1（基础设施 + 契约骨架）
+
+- [ ] 3.1 并行 spawn 9 份 spec（A2 / A3 / A4 / A5 / B2 / B3 / B4 / F1 / F3），仅写 spec.md + history，**不写 impl plan**
+- [ ] 3.2 9 份 spec 同时通过 `/plan-review`（批量发起，集中讨论 cross-spec 一致性）
+- [ ] 3.3 B2 `openapi-v1-contract` 完成 v1.0.0 freeze（结构与字段名锁定，后续只允许 additive 变更）
+- [ ] 3.4 F1 `observability-stack` baseline 指标命名约定锁定
+- [ ] 3.5 F3 `prompt-rubric-registry` baseline prompt 模板（含 `feature_key + version`）就绪
+
+## Phase 4: Wave 2（前后端 mock-first 并行）
+
+- [ ] 4.1 spawn 后端 5 份：C1 / C2 / C3 / C8 / E1（每份完整 spec + plan 链）
+- [ ] 4.2 spawn 前端 4 份：D1 / D2 / D3 / D4；D1 必须先于 D2-D4 完成基础壳
+- [ ] 4.3 spawn 横切 1 份：F2 `analytics-funnel`
+- [ ] 4.4 E1 提供 14 tag 全 mock（按 B2 fixtures 自动生成）
+- [ ] 4.5 前端 4 域跑通 P0 8 步 happy path（导入→工作台→练习→报告→错题→复练）全部基于 E1 mock
+- [ ] 4.6 后端 5 域 mock-server plan 自验证通过
+- [ ] 4.7 验证：前后端 mock 同源（fixtures 同一份，禁止前端 hardcode）
+
+## Phase 5: Wave 3（核心业务域后端）
+
+- [ ] 5.1 spawn C4 `backend-targetjob`：完整 spec + plan 链
+- [ ] 5.2 spawn C5 `backend-practice`：完整 spec + plan 链；plan 必须显式写出 turn-light-review 边界
+- [ ] 5.3 spawn C6 `backend-review`：完整 spec + plan 链
+- [ ] 5.4 spawn C7 `backend-resume`：完整 spec + plan 链
+- [ ] 5.5 F3 切到真 LLM provider（Anthropic / OpenAI），落地 ≥50 题离线评估集
+- [ ] 5.6 6 个 P0 后端域（C1 + C4-C7 + C8）通过各自 unit 测试 + mock-server BDD
+
+## Phase 6: Wave 4 + Wave 5（真集成 + 上线 gate）
+
+- [ ] 6.1 spawn E2 `e2e-scenarios-p0`：跨前后端 P0 主漏斗 BDD
+- [ ] 6.2 spawn E4 `release-gate-and-rollout`：灰度 / 版本兼容 / 回滚 runbook / SLO 准入
+- [ ] 6.3 D2 / D3 / D4 各自的 `003-integration` plan 把 fetch 切到真后端
+- [ ] 6.4 F1 指标接齐 5 个 dashboard；F2 漏斗对账完成
+- [ ] 6.5 E2 全场景通过
+- [ ] 6.6 `04-metrics-observability.md` §15 最低上线门槛全勾
+- [ ] 6.7 E4 staging 灰度演练 + 回滚演练通过
+- [ ] 6.8 删除/导出最小通路可运行（即使 Q-5 选 P0 仅删除，导出至少要走通占位接口返回 202）
+- [ ] 6.9 P0 准入
+
+## Phase 7: 收尾
+
+- [ ] 7.1 `engineering-roadmap` spec 状态由 `active` 调整为 `completed`（仅当 P0 全部上线）
+- [ ] 7.2 P1 child 占位 spec 创建：C9 / C10 / C11 / C12 / D5 / D6 / E3 / F4（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`）
+- [ ] 7.3 P2 child 占位行：C13 / C14 / D7 仅在 INDEX.md 占位（不创建目录）
+- [ ] 7.4 触发 `/retrospective` 生成 P0 交付复盘报告
+- [ ] 7.5 同步 `docs/work-journal/INDEX.md` 与最近一条工作日志，记录 P0 收尾

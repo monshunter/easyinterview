@@ -1,0 +1,128 @@
+# Decompose Subspecs
+
+> **版本**: 1.0
+> **状态**: active
+> **更新日期**: 2026-04-26
+
+**关联 Checklist**: [checklist](./checklist.md)
+**关联 Spec**: [spec](../../spec.md)
+
+## 1 目标
+
+把 [engineering-roadmap spec](../../spec.md) §5 列出的 6 层 38 份 child subspec 按 6 个 wave 完整 spawn，并保证每份 child 都有自己的 spec.md / plan / checklist / context.yaml 通过 `/plan-review`。本 plan 是 `engineering-roadmap` 的唯一 plan；其他治理类 plan（灰度发布、release gate、隐私链路）归入对应的 child（E4 `release-gate-and-rollout` / F4 `privacy-and-audit-runtime`），不堆在顶层。
+
+## 2 背景
+
+工程拆分一旦在顶层 spec 定下来，就有两种落地方式：
+
+1. **一次性 spawn 全部 38 份 child 空壳**：`docs/spec/` 立刻铺出 38 个目录与 ~95 份 plan。优点是结构清晰，缺点是大量空 spec 缺乏 owner 与决策上下文，会沦为僵尸文档；同时 W1 之前的 5 项 hard gate 还未签字，spec 内容会反复推翻。
+2. **按 wave 分批 spawn**：每个 wave 只 spawn 当前 wave 需要的 child，每份 spec 创建时其上游决策已经签字、依赖 child 已经实现，spec 内容可以直接落地不返工。
+
+本 plan 选择第 2 条路线。Phase 1 处理 5 项 W0 hard gate 与 INDEX 占位；Phase 2-6 与 wave W0-W5 一一对应；Phase 7 收尾。
+
+## 3 实施步骤
+
+### Phase 1: 决策与冻结（W0 入口）
+
+#### 1.1 5 项 W0 hard gate 决策
+
+为 [spec §3.2](../../spec.md#32-w0-待决策事项hard-gate) 中 Q-1（认证）/ Q-2（异步编排）/ Q-3（分析平台）/ Q-4（云部署）/ Q-5（隐私节奏）每项产出一份 ADR。ADR 通过即视为决策锁定，本 plan 在 spec §3.2 表中同步更新最终结论。
+
+#### 1.2 docs/spec/INDEX.md 占位 38 行
+
+在 `docs/spec/INDEX.md` 中按 Layer A-F × Phase（P0/P1/P2）两轴分组，为 38 份 child subspec 各占一行，状态填 `pending`，链接为占位（不指向真实文件）。本 wave 完成时 INDEX 应有 38 行 + `engineering-roadmap` 主行。
+
+#### 1.3 顶层 spec 自身审查
+
+对 `engineering-roadmap` spec 跑 `/plan-review`；如有反馈在原文件原地修订，不创建 sibling。
+
+### Phase 2: Wave 0（共识与骨架）
+
+#### 2.1 spawn A1 + B1
+
+按 `engineering-roadmap` spec §5.1 / §5.2 描述，spawn `repo-scaffold` 与 `shared-conventions-codified` 两份 child subspec：每份生成 `spec.md` + `history.md` + `plans/` 脚手架 + 至少一个 plan 与 checklist 与 `context.yaml`。
+
+#### 2.2 W0 收口验证
+
+执行 A1 与 B1 各自 plan 的 checklist；本地 `make dev-up` 一键起 docker-compose；通过 `docs/spec/INDEX.md` 中 A1 / B1 两行状态由 `pending` 调整为 `active`。
+
+### Phase 3: Wave 1（基础设施 + 契约骨架）
+
+#### 3.1 并行 spawn 9 份 spec
+
+为 A2 `local-dev-stack` / A3 `llm-gateway-bootstrap` / A4 `secrets-and-config` / A5 `ci-pipeline-baseline` / B2 `openapi-v1-contract` / B3 `event-and-outbox-contract` / B4 `db-migrations-baseline` / F1 `observability-stack` / F3 `prompt-rubric-registry` 各创建 `spec.md` + `history.md` + plans 脚手架。本 wave **只写 spec，不写 impl plan**——目的是让 9 份契约/基础设施 spec 互相 review 时尽早发现冲突。
+
+#### 3.2 W1 collective gate
+
+9 份 spec 同时通过 `/plan-review`（建议批量发起，集中讨论 cross-spec 一致性）；B2 `openapi-v1-contract` 完成 v1.0.0 freeze（结构与字段名锁定，后续只允许 additive 变更）。
+
+### Phase 4: Wave 2（前后端 mock-first 并行）
+
+#### 4.1 spawn W2 child
+
+后端 5 份：C1 `backend-auth` / C2 `backend-upload` / C3 `backend-profile` / C8 `backend-async-runtime` / E1 `mock-contract-suite` 各自创建 spec + 完整 plan 链；E1 是把 B2 fixtures 转成可运行 mock server 的统一壳。
+前端 4 份：D1 `frontend-shell` / D2 `frontend-onboarding-and-target` / D3 `frontend-workspace-and-practice` / D4 `frontend-review-and-mistakes`；D1 必须先于 D2-D4 完成基础壳。
+横切 1 份：F2 `analytics-funnel`。
+
+#### 4.2 W2 collective gate
+
+E1 提供 14 tag 全 mock（按 B2 fixtures 自动生成）；前端 4 域跑通 P0 8 步 happy path（导入→工作台→练习→报告→错题→复练）全部基于 E1 mock；后端 5 域 mock-server plan 自验证；前后端 mock 同源（同一份 fixtures，禁止前端 hardcode）。
+
+### Phase 5: Wave 3（核心业务域后端）
+
+#### 5.1 spawn C4-C7
+
+为 C4 `backend-targetjob` / C5 `backend-practice` / C6 `backend-review` / C7 `backend-resume` 各创建 spec + 完整 plan 链。`backend-practice` 内部 plan 必须显式写出 turn-light-review 边界（同步轻量观察 vs 异步完整报告 vs 跨 C5/C6 边界）。
+
+#### 5.2 F3 接入真模型
+
+`prompt-rubric-registry` 此时切到真 LLM provider（Anthropic / OpenAI），落地至少 50 题的离线评估集（覆盖行为题、动机题、追问、反问、不同语言）；F3 所有 child（C4/C5/C6/C7）通过 `prompt_version + rubric_version` 引用。
+
+#### 5.3 W3 collective gate
+
+6 个 P0 后端域（C1+C4-C7+C8 共 6 域；C2/C3 已在 W2 完成）通过各自的 unit 测试与 mock-server BDD（每域内部 plan 的 BDD-Gate）。
+
+### Phase 6: Wave 4 + Wave 5（真集成 + 上线 gate）
+
+#### 6.1 spawn E2 + E4
+
+E2 `e2e-scenarios-p0` 创建跨前后端的 P0 主漏斗 BDD；E4 `release-gate-and-rollout` 创建灰度开关 / 版本兼容 / 回滚 runbook / SLO 准入。
+
+#### 6.2 D2/D3/D4 切真后端
+
+每份前端 child 的 `003-integration` plan 把 fetch 从 E1 mock 切到真后端（W3 跑通的服务）。F1 `observability-stack` 此时把指标接齐 5 个 dashboard；F2 `analytics-funnel` 完成漏斗对账。
+
+#### 6.3 W4 + W5 collective gate
+
+E2 全场景通过；`04-metrics-observability.md` §15 最低上线门槛全勾；E4 staging 灰度演练 + 回滚演练通过；删除/导出最小通路可运行；P0 准入。
+
+### Phase 7: 收尾
+
+#### 7.1 状态切换
+
+`engineering-roadmap` spec 状态由 `active` 调整为 `completed`（仅当 P0 全部上线）。本 plan 状态保持 `active` 直到 P1 child 全部 spawn。
+
+#### 7.2 P1 / P2 child 占位
+
+为 C9-C12（P1 后端 4 份）、D5-D6（P1 前端 2 份）、E3 `e2e-scenarios-p1`、F4 `privacy-and-audit-runtime` 创建空壳 spec.md（只含 §1 §2 §3 §7，标 `状态: draft`）；为 C13/C14（P2）、D7（P2）创建占位行（不创建目录）。
+
+#### 7.3 交付复盘
+
+触发 `/retrospective` 生成 P0 交付复盘报告，固化本次 wave 编排的经验教训。
+
+## 4 验收标准
+
+- 本 plan 7 个 phase 的所有 checklist 项全部勾选。
+- 本 plan 关联的 6 个 wave 同步点（W0-W5 collective gate）全部通过。
+- `engineering-roadmap` spec §6 表中 C-1 至 C-7 的 7 条验收场景全部成立。
+- `docs/spec/INDEX.md` 中 38 行 child 全部不为 `pending`（P0 row 至少 `active`、P1/P2 row 至少 `draft` 占位）。
+
+## 5 风险与应对
+
+| 风险 | 应对措施 |
+|------|----------|
+| **B2 OpenAPI v1.0.0 freeze 后被频繁破坏性变更** | B2 plan 必须自带 breaking change linter；任何破坏性变更必须开 ADR 走 B2 spec 修订流程；P0 中后期默认只允许 additive |
+| **C5 `backend-practice` 与 C6 `backend-review` 边界模糊**（turn-light-review） | C5 plan 必须开一个 `turn-light-review` plan 专门讲清楚同步轻量观察 vs 异步完整报告的边界；如果 W3 末发现体量超阈值，把 lightweight-observer 拆为 `backend-review/006-lightweight-observer`，**禁止塞进 C5** |
+| **D3 体量过大**（5 模式 + followup-tree + drill + STAR editor 集中在一份 spec） | D3 内部 4 个 plan 拆分（workspace / practice-core / practice-modes / followup-and-star），每个 plan 单独 review、单独 PR；W2 优先完成 workspace + practice-core，practice-modes / followup-and-star 可滑到 W2 末或 W3 |
+| **F3 `prompt-rubric-registry` 没有 baseline 时 W2 业务域偷偷 hardcode prompt** | W1 必须有最小 baseline prompt（含 `feature_key + version`）；W2 业务域 spec 必须显式引用 F3 prompt id，不得在自己 spec 中 hardcode prompt 文本 |
+| **5 项 W0 待决策方案未签字就进入 W1** | Phase 1.1 设为 hard gate；任一 ADR 未签字时 W1 不得开始；具体由 Phase 2 收口的 `/plan-review` 强制执行 |

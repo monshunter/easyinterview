@@ -1,0 +1,36 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: engineering-roadmap
+  name: 001-decompose-subspecs
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: docs
+  discovery:
+    aliases:
+      - engineering-roadmap
+      - 001-decompose-subspecs
+      - subspec-decomposition
+      - roadmap
+    keywords:
+      - subspec decomposition
+      - 工程拆分
+      - wave 编排
+      - mock-first 集成
+      - dependency dag
+      - W0 hard gate
+  targets:
+    docs:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - docs/spec/engineering-roadmap
+          - docs/spec
+        uiRoutes: []
+        apiNames: []
