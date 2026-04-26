@@ -5,7 +5,6 @@ SHELL := /bin/bash
 
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
-GIT_HOOKS_INSTALL_DIR := $(ROOT_DIR)/.git/hooks
 
 .PHONY: help fmt lint test build dev-up dev-down codegen migrate install-hooks
 
@@ -41,12 +40,18 @@ migrate: ## Run DB schema migrations; implemented by B4 db-migrations-baseline
 	@echo "TODO: implemented by B4 db-migrations-baseline"
 
 install-hooks: ## Symlink scripts/git-hooks/{pre-commit,commit-msg} into .git/hooks
-	@if [ ! -d "$(GIT_HOOKS_INSTALL_DIR)" ]; then \
-		echo "ERROR: $(GIT_HOOKS_INSTALL_DIR) does not exist; not a git worktree"; exit 1; \
-	fi
-	@for hook in pre-commit commit-msg; do \
+	@hooks_dir="$$(git -C "$(ROOT_DIR)" rev-parse --git-path hooks 2>/dev/null || true)"; \
+	if [ -z "$$hooks_dir" ]; then \
+		echo "ERROR: $(ROOT_DIR) is not a git worktree"; exit 1; \
+	fi; \
+	case "$$hooks_dir" in \
+		/*) ;; \
+		*) hooks_dir="$(ROOT_DIR)/$$hooks_dir";; \
+	esac; \
+	mkdir -p "$$hooks_dir"; \
+	for hook in pre-commit commit-msg; do \
 		src="$(GIT_HOOKS_DIR)/$$hook"; \
-		dst="$(GIT_HOOKS_INSTALL_DIR)/$$hook"; \
+		dst="$$hooks_dir/$$hook"; \
 		if [ ! -f "$$src" ]; then \
 			echo "ERROR: missing $$src"; exit 1; \
 		fi; \

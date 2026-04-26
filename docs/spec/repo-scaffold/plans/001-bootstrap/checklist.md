@@ -19,6 +19,7 @@
 - [x] 2.1 落地根 `Makefile`：10 个 phony target（`help` / `fmt` / `lint` / `test` / `build` / `dev-up` / `dev-down` / `codegen` / `migrate` / `install-hooks`），按 plan §3.2.1 规则实现占位
 - [x] 2.2 创建 `scripts/git-hooks/pre-commit` 与 `scripts/git-hooks/commit-msg`（占位 `exit 0`，可执行权限）
 - [x] 2.3 创建 `scripts/bootstrap.sh`（环境自检脚本，可执行权限）
+- [x] 2.4 修复 `make install-hooks` 使用 Git 解析 hook 目录，确保普通 clone 与 linked worktree 均可安装 hook
 
 ## Phase 3: Verification
 
