@@ -10,7 +10,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 1.0 | active | 2026-04-26 | [plans](./engineering-roadmap/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 1.1 | active | 2026-04-26 | [plans](./engineering-roadmap/plans/) |
 
 ## 2 P0 MVP（Wave 0–5）
 
@@ -20,7 +20,7 @@
 |---------|------|------|----------|-------|
 | repo-scaffold（待 W0 spawn） | – | _pending_ | – | – |
 | local-dev-stack（待 W1 spawn） | – | _pending_ | – | – |
-| llm-gateway-bootstrap（待 W1 spawn） | – | _pending_ | – | – |
+| ai-gateway-and-model-routing（待 W1 spawn） | – | _pending_ | – | – |
 | secrets-and-config（待 W1 spawn） | – | _pending_ | – | – |
 | ci-pipeline-baseline（待 W1 spawn） | – | _pending_ | – | – |
 

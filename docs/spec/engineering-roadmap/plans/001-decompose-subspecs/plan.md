@@ -1,6 +1,6 @@
 # Decompose Subspecs
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-04-26
 
@@ -15,18 +15,18 @@
 
 工程拆分一旦在顶层 spec 定下来，就有两种落地方式：
 
-1. **一次性 spawn 全部 38 份 child 空壳**：`docs/spec/` 立刻铺出 38 个目录与 ~95 份 plan。优点是结构清晰，缺点是大量空 spec 缺乏 owner 与决策上下文，会沦为僵尸文档；同时 W1 之前的 5 项 hard gate 还未签字，spec 内容会反复推翻。
+1. **一次性 spawn 全部 38 份 child 空壳**：`docs/spec/` 立刻铺出 38 个目录与 ~95 份 plan。优点是结构清晰，缺点是大量空 spec 缺乏 owner 与决策上下文，会沦为僵尸文档；同时 W1 之前的 6 项 hard gate 还未签字，spec 内容会反复推翻。
 2. **按 wave 分批 spawn**：每个 wave 只 spawn 当前 wave 需要的 child，每份 spec 创建时其上游决策已经签字、依赖 child 已经实现，spec 内容可以直接落地不返工。
 
-本 plan 选择第 2 条路线。Phase 1 处理 5 项 W0 hard gate 与 INDEX 占位；Phase 2-6 与 wave W0-W5 一一对应；Phase 7 收尾。
+本 plan 选择第 2 条路线。Phase 1 处理 6 项 W0 hard gate 与 INDEX 占位；Phase 2-6 与 wave W0-W5 一一对应；Phase 7 收尾。
 
 ## 3 实施步骤
 
 ### Phase 1: 决策与冻结（W0 入口）
 
-#### 1.1 5 项 W0 hard gate 决策
+#### 1.1 6 项 W0 hard gate 决策
 
-为 [spec §3.2](../../spec.md#32-w0-待决策事项hard-gate) 中 Q-1（认证）/ Q-2（异步编排）/ Q-3（分析平台）/ Q-4（云部署）/ Q-5（隐私节奏）每项产出一份 ADR。ADR 文件固定放在 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md`，通过即视为决策锁定，本 plan 在 spec §3.2 表中同步更新最终结论。
+为 [spec §3.2](../../spec.md#32-w0-待决策事项hard-gate) 中 Q-1（认证）/ Q-2（异步编排）/ Q-3（分析平台）/ Q-4（云部署）/ Q-5（隐私节奏）/ Q-6（AI 网关与模型路由）每项产出一份 ADR。ADR 文件固定放在 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md`，通过即视为决策锁定，本 plan 在 spec §3.2 表中同步更新最终结论。
 
 #### 1.2 docs/spec/INDEX.md 占位 38 行
 
@@ -50,7 +50,7 @@
 
 #### 3.1 并行 spawn 9 份 spec
 
-为 A2 `local-dev-stack` / A3 `llm-gateway-bootstrap` / A4 `secrets-and-config` / A5 `ci-pipeline-baseline` / B2 `openapi-v1-contract` / B3 `event-and-outbox-contract` / B4 `db-migrations-baseline` / F1 `observability-stack` / F3 `prompt-rubric-registry` 各创建 `spec.md` + `history.md` + plans 脚手架。本 wave **只写 spec，不写 impl plan**——目的是让 9 份契约/基础设施 spec 互相 review 时尽早发现冲突。
+为 A2 `local-dev-stack` / A3 `ai-gateway-and-model-routing` / A4 `secrets-and-config` / A5 `ci-pipeline-baseline` / B2 `openapi-v1-contract` / B3 `event-and-outbox-contract` / B4 `db-migrations-baseline` / F1 `observability-stack` / F3 `prompt-rubric-registry` 各创建 `spec.md` + `history.md` + plans 脚手架。本 wave **只写 spec，不写 impl plan**——目的是让 9 份契约/基础设施 spec 互相 review 时尽早发现冲突。
 
 #### 3.2 W1 collective gate
 
@@ -74,9 +74,9 @@ E1 提供 14 tag 全 mock（按 B2 fixtures 自动生成）；前端 4 域跑通
 
 为 C4 `backend-targetjob` / C5 `backend-practice` / C6 `backend-review` / C7 `backend-resume` 各创建 spec + 完整 plan 链。`backend-practice` 内部 plan 必须显式写出 turn-light-review 边界（同步轻量观察 vs 异步完整报告 vs 跨 C5/C6 边界）。
 
-#### 5.2 F3 接入真模型
+#### 5.2 F3 接入真实 Model Profile
 
-`prompt-rubric-registry` 此时切到真 LLM provider（Anthropic / OpenAI），落地至少 50 题的离线评估集（覆盖行为题、动机题、追问、反问、不同语言）；F3 所有 child（C4/C5/C6/C7）通过 `prompt_version + rubric_version` 引用。
+`prompt-rubric-registry` 此时切到真实 Model Profile（由运维配置映射到 AI Gateway route / provider / model），落地至少 50 题的离线评估集（覆盖行为题、动机题、追问、反问、不同语言）；F3 所有 child（C4/C5/C6/C7）通过 `prompt_version + rubric_version + model_profile` 引用。
 
 #### 5.3 W3 collective gate
 
@@ -125,4 +125,4 @@ E2 全场景通过；`04-metrics-observability.md` §15 最低上线门槛全勾
 | **C5 `backend-practice` 与 C6 `backend-review` 边界模糊**（turn-light-review） | C5 plan 必须开一个 `turn-light-review` plan 专门讲清楚同步轻量观察 vs 异步完整报告的边界；如果 W3 末发现体量超阈值，把 lightweight-observer 拆为 `backend-review/006-lightweight-observer`，**禁止塞进 C5** |
 | **D3 体量过大**（5 模式 + followup-tree + drill + STAR editor 集中在一份 spec） | D3 内部 4 个 plan 拆分（workspace / practice-core / practice-modes / followup-and-star），每个 plan 单独 review、单独 PR；W2 优先完成 workspace + practice-core，practice-modes / followup-and-star 可滑到 W2 末或 W3 |
 | **F3 `prompt-rubric-registry` 没有 baseline 时 W2 业务域偷偷 hardcode prompt** | W1 必须有最小 baseline prompt（含 `feature_key + version`）；W2 业务域 spec 必须显式引用 F3 prompt id，不得在自己 spec 中 hardcode prompt 文本 |
-| **5 项 W0 待决策方案未签字就进入 W1** | Phase 1.1 设为 hard gate；任一 ADR 未签字时 W1 不得开始；具体由 Phase 2 收口的 `/plan-review` 强制执行 |
+| **6 项 W0 待决策方案未签字就进入 W1** | Phase 1.1 设为 hard gate；任一 ADR 未签字时 W1 不得开始；具体由 Phase 2 收口的 `/plan-review` 强制执行 |

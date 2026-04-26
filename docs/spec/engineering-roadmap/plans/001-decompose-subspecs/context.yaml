@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.0
+    to: 1.1
 spec:
   defaultTarget: docs
   discovery:
@@ -23,6 +23,8 @@ spec:
       - mock-first 集成
       - dependency dag
       - W0 hard gate
+      - AI gateway
+      - model routing
   targets:
     docs:
       plan: ./plan.md

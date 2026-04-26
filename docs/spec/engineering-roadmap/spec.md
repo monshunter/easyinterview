@@ -1,6 +1,6 @@
 # Engineering Roadmap Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-04-26
 
@@ -19,7 +19,7 @@ easyinterview 已沉淀三类输入资产：
 1. 把整个工程拆成 ~38 份**边界清晰的 child subspec**，每个 child 都能由独立 owner 串行交付。
 2. 给出 child 之间的**依赖 DAG**与 6 个**实施 wave**的硬同步点。
 3. 锁定**前后端 mock-first** 集成策略：契约 fixtures 同源、stub provider 自验、E2E gate 触发真集成。
-4. 把 5 项历史悬而未决的技术方案（认证 / 异步编排 / 分析 / 云部署 / 隐私节奏）固定为 W0 hard gate，避免 W2 业务域反复 rebase。
+4. 把 6 项历史悬而未决的技术方案（认证 / 异步编排 / 分析 / 云部署 / 隐私节奏 / AI 网关与模型路由）固定为 W0 hard gate，避免 W2 业务域反复 rebase。
 
 ## 2 范围
 
@@ -29,13 +29,13 @@ easyinterview 已沉淀三类输入资产：
 - 6 层结构（A Foundation / B Contract / C Backend / D Frontend / E Integration / F Quality 横切）的边界与协作约束。
 - 6 个 wave 的同步点定义（W0–W5）与每个 wave 的准入 gate。
 - mock-first 集成策略：fixtures 来源、msw 注入、stub provider、3 次集成节点（W2 末 / W4 / W5）。
-- 5 项 W0 hard gate 决策清单与各自的默认值（默认值仅作为 ADR 起点，不锁结论）。
+- 6 项 W0 hard gate 决策清单与各自的默认值（默认值仅作为 ADR 起点，不锁结论）。
 - `docs/spec/INDEX.md` 与 `docs/work-journal/` 的同步约定。
 
 ### 2.2 Out of Scope
 
 - 任何 child subspec 的 spec.md / plan / checklist 的具体内容（由后续 wave 按本 spec 唯一的 plan 触发 spawn）。
-- 5 项 W0 决策的 ADR 正文（仅在本 spec §3 列出待决策项与默认值）。
+- 6 项 W0 决策的 ADR 正文（仅在本 spec §3 列出待决策项与默认值）。
 - 任何代码（含 `repo-scaffold` 的 makefile、`local-dev-stack` 的 docker-compose；这些归对应 child subspec 的 plan）。
 - 修改 `easyinterview-spec-v1-0.md` / `easyinterview-tech-docs/` / `easyinterview-ui/` 这三个真理源（本 spec 只读引用）。
 - 任何业务域级评估、性能基线、合规审计（归 Layer F 或对应业务 subspec）。
@@ -49,19 +49,20 @@ easyinterview 已沉淀三类输入资产：
 | D-1 | 顶层 subspec 目录名 | `engineering-roadmap` | 文件路径 / INDEX 标识 |
 | D-2 | 分层结构 | 6 层（A Foundation / B Contract / C Backend / D Frontend / E Integration / F Quality 横切） | child 总数 38；Layer F 横切自始并行 |
 | D-3 | 现有 UI 原型角色 | 作为 mock fixtures 与视觉真理源 | `src/data.jsx` 折成 OpenAPI fixtures；`screens-*.jsx` 为视觉/交互参考；前端 spec 用 React+TS 重做但保留 `easyinterview-ui/` 不动 |
-| D-4 | 5 项历史悬而未决方案 | 设为 W0 hard gate（每项产出 1 份 ADR） | W0 不出 ADR 则不进 W1 |
+| D-4 | 6 项历史悬而未决方案 | 设为 W0 hard gate（每项产出 1 份 ADR） | W0 不出 ADR 则不进 W1 |
 
 ### 3.2 W0 待决策事项（hard gate）
 
-| ID | 决策项 | 默认值（来自 `easyinterview-tech-docs/README.md`） | 影响 child subspec |
+| ID | 决策项 | 默认值 / 已确认方向 | 影响 child subspec |
 |----|--------|------------------------------------------------|-------------------|
 | Q-1 | 认证方案 | 自建 passwordless（备选：OIDC / Clerk / Auth0） | C1 `backend-auth`、D1 `frontend-shell` 的 auth gate |
 | Q-2 | 异步编排 | Asynq（备选：Temporal） | C8 `backend-async-runtime`、所有 P0 异步链路 |
 | Q-3 | 分析平台 | PostHog 直连（备选：Segment + Warehouse） | F2 `analytics-funnel` |
 | Q-4 | 云部署目标 | Kubernetes（备选：AWS ECS / Fly.io / 自托管） | A5 `ci-pipeline-baseline`、E4 `release-gate-and-rollout` |
 | Q-5 | 隐私节奏 | P0 仅做删除链路；导出延后到 P1（备选：P0 完整导出+删除） | C12 `backend-privacy`、F4 `privacy-and-audit-runtime` |
+| Q-6 | AI 网关与模型路由 | 已确认方向：应用内 `AIClient` + Model Profile，生产经外部 AI Gateway；P0 支持 `stub` 与 OpenAI-compatible gateway route，Higress 作为生产部署候选而非业务 SDK | A3 `ai-gateway-and-model-routing`、A4 `secrets-and-config`、F1 `observability-stack`、F3 `prompt-rubric-registry`、C4-C7、C14 |
 
-每项决策必须在 W0 内产出一份 ADR，位置固定为 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md`，由本 roadmap subject 直接承接，不另起 sibling spec。ADR 通过即视为决策锁定，本 spec §3.2 同步更新。
+每项决策必须在 W0 内产出一份 ADR，位置固定为 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md`，由本 roadmap subject 直接承接，不另起 sibling spec。ADR 通过即视为决策锁定，本 spec §3.2 同步更新。Q-6 已由本次讨论确认总体方向，W0 ADR 只需固化运维配置项、fallback/observability 边界与 P0 支持矩阵。
 
 ### 3.3 已知边界争议（在对应 child spec 中处理，非本 spec 决策）
 
@@ -87,7 +88,7 @@ easyinterview 已沉淀三类输入资产：
 ### 4.3 mock-first 集成策略
 
 - **前端 mock**：用 `msw`（Mock Service Worker）拦截 fetch；数据来源是 B2 OpenAPI 的 `fixtures/`（按 14 tag 拆 JSON 集合）。**禁止前端 hardcode mock**。`easyinterview-ui/src/data.jsx` 折成 fixtures 的一个命名场景（`scenario: prototype-baseline`）。
-- **后端 mock**：A3 `llm-gateway-bootstrap` 必须同时交付 `anthropic` / `openai` / **`stub`** 三个 provider；`stub` 输入→输出确定性映射（hash-based），可被 OpenAPI fixtures 反向喂养；单元测试默认走 `stub`。
+- **后端 AI 路由**：A3 `ai-gateway-and-model-routing` 必须交付 provider-neutral `AIClient`、Model Profile 配置、OpenAI-compatible gateway route 与本地 `stub`。P0 业务代码只依赖 `AIClient` 与 profile name，不 import Higress SDK 或厂商 SDK；生产可把 `AI_GATEWAY_BASE_URL` 指向 Higress 等独立 AI Gateway，由运维配置文本、图像、音频、embedding 等场景的 provider / model / fallback / token rate limit。`stub` 输入→输出确定性映射（hash-based），可被 OpenAPI fixtures 反向喂养；单元测试默认走 `stub`。
 - **集成节点**：
   - **W2 末**（软集成）：前端从各自 fixtures 切到 E1 `mock-contract-suite`，前后端 mock 同源。
   - **W4**（硬集成）：每个前端 child 的 `003-integration` plan 切到 W3 跑通的真后端，由 E2 `e2e-scenarios-p0` 担任 BDD-Gate。
@@ -109,7 +110,7 @@ easyinterview 已沉淀三类输入资产：
 |----|---------|---------|---------|---------|
 | A1 | `repo-scaffold` | monorepo 目录骨架（`backend/`、`frontend/`、`openapi/`、`migrations/`、`scripts/`）、根 makefile、git hooks、`.editorconfig`、`.tool-versions` | – | 1 |
 | A2 | `local-dev-stack` | docker-compose：Postgres+pgvector / Redis / MinIO / OTel Collector / Grafana / Loki；`make dev-up` 一键 | A1 | 1 |
-| A3 | `llm-gateway-bootstrap` | LLM/Embedding adapter 接口 + `anthropic` + `openai` + 本地 `stub` provider | A1 | 2 |
+| A3 | `ai-gateway-and-model-routing` | provider-neutral `AIClient` + Model Profile + OpenAI-compatible gateway route + 本地 `stub` provider；Higress 等 AI Gateway 作为独立部署组件接入 | A1 | 2 |
 | A4 | `secrets-and-config` | 配置分层（`.env.example` / `config.yaml` / env override）、secret manager 抽象、feature flag 文件源 | A1 | 1 |
 | A5 | `ci-pipeline-baseline` | CI lint/test/build/codegen，最小镜像缓存策略；不做 deploy | A1, A2 | 1 |
 
@@ -164,7 +165,7 @@ easyinterview 已沉淀三类输入资产：
 | E1 | `mock-contract-suite` | B2 fixtures 转可运行 mock server（Prism / 自建）+ 后端 mock-server plan 统一壳 | B2 | 1 | P0 |
 | E2 | `e2e-scenarios-p0` | 跨前后端 P0 主漏斗 8 步：导入→工作台→练习→报告→错题→复练 | C4, C5, C6, C7, D2, D3, D4, E1 | 1 | P0 |
 | E3 | `e2e-scenarios-p1` | 真实复盘漏斗 + 简历定制漏斗 + 多语言场景 | C9, C10, C11, D5, D6, E2 | 1 | P1 |
-| E4 | `release-gate-and-rollout` | 灰度开关、版本兼容、回滚 runbook、SLO 准入；按 Q-5 ADR 校验 P0 隐私范围 | F1, F2, F3, E2 | 1 | P0+持续 |
+| E4 | `release-gate-and-rollout` | 灰度开关、版本兼容、回滚 runbook、SLO 准入；按 Q-5/Q-6 ADR 校验 P0 隐私范围与 AI Gateway 路由可观测性 | F1, F2, F3, E2 | 1 | P0+持续 |
 
 ### 5.6 Layer F · Quality 横切（4 份）
 
@@ -172,17 +173,17 @@ easyinterview 已沉淀三类输入资产：
 |----|---------|---------|---------|---------|------|
 | F1 | `observability-stack` | OTel + Prometheus + Loki + Sentry 接线、route/job/AI metrics、access log、5 个 dashboard | A2, B1 | 2 | P0 |
 | F2 | `analytics-funnel` | 18 产品事件 + 3 漏斗 + PostHog/Segment 适配；前后端双发去重 | B1, D1 | 2 | P0 |
-| F3 | `prompt-rubric-registry` | Prompt / Rubric / Model 版本表 + 灰度 + 离线评估集（≥50 题）+ LLM Judge | A3, B4 | 3 | P0+持续 |
+| F3 | `prompt-rubric-registry` | Prompt / Rubric / Model Profile 版本表 + 灰度 + 离线评估集（≥50 题）+ LLM Judge | A3, B4 | 3 | P0+持续 |
 | F4 | `privacy-and-audit-runtime` | 审计事件 + 留存策略 + 删除/导出可观测性 + 字段红线 lint | B4, C12 | 2 | P1 |
 
 ### 5.7 实施 Wave 顺序
 
 | Wave | 周期估算 | 范围 | 包含 child | 准入 gate（W 末） |
 |------|---------|------|-----------|------------------|
-| **W0** | 1 周 | 共识与骨架 | A1, B1，本 spec freeze | 5 项 ADR 全部签字；A1/B1 scaffold 与 context 校验通过 |
+| **W0** | 1 周 | 共识与骨架 | A1, B1，本 spec freeze | 6 项 ADR 全部签字；A1/B1 scaffold 与 context 校验通过 |
 | **W1** | 1.5 周 | 基础设施 + 契约骨架（spec only，不写 impl plan） | A2, A3, A4, A5, B2, B3, B4, F1, F3 | 9 spec 通过 `/plan-review`；A2 `make dev-up` 一键通；B2 OpenAPI v1.0.0 freeze |
 | **W2** | 3-4 周 | 前后端 mock-first 并行（最大并行波） | C1, C2, C3, C8, E1（后端）+ D1, D2, D3, D4（前端）+ F2 | E1 提供 14 tag 全 mock；前端跑通 P0 漏斗 happy path（mock）；后端 mock-server 自验证 |
-| **W3** | 3 周 | 核心业务域后端 | C4, C5, C6, C7；F3 接入真模型 + ≥50 题离线评估集 | 6 P0 后端域 unit + mock-server BDD 通过 |
+| **W3** | 3 周 | 核心业务域后端 | C4, C5, C6, C7；F3 接入真实 Model Profile + ≥50 题离线评估集 | 6 P0 后端域 unit + mock-server BDD 通过 |
 | **W4** | 1.5 周 | 真集成 | D2/D3/D4 的 `003-integration` plan + E2 + F1/F2 接齐 | E2 全场景通过 |
 | **W5** | 1 周 | 上线 gate | E4 + 04 文档 §15 最低上线门槛 | P0 准入 |
 
@@ -235,10 +236,10 @@ E4 release-gate ◄── F1, F2, F3, E2
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|----------|
-| C-1 | 顶层 spec freeze | 本 spec §3.2 全部 5 项 ADR 签字 | W0 收尾 | 本 spec 状态可保持 `active`，进入 W1 | 001 Phase 1-2 |
+| C-1 | 顶层 spec freeze | 本 spec §3.2 全部 6 项 ADR 签字 | W0 收尾 | 本 spec 状态可保持 `active`，进入 W1 | 001 Phase 1-2 |
 | C-2 | 契约骨架就绪 | A1 + B1 完成 | W1 末 | A2-A5 / B2-B4 / F1 / F3 共 9 份 spec 通过 `/plan-review`；A2 `make dev-up` 一键通；B2 OpenAPI v1.0.0 freeze | 001 Phase 3 |
 | C-3 | mock-first 软集成 | E1 提供 14 tag 全 mock | W2 末 | 前端 4 域跑通 P0 happy path（mock）；前后端 mock 同源（fixtures 同一份） | 001 Phase 4 |
-| C-4 | 业务域 ready | C4–C7 实现完毕 | W3 末 | 6 个 P0 后端域 unit + mock-server BDD 通过；F3 接入真模型 + ≥50 题离线评估集 | 001 Phase 5 |
+| C-4 | 业务域 ready | C4–C7 实现完毕 | W3 末 | 6 个 P0 后端域 unit + mock-server BDD 通过；F3 接入真实 Model Profile + ≥50 题离线评估集 | 001 Phase 5 |
 | C-5 | 真集成贯通 | D2/D3/D4 切真 API | W4 末 | E2 `e2e-scenarios-p0` 全场景通过 | 001 Phase 6 |
 | C-6 | 上线 gate | E4 release-gate 跑完 staging 灰度 + 回滚 | W5 末 | `04-metrics-observability.md` §15 最低上线门槛全勾；Q-5 ADR 决定的 P0 隐私范围已验证；P0 准入 | 001 Phase 6 |
 | C-7 | 收尾归档 | P0 全部上线 | W5 后 | 本 spec 状态由 `active` 调整为 `completed`；P1/P2 child draft spec 创建；触发 `/retrospective` | 001 Phase 7 |

@@ -1,6 +1,6 @@
 # Decompose Subspecs Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-04-26
 
@@ -8,8 +8,8 @@
 
 ## Phase 1: 决策与冻结（W0 入口）
 
-- [ ] 1.1 5 项 W0 hard gate 决策完成（Q-1 认证 / Q-2 异步编排 / Q-3 分析平台 / Q-4 云部署 / Q-5 隐私节奏），每项在 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md` 产出一份 ADR
-- [ ] 1.2 spec §3.2 表中 5 项决策的最终结论同步更新（ADR 通过后回填）
+- [ ] 1.1 6 项 W0 hard gate 决策完成（Q-1 认证 / Q-2 异步编排 / Q-3 分析平台 / Q-4 云部署 / Q-5 隐私节奏 / Q-6 AI 网关与模型路由），每项在 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md` 产出一份 ADR
+- [ ] 1.2 spec §3.2 表中 6 项决策的最终结论同步更新（ADR 通过后回填）
 - [x] 1.3 `docs/spec/INDEX.md` 中 38 行 child subspec 占位行齐全（按 Layer A-F × Phase P0/P1/P2 两轴分组，状态 `pending`，链接占位）
 - [x] 1.4 顶层 `engineering-roadmap` spec 通过 `/plan-review`，反馈原地修订完毕
 - [x] 1.5 验证 `docs/spec/INDEX.md` 与 `engineering-roadmap/spec.md` Header 一致（运行 `/sync-doc-index --check`）
@@ -46,7 +46,7 @@
 - [ ] 5.2 spawn C5 `backend-practice`：完整 spec + plan 链；plan 必须显式写出 turn-light-review 边界
 - [ ] 5.3 spawn C6 `backend-review`：完整 spec + plan 链
 - [ ] 5.4 spawn C7 `backend-resume`：完整 spec + plan 链
-- [ ] 5.5 F3 切到真 LLM provider（Anthropic / OpenAI），落地 ≥50 题离线评估集
+- [ ] 5.5 F3 切到真实 Model Profile（由运维配置映射到 AI Gateway route / provider / model），落地 ≥50 题离线评估集
 - [ ] 5.6 6 个 P0 后端域（C1 + C4-C7 + C8）通过各自 unit 测试 + mock-server BDD
 
 ## Phase 6: Wave 4 + Wave 5（真集成 + 上线 gate）
