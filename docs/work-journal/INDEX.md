@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-27](2026-04-27.md) | `docs(shared-conventions): close 001-bootstrap plan lifecycle to completed` | #docs |
 | [2026-04-27](2026-04-27.md) | `test(shared-conventions): wire ts test runner and verify cross-language helpers` | #test |
 | [2026-04-26](2026-04-26.md) | `feat(shared-conventions): wire local lint gate for error code casing and boundary` | #feat |
 | [2026-04-26](2026-04-26.md) | `feat(shared-conventions): land go and ts shared lib helpers` | #feat |
