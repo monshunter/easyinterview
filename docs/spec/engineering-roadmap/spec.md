@@ -1,6 +1,6 @@
 # Engineering Roadmap Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-04-26
 
@@ -51,18 +51,20 @@ easyinterview 已沉淀三类输入资产：
 | D-3 | 现有 UI 原型角色 | 作为 mock fixtures 与视觉真理源 | `src/data.jsx` 折成 OpenAPI fixtures；`screens-*.jsx` 为视觉/交互参考；前端 spec 用 React+TS 重做但保留 `easyinterview-ui/` 不动 |
 | D-4 | 6 项历史悬而未决方案 | 设为 W0 hard gate（每项产出 1 份 ADR） | W0 不出 ADR 则不进 W1 |
 
-### 3.2 W0 待决策事项（hard gate）
+### 3.2 W0 已锁定决策（hard gate · 全部 accepted）
 
-| ID | 决策项 | 默认值 / 已确认方向 | 影响 child subspec |
-|----|--------|------------------------------------------------|-------------------|
-| Q-1 | 认证方案 | 自建 passwordless（备选：OIDC / Clerk / Auth0） | C1 `backend-auth`、D1 `frontend-shell` 的 auth gate |
-| Q-2 | 异步编排 | Asynq（备选：Temporal） | C8 `backend-async-runtime`、所有 P0 异步链路 |
-| Q-3 | 分析平台 | PostHog 直连（备选：Segment + Warehouse） | F2 `analytics-funnel` |
-| Q-4 | 云部署目标 | Kubernetes（备选：AWS ECS / Fly.io / 自托管） | A5 `ci-pipeline-baseline`、E4 `release-gate-and-rollout` |
-| Q-5 | 隐私节奏 | P0 仅做删除链路；导出延后到 P1（备选：P0 完整导出+删除） | C12 `backend-privacy`、F4 `privacy-and-audit-runtime` |
-| Q-6 | AI 网关与模型路由 | 已确认方向：应用内 `AIClient` + Model Profile，生产经外部 AI Gateway；P0 支持 `stub` 与 OpenAI-compatible gateway route，Higress 作为生产部署候选而非业务 SDK | A3 `ai-gateway-and-model-routing`、A4 `secrets-and-config`、F1 `observability-stack`、F3 `prompt-rubric-registry`、C4-C7、C14 |
+6 项 W0 hard gate 在 2026-04-26 全部签字，ADR 固定落点 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md`，由本 roadmap subject 直接承接，不另起 sibling spec。本表只承载锁定结论与影响范围；推翻或升级的具体阈值见各 ADR §5「失效与修订条件」。
 
-每项决策必须在 W0 内产出一份 ADR，位置固定为 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md`，由本 roadmap subject 直接承接，不另起 sibling spec。ADR 通过即视为决策锁定，本 spec §3.2 同步更新。Q-6 已由本次讨论确认总体方向，W0 ADR 只需固化运维配置项、fallback/observability 边界与 P0 支持矩阵。
+| ID | 决策项 | 锁定结论 | ADR | 影响 child subspec |
+|----|--------|----------|-----|-------------------|
+| Q-1 | 认证方案 | 自建 passwordless email magic link + first-party session cookie；OIDC / 托管 Auth 推迟到 P1 / 团队版触发条件出现 | [ADR-Q1](./decisions/ADR-Q1-auth.md) | C1 `backend-auth`、D1 `frontend-shell`、B2、B4、C8、F1、F4 |
+| Q-2 | 异步编排 | Asynq + Redis 作为唯一异步 runtime；PG outbox + dispatcher 进程；critical/default/low 三级队列；Temporal 推迟到出现跨日 SLA / 多步补偿 | [ADR-Q2](./decisions/ADR-Q2-async-orchestration.md) | C8 `backend-async-runtime`、A2、B3、B4、C4-C7、F1、A4 |
+| Q-3 | 分析平台 | PostHog Cloud（EU region）唯一产品分析后端；F2 adapter 抽象、不入侵业务代码；feature flag 共用 PostHog console；Segment / Warehouse 推迟到出现多目标 / 复杂 SQL | [ADR-Q3](./decisions/ADR-Q3-analytics-platform.md) | F2 `analytics-funnel`、D1、C8、A4、F4、E4、B1 |
+| Q-4 | 云部署目标 | Kubernetes（managed cluster；staging/dev = Kind）；3 deployment + cluster-internal AI Gateway + helm chart 与 `test/scenarios/` 同源；CI 不直接 deploy；ArgoCD/FluxCD/SOPS 等具体工具不锁定 | [ADR-Q4](./decisions/ADR-Q4-cloud-deploy-target.md) | A2、A5、E4、F1、A3、A4、`test/scenarios/` |
+| Q-5 | 隐私节奏 | P0 仅落地删除链路（24h SLA + 跨 17 表硬删 + audit）；导出延后到 P1；`POST /privacy/exports` 在 v1.0.0 freeze 中预留并返回 501；UI 显示「导出即将上线」占位 | [ADR-Q5](./decisions/ADR-Q5-privacy-cadence.md) | C12 `backend-privacy`、F4 `privacy-and-audit-runtime`、B2、B4、C8、D1、D6、F1、E4 |
+| Q-6 | AI 网关与模型路由 | 应用内 `AIClient` + Model Profile + stub provider；生产由 `AI_GATEWAY_BASE_URL` 指向 Higress 等 OpenAI-compatible gateway route；fallback / cost cap / rate limit 全部归运维 gateway 配置；业务零厂商 SDK 入侵 | [ADR-Q6](./decisions/ADR-Q6-ai-gateway-and-model-routing.md) | A3 `ai-gateway-and-model-routing`、A4、F1、F3、C4-C7、C9、C11、C14、E4、B1 |
+
+ADR 推翻或升级时，新 ADR 显式标注 `supersedes: ADR-Q{n}-*.md`，本表对应行同步更新「锁定结论」与 ADR 链接。
 
 ### 3.3 已知边界争议（在对应 child spec 中处理，非本 spec 决策）
 
@@ -98,7 +100,7 @@ easyinterview 已沉淀三类输入资产：
 
 - F1 `observability-stack`、F3 `prompt-rubric-registry` 必须从 W1 起就进入；W2 业务域使用 F3 baseline prompt（带 `feature_key + version`），不得在自己 spec 中 hardcode prompt 文本。
 - F2 `analytics-funnel` 在 W2 起步埋点 stub，不阻塞业务实现。
-- F4 `privacy-and-audit-runtime` 默认 P1 进入，与 C12 `backend-privacy` 协同；若 Q-5 ADR 选择 P0 完整导出+删除，则 C12/F4 在 W4 前升格并作为 E4 release gate 前置条件。
+- F4 `privacy-and-audit-runtime` 维持 P1 进入，与 C12 `backend-privacy` 协同；[ADR-Q5](./decisions/ADR-Q5-privacy-cadence.md) 锁定 P0 = 删除-only，C12 / F4 不升格 P0；P0 删除链路核心实现下沉到 C8 `backend-async-runtime` 的 `privacy.delete` job；audit_events / privacy_requests schema 在 W1 由 B4 / B1 锁定，W4 release-gate 校验删除 SLA 与 audit 完整性。
 
 ## 5 模块边界
 
@@ -165,7 +167,7 @@ easyinterview 已沉淀三类输入资产：
 | E1 | `mock-contract-suite` | B2 fixtures 转可运行 mock server（Prism / 自建）+ 后端 mock-server plan 统一壳 | B2 | 1 | P0 |
 | E2 | `e2e-scenarios-p0` | 跨前后端 P0 主漏斗 8 步：导入→工作台→练习→报告→错题→复练 | C4, C5, C6, C7, D2, D3, D4, E1 | 1 | P0 |
 | E3 | `e2e-scenarios-p1` | 真实复盘漏斗 + 简历定制漏斗 + 多语言场景 | C9, C10, C11, D5, D6, E2 | 1 | P1 |
-| E4 | `release-gate-and-rollout` | 灰度开关、版本兼容、回滚 runbook、SLO 准入；按 Q-5/Q-6 ADR 校验 P0 隐私范围与 AI Gateway 路由可观测性 | F1, F2, F3, E2 | 1 | P0+持续 |
+| E4 | `release-gate-and-rollout` | 灰度开关、版本兼容、回滚 runbook、SLO 准入；按 [ADR-Q5](./decisions/ADR-Q5-privacy-cadence.md)（P0 = 删除-only · 24h SLA）与 [ADR-Q6](./decisions/ADR-Q6-ai-gateway-and-model-routing.md)（AI Gateway 路由可观测 + fallback / cost cap）校验上线门槛 | F1, F2, F3, E2 | 1 | P0+持续 |
 
 ### 5.6 Layer F · Quality 横切（4 份）
 
@@ -236,12 +238,12 @@ E4 release-gate ◄── F1, F2, F3, E2
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|----------|
-| C-1 | 顶层 spec freeze | 本 spec §3.2 全部 6 项 ADR 签字 | W0 收尾 | 本 spec 状态可保持 `active`，进入 W1 | 001 Phase 1-2 |
+| C-1 | 顶层 spec freeze | 本 spec §3.2 全部 6 项 ADR 签字（已于 2026-04-26 完成） | W0 收尾 | 本 spec 状态可保持 `active`，进入 W1 | 001 Phase 1-2 |
 | C-2 | 契约骨架就绪 | A1 + B1 完成 | W1 末 | A2-A5 / B2-B4 / F1 / F3 共 9 份 spec 通过 `/plan-review`；A2 `make dev-up` 一键通；B2 OpenAPI v1.0.0 freeze | 001 Phase 3 |
 | C-3 | mock-first 软集成 | E1 提供 14 tag 全 mock | W2 末 | 前端 4 域跑通 P0 happy path（mock）；前后端 mock 同源（fixtures 同一份） | 001 Phase 4 |
 | C-4 | 业务域 ready | C4–C7 实现完毕 | W3 末 | 6 个 P0 后端域 unit + mock-server BDD 通过；F3 接入真实 Model Profile + ≥50 题离线评估集 | 001 Phase 5 |
 | C-5 | 真集成贯通 | D2/D3/D4 切真 API | W4 末 | E2 `e2e-scenarios-p0` 全场景通过 | 001 Phase 6 |
-| C-6 | 上线 gate | E4 release-gate 跑完 staging 灰度 + 回滚 | W5 末 | `04-metrics-observability.md` §15 最低上线门槛全勾；Q-5 ADR 决定的 P0 隐私范围已验证；P0 准入 | 001 Phase 6 |
+| C-6 | 上线 gate | E4 release-gate 跑完 staging 灰度 + 回滚 | W5 末 | `04-metrics-observability.md` §15 最低上线门槛全勾；[ADR-Q5](./decisions/ADR-Q5-privacy-cadence.md) 决定的 P0 删除链路 24h SLA 与 audit 已验证；[ADR-Q6](./decisions/ADR-Q6-ai-gateway-and-model-routing.md) 的 AI Gateway 路由 / fallback 可观测；P0 准入 | 001 Phase 6 |
 | C-7 | 收尾归档 | P0 全部上线 | W5 后 | 本 spec 状态由 `active` 调整为 `completed`；P1/P2 child draft spec 创建；触发 `/retrospective` | 001 Phase 7 |
 
 ## 7 关联计划

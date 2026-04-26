@@ -8,4 +8,4 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-decompose-subspecs](./001-decompose-subspecs/plan.md) | [plan](./001-decompose-subspecs/plan.md) / [checklist](./001-decompose-subspecs/checklist.md) / [context](./001-decompose-subspecs/context.yaml) | 1.1 | active | 2026-04-26 |
+| [001-decompose-subspecs](./001-decompose-subspecs/plan.md) | [plan](./001-decompose-subspecs/plan.md) / [checklist](./001-decompose-subspecs/checklist.md) / [context](./001-decompose-subspecs/context.yaml) | 1.2 | active | 2026-04-26 |

@@ -1,6 +1,6 @@
 # Decompose Subspecs
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-04-26
 
@@ -26,7 +26,7 @@
 
 #### 1.1 6 项 W0 hard gate 决策
 
-为 [spec §3.2](../../spec.md#32-w0-待决策事项hard-gate) 中 Q-1（认证）/ Q-2（异步编排）/ Q-3（分析平台）/ Q-4（云部署）/ Q-5（隐私节奏）/ Q-6（AI 网关与模型路由）每项产出一份 ADR。ADR 文件固定放在 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md`，通过即视为决策锁定，本 plan 在 spec §3.2 表中同步更新最终结论。
+为 [spec §3.2](../../spec.md#32-w0-已锁定决策hard-gate--全部-accepted) 中 Q-1（认证）/ Q-2（异步编排）/ Q-3（分析平台）/ Q-4（云部署）/ Q-5（隐私节奏）/ Q-6（AI 网关与模型路由）每项产出一份 ADR。ADR 文件固定放在 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md`，通过即视为决策锁定，本 plan 在 spec §3.2 表中同步更新最终结论。**已于 2026-04-26 全部 accepted**：ADR-Q1（自建 passwordless）/ ADR-Q2（Asynq+Redis）/ ADR-Q3（PostHog Cloud EU）/ ADR-Q4（Kubernetes）/ ADR-Q5（P0 仅删除）/ ADR-Q6（AIClient + Model Profile + 外部 AI Gateway）。
 
 #### 1.2 docs/spec/INDEX.md 占位 38 行
 
