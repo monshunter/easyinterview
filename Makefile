@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint lint-conventions test build dev-up dev-down codegen codegen-conventions migrate install-hooks
+.PHONY: help fmt lint lint-conventions test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions migrate install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -31,11 +31,23 @@ build: ## Build Go binaries and frontend bundle (delegates to backend/ and front
 	@$(call recurse_target,build,backend/Makefile,backend)
 	@$(call recurse_target,build,frontend/Makefile,frontend)
 
-dev-up: ## Start local dev dependencies; implemented by A2 local-dev-stack
-	@echo "TODO: implemented by A2 local-dev-stack"
+dev-up: ## Start local dev dependencies (postgres+pgvector / redis / minio + project components)
+	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" up
 
-dev-down: ## Stop local dev dependencies; implemented by A2 local-dev-stack
-	@echo "TODO: implemented by A2 local-dev-stack"
+dev-down: ## Stop local dev dependencies; named volumes preserved
+	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" down
+
+dev-doctor: ## Structured health probe (D-6 JSON contract)
+	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" doctor
+
+dev-reset: ## Stop dev stack AND delete named volumes (DEV_RESET_FORCE=1 to skip prompt)
+	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" reset
+
+dev-logs: ## Tail dev-stack container logs (SERVICE=<name> to scope)
+	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" logs
+
+dev-pull: ## Pre-pull dev-stack pinned images for slow-network bootstrap
+	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" pull
 
 codegen: codegen-conventions ## Run code generators; OpenAPI codegen is added later by B2 openapi-v1-contract
 	@echo "TODO: OpenAPI codegen pending B2 openapi-v1-contract"
