@@ -1,6 +1,6 @@
 # Decompose Subspecs Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
 > **更新日期**: 2026-04-27
 
@@ -26,11 +26,11 @@
 ## Phase 3: Wave 1（基础设施 + 契约骨架）
 
 - [x] 3.1 并行 spawn 9 份 spec（A2 / A3 / A4 / A5 / B2 / B3 / B4 / F1 / F3），仅写 spec.md + history，**不写 impl plan**
-- [x] 3.2 9 份 spec 同时通过 `/plan-review`（批量发起，集中讨论 cross-spec 一致性）
-- [x] 3.3 B2 `openapi-v1-contract` 完成 v1.0.0 freeze（结构与字段名锁定，后续只允许 additive 变更）
-- [x] 3.4 F1 `observability-stack` baseline 指标命名约定锁定
-- [x] 3.5 F3 `prompt-rubric-registry` baseline prompt 模板（含 `feature_key + version`）就绪
-- [x] 3.6 A2 `local-dev-stack` 完成 `make dev-up` 一键健康检查
+- [x] 3.2 完成 parent-level W1 cross-spec review：核对 9 份 W1 spec 的 boundary / ownership / ADR-Q1..Q6 继承 / truth-source 引用；本项不声称 9 个 child 已各自拥有独立 plan/context 或已逐个通过 `/plan-review`，child impl plan 必须在逐一核对对应 spec 后再创建
+- [x] 3.3 B2 `openapi-v1-contract` 完成 spec-contract lock：v1.0.0 freeze 的 36 endpoint / 14 tag / additive-only 规则 / privacy export 501 例外已写入 spec；`openapi/openapi.yaml`、codegen、fixtures、breaking-change linter 由 B2 后续 `001` plan 验证
+- [x] 3.4 F1 `observability-stack` 完成 spec-contract lock：baseline metric 命名、allowed labels、forbidden labels、log 明文红线、dashboard 名称与健康检查契约已写入 spec；helper / lint / dashboard / alerting 实现由 F1 后续 `001` plan 验证
+- [x] 3.5 F3 `prompt-rubric-registry` 完成 spec-contract lock：13 个 P0 feature_key、`(feature_key, version, language)` 坐标、Resolve 调用契约、prompt/rubric 文件落点已写入 spec；baseline prompt/rubric 文件与 loader 由 F3 后续 `001` plan 验证
+- [x] 3.6 A2 `local-dev-stack` 完成 spec-contract lock：7 个本地服务、`make dev-*` 行为契约、JSON 健康检查口径已写入 spec；`deploy/dev-stack/docker-compose.yaml` 与真实 `make dev-up` 一键健康检查由 A2 后续 `001` plan 验证
 
 ## Phase 4: Wave 2（前后端 mock-first 并行）
 

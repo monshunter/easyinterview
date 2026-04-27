@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-04-27
 
@@ -8,7 +8,7 @@
 
 [engineering-roadmap spec §5.2](../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0) 把 B2 `openapi-v1-contract` 列为 Layer B · Contract 的核心 child（依赖 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)；间接依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它是整个 DAG 中**最关键瓶颈节点**——P0 全部 backend（C 域）与 frontend（D 域）child 都依赖本契约的 codegen；任何破坏性变更会触发跨 spec 雪球。
 
-本 spec 由 [001-decompose-subspecs Phase 3.3](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 锁定为 **W1 末 hard gate**：在 W2 业务域 spawn 之前完成 `openapi/openapi.yaml` v1.0.0 freeze（32+ endpoints / 14 tags / 字段命名锁定，后续只允许 additive 变更）。
+本 spec 由 [001-decompose-subspecs Phase 3.3](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 锁定为 **W1 spec-contract lock**：parent phase 先固定 `openapi/openapi.yaml` v1.0.0 freeze 范围（32+ endpoints / 14 tags / 字段命名 / additive-only 规则）。真实 OpenAPI 文件、codegen、fixtures 与 breaking-change linter 由 B2 child `001` 系列 plan 验证；未通过前不得启动依赖 B2 的 W2 implementation。
 
 目标是：
 
@@ -58,7 +58,7 @@
 | D-6 | Idempotency | 所有创建类 endpoint（POST + 副作用）支持 `Idempotency-Key` header（24h TTL，由 [B1 工具](../shared-conventions-codified/spec.md#21-in-scope) 实现） | – |
 | D-7 | Job 异步 | 长耗时操作返回 `202 Accepted` + `Job` schema；客户端通过 `GET /jobs/{jobId}` 轮询 | – |
 | D-8 | content-type | 仅 `application/json` 与 `multipart/form-data`（仅 upload 端点）；不引入 protobuf / msgpack | – |
-| D-9 | v1.0.0 freeze 范围 | §3.1.1 列出 32 个 endpoint + 14 tag；W1 末锁定后只允许 additive 变更（新增 endpoint / 新增可选字段 / 新增枚举值） | 任何 break change 必须 ADR + 本 spec 修订 |
+| D-9 | v1.0.0 freeze 范围 | §3.1.1 列出 36 个 endpoint + 14 tag；W1 parent phase 锁定范围与 additive-only 规则，B2 child `001` 落地 `openapi/openapi.yaml` 后强制执行（新增 endpoint / 新增可选字段 / 新增枚举值） | 任何 break change 必须 ADR + 本 spec 修订 |
 | D-10 | breaking change linter | 默认 `openapi-diff`（OpenAPITools）；规则：禁止删字段、禁止改字段类型、禁止改 required、禁止改枚举（仅允许新增）、禁止删 endpoint | CI 直接失败 |
 | D-11 | tags 顺序 | §2.1 14 个 tag 顺序固定；新增 tag 必须递增 spec | – |
 | D-12 | privacy export 例外 | 按 [ADR-Q5](../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md)，`POST /api/v1/privacy/exports` 在 v1.0.0 freeze 中保留路径与 schema，但 P0 必须返回 `501 Not Implemented`（`error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`）；P1 切换实现时是 additive 行为变化，不算 break | 防止 P1 复用时改路径 |
@@ -168,7 +168,7 @@
 | C-7 | privacy export 501 | P0 调用 `POST /api/v1/privacy/exports` | E1 mock + 后续 C12 实现 | 返回 501 + `error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"` | B2（fixture）+ C12 P1 实现 |
 | C-8 | enum 与 B1 同源 | 在 `openapi.yaml` 引用 `practiceMode` enum | codegen | 生成 TS 与 Go 类型，与 [B1 D-6](../shared-conventions-codified/spec.md#31-已锁定决策) 完全一致；改 B1 后 B2 codegen drift | B2 后续 001 + B1 |
 | C-9 | mock 同源（前端 + 后端） | E1 拉起 mock server | 前端 msw 与后端 mock-server 都消费 `openapi/fixtures/` | 同一 endpoint 两端响应字节级一致 | B2 + E1 |
-| C-10 | W1 末 v1.0.0 freeze | 本 spec 通过 `/plan-review`，B2 后续 001 完成 | engineering-roadmap §5.7 W1 准入 gate | 标记 [001 Phase 3.3](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架)（B2 OpenAPI v1.0.0 freeze）可勾选 | engineering-roadmap/001 Phase 3 |
+| C-10 | B2 executable freeze handoff | 本 spec 的 contract lock 已完成，B2 后续 `001` 完成 | engineering-roadmap §5.7 W1 准入 gate | `openapi/openapi.yaml` v1.0.0、codegen drift、fixtures 与 breaking-change linter 均通过验证；依赖 B2 的 W2 implementation 可启动；parent Phase 3 只记录 spec-contract lock，不单独冒充本项已通过 | B2 后续 `001` |
 
 ## 7 关联计划
 

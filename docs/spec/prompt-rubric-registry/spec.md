@@ -1,6 +1,6 @@
 # Prompt Rubric Registry Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-04-27
 
@@ -10,11 +10,11 @@
 
 [ADR-Q6 §3.6](../engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md) 已锁定：F3 只持有 `(feature_key, prompt_version, rubric_version, model_profile_name)` 四元组，不持有 provider / model 字符串（后者归 A3 Model Profile）。
 
-本 spec 由 [001-decompose-subspecs Phase 3.5](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 锁定为 **W1 末 hard gate**：在 W2 业务域 spawn 之前完成 baseline prompt 模板（含 `feature_key + version`）就绪。这是为了让 W2 业务域 spec（C1-C8 + D 域）在自己的 plan 里调用 AIClient 时统一通过 `(feature_key, version)` 引用 prompt，而不是各自 hardcode prompt 字符串。
+本 spec 由 [001-decompose-subspecs Phase 3.5](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 锁定为 **W1 spec-contract lock**：parent phase 先固定 baseline prompt/rubric 的命名空间、文件落点、`feature_key + version` 坐标与 Resolve 调用契约。真实 baseline prompt / rubric 文件、loader 与 lint 由 F3 child `001` plan 验证；未通过前 W2 业务域不得 hardcode prompt 文本，也不得启动依赖 F3 的 AI 调用 implementation。
 
 目标是：
 
-1. **W1 baseline 就绪**：每个 P0 AI task 至少有一份 baseline prompt + rubric（即使内容粗糙），且 `feature_key + version` 已注册；W2 业务域不被允许 hardcode prompt 文本。
+1. **W1 contract 就绪**：每个 P0 AI task 至少有稳定 `feature_key + version` 坐标与文件落点；真实 baseline prompt + rubric 文件由 F3 child `001` plan 落地并验证后，W2 业务域才能引用。
 2. **跨语言、跨任务、跨灰度统一**：13 类 P0 AI task（见 §3.1.1）共享同一 schema（feature_key / prompt_version / rubric_version / language / template_hash）。
 3. **W3 升级路径**：F3 在 W3 切到真实 Model Profile + 落地 ≥ 50 题离线评估集（不在本 spec 范围，但本 spec 锁接口）。
 4. **LLM Judge 接口**：本 spec 锁定 LLM Judge 在 W3 接入的契约（不实现），让评估闭环由后续 plan 承接。
@@ -35,7 +35,7 @@
   - 启动时从 `config/prompts/` + `config/rubrics/` + DB 同步；DB 是 staging / prod 真理源；本地 dev 直接读文件。
 - **业务调用规约**：业务代码必须先 `Resolve(featureKey, ctx.Language)` 拿到三元组，然后传给 `AIClient.Complete(profileName, payload)`；payload 中携带 `prompt_version + rubric_version + feature_key`。
 - **lint 规则**：禁止业务包出现 `prompt :=` 字面量字符串 / 多行字符串模板（A5 接入）；任何 prompt 必须从 registry 加载。
-- **W1 baseline 内容**：13 个 P0 feature_key 各 1 份 v0.1 baseline prompt + rubric 占位（实际 prompt 文本可以是「TBD by W3 real model profile」，但 schema 已就位）。
+- **W1 contract 内容**：13 个 P0 feature_key 各 1 份 v0.1 baseline prompt + rubric 的坐标、schema 与落点在本 spec 中锁定；实际 `config/prompts/` / `config/rubrics/` 文件由 F3 child `001` plan 创建（prompt 文本可先是「TBD by W3 real model profile」，但 schema 必须就位）。
 - **LLM Judge 接口**：`Judge(featureKey, prompt_version, output, rubric_version) → (score, reasoning)`；接口签名锁定，实现归 W3 plan。
 - **灰度策略**：每个 feature_key 同时只允许 1 个 `is_active=true`；灰度切换由 PostHog feature flag（[A4 D-4](../secrets-and-config/spec.md#31-已锁定决策含-p0-必备-env-key-字典)）+ `Resolve` 内部分桶逻辑实现（W3 接入）。
 
@@ -137,7 +137,7 @@
 | C-5 | 灰度切换 | F3 自行 plan `is_active` 字段 | DB 直接修改 | 同 feature_key 旧 prompt → deprecated；新 prompt → active；Resolve 输出新 version | F3 后续 002（W3） |
 | C-6 | 多 language fallback | 调 `Resolve("report.generate", "fr")`，`fr` baseline 不存在 | 加载逻辑 | 退化到 `multi` baseline；log warn | F3 后续 001 |
 | C-7 | LLM Judge 接口锁定 | 编译期 | F3 包 export `Judge` 接口 | 接口签名固定（W3 实现）；业务代码可 import 抽象 | F3 后续 001 |
-| C-8 | W1 baseline gate | 本 spec 通过 `/plan-review`，F3 后续 001 完成 baseline | engineering-roadmap §5.7 W1 准入 | 标记 [001 Phase 3.5](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架)（F3 baseline prompt 模板就绪）可勾选 | engineering-roadmap/001 Phase 3 |
+| C-8 | F3 executable baseline handoff | 本 spec 的 contract lock 已完成，F3 后续 `001` 完成 baseline | engineering-roadmap §5.7 W1 准入 | 13 个 baseline prompt / rubric 文件、loader 与 lint 均通过验证；依赖 F3 的 W2 implementation 可启动；parent Phase 3 只记录 spec-contract lock，不单独冒充本项已通过 | F3 后续 `001` |
 | C-9 | DB 表写入闭环 | A3 调用产生 `ai_task_runs` 行 | 数据库 | `prompt_version` + `rubric_version` 字段非空，与 Resolve 输出一致 | A3 + B4 + F3 |
 | C-10 | W3 升级 | F3 后续 002 完成 ≥ 50 题离线评估集 + LLM Judge | engineering-roadmap §5.7 W3 准入 | 标记 [001 Phase 5.5](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-5-wave-3核心业务域后端) 可勾选 | F3 后续 002（W3） |
 

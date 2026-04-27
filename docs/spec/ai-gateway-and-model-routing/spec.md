@@ -1,6 +1,6 @@
 # AI Gateway and Model Routing Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-04-27
 
@@ -111,7 +111,7 @@
 |----|------|-------|------|------|-----------|
 | C-1 | Stub 单测 | 单测环境（无 `AI_GATEWAY_BASE_URL`） | 业务代码调用 `aiclient.Complete(ctx, "practice.followup.default", payload)` | client 路由到 stub provider；返回结构化 response + meta；`meta.provider == "stub"`；同 input 多次调用结果一致 | A3 后续 001 |
 | C-2 | OpenAI-compatible 路由 | dev/staging 设置 `AI_GATEWAY_BASE_URL=http://gateway:8080/v1` | 调用 `Complete` | 出站 HTTP 请求命中 `/v1/chat/completions`；header 含 `Authorization`；响应被解析为 `response + meta`；不直接 import 任何厂商 SDK（grep `go.mod` 无 `openai-go` / `anthropic-sdk-go` 等） | A3 后续 001 |
-| C-3 | Fallback 触发 | profile `default.provider` 超时；`fallback[0]` 可用 | 调用 `Complete` | 客户端透传 fallback 触发；`meta.fallback_chain == [primary, fallback0]`；`ai_fallback_total{from_model=…,to_model=…}` +1；业务代码无任何额外重试 | A3 后续 001 |
+| C-3 | Fallback 触发 | profile `default.provider` 超时；`fallback[0]` 可用 | 调用 `Complete` | 客户端透传 fallback 触发；`meta.fallback_chain == [primary, fallback0]`；`ai_fallback_total{from_model_family=…,to_model_family=…,result="fallback"}` +1；业务代码无任何额外重试 | A3 后续 001 |
 | C-4 | Profile 热加载 | A3 后续 001 完成 | `config/ai-profiles/*.yaml` 修改后保存 | client 在 ≤ 30s 内热加载新 profile；正在进行的调用使用旧 profile 完成；新调用使用新 profile | A3 后续 001 |
 | C-5 | 观测埋点齐全 | 任一调用完成 | F1 metric / log / DB 三方查询 | 7 个 metric 各 +1；log 含 §4.3 字段；`ai_task_runs` 写一行；`audit_events` 写一行（`action=ai.call`，无明文） | A3 后续 001 + F1 接入 |
 | C-6 | 隐私红线 | grep 全部生产代码与 log | 任意调用 | 不出现 `payload.messages[*].content` / `response.content` 明文落 log 或 DB metadata；hash / 长度 / profile 三类摘要必须出现 | A3 后续 001 |

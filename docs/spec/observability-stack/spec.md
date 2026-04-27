@@ -1,6 +1,6 @@
 # Observability Stack Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-04-27
 
@@ -8,7 +8,7 @@
 
 [engineering-roadmap spec §5.6](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) 把 F1 `observability-stack` 列为 Layer F · Quality 横切的入口（依赖 [A2 `local-dev-stack`](./../local-dev-stack/spec.md) 与 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)）。它把 [04-metrics-observability.md](../../../easyinterview-tech-docs/04-metrics-observability.md) 与 [05-logging-standard.md](../../../easyinterview-tech-docs/05-logging-standard.md) 合成代码与运维的可观测层。
 
-本 spec 由 [001-decompose-subspecs Phase 3.4](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 锁定为 **W1 末 hard gate**：在 W2 业务域 spawn 之前完成 baseline 指标命名约定锁定（Prometheus / OTel label / log 字段 / span attributes）。这是为了让 W2 多个 child（C1-C8 + D 域 + F2 / E1）在落地时不偷偷各自取名。
+本 spec 由 [001-decompose-subspecs Phase 3.4](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 锁定为 **W1 spec-contract lock**：parent phase 先固定 baseline 指标命名约定（Prometheus / OTel label / log 字段 / span attributes）。这是为了让 W2 多个 child（C1-C8 + D 域 + F2 / E1）在落地时不偷偷各自取名；真实 helper、lint、dashboard 与 alerting rules 由 F1 child `001` plan 验证。
 
 目标是：
 
@@ -53,8 +53,8 @@
 |----|------|--------|------|
 | D-1 | metric 类型与后缀 | Counter `*_total`；Histogram `*_duration_seconds`；Gauge `*_in_flight` / `*_queue_depth` / `*_pending`；Summary 不使用 | 与 [04 §3.1](../../../easyinterview-tech-docs/04-metrics-observability.md#31-prometheus-命名) 一致 |
 | D-2 | 单位 | 时间 seconds（不用 ms 作为指标后缀，日志可用 `latencyMs`）/ 大小 bytes / 金额 usd（如必须） | – |
-| D-3 | allowed labels | `service` / `route` / `method` / `status_code` / `job_type` / `task_type` / `provider` / `model_family` / `language` / `feature` / `env` / `result` | 与 [04 §3.2](../../../easyinterview-tech-docs/04-metrics-observability.md#32-允许的-prometheus-labels) 一致 |
-| D-4 | forbidden labels | `user_id` / `target_job_id` / `session_id` / `prompt_version` / 原始 URL 全 path / 任意自由文本 | 高基数禁入 metric；可入 log 或 event |
+| D-3 | allowed labels | `service` / `route` / `method` / `status_code` / `operation` / `job_type` / `task_type` / `provider` / `model_family` / `from_model_family` / `to_model_family` / `language` / `feature` / `env` / `result` | 与 [04 §3.2](../../../easyinterview-tech-docs/04-metrics-observability.md#32-允许的-prometheus-labels) 一致；新增 label 必须是有界枚举 |
+| D-4 | forbidden labels | `user_id` / `target_job_id` / `session_id` / `prompt_version` / 原始 URL 全 path / 原始 provider model id / `from_model` / `to_model` / 任意自由文本 | 高基数禁入 metric；可入 log 或 event |
 | D-5 | log 字段集 | 通用 12 字段 + access / job / AI 三种额外字段集（见 [05 §4](../../../easyinterview-tech-docs/05-logging-standard.md#4-必填字段)） | F1 logger 自动注入 |
 | D-6 | log 明文红线 | 绝不进 log：`rawJdText` / `answerText` / `resumeRawText` / `thankYouDraft` / `parsedSummary` 全量 / `promptTemplateBody` / `modelRawResponse` / 文件上传 / 下载 URL / token | 与 [05 §5](../../../easyinterview-tech-docs/05-logging-standard.md#5-字段红线与脱敏规则) 一致；`Hashed` helper 提供 sha256+salt |
 | D-7 | trace propagation | W3C `traceparent` + `tracestate`；浏览器请求带上即透传；OTel SDK 默认 | – |
@@ -89,7 +89,7 @@
 | AI | `ai_task_output_tokens_total` | Counter | task_type,provider,model_family |
 | AI | `ai_task_cost_usd_total` | Counter | task_type,provider,model_family |
 | AI | `ai_output_validation_failures_total` | Counter | task_type,provider,model_family |
-| AI | `ai_fallback_total` | Counter | task_type,from_model,to_model |
+| AI | `ai_fallback_total` | Counter | task_type,from_model_family,to_model_family,result |
 
 业务域（target / practice / report / mistake / resume / debrief / privacy）指标按 [04 §7](../../../easyinterview-tech-docs/04-metrics-observability.md#7-业务域指标) 列表由各 C 域在自己的 plan 中接入；F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `mistake_` / `resume_` / `debrief_` / `privacy_`）。
 

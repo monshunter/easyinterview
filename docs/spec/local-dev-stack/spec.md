@@ -1,12 +1,12 @@
 # Local Dev Stack Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-04-27
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 把 A2 `local-dev-stack` 列为 Layer A · Foundation 的第二份 child（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它是 Wave 1 的 9 份契约/基础设施 spec 之一，承接 A1 在 W0 占位的 `make dev-up` / `make dev-down` target，并由 [001-decompose-subspecs Phase 3.6](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 锁定为 W1 末 hard gate：本地开发栈必须做到「克隆仓库 → 一条命令 → 全部依赖就绪并通过健康检查」。
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 把 A2 `local-dev-stack` 列为 Layer A · Foundation 的第二份 child（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它是 Wave 1 的 9 份契约/基础设施 spec 之一，承接 A1 在 W0 占位的 `make dev-up` / `make dev-down` target，并由 [001-decompose-subspecs Phase 3.6](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 锁定为 W1 spec-contract lock：parent phase 只固定本地开发栈的服务清单、Make target 行为与健康检查口径；真实「克隆仓库 → 一条命令 → 全部依赖就绪并通过健康检查」由 A2 child `001` plan 验证。
 
 目标是：
 
@@ -106,7 +106,7 @@
 | C-5 | 显式清空 | 服务正在运行 | `make dev-reset` | 容器停止 + 命名卷删除；操作前提示交互确认（CI 模式跳过通过 `DEV_RESET_FORCE=1`） | 001 |
 | C-6 | pgvector 可用 | `make dev-up` 完成 | 在 Postgres 中执行 `select extname from pg_extension where extname='vector'` | 返回一行，确认扩展已启用 | 001 |
 | C-7 | OTel endpoint 可达 | `make dev-up` 完成 | backend dev 进程指向 OTLP `http://localhost:4318` 发送 trace + metric | Grafana / Prometheus 中能查询到 `service.name=api`；Loki 中能查询到 access log；`make dev-doctor` 报 OK | 001 |
-| C-8 | W1 gate（来自 [001 Phase 3.6](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架)） | 本 spec 通过 `/plan-review`，A2 后续 001 plan 完成 | C-1 + C-7 都成立 | 标记 [engineering-roadmap §6 C-2](../engineering-roadmap/spec.md#6-验收标准) 中「A2 `make dev-up` 一键通」可勾选 | engineering-roadmap/001 Phase 3 |
+| C-8 | A2 executable gate handoff（来自 [001 Phase 3.6](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架)） | 本 spec 的 contract lock 已完成，A2 后续 `001` plan 完成 | C-1 + C-7 都成立 | A2 的 `make dev-up` 可执行 gate 通过；依赖本地栈的 W2 implementation 可启动；parent Phase 3 只记录 spec-contract lock，不单独冒充本项已通过 | A2 后续 `001` |
 
 ## 7 关联计划
 
