@@ -1,0 +1,114 @@
+# easyinterview local dev stack — minimal default profile.
+#
+# Owned by docs/spec/local-dev-stack/plans/001-bootstrap.
+# Default services: Postgres+pgvector, Redis, MinIO + bucket-init.
+# OTel Collector / Grafana / Loki / Prometheus / AI gateway are intentionally
+# absent (spec D-1..D-9). Project components (backend/api, worker, frontend)
+# are appended here once their owning child plans land a local runtime entry.
+
+name: easyinterview-dev
+
+services:
+  postgres-dev:
+    image: pgvector/pgvector:pg16
+    container_name: easyinterview-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-easyinterview}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-easyinterview}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - easyinterview-pg-data:/var/lib/postgresql/data
+      - ./init/postgres:/docker-entrypoint-initdb.d:ro
+    networks:
+      - easyinterview-dev
+    labels:
+      easyinterview.dev-stack.role: dependency
+      easyinterview.dev-stack.service: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-easyinterview} -d ${POSTGRES_DB:-easyinterview}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  redis-dev:
+    image: redis:7-alpine
+    container_name: easyinterview-redis-dev
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
+    volumes:
+      - easyinterview-redis-data:/data
+    networks:
+      - easyinterview-dev
+    labels:
+      easyinterview.dev-stack.role: dependency
+      easyinterview.dev-stack.service: redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  minio-dev:
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    container_name: easyinterview-minio-dev
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY:-dev-access-key}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY:-dev-secret-key}
+    ports:
+      - "${MINIO_API_HOST_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
+    volumes:
+      - easyinterview-minio-data:/data
+    networks:
+      - easyinterview-dev
+    labels:
+      easyinterview.dev-stack.role: dependency
+      easyinterview.dev-stack.service: minio
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  minio-init:
+    image: minio/mc:RELEASE.2024-11-21T17-21-54Z
+    container_name: easyinterview-minio-init
+    depends_on:
+      minio-dev:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY:-dev-access-key}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY:-dev-secret-key}
+      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-easyinterview-dev}
+    entrypoint: ["/bin/sh", "/usr/local/bin/create-buckets.sh"]
+    volumes:
+      - ./init/minio/create-buckets.sh:/usr/local/bin/create-buckets.sh:ro
+    networks:
+      - easyinterview-dev
+    labels:
+      easyinterview.dev-stack.role: init
+      easyinterview.dev-stack.service: minio-init
+    restart: "no"
+
+volumes:
+  easyinterview-pg-data:
+    name: easyinterview-pg-data
+  easyinterview-redis-data:
+    name: easyinterview-redis-data
+  easyinterview-minio-data:
+    name: easyinterview-minio-data
+
+networks:
+  easyinterview-dev:
+    name: easyinterview-dev
+    driver: bridge
