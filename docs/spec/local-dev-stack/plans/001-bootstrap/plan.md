@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap
 
 > **版本**: 1.3
-> **状态**: active
-> **更新日期**: 2026-04-27
+> **状态**: completed
+> **更新日期**: 2026-04-28
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)

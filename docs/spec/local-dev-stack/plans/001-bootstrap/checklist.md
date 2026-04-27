@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap Checklist
 
 > **版本**: 1.3
-> **状态**: active
-> **更新日期**: 2026-04-27
+> **状态**: completed
+> **更新日期**: 2026-04-28
 
 **关联计划**: [plan](./plan.md)
 
@@ -32,8 +32,8 @@
 
 ## Phase 4: 指标日志 + 文档 + AC 收口
 
-- [ ] 4.1 应用 `/metrics` 与容器日志验证（C-7）：对已声明 `/metrics` 的项目组件执行 curl 非空校验；`make dev-logs SERVICE=<name>` 可查看对应容器日志；不创建 OTLP smoke，不安装 OTel / Grafana / Loki / Prometheus
-- [ ] 4.2 落地 `deploy/dev-stack/README.md`：服务表（name/image/port/credentials/volume）、项目组件表（component/service/host port/health/metrics）、`make dev-*` 命令清单、AI provider 配置说明（本地部署使用真实 provider，stub 仅单测）、常见故障排查、与 `test/scenarios/` Kind 路径双轨说明、资源占用提示与默认依赖镜像下载体积估算（< 1.5GB），并声明默认本地栈不包含 OTel / Grafana / Loki / Prometheus / AI gateway
-- [ ] 4.3 在 `deploy/dev-stack/README.md` 声明最低 docker engine（24+）与 compose plugin（v2.20+）版本；本 plan 不创建或修改 A5 远端 CI workflow，当前单人开发阶段不在 CI 拉起 dev stack
-- [ ] 4.4 A2 executable gate handoff（C-8）：依次复跑 C-1 / C-2 / C-3 / C-4 / C-5 / C-6 / C-7 / C-9 八项 AC；执行证据贴入工作日志；不修改 engineering-roadmap parent checklist
-- [ ] 4.5 文档收口：`deploy/dev-stack/README.md` Header 完整；plans/INDEX.md 把本 plan 切到 completed 段；`/sync-doc-index --check` 通过
+- [x] 4.1 应用 `/metrics` 与容器日志验证（C-7）：对已声明 `/metrics` 的项目组件执行 curl 非空校验；`make dev-logs SERVICE=<name>` 可查看对应容器日志；不创建 OTLP smoke，不安装 OTel / Grafana / Loki / Prometheus
+- [x] 4.2 落地 `deploy/dev-stack/README.md`：服务表（name/image/port/credentials/volume）、项目组件表（component/service/host port/health/metrics）、`make dev-*` 命令清单、AI provider 配置说明（本地部署使用真实 provider，stub 仅单测）、常见故障排查、与 `test/scenarios/` Kind 路径双轨说明、资源占用提示与默认依赖镜像下载体积估算（< 1.5GB），并声明默认本地栈不包含 OTel / Grafana / Loki / Prometheus / AI gateway
+- [x] 4.3 在 `deploy/dev-stack/README.md` 声明最低 docker engine（24+）与 compose plugin（v2.20+）版本；本 plan 不创建或修改 A5 远端 CI workflow，当前单人开发阶段不在 CI 拉起 dev stack
+- [x] 4.4 A2 executable gate handoff（C-8）：依次复跑 C-1 / C-2 / C-3 / C-4 / C-5 / C-6 / C-7 / C-9 八项 AC；执行证据贴入工作日志；不修改 engineering-roadmap parent checklist
+- [x] 4.5 文档收口：`deploy/dev-stack/README.md` Header 完整；plans/INDEX.md 把本 plan 切到 completed 段；`/sync-doc-index --check` 通过
