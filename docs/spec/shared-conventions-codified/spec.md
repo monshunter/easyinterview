@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-04-26
+> **更新日期**: 2026-04-27
 
 ## 1 背景与目标
 
@@ -14,7 +14,7 @@
 
 目标是：
 
-1. **真理源即代码**：把 00-shared-conventions.md 中的 13 类枚举、6 个已记录错误码示例、ID 规则、时间规则、金额规则同时落到 Go（`backend/internal/shared/types/`）与 TypeScript（`frontend/src/lib/conventions/`）。
+1. **真理源即代码**：把 00-shared-conventions.md 中的 13 个 §5 小节 / 14 个生成枚举类型、6 个已记录错误码示例、ID 规则、时间规则、金额规则同时落到 Go（`backend/internal/shared/types/`）与 TypeScript（`frontend/src/lib/conventions/`）。
 2. **跨语言对齐**：Go 与 TS 类型必须共用同一份枚举 / 错误码源（YAML 或 JSON），由本 spec 唯一的 generator 在两侧吐出代码。
 3. **lint 强约束**：`UPPER_SNAKE_CASE` 错误码、`lower_snake_case` 枚举值、`camelCase` JSON tag 通过 lint 规则在 PR 阶段拦截，而不是依赖代码 review。
 4. **monorepo 名称锁定**：在落地任何业务代码前，先把 `go.mod` 名称、`package.json` 名称、pnpm workspace（如启用）拓扑、共享 lib 目录定下来，避免 W2 多个 child 各自重命名雪球。
@@ -53,7 +53,7 @@
 | D-3 | TS 包管理 | pnpm workspace（启用 `pnpm-workspace.yaml`），前端 package 名 `@easyinterview/frontend` | A2 `local-dev-stack` 与 B2 `openapi-v1-contract` 默认沿用 |
 | D-4 | UUID 算法 | UUIDv7（含时序），与 [00-shared-conventions.md §2.2](../../../easyinterview-tech-docs/00-shared-conventions.md#22-id-规则) 对齐；前端临时 id 使用 `tmp_<uuidv4>` | 所有业务主键由 idx 工具生成；不允许 NewV4 直接用作 DB id |
 | D-5 | 错误码命名 | `UPPER_SNAKE_CASE`，前缀按 domain：`AUTH_*` / `TARGET_*` / `PRACTICE_*` / `REPORT_*` / `RESUME_*` / `PRIVACY_*` / `RATE_LIMITED` / `VALIDATION_FAILED` | 任何非前缀错误码必须由本 spec 修订决定；business code 直接 import 常量 |
-| D-6 | 枚举值书写 | `lower_snake_case`；TS 用 union string literal，Go 用 named string + 常量集 | 与 00-shared-conventions §5 13 类枚举严格 1:1 |
+| D-6 | 枚举值书写 | `lower_snake_case`；TS 用 union string literal，Go 用 named string + 常量集 | 严格覆盖 00-shared-conventions §5 的 13 个小节；§5.13 同时包含隐私请求 type/status 两个并行字段，因此生成 14 个枚举类型 |
 
 ### 3.2 待确认事项
 
@@ -95,8 +95,8 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 真理源生成 Go 类型 | `shared/conventions.yaml` 已落地 | 执行 `make codegen-conventions`（B1 持有） | `backend/internal/shared/types/*.go` 中 13 类枚举常量、`APIError` 结构、`PageInfo` 结构按 D-5 / D-6 命名生成；`go vet ./backend/...` 通过 | 001-bootstrap |
-| C-2 | 真理源生成 TS 类型 | 同 C-1 | 同 C-1 | `frontend/src/lib/conventions/*.ts` 中 13 类 union string literal、`ApiError` / `PageInfo` interface 按 D-6 生成；`pnpm tsc --noEmit` 通过 | 001-bootstrap |
+| C-1 | 真理源生成 Go 类型 | `shared/conventions.yaml` 已落地 | 执行 `make codegen-conventions`（B1 持有） | `backend/internal/shared/types/*.go` 中 14 个枚举类型常量、`PageInfo` 结构与共享常量按 D-5 / D-6 命名生成；Go `APIError` 结构在 `backend/internal/shared/errors/` 手写，generator 仅补齐错误码常量；`go vet ./backend/...` 通过 | 001-bootstrap |
+| C-2 | 真理源生成 TS 类型 | 同 C-1 | 同 C-1 | `frontend/src/lib/conventions/*.ts` 中 14 个 union string literal 类型、`ApiError` / `PageInfo` interface 按 D-6 生成；`pnpm tsc --noEmit` 通过 | 001-bootstrap |
 | C-3 | UUIDv7 工具可用 | A1 已落地仓库根 | 在 Go test 与 TS test 中调用 idx 工具 | Go `idx.NewID()` / TS `newId()` 返回 UUIDv7 字符串；输入 `tmp_xxx` 时 `idx.RequireServerID()` / `requireServerId()` 抛错 | 001-bootstrap |
 | C-4 | Idempotency-Key 工具 | A1 已落地仓库根 | 生成 + 校验 idempotency key（24h TTL） | Go 与 TS 双端工具产出格式一致的 key；TTL 过期后校验返回 false | 001-bootstrap |
 | C-5 | Lint 拦截违规命名 | 任意 PR 中提交一个 `auth_unauthorized`（小写）错误码常量 | 跑 `make lint` | B1 本地 lint/config 能报错：错误码必须 `UPPER_SNAKE_CASE`；A5 只负责 CI 接入，不改变规则语义 | 001-bootstrap |
@@ -107,3 +107,9 @@
 - [001-bootstrap](./plans/001-bootstrap/plan.md)：W0 落地真理源 YAML、generator 框架、Go / TS 共享 lib 骨架、UUID / idempotency 工具、本地 lint gate、monorepo 名称（go.mod / pnpm workspace）。
 
 后续可在本 spec 修订递增版本后追加 `002-codegen-pipeline` 等 plan（覆盖 generator 在 CI 中的 drift detection、prompt / rubric registry 接入、跨语言测试），由 W1 阶段决定是否升格；本 spec 不预先 spawn 第二份 plan。
+
+## 8 修订记录
+
+| 日期 | 版本 | 变更 | 关联计划 |
+|------|------|------|----------|
+| 2026-04-27 | 1.1 | 回写 `001-bootstrap` 交付复盘确认的 spec-plan 漂移：明确 13 个上游枚举小节对应 14 个生成类型、Go `APIError` 为手写 errors 包类型、TS `ApiError` / `PageInfo` 由 generator 生成，并保持 C-4 Go/TS idempotency 双端验收语义。 | 001-bootstrap |

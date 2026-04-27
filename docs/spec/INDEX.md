@@ -28,7 +28,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.0 | active | 2026-04-26 | [plans](./shared-conventions-codified/plans/) |
+| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.1 | active | 2026-04-27 | [plans](./shared-conventions-codified/plans/) |
 | openapi-v1-contract（待 W1 spawn） | – | _pending_ | – | – |
 | event-and-outbox-contract（待 W1 spawn） | – | _pending_ | – | – |
 | db-migrations-baseline（待 W1 spawn） | – | _pending_ | – | – |
