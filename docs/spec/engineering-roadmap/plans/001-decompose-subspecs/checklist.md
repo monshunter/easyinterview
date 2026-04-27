@@ -1,8 +1,8 @@
 # Decompose Subspecs Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-04-26
+> **更新日期**: 2026-04-27
 
 **关联计划**: [plan](./plan.md)
 
@@ -25,12 +25,12 @@
 
 ## Phase 3: Wave 1（基础设施 + 契约骨架）
 
-- [ ] 3.1 并行 spawn 9 份 spec（A2 / A3 / A4 / A5 / B2 / B3 / B4 / F1 / F3），仅写 spec.md + history，**不写 impl plan**
-- [ ] 3.2 9 份 spec 同时通过 `/plan-review`（批量发起，集中讨论 cross-spec 一致性）
-- [ ] 3.3 B2 `openapi-v1-contract` 完成 v1.0.0 freeze（结构与字段名锁定，后续只允许 additive 变更）
-- [ ] 3.4 F1 `observability-stack` baseline 指标命名约定锁定
-- [ ] 3.5 F3 `prompt-rubric-registry` baseline prompt 模板（含 `feature_key + version`）就绪
-- [ ] 3.6 A2 `local-dev-stack` 完成 `make dev-up` 一键健康检查
+- [x] 3.1 并行 spawn 9 份 spec（A2 / A3 / A4 / A5 / B2 / B3 / B4 / F1 / F3），仅写 spec.md + history，**不写 impl plan**
+- [x] 3.2 9 份 spec 同时通过 `/plan-review`（批量发起，集中讨论 cross-spec 一致性）
+- [x] 3.3 B2 `openapi-v1-contract` 完成 v1.0.0 freeze（结构与字段名锁定，后续只允许 additive 变更）
+- [x] 3.4 F1 `observability-stack` baseline 指标命名约定锁定
+- [x] 3.5 F3 `prompt-rubric-registry` baseline prompt 模板（含 `feature_key + version`）就绪
+- [x] 3.6 A2 `local-dev-stack` 完成 `make dev-up` 一键健康检查
 
 ## Phase 4: Wave 2（前后端 mock-first 并行）
 

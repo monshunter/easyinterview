@@ -1,0 +1,155 @@
+# Secrets and Config Spec
+
+> **版本**: 1.0
+> **状态**: active
+> **更新日期**: 2026-04-27
+
+## 1 背景与目标
+
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 把 A4 `secrets-and-config` 列为 Layer A · Foundation 的第四份 child（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它是 Wave 1 的 9 份契约 / 基础设施 spec 之一，承接 [ADR-Q6](../engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md) 第 4 段「运维注入」与 [ADR-Q3](../engineering-roadmap/decisions/ADR-Q3-analytics-platform.md) 自托管 PostHog 的接入凭证落点，决定了：
+
+- 后端 API / Worker / 前端 dev / CI / staging / prod 各类环境如何拿到自己需要的连接串、API key、AI Gateway 地址、feature flag 状态；
+- secrets / config 在仓库里如何 layered（默认值、env override、运行时 secret），不被 hardcode；
+- feature flag 如何接入 PostHog 但不让业务代码直接 import PostHog SDK。
+
+目标是：
+
+1. **三层 config**：`config.yaml`（默认值，仓库版本化）→ `.env` / 环境变量（环境差异）→ runtime secret（敏感凭证）；任何业务模块只通过 `internal/platform/config` 包读取，不直接读 `os.Getenv`。
+2. **secrets 抽象**：`SecretSource` 接口在 P0 仅实现 env-based provider；P1 以后可扩展到 K8s Secret / Vault / SOPS（ADR-Q4 已留接口）；业务代码只依赖接口，不依赖具体 provider。
+3. **feature flag 抽象**：`FeatureFlagClient` 接口；本 spec 提供 `FileFlagProvider`（YAML 文件，dev / 单测默认）与 `PostHogFlagProvider`（指向自托管 PostHog 的 HTTP API）；ADR-Q3 已锁定 self-host PostHog。
+4. **lint 红线**：在 PR 阶段拒绝 `os.Getenv(...)` 出现在 `internal/<domain>/...` 包；secrets 文件名 (`*.secret.yaml`) 一律加入 `.gitignore`；提交前 hook 拦截已知敏感前缀（`AKIA*` / `sk-*`）。
+
+本 spec 不实现具体业务模块的配置消费、不部署 PostHog（[F2 `analytics-funnel`](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) / [E4](../engineering-roadmap/spec.md#55-layer-e--integration4-份) 承接）、不锁定 secret 后端实现（P1 以后再决策）。
+
+## 2 范围
+
+### 2.1 In Scope
+
+- **配置文件落点**：
+  - `config/config.yaml`（默认值，所有环境共享）
+  - `config/dev.yaml` / `config/staging.yaml` / `config/prod.yaml`（环境 override，不含 secrets）
+  - `.env.example`（仓库版本化的占位模板，列出所有合法 env key）
+  - `config/feature-flags.yaml`（FileFlagProvider 的本地源，dev 默认值）
+- **Go 包**：`backend/internal/platform/config/`（loader + validator + redactor）；`backend/internal/platform/secrets/`（`SecretSource` 接口与 env provider）；`backend/internal/platform/featureflag/`（`FeatureFlagClient` 接口与 file / posthog provider）。
+- **TS 包**：`frontend/src/lib/runtime-config/`（前端只读取 build-time 注入与运行时 `/api/v1/runtime-config` 端点；不直接读浏览器 env）。
+- **配置字段表**：本 spec §3.1 锁定 P0 必备 env key 与默认值，全部映射到 `config.yaml` 同名字段。
+- **lint / hook**：
+  - `make lint-config` 检查 `.env.example` 与代码 `Get*` 调用一致。
+  - `scripts/git-hooks/pre-commit-secrets.sh` 拦截敏感前缀（与 [A1 `scripts/git-hooks/`](../repo-scaffold/spec.md#21-in-scope) 集成）。
+  - golangci-lint 自定义规则：禁止 `os.Getenv` 出现在 `internal/<domain>/` 包。
+- **API 端点契约**：`GET /api/v1/runtime-config`（前端获取 feature flag 状态 + 公开配置项；schema 由 [B2 `openapi-v1-contract`](../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0) 收口）。
+
+### 2.2 Out of Scope
+
+- 真正部署 PostHog：归 [F2](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) + [A2 `local-dev-stack`](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0)（dev profile）。
+- K8s Secret / Vault / SOPS 实施：归 P1 / E4；本 spec 仅锁接口。
+- Build-time 注入工具链（Vite envsubst / esbuild defines）：归 [D1 `frontend-shell`](../engineering-roadmap/spec.md#54-layer-d--frontend7-份p04--p12--p21) + [A5 `ci-pipeline-baseline`](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0)。
+- Auth / session 凭证（access_token / refresh_token）：归 [C1 `backend-auth`](../engineering-roadmap/spec.md#53-layer-c--backend14-份p08--p14--p22) 与 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md)；本 spec 只确保 `JWT_SIGNING_KEY` 等 env key 进入红线。
+- 数据库 migration / schema：归 [B4](../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0)。
+- 业务模块的 config 消费现场：归各 C / D 域。
+
+## 3 用户决策 / 待确认事项
+
+### 3.1 已锁定决策（含 P0 必备 env key 字典）
+
+| ID | 决策 | 锁定值 | 影响 |
+|----|------|--------|------|
+| D-1 | 三层 config 优先级 | `runtime secret > env var > config/{env}.yaml > config/config.yaml` | loader 在启动时按此顺序合并；缺失关键字段直接 fail-fast |
+| D-2 | 前端运行时配置入口 | `GET /api/v1/runtime-config` 返回非敏感字段（`uiLanguage` 默认值、`featureFlags`、`appVersion`、`postHogPublicKey`）；schema 由 B2 收口 | 前端 0 后端调用即可初始化；secret 永远不出现在前端 |
+| D-3 | secrets 抽象 | `SecretSource` 接口 `Get(name) (string, error)`；P0 默认实现 `EnvSecretSource`（env var）；接口在 spec 锁定后不允许在 P1 升级时变更签名 | 后续 K8s Secret / Vault 切换零业务改动 |
+| D-4 | feature flag 抽象 | `FeatureFlagClient` 接口 `IsEnabled(key, ctx) bool` + `Variant(key, ctx) string`；P0 默认 `FileFlagProvider`，prod 切 `PostHogFlagProvider` | ADR-Q3 锁定不依赖第三方 cloud；自托管 PostHog 为生产唯一实现 |
+| D-5 | P0 必备 env key 字典 | 见下方 §3.1.1 列表；任一新增必须递增本 spec 版本 + 同步 `.env.example` + lint 校验 | 防止业务模块偷偷加 env |
+| D-6 | secret 红线 | `*.secret.yaml` 默认 `.gitignore`；pre-commit hook 拦截 `AKIA[0-9A-Z]{16}` / `sk-[A-Za-z0-9]{20,}` / `xox[baprs]-[A-Za-z0-9-]+`；CI 阶段再做一次 `gitleaks` 扫描 | 阻断仓库内敏感凭证泄漏 |
+| D-7 | 配置热加载 | feature flag 支持热加载（≤ 30s）；其它 config 字段在进程启动时读取，运行时不变；如需热加载，必须递增 spec | 避免业务围绕「config 变了吗」写复杂代码 |
+
+#### 3.1.1 P0 必备 env key 字典
+
+| Key | 必填 | 默认值 | 用途 | Owner subspec |
+|-----|------|--------|------|---------------|
+| `APP_ENV` | 是 | `dev` | `dev` / `staging` / `prod`；驱动 `config/{env}.yaml` 加载 | A4 |
+| `APP_LISTEN_ADDR` | 是 | `:8080` | API 进程 HTTP 监听 | A4 |
+| `WORKER_LISTEN_ADDR` | 是 | `:8081` | Worker 进程 metric / health 端口 | A4 |
+| `DATABASE_URL` | 是 | `postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable` | Postgres 连接串 | A4（A2 锁本地默认） |
+| `REDIS_URL` | 是 | `redis://localhost:6379/0` | Redis 连接串 | A4 |
+| `OBJECT_STORAGE_ENDPOINT` | 是 | `http://localhost:9000` | MinIO / S3 endpoint | A4 |
+| `OBJECT_STORAGE_BUCKET` | 是 | `easyinterview-dev` | 默认 bucket | A4 |
+| `OBJECT_STORAGE_ACCESS_KEY` | 是 | `dev-access-key` | secret，prod 必填 | A4 |
+| `OBJECT_STORAGE_SECRET_KEY` | 是 | `dev-secret-key` | secret，prod 必填 | A4 |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | 是 | `http://localhost:4318` | OTel Collector OTLP HTTP | A4（F1 复用） |
+| `LOG_LEVEL` | 是 | `info` | `debug/info/warn/error` | A4 |
+| `JWT_SIGNING_KEY` | prod 必填 | `(空，dev 由 init 生成)` | secret | A4（C1 复用） |
+| `AI_GATEWAY_BASE_URL` | prod 必填 | `(空，dev 默认走 stub)` | OpenAI-compatible AI Gateway 出站 URL | A4（A3 owner） |
+| `AI_GATEWAY_API_KEY` | prod 必填 | `(空)` | AI Gateway API key | A4（A3 owner） |
+| `AI_MODEL_PROFILE_PATH` | 是 | `config/ai-profiles/` | Model Profile YAML 目录 | A4（A3 owner） |
+| `FEATURE_FLAG_SOURCE` | 是 | `file` | `file` 或 `posthog` | A4 |
+| `FEATURE_FLAG_FILE_PATH` | 条件 | `config/feature-flags.yaml` | `FEATURE_FLAG_SOURCE=file` 时必填 | A4 |
+| `POSTHOG_API_HOST` | 条件 | `(空)` | `FEATURE_FLAG_SOURCE=posthog` 时必填；指向自托管 PostHog | A4（F2 owner） |
+| `POSTHOG_PROJECT_API_KEY` | 条件 | `(空)` | secret | A4（F2 owner） |
+| `POSTHOG_PUBLIC_KEY` | 是 | `(空，dev 占位)` | 暴露给前端的 public key（可选） | A4（F2 owner） |
+| `EMAIL_PROVIDER` | prod 必填 | `(空)` | passwordless magic link 发件方 | A4（C1 owner，ADR-Q1） |
+| `EMAIL_PROVIDER_API_KEY` | prod 必填 | `(空)` | secret | A4（C1 owner） |
+
+### 3.2 待确认事项
+
+- 是否在 P0 引入 `viper` / `koanf` 等成熟 config 库 vs 手写最小 loader：默认 `koanf`（轻量、无 magic），由 001-bootstrap plan 落地时回填。
+- `runtime-config` 端点是否需要鉴权：默认开放（仅返回非敏感字段）；如未来加入按用户分桶 feature flag，可改为带 token 的 `/api/v1/me/runtime-config`。
+- secret rotation：默认 P0 不实现自动 rotation；ADR / runbook 由 E4 W5 阶段落地。
+
+## 4 设计约束
+
+### 4.1 边界约束
+
+- `os.Getenv` 与 `flag.String` 等系统级读取只允许出现在 `backend/internal/platform/config/` 与 `backend/cmd/{api,worker}/main.go` 中；其它包必须通过 `config.Get*` 注入；A5 接入 lint 强制。
+- 前端任何代码不得直接读取 `import.meta.env.VITE_*` 之外的 build-time 变量；运行时配置统一通过 `runtime-config` 端点。
+- `config/feature-flags.yaml` 是 dev / 单测真理源；prod 走 PostHogFlagProvider；切换由 `FEATURE_FLAG_SOURCE` 决定。
+
+### 4.2 安全约束
+
+- 任何 secret 字段的字符串值在 log 中必须 redact（`config.RedactedString` 类型在 `String()` 方法返回 `***`）；A4 提供该类型，其它包必须使用。
+- `.gitignore` 必须包含：`*.secret.yaml`、`*.secret.json`、`config/local.*.yaml`、`.env`、`.env.local`。
+- pre-commit hook 与 CI gitleaks 双重防护；CI 阶段命中即阻塞 PR 合入。
+
+### 4.3 文档约束
+
+- `.env.example` 必须列出全部 P0 必备 key（即 §3.1.1 字典），缺失即 lint 失败。
+- `config/README.md` 解释三层优先级、各文件用途、新增 key 的流程。
+- 本 spec 修订（新增 / 删除 / 重命名 env key）必须递增版本 + history。
+
+## 5 模块边界
+
+| 边界 | Owner | 说明 |
+|------|-------|------|
+| `internal/platform/config/` | A4 | loader / validator / redactor / `Get*` API |
+| `internal/platform/secrets/` | A4 | `SecretSource` 接口 + env provider；P1 以后扩展 K8s/Vault |
+| `internal/platform/featureflag/` | A4 | `FeatureFlagClient` + file / posthog provider |
+| `frontend/src/lib/runtime-config/` | A4 + D1 | `runtime-config` fetcher 与本地缓存；A4 锁字段，D1 集成 React hooks |
+| `config/*.yaml` 内容 | 各业务 owner 增量 | A4 锁文件位置与 schema，业务字段由各 child 在 spec 修订时新增 |
+| `config/feature-flags.yaml` 字段集 | F2 + 各业务 owner | A4 锁文件位置；具体 flag key 由 [01-technical-architecture.md §15.1](../../../easyinterview-tech-docs/01-technical-architecture.md#15-发布与灰度) 列出的 6 项作为 P0 baseline |
+| AI Gateway env keys 默认值 | A3（决策） + A4（落 env 字典） | A3 决定字段名，A4 写进字典 |
+| Auth / Email env keys | C1 + A4 | C1 决定字段名（ADR-Q1），A4 写进字典 |
+| 部署侧 secret 注入 | E4 + 运维 | A4 提供接口，E4 提供 K8s Secret / Vault 路径 |
+
+## 6 验收标准
+
+| ID | 场景 | Given | When | Then | 对应 Plan |
+|----|------|-------|------|------|-----------|
+| C-1 | 三层合并 | `config/config.yaml` 设默认值；`config/dev.yaml` 覆盖 `LOG_LEVEL`；env 设 `APP_LISTEN_ADDR=:9090` | 启动 API 进程 | `config.Get("app.listenAddr") == ":9090"`；`config.Get("log.level") == "debug"`（dev override）；其它字段保持默认 | A4 后续 001 |
+| C-2 | 缺失关键字段 fail-fast | `prod` 模式启动但 `JWT_SIGNING_KEY` 未设置 | `make build && APP_ENV=prod ./bin/api` | 启动进程退出码非 0，stderr 输出 `missing required secret: JWT_SIGNING_KEY` | A4 后续 001 |
+| C-3 | feature flag file 模式 | `FEATURE_FLAG_SOURCE=file`；`config/feature-flags.yaml` 设 `practice_hint_enabled: true` | 业务调用 `featureflag.IsEnabled("practice_hint_enabled", ctx)` | 返回 `true`；修改 YAML 后 ≤ 30s 内自动热加载 | A4 后续 001 |
+| C-4 | feature flag posthog 模式 | `FEATURE_FLAG_SOURCE=posthog`，`POSTHOG_API_HOST` 指向 mock | 调用 `IsEnabled` | client 出站 HTTP 命中 PostHog `/decide` 端点；client 不直接 import PostHog SDK | A4 后续 001 |
+| C-5 | secret redact | log 中输出 `config.Get("objectStorage.secretKey")` | 进程产生日志 | 日志中显示 `***`；不出现明文 secret | A4 后续 001 |
+| C-6 | runtime-config 端点 | 前端首屏加载 | `GET /api/v1/runtime-config` | 返回 `{appVersion, defaultUiLanguage, featureFlags{...}, postHogPublicKey?}`；不返回任何 secret | A4 + B2 + D1 |
+| C-7 | lint 红线 | 任意 PR 在 `internal/auth/` 下出现 `os.Getenv("JWT_SIGNING_KEY")` | `make lint` | 报错并阻塞合入 | A4 后续 001 + A5 接入 |
+| C-8 | secrets 红线 | PR 包含一行 `OPENAI_API_KEY=sk-abc1234567890123456789` | pre-commit / CI | hook 拦截，CI gitleaks 拦截 | A4 后续 001 + A5 |
+| C-9 | env 字典覆盖 | `.env.example` 中缺 `AI_GATEWAY_BASE_URL` | `make lint-config` | 报错：env key 在代码出现但 `.env.example` 缺失 | A4 后续 001 |
+
+## 7 关联计划
+
+A4 在本次 W1 spec 阶段不创建 impl plan（参见 [001-decompose-subspecs §3.1](../engineering-roadmap/plans/001-decompose-subspecs/plan.md#3-实施步骤)）。后续由 A4 自身的 `001-bootstrap`（W2 起）承接：
+
+- 落地 `internal/platform/{config,secrets,featureflag}/` Go 包与默认 provider。
+- 落地 `config/*.yaml`、`.env.example`、`config/feature-flags.yaml`。
+- 落地 lint 规则与 pre-commit hook（接入 A1 `scripts/git-hooks/`）。
+- 提供 `frontend/src/lib/runtime-config/` 与最小 fetcher。
+
+后续 P1 升级（K8s Secret / Vault / SOPS provider）由本 spec 修订递增版本后追加 plan，不创建 sibling spec。

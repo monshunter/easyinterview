@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-27](2026-04-27.md) | `docs(spec): spawn W1 child subspecs A2/A3/A4/A5/B2/B3/B4/F1/F3` | #docs |
 | [2026-04-27](2026-04-27.md) | `fix(sync-doc-index): preserve spec index plans column` | #fix |
 | [2026-04-27](2026-04-27.md) | `docs(shared-conventions): reconcile bootstrap assessment findings` | #docs |
 | [2026-04-27](2026-04-27.md) | `fix(shared-conventions): tighten ts decimal parse, error-code lint, and add go.work` | #fix |

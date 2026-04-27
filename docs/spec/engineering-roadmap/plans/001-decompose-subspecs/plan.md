@@ -1,8 +1,8 @@
 # Decompose Subspecs
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-04-26
+> **更新日期**: 2026-04-27
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
