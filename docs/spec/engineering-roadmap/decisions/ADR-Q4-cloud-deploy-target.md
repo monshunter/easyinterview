@@ -1,8 +1,8 @@
 # ADR-Q4 · 云部署目标
 
-> **版本**: 1.0
+> **版本**: 1.3
 > **状态**: accepted
-> **更新日期**: 2026-04-26
+> **更新日期**: 2026-04-27
 
 ## 1 背景
 
@@ -12,7 +12,7 @@
 
 - `CLAUDE.md` §5 + `test/scenarios/README.md` 已锁定**场景集成测试基于 Kind**（K8s 本地集群）
 - `image-cache.sh pull` 与 helm-chart 友好的脚本约定已在 skill `scenario-env` / `scenario-redeploy` 中固化
-- A2 `local-dev-stack` 用 docker-compose 起本地依赖，A5 `ci-pipeline-baseline` 不做 deploy
+- A2 `local-dev-stack` 用 docker-compose 起本地最小依赖与项目组件；当前单人阶段 A5 只保留本地质量门禁，不构建远端 CI pipeline
 - 没有 vendor lock-in：所有外部依赖通过 SDK 接口接入
 
 业务背景：
@@ -85,23 +85,23 @@
 
 落地约束：
 
-1. **集群形态**：staging / prod 各 1 个 managed cluster（云厂商 = ops 选择，初期默认 EKS / GKE / AKS 任一；本 ADR 不锁厂商）；本地 dev 继续用 Kind（与 `test/scenarios/` 一致）
+1. **集群形态**：staging / prod 各 1 个 managed cluster（云厂商 = ops 选择，初期默认 EKS / GKE / AKS 任一；本 ADR 不锁厂商）；本地场景集成测试继续用 Kind（与 `test/scenarios/` 一致），普通本地开发走 A2 docker-compose，不把 Kind 作为开发前置条件
 2. **工作负载拓扑**：3 个 Deployment（`web-app` 静态资源由 ingress 直 serve 或单独 deploy / `api` HPA min=2 / `worker` HPA min=1），1 个 CronJob（outbox dispatcher 兜底重试）
 3. **共享基础设施**：PostgreSQL + pgvector / Redis 优先用云托管（RDS+pgvector or Neon / ElastiCache）；Object Storage 用云对象存储（S3 / GCS / R2）；OTel Collector / Loki / Prometheus / Grafana 自托管在同一 cluster
-4. **AI Gateway（关联 Q-6）**：作为同 cluster 内独立 Deployment（Higress 默认候选），通过内部 Service 对外暴露 OpenAI-compatible route；业务 deployment 通过 `AI_GATEWAY_BASE_URL` 引用
-5. **Helm chart**：所有组件以 helm chart 形式管理；chart 与 `test/scenarios/` Kind 部署共用同一 values 模板（区别只在 replica / resource）
-6. **CI 不直接 deploy**：A5 `ci-pipeline-baseline` 只跑 lint / test / build / image push；deploy 由 E4 `release-gate-and-rollout` 单独管理（GitOps：ArgoCD / FluxCD 任一，本 ADR 不锁工具）
+4. **AI provider / Gateway（关联 Q-6）**：业务 deployment 通过 `AI_GATEWAY_BASE_URL` 引用 OpenAI-compatible endpoint；Kind 场景测试默认注入真实 AI provider endpoint，不要求部署 AI gateway；staging / prod 可把该 URL 指向同 cluster 内独立 AI Gateway Deployment（Higress 默认候选）
+5. **Helm chart**：所有组件以 helm chart 形式管理；chart 与 `test/scenarios/` Kind 部署共用同一 values 模板（区别包含 replica / resource / AI endpoint 注入方式）
+6. **CI/CD 延后**：当前个人单人开发阶段不构建远端 CI pipeline，也不做 CI deploy；A5 只约束本地手动质量门禁。自动化 deploy 由 E4 `release-gate-and-rollout` 在公开 release / 多人协作 / 自动发版需求出现后单独管理（GitOps：ArgoCD / FluxCD 任一，本 ADR 不锁工具）
 7. **secrets**：Sealed Secrets / SOPS / External Secrets 任一，通过 A4 `secrets-and-config` 抽象注入；不允许明文 ConfigMap
 
 ## 4 影响范围
 
-- **A2 `local-dev-stack`** —— docker-compose 与 Kind manifest 同源（同一 image / 同一健康检查）
-- **A5 `ci-pipeline-baseline`** —— 仅 build + push image；不做 deploy
+- **A2 `local-dev-stack`** —— docker-compose 只覆盖普通本地开发的最小依赖与项目组件启动；不承接 Kind manifest / Helm chart 同源要求
+- **A5 `ci-pipeline-baseline`** —— 当前只保留本地质量门禁；远端 CI pipeline / image push / branch protection 延后
 - **E4 `release-gate-and-rollout`** —— 灰度（feature flag + Deployment progressive rollout）+ 回滚 runbook 全部基于 K8s 原语
 - **F1 `observability-stack`** —— OTel Collector / Prometheus / Loki / Grafana 以 helm chart 部署在同 cluster
-- **A3 `ai-gateway-and-model-routing`** —— Higress / 替代 AI Gateway 作为 cluster-internal Deployment
-- **A4 `secrets-and-config`** —— K8s Secret 抽象（含 sealed / external）
-- **CLAUDE.md / `test/scenarios/`** —— Kind 场景测试栈与生产栈共用 helm chart 路径，避免双轨
+- **A3 `ai-gateway-and-model-routing`** —— OpenAI-compatible provider / gateway adapter；Higress / 替代 AI Gateway 只作为 staging / prod 可选 cluster-internal Deployment
+- **A4 `secrets-and-config`** —— K8s Secret 抽象（含 sealed / external），Kind 与 docker compose 本地部署注入真实 AI provider endpoint / key
+- **CLAUDE.md / `test/scenarios/`** —— Kind 场景测试栈与生产栈共用 helm chart 路径，但 Kind 默认直连真实 AI provider endpoint；与 A2 docker-compose 本地开发栈保持双轨独立
 
 ## 5 失效与修订条件
 
@@ -121,3 +121,11 @@
 - 上游：`easyinterview-tech-docs/01-technical-architecture.md` §3、`CLAUDE.md` §5 场景测试环境、`test/scenarios/README.md`
 - 下游 child：A2 / A5 / E4 / F1 / A3 / A4
 - 关联 ADR：ADR-Q6-ai-gateway-and-model-routing（Higress as cluster-internal Deployment）
+
+## 7 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-04-27 | 1.3 | 对齐个人单人开发阶段决策：P0 当前不构建远端 CI pipeline，不做 CI deploy；A5 只约束本地手动质量门禁，自动化 CI/CD 待多人协作、公开 release 或自动发版需求出现后再建。 |
+| 2026-04-27 | 1.2 | 对齐 ADR-Q6 v1.1：Kind 场景测试属于本地部署，默认注入真实 AI provider endpoint / key，不要求部署 AI gateway；staging / prod 可继续把 `AI_GATEWAY_BASE_URL` 指向 cluster-internal gateway。 |
+| 2026-04-27 | 1.1 | 对齐 A2 local-dev-stack v1.2：普通本地开发走 docker-compose 最小依赖 + 项目组件，Kind 仅用于场景集成测试，不再要求 A2 docker-compose 与 Kind manifest 同源。 |

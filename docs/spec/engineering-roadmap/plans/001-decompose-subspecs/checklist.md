@@ -1,6 +1,6 @@
 # Decompose Subspecs Checklist
 
-> **版本**: 1.7
+> **版本**: 2.1
 > **状态**: active
 > **更新日期**: 2026-04-27
 
@@ -30,7 +30,8 @@
 - [x] 3.3 B2 `openapi-v1-contract` 完成 spec-contract lock：v1.0.0 freeze 的 36 endpoint / 14 tag / additive-only 规则 / privacy export 501 例外已写入 spec；`openapi/openapi.yaml`、codegen、fixtures、breaking-change linter 由 B2 后续 `001` plan 验证
 - [x] 3.4 F1 `observability-stack` 完成 spec-contract lock：baseline metric 命名、allowed labels、forbidden labels、log 明文红线、dashboard 名称与健康检查契约已写入 spec；helper / lint / dashboard / alerting 实现由 F1 后续 `001` plan 验证
 - [x] 3.5 F3 `prompt-rubric-registry` 完成 spec-contract lock：13 个 P0 feature_key、`(feature_key, version, language)` 坐标、Resolve 调用契约、prompt/rubric 文件落点已写入 spec；baseline prompt/rubric 文件与 loader 由 F3 后续 `001` plan 验证
-- [x] 3.6 A2 `local-dev-stack` 完成 spec-contract lock：7 个本地服务、`make dev-*` 行为契约、JSON 健康检查口径已写入 spec；`deploy/dev-stack/docker-compose.yaml` 与真实 `make dev-up` 一键健康检查由 A2 后续 `001` plan 验证
+- [x] 3.6 A2 `local-dev-stack` 完成 spec-contract lock：最小本地依赖（Postgres+pgvector / Redis / MinIO）、项目组件启动语义、`make dev-*` 行为契约、JSON 健康检查口径已写入 spec；`deploy/dev-stack/docker-compose.yaml` 与真实 `make dev-up` 一键健康检查由 A2 后续 `001` plan 验证
+- [x] 3.7 A5 `ci-pipeline-baseline` 完成 spec-contract 修订：当前个人单人开发阶段只保留本地质量门禁，远端 CI pipeline / branch protection / required checks / artifact / nightly / CI secret 延后到触发条件出现后再建
 
 ## Phase 4: Wave 2（前后端 mock-first 并行）
 
@@ -48,7 +49,7 @@
 - [ ] 5.2 spawn C5 `backend-practice`：完整 spec + plan 链；plan 必须显式写出 turn-light-review 边界
 - [ ] 5.3 spawn C6 `backend-review`：完整 spec + plan 链
 - [ ] 5.4 spawn C7 `backend-resume`：完整 spec + plan 链
-- [ ] 5.5 F3 切到真实 Model Profile（由运维配置映射到 AI Gateway route / provider / model），落地 ≥50 题离线评估集
+- [ ] 5.5 F3 切到真实 Model Profile（由配置映射到真实 AI provider / gateway endpoint、provider、model），落地 ≥50 题离线评估集
 - [ ] 5.6 6 个 P0 后端域（C1 + C4-C7 + C8）通过各自 unit 测试 + mock-server BDD
 
 ## Phase 6: Wave 4 + Wave 5（真集成 + 上线 gate）

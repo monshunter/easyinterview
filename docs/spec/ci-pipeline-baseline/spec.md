@@ -1,56 +1,52 @@
-# CI Pipeline Baseline Spec
+# Local Quality Gate and Deferred CI Spec
 
-> **版本**: 1.0
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-04-27
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 把 A5 `ci-pipeline-baseline` 列为 Layer A · Foundation 的最后一份 child（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md) 与 [A2 `local-dev-stack`](./../local-dev-stack/spec.md)）。它是 Wave 1 的 9 份契约 / 基础设施 spec 之一，决定了：
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 把 A5 `ci-pipeline-baseline` 列为 Layer A · Foundation 的最后一份 child（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md) 与 [A2 `local-dev-stack`](./../local-dev-stack/spec.md)）。该 subject 名称保留历史占位，但当前项目是个人单人开发者项目，P0 阶段不需要构建 GitHub Actions / GitLab CI 等远端 CI pipeline。
 
-- 仓库每一份 PR / push 在 CI 中执行什么 job；
-- 哪些 lint / test / codegen 在 CI 阶段强制（与 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md) 与 [A4 `secrets-and-config`](./../secrets-and-config/spec.md) 提供的本地 lint 一致）；
-- 镜像缓存策略（与 `test/scenarios/` 的 image-cache.sh 同源），不重复发明轮子；
-- **本 spec 显式不做 deploy**：CD（staging / prod 部署）归 [E4 `release-gate-and-rollout`](../engineering-roadmap/spec.md#55-layer-e--integration4-份)，A5 只交付能合入的高质量产物（artifact）。
+本 spec 在当前阶段只决定：
+
+- 本地开发者手动执行哪些质量门禁命令；
+- 哪些 lint / test / codegen / docs check 由本地 Make target 统一暴露；
+- 什么时候才重新评估 CI pipeline；
+- 如何避免为了未来多人协作提前引入 GitHub Actions、branch protection、artifact、CI secret、nightly job 等维护成本。
 
 目标是：
 
-1. **每一次 push / PR 都跑相同 gate**：lint → unit test → build → codegen drift check → contract diff（B2 接入后），通过即可合入。
-2. **失败可解释**：每个 job 输出结构化 summary（GitHub Actions Job Summary）+ artifact（覆盖率、构建二进制、生成的 OpenAPI / TS Client diff）；定位时间从「翻 5 屏 log」缩到「一屏 summary」。
-3. **缓存可控**：模块依赖（Go module / pnpm / pip）、镜像层（buildx）、外部测试镜像（image-cache）三层缓存策略统一；不污染主干分支。
-4. **secrets 不出 CI**：CI runner 不持有生产 secret；任何 job 能用的 secret 必须在本 spec 登记（与 A4 字典对齐），新增由本 spec 修订流程控制。
+1. **本地质量门禁先行**：P0 用 `make lint` / `make test` / `make build` / `make docs-check` / codegen drift check 等本地命令保证基本质量；不依赖远端 CI 才能开发。
+2. **零 CI 运维负担**：当前不创建 `.github/workflows/*.yml`、不配置 required check、不开 nightly、不给 CI 注入任何业务 secret。
+3. **保留未来切换点**：当项目进入多人协作、公开发布、付费用户或需要自动化 release gate 时，再在本 spec 原地修订，创建 CI implementation plan。
+4. **与既有脚手架一致**：A1 提供顶层 Make target 占位，B1 / B2 / A4 等 owner 提供具体 lint / codegen / config check；A5 只负责把这些本地命令组织成一组可重复的质量门禁。
 
-本 spec 不实现 release / deploy（归 E4）、不实现 codegen 工具本身（归 [B2 `openapi-v1-contract`](./../openapi-v1-contract/spec.md) 与 B1）、不实现镜像构建脚本细节（归 A1 + A2）。
+本 spec 不实现 release / deploy（归 E4）、不实现 codegen 工具本身（归 [B2 `openapi-v1-contract`](./../openapi-v1-contract/spec.md) 与 B1）、不实现镜像构建脚本细节（归 A1 + A2），也不在当前阶段实现任何远端 CI pipeline。
 
 ## 2 范围
 
 ### 2.1 In Scope
 
-- **CI 平台**：GitHub Actions（与现有 git remote / workflows 落点一致）；workflow 落 `.github/workflows/*.yml`，由 A5 owner 维护。
-- **Workflow 入口**：
-  - `ci.yml`：每次 push / pull_request；包含 lint / test / build / codegen-drift / docs-check 5 个 job。
-  - `nightly.yml`：每日 cron；包含完整测试套（含 `test/scenarios/` 场景测试，预留触发，实际执行由 `/scenario-run` 接入）+ 镜像缓存预热。
-  - `dependabot.yml`：依赖更新策略（go modules / pnpm / GitHub Actions versions）。
-- **必跑 job**：`lint-go` / `lint-ts` / `lint-config`（A4 owner）/ `lint-error-codes`（B1 owner）/ `unit-test-go` / `unit-test-ts` / `build-api` / `build-worker` / `build-frontend` / `codegen-drift-check` / `docs-check`（`/sync-doc-index --check` + 链接检查）。
-- **缓存策略**：
-  - `actions/setup-go` + module cache（key: `go-${{ hashFiles('**/go.sum') }}`）。
-  - `pnpm` cache（key: `pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}`）。
-  - Docker buildx layer cache（registry cache or GHA cache）；镜像名空间在 A2 锁定。
-- **artifact 输出**：
-  - `coverage-go.html` / `coverage-ts.html`。
-  - `bin/api`、`bin/worker`、`frontend/dist/` 构建产物（仅 main 分支保留 14 天）。
-  - `openapi-diff.html`、`ts-client-diff.txt`（codegen drift 详情）。
-- **CI 用 secret 字典**：`GITHUB_TOKEN`（默认）/ `GHCR_TOKEN`（pull 镜像）/ `CODECOV_TOKEN`（可选）；任何业务 secret（DB / Redis / OpenAI）禁止进 CI runner。
-- **branch protection 建议**：`main` 强制 PR + ci-required；force push 禁止；同 [AGENTS.md / CLAUDE.md §7](../../../CLAUDE.md#7-git-分支策略) git 分支策略对齐。
+- **本地质量入口**：统一约定根 Make target：
+  - `make lint`：聚合 Go / TS / error-code / config / metrics / log lint（按对应 owner 落地情况逐步接入）。
+  - `make test`：聚合 Go / TS 单元测试；AI 单元测试默认走 stub / fixtures，不需要真实 AI provider secret。
+  - `make build`：聚合 API / worker / frontend 构建；尚未落地的组件可先保留清晰占位输出。
+  - `make docs-check`：执行 `/sync-doc-index --check` 与轻量链接检查。
+  - `make codegen-check`：执行已落地 generator 的 idempotency / drift check（B1、B2 按各自 plan 接入）。
+- **本地输出契约**：每个 target 失败时必须输出 5 行内的人类可读摘要，并保留原始命令日志；不要求生成 HTML artifact。
+- **secret 红线**：本地质量门禁不读取 `.env` 中的生产 secret；任何需要真实 provider 的本地部署验证归 A2/A3/A4，不归本地单测 gate。
+- **未来 CI 触发条件**：记录何时需要从本地门禁升级为远端 CI。
 
 ### 2.2 Out of Scope
 
+- GitHub Actions / GitLab CI / CircleCI workflow：当前不创建 `.github/workflows/{ci,nightly,dependabot}.yml`。
+- PR / push required checks、branch protection 自动同步、`gh api` 脚本：单人阶段不做。
+- CI artifact 输出（coverage HTML、构建产物上传、OpenAPI diff artifact）：单人阶段不做。
+- nightly 定时任务、Dependabot 自动 PR、Codecov、GHCR push、Docker buildx 远端缓存：单人阶段不做。
 - 部署到 staging / prod（K8s manifest apply、Helm 升级、SLO 检查）：归 [E4](../engineering-roadmap/spec.md#55-layer-e--integration4-份)。
-- 镜像 push 到 registry：本 spec 仅锁定 build；push / sign / SBOM 由 E4 在 W4/W5 接入。
-- 性能 / 压测 / 漏洞扫描：归 E4 + F4（P1）。
-- 场景测试集群拉起：归 `test/scenarios/` 与 [scenario-* skills](../../../.claude/skills/)；A5 仅在 nightly 触发入口。
-- E2E 测试（[E2 `e2e-scenarios-p0`](../engineering-roadmap/spec.md#55-layer-e--integration4-份)）：W4 才接入；A5 在本 spec 阶段仅占位 job 名 `e2e`。
-- 移动端 / 桌面端构建：当前不在范围。
+- 场景测试集群拉起：归 `test/scenarios/` 与 scenario skills；A5 不自动触发。
+- 性能 / 压测 / 漏洞扫描：归 E4 + F4（P1 或 release 前）。
 
 ## 3 用户决策 / 待确认事项
 
@@ -58,76 +54,67 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | CI 平台 | GitHub Actions；workflow 落点 `.github/workflows/`；不引入第二平台（CircleCI / GitLab CI） | 后续脚本一致 |
-| D-2 | trigger 矩阵 | `ci.yml`: push（dev / main）+ pull_request；`nightly.yml`: cron `0 18 * * *` UTC；`dependabot.yml`: 月度 | 不在每个 PR 上跑 nightly 重活 |
-| D-3 | concurrency cancel | 同一 PR 的旧 run 自动 cancel（`concurrency: pr-${{ github.event.pull_request.number }}`） | 节省 CI 配额 |
-| D-4 | matrix 测试 | Go 测试单 OS（`ubuntu-latest`），Node 测试单 OS；macOS / Windows 暂不入门 | 缩短 CI 时间 |
-| D-5 | 必跑 job 列表 | 见 §2.1；任一新增由本 spec 修订；删除必须征得对应 owner | 防止 lint / test 漂移 |
-| D-6 | codegen drift 校验 | OpenAPI codegen / 共享类型 generator（B1）必须在 CI `git diff --exit-code`；漂移即失败 | 与 B1 D-1 idempotent generator 一致 |
-| D-7 | branch protection | `main` 必跑全部必跑 job；`dev` 必跑 lint + test + build；feature 分支不强制 | 保证主干始终绿 |
-| D-8 | 不在 CI 注入业务 secret | DB / Redis / OpenAI / PostHog secrets 永不出现在 CI runner；测试默认走 stub / fixtures | 防止 CI 被攻击后泄漏 |
-| D-9 | artifact 保留 | PR 分支 7 天；main 分支 14 天；CI 失败时强制保留以便定位 | 默认成本可控 |
+| D-1 | 当前阶段是否构建 CI pipeline | 否。P0 单人开发阶段只要求本地质量门禁 | 不创建 workflow / required check / branch protection |
+| D-2 | 质量门禁触发方式 | 开发者在本机手动执行 `make lint` / `make test` / `make build` / `make docs-check` / `make codegen-check`；pre-commit 可选，不作为当前必需 gate | 保持开发节奏轻量 |
+| D-3 | 本地 gate owner | A5 只组织入口；B1/B2/A4/F1 等 owner 提供各自 lint / generator / check 实现 | 避免 A5 变成工具大杂烩 |
+| D-4 | 业务 secret | DB / Redis / AI provider / PostHog secrets 不进入任何远端 runner；本地单测默认走 stub / fixtures | 防止过早引入 secret 管理复杂度 |
+| D-5 | 远端 CI 升级触发条件 | 满足任一条件才重新评估：第二位长期贡献者加入、公开 release branch、付费用户上线、需要自动发版、回归频率高到本地门禁不足以控制 | CI 在需要时再建 |
+| D-6 | 分支保护 | 当前不强制 branch protection；是否用 `dev/main` 线性历史由人工执行 | 单人项目避免流程噪声 |
+| D-7 | artifact | 当前不上传 artifact；构建产物只保留在本地工作区 | 降低维护成本 |
 
 ### 3.2 待确认事项
 
-- 是否在 PR 阶段强制运行 `test/scenarios/` 中标记 `parallel-safe` 的最小子集：默认不强制，由 nightly 承接；如发现高频回归，再升格。
-- pnpm 版本：默认 `latest stable`；具体由 [B1](../shared-conventions-codified/spec.md#31-已锁定决策) D-3 选定。
-- OS arm64 vs amd64：默认 amd64；arm64 镜像构建延后。
+- 远端 CI 的具体平台默认保留为 GitHub Actions，但只有触发 D-5 条件后才重新锁定。
+- 若后续接入远端 CI，是否拆成 `002-remote-ci` plan，还是把本 spec 的首个实现 plan 直接升级为 CI plan：默认原地新增 plan，不改 subject 路径。
 
 ## 4 设计约束
 
-### 4.1 流水线约束
+### 4.1 本地门禁约束
 
-- 每个 workflow 必须在 `runs-on` 行注释 owner（A5 / B1 / B2 / E4），便于跨 child 修订时定位 PR reviewer。
-- 必跑 job 总耗时 P95 ≤ 8 分钟（在 A2 镜像缓存与 module cache 命中前提下）；超出由 owner 优化或拆 job。
-- 任一 job 失败：必须在 GitHub Actions Job Summary 输出 5 行内的失败原因摘要，链向完整 log；不允许「自己去翻 log」。
+- 所有本地 gate 必须可在仓库根执行，不要求开发者手动 `cd backend` / `cd frontend`。
+- 任一 target 失败时必须返回非 0；跳过尚未落地组件时必须明确输出 `not implemented yet: <owner>`，不能假装通过。
+- `make docs-check` 必须至少包含 `/sync-doc-index --check`；Header / INDEX drift 不能靠人工记忆。
+- `make codegen-check` 只能检查已经存在的 generator；B2 OpenAPI generator 未落地前不得制造失败 gate。
 
 ### 4.2 安全与权限约束
 
-- workflow `permissions:` 默认最小（`contents: read`）；需要 write 必须显式声明并由本 spec 修订登记。
-- 不使用 `pull_request_target` trigger（避免 fork 注入）；如需对 fork 提供受限 CI，由本 spec 修订决定。
-- 第三方 action 钉版本到 commit SHA（不用 `@main`）；新增第三方 action 必须在本 spec 中登记。
+- 本地 gate 不读取生产 secret，不向网络上传源代码、coverage 或构建产物。
+- AI 单元测试必须走 stub / fixtures；真实 AI provider smoke 属于 A2/A3/A4 本地部署验证，不属于 A5 本地单测 gate。
+- 如果未来引入 CI，新增 workflow 前必须先修订本 spec，登记 runner secret 字典与权限边界。
 
 ### 4.3 文档约束
 
-- `.github/workflows/README.md` 维护当前 workflow 列表 + 必跑 job 矩阵 + 故障排查指引。
-- 任何 job 改名 / 删除 / 必跑性变更：递增 spec 版本 + history。
-- 与 [01-technical-architecture.md §13](../../../easyinterview-tech-docs/01-technical-architecture.md#13-性能预算建议) 的性能预算对齐：CI 每个 job 时间预算与生产 SLO 不直接挂钩，但 `nightly.yml` 中的场景测试结果应对 SLO baseline 起预警作用。
+- `README.md` 或后续 `docs/development.md` 只记录本地命令，不声称项目已有 CI pipeline。
+- 任何新增远端 CI job、required check、branch protection、artifact 或 secret：必须递增本 spec 版本 + history。
+- A5 名称保留为 `ci-pipeline-baseline` 仅为避免目录 churn；正文真理源是“当前 deferred CI + local quality gate”。
 
 ## 5 模块边界
 
 | 边界 | Owner | 说明 |
 |------|-------|------|
-| `.github/workflows/*.yml` | A5 | workflow 入口与必跑 job 矩阵 |
-| `make lint` / `make test` / `make build` 占位 | A1 | A5 在 CI 中调用 A1 锁定的 target |
-| 错误码 lint / 共享类型 codegen drift | B1 | A5 接入 B1 提供的本地 lint / generator |
-| OpenAPI codegen drift | B2 | A5 接入 B2 提供的 codegen pipeline |
-| Config lint | A4 | A5 接入 `make lint-config` |
-| 测试镜像缓存 | A2 + `test/scenarios/` | A5 调用既有 image-cache.sh，不重复实现 |
-| Branch protection 配置 | A5 | 通过 `gh api` 同步（不依赖 web UI 手动设置） |
+| 根 `make lint` / `make test` / `make build` / `make docs-check` / `make codegen-check` 编排 | A5 + A1 | A1 提供 Makefile 结构，A5 约定本地质量入口 |
+| 错误码 lint / 共享类型 codegen drift | B1 | A5 只聚合命令，不重写规则 |
+| OpenAPI codegen drift | B2 | B2 generator 落地后再接入 `make codegen-check` |
+| Config lint | A4 | A5 聚合 `make lint-config` 或等价入口 |
+| Metrics / log lint | F1 | F1 helper 落地后再接入 `make lint` |
+| 测试镜像缓存 | A2 + `test/scenarios/` | 手动场景测试需要时调用；A5 不自动预热 |
+| 远端 CI / branch protection | Future A5 plan | 当前 deferred；触发 D-5 后再新增 plan |
 | 部署 CD | E4 | A5 不做 |
 
 ## 6 验收标准
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | PR 触发 ci.yml | 仓库 main 已设 branch protection | 任意人提 PR | `ci.yml` 触发 5 个必跑 job；GH UI 显示 `ci/required` checks | A5 后续 001 |
-| C-2 | lint 失败拦截 | 故意提交一个 `auth_unauthorized`（小写）错误码 | CI 触发 | `lint-error-codes` 失败；Job Summary 输出违规文件 + 行号 | A5 后续 001 + B1 接入 |
-| C-3 | codegen drift 失败 | 故意修改 `openapi/openapi.yaml` 但不同步 generated client | CI | `codegen-drift-check` 失败；artifact `openapi-diff.html` 含 diff | A5 后续 001 + B2 接入 |
-| C-4 | docs index drift | 故意修改 `docs/spec/<sub>/spec.md` Header 但不同步 INDEX | CI | `docs-check` 失败；Job Summary 含 `/sync-doc-index --check` 输出 | A5 后续 001 |
-| C-5 | 缓存命中 | 二次 PR run（同 lockfile） | CI | Go module cache hit；pnpm cache hit；总耗时较冷启动减半（≥ 50%） | A5 后续 001 |
-| C-6 | nightly 触发 | 时间到达 cron | `nightly.yml` 触发 | 完整测试套 + 镜像缓存预热全部跑完；失败时打开 GH issue（标签 `ci-nightly`） | A5 后续 001 |
-| C-7 | concurrency cancel | 同 PR 短时间内 push 两次 | CI | 旧 run 被 cancel；新 run 正常完成 | A5 后续 001 |
-| C-8 | secret 不泄漏 | grep workflow yaml 与 log | 全部 workflow | 不出现 `OPENAI_API_KEY` / `POSTHOG_PROJECT_API_KEY` 等业务 secret | A5 后续 001 |
-| C-9 | artifact 可下载 | CI 跑完成功 / 失败 | GH UI | `coverage-go.html` / `coverage-ts.html` / `bin/api` / `bin/worker` / `frontend/dist/` artifact 可下载；保留时长按 D-9 | A5 后续 001 |
-| C-10 | branch protection 同步 | 本 spec 接入 | 跑 `scripts/branch-protection-apply.sh` | `main` 强制 ci-required + 禁止 force push；通过 `gh api` 验证 | A5 后续 001 |
+| C-1 | 无远端 CI 文件 | 仓库处于 P0 单人开发阶段 | 检查 `.github/workflows/` | 不存在由 A5 创建的 `ci.yml` / `nightly.yml` / `dependabot.yml`；文档不声称 CI 已启用 | A5 后续 001（如需要） |
+| C-2 | 本地 lint gate | 已落地 B1 lint 与后续 owner lint | `make lint` | 聚合已存在 lint；任一失败返回非 0；未落地 lint 明确标记 owner，不假通过 | A5 后续 001（如需要） + B1/A4/F1 |
+| C-3 | 本地 test gate | Go / TS 测试已落地 | `make test` | 单元测试在本地运行；AI 单测走 stub / fixtures；不需要 AI provider secret | A5 后续 001（如需要） |
+| C-4 | 本地 build gate | API / worker / frontend 构建入口存在 | `make build` | 已落地组件构建成功；未落地组件输出清晰占位 | A5 后续 001（如需要） |
+| C-5 | docs gate | 任意 spec Header 与 INDEX 人为制造 drift | `make docs-check` 或直接执行 `/sync-doc-index --check` | drift 被报告并返回非 0 | A5 后续 001（如需要） |
+| C-6 | codegen drift gate | B1/B2 generator 已落地 | `make codegen-check` | 已接入 generator 重跑后无 diff；未落地 generator 不制造失败 | A5 后续 001（如需要） + B1/B2 |
+| C-7 | CI deferred guard | 搜索仓库文档 | grep `ci.yml` / `branch protection` / `required check` | 当前文档把这些能力标记为 future / out of scope，不作为 P0 必需项 | 本次 spec 修订 |
 
 ## 7 关联计划
 
-A5 在本次 W1 spec 阶段不创建 impl plan（参见 [001-decompose-subspecs §3.1](../engineering-roadmap/plans/001-decompose-subspecs/plan.md#3-实施步骤)）。后续由 A5 自身的 `001-bootstrap`（W1 末或 W2 初）承接：
+A5 当前不创建 CI implementation plan。若后续仅需要把本地命令聚合补齐，可创建 `001-local-quality-gates`；若触发 D-5 需要远端 CI，再在本 spec 原地修订并创建 `002-remote-ci` 或等价 plan。
 
-- 落地 `.github/workflows/{ci,nightly,dependabot}.yml` 与必跑 job 实现。
-- 落地 `scripts/branch-protection-apply.sh`（通过 `gh api` 同步 `main` 保护规则）。
-- 提供 `.github/workflows/README.md` 与故障排查指引。
-
-后续如需扩展（性能压测、SBOM、签名）：递增 spec 版本，原地修订；不创建 sibling spec。
+当前 W1 阶段只保留 spec / history / plans INDEX，用于约束其它 child 不要把 CI pipeline 当成 P0 前置条件。

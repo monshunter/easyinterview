@@ -1,8 +1,8 @@
 # ADR-Q6 · AI 网关与模型路由
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: accepted
-> **更新日期**: 2026-04-26
+> **更新日期**: 2026-04-27
 
 ## 1 背景
 
@@ -17,7 +17,7 @@
 仓库现状：
 
 - 没有任何业务代码 import 厂商 SDK
-- `engineering-roadmap/spec.md` §5.1 A3 已重命名为 `ai-gateway-and-model-routing`，明确 P0 必须交付 `provider-neutral AIClient` + `Model Profile` + `OpenAI-compatible gateway route` + 本地 `stub`
+- `engineering-roadmap/spec.md` §5.1 A3 已重命名为 `ai-gateway-and-model-routing`，明确 P0 必须交付 `provider-neutral AIClient` + `Model Profile` + `OpenAI-compatible provider/gateway route` + 单元测试 `stub`
 - 部署形态由 ADR-Q4 锁定为 K8s
 
 业务约束：
@@ -34,8 +34,8 @@
 
 - 业务代码只依赖 1 个抽象 + profile name，**零厂商 SDK 入侵**
 - 多模型 / 多 provider / fallback / token rate limit / cost cap 全部归运维通过 gateway 配置；代码不变
-- 本地 dev / 单元测试用 `stub` provider（hash-based 确定性输出）；CI / staging 可指 mock gateway；prod 指 Higress / LiteLLM / Kong AI 任一
-- `AI_GATEWAY_BASE_URL` 是唯一切换点；与 ADR-Q4 K8s cluster-internal Service 天然贴合
+- 单元测试用 `stub` provider（hash-based 确定性输出）；本地 docker-compose / Kind / staging / prod 部署必须配置真实 OpenAI-compatible provider 或 gateway endpoint
+- `AI_GATEWAY_BASE_URL` 是 OpenAI-compatible endpoint 的唯一切换点；本地可指真实 AI provider，生产可指 ADR-Q4 K8s cluster-internal gateway
 - F1 metric label（`provider / model_family / model_profile_version / route`）由 gateway 透传 + 客户端补全
 - 与 F3 `prompt-rubric-registry` 解耦：F3 只负责 prompt + rubric + profile name 的版本表，不涉及 provider
 
@@ -90,11 +90,11 @@
    - YAML 文件 + 热加载；schema 在 A3 spec 中冻结
    - 字段：`name`（业务引用）/ `task_type`（chat | embed | stt）/ `default.provider+model+params` / `fallback[]`（按序触发条件）/ `timeout_ms` / `max_tokens` / `rate_limit`（rps + tpm）/ `gateway_route`
    - 业务代码引用 `profile name`，不引用 provider / model 字符串
-3. **运维注入**：生产环境唯一注入点 `AI_GATEWAY_BASE_URL`（OpenAI-compatible HTTP API）；所有 `AIClient.*` 经此 URL 出站
+3. **运行时注入**：非单元测试运行环境唯一注入点 `AI_GATEWAY_BASE_URL`（OpenAI-compatible HTTP API，可指真实 AI provider 或生产 gateway）；所有 `AIClient.*` 经此 URL 出站
 4. **Stub provider**（A3 owner）
-   - 用于单元测试 + 本地 dev 默认值
+   - 仅用于单元测试、离线 contract 测试或显式 mock 场景
    - 输入 → 输出 hash-based 确定性映射；可被 OpenAPI fixtures 反向喂养（与 E1 `mock-contract-suite` 同源）
-   - 单元测试默认走 `stub`；切真模型需在 test config 显式打开 `AI_GATEWAY_BASE_URL`
+   - 单元测试默认走 `stub`；docker compose / Kind / staging / prod 不允许默认降级到 stub，缺少真实 provider endpoint / API key 时必须 fail-fast
 5. **gateway 选型**：生产推荐 Higress（与 ADR-Q4 K8s cluster-internal Deployment 一致）；LiteLLM / Kong AI plugin 为可选；本 ADR 不锁死 gateway 实现，只锁 OpenAI-compatible API 契约
 6. **F3 解耦**：`prompt-rubric-registry` 只持有 `(feature_key, prompt_version, rubric_version, model_profile_name)` 四元组；不持有 provider / model 字符串
 7. **可观测性**（F1 owner）
@@ -106,14 +106,14 @@
 ## 4 影响范围
 
 - **A3 `ai-gateway-and-model-routing`** —— 落地 `AIClient` + Model Profile schema + stub provider + OpenAI-compatible adapter
-- **A4 `secrets-and-config`** —— `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` / `AI_MODEL_PROFILE_PATH` 配置项
+- **A4 `secrets-and-config`** —— `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` / `AI_MODEL_PROFILE_PATH` 配置项；local deploy 与 Kind 必须能注入真实 provider 凭证
 - **F1 `observability-stack`** —— `ai_*` 指标与 dashboard
 - **F3 `prompt-rubric-registry`** —— 引用 `model_profile_name`；W1 baseline + W3 真实 model profile 切换
 - **C4 `backend-targetjob`** / **C5 `backend-practice`** / **C6 `backend-review`** / **C7 `backend-resume`** / **C9 `backend-debrief`** / **C11 `backend-retrieval`** —— 全部仅依赖 `AIClient` + profile name；禁止 import 厂商 SDK
 - **C14 `backend-voice-stt`**（P2） —— STT 走同一 `AIClient`（task_type=stt），profile 路由到 STT 专用 gateway route
 - **E4 `release-gate-and-rollout`** —— W4 gate 校验 AI Gateway 路由可观测性 + fallback alert + cost cap 配置
 - **B1 `shared-conventions-codified`** —— Profile schema TS / Go 类型 + AI meta 字段共享枚举
-- **CLAUDE.md / `test/scenarios/`** —— Kind 场景默认部署 mock gateway（stub 或 LiteLLM mock）；与 ADR-Q4 一致
+- **CLAUDE.md / `test/scenarios/`** —— Kind 场景默认使用真实 AI provider endpoint；只有离线 contract 测试可显式切 stub / mock gateway
 
 ## 5 失效与修订条件
 
@@ -134,3 +134,9 @@
 - 上游：`easyinterview-tech-docs/01-technical-architecture.md` §2 §5 §「AI Adapter Layer」、`04-metrics-observability.md` §「ai_*」§「fallback rate」、`05-logging-standard.md`
 - 下游 child：A3 / A4 / F1 / F3 / C4-C7 / C9 / C11 / C14 / E4 / B1
 - 关联 ADR：ADR-Q4-cloud-deploy-target（gateway 作为 cluster-internal Deployment）、ADR-Q5-privacy-cadence（AI 调用 payload 仅写 hash）
+
+## 7 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-04-27 | 1.1 | 明确 stub 只用于单元测试 / 离线 contract 测试；docker compose 与 Kind 本地部署必须使用真实 AI provider 提供的 OpenAI-compatible LLM 服务，不默认降级到 stub，也不要求本地部署 AI gateway 组件。 |

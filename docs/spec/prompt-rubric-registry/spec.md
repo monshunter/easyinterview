@@ -1,6 +1,6 @@
 # Prompt Rubric Registry Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-04-27
 
@@ -34,7 +34,7 @@
   - `RegistryClient.ResolveActive(featureKey, language) → (prompt_version, rubric_version, model_profile_name)`
   - 启动时从 `config/prompts/` + `config/rubrics/` + DB 同步；DB 是 staging / prod 真理源；本地 dev 直接读文件。
 - **业务调用规约**：业务代码必须先 `Resolve(featureKey, ctx.Language)` 拿到三元组，然后传给 `AIClient.Complete(profileName, payload)`；payload 中携带 `prompt_version + rubric_version + feature_key`。
-- **lint 规则**：禁止业务包出现 `prompt :=` 字面量字符串 / 多行字符串模板（A5 接入）；任何 prompt 必须从 registry 加载。
+- **lint 规则**：禁止业务包出现 `prompt :=` 字面量字符串 / 多行字符串模板；当前由本地 lint gate 接入，远端 CI 仅在 A5 触发条件成立后再接入；任何 prompt 必须从 registry 加载。
 - **W1 contract 内容**：13 个 P0 feature_key 各 1 份 v0.1 baseline prompt + rubric 的坐标、schema 与落点在本 spec 中锁定；实际 `config/prompts/` / `config/rubrics/` 文件由 F3 child `001` plan 创建（prompt 文本可先是「TBD by W3 real model profile」，但 schema 必须就位）。
 - **LLM Judge 接口**：`Judge(featureKey, prompt_version, output, rubric_version) → (score, reasoning)`；接口签名锁定，实现归 W3 plan。
 - **灰度策略**：每个 feature_key 同时只允许 1 个 `is_active=true`；灰度切换由 PostHog feature flag（[A4 D-4](../secrets-and-config/spec.md#31-已锁定决策含-p0-必备-env-key-字典)）+ `Resolve` 内部分桶逻辑实现（W3 接入）。
@@ -56,7 +56,7 @@
 |----|------|--------|------|
 | D-1 | 唯一标识 | 三元组 `(feature_key, version, language)` 是 prompt 与 rubric 的唯一坐标；version 用 SemVer（major.minor.patch） | DB 表 unique 约束已就位 |
 | D-2 | 文件落点 | `config/prompts/<feature_key>/<version>.yaml`（meta） + `<version>.md`（template）；`config/rubrics/<feature_key>/<version>.yaml`；`config/` 目录由 [A4](./../secrets-and-config/spec.md) 拥有，F3 在此命名空间 | 防止散落 |
-| D-3 | template_hash | `sha256(template_body + meta_canonical_json)`；自动计算，写入 yaml；CI drift 校验 | – |
+| D-3 | template_hash | `sha256(template_body + meta_canonical_json)`；自动计算，写入 yaml；本地 drift 校验 | – |
 | D-4 | model_profile_name 引用 | `Resolve` 输出三元组 +「model_profile_name」（如 `practice.followup.default`），由 A3 Model Profile 定义 | F3 不持有 provider / model 字符串（与 ADR-Q6 一致） |
 | D-5 | 业务调用契约 | 业务必须先 `Resolve(featureKey, ctx.Language)` 再调 `AIClient`；payload 中带三元组，便于 ai_task_runs 表写入 | 强制可追溯 |
 | D-6 | language 兼容 | `language` 列允许 `multi` 表示语言无关；Resolve 优先匹配精确 language → fallback `multi` | – |

@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.1
+    to: 1.2
 spec:
   defaultTarget: docs
   discovery:
@@ -28,6 +28,8 @@ spec:
       - pnpm workspace
       - typescript toolchain
       - enum count
+      - local quality gate
+      - deferred CI
   targets:
     docs:
       plan: ./plan.md

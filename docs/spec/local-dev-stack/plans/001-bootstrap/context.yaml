@@ -1,0 +1,53 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: local-dev-stack
+  name: 001-bootstrap
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.4
+spec:
+  defaultTarget: repo
+  discovery:
+    aliases:
+      - local-dev-stack
+      - 001-bootstrap
+      - dev-stack
+      - dev-up
+      - dev-doctor
+    keywords:
+      - docker compose
+      - postgres pgvector
+      - redis
+      - minio
+      - application components
+      - backend
+      - frontend
+      - worker
+      - make dev-up
+      - make dev-doctor
+      - make dev-reset
+      - make dev-logs
+      - metrics endpoint
+      - container logs
+      - ai provider
+      - AI_GATEWAY_BASE_URL
+      - AI_GATEWAY_API_KEY
+      - named volumes
+      - health check
+      - dev environment
+  targets:
+    repo:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - deploy/dev-stack
+          - deploy/dev-stack/init
+          - deploy/dev-stack/scripts
+          - Makefile
+        uiRoutes: []
+        apiNames: []

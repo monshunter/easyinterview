@@ -1,6 +1,6 @@
 # Shared Conventions Codified Bootstrap
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-04-27
 
@@ -11,7 +11,7 @@
 
 把 [shared-conventions-codified spec](../../spec.md) §3.1 锁定的 6 项决策落到代码：建立 `shared/conventions.yaml` 真理源、跨语言 generator、Go 共享 module（`backend/go.mod` + `internal/shared/{types,errors,idx}/`）、TS 共享 lib（`frontend/package.json` + `src/lib/{conventions,ids}/`）、UUIDv7 / Idempotency-Key 工具、错误码与枚举命名的本地可执行 lint gate，并通过本 plan 的 verification phase 证明 Go / TS 双侧测试可以编译并通过最小用例。
 
-本 plan 只覆盖 W0 必须冻结的最小集合；后续如需扩展（CI drift detection、prompt registry 接入、跨语言 contract test），递增 spec 与本 plan 版本，必要时 spawn `002-codegen-pipeline` 等续集 plan。
+本 plan 只覆盖 W0 必须冻结的最小集合；后续如需扩展（本地 drift detection、prompt registry 接入、跨语言 contract test），递增 spec 与本 plan 版本，必要时 spawn `002-codegen-pipeline` 等续集 plan。远端 CI drift detection 仅在 A5 触发条件成立后再评估。
 
 ## 2 背景
 
@@ -75,7 +75,7 @@
 
 #### 3.1 Go lint 与错误码校验
 
-在 `backend/.golangci.yml` 落地最小配置：启用 `revive` 的 `var-naming` 规则；同时提供本地可执行的错误码校验（可放在 generator 或 `scripts/lint/` 下），扫描 `backend/internal/shared/errors/` 与 `frontend/src/lib/conventions/errors.ts`，强制错误码常量和值为 `UPPER_SNAKE_CASE`。CI 接入归 [A5 `ci-pipeline-baseline`](../../../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0)，但 B1 必须让 `make lint` 在本地能验证该规则。
+在 `backend/.golangci.yml` 落地最小配置：启用 `revive` 的 `var-naming` 规则；同时提供本地可执行的错误码校验（可放在 generator 或 `scripts/lint/` 下），扫描 `backend/internal/shared/errors/` 与 `frontend/src/lib/conventions/errors.ts`，强制错误码常量和值为 `UPPER_SNAKE_CASE`。当前单人开发阶段不接入远端 CI；B1 必须让 `make lint` 在本地能验证该规则，A5 只记录本地质量门禁与远端 CI 延后边界。
 
 #### 3.2 TS lint 与错误码边界
 
@@ -120,9 +120,9 @@ L2 remediation: `scripts/lint/error_codes.py` 必须解析 `ERROR_CODES = { ... 
 
 | 风险 | 应对措施 |
 |------|----------|
-| Go / TS UUIDv7 库版本漂移导致格式不一致 | Phase 1 在 `shared/conventions.yaml` 显式写出测试 UUID 样本；generator 在两侧都引用相同正则进行格式校验，CI 由 A5 收口 |
+| Go / TS UUIDv7 库版本漂移导致格式不一致 | Phase 1 在 `shared/conventions.yaml` 显式写出测试 UUID 样本；generator 在两侧都引用相同正则进行格式校验；当前由本地测试与 lint 门禁收口，远端 CI 仅在 A5 触发条件成立后再评估 |
 | pnpm workspace 在 macOS / Linux / CI 环境差异（symlink / hoisting） | Phase 2.3 启用 `pnpm-workspace.yaml` + `package.json#packageManager` 字段锁定 pnpm 版本；A2 dev stack 在 docker 镜像中预装相同版本 |
-| Generator idempotency 被 IDE 自动 format 或 import sorter 破坏 | Phase 1.3 在 generator 输出固定 import 顺序与 build tag；Phase 4.1 通过 `git diff --exit-code` 在 CI 强制；编辑器 format 必须由 `.editorconfig` 与 generator 模板一致 |
+| Generator idempotency 被 IDE 自动 format 或 import sorter 破坏 | Phase 1.3 在 generator 输出固定 import 顺序与 build tag；Phase 4.1 通过本地 `git diff --exit-code` 强制；编辑器 format 必须由 `.editorconfig` 与 generator 模板一致 |
 | Go module path 与 GitHub repo 名称不一致导致 import 失败 | spec D-2 锁定为 `github.com/monshunter/easyinterview/backend`，Phase 1.2 写入 `backend/go.mod` 时直接复用此值；任何重命名必须先递增 B1 spec 版本 |
 | TS 共享 lib 被前端 child（D1+）放在不同 path alias 中导致依赖混乱 | 本 plan 锁定 `frontend/src/lib/{conventions,ids}/` 路径；前端 child 只能加 alias，不能改物理路径；spec D-3 与 §4.3 对此明确禁令 |
 
@@ -130,4 +130,5 @@ L2 remediation: `scripts/lint/error_codes.py` 必须解析 `ERROR_CODES = { ... 
 
 | 日期 | 版本 | 变更 | 证据 |
 |------|------|------|------|
+| 2026-04-27 | 1.2 | 对齐 A5 单人开发阶段决策：B1 的 lint/codegen drift 只要求本地质量门禁，远端 CI / PR required check / CI drift detection 不作为当前 P0 前置。 | 文档一致性修订；不新增运行时代码范围。 |
 | 2026-04-27 | 1.1 | 回写 [shared-conventions-codified/001-bootstrap 交付复盘报告](../../../../reports/2026-04-27-shared-conventions-codified-001-bootstrap-assessment.md) 中确认真实的 spec-plan 漂移：重排 generator 前置依赖、明确 Go/TS `APIError` 归属、统一 13 个上游小节 / 14 个生成类型口径、补齐 Go/TS idempotency 双端 checklist 落点、把 TS toolchain 上移到 Phase 2。 | 当前代码已落地并通过 Phase 4 验证；本修订不新增运行时代码范围。 |

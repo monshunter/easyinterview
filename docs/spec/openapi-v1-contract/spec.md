@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-04-27
 
@@ -13,9 +13,9 @@
 目标是：
 
 1. **唯一真理源**：`openapi/openapi.yaml` 是 P0 所有 HTTP 端点的唯一定义；任何手写 handler stub / 手写 fetch 客户端禁止与之偏离。
-2. **双端 codegen**：Go DTO + chi handler 接口在 `backend/internal/api/generated/`；TypeScript SDK 在 `frontend/src/api/generated/`；CI 必须 `git diff --exit-code` 校验未漂移（与 [B1 D-1 idempotent generator](../shared-conventions-codified/spec.md#31-已锁定决策) 一致）。
+2. **双端 codegen**：Go DTO + chi handler 接口在 `backend/internal/api/generated/`；TypeScript SDK 在 `frontend/src/api/generated/`；本地 `make codegen-openapi` / `make codegen-check` 必须能用 `git diff --exit-code` 校验未漂移（与 [B1 D-1 idempotent generator](../shared-conventions-codified/spec.md#31-已锁定决策) 一致）。
 3. **fixtures 同源**：每个端点的 example response 落 `openapi/fixtures/<tag>/<operationId>.json`，由 [E1 `mock-contract-suite`](../engineering-roadmap/spec.md#55-layer-e--integration4-份) 转 Prism / 自建 mock server；前端 msw 与后端 mock-server 共享同一份 fixtures，**禁止前端 hardcode mock**。
-4. **breaking change 拦截**：本 spec 自带 breaking change linter（如 `openapi-diff` / Spectral 规则集）；W1 末 v1.0.0 freeze 后任何 PR 修改 `openapi/openapi.yaml` 时，CI 必须验证只引入 additive 变更；破坏性变更必须通过 ADR + 本 spec 修订流程。
+4. **breaking change 拦截**：本 spec 自带 breaking change linter（如 `openapi-diff` / Spectral 规则集）；W1 末 v1.0.0 freeze 后任何修改 `openapi/openapi.yaml` 时，本地 gate 必须验证只引入 additive 变更；破坏性变更必须通过 ADR + 本 spec 修订流程。
 
 本 spec 不实现具体业务 handler（归各 C 域）、不实现前端业务页面（归各 D 域）、不部署 API 进程（归 [E4](../engineering-roadmap/spec.md#55-layer-e--integration4-份)）。
 
@@ -29,10 +29,10 @@
 - **endpoint 集**：32+ 端点，覆盖 [02-api-definition.md §4–§17](../../../easyinterview-tech-docs/02-api-definition.md) 全部端点；本 spec §3.1.1 列出 v1.0.0 freeze 时的 endpoint 列表。
 - **schema 定义**：所有公共对象模型（`Job` / `TargetJob` / `PracticePlan` / `PracticeSession` / `AssistantAction` / `FeedbackReport` / `MistakeEntry` / `Debrief` / `ResumeAsset` / `ResumeTailorRun` / `PrivacyRequest` / `Job` / 共享 `ApiError` / `PageInfo` / `PaginatedXxx`）；引用 [B1 D-6 枚举](../shared-conventions-codified/spec.md#31-已锁定决策) 中 14 个枚举类型与 [D-5 错误码](../shared-conventions-codified/spec.md#31-已锁定决策) 常量。
 - **header 与状态码契约**：[02 §2](../../../easyinterview-tech-docs/02-api-definition.md#2-通用约定) 中 `Authorization` / `Idempotency-Key` / `traceparent` / `X-Request-ID` 锁定；状态码使用集合（200/201/202/204/400/401/403/404/409/422/429/500）锁定。
-- **codegen pipeline**：`make codegen-openapi`（B2 owner）输出 Go + TS；CI drift 校验。
+- **codegen pipeline**：`make codegen-openapi`（B2 owner）输出 Go + TS；本地 drift 校验。
 - **fixtures**：每个 operation 对应一份默认 fixture（`scenario: default`）+ `easyinterview-ui/src/data.jsx` 折出来的 `scenario: prototype-baseline`（与 [engineering-roadmap §4.3 mock-first](../engineering-roadmap/spec.md#43-mock-first-集成策略) 一致）。
-- **breaking change linter**：CI 引入 `openapi-diff`（或等价工具）；规则集见 §4.2。
-- **API 文档站点**：`make docs-openapi` 输出可阅读 HTML（Redoc / Stoplight）；artifact 由 [A5](./../ci-pipeline-baseline/spec.md) 在 CI 输出。
+- **breaking change linter**：本地引入 `openapi-diff`（或等价工具）；规则集见 §4.2。
+- **API 文档站点**：`make docs-openapi` 输出可阅读 HTML（Redoc / Stoplight）；当前单人阶段只保留本地产物，不要求 A5 上传 CI artifact。
 
 ### 2.2 Out of Scope
 
@@ -151,8 +151,8 @@
 | 业务 handler 实现 | C 域各 owner | 必须 implement 生成的 server interface |
 | 前端 fetch 客户端 | D 域各 owner | 必须使用生成的 TS client |
 | mock server 运行壳 | E1 | 消费 fixtures |
-| breaking change linter 接入 CI | B2 提供 + A5 接入 |  |
-| API 文档发布 | B2（Redoc 集成） + A5（CI artifact） |  |
+| breaking change linter | B2 | 本地 gate；远端 CI 仅在 A5 触发条件成立后再接入 |
+| API 文档生成 | B2（Redoc 集成） | 当前只保留本地产物，不要求 CI artifact |
 | 鉴权 token 颁发 | C1 + ADR-Q1 | B2 仅锁 `Authorization` header 形式 |
 
 ## 6 验收标准
@@ -160,10 +160,10 @@
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-1 | OpenAPI 文档结构 | `openapi/openapi.yaml` 已落地 | `npx @apidevtools/swagger-cli validate openapi/openapi.yaml` | 通过；含 14 tag、36 endpoint、共享 schema 全部 `$ref` 到 B1 | B2 后续 001 |
-| C-2 | Go codegen drift | 修改 `openapi.yaml` 但不跑 codegen | CI | `codegen-drift-check` 失败；artifact `openapi-diff.html` 显示新增字段 | B2 后续 001 + A5 接入 |
-| C-3 | TS codegen drift | 同 C-2 | CI | `frontend/src/api/generated/` 漂移；CI 失败 | B2 后续 001 |
-| C-4 | breaking change 拦截 | 故意删除 `target_jobs.title` 字段 | CI | `openapi-diff` 失败；阻塞合入；除非 PR 含 `breaking-change-approved` label 且 B2 owner approve | B2 后续 001 + A5 |
-| C-5 | additive 通过 | 给 `practice_plans` 新增 `optional metadata` 字段 | CI | `openapi-diff` 仅警告 additive；测试通过 | B2 后续 001 |
+| C-2 | Go codegen drift | 修改 `openapi.yaml` 但不跑 codegen | 本地 `make codegen-check` 或等价 gate | `codegen-drift-check` 失败；本地 diff 显示新增字段 | B2 后续 001 |
+| C-3 | TS codegen drift | 同 C-2 | 本地 `make codegen-check` 或等价 gate | `frontend/src/api/generated/` 漂移；本地 gate 失败 | B2 后续 001 |
+| C-4 | breaking change 拦截 | 故意删除 `target_jobs.title` 字段 | 本地 `make openapi-diff` / 等价 gate | `openapi-diff` 失败；除非已有 ADR + 本 spec 修订授权，否则不得继续 | B2 后续 001 |
+| C-5 | additive 通过 | 给 `practice_plans` 新增 `optional metadata` 字段 | 本地 `make openapi-diff` / 等价 gate | `openapi-diff` 仅警告 additive；测试通过 | B2 后续 001 |
 | C-6 | fixtures 一致 | 任一 endpoint 缺少 fixtures | `make validate-fixtures` | 失败；列出缺失 operationId | B2 后续 001 |
 | C-7 | privacy export 501 | P0 调用 `POST /api/v1/privacy/exports` | E1 mock + 后续 C12 实现 | 返回 501 + `error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"` | B2（fixture）+ C12 P1 实现 |
 | C-8 | enum 与 B1 同源 | 在 `openapi.yaml` 引用 `practiceMode` enum | codegen | 生成 TS 与 Go 类型，与 [B1 D-6](../shared-conventions-codified/spec.md#31-已锁定决策) 完全一致；改 B1 后 B2 codegen drift | B2 后续 001 + B1 |
@@ -174,8 +174,8 @@
 
 B2 在本次 W1 spec 阶段不创建 impl plan（参见 [001-decompose-subspecs §3.1](../engineering-roadmap/plans/001-decompose-subspecs/plan.md#3-实施步骤)）。后续由 B2 自身的 plans 承接（`engineering-roadmap §5.2` 估算 3 plan）：
 
-- `001-bootstrap`（W1 末或 W2 初）：落地 `openapi/openapi.yaml` 框架 + 14 tag 占位 + 32+ endpoint stub schema + B1 enum `$ref` + `make codegen-openapi` + drift CI 接入。
+- `001-bootstrap`（W1 末或 W2 初）：落地 `openapi/openapi.yaml` 框架 + 14 tag 占位 + 32+ endpoint stub schema + B1 enum `$ref` + `make codegen-openapi` + 本地 drift check。
 - `002-fixtures-and-mock-source`：每个 operationId 一份 fixtures + `prototype-baseline` 同步工具；E1 接入。
-- `003-breaking-change-gate`：linter 规则集 + CI label workflow + ADR 模板。
+- `003-breaking-change-gate`：linter 规则集 + ADR 模板；远端 CI label workflow 仅在 A5 触发条件成立后再评估。
 
 后续如出现 v1.1.0 / v2.0.0 升级：递增 spec 版本 + history；每次升级在 §3.1.1 中保留 endpoint 完整快照。

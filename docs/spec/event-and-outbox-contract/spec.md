@@ -1,6 +1,6 @@
 # Event and Outbox Contract Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-04-27
 
@@ -33,8 +33,8 @@
 - **dispatcher 协议**：dispatcher 必须按 `created_at asc` + `publish_status='pending'` 拉取；至少 once 发布；成功后置 `published`，失败置 `failed` + 重试。
 - **public jobType 字典**（与 [03 §5.9 async_jobs.job_type](../../../easyinterview-tech-docs/03-db-definition.md) 一致）：`target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `debrief_generate` / `source_refresh` / `embedding_upsert` / `privacy_export` / `privacy_delete` 共 9 项。
 - **public jobType ↔ Asynq dotted task name 映射表**：见 §3.1.1。
-- **lint 规则**：禁止业务包 hardcode `eventName` / `jobType` 字符串；必须 `import constants from "events"` 包；A5 接入。
-- **tooling**：`make codegen-events`（B1/B3 owner）；CI drift 校验。
+- **lint 规则**：禁止业务包 hardcode `eventName` / `jobType` 字符串；必须 `import constants from "events"` 包；当前由本地 lint gate 接入，远端 CI 仅在 A5 触发条件成立后再接入。
+- **tooling**：`make codegen-events`（B1/B3 owner）；本地 drift 校验。
 
 ### 2.2 Out of Scope
 
@@ -151,12 +151,12 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | envelope schema 生成 | `shared/events.yaml` 落地 | `make codegen-events` | Go + TS envelope 类型 + 18 个事件 payload 类型生成；CI drift 通过 | B3 后续 001 + B1 generator |
+| C-1 | envelope schema 生成 | `shared/events.yaml` 落地 | `make codegen-events` + 本地 drift check | Go + TS envelope 类型 + 18 个事件 payload 类型生成；本地 drift 通过 | B3 后续 001 + B1 generator |
 | C-2 | jobType 常量生成 | `shared/jobs.yaml` 落地 | `make codegen-events` | Go `jobs.JobTypeTargetImport` 等 9 个常量；TS 同步；映射表中 dotted name 由 C8 引用 | B3 后续 001 |
 | C-3 | outbox 双写 | 业务事务写 `target_jobs` + 写 `outbox_events('target.import.requested')` | 事务提交 / 回滚 | 提交后两行并存；回滚后两行均不存在；不可能出现 `target_jobs` 提交但 outbox 缺失 | B3 后续 001 + B4 + C4 |
 | C-4 | dispatcher at-least-once | dispatcher 多次拉取同一行 | dispatcher | 同一行只投递一次成功（`SKIP LOCKED`）；网络抖动可能重复投递；consumer 必须幂等 | B3 后续 001 + C8 |
 | C-5 | consumer 幂等 | 同一 `eventId` 投递两次 | consumer | 业务表只更新一次；db unique 约束阻止重复 mistake / report 行 | B3 后续 001 + 各 C 域 |
-| C-6 | breaking change 拦截 | 故意把 `report.generated` 的 `mistakeCount` 改为 string | CI | `lint-events` 失败；提示需 `eventVersion + 1` | B3 后续 001 + A5 |
+| C-6 | breaking change 拦截 | 故意把 `report.generated` 的 `mistakeCount` 改为 string | 本地 `make lint-events` | `lint-events` 失败；提示需 `eventVersion + 1` | B3 后续 001 |
 | C-7 | dotted name 映射一致 | 业务包 import `jobs.AsynqTaskTargetImport` | 编译 | 等于 `"target.import"`；与 §3.1.1 表一致 | B3 后续 001 |
 | C-8 | privacy.delete P0 路径 | 用户调用 `POST /privacy/deletions` | API + dispatcher | 触发 `privacy.request.created` → dispatcher → Asynq dotted `privacy.delete` → C8 worker | B3 后续 001 + C8 + C12 |
 | C-9 | metric 接入 | dispatcher 运行 | F1 dashboard | `outbox_events_pending` 可见；积压 > 100 时告警；与 [04 §11.1](../../../easyinterview-tech-docs/04-metrics-observability.md#111-p1高优先级影响核心主链路) 对齐 | B3 后续 001 + F1 |
@@ -169,6 +169,6 @@ B3 在本次 W1 spec 阶段不创建 impl plan（参见 [001-decompose-subspecs 
 - 落地 `shared/events.yaml` + `shared/jobs.yaml` 真理源。
 - 接入 [B1 generator](../shared-conventions-codified/spec.md#21-in-scope) 输出 Go / TS 常量与类型。
 - 提供 `make lint-events` 检查业务包是否使用裸字面量。
-- 落地 `make codegen-events` 与 CI drift 接入。
+- 落地 `make codegen-events` 与本地 drift check。
 
 后续如需新增事件 / 升级 eventVersion / 新增 jobType：递增 spec 版本 + history；映射表 §3.1.1 全文同步更新。

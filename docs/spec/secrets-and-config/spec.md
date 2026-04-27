@@ -1,6 +1,6 @@
 # Secrets and Config Spec
 
-> **版本**: 1.0
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-04-27
 
@@ -8,7 +8,7 @@
 
 [engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 把 A4 `secrets-and-config` 列为 Layer A · Foundation 的第四份 child（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它是 Wave 1 的 9 份契约 / 基础设施 spec 之一，承接 [ADR-Q6](../engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md) 第 4 段「运维注入」与 [ADR-Q3](../engineering-roadmap/decisions/ADR-Q3-analytics-platform.md) 自托管 PostHog 的接入凭证落点，决定了：
 
-- 后端 API / Worker / 前端 dev / CI / staging / prod 各类环境如何拿到自己需要的连接串、API key、AI Gateway 地址、feature flag 状态；
+- 后端 API / Worker / 前端 dev / staging / prod（以及未来需要时的 CI）各类环境如何拿到自己需要的连接串、API key、AI provider / gateway 地址、feature flag 状态；
 - secrets / config 在仓库里如何 layered（默认值、env override、运行时 secret），不被 hardcode；
 - feature flag 如何接入 PostHog 但不让业务代码直接 import PostHog SDK。
 
@@ -17,7 +17,7 @@
 1. **三层 config**：`config.yaml`（默认值，仓库版本化）→ `.env` / 环境变量（环境差异）→ runtime secret（敏感凭证）；任何业务模块只通过 `internal/platform/config` 包读取，不直接读 `os.Getenv`。
 2. **secrets 抽象**：`SecretSource` 接口在 P0 仅实现 env-based provider；P1 以后可扩展到 K8s Secret / Vault / SOPS（ADR-Q4 已留接口）；业务代码只依赖接口，不依赖具体 provider。
 3. **feature flag 抽象**：`FeatureFlagClient` 接口；本 spec 提供 `FileFlagProvider`（YAML 文件，dev / 单测默认）与 `PostHogFlagProvider`（指向自托管 PostHog 的 HTTP API）；ADR-Q3 已锁定 self-host PostHog。
-4. **lint 红线**：在 PR 阶段拒绝 `os.Getenv(...)` 出现在 `internal/<domain>/...` 包；secrets 文件名 (`*.secret.yaml`) 一律加入 `.gitignore`；提交前 hook 拦截已知敏感前缀（`AKIA*` / `sk-*`）。
+4. **lint 红线**：在本地质量门禁中拒绝 `os.Getenv(...)` 出现在 `internal/<domain>/...` 包；secrets 文件名 (`*.secret.yaml`) 一律加入 `.gitignore`；提交前 hook 拦截已知敏感前缀（`AKIA*` / `sk-*`）。
 
 本 spec 不实现具体业务模块的配置消费、不部署 PostHog（[F2 `analytics-funnel`](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) / [E4](../engineering-roadmap/spec.md#55-layer-e--integration4-份) 承接）、不锁定 secret 后端实现（P1 以后再决策）。
 
@@ -41,7 +41,7 @@
 
 ### 2.2 Out of Scope
 
-- 真正部署 PostHog：归 [F2](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) + [A2 `local-dev-stack`](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0)（dev profile）。
+- 真正部署 PostHog：归 [F2](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) + [E4](../engineering-roadmap/spec.md#55-layer-e--integration4-份)；A2 默认本地栈只要求 no-op / file-backed dev mode 不阻塞启动。
 - K8s Secret / Vault / SOPS 实施：归 P1 / E4；本 spec 仅锁接口。
 - Build-time 注入工具链（Vite envsubst / esbuild defines）：归 [D1 `frontend-shell`](../engineering-roadmap/spec.md#54-layer-d--frontend7-份p04--p12--p21) + [A5 `ci-pipeline-baseline`](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0)。
 - Auth / session 凭证（access_token / refresh_token）：归 [C1 `backend-auth`](../engineering-roadmap/spec.md#53-layer-c--backend14-份p08--p14--p22) 与 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md)；本 spec 只确保 `JWT_SIGNING_KEY` 等 env key 进入红线。
@@ -75,15 +75,15 @@
 | `OBJECT_STORAGE_BUCKET` | 是 | `easyinterview-dev` | 默认 bucket | A4 |
 | `OBJECT_STORAGE_ACCESS_KEY` | 是 | `dev-access-key` | secret，prod 必填 | A4 |
 | `OBJECT_STORAGE_SECRET_KEY` | 是 | `dev-secret-key` | secret，prod 必填 | A4 |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | 是 | `http://localhost:4318` | OTel Collector OTLP HTTP | A4（F1 复用） |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | 条件 | `(空，默认不上报)` | 配置了可选观测或生产 OTel Collector 时填写 OTLP HTTP endpoint | A4（F1 复用） |
 | `LOG_LEVEL` | 是 | `info` | `debug/info/warn/error` | A4 |
 | `JWT_SIGNING_KEY` | prod 必填 | `(空，dev 由 init 生成)` | secret | A4（C1 复用） |
-| `AI_GATEWAY_BASE_URL` | prod 必填 | `(空，dev 默认走 stub)` | OpenAI-compatible AI Gateway 出站 URL | A4（A3 owner） |
-| `AI_GATEWAY_API_KEY` | prod 必填 | `(空)` | AI Gateway API key | A4（A3 owner） |
+| `AI_GATEWAY_BASE_URL` | local deploy / staging / prod 必填；unit test 可空 | `(空；仅 `APP_ENV=test` 允许 stub)` | OpenAI-compatible AI provider / gateway 出站 URL；docker compose 与 Kind 本地部署可直连真实 AI provider，生产可指 gateway | A4（A3 owner） |
+| `AI_GATEWAY_API_KEY` | local deploy / staging / prod 必填；unit test 可空 | `(空)` | AI provider / gateway API key；非 test 环境缺失时 fail-fast | A4（A3 owner） |
 | `AI_MODEL_PROFILE_PATH` | 是 | `config/ai-profiles/` | Model Profile YAML 目录 | A4（A3 owner） |
 | `FEATURE_FLAG_SOURCE` | 是 | `file` | `file` 或 `posthog` | A4 |
 | `FEATURE_FLAG_FILE_PATH` | 条件 | `config/feature-flags.yaml` | `FEATURE_FLAG_SOURCE=file` 时必填 | A4 |
-| `POSTHOG_API_HOST` | 条件 | `(空)` | `FEATURE_FLAG_SOURCE=posthog` 时必填；指向自托管 PostHog | A4（F2 owner） |
+| `POSTHOG_API_HOST` | 条件 | `(空)` | `FEATURE_FLAG_SOURCE=posthog` 时必填；指向自托管 PostHog；普通本地 dev 默认不填 | A4（F2 owner） |
 | `POSTHOG_PROJECT_API_KEY` | 条件 | `(空)` | secret | A4（F2 owner） |
 | `POSTHOG_PUBLIC_KEY` | 是 | `(空，dev 占位)` | 暴露给前端的 public key（可选） | A4（F2 owner） |
 | `EMAIL_PROVIDER` | prod 必填 | `(空)` | passwordless magic link 发件方 | A4（C1 owner，ADR-Q1） |
@@ -107,7 +107,7 @@
 
 - 任何 secret 字段的字符串值在 log 中必须 redact（`config.RedactedString` 类型在 `String()` 方法返回 `***`）；A4 提供该类型，其它包必须使用。
 - `.gitignore` 必须包含：`*.secret.yaml`、`*.secret.json`、`config/local.*.yaml`、`.env`、`.env.local`。
-- pre-commit hook 与 CI gitleaks 双重防护；CI 阶段命中即阻塞 PR 合入。
+- pre-commit hook 与本地 gitleaks 双重防护；远端 CI secret scan 仅在 A5 触发条件成立后再接入。
 
 ### 4.3 文档约束
 
@@ -125,7 +125,7 @@
 | `frontend/src/lib/runtime-config/` | A4 + D1 | `runtime-config` fetcher 与本地缓存；A4 锁字段，D1 集成 React hooks |
 | `config/*.yaml` 内容 | 各业务 owner 增量 | A4 锁文件位置与 schema，业务字段由各 child 在 spec 修订时新增 |
 | `config/feature-flags.yaml` 字段集 | F2 + 各业务 owner | A4 锁文件位置；具体 flag key 由 [01-technical-architecture.md §15.1](../../../easyinterview-tech-docs/01-technical-architecture.md#15-发布与灰度) 列出的 6 项作为 P0 baseline |
-| AI Gateway env keys 默认值 | A3（决策） + A4（落 env 字典） | A3 决定字段名，A4 写进字典 |
+| AI provider / gateway env keys 默认值 | A3（决策） + A4（落 env 字典） | A3 决定字段名，A4 写进字典；A4 负责非 test 环境缺失 fail-fast |
 | Auth / Email env keys | C1 + A4 | C1 决定字段名（ADR-Q1），A4 写进字典 |
 | 部署侧 secret 注入 | E4 + 运维 | A4 提供接口，E4 提供 K8s Secret / Vault 路径 |
 
@@ -139,9 +139,10 @@
 | C-4 | feature flag posthog 模式 | `FEATURE_FLAG_SOURCE=posthog`，`POSTHOG_API_HOST` 指向 mock | 调用 `IsEnabled` | client 出站 HTTP 命中 PostHog `/decide` 端点；client 不直接 import PostHog SDK | A4 后续 001 |
 | C-5 | secret redact | log 中输出 `config.Get("objectStorage.secretKey")` | 进程产生日志 | 日志中显示 `***`；不出现明文 secret | A4 后续 001 |
 | C-6 | runtime-config 端点 | 前端首屏加载 | `GET /api/v1/runtime-config` | 返回 `{appVersion, defaultUiLanguage, featureFlags{...}, postHogPublicKey?}`；不返回任何 secret | A4 + B2 + D1 |
-| C-7 | lint 红线 | 任意 PR 在 `internal/auth/` 下出现 `os.Getenv("JWT_SIGNING_KEY")` | `make lint` | 报错并阻塞合入 | A4 后续 001 + A5 接入 |
-| C-8 | secrets 红线 | PR 包含一行 `OPENAI_API_KEY=sk-abc1234567890123456789` | pre-commit / CI | hook 拦截，CI gitleaks 拦截 | A4 后续 001 + A5 |
+| C-7 | lint 红线 | 本地改动在 `internal/auth/` 下出现 `os.Getenv("JWT_SIGNING_KEY")` | `make lint` | 报错并阻止本地质量门禁通过 | A4 后续 001 |
+| C-8 | secrets 红线 | 本地改动包含一行 `OPENAI_API_KEY=sk-abc1234567890123456789` | pre-commit / 本地 gitleaks | hook 拦截，gitleaks 拦截；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | A4 后续 001 |
 | C-9 | env 字典覆盖 | `.env.example` 中缺 `AI_GATEWAY_BASE_URL` | `make lint-config` | 报错：env key 在代码出现但 `.env.example` 缺失 | A4 后续 001 |
+| C-10 | AI provider 本地部署校验 | `APP_ENV=dev` 且启用了需要 AIClient 的 API / worker，但未设置 `AI_GATEWAY_BASE_URL` 或 `AI_GATEWAY_API_KEY` | docker compose / Kind 启动进程 | 进程启动失败并报告缺失真实 AI provider / gateway 配置；`APP_ENV=test` 的单元测试仍可走 stub | A4 后续 001 + A3 + A2 |
 
 ## 7 关联计划
 
