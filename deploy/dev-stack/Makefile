@@ -49,7 +49,19 @@ up: _ensure_env ## Start dev stack (idempotent; skip if already healthy)
 		exit 0; \
 	fi; \
 	echo "[dev-stack] starting dependency services"; \
-	$(COMPOSE) up -d --wait --wait-timeout 60 $(DEPENDENCY_SERVICES); \
+	if ! $(COMPOSE) up -d --wait --wait-timeout 60 $(DEPENDENCY_SERVICES); then \
+		echo "[dev-stack] compose up --wait failed; scanning host ports for conflicts" >&2; \
+		for port in $${POSTGRES_HOST_PORT:-5432} $${REDIS_HOST_PORT:-6379} $${MINIO_API_HOST_PORT:-9000} $${MINIO_CONSOLE_HOST_PORT:-9001}; do \
+			if command -v lsof >/dev/null 2>&1; then \
+				owners="$$(lsof -nP -iTCP:$$port -sTCP:LISTEN +c 0 2>/dev/null | awk 'NR>1 && $$1 !~ /docker|com.docker|vpnkit|dockerd/ {print}')"; \
+				if [ -n "$$owners" ]; then \
+					echo "[dev-stack] host port $$port held by non-docker process:" >&2; \
+					printf '%s\n' "$$owners" >&2; \
+				fi; \
+			fi; \
+		done; \
+		exit 1; \
+	fi; \
 	echo "[dev-stack] running init jobs"; \
 	$(COMPOSE) up -d $(INIT_SERVICES); \
 	$(MAKE) -s _wait_init; \

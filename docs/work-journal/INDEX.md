@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-28](2026-04-28.md) | `feat(dev-stack): 落地 dev-doctor 与端口冲突可观察` | #feat |
 | [2026-04-28](2026-04-28.md) | `feat(dev-stack): 接入 make dev-* 生命周期` | #feat |
 | [2026-04-28](2026-04-28.md) | `feat(dev-stack): docker-compose 与 init 脚本骨架` | #feat |
 | [2026-04-28](2026-04-28.md) | `docs(spec): align local dev and quality gates` | #docs |

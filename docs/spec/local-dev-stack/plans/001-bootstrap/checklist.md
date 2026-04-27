@@ -24,11 +24,11 @@
 
 ## Phase 3: dev-doctor 结构化健康检查
 
-- [ ] 3.1 落地 `deploy/dev-stack/scripts/dev-doctor.sh`（POSIX sh + jq，≤200 行）：输出 spec D-6 锁定的 JSON 结构（services 含 `type=dependency|app` + summary）；`summary.down==0 && summary.degraded==0` 时 exit 0；不得硬编码旧 7-service 口径
-- [ ] 3.2 实现 e2e probe：PG `pg_isready` + `select 1` + vector 扩展检查；Redis set/get/del 一次；MinIO `mc ls` 默认 bucket；项目 HTTP 组件查 `/healthz`，已声明 `/metrics` 的组件查 `/metrics` 非空，worker 类组件查进程存活 + 最近日志；启用 AIClient 的组件只校验真实 provider env 已注入，不调用真实 LLM
-- [ ] 3.3 dev-up gate 接入（C-1）：`up` target 在 `docker compose up -d --wait` 后调用 dev-doctor；`summary.ok == total` 才 exit 0；否则输出 DOWN/DEGRADED 服务的最近 50 行 `docker logs` 尾段
-- [ ] 3.4 失败可观察（C-2）：构造 Postgres 5432 或任一已启用项目组件 host port 冲突复现路径；`make dev-up` 非 0 退出且 stderr 含冲突服务名 + 占用进程；`make dev-doctor` 对冲突服务报 `status=DOWN, reason="port conflict: ..."`，其它服务保持 OK
-- [ ] 3.5 Phase 3 自检：全员 OK 时 dev-doctor JSON 通过 schema 校验（3 个依赖名固定，项目组件来自 compose）且 exit 0；`docker stop redis-dev` 后报 DOWN/exit 1；缺 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 时启用 AIClient 的组件 fail-fast 且 dev-doctor 报缺真实 provider 配置；端口冲突复现路径日志贴入工作日志
+- [x] 3.1 落地 `deploy/dev-stack/scripts/dev-doctor.sh`（POSIX sh + jq，≤200 行）：输出 spec D-6 锁定的 JSON 结构（services 含 `type=dependency|app` + summary）；`summary.down==0 && summary.degraded==0` 时 exit 0；不得硬编码旧 7-service 口径
+- [x] 3.2 实现 e2e probe：PG `pg_isready` + `select 1` + vector 扩展检查；Redis set/get/del 一次；MinIO `mc ls` 默认 bucket；项目 HTTP 组件查 `/healthz`，已声明 `/metrics` 的组件查 `/metrics` 非空，worker 类组件查进程存活 + 最近日志；启用 AIClient 的组件只校验真实 provider env 已注入，不调用真实 LLM
+- [x] 3.3 dev-up gate 接入（C-1）：`up` target 在 `docker compose up -d --wait` 后调用 dev-doctor；`summary.ok == total` 才 exit 0；否则输出 DOWN/DEGRADED 服务的最近 50 行 `docker logs` 尾段
+- [x] 3.4 失败可观察（C-2）：构造 Postgres 5432 或任一已启用项目组件 host port 冲突复现路径；`make dev-up` 非 0 退出且 stderr 含冲突服务名 + 占用进程；`make dev-doctor` 对冲突服务报 `status=DOWN, reason="port conflict: ..."`，其它服务保持 OK
+- [x] 3.5 Phase 3 自检：全员 OK 时 dev-doctor JSON 通过 schema 校验（3 个依赖名固定，项目组件来自 compose）且 exit 0；`docker stop redis-dev` 后报 DOWN/exit 1；缺 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 时启用 AIClient 的组件 fail-fast 且 dev-doctor 报缺真实 provider 配置；端口冲突复现路径日志贴入工作日志
 
 ## Phase 4: 指标日志 + 文档 + AC 收口
 
