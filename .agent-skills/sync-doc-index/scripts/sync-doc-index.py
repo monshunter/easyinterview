@@ -1054,8 +1054,10 @@ def _fix_spec_index(spec_dir, index_path, root, dry_run):
         new_date = std.get("更新日期", idx_date)
 
         if new_ver != idx_ver or new_status != idx_status or new_date != idx_date:
-            # Rebuild the line
-            new_line = f"| {cells_raw[0]} | {new_ver} | {new_status} | {new_date} |\n"
+            # Rebuild only the canonical Header projection cells, preserving
+            # extra columns such as the spec INDEX `Plans` link.
+            new_cells = [cells_raw[0], new_ver, new_status, new_date, *cells_raw[4:]]
+            new_line = "| " + " | ".join(new_cells) + " |\n"
             lines[i] = new_line
             modified = True
             fixes.append({

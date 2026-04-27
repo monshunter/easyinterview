@@ -77,6 +77,27 @@ def test_run_check_ignores_templates_assets(tmp_path):
     assert report["orphans"]["missing_from_index"] == []
 
 
+def test_fix_spec_index_preserves_extra_plans_column(tmp_path):
+    """Column fixes must not drop the spec INDEX `Plans` projection cell."""
+    module = _load_module()
+    plans_dir = _bootstrap_subspec(tmp_path, subspec="demo-spec")
+    spec_dir = plans_dir.parent
+    _write_doc(spec_dir / "spec.md", "active", version="1.1", date="2026-04-27")
+
+    fixes, skipped = module.fix_index_columns(tmp_path, dry_run=False)
+
+    assert skipped == []
+    assert any(f.get("index") == "docs/spec/INDEX.md" for f in fixes)
+    text = (tmp_path / "docs" / "spec" / "INDEX.md").read_text(encoding="utf-8")
+    assert (
+        "| [demo-spec](./demo-spec/spec.md) | 1.1 | active | 2026-04-27 | [plans](./demo-spec/plans/) |"
+        in text
+    )
+
+    report = module.run_check(tmp_path)
+    assert report["summary"]["drifts"] == 0
+
+
 def test_migrate_active_to_existing_completed_section(tmp_path):
     """A row whose linked plan flipped to `completed` should move into the
     existing `已完成` section, leaving the source `进行中` table empty."""
