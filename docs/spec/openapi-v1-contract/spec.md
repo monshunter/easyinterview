@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Spec
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-04-27
+> **更新日期**: 2026-04-28
 
 ## 1 背景与目标
 
@@ -27,11 +27,11 @@
 - **14 个 tag**（与 [02-api-definition.md §19](../../../easyinterview-tech-docs/02-api-definition.md#19-推荐的-openapi-拆分方式) 一致）：
   1. `Auth`、2. `Uploads`、3. `Profile`、4. `Resumes`、5. `TargetJobs`、6. `PracticePlans`、7. `PracticeSessions`、8. `Reports`、9. `Mistakes`、10. `ResumeTailor`、11. `Debriefs`、12. `Growth`、13. `Jobs`、14. `Privacy`。
 - **endpoint 集**：32+ 端点，覆盖 [02-api-definition.md §4–§17](../../../easyinterview-tech-docs/02-api-definition.md) 全部端点；本 spec §3.1.1 列出 v1.0.0 freeze 时的 endpoint 列表。
-- **schema 定义**：所有公共对象模型（`Job` / `TargetJob` / `PracticePlan` / `PracticeSession` / `AssistantAction` / `FeedbackReport` / `MistakeEntry` / `Debrief` / `ResumeAsset` / `ResumeTailorRun` / `PrivacyRequest` / `Job` / 共享 `ApiError` / `PageInfo` / `PaginatedXxx`）；引用 [B1 D-6 枚举](../shared-conventions-codified/spec.md#31-已锁定决策) 中 14 个枚举类型与 [D-5 错误码](../shared-conventions-codified/spec.md#31-已锁定决策) 常量。
-- **header 与状态码契约**：[02 §2](../../../easyinterview-tech-docs/02-api-definition.md#2-通用约定) 中 `Authorization` / `Idempotency-Key` / `traceparent` / `X-Request-ID` 锁定；状态码使用集合（200/201/202/204/400/401/403/404/409/422/429/500）锁定。
+- **schema 定义**：所有 endpoint request / success response / async wrapper / error response 必须出现在 §4.2 schema inventory，或显式声明无 body / 无响应体；共享 `ApiError` / `PageInfo` / `PaginatedXxx` 与 14 个枚举类型引用 [B1 D-5/D-6](../shared-conventions-codified/spec.md#31-已锁定决策)，不得在 OpenAPI 内重复维护 enum 字面量。
+- **header 与状态码契约**：继承 [02 §2](../../../easyinterview-tech-docs/02-api-definition.md#2-通用约定) 与 [00 §3.5](../../../easyinterview-tech-docs/00-shared-conventions.md#35-请求头)，但认证形态以 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md) 为准：P0 使用 first-party session cookie；`Authorization: Bearer` 仅保留为被 ADR 明确修订后的扩展点。状态码矩阵见 §4.1。
 - **codegen pipeline**：`make codegen-openapi`（B2 owner）输出 Go + TS；本地 drift 校验。
 - **fixtures**：每个 operation 对应一份默认 fixture（`scenario: default`）+ `easyinterview-ui/src/data.jsx` 折出来的 `scenario: prototype-baseline`（与 [engineering-roadmap §4.3 mock-first](../engineering-roadmap/spec.md#43-mock-first-集成策略) 一致）。
-- **breaking change linter**：本地引入 `openapi-diff`（或等价工具）；规则集见 §4.2。
+- **breaking change linter**：本地引入 `openapi-diff`（或等价工具）；规则集见 §4.4。
 - **API 文档站点**：`make docs-openapi` 输出可阅读 HTML（Redoc / Stoplight）；当前单人阶段只保留本地产物，不要求 A5 上传 CI artifact。
 
 ### 2.2 Out of Scope
@@ -41,7 +41,7 @@
 - mock server 运行壳：归 [E1 `mock-contract-suite`](../engineering-roadmap/spec.md#55-layer-e--integration4-份)；本 spec 只交付 fixtures。
 - WebSocket / SSE / GraphQL：当前 P0 不在范围（练习会话 SSE 未来由本 spec 修订接入）。
 - gRPC / Thrift：不在范围。
-- 鉴权机制本身（passwordless email / token 颁发）：归 [C1 `backend-auth`](../engineering-roadmap/spec.md#53-layer-c--backend14-份p08--p14--p22) 与 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md)；本 spec 仅锁 `Authorization: Bearer <token>` 形式。
+- 鉴权机制本身（passwordless email challenge、session cookie 颁发 / 撤销、风控阈值）：归 [C1 `backend-auth`](../engineering-roadmap/spec.md#53-layer-c--backend14-份p08--p14--p22) 与 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md)；本 spec 只冻结 HTTP contract、public/protected 边界与 OpenAPI security scheme。
 - 限流策略具体阈值：归 [F1](./../observability-stack/spec.md) + 各 C 域；本 spec 仅锁 `429 Too Many Requests` 状态码使用。
 
 ## 3 用户决策 / 待确认事项
@@ -53,13 +53,13 @@
 | D-1 | 路径前缀 | 所有 endpoint 以 `/api/v1` 起始 | 与 [02 §1](../../../easyinterview-tech-docs/02-api-definition.md#1-概览) 一致 |
 | D-2 | 字段命名 | JSON 字段 `camelCase`；URL path 参数 `camelCase`（如 `{targetJobId}`）；query 参数 `camelCase` | 与 [00-shared-conventions](../../../easyinterview-tech-docs/00-shared-conventions.md) 一致 |
 | D-3 | 时间格式 | `string` + `format: date-time`，RFC3339 UTC（如 `2026-04-23T13:45:12Z`） | – |
-| D-4 | 错误响应 schema | 全部 4xx/5xx 复用 `ApiError`（`error.code` / `error.message` / `error.requestId` / `error.retryable` / `error.details`）；`error.code` 必须出现在 [B1 D-5](../shared-conventions-codified/spec.md#31-已锁定决策) 锁定的错误码常量集合 | 切实业务 handler 不能擅自新增错误码 |
+| D-4 | 错误响应 schema | 全部 4xx/5xx 复用 `ApiError`（`error.code` / `error.message` / `error.requestId` / `error.retryable` / `error.details`）；`error.code` 必须出现在 [B1 D-5](../shared-conventions-codified/spec.md#31-已锁定决策) 锁定的错误码常量集合；P0 privacy export 501 使用 `PRIVACY_EXPORT_NOT_AVAILABLE` | 具体业务 handler 不能擅自新增错误码 |
 | D-5 | 分页 | 所有列表 endpoint 使用 cursor 分页 + 统一 `pageInfo`（`nextCursor` / `pageSize` / `hasMore`）；不混用 offset 分页 | – |
-| D-6 | Idempotency | 所有创建类 endpoint（POST + 副作用）支持 `Idempotency-Key` header（24h TTL，由 [B1 工具](../shared-conventions-codified/spec.md#21-in-scope) 实现） | – |
+| D-6 | Idempotency | [00 §3.4](../../../easyinterview-tech-docs/00-shared-conventions.md#34-幂等) 列出的副作用 endpoint 必须支持 `Idempotency-Key` header（24h TTL，由 [B1 工具](../shared-conventions-codified/spec.md#21-in-scope) 实现）；`POST /practice/sessions/{sessionId}/events` 使用 `clientEventId` 去重，不混用 `Idempotency-Key` | 防止不同去重机制叠加导致 handler 语义分裂 |
 | D-7 | Job 异步 | 长耗时操作返回 `202 Accepted` + `Job` schema；客户端通过 `GET /jobs/{jobId}` 轮询 | – |
 | D-8 | content-type | 仅 `application/json` 与 `multipart/form-data`（仅 upload 端点）；不引入 protobuf / msgpack | – |
-| D-9 | v1.0.0 freeze 范围 | §3.1.1 列出 36 个 endpoint + 14 tag；W1 parent phase 锁定范围与 additive-only 规则，B2 child `001` 落地 `openapi/openapi.yaml` 后强制执行（新增 endpoint / 新增可选字段 / 新增枚举值） | 任何 break change 必须 ADR + 本 spec 修订 |
-| D-10 | breaking change linter | 默认 `openapi-diff`（OpenAPITools）；规则：禁止删字段、禁止改字段类型、禁止改 required、禁止改枚举（仅允许新增）、禁止删 endpoint | CI 直接失败 |
+| D-9 | v1.0.0 freeze 范围 | §3.1.1 列出 36 个 endpoint + 14 tag；W1 parent phase 锁定范围与 additive-only 规则，B2 child `001` 落地 `openapi/openapi.yaml` 后强制执行（新增 endpoint / 新增可选字段 / 新增枚举值）；Auth tag 以 ADR-Q1 的 email magic link + session cookie 路径为准 | 任何 break change 必须 ADR + 本 spec 修订 |
+| D-10 | breaking change linter | 默认 `openapi-diff`（OpenAPITools）；规则：禁止删字段、禁止改字段类型、禁止改 required、禁止改枚举（仅允许新增）、禁止删 endpoint | 本地 gate 直接失败；远端 CI 接入由 A5 后续触发条件决定 |
 | D-11 | tags 顺序 | §2.1 14 个 tag 顺序固定；新增 tag 必须递增 spec | – |
 | D-12 | privacy export 例外 | 按 [ADR-Q5](../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md)，`POST /api/v1/privacy/exports` 在 v1.0.0 freeze 中保留路径与 schema，但 P0 必须返回 `501 Not Implemented`（`error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`）；P1 切换实现时是 additive 行为变化，不算 break | 防止 P1 复用时改路径 |
 
@@ -68,9 +68,9 @@
 | # | Tag | Method | Path | OperationId | 关联 schema |
 |---|-----|--------|------|-------------|-------------|
 | 1 | Auth | GET | /api/v1/me | getMe | UserContext |
-| 2 | Auth | POST | /api/v1/auth/magic-link | requestMagicLink | – |
-| 3 | Auth | POST | /api/v1/auth/sessions | createSession | Session |
-| 4 | Auth | DELETE | /api/v1/auth/sessions/current | endSession | – |
+| 2 | Auth | POST | /api/v1/auth/email/start | startAuthEmailChallenge | AuthEmailStartRequest |
+| 3 | Auth | GET | /api/v1/auth/email/verify | verifyAuthEmailChallenge | Session |
+| 4 | Auth | POST | /api/v1/auth/logout | logout | – |
 | 5 | Uploads | POST | /api/v1/uploads/presign | createUploadPresign | UploadPresign |
 | 6 | Profile | GET | /api/v1/profiles/me | getMyProfile | CandidateProfile |
 | 7 | Profile | PATCH | /api/v1/profiles/me | updateMyProfile | CandidateProfile |
@@ -115,28 +115,74 @@
 
 ## 4 设计约束
 
-### 4.1 schema 设计约束
+### 4.1 状态码、Header 与幂等矩阵
+
+| 契约项 | P0 锁定规则 | 例外 / 说明 |
+|--------|-------------|-------------|
+| 成功状态码 | `200` / `201` / `202` / `204` | 长耗时任务统一 `202 + Job`；删除 / logout 等无响应体成功使用 `204` |
+| 客户端错误 | `400` / `401` / `403` / `404` / `409` / `422` / `429` | 全部复用 B1 `ApiError`；`409` 覆盖状态冲突与幂等冲突 |
+| 服务端错误 | `500` | 未分类内部错误；不得暴露 provider / prompt / secret 细节 |
+| P0 显式例外 | `501 Not Implemented` 仅允许 `POST /api/v1/privacy/exports` | 返回 `ApiError.error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；P1 将该 endpoint 切回 `202 + PrivacyRequestWithJob` 属于“预留能力变为可用”的兼容行为，不算 breaking change，但必须递增 spec/history、更新 fixture 与 release gate 例外记录 |
+| Auth public endpoints | `/api/v1/auth/email/start`、`/api/v1/auth/email/verify`、`/api/v1/runtime-config` 不要求既有 session | auth start/verify 归 ADR-Q1；runtime-config 只能返回非敏感公开配置 |
+| Protected endpoints | 除 public endpoints 外，P0 默认要求有效 first-party session cookie | `Authorization: Bearer` 不作为 P0 默认认证形态；如重新启用必须修订 ADR-Q1 与本 spec |
+| Request headers | `X-Request-ID` / `traceparent` / `Accept-Language` / `X-Client-Version` 按 [00 §3.5](../../../easyinterview-tech-docs/00-shared-conventions.md#35-请求头) 入 OpenAPI components | `Accept-Language` 只影响展示语言默认值，不覆盖 `targetLanguage` / `language` 等持久业务字段 |
+| Idempotency-Key | 仅 [00 §3.4](../../../easyinterview-tech-docs/00-shared-conventions.md#34-幂等) 列出的副作用 endpoint 必须声明并校验 | `POST /practice/sessions/{sessionId}/events` 必须声明 `clientEventId` 去重；auth email start 使用 ADR-Q1 rate limit / challenge TTL，不挂通用 idempotency |
+
+### 4.2 schema inventory 约束
+
+| 类别 | 必须覆盖的 schema | 来源 / 约束 |
+|------|-------------------|-------------|
+| B1 shared | `ApiError`、`PageInfo`、`Paginated<T>`、14 个枚举类型、错误码 enum、`IdempotencyKey` 工具语义 | `$ref` / codegen 复用 B1；OpenAPI 不重复维护 enum 字面量 |
+| Auth / runtime | `UserContext`、`AuthEmailStartRequest`、`AuthEmailVerifyQuery`、`Session`、`RuntimeConfig` | Auth 路径以 ADR-Q1 为准；runtime-config 字段以 [A4 D-2](../secrets-and-config/spec.md#31-已锁定决策含-p0-必备-env-key-字典) 为准 |
+| Uploads / resumes | `UploadPresignRequest`、`UploadPresign`、`RegisterResumeRequest`、`ResumeAsset`、`ResumeAssetWithJob` | 对齐 [02 §5](../../../easyinterview-tech-docs/02-api-definition.md#5-上传与文件) / [§7](../../../easyinterview-tech-docs/02-api-definition.md#7-简历资产) |
+| Profile | `CandidateProfile`、`UpdateProfileRequest`、`ExperienceCard`、`CreateExperienceCardRequest`、`UpdateExperienceCardRequest`、`PaginatedExperienceCard` | 对齐 [02 §6](../../../easyinterview-tech-docs/02-api-definition.md#6-画像与经历卡) |
+| TargetJobs | `ImportTargetJobRequest`、`TargetJobWithJob`、`TargetJob`、`UpdateTargetJobRequest`、`TargetJobRequirement`、`TargetJobSummary`、`TargetJobFitSummary`、`PaginatedTargetJob` | 覆盖 URL / text / file / manual form source variants |
+| Practice | `CreatePracticePlanRequest`、`PracticePlan`、`StartPracticeSessionRequest`、`PracticeSession`、`PracticeSessionEventRequest`、`SessionEventResult`、`AssistantAction`、`CompletePracticeSessionRequest`、`ReportWithJob` | `PracticeSessionEventRequest.clientEventId` 是事件幂等真理源 |
+| Review / mistakes | `FeedbackReport`、`ReportHighlight`、`ReportIssue`、`ReportNextAction`、`QuestionAssessment`、`MistakeEntry`、`PaginatedFeedbackReport`、`PaginatedMistakeEntry`、`RetestMistakeRequest`、`PracticePlanContainer` | 报告前台只展示准备度档位与维度状态，不输出精确通过率 |
+| ResumeTailor / debrief / growth | `RequestResumeTailorRequest`、`ResumeTailorRun`、`ResumeTailorRunWithJob`、`CreateDebriefRequest`、`Debrief`、`DebriefWithJob`、`GrowthOverview` | 简历定制与真实面试复盘输出必须携带 provenance |
+| Jobs / privacy | `Job`、`PrivacyRequest`、`PrivacyRequestWithJob`、`PrivacyExportUnavailableError`（或 `ApiError` example） | privacy export P0 fixture 必须是 501 error example；privacy deletion 保持 `202 + PrivacyRequestWithJob` |
+
+每个 §3.1.1 endpoint 在 `openapi/openapi.yaml` 中必须同时声明 request body（若有）、success response schema、error response `$ref`、default fixture 与 `operationId`；缺任一项时 `make codegen-openapi` / `make validate-fixtures` 不得通过。
+
+### 4.3 schema 设计约束
 
 - 所有 enum 字段必须以 [B1 D-6 枚举](../shared-conventions-codified/spec.md#31-已锁定决策) 中的 14 个类型为基础；本 spec 不重新定义 enum 字面量，必须 `$ref` 到 B1 共享 enum schema。
 - `ApiError` schema 必须 `$ref` 到 B1 提供的共享类型；`error.code` 字段定义为枚举（值集等于 [B1 D-5](../shared-conventions-codified/spec.md#31-已锁定决策) 全部错误码常量），由 generator 自动同步。
 - 所有 `id` 字段为 `string`，`format: uuid`；服务端写入字段值必须 UUIDv7（由 B1 idx 工具生成）；前端临时 id（`tmp_<uuid>`）只在前端 state 中存在，不进 API 请求体。
 - 所有时间字段统一 `string` + `format: date-time`；不允许某些字段使用 unix epoch number。
+- 所有语言字段统一 BCP 47（如 `en` / `zh-CN` / `en-SG`）；OpenAPI schema 使用 `string` + pattern / example，实际允许集由产品 i18n 与质量评估 gate 控制。
 
-### 4.2 breaking change linter 规则集（W1 末 freeze 后强制）
+### 4.4 breaking change linter 规则集（W1 末 freeze 后强制）
 
 - **禁止**：删除已发布 endpoint / 重命名 path / 修改 method / 删除 schema 字段 / 修改字段类型 / 把 optional 字段改为 required / 删除已发布枚举值。
 - **允许（additive）**：新增 endpoint / 新增 tag / 新增 optional 字段 / 新增枚举值（且字段为 string-typed enum） / 新增可选 query 参数 / 新增 example。
-- **审计要求**：违反规则的 PR 必须 attach ADR 链接并在本 spec history 表加一行「v2.0.0 升级」记录；CI 中通过 label `breaking-change-approved` 并由 B2 owner approve 才能合入。
+- **P0 例外**：`POST /api/v1/privacy/exports` 从 P0 `501 ApiError` 切到 P1 `202 PrivacyRequestWithJob` 是已预留能力变为可用；该行为必须递增 spec/history 和 fixture，但不按 breaking change 处理。
+- **审计要求**：违反规则的 PR 必须 attach ADR 链接并在本 spec history 表加一行「v2.0.0 升级」记录；远端 CI label workflow 仅在 A5 触发条件成立后再接入，当前单人阶段以本地 gate + owner review 为准。
 
-### 4.3 codegen 与 drift 约束
+### 4.5 codegen 与 drift 约束
 
 - generator 输入：`openapi/openapi.yaml` + `openapi/templates/`（Go / TS 模板）；输出 `backend/internal/api/generated/` 与 `frontend/src/api/generated/`。
-- generated 文件必须 idempotent；CI `git diff --exit-code` 阻塞漂移。
+- generated 文件必须 idempotent；本地 `make codegen-check` / `git diff --exit-code` 阻塞漂移。远端 CI 接入由 A5 后续触发条件决定。
 - 业务 handler 必须 implement generator 产出的 server interface；不允许业务包定义自己的 DTO 类型。
 
-### 4.4 fixtures 与隐私约束
+### 4.6 AI 生成结果 provenance 约束
 
-- `openapi/fixtures/<tag>/<operationId>.json` 必须 schema-valid（CI 中由 `make validate-fixtures` 校验）。
+OpenAPI 必须提供共享 `GenerationProvenance` schema，并要求所有 AI 生成结果直接包含该对象，或通过响应中的 `job` / `resource` 可追溯到该对象。字段固定为：
+
+| 字段 | 说明 |
+|------|------|
+| `promptVersion` | prompt registry key / version |
+| `rubricVersion` | rubric registry key / version；非评分生成也必须显式填 `not_applicable` |
+| `modelId` | provider profile / model id，不暴露 secret |
+| `language` | 本次生成使用的 BCP 47 语言 |
+| `featureFlag` | 影响生成路径的 feature flag / variant |
+| `dataSourceVersion` | 输入数据来源版本或 snapshot id |
+
+至少以下 schema 必须包含或可追溯到 `GenerationProvenance`：`TargetJob.summary` / `fitSummary`、`AssistantAction`、`FeedbackReport`、AI 创建的 `MistakeEntry`、`ResumeTailorRun`、`Debrief`。缺失 provenance 的 fixture 不得通过 `make validate-fixtures`。
+
+### 4.7 fixtures 与隐私约束
+
+- `openapi/fixtures/<tag>/<operationId>.json` 必须 schema-valid（本地由 `make validate-fixtures` 校验；远端 CI 接入由 A5 后续触发条件决定）。
 - fixtures 中绝不出现真实用户邮箱 / 真实电话 / 真实公司名敏感信息；统一用 `Acme` / `acme.example` / `alice@example.com`。
 - `prototype-baseline` scenario 来自 `easyinterview-ui/src/data.jsx`；维护方式：`make sync-fixtures-from-prototype`（B2 owner）。
 
@@ -153,13 +199,13 @@
 | mock server 运行壳 | E1 | 消费 fixtures |
 | breaking change linter | B2 | 本地 gate；远端 CI 仅在 A5 触发条件成立后再接入 |
 | API 文档生成 | B2（Redoc 集成） | 当前只保留本地产物，不要求 CI artifact |
-| 鉴权 token 颁发 | C1 + ADR-Q1 | B2 仅锁 `Authorization` header 形式 |
+| 鉴权 session 颁发 / 撤销 | C1 + ADR-Q1 | B2 仅锁 Auth tag HTTP contract 与 session cookie security scheme |
 
 ## 6 验收标准
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | OpenAPI 文档结构 | `openapi/openapi.yaml` 已落地 | `npx @apidevtools/swagger-cli validate openapi/openapi.yaml` | 通过；含 14 tag、36 endpoint、共享 schema 全部 `$ref` 到 B1 | B2 后续 001 |
+| C-1 | OpenAPI 文档结构 | `openapi/openapi.yaml` 已落地 | `npx @apidevtools/swagger-cli validate openapi/openapi.yaml` | 通过；含 14 tag、36 endpoint；每个 endpoint 有 request/success/error schema 与 fixture；共享 schema 全部 `$ref` 到 B1；Auth 路径与 ADR-Q1 一致 | B2 后续 001 |
 | C-2 | Go codegen drift | 修改 `openapi.yaml` 但不跑 codegen | 本地 `make codegen-check` 或等价 gate | `codegen-drift-check` 失败；本地 diff 显示新增字段 | B2 后续 001 |
 | C-3 | TS codegen drift | 同 C-2 | 本地 `make codegen-check` 或等价 gate | `frontend/src/api/generated/` 漂移；本地 gate 失败 | B2 后续 001 |
 | C-4 | breaking change 拦截 | 故意删除 `target_jobs.title` 字段 | 本地 `make openapi-diff` / 等价 gate | `openapi-diff` 失败；除非已有 ADR + 本 spec 修订授权，否则不得继续 | B2 后续 001 |
@@ -169,12 +215,13 @@
 | C-8 | enum 与 B1 同源 | 在 `openapi.yaml` 引用 `practiceMode` enum | codegen | 生成 TS 与 Go 类型，与 [B1 D-6](../shared-conventions-codified/spec.md#31-已锁定决策) 完全一致；改 B1 后 B2 codegen drift | B2 后续 001 + B1 |
 | C-9 | mock 同源（前端 + 后端） | E1 拉起 mock server | 前端 msw 与后端 mock-server 都消费 `openapi/fixtures/` | 同一 endpoint 两端响应字节级一致 | B2 + E1 |
 | C-10 | B2 executable freeze handoff | 本 spec 的 contract lock 已完成，B2 后续 `001` 完成 | engineering-roadmap §5.7 W1 准入 gate | `openapi/openapi.yaml` v1.0.0、codegen drift、fixtures 与 breaking-change linter 均通过验证；依赖 B2 的 W2 implementation 可启动；parent Phase 3 只记录 spec-contract lock，不单独冒充本项已通过 | B2 后续 `001` |
+| C-11 | provenance 完整性 | 任一 AI 生成 response fixture 缺少 `GenerationProvenance` 或不可追溯到含 provenance 的 job/resource | `make validate-fixtures` | 失败；列出 operationId 与缺失字段 | B2 后续 001 + F3 |
 
 ## 7 关联计划
 
 B2 在本次 W1 spec 阶段不创建 impl plan（参见 [001-decompose-subspecs §3.1](../engineering-roadmap/plans/001-decompose-subspecs/plan.md#3-实施步骤)）。后续由 B2 自身的 plans 承接（`engineering-roadmap §5.2` 估算 3 plan）：
 
-- `001-bootstrap`（W1 末或 W2 初）：落地 `openapi/openapi.yaml` 框架 + 14 tag 占位 + 32+ endpoint stub schema + B1 enum `$ref` + `make codegen-openapi` + 本地 drift check。
+- `001-bootstrap`（W1 末或 W2 初）：落地 `openapi/openapi.yaml` 框架 + 14 tag 占位 + 36 endpoint request/success/error schema + ADR-Q1 Auth 路径 + privacy export 501 例外 + B1 enum `$ref` + `GenerationProvenance` + `make codegen-openapi` + 本地 drift check。
 - `002-fixtures-and-mock-source`：每个 operationId 一份 fixtures + `prototype-baseline` 同步工具；E1 接入。
 - `003-breaking-change-gate`：linter 规则集 + ADR 模板；远端 CI label workflow 仅在 A5 触发条件成立后再评估。
 

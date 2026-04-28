@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-28](2026-04-28.md) | `docs(openapi): reconcile v1 contract review findings` | #docs |
 | [2026-04-28](2026-04-28.md) | `docs(dev-stack): correct A3 spec link` | #docs |
 | [2026-04-28](2026-04-28.md) | `feat(dev-stack): 收口 README 与 A2 executable gate` | #feat |
 | [2026-04-28](2026-04-28.md) | `feat(dev-stack): 落地 dev-doctor 与端口冲突可观察` | #feat |
