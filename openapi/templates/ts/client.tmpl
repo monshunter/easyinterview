@@ -1,0 +1,108 @@
+{{.Header}}
+
+import type * as Types from "./types";
+
+// Thin operationId-keyed fetch client for easyinterview API v1.0.0.
+//
+// The client only handles HTTP plumbing (method + path + JSON body).
+// Authentication is delegated to the same-origin first-party session cookie
+// per ADR-Q1; the consumer must use `credentials: "include"` (the default for
+// same-origin requests). Request/response shapes are imported from
+// `./types.ts` so any drift in openapi.yaml propagates here automatically.
+
+export interface ClientOptions {
+	/** Base URL prefix; defaults to `/api/v1`. */
+	baseUrl?: string;
+	/** Optional fetch override (e.g., for tests). */
+	fetch?: typeof fetch;
+	/** Optional default headers (X-Client-Version, Accept-Language). */
+	headers?: Record<string, string>;
+}
+
+export interface RequestOptions {
+	signal?: AbortSignal;
+	idempotencyKey?: string;
+	headers?: Record<string, string>;
+	query?: Record<string, string | number | boolean | undefined>;
+}
+
+const DEFAULT_BASE_URL = "/api/v1";
+
+function buildQuery(params?: Record<string, string | number | boolean | undefined>): string {
+	if (!params) return "";
+	const search = new URLSearchParams();
+	for (const [key, value] of Object.entries(params)) {
+		if (value === undefined) continue;
+		search.append(key, String(value));
+	}
+	const qs = search.toString();
+	return qs ? `?${qs}` : "";
+}
+
+function buildPath(template: string, params: Record<string, string>): string {
+	return template.replace(/\{([^}]+)\}/g, (_, name) => {
+		const value = params[name];
+		if (value === undefined) {
+			throw new Error(`missing path parameter: ${name}`);
+		}
+		return encodeURIComponent(value);
+	});
+}
+
+export class EasyInterviewClient {
+	readonly baseUrl: string;
+	readonly fetchFn: typeof fetch;
+	readonly defaultHeaders: Record<string, string>;
+
+	constructor(options: ClientOptions = {}) {
+		this.baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
+		this.fetchFn = options.fetch ?? globalThis.fetch.bind(globalThis);
+		this.defaultHeaders = { ...(options.headers ?? {}) };
+	}
+
+	private async request<T>(method: string, path: string, body: unknown, opts?: RequestOptions): Promise<T> {
+		const headers: Record<string, string> = {
+			"Accept": "application/json",
+			...this.defaultHeaders,
+			...(opts?.headers ?? {}),
+		};
+		if (body !== undefined) headers["Content-Type"] = "application/json";
+		if (opts?.idempotencyKey) headers["Idempotency-Key"] = opts.idempotencyKey;
+		const url = `${this.baseUrl}${path}${buildQuery(opts?.query)}`;
+		const response = await this.fetchFn(url, {
+			method,
+			headers,
+			body: body === undefined ? undefined : JSON.stringify(body),
+			credentials: "include",
+			signal: opts?.signal,
+		});
+		if (!response.ok) {
+			const text = await response.text();
+			throw new Error(`HTTP ${response.status} ${response.statusText}: ${text}`);
+		}
+		if (response.status === 204) {
+			return undefined as T;
+		}
+		return (await response.json()) as T;
+	}
+
+{{range .Operations}}
+	/** {{.OperationId}} — {{.Method}} {{.Path}}{{if .Summary}}: {{.Summary}}{{end}} */
+	async {{.OperationId}}({{.TSMethodSignature}}): Promise<{{.TSReturnType}}> {
+		return this.request<{{.TSReturnType}}>(
+			"{{.MethodUpper}}",
+			{{.TSPathExpression}},
+			{{.TSBodyArg}},
+			{{.TSOptsArg}},
+		);
+	}
+{{end}}
+}
+
+export const ALL_OPERATION_IDS = [
+{{- range .Operations}}
+	"{{.OperationId}}",
+{{- end}}
+] as const;
+
+export type OperationId = (typeof ALL_OPERATION_IDS)[number];

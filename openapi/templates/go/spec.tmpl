@@ -1,0 +1,15 @@
+{{.Header}}
+
+package generated
+
+import _ "embed"
+
+// SpecYAML is the byte-identical contents of `openapi/openapi.yaml` at codegen
+// time. Handlers may serve it directly via the documentation endpoint or use
+// it as the source-of-truth fixture for contract tests.
+//
+//go:embed openapi.yaml
+var SpecYAML []byte
+
+// SpecVersion is the `info.version` value parsed from openapi.yaml at codegen.
+const SpecVersion = "{{.SpecVersion}}"

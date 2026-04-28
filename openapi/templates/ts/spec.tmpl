@@ -1,0 +1,11 @@
+{{.Header}}
+
+/**
+ * Byte-identical contents of `openapi/openapi.yaml` at codegen time, exposed
+ * as a JS string. Useful for serving the spec from the frontend dev server,
+ * or feeding it to in-browser validators / mock-server consumers.
+ */
+export const SPEC_YAML: string = {{.SpecYAMLLiteral}};
+
+/** Spec `info.version` snapshot. */
+export const SPEC_VERSION = "{{.SpecVersion}}";

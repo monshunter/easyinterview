@@ -15,10 +15,10 @@
 
 ## Phase 2: Codegen pipeline
 
-- [ ] 2.1 落地 `backend/cmd/codegen/openapi/` Go generator（基于 `oapi-codegen` 或等价；模板放 `openapi/templates/go/`），输出 `backend/internal/api/generated/{types,server,spec}.gen.go`；B1 共享类型用 type alias 引用，不复制
-- [ ] 2.2 同一 generator 二进制额外渲染 TS：基于 `openapi-typescript` / `openapi-fetch`（或等价；模板放 `openapi/templates/ts/`），输出 `frontend/src/api/generated/{types,client,spec}.ts`；B1 TS 类型通过 import alias 引用，不复制
-- [ ] 2.3 根 `Makefile` 替换 `codegen` 占位行为 `codegen: codegen-conventions codegen-openapi`；新增 `make codegen-openapi`（idempotent）+ `make codegen-check`（跑 codegen 后 `git diff --exit-code -- backend/internal/api/generated frontend/src/api/generated openapi/openapi.yaml`）；`make help` 自动包含新 target
-- [ ] 2.4 在 `openapi/README.md` 与 `make codegen-openapi` 注释中明确：本地 drift gate 是当前唯一强制 gate；远端 CI required check 仅在 A5 触发条件成立后再接入；本 plan 不修改 A5 workflow
+- [x] 2.1 落地 `backend/cmd/codegen/openapi/` Go generator（基于 `oapi-codegen` 或等价；模板放 `openapi/templates/go/`），输出 `backend/internal/api/generated/{types,server,spec}.gen.go`；B1 共享类型用 type alias 引用，不复制
+- [x] 2.2 同一 generator 二进制额外渲染 TS：基于 `openapi-typescript` / `openapi-fetch`（或等价；模板放 `openapi/templates/ts/`），输出 `frontend/src/api/generated/{types,client,spec}.ts`；B1 TS 类型通过 import alias 引用，不复制
+- [x] 2.3 根 `Makefile` 替换 `codegen` 占位行为 `codegen: codegen-conventions codegen-openapi`；新增 `make codegen-openapi`（idempotent）+ `make codegen-check`（跑 codegen 后 `git diff --exit-code -- backend/internal/api/generated frontend/src/api/generated openapi/openapi.yaml`）；`make help` 自动包含新 target
+- [x] 2.4 在 `openapi/README.md` 与 `make codegen-openapi` 注释中明确：本地 drift gate 是当前唯一强制 gate；远端 CI required check 仅在 A5 触发条件成立后再接入；本 plan 不修改 A5 workflow
 
 ## Phase 3: API 文档站点（本地）
 

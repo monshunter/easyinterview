@@ -1,0 +1,38 @@
+{{.Header}}
+
+import type {
+{{- range .B1ImportedTypes}}
+	{{.}},
+{{- end}}
+} from "{{.B1ImportPath}}";
+
+// =============================================================================
+// B1 type re-exports — synced from shared/conventions.yaml.
+// =============================================================================
+
+{{range .B1Aliases}}
+export type {{.TSName}} = {{.TSTarget}};
+{{end}}
+
+// =============================================================================
+// Domain schemas — derived from openapi.yaml (hand-authored section).
+// =============================================================================
+
+{{range .DomainSchemas}}
+{{- if eq .Kind "enum"}}
+export type {{.TSName}} = {{.TSEnumLiteral}};
+
+export const All{{.PluralName}} = [{{.TSEnumArray}}] as const;
+{{- else if eq .Kind "object"}}
+export interface {{.TSName}} {
+{{- range .Fields}}
+	{{.JSONName}}{{if .Optional}}?{{end}}: {{.TSType}};
+{{- end}}
+}
+{{- else if eq .Kind "alias"}}
+export type {{.TSName}} = {{.TSAliasTarget}};
+{{- else}}
+// {{.TSName}}: free-form OpenAPI shape rendered as `unknown` for safety.
+export type {{.TSName}} = unknown;
+{{- end}}
+{{end}}

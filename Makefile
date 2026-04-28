@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint lint-conventions test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions migrate install-hooks
+.PHONY: help fmt lint lint-conventions lint-openapi test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-openapi codegen-check migrate install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -49,13 +49,29 @@ dev-logs: ## Tail dev-stack container logs (SERVICE=<name> to scope)
 dev-pull: ## Pre-pull dev-stack pinned images for slow-network bootstrap
 	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" pull
 
-codegen: codegen-conventions ## Run code generators; OpenAPI codegen is added later by B2 openapi-v1-contract
-	@echo "TODO: OpenAPI codegen pending B2 openapi-v1-contract"
+codegen: codegen-conventions codegen-openapi ## Run all code generators in dependency order (B1 conventions → B2 openapi)
 
 codegen-conventions: ## Render shared/conventions.yaml into Go and TS shared lib files
 	@cd "$(ROOT_DIR)/backend" && go run ./cmd/codegen/conventions \
 		-yaml "$(ROOT_DIR)/shared/conventions.yaml" \
 		-repo-root "$(ROOT_DIR)"
+
+codegen-openapi: codegen-conventions ## Render openapi/openapi.yaml into Go and TS API artefacts (idempotent)
+	@cd "$(ROOT_DIR)/backend" && go run ./cmd/codegen/openapi \
+		-openapi "$(ROOT_DIR)/openapi/openapi.yaml" \
+		-conventions "$(ROOT_DIR)/shared/conventions.yaml" \
+		-templates "$(ROOT_DIR)/openapi/templates" \
+		-repo-root "$(ROOT_DIR)"
+
+lint-openapi: ## Validate openapi.yaml structurally + enforce spec §3.1.1 inventory invariants
+	@npx --yes -p @apidevtools/swagger-cli@4.0.4 swagger-cli validate "$(ROOT_DIR)/openapi/openapi.yaml"
+	@python3 "$(ROOT_DIR)/scripts/lint/openapi_inventory.py" "$(ROOT_DIR)/openapi/openapi.yaml"
+
+codegen-check: codegen-openapi lint-openapi ## Local drift gate: re-run codegen + lint, then `git diff --exit-code` on generated outputs and openapi.yaml. Currently the only required gate; remote CI required-check is deferred until A5 ci-pipeline-baseline triggers (spec §4.5 / §5).
+	@git -C "$(ROOT_DIR)" diff --exit-code -- \
+		"$(ROOT_DIR)/openapi/openapi.yaml" \
+		"$(ROOT_DIR)/backend/internal/api/generated" \
+		"$(ROOT_DIR)/frontend/src/api/generated"
 
 migrate: ## Run DB schema migrations; implemented by B4 db-migrations-baseline
 	@echo "TODO: implemented by B4 db-migrations-baseline"

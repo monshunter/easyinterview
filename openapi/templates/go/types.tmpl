@@ -1,0 +1,71 @@
+{{.Header}}
+
+package generated
+
+import (
+	"encoding/json"
+
+	{{.SharedPkg}}
+	{{.ErrorsPkg}}
+)
+
+{{- /* Suppress unused-import false-positives by referencing the imports once. */}}
+var (
+	_ json.Marshaler = (*emptyType)(nil) // anchor encoding/json import
+	_                = sharedtypes.AllTargetJobStatuses
+	_                = sharederrors.AllCodes
+)
+
+type emptyType struct{}
+
+func (emptyType) MarshalJSON() ([]byte, error) { return []byte("{}"), nil }
+
+// =============================================================================
+// B1 type aliases — synced from shared/conventions.yaml.
+//
+// Each name below mirrors the B1 truth source so consumers of generated DTOs
+// share the same Go types as B1's `internal/shared/{types,errors}` packages.
+// =============================================================================
+
+{{range .B1Aliases}}
+// {{.Name}} aliases the B1-owned type.
+type {{.Name}} = {{.Target}}
+{{end}}
+
+// =============================================================================
+// Domain schemas — derived from openapi.yaml (hand-authored section).
+//
+// Field types follow the OpenAPI → Go mapping documented in
+// docs/spec/openapi-v1-contract/spec.md §4.3. Schemas that use OpenAPI
+// constructs without a one-to-one Go translation (free-form `oneOf`, dynamic
+// `additionalProperties`) are rendered as `any` to preserve roundtripping.
+// =============================================================================
+
+{{range .DomainSchemas}}
+{{if .Comment}}// {{.Name}} — {{.Comment}}
+{{end -}}
+{{if eq .Kind "enum"}}type {{.Name}} string
+
+const (
+{{- range .EnumValues}}
+	{{.ConstName}} {{.ParentName}} = "{{.Value}}"
+{{- end}}
+)
+
+// All{{.PluralName}} lists every defined value in declaration order.
+var All{{.PluralName}} = []{{.Name}}{
+{{- range .EnumValues}}
+	{{.ConstName}},
+{{- end}}
+}
+{{else if eq .Kind "object"}}type {{.Name}} struct {
+{{- range .Fields}}
+	{{.GoName}} {{.GoType}} `json:"{{.JSONName}}{{if .OmitEmpty}},omitempty{{end}}"{{if .YAMLTag}} yaml:"{{.YAMLTag}}"{{end}}` {{- if .Comment}} // {{.Comment}}{{end}}
+{{- end}}
+}
+{{else if eq .Kind "alias"}}type {{.Name}} = {{.AliasTarget}}
+{{else if eq .Kind "any"}}// {{.Name}} is rendered as `any` because its OpenAPI shape uses constructs
+// (free-form oneOf, untyped maps) without a one-to-one Go translation.
+type {{.Name}} = any
+{{end}}
+{{end}}

@@ -1,0 +1,38 @@
+{{.Header}}
+
+package generated
+
+import (
+	"net/http"
+)
+
+// ServerInterface lists every spec §3.1.1 operation as a typed Go method.
+//
+// C-domain handler packages must implement this interface; the runtime
+// router (registered by RegisterHandlers) dispatches by `(method, path)` to
+// the corresponding ServerInterface method. operationId order matches the
+// 36-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+type ServerInterface interface {
+{{range .Operations}}
+	// {{.OperationId}} — {{.Method}} {{.Path}}{{if .Summary}}: {{.Summary}}{{end}}
+	{{.GoMethodName}}(w http.ResponseWriter, r *http.Request{{range .PathParams}}, {{.GoName}} string{{end}})
+{{end}}
+}
+
+// Route is one row in the spec §3.1.1 routing table; RegisterHandlers walks
+// these and binds each `(method, path)` pair to the matching ServerInterface
+// method. Path params come from the OpenAPI `path` template literally
+// (server-side parsing is the implementer's responsibility).
+type Route struct {
+	OperationID string
+	Method      string
+	Path        string
+	PathParams  []string
+}
+
+// AllRoutes lists every spec §3.1.1 operation in declaration order.
+var AllRoutes = []Route{
+{{- range .Operations}}
+	{OperationID: "{{.OperationId}}", Method: "{{.Method}}", Path: "{{.Path}}", PathParams: {{.PathParamsLiteral}}},
+{{- end}}
+}
