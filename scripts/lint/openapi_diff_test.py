@@ -147,6 +147,70 @@ class SpecRuleTests(unittest.TestCase):
         findings = od.diff_documents(self.base, cur)
         self.assertTrue(any(f["kind"] == "type-changed" and f["severity"] == "breaking" for f in findings))
 
+    def test_oneof_branch_type_change_is_breaking(self) -> None:
+        cur = copy.deepcopy(self.base)
+        self.base["components"]["schemas"]["TargetJob"]["properties"]["nullableSessionId"] = {
+            "oneOf": [
+                {"type": "string", "format": "uuid"},
+                {"type": "null"},
+            ]
+        }
+        cur["components"]["schemas"]["TargetJob"]["properties"]["nullableSessionId"] = {
+            "oneOf": [
+                {"type": "integer"},
+                {"type": "null"},
+            ]
+        }
+        findings = od.diff_documents(self.base, cur)
+        self.assertTrue(
+            any(
+                f["kind"] == "type-changed"
+                and f["severity"] == "breaking"
+                and "nullableSessionId.oneOf[0]" in f["where"]
+                for f in findings
+            )
+        )
+
+    def test_allof_branch_ref_change_is_breaking(self) -> None:
+        cur = copy.deepcopy(self.base)
+        self.base["components"]["schemas"]["PaginatedTargetJob"] = {
+            "allOf": [
+                {"$ref": "#/components/schemas/PageInfo"},
+                {
+                    "type": "object",
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/TargetJob"},
+                        }
+                    },
+                },
+            ]
+        }
+        cur["components"]["schemas"]["PaginatedTargetJob"] = {
+            "allOf": [
+                {"$ref": "#/components/schemas/PageInfo"},
+                {
+                    "type": "object",
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/PracticePlan"},
+                        }
+                    },
+                },
+            ]
+        }
+        findings = od.diff_documents(self.base, cur)
+        self.assertTrue(
+            any(
+                f["kind"] == "ref-changed"
+                and f["severity"] == "breaking"
+                and "PaginatedTargetJob.allOf[1].items.items" in f["where"]
+                for f in findings
+            )
+        )
+
     def test_required_add_on_existing_field_is_breaking(self) -> None:
         cur = copy.deepcopy(self.base)
         cur["components"]["schemas"]["TargetJob"]["properties"]["status"] = {
@@ -310,7 +374,7 @@ class CLIWhitelistTests(unittest.TestCase):
         )
         return repo
 
-    def _run(self, repo: Path) -> tuple[int, dict, str]:
+    def _run(self, repo: Path, *extra_args: str) -> tuple[int, dict, str]:
         out = subprocess.run(
             [
                 sys.executable,
@@ -318,6 +382,7 @@ class CLIWhitelistTests(unittest.TestCase):
                 "--repo-root",
                 str(repo),
                 "--fail-on-incompatible",
+                *extra_args,
             ],
             capture_output=True,
             text=True,
@@ -414,6 +479,50 @@ class CLIWhitelistTests(unittest.TestCase):
             self.assertEqual(rc, 1, msg=payload)
             kinds = {f["kind"] for f in payload["findings"]}
             self.assertIn("history-not-incremented", kinds)
+
+    def test_privacy_501_to_202_committed_history_increment_passes_against_base_branch(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = self._write_repo(Path(tmp))
+            subprocess.run(["git", "-C", str(repo), "checkout", "-q", "-b", "feature/privacy-export"], check=True)
+
+            cur_path = repo / "openapi" / "openapi.yaml"
+            doc = yaml.safe_load(cur_path.read_text())
+            doc["paths"]["/privacy/exports"]["post"]["responses"] = {
+                "202": {
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/PrivacyRequestWithJob"}
+                        }
+                    }
+                }
+            }
+            cur_path.write_text(yaml.safe_dump(doc, sort_keys=False))
+
+            history_path = repo / "docs" / "spec" / "openapi-v1-contract" / "history.md"
+            history_text = history_path.read_text()
+            history_text = history_text.replace(
+                "| 2026-04-28 | 1.0 | initial | - |\n",
+                "| 2026-04-28 | 1.0 | initial | - |\n| 2026-04-29 | 1.1 | privacy export 501→202 (whitelist additive) | - |\n",
+            )
+            history_path.write_text(history_text)
+
+            env = os.environ.copy()
+            env["GIT_AUTHOR_NAME"] = "test"
+            env["GIT_AUTHOR_EMAIL"] = "test@example.com"
+            env["GIT_COMMITTER_NAME"] = "test"
+            env["GIT_COMMITTER_EMAIL"] = "test@example.com"
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-q", "-m", "privacy transition"],
+                check=True,
+                env=env,
+            )
+
+            rc, payload, _ = self._run(repo)
+            self.assertEqual(rc, 0, msg=payload)
+            self.assertEqual(payload["summary"]["breaking"], 0)
+            self.assertEqual(payload["summary"]["informational"], 2)
 
 
 if __name__ == "__main__":

@@ -36,6 +36,7 @@ whitelist:
 
 tooling:
   wrapperVersion: "1.0.0"
+  historyDiffBase: dev
   description: |-
     The wrapper implements spec §4.4 directly so the gate is runnable without a
     network-dependent third-party CLI. Future option: shell to OpenAPITools

@@ -46,13 +46,20 @@ until that decision is recorded.
 | `PyYAML` | 与 repo `requirements*` 一致 | wrapper 仅依赖 `yaml.safe_load` |
 | `OpenAPITools/openapi-diff` (可选) | 暂未启用 | wrapper 直接实现 spec §4.4 规则；如未来引入 OpenAPITools CLI，需在 [openapi/diff-config.yaml](../diff-config.yaml) `tooling` 中固定版本，且 wrapper 仍持有最终退出码 |
 
+`make openapi-diff` 默认使用 [openapi/diff-config.yaml](../diff-config.yaml)
+中的 `tooling.historyDiffBase`（当前为 `dev`）与 `HEAD` 的 merge-base 作为
+privacy export 白名单 history 增量比较基准；如果该 ref 不存在，会回退到
+`main` / `master` 候选，最后才回退 `HEAD`。需要复现旧自检或临时指定基准时，
+使用 `HISTORY_REF=<git-ref> make openapi-diff`。
+
 ## Whitelist
 
 [openapi/diff-config.yaml](../diff-config.yaml) 维护唯一的状态码切换白名单：
 `POST /api/v1/privacy/exports` 从 `501` 切到 `202`（spec §3.1 D-12 / §4.4 P0
 例外）。命中白名单时 wrapper 把对应 finding 降级为 informational，但同 PR
 必须递增 [history.md](../../docs/spec/openapi-v1-contract/history.md) 表中的
-对应行；缺增量则 wrapper 重新升级为 breaking 并退出码 1。
+对应行；缺增量则 wrapper 重新升级为 breaking 并退出码 1。该检查按 base
+branch merge-base 比较，因此 history 行随 feature branch commit 一起提交后仍应通过。
 
 任何对白名单的扩展（新 path / method / 状态码组合）都必须先有 `状态: accepted`
 的 ADR + 本 spec 修订 + 本 README 阈值表更新。

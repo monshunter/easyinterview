@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-04-29](./2026-04-29-openapi-v1-contract-003-breaking-change-gate-remediation-assessment.md) | openapi-v1-contract/003-breaking-change-gate remediation 交付复盘 | #assessment |
 | [2026-04-28](./2026-04-28-openapi-v1-contract-003-breaking-change-gate-assessment.md) | openapi-v1-contract/003-breaking-change-gate 交付复盘 | #assessment |
 | [2026-04-28](./2026-04-28-openapi-v1-contract-002-fixtures-and-mock-source-assessment.md) | openapi-v1-contract/002-fixtures-and-mock-source 交付复盘 | #assessment |
 | [2026-04-28](./2026-04-28-openapi-v1-contract-001-bootstrap-remediation-assessment.md) | openapi-v1-contract/001-bootstrap remediation 交付复盘 | #assessment |

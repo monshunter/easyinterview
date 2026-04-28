@@ -71,6 +71,7 @@ openapi-diff: ## Compare openapi/openapi.yaml against the latest baseline under 
 	@python3 "$(ROOT_DIR)/scripts/lint/openapi_diff.py" \
 		--repo-root "$(ROOT_DIR)" \
 		$(if $(BASELINE_VERSION),--baseline-version $(BASELINE_VERSION),) \
+		$(if $(HISTORY_REF),--history-ref $(HISTORY_REF),) \
 		--fail-on-incompatible
 
 validate-fixtures: ## Validate openapi/fixtures/*.json against openapi.yaml (B2 002 — schema, provenance, privacy, UUIDv7, 36-coverage)

@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-04-28
+> **更新日期**: 2026-04-29
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -95,6 +95,13 @@ info:
 - 临时给 `practice_plans` schema 加一个 optional `metadata` 字段：`make openapi-diff` 仅 informational，exit 0（spec C-5）。revert 后恢复。
 - 临时把 `POST /api/v1/privacy/exports` 响应从 501 改成 202（保持其它字段不动）+ 在 `history.md` 写一行升级记录：`make openapi-diff` 通过；不写 `history.md` 增量时 fail。revert 后恢复。
 
+#### 2.5 L2 remediation
+
+修复 `/plan-code-review --fix` 发现的 wrapper 漏洞：
+
+- `scripts/lint/openapi_diff.py` 必须递归比较 `oneOf` / `allOf` / `anyOf` composition 分支，至少覆盖当前 contract 已使用的 nullable `oneOf` 与 paginated `allOf` schema；composition 中的 type / `$ref` / required / enum 破坏性变更必须被归类为 breaking。
+- privacy export `501 → 202` 白名单的 history 增量校验默认按 base branch / merge-base 语义比较，不能在变更与 history 行已经提交到 feature branch 后误判为 `history-not-incremented`；`Makefile` 入口必须允许显式覆盖 history ref。
+
 ### Phase 3: ADR 模板与升级流程
 
 #### 3.1 ADR 模板
@@ -172,4 +179,5 @@ info:
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-04-29 | 1.2 | L2 remediation：补齐 wrapper 对 OpenAPI composition schema diff 与 history-ref base 比较语义的执行要求。 | plan-code-review --fix |
 | 2026-04-28 | 1.1 | 对齐 B2 spec v1.4：privacy export P0 例外类型从旧称 `ApiError` 修正为 wire envelope `ApiErrorResponse`。 | 001-bootstrap assessment remediation |

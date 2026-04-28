@@ -51,6 +51,7 @@ import yaml
 
 WRAPPER_VERSION = "1.0.0"
 HTTP_METHODS = {"get", "put", "post", "delete", "options", "head", "patch", "trace"}
+COMPOSITION_KEYS = ("allOf", "oneOf", "anyOf")
 
 SemVerTuple = Tuple[int, int, int]
 
@@ -100,6 +101,57 @@ def _git_show(repo_root: Path, ref: str, path: Path) -> Optional[str]:
         return out.stdout.decode("utf-8", errors="replace")
     except subprocess.CalledProcessError:
         return None
+
+
+def _git_rev_parse(repo_root: Path, ref: str) -> Optional[str]:
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(repo_root), "rev-parse", "--verify", f"{ref}^{{commit}}"],
+            check=True,
+            capture_output=True,
+        )
+        return out.stdout.decode("utf-8", errors="replace").strip()
+    except subprocess.CalledProcessError:
+        return None
+
+
+def _git_merge_base(repo_root: Path, left: str, right: str) -> Optional[str]:
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(repo_root), "merge-base", left, right],
+            check=True,
+            capture_output=True,
+        )
+        return out.stdout.decode("utf-8", errors="replace").strip()
+    except subprocess.CalledProcessError:
+        return None
+
+
+def _resolve_history_ref(repo_root: Path, requested_ref: str, config: Dict[str, Any]) -> str:
+    if requested_ref and requested_ref != "auto":
+        return requested_ref
+
+    tooling = config.get("tooling") or {}
+    configured_base = tooling.get("historyDiffBase") or "dev"
+    candidates: List[str] = []
+    for ref in (
+        configured_base,
+        f"origin/{configured_base}" if configured_base else None,
+        "main",
+        "origin/main",
+        "master",
+        "origin/master",
+    ):
+        if ref and ref not in candidates:
+            candidates.append(ref)
+
+    for ref in candidates:
+        if not _git_rev_parse(repo_root, ref):
+            continue
+        merge_base = _git_merge_base(repo_root, "HEAD", ref)
+        if merge_base:
+            return merge_base
+    return "HEAD"
 
 
 def _count_history_rows(text: str) -> int:
@@ -187,6 +239,59 @@ def diff_schema_node(
                 _new_finding("ref-changed", "breaking", where=loc, fromRef=bref, toRef=cref)
             )
         return findings
+
+    base_compositions = [key for key in COMPOSITION_KEYS if key in base]
+    cur_compositions = [key for key in COMPOSITION_KEYS if key in cur]
+    for key in base_compositions:
+        if key not in cur_compositions:
+            findings.append(
+                _new_finding("composition-removed", "breaking", where=loc, composition=key)
+            )
+    for key in cur_compositions:
+        if key not in base_compositions:
+            findings.append(
+                _new_finding("composition-added", "breaking", where=loc, composition=key)
+            )
+    for key in base_compositions:
+        if key not in cur_compositions:
+            continue
+        base_items = base.get(key) or []
+        cur_items = cur.get(key) or []
+        if not isinstance(base_items, list) or not isinstance(cur_items, list):
+            if base_items != cur_items:
+                findings.append(
+                    _new_finding(
+                        "composition-changed",
+                        "breaking",
+                        where=loc,
+                        composition=key,
+                    )
+                )
+            continue
+        shared = min(len(base_items), len(cur_items))
+        for i in range(shared):
+            findings.extend(
+                diff_schema_node(f"{loc}.{key}[{i}]", base_items[i], cur_items[i], visited)
+            )
+        for i in range(shared, len(base_items)):
+            findings.append(
+                _new_finding(
+                    "composition-branch-removed",
+                    "breaking",
+                    where=f"{loc}.{key}[{i}]",
+                    composition=key,
+                )
+            )
+        for i in range(shared, len(cur_items)):
+            findings.append(
+                _new_finding(
+                    "composition-branch-added",
+                    "breaking",
+                    where=f"{loc}.{key}[{i}]",
+                    composition=key,
+                )
+            )
+
     btype = base.get("type")
     ctype = cur.get("type")
     if btype and ctype and btype != ctype:
@@ -706,13 +811,14 @@ def run(args: argparse.Namespace) -> int:
     baseline_doc = _yaml_load(baseline_path)
     current_doc = _yaml_load(current_path)
     config = _load_diff_config(config_path)
+    history_ref = _resolve_history_ref(repo_root, args.history_ref, config)
 
     findings = diff_documents(baseline_doc, current_doc)
     findings, whitelist_matches = apply_response_status_whitelist(findings, config)
 
     if whitelist_matches:
         gate_finding = evaluate_history_gate(
-            repo_root, history_path, args.history_ref, whitelist_matches
+            repo_root, history_path, history_ref, whitelist_matches
         )
         if gate_finding is not None:
             findings.append(gate_finding)
@@ -725,7 +831,8 @@ def run(args: argparse.Namespace) -> int:
         current=str(current_path),
         config=str(config_path) if config_path.is_file() else None,
         history=str(history_path) if history_path.is_file() else None,
-        historyRef=args.history_ref,
+        historyRef=history_ref,
+        historyRefInput=args.history_ref,
         summary=summary,
         whitelistMatches=whitelist_matches,
         findings=findings,
@@ -751,7 +858,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--current", default=None)
     parser.add_argument("--config", default=None)
     parser.add_argument("--history", default=None)
-    parser.add_argument("--history-ref", default="HEAD")
+    parser.add_argument("--history-ref", default="auto")
     parser.add_argument(
         "--fail-on-incompatible",
         dest="fail_on_incompatible",

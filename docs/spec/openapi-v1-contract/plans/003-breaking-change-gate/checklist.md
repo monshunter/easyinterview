@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-04-28
+> **更新日期**: 2026-04-29
 
 **关联计划**: [plan](./plan.md)
 
@@ -18,6 +18,7 @@
 - [x] 2.2 配置 privacy export 白名单：`POST /api/v1/privacy/exports` 从 `501` 切到 `202` 视为 additive；命中时输出 informational 但不报 breaking；wrapper 必须额外检查同 PR `history.md` 是否含对应增量行，缺则 fail；白名单不可扩展到其它 endpoint
 - [x] 2.3 落地 wrapper 脚本 `scripts/lint/openapi_diff.py`（如工具配置不够强）：reclassify 工具输出 → spec §4.4 口径；最终退出码以 wrapper 为准；wrapper 启动时打印 `openapi-diff --version`
 - [x] 2.4 Phase 2 自检：删字段 → fail（C-4）；加 optional → pass（C-5）；privacy export `501→202` + `history.md` 增量 → pass，缺 history 增量 → fail；revert 后恢复
+- [x] 2.5 L2 remediation：补齐 wrapper 对 `oneOf` / `allOf` / `anyOf` composition schema 的 breaking diff 检测；修复 privacy export 白名单 history gate 的默认 base-ref 语义，并允许 `Makefile` 显式覆盖 history ref
 
 ## Phase 3: ADR 模板与升级流程
 

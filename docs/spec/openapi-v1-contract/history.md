@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-04-28
+> **更新日期**: 2026-04-29
 
 ## 1 修订规则
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-04-29 | 1.7 | L2 remediation：`make openapi-diff` wrapper 补齐 `oneOf` / `allOf` / `anyOf` composition schema diff 的 breaking 检测，并把 privacy export `501→202` 白名单 history gate 默认基准改为 base branch merge-base；`Makefile` 新增 `HISTORY_REF=` 覆盖入口。 | 003-breaking-change-gate / plan-code-review --fix |
 | 2026-04-28 | 1.6 | 落地 [plan 003-breaking-change-gate](./plans/003-breaking-change-gate/plan.md)：新增 `openapi/baseline/openapi-v1.0.0.yaml` v1.0.0 freeze 快照、`make openapi-diff` 本地 gate（[scripts/lint/openapi_diff.py](../../../scripts/lint/openapi_diff.py) wrapper + [openapi/diff-config.yaml](../../../openapi/diff-config.yaml) ruleset）、privacy export `501→202` 白名单 + 同 PR `history.md` 增量校验、ADR 模板 ([decisions/TEMPLATE.md](./decisions/TEMPLATE.md)) 与 SemVer 升级阈值文档 ([openapi/baseline/README.md](../../../openapi/baseline/README.md))，并在本 history.md 上方落地「修订规则」章节。 | 003-breaking-change-gate |
 | 2026-04-28 | 1.5 | 将 `make docs-openapi` 的本地 HTML renderer 从 deprecated `redoc-cli@0.13.21` 迁移为官方推荐的 `@redocly/cli@2.30.1 build-docs`，保持 C-1 validator 仍由 `@apidevtools/swagger-cli@4.0.4` + inventory lint 负责。 | 001-bootstrap |
 | 2026-04-28 | 1.4 | 根据 001-bootstrap assessment remediation 锁定 `ei_session` cookie 字面量引用、B2 tooling deprecated-but-accepted 边界、`ResourceType` / `JobType` 字面量集合，并明确 B1 `ApiError` inner object 与 B2 `ApiErrorResponse` envelope 的生成口径。 | 001-bootstrap |

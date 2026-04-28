@@ -10,6 +10,8 @@ Owner subspec: [openapi-v1-contract](../docs/spec/openapi-v1-contract/spec.md)
 
 ```
 openapi/
+├── baseline/                 # frozen version snapshots for `make openapi-diff`
+├── diff-config.yaml          # breaking-change rules and whitelist config
 ├── openapi.yaml              # single-root OpenAPI 3.1 contract (hand-authored)
 ├── README.md                 # this file
 ├── dist/                     # `make docs-openapi` output (gitignored)
@@ -58,6 +60,7 @@ Two truth sources feed the contract:
 | `make codegen` | Convenience composite: runs `codegen-conventions` first (so B1's libs are fresh), then `codegen-openapi`. |
 | `make lint-openapi` | `@apidevtools/swagger-cli@4.0.4` validate + `scripts/lint/openapi_inventory.py` against `openapi/openapi.yaml`. |
 | `make codegen-check` | Local **drift gate**: `codegen-openapi` + `lint-openapi` + `git diff --exit-code` over `openapi.yaml`, `backend/internal/api/generated/`, and `frontend/src/api/generated/`. |
+| `make openapi-diff` | Compare `openapi/openapi.yaml` against the latest `openapi/baseline/openapi-vX.Y.Z.yaml`; use `BASELINE_VERSION=v1.0.0` to pin and `HISTORY_REF=<git-ref>` to override the default base-branch history comparison. |
 | `make docs-openapi` | Render the contract as a single-file HTML site at `openapi/dist/index.html` with `@redocly/cli@2.30.1 build-docs`. The output is `dist/`-gitignored — local artefact only. |
 | `make validate-fixtures` | Schema-validate every `openapi/fixtures/<tag>/<operationId>.json` against `openapi.yaml`; enforce AI-schema provenance, privacy / UUIDv7 scans, and 36-operation coverage. Owner B2 002. |
 | `make sync-fixtures-from-prototype` | Re-render every fixture's `scenarios.prototype-baseline` from `easyinterview-ui/src/data.jsx`; idempotent; owner B2 002. |
