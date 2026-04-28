@@ -6,7 +6,11 @@
 
 ## 1 进行中（Active）
 
-*暂无 active 计划文档；W1 阶段（[engineering-roadmap/001 Phase 3](../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架)）只 spawn 本 subspec 的 spec.md / history.md / plans/INDEX.md，impl plan 由 B2 自身后续 `/implement` 启动。*
+| 计划 | 文件 | 版本 | 状态 | 更新日期 |
+|------|------|------|------|----------|
+| [001-bootstrap](./001-bootstrap/plan.md) | [plan](./001-bootstrap/plan.md) / [checklist](./001-bootstrap/checklist.md) / [context](./001-bootstrap/context.yaml) | 1.0 | active | 2026-04-28 |
+| [002-fixtures-and-mock-source](./002-fixtures-and-mock-source/plan.md) | [plan](./002-fixtures-and-mock-source/plan.md) / [checklist](./002-fixtures-and-mock-source/checklist.md) / [context](./002-fixtures-and-mock-source/context.yaml) | 1.0 | active | 2026-04-28 |
+| [003-breaking-change-gate](./003-breaking-change-gate/plan.md) | [plan](./003-breaking-change-gate/plan.md) / [checklist](./003-breaking-change-gate/checklist.md) / [context](./003-breaking-change-gate/context.yaml) | 1.0 | active | 2026-04-28 |
 
 ## 2 已完成（Completed）
 

@@ -1,0 +1,51 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: openapi-v1-contract
+  name: 002-fixtures-and-mock-source
+  sequence: 2
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.3
+spec:
+  defaultTarget: contract
+  discovery:
+    aliases:
+      - openapi-v1-contract
+      - 002-fixtures-and-mock-source
+      - openapi-fixtures
+      - mock-source
+      - prototype-baseline
+      - fixtures-validator
+    keywords:
+      - fixtures
+      - default scenario
+      - prototype-baseline
+      - data.jsx mapping
+      - validate-fixtures
+      - sync-fixtures-from-prototype
+      - generation provenance
+      - privacy export 501
+      - privacy redaction
+      - prism mock
+      - msw same source
+      - mock parity
+      - operationId fixture
+      - schema valid
+      - fixture idempotent
+      - mock-first
+  targets:
+    contract:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - openapi/fixtures
+          - scripts/lint
+          - scripts/codegen
+          - easyinterview-ui/src
+          - Makefile
+        uiRoutes: []
+        apiNames: []

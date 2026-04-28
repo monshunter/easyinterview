@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-04-28 | 1.3 | `/design` 物化 §7 列出的 3 个 child plan：[001-bootstrap](./plans/001-bootstrap/plan.md)（openapi.yaml v1.0.0 骨架 + 双端 codegen + ADR-Q1 Auth + privacy export 501 + GenerationProvenance + 本地 drift gate）、[002-fixtures-and-mock-source](./plans/002-fixtures-and-mock-source/plan.md)（36 operationId default fixtures + prototype-baseline 同步工具 + 隐私脱敏校验 + Prism mock parity smoke）、[003-breaking-change-gate](./plans/003-breaking-change-gate/plan.md)（openapi-diff baseline + ruleset + privacy export 白名单 + ADR 模板 + B2 freeze handoff）。spec 文本不变，依旧是 v1.3。 | 001-bootstrap / 002-fixtures-and-mock-source / 003-breaking-change-gate |
 | 2026-04-28 | 1.3 | 根据 L1 plan-review 修订 B2 契约：Auth tag 以 ADR-Q1 email magic link + first-party session cookie 为准；将 privacy export 的 P0 `501 Not Implemented` 作为显式状态码例外并标注 P1 切回 `202` 的兼容判定；补齐 schema inventory、header/idempotency 矩阵与 AI 生成结果 `GenerationProvenance` 约束。 | plan-review remediation |
 | 2026-04-27 | 1.2 | 对齐 A5 单人开发阶段决策：B2 当前只要求本地 OpenAPI codegen drift / breaking-change gate，不要求 CI artifact、required check 或 label workflow。 | engineering-roadmap/001 Phase 3 remediation |
 | 2026-04-27 | 1.1 | 修正 W1 gate 口径：parent Phase 3 只锁定 B2 v1.0.0 freeze 范围与 additive-only 规则；真实 `openapi/openapi.yaml`、codegen、fixtures 与 breaking-change linter 由 B2 child `001` 系列 plan 验证后再放行依赖 B2 的 W2 implementation | engineering-roadmap/001 Phase 3 remediation |

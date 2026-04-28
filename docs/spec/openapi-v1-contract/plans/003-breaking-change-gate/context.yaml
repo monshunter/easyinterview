@@ -1,0 +1,53 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: openapi-v1-contract
+  name: 003-breaking-change-gate
+  sequence: 3
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.3
+spec:
+  defaultTarget: contract
+  discovery:
+    aliases:
+      - openapi-v1-contract
+      - 003-breaking-change-gate
+      - openapi-diff
+      - additive-only
+      - v1-freeze
+      - breaking-change-linter
+      - baseline-snapshot
+    keywords:
+      - openapi-diff
+      - openapitools
+      - additive only
+      - breaking change
+      - baseline yaml
+      - v1.0.0 freeze
+      - privacy export whitelist
+      - 501 to 202
+      - adr template
+      - semver upgrade
+      - history append rule
+      - reclassify
+      - wrapper script
+      - local quality gate
+      - deferred CI
+      - b2 freeze handoff
+      - w2 implementation gate
+  targets:
+    contract:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - openapi/baseline
+          - openapi
+          - scripts/lint
+          - docs/spec/openapi-v1-contract/decisions
+          - Makefile
+        uiRoutes: []
+        apiNames: []

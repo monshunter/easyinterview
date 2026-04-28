@@ -1,0 +1,59 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: openapi-v1-contract
+  name: 001-bootstrap
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.3
+spec:
+  defaultTarget: contract
+  discovery:
+    aliases:
+      - openapi-v1-contract
+      - 001-bootstrap
+      - openapi-bootstrap
+      - openapi-v1
+      - api-contract
+      - contract-bootstrap
+    keywords:
+      - openapi 3.1
+      - openapi.yaml
+      - 14 tags
+      - 36 endpoints
+      - api/v1 prefix
+      - codegen
+      - oapi-codegen
+      - openapi-typescript
+      - go server interface
+      - typescript client
+      - shared conventions ref
+      - apierror
+      - pageinfo
+      - generation provenance
+      - idempotency key
+      - clienteventid
+      - privacy export 501
+      - session cookie security
+      - adr-q1 auth
+      - drift check
+      - local quality gate
+      - deferred CI
+  targets:
+    contract:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - openapi
+          - openapi/templates
+          - backend/cmd/codegen/openapi
+          - backend/internal/api/generated
+          - frontend/src/api/generated
+          - scripts/lint
+          - Makefile
+        uiRoutes: []
+        apiNames: []

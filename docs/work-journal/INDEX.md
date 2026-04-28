@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-28](2026-04-28.md) | `docs(openapi): materialize B2 child plans 001/002/003` | #docs |
 | [2026-04-28](2026-04-28.md) | `docs(secrets-and-config): reconcile A4 plan-review remediation` | #docs |
 | [2026-04-28](2026-04-28.md) | `docs(openapi): reconcile v1 contract review findings` | #docs |
 | [2026-04-28](2026-04-28.md) | `docs(dev-stack): correct A3 spec link` | #docs |
