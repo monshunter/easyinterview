@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Bootstrap Checklist
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-04-28
 
 **关联计划**: [plan](./plan.md)
@@ -27,7 +27,7 @@
 
 ## Phase 4: Verification + handoff
 
-- [ ] 4.1 自检 spec C-1 / C-2 / C-3：`npx @apidevtools/swagger-cli validate openapi/openapi.yaml` 通过；连续两次 `make codegen-openapi` 后 `git status` clean；删除任一 generated 文件可由 generator 还原；临时新增 schema 字段后 `make codegen-check` 失败、revert 后恢复
-- [ ] 4.2 自检 spec C-7 partial / C-8 / C-11 partial：privacy export 501 在 yaml 中唯一存在且 `example.error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；分支上修改 B1 `shared/conventions.yaml` 任一 enum 值后 `codegen-conventions && codegen-openapi && codegen-check` 拦截漂移；`GenerationProvenance` schema 存在且 spec §4.6 固定 AI schema 名单均通过 `$ref` 可追溯
-- [ ] 4.3 文档与 INDEX 同步：本 plan 自身 checklist 与 Phase 4 验证完成后将 plan/checklist Header 切到 completed，并用 `/sync-doc-index --fix-index` 同步 plans/INDEX.md；不联动 002 / 003 状态；`/sync-doc-index --check` 通过；不修改 engineering-roadmap/001 Phase 3.3
-- [ ] 4.4 B2 child 协作 handoff：本 plan 输出的 `openapi.yaml` 与 generated 类型为 002 fixtures 校验与 003 baseline 锁定的真理源；不直接登记 spec C-10（C-10 由 003 Phase 4 关闭）
+- [x] 4.1 自检 spec C-1 / C-2 / C-3：`npx @apidevtools/swagger-cli validate openapi/openapi.yaml` 通过；连续两次 `make codegen-openapi` 后 `git status` clean；删除任一 generated 文件可由 generator 还原；临时新增 schema 字段后 `make codegen-check` 失败、revert 后恢复
+- [x] 4.2 自检 spec C-7 partial / C-8 / C-11 partial：privacy export 501 在 yaml 中唯一存在且 `example.error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；分支上修改 B1 `shared/conventions.yaml` 任一 enum 值后 `codegen-conventions && codegen-openapi && codegen-check` 拦截漂移；`GenerationProvenance` schema 存在且 spec §4.6 固定 AI schema 名单均通过 `$ref` 可追溯
+- [x] 4.3 文档与 INDEX 同步：本 plan 自身 checklist 与 Phase 4 验证完成后将 plan/checklist Header 切到 completed，并用 `/sync-doc-index --fix-index` 同步 plans/INDEX.md；不联动 002 / 003 状态；`/sync-doc-index --check` 通过；不修改 engineering-roadmap/001 Phase 3.3
+- [x] 4.4 B2 child 协作 handoff：本 plan 输出的 `openapi.yaml` 与 generated 类型为 002 fixtures 校验与 003 baseline 锁定的真理源；不直接登记 spec C-10（C-10 由 003 Phase 4 关闭）

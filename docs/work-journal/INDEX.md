@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-28](2026-04-28.md) | `docs(openapi): 收口 001-bootstrap plan 与 plans/INDEX` | #docs |
 | [2026-04-28](2026-04-28.md) | `feat(openapi): 接入 docs-openapi 本地 HTML 站点` | #feat |
 | [2026-04-28](2026-04-28.md) | `feat(openapi): 落地 codegen pipeline 与本地 drift gate` | #feat |
 | [2026-04-28](2026-04-28.md) | `feat(openapi): v1.0.0 骨架与共享 components` | #feat |
