@@ -68,6 +68,148 @@
           }
         }
       }
+    },
+    "prototype-baseline": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-prototype"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "01918fa0-3470-7449-8d1a-d2dadf5645f9",
+              "targetJobId": "01918fa0-ee66-739f-855a-0a9c27ab13df",
+              "sourceSessionId": "01918fa0-4e08-7aa5-82fb-429d4ca5536d",
+              "sourceDebriefId": null,
+              "competencyCode": "性能优化叙述",
+              "questionText": "讲一个你主导过的前端性能优化项目",
+              "answerSummary": "性能优化叙述",
+              "failureReasons": [
+                "性能优化叙述"
+              ],
+              "recommendedFramework": "STAR + 量化",
+              "status": "improving",
+              "priority": 80,
+              "provenance": {
+                "promptVersion": "mistake_synthesis.v1",
+                "rubricVersion": "feedback_report.rubric.v2",
+                "modelId": "primary-llm:m4.7-sonnet-2026q1",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "prototype-baseline.v1"
+              },
+              "createdAt": "2026-04-28T12:00:00Z",
+              "updatedAt": "2026-04-28T13:45:12Z"
+            },
+            {
+              "id": "01918fa0-36cd-787a-82ce-1f4b73735f8b",
+              "targetJobId": "01918fa0-ee66-739f-855a-0a9c27ab13df",
+              "sourceSessionId": "01918fa0-4e08-7aa5-82fb-429d4ca5536d",
+              "sourceDebriefId": null,
+              "competencyCode": "追问下的方案权衡",
+              "questionText": "为什么选 X 而不是 Y 方案",
+              "answerSummary": "追问下的方案权衡",
+              "failureReasons": [
+                "追问下的方案权衡"
+              ],
+              "recommendedFramework": "STAR + 量化",
+              "status": "open",
+              "priority": 80,
+              "provenance": {
+                "promptVersion": "mistake_synthesis.v1",
+                "rubricVersion": "feedback_report.rubric.v2",
+                "modelId": "primary-llm:m4.7-sonnet-2026q1",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "prototype-baseline.v1"
+              },
+              "createdAt": "2026-04-28T12:00:00Z",
+              "updatedAt": "2026-04-28T13:45:12Z"
+            },
+            {
+              "id": "01918fa0-0404-7471-8a75-e9b2b7ae5613",
+              "targetJobId": "01918fa0-ee66-739f-855a-0a9c27ab13df",
+              "sourceSessionId": "01918fa0-4e08-7aa5-82fb-429d4ca5536d",
+              "sourceDebriefId": null,
+              "competencyCode": "反问质量",
+              "questionText": "你有什么想问我的？",
+              "answerSummary": "反问质量",
+              "failureReasons": [
+                "反问质量"
+              ],
+              "recommendedFramework": "STAR + 量化",
+              "status": "improving",
+              "priority": 50,
+              "provenance": {
+                "promptVersion": "mistake_synthesis.v1",
+                "rubricVersion": "feedback_report.rubric.v2",
+                "modelId": "primary-llm:m4.7-sonnet-2026q1",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "prototype-baseline.v1"
+              },
+              "createdAt": "2026-04-28T12:00:00Z",
+              "updatedAt": "2026-04-28T13:45:12Z"
+            },
+            {
+              "id": "01918fa0-bc5b-795a-8692-6f9cbc3d6dfb",
+              "targetJobId": "01918fa0-ee66-739f-855a-0a9c27ab13df",
+              "sourceSessionId": "01918fa0-4e08-7aa5-82fb-429d4ca5536d",
+              "sourceDebriefId": null,
+              "competencyCode": "英文动机表达",
+              "questionText": "Why are you interested in this role?",
+              "answerSummary": "英文动机表达",
+              "failureReasons": [
+                "英文动机表达"
+              ],
+              "recommendedFramework": "STAR + 量化",
+              "status": "open",
+              "priority": 50,
+              "provenance": {
+                "promptVersion": "mistake_synthesis.v1",
+                "rubricVersion": "feedback_report.rubric.v2",
+                "modelId": "primary-llm:m4.7-sonnet-2026q1",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "prototype-baseline.v1"
+              },
+              "createdAt": "2026-04-28T12:00:00Z",
+              "updatedAt": "2026-04-28T13:45:12Z"
+            },
+            {
+              "id": "01918fa0-7cb3-7ab8-8129-b758f56c99a5",
+              "targetJobId": "01918fa0-ee66-739f-855a-0a9c27ab13df",
+              "sourceSessionId": "01918fa0-4e08-7aa5-82fb-429d4ca5536d",
+              "sourceDebriefId": null,
+              "competencyCode": "冲突处理",
+              "questionText": "讲一次你和同事分歧很大的情况",
+              "answerSummary": "冲突处理",
+              "failureReasons": [
+                "冲突处理"
+              ],
+              "recommendedFramework": "STAR + 量化",
+              "status": "mastered",
+              "priority": 20,
+              "provenance": {
+                "promptVersion": "mistake_synthesis.v1",
+                "rubricVersion": "feedback_report.rubric.v2",
+                "modelId": "primary-llm:m4.7-sonnet-2026q1",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "prototype-baseline.v1"
+              },
+              "createdAt": "2026-04-28T12:00:00Z",
+              "updatedAt": "2026-04-28T13:45:12Z"
+            }
+          ],
+          "pageInfo": {
+            "nextCursor": null,
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
     }
   }
 }

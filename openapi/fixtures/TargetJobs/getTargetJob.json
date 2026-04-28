@@ -82,6 +82,110 @@
           "updatedAt": "2026-04-28T12:00:00Z"
         }
       }
+    },
+    "prototype-baseline": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-prototype"
+        },
+        "body": {
+          "id": "01918fa0-ee66-739f-855a-0a9c27ab13df",
+          "status": "interviewing",
+          "analysisStatus": "ready",
+          "title": "资深前端工程师",
+          "companyName": "Acme",
+          "locationText": "上海 · 混合办公",
+          "targetLanguage": "zh-CN",
+          "sourceType": "manual_text",
+          "sourceUrl": null,
+          "summary": {
+            "coreThemes": [
+              "岗位上下文偏向 B 端复杂表单与数据可视化",
+              "团队近期在推 Monorepo + 微前端架构",
+              "面试官团队倾向听到可量化的改进故事"
+            ],
+            "interviewHypotheses": [
+              "HR 初筛: 动机、求职节奏、薪资期望",
+              "技术一面: React 底层、TS 类型设计、性能",
+              "技术二面: 架构决策、大型协作案例",
+              "经理面: 影响力、冲突处理、目标一致性"
+            ],
+            "provenance": {
+              "promptVersion": "target_job_summary.v3",
+              "rubricVersion": "not_applicable",
+              "modelId": "primary-llm:m4.7-sonnet-2026q1",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "prototype-baseline.v1"
+            }
+          },
+          "requirements": [
+            {
+              "id": "01918fa0-39f4-7227-8c13-2965c0a47d26",
+              "kind": "must_have",
+              "label": "5 年以上大型 Web 应用开发经验",
+              "evidenceLevel": "explicit"
+            },
+            {
+              "id": "01918fa0-6cde-7467-8454-19fe0879aff8",
+              "kind": "must_have",
+              "label": "精通 React / TypeScript 与现代构建工具链",
+              "evidenceLevel": "explicit"
+            },
+            {
+              "id": "01918fa0-3adc-7224-8225-a90e90dc3c30",
+              "kind": "must_have",
+              "label": "主导过性能优化与可访问性改造",
+              "evidenceLevel": "explicit"
+            },
+            {
+              "id": "01918fa0-9178-7d78-86f8-fd87383a9615",
+              "kind": "nice_to_have",
+              "label": "Design System / 组件库落地经验",
+              "evidenceLevel": "implicit"
+            },
+            {
+              "id": "01918fa0-43d4-7ce8-8e03-da13286c4708",
+              "kind": "nice_to_have",
+              "label": "有跨团队技术推动经验",
+              "evidenceLevel": "implicit"
+            },
+            {
+              "id": "01918fa0-5c57-74cc-8c13-dfe237167cbf",
+              "kind": "nice_to_have",
+              "label": "熟悉可观测性与前端监控",
+              "evidenceLevel": "implicit"
+            }
+          ],
+          "fitSummary": {
+            "strengths": [
+              "React 深度",
+              "性能优化",
+              "可访问性"
+            ],
+            "gaps": [
+              "大型协作案例",
+              "Design System 落地故事"
+            ],
+            "riskSignals": [
+              "面试官团队倾向听到可量化的改进故事"
+            ],
+            "provenance": {
+              "promptVersion": "target_job_fit.v2",
+              "rubricVersion": "not_applicable",
+              "modelId": "primary-llm:m4.7-sonnet-2026q1",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "prototype-baseline.v1"
+            }
+          },
+          "latestReportId": "01918fa0-c3cb-7268-8404-d3b2603536d8",
+          "openMistakeCount": 3,
+          "createdAt": "2026-04-22T09:30:00Z",
+          "updatedAt": "2026-04-28T12:00:00Z"
+        }
+      }
     }
   }
 }

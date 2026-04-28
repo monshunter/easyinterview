@@ -109,6 +109,77 @@
           }
         }
       }
+    },
+    "prototype-baseline": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-prototype"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "01918fa0-ee66-739f-855a-0a9c27ab13df",
+              "status": "interviewing",
+              "analysisStatus": "ready",
+              "title": "资深前端工程师",
+              "companyName": "Acme",
+              "locationText": "上海 · 混合办公",
+              "targetLanguage": "zh-CN",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openMistakeCount": 3,
+              "createdAt": "2026-04-22T09:30:00Z",
+              "updatedAt": "2026-04-28T12:00:00Z"
+            },
+            {
+              "id": "01918fa0-0412-76bb-8f37-d00633a1285c",
+              "status": "preparing",
+              "analysisStatus": "ready",
+              "title": "Frontend Platform Engineer",
+              "companyName": "Lumen Labs",
+              "locationText": "远程 · 新加坡时区",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openMistakeCount": 5,
+              "createdAt": "2026-04-22T09:30:00Z",
+              "updatedAt": "2026-04-28T12:00:00Z"
+            },
+            {
+              "id": "01918fa0-ad0d-70d8-8c64-d34e77bc7530",
+              "status": "draft",
+              "analysisStatus": "ready",
+              "title": "技术专家（Web 架构）",
+              "companyName": "Helios Group",
+              "locationText": "杭州",
+              "targetLanguage": "zh-CN",
+              "sourceType": "url",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openMistakeCount": 0,
+              "createdAt": "2026-04-22T09:30:00Z",
+              "updatedAt": "2026-04-28T12:00:00Z"
+            }
+          ],
+          "pageInfo": {
+            "nextCursor": null,
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
     }
   }
 }

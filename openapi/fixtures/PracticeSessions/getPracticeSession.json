@@ -27,6 +27,33 @@
           "updatedAt": "2026-04-28T13:45:12Z"
         }
       }
+    },
+    "prototype-baseline": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-prototype"
+        },
+        "body": {
+          "id": "01918fa0-4e08-7aa5-82fb-429d4ca5536d",
+          "planId": "01918fa0-cdeb-7e43-8df1-83fbdd9f7104",
+          "targetJobId": "01918fa0-ee66-739f-855a-0a9c27ab13df",
+          "status": "running",
+          "language": "zh-CN",
+          "hintsEnabled": true,
+          "turnCount": 1,
+          "currentTurn": {
+            "id": "01918fa0-0540-76d0-8814-06cedc749fd7",
+            "turnIndex": 1,
+            "questionText": "用 90 秒介绍一下你自己，并说明你为什么对这个岗位感兴趣。",
+            "questionIntent": "behavioral.self_intro",
+            "status": "asked",
+            "askedAt": "2026-04-28T13:45:12Z"
+          },
+          "createdAt": "2026-04-28T12:00:00Z",
+          "updatedAt": "2026-04-28T13:45:12Z"
+        }
+      }
     }
   }
 }

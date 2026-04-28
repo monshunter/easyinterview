@@ -15,10 +15,10 @@
 
 ## Phase 2: prototype-baseline scenario 同步工具
 
-- [ ] 2.1 落地 `openapi/fixtures/PROTOTYPE_MAPPING.md`：把 `easyinterview-ui/src/data.jsx` 的 mock 数据节映射到 operationId（一对多 / 多对一显式标注）
-- [ ] 2.2 落地 `scripts/codegen/sync_fixtures_from_prototype.{py,ts}`：按 mapping 把数据写入每个 fixture 的 `scenarios.prototype-baseline` 节；schema 不通过 fail-fast；接入 `make sync-fixtures-from-prototype`；幂等（再跑 `git diff --exit-code` 不变）
-- [ ] 2.3 更新 `openapi/fixtures/README.md`：scenario 命名规则（`default` 必填、`prototype-baseline` 来自 ui 原型、其它 `<purpose>-<variant>`）+ consumer 选择 scenario 的契约（默认 fallback `default`）
-- [ ] 2.4 Phase 2 自检：`make sync-fixtures-from-prototype` 幂等；P0 闭环关键 8 个 endpoint 的 `prototype-baseline` 节非空；`make validate-fixtures` 同时通过 `default` 与 `prototype-baseline`
+- [x] 2.1 落地 `openapi/fixtures/PROTOTYPE_MAPPING.md`：把 `easyinterview-ui/src/data.jsx` 的 mock 数据节映射到 operationId（一对多 / 多对一显式标注）
+- [x] 2.2 落地 `scripts/codegen/sync_fixtures_from_prototype.{py,ts}`：按 mapping 把数据写入每个 fixture 的 `scenarios.prototype-baseline` 节；schema 不通过 fail-fast；接入 `make sync-fixtures-from-prototype`；幂等（再跑 `git diff --exit-code` 不变）
+- [x] 2.3 更新 `openapi/fixtures/README.md`：scenario 命名规则（`default` 必填、`prototype-baseline` 来自 ui 原型、其它 `<purpose>-<variant>`）+ consumer 选择 scenario 的契约（默认 fallback `default`）
+- [x] 2.4 Phase 2 自检：`make sync-fixtures-from-prototype` 幂等；P0 闭环关键 8 个 endpoint 的 `prototype-baseline` 节非空；`make validate-fixtures` 同时通过 `default` 与 `prototype-baseline`
 
 ## Phase 3: Mock parity 接口预演（E1 handoff）
 

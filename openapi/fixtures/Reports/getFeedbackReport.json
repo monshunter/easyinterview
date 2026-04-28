@@ -73,6 +73,165 @@
           "updatedAt": "2026-04-28T13:45:12Z"
         }
       }
+    },
+    "prototype-baseline": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-prototype"
+        },
+        "body": {
+          "id": "01918fa0-c3cb-7268-8404-d3b2603536d8",
+          "sessionId": "01918fa0-4e08-7aa5-82fb-429d4ca5536d",
+          "targetJobId": "01918fa0-ee66-739f-855a-0a9c27ab13df",
+          "status": "ready",
+          "preparednessLevel": "basically_ready",
+          "highlights": [
+            {
+              "dimension": "内容有具体场景",
+              "evidence": "订单改价系统的例子真实且有细节，比上次练习更扎实。",
+              "confidence": "high"
+            },
+            {
+              "dimension": "表达节奏稳定",
+              "evidence": "整体语速和停顿没有影响理解，追问时也没有明显慌乱。",
+              "confidence": "high"
+            },
+            {
+              "dimension": "对岗位关键词有映射",
+              "evidence": "主动把自己的「B 端表单」经验映射到 JD 里的「数据可视化」。",
+              "confidence": "high"
+            }
+          ],
+          "issues": [
+            {
+              "dimension": "缺量化结果",
+              "evidence": "性能优化的故事没有给出可验证的量化指标（如 LCP 下降多少、FCP 变化、错误率等）。",
+              "confidence": "high"
+            },
+            {
+              "dimension": "追问后有轻微空转",
+              "evidence": "被追问「为什么选这个方案而不是 X」时，回答只复述了方案，没有给权衡。",
+              "confidence": "medium"
+            },
+            {
+              "dimension": "反问偏套路",
+              "evidence": "反问基本停留在「团队规模、技术栈」，没有体现对公司当下业务的关注。",
+              "confidence": "low"
+            }
+          ],
+          "nextActions": [
+            {
+              "type": "drill",
+              "label": "针对「性能优化量化」做一次单题深钻（15 分钟）"
+            },
+            {
+              "type": "drill",
+              "label": "练习一次「替代方案权衡」型追问"
+            },
+            {
+              "type": "drill",
+              "label": "准备 3 个岗位定制反问"
+            }
+          ],
+          "questionAssessments": [
+            {
+              "turnId": "01918fa0-0540-76d0-8814-06cedc749fd7",
+              "questionIntent": "自我介绍",
+              "dimensionResults": {
+                "内容具体性": {
+                  "status": "meets_bar",
+                  "confidence": "high"
+                },
+                "结构清晰度": {
+                  "status": "strong",
+                  "confidence": "high"
+                },
+                "岗位相关性": {
+                  "status": "meets_bar",
+                  "confidence": "medium"
+                },
+                "追问应对": {
+                  "status": "needs_work",
+                  "confidence": "medium"
+                },
+                "自我认知": {
+                  "status": "meets_bar",
+                  "confidence": "medium"
+                }
+              },
+              "writtenToMistakeBook": false
+            },
+            {
+              "turnId": "01918fa0-2f7f-70e4-8de4-c2ba5ba96176",
+              "questionIntent": "性能优化",
+              "dimensionResults": {
+                "内容具体性": {
+                  "status": "meets_bar",
+                  "confidence": "high"
+                },
+                "结构清晰度": {
+                  "status": "strong",
+                  "confidence": "high"
+                },
+                "岗位相关性": {
+                  "status": "meets_bar",
+                  "confidence": "medium"
+                },
+                "追问应对": {
+                  "status": "needs_work",
+                  "confidence": "medium"
+                },
+                "自我认知": {
+                  "status": "meets_bar",
+                  "confidence": "medium"
+                }
+              },
+              "writtenToMistakeBook": true
+            },
+            {
+              "turnId": "01918fa0-d441-747d-8e3f-3a98a3c3a309",
+              "questionIntent": "design_system_落地",
+              "dimensionResults": {
+                "内容具体性": {
+                  "status": "meets_bar",
+                  "confidence": "high"
+                },
+                "结构清晰度": {
+                  "status": "strong",
+                  "confidence": "high"
+                },
+                "岗位相关性": {
+                  "status": "meets_bar",
+                  "confidence": "medium"
+                },
+                "追问应对": {
+                  "status": "needs_work",
+                  "confidence": "medium"
+                },
+                "自我认知": {
+                  "status": "meets_bar",
+                  "confidence": "medium"
+                }
+              },
+              "writtenToMistakeBook": true
+            }
+          ],
+          "mistakeIds": [
+            "01918fa0-3470-7449-8d1a-d2dadf5645f9"
+          ],
+          "provenance": {
+            "promptVersion": "feedback_report.v3",
+            "rubricVersion": "feedback_report.rubric.v2",
+            "modelId": "primary-llm:m4.7-sonnet-2026q1",
+            "language": "zh-CN",
+            "featureFlag": "none",
+            "dataSourceVersion": "prototype-baseline.v1"
+          },
+          "createdAt": "2026-04-28T12:00:00Z",
+          "updatedAt": "2026-04-28T13:45:12Z"
+        }
+      }
     }
   }
 }
