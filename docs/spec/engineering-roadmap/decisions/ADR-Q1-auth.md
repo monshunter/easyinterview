@@ -1,8 +1,8 @@
 # ADR-Q1 · 认证方案
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: accepted
-> **更新日期**: 2026-04-26
+> **更新日期**: 2026-04-28
 
 ## 1 背景
 
@@ -73,7 +73,7 @@
 落地约束：
 
 1. 唯一登录入口：`POST /api/v1/auth/email/start`（发 magic link）+ `GET /api/v1/auth/email/verify?token=...`（兑换 session）
-2. session 存储：HttpOnly + SameSite=Lax + Secure 的 cookie，服务端 session 表（带 `last_seen_at` / `revoked_at`），默认 30 天滑动续期
+2. session 存储：cookie 字面量名固定为 `ei_session`；属性为 HttpOnly + SameSite=Lax + Secure，服务端 session 表（带 `last_seen_at` / `revoked_at`）是真理源，默认 30 天滑动续期
 3. challenge token：单次失效、15 分钟 TTL、绑定请求 IP + UA hash；进 outbox 异步发邮件
 4. 邮件渠道：默认 Resend 抽象在 `notify` 模块，运维可切换 Postmark / SES（不锁厂商）
 5. 风控基线：同邮箱 / 同 IP 1 分钟内 ≥ 3 次拒绝；进 audit log
@@ -106,3 +106,9 @@
 - `engineering-roadmap/plans/001-decompose-subspecs/plan.md` Phase 1.1
 - 上游：`easyinterview-tech-docs/01-technical-architecture.md` §「auth」、`02-api-definition.md` §「auth tag」、`03-db-definition.md` §「users」
 - 下游 child：C1 / D1 / B2 / B4 / C8 / F1 / F4
+
+## 7 修订记录
+
+| 日期 | 版本 | 变更 | 关联 |
+|------|------|------|------|
+| 2026-04-28 | 1.2 | 锁定 first-party session cookie 字面量名为 `ei_session`，供 B2 OpenAPI security scheme、A4 config 文档与后续 C1 backend-auth 实现复用。 | openapi-v1-contract/001-bootstrap assessment remediation |

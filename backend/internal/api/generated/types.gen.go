@@ -27,6 +27,9 @@ func (emptyType) MarshalJSON() ([]byte, error) { return []byte("{}"), nil }
 // share the same Go types as B1's `internal/shared/{types,errors}` packages.
 // =============================================================================
 
+// ApiError aliases the B1-owned type.
+type ApiError = sharederrors.APIError
+
 // PageInfo aliases the B1-owned type.
 type PageInfo = sharedtypes.PageInfo
 
@@ -107,8 +110,8 @@ var AllApiErrorCodes = []ApiErrorCode{
 	ApiErrorCodePRIVACYEXPORTNOTAVAILABLE,
 }
 
-type ApiError struct {
-	Error any `json:"error"`
+type ApiErrorResponse struct {
+	Error ApiError `json:"error"`
 }
 
 type ResourceType string

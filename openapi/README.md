@@ -38,7 +38,8 @@ Two truth sources feed the contract:
 
 - `shared/conventions.yaml` (B1, owned by
   [shared-conventions-codified](../docs/spec/shared-conventions-codified/spec.md))
-  — enums, error codes, `ApiError` / `PageInfo` / `JobStatus`. The codegen
+  — enums, error codes, `ApiError` inner object / `PageInfo` / `JobStatus`.
+  The codegen
   re-renders the `# === B1-AUTO-START ... # === B1-AUTO-END ===` block of
   `openapi.yaml` from this file, so any B1 enum value change automatically
   surfaces as drift in `openapi.yaml` (and from there into the Go/TS
@@ -53,9 +54,9 @@ Two truth sources feed the contract:
 |-------------------|---------|
 | `make codegen-openapi` | Re-render the B1-AUTO block, then regenerate Go and TS artefacts. Idempotent. |
 | `make codegen` | Convenience composite: runs `codegen-conventions` first (so B1's libs are fresh), then `codegen-openapi`. |
-| `make lint-openapi` | `swagger-cli validate` + `scripts/lint/openapi_inventory.py` against `openapi/openapi.yaml`. |
+| `make lint-openapi` | `@apidevtools/swagger-cli@4.0.4` validate + `scripts/lint/openapi_inventory.py` against `openapi/openapi.yaml`. |
 | `make codegen-check` | Local **drift gate**: `codegen-openapi` + `lint-openapi` + `git diff --exit-code` over `openapi.yaml`, `backend/internal/api/generated/`, and `frontend/src/api/generated/`. |
-| `make docs-openapi` | Render the contract as a single-file HTML site at `openapi/dist/index.html` (Redoc). The output is `dist/`-gitignored — local artefact only. |
+| `make docs-openapi` | Render the contract as a single-file HTML site at `openapi/dist/index.html` with `@redocly/cli@2.30.1 build-docs`. The output is `dist/`-gitignored — local artefact only. |
 
 `make codegen-check` is the **only required** drift gate today. A remote CI
 required-check is deferred until A5
@@ -88,7 +89,7 @@ PracticeSessions, Reports, Mistakes, ResumeTailor, Debriefs, Growth, Jobs,
 Privacy. The 36 operations are catalogued in
 [spec §3.1.1](../docs/spec/openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表);
 `scripts/lint/openapi_inventory.py` enforces tag order, operation enumeration,
-default `ApiError` refs, the `Idempotency-Key` mutex (per ADR-Q1 +
+default `ApiErrorResponse` refs, the `Idempotency-Key` mutex (per ADR-Q1 +
 `clientEventId`), the unique `POST /privacy/exports` 501 example, and the
 `GenerationProvenance` reachability invariant for AI-generated schemas
 (spec §4.6).
@@ -97,7 +98,8 @@ default `ApiError` refs, the `Idempotency-Key` mutex (per ADR-Q1 +
 
 ```
 shared/conventions.yaml ─► (codegen) ─► openapi.yaml's B1-AUTO block
-                                       (ApiError, ApiErrorCode, PageInfo,
+                                       (ApiError inner object, ApiErrorResponse
+                                        envelope, ApiErrorCode, PageInfo,
                                         JobStatus, 14 enums)
                                               │
                                               ▼
@@ -119,16 +121,27 @@ linter rejects any topology that breaks that path.
 
 Per [ADR-Q1](../docs/spec/engineering-roadmap/decisions/ADR-Q1-auth.md), the
 contract locks a single P0 security scheme — `sessionCookie` (`type: apiKey`,
-`in: cookie`). The `Authorization: Bearer` form is **not** a default scheme;
-reintroducing it requires revising both ADR-Q1 and the B2 spec.
+`in: cookie`, `name: ei_session`). The `Authorization: Bearer` form is **not**
+a default scheme; reintroducing it requires revising both ADR-Q1 and the B2
+spec.
 
 ## Tooling versions
 
 - Go ≥ 1.24 (see `backend/go.mod`); the generator only depends on
   `gopkg.in/yaml.v3` at runtime.
-- Node ≥ 20 (used solely for `npx @apidevtools/swagger-cli` at
-  `make lint-openapi`).
+- Node satisfying `@redocly/cli@2.30.1` engines
+  (`>=22.12.0 || >=20.19.0 <21.0.0`) plus npm ≥ 10. The current local
+  verification used Node `v23.10.0` and npm `10.9.2`.
 - Python ≥ 3.11 for `scripts/lint/openapi_inventory.py`.
+- `@apidevtools/swagger-cli@4.0.4` is deprecated upstream, but remains the
+  locked validator for this v1.0.0 OpenAPI 3.1 contract until the B2 spec is
+  revised with replacement-tool evidence.
+- `@redocly/cli@2.30.1` is the locked local docs renderer used by
+  `make docs-openapi` via `redocly build-docs`. It replaces
+  `redoc-cli@0.13.21`, which is deprecated upstream and must not be
+  reintroduced without revising the B2 spec. Any new npm tooling added under
+  `openapi/` must pin an explicit version and record deprecation /
+  replacement status here.
 
 If the generator templates change, run `make codegen-check` to confirm the
 output stays idempotent.

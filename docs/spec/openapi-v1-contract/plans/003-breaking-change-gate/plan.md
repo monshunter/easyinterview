@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-04-28
 
@@ -75,7 +75,7 @@ info:
 
 #### 2.2 privacy export 白名单（spec D-12 / §4.4）
 
-`POST /api/v1/privacy/exports` 从 P0 `501 ApiError` 切到 P1 `202 PrivacyRequestWithJob` 是「已预留能力变为可用」，必须通过白名单识别为 additive：
+`POST /api/v1/privacy/exports` 从 P0 `501 ApiErrorResponse` 切到 P1 `202 PrivacyRequestWithJob` 是「已预留能力变为可用」，必须通过白名单识别为 additive：
 
 - 在 `openapi/diff-config.yaml`（或 wrapper 脚本）中维护 `whitelist.responseStatusTransitions`：`{ path: "/privacy/exports", method: "POST", from: "501", to: "202" }`。
 - 命中白名单时，`make openapi-diff` 输出 informational 警告而非 breaking；wrapper 脚本必须额外要求 `history.md` 在同一 PR 中递增一行（通过 git diff 跨文件检查）；缺 history 增量则 fail。
@@ -167,3 +167,9 @@ info:
 | ADR 与 baseline / history 顺序错位（先改 yaml 后写 ADR / history） | Phase 2.2 wrapper 在 privacy export 白名单切换时强制 `history.md` 同 PR 增量；非白名单 breaking 必须由 wrapper 输出 reclassify 错误并提示先写 ADR；流程靠人工 review，自动化只做闸门 |
 | 工具版本随时间漂移导致 `make openapi-diff` 行为变化 | `openapi/baseline/README.md` 标注最低工具版本；`scripts/lint/openapi_diff.py` 启动时打印 `openapi-diff --version`，与预期不一致时报警 |
 | W2 启动时 C / D 域 plan 误以为 codegen drift 由远端 CI 拦截 | Phase 4.3 工作日志显式声明：当前 P0 阶段 codegen / fixtures / breaking-change 三道 gate 都靠本地 `make` + owner self-review；远端 CI 接入由 A5 后续触发 |
+
+## 6 修订记录
+
+| 日期 | 版本 | 变更 | 关联 |
+|------|------|------|------|
+| 2026-04-28 | 1.1 | 对齐 B2 spec v1.4：privacy export P0 例外类型从旧称 `ApiError` 修正为 wire envelope `ApiErrorResponse`。 | 001-bootstrap assessment remediation |

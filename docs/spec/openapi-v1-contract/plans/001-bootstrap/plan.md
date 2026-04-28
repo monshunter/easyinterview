@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.0
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-04-28
 
@@ -19,7 +19,7 @@
 
 执行本 plan 前必须确认 [B1 shared-conventions-codified/001-bootstrap](../../../shared-conventions-codified/plans/001-bootstrap/plan.md) 已完成：generator 输出的 `backend/internal/shared/types/enums.go`、`frontend/src/lib/conventions/{enums,errors,pagination}.ts`、`shared/conventions.yaml` 是本 plan 的 `$ref` 真理源；若 B1 未完成，先暂停本 plan。
 
-每个 phase 是可独立验证的纵向切片：Phase 1 起来就能用 `npx @apidevtools/swagger-cli validate` 校验骨架；Phase 2 起来就能 `make codegen-openapi` 双端生成；Phase 3 起来就能 `make codegen-check` 拦截漂移；Phase 4 收口 5 项 AC + 文档 + handoff。本 plan 不引入 BDD 资产（`test/scenarios/` 由 [E2 e2e-scenarios-p0](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份) 在 W4 spawn），AC 验证完全由 `make` 命令与 `git diff --exit-code` 驱动。
+每个 phase 是可独立验证的纵向切片：Phase 1 起来就能用 `npx @apidevtools/swagger-cli@4.0.4 swagger-cli validate` 校验骨架；Phase 2 起来就能 `make codegen-openapi` 双端生成；Phase 3 起来就能 `make codegen-check` 拦截漂移；Phase 4 收口 5 项 AC + 文档 + handoff。本 plan 不引入 BDD 资产（`test/scenarios/` 由 [E2 e2e-scenarios-p0](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份) 在 W4 spawn），AC 验证完全由 `make` 命令与 `git diff --exit-code` 驱动。
 
 ## 3 实施步骤
 
@@ -27,13 +27,13 @@
 
 #### 1.1 文档头与 servers / security schemes
 
-在 `openapi/openapi.yaml` 写入 OpenAPI 3.1 文档头、`info.version: 1.0.0`、`servers: [{url: /api/v1}]`（spec D-1）、按 §2.1 顺序声明 14 个 tag（spec D-11）。security schemes 按 [ADR-Q1](../../../engineering-roadmap/decisions/ADR-Q1-auth.md) 写入 `sessionCookie`（type `apiKey`，in `cookie`，name 见 ADR-Q1）。`Authorization: Bearer` 不作为 P0 默认 security scheme；如需保留扩展点须在 ADR-Q1 + 本 spec 修订后再加。document-level `security: [{sessionCookie: []}]`，public endpoints（§4.1）在 operation 级别用 `security: []` 显式覆盖。
+在 `openapi/openapi.yaml` 写入 OpenAPI 3.1 文档头、`info.version: 1.0.0`、`servers: [{url: /api/v1}]`（spec D-1）、按 §2.1 顺序声明 14 个 tag（spec D-11）。security schemes 按 [ADR-Q1](../../../engineering-roadmap/decisions/ADR-Q1-auth.md) 写入 `sessionCookie`（type `apiKey`，in `cookie`，name `ei_session`）。`Authorization: Bearer` 不作为 P0 默认 security scheme；如需保留扩展点须在 ADR-Q1 + 本 spec 修订后再加。document-level `security: [{sessionCookie: []}]`，public endpoints（§4.1）在 operation 级别用 `security: []` 显式覆盖。
 
 #### 1.2 共享 components 与 B1 `$ref`
 
 在 `components.schemas` 中只声明 OpenAPI 范畴专属 schema；所有共享定义通过 `$ref` 指向 B1 generator 的产出文件或 `shared/conventions.yaml`：
 
-- `ApiError`、`PageInfo`、14 个 enum、`error.code` 错误码 enum：`$ref` 到 `shared/conventions.yaml` 已存在的节，由 codegen template 在生成阶段把 yaml 节解释为 OpenAPI schema（B1 D-5 / D-6）。OpenAPI 不重复维护 enum 字面量。
+- B1 `ApiError` inner object、`PageInfo`、14 个 enum、`error.code` 错误码 enum：`$ref` 到 `shared/conventions.yaml` 已存在的节，由 codegen template 在生成阶段把 yaml 节解释为 OpenAPI schema（B1 D-5 / D-7）。OpenAPI 不重复维护 B1 enum 字面量；wire body 另声明 `ApiErrorResponse` envelope（`{error: ApiError}`）。
 - `Idempotency-Key` / `X-Request-ID` / `traceparent` / `Accept-Language` / `X-Client-Version` 在 `components.parameters` 与 `components.headers` 中声明一次，由 endpoint 通过 `$ref` 引用（spec §4.1）。
 - `Paginated<T>`：使用 `allOf` + `pageInfo: $ref ../PageInfo` 模式（B1 D-5），不为每个列表 endpoint 单独维护字段顺序。
 - `GenerationProvenance`（spec §4.6）：6 字段（`promptVersion` / `rubricVersion` / `modelId` / `language` / `featureFlag` / `dataSourceVersion`），其中 `rubricVersion` 显式允许 `not_applicable` 字面量。
@@ -44,22 +44,22 @@
 
 按 spec §3.1.1 表格逐行写入 36 operation：
 
-- 每个 operation 至少声明 `tags`、`summary`、`operationId`、`security`（覆盖 §4.1 public/protected 矩阵）、必要的 path/query/header parameters、request body（如有）、success 或 P0 例外 response、`default: $ref ApiError`。
+- 每个 operation 至少声明 `tags`、`summary`、`operationId`、`security`（覆盖 §4.1 public/protected 矩阵）、必要的 path/query/header parameters、request body（如有）、success 或 P0 例外 response、`default: $ref ApiErrorResponse`。
 - `POST /api/v1/uploads/presign`、`POST /api/v1/resumes`、`POST /api/v1/targets/import`、`PATCH /api/v1/targets/{targetJobId}`、`POST /api/v1/practice/plans`、`POST /api/v1/practice/sessions`、`POST /api/v1/practice/sessions/{sessionId}/complete`、`POST /api/v1/mistakes/{mistakeId}/retest`、`POST /api/v1/resume/tailor`、`POST /api/v1/debriefs`、`POST /api/v1/privacy/exports`、`POST /api/v1/privacy/deletions` 等副作用 endpoint 必须声明 `Idempotency-Key` header 引用（spec D-6）；ADR-Q1 auth email start 例外见下一条。
 - `POST /api/v1/practice/sessions/{sessionId}/events`：声明 `clientEventId` 字段，**不**挂 `Idempotency-Key` header；与其他幂等机制不混用（spec D-6）。
 - `POST /api/v1/auth/email/start` 不挂通用 `Idempotency-Key`；rate limit / challenge TTL 归 ADR-Q1（spec §4.1）。
 - 长耗时 operation（resume tailor / debrief / target import / practice complete / privacy delete / resume register 等）success response 走 `202 Accepted` + `*WithJob` schema（spec D-7）；客户端通过 `GET /api/v1/jobs/{jobId}` 轮询。
-- `POST /api/v1/privacy/exports` P0 例外响应强制写为 `501` + `application/json: { schema: $ref ApiError, example.error.code: "PRIVACY_EXPORT_NOT_AVAILABLE" }`（spec D-12 / §4.1 / C-7 partial）。
+- `POST /api/v1/privacy/exports` P0 例外响应强制写为 `501` + `application/json: { schema: $ref ApiErrorResponse, example.error.code: "PRIVACY_EXPORT_NOT_AVAILABLE" }`（spec D-12 / §4.1 / C-7 partial）。
 - `GET /api/v1/runtime-config` schema 引用 [A4 D-2](../../../secrets-and-config/spec.md#31-已锁定决策含-p0-必备-env-key-字典) 的 `RuntimeConfig`；security 设为空（public）。
 - AI 生成结果 schema（`TargetJob.summary` / `TargetJob.fitSummary` / `AssistantAction` / `FeedbackReport` / 由 AI 创建的 `MistakeEntry` / `ResumeTailorRun` / `Debrief`）必须包含 `provenance: $ref GenerationProvenance` 字段，或所属 `*WithJob` 包装类型在 `job.provenance` 中可追溯到该对象（spec §4.6）。
 
 #### 1.4 endpoint 自检
 
-- `npx @apidevtools/swagger-cli validate openapi/openapi.yaml` 通过（spec C-1）。
+- `npx @apidevtools/swagger-cli@4.0.4 swagger-cli validate openapi/openapi.yaml` 通过（spec C-1）。
 - 写一个 `scripts/lint/openapi_inventory.py`（或等价 `make` target 内联脚本）扫描 yaml，断言：
   - tag 数 == 14 且顺序与 spec §2.1 一致；
   - operation 数 == 36 且 `(tag, method, path, operationId)` 与 spec §3.1.1 完全一致；
-  - 每个 operation 都有 `default: $ref ApiError`；
+  - 每个 operation 都有 `default: $ref ApiErrorResponse`；
   - 除 ADR-Q1 auth email start 与 session event 例外外，spec D-6 涉及的副作用 endpoint 都引用 `Idempotency-Key` header；`POST /api/v1/auth/email/start` 与 `POST /api/v1/practice/sessions/{sessionId}/events` 不引用；
   - `POST /api/v1/privacy/exports` 唯一声明 `501` 响应，`example.error.code == "PRIVACY_EXPORT_NOT_AVAILABLE"`。
 
@@ -114,7 +114,7 @@
 
 #### 4.1 Spec C-1 / C-2 / C-3 自检
 
-- `npx @apidevtools/swagger-cli validate openapi/openapi.yaml` exit 0。
+- `npx @apidevtools/swagger-cli@4.0.4 swagger-cli validate openapi/openapi.yaml` exit 0。
 - 跑两次 `make codegen-openapi`，第二次 `git status` 必须 clean；删除任意一个生成文件再跑可还原（codegen idempotency）。
 - 在 `openapi/openapi.yaml` 给某个已有 schema 临时新增 `optional metadata` 字段（不提交）：`make codegen-check` 失败，diff 显示 generated 文件中新增字段；revert 后 gate 恢复 clean。
 
@@ -136,11 +136,45 @@
 - [002-fixtures-and-mock-source](../002-fixtures-and-mock-source/plan.md) 在本 plan 完结后 spawn 自身实施：本 plan 输出的 `openapi.yaml` 与 generated 类型是 002 fixture schema 校验、operationId 列表与 mock parity 的真理源。
 - [003-breaking-change-gate](../003-breaking-change-gate/plan.md) 在本 plan 完结后 spawn：本 plan 末态 `openapi/openapi.yaml` 即 v1.0.0 freeze baseline，由 003 拷贝到 `openapi/baseline/openapi-v1.0.0.yaml` 锁定。
 
+### Phase 5: Assessment remediation
+
+#### 5.1 复核 bootstrap assessment 建议
+
+逐项核验 [2026-04-28 openapi-v1-contract/001-bootstrap assessment](../../../../reports/2026-04-28-openapi-v1-contract-001-bootstrap-assessment.md) 的 R1-R6 建议。只修订已被当前仓库文件证实存在的漂移：ADR-Q1 session cookie name 未锁、B2 tooling 选型未登记 deprecated-but-accepted 边界、`ResourceType` / `JobType` 字面量仍停留在待确认事项、`openapi/README.md` 外部工具写作约定不足，以及 B1 `ApiError` inner object 与 OpenAPI error envelope / 双端 generated type 的口径不一致。
+
+#### 5.2 修订契约与文档真理源
+
+更新 ADR-Q1、A4 `secrets-and-config`、B1 `shared-conventions-codified`、B2 `openapi-v1-contract`、`openapi/README.md` 及必要的上游技术文档引用，确保 cookie 字面量、B2 tooling 锁版、`ResourceType` / `JobType` 字面量和 `ApiError` / `ApiErrorResponse` 形状由真理源显式说明，不再依赖执行时反推。
+
+#### 5.3 修复 codegen 并重新生成 artefacts
+
+修订 `backend/cmd/codegen/openapi` 的 B1-AUTO block 与 Go/TS render 逻辑：`ApiError` 表示 B1 共享 inner error object；OpenAPI response body 使用 `ApiErrorResponse` envelope；Go 端复用 `backend/internal/shared/errors.APIError`；TS 端继续复用 `frontend/src/lib/conventions.ApiError`。重新运行 codegen，保证 `openapi/openapi.yaml`、`backend/internal/api/generated/` 与 `frontend/src/api/generated/` 字节级可再生。
+
+#### 5.4 验证与生命周期收口
+
+运行 focused generator tests、`make codegen-check`、`cd backend && go build ./...`、`cd frontend && npx tsc --noEmit`，随后把本 plan/checklist 恢复为 `completed` 并同步 INDEX。R5 中关于大文件写入和 `text/template` 的 skill 提示属于低价值流程优化，本次仅记录为 assessment 中的 no-op，不修改 `.agent-skills/tdd/SKILL.md`。
+
+### Phase 6: docs-openapi renderer deprecation remediation
+
+#### 6.1 复现 deprecated renderer 现象
+
+确认 `make docs-openapi` 旧实现虽然 exit 0 且能生成 `openapi/dist/index.html`，但会打印 `redoc-cli` deprecated 横幅，并提示使用 `npx @redocly/cli build-docs <api>`。该现象属于 local docs renderer tooling drift，不影响 `make lint-openapi` 的 C-1 validation gate。
+
+#### 6.2 迁移本地 HTML renderer
+
+将根 `Makefile` 的 `docs-openapi` target 从 `redoc-cli@0.13.21 redoc-cli bundle` 迁移为 `@redocly/cli@2.30.1 redocly build-docs`，保持输入 `openapi/openapi.yaml`、输出 `openapi/dist/index.html` 和标题 `easyinterview API` 不变；不修改 `make lint-openapi` validator。
+
+#### 6.3 文档与验证收口
+
+同步 `openapi/README.md`、B2 spec/history、plan/checklist 的 tooling 说明；运行 `make docs-openapi` 确认不再出现 deprecated 横幅且产物生成成功，再运行 `make lint-openapi`、`/sync-doc-index --check` 与 `git diff --check`。
+
 ## 4 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 的 contract/schema 部分、C-2 / C-3 / C-8 全部成立；C-7 / C-11 中本 plan 对应的契约 / schema 部分（非 fixture / 非 baseline）成立，剩余部分由 002 / 003 闭合。
 - 本 plan checklist 全部勾选；Phase 4 关键命令日志贴入工作日志。
 - B1 共享类型变更通过 `$ref` 自动同步进 OpenAPI 与 codegen，不形成手写副本（spec §3 D-2 / §4.2 / §4.3）。
+- Phase 5 remediation 中确认存在的 assessment 问题已修订；`ApiError` inner object 与 OpenAPI response envelope 的 Go/TS 产物一致；未采纳的 R5 有明确 no-op 说明。
+- Phase 6 docs renderer 迁移后，`make docs-openapi` 不再触发 `redoc-cli` deprecated 横幅，仍输出 `openapi/dist/index.html`；C-1 validator 保持 `@apidevtools/swagger-cli@4.0.4` + inventory lint。
 
 ## 5 风险与应对
 
@@ -152,3 +186,10 @@
 | `Idempotency-Key` / `clientEventId` 误挂混用导致 handler 语义分裂 | Phase 1.4 inventory 脚本强制：除 ADR-Q1 auth email start 与 session event 例外外，spec D-6 涉及的副作用 endpoint 必须挂 `Idempotency-Key`；`POST /api/v1/auth/email/start` 不挂通用 idempotency；`POST /practice/sessions/{sessionId}/events` 必须挂 `clientEventId` 且不挂 `Idempotency-Key`；任何冲突直接 fail |
 | `GenerationProvenance` 在大量 AI schema 上误传播（错把 transactional schema 也挂上去） | Phase 1.2 在 `openapi/README.md` 与 schema 注释中明确「至少」名单（`TargetJob.summary` / `fitSummary` / `AssistantAction` / `FeedbackReport` / AI-created `MistakeEntry` / `ResumeTailorRun` / `Debrief`）；非 AI 生成 schema 不应携带 provenance |
 | `make codegen-check` 在 IDE auto-format 后误报漂移 | Phase 2.1 / 2.2 generator 必须固定 import 顺序、行尾、缩进；与 `.editorconfig` 对齐；首次 idempotent baseline 由本 plan 锁定，编辑器若改动须修 generator 模板，不放弃 gate |
+
+## 6 修订记录
+
+| 日期 | 版本 | 变更 | 关联材料 |
+|------|------|------|----------|
+| 2026-04-28 | 1.2 | 根据 `make docs-openapi` deprecated 输出追加 Phase 6：将本地 HTML renderer 从 `redoc-cli@0.13.21` 迁移到 `@redocly/cli@2.30.1 build-docs`，不改变 C-1 validator。 | user report / local reproduction |
+| 2026-04-28 | 1.1 | 根据 bootstrap assessment 追加 Phase 5 remediation：锁定 ADR-Q1 cookie name、B2 tooling 边界、`ResourceType` / `JobType` 字面量与 `ApiError` inner/envelope 生成口径。 | [assessment](../../../../reports/2026-04-28-openapi-v1-contract-001-bootstrap-assessment.md) |

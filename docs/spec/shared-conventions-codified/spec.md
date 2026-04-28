@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-04-27
+> **更新日期**: 2026-04-28
 
 ## 1 背景与目标
 
@@ -54,6 +54,7 @@
 | D-4 | UUID 算法 | UUIDv7（含时序），与 [00-shared-conventions.md §2.2](../../../easyinterview-tech-docs/00-shared-conventions.md#22-id-规则) 对齐；前端临时 id 使用 `tmp_<uuidv4>` | 所有业务主键由 idx 工具生成；不允许 NewV4 直接用作 DB id |
 | D-5 | 错误码命名 | `UPPER_SNAKE_CASE`，前缀按 domain：`AUTH_*` / `TARGET_*` / `PRACTICE_*` / `REPORT_*` / `RESUME_*` / `PRIVACY_*` / `RATE_LIMITED` / `VALIDATION_FAILED` | 任何非前缀错误码必须由本 spec 修订决定；business code 直接 import 常量 |
 | D-6 | 枚举值书写 | `lower_snake_case`；TS 用 union string literal，Go 用 named string + 常量集 | 严格覆盖 00-shared-conventions §5 的 13 个小节；§5.13 同时包含隐私请求 type/status 两个并行字段，因此生成 14 个枚举类型 |
+| D-7 | `ApiError` inner object 归属 | `shared/conventions.yaml#structures.ApiError` 表示错误响应 envelope 内部的 `error` 对象（`code` / `message` / `requestId` / `retryable` / `details`），不表示外层 `{error: ...}` envelope；Go 侧 canonical 类型是手写 `backend/internal/shared/errors.APIError` + generated `errors.AllCodes`，TS 侧 canonical 类型是 generated `frontend/src/lib/conventions.ApiError` | B2 OpenAPI 必须把 wire response body 建模为 `ApiErrorResponse` envelope，并在 envelope 内 `$ref` B1 `ApiError` inner object；不得把 Go 侧误写为 `sharedtypes.ApiError` |
 
 ### 3.2 待确认事项
 
@@ -101,6 +102,7 @@
 | C-4 | Idempotency-Key 工具 | A1 已落地仓库根 | 生成 + 校验 idempotency key（24h TTL） | Go 与 TS 双端工具产出格式一致的 key；TTL 过期后校验返回 false | 001-bootstrap |
 | C-5 | Lint 拦截违规命名 | 本地提交前引入一个 `auth_unauthorized`（小写）错误码常量 | 跑 `make lint` | B1 本地 lint/config 能报错：错误码必须 `UPPER_SNAKE_CASE`；A5 只约束本地质量门禁与远端 CI 延后边界，不改变规则语义 | 001-bootstrap |
 | C-6 | OpenAPI codegen 复用 B1 | B2 在自己 plan 里生成 OpenAPI types | B2 codegen 完成 | 任何枚举字段直接 import B1 的常量；不出现重复定义 enum 字面量 | engineering-roadmap/001 Phase 3 + B2 自身 plan |
+| C-7 | OpenAPI 错误响应 envelope 复用 B1 inner error | B2 渲染 `components.schemas.ApiError` 与 `components.schemas.ApiErrorResponse` | `make codegen-openapi && make codegen-check` | `ApiError` 只包含 inner error 字段；`ApiErrorResponse.error` `$ref` 到 `ApiError`；Go generated 复用 `sharederrors.APIError`，TS generated 复用 `conventions.ApiError` | openapi-v1-contract/001-bootstrap |
 
 ## 7 关联计划
 
@@ -112,5 +114,6 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-04-28 | 1.3 | 明确 `ApiError` 是错误响应 envelope 内部对象；Go canonical 类型为 `backend/internal/shared/errors.APIError`，TS canonical 类型为 generated `conventions.ApiError`，B2 外层 response body 必须另建 `ApiErrorResponse` envelope。 | openapi-v1-contract/001-bootstrap assessment remediation |
 | 2026-04-27 | 1.2 | 对齐 A5 单人开发阶段决策：B1 只要求本地 lint/codegen 质量门禁，远端 CI / PR required check / CI drift detection 不作为当前 P0 前置。 | 001-bootstrap |
 | 2026-04-27 | 1.1 | 回写 `001-bootstrap` 交付复盘确认的 spec-plan 漂移：明确 13 个上游枚举小节对应 14 个生成类型、Go `APIError` 为手写 errors 包类型、TS `ApiError` / `PageInfo` 由 generator 生成，并保持 C-4 Go/TS idempotency 双端验收语义。 | 001-bootstrap |

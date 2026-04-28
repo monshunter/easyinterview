@@ -73,9 +73,9 @@ codegen-check: codegen-openapi lint-openapi ## Local drift gate: re-run codegen 
 		"$(ROOT_DIR)/backend/internal/api/generated" \
 		"$(ROOT_DIR)/frontend/src/api/generated"
 
-docs-openapi: ## Render openapi/openapi.yaml as a single-file HTML site at openapi/dist/index.html (Redoc; local artefact only — A5 deferred for CI upload)
+docs-openapi: ## Render openapi/openapi.yaml as a single-file HTML site at openapi/dist/index.html (Redocly; local artefact only — A5 deferred for CI upload)
 	@mkdir -p "$(ROOT_DIR)/openapi/dist"
-	@npx --yes -p redoc-cli@0.13.21 redoc-cli bundle \
+	@npx --yes -p @redocly/cli@2.30.1 redocly build-docs \
 		"$(ROOT_DIR)/openapi/openapi.yaml" \
 		-o "$(ROOT_DIR)/openapi/dist/index.html" \
 		--title "easyinterview API"

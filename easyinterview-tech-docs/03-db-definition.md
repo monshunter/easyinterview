@@ -666,6 +666,8 @@ create index idx_ai_task_runs_task_started
   on ai_task_runs (task_type, started_at desc);
 ```
 
+`ai_task_runs.resource_type` 必须兼容 B2 `ResourceType` API-facing 字面量（`target_job` / `feedback_report` / `resume_asset` / `resume_tailor_run` / `debrief` / `privacy_request`）。内部治理任务可追加更细 resource type，但若该值会经 `GET /api/v1/jobs/{jobId}` 或 OpenAPI fixture 暴露，必须先修订 B2 spec 并 additive 追加 enum。
+
 ### 5.9 异步任务与事件 outbox
 
 ```sql

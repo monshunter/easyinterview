@@ -259,8 +259,8 @@ export class EasyInterviewClient {
 	}
 
 	/** requestPrivacyExport — post /privacy/exports: Request a privacy data export (P0 not implemented — returns 501) */
-	async requestPrivacyExport(opts?: RequestOptions): Promise<Types.ApiError> {
-		return this.request<Types.ApiError>(
+	async requestPrivacyExport(opts?: RequestOptions): Promise<Types.ApiErrorResponse> {
+		return this.request<Types.ApiErrorResponse>(
 			"POST",
 			"/privacy/exports",
 			undefined,

@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -94,6 +95,53 @@ func TestRun_DriftPropagatesFromConventions(t *testing.T) {
 	}
 }
 
+func TestRun_ApiErrorInnerObjectAndResponseEnvelope(t *testing.T) {
+	repoRoot := mustFindRepoRoot(t)
+	tmp := t.TempDir()
+
+	openapiSrc := filepath.Join(repoRoot, "openapi", "openapi.yaml")
+	openapiDst := filepath.Join(tmp, "openapi", "openapi.yaml")
+	mustCopy(t, openapiSrc, openapiDst)
+
+	mirrorTemplates := filepath.Join(tmp, "openapi", "templates")
+	if err := mirrorDir(filepath.Join(repoRoot, "openapi", "templates"), mirrorTemplates); err != nil {
+		t.Fatalf("mirror templates: %v", err)
+	}
+
+	if err := Run(
+		openapiDst,
+		filepath.Join(repoRoot, "shared", "conventions.yaml"),
+		mirrorTemplates,
+		tmp,
+		false,
+	); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	openapiBytes, err := os.ReadFile(openapiDst)
+	if err != nil {
+		t.Fatalf("read openapi: %v", err)
+	}
+	openapiText := string(openapiBytes)
+	mustContain(t, openapiText, "    ApiError:\n      type: object\n      required: [code, message, requestId, retryable]")
+	mustContain(t, openapiText, "    ApiErrorResponse:\n      type: object\n      required: [error]")
+	mustContain(t, openapiText, "          $ref: '#/components/schemas/ApiError'")
+
+	goTypes := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/types.gen.go"))
+	mustContain(t, goTypes, "type ApiError = sharederrors.APIError")
+	mustContain(t, goTypes, "type ApiErrorResponse struct {")
+	mustContain(t, goTypes, "Error ApiError `json:\"error\"`")
+	mustNotContain(t, goTypes, "type ApiError struct {\n\tError any `json:\"error\"`")
+
+	tsTypes := readFile(t, filepath.Join(tmp, "frontend/src/api/generated/types.ts"))
+	mustContain(t, tsTypes, "export type ApiError = ApiErrorAlias;")
+	mustContain(t, tsTypes, "export interface ApiErrorResponse {")
+	mustContain(t, tsTypes, "\terror: ApiError;")
+
+	tsClient := readFile(t, filepath.Join(tmp, "frontend/src/api/generated/client.ts"))
+	mustContain(t, tsClient, "async requestPrivacyExport(opts?: RequestOptions): Promise<Types.ApiErrorResponse>")
+}
+
 func mustFindRepoRoot(t *testing.T) string {
 	t.Helper()
 	wd, err := os.Getwd()
@@ -112,6 +160,29 @@ func mustFindRepoRoot(t *testing.T) string {
 	}
 	t.Fatalf("could not locate repo root from %s", wd)
 	return ""
+}
+
+func mustContain(t *testing.T, haystack, needle string) {
+	t.Helper()
+	if !strings.Contains(haystack, needle) {
+		t.Fatalf("expected output to contain %q", needle)
+	}
+}
+
+func mustNotContain(t *testing.T, haystack, needle string) {
+	t.Helper()
+	if strings.Contains(haystack, needle) {
+		t.Fatalf("expected output not to contain %q", needle)
+	}
+}
+
+func readFile(t *testing.T, path string) string {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	return string(data)
 }
 
 func mustCopy(t *testing.T, src, dst string) {

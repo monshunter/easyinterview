@@ -95,6 +95,13 @@
 }
 ```
 
+B2 `openapi-v1-contract` v1.4 锁定 P0 API-facing 字面量：
+
+- `jobType`: `target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `debrief_generate` / `privacy_export` / `privacy_delete`
+- `resourceType`: `target_job` / `feedback_report` / `resume_asset` / `resume_tailor_run` / `debrief` / `privacy_request`
+
+DB / worker 内部可以保留非 API-facing job type（如 `source_refresh` / `embedding_upsert`），但它们不得出现在 v1.0.0 `GET /api/v1/jobs/{jobId}` response 中，除非 B2 spec additive 修订后追加枚举值。
+
 ### 3.2 TargetJob
 
 | 字段 | 类型 | 说明 |

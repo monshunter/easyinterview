@@ -1,6 +1,6 @@
 # Secrets and Config Spec
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
 > **更新日期**: 2026-04-28
 
@@ -61,6 +61,7 @@
 | D-5 | P0 必备 env key 与 config schema | 见下方 §3.1.1 / §3.1.2；任一新增必须递增本 spec 版本 + 同步 `.env.example` + lint 校验 | 防止业务模块偷偷加 env；让 validator / runtime-config / redaction 共用同一真理源 |
 | D-6 | secret 红线 | `*.secret.yaml` 默认 `.gitignore`；pre-commit hook 拦截 `AKIA[0-9A-Z]{16}` / `sk-[A-Za-z0-9]{20,}` / `xox[baprs]-[A-Za-z0-9-]+`；本地 gitleaks 复扫；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | 阻断仓库内敏感凭证泄漏 |
 | D-7 | 配置热加载 | feature flag 支持热加载（≤ 30s）；其它 config 字段在进程启动时读取，运行时不变；如需热加载，必须递增 spec | 避免业务围绕「config 变了吗」写复杂代码 |
+| D-8 | Session cookie 字面量 | `ei_session`，由 [ADR-Q1 §3](../engineering-roadmap/decisions/ADR-Q1-auth.md#3-决策) 锁定；P0 不提供 env/config override | A4 只管理 `SESSION_COOKIE_SECRET` 等 secret，不允许环境差异改 cookie name 导致 B2 OpenAPI / C1 middleware / D1 fetch 口径分裂 |
 
 #### 3.1.1 P0 必备 env key 字典
 
@@ -77,7 +78,7 @@
 | `OBJECT_STORAGE_SECRET_KEY` | 是 | `dev-secret-key` | secret，prod 必填 | A4 |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | 条件 | `(空，默认不上报)` | 配置了可选观测或生产 OTel Collector 时填写 OTLP HTTP endpoint | A4（F1 复用） |
 | `LOG_LEVEL` | 是 | `info` | `debug/info/warn/error` | A4 |
-| `SESSION_COOKIE_SECRET` | prod 必填 | `(空，dev 由 init 生成)` | secret；用于 first-party session cookie 签名 / 加密，server-side `sessions` 表仍是会话真理源 | A4（C1 owner，ADR-Q1） |
+| `SESSION_COOKIE_SECRET` | prod 必填 | `(空，dev 由 init 生成)` | secret；用于 `ei_session` first-party session cookie 签名 / 加密，server-side `sessions` 表仍是会话真理源 | A4（C1 owner，ADR-Q1） |
 | `AUTH_CHALLENGE_TOKEN_PEPPER` | prod 必填 | `(空，dev 由 init 生成)` | secret；用于 magic link challenge token hash pepper，原始 token 不入库 / 不进日志 | A4（C1 owner，ADR-Q1） |
 | `AI_GATEWAY_BASE_URL` | local deploy / staging / prod 必填；unit test 可空 | `(空；仅 `APP_ENV=test` 允许 stub)` | OpenAI-compatible AI provider / gateway 出站 URL；docker compose 与 Kind 本地部署可直连真实 AI provider，生产可指 gateway | A4（A3 owner） |
 | `AI_GATEWAY_API_KEY` | local deploy / staging / prod 必填；unit test 可空 | `(空)` | AI provider / gateway API key；非 test 环境缺失时 fail-fast | A4（A3 owner） |
@@ -105,6 +106,7 @@
 | `observability.otlpEndpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` | 否 | optional | 否 | A4 + F1 |
 | `log.level` | `LOG_LEVEL` | 否 | always | 否 | A4 |
 | `auth.sessionCookieSecret` | `SESSION_COOKIE_SECRET` | 是 | prod required；dev init generated | 否 | A4 + C1 |
+| `auth.sessionCookieName` | `(无 env key；ADR-Q1 固定)` | 否 | fixed literal `ei_session` | 否 | ADR-Q1 + A4 + C1 |
 | `auth.challengeTokenPepper` | `AUTH_CHALLENGE_TOKEN_PEPPER` | 是 | prod required；dev init generated | 否 | A4 + C1 |
 | `email.provider` / `email.providerApiKey` | `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY` | provider 否；apiKey 是 | prod required | 否 | A4 + C1 |
 | `ai.gatewayBaseURL` / `ai.gatewayApiKey` | `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` | baseURL 否；apiKey 是 | local deploy / Kind / staging / prod required when AIClient-enabled component starts；`APP_ENV=test` may use stub | 否 | A4 + A3 |

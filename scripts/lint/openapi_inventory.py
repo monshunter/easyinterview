@@ -311,6 +311,21 @@ def main(argv: list[str]) -> int:
 
     # GenerationProvenance contract (spec §4.6).
     schemas = ((data.get("components") or {}).get("schemas") or {})
+    api_error = schemas.get("ApiError") or {}
+    api_error_response = schemas.get("ApiErrorResponse") or {}
+    api_error_required = sorted(api_error.get("required") or [])
+    if api_error_required != ["code", "message", "requestId", "retryable"]:
+        errors.append(f"ApiError must be the inner error object; required mismatch: {api_error_required}")
+    if "error" in (api_error.get("properties") or {}):
+        errors.append("ApiError must not contain the outer `error` envelope property")
+    response_error_ref = (((api_error_response.get("properties") or {}).get("error") or {}).get("$ref"))
+    if response_error_ref != "#/components/schemas/ApiError":
+        errors.append(f"ApiErrorResponse.error must $ref ApiError; got {response_error_ref!r}")
+    response_ref = (((data.get("components") or {}).get("responses") or {}).get("ApiErrorResponse") or {})
+    response_schema_ref = (((response_ref.get("content") or {}).get("application/json") or {}).get("schema") or {}).get("$ref")
+    if response_schema_ref != "#/components/schemas/ApiErrorResponse":
+        errors.append(f"components.responses.ApiErrorResponse must $ref schema ApiErrorResponse; got {response_schema_ref!r}")
+
     provenance = schemas.get("GenerationProvenance")
     if not isinstance(provenance, dict):
         errors.append("missing components.schemas.GenerationProvenance")
@@ -361,7 +376,7 @@ def main(argv: list[str]) -> int:
         fail(errors)
     sys.stdout.write(
         "openapi inventory OK: 14 tags, 36 operations, "
-        "ApiError/IK/501/Provenance invariants enforced; B1 enums in sync.\n"
+        "ApiErrorResponse/IK/501/Provenance invariants enforced; B1 enums in sync.\n"
     )
     return 0
 

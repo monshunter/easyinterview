@@ -1124,7 +1124,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiError'
+                $ref: '#/components/schemas/ApiErrorResponse'
               example:
                 error:
                   code: PRIVACY_EXPORT_NOT_AVAILABLE
@@ -1286,14 +1286,15 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ApiError'
+            $ref: '#/components/schemas/ApiErrorResponse'
 
   schemas:
     # === B1-AUTO-START: synced from shared/conventions.yaml by `make codegen-openapi` ===
     # Hand edits inside this block will be overwritten. To extend the contract,
     # update `shared/conventions.yaml` (B1 truth source) and re-run codegen.
-    # The block tracks: ApiError, ApiErrorCode, PageInfo, JobStatus, and the
-    # 14 enums catalogued in `shared/conventions.yaml#enums`.
+    # The block tracks: ApiError inner object, ApiErrorResponse envelope,
+    # ApiErrorCode, PageInfo, JobStatus, and the 14 enums catalogued in
+    # `shared/conventions.yaml#enums`.
     ApiErrorCode:
       type: string
       description: |
@@ -1313,31 +1314,34 @@ components:
 
     ApiError:
       type: object
-      required: [error]
+      required: [code, message, requestId, retryable]
       description: |
-        Canonical error envelope per spec D-4. All 4xx/5xx (and the P0 501
-        privacy-export example) responses use this schema. Mirrors B1
-        `structures.ApiError`.
+        Canonical error object per B1 `structures.ApiError`. B2 wraps it in
+        `ApiErrorResponse` for the wire body `{error: ...}`.
+      properties:
+        code:
+          $ref: '#/components/schemas/ApiErrorCode'
+        message:
+          type: string
+          description: Human-readable summary; safe to surface to operators (no secrets, per A4 redaction rules).
+        requestId:
+          type: string
+          description: Request correlation id; equals the X-Request-ID response header for the same request.
+        retryable:
+          type: boolean
+          description: Hint to the client whether retry is safe (per `00-shared-conventions §3.2`).
+        details:
+          type: object
+          description: Optional structured diagnostic. Must not contain provider, prompt, or secret material per A4 redaction rules.
+          additionalProperties: true
+
+    ApiErrorResponse:
+      type: object
+      required: [error]
+      description: Wire error response envelope per `00-shared-conventions §3.2`.
       properties:
         error:
-          type: object
-          required: [code, message, requestId, retryable]
-          properties:
-            code:
-              $ref: '#/components/schemas/ApiErrorCode'
-            message:
-              type: string
-              description: Human-readable summary; safe to surface to operators (no secrets, per A4 redaction rules).
-            requestId:
-              type: string
-              description: Request correlation id; equals the X-Request-ID response header for the same request.
-            retryable:
-              type: boolean
-              description: Hint to the client whether retry is safe (per `00-shared-conventions §3.2`).
-            details:
-              type: object
-              description: Optional structured diagnostic. Must not contain provider, prompt, or secret material per A4 redaction rules.
-              additionalProperties: true
+          $ref: '#/components/schemas/ApiError'
 
     PageInfo:
       type: object

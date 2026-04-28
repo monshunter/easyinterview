@@ -67,6 +67,10 @@ export type PrivacyRequestStatus = PrivacyRequestStatusAlias;
 // =============================================================================
 
 
+export interface ApiErrorResponse {
+	error: ApiError;
+}
+
 export type ResourceType = "target_job" | "feedback_report" | "resume_asset" | "resume_tailor_run" | "debrief" | "privacy_request";
 
 export const AllResourceTypes = ["target_job", "feedback_report", "resume_asset", "resume_tailor_run", "debrief", "privacy_request"] as const;
