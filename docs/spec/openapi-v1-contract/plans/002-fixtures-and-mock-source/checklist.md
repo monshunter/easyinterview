@@ -22,10 +22,10 @@
 
 ## Phase 3: Mock parity 接口预演（E1 handoff）
 
-- [ ] 3.1 落地 fixtures → OpenAPI named examples 投影工具：读取 `openapi/openapi.yaml` + `openapi/fixtures/`，输出 `openapi/.generated/openapi-with-fixtures.yaml` 或临时等价产物；36 个 default example 全覆盖；生成 example body 与 fixture body 字节级一致；重复运行幂等
-- [ ] 3.2 在 `openapi/README.md` / `openapi/fixtures/README.md` 写入 Prism 启动方式（`prism mock openapi/.generated/openapi-with-fixtures.yaml -p 4010`）+ 固定 5 个 operation（`getMe` / `listTargetJobs` / `getPracticeSession` / `getFeedbackReport` / `requestPrivacyExport`）用 curl `Prefer: example=default` 验证返回 body 与 fixture 字节级一致；不落正式 mock server 入口（归 E1）
-- [ ] 3.3 在 `openapi/fixtures/README.md` 明确 frontend `msw` 与 backend `mock-server` / Prism 必须共享 `openapi/fixtures/`，前端禁止 hardcode mock；该约束在 E1 / D1 后续 plan 落实，本 plan 只声明真理源位置
-- [ ] 3.4 工作日志记录：spec C-9 中「fixture 唯一真理源」与「default scenario → OpenAPI example → Prism response 字节级一致」由本 plan 关闭；「真实 msw / 后端 mock-server 同字节」由 E1 / D1 在 W2 闭合
+- [x] 3.1 落地 fixtures → OpenAPI named examples 投影工具：读取 `openapi/openapi.yaml` + `openapi/fixtures/`，输出 `openapi/.generated/openapi-with-fixtures.yaml` 或临时等价产物；36 个 default example 全覆盖；生成 example body 与 fixture body 字节级一致；重复运行幂等
+- [x] 3.2 在 `openapi/README.md` / `openapi/fixtures/README.md` 写入 Prism 启动方式（`prism mock openapi/.generated/openapi-with-fixtures.yaml -p 4010`）+ 固定 5 个 operation（`getMe` / `listTargetJobs` / `getPracticeSession` / `getFeedbackReport` / `requestPrivacyExport`）用 curl `Prefer: example=default` 验证返回 body 与 fixture 字节级一致；不落正式 mock server 入口（归 E1）
+- [x] 3.3 在 `openapi/fixtures/README.md` 明确 frontend `msw` 与 backend `mock-server` / Prism 必须共享 `openapi/fixtures/`，前端禁止 hardcode mock；该约束在 E1 / D1 后续 plan 落实，本 plan 只声明真理源位置
+- [x] 3.4 工作日志记录：spec C-9 中「fixture 唯一真理源」与「default scenario → OpenAPI example → Prism response 字节级一致」由本 plan 关闭；「真实 msw / 后端 mock-server 同字节」由 E1 / D1 在 W2 闭合
 
 ## Phase 4: Verification + handoff
 

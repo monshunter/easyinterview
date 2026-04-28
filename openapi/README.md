@@ -13,6 +13,8 @@ openapi/
 ├── openapi.yaml              # single-root OpenAPI 3.1 contract (hand-authored)
 ├── README.md                 # this file
 ├── dist/                     # `make docs-openapi` output (gitignored)
+├── fixtures/                 # per-operationId fixtures (B2 002 owner) — see fixtures/README.md
+├── .generated/               # `make render-openapi-fixture-examples` output (B2 002)
 └── templates/
     ├── go/{types,server,spec}.tmpl   # Go renderer templates
     └── ts/{types,client,spec}.tmpl   # TS renderer templates
@@ -57,6 +59,18 @@ Two truth sources feed the contract:
 | `make lint-openapi` | `@apidevtools/swagger-cli@4.0.4` validate + `scripts/lint/openapi_inventory.py` against `openapi/openapi.yaml`. |
 | `make codegen-check` | Local **drift gate**: `codegen-openapi` + `lint-openapi` + `git diff --exit-code` over `openapi.yaml`, `backend/internal/api/generated/`, and `frontend/src/api/generated/`. |
 | `make docs-openapi` | Render the contract as a single-file HTML site at `openapi/dist/index.html` with `@redocly/cli@2.30.1 build-docs`. The output is `dist/`-gitignored — local artefact only. |
+| `make validate-fixtures` | Schema-validate every `openapi/fixtures/<tag>/<operationId>.json` against `openapi.yaml`; enforce AI-schema provenance, privacy / UUIDv7 scans, and 36-operation coverage. Owner B2 002. |
+| `make sync-fixtures-from-prototype` | Re-render every fixture's `scenarios.prototype-baseline` from `easyinterview-ui/src/data.jsx`; idempotent; owner B2 002. |
+| `make render-openapi-fixture-examples` | Project every fixture's `scenarios.default.response.body` into `openapi/.generated/openapi-with-fixtures.yaml` as named `default` examples (Prism / docs-site source). Owner B2 002. |
+
+`openapi.yaml` itself **must not** carry hand-written `examples` (B2 002 §3.1):
+fixtures are the single source of truth for example bodies, projected into the
+derived `openapi-with-fixtures.yaml`. The privacy-export 501 example used to
+live inline in `openapi.yaml`; it now lives in
+`openapi/fixtures/Privacy/requestPrivacyExport.json` (`scenarios.default`) and
+is enforced by `validate-fixtures`. See
+[`openapi/fixtures/README.md`](./fixtures/README.md) for the full fixtures
+contract and the Prism smoke matrix.
 
 `make codegen-check` is the **only required** drift gate today. A remote CI
 required-check is deferred until A5

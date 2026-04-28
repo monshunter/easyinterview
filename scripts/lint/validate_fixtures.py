@@ -466,6 +466,26 @@ def check_provenance(opid: str, scenario: dict, errors: List[str]) -> None:
                     )
 
 
+def check_privacy_export_error_code(opid: str, scenarios: dict, errors: List[str]) -> None:
+    """Spec D-12 / C-7: requestPrivacyExport's default scenario must return
+    501 with `error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`. The hand-written
+    example previously living in openapi.yaml moved here as part of B2 002 §3.1
+    (single source of truth). Apply only to that operation."""
+    if opid != "requestPrivacyExport":
+        return
+    default = scenarios.get("default") or {}
+    response = default.get("response") or {}
+    if response.get("status") != 501:
+        errors.append(f"{opid}: default.response.status must be 501 (spec D-12)")
+        return
+    body = response.get("body") or {}
+    code = (body.get("error") or {}).get("code")
+    if code != "PRIVACY_EXPORT_NOT_AVAILABLE":
+        errors.append(
+            f"{opid}: default.response.body.error.code must be 'PRIVACY_EXPORT_NOT_AVAILABLE' (spec D-12); got {code!r}"
+        )
+
+
 def check_privacy_and_ids(opid: str, data: dict, errors: List[str]) -> None:
     for path, value in _walk_strings(data):
         if TEMP_ID_RE.search(value):
@@ -514,6 +534,7 @@ def validate(repo_root: Path) -> List[str]:
             check_status_declared(opid, op, scenario_name, scenario, errors)
             check_schema(opid, op, scenario_name, scenario, spec, errors)
         check_provenance(opid, scenarios.get("default") or {}, errors)
+        check_privacy_export_error_code(opid, scenarios, errors)
         check_privacy_and_ids(opid, data, errors)
 
     expected = {opid for _tag, opid in EXPECTED_OPERATIONS}

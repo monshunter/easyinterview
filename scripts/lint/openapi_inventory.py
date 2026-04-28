@@ -290,24 +290,19 @@ def main(argv: list[str]) -> int:
     if five_oh_one_ops != [("post", "/privacy/exports")]:
         errors.append(f"501 must appear only on POST /privacy/exports; got {five_oh_one_ops}")
 
-    # privacy export 501 example must carry PRIVACY_EXPORT_NOT_AVAILABLE.
+    # privacy export 501 must declare ApiErrorResponse on the JSON content;
+    # the actual `error.code = PRIVACY_EXPORT_NOT_AVAILABLE` example is owned
+    # by `openapi/fixtures/Privacy/requestPrivacyExport.json` and verified by
+    # `scripts/lint/validate_fixtures.py` (B2 002 §3.1: openapi.yaml carries
+    # no hand-written examples; fixtures are the single source of truth).
     privacy_export = ((paths.get("/privacy/exports") or {}).get("post") or {})
     response_501 = ((privacy_export.get("responses") or {}).get("501") or {})
     content = (response_501.get("content") or {}).get("application/json") or {}
-    example_value = None
-    if "example" in content:
-        example_value = content.get("example")
-    elif "examples" in content:
-        examples_map = content.get("examples") or {}
-        if examples_map:
-            first_example = next(iter(examples_map.values()))
-            example_value = (first_example or {}).get("value")
-    if not isinstance(example_value, dict):
-        errors.append("POST /privacy/exports 501 must carry an `example` (or `examples` value)")
-    else:
-        code = ((example_value.get("error") or {}).get("code"))
-        if code != "PRIVACY_EXPORT_NOT_AVAILABLE":
-            errors.append(f"POST /privacy/exports 501 example.error.code must be PRIVACY_EXPORT_NOT_AVAILABLE; got {code!r}")
+    schema_ref = (content.get("schema") or {}).get("$ref")
+    if schema_ref != "#/components/schemas/ApiErrorResponse":
+        errors.append(
+            "POST /privacy/exports 501 content.application/json.schema must `$ref` ApiErrorResponse"
+        )
 
     # GenerationProvenance contract (spec §4.6).
     schemas = ((data.get("components") or {}).get("schemas") or {})

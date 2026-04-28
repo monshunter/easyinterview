@@ -127,14 +127,69 @@ If a new placeholder pattern is added, update both this README and
 
 ## Prism smoke (B2 002 Phase 3)
 
-Once Phase 3.1 of plan `002-fixtures-and-mock-source` lands the OpenAPI
-examples projection, fixtures can be served locally through Prism:
+Phase 3.1 of plan `002-fixtures-and-mock-source` projects every fixture's
+`scenarios.default.response.body` into named OpenAPI examples at
+`openapi/.generated/openapi-with-fixtures.yaml`. That derived file is the
+**only** input to the Prism smoke; do **not** point Prism at `openapi.yaml`
+directly (it carries no examples by design — fixtures own them).
+
+Refresh the projection and start Prism on port 4010:
 
 ```sh
+make render-openapi-fixture-examples
 npx @stoplight/prism-cli mock openapi/.generated/openapi-with-fixtures.yaml -p 4010
 ```
 
-Phase 3.2 of the plan documents the curl smoke matrix used to confirm
-byte-equal parity between the fixture's `default` response body and the Prism
-response. Phase 3 has not landed yet — this section will be updated when it
-does.
+The local verification used `@stoplight/prism-cli@5.14.2` against Node
+v23.10.0. Prism does not enforce the `sessionCookie` security scheme as a
+hard gate, but it returns `401 Unauthorized` with the documented error
+envelope when a cookie is missing — the smoke calls below therefore include
+`Cookie: ei_session=fake` to exercise the success branch.
+
+### Curl smoke matrix (5 fixed operations)
+
+The plan §3.2 fixed-five smoke matches the fixtures byte-for-byte. Status
+codes other than `200` need the `code=<status>` Prefer parameter so Prism
+selects the right response.
+
+```sh
+# 1. getMe
+curl -s -H 'Prefer: example=default' -H 'Cookie: ei_session=fake' \
+  http://127.0.0.1:4010/me
+
+# 2. listTargetJobs
+curl -s -H 'Prefer: example=default' -H 'Cookie: ei_session=fake' \
+  http://127.0.0.1:4010/targets
+
+# 3. getPracticeSession
+curl -s -H 'Prefer: example=default' -H 'Cookie: ei_session=fake' \
+  'http://127.0.0.1:4010/practice/sessions/01918fa0-0050-7a00-8a00-000000000050'
+
+# 4. getFeedbackReport
+curl -s -H 'Prefer: example=default' -H 'Cookie: ei_session=fake' \
+  'http://127.0.0.1:4010/reports/01918fa0-0070-7a00-8a00-000000000070'
+
+# 5. requestPrivacyExport (501 needs `code=501`)
+curl -s -X POST \
+  -H 'Prefer: code=501, example=default' \
+  -H 'Cookie: ei_session=fake' \
+  -H 'Idempotency-Key: 01918fa0-0001-7a00-8a00-aaaaaaaaaaaa' \
+  http://127.0.0.1:4010/privacy/exports
+```
+
+For each call, the response body must match the fixture's
+`scenarios.default.response.body` byte-for-byte (jq diff against
+`openapi/fixtures/<tag>/<operationId>.json#/scenarios/default/response/body`).
+
+A repeatable verifier lives at
+[`scripts/codegen/prism_fixture_smoke.py`](../../scripts/codegen/prism_fixture_smoke.py)
+— start Prism, then run `python3 scripts/codegen/prism_fixture_smoke.py` from
+the repo root. The verifier exits 0 when every byte-equal check passes.
+
+### Out of scope here
+
+The plan **does not** stand up a long-running mock server — that belongs to
+[E1 `mock-contract-suite`](../../docs/spec/engineering-roadmap/spec.md#55-layer-e--integration4-份).
+Phase 3 of B2 002 only proves the fixtures→OpenAPI examples→Prism response
+loop is byte-stable; the W2 E1 plan will pick up the same `openapi/fixtures/`
+and `openapi/.generated/openapi-with-fixtures.yaml` artefacts as inputs.

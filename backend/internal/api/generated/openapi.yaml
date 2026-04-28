@@ -1125,12 +1125,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
-              example:
-                error:
-                  code: PRIVACY_EXPORT_NOT_AVAILABLE
-                  message: Privacy export is not implemented in P0; tracked under ADR-Q5.
-                  requestId: req_example_privacy_export
-                  retryable: false
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
