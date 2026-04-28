@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-04-28
 
 **关联计划**: [plan](./plan.md)
@@ -29,6 +29,6 @@
 
 ## Phase 4: Verification + handoff
 
-- [ ] 4.1 spec C-6 / C-7 / C-9 partial / C-11 自检：`make validate-fixtures` exit 0；删除 fixture / 临时改 request 或 response schema / 临时去 provenance / 临时使用真实邮箱 / 临时使用 `tmp_` id → 各 fail；examples 投影工具通过；Prism 跑 `POST /privacy/exports` 返回 `501 + error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；固定 5 个 operation Prism + curl 字节级一致；至少 8 个 P0 关键 endpoint `prototype-baseline` 非空且 schema-valid
-- [ ] 4.2 文档与 INDEX 同步：仅本 plan 切 completed；001 必须已 completed，003 保持 active 并由自身 Phase 4 关闭 B2 freeze handoff；`openapi/fixtures/README.md` 与 `openapi/README.md` Header 完整；`/sync-doc-index --check` 通过
-- [ ] 4.3 E1 handoff：工作日志声明 E1 mock-contract-suite 在 W2 直接消费 `openapi/fixtures/` 与 `openapi/openapi.yaml`，不重建 fixture 真理源；本 plan 不修改 E1 spec / plan
+- [x] 4.1 spec C-6 / C-7 / C-9 partial / C-11 自检：`make validate-fixtures` exit 0；删除 fixture / 临时改 request 或 response schema / 临时去 provenance / 临时使用真实邮箱 / 临时使用 `tmp_` id → 各 fail；examples 投影工具通过；Prism 跑 `POST /privacy/exports` 返回 `501 + error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；固定 5 个 operation Prism + curl 字节级一致；至少 8 个 P0 关键 endpoint `prototype-baseline` 非空且 schema-valid
+- [x] 4.2 文档与 INDEX 同步：仅本 plan 切 completed；001 必须已 completed，003 保持 active 并由自身 Phase 4 关闭 B2 freeze handoff；`openapi/fixtures/README.md` 与 `openapi/README.md` Header 完整；`/sync-doc-index --check` 通过
+- [x] 4.3 E1 handoff：工作日志声明 E1 mock-contract-suite 在 W2 直接消费 `openapi/fixtures/` 与 `openapi/openapi.yaml`，不重建 fixture 真理源；本 plan 不修改 E1 spec / plan
