@@ -8,10 +8,10 @@
 
 ## Phase 1: default fixtures + 校验工具
 
-- [ ] 1.1 落地 `openapi/fixtures/<tag>/<operationId>.json` 目录骨架（14 tag 子目录、36 文件）+ 文件结构 `{operationId, scenarios: {default: {request?, response: {status, headers?, body}}}}`，第一项必须是 `default`
-- [ ] 1.2 写入 36 份 default fixture 内容：列表 endpoint 1–3 条 + `pageInfo.nextCursor: null`；长耗时 operation 走 `202 + *WithJob`；AI schema 含 `provenance` 6 字段（`rubricVersion` 非评分场景填 `not_applicable`）；`POST /privacy/exports` 必须 `501 + error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；`POST /privacy/deletions` 保持 `202 + PrivacyRequestWithJob`；隐私字段只使用 `Acme` / 保留 example 域名邮箱 / `+1-555-0100`..`+1-555-0199` 占位；id 用 UUIDv7 字面量且不出现 `tmp_`
-- [ ] 1.3 落地 `scripts/lint/validate_fixtures.py`（或等价 Go 实现）：schema 校验对应 `openapi.yaml` operation 的 requestBody 与 2xx/4xx/5xx response 分支；强制 6 个 AI schema 含非空 provenance；隐私 allowlist + 黑名单扫描；UUIDv7 / `tmp_` id 扫描；36 operation 全覆盖；接入 `make validate-fixtures`
-- [ ] 1.4 Phase 1 自检：`make validate-fixtures` exit 0；删除任一 AI schema 的 `provenance` / 改 privacy export 为 202 / 写入真实邮箱 / 写入 `tmp_` id → fail 且错误指向 operationId，revert 后恢复
+- [x] 1.1 落地 `openapi/fixtures/<tag>/<operationId>.json` 目录骨架（14 tag 子目录、36 文件）+ 文件结构 `{operationId, scenarios: {default: {request?, response: {status, headers?, body}}}}`，第一项必须是 `default`
+- [x] 1.2 写入 36 份 default fixture 内容：列表 endpoint 1–3 条 + `pageInfo.nextCursor: null`；长耗时 operation 走 `202 + *WithJob`；AI schema 含 `provenance` 6 字段（`rubricVersion` 非评分场景填 `not_applicable`）；`POST /privacy/exports` 必须 `501 + error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；`POST /privacy/deletions` 保持 `202 + PrivacyRequestWithJob`；隐私字段只使用 `Acme` / 保留 example 域名邮箱 / `+1-555-0100`..`+1-555-0199` 占位；id 用 UUIDv7 字面量且不出现 `tmp_`
+- [x] 1.3 落地 `scripts/lint/validate_fixtures.py`（或等价 Go 实现）：schema 校验对应 `openapi.yaml` operation 的 requestBody 与 2xx/4xx/5xx response 分支；强制 6 个 AI schema 含非空 provenance；隐私 allowlist + 黑名单扫描；UUIDv7 / `tmp_` id 扫描；36 operation 全覆盖；接入 `make validate-fixtures`
+- [x] 1.4 Phase 1 自检：`make validate-fixtures` exit 0；删除任一 AI schema 的 `provenance` / 改 privacy export 为 202 / 写入真实邮箱 / 写入 `tmp_` id → fail 且错误指向 operationId，revert 后恢复
 
 ## Phase 2: prototype-baseline scenario 同步工具
 

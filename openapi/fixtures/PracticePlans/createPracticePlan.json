@@ -1,0 +1,44 @@
+{
+  "operationId": "createPracticePlan",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {},
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "goal": "sprint",
+          "mode": "core_interview",
+          "interviewerPersona": "hiring_manager",
+          "difficulty": "standard",
+          "language": "zh-CN",
+          "questionBudget": 6,
+          "timeBudgetMinutes": 30,
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "focusCompetencyCodes": [
+            "communication",
+            "design-systems"
+          ]
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000004000",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "goal": "sprint",
+          "mode": "core_interview",
+          "interviewerPersona": "hiring_manager",
+          "difficulty": "standard",
+          "language": "zh-CN",
+          "timeBudgetMinutes": 30,
+          "questionBudget": 6,
+          "status": "ready",
+          "createdAt": "2026-04-28T12:00:00Z"
+        }
+      }
+    }
+  }
+}

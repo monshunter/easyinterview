@@ -1,0 +1,44 @@
+{
+  "operationId": "getResumeTailorRun",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000009000",
+          "status": "ready",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "matchSummary": {
+            "strengths": [
+              "Cross-team design-system leadership directly maps to must-have #1."
+            ],
+            "gaps": [
+              "Edge-runtime exposure is implicit at best; consider adding a quantified bullet."
+            ]
+          },
+          "suggestions": [
+            {
+              "originalBullet": "Led design-system migration.",
+              "suggestedBullet": "Led design-system migration across 12 teams; reduced UI defect rate by 38% over 6 weeks.",
+              "reason": "Matches must-have #1 and adds quantified outcome."
+            }
+          ],
+          "provenance": {
+            "promptVersion": "resume_tailor.v2",
+            "rubricVersion": "not_applicable",
+            "modelId": "openrouter:anthropic/claude-sonnet-4.6",
+            "language": "zh-CN",
+            "featureFlag": "none",
+            "dataSourceVersion": "target_job.v17"
+          },
+          "createdAt": "2026-04-28T12:00:00Z",
+          "updatedAt": "2026-04-28T13:45:12Z"
+        }
+      }
+    }
+  }
+}

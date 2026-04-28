@@ -1,0 +1,73 @@
+{
+  "operationId": "listMistakes",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "01918fa0-0000-7000-8000-000000008000",
+              "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+              "sourceSessionId": "01918fa0-0000-7000-8000-000000005000",
+              "sourceDebriefId": null,
+              "competencyCode": "technical_depth.rollout_strategy",
+              "questionText": "迁移过程中你怎么控制回归？",
+              "answerSummary": "回答中只提到了 RFC 与配对评审，没有量化回归率或灰度策略。",
+              "failureReasons": [
+                "missing-quantification",
+                "no-rollout-stage-detail"
+              ],
+              "recommendedFramework": "STAR + measurable rollout stages",
+              "status": "open",
+              "priority": 70,
+              "provenance": {
+                "promptVersion": "mistake_synthesis.v1",
+                "rubricVersion": "feedback_report.rubric.v2",
+                "modelId": "openrouter:anthropic/claude-sonnet-4.6",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "feedback_report.v12"
+              },
+              "createdAt": "2026-04-28T12:00:00Z",
+              "updatedAt": "2026-04-28T13:45:12Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-000000008100",
+              "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+              "sourceSessionId": "01918fa0-0000-7000-8000-000000005000",
+              "sourceDebriefId": null,
+              "competencyCode": "communication.framing",
+              "questionText": "请用 90 秒做一个针对 hiring manager 的自我介绍。",
+              "answerSummary": "前 60 秒铺垫太长，到结尾才提到与目标岗位的匹配点。",
+              "failureReasons": [
+                "delayed-value-proposition"
+              ],
+              "recommendedFramework": "Headline-first 自我介绍模板",
+              "status": "improving",
+              "priority": 55,
+              "provenance": {
+                "promptVersion": "mistake_synthesis.v1",
+                "rubricVersion": "feedback_report.rubric.v2",
+                "modelId": "openrouter:anthropic/claude-sonnet-4.6",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "feedback_report.v12"
+              },
+              "createdAt": "2026-04-28T12:00:00Z",
+              "updatedAt": "2026-04-28T13:45:12Z"
+            }
+          ],
+          "pageInfo": {
+            "nextCursor": null,
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
+    }
+  }
+}

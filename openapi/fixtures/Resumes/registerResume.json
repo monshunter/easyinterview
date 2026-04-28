@@ -1,0 +1,34 @@
+{
+  "operationId": "registerResume",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {},
+        "body": {
+          "fileObjectId": "01918fa0-0000-7000-8000-000000001100",
+          "title": "Alice Example — Senior Frontend Engineer",
+          "language": "zh-CN"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "job": {
+            "id": "01918fa0-0000-7000-8000-00000000b100",
+            "jobType": "resume_parse",
+            "status": "queued",
+            "resourceType": "resume_asset",
+            "resourceId": "01918fa0-0000-7000-8000-000000001000",
+            "errorCode": null,
+            "createdAt": "2026-04-28T13:45:12Z",
+            "updatedAt": "2026-04-28T13:45:12Z"
+          }
+        }
+      }
+    }
+  }
+}

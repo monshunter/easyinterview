@@ -1,0 +1,43 @@
+{
+  "operationId": "createDebrief",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {},
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "roundType": "hiring_manager",
+          "interviewerRole": "hiring_manager",
+          "language": "zh-CN",
+          "questions": [
+            {
+              "questionText": "你过去推动跨团队 alignment 的最难一次是什么？",
+              "myAnswerSummary": "用 STAR 讲了设计系统迁移，但漏掉了财务影响的量化。",
+              "interviewerReaction": "追问了财务影响 2 次。"
+            }
+          ],
+          "notes": "面试官非常关注 ROI 与量化叙事。"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "debriefId": "01918fa0-0000-7000-8000-00000000a000",
+          "job": {
+            "id": "01918fa0-0000-7000-8000-00000000b400",
+            "jobType": "debrief_generate",
+            "status": "queued",
+            "resourceType": "debrief",
+            "resourceId": "01918fa0-0000-7000-8000-00000000a000",
+            "errorCode": null,
+            "createdAt": "2026-04-28T13:45:12Z",
+            "updatedAt": "2026-04-28T13:45:12Z"
+          }
+        }
+      }
+    }
+  }
+}

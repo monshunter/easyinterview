@@ -1,0 +1,38 @@
+{
+  "operationId": "importTargetJob",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {},
+        "body": {
+          "source": {
+            "type": "url",
+            "url": "https://acme.example/careers/senior-frontend"
+          },
+          "titleHint": "Senior Frontend Engineer",
+          "companyNameHint": "Acme",
+          "targetLanguage": "zh-CN"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "job": {
+            "id": "01918fa0-0000-7000-8000-00000000b000",
+            "jobType": "target_import",
+            "status": "queued",
+            "resourceType": "target_job",
+            "resourceId": "01918fa0-0000-7000-8000-000000002000",
+            "errorCode": null,
+            "createdAt": "2026-04-28T13:45:12Z",
+            "updatedAt": "2026-04-28T13:45:12Z"
+          }
+        }
+      }
+    }
+  }
+}

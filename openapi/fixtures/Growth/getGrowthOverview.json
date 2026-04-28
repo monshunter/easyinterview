@@ -1,0 +1,42 @@
+{
+  "operationId": "getGrowthOverview",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "window": "30d",
+          "summary": {
+            "practiceSessionsCompleted": 6,
+            "reportsReady": 5,
+            "mistakesOpened": 9,
+            "mistakesMastered": 3,
+            "debriefCount": 1
+          },
+          "preparednessTrend": [
+            {
+              "date": "2026-04-21",
+              "level": "needs_practice"
+            },
+            {
+              "date": "2026-04-25",
+              "level": "needs_practice"
+            },
+            {
+              "date": "2026-04-28",
+              "level": "basically_ready"
+            }
+          ],
+          "dimensionTrend": {
+            "communication": "improving",
+            "technical_depth": "needs_work",
+            "ownership": "strong"
+          }
+        }
+      }
+    }
+  }
+}

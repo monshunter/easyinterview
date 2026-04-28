@@ -1,0 +1,21 @@
+{
+  "operationId": "startAuthEmailChallenge",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {},
+        "body": {
+          "email": "alice@example.com",
+          "returnTo": "/workspace"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {}
+      }
+    }
+  }
+}

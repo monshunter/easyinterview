@@ -1,0 +1,32 @@
+{
+  "operationId": "createUploadPresign",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {},
+        "body": {
+          "purpose": "resume",
+          "fileName": "alice-resume-2026.pdf",
+          "contentType": "application/pdf",
+          "byteSize": 248192
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "fileObjectId": "01918fa0-0000-7000-8000-000000001100",
+          "uploadUrl": "https://uploads.acme.example/presigned/upload?token=abc",
+          "method": "PUT",
+          "headers": {
+            "Content-Type": "application/pdf",
+            "x-amz-server-side-encryption": "AES256"
+          },
+          "expiresAt": "2026-04-28T14:00:00Z"
+        }
+      }
+    }
+  }
+}

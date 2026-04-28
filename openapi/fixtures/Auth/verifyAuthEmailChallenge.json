@@ -1,0 +1,18 @@
+{
+  "operationId": "verifyAuthEmailChallenge",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef",
+          "Set-Cookie": "ei_session=opaque-session-token; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=2592000"
+        },
+        "body": {
+          "userId": "01918fa0-0000-7000-8000-000000000100",
+          "sessionExpiresAt": "2026-05-28T13:45:12Z"
+        }
+      }
+    }
+  }
+}

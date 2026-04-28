@@ -1,0 +1,23 @@
+{
+  "operationId": "getJob",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-00000000b200",
+          "jobType": "report_generate",
+          "status": "running",
+          "resourceType": "feedback_report",
+          "resourceId": "01918fa0-0000-7000-8000-000000007000",
+          "errorCode": null,
+          "createdAt": "2026-04-28T12:00:00Z",
+          "updatedAt": "2026-04-28T13:45:12Z"
+        }
+      }
+    }
+  }
+}

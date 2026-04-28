@@ -1,0 +1,26 @@
+{
+  "operationId": "getResume",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000001000",
+          "title": "Alice Example — Senior Frontend Engineer",
+          "language": "zh-CN",
+          "parseStatus": "ready",
+          "fileObjectId": "01918fa0-0000-7000-8000-000000001100",
+          "parsedSummary": {
+            "headline": "Senior frontend engineer focused on growth-stage SaaS",
+            "yearsOfExperience": 5
+          },
+          "createdAt": "2026-04-22T09:30:00Z",
+          "updatedAt": "2026-04-28T12:00:00Z"
+        }
+      }
+    }
+  }
+}

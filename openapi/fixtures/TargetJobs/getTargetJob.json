@@ -1,0 +1,87 @@
+{
+  "operationId": "getTargetJob",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000002000",
+          "status": "interviewing",
+          "analysisStatus": "ready",
+          "title": "Senior Frontend Engineer",
+          "companyName": "Acme",
+          "locationText": "Shanghai · Hybrid",
+          "targetLanguage": "zh-CN",
+          "sourceType": "url",
+          "sourceUrl": "https://acme.example/careers/senior-frontend",
+          "summary": {
+            "coreThemes": [
+              "Design-system & component-library leadership",
+              "Performance budgets and SSR pipelines",
+              "Cross-team RFC ownership"
+            ],
+            "interviewHypotheses": [
+              "Will probe scaling design systems across 10+ teams",
+              "Likely STAR drilling on observability for FE infra"
+            ],
+            "provenance": {
+              "promptVersion": "target_job_summary.v3",
+              "rubricVersion": "not_applicable",
+              "modelId": "openrouter:anthropic/claude-sonnet-4.6",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "target_job.v17"
+            }
+          },
+          "requirements": [
+            {
+              "id": "01918fa0-0000-7000-8000-00000000d000",
+              "kind": "must_have",
+              "label": "5+ years building component libraries used by ≥5 teams",
+              "evidenceLevel": "explicit"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000d100",
+              "kind": "must_have",
+              "label": "Production experience with SSR / streaming rendering",
+              "evidenceLevel": "explicit"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000d200",
+              "kind": "nice_to_have",
+              "label": "Familiarity with edge runtime deployments",
+              "evidenceLevel": "inferred"
+            }
+          ],
+          "fitSummary": {
+            "strengths": [
+              "Drove design-system migration across 12 teams (matches must-have #1)",
+              "p95 first-paint cut to 1.1s with SSR (matches must-have #2)"
+            ],
+            "gaps": [
+              "Limited explicit edge-runtime experience"
+            ],
+            "riskSignals": [
+              "Role mentions hiring manager prefers very deep observability stories"
+            ],
+            "provenance": {
+              "promptVersion": "target_job_fit.v2",
+              "rubricVersion": "not_applicable",
+              "modelId": "openrouter:anthropic/claude-sonnet-4.6",
+              "language": "zh-CN",
+              "featureFlag": "fit_summary_v2",
+              "dataSourceVersion": "target_job.v17"
+            }
+          },
+          "latestReportId": "01918fa0-0000-7000-8000-000000007000",
+          "openMistakeCount": 2,
+          "createdAt": "2026-04-22T09:30:00Z",
+          "updatedAt": "2026-04-28T12:00:00Z"
+        }
+      }
+    }
+  }
+}

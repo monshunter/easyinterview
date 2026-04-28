@@ -1,0 +1,25 @@
+{
+  "operationId": "requestPrivacyExport",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 501,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "error": {
+            "code": "PRIVACY_EXPORT_NOT_AVAILABLE",
+            "message": "Privacy export is not available in P0 (spec D-12 / ADR-Q5).",
+            "requestId": "req_2026-04-28T13-45-12-abcdef",
+            "retryable": false,
+            "details": {
+              "availableAt": "P1",
+              "see": "docs/spec/openapi-v1-contract/spec.md#3-用户决策--待确认事项"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "operationId": "getPrivacyRequest",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-00000000c100",
+          "type": "delete",
+          "status": "completed",
+          "requestedAt": "2026-04-28T12:00:00Z",
+          "completedAt": "2026-04-28T13:45:12Z",
+          "artifactUrl": null
+        }
+      }
+    }
+  }
+}

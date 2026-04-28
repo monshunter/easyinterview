@@ -1,0 +1,34 @@
+{
+  "operationId": "requestResumeTailor",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {},
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "mode": "bullet_suggestions"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "tailorRunId": "01918fa0-0000-7000-8000-000000009000",
+          "job": {
+            "id": "01918fa0-0000-7000-8000-00000000b300",
+            "jobType": "resume_tailor",
+            "status": "queued",
+            "resourceType": "resume_tailor_run",
+            "resourceId": "01918fa0-0000-7000-8000-000000009000",
+            "errorCode": null,
+            "createdAt": "2026-04-28T13:45:12Z",
+            "updatedAt": "2026-04-28T13:45:12Z"
+          }
+        }
+      }
+    }
+  }
+}

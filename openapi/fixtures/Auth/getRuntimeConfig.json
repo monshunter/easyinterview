@@ -1,0 +1,24 @@
+{
+  "operationId": "getRuntimeConfig",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "defaultUiLanguage": "zh-CN",
+          "featureFlags": {
+            "ai_assistant_actions": true,
+            "debrief_v2": true,
+            "resume_tailor_bullets": false
+          },
+          "appVersion": "1.0.0+dev.0428",
+          "analyticsEnabled": true,
+          "postHogPublicKey": "phc_local_dev_placeholder"
+        }
+      }
+    }
+  }
+}

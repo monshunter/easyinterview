@@ -1,0 +1,20 @@
+{
+  "operationId": "getMe",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000000100",
+          "emailMasked": "ali***@example.com",
+          "displayName": "Alice Example",
+          "uiLanguage": "zh-CN",
+          "preferredPracticeLanguage": "zh-CN"
+        }
+      }
+    }
+  }
+}
