@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-28](2026-04-28.md) | `docs(reports): land openapi-v1-contract/001-bootstrap remediation 复盘报告` | #docs |
 | [2026-04-28](2026-04-28.md) | `fix(openapi): 收口 001-bootstrap remediation R1-R6 与 docs renderer 迁移` | #fix #docs |
 | [2026-04-28](2026-04-28.md) | `docs(openapi): 收口 001-bootstrap plan 与 plans/INDEX` | #docs |
 | [2026-04-28](2026-04-28.md) | `feat(openapi): 接入 docs-openapi 本地 HTML 站点` | #feat |
