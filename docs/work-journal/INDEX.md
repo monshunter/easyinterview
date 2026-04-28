@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-28](2026-04-28.md) | `feat(openapi): 落地 003 breaking-change gate baseline / wrapper / ADR 模板` | #feat #test |
 | [2026-04-28](2026-04-28.md) | `docs(reports): land openapi-v1-contract/002-fixtures-and-mock-source 交付复盘报告` | #docs |
 | [2026-04-28](2026-04-28.md) | `docs(openapi): 收口 002-fixtures-and-mock-source plan 与 plans/INDEX` | #docs |
 | [2026-04-28](2026-04-28.md) | `feat(openapi): 落地 fixtures→OpenAPI examples 投影与 Prism 同源 smoke` | #feat #test |

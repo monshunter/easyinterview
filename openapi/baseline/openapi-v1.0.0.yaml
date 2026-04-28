@@ -1,0 +1,2789 @@
+openapi: 3.1.0
+info:
+  title: easyinterview API
+  version: 1.0.0
+  summary: HTTP contract for easyinterview P0 — JD onboarding, mock interview, evidence-based review.
+  description: |-
+    BASELINE — DO NOT EDIT.
+    本文件是 openapi-v1-contract spec v1.3 锁定的 v1.0.0 freeze 快照。
+    任何 breaking change 必须走 ADR + 本 spec 修订流程，新版本写入 openapi/baseline/openapi-v<MAJOR>.<MINOR>.<PATCH>.yaml。
+  contact:
+    name: easyinterview engineering
+    url: https://github.com/monshunter/easyinterview
+
+servers:
+  - url: /api/v1
+    description: API v1 base path. All endpoints in this document are mounted under this prefix.
+
+tags:
+  - name: Auth
+    description: Session bootstrap (magic link), session teardown, runtime user context, and public runtime config.
+  - name: Uploads
+    description: Pre-signed object-storage URLs for resume / JD attachment uploads.
+  - name: Profile
+    description: Candidate profile (CandidateProfile) and experience cards.
+  - name: Resumes
+    description: Resume asset registration and retrieval.
+  - name: TargetJobs
+    description: JD import, target-job workspace state, and per-target metadata.
+  - name: PracticePlans
+    description: Practice plans created from a target job or mistake retest.
+  - name: PracticeSessions
+    description: Mock-interview sessions, session events, and session completion.
+  - name: Reports
+    description: Evidence-based feedback reports.
+  - name: Mistakes
+    description: Mistake notebook entries and retest plans.
+  - name: ResumeTailor
+    description: Resume tailoring runs (per-target customised resumes).
+  - name: Debriefs
+    description: Real-interview debrief intake and follow-up.
+  - name: Growth
+    description: Cross-session readiness trend and growth overview.
+  - name: Jobs
+    description: Async job status polling for `202 Accepted` workflows.
+  - name: Privacy
+    description: Privacy export / deletion requests (P0 export returns 501 per ADR-Q5).
+
+# Document-level security: every endpoint requires a valid first-party session
+# cookie unless the operation overrides with `security: []` (public endpoints).
+security:
+  - sessionCookie: []
+
+paths:
+  /me:
+    get:
+      tags: [Auth]
+      operationId: getMe
+      summary: Get current user context
+      description: Returns minimal context for the authenticated user (id, masked email, display name, language preferences).
+      parameters:
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Current user context.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContext'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /auth/email/start:
+    post:
+      tags: [Auth]
+      operationId: startAuthEmailChallenge
+      summary: Issue a passwordless email magic-link challenge
+      description: |
+        Public endpoint per ADR-Q1. Sends a single-use magic link to the
+        supplied email. Rate limited per ADR-Q1 risk-control baseline; does
+        **not** carry an `Idempotency-Key` (rate-limit + challenge TTL handle
+        deduplication).
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthEmailStartRequest'
+      responses:
+        '202':
+          description: Challenge accepted; verification email is being dispatched asynchronously.
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /auth/email/verify:
+    get:
+      tags: [Auth]
+      operationId: verifyAuthEmailChallenge
+      summary: Verify magic-link challenge and mint a session cookie
+      description: |
+        Public endpoint per ADR-Q1. Consumes the single-use magic-link token
+        and, on success, sets the first-party session cookie via `Set-Cookie`.
+        The response body conveys non-secret hints; the cookie value never
+        appears in the JSON body.
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: One-shot challenge token issued by `startAuthEmailChallenge`.
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Token valid; session cookie set on the response.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+            Set-Cookie:
+              description: First-party session cookie per ADR-Q1 (`HttpOnly; Secure; SameSite=Lax`).
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: Invalidate the current session
+      description: Revokes the active session and clears the session cookie.
+      parameters:
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '204':
+          description: Session revoked.
+          headers:
+            Set-Cookie:
+              description: Session cookie cleared (`Max-Age=0`).
+              schema:
+                type: string
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /uploads/presign:
+    post:
+      tags: [Uploads]
+      operationId: createUploadPresign
+      summary: Issue a pre-signed object-storage upload URL
+      description: |
+        Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Returns
+        a short-lived URL the client uploads to directly; the server never
+        proxies the file body.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadPresignRequest'
+      responses:
+        '201':
+          description: Pre-signed URL issued.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadPresign'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /profiles/me:
+    get:
+      tags: [Profile]
+      operationId: getMyProfile
+      summary: Get my candidate profile
+      parameters:
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Candidate profile.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateProfile'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+    patch:
+      tags: [Profile]
+      operationId: updateMyProfile
+      summary: Update my candidate profile (Lite)
+      parameters:
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Updated profile.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateProfile'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /profiles/me/experience-cards:
+    get:
+      tags: [Profile]
+      operationId: listExperienceCards
+      summary: List my experience cards (cursor-paginated)
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Paginated experience cards.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedExperienceCard'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+    post:
+      tags: [Profile]
+      operationId: createExperienceCard
+      summary: Create an experience card
+      parameters:
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExperienceCardRequest'
+      responses:
+        '201':
+          description: Experience card created.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperienceCard'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /profiles/me/experience-cards/{cardId}:
+    patch:
+      tags: [Profile]
+      operationId: updateExperienceCard
+      summary: Update an experience card
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExperienceCardRequest'
+      responses:
+        '200':
+          description: Updated experience card.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperienceCard'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /resumes:
+    post:
+      tags: [Resumes]
+      operationId: registerResume
+      summary: Register an uploaded resume file and trigger parsing
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Long-running parse → 202 + Job (`resume_parse`).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterResumeRequest'
+      responses:
+        '202':
+          description: Resume registered; parse job dispatched.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeAssetWithJob'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /resumes/{resumeAssetId}:
+    get:
+      tags: [Resumes]
+      operationId: getResume
+      summary: Get a resume asset and parse status
+      parameters:
+        - name: resumeAssetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Resume asset.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeAsset'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /targets/import:
+    post:
+      tags: [TargetJobs]
+      operationId: importTargetJob
+      summary: Import a target job from URL / text / file / manual form
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Long-running parse → 202 + Job (`target_import`).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportTargetJobRequest'
+      responses:
+        '202':
+          description: Target-job import accepted; parse job dispatched.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetJobWithJob'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /targets:
+    get:
+      tags: [TargetJobs]
+      operationId: listTargetJobs
+      summary: List target jobs (cursor-paginated)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TargetJobStatus'
+        - name: analysisStatus
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TargetJobParseStatus'
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Paginated target jobs.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTargetJob'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /targets/{targetJobId}:
+    get:
+      tags: [TargetJobs]
+      operationId: getTargetJob
+      summary: Get a target-job workspace
+      parameters:
+        - name: targetJobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Target-job workspace.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetJob'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+    patch:
+      tags: [TargetJobs]
+      operationId: updateTargetJob
+      summary: Update target-job lifecycle status or metadata
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
+      parameters:
+        - name: targetJobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTargetJobRequest'
+      responses:
+        '200':
+          description: Updated target job.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetJob'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /practice/plans:
+    post:
+      tags: [PracticePlans]
+      operationId: createPracticePlan
+      summary: Create a practice plan
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePracticePlanRequest'
+      responses:
+        '201':
+          description: Practice plan created.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticePlan'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /practice/plans/{planId}:
+    get:
+      tags: [PracticePlans]
+      operationId: getPracticePlan
+      summary: Get a practice plan
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Practice plan detail.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticePlan'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /practice/sessions:
+    post:
+      tags: [PracticeSessions]
+      operationId: startPracticeSession
+      summary: Start a practice session
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Returns 201 with the session and the first turn.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartPracticeSessionRequest'
+      responses:
+        '201':
+          description: Practice session created with first turn.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSession'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /practice/sessions/{sessionId}:
+    get:
+      tags: [PracticeSessions]
+      operationId: getPracticeSession
+      summary: Get a practice session (refresh / resume)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Practice session.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSession'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /practice/sessions/{sessionId}/events:
+    post:
+      tags: [PracticeSessions]
+      operationId: appendSessionEvent
+      summary: Append a session event and get the next assistant action
+      description: |
+        Idempotency for this endpoint is enforced by `clientEventId` in the
+        request body (spec D-6); the request must NOT carry an
+        `Idempotency-Key` header.
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PracticeSessionEventRequest'
+      responses:
+        '200':
+          description: Event accepted; next assistant action returned.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionEventResult'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /practice/sessions/{sessionId}/complete:
+    post:
+      tags: [PracticeSessions]
+      operationId: completePracticeSession
+      summary: Complete a practice session and trigger report generation
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Long-running → 202 + Job (`report_generate`).
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompletePracticeSessionRequest'
+      responses:
+        '202':
+          description: Session marked completing; report generation dispatched.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportWithJob'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /reports/{reportId}:
+    get:
+      tags: [Reports]
+      operationId: getFeedbackReport
+      summary: Get a feedback report (still-generating reports return 200 with placeholder)
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Feedback report (placeholder shape while status != ready).
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackReport'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /targets/{targetJobId}/reports:
+    get:
+      tags: [Reports]
+      operationId: listTargetJobReports
+      summary: List feedback reports for a target job (cursor-paginated)
+      parameters:
+        - name: targetJobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Paginated feedback reports.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFeedbackReport'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /mistakes:
+    get:
+      tags: [Mistakes]
+      operationId: listMistakes
+      summary: List mistake notebook entries (cursor-paginated)
+      parameters:
+        - name: targetJobId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/MistakeStatus'
+        - name: competencyCode
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Paginated mistake entries.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMistakeEntry'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /mistakes/{mistakeId}/retest:
+    post:
+      tags: [Mistakes]
+      operationId: retestMistake
+      summary: Create a retest practice plan from a mistake entry
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
+      parameters:
+        - name: mistakeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetestMistakeRequest'
+      responses:
+        '201':
+          description: Retest practice plan created.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticePlanContainer'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /resume/tailor:
+    post:
+      tags: [ResumeTailor]
+      operationId: requestResumeTailor
+      summary: Start a resume-tailoring run for a target job
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Long-running → 202 + Job (`resume_tailor`).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestResumeTailorRequest'
+      responses:
+        '202':
+          description: Resume-tailor run accepted.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeTailorRunWithJob'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /resume/tailor-runs/{tailorRunId}:
+    get:
+      tags: [ResumeTailor]
+      operationId: getResumeTailorRun
+      summary: Get a resume-tailor run
+      parameters:
+        - name: tailorRunId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Resume-tailor run.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeTailorRun'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /debriefs:
+    post:
+      tags: [Debriefs]
+      operationId: createDebrief
+      summary: Create a real-interview debrief and trigger augmented summary
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Long-running → 202 + Job (`debrief_generate`).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDebriefRequest'
+      responses:
+        '202':
+          description: Debrief accepted; AI augmentation dispatched.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DebriefWithJob'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /debriefs/{debriefId}:
+    get:
+      tags: [Debriefs]
+      operationId: getDebrief
+      summary: Get a real-interview debrief
+      parameters:
+        - name: debriefId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Debrief.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Debrief'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /growth/overview:
+    get:
+      tags: [Growth]
+      operationId: getGrowthOverview
+      summary: Get cross-target growth overview
+      parameters:
+        - name: window
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: ['7d', '30d', '90d']
+        - name: targetJobId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Growth overview.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrowthOverview'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /jobs/{jobId}:
+    get:
+      tags: [Jobs]
+      operationId: getJob
+      summary: Poll the status of an async job
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Async job state.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /privacy/exports:
+    post:
+      tags: [Privacy]
+      operationId: requestPrivacyExport
+      summary: Request a privacy data export (P0 not implemented — returns 501)
+      description: |
+        Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. **P0
+        explicit exception per ADR-Q5 + spec D-12**: this endpoint must return
+        `501 Not Implemented` with `error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`.
+        The endpoint shape is locked at v1.0.0 so the P1 switch to
+        `202 + PrivacyRequestWithJob` is treated as additive (per spec §4.4).
+        This is the **only** 501 in the v1.0.0 contract.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '501':
+          description: Privacy export disabled in P0 (`PRIVACY_EXPORT_NOT_AVAILABLE`).
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /privacy/deletions:
+    post:
+      tags: [Privacy]
+      operationId: requestPrivacyDelete
+      summary: Request a privacy data deletion
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Long-running → 202 + Job (`privacy_delete`).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '202':
+          description: Privacy deletion accepted; deletion job dispatched.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacyRequestWithJob'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /privacy/requests/{privacyRequestId}:
+    get:
+      tags: [Privacy]
+      operationId: getPrivacyRequest
+      summary: Get a privacy request status / result
+      parameters:
+        - name: privacyRequestId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Privacy request.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacyRequest'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /runtime-config:
+    get:
+      tags: [Auth]
+      operationId: getRuntimeConfig
+      summary: Get public runtime configuration
+      description: Public endpoint per spec §4.1 — no session required. Returns only allowlisted public fields per A4 D-2.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Public runtime configuration.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeConfig'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: ei_session
+      description: |
+        First-party session cookie minted by `GET /api/v1/auth/email/verify`.
+        ADR-Q1 locks the cookie attributes (HttpOnly, SameSite=Lax, Secure, ~30d
+        sliding renewal). Cookie value is opaque; the server-side `sessions`
+        table is the source of truth. `Authorization: Bearer` is **not** an
+        accepted P0 scheme — adding it requires a revision of ADR-Q1 and this
+        spec.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Idempotency key per `00-shared-conventions §3.4` (24h TTL). Required by
+        side-effect endpoints listed in spec D-6, except `POST /auth/email/start`
+        (rate-limited per ADR-Q1) and `POST /practice/sessions/{sessionId}/events`
+        (uses `clientEventId` instead).
+      schema:
+        type: string
+        format: uuid
+    XRequestID:
+      name: X-Request-ID
+      in: header
+      required: false
+      description: Client-supplied correlation id; the server echoes it back via the X-Request-ID response header and `error.requestId`.
+      schema:
+        type: string
+    Traceparent:
+      name: traceparent
+      in: header
+      required: false
+      description: W3C Trace Context header.
+      schema:
+        type: string
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      description: |
+        UI-locale hint per `00-shared-conventions §3.5`. Affects display defaults only;
+        does **not** override persisted business fields such as `targetLanguage`.
+      schema:
+        type: string
+    XClientVersion:
+      name: X-Client-Version
+      in: header
+      required: false
+      description: Client build version reported by the frontend shell.
+      schema:
+        type: string
+
+  headers:
+    XRequestID:
+      description: Server-confirmed correlation id; matches `error.requestId` on error responses.
+      schema:
+        type: string
+
+  responses:
+    ApiErrorResponse:
+      description: Error envelope per `ApiError` schema.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/XRequestID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+
+  schemas:
+    # === B1-AUTO-START: synced from shared/conventions.yaml by `make codegen-openapi` ===
+    # Hand edits inside this block will be overwritten. To extend the contract,
+    # update `shared/conventions.yaml` (B1 truth source) and re-run codegen.
+    # The block tracks: ApiError inner object, ApiErrorResponse envelope,
+    # ApiErrorCode, PageInfo, JobStatus, and the 14 enums catalogued in
+    # `shared/conventions.yaml#enums`.
+    ApiErrorCode:
+      type: string
+      description: |
+        Documented error codes (`00-shared-conventions §3.2`). Synced from
+        `shared/conventions.yaml#errors[].code`; B1 owns the literal set.
+        `PRIVACY_EXPORT_NOT_AVAILABLE` is the P0 example required by spec D-12
+        and is included here so the OpenAPI contract is self-contained for the
+        `POST /api/v1/privacy/exports` 501 response.
+      enum:
+        - AUTH_UNAUTHORIZED
+        - TARGET_IMPORT_FAILED
+        - PRACTICE_SESSION_CONFLICT
+        - REPORT_NOT_READY
+        - VALIDATION_FAILED
+        - RATE_LIMITED
+        - PRIVACY_EXPORT_NOT_AVAILABLE
+
+    ApiError:
+      type: object
+      required: [code, message, requestId, retryable]
+      description: |
+        Canonical error object per B1 `structures.ApiError`. B2 wraps it in
+        `ApiErrorResponse` for the wire body `{error: ...}`.
+      properties:
+        code:
+          $ref: '#/components/schemas/ApiErrorCode'
+        message:
+          type: string
+          description: Human-readable summary; safe to surface to operators (no secrets, per A4 redaction rules).
+        requestId:
+          type: string
+          description: Request correlation id; equals the X-Request-ID response header for the same request.
+        retryable:
+          type: boolean
+          description: Hint to the client whether retry is safe (per `00-shared-conventions §3.2`).
+        details:
+          type: object
+          description: Optional structured diagnostic. Must not contain provider, prompt, or secret material per A4 redaction rules.
+          additionalProperties: true
+
+    ApiErrorResponse:
+      type: object
+      required: [error]
+      description: Wire error response envelope per `00-shared-conventions §3.2`.
+      properties:
+        error:
+          $ref: '#/components/schemas/ApiError'
+
+    PageInfo:
+      type: object
+      required: [pageSize, hasMore]
+      description: Cursor pagination envelope per spec D-5. Mirrors B1 `structures.PageInfo`.
+      properties:
+        nextCursor:
+          type: string
+          nullable: true
+          description: Opaque cursor for the next page; `null` on the last page.
+        pageSize:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+        hasMore:
+          type: boolean
+
+    JobStatus:
+      type: string
+      description: Synced from `shared/conventions.yaml#jobStatuses` (00-shared-conventions §4.1).
+      enum:
+        - queued
+        - running
+        - succeeded
+        - failed
+        - cancelled
+        - dead
+
+    TargetJobStatus:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[TargetJobStatus]` (00-shared-conventions §5.1).
+      enum: [draft, preparing, applied, interviewing, offer, rejected, archived]
+
+    TargetJobParseStatus:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[TargetJobParseStatus]` (00-shared-conventions §5.2).
+      enum: [queued, processing, ready, failed]
+
+    PracticeMode:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[PracticeMode]` (00-shared-conventions §5.3).
+      enum: [warmup, core_interview, single_drill, counter_questions, debrief_replay]
+
+    PracticeGoal:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[PracticeGoal]` (00-shared-conventions §5.4).
+      enum: [baseline, sprint, fix_mistake, debrief]
+
+    InterviewerRole:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[InterviewerRole]` (00-shared-conventions §5.5).
+      enum: [generalist, hr, hiring_manager, technical_manager, peer]
+
+    SessionStatus:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[SessionStatus]` (00-shared-conventions §5.6).
+      enum: [queued, running, waiting_user_input, completing, completed, failed, cancelled]
+
+    ReportStatus:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[ReportStatus]` (00-shared-conventions §5.7).
+      enum: [queued, generating, ready, failed]
+
+    ReadinessTier:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[ReadinessTier]` (00-shared-conventions §5.8).
+      enum: [not_ready, needs_practice, basically_ready, well_prepared]
+
+    DimensionStatus:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[DimensionStatus]` (00-shared-conventions §5.9).
+      enum: [strong, meets_bar, needs_work]
+
+    Confidence:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[Confidence]` (00-shared-conventions §5.10).
+      enum: [high, medium, low]
+
+    MistakeStatus:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[MistakeStatus]` (00-shared-conventions §5.11).
+      enum: [open, improving, mastered]
+
+    DebriefStatus:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[DebriefStatus]` (00-shared-conventions §5.12).
+      enum: [draft, completed]
+
+    PrivacyRequestType:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[PrivacyRequestType]` (00-shared-conventions §5.13).
+      enum: [export, delete]
+
+    PrivacyRequestStatus:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[PrivacyRequestStatus]` (00-shared-conventions §5.13).
+      enum: [queued, processing, completed, failed, cancelled]
+    # === B1-AUTO-END ===
+
+    ResourceType:
+      type: string
+      description: |
+        Resource type referenced by `Job.resourceType` and outbox events.
+        Locked here per spec §3.2 待确认事项. Adding a value is additive but
+        requires a B2 spec revision so consumers can update mock fixtures.
+      enum:
+        - target_job
+        - feedback_report
+        - resume_asset
+        - resume_tailor_run
+        - debrief
+        - privacy_request
+
+    JobType:
+      type: string
+      description: |
+        Async job type catalogue evidenced by `02-api-definition` examples
+        (target_import, resume_parse, report_generate, resume_tailor,
+        debrief_generate, privacy_export, privacy_delete).
+      enum:
+        - target_import
+        - resume_parse
+        - report_generate
+        - resume_tailor
+        - debrief_generate
+        - privacy_export
+        - privacy_delete
+
+    GenerationProvenance:
+      type: object
+      description: |
+        AI-generation provenance per spec §4.6. Every AI-generated schema
+        listed in spec §4.6 must either embed this object as `provenance` or
+        be reachable from a `*WithJob.job.provenance`.
+
+        `rubricVersion` is **required** for every generation. Non-scoring
+        generations (for example AssistantAction follow-up choices) must
+        explicitly emit the literal `not_applicable` rather than omitting the
+        field — the Phase 1.4 inventory check enforces this contract via this
+        description.
+      required:
+        - promptVersion
+        - rubricVersion
+        - modelId
+        - language
+        - featureFlag
+        - dataSourceVersion
+      properties:
+        promptVersion:
+          type: string
+          description: Prompt registry key/version (e.g., `feedback_report.v3`).
+        rubricVersion:
+          type: string
+          description: |
+            Rubric registry key/version. Non-scoring generations emit the
+            literal `not_applicable` (not the empty string, not omitted).
+        modelId:
+          type: string
+          description: Provider profile / model id; never includes secret material.
+        language:
+          type: string
+          description: BCP 47 language tag used for this generation.
+        featureFlag:
+          type: string
+          description: Feature flag / variant that influenced the generation path; emit `none` if no flag applied.
+        dataSourceVersion:
+          type: string
+          description: Snapshot id or version of the input data set (e.g., `target_job.v17`).
+
+    PaginatedEnvelope:
+      type: object
+      required: [items, pageInfo]
+      description: |
+        Base envelope for cursor-paginated list responses. Concrete
+        `PaginatedFoo` schemas extend this via `allOf` and override `items`
+        with a typed array, keeping the field order (`items`, `pageInfo`)
+        consistent across endpoints.
+      properties:
+        items:
+          type: array
+          items: {}
+        pageInfo:
+          $ref: '#/components/schemas/PageInfo'
+
+    # ----- Auth / runtime -----
+    UserContext:
+      type: object
+      required: [id, emailMasked, displayName, uiLanguage, preferredPracticeLanguage]
+      description: Minimal current-user context returned by `GET /me`.
+      properties:
+        id:
+          type: string
+          format: uuid
+        emailMasked:
+          type: string
+          description: Masked email address (e.g., `ali***@example.com`); raw email never leaves the server.
+        displayName:
+          type: string
+        uiLanguage:
+          type: string
+          description: BCP 47 UI language preference.
+        preferredPracticeLanguage:
+          type: string
+          description: BCP 47 preferred practice language.
+
+    AuthEmailStartRequest:
+      type: object
+      required: [email]
+      description: Magic-link challenge request per ADR-Q1. No `Idempotency-Key`; rate-limited per ADR-Q1.
+      properties:
+        email:
+          type: string
+          format: email
+        returnTo:
+          type: string
+          description: Optional post-verify redirect path on the same origin.
+
+    Session:
+      type: object
+      required: [userId, sessionExpiresAt]
+      description: |
+        `verifyAuthEmailChallenge` response body. The actual session cookie is
+        delivered via the `Set-Cookie` response header per ADR-Q1; this body
+        only conveys non-secret hints (user id and expiry) so the client can
+        schedule renewal. The opaque cookie value never appears in the body.
+      properties:
+        userId:
+          type: string
+          format: uuid
+        sessionExpiresAt:
+          type: string
+          format: date-time
+
+    RuntimeConfig:
+      type: object
+      required: [defaultUiLanguage, featureFlags, appVersion, analyticsEnabled]
+      description: |
+        Public runtime configuration returned by `GET /runtime-config`.
+        Contains only the allowlisted public fields per A4 D-2; secret /
+        operator-only flags are never exposed. When the request carries a
+        valid session, `analyticsEnabled` must reflect `user_settings.analytics_opt_in`
+        and `postHogPublicKey` is omitted on opt-out.
+      properties:
+        defaultUiLanguage:
+          type: string
+        featureFlags:
+          type: object
+          description: Public feature flags only (`public=true` per A4 D-2). Operator-only flags must not appear here.
+          additionalProperties:
+            type: boolean
+        appVersion:
+          type: string
+        analyticsEnabled:
+          type: boolean
+        postHogPublicKey:
+          type: string
+          description: Optional; omitted when `analyticsEnabled == false`.
+
+    # ----- Uploads -----
+    UploadPresignRequest:
+      type: object
+      required: [purpose, fileName, contentType, byteSize]
+      properties:
+        purpose:
+          type: string
+          enum: [resume, target_job_attachment, privacy_export]
+        fileName:
+          type: string
+        contentType:
+          type: string
+        byteSize:
+          type: integer
+          format: int64
+          minimum: 1
+
+    UploadPresign:
+      type: object
+      required: [fileObjectId, uploadUrl, method, headers, expiresAt]
+      properties:
+        fileObjectId:
+          type: string
+          format: uuid
+        uploadUrl:
+          type: string
+          format: uri
+        method:
+          type: string
+          enum: [PUT, POST]
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        expiresAt:
+          type: string
+          format: date-time
+
+    # ----- Profile -----
+    CandidateProfile:
+      type: object
+      required: [headline, yearsOfExperience, currentRole, preferredPracticeLanguage, uiLanguage, region]
+      properties:
+        headline:
+          type: string
+        yearsOfExperience:
+          type: integer
+          format: int32
+          minimum: 0
+        currentRole:
+          type: string
+        preferredPracticeLanguage:
+          type: string
+        uiLanguage:
+          type: string
+        region:
+          type: string
+
+    UpdateProfileRequest:
+      type: object
+      description: All fields optional — only supplied fields are updated.
+      properties:
+        headline:
+          type: string
+        yearsOfExperience:
+          type: integer
+          format: int32
+          minimum: 0
+        currentRole:
+          type: string
+        preferredPracticeLanguage:
+          type: string
+        uiLanguage:
+          type: string
+        region:
+          type: string
+
+    ExperienceCard:
+      type: object
+      required: [id, title, companyName, situation, task, action, result, skills, language, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        companyName:
+          type: string
+        situation:
+          type: string
+        task:
+          type: string
+        action:
+          type: string
+        result:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        language:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateExperienceCardRequest:
+      type: object
+      required: [title, companyName, situation, task, action, result, language]
+      properties:
+        title:
+          type: string
+        companyName:
+          type: string
+        situation:
+          type: string
+        task:
+          type: string
+        action:
+          type: string
+        result:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        language:
+          type: string
+
+    UpdateExperienceCardRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        companyName:
+          type: string
+        situation:
+          type: string
+        task:
+          type: string
+        action:
+          type: string
+        result:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        language:
+          type: string
+
+    PaginatedExperienceCard:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedEnvelope'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExperienceCard'
+
+    # ----- Resumes -----
+    RegisterResumeRequest:
+      type: object
+      required: [fileObjectId, title, language]
+      properties:
+        fileObjectId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        language:
+          type: string
+
+    ResumeAsset:
+      type: object
+      required: [id, title, language, parseStatus, fileObjectId, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        language:
+          type: string
+        parseStatus:
+          $ref: '#/components/schemas/TargetJobParseStatus'
+        fileObjectId:
+          type: string
+          format: uuid
+        parsedSummary:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: 'null'
+          description: AI-extracted summary; reachable from a job/resource that carries `GenerationProvenance`.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ResumeAssetWithJob:
+      type: object
+      required: [resumeAssetId, job]
+      properties:
+        resumeAssetId:
+          type: string
+          format: uuid
+        job:
+          $ref: '#/components/schemas/Job'
+
+    # ----- TargetJobs -----
+    TargetJobImportSourceURL:
+      type: object
+      required: [type, url]
+      properties:
+        type:
+          type: string
+          const: url
+        url:
+          type: string
+          format: uri
+
+    TargetJobImportSourceManualText:
+      type: object
+      required: [type, rawText]
+      properties:
+        type:
+          type: string
+          const: manual_text
+        rawText:
+          type: string
+
+    TargetJobImportSourceFile:
+      type: object
+      required: [type, fileObjectId]
+      properties:
+        type:
+          type: string
+          const: file
+        fileObjectId:
+          type: string
+          format: uuid
+
+    TargetJobImportSourceManualForm:
+      type: object
+      required: [type, title, rawDescription]
+      properties:
+        type:
+          type: string
+          const: manual_form
+        title:
+          type: string
+        companyName:
+          type: string
+        rawDescription:
+          type: string
+
+    TargetJobImportSource:
+      oneOf:
+        - $ref: '#/components/schemas/TargetJobImportSourceURL'
+        - $ref: '#/components/schemas/TargetJobImportSourceManualText'
+        - $ref: '#/components/schemas/TargetJobImportSourceFile'
+        - $ref: '#/components/schemas/TargetJobImportSourceManualForm'
+      discriminator:
+        propertyName: type
+        mapping:
+          url: '#/components/schemas/TargetJobImportSourceURL'
+          manual_text: '#/components/schemas/TargetJobImportSourceManualText'
+          file: '#/components/schemas/TargetJobImportSourceFile'
+          manual_form: '#/components/schemas/TargetJobImportSourceManualForm'
+
+    ImportTargetJobRequest:
+      type: object
+      required: [source, targetLanguage]
+      properties:
+        source:
+          $ref: '#/components/schemas/TargetJobImportSource'
+        titleHint:
+          type: string
+        companyNameHint:
+          type: string
+        targetLanguage:
+          type: string
+
+    TargetJobWithJob:
+      type: object
+      required: [targetJobId, job]
+      properties:
+        targetJobId:
+          type: string
+          format: uuid
+        job:
+          $ref: '#/components/schemas/Job'
+
+    TargetJobRequirement:
+      type: object
+      required: [id, kind, label, evidenceLevel]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum: [must_have, nice_to_have]
+        label:
+          type: string
+        evidenceLevel:
+          type: string
+          enum: [explicit, implicit, inferred]
+
+    TargetJobSummary:
+      type: object
+      required: [provenance]
+      description: |
+        AI-generated target-job summary. Per spec §4.6, AI-generated schemas
+        must carry `provenance` (or be reachable from a wrapper carrying it);
+        we colocate `provenance` here so the standalone object is auditable.
+      properties:
+        coreThemes:
+          type: array
+          items:
+            type: string
+        interviewHypotheses:
+          type: array
+          items:
+            type: string
+        provenance:
+          $ref: '#/components/schemas/GenerationProvenance'
+
+    TargetJobFitSummary:
+      type: object
+      required: [provenance]
+      description: AI-generated fit summary (spec §4.6). Carries `provenance`.
+      properties:
+        strengths:
+          type: array
+          items:
+            type: string
+        gaps:
+          type: array
+          items:
+            type: string
+        riskSignals:
+          type: array
+          items:
+            type: string
+        provenance:
+          $ref: '#/components/schemas/GenerationProvenance'
+
+    TargetJob:
+      type: object
+      required: [id, status, analysisStatus, title, companyName, targetLanguage, sourceType, requirements, openMistakeCount, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/TargetJobStatus'
+        analysisStatus:
+          $ref: '#/components/schemas/TargetJobParseStatus'
+        title:
+          type: string
+        companyName:
+          type: string
+        locationText:
+          oneOf:
+            - type: string
+            - type: 'null'
+        targetLanguage:
+          type: string
+        sourceType:
+          type: string
+          enum: [manual_text, url, file, manual_form]
+        sourceUrl:
+          oneOf:
+            - type: string
+              format: uri
+            - type: 'null'
+        summary:
+          oneOf:
+            - $ref: '#/components/schemas/TargetJobSummary'
+            - type: 'null'
+        requirements:
+          type: array
+          items:
+            $ref: '#/components/schemas/TargetJobRequirement'
+        fitSummary:
+          oneOf:
+            - $ref: '#/components/schemas/TargetJobFitSummary'
+            - type: 'null'
+        latestReportId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        openMistakeCount:
+          type: integer
+          format: int32
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateTargetJobRequest:
+      type: object
+      description: All fields optional — only supplied fields are updated.
+      properties:
+        status:
+          $ref: '#/components/schemas/TargetJobStatus'
+        locationText:
+          oneOf:
+            - type: string
+            - type: 'null'
+        notes:
+          type: string
+        titleHint:
+          type: string
+        companyNameHint:
+          type: string
+
+    PaginatedTargetJob:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedEnvelope'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/TargetJob'
+
+    # ----- Practice Plans / Sessions -----
+    CreatePracticePlanRequest:
+      type: object
+      required: [targetJobId, goal, mode, interviewerPersona, difficulty, language, questionBudget, timeBudgetMinutes]
+      properties:
+        targetJobId:
+          type: string
+          format: uuid
+        goal:
+          $ref: '#/components/schemas/PracticeGoal'
+        mode:
+          $ref: '#/components/schemas/PracticeMode'
+        interviewerPersona:
+          $ref: '#/components/schemas/InterviewerRole'
+        difficulty:
+          type: string
+          enum: [easy, standard, stretch]
+        language:
+          type: string
+        questionBudget:
+          type: integer
+          format: int32
+          minimum: 1
+        timeBudgetMinutes:
+          type: integer
+          format: int32
+          minimum: 1
+        resumeAssetId:
+          type: string
+          format: uuid
+        focusCompetencyCodes:
+          type: array
+          items:
+            type: string
+
+    PracticePlan:
+      type: object
+      required: [id, targetJobId, goal, mode, interviewerPersona, difficulty, language, timeBudgetMinutes, questionBudget, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        targetJobId:
+          type: string
+          format: uuid
+        goal:
+          $ref: '#/components/schemas/PracticeGoal'
+        mode:
+          $ref: '#/components/schemas/PracticeMode'
+        interviewerPersona:
+          $ref: '#/components/schemas/InterviewerRole'
+        difficulty:
+          type: string
+          enum: [easy, standard, stretch]
+        language:
+          type: string
+        timeBudgetMinutes:
+          type: integer
+          format: int32
+          minimum: 1
+        questionBudget:
+          type: integer
+          format: int32
+          minimum: 1
+        status:
+          type: string
+          enum: [draft, ready, archived]
+        createdAt:
+          type: string
+          format: date-time
+
+    StartPracticeSessionRequest:
+      type: object
+      required: [planId]
+      properties:
+        planId:
+          type: string
+          format: uuid
+        hintsEnabled:
+          type: boolean
+
+    PracticeTurn:
+      type: object
+      required: [id, turnIndex, questionText, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        turnIndex:
+          type: integer
+          format: int32
+          minimum: 1
+        questionText:
+          type: string
+        questionIntent:
+          type: string
+        status:
+          type: string
+          enum: [asked, answered, skipped]
+        askedAt:
+          type: string
+          format: date-time
+
+    PracticeSession:
+      type: object
+      required: [id, planId, targetJobId, status, language, hintsEnabled, turnCount, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        planId:
+          type: string
+          format: uuid
+        targetJobId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/SessionStatus'
+        language:
+          type: string
+        hintsEnabled:
+          type: boolean
+        turnCount:
+          type: integer
+          format: int32
+          minimum: 0
+        currentTurn:
+          oneOf:
+            - $ref: '#/components/schemas/PracticeTurn'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PracticeSessionEventRequest:
+      type: object
+      required: [clientEventId, kind, occurredAt]
+      description: |
+        Practice-session event. Idempotency for this endpoint is enforced via
+        `clientEventId` (spec D-6); the request must NOT carry an
+        `Idempotency-Key` header. `clientEventId` is unique per session.
+      properties:
+        clientEventId:
+          type: string
+          description: Client-generated event id; unique per session.
+        kind:
+          type: string
+          enum: [answer_submitted, hint_requested, turn_skipped, session_paused, session_resumed]
+        occurredAt:
+          type: string
+          format: date-time
+        payload:
+          type: object
+          additionalProperties: true
+          description: Event-kind-specific payload (e.g., `{ turnId, answerText }` for `answer_submitted`).
+
+    AssistantAction:
+      type: object
+      required: [type, sessionStatus, provenance]
+      description: |
+        AI-generated next assistant action. Spec §4.6 requires `provenance`.
+        Non-scoring actions emit `provenance.rubricVersion = "not_applicable"`.
+      properties:
+        type:
+          type: string
+          enum: [ask_question, ask_follow_up, show_hint, session_wait, session_completed]
+        turnId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        questionText:
+          oneOf:
+            - type: string
+            - type: 'null'
+        hint:
+          oneOf:
+            - type: string
+            - type: 'null'
+        sessionStatus:
+          $ref: '#/components/schemas/SessionStatus'
+        provenance:
+          $ref: '#/components/schemas/GenerationProvenance'
+
+    SessionEventResult:
+      type: object
+      required: [acknowledged, session, assistantAction]
+      properties:
+        acknowledged:
+          type: boolean
+        session:
+          $ref: '#/components/schemas/PracticeSession'
+        assistantAction:
+          $ref: '#/components/schemas/AssistantAction'
+
+    CompletePracticeSessionRequest:
+      type: object
+      required: [clientCompletedAt]
+      properties:
+        clientCompletedAt:
+          type: string
+          format: date-time
+
+    ReportWithJob:
+      type: object
+      required: [reportId, job]
+      properties:
+        reportId:
+          type: string
+          format: uuid
+        job:
+          $ref: '#/components/schemas/Job'
+
+    # ----- Reports / Mistakes -----
+    DimensionResult:
+      type: object
+      required: [status, confidence]
+      properties:
+        status:
+          $ref: '#/components/schemas/DimensionStatus'
+        confidence:
+          $ref: '#/components/schemas/Confidence'
+
+    ReportHighlight:
+      type: object
+      required: [dimension, evidence, confidence]
+      properties:
+        dimension:
+          type: string
+        evidence:
+          type: string
+        confidence:
+          $ref: '#/components/schemas/Confidence'
+
+    ReportIssue:
+      type: object
+      required: [dimension, evidence, confidence]
+      properties:
+        dimension:
+          type: string
+        evidence:
+          type: string
+        confidence:
+          $ref: '#/components/schemas/Confidence'
+
+    ReportNextAction:
+      type: object
+      required: [type, label]
+      properties:
+        type:
+          type: string
+        label:
+          type: string
+
+    QuestionAssessment:
+      type: object
+      required: [turnId, questionIntent, dimensionResults, writtenToMistakeBook]
+      properties:
+        turnId:
+          type: string
+          format: uuid
+        questionIntent:
+          type: string
+        dimensionResults:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/DimensionResult'
+        writtenToMistakeBook:
+          type: boolean
+
+    FeedbackReport:
+      type: object
+      required: [id, sessionId, targetJobId, status, createdAt, updatedAt]
+      description: |
+        Evidence-based feedback report. AI-generated; `provenance` is required
+        once `status == ready` per spec §4.6. While generating, the placeholder
+        record still returns 200 (per `02-api-definition §11.1`).
+      properties:
+        id:
+          type: string
+          format: uuid
+        sessionId:
+          type: string
+          format: uuid
+        targetJobId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ReportStatus'
+        preparednessLevel:
+          oneOf:
+            - $ref: '#/components/schemas/ReadinessTier'
+            - type: 'null'
+        highlights:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportHighlight'
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportIssue'
+        nextActions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportNextAction'
+        questionAssessments:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionAssessment'
+        mistakeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        provenance:
+          oneOf:
+            - $ref: '#/components/schemas/GenerationProvenance'
+            - type: 'null'
+          description: Required once `status == ready` per spec §4.6.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaginatedFeedbackReport:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedEnvelope'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/FeedbackReport'
+
+    MistakeEntry:
+      type: object
+      required: [id, targetJobId, competencyCode, questionText, answerSummary, failureReasons, recommendedFramework, status, priority, createdAt, updatedAt]
+      description: |
+        Mistake notebook entry. May be AI-created (during report generation)
+        or user-created. Per spec §4.6, AI-created entries must carry
+        `provenance`; user-created entries leave `provenance` null.
+      properties:
+        id:
+          type: string
+          format: uuid
+        targetJobId:
+          type: string
+          format: uuid
+        sourceSessionId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        sourceDebriefId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        competencyCode:
+          type: string
+        questionText:
+          type: string
+        answerSummary:
+          type: string
+        failureReasons:
+          type: array
+          items:
+            type: string
+        recommendedFramework:
+          type: string
+        status:
+          $ref: '#/components/schemas/MistakeStatus'
+        priority:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+        provenance:
+          oneOf:
+            - $ref: '#/components/schemas/GenerationProvenance'
+            - type: 'null'
+          description: Present iff this entry was AI-generated; user-created entries leave it null.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaginatedMistakeEntry:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedEnvelope'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/MistakeEntry'
+
+    RetestMistakeRequest:
+      type: object
+      required: [mode, language]
+      properties:
+        mode:
+          $ref: '#/components/schemas/PracticeMode'
+        language:
+          type: string
+        timeBudgetMinutes:
+          type: integer
+          format: int32
+          minimum: 1
+
+    PracticePlanContainer:
+      type: object
+      required: [plan]
+      description: Wrapper response for `retestMistake` (returns the freshly created `PracticePlan`).
+      properties:
+        plan:
+          $ref: '#/components/schemas/PracticePlan'
+
+    # ----- Resume tailor -----
+    RequestResumeTailorRequest:
+      type: object
+      required: [targetJobId, resumeAssetId, mode]
+      properties:
+        targetJobId:
+          type: string
+          format: uuid
+        resumeAssetId:
+          type: string
+          format: uuid
+        mode:
+          type: string
+          enum: [gap_review, bullet_suggestions]
+
+    ResumeTailorBulletSuggestion:
+      type: object
+      required: [originalBullet, suggestedBullet, reason]
+      properties:
+        originalBullet:
+          type: string
+        suggestedBullet:
+          type: string
+        reason:
+          type: string
+
+    ResumeTailorMatchSummary:
+      type: object
+      description: AI-generated; `provenance` reachable from the parent `ResumeTailorRun`.
+      properties:
+        strengths:
+          type: array
+          items:
+            type: string
+        gaps:
+          type: array
+          items:
+            type: string
+
+    ResumeTailorRun:
+      type: object
+      required: [id, status, targetJobId, resumeAssetId, createdAt, updatedAt]
+      description: |
+        AI resume-tailoring run. Per spec §4.6 must carry `provenance` once
+        `status == ready`.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, generating, ready, failed]
+        targetJobId:
+          type: string
+          format: uuid
+        resumeAssetId:
+          type: string
+          format: uuid
+        matchSummary:
+          oneOf:
+            - $ref: '#/components/schemas/ResumeTailorMatchSummary'
+            - type: 'null'
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResumeTailorBulletSuggestion'
+        provenance:
+          oneOf:
+            - $ref: '#/components/schemas/GenerationProvenance'
+            - type: 'null'
+          description: Required once `status == ready` per spec §4.6.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ResumeTailorRunWithJob:
+      type: object
+      required: [tailorRunId, job]
+      properties:
+        tailorRunId:
+          type: string
+          format: uuid
+        job:
+          $ref: '#/components/schemas/Job'
+
+    # ----- Debriefs -----
+    DebriefQuestionInput:
+      type: object
+      required: [questionText, myAnswerSummary]
+      properties:
+        questionText:
+          type: string
+        myAnswerSummary:
+          type: string
+        interviewerReaction:
+          type: string
+
+    DebriefQuestion:
+      type: object
+      required: [questionText, myAnswerSummary]
+      properties:
+        questionText:
+          type: string
+        myAnswerSummary:
+          type: string
+        interviewerReaction:
+          type: string
+        aiAnalysis:
+          type: string
+
+    DebriefRiskItem:
+      type: object
+      required: [label, severity]
+      properties:
+        label:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high]
+
+    DebriefNextRoundChecklistItem:
+      type: object
+      required: [label]
+      properties:
+        label:
+          type: string
+        rationale:
+          type: string
+
+    CreateDebriefRequest:
+      type: object
+      required: [targetJobId, roundType, language, questions]
+      properties:
+        targetJobId:
+          type: string
+          format: uuid
+        roundType:
+          type: string
+          enum: [hr_screen, hiring_manager, behavioral, technical, culture, custom]
+        interviewerRole:
+          $ref: '#/components/schemas/InterviewerRole'
+        language:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DebriefQuestionInput'
+        notes:
+          type: string
+
+    Debrief:
+      type: object
+      required: [id, targetJobId, status, roundType, createdAt, updatedAt]
+      description: |
+        Real-interview debrief. AI augments user-supplied questions with risk
+        items, checklist suggestions and an optional thank-you draft. Spec §4.6:
+        when `status == completed`, must carry `GenerationProvenance`.
+      properties:
+        id:
+          type: string
+          format: uuid
+        targetJobId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/DebriefStatus'
+        roundType:
+          type: string
+          enum: [hr_screen, hiring_manager, behavioral, technical, culture, custom]
+        interviewerRole:
+          oneOf:
+            - $ref: '#/components/schemas/InterviewerRole'
+            - type: 'null'
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DebriefQuestion'
+        riskItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/DebriefRiskItem'
+        nextRoundChecklist:
+          type: array
+          items:
+            $ref: '#/components/schemas/DebriefNextRoundChecklistItem'
+        thankYouDraft:
+          oneOf:
+            - type: string
+            - type: 'null'
+        provenance:
+          oneOf:
+            - $ref: '#/components/schemas/GenerationProvenance'
+            - type: 'null'
+          description: Required once `status == completed` per spec §4.6.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DebriefWithJob:
+      type: object
+      required: [debriefId, job]
+      properties:
+        debriefId:
+          type: string
+          format: uuid
+        job:
+          $ref: '#/components/schemas/Job'
+
+    # ----- Growth -----
+    GrowthOverviewSummary:
+      type: object
+      required: [practiceSessionsCompleted, reportsReady, mistakesOpened, mistakesMastered, debriefCount]
+      properties:
+        practiceSessionsCompleted:
+          type: integer
+          format: int32
+          minimum: 0
+        reportsReady:
+          type: integer
+          format: int32
+          minimum: 0
+        mistakesOpened:
+          type: integer
+          format: int32
+          minimum: 0
+        mistakesMastered:
+          type: integer
+          format: int32
+          minimum: 0
+        debriefCount:
+          type: integer
+          format: int32
+          minimum: 0
+
+    GrowthPreparednessTrendPoint:
+      type: object
+      required: [date, level]
+      properties:
+        date:
+          type: string
+          format: date
+        level:
+          $ref: '#/components/schemas/ReadinessTier'
+
+    GrowthOverview:
+      type: object
+      required: [window, summary, preparednessTrend, dimensionTrend]
+      properties:
+        window:
+          type: string
+          enum: ['7d', '30d', '90d']
+        summary:
+          $ref: '#/components/schemas/GrowthOverviewSummary'
+        preparednessTrend:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrowthPreparednessTrendPoint'
+        dimensionTrend:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [strong, improving, meets_bar, needs_work]
+
+    # ----- Async Job -----
+    Job:
+      type: object
+      required: [id, jobType, status, resourceType, resourceId, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        jobType:
+          $ref: '#/components/schemas/JobType'
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        resourceType:
+          $ref: '#/components/schemas/ResourceType'
+        resourceId:
+          type: string
+          format: uuid
+        errorCode:
+          oneOf:
+            - $ref: '#/components/schemas/ApiErrorCode'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ----- Privacy -----
+    PrivacyRequest:
+      type: object
+      required: [id, type, status, requestedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/PrivacyRequestType'
+        status:
+          $ref: '#/components/schemas/PrivacyRequestStatus'
+        requestedAt:
+          type: string
+          format: date-time
+        completedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        artifactUrl:
+          oneOf:
+            - type: string
+              format: uri
+            - type: 'null'
+          description: Object-storage download URL; null until status == completed.
+
+    PrivacyRequestWithJob:
+      type: object
+      required: [privacyRequestId, job]
+      properties:
+        privacyRequestId:
+          type: string
+          format: uuid
+        job:
+          $ref: '#/components/schemas/Job'

@@ -1,0 +1,43 @@
+# openapi/diff-config.yaml
+# Authoritative breaking-change rule set for openapi-v1-contract spec §4.4.
+# Consumed by scripts/lint/openapi_diff.py (the gate's wrapper). Final
+# classification and exit code are owned by the wrapper.
+#
+# Spec references:
+# - docs/spec/openapi-v1-contract/spec.md §4.4 (rule set)
+# - docs/spec/openapi-v1-contract/spec.md §3.1 D-12 (privacy export 501 → 202 P0 example)
+# - docs/spec/openapi-v1-contract/plans/003-breaking-change-gate/plan.md §2
+
+prohibited:
+  - delete-endpoint
+  - rename-path
+  - change-method
+  - delete-field
+  - change-type
+  - required-add
+  - delete-enum-value
+
+additiveAllowed:
+  - new-endpoint
+  - new-tag
+  - new-optional-field
+  - new-enum-value-string
+  - new-optional-query
+  - new-example
+
+whitelist:
+  responseStatusTransitions:
+    - path: /privacy/exports
+      method: POST
+      from: "501"
+      to: "202"
+      requireHistoryIncrement: true
+      reasonRef: spec §3.1 D-12 / §4.4 "P0 例外"
+
+tooling:
+  wrapperVersion: "1.0.0"
+  description: |-
+    The wrapper implements spec §4.4 directly so the gate is runnable without a
+    network-dependent third-party CLI. Future option: shell to OpenAPITools
+    openapi-diff first and reclassify against this config; if adopted, wrapper
+    must keep being the source of truth for final exit codes.
