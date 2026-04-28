@@ -68,7 +68,7 @@ docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compati
 - 必须设置 `AI_GATEWAY_BASE_URL`（任何 OpenAI-compatible URL，例如 `https://api.openai.com/v1`、自托管 vLLM gateway URL 等）。
 - 必须设置 `AI_GATEWAY_API_KEY` 为对应 provider 的真实 key。
 - 缺任一字段时启用 AIClient 的组件 fail-fast，`make dev-doctor` 对该组件报 DOWN/DEGRADED 且 reason 指向缺真实 AI provider 配置（C-9）。
-- **不允许** 把本地部署降级到单元测试 stub。stub 仅在 `APP_ENV=test`（单元测试 / 离线契约测试）下使用，由 [A3 ai-client-and-provider](../../docs/spec/ai-client-and-provider/spec.md) 承接。
+- **不允许** 把本地部署降级到单元测试 stub。stub 仅在 `APP_ENV=test`（单元测试 / 离线契约测试）下使用，由 [A3 ai-gateway-and-model-routing](../../docs/spec/ai-gateway-and-model-routing/spec.md) 承接。
 
 ## 5 与场景测试的关系
 
