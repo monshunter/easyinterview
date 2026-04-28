@@ -12,6 +12,7 @@ Owner subspec: [openapi-v1-contract](../docs/spec/openapi-v1-contract/spec.md)
 openapi/
 ├── openapi.yaml              # single-root OpenAPI 3.1 contract (hand-authored)
 ├── README.md                 # this file
+├── dist/                     # `make docs-openapi` output (gitignored)
 └── templates/
     ├── go/{types,server,spec}.tmpl   # Go renderer templates
     └── ts/{types,client,spec}.tmpl   # TS renderer templates
@@ -54,12 +55,14 @@ Two truth sources feed the contract:
 | `make codegen` | Convenience composite: runs `codegen-conventions` first (so B1's libs are fresh), then `codegen-openapi`. |
 | `make lint-openapi` | `swagger-cli validate` + `scripts/lint/openapi_inventory.py` against `openapi/openapi.yaml`. |
 | `make codegen-check` | Local **drift gate**: `codegen-openapi` + `lint-openapi` + `git diff --exit-code` over `openapi.yaml`, `backend/internal/api/generated/`, and `frontend/src/api/generated/`. |
+| `make docs-openapi` | Render the contract as a single-file HTML site at `openapi/dist/index.html` (Redoc). The output is `dist/`-gitignored — local artefact only. |
 
 `make codegen-check` is the **only required** drift gate today. A remote CI
 required-check is deferred until A5
 [`ci-pipeline-baseline`](../docs/spec/ci-pipeline-baseline/spec.md) signals
 that the project is ready to wire CI; this plan does not modify any A5
-workflow (per spec §4.5 / §5).
+workflow (per spec §4.5 / §5). Likewise `make docs-openapi` only produces a
+local HTML artefact: A5 will own the eventual CI upload step (spec §2.1).
 
 ### Running the generator directly
 

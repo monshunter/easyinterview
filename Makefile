@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint lint-conventions lint-openapi test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-openapi codegen-check migrate install-hooks
+.PHONY: help fmt lint lint-conventions lint-openapi test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-openapi codegen-check docs-openapi migrate install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -72,6 +72,14 @@ codegen-check: codegen-openapi lint-openapi ## Local drift gate: re-run codegen 
 		"$(ROOT_DIR)/openapi/openapi.yaml" \
 		"$(ROOT_DIR)/backend/internal/api/generated" \
 		"$(ROOT_DIR)/frontend/src/api/generated"
+
+docs-openapi: ## Render openapi/openapi.yaml as a single-file HTML site at openapi/dist/index.html (Redoc; local artefact only — A5 deferred for CI upload)
+	@mkdir -p "$(ROOT_DIR)/openapi/dist"
+	@npx --yes -p redoc-cli@0.13.21 redoc-cli bundle \
+		"$(ROOT_DIR)/openapi/openapi.yaml" \
+		-o "$(ROOT_DIR)/openapi/dist/index.html" \
+		--title "easyinterview API"
+	@echo "rendered: $(ROOT_DIR)/openapi/dist/index.html"
 
 migrate: ## Run DB schema migrations; implemented by B4 db-migrations-baseline
 	@echo "TODO: implemented by B4 db-migrations-baseline"

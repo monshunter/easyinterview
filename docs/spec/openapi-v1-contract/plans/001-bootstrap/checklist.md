@@ -22,8 +22,8 @@
 
 ## Phase 3: API 文档站点（本地）
 
-- [ ] 3.1 落地 `make docs-openapi`：调用 Redoc / Stoplight CLI 渲染 `openapi/openapi.yaml` 为单文件 HTML，输出到 `openapi/dist/index.html`；根 `.gitignore` 忽略 `openapi/dist/`；不要求 A5 CI artifact
-- [ ] 3.2 更新 `openapi/README.md`：yaml 入口、generator 调用与产物落点、14 tag 链接、`make docs-openapi` 用法、B1 `$ref` 拓扑示意、`Authorization: Bearer` 不作为 P0 默认 auth 形态的声明
+- [x] 3.1 落地 `make docs-openapi`：调用 Redoc / Stoplight CLI 渲染 `openapi/openapi.yaml` 为单文件 HTML，输出到 `openapi/dist/index.html`；根 `.gitignore` 忽略 `openapi/dist/`；不要求 A5 CI artifact
+- [x] 3.2 更新 `openapi/README.md`：yaml 入口、generator 调用与产物落点、14 tag 链接、`make docs-openapi` 用法、B1 `$ref` 拓扑示意、`Authorization: Bearer` 不作为 P0 默认 auth 形态的声明
 
 ## Phase 4: Verification + handoff
 
