@@ -1,57 +1,57 @@
 # Secrets and Config Bootstrap Checklist
 
 > **版本**: 1.1
-> **状态**: active
-> **更新日期**: 2026-04-29
+> **状态**: completed
+> **更新日期**: 2026-04-30
 
 **关联计划**: [plan](./plan.md)
 
 ## Phase 1: Three-tier config loader 与 redactor
 
-- [ ] 1.1 落地 `backend/internal/platform/config/` 包骨架（`loader.go` / `validator.go` / `redactor.go` / `getters.go` / `doc.go`），module path 沿用 B1 锁定的 `github.com/monshunter/easyinterview/backend`，`doc.go` godoc 概述 D-1 三层优先级与 `Get*` API 命名约定
-- [ ] 1.2 引入 `github.com/knadh/koanf/v2` + `koanf/parsers/yaml` + `koanf/providers/env` + `koanf/providers/file`；`loader.go` 按 D-1 顺序串行合并 `config/config.yaml` → `config/{APP_ENV}.yaml` → env var → runtime secret，禁止并发 `Load` 引发 merge 顺序歧义
-- [ ] 1.3 落地 `Get*` API（`GetString` / `GetInt` / `GetBool` / `GetDuration` / `GetSecret`），点路径键名（如 `app.listenAddr`）与 spec §3.1.2 `Config path` 列对齐；错误处理由 validator 集中，不在 getter 内 panic
-- [ ] 1.4 实现 `RedactedString` 类型与 redactor：`String()` / `GoString()` / `MarshalJSON()` / `MarshalText()` / `Format(...)` 五方法返回 `***`；底层字段不导出；`Reveal()` 是唯一明文路径；redactor 必须覆盖结构化 JSON 日志、`fmt.Errorf %w` 错误包装链、嵌套 config dump 三种路径
-- [ ] 1.5 启动期 fail-fast validator：`APP_ENV=test` 允许缺 AI / Email / Session secret；`APP_ENV=staging|prod` 必填 secret 缺失返回 error；错误信息列出缺失 key 名（关闭 spec C-2 报错预期）
-- [ ] 1.6 Phase 1 自检：`go test ./backend/internal/platform/config/...` 通过 `loader_test.go`（四层合并）/ `redactor_test.go`（三路径 `***` 断言）/ `validator_test.go`（test/staging/prod 三档 fail-fast 路径）
+- [x] 1.1 落地 `backend/internal/platform/config/` 包骨架（`loader.go` / `validator.go` / `redactor.go` / `getters.go` / `doc.go`），module path 沿用 B1 锁定的 `github.com/monshunter/easyinterview/backend`，`doc.go` godoc 概述 D-1 三层优先级与 `Get*` API 命名约定
+- [x] 1.2 引入 `github.com/knadh/koanf/v2` + `koanf/parsers/yaml` + `koanf/providers/env` + `koanf/providers/file`；`loader.go` 按 D-1 顺序串行合并 `config/config.yaml` → `config/{APP_ENV}.yaml` → env var → runtime secret，禁止并发 `Load` 引发 merge 顺序歧义
+- [x] 1.3 落地 `Get*` API（`GetString` / `GetInt` / `GetBool` / `GetDuration` / `GetSecret`），点路径键名（如 `app.listenAddr`）与 spec §3.1.2 `Config path` 列对齐；错误处理由 validator 集中，不在 getter 内 panic
+- [x] 1.4 实现 `RedactedString` 类型与 redactor：`String()` / `GoString()` / `MarshalJSON()` / `MarshalText()` / `Format(...)` 五方法返回 `***`；底层字段不导出；`Reveal()` 是唯一明文路径；redactor 必须覆盖结构化 JSON 日志、`fmt.Errorf %w` 错误包装链、嵌套 config dump 三种路径
+- [x] 1.5 启动期 fail-fast validator：`APP_ENV=test` 允许缺 AI / Email / Session secret；`APP_ENV=staging|prod` 必填 secret 缺失返回 error；错误信息列出缺失 key 名（关闭 spec C-2 报错预期）
+- [x] 1.6 Phase 1 自检：`go test ./backend/internal/platform/config/...` 通过 `loader_test.go`（四层合并）/ `redactor_test.go`（三路径 `***` 断言）/ `validator_test.go`（test/staging/prod 三档 fail-fast 路径）
 
 ## Phase 2: SecretSource + FeatureFlagClient 抽象与 provider 实现
 
-- [ ] 2.1 落地 `backend/internal/platform/secrets/`：`SecretSource` 接口签名锁定 `Get(name string) (string, error)`；`EnvSecretSource` 实现 + 注释说明 `os.Getenv` 边界；接入 Phase 1 loader 作为 D-1 第一层
-- [ ] 2.2 落地 `backend/internal/platform/featureflag/featureflag.go` 接口：`IsEnabled(key, ctx FlagContext) bool` + `Variant(key, ctx FlagContext) string`；`FlagContext` 仅承载 anonymous distinct id / authenticated user public id / app env
-- [ ] 2.3 落地 `FileFlagProvider`（`config/feature-flags.yaml`，YAML schema `flags: { <key>: { enabled, variant?, public } }`），通过 mtime + 内容 hash ≤30s 热加载，使用 `sync.RWMutex` 保护内部 map，加载失败保留上一次快照并写 warn 日志（关闭 spec C-3）
-- [ ] 2.4 落地 `PostHogFlagProvider`：仅用 `net/http` 调用自托管 `POST {POSTHOG_HOST}/decide?v=3`，禁止 import `posthog-go` SDK；缓存 ≤30s 与 D-7 对齐；网络错误 / 5xx 返回 last-known-good 内存快照并 warn，无快照时 degraded/error，不静默回退 FileFlagProvider；`POSTHOG_SELF_HOSTED=false` 在 staging/prod 启动 fail-fast（关闭 spec C-4）
-- [ ] 2.5 Phase 2 自检：`secrets_test.go` 覆盖 `EnvSecretSource.Get` 缺失 error；`file_provider_test.go` 覆盖热加载与启动 race；`posthog_provider_test.go` 通过 `httptest.NewServer` mock `/decide` 命中、5xx/timeout last-known-good、无缓存 degraded/error；`POSTHOG_SELF_HOSTED=false` 在 staging/prod 启动失败用例必跑
+- [x] 2.1 落地 `backend/internal/platform/secrets/`：`SecretSource` 接口签名锁定 `Get(name string) (string, error)`；`EnvSecretSource` 实现 + 注释说明 `os.Getenv` 边界；接入 Phase 1 loader 作为 D-1 第一层
+- [x] 2.2 落地 `backend/internal/platform/featureflag/featureflag.go` 接口：`IsEnabled(key, ctx FlagContext) bool` + `Variant(key, ctx FlagContext) string`；`FlagContext` 仅承载 anonymous distinct id / authenticated user public id / app env
+- [x] 2.3 落地 `FileFlagProvider`（`config/feature-flags.yaml`，YAML schema `flags: { <key>: { enabled, variant?, public } }`），通过 mtime + 内容 hash ≤30s 热加载，使用 `sync.RWMutex` 保护内部 map，加载失败保留上一次快照并写 warn 日志（关闭 spec C-3）
+- [x] 2.4 落地 `PostHogFlagProvider`：仅用 `net/http` 调用自托管 `POST {POSTHOG_HOST}/decide?v=3`，禁止 import `posthog-go` SDK；缓存 ≤30s 与 D-7 对齐；网络错误 / 5xx 返回 last-known-good 内存快照并 warn，无快照时 degraded/error，不静默回退 FileFlagProvider；`POSTHOG_SELF_HOSTED=false` 在 staging/prod 启动 fail-fast（关闭 spec C-4）
+- [x] 2.5 Phase 2 自检：`secrets_test.go` 覆盖 `EnvSecretSource.Get` 缺失 error；`file_provider_test.go` 覆盖热加载与启动 race；`posthog_provider_test.go` 通过 `httptest.NewServer` mock `/decide` 命中、5xx/timeout last-known-good、无缓存 degraded/error；`POSTHOG_SELF_HOSTED=false` 在 staging/prod 启动失败用例必跑
 
 ## Phase 3: 配置文件骨架与 .env.example 字典对齐
 
-- [ ] 3.1 落地仓库根 `config/config.yaml`：覆盖 spec §3.1.2 canonical config schema；secret 字段留空字符串占位，禁止真实凭证；`auth.sessionCookieName` 固定 `ei_session`（与 ADR-Q1 §3 / spec D-8 一致），不允许任何 env key 覆盖；`async.queueWeights` 默认 `critical:6/default:3/low:1`
-- [ ] 3.2 落地 `config/dev.yaml` / `config/staging.yaml` / `config/prod.yaml`：env override 文件不含任何 secret；`dev.yaml` 设 `log.level: debug` + `featureFlag.source: file`；`staging.yaml` / `prod.yaml` 设 `featureFlag.source: posthog` + `featureFlag.posthogSelfHosted: true`
-- [ ] 3.3 落地仓库根 `.env.example`：覆盖 spec §3.1.1 全部 24 项 env key，secret 字段只写占位说明；每行注释标注 Owner subspec 与 prod required（yes/no/conditional），与 spec §3.1.1 表格一一对应；`async.queueWeights` 不进入 env 字典
-- [ ] 3.4 落地 `config/feature-flags.yaml` baseline：写入 6 项 P0 flag（`practice_hint_enabled` / `report_evidence_v2_enabled` / `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `ai_fallback_model_enabled` / `mock_session_dual_track_enabled`）；显式标注 `public: true|false`；`ai_fallback_model_enabled` 必须 `public: false`
-- [ ] 3.5 落地 `config/README.md`：覆盖三层优先级（D-1）、5 个文件用途、新增 env key 4 步流程、`RedactedString` 使用示范、`runtime-config` allowlist 边界，包含 spec §3.1 / §4 cross-link
-- [ ] 3.6 在 A1 已有的根 `.gitignore` 中追加独立段（注释 `# A4 secrets-and-config red lines`）：`*.secret.yaml` / `*.secret.json` / `config/local.*.yaml` / `.env` / `.env.local` / `config/feature-flags.local.yaml`
+- [x] 3.1 落地仓库根 `config/config.yaml`：覆盖 spec §3.1.2 canonical config schema；secret 字段留空字符串占位，禁止真实凭证；`auth.sessionCookieName` 固定 `ei_session`（与 ADR-Q1 §3 / spec D-8 一致），不允许任何 env key 覆盖；`async.queueWeights` 默认 `critical:6/default:3/low:1`
+- [x] 3.2 落地 `config/dev.yaml` / `config/staging.yaml` / `config/prod.yaml`：env override 文件不含任何 secret；`dev.yaml` 设 `log.level: debug` + `featureFlag.source: file`；`staging.yaml` / `prod.yaml` 设 `featureFlag.source: posthog` + `featureFlag.posthogSelfHosted: true`
+- [x] 3.3 落地仓库根 `.env.example`：覆盖 spec §3.1.1 全部 24 项 env key，secret 字段只写占位说明；每行注释标注 Owner subspec 与 prod required（yes/no/conditional），与 spec §3.1.1 表格一一对应；`async.queueWeights` 不进入 env 字典
+- [x] 3.4 落地 `config/feature-flags.yaml` baseline：写入 6 项 P0 flag（`practice_hint_enabled` / `report_evidence_v2_enabled` / `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `ai_fallback_model_enabled` / `mock_session_dual_track_enabled`）；显式标注 `public: true|false`；`ai_fallback_model_enabled` 必须 `public: false`
+- [x] 3.5 落地 `config/README.md`：覆盖三层优先级（D-1）、5 个文件用途、新增 env key 4 步流程、`RedactedString` 使用示范、`runtime-config` allowlist 边界，包含 spec §3.1 / §4 cross-link
+- [x] 3.6 在 A1 已有的根 `.gitignore` 中追加独立段（注释 `# A4 secrets-and-config red lines`）：`*.secret.yaml` / `*.secret.json` / `config/local.*.yaml` / `.env` / `.env.local` / `config/feature-flags.local.yaml`
 
 ## Phase 4: Lint / pre-commit hook / `make lint-config`
 
-- [ ] 4.1 在 B1 已落地的 `backend/.golangci.yml` 中追加本地可执行规则：优先 `revive` 自定义 rule，必要时落地 `scripts/lint/os_getenv_boundary.go`（Go AST checker）；allowlist 仅放行 `internal/platform/config/` / `internal/platform/secrets/` / `cmd/{api,worker}/main.go`，其它包出现 `os.Getenv` lint 失败（关闭 spec C-7）
-- [ ] 4.2 落地 `scripts/lint/env_dict.py`（或 `.sh`）：解析 `.env.example` + 代码侧 `os.Getenv` / `Get*` 调用 + spec §3.1.1 表，三方求差集；`Makefile` 新增 `.PHONY: lint-config` 并入 `make lint`，缺失 key 必须 fail（关闭 spec C-9 / C-11）
-- [ ] 4.3 落地 `scripts/git-hooks/pre-commit-secrets.sh`：扫描 `git diff --cached` 命中 `AKIA[0-9A-Z]{16}` / `sk-[A-Za-z0-9]{20,}` / `xox[baprs]-[A-Za-z0-9-]+` 即 fail；错误信息列出文件名 + 行号但不输出命中 secret 字面量；通过 A1 已建立的 hook 入口注册（关闭 spec C-8 第一层）
-- [ ] 4.4 落地 `scripts/lint/gitleaks.sh` 第二层：调用本地 `gitleaks detect --no-git --redact`；未安装时打印安装提示并 exit 0 不阻塞；`make lint` 调用此脚本；远端 CI secret scan 仅在 A5 触发条件成立后再接入
-- [ ] 4.5 Phase 4 自检：构造越界 `os.Getenv` 改动 + 删除 `.env.example` 中 `AI_GATEWAY_BASE_URL` + 临时生成命中 secret 正则的假数据三类故意失败场景，确认 `make lint` / `make lint-config` / pre-commit hook 全部拦截；自检后立即 revert，不污染主分支；文档与 fixture 不保留真实形态 secret 样本
+- [x] 4.1 在 B1 已落地的 `backend/.golangci.yml` 中追加本地可执行规则：优先 `revive` 自定义 rule，必要时落地 `scripts/lint/os_getenv_boundary.go`（Go AST checker）；allowlist 仅放行 `internal/platform/config/` / `internal/platform/secrets/` / `cmd/{api,worker}/main.go`，其它包出现 `os.Getenv` lint 失败（关闭 spec C-7）
+- [x] 4.2 落地 `scripts/lint/env_dict.py`（或 `.sh`）：解析 `.env.example` + 代码侧 `os.Getenv` / `Get*` 调用 + spec §3.1.1 表，三方求差集；`Makefile` 新增 `.PHONY: lint-config` 并入 `make lint`，缺失 key 必须 fail（关闭 spec C-9 / C-11）
+- [x] 4.3 落地 `scripts/git-hooks/pre-commit-secrets.sh`：扫描 `git diff --cached` 命中 `AKIA[0-9A-Z]{16}` / `sk-[A-Za-z0-9]{20,}` / `xox[baprs]-[A-Za-z0-9-]+` 即 fail；错误信息列出文件名 + 行号但不输出命中 secret 字面量；通过 A1 已建立的 hook 入口注册（关闭 spec C-8 第一层）
+- [x] 4.4 落地 `scripts/lint/gitleaks.sh` 第二层：调用本地 `gitleaks detect --no-git --redact`；未安装时打印安装提示并 exit 0 不阻塞；`make lint` 调用此脚本；远端 CI secret scan 仅在 A5 触发条件成立后再接入
+- [x] 4.5 Phase 4 自检：构造越界 `os.Getenv` 改动 + 删除 `.env.example` 中 `AI_GATEWAY_BASE_URL` + 临时生成命中 secret 正则的假数据三类故意失败场景，确认 `make lint` / `make lint-config` / pre-commit hook 全部拦截；自检后立即 revert，不污染主分支；文档与 fixture 不保留真实形态 secret 样本
 
 ## Phase 5: `runtime-config` endpoint 接入与前端 fetcher
 
-- [ ] 5.1 落地 `backend/internal/platform/config/runtime_config.go`：`BuildRuntimeConfig(ctx, session) RuntimeConfig` 严格 allowlist `appVersion` / `defaultUiLanguage` / `analyticsEnabled` / `featureFlags` / `postHogPublicKey`；过滤 `public: false` flag；session + `analytics_opt_in=false` 时 `analyticsEnabled=false` 且不返回 `postHogPublicKey`；secret 字段绝对不进 response
-- [ ] 5.2 落地 `backend/internal/platform/config/runtime_config_handler.go` 最小 stub handler：`GET /api/v1/runtime-config` 直接调用 builder 序列化 JSON；OpenAPI schema 真理源由 B2 持有，本 plan 不修改 B2 文件
-- [ ] 5.3 落地 `frontend/src/lib/runtime-config/`：`index.ts` 暴露 `fetchRuntimeConfig()` + module-scoped 缓存；`types.ts` 与后端字段同名；`hooks.placeholder.ts` 留 `useRuntimeConfig()` 占位（仅类型签名），D1 后续完成完整实装
-- [ ] 5.4 在 builder / fetcher 顶部 godoc / TSDoc cross-link 到 [B2 openapi-v1-contract spec](../../../openapi-v1-contract/spec.md)：明确「OpenAPI schema 真理源在 B2；A4 仅持有 builder 与字段 allowlist」；本 plan 不修改 B2 任何文件
-- [ ] 5.5 Phase 5 自检：`runtime_config_test.go` 覆盖 spec C-6 场景（`practice_hint_enabled.public=true` / `ai_fallback_model_enabled.public=false` / `analytics_opt_in=false` 时 response 字段精确匹配 allowlist）；vitest `runtime-config.test.ts` 覆盖 fetch + 缓存命中；本地 `curl /api/v1/runtime-config` 手工 smoke 通过
+- [x] 5.1 落地 `backend/internal/platform/config/runtime_config.go`：`BuildRuntimeConfig(ctx, session) RuntimeConfig` 严格 allowlist `appVersion` / `defaultUiLanguage` / `analyticsEnabled` / `featureFlags` / `postHogPublicKey`；过滤 `public: false` flag；session + `analytics_opt_in=false` 时 `analyticsEnabled=false` 且不返回 `postHogPublicKey`；secret 字段绝对不进 response
+- [x] 5.2 落地 `backend/internal/platform/config/runtime_config_handler.go` 最小 stub handler：`GET /api/v1/runtime-config` 直接调用 builder 序列化 JSON；OpenAPI schema 真理源由 B2 持有，本 plan 不修改 B2 文件
+- [x] 5.3 落地 `frontend/src/lib/runtime-config/`：`index.ts` 暴露 `fetchRuntimeConfig()` + module-scoped 缓存；`types.ts` 与后端字段同名；`hooks.placeholder.ts` 留 `useRuntimeConfig()` 占位（仅类型签名），D1 后续完成完整实装
+- [x] 5.4 在 builder / fetcher 顶部 godoc / TSDoc cross-link 到 [B2 openapi-v1-contract spec](../../../openapi-v1-contract/spec.md)：明确「OpenAPI schema 真理源在 B2；A4 仅持有 builder 与字段 allowlist」；本 plan 不修改 B2 任何文件
+- [x] 5.5 Phase 5 自检：`runtime_config_test.go` 覆盖 spec C-6 场景（`practice_hint_enabled.public=true` / `ai_fallback_model_enabled.public=false` / `analytics_opt_in=false` 时 response 字段精确匹配 allowlist）；vitest `runtime-config.test.ts` 覆盖 fetch + 缓存命中；本地 `curl /api/v1/runtime-config` 手工 smoke 通过
 
 ## Phase 6: Verification + handoff
 
-- [ ] 6.1 AC C-1..C-5 复跑：C-1（三层合并 `app.listenAddr=:9090`、`log.level=debug`）/ C-2（prod 缺 `SESSION_COOKIE_SECRET` 退出码非 0 + stderr 含 `missing required secret`）/ C-3（修改 `feature-flags.yaml` 30s 内热加载）/ C-4（mock `/decide` + `POSTHOG_SELF_HOSTED=false` 双场景）/ C-5（`RedactedString` 三路径 `***`）；命令日志贴入工作日志
-- [ ] 6.2 AC C-7..C-12 复跑：C-7（越界 `os.Getenv`）/ C-8（`AKIA*` / `sk-*` / `xox*` 三正则临时生成）/ C-9（`.env.example` 删 key）/ C-10（缺 `AI_GATEWAY_*` fail-fast；`APP_ENV=test` 仍走 stub）/ C-11（schema 分类错位 lint 失败）/ C-12（`async.queueWeights` 缺失或非正数 fail-fast）；故意失败 case 验证后立即 revert，不污染主分支；命令日志贴入工作日志
-- [ ] 6.3 AC C-6 partial 验证 + handoff：A4 已交付 builder + stub + fetcher + 单测断言；在工作日志记录 B2 / D1 跨 plan handoff token；明确「OpenAPI schema 完整 verification 待 B2 后续 plan、React provider 完整接入待 D1 后续 plan」；不开 sibling plan
-- [ ] 6.4 文档与 INDEX 收口：`config/README.md` Header 完整 + 内容覆盖三层优先级 / 5 文件用途 / 新增 key 4 步流程 / RedactedString 示范 / runtime-config allowlist；`docs/spec/secrets-and-config/plans/INDEX.md` 把本 plan 切到 Completed；`docs/spec/INDEX.md` 中 `secrets-and-config` 行 Header 与 spec 一致；`/sync-doc-index --check` 通过
-- [ ] 6.5 风险扫尾：按 plan §5 风险表逐条复核 redaction 三路径覆盖、koanf 合并顺序锁定、hot reload race、`.env.example` 与代码侧 env key 对齐、prod fail-fast 与 supervisor restart loop 提示；任一项缺证据本 plan 不切 Completed
+- [x] 6.1 AC C-1..C-5 复跑：C-1（三层合并 `app.listenAddr=:9090`、`log.level=debug`）/ C-2（prod 缺 `SESSION_COOKIE_SECRET` 退出码非 0 + stderr 含 `missing required secret`）/ C-3（修改 `feature-flags.yaml` 30s 内热加载）/ C-4（mock `/decide` + `POSTHOG_SELF_HOSTED=false` 双场景）/ C-5（`RedactedString` 三路径 `***`）；命令日志贴入工作日志
+- [x] 6.2 AC C-7..C-12 复跑：C-7（越界 `os.Getenv`）/ C-8（`AKIA*` / `sk-*` / `xox*` 三正则临时生成）/ C-9（`.env.example` 删 key）/ C-10（缺 `AI_GATEWAY_*` fail-fast；`APP_ENV=test` 仍走 stub）/ C-11（schema 分类错位 lint 失败）/ C-12（`async.queueWeights` 缺失或非正数 fail-fast）；故意失败 case 验证后立即 revert，不污染主分支；命令日志贴入工作日志
+- [x] 6.3 AC C-6 partial 验证 + handoff：A4 已交付 builder + stub + fetcher + 单测断言；在工作日志记录 B2 / D1 跨 plan handoff token；明确「OpenAPI schema 完整 verification 待 B2 后续 plan、React provider 完整接入待 D1 后续 plan」；不开 sibling plan
+- [x] 6.4 文档与 INDEX 收口：`config/README.md` Header 完整 + 内容覆盖三层优先级 / 5 文件用途 / 新增 key 4 步流程 / RedactedString 示范 / runtime-config allowlist；`docs/spec/secrets-and-config/plans/INDEX.md` 把本 plan 切到 Completed；`docs/spec/INDEX.md` 中 `secrets-and-config` 行 Header 与 spec 一致；`/sync-doc-index --check` 通过
+- [x] 6.5 风险扫尾：按 plan §5 风险表逐条复核 redaction 三路径覆盖、koanf 合并顺序锁定、hot reload race、`.env.example` 与代码侧 env key 对齐、prod fail-fast 与 supervisor restart loop 提示；任一项缺证据本 plan 不切 Completed
