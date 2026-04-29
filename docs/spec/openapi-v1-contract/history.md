@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-04-29 | 1.8 | 收口 B2 artifact remediation：`openapi/baseline/openapi-v1.0.0.yaml` 原地重新冻结到 37 endpoint / `DELETE /api/v1/me`，`make openapi-diff` 输出 baseline/current inventory 37/37 且 0 findings；未创建 `openapi-v1.0.1.yaml`。 | 003-breaking-change-gate Phase 5 |
 | 2026-04-29 | 1.8 | 收口 A/B spec 全面审查 remediation：v1.0.0 freeze endpoint inventory 从 36 增至 37，新增 `DELETE /api/v1/me -> 202 PrivacyRequestWithJob`；明确 P0 真实面试复现 / debrief 输出契约，感谢信与完整跟进建议保持 P1 optional；将 internal-only `email_dispatch` 排除在 B2 API-facing `JobType` 外。 | plan-review remediation |
 | 2026-04-29 | 1.7 | L2 remediation：`make openapi-diff` wrapper 补齐 `oneOf` / `allOf` / `anyOf` composition schema diff 的 breaking 检测，并把 privacy export `501→202` 白名单 history gate 默认基准改为 base branch merge-base；`Makefile` 新增 `HISTORY_REF=` 覆盖入口。 | 003-breaking-change-gate / plan-code-review --fix |
 | 2026-04-28 | 1.6 | 落地 [plan 003-breaking-change-gate](./plans/003-breaking-change-gate/plan.md)：新增 `openapi/baseline/openapi-v1.0.0.yaml` v1.0.0 freeze 快照、`make openapi-diff` 本地 gate（[scripts/lint/openapi_diff.py](../../../scripts/lint/openapi_diff.py) wrapper + [openapi/diff-config.yaml](../../../openapi/diff-config.yaml) ruleset）、privacy export `501→202` 白名单 + 同 PR `history.md` 增量校验、ADR 模板 ([decisions/TEMPLATE.md](./decisions/TEMPLATE.md)) 与 SemVer 升级阈值文档 ([openapi/baseline/README.md](../../../openapi/baseline/README.md))，并在本 history.md 上方落地「修订规则」章节。 | 003-breaking-change-gate |

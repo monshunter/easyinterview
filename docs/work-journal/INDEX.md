@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-29](2026-04-29.md) | `feat(openapi): refresh v1 baseline freeze` | #feat #test #docs |
 | [2026-04-29](2026-04-29.md) | `feat(openapi): add deleteMe fixture coverage` | #feat #test #docs |
 | [2026-04-29](2026-04-29.md) | `feat(openapi): complete v1.8 contract remediation` | #feat #test #docs |
 | [2026-04-29](2026-04-29.md) | `docs(roadmap): materialize A/B plan designs` | #docs |

@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
 > **版本**: 1.3
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-04-29
 
 **关联 Checklist**: [checklist](./checklist.md)

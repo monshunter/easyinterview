@@ -34,6 +34,10 @@ whitelist:
       requireHistoryIncrement: true
       reasonRef: spec §3.1 D-12 / §4.4 "P0 例外"
 
+contractInventory:
+  endpointCount: 37
+  note: v1.0.0 freeze includes DELETE /me (operationId=deleteMe); whitelist remains privacy-export only.
+
 tooling:
   wrapperVersion: "1.0.0"
   historyDiffBase: dev

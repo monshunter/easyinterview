@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Breaking-Change Gate Checklist
 
 > **版本**: 1.3
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-04-29
 
 **关联计划**: [plan](./plan.md)
@@ -35,7 +35,7 @@
 
 ## Phase 5: v1.8 baseline remediation
 
-- [ ] 5.1 在 001 / 002 完成 v1.8 remediation 后，重新冻结 `openapi/baseline/openapi-v1.0.0.yaml`，确保 baseline 含 37 endpoint 与 `DELETE /api/v1/me`；不得错误创建 `openapi-v1.0.1.yaml` 来掩盖当前 v1.0.0 baseline 漂移
-- [ ] 5.2 更新 `scripts/lint/openapi_diff.py`、`openapi/diff-config.yaml` 与 baseline README 中 endpoint inventory 到 37；privacy export `501→202` 白名单仍仅作用于 `POST /api/v1/privacy/exports`
-- [ ] 5.3 修正 checklist / context specVersion 到 current spec v1.8；本 remediation 未完成前 plan 保持 active
-- [ ] 5.4 复跑 `make openapi-diff`、`make codegen-check`、`make validate-fixtures`，确认 37 endpoint baseline / diff / fixtures gate 均通过
+- [x] 5.1 在 001 / 002 完成 v1.8 remediation 后，重新冻结 `openapi/baseline/openapi-v1.0.0.yaml`，确保 baseline 含 37 endpoint 与 `DELETE /api/v1/me`；不得错误创建 `openapi-v1.0.1.yaml` 来掩盖当前 v1.0.0 baseline 漂移
+- [x] 5.2 更新 `scripts/lint/openapi_diff.py`、`openapi/diff-config.yaml` 与 baseline README 中 endpoint inventory 到 37；privacy export `501→202` 白名单仍仅作用于 `POST /api/v1/privacy/exports`
+- [x] 5.3 修正 checklist / context specVersion 到 current spec v1.8；本 remediation 未完成前 plan 保持 active
+- [x] 5.4 复跑 `make openapi-diff`、`make codegen-check`、`make validate-fixtures`，确认 37 endpoint baseline / diff / fixtures gate 均通过

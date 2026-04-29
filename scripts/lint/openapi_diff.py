@@ -154,6 +154,17 @@ def _resolve_history_ref(repo_root: Path, requested_ref: str, config: Dict[str, 
     return "HEAD"
 
 
+def _operation_count(doc: Dict[str, Any]) -> int:
+    count = 0
+    for _path, methods in (doc.get("paths") or {}).items():
+        if not isinstance(methods, dict):
+            continue
+        for method, op in methods.items():
+            if method in HTTP_METHODS and isinstance(op, dict) and op.get("operationId"):
+                count += 1
+    return count
+
+
 def _count_history_rows(text: str) -> int:
     """Count data rows in the first markdown table inside `text`.
 
@@ -824,6 +835,7 @@ def run(args: argparse.Namespace) -> int:
             findings.append(gate_finding)
 
     summary = _format_summary(findings)
+    expected_operations = ((config.get("contractInventory") or {}).get("endpointCount"))
 
     output = OrderedDict(
         tool=f"wrapper-{WRAPPER_VERSION}",
@@ -833,6 +845,11 @@ def run(args: argparse.Namespace) -> int:
         history=str(history_path) if history_path.is_file() else None,
         historyRef=history_ref,
         historyRefInput=args.history_ref,
+        inventory=OrderedDict(
+            expectedOperations=expected_operations,
+            baselineOperations=_operation_count(baseline_doc),
+            currentOperations=_operation_count(current_doc),
+        ),
         summary=summary,
         whitelistMatches=whitelist_matches,
         findings=findings,
