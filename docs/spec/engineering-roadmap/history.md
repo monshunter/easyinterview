@@ -1,13 +1,14 @@
 # Engineering Roadmap History
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-04-27
+> **更新日期**: 2026-04-29
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-04-29 | 1.9 | 同步 B4 `db-migrations-baseline` v1.4：parent roadmap 摘要从旧「29 表初始迁移」口径更新为 30 张应用 / auth 支撑表 + 迁移元数据表 + backfill ledger，并吸收 B3 outbox retry 字段承载，与 ADR-Q1 auth/session 表归属和 B4 migration 真理源一致。 | db-migrations-baseline plan-review remediation |
 | 2026-04-27 | 1.8 | 对齐个人单人开发阶段决策：A5 不再作为 P0 远端 CI pipeline，当前只保留本地质量门禁；GitHub Actions、branch protection、artifact、nightly 与 CI secret 延后到多人协作、公开 release 或自动发版触发条件出现后再建。 | 001-decompose-subspecs |
 | 2026-04-27 | 1.7 | 同步修订 ADR-Q4/Q6 与 A2/A3/A4 AI provider 边界：unit test / 离线契约测试才走 stub；docker compose 与 Kind 本地部署必须注入真实 AI provider endpoint / key，staging/prod 可指 cluster-internal gateway。 | 001-decompose-subspecs |
 | 2026-04-27 | 1.6 | 同步修订 ADR-Q3/Q4 与 A2 本地开发栈边界：PostHog 部署验证改归 F2/E4，普通本地 dev 默认 no-op / file-backed；Kind 仅用于场景集成测试，A2 docker-compose 不再与 Kind manifest 同源。 | 001-decompose-subspecs |

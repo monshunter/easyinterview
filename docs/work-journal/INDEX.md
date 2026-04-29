@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-29](2026-04-29.md) | `docs(spec): reconcile W1 contract review findings` | #docs |
 | [2026-04-29](2026-04-29.md) | `feat(shared-conventions): add AI gateway error codes` | #feat #test |
 | [2026-04-29](2026-04-29.md) | `fix(openapi): tighten breaking-change gate composition diff` | #fix #test #docs |
 | [2026-04-28](2026-04-28.md) | `docs(reports): land openapi-v1-contract/003-breaking-change-gate 交付复盘报告` | #docs |

@@ -10,7 +10,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 1.8 | active | 2026-04-27 | [plans](./engineering-roadmap/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 1.9 | active | 2026-04-29 | [plans](./engineering-roadmap/plans/) |
 
 ## 2 P0 MVP（Wave 0–5）
 
@@ -20,7 +20,7 @@
 |---------|------|------|----------|-------|
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.0 | active | 2026-04-26 | [plans](./repo-scaffold/plans/) |
 | [local-dev-stack](./local-dev-stack/spec.md) | 1.4 | active | 2026-04-27 | [plans](./local-dev-stack/plans/) |
-| [ai-gateway-and-model-routing](./ai-gateway-and-model-routing/spec.md) | 1.4 | active | 2026-04-27 | [plans](./ai-gateway-and-model-routing/plans/) |
+| [ai-gateway-and-model-routing](./ai-gateway-and-model-routing/spec.md) | 1.5 | active | 2026-04-29 | [plans](./ai-gateway-and-model-routing/plans/) |
 | [secrets-and-config](./secrets-and-config/spec.md) | 1.6 | active | 2026-04-28 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.2 | active | 2026-04-27 | [plans](./ci-pipeline-baseline/plans/) |
 
@@ -28,10 +28,10 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.3 | active | 2026-04-28 | [plans](./shared-conventions-codified/plans/) |
+| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.4 | active | 2026-04-29 | [plans](./shared-conventions-codified/plans/) |
 | [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.5 | active | 2026-04-28 | [plans](./openapi-v1-contract/plans/) |
-| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 1.1 | active | 2026-04-27 | [plans](./event-and-outbox-contract/plans/) |
-| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.2 | active | 2026-04-27 | [plans](./db-migrations-baseline/plans/) |
+| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 1.2 | active | 2026-04-29 | [plans](./event-and-outbox-contract/plans/) |
+| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.4 | active | 2026-04-29 | [plans](./db-migrations-baseline/plans/) |
 
 ### 2.3 Layer C · Backend（P0）
 

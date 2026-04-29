@@ -1,8 +1,8 @@
 # ADR-Q5 · 隐私节奏
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: accepted
-> **更新日期**: 2026-04-26
+> **更新日期**: 2026-04-29
 
 ## 1 背景
 
@@ -16,7 +16,7 @@
 业务背景：
 
 - P0 用户群体高意图但样本小（早期种子用户），合规风险主要是 GDPR-like 删除请求
-- 数据分布在 29 张表，跨 9 业务域；导出需要稳定的 schema 版本化 + 引用完整性
+- 数据分布在 B4 baseline 的应用 / auth 支撑表中，跨 9 业务域；导出需要稳定的 schema 版本化 + 引用完整性
 - C12 `backend-privacy` / F4 `privacy-and-audit-runtime` 默认归 P1（`engineering-roadmap/spec.md` §5.3 §5.6）
 - 删除链路风险：物理删除 vs 软删除 vs 冷归档，需要在 P0 锁定一种语义
 
@@ -48,7 +48,7 @@
 
 - C12 / F4 进入 W4 关键路径（`engineering-roadmap/spec.md` §6 C-6 验收：「Q-5 ADR 决定的 P0 隐私范围已验证」）
 - 需要冻结 export schema 版本（与 B2 OpenAPI v1.0.0 freeze 同时锁定）
-- 跨 29 表 dump 涉及 audio / 简历 / 报告原文等多种格式，复杂度近一个独立子系统
+- 跨 B4 baseline 多表 dump 涉及 audio / 简历 / 报告原文等多种格式，复杂度近一个独立子系统
 - W2-W4 团队带宽吃紧，可能挤压 C4-C7 业务域
 
 ### 选项 C · 不做隐私链路（仅靠手动后台处理）
@@ -68,7 +68,7 @@
 落地约束：
 
 1. **删除语义**：用户级 `DELETE /api/v1/me`（同义于 `POST /privacy/deletions` body `{type: "delete"}`）→ 同步软删 `users.deleted_at` 同时立即吊销所有 session → 异步 worker 逐域硬删（按 `03-db-definition.md` §「删除策略」表）
-2. **删除范围**（P0 必须覆盖）：users / user_settings / candidate_profiles / experience_cards / target_jobs / resumes / file_objects / practice_sessions / practice_session_events / question_assessments / feedback_reports / mistake_entries / async_jobs / outbox_events / sessions / auth_challenges / audit_events（最后才删；先写 `delete_completed` audit）
+2. **删除范围**（P0 必须覆盖）：users / user_settings / candidate_profiles / experience_cards / target_jobs / resume_assets / file_objects / practice_sessions / practice_session_events / question_assessments / feedback_reports / mistake_entries / async_jobs / outbox_events / sessions / auth_challenges / external_identities / audit_events（最后才删；先写 `delete_completed` audit）
 3. **保留例外**：billing 类（如未来引入）/ 法律强制留存的合规日志按对应法规另行 ADR；P0 暂无
 4. **SLA**：删除请求 99% 在 24h 内完成（与 `04-metrics-observability.md` §「Privacy Completion」对齐）；超期写 audit + Sentry alert
 5. **导出占位 / 产品例外**：`POST /privacy/exports` 在 OpenAPI v1.0.0 freeze 中**预留 endpoint 但返回 `501 Not Implemented`**；前端 D6 settings 显示「导出功能即将上线」（i18n 文案锁定）。这显式覆盖产品 spec P0 验收项「删除与导出路径可用」中的导出部分：P0 只保证删除路径可运行，导出路径仅保证契约预留、可观测、可解释地不可用；E4 release gate 必须把该 W0 tradeoff 记录为准入例外
@@ -105,3 +105,9 @@
 - `engineering-roadmap/plans/001-decompose-subspecs/plan.md` Phase 1.1、Phase 6.8
 - 上游：`easyinterview-spec-v1-0.md` §伦理、`easyinterview-tech-docs/00-shared-conventions.md` §「隐私请求」、`02-api-definition.md` §「privacy」、`03-db-definition.md` §「privacy_requests」、`04-metrics-observability.md` §「Privacy Completion」
 - 下游 child：C12 / F4 / B2 / B4 / C8 / D1 / D6 / F1 / E4
+
+## 7 修订记录
+
+| 日期 | 版本 | 变更 | 关联 |
+|------|------|------|------|
+| 2026-04-29 | 1.2 | 对齐 B4 `db-migrations-baseline` v1.4：移除旧「29 表」背景口径，改为引用 B4 baseline 多表范围；删除范围中的 `resumes` 改为当前表名 `resume_assets`，并纳入 ADR-Q1 指派给 B4 的 `external_identities` 支撑表。 | db-migrations-baseline plan-review remediation |
