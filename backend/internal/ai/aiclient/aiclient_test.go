@@ -52,6 +52,7 @@ func newTestClient(t *testing.T) *aiclient.Client {
 	}
 	c, err := aiclient.New(
 		aiclient.Config{AppEnv: aiclient.AppEnvTest},
+		aiclient.WithStubAllowed(true),
 		aiclient.WithProfileResolver(resolver),
 		aiclient.WithProvider(stubProv),
 	)

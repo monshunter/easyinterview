@@ -23,9 +23,15 @@ type Client struct {
 	auditWriter   AuditEventWriter
 }
 
-// New builds a Client. Phase 4 layers the gateway-config validation on top
-// of this constructor; plan 001 only enforces that at least one Provider is
-// registered when WithStubAllowed is not set in test mode.
+// New builds a Client. Spec D-4 / plan 4.1 fail-fast rules:
+//
+//   - cfg.AppEnv == "test" + WithStubAllowed(true): success regardless of
+//     gateway config (single-process unit / contract tests).
+//   - cfg.AppEnv == "test" without WithStubAllowed and missing
+//     GatewayBaseURL/APIKey: ErrMissingGatewayConfig.
+//   - cfg.AppEnv != "test" with missing GatewayBaseURL or GatewayAPIKey:
+//     ErrMissingGatewayConfig regardless of WithStubAllowed; non-test
+//     deployments must point at a real OpenAI-compatible endpoint.
 func New(cfg Config, opts ...Option) (*Client, error) {
 	o := &clientOptions{
 		providers: map[string]Provider{},
@@ -34,8 +40,14 @@ func New(cfg Config, opts ...Option) (*Client, error) {
 		opt(o)
 	}
 
-	if cfg.AppEnv != AppEnvTest && (cfg.GatewayBaseURL == "" || cfg.GatewayAPIKey == "") {
-		return nil, ErrMissingGatewayConfig
+	if cfg.AppEnv == AppEnvTest {
+		if !o.stubAllowed && (cfg.GatewayBaseURL == "" || cfg.GatewayAPIKey == "") {
+			return nil, ErrMissingGatewayConfig
+		}
+	} else {
+		if cfg.GatewayBaseURL == "" || cfg.GatewayAPIKey == "" {
+			return nil, ErrMissingGatewayConfig
+		}
 	}
 
 	c := &Client{

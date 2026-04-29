@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-30](2026-04-30.md) | `feat(aiclient): fail-fast matrix 与包级 README` | #feat #test #docs |
 | [2026-04-29](2026-04-29.md) | `feat(aiclient): observability decorator 与 7 metric / 4 log / audit 红线` | #feat #test |
 | [2026-04-29](2026-04-29.md) | `feat(aiclient): openai_compatible adapter + profile loader + mockserver` | #feat #test |
 | [2026-04-29](2026-04-29.md) | `feat(aiclient): aiclient interface + stub provider 骨架` | #feat #test |
