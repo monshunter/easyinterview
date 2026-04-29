@@ -1,14 +1,14 @@
 # Repo Scaffold Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-04-26
+> **更新日期**: 2026-04-29
 
 ## 1 背景与目标
 
 [engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 把 A1 `repo-scaffold` 列为 Layer A · Foundation 的入口 child（无上游依赖）。它是 Wave 0 必须先于其他 child 落地的两份 spec 之一（与 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md) 并列），决定了：
 
-- 后端、前端、OpenAPI 契约、DB migrations、运维脚本在仓库中分别落在哪个目录；
+- 后端、前端、OpenAPI 契约、DB migrations、共享真理源、配置、运维脚本在仓库中分别落在哪个目录；
 - 顶层 `Makefile`、`.editorconfig`、`.tool-versions`、git hooks 提供给所有 child subspec 共享的根入口；
 - 后续所有 child（A2–F4）在自己的 plan 中只能在已有的根目录内增减子目录或文件，不得另起平行根。
 
@@ -25,7 +25,7 @@
 
 ### 2.1 In Scope
 
-- 仓库根目录结构：`backend/`、`frontend/`、`openapi/`、`migrations/`、`scripts/`、`test/`、`deploy/` 7 个顶层目录的语义边界与 README 占位；A1 只创建 `test/README.md`，不创建 `test/scenarios/` 场景测试框架。
+- 仓库根目录结构：`backend/`、`frontend/`、`openapi/`、`migrations/`、`scripts/`、`test/`、`deploy/`、`shared/`、`config/` 9 个顶层目录的语义边界与 README 占位；A1 只创建 `test/README.md`，不创建 `test/scenarios/` 场景测试框架；`shared/` 与 `config/` 只作为根容器，具体真理源内容由 B1 / A3 / A4 等 owner 增量落地。
 - 顶层 `Makefile`：`help` / `fmt` / `lint` / `test` / `build` / `dev-up` 等 phony target 的命名与最小占位实现（占位实现可以仅打印 "TODO: implemented by <child>"）。
 - 顶层配置文件：`.editorconfig`、`.tool-versions`、`.gitignore` 的最小内容与编辑约束。
 - Git hooks：`scripts/git-hooks/` 目录的占位骨架与 `make install-hooks` target；具体 lint / commit-msg 规则由 B1 / A5 在后续 plan 加挂。
@@ -49,7 +49,7 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | 顶层目录命名 | `backend/` / `frontend/` / `openapi/` / `migrations/` / `scripts/` / `test/` / `deploy/`；与 [01-technical-architecture.md §5.2 / §6.1](../../../easyinterview-tech-docs/01-technical-architecture.md) 对齐 | 所有 child 子目录必须落在这 7 个根容器之内 |
+| D-1 | 顶层目录命名 | `backend/` / `frontend/` / `openapi/` / `migrations/` / `scripts/` / `test/` / `deploy/` / `shared/` / `config/`；与 [01-technical-architecture.md §5.2 / §6.1](../../../easyinterview-tech-docs/01-technical-architecture.md) 对齐，并补充 B1/A3/A4 已锁定的共享真理源与配置根容器 | 所有 child 子目录必须落在这 9 个根容器之内 |
 | D-2 | 工具链锁版 | `.tool-versions` 锁定 Go / Node / pnpm / Python 的最低版本，具体版本号由 001-bootstrap plan 在 codebase 实施时确定 | 本地与 CI 走同一套 asdf 兼容版本声明 |
 | D-3 | Make target 命名 | `help` / `fmt` / `lint` / `test` / `build` / `dev-up` / `dev-down` / `codegen` / `migrate` / `install-hooks`；占位实现允许打印 "TODO" 由后续 child 接手 | 后续 child plan 不得新增同义 target，必须实现既定 target |
 | D-4 | git hooks 落点 | `scripts/git-hooks/`，通过 `make install-hooks` 写入 `.git/hooks/`；不直接版本化 `.git/hooks/` | 兼容 worktree / clone 后再激活 |
@@ -64,7 +64,7 @@
 ### 4.1 结构约束
 
 - 顶层目录数量保持稳定，新增根目录必须先在本 spec §3.1 表中登记。
-- 任何 child plan 不得创建 D-1 锁定的 7 个根容器之外的平行业务根目录。
+- 任何 child plan 不得创建 D-1 锁定的 9 个根容器之外的平行业务根目录。
 - README 占位采用统一模板：1 行说明 + 1 行 owner subspec 链接，避免空目录。
 
 ### 4.2 工具链约束
@@ -82,9 +82,11 @@
 
 | 边界 | Owner | 说明 |
 |------|-------|------|
-| 根目录 layout | A1 | 锁定 7 个顶层容器目录 + 根级配置文件 |
+| 根目录 layout | A1 | 锁定 9 个顶层容器目录 + 根级配置文件 |
 | 后端 module 拓扑 | B1 | `go.mod` 名称、internal 包命名 |
 | 前端包管理 | A2 + B1 | `package.json` / pnpm workspace |
+| 共享真理源根容器 | A1 + B1/B3 | A1 锁 `shared/` 根；B1 owns `shared/conventions.yaml`，B3 owns `shared/events.yaml` / `shared/jobs.yaml` |
+| 配置根容器 | A1 + A3/A4/F3 | A1 锁 `config/` 根；A4 owns config schema 与 feature flags，A3/F3 消费 `config/ai-profiles/`、prompt/rubric 路径 |
 | 本地依赖编排 | A2 | docker-compose、`make dev-up` 真正实现 |
 | CI 管线 | A5 | lint/test/build/codegen 工作流 |
 | OpenAPI 契约 | B2 | `openapi/` 内 fixtures、codegen 入口 |
@@ -94,7 +96,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 根目录 spawn | 当前 worktree 尚未落地 A1 根容器目录（除 docs/、AGENTS.md、原型和输入资料外没有 backend/ frontend/ 等根目录） | 执行 001-bootstrap plan 全部 checklist | 7 个根容器目录、根 Makefile、`.editorconfig`、`.tool-versions`、`scripts/git-hooks/` 全部存在；`test/README.md` 存在且不创建 `test/scenarios/`；`make help` 成功列出所有 target | 001-bootstrap |
+| C-1 | 根目录 spawn | 当前 worktree 尚未落地 A1 根容器目录（除 docs/、AGENTS.md、原型和输入资料外没有 backend/ frontend/ 等根目录） | 执行 001-bootstrap plan 全部 checklist | 9 个根容器目录、根 Makefile、`.editorconfig`、`.tool-versions`、`scripts/git-hooks/` 全部存在；`shared/README.md`、`config/README.md`、`test/README.md` 存在且不创建 `test/scenarios/`；`make help` 成功列出所有 target | 001-bootstrap |
 | C-2 | 占位 target 不阻塞 | 根 Makefile 已落地 | 在空环境跑 `make fmt` / `make lint` / `make test` / `make build` | 全部 exit 0；缺失工具时打印 "TODO: implemented by <child>" 并以 0 退出 | 001-bootstrap |
 | C-3 | git hooks 安装 | 根仓库 clone 后 | 执行 `make install-hooks` | `.git/hooks/pre-commit`、`.git/hooks/commit-msg` 链接到 `scripts/git-hooks/` 下文件；不修改其它 hook | 001-bootstrap |
 | C-4 | 工具版本声明 | `.tool-versions` 已落地 | `asdf install`（或等价的 mise / nvm）按文件读取 | Go / Node / pnpm / Python 各能解析出锁定的最低版本 | 001-bootstrap |
@@ -103,5 +105,7 @@
 ## 7 关联计划
 
 - [001-bootstrap](./plans/001-bootstrap/plan.md)：在仓库根落地目录骨架、顶层 Makefile、配置文件、git hooks 占位与 `scripts/bootstrap.sh`。
+
+本 spec v1.1 在 A1 001-bootstrap 已完成后把 `shared/` 与 `config/` 纳入根容器；后续若当前 worktree 仍缺 `config/README.md` 或相关 root README，应原地 reopen A1 001-bootstrap 做轻量 artifact remediation，不创建 sibling plan。
 
 后续如需扩展（例如新增根目录或 Makefile target），递增 spec 版本并通过原地修订完成；不创建 sibling spec。

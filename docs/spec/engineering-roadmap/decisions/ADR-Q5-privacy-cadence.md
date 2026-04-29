@@ -1,6 +1,6 @@
 # ADR-Q5 · 隐私节奏
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: accepted
 > **更新日期**: 2026-04-29
 
@@ -67,8 +67,8 @@
 
 落地约束：
 
-1. **删除语义**：用户级 `DELETE /api/v1/me`（同义于 `POST /privacy/deletions` body `{type: "delete"}`）→ 同步软删 `users.deleted_at` 同时立即吊销所有 session → 异步 worker 逐域硬删（按 `03-db-definition.md` §「删除策略」表）
-2. **删除范围**（P0 必须覆盖）：users / user_settings / candidate_profiles / experience_cards / target_jobs / resume_assets / file_objects / practice_sessions / practice_session_events / question_assessments / feedback_reports / mistake_entries / async_jobs / outbox_events / sessions / auth_challenges / external_identities / audit_events（最后才删；先写 `delete_completed` audit）
+1. **删除语义**：用户级 `DELETE /api/v1/me`（同义于 `POST /api/v1/privacy/deletions` body `{type: "delete"}`）→ 同步软删 `users.deleted_at` 同时立即吊销所有 session → 返回 `202 + PrivacyRequestWithJob` → 异步 worker 逐域硬删（按 B4 `db-migrations-baseline` §3.1.2 table matrix）
+2. **删除范围**（P0 必须覆盖）：B4 baseline 的所有用户关联表、ADR-Q1 auth/session 支撑表、对象存储文件与 AI call/audit/job/outbox 运行痕迹；全局 prompt/rubric 版本与 migration 元数据保留。每表处理策略以 [B4 §3.1.2 P0 privacy deletion table matrix](../../db-migrations-baseline/spec.md#312-p0-privacy-deletion-table-matrix) 为准，`audit_events` 只保留不可反推用户身份的删除完成 tombstone。
 3. **保留例外**：billing 类（如未来引入）/ 法律强制留存的合规日志按对应法规另行 ADR；P0 暂无
 4. **SLA**：删除请求 99% 在 24h 内完成（与 `04-metrics-observability.md` §「Privacy Completion」对齐）；超期写 audit + Sentry alert
 5. **导出占位 / 产品例外**：`POST /privacy/exports` 在 OpenAPI v1.0.0 freeze 中**预留 endpoint 但返回 `501 Not Implemented`**；前端 D6 settings 显示「导出功能即将上线」（i18n 文案锁定）。这显式覆盖产品 spec P0 验收项「删除与导出路径可用」中的导出部分：P0 只保证删除路径可运行，导出路径仅保证契约预留、可观测、可解释地不可用；E4 release gate 必须把该 W0 tradeoff 记录为准入例外
@@ -80,7 +80,7 @@
 
 - **C12 `backend-privacy`** —— 维持 P1 占位（draft spec），但删除链路核心实现下沉到 P0：在 C8 `backend-async-runtime` 中以 public `jobType=privacy_delete` 落地，内部 Asynq handler 可映射为 `privacy.delete`；C12 升格时只接管 export + 完整 worker 管理面
 - **F4 `privacy-and-audit-runtime`** —— 维持 P1，但 audit_events schema 与 retention 在 W1 锁定（B4 / B1）
-- **B2 `openapi-v1-contract`** —— 冻结 `/privacy/deletions` + `/privacy/exports`（后者 stub 501）+ `DELETE /me`
+- **B2 `openapi-v1-contract`** —— 冻结 `/privacy/deletions` + `/privacy/exports`（后者 stub 501）+ `DELETE /api/v1/me`
 - **B4 `db-migrations-baseline`** —— `privacy_requests` / `audit_events` 0001 迁移
 - **C8 `backend-async-runtime`** —— public `privacy_delete` job_type；内部 handler 可为 `privacy.delete`；优先级 critical
 - **D6 `frontend-debrief-and-growth`**（P1） + **D1 `frontend-shell` Settings 面板**（P0 子功能） —— 「删除我的账号」UI + 「导出即将上线」占位
@@ -110,4 +110,5 @@
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-04-29 | 1.3 | 对齐 B2 / B4 remediation：明确 `DELETE /api/v1/me` 必须进入 OpenAPI freeze 并返回 `202 + PrivacyRequestWithJob`；删除范围改为引用 B4 §3.1.2 per-table matrix，区分 hard delete / cascade / retain / audit tombstone。 | plan-review remediation |
 | 2026-04-29 | 1.2 | 对齐 B4 `db-migrations-baseline` v1.4：移除旧「29 表」背景口径，改为引用 B4 baseline 多表范围；删除范围中的 `resumes` 改为当前表名 `resume_assets`，并纳入 ADR-Q1 指派给 B4 的 `external_identities` 支撑表。 | db-migrations-baseline plan-review remediation |

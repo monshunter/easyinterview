@@ -1,8 +1,8 @@
 # Decompose Subspecs Checklist
 
-> **版本**: 2.1
+> **版本**: 2.2
 > **状态**: active
-> **更新日期**: 2026-04-27
+> **更新日期**: 2026-04-29
 
 **关联计划**: [plan](./plan.md)
 
@@ -27,7 +27,7 @@
 
 - [x] 3.1 并行 spawn 9 份 spec（A2 / A3 / A4 / A5 / B2 / B3 / B4 / F1 / F3），仅写 spec.md + history，**不写 impl plan**
 - [x] 3.2 完成 parent-level W1 cross-spec review：核对 9 份 W1 spec 的 boundary / ownership / ADR-Q1..Q6 继承 / truth-source 引用；本项不声称 9 个 child 已各自拥有独立 plan/context 或已逐个通过 `/plan-review`，child impl plan 必须在逐一核对对应 spec 后再创建
-- [x] 3.3 B2 `openapi-v1-contract` 完成 spec-contract lock：v1.0.0 freeze 的 36 endpoint / 14 tag / additive-only 规则 / privacy export 501 例外已写入 spec；`openapi/openapi.yaml`、codegen、fixtures、breaking-change linter 由 B2 后续 `001` plan 验证
+- [x] 3.3 B2 `openapi-v1-contract` 完成 spec-contract lock：v1.0.0 freeze 的 37 endpoint / 14 tag / additive-only 规则 / privacy export 501 例外已写入 spec（含 `DELETE /api/v1/me` 账号删除别名）；`openapi/openapi.yaml`、codegen、fixtures、breaking-change linter 由 B2 后续 `001` plan 或原地 artifact remediation 验证
 - [x] 3.4 F1 `observability-stack` 完成 spec-contract lock：baseline metric 命名、allowed labels、forbidden labels、log 明文红线、dashboard 名称与健康检查契约已写入 spec；helper / lint / dashboard / alerting 实现由 F1 后续 `001` plan 验证
 - [x] 3.5 F3 `prompt-rubric-registry` 完成 spec-contract lock：13 个 P0 feature_key、`(feature_key, version, language)` 坐标、Resolve 调用契约、prompt/rubric 文件落点已写入 spec；baseline prompt/rubric 文件与 loader 由 F3 后续 `001` plan 验证
 - [x] 3.6 A2 `local-dev-stack` 完成 spec-contract lock：最小本地依赖（Postgres+pgvector / Redis / MinIO）、项目组件启动语义、`make dev-*` 行为契约、JSON 健康检查口径已写入 spec；`deploy/dev-stack/docker-compose.yaml` 与真实 `make dev-up` 一键健康检查由 A2 后续 `001` plan 验证
@@ -49,8 +49,9 @@
 - [ ] 5.2 spawn C5 `backend-practice`：完整 spec + plan 链；plan 必须显式写出 turn-light-review 边界
 - [ ] 5.3 spawn C6 `backend-review`：完整 spec + plan 链
 - [ ] 5.4 spawn C7 `backend-resume`：完整 spec + plan 链
-- [ ] 5.5 F3 切到真实 Model Profile（由配置映射到真实 AI provider / gateway endpoint、provider、model），落地 ≥50 题离线评估集
-- [ ] 5.6 6 个 P0 后端域（C1 + C4-C7 + C8）通过各自 unit 测试 + mock-server BDD
+- [ ] 5.5 spawn C9 `backend-debrief`：完整 spec + plan 链；P0 只承接真实面试复现 / 复盘文本流，感谢信草稿与完整跟进建议延后到 C9 P1 plan
+- [ ] 5.6 F3 切到真实 Model Profile（由配置映射到真实 AI provider / gateway endpoint、provider、model），落地 ≥50 题离线评估集
+- [ ] 5.7 7 个 P0 后端域（C1 + C4-C7 + C8 + C9）通过各自 unit 测试 + mock-server BDD
 
 ## Phase 6: Wave 4 + Wave 5（真集成 + 上线 gate）
 
@@ -67,7 +68,7 @@
 ## Phase 7: 收尾
 
 - [ ] 7.1 `engineering-roadmap` spec 状态由 `active` 调整为 `completed`（仅当 P0 全部上线）
-- [ ] 7.2 P1 child draft spec 创建：C9 / C10 / C11 / C12 / D5 / D6 / E3 / F4（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`）
+- [ ] 7.2 P1 child draft spec 创建：C10 / C11 / C12 / D5 / D6 / E3 / F4（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`）
 - [ ] 7.3 P2 child draft spec 创建：C13 / C14 / D7（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`），INDEX 行从占位切为真实链接
 - [ ] 7.4 触发 `/retrospective` 生成 P0 交付复盘报告
 - [ ] 7.5 同步 `docs/work-journal/INDEX.md` 与最近一条工作日志，记录 P0 收尾

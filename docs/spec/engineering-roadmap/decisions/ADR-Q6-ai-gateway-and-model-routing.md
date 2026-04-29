@@ -1,8 +1,8 @@
 # ADR-Q6 · AI 网关与模型路由
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: accepted
-> **更新日期**: 2026-04-27
+> **更新日期**: 2026-04-29
 
 ## 1 背景
 
@@ -90,7 +90,7 @@
    - YAML 文件 + 热加载；schema 在 A3 spec 中冻结
    - 字段：`name`（业务引用）/ `task_type`（chat | embed | stt）/ `default.provider+model+params` / `fallback[]`（按序触发条件）/ `timeout_ms` / `max_tokens` / `rate_limit`（rps + tpm）/ `gateway_route`
    - 业务代码引用 `profile name`，不引用 provider / model 字符串
-3. **运行时注入**：非单元测试运行环境唯一注入点 `AI_GATEWAY_BASE_URL`（OpenAI-compatible HTTP API，可指真实 AI provider 或生产 gateway）；所有 `AIClient.*` 经此 URL 出站
+3. **运行时注入**：非单元测试运行环境唯一注入点 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY`（保留 `GATEWAY` 命名作为兼容字段名，语义是 AIClient 的 OpenAI-compatible 连接参数；可指真实 LLM provider，也可指生产 gateway）；所有 `AIClient.*` 经此 URL 出站
 4. **Stub provider**（A3 owner）
    - 仅用于单元测试、离线 contract 测试或显式 mock 场景
    - 输入 → 输出 hash-based 确定性映射；可被 OpenAPI fixtures 反向喂养（与 E1 `mock-contract-suite` 同源）
@@ -101,7 +101,7 @@
    - 每次 `AIClient.*` 调用必须落 `ai_task_runs_total` + `ai_task_latency_seconds` + `ai_task_input/output_tokens_total` + `ai_task_cost_usd_total` + `ai_output_validation_failures_total` + `ai_fallback_total`
    - dashboard：provider / model 使用量 + fallback rate + cost / day + p95 latency / task_type
 8. **隐私**（Q-5 关联）：AI 调用 payload 在 `audit_events` 写入 hash + 长度 + profile，**不写明文 prompt / response**；明文只允许保留在 `practice_session_events` 等业务表，受删除链路覆盖
-9. **fallback 边界**：fallback 只在 gateway 层触发；业务代码看到的是「成功 response + fallback meta 标记」或「最终失败」；不允许业务自行重试切换模型
+9. **fallback 边界**：fallback 只在 AIClient 连接的 OpenAI-compatible endpoint / gateway route 层触发；如果该 endpoint 是真实 LLM provider 且不提供 fallback，A3 client 不自行切换模型。业务代码看到的是「成功 response + fallback meta 标记」或「最终失败」；不允许业务自行重试切换模型
 
 ## 4 影响范围
 
@@ -112,7 +112,7 @@
 - **C4 `backend-targetjob`** / **C5 `backend-practice`** / **C6 `backend-review`** / **C7 `backend-resume`** / **C9 `backend-debrief`** / **C11 `backend-retrieval`** —— 全部仅依赖 `AIClient` + profile name；禁止 import 厂商 SDK
 - **C14 `backend-voice-stt`**（P2） —— STT 走同一 `AIClient`（task_type=stt），profile 路由到 STT 专用 gateway route
 - **E4 `release-gate-and-rollout`** —— W4 gate 校验 AI Gateway 路由可观测性 + fallback alert + cost cap 配置
-- **B1 `shared-conventions-codified`** —— Profile schema TS / Go 类型 + AI meta 字段共享枚举
+- **B1 `shared-conventions-codified`** —— Model Profile / AI meta 字段名与 AI 错误码的共享常量或生成类型；A3 仍 owns Model Profile schema、`AIClient` runtime 与 `AICallMeta` 填充语义
 - **CLAUDE.md / `test/scenarios/`** —— Kind 场景默认使用真实 AI provider endpoint；只有离线 contract 测试可显式切 stub / mock gateway
 
 ## 5 失效与修订条件
@@ -139,4 +139,5 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-04-29 | 1.2 | 收口 A/B spec 全面审查 remediation：明确 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 是 AIClient 的 OpenAI-compatible 连接参数，可指真实 LLM provider 或生产 gateway；fallback 由连接 endpoint / gateway route 承担，A3 client 不自行切换模型；B1 只提供共享字段/常量，A3 owns runtime。 |
 | 2026-04-27 | 1.1 | 明确 stub 只用于单元测试 / 离线 contract 测试；docker compose 与 Kind 本地部署必须使用真实 AI provider 提供的 OpenAI-compatible LLM 服务，不默认降级到 stub，也不要求本地部署 AI gateway 组件。 |

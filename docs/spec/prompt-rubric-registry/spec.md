@@ -1,8 +1,8 @@
 # Prompt Rubric Registry Spec
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-04-27
+> **更新日期**: 2026-04-29
 
 ## 1 背景与目标
 
@@ -79,11 +79,11 @@
 | `resume.parse` | 简历解析 | C7 | `resume.parse.default` |
 | `resume.tailor.gap_review` | 简历 gap review | C7 | `resume.tailor.default` |
 | `resume.tailor.bullet_suggestions` | 简历 bullet 改写 | C7 | `resume.tailor.default`（共享） |
-| `debrief.generate` | 真实复盘总结 | C9（P1） | `debrief.generate.default` |
+| `debrief.generate` | 真实面试复现 / 复盘文本生成 | C9（P0；感谢信草稿与完整跟进建议为 C9 P1 增强） | `debrief.generate.default` |
 | `embedding.upsert` | 向量 upsert | C11（P1） | `embedding.default` |
 | `retrieval.rerank` | 检索 rerank | C11（P1） | `retrieval.rerank.default` |
 
-> 备注：P0 实际 13 项中包含 P1 child（C9 / C11）的 feature_key 占位是为了让 F3 baseline 一次性把命名空间锁满，避免 P1 spawn 时再扩展 schema；实际 prompt 文本可由 W3 / P1 时再补，meta 已就位即可。
+> 备注：P0 实际 13 项中仍包含 P1 child（C11）的 feature_key 占位是为了让 F3 baseline 一次性把命名空间锁满，避免 P1 spawn 时再扩展 schema；C9 已升格为 P0 真实面试复现 / 复盘文本流，感谢信草稿与完整跟进建议仍延后到 C9 P1 增强。
 
 ### 3.2 待确认事项
 

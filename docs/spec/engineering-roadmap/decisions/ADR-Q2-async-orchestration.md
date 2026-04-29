@@ -1,8 +1,8 @@
 # ADR-Q2 · 异步编排
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: accepted
-> **更新日期**: 2026-04-26
+> **更新日期**: 2026-04-29
 
 ## 1 背景
 
@@ -10,11 +10,11 @@
 
 P0 已识别的异步链路：
 
-- JD 解析（public `jobType=target_import`，internal Asynq handler 可映射为 `target_job.parse`）
-- 模拟面试报告生成（public `jobType=report_generate`，internal Asynq handler 可映射为 `practice.report_generate`）
+- JD 解析（public `jobType=target_import`，internal Asynq handler 可映射为 `target.import`）
+- 模拟面试报告生成（public `jobType=report_generate`，internal Asynq handler 可映射为 `report.generate`）
 - 简历定制（`resume.tailor`）
 - Mistake / Drill 物化（`review.materialize_mistakes`）
-- Email magic link / 通知派发（`email_dispatch`）
+- Email magic link / 通知派发（internal-only canonical `jobType=email_dispatch`，internal Asynq handler 可映射为 `email.dispatch`）
 - Outbox event publish（`outbox.dispatch`）
 
 特征：
@@ -75,10 +75,10 @@ P0 已识别的异步链路：
 落地约束：
 
 1. **进程拓扑**：`api` 进程负责 enqueue + outbox 写入；`worker` 进程独占 Asynq consumer + outbox dispatcher
-2. **任务命名边界**：API / DB / event / metrics 暴露的 public `jobType` 必须沿用 `easyinterview-tech-docs` 已冻结的 snake_case 值（例如 `target_import`、`report_generate`、`privacy_delete`）；Asynq 内部 handler 可使用 `<domain>.<action>` dotted name（例如 `target_job.parse`、`practice.report_generate`、`privacy.delete`），但 C8 必须维护双向映射，B3 / B4 新增 job 时必须先 additive 更新 public `jobType`
+2. **任务命名边界**：API / DB / event / metrics 暴露或持久化的 canonical `jobType` 必须沿用 snake_case 值（例如 `target_import`、`report_generate`、`privacy_delete`、`email_dispatch`）；Asynq 内部 handler 使用 `<domain>.<action>` dotted name（例如 `target.import`、`report.generate`、`privacy.delete`、`email.dispatch`），但 C8 必须维护双向映射，B3 / B4 新增 job 时必须先 additive 更新 canonical `jobType`
 3. **幂等**：所有 task payload 必须含 `dedupe_key`；进 `async_jobs.dedupe_key` unique index（per `job_type`）
 4. **重试策略**：默认指数退避（30s/2m/10m/1h/6h），最多 5 次；超限后落 `dead_letter` 并写 audit_event
-5. **优先级队列**：`critical`（user-facing：`report_generate` / `privacy_delete`）/ `default`（`target_import` / `resume_tailor`）/ `low`（`email_dispatch` / `analytics_dispatch` / batch）；新增 `email_dispatch` / `analytics_dispatch` 前必须由 B3 / B4 明确加入契约
+5. **优先级队列**：`critical`（user-facing：`report_generate` / `privacy_delete`）/ `default`（`target_import` / `resume_tailor`）/ `low`（`email_dispatch` / `analytics_dispatch` / batch）；`email_dispatch` 由 B3 / B4 作为 internal-only canonical jobType 纳入契约，`analytics_dispatch` 新增前必须由 B3 / B4 additive 更新
 6. **可观测性**：每个 task 必须落 `async_job_duration_seconds` + `async_jobs_processed_total{result=succ|fail|retry}` + Sentry breadcrumb
 7. **outbox**：`outbox_events` 表由业务事务写入；dispatcher 独立 cron job（每 5s 扫一次未发布行）→ Asynq enqueue → publish 到事件 bus（P0 内网直发）
 8. **Asynq Web UI**：本地 dev / staging 默认开启；prod 通过 ingress + auth 暴露给 ops
@@ -88,7 +88,8 @@ P0 已识别的异步链路：
 - **C8 `backend-async-runtime`** —— 落地 Asynq client / server 抽象、outbox dispatcher、task registry、metrics adapter
 - **A2 `local-dev-stack`** —— `docker-compose.yml` 含 Redis 7 + AOF；`make dev-up` 健康检查包含 Asynq ping
 - **B3 `event-and-outbox-contract`** —— 18 事件 envelope + outbox publish_status 状态机
-- **B4 `db-migrations-baseline`** —— `async_jobs` / `outbox_events` 0001 迁移
+- **B4 `db-migrations-baseline`** —— `async_jobs` / `outbox_events` 0001 迁移；`async_jobs.job_type` check 必须包含 internal-only `email_dispatch`
+- **C1 `backend-auth`** —— magic link 邮件派发只能通过 C8 `email_dispatch` job 进入 worker，不得在 request handler 中同步发邮件
 - **C4 / C5 / C6 / C7** —— 所有异步链路统一通过 C8 SDK enqueue，禁止业务代码直接 import `asynq`
 - **F1 `observability-stack`** —— `async_jobs_*` + `outbox_publish_lag_seconds` 指标接入；queue depth alert 阈值锁定
 - **A4 `secrets-and-config`** —— Redis 连接串 / Asynq 队列权重作为 config 节点
@@ -111,3 +112,9 @@ P0 已识别的异步链路：
 - `engineering-roadmap/plans/001-decompose-subspecs/plan.md` Phase 1.1
 - 上游：`easyinterview-tech-docs/00-shared-conventions.md` §4 异步任务约定、`01-technical-architecture.md` §3、`03-db-definition.md` §5.9、`04-metrics-observability.md` §「async_jobs」、`06-event-contracts.md`
 - 下游 child：C8 / B3 / B4 / A2 / A4 / F1；间接：C4-C7 全部
+
+## 7 修订记录
+
+| 日期 | 版本 | 变更 | 关联 |
+|------|------|------|------|
+| 2026-04-29 | 1.2 | 将 magic link / 通知派发所需的 `email_dispatch` 明确纳入 internal-only canonical jobType，锁定 `email.dispatch` Asynq dotted name、low priority 队列与 B3/B4 契约同步要求；同时把早期示例 dotted name 对齐 B3 规范。 | plan-review remediation |
