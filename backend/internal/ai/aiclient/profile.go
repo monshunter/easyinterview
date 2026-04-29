@@ -1,0 +1,44 @@
+package aiclient
+
+// ProviderConfig is the (provider, model, params) triple used as either the
+// default routing target or a fallback entry inside a ModelProfile.
+type ProviderConfig struct {
+	Provider string         `yaml:"provider"`
+	Model    string         `yaml:"model"`
+	Params   map[string]any `yaml:"params,omitempty"`
+}
+
+// FallbackEntry is one ordered fallback hop. The Trigger string is taken
+// verbatim from the YAML and consumed by the endpoint / gateway; A3 client
+// does not interpret it (spec §4.2).
+type FallbackEntry struct {
+	ProviderConfig `yaml:",inline"`
+	Trigger        string `yaml:"trigger,omitempty"`
+}
+
+// RateLimit captures the per-profile rate-limit hint surfaced to the
+// gateway. A3 client does not enforce these locally.
+type RateLimit struct {
+	RPS int `yaml:"rps,omitempty"`
+	TPM int `yaml:"tpm,omitempty"`
+}
+
+// ModelProfile mirrors the spec §2.1 Model Profile schema. The struct shape
+// is the canonical YAML target; new fields require a spec version bump.
+type ModelProfile struct {
+	Name         string          `yaml:"name"`
+	TaskType     TaskType        `yaml:"task_type"`
+	Default      ProviderConfig  `yaml:"default"`
+	Fallback     []FallbackEntry `yaml:"fallback,omitempty"`
+	TimeoutMs    int             `yaml:"timeout_ms"`
+	MaxTokens    int             `yaml:"max_tokens,omitempty"`
+	RateLimit    RateLimit       `yaml:"rate_limit,omitempty"`
+	GatewayRoute string          `yaml:"gateway_route,omitempty"`
+	Version      string          `yaml:"version"`
+}
+
+// ProfileResolver looks up a Model Profile by name. The hot-reloading loader
+// implements this interface; tests may use a static map.
+type ProfileResolver interface {
+	Resolve(name string) (*ModelProfile, error)
+}

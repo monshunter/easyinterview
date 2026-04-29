@@ -8,15 +8,15 @@
 
 ## Phase 0: 前置契约复核
 
-- [ ] 0.1 确认 A1 `repo-scaffold/001-bootstrap` v1.1 已提供 `config/` 根容器与根 README 索引；缺失时先走 A1 remediation，不在 A3 下另起平行配置目录
-- [ ] 0.2 确认 B1 至少提供 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED` baseline 错误码；AI vocabulary 字段名若尚未由 B1 002 生成，A3 001 仅维护包内私有字段表并在 handoff 标注切换点
+- [x] 0.1 确认 A1 `repo-scaffold/001-bootstrap` v1.1 已提供 `config/` 根容器与根 README 索引；缺失时先走 A1 remediation，不在 A3 下另起平行配置目录
+- [x] 0.2 确认 B1 至少提供 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED` baseline 错误码；AI vocabulary 字段名若尚未由 B1 002 生成，A3 001 仅维护包内私有字段表并在 handoff 标注切换点
 
 ## Phase 1: AIClient interface + stub provider 骨架
 
-- [ ] 1.1 落地 `backend/internal/ai/aiclient/` 包骨架（`aiclient.go` / `meta.go` / `payload.go` / `profile.go` / `doc.go`）；声明 `AIClient` interface 三方法签名（`Complete` / `Embed` 同步面 + `Stream(ctx, profile, payload) → (<-chan AIStreamEvent, error)` 事件合同）；`AIStreamEvent` 仅冻结 `delta` / `error` / `done` 三种 type 与 channel close 语义，不实现 provider 流式消费循环
-- [ ] 1.2 落地 `AICallMeta` 运行时结构体，字段顺序固定（`Provider` / `ModelFamily` / `ModelID` / `TaskType` / `PromptVersion` / `RubricVersion` / `ModelProfileName` / `ModelProfileVersion` / `Language` / `InputTokens` / `OutputTokens` / `CostUSDMicros` / `LatencyMs` / `FallbackChain[]` / `Route` / `ValidationStatus` / `ErrorCode`）；`metaBuilder` helper 由 client 填充并校验；引用 B1 错误码 / `task_type` enum 共享常量，不重复定义
-- [ ] 1.3 落地 `providers/stub/` deterministic stub provider（`sha256(profile + canonical(payload))` 截字节作 RNG seed）；factory 在初始化即检查 `APP_ENV=test` 或显式 `WithStubAllowed(true)`，否则拒绝实例化；`Stream` 仅返回一次 `done` 事件并关闭 channel
-- [ ] 1.4 落地包级单测（`aiclient_test.go` / `providers/stub/stub_test.go`）覆盖 stub 路径：`Complete` 返回 `meta.Provider == "stub"`、同 input 多次调用一致、空 messages 返回 `AI_OUTPUT_INVALID`、`Stream` 收到 `done` 事件且 channel 关闭
+- [x] 1.1 落地 `backend/internal/ai/aiclient/` 包骨架（`aiclient.go` / `meta.go` / `payload.go` / `profile.go` / `doc.go`）；声明 `AIClient` interface 三方法签名（`Complete` / `Embed` 同步面 + `Stream(ctx, profile, payload) → (<-chan AIStreamEvent, error)` 事件合同）；`AIStreamEvent` 仅冻结 `delta` / `error` / `done` 三种 type 与 channel close 语义，不实现 provider 流式消费循环
+- [x] 1.2 落地 `AICallMeta` 运行时结构体，字段顺序固定（`Provider` / `ModelFamily` / `ModelID` / `TaskType` / `PromptVersion` / `RubricVersion` / `ModelProfileName` / `ModelProfileVersion` / `Language` / `InputTokens` / `OutputTokens` / `CostUSDMicros` / `LatencyMs` / `FallbackChain[]` / `Route` / `ValidationStatus` / `ErrorCode`）；`metaBuilder` helper 由 client 填充并校验；引用 B1 错误码 / `task_type` enum 共享常量，不重复定义
+- [x] 1.3 落地 `providers/stub/` deterministic stub provider（`sha256(profile + canonical(payload))` 截字节作 RNG seed）；factory 在初始化即检查 `APP_ENV=test` 或显式 `WithStubAllowed(true)`，否则拒绝实例化；`Stream` 仅返回一次 `done` 事件并关闭 channel
+- [x] 1.4 落地包级单测（`aiclient_test.go` / `providers/stub/stub_test.go`）覆盖 stub 路径：`Complete` 返回 `meta.Provider == "stub"`、同 input 多次调用一致、空 messages 返回 `AI_OUTPUT_INVALID`、`Stream` 收到 `done` 事件且 channel 关闭
 
 ## Phase 2: openai_compatible provider + Model Profile loader
 
