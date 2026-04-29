@@ -39,9 +39,9 @@ pagination:
 idempotency:
   ttlSeconds: 86400
 
-# Documented error codes (§3.2). The catalogue is intentionally minimal — domains
-# add codes via spec revision. D-5 locks UPPER_SNAKE_CASE; codegen keeps the list
-# in lockstep on Go and TS sides.
+# Documented error codes (§3.2 plus spec-authorized extensions). The catalogue
+# is intentionally minimal — domains add codes via spec revision. D-5 locks
+# UPPER_SNAKE_CASE; codegen keeps the list in lockstep on Go and TS sides.
 errors:
   - code: AUTH_UNAUTHORIZED
     message: "authentication required or invalid"
@@ -60,6 +60,17 @@ errors:
     retryable: false
   - code: RATE_LIMITED
     message: "rate limit exceeded"
+    retryable: true
+  # Authorized by ai-gateway-and-model-routing v1.5. These codes are shared so
+  # A3, B2, C-domain handlers, and generated clients do not invent local strings.
+  - code: AI_PROVIDER_TIMEOUT
+    message: "AI provider request timed out"
+    retryable: true
+  - code: AI_OUTPUT_INVALID
+    message: "AI output failed schema validation"
+    retryable: false
+  - code: AI_FALLBACK_EXHAUSTED
+    message: "AI fallback chain exhausted"
     retryable: true
 
 # Async Job statuses (§4.2).

@@ -12,6 +12,9 @@ const (
 	CodeReportNotReady          = "REPORT_NOT_READY"
 	CodeValidationFailed        = "VALIDATION_FAILED"
 	CodeRateLimited             = "RATE_LIMITED"
+	CodeAiProviderTimeout       = "AI_PROVIDER_TIMEOUT"
+	CodeAiOutputInvalid         = "AI_OUTPUT_INVALID"
+	CodeAiFallbackExhausted     = "AI_FALLBACK_EXHAUSTED"
 )
 
 // AllCodes lists every documented error code in declaration order.
@@ -22,6 +25,9 @@ var AllCodes = []string{
 	CodeReportNotReady,
 	CodeValidationFailed,
 	CodeRateLimited,
+	CodeAiProviderTimeout,
+	CodeAiOutputInvalid,
+	CodeAiFallbackExhausted,
 }
 
 // CodeMeta holds the documented default message and retryable hint per error code.
@@ -38,4 +44,7 @@ var CodeRegistry = map[string]CodeMeta{
 	CodeReportNotReady:          {Message: "report is not ready yet", Retryable: true},
 	CodeValidationFailed:        {Message: "request validation failed", Retryable: false},
 	CodeRateLimited:             {Message: "rate limit exceeded", Retryable: true},
+	CodeAiProviderTimeout:       {Message: "AI provider request timed out", Retryable: true},
+	CodeAiOutputInvalid:         {Message: "AI output failed schema validation", Retryable: false},
+	CodeAiFallbackExhausted:     {Message: "AI fallback chain exhausted", Retryable: true},
 }

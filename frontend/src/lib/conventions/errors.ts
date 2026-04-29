@@ -11,6 +11,9 @@ export const ERROR_CODES = {
   REPORT_NOT_READY: 'REPORT_NOT_READY',
   VALIDATION_FAILED: 'VALIDATION_FAILED',
   RATE_LIMITED: 'RATE_LIMITED',
+  AI_PROVIDER_TIMEOUT: 'AI_PROVIDER_TIMEOUT',
+  AI_OUTPUT_INVALID: 'AI_OUTPUT_INVALID',
+  AI_FALLBACK_EXHAUSTED: 'AI_FALLBACK_EXHAUSTED',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -22,6 +25,9 @@ export const ALL_ERROR_CODES: readonly ErrorCode[] = [
   ERROR_CODES.REPORT_NOT_READY,
   ERROR_CODES.VALIDATION_FAILED,
   ERROR_CODES.RATE_LIMITED,
+  ERROR_CODES.AI_PROVIDER_TIMEOUT,
+  ERROR_CODES.AI_OUTPUT_INVALID,
+  ERROR_CODES.AI_FALLBACK_EXHAUSTED,
 ] as const;
 
 export interface ErrorMeta {
@@ -36,6 +42,9 @@ export const ERROR_REGISTRY: Readonly<Record<ErrorCode, ErrorMeta>> = {
   REPORT_NOT_READY: { message: 'report is not ready yet', retryable: true },
   VALIDATION_FAILED: { message: 'request validation failed', retryable: false },
   RATE_LIMITED: { message: 'rate limit exceeded', retryable: true },
+  AI_PROVIDER_TIMEOUT: { message: 'AI provider request timed out', retryable: true },
+  AI_OUTPUT_INVALID: { message: 'AI output failed schema validation', retryable: false },
+  AI_FALLBACK_EXHAUSTED: { message: 'AI fallback chain exhausted', retryable: true },
 };
 
 export interface ApiError {

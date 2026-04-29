@@ -39,6 +39,14 @@ EXPECTED_TOP_LEVEL = {
 EXPECTED_STRUCTURES = {"PageInfo", "ApiError"}
 EXPECTED_ENUM_SECTIONS = {f"5.{i}" for i in range(1, 14)}  # §5.1 .. §5.13
 EXPECTED_JOB_STATUSES = {"queued", "running", "succeeded", "failed", "cancelled", "dead"}
+REQUIRED_ERROR_CODES = {
+    "AUTH_UNAUTHORIZED",
+    "TARGET_IMPORT_FAILED",
+    "PRACTICE_SESSION_CONFLICT",
+    "REPORT_NOT_READY",
+    "VALIDATION_FAILED",
+    "RATE_LIMITED",
+}
 
 
 class ValidationError(Exception):
@@ -75,16 +83,26 @@ def validate(data: dict[str, Any]) -> list[str]:
         errors.append(f"sampleUuidV7 must be a UUIDv7 string, got {sample!r}")
 
     error_list = data.get("errors") or []
-    if len(error_list) != 6:
-        errors.append(f"errors must contain exactly 6 entries (00-shared-conventions §3.2), got {len(error_list)}")
+    seen_error_codes: set[str] = set()
     for entry in error_list:
         code = entry.get("code", "")
         if not ERROR_CODE_RE.match(code):
             errors.append(f"error code must be UPPER_SNAKE_CASE, got {code!r}")
+        if code in seen_error_codes:
+            errors.append(f"duplicate error code: {code!r}")
+        seen_error_codes.add(code)
         if "message" not in entry:
             errors.append(f"error {code!r} missing 'message'")
         if "retryable" not in entry:
             errors.append(f"error {code!r} missing 'retryable' bool")
+        elif not isinstance(entry["retryable"], bool):
+            errors.append(f"error {code!r} retryable must be bool")
+    missing_error_codes = REQUIRED_ERROR_CODES - seen_error_codes
+    if missing_error_codes:
+        errors.append(
+            "errors must include all 6 upstream examples from 00-shared-conventions §3.2; "
+            f"missing {sorted(missing_error_codes)}"
+        )
 
     job_statuses = set(data.get("jobStatuses") or [])
     if job_statuses != EXPECTED_JOB_STATUSES:

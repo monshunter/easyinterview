@@ -1304,6 +1304,9 @@ components:
         - REPORT_NOT_READY
         - VALIDATION_FAILED
         - RATE_LIMITED
+        - AI_PROVIDER_TIMEOUT
+        - AI_OUTPUT_INVALID
+        - AI_FALLBACK_EXHAUSTED
         - PRIVACY_EXPORT_NOT_AVAILABLE
 
     ApiError:
