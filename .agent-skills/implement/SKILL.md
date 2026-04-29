@@ -157,6 +157,18 @@ If the selected plan was revised in place from a previously completed delivery:
 3. Do not stop after the summary with "docs updated" as the only result.
 4. If execution cannot start, explicitly report that the original plan was revised in place but remains unlaunched; do not present the session as normally closed.
 
+### Step 4.2: Quality Gate Completeness Check
+
+Before branch resolution or `/tdd` handoff, inspect the loaded plan/checklist/context set for the plan's `## 3 质量门禁分类` section.
+
+Required document-level rules:
+
+1. Code plan requires TDD: if the plan introduces front-end, back-end, tooling, migration, codegen, or test helper logic, the quality gate section must name a TDD strategy and checklist items must carry executable test assertions.
+2. Feature plan requires BDD: if the plan introduces user-visible UI, API behavior, business workflow, or end-to-end flow, the validated file set must include `bdd-plan` and `bdd-checklist`, and the main checklist must include scenario-ID `BDD-Gate:` items.
+3. Internal code plans without BDD must explicitly state why BDD is not applicable and name a substitute verification gate such as contract test, lint, drift check, migration check, or smoke.
+
+If any required classification, BDD file, BDD-Gate, TDD strategy, or substitute gate is missing, stop and route to `/plan-review --fix` before coding. Do not infer missing quality gates during implementation.
+
 ### Step 4.5: Branch Resolution
 
 Insert branch creation and checkout between Step 4 and Step 5.

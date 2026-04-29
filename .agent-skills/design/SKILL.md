@@ -80,13 +80,14 @@ user toggle. This prevents users from accidentally under-scoping or over-generat
    - No (spec-only crystallization) -> stop after spec
 
 3. **Needs test plan?** (unit testable components, complex logic, regression risk)
-   - Yes -> generate a dedicated `{NNN-unit-test}` plan directory with `plan.md` + `checklist.md`
-   - No -> skip test plan
+   - Code plan requires TDD: any plan that introduces front-end, back-end, tooling, migration, codegen, or test helper logic must carry a TDD strategy and executable test assertions for each checklist item.
+   - If the tests need independent phase mapping -> generate a dedicated `{NNN-unit-test}` plan directory with `plan.md` + `checklist.md`, or generate `test-plan.md` / `test-checklist.md` in the implementation plan directory when that is the tighter fit.
+   - If the plan is docs-only -> skip test plan and record `TDD 策略: 不适用：docs-only`.
 
 4. **Needs BDD phase gates?** (behavior phases that can be independently deployed and verified,
    acceptance criteria with Given/When/Then, end-to-end verification requirements)
-   - Yes -> read `test/scenarios/README.md` plus the relevant layer `README.md` / `INDEX.md`, generate bdd-plan.md and bdd-checklist.md with scenario IDs that follow those conventions, add BDD-Gate items keyed by scenario IDs, add `bddPlan` and `bddChecklist` to context.yaml
-   - No -> skip BDD artifacts, no `bddPlan` or `bddChecklist` in context.yaml
+   - Feature plan requires BDD: any plan that introduces user-visible UI, API behavior, business workflow, or end-to-end flow must read `test/scenarios/README.md` plus the relevant layer `README.md` / `INDEX.md`, generate bdd-plan.md and bdd-checklist.md with scenario IDs that follow those conventions, add BDD-Gate items keyed by scenario IDs, and add `bddPlan` and `bddChecklist` to context.yaml.
+   - BDD is not a discretionary optional artifact for user behavior. Skip BDD only for docs-only or internal contract/tooling/migration/codegen plans that do not create a user behavior flow; record the reason and the substitute verification gate.
 
 **Output the reasoning** for each decision so the user can challenge it in Step 2.
 
@@ -120,6 +121,7 @@ owns the repository's document creation mechanics.
 - When BDD is needed: add `BDD-Gate:` items at the end of each behavior phase per `docs/spec/TEMPLATES.md`, using scenario IDs from `bdd-plan.md`; track scenario asset readiness and execution in `bdd-checklist.md`
 - Phase design must follow the phase closability principle from spec 4.4:
   each behavior phase is a vertical behavior slice that can be independently deployed and verified
+- Every implementation plan must include `## 3 质量门禁分类` with Plan 类型, TDD 策略, BDD 策略, and 替代验证 gate.
 
 #### 4.3 Unit Test Plan + Checklist
 

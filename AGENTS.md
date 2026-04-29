@@ -51,6 +51,12 @@ easyinterview 是一款围绕具体目标岗位、JD 与真实面试流程设计
 - **可测试**：新代码必须可被单元测试覆盖（接口抽象、依赖注入）
 - **幂等**：配置变更和部署操作必须可重复执行
 
+### 2.1.1 TDD / BDD 质量门禁（强制）
+
+- **Code plan requires TDD**：凡 plan 涉及前端 / 后端 / 工具脚本 / 迁移 / codegen / 测试辅助等代码逻辑，必须通过 `/implement` 进入 `/tdd` 执行；checklist 中每个实现项必须有对应测试断言和实际运行证据。
+- **Feature plan requires BDD**：凡 plan 引入用户可感知 UI、API 行为、业务流程或端到端功能，必须在同一 plan 目录内维护 `bdd-plan.md` 和 `bdd-checklist.md`，主 `checklist.md` 必须包含引用场景编号的 `BDD-Gate:` 项。
+- **BDD 不适用时必须说明**：纯内部契约 / 工具 / 迁移 / codegen 若不产生用户行为流，可不创建 BDD 文件，但 plan 必须写明“不适用原因 + 替代验证 gate”（如 contract test、lint、drift check、migration check、smoke），并由 `/plan-review` 审查。
+
 ### 2.2 任务开始前必须检查工作日志
 
 **每次开启新任务前，必须：**

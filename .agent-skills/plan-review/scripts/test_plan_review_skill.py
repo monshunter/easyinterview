@@ -38,3 +38,10 @@ class TestPlanReviewSkill:
         text = _skill_text()
         assert "`S-005`: test completion gates are execution-based" in text
         assert "raw code coverage percentages as completion, commit, or phase-exit criteria" in text
+
+    def test_flags_missing_tdd_bdd_quality_gate_classification(self):
+        text = _skill_text()
+        assert "`S-006`: TDD/BDD quality gate classification" in text
+        assert "Code plan requires TDD" in text
+        assert "Feature plan requires BDD" in text
+        assert "substitute verification gate" in text

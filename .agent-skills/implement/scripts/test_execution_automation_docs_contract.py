@@ -68,6 +68,15 @@ def test_agents_completed_plan_policy_defaults_to_in_place_revision():
     assert "禁止重开已完成计划" not in text
 
 
+def test_agents_declares_tdd_bdd_quality_gate_rules():
+    text = _agents_text()
+
+    assert "Code plan requires TDD" in text
+    assert "Feature plan requires BDD" in text
+    assert "前端 / 后端 / 工具脚本 / 迁移 / codegen" in text
+    assert "不适用原因 + 替代验证 gate" in text
+
+
 def test_plan_context_contract_mentions_branch_metadata_usage():
     text = _plan_context_contract_text()
 
@@ -83,3 +92,12 @@ def test_plan_context_contract_limits_validator_scope_to_manifest_and_paths():
 
     assert "It does not parse or lint the" in text
     assert "consumers read those documents directly" in text
+
+
+def test_plan_context_contract_declares_conditional_test_bdd_rules_are_document_owned():
+    text = _plan_context_contract_text()
+
+    assert "Conditional Test/BDD Document Rules" in text
+    assert "Code plan requires TDD" in text
+    assert "Feature plan requires BDD" in text
+    assert "`/design`, `/create-doc`, `/plan-review`, and `/implement` enforce these document-level rules" in text

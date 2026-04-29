@@ -87,10 +87,17 @@ docs/spec/${subspec}/
 - `context.yaml` - **Required** plan-context manifest for `/implement`, `/plan-review`, and `/plan-code-review`
 - `plan.md` - Plan document
 - `checklist.md` - Checklist
-- `bdd-plan.md` (optional) - BDD scenario plan
-- `bdd-checklist.md` (optional) - BDD scenario asset and execution checklist
+- `test-plan.md` / `test-checklist.md` (conditional) - Required when the test plan is independent enough to need phase mapping; otherwise keep test assertions in the main checklist
+- `bdd-plan.md` / `bdd-checklist.md` (conditional) - Required for user-visible UI, API behavior, business workflow, or end-to-end feature plans
 
 If `docs/spec/${subspec}/plans/INDEX.md` is missing, initialize it from `/init-docs` `subspec-plans` scaffold before creating the plan directory. Do not create `docs/spec/${subspec}/plans/README.md` or `docs/spec/${subspec}/plans/TEMPLATES.md`; plan rules are centralized in `docs/spec/README.md`, and spec, plan, checklist, context, and BDD templates are centralized in `docs/spec/TEMPLATES.md`.
+
+Every new or revised plan must include a `## 3 质量门禁分类` section:
+
+- **Plan 类型**: classify as `docs-only`, `code-internal`, `feature-behavior`, `contract`, `migration`, `tooling`, or a clear combination.
+- **TDD 策略**: Code plan requires TDD. Any front-end, back-end, tooling, migration, codegen, or test helper logic must name the Red-Green-Refactor entry and the executable test assertion source for each checklist item.
+- **BDD 策略**: Feature plan requires BDD. User-visible UI, API behavior, business workflow, or end-to-end flows must generate `bdd-plan.md` / `bdd-checklist.md` and add scenario-ID `BDD-Gate:` items to the main checklist.
+- **替代验证 gate**: Internal code plans that do not produce a user behavior flow must state why BDD is not applicable and name substitute gates such as contract test, lint, drift check, migration check, or smoke.
 
 **context.yaml** must be generated with the plan. Minimal template lives in `docs/spec/TEMPLATES.md`.
 
@@ -148,6 +155,8 @@ For **new plans**, follow the canonical sequential forms from `docs/spec/README.
 - checklist item ID: `- [ ] N.M ...`
 
 If a test checklist is created, use matching phase-number section headings by default (for example `## Phase 2: API tests`) so `/tdd` can infer section mapping without `<!-- phase-mapping: -->`.
+
+If BDD files are created, add both `bddPlan` and `bddChecklist` to the matching `context.yaml` target. If BDD is not applicable, do not leave dangling `bddPlan` / `bddChecklist` fields.
 
 For test plans and test checklists:
 

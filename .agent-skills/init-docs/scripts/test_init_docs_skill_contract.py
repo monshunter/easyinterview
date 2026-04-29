@@ -148,3 +148,14 @@ def test_bdd_checklist_templates_are_declared_in_spec_scaffolds():
         assert "BDD-Gate" in text
     for text in (spec_template, init_spec_template):
         assert "主 `checklist.md` 只保留阶段级 `BDD-Gate`" in text
+
+
+def test_spec_readmes_define_tdd_bdd_quality_gate_rules():
+    spec_readme = _read(DOC_ROOT / "spec" / "README.md")
+    init_spec_readme = _read(INIT_TEMPLATE_ROOT / "spec-readme.md")
+
+    for text in (spec_readme, init_spec_readme):
+        assert "Code plan requires TDD" in text
+        assert "Feature plan requires BDD" in text
+        assert "纯内部契约 / 工具 / 迁移 / codegen" in text
+        assert "不适用原因 + 替代验证 gate" in text

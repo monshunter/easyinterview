@@ -1,11 +1,13 @@
 ---
 name: tdd
-description: "IMPORTANT: Invoke this skill automatically when implementing code following a plan checklist. Do NOT write implementation code against a checklist without invoking this skill first. Test-Driven Development workflow with strict checklist progression, immediate checklist sync, and document lifecycle coordination. Use when implementing features from implementation/unit-test/e2e/frontend checklists. Triggers on /tdd or when working against checklist-based plans."
+description: "IMPORTANT: Invoke this skill automatically for any code logic implementation following a plan checklist, including front-end, back-end, tooling, migration, codegen, or test helper logic. Do NOT write implementation code against a checklist without invoking this skill first. Test-Driven Development workflow with strict checklist progression, immediate checklist sync, and document lifecycle coordination. Use when implementing features from implementation/unit-test/e2e/frontend checklists. Triggers on /tdd or when working against checklist-based plans."
 ---
 
 # TDD Development Skill
 
 Execute checklist-driven development with mandatory Red-Green-Refactor cycles.
+
+Any code logic implementation must use this skill: front-end, back-end, tooling, migration, codegen, or test helper logic all require Red-Green-Refactor execution and passing test evidence before checklist completion.
 
 ## Usage
 

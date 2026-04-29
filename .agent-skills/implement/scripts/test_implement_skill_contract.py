@@ -79,6 +79,13 @@ class TestImplementSkillContract:
         text = _skill_text()
         assert "/tdd --file {checklist-path} --references {ref1},{ref2},... --phase-commit {subspec}/{plan}" in text
 
+    def test_quality_gate_completeness_check_runs_before_tdd_handoff(self):
+        text = _skill_text()
+        assert "### Step 4.2: Quality Gate Completeness Check" in text
+        assert "Code plan requires TDD" in text
+        assert "Feature plan requires BDD" in text
+        assert "route to `/plan-review --fix` before coding" in text
+
     def test_branch_resolution_checks_for_dirty_working_tree(self):
         text = _skill_text()
         assert "Start Step 4.5 by checking `git status`." in text

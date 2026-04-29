@@ -34,7 +34,11 @@ docs/
 │           └── ${NNN-plan}/
 │               ├── context.yaml
 │               ├── plan.md
-│               └── checklist.md
+│               ├── checklist.md
+│               ├── test-plan.md        # conditional
+│               ├── test-checklist.md   # conditional
+│               ├── bdd-plan.md         # conditional
+│               └── bdd-checklist.md    # conditional
 ├── reports/
 │   ├── README.md          # Report rules
 │   ├── TEMPLATES.md       # Report templates

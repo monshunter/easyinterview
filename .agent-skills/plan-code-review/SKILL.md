@@ -98,6 +98,8 @@ For each in-scope phase:
 3. Read plan task descriptions.
 4. Read checklist items and completion status.
 5. Merge git diff and target discovery context when present.
+6. For completed code phases, verify actual test evidence exists for the implemented checklist scope.
+7. For completed feature phases, verify BDD evidence exists: `bdd-plan` / `bdd-checklist` references, completed scenario asset/execution items, and a passed `BDD-Gate:` verification note.
 
 Review dimensions:
 

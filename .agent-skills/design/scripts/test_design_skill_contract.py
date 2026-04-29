@@ -53,6 +53,27 @@ def test_design_skill_generates_bdd_plan_and_checklist_together():
     assert "bdd-checklist.md" in spec_template
 
 
+def test_design_skill_requires_tdd_for_code_and_bdd_for_user_behavior():
+    text = _read(SKILL_PATH)
+
+    assert "Code plan requires TDD" in text
+    assert "Feature plan requires BDD" in text
+    assert "user-visible UI, API behavior, business workflow, or end-to-end flow" in text
+    assert "BDD is not a discretionary optional artifact" in text
+
+
+def test_spec_templates_include_quality_gate_classification():
+    plan_template = _read(SPEC_TEMPLATE_PATH)
+    init_template = _read(INIT_SPEC_TEMPLATE_PATH)
+
+    for text in (plan_template, init_template):
+        assert "## 3 质量门禁分类" in text
+        assert "Plan 类型" in text
+        assert "TDD 策略" in text
+        assert "BDD 策略" in text
+        assert "替代验证 gate" in text
+
+
 def test_spec_template_marks_acceptance_ids_as_descriptive_only():
     text = _read(SPEC_TEMPLATE_PATH)
 

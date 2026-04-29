@@ -90,6 +90,18 @@ Role mapping rules:
 - All other markdown files remain read-only references.
 - Consumers must keep file order stable and deduplicate by absolute path.
 
+## Conditional Test/BDD Document Rules
+
+The validator intentionally checks only manifest shape, path boundaries, and referenced file existence. It does not decide whether a plan should have test or BDD documents.
+
+Document-level consumers enforce these rules:
+
+- Code plan requires TDD: plans that introduce front-end, back-end, tooling, migration, codegen, or test helper logic must declare a TDD strategy and executable test assertions.
+- Feature plan requires BDD: plans that introduce user-visible UI, API behavior, business workflow, or end-to-end flow must include `bddPlan`, `bddChecklist`, and scenario-ID `BDD-Gate:` items.
+- Internal code plans without BDD must document why BDD is not applicable and name a substitute verification gate.
+
+`/design`, `/create-doc`, `/plan-review`, and `/implement` enforce these document-level rules; `validate_context.py` remains limited to schema and path validation.
+
 ## Discovery Metadata
 
 `context.yaml` may also include discovery metadata for issue-intake routing:

@@ -36,3 +36,8 @@ class TestPlanCodeReviewSkill:
         assert "target-level-only findings stay preview-only" in text
         assert "no concrete checklist-section mapping" in text
         assert "preview-only" in text
+
+    def test_review_checks_tdd_and_bdd_evidence_for_completed_code_phases(self):
+        text = _skill_text()
+        assert "For completed code phases, verify actual test evidence" in text
+        assert "For completed feature phases, verify BDD evidence" in text

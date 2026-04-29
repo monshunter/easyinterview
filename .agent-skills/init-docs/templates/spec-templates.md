@@ -9,11 +9,13 @@ docs/spec/${subspec}/
 └── plans/
     ├── INDEX.md
     └── ${NNN-plan}/
-        ├── context.yaml
-        ├── plan.md
-        ├── checklist.md
-        ├── bdd-plan.md
-        └── bdd-checklist.md
+        ├── context.yaml        # required
+        ├── plan.md             # required
+        ├── checklist.md        # required
+        ├── test-plan.md        # conditional
+        ├── test-checklist.md   # conditional
+        ├── bdd-plan.md         # conditional
+        └── bdd-checklist.md    # conditional
 ```
 
 ## 2 `spec.md` 模板
@@ -111,7 +113,14 @@ docs/spec/${subspec}/
 
 说明为什么需要这个计划，以及它与 subject spec 的关系。
 
-## 3 实施步骤
+## 3 质量门禁分类
+
+- **Plan 类型**: docs-only / code-internal / feature-behavior / contract / migration / tooling
+- **TDD 策略**: Code plan requires TDD；涉及代码逻辑时写明 Red-Green-Refactor 入口、测试文件/命令与每个 checklist item 的测试断言来源；纯文档计划写 `不适用：docs-only`
+- **BDD 策略**: Feature plan requires BDD；涉及用户可感知 UI、API 行为、业务流程或端到端功能时，必须引用 `bdd-plan.md`、`bdd-checklist.md` 与主 checklist 的 `BDD-Gate:`；不适用时写明原因
+- **替代验证 gate**: BDD 不适用的内部计划必须列出 contract test、lint、drift check、migration check、smoke 或等价可执行 gate
+
+## 4 实施步骤
 
 ### Phase 1: 基础准备
 
@@ -125,12 +134,12 @@ docs/spec/${subspec}/
 
 具体步骤描述。
 
-## 4 验收标准
+## 5 验收标准
 
 - 本计划列出的实现 / 测试项全部通过
 - 关联 BDD-Gate / 场景验证全部通过
 
-## 5 风险与应对
+## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
@@ -158,7 +167,37 @@ docs/spec/${subspec}/
 - [ ] 2.2 BDD-Gate: 验证 E2E.P0.001 通过
 ```
 
-## 6 `context.yaml` 模板
+## 6 `test-plan.md` / `test-checklist.md` 模板
+
+`test-plan.md` / `test-checklist.md` 仅当测试计划足够独立或需要跨 phase 映射时创建。普通代码 plan 仍必须在主 checklist item 中保留可执行测试断言。
+
+```markdown
+# Test Plan
+
+> **版本**: 1.0
+> **状态**: active
+> **更新日期**: YYYY-MM-DD
+
+## Phase 1: 对应实现阶段
+
+- 测试目标、测试文件、测试命令、预期 Red/Green 证据。
+```
+
+```markdown
+# Test Checklist
+
+> **版本**: 1.0
+> **状态**: active
+> **更新日期**: YYYY-MM-DD
+
+**关联 Test Plan**: [test-plan](./test-plan.md)
+
+## Phase 1: 对应实现阶段
+
+- [ ] Phase 1 本计划定义的单元测试项全部通过
+```
+
+## 7 `context.yaml` 模板
 
 ```yaml
 apiVersion: plancontext.agent.dev/v1alpha1
@@ -192,8 +231,9 @@ spec:
 ```
 
 `context.yaml` 只承载稳定检索标识，不承载 `commands`、脚本名、Make target 或人工操作步骤。
+当 plan 生成 `test-plan.md` / `test-checklist.md` 时同步写入 `testPlan` / `testChecklist`；当 plan 生成 `bdd-plan.md` / `bdd-checklist.md` 时必须同步写入 `bddPlan` / `bddChecklist`。没有生成对应文件时不得保留这些字段。
 
-## 7 BDD 模板
+## 8 BDD 模板
 
 ### 7.1 `bdd-plan.md`
 

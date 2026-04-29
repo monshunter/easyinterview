@@ -147,6 +147,7 @@ Baseline checks:
 - `S-003`: description alignment
 - `S-004`: orphan judgment
 - `S-005`: test completion gates are execution-based; flag plan/checklist items that use raw code coverage percentages as completion, commit, or phase-exit criteria
+- `S-006`: TDD/BDD quality gate classification; Code plan requires TDD, Feature plan requires BDD, and internal code plans without BDD must document why BDD is not applicable plus a substitute verification gate
 
 Extension review:
 

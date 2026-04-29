@@ -80,3 +80,11 @@ def test_hard_coverage_gate_must_stop_tdd_and_route_back_to_plan_fix():
     assert "do **not** try to satisfy it by inventing extra tests" in text
     assert "route back to `/plan-review --fix`" in text
     assert "Hard coverage-percentage checklist gates count as a plan/checklist mismatch" in text
+
+
+def test_tdd_skill_declares_any_code_logic_requires_tdd():
+    text = _skill_text()
+
+    assert "any code logic implementation" in text
+    assert "front-end, back-end, tooling, migration, codegen, or test helper logic" in text
+    assert "Every checklist item has at least one corresponding test assertion." in text
