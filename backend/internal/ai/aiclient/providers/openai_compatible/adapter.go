@@ -61,7 +61,7 @@ func New(opts Options) (*Adapter, error) {
 		hc = &http.Client{}
 	}
 	return &Adapter{
-		baseURL: strings.TrimRight(opts.BaseURL, "/"),
+		baseURL: normalizeBaseURL(opts.BaseURL),
 		apiKey:  opts.APIKey,
 		client:  hc,
 	}, nil
@@ -335,4 +335,12 @@ func toFloat(v any) (float64, bool) {
 		return float64(t), true
 	}
 	return 0, false
+}
+
+func normalizeBaseURL(raw string) string {
+	base := strings.TrimRight(raw, "/")
+	if strings.HasSuffix(base, "/v1") {
+		base = strings.TrimSuffix(base, "/v1")
+	}
+	return base
 }

@@ -114,6 +114,31 @@ func TestComplete_NormalChatCompletion(t *testing.T) {
 	}
 }
 
+func TestComplete_BaseURLMayIncludeV1Prefix(t *testing.T) {
+	srv := mockserver.New()
+	defer srv.Close()
+	a, err := openai_compatible.New(openai_compatible.Options{
+		BaseURL: srv.URL() + "/v1",
+		APIKey:  "test-key",
+	})
+	if err != nil {
+		t.Fatalf("openai_compatible.New: %v", err)
+	}
+
+	_, _, err = a.Complete(context.Background(), chatProfile(5000), samplePayload())
+	if err != nil {
+		t.Fatalf("Complete: %v", err)
+	}
+
+	requests := srv.Captured()
+	if len(requests) != 1 {
+		t.Fatalf("expected 1 captured request, got %d", len(requests))
+	}
+	if got := requests[0].Path; got != "/v1/chat/completions" {
+		t.Fatalf("expected normalized /v1/chat/completions path, got %q", got)
+	}
+}
+
 func TestEmbed_NormalEmbeddings(t *testing.T) {
 	srv := mockserver.New()
 	defer srv.Close()

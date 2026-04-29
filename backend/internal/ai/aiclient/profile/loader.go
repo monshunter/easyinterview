@@ -203,34 +203,87 @@ func readProfile(path string) (*aiclient.ModelProfile, error) {
 	if err != nil {
 		return nil, fmt.Errorf("profile: read %s: %w", path, err)
 	}
-	var raw aiclient.ModelProfile
+	var doc yaml.Node
 	dec := yaml.NewDecoder(strings.NewReader(string(body)))
 	dec.KnownFields(false)
-	if err := dec.Decode(&raw); err != nil {
+	if err := dec.Decode(&doc); err != nil {
+		return nil, fmt.Errorf("profile: parse %s: %w", path, err)
+	}
+	var raw aiclient.ModelProfile
+	if err := doc.Decode(&raw); err != nil {
 		return nil, fmt.Errorf("profile: parse %s: %w", path, err)
 	}
 	if raw.Name == "" {
-		return nil, fmt.Errorf("profile: %s missing required field 'name'", path)
+		return nil, profileValidationError(path, fieldLine(&doc, "name"), "missing required field 'name'")
 	}
 	if raw.TaskType == "" {
-		return nil, fmt.Errorf("profile: %s missing required field 'task_type'", path)
+		return nil, profileValidationError(path, fieldLine(&doc, "task_type"), "missing required field 'task_type'")
 	}
 	switch raw.TaskType {
 	case aiclient.TaskTypeChat, aiclient.TaskTypeEmbed, aiclient.TaskTypeSTT:
 	default:
-		return nil, fmt.Errorf("profile: %s has unsupported task_type %q (allowed: chat | embed | stt)", path, raw.TaskType)
+		return nil, profileValidationError(path, fieldLine(&doc, "task_type"), "has unsupported task_type %q (allowed: chat | embed | stt)", raw.TaskType)
 	}
 	if raw.Default.Provider == "" {
-		return nil, fmt.Errorf("profile: %s missing required field 'default.provider'", path)
+		return nil, profileValidationError(path, fieldLine(&doc, "default", "provider"), "missing required field 'default.provider'")
 	}
 	if raw.Default.Model == "" {
-		return nil, fmt.Errorf("profile: %s missing required field 'default.model'", path)
+		return nil, profileValidationError(path, fieldLine(&doc, "default", "model"), "missing required field 'default.model'")
 	}
 	if raw.TimeoutMs <= 0 {
-		return nil, fmt.Errorf("profile: %s missing or non-positive 'timeout_ms'", path)
+		return nil, profileValidationError(path, fieldLine(&doc, "timeout_ms"), "missing or non-positive 'timeout_ms'")
 	}
 	if raw.Version == "" {
-		return nil, fmt.Errorf("profile: %s missing required field 'version'", path)
+		return nil, profileValidationError(path, fieldLine(&doc, "version"), "missing required field 'version'")
 	}
 	return &raw, nil
+}
+
+func profileValidationError(path string, line int, format string, args ...any) error {
+	if line <= 0 {
+		line = 1
+	}
+	return fmt.Errorf("profile: %s:line %d %s", path, line, fmt.Sprintf(format, args...))
+}
+
+func fieldLine(doc *yaml.Node, path ...string) int {
+	current := yamlRoot(doc)
+	lastLine := yamlNodeLine(current)
+	for _, part := range path {
+		if current == nil || current.Kind != yaml.MappingNode {
+			return lastLine
+		}
+		found := false
+		for i := 0; i+1 < len(current.Content); i += 2 {
+			key := current.Content[i]
+			value := current.Content[i+1]
+			if key.Value == part {
+				lastLine = yamlNodeLine(key)
+				current = value
+				found = true
+				break
+			}
+		}
+		if !found {
+			return lastLine
+		}
+	}
+	return lastLine
+}
+
+func yamlRoot(doc *yaml.Node) *yaml.Node {
+	if doc == nil {
+		return nil
+	}
+	if doc.Kind == yaml.DocumentNode && len(doc.Content) > 0 {
+		return doc.Content[0]
+	}
+	return doc
+}
+
+func yamlNodeLine(node *yaml.Node) int {
+	if node == nil || node.Line <= 0 {
+		return 1
+	}
+	return node.Line
 }

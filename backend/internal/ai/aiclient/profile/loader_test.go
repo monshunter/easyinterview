@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -95,8 +96,15 @@ func TestLoaderMissingRequiredFields(t *testing.T) {
 	for label, body := range cases {
 		t.Run(label, func(t *testing.T) {
 			dir := writeProfileDir(t, map[string]string{"p.yaml": body})
-			if _, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1}); err == nil {
+			_, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})
+			if err == nil {
 				t.Fatalf("expected error for %s", label)
+			}
+			if !strings.Contains(err.Error(), filepath.Join(dir, "p.yaml")) {
+				t.Fatalf("expected file path in error, got %v", err)
+			}
+			if !strings.Contains(err.Error(), ":line ") {
+				t.Fatalf("expected line number in error, got %v", err)
 			}
 		})
 	}

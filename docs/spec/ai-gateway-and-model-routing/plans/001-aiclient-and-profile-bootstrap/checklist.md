@@ -1,6 +1,6 @@
 # AI Gateway and Model Routing Bootstrap Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-04-30
 
@@ -24,6 +24,8 @@
 - [x] 2.2 落地 `profile/` Model Profile schema 类型与 YAML loader：字段集严格对齐 spec §2.1（`name` / `task_type` 含 `stt` 预留值 / `default.*` / `fallback[]` / `timeout_ms` / `max_tokens` / `rate_limit.{rps,tpm}` / `gateway_route` / `version`）；落地 `config/ai-profiles/practice.followup.default.yaml` 与 `review.report.default.yaml` 两个最小 fixture profile 仅供本 plan 测试 / 本地验证；解析失败附 file path + line number
 - [x] 2.3 落地 ≤30 秒热加载：polling reloader（5s 默认 cadence，plan §2.3 允许的 fsnotify fallback 路径）+ atomic store + RW mutex 保证正在进行的调用使用旧 profile、新调用使用新 profile；暴露 `Reload(ctx) error` 测试入口；落 `loader_concurrency_test.go` `go test -race` 至少 100 轮并发读 + reload 无 race
 - [x] 2.4 落地 `providers/openai_compatible/contract_test.go` 离线契约测试 + 可被 E1 复用的 `mockserver/` helper：覆盖正常 chat / embeddings、超时、5xx、fallback meta 注入；断言 token 解析、fallback chain 透传、超时 → `AI_PROVIDER_TIMEOUT`、5xx → B1 错误码语义；mock server interface 稳定供 E1 复用
+- [x] 2.5 L2 remediation F1：`openai_compatible` adapter 必须同时支持 root endpoint 与已含 `/v1` 的 `AI_GATEWAY_BASE_URL`，避免拼出 `/v1/v1/chat/completions`；补离线契约测试覆盖 `BaseURL = mockServer.URL() + "/v1"`
+- [x] 2.6 L2 remediation F3：`profile.Loader` 的手写 schema 校验错误必须包含 file path + line number；补单测覆盖缺必填字段 / 非法 task_type 等非 YAML 语法错误路径
 
 ## Phase 3: Observability / audit decorator + DB / log / metric 接入
 
@@ -31,6 +33,7 @@
 - [x] 3.2 落地 `observability/decorator.go` middleware 包裹 `Complete` / `Embed`：写入 4 类结构化日志事件名（`ai.task.completed` / `ai.task.failed` / `ai.task.fallback` / `ai.output.validation_failed`）字段集对齐 05-logging-standard.md §4.4；通过 DI 写入 `ai_task_runs`（A3 只填 typed columns）；写入 `audit_events.action='ai.call'` 行，metadata 仅含 `prompt_hash` / `response_hash` / `prompt_char_length` / `response_char_length` / `profile_name`
 - [x] 3.3 fallback / validation 计数器语义：`meta.FallbackChain[]` 长度 > 1 时 `ai_fallback_total{from_model_family,to_model_family,result="fallback"}` +1；`validateOutput` 失败时 `ai_output_validation_failures_total` +1 + 发出 `ai.output.validation_failed` 日志，错误码统一 `AI_OUTPUT_INVALID`；`AI_FALLBACK_EXHAUSTED` 仅透传 endpoint / gateway 返回值
 - [x] 3.4 落地 `observability/privacy_test.go` 白盒测试：构造带敏感内容的 messages / response，使用 in-memory writer + log capture 断言 metric label / log fields / DB row metadata / audit_events metadata 不含明文，仅含 hash 前缀 / 长度数字 / profile 名
+- [x] 3.5 L2 remediation F2：`observability` decorator 在 `OutputSchema` 存在时必须校验 schema 的基本 `type` / `required` / `properties` 约束，不能只检查 response content 是合法 JSON；schema 不匹配时返回 `AI_OUTPUT_INVALID` 并递增 validation failure counter
 
 ## Phase 4: 配置校验与本地部署 fail-fast
 

@@ -309,11 +309,16 @@ func TestDecorator_FallbackChainTriggersFallbackCounterAndLog(t *testing.T) {
 }
 
 type fallbackInner struct {
-	meta aiclient.AICallMeta
+	meta    aiclient.AICallMeta
+	content string
 }
 
 func (f *fallbackInner) Complete(_ context.Context, _ string, _ aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
-	return aiclient.CompleteResponse{Content: "ok"}, f.meta, nil
+	content := f.content
+	if content == "" {
+		content = "ok"
+	}
+	return aiclient.CompleteResponse{Content: content}, f.meta, nil
 }
 func (f *fallbackInner) Embed(_ context.Context, _ string, _ aiclient.EmbedInput) (aiclient.EmbedResponse, aiclient.AICallMeta, error) {
 	return aiclient.EmbedResponse{}, f.meta, nil
@@ -355,6 +360,56 @@ func TestDecorator_OutputSchemaInvalidEmitsAIOutputInvalid(t *testing.T) {
 	}
 	if !gotEvent {
 		t.Errorf("expected ai.output.validation_failed log event")
+	}
+}
+
+func TestDecorator_OutputSchemaRequiredFieldMismatchEmitsAIOutputInvalid(t *testing.T) {
+	registry := observability.NewInMemoryRegistry()
+	logger := observability.NewMemoryLogger()
+	runs := &memTaskRunWriter{}
+	audit := &memAuditWriter{}
+	inner := &fallbackInner{
+		content: `{"summary":"present-but-answer-missing"}`,
+		meta: aiclient.AICallMeta{
+			Provider:            stub.Name,
+			ModelFamily:         "stub",
+			ModelID:             "stub-chat-1",
+			TaskType:            aiclient.TaskTypeChat,
+			ModelProfileName:    "practice.followup.default",
+			ModelProfileVersion: "1.0.0",
+			Language:            "en",
+			InputTokens:         10,
+			OutputTokens:        20,
+			LatencyMs:           5,
+			ValidationStatus:    aiclient.ValidationStatusOK,
+		},
+	}
+	wrap, err := observability.New(inner,
+		observability.WithRegisterer(registry),
+		observability.WithLogger(logger),
+		observability.WithAITaskRunWriter(runs),
+		observability.WithAuditEventWriter(audit),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+
+	payload := samplePayload()
+	payload.Metadata.OutputSchema = json.RawMessage(`{"type":"object","required":["answer"],"properties":{"answer":{"type":"string"}}}`)
+
+	_, meta, err := wrap.Complete(context.Background(), "practice.followup.default", payload)
+	if err == nil {
+		t.Fatalf("expected schema mismatch to return error")
+	}
+	var apiErr *sharederrors.APIError
+	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("expected AI_OUTPUT_INVALID, got %v", err)
+	}
+	if meta.ValidationStatus != aiclient.ValidationStatusInvalid {
+		t.Fatalf("expected ValidationStatusInvalid, got %q", meta.ValidationStatus)
+	}
+	if len(registry.CounterLabelValues(observability.MetricOutputValidationFailures)) == 0 {
+		t.Fatalf("expected validation failure counter to increment")
 	}
 }
 

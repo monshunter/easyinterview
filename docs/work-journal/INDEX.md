@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-30](2026-04-30.md) | `fix(aiclient): remediate L2 review findings` | #fix #test #docs |
 | [2026-04-30](2026-04-30.md) | `docs(secrets-config): close bootstrap plan and assessment` | #docs |
 | [2026-04-30](2026-04-30.md) | `feat(secrets-config): land runtime config bootstrap` | #feat #test #docs |
 | [2026-04-30](2026-04-30.md) | `docs(reports): land ai-gateway-and-model-routing/001 交付复盘报告` | #docs |
