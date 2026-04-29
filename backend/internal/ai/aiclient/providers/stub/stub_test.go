@@ -3,7 +3,6 @@ package stub_test
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
@@ -48,22 +47,19 @@ func TestStubFactoryAllowedInTestEnv(t *testing.T) {
 }
 
 func TestStubFactoryRejectedOutsideTestEnv(t *testing.T) {
-	t.Setenv("APP_ENV", "production")
-	if _, err := stub.New(); !errors.Is(err, stub.ErrNotAllowed) {
+	if _, err := stub.New(stub.WithAppEnv("production")); !errors.Is(err, stub.ErrNotAllowed) {
 		t.Fatalf("expected ErrNotAllowed, got %v", err)
 	}
 }
 
 func TestStubFactoryAllowedWithExplicitOverride(t *testing.T) {
-	t.Setenv("APP_ENV", "production")
-	if _, err := stub.New(stub.WithAllowed(true)); err != nil {
+	if _, err := stub.New(stub.WithAppEnv("production"), stub.WithAllowed(true)); err != nil {
 		t.Fatalf("stub.New(WithAllowed): %v", err)
 	}
 }
 
 func TestStubCompleteIsDeterministic(t *testing.T) {
-	t.Setenv("APP_ENV", aiclient.AppEnvTest)
-	p, err := stub.New()
+	p, err := stub.New(stub.WithAppEnv(aiclient.AppEnvTest))
 	if err != nil {
 		t.Fatalf("stub.New: %v", err)
 	}
@@ -81,8 +77,7 @@ func TestStubCompleteIsDeterministic(t *testing.T) {
 }
 
 func TestStubStreamEmitsDoneAndCloses(t *testing.T) {
-	t.Setenv("APP_ENV", aiclient.AppEnvTest)
-	p, err := stub.New()
+	p, err := stub.New(stub.WithAppEnv(aiclient.AppEnvTest))
 	if err != nil {
 		t.Fatalf("stub.New: %v", err)
 	}
@@ -106,9 +101,8 @@ func TestStubStreamEmitsDoneAndCloses(t *testing.T) {
 	}
 }
 
-func TestStubReadsAppEnvFromOSWhenOptionEmpty(t *testing.T) {
-	os.Unsetenv("APP_ENV")
+func TestStubFactoryRejectsWhenNoAppEnvProvided(t *testing.T) {
 	if _, err := stub.New(); !errors.Is(err, stub.ErrNotAllowed) {
-		t.Fatalf("expected ErrNotAllowed when APP_ENV unset, got %v", err)
+		t.Fatalf("expected ErrNotAllowed when no AppEnv option set, got %v", err)
 	}
 }

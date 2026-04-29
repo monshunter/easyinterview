@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-29](2026-04-29.md) | `feat(aiclient): openai_compatible adapter + profile loader + mockserver` | #feat #test |
 | [2026-04-29](2026-04-29.md) | `feat(aiclient): aiclient interface + stub provider 骨架` | #feat #test |
 | [2026-04-29](2026-04-29.md) | `docs(repo-scaffold): mark root-container remediation complete` | #docs |
 | [2026-04-29](2026-04-29.md) | `docs(reports): land openapi v18 remediation retrospective` | #docs |

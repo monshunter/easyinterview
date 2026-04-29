@@ -20,10 +20,10 @@
 
 ## Phase 2: openai_compatible provider + Model Profile loader
 
-- [ ] 2.1 落地 `providers/openai_compatible/` adapter：`Complete` 走 `/v1/chat/completions`、`Embed` 走 `/v1/embeddings`；header 含 `Authorization: Bearer ${AI_GATEWAY_API_KEY}` / `Content-Type` / `X-Request-ID` 透传；解析 `usage.*tokens` / `model` / `x-fallback-*` / `x-route` 入 `AICallMeta`；只用标准库 `net/http` + `encoding/json`，零厂商 SDK；timeout 走 `context.WithTimeout` 返回 `AI_PROVIDER_TIMEOUT`；非 2xx 按 B1 错误码映射；A3 client 绝不自行 retry-with-different-model
-- [ ] 2.2 落地 `profile/` Model Profile schema 类型与 YAML loader：字段集严格对齐 spec §2.1（`name` / `task_type` 含 `stt` 预留值 / `default.*` / `fallback[]` / `timeout_ms` / `max_tokens` / `rate_limit.{rps,tpm}` / `gateway_route` / `version`）；落地 `config/ai-profiles/practice.followup.default.yaml` 与 `review.report.default.yaml` 两个最小 fixture profile 仅供本 plan 测试 / 本地验证；解析失败附 file path + line number
-- [ ] 2.3 落地 ≤30 秒热加载：fsnotify 监听 + 30s polling 兜底；atomic store + RW mutex 保证正在进行的调用使用旧 profile、新调用使用新 profile；暴露 `Reload(ctx) error` 测试入口；落 `loader_concurrency_test.go` `go test -race` 至少 100 轮并发读 + reload 无 race
-- [ ] 2.4 落地 `providers/openai_compatible/contract_test.go` 离线契约测试 + 可被 E1 复用的 `mockserver/` helper：覆盖正常 chat / embeddings、超时、5xx、fallback meta 注入；断言 token 解析、fallback chain 透传、超时 → `AI_PROVIDER_TIMEOUT`、5xx → B1 错误码语义；mock server interface 稳定供 E1 复用
+- [x] 2.1 落地 `providers/openai_compatible/` adapter：`Complete` 走 `/v1/chat/completions`、`Embed` 走 `/v1/embeddings`；header 含 `Authorization: Bearer ${AI_GATEWAY_API_KEY}` / `Content-Type` / `X-Request-ID` 透传；解析 `usage.*tokens` / `model` / `x-fallback-*` / `x-route` 入 `AICallMeta`；只用标准库 `net/http` + `encoding/json`，零厂商 SDK；timeout 走 `context.WithTimeout` 返回 `AI_PROVIDER_TIMEOUT`；非 2xx 按 B1 错误码映射；A3 client 绝不自行 retry-with-different-model
+- [x] 2.2 落地 `profile/` Model Profile schema 类型与 YAML loader：字段集严格对齐 spec §2.1（`name` / `task_type` 含 `stt` 预留值 / `default.*` / `fallback[]` / `timeout_ms` / `max_tokens` / `rate_limit.{rps,tpm}` / `gateway_route` / `version`）；落地 `config/ai-profiles/practice.followup.default.yaml` 与 `review.report.default.yaml` 两个最小 fixture profile 仅供本 plan 测试 / 本地验证；解析失败附 file path + line number
+- [x] 2.3 落地 ≤30 秒热加载：polling reloader（5s 默认 cadence，plan §2.3 允许的 fsnotify fallback 路径）+ atomic store + RW mutex 保证正在进行的调用使用旧 profile、新调用使用新 profile；暴露 `Reload(ctx) error` 测试入口；落 `loader_concurrency_test.go` `go test -race` 至少 100 轮并发读 + reload 无 race
+- [x] 2.4 落地 `providers/openai_compatible/contract_test.go` 离线契约测试 + 可被 E1 复用的 `mockserver/` helper：覆盖正常 chat / embeddings、超时、5xx、fallback meta 注入；断言 token 解析、fallback chain 透传、超时 → `AI_PROVIDER_TIMEOUT`、5xx → B1 错误码语义；mock server interface 稳定供 E1 复用
 
 ## Phase 3: Observability / audit decorator + DB / log / metric 接入
 

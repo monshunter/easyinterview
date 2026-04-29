@@ -1,0 +1,15 @@
+name: review.report.default
+task_type: chat
+default:
+  provider: stub
+  model: stub-chat-1
+  params:
+    temperature: 0.2
+fallback: []
+timeout_ms: 30000
+max_tokens: 4096
+rate_limit:
+  rps: 3
+  tpm: 60000
+gateway_route: review.report
+version: 1.0.0

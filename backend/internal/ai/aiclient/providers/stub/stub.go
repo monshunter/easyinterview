@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 )
@@ -21,8 +20,9 @@ const Name = "stub"
 func ProviderName() string { return Name }
 
 // ErrNotAllowed is returned by New when stub instantiation is rejected
-// because APP_ENV is not "test" and the caller did not pass WithAllowed.
-var ErrNotAllowed = errors.New("stub provider only allowed when APP_ENV=test or WithAllowed(true) is set")
+// because the resolved AppEnv is not "test" and the caller did not pass
+// WithAllowed.
+var ErrNotAllowed = errors.New("stub provider only allowed when WithAppEnv(test) or WithAllowed(true) is set")
 
 type options struct {
 	allowed bool
@@ -40,9 +40,9 @@ func WithAllowed(allowed bool) Option {
 	return func(o *options) { o.allowed = allowed }
 }
 
-// WithAppEnv lets the AIClient pass its boot AppEnv into the stub factory
-// so the stub does not have to read os.Getenv twice. Empty string falls
-// back to os.Getenv("APP_ENV").
+// WithAppEnv passes the boot AppEnv into the stub factory. Required by
+// secrets-and-config spec §4.1 boundary lint: the stub must not read
+// os.Getenv directly. AIClient passes the loader-resolved value.
 func WithAppEnv(env string) Option {
 	return func(o *options) { o.appEnv = env }
 }
@@ -51,17 +51,16 @@ func WithAppEnv(env string) Option {
 type Provider struct{}
 
 // New constructs a Provider after validating that stub instantiation is
-// allowed for the current environment.
+// allowed for the current environment. Callers must pass WithAppEnv from
+// the resolved Loader (or WithAllowed(true) for explicit overrides);
+// reading os.Getenv directly is forbidden by the secrets-and-config
+// boundary lint.
 func New(opts ...Option) (*Provider, error) {
 	o := &options{}
 	for _, opt := range opts {
 		opt(o)
 	}
-	env := o.appEnv
-	if env == "" {
-		env = os.Getenv("APP_ENV")
-	}
-	if env != aiclient.AppEnvTest && !o.allowed {
+	if o.appEnv != aiclient.AppEnvTest && !o.allowed {
 		return nil, ErrNotAllowed
 	}
 	return &Provider{}, nil
