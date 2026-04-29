@@ -30,8 +30,8 @@
 
 ## Phase 5: Future handoff only
 
-- [ ] 5.1 记录 F3 prompt registry bridge 为 future scope：`feature_key + version` SDK 需 F3 spec 先锁定后新增 plan，本 plan 不存储 prompt body、不实现 `RegistryClient.GetPrompt`；验证: docs/grep 确认本 plan 未新增 prompt body、RegistryClient 或 F3 SDK 实现路径
-- [ ] 5.2 记录 remote CI drift detection 为 A5 future scope：只有 [A5 spec D-5](../../../ci-pipeline-baseline/spec.md#31-已锁定决策) 命中后由 future `002-remote-ci` 接入，本 plan 不创建 workflow；验证: docs/grep 与 git diff 确认未新增 `.github/workflows` 或远端 CI required-check 配置
+- [x] 5.1 记录 F3 prompt registry bridge 为 future scope：`feature_key + version` SDK 需 F3 spec 先锁定后新增 plan，本 plan 不存储 prompt body、不实现 `RegistryClient.GetPrompt`；验证: docs/grep 确认本 plan 未新增 prompt body、RegistryClient 或 F3 SDK 实现路径
+- [x] 5.2 记录 remote CI drift detection 为 A5 future scope：只有 [A5 spec D-5](../../../ci-pipeline-baseline/spec.md#31-已锁定决策) 命中后由 future `002-remote-ci` 接入，本 plan 不创建 workflow；验证: docs/grep 与 git diff 确认未新增 `.github/workflows` 或远端 CI required-check 配置
 
 ## Phase 6: Verification
 
