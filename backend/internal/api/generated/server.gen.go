@@ -36,6 +36,9 @@ type ServerInterface interface {
 	// getJob — get /jobs/{jobId}: Poll the status of an async job
 	GetJob(w http.ResponseWriter, r *http.Request, jobId string)
 
+	// deleteMe — delete /me: Request account deletion for the current user
+	DeleteMe(w http.ResponseWriter, r *http.Request)
+
 	// getMe — get /me: Get current user context
 	GetMe(w http.ResponseWriter, r *http.Request)
 
@@ -144,6 +147,7 @@ var AllRoutes = []Route{
 	{OperationID: "getDebrief", Method: "get", Path: "/debriefs/{debriefId}", PathParams: []string{"debriefId"}},
 	{OperationID: "getGrowthOverview", Method: "get", Path: "/growth/overview", PathParams: nil},
 	{OperationID: "getJob", Method: "get", Path: "/jobs/{jobId}", PathParams: []string{"jobId"}},
+	{OperationID: "deleteMe", Method: "delete", Path: "/me", PathParams: nil},
 	{OperationID: "getMe", Method: "get", Path: "/me", PathParams: nil},
 	{OperationID: "listMistakes", Method: "get", Path: "/mistakes", PathParams: nil},
 	{OperationID: "retestMistake", Method: "post", Path: "/mistakes/{mistakeId}/retest", PathParams: []string{"mistakeId"}},

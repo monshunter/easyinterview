@@ -35,9 +35,10 @@ EXPECTED_TAGS: list[str] = [
     "Privacy",
 ]
 
-# (tag, method, path, operationId) tuples per spec §3.1.1 (36 entries).
+# (tag, method, path, operationId) tuples per spec §3.1.1 (37 entries).
 EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("Auth", "get", "/me", "getMe"),
+    ("Auth", "delete", "/me", "deleteMe"),
     ("Auth", "post", "/auth/email/start", "startAuthEmailChallenge"),
     ("Auth", "get", "/auth/email/verify", "verifyAuthEmailChallenge"),
     ("Auth", "post", "/auth/logout", "logout"),
@@ -77,6 +78,7 @@ EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
 
 # Side-effect endpoints that must reference `Idempotency-Key` per plan §1.3 / spec D-6.
 IK_REQUIRED: set[tuple[str, str]] = {
+    ("delete", "/me"),
     ("post", "/uploads/presign"),
     ("post", "/resumes"),
     ("post", "/targets/import"),
@@ -233,8 +235,8 @@ def main(argv: list[str]) -> int:
         errors.append("missing operations: " + ", ".join(sorted(f"{m.upper()} {p} ({o})" for _, m, p, o in missing)))
     if extra:
         errors.append("unexpected operations: " + ", ".join(sorted(f"{m.upper()} {p} ({o})" for _, m, p, o in extra)))
-    if operation_count != 36:
-        errors.append(f"operation count must be 36 (spec §3.1.1); got {operation_count}")
+    if operation_count != 37:
+        errors.append(f"operation count must be 37 (spec §3.1.1); got {operation_count}")
 
     # operationId uniqueness.
     op_ids = [op for _, _, _, op in seen_ops]
@@ -370,7 +372,7 @@ def main(argv: list[str]) -> int:
     if errors:
         fail(errors)
     sys.stdout.write(
-        "openapi inventory OK: 14 tags, 36 operations, "
+        f"openapi inventory OK: {len(EXPECTED_TAGS)} tags, {len(EXPECTED_OPERATIONS)} operations, "
         "ApiErrorResponse/IK/501/Provenance invariants enforced; B1 enums in sync.\n"
     )
     return 0

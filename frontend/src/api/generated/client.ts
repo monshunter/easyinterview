@@ -158,6 +158,16 @@ export class EasyInterviewClient {
 		);
 	}
 
+	/** deleteMe — delete /me: Request account deletion for the current user */
+	async deleteMe(opts?: RequestOptions): Promise<Types.PrivacyRequestWithJob> {
+		return this.request<Types.PrivacyRequestWithJob>(
+			"DELETE",
+			"/me",
+			undefined,
+			opts,
+		);
+	}
+
 	/** getMe — get /me: Get current user context */
 	async getMe(opts?: RequestOptions): Promise<Types.UserContext> {
 		return this.request<Types.UserContext>(
@@ -458,6 +468,7 @@ export const ALL_OPERATION_IDS = [
 	"getDebrief",
 	"getGrowthOverview",
 	"getJob",
+	"deleteMe",
 	"getMe",
 	"listMistakes",
 	"retestMistake",

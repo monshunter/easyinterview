@@ -79,6 +79,33 @@ paths:
                 $ref: '#/components/schemas/UserContext'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
+    delete:
+      tags: [Auth]
+      operationId: deleteMe
+      summary: Request account deletion for the current user
+      description: |
+        Protected endpoint per ADR-Q5. Equivalent to requesting a privacy
+        deletion for the current user and must dedupe repeated active requests
+        by `Idempotency-Key`, returning the same active `privacy_delete` job or
+        an equivalent terminal result.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '202':
+          description: Account deletion request accepted; asynchronous privacy deletion job created or reused.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacyRequestWithJob'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
 
   /auth/email/start:
     post:
@@ -2619,9 +2646,11 @@ components:
       type: object
       required: [id, targetJobId, status, roundType, createdAt, updatedAt]
       description: |
-        Real-interview debrief. AI augments user-supplied questions with risk
-        items, checklist suggestions and an optional thank-you draft. Spec §4.6:
-        when `status == completed`, must carry `GenerationProvenance`.
+        Real-interview debrief. P0 keeps the real-interview reconstruction and
+        review surface focused on questions, risks and next practice signals.
+        Full follow-up suggestions and thank-you drafts are P1 optional/hidden
+        fields and must not be required for P0 clients. Spec §4.6: when
+        `status == completed`, must carry `GenerationProvenance`.
       properties:
         id:
           type: string
@@ -2648,9 +2677,11 @@ components:
             $ref: '#/components/schemas/DebriefRiskItem'
         nextRoundChecklist:
           type: array
+          description: P1 optional/hidden full follow-up suggestions; not required for P0.
           items:
             $ref: '#/components/schemas/DebriefNextRoundChecklistItem'
         thankYouDraft:
+          description: P1 optional/hidden thank-you draft; not required for P0.
           oneOf:
             - type: string
             - type: 'null'

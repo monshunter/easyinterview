@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Bootstrap Checklist
 
 > **版本**: 1.3
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-04-29
 
 **关联计划**: [plan](./plan.md)
@@ -47,7 +47,7 @@
 
 ## Phase 7: v1.8 contract remediation
 
-- [ ] 7.1 将 `openapi/openapi.yaml`、inventory lint、generated Go/TS types 与 server/client interfaces 更新到 spec v1.8 的 37 endpoint 集合，新增 `DELETE /api/v1/me` / `operationId=deleteMe` / `202 PrivacyRequestWithJob`
-- [ ] 7.2 `DELETE /api/v1/me` 声明 `Idempotency-Key` header 或等价 active-request dedupe；重复删除请求返回同一 active `privacy_delete` job 或同义终态
-- [ ] 7.3 P0 `Debrief` / `DebriefWithJob` 移除或保持 optional/hidden 的感谢信草稿与完整跟进建议字段，不作为 P0 required
-- [ ] 7.4 复跑 `make lint-openapi` / `make codegen-openapi` / `make codegen-check`，确认 37 operation inventory 与 generated drift clean
+- [x] 7.1 将 `openapi/openapi.yaml`、inventory lint、generated Go/TS types 与 server/client interfaces 更新到 spec v1.8 的 37 endpoint 集合，新增 `DELETE /api/v1/me` / `operationId=deleteMe` / `202 PrivacyRequestWithJob`
+- [x] 7.2 `DELETE /api/v1/me` 声明 `Idempotency-Key` header 或等价 active-request dedupe；重复删除请求返回同一 active `privacy_delete` job 或同义终态
+- [x] 7.3 P0 `Debrief` / `DebriefWithJob` 移除或保持 optional/hidden 的感谢信草稿与完整跟进建议字段，不作为 P0 required
+- [x] 7.4 复跑 `make lint-openapi` / `make codegen-openapi` / `make codegen-check`，确认 37 operation inventory 与 generated drift clean
