@@ -12,7 +12,7 @@ Phase 1.3 scope (per `002-fixtures-and-mock-source` plan §3 / spec C-6 / C-11):
        phones to `+1-555-01xx`, and the employer-brand blacklist below.
     5. ids       — `format: uuid` values must match UUIDv7 layout, and any
        string with `tmp_` prefix is rejected.
-    6. coverage  — exactly the 36 operationIds frozen by spec §3.1.1 must
+    6. coverage  — exactly the 37 operationIds frozen by spec §3.1.1 must
        have a fixture file.
 """
 
@@ -59,10 +59,11 @@ COMPANY_BLACKLIST_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Spec §3.1.1 36-endpoint freeze. Mirrors openapi_inventory.py and is the
+# Spec §3.1.1 37-endpoint freeze. Mirrors openapi_inventory.py and is the
 # coverage source-of-truth for missing-fixture errors.
 EXPECTED_OPERATIONS: Tuple[Tuple[str, str], ...] = (
     ("Auth", "getMe"),
+    ("Auth", "deleteMe"),
     ("Auth", "startAuthEmailChallenge"),
     ("Auth", "verifyAuthEmailChallenge"),
     ("Auth", "logout"),
@@ -565,7 +566,7 @@ def main(argv: Iterable[str]) -> int:
         )
         return 1
     print(
-        f"validate-fixtures: OK — 36 fixtures under {args.repo_root / 'openapi' / 'fixtures'}"
+        f"validate-fixtures: OK — {len(EXPECTED_OPERATIONS)} fixtures under {args.repo_root / 'openapi' / 'fixtures'}"
     )
     return 0
 

@@ -30,6 +30,7 @@ def _load_validator():
 # (tag, operationId, expected default status, has_request_body)
 EXPECTED_OPERATIONS = [
     ("Auth", "getMe", 200, False),
+    ("Auth", "deleteMe", 202, False),
     ("Auth", "startAuthEmailChallenge", 202, True),
     ("Auth", "verifyAuthEmailChallenge", 200, False),
     ("Auth", "logout", 204, False),
@@ -71,8 +72,8 @@ EXPECTED_OPERATIONS = [
 class FixtureSkeletonTest(unittest.TestCase):
     """Phase 1.1 structural contract."""
 
-    def test_thirty_six_operations_expected(self) -> None:
-        self.assertEqual(len(EXPECTED_OPERATIONS), 36)
+    def test_thirty_seven_operations_expected(self) -> None:
+        self.assertEqual(len(EXPECTED_OPERATIONS), 37)
 
     def test_fourteen_unique_tags(self) -> None:
         tags = {tag for tag, *_ in EXPECTED_OPERATIONS}
@@ -129,6 +130,12 @@ class FixtureSkeletonTest(unittest.TestCase):
                 with path.open("r", encoding="utf-8") as f:
                     data = json.load(f)
                 default = data["scenarios"]["default"]
+                if opid == "deleteMe":
+                    self.assertIn("request", default, f"{path}: request headers must be present")
+                    self.assertIn("headers", default["request"], f"{path}: request.headers must be present")
+                    self.assertIn("Idempotency-Key", default["request"]["headers"])
+                    self.assertNotIn("body", default["request"], f"{path}: DELETE /me has no request body")
+                    continue
                 if has_req:
                     self.assertIn("request", default, f"{path}: request must be present")
                     self.assertIn("body", default["request"], f"{path}: request.body must be present")
@@ -143,7 +150,7 @@ class FixtureSkeletonTest(unittest.TestCase):
 class FixtureValidatorWalkerTest(unittest.TestCase):
     """Validator helper exposes a structural walk over openapi/fixtures/."""
 
-    def test_walker_returns_36_entries(self) -> None:
+    def test_walker_returns_37_entries(self) -> None:
         validator = _load_validator()
         entries = validator.walk_fixtures(FIXTURES_ROOT)
         self.assertEqual(
@@ -195,6 +202,7 @@ WITH_JOB_OPERATIONS = {
     "completePracticeSession": "report_generate",
     "requestResumeTailor": "resume_tailor",
     "createDebrief": "debrief_generate",
+    "deleteMe": "privacy_delete",
     "requestPrivacyDelete": "privacy_delete",
 }
 
@@ -285,6 +293,22 @@ class FixtureContentTest(unittest.TestCase):
         self.assertIn("privacyRequestId", body)
         self.assertIn("job", body)
         self.assertEqual(body["job"]["jobType"], "privacy_delete")
+
+    def test_delete_me_returns_idempotent_privacy_delete_job(self) -> None:
+        data = _load_fixture("deleteMe", "Auth")
+        default = data["scenarios"]["default"]
+        self.assertEqual(default["request"]["headers"]["Idempotency-Key"], "idem-delete-me-2026-04-29")
+        body = default["response"]["body"]
+        self.assertEqual(default["response"]["status"], 202)
+        self.assertIn("privacyRequestId", body)
+        self.assertIn("job", body)
+        self.assertEqual(body["job"]["jobType"], "privacy_delete")
+        self.assertEqual(body["job"]["resourceType"], "privacy_request")
+
+    def test_debrief_default_fixture_excludes_p1_followup_fields(self) -> None:
+        body = _load_fixture("getDebrief", "Debriefs")["scenarios"]["default"]["response"]["body"]
+        self.assertNotIn("thankYouDraft", body)
+        self.assertNotIn("nextRoundChecklist", body)
 
     def test_list_endpoints_have_pageInfo(self) -> None:
         for opid in LIST_OPERATIONS:

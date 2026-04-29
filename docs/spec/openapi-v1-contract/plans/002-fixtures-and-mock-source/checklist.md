@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
 > **版本**: 1.1
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-04-29
 
 **关联计划**: [plan](./plan.md)
@@ -35,7 +35,7 @@
 
 ## Phase 5: v1.8 fixture remediation
 
-- [ ] 5.1 新增 `openapi/fixtures/auth/deleteMe.json` default fixture：request 带 `Idempotency-Key`，response `202 + PrivacyRequestWithJob`，`job.jobType="privacy_delete"`，语义与 `requestPrivacyDelete` 保持一致
-- [ ] 5.2 更新 `make validate-fixtures`、fixtures → examples 投影工具与 README 中 operation count 到 37；缺 `deleteMe` fixture 或 example 必须 fail
-- [ ] 5.3 `Debrief` / `DebriefWithJob` default fixture 不包含 P1 感谢信草稿或完整跟进建议 required 字段；如果 schema 保留这些字段，fixture 中体现 optional / hidden 口径，不阻塞 P0
-- [ ] 5.4 复跑 `make validate-fixtures` 与 examples 投影，确认 37 operation coverage、privacy redaction、provenance 与 Prism example parity 通过
+- [x] 5.1 新增 `openapi/fixtures/auth/deleteMe.json` default fixture：request 带 `Idempotency-Key`，response `202 + PrivacyRequestWithJob`，`job.jobType="privacy_delete"`，语义与 `requestPrivacyDelete` 保持一致
+- [x] 5.2 更新 `make validate-fixtures`、fixtures → examples 投影工具与 README 中 operation count 到 37；缺 `deleteMe` fixture 或 example 必须 fail
+- [x] 5.3 `Debrief` / `DebriefWithJob` default fixture 不包含 P1 感谢信草稿或完整跟进建议 required 字段；如果 schema 保留这些字段，fixture 中体现 optional / hidden 口径，不阻塞 P0
+- [x] 5.4 复跑 `make validate-fixtures` 与 examples 投影，确认 37 operation coverage、privacy redaction、provenance 与 Prism example parity 通过

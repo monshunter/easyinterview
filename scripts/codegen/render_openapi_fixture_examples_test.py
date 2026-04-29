@@ -3,7 +3,7 @@
 
 Phase 3.1 contract per `002-fixtures-and-mock-source` plan:
 - Reads openapi.yaml + fixtures, emits `openapi/.generated/openapi-with-fixtures.yaml`.
-- 36 default named examples (one per spec §3.1.1 operation).
+- 37 default named examples (one per spec §3.1.1 operation).
 - Each example body is byte-equal to the fixture's `scenarios.default.response.body`.
 - Re-running is idempotent.
 """
@@ -65,7 +65,7 @@ class RenderOpenapiFixtureExamplesTest(unittest.TestCase):
         self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
         self.assertTrue(self._output().is_file(), "output file must exist")
 
-    def test_36_default_examples_present(self) -> None:
+    def test_37_default_examples_present(self) -> None:
         _run(self.repo)
         spec = self._load_output()
         count = 0
@@ -85,7 +85,7 @@ class RenderOpenapiFixtureExamplesTest(unittest.TestCase):
                         break
                 if examples_found:
                     count += 1
-        self.assertEqual(count, 36, "expected 36 operations to carry default named examples")
+        self.assertEqual(count, 37, "expected 37 operations to carry default named examples")
 
     def test_example_byte_equal_to_fixture_body(self) -> None:
         _run(self.repo)
@@ -94,6 +94,7 @@ class RenderOpenapiFixtureExamplesTest(unittest.TestCase):
         # Spot-check across tags / status families.
         targets = [
             ("Auth", "getMe", "200"),
+            ("Auth", "deleteMe", "202"),
             ("TargetJobs", "listTargetJobs", "200"),
             ("PracticeSessions", "getPracticeSession", "200"),
             ("Reports", "getFeedbackReport", "200"),
@@ -111,6 +112,12 @@ class RenderOpenapiFixtureExamplesTest(unittest.TestCase):
                 example = resp["content"]["application/json"]["examples"]["default"]["value"]
                 fixture_body = _read_fixture_default_body(self.repo, tag, opid)
                 self.assertEqual(example, fixture_body)
+
+    def test_missing_fixture_source_fails(self) -> None:
+        (self.repo / "openapi" / "fixtures" / "Auth" / "deleteMe.json").unlink()
+        out = _run(self.repo)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("deleteMe", out.stderr + out.stdout)
 
     def test_idempotent(self) -> None:
         first = _run(self.repo)

@@ -62,7 +62,7 @@ Two truth sources feed the contract:
 | `make codegen-check` | Local **drift gate**: `codegen-openapi` + `lint-openapi` + `git diff --exit-code` over `openapi.yaml`, `backend/internal/api/generated/`, and `frontend/src/api/generated/`. |
 | `make openapi-diff` | Compare `openapi/openapi.yaml` against the latest `openapi/baseline/openapi-vX.Y.Z.yaml`; use `BASELINE_VERSION=v1.0.0` to pin and `HISTORY_REF=<git-ref>` to override the default base-branch history comparison. |
 | `make docs-openapi` | Render the contract as a single-file HTML site at `openapi/dist/index.html` with `@redocly/cli@2.30.1 build-docs`. The output is `dist/`-gitignored — local artefact only. |
-| `make validate-fixtures` | Schema-validate every `openapi/fixtures/<tag>/<operationId>.json` against `openapi.yaml`; enforce AI-schema provenance, privacy / UUIDv7 scans, and 36-operation coverage. Owner B2 002. |
+| `make validate-fixtures` | Schema-validate every `openapi/fixtures/<tag>/<operationId>.json` against `openapi.yaml`; enforce AI-schema provenance, privacy / UUIDv7 scans, and 37-operation coverage. Owner B2 002. |
 | `make sync-fixtures-from-prototype` | Re-render every fixture's `scenarios.prototype-baseline` from `easyinterview-ui/src/data.jsx`; idempotent; owner B2 002. |
 | `make render-openapi-fixture-examples` | Project every fixture's `scenarios.default.response.body` into `openapi/.generated/openapi-with-fixtures.yaml` as named `default` examples (Prism / docs-site source). Owner B2 002. |
 
@@ -103,7 +103,7 @@ The 14 OpenAPI tags follow
 [spec §2.1](../docs/spec/openapi-v1-contract/spec.md#2-范围) in declaration
 order: Auth, Uploads, Profile, Resumes, TargetJobs, PracticePlans,
 PracticeSessions, Reports, Mistakes, ResumeTailor, Debriefs, Growth, Jobs,
-Privacy. The 36 operations are catalogued in
+Privacy. The 37 operations are catalogued in
 [spec §3.1.1](../docs/spec/openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表);
 `scripts/lint/openapi_inventory.py` enforces tag order, operation enumeration,
 default `ApiErrorResponse` refs, the `Idempotency-Key` mutex (per ADR-Q1 +

@@ -18,12 +18,12 @@ openapi/fixtures/
 ├── README.md
 ├── PROTOTYPE_MAPPING.md          # data.jsx ↔ operationId mapping table
 └── <Tag>/
-    └── <operationId>.json        # one fixture per operation (36 in v1.0.0)
+    └── <operationId>.json        # one fixture per operation (37 in v1.0.0)
 ```
 
 The 14 tag directories follow
 [spec §2.1](../../docs/spec/openapi-v1-contract/spec.md#2-范围) declaration
-order; the 36 operationIds are listed in
+order; the 37 operationIds are listed in
 [spec §3.1.1](../../docs/spec/openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表).
 
 ## File shape
@@ -49,8 +49,9 @@ Rules:
 
 - `operationId` **must** equal the filename stem.
 - `scenarios.default` is required; it must be the **first** key in `scenarios`.
-- `request` is present only on operations declaring a `requestBody`; the
-  `body` field is required when `request` is present.
+- `request` is present on operations declaring a `requestBody`; the `body`
+  field is required in that case. Header-only idempotent operations such as
+  `deleteMe` may declare `request.headers` without a body.
 - `response.status` must be an integer status code declared by the operation,
   or a 4xx/5xx covered by the operation's `default` response. The single P0
   exception is `POST /api/v1/privacy/exports`, which is locked to `501` with
@@ -100,7 +101,7 @@ mock to pick it up.
 
 | Target | Purpose |
 |--------|---------|
-| `make validate-fixtures` | Schema-validates every scenario against `openapi.yaml`, enforces AI-schema provenance, runs the privacy allowlist + UUIDv7 + `tmp_` scans, and verifies all 36 operationIds are present. |
+| `make validate-fixtures` | Schema-validates every scenario against `openapi.yaml`, enforces AI-schema provenance, runs the privacy allowlist + UUIDv7 + `tmp_` scans, and verifies all 37 operationIds are present. |
 | `make sync-fixtures-from-prototype` | Re-renders the `prototype-baseline` scenario of every supported fixture from `data.jsx`. Idempotent — `git diff --exit-code -- openapi/fixtures` stays clean across re-runs. |
 
 The two are independent; the sync tool calls `validate-fixtures` internally as

@@ -1,0 +1,31 @@
+{
+  "operationId": "deleteMe",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-delete-me-2026-04-29"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-04-29T22-34-00-delete"
+        },
+        "body": {
+          "privacyRequestId": "01918fa0-0000-7000-8000-00000000c100",
+          "job": {
+            "id": "01918fa0-0000-7000-8000-00000000b600",
+            "jobType": "privacy_delete",
+            "status": "queued",
+            "resourceType": "privacy_request",
+            "resourceId": "01918fa0-0000-7000-8000-00000000c100",
+            "errorCode": null,
+            "createdAt": "2026-04-29T14:34:00Z",
+            "updatedAt": "2026-04-29T14:34:00Z"
+          }
+        }
+      }
+    }
+  }
+}

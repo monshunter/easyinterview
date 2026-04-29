@@ -27,13 +27,6 @@
               "severity": "medium"
             }
           ],
-          "nextRoundChecklist": [
-            {
-              "label": "准备 1 个量化的设计系统迁移 ROI 故事",
-              "rationale": "本轮被追问 2 次没有量化答案。"
-            }
-          ],
-          "thankYouDraft": "感谢您今天的时间…（草稿）",
           "provenance": {
             "promptVersion": "debrief_generate.v1",
             "rubricVersion": "not_applicable",

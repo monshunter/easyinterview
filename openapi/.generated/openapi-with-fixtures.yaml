@@ -95,6 +95,52 @@ paths:
                     preferredPracticeLanguage: zh-CN
         default:
           $ref: '#/components/responses/ApiErrorResponse'
+    delete:
+      tags:
+      - Auth
+      operationId: deleteMe
+      summary: Request account deletion for the current user
+      description: 'Protected endpoint per ADR-Q5. Equivalent to requesting a privacy
+
+        deletion for the current user and must dedupe repeated active requests
+
+        by `Idempotency-Key`, returning the same active `privacy_delete` job or
+
+        an equivalent terminal result.
+
+        '
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '202':
+          description: Account deletion request accepted; asynchronous privacy deletion job created or reused.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacyRequestWithJob'
+              examples:
+                default:
+                  summary: Default fixture for deleteMe
+                  value:
+                    privacyRequestId: 01918fa0-0000-7000-8000-00000000c100
+                    job:
+                      id: 01918fa0-0000-7000-8000-00000000b600
+                      jobType: privacy_delete
+                      status: queued
+                      resourceType: privacy_request
+                      resourceId: 01918fa0-0000-7000-8000-00000000c100
+                      errorCode: null
+                      createdAt: '2026-04-29T14:34:00Z'
+                      updatedAt: '2026-04-29T14:34:00Z'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
   /auth/email/start:
     post:
       tags:
@@ -1786,10 +1832,6 @@ paths:
                     riskItems:
                     - label: 缺少财务量化叙事
                       severity: medium
-                    nextRoundChecklist:
-                    - label: 准备 1 个量化的设计系统迁移 ROI 故事
-                      rationale: 本轮被追问 2 次没有量化答案。
-                    thankYouDraft: 感谢您今天的时间…（草稿）
                     provenance:
                       promptVersion: debrief_generate.v1
                       rubricVersion: not_applicable
@@ -2170,6 +2212,9 @@ components:
       - REPORT_NOT_READY
       - VALIDATION_FAILED
       - RATE_LIMITED
+      - AI_PROVIDER_TIMEOUT
+      - AI_OUTPUT_INVALID
+      - AI_FALLBACK_EXHAUSTED
       - PRIVACY_EXPORT_NOT_AVAILABLE
     ApiError:
       type: object
@@ -3752,11 +3797,15 @@ components:
       - roundType
       - createdAt
       - updatedAt
-      description: 'Real-interview debrief. AI augments user-supplied questions with risk
+      description: 'Real-interview debrief. P0 keeps the real-interview reconstruction and
 
-        items, checklist suggestions and an optional thank-you draft. Spec §4.6:
+        review surface focused on questions, risks and next practice signals.
 
-        when `status == completed`, must carry `GenerationProvenance`.
+        Full follow-up suggestions and thank-you drafts are P1 optional/hidden
+
+        fields and must not be required for P0 clients. Spec §4.6: when
+
+        `status == completed`, must carry `GenerationProvenance`.
 
         '
       properties:
@@ -3791,9 +3840,11 @@ components:
             $ref: '#/components/schemas/DebriefRiskItem'
         nextRoundChecklist:
           type: array
+          description: P1 optional/hidden full follow-up suggestions; not required for P0.
           items:
             $ref: '#/components/schemas/DebriefNextRoundChecklistItem'
         thankYouDraft:
+          description: P1 optional/hidden thank-you draft; not required for P0.
           oneOf:
           - type: string
           - type: 'null'

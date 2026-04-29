@@ -40,6 +40,17 @@ def _walk_fixtures(fixtures_root: Path) -> dict[str, dict]:
     return out
 
 
+def _operation_ids(spec: dict) -> list[str]:
+    out: list[str] = []
+    for _path, methods in (spec.get("paths") or {}).items():
+        if not isinstance(methods, dict):
+            continue
+        for _method, op in methods.items():
+            if isinstance(op, dict) and isinstance(op.get("operationId"), str):
+                out.append(op["operationId"])
+    return sorted(out)
+
+
 def _attach_example(spec: dict, opid: str, status: int, body) -> bool:
     """Find the operation `opid`, locate its response for `status` (or fall
     through to `default`), and attach `body` as a `default` named example.
@@ -92,6 +103,10 @@ def render(repo_root: Path) -> Path:
     fixtures = _walk_fixtures(fixtures_root)
 
     missing: List[str] = []
+    for opid in _operation_ids(spec):
+        if opid not in fixtures:
+            missing.append(f"{opid}: missing fixture default example source")
+
     for opid, fixture in fixtures.items():
         default = (fixture.get("scenarios") or {}).get("default") or {}
         response = default.get("response") or {}
