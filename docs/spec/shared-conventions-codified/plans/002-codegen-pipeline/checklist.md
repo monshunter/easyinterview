@@ -1,7 +1,7 @@
 # Codegen Pipeline Continuation Checklist
 
 > **版本**: 1.1
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-04-30
 
 **关联计划**: [plan](./plan.md)
@@ -35,6 +35,6 @@
 
 ## Phase 6: Verification
 
-- [ ] 6.1 复跑 `make codegen-conventions` / `make codegen-check` / Go shared package tests / TS typecheck 或 conventions tests，证明扩展未回退 001 既有验收；验证: 记录实际命令输出，所有命令 exit 0
-- [ ] 6.2 临时制造 YAML-only / Go-only / TS-only AI vocabulary drift，确认 `make codegen-check` 失败且错误信息指出缺失方向；revert 后恢复 clean；验证: 三类 negative drift 均失败，revert 后 `git diff --check` 与 `make codegen-check` 通过
-- [ ] 6.3 本 plan checklist 全部勾选后，将 plan / checklist Header 切 completed，运行 sync-doc-index check/fix，更新 work journal；不修改 A5 workflow、不修改 F3 prompt registry；验证: `sync-doc-index --check` zero drift，work journal 有 phase commit 记录，git diff 不包含 A5/F3 scope 文件
+- [x] 6.1 复跑 `make codegen-conventions` / `make codegen-check` / Go shared package tests / TS typecheck 或 conventions tests，证明扩展未回退 001 既有验收；验证: 记录实际命令输出，所有命令 exit 0
+- [x] 6.2 临时制造 YAML-only / Go-only / TS-only AI vocabulary drift，确认 `make codegen-check` 失败且错误信息指出缺失方向；revert 后恢复 clean；验证: 三类 negative drift 均失败，revert 后 `git diff --check` 与 `make codegen-check` 通过
+- [x] 6.3 本 plan checklist 全部勾选后，将 plan / checklist Header 切 completed，运行 sync-doc-index check/fix，更新 work journal；不修改 A5 workflow、不修改 F3 prompt registry；验证: `sync-doc-index --check` zero drift，work journal 有 phase commit 记录，git diff 不包含 A5/F3 scope 文件
