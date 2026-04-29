@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-30](2026-04-30.md) | `feat(shared-conventions): ai shared vocabulary 真理源` | #feat #test #docs |
 | [2026-04-30](2026-04-30.md) | `docs(skills): codify TDD and BDD quality gates` | #docs #test |
 | [2026-04-30](2026-04-30.md) | `fix(secrets-config): remediate L2 review findings` | #fix #test #docs |
 | [2026-04-30](2026-04-30.md) | `fix(aiclient): remediate L2 review findings` | #fix #test #docs |

@@ -39,8 +39,10 @@ func TestRunFromBytes_GeneratesAllExpectedFiles(t *testing.T) {
 		"backend/internal/shared/types/http_dto.go",
 		"backend/internal/shared/errors/codes.go",
 		"backend/internal/shared/idx/generated.go",
+		"backend/internal/shared/ai/vocabulary.go",
 		"frontend/src/lib/conventions/enums.ts",
 		"frontend/src/lib/conventions/errors.ts",
+		"frontend/src/lib/conventions/ai.ts",
 		"frontend/src/lib/conventions/pagination.ts",
 		"frontend/src/lib/ids/generated.ts",
 	}
@@ -290,6 +292,72 @@ func TestRenderTSIds_Constants(t *testing.T) {
 	for _, want := range must {
 		if !strings.Contains(src, want) {
 			t.Errorf("ids/generated.ts missing %q", want)
+		}
+	}
+}
+
+func TestRenderAIVocabulary_OutputsDedicatedFiles(t *testing.T) {
+	tmp := t.TempDir()
+	if err := RunFromBytes(loadYAML(t), tmp, false); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	goSrc := readFile(t, filepath.Join(tmp, "backend/internal/shared/ai/vocabulary.go"))
+	tsSrc := readFile(t, filepath.Join(tmp, "frontend/src/lib/conventions/ai.ts"))
+	errorSrc := readFile(t, filepath.Join(tmp, "frontend/src/lib/conventions/errors.ts"))
+
+	mustGo := []string{
+		"package ai",
+		`FieldModelProfileName`,
+		`"model_profile_name"`,
+		`FieldValidationStatus`,
+		`"validation_status"`,
+		"var AllFieldNames = []FieldName{",
+	}
+	for _, want := range mustGo {
+		if !strings.Contains(goSrc, want) {
+			t.Errorf("vocabulary.go missing %q", want)
+		}
+	}
+
+	mustTS := []string{
+		"export const AI_VOCABULARY_FIELDS = {",
+		"MODEL_PROFILE_NAME: 'model_profile_name',",
+		"VALIDATION_STATUS: 'validation_status',",
+		"export type AIVocabularyField",
+	}
+	for _, want := range mustTS {
+		if !strings.Contains(tsSrc, want) {
+			t.Errorf("ai.ts missing %q", want)
+		}
+	}
+
+	for _, forbidden := range []string{"model_profile_name", "validation_status"} {
+		if strings.Contains(errorSrc, forbidden) {
+			t.Errorf("errors.ts must not contain AI vocabulary field %q", forbidden)
+		}
+	}
+}
+
+func TestRenderAIVocabulary_IncludesOwnerBoundaryComments(t *testing.T) {
+	tmp := t.TempDir()
+	if err := RunFromBytes(loadYAML(t), tmp, false); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	combined := readFile(t, filepath.Join(tmp, "backend/internal/shared/ai/vocabulary.go")) +
+		readFile(t, filepath.Join(tmp, "frontend/src/lib/conventions/ai.ts"))
+
+	must := []string{
+		"B1 owns field names and validation helpers",
+		"A3 owns AIClient, AICallMeta runtime fill, Model Profile schema, and provider adapters",
+		"A4 owns AI_GATEWAY_* connection parameter validation",
+		"B4 owns typed database columns",
+		"F1 owns metrics and log consumption",
+	}
+	for _, want := range must {
+		if !strings.Contains(combined, want) {
+			t.Errorf("AI vocabulary generated files missing owner boundary %q", want)
 		}
 	}
 }

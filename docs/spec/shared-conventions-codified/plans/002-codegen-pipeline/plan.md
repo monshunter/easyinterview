@@ -1,8 +1,8 @@
 # Codegen Pipeline Continuation
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-04-30
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -19,7 +19,14 @@ A3 `ai-gateway-and-model-routing` 需要稳定字段名来对齐 `AICallMeta` ru
 
 001-bootstrap 已经完成错误码、枚举、ID、pagination 与 `ApiError`/`PageInfo` 等共享基础。本 plan 只追加 AI vocabulary 与更强 drift/parity 检测，不替换 001 的 generator 入口，不重命名既有 shared lib 路径。
 
-## 3 实施步骤
+## 3 质量门禁分类
+
+- **Plan 类型**: `tooling + code-internal + contract`。本 plan 修改 `shared/conventions.yaml`、B1 codegen、Go/TS generated shared lib、lint/drift wrapper 与 parity tests，属于内部契约和工具链交付；不引入用户可感知 UI、HTTP API 行为、业务流程或端到端功能。
+- **TDD 策略**: 必须通过 `/tdd --file docs/spec/shared-conventions-codified/plans/002-codegen-pipeline/checklist.md --references docs/spec/shared-conventions-codified/plans/002-codegen-pipeline/plan.md,docs/spec/shared-conventions-codified/spec.md --phase-commit shared-conventions-codified/002-codegen-pipeline` 顺序执行。每个 checklist item 以本 checklist 内的 `验证:` 子句作为 Red-Green-Refactor 断言来源；涉及 generated output 的 item 必须先在 generator 或 drift/parity test 中制造失败，再最小实现并复跑 focused command。
+- **BDD 策略**: BDD 不适用。本 plan 不产生浏览器 UI、外部 API、业务工作流或场景测试可观察行为，因此不创建 `bdd-plan.md` / `bdd-checklist.md`，主 checklist 也不设置 `BDD-Gate:`。
+- **替代验证 gate**: 使用内部契约 gate 代替 BDD：`make codegen-conventions`、`make codegen-check`、Go generator/shared package tests、TS conventions/ids tests、TS typecheck、AI vocabulary negative drift cases、`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`。
+
+## 4 实施步骤
 
 ### Phase 1: AI shared vocabulary 真理源
 
@@ -93,14 +100,14 @@ parity 必须覆盖 A3 当前消费字段：`model_profile_name`、`model_profil
 
 本 plan checklist 全部勾选后，将 plan / checklist Header 切 completed，运行 sync-doc-index check/fix，更新 work journal；不修改 A5 workflow、不修改 F3 prompt registry。
 
-## 4 验收标准
+## 5 验收标准
 
 - AI vocabulary 字段名已生成到独立 Go / TS 文件，A3 可引用字段名常量但仍 owns runtime `AICallMeta`。
 - `make codegen-check` 能覆盖 enum、错误码、AI vocabulary 三类 drift。
 - Go / TS parity tests 覆盖 A3 当前消费字段与既有 `ApiError` / `PageInfo` serialization。
 - F3 bridge / remote CI 未被本 plan 提前实现，仅留下 handoff。
 
-## 5 风险与应对
+## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
@@ -109,8 +116,9 @@ parity 必须覆盖 A3 当前消费字段：`model_profile_name`、`model_profil
 | Drift wrapper 误伤 001 已完成的 generator 输出 | Phase 2.3 要求只追加检测，不替换入口；Phase 6 复跑 001 原有验收 |
 | F3 / remote CI scope 被提前塞入本 plan | Phase 5 明确为 future handoff；触发时新增后续 plan或 A5 `002-remote-ci` |
 
-## 6 修订记录
+## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-04-30 | 1.1 | 补齐 TDD/BDD 质量门禁分类与 checklist 可执行验证断言；确认 BDD 不适用并以内部契约 gate 替代。 | implement gate remediation |
 | 2026-04-29 | 1.0 | 升格为 active，并将 scope 收敛为 A3 AI vocabulary、drift/parity 与本地 codegen-check 接入；F3 bridge / remote CI 仅保留 future handoff。 | plan-review remediation |

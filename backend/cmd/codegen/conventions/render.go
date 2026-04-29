@@ -32,6 +32,9 @@ type Spec struct {
 	JobStatuses []string         `yaml:"jobStatuses"`
 	Enums       []EnumSpec       `yaml:"enums"`
 	Structures  map[string]Struct `yaml:"structures"`
+	AIVocabulary struct {
+		Fields []AIFieldSpec `yaml:"fields"`
+	} `yaml:"aiVocabulary"`
 }
 
 type ErrorSpec struct {
@@ -58,6 +61,10 @@ type Field struct {
 	Nullable bool   `yaml:"nullable"`
 }
 
+type AIFieldSpec struct {
+	Name string `yaml:"name"`
+}
+
 // Run loads the YAML at yamlPath and renders all generated files under repoRoot.
 func Run(yamlPath, repoRoot string, verbose bool) error {
 	data, err := os.ReadFile(yamlPath)
@@ -82,8 +89,10 @@ func RunFromBytes(data []byte, repoRoot string, verbose bool) error {
 		{filepath.Join(repoRoot, "backend/internal/shared/types/http_dto.go"), renderGoHTTPDTO},
 		{filepath.Join(repoRoot, "backend/internal/shared/errors/codes.go"), renderGoErrorCodes},
 		{filepath.Join(repoRoot, "backend/internal/shared/idx/generated.go"), renderGoIdx},
+		{filepath.Join(repoRoot, "backend/internal/shared/ai/vocabulary.go"), renderGoAIVocabulary},
 		{filepath.Join(repoRoot, "frontend/src/lib/conventions/enums.ts"), renderTSEnums},
 		{filepath.Join(repoRoot, "frontend/src/lib/conventions/errors.ts"), renderTSErrors},
+		{filepath.Join(repoRoot, "frontend/src/lib/conventions/ai.ts"), renderTSAIVocabulary},
 		{filepath.Join(repoRoot, "frontend/src/lib/conventions/pagination.ts"), renderTSPagination},
 		{filepath.Join(repoRoot, "frontend/src/lib/ids/generated.ts"), renderTSIds},
 	}
@@ -163,6 +172,10 @@ func errorPascal(code string) string {
 		parts[i] = strings.ToUpper(p[:1]) + strings.ToLower(p[1:])
 	}
 	return strings.Join(parts, "")
+}
+
+func fieldPascal(name string) string {
+	return pascalSuffix(name)
 }
 
 // allEnums returns the §5 enums plus a synthetic JobStatus enum from §4.2.
@@ -331,6 +344,44 @@ func renderGoIdx(s *Spec) ([]byte, error) {
 	return formatGo(buf.Bytes())
 }
 
+func renderGoAIVocabulary(s *Spec) ([]byte, error) {
+	var buf bytes.Buffer
+	buf.WriteString(generatedHeader)
+	buf.WriteString("package ai\n\n")
+	buf.WriteString("// Owner boundary:\n")
+	buf.WriteString("// B1 owns field names and validation helpers.\n")
+	buf.WriteString("// A3 owns AIClient, AICallMeta runtime fill, Model Profile schema, and provider adapters.\n")
+	buf.WriteString("// A4 owns AI_GATEWAY_* connection parameter validation.\n")
+	buf.WriteString("// B4 owns typed database columns.\n")
+	buf.WriteString("// F1 owns metrics and log consumption.\n\n")
+	buf.WriteString("// FieldName is a B1-owned AI metadata wire field name.\n")
+	buf.WriteString("type FieldName string\n\n")
+	buf.WriteString("const (\n")
+	for _, field := range s.AIVocabulary.Fields {
+		fmt.Fprintf(&buf, "\tField%s FieldName = %q\n", fieldPascal(field.Name), field.Name)
+	}
+	buf.WriteString(")\n\n")
+
+	buf.WriteString("// AllFieldNames lists every AI metadata field in declaration order.\n")
+	buf.WriteString("var AllFieldNames = []FieldName{\n")
+	for _, field := range s.AIVocabulary.Fields {
+		fmt.Fprintf(&buf, "\tField%s,\n", fieldPascal(field.Name))
+	}
+	buf.WriteString("}\n\n")
+
+	buf.WriteString("// IsFieldName reports whether value is a documented AI metadata field name.\n")
+	buf.WriteString("func IsFieldName(value string) bool {\n")
+	buf.WriteString("\tfor _, field := range AllFieldNames {\n")
+	buf.WriteString("\t\tif string(field) == value {\n")
+	buf.WriteString("\t\t\treturn true\n")
+	buf.WriteString("\t\t}\n")
+	buf.WriteString("\t}\n")
+	buf.WriteString("\treturn false\n")
+	buf.WriteString("}\n")
+
+	return formatGo(buf.Bytes())
+}
+
 func formatGo(src []byte) ([]byte, error) {
 	formatted, err := format.Source(src)
 	if err != nil {
@@ -415,6 +466,38 @@ func renderTSErrors(s *Spec) ([]byte, error) {
 	buf.WriteString("  requestId: string;\n")
 	buf.WriteString("  retryable: boolean;\n")
 	buf.WriteString("  details?: Record<string, unknown>;\n")
+	buf.WriteString("}\n")
+
+	return buf.Bytes(), nil
+}
+
+func renderTSAIVocabulary(s *Spec) ([]byte, error) {
+	var buf bytes.Buffer
+	buf.WriteString(generatedTSHeader)
+	buf.WriteString("// Owner boundary:\n")
+	buf.WriteString("// B1 owns field names and validation helpers.\n")
+	buf.WriteString("// A3 owns AIClient, AICallMeta runtime fill, Model Profile schema, and provider adapters.\n")
+	buf.WriteString("// A4 owns AI_GATEWAY_* connection parameter validation.\n")
+	buf.WriteString("// B4 owns typed database columns.\n")
+	buf.WriteString("// F1 owns metrics and log consumption.\n\n")
+	buf.WriteString("// AI metadata wire field names owned by shared-conventions-codified.\n\n")
+
+	buf.WriteString("export const AI_VOCABULARY_FIELDS = {\n")
+	for _, field := range s.AIVocabulary.Fields {
+		fmt.Fprintf(&buf, "  %s: '%s',\n", upperSnakeFromPascal(fieldPascal(field.Name)), field.Name)
+	}
+	buf.WriteString("} as const;\n\n")
+
+	buf.WriteString("export type AIVocabularyField = (typeof AI_VOCABULARY_FIELDS)[keyof typeof AI_VOCABULARY_FIELDS];\n\n")
+
+	buf.WriteString("export const ALL_AI_VOCABULARY_FIELDS: readonly AIVocabularyField[] = [\n")
+	for _, field := range s.AIVocabulary.Fields {
+		fmt.Fprintf(&buf, "  AI_VOCABULARY_FIELDS.%s,\n", upperSnakeFromPascal(fieldPascal(field.Name)))
+	}
+	buf.WriteString("] as const;\n\n")
+
+	buf.WriteString("export function isAIVocabularyField(value: string): value is AIVocabularyField {\n")
+	buf.WriteString("  return (ALL_AI_VOCABULARY_FIELDS as readonly string[]).includes(value);\n")
 	buf.WriteString("}\n")
 
 	return buf.Bytes(), nil

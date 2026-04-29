@@ -17,7 +17,7 @@
 # enum entries grouped by `sourceSection`. The validator confirms all 13 sections
 # are present.
 
-version: 1.0
+version: 1.1
 schemaVersion: 1
 
 # UUIDv7 (00-shared-conventions §2.2): all business primary keys are UUIDv7 strings.
@@ -241,3 +241,24 @@ structures:
       - name: details
         type: object
         optional: true
+
+# AI shared vocabulary (ADR-Q6 / shared-conventions-codified D-8). These are
+# wire-level snake_case field names consumed by A3 AICallMeta runtime, B4 typed
+# columns, F1 logs/metrics, and B2 GenerationProvenance. B1 owns the names and
+# generated helpers only; runtime fill, storage, and gateway config stay outside
+# this file.
+aiVocabulary:
+  fields:
+    - name: model_profile_name
+    - name: model_profile_version
+    - name: model_family
+    - name: model_id
+    - name: fallback_chain
+    - name: route
+    - name: validation_status
+    - name: output_schema_version
+    - name: prompt_version
+    - name: rubric_version
+    - name: language
+    - name: feature_flag
+    - name: data_source_version

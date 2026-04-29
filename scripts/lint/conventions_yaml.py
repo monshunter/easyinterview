@@ -34,6 +34,7 @@ EXPECTED_TOP_LEVEL = {
     "jobStatuses",
     "enums",
     "structures",
+    "aiVocabulary",
 }
 
 EXPECTED_STRUCTURES = {"PageInfo", "ApiError"}
@@ -46,6 +47,21 @@ REQUIRED_ERROR_CODES = {
     "REPORT_NOT_READY",
     "VALIDATION_FAILED",
     "RATE_LIMITED",
+}
+REQUIRED_AI_VOCABULARY_FIELDS = {
+    "model_profile_name",
+    "model_profile_version",
+    "model_family",
+    "model_id",
+    "fallback_chain",
+    "route",
+    "validation_status",
+    "output_schema_version",
+    "prompt_version",
+    "rubric_version",
+    "language",
+    "feature_flag",
+    "data_source_version",
 }
 
 
@@ -160,6 +176,32 @@ def validate(data: dict[str, Any]) -> list[str]:
                 errors.append(
                     f"structure {struct_name!r} field name must be camelCase, got {field_name!r}"
                 )
+
+    ai_vocabulary = data.get("aiVocabulary") or {}
+    ai_fields = ai_vocabulary.get("fields") or []
+    if not isinstance(ai_fields, list) or not ai_fields:
+        errors.append("aiVocabulary.fields must declare fields")
+    seen_ai_fields: set[str] = set()
+    for field in ai_fields:
+        if isinstance(field, dict):
+            field_name = field.get("name", "")
+        else:
+            field_name = ""
+        if not ENUM_VALUE_RE.match(field_name):
+            errors.append(
+                f"aiVocabulary field name must be lower_snake_case, got {field_name!r}"
+            )
+            continue
+        if field_name in seen_ai_fields:
+            errors.append(f"duplicate aiVocabulary field: {field_name!r}")
+        seen_ai_fields.add(field_name)
+
+    missing_ai_fields = REQUIRED_AI_VOCABULARY_FIELDS - seen_ai_fields
+    if missing_ai_fields:
+        errors.append(
+            "aiVocabulary.fields must include the required AI meta fields; "
+            f"missing {sorted(missing_ai_fields)}"
+        )
 
     return errors
 
