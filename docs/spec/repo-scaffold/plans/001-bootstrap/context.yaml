@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.0
+    to: 1.1
 spec:
   defaultTarget: repo
   discovery:
@@ -38,6 +38,8 @@ spec:
           - scripts
           - test
           - deploy
+          - shared
+          - config
           - Makefile
           - README.md
           - .editorconfig

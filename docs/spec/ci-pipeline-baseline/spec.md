@@ -1,8 +1,8 @@
 # Local Quality Gate and Deferred CI Spec
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-04-27
+> **更新日期**: 2026-04-29
 
 ## 1 背景与目标
 
@@ -32,7 +32,7 @@
   - `make lint`：聚合 Go / TS / error-code / config / metrics / log lint（按对应 owner 落地情况逐步接入）。
   - `make test`：聚合 Go / TS 单元测试；AI 单元测试默认走 stub / fixtures，不需要真实 AI provider secret。
   - `make build`：聚合 API / worker / frontend 构建；尚未落地的组件可先保留清晰占位输出。
-  - `make docs-check`：执行 `/sync-doc-index --check` 与轻量链接检查。
+  - `make docs-check`：执行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 与轻量链接检查（如 `python3 scripts/lint/check_md_links.py docs`）。
   - `make codegen-check`：执行已落地 generator 的 idempotency / drift check（B1、B2 按各自 plan 接入）。
 - **本地输出契约**：每个 target 失败时必须输出 5 行内的人类可读摘要，并保留原始命令日志；不要求生成 HTML artifact。
 - **secret 红线**：本地质量门禁不读取 `.env` 中的生产 secret；任何需要真实 provider 的本地部署验证归 A2/A3/A4，不归本地单测 gate。
@@ -73,7 +73,7 @@
 
 - 所有本地 gate 必须可在仓库根执行，不要求开发者手动 `cd backend` / `cd frontend`。
 - 任一 target 失败时必须返回非 0；跳过尚未落地组件时必须明确输出 `not implemented yet: <owner>`，不能假装通过。
-- `make docs-check` 必须至少包含 `/sync-doc-index --check`；Header / INDEX drift 不能靠人工记忆。
+- `make docs-check` 必须至少包含可执行的 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`；Header / INDEX drift 不能靠人工记忆或只写 slash skill 文本。
 - `make codegen-check` 只能检查已经存在的 generator；B2 OpenAPI generator 未落地前不得制造失败 gate。
 
 ### 4.2 安全与权限约束
@@ -109,12 +109,12 @@
 | C-2 | 本地 lint gate | 已落地 B1 lint 与后续 owner lint | `make lint` | 聚合已存在 lint；任一失败返回非 0；未落地 lint 明确标记 owner，不假通过 | A5 后续 001（如需要） + B1/A4/F1 |
 | C-3 | 本地 test gate | Go / TS 测试已落地 | `make test` | 单元测试在本地运行；AI 单测走 stub / fixtures；不需要 AI provider secret | A5 后续 001（如需要） |
 | C-4 | 本地 build gate | API / worker / frontend 构建入口存在 | `make build` | 已落地组件构建成功；未落地组件输出清晰占位 | A5 后续 001（如需要） |
-| C-5 | docs gate | 任意 spec Header 与 INDEX 人为制造 drift | `make docs-check` 或直接执行 `/sync-doc-index --check` | drift 被报告并返回非 0 | A5 后续 001（如需要） |
+| C-5 | docs gate | 任意 spec Header 与 INDEX 人为制造 drift | `make docs-check` 或直接执行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` | drift 被报告并返回非 0 | A5 后续 001（如需要） |
 | C-6 | codegen drift gate | B1/B2 generator 已落地 | `make codegen-check` | 已接入 generator 重跑后无 diff；未落地 generator 不制造失败 | A5 后续 001（如需要） + B1/B2 |
 | C-7 | CI deferred guard | 搜索仓库文档 | grep `ci.yml` / `branch protection` / `required check` | 当前文档把这些能力标记为 future / out of scope，不作为 P0 必需项 | 本次 spec 修订 |
 
 ## 7 关联计划
 
-A5 当前不创建 CI implementation plan。若后续仅需要把本地命令聚合补齐，可创建 `001-local-quality-gates`；若触发 D-5 需要远端 CI，再在本 spec 原地修订并创建 `002-remote-ci` 或等价 plan。
+A5 当前已有 [001-local-quality-gates](./plans/001-local-quality-gates/plan.md) 作为本地质量门禁聚合 plan。若触发 D-5 需要远端 CI，再在本 spec 原地修订并创建 `002-remote-ci` 或等价新 plan；不得把远端 CI scope 塞回 001。
 
-当前 W1 阶段只保留 spec / history / plans INDEX，用于约束其它 child 不要把 CI pipeline 当成 P0 前置条件。
+当前 W1 阶段只把 001 用于本地命令聚合，并继续约束其它 child 不要把远端 CI pipeline 当成 P0 前置条件。

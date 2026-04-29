@@ -1,6 +1,6 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
 > **更新日期**: 2026-04-29
 
@@ -33,6 +33,7 @@
 - Lint 规则：`UPPER_SNAKE_CASE` 错误码常量名、`lower_snake_case` 枚举字面量、`camelCase` JSON tag；B1 提供本地可执行的最小校验，A5 只约束本地质量门禁与远端 CI 延后边界。
 - Idempotency-Key 工具：Go 与 TS 双端的 24h TTL 校验 / 生成工具骨架。
 - AI 共享 vocabulary：Model Profile 字段名、`AICallMeta`/GenerationProvenance/`ai_task_runs` 共同消费的 AI meta 字段名常量或生成类型；B1 不实现 `AIClient`、不拥有 `AICallMeta` runtime 结构体，也不定义 `AI_GATEWAY_*` 连接参数语义。
+- AI vocabulary 生成落点独立于错误码：Go 侧输出到 `backend/internal/shared/ai/`（或同等 B1-owned AI vocabulary 包），TS 侧输出到 `frontend/src/lib/conventions/ai.ts`（或同等文件）；不得把 model profile / AI meta 字段名塞进 `errors/*`。
 
 ### 2.2 Out of Scope
 
@@ -112,13 +113,15 @@
 ## 7 关联计划
 
 - [001-bootstrap](./plans/001-bootstrap/plan.md)：W0 落地真理源 YAML、generator 框架、Go / TS 共享 lib 骨架、UUID / idempotency 工具、本地 lint gate、monorepo 名称（go.mod / pnpm workspace）。
+- [002-codegen-pipeline](./plans/002-codegen-pipeline/plan.md)：当前 active；补齐 A3 触发的 AI shared vocabulary、跨语言 drift/parity gate 与本地 `make codegen-check` 接入。F3 prompt/rubric registry bridge 与远端 CI drift detection 只作为 handoff / future scope，不在 002 当前验收中实施。
 
-后续可在本 spec 修订递增版本后追加 `002-codegen-pipeline` 等 plan（覆盖本地 codegen drift detection、prompt / rubric registry 接入、跨语言测试；远端 CI drift detection 仅在 A5 触发条件成立后再评估），由 W1 阶段决定是否升格；本 spec 不预先 spawn 第二份 plan。
+后续如果 F3 需要共享 `feature_key + version` SDK，或 A5 D-5 触发远端 CI，再递增本 spec 版本并追加后续 plan；不把 F3 bridge / remote CI scope 塞回 002。
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-04-29 | 1.6 | 物化 `002-codegen-pipeline` 为 active：范围限定为 A3 AI vocabulary、跨语言 drift/parity 与本地 codegen-check 接入；F3 prompt bridge 与远端 CI 仅保留 future handoff。 | 002-codegen-pipeline |
 | 2026-04-29 | 1.5 | 按 ADR-Q6 authoritative 边界补齐 AI shared vocabulary：B1 只拥有 `AI_*` 错误码与 Model Profile / AI meta 字段名常量或生成类型；A3 继续拥有 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 与 provider adapter，A4/E4 负责连接参数与 endpoint。 | plan-review remediation |
 | 2026-04-29 | 1.4 | 授权并落地 A3 AI gateway baseline 错误码：`AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED`，作为 `shared/conventions.yaml` 与 Go / TS / OpenAPI codegen 共同消费的唯一真理源；`AICallMeta` 运行时结构仍由 A3 拥有，不进入 B1 共享 DTO。 | ai-gateway-and-model-routing spec remediation |
 | 2026-04-28 | 1.3 | 明确 `ApiError` 是错误响应 envelope 内部对象；Go canonical 类型为 `backend/internal/shared/errors.APIError`，TS canonical 类型为 generated `conventions.ApiError`，B2 外层 response body 必须另建 `ApiErrorResponse` envelope。 | openapi-v1-contract/001-bootstrap assessment remediation |

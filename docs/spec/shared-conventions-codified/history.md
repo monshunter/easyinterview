@@ -1,6 +1,6 @@
 # Shared Conventions Codified History
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
 > **更新日期**: 2026-04-29
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-04-29 | 1.6 | 物化 `002-codegen-pipeline` 为 active：补齐 A3 触发的 AI shared vocabulary、跨语言 drift/parity 与本地 codegen-check 接入；F3 prompt bridge 与远端 CI drift detection 仅保留 future handoff。 | [002-codegen-pipeline](./plans/002-codegen-pipeline/plan.md) |
 | 2026-04-29 | 1.5 | 按 ADR-Q6 authoritative 边界补齐 AI shared vocabulary：B1 只拥有 `AI_*` 错误码与 Model Profile / AI meta 字段名常量或生成类型；A3 继续拥有 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 与 provider adapter，A4/E4 负责连接参数与 endpoint。 | plan-review remediation |
 | 2026-04-29 | 1.4 | 授权并落地 A3 AI gateway baseline 错误码：`AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED`，作为 `shared/conventions.yaml` 与 Go / TS / OpenAPI codegen 共同消费的唯一真理源；`AICallMeta` 运行时结构仍由 A3 拥有，不进入 B1 共享 DTO。 | ai-gateway-and-model-routing spec remediation |
 | 2026-04-28 | 1.3 | 明确 `ApiError` 为错误响应 envelope 内部对象，Go canonical 类型继续归属 `backend/internal/shared/errors.APIError`，B2 OpenAPI 负责外层 `ApiErrorResponse` envelope。 | openapi-v1-contract/001-bootstrap assessment remediation |

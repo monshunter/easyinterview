@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Bootstrap Checklist
 
-> **版本**: 1.2
-> **状态**: completed
-> **更新日期**: 2026-04-28
+> **版本**: 1.3
+> **状态**: active
+> **更新日期**: 2026-04-29
 
 **关联计划**: [plan](./plan.md)
 
@@ -10,8 +10,8 @@
 
 - [x] 1.1 落地 `openapi/openapi.yaml` 文档头（OpenAPI 3.1、`info.version: 1.0.0`、`servers: [{url: /api/v1}]`）+ 14 个 tag（按 spec §2.1 顺序）+ ADR-Q1 `sessionCookie` security scheme + document-level `security: [{sessionCookie: []}]`；不引入 `Authorization: Bearer` 默认 scheme
 - [x] 1.2 在 `components` 中通过 `$ref` 引用 B1 `ApiError` inner object / `PageInfo` / 14 enum / 错误码 enum，并声明 B2 `ApiErrorResponse` envelope；声明 `Idempotency-Key` / `X-Request-ID` / `traceparent` / `Accept-Language` / `X-Client-Version` parameters / headers；落地 `Paginated<T>` `allOf` 模式与 `ResourceType` enum；落地 `GenerationProvenance` schema（6 字段，`rubricVersion` 允许 `not_applicable`）
-- [x] 1.3 写入 spec §3.1.1 全部 36 个 operation：每个 operation 含 `tags` / `summary` / `operationId` / `security`（按 §4.1 public/protected 矩阵）/ 必要 parameters / request body（如有）/ success 或 P0 例外 response / `default: $ref ApiErrorResponse`；副作用 endpoint 引用 `Idempotency-Key`，但 ADR-Q1 `POST /api/v1/auth/email/start` 例外；`POST /practice/sessions/{sessionId}/events` 引用 `clientEventId` 且不挂 `Idempotency-Key`；长耗时 operation 走 `202 + *WithJob`；`POST /api/v1/privacy/exports` 唯一声明 `501` + `example.error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；`GET /api/v1/runtime-config` security `[]`；AI 生成 schema 通过 `$ref` 关联 `GenerationProvenance`
-- [x] 1.4 落地 `scripts/lint/openapi_inventory.py`（或等价 `make` 内联脚本）：断言 14 tag 顺序、36 operation 完整集合、每条 operation 都有 `default: $ref ApiErrorResponse`、`Idempotency-Key` 与 ADR-Q1 auth start / `clientEventId` 互斥规则、privacy export 501 唯一性
+- [x] 1.3 写入 spec §3.1.1 历史 v1.3 的 36 个 operation；v1.8 新增的 `DELETE /api/v1/me` / `deleteMe` 由 Phase 7 补齐到当前 37 operation 集合。每个 operation 含 `tags` / `summary` / `operationId` / `security`（按 §4.1 public/protected 矩阵）/ 必要 parameters / request body（如有）/ success 或 P0 例外 response / `default: $ref ApiErrorResponse`；副作用 endpoint 引用 `Idempotency-Key`，但 ADR-Q1 `POST /api/v1/auth/email/start` 例外；`POST /practice/sessions/{sessionId}/events` 引用 `clientEventId` 且不挂 `Idempotency-Key`；长耗时 operation 走 `202 + *WithJob`；`POST /api/v1/privacy/exports` 唯一声明 `501` + `example.error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；`GET /api/v1/runtime-config` security `[]`；AI 生成 schema 通过 `$ref` 关联 `GenerationProvenance`
+- [x] 1.4 落地 `scripts/lint/openapi_inventory.py`（或等价 `make` 内联脚本）：断言 14 tag 顺序、历史 v1.3 的 36 operation 完整集合；Phase 7 会把 inventory 提升到 v1.8 的 37 operation。每条 operation 都有 `default: $ref ApiErrorResponse`、`Idempotency-Key` 与 ADR-Q1 auth start / `clientEventId` 互斥规则、privacy export 501 唯一性
 
 ## Phase 2: Codegen pipeline
 
@@ -44,3 +44,10 @@
 - [x] 6.1 复现 `make docs-openapi` 旧实现：命令 exit 0 且生成 `openapi/dist/index.html`，但打印 `redoc-cli` deprecated 横幅并提示 `@redocly/cli build-docs`
 - [x] 6.2 迁移根 `Makefile` 的 `docs-openapi` target 到 `@redocly/cli@2.30.1 redocly build-docs`，保持输入、输出路径与标题不变；同步 `openapi/README.md` tooling 说明
 - [x] 6.3 运行验证并收口生命周期：`make docs-openapi` 无 deprecated 横幅且产物成功生成；`make lint-openapi`、`/sync-doc-index --check`、`git diff --check` 通过；随后恢复 plan/checklist `completed`
+
+## Phase 7: v1.8 contract remediation
+
+- [ ] 7.1 将 `openapi/openapi.yaml`、inventory lint、generated Go/TS types 与 server/client interfaces 更新到 spec v1.8 的 37 endpoint 集合，新增 `DELETE /api/v1/me` / `operationId=deleteMe` / `202 PrivacyRequestWithJob`
+- [ ] 7.2 `DELETE /api/v1/me` 声明 `Idempotency-Key` header 或等价 active-request dedupe；重复删除请求返回同一 active `privacy_delete` job 或同义终态
+- [ ] 7.3 P0 `Debrief` / `DebriefWithJob` 移除或保持 optional/hidden 的感谢信草稿与完整跟进建议字段，不作为 P0 required
+- [ ] 7.4 复跑 `make lint-openapi` / `make codegen-openapi` / `make codegen-check`，确认 37 operation inventory 与 generated drift clean

@@ -1,0 +1,40 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: ai-gateway-and-model-routing
+  name: 001-aiclient-and-profile-bootstrap
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.7
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - ai-gateway-and-model-routing
+      - 001-aiclient-and-profile-bootstrap
+      - aiclient
+      - model-profile
+      - ai-routing
+    keywords:
+      - ai client
+      - model profile
+      - openai compatible
+      - stub provider
+      - ai call meta
+      - audit hook
+      - fail fast
+      - hot reload
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - backend/internal/ai/aiclient
+          - config/ai-profiles
+          - backend/internal/platform/config
+        uiRoutes: []
+        apiNames: []

@@ -1,6 +1,6 @@
 # AI Gateway and Model Routing History
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
 > **更新日期**: 2026-04-29
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-04-29 | 1.7 | 物化 A3 plan 设计：`001-aiclient-and-profile-bootstrap` 切为 active，`002-tools-streaming-and-stt` 保持 draft/blocked；明确 001 只 owns `backend/internal/ai/aiclient/` 与 `config/ai-profiles/` fixture，API/worker entrypoint 是 DI handoff，不由 A3 001 创建。 | plan-review remediation |
 | 2026-04-29 | 1.6 | 按 ADR-Q6 authoritative 边界收口：`AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 是 AIClient 的 OpenAI-compatible 连接参数，可指真实 LLM provider 或生产 gateway；fallback 只由连接 endpoint / gateway route 承担，A3 client 不自行切换模型；B1 提供共享字段名 / 错误码，A3 owns Model Profile schema 与 `AICallMeta` runtime。 | plan-review remediation |
 | 2026-04-29 | 1.5 | 修复 L1 review 发现的一致性与完备性问题：`AICallMeta` 明确归 A3 runtime 拥有，B1 提供共享错误码；metric 语义区分 per-call 与 event-only counter；STT / Audio Transcription 降为 C14 P2 预留；补齐 `Stream` 事件合同边界。 | plan-review remediation |
 | 2026-04-27 | 1.4 | 对齐 A5 单人开发阶段决策：A3 的测试红线当前由本地 lint / test gate 强制，远端 CI 仅在 A5 触发条件成立后再接入。 | ci-pipeline-baseline spec-contract remediation |

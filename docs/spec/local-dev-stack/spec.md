@@ -1,8 +1,8 @@
 # Local Dev Stack Spec
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-04-27
+> **更新日期**: 2026-04-29
 
 ## 1 背景与目标
 
@@ -49,7 +49,7 @@
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
 | D-1 | docker-compose 落点 | `deploy/dev-stack/docker-compose.yaml`（A1 已锁定 `deploy/` 根容器） | 任何 child 不得在仓库根另起平行 compose 文件 |
-| D-2 | 服务镜像 tag | 默认依赖锁定 `pgvector/pgvector:pg16` / `redis:7-alpine` / `minio/minio:<immutable-release-tag>`；具体不可变 tag 在 001-bootstrap plan 落地时回填。项目组件优先从仓库内 Dockerfile 或 dev command 构建，不从外部拉取业务镜像 | 升级须递增 spec 版本；默认 compose 不含生产观测镜像 |
+| D-2 | 服务镜像 tag | 默认依赖锁定 `pgvector/pgvector:pg16` / `redis:7-alpine` / `minio/minio:RELEASE.2024-12-18T13-15-44Z`；MinIO bucket init 工具锁 `minio/mc:RELEASE.2024-11-21T17-21-54Z`。项目组件优先从仓库内 Dockerfile 或 dev command 构建，不从外部拉取业务镜像 | 升级须递增 spec 版本；默认 compose 不含生产观测镜像 |
 | D-3 | 服务端口 | Postgres 5432 / Redis 6379 / MinIO 9000(API) + 9001(Console)；项目组件端口由各组件 dev defaults 声明（frontend 默认 5173，backend API 默认 8080，worker 默认不暴露 host port） | 不预留 Grafana 3000 / Prometheus 9090 / Loki 3100 / OTLP 4317/4318 给默认本地栈 |
 | D-4 | network 命名 | `easyinterview-dev`（bridge 模式）；依赖服务与项目组件通过短名互访 | backend/worker 启动时 `host=postgres-dev` / `redis-dev` / `minio-dev` 等命名解析 |
 | D-5 | Postgres 扩展启用 | `pgvector`（必须）；后续 `pg_trgm` / `pg_stat_statements` 由 B4 决定是否前置；本 spec 只保证 `pgvector` | B4 / C11 不再需要在自己的 plan 里启用扩展 |
@@ -116,12 +116,12 @@
 | C-5 | 显式清空 | 服务正在运行 | `make dev-reset` | 容器停止 + 命名卷删除；操作前提示交互确认（CI 模式跳过通过 `DEV_RESET_FORCE=1`） | 001 |
 | C-6 | pgvector 可用 | `make dev-up` 完成 | 在 Postgres 中执行 `select extname from pg_extension where extname='vector'` | 返回一行，确认扩展已启用 | 001 |
 | C-7 | 本地指标与日志可查 | `make dev-up` 完成，至少一个已启用 HTTP 项目组件声明 `/metrics` | 访问该组件 `/metrics` 并执行 `make dev-logs` | `/metrics` 返回文本指标；容器日志可按服务名查看；不依赖 Grafana / Loki / Prometheus / OTel Collector | 001 |
-| C-8 | A2 executable gate handoff（来自 [001 Phase 3.6](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架)） | 本 spec 的 contract lock 已完成，A2 后续 `001` plan 完成 | C-1 + C-7 都成立 | A2 的 `make dev-up` 可执行 gate 通过；依赖本地栈的 W2 implementation 可启动；parent Phase 3 只记录 spec-contract lock，不单独冒充本项已通过 | A2 后续 `001` |
+| C-8 | A2 executable gate handoff（来自 [001 Phase 3.6](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架)） | 本 spec 的 contract lock 已完成，A2 `001-bootstrap` plan 完成 | C-1 + C-7 + C-9 都成立 | A2 的 `make dev-up` 可执行 gate 通过；依赖本地栈的 W2 implementation 可启动；parent Phase 3 只记录 spec-contract lock，不单独冒充本项已通过 | 001-bootstrap |
 | C-9 | 本地 AI provider 配置不走 stub | 启用了需要 AIClient 的 API / worker；`.env` 缺 `AI_GATEWAY_BASE_URL` 或 `AI_GATEWAY_API_KEY` | `make dev-up` / `make dev-doctor` | 组件启动失败或 dev-doctor 报 DOWN/DEGRADED 并说明缺真实 AI provider 配置；补齐真实 provider endpoint / key 后组件健康；不启动 AI gateway 容器，也不把部署切到 stub | 001 |
 
 ## 7 关联计划
 
-A2 在本次 W1 spec 阶段不创建 impl plan（参见 [001-decompose-subspecs §3.1](../engineering-roadmap/plans/001-decompose-subspecs/plan.md#3-实施步骤)）。后续由 A2 自己的 `001-bootstrap`（W1 末或 W2 初）承接：
+A2 `001-bootstrap` 已完成并落地本地依赖 compose、dev lifecycle Make targets、dev-doctor 与文档入口；本 spec 现在以 `001-bootstrap` 作为唯一已完成实现计划：
 
 - 落地 `deploy/dev-stack/docker-compose.yaml` 与 init scripts。
 - 实现 `make dev-up` / `make dev-down` / `make dev-doctor` / `make dev-reset` / `make dev-logs` 的真实命令体（替换 A1 占位）。

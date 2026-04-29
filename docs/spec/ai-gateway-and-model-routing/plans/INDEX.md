@@ -6,9 +6,19 @@
 
 ## 1 进行中（Active）
 
-*暂无 active 计划文档；W1 阶段（[engineering-roadmap/001 Phase 3](../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架)）只 spawn 本 subspec 的 spec.md / history.md / plans/INDEX.md，impl plan 由 A3 自身后续 `/implement` 启动。*
+| 计划 | 文件 | 版本 | 状态 | 更新日期 |
+|------|------|------|------|----------|
+| [001-aiclient-and-profile-bootstrap](./001-aiclient-and-profile-bootstrap/plan.md) | [plan](./001-aiclient-and-profile-bootstrap/plan.md) / [checklist](./001-aiclient-and-profile-bootstrap/checklist.md) / [context](./001-aiclient-and-profile-bootstrap/context.yaml) | 1.1 | active | 2026-04-29 |
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
+
+## 3 草案 / 阻塞（Draft / Blocked）
+
+| 计划 | 文件 | 版本 | 状态 | 更新日期 |
+|------|------|------|------|----------|
+| [002-tools-streaming-and-stt](./002-tools-streaming-and-stt/plan.md) | [plan](./002-tools-streaming-and-stt/plan.md) / [checklist](./002-tools-streaming-and-stt/checklist.md) / [context](./002-tools-streaming-and-stt/context.yaml) | 0.1 | draft | 2026-04-29 |
+
+> 阻塞条件：需 ADR-Q6 / A3 spec 先打开 Tools、Streaming 或 STT 能力。

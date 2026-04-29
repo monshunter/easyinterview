@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.2
-> **状态**: completed
+> **版本**: 1.3
+> **状态**: active
 > **更新日期**: 2026-04-29
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -42,7 +42,7 @@
 info:
   description: |-
     BASELINE — DO NOT EDIT.
-    本文件是 openapi-v1-contract spec v1.3 锁定的 v1.0.0 freeze 快照。
+    本文件是 openapi-v1-contract spec v1.8 锁定的 v1.0.0 freeze 快照。
     任何 breaking change 必须走 ADR + 本 spec 修订流程，新版本写入 openapi/baseline/openapi-v<MAJOR>.<MINOR>.<PATCH>.yaml。
 ```
 
@@ -158,6 +158,20 @@ info:
 - 更新 [openapi-v1-contract/history.md](../../history.md)：追加一行版本变更（版本可保持 1.3 不变；如 ADR 模板与 baseline 治理引发约束补充，按需递增到 1.4）。
 - `/sync-doc-index --check` 通过。
 
+### Phase 5: v1.8 baseline remediation
+
+#### 5.1 v1.0.0 baseline freeze correction
+
+在 001 / 002 完成 v1.8 remediation 后，重新冻结 `openapi/baseline/openapi-v1.0.0.yaml`，确保 baseline 含 37 endpoint 与 `DELETE /api/v1/me`，并保持文件名仍为 v1.0.0 freeze correction；不得错误创建 `openapi-v1.0.1.yaml` 来掩盖当前 v1.0.0 baseline 漂移。
+
+#### 5.2 Diff whitelist / inventory count 同步
+
+更新 `scripts/lint/openapi_diff.py`、`openapi/diff-config.yaml` 与 baseline README 中的 endpoint inventory 到 37；privacy export `501→202` 白名单继续只作用于 `POST /api/v1/privacy/exports`，不得扩展到 `DELETE /api/v1/me`。
+
+#### 5.3 checklist / context 版本修正
+
+把本 plan checklist Header 与 context specVersion 对齐到 current spec v1.8；历史中保留原 1.2 完成记录，但当前 remediation 未完成前本 plan 保持 active。
+
 ## 4 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-4 / C-5 / C-10 全部成立，证据贴入工作日志。
@@ -181,3 +195,4 @@ info:
 |------|------|------|------|
 | 2026-04-29 | 1.2 | L2 remediation：补齐 wrapper 对 OpenAPI composition schema diff 与 history-ref base 比较语义的执行要求。 | plan-code-review --fix |
 | 2026-04-28 | 1.1 | 对齐 B2 spec v1.4：privacy export P0 例外类型从旧称 `ApiError` 修正为 wire envelope `ApiErrorResponse`。 | 001-bootstrap assessment remediation |
+| 2026-04-29 | 1.3 | 原地 reopen，新增 Phase 5 remediation：修正 v1.0.0 baseline freeze 到 37 endpoint / `deleteMe`，同步 diff whitelist 与 context specVersion。 | plan-review remediation |

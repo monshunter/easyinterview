@@ -1,6 +1,6 @@
 # Event and Outbox Contract History
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-04-29
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-04-29 | 1.4 | 物化 B3 `001-bootstrap` active plan：新增 committed JSON Schema / job manifest baseline，明确 `email_dispatch` internal-only 口径由 ADR-Q1 同步，JSON Schema refs 由 B3 自有桥接或 inline 值承接，不依赖 B1 必须产出 JSON Schema fragment。 | [001-bootstrap](./plans/001-bootstrap/plan.md) |
 | 2026-04-29 | 1.3 | 收口 A/B spec 全面审查 remediation：新增 internal-only `email_dispatch` canonical jobType 与 `email.dispatch` dotted task name，锁定 magic link payload 红线；把 `target.analysis.failed` / `report.generation.failed` / `mistake.status.changed` 改为真正 dot.case，避免 lint 规则拒绝 seed 事件；同步 C9 真实面试复现 P0 范围。 | plan-review remediation |
 | 2026-04-29 | 1.2 | 根据 L1 review findings 修订 B3 契约：补齐 18 个事件 v1 payload schema inventory 与 PII 边界；拆分 DB/C8 canonical `job_type` 与 B2 API-facing `JobType` subset；明确 outbox retry operational columns、`traceId` soft-required 语义、B3-owned `codegen-events` 归属与 Go/TS 输出路径。 | plan-review remediation |
 | 2026-04-27 | 1.1 | 对齐 A5 单人开发阶段决策：B3 当前只要求本地 `make codegen-events` / `make lint-events` drift 与 breaking-change gate，远端 CI 不作为 P0 前置。 | ci-pipeline-baseline spec-contract remediation |

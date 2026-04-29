@@ -1,6 +1,6 @@
 # Event and Outbox Contract Spec
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-04-29
 
@@ -35,6 +35,7 @@
 - **DB/C8 canonical job_type ↔ Asynq dotted task name 映射表**：见 §3.1.1；B2 API-facing subset 见 §3.1.2。
 - **lint 规则**：禁止业务包 hardcode `eventName` / `jobType` 字符串；必须 `import constants from "events"` 包；当前由本地 lint gate 接入，远端 CI 仅在 A5 触发条件成立后再接入。
 - **tooling**：`make codegen-events`（B3 owner）；本地 drift 校验。
+- **breaking baseline**：提交 `shared/events/baseline/events.v1.json` 与 `shared/jobs/baseline/jobs.v1.json` 作为 v1 freeze manifest；`make lint-events` 比较当前 `shared/events.yaml` / `shared/jobs.yaml` 与 baseline，字段删除、类型变化、requiredness 变化、eventName/jobType 删除必须按 breaking 处理。
 
 ### 2.2 Out of Scope
 
@@ -200,10 +201,11 @@ B2 OpenAPI v1.0.0 的 `JobType` enum 只允许以下 7 项：`target_import` / `
 
 ## 7 关联计划
 
-B3 在本次 W1 spec 阶段不创建 impl plan（参见 [001-decompose-subspecs §3.1](../engineering-roadmap/plans/001-decompose-subspecs/plan.md#3-实施步骤)）。后续由 B3 自身的 `001-bootstrap`（W1 末或 W2 初）承接：
+B3 当前由 [001-bootstrap](./plans/001-bootstrap/plan.md) active plan 承接：
 
 - 落地 `shared/events.yaml` + `shared/jobs.yaml` 真理源。
 - 落地 B3-owned `backend/cmd/codegen/events`，输出 Go / TS 常量、envelope、payload 类型与 JSON Schema，并复用 B1 generated shared types；`shared/jobs.yaml` 必须包含 internal-only `email_dispatch` 与 payload 红线。
+- 落地 `shared/events/baseline/events.v1.json` 与 `shared/jobs/baseline/jobs.v1.json` committed baseline manifests，供 `make lint-events` 执行 breaking-change 检测。
 - 提供 `make lint-events` 检查业务包是否使用裸字面量。
 - 落地 `make codegen-events` 与本地 drift check。
 

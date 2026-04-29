@@ -1,13 +1,14 @@
 # Local Dev Stack History
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-04-27
+> **更新日期**: 2026-04-29
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-04-29 | 1.5 | 文档侧 reconcile：把已落地 compose 的 MinIO / mc 不可变 tag 写回 D-2；A2 executable gate 明确同时覆盖 AI provider fail-fast C-9；§7 从未来计划改为 `001-bootstrap` 已完成事实，不新开 plan。 | plan-review remediation |
 | 2026-04-27 | 1.4 | 对齐 A5 单人开发阶段决策：`make dev-doctor` JSON 仍保持可被未来 CI 消费，但当前不把 A5 CI 作为本地开发栈前置。 | [001-bootstrap](./plans/001-bootstrap/plan.md) |
 | 2026-04-27 | 1.3 | 对齐 A3 / A4 AI provider 规则：docker compose 本地部署不启动 AI gateway 容器，也不使用单元测试 stub；A2 只传递 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 占位，启用 AIClient 的组件缺真实 provider 配置时 fail-fast。 | [001-bootstrap](./plans/001-bootstrap/plan.md) |
 | 2026-04-27 | 1.2 | 按 L1 plan-review 与用户确认修订本地开发栈边界：默认依赖收敛为 Postgres+pgvector / Redis / MinIO；`make dev-up` 改为启动最小依赖 + 当前项目可运行组件；本地观测改为应用 `/metrics` + 容器日志；默认排除 OTel Collector / Grafana / Loki / Prometheus 与 AI gateway。 | [001-bootstrap](./plans/001-bootstrap/plan.md) |

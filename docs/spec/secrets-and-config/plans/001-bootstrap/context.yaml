@@ -1,0 +1,47 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: secrets-and-config
+  name: 001-bootstrap
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.7
+spec:
+  defaultTarget: platform-config
+  discovery:
+    aliases:
+      - secrets-and-config
+      - 001-bootstrap
+      - config-loader
+      - feature-flag
+      - secret-source
+    keywords:
+      - three tier config
+      - koanf loader
+      - redacted string
+      - feature flag
+      - posthog self host
+      - runtime config
+      - secret scan
+      - gitleaks
+      - env example
+      - session cookie secret
+  targets:
+    platform-config:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - backend/internal/platform/config
+          - backend/internal/platform/secrets
+          - backend/internal/platform/featureflag
+          - frontend/src/lib/runtime-config
+          - config
+          - scripts/git-hooks
+          - Makefile
+        uiRoutes: []
+        apiNames:
+          - GET /api/v1/runtime-config

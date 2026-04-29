@@ -1,15 +1,15 @@
 # OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.2
-> **状态**: completed
-> **更新日期**: 2026-04-28
+> **版本**: 1.3
+> **状态**: active
+> **更新日期**: 2026-04-29
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-把 [openapi-v1-contract spec](../../spec.md) §3.1 已锁定的 D-1..D-12 与 §3.1.1 列出的 36 endpoint × 14 tag 落到 `openapi/openapi.yaml` v1.0.0；落地双端 codegen pipeline（Go DTO + chi server interface 在 `backend/internal/api/generated/`，TS SDK 在 `frontend/src/api/generated/`）；接入根 `Makefile` 的 `codegen-openapi` / `codegen-check` 入口；锁定 ADR-Q1 Auth 路径（email magic link + first-party session cookie）、`POST /api/v1/privacy/exports` P0 的 `501 PRIVACY_EXPORT_NOT_AVAILABLE` 例外、B1 共享 enum / 错误码 / `ApiError` 的 `$ref` 拓扑、§4.6 `GenerationProvenance` schema；通过本 plan Phase 4 的本地命令证明 spec §6 中 C-1 的 contract/schema 部分、C-2 / C-3 / C-8、C-7 / C-11 的 contract/schema 部分已成立，并为 [002-fixtures-and-mock-source](../002-fixtures-and-mock-source/plan.md) 与 [003-breaking-change-gate](../003-breaking-change-gate/plan.md) 提供可消费的契约源。
+把 [openapi-v1-contract spec](../../spec.md) §3.1 已锁定的 D-1..D-15 与 §3.1.1 列出的 37 endpoint × 14 tag 落到 `openapi/openapi.yaml` v1.0.0；落地双端 codegen pipeline（Go DTO + chi server interface 在 `backend/internal/api/generated/`，TS SDK 在 `frontend/src/api/generated/`）；接入根 `Makefile` 的 `codegen-openapi` / `codegen-check` 入口；锁定 ADR-Q1 Auth 路径（email magic link + first-party session cookie）、`DELETE /api/v1/me` account deletion、`POST /api/v1/privacy/exports` P0 的 `501 PRIVACY_EXPORT_NOT_AVAILABLE` 例外、B1 共享 enum / 错误码 / `ApiError` 的 `$ref` 拓扑、§4.6 `GenerationProvenance` schema；通过本 plan Phase 4 的本地命令证明 spec §6 中 C-1 的 contract/schema 部分、C-2 / C-3 / C-8、C-7 / C-11 的 contract/schema 部分已成立，并为 [002-fixtures-and-mock-source](../002-fixtures-and-mock-source/plan.md) 与 [003-breaking-change-gate](../003-breaking-change-gate/plan.md) 提供可消费的契约源。
 
 本 plan 不落地 fixtures（归 002）、不落地 breaking-change linter（归 003）、不实现业务 handler（归 C 域）、不实现前端 fetch 客户端（归 D 域）、不部署 mock server（归 [E1](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份)）。后续如需扩展（v1.0.1 patch、新 endpoint、SSE 子协议接入），在本 spec / plan 上递增版本，原地修订。
 
@@ -40,9 +40,9 @@
 
 公共 `ResourceType` enum（spec §3.2 待确认事项）独立成 schema，避免与 outbox / Job 引用重复。
 
-#### 1.3 36 endpoint operation 骨架
+#### 1.3 37 endpoint operation 骨架
 
-按 spec §3.1.1 表格逐行写入 36 operation：
+按 spec §3.1.1 表格逐行写入 37 operation：
 
 - 每个 operation 至少声明 `tags`、`summary`、`operationId`、`security`（覆盖 §4.1 public/protected 矩阵）、必要的 path/query/header parameters、request body（如有）、success 或 P0 例外 response、`default: $ref ApiErrorResponse`。
 - `POST /api/v1/uploads/presign`、`POST /api/v1/resumes`、`POST /api/v1/targets/import`、`PATCH /api/v1/targets/{targetJobId}`、`POST /api/v1/practice/plans`、`POST /api/v1/practice/sessions`、`POST /api/v1/practice/sessions/{sessionId}/complete`、`POST /api/v1/mistakes/{mistakeId}/retest`、`POST /api/v1/resume/tailor`、`POST /api/v1/debriefs`、`POST /api/v1/privacy/exports`、`POST /api/v1/privacy/deletions` 等副作用 endpoint 必须声明 `Idempotency-Key` header 引用（spec D-6）；ADR-Q1 auth email start 例外见下一条。
@@ -51,6 +51,7 @@
 - 长耗时 operation（resume tailor / debrief / target import / practice complete / privacy delete / resume register 等）success response 走 `202 Accepted` + `*WithJob` schema（spec D-7）；客户端通过 `GET /api/v1/jobs/{jobId}` 轮询。
 - `POST /api/v1/privacy/exports` P0 例外响应强制写为 `501` + `application/json: { schema: $ref ApiErrorResponse, example.error.code: "PRIVACY_EXPORT_NOT_AVAILABLE" }`（spec D-12 / §4.1 / C-7 partial）。
 - `GET /api/v1/runtime-config` schema 引用 [A4 D-2](../../../secrets-and-config/spec.md#31-已锁定决策含-p0-必备-env-key-字典) 的 `RuntimeConfig`；security 设为空（public）。
+- `DELETE /api/v1/me` schema 使用 `PrivacyRequestWithJob`，protected，必须声明 `Idempotency-Key` header 或等价 active-request dedupe 语义；operationId 固定 `deleteMe`。
 - AI 生成结果 schema（`TargetJob.summary` / `TargetJob.fitSummary` / `AssistantAction` / `FeedbackReport` / 由 AI 创建的 `MistakeEntry` / `ResumeTailorRun` / `Debrief`）必须包含 `provenance: $ref GenerationProvenance` 字段，或所属 `*WithJob` 包装类型在 `job.provenance` 中可追溯到该对象（spec §4.6）。
 
 #### 1.4 endpoint 自检
@@ -58,7 +59,7 @@
 - `npx @apidevtools/swagger-cli@4.0.4 swagger-cli validate openapi/openapi.yaml` 通过（spec C-1）。
 - 写一个 `scripts/lint/openapi_inventory.py`（或等价 `make` target 内联脚本）扫描 yaml，断言：
   - tag 数 == 14 且顺序与 spec §2.1 一致；
-  - operation 数 == 36 且 `(tag, method, path, operationId)` 与 spec §3.1.1 完全一致；
+  - operation 数 == 37 且 `(tag, method, path, operationId)` 与 spec §3.1.1 完全一致；
   - 每个 operation 都有 `default: $ref ApiErrorResponse`；
   - 除 ADR-Q1 auth email start 与 session event 例外外，spec D-6 涉及的副作用 endpoint 都引用 `Idempotency-Key` header；`POST /api/v1/auth/email/start` 与 `POST /api/v1/practice/sessions/{sessionId}/events` 不引用；
   - `POST /api/v1/privacy/exports` 唯一声明 `501` 响应，`example.error.code == "PRIVACY_EXPORT_NOT_AVAILABLE"`。
@@ -168,6 +169,20 @@
 
 同步 `openapi/README.md`、B2 spec/history、plan/checklist 的 tooling 说明；运行 `make docs-openapi` 确认不再出现 deprecated 横幅且产物生成成功，再运行 `make lint-openapi`、`/sync-doc-index --check` 与 `git diff --check`。
 
+### Phase 7: v1.8 contract remediation
+
+#### 7.1 `deleteMe` operation 与 inventory
+
+将 `openapi/openapi.yaml`、inventory lint、generated Go/TS types 与 server/client interfaces 更新到 spec v1.8 的 37 endpoint 集合，新增 `DELETE /api/v1/me` / `operationId=deleteMe` / `202 PrivacyRequestWithJob`，并确保 Auth tag 下 account deletion 与 `POST /api/v1/privacy/deletions` 语义一致。
+
+#### 7.2 Idempotency-Key 与 deletion dedupe
+
+`DELETE /api/v1/me` 必须声明 `Idempotency-Key` header 或等价 active-request dedupe；重复删除请求返回同一 active `privacy_delete` job 或同义终态，避免 account deletion 重复排队。
+
+#### 7.3 P0 debrief schema 收口
+
+P0 `Debrief` / `DebriefWithJob` 只保留真实面试复现与复盘所需字段；感谢信草稿与完整跟进建议保持 P1 optional / hidden，不作为 P0 required 字段。
+
 ## 4 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 的 contract/schema 部分、C-2 / C-3 / C-8 全部成立；C-7 / C-11 中本 plan 对应的契约 / schema 部分（非 fixture / 非 baseline）成立，剩余部分由 002 / 003 闭合。
@@ -193,3 +208,4 @@
 |------|------|------|----------|
 | 2026-04-28 | 1.2 | 根据 `make docs-openapi` deprecated 输出追加 Phase 6：将本地 HTML renderer 从 `redoc-cli@0.13.21` 迁移到 `@redocly/cli@2.30.1 build-docs`，不改变 C-1 validator。 | user report / local reproduction |
 | 2026-04-28 | 1.1 | 根据 bootstrap assessment 追加 Phase 5 remediation：锁定 ADR-Q1 cookie name、B2 tooling 边界、`ResourceType` / `JobType` 字面量与 `ApiError` inner/envelope 生成口径。 | [assessment](../../../../reports/2026-04-28-openapi-v1-contract-001-bootstrap-assessment.md) |
+| 2026-04-29 | 1.3 | 原地 reopen，新增 Phase 7 remediation：补齐 v1.8 spec 的 37 endpoint inventory、`DELETE /api/v1/me` account deletion、Idempotency-Key 与 generated codegen artifacts。 | plan-review remediation |

@@ -1,6 +1,6 @@
 # AI Gateway and Model Routing Spec
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
 > **更新日期**: 2026-04-29
 
@@ -124,11 +124,14 @@
 
 ## 7 关联计划
 
-A3 在本次 W1 spec 阶段不创建 impl plan（参见 [001-decompose-subspecs §3.1](../engineering-roadmap/plans/001-decompose-subspecs/plan.md#3-实施步骤)）。后续由 A3 自身的 `001-bootstrap`（W2 起）承接：
+A3 当前计划拆分为一份 active P0 bootstrap plan 与一份 draft extension plan：
 
-- 落地 `backend/internal/ai/aiclient/` 的 P0 `Complete` / `Embed` 接口、`Stream` 事件合同类型、unit-test stub provider、`openai_compatible` Chat / Embeddings provider。
+- [001-aiclient-and-profile-bootstrap](./plans/001-aiclient-and-profile-bootstrap/plan.md)（active）：落地 `backend/internal/ai/aiclient/` 的 P0 `Complete` / `Embed` 接口、`Stream` 事件合同类型、unit-test stub provider、`openai_compatible` Chat / Embeddings provider。
 - 落地 Model Profile YAML schema + loader + 热加载；`task_type=stt` 仅作为保留值，不实现音频调用。
 - 落地 client 内部 metric / log / DB / audit decorator，并按本 spec 区分 per-call metric 与 event-only counter。
 - 提供单测（stub 路径）、离线 adapter 契约测试（mock server，由 E1 复用）与本地部署 smoke 的真实 provider 配置校验（不在测试中泄漏真实 key）。
+- 该 plan owns `backend/internal/ai/aiclient/` 与 `config/ai-profiles/` fixture；`backend/cmd/api` / `backend/cmd/worker` 只作为 DI handoff，不要求 A3 001 创建或重写运行时 entrypoint。
 
-A3 第二份 plan（如 `002-tools-streaming-and-stt`）按需在 W3 / W4 / P2 阶段决策（function calling、stream 完整化、C14 音频转写），届时递增 spec 版本并原地修订；不创建 sibling spec。
+- [002-tools-streaming-and-stt](./plans/002-tools-streaming-and-stt/plan.md)（draft/blocked）：仅作为 Tools / Streaming / STT 的延期占位；必须先触发 ADR-Q6 / 本 spec 修订，才能切 active。Function calling、stream 完整化、C14 音频转写不得塞回 001。
+
+后续如需扩展，递增本 spec 版本并原地修订对应 plan；不创建 sibling spec。

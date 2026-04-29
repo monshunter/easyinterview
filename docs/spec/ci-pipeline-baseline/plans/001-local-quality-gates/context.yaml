@@ -1,0 +1,41 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: ci-pipeline-baseline
+  name: 001-local-quality-gates
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.3
+spec:
+  defaultTarget: repo
+  discovery:
+    aliases:
+      - ci-pipeline-baseline
+      - 001-local-quality-gates
+      - local-quality-gate
+      - deferred-ci
+    keywords:
+      - make lint
+      - make test
+      - make build
+      - make docs-check
+      - make codegen-check
+      - sync doc index
+      - quality gate aggregator
+      - deferred ci
+      - single developer phase
+  targets:
+    repo:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - Makefile
+          - scripts
+          - scripts/lint/check_md_links.py
+          - .agent-skills/sync-doc-index/scripts/sync-doc-index.py
+        uiRoutes: []
+        apiNames: []

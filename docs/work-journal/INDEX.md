@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-29](2026-04-29.md) | `docs(roadmap): materialize A/B plan designs` | #docs |
 | [2026-04-29](2026-04-29.md) | `docs(spec): reconcile A/B contract review findings` | #docs |
 | [2026-04-29](2026-04-29.md) | `docs(spec): reconcile W1 contract review findings` | #docs |
 | [2026-04-29](2026-04-29.md) | `feat(shared-conventions): add AI gateway error codes` | #feat #test |

@@ -1,8 +1,8 @@
 # ADR-Q1 · 认证方案
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: accepted
-> **更新日期**: 2026-04-28
+> **更新日期**: 2026-04-29
 
 ## 1 背景
 
@@ -85,7 +85,7 @@
 - **D1 `frontend-shell`** —— 实现 `/welcome` 登录页（`screens-welcome.jsx` 重构）+ auth gate + session 自动续期
 - **B2 `openapi-v1-contract`** —— 在 `auth` tag 下冻结 `/auth/email/{start,verify}` + `/auth/logout` + `/me`
 - **B4 `db-migrations-baseline`** —— `auth_challenges` / `sessions` / `external_identities`（空表）三张表的 0001 迁移
-- **C8 `backend-async-runtime`** —— 邮件发送作为 public `email_dispatch` job_type（由 B3 / B4 additive 加入契约），复用 outbox dispatcher
+- **C8 `backend-async-runtime`** —— 邮件发送作为 internal-only canonical `email_dispatch` job_type（由 B3 / B4 加入 DB/C8 内部契约，不进入 B2 API-facing `JobType`），复用 outbox dispatcher
 - **F1 `observability-stack`** —— `auth_challenge_started_total` / `auth_session_minted_total` / `auth_failure_total` 指标接入
 - **F4 `privacy-and-audit-runtime`** —— magic link / session 创建 / 撤销均进 audit_events
 
@@ -111,4 +111,5 @@
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-04-29 | 1.3 | 将 `email_dispatch` 从 public jobType 修正为 internal-only canonical jobType：仅 DB/C8 内部使用，不进入 B2 API-facing `JobType`；继续复用 outbox dispatcher。 | event-and-outbox-contract/001-bootstrap plan-review remediation |
 | 2026-04-28 | 1.2 | 锁定 first-party session cookie 字面量名为 `ei_session`，供 B2 OpenAPI security scheme、A4 config 文档与后续 C1 backend-auth 实现复用。 | openapi-v1-contract/001-bootstrap assessment remediation |

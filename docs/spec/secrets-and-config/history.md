@@ -1,13 +1,14 @@
 # Secrets and Config History
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-04-28
+> **更新日期**: 2026-04-29
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-04-29 | 1.7 | 收口 A/B plan-review：确认 P0 env key 字典为 24 项；新增 `async.queueWeights` config-only 字段供 C8 Asynq 队列权重消费；PostHog 临时不可用时只允许 last-known-good 缓存降级；移除文档中的真实形态 secret 样本。 | plan-review remediation |
 | 2026-04-28 | 1.6 | 对齐 ADR-Q1 v1.2：锁定 session cookie 字面量 `ei_session`，明确 A4 只管理 session secret，不提供 cookie name env/config override。 | openapi-v1-contract/001-bootstrap assessment remediation |
 | 2026-04-28 | 1.5 | 根据 L1 plan-review 修订 A4 spec：移除 JWT/access-token 口径并对齐 ADR-Q1 session cookie + magic link secret；统一 PostHog env key 到 ADR-Q3；补齐 runtime-config public allowlist / analytics opt-out 边界；新增 canonical config schema 分类与对应验收项。 | plan-review remediation |
 | 2026-04-27 | 1.4 | 清理剩余 CI gitleaks 表述：当前 secret 防护由 pre-commit 与本地 gitleaks 收口，远端 CI secret scan 仅在 A5 触发条件成立后再接入。 | ci-pipeline-baseline spec-contract remediation |

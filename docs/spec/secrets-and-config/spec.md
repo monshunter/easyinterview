@@ -1,8 +1,8 @@
 # Secrets and Config Spec
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-04-28
+> **更新日期**: 2026-04-29
 
 ## 1 背景与目标
 
@@ -62,8 +62,9 @@
 | D-6 | secret 红线 | `*.secret.yaml` 默认 `.gitignore`；pre-commit hook 拦截 `AKIA[0-9A-Z]{16}` / `sk-[A-Za-z0-9]{20,}` / `xox[baprs]-[A-Za-z0-9-]+`；本地 gitleaks 复扫；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | 阻断仓库内敏感凭证泄漏 |
 | D-7 | 配置热加载 | feature flag 支持热加载（≤ 30s）；其它 config 字段在进程启动时读取，运行时不变；如需热加载，必须递增 spec | 避免业务围绕「config 变了吗」写复杂代码 |
 | D-8 | Session cookie 字面量 | `ei_session`，由 [ADR-Q1 §3](../engineering-roadmap/decisions/ADR-Q1-auth.md#3-决策) 锁定；P0 不提供 env/config override | A4 只管理 `SESSION_COOKIE_SECRET` 等 secret，不允许环境差异改 cookie name 导致 B2 OpenAPI / C1 middleware / D1 fetch 口径分裂 |
+| D-9 | Asynq 队列权重 | `async.queueWeights` 配置路径固定在 `config/config.yaml` / `config/{env}.yaml`，默认 `critical: 6` / `default: 3` / `low: 1`；P0 不额外增加 env key，C8 通过 typed config 读取 | ADR-Q2 的 queue priority 可由配置驱动，同时保持 env 字典稳定为 24 项 |
 
-#### 3.1.1 P0 必备 env key 字典
+#### 3.1.1 P0 必备 env key 字典（24 项）
 
 | Key | 必填 | 默认值 | 用途 | Owner subspec |
 |-----|------|--------|------|---------------|
@@ -115,6 +116,7 @@
 | `featureFlag.posthogHost` / `featureFlag.posthogSelfHosted` | `POSTHOG_HOST` / `POSTHOG_SELF_HOSTED` | 否 | required when source=posthog; staging/prod must self-host | 否 | A4 + F2 |
 | `featureFlag.posthogProjectApiKey` | `POSTHOG_PROJECT_API_KEY` | 是 | required when source=posthog | 否 | A4 + F2 |
 | `featureFlag.posthogPublicKey` | `POSTHOG_PUBLIC_KEY` | 否 | optional | 是，仅当 `analyticsEnabled=true` 且已配置 | A4 + F2 + D1 |
+| `async.queueWeights` | `(config.yaml only)` | 否 | always；默认 `critical:6/default:3/low:1` | 否 | A4 + C8 + ADR-Q2 |
 
 ### 3.2 待确认事项
 
@@ -129,6 +131,7 @@
 - `os.Getenv` 与 `flag.String` 等系统级读取只允许出现在 `backend/internal/platform/config/` 与 `backend/cmd/{api,worker}/main.go` 中；其它包必须通过 `config.Get*` 注入；A5 接入 lint 强制。
 - 前端任何代码不得直接读取 `import.meta.env.VITE_*` 之外的 build-time 变量；运行时配置统一通过 `runtime-config` 端点。
 - `config/feature-flags.yaml` 是 dev / 单测真理源；prod 走 PostHogFlagProvider；切换由 `FEATURE_FLAG_SOURCE` 决定。
+- PostHog provider 启动时必须校验 `FEATURE_FLAG_SOURCE=posthog` 时 `POSTHOG_HOST` / `POSTHOG_PROJECT_API_KEY` 存在，且 staging/prod `POSTHOG_SELF_HOSTED=true`；启动后 PostHog 临时不可用时只允许回退到 last-known-good 内存缓存并输出 warn，不允许静默切回 file provider 造成 prod flag 口径漂移。
 - `runtime-config` 只能序列化 §3.1.2 标记为可暴露的字段；`featureFlags` 只包含 `config/feature-flags.yaml` 或 PostHog 中显式标记 `public=true` 的 flag，`ai_fallback_model_enabled` 等 operator-only flag 不得进入 public response。
 
 ### 4.2 安全约束
@@ -165,11 +168,12 @@
 | C-1 | 三层合并 | `config/config.yaml` 设默认值；`config/dev.yaml` 覆盖 `LOG_LEVEL`；env 设 `APP_LISTEN_ADDR=:9090` | 启动 API 进程 | `config.Get("app.listenAddr") == ":9090"`；`config.Get("log.level") == "debug"`（dev override）；其它字段保持默认 | A4 后续 001 |
 | C-2 | 缺失关键字段 fail-fast | `prod` 模式启动但 `SESSION_COOKIE_SECRET` 未设置 | `make build && APP_ENV=prod ./bin/api` | 启动进程退出码非 0，stderr 输出 `missing required secret: SESSION_COOKIE_SECRET`；不得回退到 dev init secret | A4 后续 001 |
 | C-3 | feature flag file 模式 | `FEATURE_FLAG_SOURCE=file`；`config/feature-flags.yaml` 设 `practice_hint_enabled: true` | 业务调用 `featureflag.IsEnabled("practice_hint_enabled", ctx)` | 返回 `true`；修改 YAML 后 ≤ 30s 内自动热加载 | A4 后续 001 |
-| C-4 | feature flag posthog 模式 | `FEATURE_FLAG_SOURCE=posthog`，`POSTHOG_HOST` 指向 mock，`POSTHOG_SELF_HOSTED=true` | 调用 `IsEnabled` | client 出站 HTTP 命中 PostHog `/decide` 端点；client 不直接 import PostHog SDK；staging/prod 若 `POSTHOG_SELF_HOSTED=false` 则启动失败 | A4 后续 001 |
+| C-4 | feature flag posthog 模式 | `FEATURE_FLAG_SOURCE=posthog`，`POSTHOG_HOST` 指向 mock，`POSTHOG_SELF_HOSTED=true` | 调用 `IsEnabled` | client 出站 HTTP 命中 PostHog `/decide` 端点；client 不直接 import PostHog SDK；staging/prod 若 `POSTHOG_SELF_HOSTED=false` 则启动失败；PostHog 临时不可用时返回 last-known-good 缓存并写 warn，不静默切 file provider | A4 后续 001 |
 | C-5 | secret redact | log / error wrapping / JSON dump 中输出 `config.Get("objectStorage.secretKey")` | 进程产生日志 | 日志中显示 `***`；不出现明文 secret | A4 后续 001 |
 | C-6 | runtime-config 端点 | 前端首屏加载，`practice_hint_enabled.public=true`、`ai_fallback_model_enabled.public=false`，且当前用户 `analytics_opt_in=false` | `GET /api/v1/runtime-config` | 返回 `{appVersion, defaultUiLanguage, analyticsEnabled:false, featureFlags{practice_hint_enabled: ...}}`；不返回任何 secret，不返回 operator-only flag，不返回 `postHogPublicKey` | A4 + B2 + D1 |
 | C-7 | lint 红线 | 本地改动在 `internal/auth/` 下出现 `os.Getenv("SESSION_COOKIE_SECRET")` | `make lint` | 报错并阻止本地质量门禁通过 | A4 后续 001 |
-| C-8 | secrets 红线 | 本地改动包含一行 `OPENAI_API_KEY=sk-abc1234567890123456789` | pre-commit / 本地 gitleaks | hook 拦截，gitleaks 拦截；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | A4 后续 001 |
+| C-8 | secrets 红线 | 本地改动包含一行形似真实凭证的测试样本（例如 `OPENAI_API_KEY=<redacted-test-token>`；测试文件通过临时生成内容触发正则，不在文档中写真实形态） | pre-commit / 本地 gitleaks | hook 拦截，gitleaks 拦截；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | A4 后续 001 |
+| C-12 | Asynq 队列权重配置 | `config/config.yaml` 声明 `async.queueWeights`，dev/staging/prod override 可调整权重 | C8 worker 初始化读取 typed config | 读取到 `critical/default/low` 三档权重，缺失或非正数 fail-fast；不需要新增 env key | A4 后续 001 + C8 |
 | C-9 | env 字典覆盖 | `.env.example` 中缺 `AI_GATEWAY_BASE_URL` | `make lint-config` | 报错：env key 在代码出现但 `.env.example` 缺失 | A4 后续 001 |
 | C-10 | AI provider 本地部署校验 | `APP_ENV=dev` 且启用了需要 AIClient 的 API / worker，但未设置 `AI_GATEWAY_BASE_URL` 或 `AI_GATEWAY_API_KEY` | docker compose / Kind 启动进程 | 进程启动失败并报告缺失真实 AI provider / gateway 配置；`APP_ENV=test` 的单元测试仍可走 stub | A4 后续 001 + A3 + A2 |
 | C-11 | config schema 分类 | `SESSION_COOKIE_SECRET` 标记为 secret，`runtime.defaultUiLanguage` 标记为 public | `make lint-config` / runtime-config schema check | secret 字段缺 redaction 或出现在 runtime-config schema 时失败；public 字段缺 runtime-config schema 时失败 | A4 后续 001 |
@@ -180,6 +184,7 @@ A4 在本次 W1 spec 阶段不创建 impl plan（参见 [001-decompose-subspecs 
 
 - 落地 `internal/platform/{config,secrets,featureflag}/` Go 包与默认 provider。
 - 落地 `config/*.yaml`、`.env.example`、`config/feature-flags.yaml`。
+- 落地 `async.queueWeights` typed config，并由 C8 在 backend-async-runtime plan 中消费。
 - 落地 lint 规则与 pre-commit hook（接入 A1 `scripts/git-hooks/`）。
 - 提供 `frontend/src/lib/runtime-config/` 与最小 fetcher。
 

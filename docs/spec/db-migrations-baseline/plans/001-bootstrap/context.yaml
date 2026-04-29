@@ -1,0 +1,42 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: db-migrations-baseline
+  name: 001-bootstrap
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.5
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - db-migrations-baseline
+      - 001-bootstrap
+      - migrations-baseline
+      - migrate-check
+    keywords:
+      - golang-migrate
+      - schema migrations
+      - schema backfills
+      - pgvector
+      - outbox retry columns
+      - ai task runs
+      - privacy deletion matrix
+      - enum source lint
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - migrations
+          - migrations/backfill
+          - backend/cmd/migrate
+          - backend/internal/migrations
+          - scripts/lint
+          - Makefile
+        uiRoutes: []
+        apiNames: []

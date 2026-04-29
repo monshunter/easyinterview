@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Spec
 
-> **版本**: 1.6
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-04-29
 
@@ -239,6 +239,6 @@ B2 在本次 W1 spec 阶段先完成 contract lock（参见 [001-decompose-subsp
 - `002-fixtures-and-mock-source`：每个 operationId 一份 fixtures + `prototype-baseline` 同步工具；E1 接入。
 - `003-breaking-change-gate`：linter 规则集 + ADR 模板；远端 CI label workflow 仅在 A5 触发条件成立后再评估。
 
-本 spec v1.6 在 B2 001/002/003 已完成后追加 `DELETE /api/v1/me` 与 P0 debrief 口径修订；在放行依赖 B2 的后续业务实现前，必须原地 reopen B2 001/002/003 对应 artifact remediation，补齐 `openapi/openapi.yaml`、fixtures、baseline 与 diff whitelist，不得只停留在本 spec 文本。
+本 spec v1.8 在 B2 001/002/003 已完成后追加 `DELETE /api/v1/me`、37 endpoint inventory 与 P0 debrief 口径修订；在放行依赖 B2 的后续业务实现前，必须原地 reopen B2 001/002/003 对应 artifact remediation，补齐 `openapi/openapi.yaml`、fixtures、baseline 与 diff whitelist，不得只停留在本 spec 文本。
 
 后续如出现 v1.1.0 / v2.0.0 升级：递增 spec 版本 + history；每次升级在 §3.1.1 中保留 endpoint 完整快照。
