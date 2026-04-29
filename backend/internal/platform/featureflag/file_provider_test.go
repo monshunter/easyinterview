@@ -42,7 +42,7 @@ flags:
 	if !provider.IsEnabled("ai_fallback_model_enabled", ctx) {
 		t.Errorf("ai_fallback_model_enabled should be true")
 	}
-	snap := provider.Snapshot()
+	snap := provider.Snapshot(ctx)
 	if !snap["practice_hint_enabled"].Public {
 		t.Errorf("practice_hint_enabled should be public")
 	}

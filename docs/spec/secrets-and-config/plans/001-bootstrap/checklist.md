@@ -1,6 +1,6 @@
 # Secrets and Config Bootstrap Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-04-30
 
@@ -55,3 +55,10 @@
 - [x] 6.3 AC C-6 partial 验证 + handoff：A4 已交付 builder + stub + fetcher + 单测断言；在工作日志记录 B2 / D1 跨 plan handoff token；明确「OpenAPI schema 完整 verification 待 B2 后续 plan、React provider 完整接入待 D1 后续 plan」；不开 sibling plan
 - [x] 6.4 文档与 INDEX 收口：`config/README.md` Header 完整 + 内容覆盖三层优先级 / 5 文件用途 / 新增 key 4 步流程 / RedactedString 示范 / runtime-config allowlist；`docs/spec/secrets-and-config/plans/INDEX.md` 把本 plan 切到 Completed；`docs/spec/INDEX.md` 中 `secrets-and-config` 行 Header 与 spec 一致；`/sync-doc-index --check` 通过
 - [x] 6.5 风险扫尾：按 plan §5 风险表逐条复核 redaction 三路径覆盖、koanf 合并顺序锁定、hot reload race、`.env.example` 与代码侧 env key 对齐、prod fail-fast 与 supervisor restart loop 提示；任一项缺证据本 plan 不切 Completed
+
+## Phase 7: L2 review remediation
+
+- [x] 7.1 修复 `cmd/worker` env / secret binding 对齐：prod + 完整 env 注入时 worker loader 校验通过；缺失 secret 仍 fail-fast 并列出 env key
+- [x] 7.2 修复 `AI_GATEWAY_BASE_URL` fail-fast：non-test AIClient-enabled 启动路径缺 base URL 或 API key 任一项都失败；`APP_ENV=test` 仍可缺 AI gateway 配置
+- [x] 7.3 修复 `scripts/lint/env_dict.py` code-side key 发现：`EnvBindings` / `SecretBindings` 字面量纳入三方求差集；binding map 声明但 `.env.example` 缺 key 的 pytest 必须失败
+- [x] 7.4 修复 runtime-config cold PostHog flag projection：首次请求按 `FlagContext` evaluation 后返回 public flags、过滤 operator-only flags；PostHog provider 初始化携带 public allowlist；D-4 业务接口不扩大

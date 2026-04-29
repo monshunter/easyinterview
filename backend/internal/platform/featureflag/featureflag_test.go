@@ -8,9 +8,8 @@ import (
 
 type stubClient struct{}
 
-func (stubClient) IsEnabled(string, featureflag.FlagContext) bool   { return true }
-func (stubClient) Variant(string, featureflag.FlagContext) string  { return "control" }
-func (stubClient) Snapshot() map[string]featureflag.FlagDecision    { return nil }
+func (stubClient) IsEnabled(string, featureflag.FlagContext) bool { return true }
+func (stubClient) Variant(string, featureflag.FlagContext) string { return "control" }
 
 func TestClientContract(t *testing.T) {
 	var _ featureflag.FeatureFlagClient = stubClient{}

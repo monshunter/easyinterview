@@ -76,6 +76,25 @@ def test_fails_when_code_reads_undocumented_key(tmp_path: Path) -> None:
     assert "MYSTERY_KEY" in result.stderr
 
 
+def test_fails_when_binding_literal_declares_undocumented_key(tmp_path: Path) -> None:
+    code = textwrap.dedent("""
+        package config
+
+        var defaultEnvBindings = map[string]string{
+            "DATABASE_URL": "database.url",
+        }
+    """).strip()
+    repo = make_repo(
+        tmp_path,
+        env_example="APP_ENV=dev\n",
+        spec_table="| Key | a |\n|-----|---|\n| `APP_ENV` | x |\n",
+        code_files={"bindings.go": code},
+    )
+    result = run(repo)
+    assert result.returncode == 1
+    assert "DATABASE_URL" in result.stderr
+
+
 def test_fails_when_spec_missing_311_section(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()

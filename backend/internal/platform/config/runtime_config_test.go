@@ -22,7 +22,7 @@ func (s stubFlags) IsEnabled(key string, _ featureflag.FlagContext) bool {
 func (s stubFlags) Variant(key string, _ featureflag.FlagContext) string {
 	return s.snapshot[key].Variant
 }
-func (s stubFlags) Snapshot() map[string]featureflag.FlagDecision {
+func (s stubFlags) Snapshot(_ featureflag.FlagContext) map[string]featureflag.FlagDecision {
 	out := make(map[string]featureflag.FlagDecision, len(s.snapshot))
 	for k, v := range s.snapshot {
 		out[k] = v
@@ -52,15 +52,15 @@ auth:
 func TestBuildRuntimeConfigAllowlistAndOptOut(t *testing.T) {
 	loader := newRuntimeLoader(t)
 	flags := stubFlags{snapshot: map[string]featureflag.FlagDecision{
-		"practice_hint_enabled":         {Enabled: true, Public: true},
-		"ai_fallback_model_enabled":     {Enabled: true, Public: false},
-		"mistake_book_export_enabled":   {Enabled: false, Public: true, Variant: "v1"},
+		"practice_hint_enabled":       {Enabled: true, Public: true},
+		"ai_fallback_model_enabled":   {Enabled: true, Public: false},
+		"mistake_book_export_enabled": {Enabled: false, Public: true, Variant: "v1"},
 	}}
 
 	rc := config.BuildRuntimeConfig(context.Background(), config.RuntimeConfigInput{
-		Loader:        loader,
-		Flags:         flags,
-		FlagContext:   featureflag.FlagContext{AppEnv: "dev"},
+		Loader:         loader,
+		Flags:          flags,
+		FlagContext:    featureflag.FlagContext{AppEnv: "dev"},
 		AnalyticsOptIn: false,
 	})
 
@@ -105,6 +105,45 @@ func TestBuildRuntimeConfigAnalyticsOptInIncludesPublicKey(t *testing.T) {
 	}
 	if rc.PostHogPublicKey != "ph-public" {
 		t.Errorf("expected postHogPublicKey to be exposed; got %q", rc.PostHogPublicKey)
+	}
+}
+
+func TestBuildRuntimeConfigEvaluatesColdPostHogSnapshot(t *testing.T) {
+	loader := newRuntimeLoader(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/decide" {
+			t.Errorf("unexpected PostHog path: %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"featureFlags":{"practice_hint_enabled":true,"ai_fallback_model_enabled":true}}`))
+	}))
+	defer server.Close()
+
+	flags, err := featureflag.NewPostHogProvider(featureflag.PostHogProviderOptions{
+		Host:       server.URL,
+		APIKey:     "ph-key",
+		SelfHosted: true,
+		AppEnv:     "prod",
+		Public: map[string]bool{
+			"practice_hint_enabled":     true,
+			"ai_fallback_model_enabled": false,
+		},
+		HTTPClient: server.Client(),
+	})
+	if err != nil {
+		t.Fatalf("NewPostHogProvider: %v", err)
+	}
+
+	rc := config.BuildRuntimeConfig(context.Background(), config.RuntimeConfigInput{
+		Loader:      loader,
+		Flags:       flags,
+		FlagContext: featureflag.FlagContext{AnonymousDistinctID: "anon-1", AppEnv: "prod"},
+	})
+	if _, ok := rc.FeatureFlags["practice_hint_enabled"]; !ok {
+		t.Fatalf("cold PostHog evaluation did not project public flag: %+v", rc.FeatureFlags)
+	}
+	if _, ok := rc.FeatureFlags["ai_fallback_model_enabled"]; ok {
+		t.Fatalf("operator-only flag leaked: %+v", rc.FeatureFlags)
 	}
 }
 

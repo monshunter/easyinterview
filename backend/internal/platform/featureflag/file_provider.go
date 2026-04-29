@@ -100,10 +100,10 @@ func (p *FileFlagProvider) Variant(key string, _ FlagContext) string {
 	return p.flags[key].Variant
 }
 
-// Snapshot returns a defensive copy of the current evaluated map. The
-// runtime-config builder uses this to filter public flags without holding
-// the mutex.
-func (p *FileFlagProvider) Snapshot() map[string]FlagDecision {
+// Snapshot returns a defensive copy of the current evaluated map. File-backed
+// flags do not depend on FlagContext, but the argument keeps the runtime-config
+// projection contract consistent with PostHog.
+func (p *FileFlagProvider) Snapshot(_ FlagContext) map[string]FlagDecision {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	out := make(map[string]FlagDecision, len(p.flags))
@@ -111,6 +111,25 @@ func (p *FileFlagProvider) Snapshot() map[string]FlagDecision {
 		out[k] = v
 	}
 	return out
+}
+
+// LoadPublicFlagMap reads a feature-flags.yaml file and returns key -> public.
+// PostHog-backed runtime-config uses the local baseline as the visibility
+// allowlist so first-request projections can still filter operator-only flags.
+func LoadPublicFlagMap(path string) (map[string]bool, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	flags, err := parseFeatureFlags(raw)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]bool, len(flags))
+	for key, decision := range flags {
+		out[key] = decision.Public
+	}
+	return out, nil
 }
 
 func (p *FileFlagProvider) watchLoop() {
@@ -162,20 +181,9 @@ func (p *FileFlagProvider) loadOnce() error {
 		}
 		return nil
 	}
-	var probe map[string]any
-	if err := yaml.Unmarshal(raw, &probe); err != nil {
-		return fmt.Errorf("parse feature-flags.yaml: %w", err)
-	}
-	if _, ok := probe["flags"]; !ok {
-		return fmt.Errorf("parse feature-flags.yaml: missing top-level `flags` key")
-	}
-	var schema fileSchema
-	if err := yaml.Unmarshal(raw, &schema); err != nil {
-		return fmt.Errorf("parse feature-flags.yaml: %w", err)
-	}
-	next := make(map[string]FlagDecision, len(schema.Flags))
-	for key, entry := range schema.Flags {
-		next[key] = FlagDecision{Enabled: entry.Enabled, Variant: entry.Variant, Public: entry.Public}
+	next, err := parseFeatureFlags(raw)
+	if err != nil {
+		return err
 	}
 	p.mu.Lock()
 	p.flags = next
@@ -185,4 +193,23 @@ func (p *FileFlagProvider) loadOnce() error {
 		p.lastModTime = info.ModTime()
 	}
 	return nil
+}
+
+func parseFeatureFlags(raw []byte) (map[string]FlagDecision, error) {
+	var probe map[string]any
+	if err := yaml.Unmarshal(raw, &probe); err != nil {
+		return nil, fmt.Errorf("parse feature-flags.yaml: %w", err)
+	}
+	if _, ok := probe["flags"]; !ok {
+		return nil, fmt.Errorf("parse feature-flags.yaml: missing top-level `flags` key")
+	}
+	var schema fileSchema
+	if err := yaml.Unmarshal(raw, &schema); err != nil {
+		return nil, fmt.Errorf("parse feature-flags.yaml: %w", err)
+	}
+	next := make(map[string]FlagDecision, len(schema.Flags))
+	for key, entry := range schema.Flags {
+		next[key] = FlagDecision{Enabled: entry.Enabled, Variant: entry.Variant, Public: entry.Public}
+	}
+	return next, nil
 }

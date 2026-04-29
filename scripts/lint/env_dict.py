@@ -24,6 +24,7 @@ from pathlib import Path
 
 ENV_LINE_RE = re.compile(r"^\s*([A-Z][A-Z0-9_]*)\s*=", re.MULTILINE)
 GETENV_RE = re.compile(r"os\.(?:Getenv|LookupEnv)\(\s*\"([A-Z][A-Z0-9_]*)\"")
+ENV_LITERAL_RE = re.compile(r"\"([A-Z][A-Z0-9]*_[A-Z0-9_]*)\"")
 TABLE_KEY_RE = re.compile(r"^\|\s*`([A-Z][A-Z0-9_]+)`\s*\|", re.MULTILINE)
 SPEC_SECTION_HEADER_311 = "#### 3.1.1 P0 必备 env key 字典"
 
@@ -61,6 +62,11 @@ def parse_code_env_reads(repo_root: Path) -> set[str]:
                 continue
             text = path.read_text(encoding="utf-8")
             keys.update(GETENV_RE.findall(text))
+            # Canonical EnvBindings / SecretBindings are code-side env key
+            # declarations even when the actual os.LookupEnv call happens in
+            # the generic loader. Limit the broader literal scan to env-shaped
+            # strings (must contain "_") to avoid catching HTTP verbs etc.
+            keys.update(ENV_LITERAL_RE.findall(text))
     return keys
 
 

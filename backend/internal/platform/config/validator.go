@@ -32,6 +32,7 @@ func (l *Loader) Validate() error {
 	if env == "staging" || env == "prod" {
 		problems = append(problems, l.checkRequiredSecret("auth.sessionCookieSecret", "SESSION_COOKIE_SECRET")...)
 		problems = append(problems, l.checkRequiredSecret("auth.challengeTokenPepper", "AUTH_CHALLENGE_TOKEN_PEPPER")...)
+		problems = append(problems, l.checkRequiredValue("ai.gatewayBaseURL", "AI_GATEWAY_BASE_URL")...)
 		problems = append(problems, l.checkRequiredSecret("ai.gatewayApiKey", "AI_GATEWAY_API_KEY")...)
 		problems = append(problems, l.checkRequiredSecret("email.providerApiKey", "EMAIL_PROVIDER_API_KEY")...)
 		if strings.EqualFold(l.GetString("featureFlag.source"), "posthog") {
@@ -66,4 +67,11 @@ func (l *Loader) checkRequiredSecret(dotPath, envKey string) []string {
 		return nil
 	}
 	return []string{fmt.Sprintf("missing required secret: %s (config path %s)", envKey, dotPath)}
+}
+
+func (l *Loader) checkRequiredValue(dotPath, envKey string) []string {
+	if l.GetString(dotPath) != "" {
+		return nil
+	}
+	return []string{fmt.Sprintf("missing required config: %s (config path %s)", envKey, dotPath)}
 }

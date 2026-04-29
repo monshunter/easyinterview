@@ -18,14 +18,7 @@ func main() {
 		appEnv = "dev"
 	}
 
-	loader, err := config.Load(config.Options{
-		AppEnv:    appEnv,
-		ConfigDir: "config",
-		EnvBindings: map[string]string{
-			"WORKER_LISTEN_ADDR": "worker.listenAddr",
-		},
-		SecretSource: secrets.EnvSecretSource{},
-	})
+	loader, err := loadWorkerConfig(appEnv, "config")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "worker: load config: %v\n", err)
 		os.Exit(1)
@@ -41,4 +34,12 @@ func main() {
 		loader.GetInt("async.queueWeights.low"),
 	)
 	fmt.Println("worker: TODO C8 backend-async-runtime will own the asynq dispatcher loop.")
+}
+
+func loadWorkerConfig(appEnv, configDir string) (*config.Loader, error) {
+	return config.LoadCanonical(config.CanonicalOptions{
+		AppEnv:       appEnv,
+		ConfigDir:    configDir,
+		SecretSource: secrets.EnvSecretSource{},
+	})
 }

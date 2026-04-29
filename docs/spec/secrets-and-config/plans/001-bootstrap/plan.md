@@ -1,6 +1,6 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-04-30
 
@@ -222,6 +222,24 @@ type FeatureFlagClient interface {
 
 按 §5 风险表逐条复核：redaction 是否覆盖结构化 JSON / error wrap / nested dump 三路径；koanf 合并顺序是否被 unit test 锁定；hot reload race 是否在进程启动 1s 内不抖动；`.env.example` 与代码侧 env key 是否对齐；prod fail-fast 是否会触发 supervisor 无限重启循环（在 README 与工作日志中明确 deployer 必须先补齐 secret 再重启，避免 crash loop 噪音）。任一项风险落地证据缺失，本 plan 必须保持 active 状态，不得切 completed。
 
+### Phase 7: L2 review remediation
+
+#### 7.1 修复 worker env / secret binding 对齐
+
+针对 L2 review finding R-7.1：`cmd/worker` 必须复用与 `cmd/api` 一致的 env binding / secret binding 规则，确保 prod 环境中已注入的 `SESSION_COOKIE_SECRET` / `AI_GATEWAY_API_KEY` / `POSTHOG_PROJECT_API_KEY` 等 secret 会被 loader 读取，`loader.Validate()` 不再错误报告缺失。新增或调整 focused Go test / smoke 覆盖 worker 在 prod + 完整 env 下启动校验通过。
+
+#### 7.2 修复 AI gateway base URL fail-fast
+
+针对 L2 review finding R-7.2：`validator.go` 必须同时校验 `AI_GATEWAY_BASE_URL` 与 `AI_GATEWAY_API_KEY`。非 test 的 AIClient-enabled 启动路径缺任一字段都必须 fail-fast，并在错误信息中明确列出缺失 env key；`APP_ENV=test` 仍允许缺 AI gateway 配置。
+
+#### 7.3 修复 env_dict code-side key 发现
+
+针对 L2 review finding R-7.3：`scripts/lint/env_dict.py` 必须把 `config.Load` 的 `EnvBindings` / `SecretBindings` 静态字面量纳入 code-side env key 集合，确保 `.env.example` / spec §3.1.1 / code-side declared env keys 三方求差集真实生效。新增 pytest 覆盖「binding map 声明但 `.env.example` 缺 key」必须失败，并保持脚本只读。
+
+#### 7.4 修复 runtime-config cold PostHog flag projection
+
+针对 L2 review finding R-7.4：runtime-config builder 必须能按请求 `FlagContext` 触发 provider evaluation，而不是仅依赖 cold `Snapshot()`；PostHog provider 初始化时必须携带 public flag allowlist，使 prod 首次 `/api/v1/runtime-config` 请求也能返回 public flags 并过滤 operator-only flags。保持 `FeatureFlagClient` 的 D-4 两方法接口不漂移，如需 public projection，使用包内辅助接口或显式方法，不扩大业务消费面。
+
 ## 4 验收标准
 
 - [secrets-and-config spec §6 验收标准](../../spec.md#6-验收标准) C-1..C-5、C-7..C-12 全部成立，证据贴入工作日志；C-6 partial 验收（A4 builder + stub + 前端 fetcher + 单测）成立，跨 plan 完整 verification 由 B2 / D1 后续 plan 关闭并 cross-link 回本工作日志。
@@ -243,4 +261,5 @@ type FeatureFlagClient interface {
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-04-30 | 1.2 | L2 code-review remediation：worker bindings、AI base URL fail-fast、env_dict code-side binding discovery、runtime-config cold PostHog projection。 | plan-code-review --fix |
 | 2026-04-29 | 1.1 | 对齐 spec v1.7：24 项 env key、`async.queueWeights` config-only 字段、PostHog last-known-good 缓存降级、secret 样本只允许临时生成不入文档。 | plan-review remediation |

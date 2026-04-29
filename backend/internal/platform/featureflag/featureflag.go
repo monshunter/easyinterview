@@ -31,12 +31,17 @@ type FlagDecision struct {
 }
 
 // FeatureFlagClient is the runtime contract every provider must implement.
-//
-// IsEnabled / Variant follow spec D-4 exactly. Snapshot returns the
-// current evaluated map; the runtime-config builder uses it to filter
-// public flags without re-querying the provider on every request.
+// IsEnabled / Variant follow spec D-4 exactly; business code should depend
+// only on this interface.
 type FeatureFlagClient interface {
 	IsEnabled(key string, ctx FlagContext) bool
 	Variant(key string, ctx FlagContext) string
-	Snapshot() map[string]FlagDecision
+}
+
+// SnapshotProvider is the runtime-config projection contract. It is separate
+// from FeatureFlagClient so the business consumption interface stays locked to
+// spec D-4 while the public runtime-config builder can evaluate all flags for
+// one request context.
+type SnapshotProvider interface {
+	Snapshot(ctx FlagContext) map[string]FlagDecision
 }

@@ -38,37 +38,9 @@ func main() {
 		appEnv = "dev"
 	}
 
-	loader, err := config.Load(config.Options{
-		AppEnv:    appEnv,
-		ConfigDir: configDir,
-		EnvBindings: map[string]string{
-			"APP_ENV":                 "app.env",
-			"APP_LISTEN_ADDR":         "app.listenAddr",
-			"WORKER_LISTEN_ADDR":      "worker.listenAddr",
-			"DATABASE_URL":            "database.url",
-			"REDIS_URL":               "redis.url",
-			"OBJECT_STORAGE_ENDPOINT": "objectStorage.endpoint",
-			"OBJECT_STORAGE_BUCKET":   "objectStorage.bucket",
-			"OTEL_EXPORTER_OTLP_ENDPOINT": "observability.otlpEndpoint",
-			"LOG_LEVEL":                "log.level",
-			"AI_GATEWAY_BASE_URL":      "ai.gatewayBaseURL",
-			"AI_MODEL_PROFILE_PATH":    "ai.modelProfilePath",
-			"FEATURE_FLAG_SOURCE":      "featureFlag.source",
-			"FEATURE_FLAG_FILE_PATH":   "featureFlag.filePath",
-			"POSTHOG_HOST":             "featureFlag.posthogHost",
-			"POSTHOG_SELF_HOSTED":      "featureFlag.posthogSelfHosted",
-			"POSTHOG_PUBLIC_KEY":       "featureFlag.posthogPublicKey",
-			"EMAIL_PROVIDER":           "email.provider",
-		},
-		SecretBindings: map[string]string{
-			"objectStorage.accessKey":          "OBJECT_STORAGE_ACCESS_KEY",
-			"objectStorage.secretKey":          "OBJECT_STORAGE_SECRET_KEY",
-			"auth.sessionCookieSecret":         "SESSION_COOKIE_SECRET",
-			"auth.challengeTokenPepper":        "AUTH_CHALLENGE_TOKEN_PEPPER",
-			"ai.gatewayApiKey":                 "AI_GATEWAY_API_KEY",
-			"email.providerApiKey":             "EMAIL_PROVIDER_API_KEY",
-			"featureFlag.posthogProjectApiKey": "POSTHOG_PROJECT_API_KEY",
-		},
+	loader, err := config.LoadCanonical(config.CanonicalOptions{
+		AppEnv:       appEnv,
+		ConfigDir:    configDir,
 		SecretSource: secrets.EnvSecretSource{},
 	})
 	if err != nil {
@@ -83,12 +55,12 @@ func main() {
 
 	if dumpConfig {
 		dump := map[string]any{
-			"app.env":               loader.GetString("app.env"),
-			"app.listenAddr":        loader.GetString("app.listenAddr"),
-			"log.level":             loader.GetString("log.level"),
-			"runtime.appVersion":    loader.GetString("runtime.appVersion"),
-			"runtime.defaultUiLanguage": loader.GetString("runtime.defaultUiLanguage"),
-			"featureFlag.source":    loader.GetString("featureFlag.source"),
+			"app.env":                     loader.GetString("app.env"),
+			"app.listenAddr":              loader.GetString("app.listenAddr"),
+			"log.level":                   loader.GetString("log.level"),
+			"runtime.appVersion":          loader.GetString("runtime.appVersion"),
+			"runtime.defaultUiLanguage":   loader.GetString("runtime.defaultUiLanguage"),
+			"featureFlag.source":          loader.GetString("featureFlag.source"),
 			"async.queueWeights.critical": loader.GetInt("async.queueWeights.critical"),
 			"async.queueWeights.default":  loader.GetInt("async.queueWeights.default"),
 			"async.queueWeights.low":      loader.GetInt("async.queueWeights.low"),
@@ -152,11 +124,20 @@ func buildFlagsClient(loader *config.Loader, logger *slog.Logger) (featureflag.F
 			Logger:         logger,
 		})
 	case "posthog":
+		path := loader.GetString("featureFlag.filePath")
+		if path == "" {
+			path = "config/feature-flags.yaml"
+		}
+		publicFlags, err := featureflag.LoadPublicFlagMap(path)
+		if err != nil {
+			return nil, fmt.Errorf("load feature flag public allowlist: %w", err)
+		}
 		return featureflag.NewPostHogProvider(featureflag.PostHogProviderOptions{
 			Host:       loader.GetString("featureFlag.posthogHost"),
 			APIKey:     loader.GetSecret("featureFlag.posthogProjectApiKey").Reveal(),
 			SelfHosted: loader.GetBool("featureFlag.posthogSelfHosted"),
 			AppEnv:     loader.AppEnv(),
+			Public:     publicFlags,
 			Logger:     logger,
 		})
 	default:

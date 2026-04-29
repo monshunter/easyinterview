@@ -60,8 +60,8 @@ func BuildRuntimeConfig(_ context.Context, in RuntimeConfigInput) RuntimeConfig 
 			rc.PostHogPublicKey = in.Loader.GetString("featureFlag.posthogPublicKey")
 		}
 	}
-	if in.Flags != nil {
-		for key, decision := range in.Flags.Snapshot() {
+	if snapshotter, ok := in.Flags.(featureflag.SnapshotProvider); ok {
+		for key, decision := range snapshotter.Snapshot(in.FlagContext) {
 			if !decision.Public {
 				continue
 			}

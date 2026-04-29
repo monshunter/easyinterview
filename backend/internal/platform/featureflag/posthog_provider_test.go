@@ -40,14 +40,14 @@ func TestPostHogProviderCallsDecideEndpoint(t *testing.T) {
 	defer server.Close()
 
 	p, err := featureflag.NewPostHogProvider(featureflag.PostHogProviderOptions{
-		Host:         server.URL,
-		APIKey:       "ph-key",
-		SelfHosted:   true,
-		AppEnv:       "staging",
-		Public:       map[string]bool{"practice_hint_enabled": true, "ai_fallback_model_enabled": false},
-		CacheTTL:     0,
-		HTTPClient:   server.Client(),
-		EvalTimeout:  500 * time.Millisecond,
+		Host:        server.URL,
+		APIKey:      "ph-key",
+		SelfHosted:  true,
+		AppEnv:      "staging",
+		Public:      map[string]bool{"practice_hint_enabled": true, "ai_fallback_model_enabled": false},
+		CacheTTL:    0,
+		HTTPClient:  server.Client(),
+		EvalTimeout: 500 * time.Millisecond,
 	})
 	if err != nil {
 		t.Fatalf("NewPostHogProvider: %v", err)
@@ -60,7 +60,7 @@ func TestPostHogProviderCallsDecideEndpoint(t *testing.T) {
 	if p.IsEnabled("ai_fallback_model_enabled", ctx) {
 		t.Errorf("expected ai_fallback_model_enabled=false")
 	}
-	snap := p.Snapshot()
+	snap := p.Snapshot(ctx)
 	if !snap["practice_hint_enabled"].Public {
 		t.Errorf("practice flag should be marked public from allowlist")
 	}
@@ -84,7 +84,7 @@ func TestPostHogProviderUsesLastKnownGoodOn5xx(t *testing.T) {
 
 	p, err := featureflag.NewPostHogProvider(featureflag.PostHogProviderOptions{
 		Host: server.URL, APIKey: "k", SelfHosted: true, AppEnv: "staging",
-		Public: map[string]bool{"practice_hint_enabled": true},
+		Public:   map[string]bool{"practice_hint_enabled": true},
 		CacheTTL: 0, HTTPClient: server.Client(), EvalTimeout: 500 * time.Millisecond,
 	})
 	if err != nil {
@@ -119,7 +119,7 @@ func TestPostHogProviderReturnsErrorWhenNoCacheAvailable(t *testing.T) {
 		t.Errorf("missing cache + 5xx must return false (degraded)")
 	}
 	// Snapshot should be empty so runtime-config exposes nothing it cannot vouch for.
-	if len(p.Snapshot()) != 0 {
+	if len(p.Snapshot(featureflag.FlagContext{})) != 0 {
 		t.Errorf("snapshot must remain empty on degraded boot")
 	}
 }

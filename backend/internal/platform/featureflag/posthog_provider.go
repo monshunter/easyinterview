@@ -18,7 +18,7 @@ const (
 	// posthogDecidePath is the self-hosted PostHog decision endpoint
 	// (ADR-Q3 §3 / spec D-4). Path + ?v=3 are pinned together; bumping the
 	// version requires a spec revision because the response shape changes.
-	posthogDecidePath = "/decide"
+	posthogDecidePath       = "/decide"
 	posthogDecideAPIVersion = "3"
 	defaultPostHogTimeout   = 2 * time.Second
 	defaultPostHogCacheTTL  = 30 * time.Second
@@ -109,14 +109,14 @@ func NewPostHogProvider(opts PostHogProviderOptions) (*PostHogFlagProvider, erro
 		publicCopy[k] = v
 	}
 	return &PostHogFlagProvider{
-		host:        strings.TrimRight(opts.Host, "/"),
-		apiKey:      opts.APIKey,
-		public:      publicCopy,
-		httpClient:  client,
-		cacheTTL:    cacheTTL,
-		evalTimeout: evalTimeout,
-		appEnv:      env,
-		logger:      logger,
+		host:         strings.TrimRight(opts.Host, "/"),
+		apiKey:       opts.APIKey,
+		public:       publicCopy,
+		httpClient:   client,
+		cacheTTL:     cacheTTL,
+		evalTimeout:  evalTimeout,
+		appEnv:       env,
+		logger:       logger,
 		lastSnapshot: map[string]FlagDecision{},
 	}, nil
 }
@@ -131,15 +131,11 @@ func (p *PostHogFlagProvider) Variant(key string, ctx FlagContext) string {
 	return p.evaluate(ctx)[key].Variant
 }
 
-// Snapshot returns a defensive copy of the most recent successful map.
-func (p *PostHogFlagProvider) Snapshot() map[string]FlagDecision {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-	out := make(map[string]FlagDecision, len(p.lastSnapshot))
-	for k, v := range p.lastSnapshot {
-		out[k] = v
-	}
-	return out
+// Snapshot returns the evaluated map for this request context, using the
+// provider cache when fresh. A cold call triggers /decide so public
+// runtime-config does not omit flags on first request.
+func (p *PostHogFlagProvider) Snapshot(ctx FlagContext) map[string]FlagDecision {
+	return p.evaluate(ctx)
 }
 
 func (p *PostHogFlagProvider) evaluate(ctx FlagContext) map[string]FlagDecision {

@@ -9,6 +9,10 @@ import (
 )
 
 func newProdLoader(t *testing.T, secrets mapSecret) *config.Loader {
+	return newProdLoaderWithGatewayBaseURL(t, secrets, "")
+}
+
+func newProdLoaderWithGatewayBaseURL(t *testing.T, secrets mapSecret, gatewayBaseURL string) *config.Loader {
 	t.Helper()
 	dir := t.TempDir()
 	writeYAML(t, filepath.Join(dir, "config.yaml"), `
@@ -19,7 +23,7 @@ auth:
   sessionCookieSecret: ""
   challengeTokenPepper: ""
 ai:
-  gatewayBaseURL: ""
+  gatewayBaseURL: "`+gatewayBaseURL+`"
   gatewayApiKey: ""
 email:
   provider: ""
@@ -39,11 +43,11 @@ async:
 		AppEnv:    "prod",
 		ConfigDir: dir,
 		SecretBindings: map[string]string{
-			"auth.sessionCookieSecret":          "SESSION_COOKIE_SECRET",
-			"auth.challengeTokenPepper":         "AUTH_CHALLENGE_TOKEN_PEPPER",
-			"ai.gatewayApiKey":                  "AI_GATEWAY_API_KEY",
-			"email.providerApiKey":              "EMAIL_PROVIDER_API_KEY",
-			"featureFlag.posthogProjectApiKey":  "POSTHOG_PROJECT_API_KEY",
+			"auth.sessionCookieSecret":         "SESSION_COOKIE_SECRET",
+			"auth.challengeTokenPepper":        "AUTH_CHALLENGE_TOKEN_PEPPER",
+			"ai.gatewayApiKey":                 "AI_GATEWAY_API_KEY",
+			"email.providerApiKey":             "EMAIL_PROVIDER_API_KEY",
+			"featureFlag.posthogProjectApiKey": "POSTHOG_PROJECT_API_KEY",
 		},
 		SecretSource: secrets,
 	})
@@ -71,19 +75,36 @@ func TestValidateProdMissingSecretFailsFast(t *testing.T) {
 }
 
 func TestValidateProdAllSecretsPasses(t *testing.T) {
-	loader := newProdLoader(t, mapSecret{
-		"SESSION_COOKIE_SECRET":         "secret",
-		"AUTH_CHALLENGE_TOKEN_PEPPER":   "pepper",
-		"AI_GATEWAY_BASE_URL":           "https://gateway",
-		"AI_GATEWAY_API_KEY":            "key",
-		"EMAIL_PROVIDER":                "ses",
-		"EMAIL_PROVIDER_API_KEY":        "ek",
-		"POSTHOG_HOST":                  "https://posthog",
-		"POSTHOG_PROJECT_API_KEY":       "ph-key",
-		"POSTHOG_SELF_HOSTED":           "true",
-	})
+	loader := newProdLoaderWithGatewayBaseURL(t, mapSecret{
+		"SESSION_COOKIE_SECRET":       "secret",
+		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
+		"AI_GATEWAY_API_KEY":          "key",
+		"EMAIL_PROVIDER":              "ses",
+		"EMAIL_PROVIDER_API_KEY":      "ek",
+		"POSTHOG_HOST":                "https://posthog",
+		"POSTHOG_PROJECT_API_KEY":     "ph-key",
+		"POSTHOG_SELF_HOSTED":         "true",
+	}, "https://gateway")
 	if err := loader.Validate(); err != nil {
 		t.Errorf("unexpected validate error: %v", err)
+	}
+}
+
+func TestValidateProdMissingAIBaseURLFailsFast(t *testing.T) {
+	loader := newProdLoader(t, mapSecret{
+		"SESSION_COOKIE_SECRET":       "secret",
+		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
+		"AI_GATEWAY_API_KEY":          "key",
+		"EMAIL_PROVIDER_API_KEY":      "ek",
+		"POSTHOG_PROJECT_API_KEY":     "ph-key",
+	})
+
+	err := loader.Validate()
+	if err == nil {
+		t.Fatal("expected validate error when AI_GATEWAY_BASE_URL is missing")
+	}
+	if !strings.Contains(err.Error(), "AI_GATEWAY_BASE_URL") {
+		t.Fatalf("error must mention AI_GATEWAY_BASE_URL: %v", err)
 	}
 }
 
@@ -140,11 +161,11 @@ async:
 			"featureFlag.posthogProjectApiKey": "POSTHOG_PROJECT_API_KEY",
 		},
 		SecretSource: mapSecret{
-			"SESSION_COOKIE_SECRET":          "x",
-			"AUTH_CHALLENGE_TOKEN_PEPPER":    "x",
-			"AI_GATEWAY_API_KEY":             "x",
-			"EMAIL_PROVIDER_API_KEY":         "x",
-			"POSTHOG_PROJECT_API_KEY":        "x",
+			"SESSION_COOKIE_SECRET":       "x",
+			"AUTH_CHALLENGE_TOKEN_PEPPER": "x",
+			"AI_GATEWAY_API_KEY":          "x",
+			"EMAIL_PROVIDER_API_KEY":      "x",
+			"POSTHOG_PROJECT_API_KEY":     "x",
 		},
 	})
 	if err != nil {
