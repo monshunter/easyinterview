@@ -1,0 +1,127 @@
+package types
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"reflect"
+	"testing"
+
+	sharedai "github.com/monshunter/easyinterview/backend/internal/shared/ai"
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
+)
+
+type parityFixture struct {
+	Enums              map[string][]string `json:"enums"`
+	ErrorCodes         []string            `json:"errorCodes"`
+	AIVocabularyFields []string            `json:"aiVocabularyFields"`
+	Serialization      struct {
+		PageInfo map[string]any `json:"pageInfo"`
+		APIError map[string]any `json:"apiError"`
+	} `json:"serialization"`
+}
+
+func loadParityFixture(t *testing.T) parityFixture {
+	t.Helper()
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd: %v", err)
+	}
+	path := filepath.Join(wd, "..", "..", "..", "..", "shared", "fixtures", "conventions-parity.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read conventions parity fixture: %v", err)
+	}
+	var fixture parityFixture
+	if err := json.Unmarshal(raw, &fixture); err != nil {
+		t.Fatalf("parse conventions parity fixture: %v", err)
+	}
+	return fixture
+}
+
+func TestConventionsParityFixture_EnumSets(t *testing.T) {
+	fixture := loadParityFixture(t)
+	got := map[string][]string{
+		"TargetJobStatus":       stringsOf(AllTargetJobStatuses),
+		"TargetJobParseStatus":  stringsOf(AllTargetJobParseStatuses),
+		"PracticeMode":          stringsOf(AllPracticeModes),
+		"PracticeGoal":          stringsOf(AllPracticeGoals),
+		"InterviewerRole":       stringsOf(AllInterviewerRoles),
+		"SessionStatus":         stringsOf(AllSessionStatuses),
+		"ReportStatus":          stringsOf(AllReportStatuses),
+		"ReadinessTier":         stringsOf(AllReadinessTiers),
+		"DimensionStatus":       stringsOf(AllDimensionStatuses),
+		"Confidence":            stringsOf(AllConfidences),
+		"MistakeStatus":         stringsOf(AllMistakeStatuses),
+		"DebriefStatus":         stringsOf(AllDebriefStatuses),
+		"PrivacyRequestType":    stringsOf(AllPrivacyRequestTypes),
+		"PrivacyRequestStatus":  stringsOf(AllPrivacyRequestStatuses),
+	}
+	if len(got) != 14 {
+		t.Fatalf("generated enum type count = %d, want 14", len(got))
+	}
+	if !reflect.DeepEqual(got, fixture.Enums) {
+		t.Fatalf("Go enum sets differ from fixture\ngot:  %#v\nwant: %#v", got, fixture.Enums)
+	}
+}
+
+func TestConventionsParityFixture_ErrorCodesAndAIVocabulary(t *testing.T) {
+	fixture := loadParityFixture(t)
+	if !reflect.DeepEqual(sharederrors.AllCodes, fixture.ErrorCodes) {
+		t.Fatalf("Go error codes differ from fixture\ngot:  %#v\nwant: %#v", sharederrors.AllCodes, fixture.ErrorCodes)
+	}
+	gotAIFields := stringsOf(sharedai.AllFieldNames)
+	if !reflect.DeepEqual(gotAIFields, fixture.AIVocabularyFields) {
+		t.Fatalf("Go AI vocabulary fields differ from fixture\ngot:  %#v\nwant: %#v", gotAIFields, fixture.AIVocabularyFields)
+	}
+}
+
+func TestConventionsParityFixture_SerializationShapes(t *testing.T) {
+	fixture := loadParityFixture(t)
+	if fixture.Serialization.PageInfo == nil {
+		t.Fatal("fixture missing serialization.pageInfo")
+	}
+	if fixture.Serialization.APIError == nil {
+		t.Fatal("fixture missing serialization.apiError")
+	}
+
+	nextCursor := "cursor_01"
+	page := PageInfo{
+		NextCursor: &nextCursor,
+		PageSize:   20,
+		HasMore:    true,
+	}
+	assertJSONShape(t, "PageInfo", page, fixture.Serialization.PageInfo)
+
+	apiError := sharederrors.APIError{
+		Code:      sharederrors.CodeValidationFailed,
+		Message:   "request validation failed",
+		RequestID: "req_01HV",
+		Retryable: false,
+		Details:   map[string]any{"field": "email"},
+	}
+	assertJSONShape(t, "APIError", apiError, fixture.Serialization.APIError)
+}
+
+func stringsOf[T ~string](values []T) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, string(value))
+	}
+	return out
+}
+
+func assertJSONShape(t *testing.T, label string, value any, want map[string]any) {
+	t.Helper()
+	raw, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("%s marshal: %v", label, err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatalf("%s unmarshal: %v", label, err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("%s JSON shape differs\ngot:  %#v\nwant: %#v\nraw: %s", label, got, want, raw)
+	}
+}

@@ -1,0 +1,132 @@
+{
+  "enums": {
+    "TargetJobStatus": [
+      "draft",
+      "preparing",
+      "applied",
+      "interviewing",
+      "offer",
+      "rejected",
+      "archived"
+    ],
+    "TargetJobParseStatus": [
+      "queued",
+      "processing",
+      "ready",
+      "failed"
+    ],
+    "PracticeMode": [
+      "warmup",
+      "core_interview",
+      "single_drill",
+      "counter_questions",
+      "debrief_replay"
+    ],
+    "PracticeGoal": [
+      "baseline",
+      "sprint",
+      "fix_mistake",
+      "debrief"
+    ],
+    "InterviewerRole": [
+      "generalist",
+      "hr",
+      "hiring_manager",
+      "technical_manager",
+      "peer"
+    ],
+    "SessionStatus": [
+      "queued",
+      "running",
+      "waiting_user_input",
+      "completing",
+      "completed",
+      "failed",
+      "cancelled"
+    ],
+    "ReportStatus": [
+      "queued",
+      "generating",
+      "ready",
+      "failed"
+    ],
+    "ReadinessTier": [
+      "not_ready",
+      "needs_practice",
+      "basically_ready",
+      "well_prepared"
+    ],
+    "DimensionStatus": [
+      "strong",
+      "meets_bar",
+      "needs_work"
+    ],
+    "Confidence": [
+      "high",
+      "medium",
+      "low"
+    ],
+    "MistakeStatus": [
+      "open",
+      "improving",
+      "mastered"
+    ],
+    "DebriefStatus": [
+      "draft",
+      "completed"
+    ],
+    "PrivacyRequestType": [
+      "export",
+      "delete"
+    ],
+    "PrivacyRequestStatus": [
+      "queued",
+      "processing",
+      "completed",
+      "failed",
+      "cancelled"
+    ]
+  },
+  "errorCodes": [
+    "AUTH_UNAUTHORIZED",
+    "TARGET_IMPORT_FAILED",
+    "PRACTICE_SESSION_CONFLICT",
+    "REPORT_NOT_READY",
+    "VALIDATION_FAILED",
+    "RATE_LIMITED",
+    "AI_PROVIDER_TIMEOUT",
+    "AI_OUTPUT_INVALID",
+    "AI_FALLBACK_EXHAUSTED"
+  ],
+  "aiVocabularyFields": [
+    "model_profile_name",
+    "model_profile_version",
+    "model_family",
+    "model_id",
+    "fallback_chain",
+    "route",
+    "validation_status",
+    "output_schema_version",
+    "prompt_version",
+    "rubric_version",
+    "language",
+    "feature_flag",
+    "data_source_version"
+  ],
+  "serialization": {
+    "pageInfo": {
+      "nextCursor": "cursor_01",
+      "pageSize": 20,
+      "hasMore": true
+    },
+    "apiError": {
+      "code": "VALIDATION_FAILED",
+      "message": "request validation failed",
+      "requestId": "req_01HV",
+      "retryable": false,
+      "details": {
+        "field": "email"
+      }
+    }
+  }
+}

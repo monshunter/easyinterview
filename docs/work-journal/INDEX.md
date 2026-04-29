@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-30](2026-04-30.md) | `test(shared-conventions): add cross-language parity fixture` | #test |
 | [2026-04-30](2026-04-30.md) | `test(shared-conventions): add ai vocabulary parity tests` | #test |
 | [2026-04-30](2026-04-30.md) | `feat(shared-conventions): wire conventions drift gate` | #feat #test |
 | [2026-04-30](2026-04-30.md) | `feat(shared-conventions): ai shared vocabulary 真理源` | #feat #test #docs |

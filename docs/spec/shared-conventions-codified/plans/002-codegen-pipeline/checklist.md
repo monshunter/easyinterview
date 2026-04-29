@@ -25,8 +25,8 @@
 
 ## Phase 4: Cross-language contract test
 
-- [ ] 4.1 落地 shared parity fixture 或 generator 临时 fixture，断言 14 个枚举类型字面量集合 + 错误码常量集合（含 `AI_*` baseline）+ AI vocabulary 字段集合两侧严格等价；验证: Go/TS parity fixture 生成或读取测试在任一集合缺项时失败，完整集合时通过
-- [ ] 4.2 断言 `PageInfo` / `ApiError` JSON 序列化经 canonical round-trip 等价，避免 `camelCase` JSON tag 漂移；验证: Go `encoding/json` 与 TS `JSON.stringify` canonical fixture 对 `nextCursor` / `pageSize` / `hasMore` / `requestId` 字段名断言通过
+- [x] 4.1 落地 shared parity fixture 或 generator 临时 fixture，断言 14 个枚举类型字面量集合 + 错误码常量集合（含 `AI_*` baseline）+ AI vocabulary 字段集合两侧严格等价；验证: Go/TS parity fixture 生成或读取测试在任一集合缺项时失败，完整集合时通过
+- [x] 4.2 断言 `PageInfo` / `ApiError` JSON 序列化经 canonical round-trip 等价，避免 `camelCase` JSON tag 漂移；验证: Go `encoding/json` 与 TS `JSON.stringify` canonical fixture 对 `nextCursor` / `pageSize` / `hasMore` / `requestId` 字段名断言通过
 
 ## Phase 5: Future handoff only
 
