@@ -29,7 +29,7 @@
 
 ## Phase 4: v1.1 root-container remediation
 
-- [ ] 4.1 补齐 `config/README.md`，说明 A1 只锁根容器，A4 owns config schema / env 字典 / feature flags，A3/F3 消费 `config/ai-profiles/` 与 prompt/rubric 路径；README 不写 secret 示例值
-- [ ] 4.2 根 `README.md` 仓库结构表补入 `shared/` 与 `config/` 两行，9 个 A1 根容器均可从项目入口发现
-- [ ] 4.3 `context.yaml` package discovery 补入 `shared` 与 `config`，并同步 [plans/INDEX.md](../INDEX.md) 为 active 状态
-- [ ] 4.4 运行 context validator、`/sync-doc-index --check` 与 `git diff --check`，确认本次 artifact remediation 没有 Header / INDEX / whitespace drift
+- [x] 4.1 补齐 `config/README.md`，说明 A1 只锁根容器，A4 owns config schema / env 字典 / feature flags，A3/F3 消费 `config/ai-profiles/` 与 prompt/rubric 路径；README 不写 secret 示例值
+- [x] 4.2 根 `README.md` 仓库结构表补入 `shared/` 与 `config/` 两行，9 个 A1 根容器均可从项目入口发现
+- [x] 4.3 `context.yaml` package discovery 补入 `shared` 与 `config`，并同步 [plans/INDEX.md](../INDEX.md) 为 active 状态
+- [x] 4.4 运行 context validator、`/sync-doc-index --check` 与 `git diff --check`，确认本次 artifact remediation 没有 Header / INDEX / whitespace drift
