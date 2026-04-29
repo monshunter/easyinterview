@@ -27,10 +27,10 @@
 
 ## Phase 3: Observability / audit decorator + DB / log / metric 接入
 
-- [ ] 3.1 落地 `observability/metrics.go` 注册 7 个 metric family（`ai_task_runs_total` / `ai_task_latency_seconds` / `ai_task_input_tokens_total` / `ai_task_output_tokens_total` / `ai_task_cost_usd_total` / `ai_output_validation_failures_total` / `ai_fallback_total`）；label 集对齐 F1（`provider` / `model_family` / `model_profile_name` / `route` / `task_type` / `language` / `result` / `from_model_family` / `to_model_family`）；通过 `prometheus.Registerer` 抽象，业务调用不能绕过 decorator
-- [ ] 3.2 落地 `observability/decorator.go` middleware 包裹 `Complete` / `Embed`：写入 4 类结构化日志事件名（`ai.task.completed` / `ai.task.failed` / `ai.task.fallback` / `ai.output.validation_failed`）字段集对齐 05-logging-standard.md §4.4；通过 DI 写入 `ai_task_runs`（A3 只填 typed columns）；写入 `audit_events.action='ai.call'` 行，metadata 仅含 `prompt_hash` / `response_hash` / `prompt_char_length` / `response_char_length` / `profile_name`
-- [ ] 3.3 fallback / validation 计数器语义：`meta.FallbackChain[]` 长度 > 1 时 `ai_fallback_total{from_model_family,to_model_family,result="fallback"}` +1；`validateOutput` 失败时 `ai_output_validation_failures_total` +1 + 发出 `ai.output.validation_failed` 日志，错误码统一 `AI_OUTPUT_INVALID`；`AI_FALLBACK_EXHAUSTED` 仅透传 endpoint / gateway 返回值
-- [ ] 3.4 落地 `observability/privacy_test.go` 白盒测试：构造带敏感内容的 messages / response，使用 in-memory writer + log capture 断言 metric label / log fields / DB row metadata / audit_events metadata 不含明文，仅含 hash 前缀 / 长度数字 / profile 名
+- [x] 3.1 落地 `observability/metrics.go` 注册 7 个 metric family（`ai_task_runs_total` / `ai_task_latency_seconds` / `ai_task_input_tokens_total` / `ai_task_output_tokens_total` / `ai_task_cost_usd_total` / `ai_output_validation_failures_total` / `ai_fallback_total`）；label 集对齐 F1（`provider` / `model_family` / `model_profile_name` / `route` / `task_type` / `language` / `result` / `from_model_family` / `to_model_family`）；通过 `prometheus.Registerer` 抽象，业务调用不能绕过 decorator
+- [x] 3.2 落地 `observability/decorator.go` middleware 包裹 `Complete` / `Embed`：写入 4 类结构化日志事件名（`ai.task.completed` / `ai.task.failed` / `ai.task.fallback` / `ai.output.validation_failed`）字段集对齐 05-logging-standard.md §4.4；通过 DI 写入 `ai_task_runs`（A3 只填 typed columns）；写入 `audit_events.action='ai.call'` 行，metadata 仅含 `prompt_hash` / `response_hash` / `prompt_char_length` / `response_char_length` / `profile_name`
+- [x] 3.3 fallback / validation 计数器语义：`meta.FallbackChain[]` 长度 > 1 时 `ai_fallback_total{from_model_family,to_model_family,result="fallback"}` +1；`validateOutput` 失败时 `ai_output_validation_failures_total` +1 + 发出 `ai.output.validation_failed` 日志，错误码统一 `AI_OUTPUT_INVALID`；`AI_FALLBACK_EXHAUSTED` 仅透传 endpoint / gateway 返回值
+- [x] 3.4 落地 `observability/privacy_test.go` 白盒测试：构造带敏感内容的 messages / response，使用 in-memory writer + log capture 断言 metric label / log fields / DB row metadata / audit_events metadata 不含明文，仅含 hash 前缀 / 长度数字 / profile 名
 
 ## Phase 4: 配置校验与本地部署 fail-fast
 
