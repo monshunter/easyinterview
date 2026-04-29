@@ -14,9 +14,9 @@
 
 ## Phase 2: Cross-language drift 检测增强
 
-- [ ] 2.1 扩展 `backend/cmd/codegen/conventions/` 或新增 `scripts/lint/conventions_drift.py` wrapper：识别 YAML / Go / TS 三方差异，覆盖 enum、错误码、AI vocabulary；验证: drift wrapper 单测覆盖 YAML-only、Go-only、TS-only AI vocabulary drift 并报告缺失方向
-- [ ] 2.2 把扩展接入 `make codegen-check`，针对「YAML 改单侧生成」「YAML 未改但代码私自新增」两种场景明确报错；diff 路径包含 `backend/internal/shared/ai` 与 `frontend/src/lib/conventions/ai.ts`；验证: `make codegen-check` 在临时 AI vocabulary drift 下失败且输出包含两个 AI generated 路径，revert 后通过
-- [ ] 2.3 不回退或替换 001 已落地的 generator 入口；新增逻辑只追加不替换；验证: `make codegen-conventions` 仍调用 `backend/cmd/codegen/conventions`，既有 generated 文件保持 idempotent，`TestRunFromBytes_Idempotent` 通过
+- [x] 2.1 扩展 `backend/cmd/codegen/conventions/` 或新增 `scripts/lint/conventions_drift.py` wrapper：识别 YAML / Go / TS 三方差异，覆盖 enum、错误码、AI vocabulary；验证: drift wrapper 单测覆盖 YAML-only、Go-only、TS-only AI vocabulary drift 并报告缺失方向
+- [x] 2.2 把扩展接入 `make codegen-check`，针对「YAML 改单侧生成」「YAML 未改但代码私自新增」两种场景明确报错；diff 路径包含 `backend/internal/shared/ai` 与 `frontend/src/lib/conventions/ai.ts`；验证: `make codegen-check` 在临时 AI vocabulary drift 下失败且输出包含两个 AI generated 路径，revert 后通过
+- [x] 2.3 不回退或替换 001 已落地的 generator 入口；新增逻辑只追加不替换；验证: `make codegen-conventions` 仍调用 `backend/cmd/codegen/conventions`，既有 generated 文件保持 idempotent，`TestRunFromBytes_Idempotent` 通过
 
 ## Phase 3: AI vocabulary parity tests
 

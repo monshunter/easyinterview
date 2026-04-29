@@ -94,11 +94,27 @@ sync-fixtures-from-prototype: ## Refresh `scenarios.prototype-baseline` of every
 render-openapi-fixture-examples: ## Project openapi/fixtures/<tag>/<operationId>.json default scenario into openapi/.generated/openapi-with-fixtures.yaml (B2 002 — Prism / docs-site source; idempotent)
 	@python3 "$(ROOT_DIR)/scripts/codegen/render_openapi_fixture_examples.py" --repo-root "$(ROOT_DIR)"
 
-codegen-check: codegen-openapi lint-openapi ## Local drift gate: re-run codegen + lint, then `git diff --exit-code` on generated outputs and openapi.yaml. Currently the only required gate; remote CI required-check is deferred until A5 ci-pipeline-baseline triggers (spec §4.5 / §5).
+codegen-check: ## Local drift gate: check B1 generated outputs, re-run codegen + lint, then `git diff --exit-code` on generated outputs and openapi.yaml. Currently the only required gate; remote CI required-check is deferred until A5 ci-pipeline-baseline triggers (spec §4.5 / §5).
+	@python3 "$(ROOT_DIR)/scripts/lint/conventions_yaml.py" "$(ROOT_DIR)/shared/conventions.yaml"
+	@python3 "$(ROOT_DIR)/scripts/lint/error_codes.py"
+	@python3 "$(ROOT_DIR)/scripts/lint/conventions_drift.py" --repo-root "$(ROOT_DIR)"
+	@$(MAKE) --no-print-directory codegen-openapi
+	@python3 "$(ROOT_DIR)/scripts/lint/conventions_drift.py" --repo-root "$(ROOT_DIR)"
+	@$(MAKE) --no-print-directory lint-openapi
 	@git -C "$(ROOT_DIR)" diff --exit-code -- \
 		"$(ROOT_DIR)/openapi/openapi.yaml" \
 		"$(ROOT_DIR)/backend/internal/api/generated" \
-		"$(ROOT_DIR)/frontend/src/api/generated"
+		"$(ROOT_DIR)/frontend/src/api/generated" \
+		"$(ROOT_DIR)/backend/internal/shared/types/enums.go" \
+		"$(ROOT_DIR)/backend/internal/shared/types/http_dto.go" \
+		"$(ROOT_DIR)/backend/internal/shared/errors/codes.go" \
+		"$(ROOT_DIR)/backend/internal/shared/idx/generated.go" \
+		"$(ROOT_DIR)/backend/internal/shared/ai" \
+		"$(ROOT_DIR)/frontend/src/lib/conventions/enums.ts" \
+		"$(ROOT_DIR)/frontend/src/lib/conventions/errors.ts" \
+		"$(ROOT_DIR)/frontend/src/lib/conventions/ai.ts" \
+		"$(ROOT_DIR)/frontend/src/lib/conventions/pagination.ts" \
+		"$(ROOT_DIR)/frontend/src/lib/ids/generated.ts"
 
 docs-openapi: ## Render openapi/openapi.yaml as a single-file HTML site at openapi/dist/index.html (Redocly; local artefact only — A5 deferred for CI upload)
 	@mkdir -p "$(ROOT_DIR)/openapi/dist"
