@@ -60,6 +60,13 @@ env/
 secrets/
 .secret/
 
+# A4 secrets-and-config red lines
+*.secret.yaml
+*.secret.json
+config/local.*.yaml
+.env.local
+config/feature-flags.local.yaml
+
 # ── Editors / IDE ────────────────────────────────────────────────
 .vscode/
 .idea/

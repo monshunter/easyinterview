@@ -1,0 +1,29 @@
+# Feature flag baseline (P0) — 6 flags listed in 01-technical-architecture.md
+# §15.1, owned jointly by A4 secrets-and-config and F2 analytics-funnel.
+#
+# Schema: flags.<key>.{enabled, variant?, public}
+# - enabled: dev default state. Prod overrides via PostHog (D-4).
+# - variant: optional A/B label.
+# - public:  whether runtime-config (D-2) may emit this flag to the frontend.
+#            operator-only flags must stay public:false to avoid leaking
+#            internal switches.
+
+flags:
+  practice_hint_enabled:
+    enabled: true
+    public: true
+  report_evidence_v2_enabled:
+    enabled: true
+    public: true
+  mistake_book_export_enabled:
+    enabled: false
+    public: true
+  growth_dashboard_v1_enabled:
+    enabled: false
+    public: true
+  ai_fallback_model_enabled:
+    enabled: true
+    public: false
+  mock_session_dual_track_enabled:
+    enabled: false
+    public: true

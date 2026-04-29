@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint lint-conventions lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-openapi codegen-check docs-openapi migrate install-hooks
+.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-secrets-pattern lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-openapi codegen-check docs-openapi migrate install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -15,13 +15,24 @@ fmt: ## Format Go and frontend sources (delegates to backend/ and frontend/)
 	@$(call recurse_target,fmt,backend/Makefile,backend)
 	@$(call recurse_target,fmt,frontend/Makefile,frontend)
 
-lint: lint-conventions ## Lint Go and frontend sources (delegates to backend/ and frontend/ after the cross-language conventions gate)
+lint: lint-conventions lint-config ## Lint Go and frontend sources (delegates to backend/ and frontend/ after cross-language and secrets-and-config gates)
 	@$(call recurse_target,lint,backend/Makefile,backend)
 	@$(call recurse_target,lint,frontend/Makefile,frontend)
 
 lint-conventions: ## Validate shared/conventions.yaml structure and error-code casing/boundary (B1 local gate)
 	@python3 "$(ROOT_DIR)/scripts/lint/conventions_yaml.py" "$(ROOT_DIR)/shared/conventions.yaml"
 	@python3 "$(ROOT_DIR)/scripts/lint/error_codes.py"
+
+lint-config: lint-getenv-boundary lint-env-dict lint-secrets-pattern ## A4 secrets-and-config gates: env boundary + .env.example drift + secret-pattern scan
+
+lint-getenv-boundary: ## Reject os.Getenv usage outside platform/config / platform/secrets / cmd/{api,worker} (spec C-7)
+	@cd "$(ROOT_DIR)" && go run scripts/lint/getenv_boundary.go -root backend
+
+lint-env-dict: ## Verify .env.example, code-side os.Getenv calls, and spec §3.1.1 dictionary stay aligned (spec C-9 / C-11)
+	@python3 "$(ROOT_DIR)/scripts/lint/env_dict.py" --repo-root "$(ROOT_DIR)"
+
+lint-secrets-pattern: ## Scan staged + tracked files for AKIA / sk- / xox secret prefixes (defense-in-depth; pre-commit hook is the primary gate)
+	@bash "$(ROOT_DIR)/scripts/lint/gitleaks.sh" "$(ROOT_DIR)"
 
 test: ## Run unit tests (delegates to backend/ and frontend/)
 	@$(call recurse_target,test,backend/Makefile,backend)

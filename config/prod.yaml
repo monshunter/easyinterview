@@ -1,0 +1,10 @@
+# prod environment override (secrets-and-config spec §2.1).
+# Loaded after config/config.yaml; env vars and runtime secrets still win.
+# Secret fields MUST remain empty here — provision via runtime secret/env.
+
+log:
+  level: info
+
+featureFlag:
+  source: posthog
+  posthogSelfHosted: true

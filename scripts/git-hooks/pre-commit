@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
-# Repo-scaffold A1 placeholder pre-commit hook.
-# Extended by B1 shared-conventions-codified (lint gates) and A5 ci-pipeline-baseline
-# in later plans. Filename and location are locked by repo-scaffold spec D-4.
+# Repo-scaffold A1 umbrella pre-commit hook.
+# Filename and location are locked by repo-scaffold spec D-4.
+# A1 owns this entry; child plans append additional checks below.
 set -euo pipefail
+
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# A4 secrets-and-config: pre-commit secret prefix scan (spec D-6 / C-8).
+if [ -x "$HOOK_DIR/pre-commit-secrets.sh" ]; then
+  "$HOOK_DIR/pre-commit-secrets.sh"
+fi
 
 exit 0

@@ -1,0 +1,157 @@
+package config_test
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"testing"
+
+	"github.com/monshunter/easyinterview/backend/internal/platform/config"
+	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
+)
+
+type stubFlags struct {
+	snapshot map[string]featureflag.FlagDecision
+}
+
+func (s stubFlags) IsEnabled(key string, _ featureflag.FlagContext) bool {
+	return s.snapshot[key].Enabled
+}
+func (s stubFlags) Variant(key string, _ featureflag.FlagContext) string {
+	return s.snapshot[key].Variant
+}
+func (s stubFlags) Snapshot() map[string]featureflag.FlagDecision {
+	out := make(map[string]featureflag.FlagDecision, len(s.snapshot))
+	for k, v := range s.snapshot {
+		out[k] = v
+	}
+	return out
+}
+
+func newRuntimeLoader(t *testing.T) *config.Loader {
+	t.Helper()
+	dir := t.TempDir()
+	writeYAML(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+featureFlag:
+  posthogPublicKey: "ph-public"
+auth:
+  sessionCookieSecret: "should-not-leak"
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	return loader
+}
+
+func TestBuildRuntimeConfigAllowlistAndOptOut(t *testing.T) {
+	loader := newRuntimeLoader(t)
+	flags := stubFlags{snapshot: map[string]featureflag.FlagDecision{
+		"practice_hint_enabled":         {Enabled: true, Public: true},
+		"ai_fallback_model_enabled":     {Enabled: true, Public: false},
+		"mistake_book_export_enabled":   {Enabled: false, Public: true, Variant: "v1"},
+	}}
+
+	rc := config.BuildRuntimeConfig(context.Background(), config.RuntimeConfigInput{
+		Loader:        loader,
+		Flags:         flags,
+		FlagContext:   featureflag.FlagContext{AppEnv: "dev"},
+		AnalyticsOptIn: false,
+	})
+
+	if rc.AppVersion != "1.2.3" || rc.DefaultUiLanguage != "zh-CN" {
+		t.Errorf("public scalars wrong: %+v", rc)
+	}
+	if rc.AnalyticsEnabled {
+		t.Errorf("analyticsEnabled must be false when opt-out")
+	}
+	if rc.PostHogPublicKey != "" {
+		t.Errorf("postHogPublicKey must be empty when opt-out")
+	}
+	if _, ok := rc.FeatureFlags["practice_hint_enabled"]; !ok {
+		t.Errorf("public flag missing")
+	}
+	if _, ok := rc.FeatureFlags["ai_fallback_model_enabled"]; ok {
+		t.Errorf("operator-only flag must be filtered")
+	}
+	if rc.FeatureFlags["mistake_book_export_enabled"].Variant != "v1" {
+		t.Errorf("variant pass-through broken")
+	}
+
+	// JSON marshal must not leak secrets.
+	body, err := json.Marshal(rc)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if got := string(body); contains(got, "should-not-leak") {
+		t.Errorf("secret leaked into runtime-config JSON: %s", got)
+	}
+}
+
+func TestBuildRuntimeConfigAnalyticsOptInIncludesPublicKey(t *testing.T) {
+	loader := newRuntimeLoader(t)
+	rc := config.BuildRuntimeConfig(context.Background(), config.RuntimeConfigInput{
+		Loader:         loader,
+		Flags:          stubFlags{snapshot: map[string]featureflag.FlagDecision{}},
+		AnalyticsOptIn: true,
+	})
+	if !rc.AnalyticsEnabled {
+		t.Errorf("analyticsEnabled must be true on opt-in")
+	}
+	if rc.PostHogPublicKey != "ph-public" {
+		t.Errorf("expected postHogPublicKey to be exposed; got %q", rc.PostHogPublicKey)
+	}
+}
+
+func TestRuntimeConfigHandlerReturnsAllowlistJSON(t *testing.T) {
+	loader := newRuntimeLoader(t)
+	flags := stubFlags{snapshot: map[string]featureflag.FlagDecision{
+		"practice_hint_enabled": {Enabled: true, Public: true},
+	}}
+	handler := config.NewRuntimeConfigHandler(config.RuntimeConfigHandlerOptions{
+		Loader: loader,
+		Flags:  flags,
+		// SessionResolver is intentionally nil in this minimal stub —
+		// C1 backend-auth will replace it with a real session resolver.
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/runtime-config", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: %d body=%s", rec.Code, rec.Body.String())
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
+		t.Errorf("content-type: %q", ct)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	for _, key := range []string{"appVersion", "defaultUiLanguage", "analyticsEnabled", "featureFlags"} {
+		if _, ok := payload[key]; !ok {
+			t.Errorf("missing key: %s", key)
+		}
+	}
+	if contains(rec.Body.String(), "should-not-leak") {
+		t.Errorf("secret leaked into handler response: %s", rec.Body.String())
+	}
+}
+
+func contains(haystack, needle string) bool {
+	if needle == "" {
+		return true
+	}
+	for i := 0; i+len(needle) <= len(haystack); i++ {
+		if haystack[i:i+len(needle)] == needle {
+			return true
+		}
+	}
+	return false
+}
