@@ -20,8 +20,8 @@
 
 ## Phase 3: AI vocabulary parity tests
 
-- [ ] 3.1 落地 Go / TS parity tests，断言 AI vocabulary 字段集合、wire snake_case name、Go 常量名、TS 常量名一一对应；验证: Go shared AI test 与 TS conventions AI test 在删除任一 AI field 时失败，完整生成后通过
-- [ ] 3.2 parity 覆盖 A3 当前消费字段：`model_profile_name` / `model_profile_version` / `model_family` / `fallback_chain` / `route` / `validation_status` / `output_schema_version`；验证: focused tests 明确断言这 7 个字段存在并映射到 idiomatic Go/TS 常量名
+- [x] 3.1 落地 Go / TS parity tests，断言 AI vocabulary 字段集合、wire snake_case name、Go 常量名、TS 常量名一一对应；验证: Go shared AI test 与 TS conventions AI test 在删除任一 AI field 时失败，完整生成后通过
+- [x] 3.2 parity 覆盖 A3 当前消费字段：`model_profile_name` / `model_profile_version` / `model_family` / `fallback_chain` / `route` / `validation_status` / `output_schema_version`；验证: focused tests 明确断言这 7 个字段存在并映射到 idiomatic Go/TS 常量名
 
 ## Phase 4: Cross-language contract test
 

@@ -5,5 +5,6 @@
 
 export * from './enums';
 export * from './errors';
+export * from './ai';
 export * from './pagination';
 export * from './idempotency';
