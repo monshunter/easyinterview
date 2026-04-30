@@ -16,12 +16,12 @@
 
 ## Phase 2: baseline DDL 与索引
 
-- [ ] 2.1 落地 03-db-definition 27 张 P0 应用表 + ADR-Q1 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表。验证: SQL inventory probe 断言 30 张应用 / auth 支撑表全部存在，且关键 FK / soft-delete / sensitive hash 字段符合 spec §4.2 / §4.4
-- [ ] 2.2 `make migrate-up` 后 public schema table count ≥32（含 `schema_migrations` / `schema_backfills`）。验证: 干净 Postgres 上 `make migrate-up` 后执行 `select count(*) from information_schema.tables where table_schema='public'`，结果 ≥32 并记录在 handoff
-- [ ] 2.3 `outbox_events` 包含 `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message`，并有 `(publish_status, next_attempt_at, created_at)` pending due 查询索引。验证: information_schema column probe + `pg_indexes` probe + pending due `EXPLAIN` 命中对应索引
-- [ ] 2.4 `async_jobs.job_type` check 包含 B3 10 个 canonical jobType（含 internal-only `email_dispatch`），且 B2 API-facing subset 仍为 7 项。验证: migration lint 读取 B3/B2 manifests 后断言 DB check 值等于 B3 canonical 10 项，且 B2 API-facing subset 未被 internal-only `email_dispatch` 扩大
-- [ ] 2.5 `ai_task_runs` 包含 `model_family` / `model_profile_name` / `model_profile_version` / `fallback_chain` / `route` / `validation_status` / `output_schema_version` typed columns。验证: information_schema probe 断言 typed columns、`fallback_chain jsonb not null default '[]'::jsonb`，并有 dashboard 查询不依赖 JSONB path scan 的 SQL/explain probe
-- [ ] 2.6 覆盖 03 §7 B-Tree 索引、`retrieval_chunks.embedding` ivfflat 与可选 `target_jobs` GIN 全文索引。验证: `pg_indexes` inventory 与关键 query `EXPLAIN` probes 覆盖 B-Tree、`idx_retrieval_chunks_embedding` ivfflat、dev 默认 `target_jobs` GIN 全文索引
+- [x] 2.1 落地 03-db-definition 27 张 P0 应用表 + ADR-Q1 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表。验证: SQL inventory probe 断言 30 张应用 / auth 支撑表全部存在，且关键 FK / soft-delete / sensitive hash 字段符合 spec §4.2 / §4.4
+- [x] 2.2 `make migrate-up` 后 public schema table count ≥32（含 `schema_migrations` / `schema_backfills`）。验证: 干净 Postgres 上 `make migrate-up` 后执行 `select count(*) from information_schema.tables where table_schema='public'`，结果 ≥32 并记录在 handoff
+- [x] 2.3 `outbox_events` 包含 `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message`，并有 `(publish_status, next_attempt_at, created_at)` pending due 查询索引。验证: information_schema column probe + `pg_indexes` probe + pending due `EXPLAIN` 命中对应索引
+- [x] 2.4 `async_jobs.job_type` check 包含 B3 10 个 canonical jobType（含 internal-only `email_dispatch`），且 B2 API-facing subset 仍为 7 项。验证: migration lint 读取 B3/B2 manifests 后断言 DB check 值等于 B3 canonical 10 项，且 B2 API-facing subset 未被 internal-only `email_dispatch` 扩大
+- [x] 2.5 `ai_task_runs` 包含 `model_family` / `model_profile_name` / `model_profile_version` / `fallback_chain` / `route` / `validation_status` / `output_schema_version` typed columns。验证: information_schema probe 断言 typed columns、`fallback_chain jsonb not null default '[]'::jsonb`，并有 dashboard 查询不依赖 JSONB path scan 的 SQL/explain probe
+- [x] 2.6 覆盖 03 §7 B-Tree 索引、`retrieval_chunks.embedding` ivfflat 与可选 `target_jobs` GIN 全文索引。验证: `pg_indexes` inventory 与关键 query `EXPLAIN` probes 覆盖 B-Tree、`idx_retrieval_chunks_embedding` ivfflat、dev 默认 `target_jobs` GIN 全文索引
 
 ## Phase 3: enum/check 来源、backfill 与 privacy lint
 

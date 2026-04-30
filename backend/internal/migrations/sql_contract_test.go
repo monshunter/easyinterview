@@ -21,6 +21,65 @@ func TestBaselineMigrationEnablesVectorAndKeepsDownSafe(t *testing.T) {
 	}
 }
 
+func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
+
+	for _, table := range []string{
+		"users",
+		"user_settings",
+		"candidate_profiles",
+		"experience_cards",
+		"file_objects",
+		"resume_assets",
+		"target_jobs",
+		"target_job_requirements",
+		"target_job_sources",
+		"practice_plans",
+		"practice_sessions",
+		"practice_session_events",
+		"practice_turns",
+		"feedback_reports",
+		"question_assessments",
+		"mistake_entries",
+		"resume_tailor_runs",
+		"debriefs",
+		"source_records",
+		"retrieval_chunks",
+		"prompt_versions",
+		"rubric_versions",
+		"ai_task_runs",
+		"async_jobs",
+		"outbox_events",
+		"privacy_requests",
+		"audit_events",
+		"auth_challenges",
+		"sessions",
+		"external_identities",
+		"schema_backfills",
+	} {
+		if !strings.Contains(up, "create table "+table+" ") {
+			t.Fatalf("baseline migration missing create table %s", table)
+		}
+	}
+}
+
+func TestBaselineMigrationDoesNotStoreRawAuthSecrets(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
+
+	for _, forbidden := range []string{"raw_token", "session_cookie", "api_key", "provider_token"} {
+		if strings.Contains(up, forbidden) {
+			t.Fatalf("baseline migration must not contain plaintext-secret column marker %q", forbidden)
+		}
+	}
+	for _, required := range []string{"challenge_token_hash", "session_hash", "provider_subject_hash"} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("baseline migration must contain safe hash field %q", required)
+		}
+	}
+}
+
 func repoRoot(t *testing.T) string {
 	t.Helper()
 	_, file, _, ok := runtime.Caller(0)
