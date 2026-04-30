@@ -243,6 +243,103 @@ EXPECTED_EVENTS = {
         },
     },
 }
+EXPECTED_JOBS = {
+    "target_import": {
+        "asynqTask": "target.import",
+        "apiFacing": True,
+        "triggerEvent": "target.import.requested",
+        "ownerDomain": "C4",
+        "priority": "default",
+    },
+    "resume_parse": {
+        "asynqTask": "resume.parse",
+        "apiFacing": True,
+        "triggerEvent": "api:register_resume",
+        "ownerDomain": "C7",
+        "priority": "default",
+    },
+    "report_generate": {
+        "asynqTask": "report.generate",
+        "apiFacing": True,
+        "triggerEvent": "practice.session.completed",
+        "ownerDomain": "C6",
+        "priority": "critical",
+    },
+    "resume_tailor": {
+        "asynqTask": "resume.tailor",
+        "apiFacing": True,
+        "triggerEvent": "api:request_tailor",
+        "ownerDomain": "C7",
+        "priority": "default",
+    },
+    "debrief_generate": {
+        "asynqTask": "debrief.generate",
+        "apiFacing": True,
+        "triggerEvent": "debrief.created",
+        "ownerDomain": "C9",
+        "priority": "default",
+    },
+    "source_refresh": {
+        "asynqTask": "source.refresh",
+        "apiFacing": False,
+        "triggerEvent": "target.parsed",
+        "ownerDomain": "C13",
+        "priority": "low",
+    },
+    "embedding_upsert": {
+        "asynqTask": "embedding.upsert",
+        "apiFacing": False,
+        "triggerEvent": "target.parsed",
+        "ownerDomain": "C11",
+        "priority": "low",
+    },
+    "privacy_export": {
+        "asynqTask": "privacy.export",
+        "apiFacing": True,
+        "triggerEvent": "privacy.request.created",
+        "ownerDomain": "C12",
+        "priority": "low",
+    },
+    "privacy_delete": {
+        "asynqTask": "privacy.delete",
+        "apiFacing": True,
+        "triggerEvent": "privacy.request.created",
+        "ownerDomain": "C8",
+        "priority": "critical",
+    },
+    "email_dispatch": {
+        "asynqTask": "email.dispatch",
+        "apiFacing": False,
+        "triggerEvent": "api:auth_email_start",
+        "ownerDomain": "C1+C8",
+        "priority": "low",
+    },
+}
+EXPECTED_API_FACING_SUBSET = [
+    "target_import",
+    "resume_parse",
+    "report_generate",
+    "resume_tailor",
+    "debrief_generate",
+    "privacy_export",
+    "privacy_delete",
+]
+EMAIL_DISPATCH_PAYLOAD = {
+    "authChallengeId": "uuidv7",
+    "userId": "uuidv7",
+    "templateKey": "slug",
+    "locale": "bcp47",
+    "deliverySecretRef": "opaque_ref",
+    "dedupeKey": "string",
+}
+EMAIL_DISPATCH_REDACTED_FIELDS = [
+    "rawMagicLinkToken",
+    "magicLinkUrl",
+    "recipientEmail",
+    "recipientEmailHash",
+    "emailBody",
+    "emailSubject",
+]
 
 
 def _field_map(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -423,6 +520,91 @@ def _validate_payload(name: str, actual_payload: Any, expected_payload: dict[str
     return errors
 
 
+def validate_jobs_yaml(data: dict[str, Any], events_data: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    jobs = data.get("jobs") or []
+    if not isinstance(jobs, list):
+        return ["jobs must be a list"]
+
+    by_canonical: dict[str, dict[str, Any]] = {}
+    for job in jobs:
+        if not isinstance(job, dict) or not isinstance(job.get("canonical"), str):
+            errors.append("each job must be a mapping with canonical")
+            continue
+        canonical = job["canonical"]
+        if canonical in by_canonical:
+            errors.append(f"duplicate canonical job: {canonical}")
+        by_canonical[canonical] = job
+
+    missing = set(EXPECTED_JOBS) - set(by_canonical)
+    extra = set(by_canonical) - set(EXPECTED_JOBS)
+    if missing:
+        errors.append(f"jobs missing expected canonical values: {sorted(missing)}")
+    if extra:
+        errors.append(f"jobs include unexpected canonical values: {sorted(extra)}")
+
+    subset = data.get("apiFacingSubset")
+    if subset != EXPECTED_API_FACING_SUBSET:
+        errors.append(
+            f"apiFacingSubset must be {EXPECTED_API_FACING_SUBSET!r}, got {subset!r}"
+        )
+
+    event_names = {
+        event.get("name")
+        for event in (events_data.get("events") or [])
+        if isinstance(event, dict)
+    }
+    for canonical, expected in EXPECTED_JOBS.items():
+        job = by_canonical.get(canonical)
+        if not job:
+            continue
+        for key, want in expected.items():
+            got = job.get(key)
+            if got != want:
+                errors.append(f"{canonical}.{key} must be {want!r}, got {got!r}")
+        if canonical in EXPECTED_API_FACING_SUBSET and job.get("apiFacing") is not True:
+            errors.append(f"{canonical}.apiFacing must be true because it is in apiFacingSubset")
+        if canonical not in EXPECTED_API_FACING_SUBSET and job.get("apiFacing") is not False:
+            errors.append(f"{canonical}.apiFacing must be false because it is internal-only")
+        trigger = job.get("triggerEvent")
+        if isinstance(trigger, str) and not trigger.startswith("api:") and trigger not in event_names:
+            errors.append(f"{canonical}.triggerEvent must reference a known eventName or api: source, got {trigger!r}")
+
+    email_dispatch = by_canonical.get("email_dispatch")
+    if email_dispatch:
+        errors.extend(_validate_email_dispatch(email_dispatch))
+
+    return errors
+
+
+def _validate_email_dispatch(job: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    payload_schema = job.get("payloadSchema")
+    if not isinstance(payload_schema, dict):
+        return ["email_dispatch.payloadSchema must be a mapping"]
+    actual_fields = set(payload_schema)
+    expected_fields = set(EMAIL_DISPATCH_PAYLOAD)
+    redacted_fields = set(EMAIL_DISPATCH_REDACTED_FIELDS)
+    if actual_fields != expected_fields:
+        errors.append(
+            f"email_dispatch.payloadSchema fields must be {sorted(expected_fields)}, got {sorted(actual_fields)}"
+        )
+    forbidden = actual_fields & redacted_fields
+    if forbidden:
+        errors.append(f"email_dispatch.payloadSchema contains redacted fields: {sorted(forbidden)}")
+    for field, expected_type in EMAIL_DISPATCH_PAYLOAD.items():
+        entry = payload_schema.get(field)
+        if isinstance(entry, dict) and entry.get("type") != expected_type:
+            errors.append(f"email_dispatch.payloadSchema.{field}.type must be {expected_type!r}, got {entry.get('type')!r}")
+
+    redacted = job.get("redactedFields")
+    if redacted != EMAIL_DISPATCH_REDACTED_FIELDS:
+        errors.append(
+            f"email_dispatch.redactedFields must be {EMAIL_DISPATCH_REDACTED_FIELDS!r}, got {redacted!r}"
+        )
+    return errors
+
+
 def _load_yaml(path: Path) -> dict[str, Any]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
@@ -431,8 +613,8 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 
 
 def main() -> int:
-    if len(sys.argv) not in (2, 3):
-        print("usage: events_inventory.py shared/events.yaml [shared/jobs.yaml]", file=sys.stderr)
+    if len(sys.argv) < 2 or len(sys.argv) > 4:
+        print("usage: events_inventory.py shared/events.yaml [shared/jobs.yaml] [shared/conventions.yaml]", file=sys.stderr)
         return 2
 
     events_path = Path(sys.argv[1])
@@ -447,18 +629,28 @@ def main() -> int:
         return 2
 
     conventions = None
-    if len(sys.argv) == 3:
-        conventions_path = Path(sys.argv[2])
-        if not conventions_path.exists():
-            print(f"FAIL: {conventions_path} does not exist", file=sys.stderr)
+    jobs = None
+    for raw_path in sys.argv[2:]:
+        path = Path(raw_path)
+        if not path.exists():
+            print(f"FAIL: {path} does not exist", file=sys.stderr)
             return 2
         try:
-            conventions = _load_yaml(conventions_path)
+            loaded = _load_yaml(path)
         except (OSError, ValueError, yaml.YAMLError) as exc:
-            print(f"FAIL: {conventions_path}: {exc}", file=sys.stderr)
+            print(f"FAIL: {path}: {exc}", file=sys.stderr)
+            return 2
+        if path.name == "jobs.yaml":
+            jobs = loaded
+        elif path.name == "conventions.yaml":
+            conventions = loaded
+        else:
+            print(f"FAIL: unsupported companion file {path}", file=sys.stderr)
             return 2
 
     errors = validate_events_yaml(events, conventions)
+    if jobs is not None:
+        errors.extend(validate_jobs_yaml(jobs, events))
     if errors:
         for err in errors:
             print(f"FAIL: {err}", file=sys.stderr)

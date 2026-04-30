@@ -1,0 +1,93 @@
+# Async job type and Asynq task mapping truth source.
+#
+# Owner spec: docs/spec/event-and-outbox-contract/spec.md
+# Generator: backend/cmd/codegen/events
+# Validator: scripts/lint/events_inventory.py
+
+version: 1
+schemaVersion: 1
+
+apiFacingSubset:
+  - target_import
+  - resume_parse
+  - report_generate
+  - resume_tailor
+  - debrief_generate
+  - privacy_export
+  - privacy_delete
+
+jobs:
+  - canonical: target_import
+    asynqTask: target.import
+    apiFacing: true
+    triggerEvent: target.import.requested
+    ownerDomain: C4
+    priority: default
+  - canonical: resume_parse
+    asynqTask: resume.parse
+    apiFacing: true
+    triggerEvent: api:register_resume
+    ownerDomain: C7
+    priority: default
+  - canonical: report_generate
+    asynqTask: report.generate
+    apiFacing: true
+    triggerEvent: practice.session.completed
+    ownerDomain: C6
+    priority: critical
+  - canonical: resume_tailor
+    asynqTask: resume.tailor
+    apiFacing: true
+    triggerEvent: api:request_tailor
+    ownerDomain: C7
+    priority: default
+  - canonical: debrief_generate
+    asynqTask: debrief.generate
+    apiFacing: true
+    triggerEvent: debrief.created
+    ownerDomain: C9
+    priority: default
+  - canonical: source_refresh
+    asynqTask: source.refresh
+    apiFacing: false
+    triggerEvent: target.parsed
+    ownerDomain: C13
+    priority: low
+  - canonical: embedding_upsert
+    asynqTask: embedding.upsert
+    apiFacing: false
+    triggerEvent: target.parsed
+    ownerDomain: C11
+    priority: low
+  - canonical: privacy_export
+    asynqTask: privacy.export
+    apiFacing: true
+    triggerEvent: privacy.request.created
+    ownerDomain: C12
+    priority: low
+  - canonical: privacy_delete
+    asynqTask: privacy.delete
+    apiFacing: true
+    triggerEvent: privacy.request.created
+    ownerDomain: C8
+    priority: critical
+  - canonical: email_dispatch
+    asynqTask: email.dispatch
+    apiFacing: false
+    triggerEvent: api:auth_email_start
+    ownerDomain: C1+C8
+    priority: low
+    payloadSchema:
+      authChallengeId: { type: uuidv7 }
+      userId: { type: uuidv7 }
+      templateKey: { type: slug }
+      locale: { type: bcp47 }
+      deliverySecretRef: { type: opaque_ref }
+      dedupeKey: { type: string }
+    redactedFields:
+      - rawMagicLinkToken
+      - magicLinkUrl
+      - recipientEmail
+      - recipientEmailHash
+      - emailBody
+      - emailSubject

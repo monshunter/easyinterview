@@ -64,6 +64,123 @@ def valid_events_data() -> dict:
     }
 
 
+EXPECTED_JOBS = {
+    "target_import": {
+        "asynqTask": "target.import",
+        "apiFacing": True,
+        "triggerEvent": "target.import.requested",
+        "ownerDomain": "C4",
+        "priority": "default",
+    },
+    "resume_parse": {
+        "asynqTask": "resume.parse",
+        "apiFacing": True,
+        "triggerEvent": "api:register_resume",
+        "ownerDomain": "C7",
+        "priority": "default",
+    },
+    "report_generate": {
+        "asynqTask": "report.generate",
+        "apiFacing": True,
+        "triggerEvent": "practice.session.completed",
+        "ownerDomain": "C6",
+        "priority": "critical",
+    },
+    "resume_tailor": {
+        "asynqTask": "resume.tailor",
+        "apiFacing": True,
+        "triggerEvent": "api:request_tailor",
+        "ownerDomain": "C7",
+        "priority": "default",
+    },
+    "debrief_generate": {
+        "asynqTask": "debrief.generate",
+        "apiFacing": True,
+        "triggerEvent": "debrief.created",
+        "ownerDomain": "C9",
+        "priority": "default",
+    },
+    "source_refresh": {
+        "asynqTask": "source.refresh",
+        "apiFacing": False,
+        "triggerEvent": "target.parsed",
+        "ownerDomain": "C13",
+        "priority": "low",
+    },
+    "embedding_upsert": {
+        "asynqTask": "embedding.upsert",
+        "apiFacing": False,
+        "triggerEvent": "target.parsed",
+        "ownerDomain": "C11",
+        "priority": "low",
+    },
+    "privacy_export": {
+        "asynqTask": "privacy.export",
+        "apiFacing": True,
+        "triggerEvent": "privacy.request.created",
+        "ownerDomain": "C12",
+        "priority": "low",
+    },
+    "privacy_delete": {
+        "asynqTask": "privacy.delete",
+        "apiFacing": True,
+        "triggerEvent": "privacy.request.created",
+        "ownerDomain": "C8",
+        "priority": "critical",
+    },
+    "email_dispatch": {
+        "asynqTask": "email.dispatch",
+        "apiFacing": False,
+        "triggerEvent": "api:auth_email_start",
+        "ownerDomain": "C1+C8",
+        "priority": "low",
+    },
+}
+EMAIL_DISPATCH_PAYLOAD = {
+    "authChallengeId": "uuidv7",
+    "userId": "uuidv7",
+    "templateKey": "slug",
+    "locale": "bcp47",
+    "deliverySecretRef": "opaque_ref",
+    "dedupeKey": "string",
+}
+EMAIL_DISPATCH_REDACTED = [
+    "rawMagicLinkToken",
+    "magicLinkUrl",
+    "recipientEmail",
+    "recipientEmailHash",
+    "emailBody",
+    "emailSubject",
+]
+
+
+def valid_jobs_data() -> dict:
+    jobs = [
+        {"canonical": canonical, **attrs}
+        for canonical, attrs in EXPECTED_JOBS.items()
+    ]
+    email_dispatch = next(job for job in jobs if job["canonical"] == "email_dispatch")
+    email_dispatch["payloadSchema"] = {
+        field: {"type": typ}
+        for field, typ in EMAIL_DISPATCH_PAYLOAD.items()
+    }
+    email_dispatch["redactedFields"] = EMAIL_DISPATCH_REDACTED.copy()
+    return {
+        "version": 1,
+        "schemaVersion": 1,
+        "apiFacingSubset": [
+            "target_import",
+            "resume_parse",
+            "report_generate",
+            "resume_tailor",
+            "debrief_generate",
+            "privacy_export",
+            "privacy_delete",
+        ],
+        "jobs": jobs,
+    }
+
+
 EXPECTED_EVENT_PAYLOADS = {
     "target.import.requested": ["targetJobId", "userId", "sourceType", "targetLanguage"],
     "target.parsed": ["targetJobId", "userId", "analysisStatus", "requirementCount", "coreThemes"],
@@ -326,6 +443,93 @@ class EventsInventoryEnvelopeTest(unittest.TestCase):
         errs = self.linter.validate_events_yaml(data)
 
         self.assertTrue(any("sourceType" in err and "$ref:event.TargetImportSourceType" in err for err in errs), errs)
+
+
+class EventsInventoryJobsTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.linter = load_linter()
+
+    def test_valid_jobs_contract_passes(self) -> None:
+        self.assertEqual([], self.linter.validate_jobs_yaml(valid_jobs_data(), valid_events_data()))
+
+    def test_requires_all_10_canonical_jobs(self) -> None:
+        data = valid_jobs_data()
+        data["jobs"] = [job for job in data["jobs"] if job["canonical"] != "email_dispatch"]
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("email_dispatch" in err and "missing" in err for err in errs), errs)
+
+    def test_rejects_wrong_asynq_task_mapping(self) -> None:
+        data = valid_jobs_data()
+        target_import = next(job for job in data["jobs"] if job["canonical"] == "target_import")
+        target_import["asynqTask"] = "target.imports"
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("target_import" in err and "target.import" in err for err in errs), errs)
+
+    def test_rejects_invalid_job_priority(self) -> None:
+        data = valid_jobs_data()
+        report_generate = next(job for job in data["jobs"] if job["canonical"] == "report_generate")
+        report_generate["priority"] = "urgent"
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("report_generate" in err and "critical" in err for err in errs), errs)
+
+    def test_rejects_unknown_trigger_event(self) -> None:
+        data = valid_jobs_data()
+        report_generate = next(job for job in data["jobs"] if job["canonical"] == "report_generate")
+        report_generate["triggerEvent"] = "report.created"
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("report_generate" in err and "triggerEvent" in err for err in errs), errs)
+
+    def test_requires_fixed_api_facing_subset(self) -> None:
+        data = valid_jobs_data()
+        data["apiFacingSubset"] = data["apiFacingSubset"] + ["email_dispatch"]
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("apiFacingSubset" in err and "email_dispatch" in err for err in errs), errs)
+
+    def test_rejects_internal_only_job_marked_api_facing(self) -> None:
+        data = valid_jobs_data()
+        email_dispatch = next(job for job in data["jobs"] if job["canonical"] == "email_dispatch")
+        email_dispatch["apiFacing"] = True
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("email_dispatch" in err and "apiFacing" in err for err in errs), errs)
+
+    def test_requires_email_dispatch_payload_schema(self) -> None:
+        data = valid_jobs_data()
+        email_dispatch = next(job for job in data["jobs"] if job["canonical"] == "email_dispatch")
+        email_dispatch["payloadSchema"].pop("deliverySecretRef")
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("deliverySecretRef" in err and "email_dispatch.payloadSchema" in err for err in errs), errs)
+
+    def test_rejects_redacted_field_in_email_dispatch_payload_schema(self) -> None:
+        data = valid_jobs_data()
+        email_dispatch = next(job for job in data["jobs"] if job["canonical"] == "email_dispatch")
+        email_dispatch["payloadSchema"]["recipientEmail"] = {"type": "string"}
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("recipientEmail" in err and "redacted" in err for err in errs), errs)
+
+    def test_requires_email_dispatch_redacted_fields(self) -> None:
+        data = valid_jobs_data()
+        email_dispatch = next(job for job in data["jobs"] if job["canonical"] == "email_dispatch")
+        email_dispatch["redactedFields"] = ["rawMagicLinkToken"]
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("redactedFields" in err and "emailBody" in err for err in errs), errs)
 
 
 if __name__ == "__main__":
