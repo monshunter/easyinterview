@@ -14,11 +14,12 @@ type Message struct {
 // supplied by the caller and copied into AICallMeta (PromptVersion,
 // RubricVersion, Language) plus AI logs / audit metadata.
 type CallMetadata struct {
-	FeatureKey    string          `json:"featureKey"`
-	PromptVersion string          `json:"promptVersion"`
-	RubricVersion string          `json:"rubricVersion"`
-	Language      string          `json:"language"`
-	OutputSchema  json.RawMessage `json:"outputSchema,omitempty"`
+	FeatureKey    string           `json:"featureKey"`
+	PromptVersion string           `json:"promptVersion"`
+	RubricVersion string           `json:"rubricVersion"`
+	Language      string           `json:"language"`
+	OutputSchema  json.RawMessage  `json:"outputSchema,omitempty"`
+	TaskRun       AITaskRunContext `json:"taskRun,omitempty"`
 }
 
 // CompletePayload is the input to AIClient.Complete and AIClient.Stream.

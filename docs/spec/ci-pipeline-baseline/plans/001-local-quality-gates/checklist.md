@@ -1,6 +1,6 @@
 # Local Quality Gates Bootstrap Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-04-30
 
@@ -13,6 +13,7 @@
 - [x] 1.3 升级 `build` target：`cd backend && go build ./cmd/...` + `pnpm --filter @easyinterview/frontend build`；未落地 cmd 输出 `TODO: implemented by <owner>` 并 `exit 0`；验证: 2026-04-30 `make build` exit 0，backend 执行 `go build ./cmd/...`，frontend 进入 `pnpm --filter @easyinterview/frontend build` 并输出 D1-owned placeholder `TODO: build implemented by D1 frontend-shell`
 - [x] 1.4 新增 `docs-check` target：`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` + `python3 scripts/lint/check_md_links.py docs` 等价相对链接扫描；任一漂移 exit 非 0；验证: 临时在任一 spec Header 插入 drift 或在 docs/ md 中插入失链相对链接后 `make docs-check` exit 非 0；revert 后 exit 0
 - [x] 1.5 升级 `codegen-check` target：`codegen-conventions` (B1) + `codegen-openapi` (B2) 顺序执行后 `git diff --exit-code` 守门；B1 diff 路径覆盖 `backend/internal/shared/types` / `backend/internal/shared/errors` / `backend/internal/shared/idx` / `frontend/src/lib/conventions` / `frontend/src/lib/ids` / `shared/conventions.yaml`；验证: `make codegen-check` 顺序执行 codegen-conventions / codegen-openapi 后 `git diff --exit-code` 覆盖 6 条 B1 路径 + 3 条 B2 路径（`backend/internal/api/generated` / `frontend/src/api/generated` / `openapi/openapi.yaml`）；任一漂移 exit 非 0
+- [x] 1.6 L2 remediation X-L2：顶层 `make codegen-check` 纳入 B3 `codegen-events-check` / event-job drift gate，覆盖 `shared/events.yaml`、`shared/jobs.yaml`、Go/TS events/jobs、JSON Schema/ref/baseline 生成物；验证 `make -n codegen-check` 可见 B3 gate 且实际 `make codegen-check` exit 0；验证: 2026-04-30 `grep -n 'codegen-events-check' /tmp/easyinterview-codegen-check.dryrun` 与 `make codegen-check`
 
 ## Phase 2: 占位与缺位行为锁定（NOT-YET-LANDED owner 输出 + exit 0 边界）
 

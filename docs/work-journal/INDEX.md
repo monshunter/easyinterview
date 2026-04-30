@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-30](2026-04-30.md) | `fix(plan-code-review): remediate A/B L2 findings` | #fix #test #docs |
 | [2026-04-30](2026-04-30.md) | `docs(governance): require Chinese user-facing communication` | #docs |
 | [2026-04-30](2026-04-30.md) | `fix(ci-pipeline): remediate local quality gates` | #fix #docs #test |
 | [2026-04-30](2026-04-30.md) | `docs(reports): land event-outbox bootstrap retrospective` | #docs |

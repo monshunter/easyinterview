@@ -30,17 +30,35 @@ func (l *Loader) Validate() error {
 	var problems []string
 
 	if env == "staging" || env == "prod" {
+		problems = append(problems, l.checkRequiredValue("app.listenAddr", "APP_LISTEN_ADDR")...)
+		problems = append(problems, l.checkRequiredValue("worker.listenAddr", "WORKER_LISTEN_ADDR")...)
+		problems = append(problems, l.checkRequiredRuntimeValue("database.url", "DATABASE_URL")...)
+		problems = append(problems, l.checkRequiredRuntimeValue("redis.url", "REDIS_URL")...)
+		problems = append(problems, l.checkRequiredRuntimeValue("objectStorage.endpoint", "OBJECT_STORAGE_ENDPOINT")...)
+		problems = append(problems, l.checkRequiredRuntimeValue("objectStorage.bucket", "OBJECT_STORAGE_BUCKET")...)
+		problems = append(problems, l.checkRequiredRuntimeValue("objectStorage.accessKey", "OBJECT_STORAGE_ACCESS_KEY")...)
+		problems = append(problems, l.checkRequiredRuntimeValue("objectStorage.secretKey", "OBJECT_STORAGE_SECRET_KEY")...)
+		problems = append(problems, l.checkRequiredValue("log.level", "LOG_LEVEL")...)
 		problems = append(problems, l.checkRequiredSecret("auth.sessionCookieSecret", "SESSION_COOKIE_SECRET")...)
 		problems = append(problems, l.checkRequiredSecret("auth.challengeTokenPepper", "AUTH_CHALLENGE_TOKEN_PEPPER")...)
 		problems = append(problems, l.checkRequiredValue("ai.gatewayBaseURL", "AI_GATEWAY_BASE_URL")...)
 		problems = append(problems, l.checkRequiredSecret("ai.gatewayApiKey", "AI_GATEWAY_API_KEY")...)
-		problems = append(problems, l.checkRequiredSecret("email.providerApiKey", "EMAIL_PROVIDER_API_KEY")...)
-		if strings.EqualFold(l.GetString("featureFlag.source"), "posthog") {
+		problems = append(problems, l.checkRequiredValue("ai.modelProfilePath", "AI_MODEL_PROFILE_PATH")...)
+		problems = append(problems, l.checkRequiredValue("featureFlag.source", "FEATURE_FLAG_SOURCE")...)
+		switch strings.ToLower(strings.TrimSpace(l.GetString("featureFlag.source"))) {
+		case "file":
+			problems = append(problems, l.checkRequiredValue("featureFlag.filePath", "FEATURE_FLAG_FILE_PATH")...)
+		case "posthog":
+			problems = append(problems, l.checkRequiredValue("featureFlag.posthogHost", "POSTHOG_HOST")...)
 			problems = append(problems, l.checkRequiredSecret("featureFlag.posthogProjectApiKey", "POSTHOG_PROJECT_API_KEY")...)
 			if !l.GetBool("featureFlag.posthogSelfHosted") {
 				problems = append(problems, "POSTHOG_SELF_HOSTED must be true in staging/prod (spec §4.1)")
 			}
+		default:
+			problems = append(problems, "FEATURE_FLAG_SOURCE must be file or posthog in staging/prod")
 		}
+		problems = append(problems, l.checkRequiredValue("email.provider", "EMAIL_PROVIDER")...)
+		problems = append(problems, l.checkRequiredSecret("email.providerApiKey", "EMAIL_PROVIDER_API_KEY")...)
 	}
 
 	if env != "test" {
@@ -74,4 +92,14 @@ func (l *Loader) checkRequiredValue(dotPath, envKey string) []string {
 		return nil
 	}
 	return []string{fmt.Sprintf("missing required config: %s (config path %s)", envKey, dotPath)}
+}
+
+func (l *Loader) checkRequiredRuntimeValue(dotPath, envKey string) []string {
+	if l.GetString(dotPath) == "" {
+		return []string{fmt.Sprintf("missing required config: %s (config path %s)", envKey, dotPath)}
+	}
+	if l.runtimeBound[dotPath] {
+		return nil
+	}
+	return []string{fmt.Sprintf("missing required runtime override: %s (config path %s)", envKey, dotPath)}
 }

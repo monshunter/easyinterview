@@ -1,6 +1,6 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-04-30
 
@@ -240,6 +240,10 @@ type FeatureFlagClient interface {
 
 针对 L2 review finding R-7.4：runtime-config builder 必须能按请求 `FlagContext` 触发 provider evaluation，而不是仅依赖 cold `Snapshot()`；PostHog provider 初始化时必须携带 public flag allowlist，使 prod 首次 `/api/v1/runtime-config` 请求也能返回 public flags 并过滤 operator-only flags。保持 `FeatureFlagClient` 的 D-4 两方法接口不漂移，如需 public projection，使用包内辅助接口或显式方法，不扩大业务消费面。
 
+#### 7.5 修复 prod/staging required config 覆盖
+
+针对 L2 review finding R-7.5：`validator.go` 必须覆盖 spec §3.1.1 / §3.1.2 标记为 prod/staging required 或 conditional 的 P0 keys，包括 app/worker listen addr、database、redis、object storage、AI model profile path、feature flag source/file/posthog、email provider 与现有 auth/AI secrets。对 database/redis/object storage 这类 `config/config.yaml` 中含 dev 默认值的部署依赖，staging/prod 必须要求 runtime env/secret override，避免生产静默连接本机 dev 服务。新增 focused tests 覆盖缺 storage/cache/database override 失败、缺 PostHog host 失败、缺 email provider 失败与完整 prod runtime bindings 通过。
+
 ## 4 验收标准
 
 - [secrets-and-config spec §6 验收标准](../../spec.md#6-验收标准) C-1..C-5、C-7..C-12 全部成立，证据贴入工作日志；C-6 partial 验收（A4 builder + stub + 前端 fetcher + 单测）成立，跨 plan 完整 verification 由 B2 / D1 后续 plan 关闭并 cross-link 回本工作日志。
@@ -261,5 +265,6 @@ type FeatureFlagClient interface {
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-04-30 | 1.3 | L2 code-review remediation：补 prod/staging required config 覆盖与 dev-default runtime override 防线。 | plan-code-review --fix |
 | 2026-04-30 | 1.2 | L2 code-review remediation：worker bindings、AI base URL fail-fast、env_dict code-side binding discovery、runtime-config cold PostHog projection。 | plan-code-review --fix |
 | 2026-04-29 | 1.1 | 对齐 spec v1.7：24 项 env key、`async.queueWeights` config-only 字段、PostHog last-known-good 缓存降级、secret 样本只允许临时生成不入文档。 | plan-review remediation |

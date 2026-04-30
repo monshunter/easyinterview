@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 
@@ -29,6 +30,14 @@ func (m *memTaskRunWriter) Rows() []aiclient.AITaskRunRow {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return append([]aiclient.AITaskRunRow{}, m.rows...)
+}
+
+type failingTaskRunWriter struct {
+	err error
+}
+
+func (f failingTaskRunWriter) WriteAITaskRun(_ context.Context, _ aiclient.AITaskRunRow) error {
+	return f.err
 }
 
 type memAuditWriter struct {
@@ -131,6 +140,11 @@ func samplePayload() aiclient.CompletePayload {
 			PromptVersion: "p1",
 			RubricVersion: "r1",
 			Language:      "en",
+			TaskRun: aiclient.AITaskRunContext{
+				TaskType:     aiclient.AITaskRunTaskFollowupGenerate,
+				ResourceType: aiclient.AITaskRunResourceTargetJob,
+				ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
+			},
 		},
 	}
 }
@@ -203,6 +217,27 @@ func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 	if rows[0].Provider != stub.Name || rows[0].ModelProfileName != "practice.followup.default" {
 		t.Errorf("ai_task_runs row missing fields: %+v", rows[0])
 	}
+	if rows[0].ID == "" {
+		t.Fatalf("ai_task_runs row missing id: %+v", rows[0])
+	}
+	if rows[0].TaskType != aiclient.AITaskRunTaskFollowupGenerate {
+		t.Fatalf("expected B4 task_type=%q, got %q", aiclient.AITaskRunTaskFollowupGenerate, rows[0].TaskType)
+	}
+	if rows[0].ResourceType != aiclient.AITaskRunResourceTargetJob || rows[0].ResourceID == "" {
+		t.Fatalf("ai_task_runs row missing resource identity: %+v", rows[0])
+	}
+	if rows[0].Status != aiclient.AITaskRunStatusSuccess {
+		t.Fatalf("expected status=%q, got %q", aiclient.AITaskRunStatusSuccess, rows[0].Status)
+	}
+	if rows[0].StartedAt.IsZero() || rows[0].CompletedAt.IsZero() {
+		t.Fatalf("ai_task_runs row missing timestamps: %+v", rows[0])
+	}
+	if rows[0].CompletedAt.Before(rows[0].StartedAt) {
+		t.Fatalf("completed_at before started_at: %+v", rows[0])
+	}
+	if rows[0].Metadata.PromptHash == "" || rows[0].Metadata.ResponseHash == "" {
+		t.Fatalf("ai_task_runs metadata missing hash summary: %+v", rows[0].Metadata)
+	}
 
 	auditRows := audit.Rows()
 	if len(auditRows) != 1 || auditRows[0].Action != "ai.call" {
@@ -216,6 +251,52 @@ func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 	}
 	if auditRows[0].Metadata.PromptCharLength == 0 || auditRows[0].Metadata.ResponseCharLength == 0 {
 		t.Errorf("audit char lengths zero: %+v", auditRows[0].Metadata)
+	}
+}
+
+func TestDecorator_AITaskRunWriterFailureReturned(t *testing.T) {
+	stubProv, err := stub.New(stub.WithAppEnv(aiclient.AppEnvTest))
+	if err != nil {
+		t.Fatalf("stub.New: %v", err)
+	}
+	resolver := staticResolver{
+		"practice.followup.default": {
+			Name:     "practice.followup.default",
+			TaskType: aiclient.TaskTypeChat,
+			Default: aiclient.ProviderConfig{
+				Provider: stub.Name,
+				Model:    "stub-chat-1",
+			},
+			TimeoutMs: 5000,
+			Version:   "1.0.0",
+		},
+	}
+	inner, err := aiclient.New(
+		aiclient.Config{AppEnv: aiclient.AppEnvTest},
+		aiclient.WithStubAllowed(true),
+		aiclient.WithProfileResolver(resolver),
+		aiclient.WithProvider(stubProv),
+	)
+	if err != nil {
+		t.Fatalf("aiclient.New: %v", err)
+	}
+	wrap, err := observability.New(inner,
+		observability.WithRegisterer(observability.NewInMemoryRegistry()),
+		observability.WithLogger(observability.NewMemoryLogger()),
+		observability.WithAITaskRunWriter(failingTaskRunWriter{err: errors.New("db down")}),
+		observability.WithAuditEventWriter(&memAuditWriter{}),
+		observability.WithProfileResolver(resolver),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+
+	_, _, err = wrap.Complete(context.Background(), "practice.followup.default", samplePayload())
+	if err == nil {
+		t.Fatalf("expected writer failure to be returned")
+	}
+	if !strings.Contains(err.Error(), "write ai_task_runs") || !strings.Contains(err.Error(), "db down") {
+		t.Fatalf("expected ai_task_runs write context in error, got: %v", err)
 	}
 }
 

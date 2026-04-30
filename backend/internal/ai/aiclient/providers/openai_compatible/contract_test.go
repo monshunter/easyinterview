@@ -230,6 +230,31 @@ func TestComplete_4xxParsesErrorEnvelope(t *testing.T) {
 	}
 }
 
+func TestComplete_4xxUnknownErrorCodeFallsBackToAIOutputInvalid(t *testing.T) {
+	srv := mockserver.New()
+	srv.SetChatBehavior(mockserver.Behavior{
+		StatusCode: 400,
+		ErrorBody:  `{"error":{"code":"PROVIDER_PRIVATE_BAD_REQUEST","message":"bad input"}}`,
+	})
+	defer srv.Close()
+	a := newAdapter(t, srv)
+
+	_, meta, err := a.Complete(context.Background(), chatProfile(2000), samplePayload())
+	if err == nil {
+		t.Fatalf("expected error for 4xx")
+	}
+	var apiErr *sharederrors.APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected APIError, got %T: %v", err, err)
+	}
+	if apiErr.Code != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("expected unknown upstream code to fall back to %q, got %q", sharederrors.CodeAiOutputInvalid, apiErr.Code)
+	}
+	if meta.ErrorCode != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("expected meta.ErrorCode=%q, got %q", sharederrors.CodeAiOutputInvalid, meta.ErrorCode)
+	}
+}
+
 func TestComplete_FallbackHeadersPopulateMeta(t *testing.T) {
 	srv := mockserver.New()
 	srv.SetChatBehavior(mockserver.Behavior{

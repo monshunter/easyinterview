@@ -223,8 +223,13 @@ func mapHTTPError(status int, body []byte) error {
 	// AI_OUTPUT_INVALID for shape errors and a generic wire error otherwise.
 	var env errorEnvelope
 	if json.Unmarshal(body, &env) == nil && env.Error.Code != "" {
-		// Pass through the upstream code as-is; B1 owns the registry.
-		return sharederrors.Wrap(env.Error.Code, env.Error.Message, false)
+		if meta, ok := sharederrors.CodeRegistry[env.Error.Code]; ok {
+			msg := env.Error.Message
+			if msg == "" {
+				msg = meta.Message
+			}
+			return sharederrors.Wrap(env.Error.Code, msg, meta.Retryable)
+		}
 	}
 	return sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, fmt.Sprintf("openai_compatible: upstream %d", status), false)
 }

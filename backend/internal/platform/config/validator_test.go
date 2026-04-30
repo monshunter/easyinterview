@@ -40,21 +40,34 @@ async:
     low: 1
 `)
 	loader, err := config.Load(config.Options{
-		AppEnv:    "prod",
-		ConfigDir: dir,
-		SecretBindings: map[string]string{
-			"auth.sessionCookieSecret":         "SESSION_COOKIE_SECRET",
-			"auth.challengeTokenPepper":        "AUTH_CHALLENGE_TOKEN_PEPPER",
-			"ai.gatewayApiKey":                 "AI_GATEWAY_API_KEY",
-			"email.providerApiKey":             "EMAIL_PROVIDER_API_KEY",
-			"featureFlag.posthogProjectApiKey": "POSTHOG_PROJECT_API_KEY",
-		},
-		SecretSource: secrets,
+		AppEnv:         "prod",
+		ConfigDir:      dir,
+		EnvBindings:    config.DefaultEnvBindings(),
+		SecretBindings: config.DefaultSecretBindings(),
+		SecretSource:   secrets,
 	})
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
 	return loader
+}
+
+func setCompleteProdRuntimeEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv("APP_LISTEN_ADDR", ":8080")
+	t.Setenv("WORKER_LISTEN_ADDR", ":8081")
+	t.Setenv("DATABASE_URL", "postgres://prod:secret@db.internal:5432/easyinterview?sslmode=require")
+	t.Setenv("REDIS_URL", "redis://redis.internal:6379/0")
+	t.Setenv("OBJECT_STORAGE_ENDPOINT", "https://s3.internal")
+	t.Setenv("OBJECT_STORAGE_BUCKET", "easyinterview-prod")
+	t.Setenv("OBJECT_STORAGE_ACCESS_KEY", "object-access")
+	t.Setenv("OBJECT_STORAGE_SECRET_KEY", "object-secret")
+	t.Setenv("LOG_LEVEL", "info")
+	t.Setenv("AI_GATEWAY_BASE_URL", "https://gateway")
+	t.Setenv("AI_MODEL_PROFILE_PATH", "/etc/easyinterview/ai-profiles")
+	t.Setenv("FEATURE_FLAG_SOURCE", "posthog")
+	t.Setenv("POSTHOG_HOST", "https://posthog")
+	t.Setenv("EMAIL_PROVIDER", "ses")
 }
 
 func TestValidateProdMissingSecretFailsFast(t *testing.T) {
@@ -75,18 +88,46 @@ func TestValidateProdMissingSecretFailsFast(t *testing.T) {
 }
 
 func TestValidateProdAllSecretsPasses(t *testing.T) {
+	setCompleteProdRuntimeEnv(t)
 	loader := newProdLoaderWithGatewayBaseURL(t, mapSecret{
 		"SESSION_COOKIE_SECRET":       "secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
 		"AI_GATEWAY_API_KEY":          "key",
-		"EMAIL_PROVIDER":              "ses",
 		"EMAIL_PROVIDER_API_KEY":      "ek",
-		"POSTHOG_HOST":                "https://posthog",
 		"POSTHOG_PROJECT_API_KEY":     "ph-key",
-		"POSTHOG_SELF_HOSTED":         "true",
 	}, "https://gateway")
 	if err := loader.Validate(); err != nil {
 		t.Errorf("unexpected validate error: %v", err)
+	}
+}
+
+func TestValidateProdRejectsDevDefaultDeploymentDependencies(t *testing.T) {
+	loader := newProdLoaderWithGatewayBaseURL(t, mapSecret{
+		"SESSION_COOKIE_SECRET":       "secret",
+		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
+		"AI_GATEWAY_API_KEY":          "key",
+		"EMAIL_PROVIDER_API_KEY":      "ek",
+		"POSTHOG_PROJECT_API_KEY":     "ph-key",
+	}, "https://gateway")
+
+	err := loader.Validate()
+	if err == nil {
+		t.Fatal("expected validate error when prod uses dev default deployment dependencies")
+	}
+	msg := err.Error()
+	for _, key := range []string{
+		"DATABASE_URL",
+		"REDIS_URL",
+		"OBJECT_STORAGE_ENDPOINT",
+		"OBJECT_STORAGE_BUCKET",
+		"OBJECT_STORAGE_ACCESS_KEY",
+		"OBJECT_STORAGE_SECRET_KEY",
+		"POSTHOG_HOST",
+		"EMAIL_PROVIDER",
+	} {
+		if !strings.Contains(msg, key) {
+			t.Errorf("error missing key %s: %s", key, msg)
+		}
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
+	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 )
 
 // Wrap decorates an inner aiclient.AIClient with the spec §2.1 / §4.3
@@ -112,7 +113,8 @@ func New(inner aiclient.AIClient, opts ...Option) (*Wrap, error) {
 func (w *Wrap) Complete(ctx context.Context, profileName string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
 	start := w.now()
 	resp, meta, err := w.inner.Complete(ctx, profileName, payload)
-	latencyMs := w.now().Sub(start).Milliseconds()
+	completed := w.now()
+	latencyMs := completed.Sub(start).Milliseconds()
 	if meta.LatencyMs == 0 {
 		meta.LatencyMs = latencyMs
 	}
@@ -128,20 +130,21 @@ func (w *Wrap) Complete(ctx context.Context, profileName string, payload aiclien
 		}
 	}
 
-	w.recordCompleteCall(ctx, profileName, payload, resp.Content, meta, err)
-	return resp, meta, err
+	recordErr := w.recordCompleteCall(ctx, profileName, payload, resp.Content, meta, start, completed, err)
+	return resp, meta, joinRecordError(err, recordErr)
 }
 
 // Embed implements aiclient.AIClient.
 func (w *Wrap) Embed(ctx context.Context, profileName string, input aiclient.EmbedInput) (aiclient.EmbedResponse, aiclient.AICallMeta, error) {
 	start := w.now()
 	resp, meta, err := w.inner.Embed(ctx, profileName, input)
-	latencyMs := w.now().Sub(start).Milliseconds()
+	completed := w.now()
+	latencyMs := completed.Sub(start).Milliseconds()
 	if meta.LatencyMs == 0 {
 		meta.LatencyMs = latencyMs
 	}
-	w.recordEmbedCall(ctx, profileName, input, resp, meta, err)
-	return resp, meta, err
+	recordErr := w.recordEmbedCall(ctx, profileName, input, resp, meta, start, completed, err)
+	return resp, meta, joinRecordError(err, recordErr)
 }
 
 // Stream implements aiclient.AIClient. Plan 001 emits one decorator
@@ -158,26 +161,52 @@ func (w *Wrap) Stream(ctx context.Context, profileName string, payload aiclient.
 		for ev := range innerCh {
 			out <- ev
 			if ev.Type == aiclient.StreamEventDone && ev.Meta != nil {
-				w.recordCompleteCall(ctx, profileName, payload, "", *ev.Meta, nil)
+				now := w.now()
+				_ = w.recordCompleteCall(ctx, profileName, payload, "", *ev.Meta, now, now, nil)
 			}
 			if ev.Type == aiclient.StreamEventError {
-				w.recordCompleteCall(ctx, profileName, payload, "", aiclient.AICallMeta{ErrorCode: ev.ErrorCode, ModelProfileName: profileName}, fmt.Errorf("stream error: %s", ev.ErrorCode))
+				now := w.now()
+				_ = w.recordCompleteCall(ctx, profileName, payload, "", aiclient.AICallMeta{ErrorCode: ev.ErrorCode, ModelProfileName: profileName}, now, now, fmt.Errorf("stream error: %s", ev.ErrorCode))
 			}
 		}
 	}()
 	return out, nil
 }
 
-func (w *Wrap) recordCompleteCall(ctx context.Context, profileName string, payload aiclient.CompletePayload, responseContent string, meta aiclient.AICallMeta, err error) {
+func (w *Wrap) recordCompleteCall(ctx context.Context, profileName string, payload aiclient.CompletePayload, responseContent string, meta aiclient.AICallMeta, start, completed time.Time, err error) error {
 	w.recordMetricsAndLog(meta, err)
-	_ = w.runWriter.WriteAITaskRun(ctx, AITaskRunRowFromMeta(meta))
-	_ = w.auditWriter.WriteAuditEvent(ctx, w.buildAuditRow(profileName, joinMessages(payload.Messages), responseContent))
+	auditRow := w.buildAuditRow(profileName, joinMessages(payload.Messages), responseContent)
+	return errors.Join(
+		w.writeTaskRun(ctx, meta, payload.Metadata.TaskRun, auditRow.Metadata, start, completed, err),
+		w.writeAuditEvent(ctx, auditRow),
+	)
 }
 
-func (w *Wrap) recordEmbedCall(ctx context.Context, profileName string, input aiclient.EmbedInput, resp aiclient.EmbedResponse, meta aiclient.AICallMeta, err error) {
+func (w *Wrap) recordEmbedCall(ctx context.Context, profileName string, input aiclient.EmbedInput, resp aiclient.EmbedResponse, meta aiclient.AICallMeta, start, completed time.Time, err error) error {
 	w.recordMetricsAndLog(meta, err)
-	_ = w.runWriter.WriteAITaskRun(ctx, AITaskRunRowFromMeta(meta))
-	_ = w.auditWriter.WriteAuditEvent(ctx, w.buildAuditRow(profileName, strings.Join(input.Texts, "\n"), summarizeVectors(resp.Vectors)))
+	auditRow := w.buildAuditRow(profileName, strings.Join(input.Texts, "\n"), summarizeVectors(resp.Vectors))
+	return errors.Join(
+		w.writeTaskRun(ctx, meta, input.Metadata.TaskRun, auditRow.Metadata, start, completed, err),
+		w.writeAuditEvent(ctx, auditRow),
+	)
+}
+
+func (w *Wrap) writeTaskRun(ctx context.Context, meta aiclient.AICallMeta, taskCtx aiclient.AITaskRunContext, metadata aiclient.AuditMetadata, start, completed time.Time, callErr error) error {
+	row, err := AITaskRunRowFromMeta(meta, taskCtx, metadata, start, completed, callErr)
+	if err != nil {
+		return err
+	}
+	if err := w.runWriter.WriteAITaskRun(ctx, row); err != nil {
+		return fmt.Errorf("observability: write ai_task_runs: %w", err)
+	}
+	return nil
+}
+
+func (w *Wrap) writeAuditEvent(ctx context.Context, row aiclient.AuditEventRow) error {
+	if err := w.auditWriter.WriteAuditEvent(ctx, row); err != nil {
+		return fmt.Errorf("observability: write audit_events: %w", err)
+	}
+	return nil
 }
 
 func (w *Wrap) recordMetricsAndLog(meta aiclient.AICallMeta, err error) {
@@ -262,26 +291,65 @@ func (w *Wrap) buildLogFields(meta aiclient.AICallMeta) LogFields {
 // AITaskRunRowFromMeta builds the typed ai_task_runs row directly from
 // AICallMeta. The mapping is intentionally exposed so future plans can
 // reuse it.
-func AITaskRunRowFromMeta(meta aiclient.AICallMeta) aiclient.AITaskRunRow {
-	return aiclient.AITaskRunRow{
-		Provider:            meta.Provider,
-		ModelFamily:         meta.ModelFamily,
-		ModelID:             meta.ModelID,
-		TaskType:            meta.TaskType,
-		PromptVersion:       meta.PromptVersion,
-		RubricVersion:       meta.RubricVersion,
-		ModelProfileName:    meta.ModelProfileName,
-		ModelProfileVersion: meta.ModelProfileVersion,
-		Language:            meta.Language,
-		InputTokens:         meta.InputTokens,
-		OutputTokens:        meta.OutputTokens,
-		CostUSDMicros:       meta.CostUSDMicros,
-		LatencyMs:           meta.LatencyMs,
-		FallbackChain:       meta.FallbackChain,
-		Route:               meta.Route,
-		ValidationStatus:    meta.ValidationStatus,
-		ErrorCode:           meta.ErrorCode,
+func AITaskRunRowFromMeta(meta aiclient.AICallMeta, taskCtx aiclient.AITaskRunContext, metadata aiclient.AuditMetadata, start, completed time.Time, callErr error) (aiclient.AITaskRunRow, error) {
+	if taskCtx.ID == "" {
+		taskCtx.ID = idx.NewID()
 	}
+	if err := taskCtx.Validate(); err != nil {
+		return aiclient.AITaskRunRow{}, fmt.Errorf("observability: build ai_task_runs row: %w", err)
+	}
+	return aiclient.AITaskRunRow{
+		ID:                   taskCtx.ID,
+		UserID:               taskCtx.UserID,
+		TaskType:             taskCtx.TaskType,
+		ResourceType:         taskCtx.ResourceType,
+		ResourceID:           taskCtx.ResourceID,
+		Provider:             meta.Provider,
+		ModelFamily:          meta.ModelFamily,
+		ModelID:              meta.ModelID,
+		PromptVersion:        meta.PromptVersion,
+		RubricVersion:        meta.RubricVersion,
+		ModelProfileName:     meta.ModelProfileName,
+		ModelProfileVersion:  meta.ModelProfileVersion,
+		Language:             meta.Language,
+		InputTokens:          meta.InputTokens,
+		OutputTokens:         meta.OutputTokens,
+		CostUSDMicros:        meta.CostUSDMicros,
+		LatencyMs:            meta.LatencyMs,
+		FallbackChain:        meta.FallbackChain,
+		Route:                meta.Route,
+		Status:               taskRunStatus(meta, callErr),
+		ValidationStatus:     meta.ValidationStatus,
+		OutputSchemaVersion:  taskCtx.OutputSchemaVersion,
+		ErrorCode:            meta.ErrorCode,
+		RawResponseObjectKey: taskCtx.RawResponseObjectKey,
+		Metadata:             metadata,
+		StartedAt:            start,
+		CompletedAt:          completed,
+	}, nil
+}
+
+func taskRunStatus(meta aiclient.AICallMeta, err error) aiclient.AITaskRunStatus {
+	if err != nil {
+		if meta.ErrorCode == sharederrors.CodeAiProviderTimeout {
+			return aiclient.AITaskRunStatusTimeout
+		}
+		return aiclient.AITaskRunStatusFailed
+	}
+	if len(meta.FallbackChain) > 1 {
+		return aiclient.AITaskRunStatusFallback
+	}
+	return aiclient.AITaskRunStatusSuccess
+}
+
+func joinRecordError(callErr, recordErr error) error {
+	if callErr == nil {
+		return recordErr
+	}
+	if recordErr == nil {
+		return callErr
+	}
+	return errors.Join(callErr, recordErr)
 }
 
 func (w *Wrap) buildAuditRow(profileName, prompt, response string) aiclient.AuditEventRow {

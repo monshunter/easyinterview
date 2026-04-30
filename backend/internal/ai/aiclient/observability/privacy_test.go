@@ -30,6 +30,11 @@ func sensitivePayload() aiclient.CompletePayload {
 			PromptVersion: "p1",
 			RubricVersion: "r1",
 			Language:      "en",
+			TaskRun: aiclient.AITaskRunContext{
+				TaskType:     aiclient.AITaskRunTaskFollowupGenerate,
+				ResourceType: aiclient.AITaskRunResourceTargetJob,
+				ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
+			},
 		},
 	}
 }
@@ -123,6 +128,7 @@ func anyTaskRunContains(row aiclient.AITaskRunRow, token string) bool {
 		row.Provider, row.ModelFamily, row.ModelID, string(row.TaskType),
 		row.PromptVersion, row.RubricVersion, row.ModelProfileName, row.ModelProfileVersion,
 		row.Language, row.Route, string(row.ValidationStatus), row.ErrorCode,
+		row.Metadata.PromptHash, row.Metadata.ResponseHash, row.Metadata.ProfileName,
 	}
 	for _, c := range candidates {
 		if strings.Contains(c, token) {

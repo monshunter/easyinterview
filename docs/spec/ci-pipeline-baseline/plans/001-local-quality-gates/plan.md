@@ -1,6 +1,6 @@
 # Local Quality Gates Bootstrap
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-04-30
 
@@ -83,6 +83,10 @@ AI 单元测试必须走 stub / fixtures provider（[B1 spec §2.1](../../../sha
 2. `$(MAKE) codegen-openapi`（B2）+ `git diff --exit-code -- backend/internal/api/generated frontend/src/api/generated openapi/openapi.yaml`。
 
 执行顺序为 `codegen-conventions` → `codegen-openapi`，与 [B2 plan §3 Phase 2.3](../../../openapi-v1-contract/plans/001-bootstrap/plan.md#23-make-入口) 保持一致；任一 generator 漂移即失败（spec C-6）。
+
+#### 1.6 L2 remediation: `codegen-check` 纳入 B3 events/jobs drift
+
+修复 plan-code-review finding X-L2：B3 `event-and-outbox-contract` 已落地事件/任务 generator 与 `codegen-events-check` 后，A5 顶层 `make codegen-check` 必须把 B3 event/job drift 纳入同一聚合门禁，避免开发者只跑标准本地 gate 时漏掉 `shared/events.yaml`、`shared/jobs.yaml` 及其 Go/TS/JSON Schema/baseline 生成物漂移。验证包括 `make -n codegen-check` 可见 B3 gate、实际 `make codegen-check` 通过。
 
 ### Phase 2: 占位与缺位行为锁定（NOT-YET-LANDED owner 输出 + exit 0 边界）
 
@@ -176,6 +180,7 @@ W1 末时点的占位映射：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-04-30 | 1.4 | L2 code-review remediation：顶层 `make codegen-check` 纳入 B3 event/job drift gate。 | plan-code-review --fix |
 | 2026-04-29 | 1.1 | 收口 plan-review：docs-check 改为可执行 sync-doc-index 脚本 + `scripts/lint/check_md_links.py`；B1 codegen diff 覆盖 errors / idx / frontend ids；远端 CI 明确由 future `002-remote-ci` 承接。 | plan-review remediation |
 | 2026-04-30 | 1.2 | 补齐 `## 3 质量门禁分类`：Plan 类型 / TDD 策略 / BDD 不适用声明 / 替代验证 gate；renumber 后续章节并修复内部 §3.2→§4.2 引用。同步 checklist 16 项 `验证:` 子句。 | implement gate remediation |
 | 2026-04-30 | 1.3 | L2 code review remediation：reopen 真实 backend/frontend gate、Go lint、help owner 标签与 secret grep 证据漂移，修复后重新验证。 | plan-code-review remediation |

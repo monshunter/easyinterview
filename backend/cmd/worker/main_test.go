@@ -40,10 +40,20 @@ featureFlag:
 `)
 
 	for key, value := range map[string]string{
+		"APP_LISTEN_ADDR":             ":8080",
+		"WORKER_LISTEN_ADDR":          ":8081",
+		"DATABASE_URL":                "postgres://prod:secret@db.internal:5432/easyinterview?sslmode=require",
+		"REDIS_URL":                   "redis://redis.internal:6379/0",
+		"OBJECT_STORAGE_ENDPOINT":     "https://s3.internal",
+		"OBJECT_STORAGE_BUCKET":       "easyinterview-prod",
+		"OBJECT_STORAGE_ACCESS_KEY":   "object-access",
+		"OBJECT_STORAGE_SECRET_KEY":   "object-secret",
+		"LOG_LEVEL":                   "info",
 		"SESSION_COOKIE_SECRET":       "session-secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
 		"AI_GATEWAY_BASE_URL":         "https://gateway.example",
 		"AI_GATEWAY_API_KEY":          "ai-key",
+		"AI_MODEL_PROFILE_PATH":       "/etc/easyinterview/ai-profiles",
 		"EMAIL_PROVIDER":              "smtp",
 		"EMAIL_PROVIDER_API_KEY":      "email-key",
 		"POSTHOG_HOST":                "https://posthog.example",

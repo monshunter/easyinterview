@@ -1,6 +1,6 @@
 # Secrets and Config Bootstrap Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-04-30
 
@@ -62,3 +62,4 @@
 - [x] 7.2 修复 `AI_GATEWAY_BASE_URL` fail-fast：non-test AIClient-enabled 启动路径缺 base URL 或 API key 任一项都失败；`APP_ENV=test` 仍可缺 AI gateway 配置
 - [x] 7.3 修复 `scripts/lint/env_dict.py` code-side key 发现：`EnvBindings` / `SecretBindings` 字面量纳入三方求差集；binding map 声明但 `.env.example` 缺 key 的 pytest 必须失败
 - [x] 7.4 修复 runtime-config cold PostHog flag projection：首次请求按 `FlagContext` evaluation 后返回 public flags、过滤 operator-only flags；PostHog provider 初始化携带 public allowlist；D-4 业务接口不扩大
+- [x] 7.5 修复 prod/staging required config 覆盖：`validator.go` 校验 spec required/conditional P0 keys，database/redis/object storage 在 staging/prod 必须有 runtime override，缺 PostHog host / email provider / AI model profile path 等 fail-fast；补 focused tests 覆盖失败与通过路径；验证: 2026-04-30 `go test ./internal/platform/config -run 'TestValidateProd(AllSecretsPasses|RejectsDevDefaultDeploymentDependencies)' -count=1` 与 `go test ./internal/platform/... ./cmd/api ./cmd/worker -count=1`

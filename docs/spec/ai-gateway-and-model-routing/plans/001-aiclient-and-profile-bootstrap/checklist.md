@@ -1,6 +1,6 @@
 # AI Gateway and Model Routing Bootstrap Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-04-30
 
@@ -26,6 +26,7 @@
 - [x] 2.4 落地 `providers/openai_compatible/contract_test.go` 离线契约测试 + 可被 E1 复用的 `mockserver/` helper：覆盖正常 chat / embeddings、超时、5xx、fallback meta 注入；断言 token 解析、fallback chain 透传、超时 → `AI_PROVIDER_TIMEOUT`、5xx → B1 错误码语义；mock server interface 稳定供 E1 复用
 - [x] 2.5 L2 remediation F1：`openai_compatible` adapter 必须同时支持 root endpoint 与已含 `/v1` 的 `AI_GATEWAY_BASE_URL`，避免拼出 `/v1/v1/chat/completions`；补离线契约测试覆盖 `BaseURL = mockServer.URL() + "/v1"`
 - [x] 2.6 L2 remediation F3：`profile.Loader` 的手写 schema 校验错误必须包含 file path + line number；补单测覆盖缺必填字段 / 非法 task_type 等非 YAML 语法错误路径
+- [x] 2.7 L2 remediation F4：`openai_compatible` 4xx error envelope 只透传 B1 `CodeRegistry` 登记错误码；未知上游 code fallback 到 `AI_OUTPUT_INVALID`；补契约测试覆盖未知 code fallback 与已登记 code passthrough；验证: 2026-04-30 `go test ./internal/ai/aiclient/providers/openai_compatible -run 'TestComplete_4xx(ParsesErrorEnvelope|UnknownErrorCodeFallsBackToAIOutputInvalid)' -count=1`
 
 ## Phase 3: Observability / audit decorator + DB / log / metric 接入
 
@@ -34,6 +35,7 @@
 - [x] 3.3 fallback / validation 计数器语义：`meta.FallbackChain[]` 长度 > 1 时 `ai_fallback_total{from_model_family,to_model_family,result="fallback"}` +1；`validateOutput` 失败时 `ai_output_validation_failures_total` +1 + 发出 `ai.output.validation_failed` 日志，错误码统一 `AI_OUTPUT_INVALID`；`AI_FALLBACK_EXHAUSTED` 仅透传 endpoint / gateway 返回值
 - [x] 3.4 落地 `observability/privacy_test.go` 白盒测试：构造带敏感内容的 messages / response，使用 in-memory writer + log capture 断言 metric label / log fields / DB row metadata / audit_events metadata 不含明文，仅含 hash 前缀 / 长度数字 / profile 名
 - [x] 3.5 L2 remediation F2：`observability` decorator 在 `OutputSchema` 存在时必须校验 schema 的基本 `type` / `required` / `properties` 约束，不能只检查 response content 是合法 JSON；schema 不匹配时返回 `AI_OUTPUT_INVALID` 并递增 validation failure counter
+- [x] 3.6 L2 remediation F1：`AITaskRunRow` 覆盖 B4 `ai_task_runs` 必填列与 A3 typed columns，业务 `task_type` 不再写入 `chat` / `embed` / `stt`；缺 task/resource context 或 writer failure 不得静默吞掉；补 focused tests 覆盖 B4-compatible row 与 writer failure propagation；验证: 2026-04-30 `go test ./internal/ai/aiclient/observability -run 'TestDecorator_(SuccessIncrementsRunsAndLogsCompleted|AITaskRunWriterFailureReturned)' -count=1` 与 `go test ./internal/ai/aiclient/... -count=1`
 
 ## Phase 4: 配置校验与本地部署 fail-fast
 

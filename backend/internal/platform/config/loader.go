@@ -28,10 +28,11 @@ type SecretSource interface {
 // business code reads configuration through Loader to enforce the
 // os.Getenv boundary lint (spec §4.1).
 type Loader struct {
-	k        *koanf.Koanf
-	secrets  map[string]string
-	required map[string]bool
-	appEnv   string
+	k            *koanf.Koanf
+	secrets      map[string]string
+	required     map[string]bool
+	runtimeBound map[string]bool
+	appEnv       string
 }
 
 // AppEnv returns the active environment label, e.g. "dev"/"staging"/"prod".
@@ -85,11 +86,13 @@ func Load(opts Options) (*Loader, error) {
 		}
 	}
 
+	runtimeBound := make(map[string]bool, len(opts.EnvBindings)+len(opts.SecretBindings))
 	for envKey, dotPath := range opts.EnvBindings {
 		if v, ok := os.LookupEnv(envKey); ok && v != "" {
 			if err := k.Set(dotPath, v); err != nil {
 				return nil, fmt.Errorf("config: bind env %s -> %s: %w", envKey, dotPath, err)
 			}
+			runtimeBound[dotPath] = true
 		}
 	}
 
@@ -108,6 +111,7 @@ func Load(opts Options) (*Loader, error) {
 					return nil, fmt.Errorf("config: bind secret %s -> %s: %w", name, dotPath, err)
 				}
 				secretValues[dotPath] = value
+				runtimeBound[dotPath] = true
 			}
 		}
 	}
@@ -118,10 +122,11 @@ func Load(opts Options) (*Loader, error) {
 	}
 
 	return &Loader{
-		k:        k,
-		secrets:  secretValues,
-		required: required,
-		appEnv:   opts.AppEnv,
+		k:            k,
+		secrets:      secretValues,
+		required:     required,
+		runtimeBound: runtimeBound,
+		appEnv:       opts.AppEnv,
 	}, nil
 }
 

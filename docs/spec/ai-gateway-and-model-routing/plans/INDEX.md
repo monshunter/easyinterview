@@ -13,7 +13,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-aiclient-and-profile-bootstrap](./001-aiclient-and-profile-bootstrap/plan.md) | [plan](./001-aiclient-and-profile-bootstrap/plan.md) / [checklist](./001-aiclient-and-profile-bootstrap/checklist.md) / [context](./001-aiclient-and-profile-bootstrap/context.yaml) | 1.2 | completed | 2026-04-30 |
+| [001-aiclient-and-profile-bootstrap](./001-aiclient-and-profile-bootstrap/plan.md) | [plan](./001-aiclient-and-profile-bootstrap/plan.md) / [checklist](./001-aiclient-and-profile-bootstrap/checklist.md) / [context](./001-aiclient-and-profile-bootstrap/context.yaml) | 1.3 | completed | 2026-04-30 |
 
 ## 3 草案 / 阻塞（Draft / Blocked）
 

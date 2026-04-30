@@ -126,10 +126,11 @@ docs-check: ## A5 docs gate aggregator: sync-doc-index Header/INDEX drift (skill
 	@python3 "$(ROOT_DIR)/.agent-skills/sync-doc-index/scripts/sync-doc-index.py" --check
 	@python3 "$(ROOT_DIR)/scripts/lint/check_md_links.py" "$(ROOT_DIR)/docs" --ignore '**/TEMPLATES.md'
 
-codegen-check: ## A5 codegen drift gate aggregator: B1 conventions + B2 OpenAPI generators, re-run lint + `git diff --exit-code` on B1/B2 generated outputs. Remote CI required-check deferred until A5 D-5 trigger (spec §4.5 / §5).
+codegen-check: ## A5 codegen drift gate aggregator: B1 conventions + B3 events/jobs + B2 OpenAPI generators, re-run lint + drift checks. Remote CI required-check deferred until A5 D-5 trigger (spec §4.5 / §5).
 	@python3 "$(ROOT_DIR)/scripts/lint/conventions_yaml.py" "$(ROOT_DIR)/shared/conventions.yaml"
 	@python3 "$(ROOT_DIR)/scripts/lint/error_codes.py"
 	@python3 "$(ROOT_DIR)/scripts/lint/conventions_drift.py" --repo-root "$(ROOT_DIR)"
+	@$(MAKE) --no-print-directory codegen-events-check
 	@$(MAKE) --no-print-directory codegen-openapi
 	@python3 "$(ROOT_DIR)/scripts/lint/conventions_drift.py" --repo-root "$(ROOT_DIR)"
 	@$(MAKE) --no-print-directory lint-openapi
