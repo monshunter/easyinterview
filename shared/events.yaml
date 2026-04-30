@@ -1,0 +1,272 @@
+# Event envelope and payload contract truth source.
+#
+# Owner spec: docs/spec/event-and-outbox-contract/spec.md
+# Generator: backend/cmd/codegen/events
+# Validator: scripts/lint/events_inventory.py
+
+version: 1
+schemaVersion: 1
+
+envelope:
+  fields:
+    - name: eventId
+      type: $ref:b1.UUIDv7
+      required: true
+    - name: eventName
+      type: dot_case_event_name
+      required: true
+    - name: eventVersion
+      type: int
+      required: true
+    - name: aggregateType
+      type: snake_case
+      required: true
+    - name: aggregateId
+      type: $ref:b1.UUIDv7
+      required: true
+    - name: occurredAt
+      type: rfc3339
+      required: true
+    - name: producer
+      type: enum
+      required: true
+      values:
+        - api
+        - worker
+        - dispatcher
+        - review
+    - name: traceId
+      type: string
+      required: false
+      softRequired: true
+    - name: payload
+      type: polymorphic
+      required: true
+
+eventLocalEnums:
+  - name: TargetImportSourceType
+    description: Event-local enum; does not enter B1 / B2 public enums.
+    values:
+      - url
+      - text
+      - file
+  - name: ResumeTailorMode
+    description: Event-local enum; does not enter B1 / B2 public enums.
+    values:
+      - inline
+      - rewrite
+      - mirror
+  - name: SourceFreshnessStatus
+    description: Event-local enum; does not enter B1 / B2 public enums.
+    values:
+      - fresh
+      - stale
+      - failed
+events:
+  - name: target.import.requested
+    version: 1
+    producer: api
+    aggregateType: target_job
+    requiredPayload:
+      targetJobId: { type: uuidv7, source: spec:3.1.4 }
+      userId: { type: uuidv7, source: spec:3.1.4 }
+      sourceType: { type: $ref:event.TargetImportSourceType, source: spec:3.1.4 }
+      targetLanguage: { type: string, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: IDs only; no raw JD text or URL body.
+  - name: target.parsed
+    version: 1
+    producer: worker
+    aggregateType: target_job
+    requiredPayload:
+      targetJobId: { type: uuidv7, source: spec:3.1.4 }
+      userId: { type: uuidv7, source: spec:3.1.4 }
+      analysisStatus: { type: $ref:b1.TargetJobParseStatus, source: spec:3.1.4 }
+      requirementCount: { type: int, source: spec:3.1.4 }
+      coreThemes: { type: "string[]", source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: IDs and controlled slugs only; no parsed JD summary.
+  - name: target.analysis.failed
+    version: 1
+    producer: worker
+    aggregateType: target_job
+    requiredPayload:
+      targetJobId: { type: uuidv7, source: spec:3.1.4 }
+      errorCode: { type: string, source: spec:3.1.4 }
+      retryable: { type: bool, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: No provider response, prompt, or JD text.
+  - name: practice.session.started
+    version: 1
+    producer: api
+    aggregateType: practice_session
+    requiredPayload:
+      sessionId: { type: uuidv7, source: spec:3.1.4 }
+      planId: { type: uuidv7, source: spec:3.1.4 }
+      targetJobId: { type: uuidv7, source: spec:3.1.4 }
+      goal: { type: $ref:b1.PracticeGoal, source: spec:3.1.4 }
+      mode: { type: $ref:b1.PracticeMode, source: spec:3.1.4 }
+      language: { type: string, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: IDs only; no question or answer text.
+  - name: practice.turn.completed
+    version: 1
+    producer: api
+    aggregateType: practice_turn
+    requiredPayload:
+      sessionId: { type: uuidv7, source: spec:3.1.4 }
+      turnId: { type: uuidv7, source: spec:3.1.4 }
+      turnIndex: { type: int, source: spec:3.1.4 }
+      questionIntent: { type: string, source: spec:3.1.4 }
+      followUpCount: { type: int, source: spec:3.1.4 }
+      answerCharLength: { type: int, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: Lengths and counts only; no question or answer text.
+  - name: practice.session.completed
+    version: 1
+    producer: api
+    aggregateType: practice_session
+    requiredPayload:
+      sessionId: { type: uuidv7, source: spec:3.1.4 }
+      planId: { type: uuidv7, source: spec:3.1.4 }
+      targetJobId: { type: uuidv7, source: spec:3.1.4 }
+      turnCount: { type: int, source: spec:3.1.4 }
+      language: { type: string, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: IDs and counts only.
+  - name: report.generation.requested
+    version: 1
+    producer: [api, dispatcher]
+    aggregateType: feedback_report
+    requiredPayload:
+      reportId: { type: uuidv7, source: spec:3.1.4 }
+      sessionId: { type: uuidv7, source: spec:3.1.4 }
+      targetJobId: { type: uuidv7, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: IDs only.
+  - name: report.generated
+    version: 1
+    producer: worker
+    aggregateType: feedback_report
+    requiredPayload:
+      reportId: { type: uuidv7, source: spec:3.1.4 }
+      sessionId: { type: uuidv7, source: spec:3.1.4 }
+      targetJobId: { type: uuidv7, source: spec:3.1.4 }
+      preparednessLevel: { type: $ref:b1.ReadinessTier, source: spec:3.1.4 }
+      mistakeCount: { type: int, source: spec:3.1.4 }
+      promptVersion: { type: string, source: spec:3.1.4 }
+      rubricVersion: { type: string, source: spec:3.1.4 }
+      modelId: { type: string, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: No report body, answer snippets, raw model response, or prompt body.
+  - name: report.generation.failed
+    version: 1
+    producer: worker
+    aggregateType: feedback_report
+    requiredPayload:
+      reportId: { type: uuidv7, source: spec:3.1.4 }
+      sessionId: { type: uuidv7, source: spec:3.1.4 }
+      errorCode: { type: string, source: spec:3.1.4 }
+      retryable: { type: bool, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: No provider response, prompt, or answer text.
+  - name: mistake.created
+    version: 1
+    producer: [worker, review]
+    aggregateType: mistake_entry
+    requiredPayload:
+      mistakeId: { type: uuidv7, source: spec:3.1.4 }
+      targetJobId: { type: uuidv7, source: spec:3.1.4 }
+      sourceSessionId: { type: uuidv7, source: spec:3.1.4 }
+      competencyCode: { type: string, source: spec:3.1.4 }
+      status: { type: $ref:b1.MistakeStatus, source: spec:3.1.4 }
+      priority: { type: int, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: No evidence quote or answer snippet.
+  - name: mistake.status.changed
+    version: 1
+    producer: review
+    aggregateType: mistake_entry
+    requiredPayload:
+      mistakeId: { type: uuidv7, source: spec:3.1.4 }
+      fromStatus: { type: $ref:b1.MistakeStatus, source: spec:3.1.4 }
+      toStatus: { type: $ref:b1.MistakeStatus, source: spec:3.1.4 }
+      targetJobId: { type: uuidv7, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: IDs and status only.
+  - name: resume.parse.completed
+    version: 1
+    producer: worker
+    aggregateType: resume_asset
+    requiredPayload:
+      resumeAssetId: { type: uuidv7, source: spec:3.1.4 }
+      userId: { type: uuidv7, source: spec:3.1.4 }
+      parseStatus: { type: $ref:b1.TargetJobParseStatus, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: No resume raw text or parsed summary.
+  - name: resume.tailor.completed
+    version: 1
+    producer: worker
+    aggregateType: resume_tailor_run
+    requiredPayload:
+      tailorRunId: { type: uuidv7, source: spec:3.1.4 }
+      resumeAssetId: { type: uuidv7, source: spec:3.1.4 }
+      targetJobId: { type: uuidv7, source: spec:3.1.4 }
+      mode: { type: $ref:event.ResumeTailorMode, source: spec:3.1.4 }
+      status: { type: $ref:b1.ReportStatus, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: No tailored bullet text.
+  - name: debrief.created
+    version: 1
+    producer: api
+    aggregateType: debrief
+    requiredPayload:
+      debriefId: { type: uuidv7, source: spec:3.1.4 }
+      targetJobId: { type: uuidv7, source: spec:3.1.4 }
+      roundType: { type: $ref:b1.InterviewerRole, source: spec:3.1.4 }
+      questionCount: { type: int, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: No debrief notes or transcript text.
+  - name: debrief.completed
+    version: 1
+    producer: worker
+    aggregateType: debrief
+    requiredPayload:
+      debriefId: { type: uuidv7, source: spec:3.1.4 }
+      targetJobId: { type: uuidv7, source: spec:3.1.4 }
+      riskItemCount: { type: int, source: spec:3.1.4 }
+      generatedMistakeCount: { type: int, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: Counts only; no risk item prose.
+  - name: source.refreshed
+    version: 1
+    producer: worker
+    aggregateType: source_record
+    requiredPayload:
+      sourceRecordId: { type: uuidv7, source: spec:3.1.4 }
+      ownerType: { type: string, source: spec:3.1.4 }
+      ownerId: { type: uuidv7, source: spec:3.1.4 }
+      freshnessStatus: { type: $ref:event.SourceFreshnessStatus, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: No source snapshot content or URL secret.
+  - name: privacy.request.created
+    version: 1
+    producer: api
+    aggregateType: privacy_request
+    requiredPayload:
+      privacyRequestId: { type: uuidv7, source: spec:3.1.4 }
+      userId: { type: uuidv7, source: spec:3.1.4 }
+      requestType: { type: $ref:b1.PrivacyRequestType, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: Sensitive lifecycle event; no email, file URL, or exported data.
+  - name: privacy.request.completed
+    version: 1
+    producer: worker
+    aggregateType: privacy_request
+    requiredPayload:
+      privacyRequestId: { type: uuidv7, source: spec:3.1.4 }
+      userId: { type: uuidv7, source: spec:3.1.4 }
+      requestType: { type: $ref:b1.PrivacyRequestType, source: spec:3.1.4 }
+      status: { type: $ref:b1.PrivacyRequestStatus, source: spec:3.1.4 }
+    optionalPayload: {}
+    piiBoundary: Sensitive lifecycle event; no deleted or exported data.
