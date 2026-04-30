@@ -66,3 +66,24 @@ func TestRunDispatchesPrivacyMatrixDryRunWithoutDatabase(t *testing.T) {
 		}
 	}
 }
+
+func TestPrivacyMatrixCoversBaselineRetainTables(t *testing.T) {
+	var stdout bytes.Buffer
+
+	WritePrivacyMatrix(&stdout)
+	out := stdout.String()
+	for _, want := range []string{
+		"users: sync_soft_delete_then_hard_delete",
+		"auth_challenges: hard_delete",
+		"sessions: hard_delete",
+		"external_identities: hard_delete",
+		"prompt_versions: retain",
+		"rubric_versions: retain",
+		"schema_migrations: retain",
+		"schema_backfills: retain",
+	} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("privacy matrix missing %q in output:\n%s", want, out)
+		}
+	}
+}

@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-30](2026-04-30.md) | `feat(db-migrations): add enum lint and privacy dry-run` | #feat #test #docs |
 | [2026-04-30](2026-04-30.md) | `test(db-migrations): verify baseline ddl and indexes` | #test #docs |
 | [2026-04-30](2026-04-30.md) | `feat(event-outbox): add canonical jobs truth source` | #feat #test #docs |
 | [2026-04-30](2026-04-30.md) | `feat(db-migrations): land migration skeleton and wrapper` | #feat #test #docs |

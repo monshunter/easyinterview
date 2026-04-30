@@ -108,6 +108,41 @@ func TestRunBackfillEntriesSkipsRepeatedSuccess(t *testing.T) {
 	}
 }
 
+func TestRunBackfillEntriesForceRerunsOutsideProd(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	mock.ExpectQuery("select exists").
+		WithArgs(1, "apply", "sha256:baseline").
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+	mock.ExpectExec("update schema_backfills").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	ran := false
+
+	err = RunBackfillEntries(context.Background(), db, Command{AppEnv: "dev", ForceBackfill: true}, []BackfillEntry{{
+		Version:  1,
+		Name:     "baseline_noop",
+		Checksum: "sha256:baseline",
+	}}, BackfillRegistry{
+		"baseline_noop": func(context.Context, *sql.DB, BackfillMode) error {
+			ran = true
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("RunBackfillEntries returned error: %v", err)
+	}
+	if !ran {
+		t.Fatal("expected forced non-prod backfill to rerun")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestRunBackfillEntriesRejectsProdForce(t *testing.T) {
 	db, _, err := sqlmock.New()
 	if err != nil {
