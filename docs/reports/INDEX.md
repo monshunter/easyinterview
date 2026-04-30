@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-04-30](./2026-04-30-shared-conventions-codified-002-codegen-pipeline-assessment.md) | shared-conventions-codified/002-codegen-pipeline 交付复盘 | #assessment |
 | [2026-04-30](./2026-04-30-ai-gateway-and-model-routing-001-aiclient-and-profile-bootstrap-assessment.md) | ai-gateway-and-model-routing/001-aiclient-and-profile-bootstrap 交付复盘 | #assessment |
 | [2026-04-30](./2026-04-30-secrets-and-config-001-bootstrap-assessment.md) | secrets-and-config/001-bootstrap 交付复盘 | #assessment |
 | [2026-04-29](./2026-04-29-openapi-v1-contract-v18-artifact-remediation-assessment.md) | openapi-v1-contract v1.8 artifact remediation 交付复盘 | #assessment |

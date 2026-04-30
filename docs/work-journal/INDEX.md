@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-30](2026-04-30.md) | `docs(reports): land shared-conventions 002 retrospective` | #docs |
 | [2026-04-30](2026-04-30.md) | `docs(shared-conventions): complete codegen pipeline plan` | #docs #test |
 | [2026-04-30](2026-04-30.md) | `docs(shared-conventions): confirm future handoff boundaries` | #docs |
 | [2026-04-30](2026-04-30.md) | `test(shared-conventions): add cross-language parity fixture` | #test |
