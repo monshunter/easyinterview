@@ -1,4 +1,4 @@
-package openai_compatible
+package openaicompatible
 
 type wireMessage struct {
 	Role    string `json:"role"`

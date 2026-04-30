@@ -1,4 +1,4 @@
-package openai_compatible_test
+package openaicompatible_test
 
 import (
 	"context"
@@ -18,7 +18,7 @@ func chatProfile(timeoutMs int) *aiclient.ModelProfile {
 		Name:     "practice.followup.default",
 		TaskType: aiclient.TaskTypeChat,
 		Default: aiclient.ProviderConfig{
-			Provider: openai_compatible.Name,
+			Provider: openaicompatible.Name,
 			Model:    "gpt-4-turbo",
 		},
 		TimeoutMs:    timeoutMs,
@@ -32,7 +32,7 @@ func embedProfile(timeoutMs int) *aiclient.ModelProfile {
 		Name:     "review.embed.default",
 		TaskType: aiclient.TaskTypeEmbed,
 		Default: aiclient.ProviderConfig{
-			Provider: openai_compatible.Name,
+			Provider: openaicompatible.Name,
 			Model:    "text-embedding-3-small",
 		},
 		TimeoutMs: timeoutMs,
@@ -55,9 +55,9 @@ func samplePayload() aiclient.CompletePayload {
 	}
 }
 
-func newAdapter(t *testing.T, srv *mockserver.Server) *openai_compatible.Adapter {
+func newAdapter(t *testing.T, srv *mockserver.Server) *openaicompatible.Adapter {
 	t.Helper()
-	a, err := openai_compatible.New(openai_compatible.Options{
+	a, err := openaicompatible.New(openaicompatible.Options{
 		BaseURL: srv.URL(),
 		APIKey:  "test-key",
 	})
@@ -79,8 +79,8 @@ func TestComplete_NormalChatCompletion(t *testing.T) {
 	if !strings.HasPrefix(resp.Content, "mock response for ") {
 		t.Fatalf("unexpected content: %q", resp.Content)
 	}
-	if meta.Provider != openai_compatible.Name {
-		t.Fatalf("expected meta.Provider=%q, got %q", openai_compatible.Name, meta.Provider)
+	if meta.Provider != openaicompatible.Name {
+		t.Fatalf("expected meta.Provider=%q, got %q", openaicompatible.Name, meta.Provider)
 	}
 	if meta.ModelID != "gpt-4-turbo" {
 		t.Fatalf("expected ModelID=gpt-4-turbo, got %q", meta.ModelID)
@@ -117,7 +117,7 @@ func TestComplete_NormalChatCompletion(t *testing.T) {
 func TestComplete_BaseURLMayIncludeV1Prefix(t *testing.T) {
 	srv := mockserver.New()
 	defer srv.Close()
-	a, err := openai_compatible.New(openai_compatible.Options{
+	a, err := openaicompatible.New(openaicompatible.Options{
 		BaseURL: srv.URL() + "/v1",
 		APIKey:  "test-key",
 	})
@@ -159,7 +159,7 @@ func TestEmbed_NormalEmbeddings(t *testing.T) {
 	if len(resp.Vectors) != 2 {
 		t.Fatalf("expected 2 vectors, got %d", len(resp.Vectors))
 	}
-	if meta.Provider != openai_compatible.Name {
+	if meta.Provider != openaicompatible.Name {
 		t.Fatalf("provider mismatch: %q", meta.Provider)
 	}
 	if meta.ModelID != "text-embedding-3-small" {
@@ -286,10 +286,10 @@ func TestComplete_NoFallbackHeadersUsesProfileRoute(t *testing.T) {
 }
 
 func TestNew_RequiresBaseURLAndAPIKey(t *testing.T) {
-	if _, err := openai_compatible.New(openai_compatible.Options{APIKey: "k"}); err == nil {
+	if _, err := openaicompatible.New(openaicompatible.Options{APIKey: "k"}); err == nil {
 		t.Fatalf("expected error when BaseURL missing")
 	}
-	if _, err := openai_compatible.New(openai_compatible.Options{BaseURL: "http://x"}); err == nil {
+	if _, err := openaicompatible.New(openaicompatible.Options{BaseURL: "http://x"}); err == nil {
 		t.Fatalf("expected error when APIKey missing")
 	}
 }

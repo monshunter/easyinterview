@@ -8,7 +8,7 @@
 
 ## Phase 1: 跨语言真理源与 generator 前置依赖
 
-- [x] 1.1 写入 `shared/conventions.yaml`：13 个上游 §5 小节 / 14 个生成枚举类型 + 6 个已记录错误码示例 + Job 状态 + `PageInfo` / `ApiError` 结构（与 [00-shared-conventions.md](../../../../easyinterview-tech-docs/00-shared-conventions.md) §3 / §4 / §5 严格对齐）
+- [x] 1.1 写入 `shared/conventions.yaml`：13 个上游 §5 小节 / 14 个生成枚举类型 + 6 个已记录错误码示例 + Job 状态 + `PageInfo` / `ApiError` 结构（与 [00-shared-conventions.md](../../../../../easyinterview-tech-docs/00-shared-conventions.md) §3 / §4 / §5 严格对齐）
 - [x] 1.2 落地 `backend/go.mod`（module path `github.com/monshunter/easyinterview/backend`）+ `backend/internal/shared/{types,errors,idx}/` 目录与 `doc.go` 占位，作为 generator 运行前置依赖
 - [x] 1.3 落地 `backend/cmd/codegen/conventions/main.go`：从 YAML 渲染 Go 与 TS 文件，输出 idempotent；接入根 `Makefile` 的 `codegen-conventions` target
 

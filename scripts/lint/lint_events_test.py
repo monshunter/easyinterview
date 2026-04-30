@@ -180,6 +180,14 @@ class LintEventsSourceScanTest(unittest.TestCase):
 
         self.assertTrue(any("event names" in err and "18" in err and "report.generated" in err for err in errs), errs)
 
+    def test_rejects_missing_generated_contract_files(self) -> None:
+        errs = self.linter.validate_generated_contracts(self.root, self.events, self.jobs)
+
+        self.assertTrue(any("backend/internal/shared/events/events.go" in err and "missing" in err for err in errs), errs)
+        self.assertTrue(any("frontend/src/lib/events/events.ts" in err and "missing" in err for err in errs), errs)
+        self.assertTrue(any("backend/internal/shared/jobs/jobs.go" in err and "missing" in err for err in errs), errs)
+        self.assertTrue(any("frontend/src/lib/jobs/jobs.ts" in err and "missing" in err for err in errs), errs)
+
     def test_validates_generated_api_facing_job_types_match_yaml(self) -> None:
         self.write_generated_events()
         self.write_generated_jobs(api_facing=self.jobs["apiFacingSubset"] + ["email_dispatch"])

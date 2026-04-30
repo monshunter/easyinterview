@@ -1,6 +1,6 @@
 # DB Migrations Baseline Bootstrap Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-04-30
 
@@ -13,6 +13,7 @@
 - [x] 1.3 `migrations/` 使用 `NNNNNN_<verb>_<noun>.up.sql` / `.down.sql`，编号从 `000001` 起 6 位连续，并由 `make migrate-create` 生成。验证: migration file naming test / lint 覆盖非 6 位、断号、缺 up/down pair、手写异常名失败路径；`make migrate-check` 调用该检查
 - [x] 1.4 baseline up 幂等启用 `vector` extension；down 默认保留 extension，仅 dev + `MIGRATE_DROP_EXTENSIONS=1` 允许 drop。验证: 干净 Postgres 上 `make migrate-up && make migrate-down && make migrate-up` 后 `select extname from pg_extension where extname='vector'` 存在；设置 `MIGRATE_DROP_EXTENSIONS=1 APP_ENV=dev make migrate-down` 时 extension drop 行为有 focused smoke 或 SQL probe
 - [x] 1.5 落地 `schema_backfills` ledger、`migrations/backfill/manifest.yaml` 与 1 个 dry-run/apply 示例 registry。验证: Go backfill registry tests 覆盖 manifest 解析、dry-run/apply 状态写入、同一 `version + mode + checksum` 重复成功记录不重复执行、`--force` 在 `APP_ENV=prod` 被拒绝
+- [x] 1.6 L2 remediation: `MIGRATE_DROP_EXTENSIONS=1` 只能在 `APP_ENV=dev` 路径生效，staging / prod(+force) 必须在连接 DB 前失败。验证: focused CLI test 覆盖 non-dev drop-extension gate；`go test ./internal/migrations -run 'TestRunRejectsDropExtensionsOutsideDev' -count=1`
 
 ## Phase 2: baseline DDL 与索引
 
@@ -29,6 +30,7 @@
 - [x] 3.2 落地 `scripts/lint/migrations_lint.py`（或等价 Go 工具），SQL 中出现未登记 `check (col in (...))` 必须 fail。验证: pytest/Go tests 使用临时 SQL fixture 覆盖 registered check 通过、unregistered check 失败、`token_hash` allowlist 通过、`raw_token` / `session_cookie` / `api_key` 明文语义字段失败
 - [x] 3.3 `backend/internal/migrations/backfills/<version>/` 注册 dry-run/apply；同一 `version + mode + checksum` apply 成功后不得重复执行。验证: backfill registry tests 覆盖 dry-run 不改数据、apply 写 ledger、重复 apply skip/fail、`--force` 非 prod 可重跑且 prod 被拒绝
 - [x] 3.4 提供 privacy deletion matrix dry-run 入口，覆盖 spec §3.1.2 所有表组 disposition。验证: dry-run fixture 输出包含 spec §3.1.2 全部表组，且 `prompt_versions` / `rubric_versions` / `schema_migrations` / `schema_backfills` 为 retain
+- [x] 3.5 L2 remediation: migration lint 必须读取 B1 `shared/conventions.yaml`、B3 `shared/jobs.yaml` 与 B2 OpenAPI `JobType`，并覆盖 `ALTER TABLE ... CHECK (...)` 约束发现。验证: pytest 覆盖 shared source drift、B3/B2 job subset drift、missing source file 与 ALTER TABLE unregistered check；`python3 -m pytest scripts/lint/migrations_lint_test.py -q`
 
 ## Phase 4: Verification + handoff
 
@@ -38,3 +40,4 @@
 - [x] 4.4 临时修改 B3 job manifest 或 B1 enum，确认 `make migrate-check` / lint 报 drift；revert 后恢复。验证: negative drift case 先失败并指向具体 table.column/source/checksum，恢复 manifest 后 `make migrate-check` 通过且 `git diff --check` 通过
 - [x] 4.5 privacy deletion dry-run 输出覆盖 spec §3.1.2 所有表组，且 `prompt_versions` / `rubric_versions` / migration metadata 被 retain。验证: dry-run fixture/probe 输出覆盖所有 disposition，retain 表组无用户内容删除动作，结果记录到工作日志
 - [x] 4.6 本 plan checklist 全部勾选后，将 Header 切 completed，运行 sync-doc-index check/fix，并在 work journal 记录 migrate-check、SQL probes、lint probes 与 downstream handoff。验证: `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` zero drift，work journal 有本 plan commit 记录与下游 handoff
+- [x] 4.7 L2 remediation: prod down 防呆必须在 `DATABASE_URL` 校验前触发，确保无 DB URL 时仍输出 `MIGRATE_DOWN_FORCE=1` 且不执行 down SQL。验证: focused CLI test 与 `APP_ENV=prod make migrate-down` smoke 都先命中 prod guard

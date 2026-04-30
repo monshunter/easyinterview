@@ -20,7 +20,7 @@
 执行本 plan 前必须确认：
 
 - [A1 `repo-scaffold/001-bootstrap`](../../../repo-scaffold/plans/001-bootstrap/plan.md) 已创建根 `Makefile`、`backend/`、`frontend/`、`scripts/git-hooks/`、`.gitignore` 等容器目录与基础 hook 入口；本 plan 只在其上扩展。
-- [B1 `shared-conventions-codified/001-bootstrap`](../../shared-conventions-codified/plans/001-bootstrap/plan.md) 已落地 `backend/go.mod` 与 `backend/internal/shared/` 共享包；本 plan 的 Go 代码引用其常量。
+- [B1 `shared-conventions-codified/001-bootstrap`](../../../shared-conventions-codified/plans/001-bootstrap/plan.md) 已落地 `backend/go.mod` 与 `backend/internal/shared/` 共享包；本 plan 的 Go 代码引用其常量。
 - [A2 `local-dev-stack/001-bootstrap`](../../../local-dev-stack/plans/001-bootstrap/plan.md) 的 `deploy/dev-stack/.env.example` 字段名已与 spec §3.1.1 字典对齐；本 plan 的 `.env.example` 是仓库根真理源，A2 dev stack 在本地启动时复用同一字典。
 
 每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来即可由 Go 代码 `config.Get*` 读取三层合并的配置；Phase 2 起来即可由业务代码通过 `SecretSource` / `FeatureFlagClient` 接口隔离 provider；Phase 3 起来即有完整的 `.env.example` 与 `config/*.yaml` 字典；Phase 4 起来即有 `make lint-config` 与 pre-commit secret 拦截；Phase 5 起来即有最小 `runtime-config` 端到端链路；Phase 6 收口验证 C-1..C-11 并完成 handoff。
@@ -33,7 +33,7 @@
 
 #### 1.1 落地 `backend/internal/platform/config/` 包骨架
 
-按 [secrets-and-config spec §5](../../spec.md#5-模块边界) 把 `loader.go` / `validator.go` / `redactor.go` / `getters.go` / `doc.go` 落到 `backend/internal/platform/config/`，module path 沿用 [B1 §1.2](../../shared-conventions-codified/plans/001-bootstrap/plan.md#12-go-module-初始化) 锁定的 `github.com/monshunter/easyinterview/backend`。`doc.go` 用一段 godoc 概述说明三层优先级（与 [secrets-and-config spec §3.1 D-1](../../spec.md#31-已锁定决策含-p0-必备-env-key-字典) 对齐）以及对外可见的 `Get*` API 命名约定。
+按 [secrets-and-config spec §5](../../spec.md#5-模块边界) 把 `loader.go` / `validator.go` / `redactor.go` / `getters.go` / `doc.go` 落到 `backend/internal/platform/config/`，module path 沿用 [B1 §1.2](../../../shared-conventions-codified/plans/001-bootstrap/plan.md#12-go-module-初始化) 锁定的 `github.com/monshunter/easyinterview/backend`。`doc.go` 用一段 godoc 概述说明三层优先级（与 [secrets-and-config spec §3.1 D-1](../../spec.md#31-已锁定决策含-p0-必备-env-key-字典) 对齐）以及对外可见的 `Get*` API 命名约定。
 
 #### 1.2 接入 `koanf` 作为 loader 实现
 
@@ -80,7 +80,7 @@ type FeatureFlagClient interface {
 
 #### 2.3 落地 `FileFlagProvider`（YAML，hot reload ≤30s）
 
-`featureflag/file_provider.go` 读取 `config/feature-flags.yaml`，按 [secrets-and-config spec D-7](../../spec.md#31-已锁定决策含-p0-必备-env-key-字典) 实现 ≤ 30s 热加载：使用 `time.Ticker` 定期对比文件 mtime + 解析后的内容 hash，变更则原子替换内部 map。热加载必须避免在进程刚启动且文件锁未稳定时 race（Phase 6 自检覆盖）；加载失败时保留上一次的内存快照并写一条结构化 warn 日志，禁止 panic。文件 schema 以 `flags: { <key>: { enabled: bool, variant?: string, public: bool } }` 为最小集合，与 [01-technical-architecture.md §15.1](../../../../easyinterview-tech-docs/01-technical-architecture.md#15-发布与灰度) 列出的 6 项 P0 baseline flag 兼容。
+`featureflag/file_provider.go` 读取 `config/feature-flags.yaml`，按 [secrets-and-config spec D-7](../../spec.md#31-已锁定决策含-p0-必备-env-key-字典) 实现 ≤ 30s 热加载：使用 `time.Ticker` 定期对比文件 mtime + 解析后的内容 hash，变更则原子替换内部 map。热加载必须避免在进程刚启动且文件锁未稳定时 race（Phase 6 自检覆盖）；加载失败时保留上一次的内存快照并写一条结构化 warn 日志，禁止 panic。文件 schema 以 `flags: { <key>: { enabled: bool, variant?: string, public: bool } }` 为最小集合，与 [01-technical-architecture.md §15.1](../../../../../easyinterview-tech-docs/01-technical-architecture.md#15-发布与灰度) 列出的 6 项 P0 baseline flag 兼容。
 
 #### 2.4 落地 `PostHogFlagProvider`（自托管 PostHog 原生 HTTP）
 
@@ -106,7 +106,7 @@ type FeatureFlagClient interface {
 
 #### 3.4 落地 `config/feature-flags.yaml` baseline
 
-按 [01-technical-architecture.md §15.1](../../../../easyinterview-tech-docs/01-technical-architecture.md#15-发布与灰度) 写入 6 项 P0 baseline flag（`practice_hint_enabled` / `report_evidence_v2_enabled` / `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `ai_fallback_model_enabled` / `mock_session_dual_track_enabled`）。每个 flag 必须显式标注 `public: true|false`：`practice_hint_enabled` / `report_evidence_v2_enabled` / `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 设 `public: true`（前端可见）；`ai_fallback_model_enabled` 设 `public: false`（operator-only），由 Phase 5 runtime-config builder 在 allowlist 中过滤。
+按 [01-technical-architecture.md §15.1](../../../../../easyinterview-tech-docs/01-technical-architecture.md#15-发布与灰度) 写入 6 项 P0 baseline flag（`practice_hint_enabled` / `report_evidence_v2_enabled` / `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `ai_fallback_model_enabled` / `mock_session_dual_track_enabled`）。每个 flag 必须显式标注 `public: true|false`：`practice_hint_enabled` / `report_evidence_v2_enabled` / `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 设 `public: true`（前端可见）；`ai_fallback_model_enabled` 设 `public: false`（operator-only），由 Phase 5 runtime-config builder 在 allowlist 中过滤。
 
 #### 3.5 落地 `config/README.md`
 
@@ -120,7 +120,7 @@ type FeatureFlagClient interface {
 
 #### 4.1 golangci-lint 自定义规则（拒绝 `os.Getenv` 越界）
 
-按 [secrets-and-config spec §4.1](../../spec.md#41-边界约束) 落地：在 [B1](../../shared-conventions-codified/plans/001-bootstrap/plan.md#31-go-lint-与错误码校验) 已落地的 `backend/.golangci.yml` 中追加一条本地可执行规则。优先选择 `revive` 自定义 rule（如 `disallow-direct-env-access`）；若 `revive` 表达不动，则在 `scripts/lint/` 下落 `os_getenv_boundary.go`（Go AST checker），由 `make lint` 调用 `go run ./scripts/lint/os_getenv_boundary` 扫描 `backend/...`。规则 allowlist 仅放行 `backend/internal/platform/config/`、`backend/internal/platform/secrets/`、`backend/cmd/api/main.go`、`backend/cmd/worker/main.go`，与 spec §4.1 一致；其它包出现 `os.Getenv` 必须 lint 失败（关闭 [secrets-and-config spec §6 C-7](../../spec.md#6-验收标准)）。
+按 [secrets-and-config spec §4.1](../../spec.md#41-边界约束) 落地：在 [B1](../../../shared-conventions-codified/plans/001-bootstrap/plan.md#31-go-lint-与错误码校验) 已落地的 `backend/.golangci.yml` 中追加一条本地可执行规则。优先选择 `revive` 自定义 rule（如 `disallow-direct-env-access`）；若 `revive` 表达不动，则在 `scripts/lint/` 下落 `os_getenv_boundary.go`（Go AST checker），由 `make lint` 调用 `go run ./scripts/lint/os_getenv_boundary` 扫描 `backend/...`。规则 allowlist 仅放行 `backend/internal/platform/config/`、`backend/internal/platform/secrets/`、`backend/cmd/api/main.go`、`backend/cmd/worker/main.go`，与 spec §4.1 一致；其它包出现 `os.Getenv` 必须 lint 失败（关闭 [secrets-and-config spec §6 C-7](../../spec.md#6-验收标准)）。
 
 #### 4.2 `make lint-config`：env key dictionary drift 检查
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -22,21 +21,14 @@ func (e StaticEnv) Getenv(key string) string {
 	return e[key]
 }
 
-type processEnv struct{}
-
-func (processEnv) Getenv(key string) string {
-	return os.Getenv(key)
-}
-
-// ProcessEnv returns an Env backed by os.Getenv.
-func ProcessEnv() Env {
-	return processEnv{}
-}
-
 // Run executes the migration CLI and returns a process-style exit code.
+// env must be non-nil; the os.Getenv-backed adapter lives in cmd/migrate so
+// that this package stays inside the A4 lint-getenv-boundary allow-list (A4
+// spec §4.1 only allows cmd/{api,worker,migrate}/main.go and platform/config|secrets).
 func Run(ctx context.Context, args []string, env Env, stdout, stderr io.Writer) int {
 	if env == nil {
-		env = ProcessEnv()
+		fmt.Fprintln(stderr, "ERROR: migrations.Run requires a non-nil Env (use migrations.StaticEnv for tests or the os.Getenv adapter from cmd/migrate)")
+		return 2
 	}
 	if stdout == nil {
 		stdout = io.Discard
@@ -79,12 +71,16 @@ func Run(ctx context.Context, args []string, env Env, stdout, stderr io.Writer) 
 		return 0
 	}
 
-	if env.Getenv("DATABASE_URL") == "" {
-		fmt.Fprintln(stderr, "ERROR: DATABASE_URL is required for migration commands")
-		return 1
-	}
 	if command == "down" && env.Getenv("APP_ENV") == "prod" && env.Getenv("MIGRATE_DOWN_FORCE") != "1" {
 		fmt.Fprintln(stderr, "ERROR: refusing migrate-down in APP_ENV=prod; set MIGRATE_DOWN_FORCE=1 during an approved operation window")
+		return 1
+	}
+	if command == "down" && env.Getenv("MIGRATE_DROP_EXTENSIONS") == "1" && env.Getenv("APP_ENV") != "dev" {
+		fmt.Fprintln(stderr, "ERROR: MIGRATE_DROP_EXTENSIONS=1 is only allowed when APP_ENV=dev")
+		return 1
+	}
+	if env.Getenv("DATABASE_URL") == "" {
+		fmt.Fprintln(stderr, "ERROR: DATABASE_URL is required for migration commands")
 		return 1
 	}
 
@@ -94,7 +90,7 @@ func Run(ctx context.Context, args []string, env Env, stdout, stderr io.Writer) 
 		MigrationsDir:    opts.MigrationsDir,
 		BackfillManifest: opts.BackfillManifest,
 		AppEnv:           env.Getenv("APP_ENV"),
-		DropExtensions:   env.Getenv("MIGRATE_DROP_EXTENSIONS") == "1",
+		DropExtensions:   env.Getenv("MIGRATE_DROP_EXTENSIONS") == "1" && env.Getenv("APP_ENV") == "dev",
 		ForceBackfill:    env.Getenv("MIGRATE_BACKFILL_FORCE") == "1",
 		Stdout:           stdout,
 	}); err != nil {

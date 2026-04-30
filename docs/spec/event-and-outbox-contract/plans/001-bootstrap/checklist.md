@@ -1,6 +1,6 @@
 # Event and Outbox Contract Bootstrap Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-04-30
 
@@ -28,6 +28,7 @@
 - [x] 3.4 generator 输出 JSON Schema：`shared/events/schemas/<eventName>.v1.json`（Draft 2020-12，每个事件一个文件，envelope + payload；B1 enum 字段由 generator inline 当前值，或引用 B3-owned `shared/events/refs/<EnumName>.json` 桥接文件）；输出 idempotent；验证: `(cd backend && go test ./cmd/codegen/events -run TestGenerateJSONSchemas -count=1)` 与 `make codegen-events` 断言 18 个 schema 文件、B1 enum inline/ref、重复生成无 diff
 - [x] 3.5 根 `Makefile` 追加 `codegen-events` target（调用 `go run ./backend/cmd/codegen/events`）；把 `make codegen` 升级为 `codegen: codegen-conventions codegen-events codegen-openapi`；`make help` 自动收录；验证: `make help` 输出包含 `codegen-events`，`make -n codegen` 顺序包含 `codegen-conventions` → `codegen-events` → `codegen-openapi`
 - [x] 3.6 落地 committed baseline manifests：`shared/events/baseline/events.v1.json` 与 `shared/jobs/baseline/jobs.v1.json` 由 generator 生成并提交；`make lint-events` 比较当前真理源与 baseline，breaking 变更必须 fail；验证: `(cd backend && go test ./cmd/codegen/events -run TestBaselineManifests -count=1)` 与 `make lint-events` 对删除 eventName / jobType、改 required 字段、internal-only 改 apiFacing 的 fixture 失败
+- [x] 3.7 L2 remediation: B3 generator 的 B1 enum JSON Schema refs 必须从 `shared/conventions.yaml` 读取当前值，不得在 B3 generator 内硬编码 B1 enum 字面量；缺失 B1 enum ref 必须 fail-fast；验证: `(cd backend && go test ./cmd/codegen/events -run 'TestGeneratorReadsB1EnumRefsFromConventionsYaml|TestGeneratorFailsWhenB1EnumRefMissingFromConventions' -count=1)` 先红后绿，`make codegen-events` 后 generated refs 与 B1 truth source 保持一致
 
 ## Phase 4: `make lint-events` 与本地 drift gate
 
@@ -35,6 +36,7 @@
 - [x] 4.2 `make lint-events` 校验 generated 文件中事件名集合长度 == 18 且与 `shared/events.yaml` 一致；任何 generated 文件之外手写 `EventName*` 常量声明 fail；验证: `make lint-events` 在临时删除 generated event、额外手写 `EventName*` fixture 时失败，恢复后通过
 - [x] 4.3 `make lint-events` 校验 generated `APIFacingJobTypes` 长度 == 7 且与 `shared/jobs.yaml.apiFacingSubset` 一致；任一项 `apiFacing != true` fail（防止 `email_dispatch` 误扩）；验证: `make lint-events` 在临时把 `email_dispatch` 标为 API-facing 或 subset 增至 8 项时失败，恢复后通过
 - [x] 4.4 落地本地 drift gate 命令：`make codegen-events && make lint-events && git diff --exit-code -- shared/events.yaml shared/jobs.yaml backend/internal/shared/events backend/internal/shared/jobs frontend/src/lib/events frontend/src/lib/jobs shared/events/schemas`；在 `Makefile` 注释中说明远端 CI 仅在 [A5 ci-pipeline-baseline](../../../ci-pipeline-baseline/spec.md) 触发条件成立后再接入；验证: 完整 drift gate 命令 exit 0，临时修改 generated 文件后 `git diff --exit-code -- ...` 失败并指出 drift
+- [x] 4.5 L2 remediation: `make lint-events` 必须在任一 generated contract 文件缺失时 fail-fast，而不是跳过缺失路径；验证: `python3 -m pytest scripts/lint/lint_events_test.py -q` 覆盖 Go/TS events/jobs generated 文件缺失失败 case，`make lint-events` 仍通过当前仓库完整产物
 
 ## Phase 5: 单元测试（envelope / trace 透传 / breaking-change 拦截 / `email_dispatch` 红线）
 

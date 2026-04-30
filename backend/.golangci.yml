@@ -12,10 +12,10 @@ linters:
     - govet
     - revive
 
-linters-settings:
-  revive:
-    rules:
-      # Enforce var / type / function naming conventions to keep generated
-      # constants and hand-written helpers consistent (00-shared-conventions
-      # §2.1).
-      - name: var-naming
+  settings:
+    revive:
+      rules:
+        # Enforce var / type / function naming conventions to keep generated
+        # constants and hand-written helpers consistent (00-shared-conventions
+        # §2.1).
+        - name: var-naming

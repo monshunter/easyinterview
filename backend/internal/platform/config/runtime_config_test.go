@@ -64,7 +64,7 @@ func TestBuildRuntimeConfigAllowlistAndOptOut(t *testing.T) {
 		AnalyticsOptIn: false,
 	})
 
-	if rc.AppVersion != "1.2.3" || rc.DefaultUiLanguage != "zh-CN" {
+	if rc.AppVersion != "1.2.3" || rc.DefaultUILanguage != "zh-CN" {
 		t.Errorf("public scalars wrong: %+v", rc)
 	}
 	if rc.AnalyticsEnabled {

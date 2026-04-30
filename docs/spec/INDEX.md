@@ -21,7 +21,7 @@
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.1 | active | 2026-04-29 | [plans](./repo-scaffold/plans/) |
 | [local-dev-stack](./local-dev-stack/spec.md) | 1.5 | active | 2026-04-29 | [plans](./local-dev-stack/plans/) |
 | [ai-gateway-and-model-routing](./ai-gateway-and-model-routing/spec.md) | 1.7 | active | 2026-04-29 | [plans](./ai-gateway-and-model-routing/plans/) |
-| [secrets-and-config](./secrets-and-config/spec.md) | 1.7 | active | 2026-04-29 | [plans](./secrets-and-config/plans/) |
+| [secrets-and-config](./secrets-and-config/spec.md) | 1.8 | active | 2026-04-30 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.3 | active | 2026-04-29 | [plans](./ci-pipeline-baseline/plans/) |
 
 ### 2.2 Layer B · Contract

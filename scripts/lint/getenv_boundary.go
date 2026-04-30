@@ -10,6 +10,7 @@
 //   backend/internal/platform/secrets/...
 //   backend/cmd/api/...
 //   backend/cmd/worker/...
+//   backend/cmd/migrate/...
 package main
 
 import (
@@ -36,6 +37,7 @@ var defaultAllowlist = []string{
 	"backend/internal/platform/secrets/",
 	"backend/cmd/api/",
 	"backend/cmd/worker/",
+	"backend/cmd/migrate/",
 }
 
 // defaultBannedCalls intentionally focuses on the os.Getenv family per

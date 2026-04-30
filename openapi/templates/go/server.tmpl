@@ -14,7 +14,7 @@ import (
 // 36-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 {{range .Operations}}
-	// {{.OperationId}} — {{.Method}} {{.Path}}{{if .Summary}}: {{.Summary}}{{end}}
+	// {{.OperationID}} — {{.Method}} {{.Path}}{{if .Summary}}: {{.Summary}}{{end}}
 	{{.GoMethodName}}(w http.ResponseWriter, r *http.Request{{range .PathParams}}, {{.GoName}} string{{end}})
 {{end}}
 }
@@ -33,6 +33,6 @@ type Route struct {
 // AllRoutes lists every spec §3.1.1 operation in declaration order.
 var AllRoutes = []Route{
 {{- range .Operations}}
-	{OperationID: "{{.OperationId}}", Method: "{{.Method}}", Path: "{{.Path}}", PathParams: {{.PathParamsLiteral}}},
+	{OperationID: "{{.OperationID}}", Method: "{{.Method}}", Path: "{{.Path}}", PathParams: {{.PathParamsLiteral}}},
 {{- end}}
 }

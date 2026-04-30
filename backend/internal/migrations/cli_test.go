@@ -26,8 +26,7 @@ func TestRunRejectsProdDownWithoutForceBeforeOpeningDatabase(t *testing.T) {
 	var stderr bytes.Buffer
 
 	exitCode := Run(context.Background(), []string{"down"}, StaticEnv{
-		"APP_ENV":      "prod",
-		"DATABASE_URL": "postgres://example.invalid/easyinterview",
+		"APP_ENV": "prod",
 	}, nil, &stderr)
 
 	if exitCode == 0 {
@@ -35,6 +34,27 @@ func TestRunRejectsProdDownWithoutForceBeforeOpeningDatabase(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "MIGRATE_DOWN_FORCE=1") {
 		t.Fatalf("stderr should describe the force gate, got %q", stderr.String())
+	}
+	if strings.Contains(stderr.String(), "DATABASE_URL") {
+		t.Fatalf("prod guard must run before DATABASE_URL validation, got %q", stderr.String())
+	}
+}
+
+func TestRunRejectsDropExtensionsOutsideDev(t *testing.T) {
+	var stderr bytes.Buffer
+
+	exitCode := Run(context.Background(), []string{"down"}, StaticEnv{
+		"APP_ENV":                 "staging",
+		"DATABASE_URL":            "postgres://example.invalid/easyinterview",
+		"MIGRATE_DROP_EXTENSIONS": "1",
+		"MIGRATE_DOWN_FORCE":      "1",
+	}, nil, &stderr)
+
+	if exitCode == 0 {
+		t.Fatal("expected non-dev extension drop to fail")
+	}
+	if !strings.Contains(stderr.String(), "MIGRATE_DROP_EXTENSIONS=1") || !strings.Contains(stderr.String(), "APP_ENV=dev") {
+		t.Fatalf("stderr should describe dev-only extension drop gate, got %q", stderr.String())
 	}
 }
 

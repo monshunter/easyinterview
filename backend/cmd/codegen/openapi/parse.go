@@ -13,9 +13,9 @@ import (
 // codegen needs (enum names + values, documented error codes, jobStatuses,
 // PageInfo / ApiError structures).
 type Conventions struct {
-	Errors      []conventionError `yaml:"errors"`
-	JobStatuses []string          `yaml:"jobStatuses"`
-	Enums       []conventionEnum  `yaml:"enums"`
+	Errors      []conventionError           `yaml:"errors"`
+	JobStatuses []string                    `yaml:"jobStatuses"`
+	Enums       []conventionEnum            `yaml:"enums"`
 	Structures  map[string]conventionStruct `yaml:"structures"`
 }
 
@@ -28,7 +28,7 @@ type conventionError struct {
 type conventionEnum struct {
 	Name          string   `yaml:"name"`
 	SourceSection string   `yaml:"sourceSection"`
-	JsonField     string   `yaml:"jsonField"`
+	JSONField     string   `yaml:"jsonField"`
 	Values        []string `yaml:"values"`
 }
 

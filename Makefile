@@ -15,15 +15,15 @@ fmt: ## Format Go and frontend sources (delegates to backend/ and frontend/)
 	@$(call recurse_target,fmt,backend/Makefile,backend)
 	@$(call recurse_target,fmt,frontend/Makefile,frontend)
 
-lint: lint-conventions lint-config lint-observability ## Lint Go and frontend sources (B1 conventions / A4 config / F1 observability gates, then delegates to backend/ and frontend/)
-	@$(call recurse_target,lint,backend/Makefile,backend)
-	@$(call recurse_target,lint,frontend/Makefile,frontend)
+lint: lint-conventions lint-config lint-observability ## Lint Go and frontend sources (lint-conventions (B1) / lint-config (A4) / lint-observability (F1), then backend golangci-lint + frontend pnpm lint)
+	@cd "$(ROOT_DIR)/backend" && golangci-lint run ./...
+	@pnpm --filter @easyinterview/frontend lint
 
-lint-conventions: ## Validate shared/conventions.yaml structure and error-code casing/boundary (B1 local gate)
+lint-conventions: ## lint-conventions (B1): validate shared/conventions.yaml structure and error-code casing/boundary
 	@python3 "$(ROOT_DIR)/scripts/lint/conventions_yaml.py" "$(ROOT_DIR)/shared/conventions.yaml"
 	@python3 "$(ROOT_DIR)/scripts/lint/error_codes.py"
 
-lint-config: lint-getenv-boundary lint-env-dict lint-secrets-pattern ## A4 secrets-and-config gates: env boundary + .env.example drift + secret-pattern scan
+lint-config: lint-getenv-boundary lint-env-dict lint-secrets-pattern ## lint-config (A4): env boundary + .env.example drift + secret-pattern scan
 
 lint-getenv-boundary: ## Reject os.Getenv usage outside platform/config / platform/secrets / cmd/{api,worker} (spec C-7)
 	@cd "$(ROOT_DIR)" && go run scripts/lint/getenv_boundary.go -root backend
@@ -34,19 +34,19 @@ lint-env-dict: ## Verify .env.example, code-side os.Getenv calls, and spec §3.1
 lint-secrets-pattern: ## Scan staged + tracked files for AKIA / sk- / xox secret prefixes (defense-in-depth; pre-commit hook is the primary gate)
 	@bash "$(ROOT_DIR)/scripts/lint/gitleaks.sh" "$(ROOT_DIR)"
 
-lint-observability: ## F1 observability-stack metrics/log lint hook (NOT-YET-LANDED placeholder; A5 spec D-3 owner boundary, exit 0 until F1 lands)
+lint-observability: ## lint-observability (F1): observability-stack metrics/log lint hook (NOT-YET-LANDED placeholder, exit 0 until F1 lands)
 	@echo "not implemented yet: F1 observability-stack"
 
 lint-events: ## Validate event/job baselines and local B3 contract drift
 	@python3 "$(ROOT_DIR)/scripts/lint/lint_events.py" --repo-root "$(ROOT_DIR)"
 
-test: ## Run unit tests (delegates to backend/ and frontend/)
-	@$(call recurse_target,test,backend/Makefile,backend)
-	@$(call recurse_target,test,frontend/Makefile,frontend)
+test: ## A5 test aggregator: backend Go + frontend pnpm; AI tests use stub/fixture only, no provider secrets
+	@cd "$(ROOT_DIR)/backend" && go test ./...
+	@pnpm --filter @easyinterview/frontend test
 
-build: ## Build Go binaries and frontend bundle (delegates to backend/ and frontend/)
-	@$(call recurse_target,build,backend/Makefile,backend)
-	@$(call recurse_target,build,frontend/Makefile,frontend)
+build: ## A5 build aggregator: backend cmd binaries + frontend bundle
+	@cd "$(ROOT_DIR)/backend" && go build ./cmd/...
+	@pnpm --filter @easyinterview/frontend build
 
 dev-up: ## Start local dev dependencies (postgres+pgvector / redis / minio + project components)
 	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" up
@@ -68,7 +68,7 @@ dev-pull: ## Pre-pull dev-stack pinned images for slow-network bootstrap
 
 codegen: codegen-conventions codegen-events codegen-openapi ## Run all code generators in dependency order (B1 conventions → B3 events → B2 openapi)
 
-codegen-conventions: ## Render shared/conventions.yaml into Go and TS shared lib files
+codegen-conventions: ## codegen-conventions (B1): render shared/conventions.yaml into Go and TS shared lib files
 	@cd "$(ROOT_DIR)/backend" && go run ./cmd/codegen/conventions \
 		-yaml "$(ROOT_DIR)/shared/conventions.yaml" \
 		-repo-root "$(ROOT_DIR)"
@@ -95,7 +95,7 @@ codegen-events-check: ## Local B3 event/job contract drift gate
 		"$(ROOT_DIR)/shared/events/baseline" \
 		"$(ROOT_DIR)/shared/jobs/baseline"
 
-codegen-openapi: codegen-conventions ## Render openapi/openapi.yaml into Go and TS API artefacts (idempotent)
+codegen-openapi: codegen-conventions ## codegen-openapi (B2): render openapi/openapi.yaml into Go and TS API artefacts (idempotent)
 	@cd "$(ROOT_DIR)/backend" && go run ./cmd/codegen/openapi \
 		-openapi "$(ROOT_DIR)/openapi/openapi.yaml" \
 		-conventions "$(ROOT_DIR)/shared/conventions.yaml" \
@@ -122,7 +122,11 @@ sync-fixtures-from-prototype: ## Refresh `scenarios.prototype-baseline` of every
 render-openapi-fixture-examples: ## Project openapi/fixtures/<tag>/<operationId>.json default scenario into openapi/.generated/openapi-with-fixtures.yaml (B2 002 — Prism / docs-site source; idempotent)
 	@python3 "$(ROOT_DIR)/scripts/codegen/render_openapi_fixture_examples.py" --repo-root "$(ROOT_DIR)"
 
-codegen-check: ## Local drift gate: check B1 generated outputs, re-run codegen + lint, then `git diff --exit-code` on generated outputs and openapi.yaml. Currently the only required gate; remote CI required-check is deferred until A5 ci-pipeline-baseline triggers (spec §4.5 / §5).
+docs-check: ## A5 docs gate aggregator: sync-doc-index Header/INDEX drift (skill-owned) + relative-link sanity for docs/ (A5-owned check_md_links.py; TEMPLATES.md placeholders excluded)
+	@python3 "$(ROOT_DIR)/.agent-skills/sync-doc-index/scripts/sync-doc-index.py" --check
+	@python3 "$(ROOT_DIR)/scripts/lint/check_md_links.py" "$(ROOT_DIR)/docs" --ignore '**/TEMPLATES.md'
+
+codegen-check: ## A5 codegen drift gate aggregator: B1 conventions + B2 OpenAPI generators, re-run lint + `git diff --exit-code` on B1/B2 generated outputs. Remote CI required-check deferred until A5 D-5 trigger (spec §4.5 / §5).
 	@python3 "$(ROOT_DIR)/scripts/lint/conventions_yaml.py" "$(ROOT_DIR)/shared/conventions.yaml"
 	@python3 "$(ROOT_DIR)/scripts/lint/error_codes.py"
 	@python3 "$(ROOT_DIR)/scripts/lint/conventions_drift.py" --repo-root "$(ROOT_DIR)"
@@ -130,6 +134,7 @@ codegen-check: ## Local drift gate: check B1 generated outputs, re-run codegen +
 	@python3 "$(ROOT_DIR)/scripts/lint/conventions_drift.py" --repo-root "$(ROOT_DIR)"
 	@$(MAKE) --no-print-directory lint-openapi
 	@git -C "$(ROOT_DIR)" diff --exit-code -- \
+		"$(ROOT_DIR)/shared/conventions.yaml" \
 		"$(ROOT_DIR)/openapi/openapi.yaml" \
 		"$(ROOT_DIR)/backend/internal/api/generated" \
 		"$(ROOT_DIR)/frontend/src/api/generated" \

@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-04-30](./2026-04-30-ci-pipeline-baseline-001-local-quality-gates-assessment.md) | ci-pipeline-baseline/001-local-quality-gates 交付复盘 | #assessment |
 | [2026-04-30](./2026-04-30-event-and-outbox-contract-001-bootstrap-assessment.md) | event-and-outbox-contract/001-bootstrap 交付复盘 | #assessment |
 | [2026-04-30](./2026-04-30-db-migrations-baseline-001-bootstrap-assessment.md) | db-migrations-baseline/001-bootstrap 交付复盘 | #assessment |
 | [2026-04-30](./2026-04-30-shared-conventions-codified-002-codegen-pipeline-assessment.md) | shared-conventions-codified/002-codegen-pipeline 交付复盘 | #assessment |

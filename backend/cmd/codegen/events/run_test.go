@@ -201,6 +201,63 @@ func TestGenerateJSONSchemas(t *testing.T) {
 	}
 }
 
+func TestGeneratorReadsB1EnumRefsFromConventionsYaml(t *testing.T) {
+	repoRoot := repoRootForTest(t)
+	events := readFile(t, filepath.Join(repoRoot, "shared/events.yaml"))
+	jobs := readFile(t, filepath.Join(repoRoot, "shared/jobs.yaml"))
+	conventions := strings.Replace(
+		readFile(t, filepath.Join(repoRoot, "shared/conventions.yaml")),
+		"      - basically_ready\n",
+		"      - experimentally_ready\n",
+		1,
+	)
+	tmp := t.TempDir()
+	mustWriteFile(t, filepath.Join(tmp, "shared/conventions.yaml"), conventions)
+
+	if err := RunFromBytes([]byte(events), []byte(jobs), tmp, false); err != nil {
+		t.Fatalf("RunFromBytes: %v", err)
+	}
+
+	readinessRef := readFile(t, filepath.Join(tmp, "shared/events/refs/ReadinessTier.json"))
+	if !strings.Contains(readinessRef, `"experimentally_ready"`) {
+		t.Fatalf("ReadinessTier ref must follow shared/conventions.yaml, got:\n%s", readinessRef)
+	}
+	if strings.Contains(readinessRef, `"basically_ready"`) {
+		t.Fatalf("ReadinessTier ref used stale hard-coded B1 values, got:\n%s", readinessRef)
+	}
+}
+
+func TestGeneratorFailsWhenB1EnumRefMissingFromConventions(t *testing.T) {
+	repoRoot := repoRootForTest(t)
+	events := readFile(t, filepath.Join(repoRoot, "shared/events.yaml"))
+	jobs := readFile(t, filepath.Join(repoRoot, "shared/jobs.yaml"))
+	conventions := strings.Replace(
+		readFile(t, filepath.Join(repoRoot, "shared/conventions.yaml")),
+		`
+  - name: ReadinessTier
+    sourceSection: "5.8"
+    jsonField: readinessTier
+    values:
+      - not_ready
+      - needs_practice
+      - basically_ready
+      - well_prepared
+`,
+		"\n",
+		1,
+	)
+	tmp := t.TempDir()
+	mustWriteFile(t, filepath.Join(tmp, "shared/conventions.yaml"), conventions)
+
+	err := RunFromBytes([]byte(events), []byte(jobs), tmp, false)
+	if err == nil {
+		t.Fatalf("RunFromBytes succeeded, want missing B1 enum ref failure")
+	}
+	if !strings.Contains(err.Error(), "ReadinessTier") {
+		t.Fatalf("missing enum error must name ReadinessTier, got: %v", err)
+	}
+}
+
 func TestMakefileWiresCodegenEvents(t *testing.T) {
 	makefile := readFile(t, filepath.Join(repoRootForTest(t), "Makefile"))
 
@@ -303,6 +360,7 @@ func TestAdditiveOptionalFieldFixture(t *testing.T) {
 	)
 	jobs := readFile(t, filepath.Join(repoRoot, "shared/jobs.yaml"))
 	tmp := t.TempDir()
+	mustWriteFile(t, filepath.Join(tmp, "shared/conventions.yaml"), readFile(t, filepath.Join(repoRoot, "shared/conventions.yaml")))
 	if err := RunFromBytes([]byte(events), []byte(jobs), tmp, false); err != nil {
 		t.Fatalf("RunFromBytes: %v", err)
 	}

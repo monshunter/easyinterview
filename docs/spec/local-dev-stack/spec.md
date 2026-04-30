@@ -18,7 +18,7 @@
 4. **本地观测轻量化**：本地只要求应用自身暴露 `/metrics`（当组件已具备 HTTP runtime 时）并通过容器日志确认行为；不安装 Grafana / Loki / Prometheus / OTel Collector 作为默认依赖。
 5. **本地 AI 调用真实化**：docker compose 本地部署只通过 env 注入真实 AI provider / OpenAI-compatible endpoint，不启动 AI gateway 容器，也不把应用切到单元测试 stub。
 
-本 spec 不实现业务代码、不接入 K8s、不部署 staging（K8s/Kind 由 [test/scenarios/](../../../test/scenarios/) 与 ADR-Q4 锁定路径承接，[E4 `release-gate-and-rollout`](../engineering-roadmap/spec.md#55-layer-e--integration4-份) 在 W4/W5 验证）。
+本 spec 不实现业务代码、不接入 K8s、不部署 staging（K8s/Kind 由 `test/scenarios/`（W4 spawn，E2 owner）与 ADR-Q4 锁定路径承接，[E4 `release-gate-and-rollout`](../engineering-roadmap/spec.md#55-layer-e--integration4-份) 在 W4/W5 验证）。
 
 ## 2 范围
 

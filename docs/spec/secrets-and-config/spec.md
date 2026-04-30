@@ -1,8 +1,8 @@
 # Secrets and Config Spec
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-04-30
 
 ## 1 背景与目标
 
@@ -128,7 +128,7 @@
 
 ### 4.1 边界约束
 
-- `os.Getenv` 与 `flag.String` 等系统级读取只允许出现在 `backend/internal/platform/config/` 与 `backend/cmd/{api,worker}/main.go` 中；其它包必须通过 `config.Get*` 注入；A5 接入 lint 强制。
+- `os.Getenv` 与 `flag.String` 等系统级读取只允许出现在 `backend/internal/platform/config/` 与 `backend/cmd/{api,worker,migrate}/main.go` 中；其它包必须通过 `config.Get*` 注入；A5 接入 lint 强制。`cmd/migrate` 作为 B4 db-migrations-baseline 引入的 CLI 入口与 cmd/api / cmd/worker 同列，bootstrap 期允许直接读取 `DATABASE_URL` / `APP_ENV` / `MIGRATE_*` 等 env key。
 - 前端任何代码不得直接读取 `import.meta.env.VITE_*` 之外的 build-time 变量；运行时配置统一通过 `runtime-config` 端点。
 - `config/feature-flags.yaml` 是 dev / 单测真理源；prod 走 PostHogFlagProvider；切换由 `FEATURE_FLAG_SOURCE` 决定。
 - PostHog provider 启动时必须校验 `FEATURE_FLAG_SOURCE=posthog` 时 `POSTHOG_HOST` / `POSTHOG_PROJECT_API_KEY` 存在，且 staging/prod `POSTHOG_SELF_HOSTED=true`；启动后 PostHog 临时不可用时只允许回退到 last-known-good 内存缓存并输出 warn，不允许静默切回 file provider 造成 prod flag 口径漂移。

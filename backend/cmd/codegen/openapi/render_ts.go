@@ -72,9 +72,9 @@ type tsAliasView struct {
 }
 
 type tsSchemaView struct {
-	Kind         string // "enum" | "object" | "alias" | "any"
-	TSName       string
-	PluralName   string
+	Kind          string // "enum" | "object" | "alias" | "any"
+	TSName        string
+	PluralName    string
 	TSEnumLiteral string
 	TSEnumArray   string
 	Fields        []tsFieldView
@@ -348,7 +348,7 @@ type tsClientData struct {
 }
 
 type tsClientOpView struct {
-	OperationId       string
+	OperationID       string
 	Method            string
 	MethodUpper       string
 	Path              string
@@ -390,7 +390,7 @@ func buildTSClientData(doc *OpenAPI) (*tsClientData, error) {
 			args = append(args, "opts?: RequestOptions")
 
 			view := tsClientOpView{
-				OperationId:       id,
+				OperationID:       id,
 				Method:            verb,
 				MethodUpper:       strings.ToUpper(verb),
 				Path:              p.Path,

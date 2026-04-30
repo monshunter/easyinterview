@@ -1,8 +1,8 @@
 # Local Quality Gates Bootstrap
 
-> **版本**: 1.1
-> **状态**: active
-> **更新日期**: 2026-04-29
+> **版本**: 1.3
+> **状态**: completed
+> **更新日期**: 2026-04-30
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -25,7 +25,14 @@
 
 每个 phase 都是可独立验证的纵向切片：Phase 1 把入口 target 串通；Phase 2 锁定 NOT-YET-LANDED owner 的占位行为边界；Phase 3 收口文档与 CI deferral 守门；Phase 4 跑 spec [§6 验收标准](../../spec.md#6-验收标准) C-1..C-7 自检并贴日志。本 plan 不引入 BDD 资产、不创建 `.github/workflows/*.yml`，也不修改任何 owner subspec 的规则语义。
 
-## 3 实施步骤
+## 3 质量门禁分类
+
+- **Plan 类型**: `tooling + contract + code-internal`。本 plan 在仓库根 `Makefile` 上聚合 5 个本地质量入口 target（`make lint` / `make test` / `make build` / `make docs-check` / `make codegen-check`），调用 B1 / B2 / A4 / F1 owner 已暴露的 lint / generator / config check 与轻量脚本（`scripts/lint/check_md_links.py`）。属于本地工具链与契约聚合层，不引入用户可感知 UI、HTTP API 行为、业务工作流或端到端功能。
+- **TDD 策略**: 必须通过 `/tdd --file docs/spec/ci-pipeline-baseline/plans/001-local-quality-gates/checklist.md --references docs/spec/ci-pipeline-baseline/plans/001-local-quality-gates/plan.md,docs/spec/ci-pipeline-baseline/spec.md --phase-commit ci-pipeline-baseline/001-local-quality-gates` 顺序执行。每个 checklist item 以本 checklist 内的 `验证:` 子句作为 Red-Green-Refactor 断言来源；涉及 sub-target 接入或占位行为的 item 必须先在缺位 / 失败状态下复现 expected output（占位 `not implemented yet:` exit 0 或 fail-fast exit 非 0），再最小实现并复跑 focused command。
+- **BDD 策略**: BDD 不适用。本 plan 只在 Makefile / 文档 / 自检脚本层操作，不产生浏览器 UI、外部 API、业务工作流或端到端场景测试可观察行为，因此不创建 `bdd-plan.md` / `bdd-checklist.md`，主 checklist 也不设置 `BDD-Gate:`。
+- **替代验证 gate**: 使用本地 lint + drift + smoke 组合代替 BDD：5 个聚合入口端到端跑通（Phase 4.1）；NOT-YET-LANDED 占位 vs 已落地失败穿透双向 fail-injection 自检（Phase 4.3 / 4.4）；`grep -r '\.github/workflows' .` 远端 CI 文件零存在性自检（Phase 4.2）；`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` Header / INDEX drift gate（Phase 4.5）。
+
+## 4 实施步骤
 
 ### Phase 1: 入口 target 聚合（lint / test / build / docs-check / codegen-check）
 
@@ -35,7 +42,7 @@
 
 1. `$(MAKE) lint-conventions`（B1 owner，错误码 `UPPER_SNAKE_CASE` / 枚举 `lower_snake_case` / `camelCase` JSON tag）。
 2. `$(MAKE) lint-config`（A4 owner，`.env.example` 与代码 `Get*` 调用一致性）。
-3. F1 metrics / log lint hook：当前未落地，调用名暂定 `lint-observability`；如目标缺失则按 [§3.2 Phase 2](#phase-2-占位与缺位行为锁定not-yet-landed-owner-输出--exit-0-边界) 输出 `not implemented yet: F1 observability-stack` 并 `exit 0`。
+3. F1 metrics / log lint hook：当前未落地，调用名暂定 `lint-observability`；如目标缺失则按 [§4.2 Phase 2](#phase-2-占位与缺位行为锁定not-yet-landed-owner-输出--exit-0-边界) 输出 `not implemented yet: F1 observability-stack` 并 `exit 0`。
 4. Go lint：`cd backend && golangci-lint run ./...`。
 5. TS lint：`pnpm --filter @easyinterview/frontend lint`。
 
@@ -57,7 +64,7 @@ AI 单元测试必须走 stub / fixtures provider（[B1 spec §2.1](../../../sha
 1. 后端：`cd backend && go build ./cmd/...`。
 2. 前端：`pnpm --filter @easyinterview/frontend build`。
 
-后端 / 前端 cmd 入口未落地的子组件按 [§3.2 Phase 2](#phase-2-占位与缺位行为锁定not-yet-landed-owner-输出--exit-0-边界) 输出 `TODO: implemented by <owner>` 并 `exit 0`，与 [A1 plan §3.2.1 占位规则](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 保持一致。
+后端 / 前端 cmd 入口未落地的子组件按 [§4.2 Phase 2](#phase-2-占位与缺位行为锁定not-yet-landed-owner-输出--exit-0-边界) 输出 `TODO: implemented by <owner>` 并 `exit 0`，与 [A1 plan §3.2.1 占位规则](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 保持一致。
 
 #### 1.4 `make docs-check` 聚合
 
@@ -96,7 +103,7 @@ W1 末时点的占位映射：
 | `codegen-openapi` | B2 openapi-v1-contract | 已落地（参见 [B2 001-bootstrap](../../../openapi-v1-contract/plans/001-bootstrap/plan.md)） | 直接执行 |
 | `codegen-conventions` | B1 shared-conventions-codified | 已落地（参见 [B1 001-bootstrap](../../../shared-conventions-codified/plans/001-bootstrap/plan.md)） | 直接执行 |
 | `lint-conventions` | B1 shared-conventions-codified | 已落地 | 直接执行 |
-| `lint-config` | A4 secrets-and-config | 计划中（[A4 spec §7](../../../secrets-and-config/spec.md#7-关联计划)） | 暂为 `not implemented yet: A4 secrets-and-config`，A4 001 落地后切换为直接执行 |
+| `lint-config` | A4 secrets-and-config | 已落地（[A4 001-bootstrap](../../../secrets-and-config/plans/001-bootstrap/plan.md)，2026-04-30 切换为直接执行） | 直接执行 `lint-getenv-boundary` + `lint-env-dict` + `lint-secrets-pattern` |
 
 #### 2.3 缺位检测实现
 
@@ -149,13 +156,13 @@ W1 末时点的占位映射：
 - 把本 plan Header 从 `active` 切到 `completed`，运行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --fix-index` 同步 [ci-pipeline-baseline/plans/INDEX.md](../INDEX.md)。
 - 运行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 确认 `docs/spec/INDEX.md` 与 `plans/INDEX.md` 与 spec / plan Header 无 drift。
 
-## 4 验收标准
+## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 至 C-7 全部成立；占位 / drift / 失败 / 守门 4 类边界由 Phase 4 命令日志佐证。
 - 本 plan checklist 全部勾选；Phase 4.1 与 Phase 4.3 关键命令日志贴入工作日志。
 - 不出现 `.github/workflows/*.yml` 由本 plan 创建；文档不声称项目已有远端 CI。
 
-## 5 风险与应对
+## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
@@ -165,8 +172,10 @@ W1 末时点的占位映射：
 | 因 D-5 条件未触发就提前创建 `.github/workflows/*.yml` | Phase 4.2 把「不存在 ci.yml / nightly.yml / dependabot.yml」纳入收口自检；spec [§3.2](../../spec.md#32-待确认事项) 把升级路径锁定在原地修订；任何 PR 引入 workflow 文件而未先修订 spec 必须被 owner 拒绝 |
 | `make docs-check` 在 macOS / Linux 不同 shell 行为不一致导致 `/sync-doc-index --check` 误报 | Phase 1.4 强制聚合在仓库根；首次落地后在 macOS zsh 与 Linux bash 各跑一次；调用 skill 时显式 set `LC_ALL=C.UTF-8` 避免本地化输出差异 |
 
-## 6 修订记录
+## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
 | 2026-04-29 | 1.1 | 收口 plan-review：docs-check 改为可执行 sync-doc-index 脚本 + `scripts/lint/check_md_links.py`；B1 codegen diff 覆盖 errors / idx / frontend ids；远端 CI 明确由 future `002-remote-ci` 承接。 | plan-review remediation |
+| 2026-04-30 | 1.2 | 补齐 `## 3 质量门禁分类`：Plan 类型 / TDD 策略 / BDD 不适用声明 / 替代验证 gate；renumber 后续章节并修复内部 §3.2→§4.2 引用。同步 checklist 16 项 `验证:` 子句。 | implement gate remediation |
+| 2026-04-30 | 1.3 | L2 code review remediation：reopen 真实 backend/frontend gate、Go lint、help owner 标签与 secret grep 证据漂移，修复后重新验证。 | plan-code-review remediation |

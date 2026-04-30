@@ -27,7 +27,7 @@ type RuntimeFlag struct {
 // Field set is locked; expansion requires a spec revision (D-2).
 type RuntimeConfig struct {
 	AppVersion        string                 `json:"appVersion"`
-	DefaultUiLanguage string                 `json:"defaultUiLanguage"`
+	DefaultUILanguage string                 `json:"defaultUiLanguage"`
 	AnalyticsEnabled  bool                   `json:"analyticsEnabled"`
 	FeatureFlags      map[string]RuntimeFlag `json:"featureFlags"`
 	PostHogPublicKey  string                 `json:"postHogPublicKey,omitempty"`
@@ -55,7 +55,7 @@ func BuildRuntimeConfig(_ context.Context, in RuntimeConfigInput) RuntimeConfig 
 	}
 	if in.Loader != nil {
 		rc.AppVersion = in.Loader.GetString("runtime.appVersion")
-		rc.DefaultUiLanguage = in.Loader.GetString("runtime.defaultUiLanguage")
+		rc.DefaultUILanguage = in.Loader.GetString("runtime.defaultUiLanguage")
 		if in.AnalyticsOptIn {
 			rc.PostHogPublicKey = in.Loader.GetString("featureFlag.posthogPublicKey")
 		}

@@ -87,8 +87,8 @@ export class EasyInterviewClient {
 	}
 
 {{range .Operations}}
-	/** {{.OperationId}} — {{.Method}} {{.Path}}{{if .Summary}}: {{.Summary}}{{end}} */
-	async {{.OperationId}}({{.TSMethodSignature}}): Promise<{{.TSReturnType}}> {
+	/** {{.OperationID}} — {{.Method}} {{.Path}}{{if .Summary}}: {{.Summary}}{{end}} */
+	async {{.OperationID}}({{.TSMethodSignature}}): Promise<{{.TSReturnType}}> {
 		return this.request<{{.TSReturnType}}>(
 			"{{.MethodUpper}}",
 			{{.TSPathExpression}},
@@ -101,7 +101,7 @@ export class EasyInterviewClient {
 
 export const ALL_OPERATION_IDS = [
 {{- range .Operations}}
-	"{{.OperationId}}",
+	"{{.OperationID}}",
 {{- end}}
 ] as const;
 

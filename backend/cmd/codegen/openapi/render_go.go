@@ -375,7 +375,7 @@ type goServerData struct {
 }
 
 type goOperationView struct {
-	OperationId       string
+	OperationID       string
 	GoMethodName      string
 	Method            string
 	MethodUpper       string
@@ -398,7 +398,7 @@ func buildGoServerData(doc *OpenAPI) (*goServerData, error) {
 			id, _ := rawOp["operationId"].(string)
 			summary, _ := rawOp["summary"].(string)
 			view := goOperationView{
-				OperationId:  id,
+				OperationID:  id,
 				GoMethodName: exportedGoName(id),
 				Method:       verb,
 				MethodUpper:  strings.ToUpper(verb),

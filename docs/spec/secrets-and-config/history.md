@@ -1,13 +1,14 @@
 # Secrets and Config History
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-04-30
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-04-30 | 1.8 | §4.1 边界约束扩展 allow-list：将 `backend/cmd/migrate/main.go` 与 cmd/api / cmd/worker 同列纳入 `os.Getenv` 允许前缀，同步 `scripts/lint/getenv_boundary.go` `defaultAllowlist`。原因：B4 db-migrations-baseline 引入 `cmd/migrate` CLI 后 A4 spec 未跟进，导致 A5 `make lint-getenv-boundary` 把 cmd/migrate 当作违规。本次修订承认 cmd/migrate 与 cmd/api / cmd/worker 是同类 CLI 入口。 | ci-pipeline-baseline/001-local-quality-gates 验证发现 |
 | 2026-04-29 | 1.7 | 收口 A/B plan-review：确认 P0 env key 字典为 24 项；新增 `async.queueWeights` config-only 字段供 C8 Asynq 队列权重消费；PostHog 临时不可用时只允许 last-known-good 缓存降级；移除文档中的真实形态 secret 样本。 | plan-review remediation |
 | 2026-04-28 | 1.6 | 对齐 ADR-Q1 v1.2：锁定 session cookie 字面量 `ei_session`，明确 A4 只管理 session secret，不提供 cookie name env/config override。 | openapi-v1-contract/001-bootstrap assessment remediation |
 | 2026-04-28 | 1.5 | 根据 L1 plan-review 修订 A4 spec：移除 JWT/access-token 口径并对齐 ADR-Q1 session cookie + magic link secret；统一 PostHog env key 到 ADR-Q3；补齐 runtime-config public allowlist / analytics opt-out 边界；新增 canonical config schema 分类与对应验收项。 | plan-review remediation |

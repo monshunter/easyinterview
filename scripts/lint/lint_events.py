@@ -193,6 +193,7 @@ def validate_generated_contracts(root: Path, events: dict[str, Any], jobs: dict[
     ]
     for path in event_paths:
         if not path.exists():
+            errors.append(f"{path.relative_to(root)}: generated contract file is missing; run make codegen-events")
             continue
         generated = _parse_generated_event_names(path)
         if generated != expected_events:
@@ -204,7 +205,9 @@ def validate_generated_contracts(root: Path, events: dict[str, Any], jobs: dict[
             )
 
     go_jobs = root / "backend/internal/shared/jobs/jobs.go"
-    if go_jobs.exists():
+    if not go_jobs.exists():
+        errors.append(f"{go_jobs.relative_to(root)}: generated contract file is missing; run make codegen-events")
+    else:
         generated_subset = _parse_go_api_facing_jobs(go_jobs)
         if generated_subset != expected_subset:
             errors.append(
@@ -213,7 +216,9 @@ def validate_generated_contracts(root: Path, events: dict[str, Any], jobs: dict[
             )
 
     ts_jobs = root / "frontend/src/lib/jobs/jobs.ts"
-    if ts_jobs.exists():
+    if not ts_jobs.exists():
+        errors.append(f"{ts_jobs.relative_to(root)}: generated contract file is missing; run make codegen-events")
+    else:
         generated_subset = _parse_ts_api_facing_jobs(ts_jobs)
         if generated_subset != expected_subset:
             errors.append(
