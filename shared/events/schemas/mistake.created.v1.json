@@ -1,0 +1,81 @@
+{
+  "$id": "shared/events/schemas/mistake.created.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "mistake_entry"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "mistake.created"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "competencyCode": {
+          "type": "string"
+        },
+        "mistakeId": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "sourceSessionId": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "../refs/MistakeStatus.json"
+        },
+        "targetJobId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "competencyCode",
+        "mistakeId",
+        "priority",
+        "sourceSessionId",
+        "status",
+        "targetJobId"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "worker",
+        "review"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "mistake.created v1",
+  "type": "object"
+}

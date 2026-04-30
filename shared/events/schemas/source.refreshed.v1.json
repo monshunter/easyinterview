@@ -1,0 +1,72 @@
+{
+  "$id": "shared/events/schemas/source.refreshed.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "source_record"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "source.refreshed"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "freshnessStatus": {
+          "$ref": "../refs/SourceFreshnessStatus.json"
+        },
+        "ownerId": {
+          "type": "string"
+        },
+        "ownerType": {
+          "type": "string"
+        },
+        "sourceRecordId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "freshnessStatus",
+        "ownerId",
+        "ownerType",
+        "sourceRecordId"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "worker"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "source.refreshed v1",
+  "type": "object"
+}

@@ -1,0 +1,13 @@
+{
+  "$id": "shared/events/refs/InterviewerRole.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "enum": [
+    "generalist",
+    "hr",
+    "hiring_manager",
+    "technical_manager",
+    "peer"
+  ],
+  "title": "InterviewerRole",
+  "type": "string"
+}

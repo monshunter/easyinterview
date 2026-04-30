@@ -1,0 +1,12 @@
+{
+  "$id": "shared/events/refs/ReadinessTier.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "enum": [
+    "not_ready",
+    "needs_practice",
+    "basically_ready",
+    "well_prepared"
+  ],
+  "title": "ReadinessTier",
+  "type": "string"
+}

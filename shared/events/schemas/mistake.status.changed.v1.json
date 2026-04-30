@@ -1,0 +1,72 @@
+{
+  "$id": "shared/events/schemas/mistake.status.changed.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "mistake_entry"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "mistake.status.changed"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "fromStatus": {
+          "$ref": "../refs/MistakeStatus.json"
+        },
+        "mistakeId": {
+          "type": "string"
+        },
+        "targetJobId": {
+          "type": "string"
+        },
+        "toStatus": {
+          "$ref": "../refs/MistakeStatus.json"
+        }
+      },
+      "required": [
+        "fromStatus",
+        "mistakeId",
+        "targetJobId",
+        "toStatus"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "review"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "mistake.status.changed v1",
+  "type": "object"
+}

@@ -1,0 +1,13 @@
+{
+  "$id": "shared/events/refs/PracticeMode.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "enum": [
+    "warmup",
+    "core_interview",
+    "single_drill",
+    "counter_questions",
+    "debrief_replay"
+  ],
+  "title": "PracticeMode",
+  "type": "string"
+}

@@ -1,0 +1,72 @@
+{
+  "$id": "shared/events/schemas/report.generation.failed.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "feedback_report"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "report.generation.failed"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "errorCode": {
+          "type": "string"
+        },
+        "reportId": {
+          "type": "string"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "errorCode",
+        "reportId",
+        "retryable",
+        "sessionId"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "worker"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "report.generation.failed v1",
+  "type": "object"
+}

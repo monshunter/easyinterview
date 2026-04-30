@@ -1,0 +1,76 @@
+{
+  "$id": "shared/events/schemas/practice.session.completed.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "practice_session"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "practice.session.completed"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "type": "string"
+        },
+        "planId": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "targetJobId": {
+          "type": "string"
+        },
+        "turnCount": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "language",
+        "planId",
+        "sessionId",
+        "targetJobId",
+        "turnCount"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "api"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "practice.session.completed v1",
+  "type": "object"
+}

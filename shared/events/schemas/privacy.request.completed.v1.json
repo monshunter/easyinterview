@@ -1,0 +1,72 @@
+{
+  "$id": "shared/events/schemas/privacy.request.completed.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "privacy_request"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "privacy.request.completed"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "privacyRequestId": {
+          "type": "string"
+        },
+        "requestType": {
+          "$ref": "../refs/PrivacyRequestType.json"
+        },
+        "status": {
+          "$ref": "../refs/PrivacyRequestStatus.json"
+        },
+        "userId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "privacyRequestId",
+        "requestType",
+        "status",
+        "userId"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "worker"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "privacy.request.completed v1",
+  "type": "object"
+}

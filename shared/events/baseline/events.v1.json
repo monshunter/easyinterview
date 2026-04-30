@@ -1,0 +1,545 @@
+{
+  "eventLocalEnums": [
+    {
+      "description": "Event-local enum; does not enter B1 / B2 public enums.",
+      "name": "TargetImportSourceType",
+      "values": [
+        "url",
+        "text",
+        "file"
+      ]
+    },
+    {
+      "description": "Event-local enum; does not enter B1 / B2 public enums.",
+      "name": "ResumeTailorMode",
+      "values": [
+        "inline",
+        "rewrite",
+        "mirror"
+      ]
+    },
+    {
+      "description": "Event-local enum; does not enter B1 / B2 public enums.",
+      "name": "SourceFreshnessStatus",
+      "values": [
+        "fresh",
+        "stale",
+        "failed"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "aggregateType": "target_job",
+      "name": "target.import.requested",
+      "optionalPayload": {},
+      "piiBoundary": "IDs only; no raw JD text or URL body.",
+      "producer": "api",
+      "requiredPayload": {
+        "sourceType": {
+          "source": "spec:3.1.4",
+          "type": "$ref:event.TargetImportSourceType"
+        },
+        "targetJobId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "targetLanguage": {
+          "source": "spec:3.1.4",
+          "type": "string"
+        },
+        "userId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "target_job",
+      "name": "target.parsed",
+      "optionalPayload": {},
+      "piiBoundary": "IDs and controlled slugs only; no parsed JD summary.",
+      "producer": "worker",
+      "requiredPayload": {
+        "analysisStatus": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.TargetJobParseStatus"
+        },
+        "coreThemes": {
+          "source": "spec:3.1.4",
+          "type": "string[]"
+        },
+        "requirementCount": {
+          "source": "spec:3.1.4",
+          "type": "int"
+        },
+        "targetJobId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "userId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "target_job",
+      "name": "target.analysis.failed",
+      "optionalPayload": {},
+      "piiBoundary": "No provider response, prompt, or JD text.",
+      "producer": "worker",
+      "requiredPayload": {
+        "errorCode": {
+          "source": "spec:3.1.4",
+          "type": "string"
+        },
+        "retryable": {
+          "source": "spec:3.1.4",
+          "type": "bool"
+        },
+        "targetJobId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "practice_session",
+      "name": "practice.session.started",
+      "optionalPayload": {},
+      "piiBoundary": "IDs only; no question or answer text.",
+      "producer": "api",
+      "requiredPayload": {
+        "goal": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.PracticeGoal"
+        },
+        "language": {
+          "source": "spec:3.1.4",
+          "type": "string"
+        },
+        "mode": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.PracticeMode"
+        },
+        "planId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "sessionId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "targetJobId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "practice_turn",
+      "name": "practice.turn.completed",
+      "optionalPayload": {},
+      "piiBoundary": "Lengths and counts only; no question or answer text.",
+      "producer": "api",
+      "requiredPayload": {
+        "answerCharLength": {
+          "source": "spec:3.1.4",
+          "type": "int"
+        },
+        "followUpCount": {
+          "source": "spec:3.1.4",
+          "type": "int"
+        },
+        "questionIntent": {
+          "source": "spec:3.1.4",
+          "type": "string"
+        },
+        "sessionId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "turnId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "turnIndex": {
+          "source": "spec:3.1.4",
+          "type": "int"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "practice_session",
+      "name": "practice.session.completed",
+      "optionalPayload": {},
+      "piiBoundary": "IDs and counts only.",
+      "producer": "api",
+      "requiredPayload": {
+        "language": {
+          "source": "spec:3.1.4",
+          "type": "string"
+        },
+        "planId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "sessionId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "targetJobId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "turnCount": {
+          "source": "spec:3.1.4",
+          "type": "int"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "feedback_report",
+      "name": "report.generation.requested",
+      "optionalPayload": {},
+      "piiBoundary": "IDs only.",
+      "producer": [
+        "api",
+        "dispatcher"
+      ],
+      "requiredPayload": {
+        "reportId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "sessionId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "targetJobId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "feedback_report",
+      "name": "report.generated",
+      "optionalPayload": {},
+      "piiBoundary": "No report body, answer snippets, raw model response, or prompt body.",
+      "producer": "worker",
+      "requiredPayload": {
+        "mistakeCount": {
+          "source": "spec:3.1.4",
+          "type": "int"
+        },
+        "modelId": {
+          "source": "spec:3.1.4",
+          "type": "string"
+        },
+        "preparednessLevel": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.ReadinessTier"
+        },
+        "promptVersion": {
+          "source": "spec:3.1.4",
+          "type": "string"
+        },
+        "reportId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "rubricVersion": {
+          "source": "spec:3.1.4",
+          "type": "string"
+        },
+        "sessionId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "targetJobId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "feedback_report",
+      "name": "report.generation.failed",
+      "optionalPayload": {},
+      "piiBoundary": "No provider response, prompt, or answer text.",
+      "producer": "worker",
+      "requiredPayload": {
+        "errorCode": {
+          "source": "spec:3.1.4",
+          "type": "string"
+        },
+        "reportId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "retryable": {
+          "source": "spec:3.1.4",
+          "type": "bool"
+        },
+        "sessionId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "mistake_entry",
+      "name": "mistake.created",
+      "optionalPayload": {},
+      "piiBoundary": "No evidence quote or answer snippet.",
+      "producer": [
+        "worker",
+        "review"
+      ],
+      "requiredPayload": {
+        "competencyCode": {
+          "source": "spec:3.1.4",
+          "type": "string"
+        },
+        "mistakeId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "priority": {
+          "source": "spec:3.1.4",
+          "type": "int"
+        },
+        "sourceSessionId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "status": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.MistakeStatus"
+        },
+        "targetJobId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "mistake_entry",
+      "name": "mistake.status.changed",
+      "optionalPayload": {},
+      "piiBoundary": "IDs and status only.",
+      "producer": "review",
+      "requiredPayload": {
+        "fromStatus": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.MistakeStatus"
+        },
+        "mistakeId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "targetJobId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "toStatus": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.MistakeStatus"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "resume_asset",
+      "name": "resume.parse.completed",
+      "optionalPayload": {},
+      "piiBoundary": "No resume raw text or parsed summary.",
+      "producer": "worker",
+      "requiredPayload": {
+        "parseStatus": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.TargetJobParseStatus"
+        },
+        "resumeAssetId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "userId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "resume_tailor_run",
+      "name": "resume.tailor.completed",
+      "optionalPayload": {},
+      "piiBoundary": "No tailored bullet text.",
+      "producer": "worker",
+      "requiredPayload": {
+        "mode": {
+          "source": "spec:3.1.4",
+          "type": "$ref:event.ResumeTailorMode"
+        },
+        "resumeAssetId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "status": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.ReportStatus"
+        },
+        "tailorRunId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "targetJobId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "debrief",
+      "name": "debrief.created",
+      "optionalPayload": {},
+      "piiBoundary": "No debrief notes or transcript text.",
+      "producer": "api",
+      "requiredPayload": {
+        "debriefId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "questionCount": {
+          "source": "spec:3.1.4",
+          "type": "int"
+        },
+        "roundType": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.InterviewerRole"
+        },
+        "targetJobId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "debrief",
+      "name": "debrief.completed",
+      "optionalPayload": {},
+      "piiBoundary": "Counts only; no risk item prose.",
+      "producer": "worker",
+      "requiredPayload": {
+        "debriefId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "generatedMistakeCount": {
+          "source": "spec:3.1.4",
+          "type": "int"
+        },
+        "riskItemCount": {
+          "source": "spec:3.1.4",
+          "type": "int"
+        },
+        "targetJobId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "source_record",
+      "name": "source.refreshed",
+      "optionalPayload": {},
+      "piiBoundary": "No source snapshot content or URL secret.",
+      "producer": "worker",
+      "requiredPayload": {
+        "freshnessStatus": {
+          "source": "spec:3.1.4",
+          "type": "$ref:event.SourceFreshnessStatus"
+        },
+        "ownerId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "ownerType": {
+          "source": "spec:3.1.4",
+          "type": "string"
+        },
+        "sourceRecordId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "privacy_request",
+      "name": "privacy.request.created",
+      "optionalPayload": {},
+      "piiBoundary": "Sensitive lifecycle event; no email, file URL, or exported data.",
+      "producer": "api",
+      "requiredPayload": {
+        "privacyRequestId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "requestType": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.PrivacyRequestType"
+        },
+        "userId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    },
+    {
+      "aggregateType": "privacy_request",
+      "name": "privacy.request.completed",
+      "optionalPayload": {},
+      "piiBoundary": "Sensitive lifecycle event; no deleted or exported data.",
+      "producer": "worker",
+      "requiredPayload": {
+        "privacyRequestId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        },
+        "requestType": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.PrivacyRequestType"
+        },
+        "status": {
+          "source": "spec:3.1.4",
+          "type": "$ref:b1.PrivacyRequestStatus"
+        },
+        "userId": {
+          "source": "spec:3.1.4",
+          "type": "uuidv7"
+        }
+      },
+      "version": 1
+    }
+  ],
+  "schemaVersion": 1,
+  "version": 1
+}

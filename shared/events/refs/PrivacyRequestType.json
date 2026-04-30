@@ -1,0 +1,10 @@
+{
+  "$id": "shared/events/refs/PrivacyRequestType.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "enum": [
+    "export",
+    "delete"
+  ],
+  "title": "PrivacyRequestType",
+  "type": "string"
+}

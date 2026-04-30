@@ -1,0 +1,80 @@
+{
+  "$id": "shared/events/schemas/practice.session.started.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "practice_session"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "practice.session.started"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "goal": {
+          "$ref": "../refs/PracticeGoal.json"
+        },
+        "language": {
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "../refs/PracticeMode.json"
+        },
+        "planId": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "targetJobId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "goal",
+        "language",
+        "mode",
+        "planId",
+        "sessionId",
+        "targetJobId"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "api"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "practice.session.started v1",
+  "type": "object"
+}

@@ -1,0 +1,72 @@
+{
+  "$id": "shared/events/schemas/target.import.requested.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "target_job"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "target.import.requested"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "sourceType": {
+          "$ref": "../refs/TargetImportSourceType.json"
+        },
+        "targetJobId": {
+          "type": "string"
+        },
+        "targetLanguage": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceType",
+        "targetJobId",
+        "targetLanguage",
+        "userId"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "api"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "target.import.requested v1",
+  "type": "object"
+}

@@ -1,0 +1,11 @@
+{
+  "$id": "shared/events/refs/MistakeStatus.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "enum": [
+    "open",
+    "improving",
+    "mastered"
+  ],
+  "title": "MistakeStatus",
+  "type": "string"
+}

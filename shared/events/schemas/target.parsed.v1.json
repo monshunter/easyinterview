@@ -1,0 +1,79 @@
+{
+  "$id": "shared/events/schemas/target.parsed.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "target_job"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "target.parsed"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "analysisStatus": {
+          "$ref": "../refs/TargetJobParseStatus.json"
+        },
+        "coreThemes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "requirementCount": {
+          "type": "integer"
+        },
+        "targetJobId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "analysisStatus",
+        "coreThemes",
+        "requirementCount",
+        "targetJobId",
+        "userId"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "worker"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "target.parsed v1",
+  "type": "object"
+}

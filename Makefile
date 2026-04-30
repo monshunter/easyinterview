@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-secrets-pattern lint-observability lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-openapi codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-secrets-pattern lint-observability lint-events lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -37,6 +37,9 @@ lint-secrets-pattern: ## Scan staged + tracked files for AKIA / sk- / xox secret
 lint-observability: ## F1 observability-stack metrics/log lint hook (NOT-YET-LANDED placeholder; A5 spec D-3 owner boundary, exit 0 until F1 lands)
 	@echo "not implemented yet: F1 observability-stack"
 
+lint-events: ## Validate event/job baselines and local B3 contract drift
+	@python3 "$(ROOT_DIR)/scripts/lint/lint_events.py" --repo-root "$(ROOT_DIR)"
+
 test: ## Run unit tests (delegates to backend/ and frontend/)
 	@$(call recurse_target,test,backend/Makefile,backend)
 	@$(call recurse_target,test,frontend/Makefile,frontend)
@@ -63,11 +66,17 @@ dev-logs: ## Tail dev-stack container logs (SERVICE=<name> to scope)
 dev-pull: ## Pre-pull dev-stack pinned images for slow-network bootstrap
 	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" pull
 
-codegen: codegen-conventions codegen-openapi ## Run all code generators in dependency order (B1 conventions → B2 openapi)
+codegen: codegen-conventions codegen-events codegen-openapi ## Run all code generators in dependency order (B1 conventions → B3 events → B2 openapi)
 
 codegen-conventions: ## Render shared/conventions.yaml into Go and TS shared lib files
 	@cd "$(ROOT_DIR)/backend" && go run ./cmd/codegen/conventions \
 		-yaml "$(ROOT_DIR)/shared/conventions.yaml" \
+		-repo-root "$(ROOT_DIR)"
+
+codegen-events: codegen-conventions ## Render shared/events.yaml and shared/jobs.yaml into Go, TS, JSON Schema, and baseline artefacts
+	@cd "$(ROOT_DIR)/backend" && go run ./cmd/codegen/events \
+		-events "$(ROOT_DIR)/shared/events.yaml" \
+		-jobs "$(ROOT_DIR)/shared/jobs.yaml" \
 		-repo-root "$(ROOT_DIR)"
 
 codegen-openapi: codegen-conventions ## Render openapi/openapi.yaml into Go and TS API artefacts (idempotent)

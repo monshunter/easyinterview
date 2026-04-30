@@ -1,0 +1,76 @@
+{
+  "$id": "shared/events/schemas/resume.tailor.completed.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "resume_tailor_run"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "resume.tailor.completed"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "$ref": "../refs/ResumeTailorMode.json"
+        },
+        "resumeAssetId": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "../refs/ReportStatus.json"
+        },
+        "tailorRunId": {
+          "type": "string"
+        },
+        "targetJobId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "resumeAssetId",
+        "status",
+        "tailorRunId",
+        "targetJobId"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "worker"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "resume.tailor.completed v1",
+  "type": "object"
+}

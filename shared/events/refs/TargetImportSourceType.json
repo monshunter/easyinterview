@@ -1,0 +1,11 @@
+{
+  "$id": "shared/events/refs/TargetImportSourceType.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "enum": [
+    "url",
+    "text",
+    "file"
+  ],
+  "title": "TargetImportSourceType",
+  "type": "string"
+}

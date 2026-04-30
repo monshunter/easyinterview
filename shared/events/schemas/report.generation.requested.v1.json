@@ -1,0 +1,69 @@
+{
+  "$id": "shared/events/schemas/report.generation.requested.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "feedback_report"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "report.generation.requested"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "reportId": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "targetJobId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reportId",
+        "sessionId",
+        "targetJobId"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "api",
+        "dispatcher"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "report.generation.requested v1",
+  "type": "object"
+}

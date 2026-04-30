@@ -1,0 +1,141 @@
+{
+  "apiFacingSubset": [
+    "target_import",
+    "resume_parse",
+    "report_generate",
+    "resume_tailor",
+    "debrief_generate",
+    "privacy_export",
+    "privacy_delete"
+  ],
+  "jobs": [
+    {
+      "apiFacing": true,
+      "asynqTask": "target.import",
+      "canonical": "target_import",
+      "ownerDomain": "C4",
+      "payloadSchema": {},
+      "priority": "default",
+      "redactedFields": null,
+      "triggerEvent": "target.import.requested"
+    },
+    {
+      "apiFacing": true,
+      "asynqTask": "resume.parse",
+      "canonical": "resume_parse",
+      "ownerDomain": "C7",
+      "payloadSchema": {},
+      "priority": "default",
+      "redactedFields": null,
+      "triggerEvent": "api:register_resume"
+    },
+    {
+      "apiFacing": true,
+      "asynqTask": "report.generate",
+      "canonical": "report_generate",
+      "ownerDomain": "C6",
+      "payloadSchema": {},
+      "priority": "critical",
+      "redactedFields": null,
+      "triggerEvent": "practice.session.completed"
+    },
+    {
+      "apiFacing": true,
+      "asynqTask": "resume.tailor",
+      "canonical": "resume_tailor",
+      "ownerDomain": "C7",
+      "payloadSchema": {},
+      "priority": "default",
+      "redactedFields": null,
+      "triggerEvent": "api:request_tailor"
+    },
+    {
+      "apiFacing": true,
+      "asynqTask": "debrief.generate",
+      "canonical": "debrief_generate",
+      "ownerDomain": "C9",
+      "payloadSchema": {},
+      "priority": "default",
+      "redactedFields": null,
+      "triggerEvent": "debrief.created"
+    },
+    {
+      "apiFacing": false,
+      "asynqTask": "source.refresh",
+      "canonical": "source_refresh",
+      "ownerDomain": "C13",
+      "payloadSchema": {},
+      "priority": "low",
+      "redactedFields": null,
+      "triggerEvent": "target.parsed"
+    },
+    {
+      "apiFacing": false,
+      "asynqTask": "embedding.upsert",
+      "canonical": "embedding_upsert",
+      "ownerDomain": "C11",
+      "payloadSchema": {},
+      "priority": "low",
+      "redactedFields": null,
+      "triggerEvent": "target.parsed"
+    },
+    {
+      "apiFacing": true,
+      "asynqTask": "privacy.export",
+      "canonical": "privacy_export",
+      "ownerDomain": "C12",
+      "payloadSchema": {},
+      "priority": "low",
+      "redactedFields": null,
+      "triggerEvent": "privacy.request.created"
+    },
+    {
+      "apiFacing": true,
+      "asynqTask": "privacy.delete",
+      "canonical": "privacy_delete",
+      "ownerDomain": "C8",
+      "payloadSchema": {},
+      "priority": "critical",
+      "redactedFields": null,
+      "triggerEvent": "privacy.request.created"
+    },
+    {
+      "apiFacing": false,
+      "asynqTask": "email.dispatch",
+      "canonical": "email_dispatch",
+      "ownerDomain": "C1+C8",
+      "payloadSchema": {
+        "authChallengeId": {
+          "type": "uuidv7"
+        },
+        "dedupeKey": {
+          "type": "string"
+        },
+        "deliverySecretRef": {
+          "type": "opaque_ref"
+        },
+        "locale": {
+          "type": "bcp47"
+        },
+        "templateKey": {
+          "type": "slug"
+        },
+        "userId": {
+          "type": "uuidv7"
+        }
+      },
+      "priority": "low",
+      "redactedFields": [
+        "rawMagicLinkToken",
+        "magicLinkUrl",
+        "recipientEmail",
+        "recipientEmailHash",
+        "emailBody",
+        "emailSubject"
+      ],
+      "triggerEvent": "api:auth_email_start"
+    }
+  ],
+  "schemaVersion": 1,
+  "version": 1
+}

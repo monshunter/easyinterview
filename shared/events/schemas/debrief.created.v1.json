@@ -1,0 +1,72 @@
+{
+  "$id": "shared/events/schemas/debrief.created.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "debrief"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "debrief.created"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "debriefId": {
+          "type": "string"
+        },
+        "questionCount": {
+          "type": "integer"
+        },
+        "roundType": {
+          "$ref": "../refs/InterviewerRole.json"
+        },
+        "targetJobId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "debriefId",
+        "questionCount",
+        "roundType",
+        "targetJobId"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "api"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "debrief.created v1",
+  "type": "object"
+}

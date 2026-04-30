@@ -1,0 +1,72 @@
+{
+  "$id": "shared/events/schemas/debrief.completed.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "debrief"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "debrief.completed"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "debriefId": {
+          "type": "string"
+        },
+        "generatedMistakeCount": {
+          "type": "integer"
+        },
+        "riskItemCount": {
+          "type": "integer"
+        },
+        "targetJobId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "debriefId",
+        "generatedMistakeCount",
+        "riskItemCount",
+        "targetJobId"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "worker"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "debrief.completed v1",
+  "type": "object"
+}
