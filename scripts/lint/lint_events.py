@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,19 @@ import yaml
 
 
 BREAKING = "breaking change requires eventVersion + 1"
+SOURCE_SUFFIXES = {".go", ".js", ".jsx", ".ts", ".tsx"}
+IGNORED_DIRS = {".git", ".next", "coverage", "dist", "node_modules", "vendor"}
+CONTRACT_GENERATED_DIRS = (
+    Path("backend/internal/shared/events"),
+    Path("backend/internal/shared/jobs"),
+    Path("frontend/src/lib/events"),
+    Path("frontend/src/lib/jobs"),
+)
+EVENT_GENERATOR_DIR = Path("backend/cmd/codegen/events")
+FIXTURE_PARTS = {"__fixtures__", "fixtures", "testdata", "generated"}
+TEST_FILE_SUFFIXES = ("_test.go", ".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx")
+GO_EVENT_CONST_RE = re.compile(r"\b(EventName[A-Za-z0-9_]*)\s+(?:EventName\s*)?=")
+TS_EVENT_CONST_RE = re.compile(r"\b(EVENT_NAME_[A-Z0-9_]*)\s*=")
 
 
 def _by_event_name(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -29,6 +43,22 @@ def _by_job_type(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
         for job in data.get("jobs", [])
         if isinstance(job, dict) and isinstance(job.get("canonical"), str)
     }
+
+
+def _event_names(data: dict[str, Any]) -> list[str]:
+    return sorted(_by_event_name(data))
+
+
+def _canonical_job_types(data: dict[str, Any]) -> list[str]:
+    return sorted(_by_job_type(data))
+
+
+def _asynq_task_names(data: dict[str, Any]) -> list[str]:
+    return sorted(
+        job["asynqTask"]
+        for job in data.get("jobs", [])
+        if isinstance(job, dict) and isinstance(job.get("asynqTask"), str)
+    )
 
 
 def compare_events_baseline(current: dict[str, Any], baseline: dict[str, Any]) -> list[str]:
@@ -86,6 +116,157 @@ def compare_jobs_baseline(current: dict[str, Any], baseline: dict[str, Any]) -> 
     return errors
 
 
+def validate_jobs_contract_shape(jobs: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    job_by_type = _by_job_type(jobs)
+    subset = jobs.get("apiFacingSubset") or []
+    if not isinstance(subset, list):
+        return ["apiFacingSubset must be a list"]
+    if len(subset) != 7:
+        errors.append(f"apiFacingSubset must contain exactly 7 job types, got {len(subset)}: {subset!r}")
+    for canonical in subset:
+        job = job_by_type.get(canonical)
+        if job is None:
+            errors.append(f"apiFacingSubset contains unknown jobType {canonical!r}")
+            continue
+        if job.get("apiFacing") is not True:
+            errors.append(f"{canonical}: apiFacingSubset entry must have apiFacing=true")
+    return errors
+
+
+def scan_source_literals(root: Path, events: dict[str, Any], jobs: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    forbidden = _forbidden_literals(events, jobs)
+    for path in _source_files(root):
+        rel = path.relative_to(root)
+        if _is_literal_allowed_path(rel):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        for value in sorted(forbidden):
+            if _contains_string_literal(text, value):
+                errors.append(f"{rel}: naked event/job literal {value!r}; use generated constants")
+        for match in GO_EVENT_CONST_RE.finditer(text):
+            errors.append(f"{rel}: handwritten {match.group(1)} constant is forbidden outside generated events package")
+        for match in TS_EVENT_CONST_RE.finditer(text):
+            errors.append(f"{rel}: handwritten {match.group(1)} constant is forbidden outside generated events package")
+    return errors
+
+
+def validate_generated_contracts(root: Path, events: dict[str, Any], jobs: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    expected_events = _event_names(events)
+    expected_subset = jobs.get("apiFacingSubset") or []
+
+    event_paths = [
+        root / "backend/internal/shared/events/events.go",
+        root / "frontend/src/lib/events/events.ts",
+    ]
+    for path in event_paths:
+        if not path.exists():
+            continue
+        generated = _parse_generated_event_names(path)
+        if generated != expected_events:
+            missing = sorted(set(expected_events) - set(generated))
+            extra = sorted(set(generated) - set(expected_events))
+            errors.append(
+                f"{path.relative_to(root)}: generated event names must match 18 shared/events.yaml entries; "
+                f"missing={missing!r} extra={extra!r}"
+            )
+
+    go_jobs = root / "backend/internal/shared/jobs/jobs.go"
+    if go_jobs.exists():
+        generated_subset = _parse_go_api_facing_jobs(go_jobs)
+        if generated_subset != expected_subset:
+            errors.append(
+                f"{go_jobs.relative_to(root)}: APIFacingJobTypes must match shared/jobs.yaml.apiFacingSubset; "
+                f"expected={expected_subset!r} actual={generated_subset!r}"
+            )
+
+    ts_jobs = root / "frontend/src/lib/jobs/jobs.ts"
+    if ts_jobs.exists():
+        generated_subset = _parse_ts_api_facing_jobs(ts_jobs)
+        if generated_subset != expected_subset:
+            errors.append(
+                f"{ts_jobs.relative_to(root)}: API_FACING_JOB_TYPES must match shared/jobs.yaml.apiFacingSubset; "
+                f"expected={expected_subset!r} actual={generated_subset!r}"
+            )
+    return errors
+
+
+def _forbidden_literals(events: dict[str, Any], jobs: dict[str, Any]) -> set[str]:
+    return set(_event_names(events)) | set(_canonical_job_types(jobs)) | set(_asynq_task_names(jobs))
+
+
+def _source_files(root: Path) -> list[Path]:
+    files: list[Path] = []
+    for top in ("backend", "frontend"):
+        base = root / top
+        if not base.exists():
+            continue
+        for path in base.rglob("*"):
+            if not path.is_file() or path.suffix not in SOURCE_SUFFIXES:
+                continue
+            rel_parts = path.relative_to(root).parts
+            if any(part in IGNORED_DIRS for part in rel_parts):
+                continue
+            files.append(path)
+    return files
+
+
+def _is_literal_allowed_path(rel: Path) -> bool:
+    if any(_is_relative_to(rel, generated_dir) for generated_dir in CONTRACT_GENERATED_DIRS):
+        return True
+    if _is_relative_to(rel, EVENT_GENERATOR_DIR):
+        return True
+    if any(part in FIXTURE_PARTS for part in rel.parts):
+        return True
+    return rel.name.endswith(TEST_FILE_SUFFIXES)
+
+
+def _is_relative_to(path: Path, base: Path) -> bool:
+    try:
+        path.relative_to(base)
+    except ValueError:
+        return False
+    return True
+
+
+def _contains_string_literal(text: str, value: str) -> bool:
+    return any(f"{quote}{value}{quote}" in text for quote in ('"', "'", "`"))
+
+
+def _parse_generated_event_names(path: Path) -> list[str]:
+    text = path.read_text(encoding="utf-8")
+    if path.suffix == ".go":
+        values = re.findall(r"\bEventName[A-Za-z0-9_]*\s+EventName\s*=\s*\"([^\"]+)\"", text)
+    else:
+        values = re.findall(r"\bEVENT_NAME_[A-Z0-9_]+\s*=\s*\"([^\"]+)\"", text)
+    return sorted(values)
+
+
+def _parse_go_api_facing_jobs(path: Path) -> list[str]:
+    text = path.read_text(encoding="utf-8")
+    constants = {
+        name: value
+        for name, value in re.findall(r"\b(JobType[A-Za-z0-9_]*)\s+JobType\s*=\s*\"([^\"]+)\"", text)
+    }
+    match = re.search(r"\bAPIFacingJobTypes\s*=\s*\[\]JobType\s*\{(?P<body>.*?)\n\}", text, re.S)
+    if not match:
+        return []
+    return [constants.get(name, name) for name in re.findall(r"\bJobType[A-Za-z0-9_]*\b", match.group("body"))]
+
+
+def _parse_ts_api_facing_jobs(path: Path) -> list[str]:
+    text = path.read_text(encoding="utf-8")
+    match = re.search(r"\bAPI_FACING_JOB_TYPES\s*=\s*\[(?P<body>.*?)\]\s+as\s+const", text, re.S)
+    if not match:
+        return []
+    return re.findall(r"\"([^\"]+)\"", match.group("body"))
+
+
 def _load_yaml(path: Path) -> dict[str, Any]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
@@ -117,6 +298,9 @@ def main() -> int:
 
     errors = compare_events_baseline(current_events, baseline_events)
     errors.extend(compare_jobs_baseline(current_jobs, baseline_jobs))
+    errors.extend(validate_jobs_contract_shape(current_jobs))
+    errors.extend(validate_generated_contracts(root, current_events, current_jobs))
+    errors.extend(scan_source_literals(root, current_events, current_jobs))
     if errors:
         for error in errors:
             print(f"FAIL: {error}", file=sys.stderr)

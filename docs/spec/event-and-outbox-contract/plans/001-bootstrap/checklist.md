@@ -31,10 +31,10 @@
 
 ## Phase 4: `make lint-events` 与本地 drift gate
 
-- [ ] 4.1 落地 `scripts/lint/lint_events.py`（或等价 Go 工具）作为 `make lint-events` 实体：扫描 `backend/` 与 `frontend/`（白名单仅 `backend/internal/shared/{events,jobs}` 与 `frontend/src/lib/{events,jobs}`），拒绝 18 事件名 / 10 canonical jobType / 10 dotted task name 的裸字面量；验证: `python3 -m pytest scripts/lint/lint_events_test.py -q` 覆盖 backend/frontend 裸字面量失败、generated 白名单通过、文档/fixture 允许 case
-- [ ] 4.2 `make lint-events` 校验 generated 文件中事件名集合长度 == 18 且与 `shared/events.yaml` 一致；任何 generated 文件之外手写 `EventName*` 常量声明 fail；验证: `make lint-events` 在临时删除 generated event、额外手写 `EventName*` fixture 时失败，恢复后通过
-- [ ] 4.3 `make lint-events` 校验 generated `APIFacingJobTypes` 长度 == 7 且与 `shared/jobs.yaml.apiFacingSubset` 一致；任一项 `apiFacing != true` fail（防止 `email_dispatch` 误扩）；验证: `make lint-events` 在临时把 `email_dispatch` 标为 API-facing 或 subset 增至 8 项时失败，恢复后通过
-- [ ] 4.4 落地本地 drift gate 命令：`make codegen-events && make lint-events && git diff --exit-code -- shared/events.yaml shared/jobs.yaml backend/internal/shared/events backend/internal/shared/jobs frontend/src/lib/events frontend/src/lib/jobs shared/events/schemas`；在 `Makefile` 注释中说明远端 CI 仅在 [A5 ci-pipeline-baseline](../../../ci-pipeline-baseline/spec.md) 触发条件成立后再接入；验证: 完整 drift gate 命令 exit 0，临时修改 generated 文件后 `git diff --exit-code -- ...` 失败并指出 drift
+- [x] 4.1 落地 `scripts/lint/lint_events.py`（或等价 Go 工具）作为 `make lint-events` 实体：扫描 `backend/` 与 `frontend/`（白名单仅 `backend/internal/shared/{events,jobs}` 与 `frontend/src/lib/{events,jobs}`），拒绝 18 事件名 / 10 canonical jobType / 10 dotted task name 的裸字面量；验证: `python3 -m pytest scripts/lint/lint_events_test.py -q` 覆盖 backend/frontend 裸字面量失败、generated 白名单通过、文档/fixture 允许 case
+- [x] 4.2 `make lint-events` 校验 generated 文件中事件名集合长度 == 18 且与 `shared/events.yaml` 一致；任何 generated 文件之外手写 `EventName*` 常量声明 fail；验证: `make lint-events` 在临时删除 generated event、额外手写 `EventName*` fixture 时失败，恢复后通过
+- [x] 4.3 `make lint-events` 校验 generated `APIFacingJobTypes` 长度 == 7 且与 `shared/jobs.yaml.apiFacingSubset` 一致；任一项 `apiFacing != true` fail（防止 `email_dispatch` 误扩）；验证: `make lint-events` 在临时把 `email_dispatch` 标为 API-facing 或 subset 增至 8 项时失败，恢复后通过
+- [x] 4.4 落地本地 drift gate 命令：`make codegen-events && make lint-events && git diff --exit-code -- shared/events.yaml shared/jobs.yaml backend/internal/shared/events backend/internal/shared/jobs frontend/src/lib/events frontend/src/lib/jobs shared/events/schemas`；在 `Makefile` 注释中说明远端 CI 仅在 [A5 ci-pipeline-baseline](../../../ci-pipeline-baseline/spec.md) 触发条件成立后再接入；验证: 完整 drift gate 命令 exit 0，临时修改 generated 文件后 `git diff --exit-code -- ...` 失败并指出 drift
 
 ## Phase 5: 单元测试（envelope / trace 透传 / breaking-change 拦截 / `email_dispatch` 红线）
 

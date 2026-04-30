@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-secrets-pattern lint-observability lint-events lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-secrets-pattern lint-observability lint-events lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -78,6 +78,22 @@ codegen-events: codegen-conventions ## Render shared/events.yaml and shared/jobs
 		-events "$(ROOT_DIR)/shared/events.yaml" \
 		-jobs "$(ROOT_DIR)/shared/jobs.yaml" \
 		-repo-root "$(ROOT_DIR)"
+
+# B3 local drift gate only. Remote required CI wiring is deferred until A5 ci-pipeline-baseline triggers.
+codegen-events-check: ## Local B3 event/job contract drift gate
+	@$(MAKE) --no-print-directory codegen-events
+	@$(MAKE) --no-print-directory lint-events
+	@git -C "$(ROOT_DIR)" diff --exit-code -- \
+		"$(ROOT_DIR)/shared/events.yaml" \
+		"$(ROOT_DIR)/shared/jobs.yaml" \
+		"$(ROOT_DIR)/backend/internal/shared/events" \
+		"$(ROOT_DIR)/backend/internal/shared/jobs" \
+		"$(ROOT_DIR)/frontend/src/lib/events" \
+		"$(ROOT_DIR)/frontend/src/lib/jobs" \
+		"$(ROOT_DIR)/shared/events/schemas" \
+		"$(ROOT_DIR)/shared/events/refs" \
+		"$(ROOT_DIR)/shared/events/baseline" \
+		"$(ROOT_DIR)/shared/jobs/baseline"
 
 codegen-openapi: codegen-conventions ## Render openapi/openapi.yaml into Go and TS API artefacts (idempotent)
 	@cd "$(ROOT_DIR)/backend" && go run ./cmd/codegen/openapi \
