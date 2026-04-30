@@ -163,6 +163,7 @@ easyinterview 是一款围绕具体目标岗位、JD 与真实面试流程设计
 5. **必须设计先行** — 若入口判断为设计或特性变更，必须先修订 spec/plan，再编码
 6. **必须收尾复查** — bugfix 或特性修订完成后，必须执行一次 post-pass doc reconcile（plan/spec/index/bug/retrospective）
 7. **必须让原计划成为当前 owner，先更新 spec/plan/checklist，再继续 `/implement` 或其他明确 owner skill** — 命中已完成主题时，必要时先将 Header `状态` 调整回 `active`，完成验证后再恢复 `completed`
+8. **必须使用中文与用户沟通** — 所有面向用户的聊天回复（含状态更新、问询、复述、总结）以及思考过程一律使用简体中文，确保交互语言一致；代码、标识符、命令、文件路径、技术术语、引用的英文原文以及代码内注释/文档遵循各自既有约定，不强制翻译
 
 ---
 
