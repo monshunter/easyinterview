@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-secrets-pattern lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-openapi codegen-check docs-openapi migrate install-hooks
+.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-secrets-pattern lint-observability lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-openapi codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -15,7 +15,7 @@ fmt: ## Format Go and frontend sources (delegates to backend/ and frontend/)
 	@$(call recurse_target,fmt,backend/Makefile,backend)
 	@$(call recurse_target,fmt,frontend/Makefile,frontend)
 
-lint: lint-conventions lint-config ## Lint Go and frontend sources (delegates to backend/ and frontend/ after cross-language and secrets-and-config gates)
+lint: lint-conventions lint-config lint-observability ## Lint Go and frontend sources (B1 conventions / A4 config / F1 observability gates, then delegates to backend/ and frontend/)
 	@$(call recurse_target,lint,backend/Makefile,backend)
 	@$(call recurse_target,lint,frontend/Makefile,frontend)
 
@@ -33,6 +33,9 @@ lint-env-dict: ## Verify .env.example, code-side os.Getenv calls, and spec §3.1
 
 lint-secrets-pattern: ## Scan staged + tracked files for AKIA / sk- / xox secret prefixes (defense-in-depth; pre-commit hook is the primary gate)
 	@bash "$(ROOT_DIR)/scripts/lint/gitleaks.sh" "$(ROOT_DIR)"
+
+lint-observability: ## F1 observability-stack metrics/log lint hook (NOT-YET-LANDED placeholder; A5 spec D-3 owner boundary, exit 0 until F1 lands)
+	@echo "not implemented yet: F1 observability-stack"
 
 test: ## Run unit tests (delegates to backend/ and frontend/)
 	@$(call recurse_target,test,backend/Makefile,backend)
@@ -124,8 +127,42 @@ docs-openapi: ## Render openapi/openapi.yaml as a single-file HTML site at opena
 		--title "easyinterview API"
 	@echo "rendered: $(ROOT_DIR)/openapi/dist/index.html"
 
-migrate: ## Run DB schema migrations; implemented by B4 db-migrations-baseline
-	@echo "TODO: implemented by B4 db-migrations-baseline"
+migrate: ## Show DB migration wrapper help
+	@cd "$(ROOT_DIR)/backend" && go run ./cmd/migrate --help
+
+migrate-up: ## Run all pending DB schema migrations
+	@cd "$(ROOT_DIR)/backend" && go run ./cmd/migrate \
+		--migrations-dir "$(ROOT_DIR)/migrations" \
+		--backfill-manifest "$(ROOT_DIR)/migrations/backfill/manifest.yaml" \
+		up
+
+migrate-down: ## Roll back DB schema migrations; refused in APP_ENV=prod unless explicitly forced
+	@cd "$(ROOT_DIR)/backend" && go run ./cmd/migrate \
+		--migrations-dir "$(ROOT_DIR)/migrations" \
+		--backfill-manifest "$(ROOT_DIR)/migrations/backfill/manifest.yaml" \
+		down
+
+migrate-status: ## Print current DB migration version
+	@cd "$(ROOT_DIR)/backend" && go run ./cmd/migrate \
+		--migrations-dir "$(ROOT_DIR)/migrations" \
+		--backfill-manifest "$(ROOT_DIR)/migrations/backfill/manifest.yaml" \
+		status
+
+migrate-create: ## Create paired migration files; usage: make migrate-create NAME=add_example
+	@if [ -z "$(NAME)" ]; then echo "ERROR: NAME is required, e.g. make migrate-create NAME=add_example" >&2; exit 2; fi
+	@cd "$(ROOT_DIR)/backend" && go run ./cmd/migrate \
+		--migrations-dir "$(ROOT_DIR)/migrations" \
+		create "$(NAME)"
+
+migrate-check: ## Run B4 local migration gate: up -> down -> up plus lint/probe checks
+	@python3 "$(ROOT_DIR)/scripts/lint/migrations_lint.py" --repo-root "$(ROOT_DIR)"
+	@cd "$(ROOT_DIR)/backend" && go run ./cmd/migrate \
+		--migrations-dir "$(ROOT_DIR)/migrations" \
+		--backfill-manifest "$(ROOT_DIR)/migrations/backfill/manifest.yaml" \
+		check
+
+privacy-delete-dry-run: ## Print the B4 privacy deletion table matrix for a dry run
+	@cd "$(ROOT_DIR)/backend" && go run ./cmd/migrate privacy-matrix --dry-run
 
 install-hooks: ## Symlink scripts/git-hooks/{pre-commit,commit-msg} into .git/hooks
 	@hooks_dir="$$(git -C "$(ROOT_DIR)" rev-parse --git-path hooks 2>/dev/null || true)"; \
