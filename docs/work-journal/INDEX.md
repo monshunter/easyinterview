@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-30](2026-04-30.md) | `docs(reports): land db-migrations baseline retrospective` | #docs |
 | [2026-04-30](2026-04-30.md) | `docs(db-migrations): close bootstrap plan` | #docs #test |
 | [2026-04-30](2026-04-30.md) | `feat(event-outbox): wire event contract generator` | #feat #test #docs |
 | [2026-04-30](2026-04-30.md) | `feat(db-migrations): add enum lint and privacy dry-run` | #feat #test #docs |
