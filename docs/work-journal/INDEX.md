@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-30](2026-04-30.md) | `test(event-outbox): assert final job mappings` | #test #docs |
 | [2026-04-30](2026-04-30.md) | `test(event-outbox): cover envelope and email dispatch contracts` | #test #feat #docs |
 | [2026-04-30](2026-04-30.md) | `feat(event-outbox): enforce event contract drift gate` | #feat #test #docs |
 | [2026-04-30](2026-04-30.md) | `docs(reports): land db-migrations baseline retrospective` | #docs |

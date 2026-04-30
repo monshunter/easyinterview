@@ -32,3 +32,29 @@ func TestBuildEmailDispatchPayload(t *testing.T) {
 		}
 	})
 }
+
+func TestGeneratedJobMappings(t *testing.T) {
+	if AsynqTaskTargetImport != "target.import" {
+		t.Fatalf("AsynqTaskTargetImport = %q", AsynqTaskTargetImport)
+	}
+	if AsynqTaskPrivacyDelete != "privacy.delete" {
+		t.Fatalf("AsynqTaskPrivacyDelete = %q", AsynqTaskPrivacyDelete)
+	}
+	if AsynqTaskEmailDispatch != "email.dispatch" {
+		t.Fatalf("AsynqTaskEmailDispatch = %q", AsynqTaskEmailDispatch)
+	}
+	for _, internalOnly := range []JobType{JobTypeSourceRefresh, JobTypeEmbeddingUpsert, JobTypeEmailDispatch} {
+		if containsJobType(APIFacingJobTypes, internalOnly) {
+			t.Fatalf("%s must stay out of APIFacingJobTypes", internalOnly)
+		}
+	}
+}
+
+func containsJobType(types []JobType, want JobType) bool {
+	for _, typ := range types {
+		if typ == want {
+			return true
+		}
+	}
+	return false
+}
