@@ -1,0 +1,53 @@
+[
+  {
+    "eventId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae91",
+    "eventName": "target.import.requested",
+    "eventVersion": 1,
+    "aggregateType": "target_job",
+    "aggregateId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae92",
+    "occurredAt": "2026-04-30T02:00:00Z",
+    "producer": "api",
+    "traceId": "trace-target-import-1",
+    "payload": {
+      "sourceType": "url",
+      "targetJobId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae92",
+      "targetLanguage": "en-US",
+      "userId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae93"
+    }
+  },
+  {
+    "eventId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae94",
+    "eventName": "report.generated",
+    "eventVersion": 1,
+    "aggregateType": "feedback_report",
+    "aggregateId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae95",
+    "occurredAt": "2026-04-30T02:01:00Z",
+    "producer": "worker",
+    "payload": {
+      "reportId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae95",
+      "sessionId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae96",
+      "targetJobId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae92",
+      "preparednessLevel": "basically_ready",
+      "mistakeCount": 2,
+      "promptVersion": "prompt-v1",
+      "rubricVersion": "rubric-v1",
+      "modelId": "model-test"
+    }
+  },
+  {
+    "eventId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae97",
+    "eventName": "mistake.status.changed",
+    "eventVersion": 1,
+    "aggregateType": "mistake_entry",
+    "aggregateId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae98",
+    "occurredAt": "2026-04-30T02:02:00Z",
+    "producer": "review",
+    "traceId": "trace-mistake-1",
+    "payload": {
+      "mistakeId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae98",
+      "fromStatus": "open",
+      "toStatus": "improving",
+      "targetJobId": "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae92"
+    }
+  }
+]

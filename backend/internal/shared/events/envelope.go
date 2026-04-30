@@ -31,6 +31,20 @@ type Envelope struct {
 	Payload       json.RawMessage `json:"payload"`
 }
 
+type SoftRequiredWarning struct {
+	Field     string
+	EventID   string
+	EventName EventName
+	Message   string
+}
+
+func (e Envelope) ValidateForPublish() []SoftRequiredWarning {
+	if e.TraceID != nil && *e.TraceID != "" {
+		return nil
+	}
+	return []SoftRequiredWarning{{Field: "traceId", EventID: e.EventID, EventName: e.EventName, Message: "traceId is soft-required; publish allowed"}}
+}
+
 func (e Envelope) MarshalJSON() ([]byte, error) {
 	type alias Envelope
 	return json.Marshal(alias(e))

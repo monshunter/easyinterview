@@ -27,3 +27,19 @@ export const API_FACING_JOB_TYPES = ["target_import", "resume_parse", "report_ge
 export type JobType = typeof JOB_TYPE_TARGET_IMPORT | typeof JOB_TYPE_RESUME_PARSE | typeof JOB_TYPE_REPORT_GENERATE | typeof JOB_TYPE_RESUME_TAILOR | typeof JOB_TYPE_DEBRIEF_GENERATE | typeof JOB_TYPE_SOURCE_REFRESH | typeof JOB_TYPE_EMBEDDING_UPSERT | typeof JOB_TYPE_PRIVACY_EXPORT | typeof JOB_TYPE_PRIVACY_DELETE | typeof JOB_TYPE_EMAIL_DISPATCH;
 export const EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELDS = ["authChallengeId", "dedupeKey", "deliverySecretRef", "locale", "templateKey", "userId"] as const;
 export const EMAIL_DISPATCH_REDACTED_FIELDS = ["rawMagicLinkToken", "magicLinkUrl", "recipientEmail", "recipientEmailHash", "emailBody", "emailSubject"] as const;
+export type EmailDispatchPayload = Partial<Record<typeof EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELDS[number], string>>;
+const EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELD_SET = new Set<string>(EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELDS);
+const EMAIL_DISPATCH_REDACTED_FIELD_SET = new Set<string>(EMAIL_DISPATCH_REDACTED_FIELDS);
+export function buildEmailDispatchPayload(input: Record<string, string>): EmailDispatchPayload {
+  const payload: Record<string, string> = {};
+  for (const [field, value] of Object.entries(input)) {
+    if (EMAIL_DISPATCH_REDACTED_FIELD_SET.has(field)) {
+      throw new Error(`email_dispatch payload field ${field} is redacted and forbidden`);
+    }
+    if (!EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELD_SET.has(field)) {
+      throw new Error(`email_dispatch payload field ${field} is not allowed`);
+    }
+    payload[field] = value;
+  }
+  return payload as EmailDispatchPayload;
+}

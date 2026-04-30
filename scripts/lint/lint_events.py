@@ -45,6 +45,14 @@ def _by_job_type(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
     }
 
 
+def _by_enum_name(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {
+        enum["name"]: enum
+        for enum in data.get("eventLocalEnums", [])
+        if isinstance(enum, dict) and isinstance(enum.get("name"), str)
+    }
+
+
 def _event_names(data: dict[str, Any]) -> list[str]:
     return sorted(_by_event_name(data))
 
@@ -65,6 +73,19 @@ def compare_events_baseline(current: dict[str, Any], baseline: dict[str, Any]) -
     errors: list[str] = []
     current_events = _by_event_name(current)
     baseline_events = _by_event_name(baseline)
+    current_enums = _by_enum_name(current)
+    baseline_enums = _by_enum_name(baseline)
+
+    for name in sorted(set(baseline_enums) - set(current_enums)):
+        errors.append(f"{name}: deleted event-local enum is a breaking change; {BREAKING}")
+    for name, baseline_enum in baseline_enums.items():
+        current_enum = current_enums.get(name)
+        if not current_enum:
+            continue
+        baseline_values = set(baseline_enum.get("values") or [])
+        current_values = set(current_enum.get("values") or [])
+        for value in sorted(baseline_values - current_values):
+            errors.append(f"{name}.{value}: deleted enum member; {BREAKING}")
 
     for name in sorted(set(baseline_events) - set(current_events)):
         errors.append(f"{name}: deleted eventName is a breaking change; {BREAKING}")
@@ -131,6 +152,12 @@ def validate_jobs_contract_shape(jobs: dict[str, Any]) -> list[str]:
             continue
         if job.get("apiFacing") is not True:
             errors.append(f"{canonical}: apiFacingSubset entry must have apiFacing=true")
+    email_dispatch = job_by_type.get("email_dispatch")
+    if email_dispatch:
+        payload_fields = set((email_dispatch.get("payloadSchema") or {}).keys())
+        redacted_fields = set(email_dispatch.get("redactedFields") or [])
+        for field in sorted(payload_fields & redacted_fields):
+            errors.append(f"email_dispatch.payloadSchema contains redacted field {field!r}")
     return errors
 
 

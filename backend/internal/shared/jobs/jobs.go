@@ -3,6 +3,8 @@
 
 package jobs
 
+import "fmt"
+
 type JobType string
 
 type AsynqTask string
@@ -59,4 +61,36 @@ var EmailDispatchRedactedFields = []string{
 	"recipientEmailHash",
 	"emailBody",
 	"emailSubject",
+}
+
+type EmailDispatchPayload map[string]string
+
+func BuildEmailDispatchPayload(input map[string]string) (EmailDispatchPayload, error) {
+	allowed := map[string]struct{}{
+		"authChallengeId":   {},
+		"dedupeKey":         {},
+		"deliverySecretRef": {},
+		"locale":            {},
+		"templateKey":       {},
+		"userId":            {},
+	}
+	redacted := map[string]struct{}{
+		"rawMagicLinkToken":  {},
+		"magicLinkUrl":       {},
+		"recipientEmail":     {},
+		"recipientEmailHash": {},
+		"emailBody":          {},
+		"emailSubject":       {},
+	}
+	payload := make(EmailDispatchPayload, len(input))
+	for field, value := range input {
+		if _, forbidden := redacted[field]; forbidden {
+			return nil, fmt.Errorf("email_dispatch payload field %s is redacted and forbidden", field)
+		}
+		if _, ok := allowed[field]; !ok {
+			return nil, fmt.Errorf("email_dispatch payload field %s is not allowed", field)
+		}
+		payload[field] = value
+	}
+	return payload, nil
 }

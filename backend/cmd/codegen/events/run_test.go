@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -96,6 +97,7 @@ func TestGenerateGoOutputs(t *testing.T) {
 		"var APIFacingJobTypes = []JobType{",
 		"JobTypePrivacyDelete",
 		"var EmailDispatchRedactedFields = []string{",
+		"func BuildEmailDispatchPayload(",
 	} {
 		if !strings.Contains(jobs, want) {
 			t.Errorf("jobs.go missing %q", want)
@@ -120,6 +122,7 @@ func TestGenerateTSOutputs(t *testing.T) {
 		"export type Producer =",
 		"export interface EventEnvelope<TPayload>",
 		"traceId?: string;",
+		"export function validateEnvelopeForPublish",
 	} {
 		if !strings.Contains(envelope, want) {
 			t.Errorf("envelope.ts missing %q", want)
@@ -146,6 +149,7 @@ func TestGenerateTSOutputs(t *testing.T) {
 		`export const ASYNQ_TASK_EMAIL_DISPATCH = "email.dispatch" as const;`,
 		"export const API_FACING_JOB_TYPES = [",
 		"export const EMAIL_DISPATCH_REDACTED_FIELDS = [",
+		"export function buildEmailDispatchPayload(",
 	} {
 		if !strings.Contains(jobs, want) {
 			t.Errorf("jobs.ts missing %q", want)
@@ -246,6 +250,80 @@ func TestBaselineManifests(t *testing.T) {
 	}
 }
 
+func TestBreakingChangeFixtures(t *testing.T) {
+	repoRoot := repoRootForTest(t)
+	baseEvents := readFile(t, filepath.Join(repoRoot, "shared/events.yaml"))
+	baseJobs := readFile(t, filepath.Join(repoRoot, "shared/jobs.yaml"))
+
+	tests := []struct {
+		name   string
+		events string
+	}{
+		{
+			name:   "type change",
+			events: strings.Replace(baseEvents, "mistakeCount: { type: int, source: spec:3.1.4 }", "mistakeCount: { type: string, source: spec:3.1.4 }", 1),
+		},
+		{
+			name:   "required field deletion",
+			events: strings.Replace(baseEvents, "      mistakeCount: { type: int, source: spec:3.1.4 }\n", "", 1),
+		},
+		{
+			name:   "dot case to snake",
+			events: strings.Replace(baseEvents, "  - name: report.generated", "  - name: report_generated", 1),
+		},
+		{
+			name:   "enum member removal",
+			events: strings.Replace(baseEvents, "      - file\n", "", 1),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmp := t.TempDir()
+			writeLintRepo(t, repoRoot, tmp, tt.events, baseJobs)
+
+			output, err := runLintEvents(t, repoRoot, tmp)
+			if err == nil {
+				t.Fatalf("lint_events succeeded, want failure; output:\n%s", output)
+			}
+			if !strings.Contains(output, "breaking change requires eventVersion + 1") {
+				t.Fatalf("missing breaking-change message; output:\n%s", output)
+			}
+		})
+	}
+}
+
+func TestAdditiveOptionalFieldFixture(t *testing.T) {
+	repoRoot := repoRootForTest(t)
+	events := strings.Replace(
+		readFile(t, filepath.Join(repoRoot, "shared/events.yaml")),
+		"    optionalPayload: {}\n    piiBoundary: No report body, answer snippets, raw model response, or prompt body.\n  - name: report.generation.failed",
+		"    optionalPayload:\n      reviewerNote: { type: string, source: spec:3.1.4 }\n    piiBoundary: No report body, answer snippets, raw model response, or prompt body.\n  - name: report.generation.failed",
+		1,
+	)
+	jobs := readFile(t, filepath.Join(repoRoot, "shared/jobs.yaml"))
+	tmp := t.TempDir()
+	if err := RunFromBytes([]byte(events), []byte(jobs), tmp, false); err != nil {
+		t.Fatalf("RunFromBytes: %v", err)
+	}
+
+	goEvents := readFile(t, filepath.Join(tmp, "backend/internal/shared/events/events.go"))
+	if !strings.Contains(goEvents, "ReviewerNote") ||
+		!strings.Contains(goEvents, "*string") ||
+		!strings.Contains(goEvents, "`json:\"reviewerNote,omitempty\"`") {
+		t.Fatalf("Go optional field must be a pointer, got:\n%s", goEvents)
+	}
+	tsEvents := readFile(t, filepath.Join(tmp, "frontend/src/lib/events/events.ts"))
+	if !strings.Contains(tsEvents, "reviewerNote?: string;") {
+		t.Fatalf("TS optional field must use ?:, got:\n%s", tsEvents)
+	}
+
+	writeLintRepo(t, repoRoot, tmp, events, jobs)
+	if output, err := runLintEvents(t, repoRoot, tmp); err != nil {
+		t.Fatalf("lint_events additive optional failed: %v\n%s", err, output)
+	}
+}
+
 func readFile(t *testing.T, path string) string {
 	t.Helper()
 	data, err := os.ReadFile(path)
@@ -253,4 +331,29 @@ func readFile(t *testing.T, path string) string {
 		t.Fatalf("read %s: %v", path, err)
 	}
 	return string(data)
+}
+
+func writeLintRepo(t *testing.T, repoRoot, tmp, events, jobs string) {
+	t.Helper()
+	mustWriteFile(t, filepath.Join(tmp, "shared/events.yaml"), events)
+	mustWriteFile(t, filepath.Join(tmp, "shared/jobs.yaml"), jobs)
+	mustWriteFile(t, filepath.Join(tmp, "shared/events/baseline/events.v1.json"), readFile(t, filepath.Join(repoRoot, "shared/events/baseline/events.v1.json")))
+	mustWriteFile(t, filepath.Join(tmp, "shared/jobs/baseline/jobs.v1.json"), readFile(t, filepath.Join(repoRoot, "shared/jobs/baseline/jobs.v1.json")))
+}
+
+func mustWriteFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("MkdirAll(%s): %v", path, err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("WriteFile(%s): %v", path, err)
+	}
+}
+
+func runLintEvents(t *testing.T, repoRoot, tmp string) (string, error) {
+	t.Helper()
+	cmd := exec.Command("python3", filepath.Join(repoRoot, "scripts/lint/lint_events.py"), "--repo-root", tmp)
+	output, err := cmd.CombinedOutput()
+	return string(output), err
 }

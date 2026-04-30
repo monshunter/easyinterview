@@ -48,6 +48,42 @@ class LintEventsBaselineTest(unittest.TestCase):
 
         self.assertTrue(any("mistakeCount" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
 
+    def test_detects_required_payload_deleted(self) -> None:
+        current = copy.deepcopy(self.events)
+        report_generated = next(event for event in current["events"] if event["name"] == "report.generated")
+        report_generated["requiredPayload"].pop("mistakeCount")
+
+        errs = self.linter.compare_events_baseline(current, self.events)
+
+        self.assertTrue(any("mistakeCount" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
+
+    def test_detects_dot_case_event_renamed_to_snake(self) -> None:
+        current = copy.deepcopy(self.events)
+        report_generated = next(event for event in current["events"] if event["name"] == "report.generated")
+        report_generated["name"] = "report_generated"
+
+        errs = self.linter.compare_events_baseline(current, self.events)
+
+        self.assertTrue(any("report.generated" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
+
+    def test_detects_event_local_enum_member_removed(self) -> None:
+        current = copy.deepcopy(self.events)
+        source_type = next(enum for enum in current["eventLocalEnums"] if enum["name"] == "TargetImportSourceType")
+        source_type["values"] = ["url", "text"]
+
+        errs = self.linter.compare_events_baseline(current, self.events)
+
+        self.assertTrue(any("TargetImportSourceType" in err and "file" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
+
+    def test_allows_additive_optional_payload_field(self) -> None:
+        current = copy.deepcopy(self.events)
+        report_generated = next(event for event in current["events"] if event["name"] == "report.generated")
+        report_generated["optionalPayload"]["reviewerNote"] = {"type": "string", "source": "spec:3.1.4"}
+
+        errs = self.linter.compare_events_baseline(current, self.events)
+
+        self.assertEqual([], errs)
+
     def test_detects_deleted_job_type(self) -> None:
         current = copy.deepcopy(self.jobs)
         current["jobs"] = [job for job in current["jobs"] if job["canonical"] != "email_dispatch"]
@@ -159,6 +195,15 @@ class LintEventsSourceScanTest(unittest.TestCase):
         errs = self.linter.validate_jobs_contract_shape(jobs)
 
         self.assertTrue(any("email_dispatch" in err and "apiFacing" in err for err in errs), errs)
+
+    def test_rejects_redacted_field_added_to_email_dispatch_payload_schema(self) -> None:
+        jobs = copy.deepcopy(self.jobs)
+        email_dispatch = next(job for job in jobs["jobs"] if job["canonical"] == "email_dispatch")
+        email_dispatch["payloadSchema"]["recipientEmail"] = {"type": "string"}
+
+        errs = self.linter.validate_jobs_contract_shape(jobs)
+
+        self.assertTrue(any("recipientEmail" in err and "redacted" in err for err in errs), errs)
 
 
 def constant_suffix(value: str) -> str:

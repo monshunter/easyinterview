@@ -3,6 +3,13 @@
 
 export type Producer = "api" | "dispatcher" | "review" | "worker";
 
+export interface SoftRequiredWarning {
+  field: 'traceId';
+  eventId: string;
+  eventName: string;
+  message: string;
+}
+
 export interface EventEnvelope<TPayload> {
   eventId: string;
   eventName: string;
@@ -13,4 +20,11 @@ export interface EventEnvelope<TPayload> {
   producer: Producer;
   traceId?: string;
   payload: TPayload;
+}
+
+export function validateEnvelopeForPublish(envelope: EventEnvelope<unknown>): SoftRequiredWarning[] {
+  if (envelope.traceId) {
+    return [];
+  }
+  return [{ field: 'traceId', eventId: envelope.eventId, eventName: envelope.eventName, message: 'traceId is soft-required; publish allowed' }];
 }

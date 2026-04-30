@@ -66,26 +66,26 @@ type JobsSpec struct {
 }
 
 type JobSpec struct {
-	Canonical       string                  `yaml:"canonical"`
-	AsynqTask       string                  `yaml:"asynqTask"`
-	APIFacing       bool                    `yaml:"apiFacing"`
-	TriggerEvent    string                  `yaml:"triggerEvent"`
-	OwnerDomain     string                  `yaml:"ownerDomain"`
-	Priority        string                  `yaml:"priority"`
-	PayloadSchema   map[string]PayloadField `yaml:"payloadSchema"`
-	RedactedFields  []string                `yaml:"redactedFields"`
+	Canonical      string                  `yaml:"canonical"`
+	AsynqTask      string                  `yaml:"asynqTask"`
+	APIFacing      bool                    `yaml:"apiFacing"`
+	TriggerEvent   string                  `yaml:"triggerEvent"`
+	OwnerDomain    string                  `yaml:"ownerDomain"`
+	Priority       string                  `yaml:"priority"`
+	PayloadSchema  map[string]PayloadField `yaml:"payloadSchema"`
+	RedactedFields []string                `yaml:"redactedFields"`
 }
 
 var b1EnumValues = map[string][]string{
-	"InterviewerRole":       {"generalist", "hr", "hiring_manager", "technical_manager", "peer"},
-	"MistakeStatus":         {"open", "improving", "mastered"},
-	"PracticeGoal":          {"baseline", "sprint", "fix_mistake", "debrief"},
-	"PracticeMode":          {"warmup", "core_interview", "single_drill", "counter_questions", "debrief_replay"},
-	"PrivacyRequestStatus":  {"queued", "processing", "completed", "failed", "cancelled"},
-	"PrivacyRequestType":    {"export", "delete"},
-	"ReadinessTier":         {"not_ready", "needs_practice", "basically_ready", "well_prepared"},
-	"ReportStatus":          {"queued", "generating", "ready", "failed"},
-	"TargetJobParseStatus":  {"queued", "processing", "ready", "failed"},
+	"InterviewerRole":      {"generalist", "hr", "hiring_manager", "technical_manager", "peer"},
+	"MistakeStatus":        {"open", "improving", "mastered"},
+	"PracticeGoal":         {"baseline", "sprint", "fix_mistake", "debrief"},
+	"PracticeMode":         {"warmup", "core_interview", "single_drill", "counter_questions", "debrief_replay"},
+	"PrivacyRequestStatus": {"queued", "processing", "completed", "failed", "cancelled"},
+	"PrivacyRequestType":   {"export", "delete"},
+	"ReadinessTier":        {"not_ready", "needs_practice", "basically_ready", "well_prepared"},
+	"ReportStatus":         {"queued", "generating", "ready", "failed"},
+	"TargetJobParseStatus": {"queued", "processing", "ready", "failed"},
 }
 
 func Run(eventsPath, jobsPath, repoRoot string, verbose bool) error {
@@ -201,6 +201,18 @@ func renderGoEnvelope(e *EventsSpec, _ *JobsSpec) ([]byte, error) {
 	buf.WriteString("\tTraceID *string `json:\"traceId,omitempty\"`\n")
 	buf.WriteString("\tPayload json.RawMessage `json:\"payload\"`\n")
 	buf.WriteString("}\n\n")
+	buf.WriteString("type SoftRequiredWarning struct {\n")
+	buf.WriteString("\tField string\n")
+	buf.WriteString("\tEventID string\n")
+	buf.WriteString("\tEventName EventName\n")
+	buf.WriteString("\tMessage string\n")
+	buf.WriteString("}\n\n")
+	buf.WriteString("func (e Envelope) ValidateForPublish() []SoftRequiredWarning {\n")
+	buf.WriteString("\tif e.TraceID != nil && *e.TraceID != \"\" {\n")
+	buf.WriteString("\t\treturn nil\n")
+	buf.WriteString("\t}\n")
+	buf.WriteString("\treturn []SoftRequiredWarning{{Field: \"traceId\", EventID: e.EventID, EventName: e.EventName, Message: \"traceId is soft-required; publish allowed\"}}\n")
+	buf.WriteString("}\n\n")
 	buf.WriteString("func (e Envelope) MarshalJSON() ([]byte, error) {\n\ttype alias Envelope\n\treturn json.Marshal(alias(e))\n}\n\n")
 	buf.WriteString("func (e *Envelope) UnmarshalJSON(data []byte) error {\n\ttype alias Envelope\n\tvar decoded alias\n\tif err := json.Unmarshal(data, &decoded); err != nil { return err }\n\t*e = Envelope(decoded)\n\treturn nil\n}\n")
 	return formatGo(buf.Bytes())
@@ -242,6 +254,7 @@ func renderGoJobs(_ *EventsSpec, j *JobsSpec) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteString(generatedHeader)
 	buf.WriteString("package jobs\n\n")
+	buf.WriteString("import \"fmt\"\n\n")
 	buf.WriteString("type JobType string\n\ntype AsynqTask string\n\nconst (\n")
 	for _, job := range j.Jobs {
 		fmt.Fprintf(&buf, "\tJobType%s JobType = %q\n", jobTypeName(job.Canonical), job.Canonical)
@@ -258,6 +271,30 @@ func renderGoJobs(_ *EventsSpec, j *JobsSpec) ([]byte, error) {
 	if email := findJob(j, "email_dispatch"); email != nil {
 		writeStringSlice(&buf, "EmailDispatchAllowedPayloadFields", sortedPayloadFields(email.PayloadSchema))
 		writeStringSlice(&buf, "EmailDispatchRedactedFields", email.RedactedFields)
+		buf.WriteString("type EmailDispatchPayload map[string]string\n\n")
+		buf.WriteString("func BuildEmailDispatchPayload(input map[string]string) (EmailDispatchPayload, error) {\n")
+		buf.WriteString("\tallowed := map[string]struct{}{\n")
+		for _, field := range sortedPayloadFields(email.PayloadSchema) {
+			fmt.Fprintf(&buf, "\t\t%q: {},\n", field)
+		}
+		buf.WriteString("\t}\n")
+		buf.WriteString("\tredacted := map[string]struct{}{\n")
+		for _, field := range email.RedactedFields {
+			fmt.Fprintf(&buf, "\t\t%q: {},\n", field)
+		}
+		buf.WriteString("\t}\n")
+		buf.WriteString("\tpayload := make(EmailDispatchPayload, len(input))\n")
+		buf.WriteString("\tfor field, value := range input {\n")
+		buf.WriteString("\t\tif _, forbidden := redacted[field]; forbidden {\n")
+		buf.WriteString("\t\t\treturn nil, fmt.Errorf(\"email_dispatch payload field %s is redacted and forbidden\", field)\n")
+		buf.WriteString("\t\t}\n")
+		buf.WriteString("\t\tif _, ok := allowed[field]; !ok {\n")
+		buf.WriteString("\t\t\treturn nil, fmt.Errorf(\"email_dispatch payload field %s is not allowed\", field)\n")
+		buf.WriteString("\t\t}\n")
+		buf.WriteString("\t\tpayload[field] = value\n")
+		buf.WriteString("\t}\n")
+		buf.WriteString("\treturn payload, nil\n")
+		buf.WriteString("}\n")
 	}
 	return formatGo(buf.Bytes())
 }
@@ -266,8 +303,14 @@ func renderTSEnvelope(e *EventsSpec, _ *JobsSpec) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteString(generatedTSHeader)
 	fmt.Fprintf(&buf, "export type Producer = %s;\n\n", tsUnion(producerValues(e)))
+	buf.WriteString("export interface SoftRequiredWarning {\n")
+	buf.WriteString("  field: 'traceId';\n  eventId: string;\n  eventName: string;\n  message: string;\n}\n\n")
 	buf.WriteString("export interface EventEnvelope<TPayload> {\n")
 	buf.WriteString("  eventId: string;\n  eventName: string;\n  eventVersion: number;\n  aggregateType: string;\n  aggregateId: string;\n  occurredAt: string;\n  producer: Producer;\n  traceId?: string;\n  payload: TPayload;\n}\n")
+	buf.WriteString("\nexport function validateEnvelopeForPublish(envelope: EventEnvelope<unknown>): SoftRequiredWarning[] {\n")
+	buf.WriteString("  if (envelope.traceId) {\n    return [];\n  }\n")
+	buf.WriteString("  return [{ field: 'traceId', eventId: envelope.eventId, eventName: envelope.eventName, message: 'traceId is soft-required; publish allowed' }];\n")
+	buf.WriteString("}\n")
 	return buf.Bytes(), nil
 }
 
@@ -322,6 +365,22 @@ func renderTSJobs(_ *EventsSpec, j *JobsSpec) ([]byte, error) {
 	if email := findJob(j, "email_dispatch"); email != nil {
 		fmt.Fprintf(&buf, "export const EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELDS = [%s] as const;\n", quotedList(sortedPayloadFields(email.PayloadSchema)))
 		fmt.Fprintf(&buf, "export const EMAIL_DISPATCH_REDACTED_FIELDS = [%s] as const;\n", quotedList(email.RedactedFields))
+		buf.WriteString("export type EmailDispatchPayload = Partial<Record<typeof EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELDS[number], string>>;\n")
+		buf.WriteString("const EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELD_SET = new Set<string>(EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELDS);\n")
+		buf.WriteString("const EMAIL_DISPATCH_REDACTED_FIELD_SET = new Set<string>(EMAIL_DISPATCH_REDACTED_FIELDS);\n")
+		buf.WriteString("export function buildEmailDispatchPayload(input: Record<string, string>): EmailDispatchPayload {\n")
+		buf.WriteString("  const payload: Record<string, string> = {};\n")
+		buf.WriteString("  for (const [field, value] of Object.entries(input)) {\n")
+		buf.WriteString("    if (EMAIL_DISPATCH_REDACTED_FIELD_SET.has(field)) {\n")
+		buf.WriteString("      throw new Error(`email_dispatch payload field ${field} is redacted and forbidden`);\n")
+		buf.WriteString("    }\n")
+		buf.WriteString("    if (!EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELD_SET.has(field)) {\n")
+		buf.WriteString("      throw new Error(`email_dispatch payload field ${field} is not allowed`);\n")
+		buf.WriteString("    }\n")
+		buf.WriteString("    payload[field] = value;\n")
+		buf.WriteString("  }\n")
+		buf.WriteString("  return payload as EmailDispatchPayload;\n")
+		buf.WriteString("}\n")
 	}
 	return buf.Bytes(), nil
 }
@@ -397,14 +456,14 @@ func renderJobsBaseline(_ *EventsSpec, j *JobsSpec) ([]byte, error) {
 	jobs := make([]map[string]any, 0, len(j.Jobs))
 	for _, job := range j.Jobs {
 		entry := map[string]any{
-			"canonical":       job.Canonical,
-			"asynqTask":       job.AsynqTask,
-			"apiFacing":       job.APIFacing,
-			"triggerEvent":    job.TriggerEvent,
-			"ownerDomain":     job.OwnerDomain,
-			"priority":        job.Priority,
-			"payloadSchema":   baselinePayload(job.PayloadSchema),
-			"redactedFields":  job.RedactedFields,
+			"canonical":      job.Canonical,
+			"asynqTask":      job.AsynqTask,
+			"apiFacing":      job.APIFacing,
+			"triggerEvent":   job.TriggerEvent,
+			"ownerDomain":    job.OwnerDomain,
+			"priority":       job.Priority,
+			"payloadSchema":  baselinePayload(job.PayloadSchema),
+			"redactedFields": job.RedactedFields,
 		}
 		jobs = append(jobs, entry)
 	}
