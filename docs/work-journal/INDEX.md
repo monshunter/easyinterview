@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-04-30](2026-04-30.md) | `docs(reports): land event-outbox bootstrap retrospective` | #docs |
 | [2026-04-30](2026-04-30.md) | `docs(event-outbox): complete bootstrap plan` | #docs #test |
 | [2026-04-30](2026-04-30.md) | `test(event-outbox): assert final job mappings` | #test #docs |
 | [2026-04-30](2026-04-30.md) | `test(event-outbox): cover envelope and email dispatch contracts` | #test #feat #docs |
