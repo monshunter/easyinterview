@@ -10,12 +10,12 @@ const ParseScreen = ({ T, lang, nav }) => {
   const steps = lang === "en" ? [
     "Extracting title, level, location",
     "Identifying must-have vs nice-to-have",
-    "Inferring hidden signals & round assumptions",
+    "Building the mock interview context",
     "Matching against your profile",
   ] : [
     "抽取岗位名、职级、地点",
     "识别必需项与加分项",
-    "推断隐性关注点与轮次假设",
+    "生成模拟面试上下文",
     "对比你的画像",
   ];
 
@@ -73,7 +73,7 @@ const ParseScreen = ({ T, lang, nav }) => {
             {lang === "en" ? "PARSING · step 01 of 04" : "解析中 · 第 01 / 04 步"}
           </div>
           <div className="ei-serif" style={{ fontSize: 28, color: T.ink, letterSpacing: "-0.015em", lineHeight: 1.3, marginBottom: 32 }}>
-            {lang === "en" ? "Turning the JD into a workspace…" : "正在把这份 JD 变成可练习的工作台…"}
+            {lang === "en" ? "Turning the JD into mock interview context…" : "正在把这份 JD 变成模拟面试上下文…"}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {steps.map((s, i) => {
@@ -227,13 +227,13 @@ const ParseScreen = ({ T, lang, nav }) => {
       {/* Footer actions */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderTop: `1px solid ${T.rule}` }}>
         <div style={{ fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)", lineHeight: 1.6, maxWidth: 420 }}>
-          {lang === "en" ? "Workspace will be created with these assumptions. You can edit anything later." : "工作台会按上面这些假设创建，之后随时可改。"}
+          {lang === "en" ? "The interview setup will use these assumptions. You can edit anything later." : "面试前确认会使用上面这些信息，之后随时可改。"}
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <Btn T={T} variant="ghost" onClick={() => nav("home")}>{lang === "en" ? "Cancel" : "取消"}</Btn>
           <Btn T={T} variant="secondary" icon="edit">{lang === "en" ? "Re-parse" : "重新解析"}</Btn>
           <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => nav("workspace", { jobId: "tj-1" })}>
-            {lang === "en" ? "Confirm & open workspace" : "确认并进入工作台"}
+            {lang === "en" ? "Confirm & open interview setup" : "确认并进入面试前确认"}
           </Btn>
         </div>
       </div>
@@ -742,7 +742,7 @@ const ReportGeneratingScreen = ({ T, lang, nav }) => {
 // #8 SETTINGS / PRIVACY / DATA EXPORT & DELETE
 // ═══════════════════════════════════════════════════════════════════
 const SettingsScreen = ({ T, lang, nav }) => {
-  const [tab, setTab] = React.useState("privacy");
+  const [tab, setTab] = React.useState("profile");
 
   const tabs = lang === "en"
     ? [{ k: "profile", t: "Profile" }, { k: "privacy", t: "Privacy & data" }, { k: "notifications", t: "Notifications" }, { k: "billing", t: "Billing" }]
@@ -886,24 +886,54 @@ const SettingsPrivacy = ({ T, lang }) => {
   );
 };
 
-const SettingsProfile = ({ T, lang }) => (
-  <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-    <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "IDENTITY" : "身份"}</div>
-    {[
-      { k: lang === "en" ? "Name" : "姓名", v: "林舟" },
-      { k: lang === "en" ? "Email" : "邮箱", v: "lin.zhou@example.com" },
-      { k: lang === "en" ? "Target role" : "目标角色", v: lang === "en" ? "Senior frontend" : "资深前端工程师" },
-      { k: lang === "en" ? "Years" : "年限", v: "5" },
-      { k: lang === "en" ? "Interview languages" : "面试语言", v: "中文 · English" },
-    ].map((r, i, arr) => (
-      <div key={r.k} style={{ display: "flex", gap: 16, padding: "12px 0", borderBottom: i < arr.length - 1 ? `1px dotted ${T.rule}` : "none" }}>
-        <div className="ei-label" style={{ color: T.ink3, minWidth: 160, fontSize: 11 }}>{r.k}</div>
-        <div style={{ fontSize: 14, color: T.ink, flex: 1 }}>{r.v}</div>
-        <button style={{ background: "transparent", border: "none", color: T.accent, fontSize: 12, cursor: "pointer" }}>{lang === "en" ? "Edit" : "编辑"}</button>
-      </div>
-    ))}
-  </div>
-);
+const SettingsProfile = ({ T, lang }) => {
+  const identityRows = [
+    { k: lang === "en" ? "Display name" : "显示姓名", v: "刘哲" },
+    { k: lang === "en" ? "Login email" : "登录邮箱", v: "liuzhe@example.com" },
+    { k: lang === "en" ? "Mobile" : "手机号", v: lang === "en" ? "Not connected" : "未绑定" },
+    { k: lang === "en" ? "Interface language" : "界面语言", v: lang === "en" ? "Chinese · English" : "中文 · English" },
+    { k: lang === "en" ? "Time zone" : "时区", v: "Asia/Shanghai" },
+  ];
+  const securityRows = [
+    { k: lang === "en" ? "Password" : "密码", v: lang === "en" ? "Last updated 18 days ago" : "18 天前更新" },
+    { k: lang === "en" ? "Login method" : "登录方式", v: lang === "en" ? "Email code + password" : "邮箱验证码 + 密码" },
+    { k: lang === "en" ? "Two-step verification" : "两步验证", v: lang === "en" ? "Off" : "未开启" },
+  ];
+
+  const Row = ({ r, last }) => (
+    <div style={{ display: "flex", gap: 16, padding: "14px 0", borderBottom: last ? "none" : `1px dotted ${T.rule}`, alignItems: "baseline" }}>
+      <div className="ei-label" style={{ color: T.ink3, minWidth: 160, fontSize: 11 }}>{r.k}</div>
+      <div style={{ fontSize: 14, color: T.ink, flex: 1 }}>{r.v}</div>
+      <button style={{ background: "transparent", border: "none", color: T.accent, fontSize: 12, cursor: "pointer" }}>{lang === "en" ? "Edit" : "编辑"}</button>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 26 }}>
+      <section>
+        <div className="ei-label" style={{ color: T.ink3, marginBottom: 14 }}>{lang === "en" ? "BASIC ACCOUNT INFO" : "账号基础信息"}</div>
+        <div style={{ padding: "18px 20px", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2, display: "flex", gap: 18, alignItems: "center", marginBottom: 14 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 24, background: T.ink2, color: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ei-mono)", fontWeight: 600 }}>LZ</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, color: T.ink, fontWeight: 600 }}>{lang === "en" ? "Liu Zhe" : "刘哲"}</div>
+            <div style={{ fontSize: 12.5, color: T.ink3, marginTop: 4 }}>{lang === "en" ? "This page only stores account identity and product preferences." : "这里仅保存账号身份和产品基础偏好，不保存岗位、年限、目标方向等一对多信息。"}</div>
+          </div>
+          <Btn T={T} variant="secondary" size="sm" icon="upload">{lang === "en" ? "Change avatar" : "更换头像"}</Btn>
+        </div>
+        <div>
+          {identityRows.map((r, i) => <Row key={r.k} r={r} last={i === identityRows.length - 1} />)}
+        </div>
+      </section>
+
+      <section>
+        <div className="ei-label" style={{ color: T.ink3, marginBottom: 14 }}>{lang === "en" ? "SIGN-IN & SECURITY" : "登录与安全"}</div>
+        <div>
+          {securityRows.map((r, i) => <Row key={r.k} r={r} last={i === securityRows.length - 1} />)}
+        </div>
+      </section>
+    </div>
+  );
+};
 
 const SettingsNotif = ({ T, lang }) => (
   <div style={{ fontSize: 14, color: T.ink3, padding: 24, background: T.bgSoft, borderRadius: 2 }}>

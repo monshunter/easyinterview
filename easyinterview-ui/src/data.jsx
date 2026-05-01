@@ -213,9 +213,9 @@ window.EI_DATA = {
       },
     ],
     nextPractice: [
-      "针对「性能优化量化」做一次单题深钻（15 分钟）",
-      "练习一次「替代方案权衡」型追问",
-      "准备 3 个岗位定制反问",
+      "重复技术一面复练时，必须覆盖「性能优化量化」",
+      "项目深挖中加入一次「替代方案权衡」追问",
+      "反问环节准备 3 个岗位定制问题",
     ],
   },
 
@@ -398,11 +398,11 @@ window.EI_DATA = {
     ],
     weeks: ["3/10", "3/17", "3/24", "3/31", "4/7", "4/14", "今周"],
     recent: [
-      { date: "4/20", job: "星环 · 资深前端", mode: "岗位定制核心面", readiness: 2 },
-      { date: "4/19", job: "星环 · 资深前端", mode: "单题深钻", readiness: 2 },
-      { date: "4/18", job: "Lumen Labs", mode: "英文热身", readiness: 1 },
-      { date: "4/17", job: "星环 · 资深前端", mode: "反问专练", readiness: 2 },
-      { date: "4/15", job: "星环 · 资深前端", mode: "真实面试复现", readiness: 2 },
+      { date: "4/20", job: "星环 · 资深前端", mode: "模拟面试 · 技术一面", readiness: 2 },
+      { date: "4/19", job: "星环 · 资深前端", mode: "模拟面试 · 技术一面", readiness: 2 },
+      { date: "4/18", job: "Lumen Labs", mode: "模拟面试 · HR 初筛", readiness: 1 },
+      { date: "4/17", job: "星环 · 资深前端", mode: "模拟面试 · 技术二面", readiness: 2 },
+      { date: "4/15", job: "星环 · 资深前端", mode: "复盘面试 · 技术一面", readiness: 2 },
     ],
   },
 };

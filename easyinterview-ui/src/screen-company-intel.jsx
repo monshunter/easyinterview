@@ -6,7 +6,7 @@ const CompanyIntelScreen = ({ T, lang, nav }) => {
     <div className="ei-fadein" style={{ maxWidth: 1240, margin: "0 auto", padding: "40px 48px 96px" }}>
       <div style={{ marginBottom: 24 }}>
         <button onClick={() => nav("workspace", { jobId: "tj-1" })} style={{ background: "transparent", border: "none", color: T.ink3, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0, marginBottom: 16 }}>
-          <Icon name="arrow_left" size={12} /> {lang === "en" ? "Back to workspace" : "返回工作台"}
+          <Icon name="arrow_left" size={12} /> {lang === "en" ? "Back to interview setup" : "返回面试前确认"}
         </button>
         <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>
           {lang === "en" ? "COMPANY INTEL · LIGHT-TOUCH · COMPLIANT SOURCES" : "公司情报 · 轻量版 · 仅合规公开来源"}
@@ -147,8 +147,8 @@ const CompanyIntelBody = ({ T, lang, intel, compact = false }) => {
   );
 };
 
-const CompanyIntelEmbed = ({ T, lang, nav }) => {
-  const intel = mockIntel(lang);
+const CompanyIntelEmbed = ({ T, lang, nav, job }) => {
+  const intel = mockIntelForJob(lang, job);
   return (
     <div style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2 }}>
       <div style={{ padding: "16px 20px", borderBottom: `1px dotted ${T.rule}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14 }}>
@@ -195,6 +195,64 @@ const CompanyIntelEmbed = ({ T, lang, nav }) => {
 };
 
 // ─── mock data ───
+const mockIntelForJob = (lang, job) => {
+  if (job?.id === "tj-2") {
+    return lang === "en" ? {
+      oneLiner: "Remote frontend platform team building internal DX tools — the interview will likely test platform boundaries, async collaboration, and English technical explanation.",
+      signals: [
+        { date: "2026-04-16", headline: "Lumen Labs published a monorepo migration write-up for its design platform", kind: "Engineering blog", toneTag: "accent" },
+        { date: "2026-04-03", headline: "Hiring post emphasizes remote-first rituals and platform ownership", kind: "Hiring signal", toneTag: "ok" },
+        { date: "2026-03-27", headline: "DX tooling team opened 2 frontend platform roles for APAC overlap", kind: "Team growth", toneTag: "amber" },
+      ],
+      reverseQs: [
+        { q: "How does the platform team decide what belongs in shared tooling versus product-owned code?" },
+        { q: "What async rituals have worked best for keeping platform decisions visible across time zones?" },
+      ],
+      sources: [{}, {}, {}, {}],
+    } : {
+      oneLiner: "远程前端平台团队正在建设内部 DX 工具 —— 这场面试更可能考察平台边界、异步协作和英文技术表达。",
+      signals: [
+        { date: "2026-04-16", headline: "Lumen Labs 发布 Monorepo 迁移文章，重点提到设计平台治理", kind: "技术博客", toneTag: "accent" },
+        { date: "2026-04-03", headline: "招聘帖强调 remote-first 协作仪式和平台 owner 机制", kind: "招聘信号", toneTag: "ok" },
+        { date: "2026-03-27", headline: "DX tooling 团队新增 2 个 APAC overlap 的前端平台岗位", kind: "团队扩张", toneTag: "amber" },
+      ],
+      reverseQs: [
+        { q: "平台团队如何判断一项能力应该沉淀到 shared tooling，还是留在产品业务代码里？" },
+        { q: "跨时区协作里，哪些异步机制最能保证平台决策被大家理解和遵守？" },
+      ],
+      sources: [{}, {}, {}, {}],
+    };
+  }
+  if (job?.id === "tj-3") {
+    return lang === "en" ? {
+      oneLiner: "Cloud platform group is hiring a senior web architect — expect architecture trade-offs, governance, and cross-team influence questions.",
+      signals: [
+        { date: "2026-04-12", headline: "Yunqi Group announced a console unification initiative across three product lines", kind: "Product strategy", toneTag: "accent" },
+        { date: "2026-03-30", headline: "Public tech talk focused on micro-frontend governance and architecture review cadence", kind: "Tech talk", toneTag: "ok" },
+        { date: "2026-03-18", headline: "Hiring page stresses technical leadership beyond individual delivery", kind: "Hiring signal", toneTag: "amber" },
+      ],
+      reverseQs: [
+        { q: "For the console unification effort, what architecture decision has been hardest to align across teams?" },
+        { q: "How do architecture review decisions translate into product-team execution commitments?" },
+      ],
+      sources: [{}, {}, {}, {}],
+    } : {
+      oneLiner: "云栖集团正在推进多产品控制台统一 —— 技术专家面更可能关注架构取舍、治理机制和跨团队影响力。",
+      signals: [
+        { date: "2026-04-12", headline: "云栖集团宣布三条产品线控制台统一计划", kind: "产品战略", toneTag: "accent" },
+        { date: "2026-03-30", headline: "公开技术分享聚焦微前端治理和架构评审节奏", kind: "技术分享", toneTag: "ok" },
+        { date: "2026-03-18", headline: "招聘页强调技术领导力，不只看个人交付", kind: "招聘信号", toneTag: "amber" },
+      ],
+      reverseQs: [
+        { q: "控制台统一过程中，最难跨团队对齐的是哪类架构决策？" },
+        { q: "架构评审形成的决策，如何转化成各产品团队真正执行的承诺？" },
+      ],
+      sources: [{}, {}, {}, {}],
+    };
+  }
+  return mockIntel(lang);
+};
+
 const mockIntel = (lang) => {
   if (lang === "en") {
     return {

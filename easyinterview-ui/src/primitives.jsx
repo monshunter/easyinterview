@@ -225,28 +225,28 @@ const SectionHeader = ({ eyebrow, title, sub, T, right }) => (
   </div>
 );
 
-// Readiness dial — 4-step: 未就绪 / 基本可面 / 建议再练 / 较为充分
+// Readiness status — 4-step: 未就绪 / 基本可面 / 建议再练 / 较为充分
 const ReadinessDial = ({ level, label, T, size = 56 }) => {
-  const total = 4;
-  const pct = ((level + 1) / total);
+  const states = ["未就绪", "基本可面", "建议再练", "较为充分"];
   const colors = [T.danger, T.warn, T.amber, T.ok];
   const c = colors[level] || T.ink3;
-  const r = size / 2 - 4;
-  const circ = 2 * Math.PI * r;
+  const state = label || states[level] || states[0];
+  const compact = size <= 40;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ position: "relative", width: size, height: size }}>
-        <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.rule} strokeWidth="3" />
-          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={c} strokeWidth="3"
-            strokeDasharray={`${circ * pct} ${circ}`} strokeLinecap="round" />
-        </svg>
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 13, fontFamily: "var(--ei-mono)", color: c, fontWeight: 600 }}>
-          {level + 1}/{total}
-        </div>
-      </div>
-      {label && <div style={{ fontSize: 13, color: T.ink2 }}>{label}</div>}
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 7, height: 7, borderRadius: 4, background: c, boxShadow: `0 0 0 3px ${T.bgSoft}` }} />
+      <span style={{
+        border: `1px solid ${T.rule}`,
+        background: T.bgSoft,
+        color: T.ink,
+        borderRadius: 2,
+        padding: compact ? "3px 7px" : "5px 10px",
+        fontSize: compact ? 11.5 : 12.5,
+        fontWeight: 500,
+        whiteSpace: "nowrap",
+      }}>
+        {state}
+      </span>
     </div>
   );
 };

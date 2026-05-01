@@ -42,7 +42,7 @@ const JDMatchScreen = ({ T, lang, nav }) => {
         ? ["Own the platform UI SDK used by 40+ internal apps", "Works directly with DX lead (ex-Vercel)", "Perf budget culture — LCP is an OKR"]
         : ["主导平台 UI SDK，40+ 内部应用使用", "与 DX lead（前 Vercel）直接协作", "性能预算写进 OKR"],
       similarInterviewers: 2,
-      networkNote: lang === "en" ? "2 engineers from your experience library have matched here before" : "你经历库里 2 位工程师在这里面试过",
+      networkNote: lang === "en" ? "2 similar-background candidates interviewed here before" : "2 位相似背景候选人在这里面试过",
     },
     {
       id: "jm-2",
@@ -202,9 +202,10 @@ const JDMatchScreen = ({ T, lang, nav }) => {
           {profile.skills.map((s) => <Tag key={s} T={T} tone="neutral">{s}</Tag>)}
         </div>
         <div style={{ flex: 1, minWidth: 40 }} />
-        <button onClick={() => nav("onboarding")} style={{ background: "transparent", border: "none", color: T.accent, fontSize: 12.5, cursor: "pointer", fontWeight: 500 }}>
-          {lang === "en" ? "Refine profile →" : "完善画像 →"}
-        </button>
+        <div style={{ textAlign: "right", color: T.ink3, fontSize: 11.5, lineHeight: 1.45 }}>
+          <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "PROFILE SOURCES" : "画像来源"}</div>
+          <div>{lang === "en" ? "4 resumes · 12 JDs · 8 mocks · 2 debriefs" : "4 份简历 · 12 个 JD · 8 次模拟 · 2 次复盘"}</div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -383,7 +384,7 @@ const JDDetail = ({ job, T, lang, nav }) => {
         {/* Action bar */}
         <div style={{ padding: "16px 24px", display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Btn T={T} variant="accent" icon="arrow_right" onClick={() => nav("parse")}>
-            {lang === "en" ? "Open in workspace" : "导入工作台"}
+            {lang === "en" ? "Confirm interview" : "确认面试"}
           </Btn>
           <Btn T={T} variant="secondary" size="sm" icon={job.saved ? "pin" : "plus"}>
             {job.saved ? (lang === "en" ? "Saved" : "已关注") : (lang === "en" ? "Save to watchlist" : "加入关注")}

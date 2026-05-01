@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-01](2026-05-01.md) | `feat(ui): align prototype with refined ui design` | #feat #ui |
 | [2026-05-01](2026-05-01.md) | `docs(ui-refine): land refined ui design document set` | #docs #ui |
 
 ## 2026-04

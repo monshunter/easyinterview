@@ -7,12 +7,12 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "serifFamily": "Noto Serif SC",
   "sansFamily": "Inter",
   "accentHue": 22,
-  "reportLayout": "editorial",
+  "reportLayout": "dashboard",
   "role": "general"
 }/*EDITMODE-END*/;
 
 const App = () => {
-  const [route, setRoute] = useState({ name: "welcome", params: {} });
+  const [route, setRoute] = useState({ name: "home", params: {} });
   const [lang, setLang] = useState("zh");
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
   const [tweaksOpen, setTweaksOpen] = useState(false);
@@ -21,6 +21,17 @@ const App = () => {
     const v = localStorage.getItem("ei-signed-in");
     return v === "1";
   });
+  const routeAliases = {
+    welcome: "home",
+    mistakes: "report",
+    drill: "practice",
+    followup: "practice",
+    growth: "home",
+    plan: "workspace",
+    experiences: "resume_versions",
+    star: "resume_versions",
+  };
+  const normalizeRoute = (name) => routeAliases[name] || name;
 
   // persistence
   useEffect(() => {
@@ -28,10 +39,17 @@ const App = () => {
     const hash = window.location.hash.slice(1);
     const params = new URLSearchParams(hash);
     if (params.get("route")) {
-      setRoute({ name: params.get("route"), params: { jobId: params.get("jobId") || "tj-1", mode: params.get("mode") } });
+      setRoute({ name: normalizeRoute(params.get("route")), params: { jobId: params.get("jobId") || "tj-1", mode: params.get("mode"), flow: params.get("flow") } });
+    } else if (hash && !hash.includes("=")) {
+      setRoute({ name: normalizeRoute(hash), params: { jobId: "tj-1" } });
     } else {
       const saved = localStorage.getItem("ei-route");
-      if (saved) { try { setRoute(JSON.parse(saved)); } catch {} }
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setRoute({ ...parsed, name: normalizeRoute(parsed.name) });
+        } catch {}
+      }
     }
     const savedLang = localStorage.getItem("ei-lang");
     if (savedLang) setLang(savedLang);
@@ -83,7 +101,16 @@ const App = () => {
     document.body.style.color = T.ink;
   }, [tweaks.serifFamily, tweaks.sansFamily, T.bg, T.ink]);
 
-  const nav = (name, params = {}) => setRoute({ name, params });
+  const nav = (name, params = {}) => setRoute({ name: normalizeRoute(name), params });
+  const completeSignIn = () => {
+    setSignedIn(true);
+    localStorage.setItem("ei-signed-in", "1");
+    setRoute({ name: "home", params: {} });
+  };
+  const completeSignOut = () => {
+    setSignedIn(false);
+    localStorage.removeItem("ei-signed-in");
+  };
 
   const screens = {
     home: <HomeScreen T={T} lang={lang} nav={nav} role={tweaks.role} />,
@@ -102,8 +129,14 @@ const App = () => {
     settings: <SettingsScreen T={T} lang={lang} nav={nav} />,
     debrief_full: <DebriefFullScreen T={T} lang={lang} nav={nav} />,
     experiences: <ExperienceLibraryScreen T={T} lang={lang} nav={nav} />,
-    resume_versions: <ResumeVersionsScreen T={T} lang={lang} nav={nav} />,
+    resume_versions: <ResumeVersionsScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
     jd_match: <JDMatchScreen T={T} lang={lang} nav={nav} />,
+    profile: <UserProfileScreen T={T} lang={lang} nav={nav} />,
+    auth_login: <AuthLoginScreen T={T} lang={lang} nav={nav} onSignIn={completeSignIn} />,
+    auth_register: <AuthRegisterScreen T={T} lang={lang} nav={nav} />,
+    auth_verify: <AuthVerifyScreen T={T} lang={lang} nav={nav} email={route.params.email} onSignIn={completeSignIn} />,
+    auth_reset: <AuthResetScreen T={T} lang={lang} nav={nav} />,
+    auth_logout: <AuthLogoutScreen T={T} lang={lang} nav={nav} signedIn={signedIn} onSignOut={completeSignOut} />,
     company_intel: <CompanyIntelScreen T={T} lang={lang} nav={nav} />,
     welcome: <WelcomeScreen T={T} lang={lang} nav={nav} onSignIn={() => { setSignedIn(true); localStorage.setItem("ei-signed-in", "1"); setRoute({ name: "home", params: {} }); }} />,
     drill: <DrillBuilderScreen T={T} lang={lang} nav={nav} />,
@@ -111,32 +144,17 @@ const App = () => {
     star: <StarEditorScreen T={T} lang={lang} nav={nav} />,
   };
 
-  const hideTopBar = !signedIn || route.name === "practice" || route.name === "voice" || route.name === "onboarding" || route.name === "generating" || route.name === "welcome" || document.body.getAttribute("data-nochrome") === "1";
+  const hideTopBar = route.name === "practice" || route.name === "voice" || route.name === "onboarding" || route.name === "generating" || document.body.getAttribute("data-nochrome") === "1";
 
   const isCanvasIframe = document.body.getAttribute("data-nochrome") === "1" || window.location.hash.includes("nochrome=1");
 
-  // Sync route when auth state flips (signed-in users shouldn't be parked on welcome)
-  useEffect(() => {
-    if (signedIn && route.name === "welcome" && !isCanvasIframe) {
-      setRoute({ name: "home", params: {} });
-    }
-  }, [signedIn]);
-
-  // Auth gate — when not signed in, force welcome (allow ?route=...nochrome=1 override for canvas iframes)
-  let effectiveScreen;
-  if (!signedIn && !isCanvasIframe) {
-    effectiveScreen = screens.welcome;
-  } else if (signedIn && route.name === "welcome" && !isCanvasIframe) {
-    // Reverse gate: signed-in users shouldn't sit on welcome
-    effectiveScreen = screens.home;
-  } else {
-    effectiveScreen = screens[route.name] || screens.home;
-  }
+  const activeRouteName = normalizeRoute(route.name);
+  const effectiveScreen = screens[activeRouteName] || screens.home;
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, color: T.ink, fontFamily: "var(--ei-sans)" }} data-screen-label={route.name}>
-      {!hideTopBar && <TopBar T={T} route={route} nav={nav} lang={lang} setLang={setLang} dark={tweaks.dark} setDark={(v) => updateTweak("dark", v)} signOut={() => { setSignedIn(false); localStorage.removeItem("ei-signed-in"); setRoute({ name: "welcome", params: {} }); }} />}
-      <div key={route.name + (route.params.jobId || "")}>
+      {!hideTopBar && <TopBar T={T} route={{ ...route, name: activeRouteName }} nav={nav} lang={lang} setLang={setLang} dark={tweaks.dark} setDark={(v) => updateTweak("dark", v)} signedIn={signedIn} signOut={() => nav("auth_logout")} />}
+      <div key={route.name + (route.params.jobId || "") + (route.params.flow || "")}>
         {effectiveScreen}
       </div>
       {tweaksOpen && <TweaksPanel T={T} tweaks={tweaks} updateTweak={updateTweak} onClose={() => setTweaksOpen(false)} />}
@@ -144,18 +162,14 @@ const App = () => {
   );
 };
 
-const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, signOut }) => {
+const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, signedIn, signOut }) => {
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const nav_items = [
-    { k: "home", labelZh: "收件箱", labelEn: "Inbox", icon: "target" },
-    { k: "jd_match", labelZh: "JD 匹配", labelEn: "JD Match", icon: "search" },
-    { k: "workspace", labelZh: "工作台", labelEn: "Workspace", icon: "briefcase" },
-    { k: "experiences", labelZh: "经历库", labelEn: "Stories", icon: "book" },
-    { k: "resume_versions", labelZh: "简历版本", labelEn: "Resumes", icon: "file" },
-    { k: "mistakes", labelZh: "错题本", labelEn: "Mistakes", icon: "bookmark" },
-    { k: "growth", labelZh: "成长", labelEn: "Growth", icon: "chart" },
-    { k: "plan", labelZh: "多轮计划", labelEn: "Plan", icon: "layers" },
-    { k: "debrief", labelZh: "复盘", labelEn: "Debrief", icon: "flag" },
+    { k: "home", labelZh: "首页", labelEn: "Home", icon: "target" },
+    { k: "jd_match", labelZh: "岗位推荐", labelEn: "Job Picks", icon: "search" },
+    { k: "workspace", labelZh: "模拟面试", labelEn: "Mock Interview", icon: "play" },
+    { k: "resume_versions", labelZh: "简历", labelEn: "Resume", icon: "file" },
+    { k: "debrief", labelZh: "真实复盘", labelEn: "Debrief", icon: "flag" },
   ];
   return (
     <div style={{
@@ -200,57 +214,64 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, signOut }) => {
         <Icon name="globe" size={12} /> {lang === "zh" ? "中 · EN" : "EN · 中"}
       </button>
 
-      <div style={{ position: "relative" }}>
-        <button onClick={() => setUserMenuOpen((o) => !o)} style={{
-          display: "flex", alignItems: "center", gap: 8, background: "transparent", border: `1px solid ${T.rule}`,
-          padding: "3px 10px 3px 3px", borderRadius: 18, cursor: "pointer",
-        }}>
-          <div style={{ width: 26, height: 26, borderRadius: 13, background: T.ink2, color: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 500, fontFamily: "var(--ei-mono)" }}>LZ</div>
-          <div style={{ fontSize: 12, color: T.ink2 }}>{lang === "en" ? "Liu Zhe" : "刘哲"}</div>
-          <span style={{ fontSize: 9, color: T.ink3, marginRight: 2 }}>▾</span>
-        </button>
-        {userMenuOpen && (
-          <>
-            <div onClick={() => setUserMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 39 }} />
-            <div style={{
-              position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 220,
-              background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3,
-              boxShadow: "0 12px 36px rgba(20,15,10,0.16)", padding: 6, zIndex: 40,
-            }}>
-              <div style={{ padding: "10px 12px 8px", borderBottom: `1px solid ${T.rule}`, marginBottom: 6 }}>
-                <div style={{ fontSize: 13, color: T.ink, fontWeight: 500 }}>{lang === "en" ? "Liu Zhe" : "刘哲"}</div>
-                <div style={{ fontSize: 11.5, color: T.ink3, marginTop: 2, fontFamily: "var(--ei-mono)" }}>liuzhe@example.com</div>
-              </div>
-              {[
-                { k: "profile", icon: "user", labelZh: "个人资料 / 画像", labelEn: "Profile / preferences", action: () => nav("onboarding") },
-                { k: "settings", icon: "settings", labelZh: "设置与隐私", labelEn: "Settings & privacy", action: () => nav("settings") },
-              ].map((item) => (
-                <button key={item.k} onClick={() => { item.action(); setUserMenuOpen(false); }} style={{
+      {signedIn ? (
+        <div style={{ position: "relative" }}>
+          <button onClick={() => setUserMenuOpen((o) => !o)} style={{
+            display: "flex", alignItems: "center", gap: 8, background: "transparent", border: `1px solid ${T.rule}`,
+            padding: "3px 10px 3px 3px", borderRadius: 18, cursor: "pointer",
+          }}>
+            <div style={{ width: 26, height: 26, borderRadius: 13, background: T.ink2, color: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 500, fontFamily: "var(--ei-mono)" }}>LZ</div>
+            <div style={{ fontSize: 12, color: T.ink2 }}>{lang === "en" ? "Liu Zhe" : "刘哲"}</div>
+            <span style={{ fontSize: 9, color: T.ink3, marginRight: 2 }}>▾</span>
+          </button>
+          {userMenuOpen && (
+            <>
+              <div onClick={() => setUserMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 39 }} />
+              <div style={{
+                position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 220,
+                background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3,
+                boxShadow: "0 12px 36px rgba(20,15,10,0.16)", padding: 6, zIndex: 40,
+              }}>
+                <div style={{ padding: "10px 12px 8px", borderBottom: `1px solid ${T.rule}`, marginBottom: 6 }}>
+                  <div style={{ fontSize: 13, color: T.ink, fontWeight: 500 }}>{lang === "en" ? "Liu Zhe" : "刘哲"}</div>
+                  <div style={{ fontSize: 11.5, color: T.ink3, marginTop: 2, fontFamily: "var(--ei-mono)" }}>liuzhe@example.com</div>
+                </div>
+                {[
+                  { k: "profile", icon: "user", labelZh: "用户画像", labelEn: "User profile", action: () => nav("profile") },
+                  { k: "settings", icon: "settings", labelZh: "设置与隐私", labelEn: "Settings & privacy", action: () => nav("settings") },
+                ].map((item) => (
+                  <button key={item.k} onClick={() => { item.action(); setUserMenuOpen(false); }} style={{
+                    display: "flex", alignItems: "center", gap: 10, width: "100%",
+                    background: "transparent", border: "none", textAlign: "left",
+                    padding: "8px 12px", borderRadius: 2, cursor: "pointer", color: T.ink2, fontSize: 13,
+                  }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = T.bgSoft}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                    <Icon name={item.icon} size={13} style={{ color: T.ink3 }} />
+                    {lang === "en" ? item.labelEn : item.labelZh}
+                  </button>
+                ))}
+                <div style={{ height: 1, background: T.rule, margin: "6px 0" }} />
+                <button onClick={() => { setUserMenuOpen(false); signOut && signOut(); }} style={{
                   display: "flex", alignItems: "center", gap: 10, width: "100%",
                   background: "transparent", border: "none", textAlign: "left",
-                  padding: "8px 12px", borderRadius: 2, cursor: "pointer", color: T.ink2, fontSize: 13,
+                  padding: "8px 12px", borderRadius: 2, cursor: "pointer", color: T.danger, fontSize: 13,
                 }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = T.bgSoft}
+                  onMouseEnter={(e) => e.currentTarget.style.background = T.dangerSoft || T.bgSoft}
                   onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                  <Icon name={item.icon} size={13} style={{ color: T.ink3 }} />
-                  {lang === "en" ? item.labelEn : item.labelZh}
+                  <Icon name="logout" size={13} />
+                  {lang === "en" ? "Sign out" : "退出登录"}
                 </button>
-              ))}
-              <div style={{ height: 1, background: T.rule, margin: "6px 0" }} />
-              <button onClick={() => { setUserMenuOpen(false); signOut && signOut(); }} style={{
-                display: "flex", alignItems: "center", gap: 10, width: "100%",
-                background: "transparent", border: "none", textAlign: "left",
-                padding: "8px 12px", borderRadius: 2, cursor: "pointer", color: T.danger, fontSize: 13,
-              }}
-                onMouseEnter={(e) => e.currentTarget.style.background = T.dangerSoft || T.bgSoft}
-                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                <Icon name="logout" size={13} />
-                {lang === "en" ? "Sign out" : "退出登录"}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <Btn T={T} variant="ghost" size="sm" onClick={() => nav("auth_login")}>{lang === "en" ? "Sign in" : "登录"}</Btn>
+          <Btn T={T} variant="secondary" size="sm" onClick={() => nav("auth_register")}>{lang === "en" ? "Register" : "注册"}</Btn>
+        </div>
+      )}
     </div>
   );
 };

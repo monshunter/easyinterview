@@ -6,6 +6,7 @@ const PracticeScreen = ({ T, lang, nav, jobId, mode, role, setRole }) => {
   const [input, setInput] = React.useState("");
   const [paused, setPaused] = React.useState(false);
   const [showHint, setShowHint] = React.useState(false);
+  const [dictating, setDictating] = React.useState(false);
   const [elapsed, setElapsed] = React.useState(502); // 08:22
   const [transcript, setTranscript] = React.useState(D.sessionTranscript);
 
@@ -17,14 +18,30 @@ const PracticeScreen = ({ T, lang, nav, jobId, mode, role, setRole }) => {
 
   const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   const currentQ = D.questions[qIdx];
-  const activeMode = mode || "core";
+  const activeMode = mode === "voice" ? "voice" : "text";
   const modes = lang === "en"
-    ? [{ k: "core", label: "Core", icon: "chat" }, { k: "voice", label: "Voice", icon: "mic" }, { k: "followup", label: "Follow-up tree", icon: "layers" }, { k: "drill", label: "Targeted drill", icon: "target" }]
-    : [{ k: "core", label: "标准对话", icon: "chat" }, { k: "voice", label: "语音", icon: "mic" }, { k: "followup", label: "追问树", icon: "layers" }, { k: "drill", label: "针对性复练", icon: "target" }];
+    ? [
+      { k: "text", label: "Text interview", sub: "type answers", icon: "chat" },
+      { k: "voice", label: "Voice interview", sub: "live spoken conversation", icon: "mic" },
+    ]
+    : [
+      { k: "text", label: "文本面试", sub: "打字回答", icon: "chat" },
+      { k: "voice", label: "语音面试", sub: "实时语音对话", icon: "mic" },
+    ];
   const onSwitchMode = (k) => {
     if (k === "voice") nav("voice");
-    else if (k === "drill") nav("drill");
-    else nav("practice", { jobId, mode: k });
+    else nav("practice", { jobId, mode: "text" });
+  };
+  const toggleDictation = () => {
+    if (dictating) {
+      const sample = lang === "en"
+        ? "I led the checkout performance rewrite. The starting point was a P75 LCP around 3.2 seconds, and the goal was to reduce it below 1.5 seconds without breaking conversion."
+        : "我主导过一次结账链路性能优化。起点是 P75 LCP 大约 3.2 秒，目标是在不影响转化的前提下降到 1.5 秒以内。";
+      setInput((v) => (v.trim() ? `${v.trim()}\n${sample}` : sample));
+      setDictating(false);
+      return;
+    }
+    setDictating(true);
   };
 
   const send = () => {
@@ -65,30 +82,33 @@ const PracticeScreen = ({ T, lang, nav, jobId, mode, role, setRole }) => {
         </div>
       </div>
 
-      {/* Mode tabs */}
-      <div style={{ padding: "8px 28px", borderBottom: `1px solid ${T.rule}`, background: T.bg, display: "flex", gap: 4, alignItems: "center" }}>
-        <span className="ei-label" style={{ color: T.ink3, marginRight: 8 }}>{lang === "en" ? "MODE" : "模式"}</span>
+      {/* Interview modality */}
+      <div style={{ padding: "8px 28px", borderBottom: `1px solid ${T.rule}`, background: T.bg, display: "flex", gap: 8, alignItems: "center" }}>
+        <span className="ei-label" style={{ color: T.ink3, marginRight: 8 }}>{lang === "en" ? "INTERVIEW MODE" : "面试形式"}</span>
         {modes.map((m) => {
           const on = activeMode === m.k;
           return (
             <button key={m.k} onClick={() => onSwitchMode(m.k)} style={{
               background: on ? T.bgSoft : "transparent",
               border: `1px solid ${on ? T.rule : "transparent"}`,
-              color: on ? T.ink : T.ink3, padding: "5px 11px", borderRadius: 2,
-              fontSize: 12.5, cursor: "pointer", display: "flex", gap: 6, alignItems: "center", fontFamily: "var(--ei-sans)",
+              color: on ? T.ink : T.ink3, padding: "7px 11px", borderRadius: 2,
+              cursor: "pointer", display: "flex", gap: 8, alignItems: "center", fontFamily: "var(--ei-sans)",
             }}>
-              <Icon name={m.icon} size={12} /> {m.label}
+              <Icon name={m.icon} size={13} />
+              <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.15 }}>
+                <span style={{ fontSize: 12.5, fontWeight: on ? 600 : 500 }}>{m.label}</span>
+                <span style={{ fontSize: 10.5, color: on ? T.ink3 : T.ink4, marginTop: 2 }}>{m.sub}</span>
+              </span>
             </button>
           );
         })}
+        <div style={{ flex: 1 }} />
+        <div style={{ fontSize: 11.5, color: T.ink3 }}>
+          {lang === "en" ? "Choose how the interview itself runs." : "这里决定整场面试如何进行。"}
+        </div>
       </div>
 
-      {/* Main: branches by mode */}
-      {activeMode === "followup" && window.FollowUpTreeScreen ? (
-        <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }} className="ei-scroll">
-          <window.FollowUpTreeScreen T={T} lang={lang} nav={nav} embedded />
-        </div>
-      ) : (
+      {/* Main */}
       <div style={{ flex: 1, display: "grid", gridTemplateColumns: "260px 1fr 280px", minHeight: 0 }}>
         {/* left: question map */}
         <div style={{ borderRight: `1px solid ${T.rule}`, padding: "20px 18px", overflowY: "auto", background: T.bgSoft }} className="ei-scroll">
@@ -165,16 +185,22 @@ const PracticeScreen = ({ T, lang, nav, jobId, mode, role, setRole }) => {
             <div style={{ border: `1px solid ${T.rule}`, borderRadius: 2, padding: 12, background: T.bg }}>
               <textarea
                 value={input} onChange={(e) => setInput(e.target.value)}
-                placeholder={lang === "en" ? "Type your answer — or tap the mic to speak." : "输入你的回答——或按住麦克风说。"}
+                placeholder={lang === "en" ? "Type your answer here. You may also use speech-to-text." : "在这里输入回答；也可以用语音转文字填入。"}
                 style={{ width: "100%", minHeight: 70, border: "none", outline: "none", resize: "none", fontSize: 14, lineHeight: 1.55, background: "transparent", color: T.ink, fontFamily: "var(--ei-sans)" }}
               />
+              {dictating && (
+                <div style={{ marginTop: 6, padding: "7px 9px", background: T.coolSoft, border: `1px solid ${T.cool}`, color: T.cool, fontSize: 12, borderRadius: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span className="ei-pulse" style={{ width: 6, height: 6, borderRadius: 3, background: T.cool, display: "inline-block" }} />
+                  {lang === "en" ? "Speech-to-text is listening. The transcript will be inserted into this text answer." : "语音转文字正在听写，识别结果会填入这个文本回答框。"}
+                </div>
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => setShowHint((h) => !h)} style={{ background: "transparent", border: `1px solid ${T.rule}`, padding: "6px 10px", borderRadius: 2, fontSize: 12, color: T.ink2, display: "flex", gap: 4, alignItems: "center" }}>
                     <Icon name="sparkle" size={12} /> {lang === "en" ? "Hint" : "提示"}
                   </button>
-                  <button style={{ background: "transparent", border: `1px solid ${T.rule}`, padding: "6px 10px", borderRadius: 2, fontSize: 12, color: T.ink2, display: "flex", gap: 4, alignItems: "center" }}>
-                    <Icon name="mic" size={12} /> {lang === "en" ? "Voice (P2)" : "语音（P2）"}
+                  <button onClick={toggleDictation} style={{ background: dictating ? T.coolSoft : "transparent", border: `1px solid ${dictating ? T.cool : T.rule}`, padding: "6px 10px", borderRadius: 2, fontSize: 12, color: dictating ? T.cool : T.ink2, display: "flex", gap: 4, alignItems: "center" }}>
+                    <Icon name="mic" size={12} /> {dictating ? (lang === "en" ? "Insert transcript" : "插入转写") : (lang === "en" ? "Speech-to-text" : "语音转文字")}
                   </button>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -213,7 +239,6 @@ const PracticeScreen = ({ T, lang, nav, jobId, mode, role, setRole }) => {
           </div>
         </div>
       </div>
-      )}
     </div>
   );
 };

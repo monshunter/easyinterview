@@ -1,53 +1,86 @@
-// Screen 2: Target Job Workspace
+// Screen 2: Mock Interview Setup
 const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
   const D = window.EI_DATA;
-  const job = D.targetJobs.find((j) => j.id === jobId) || D.targetJobs[0];
-  const jd = D.jdSample;
+  const [activeJobId, setActiveJobId] = React.useState(jobId || "tj-1");
+  const [selectedResumeId, setSelectedResumeId] = React.useState("frontend-v3");
+  const [resumePickerOpen, setResumePickerOpen] = React.useState(false);
+  const [plannerOpen, setPlannerOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (jobId) setActiveJobId(jobId);
+  }, [jobId]);
+
+  const resumeOptions = getWorkspaceResumeOptions(lang);
+  const planOptions = getWorkspacePlanOptions(lang, D.targetJobs);
+  const activePlan = planOptions.find((plan) => plan.jobId === activeJobId) || planOptions[0];
+  const job = D.targetJobs.find((j) => j.id === activeJobId) || D.targetJobs[0];
+  const jd = getWorkspaceJDSample(job, D.jdSample);
+  const currentRoundIndex = getCurrentRoundIndex(job, jd.rounds);
+  const currentRound = jd.rounds[currentRoundIndex] || jd.rounds[0];
+  const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId) || resumeOptions[0];
+  const sessionHistory = getWorkspaceSessionHistory(lang);
 
   const L = lang === "en" ? {
-    back: "All jobs",
+    back: "Home",
     overview: "Overview",
     requirements: "Requirements",
     prep: "My preparation",
-    practices: "Practice history",
-    materials: "Materials",
+    practices: "Mock interview history",
     timeline: "Real progress",
-    startCore: "Start JD-tailored core",
-    startWarm: "Quick warm-up",
-    startReal: "Real-interview replay",
-    startAsk: "Reverse-Q drill",
+    startCore: "Start interview now",
+    launchTitle: "Confirm the context before this mock interview starts.",
+    launchSub: "The target job, JD, and resume form the interview context. Text and voice can be switched inside the interview.",
+    flow: "Interview rounds",
+    roundStatus: "Current round",
+    jdBound: "Target job / JD",
+    resumeBound: "Bound resume",
+    changeResume: "Change",
+    prepStatus: "Preparation status",
+    jdMatch: "JD match",
+    sessionTag: "Completed",
+    reportReady: "Report ready",
+    planEyebrow: "Current mock plan",
+    planSub: "A plan is the JD + resume + interview round context used to generate this mock interview.",
+    switchPlan: "Switch plan",
+    createPlan: "New plan",
     must: "Must have",
     nice: "Nice to have",
     hidden: "Hidden signals",
-    rounds: "Round assumptions",
     risks: "Risks flagged",
     strongs: "Direct hits",
-    nextPractice: "What to practice next",
     lastReport: "Last report",
     gotoReport: "Open full report",
-    notePractice: "Every session here is tied to this JD — the question generator reads Must Have / Nice to Have / Hidden Signals above.",
+    notePractice: "Every question in this mock interview reads the JD requirements, resume evidence, risks, and previous report signals.",
   } : {
-    back: "返回岗位列表",
+    back: "返回首页",
     overview: "概览",
     requirements: "要求拆解",
     prep: "我的准备",
-    practices: "练习历史",
-    materials: "材料工坊",
+    practices: "模拟面试历史",
     timeline: "真实进展",
-    startCore: "岗位定制核心面",
-    startWarm: "快速热身",
-    startReal: "真实面试复现",
-    startAsk: "反问环节专练",
+    startCore: "立即面试",
+    launchTitle: "开始前确认这场模拟面试的上下文。",
+    launchSub: "目标岗位、JD 和简历组成这场模拟面试的上下文，文本和语音可在面试过程中切换。",
+    flow: "面试轮次",
+    roundStatus: "当前轮次",
+    jdBound: "目标岗位 / JD",
+    resumeBound: "绑定简历",
+    changeResume: "更换",
+    prepStatus: "准备状态",
+    jdMatch: "JD 匹配度",
+    sessionTag: "已完成",
+    reportReady: "报告已生成",
+    planEyebrow: "当前面试规划",
+    planSub: "面试规划就是这场模拟面试使用的 JD、简历和目标轮次组合。",
+    switchPlan: "切换规划",
+    createPlan: "新建规划",
     must: "必需项",
     nice: "加分项",
     hidden: "隐性关注点",
-    rounds: "轮次假设",
     risks: "风险提示",
     strongs: "直接命中",
-    nextPractice: "下一步练什么",
     lastReport: "最近一次报告",
     gotoReport: "打开完整报告",
-    notePractice: "这里的每一次练习都绑定这份 JD——题目生成器会直接读取上方的必需项 / 加分项 / 隐性关注点。",
+    notePractice: "这场模拟面试中的每一道题都会读取 JD 要求、简历证据、风险提示和历史报告信号。",
   };
 
   return (
@@ -56,6 +89,34 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
       <button onClick={() => nav("home")} style={{ background: "transparent", border: "none", color: T.ink3, fontSize: 13, display: "flex", alignItems: "center", gap: 6, padding: 0, marginBottom: 20, cursor: "pointer" }}>
         <Icon name="arrow_left" size={14} /> {L.back}
       </button>
+
+      <div style={{
+        background: T.bgCard,
+        border: `1px solid ${T.rule}`,
+        borderRadius: 3,
+        padding: "14px 16px",
+        marginBottom: 24,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 18,
+        flexWrap: "wrap",
+      }}>
+        <div style={{ minWidth: 280 }}>
+          <div className="ei-label" style={{ color: T.ink3, marginBottom: 5 }}>{L.planEyebrow}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div className="ei-serif" style={{ fontSize: 18, color: T.ink }}>{job.company} · {job.title}</div>
+            <Tag tone={job.statusTone === "neutral" ? "muted" : job.statusTone || "amber"} T={T}>{job.status}</Tag>
+          </div>
+          <div style={{ fontSize: 12.5, color: T.ink3, marginTop: 5, lineHeight: 1.55 }}>
+            {L.planSub} <span style={{ color: T.ink2 }}>{activePlan.round} · {selectedResume.name}</span>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <Btn variant="secondary" icon="layers" onClick={() => setPlannerOpen(true)} T={T}>{L.switchPlan}</Btn>
+          <Btn variant="ghost" icon="plus" onClick={() => nav("home")} T={T}>{L.createPlan}</Btn>
+        </div>
+      </div>
 
       {/* header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24, flexWrap: "wrap", marginBottom: 32 }}>
@@ -73,28 +134,31 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
-          <ReadinessDial level={job.readiness} label={job.readinessLabel} T={T} size={56} />
-          <div style={{ fontSize: 12, color: T.ink3 }}>{lang === "en" ? "JD match" : "JD 匹配度"} <b style={{ color: T.ink, fontFamily: "var(--ei-mono)" }}>{job.match}%</b></div>
+        <div style={{ minWidth: 168, textAlign: "right", paddingTop: 4 }}>
+          <div className="ei-label" style={{ color: T.ink3, marginBottom: 6 }}>{L.prepStatus}</div>
+          <div className="ei-serif" style={{ fontSize: 22, color: T.ink, marginBottom: 8 }}>{job.readinessLabel}</div>
+          <div style={{ fontSize: 12, color: T.ink3 }}>{L.jdMatch} <b style={{ color: T.ink, fontFamily: "var(--ei-mono)" }}>{job.match}%</b></div>
         </div>
       </div>
 
-      {/* Practice launcher */}
+      {/* Interview launcher */}
       <div style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 22, marginBottom: 32 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 16, flexWrap: "wrap" }}>
+        <InterviewRoundRail T={T} lang={lang} label={L.flow} rounds={jd.rounds} currentIndex={currentRoundIndex} nextRound={job.nextRound} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 22, marginBottom: 18, gap: 20, flexWrap: "wrap" }}>
           <div>
-            <div className="ei-label" style={{ color: T.ink3, marginBottom: 4 }}>{lang === "en" ? "PRACTICE · JD-LOCKED" : "练习 · 已锁定此 JD"}</div>
-            <div className="ei-serif" style={{ fontSize: 20, color: T.ink }}>{lang === "en" ? "Pick a mode and go. Every answer feeds this job's mistake book." : "挑一个模式直接开始。每一道回答都会沉淀到这个岗位的错题本。"}</div>
+            <div className="ei-label" style={{ color: T.ink3, marginBottom: 4 }}>{lang === "en" ? "INTERVIEW SETUP" : "面试前确认"}</div>
+            <div className="ei-serif" style={{ fontSize: 21, color: T.ink }}>{L.launchTitle}</div>
+            <div style={{ fontSize: 13.5, color: T.ink2, marginTop: 6 }}>
+              {L.roundStatus} · <b style={{ color: T.ink }}>{currentRound?.name}</b>
+              {job.nextRound && <span style={{ color: T.ink3 }}> · {job.nextRound}</span>}
+            </div>
+            <div style={{ fontSize: 13.5, color: T.ink3, marginTop: 6, lineHeight: 1.6, maxWidth: 680 }}>{L.launchSub}</div>
           </div>
-          <Btn variant="accent" icon="play" onClick={() => nav("practice", { jobId })} T={T}>{L.startCore}</Btn>
+          <Btn variant="accent" icon="play" onClick={() => nav("practice", { jobId: activeJobId })} T={T}>{L.startCore}</Btn>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
-          <ModeCard T={T} icon="spark" title={L.startWarm} sub={lang === "en" ? "5–8 min · icebreaker" : "5–8 分钟 · 破冰"} onClick={() => nav("practice", { jobId, mode: "warm" })} />
-          <ModeCard T={T} icon="replay" title={L.startReal} sub={lang === "en" ? "Paste real questions" : "粘贴真实问过的题"} onClick={() => nav("debrief")} />
-          <ModeCard T={T} icon="chat" title={L.startAsk} sub={lang === "en" ? "Just reverse-Q" : "只练反问环节"} onClick={() => nav("practice", { jobId, mode: "reverse" })} />
-          <ModeCard T={T} icon="mic" title={lang === "en" ? "Voice mode · P2" : "语音模式 · P2"} sub={lang === "en" ? "Waveform + pace feedback" : "波形 + 语速停顿反馈"} onClick={() => nav("voice")} />
-          <ModeCard T={T} icon="layers" title={lang === "en" ? "Multi-round plan" : "多轮计划编排"} sub={lang === "en" ? "HR → tech → manager chain" : "HR → 技术 → 经理串联"} onClick={() => nav("plan")} />
-          <ModeCard T={T} icon="target" title={lang === "en" ? "Single-question drill" : "单题深钻"} sub={lang === "en" ? "Fix one weak point" : "专攻一道错题"} onClick={() => nav("practice", { jobId, mode: "drill" })} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <BindingPill T={T} icon="briefcase" label={L.jdBound} title={job.title} meta={`${job.company} · ${job.level} · ${job.match}% ${lang === "en" ? "match" : "匹配"}`} />
+          <BindingPill T={T} icon="resume" label={L.resumeBound} title={selectedResume.name} meta={selectedResume.meta} action={L.changeResume} onClick={() => setResumePickerOpen(true)} />
         </div>
         <div style={{ fontSize: 12, color: T.ink3, marginTop: 12, display: "flex", gap: 6, alignItems: "center" }}>
           <Icon name="info" size={12} /> {L.notePractice}
@@ -106,7 +170,7 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
         {/* left column */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           {/* company intel — embed */}
-          <CompanyIntelEmbed T={T} lang={lang} nav={nav} />
+          <CompanyIntelEmbed T={T} lang={lang} nav={nav} job={job} />
 
           {/* requirements */}
           <Card T={T} pad={0}>
@@ -121,54 +185,6 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
               <ReqBlock T={T} title={L.must} items={jd.mustHave} tone="accent" hits={job.hits} />
               <ReqBlock T={T} title={L.nice} items={jd.nice} tone="amber" hits={job.hits} />
               <ReqBlock T={T} title={L.hidden} items={jd.hidden} tone="cool" />
-            </div>
-          </Card>
-
-          {/* rounds */}
-          <Card T={T} pad={0}>
-            <div style={{ padding: "16px 20px", borderBottom: `1px solid ${T.rule}` }}>
-              <div className="ei-label" style={{ color: T.ink3, marginBottom: 2 }}>{lang === "en" ? "INTERVIEW LOOP" : "面试流程假设"}</div>
-              <div className="ei-serif" style={{ fontSize: 17, color: T.ink }}>{L.rounds}</div>
-            </div>
-            <div style={{ padding: "8px 0" }}>
-              {jd.rounds.map((r, i) => (
-                <div key={i} style={{ padding: "14px 20px", borderBottom: i < jd.rounds.length - 1 ? `1px dotted ${T.rule}` : "none", display: "flex", alignItems: "center", gap: 16 }}>
-                  <div style={{ width: 26, height: 26, borderRadius: 13, border: `1px solid ${i === 1 ? T.accent : T.rule}`, background: i === 1 ? T.accentSoft : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: i === 1 ? T.accent : T.ink3, fontFamily: "var(--ei-mono)" }}>
-                    {i + 1}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, color: T.ink, fontWeight: 500 }}>{r.name}</div>
-                    <div style={{ fontSize: 12.5, color: T.ink3, marginTop: 2 }}>{r.focus}</div>
-                  </div>
-                  {i === 1 && <Tag tone="accent" T={T}>{lang === "en" ? "Current" : "当前"}</Tag>}
-                  {i > 1 && <Tag tone="muted" T={T}>{lang === "en" ? "Future" : "后续"}</Tag>}
-                  {i === 0 && <Tag tone="ok" T={T}>{lang === "en" ? "Cleared" : "已通过"}</Tag>}
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* practice history */}
-          <Card T={T} pad={0}>
-            <div style={{ padding: "16px 20px", borderBottom: `1px solid ${T.rule}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div className="ei-label" style={{ color: T.ink3, marginBottom: 2 }}>{lang === "en" ? "SESSIONS" : "会话"}</div>
-                <div className="ei-serif" style={{ fontSize: 17, color: T.ink }}>{L.practices}</div>
-              </div>
-            </div>
-            <div>
-              {D.growth.recent.slice(0, 4).map((r, i) => (
-                <div key={i} style={{ padding: "14px 20px", borderBottom: i < 3 ? `1px dotted ${T.rule}` : "none", display: "flex", alignItems: "center", gap: 16 }}
-                  onClick={() => nav("report")} role="button">
-                  <div className="ei-mono" style={{ fontSize: 12, color: T.ink3, width: 40 }}>{r.date}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, color: T.ink }}>{r.mode}</div>
-                    <div style={{ fontSize: 12, color: T.ink3 }}>{r.job}</div>
-                  </div>
-                  <ReadinessDial level={r.readiness} T={T} size={34} />
-                  <Icon name="chevron_right" size={14} color={T.ink3} />
-                </div>
-              ))}
             </div>
           </Card>
         </div>
@@ -192,53 +208,416 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
             </div>
           </Card>
 
-          {/* materials */}
+          {/* practice history */}
           <Card T={T} pad={0}>
-            <div style={{ padding: "16px 20px", borderBottom: `1px solid ${T.rule}` }}>
-              <div className="ei-label" style={{ color: T.ink3, marginBottom: 2 }}>{lang === "en" ? "MATERIALS" : "材料"}</div>
-              <div className="ei-serif" style={{ fontSize: 17, color: T.ink }}>{L.materials}</div>
+            <div style={{ padding: "16px 20px", borderBottom: `1px solid ${T.rule}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div className="ei-label" style={{ color: T.ink3, marginBottom: 2 }}>{lang === "en" ? "SESSIONS" : "会话"}</div>
+                <div className="ei-serif" style={{ fontSize: 17, color: T.ink }}>{L.practices}</div>
+              </div>
             </div>
             <div>
-              <MaterialRow T={T} icon="resume" title={lang === "en" ? "Resume · v3 tailored" : "简历 · v3 定制版"} meta={lang === "en" ? "78% match" : "匹配 78%"} onClick={() => nav("resume")} />
-              <MaterialRow T={T} icon="chat" title={lang === "en" ? "Reverse-Q draft" : "反问问题草稿"} meta={lang === "en" ? "3 questions" : "3 条"} />
-              <MaterialRow T={T} icon="book" title={lang === "en" ? "Mistake book (JD-scoped)" : "错题本（本岗位）"} meta={lang === "en" ? "3 open" : "3 条未攻克"} onClick={() => nav("mistakes")} />
+              {sessionHistory.map((r, i) => (
+                <div key={i} style={{ padding: "14px 20px", borderBottom: i < 3 ? `1px dotted ${T.rule}` : "none", display: "grid", gridTemplateColumns: "42px 1fr auto", gap: 12, alignItems: "center", cursor: "pointer" }}
+                  onClick={() => nav("report")} role="button">
+                  <div className="ei-mono" style={{ fontSize: 12, color: T.ink3 }}>{r.date}</div>
+                  <div>
+                    <div style={{ fontSize: 13.5, color: T.ink }}>{r.title}</div>
+                    <div style={{ fontSize: 12, color: T.ink3, marginTop: 2 }}>{r.target}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Tag tone={i === 0 ? "cool" : "muted"} T={T}>{i === 0 ? L.reportReady : L.sessionTag}</Tag>
+                    <Icon name="chevron_right" size={14} color={T.ink3} />
+                  </div>
+                </div>
+              ))}
             </div>
           </Card>
+        </div>
+      </div>
 
-          {/* next */}
-          <Card T={T} style={{ background: T.accentSoft, borderColor: "transparent" }}>
-            <div className="ei-label" style={{ color: T.accent, marginBottom: 8 }}>{L.nextPractice}</div>
-            <div style={{ fontSize: 14, color: T.ink2, lineHeight: 1.55 }}>
-              {lang === "en" ?
-                "Nail the quantified performance story (Q2), then add one role-specific reverse-Q." :
-                "把性能优化故事补上量化结果（Q2），再加一个针对本公司的反问。"}
+      {resumePickerOpen && (
+        <ResumePickerModal
+          T={T}
+          lang={lang}
+          resumes={resumeOptions}
+          selectedId={selectedResumeId}
+          onClose={() => setResumePickerOpen(false)}
+          onConfirm={(resumeId) => {
+            setSelectedResumeId(resumeId);
+            setResumePickerOpen(false);
+          }}
+        />
+      )}
+
+      {plannerOpen && (
+        <PlanSwitcherModal
+          T={T}
+          lang={lang}
+          plans={planOptions}
+          selectedJobId={activeJobId}
+          onClose={() => setPlannerOpen(false)}
+          onCreate={() => {
+            setPlannerOpen(false);
+            nav("home");
+          }}
+          onConfirm={(plan) => {
+            setActiveJobId(plan.jobId);
+            setSelectedResumeId(plan.resumeId);
+            setPlannerOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+const getWorkspaceResumeOptions = (lang) => lang === "en" ? [
+  {
+    id: "frontend-v3",
+    name: "Liu Zhe · Frontend Platform v3",
+    meta: "Master version · 78% match · source: Liu-Zhe-Frontend-2026.pdf",
+    note: "Highlights React depth, performance work, accessibility, and platform experience.",
+  },
+  {
+    id: "impact-v2",
+    name: "Liu Zhe · Collaboration Impact v2",
+    meta: "Generated from guided resume Q&A · 2026-04-18",
+    note: "Highlights cross-team influence, Design System rollout, and mentoring examples.",
+  },
+  {
+    id: "english-v1",
+    name: "Liu Zhe · Frontend Platform EN v1",
+    meta: "English version · source retained from original upload",
+    note: "Used for English HR screens and overseas platform roles.",
+  },
+] : [
+  {
+    id: "frontend-v3",
+    name: "刘哲 · 前端平台版 v3",
+    meta: "主版本 · 匹配 78% · 原件：刘哲-前端-2026.pdf",
+    note: "突出 React 深度、性能优化、可访问性与平台工程经验。",
+  },
+  {
+    id: "impact-v2",
+    name: "刘哲 · 协作影响力版 v2",
+    meta: "由简历问答生成 · 2026-04-18",
+    note: "突出跨团队推动、Design System 落地和新人带教案例。",
+  },
+  {
+    id: "english-v1",
+    name: "Liu Zhe · Frontend Platform EN v1",
+    meta: "英文版 · 保留上传原件来源",
+    note: "用于英文 HR 初筛和海外平台类岗位。",
+  },
+];
+
+const getWorkspaceSessionHistory = (lang) => lang === "en" ? [
+  { date: "4/20", title: "Mock interview · Technical round 1", target: "Stellar · Senior Frontend" },
+  { date: "4/19", title: "Mock interview · Technical round 1", target: "Stellar · Senior Frontend · second run" },
+  { date: "4/18", title: "Mock interview · HR screen", target: "Lumen Labs · Frontend Platform Engineer" },
+  { date: "4/17", title: "Mock interview · Technical round 2", target: "Stellar · Senior Frontend" },
+] : [
+  { date: "4/20", title: "模拟面试 · 技术一面", target: "星环科技 · 资深前端工程师" },
+  { date: "4/19", title: "模拟面试 · 技术一面", target: "星环科技 · 资深前端工程师 · 第 2 次" },
+  { date: "4/18", title: "模拟面试 · HR 初筛", target: "Lumen Labs · Frontend Platform Engineer" },
+  { date: "4/17", title: "模拟面试 · 技术二面", target: "星环科技 · 资深前端工程师" },
+];
+
+const getWorkspacePlanOptions = (lang, jobs) => {
+  const roundNames = lang === "en" ? ["Manager round", "HR screen", "Unscheduled draft"] : ["经理面", "HR 初筛", "未安排"];
+  const resumeNames = lang === "en" ? [
+    "Liu Zhe · Frontend Platform v3",
+    "Liu Zhe · Frontend Platform EN v1",
+    "Liu Zhe · Collaboration Impact v2",
+  ] : [
+    "刘哲 · 前端平台版 v3",
+    "Liu Zhe · Frontend Platform EN v1",
+    "刘哲 · 协作影响力版 v2",
+  ];
+  const resumeIds = ["frontend-v3", "english-v1", "impact-v2"];
+  return jobs.map((job, i) => ({
+    id: `plan-${job.id}`,
+    jobId: job.id,
+    title: `${job.company} · ${job.title}`,
+    meta: `${job.level} · ${job.match}% ${lang === "en" ? "match" : "匹配"} · ${job.source}`,
+    round: roundNames[i] || job.nextRound || (lang === "en" ? "Next round" : "下一轮"),
+    next: job.nextRound || (lang === "en" ? "Not scheduled" : "未安排"),
+    status: job.status,
+    statusTone: job.statusTone === "neutral" ? "muted" : job.statusTone || "amber",
+    resumeId: resumeIds[i] || "frontend-v3",
+    resumeName: resumeNames[i] || resumeNames[0],
+    updatedAt: job.updatedAt,
+  }));
+};
+
+const getWorkspaceJDSample = (job, fallback) => {
+  if (job?.id === "tj-2") {
+    return {
+      ...fallback,
+      mustHave: [
+        "3 年以上前端平台 / 工程效率相关经验",
+        "熟悉 TypeScript、Monorepo 与现代构建链路",
+        "能用英文清晰解释技术方案、边界和取舍",
+      ],
+      nice: [
+        "有 Design System / 开发者体验平台建设经验",
+        "熟悉远程跨时区协作节奏",
+        "能把平台能力沉淀成文档、规范和可观测指标",
+      ],
+      hidden: [
+        "岗位更关注平台抽象边界，而不是单点业务页面交付",
+        "英文 HR 初筛会关注动机、远程协作和表达节奏",
+        "面试官可能追问平台投入如何证明业务价值",
+      ],
+    };
+  }
+  if (job?.id === "tj-3") {
+    return {
+      ...fallback,
+      mustHave: [
+        "有大型 Web 架构设计和技术决策经验",
+        "能推动跨团队技术方案落地",
+        "熟悉复杂业务系统的性能、稳定性和演进治理",
+      ],
+      nice: [
+        "有技术委员会 / 架构评审经验",
+        "能培养技术骨干并建立工程规范",
+        "熟悉平台化、组件化或微前端治理",
+      ],
+      hidden: [
+        "P7 更关注影响力和判断力，而不是单个功能实现",
+        "草稿状态下需要先确认 JD、简历和目标轮次",
+        "面试官大概率会深挖技术决策背后的组织成本",
+      ],
+    };
+  }
+  return fallback;
+};
+
+const ResumePickerModal = ({ T, lang, resumes, selectedId, onClose, onConfirm }) => {
+  const [draftId, setDraftId] = React.useState(selectedId);
+  const selected = resumes.find((resume) => resume.id === draftId) || resumes[0];
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(24, 20, 16, 0.24)", zIndex: 80, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={onClose}>
+      <div className="ei-fadein" onClick={(e) => e.stopPropagation()} style={{ width: "min(680px, 100%)", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 4, boxShadow: "0 24px 70px rgba(30, 22, 15, 0.24)", padding: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 18, marginBottom: 18 }}>
+          <div>
+            <div className="ei-label" style={{ color: T.ink3, marginBottom: 6 }}>{lang === "en" ? "RESUME CONTEXT" : "简历上下文"}</div>
+            <div className="ei-serif" style={{ fontSize: 23, color: T.ink }}>
+              {lang === "en" ? "Choose the resume for this mock interview" : "选择这场模拟面试使用的简历"}
             </div>
-            <Btn variant="primary" size="sm" icon="play" onClick={() => nav("practice", { jobId })} T={T} style={{ marginTop: 14 }}>
-              {lang === "en" ? "Start 15-min drill" : "开始 15 分钟深钻"}
-            </Btn>
-          </Card>
+            <div style={{ fontSize: 13, color: T.ink3, marginTop: 6, lineHeight: 1.6 }}>
+              {lang === "en" ? "Each uploaded or guided resume keeps a name, version, source, and original content." : "上传或引导生成的简历都会保留名称、版本、来源和原始内容。"}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: T.ink3, cursor: "pointer", padding: 4 }}>
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+          {resumes.map((resume) => {
+            const active = resume.id === draftId;
+            return (
+              <button
+                key={resume.id}
+                onClick={() => setDraftId(resume.id)}
+                style={{
+                  textAlign: "left",
+                  border: `1px solid ${active ? T.accent : T.rule}`,
+                  background: active ? T.accentSoft : T.bgSoft,
+                  borderRadius: 3,
+                  padding: "14px 16px",
+                  cursor: "pointer",
+                  display: "grid",
+                  gridTemplateColumns: "24px 1fr",
+                  gap: 12,
+                  alignItems: "start",
+                }}
+              >
+                <span style={{ width: 20, height: 20, borderRadius: 10, border: `1px solid ${active ? T.accent : T.rule}`, background: active ? T.accent : T.bgCard, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                  {active && <Icon name="check" size={12} stroke={2.2} />}
+                </span>
+                <span>
+                  <span style={{ display: "block", fontSize: 14.5, color: T.ink, fontWeight: 600 }}>{resume.name}</span>
+                  <span style={{ display: "block", fontSize: 12.5, color: T.ink3, marginTop: 3 }}>{resume.meta}</span>
+                  <span style={{ display: "block", fontSize: 13, color: T.ink2, marginTop: 8, lineHeight: 1.55 }}>{resume.note}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ border: `1px solid ${T.rule}`, background: T.bgSoft, borderRadius: 3, padding: 14, marginTop: 16 }}>
+          <div className="ei-label" style={{ color: T.ink3, marginBottom: 4 }}>{lang === "en" ? "WILL BE USED AS" : "将作为"}</div>
+          <div style={{ fontSize: 13.5, color: T.ink2, lineHeight: 1.6 }}>
+            {lang === "en" ? `${selected.name} will be used as answer evidence for this mock interview.` : `${selected.name} 将作为这场模拟面试的回答证据。`}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
+          <Btn T={T} variant="ghost" onClick={onClose}>{lang === "en" ? "Cancel" : "取消"}</Btn>
+          <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => onConfirm(draftId)}>{lang === "en" ? "Use this resume" : "使用这份简历"}</Btn>
         </div>
       </div>
     </div>
   );
 };
 
-const ModeCard = ({ T, icon, title, sub, onClick }) => (
-  <button onClick={onClick} style={{
-    textAlign: "left", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2,
-    padding: "12px 14px", display: "flex", gap: 12, alignItems: "center", cursor: "pointer", transition: "border-color .15s",
-  }}
-    onMouseEnter={(e) => e.currentTarget.style.borderColor = T.ink3}
-    onMouseLeave={(e) => e.currentTarget.style.borderColor = T.rule}
-  >
-    <div style={{ width: 32, height: 32, borderRadius: 2, background: T.bgCard, border: `1px solid ${T.rule}`, display: "flex", alignItems: "center", justifyContent: "center", color: T.ink2 }}>
-      <Icon name={icon} size={16} />
+const PlanSwitcherModal = ({ T, lang, plans, selectedJobId, onClose, onCreate, onConfirm }) => {
+  const [draftJobId, setDraftJobId] = React.useState(selectedJobId);
+  const selected = plans.find((plan) => plan.jobId === draftJobId) || plans[0];
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(24, 20, 16, 0.24)", zIndex: 80, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={onClose}>
+      <div className="ei-fadein" onClick={(e) => e.stopPropagation()} style={{ width: "min(760px, 100%)", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 4, boxShadow: "0 24px 70px rgba(30, 22, 15, 0.24)", padding: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 18, marginBottom: 18 }}>
+          <div>
+            <div className="ei-label" style={{ color: T.ink3, marginBottom: 6 }}>{lang === "en" ? "MOCK PLAN" : "面试规划"}</div>
+            <div className="ei-serif" style={{ fontSize: 23, color: T.ink }}>
+              {lang === "en" ? "Switch or create a mock interview plan" : "切换或创建模拟面试规划"}
+            </div>
+            <div style={{ fontSize: 13, color: T.ink3, marginTop: 6, lineHeight: 1.6 }}>
+              {lang === "en" ? "Each plan keeps a JD, resume, and target round together. Switching only changes the current mock context." : "每个规划都绑定一份 JD、一份简历和目标轮次。切换只改变当前模拟面试上下文。"}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: T.ink3, cursor: "pointer", padding: 4 }}>
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+          {plans.map((plan) => {
+            const active = plan.jobId === draftJobId;
+            return (
+              <button
+                key={plan.id}
+                onClick={() => setDraftJobId(plan.jobId)}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  border: `1px solid ${active ? T.accent : T.rule}`,
+                  background: active ? T.accentSoft : T.bgSoft,
+                  borderRadius: 3,
+                  padding: "14px 16px",
+                  cursor: "pointer",
+                  display: "grid",
+                  gridTemplateColumns: "24px 1fr auto",
+                  gap: 12,
+                  alignItems: "start",
+                  fontFamily: "var(--ei-sans)",
+                }}
+              >
+                <span style={{ width: 20, height: 20, borderRadius: 10, border: `1px solid ${active ? T.accent : T.rule}`, background: active ? T.accent : T.bgCard, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                  {active && <Icon name="check" size={12} stroke={2.2} />}
+                </span>
+                <span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 14.5, color: T.ink, fontWeight: 600 }}>{plan.title}</span>
+                    <Tag tone={plan.statusTone} T={T}>{plan.status}</Tag>
+                  </span>
+                  <span style={{ display: "block", fontSize: 12.5, color: T.ink3, marginTop: 4 }}>{plan.meta}</span>
+                  <span style={{ display: "block", fontSize: 13, color: T.ink2, marginTop: 8, lineHeight: 1.55 }}>
+                    {lang === "en" ? "Round" : "目标轮次"} · {plan.round} · {plan.resumeName}
+                  </span>
+                </span>
+                <span className="ei-mono" style={{ color: T.ink3, fontSize: 11, marginTop: 2 }}>{plan.updatedAt}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ border: `1px solid ${T.rule}`, background: T.bgSoft, borderRadius: 3, padding: 14, marginTop: 16 }}>
+          <div className="ei-label" style={{ color: T.ink3, marginBottom: 4 }}>{lang === "en" ? "SELECTED CONTEXT" : "已选上下文"}</div>
+          <div style={{ fontSize: 13.5, color: T.ink2, lineHeight: 1.6 }}>
+            {selected.title} · {selected.round} · {selected.resumeName}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
+          <Btn T={T} variant="ghost" icon="plus" onClick={onCreate}>{lang === "en" ? "Create from new JD" : "从新 JD 创建规划"}</Btn>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn T={T} variant="ghost" onClick={onClose}>{lang === "en" ? "Cancel" : "取消"}</Btn>
+            <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => onConfirm(selected)}>{lang === "en" ? "Use this plan" : "使用这个规划"}</Btn>
+          </div>
+        </div>
+      </div>
     </div>
+  );
+};
+
+const getCurrentRoundIndex = (job, rounds) => {
+  if (!rounds?.length) return 0;
+  const next = job?.nextRound || "";
+  const found = rounds.findIndex((round) => next.includes(round.name));
+  if (found >= 0) return found;
+  if (job?.status === "草稿" || next.includes("未安排")) return 0;
+  return Math.min(1, rounds.length - 1);
+};
+
+const InterviewRoundRail = ({ T, lang, label, rounds, currentIndex, nextRound }) => {
+  const stateLabel = (i) => {
+    if (i < currentIndex) return lang === "en" ? "Done" : "已完成";
+    if (i === currentIndex) return lang === "en" ? "Current" : "当前";
+    return lang === "en" ? "Upcoming" : "未到";
+  };
+  return (
     <div>
-      <div style={{ fontSize: 13.5, color: T.ink, fontWeight: 500 }}>{title}</div>
-      <div style={{ fontSize: 11.5, color: T.ink3, marginTop: 2 }}>{sub}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "baseline", marginBottom: 12 }}>
+        <div className="ei-label" style={{ color: T.ink3 }}>{label}</div>
+        <div style={{ fontSize: 12, color: T.ink3 }}>
+          {lang === "en" ? "Schedule" : "面试安排"} · <span style={{ color: T.ink2 }}>{nextRound || (lang === "en" ? "Not scheduled" : "未安排")}</span>
+        </div>
+      </div>
+      <div style={{ position: "relative" }}>
+        <div style={{ position: "absolute", top: 13, left: 13, right: 13, height: 1, background: T.rule }} />
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${rounds.length}, 1fr)`, alignItems: "start" }}>
+        {rounds.map((round, i) => {
+          const done = i < currentIndex;
+          const current = i === currentIndex;
+          return (
+            <div key={round.name} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: i === 0 ? "flex-start" : i === rounds.length - 1 ? "flex-end" : "center", minHeight: 72 }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: 13,
+                border: `1px solid ${done ? T.ok : current ? T.accent : T.rule}`,
+                background: done ? T.ok : current ? T.accent : T.bgCard,
+                color: done || current ? "#fff" : T.ink3,
+                display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1,
+                boxShadow: current ? `0 0 0 4px ${T.accentSoft}` : "none",
+              }}>
+                {done ? <Icon name="check" size={13} stroke={2.2} /> : <span className="ei-mono" style={{ fontSize: 11 }}>{i + 1}</span>}
+              </div>
+              <div style={{ fontSize: 12.5, color: current ? T.ink : done ? T.ink2 : T.ink3, marginTop: 8, textAlign: i === 0 ? "left" : i === rounds.length - 1 ? "right" : "center", maxWidth: 140, fontWeight: current ? 600 : 400 }}>
+                {round.name}
+              </div>
+              <div style={{ fontSize: 11, color: current ? T.accent : T.ink4, marginTop: 3, textAlign: i === 0 ? "left" : i === rounds.length - 1 ? "right" : "center", maxWidth: 140, lineHeight: 1.35 }}>
+                {stateLabel(i)} · {round.focus}
+              </div>
+            </div>
+          );
+        })}
+        </div>
+      </div>
     </div>
-  </button>
+  );
+};
+
+const BindingPill = ({ T, icon, label, title, meta, action, onClick }) => (
+  <div style={{ padding: "14px 16px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2, display: "grid", gridTemplateColumns: "32px 1fr auto", gap: 12, alignItems: "center" }}>
+    <div style={{ width: 32, height: 32, borderRadius: 16, background: T.bgCard, border: `1px solid ${T.rule}`, color: T.accent, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Icon name={icon} size={15} />
+    </div>
+    <div style={{ minWidth: 0 }}>
+      <div className="ei-label" style={{ color: T.ink3, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 14, color: T.ink, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
+      <div style={{ fontSize: 12, color: T.ink3, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{meta}</div>
+    </div>
+    {action && (
+      <button onClick={onClick} style={{ background: "transparent", border: `1px solid ${T.rule}`, borderRadius: 2, color: T.ink2, padding: "5px 10px", fontSize: 12, cursor: "pointer" }}>
+        {action}
+      </button>
+    )}
+  </div>
 );
 
 const ReqBlock = ({ T, title, items, tone, hits = [] }) => (
@@ -257,15 +636,6 @@ const ReqBlock = ({ T, title, items, tone, hits = [] }) => (
         );
       })}
     </div>
-  </div>
-);
-
-const MaterialRow = ({ T, icon, title, meta, onClick }) => (
-  <div onClick={onClick} style={{ padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, borderBottom: `1px dotted ${T.rule}`, cursor: onClick ? "pointer" : "default" }}>
-    <Icon name={icon} size={16} color={T.ink3} />
-    <div style={{ flex: 1, fontSize: 13.5, color: T.ink }}>{title}</div>
-    <div style={{ fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)" }}>{meta}</div>
-    {onClick && <Icon name="chevron_right" size={14} color={T.ink3} />}
   </div>
 );
 
