@@ -7,6 +7,8 @@
 | [Spec 文档](./spec/) | Spec-centric 规格、计划、Checklist、context | [INDEX](./spec/INDEX.md) |
 | [审查报告](./reports/) | Review、评估报告 | [INDEX](./reports/INDEX.md) |
 | [讨论存档](./discuss/) | Agent 分析讨论 | [INDEX](./discuss/INDEX.md) |
+| [UI 文档](./ui/) | UI 信息架构、页面框架与交互现状 | [INDEX](./ui/INDEX.md) |
+| [UI Refine 文档](./ui-refine/) | 整理后的 UI 流程、模块划分与目标交互结构 | [INDEX](./ui-refine/INDEX.md) |
 | [API 定义](./apis/) | 接口定义（JSON） | [INDEX](./apis/INDEX.md) |
 | [工作日志](./work-journal/) | 开发日志 | [INDEX](./work-journal/INDEX.md) |
 | [Bug 知识库](./bugs/) | Bug 诊断记录与模式库 | [INDEX](./bugs/INDEX.md) |
