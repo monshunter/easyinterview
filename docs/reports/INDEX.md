@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-05
+
+| 日期 | 报告 | 类型 |
+|------|------|------|
+| [2026-05-01](./2026-05-01-ui-refine-design-prototype-assessment.md) | UI Refine Design Prototype 交付复盘 | #assessment |
+
 ## 2026-04
 
 | 日期 | 报告 | 类型 |
