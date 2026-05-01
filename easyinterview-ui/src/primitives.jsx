@@ -1,54 +1,145 @@
 // Shared primitives — design tokens, icons, small UI atoms
 // EasyInterview · warm editorial aesthetic
 
+// Theme palettes — orthogonal to dark/light mode.
+// Structure: EI_THEMES[themeKey][mode]  where mode is "light" | "dark".
+// Each theme is a coordinated bg/ink/rule/accent set; the dark/light toggle
+// just flips the mode within the chosen theme.
 window.EI_THEMES = {
   warm: {
-    bg: "#fdfcf8",
-    bgSoft: "#f7f3ea",
-    bgCard: "#ffffff",
-    ink: "#1c1917",
-    ink2: "#44403c",
-    ink3: "#78716c",
-    ink4: "#a8a29e",
-    rule: "#e7e2d6",
-    ruleSoft: "#efeadc",
-    accent: "#c96442",      // terracotta
-    accentSoft: "#fbe8dc",
-    amber: "#d9893a",        // amber
-    amberSoft: "#fbe9ce",
-    ok: "#5a7a4a",
-    okSoft: "#e7efd9",
-    warn: "#b8813a",
-    warnSoft: "#f6ead0",
-    danger: "#a8452a",
-    dangerSoft: "#f6dcd0",
-    cool: "#4a6670",
-    coolSoft: "#dce6ea",
+    light: {
+      bg: "#fdfcf8", bgSoft: "#f7f3ea", bgCard: "#ffffff",
+      ink: "#1c1917", ink2: "#44403c", ink3: "#78716c", ink4: "#a8a29e",
+      rule: "#e7e2d6", ruleSoft: "#efeadc",
+      accent: "#c96442", accentSoft: "#fbe8dc",
+      amber: "#d9893a", amberSoft: "#fbe9ce",
+      ok: "#5a7a4a", okSoft: "#e7efd9",
+      warn: "#b8813a", warnSoft: "#f6ead0",
+      danger: "#a8452a", dangerSoft: "#f6dcd0",
+      cool: "#4a6670", coolSoft: "#dce6ea",
+    },
+    dark: {
+      bg: "#16130e", bgSoft: "#1f1b15", bgCard: "#1a1611",
+      ink: "#f5f0e4", ink2: "#d6cdb8", ink3: "#968d7a", ink4: "#6b6455",
+      rule: "#2d2820", ruleSoft: "#24201a",
+      accent: "#e08061", accentSoft: "#3a2318",
+      amber: "#e6a25a", amberSoft: "#3b2a16",
+      ok: "#8fae7c", okSoft: "#24301a",
+      warn: "#d9a868", warnSoft: "#362812",
+      danger: "#d4694a", dangerSoft: "#3a1e14",
+      cool: "#89a4ae", coolSoft: "#1c2830",
+    },
   },
-  dark: {
-    bg: "#16130e",
-    bgSoft: "#1f1b15",
-    bgCard: "#1a1611",
-    ink: "#f5f0e4",
-    ink2: "#d6cdb8",
-    ink3: "#968d7a",
-    ink4: "#6b6455",
-    rule: "#2d2820",
-    ruleSoft: "#24201a",
-    accent: "#e08061",
-    accentSoft: "#3a2318",
-    amber: "#e6a25a",
-    amberSoft: "#3b2a16",
-    ok: "#8fae7c",
-    okSoft: "#24301a",
-    warn: "#d9a868",
-    warnSoft: "#362812",
-    danger: "#d4694a",
-    dangerSoft: "#3a1e14",
-    cool: "#89a4ae",
-    coolSoft: "#1c2830",
+  forest: {
+    light: {
+      bg: "#f9faf3", bgSoft: "#eef2e3", bgCard: "#ffffff",
+      ink: "#181d14", ink2: "#3c4434", ink3: "#6f7565", ink4: "#a3a895",
+      rule: "#dde3ce", ruleSoft: "#e8ecdc",
+      accent: "#5a7d3a", accentSoft: "#dfe9c9",
+      amber: "#b8813a", amberSoft: "#f3e4c4",
+      ok: "#5a7a4a", okSoft: "#dde7cd",
+      warn: "#a87832", warnSoft: "#f0e0bf",
+      danger: "#a8452a", dangerSoft: "#f3d9cd",
+      cool: "#4a6670", coolSoft: "#d6e1e5",
+    },
+    dark: {
+      bg: "#0e120a", bgSoft: "#161b10", bgCard: "#11160c",
+      ink: "#eaeed8", ink2: "#cbcfb0", ink3: "#888c70", ink4: "#5e6250",
+      rule: "#252a1c", ruleSoft: "#1c2014",
+      accent: "#8fae60", accentSoft: "#1f2a14",
+      amber: "#d9a868", amberSoft: "#352712",
+      ok: "#9ab78a", okSoft: "#212c16",
+      warn: "#cda06a", warnSoft: "#332512",
+      danger: "#d4694a", dangerSoft: "#361d12",
+      cool: "#89a4ae", coolSoft: "#1a242a",
+    },
+  },
+  ocean: {
+    light: {
+      bg: "#f8fafd", bgSoft: "#eef2f7", bgCard: "#ffffff",
+      ink: "#141821", ink2: "#363c4a", ink3: "#6b7280", ink4: "#a0a8b3",
+      rule: "#dde2ec", ruleSoft: "#e7ebf2",
+      accent: "#3a5fc4", accentSoft: "#dde6f7",
+      amber: "#c98730", amberSoft: "#f3e1c0",
+      ok: "#3f8367", okSoft: "#d4ebde",
+      warn: "#a87832", warnSoft: "#f0e0bf",
+      danger: "#b3402b", dangerSoft: "#f4d6cc",
+      cool: "#4a6670", coolSoft: "#d6e1e5",
+    },
+    dark: {
+      bg: "#0c0f17", bgSoft: "#13182a", bgCard: "#0f1320",
+      ink: "#e8edf6", ink2: "#c4cad8", ink3: "#8389a0", ink4: "#5d627a",
+      rule: "#212740", ruleSoft: "#181d2e",
+      accent: "#7493d4", accentSoft: "#1c2540",
+      amber: "#e6a25a", amberSoft: "#322411",
+      ok: "#74b08c", okSoft: "#1a2c20",
+      warn: "#d9a868", warnSoft: "#332512",
+      danger: "#d4694a", dangerSoft: "#361d12",
+      cool: "#89a4ae", coolSoft: "#1a242a",
+    },
+  },
+  plum: {
+    light: {
+      bg: "#fcf8fa", bgSoft: "#f4ebef", bgCard: "#ffffff",
+      ink: "#1f161b", ink2: "#4a3a43", ink3: "#7c6c75", ink4: "#a8a0a4",
+      rule: "#e9dde2", ruleSoft: "#f0e6ea",
+      accent: "#9c3a5c", accentSoft: "#f4dde6",
+      amber: "#c98730", amberSoft: "#f3e1c0",
+      ok: "#5a7a4a", okSoft: "#dde7cd",
+      warn: "#a87832", warnSoft: "#f0e0bf",
+      danger: "#a8452a", dangerSoft: "#f3d9cd",
+      cool: "#5e6480", coolSoft: "#dde0eb",
+    },
+    dark: {
+      bg: "#15101a", bgSoft: "#1d1620", bgCard: "#171120",
+      ink: "#f0e6ed", ink2: "#d2c5cd", ink3: "#988b94", ink4: "#6a5e66",
+      rule: "#2c2230", ruleSoft: "#211826",
+      accent: "#c4709a", accentSoft: "#3a1f30",
+      amber: "#e6a25a", amberSoft: "#3b2a16",
+      ok: "#8fae7c", okSoft: "#24301a",
+      warn: "#d9a868", warnSoft: "#362812",
+      danger: "#d4694a", dangerSoft: "#3a1e14",
+      cool: "#9da4c0", coolSoft: "#1f2240",
+    },
   },
 };
+
+// Theme metadata — drives the topbar swatches and tweaks panel.
+window.EI_THEME_LIST = [
+  { key: "warm",   labelZh: "暖陶",   labelEn: "Warm",   swatch: "#c96442" },
+  { key: "forest", labelZh: "苔林",   labelEn: "Forest", swatch: "#5a7d3a" },
+  { key: "ocean",  labelZh: "深海",   labelEn: "Ocean",  swatch: "#3a5fc4" },
+  { key: "plum",   labelZh: "梅子",   labelEn: "Plum",   swatch: "#9c3a5c" },
+];
+
+// Font preset packs — switching a preset changes both serif + sans atomically.
+// Mono never changes (numbers/labels are anchored).
+window.EI_FONT_PRESETS = [
+  {
+    key: "editorial",
+    labelZh: "编辑级",   labelEn: "Editorial",
+    descZh: "默认 · 中文衬线 + Inter，沉静呼吸感",
+    descEn: "Default · Chinese serif + Inter, quietly editorial",
+    serif: "Noto Serif SC",
+    sans:  "Inter",
+  },
+  {
+    key: "modern",
+    labelZh: "现代",     labelEn: "Modern",
+    descZh: "西文衬线 + 现代无衬线，更接近 SaaS 产品感",
+    descEn: "Western serif + modern sans, closer to a SaaS product",
+    serif: "Source Serif Pro",
+    sans:  "Geist",
+  },
+  {
+    key: "magazine",
+    labelZh: "杂志",     labelEn: "Magazine",
+    descZh: "瘦长 Garamond + IBM Plex，偏 print 杂志风",
+    descEn: "Slim Garamond + IBM Plex, leans print magazine",
+    serif: "Cormorant Garamond",
+    sans:  "IBM Plex Sans",
+  },
+];
 
 // Inject global styles once
 if (!document.getElementById("ei-global")) {
@@ -77,8 +168,49 @@ if (!document.getElementById("ei-global")) {
     .ei-link { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: currentColor; opacity: 0.8; cursor: pointer; }
     .ei-link:hover { opacity: 1; }
     input, textarea { font-family: inherit; }
+    .ei-slider-overlay { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; }
+    .ei-slider-overlay::-webkit-slider-runnable-track { background: transparent; height: 100%; }
+    .ei-slider-overlay::-moz-range-track { background: transparent; height: 100%; border: none; }
+    .ei-slider-overlay::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid rgba(0,0,0,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.25); cursor: pointer; margin-top: 0; }
+    .ei-slider-overlay::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid rgba(0,0,0,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.25); cursor: pointer; }
+    @keyframes ei-toast-in { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: translateY(0);} }
+    .ei-toast-stack { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 9999; pointer-events: none; }
+    .ei-toast { pointer-events: auto; padding: 10px 16px; border-radius: 4px; font-family: var(--ei-sans); font-size: 13px; line-height: 1.4; max-width: 360px; box-shadow: 0 8px 28px rgba(0,0,0,0.18); animation: ei-toast-in .22s ease-out both; display: flex; gap: 8px; align-items: center; }
   `;
   document.head.appendChild(s);
+}
+
+// ─────── Toast (global, prop-drill-free) ───────
+// Usage: window.eiToast("Saved"), window.eiToast("Failed", { tone: "danger" })
+if (!window.eiToast) {
+  window.eiToast = (message, opts = {}) => {
+    const tone = opts.tone || "neutral";
+    let stack = document.getElementById("ei-toast-stack");
+    if (!stack) {
+      stack = document.createElement("div");
+      stack.id = "ei-toast-stack";
+      stack.className = "ei-toast-stack";
+      document.body.appendChild(stack);
+    }
+    const palette = {
+      neutral: { bg: "#1c1917", fg: "#fafaf7" },
+      ok: { bg: "#3f6234", fg: "#fff" },
+      warn: { bg: "#a87832", fg: "#fff" },
+      danger: { bg: "#a8452a", fg: "#fff" },
+    }[tone] || { bg: "#1c1917", fg: "#fafaf7" };
+    const node = document.createElement("div");
+    node.className = "ei-toast";
+    node.style.background = palette.bg;
+    node.style.color = palette.fg;
+    node.textContent = message;
+    stack.appendChild(node);
+    setTimeout(() => {
+      node.style.transition = "opacity .25s ease, transform .25s ease";
+      node.style.opacity = "0";
+      node.style.transform = "translateY(-4px)";
+      setTimeout(() => node.remove(), 280);
+    }, opts.duration || 2200);
+  };
 }
 
 // ─────── Icons ───────

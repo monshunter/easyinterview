@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-01](2026-05-01.md) | `feat(ui): add theme palettes, font presets and prototype interactions` | #feat #ui |
 | [2026-05-01](2026-05-01.md) | `fix(ui-runner): correct default entry filename casing` | #fix #ui |
 | [2026-05-01](2026-05-01.md) | `docs(reports): land ui refine design prototype retrospective` | #docs |
 | [2026-05-01](2026-05-01.md) | `feat(ui): align prototype with refined ui design` | #feat #ui |

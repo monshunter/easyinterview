@@ -125,7 +125,7 @@ const ReportEditorial = ({ T, lang, nav, r }) => {
           <div key={i} style={{ padding: "12px 0", display: "flex", gap: 12, alignItems: "center", borderBottom: i < r.nextPractice.length - 1 ? `1px dotted ${T.rule}` : "none" }}>
             <div style={{ width: 22, height: 22, borderRadius: 11, background: T.accent, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontFamily: "var(--ei-mono)", fontWeight: 500 }}>{i + 1}</div>
             <div style={{ flex: 1, fontSize: 14, color: T.ink }}>{n}</div>
-            <Btn variant="secondary" size="sm" T={T} icon="play">{lang === "en" ? "Start" : "开始"}</Btn>
+            <Btn variant="secondary" size="sm" T={T} icon="play" onClick={() => nav("practice", { jobId: "tj-1" })}>{lang === "en" ? "Start" : "开始"}</Btn>
           </div>
         ))}
       </section>

@@ -515,8 +515,19 @@ Sincerely,
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24 }}>
             <Btn T={T} variant="ghost" onClick={back}>{lang === "en" ? "Back" : "上一步"}</Btn>
             <div style={{ display: "flex", gap: 10 }}>
-              <Btn T={T} variant="secondary" icon="download">{lang === "en" ? "Copy text" : "复制文本"}</Btn>
-              <Btn T={T} variant="accent" icon="send">{lang === "en" ? "Open in mail client" : "在邮件客户端打开"}</Btn>
+              <Btn T={T} variant="secondary" icon="download" onClick={() => {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(content);
+                  window.eiToast && window.eiToast(lang === "en" ? "Letter copied to clipboard" : "致谢信已复制到剪贴板", { tone: "ok" });
+                } else {
+                  window.eiToast && window.eiToast(lang === "en" ? "Clipboard unavailable" : "当前环境不支持剪贴板", { tone: "warn" });
+                }
+              }}>{lang === "en" ? "Copy text" : "复制文本"}</Btn>
+              <Btn T={T} variant="accent" icon="send" onClick={() => {
+                const subject = encodeURIComponent(lang === "en" ? "Thank you — follow up after our chat" : "今天面试后的一点补充");
+                const body = encodeURIComponent(content);
+                window.location.href = `mailto:zhang.zhe@star-ring.com?subject=${subject}&body=${body}`;
+              }}>{lang === "en" ? "Open in mail client" : "在邮件客户端打开"}</Btn>
             </div>
           </div>
         </div>
@@ -613,7 +624,7 @@ const ExperienceLibraryScreen = ({ T, lang, nav }) => {
             {lang === "en" ? "Each card is a story you can reach for. The more you use one, the sharper it gets. Unused ones quietly age — that's a hint, not a judgment." : "每张卡片是一个你随手能取的故事。用得越多越锋利。长时间没用的会悄悄变暗——这是提示，不是评判。"}
           </div>
         </div>
-        <Btn T={T} variant="accent" icon="plus">{lang === "en" ? "New story" : "新建故事"}</Btn>
+        <Btn T={T} variant="accent" icon="plus" onClick={() => nav("star", { storyId: "new" })}>{lang === "en" ? "New story" : "新建故事"}</Btn>
       </div>
 
       {/* Filters */}
@@ -705,7 +716,7 @@ const ExperienceLibraryScreen = ({ T, lang, nav }) => {
               <Btn T={T} variant="secondary" size="sm" icon="edit" onClick={() => nav("star", { storyId: sel.id })}>{lang === "en" ? "Restructure (STAR)" : "STAR 重构"}</Btn>
               <Btn T={T} variant="secondary" size="sm" icon="replay" onClick={() => nav("practice", { jobId: "tj-1" })}>{lang === "en" ? "Practice with this" : "用它练一下"}</Btn>
               <div style={{ flex: 1 }} />
-              <Btn T={T} variant="ghost" size="sm" icon="trash">{lang === "en" ? "Archive" : "归档"}</Btn>
+              <Btn T={T} variant="ghost" size="sm" icon="trash" onClick={() => window.eiToast && window.eiToast(lang === "en" ? `Archived "${sel.title}" · move out of active library` : `已归档「${sel.title}」· 移出活跃故事库`, { tone: "neutral" })}>{lang === "en" ? "Archive" : "归档"}</Btn>
             </div>
           </Card>
         </div>
@@ -880,7 +891,18 @@ const ResumeVersionsScreen = ({ T, lang, nav, params = {} }) => {
                   <div style={{ fontSize: 13, color: T.ink3, maxWidth: 460, lineHeight: 1.55 }}>
                     {lang === "en" ? "The source file is stored as the original version. Parsed sections become your editable structured resume." : "原始文件会作为原始版本保存，解析出的工作经历、项目、技能和教育经历会进入可编辑结构化简历。"}
                   </div>
-                  <Btn T={T} variant="accent" icon="upload">{lang === "en" ? "Choose file" : "选择文件"}</Btn>
+                  <Btn T={T} variant="accent" icon="upload" onClick={() => {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = ".pdf,.docx,.md,.txt";
+                    input.onchange = (e) => {
+                      const f = e.target.files && e.target.files[0];
+                      if (f) {
+                        window.eiToast && window.eiToast(lang === "en" ? `Picked ${f.name} · parsing in prototype is mocked` : `已选择 ${f.name} · 原型仅模拟解析`, { tone: "ok", duration: 2800 });
+                      }
+                    };
+                    input.click();
+                  }}>{lang === "en" ? "Choose file" : "选择文件"}</Btn>
                 </div>
               </div>
             )}
@@ -990,7 +1012,9 @@ const ResumeVersionsScreen = ({ T, lang, nav, params = {} }) => {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <Btn T={T} variant="secondary" size="sm" icon="plus" onClick={() => setFlow("create")}>{lang === "en" ? "New version" : "新版本"}</Btn>
-          <Btn T={T} variant="accent" size="sm" icon="download">{lang === "en" ? "Export PDF" : "导出 PDF"}</Btn>
+          <Btn T={T} variant="accent" size="sm" icon="download" onClick={() => {
+            window.eiToast && window.eiToast(lang === "en" ? "Generating PDF… link will be emailed when ready" : "正在生成 PDF · 准备好后会邮件发送", { tone: "ok", duration: 2800 });
+          }}>{lang === "en" ? "Export PDF" : "导出 PDF"}</Btn>
         </div>
       </div>
 

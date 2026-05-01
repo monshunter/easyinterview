@@ -6,6 +6,9 @@ const JDMatchScreen = ({ T, lang, nav }) => {
   const [selected, setSelected] = React.useState("jm-2");
   const [searching, setSearching] = React.useState(false);
   const [query, setQuery] = React.useState(lang === "en" ? "Senior frontend, React + design systems, Shanghai / remote" : "资深前端，React + 设计系统，上海/远程");
+  const [savedIds, setSavedIds] = React.useState(() => new Set(["jm-2"]));
+  const [hiddenIds, setHiddenIds] = React.useState(() => new Set());
+  const [resultFilter, setResultFilter] = React.useState("all"); // all | strong | remote | unseen
 
   // Profile snapshot — what drives the matching
   const profile = {
@@ -160,11 +163,78 @@ const JDMatchScreen = ({ T, lang, nav }) => {
     { id: "s3", label: lang === "en" ? "AI product · Early stage" : "AI 产品 · 早期", newJobs: 5, last: lang === "en" ? "6h ago" : "6 小时前" },
   ];
 
-  const sel = jobs.find((j) => j.id === selected);
+  // Apply saved/hidden state on top of the static seed list
+  const decoratedJobs = jobs
+    .filter((j) => !hiddenIds.has(j.id))
+    .map((j) => ({ ...j, saved: savedIds.has(j.id) }));
+
+  const sel = decoratedJobs.find((j) => j.id === selected) || decoratedJobs[0];
 
   const runSearch = () => {
     setSearching(true);
-    setTimeout(() => setSearching(false), 900);
+    setTimeout(() => {
+      setSearching(false);
+      window.eiToast && window.eiToast(lang === "en" ? "Search complete · 5 results" : "搜索完成 · 找到 5 个结果", { tone: "ok" });
+    }, 900);
+  };
+
+  const toggleSaved = (id) => {
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      const wasSaved = next.has(id);
+      if (wasSaved) next.delete(id); else next.add(id);
+      window.eiToast && window.eiToast(
+        wasSaved
+          ? (lang === "en" ? "Removed from watchlist" : "已从关注列表移除")
+          : (lang === "en" ? "Saved to watchlist" : "已加入关注列表"),
+        { tone: wasSaved ? "neutral" : "ok" }
+      );
+      return next;
+    });
+  };
+
+  const markNotRelevant = (id) => {
+    setHiddenIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    setSelected((cur) => {
+      if (cur !== id) return cur;
+      const remaining = decoratedJobs.find((j) => j.id !== id);
+      return remaining ? remaining.id : null;
+    });
+    window.eiToast && window.eiToast(
+      lang === "en" ? "Marked not relevant — agent will avoid similar postings" : "已标记不相关 · agent 将减少类似岗位",
+      { tone: "neutral" }
+    );
+  };
+
+  const openSource = (job) => {
+    if (!job?.source) return;
+    const url = job.source.startsWith("http") ? job.source : `https://${job.source}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const saveCurrentAsWatch = () => {
+    window.eiToast && window.eiToast(
+      lang === "en" ? "Saved current query · agent will run it every 4h" : "已保存当前搜索 · agent 每 4 小时自动运行",
+      { tone: "ok" }
+    );
+  };
+
+  const filterPredicate = (j) => {
+    if (resultFilter === "all") return true;
+    if (resultFilter === "strong") return j.score >= 85;
+    if (resultFilter === "remote") return /remote|远程/i.test(j.location);
+    if (resultFilter === "unseen") return !j.seen;
+    return true;
+  };
+  const filteredResults = decoratedJobs.filter(filterPredicate);
+
+  const openJob = (id) => {
+    setSelected(id);
+    setTab("recommended");
   };
 
   const tabs = lang === "en"
@@ -233,25 +303,29 @@ const JDMatchScreen = ({ T, lang, nav }) => {
       {tab === "recommended" && (
         <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1.4fr", gap: 20 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {jobs.map((j) => (
+            {decoratedJobs.map((j) => (
               <JobMatchCard key={j.id} job={j} T={T} lang={lang} active={selected === j.id} onClick={() => setSelected(j.id)} />
             ))}
             <div style={{ padding: "16px 20px", textAlign: "center", fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)", background: T.bgSoft, border: `1px dashed ${T.rule}`, borderRadius: 2 }}>
               {lang === "en" ? "agent checks every 4h · next scan in 2h 14m" : "agent 每 4 小时扫一次 · 下次 2 小时 14 分钟后"}
             </div>
           </div>
-          <JDDetail job={sel} T={T} lang={lang} nav={nav} />
+          <JDDetail job={sel} T={T} lang={lang} nav={nav}
+            onToggleSave={() => sel && toggleSaved(sel.id)}
+            onOpenSource={() => openSource(sel)}
+            onNotRelevant={() => sel && markNotRelevant(sel.id)} />
         </div>
       )}
 
       {/* === Search === */}
       {tab === "search" && (
-        <SearchTab T={T} lang={lang} query={query} setQuery={setQuery} searching={searching} runSearch={runSearch} savedSearches={savedSearches} jobs={jobs} />
+        <SearchTab T={T} lang={lang} query={query} setQuery={setQuery} searching={searching} runSearch={runSearch} savedSearches={savedSearches} jobs={filteredResults}
+          resultFilter={resultFilter} setResultFilter={setResultFilter} onOpenJob={openJob} onSaveSearch={saveCurrentAsWatch} />
       )}
 
       {/* === Watchlist === */}
       {tab === "watchlist" && (
-        <WatchlistTab T={T} lang={lang} watchlist={watchlist} jobs={jobs} />
+        <WatchlistTab T={T} lang={lang} watchlist={watchlist} jobs={decoratedJobs} onOpen={openJob} />
       )}
     </div>
   );
@@ -300,7 +374,7 @@ const JobMatchCard = ({ job, T, lang, active, onClick }) => {
 };
 
 // ─── Detail drawer ───
-const JDDetail = ({ job, T, lang, nav }) => {
+const JDDetail = ({ job, T, lang, nav, onToggleSave, onOpenSource, onNotRelevant }) => {
   if (!job) return null;
   const scoreC = job.score >= 85 ? T.ok : job.score >= 70 ? T.warn : T.ink3;
 
@@ -386,14 +460,14 @@ const JDDetail = ({ job, T, lang, nav }) => {
           <Btn T={T} variant="accent" icon="arrow_right" onClick={() => nav("parse")}>
             {lang === "en" ? "Confirm interview" : "确认面试"}
           </Btn>
-          <Btn T={T} variant="secondary" size="sm" icon={job.saved ? "pin" : "plus"}>
+          <Btn T={T} variant="secondary" size="sm" icon={job.saved ? "pin" : "plus"} onClick={onToggleSave}>
             {job.saved ? (lang === "en" ? "Saved" : "已关注") : (lang === "en" ? "Save to watchlist" : "加入关注")}
           </Btn>
           <div style={{ flex: 1 }} />
-          <Btn T={T} variant="ghost" size="sm" icon="link">
+          <Btn T={T} variant="ghost" size="sm" icon="link" onClick={onOpenSource}>
             {lang === "en" ? "Source" : "原文"}
           </Btn>
-          <Btn T={T} variant="ghost" size="sm" icon="x">
+          <Btn T={T} variant="ghost" size="sm" icon="x" onClick={onNotRelevant}>
             {lang === "en" ? "Not relevant" : "不相关"}
           </Btn>
         </div>
@@ -403,7 +477,7 @@ const JDDetail = ({ job, T, lang, nav }) => {
 };
 
 // ─── Search tab ───
-const SearchTab = ({ T, lang, query, setQuery, searching, runSearch, savedSearches, jobs }) => {
+const SearchTab = ({ T, lang, query, setQuery, searching, runSearch, savedSearches, jobs, resultFilter, setResultFilter, onOpenJob, onSaveSearch }) => {
   const sources = lang === "en"
     ? [{ k: "li", t: "LinkedIn", n: 42 }, { k: "boss", t: "Boss 直聘", n: 128 }, { k: "maimai", t: "脉脉", n: 36 }, { k: "lagou", t: "拉勾", n: 24 }, { k: "company", t: lang === "en" ? "Company sites" : "公司官网", n: 18 }]
     : [{ k: "li", t: "LinkedIn", n: 42 }, { k: "boss", t: "Boss 直聘", n: 128 }, { k: "maimai", t: "脉脉", n: 36 }, { k: "lagou", t: "拉勾", n: 24 }, { k: "company", t: "公司官网", n: 18 }];
@@ -416,11 +490,14 @@ const SearchTab = ({ T, lang, query, setQuery, searching, runSearch, savedSearch
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <div style={{ flex: 1, position: "relative" }}>
             <Icon name="search" size={14} color={T.ink3} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} style={{
-              width: "100%", padding: "12px 14px 12px 36px", fontSize: 14, color: T.ink,
-              background: T.bg, border: `1px solid ${T.rule}`, borderRadius: 2,
-              fontFamily: "var(--ei-sans)", outline: "none", boxSizing: "border-box",
-            }} />
+            <input value={query} onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !searching && query.trim()) runSearch(); }}
+              placeholder={lang === "en" ? "Describe what you're looking for · press Enter to search" : "用一句话描述目标岗位 · 回车搜索"}
+              style={{
+                width: "100%", padding: "12px 14px 12px 36px", fontSize: 14, color: T.ink,
+                background: T.bg, border: `1px solid ${T.rule}`, borderRadius: 2,
+                fontFamily: "var(--ei-sans)", outline: "none", boxSizing: "border-box",
+              }} />
           </div>
           <Btn T={T} variant="accent" icon={searching ? "" : "search"} onClick={runSearch} disabled={searching}>
             {searching ? (lang === "en" ? "Scanning…" : "扫描中…") : (lang === "en" ? "Run web search" : "联网搜索")}
@@ -457,7 +534,7 @@ const SearchTab = ({ T, lang, query, setQuery, searching, runSearch, savedSearch
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "SAVED SEARCHES · runs in background" : "已保存搜索 · 后台自动运行"}</div>
-          <button style={{ background: "transparent", border: "none", color: T.accent, fontSize: 12.5, cursor: "pointer" }}>
+          <button onClick={onSaveSearch} style={{ background: "transparent", border: "none", color: T.accent, fontSize: 12.5, cursor: "pointer" }}>
             <Icon name="plus" size={11} style={{ marginRight: 4 }} /> {lang === "en" ? "Save current as watch" : "保存为自动搜索"}
           </button>
         </div>
@@ -480,25 +557,44 @@ const SearchTab = ({ T, lang, query, setQuery, searching, runSearch, savedSearch
           {lang === "en" ? `RESULTS · ${jobs.length} ranked by fit` : `结果 · 按匹配度排序 · ${jobs.length} 条`}
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          {(lang === "en" ? ["All", "Strong fit (85+)", "Remote-friendly", "Unseen"] : ["全部", "强匹配 (85+)", "支持远程", "未看过"]).map((f, i) => (
-            <button key={f} style={{
-              padding: "4px 10px", fontSize: 11.5, borderRadius: 12, cursor: "pointer",
-              border: `1px solid ${i === 0 ? T.accent : T.rule}`,
-              background: i === 0 ? T.accentSoft : "transparent",
-              color: i === 0 ? T.accent : T.ink3, fontFamily: "var(--ei-sans)",
-            }}>{f}</button>
-          ))}
+          {[
+            { k: "all",    t: lang === "en" ? "All" : "全部" },
+            { k: "strong", t: lang === "en" ? "Strong fit (85+)" : "强匹配 (85+)" },
+            { k: "remote", t: lang === "en" ? "Remote-friendly" : "支持远程" },
+            { k: "unseen", t: lang === "en" ? "Unseen" : "未看过" },
+          ].map((f) => {
+            const sel = resultFilter === f.k;
+            return (
+              <button key={f.k} onClick={() => setResultFilter(f.k)} style={{
+                padding: "4px 10px", fontSize: 11.5, borderRadius: 12, cursor: "pointer",
+                border: `1px solid ${sel ? T.accent : T.rule}`,
+                background: sel ? T.accentSoft : "transparent",
+                color: sel ? T.accent : T.ink3, fontFamily: "var(--ei-sans)",
+              }}>{f.t}</button>
+            );
+          })}
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        {jobs.slice(0, 4).map((j) => <JobMatchCard key={j.id} job={j} T={T} lang={lang} active={false} onClick={() => {}} />)}
-      </div>
+      {jobs.length === 0 ? (
+        <div style={{ padding: "32px 20px", textAlign: "center", fontSize: 13, color: T.ink3, fontFamily: "var(--ei-mono)", background: T.bgSoft, border: `1px dashed ${T.rule}`, borderRadius: 2 }}>
+          {lang === "en" ? "No jobs match this filter — try \"All\"." : "当前筛选下没有岗位 · 试试切回「全部」"}
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {jobs.slice(0, 6).map((j) => <JobMatchCard key={j.id} job={j} T={T} lang={lang} active={false} onClick={() => onOpenJob && onOpenJob(j.id)} />)}
+        </div>
+      )}
     </div>
   );
 };
 
 // ─── Watchlist tab ───
-const WatchlistTab = ({ T, lang, watchlist, jobs }) => {
+const WatchlistTab = ({ T, lang, watchlist, jobs, onOpen }) => {
+  // Map watchlist entries by company → recommended job id where possible
+  const findJobIdFor = (w) => {
+    const m = jobs.find((j) => j.company.includes(w.co) || w.co.includes(j.company.split(" ")[0]));
+    return m ? m.id : (jobs[0] && jobs[0].id);
+  };
   return (
     <div>
       <div style={{ marginBottom: 28 }}>
@@ -516,7 +612,7 @@ const WatchlistTab = ({ T, lang, watchlist, jobs }) => {
                   <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: 3, background: toneC, marginRight: 8, verticalAlign: "middle" }} />
                   {w.change}
                 </div>
-                <Btn T={T} variant="ghost" size="sm" icon="chevron_right" />
+                <Btn T={T} variant="ghost" size="sm" icon="chevron_right" onClick={() => onOpen && onOpen(findJobIdFor(w))} />
               </div>
             );
           })}

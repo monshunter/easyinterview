@@ -213,6 +213,7 @@ const DebriefScreen = ({ T, lang, nav }) => {
 const ResumeScreen = ({ T, lang, nav }) => {
   const D = window.EI_DATA;
   const r = D.resume;
+  const [decisions, setDecisions] = React.useState({}); // index -> "applied" | "skipped"
   const L = lang === "en" ? {
     title: "Resume workshop",
     sub: "Not a layout tool — a mirror that shows what this specific JD wants you to say differently.",
@@ -269,31 +270,52 @@ const ResumeScreen = ({ T, lang, nav }) => {
         {/* suggestions */}
         <div>
           <div className="ei-label" style={{ color: T.ink3, marginBottom: 14 }}>▸ {L.suggestions}</div>
-          {r.suggestions.map((s, i) => (
-            <div key={i} style={{ marginBottom: 16, padding: 16, border: `1px solid ${T.rule}`, borderRadius: 2, background: T.bgCard }}>
-              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                <Tag tone={s.type === "rewrite" ? "accent" : s.type === "add" ? "ok" : "warn"} T={T}>
-                  {s.type === "rewrite" ? (lang === "en" ? "Rewrite" : "改写") : s.type === "add" ? (lang === "en" ? "Add" : "补充") : (lang === "en" ? "Trim" : "删除")}
-                </Tag>
-              </div>
-              {s.before && (
-                <div style={{ padding: "10px 12px", background: T.dangerSoft, color: T.ink2, fontSize: 13, lineHeight: 1.55, borderRadius: 2, marginBottom: 8, textDecoration: "line-through", opacity: 0.7 }}>
-                  {s.before}
+          {r.suggestions.map((s, i) => {
+            const decision = decisions[i];
+            return (
+              <div key={i} style={{ marginBottom: 16, padding: 16, border: `1px solid ${T.rule}`, borderRadius: 2, background: T.bgCard, opacity: decision === "skipped" ? 0.55 : 1, transition: "opacity .2s" }}>
+                <div style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center" }}>
+                  <Tag tone={s.type === "rewrite" ? "accent" : s.type === "add" ? "ok" : "warn"} T={T}>
+                    {s.type === "rewrite" ? (lang === "en" ? "Rewrite" : "改写") : s.type === "add" ? (lang === "en" ? "Add" : "补充") : (lang === "en" ? "Trim" : "删除")}
+                  </Tag>
+                  {decision && (
+                    <Tag tone={decision === "applied" ? "ok" : "muted"} T={T}>
+                      {decision === "applied" ? (lang === "en" ? "Applied" : "已采纳") : (lang === "en" ? "Skipped" : "已跳过")}
+                    </Tag>
+                  )}
                 </div>
-              )}
-              {s.after && (
-                <div style={{ padding: "10px 12px", background: T.okSoft, color: T.ink, fontSize: 13, lineHeight: 1.55, borderRadius: 2, marginBottom: 8 }}>
-                  {s.after}
+                {s.before && (
+                  <div style={{ padding: "10px 12px", background: T.dangerSoft, color: T.ink2, fontSize: 13, lineHeight: 1.55, borderRadius: 2, marginBottom: 8, textDecoration: "line-through", opacity: 0.7 }}>
+                    {s.before}
+                  </div>
+                )}
+                {s.after && (
+                  <div style={{ padding: "10px 12px", background: T.okSoft, color: T.ink, fontSize: 13, lineHeight: 1.55, borderRadius: 2, marginBottom: 8 }}>
+                    {s.after}
+                  </div>
+                )}
+                {s.text && <div style={{ padding: "10px 12px", background: T.bgSoft, fontSize: 13, color: T.ink, borderRadius: 2, marginBottom: 8 }}>{s.text}</div>}
+                <div style={{ fontSize: 12, color: T.ink3, lineHeight: 1.55 }}><b style={{ color: T.ink2 }}>{L.why}:</b> {s.reason}</div>
+                <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                  {decision ? (
+                    <Btn variant="ghost" size="sm" T={T} onClick={() => setDecisions((d) => { const n = { ...d }; delete n[i]; return n; })}>
+                      {lang === "en" ? "Undo" : "撤销"}
+                    </Btn>
+                  ) : (
+                    <>
+                      <Btn variant="secondary" size="sm" T={T} icon="check" onClick={() => {
+                        setDecisions((d) => ({ ...d, [i]: "applied" }));
+                        window.eiToast && window.eiToast(lang === "en" ? "Rewrite applied to draft" : "改写已写入草稿", { tone: "ok" });
+                      }}>{lang === "en" ? "Apply" : "采纳"}</Btn>
+                      <Btn variant="ghost" size="sm" T={T} onClick={() => setDecisions((d) => ({ ...d, [i]: "skipped" }))}>
+                        {lang === "en" ? "Skip" : "跳过"}
+                      </Btn>
+                    </>
+                  )}
                 </div>
-              )}
-              {s.text && <div style={{ padding: "10px 12px", background: T.bgSoft, fontSize: 13, color: T.ink, borderRadius: 2, marginBottom: 8 }}>{s.text}</div>}
-              <div style={{ fontSize: 12, color: T.ink3, lineHeight: 1.55 }}><b style={{ color: T.ink2 }}>{L.why}:</b> {s.reason}</div>
-              <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-                <Btn variant="secondary" size="sm" T={T} icon="check">{lang === "en" ? "Apply" : "采纳"}</Btn>
-                <Btn variant="ghost" size="sm" T={T}>{lang === "en" ? "Skip" : "跳过"}</Btn>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

@@ -231,7 +231,7 @@ const ParseScreen = ({ T, lang, nav }) => {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <Btn T={T} variant="ghost" onClick={() => nav("home")}>{lang === "en" ? "Cancel" : "取消"}</Btn>
-          <Btn T={T} variant="secondary" icon="edit">{lang === "en" ? "Re-parse" : "重新解析"}</Btn>
+          <Btn T={T} variant="secondary" icon="edit" onClick={() => { setStep(0); setStage("loading"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{lang === "en" ? "Re-parse" : "重新解析"}</Btn>
           <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => nav("workspace", { jobId: "tj-1" })}>
             {lang === "en" ? "Confirm & open interview setup" : "确认并进入面试前确认"}
           </Btn>
@@ -741,7 +741,7 @@ const ReportGeneratingScreen = ({ T, lang, nav }) => {
 // ═══════════════════════════════════════════════════════════════════
 // #8 SETTINGS / PRIVACY / DATA EXPORT & DELETE
 // ═══════════════════════════════════════════════════════════════════
-const SettingsScreen = ({ T, lang, nav }) => {
+const SettingsScreen = ({ T, lang, nav, fontPreset, setFontPreset }) => {
   const [tab, setTab] = React.useState("profile");
 
   const tabs = lang === "en"
@@ -774,7 +774,7 @@ const SettingsScreen = ({ T, lang, nav }) => {
         {/* Content */}
         <div>
           {tab === "privacy" && <SettingsPrivacy T={T} lang={lang} />}
-          {tab === "profile" && <SettingsProfile T={T} lang={lang} />}
+          {tab === "profile" && <SettingsProfile T={T} lang={lang} fontPreset={fontPreset} setFontPreset={setFontPreset} />}
           {tab === "notifications" && <SettingsNotif T={T} lang={lang} />}
           {tab === "billing" && <SettingsBilling T={T} lang={lang} />}
         </div>
@@ -851,7 +851,7 @@ const SettingsPrivacy = ({ T, lang }) => {
               {lang === "en" ? "Practice sessions, reports, mistakes, resume versions, experience cards. Link is emailed when ready (<5min)." : "练习会话、报告、错题、简历版本、经历卡片。准备好发到你邮箱（<5 分钟）。"}
             </div>
           </div>
-          <Btn T={T} variant="secondary" size="sm">{lang === "en" ? "Request export" : "申请导出"}</Btn>
+          <Btn T={T} variant="secondary" size="sm" onClick={() => window.eiToast && window.eiToast(lang === "en" ? "Export requested · link emailed to liuzhe@example.com when ready" : "已申请导出 · 准备好后会发到 liuzhe@example.com", { tone: "ok", duration: 3000 })}>{lang === "en" ? "Request export" : "申请导出"}</Btn>
         </div>
       </section>
 
@@ -886,7 +886,7 @@ const SettingsPrivacy = ({ T, lang }) => {
   );
 };
 
-const SettingsProfile = ({ T, lang }) => {
+const SettingsProfile = ({ T, lang, fontPreset, setFontPreset }) => {
   const identityRows = [
     { k: lang === "en" ? "Display name" : "显示姓名", v: "刘哲" },
     { k: lang === "en" ? "Login email" : "登录邮箱", v: "liuzhe@example.com" },
@@ -918,7 +918,7 @@ const SettingsProfile = ({ T, lang }) => {
             <div style={{ fontSize: 15, color: T.ink, fontWeight: 600 }}>{lang === "en" ? "Liu Zhe" : "刘哲"}</div>
             <div style={{ fontSize: 12.5, color: T.ink3, marginTop: 4 }}>{lang === "en" ? "This page only stores account identity and product preferences." : "这里仅保存账号身份和产品基础偏好，不保存岗位、年限、目标方向等一对多信息。"}</div>
           </div>
-          <Btn T={T} variant="secondary" size="sm" icon="upload">{lang === "en" ? "Change avatar" : "更换头像"}</Btn>
+          <Btn T={T} variant="secondary" size="sm" icon="upload" onClick={() => window.eiToast && window.eiToast(lang === "en" ? "Pick an image (≤2 MB) · upload mocked in prototype" : "选择图片（≤2 MB）· 原型仅模拟上传", { tone: "neutral" })}>{lang === "en" ? "Change avatar" : "更换头像"}</Btn>
         </div>
         <div>
           {identityRows.map((r, i) => <Row key={r.k} r={r} last={i === identityRows.length - 1} />)}
@@ -929,6 +929,55 @@ const SettingsProfile = ({ T, lang }) => {
         <div className="ei-label" style={{ color: T.ink3, marginBottom: 14 }}>{lang === "en" ? "SIGN-IN & SECURITY" : "登录与安全"}</div>
         <div>
           {securityRows.map((r, i) => <Row key={r.k} r={r} last={i === securityRows.length - 1} />)}
+        </div>
+      </section>
+
+      <section>
+        <div className="ei-label" style={{ color: T.ink3, marginBottom: 14 }}>{lang === "en" ? "INTERFACE PREFERENCES" : "界面偏好"}</div>
+        <div style={{ fontSize: 13, color: T.ink3, marginBottom: 14, lineHeight: 1.55 }}>
+          {lang === "en"
+            ? "Pick a typography pack — switches both the serif (display) and the sans (body) together so the rhythm stays coherent. Mono never changes."
+            : "选一套字体组合 —— serif（标题）和 sans（正文）会成对切换，保证排版节奏不乱。等宽字体不会变。"}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+          {(window.EI_FONT_PRESETS || []).map((p) => {
+            const selected = (fontPreset || "editorial") === p.key;
+            return (
+              <button
+                key={p.key}
+                onClick={() => setFontPreset && setFontPreset(p.key)}
+                style={{
+                  textAlign: "left", padding: "16px 18px",
+                  background: selected ? T.accentSoft : T.bgCard,
+                  border: `1.5px solid ${selected ? T.accent : T.rule}`,
+                  borderRadius: 3, cursor: "pointer",
+                  display: "flex", flexDirection: "column", gap: 10,
+                  fontFamily: "var(--ei-sans)",
+                }}
+                onMouseEnter={(e) => { if (!selected) e.currentTarget.style.borderColor = T.ink3; }}
+                onMouseLeave={(e) => { if (!selected) e.currentTarget.style.borderColor = T.rule; }}
+              >
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+                  <div style={{ fontSize: 13.5, color: T.ink, fontWeight: 600 }}>
+                    {lang === "en" ? p.labelEn : p.labelZh}
+                  </div>
+                  {selected && <Icon name="check" size={13} style={{ color: T.accent }} />}
+                </div>
+                <div style={{ fontFamily: `"${p.serif}", Georgia, serif`, fontSize: 26, color: T.ink, letterSpacing: "-0.015em", lineHeight: 1.1 }}>
+                  Aa 你好
+                </div>
+                <div style={{ fontFamily: `"${p.sans}", -apple-system, sans-serif`, fontSize: 12.5, color: T.ink2, lineHeight: 1.45 }}>
+                  The quick brown fox · 这是正文样式示例
+                </div>
+                <div style={{ fontSize: 11, color: T.ink3, lineHeight: 1.5, marginTop: 2 }}>
+                  {lang === "en" ? p.descEn : p.descZh}
+                </div>
+                <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: "var(--ei-mono)", letterSpacing: "0.04em", marginTop: 2 }}>
+                  {p.serif} · {p.sans}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </section>
     </div>
@@ -946,7 +995,7 @@ const SettingsBilling = ({ T, lang }) => (
     <div className="ei-label" style={{ color: T.accent, marginBottom: 8 }}>{lang === "en" ? "CURRENT PLAN" : "当前套餐"}</div>
     <div className="ei-serif" style={{ fontSize: 24, color: T.ink, marginBottom: 6, letterSpacing: "-0.015em" }}>{lang === "en" ? "Free · 2 JD parses / month" : "免费版 · 每月 2 次 JD 解析"}</div>
     <div style={{ fontSize: 13, color: T.ink3, marginBottom: 16 }}>{lang === "en" ? "Upgrade for unlimited practice, real-interview debrief, and the mistake book." : "升级解锁无限练习、真实面试复盘、完整错题本。"}</div>
-    <Btn T={T} variant="accent" iconRight="arrow_right">{lang === "en" ? "See plans" : "查看套餐"}</Btn>
+    <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => window.eiToast && window.eiToast(lang === "en" ? "Plans page lands in P1 · pricing TBD" : "套餐页 P1 上线 · 定价待定", { tone: "neutral" })}>{lang === "en" ? "See plans" : "查看套餐"}</Btn>
   </div>
 );
 

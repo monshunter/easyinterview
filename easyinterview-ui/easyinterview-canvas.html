@@ -19,224 +19,103 @@
 <script type="text/babel" src="design-canvas.jsx"></script>
 
 <script type="text/babel">
-  // Screen thumbnail — iframe of prototype with hash params, scaled to fit
-  const ART_W = 1280;
-  const ART_H = 860;
-  const FRAME_W = 420;
+  const ART_W = 1280, ART_H = 860, FRAME_W = 420;
   const FRAME_H = Math.round(ART_H * FRAME_W / ART_W);
-
-  const Screen = ({ route, jobId = "tj-1", mode, layout, dark, lang = "zh" }) => {
+  const Screen = ({ route, jobId = "tj-1", mode, layout, dark, lang = "zh", theme, customAccent, fontPreset, role }) => {
     const params = new URLSearchParams();
-    params.set("route", route);
-    params.set("nochrome", "0");
-    params.set("lang", lang);
+    params.set("route", route); params.set("nochrome", "0"); params.set("lang", lang);
     if (jobId) params.set("jobId", jobId);
     if (mode) params.set("mode", mode);
     if (layout) params.set("reportLayout", layout);
     if (dark) params.set("dark", "1");
-    const src = "EasyInterview.html#" + params.toString();
-    return (
-      <div style={{ width: FRAME_W, height: FRAME_H, background: dark ? "#16130e" : "#fdfcf8", position: "relative", overflow: "hidden" }}>
-        <iframe
-          src={src}
-          style={{
-            border: "none",
-            width: ART_W, height: ART_H,
-            transform: `scale(${FRAME_W / ART_W})`,
-            transformOrigin: "top left",
-            pointerEvents: "none",
-          }}
-        />
-      </div>
-    );
-  };
-
-  // Specialty: practice screen has chrome inside already
-  const PracticeScreen = ({ mode, dark, role }) => {
-    const params = new URLSearchParams();
-    params.set("route", "practice");
-    params.set("jobId", "tj-1");
-    if (mode) params.set("mode", mode);
+    if (theme) params.set("theme", theme);
+    if (customAccent) params.set("customAccent", `${customAccent.h},${customAccent.c}`);
+    if (fontPreset) params.set("fontPreset", fontPreset);
     if (role) params.set("role", role);
-    if (dark) params.set("dark", "1");
-    const src = "EasyInterview.html#" + params.toString();
     return (
       <div style={{ width: FRAME_W, height: FRAME_H, background: dark ? "#16130e" : "#fdfcf8", overflow: "hidden" }}>
-        <iframe src={src} style={{
-          border: "none", width: ART_W, height: ART_H,
-          transform: `scale(${FRAME_W / ART_W})`, transformOrigin: "top left", pointerEvents: "none",
-        }} />
+        <iframe src={"EasyInterview.html#" + params.toString()} loading="lazy"
+          style={{ border: "none", width: ART_W, height: ART_H, transform: `scale(${FRAME_W / ART_W})`, transformOrigin: "top left", pointerEvents: "none" }} />
       </div>
     );
   };
-
-  const App = () => {
-    return (
-      <DesignCanvas>
-        <DCSection id="flow" title="EasyInterview · 核心用户闭环"
-          subtitle="从一份 JD 到下一轮更强的准备 — P0 MVP 的 5 条屏幕串起来">
-          <DCArtboard id="home" label="01 · 收件箱（JD 导入）" width={FRAME_W} height={FRAME_H}>
-            <Screen route="home" />
-          </DCArtboard>
-          <DCArtboard id="ws" label="02 · 目标岗位工作台" width={FRAME_W} height={FRAME_H}>
-            <Screen route="workspace" jobId="tj-1" />
-          </DCArtboard>
-          <DCArtboard id="practice" label="03 · 模拟面试进行中" width={FRAME_W} height={FRAME_H}>
-            <PracticeScreen mode="core" />
-          </DCArtboard>
-          <DCArtboard id="report" label="04 · 证据化复盘" width={FRAME_W} height={FRAME_H}>
-            <Screen route="report" layout="editorial" />
-          </DCArtboard>
-          <DCArtboard id="mistakes" label="05 · 错题本 + 复练" width={FRAME_W} height={FRAME_H}>
-            <Screen route="mistakes" />
-          </DCArtboard>
-        </DCSection>
-
-        <DCSection id="jd-match" title="JD 智能匹配 · 联网搜索代理"
-          subtitle="从「被动工具」到「主动助手」— 按用户画像扫描市场，找到你最锋利证据能派上用场的岗位">
-          <DCArtboard id="jdm-recommend" label="为你推荐 · 匹配评分 + 原因" width={FRAME_W} height={FRAME_H}>
-            <Screen route="jd_match" />
-          </DCArtboard>
-          <DCArtboard id="jdm-recommend-dark" label="为你推荐 · 暗色" width={FRAME_W} height={FRAME_H}>
-            <Screen route="jd_match" dark />
-          </DCArtboard>
-          <DCArtboard id="jdm-en" label="英文版 · Recommended for you" width={FRAME_W} height={FRAME_H}>
-            <Screen route="jd_match" lang="en" />
-          </DCArtboard>
-        </DCSection>
-
-        <DCSection id="p0-complete" title="P0 补齐 · 入口 / Onboarding / 异步 / 隐私"
-          subtitle="spec 验收清单里的四条路径 — 让 MVP 真正闭环">
-          <DCArtboard id="parse" label="JD 解析 · loading → 预览确认" width={FRAME_W} height={FRAME_H}>
-            <Screen route="parse" />
-          </DCArtboard>
-          <DCArtboard id="onboarding" label="Onboarding · 5 分钟画像 + 经历卡片" width={FRAME_W} height={FRAME_H}>
-            <Screen route="onboarding" />
-          </DCArtboard>
-          <DCArtboard id="generating" label="报告生成中 · 异步观察流" width={FRAME_W} height={FRAME_H}>
-            <Screen route="generating" />
-          </DCArtboard>
-          <DCArtboard id="settings" label="设置 · 隐私 / 导出 / 删除" width={FRAME_W} height={FRAME_H}>
-            <Screen route="settings" />
-          </DCArtboard>
-        </DCSection>
-
-        <DCSection id="p2" title="P2 新增 · 语音模式 + 多轮计划编排器"
-          subtitle="面后 48h 的两大高价值入口 — 表达层反馈 + 轮次间信号串联">
-          <DCArtboard id="voice" label="语音练习 · 进行中（波形 + 标注）" width={FRAME_W} height={FRAME_H}>
-            <Screen route="voice" />
-          </DCArtboard>
-          <DCArtboard id="voice-dark" label="语音练习 · 暗色" width={FRAME_W} height={FRAME_H}>
-            <Screen route="voice" dark />
-          </DCArtboard>
-          <DCArtboard id="plan" label="多轮计划 · HR → 技术一面 → 技术二面 → 经理面" width={FRAME_W} height={FRAME_H}>
-            <Screen route="plan" />
-          </DCArtboard>
-          <DCArtboard id="plan-dark" label="多轮计划 · 暗色" width={FRAME_W} height={FRAME_H}>
-            <Screen route="plan" dark />
-          </DCArtboard>
-        </DCSection>
-
-        <DCSection id="report-variants" title="报告页 · 3 种版式"
-          subtitle="同一份会话数据，三种叙事结构 — 可在 Tweaks 中切换">
-          <DCArtboard id="editorial" label="A · Editorial · 叙事优先" width={FRAME_W} height={FRAME_H}>
-            <Screen route="report" layout="editorial" />
-          </DCArtboard>
-          <DCArtboard id="timeline" label="B · Timeline · 时间轴" width={FRAME_W} height={FRAME_H}>
-            <Screen route="report" layout="timeline" />
-          </DCArtboard>
-          <DCArtboard id="dashboard" label="C · Dashboard · 指标优先" width={FRAME_W} height={FRAME_H}>
-            <Screen route="report" layout="dashboard" />
-          </DCArtboard>
-        </DCSection>
-
-        <DCSection id="extended" title="扩展模块 · P1 / P2 视觉占位"
-          subtitle="简历工坊、成长看板 — spec 中的后置能力">
-          <DCArtboard id="resume" label="简历工坊 · 单页" width={FRAME_W} height={FRAME_H}>
-            <Screen route="resume" />
-          </DCArtboard>
-          <DCArtboard id="growth" label="成长看板" width={FRAME_W} height={FRAME_H}>
-            <Screen route="growth" />
-          </DCArtboard>
-        </DCSection>
-
-        <DCSection id="p1-depth" title="P1 深度 · 真实面试复盘 / 经历库 / 简历多版本"
-          subtitle="准备循环的三个深水区 — 把面试完、故事库、简历串成一条线">
-          <DCArtboard id="debrief-full" label="真实面试复盘（3 步）" width={FRAME_W} height={FRAME_H}>
-            <Screen route="debrief" />
-          </DCArtboard>
-          <DCArtboard id="thankyou" label="复盘 · 感谢信草稿" width={FRAME_W} height={FRAME_H}>
-            <Screen route="debrief" />
-          </DCArtboard>
-          <DCArtboard id="experiences" label="经历库 · 卡片管理" width={FRAME_W} height={FRAME_H}>
-            <Screen route="experiences" />
-          </DCArtboard>
-          <DCArtboard id="resume-versions" label="简历多版本 · bullet diff" width={FRAME_W} height={FRAME_H}>
-            <Screen route="resume_versions" />
-          </DCArtboard>
-        </DCSection>
-
-        <DCSection id="theme" title="主题 · 暖色 vs 暗色"
-          subtitle="同一个工作台，Tweaks 切换的视觉差异">
-          <DCArtboard id="warm" label="Warm · 默认" width={FRAME_W} height={FRAME_H}>
-            <Screen route="workspace" jobId="tj-1" />
-          </DCArtboard>
-          <DCArtboard id="dark" label="Dark · 夜间" width={FRAME_W} height={FRAME_H}>
-            <Screen route="workspace" jobId="tj-1" dark />
-          </DCArtboard>
-          <DCArtboard id="warm-report" label="Warm · 报告" width={FRAME_W} height={FRAME_H}>
-            <Screen route="report" layout="dashboard" />
-          </DCArtboard>
-          <DCArtboard id="dark-report" label="Dark · 报告" width={FRAME_W} height={FRAME_H}>
-            <Screen route="report" layout="dashboard" dark />
-          </DCArtboard>
-        </DCSection>
-
-        <DCSection id="roles" title="面试官角色 · 综合 / HR / 用人经理"
-          subtitle="同一个岗位，三种语气与追问深度">
-          <DCArtboard id="general" label="综合面试官" width={FRAME_W} height={FRAME_H}>
-            <PracticeScreen role="general" />
-          </DCArtboard>
-          <DCArtboard id="hr" label="HR / 初筛" width={FRAME_W} height={FRAME_H}>
-            <PracticeScreen role="hr" />
-          </DCArtboard>
-          <DCArtboard id="manager" label="用人经理" width={FRAME_W} height={FRAME_H}>
-            <PracticeScreen role="manager" />
-          </DCArtboard>
-        </DCSection>
-
-        <DCSection id="closing" title="收口模块 · M0 入口 / 状态机 / 复练闭环 / STAR / 信任面板"
-          subtitle="把 spec 里剩下的钩子全部挂上 — 让产品真正能从「来访」走到「赢」">
-          <DCArtboard id="welcome" label="M0 · 欢迎 + 登录" width={FRAME_W} height={FRAME_H}>
-            <Screen route="welcome" />
-          </DCArtboard>
-          <DCArtboard id="welcome-en" label="M0 · 欢迎 · 英文版" width={FRAME_W} height={FRAME_H}>
-            <Screen route="welcome" lang="en" />
-          </DCArtboard>
-          <DCArtboard id="drill" label="错题本 → 针对性复练" width={FRAME_W} height={FRAME_H}>
-            <Screen route="drill" />
-          </DCArtboard>
-          <DCArtboard id="followup" label="追问树 · 同一题三个走向" width={FRAME_W} height={FRAME_H}>
-            <Screen route="followup" />
-          </DCArtboard>
-          <DCArtboard id="star" label="STAR 重构编辑器 · 四栏 + AI 改写" width={FRAME_W} height={FRAME_H}>
-            <Screen route="star" />
-          </DCArtboard>
-          <DCArtboard id="star-en" label="STAR Editor · English" width={FRAME_W} height={FRAME_H}>
-            <Screen route="star" lang="en" />
-          </DCArtboard>
-        </DCSection>
-
-        <DCPostIt top={-28} left={60} rotate={-3} width={220}>
-          提示：点击任一画板右上角展开 → 可按 ← → 翻页、Esc 退出。
-        </DCPostIt>
-        <DCPostIt top={330} right={60} rotate={2.5} width={200}>
-          所有画板都是真实 iframe —— 非静态截图。Tweaks 改完主题，这里会同步更新。
-        </DCPostIt>
-      </DesignCanvas>
-    );
-  };
-
+  const PracticeScreen = (props) => <Screen route="practice" {...props} />;
+  const App = () => (
+    <DesignCanvas>
+      <DCSection id="flow" title="EasyInterview · 核心用户闭环" subtitle="从一份 JD 到下一轮更强的准备">
+        <DCArtboard id="home" label="01 · 收件箱（JD 导入）" width={FRAME_W} height={FRAME_H}><Screen route="home" /></DCArtboard>
+        <DCArtboard id="ws" label="02 · 目标岗位工作台" width={FRAME_W} height={FRAME_H}><Screen route="workspace" /></DCArtboard>
+        <DCArtboard id="practice" label="03 · 模拟面试进行中" width={FRAME_W} height={FRAME_H}><PracticeScreen mode="core" /></DCArtboard>
+        <DCArtboard id="report" label="04 · 证据化复盘" width={FRAME_W} height={FRAME_H}><Screen route="report" layout="editorial" /></DCArtboard>
+      </DCSection>
+      <DCSection id="jd-match" title="JD 智能匹配 · 联网搜索代理" subtitle="按用户画像扫描市场">
+        <DCArtboard id="jdm-recommend" label="为你推荐 · 匹配评分" width={FRAME_W} height={FRAME_H}><Screen route="jd_match" /></DCArtboard>
+        <DCArtboard id="jdm-recommend-dark" label="为你推荐 · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="jd_match" dark /></DCArtboard>
+        <DCArtboard id="jdm-en" label="Recommended · English" width={FRAME_W} height={FRAME_H}><Screen route="jd_match" lang="en" /></DCArtboard>
+        <DCArtboard id="company-intel" label="公司情报 · Company Intel" width={FRAME_W} height={FRAME_H}><Screen route="company_intel" /></DCArtboard>
+      </DCSection>
+      <DCSection id="auth" title="账户体系 · 登录 / 注册 / 验证 / 重置" subtitle="M0 入口">
+        <DCArtboard id="auth-login" label="登录 · 邮箱密码" width={FRAME_W} height={FRAME_H}><Screen route="auth_login" /></DCArtboard>
+        <DCArtboard id="auth-register" label="注册 · 创建账户" width={FRAME_W} height={FRAME_H}><Screen route="auth_register" /></DCArtboard>
+        <DCArtboard id="auth-verify" label="邮箱验证 · 6 位验证码" width={FRAME_W} height={FRAME_H}><Screen route="auth_verify" /></DCArtboard>
+        <DCArtboard id="auth-reset" label="重置密码 · 60s 倒计时" width={FRAME_W} height={FRAME_H}><Screen route="auth_reset" /></DCArtboard>
+        <DCArtboard id="auth-logout" label="退出登录 · 二次确认" width={FRAME_W} height={FRAME_H}><Screen route="auth_logout" /></DCArtboard>
+      </DCSection>
+      <DCSection id="profile" title="用户画像 · Profile" subtitle="设置入口的下一层">
+        <DCArtboard id="profile-zh" label="用户画像 · 中文" width={FRAME_W} height={FRAME_H}><Screen route="profile" /></DCArtboard>
+        <DCArtboard id="profile-en" label="User profile · English" width={FRAME_W} height={FRAME_H}><Screen route="profile" lang="en" /></DCArtboard>
+        <DCArtboard id="profile-dark" label="用户画像 · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="profile" dark /></DCArtboard>
+      </DCSection>
+      <DCSection id="p0-complete" title="P0 补齐 · 入口 / Onboarding / 异步 / 隐私">
+        <DCArtboard id="parse" label="JD 解析 · loading → 预览" width={FRAME_W} height={FRAME_H}><Screen route="parse" /></DCArtboard>
+        <DCArtboard id="onboarding" label="Onboarding · 5 分钟画像" width={FRAME_W} height={FRAME_H}><Screen route="onboarding" /></DCArtboard>
+        <DCArtboard id="generating" label="报告生成中 · 异步观察流" width={FRAME_W} height={FRAME_H}><Screen route="generating" /></DCArtboard>
+        <DCArtboard id="settings" label="设置 · 隐私 / 导出 / 删除" width={FRAME_W} height={FRAME_H}><Screen route="settings" /></DCArtboard>
+      </DCSection>
+      <DCSection id="voice" title="语音模式 · 表达层反馈" subtitle="语速 / 停顿 / 用词标注">
+        <DCArtboard id="voice-light" label="语音练习 · 进行中" width={FRAME_W} height={FRAME_H}><Screen route="voice" /></DCArtboard>
+        <DCArtboard id="voice-dark" label="语音练习 · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="voice" dark /></DCArtboard>
+      </DCSection>
+      <DCSection id="report-variants" title="报告页 · 3 种版式" subtitle="同一份会话数据，三种叙事结构">
+        <DCArtboard id="editorial" label="A · Editorial · 叙事优先" width={FRAME_W} height={FRAME_H}><Screen route="report" layout="editorial" /></DCArtboard>
+        <DCArtboard id="timeline" label="B · Timeline · 时间轴" width={FRAME_W} height={FRAME_H}><Screen route="report" layout="timeline" /></DCArtboard>
+        <DCArtboard id="dashboard" label="C · Dashboard · 指标优先" width={FRAME_W} height={FRAME_H}><Screen route="report" layout="dashboard" /></DCArtboard>
+      </DCSection>
+      <DCSection id="p1-depth" title="P1 深度 · 真实复盘 / 简历">
+        <DCArtboard id="debrief" label="真实面试复盘（3 步）" width={FRAME_W} height={FRAME_H}><Screen route="debrief" /></DCArtboard>
+        <DCArtboard id="resume" label="简历工坊 · 单页" width={FRAME_W} height={FRAME_H}><Screen route="resume" /></DCArtboard>
+        <DCArtboard id="resume-versions" label="简历多版本 · bullet diff" width={FRAME_W} height={FRAME_H}><Screen route="resume_versions" /></DCArtboard>
+      </DCSection>
+      <DCSection id="theme-palette" title="主题色板 · 4 个预定义主题" subtitle="主题与暗/浅色正交">
+        <DCArtboard id="theme-warm" label="Warm · 暖陶（默认）" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" /></DCArtboard>
+        <DCArtboard id="theme-forest" label="Forest · 苔林" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="forest" /></DCArtboard>
+        <DCArtboard id="theme-ocean" label="Ocean · 深海" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" /></DCArtboard>
+        <DCArtboard id="theme-plum" label="Plum · 梅子" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="plum" /></DCArtboard>
+      </DCSection>
+      <DCSection id="theme-dark" title="主题色板 · 暗色矩阵">
+        <DCArtboard id="theme-warm-dark" label="Warm · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" dark /></DCArtboard>
+        <DCArtboard id="theme-ocean-dark" label="Ocean · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" dark /></DCArtboard>
+        <DCArtboard id="theme-plum-dark" label="Plum · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="plum" dark /></DCArtboard>
+      </DCSection>
+      <DCSection id="custom-accent" title="自定义 accent · 任意色相 × 任意饱和度" subtitle="OKLch 取色器">
+        <DCArtboard id="custom-orange" label="Custom · 橙金 (h=50)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" customAccent={{ h: 50, c: 0.18 }} /></DCArtboard>
+        <DCArtboard id="custom-teal" label="Custom · 青苔 (h=180)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="forest" customAccent={{ h: 180, c: 0.14 }} /></DCArtboard>
+        <DCArtboard id="custom-violet" label="Custom · 紫罗兰 (h=290)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" customAccent={{ h: 290, c: 0.20 }} /></DCArtboard>
+      </DCSection>
+      <DCSection id="font-presets" title="字体预设 · 编辑级 / 现代 / 杂志">
+        <DCArtboard id="font-editorial" label="编辑级 · Noto Serif SC + Inter" width={FRAME_W} height={FRAME_H}><Screen route="report" layout="editorial" fontPreset="editorial" /></DCArtboard>
+        <DCArtboard id="font-modern" label="现代 · Source Serif Pro + Geist" width={FRAME_W} height={FRAME_H}><Screen route="report" layout="editorial" fontPreset="modern" /></DCArtboard>
+        <DCArtboard id="font-magazine" label="杂志 · Cormorant + IBM Plex Sans" width={FRAME_W} height={FRAME_H}><Screen route="report" layout="editorial" fontPreset="magazine" /></DCArtboard>
+      </DCSection>
+      <DCSection id="roles" title="面试官角色 · 综合 / HR / 用人经理">
+        <DCArtboard id="general" label="综合面试官" width={FRAME_W} height={FRAME_H}><PracticeScreen role="general" /></DCArtboard>
+        <DCArtboard id="hr" label="HR / 初筛" width={FRAME_W} height={FRAME_H}><PracticeScreen role="hr" /></DCArtboard>
+        <DCArtboard id="manager" label="用人经理" width={FRAME_W} height={FRAME_H}><PracticeScreen role="manager" /></DCArtboard>
+      </DCSection>
+      <DCPostIt top={-28} left={60} rotate={-3} width={220}>提示：点击任一画板右上角 ⤢ 展开 → 可按 ← → 翻页、Esc 退出。</DCPostIt>
+      <DCPostIt top={330} right={60} rotate={2.5} width={210}>所有画板都是真实 iframe（loading=lazy）。Tweaks 改完主题、字体、accent，这里会同步更新。</DCPostIt>
+    </DesignCanvas>
+  );
   ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 </body>

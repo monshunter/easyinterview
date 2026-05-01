@@ -43,10 +43,39 @@ const AuthActionLink = ({ T, children, onClick }) => (
   </button>
 );
 
+// Reusable hook: countdown after sending an email/SMS code
+const useResendCountdown = () => {
+  const [seconds, setSeconds] = React.useState(0);
+  React.useEffect(() => {
+    if (seconds <= 0) return;
+    const t = setTimeout(() => setSeconds((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [seconds]);
+  return [seconds, () => setSeconds(60)];
+};
+
+const oauthStub = (provider, lang) => {
+  window.eiToast && window.eiToast(
+    lang === "en"
+      ? `${provider} sign-in is mocked in this prototype.`
+      : `${provider} 登录在原型中是模拟的，实际版本将跳转到授权页。`,
+    { tone: "neutral", duration: 2600 }
+  );
+};
+
 const AuthLoginScreen = ({ T, lang, nav, onSignIn }) => {
   const [email, setEmail] = React.useState("liuzhe@example.com");
   const [password, setPassword] = React.useState("");
   const [mode, setMode] = React.useState("password");
+  const [cooldown, startCooldown] = useResendCountdown();
+  const sendCode = () => {
+    if (cooldown > 0) return;
+    startCooldown();
+    window.eiToast && window.eiToast(
+      lang === "en" ? `Verification code sent to ${email}` : `验证码已发送到 ${email}`,
+      { tone: "ok" }
+    );
+  };
 
   return (
     <AuthShell
@@ -77,7 +106,11 @@ const AuthLoginScreen = ({ T, lang, nav, onSignIn }) => {
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "end" }}>
               <AuthField T={T} label={lang === "en" ? "Verification code" : "验证码"} value={password} setValue={setPassword} placeholder="123456" />
-              <Btn T={T} variant="secondary" size="sm">{lang === "en" ? "Send code" : "发送验证码"}</Btn>
+              <Btn T={T} variant="secondary" size="sm" onClick={sendCode} disabled={cooldown > 0}>
+                {cooldown > 0
+                  ? (lang === "en" ? `Resend ${cooldown}s` : `${cooldown}s 后重发`)
+                  : (lang === "en" ? "Send code" : "发送验证码")}
+              </Btn>
             </div>
           )}
         </div>
@@ -100,8 +133,8 @@ const AuthLoginScreen = ({ T, lang, nav, onSignIn }) => {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Btn T={T} variant="secondary" icon="globe">{lang === "en" ? "Google" : "Google"}</Btn>
-          <Btn T={T} variant="secondary" icon="chat">{lang === "en" ? "WeChat" : "微信"}</Btn>
+          <Btn T={T} variant="secondary" icon="globe" onClick={() => oauthStub("Google", lang)}>{lang === "en" ? "Google" : "Google"}</Btn>
+          <Btn T={T} variant="secondary" icon="chat" onClick={() => oauthStub(lang === "en" ? "WeChat" : "微信", lang)}>{lang === "en" ? "WeChat" : "微信"}</Btn>
         </div>
 
         <div style={{ marginTop: 22, fontSize: 13, color: T.ink3, textAlign: "center" }}>
@@ -150,6 +183,15 @@ const AuthRegisterScreen = ({ T, lang, nav }) => {
 
 const AuthVerifyScreen = ({ T, lang, nav, email, onSignIn }) => {
   const [code, setCode] = React.useState("");
+  const [cooldown, startCooldown] = useResendCountdown();
+  const resend = () => {
+    if (cooldown > 0) return;
+    startCooldown();
+    window.eiToast && window.eiToast(
+      lang === "en" ? `New code sent to ${email || "your email"}` : `新验证码已发送到 ${email || "你的邮箱"}`,
+      { tone: "ok" }
+    );
+  };
 
   return (
     <AuthShell
@@ -165,7 +207,11 @@ const AuthVerifyScreen = ({ T, lang, nav, email, onSignIn }) => {
           {lang === "en" ? "Verify and continue" : "验证并继续"}
         </Btn>
         <div style={{ marginTop: 18, display: "flex", justifyContent: "space-between", fontSize: 12.5 }}>
-          <AuthActionLink T={T}>{lang === "en" ? "Resend code" : "重新发送"}</AuthActionLink>
+          <AuthActionLink T={T} onClick={resend}>
+            {cooldown > 0
+              ? (lang === "en" ? `Resend in ${cooldown}s` : `${cooldown}s 后可重发`)
+              : (lang === "en" ? "Resend code" : "重新发送")}
+          </AuthActionLink>
           <AuthActionLink T={T} onClick={() => nav("auth_register")}>{lang === "en" ? "Use another email" : "换一个邮箱"}</AuthActionLink>
         </div>
       </div>

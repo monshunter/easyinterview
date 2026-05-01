@@ -1241,7 +1241,7 @@
               <span>· {Object.values(accepted).filter(Boolean).length}/4 {lang === "en" ? "rewrites in" : "处改写已采纳"}</span>
             </Row>
             <Row gap={8}>
-              <Btn T={T} variant="ghost" size="sm" icon="book">{L.saveStory}</Btn>
+              <Btn T={T} variant="ghost" size="sm" icon="book" onClick={() => window.eiToast && window.eiToast(lang === "en" ? "Saved to your experience library" : "已保存到经历库 · 下次面试可直接调用", { tone: "ok" })}>{L.saveStory}</Btn>
               <Btn T={T} variant="primary" size="sm" icon="play" onClick={() => nav("practice", { jobId: "tj-1" })}>
                 {L.delivery}
               </Btn>

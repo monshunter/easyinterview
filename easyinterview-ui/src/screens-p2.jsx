@@ -427,8 +427,8 @@ const PlanScreen = ({ T, lang, nav }) => {
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <Btn T={T} variant="secondary" size="sm" icon="calendar">{lang === "en" ? "Sync to calendar" : "同步到日历"}</Btn>
-          <Btn T={T} variant="primary" size="sm" icon="play">{lang === "en" ? "Start current round" : "开始当前轮次"}</Btn>
+          <Btn T={T} variant="secondary" size="sm" icon="calendar" onClick={() => window.eiToast && window.eiToast(lang === "en" ? "Calendar invite (.ics) generated · added to Apple Calendar" : "已生成日历邀请（.ics）· 已加入 Apple 日历", { tone: "ok", duration: 2800 })}>{lang === "en" ? "Sync to calendar" : "同步到日历"}</Btn>
+          <Btn T={T} variant="primary" size="sm" icon="play" onClick={() => nav("practice", { jobId: "tj-1" })}>{lang === "en" ? "Start current round" : "开始当前轮次"}</Btn>
         </div>
       </div>
 
@@ -553,14 +553,14 @@ const PlanScreen = ({ T, lang, nav }) => {
           )}
 
           <div style={{ marginTop: 24, display: "flex", gap: 10 }}>
-            {active.status === "done" && <Btn T={T} variant="secondary" icon="replay">{lang === "en" ? "Review report" : "回看报告"}</Btn>}
+            {active.status === "done" && <Btn T={T} variant="secondary" icon="replay" onClick={() => nav("report")}>{lang === "en" ? "Review report" : "回看报告"}</Btn>}
             {active.status === "active" && (
               <>
                 <Btn T={T} variant="accent" icon="play" onClick={() => nav("practice")}>{lang === "en" ? "Start this round" : "开始本轮"}</Btn>
                 <Btn T={T} variant="secondary" icon="mic" onClick={() => nav("voice")}>{lang === "en" ? "Voice mode" : "语音模式"}</Btn>
               </>
             )}
-            {active.status === "locked" && <Btn T={T} variant="secondary" icon="calendar">{lang === "en" ? "Reschedule" : "调整时间"}</Btn>}
+            {active.status === "locked" && <Btn T={T} variant="secondary" icon="calendar" onClick={() => window.eiToast && window.eiToast(lang === "en" ? "Pick a new time — scheduler opens in P1" : "选择新的时间 · 调度器 P1 上线", { tone: "neutral" })}>{lang === "en" ? "Reschedule" : "调整时间"}</Btn>}
           </div>
         </Card>
 
