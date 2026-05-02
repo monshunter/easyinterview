@@ -22,7 +22,7 @@
   const ART_W = 1280, ART_H = 860, FRAME_W = 420;
   const UI_VERSION = "20260502-voice-shell";
   const FRAME_H = Math.round(ART_H * FRAME_W / ART_W);
-  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, customAccent, fontPreset, role }) => {
+  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, customAccent, fontPreset, role, practiceMode }) => {
     const params = new URLSearchParams();
     params.set("route", route); params.set("nochrome", "0"); params.set("lang", lang);
     if (jobId) params.set("jobId", jobId);
@@ -39,6 +39,7 @@
     if (customAccent) params.set("customAccent", `${customAccent.h},${customAccent.c}`);
     if (fontPreset) params.set("fontPreset", fontPreset);
     if (role) params.set("role", role);
+    if (practiceMode) params.set("practiceMode", practiceMode);
     return (
       <div style={{ width: FRAME_W, height: FRAME_H, background: dark ? "#16130e" : "#fdfcf8", overflow: "hidden" }}>
         <iframe src={"index.html?v=" + UI_VERSION + "#" + params.toString()} loading="lazy"
@@ -81,6 +82,11 @@
       <DCSection id="voice" title="语音模式 · 统一 Session 骨架" subtitle="同一题目地图 / 顶部控制 / 语音表达层反馈">
         <DCArtboard id="voice-light" label="语音面试 · 统一骨架" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="voice" /></DCArtboard>
         <DCArtboard id="voice-dark" label="语音面试 · 统一骨架 · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="voice" dark /></DCArtboard>
+      </DCSection>
+      <DCSection id="p1-coaching" title="P1 · Session 练习方式" subtitle="严格模拟（提示隐藏）vs 带提示练习 · 外层框架 switch 开关">
+        <DCArtboard id="practice-assisted" label="带提示练习（默认）" width={FRAME_W} height={FRAME_H}><Screen route="practice" practiceMode="assisted" /></DCArtboard>
+        <DCArtboard id="practice-strict" label="严格模拟 · 提示与经历隐藏" width={FRAME_W} height={FRAME_H}><Screen route="practice" practiceMode="strict" /></DCArtboard>
+        <DCArtboard id="practice-strict-voice" label="严格模拟 · 语音模式" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="voice" practiceMode="strict" /></DCArtboard>
       </DCSection>
       <DCSection id="p1-depth" title="P1 深度 · 复盘 / 简历">
         <DCArtboard id="debrief" label="复盘（3 步）" width={FRAME_W} height={FRAME_H}><Screen route="debrief" /></DCArtboard>
