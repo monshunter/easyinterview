@@ -44,3 +44,37 @@ test("current UI source does not expose removed inbox wording", () => {
     assert.doesNotMatch(source, /Inbox|收件箱/, `${name} contains removed inbox wording`);
   }
 });
+
+test("resume workshop opens targeted versions on rewrite decisions", () => {
+  const resume = readUiFile("./src/screen-resume-workshop.jsx");
+
+  assert.match(resume, /const resumeDefaultTab = \(version\) => version && version\.tag === "TARGETED" \? "rewrites" : "preview";/);
+  assert.match(resume, /const openVersion = \(v, tab = resumeDefaultTab\(v\)\) => nav\("resume_versions", \{ versionId: v\.id, tab \}\);/);
+  assert.match(resume, /onClick=\{\(\) => onOpen\(v\)\}/);
+  assert.doesNotMatch(resume, /onOpen\(v, "preview"\)/);
+});
+
+test("resume workshop source preview and export controls are wired", () => {
+  const resume = readUiFile("./src/screen-resume-workshop.jsx");
+
+  assert.match(resume, /const \[sourcePreviewOpen, setSourcePreviewOpen\] = React\.useState\(false\);/);
+  assert.match(resume, /onPreviewOriginal=\{\(\) => setSourcePreviewOpen\(true\)\}/);
+  assert.match(resume, /const OriginalResumePreviewModal = /);
+  assert.match(resume, /onClick=\{onPreviewOriginal\}/);
+  assert.match(resume, /onExport=\{exportPdf\}/);
+  assert.match(resume, /onCopy=\{copyText\}/);
+  assert.match(resume, /navigator\.clipboard\.writeText\(text\)/);
+  assert.match(resume, /icon="download" onClick=\{exportPdf\}/);
+});
+
+test("resume workshop create actions mutate local prototype data", () => {
+  const resume = readUiFile("./src/screen-resume-workshop.jsx");
+
+  assert.match(resume, /const \[createdOriginals, setCreatedOriginals\] = React\.useState\(\[\]\);/);
+  assert.match(resume, /const \[createdVersions, setCreatedVersions\] = React\.useState\(\[\]\);/);
+  assert.match(resume, /setCreatedOriginals\(\(prev\) => \[\.\.\.prev, original\]\);/);
+  assert.match(resume, /setCreatedVersions\(\(prev\) => \[\.\.\.prev, created\]\);/);
+  assert.match(resume, /onCreateVersion=\{\(draft\) => addTargetedVersion\(sourceOriginal, sourceMaster, draft\)\}/);
+  assert.match(resume, /onConfirm=\{\(label\) => onCreateOriginal \? onCreateOriginal\(label\) : onBack\(\)\}/);
+  assert.match(resume, /onClick=\{createVersion\}/);
+});

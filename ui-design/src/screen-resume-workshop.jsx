@@ -62,6 +62,36 @@ const buildResumeData = (lang) => {
   return { originals, versions };
 };
 
+const resumeToday = "2026-05-02";
+
+const resumeDefaultTab = (version) => version && version.tag === "TARGETED" ? "rewrites" : "preview";
+
+const resumeNotify = (lang, zh, en, opts = {}) => {
+  if (window.eiToast) {
+    window.eiToast(lang === "en" ? en : zh, { tone: opts.tone || "ok", duration: opts.duration || 2400 });
+  }
+};
+
+const buildResumePlainText = (lang, version) => {
+  const isEn = lang === "en";
+  return [
+    isEn ? "Liu Zhe" : "刘哲",
+    isEn ? "Senior Frontend Engineer · Shanghai" : "资深前端工程师 · 上海",
+    "",
+    isEn ? "Experience" : "工作经历",
+    isEn ? "Star-Ring · Senior Frontend Engineer · 2022-now" : "星环科技 · 资深前端工程师 · 2022 至今",
+    isEn
+      ? "Led migration of the checkout surface to RSC + selective hydration, cutting LCP from 3.2s to 1.4s and lifting quarterly GMV by 1.8M."
+      : "主导结账链路迁移到 RSC + 选择性注水，LCP 3.2s -> 1.4s，季度 GMV +180 万。",
+    isEn
+      ? "Drove Design System v1 adoption across 5 products in 6 months and reduced new-dev ramp about 50%."
+      : "6 个月内推动 Design System v1 在 5 个产品落地，新人上手时间缩短约 50%。",
+    "",
+    isEn ? "Version" : "版本",
+    version ? `${version.name} · ${version.target}` : "",
+  ].join("\n");
+};
+
 const buildBullets = (lang, version) => {
   const isEn = lang === "en";
   const sectionA = isEn ? "Senior Frontend · Star-Ring · 2022-now" : "资深前端 · 星环科技 · 2022 至今";
@@ -106,7 +136,11 @@ const buildBullets = (lang, version) => {
 // ─────────────────────────────────────────────────────────────────────
 const ResumeWorkshopScreen = ({ T, lang, nav, params = {} }) => {
   const isEn = lang === "en";
-  const { originals, versions } = React.useMemo(() => buildResumeData(lang), [lang]);
+  const baseData = React.useMemo(() => buildResumeData(lang), [lang]);
+  const [createdOriginals, setCreatedOriginals] = React.useState([]);
+  const [createdVersions, setCreatedVersions] = React.useState([]);
+  const originals = React.useMemo(() => [...baseData.originals, ...createdOriginals], [baseData.originals, createdOriginals]);
+  const versions = React.useMemo(() => [...baseData.versions, ...createdVersions], [baseData.versions, createdVersions]);
 
   // create-flow / branch-flow stay inside this screen — driven by params + local state
   const [flow, setFlow] = React.useState(
@@ -119,12 +153,81 @@ const ResumeWorkshopScreen = ({ T, lang, nav, params = {} }) => {
     if (params.flow === "branch") { setFlow("branch"); setBranchOriginalId(params.branchOriginalId || null); }
   }, [params.flow, params.branchOriginalId]);
 
+  const addCreatedOriginal = (sourceLabel) => {
+    const suffix = Date.now();
+    const original = {
+      id: `src-created-${suffix}`,
+      name: sourceLabel || (isEn ? "New resume source" : "新建简历来源"),
+      langTag: isEn ? "CN" : "中",
+      type: isEn ? "Confirmed draft" : "已确认草稿",
+      createdAt: resumeToday,
+      status: "active",
+      summary: isEn ? "Parsed and confirmed in this prototype" : "本原型中解析并确认",
+      text: [
+        isEn ? "Liu Zhe · Senior Frontend Engineer · Shanghai" : "刘哲 · 资深前端工程师 · 上海",
+        isEn ? "Star-Ring · Senior Frontend · 2022-now" : "星环科技 · 资深前端 · 2022 至今",
+        isEn ? "Confirmed from the intake preview; editable as a structured master." : "已从预览确认页保存，可作为结构化主版本继续编辑。",
+      ],
+    };
+    const master = {
+      id: `v-created-master-${suffix}`,
+      originalId: original.id,
+      name: isEn ? "Master" : "主版本",
+      tag: "MASTER",
+      date: resumeToday,
+      target: isEn ? "General" : "通用",
+      bullets: 18,
+      accepted: 0,
+    };
+    setCreatedOriginals((prev) => [...prev, original]);
+    setCreatedVersions((prev) => [...prev, master]);
+    setFlow("list");
+    resumeNotify(lang, `已保存 ${original.name} · 已加入简历工坊`, `Saved ${original.name} · added to workshop`);
+  };
+
+  const addTargetedVersion = (sourceOriginal, sourceMaster, draft) => {
+    const suffix = Date.now();
+    const target = draft.target.trim();
+    const created = {
+      id: `v-targeted-${suffix}`,
+      originalId: sourceOriginal.id,
+      parentVersionId: sourceMaster ? sourceMaster.id : null,
+      name: draft.name.trim(),
+      tag: "TARGETED",
+      date: resumeToday,
+      target,
+      focus: draft.focus,
+      seed: draft.seed,
+      bullets: draft.seed === "blank" ? 0 : (sourceMaster ? sourceMaster.bullets : 16),
+      accepted: 0,
+      match: draft.seed === "ai_select" ? 74 : 68,
+    };
+    setCreatedVersions((prev) => [...prev, created]);
+    setFlow("list");
+    setBranchOriginalId(sourceOriginal.id);
+    resumeNotify(lang, `已创建定制版本：${created.name}`, `Created targeted version: ${created.name}`);
+  };
+
+  const duplicateVersion = (version) => {
+    const suffix = Date.now();
+    const created = {
+      ...version,
+      id: `v-copy-${suffix}`,
+      name: isEn ? `${version.name} · copy` : `${version.name} · 副本`,
+      date: resumeToday,
+      accepted: version.accepted || 0,
+    };
+    setCreatedVersions((prev) => [...prev, created]);
+    resumeNotify(lang, `已复制为新版本：${created.name}`, `Duplicated as a new version: ${created.name}`);
+    nav("resume_versions", { versionId: created.id, tab: resumeDefaultTab(created) });
+  };
+
   // detail navigation — versionId in params drives detail view
   const versionId = params.versionId;
   const detailVersion = versionId ? versions.find((v) => v.id === versionId) : null;
 
   if (flow === "create") {
-    return <ResumeCreateFlow T={T} lang={lang} nav={nav} onBack={() => setFlow("list")} originals={originals} />;
+    return <ResumeCreateFlow T={T} lang={lang} nav={nav} onBack={() => setFlow("list")} onCreateOriginal={addCreatedOriginal} />;
   }
 
   if (flow === "branch") {
@@ -136,6 +239,7 @@ const ResumeWorkshopScreen = ({ T, lang, nav, params = {} }) => {
         original={sourceOriginal}
         master={sourceMaster}
         onBack={() => setFlow("list")}
+        onCreateVersion={(draft) => addTargetedVersion(sourceOriginal, sourceMaster, draft)}
       />
     );
   }
@@ -150,6 +254,7 @@ const ResumeWorkshopScreen = ({ T, lang, nav, params = {} }) => {
         original={originals.find((o) => o.id === detailVersion.originalId)}
         siblings={versions.filter((v) => v.originalId === detailVersion.originalId)}
         initialTab={params.tab || "preview"}
+        onDuplicateVersion={duplicateVersion}
       />
     );
   }
@@ -183,7 +288,7 @@ const ResumeListView = ({ T, lang, nav, originals, versions, onCreate, onBranch 
     targeted: versions.filter((v) => v.tag === "TARGETED").length,
   };
 
-  const openVersion = (v, tab = "preview") => nav("resume_versions", { versionId: v.id, tab });
+  const openVersion = (v, tab = resumeDefaultTab(v)) => nav("resume_versions", { versionId: v.id, tab });
 
   return (
     <div className="ei-fadein" style={{ maxWidth: 1320, margin: "0 auto", padding: "40px 48px 96px" }}>
@@ -415,7 +520,7 @@ const ResumeVersionRow = ({ T, lang, v, onOpen, indent }) => {
             {isEn ? "MATCH" : "匹配"} {v.match}%
           </span>
         )}
-        <button onClick={() => onOpen(v, "preview")} style={{
+        <button onClick={() => onOpen(v)} style={{
           padding: "5px 12px", fontSize: 12, cursor: "pointer",
           background: "transparent", color: T.ink2,
           border: `1px solid ${T.rule}`, borderRadius: 2, fontFamily: "var(--ei-sans)",
@@ -481,7 +586,7 @@ const ResumeFlatView = ({ T, lang, originals, versions, onOpen }) => {
               {typeof v.match === "number" ? `${v.match}%` : "—"}
             </div>
             <div style={{ fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)" }}>{v.date}</div>
-            <button onClick={() => onOpen(v, "preview")} style={{
+            <button onClick={() => onOpen(v)} style={{
               padding: "5px 12px", fontSize: 12, cursor: "pointer",
               background: "transparent", color: T.ink2,
               border: `1px solid ${T.rule}`, borderRadius: 2, fontFamily: "var(--ei-sans)",
@@ -498,12 +603,33 @@ const ResumeFlatView = ({ T, lang, originals, versions, onOpen }) => {
 // ─────────────────────────────────────────────────────────────────────
 // DETAIL VIEW — single version with tabs
 // ─────────────────────────────────────────────────────────────────────
-const ResumeDetailView = ({ T, lang, nav, version, original, siblings, initialTab }) => {
+const ResumeDetailView = ({ T, lang, nav, version, original, siblings, initialTab, onDuplicateVersion }) => {
   const isEn = lang === "en";
   const [tab, setTab] = React.useState(initialTab || "preview");
+  const [sourcePreviewOpen, setSourcePreviewOpen] = React.useState(false);
   const isMaster = version.tag === "MASTER";
+  const masterVersion = (siblings || []).find((v) => v.tag === "MASTER");
 
   const back = () => nav("resume_versions", {});
+
+  React.useEffect(() => {
+    setTab(initialTab || "preview");
+  }, [initialTab, version.id]);
+
+  const exportPdf = () => {
+    resumeNotify(lang, `正在生成 ${version.name} PDF · 准备好后会提示下载`, `Generating ${version.name} PDF · download prompt will appear when ready`, { duration: 2800 });
+  };
+
+  const copyText = () => {
+    const text = buildResumePlainText(lang, version);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(() => resumeNotify(lang, `已复制 ${version.name} 的纯文本`, `Copied plain text for ${version.name}`))
+        .catch(() => resumeNotify(lang, "当前环境不支持剪贴板写入", "Clipboard write is unavailable in this environment", { tone: "warn" }));
+      return;
+    }
+    resumeNotify(lang, "当前环境不支持剪贴板写入", "Clipboard write is unavailable in this environment", { tone: "warn" });
+  };
 
   const tabs = [
     { k: "preview",  label: isEn ? "Preview" : "预览",       icon: "file" },
@@ -541,9 +667,9 @@ const ResumeDetailView = ({ T, lang, nav, version, original, siblings, initialTa
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <Btn T={T} variant="secondary" size="sm" icon="file" onClick={() => setTab("preview")}>{isEn ? "Export PDF" : "导出 PDF"}</Btn>
+          <Btn T={T} variant="secondary" size="sm" icon="download" onClick={exportPdf}>{isEn ? "Export PDF" : "导出 PDF"}</Btn>
           {!isMaster && (
-            <Btn T={T} variant="ghost" size="sm" icon="layers">{isEn ? "Duplicate" : "复制为新版本"}</Btn>
+            <Btn T={T} variant="ghost" size="sm" icon="layers" onClick={() => onDuplicateVersion && onDuplicateVersion(version)}>{isEn ? "Duplicate" : "复制为新版本"}</Btn>
           )}
         </div>
       </div>
@@ -575,15 +701,25 @@ const ResumeDetailView = ({ T, lang, nav, version, original, siblings, initialTa
       </div>
 
       {/* Tab body */}
-      {tab === "preview"  && <ResumePreviewTab  T={T} lang={lang} version={version} original={original} />}
+      {tab === "preview"  && <ResumePreviewTab  T={T} lang={lang} version={version} original={original} onExport={exportPdf} onCopy={copyText} onPreviewOriginal={() => setSourcePreviewOpen(true)} />}
       {tab === "rewrites" && !isMaster && <ResumeRewritesTab T={T} lang={lang} version={version} />}
       {tab === "edit"     && <ResumeEditTab     T={T} lang={lang} version={version} isMaster={isMaster} />}
+      {sourcePreviewOpen && original && (
+        <OriginalResumePreviewModal
+          T={T}
+          lang={lang}
+          source={original}
+          masterVersion={masterVersion}
+          activeVersion={version}
+          onClose={() => setSourcePreviewOpen(false)}
+        />
+      )}
     </div>
   );
 };
 
 // ─── PREVIEW TAB ─────────────────────────────────────────────────────
-const ResumePreviewTab = ({ T, lang, version, original }) => {
+const ResumePreviewTab = ({ T, lang, version, original, onExport, onCopy, onPreviewOriginal }) => {
   const isEn = lang === "en";
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 22, alignItems: "start" }}>
@@ -626,8 +762,8 @@ const ResumePreviewTab = ({ T, lang, version, original }) => {
               : "只读预览。切到「改写建议」逐条采纳 AI 建议，或切到「手动编辑」直接改字段。"}
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-            <Btn T={T} variant="secondary" size="sm" icon="download">{isEn ? "Export PDF" : "导出 PDF"}</Btn>
-            <Btn T={T} variant="ghost" size="sm" icon="file">{isEn ? "Copy text" : "复制纯文本"}</Btn>
+            <Btn T={T} variant="secondary" size="sm" icon="download" onClick={onExport}>{isEn ? "Export PDF" : "导出 PDF"}</Btn>
+            <Btn T={T} variant="ghost" size="sm" icon="file" onClick={onCopy}>{isEn ? "Copy text" : "复制纯文本"}</Btn>
           </div>
         </Card>
 
@@ -636,7 +772,7 @@ const ResumePreviewTab = ({ T, lang, version, original }) => {
             <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{isEn ? "ORIGINAL FILE" : "原始文件"}</div>
             <div style={{ fontSize: 13, color: T.ink2, fontFamily: "var(--ei-mono)", marginBottom: 6, wordBreak: "break-all" }}>{original.name}</div>
             <div style={{ fontSize: 12, color: T.ink3 }}>{original.type} · {original.createdAt}</div>
-            <Btn T={T} variant="ghost" size="sm" icon="file" style={{ marginTop: 12 }}>{isEn ? "View original" : "查看原件"}</Btn>
+            <Btn T={T} variant="ghost" size="sm" icon="file" style={{ marginTop: 12 }} onClick={onPreviewOriginal}>{isEn ? "View original" : "查看原件"}</Btn>
           </Card>
         )}
       </div>
@@ -810,6 +946,9 @@ const ResumeEditTab = ({ T, lang, version, isMaster }) => {
   const [summary, setSummary] = React.useState(isEn
     ? "Six years of frontend, last three on platform tooling. Comfortable owning architecture from spec to ship."
     : "六年前端，最近三年在平台工程方向。能从架构方案到上线一手承担。");
+  const saveChanges = () => {
+    resumeNotify(lang, `已保存 ${version.name} 的结构化字段`, `Saved structured fields for ${version.name}`);
+  };
 
   const sections = [
     { id: "exp", title: isEn ? "Experience" : "工作经历", items: [
@@ -831,7 +970,7 @@ const ResumeEditTab = ({ T, lang, version, isMaster }) => {
             : (isEn ? <>Editing <strong>{version.name}</strong>. Changes here do not affect the master or other versions.</> : <>正在编辑 <strong>{version.name}</strong>。改动不会影响主版本或其它定制版本。</>)
           }
         </div>
-        <Btn T={T} variant="accent" size="sm" icon="check">{isEn ? "Save changes" : "保存改动"}</Btn>
+        <Btn T={T} variant="accent" size="sm" icon="check" onClick={saveChanges}>{isEn ? "Save changes" : "保存改动"}</Btn>
       </div>
 
       <Card T={T} pad={0}>
@@ -876,7 +1015,7 @@ const ResumeEditTab = ({ T, lang, version, isMaster }) => {
 //   Distinct from ResumeCreateFlow: no upload, no parsing. The source tree
 //   already exists; this is purely "configure the branch": target JD, name,
 //   focus, and how to seed the bullets.
-const ResumeBranchFlow = ({ T, lang, original, master, onBack }) => {
+const ResumeBranchFlow = ({ T, lang, original, master, onBack, onCreateVersion }) => {
   const isEn = lang === "en";
   const [name, setName] = React.useState("");
   const [target, setTarget] = React.useState("");
@@ -900,6 +1039,10 @@ const ResumeBranchFlow = ({ T, lang, original, master, onBack }) => {
   ];
 
   const canSubmit = name.trim().length > 0 && target.trim().length > 0;
+  const createVersion = () => {
+    if (!canSubmit) return;
+    onCreateVersion && onCreateVersion({ name, target, focus, seed });
+  };
 
   return (
     <div className="ei-fadein" style={{ maxWidth: 980, margin: "0 auto", padding: "40px 48px 96px" }}>
@@ -1042,7 +1185,7 @@ const ResumeBranchFlow = ({ T, lang, original, master, onBack }) => {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <Btn T={T} variant="ghost"  size="sm" onClick={onBack}>{isEn ? "Cancel" : "取消"}</Btn>
-          <Btn T={T} variant="accent" size="sm" icon="check" disabled={!canSubmit} onClick={onBack}>
+          <Btn T={T} variant="accent" size="sm" icon="check" disabled={!canSubmit} onClick={createVersion}>
             {isEn ? "Create version" : "创建版本"}
           </Btn>
         </div>
@@ -1206,10 +1349,7 @@ const ResumePreviewConfirm = ({ T, lang, sourceLabel, onConfirm, onBack }) => {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <Btn T={T} variant="ghost" onClick={onBack}>{isEn ? "Back" : "返回上一步"}</Btn>
-          <Btn T={T} variant="accent" icon="check" onClick={() => {
-            window.eiToast && window.eiToast(isEn ? "Saved as v1 · added to workshop" : "已保存为 v1· 已加入简历工坊", { tone: "ok", duration: 2400 });
-            onConfirm && onConfirm();
-          }}>{isEn ? "Confirm and save v1" : "确认并保存 v1"}</Btn>
+          <Btn T={T} variant="accent" icon="check" onClick={() => onConfirm && onConfirm(sourceLabel)}>{isEn ? "Confirm and save v1" : "确认并保存 v1"}</Btn>
         </div>
       </div>
 
@@ -1302,7 +1442,7 @@ const ResumePreviewConfirm = ({ T, lang, sourceLabel, onConfirm, onBack }) => {
   );
 };
 
-const ResumeCreateFlow = ({ T, lang, nav, onBack }) => {
+const ResumeCreateFlow = ({ T, lang, nav, onBack, onCreateOriginal }) => {
   const [stage, setStage] = React.useState("input"); // "input" | "parsing" | "preview"
   const [createMode, setCreateMode] = React.useState("upload");
   const [resumeText, setResumeText] = React.useState("");
@@ -1336,7 +1476,7 @@ const ResumeCreateFlow = ({ T, lang, nav, onBack }) => {
     return <ResumeParseFlow T={T} lang={lang} sourceLabel={sourceLabel} onDone={() => setStage("preview")} onBack={() => setStage("input")} />;
   }
   if (stage === "preview") {
-    return <ResumePreviewConfirm T={T} lang={lang} sourceLabel={sourceLabel} onConfirm={onBack} onBack={() => setStage("input")} />;
+    return <ResumePreviewConfirm T={T} lang={lang} sourceLabel={sourceLabel} onConfirm={(label) => onCreateOriginal ? onCreateOriginal(label) : onBack()} onBack={() => setStage("input")} />;
   }
 
   return (
@@ -1497,6 +1637,98 @@ const ResumeCreateFlow = ({ T, lang, nav, onBack }) => {
                 : <>提交之后会<span style={{ color: T.ink, fontWeight: 500 }}>动态解析原始内容</span>，然后进入<span style={{ color: T.ink, fontWeight: 500 }}>预览确认页</span>，确认后才保存为 v1。</>}
             </div>
           </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const OriginalResumePreviewModal = ({ T, lang, source, masterVersion, activeVersion, onClose }) => {
+  const isEn = lang === "en";
+  const [view, setView] = React.useState("file");
+  const sourceLines = source && Array.isArray(source.text) ? source.text : [];
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(24, 20, 16, 0.24)", zIndex: 80, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={onClose}>
+      <div className="ei-fadein" onClick={(e) => e.stopPropagation()} style={{ width: "min(960px, 100%)", maxHeight: "88vh", overflow: "auto", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 4, boxShadow: "0 24px 70px rgba(30, 22, 15, 0.24)" }}>
+        <div style={{ padding: "20px 24px", borderBottom: `1px solid ${T.rule}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 18 }}>
+          <div>
+            <div className="ei-label" style={{ color: T.ink3, marginBottom: 6 }}>{isEn ? "ORIGINAL RESUME PREVIEW" : "原始简历预览"}</div>
+            <div className="ei-serif" style={{ fontSize: 24, color: T.ink }}>{source.name}</div>
+            <div style={{ fontSize: 12.5, color: T.ink3, marginTop: 6 }}>
+              {source.type} · {source.createdAt} · {source.summary}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: T.ink3, cursor: "pointer", padding: 4 }}>
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", minHeight: 520 }}>
+          <div style={{ borderRight: `1px solid ${T.rule}`, padding: 18, background: T.bgSoft }}>
+            <div className="ei-label" style={{ color: T.ink3, marginBottom: 12 }}>{isEn ? "SOURCE RELATION" : "来源关系"}</div>
+            {[
+              [isEn ? "Original file" : "原始文件", source.name],
+              [isEn ? "Parsed into" : "解析为", masterVersion ? masterVersion.name : (isEn ? "Master" : "主版本")],
+              [isEn ? "Current version" : "当前版本", activeVersion.name],
+            ].map(([k, v], i) => (
+              <div key={k} style={{ padding: "10px 0", borderBottom: i < 2 ? `1px dotted ${T.rule}` : "none" }}>
+                <div className="ei-label" style={{ color: T.ink3, marginBottom: 4 }}>{k}</div>
+                <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.45 }}>{v}</div>
+              </div>
+            ))}
+            <div style={{ marginTop: 16, fontSize: 12.5, color: T.ink3, lineHeight: 1.6 }}>
+              {isEn
+                ? "The original is read-only. Edits and JD-specific rewrites create versions beside it."
+                : "原始简历只读保存。编辑和 JD 定制改写会生成旁路版本，不覆盖原件。"}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 18 }}>
+              {[
+                ["file", isEn ? "Original file" : "原始文件"],
+                ["text", isEn ? "Parsed text" : "解析文本"],
+              ].map(([k, label]) => (
+                <button key={k} onClick={() => setView(k)} style={{
+                  textAlign: "left",
+                  border: `1px solid ${view === k ? T.accent : T.rule}`,
+                  background: view === k ? T.accentSoft : T.bgCard,
+                  color: view === k ? T.ink : T.ink2,
+                  borderRadius: 2,
+                  padding: "9px 10px",
+                  cursor: "pointer",
+                  fontFamily: "var(--ei-sans)",
+                  fontSize: 13,
+                }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ padding: 24, background: T.bg }}>
+            {view === "file" ? (
+              <div style={{ maxWidth: 560, minHeight: 620, margin: "0 auto", background: "#fff", color: "#222", border: `1px solid ${T.rule}`, boxShadow: "0 18px 50px rgba(30, 22, 15, 0.12)", padding: 36, fontFamily: "Georgia, serif" }}>
+                <div style={{ fontSize: 25, fontWeight: 600, marginBottom: 4 }}>{sourceLines[0] || source.name}</div>
+                <div style={{ fontSize: 12, color: "#666", marginBottom: 18 }}>{source.name} · {source.createdAt}</div>
+                <div style={{ height: 1, background: "#333", marginBottom: 18 }} />
+                <div style={{ fontSize: 11, color: "#888", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Experience</div>
+                {sourceLines.slice(1).map((line, i) => (
+                  <div key={i} style={{ fontSize: i === 0 ? 15 : 13.5, fontWeight: i === 0 ? 600 : 400, color: i === 0 ? "#222" : "#444", lineHeight: 1.75, marginBottom: 6 }}>
+                    {line}
+                  </div>
+                ))}
+                <div style={{ marginTop: 22, fontSize: 11, color: "#888", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Skills</div>
+                <div style={{ fontSize: 13.5, color: "#444", lineHeight: 1.75 }}>React · TypeScript · Performance · Design System · Platform Engineering</div>
+              </div>
+            ) : (
+              <div style={{ border: `1px solid ${T.rule}`, background: T.bgCard, borderRadius: 3, padding: 18 }}>
+                <div className="ei-label" style={{ color: T.ink3, marginBottom: 12 }}>{isEn ? "PARSED TEXT SNAPSHOT" : "解析文本快照"}</div>
+                {sourceLines.map((line, i) => (
+                  <div key={i} style={{ padding: "10px 0", borderBottom: i < sourceLines.length - 1 ? `1px dotted ${T.rule}` : "none", fontSize: 13.5, color: T.ink2, lineHeight: 1.6 }}>
+                    {line}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
