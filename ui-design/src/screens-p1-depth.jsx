@@ -3,10 +3,11 @@
 // ═══════════════════════════════════════════════════════════════════
 // #9 DEBRIEF (full version)
 // ═══════════════════════════════════════════════════════════════════
-const DebriefFullScreen = ({ T, lang, nav }) => {
+const DebriefFullScreen = ({ T, lang, nav, params = {} }) => {
   const [step, setStep] = React.useState(0); // 0 record, 1 analyze, 2 replay
   const [activeGuide, setActiveGuide] = React.useState(0);
   const [activeCard, setActiveCard] = React.useState("e1");
+  const [inputMode, setInputMode] = React.useState(params.debriefInputMode || "text"); // "text" | "voice"
 
   const steps = lang === "en"
     ? ["Debrief record", "Debrief analysis", "Debrief interview"]
@@ -146,21 +147,55 @@ const DebriefFullScreen = ({ T, lang, nav }) => {
       {/* Step 0: Record */}
       {step === 0 && (
         <div>
+          {/* Input mode toggle */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+            <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "RECORD MODE" : "记录方式"}</div>
+            <div style={{ display: "flex", border: `1px solid ${T.rule}`, borderRadius: 2, overflow: "hidden" }}>
+              {[
+                { k: "text", icon: "✏️", t: lang === "en" ? "Text" : "文本" },
+                { k: "voice", icon: "🎙", t: lang === "en" ? "Voice" : "语音" },
+              ].map((m, mi) => (
+                <button key={m.k} onClick={() => setInputMode(m.k)} style={{
+                  padding: "6px 16px", fontSize: 13, cursor: "pointer",
+                  border: "none", borderRight: mi === 0 ? `1px solid ${T.rule}` : "none",
+                  background: inputMode === m.k ? T.ink : "transparent",
+                  color: inputMode === m.k ? T.bg : T.ink3,
+                  fontFamily: "var(--ei-sans)", transition: "background .15s",
+                }}>{m.icon} {m.t}</button>
+              ))}
+            </div>
+            {inputMode === "voice" && (
+              <div style={{ fontFamily: "var(--ei-mono)", fontSize: 11, color: T.ink3 }}>
+                {lang === "en" ? "Speak freely — AI will extract question cards" : "自由讲述，AI 会帮你抽取问题卡片"}
+              </div>
+            )}
+          </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 28 }}>
             <div>
-              <GuidedDebriefRecord
-                T={T}
-                lang={lang}
-                currentGuide={currentGuide}
-                guideIndex={activeGuide}
-                guideTotal={guideQuestions.length}
-                setActiveGuide={setActiveGuide}
-                entries={entries}
-                setEntries={setEntries}
-                activeCard={activeCard}
-                setActiveCard={setActiveCard}
-                reactions={reactions}
-              />
+              {inputMode === "text" ? (
+                <GuidedDebriefRecord
+                  T={T}
+                  lang={lang}
+                  currentGuide={currentGuide}
+                  guideIndex={activeGuide}
+                  guideTotal={guideQuestions.length}
+                  setActiveGuide={setActiveGuide}
+                  entries={entries}
+                  setEntries={setEntries}
+                  activeCard={activeCard}
+                  setActiveCard={setActiveCard}
+                  reactions={reactions}
+                />
+              ) : (
+                <VoiceDebriefRecord
+                  T={T}
+                  lang={lang}
+                  entries={entries}
+                  setEntries={setEntries}
+                  initialState={params.debriefVoiceState || "idle"}
+                />
+              )}
             </div>
 
             <div>
@@ -487,6 +522,712 @@ const GuidedDebriefRecord = ({ T, lang, currentGuide, guideIndex, guideTotal, se
             ))}
           </Card>
         )}
+      </div>
+    </div>
+  );
+};
+
+// ─── Conversational debrief mock data ────────────────────────────────────────
+const DEBRIEF_AI_QUESTIONS = (lang) => lang === "en" ? [
+  "Let's debrief this interview. How did it go overall — any moments where you felt stuck or pushed hard?",
+  "Got it. How did it open — self-intro first, or straight into technical questions?",
+  "Any other questions you felt under-prepared for, or where you got pushed back?",
+  "Last one — how did the reverse-Q and close go? What did you ask, and how did they react?",
+] : [
+  "好，我们来复盘这场面试。整体感觉怎么样？有没有明显卡住或被追问的地方？",
+  "了解。面试开场是先自我介绍，还是直接进技术题？",
+  "还有没有其他你觉得答得不好、或者被追问到的地方？",
+  "最后反问那块怎么样？你问了什么，对方有什么反应？",
+];
+
+const DEBRIEF_USER_RESPONSES = (lang) => lang === "en" ? [
+  "Pretty good overall. The RSC / checkout work got probed hard on who made the final architecture call — I fumbled that part.",
+  "Self-intro first, then straight into the checkout performance project.",
+  "The Design System question went well — they nodded and moved on. That was mainly the one gap.",
+  "Only asked about engineering culture. Pretty generic — should have asked about team priorities or their biggest pain point.",
+] : [
+  "整体还可以，就是 RSC 那块被追问谁做的架构决定，我有点混。",
+  "先自我介绍，然后直接问了结账优化项目。",
+  "Design System 那题答得还不错，对方点头就过去了，主要就 ownership 那个缺口。",
+  "只问了工程文化，问题太泛了，应该问团队当前重点方向或者最头疼的事。",
+];
+
+const DEBRIEF_CONV_CARDS = (lang) => lang === "en" ? [
+  { id: "vc1", q: "Walk me through the checkout perf work — what exactly did YOU drive?", summary: "Explained RSC migration, but ownership attribution was unclear under pressure.", followup: "They pushed: who made the final architecture call?", confidence: "high", afterTurn: 0 },
+  { id: "vc2", q: "Tell me about yourself / walk me through your background.", summary: "Self-intro as opening, then moved directly into the checkout project.", followup: "No follow-up noted on intro itself.", confidence: "medium", afterTurn: 1 },
+  { id: "vc3", q: "Any questions for me?", summary: "Only asked about engineering culture — too generic.", followup: "They answered politely and wrapped up.", confidence: "high", afterTurn: 3 },
+] : [
+  { id: "vc1", q: "跟我讲讲结账性能那个项目——具体哪些是你推动的？", summary: "讲了 RSC 迁移过程，但「谁做的最终架构决定」那里答得比较混。", followup: "追问：架构方案最后是谁拍板的？", confidence: "high", afterTurn: 0 },
+  { id: "vc2", q: "先做个自我介绍，说说你的背景。", summary: "开场自我介绍，之后直接进入结账优化项目。", followup: "无直接追问记录。", confidence: "medium", afterTurn: 1 },
+  { id: "vc3", q: "你有什么想问我的吗？", summary: "只问了工程文化，太泛，没问痛点或下一步预期。", followup: "对方礼貌回答后结束面试。", confidence: "high", afterTurn: 3 },
+];
+
+const VoiceDebriefRecord = ({ T, lang, entries, setEntries, initialState = "intro" }) => {
+  const aiQuestions = DEBRIEF_AI_QUESTIONS(lang);
+  const userResponses = DEBRIEF_USER_RESPONSES(lang);
+  const convCards = DEBRIEF_CONV_CARDS(lang);
+
+  const seededChat = initialState === "chat";
+  const seedMessages = seededChat
+    ? [
+        { id: "a0", role: "ai", text: aiQuestions[0], streaming: false },
+        { id: "u0", role: "user", text: userResponses[0], streaming: false },
+        { id: "a1", role: "ai", text: aiQuestions[1], streaming: true },
+      ]
+    : [];
+  const seedCards = initialState === "review"
+    ? convCards
+    : seededChat
+      ? convCards.filter((c) => c.afterTurn === 0)
+      : [];
+
+  const [phase, setPhase] = React.useState(
+    initialState === "review" ? "review" : seededChat ? "chat" : "intro"
+  );
+  // voiceState: idle | ai_speaking | listening | user_speaking | processing | ended
+  const [voiceState, setVoiceState] = React.useState(seededChat ? "ai_speaking" : "idle");
+  const [paused, setPaused] = React.useState(false);
+  const [messages, setMessages] = React.useState(seedMessages);
+  const [turnIdx, setTurnIdx] = React.useState(seededChat ? 1 : 0);
+  const [extractedCards, setExtractedCards] = React.useState(seedCards);
+  const [cardStatus, setCardStatus] = React.useState(() => {
+    const init = {};
+    seedCards.forEach((c) => { init[c.id] = "pending"; });
+    return init;
+  });
+  const [committedCount, setCommittedCount] = React.useState(0);
+  const [elapsed, setElapsed] = React.useState(seededChat ? 38 : 0);
+  // awaitingUser holds the conversation at "listening" without auto-advancing.
+  // Used after "继续补充" so the AI doesn't fabricate a user turn when there's no real input.
+  const [awaitingUser, setAwaitingUser] = React.useState(false);
+  // per-card edit state in review phase (only one card editable at a time)
+  const [editingId, setEditingId] = React.useState(null);
+  const [editDraft, setEditDraft] = React.useState({ q: "", summary: "", followup: "" });
+
+  // total elapsed timer — runs while in chat phase, halts on pause
+  React.useEffect(() => {
+    if (phase !== "chat" || paused) return;
+    const t = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(t);
+  }, [phase, paused]);
+
+  // continuous-conversation auto-advance state machine
+  React.useEffect(() => {
+    if (phase !== "chat" || paused) return;
+
+    if (voiceState === "idle") {
+      setVoiceState("ai_speaking");
+      return;
+    }
+    if (voiceState === "ai_speaking") {
+      const id = `a${turnIdx}`;
+      const text = aiQuestions[turnIdx];
+      if (!text) {
+        // nothing scripted; in continuation mode the AI prompt was added externally
+        // and its own timeout flips us to listening — just hold here.
+        if (awaitingUser) return;
+        setVoiceState("listening");
+        return;
+      }
+      setMessages((prev) => prev.some((m) => m.id === id) ? prev : [...prev, { id, role: "ai", text, streaming: true }]);
+      const dur = Math.max(2400, text.length * 65);
+      const t = setTimeout(() => {
+        setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, streaming: false } : m)));
+        setVoiceState("listening");
+      }, dur);
+      return () => clearTimeout(t);
+    }
+    if (voiceState === "listening") {
+      // continuation mode: hold here — wait for the user to actually speak (or end)
+      if (awaitingUser) return;
+      const t = setTimeout(() => setVoiceState("user_speaking"), 800);
+      return () => clearTimeout(t);
+    }
+    if (voiceState === "user_speaking") {
+      const id = `u${turnIdx}`;
+      const text = userResponses[turnIdx] || (lang === "en" ? "(continuing the conversation…)" : "（继续口述…）");
+      setMessages((prev) => prev.some((m) => m.id === id) ? prev : [...prev, { id, role: "user", text, streaming: true }]);
+      const dur = Math.max(2600, text.length * 75);
+      const t = setTimeout(() => {
+        setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, streaming: false } : m)));
+        setVoiceState("processing");
+      }, dur);
+      return () => clearTimeout(t);
+    }
+    if (voiceState === "processing") {
+      const card = convCards.find((c) => c.afterTurn === turnIdx);
+      if (card) {
+        setExtractedCards((prev) => prev.find((c) => c.id === card.id) ? prev : [...prev, card]);
+        setCardStatus((prev) => prev[card.id] ? prev : { ...prev, [card.id]: "pending" });
+      }
+      const next = turnIdx + 1;
+      const t = setTimeout(() => {
+        if (next < aiQuestions.length) {
+          setTurnIdx(next);
+          setVoiceState("ai_speaking");
+          return;
+        }
+        // past the scripted turn list — wrap if first time, then go to review
+        const alreadyWrapped = messages.some((m) => m.id === "a-wrap");
+        if (alreadyWrapped) {
+          setPhase("review");
+          return;
+        }
+        const remaining = convCards.filter((c) => c.afterTurn >= next);
+        if (remaining.length) {
+          setExtractedCards((prev) => {
+            const adds = remaining.filter((c) => !prev.find((x) => x.id === c.id));
+            return adds.length ? [...prev, ...adds] : prev;
+          });
+          setCardStatus((prev) => {
+            const out = { ...prev };
+            remaining.forEach((c) => { if (!out[c.id]) out[c.id] = "pending"; });
+            return out;
+          });
+        }
+        const wrap = lang === "en"
+          ? "OK, I think I have enough. I pulled together a few question cards — let's review them."
+          : "好，我大概记下来了。整理出几张卡片，我们一起看看。";
+        setMessages((prev) => [...prev, { id: "a-wrap", role: "ai", text: wrap, streaming: true }]);
+        setVoiceState("ended");
+        setTimeout(() => {
+          setMessages((prev) => prev.map((m) => (m.id === "a-wrap" ? { ...m, streaming: false } : m)));
+          setPhase("review");
+        }, 2400);
+      }, 1100);
+      return () => clearTimeout(t);
+    }
+  }, [phase, paused, voiceState, turnIdx, lang, awaitingUser]);
+
+  // [space] toggles pause while in chat phase
+  React.useEffect(() => {
+    if (phase !== "chat") return;
+    const onKey = (e) => {
+      if (e.code !== "Space") return;
+      const tag = (e.target && e.target.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target && e.target.isContentEditable)) return;
+      e.preventDefault();
+      setPaused((p) => !p);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phase]);
+
+  const scrollRef = React.useRef(null);
+  React.useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, voiceState]);
+
+  const fmtElapsed = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
+  const startChat = () => {
+    setPhase("chat");
+    setVoiceState("ai_speaking");
+    setMessages([]);
+    setTurnIdx(0);
+    setElapsed(0);
+    setPaused(false);
+    setAwaitingUser(false);
+  };
+
+  const endChatEarly = () => {
+    if (extractedCards.length === 0) { setPhase("intro"); return; }
+    setPhase("review");
+  };
+
+  const setStatus = (id, s) => setCardStatus((prev) => ({ ...prev, [id]: s }));
+
+  const startEdit = (card) => {
+    setEditDraft({ q: card.q, summary: card.summary, followup: card.followup });
+    setEditingId(card.id);
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditDraft({ q: "", summary: "", followup: "" });
+  };
+  const saveEdit = () => {
+    if (!editingId) return;
+    setExtractedCards((prev) => prev.map((c) => (
+      c.id === editingId
+        ? { ...c, q: editDraft.q.trim() || c.q, summary: editDraft.summary, followup: editDraft.followup }
+        : c
+    )));
+    setEditingId(null);
+    setEditDraft({ q: "", summary: "", followup: "" });
+  };
+
+  const commitCards = () => {
+    const confirmed = extractedCards.filter((c) => cardStatus[c.id] === "confirmed");
+    const newEntries = confirmed.map((c, i) => ({
+      id: `vce${entries.length + i + 1}`,
+      stage: lang === "en" ? "Voice debrief" : "语音复盘",
+      q: c.q, a: c.summary, follow: c.followup, reflection: "",
+      reaction: "neutral", source: "voice_extracted_confirmed",
+      tag: lang === "en" ? "voice" : "语音复盘",
+    }));
+    setEntries([...entries, ...newEntries]);
+    setCommittedCount(confirmed.length);
+    setPhase("committed");
+  };
+
+  const continueDebrief = () => {
+    const id = `a-cont-${Date.now()}`;
+    const text = lang === "en"
+      ? "We've saved those cards. Anything else worth adding — a question we missed, or a detail you remembered?"
+      : "已保存这几张卡片。还有什么想补充的吗——漏掉的题目，或者刚想到的细节？";
+    setMessages((prev) => [...prev, { id, role: "ai", text, streaming: true }]);
+    // hold at listening — don't auto-fabricate a user turn; wait for real input or end
+    setTurnIdx(aiQuestions.length);
+    setVoiceState("ai_speaking");
+    setPhase("chat");
+    setPaused(false);
+    setAwaitingUser(true);
+    setTimeout(() => {
+      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, streaming: false } : m)));
+      setVoiceState("listening");
+    }, 1800);
+  };
+
+  const confidenceColor = { high: T.ok, medium: T.warn, low: T.ink3 };
+  const confidenceLabel = lang === "en"
+    ? { high: "high confidence", medium: "medium", low: "low" }
+    : { high: "高置信", medium: "中", low: "低" };
+
+  const stateLabel = paused
+    ? (lang === "en" ? "Paused" : "已暂停")
+    : voiceState === "ai_speaking"
+      ? (lang === "en" ? "AI speaking" : "AI 正在说")
+      : voiceState === "listening"
+        ? (awaitingUser ? (lang === "en" ? "Listening · waiting for you" : "聆听中 · 等你开口") : (lang === "en" ? "Listening…" : "聆听中"))
+        : voiceState === "user_speaking"
+          ? (lang === "en" ? "You're speaking" : "你正在说")
+          : voiceState === "processing"
+            ? (lang === "en" ? "AI thinking" : "AI 思考中")
+            : voiceState === "ended"
+              ? (lang === "en" ? "Wrapping up" : "正在收尾")
+              : (lang === "en" ? "Ready" : "准备开始");
+
+  const stateColor = paused
+    ? T.ink3
+    : voiceState === "user_speaking"
+      ? T.ok
+      : voiceState === "processing"
+        ? T.warn
+        : voiceState === "listening"
+          ? T.ink3
+          : T.accent;
+
+  // ── intro ──────────────────────────────────────────────────────────────────
+  if (phase === "intro") {
+    const topics = lang === "en"
+      ? ["Overall feel + stuck moments", "Interview opening", "Questions you didn't handle well", "Reverse-Q and close"]
+      : ["整体感受和卡住的地方", "面试开场方式", "没答好或被追问的题", "反问和收尾"];
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 0", gap: 20 }}>
+        <div style={{ width: "100%", maxWidth: 520 }}>
+          <Card T={T} pad={24}>
+            <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 20 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 18, background: T.accentSoft, border: `1.5px solid ${T.accent}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: T.ink, marginBottom: 6 }}>
+                  {lang === "en" ? "AI Debrief — voice conversation" : "AI 语音复盘 · 连续对话"}
+                </div>
+                <div style={{ fontSize: 13.5, color: T.ink2, lineHeight: 1.7 }}>
+                  {lang === "en"
+                    ? "Talk naturally — like a friend asking you to walk through the interview. I'll listen, follow up, and extract question cards as we go. No tap-to-talk; pause anytime with [space]."
+                    : "像和朋友复盘一样自然聊就好。我会一边听一边追问，过程中实时提取问题卡片。无需手动点录音，随时可按 [空格] 暂停。"}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: "14px 16px", background: T.bgSoft, borderRadius: 2, marginBottom: 20 }}>
+              <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{lang === "en" ? "TOPICS WE'LL COVER" : "会聊到的内容"}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {topics.map((t, i) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <span style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: T.accent }}>{String(i + 1).padStart(2, "0")}</span>
+                    <span style={{ fontSize: 13, color: T.ink2 }}>{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button onClick={startChat} style={{
+              width: "100%", padding: "13px 20px", borderRadius: 2, border: `1.5px solid ${T.accent}`,
+              background: T.accent, color: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 500,
+              fontFamily: "var(--ei-sans)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              </svg>
+              {lang === "en" ? "Start voice conversation" : "开始语音复盘对话"}
+            </button>
+            <div style={{ marginTop: 10, fontSize: 11, color: T.ink4, fontFamily: "var(--ei-mono)", textAlign: "center" }}>
+              {lang === "en" ? "tip · press [space] anytime to pause" : "小提示 · 随时按 [空格] 暂停"}
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // ── chat ───────────────────────────────────────────────────────────────────
+  if (phase === "chat") {
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 18 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, minHeight: 460 }}>
+          {/* Status bar — current voice state + total elapsed */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "10px 14px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div className={paused ? "" : "ei-pulse"} style={{
+                width: 8, height: 8, borderRadius: 4, background: stateColor,
+                boxShadow: paused ? "none" : `0 0 0 4px ${stateColor}22`,
+              }} />
+              <div style={{ fontSize: 12.5, color: T.ink2, fontWeight: 500 }}>{stateLabel}</div>
+              {voiceState === "user_speaking" && !paused && (
+                <div style={{ display: "flex", gap: 2, alignItems: "center", height: 14, marginLeft: 4 }}>
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <div key={i} className="ei-pulse" style={{
+                      width: 2, background: T.ok, borderRadius: 1,
+                      height: `${30 + Math.sin(i * 0.9) * 22}%`,
+                      animationDelay: `${(i * 0.06).toFixed(2)}s`,
+                      animationDuration: `${0.55 + (i % 3) * 0.1}s`,
+                      opacity: 0.75,
+                    }} />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ fontFamily: "var(--ei-mono)", fontSize: 11, color: T.ink3 }}>
+              {fmtElapsed(elapsed)}
+            </div>
+          </div>
+
+          {/* Conversation thread */}
+          <div ref={scrollRef} style={{
+            flex: 1, minHeight: 320, maxHeight: 420, overflowY: "auto",
+            padding: "4px 2px",
+            display: "flex", flexDirection: "column", gap: 12,
+          }}>
+            {messages.map((m) => (
+              <div key={m.id} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+                {m.role === "ai" && (
+                  <div style={{ maxWidth: "78%" }}>
+                    <div style={{ fontSize: 10, fontFamily: "var(--ei-mono)", color: T.accent, marginBottom: 4 }}>
+                      {lang === "en" ? "AI DEBRIEF GUIDE" : "AI 复盘引导"}
+                    </div>
+                    <div style={{
+                      padding: "12px 15px", background: T.accentSoft, border: `1px solid ${T.accent}`,
+                      borderRadius: "2px 12px 12px 12px", fontSize: 13.5, color: T.ink, lineHeight: 1.65,
+                    }}>
+                      {m.text}
+                      {m.streaming && !paused && (
+                        <span className="ei-pulse" style={{
+                          display: "inline-block", width: 6, height: 13, marginLeft: 4, verticalAlign: "-2px",
+                          background: T.accent, opacity: 0.7,
+                        }} />
+                      )}
+                    </div>
+                  </div>
+                )}
+                {m.role === "user" && (
+                  <div style={{ maxWidth: "74%" }}>
+                    <div style={{ fontSize: 10, fontFamily: "var(--ei-mono)", color: T.ink3, marginBottom: 4, textAlign: "right" }}>
+                      {lang === "en" ? "YOU · live transcript" : "你 · 实时转写"}
+                    </div>
+                    <div style={{
+                      padding: "12px 15px", background: T.bgCard, border: `1px solid ${T.rule}`,
+                      borderRadius: "12px 2px 12px 12px", fontSize: 13.5, color: T.ink2, lineHeight: 1.65,
+                    }}>
+                      {m.text}
+                      {m.streaming && !paused && (
+                        <span className="ei-pulse" style={{
+                          display: "inline-block", width: 6, height: 13, marginLeft: 4, verticalAlign: "-2px",
+                          background: T.ink3, opacity: 0.7,
+                        }} />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Voice control bar — pause/resume + end */}
+          <div style={{
+            padding: "12px 16px",
+            background: paused ? "rgba(180,130,0,.06)" : T.bgSoft,
+            border: `1px solid ${paused ? T.warn : T.rule}`,
+            borderRadius: 2,
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button
+                onClick={() => setPaused((p) => !p)}
+                aria-label={paused ? (lang === "en" ? "Resume conversation" : "继续对话") : (lang === "en" ? "Pause conversation" : "暂停对话")}
+                style={{
+                  width: 40, height: 40, borderRadius: 20,
+                  border: `1.5px solid ${paused ? T.accent : T.rule}`,
+                  background: paused ? T.accentSoft : "transparent",
+                  cursor: "pointer", flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                {paused ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill={T.accent}><path d="M8 5v14l11-7z"/></svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill={T.ink2}><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+                )}
+              </button>
+              <div>
+                <div style={{ fontSize: 12.5, color: T.ink2, fontWeight: 500 }}>
+                  {paused
+                    ? (lang === "en" ? "Conversation paused" : "对话已暂停")
+                    : awaitingUser
+                      ? (lang === "en" ? "Waiting — speak anytime, or wrap up →" : "等你开口 · 也可以直接结束 →")
+                      : (lang === "en" ? "Listening continuously" : "持续监听中")}
+                </div>
+                <div style={{ fontSize: 11, color: T.ink4, fontFamily: "var(--ei-mono)" }}>
+                  {paused
+                    ? (lang === "en" ? "tap ▶ or [space] to resume" : "点 ▶ 或按 [空格] 继续")
+                    : (lang === "en" ? "[space] · pause   ·   no need to tap" : "[空格] 暂停 · 无需手动操作")}
+                </div>
+              </div>
+            </div>
+            <button onClick={endChatEarly} style={{
+              padding: "11px 18px", borderRadius: 2,
+              border: `1.5px solid ${T.accent}`,
+              background: T.accent, color: "#fff",
+              fontSize: 13, fontWeight: 500, cursor: "pointer",
+              fontFamily: "var(--ei-sans)", flexShrink: 0,
+              display: "inline-flex", alignItems: "center", gap: 8,
+              boxShadow: awaitingUser ? `0 0 0 4px ${T.accentSoft}` : "none",
+              transition: "box-shadow .2s",
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {lang === "en" ? "End & review" : "结束 · 进入确认"}
+            </button>
+          </div>
+        </div>
+
+        {/* Live extraction panel */}
+        <div>
+          <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>
+            {lang === "en" ? "EXTRACTING" : "实时提取"}
+            {extractedCards.length > 0 && (
+              <span style={{ fontFamily: "var(--ei-mono)", fontSize: 11, color: T.accent, marginLeft: 6 }}>{extractedCards.length}</span>
+            )}
+          </div>
+          {extractedCards.length === 0 ? (
+            <div style={{ fontSize: 12, color: T.ink4, fontFamily: "var(--ei-mono)", lineHeight: 1.8 }}>
+              {lang === "en" ? "Cards appear\nhere as we talk" : "对话过程中\n卡片会出现在这里"}
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {extractedCards.map((c, i) => (
+                <div key={c.id} className="ei-fadein" style={{ padding: "10px 12px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderLeft: `2px solid ${confidenceColor[c.confidence]}`, borderRadius: 2 }}>
+                  <div style={{ fontFamily: "var(--ei-mono)", fontSize: 9.5, color: T.ink4, marginBottom: 4 }}>Q{i + 1} · {confidenceLabel[c.confidence]}</div>
+                  <div style={{ fontSize: 12, color: T.ink2, lineHeight: 1.5 }}>{c.q.length > 55 ? c.q.slice(0, 52) + "…" : c.q}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {extractedCards.length > 0 && (
+            <div style={{ marginTop: 12, fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)", lineHeight: 1.7 }}>
+              {lang === "en" ? "You'll confirm\nthese at the end" : "复盘结束后\n你来确认这些卡片"}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── review ─────────────────────────────────────────────────────────────────
+  if (phase === "review") {
+    const totalPending = extractedCards.filter((c) => cardStatus[c.id] === "pending").length;
+    const totalConfirmed = extractedCards.filter((c) => cardStatus[c.id] === "confirmed").length;
+    const totalDeleted = extractedCards.filter((c) => cardStatus[c.id] === "deleted").length;
+    return (
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div>
+            <div className="ei-label" style={{ color: T.warn, marginBottom: 4 }}>
+              {lang === "en" ? "PENDING CARDS · confirm before saving" : "待确认问题卡片 · 确认后写入复盘记录"}
+            </div>
+            <div style={{ fontSize: 13, color: T.ink3, fontFamily: "var(--ei-mono)" }}>
+              {lang === "en"
+                ? `${totalPending} pending · ${totalConfirmed} confirmed · ${totalDeleted} deleted`
+                : `${totalPending} 待确认 · ${totalConfirmed} 已确认 · ${totalDeleted} 已删除`}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn T={T} variant="ghost" size="sm" onClick={() => setPhase("chat")} disabled={!!editingId}>
+              {lang === "en" ? "Back to conversation" : "回到对话"}
+            </Btn>
+            <Btn T={T} variant="accent" size="sm" icon="check" onClick={commitCards}
+              disabled={totalConfirmed === 0 || !!editingId} style={{ opacity: (totalConfirmed === 0 || !!editingId) ? 0.45 : 1 }}>
+              {lang === "en" ? `Save ${totalConfirmed}` : `写入 ${totalConfirmed} 条`}
+            </Btn>
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {extractedCards.map((card, idx) => {
+            const status = cardStatus[card.id] || "pending";
+            const isDeleted = status === "deleted";
+            const isConfirmed = status === "confirmed";
+            const isEditing = editingId === card.id;
+            const editingDisabled = !!editingId && !isEditing;
+            const inputStyle = {
+              width: "100%", padding: "8px 10px", borderRadius: 2,
+              border: `1px solid ${T.rule}`, background: T.bgCard,
+              fontFamily: "var(--ei-sans)", fontSize: 13, color: T.ink,
+              lineHeight: 1.5, outline: "none", resize: "vertical",
+              boxSizing: "border-box",
+            };
+            return (
+              <div key={card.id} style={{
+                padding: "16px 18px",
+                background: isEditing ? T.bgCard : isConfirmed ? T.okSoft : isDeleted ? T.bgSoft : T.bgCard,
+                border: `1px solid ${isEditing ? T.accent : isConfirmed ? T.ok : isDeleted ? T.rule : T.warn}`,
+                borderLeft: `3px solid ${isEditing ? T.accent : isConfirmed ? T.ok : isDeleted ? T.rule : T.warn}`,
+                borderRadius: 2, opacity: isDeleted ? 0.5 : editingDisabled ? 0.6 : 1,
+                transition: "all .18s",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, marginBottom: isEditing ? 6 : 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 7 }}>
+                      <span style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: T.ink4 }}>Q{idx + 1}</span>
+                      <span style={{ fontSize: 10, fontFamily: "var(--ei-mono)", padding: "2px 6px", borderRadius: 2, background: isEditing ? T.accentSoft : isConfirmed ? T.okSoft : isDeleted ? T.bgSoft : "rgba(180,130,0,.08)", color: isEditing ? T.accent : isConfirmed ? T.ok : isDeleted ? T.ink4 : T.warn, border: `1px solid ${isEditing ? T.accent : isConfirmed ? T.ok : isDeleted ? T.rule : T.warn}` }}>
+                        {isEditing ? (lang === "en" ? "editing" : "编辑中") : isConfirmed ? (lang === "en" ? "confirmed" : "已确认") : isDeleted ? (lang === "en" ? "deleted" : "已删除") : (lang === "en" ? "pending" : "待确认")}
+                      </span>
+                      <span style={{ fontSize: 10.5, fontFamily: "var(--ei-mono)", color: confidenceColor[card.confidence] }}>{confidenceLabel[card.confidence]}</span>
+                    </div>
+                    {isEditing ? (
+                      <textarea
+                        value={editDraft.q}
+                        onChange={(e) => setEditDraft((d) => ({ ...d, q: e.target.value }))}
+                        rows={2}
+                        style={{ ...inputStyle, fontFamily: "var(--ei-serif)", fontSize: 16, lineHeight: 1.4 }}
+                        placeholder={lang === "en" ? "Question" : "问题"}
+                      />
+                    ) : (
+                      <div className="ei-serif" style={{ fontSize: 17, color: T.ink, lineHeight: 1.4, marginBottom: 8 }}>{card.q}</div>
+                    )}
+                  </div>
+                  {!isDeleted && !isEditing && (
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => setStatus(card.id, isConfirmed ? "pending" : "confirmed")} disabled={editingDisabled} style={{ padding: "5px 12px", fontSize: 12, borderRadius: 2, cursor: editingDisabled ? "not-allowed" : "pointer", border: `1px solid ${isConfirmed ? T.ok : T.rule}`, background: isConfirmed ? T.okSoft : "transparent", color: isConfirmed ? T.ok : T.ink2, fontFamily: "var(--ei-sans)" }}>
+                        {isConfirmed ? (lang === "en" ? "✓ confirmed" : "✓ 已确认") : (lang === "en" ? "Confirm" : "确认")}
+                      </button>
+                      <button onClick={() => startEdit(card)} disabled={editingDisabled} aria-label={lang === "en" ? "Edit card" : "编辑卡片"} style={{ padding: "5px 10px", fontSize: 12, borderRadius: 2, cursor: editingDisabled ? "not-allowed" : "pointer", border: `1px solid ${T.rule}`, background: "transparent", color: T.ink2, fontFamily: "var(--ei-sans)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                        </svg>
+                        {lang === "en" ? "Edit" : "编辑"}
+                      </button>
+                      <button onClick={() => setStatus(card.id, "deleted")} disabled={editingDisabled} style={{ padding: "5px 10px", fontSize: 12, borderRadius: 2, cursor: editingDisabled ? "not-allowed" : "pointer", border: `1px solid ${T.rule}`, background: "transparent", color: T.ink3, fontFamily: "var(--ei-sans)" }}>
+                        {lang === "en" ? "Delete" : "删除"}
+                      </button>
+                    </div>
+                  )}
+                  {!isDeleted && isEditing && (
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <button onClick={saveEdit} style={{ padding: "5px 12px", fontSize: 12, borderRadius: 2, cursor: "pointer", border: `1.5px solid ${T.accent}`, background: T.accent, color: "#fff", fontFamily: "var(--ei-sans)", fontWeight: 500 }}>
+                        {lang === "en" ? "Save" : "保存"}
+                      </button>
+                      <button onClick={cancelEdit} style={{ padding: "5px 10px", fontSize: 12, borderRadius: 2, cursor: "pointer", border: `1px solid ${T.rule}`, background: "transparent", color: T.ink3, fontFamily: "var(--ei-sans)" }}>
+                        {lang === "en" ? "Cancel" : "取消"}
+                      </button>
+                    </div>
+                  )}
+                  {isDeleted && (
+                    <button onClick={() => setStatus(card.id, "pending")} style={{ padding: "5px 10px", fontSize: 12, borderRadius: 2, cursor: "pointer", border: `1px solid ${T.rule}`, background: "transparent", color: T.ink2, fontFamily: "var(--ei-sans)" }}>
+                      {lang === "en" ? "Restore" : "恢复"}
+                    </button>
+                  )}
+                </div>
+                {!isDeleted && !isEditing && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    <div style={{ fontSize: 12.5, color: T.ink2, lineHeight: 1.55 }}>
+                      <span style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: T.ink4, marginRight: 6 }}>{lang === "en" ? "ANSWER" : "回答摘要"}</span>
+                      {card.summary}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: T.ink3, lineHeight: 1.55 }}>
+                      <span style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: T.ink4, marginRight: 6 }}>{lang === "en" ? "FOLLOW-UP" : "追问/反应"}</span>
+                      {card.followup}
+                    </div>
+                  </div>
+                )}
+                {isEditing && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+                    <div>
+                      <div className="ei-label" style={{ color: T.ink4, marginBottom: 5 }}>{lang === "en" ? "ANSWER" : "回答摘要"}</div>
+                      <textarea
+                        value={editDraft.summary}
+                        onChange={(e) => setEditDraft((d) => ({ ...d, summary: e.target.value }))}
+                        rows={3}
+                        style={inputStyle}
+                        placeholder={lang === "en" ? "Summary of how you answered" : "你当时怎么答的"}
+                      />
+                    </div>
+                    <div>
+                      <div className="ei-label" style={{ color: T.ink4, marginBottom: 5 }}>{lang === "en" ? "FOLLOW-UP" : "追问/反应"}</div>
+                      <textarea
+                        value={editDraft.followup}
+                        onChange={(e) => setEditDraft((d) => ({ ...d, followup: e.target.value }))}
+                        rows={2}
+                        style={inputStyle}
+                        placeholder={lang === "en" ? "Interviewer follow-up or reaction" : "追问或对方反应"}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // ── committed ──────────────────────────────────────────────────────────────
+  return (
+    <div style={{ padding: "28px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+      <div style={{ width: "100%", maxWidth: 480 }}>
+        <div style={{ padding: "22px 24px", background: T.okSoft, border: `1px solid ${T.ok}`, borderRadius: 2, marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
+            <Icon name="check" size={16} color={T.ok} stroke={2.5} />
+            <div style={{ fontSize: 14, fontWeight: 500, color: T.ok }}>
+              {lang === "en" ? `${committedCount} question cards saved to debrief record` : `${committedCount} 个问题卡片已写入复盘记录`}
+            </div>
+          </div>
+          <div style={{ fontSize: 13, color: T.ink2, lineHeight: 1.65 }}>
+            {lang === "en"
+              ? "They're now part of step 0. Continue the conversation to capture more, or move to analysis."
+              : "已进入第一步记录。你可以继续对话补充更多，也可以直接进入复盘分析。"}
+          </div>
+        </div>
+        <button onClick={continueDebrief} style={{
+          width: "100%", padding: "12px 20px", borderRadius: 2,
+          border: `1.5px solid ${T.rule}`, background: T.bgCard,
+          color: T.ink2, cursor: "pointer", fontSize: 13.5, fontFamily: "var(--ei-sans)",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          </svg>
+          {lang === "en" ? "Continue adding — keep the conversation going" : "继续补充 · 接着复盘对话"}
+        </button>
       </div>
     </div>
   );

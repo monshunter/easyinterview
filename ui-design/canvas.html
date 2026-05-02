@@ -20,9 +20,9 @@
 
 <script type="text/babel">
   const ART_W = 1280, ART_H = 860, FRAME_W = 420;
-  const UI_VERSION = "20260502-voice-shell";
+  const UI_VERSION = "20260502-voice-debrief-conv";
   const FRAME_H = Math.round(ART_H * FRAME_W / ART_W);
-  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, customAccent, fontPreset, role, practiceMode }) => {
+  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, customAccent, fontPreset, role, practiceMode, debriefInputMode, debriefVoiceState }) => {
     const params = new URLSearchParams();
     params.set("route", route); params.set("nochrome", "0"); params.set("lang", lang);
     if (jobId) params.set("jobId", jobId);
@@ -40,6 +40,8 @@
     if (fontPreset) params.set("fontPreset", fontPreset);
     if (role) params.set("role", role);
     if (practiceMode) params.set("practiceMode", practiceMode);
+    if (debriefInputMode) params.set("debriefInputMode", debriefInputMode);
+    if (debriefVoiceState) params.set("debriefVoiceState", debriefVoiceState);
     return (
       <div style={{ width: FRAME_W, height: FRAME_H, background: dark ? "#16130e" : "#fdfcf8", overflow: "hidden" }}>
         <iframe src={"index.html?v=" + UI_VERSION + "#" + params.toString()} loading="lazy"
@@ -89,8 +91,13 @@
         <DCArtboard id="practice-strict-voice" label="严格模拟 · 语音模式" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="voice" practiceMode="strict" /></DCArtboard>
       </DCSection>
       <DCSection id="p1-depth" title="P1 深度 · 复盘 / 简历">
-        <DCArtboard id="debrief" label="复盘（3 步）" width={FRAME_W} height={FRAME_H}><Screen route="debrief" /></DCArtboard>
+        <DCArtboard id="debrief" label="复盘 · 文本引导（默认）" width={FRAME_W} height={FRAME_H}><Screen route="debrief" /></DCArtboard>
         <DCArtboard id="resume-versions" label="简历多版本 · bullet diff" width={FRAME_W} height={FRAME_H}><Screen route="resume_versions" /></DCArtboard>
+      </DCSection>
+      <DCSection id="p1-voice-debrief" title="P1 · 复盘语音模式" subtitle="AI 持续监听 + 双向语音对话 · 无需手动点录 · [空格] 暂停 · 实时提取卡片">
+        <DCArtboard id="debrief-voice-intro" label="语音复盘 · 开始引导" width={FRAME_W} height={FRAME_H}><Screen route="debrief" debriefInputMode="voice" /></DCArtboard>
+        <DCArtboard id="debrief-voice-chat" label="语音复盘 · 连续对话进行中" width={FRAME_W} height={FRAME_H}><Screen route="debrief" debriefInputMode="voice" debriefVoiceState="chat" /></DCArtboard>
+        <DCArtboard id="debrief-voice-review" label="语音复盘 · 待确认卡片" width={FRAME_W} height={FRAME_H}><Screen route="debrief" debriefInputMode="voice" debriefVoiceState="review" /></DCArtboard>
       </DCSection>
       <DCSection id="theme-palette" title="主题色板 · 4 个预定义主题" subtitle="主题与暗/浅色正交">
         <DCArtboard id="theme-warm" label="Warm · 暖陶（默认）" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" /></DCArtboard>
