@@ -1,4 +1,4 @@
-# UI Refine 文档模板
+# UI Design 文档模板
 
 ## 1 目标架构模板
 
@@ -11,7 +11,7 @@
 
 ## 1 文档目的
 
-说明本文档维护的目标 UI 架构、模块边界或交互流程，并注明是否已与 `easyinterview-ui/EasyInterview.html` 当前静态原型对齐。
+说明本文档维护的目标 UI 架构、模块边界或交互流程，并注明是否已与 `ui-design/index.html` 当前静态原型对齐。
 
 ## 2 已确认决策
 

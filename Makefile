@@ -116,7 +116,7 @@ openapi-diff: ## Compare openapi/openapi.yaml against the latest baseline under 
 validate-fixtures: ## Validate openapi/fixtures/*.json against openapi.yaml (B2 002 — schema, provenance, privacy, UUIDv7, 36-coverage)
 	@python3 "$(ROOT_DIR)/scripts/lint/validate_fixtures.py" --repo-root "$(ROOT_DIR)"
 
-sync-fixtures-from-prototype: ## Refresh `scenarios.prototype-baseline` of every P0 fixture from easyinterview-ui/src/data.jsx (B2 002, idempotent — fail-fast on mapping gaps)
+sync-fixtures-from-prototype: ## Refresh `scenarios.prototype-baseline` of every P0 fixture from ui-design/src/data.jsx (B2 002, idempotent — fail-fast on mapping gaps)
 	@python3 "$(ROOT_DIR)/scripts/codegen/sync_fixtures_from_prototype.py" --repo-root "$(ROOT_DIR)"
 
 render-openapi-fixture-examples: ## Project openapi/fixtures/<tag>/<operationId>.json default scenario into openapi/.generated/openapi-with-fixtures.yaml (B2 002 — Prism / docs-site source; idempotent)

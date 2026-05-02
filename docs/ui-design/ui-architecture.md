@@ -6,7 +6,7 @@
 
 ## 1 文档目的
 
-本文档定义当前阶段静态 UI 原型对应的目标信息架构。目标不是复刻旧版所有页面，而是按用户任务组织页面、导航和模块边界，并保持与 `easyinterview-ui/EasyInterview.html` + `easyinterview-ui/src/app.jsx` 当前运行时交互一致。
+本文档定义当前阶段静态 UI 原型对应的目标信息架构。目标不是复刻旧版所有页面，而是按用户任务组织页面、导航和模块边界，并保持与 `ui-design/index.html` + `ui-design/src/app.jsx` 当前运行时交互一致。
 
 ## 2 已确认决策
 
@@ -295,7 +295,7 @@ Historical routes retained only as aliases
 11. 简历模块必须保留原始简历预览和解析文本快照，结构化或岗位定制不能覆盖原件。
 12. 复盘必须先确认目标岗位、关联模拟面试和简历；三个上下文变更动作必须在当前复盘页打开选择弹窗，不直接跳转到其他一级或会话页。
 13. `routeAliases` 是当前静态 UI 的兼容层：旧 hash 路由会折回当前目标模块，但不得据此恢复旧导航或旧模块。
-14. `easyinterview-canvas.html` 不应保留旧分区标题、旧单页简历画板、旧 onboarding 画板或报告变体画板；文档以 `app.jsx` 实际渲染为准。
+14. `canvas.html` 不应保留旧分区标题、旧单页简历画板、旧 onboarding 画板或报告变体画板；文档以 `app.jsx` 实际渲染为准。
 15. 顶栏主题色、暗色和语言切换必须保持为横切显示控制，不进入任何业务模块。
 16. 字体预设必须在设置页作为界面偏好维护，并原子切换 serif/sans 字体组合。
 17. `screens` 映射不得重新注册 `welcome`、`mistakes`、`growth`、`plan`、`experiences`、`drill`、`followup`、`star`、`resume`、`onboarding` 等旧页面 key。

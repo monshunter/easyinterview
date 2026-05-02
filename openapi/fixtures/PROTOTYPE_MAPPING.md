@@ -4,7 +4,7 @@
 > **状态**: active
 > **更新日期**: 2026-04-28
 
-把 [easyinterview-ui/src/data.jsx](../../easyinterview-ui/src/data.jsx) 的 mock 数据节映射到 OpenAPI v1 contract 的 operationId。`make sync-fixtures-from-prototype` 只读这张表 + data.jsx，把映射结果写入每个 fixture 的 `scenarios.prototype-baseline` 节。该 scenario 是 spec §4.7 锁定的「ui 原型同源」入口；同步工具不会改写任何 fixture 的 `scenarios.default`。
+把 [ui-design/src/data.jsx](../../ui-design/src/data.jsx) 的 mock 数据节映射到 OpenAPI v1 contract 的 operationId。`make sync-fixtures-from-prototype` 只读这张表 + data.jsx，把映射结果写入每个 fixture 的 `scenarios.prototype-baseline` 节。该 scenario 是 spec §4.7 锁定的「ui 原型同源」入口；同步工具不会改写任何 fixture 的 `scenarios.default`。
 
 ## 1 同步原则
 

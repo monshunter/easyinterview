@@ -34,7 +34,7 @@
     if (role) params.set("role", role);
     return (
       <div style={{ width: FRAME_W, height: FRAME_H, background: dark ? "#16130e" : "#fdfcf8", overflow: "hidden" }}>
-        <iframe src={"EasyInterview.html?v=" + UI_VERSION + "#" + params.toString()} loading="lazy"
+        <iframe src={"index.html?v=" + UI_VERSION + "#" + params.toString()} loading="lazy"
           style={{ border: "none", width: ART_W, height: ART_H, transform: `scale(${FRAME_W / ART_W})`, transformOrigin: "top left", pointerEvents: "none" }} />
       </div>
     );

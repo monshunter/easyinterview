@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync `easyinterview-ui/src/data.jsx` into the `scenarios.prototype-baseline`
+"""Sync `ui-design/src/data.jsx` into the `scenarios.prototype-baseline`
 section of every OpenAPI fixture under `openapi/fixtures/<tag>/<operationId>.json`.
 
 Phase 2 owner per `002-fixtures-and-mock-source` plan §3 / spec §4.7. Reads
@@ -537,11 +537,11 @@ def main(argv: Iterable[str]) -> int:
         "--data-file",
         type=Path,
         default=None,
-        help="Override path to data.jsx (defaults to <repo>/easyinterview-ui/src/data.jsx).",
+        help="Override path to data.jsx (defaults to <repo>/ui-design/src/data.jsx).",
     )
     args = parser.parse_args(list(argv))
     repo_root = args.repo_root.resolve()
-    data_file = args.data_file or repo_root / "easyinterview-ui" / "src" / "data.jsx"
+    data_file = args.data_file or repo_root / "ui-design" / "src" / "data.jsx"
 
     raw = load_prototype_data(data_file)
 

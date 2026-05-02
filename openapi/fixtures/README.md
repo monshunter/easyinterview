@@ -65,7 +65,7 @@ Rules:
 | Scenario name | Owner | Source | Required? |
 |---------------|-------|--------|-----------|
 | `default` | this directory | hand-authored | ✅ every fixture |
-| `prototype-baseline` | this directory | `make sync-fixtures-from-prototype` from `easyinterview-ui/src/data.jsx` | optional; required for the 8 P0 closed-loop endpoints listed in [PROTOTYPE_MAPPING.md §3](./PROTOTYPE_MAPPING.md#3-p0-闭环关键-endpoint-覆盖plan-24-自检) |
+| `prototype-baseline` | this directory | `make sync-fixtures-from-prototype` from `ui-design/src/data.jsx` | optional; required for the 8 P0 closed-loop endpoints listed in [PROTOTYPE_MAPPING.md §3](./PROTOTYPE_MAPPING.md#3-p0-闭环关键-endpoint-覆盖plan-24-自检) |
 | `<purpose>-<variant>` | the consumer adding it | hand-authored | optional; e.g. `error-conflict`, `boundary-empty-list`, `slow-network` |
 
 The first key in the JSON map (`default`) is canonical. Any additional
@@ -76,7 +76,7 @@ flavour without scanning the rest.
 `make sync-fixtures-from-prototype` is the **only** way the
 `prototype-baseline` scenario is produced. Hand edits to that scenario will be
 overwritten the next time the sync tool runs; if the prototype data is wrong,
-fix it in `easyinterview-ui/src/data.jsx` and re-run the sync.
+fix it in `ui-design/src/data.jsx` and re-run the sync.
 
 ## Consumer scenario-selection contract
 

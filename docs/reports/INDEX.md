@@ -8,9 +8,9 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
-| [2026-05-02](./2026-05-02-ui-refine-context-selection-remediation-assessment.md) | UI Refine Context Selection Remediation 交付复盘 | #assessment |
+| [2026-05-02](./2026-05-02-ui-design-context-selection-remediation-assessment.md) | UI Design Context Selection Remediation 交付复盘 | #assessment |
 | [2026-05-01](./2026-05-01-ui-canvas-runner-path-fix-assessment.md) | UI Canvas Runner Path Fix 交付复盘 | #assessment |
-| [2026-05-01](./2026-05-01-ui-refine-design-prototype-assessment.md) | UI Refine Design Prototype 交付复盘 | #assessment |
+| [2026-05-01](./2026-05-01-ui-design-prototype-assessment.md) | UI Design Prototype 交付复盘 | #assessment |
 
 ## 2026-04
 

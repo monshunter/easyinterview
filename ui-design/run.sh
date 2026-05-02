@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# easyInterview UI 原型一键运行脚本
+# EasyInterview UI 原型一键运行脚本
 # 用法:
-#   ./run.sh                # 默认端口 5173, 入口 EasyInterview.html
+#   ./run.sh                # 默认端口 5173, 入口 index.html
 #   ./run.sh -p 8080        # 指定端口
 #   ./run.sh -f some.html   # 指定入口文件 (相对本目录)
 #   ./run.sh --no-open      # 不自动打开浏览器
@@ -10,7 +10,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 PORT=5173
-FILE="EasyInterview.html"
+FILE="index.html"
 OPEN_BROWSER=1
 
 while [[ $# -gt 0 ]]; do

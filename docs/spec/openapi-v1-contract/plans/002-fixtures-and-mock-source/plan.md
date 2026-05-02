@@ -9,7 +9,7 @@
 
 ## 1 目标
 
-把 [openapi-v1-contract spec](../../spec.md) §2.1 / §4.7 / §4.6 锁定的「fixtures 同源 + provenance + 隐私脱敏」契约落到 `openapi/fixtures/` 目录：为 [001-bootstrap](../001-bootstrap/plan.md) 落地的 37 个 operationId 生成默认 fixture（`scenario: default`）+ 来源于 `easyinterview-ui/src/data.jsx` 的 `scenario: prototype-baseline`；落地 `make validate-fixtures`（schema-valid + provenance + 隐私脱敏）与 `make sync-fixtures-from-prototype`（前端原型数据折叠工具）；将 fixtures 投影为 Prism / 文档站可消费的 OpenAPI named examples，避免手写第二份 example；为 [E1 mock-contract-suite](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份) 提供唯一可消费的 fixture 真理源；通过本 plan Phase 4 的本地命令证明 spec §6 中 C-6 / C-7 / C-9（partial）/ C-11（fixture 级）已成立。
+把 [openapi-v1-contract spec](../../spec.md) §2.1 / §4.7 / §4.6 锁定的「fixtures 同源 + provenance + 隐私脱敏」契约落到 `openapi/fixtures/` 目录：为 [001-bootstrap](../001-bootstrap/plan.md) 落地的 37 个 operationId 生成默认 fixture（`scenario: default`）+ 来源于 `ui-design/src/data.jsx` 的 `scenario: prototype-baseline`；落地 `make validate-fixtures`（schema-valid + provenance + 隐私脱敏）与 `make sync-fixtures-from-prototype`（前端原型数据折叠工具）；将 fixtures 投影为 Prism / 文档站可消费的 OpenAPI named examples，避免手写第二份 example；为 [E1 mock-contract-suite](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份) 提供唯一可消费的 fixture 真理源；通过本 plan Phase 4 的本地命令证明 spec §6 中 C-6 / C-7 / C-9（partial）/ C-11（fixture 级）已成立。
 
 本 plan 不实现 mock server 运行壳（归 E1）、不修改 `openapi/openapi.yaml` schema（归 001 / 003）、不引入 breaking-change linter（归 003）。
 
@@ -78,13 +78,13 @@
 
 #### 2.1 数据源映射表
 
-落地 `openapi/fixtures/PROTOTYPE_MAPPING.md`：把 `easyinterview-ui/src/data.jsx` 中的核心 mock 数据节（welcome / home / parse / onboarding / jd_match / workspace / practice / report / mistakes / resume / debrief / growth / ...）映射到对应 operationId。一对多 / 多对一关系在表中显式标注。
+落地 `openapi/fixtures/PROTOTYPE_MAPPING.md`：把 `ui-design/src/data.jsx` 中的核心 mock 数据节（welcome / home / parse / onboarding / jd_match / workspace / practice / report / mistakes / resume / debrief / growth / ...）映射到对应 operationId。一对多 / 多对一关系在表中显式标注。
 
 #### 2.2 `make sync-fixtures-from-prototype`
 
 落地 `scripts/codegen/sync_fixtures_from_prototype.{py,ts}`（B2 owner；语言可与 generator 一致）：
 
-- 输入：`easyinterview-ui/src/data.jsx`（按 §2.1 mapping 提取节）+ `openapi/fixtures/PROTOTYPE_MAPPING.md`。
+- 输入：`ui-design/src/data.jsx`（按 §2.1 mapping 提取节）+ `openapi/fixtures/PROTOTYPE_MAPPING.md`。
 - 输出：在每个相关 fixture 文件的 `scenarios.prototype-baseline` 节写入数据；缺失数据节的 fixture 不写入该 scenario（不强制 37/37 覆盖）。
 - 写入字段必须满足 schema：脚本内部跑一次 schema 校验，不通过的字段 fail-fast 并打印映射缺口（让人补 mapping，不静默兜底）。
 - 接入根 `Makefile` 的 `make sync-fixtures-from-prototype` target；执行幂等（再跑一次 `git diff --exit-code` 不变）。
@@ -173,7 +173,7 @@ npx @stoplight/prism-cli mock openapi/.generated/openapi-with-fixtures.yaml -p 4
 
 | 风险 | 应对措施 |
 |------|----------|
-| `easyinterview-ui/src/data.jsx` 字段命名与 OpenAPI schema 不一致（如 snake_case / 旧字段） | Phase 2.2 同步脚本做 schema 校验且 fail-fast 而非静默兜底；mapping 缺口必须人工补 `PROTOTYPE_MAPPING.md`；不允许 sync 工具自动重命名 |
+| `ui-design/src/data.jsx` 字段命名与 OpenAPI schema 不一致（如 snake_case / 旧字段） | Phase 2.2 同步脚本做 schema 校验且 fail-fast 而非静默兜底；mapping 缺口必须人工补 `PROTOTYPE_MAPPING.md`；不允许 sync 工具自动重命名 |
 | 37 份 fixture 手写量大且容易漂出 schema | Phase 1.3 强制 schema 校验；建议先用 generator / Prism `--seed-fixture` 工具生成最小骨架再人工补字段；本 plan 验证 idempotency，不引入二次手写 |
 | 37 份 fixture 中遗漏 `deleteMe` 或与 `requestPrivacyDelete` 语义不一致 | Phase 5.1 / 5.2 强制 `Auth/deleteMe` fixture + operation count gate；Prism examples 从 fixture 投影，避免单独手写 |
 

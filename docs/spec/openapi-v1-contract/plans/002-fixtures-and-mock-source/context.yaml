@@ -46,7 +46,7 @@ spec:
           - openapi/fixtures
           - scripts/lint
           - scripts/codegen
-          - easyinterview-ui/src
+          - ui-design/src
           - Makefile
         uiRoutes: []
         apiNames: []

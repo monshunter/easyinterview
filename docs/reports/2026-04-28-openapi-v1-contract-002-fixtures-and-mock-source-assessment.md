@@ -28,7 +28,7 @@
   - **证据**：`requestPrivacyExport` 在 `Prefer: example=default`（不带 `code=501`）下返回 404 not_found；切到 `code=501, example=default` 立即返回 501 + 正确 body。原计划文本只写了 `Prefer: example=default`，没有提示非 200 的 code 子参数。
   - **影响**：Phase 3.2 多花约 5 分钟试错；后续 `prism_fixture_smoke.py` 与 fixtures README 同步补上 `code=<status>, example=default` 的写法。
 - **`listExperienceCards` 的 prototype 数据节不在 `data.jsx`**
-  - **证据**：plan 2.4 自检要求 8 个 P0 闭环 endpoint 全部 prototype-baseline 非空，但 `data.jsx` 没有 `experiences` 节；翻 UI 才发现 5 张经历卡 hardcode 在 `easyinterview-ui/src/screens-p1-depth.jsx#ExperienceLibraryScreen`。
+  - **证据**：plan 2.4 自检要求 8 个 P0 闭环 endpoint 全部 prototype-baseline 非空，但 `data.jsx` 没有 `experiences` 节；翻 UI 才发现 5 张经历卡 hardcode 在 `ui-design/src/screens-p1-depth.jsx#ExperienceLibraryScreen`。
   - **影响**：本会话补做了一次 UI prototype 数据搬家（把 5 张卡上提到 `data.jsx#experiences`），属于 plan 主路径外的判断；如果下次仍按「data.jsx 是唯一原型真理源」假设设计 plan，类似缺口会再触发一次副作用。
 - **`/tdd` Step 9.5 phase-commit hook 误拒**
   - **证据**：Phase 4 提交 `bf51fb0` 成功落到 feature 分支后，连写 `git checkout dev && git merge feat/... --ff-only && git checkout feat/...` 被 hook 阻断，理由为「a git commit was never created for Phase 4 docs changes」。但 `git log` 明确显示 commit 已在 feature 分支；把 `git merge` 拆成单独一条 Bash 后立即通过。
@@ -63,8 +63,8 @@
 - **建议 2（medium）**：在 002 plan §3.2 / `openapi/fixtures/README.md` Prism smoke 命令矩阵里**按响应码族分组**写命令样例，特别是非 2xx 响应必须 `Prefer: code=<status>, example=default`。`scripts/codegen/prism_fixture_smoke.py` 已经按此规则实现，文档应同形态收口。
   - **落点**：spec-plan + README（plan §3.2 与 `openapi/fixtures/README.md` 的 Prism smoke 段落）
   - **优先级**：medium
-- **建议 3（medium）**：在 002 plan §2.1 / `PROTOTYPE_MAPPING.md` 显式声明「若 prototype 真理源不在 `data.jsx`，sync 工具不允许跨文件抓取；要么把数据上提到 `data.jsx`（推荐），要么走 PROTOTYPE_MAPPING 的人工补节」。可同时让 `easyinterview-ui/AGENTS.md`（如未来引入）记录「mock 数据集中放 `data.jsx`」的工程约定。
-  - **落点**：spec-plan（plan §2.1）+ 可选 README（`easyinterview-ui/`）
+- **建议 3（medium）**：在 002 plan §2.1 / `PROTOTYPE_MAPPING.md` 显式声明「若 prototype 真理源不在 `data.jsx`，sync 工具不允许跨文件抓取；要么把数据上提到 `data.jsx`（推荐），要么走 PROTOTYPE_MAPPING 的人工补节」。可同时让 UI 设计原型的目录级约定记录「mock 数据集中放 `data.jsx`」的工程约定。
+  - **落点**：spec-plan（plan §2.1）+ 可选 UI 设计原型目录级 README
   - **优先级**：medium
 - **建议 4（medium）**：调整 `/tdd` SKILL.md 中 Step 9.5 的样例命令——把 `git checkout <base> && git merge <feature> --ff-only && git checkout <feature>` 拆成 3 个独立 Bash 步骤；或在 `--auto` 模式里由 `/work-journal` 显式管理 merge，让本仓库的 phase-commit hook 看到与单步命令相同的现场。
   - **落点**：skill（`.agent-skills/tdd/SKILL.md`）

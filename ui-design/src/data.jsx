@@ -150,6 +150,66 @@ window.EI_DATA = {
     { role: "user", text: "有一个就是我们的订单改价系统，涉及 40+ 字段…", t: "01:55" },
   ],
 
+  experiences: [
+    {
+      id: "exp-1",
+      title: "复杂表单平台性能治理",
+      company: "星环科技",
+      situation: "订单改价系统字段多、校验链路长，用户在高峰期频繁遇到卡顿。",
+      task: "在不重写业务流程的前提下，把关键交互延迟降到可接受范围。",
+      action: "拆分表单状态、延迟非关键校验、补齐性能埋点，并和后端约定批量校验接口。",
+      result: "关键路径交互延迟下降 38%，客服反馈的卡顿工单两周内下降一半。",
+      skills: ["React", "Performance", "Observability"],
+      language: "zh-CN",
+    },
+    {
+      id: "exp-2",
+      title: "Design System 渐进式落地",
+      company: "Acme",
+      situation: "多个业务线组件风格不一致，发布节奏互相阻塞。",
+      task: "建立可复用组件和迁移节奏，避免一次性大规模重构。",
+      action: "先沉淀 token 与表单组件，再用兼容层接入三个高频页面。",
+      result: "新页面交付周期缩短 25%，设计走查返工次数明显减少。",
+      skills: ["Design System", "TypeScript", "Collaboration"],
+      language: "zh-CN",
+    },
+  ],
+
+  mistakes: [
+    {
+      id: "m1",
+      ability: "量化结果",
+      question: "讲一个你主导过的前端性能优化项目。",
+      status: "改善中",
+      priority: "高",
+    },
+    {
+      id: "m2",
+      ability: "方案权衡",
+      question: "为什么选择渐进迁移，而不是一次性替换旧表单系统？",
+      status: "未解决",
+      priority: "中",
+    },
+  ],
+
+  growth: {
+    last30d: {
+      practices: 6,
+      mistakesTotal: 8,
+      mistakesResolved: 3,
+    },
+    weeks: ["03-10", "03-17", "03-24", "03-31", "04-07", "04-14", "04-28"],
+    recent: [
+      { label: "技术一面复练", readiness: 2 },
+      { label: "经理面复练", readiness: 1 },
+    ],
+    trendDim: [
+      { name: "内容具体性", values: [58, 64, 70, 72] },
+      { name: "追问应对", values: [42, 48, 54, 58] },
+      { name: "岗位相关性", values: [55, 60, 66, 70] },
+    ],
+  },
+
   report: {
     readiness: 2,
     readinessLabel: "建议再练",

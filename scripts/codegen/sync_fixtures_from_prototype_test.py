@@ -54,7 +54,7 @@ class SyncFixturesFromPrototypeTest(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.repo = Path(self.tmp.name) / "repo"
-        for sub in ("openapi", "easyinterview-ui", "scripts"):
+        for sub in ("openapi", "ui-design", "scripts"):
             shutil.copytree(REPO_ROOT / sub, self.repo / sub)
 
     def tearDown(self) -> None:
@@ -108,7 +108,7 @@ class SyncFixturesFromPrototypeTest(unittest.TestCase):
 
     def test_sync_fails_fast_on_mapping_gap(self) -> None:
         # Drop the experiences section that listExperienceCards depends on.
-        data_file = self.repo / "easyinterview-ui" / "src" / "data.jsx"
+        data_file = self.repo / "ui-design" / "src" / "data.jsx"
         text = data_file.read_text(encoding="utf-8")
         # Replace the experiences array with an empty list.
         replaced = text.replace("experiences: [", "experiences__missing: [", 1)
