@@ -1,14 +1,14 @@
 # EasyInterview UI 移除模块与范围裁剪
 
-> **版本**: 1.5
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-05-01
+> **更新日期**: 2026-05-02
 
 ## 1 文档目的
 
 本文档记录当前阶段 UI 梳理中确认不进入目标架构的模块、页面职责和交互形态。这里的“移除”指目标信息架构不再保留对应模块、导航和默认流程，不等同于本轮已经删除所有历史代码。
 
-当前 `src/app.jsx` 还通过 `routeAliases` 把若干旧 route 折回新目标模块。因此，能通过 hash 打开旧 route 或在设计画板看到旧标签，不代表旧模块仍是目标架构的一部分。
+当前 `src/app.jsx` 还通过 `routeAliases` 把若干旧 route 折回新目标模块。即使 `screens` 映射和源码中仍保留旧组件定义，运行时会先经过 `normalizeRoute`，因此旧 route 不再进入对应历史页面。能通过 hash 访问旧 route、看到设计画板旧标签或在源码里找到旧组件，不代表旧模块仍是目标架构的一部分。
 
 ## 2 已确认移除
 
@@ -37,7 +37,8 @@
 ├─ 麦克风输入 -> 文本面试中的语音转文字
 ├─ 复练 -> 报告里的复练当前轮
 ├─ 下一轮 -> 报告里的进入下一轮
-└─ 用户画像 -> 用户菜单里的 AI 画像详情页
+├─ 用户画像 -> 用户菜单里的 AI 画像详情页
+└─ 外观偏好 -> 顶栏显示控制和设置页字体预设，不是业务模块
 ```
 
 ## 3 成长模块
@@ -237,6 +238,8 @@ Report
 | `experiences` | 移除独立经历库；运行时折回 `resume_versions` |
 | `star` | 移除独立 STAR 编辑器；运行时折回 `resume_versions` |
 | `onboarding` | 旧画板可直达；移除旧经历库前置职责，简历创建目标入口是 `resume_versions(flow=create)` |
+| `resume` | 历史简历单页可直达；不作为顶部导航或目标入口 |
+| `debrief_full` | 同 `debrief` 的兼容 route；不新增独立模块 |
 | `followup` | 移除独立追问树；运行时折回 `practice` |
 | `mistakes` | 移除独立错题复练流程；运行时折回 `report` |
 | `drill` | 移除独立单题 Drill；运行时折回 `practice` |
@@ -245,9 +248,45 @@ Report
 | `resume_versions` | 保留为一级简历模块当前入口 |
 | `jd_match` | 保留为一级岗位推荐 |
 | `profile` | 保留为用户菜单里的用户画像 |
+| `settings` | 保留为用户菜单里的账号、隐私、界面偏好入口 |
 | `auth_*` | 保留为认证流程页面 |
 
-## 13 未来重新引入条件
+## 13 当前静态 UI 中保留的废弃 / 历史代码
+
+以下清单用于约束后续文档和实现判断：源码里仍存在的组件不自动等于目标页面。当前目标以顶部导航、`routeAliases` 折返后的 `activeRouteName` 和实际渲染内容为准。
+
+| 代码位置 / 组件 | 关联 route 或入口 | 当前运行状态 | 目标处理 |
+|----------------|-------------------|--------------|----------|
+| `screens-completion.jsx::WelcomeScreen` | `welcome` | `routeAliases` 折回 `home`，旧欢迎页不会作为默认入口渲染 | 废弃未登录欢迎页职责 |
+| `screens-rest.jsx::MistakesScreen` | `mistakes` | `routeAliases` 折回 `report` | 废弃独立错题本和错题复练队列 |
+| `screens-completion.jsx::DrillBuilderScreen` | `drill` | `routeAliases` 折回 `practice` | 废弃单题 Drill 构建器 |
+| `screens-completion.jsx::FollowUpTreeScreen` | `followup` | `routeAliases` 折回 `practice` | 废弃独立追问树 |
+| `screens-rest.jsx::GrowthScreen` | `growth` | `routeAliases` 折回 `home` | 废弃独立成长中心 |
+| `screens-p2.jsx::PlanScreen` | `plan` | `routeAliases` 折回 `workspace` | 废弃独立多轮计划页；`workspace` 内的轮次节点仍保留 |
+| `screens-p1-depth.jsx::ExperienceLibraryScreen` | `experiences` | `routeAliases` 折回 `resume_versions` | 废弃独立经历库 |
+| `screens-completion.jsx::StarEditorScreen` | `star` | `routeAliases` 折回 `resume_versions` | 废弃独立 STAR 编辑器 |
+| `screen-report.jsx::ReportEditorial` / `ReportTimeline` | 报告变体标签 / `reportLayout` | `ReportScreen` 当前固定返回 Dashboard | 废弃独立刊物式报告和时间线报告形态 |
+| `screens-rest.jsx::DebriefScreen` | 旧复盘实现 | 当前目标使用 `DebriefFullScreen`，`debrief_full` 只是兼容 route | 废弃旧复盘页 |
+| `screens-rest.jsx::ResumeScreen` | `resume` | 仍可 hash 直达历史简历单页，但顶部导航和目标入口不使用 | 废弃为目标入口；以 `resume_versions` 为准 |
+| `screens-p0-complete.jsx::OnboardingScreen` | `onboarding` | 仍可 hash 直达历史 5 分钟画像 / 经历卡片页 | 废弃为当前简历创建入口；以 `resume_versions(flow=create)` 为准 |
+
+`screens-p2.jsx::VoicePracticeScreen` 当前仍是保留能力，语义是整场语音面试形式，不属于废弃清单。
+
+## 14 外观偏好不是业务模块
+
+### 14.1 当前处理
+
+```text
+外观偏好
+├─ 顶栏主题色
+├─ 暗色模式
+├─ 语言切换
+└─ 设置页字体预设
+```
+
+这些控制保留，因为它们是横切的 UI 呈现能力；但它们不属于岗位推荐、模拟面试、报告、简历或真实复盘的业务模块，也不应该成为新的一级导航或 onboarding 步骤。
+
+## 15 未来重新引入条件
 
 被移除模块未来如需重新引入，必须先回答：
 

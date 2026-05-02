@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-02](2026-05-02.md) | `docs(ui-refine): sync prototype docs and deprecated scope` | #docs #ui |
 | [2026-05-01](2026-05-01.md) | `docs(reports): land ui canvas runner path fix retrospective` | #docs |
 | [2026-05-01](2026-05-01.md) | `feat(ui): add theme palettes, font presets and prototype interactions` | #feat #ui |
 | [2026-05-01](2026-05-01.md) | `fix(ui-runner): correct default entry filename casing` | #fix #ui |
