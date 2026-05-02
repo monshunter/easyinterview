@@ -17,14 +17,14 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
   const currentRoundIndex = getCurrentRoundIndex(job, jd.rounds);
   const currentRound = jd.rounds[currentRoundIndex] || jd.rounds[0];
   const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId) || resumeOptions[0];
-  const sessionHistory = getWorkspaceSessionHistory(lang);
+  const sessionHistory = getWorkspaceSessionHistory(lang, job, currentRound?.name);
 
   const L = lang === "en" ? {
     back: "Home",
     overview: "Overview",
     requirements: "Requirements",
     prep: "My preparation",
-    practices: "Mock interview history",
+    practices: "Current plan mock history",
     timeline: "Real progress",
     startCore: "Start interview now",
     launchTitle: "Confirm the context before this mock interview starts.",
@@ -55,7 +55,7 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
     overview: "概览",
     requirements: "要求拆解",
     prep: "我的准备",
-    practices: "模拟面试历史",
+    practices: "当前规划的模拟面试历史",
     timeline: "面试进展",
     startCore: "立即面试",
     launchTitle: "开始前确认这场模拟面试的上下文。",
@@ -312,17 +312,41 @@ const getWorkspaceResumeOptions = (lang) => lang === "en" ? [
   },
 ];
 
-const getWorkspaceSessionHistory = (lang) => lang === "en" ? [
-  { date: "4/20", title: "Mock interview · Technical round 1", target: "Stellar · Senior Frontend" },
-  { date: "4/19", title: "Mock interview · Technical round 1", target: "Stellar · Senior Frontend · second run" },
-  { date: "4/18", title: "Mock interview · HR screen", target: "Lumen Labs · Frontend Platform Engineer" },
-  { date: "4/17", title: "Mock interview · Technical round 2", target: "Stellar · Senior Frontend" },
-] : [
-  { date: "4/20", title: "模拟面试 · 技术一面", target: "星环科技 · 资深前端工程师" },
-  { date: "4/19", title: "模拟面试 · 技术一面", target: "星环科技 · 资深前端工程师 · 第 2 次" },
-  { date: "4/18", title: "模拟面试 · HR 初筛", target: "Lumen Labs · Frontend Platform Engineer" },
-  { date: "4/17", title: "模拟面试 · 技术二面", target: "星环科技 · 资深前端工程师" },
-];
+const getWorkspaceSessionHistory = (lang, job, roundName) => {
+  const target = getWorkspaceTargetLabel(lang, job);
+  const currentRound = getWorkspaceRoundLabel(lang, roundName || job?.nextRound);
+  const priorRound = getWorkspaceRoundLabel(lang, "技术一面");
+  const nextRound = getWorkspaceRoundLabel(lang, "技术二面");
+  const prefix = lang === "en" ? "Mock interview" : "模拟面试";
+  const rerun = lang === "en" ? "second run" : "第 2 次";
+
+  return [
+    { date: "4/20", title: `${prefix} · ${currentRound}`, target },
+    { date: "4/19", title: `${prefix} · ${currentRound}`, target: `${target} · ${rerun}` },
+    { date: "4/18", title: `${prefix} · ${priorRound}`, target },
+    { date: "4/17", title: `${prefix} · ${nextRound}`, target },
+  ];
+};
+
+const getWorkspaceTargetLabel = (lang, job) => {
+  if (!job) return lang === "en" ? "Target job" : "目标岗位";
+  if (lang !== "en") return `${job.company} · ${job.title}`;
+  const labels = {
+    "tj-1": "Star-Ring Tech · Senior Frontend Engineer",
+    "tj-3": "CloudYun Group · Web Architecture Expert",
+  };
+  return labels[job.id] || `${job.company} · ${job.title}`;
+};
+
+const getWorkspaceRoundLabel = (lang, value) => {
+  const text = value || "";
+  if (lang !== "en") return text || "目标轮次";
+  if (text.includes("HR")) return "HR screen";
+  if (text.includes("技术一面")) return "Technical round 1";
+  if (text.includes("技术二面")) return "Technical round 2";
+  if (text.includes("经理面")) return "Manager round";
+  return "Target round";
+};
 
 const getWorkspacePlanOptions = (lang, jobs) => {
   const roundNames = lang === "en" ? ["Manager round", "HR screen", "Unscheduled draft"] : ["经理面", "HR 初筛", "未安排"];

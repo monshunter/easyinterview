@@ -327,7 +327,7 @@ const ReportGeneratingScreen = ({ T, lang, nav }) => {
           {lang === "en" ? "Reading every turn. Evidence first." : "在逐轮读——先找证据，再打分。"}
         </h1>
         <div style={{ fontSize: 14, color: T.ink3, marginBottom: 32, lineHeight: 1.5, maxWidth: 540 }}>
-          {lang === "en" ? "Typical: 8-15s. You can close this tab — the report lands in your inbox when it's done." : "通常 8-15 秒。可以关掉这个页面——好了会出现在收件箱里。"}
+          {lang === "en" ? "Typical: 8-15s. You can close this tab; the report opens from this session history when it's done." : "通常 8-15 秒。可以关掉这个页面；报告生成后可从本场会话历史打开。"}
         </div>
 
         {/* Progress */}

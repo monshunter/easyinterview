@@ -1,6 +1,6 @@
 # Report Dashboard 目标结构
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-05-02
 
@@ -189,7 +189,7 @@ Question Review
 
 ```text
 Mock Interview Plan
-└─ 模拟面试历史
+└─ 当前规划的模拟面试历史
    └─ Report Dashboard(sessionId)
 
 Report Dashboard

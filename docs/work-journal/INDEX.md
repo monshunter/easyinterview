@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-02](2026-05-02.md) | `fix(ui): scope mock history and debrief context pickers` | #fix #ui #docs #test |
 | [2026-05-02](2026-05-02.md) | `refactor(ui): clean deprecated prototype screens and debrief label` | #refactor #ui #docs |
 | [2026-05-02](2026-05-02.md) | `docs(ui-refine): sync prototype docs and deprecated scope` | #docs #ui |
 | [2026-05-01](2026-05-01.md) | `docs(reports): land ui canvas runner path fix retrospective` | #docs |

@@ -12,16 +12,21 @@ const DebriefFullScreen = ({ T, lang, nav }) => {
     ? ["Debrief record", "Debrief analysis", "Debrief interview"]
     : ["复盘记录", "复盘分析", "复盘面试"];
 
-  const context = lang === "en" ? {
-    target: "Star-Ring · Senior Frontend Engineer",
-    jd: "P6 · Shanghai · JD match 78%",
-    mock: "Mock interview #24 · text · 4/20",
-    resume: "Liu Zhe · resume v3 · 78% match",
-  } : {
-    target: "星环科技 · 资深前端工程师",
-    jd: "P6 · 上海 · JD 匹配 78%",
-    mock: "模拟面试 #24 · 文本 · 4/20",
-    resume: "刘哲 · 简历 v3 · 匹配 78%",
+  const contextOptions = getDebriefContextOptions(lang);
+  const [selectedContext, setSelectedContext] = React.useState({
+    targetJob: "tj-1",
+    mockSession: "mock-24",
+    resume: "resume-v3",
+  });
+  const [pickerType, setPickerType] = React.useState(null);
+  const selectedTarget = contextOptions.targetJobs.find((item) => item.id === selectedContext.targetJob) || contextOptions.targetJobs[0];
+  const selectedMock = contextOptions.mockSessions.find((item) => item.id === selectedContext.mockSession) || contextOptions.mockSessions[0];
+  const selectedResume = contextOptions.resumes.find((item) => item.id === selectedContext.resume) || contextOptions.resumes[0];
+  const context = {
+    target: selectedTarget.title,
+    jd: selectedTarget.meta,
+    mock: selectedMock.title,
+    resume: selectedResume.title,
   };
 
   const guideQuestions = lang === "en" ? [
@@ -83,7 +88,7 @@ const DebriefFullScreen = ({ T, lang, nav }) => {
   return (
     <div className="ei-fadein" style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 48px 96px" }}>
       <button onClick={() => nav("home")} style={{ background: "transparent", border: "none", color: T.ink3, cursor: "pointer", display: "flex", gap: 6, alignItems: "center", fontSize: 13, padding: 0, marginBottom: 16 }}>
-        <Icon name="arrow_left" size={13} /> {lang === "en" ? "Inbox" : "收件箱"}
+        <Icon name="arrow_left" size={13} /> {lang === "en" ? "Back home" : "返回首页"}
       </button>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, gap: 32 }}>
@@ -105,7 +110,22 @@ const DebriefFullScreen = ({ T, lang, nav }) => {
         </div>
       </div>
 
-      <DebriefContextStrip T={T} lang={lang} nav={nav} context={context} />
+      <DebriefContextStrip T={T} lang={lang} context={context} onOpenPicker={setPickerType} />
+
+      {pickerType && (
+        <DebriefContextPickerModal
+          T={T}
+          lang={lang}
+          kind={pickerType}
+          options={getDebriefOptionsForKind(contextOptions, pickerType)}
+          selectedId={selectedContext[pickerType]}
+          onClose={() => setPickerType(null)}
+          onConfirm={(id) => {
+            setSelectedContext({ ...selectedContext, [pickerType]: id });
+            setPickerType(null);
+          }}
+        />
+      )}
 
       {/* Stepper */}
       <div style={{ display: "flex", gap: 0, marginBottom: 36, borderBottom: `1px solid ${T.rule}` }}>
@@ -226,14 +246,54 @@ const DebriefFullScreen = ({ T, lang, nav }) => {
   );
 };
 
-const DebriefContextStrip = ({ T, lang, nav, context }) => (
+const getDebriefContextOptions = (lang) => lang === "en" ? {
+  targetJobs: [
+    { id: "tj-1", title: "Star-Ring Tech · Senior Frontend Engineer", meta: "P6 · Shanghai · JD match 78%", note: "Current real interview target. Used to anchor debrief questions and replay practice." },
+    { id: "tj-2", title: "Lumen Labs · Frontend Platform Engineer", meta: "Senior · remote · JD match 64%", note: "English HR-screen context. Pick this only when the debrief belongs to that process." },
+    { id: "tj-3", title: "CloudYun Group · Web Architecture Expert", meta: "P7 · Hangzhou · JD match 52%", note: "Draft target. Complete JD details before using it as the debrief baseline." },
+  ],
+  mockSessions: [
+    { id: "mock-24", title: "Mock interview #24 · text · 4/20", meta: "Star-Ring Tech · Technical round 1 · report ready", note: "Best baseline for this real technical interview." },
+    { id: "mock-23", title: "Mock interview #23 · voice · 4/19", meta: "Star-Ring Tech · Technical round 1 · second run", note: "Use when comparing against the replay run instead of the first report." },
+    { id: "mock-20", title: "Mock interview #20 · text · 4/17", meta: "Star-Ring Tech · Technical round 2", note: "Useful if the real interview focused on architecture probes." },
+  ],
+  resumes: [
+    { id: "resume-v3", title: "Liu Zhe · resume v3 · 78% match", meta: "Master version · source retained", note: "Primary evidence source for this debrief analysis." },
+    { id: "resume-impact", title: "Liu Zhe · collaboration impact v2", meta: "Guided resume draft · 2026-04-18", note: "Use when the interview focused on influence and rollout stories." },
+    { id: "resume-en", title: "Liu Zhe · Frontend Platform EN v1", meta: "English version · source retained", note: "Use for English-language interview debriefs." },
+  ],
+} : {
+  targetJobs: [
+    { id: "tj-1", title: "星环科技 · 资深前端工程师", meta: "P6 · 上海 · JD 匹配 78%", note: "当前真实面试目标，用来锚定复盘问题和复盘面试。" },
+    { id: "tj-2", title: "Lumen Labs · Frontend Platform Engineer", meta: "Senior · 远程 · JD 匹配 64%", note: "英文 HR 初筛上下文；只有复盘属于这条流程时才选择。" },
+    { id: "tj-3", title: "云栖集团 · 技术专家（Web 架构）", meta: "P7 · 杭州 · JD 匹配 52%", note: "草稿目标；用于复盘前应先补全 JD 细节。" },
+  ],
+  mockSessions: [
+    { id: "mock-24", title: "模拟面试 #24 · 文本 · 4/20", meta: "星环科技 · 技术一面 · 报告已生成", note: "当前真实技术面最合适的对比基线。" },
+    { id: "mock-23", title: "模拟面试 #23 · 语音 · 4/19", meta: "星环科技 · 技术一面 · 第 2 次", note: "当用户想和复练后的表现对比时选择。" },
+    { id: "mock-20", title: "模拟面试 #20 · 文本 · 4/17", meta: "星环科技 · 技术二面", note: "真实面试偏架构追问时可作为对照。" },
+  ],
+  resumes: [
+    { id: "resume-v3", title: "刘哲 · 简历 v3 · 匹配 78%", meta: "主版本 · 保留原始来源", note: "当前复盘分析的主要证据来源。" },
+    { id: "resume-impact", title: "刘哲 · 协作影响力版 v2", meta: "由简历问答生成 · 2026-04-18", note: "真实面试更偏影响力和落地故事时选择。" },
+    { id: "resume-en", title: "Liu Zhe · Frontend Platform EN v1", meta: "英文版 · 保留上传原件", note: "用于英文真实面试的复盘。" },
+  ],
+};
+
+const getDebriefOptionsForKind = (contextOptions, kind) => ({
+  targetJob: contextOptions.targetJobs,
+  mockSession: contextOptions.mockSessions,
+  resume: contextOptions.resumes,
+}[kind] || []);
+
+const DebriefContextStrip = ({ T, lang, context, onOpenPicker }) => (
   <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: 12, marginBottom: 28 }}>
     {[
-      { icon: "briefcase", label: lang === "en" ? "Target job / JD" : "目标岗位 / JD", title: context.target, meta: context.jd, action: lang === "en" ? "Change" : "更换", onClick: () => nav("workspace", { jobId: "tj-1" }) },
-      { icon: "chart", label: lang === "en" ? "Related mock interview" : "关联模拟面试", title: context.mock, meta: lang === "en" ? "used as comparison baseline" : "作为面试分析基线", action: lang === "en" ? "Report" : "报告", onClick: () => nav("report") },
-      { icon: "resume", label: lang === "en" ? "Resume version" : "绑定简历", title: context.resume, meta: lang === "en" ? "used for evidence comparison" : "用于回答证据对比", action: lang === "en" ? "Change" : "更换", onClick: () => nav("resume_versions") },
+      { key: "targetJob", icon: "briefcase", label: lang === "en" ? "Target job / JD" : "目标岗位 / JD", title: context.target, meta: context.jd, action: lang === "en" ? "Change" : "更换" },
+      { key: "mockSession", icon: "chart", label: lang === "en" ? "Related mock interview" : "关联模拟面试", title: context.mock, meta: lang === "en" ? "used as comparison baseline" : "作为面试分析基线", action: lang === "en" ? "Select" : "选择" },
+      { key: "resume", icon: "resume", label: lang === "en" ? "Resume version" : "绑定简历", title: context.resume, meta: lang === "en" ? "used for evidence comparison" : "用于回答证据对比", action: lang === "en" ? "Change" : "更换" },
     ].map((item) => (
-      <div key={item.label} style={{ padding: "14px 16px", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2, display: "grid", gridTemplateColumns: "30px 1fr auto", gap: 10, alignItems: "center" }}>
+      <div key={item.key} style={{ padding: "14px 16px", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2, display: "grid", gridTemplateColumns: "30px 1fr auto", gap: 10, alignItems: "center" }}>
         <div style={{ width: 30, height: 30, borderRadius: 15, background: T.bgSoft, color: T.accent, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Icon name={item.icon} size={14} />
         </div>
@@ -242,11 +302,96 @@ const DebriefContextStrip = ({ T, lang, nav, context }) => (
           <div style={{ fontSize: 13.5, color: T.ink, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</div>
           <div style={{ fontSize: 12, color: T.ink3, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.meta}</div>
         </div>
-        <button onClick={item.onClick} style={{ background: "transparent", border: `1px solid ${T.rule}`, borderRadius: 2, color: T.ink2, fontSize: 12, padding: "5px 9px", cursor: "pointer" }}>{item.action}</button>
+        <button onClick={() => onOpenPicker(item.key)} style={{ background: "transparent", border: `1px solid ${T.rule}`, borderRadius: 2, color: T.ink2, fontSize: 12, padding: "5px 9px", cursor: "pointer" }}>{item.action}</button>
       </div>
     ))}
   </div>
 );
+
+const DebriefContextPickerModal = ({ T, lang, kind, options, selectedId, onClose, onConfirm }) => {
+  const [draftId, setDraftId] = React.useState(selectedId);
+  const selected = options.find((item) => item.id === draftId) || options[0];
+  const meta = {
+    targetJob: {
+      eyebrow: lang === "en" ? "TARGET JOB / JD" : "目标岗位 / JD",
+      title: lang === "en" ? "Choose the target JD for this debrief" : "选择这次复盘对应的目标岗位 / JD",
+      body: lang === "en" ? "Changing it only updates this debrief context. It does not leave the debrief flow." : "更换后只更新本次复盘上下文，不离开复盘流程。",
+      confirm: lang === "en" ? "Use this JD" : "使用这个 JD",
+    },
+    mockSession: {
+      eyebrow: lang === "en" ? "RELATED MOCK" : "关联模拟面试",
+      title: lang === "en" ? "Choose the mock interview baseline" : "选择作为对比基线的模拟面试",
+      body: lang === "en" ? "Pick the completed session whose report should be compared with the real interview." : "选择一场已完成模拟面试，用它的报告和真实面试做对比。",
+      confirm: lang === "en" ? "Use this mock" : "关联这场模拟面试",
+    },
+    resume: {
+      eyebrow: lang === "en" ? "RESUME VERSION" : "绑定简历",
+      title: lang === "en" ? "Choose the resume evidence source" : "选择这次复盘使用的简历",
+      body: lang === "en" ? "The selected resume is used only for evidence comparison in this debrief." : "选择后仅作为本次复盘的回答证据对比来源。",
+      confirm: lang === "en" ? "Use this resume" : "绑定这份简历",
+    },
+  }[kind];
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(24, 20, 16, 0.24)", zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={onClose}>
+      <div className="ei-fadein" onClick={(e) => e.stopPropagation()} style={{ width: "min(720px, 100%)", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 4, boxShadow: "0 24px 70px rgba(30, 22, 15, 0.24)", padding: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 18, marginBottom: 18 }}>
+          <div>
+            <div className="ei-label" style={{ color: T.ink3, marginBottom: 6 }}>{meta.eyebrow}</div>
+            <div className="ei-serif" style={{ fontSize: 23, color: T.ink }}>{meta.title}</div>
+            <div style={{ fontSize: 13, color: T.ink3, marginTop: 6, lineHeight: 1.6 }}>{meta.body}</div>
+          </div>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: T.ink3, cursor: "pointer", padding: 4 }}>
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+          {options.map((item) => {
+            const active = item.id === draftId;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setDraftId(item.id)}
+                style={{
+                  textAlign: "left",
+                  border: `1px solid ${active ? T.accent : T.rule}`,
+                  background: active ? T.accentSoft : T.bgSoft,
+                  borderRadius: 3,
+                  padding: "14px 16px",
+                  cursor: "pointer",
+                  display: "grid",
+                  gridTemplateColumns: "24px 1fr",
+                  gap: 12,
+                  alignItems: "start",
+                }}
+              >
+                <span style={{ width: 20, height: 20, borderRadius: 10, border: `1px solid ${active ? T.accent : T.rule}`, background: active ? T.accent : T.bgCard, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                  {active && <Icon name="check" size={12} stroke={2.2} />}
+                </span>
+                <span>
+                  <span style={{ display: "block", fontSize: 14.5, color: T.ink, fontWeight: 600 }}>{item.title}</span>
+                  <span style={{ display: "block", fontSize: 12.5, color: T.ink3, marginTop: 3 }}>{item.meta}</span>
+                  <span style={{ display: "block", fontSize: 13, color: T.ink2, marginTop: 8, lineHeight: 1.55 }}>{item.note}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ border: `1px solid ${T.rule}`, background: T.bgSoft, borderRadius: 3, padding: 14, marginTop: 16 }}>
+          <div className="ei-label" style={{ color: T.ink3, marginBottom: 4 }}>{lang === "en" ? "SELECTED" : "已选择"}</div>
+          <div style={{ fontSize: 13.5, color: T.ink2, lineHeight: 1.6 }}>{selected.title} · {selected.meta}</div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
+          <Btn T={T} variant="ghost" onClick={onClose}>{lang === "en" ? "Cancel" : "取消"}</Btn>
+          <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => onConfirm(draftId)}>{meta.confirm}</Btn>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const GuidedDebriefRecord = ({ T, lang, currentGuide, guideIndex, guideTotal, setActiveGuide, entries, setEntries, activeCard, setActiveCard, reactions }) => {
   const activeEntry = entries.find((e) => e.id === activeCard) || entries[0];
