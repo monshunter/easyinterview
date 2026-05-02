@@ -25,12 +25,12 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId, mode, role, setRole 
   const activeMode = (params.modality || mode) === "voice" ? "voice" : "text";
   const modes = lang === "en"
     ? [
-      { k: "text", label: "Text mode", sub: "type answers", icon: "chat" },
-      { k: "voice", label: "Voice mode", sub: "live spoken conversation", icon: "mic" },
+      { k: "text", label: "Text", icon: "chat" },
+      { k: "voice", label: "Voice", icon: "mic" },
     ]
     : [
-      { k: "text", label: "文本模式", sub: "打字回答", icon: "chat" },
-      { k: "voice", label: "语音模式", sub: "实时语音对话", icon: "mic" },
+      { k: "text", label: "文本", icon: "chat" },
+      { k: "voice", label: "语音", icon: "mic" },
     ];
   const onSwitchMode = (k) => {
     nav("practice", { ...context, mode: k, modality: k });
@@ -88,6 +88,38 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId, mode, role, setRole 
             <Icon name={paused ? "play" : "pause"} size={12} /> {paused ? (lang === "en" ? "Resume" : "继续") : (lang === "en" ? "Pause" : "暂停")}
           </button>
           <div style={{ height: 18, width: 1, background: T.rule }} />
+          {/* Segmented mode control */}
+          <div style={{ display: "flex", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 2, gap: 2 }}>
+            {modes.map((m) => {
+              const on = activeMode === m.k;
+              return (
+                <button key={m.k} onClick={() => onSwitchMode(m.k)} style={{
+                  background: on ? T.bgCard : "transparent",
+                  border: `1px solid ${on ? T.rule : "transparent"}`,
+                  boxShadow: on ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                  color: on ? T.ink : T.ink3,
+                  padding: "4px 9px",
+                  borderRadius: 2,
+                  cursor: "pointer",
+                  display: "flex", gap: 5, alignItems: "center",
+                  fontSize: 12, fontWeight: on ? 500 : 400,
+                  fontFamily: "var(--ei-sans)",
+                  transition: "background 0.1s",
+                }}>
+                  <Icon name={m.icon} size={12} />
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+          {/* Always rendered to prevent layout shift; invisible in text mode */}
+          <div style={{ display: "flex", gap: 5, alignItems: "center", padding: "4px 8px", background: paused ? T.bgSoft : T.accentSoft, border: `1px solid ${paused ? T.rule : T.accent}`, borderRadius: 2, visibility: activeMode === "voice" ? "visible" : "hidden" }}>
+            <span className={paused ? "" : "ei-pulse"} style={{ width: 6, height: 6, borderRadius: 3, background: paused ? T.ink4 : T.accent, display: "inline-block" }} />
+            <span style={{ fontSize: 11, color: paused ? T.ink3 : T.accent, fontFamily: "var(--ei-mono)" }}>
+              {paused ? (lang === "en" ? "paused" : "已暂停") : (lang === "en" ? "live" : "录音中")}
+            </span>
+          </div>
+          <div style={{ height: 18, width: 1, background: T.rule }} />
           <button
             role="switch" aria-checked={strictMode}
             onClick={() => { if (!strictMode) setShowHint(false); setStrictMode((s) => !s); }}
@@ -99,40 +131,6 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId, mode, role, setRole 
             </div>
           </button>
         </div>
-      </div>
-
-      {/* Interview modality */}
-      <div style={{ padding: "8px 28px", borderBottom: `1px solid ${T.rule}`, background: T.bg, display: "flex", gap: 8, alignItems: "center" }}>
-        {modes.map((m) => {
-          const on = activeMode === m.k;
-          return (
-            <button key={m.k} onClick={() => onSwitchMode(m.k)} style={{
-              background: on ? T.bgSoft : "transparent",
-              border: `1px solid ${on ? T.rule : "transparent"}`,
-              color: on ? T.ink : T.ink3, padding: "7px 11px", borderRadius: 2,
-              cursor: "pointer", display: "flex", gap: 8, alignItems: "center", fontFamily: "var(--ei-sans)",
-            }}>
-              <Icon name={m.icon} size={13} />
-              <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.15 }}>
-                <span style={{ fontSize: 12.5, fontWeight: on ? 600 : 500 }}>{m.label}</span>
-                <span style={{ fontSize: 10.5, color: on ? T.ink3 : T.ink4, marginTop: 2 }}>{m.sub}</span>
-              </span>
-            </button>
-          );
-        })}
-        <div style={{ flex: 1 }} />
-        {activeMode === "voice" ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "5px 10px", background: paused ? T.bgSoft : T.accentSoft, border: `1px solid ${paused ? T.rule : T.accent}`, borderRadius: 2 }}>
-            <span className={paused ? "" : "ei-pulse"} style={{ width: 7, height: 7, borderRadius: 4, background: paused ? T.ink4 : T.accent, display: "inline-block" }} />
-            <span style={{ fontSize: 11.5, color: paused ? T.ink3 : T.accent, fontFamily: "var(--ei-mono)" }}>
-              {paused ? (lang === "en" ? "voice paused" : "语音已暂停") : (lang === "en" ? "recording · live transcript" : "录音中 · 正在实时转写")}
-            </span>
-          </div>
-        ) : (
-          <div style={{ fontSize: 11.5, color: T.ink3 }}>
-            {lang === "en" ? "Choose how the interview itself runs." : "这里决定整场面试如何进行。"}
-          </div>
-        )}
       </div>
 
       {/* Main */}
@@ -262,7 +260,7 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId, mode, role, setRole 
         <div style={{ borderLeft: `1px solid ${T.rule}`, display: "flex", flexDirection: "column", background: T.bgSoft }}>
           <div style={{ flex: 1, overflowY: "auto", padding: "20px 18px" }} className="ei-scroll">
             {activeMode === "voice" ? (
-              <VoiceExpressionPanel T={T} lang={lang} />
+              <VoiceExpressionPanel T={T} lang={lang} strictMode={strictMode} />
             ) : (
               <>
                 <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{lang === "en" ? "JD LINK" : "与 JD 的关联"}</div>
@@ -526,7 +524,7 @@ const VoiceSessionSurface = ({ T, lang, currentQ, qIdx, recording, transcriptFai
   );
 };
 
-const VoiceExpressionPanel = ({ T, lang }) => {
+const VoiceExpressionPanel = ({ T, lang, strictMode }) => {
   const metrics = [
     { k: lang === "en" ? "Words / min" : "语速", v: "186", hint: lang === "en" ? "steady 160-200 wpm" : "稳定在 160-200 字/分", tone: "ok", bar: 0.7 },
     { k: lang === "en" ? "Long pauses" : "长停顿", v: "2", hint: lang === "en" ? "2 over 1.5s" : "本题 2 次超过 1.5 秒", tone: "warn", bar: 0.5 },
@@ -554,15 +552,17 @@ const VoiceExpressionPanel = ({ T, lang }) => {
         })}
       </div>
 
-      <div style={{ marginTop: 26, padding: 14, background: T.bgCard, border: `1px dotted ${T.rule}`, borderRadius: 3 }}>
-        <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "GENTLE NUDGE" : "现场提示"}</div>
-        <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.55 }}>
-          <Icon name="sparkle" size={13} color={T.accent} style={{ marginRight: 6 }} />
-          {lang === "en"
-            ? "You're midway through the situation. Name the concrete action you took before moving to the response."
-            : "当前在讲「情境」。试着先说一句你采取的具体行动，再切到对方的反应。"}
+      {!strictMode && (
+        <div style={{ marginTop: 26, padding: 14, background: T.bgCard, border: `1px dotted ${T.rule}`, borderRadius: 3 }}>
+          <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "GENTLE NUDGE" : "现场提示"}</div>
+          <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.55 }}>
+            <Icon name="sparkle" size={13} color={T.accent} style={{ marginRight: 6 }} />
+            {lang === "en"
+              ? "You're midway through the situation. Name the concrete action you took before moving to the response."
+              : "当前在讲「情境」。试着先说一句你采取的具体行动，再切到对方的反应。"}
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ borderTop: `1px dotted ${T.rule}`, marginTop: 16, paddingTop: 14 }}>
         <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "AI TRANSPARENCY" : "AI 透明度"}</div>
