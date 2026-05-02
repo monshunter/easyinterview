@@ -1,8 +1,8 @@
 # 多 JD 与多简历目标管理结构
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-05-01
+> **更新日期**: 2026-05-02
 
 ## 1 文档目的
 
@@ -13,10 +13,11 @@
 1. 多 JD 以 `TargetJob` 管理，入口包括首页 JD 导入、岗位推荐和最近模拟面试。
 2. 多简历以 `ResumeSource` 和 `ResumeVersion` 管理，入口在一级简历模块。
 3. 每个模拟面试规划绑定一个 `TargetJob/JD`、一个 `ResumeVersion` 和一个 `InterviewRound`。
-4. 岗位定制简历是从结构化主版本派生出的目标岗位版本。
-5. 系统必须同时保留原始简历内容、解析文本和结构化分析结果。
-6. 简历缺失时不阻断用户看岗位，但在需要保存、绑定或进入个性化模拟面试前触发补全和登录。
-7. 模拟面试规划不是简历资产管理中心，只负责选择当前面试使用哪份简历。
+4. 岗位定制简历是从某棵原始简历树的结构化主版本派生出的目标岗位版本。
+5. 每份原始简历是一棵独立树，树内包含原始来源、主版本和多个岗位定制版本。
+6. 系统必须同时保留原始简历内容、解析文本和结构化分析结果。
+7. 简历缺失时不阻断用户看岗位，但在需要保存、绑定或进入个性化模拟面试前触发补全和登录。
+8. 模拟面试规划不是简历资产管理中心，只负责选择当前面试使用哪份简历。
 
 ## 3 数据对象关系
 
@@ -30,28 +31,42 @@ User
 │  │  └─ latestMockPlanId
 │  └─ TargetJob(jobId=B)
 ├─ ResumeSources
-│  ├─ ResumeSource(sourceId=upload-1)
-│  │  ├─ name: 刘哲-前端简历.pdf
+│  ├─ ResumeSource(sourceId=src-cn)
+│  │  ├─ name: 刘哲_前端_中文_2026.pdf
+│  │  ├─ sourceType: upload
+│  │  ├─ languageTag: 中
+│  │  ├─ status: active
 │  │  ├─ originalFileRef
 │  │  ├─ parsedTextSnapshot
-│  │  └─ sourceType: upload
-│  └─ ResumeSource(sourceId=guided-1)
-│     ├─ name: 轻量问答简历 v1
-│     ├─ originalText: Q&A transcript
-│     └─ sourceType: guided
+│  │  └─ summary
+│  ├─ ResumeSource(sourceId=src-en)
+│  │  ├─ name: LiuZhe_Frontend_EN_2026.pdf
+│  │  ├─ sourceType: upload
+│  │  ├─ languageTag: EN
+│  │  └─ status: active
+│  └─ ResumeSource(sourceId=src-fullstack)
+│     ├─ name: 刘哲_全栈方向_2024.pdf
+│     └─ status: archived
 ├─ ResumeVersions
-│  ├─ ResumeVersion(resumeId=master-v3)
-│  │  ├─ parentSourceId: upload-1
+│  ├─ ResumeVersion(resumeId=v-cn-master)
+│  │  ├─ originalId: src-cn
 │  │  ├─ versionType: structured_master
 │  │  └─ structuredProfile
-│  └─ ResumeVersion(resumeId=job-A-v1)
-│     ├─ parentVersionId: master-v3
-│     ├─ targetJobId: A
-│     ├─ versionType: targeted
-│     └─ tailoredContent
+│  ├─ ResumeVersion(resumeId=v-cn-bd)
+│  │  ├─ originalId: src-cn
+│  │  ├─ parentVersionId: v-cn-master
+│  │  ├─ targetJobId: A
+│  │  ├─ versionType: targeted
+│  │  ├─ focusAngle
+│  │  ├─ seedStrategy
+│  │  └─ acceptedChanges
+│  └─ ResumeVersion(resumeId=v-en-stripe)
+│     ├─ originalId: src-en
+│     ├─ parentVersionId: v-en-master
+│     └─ versionType: targeted
 └─ MockInterviewPlans
-   ├─ planId=P1 -> jobId=A + resumeId=job-A-v1 + round=技术一面
-   └─ planId=P2 -> jobId=B + resumeId=master-v3 + round=HR 初筛
+   ├─ planId=P1 -> jobId=A + resumeId=v-cn-bd + round=技术一面
+   └─ planId=P2 -> jobId=B + resumeId=v-en-master + round=HR 初筛
 ```
 
 ## 4 多 JD 管理
@@ -101,14 +116,33 @@ Mock Interview Plan Header
 ### 5.1 简历版本入口
 
 ```text
-Resume
-├─ 原始简历
-├─ 结构化主版本
-├─ 岗位定制版本
-├─ 上传 / 粘贴新简历
-├─ 轻量问答创建简历
-├─ 预览原始文件 / 解析文本
-└─ 查看岗位定制版本
+Resume / resume_versions
+├─ Resume Workshop List
+│  ├─ 按原始分组
+│  │  ├─ Original Resume Tree
+│  │  ├─ Master Version
+│  │  └─ Targeted Versions
+│  └─ 按版本平铺
+│     ├─ Version
+│     ├─ From Original
+│     ├─ Target
+│     ├─ Match
+│     └─ Last Edit
+├─ 新建原始简历
+│  ├─ 上传文件
+│  ├─ 粘贴文本
+│  ├─ 轻量问答
+│  ├─ Agent 解析
+│  └─ 预览确认保存 v1
+├─ 基于这棵树新建版本
+│  ├─ 版本名称
+│  ├─ 目标岗位 / 公司
+│  ├─ 侧重方向
+│  └─ Bullet 初始化方式
+└─ Version Detail
+   ├─ 预览
+   ├─ 改写建议
+   └─ 手动编辑
 
 Mock Interview Plan
 └─ 绑定简历
@@ -120,10 +154,54 @@ Mock Interview Plan
 
 | 类型 | 来源 | 用途 |
 |------|------|------|
-| 原始简历 | 上传文件、粘贴文本或问答记录 | 作为用户提供的证据只读保留 |
-| 结构化主版本 | 系统解析原始简历或问答生成 | 用于岗位推荐、面试生成和报告归因 |
-| 岗位定制版本 | 基于某份简历和某个 JD 派生 | 只绑定到特定岗位或面试规划 |
+| 原始简历 | 上传文件、粘贴文本或问答记录 | 作为用户提供的证据只读保留，是一棵简历树的根 |
+| 结构化主版本 | 系统解析原始简历或问答生成 | 用于岗位推荐、面试生成和报告归因，也是定制版本的默认分叉基线 |
+| 岗位定制版本 | 基于某份原始简历树和目标 JD 派生 | 只绑定到特定岗位或面试规划，改写采纳只作用于当前版本 |
 | 轻量问答简历 | 首次无简历时 3-5 轮问答生成 | 作为可继续完善的初始版本 |
+
+### 5.3 列表与详情切换
+
+```text
+Resume Workshop
+├─ Group by original
+│  ├─ 管理底稿与分叉关系
+│  ├─ 选择某棵树作为新版本底稿
+│  └─ 查看每棵树下的主版本和定制版本
+└─ Flat by version
+   ├─ 按匹配分和更新时间排序
+   ├─ 快速挑选可投递或可绑定版本
+   └─ 打开版本详情
+
+Version Detail(versionId)
+├─ Resume Branch Map
+├─ Preview
+├─ Rewrites(定制版本)
+└─ Edit
+```
+
+主版本可以进入预览和手动编辑，但 `改写建议` 应禁用或说明“主版本保持干净”。岗位定制版本中的拒绝、编辑、采纳不影响主版本或兄弟版本。
+
+### 5.4 岗位定制分叉
+
+```text
+Original Tree
+  -> 选为底稿
+  -> 基于这棵树新建版本
+     ├─ 版本名称
+     ├─ 目标岗位 / 公司
+     ├─ 侧重方向
+     │  ├─ 前端平台 / 基建方向
+     │  ├─ 协作影响力
+     │  ├─ 全栈广度
+     │  ├─ 技术 Lead 视角
+     │  └─ 自定义
+     └─ Bullet 初始化方式
+        ├─ 从主版本复制
+        ├─ 空白起步
+        └─ AI 选 bullet
+```
+
+定制分叉必须明确来源树、主版本、目标岗位和初始化策略。只填写版本名称但没有目标岗位时不能创建。
 
 ## 6 JD 与简历绑定
 
@@ -137,7 +215,7 @@ MockInterviewPlan
 └─ source: home / job_picks / report_replay / report_next_round
 ```
 
-同一份 JD 可以和不同简历版本形成不同面试规划。同一份简历也可以被多个 JD 使用。
+同一份 JD 可以和不同简历版本形成不同面试规划。同一份简历也可以被多个 JD 使用。同一棵原始简历树可以派生出多个面向不同 JD 的定制版本。
 
 ## 7 UI 行为
 
@@ -147,11 +225,13 @@ MockInterviewPlan
 | 用户有多份 JD | 首页显示最近模拟面试，岗位推荐提供新的 JD 来源 |
 | 用户不想继续当前规划 | 在模拟面试页点击切换规划或新建规划 |
 | 用户首次无简历 | 首页或模拟面试规划提示创建简历 |
-| 用户上传新简历 | 创建新的 `ResumeSource` 和结构化主版本 |
-| 用户粘贴简历 | 创建新的 `ResumeSource`，保留粘贴文本 |
+| 用户上传新简历 | 创建新的 `ResumeSource`，解析后经预览确认保存结构化主版本 |
+| 用户粘贴简历 | 创建新的 `ResumeSource`，保留粘贴文本，并经预览确认保存 v1 |
 | 用户轻量问答生成简历 | 创建 `sourceType=guided` 的 `ResumeSource` 和 v1 主版本 |
+| 用户查看简历资产 | 默认按原始简历树查看，也可切换为版本平铺 |
+| 用户为岗位定制简历 | 从某棵树分叉，填写目标岗位 / 公司、侧重方向和 bullet 初始化方式 |
+| 用户采纳改写建议 | 只写入当前岗位定制版本，不影响原始简历、主版本或其它定制版本 |
 | 用户更换面试绑定简历 | 在弹窗选择已有 `ResumeVersion` 并绑定 |
-| 用户为岗位定制简历 | 创建带 `targetJobId` 的派生版本 |
 
 ## 8 不做的事
 
@@ -162,7 +242,9 @@ MockInterviewPlan
 ├─ 多岗位信息混合在一个模拟面试规划里
 ├─ 让 Settings 承担简历管理职责
 ├─ 让更换简历直接跳出当前面试规划
-└─ 覆盖原始简历内容
+├─ 覆盖原始简历内容
+├─ 把岗位定制改写写回原始简历或主版本
+└─ 把旧 ResumeVersionsScreen 当成目标运行时页面
 ```
 
 原始简历是用户提供的证据，任何结构化分析、改写或岗位定制都不能覆盖它。

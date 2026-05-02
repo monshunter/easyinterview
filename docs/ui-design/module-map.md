@@ -1,6 +1,6 @@
 # EasyInterview UI 目标模块地图
 
-> **版本**: 1.9
+> **版本**: 2.0
 > **状态**: active
 > **更新日期**: 2026-05-02
 
@@ -17,7 +17,7 @@
 | Mock Interview / 模拟面试 | 确认一场模拟面试的上下文并立即开始 | 当前面试规划、切换/新建规划、JD/简历绑定、面试轮次、立即面试、会话历史 | 一级导航，不再叫当前岗位 |
 | Interview Session | 完成一场完整模拟面试 | 文本面试、语音面试、语音转文字、问题推进、结束生成报告 | 会话级页面 |
 | Report Dashboard | 查看一次已完成模拟面试的报告 | 仪表盘、上下文条、准备度、维度、题目回顾、证据、复练计划 | 隶属于 session，不是一级导航 |
-| Resume / 简历 | 管理简历资产 | 原始简历、结构化主版本、岗位定制版本、上传/粘贴/问答、原件预览 | 一级导航 |
+| Resume / 简历 | 管理简历资产 | 原始简历树、结构化主版本、岗位定制版本、版本平铺、上传/粘贴/问答、解析预览确认、分叉定制版本、预览/改写/编辑详情 | 一级导航 |
 | Debrief / 复盘 | 复盘真实面试并生成复盘面试 | 选择目标岗位/JD、关联模拟面试、绑定简历、复盘记录、复盘分析、复盘面试 | 一级导航 |
 | User Profile / 用户画像 | 查看和修正系统理解用户的结构化画像 | 来源统计、画像维度、证据来源、用户纠偏、模块使用开关 | 用户菜单入口 |
 | Account & Settings / 设置与隐私 | 管理账号基础信息、登录安全、界面偏好和隐私 | 个人基础信息、登录方式、字体预设、通知占位、订阅占位、导出、删除 | 用户菜单入口 |
@@ -30,7 +30,7 @@
 |----------|----------|----------|
 | `workspace` | Mock Interview / 当前面试规划 | 产品语义从“当前岗位”改为“模拟面试规划” |
 | `company_intel` | Mock Interview | 从独立页降为模拟面试规划页的公司情报分区或详情 |
-| `resume_versions` | Resume | 作为一级简历模块的当前入口 |
+| `resume_versions` | Resume | 作为一级简历模块的当前入口；`flow=create`、`flow=branch`、`versionId` 和 `tab` 驱动创建、分叉和详情子状态 |
 | `resume` | Resume / Mock Interview | 简历资产在 Resume 管，模拟面试页只选择绑定简历 |
 | `jd_match` | Job Picks | 作为一级岗位推荐模块保留 |
 | `practice` | Interview Session | 文本面试页面 |
@@ -98,7 +98,7 @@
 | `followup` | `practice` | 移除独立追问树；运行时折回完整面试 |
 | `experiences` | `resume_versions` | 移除独立经历库；经历证据并入简历和用户画像 |
 | `star` | `resume_versions` | 移除独立 STAR 编辑器；简历改写在简历模块内完成 |
-| `resume` | `resume_versions` | 移除历史简历单页；目标入口是简历版本工坊 |
+| `resume` | `resume_versions` | 移除历史简历单页；目标入口是新简历工坊 |
 | `onboarding` | `resume_versions` | 移除历史 5 分钟画像 / 经历卡片页；当前简历创建走 `flow=create` |
 
 ### 5.3 兼容但不新增模块的页面
@@ -114,7 +114,8 @@
 | `screens-rest.jsx` | `mistakes` / `resume` / `growth` / 旧复盘 | 文件已删除 |
 | `screens-completion.jsx` | `welcome` / `drill` / `followup` / `star` | 文件已删除 |
 | `screens-p2.jsx::PlanScreen` | `plan` | 组件已删除；保留 `VoicePracticeScreen` |
-| `screens-p1-depth.jsx::ExperienceLibraryScreen` | `experiences` | 组件已删除；保留 `DebriefFullScreen` 和 `ResumeVersionsScreen` |
+| `screens-p1-depth.jsx::ExperienceLibraryScreen` | `experiences` | 组件已删除；保留 `DebriefFullScreen` |
+| `screens-p1-depth.jsx::ResumeVersionsScreen` | `resume_versions` 旧实现 | 导出已改为 `_LegacyResumeVersionsScreen` dead code；当前 `screen-resume-workshop.jsx` 后加载并覆盖 `window.ResumeVersionsScreen` |
 | `screens-p0-complete.jsx::OnboardingScreen` | `onboarding` | 组件已删除；保留 `ParseScreen`、`ReportGeneratingScreen` 和 `SettingsScreen` |
 | `screen-report.jsx::ReportEditorial` / `ReportTimeline` | 报告变体标签 / `reportLayout` | 组件和参数已删除；`ReportScreen` 只返回 Dashboard |
 
@@ -161,4 +162,5 @@ User
 8. 主题色、暗色模式、语言切换和字体预设是全局显示控制，不得被写成岗位、面试、报告或认证模块。
 9. 设置页可以维护界面偏好，但不得把目标岗位、年限、薪资偏好等画像信息移入个人资料。
 10. 判断当前目标模块时，以 `normalizeRoute` 后的 `activeRouteName` 和 TopBar 一级导航为准，不以旧 hash 或旧画板标签为准。
-11. 已清理的废弃组件不得重新驱动 `docs/ui-design` 的目标设计、导航或用户流程。
+11. 已清理或 dead code 化的废弃组件不得重新驱动 `docs/ui-design` 的目标设计、导航或用户流程。
+12. 简历模块的当前目标以 `screen-resume-workshop.jsx` 为准：按原始简历树管理、按版本平铺挑选、创建原始简历、从树分叉岗位定制版本，以及版本详情中的预览 / 改写建议 / 手动编辑。

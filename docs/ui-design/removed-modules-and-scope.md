@@ -1,6 +1,6 @@
 # EasyInterview UI 移除模块与范围裁剪
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: active
 > **更新日期**: 2026-05-02
 
@@ -105,6 +105,8 @@ Resume
 User Profile
 └─ 系统根据简历、JD、模拟面试、复盘沉淀经历证据
 ```
+
+旧 `screens-p1-depth.jsx::ResumeVersionsScreen` 中的单页版本工坊实现也不再作为目标入口。当前运行时由后加载的 `screen-resume-workshop.jsx` 覆盖 `window.ResumeVersionsScreen`；旧实现仅以 `_LegacyResumeVersionsScreen` dead code 形式保留，避免在本次简历 IA 调整中改动 1300 行历史文件。
 
 ## 6 未登录落地页
 
@@ -268,9 +270,9 @@ Report
 | `settings` | 保留为用户菜单里的账号、隐私、界面偏好入口 |
 | `auth_*` | 保留为认证流程页面 |
 
-## 14 当前静态 UI 中已清理的废弃 / 历史代码
+## 14 当前静态 UI 中已清理或失效的废弃 / 历史代码
 
-以下清单用于约束后续文档和实现判断：这些组件和画板入口已从当前静态 UI 清理，后续不得作为目标页面恢复。当前目标以顶部导航、`routeAliases` 折返后的 `activeRouteName` 和实际渲染内容为准。
+以下清单用于约束后续文档和实现判断：这些组件、画板入口或旧实现已从当前目标运行时清理 / 折返 / dead code 化，后续不得作为目标页面恢复。当前目标以顶部导航、`routeAliases` 折返后的 `activeRouteName`、实际渲染内容和后加载覆盖关系为准。
 
 | 旧代码位置 / 组件 | 关联 route 或入口 | 清理后状态 | 目标处理 |
 |----------------|-------------------|--------------|----------|
@@ -281,6 +283,7 @@ Report
 | `screens-rest.jsx::GrowthScreen` | `growth` | 文件已删除；route 折回 `home` | 废弃独立成长中心 |
 | `screens-p2.jsx::PlanScreen` | `plan` | 组件已删除；route 折回 `workspace` | 废弃独立多轮计划页；`workspace` 内的轮次节点仍保留 |
 | `screens-p1-depth.jsx::ExperienceLibraryScreen` | `experiences` | 组件已删除；route 折回 `resume_versions` | 废弃独立经历库 |
+| `screens-p1-depth.jsx::ResumeVersionsScreen` | `resume_versions` 旧实现 | 导出改为 `_LegacyResumeVersionsScreen`；`screen-resume-workshop.jsx` 后加载并覆盖 `window.ResumeVersionsScreen` | 废弃旧单页版本工坊；以新简历工坊列表 / 详情 / 分叉 IA 为准 |
 | `screens-completion.jsx::StarEditorScreen` | `star` | 文件已删除；route 折回 `resume_versions` | 废弃独立 STAR 编辑器 |
 | `screen-report.jsx::ReportEditorial` / `ReportTimeline` | 报告变体标签 / `reportLayout` | 组件、参数和画板变体已删除；`report` 只渲染 Dashboard | 废弃独立刊物式报告和时间线报告形态 |
 | `screens-rest.jsx::DebriefScreen` | 旧复盘实现 | 文件已删除；当前目标使用 `DebriefFullScreen` | 废弃旧复盘页 |

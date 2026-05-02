@@ -1,6 +1,6 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: active
 > **更新日期**: 2026-05-02
 
@@ -18,7 +18,7 @@
 6. `当前岗位` 不再作为一级模块；用户从 `模拟面试` 进入当前面试规划，规划由 `JD/目标岗位 + 简历 + 当前面试轮次` 组成。
 7. `面试报告` 不再作为一级模块；报告隶属于某一次已完成的模拟面试，只能从面试结束页、会话历史或相关入口进入。
 8. `岗位推荐` 是一级模块，用于基于简历、用户画像和岗位偏好推荐 JD；点击 `确认面试` 后先进入 JD 解析确认 `parse`，再进入模拟面试前确认 `workspace`。
-9. 简历是一级模块，管理原始简历、结构化主版本、岗位定制版本和导入/创建流程。
+9. 简历是一级模块，当前运行时以 `screen-resume-workshop.jsx` 为准，管理原始简历树、结构化主版本、岗位定制版本、创建流程、分叉流程和版本详情。
 10. 用户画像在用户菜单中，是 AI 根据简历、JD、模拟面试、复盘和用户修正沉淀出的结构化资料；个人设置只保留账号基础信息、界面偏好、隐私数据和登录安全。
 11. 面试是一个整体过程，不提供“热身、单题、反问、针对性复练”等练习模式选择。
 12. 文本面试和语音面试是整场面试的形式；文本输入框里的麦克风是“语音转文字”，不是切换到语音面试。
@@ -31,6 +31,7 @@
 19. 成长、多轮计划、经历库、追问树、单题 Drill、独立错题复练队列仍不进入当前主流程。
 20. 模拟面试规划页的历史列表只展示当前 `MockInterviewPlan` / `TargetJob` / `JD` 范围内的会话，不混入其他公司、岗位或 JD 的历史。
 21. 复盘页的 `目标岗位 / JD`、`关联模拟面试`、`绑定简历` 三个上下文卡片都通过本页弹窗选择，不跳转到模拟面试、报告或简历页面。
+22. 旧 `screens-p1-depth.jsx::ResumeVersionsScreen` 已被 `_LegacyResumeVersionsScreen` dead code 化；`ui-design/index.html` 后加载 `screen-resume-workshop.jsx` 并覆盖 `window.ResumeVersionsScreen`，因此新简历工坊而不是旧版本页驱动目标架构。
 
 ## 3 目标产品骨架
 
@@ -82,11 +83,18 @@
 │  ├─ 复练当前轮
 │  └─ 进入下一轮
 ├─ Resume / 简历
-│  ├─ 原始简历
-│  ├─ 结构化主版本
-│  ├─ 岗位定制版本
-│  ├─ 上传 / 粘贴 / 轻量问答创建
-│  └─ 原始简历预览
+│  ├─ 简历工坊列表
+│  │  ├─ 按原始简历树分组
+│  │  └─ 按版本平铺
+│  ├─ 新建原始简历
+│  │  ├─ 上传 / 粘贴 / 轻量问答
+│  │  ├─ Agent 解析
+│  │  └─ 预览确认保存 v1
+│  ├─ 从已有树分叉岗位定制版本
+│  └─ 版本详情
+│     ├─ 预览
+│     ├─ 改写建议
+│     └─ 手动编辑
 ├─ Debrief / 复盘
 │  ├─ 目标岗位 / JD 选择弹窗
 │  ├─ 关联模拟面试选择弹窗
@@ -204,9 +212,17 @@ Report Dashboard(sessionId)
    └─ Mock Interview Plan(next round)
 
 Resume
-├─ 原始简历
-├─ 结构化主版本
-└─ 岗位定制版本
+├─ OriginalResume Tree
+│  ├─ 原始来源(active / archived)
+│  ├─ StructuredMaster
+│  └─ TargetedVersions
+├─ Flat Version List
+├─ Create Flow
+│  └─ 输入 -> Agent 解析 -> 预览确认 -> v1
+└─ Version Detail
+   ├─ Preview
+   ├─ Rewrites
+   └─ Edit
 
 Debrief
 └─ 目标岗位 + 关联模拟面试 + 简历
@@ -274,6 +290,7 @@ Historical routes retained only as aliases
    ├─ screens-completion.jsx
    ├─ PlanScreen
    ├─ ExperienceLibraryScreen
+   ├─ Legacy ResumeVersionsScreen
    ├─ OnboardingScreen
    └─ ReportEditorial / ReportTimeline
 ```
@@ -298,6 +315,8 @@ Historical routes retained only as aliases
 14. `canvas.html` 不应保留旧分区标题、旧单页简历画板、旧 onboarding 画板或报告变体画板；文档以 `app.jsx` 实际渲染为准。
 15. 顶栏主题色、暗色和语言切换必须保持为横切显示控制，不进入任何业务模块。
 16. 字体预设必须在设置页作为界面偏好维护，并原子切换 serif/sans 字体组合。
-17. `screens` 映射不得重新注册 `welcome`、`mistakes`、`growth`、`plan`、`experiences`、`drill`、`followup`、`star`、`resume`、`onboarding` 等旧页面 key。
-18. `ResumeScreen`、`OnboardingScreen`、`ReportEditorial`、`ReportTimeline`、`PlanScreen`、`ExperienceLibraryScreen` 和旧 `DebriefScreen` 不应进入当前源码或目标文档的页面结构。
-19. 模拟面试历史列表必须按当前面试规划 / 当前 TargetJob / JD 过滤，不展示其他公司或岗位的历史。
+17. 简历模块目标实现以 `screen-resume-workshop.jsx` 为准；旧 `_LegacyResumeVersionsScreen` 不得重新驱动文档、画板或运行时入口。
+18. 简历创建必须经过解析进度和预览确认；岗位定制版本必须从某棵原始简历树分叉，并记录目标岗位、侧重方向和 bullet 初始化方式。
+19. `screens` 映射不得重新注册 `welcome`、`mistakes`、`growth`、`plan`、`experiences`、`drill`、`followup`、`star`、`resume`、`onboarding` 等旧页面 key。
+20. `ResumeScreen`、旧 `ResumeVersionsScreen`、`OnboardingScreen`、`ReportEditorial`、`ReportTimeline`、`PlanScreen`、`ExperienceLibraryScreen` 和旧 `DebriefScreen` 不应进入当前源码或目标文档的页面结构。
+21. 模拟面试历史列表必须按当前面试规划 / 当前 TargetJob / JD 过滤，不展示其他公司或岗位的历史。

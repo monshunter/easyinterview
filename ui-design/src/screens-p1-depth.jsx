@@ -1285,4 +1285,6 @@ const OriginalResumePreviewModal = ({ T, lang, source, activeVersion, onClose })
 };
 
 window.DebriefFullScreen = DebriefFullScreen;
-window.ResumeVersionsScreen = ResumeVersionsScreen;
+// Legacy ResumeVersionsScreen is superseded by screen-resume-workshop.jsx (loaded after this file).
+// Kept here as dead code to avoid touching a 1300-line file; the new screen overrides window.ResumeVersionsScreen.
+window._LegacyResumeVersionsScreen = ResumeVersionsScreen;
