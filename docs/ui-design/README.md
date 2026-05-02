@@ -10,7 +10,7 @@
 ui-design/index.html
 └─ ui-design/src/app.jsx
    ├─ TopBar 一级导航
-   ├─ routeAliases 旧路由折返
+   ├─ ROUTE_ALIASES 旧路由折返
    └─ screens 当前可渲染页面
 ```
 
@@ -18,7 +18,7 @@ ui-design/index.html
 
 也就是说，本目录不再作为“未来可能目标”的独立草案存在；它必须和当前静态页面展示的运行时交互保持一致。静态页面调整后，`docs/ui-design/` 需要同步校对，避免文档与设计稿漂移。
 
-`ui-design/canvas.html` 是设计画板总览。判断目标模块时，以 `src/app.jsx` 的一级导航、`routeAliases`、`normalizeRoute` 后的 `activeRouteName` 和实际 screen 返回内容为准；画板标签不能覆盖运行时交互，已移除的历史组件不得作为目标页面恢复。
+`ui-design/canvas.html` 是设计画板总览。判断目标模块时，以 `src/app.jsx` 的一级导航、`ROUTE_ALIASES`、`normalizeRoute` 后的 `activeRouteName` 和实际 screen 返回内容为准；画板标签不能覆盖运行时交互，已移除的历史组件不得作为目标页面恢复。
 
 ## 2 目录关系
 
@@ -76,8 +76,8 @@ docs/ui-design/
 - 报告、复练当前轮、进入下一轮之间的边界。
 - 简历原件、结构化主版本和岗位定制版本之间的关系。
 - 用户画像与个人设置的边界。
-- `routeAliases` 对旧 route 的折返关系，以及仍可直达但不属于当前目标入口的历史页面。
-- 已清理或通过 `routeAliases` 折返的废弃 / 历史组件。
+- `ROUTE_ALIASES` 对旧 route 的折返关系，以及仍可直达但不属于当前目标入口的历史页面。
+- 已清理或通过 `ROUTE_ALIASES` 折返的废弃 / 历史组件。
 
 ## 7 检查清单
 

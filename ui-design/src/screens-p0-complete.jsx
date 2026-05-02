@@ -232,7 +232,7 @@ const ParseScreen = ({ T, lang, nav }) => {
         <div style={{ display: "flex", gap: 10 }}>
           <Btn T={T} variant="ghost" onClick={() => nav("home")}>{lang === "en" ? "Cancel" : "取消"}</Btn>
           <Btn T={T} variant="secondary" icon="edit" onClick={() => { setStep(0); setStage("loading"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{lang === "en" ? "Re-parse" : "重新解析"}</Btn>
-          <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => nav("workspace", { jobId: "tj-1" })}>
+          <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => nav("workspace", window.eiCreateInterviewContext ? window.eiCreateInterviewContext() : {})}>
             {lang === "en" ? "Confirm & open interview setup" : "确认并进入面试前确认"}
           </Btn>
         </div>
@@ -266,7 +266,7 @@ const RequirementBlock = ({ T, lang, title, items, onToggle, HitDot }) => (
 // ═══════════════════════════════════════════════════════════════════
 // #3 REPORT GENERATING — async intermediate screen
 // ═══════════════════════════════════════════════════════════════════
-const ReportGeneratingScreen = ({ T, lang, nav }) => {
+const ReportGeneratingScreen = ({ T, lang, nav, params = {} }) => {
   const [phase, setPhase] = React.useState(0);
   const phases = lang === "en" ? [
     { t: "Transcribing & aligning turns", s: 900, hint: "8 questions · 23 turns" },
@@ -289,7 +289,7 @@ const ReportGeneratingScreen = ({ T, lang, nav }) => {
       acc += p.s;
       setTimeout(() => { if (!cancel) setPhase(i + 1); }, acc);
     });
-    setTimeout(() => { if (!cancel) nav("report"); }, acc + 600);
+    setTimeout(() => { if (!cancel) nav("report", { ...params, sessionId: params.sessionId || "session-24" }); }, acc + 600);
     return () => { cancel = true; };
   }, []);
 

@@ -4,6 +4,7 @@ const HomeScreen = ({ T, lang, nav, role }) => {
   const [input, setInput] = React.useState("");
   const [parsing, setParsing] = React.useState(false);
   const [assistOpen, setAssistOpen] = React.useState(null);
+  const recentJobs = D.targetJobs || [];
 
   const handleImport = () => {
     if (!input.trim()) return;
@@ -91,9 +92,13 @@ const HomeScreen = ({ T, lang, nav, role }) => {
       {/* Recent mock interviews */}
       <div style={{ marginBottom: 48 }}>
         <SectionHeader eyebrow={lang === "en" ? "RECENT" : "最近"} title={L.active} sub={L.activeSub} T={T} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-          {D.targetJobs.map((j) => <MockInterviewCard key={j.id} job={j} rounds={D.jdSample.rounds} T={T} onClick={() => nav("workspace", { jobId: j.id })} lang={lang} />)}
-        </div>
+        {recentJobs.length ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+            {recentJobs.map((j) => <MockInterviewCard key={j.id} job={j} rounds={D.jdSample.rounds} T={T} onClick={() => nav("workspace", { targetJobId: j.id, jobId: j.id, planId: `plan-${j.id}`, jdId: `jd-${j.id}` })} lang={lang} />)}
+          </div>
+        ) : (
+          <HomeEmptyState T={T} lang={lang} onImport={() => document.querySelector("textarea")?.focus()} />
+        )}
       </div>
 
       {/* Auxiliary starts */}
@@ -126,6 +131,19 @@ const HomeScreen = ({ T, lang, nav, role }) => {
     </div>
   );
 };
+
+const HomeEmptyState = ({ T, lang, onImport }) => (
+  <div style={{ padding: 24, border: `1px dashed ${T.rule}`, borderRadius: 3, background: T.bgSoft }}>
+    <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "NO RECENT MOCKS" : "暂无最近模拟面试"}</div>
+    <div className="ei-serif" style={{ fontSize: 20, color: T.ink, marginBottom: 8 }}>
+      {lang === "en" ? "Start from a JD instead of showing placeholder interviews." : "从一份 JD 开始，不展示占位面试数据。"}
+    </div>
+    <div style={{ fontSize: 13.5, color: T.ink3, lineHeight: 1.6, marginBottom: 14 }}>
+      {lang === "en" ? "Paste or upload a target job description to create the first interview context." : "粘贴或上传目标岗位 JD 后，系统会生成第一条面试上下文。"}
+    </div>
+    <Btn T={T} variant="secondary" icon="arrow_left" onClick={onImport}>{lang === "en" ? "Go to JD input" : "回到 JD 输入"}</Btn>
+  </div>
+);
 
 const MockInterviewCard = ({ job, rounds, T, onClick, lang }) => {
   const statusMap = {

@@ -1,6 +1,6 @@
 # EasyInterview UI 认证与默认入口
 
-> **版本**: 1.8
+> **版本**: 1.10
 > **状态**: active
 > **更新日期**: 2026-05-02
 
@@ -13,8 +13,8 @@
 1. App 默认进入首页。
 2. 不再展示独立未登录欢迎页。
 3. 用户未登录时，仍然可以看到首页并开始输入 JD。
-4. 当用户执行需要身份、保存、同步、导出或敏感数据处理的动作时，产品目标是再触发登录；当前静态稿尚未把该 AuthGate 接入所有业务按钮。
-5. 当前静态稿中登录和邮箱验证成功后回到 `Home`；“登录后恢复原动作”属于后续实现输入，不能被描述为已在静态稿完成。
+4. 当用户执行需要身份、保存、同步、导出或敏感数据处理的动作时，产品目标是再触发登录；当前静态稿已把轻量 `requestAuth(pendingAction)` 接入 `立即面试`、`复练当前轮` 和 `进入下一轮`。
+5. 当前静态稿中登录和邮箱验证成功后会优先恢复 `pendingAction`；没有待恢复动作时才回到 `Home`。
 6. 未登录顶部用户区显示 `登录`、`注册`。
 7. 已登录用户菜单显示 `用户画像`、`设置与隐私`、`退出登录`。
 8. 认证页面包括登录、注册、邮箱验证、重置登录和退出登录。
@@ -94,22 +94,28 @@ Auth
 
 ## 6 认证拦截模型
 
-当前静态 UI 已实现独立认证页面和顶部用户区入口，但还没有统一的业务级 `AuthGate`。因此运行时行为是：
+当前静态 UI 已实现独立认证页面、顶部用户区入口和轻量业务级 `requestAuth(pendingAction)`。运行时行为是：
 
 ```text
 TopBar 登录 / 注册
   -> auth_login / auth_register
   -> auth_verify(注册后)
   -> success
-  -> Home
+  -> Home(没有 pendingAction)
 
 UserMenu 退出登录
   -> auth_logout
   -> 清除本机登录态
   -> 重新登录 或 返回首页
+
+业务动作:
+  -> requestAuth(pendingAction)
+     ├─ signedIn=true -> 执行原动作
+     └─ signedIn=false -> auth_login(pendingAction)
+        └─ success -> resume pendingAction.route(pendingAction.params)
 ```
 
-后续接入保存、上传、开始面试、查看历史数据等真实业务动作时，再按以下模型补齐待恢复动作：
+后续接入保存、上传、查看更多历史数据等真实业务动作时，应继续沿用同一模型：
 
 ```text
 UserAction
@@ -146,7 +152,7 @@ UserAction
 | 结束并生成报告 | 是 | 会写入报告和证据 |
 | 查看历史报告 | 是 | 会读取用户历史数据 |
 | 复练当前轮 | 是 | 会创建新的面试 session |
-| 进入下一轮 | 是 | 会创建新的面试规划或 session |
+| 进入下一轮 | 是 | 会直接创建并进入下一轮面试 session |
 | 开始复盘 | 是 | 会保存真实面试问题、回答和反馈 |
 | 开始复盘面试 | 是 | 会基于复盘创建新的面试 session |
 | 打开用户画像 | 是 | 读取系统沉淀的个人结构化资料 |
@@ -158,23 +164,22 @@ UserAction
 
 ## 8 Pending Action
 
-`Pending Action` 是后续实现动作级登录拦截时的必需结构；当前静态 UI 没有在登录页携带或恢复该对象。
+`Pending Action` 是动作级登录拦截的恢复对象。当前静态 UI 会在登录 / 注册 / 邮箱验证页展示待恢复动作，并在登录成功后恢复目标 route 和 params。
 
 ```text
 pendingAction
-├─ sourceRoute
-├─ sourceParams
-├─ actionType
-├─ actionPayload
-└─ draftState
+├─ type
+├─ label
+├─ route
+└─ params
 ```
 
 ### 8.1 成功路径
 
 ```text
 Auth success
-  -> restore draftState
-  -> execute actionType(actionPayload)
+  -> read pendingAction.route
+  -> restore pendingAction.params
   -> navigate target route
 ```
 
@@ -223,8 +228,8 @@ Auth Pages
 
 1. `hideTopBar` 不应依赖 `welcome` 作为默认未登录态。
 2. `signedIn` 不应决定是否能渲染 Home。
-3. 当前静态稿登录成功回 `Home`；路由层后续需要支持 `pendingAction` 或等价恢复机制。
-4. 接入 AuthGate 后，认证 UI 需要明确“登录后继续刚才动作”的文案。
-5. 接入真实业务保存/上传/开始面试时，所有需要登录的按钮必须走统一 `requireAuth(action)`，不能在各页面散落自定义跳转。
+3. 登录成功必须优先恢复 `pendingAction`；没有待恢复动作时才回 `Home`。
+4. 认证 UI 需要明确“登录后继续刚才动作”的文案。
+5. 接入真实业务保存 / 上传 / 查看历史数据时，所有需要登录的按钮必须走统一 `requestAuth(pendingAction)`，不能在各页面散落自定义跳转。
 6. 退出登录页面必须说明账号数据不会被删除。
 7. 主题色、暗色和语言切换不得被绑定到认证状态；登录前后应保持同一套显示控制。

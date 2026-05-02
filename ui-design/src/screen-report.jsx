@@ -1,45 +1,124 @@
 // Screen 4: Evidence-based Review / Report — dashboard only
-const ReportScreen = ({ T, lang, nav }) => {
+const ReportScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
   const D = window.EI_DATA;
   const r = D.report;
-  const job = D.targetJobs[0];
+  const routeContext = window.eiCreateInterviewContext ? window.eiCreateInterviewContext(params) : params;
+  const job = D.targetJobs.find((j) => j.id === routeContext.targetJobId) || D.targetJobs[0];
+  if (params.reportStatus === "failed") {
+    return <ReportFailureState T={T} lang={lang} nav={nav} context={routeContext} />;
+  }
+  if (!params?.sessionId) {
+    return <ReportMissingSessionState T={T} lang={lang} nav={nav} context={routeContext} />;
+  }
   const context = lang === "en" ? {
-    breadcrumb: "Mock interview / Session #24 / Report",
+    breadcrumb: `Mock interview / ${params.sessionId} / Report`,
     title: `${job.title} · ${r.round} mock report`,
     subtitle: "This report belongs to one completed mock interview. It is opened from interview history or after a session ends.",
-    session: "Mock interview #24",
+    session: params.sessionId,
     target: `${job.company} · ${job.title}`,
-    round: r.round,
+    round: params.roundName || r.round,
     nextRound: "Technical round 2",
     resume: "Liu Zhe · resume v3",
     time: "Apr 20 · 15:48",
     duration: r.duration,
-    modality: "Text",
+    modality: params.modality === "voice" ? "Voice" : "Text",
+    practiceMode: params.practiceMode === "assisted" ? "Assisted practice" : "Strict mock",
+    hints: params.hintUsed === "true" ? "Hint used" : "No hint used",
   } : {
-    breadcrumb: "模拟面试 / 会话 #24 / 面试报告",
+    breadcrumb: `模拟面试 / ${params.sessionId} / 面试报告`,
     title: `${job.title} · ${r.round}模拟报告`,
     subtitle: "这份报告隶属于一次已完成的模拟面试，只从会话历史或面试结束后进入。",
-    session: "模拟面试 #24",
+    session: params.sessionId,
     target: `${job.company} · ${job.title}`,
-    round: r.round,
+    round: params.roundName || r.round,
     nextRound: "技术二面",
     resume: "刘哲 · 简历 v3",
     time: "4/20 · 15:48",
     duration: r.duration,
-    modality: "文本",
+    modality: params.modality === "voice" ? "语音" : "文本",
+    practiceMode: params.practiceMode === "assisted" ? "带提示练习" : "严格模拟",
+    hints: params.hintUsed === "true" ? "使用过提示" : "未使用提示",
   };
 
-  return <ReportDashboard T={T} lang={lang} nav={nav} r={r} context={context} />;
+  return <ReportDashboard T={T} lang={lang} nav={nav} r={r} context={context} params={routeContext} requestAuth={requestAuth} />;
 };
 
+const ReportMissingSessionState = ({ T, lang, nav, context }) => (
+  <div className="ei-fadein" style={{ maxWidth: 820, margin: "0 auto", padding: "72px 48px" }}>
+    <Card T={T}>
+      <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{lang === "en" ? "REPORT NEEDS SESSION" : "报告缺少 sessionId"}</div>
+      <div className="ei-serif" style={{ fontSize: 28, color: T.ink, lineHeight: 1.25, marginBottom: 10 }}>
+        {lang === "en" ? "Open a report from a completed session." : "请从已完成会话打开报告。"}
+      </div>
+      <div style={{ fontSize: 14, color: T.ink3, lineHeight: 1.6, marginBottom: 18 }}>
+        {lang === "en" ? "Without sessionId the prototype returns to the current mock plan instead of inventing report data." : "没有 sessionId 时不展示假报告数据，而是回到当前面试规划或历史列表。"}
+      </div>
+      <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => nav("workspace", context)}>{lang === "en" ? "Back to mock history" : "返回面试历史"}</Btn>
+    </Card>
+  </div>
+);
+
+const ReportFailureState = ({ T, lang, nav, context }) => (
+  <div className="ei-fadein" style={{ maxWidth: 820, margin: "0 auto", padding: "72px 48px" }}>
+    <Card T={T}>
+      <div className="ei-label" style={{ color: T.danger, marginBottom: 10 }}>{lang === "en" ? "REPORT FAILED" : "报告生成失败"}</div>
+      <div className="ei-serif" style={{ fontSize: 28, color: T.ink, lineHeight: 1.25, marginBottom: 10 }}>
+        {lang === "en" ? "We could not generate evidence for this session." : "这场会话暂时没有生成可用证据。"}
+      </div>
+      <div style={{ fontSize: 14, color: T.ink3, lineHeight: 1.6, marginBottom: 18 }}>
+        {lang === "en" ? "Retry generation or return to session history. No placeholder score is shown." : "可以重试生成或回到会话历史；这里不会显示占位分数。"}
+      </div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <Btn T={T} variant="accent" icon="replay" onClick={() => nav("generating", context)}>{lang === "en" ? "Retry generation" : "重新生成"}</Btn>
+        <Btn T={T} variant="secondary" onClick={() => nav("workspace", context)}>{lang === "en" ? "Back to history" : "返回历史"}</Btn>
+      </div>
+    </Card>
+  </div>
+);
+
 // Dashboard — metric-heavy, at-a-glance
-const ReportDashboard = ({ T, lang, nav, r, context }) => {
+const ReportDashboard = ({ T, lang, nav, r, context, params, requestAuth }) => {
   const [detail, setDetail] = React.useState("questions");
   const [activeQuestion, setActiveQuestion] = React.useState(r.perQuestion[1]?.qId || r.perQuestion[0]?.qId);
+  const replayItems = r.perQuestion
+    .filter((item) => item.state === "待加强" || item.state === "达标")
+    .map((item) => item.qId);
+  const replayContext = {
+    ...params,
+    sessionId: `session-${params.planId}-${params.roundId}-replay`,
+    sourceSessionId: params.sessionId,
+    action: "replay-current-round",
+    replayItems: replayItems.join(","),
+    evidenceGaps: r.issues.map((issue) => issue.title).join(" / "),
+    roundId: params.roundId,
+    roundName: context.round,
+  };
+  const nextRoundId = getReportNextRoundId(params.roundId);
+  const nextRoundContext = {
+    ...params,
+    planId: `${params.planId}-${nextRoundId}`,
+    sessionId: `session-${params.planId}-${nextRoundId}-start`,
+    sourceSessionId: params.sessionId,
+    action: "start-next-round",
+    nextRoundId,
+    roundId: nextRoundId,
+    roundName: context.nextRound,
+    replayItems: "",
+  };
+  const runWithAuth = (payload, label) => {
+    const run = () => nav("practice", payload);
+    if (!requestAuth) {
+      run();
+      return;
+    }
+    requestAuth({ type: "create_session", label, route: "practice", params: payload }, run);
+  };
+  const goReplay = () => runWithAuth(replayContext, lang === "en" ? `Replay ${context.round}` : `复练当前轮：${context.round}`);
+  const goNextRound = () => runWithAuth(nextRoundContext, lang === "en" ? `Start ${context.nextRound}` : `进入下一轮：${context.nextRound}`);
 
   return (
     <div className="ei-fadein" style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 48px 96px" }}>
-      <button onClick={() => nav("workspace", { jobId: "tj-1" })} style={{ background: "transparent", border: "none", color: T.ink3, fontSize: 13, marginBottom: 20, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+      <button onClick={() => nav("workspace", params)} style={{ background: "transparent", border: "none", color: T.ink3, fontSize: 13, marginBottom: 20, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
         <Icon name="arrow_left" size={14} /> {lang === "en" ? "Back to interview setup" : "返回面试前确认"}
       </button>
 
@@ -54,11 +133,11 @@ const ReportDashboard = ({ T, lang, nav, r, context }) => {
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <Btn variant="accent" icon="replay" onClick={() => nav("workspace", { jobId: "tj-1" })} T={T}>
+          <Btn variant="accent" icon="replay" onClick={goReplay} T={T}>
             {lang === "en" ? `Replay ${context.round}` : `复练当前轮：${context.round}`}
           </Btn>
-          <Btn variant="secondary" icon="arrow_right" onClick={() => nav("workspace", { jobId: "tj-1" })} T={T}>
-            {lang === "en" ? `Prepare ${context.nextRound}` : `进入下一轮：${context.nextRound}`}
+          <Btn variant="secondary" icon="arrow_right" onClick={goNextRound} T={T}>
+            {lang === "en" ? `Start ${context.nextRound}` : `进入下一轮：${context.nextRound}`}
           </Btn>
         </div>
       </div>
@@ -88,6 +167,8 @@ const ReportDashboard = ({ T, lang, nav, r, context }) => {
         detail={detail}
         setDetail={setDetail}
         context={context}
+        onReplay={goReplay}
+        onNextRound={goNextRound}
         activeQuestion={activeQuestion}
         setActiveQuestion={setActiveQuestion}
       />
@@ -175,21 +256,28 @@ const ReportDashboard = ({ T, lang, nav, r, context }) => {
   );
 };
 
+const getReportNextRoundId = (roundId) => {
+  const order = ["round-hr", "round-tech-1", "round-tech-2", "round-manager"];
+  const idx = order.indexOf(roundId);
+  if (idx < 0) return "round-tech-2";
+  return order[Math.min(idx + 1, order.length - 1)];
+};
+
 const ReportContextStrip = ({ T, lang, context }) => {
   const items = lang === "en" ? [
-    ["Session", context.session],
+    ["Session ID", context.session],
     ["Target", context.target],
     ["Round", context.round],
     ["Resume", context.resume],
-    ["Completed", `${context.time} · ${context.duration}`],
-    ["Mode", context.modality],
+    ["Mode", `${context.modality} · ${context.practiceMode}`],
+    ["Hints", context.hints],
   ] : [
-    ["所属会话", context.session],
+    ["sessionId", context.session],
     ["目标岗位", context.target],
     ["面试轮次", context.round],
     ["绑定简历", context.resume],
-    ["完成时间", `${context.time} · ${context.duration}`],
-    ["沟通形式", context.modality],
+    ["模式", `${context.modality} · ${context.practiceMode}`],
+    ["提示记录", context.hints],
   ];
   return (
     <div style={{
@@ -220,7 +308,7 @@ const ReportStatButton = ({ T, active, onClick, children }) => (
   </button>
 );
 
-const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, activeQuestion, setActiveQuestion }) => {
+const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, onReplay, onNextRound, activeQuestion, setActiveQuestion }) => {
   const q = r.perQuestion.find((item) => item.qId === activeQuestion) || r.perQuestion[0];
   const tabs = [
     { k: "readiness", labelZh: "准备度详情", labelEn: "Readiness", icon: "target" },
@@ -319,7 +407,7 @@ const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, acti
                 <div className="ei-label" style={{ color: T.ink3, marginBottom: 5 }}>{q.qId.toUpperCase()} · {lang === "en" ? "ANSWER ANALYSIS" : "回答分析"}</div>
                 <div className="ei-serif" style={{ fontSize: 26, color: T.ink, lineHeight: 1.25 }}>{q.topic}</div>
               </div>
-              <Btn T={T} variant="secondary" size="sm" icon="replay" onClick={() => nav("workspace", { jobId: "tj-1" })}>{lang === "en" ? "Add to current-round replay" : "加入本轮复练"}</Btn>
+              <Btn T={T} variant="secondary" size="sm" icon="replay" onClick={onReplay}>{lang === "en" ? "Add to current-round replay" : "加入本轮复练"}</Btn>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
               <div style={{ background: T.okSoft, padding: 14, borderRadius: 2 }}>
@@ -396,18 +484,18 @@ const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, acti
               </div>
             ))}
             <div style={{ marginTop: 16 }}>
-              <Btn T={T} variant="accent" icon="replay" onClick={() => nav("workspace", { jobId: "tj-1" })}>{lang === "en" ? `Replay ${context.round}` : `复练当前轮：${context.round}`}</Btn>
+              <Btn T={T} variant="accent" icon="replay" onClick={onReplay}>{lang === "en" ? `Replay ${context.round}` : `复练当前轮：${context.round}`}</Btn>
             </div>
           </div>
           <div style={{ padding: 18, background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2 }}>
-            <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "PATH B · PREPARE NEXT ROUND" : `路径 B · 进入下一轮（${context.nextRound}）`}</div>
+            <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "PATH B · START NEXT ROUND" : `路径 B · 进入下一轮（${context.nextRound}）`}</div>
             <div className="ei-serif" style={{ fontSize: 20, color: T.ink, lineHeight: 1.35, marginBottom: 10 }}>
-              {lang === "en" ? "Use only when you decide to move forward." : "这是另一种面试规划，不是本报告默认复练。"}
+              {lang === "en" ? "Use only when you decide to move forward." : "这是另一场面试 session，不是本报告默认复练。"}
             </div>
             <div style={{ fontSize: 13, color: T.ink2, lineHeight: 1.65, marginBottom: 14 }}>
               {lang === "en"
-                ? "This creates a mock for the next interview round. It should inherit the same JD and resume, but change the interviewer focus and question mix."
-                : "进入下一轮会沿用同一 JD 与简历，但切换到下一轮面试官视角和题目结构，例如从技术一面进入技术二面。"}
+                ? "This starts a mock for the next interview round. It inherits the same JD and resume, but changes the interviewer focus and question mix."
+                : "进入下一轮会沿用同一 JD 与简历，并直接开始下一轮面试，例如从技术一面进入技术二面。"}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
               {[
@@ -420,7 +508,7 @@ const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, acti
                 </div>
               ))}
             </div>
-            <Btn T={T} variant="secondary" icon="arrow_right" onClick={() => nav("workspace", { jobId: "tj-1" })}>{lang === "en" ? `Prepare ${context.nextRound}` : `准备下一轮：${context.nextRound}`}</Btn>
+            <Btn T={T} variant="secondary" icon="arrow_right" onClick={onNextRound}>{lang === "en" ? `Start ${context.nextRound}` : `进入下一轮：${context.nextRound}`}</Btn>
           </div>
         </div>
       )}
@@ -428,7 +516,7 @@ const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, acti
   );
 };
 
-const IssueRow = ({ iss, T, L, lang, nav }) => {
+const IssueRow = ({ iss, T, L, lang, onReplay }) => {
   const toneMap = { high: T.danger, medium: T.warn, low: T.ink3 };
   const [added, setAdded] = React.useState(false);
   return (
@@ -447,7 +535,7 @@ const IssueRow = ({ iss, T, L, lang, nav }) => {
           <b style={{ color: T.ink, fontSize: 11.5, fontFamily: "var(--ei-mono)", letterSpacing: "0.06em" }}>▸ {L.suggestion}</b><br/>{iss.suggestion}
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-          <Btn variant="secondary" size="sm" T={T} icon="play" onClick={() => nav("workspace", { jobId: "tj-1" })}>{L.openDrill}</Btn>
+          <Btn variant="secondary" size="sm" T={T} icon="play" onClick={onReplay}>{L.openDrill}</Btn>
           <Btn variant="ghost" size="sm" T={T} icon={added ? "check" : "plus"} onClick={() => setAdded(true)}>
             {added ? L.addedToMistakes : L.addToMistakes}
           </Btn>

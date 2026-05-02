@@ -1,23 +1,28 @@
 // Screen 2: Mock Interview Setup
-const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
+const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
   const D = window.EI_DATA;
-  const [activeJobId, setActiveJobId] = React.useState(jobId || "tj-1");
-  const [selectedResumeId, setSelectedResumeId] = React.useState("frontend-v3");
+  const initialContext = window.eiCreateInterviewContext ? window.eiCreateInterviewContext(params) : params;
+  const [activeJobId, setActiveJobId] = React.useState(initialContext.targetJobId || initialContext.jobId);
+  const [selectedResumeId, setSelectedResumeId] = React.useState(initialContext.resumeVersionId || "frontend-v3");
   const [resumePickerOpen, setResumePickerOpen] = React.useState(false);
   const [plannerOpen, setPlannerOpen] = React.useState(false);
   React.useEffect(() => {
-    if (jobId) setActiveJobId(jobId);
-  }, [jobId]);
+    const nextJobId = params.targetJobId || params.jobId;
+    if (nextJobId) setActiveJobId(nextJobId);
+    if (params.resumeVersionId) setSelectedResumeId(params.resumeVersionId);
+  }, [params.targetJobId, params.jobId, params.resumeVersionId]);
 
+  const jobs = D.targetJobs || [];
   const resumeOptions = getWorkspaceResumeOptions(lang);
-  const planOptions = getWorkspacePlanOptions(lang, D.targetJobs);
+  const planOptions = getWorkspacePlanOptions(lang, jobs);
   const activePlan = planOptions.find((plan) => plan.jobId === activeJobId) || planOptions[0];
-  const job = D.targetJobs.find((j) => j.id === activeJobId) || D.targetJobs[0];
+  const job = jobs.find((j) => j.id === activeJobId) || jobs[0];
   const jd = getWorkspaceJDSample(job, D.jdSample);
   const currentRoundIndex = getCurrentRoundIndex(job, jd.rounds);
   const currentRound = jd.rounds[currentRoundIndex] || jd.rounds[0];
-  const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId) || resumeOptions[0];
-  const sessionHistory = getWorkspaceSessionHistory(lang, job, currentRound?.name);
+  const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId);
+  const interviewContext = createWorkspaceInterviewContext(activePlan, job, jd, currentRound, selectedResume, params);
+  const sessionHistory = getWorkspaceSessionHistory(lang, job, currentRound?.name, interviewContext);
 
   const L = lang === "en" ? {
     back: "Home",
@@ -81,6 +86,31 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
     lastReport: "最近一次报告",
     gotoReport: "打开完整报告",
     notePractice: "这场模拟面试中的每一道题都会读取 JD 要求、简历证据、风险提示和历史报告信号。",
+  };
+
+  if (!job) return <WorkspaceEmptyState T={T} lang={lang} nav={nav} />;
+  if (!selectedResume) return <WorkspaceMissingResumeState T={T} lang={lang} nav={nav} />;
+
+  const startContext = {
+    ...interviewContext,
+    sessionId: `session-${interviewContext.planId}-${interviewContext.roundId}-new`,
+    mode: "text",
+    modality: "text",
+    practiceMode: params.practiceMode || "strict",
+    hintUsed: "false",
+  };
+  const startInterview = () => {
+    const run = () => nav("practice", startContext);
+    if (!requestAuth) {
+      run();
+      return;
+    }
+    requestAuth({
+      type: "create_session",
+      label: L.startCore,
+      route: "practice",
+      params: startContext,
+    }, run);
   };
 
   return (
@@ -154,7 +184,7 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
             </div>
             <div style={{ fontSize: 13.5, color: T.ink3, marginTop: 6, lineHeight: 1.6, maxWidth: 680 }}>{L.launchSub}</div>
           </div>
-          <Btn variant="accent" icon="play" onClick={() => nav("practice", { jobId: activeJobId })} T={T}>{L.startCore}</Btn>
+          <Btn variant="accent" icon="play" onClick={startInterview} T={T}>{L.startCore}</Btn>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <BindingPill T={T} icon="briefcase" label={L.jdBound} title={job.title} meta={`${job.company} · ${job.level} · ${job.match}% ${lang === "en" ? "match" : "匹配"}`} />
@@ -170,7 +200,7 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
         {/* left column */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           {/* company intel — embed */}
-          <CompanyIntelEmbed T={T} lang={lang} nav={nav} job={job} />
+          <CompanyIntelEmbed T={T} lang={lang} nav={nav} job={job} context={interviewContext} />
 
           {/* requirements */}
           <Card T={T} pad={0}>
@@ -219,7 +249,7 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
             <div>
               {sessionHistory.map((r, i) => (
                 <div key={i} style={{ padding: "14px 20px", borderBottom: i < 3 ? `1px dotted ${T.rule}` : "none", display: "grid", gridTemplateColumns: "42px 1fr auto", gap: 12, alignItems: "center", cursor: "pointer" }}
-                  onClick={() => nav("report")} role="button">
+                  onClick={() => nav("report", r.context)} role="button">
                   <div className="ei-mono" style={{ fontSize: 12, color: T.ink3 }}>{r.date}</div>
                   <div>
                     <div style={{ fontSize: 13.5, color: T.ink }}>{r.title}</div>
@@ -272,6 +302,60 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
   );
 };
 
+const WorkspaceEmptyState = ({ T, lang, nav }) => (
+  <div className="ei-fadein" style={{ maxWidth: 820, margin: "0 auto", padding: "72px 48px" }}>
+    <Card T={T}>
+      <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{lang === "en" ? "NO JD CONTEXT" : "没有 JD 上下文"}</div>
+      <div className="ei-serif" style={{ fontSize: 28, color: T.ink, lineHeight: 1.25, marginBottom: 10 }}>
+        {lang === "en" ? "Import a target JD before opening a mock plan." : "先导入一个目标 JD，再进入面试规划。"}
+      </div>
+      <div style={{ fontSize: 14, color: T.ink3, lineHeight: 1.6, marginBottom: 18 }}>
+        {lang === "en" ? "This empty state avoids showing a fake job when the plan context is missing." : "上下文缺失时不展示假岗位数据，避免用户误以为已经绑定了真实 JD。"}
+      </div>
+      <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => nav("home")}>{lang === "en" ? "Import JD" : "导入 JD"}</Btn>
+    </Card>
+  </div>
+);
+
+const WorkspaceMissingResumeState = ({ T, lang, nav }) => (
+  <div className="ei-fadein" style={{ maxWidth: 820, margin: "0 auto", padding: "72px 48px" }}>
+    <Card T={T}>
+      <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{lang === "en" ? "NO RESUME BOUND" : "没有绑定简历"}</div>
+      <div className="ei-serif" style={{ fontSize: 28, color: T.ink, lineHeight: 1.25, marginBottom: 10 }}>
+        {lang === "en" ? "Bind or create a resume before starting this mock interview." : "开始这场模拟面试前，需要先绑定或创建一份简历。"}
+      </div>
+      <div style={{ fontSize: 14, color: T.ink3, lineHeight: 1.6, marginBottom: 18 }}>
+        {lang === "en" ? "The interview generator needs resume evidence; the prototype should not fill in a synthetic resume." : "面试生成需要简历证据；静态稿不能用假简历补位。"}
+      </div>
+      <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => nav("resume_versions", { flow: "create" })}>{lang === "en" ? "Create resume" : "创建简历"}</Btn>
+    </Card>
+  </div>
+);
+
+const createWorkspaceInterviewContext = (plan, job, jd, round, resume, params = {}) => {
+  const targetJobId = job?.id || params.targetJobId || params.jobId;
+  const roundId = getWorkspaceRoundId(round?.name || plan?.round || params.roundName);
+  const base = {
+    planId: plan?.id,
+    targetJobId,
+    jobId: targetJobId,
+    jdId: plan?.jdId || (targetJobId ? `jd-${targetJobId}` : undefined),
+    resumeVersionId: resume?.id || params.resumeVersionId,
+    roundId,
+    roundName: round?.name || plan?.round || params.roundName,
+  };
+  return window.eiCreateInterviewContext ? window.eiCreateInterviewContext({ ...params, ...base }, base) : base;
+};
+
+const getWorkspaceRoundId = (value) => {
+  const text = value || "";
+  if (text.includes("HR")) return "round-hr";
+  if (text.includes("技术一面") || text.includes("Technical round 1")) return "round-tech-1";
+  if (text.includes("技术二面") || text.includes("Technical round 2")) return "round-tech-2";
+  if (text.includes("经理面") || text.includes("Manager")) return "round-manager";
+  return "round-draft";
+};
+
 const getWorkspaceResumeOptions = (lang) => lang === "en" ? [
   {
     id: "frontend-v3",
@@ -312,19 +396,28 @@ const getWorkspaceResumeOptions = (lang) => lang === "en" ? [
   },
 ];
 
-const getWorkspaceSessionHistory = (lang, job, roundName) => {
+const getWorkspaceSessionHistory = (lang, job, roundName, context) => {
   const target = getWorkspaceTargetLabel(lang, job);
   const currentRound = getWorkspaceRoundLabel(lang, roundName || job?.nextRound);
   const priorRound = getWorkspaceRoundLabel(lang, "技术一面");
   const nextRound = getWorkspaceRoundLabel(lang, "技术二面");
   const prefix = lang === "en" ? "Mock interview" : "模拟面试";
   const rerun = lang === "en" ? "second run" : "第 2 次";
+  const sessionContext = (id, roundLabel, roundId, modality = "text", practiceMode = "strict", hintUsed = "false") => ({
+    ...context,
+    sessionId: id,
+    roundId,
+    roundName: roundLabel,
+    modality,
+    practiceMode,
+    hintUsed,
+  });
 
   return [
-    { date: "4/20", title: `${prefix} · ${currentRound}`, target },
-    { date: "4/19", title: `${prefix} · ${currentRound}`, target: `${target} · ${rerun}` },
-    { date: "4/18", title: `${prefix} · ${priorRound}`, target },
-    { date: "4/17", title: `${prefix} · ${nextRound}`, target },
+    { date: "4/20", title: `${prefix} · ${currentRound}`, target, context: sessionContext("session-24", currentRound, context.roundId, "text", "strict", "false") },
+    { date: "4/19", title: `${prefix} · ${currentRound}`, target: `${target} · ${rerun}`, context: sessionContext("session-23", currentRound, context.roundId, "voice", "assisted", "true") },
+    { date: "4/18", title: `${prefix} · ${priorRound}`, target, context: sessionContext("session-20", priorRound, "round-tech-1") },
+    { date: "4/17", title: `${prefix} · ${nextRound}`, target, context: sessionContext("session-19", nextRound, "round-tech-2") },
   ];
 };
 
@@ -363,6 +456,8 @@ const getWorkspacePlanOptions = (lang, jobs) => {
   return jobs.map((job, i) => ({
     id: `plan-${job.id}`,
     jobId: job.id,
+    targetJobId: job.id,
+    jdId: `jd-${job.id}`,
     title: `${job.company} · ${job.title}`,
     meta: `${job.level} · ${job.match}% ${lang === "en" ? "match" : "匹配"} · ${job.source}`,
     round: roundNames[i] || job.nextRound || (lang === "en" ? "Next round" : "下一轮"),

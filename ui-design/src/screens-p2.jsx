@@ -88,7 +88,8 @@ const AnnotatedWaveform = ({ T, samples, annotations = [], width = 880, height =
 };
 
 // ───────────── VOICE PRACTICE SCREEN ─────────────
-const VoicePracticeScreen = ({ T, lang, nav }) => {
+const VoicePracticeScreen = ({ T, lang, nav, params = {} }) => {
+  const context = window.eiCreateInterviewContext ? window.eiCreateInterviewContext(params) : params;
   const [elapsed, setElapsed] = React.useState(147); // seconds
   const [recording, setRecording] = React.useState(true);
   const [lastUtterance, setLastUtterance] = React.useState(0);
@@ -165,7 +166,7 @@ const VoicePracticeScreen = ({ T, lang, nav }) => {
     <div className="ei-fadein" style={{ height: "100vh", display: "flex", flexDirection: "column", background: T.bg, color: T.ink }}>
       {/* Top strip */}
       <div style={{ padding: "14px 32px", borderBottom: `1px solid ${T.rule}`, display: "flex", alignItems: "center", gap: 20 }}>
-        <button onClick={() => nav("workspace", { jobId: "tj-1" })} style={{ background: "transparent", border: "none", color: T.ink3, cursor: "pointer", display: "flex", gap: 6, alignItems: "center", fontSize: 13 }}>
+        <button onClick={() => nav("workspace", context)} style={{ background: "transparent", border: "none", color: T.ink3, cursor: "pointer", display: "flex", gap: 6, alignItems: "center", fontSize: 13 }}>
           <Icon name="arrow_left" size={14} /> {lang === "en" ? "Workspace" : "工作台"}
         </button>
         <span style={{ color: T.rule }}>/</span>
@@ -314,7 +315,7 @@ const VoicePracticeScreen = ({ T, lang, nav }) => {
               <Icon name={recording ? "pause" : "mic"} size={13} /> {recording ? L.pause : (lang === "en" ? "Resume" : "继续")}
             </button>
             <button
-              onClick={() => nav("report")}
+              onClick={() => nav("report", { ...context, sessionId: context.sessionId || "session-voice-24", modality: "voice" })}
               style={{ flex: 1, height: 40, background: T.ink, color: T.bg, border: "none", borderRadius: 2, cursor: "pointer", fontSize: 13, fontWeight: 500 }}>
               {L.done}
             </button>

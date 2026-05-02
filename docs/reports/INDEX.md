@@ -8,6 +8,9 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-02](./2026-05-02-ui-design-report-cta-direct-session-assessment.md) | UI Design Report CTA Direct Session 交付复盘 | #assessment |
+| [2026-05-02](./2026-05-02-ui-design-voice-mode-regression-assessment.md) | UI Design Voice Mode Regression 交付复盘 | #assessment |
+| [2026-05-02](./2026-05-02-ui-design-p0-backlog-remediation-assessment.md) | UI Design P0 Backlog Remediation 交付复盘 | #assessment |
 | [2026-05-02](./2026-05-02-ui-design-resume-ux-revision-assessment.md) | UI Design Resume UX Revision 交付复盘 | #assessment |
 | [2026-05-02](./2026-05-02-ui-design-context-selection-remediation-assessment.md) | UI Design Context Selection Remediation 交付复盘 | #assessment |
 | [2026-05-01](./2026-05-01-ui-canvas-runner-path-fix-assessment.md) | UI Canvas Runner Path Fix 交付复盘 | #assessment |

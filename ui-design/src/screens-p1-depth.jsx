@@ -518,7 +518,7 @@ const DebriefReplayPlan = ({ T, lang, nav, back, entries, context }) => (
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24 }}>
         <Btn T={T} variant="ghost" onClick={back}>{lang === "en" ? "Back" : "上一步"}</Btn>
-        <Btn T={T} variant="accent" icon="play" onClick={() => nav("practice", { jobId: "tj-1", mode: "text" })}>{lang === "en" ? "Start debrief interview" : "开始复盘面试"}</Btn>
+        <Btn T={T} variant="accent" icon="play" onClick={() => nav("practice", window.eiCreateInterviewContext ? window.eiCreateInterviewContext({ mode: "text", modality: "text", sessionId: "session-debrief-replay" }) : { mode: "text" })}>{lang === "en" ? "Start debrief interview" : "开始复盘面试"}</Btn>
       </div>
     </div>
     <Card T={T} pad={18} style={{ height: "fit-content", position: "sticky", top: 20 }}>
@@ -842,7 +842,7 @@ const ResumeVersionsScreen = ({ T, lang, nav, params = {} }) => {
               {lang === "en" ? "We keep the original source, parse it into a structured resume, and save both as a version you can revise later." : "系统会保留原始文件或原始文本，同时解析成结构化简历，并作为可回溯版本保存。"}
             </div>
           </div>
-          <Btn T={T} variant="secondary" size="sm" icon="briefcase" onClick={() => nav("workspace", { jobId: "tj-1" })}>{lang === "en" ? "Use in current job" : "用于当前岗位"}</Btn>
+          <Btn T={T} variant="secondary" size="sm" icon="briefcase" onClick={() => nav("workspace")}>{lang === "en" ? "Use in current job" : "用于当前岗位"}</Btn>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 22, alignItems: "start" }}>
@@ -974,7 +974,7 @@ const ResumeVersionsScreen = ({ T, lang, nav, params = {} }) => {
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
                 <Btn T={T} variant="secondary" size="sm" icon="search" onClick={() => nav("jd_match")}>{lang === "en" ? "Job picks" : "岗位推荐"}</Btn>
-                <Btn T={T} variant="secondary" size="sm" icon="play" onClick={() => nav("practice", { jobId: "tj-1", mode: "text" })}>{lang === "en" ? "Mock interview" : "开始面试"}</Btn>
+                <Btn T={T} variant="secondary" size="sm" icon="play" onClick={() => nav("practice", window.eiCreateInterviewContext ? window.eiCreateInterviewContext({ mode: "text", modality: "text", sessionId: "session-resume-preview" }) : { mode: "text" })}>{lang === "en" ? "Mock interview" : "开始面试"}</Btn>
               </div>
             </Card>
           </div>

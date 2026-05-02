@@ -1,6 +1,6 @@
 # EasyInterview UI 移除模块与范围裁剪
 
-> **版本**: 2.1
+> **版本**: 2.2
 > **状态**: active
 > **更新日期**: 2026-05-02
 
@@ -8,7 +8,7 @@
 
 本文档记录当前阶段 UI 梳理中确认不进入目标架构的模块、页面职责和交互形态。这里的“移除”指目标信息架构不再保留对应模块、导航和默认流程；当前静态 UI 源码也已清理对应废弃 screen 注册、组件和画板入口。
 
-当前 `src/app.jsx` 还通过 `routeAliases` 把若干旧 route 折回新目标模块。旧 route 不再进入对应历史页面；能通过 hash 访问旧 route 只代表兼容折返存在，不代表旧模块仍是目标架构的一部分。
+当前 `src/app.jsx` 还通过 `ROUTE_ALIASES` 把若干旧 route 折回新目标模块。旧 route 不再进入对应历史页面；能通过 hash 访问旧 route 只代表兼容折返存在，不代表旧模块仍是目标架构的一部分。
 
 ## 2 已确认移除
 
@@ -262,7 +262,7 @@ Report
 | `followup` | 移除独立追问树；运行时折回 `practice` |
 | `mistakes` | 移除独立错题复练流程；运行时折回 `report` |
 | `drill` | 移除独立单题 Drill；运行时折回 `practice` |
-| `voice` | 保留为语音面试形式 |
+| `voice` | 兼容折回 `practice?mode=voice&modality=voice`；保留为语音面试形式，不保留独立页面骨架 |
 | `report` | 保留为 session-scoped 仪表盘报告 |
 | `resume_versions` | 保留为一级简历模块当前入口 |
 | `jd_match` | 保留为一级岗位推荐 |
@@ -272,7 +272,7 @@ Report
 
 ## 14 当前静态 UI 中已清理或失效的废弃 / 历史代码
 
-以下清单用于约束后续文档和实现判断：这些组件、画板入口或旧实现已从当前目标运行时清理 / 折返 / dead code 化，后续不得作为目标页面恢复。当前目标以顶部导航、`routeAliases` 折返后的 `activeRouteName`、实际渲染内容和后加载覆盖关系为准。
+以下清单用于约束后续文档和实现判断：这些组件、画板入口或旧实现已从当前目标运行时清理 / 折返 / dead code 化，后续不得作为目标页面恢复。当前目标以顶部导航、`ROUTE_ALIASES` 折返后的 `activeRouteName`、实际渲染内容和后加载覆盖关系为准。
 
 | 旧代码位置 / 组件 | 关联 route 或入口 | 清理后状态 | 目标处理 |
 |----------------|-------------------|--------------|----------|
@@ -289,8 +289,9 @@ Report
 | `screens-rest.jsx::DebriefScreen` | 旧复盘实现 | 文件已删除；当前目标使用 `DebriefFullScreen` | 废弃旧复盘页 |
 | `screens-rest.jsx::ResumeScreen` | `resume` | 文件已删除；route 折回 `resume_versions` | 废弃为目标入口；以 `resume_versions` 为准 |
 | `screens-p0-complete.jsx::OnboardingScreen` | `onboarding` | 组件已删除；route 折回 `resume_versions` | 废弃为当前简历创建入口；以 `resume_versions(flow=create)` 为准 |
+| `screens-p2.jsx::VoicePracticeScreen` | `voice` | 历史语音页组件仍保留在源码中，但 `voice` route 已折回 `practice` | 语音能力保留为 `PracticeScreen` 内的语音 Surface，不恢复独立语音页骨架 |
 
-`screens-p2.jsx::VoicePracticeScreen` 当前仍是保留能力，语义是整场语音面试形式，不属于废弃清单。
+语音能力不是废弃能力；废弃的是脱离 `PracticeScreen` 外层骨架的独立语音页面呈现。
 
 ## 15 外观偏好不是业务模块
 

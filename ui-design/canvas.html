@@ -20,12 +20,19 @@
 
 <script type="text/babel">
   const ART_W = 1280, ART_H = 860, FRAME_W = 420;
-  const UI_VERSION = "20260502-debrief-label";
+  const UI_VERSION = "20260502-voice-shell";
   const FRAME_H = Math.round(ART_H * FRAME_W / ART_W);
-  const Screen = ({ route, jobId = "tj-1", mode, dark, lang = "zh", theme, customAccent, fontPreset, role }) => {
+  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, customAccent, fontPreset, role }) => {
     const params = new URLSearchParams();
     params.set("route", route); params.set("nochrome", "0"); params.set("lang", lang);
     if (jobId) params.set("jobId", jobId);
+    if (jobId) params.set("targetJobId", jobId);
+    if (jobId) params.set("planId", `plan-${jobId}`);
+    if (jobId) params.set("jdId", `jd-${jobId}`);
+    params.set("resumeVersionId", "frontend-v3");
+    params.set("roundId", "round-manager");
+    params.set("roundName", lang === "en" ? "Manager round" : "经理面");
+    if (sessionId || ["practice", "voice", "generating", "report"].includes(route)) params.set("sessionId", sessionId || "session-24");
     if (mode) params.set("mode", mode);
     if (dark) params.set("dark", "1");
     if (theme) params.set("theme", theme);
@@ -43,7 +50,7 @@
   const App = () => (
     <DesignCanvas>
       <DCSection id="flow" title="EasyInterview · 核心用户闭环" subtitle="从一份 JD 到下一轮更强的准备">
-        <DCArtboard id="home" label="01 · 收件箱（JD 导入）" width={FRAME_W} height={FRAME_H}><Screen route="home" /></DCArtboard>
+        <DCArtboard id="home" label="01 · 首页（JD 导入）" width={FRAME_W} height={FRAME_H}><Screen route="home" /></DCArtboard>
         <DCArtboard id="ws" label="02 · 模拟面试规划" width={FRAME_W} height={FRAME_H}><Screen route="workspace" /></DCArtboard>
         <DCArtboard id="practice" label="03 · 模拟面试进行中" width={FRAME_W} height={FRAME_H}><PracticeScreen mode="core" /></DCArtboard>
         <DCArtboard id="report" label="04 · 证据化报告仪表盘" width={FRAME_W} height={FRAME_H}><Screen route="report" /></DCArtboard>
@@ -71,9 +78,9 @@
         <DCArtboard id="generating" label="报告生成中 · 异步观察流" width={FRAME_W} height={FRAME_H}><Screen route="generating" /></DCArtboard>
         <DCArtboard id="settings" label="设置 · 隐私 / 导出 / 删除" width={FRAME_W} height={FRAME_H}><Screen route="settings" /></DCArtboard>
       </DCSection>
-      <DCSection id="voice" title="语音模式 · 表达层反馈" subtitle="语速 / 停顿 / 用词标注">
-        <DCArtboard id="voice-light" label="语音练习 · 进行中" width={FRAME_W} height={FRAME_H}><Screen route="voice" /></DCArtboard>
-        <DCArtboard id="voice-dark" label="语音练习 · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="voice" dark /></DCArtboard>
+      <DCSection id="voice" title="语音模式 · 统一 Session 骨架" subtitle="同一题目地图 / 顶部控制 / 语音表达层反馈">
+        <DCArtboard id="voice-light" label="语音面试 · 统一骨架" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="voice" /></DCArtboard>
+        <DCArtboard id="voice-dark" label="语音面试 · 统一骨架 · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="voice" dark /></DCArtboard>
       </DCSection>
       <DCSection id="p1-depth" title="P1 深度 · 复盘 / 简历">
         <DCArtboard id="debrief" label="复盘（3 步）" width={FRAME_W} height={FRAME_H}><Screen route="debrief" /></DCArtboard>

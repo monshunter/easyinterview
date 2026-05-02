@@ -1,6 +1,6 @@
 # Mock Interview 当前面试规划目标模块
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-05-02
 
@@ -84,7 +84,7 @@
 └─ Report 的进入下一轮
 
 进入:
-  -> Mock Interview Plan(jobId, resumeVersionId, roundId)
+  -> Mock Interview Plan(planId, targetJobId, jdId, resumeVersionId, roundId)
 ```
 
 无论从哪个入口进入，页面都必须明确显示 `JD + 简历 + 面试轮次`。
@@ -121,12 +121,13 @@
 ```text
 Mock Interview Plan
   -> 立即面试
-  -> Interview Session
+  -> requestAuth(create_session)
+  -> Interview Session(sessionId)
      ├─ 文本面试
      └─ 语音面试
 ```
 
-面试形式可在面试页选择或切换。规划页不展示模式卡片，也不让用户选择专项练习。
+`立即面试` 必须携带 `planId + targetJobId + jdId + resumeVersionId + roundId`，并在登录打断后通过 pending action 恢复。面试形式可在面试页选择或切换。规划页不展示模式卡片，也不让用户选择专项练习。
 
 ### 4.5 公司情报详情
 
@@ -233,3 +234,4 @@ ResumeVersion
 7. 报告从历史会话或面试结束后进入，报告页必须带 session 上下文。
 8. `company_intel` 是从规划页打开的岗位情报详情，不进入顶部导航。
 9. 公司情报详情必须显示来源与抓取时间，并明确公开来源边界。
+10. 页面缺少 JD 上下文时必须显示空状态并返回首页导入 JD；缺少简历绑定时必须提示创建或绑定简历，不展示假数据。

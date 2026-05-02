@@ -1,11 +1,12 @@
 // Company Intel · 轻量岗位情报（spec P2 · 合规来源 · 强制标注抓取时间）
 
-const CompanyIntelScreen = ({ T, lang, nav }) => {
+const CompanyIntelScreen = ({ T, lang, nav, params = {} }) => {
   const intel = mockIntel(lang);
+  const context = window.eiCreateInterviewContext ? window.eiCreateInterviewContext(params) : params;
   return (
     <div className="ei-fadein" style={{ maxWidth: 1240, margin: "0 auto", padding: "40px 48px 96px" }}>
       <div style={{ marginBottom: 24 }}>
-        <button onClick={() => nav("workspace", { jobId: "tj-1" })} style={{ background: "transparent", border: "none", color: T.ink3, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0, marginBottom: 16 }}>
+        <button onClick={() => nav("workspace", context)} style={{ background: "transparent", border: "none", color: T.ink3, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0, marginBottom: 16 }}>
           <Icon name="arrow_left" size={12} /> {lang === "en" ? "Back to interview setup" : "返回面试前确认"}
         </button>
         <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>
@@ -147,8 +148,9 @@ const CompanyIntelBody = ({ T, lang, intel, compact = false }) => {
   );
 };
 
-const CompanyIntelEmbed = ({ T, lang, nav, job }) => {
+const CompanyIntelEmbed = ({ T, lang, nav, job, context }) => {
   const intel = mockIntelForJob(lang, job);
+  const routeContext = window.eiCreateInterviewContext ? window.eiCreateInterviewContext(context || {}) : context;
   return (
     <div style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2 }}>
       <div style={{ padding: "16px 20px", borderBottom: `1px dotted ${T.rule}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14 }}>
@@ -158,7 +160,7 @@ const CompanyIntelEmbed = ({ T, lang, nav, job }) => {
             {intel.oneLiner}
           </div>
         </div>
-        <button onClick={() => nav("company_intel")} style={{ background: "transparent", border: `1px solid ${T.rule}`, padding: "5px 10px", borderRadius: 2, color: T.ink2, fontSize: 11.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+        <button onClick={() => nav("company_intel", routeContext)} style={{ background: "transparent", border: `1px solid ${T.rule}`, padding: "5px 10px", borderRadius: 2, color: T.ink2, fontSize: 11.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
           {lang === "en" ? "Open intel" : "打开情报"} <Icon name="arrow_right" size={11} />
         </button>
       </div>

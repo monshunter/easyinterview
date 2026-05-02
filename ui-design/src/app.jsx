@@ -20,6 +20,71 @@ const CUSTOM_ACCENT_SEEDS = {
   plum:   { h: 340, c: 0.15 },
 };
 
+const ROUTE_ALIASES = {
+  welcome: "home",
+  mistakes: "report",
+  drill: "practice",
+  followup: "practice",
+  growth: "home",
+  plan: "workspace",
+  experiences: "resume_versions",
+  star: "resume_versions",
+  resume: "resume_versions",
+  onboarding: "resume_versions",
+  voice: "practice",
+};
+
+const DEFAULT_INTERVIEW_CONTEXT = {
+  planId: "plan-tj-1",
+  targetJobId: "tj-1",
+  jobId: "tj-1",
+  jdId: "jd-tj-1",
+  resumeVersionId: "frontend-v3",
+  roundId: "round-manager",
+  roundName: "经理面",
+};
+
+const INTERVIEW_CONTEXT_ROUTES = new Set(["workspace", "practice", "voice", "generating", "report", "debrief", "company_intel"]);
+const normalizeRouteName = (name) => ROUTE_ALIASES[name] || name;
+const shouldCarryInterviewContext = (name) => INTERVIEW_CONTEXT_ROUTES.has(normalizeRouteName(name));
+const paramsFromSearch = (params) => {
+  const out = {};
+  params.forEach((value, key) => {
+    if (value != null && value !== "") out[key] = value;
+  });
+  return out;
+};
+const stripUndefined = (obj) => Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== null));
+const withRouteCompatibilityParams = (rawRoute, params = {}) => {
+  const out = { ...params };
+  if (rawRoute === "voice") {
+    if (!out.mode) out.mode = "voice";
+    if (!out.modality) out.modality = "voice";
+  }
+  return out;
+};
+const createInterviewContext = (params = {}, fallback = DEFAULT_INTERVIEW_CONTEXT) => {
+  const targetJobId = params.targetJobId || params.jobId || fallback.targetJobId || fallback.jobId || DEFAULT_INTERVIEW_CONTEXT.targetJobId;
+  const ctx = {
+    ...DEFAULT_INTERVIEW_CONTEXT,
+    ...fallback,
+    ...params,
+    targetJobId,
+    jobId: targetJobId,
+    planId: params.planId || fallback.planId || `plan-${targetJobId}`,
+    jdId: params.jdId || fallback.jdId || `jd-${targetJobId}`,
+    resumeVersionId: params.resumeVersionId || fallback.resumeVersionId || DEFAULT_INTERVIEW_CONTEXT.resumeVersionId,
+    roundId: params.roundId || fallback.roundId || DEFAULT_INTERVIEW_CONTEXT.roundId,
+    roundName: params.roundName || fallback.roundName || DEFAULT_INTERVIEW_CONTEXT.roundName,
+  };
+  return stripUndefined(ctx);
+};
+
+Object.assign(window, {
+  EI_DEFAULT_INTERVIEW_CONTEXT: DEFAULT_INTERVIEW_CONTEXT,
+  eiCreateInterviewContext: createInterviewContext,
+});
+
 const App = () => {
   const [route, setRoute] = useState({ name: "home", params: {} });
   const [lang, setLang] = useState("zh");
@@ -30,19 +95,7 @@ const App = () => {
     const v = localStorage.getItem("ei-signed-in");
     return v === "1";
   });
-  const routeAliases = {
-    welcome: "home",
-    mistakes: "report",
-    drill: "practice",
-    followup: "practice",
-    growth: "home",
-    plan: "workspace",
-    experiences: "resume_versions",
-    star: "resume_versions",
-    resume: "resume_versions",
-    onboarding: "resume_versions",
-  };
-  const normalizeRoute = (name) => routeAliases[name] || name;
+  const normalizeRoute = normalizeRouteName;
 
   // persistence
   useEffect(() => {
@@ -50,15 +103,28 @@ const App = () => {
     const hash = window.location.hash.slice(1);
     const params = new URLSearchParams(hash);
     if (params.get("route")) {
-      setRoute({ name: normalizeRoute(params.get("route")), params: { jobId: params.get("jobId") || "tj-1", mode: params.get("mode"), flow: params.get("flow") } });
+      const rawRoute = params.get("route");
+      const name = normalizeRoute(rawRoute);
+      const parsedParams = withRouteCompatibilityParams(rawRoute, paramsFromSearch(params));
+      delete parsedParams.route;
+      delete parsedParams.lang;
+      delete parsedParams.nochrome;
+      const nextParams = shouldCarryInterviewContext(name) ? createInterviewContext(parsedParams) : parsedParams;
+      setRoute({ name, params: nextParams });
     } else if (hash && !hash.includes("=")) {
-      setRoute({ name: normalizeRoute(hash), params: { jobId: "tj-1" } });
+      const rawRoute = hash;
+      const name = normalizeRoute(rawRoute);
+      const parsedParams = withRouteCompatibilityParams(rawRoute);
+      setRoute({ name, params: shouldCarryInterviewContext(name) ? createInterviewContext(parsedParams) : parsedParams });
     } else {
       const saved = localStorage.getItem("ei-route");
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          setRoute({ ...parsed, name: normalizeRoute(parsed.name) });
+          const rawRoute = parsed.name;
+          const name = normalizeRoute(rawRoute);
+          const savedParams = withRouteCompatibilityParams(rawRoute, parsed.params || {});
+          setRoute({ ...parsed, name, params: shouldCarryInterviewContext(name) ? createInterviewContext(savedParams) : savedParams });
         } catch {}
       }
     }
@@ -138,11 +204,40 @@ const App = () => {
     document.body.style.color = T.ink;
   }, [tweaks.serifFamily, tweaks.sansFamily, T.bg, T.ink]);
 
-  const nav = (name, params = {}) => setRoute({ name: normalizeRoute(name), params });
+  const activeRouteName = normalizeRoute(route.name);
+  const currentContext = React.useMemo(() => createInterviewContext(route.params || {}), [route.params]);
+  const nav = (name, params = {}) => {
+    const nextName = normalizeRoute(name);
+    const compatibleParams = withRouteCompatibilityParams(name, params);
+    const nextParams = shouldCarryInterviewContext(nextName) ? createInterviewContext(compatibleParams, currentContext) : stripUndefined(compatibleParams);
+    setRoute({ name: nextName, params: nextParams });
+  };
+  const requestAuth = (pendingAction, run) => {
+    if (signedIn) {
+      run();
+      return;
+    }
+    setRoute({ name: "auth_login", params: { pendingAction } });
+  };
   const completeSignIn = () => {
     setSignedIn(true);
     localStorage.setItem("ei-signed-in", "1");
-    setRoute({ name: "home", params: {} });
+    const pendingAction = route.params?.pendingAction;
+    if (pendingAction?.route) {
+      const pendingParams = withRouteCompatibilityParams(pendingAction.route, pendingAction.params || {});
+      setRoute({
+        name: normalizeRoute(pendingAction.route),
+        params: shouldCarryInterviewContext(pendingAction.route)
+          ? createInterviewContext(pendingParams, currentContext)
+          : stripUndefined(pendingParams),
+      });
+      window.eiToast && window.eiToast(
+        lang === "en" ? `Continuing: ${pendingAction.label || "pending action"}` : `继续：${pendingAction.label || "刚才的操作"}`,
+        { tone: "ok", duration: 2400 }
+      );
+      return;
+    }
+    setRoute({ name: "home", params: stripUndefined({}) });
   };
   const completeSignOut = () => {
     setSignedIn(false);
@@ -151,31 +246,30 @@ const App = () => {
 
   const screens = {
     home: <HomeScreen T={T} lang={lang} nav={nav} role={tweaks.role} />,
-    workspace: <WorkspaceScreen T={T} lang={lang} nav={nav} jobId={route.params.jobId || "tj-1"} />,
-    practice: <PracticeScreen T={T} lang={lang} nav={nav} jobId={route.params.jobId || "tj-1"} mode={route.params.mode} role={tweaks.role} setRole={(r) => updateTweak("role", r)} />,
-    report: <ReportScreen T={T} lang={lang} nav={nav} />,
-    debrief: <DebriefFullScreen T={T} lang={lang} nav={nav} />,
-    voice: <VoicePracticeScreen T={T} lang={lang} nav={nav} />,
+    workspace: <WorkspaceScreen T={T} lang={lang} nav={nav} requestAuth={requestAuth} params={route.params || {}} />,
+    practice: <PracticeScreen T={T} lang={lang} nav={nav} params={route.params || {}} jobId={currentContext.targetJobId} mode={route.params.mode} role={tweaks.role} setRole={(r) => updateTweak("role", r)} />,
+    report: <ReportScreen T={T} lang={lang} nav={nav} params={route.params || {}} requestAuth={requestAuth} />,
+    debrief: <DebriefFullScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
+    voice: <VoicePracticeScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
     parse: <ParseScreen T={T} lang={lang} nav={nav} />,
-    generating: <ReportGeneratingScreen T={T} lang={lang} nav={nav} />,
+    generating: <ReportGeneratingScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
     settings: <SettingsScreen T={T} lang={lang} nav={nav} fontPreset={tweaks.fontPreset} setFontPreset={setFontPreset} />,
     debrief_full: <DebriefFullScreen T={T} lang={lang} nav={nav} />,
     resume_versions: <ResumeVersionsScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
     jd_match: <JDMatchScreen T={T} lang={lang} nav={nav} />,
     profile: <UserProfileScreen T={T} lang={lang} nav={nav} />,
-    auth_login: <AuthLoginScreen T={T} lang={lang} nav={nav} onSignIn={completeSignIn} />,
-    auth_register: <AuthRegisterScreen T={T} lang={lang} nav={nav} />,
-    auth_verify: <AuthVerifyScreen T={T} lang={lang} nav={nav} email={route.params.email} onSignIn={completeSignIn} />,
+    auth_login: <AuthLoginScreen T={T} lang={lang} nav={nav} onSignIn={completeSignIn} pendingAction={route.params.pendingAction} />,
+    auth_register: <AuthRegisterScreen T={T} lang={lang} nav={nav} pendingAction={route.params.pendingAction} />,
+    auth_verify: <AuthVerifyScreen T={T} lang={lang} nav={nav} email={route.params.email} onSignIn={completeSignIn} pendingAction={route.params.pendingAction} />,
     auth_reset: <AuthResetScreen T={T} lang={lang} nav={nav} />,
     auth_logout: <AuthLogoutScreen T={T} lang={lang} nav={nav} signedIn={signedIn} onSignOut={completeSignOut} />,
-    company_intel: <CompanyIntelScreen T={T} lang={lang} nav={nav} />,
+    company_intel: <CompanyIntelScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
   };
 
   const hideTopBar = route.name === "practice" || route.name === "voice" || route.name === "generating" || document.body.getAttribute("data-nochrome") === "1";
 
   const isCanvasIframe = document.body.getAttribute("data-nochrome") === "1" || window.location.hash.includes("nochrome=1");
 
-  const activeRouteName = normalizeRoute(route.name);
   const effectiveScreen = screens[activeRouteName] || screens.home;
 
   return (

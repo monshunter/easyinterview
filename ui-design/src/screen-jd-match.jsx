@@ -448,7 +448,7 @@ const JDDetail = ({ job, T, lang, nav, onToggleSave, onOpenSource, onNotRelevant
               {job.similarInterviewers > 0 && (
                 <div style={{ display: "flex", gap: 8 }}>
                   <Icon name="book" size={12} color={T.accent} style={{ marginTop: 3, flexShrink: 0 }} />
-                  <span>{lang === "en" ? `${job.similarInterviewers} interviewer profiles surfaced from public sources — glassdoor + 知乎` : `从公开来源（Glassdoor + 知乎）抓到 ${job.similarInterviewers} 位面试官公开信息`}</span>
+                  <span>{lang === "en" ? `${job.similarInterviewers} public interview-review, JD, and company-source signals — glassdoor + 知乎` : `${job.similarInterviewers} 条公开面经 / JD / 公司资料信号（Glassdoor + 知乎）`}</span>
                 </div>
               )}
             </div>

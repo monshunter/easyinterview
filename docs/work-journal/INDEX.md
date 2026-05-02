@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-02](2026-05-02.md) | `fix(ui-design): align practice voice and report flows` | #fix #ui #docs #test |
 | [2026-05-02](2026-05-02.md) | `fix(ui): restore resume workshop feedback flows` | #fix #ui #docs #test |
 | [2026-05-02](2026-05-02.md) | `feat(ui): add resume workshop ia` | #feat #ui #docs #test |
 | [2026-05-02](2026-05-02.md) | `chore(ui): migrate prototype and docs to ui-design` | #chore #ui #docs #test |
