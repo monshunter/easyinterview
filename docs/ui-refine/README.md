@@ -18,7 +18,7 @@ easyinterview-ui/EasyInterview.html
 
 也就是说，本目录不再作为“未来可能目标”的独立草案存在；它必须和当前静态页面展示的运行时交互保持一致。静态页面调整后，`docs/ui-refine/` 需要同步校对，避免文档与设计稿漂移。
 
-`easyinterview-ui/easyinterview-canvas.html` 是设计画板总览，仍保留若干历史分区标题和旧 artboard 标签。判断目标模块时，以 `src/app.jsx` 的一级导航、`routeAliases`、`normalizeRoute` 后的 `activeRouteName` 和实际 screen 返回内容为准；画板标签和源码中保留的历史组件只能作为截图或待清理代码索引，不能覆盖运行时交互。
+`easyinterview-ui/easyinterview-canvas.html` 是设计画板总览。判断目标模块时，以 `src/app.jsx` 的一级导航、`routeAliases`、`normalizeRoute` 后的 `activeRouteName` 和实际 screen 返回内容为准；画板标签不能覆盖运行时交互，已移除的历史组件不得作为目标页面恢复。
 
 ## 2 与 `docs/ui/` 的关系
 
@@ -76,7 +76,7 @@ docs/ui-refine/
 - 顶部主题色、暗色模式、语言切换和设置页字体预设等全局显示控制。
 - 保留哪些用户任务和模块。
 - 删除、降级或合并哪些历史页面。
-- 首页、岗位推荐、模拟面试、简历、真实复盘之间的入口关系。
+- 首页、岗位推荐、模拟面试、简历、复盘之间的入口关系。
 - 未登录用户在什么动作上触发登录。
 - 登录、注册、验证、重置、退出登录的页面流。
 - 页面框架图或流程图，优先使用文本图。
@@ -84,7 +84,7 @@ docs/ui-refine/
 - 简历原件、结构化主版本和岗位定制版本之间的关系。
 - 用户画像与个人设置的边界。
 - `routeAliases` 对旧 route 的折返关系，以及仍可直达但不属于当前目标入口的历史页面。
-- 源码中仍保留但运行时不再作为目标页面的废弃 / 历史组件。
+- 已清理或通过 `routeAliases` 折返的废弃 / 历史组件。
 
 ## 7 检查清单
 

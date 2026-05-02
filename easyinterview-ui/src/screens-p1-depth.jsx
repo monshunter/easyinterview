@@ -1,7 +1,7 @@
 // P1 depth: Real-interview debrief, Experience library, Resume versions + diff
 
 // ═══════════════════════════════════════════════════════════════════
-// #9 REAL-INTERVIEW DEBRIEF (full version)
+// #9 DEBRIEF (full version)
 // ═══════════════════════════════════════════════════════════════════
 const DebriefFullScreen = ({ T, lang, nav }) => {
   const [step, setStep] = React.useState(0); // 0 record, 1 analyze, 2 replay
@@ -33,7 +33,7 @@ const DebriefFullScreen = ({ T, lang, nav }) => {
     { stage: "开场", q: "他们是否让你做自我介绍，或完整讲一遍背景？", why: "这是技术一面的常见开场，需要和模拟面试里的自我介绍、目标 JD 定位对齐。", source: "JD + 模拟面试 #24" },
     { stage: "项目深挖", q: "他们是否问到结账链路 / RSC 性能优化项目？", why: "你的简历和目标 JD 都指向性能优化与架构 ownership。", source: "简历 v3 + JD 必需项" },
     { stage: "影响力", q: "他们是否问到 Design System 如何跨团队推进？", why: "JD 强调跨团队技术影响力和平台落地。", source: "JD 隐性关注点" },
-    { stage: "反问", q: "你是否向对方询问团队重点、下一轮预期或当前痛点？", why: "反问能判断真实面试是否收束到清晰的下一步信号。", source: "模拟报告" },
+    { stage: "反问", q: "你是否向对方询问团队重点、下一轮预期或当前痛点？", why: "反问能判断这轮面试是否收束到清晰的下一步信号。", source: "模拟报告" },
   ];
 
   // Mock real Q&A entries
@@ -89,13 +89,13 @@ const DebriefFullScreen = ({ T, lang, nav }) => {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, gap: 32 }}>
         <div>
           <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>
-            {lang === "en" ? "REAL-INTERVIEW DEBRIEF · 星环科技 · 技术一面 · 4/22" : "真实面试复盘 · 星环科技 · 技术一面 · 4/22"}
+            {lang === "en" ? "DEBRIEF · 星环科技 · 技术一面 · 4/22" : "复盘 · 星环科技 · 技术一面 · 4/22"}
           </div>
           <h1 className="ei-serif" style={{ fontSize: 38, margin: 0, color: T.ink, letterSpacing: "-0.022em", lineHeight: 1.15, maxWidth: 780 }}>
-            {lang === "en" ? "Reconstruct the real interview, then practice the replay." : "像真人复盘一样，还原真实面试，再进入复盘面试。"}
+            {lang === "en" ? "Reconstruct the interview, then practice the replay." : "像真人复盘一样，还原面试，再进入复盘面试。"}
           </h1>
           <div style={{ fontSize: 14, color: T.ink3, marginTop: 10, maxWidth: 640, lineHeight: 1.5 }}>
-            {lang === "en" ? "Pick the target JD and resume, keep or skip AI-suggested questions, add what was actually asked, then generate a replay interview." : "选择目标岗位和简历，保留或跳过 AI 推测题，补充真实被问到的问题，然后生成一场复盘面试。"}
+            {lang === "en" ? "Pick the target JD and resume, keep or skip AI-suggested questions, add what was asked, then generate a replay interview." : "选择目标岗位和简历，保留或跳过 AI 推测题，补充被问到的问题，然后生成一场复盘面试。"}
           </div>
         </div>
         <div style={{ fontFamily: "var(--ei-mono)", fontSize: 11, color: T.ink3, textAlign: "right", lineHeight: 1.7 }}>
@@ -177,7 +177,7 @@ const DebriefFullScreen = ({ T, lang, nav }) => {
       {/* Step 1: Analysis */}
       {step === 1 && (
         <div>
-          <div className="ei-label" style={{ color: T.ink3, marginBottom: 14 }}>{lang === "en" ? "REAL INTERVIEW ANALYSIS" : "真实面试分析"}</div>
+          <div className="ei-label" style={{ color: T.ink3, marginBottom: 14 }}>{lang === "en" ? "INTERVIEW ANALYSIS" : "面试分析"}</div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
             {[
@@ -203,8 +203,8 @@ const DebriefFullScreen = ({ T, lang, nav }) => {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
             {[
-              { title: lang === "en" ? "Compared with target JD" : "对照目标 JD", body: lang === "en" ? "The real interview spent more time on ownership and influence than the mock interview predicted." : "真实面试比模拟面试更集中在 ownership 与影响力，而不是单纯技术细节。" },
-              { title: lang === "en" ? "Compared with resume evidence" : "对照绑定简历", body: lang === "en" ? "Resume v3 has the right stories, but the real answer did not claim the decision points clearly." : "简历 v3 有对应素材，但真实回答没有把决策点和个人贡献讲清。" },
+              { title: lang === "en" ? "Compared with target JD" : "对照目标 JD", body: lang === "en" ? "This interview spent more time on ownership and influence than the mock interview predicted." : "这轮面试比模拟面试更集中在 ownership 与影响力，而不是单纯技术细节。" },
+              { title: lang === "en" ? "Compared with resume evidence" : "对照绑定简历", body: lang === "en" ? "Resume v3 has the right stories, but the interview answer did not claim the decision points clearly." : "简历 v3 有对应素材，但面试回答没有把决策点和个人贡献讲清。" },
             ].map((m) => (
               <div key={m.title} style={{ padding: "18px 20px", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2 }}>
                 <div className="ei-label" style={{ color: T.accent, marginBottom: 8 }}>{m.title}</div>
@@ -230,7 +230,7 @@ const DebriefContextStrip = ({ T, lang, nav, context }) => (
   <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: 12, marginBottom: 28 }}>
     {[
       { icon: "briefcase", label: lang === "en" ? "Target job / JD" : "目标岗位 / JD", title: context.target, meta: context.jd, action: lang === "en" ? "Change" : "更换", onClick: () => nav("workspace", { jobId: "tj-1" }) },
-      { icon: "chart", label: lang === "en" ? "Related mock interview" : "关联模拟面试", title: context.mock, meta: lang === "en" ? "used as comparison baseline" : "作为真实面试分析基线", action: lang === "en" ? "Report" : "报告", onClick: () => nav("report") },
+      { icon: "chart", label: lang === "en" ? "Related mock interview" : "关联模拟面试", title: context.mock, meta: lang === "en" ? "used as comparison baseline" : "作为面试分析基线", action: lang === "en" ? "Report" : "报告", onClick: () => nav("report") },
       { icon: "resume", label: lang === "en" ? "Resume version" : "绑定简历", title: context.resume, meta: lang === "en" ? "used for evidence comparison" : "用于回答证据对比", action: lang === "en" ? "Change" : "更换", onClick: () => nav("resume_versions") },
     ].map((item) => (
       <div key={item.label} style={{ padding: "14px 16px", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2, display: "grid", gridTemplateColumns: "30px 1fr auto", gap: 10, alignItems: "center" }}>
@@ -288,7 +288,7 @@ const GuidedDebriefRecord = ({ T, lang, currentGuide, guideIndex, guideTotal, se
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
             <Btn T={T} variant="secondary" size="sm" icon="check" onClick={addCurrentQuestion}>{lang === "en" ? "Yes, record it" : "遇到过，记录"}</Btn>
             <Btn T={T} variant="ghost" size="sm" onClick={() => setActiveGuide(Math.min(guideTotal - 1, guideIndex + 1))}>{lang === "en" ? "Skip" : "没问到，跳过"}</Btn>
-            <Btn T={T} variant="ghost" size="sm" icon="edit" onClick={addCurrentQuestion}>{lang === "en" ? "Edit as real question" : "改成真实问题"}</Btn>
+            <Btn T={T} variant="ghost" size="sm" icon="edit" onClick={addCurrentQuestion}>{lang === "en" ? "Edit question" : "改成面试问题"}</Btn>
           </div>
         </div>
       </Card>
@@ -305,7 +305,7 @@ const GuidedDebriefRecord = ({ T, lang, currentGuide, guideIndex, guideTotal, se
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 5 }}>
                 <span className="ei-mono" style={{ fontSize: 11, color: T.ink3 }}>Q{idx + 1}</span>
-                <Tag tone={entry.source === "confirmed" ? "ok" : "accent"} T={T}>{entry.source === "confirmed" ? (lang === "en" ? "real" : "真实遇到") : (lang === "en" ? "confirmed" : "已确认")}</Tag>
+                <Tag tone={entry.source === "confirmed" ? "ok" : "accent"} T={T}>{entry.source === "confirmed" ? (lang === "en" ? "met" : "遇到过") : (lang === "en" ? "confirmed" : "已确认")}</Tag>
               </div>
               <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.45 }}>{entry.stage}</div>
             </button>
@@ -353,10 +353,10 @@ const DebriefReplayPlan = ({ T, lang, nav, back, entries, context }) => (
       <div className="ei-label" style={{ color: T.ink3, marginBottom: 12 }}>{lang === "en" ? "DEBRIEF INTERVIEW CONTENT" : "复盘面试内容"}</div>
       <div style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2, padding: "22px 24px", marginBottom: 18 }}>
         <div className="ei-serif" style={{ fontSize: 22, color: T.ink, marginBottom: 10 }}>
-          {lang === "en" ? "Use real questions first, AI probes second." : "先复现真实问题，再由 AI 追问薄弱处。"}
+          {lang === "en" ? "Use interview questions first, AI probes second." : "先复现面试问题，再由 AI 追问薄弱处。"}
         </div>
         <div style={{ fontSize: 13.5, color: T.ink2, lineHeight: 1.7 }}>
-          {lang === "en" ? "The replay interview will prioritize the questions you actually met, then add adjacent probes from the JD and resume evidence." : "复盘面试会优先使用你真实遇到的问题，再基于 JD 和简历证据补上相邻追问。"}
+          {lang === "en" ? "The replay interview will prioritize the questions you met, then add adjacent probes from the JD and resume evidence." : "复盘面试会优先使用你遇到的问题，再基于 JD 和简历证据补上相邻追问。"}
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -383,9 +383,9 @@ const DebriefReplayPlan = ({ T, lang, nav, back, entries, context }) => (
         <div style={{ fontSize: 12, color: T.ink3, marginTop: 3 }}>{context.resume}</div>
       </div>
       {[
-        lang === "en" ? "Ask your real questions in the original order where possible." : "尽可能按真实顺序重新问一遍。",
+        lang === "en" ? "Ask the recorded questions in the original order where possible." : "尽可能按原顺序重新问一遍。",
         lang === "en" ? "Probe the weak ownership and reverse-question moments." : "重点追问 Ownership 与反问薄弱点。",
-        lang === "en" ? "Compare this replay answer with the recorded real answer." : "把复盘回答与真实记录做对照。",
+        lang === "en" ? "Compare this replay answer with the recorded interview answer." : "把复盘回答与面试记录做对照。",
       ].map((text, i) => (
         <div key={i} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: i < 2 ? `1px dotted ${T.rule}` : "none", fontSize: 13.5, color: T.ink2, lineHeight: 1.55 }}>
           <span style={{ fontFamily: "var(--ei-mono)", color: T.accent }}>{String(i + 1).padStart(2, "0")}</span>
@@ -557,166 +557,6 @@ Sincerely,
               <div><span style={{ fontFamily: "var(--ei-mono)", color: T.ink4, marginRight: 6 }}>T+1</span>{lang === "en" ? "Prep for tech round 2" : "准备技术二面"}</div>
               <div><span style={{ fontFamily: "var(--ei-mono)", color: T.ink4, marginRight: 6 }}>T+4</span>{lang === "en" ? "If silent → light follow-up to HR" : "如无回应，轻量跟 HR 联系"}</div>
               <div><span style={{ fontFamily: "var(--ei-mono)", color: T.ink4, marginRight: 6 }}>T+10</span>{lang === "en" ? "Close loop, move on" : "收口，继续别的"}</div>
-            </div>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ═══════════════════════════════════════════════════════════════════
-// #10 EXPERIENCE LIBRARY
-// ═══════════════════════════════════════════════════════════════════
-const ExperienceLibraryScreen = ({ T, lang, nav }) => {
-  const [filter, setFilter] = React.useState("all");
-  const [selected, setSelected] = React.useState("c1");
-
-  const cards = [
-    { id: "c1", title: lang === "en" ? "Cart / checkout rewrite" : "购物车/结账链路重写", period: "2024 Q1–Q2", co: "星环科技", tags: lang === "en" ? ["perf", "ownership", "trade-offs"] : ["性能", "Ownership", "权衡"], uses: 6, last: lang === "en" ? "used 2 days ago" : "2 天前用过", maturity: "strong",
-      s: lang === "en" ? "Checkout LCP 3.2s; ~8% abandon on step 2; legacy class components; no SSR." : "结账 LCP 3.2s；第二步流失约 8%；老的 class 组件栈；无 SSR。",
-      a: lang === "en" ? "Proposed RSC + selective hydration. Built 2-week prototype, got buy-in from SRE despite skepticism. Rolled out in 4 waves behind a feature flag." : "提出 RSC + 选择性注水。两周搭出原型，顶着 SRE 的质疑拿到认可。用 feature flag 分 4 波灰度上线。",
-      r: lang === "en" ? "LCP 3.2s → 1.4s. Abandon 8% → 4.2%. Revenue +1.8M / quarter." : "LCP 3.2s → 1.4s。流失率 8% → 4.2%。营收季度 +180 万。",
-      questions: lang === "en" ? ["Tell me about a technical trade-off", "A time you drove a project end-to-end", "Performance optimization story"] : ["一次技术权衡", "端到端推动的项目", "性能优化故事"],
-    },
-    { id: "c2", title: lang === "en" ? "Design System rollout across 5 products" : "Design System 在 5 个产品的落地", period: "2023 H2", co: "星环科技", tags: lang === "en" ? ["influence", "cross-team", "design"] : ["影响力", "跨团队", "设计"], uses: 4, last: lang === "en" ? "used 1 week ago" : "1 周前用过", maturity: "strong",
-      s: lang === "en" ? "5 products, 4 different UI libraries, 0 shared tokens." : "5 个产品、4 套 UI 库、0 个共享 token。",
-      a: lang === "en" ? "Built tokens + primitives, picked one pilot team, ran 3 adoption workshops, offered paired migration." : "搭 tokens + 基础组件、挑一个试点团队、办 3 次推广会、提供结对迁移。",
-      r: lang === "en" ? "4 of 5 products on v1 in 6 months. Onboarding new devs ~50% faster per pilot team PM." : "6 个月内 4/5 产品迁到 v1。试点团队 PM 反馈新人上手快 ~50%。",
-      questions: lang === "en" ? ["How would you drive an initiative without authority", "Cross-team alignment", "Changing how people work"] : ["无权情况下如何推动", "跨团队对齐", "改变别人的工作方式"],
-    },
-    { id: "c3", title: lang === "en" ? "Disagreement with designer (40-field form)" : "与设计师的分歧（40 字段表单）", period: "2023 Q3", co: "星环科技", tags: lang === "en" ? ["conflict", "empathy", "data"] : ["冲突", "共情", "数据"], uses: 5, last: lang === "en" ? "used 3 days ago" : "3 天前用过", maturity: "strong",
-      s: lang === "en" ? "Designer wanted 40 operational fields on one screen; I thought cognitive load would tank efficiency." : "设计想把 40 个运营字段放一屏；我担心认知负荷会拖垮效率。",
-      a: lang === "en" ? "Ran shadow-session with 6 real operators, tracked task time and error rate, proposed tabbed layout with smart defaults." : "跟 6 个真实操作员做影子观察，记录任务耗时和错误率，提出带智能默认的标签页布局。",
-      r: lang === "en" ? "Task time -42%. Designer bought in after seeing the data. Shipped in 2 weeks." : "任务耗时 -42%。设计师看完数据认可方案，两周上线。",
-      questions: lang === "en" ? ["Conflict with a peer", "Changed someone's mind", "Used data to resolve disagreement"] : ["与同事的冲突", "改变别人的看法", "用数据解决分歧"],
-    },
-    { id: "c4", title: lang === "en" ? "Failed A/B on checkout CTA color" : "结账 CTA 颜色的失败 A/B", period: "2021 Q4", co: "Lumen", tags: lang === "en" ? ["failure", "learning", "data"] : ["失败", "反思", "数据"], uses: 2, last: lang === "en" ? "used 3 weeks ago" : "3 周前用过", maturity: "dev",
-      s: lang === "en" ? "Hypothesized a green CTA would beat the existing orange one." : "以为把 CTA 从橙改绿能提升转化。",
-      a: lang === "en" ? "Shipped the test, ran for 2 weeks with enough samples to declare." : "上线实验，跑两周拿到足够样本量。",
-      r: lang === "en" ? "No measurable difference. Taught me to lead with priors and mechanism before A/B — not hunches." : "没有显著差异。学会先看先验、先讲机制，而不是凭感觉做 A/B。",
-      questions: lang === "en" ? ["A time you failed", "Something that didn't work out"] : ["一次失败", "没做成的事"],
-    },
-    { id: "c5", title: lang === "en" ? "Onboarded 3 new frontend engineers" : "带起 3 个前端新人", period: "2024 Q3–Q4", co: "星环科技", tags: lang === "en" ? ["mentorship", "leadership"] : ["辅导", "领导力"], uses: 1, last: lang === "en" ? "used 1 month ago" : "1 个月前用过", maturity: "dev",
-      s: lang === "en" ? "Team scaled from 4 to 7; no onboarding process existed." : "团队从 4 人扩到 7 人；没有 onboarding 流程。",
-      a: lang === "en" ? "Wrote a 2-week ramp doc, paired every new dev with a code owner, instituted weekly show-and-tell." : "写了一份 2 周上手文档，每个新人配一个代码 owner，周会做成果展示。",
-      r: lang === "en" ? "Time-to-first-PR: 9 days → 3 days. All 3 retained after 1 year." : "首个 PR 时间 9 天 → 3 天。一年后 3 人全部留存。",
-      questions: lang === "en" ? ["Mentorship story", "Building a process from scratch"] : ["辅导他人", "从零建流程"],
-    },
-  ];
-
-  const filters = lang === "en"
-    ? [{ k: "all", t: "All" }, { k: "strong", t: "Battle-tested" }, { k: "dev", t: "Developing" }, { k: "orphan", t: "Unused 30d+" }]
-    : [{ k: "all", t: "全部" }, { k: "strong", t: "已稳" }, { k: "dev", t: "成型中" }, { k: "orphan", t: "30 天未用" }];
-
-  const filtered = cards.filter((c) => filter === "all" || (filter === "strong" && c.maturity === "strong") || (filter === "dev" && c.maturity === "dev") || (filter === "orphan" && c.uses <= 1));
-  const sel = cards.find((c) => c.id === selected);
-
-  return (
-    <div className="ei-fadein" style={{ maxWidth: 1320, margin: "0 auto", padding: "40px 48px 96px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 28, gap: 32 }}>
-        <div>
-          <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "EXPERIENCE LIBRARY" : "经历库"}</div>
-          <h1 className="ei-serif" style={{ fontSize: 38, margin: 0, color: T.ink, letterSpacing: "-0.022em", lineHeight: 1.15 }}>
-            {lang === "en" ? "Your stories, versioned." : "你自己的故事——带版本。"}
-          </h1>
-          <div style={{ fontSize: 14, color: T.ink3, marginTop: 10, maxWidth: 680, lineHeight: 1.5 }}>
-            {lang === "en" ? "Each card is a story you can reach for. The more you use one, the sharper it gets. Unused ones quietly age — that's a hint, not a judgment." : "每张卡片是一个你随手能取的故事。用得越多越锋利。长时间没用的会悄悄变暗——这是提示，不是评判。"}
-          </div>
-        </div>
-        <Btn T={T} variant="accent" icon="plus" onClick={() => nav("star", { storyId: "new" })}>{lang === "en" ? "New story" : "新建故事"}</Btn>
-      </div>
-
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        {filters.map((f) => (
-          <button key={f.k} onClick={() => setFilter(f.k)} style={{
-            padding: "6px 14px", fontSize: 12.5, borderRadius: 14, cursor: "pointer",
-            border: `1px solid ${filter === f.k ? T.accent : T.rule}`,
-            background: filter === f.k ? T.accentSoft : "transparent",
-            color: filter === f.k ? T.accent : T.ink2, fontFamily: "var(--ei-sans)",
-          }}>{f.t}</button>
-        ))}
-        <div style={{ flex: 1 }} />
-        <div style={{ fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)", alignSelf: "center" }}>
-          {filtered.length} / {cards.length}
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 20 }}>
-        {/* Card grid */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {filtered.map((c) => {
-            const active = c.id === selected;
-            return (
-              <button key={c.id} onClick={() => setSelected(c.id)} style={{
-                padding: "14px 16px", textAlign: "left", cursor: "pointer",
-                background: active ? T.accentSoft : T.bgCard,
-                border: `1px solid ${active ? T.accent : T.rule}`,
-                borderLeft: `3px solid ${c.maturity === "strong" ? T.ok : T.warn}`,
-                borderRadius: 2, fontFamily: "var(--ei-sans)",
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6, gap: 10 }}>
-                  <div className="ei-serif" style={{ fontSize: 15.5, color: T.ink, fontWeight: 500, letterSpacing: "-0.01em", lineHeight: 1.35 }}>{c.title}</div>
-                  <div style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: T.ink4, flexShrink: 0, textAlign: "right" }}>{c.period}</div>
-                </div>
-                <div style={{ fontSize: 11.5, color: T.ink3, marginBottom: 10, fontFamily: "var(--ei-mono)" }}>{c.co}</div>
-                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
-                  {c.tags.map((t) => <Tag key={t} T={T} tone="neutral">{t}</Tag>)}
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)", letterSpacing: "0.04em" }}>
-                  <span>↻ {c.uses}× {lang === "en" ? "used" : "用过"}</span>
-                  <span>{c.last}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Detail */}
-        <div>
-          <Card T={T} pad={28} style={{ position: "sticky", top: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, gap: 12 }}>
-              <div>
-                <div className="ei-label" style={{ color: T.ink3, marginBottom: 5 }}>{sel.co} · {sel.period}</div>
-                <div className="ei-serif" style={{ fontSize: 24, color: T.ink, letterSpacing: "-0.015em", lineHeight: 1.25 }}>{sel.title}</div>
-              </div>
-              <Tag T={T} tone={sel.maturity === "strong" ? "ok" : "warn"}>
-                {sel.maturity === "strong" ? (lang === "en" ? "BATTLE-TESTED" : "已稳") : (lang === "en" ? "DEVELOPING" : "成型中")}
-              </Tag>
-            </div>
-
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 22 }}>
-              {sel.tags.map((t) => <Tag key={t} T={T} tone="accent">{t}</Tag>)}
-            </div>
-
-            {[
-              { k: "S", label: lang === "en" ? "SITUATION" : "情境", v: sel.s },
-              { k: "A", label: lang === "en" ? "ACTION" : "行动", v: sel.a },
-              { k: "R", label: lang === "en" ? "RESULT" : "结果", v: sel.r },
-            ].map((x) => (
-              <div key={x.k} style={{ paddingBottom: 16, marginBottom: 16, borderBottom: `1px dotted ${T.rule}` }}>
-                <div style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: T.ink4, letterSpacing: "0.08em", marginBottom: 6 }}>
-                  {x.k} · {x.label}
-                </div>
-                <div style={{ fontSize: 14, color: T.ink, lineHeight: 1.6 }}>{x.v}</div>
-              </div>
-            ))}
-
-            <div style={{ marginBottom: 22 }}>
-              <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "GOOD FOR QUESTIONS LIKE" : "适合这类问题"}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {sel.questions.map((q, i) => (
-                  <div key={i} style={{ fontSize: 13, color: T.ink2, fontStyle: "italic", paddingLeft: 10, borderLeft: `2px solid ${T.rule}` }}>"{q}"</div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn T={T} variant="secondary" size="sm" icon="edit" onClick={() => nav("star", { storyId: sel.id })}>{lang === "en" ? "Restructure (STAR)" : "STAR 重构"}</Btn>
-              <Btn T={T} variant="secondary" size="sm" icon="replay" onClick={() => nav("practice", { jobId: "tj-1" })}>{lang === "en" ? "Practice with this" : "用它练一下"}</Btn>
-              <div style={{ flex: 1 }} />
-              <Btn T={T} variant="ghost" size="sm" icon="trash" onClick={() => window.eiToast && window.eiToast(lang === "en" ? `Archived "${sel.title}" · move out of active library` : `已归档「${sel.title}」· 移出活跃故事库`, { tone: "neutral" })}>{lang === "en" ? "Archive" : "归档"}</Btn>
             </div>
           </Card>
         </div>
@@ -1300,5 +1140,4 @@ const OriginalResumePreviewModal = ({ T, lang, source, activeVersion, onClose })
 };
 
 window.DebriefFullScreen = DebriefFullScreen;
-window.ExperienceLibraryScreen = ExperienceLibraryScreen;
 window.ResumeVersionsScreen = ResumeVersionsScreen;

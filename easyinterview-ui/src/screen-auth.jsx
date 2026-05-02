@@ -157,7 +157,7 @@ const AuthRegisterScreen = ({ T, lang, nav }) => {
       lang={lang}
       eyebrow={lang === "en" ? "REGISTER" : "注册"}
       title={lang === "en" ? "Create an account only when you need persistence." : "需要保存时，再创建账号。"}
-      sub={lang === "en" ? "Registration creates the account identity. Resume, JD, and interview data remain separate assets under your control." : "注册只创建账号身份。简历、JD、模拟面试和真实复盘仍然是独立资产，由用户决定是否保存和删除。"}
+      sub={lang === "en" ? "Registration creates the account identity. Resume, JD, and interview data remain separate assets under your control." : "注册只创建账号身份。简历、JD、模拟面试和复盘仍然是独立资产，由用户决定是否保存和删除。"}
     >
       <div style={{ padding: 28 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

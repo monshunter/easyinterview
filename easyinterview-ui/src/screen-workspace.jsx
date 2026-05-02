@@ -56,7 +56,7 @@ const WorkspaceScreen = ({ T, lang, nav, jobId }) => {
     requirements: "要求拆解",
     prep: "我的准备",
     practices: "模拟面试历史",
-    timeline: "真实进展",
+    timeline: "面试进展",
     startCore: "立即面试",
     launchTitle: "开始前确认这场模拟面试的上下文。",
     launchSub: "目标岗位、JD 和简历组成这场模拟面试的上下文，文本和语音可在面试过程中切换。",

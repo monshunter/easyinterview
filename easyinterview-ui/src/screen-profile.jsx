@@ -41,7 +41,7 @@ const UserProfileScreen = ({ T, lang, nav }) => {
           <div style={{ marginTop: 12, maxWidth: 720, fontSize: 14, lineHeight: 1.65, color: T.ink3 }}>
             {lang === "en"
               ? "This is inferred from resumes, target jobs, mock interviews, real debriefs, and your corrections. It is not a required onboarding form; every item can be inspected and corrected."
-              : "这不是一个需要用户先填完的表单，而是系统根据简历、目标岗位、模拟面试、真实复盘和用户纠偏持续沉淀出的结构化画像。每一项都应该能看来源、能修正、能决定是否用于推荐和面试。"}
+              : "这不是一个需要用户先填完的表单，而是系统根据简历、目标岗位、模拟面试、复盘和用户纠偏持续沉淀出的结构化画像。每一项都应该能看来源、能修正、能决定是否用于推荐和面试。"}
           </div>
         </div>
 
@@ -140,7 +140,7 @@ const UserProfileScreen = ({ T, lang, nav }) => {
               <div style={{ fontSize: 13, color: T.ink3, lineHeight: 1.65 }}>
                 {lang === "en"
                   ? "When you correct a field, the system keeps the original evidence, stores the correction as a higher-priority layer, and uses it in job matching, mock interview planning, and debrief analysis."
-                  : "用户修正不会删除原始证据，而是作为更高优先级的一层覆盖推断结果。岗位推荐、模拟面试规划和真实复盘分析都会优先读取这层修正。"}
+                  : "用户修正不会删除原始证据，而是作为更高优先级的一层覆盖推断结果。岗位推荐、模拟面试规划和复盘分析都会优先读取这层修正。"}
               </div>
             </Card>
           </div>
@@ -424,7 +424,7 @@ const getUserProfileData = (lang) => ({
       body: lang === "en" ? "Marked as useful story, but missing quantitative baseline in first answer." : "标记为可复用故事，但首答缺少量化基线。",
     },
     {
-      title: lang === "en" ? "Debrief · Star interview" : "真实复盘 · 星环面试",
+      title: lang === "en" ? "Debrief · Star interview" : "复盘 · 星环面试",
       time: "4/22",
       body: lang === "en" ? "User corrected that the interviewer cared more about ownership than React API details." : "用户纠正：面试官更关注 ownership，而不是 React API 细节。",
     },

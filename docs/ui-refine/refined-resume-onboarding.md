@@ -1,6 +1,6 @@
 # 首次无简历用户引导流程
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-05-02
 
@@ -25,7 +25,7 @@ Resume
   -> Resume Intake
 ```
 
-简历引导不挡在首页之前。用户可以先输入 JD、看岗位推荐或浏览静态页面，再在需要个性化准备时补全简历。当前静态 UI 的目标入口是 `resume_versions` 内的 `flow=create`，不是旧 `onboarding` 路由；`screens-p0-complete.jsx::OnboardingScreen` 是历史 5 分钟画像 / 经历卡片页，不是当前简历 intake。
+简历引导不挡在首页之前。用户可以先输入 JD、看岗位推荐或浏览静态页面，再在需要个性化准备时补全简历。当前静态 UI 的目标入口是 `resume_versions` 内的 `flow=create`，不是旧 `onboarding` 路由；旧 `onboarding` 现在折回 `resume_versions`，历史 `screens-p0-complete.jsx::OnboardingScreen` 已清理。
 
 ## 3 两种引导路径
 
@@ -154,4 +154,4 @@ Resume Intake
 3. 原始内容、解析文本和结构化内容都必须保留。
 4. 首页的 `还没有简历？1 分钟创建` 应进入简历创建流程。
 5. 完整面试和报告应根据是否有简历调整个性化程度。
-6. 旧 `onboarding` route 仍可能被设计画板或 hash 直达，但不作为当前目标入口；当前入口以 `resume_versions(flow=create)` 为准，新文档和新交互不得恢复旧 `OnboardingScreen` 的画像前置流程。
+6. 旧 `onboarding` route 通过 `routeAliases` 折回 `resume_versions`，不作为当前目标入口；当前入口以 `resume_versions(flow=create)` 为准，新文档和新交互不得恢复旧 `OnboardingScreen` 的画像前置流程。

@@ -1,6 +1,6 @@
 # Report Dashboard 目标结构
 
-> **版本**: 1.5
+> **版本**: 1.7
 > **状态**: active
 > **更新日期**: 2026-05-02
 
@@ -18,7 +18,7 @@
 6. 原刊物式内容拆分到仪表盘模块的二级详情。
 7. 下一步动作必须拆成 `复练当前轮` 和 `进入下一轮`。
 8. 错题本语义留在报告内部，表现为题目回顾、回答分析、证据片段、建议和本轮复练。
-9. 当前运行时 `ReportScreen` 固定渲染 `ReportDashboard`；`reportLayout`、Editorial 和 Timeline 只属于历史代码 / 设计画板标签，不属于目标交互。
+9. 当前运行时 `ReportScreen` 固定渲染 `ReportDashboard`；旧 `reportLayout`、Editorial 和 Timeline 组件 / 画板标签已从静态 UI 清理，不属于目标交互。
 10. 四张 Summary Cards 和报告内的文本链接会切换同一个 Detail Surface；这属于仪表盘内部二级详情，不是多报告形态。
 
 ## 3 顶层框架
@@ -167,7 +167,7 @@ Question Review
 ├─ 追问树入口
 ├─ Drill builder
 ├─ 独立错题本任务队列
-└─ 真实面试复盘记录
+└─ 复盘记录
 ```
 
 ## 6 页面行为

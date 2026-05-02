@@ -8,7 +8,6 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "fontPreset": "editorial",
   "serifFamily": "Noto Serif SC",
   "sansFamily": "Inter",
-  "reportLayout": "dashboard",
   "role": "general"
 }/*EDITMODE-END*/;
 
@@ -40,6 +39,8 @@ const App = () => {
     plan: "workspace",
     experiences: "resume_versions",
     star: "resume_versions",
+    resume: "resume_versions",
+    onboarding: "resume_versions",
   };
   const normalizeRoute = (name) => routeAliases[name] || name;
 
@@ -65,7 +66,7 @@ const App = () => {
     if (savedLang) setLang(savedLang);
     // tweak overrides
     const overrides = {};
-    ["dark","reportLayout","role","theme","serifFamily","sansFamily","fontPreset"].forEach((k) => {
+    ["dark","role","theme","serifFamily","sansFamily","fontPreset"].forEach((k) => {
       const v = params.get(k);
       if (v != null) overrides[k] = (k === "dark") ? (v === "1" || v === "true") : v;
     });
@@ -152,19 +153,13 @@ const App = () => {
     home: <HomeScreen T={T} lang={lang} nav={nav} role={tweaks.role} />,
     workspace: <WorkspaceScreen T={T} lang={lang} nav={nav} jobId={route.params.jobId || "tj-1"} />,
     practice: <PracticeScreen T={T} lang={lang} nav={nav} jobId={route.params.jobId || "tj-1"} mode={route.params.mode} role={tweaks.role} setRole={(r) => updateTweak("role", r)} />,
-    report: <ReportScreen T={T} lang={lang} nav={nav} reportLayout={tweaks.reportLayout} setReportLayout={(v) => updateTweak("reportLayout", v)} />,
-    mistakes: <MistakesScreen T={T} lang={lang} nav={nav} />,
+    report: <ReportScreen T={T} lang={lang} nav={nav} />,
     debrief: <DebriefFullScreen T={T} lang={lang} nav={nav} />,
-    resume: <ResumeScreen T={T} lang={lang} nav={nav} />,
-    growth: <GrowthScreen T={T} lang={lang} nav={nav} />,
     voice: <VoicePracticeScreen T={T} lang={lang} nav={nav} />,
-    plan: <PlanScreen T={T} lang={lang} nav={nav} />,
     parse: <ParseScreen T={T} lang={lang} nav={nav} />,
-    onboarding: <OnboardingScreen T={T} lang={lang} nav={nav} />,
     generating: <ReportGeneratingScreen T={T} lang={lang} nav={nav} />,
     settings: <SettingsScreen T={T} lang={lang} nav={nav} fontPreset={tweaks.fontPreset} setFontPreset={setFontPreset} />,
     debrief_full: <DebriefFullScreen T={T} lang={lang} nav={nav} />,
-    experiences: <ExperienceLibraryScreen T={T} lang={lang} nav={nav} />,
     resume_versions: <ResumeVersionsScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
     jd_match: <JDMatchScreen T={T} lang={lang} nav={nav} />,
     profile: <UserProfileScreen T={T} lang={lang} nav={nav} />,
@@ -174,13 +169,9 @@ const App = () => {
     auth_reset: <AuthResetScreen T={T} lang={lang} nav={nav} />,
     auth_logout: <AuthLogoutScreen T={T} lang={lang} nav={nav} signedIn={signedIn} onSignOut={completeSignOut} />,
     company_intel: <CompanyIntelScreen T={T} lang={lang} nav={nav} />,
-    welcome: <WelcomeScreen T={T} lang={lang} nav={nav} onSignIn={() => { setSignedIn(true); localStorage.setItem("ei-signed-in", "1"); setRoute({ name: "home", params: {} }); }} />,
-    drill: <DrillBuilderScreen T={T} lang={lang} nav={nav} />,
-    followup: <FollowUpTreeScreen T={T} lang={lang} nav={nav} />,
-    star: <StarEditorScreen T={T} lang={lang} nav={nav} />,
   };
 
-  const hideTopBar = route.name === "practice" || route.name === "voice" || route.name === "onboarding" || route.name === "generating" || document.body.getAttribute("data-nochrome") === "1";
+  const hideTopBar = route.name === "practice" || route.name === "voice" || route.name === "generating" || document.body.getAttribute("data-nochrome") === "1";
 
   const isCanvasIframe = document.body.getAttribute("data-nochrome") === "1" || window.location.hash.includes("nochrome=1");
 
@@ -220,7 +211,7 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
     { k: "jd_match", labelZh: "岗位推荐", labelEn: "Job Picks", icon: "search" },
     { k: "workspace", labelZh: "模拟面试", labelEn: "Mock Interview", icon: "play" },
     { k: "resume_versions", labelZh: "简历", labelEn: "Resume", icon: "file" },
-    { k: "debrief", labelZh: "真实复盘", labelEn: "Debrief", icon: "flag" },
+    { k: "debrief", labelZh: "复盘", labelEn: "Debrief", icon: "flag" },
   ];
   return (
     <div style={{
