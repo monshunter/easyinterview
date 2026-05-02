@@ -90,11 +90,11 @@
         <DCArtboard id="practice-strict" label="严格模拟 · 提示与经历隐藏" width={FRAME_W} height={FRAME_H}><Screen route="practice" practiceMode="strict" /></DCArtboard>
         <DCArtboard id="practice-strict-voice" label="严格模拟 · 语音模式" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="voice" practiceMode="strict" /></DCArtboard>
       </DCSection>
-      <DCSection id="p1-depth" title="P1 深度 · 复盘 / 简历">
-        <DCArtboard id="debrief" label="复盘 · 文本引导（默认）" width={FRAME_W} height={FRAME_H}><Screen route="debrief" /></DCArtboard>
+      <DCSection id="p1-depth" title="P1 深度 · 复盘 / 简历" subtitle="文本与语音是同一份记录的两种添加方式 · 顶部汇总条始终可见 · 模式切换不丢数据">
+        <DCArtboard id="debrief" label="复盘 · 文本添加（默认）" width={FRAME_W} height={FRAME_H}><Screen route="debrief" /></DCArtboard>
         <DCArtboard id="resume-versions" label="简历多版本 · bullet diff" width={FRAME_W} height={FRAME_H}><Screen route="resume_versions" /></DCArtboard>
       </DCSection>
-      <DCSection id="p1-voice-debrief" title="P1 · 复盘语音模式" subtitle="AI 持续监听 + 双向语音对话 · 无需手动点录 · [空格] 暂停 · 实时提取卡片">
+      <DCSection id="p1-voice-debrief" title="P1 · 复盘语音模式" subtitle="AI 持续监听 + 双向语音对话 · 无需手动点录 · [空格] 暂停 · 实时提取卡片 · 支持手动加一条">
         <DCArtboard id="debrief-voice-intro" label="语音复盘 · 开始引导" width={FRAME_W} height={FRAME_H}><Screen route="debrief" debriefInputMode="voice" /></DCArtboard>
         <DCArtboard id="debrief-voice-chat" label="语音复盘 · 连续对话进行中" width={FRAME_W} height={FRAME_H}><Screen route="debrief" debriefInputMode="voice" debriefVoiceState="chat" /></DCArtboard>
         <DCArtboard id="debrief-voice-review" label="语音复盘 · 待确认卡片" width={FRAME_W} height={FRAME_H}><Screen route="debrief" debriefInputMode="voice" debriefVoiceState="review" /></DCArtboard>

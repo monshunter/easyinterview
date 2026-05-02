@@ -3,6 +3,38 @@
 // ═══════════════════════════════════════════════════════════════════
 // #9 DEBRIEF (full version)
 // ═══════════════════════════════════════════════════════════════════
+
+// Unified source badge — rendered for entries in both text and voice modes
+// so the user always sees how each card got into the debrief record.
+const getEntrySourceBadge = (source, lang) => {
+  switch (source) {
+    case "real_recorded":
+    case "confirmed":
+      return { icon: "✓", label: lang === "en" ? "recorded" : "已记录", tone: "ok" };
+    case "text_guided":
+    case "ai_confirmed":
+      return { icon: "✏️", label: lang === "en" ? "text" : "文本", tone: "accent" };
+    case "voice_extracted":
+    case "voice_extracted_confirmed":
+      return { icon: "🎙", label: lang === "en" ? "voice" : "语音", tone: "accent" };
+    case "manual":
+      return { icon: "✏️", label: lang === "en" ? "manual" : "手动", tone: "neutral" };
+    default:
+      return { icon: "·", label: source || "", tone: "neutral" };
+  }
+};
+
+// Context preamble injected into the AI's first message when entries already exist
+// (e.g. user added some via text mode then switched to voice). Avoids the AI re-asking
+// what's already been captured.
+const buildVoiceContextOpener = (entries, lang) => {
+  if (!entries || entries.length === 0) return "";
+  const stages = Array.from(new Set(entries.map((e) => e.stage))).slice(0, 3);
+  return lang === "en"
+    ? `I can see ${entries.length} question${entries.length > 1 ? "s" : ""} you've already recorded (${stages.join(", ")}). Let's keep going on what's missing —`
+    : `我看到你已经记了 ${entries.length} 条问题（${stages.join("、")}）。咱们看看还有什么没覆盖到——`;
+};
+
 const DebriefFullScreen = ({ T, lang, nav, params = {} }) => {
   const [step, setStep] = React.useState(0); // 0 record, 1 analyze, 2 replay
   const [activeGuide, setActiveGuide] = React.useState(0);
@@ -147,9 +179,61 @@ const DebriefFullScreen = ({ T, lang, nav, params = {} }) => {
       {/* Step 0: Record */}
       {step === 0 && (
         <div>
-          {/* Input mode toggle */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-            <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "RECORD MODE" : "记录方式"}</div>
+          {/* Unified summary bar — shared list across both add modes */}
+          {(() => {
+            const counts = { real: 0, text: 0, voice: 0, manual: 0 };
+            entries.forEach((e) => {
+              if (e.source === "real_recorded" || e.source === "confirmed") counts.real++;
+              else if (e.source === "text_guided" || e.source === "ai_confirmed") counts.text++;
+              else if (e.source === "voice_extracted" || e.source === "voice_extracted_confirmed") counts.voice++;
+              else if (e.source === "manual") counts.manual++;
+            });
+            const chips = [
+              counts.real > 0 && { icon: "✓", label: lang === "en" ? "recorded" : "已记录", n: counts.real, tone: T.ok },
+              counts.text > 0 && { icon: "✏️", label: lang === "en" ? "text" : "文本", n: counts.text, tone: T.accent },
+              counts.voice > 0 && { icon: "🎙", label: lang === "en" ? "voice" : "语音", n: counts.voice, tone: T.accent },
+              counts.manual > 0 && { icon: "✏️", label: lang === "en" ? "manual" : "手动", n: counts.manual, tone: T.ink2 },
+            ].filter(Boolean);
+            return (
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+                padding: "11px 16px", marginBottom: 14,
+                background: T.bgSoft, border: `1px solid ${T.rule}`, borderLeft: `3px solid ${T.accent}`, borderRadius: 2,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                  <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "DEBRIEF RECORD" : "复盘记录"}</div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                    <span style={{ fontFamily: "var(--ei-mono)", fontSize: 19, color: T.ink, fontWeight: 500, letterSpacing: "-0.01em" }}>{entries.length}</span>
+                    <span style={{ fontSize: 12, color: T.ink3 }}>{lang === "en" ? "questions" : "条已记录"}</span>
+                  </div>
+                  {chips.length > 0 && (
+                    <>
+                      <div style={{ height: 16, width: 1, background: T.rule }} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                        {chips.map((c) => (
+                          <div key={c.label} style={{
+                            display: "inline-flex", alignItems: "center", gap: 5,
+                            fontFamily: "var(--ei-mono)", fontSize: 11, color: c.tone,
+                          }}>
+                            <span style={{ fontSize: 11 }}>{c.icon}</span>
+                            <span>{c.label}</span>
+                            <span style={{ color: T.ink2, fontWeight: 500 }}>{c.n}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: T.ink4, fontFamily: "var(--ei-mono)", flexShrink: 0 }}>
+                  {lang === "en" ? "shared list · safe to switch modes" : "跨模式共享 · 切换不丢数据"}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Add-mode toggle */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+            <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "ADD MODE" : "添加方式"}</div>
             <div style={{ display: "flex", border: `1px solid ${T.rule}`, borderRadius: 2, overflow: "hidden" }}>
               {[
                 { k: "text", icon: "✏️", t: lang === "en" ? "Text" : "文本" },
@@ -164,16 +248,18 @@ const DebriefFullScreen = ({ T, lang, nav, params = {} }) => {
                 }}>{m.icon} {m.t}</button>
               ))}
             </div>
-            {inputMode === "voice" && (
-              <div style={{ fontFamily: "var(--ei-mono)", fontSize: 11, color: T.ink3 }}>
-                {lang === "en" ? "Speak freely — AI will extract question cards" : "自由讲述，AI 会帮你抽取问题卡片"}
-              </div>
-            )}
+            <div style={{ fontFamily: "var(--ei-mono)", fontSize: 11, color: T.ink3 }}>
+              {inputMode === "voice"
+                ? (lang === "en" ? "Speak naturally · AI extracts cards in real time" : "自由讲述 · AI 实时抽取卡片")
+                : (lang === "en" ? "AI walks you through likely questions" : "AI 逐题引导，确认后写入")}
+            </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 28 }}>
             <div>
-              {inputMode === "text" ? (
+              {/* Both modes always mounted — display:none switching preserves
+                  voice conversation state when user toggles back to text. */}
+              <div style={{ display: inputMode === "text" ? "block" : "none" }}>
                 <GuidedDebriefRecord
                   T={T}
                   lang={lang}
@@ -187,15 +273,17 @@ const DebriefFullScreen = ({ T, lang, nav, params = {} }) => {
                   setActiveCard={setActiveCard}
                   reactions={reactions}
                 />
-              ) : (
+              </div>
+              <div style={{ display: inputMode === "voice" ? "block" : "none" }}>
                 <VoiceDebriefRecord
                   T={T}
                   lang={lang}
                   entries={entries}
                   setEntries={setEntries}
                   initialState={params.debriefVoiceState || "idle"}
+                  active={inputMode === "voice"}
                 />
-              )}
+              </div>
             </div>
 
             <div>
@@ -440,7 +528,7 @@ const GuidedDebriefRecord = ({ T, lang, currentGuide, guideIndex, guideTotal, se
       follow: "",
       reflection: "",
       reaction: "neutral",
-      source: "ai_confirmed",
+      source: "text_guided",
       tag: currentGuide.stage,
     };
     setEntries([...entries, next]);
@@ -485,7 +573,10 @@ const GuidedDebriefRecord = ({ T, lang, currentGuide, guideIndex, guideTotal, se
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 5 }}>
                 <span className="ei-mono" style={{ fontSize: 11, color: T.ink3 }}>Q{idx + 1}</span>
-                <Tag tone={entry.source === "confirmed" ? "ok" : "accent"} T={T}>{entry.source === "confirmed" ? (lang === "en" ? "met" : "遇到过") : (lang === "en" ? "confirmed" : "已确认")}</Tag>
+                {(() => {
+                  const b = getEntrySourceBadge(entry.source, lang);
+                  return <Tag tone={b.tone} T={T}>{b.icon} {b.label}</Tag>;
+                })()}
               </div>
               <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.45 }}>{entry.stage}</div>
             </button>
@@ -562,7 +653,7 @@ const DEBRIEF_CONV_CARDS = (lang) => lang === "en" ? [
   { id: "vc3", q: "你有什么想问我的吗？", summary: "只问了工程文化，太泛，没问痛点或下一步预期。", followup: "对方礼貌回答后结束面试。", confidence: "high", afterTurn: 3 },
 ];
 
-const VoiceDebriefRecord = ({ T, lang, entries, setEntries, initialState = "intro" }) => {
+const VoiceDebriefRecord = ({ T, lang, entries, setEntries, initialState = "intro", active = true }) => {
   const aiQuestions = DEBRIEF_AI_QUESTIONS(lang);
   const userResponses = DEBRIEF_USER_RESPONSES(lang);
   const convCards = DEBRIEF_CONV_CARDS(lang);
@@ -604,15 +695,18 @@ const VoiceDebriefRecord = ({ T, lang, entries, setEntries, initialState = "intr
   const [editingId, setEditingId] = React.useState(null);
   const [editDraft, setEditDraft] = React.useState({ q: "", summary: "", followup: "" });
 
-  // total elapsed timer — runs while in chat phase, halts on pause
+  // total elapsed timer — runs while in chat phase, halts on pause or when not active
+  // (i.e. user has switched to text mode tab — voice convo persists but freezes)
   React.useEffect(() => {
+    if (!active) return;
     if (phase !== "chat" || paused) return;
     const t = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(t);
-  }, [phase, paused]);
+  }, [phase, paused, active]);
 
   // continuous-conversation auto-advance state machine
   React.useEffect(() => {
+    if (!active) return;             // user is on text tab — freeze convo, preserve state
     if (phase !== "chat" || paused) return;
 
     if (voiceState === "idle") {
@@ -621,7 +715,13 @@ const VoiceDebriefRecord = ({ T, lang, entries, setEntries, initialState = "intr
     }
     if (voiceState === "ai_speaking") {
       const id = `a${turnIdx}`;
-      const text = aiQuestions[turnIdx];
+      let text = aiQuestions[turnIdx];
+      // First AI message: if user already has entries (e.g. from text mode),
+      // acknowledge them so the AI doesn't repeat-ask what's already captured.
+      if (turnIdx === 0 && text && entries.length > 0) {
+        const ctx = buildVoiceContextOpener(entries, lang);
+        if (ctx) text = ctx + " " + text;
+      }
       if (!text) {
         // nothing scripted; in continuation mode the AI prompt was added externally
         // and its own timeout flips us to listening — just hold here.
@@ -697,10 +797,12 @@ const VoiceDebriefRecord = ({ T, lang, entries, setEntries, initialState = "intr
       }, 1100);
       return () => clearTimeout(t);
     }
-  }, [phase, paused, voiceState, turnIdx, lang, awaitingUser]);
+  }, [phase, paused, voiceState, turnIdx, lang, awaitingUser, active]);
 
-  // [space] toggles pause while in chat phase
+  // [space] toggles pause while in chat phase — only when voice tab is active
+  // (otherwise pressing space in text-mode forms would unintentionally pause the convo)
   React.useEffect(() => {
+    if (!active) return;
     if (phase !== "chat") return;
     const onKey = (e) => {
       if (e.code !== "Space") return;
@@ -711,7 +813,7 @@ const VoiceDebriefRecord = ({ T, lang, entries, setEntries, initialState = "intr
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [phase]);
+  }, [phase, active]);
 
   const scrollRef = React.useRef(null);
   React.useEffect(() => {
@@ -747,27 +849,56 @@ const VoiceDebriefRecord = ({ T, lang, entries, setEntries, initialState = "intr
   };
   const saveEdit = () => {
     if (!editingId) return;
+    const editingCard = extractedCards.find((c) => c.id === editingId);
     setExtractedCards((prev) => prev.map((c) => (
       c.id === editingId
         ? { ...c, q: editDraft.q.trim() || c.q, summary: editDraft.summary, followup: editDraft.followup }
         : c
     )));
+    // Manual cards auto-confirm on first save (user explicitly typed them — there's
+    // no AI extraction to verify). Voice-extracted cards still need an explicit confirm.
+    if (editingCard && editingCard.source === "manual" && editDraft.q.trim()) {
+      setCardStatus((prev) => ({ ...prev, [editingId]: "confirmed" }));
+    }
     setEditingId(null);
     setEditDraft({ q: "", summary: "", followup: "" });
   };
 
   const commitCards = () => {
     const confirmed = extractedCards.filter((c) => cardStatus[c.id] === "confirmed");
-    const newEntries = confirmed.map((c, i) => ({
-      id: `vce${entries.length + i + 1}`,
-      stage: lang === "en" ? "Voice debrief" : "语音复盘",
-      q: c.q, a: c.summary, follow: c.followup, reflection: "",
-      reaction: "neutral", source: "voice_extracted_confirmed",
-      tag: lang === "en" ? "voice" : "语音复盘",
-    }));
+    const newEntries = confirmed.map((c, i) => {
+      const isManual = c.source === "manual";
+      return {
+        id: `vce${entries.length + i + 1}`,
+        stage: isManual
+          ? (lang === "en" ? "Manual add" : "手动添加")
+          : (lang === "en" ? "Voice debrief" : "语音复盘"),
+        q: c.q, a: c.summary, follow: c.followup, reflection: "",
+        reaction: "neutral",
+        source: isManual ? "manual" : "voice_extracted",
+        tag: isManual ? (lang === "en" ? "manual" : "手动") : (lang === "en" ? "voice" : "语音复盘"),
+      };
+    });
     setEntries([...entries, ...newEntries]);
     setCommittedCount(confirmed.length);
     setPhase("committed");
+  };
+
+  // Manual add — for the "I want to type this one specifically" case while in voice mode.
+  // Pauses the conversation, jumps to the review phase with a fresh empty card already in
+  // edit mode so the user can fill it in. They can return to chat afterwards.
+  const addManualCard = () => {
+    const id = `manual-${Date.now()}`;
+    const newCard = {
+      id, q: "", summary: "", followup: "",
+      confidence: "high", source: "manual", afterTurn: turnIdx,
+    };
+    setExtractedCards((prev) => [...prev, newCard]);
+    setCardStatus((prev) => ({ ...prev, [id]: "pending" }));
+    setPaused(true);
+    setPhase("review");
+    setEditDraft({ q: "", summary: "", followup: "" });
+    setEditingId(id);
   };
 
   const continueDebrief = () => {
@@ -1034,15 +1165,33 @@ const VoiceDebriefRecord = ({ T, lang, entries, setEntries, initialState = "intr
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {extractedCards.map((c, i) => (
-                <div key={c.id} className="ei-fadein" style={{ padding: "10px 12px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderLeft: `2px solid ${confidenceColor[c.confidence]}`, borderRadius: 2 }}>
-                  <div style={{ fontFamily: "var(--ei-mono)", fontSize: 9.5, color: T.ink4, marginBottom: 4 }}>Q{i + 1} · {confidenceLabel[c.confidence]}</div>
-                  <div style={{ fontSize: 12, color: T.ink2, lineHeight: 1.5 }}>{c.q.length > 55 ? c.q.slice(0, 52) + "…" : c.q}</div>
+                <div key={c.id} className="ei-fadein" style={{ padding: "10px 12px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderLeft: `2px solid ${c.source === "manual" ? T.ink3 : confidenceColor[c.confidence]}`, borderRadius: 2 }}>
+                  <div style={{ fontFamily: "var(--ei-mono)", fontSize: 9.5, color: T.ink4, marginBottom: 4 }}>
+                    Q{i + 1} · {c.source === "manual" ? (lang === "en" ? "manual" : "手动") : confidenceLabel[c.confidence]}
+                  </div>
+                  <div style={{ fontSize: 12, color: T.ink2, lineHeight: 1.5 }}>
+                    {c.q ? (c.q.length > 55 ? c.q.slice(0, 52) + "…" : c.q) : (lang === "en" ? <span style={{ fontStyle: "italic", color: T.ink4 }}>(empty — fill in)</span> : <span style={{ fontStyle: "italic", color: T.ink4 }}>（空白 · 待填写）</span>)}
+                  </div>
                 </div>
               ))}
             </div>
           )}
+          {/* Manual add — for the "I want to type this exact one" case */}
+          <button onClick={addManualCard} style={{
+            marginTop: 12, width: "100%", padding: "9px 12px", borderRadius: 2,
+            border: `1px dashed ${T.rule}`, background: "transparent", color: T.ink3,
+            cursor: "pointer", fontSize: 12, fontFamily: "var(--ei-sans)",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            transition: "border-color .15s, color .15s",
+          }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accent; e.currentTarget.style.color = T.accent; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.rule; e.currentTarget.style.color = T.ink3; }}
+          >
+            <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
+            {lang === "en" ? "Add one manually" : "手动加一条"}
+          </button>
           {extractedCards.length > 0 && (
-            <div style={{ marginTop: 12, fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)", lineHeight: 1.7 }}>
+            <div style={{ marginTop: 10, fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)", lineHeight: 1.7 }}>
               {lang === "en" ? "You'll confirm\nthese at the end" : "复盘结束后\n你来确认这些卡片"}
             </div>
           )}
@@ -1110,6 +1259,9 @@ const VoiceDebriefRecord = ({ T, lang, entries, setEntries, initialState = "intr
                         {isEditing ? (lang === "en" ? "editing" : "编辑中") : isConfirmed ? (lang === "en" ? "confirmed" : "已确认") : isDeleted ? (lang === "en" ? "deleted" : "已删除") : (lang === "en" ? "pending" : "待确认")}
                       </span>
                       <span style={{ fontSize: 10.5, fontFamily: "var(--ei-mono)", color: confidenceColor[card.confidence] }}>{confidenceLabel[card.confidence]}</span>
+                      <span style={{ fontSize: 10, fontFamily: "var(--ei-mono)", color: T.ink3, padding: "1px 6px", borderRadius: 2, background: T.bgSoft, border: `1px solid ${T.rule}` }}>
+                        {card.source === "manual" ? (lang === "en" ? "✏️ manual" : "✏️ 手动") : (lang === "en" ? "🎙 voice" : "🎙 语音")}
+                      </span>
                     </div>
                     {isEditing ? (
                       <textarea
