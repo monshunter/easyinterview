@@ -173,7 +173,7 @@
 
 #### 7.1 `deleteMe` operation 与 inventory
 
-将 `openapi/openapi.yaml`、inventory lint、generated Go/TS types 与 server/client interfaces 更新到 spec v1.8 的 37 endpoint 集合，新增 `DELETE /api/v1/me` / `operationId=deleteMe` / `202 PrivacyRequestWithJob`，并确保 Auth tag 下 account deletion 与 `POST /api/v1/privacy/deletions` 语义一致。
+将 `openapi/openapi.yaml`、inventory lint、generated Go/TS types 与 server/client interfaces 更新到历史 spec v1.8 endpoint 集合，新增 `DELETE /api/v1/me` / `operationId=deleteMe` / `202 PrivacyRequestWithJob`，并确保 Auth tag 下 account deletion 与 `POST /api/v1/privacy/deletions` 语义一致。当前可执行 freeze 已在 Phase 8 收敛为 12 tag / 34 endpoint。
 
 #### 7.2 Idempotency-Key 与 deletion dedupe
 
@@ -224,4 +224,4 @@ P0 `Debrief` / `DebriefWithJob` 只保留真实面试复现与复盘所需字段
 | 2026-05-03 | 1.4 | 原地 reopen，新增 Phase 8 remediation：按 product-scope v1.2 移除独立 Mistakes / Growth contract，收敛报告内题目回顾与复练字段，并重新生成 Go/TS API artefacts。 | product-scope v1.2 / engineering-roadmap v2.2 |
 | 2026-04-28 | 1.2 | 根据 `make docs-openapi` deprecated 输出追加 Phase 6：将本地 HTML renderer 从 `redoc-cli@0.13.21` 迁移到 `@redocly/cli@2.30.1 build-docs`，不改变 C-1 validator。 | user report / local reproduction |
 | 2026-04-28 | 1.1 | 根据 bootstrap assessment 追加 Phase 5 remediation：锁定 ADR-Q1 cookie name、B2 tooling 边界、`ResourceType` / `JobType` 字面量与 `ApiError` inner/envelope 生成口径。 | [assessment](../../../../reports/2026-04-28-openapi-v1-contract-001-bootstrap-assessment.md) |
-| 2026-04-29 | 1.3 | 原地 reopen，新增 Phase 7 remediation：补齐 v1.8 spec 的 37 endpoint inventory、`DELETE /api/v1/me` account deletion、Idempotency-Key 与 generated codegen artifacts。 | plan-review remediation |
+| 2026-04-29 | 1.3 | 原地 reopen，新增 Phase 7 remediation：补齐历史 v1.8 spec endpoint inventory、`DELETE /api/v1/me` account deletion、Idempotency-Key 与 generated codegen artifacts。 | plan-review remediation |

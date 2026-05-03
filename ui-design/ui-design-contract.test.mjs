@@ -134,6 +134,16 @@ test("P0 report replay and next-round CTAs start interview sessions directly", (
   assert.doesNotMatch(report, /`session-\$\{params\.planId\}-\$\{nextRoundId\}-prep`/);
 });
 
+test("current UI source does not expose removed mistakes/growth/drill product surfaces", () => {
+  const report = readUiFile("./src/screen-report.jsx");
+  const settings = readUiFile("./src/screens-p0-complete.jsx");
+  const data = readUiFile("./src/data.jsx");
+
+  assert.doesNotMatch(report, /错题|openDrill|addToMistakes|addedToMistakes/);
+  assert.doesNotMatch(settings, /Mistakes derived|派生的错题/);
+  assert.doesNotMatch(data, /\bmistakes\s*:|mistakesTotal|mistakesResolved|\bgrowth\s*:/);
+});
+
 test("P0 auth success resumes the pending action instead of always returning home", () => {
   const app = readUiFile("./src/app.jsx");
   const auth = readUiFile("./src/screen-auth.jsx");

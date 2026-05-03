@@ -35,10 +35,10 @@
 
 ## Phase 5: v1.8 baseline remediation
 
-- [x] 5.1 在 001 / 002 完成 v1.8 remediation 后，重新冻结 `openapi/baseline/openapi-v1.0.0.yaml`，确保 baseline 含 37 endpoint 与 `DELETE /api/v1/me`；不得错误创建 `openapi-v1.0.1.yaml` 来掩盖当前 v1.0.0 baseline 漂移
-- [x] 5.2 更新 `scripts/lint/openapi_diff.py`、`openapi/diff-config.yaml` 与 baseline README 中 endpoint inventory 到 37；privacy export `501→202` 白名单仍仅作用于 `POST /api/v1/privacy/exports`
+- [x] 5.1 在 001 / 002 完成历史 v1.8 remediation 后，重新冻结 `openapi/baseline/openapi-v1.0.0.yaml`，确保 baseline 含当时 v1.8 freeze 清单与 `DELETE /api/v1/me`；不得错误创建 `openapi-v1.0.1.yaml` 来掩盖当时的 v1.0.0 baseline 漂移；当前 freeze 已由 Phase 6 收敛为 12 tag / 34 operation
+- [x] 5.2 更新 `scripts/lint/openapi_diff.py`、`openapi/diff-config.yaml` 与 baseline README 中 endpoint inventory 到当时 v1.8 freeze 清单；privacy export `501→202` 白名单仍仅作用于 `POST /api/v1/privacy/exports`；当前 endpoint inventory 以 Phase 6 的 34 为准
 - [x] 5.3 修正 checklist / context specVersion 到 current spec v1.8；本 remediation 未完成前 plan 保持 active
-- [x] 5.4 复跑 `make openapi-diff`、`make codegen-check`、`make validate-fixtures`，确认 37 endpoint baseline / diff / fixtures gate 均通过
+- [x] 5.4 复跑 `make openapi-diff`、`make codegen-check`、`make validate-fixtures`，确认当时 v1.8 baseline / diff / fixtures gate 均通过；Phase 6 后当前 gate 已确认 34 operation
 
 ## Phase 6: product-scope v1.2 baseline remediation
 

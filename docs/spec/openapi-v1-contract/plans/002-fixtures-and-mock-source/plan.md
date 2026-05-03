@@ -197,7 +197,7 @@ npx @stoplight/prism-cli mock openapi/.generated/openapi-with-fixtures.yaml -p 4
 |------|------|------|------|
 | 2026-05-03 | 1.3 | 刷新计划主体口径：默认 fixture / example coverage 改为 34 operation / 12 tag，prototype-baseline 只要求当前 P0 关键 6 个 endpoint，避免旧 37-operation 与独立 Mistakes / Growth 验收口径残留。 | product-scope v1.2 / openapi-v1-contract v1.9 |
 | 2026-05-03 | 1.2 | 原地 reopen，新增 Phase 6 remediation：按 product-scope v1.2 移除 Mistakes / Growth fixture 覆盖，更新报告和 TargetJob fixtures 的题目回顾 / 复练字段，并同步 prototype mapping。 | openapi-v1-contract v1.9 |
-| 2026-04-29 | 1.1 | 原地 reopen，新增 Phase 5 remediation：补齐 `Auth/deleteMe` fixture、37 operation coverage 与 P0 debrief fixture 口径。 | plan-review remediation |
+| 2026-04-29 | 1.1 | 原地 reopen，新增 Phase 5 remediation：补齐 `Auth/deleteMe` fixture、历史 v1.8 operation coverage 与 P0 debrief fixture 口径。 | plan-review remediation |
 | privacy export fixture 被误改成 202（被「正常成功」习惯覆盖） | Phase 1.3 校验脚本对 `POST /api/v1/privacy/exports` 单独走白名单：必须 status=501 + error.code=PRIVACY_EXPORT_NOT_AVAILABLE，否则 fail；Phase 4.1 复跑确认 |
 | AI schema provenance 字段被 stub 成空字符串 | Phase 1.3 校验 6 字段非空；`rubricVersion` 在非评分场景必须显式写 `not_applicable` 而非空串；脚本拒绝空白 |
 | 隐私敏感字段黑名单遗漏导致真实信息漏入 | Phase 1.3 黑名单 `scripts/lint/fixtures_privacy_blacklist.txt` 持续维护；遇到漏报由 plan 修订（递增本 plan 版本）补充 |

@@ -1,6 +1,6 @@
 # Decompose Subspecs Checklist
 
-> **版本**: 2.3
+> **版本**: 2.4
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -27,7 +27,7 @@
 
 - [x] 3.1 并行 spawn 9 份 spec（A2 / A3 / A4 / A5 / B2 / B3 / B4 / F1 / F3），仅写 spec.md + history，**不写 impl plan**
 - [x] 3.2 完成 parent-level W1 cross-spec review：核对 9 份 W1 spec 的 boundary / ownership / ADR-Q1..Q6 继承 / truth-source 引用；本项不声称 9 个 child 已各自拥有独立 plan/context 或已逐个通过 `/plan-review`，child impl plan 必须在逐一核对对应 spec 后再创建
-- [x] 3.3 B2 `openapi-v1-contract` 完成 spec-contract lock：v1.0.0 freeze 的 37 endpoint / 14 tag / additive-only 规则 / privacy export 501 例外已写入 spec（含 `DELETE /api/v1/me` 账号删除别名）；`openapi/openapi.yaml`、codegen、fixtures、breaking-change linter 由 B2 后续 `001` plan 或原地 artifact remediation 验证
+- [x] 3.3 B2 `openapi-v1-contract` 完成当时的 spec-contract lock：v1.0.0 freeze 清单 / additive-only 规则 / privacy export 501 例外已写入 spec；该历史 lock 后续已由 B2 `001` / `002` / `003` 按 product-scope v1.2 原地收敛为当前 12 tag / 34 operation 可执行 contract（含 `DELETE /api/v1/me`，不含独立 `Mistakes` / `Growth`）
 - [x] 3.4 F1 `observability-stack` 完成 spec-contract lock：baseline metric 命名、allowed labels、forbidden labels、log 明文红线、dashboard 名称与健康检查契约已写入 spec；helper / lint / dashboard / alerting 实现由 F1 后续 `001` plan 验证
 - [x] 3.5 F3 `prompt-rubric-registry` 完成 spec-contract lock：13 个 P0 feature_key、`(feature_key, version, language)` 坐标、Resolve 调用契约、prompt/rubric 文件落点已写入 spec；baseline prompt/rubric 文件与 loader 由 F3 后续 `001` plan 验证
 - [x] 3.6 A2 `local-dev-stack` 完成 spec-contract lock：最小本地依赖（Postgres+pgvector / Redis / MinIO）、项目组件启动语义、`make dev-*` 行为契约、JSON 健康检查口径已写入 spec；`deploy/dev-stack/docker-compose.yaml` 与真实 `make dev-up` 一键健康检查由 A2 后续 `001` plan 验证
@@ -38,7 +38,7 @@
 - [ ] 4.1 spawn 后端 5 份：C1 / C2 / C3 / C8 / E1（每份完整 spec + plan 链）
 - [ ] 4.2 spawn 前端 6 份：D1 `frontend-shell` / D2 `frontend-home-job-picks-and-parse` / D3 `frontend-workspace-and-practice` / D4 `frontend-report-dashboard` / D5 `frontend-resume-workshop` / D6 `frontend-debrief`；D1 必须先于 D2-D6 完成基础壳
 - [ ] 4.3 spawn 横切 1 份：F2 `analytics-funnel`
-- [ ] 4.4 E1 提供 14 tag 全 mock（按 B2 fixtures 自动生成）
+- [ ] 4.4 E1 提供当前 B2 12 tag / 34 operation 全 mock（按 B2 fixtures 自动生成）
 - [ ] 4.5 前端 6 域跑通 P0 happy path（导入→规划→练习→报告→复练当前轮 / 下一轮→真实复盘，且简历绑定可用）全部基于 E1 mock
 - [ ] 4.6 后端 5 域 mock-server plan 自验证通过
 - [ ] 4.7 验证：前后端 mock 同源（fixtures 同一份，禁止前端 hardcode）

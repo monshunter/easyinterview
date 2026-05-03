@@ -520,7 +520,7 @@ const SettingsPrivacy = ({ T, lang }) => {
         <div className="ei-label" style={{ color: T.danger, marginBottom: 14 }}>{lang === "en" ? "DANGER ZONE" : "高危操作"}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[
-            { t: lang === "en" ? "Delete a single session" : "删除某一次会话", d: lang === "en" ? "Pick a session — transcript, report, and any audio are removed. Mistakes derived from it stay unless you also remove those." : "挑一次会话，转写、报告、音频全部删除。派生的错题保留，除非你一并删除。", b: lang === "en" ? "Pick" : "选择" },
+            { t: lang === "en" ? "Delete a single session" : "删除某一次会话", d: lang === "en" ? "Pick a session — transcript, report, question reviews, and any audio are removed together." : "挑一次会话，转写、报告、题目回顾和音频会一起删除。", b: lang === "en" ? "Pick" : "选择" },
             { t: lang === "en" ? "Delete all practice data" : "删除所有练习数据", d: lang === "en" ? "Sessions, reports, question reviews, and readiness signals are removed. Target jobs & profile stay." : "会话、报告、题目回顾和准备度信号全部删掉。岗位和画像保留。", b: lang === "en" ? "Delete…" : "删除…" },
             { t: lang === "en" ? "Delete my account" : "注销账号", d: lang === "en" ? "Permanent. All data is purged within 30 days per GDPR. Backups rotated within 90." : "永久。30 天内按 GDPR 清理所有数据。备份 90 天内轮换清除。", b: lang === "en" ? "Delete account…" : "注销账号…", danger: true },
           ].map((r) => (

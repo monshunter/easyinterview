@@ -47,10 +47,10 @@
 
 ## Phase 7: v1.8 contract remediation
 
-- [x] 7.1 将 `openapi/openapi.yaml`、inventory lint、generated Go/TS types 与 server/client interfaces 更新到 spec v1.8 的 37 endpoint 集合，新增 `DELETE /api/v1/me` / `operationId=deleteMe` / `202 PrivacyRequestWithJob`
+- [x] 7.1 将 `openapi/openapi.yaml`、inventory lint、generated Go/TS types 与 server/client interfaces 更新到历史 spec v1.8 endpoint 集合，新增 `DELETE /api/v1/me` / `operationId=deleteMe` / `202 PrivacyRequestWithJob`；当前可执行 freeze 已在 Phase 8 收敛为 12 tag / 34 operation
 - [x] 7.2 `DELETE /api/v1/me` 声明 `Idempotency-Key` header 或等价 active-request dedupe；重复删除请求返回同一 active `privacy_delete` job 或同义终态
 - [x] 7.3 P0 `Debrief` / `DebriefWithJob` 移除或保持 optional/hidden 的感谢信草稿与完整跟进建议字段，不作为 P0 required
-- [x] 7.4 复跑 `make lint-openapi` / `make codegen-openapi` / `make codegen-check`，当时确认 v1.8 的 37 operation inventory 与 generated drift clean；Phase 8 已将当前 freeze 收敛为 34 operation
+- [x] 7.4 复跑 `make lint-openapi` / `make codegen-openapi` / `make codegen-check`，当时确认历史 v1.8 operation inventory 与 generated drift clean；Phase 8 已将当前 freeze 收敛为 34 operation
 
 ## Phase 8: product-scope v1.2 contract remediation
 

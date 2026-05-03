@@ -1,6 +1,6 @@
 # ADR-Q2 · 异步编排
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: accepted
 > **更新日期**: 2026-05-03
 
@@ -87,7 +87,7 @@ P0 已识别的异步链路：
 
 - **C8 `backend-async-runtime`** —— 落地 Asynq client / server 抽象、outbox dispatcher、task registry、metrics adapter
 - **A2 `local-dev-stack`** —— `docker-compose.yml` 含 Redis 7 + AOF；`make dev-up` 健康检查包含 Asynq ping
-- **B3 `event-and-outbox-contract`** —— 18 事件 envelope + outbox publish_status 状态机
+- **B3 `event-and-outbox-contract`** —— 当前 16 个内部事件 envelope + outbox publish_status 状态机；新增事件必须走 B3 additive 更新
 - **B4 `db-migrations-baseline`** —— `async_jobs` / `outbox_events` 0001 迁移；`async_jobs.job_type` check 必须包含 internal-only `email_dispatch`
 - **C1 `backend-auth`** —— magic link 邮件派发只能通过 C8 `email_dispatch` job 进入 worker，不得在 request handler 中同步发邮件
 - **C4 / C5 / C6 / C7** —— 所有异步链路统一通过 C8 SDK enqueue，禁止业务代码直接 import `asynq`
@@ -117,5 +117,6 @@ P0 已识别的异步链路：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-03 | 1.4 | 对齐 B3 当前可执行事件契约：event/outbox 当前为 16 个内部事件，不再沿用旧 18 事件口径。 | event-and-outbox-contract / product-scope v1.2 |
 | 2026-05-03 | 1.3 | 对齐 product-scope v1.1：异步 review 物化只服务报告内题目回顾与本轮复练上下文，不再承接独立 Mistake / Drill 队列。 | product-scope / engineering-roadmap v2.2 |
 | 2026-04-29 | 1.2 | 将 magic link / 通知派发所需的 `email_dispatch` 明确纳入 internal-only canonical jobType，锁定 `email.dispatch` Asynq dotted name、low priority 队列与 B3/B4 契约同步要求；同时把早期示例 dotted name 对齐 B3 规范。 | plan-review remediation |

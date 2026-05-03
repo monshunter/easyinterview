@@ -27,7 +27,6 @@ window.EI_DATA = {
       hits: ["React 深度", "性能优化", "可访问性"],
       gaps: ["大型协作案例", "Design System 落地故事"],
       practices: 4,
-      mistakes: 3,
       match: 78,
     },
     {
@@ -47,7 +46,6 @@ window.EI_DATA = {
       hits: ["TypeScript", "Monorepo"],
       gaps: ["英文表达节奏", "Platform 案例"],
       practices: 2,
-      mistakes: 5,
       match: 64,
     },
     {
@@ -67,7 +65,6 @@ window.EI_DATA = {
       hits: ["系统设计"],
       gaps: ["跨团队影响", "技术决策案例"],
       practices: 0,
-      mistakes: 0,
       match: 52,
     },
   ],
@@ -174,41 +171,6 @@ window.EI_DATA = {
       language: "zh-CN",
     },
   ],
-
-  mistakes: [
-    {
-      id: "m1",
-      ability: "量化结果",
-      question: "讲一个你主导过的前端性能优化项目。",
-      status: "改善中",
-      priority: "高",
-    },
-    {
-      id: "m2",
-      ability: "方案权衡",
-      question: "为什么选择渐进迁移，而不是一次性替换旧表单系统？",
-      status: "未解决",
-      priority: "中",
-    },
-  ],
-
-  growth: {
-    last30d: {
-      practices: 6,
-      mistakesTotal: 8,
-      mistakesResolved: 3,
-    },
-    weeks: ["03-10", "03-17", "03-24", "03-31", "04-07", "04-14", "04-28"],
-    recent: [
-      { label: "技术一面复练", readiness: 2 },
-      { label: "经理面复练", readiness: 1 },
-    ],
-    trendDim: [
-      { name: "内容具体性", values: [58, 64, 70, 72] },
-      { name: "追问应对", values: [42, 48, 54, 58] },
-      { name: "岗位相关性", values: [55, 60, 66, 70] },
-    ],
-  },
 
   report: {
     readiness: 2,

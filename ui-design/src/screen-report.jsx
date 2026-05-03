@@ -474,7 +474,7 @@ const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, onRe
             <div style={{ fontSize: 13, color: T.ink3, lineHeight: 1.65, marginBottom: 12 }}>
               {lang === "en"
                 ? "This repeats the same interview round and injects the issues found in this report. Use it when readiness says replay."
-                : "这不是推进到下一轮，而是重复当前轮次，把本报告里的错题、证据缺口和追问风险带进去。当前准备度为「建议再练」时，默认走这条。"}
+                : "这不是推进到下一轮，而是重复当前轮次，把本报告题目回顾里的问题、证据缺口和追问风险带进去。当前准备度为「建议再练」时，默认走这条。"}
             </div>
             {r.nextPractice.map((n, i) => (
               <div key={i} style={{ display: "grid", gridTemplateColumns: "30px 1fr auto", gap: 12, alignItems: "center", padding: "13px 0", borderBottom: i < r.nextPractice.length - 1 ? `1px dotted ${T.rule}` : "none" }}>
@@ -518,7 +518,7 @@ const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, onRe
 
 const IssueRow = ({ iss, T, L, lang, onReplay }) => {
   const toneMap = { high: T.danger, medium: T.warn, low: T.ink3 };
-  const [added, setAdded] = React.useState(false);
+  const [queued, setQueued] = React.useState(false);
   return (
     <div style={{ padding: "18px 0", borderBottom: `1px dotted ${T.rule}`, display: "grid", gridTemplateColumns: "auto 1fr", gap: 16 }}>
       <div style={{ color: toneMap[iss.severity], fontSize: 18, lineHeight: 1, marginTop: 2 }}>▲</div>
@@ -535,9 +535,9 @@ const IssueRow = ({ iss, T, L, lang, onReplay }) => {
           <b style={{ color: T.ink, fontSize: 11.5, fontFamily: "var(--ei-mono)", letterSpacing: "0.06em" }}>▸ {L.suggestion}</b><br/>{iss.suggestion}
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-          <Btn variant="secondary" size="sm" T={T} icon="play" onClick={onReplay}>{L.openDrill}</Btn>
-          <Btn variant="ghost" size="sm" T={T} icon={added ? "check" : "plus"} onClick={() => setAdded(true)}>
-            {added ? L.addedToMistakes : L.addToMistakes}
+          <Btn variant="secondary" size="sm" T={T} icon="play" onClick={onReplay}>{lang === "en" ? "Replay current round" : "带入本轮复练"}</Btn>
+          <Btn variant="ghost" size="sm" T={T} icon={queued ? "check" : "plus"} onClick={() => setQueued(true)}>
+            {queued ? (lang === "en" ? "Queued for replay" : "已加入本轮复练") : (lang === "en" ? "Add to replay plan" : "加入本轮复练")}
           </Btn>
         </div>
       </div>

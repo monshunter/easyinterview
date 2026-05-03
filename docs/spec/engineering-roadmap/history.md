@@ -1,6 +1,6 @@
 # Engineering Roadmap History
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-03 | 2.3 | 对齐 product-scope v1.2 后的可执行契约口径：B2 改为 34 endpoint / 12 tag，B3 internal events 改为 16 个，B4 baseline 改为 26 应用表 + 3 auth 支撑表 + 2 迁移元数据表，E1 mock gate 改为当前 B2 全量 operation。 | product-contract alignment review |
 | 2026-05-03 | 2.2 | 对齐 product-scope v1.1 与当前 UI 真理源：P0 前端 child 改为 Home / Job Picks / Practice / Report / Resume / Debrief 六域；移除 onboarding、独立 mistakes、独立 growth、Drill、followup-tree、STAR、多轮计划和独立 voice page 的 roadmap 口径；C10 改为嵌入式 readiness signals。 | 001-decompose-subspecs |
 | 2026-05-03 | 2.1 | 同步产品真理源迁移：将 parent roadmap 的产品输入从根目录 `easyinterview-spec-v1-0.md` 改为 `docs/spec/product-scope/spec.md`，并明确旧根 spec 仅作历史参考。 | docs-only |
 | 2026-04-29 | 2.0 | 收口 A/B spec 全面审查 remediation：A1 根目录契约纳入 `shared/` / `config/`；Q2/B3/B4 接入 internal-only `email_dispatch`；Q6 以 ADR-Q6 为准重新锁定 AIClient 连接参数与 gateway fallback 边界；C9 真实面试复现升格为 P0 后端范围；B4 增补 AI call meta 字段与隐私删除表矩阵。 | plan-review remediation |

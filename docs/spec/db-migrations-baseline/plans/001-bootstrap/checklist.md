@@ -1,6 +1,6 @@
 # DB Migrations Baseline Bootstrap Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-03
 
@@ -17,8 +17,8 @@
 
 ## Phase 2: baseline DDL 与索引
 
-- [x] 2.1 落地 03-db-definition 27 张 P0 应用表 + ADR-Q1 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表。验证: SQL inventory probe 断言 30 张应用 / auth 支撑表全部存在，且关键 FK / soft-delete / sensitive hash 字段符合 spec §4.2 / §4.4
-- [x] 2.2 `make migrate-up` 后 public schema table count ≥32（含 `schema_migrations` / `schema_backfills`）。验证: 干净 Postgres 上 `make migrate-up` 后执行 `select count(*) from information_schema.tables where table_schema='public'`，结果 ≥32 并记录在 handoff
+- [x] 2.1 落地当前产品范围内 26 张应用表 + ADR-Q1 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表；旧 `mistake_entries` 不再创建。验证: SQL inventory probe 断言 29 张当前应用 / auth 支撑表全部存在，且关键 FK / soft-delete / sensitive hash 字段符合 spec §4.2 / §4.4
+- [x] 2.2 `make migrate-up` 后 public schema table count ≥31（含 `schema_migrations` / `schema_backfills`）。验证: 干净 Postgres 上 `make migrate-up` 后执行 `select count(*) from information_schema.tables where table_schema='public'`，结果 ≥31 并记录在 handoff
 - [x] 2.3 `outbox_events` 包含 `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message`，并有 `(publish_status, next_attempt_at, created_at)` pending due 查询索引。验证: information_schema column probe + `pg_indexes` probe + pending due `EXPLAIN` 命中对应索引
 - [x] 2.4 `async_jobs.job_type` check 包含 B3 10 个 canonical jobType（含 internal-only `email_dispatch`），且 B2 API-facing subset 仍为 7 项。验证: migration lint 读取 B3/B2 manifests 后断言 DB check 值等于 B3 canonical 10 项，且 B2 API-facing subset 未被 internal-only `email_dispatch` 扩大
 - [x] 2.5 `ai_task_runs` 包含 `model_family` / `model_profile_name` / `model_profile_version` / `fallback_chain` / `route` / `validation_status` / `output_schema_version` typed columns。验证: information_schema probe 断言 typed columns、`fallback_chain jsonb not null default '[]'::jsonb`，并有 dashboard 查询不依赖 JSONB path scan 的 SQL/explain probe
@@ -36,7 +36,7 @@
 
 - [x] 4.1 在干净 Postgres 16 上执行 `make migrate-check`：`migrate-up -> migrate-down -> migrate-up` 全部成功。验证: 使用 A2 dev stack 或本地等价 Postgres 16 运行 `make migrate-check`，记录 migrate-up/down/up、backfill ledger 去重、exit 0 输出
 - [x] 4.2 `APP_ENV=prod make migrate-down` fail-fast；stderr 提示需显式 force / 操作窗口。验证: `APP_ENV=prod make migrate-down` exit 非 0，stderr 包含 `MIGRATE_DOWN_FORCE=1` 或等价操作窗口提示；不连接 DB 或不执行 down SQL
-- [x] 4.3 SQL probes 验证 table count ≥32、outbox retry columns、AI typed columns、ivfflat / pending due / B-Tree 索引存在且 explain 命中。验证: probe 命令输出保存到工作日志，覆盖 spec C-1 / C-2 / C-8 / C-9 / C-11 / C-12
+- [x] 4.3 SQL probes 验证 table count ≥31、outbox retry columns、AI typed columns、ivfflat / pending due / B-Tree 索引存在且 explain 命中。验证: probe 命令输出保存到工作日志，覆盖 spec C-1 / C-2 / C-8 / C-9 / C-11 / C-12
 - [x] 4.4 临时修改 B3 job manifest 或 B1 enum，确认 `make migrate-check` / lint 报 drift；revert 后恢复。验证: negative drift case 先失败并指向具体 table.column/source/checksum，恢复 manifest 后 `make migrate-check` 通过且 `git diff --check` 通过
 - [x] 4.5 privacy deletion dry-run 输出覆盖 spec §3.1.2 所有表组，且 `prompt_versions` / `rubric_versions` / migration metadata 被 retain。验证: dry-run fixture/probe 输出覆盖所有 disposition，retain 表组无用户内容删除动作，结果记录到工作日志
 - [x] 4.6 本 plan checklist 全部勾选后，将 Header 切 completed，运行 sync-doc-index check/fix，并在 work journal 记录 migrate-check、SQL probes、lint probes 与 downstream handoff。验证: `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` zero drift，work journal 有本 plan commit 记录与下游 handoff

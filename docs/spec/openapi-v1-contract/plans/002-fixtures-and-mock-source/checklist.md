@@ -36,9 +36,9 @@
 ## Phase 5: v1.8 fixture remediation
 
 - [x] 5.1 新增 `openapi/fixtures/auth/deleteMe.json` default fixture：request 带 `Idempotency-Key`，response `202 + PrivacyRequestWithJob`，`job.jobType="privacy_delete"`，语义与 `requestPrivacyDelete` 保持一致
-- [x] 5.2 更新 `make validate-fixtures`、fixtures → examples 投影工具与 README 中 operation count；Phase 5 曾提升到 v1.8 的 37 operation，Phase 6 后当前为 34 operation；缺 `deleteMe` fixture 或 example 必须 fail
+- [x] 5.2 更新 `make validate-fixtures`、fixtures → examples 投影工具与 README 中 operation count；Phase 5 曾提升到历史 v1.8 operation 集合，Phase 6 后当前为 34 operation；缺 `deleteMe` fixture 或 example 必须 fail
 - [x] 5.3 `Debrief` / `DebriefWithJob` default fixture 不包含 P1 感谢信草稿或完整跟进建议 required 字段；如果 schema 保留这些字段，fixture 中体现 optional / hidden 口径，不阻塞 P0
-- [x] 5.4 复跑 `make validate-fixtures` 与 examples 投影；Phase 5 曾确认 37 operation coverage，Phase 6 后当前确认 34 operation coverage、privacy redaction、provenance 与 fixture example parity 通过
+- [x] 5.4 复跑 `make validate-fixtures` 与 examples 投影；Phase 5 曾确认历史 v1.8 operation coverage，Phase 6 后当前确认 34 operation coverage、privacy redaction、provenance 与 fixture example parity 通过
 
 ## Phase 6: product-scope v1.2 fixture remediation
 
