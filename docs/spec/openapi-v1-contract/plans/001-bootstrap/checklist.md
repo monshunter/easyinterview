@@ -1,17 +1,17 @@
 # OpenAPI v1 Contract Bootstrap Checklist
 
-> **版本**: 1.3
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-03
 
 **关联计划**: [plan](./plan.md)
 
 ## Phase 1: openapi.yaml v1.0.0 骨架与共享 components
 
-- [x] 1.1 落地 `openapi/openapi.yaml` 文档头（OpenAPI 3.1、`info.version: 1.0.0`、`servers: [{url: /api/v1}]`）+ 14 个 tag（按 spec §2.1 顺序）+ ADR-Q1 `sessionCookie` security scheme + document-level `security: [{sessionCookie: []}]`；不引入 `Authorization: Bearer` 默认 scheme
+- [x] 1.1 落地 `openapi/openapi.yaml` 文档头（OpenAPI 3.1、`info.version: 1.0.0`、`servers: [{url: /api/v1}]`）+ 当前 12 个 tag（按 spec §2.1 顺序）+ ADR-Q1 `sessionCookie` security scheme + document-level `security: [{sessionCookie: []}]`；不引入 `Authorization: Bearer` 默认 scheme
 - [x] 1.2 在 `components` 中通过 `$ref` 引用 B1 `ApiError` inner object / `PageInfo` / 14 enum / 错误码 enum，并声明 B2 `ApiErrorResponse` envelope；声明 `Idempotency-Key` / `X-Request-ID` / `traceparent` / `Accept-Language` / `X-Client-Version` parameters / headers；落地 `Paginated<T>` `allOf` 模式与 `ResourceType` enum；落地 `GenerationProvenance` schema（6 字段，`rubricVersion` 允许 `not_applicable`）
-- [x] 1.3 写入 spec §3.1.1 历史 v1.3 的 36 个 operation；v1.8 新增的 `DELETE /api/v1/me` / `deleteMe` 由 Phase 7 补齐到当前 37 operation 集合。每个 operation 含 `tags` / `summary` / `operationId` / `security`（按 §4.1 public/protected 矩阵）/ 必要 parameters / request body（如有）/ success 或 P0 例外 response / `default: $ref ApiErrorResponse`；副作用 endpoint 引用 `Idempotency-Key`，但 ADR-Q1 `POST /api/v1/auth/email/start` 例外；`POST /practice/sessions/{sessionId}/events` 引用 `clientEventId` 且不挂 `Idempotency-Key`；长耗时 operation 走 `202 + *WithJob`；`POST /api/v1/privacy/exports` 唯一声明 `501` + `example.error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；`GET /api/v1/runtime-config` security `[]`；AI 生成 schema 通过 `$ref` 关联 `GenerationProvenance`
-- [x] 1.4 落地 `scripts/lint/openapi_inventory.py`（或等价 `make` 内联脚本）：断言 14 tag 顺序、历史 v1.3 的 36 operation 完整集合；Phase 7 会把 inventory 提升到 v1.8 的 37 operation。每条 operation 都有 `default: $ref ApiErrorResponse`、`Idempotency-Key` 与 ADR-Q1 auth start / `clientEventId` 互斥规则、privacy export 501 唯一性
+- [x] 1.3 写入 spec §3.1.1 当前 34 个 operation。每个 operation 含 `tags` / `summary` / `operationId` / `security`（按 §4.1 public/protected 矩阵）/ 必要 parameters / request body（如有）/ success 或 P0 例外 response / `default: $ref ApiErrorResponse`；副作用 endpoint 引用 `Idempotency-Key`，但 ADR-Q1 `POST /api/v1/auth/email/start` 例外；`POST /practice/sessions/{sessionId}/events` 引用 `clientEventId` 且不挂 `Idempotency-Key`；长耗时 operation 走 `202 + *WithJob`；`POST /api/v1/privacy/exports` 唯一声明 `501` + `example.error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；`GET /api/v1/runtime-config` security `[]`；AI 生成 schema 通过 `$ref` 关联 `GenerationProvenance`
+- [x] 1.4 落地 `scripts/lint/openapi_inventory.py`（或等价 `make` 内联脚本）：断言当前 12 tag 顺序、34 operation 完整集合。每条 operation 都有 `default: $ref ApiErrorResponse`、`Idempotency-Key` 与 ADR-Q1 auth start / `clientEventId` 互斥规则、privacy export 501 唯一性
 
 ## Phase 2: Codegen pipeline
 
@@ -23,7 +23,7 @@
 ## Phase 3: API 文档站点（本地）
 
 - [x] 3.1 落地 `make docs-openapi`：调用 Redoc / Stoplight CLI 渲染 `openapi/openapi.yaml` 为单文件 HTML，输出到 `openapi/dist/index.html`；根 `.gitignore` 忽略 `openapi/dist/`；不要求 A5 CI artifact
-- [x] 3.2 更新 `openapi/README.md`：yaml 入口、generator 调用与产物落点、14 tag 链接、`make docs-openapi` 用法、B1 `$ref` 拓扑示意、`Authorization: Bearer` 不作为 P0 默认 auth 形态的声明
+- [x] 3.2 更新 `openapi/README.md`：yaml 入口、generator 调用与产物落点、12 tag 链接、`make docs-openapi` 用法、B1 `$ref` 拓扑示意、`Authorization: Bearer` 不作为 P0 默认 auth 形态的声明
 
 ## Phase 4: Verification + handoff
 
@@ -50,4 +50,10 @@
 - [x] 7.1 将 `openapi/openapi.yaml`、inventory lint、generated Go/TS types 与 server/client interfaces 更新到 spec v1.8 的 37 endpoint 集合，新增 `DELETE /api/v1/me` / `operationId=deleteMe` / `202 PrivacyRequestWithJob`
 - [x] 7.2 `DELETE /api/v1/me` 声明 `Idempotency-Key` header 或等价 active-request dedupe；重复删除请求返回同一 active `privacy_delete` job 或同义终态
 - [x] 7.3 P0 `Debrief` / `DebriefWithJob` 移除或保持 optional/hidden 的感谢信草稿与完整跟进建议字段，不作为 P0 required
-- [x] 7.4 复跑 `make lint-openapi` / `make codegen-openapi` / `make codegen-check`，确认 37 operation inventory 与 generated drift clean
+- [x] 7.4 复跑 `make lint-openapi` / `make codegen-openapi` / `make codegen-check`，当时确认 v1.8 的 37 operation inventory 与 generated drift clean；Phase 8 已将当前 freeze 收敛为 34 operation
+
+## Phase 8: product-scope v1.2 contract remediation
+
+- [x] 8.1 Red: 调整 `scripts/lint/openapi_inventory.py` 到 12 tag / 34 endpoint / 无 `MistakeEntry` provenance root 后，运行 `make lint-openapi` 失败，证明旧 OpenAPI contract 被 gate 拦住（2026-05-03：失败于旧 `Mistakes` / `Growth` tag、3 个旧 endpoint 与 operation count 37→34 漂移）
+- [x] 8.2 Green: 修订 `openapi/openapi.yaml` 并运行 `make codegen-openapi`，移除独立 Mistakes / Growth endpoint、schema、Go server methods 和 TS client methods；报告字段改为题目回顾 / 本轮复练语义
+- [x] 8.3 Verify: `make lint-openapi`、OpenAPI codegen 单元测试通过；repo 搜索确认 generated API 不再出现 `listMistakes` / `retestMistake` / `getGrowthOverview` / `MistakeEntry` / `GrowthOverview`（2026-05-03：`make lint-openapi`、`cd backend && go test ./cmd/codegen/openapi -count=1` 通过；generated API 搜索无旧独立方法 / 类型）

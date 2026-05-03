@@ -29,11 +29,11 @@
           ],
           "nextActions": [
             {
-              "type": "drill",
-              "label": "再练 3 道关于灰度策略的追问。"
+              "type": "retry_current_round",
+              "label": "围绕灰度策略复练当前轮追问。"
             },
             {
-              "type": "review",
+              "type": "review_evidence",
               "label": "回顾迁移期间的回归数据并准备一段量化叙事。"
             }
           ],
@@ -55,11 +55,12 @@
                   "confidence": "high"
                 }
               },
-              "writtenToMistakeBook": true
+              "reviewStatus": "queued_for_retry",
+              "includedInRetryPlan": true
             }
           ],
-          "mistakeIds": [
-            "01918fa0-0000-7000-8000-000000008000"
+          "retryFocusTurnIds": [
+            "01918fa0-0000-7000-8000-000000006000"
           ],
           "provenance": {
             "promptVersion": "feedback_report.v3",
@@ -122,16 +123,16 @@
           ],
           "nextActions": [
             {
-              "type": "drill",
-              "label": "针对「性能优化量化」做一次单题深钻（15 分钟）"
+              "type": "retry_current_round",
+              "label": "重复技术一面复练时，必须覆盖「性能优化量化」"
             },
             {
-              "type": "drill",
-              "label": "练习一次「替代方案权衡」型追问"
+              "type": "retry_current_round",
+              "label": "项目深挖中加入一次「替代方案权衡」追问"
             },
             {
-              "type": "drill",
-              "label": "准备 3 个岗位定制反问"
+              "type": "retry_current_round",
+              "label": "反问环节准备 3 个岗位定制问题"
             }
           ],
           "questionAssessments": [
@@ -160,7 +161,8 @@
                   "confidence": "medium"
                 }
               },
-              "writtenToMistakeBook": false
+              "reviewStatus": "resolved",
+              "includedInRetryPlan": false
             },
             {
               "turnId": "01918fa0-2f7f-70e4-8de4-c2ba5ba96176",
@@ -187,7 +189,8 @@
                   "confidence": "medium"
                 }
               },
-              "writtenToMistakeBook": true
+              "reviewStatus": "queued_for_retry",
+              "includedInRetryPlan": true
             },
             {
               "turnId": "01918fa0-d441-747d-8e3f-3a98a3c3a309",
@@ -214,11 +217,13 @@
                   "confidence": "medium"
                 }
               },
-              "writtenToMistakeBook": true
+              "reviewStatus": "queued_for_retry",
+              "includedInRetryPlan": true
             }
           ],
-          "mistakeIds": [
-            "01918fa0-3470-7449-8d1a-d2dadf5645f9"
+          "retryFocusTurnIds": [
+            "01918fa0-2f7f-70e4-8de4-c2ba5ba96176",
+            "01918fa0-d441-747d-8e3f-3a98a3c3a309"
           ],
           "provenance": {
             "promptVersion": "feedback_report.v3",

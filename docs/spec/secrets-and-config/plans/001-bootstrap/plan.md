@@ -1,8 +1,8 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-04-30
+> **更新日期**: 2026-05-03
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -106,7 +106,7 @@ type FeatureFlagClient interface {
 
 #### 3.4 落地 `config/feature-flags.yaml` baseline
 
-按 [01-technical-architecture.md §15.1](../../../../../easyinterview-tech-docs/01-technical-architecture.md#15-发布与灰度) 写入 6 项 P0 baseline flag（`practice_hint_enabled` / `report_evidence_v2_enabled` / `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `ai_fallback_model_enabled` / `mock_session_dual_track_enabled`）。每个 flag 必须显式标注 `public: true|false`：`practice_hint_enabled` / `report_evidence_v2_enabled` / `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 设 `public: true`（前端可见）；`ai_fallback_model_enabled` 设 `public: false`（operator-only），由 Phase 5 runtime-config builder 在 allowlist 中过滤。
+按 product-scope v1.2 / UI scope 写入 6 项 baseline flag（`practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`）。每个 flag 必须显式标注 `public: true|false`：除 `ai_fallback_model_enabled` 外均为 `public: true`（前端可见）；`ai_fallback_model_enabled` 设 `public: false`（operator-only），由 Phase 5 runtime-config builder 在 allowlist 中过滤。旧 `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 不得恢复。
 
 #### 3.5 落地 `config/README.md`
 
@@ -244,6 +244,20 @@ type FeatureFlagClient interface {
 
 针对 L2 review finding R-7.5：`validator.go` 必须覆盖 spec §3.1.1 / §3.1.2 标记为 prod/staging required 或 conditional 的 P0 keys，包括 app/worker listen addr、database、redis、object storage、AI model profile path、feature flag source/file/posthog、email provider 与现有 auth/AI secrets。对 database/redis/object storage 这类 `config/config.yaml` 中含 dev 默认值的部署依赖，staging/prod 必须要求 runtime env/secret override，避免生产静默连接本机 dev 服务。新增 focused tests 覆盖缺 storage/cache/database override 失败、缺 PostHog host 失败、缺 email provider 失败与完整 prod runtime bindings 通过。
 
+### Phase 8: product-scope v1.2 feature flag remediation
+
+#### 8.1 Red
+
+先调整 feature flag / runtime-config tests，要求旧 `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 不得出现在 public runtime config。当前配置仍包含旧 flag 时测试必须失败。
+
+#### 8.2 Green
+
+修订 `config/feature-flags.yaml`、runtime-config tests 与相关文档：新增 `report_retry_plan_enabled` / `readiness_signals_enabled` / `practice_assistance_mode_enabled`，删除旧独立错题本、成长中心和 dual-track flag。
+
+#### 8.3 Verify
+
+运行 `make lint-config`、focused runtime-config tests；repo 搜索确认实现侧不再出现旧三项 feature flag key。
+
 ## 4 验收标准
 
 - [secrets-and-config spec §6 验收标准](../../spec.md#6-验收标准) C-1..C-5、C-7..C-12 全部成立，证据贴入工作日志；C-6 partial 验收（A4 builder + stub + 前端 fetcher + 单测）成立，跨 plan 完整 verification 由 B2 / D1 后续 plan 关闭并 cross-link 回本工作日志。
@@ -265,6 +279,7 @@ type FeatureFlagClient interface {
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-03 | 1.4 | 原地 reopen，新增 Phase 8 remediation：按 product-scope v1.2 替换旧错题本 / 成长中心 / dual-track feature flag baseline。 | secrets-and-config v1.9 |
 | 2026-04-30 | 1.3 | L2 code-review remediation：补 prod/staging required config 覆盖与 dev-default runtime override 防线。 | plan-code-review --fix |
 | 2026-04-30 | 1.2 | L2 code-review remediation：worker bindings、AI base URL fail-fast、env_dict code-side binding discovery、runtime-config cold PostHog projection。 | plan-code-review --fix |
 | 2026-04-29 | 1.1 | 对齐 spec v1.7：24 项 env key、`async.queueWeights` config-only 字段、PostHog last-known-good 缓存降级、secret 样本只允许临时生成不入文档。 | plan-review remediation |

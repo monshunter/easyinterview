@@ -55,13 +55,10 @@ EXPECTED_OPERATIONS = [
     ("PracticeSessions", "completePracticeSession", 202, True),
     ("Reports", "getFeedbackReport", 200, False),
     ("Reports", "listTargetJobReports", 200, False),
-    ("Mistakes", "listMistakes", 200, False),
-    ("Mistakes", "retestMistake", 201, True),
     ("ResumeTailor", "requestResumeTailor", 202, True),
     ("ResumeTailor", "getResumeTailorRun", 200, False),
     ("Debriefs", "createDebrief", 202, True),
     ("Debriefs", "getDebrief", 200, False),
-    ("Growth", "getGrowthOverview", 200, False),
     ("Jobs", "getJob", 200, False),
     ("Privacy", "requestPrivacyExport", 501, False),
     ("Privacy", "requestPrivacyDelete", 202, False),
@@ -72,12 +69,12 @@ EXPECTED_OPERATIONS = [
 class FixtureSkeletonTest(unittest.TestCase):
     """Phase 1.1 structural contract."""
 
-    def test_thirty_seven_operations_expected(self) -> None:
-        self.assertEqual(len(EXPECTED_OPERATIONS), 37)
+    def test_thirty_four_operations_expected(self) -> None:
+        self.assertEqual(len(EXPECTED_OPERATIONS), 34)
 
-    def test_fourteen_unique_tags(self) -> None:
+    def test_twelve_unique_tags(self) -> None:
         tags = {tag for tag, *_ in EXPECTED_OPERATIONS}
-        self.assertEqual(len(tags), 14)
+        self.assertEqual(len(tags), 12)
 
     def test_each_fixture_file_exists(self) -> None:
         missing = []
@@ -150,7 +147,7 @@ class FixtureSkeletonTest(unittest.TestCase):
 class FixtureValidatorWalkerTest(unittest.TestCase):
     """Validator helper exposes a structural walk over openapi/fixtures/."""
 
-    def test_walker_returns_37_entries(self) -> None:
+    def test_walker_returns_34_entries(self) -> None:
         validator = _load_validator()
         entries = validator.walk_fixtures(FIXTURES_ROOT)
         self.assertEqual(
@@ -182,7 +179,6 @@ PROVENANCE_OPERATIONS = {
     ],
     "appendSessionEvent": ["assistantAction.provenance"],
     "getFeedbackReport": ["provenance"],
-    "listMistakes": ["items[*].provenance"],
     "getResumeTailorRun": ["provenance"],
     "getDebrief": ["provenance"],
 }
@@ -191,7 +187,6 @@ LIST_OPERATIONS = [
     "listExperienceCards",
     "listTargetJobs",
     "listTargetJobReports",
-    "listMistakes",
 ]
 
 # *WithJob async operations and the JobType they must emit.

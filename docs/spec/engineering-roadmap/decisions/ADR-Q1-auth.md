@@ -1,8 +1,8 @@
 # ADR-Q1 · 认证方案
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: accepted
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-03
 
 ## 1 背景
 
@@ -13,7 +13,7 @@
 - 用户登录不是一次性体验，而是跨设备 / 多次回访（练习→报告→复练）
 - 用户携带敏感数据（简历、JD、面试录音）；身份事故 = 数据事故
 - 不存在企业 SSO / 组织管理需求（B2B / Team 版明确划入 Out of Scope）
-- 邮箱是核心唯一标识（report 发送、隐私请求确认、感谢信草稿场景都依赖邮箱）
+- 邮箱是核心唯一标识（report 通知、magic link、隐私请求确认等场景都依赖邮箱）
 
 技术约束：
 
@@ -82,7 +82,7 @@
 ## 4 影响范围
 
 - **C1 `backend-auth`** —— 落地 magic link 全链路 + session 中间件 + challenge 表迁移
-- **D1 `frontend-shell`** —— 实现 `/welcome` 登录页（`screens-welcome.jsx` 重构）+ auth gate + session 自动续期
+- **D1 `frontend-shell`** —— 实现操作级 AuthGate / 登录注册页面流 + session 自动续期；默认入口仍为 `home`，不得恢复 `/welcome` 作为登录前置页
 - **B2 `openapi-v1-contract`** —— 在 `auth` tag 下冻结 `/auth/email/{start,verify}` + `/auth/logout` + `/me`
 - **B4 `db-migrations-baseline`** —— `auth_challenges` / `sessions` / `external_identities`（空表）三张表的 0001 迁移
 - **C8 `backend-async-runtime`** —— 邮件发送作为 internal-only canonical `email_dispatch` job_type（由 B3 / B4 加入 DB/C8 内部契约，不进入 B2 API-facing `JobType`），复用 outbox dispatcher
@@ -111,5 +111,6 @@
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-03 | 1.4 | 对齐 product-scope v1.1：认证是操作级拦截，不再把 `/welcome` 登录页作为默认入口或前端 P0 child 职责；邮件身份场景移除感谢信草稿旧范围。 | product-scope / engineering-roadmap v2.2 |
 | 2026-04-29 | 1.3 | 将 `email_dispatch` 从 public jobType 修正为 internal-only canonical jobType：仅 DB/C8 内部使用，不进入 B2 API-facing `JobType`；继续复用 outbox dispatcher。 | event-and-outbox-contract/001-bootstrap plan-review remediation |
 | 2026-04-28 | 1.2 | 锁定 first-party session cookie 字面量名为 `ei_session`，供 B2 OpenAPI security scheme、A4 config 文档与后续 C1 backend-auth 实现复用。 | openapi-v1-contract/001-bootstrap assessment remediation |

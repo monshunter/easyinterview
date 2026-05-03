@@ -39,7 +39,7 @@ B1_SOURCE_MAP = {
     "feedback_reports.preparedness_level": "ReadinessTier",
     "question_assessments.overall_status": "DimensionStatus",
     "question_assessments.confidence": "Confidence",
-    "mistake_entries.status": "MistakeStatus",
+    "question_assessments.review_status": "QuestionReviewStatus",
     "debriefs.status": "DebriefStatus",
     "async_jobs.status": "JobStatus",
     "privacy_requests.request_type": "PrivacyRequestType",

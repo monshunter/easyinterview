@@ -27,15 +27,13 @@ EXPECTED_TAGS: list[str] = [
     "PracticePlans",
     "PracticeSessions",
     "Reports",
-    "Mistakes",
     "ResumeTailor",
     "Debriefs",
-    "Growth",
     "Jobs",
     "Privacy",
 ]
 
-# (tag, method, path, operationId) tuples per spec §3.1.1 (37 entries).
+# (tag, method, path, operationId) tuples per spec §3.1.1 (34 entries).
 EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("Auth", "get", "/me", "getMe"),
     ("Auth", "delete", "/me", "deleteMe"),
@@ -62,13 +60,10 @@ EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("PracticeSessions", "post", "/practice/sessions/{sessionId}/complete", "completePracticeSession"),
     ("Reports", "get", "/reports/{reportId}", "getFeedbackReport"),
     ("Reports", "get", "/targets/{targetJobId}/reports", "listTargetJobReports"),
-    ("Mistakes", "get", "/mistakes", "listMistakes"),
-    ("Mistakes", "post", "/mistakes/{mistakeId}/retest", "retestMistake"),
     ("ResumeTailor", "post", "/resume/tailor", "requestResumeTailor"),
     ("ResumeTailor", "get", "/resume/tailor-runs/{tailorRunId}", "getResumeTailorRun"),
     ("Debriefs", "post", "/debriefs", "createDebrief"),
     ("Debriefs", "get", "/debriefs/{debriefId}", "getDebrief"),
-    ("Growth", "get", "/growth/overview", "getGrowthOverview"),
     ("Jobs", "get", "/jobs/{jobId}", "getJob"),
     ("Privacy", "post", "/privacy/exports", "requestPrivacyExport"),
     ("Privacy", "post", "/privacy/deletions", "requestPrivacyDelete"),
@@ -86,7 +81,6 @@ IK_REQUIRED: set[tuple[str, str]] = {
     ("post", "/practice/plans"),
     ("post", "/practice/sessions"),
     ("post", "/practice/sessions/{sessionId}/complete"),
-    ("post", "/mistakes/{mistakeId}/retest"),
     ("post", "/resume/tailor"),
     ("post", "/debriefs"),
     ("post", "/privacy/exports"),
@@ -112,7 +106,6 @@ AI_PROVENANCE_SCHEMAS: list[str] = [
     "TargetJobFitSummary",
     "AssistantAction",
     "FeedbackReport",
-    "MistakeEntry",
     "ResumeTailorRun",
     "Debrief",
 ]
@@ -235,8 +228,8 @@ def main(argv: list[str]) -> int:
         errors.append("missing operations: " + ", ".join(sorted(f"{m.upper()} {p} ({o})" for _, m, p, o in missing)))
     if extra:
         errors.append("unexpected operations: " + ", ".join(sorted(f"{m.upper()} {p} ({o})" for _, m, p, o in extra)))
-    if operation_count != 37:
-        errors.append(f"operation count must be 37 (spec §3.1.1); got {operation_count}")
+    if operation_count != 34:
+        errors.append(f"operation count must be 34 (spec §3.1.1); got {operation_count}")
 
     # operationId uniqueness.
     op_ids = [op for _, _, _, op in seen_ops]

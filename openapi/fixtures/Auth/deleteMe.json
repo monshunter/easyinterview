@@ -10,19 +10,19 @@
       "response": {
         "status": 202,
         "headers": {
-          "X-Request-ID": "req_2026-04-29T22-34-00-delete"
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
         },
         "body": {
-          "privacyRequestId": "01918fa0-0000-7000-8000-00000000c100",
+          "privacyRequestId": "01918fa0-0000-7000-8000-00000000c200",
           "job": {
             "id": "01918fa0-0000-7000-8000-00000000b600",
             "jobType": "privacy_delete",
             "status": "queued",
             "resourceType": "privacy_request",
-            "resourceId": "01918fa0-0000-7000-8000-00000000c100",
+            "resourceId": "01918fa0-0000-7000-8000-00000000c200",
             "errorCode": null,
-            "createdAt": "2026-04-29T14:34:00Z",
-            "updatedAt": "2026-04-29T14:34:00Z"
+            "createdAt": "2026-04-28T13:45:12Z",
+            "updatedAt": "2026-04-28T13:45:12Z"
           }
         }
       }

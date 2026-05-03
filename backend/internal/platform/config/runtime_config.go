@@ -15,6 +15,15 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
 )
 
+var runtimePublicFlagAllowlist = map[string]struct{}{
+	"practice_hint_enabled":            {},
+	"report_evidence_v2_enabled":       {},
+	"report_retry_plan_enabled":        {},
+	"readiness_signals_enabled":        {},
+	"ai_fallback_model_enabled":        {},
+	"practice_assistance_mode_enabled": {},
+}
+
 // RuntimeFlag is the public projection of a feature flag decision. It
 // intentionally drops the `Public` field from featureflag.FlagDecision so
 // the response cannot accidentally re-expose internal metadata.
@@ -63,6 +72,9 @@ func BuildRuntimeConfig(_ context.Context, in RuntimeConfigInput) RuntimeConfig 
 	if snapshotter, ok := in.Flags.(featureflag.SnapshotProvider); ok {
 		for key, decision := range snapshotter.Snapshot(in.FlagContext) {
 			if !decision.Public {
+				continue
+			}
+			if _, ok := runtimePublicFlagAllowlist[key]; !ok {
 				continue
 			}
 			rc.FeatureFlags[key] = RuntimeFlag{

@@ -12,7 +12,7 @@ Phase 1.3 scope (per `002-fixtures-and-mock-source` plan §3 / spec C-6 / C-11):
        phones to `+1-555-01xx`, and the employer-brand blacklist below.
     5. ids       — `format: uuid` values must match UUIDv7 layout, and any
        string with `tmp_` prefix is rejected.
-    6. coverage  — exactly the 37 operationIds frozen by spec §3.1.1 must
+    6. coverage  — exactly the 34 operationIds frozen by spec §3.1.1 must
        have a fixture file.
 """
 
@@ -59,7 +59,7 @@ COMPANY_BLACKLIST_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Spec §3.1.1 37-endpoint freeze. Mirrors openapi_inventory.py and is the
+# Spec §3.1.1 34-endpoint freeze. Mirrors openapi_inventory.py and is the
 # coverage source-of-truth for missing-fixture errors.
 EXPECTED_OPERATIONS: Tuple[Tuple[str, str], ...] = (
     ("Auth", "getMe"),
@@ -88,13 +88,10 @@ EXPECTED_OPERATIONS: Tuple[Tuple[str, str], ...] = (
     ("PracticeSessions", "completePracticeSession"),
     ("Reports", "getFeedbackReport"),
     ("Reports", "listTargetJobReports"),
-    ("Mistakes", "listMistakes"),
-    ("Mistakes", "retestMistake"),
     ("ResumeTailor", "requestResumeTailor"),
     ("ResumeTailor", "getResumeTailorRun"),
     ("Debriefs", "createDebrief"),
     ("Debriefs", "getDebrief"),
-    ("Growth", "getGrowthOverview"),
     ("Jobs", "getJob"),
     ("Privacy", "requestPrivacyExport"),
     ("Privacy", "requestPrivacyDelete"),
@@ -110,7 +107,6 @@ AI_PROVENANCE_PATHS: dict[str, Tuple[str, ...]] = {
     "appendSessionEvent": ("assistantAction.provenance",),
     "getFeedbackReport": ("provenance",),
     "listTargetJobReports": ("items[*].provenance",),
-    "listMistakes": ("items[*].provenance",),
     "getResumeTailorRun": ("provenance",),
     "getDebrief": ("provenance",),
 }

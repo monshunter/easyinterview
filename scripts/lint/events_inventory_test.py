@@ -189,14 +189,12 @@ EXPECTED_EVENT_PAYLOADS = {
     "practice.turn.completed": ["sessionId", "turnId", "turnIndex", "questionIntent", "followUpCount", "answerCharLength"],
     "practice.session.completed": ["sessionId", "planId", "targetJobId", "turnCount", "language"],
     "report.generation.requested": ["reportId", "sessionId", "targetJobId"],
-    "report.generated": ["reportId", "sessionId", "targetJobId", "preparednessLevel", "mistakeCount", "promptVersion", "rubricVersion", "modelId"],
+    "report.generated": ["reportId", "sessionId", "targetJobId", "preparednessLevel", "questionIssueCount", "promptVersion", "rubricVersion", "modelId"],
     "report.generation.failed": ["reportId", "sessionId", "errorCode", "retryable"],
-    "mistake.created": ["mistakeId", "targetJobId", "sourceSessionId", "competencyCode", "status", "priority"],
-    "mistake.status.changed": ["mistakeId", "fromStatus", "toStatus", "targetJobId"],
     "resume.parse.completed": ["resumeAssetId", "userId", "parseStatus"],
     "resume.tailor.completed": ["tailorRunId", "resumeAssetId", "targetJobId", "mode", "status"],
     "debrief.created": ["debriefId", "targetJobId", "roundType", "questionCount"],
-    "debrief.completed": ["debriefId", "targetJobId", "riskItemCount", "generatedMistakeCount"],
+    "debrief.completed": ["debriefId", "targetJobId", "riskItemCount", "practiceFocusCount"],
     "source.refreshed": ["sourceRecordId", "ownerType", "ownerId", "freshnessStatus"],
     "privacy.request.created": ["privacyRequestId", "userId", "requestType"],
     "privacy.request.completed": ["privacyRequestId", "userId", "requestType", "status"],
@@ -220,8 +218,6 @@ def valid_event_entries() -> list[dict]:
         "report.generation.requested": "feedback_report",
         "report.generated": "feedback_report",
         "report.generation.failed": "feedback_report",
-        "mistake.created": "mistake_entry",
-        "mistake.status.changed": "mistake_entry",
         "resume.parse.completed": "resume_asset",
         "resume.tailor.completed": "resume_tailor_run",
         "debrief.created": "debrief",
@@ -240,8 +236,6 @@ def valid_event_entries() -> list[dict]:
         "report.generation.requested": ["api", "dispatcher"],
         "report.generated": "worker",
         "report.generation.failed": "worker",
-        "mistake.created": ["worker", "review"],
-        "mistake.status.changed": "review",
         "resume.parse.completed": "worker",
         "resume.tailor.completed": "worker",
         "debrief.created": "api",
@@ -269,7 +263,6 @@ def event_payload_fields(event_name: str, names: list[str]) -> dict[str, dict[st
     overrides = {
         ("target.import.requested", "sourceType"): "$ref:event.TargetImportSourceType",
         ("practice.session.started", "mode"): "$ref:b1.PracticeMode",
-        ("mistake.created", "status"): "$ref:b1.MistakeStatus",
         ("resume.tailor.completed", "mode"): "$ref:event.ResumeTailorMode",
         ("resume.tailor.completed", "status"): "$ref:b1.ReportStatus",
         ("source.refreshed", "freshnessStatus"): "$ref:event.SourceFreshnessStatus",
@@ -289,8 +282,6 @@ def payload_type(name: str) -> str:
         "planId",
         "turnId",
         "reportId",
-        "mistakeId",
-        "sourceSessionId",
         "resumeAssetId",
         "tailorRunId",
         "debriefId",
@@ -304,11 +295,10 @@ def payload_type(name: str) -> str:
         "followUpCount",
         "answerCharLength",
         "turnCount",
-        "mistakeCount",
-        "priority",
+        "questionIssueCount",
         "questionCount",
         "riskItemCount",
-        "generatedMistakeCount",
+        "practiceFocusCount",
     }
     bool_fields = {"retryable"}
     enum_refs = {
@@ -317,8 +307,6 @@ def payload_type(name: str) -> str:
         "mode": "string",
         "preparednessLevel": "$ref:b1.ReadinessTier",
         "status": "$ref:b1.PrivacyRequestStatus",
-        "fromStatus": "$ref:b1.MistakeStatus",
-        "toStatus": "$ref:b1.MistakeStatus",
         "parseStatus": "$ref:b1.TargetJobParseStatus",
         "roundType": "$ref:b1.InterviewerRole",
         "requestType": "$ref:b1.PrivacyRequestType",
@@ -368,7 +356,7 @@ class EventsInventoryEnvelopeTest(unittest.TestCase):
 
         self.assertTrue(any("producer" in err and "api" in err and "cron" in err for err in errs), errs)
 
-    def test_requires_full_18_event_inventory(self) -> None:
+    def test_requires_full_16_event_inventory(self) -> None:
         data = valid_events_data()
         data["events"] = [event for event in data["events"] if event["name"] != "report.generated"]
 
@@ -379,11 +367,11 @@ class EventsInventoryEnvelopeTest(unittest.TestCase):
     def test_requires_exact_payload_field_set(self) -> None:
         data = valid_events_data()
         report_generated = next(event for event in data["events"] if event["name"] == "report.generated")
-        report_generated["requiredPayload"].pop("mistakeCount")
+        report_generated["requiredPayload"].pop("questionIssueCount")
 
         errs = self.linter.validate_events_yaml(data)
 
-        self.assertTrue(any("report.generated" in err and "mistakeCount" in err for err in errs), errs)
+        self.assertTrue(any("report.generated" in err and "questionIssueCount" in err for err in errs), errs)
 
     def test_rejects_invalid_event_domain(self) -> None:
         data = valid_events_data()

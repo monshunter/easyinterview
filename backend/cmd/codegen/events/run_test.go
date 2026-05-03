@@ -174,7 +174,7 @@ func TestGenerateJSONSchemas(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadDir schemas: %v", err)
 	}
-	if got, want := len(entries), 18; got != want {
+	if got, want := len(entries), 16; got != want {
 		t.Fatalf("schema file count = %d, want %d", got, want)
 	}
 
@@ -182,7 +182,7 @@ func TestGenerateJSONSchemas(t *testing.T) {
 	for _, want := range []string{
 		`"$schema": "https://json-schema.org/draft/2020-12/schema"`,
 		`"const": "report.generated"`,
-		`"mistakeCount"`,
+		`"questionIssueCount"`,
 		`"preparednessLevel"`,
 		`"$ref": "../refs/ReadinessTier.json"`,
 	} {
@@ -287,7 +287,7 @@ func TestBaselineManifests(t *testing.T) {
 	eventsBaseline := readFile(t, filepath.Join(tmp, "shared/events/baseline/events.v1.json"))
 	for _, want := range []string{
 		`"name": "report.generated"`,
-		`"mistakeCount"`,
+		`"questionIssueCount"`,
 		`"$ref:b1.ReadinessTier"`,
 	} {
 		if !strings.Contains(eventsBaseline, want) {
@@ -318,11 +318,11 @@ func TestBreakingChangeFixtures(t *testing.T) {
 	}{
 		{
 			name:   "type change",
-			events: strings.Replace(baseEvents, "mistakeCount: { type: int, source: spec:3.1.4 }", "mistakeCount: { type: string, source: spec:3.1.4 }", 1),
+			events: strings.Replace(baseEvents, "questionIssueCount: { type: int, source: spec:3.1.4 }", "questionIssueCount: { type: string, source: spec:3.1.4 }", 1),
 		},
 		{
 			name:   "required field deletion",
-			events: strings.Replace(baseEvents, "      mistakeCount: { type: int, source: spec:3.1.4 }\n", "", 1),
+			events: strings.Replace(baseEvents, "      questionIssueCount: { type: int, source: spec:3.1.4 }\n", "", 1),
 		},
 		{
 			name:   "dot case to snake",

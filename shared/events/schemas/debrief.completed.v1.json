@@ -30,7 +30,7 @@
         "debriefId": {
           "type": "string"
         },
-        "generatedMistakeCount": {
+        "practiceFocusCount": {
           "type": "integer"
         },
         "riskItemCount": {
@@ -42,7 +42,7 @@
       },
       "required": [
         "debriefId",
-        "generatedMistakeCount",
+        "practiceFocusCount",
         "riskItemCount",
         "targetJobId"
       ],

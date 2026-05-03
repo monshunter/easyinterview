@@ -7,12 +7,12 @@ import type {
 	DebriefStatus as DebriefStatusAlias,
 	DimensionStatus as DimensionStatusAlias,
 	InterviewerRole as InterviewerRoleAlias,
-	MistakeStatus as MistakeStatusAlias,
 	PageInfo as PageInfoAlias,
 	PracticeGoal as PracticeGoalAlias,
 	PracticeMode as PracticeModeAlias,
 	PrivacyRequestStatus as PrivacyRequestStatusAlias,
 	PrivacyRequestType as PrivacyRequestTypeAlias,
+	QuestionReviewStatus as QuestionReviewStatusAlias,
 	ReadinessTier as ReadinessTierAlias,
 	ReportStatus as ReportStatusAlias,
 	SessionStatus as SessionStatusAlias,
@@ -53,7 +53,7 @@ export type DimensionStatus = DimensionStatusAlias;
 
 export type Confidence = ConfidenceAlias;
 
-export type MistakeStatus = MistakeStatusAlias;
+export type QuestionReviewStatus = QuestionReviewStatusAlias;
 
 export type DebriefStatus = DebriefStatusAlias;
 
@@ -280,7 +280,7 @@ export interface TargetJob {
 	id: string;
 	latestReportId?: string | null;
 	locationText?: string | null;
-	openMistakeCount: number;
+	openQuestionIssueCount: number;
 	requirements: TargetJobRequirement[];
 	sourceType: "manual_text" | "url" | "file" | "manual_form";
 	sourceUrl?: string | null;
@@ -408,14 +408,15 @@ export interface ReportIssue {
 
 export interface ReportNextAction {
 	label: string;
-	type: string;
+	type: "retry_current_round" | "next_round" | "review_evidence";
 }
 
 export interface QuestionAssessment {
 	dimensionResults: Record<string, unknown>;
+	includedInRetryPlan: boolean;
 	questionIntent: string;
+	reviewStatus: QuestionReviewStatus;
 	turnId: string;
-	writtenToMistakeBook: boolean;
 }
 
 export interface FeedbackReport {
@@ -423,11 +424,11 @@ export interface FeedbackReport {
 	highlights?: ReportHighlight[];
 	id: string;
 	issues?: ReportIssue[];
-	mistakeIds?: string[];
 	nextActions?: ReportNextAction[];
 	preparednessLevel?: ReadinessTier | null;
 	provenance?: GenerationProvenance | null;
 	questionAssessments?: QuestionAssessment[];
+	retryFocusTurnIds?: string[];
 	sessionId: string;
 	status: ReportStatus;
 	targetJobId: string;
@@ -437,38 +438,6 @@ export interface FeedbackReport {
 export interface PaginatedFeedbackReport {
 	items: FeedbackReport[];
 	pageInfo: PageInfo;
-}
-
-export interface MistakeEntry {
-	answerSummary: string;
-	competencyCode: string;
-	createdAt: string;
-	failureReasons: string[];
-	id: string;
-	priority: number;
-	provenance?: GenerationProvenance | null;
-	questionText: string;
-	recommendedFramework: string;
-	sourceDebriefId?: string | null;
-	sourceSessionId?: string | null;
-	status: MistakeStatus;
-	targetJobId: string;
-	updatedAt: string;
-}
-
-export interface PaginatedMistakeEntry {
-	items: MistakeEntry[];
-	pageInfo: PageInfo;
-}
-
-export interface RetestMistakeRequest {
-	language: string;
-	mode: PracticeMode;
-	timeBudgetMinutes?: number;
-}
-
-export interface PracticePlanContainer {
-	plan: PracticePlan;
 }
 
 export interface RequestResumeTailorRequest {
@@ -555,26 +524,6 @@ export interface Debrief {
 export interface DebriefWithJob {
 	debriefId: string;
 	job: Job;
-}
-
-export interface GrowthOverviewSummary {
-	debriefCount: number;
-	mistakesMastered: number;
-	mistakesOpened: number;
-	practiceSessionsCompleted: number;
-	reportsReady: number;
-}
-
-export interface GrowthPreparednessTrendPoint {
-	date: string;
-	level: ReadinessTier;
-}
-
-export interface GrowthOverview {
-	dimensionTrend: Record<string, unknown>;
-	preparednessTrend: GrowthPreparednessTrendPoint[];
-	summary: GrowthOverviewSummary;
-	window: "7d" | "30d" | "90d";
 }
 
 export interface Job {

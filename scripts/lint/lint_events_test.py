@@ -42,20 +42,20 @@ class LintEventsBaselineTest(unittest.TestCase):
     def test_detects_required_payload_type_change(self) -> None:
         current = copy.deepcopy(self.events)
         report_generated = next(event for event in current["events"] if event["name"] == "report.generated")
-        report_generated["requiredPayload"]["mistakeCount"]["type"] = "string"
+        report_generated["requiredPayload"]["questionIssueCount"]["type"] = "string"
 
         errs = self.linter.compare_events_baseline(current, self.events)
 
-        self.assertTrue(any("mistakeCount" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
+        self.assertTrue(any("questionIssueCount" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
 
     def test_detects_required_payload_deleted(self) -> None:
         current = copy.deepcopy(self.events)
         report_generated = next(event for event in current["events"] if event["name"] == "report.generated")
-        report_generated["requiredPayload"].pop("mistakeCount")
+        report_generated["requiredPayload"].pop("questionIssueCount")
 
         errs = self.linter.compare_events_baseline(current, self.events)
 
-        self.assertTrue(any("mistakeCount" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
+        self.assertTrue(any("questionIssueCount" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
 
     def test_detects_dot_case_event_renamed_to_snake(self) -> None:
         current = copy.deepcopy(self.events)
@@ -178,7 +178,21 @@ class LintEventsSourceScanTest(unittest.TestCase):
 
         errs = self.linter.validate_generated_contracts(self.root, self.events, self.jobs)
 
-        self.assertTrue(any("event names" in err and "18" in err and "report.generated" in err for err in errs), errs)
+        self.assertTrue(any("event names" in err and "16" in err and "report.generated" in err for err in errs), errs)
+
+    def test_rejects_product_scope_removed_events_and_payload_fields(self) -> None:
+        events = copy.deepcopy(self.events)
+        events["events"].append({
+            "name": "mistake.created",
+            "requiredPayload": {},
+        })
+        report_generated = next(event for event in events["events"] if event["name"] == "report.generated")
+        report_generated["requiredPayload"]["mistakeCount"] = {"type": "int"}
+
+        errs = self.linter.validate_product_scope_removals(events)
+
+        self.assertTrue(any("mistake.created" in err for err in errs), errs)
+        self.assertTrue(any("report.generated.mistakeCount" in err for err in errs), errs)
 
     def test_rejects_missing_generated_contract_files(self) -> None:
         errs = self.linter.validate_generated_contracts(self.root, self.events, self.jobs)

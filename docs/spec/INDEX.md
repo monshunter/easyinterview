@@ -10,8 +10,8 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [product-scope](./product-scope/spec.md) | 1.1 | active | 2026-05-03 | [plans](./product-scope/plans/) |
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 2.1 | active | 2026-05-03 | [plans](./engineering-roadmap/plans/) |
+| [product-scope](./product-scope/spec.md) | 1.2 | active | 2026-05-03 | [plans](./product-scope/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 2.2 | active | 2026-05-03 | [plans](./engineering-roadmap/plans/) |
 
 ## 2 P0 MVP（Wave 0–5）
 
@@ -22,17 +22,17 @@
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.1 | active | 2026-04-29 | [plans](./repo-scaffold/plans/) |
 | [local-dev-stack](./local-dev-stack/spec.md) | 1.5 | active | 2026-04-29 | [plans](./local-dev-stack/plans/) |
 | [ai-gateway-and-model-routing](./ai-gateway-and-model-routing/spec.md) | 1.7 | active | 2026-04-29 | [plans](./ai-gateway-and-model-routing/plans/) |
-| [secrets-and-config](./secrets-and-config/spec.md) | 1.8 | active | 2026-04-30 | [plans](./secrets-and-config/plans/) |
+| [secrets-and-config](./secrets-and-config/spec.md) | 1.9 | active | 2026-05-03 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.3 | active | 2026-04-29 | [plans](./ci-pipeline-baseline/plans/) |
 
 ### 2.2 Layer B · Contract
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.6 | active | 2026-04-29 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.8 | active | 2026-04-29 | [plans](./openapi-v1-contract/plans/) |
-| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 1.4 | active | 2026-04-29 | [plans](./event-and-outbox-contract/plans/) |
-| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.5 | active | 2026-04-29 | [plans](./db-migrations-baseline/plans/) |
+| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.7 | active | 2026-05-03 | [plans](./shared-conventions-codified/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.9 | active | 2026-05-03 | [plans](./openapi-v1-contract/plans/) |
+| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 1.5 | active | 2026-05-03 | [plans](./event-and-outbox-contract/plans/) |
+| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.6 | active | 2026-05-03 | [plans](./db-migrations-baseline/plans/) |
 
 ### 2.3 Layer C · Backend（P0）
 
@@ -53,9 +53,11 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | frontend-shell（待 W2 spawn） | – | _pending_ | – | – |
-| frontend-onboarding-and-target（待 W2 spawn） | – | _pending_ | – | – |
+| frontend-home-job-picks-and-parse（待 W2 spawn） | – | _pending_ | – | – |
 | frontend-workspace-and-practice（待 W2 spawn） | – | _pending_ | – | – |
-| frontend-review-and-mistakes（待 W2 spawn） | – | _pending_ | – | – |
+| frontend-report-dashboard（待 W2 spawn） | – | _pending_ | – | – |
+| frontend-resume-workshop（待 W2 spawn） | – | _pending_ | – | – |
+| frontend-debrief（待 W2 spawn） | – | _pending_ | – | – |
 
 ### 2.5 Layer E · Integration（P0）
 
@@ -69,7 +71,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [observability-stack](./observability-stack/spec.md) | 1.2 | active | 2026-04-27 | [plans](./observability-stack/plans/) |
+| [observability-stack](./observability-stack/spec.md) | 1.3 | active | 2026-05-03 | [plans](./observability-stack/plans/) |
 | analytics-funnel（待 W2 spawn） | – | _pending_ | – | – |
 | [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 1.3 | active | 2026-04-29 | [plans](./prompt-rubric-registry/plans/) |
 
@@ -79,16 +81,13 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| backend-growth（待 P1 spawn） | – | _pending_ | – | – |
+| backend-readiness-signals（待 P1 spawn） | – | _pending_ | – | – |
 | backend-retrieval（待 P1 spawn） | – | _pending_ | – | – |
 | backend-privacy（待 P1 spawn） | – | _pending_ | – | – |
 
 ### 3.2 Layer D · Frontend（P1）
 
-| Subject | 版本 | 状态 | 更新日期 | Plans |
-|---------|------|------|----------|-------|
-| frontend-resume-and-experiences（待 P1 spawn） | – | _pending_ | – | – |
-| frontend-debrief-and-growth（待 P1 spawn） | – | _pending_ | – | – |
+P1 前端增强不单独创建恢复旧模块的 child；后续只挂到 D5 `frontend-resume-workshop`、D6 `frontend-debrief`、D1 `frontend-shell` 或其他已保留 P0 前端 child 的新 plan。
 
 ### 3.3 Layer E · Integration（P1）
 
@@ -102,7 +101,7 @@
 |---------|------|------|----------|-------|
 | privacy-and-audit-runtime（待 P1 spawn） | – | _pending_ | – | – |
 
-## 4 P2 Growth
+## 4 P2 Deferred Capabilities
 
 ### 4.1 Layer C · Backend（P2）
 
@@ -115,4 +114,4 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| frontend-voice-and-plan（待 P2 spawn） | – | _pending_ | – | – |
+| frontend-voice-production（待 P2 spawn） | – | _pending_ | – | – |

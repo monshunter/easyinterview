@@ -1,8 +1,8 @@
 # Secrets and Config Spec
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-04-30
+> **更新日期**: 2026-05-03
 
 ## 1 背景与目标
 
@@ -156,7 +156,7 @@
 | `internal/platform/featureflag/` | A4 | `FeatureFlagClient` + file / posthog provider |
 | `frontend/src/lib/runtime-config/` | A4 + D1 | `runtime-config` fetcher 与本地缓存；A4 锁字段，D1 集成 React hooks |
 | `config/*.yaml` 内容 | 各业务 owner 增量 | A4 锁文件位置与 schema，业务字段由各 child 在 spec 修订时新增 |
-| `config/feature-flags.yaml` 字段集 | F2 + 各业务 owner | A4 锁文件位置；具体 flag key 由 [01-technical-architecture.md §15.1](../../../easyinterview-tech-docs/01-technical-architecture.md#15-发布与灰度) 列出的 6 项作为 P0 baseline |
+| `config/feature-flags.yaml` 字段集 | F2 + 各业务 owner | A4 锁文件位置；当前 6 项 baseline flag 为 `practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`；旧 `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 已按 product-scope v1.2 删除 |
 | AI provider / gateway env keys 默认值 | A3（决策） + A4（落 env 字典） | A3 决定字段名，A4 写进字典；A4 负责非 test 环境缺失 fail-fast |
 | Auth / Email env keys | C1 + A4 | C1 决定字段名（ADR-Q1），A4 写进字典 |
 | 部署侧 secret 注入 | E4 + 运维 | A4 提供接口，E4 提供 K8s Secret / Vault 路径 |

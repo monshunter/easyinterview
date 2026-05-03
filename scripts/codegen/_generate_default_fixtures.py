@@ -39,15 +39,12 @@ TARGET_JOB_ID_3            = u7(0x22)
 EXPERIENCE_CARD_ID_1       = u7(0x30)
 EXPERIENCE_CARD_ID_2       = u7(0x31)
 PRACTICE_PLAN_ID_1         = u7(0x40)
-PRACTICE_PLAN_ID_2         = u7(0x41)
 PRACTICE_SESSION_ID_1      = u7(0x50)
 PRACTICE_SESSION_ID_2      = u7(0x51)
 PRACTICE_TURN_ID_1         = u7(0x60)
 PRACTICE_TURN_ID_2         = u7(0x61)
 REPORT_ID_1                = u7(0x70)
 REPORT_ID_2                = u7(0x71)
-MISTAKE_ID_1               = u7(0x80)
-MISTAKE_ID_2               = u7(0x81)
 RESUME_TAILOR_RUN_ID       = u7(0x90)
 DEBRIEF_ID                 = u7(0xA0)
 JOB_ID_TARGET_IMPORT       = u7(0xB0)
@@ -56,8 +53,10 @@ JOB_ID_REPORT_GENERATE     = u7(0xB2)
 JOB_ID_RESUME_TAILOR       = u7(0xB3)
 JOB_ID_DEBRIEF_GENERATE    = u7(0xB4)
 JOB_ID_PRIVACY_DELETE      = u7(0xB5)
+JOB_ID_PRIVACY_ME_DELETE   = u7(0xB6)
 PRIVACY_REQUEST_ID_DEL     = u7(0xC0)
 PRIVACY_REQUEST_ID_GET     = u7(0xC1)
+PRIVACY_REQUEST_ID_ME_DEL  = u7(0xC2)
 TARGET_REQ_ID_1            = u7(0xD0)
 TARGET_REQ_ID_2            = u7(0xD1)
 TARGET_REQ_ID_3            = u7(0xD2)
@@ -96,11 +95,6 @@ PROV_FEEDBACK_REPORT = prov(
     "feedback_report.v3", "feedback_report.rubric.v2",
     "openrouter:anthropic/claude-sonnet-4.6", "zh-CN", "none",
     "practice_session.v9",
-)
-PROV_MISTAKE = prov(
-    "mistake_synthesis.v1", "feedback_report.rubric.v2",
-    "openrouter:anthropic/claude-sonnet-4.6", "zh-CN", "none",
-    "feedback_report.v12",
 )
 PROV_RESUME_TAILOR = prov(
     "resume_tailor.v2", "not_applicable",
@@ -173,6 +167,38 @@ FIXTURES[("Auth", "verifyAuthEmailChallenge")] = fixture(
 )
 
 FIXTURES[("Auth", "logout")] = fixture("logout", None, status=204)
+
+FIXTURES[("Auth", "deleteMe")] = OrderedDict([
+    ("operationId", "deleteMe"),
+    ("scenarios", OrderedDict([
+        ("default", OrderedDict([
+            ("request", OrderedDict([
+                ("headers", OrderedDict([
+                    ("Idempotency-Key", "idem-delete-me-2026-04-29"),
+                ])),
+            ])),
+            ("response", OrderedDict([
+                ("status", 202),
+                ("headers", OrderedDict([
+                    ("X-Request-ID", REQUEST_ID),
+                ])),
+                ("body", OrderedDict([
+                    ("privacyRequestId", PRIVACY_REQUEST_ID_ME_DEL),
+                    ("job", OrderedDict([
+                        ("id", JOB_ID_PRIVACY_ME_DELETE),
+                        ("jobType", "privacy_delete"),
+                        ("status", "queued"),
+                        ("resourceType", "privacy_request"),
+                        ("resourceId", PRIVACY_REQUEST_ID_ME_DEL),
+                        ("errorCode", None),
+                        ("createdAt", NOW),
+                        ("updatedAt", NOW),
+                    ])),
+                ])),
+            ])),
+        ])),
+    ])),
+])
 
 FIXTURES[("Auth", "getRuntimeConfig")] = fixture(
     "getRuntimeConfig",
@@ -363,7 +389,7 @@ TARGET_JOB_FULL = OrderedDict([
         ]),
         ("interviewHypotheses", [
             "Will probe scaling design systems across 10+ teams",
-            "Likely STAR drilling on observability for FE infra",
+            "Likely STAR follow-up on observability for FE infra",
         ]),
         ("provenance", PROV_TARGET_SUMMARY),
     ])),
@@ -401,7 +427,7 @@ TARGET_JOB_FULL = OrderedDict([
         ("provenance", PROV_TARGET_FIT),
     ])),
     ("latestReportId", REPORT_ID_1),
-    ("openMistakeCount", 2),
+    ("openQuestionIssueCount", 2),
     ("createdAt", EARLIEST),
     ("updatedAt", EARLIER),
 ])
@@ -420,7 +446,7 @@ TARGET_JOB_LIST_ITEM_2 = OrderedDict([
     ("requirements", []),
     ("fitSummary", None),
     ("latestReportId", None),
-    ("openMistakeCount", 0),
+    ("openQuestionIssueCount", 0),
     ("createdAt", EARLIEST),
     ("updatedAt", EARLIER),
 ])
@@ -481,8 +507,8 @@ FIXTURES[("TargetJobs", "updateTargetJob")] = fixture(
 PRACTICE_PLAN_1 = OrderedDict([
     ("id", PRACTICE_PLAN_ID_1),
     ("targetJobId", TARGET_JOB_ID_1),
-    ("goal", "sprint"),
-    ("mode", "core_interview"),
+    ("goal", "baseline"),
+    ("mode", "assisted"),
     ("interviewerPersona", "hiring_manager"),
     ("difficulty", "standard"),
     ("language", "zh-CN"),
@@ -498,8 +524,8 @@ FIXTURES[("PracticePlans", "createPracticePlan")] = fixture(
     status=201,
     request_body=OrderedDict([
         ("targetJobId", TARGET_JOB_ID_1),
-        ("goal", "sprint"),
-        ("mode", "core_interview"),
+        ("goal", "baseline"),
+        ("mode", "assisted"),
         ("interviewerPersona", "hiring_manager"),
         ("difficulty", "standard"),
         ("language", "zh-CN"),
@@ -598,7 +624,7 @@ FIXTURES[("PracticeSessions", "completePracticeSession")] = fixture(
 )
 
 
-# ---------- Reports / Mistakes ----------------------------------------------
+# ---------- Reports / question review ---------------------------------------
 
 QUESTION_ASSESSMENT_1 = OrderedDict([
     ("turnId", PRACTICE_TURN_ID_1),
@@ -608,7 +634,8 @@ QUESTION_ASSESSMENT_1 = OrderedDict([
         ("technical_depth", OrderedDict([("status", "needs_work"), ("confidence", "medium")])),
         ("ownership", OrderedDict([("status", "strong"), ("confidence", "high")])),
     ])),
-    ("writtenToMistakeBook", True),
+    ("reviewStatus", "queued_for_retry"),
+    ("includedInRetryPlan", True),
 ])
 
 FEEDBACK_REPORT = OrderedDict([
@@ -632,11 +659,11 @@ FEEDBACK_REPORT = OrderedDict([
         ]),
     ]),
     ("nextActions", [
-        OrderedDict([("type", "drill"), ("label", "再练 3 道关于灰度策略的追问。")]),
-        OrderedDict([("type", "review"), ("label", "回顾迁移期间的回归数据并准备一段量化叙事。")]),
+        OrderedDict([("type", "retry_current_round"), ("label", "围绕灰度策略复练当前轮追问。")]),
+        OrderedDict([("type", "review_evidence"), ("label", "回顾迁移期间的回归数据并准备一段量化叙事。")]),
     ]),
     ("questionAssessments", [QUESTION_ASSESSMENT_1]),
-    ("mistakeIds", [MISTAKE_ID_1]),
+    ("retryFocusTurnIds", [PRACTICE_TURN_ID_1]),
     ("provenance", PROV_FEEDBACK_REPORT),
     ("createdAt", EARLIER),
     ("updatedAt", NOW),
@@ -655,83 +682,6 @@ FIXTURES[("Reports", "listTargetJobReports")] = fixture(
         ])),
     ]),
 )
-
-MISTAKE_1 = OrderedDict([
-    ("id", MISTAKE_ID_1),
-    ("targetJobId", TARGET_JOB_ID_1),
-    ("sourceSessionId", PRACTICE_SESSION_ID_1),
-    ("sourceDebriefId", None),
-    ("competencyCode", "technical_depth.rollout_strategy"),
-    ("questionText", "迁移过程中你怎么控制回归？"),
-    ("answerSummary", "回答中只提到了 RFC 与配对评审，没有量化回归率或灰度策略。"),
-    ("failureReasons", [
-        "missing-quantification",
-        "no-rollout-stage-detail",
-    ]),
-    ("recommendedFramework", "STAR + measurable rollout stages"),
-    ("status", "open"),
-    ("priority", 70),
-    ("provenance", PROV_MISTAKE),
-    ("createdAt", EARLIER),
-    ("updatedAt", NOW),
-])
-
-MISTAKE_2 = OrderedDict([
-    ("id", MISTAKE_ID_2),
-    ("targetJobId", TARGET_JOB_ID_1),
-    ("sourceSessionId", PRACTICE_SESSION_ID_1),
-    ("sourceDebriefId", None),
-    ("competencyCode", "communication.framing"),
-    ("questionText", "请用 90 秒做一个针对 hiring manager 的自我介绍。"),
-    ("answerSummary", "前 60 秒铺垫太长，到结尾才提到与目标岗位的匹配点。"),
-    ("failureReasons", [
-        "delayed-value-proposition",
-    ]),
-    ("recommendedFramework", "Headline-first 自我介绍模板"),
-    ("status", "improving"),
-    ("priority", 55),
-    ("provenance", PROV_MISTAKE),
-    ("createdAt", EARLIER),
-    ("updatedAt", NOW),
-])
-
-FIXTURES[("Mistakes", "listMistakes")] = fixture(
-    "listMistakes",
-    OrderedDict([
-        ("items", [MISTAKE_1, MISTAKE_2]),
-        ("pageInfo", OrderedDict([
-            ("nextCursor", None),
-            ("pageSize", 20),
-            ("hasMore", False),
-        ])),
-    ]),
-)
-
-FIXTURES[("Mistakes", "retestMistake")] = fixture(
-    "retestMistake",
-    OrderedDict([
-        ("plan", OrderedDict([
-            ("id", PRACTICE_PLAN_ID_2),
-            ("targetJobId", TARGET_JOB_ID_1),
-            ("goal", "fix_mistake"),
-            ("mode", "single_drill"),
-            ("interviewerPersona", "hiring_manager"),
-            ("difficulty", "standard"),
-            ("language", "zh-CN"),
-            ("timeBudgetMinutes", 10),
-            ("questionBudget", 1),
-            ("status", "ready"),
-            ("createdAt", NOW),
-        ])),
-    ]),
-    status=201,
-    request_body=OrderedDict([
-        ("mode", "single_drill"),
-        ("language", "zh-CN"),
-        ("timeBudgetMinutes", 10),
-    ]),
-)
-
 
 # ---------- ResumeTailor -----------------------------------------------------
 
@@ -805,13 +755,6 @@ DEBRIEF = OrderedDict([
     ("riskItems", [
         OrderedDict([("label", "缺少财务量化叙事"), ("severity", "medium")]),
     ]),
-    ("nextRoundChecklist", [
-        OrderedDict([
-            ("label", "准备 1 个量化的设计系统迁移 ROI 故事"),
-            ("rationale", "本轮被追问 2 次没有量化答案。"),
-        ]),
-    ]),
-    ("thankYouDraft", "感谢您今天的时间…（草稿）"),
     ("provenance", PROV_DEBRIEF),
     ("createdAt", EARLIER),
     ("updatedAt", NOW),
@@ -850,33 +793,6 @@ FIXTURES[("Debriefs", "createDebrief")] = fixture(
 )
 
 FIXTURES[("Debriefs", "getDebrief")] = fixture("getDebrief", DEBRIEF)
-
-
-# ---------- Growth -----------------------------------------------------------
-
-FIXTURES[("Growth", "getGrowthOverview")] = fixture(
-    "getGrowthOverview",
-    OrderedDict([
-        ("window", "30d"),
-        ("summary", OrderedDict([
-            ("practiceSessionsCompleted", 6),
-            ("reportsReady", 5),
-            ("mistakesOpened", 9),
-            ("mistakesMastered", 3),
-            ("debriefCount", 1),
-        ])),
-        ("preparednessTrend", [
-            OrderedDict([("date", "2026-04-21"), ("level", "needs_practice")]),
-            OrderedDict([("date", "2026-04-25"), ("level", "needs_practice")]),
-            OrderedDict([("date", "2026-04-28"), ("level", "basically_ready")]),
-        ]),
-        ("dimensionTrend", OrderedDict([
-            ("communication", "improving"),
-            ("technical_depth", "needs_work"),
-            ("ownership", "strong"),
-        ])),
-    ]),
-)
 
 
 # ---------- Jobs -------------------------------------------------------------

@@ -237,10 +237,6 @@
       "piiBoundary": "No report body, answer snippets, raw model response, or prompt body.",
       "producer": "worker",
       "requiredPayload": {
-        "mistakeCount": {
-          "source": "spec:3.1.4",
-          "type": "int"
-        },
         "modelId": {
           "source": "spec:3.1.4",
           "type": "string"
@@ -252,6 +248,10 @@
         "promptVersion": {
           "source": "spec:3.1.4",
           "type": "string"
+        },
+        "questionIssueCount": {
+          "source": "spec:3.1.4",
+          "type": "int"
         },
         "reportId": {
           "source": "spec:3.1.4",
@@ -294,69 +294,6 @@
         "sessionId": {
           "source": "spec:3.1.4",
           "type": "uuidv7"
-        }
-      },
-      "version": 1
-    },
-    {
-      "aggregateType": "mistake_entry",
-      "name": "mistake.created",
-      "optionalPayload": {},
-      "piiBoundary": "No evidence quote or answer snippet.",
-      "producer": [
-        "worker",
-        "review"
-      ],
-      "requiredPayload": {
-        "competencyCode": {
-          "source": "spec:3.1.4",
-          "type": "string"
-        },
-        "mistakeId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        },
-        "priority": {
-          "source": "spec:3.1.4",
-          "type": "int"
-        },
-        "sourceSessionId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        },
-        "status": {
-          "source": "spec:3.1.4",
-          "type": "$ref:b1.MistakeStatus"
-        },
-        "targetJobId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        }
-      },
-      "version": 1
-    },
-    {
-      "aggregateType": "mistake_entry",
-      "name": "mistake.status.changed",
-      "optionalPayload": {},
-      "piiBoundary": "IDs and status only.",
-      "producer": "review",
-      "requiredPayload": {
-        "fromStatus": {
-          "source": "spec:3.1.4",
-          "type": "$ref:b1.MistakeStatus"
-        },
-        "mistakeId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        },
-        "targetJobId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        },
-        "toStatus": {
-          "source": "spec:3.1.4",
-          "type": "$ref:b1.MistakeStatus"
         }
       },
       "version": 1
@@ -450,7 +387,7 @@
           "source": "spec:3.1.4",
           "type": "uuidv7"
         },
-        "generatedMistakeCount": {
+        "practiceFocusCount": {
           "source": "spec:3.1.4",
           "type": "int"
         },

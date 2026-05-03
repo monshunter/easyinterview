@@ -15,15 +15,16 @@ flags:
   report_evidence_v2_enabled:
     enabled: true
     public: true
-  mistake_book_export_enabled:
-    enabled: false
+  report_retry_plan_enabled:
+    enabled: true
+    variant: v1
     public: true
-  growth_dashboard_v1_enabled:
-    enabled: false
+  readiness_signals_enabled:
+    enabled: true
     public: true
   ai_fallback_model_enabled:
     enabled: true
     public: false
-  mock_session_dual_track_enabled:
-    enabled: false
+  practice_assistance_mode_enabled:
+    enabled: true
     public: true

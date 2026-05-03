@@ -262,7 +262,7 @@ class SpecRuleTests(unittest.TestCase):
 
     def test_new_tag_is_additive(self) -> None:
         cur = copy.deepcopy(self.base)
-        cur["tags"].append({"name": "Growth"})
+        cur["tags"].append({"name": "Insights"})
         findings = od.diff_documents(self.base, cur)
         self.assertTrue(any(f["kind"] == "tag-added" and f["severity"] == "additive" for f in findings))
 
@@ -403,7 +403,7 @@ class CLIWhitelistTests(unittest.TestCase):
             rc, payload, stderr = self._run(repo)
             self.assertEqual(rc, 0, msg=payload)
             self.assertEqual(payload["summary"]["breaking"], 0)
-            self.assertEqual(payload["inventory"]["expectedOperations"], 37)
+            self.assertEqual(payload["inventory"]["expectedOperations"], 34)
             self.assertEqual(payload["inventory"]["baselineOperations"], 3)
             self.assertEqual(payload["inventory"]["currentOperations"], 3)
             self.assertIn("wrapper-", stderr)

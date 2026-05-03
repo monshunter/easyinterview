@@ -1,6 +1,6 @@
 # ADR-Q5 · 隐私节奏
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: accepted
 > **更新日期**: 2026-05-03
 
@@ -83,7 +83,7 @@
 - **B2 `openapi-v1-contract`** —— 冻结 `/privacy/deletions` + `/privacy/exports`（后者 stub 501）+ `DELETE /api/v1/me`
 - **B4 `db-migrations-baseline`** —— `privacy_requests` / `audit_events` 0001 迁移
 - **C8 `backend-async-runtime`** —— public `privacy_delete` job_type；内部 handler 可为 `privacy.delete`；优先级 critical
-- **D6 `frontend-debrief-and-growth`**（P1） + **D1 `frontend-shell` Settings 面板**（P0 子功能） —— 「删除我的账号」UI + 「导出即将上线」占位
+- **D1 `frontend-shell` Settings 面板**（P0 子功能） + **D6 `frontend-debrief`**（仅消费复盘数据删除状态，不承接独立成长中心） —— 「删除我的账号」UI + 「导出即将上线」占位
 - **F1 `observability-stack`** —— privacy 指标接入
 - **E4 `release-gate-and-rollout`** —— W4 gate 校验 P0 删除链路 SLA 与 audit 完整性
 - **`engineering-roadmap/spec.md`** —— §6 C-6 验收行的「Q-5 ADR 决定的 P0 隐私范围」具体化为「P0 仅删除」，并显式记录导出延后是 W0 产品验收例外
@@ -110,6 +110,7 @@
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-03 | 1.5 | 对齐 engineering-roadmap v2.2：D6 已改为 P0 `frontend-debrief`，Settings 隐私入口归 D1；不再引用 `frontend-debrief-and-growth`。 | engineering-roadmap v2.2 |
 | 2026-05-03 | 1.4 | 同步产品真理源迁移：隐私产品红线引用从根目录旧 spec 改为 `docs/spec/product-scope/spec.md`，不改变 Q5 的 P0 删除-only 决策。 | docs-only |
 | 2026-04-29 | 1.3 | 对齐 B2 / B4 remediation：明确 `DELETE /api/v1/me` 必须进入 OpenAPI freeze 并返回 `202 + PrivacyRequestWithJob`；删除范围改为引用 B4 §3.1.2 per-table matrix，区分 hard delete / cascade / retain / audit tombstone。 | plan-review remediation |
 | 2026-04-29 | 1.2 | 对齐 B4 `db-migrations-baseline` v1.4：移除旧「29 表」背景口径，改为引用 B4 baseline 多表范围；删除范围中的 `resumes` 改为当前表名 `resume_assets`，并纳入 ADR-Q1 指派给 B4 的 `external_identities` 支撑表。 | db-migrations-baseline plan-review remediation |

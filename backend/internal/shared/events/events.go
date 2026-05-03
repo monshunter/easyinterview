@@ -39,8 +39,6 @@ const (
 	EventNameReportGenerationRequested EventName = "report.generation.requested"
 	EventNameReportGenerated           EventName = "report.generated"
 	EventNameReportGenerationFailed    EventName = "report.generation.failed"
-	EventNameMistakeCreated            EventName = "mistake.created"
-	EventNameMistakeStatusChanged      EventName = "mistake.status.changed"
 	EventNameResumeParseCompleted      EventName = "resume.parse.completed"
 	EventNameResumeTailorCompleted     EventName = "resume.tailor.completed"
 	EventNameDebriefCreated            EventName = "debrief.created"
@@ -104,14 +102,14 @@ type ReportGenerationRequestedPayload struct {
 }
 
 type ReportGeneratedPayload struct {
-	MistakeCount      int                       `json:"mistakeCount"`
-	ModelID           string                    `json:"modelId"`
-	PreparednessLevel sharedtypes.ReadinessTier `json:"preparednessLevel"`
-	PromptVersion     string                    `json:"promptVersion"`
-	ReportID          string                    `json:"reportId"`
-	RubricVersion     string                    `json:"rubricVersion"`
-	SessionID         string                    `json:"sessionId"`
-	TargetJobID       string                    `json:"targetJobId"`
+	ModelID            string                    `json:"modelId"`
+	PreparednessLevel  sharedtypes.ReadinessTier `json:"preparednessLevel"`
+	PromptVersion      string                    `json:"promptVersion"`
+	QuestionIssueCount int                       `json:"questionIssueCount"`
+	ReportID           string                    `json:"reportId"`
+	RubricVersion      string                    `json:"rubricVersion"`
+	SessionID          string                    `json:"sessionId"`
+	TargetJobID        string                    `json:"targetJobId"`
 }
 
 type ReportGenerationFailedPayload struct {
@@ -119,22 +117,6 @@ type ReportGenerationFailedPayload struct {
 	ReportID  string `json:"reportId"`
 	Retryable bool   `json:"retryable"`
 	SessionID string `json:"sessionId"`
-}
-
-type MistakeCreatedPayload struct {
-	CompetencyCode  string                    `json:"competencyCode"`
-	MistakeID       string                    `json:"mistakeId"`
-	Priority        int                       `json:"priority"`
-	SourceSessionID string                    `json:"sourceSessionId"`
-	Status          sharedtypes.MistakeStatus `json:"status"`
-	TargetJobID     string                    `json:"targetJobId"`
-}
-
-type MistakeStatusChangedPayload struct {
-	FromStatus  sharedtypes.MistakeStatus `json:"fromStatus"`
-	MistakeID   string                    `json:"mistakeId"`
-	TargetJobID string                    `json:"targetJobId"`
-	ToStatus    sharedtypes.MistakeStatus `json:"toStatus"`
 }
 
 type ResumeParseCompletedPayload struct {
@@ -159,10 +141,10 @@ type DebriefCreatedPayload struct {
 }
 
 type DebriefCompletedPayload struct {
-	DebriefID             string `json:"debriefId"`
-	GeneratedMistakeCount int    `json:"generatedMistakeCount"`
-	RiskItemCount         int    `json:"riskItemCount"`
-	TargetJobID           string `json:"targetJobId"`
+	DebriefID          string `json:"debriefId"`
+	PracticeFocusCount int    `json:"practiceFocusCount"`
+	RiskItemCount      int    `json:"riskItemCount"`
+	TargetJobID        string `json:"targetJobId"`
 }
 
 type SourceRefreshedPayload struct {

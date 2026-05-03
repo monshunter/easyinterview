@@ -81,7 +81,7 @@ func TestRun_DriftPropagatesFromConventions(t *testing.T) {
 	// Mutate the conventions struct (one of the B1 enums) and verify the
 	// next sync rewrites openapi.yaml.
 	for i := range conv.Enums {
-		if conv.Enums[i].Name == "MistakeStatus" {
+		if conv.Enums[i].Name == "QuestionReviewStatus" {
 			conv.Enums[i].Values = append(conv.Enums[i].Values, "x_test_drift_value")
 			break
 		}
@@ -91,7 +91,7 @@ func TestRun_DriftPropagatesFromConventions(t *testing.T) {
 	}
 	drifted, _ := os.ReadFile(dst)
 	if string(stable) == string(drifted) {
-		t.Fatal("expected drift after mutating MistakeStatus values")
+		t.Fatal("expected drift after mutating QuestionReviewStatus values")
 	}
 }
 

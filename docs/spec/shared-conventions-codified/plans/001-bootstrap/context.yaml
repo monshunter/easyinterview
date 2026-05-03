@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.2
+    to: 1.7
 spec:
   defaultTarget: docs
   discovery:
@@ -28,6 +28,8 @@ spec:
       - pnpm workspace
       - typescript toolchain
       - enum count
+      - practice mode assisted strict
+      - question review status
       - local quality gate
       - deferred CI
   targets:

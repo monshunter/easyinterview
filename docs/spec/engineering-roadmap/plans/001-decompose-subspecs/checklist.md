@@ -1,8 +1,8 @@
 # Decompose Subspecs Checklist
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: active
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-03
 
 **关联计划**: [plan](./plan.md)
 
@@ -36,10 +36,10 @@
 ## Phase 4: Wave 2（前后端 mock-first 并行）
 
 - [ ] 4.1 spawn 后端 5 份：C1 / C2 / C3 / C8 / E1（每份完整 spec + plan 链）
-- [ ] 4.2 spawn 前端 4 份：D1 / D2 / D3 / D4；D1 必须先于 D2-D4 完成基础壳
+- [ ] 4.2 spawn 前端 6 份：D1 `frontend-shell` / D2 `frontend-home-job-picks-and-parse` / D3 `frontend-workspace-and-practice` / D4 `frontend-report-dashboard` / D5 `frontend-resume-workshop` / D6 `frontend-debrief`；D1 必须先于 D2-D6 完成基础壳
 - [ ] 4.3 spawn 横切 1 份：F2 `analytics-funnel`
 - [ ] 4.4 E1 提供 14 tag 全 mock（按 B2 fixtures 自动生成）
-- [ ] 4.5 前端 4 域跑通 P0 8 步 happy path（导入→工作台→练习→报告→错题→复练）全部基于 E1 mock
+- [ ] 4.5 前端 6 域跑通 P0 happy path（导入→规划→练习→报告→复练当前轮 / 下一轮→真实复盘，且简历绑定可用）全部基于 E1 mock
 - [ ] 4.6 后端 5 域 mock-server plan 自验证通过
 - [ ] 4.7 验证：前后端 mock 同源（fixtures 同一份，禁止前端 hardcode）
 
@@ -57,7 +57,7 @@
 
 - [ ] 6.1 spawn E2 `e2e-scenarios-p0`：跨前后端 P0 主漏斗 BDD
 - [ ] 6.2 spawn E4 `release-gate-and-rollout`：灰度 / 版本兼容 / 回滚 runbook / SLO 准入
-- [ ] 6.3 D2 / D3 / D4 各自的 `003-integration` plan 把 fetch 切到真后端
+- [ ] 6.3 D2 / D3 / D4 / D5 / D6 各自的 `003-integration` plan 把 fetch 切到真后端
 - [ ] 6.4 F1 指标接齐 5 个 dashboard；F2 漏斗对账完成
 - [ ] 6.5 E2 全场景通过
 - [ ] 6.6 `04-metrics-observability.md` §15 最低上线门槛全勾
@@ -68,7 +68,7 @@
 ## Phase 7: 收尾
 
 - [ ] 7.1 `engineering-roadmap` spec 状态由 `active` 调整为 `completed`（仅当 P0 全部上线）
-- [ ] 7.2 P1 child draft spec 创建：C10 / C11 / C12 / D5 / D6 / E3 / F4（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`）
-- [ ] 7.3 P2 child draft spec 创建：C13 / C14 / D7（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`），INDEX 行从占位切为真实链接
+- [ ] 7.2 P1 child draft spec 创建：C10 `backend-readiness-signals` / C11 / C12 / E3 / F4（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`）；P1 前端增强只挂到已保留 P0 前端 child 的新 plan，不恢复旧模块
+- [ ] 7.3 P2 child draft spec 创建：C13 / C14 / D7 `frontend-voice-production`（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`），INDEX 行从占位切为真实链接
 - [ ] 7.4 触发 `/retrospective` 生成 P0 交付复盘报告
 - [ ] 7.5 同步 `docs/work-journal/INDEX.md` 与最近一条工作日志，记录 P0 收尾

@@ -97,19 +97,6 @@ READINESS_TIER = {
     3: "well_prepared",
 }
 
-MISTAKE_STATUS_TRANSLATION = {
-    "未解决": "open",
-    "改善中": "improving",
-    "已攻克": "mastered",
-}
-
-PRIORITY_TRANSLATION = {
-    "高": 80,
-    "中": 50,
-    "低": 20,
-}
-
-
 def _translate_company(value: str | None) -> str:
     if value is None:
         return "Acme"
@@ -165,8 +152,6 @@ REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = {
     "getTargetJob": ("targetJobs", "jdSample"),
     "getPracticeSession": ("targetJobs", "questions", "sessionTranscript"),
     "getFeedbackReport": ("report",),
-    "listMistakes": ("mistakes",),
-    "getGrowthOverview": ("growth",),
 }
 
 OP_TAGS = {
@@ -176,8 +161,6 @@ OP_TAGS = {
     "getTargetJob": "TargetJobs",
     "getPracticeSession": "PracticeSessions",
     "getFeedbackReport": "Reports",
-    "listMistakes": "Mistakes",
-    "getGrowthOverview": "Growth",
 }
 
 
@@ -274,7 +257,7 @@ def _build_target_job(raw: dict, jd: dict | None = None) -> OrderedDict:
         base["requirements"] = []
         base["fitSummary"] = None
         base["latestReportId"] = None
-    base["openMistakeCount"] = int(raw.get("mistakes") or 0)
+    base["openQuestionIssueCount"] = int(raw.get("mistakes") or 0)
     base["createdAt"] = EARLIEST
     base["updatedAt"] = EARLIER
     return base
@@ -358,7 +341,7 @@ def map_get_feedback_report(data: dict) -> OrderedDict:
     next_actions = []
     for action in report.get("nextPractice", []):
         next_actions.append(OrderedDict([
-            ("type", "drill"),
+            ("type", "retry_current_round"),
             ("label", action),
         ]))
     question_assessments = []
@@ -371,13 +354,17 @@ def map_get_feedback_report(data: dict) -> OrderedDict:
             ("confidence", "high" if d.get("confidence") == "高" else "medium"),
         ])
     for pq in report.get("perQuestion", []):
+        included = pq.get("state") == "待加强"
         question_assessments.append(OrderedDict([
             ("turnId", uuidv7_for(f"turn:prototype:{pq.get('qId','q?')}")),
             ("questionIntent", _slug(pq.get("topic", "question"))),
             ("dimensionResults", dim_results),
-            ("writtenToMistakeBook", pq.get("state") == "待加强"),
+            ("reviewStatus", "queued_for_retry" if included else "resolved"),
+            ("includedInRetryPlan", included),
         ]))
-    mistake_ids = [uuidv7_for(f"mistake:{m['id']}") for m in data.get("mistakes", [])[:1]]
+    retry_focus_turn_ids = [
+        qa["turnId"] for qa in question_assessments if qa.get("includedInRetryPlan")
+    ][:3]
     preparedness = READINESS_TIER.get(report.get("readiness", 2), "basically_ready")
 
     body = OrderedDict([
@@ -390,98 +377,12 @@ def map_get_feedback_report(data: dict) -> OrderedDict:
         ("issues", issues),
         ("nextActions", next_actions),
         ("questionAssessments", question_assessments),
-        ("mistakeIds", mistake_ids),
+        ("retryFocusTurnIds", retry_focus_turn_ids),
         ("provenance", _prov("feedback_report.v3", rubric="feedback_report.rubric.v2")),
         ("createdAt", EARLIER),
         ("updatedAt", NOW),
     ])
     return _wrap_response(200, body)
-
-
-def map_list_mistakes(data: dict) -> OrderedDict:
-    target = data["targetJobs"][0] if data.get("targetJobs") else {"id": "tj-1"}
-    target_id = uuidv7_for(f"targetJob:{target['id']}")
-    items = []
-    for m in data["mistakes"]:
-        items.append(OrderedDict([
-            ("id", uuidv7_for(f"mistake:{m['id']}")),
-            ("targetJobId", target_id),
-            ("sourceSessionId", uuidv7_for("session:prototype:tj-1")),
-            ("sourceDebriefId", None),
-            ("competencyCode", _slug(m.get("ability", "general"))),
-            ("questionText", m.get("question", "")),
-            ("answerSummary", m.get("ability", "")),
-            ("failureReasons", [m.get("ability", "general")]),
-            ("recommendedFramework", "STAR + 量化"),
-            ("status", MISTAKE_STATUS_TRANSLATION.get(m.get("status"), "open")),
-            ("priority", PRIORITY_TRANSLATION.get(m.get("priority"), 50)),
-            ("provenance", _prov("mistake_synthesis.v1", rubric="feedback_report.rubric.v2")),
-            ("createdAt", EARLIER),
-            ("updatedAt", NOW),
-        ]))
-    body = OrderedDict([
-        ("items", items),
-        ("pageInfo", OrderedDict([
-            ("nextCursor", None),
-            ("pageSize", 20),
-            ("hasMore", False),
-        ])),
-    ])
-    return _wrap_response(200, body)
-
-
-def map_get_growth_overview(data: dict) -> OrderedDict:
-    growth = data["growth"]
-    last30 = growth.get("last30d", {})
-    summary = OrderedDict([
-        ("practiceSessionsCompleted", int(last30.get("practices", 0))),
-        ("reportsReady", int(last30.get("practices", 0))),
-        ("mistakesOpened", int(last30.get("mistakesTotal", 0))),
-        ("mistakesMastered", int(last30.get("mistakesResolved", 0))),
-        ("debriefCount", len(data.get("debriefs", []))),
-    ])
-    weeks = growth.get("weeks", [])
-    recent = growth.get("recent", [])
-    preparedness_trend = []
-    # The prototype `weeks` strings are display labels; map them to fixed dates
-    # tied to NOW so the output stays stable across runs.
-    week_dates = ["2026-03-10", "2026-03-17", "2026-03-24", "2026-03-31",
-                  "2026-04-07", "2026-04-14", "2026-04-28"]
-    for label, date in zip(weeks, week_dates):
-        # Use the corresponding readiness from `recent` if present; default to 1.
-        preparedness_trend.append(OrderedDict([
-            ("date", date),
-            ("level", READINESS_TIER.get(1, "needs_practice")),
-        ]))
-    if recent:
-        # Override the last point with the most recent preparedness.
-        last_level = recent[0].get("readiness", 2)
-        if preparedness_trend:
-            preparedness_trend[-1]["level"] = READINESS_TIER.get(last_level, "needs_practice")
-    dim_trend = OrderedDict()
-    for d in growth.get("trendDim", []):
-        name = _slug(d.get("name", "dim"))
-        values = d.get("values", [])
-        if not values:
-            continue
-        improvement = values[-1] - values[0]
-        if improvement >= 15:
-            tier = "improving"
-        elif values[-1] >= 80:
-            tier = "strong"
-        elif values[-1] >= 65:
-            tier = "meets_bar"
-        else:
-            tier = "needs_work"
-        dim_trend[name] = tier
-    body = OrderedDict([
-        ("window", "30d"),
-        ("summary", summary),
-        ("preparednessTrend", preparedness_trend),
-        ("dimensionTrend", dim_trend),
-    ])
-    return _wrap_response(200, body)
-
 
 MAPPERS: dict[str, Callable[[dict], OrderedDict]] = {
     "getMe": map_get_me,
@@ -490,8 +391,6 @@ MAPPERS: dict[str, Callable[[dict], OrderedDict]] = {
     "getTargetJob": map_get_target_job,
     "getPracticeSession": map_get_practice_session,
     "getFeedbackReport": map_get_feedback_report,
-    "listMistakes": map_list_mistakes,
-    "getGrowthOverview": map_get_growth_overview,
 }
 
 

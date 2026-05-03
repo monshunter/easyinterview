@@ -32,19 +32,15 @@ tags:
   - name: TargetJobs
     description: JD import, target-job workspace state, and per-target metadata.
   - name: PracticePlans
-    description: Practice plans created from a target job or mistake retest.
+    description: Practice plans created from target-job rounds, report retry plans, or debrief replay.
   - name: PracticeSessions
     description: Mock-interview sessions, session events, and session completion.
   - name: Reports
     description: Evidence-based feedback reports.
-  - name: Mistakes
-    description: Mistake notebook entries and retest plans.
   - name: ResumeTailor
     description: Resume tailoring runs (per-target customised resumes).
   - name: Debriefs
     description: Real-interview debrief intake and follow-up.
-  - name: Growth
-    description: Cross-session readiness trend and growth overview.
   - name: Jobs
     description: Async job status polling for `202 Accepted` workflows.
   - name: Privacy
@@ -851,95 +847,6 @@ paths:
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
-  /mistakes:
-    get:
-      tags: [Mistakes]
-      operationId: listMistakes
-      summary: List mistake notebook entries (cursor-paginated)
-      parameters:
-        - name: targetJobId
-          in: query
-          required: false
-          schema:
-            type: string
-            format: uuid
-        - name: status
-          in: query
-          required: false
-          schema:
-            $ref: '#/components/schemas/MistakeStatus'
-        - name: competencyCode
-          in: query
-          required: false
-          schema:
-            type: string
-        - name: cursor
-          in: query
-          required: false
-          schema:
-            type: string
-        - name: pageSize
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int32
-            minimum: 1
-            maximum: 100
-        - $ref: '#/components/parameters/XRequestID'
-        - $ref: '#/components/parameters/Traceparent'
-        - $ref: '#/components/parameters/AcceptLanguage'
-        - $ref: '#/components/parameters/XClientVersion'
-      responses:
-        '200':
-          description: Paginated mistake entries.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedMistakeEntry'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-
-  /mistakes/{mistakeId}/retest:
-    post:
-      tags: [Mistakes]
-      operationId: retestMistake
-      summary: Create a retest practice plan from a mistake entry
-      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
-      parameters:
-        - name: mistakeId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/XRequestID'
-        - $ref: '#/components/parameters/Traceparent'
-        - $ref: '#/components/parameters/AcceptLanguage'
-        - $ref: '#/components/parameters/XClientVersion'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RetestMistakeRequest'
-      responses:
-        '201':
-          description: Retest practice plan created.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PracticePlanContainer'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-
   /resume/tailor:
     post:
       tags: [ResumeTailor]
@@ -1057,41 +964,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Debrief'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-
-  /growth/overview:
-    get:
-      tags: [Growth]
-      operationId: getGrowthOverview
-      summary: Get cross-target growth overview
-      parameters:
-        - name: window
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: ['7d', '30d', '90d']
-        - name: targetJobId
-          in: query
-          required: false
-          schema:
-            type: string
-            format: uuid
-        - $ref: '#/components/parameters/XRequestID'
-        - $ref: '#/components/parameters/Traceparent'
-        - $ref: '#/components/parameters/AcceptLanguage'
-        - $ref: '#/components/parameters/XClientVersion'
-      responses:
-        '200':
-          description: Growth overview.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GrowthOverview'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
@@ -1408,12 +1280,12 @@ components:
     PracticeMode:
       type: string
       description: Synced from `shared/conventions.yaml#enums[PracticeMode]` (00-shared-conventions §5.3).
-      enum: [warmup, core_interview, single_drill, counter_questions, debrief_replay]
+      enum: [assisted, strict, debrief_replay]
 
     PracticeGoal:
       type: string
       description: Synced from `shared/conventions.yaml#enums[PracticeGoal]` (00-shared-conventions §5.4).
-      enum: [baseline, sprint, fix_mistake, debrief]
+      enum: [baseline, retry_current_round, next_round, debrief]
 
     InterviewerRole:
       type: string
@@ -1445,10 +1317,10 @@ components:
       description: Synced from `shared/conventions.yaml#enums[Confidence]` (00-shared-conventions §5.10).
       enum: [high, medium, low]
 
-    MistakeStatus:
+    QuestionReviewStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[MistakeStatus]` (00-shared-conventions §5.11).
-      enum: [open, improving, mastered]
+      description: Synced from `shared/conventions.yaml#enums[QuestionReviewStatus]` (00-shared-conventions §5.11).
+      enum: [open, queued_for_retry, resolved]
 
     DebriefStatus:
       type: string
@@ -1982,7 +1854,7 @@ components:
 
     TargetJob:
       type: object
-      required: [id, status, analysisStatus, title, companyName, targetLanguage, sourceType, requirements, openMistakeCount, createdAt, updatedAt]
+      required: [id, status, analysisStatus, title, companyName, targetLanguage, sourceType, requirements, openQuestionIssueCount, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -2026,7 +1898,7 @@ components:
             - type: string
               format: uuid
             - type: 'null'
-        openMistakeCount:
+        openQuestionIssueCount:
           type: integer
           format: int32
           minimum: 0
@@ -2280,7 +2152,7 @@ components:
         job:
           $ref: '#/components/schemas/Job'
 
-    # ----- Reports / Mistakes -----
+    # ----- Reports / question review -----
     DimensionResult:
       type: object
       required: [status, confidence]
@@ -2318,12 +2190,13 @@ components:
       properties:
         type:
           type: string
+          enum: [retry_current_round, next_round, review_evidence]
         label:
           type: string
 
     QuestionAssessment:
       type: object
-      required: [turnId, questionIntent, dimensionResults, writtenToMistakeBook]
+      required: [turnId, questionIntent, dimensionResults, reviewStatus, includedInRetryPlan]
       properties:
         turnId:
           type: string
@@ -2334,7 +2207,9 @@ components:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/DimensionResult'
-        writtenToMistakeBook:
+        reviewStatus:
+          $ref: '#/components/schemas/QuestionReviewStatus'
+        includedInRetryPlan:
           type: boolean
 
     FeedbackReport:
@@ -2376,7 +2251,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/QuestionAssessment'
-        mistakeIds:
+        retryFocusTurnIds:
           type: array
           items:
             type: string
@@ -2402,92 +2277,6 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/FeedbackReport'
-
-    MistakeEntry:
-      type: object
-      required: [id, targetJobId, competencyCode, questionText, answerSummary, failureReasons, recommendedFramework, status, priority, createdAt, updatedAt]
-      description: |
-        Mistake notebook entry. May be AI-created (during report generation)
-        or user-created. Per spec §4.6, AI-created entries must carry
-        `provenance`; user-created entries leave `provenance` null.
-      properties:
-        id:
-          type: string
-          format: uuid
-        targetJobId:
-          type: string
-          format: uuid
-        sourceSessionId:
-          oneOf:
-            - type: string
-              format: uuid
-            - type: 'null'
-        sourceDebriefId:
-          oneOf:
-            - type: string
-              format: uuid
-            - type: 'null'
-        competencyCode:
-          type: string
-        questionText:
-          type: string
-        answerSummary:
-          type: string
-        failureReasons:
-          type: array
-          items:
-            type: string
-        recommendedFramework:
-          type: string
-        status:
-          $ref: '#/components/schemas/MistakeStatus'
-        priority:
-          type: integer
-          format: int32
-          minimum: 1
-          maximum: 100
-        provenance:
-          oneOf:
-            - $ref: '#/components/schemas/GenerationProvenance'
-            - type: 'null'
-          description: Present iff this entry was AI-generated; user-created entries leave it null.
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    PaginatedMistakeEntry:
-      allOf:
-        - $ref: '#/components/schemas/PaginatedEnvelope'
-        - type: object
-          properties:
-            items:
-              type: array
-              items:
-                $ref: '#/components/schemas/MistakeEntry'
-
-    RetestMistakeRequest:
-      type: object
-      required: [mode, language]
-      properties:
-        mode:
-          $ref: '#/components/schemas/PracticeMode'
-        language:
-          type: string
-        timeBudgetMinutes:
-          type: integer
-          format: int32
-          minimum: 1
-
-    PracticePlanContainer:
-      type: object
-      required: [plan]
-      description: Wrapper response for `retestMistake` (returns the freshly created `PracticePlan`).
-      properties:
-        plan:
-          $ref: '#/components/schemas/PracticePlan'
 
     # ----- Resume tailor -----
     RequestResumeTailorRequest:
@@ -2706,61 +2495,6 @@ components:
           format: uuid
         job:
           $ref: '#/components/schemas/Job'
-
-    # ----- Growth -----
-    GrowthOverviewSummary:
-      type: object
-      required: [practiceSessionsCompleted, reportsReady, mistakesOpened, mistakesMastered, debriefCount]
-      properties:
-        practiceSessionsCompleted:
-          type: integer
-          format: int32
-          minimum: 0
-        reportsReady:
-          type: integer
-          format: int32
-          minimum: 0
-        mistakesOpened:
-          type: integer
-          format: int32
-          minimum: 0
-        mistakesMastered:
-          type: integer
-          format: int32
-          minimum: 0
-        debriefCount:
-          type: integer
-          format: int32
-          minimum: 0
-
-    GrowthPreparednessTrendPoint:
-      type: object
-      required: [date, level]
-      properties:
-        date:
-          type: string
-          format: date
-        level:
-          $ref: '#/components/schemas/ReadinessTier'
-
-    GrowthOverview:
-      type: object
-      required: [window, summary, preparednessTrend, dimensionTrend]
-      properties:
-        window:
-          type: string
-          enum: ['7d', '30d', '90d']
-        summary:
-          $ref: '#/components/schemas/GrowthOverviewSummary'
-        preparednessTrend:
-          type: array
-          items:
-            $ref: '#/components/schemas/GrowthPreparednessTrendPoint'
-        dimensionTrend:
-          type: object
-          additionalProperties:
-            type: string
-            enum: [strong, improving, meets_bar, needs_work]
 
     # ----- Async Job -----
     Job:

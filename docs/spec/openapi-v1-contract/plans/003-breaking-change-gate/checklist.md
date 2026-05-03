@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-03
 
 **关联计划**: [plan](./plan.md)
 
@@ -39,3 +39,12 @@
 - [x] 5.2 更新 `scripts/lint/openapi_diff.py`、`openapi/diff-config.yaml` 与 baseline README 中 endpoint inventory 到 37；privacy export `501→202` 白名单仍仅作用于 `POST /api/v1/privacy/exports`
 - [x] 5.3 修正 checklist / context specVersion 到 current spec v1.8；本 remediation 未完成前 plan 保持 active
 - [x] 5.4 复跑 `make openapi-diff`、`make codegen-check`、`make validate-fixtures`，确认 37 endpoint baseline / diff / fixtures gate 均通过
+
+## Phase 6: product-scope v1.2 baseline remediation
+
+- [x] 6.1 Red: 在 001 / 002 未完成前运行 `make openapi-diff`，确认 baseline/current 或 inventory 仍能暴露旧 37 endpoint 漂移
+  - 2026-05-03: `make openapi-diff` exit 2，summary `baselineOperations=37` / `currentOperations=34`，breaking findings 包含 `tag-removed` Mistakes/Growth、3 个旧 endpoint removed、旧 PracticeMode / PracticeGoal enum、`MistakeStatus` / `MistakeEntry` / `GrowthOverview*` schemas 与旧字段删除。
+- [x] 6.2 Green: 重新冻结 `openapi/baseline/openapi-v1.0.0.yaml` 到 12 tag / 34 endpoint，并更新 baseline README / diff 说明；不创建 v1.0.1
+  - 2026-05-03: 用当前 `openapi/openapi.yaml` 重新冻结 `openapi/baseline/openapi-v1.0.0.yaml`，保留 `BASELINE — DO NOT EDIT` 描述；更新 `openapi/diff-config.yaml` `contractInventory.endpointCount=34` 与 baseline README 12 tag / 34 operation 说明，未创建 `openapi-v1.0.1.yaml`。
+- [x] 6.3 Verify: `make openapi-diff` 通过；privacy export `501→202` 白名单仍只作用于 `POST /api/v1/privacy/exports`
+  - 2026-05-03: `make openapi-diff` exit 0，payload `expectedOperations=34`、`baselineOperations=34`、`currentOperations=34`、`breaking=0`；`python3 -m unittest scripts/lint/openapi_diff_test.py scripts/lint/openapi_inventory_test.py scripts/lint/validate_fixtures_cli_test.py` 35 tests OK，继续覆盖 privacy export 501→202 whitelist history gate。

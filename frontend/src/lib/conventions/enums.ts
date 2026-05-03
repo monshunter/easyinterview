@@ -37,31 +37,27 @@ export const ALL_TARGET_JOB_PARSE_STATUSES: readonly TargetJobParseStatus[] = [
 
 // PracticeMode mirrors 00-shared-conventions §5.3 (jsonField: "mode").
 export type PracticeMode =
-  | 'warmup'
-  | 'core_interview'
-  | 'single_drill'
-  | 'counter_questions'
+  | 'assisted'
+  | 'strict'
   | 'debrief_replay';
 
 export const ALL_PRACTICE_MODES: readonly PracticeMode[] = [
-  'warmup',
-  'core_interview',
-  'single_drill',
-  'counter_questions',
+  'assisted',
+  'strict',
   'debrief_replay',
 ] as const;
 
 // PracticeGoal mirrors 00-shared-conventions §5.4 (jsonField: "goal").
 export type PracticeGoal =
   | 'baseline'
-  | 'sprint'
-  | 'fix_mistake'
+  | 'retry_current_round'
+  | 'next_round'
   | 'debrief';
 
 export const ALL_PRACTICE_GOALS: readonly PracticeGoal[] = [
   'baseline',
-  'sprint',
-  'fix_mistake',
+  'retry_current_round',
+  'next_round',
   'debrief',
 ] as const;
 
@@ -153,16 +149,16 @@ export const ALL_CONFIDENCES: readonly Confidence[] = [
   'low',
 ] as const;
 
-// MistakeStatus mirrors 00-shared-conventions §5.11 (jsonField: "mistakeStatus").
-export type MistakeStatus =
+// QuestionReviewStatus mirrors 00-shared-conventions §5.11 (jsonField: "questionReviewStatus").
+export type QuestionReviewStatus =
   | 'open'
-  | 'improving'
-  | 'mastered';
+  | 'queued_for_retry'
+  | 'resolved';
 
-export const ALL_MISTAKE_STATUSES: readonly MistakeStatus[] = [
+export const ALL_QUESTION_REVIEW_STATUSES: readonly QuestionReviewStatus[] = [
   'open',
-  'improving',
-  'mastered',
+  'queued_for_retry',
+  'resolved',
 ] as const;
 
 // DebriefStatus mirrors 00-shared-conventions §5.12 (jsonField: "debriefStatus").

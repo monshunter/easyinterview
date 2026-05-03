@@ -49,19 +49,15 @@ var AllTargetJobParseStatuses = []TargetJobParseStatus{
 type PracticeMode string
 
 const (
-	PracticeModeWarmup           PracticeMode = "warmup"
-	PracticeModeCoreInterview    PracticeMode = "core_interview"
-	PracticeModeSingleDrill      PracticeMode = "single_drill"
-	PracticeModeCounterQuestions PracticeMode = "counter_questions"
-	PracticeModeDebriefReplay    PracticeMode = "debrief_replay"
+	PracticeModeAssisted      PracticeMode = "assisted"
+	PracticeModeStrict        PracticeMode = "strict"
+	PracticeModeDebriefReplay PracticeMode = "debrief_replay"
 )
 
 // AllPracticeModes lists every defined value in declaration order.
 var AllPracticeModes = []PracticeMode{
-	PracticeModeWarmup,
-	PracticeModeCoreInterview,
-	PracticeModeSingleDrill,
-	PracticeModeCounterQuestions,
+	PracticeModeAssisted,
+	PracticeModeStrict,
 	PracticeModeDebriefReplay,
 }
 
@@ -69,17 +65,17 @@ var AllPracticeModes = []PracticeMode{
 type PracticeGoal string
 
 const (
-	PracticeGoalBaseline   PracticeGoal = "baseline"
-	PracticeGoalSprint     PracticeGoal = "sprint"
-	PracticeGoalFixMistake PracticeGoal = "fix_mistake"
-	PracticeGoalDebrief    PracticeGoal = "debrief"
+	PracticeGoalBaseline          PracticeGoal = "baseline"
+	PracticeGoalRetryCurrentRound PracticeGoal = "retry_current_round"
+	PracticeGoalNextRound         PracticeGoal = "next_round"
+	PracticeGoalDebrief           PracticeGoal = "debrief"
 )
 
 // AllPracticeGoals lists every defined value in declaration order.
 var AllPracticeGoals = []PracticeGoal{
 	PracticeGoalBaseline,
-	PracticeGoalSprint,
-	PracticeGoalFixMistake,
+	PracticeGoalRetryCurrentRound,
+	PracticeGoalNextRound,
 	PracticeGoalDebrief,
 }
 
@@ -195,20 +191,20 @@ var AllConfidences = []Confidence{
 	ConfidenceLow,
 }
 
-// MistakeStatus mirrors 00-shared-conventions §5.11 (jsonField: "mistakeStatus").
-type MistakeStatus string
+// QuestionReviewStatus mirrors 00-shared-conventions §5.11 (jsonField: "questionReviewStatus").
+type QuestionReviewStatus string
 
 const (
-	MistakeStatusOpen      MistakeStatus = "open"
-	MistakeStatusImproving MistakeStatus = "improving"
-	MistakeStatusMastered  MistakeStatus = "mastered"
+	QuestionReviewStatusOpen           QuestionReviewStatus = "open"
+	QuestionReviewStatusQueuedForRetry QuestionReviewStatus = "queued_for_retry"
+	QuestionReviewStatusResolved       QuestionReviewStatus = "resolved"
 )
 
-// AllMistakeStatuses lists every defined value in declaration order.
-var AllMistakeStatuses = []MistakeStatus{
-	MistakeStatusOpen,
-	MistakeStatusImproving,
-	MistakeStatusMastered,
+// AllQuestionReviewStatuses lists every defined value in declaration order.
+var AllQuestionReviewStatuses = []QuestionReviewStatus{
+	QuestionReviewStatusOpen,
+	QuestionReviewStatusQueuedForRetry,
+	QuestionReviewStatusResolved,
 }
 
 // DebriefStatus mirrors 00-shared-conventions §5.12 (jsonField: "debriefStatus").

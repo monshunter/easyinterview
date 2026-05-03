@@ -41,7 +41,6 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 		"practice_turns",
 		"feedback_reports",
 		"question_assessments",
-		"mistake_entries",
 		"resume_tailor_runs",
 		"debriefs",
 		"source_records",
@@ -60,6 +59,30 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 	} {
 		if !strings.Contains(up, "create table "+table+" ") {
 			t.Fatalf("baseline migration missing create table %s", table)
+		}
+	}
+	if strings.Contains(up, "create table mistake_entries ") {
+		t.Fatalf("baseline migration must not create removed mistake_entries table")
+	}
+	for _, required := range []string{
+		"open_question_issue_count integer not null default 0",
+		"review_status text not null check (review_status in ('open', 'queued_for_retry', 'resolved'))",
+		"included_in_retry_plan boolean not null default false",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("baseline migration missing product-scope v1.2 column/check %q", required)
+		}
+	}
+	for _, removed := range []string{
+		"open_mistake_count",
+		"written_to_mistake_book",
+		"single_drill",
+		"core_interview",
+		"fix_mistake",
+		"counter_questions",
+	} {
+		if strings.Contains(up, removed) {
+			t.Fatalf("baseline migration still contains removed token %q", removed)
 		}
 	}
 }

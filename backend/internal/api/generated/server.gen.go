@@ -30,9 +30,6 @@ type ServerInterface interface {
 	// getDebrief — get /debriefs/{debriefId}: Get a real-interview debrief
 	GetDebrief(w http.ResponseWriter, r *http.Request, debriefId string)
 
-	// getGrowthOverview — get /growth/overview: Get cross-target growth overview
-	GetGrowthOverview(w http.ResponseWriter, r *http.Request)
-
 	// getJob — get /jobs/{jobId}: Poll the status of an async job
 	GetJob(w http.ResponseWriter, r *http.Request, jobId string)
 
@@ -41,12 +38,6 @@ type ServerInterface interface {
 
 	// getMe — get /me: Get current user context
 	GetMe(w http.ResponseWriter, r *http.Request)
-
-	// listMistakes — get /mistakes: List mistake notebook entries (cursor-paginated)
-	ListMistakes(w http.ResponseWriter, r *http.Request)
-
-	// retestMistake — post /mistakes/{mistakeId}/retest: Create a retest practice plan from a mistake entry
-	RetestMistake(w http.ResponseWriter, r *http.Request, mistakeId string)
 
 	// createPracticePlan — post /practice/plans: Create a practice plan
 	CreatePracticePlan(w http.ResponseWriter, r *http.Request)
@@ -145,12 +136,9 @@ var AllRoutes = []Route{
 	{OperationID: "logout", Method: "post", Path: "/auth/logout", PathParams: nil},
 	{OperationID: "createDebrief", Method: "post", Path: "/debriefs", PathParams: nil},
 	{OperationID: "getDebrief", Method: "get", Path: "/debriefs/{debriefId}", PathParams: []string{"debriefId"}},
-	{OperationID: "getGrowthOverview", Method: "get", Path: "/growth/overview", PathParams: nil},
 	{OperationID: "getJob", Method: "get", Path: "/jobs/{jobId}", PathParams: []string{"jobId"}},
 	{OperationID: "deleteMe", Method: "delete", Path: "/me", PathParams: nil},
 	{OperationID: "getMe", Method: "get", Path: "/me", PathParams: nil},
-	{OperationID: "listMistakes", Method: "get", Path: "/mistakes", PathParams: nil},
-	{OperationID: "retestMistake", Method: "post", Path: "/mistakes/{mistakeId}/retest", PathParams: []string{"mistakeId"}},
 	{OperationID: "createPracticePlan", Method: "post", Path: "/practice/plans", PathParams: nil},
 	{OperationID: "getPracticePlan", Method: "get", Path: "/practice/plans/{planId}", PathParams: []string{"planId"}},
 	{OperationID: "startPracticeSession", Method: "post", Path: "/practice/sessions", PathParams: nil},

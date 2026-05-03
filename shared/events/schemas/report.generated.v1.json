@@ -27,9 +27,6 @@
     "payload": {
       "additionalProperties": false,
       "properties": {
-        "mistakeCount": {
-          "type": "integer"
-        },
         "modelId": {
           "type": "string"
         },
@@ -38,6 +35,9 @@
         },
         "promptVersion": {
           "type": "string"
+        },
+        "questionIssueCount": {
+          "type": "integer"
         },
         "reportId": {
           "type": "string"
@@ -53,10 +53,10 @@
         }
       },
       "required": [
-        "mistakeCount",
         "modelId",
         "preparednessLevel",
         "promptVersion",
+        "questionIssueCount",
         "reportId",
         "rubricVersion",
         "sessionId",

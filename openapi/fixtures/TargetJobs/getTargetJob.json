@@ -25,7 +25,7 @@
             ],
             "interviewHypotheses": [
               "Will probe scaling design systems across 10+ teams",
-              "Likely STAR drilling on observability for FE infra"
+              "Likely STAR follow-up on observability for FE infra"
             ],
             "provenance": {
               "promptVersion": "target_job_summary.v3",
@@ -77,7 +77,7 @@
             }
           },
           "latestReportId": "01918fa0-0000-7000-8000-000000007000",
-          "openMistakeCount": 2,
+          "openQuestionIssueCount": 2,
           "createdAt": "2026-04-22T09:30:00Z",
           "updatedAt": "2026-04-28T12:00:00Z"
         }
@@ -181,7 +181,7 @@
             }
           },
           "latestReportId": "01918fa0-c3cb-7268-8404-d3b2603536d8",
-          "openMistakeCount": 3,
+          "openQuestionIssueCount": 3,
           "createdAt": "2026-04-22T09:30:00Z",
           "updatedAt": "2026-04-28T12:00:00Z"
         }

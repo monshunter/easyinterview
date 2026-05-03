@@ -31,11 +31,11 @@
               ],
               "nextActions": [
                 {
-                  "type": "drill",
-                  "label": "再练 3 道关于灰度策略的追问。"
+                  "type": "retry_current_round",
+                  "label": "围绕灰度策略复练当前轮追问。"
                 },
                 {
-                  "type": "review",
+                  "type": "review_evidence",
                   "label": "回顾迁移期间的回归数据并准备一段量化叙事。"
                 }
               ],
@@ -57,11 +57,12 @@
                       "confidence": "high"
                     }
                   },
-                  "writtenToMistakeBook": true
+                  "reviewStatus": "queued_for_retry",
+                  "includedInRetryPlan": true
                 }
               ],
-              "mistakeIds": [
-                "01918fa0-0000-7000-8000-000000008000"
+              "retryFocusTurnIds": [
+                "01918fa0-0000-7000-8000-000000006000"
               ],
               "provenance": {
                 "promptVersion": "feedback_report.v3",

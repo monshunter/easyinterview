@@ -1,6 +1,6 @@
 # Product Scope Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -65,7 +65,7 @@
 ### 2.2 Out of Scope
 
 - 不在本 spec 中编写具体 API schema、DB schema、事件 payload、prompt 文本或 UI 组件代码。
-- 不在本 spec 中重排所有 engineering-roadmap child subspec；当前只更新产品真理源引用。若需要把 voice、resume、debrief 等阶段拆分重新排期，应单独发起 roadmap 修订。
+- 不在本 spec 中承载 engineering-roadmap child subspec 的具体重排；roadmap 拆分与 wave 以 `docs/spec/engineering-roadmap/spec.md` 为准。当前已通过 engineering-roadmap v2.2 将 voice、resume、debrief、report 和旧模块删除语义对齐到本 spec。
 - 不创建实现 plan、TDD checklist 或 BDD scenario；本文档是 docs-only 产品范围结晶。
 - 不恢复旧版独立成长中心、多轮计划、经历库、追问树、单题 Drill、独立错题队列、报告时间线或刊物式报告页。
 - 不定义 Team / EDU、企业端候选人评估、社区或真实面试中的隐形实时辅助。
@@ -105,15 +105,15 @@
 | D-9 | 真实面试复盘 | 复盘是一级模块，处理真实面试过程；文本和语音添加共享同一份记录 | 不把模拟报告错题自动写成复盘记录 |
 | D-10 | 证据和版本化 | 生成结果必须携带 prompt / rubric / model / language / feature flag / data source 等来源信息 | 支撑质量评估、回归检测和问题追踪 |
 | D-11 | 默认丢弃规则 | 当前 UI / UI 文档未保留、未重定义且本 spec 未标为规划例外的旧内容，默认已丢弃 | P1/P2/P3 不自动恢复旧 spec 功能 |
+| D-12 | Roadmap 对齐 | engineering-roadmap v2.2 已将 P0 前端拆分调整为 Home / Job Picks / Practice / Report / Resume / Debrief，并把独立 growth / mistakes / drill / plan / voice page 移出目标模块 | 后续 child spec / plan 不得用旧 pending 名称恢复已丢弃模块 |
 
 ### 3.2 待确认事项
 
 | ID | 待确认事项 | 影响 | 默认处理 |
 |----|------------|------|----------|
-| Q-1 | 是否重新修订 `engineering-roadmap` 的 Layer D / voice / debrief / resume 阶段拆分 | 当前 roadmap 仍带有旧原型导入时期的 child 名称和部分阶段假设 | 本次只更新产品真理源引用；后续如进入实现前发现冲突，先做 `/plan-review --fix` |
-| Q-2 | 生产版语音能力的 P0 发布门槛 | UI 已有语音面试和语音复盘目标，但后端 STT、媒体留存和隐私链路可能晚于文本闭环 | 产品层保留统一语音形式；工程 release gate 可用 feature flag 控制上线 |
-| Q-3 | 岗位推荐的数据来源策略 | 当前 UI 有岗位推荐一级模块；`全球多平台搜岗` 是规划例外，但不属于当前 MVP 闭环 | 当前先以用户简历、画像、偏好和合规数据源的轻推荐为准；全球搜岗需另行设计数据源、合规和维护边界 |
-| Q-4 | 商业包装与价格 | 旧 spec 有 Free / Pro / Sprint Pack / Team 假设 | 当前不把商业包装写成产品功能范围；Team / EDU 不进入产品规划 |
+| Q-1 | 生产版语音能力的 P0 发布门槛 | UI 已有语音面试和语音复盘目标，但后端 STT、媒体留存和隐私链路可能晚于文本闭环 | 产品层保留统一语音形式；工程 release gate 可用 feature flag 控制上线 |
+| Q-2 | 岗位推荐的数据来源策略 | 当前 UI 有岗位推荐一级模块；`全球多平台搜岗` 是规划例外，但不属于当前 MVP 闭环 | 当前先以用户简历、画像、偏好和合规数据源的轻推荐为准；全球搜岗需另行设计数据源、合规和维护边界 |
+| Q-3 | 商业包装与价格 | 旧 spec 有 Free / Pro / Sprint Pack / Team 假设 | 当前不把商业包装写成产品功能范围；Team / EDU 不进入产品规划 |
 
 ## 4 设计约束
 

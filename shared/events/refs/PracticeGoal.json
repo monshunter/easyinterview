@@ -3,8 +3,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "enum": [
     "baseline",
-    "sprint",
-    "fix_mistake",
+    "retry_current_round",
+    "next_round",
     "debrief"
   ],
   "title": "PracticeGoal",

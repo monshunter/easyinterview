@@ -11,8 +11,8 @@ import {
 } from './enums';
 
 describe('enum union literals', () => {
-  it('PracticeMode allows core_interview', () => {
-    const mode: PracticeMode = 'core_interview';
+  it('PracticeMode allows strict', () => {
+    const mode: PracticeMode = 'strict';
     expect(ALL_PRACTICE_MODES).toContain(mode);
   });
   it('SessionStatus allows waiting_user_input', () => {

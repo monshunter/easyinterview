@@ -18,12 +18,12 @@ openapi/fixtures/
 ├── README.md
 ├── PROTOTYPE_MAPPING.md          # data.jsx ↔ operationId mapping table
 └── <Tag>/
-    └── <operationId>.json        # one fixture per operation (37 in v1.0.0)
+    └── <operationId>.json        # one fixture per operation (34 in v1.0.0)
 ```
 
-The 14 tag directories follow
+The 12 tag directories follow
 [spec §2.1](../../docs/spec/openapi-v1-contract/spec.md#2-范围) declaration
-order; the 37 operationIds are listed in
+order; the 34 operationIds are listed in
 [spec §3.1.1](../../docs/spec/openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表).
 
 ## File shape
@@ -65,7 +65,7 @@ Rules:
 | Scenario name | Owner | Source | Required? |
 |---------------|-------|--------|-----------|
 | `default` | this directory | hand-authored | ✅ every fixture |
-| `prototype-baseline` | this directory | `make sync-fixtures-from-prototype` from `ui-design/src/data.jsx` | optional; required for the 8 P0 closed-loop endpoints listed in [PROTOTYPE_MAPPING.md §3](./PROTOTYPE_MAPPING.md#3-p0-闭环关键-endpoint-覆盖plan-24-自检) |
+| `prototype-baseline` | this directory | `make sync-fixtures-from-prototype` from `ui-design/src/data.jsx` | optional; required for the 6 P0 closed-loop endpoints listed in [PROTOTYPE_MAPPING.md §3](./PROTOTYPE_MAPPING.md#3-p0-闭环关键-endpoint-覆盖plan-24-自检) |
 | `<purpose>-<variant>` | the consumer adding it | hand-authored | optional; e.g. `error-conflict`, `boundary-empty-list`, `slow-network` |
 
 The first key in the JSON map (`default`) is canonical. Any additional
@@ -101,7 +101,7 @@ mock to pick it up.
 
 | Target | Purpose |
 |--------|---------|
-| `make validate-fixtures` | Schema-validates every scenario against `openapi.yaml`, enforces AI-schema provenance, runs the privacy allowlist + UUIDv7 + `tmp_` scans, and verifies all 37 operationIds are present. |
+| `make validate-fixtures` | Schema-validates every scenario against `openapi.yaml`, enforces AI-schema provenance, runs the privacy allowlist + UUIDv7 + `tmp_` scans, and verifies all 34 operationIds are present. |
 | `make sync-fixtures-from-prototype` | Re-renders the `prototype-baseline` scenario of every supported fixture from `data.jsx`. Idempotent — `git diff --exit-code -- openapi/fixtures` stays clean across re-runs. |
 
 The two are independent; the sync tool calls `validate-fixtures` internally as

@@ -129,7 +129,7 @@ CREATE TABLE target_jobs (
   fit_summary jsonb NOT NULL DEFAULT '{}'::jsonb,
   notes text,
   latest_report_id uuid,
-  open_mistake_count integer NOT NULL DEFAULT 0,
+  open_question_issue_count integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   deleted_at timestamptz
@@ -167,9 +167,9 @@ CREATE TABLE practice_plans (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   target_job_id uuid NOT NULL REFERENCES target_jobs(id) ON DELETE CASCADE,
-  source_mistake_id uuid,
-  goal text NOT NULL CHECK (goal IN ('baseline', 'sprint', 'fix_mistake', 'debrief')),
-  mode text NOT NULL CHECK (mode IN ('warmup', 'core_interview', 'single_drill', 'counter_questions', 'debrief_replay')),
+  source_report_id uuid,
+  goal text NOT NULL CHECK (goal IN ('baseline', 'retry_current_round', 'next_round', 'debrief')),
+  mode text NOT NULL CHECK (mode IN ('assisted', 'strict', 'debrief_replay')),
   interviewer_persona text NOT NULL CHECK (interviewer_persona IN ('generalist', 'hr', 'hiring_manager', 'technical_manager', 'peer')),
   difficulty text NOT NULL DEFAULT 'standard' CHECK (difficulty IN ('easy', 'standard', 'stretch')),
   language text NOT NULL DEFAULT 'en',
@@ -258,6 +258,9 @@ CREATE TABLE feedback_reports (
 CREATE UNIQUE INDEX idx_feedback_reports_session_unique ON feedback_reports (session_id);
 CREATE INDEX idx_feedback_reports_target_job_created ON feedback_reports (target_job_id, created_at DESC);
 
+ALTER TABLE practice_plans
+  ADD CONSTRAINT fk_practice_plans_source_report FOREIGN KEY (source_report_id) REFERENCES feedback_reports(id) ON DELETE SET NULL;
+
 CREATE TABLE question_assessments (
   id uuid PRIMARY KEY,
   report_id uuid NOT NULL REFERENCES feedback_reports(id) ON DELETE CASCADE,
@@ -270,34 +273,13 @@ CREATE TABLE question_assessments (
   gaps jsonb NOT NULL DEFAULT '[]'::jsonb,
   recommended_framework text,
   dimension_results jsonb NOT NULL DEFAULT '{}'::jsonb,
-  written_to_mistake_book boolean NOT NULL DEFAULT false,
+  review_status text NOT NULL CHECK (review_status IN ('open', 'queued_for_retry', 'resolved')),
+  included_in_retry_plan boolean NOT NULL DEFAULT false,
   related_experience_card_ids uuid[] NOT NULL DEFAULT '{}'::uuid[],
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (report_id, turn_id)
 );
 CREATE INDEX idx_question_assessments_session_turn ON question_assessments (session_id, turn_id);
-
-CREATE TABLE mistake_entries (
-  id uuid PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  target_job_id uuid NOT NULL REFERENCES target_jobs(id) ON DELETE CASCADE,
-  source_session_id uuid REFERENCES practice_sessions(id) ON DELETE SET NULL,
-  source_report_id uuid REFERENCES feedback_reports(id) ON DELETE SET NULL,
-  source_debrief_id uuid,
-  competency_code text NOT NULL,
-  question_text text NOT NULL,
-  answer_summary text,
-  failure_reasons jsonb NOT NULL DEFAULT '[]'::jsonb,
-  recommended_framework text,
-  mapped_experience_card_ids uuid[] NOT NULL DEFAULT '{}'::uuid[],
-  status text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'improving', 'mastered')),
-  priority integer NOT NULL DEFAULT 50 CHECK (priority BETWEEN 1 AND 100),
-  mastered_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_mistake_entries_user_status_priority ON mistake_entries (user_id, status, priority DESC, updated_at DESC);
-CREATE INDEX idx_mistake_entries_target_job_status ON mistake_entries (target_job_id, status, updated_at DESC);
 
 CREATE TABLE resume_tailor_runs (
   id uuid PRIMARY KEY,
@@ -341,9 +323,6 @@ CREATE TABLE debriefs (
 );
 CREATE INDEX idx_debriefs_target_job_created ON debriefs (target_job_id, created_at DESC);
 
-ALTER TABLE mistake_entries
-  ADD CONSTRAINT fk_mistake_entries_source_debrief FOREIGN KEY (source_debrief_id) REFERENCES debriefs(id) ON DELETE SET NULL;
-
 CREATE TABLE source_records (
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES users(id) ON DELETE SET NULL,
@@ -364,7 +343,7 @@ CREATE INDEX idx_source_records_owner ON source_records (owner_type, owner_id, c
 CREATE TABLE retrieval_chunks (
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES users(id) ON DELETE SET NULL,
-  owner_type text NOT NULL CHECK (owner_type IN ('target_job', 'experience_card', 'mistake_entry', 'resume_asset', 'debrief')),
+  owner_type text NOT NULL CHECK (owner_type IN ('target_job', 'experience_card', 'resume_asset', 'debrief')),
   owner_id uuid NOT NULL,
   chunk_index integer NOT NULL DEFAULT 0,
   language text NOT NULL DEFAULT 'en',

@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.5
+    to: 1.6
 spec:
   defaultTarget: backend
   discovery:
@@ -24,6 +24,8 @@ spec:
       - outbox retry columns
       - ai task runs
       - privacy deletion matrix
+      - no mistake entries
+      - question issue count
       - enum source lint
   targets:
     backend:

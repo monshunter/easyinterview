@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-03
 
 ## 1 修订规则
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-03 | 1.9 | 对齐 product-scope v1.2：从 v1.0.0 freeze 删除独立 `Mistakes` / `Growth` endpoint、tag 与 schema，报告问题收敛为题目回顾 / 本轮复练字段，endpoint inventory 37→34、tag 14→12。 | 001-bootstrap Phase 8 / 002-fixtures-and-mock-source Phase 6 / 003-breaking-change-gate Phase 6 |
 | 2026-04-29 | 1.8 | 收口 B2 artifact remediation：`openapi/baseline/openapi-v1.0.0.yaml` 原地重新冻结到 37 endpoint / `DELETE /api/v1/me`，`make openapi-diff` 输出 baseline/current inventory 37/37 且 0 findings；未创建 `openapi-v1.0.1.yaml`。 | 003-breaking-change-gate Phase 5 |
 | 2026-04-29 | 1.8 | 收口 A/B spec 全面审查 remediation：v1.0.0 freeze endpoint inventory 从 36 增至 37，新增 `DELETE /api/v1/me -> 202 PrivacyRequestWithJob`；明确 P0 真实面试复现 / debrief 输出契约，感谢信与完整跟进建议保持 P1 optional；将 internal-only `email_dispatch` 排除在 B2 API-facing `JobType` 外。 | plan-review remediation |
 | 2026-04-29 | 1.7 | L2 remediation：`make openapi-diff` wrapper 补齐 `oneOf` / `allOf` / `anyOf` composition schema diff 的 breaking 检测，并把 privacy export `501→202` 白名单 history gate 默认基准改为 base branch merge-base；`Makefile` 新增 `HISTORY_REF=` 覆盖入口。 | 003-breaking-change-gate / plan-code-review --fix |

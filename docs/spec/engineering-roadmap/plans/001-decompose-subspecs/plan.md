@@ -1,8 +1,8 @@
 # Decompose Subspecs
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: active
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-03
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -87,12 +87,12 @@ A5 `ci-pipeline-baseline` 在本阶段只锁定本地手动质量门禁（`make 
 #### 4.1 spawn W2 child
 
 后端 5 份：C1 `backend-auth` / C2 `backend-upload` / C3 `backend-profile` / C8 `backend-async-runtime` / E1 `mock-contract-suite` 各自创建 spec + 完整 plan 链；E1 是把 B2 fixtures 转成可运行 mock server 的统一壳。
-前端 4 份：D1 `frontend-shell` / D2 `frontend-onboarding-and-target` / D3 `frontend-workspace-and-practice` / D4 `frontend-review-and-mistakes`；D1 必须先于 D2-D4 完成基础壳。
+前端 6 份：D1 `frontend-shell` / D2 `frontend-home-job-picks-and-parse` / D3 `frontend-workspace-and-practice` / D4 `frontend-report-dashboard` / D5 `frontend-resume-workshop` / D6 `frontend-debrief`；D1 必须先于 D2-D6 完成基础壳。
 横切 1 份：F2 `analytics-funnel`。
 
 #### 4.2 W2 collective gate
 
-E1 提供 14 tag 全 mock（按 B2 fixtures 自动生成）；前端 4 域跑通 P0 8 步 happy path（导入→工作台→练习→报告→错题→复练）全部基于 E1 mock；后端 5 域 mock-server plan 自验证；前后端 mock 同源（同一份 fixtures，禁止前端 hardcode）。
+E1 提供 14 tag 全 mock（按 B2 fixtures 自动生成）；前端 6 域跑通 P0 happy path（导入→规划→练习→报告→复练当前轮 / 下一轮→真实复盘，且简历绑定可用）全部基于 E1 mock；后端 5 域 mock-server plan 自验证；前后端 mock 同源（同一份 fixtures，禁止前端 hardcode）。
 
 ### Phase 5: Wave 3（核心业务域后端）
 
@@ -102,7 +102,7 @@ E1 提供 14 tag 全 mock（按 B2 fixtures 自动生成）；前端 4 域跑通
 
 #### 5.2 F3 接入真实 Model Profile
 
-`prompt-rubric-registry` 此时切到真实 Model Profile（由配置映射到真实 AI provider / gateway endpoint、provider、model），落地至少 50 题的离线评估集（覆盖行为题、动机题、追问、反问、不同语言）；F3 所有 child（C4/C5/C6/C7）通过 `prompt_version + rubric_version + model_profile` 引用。
+`prompt-rubric-registry` 此时切到真实 Model Profile（由配置映射到真实 AI provider / gateway endpoint、provider、model），落地至少 50 题的离线评估集（覆盖行为题、动机题、会话内追问、候选人反问建议、不同语言）；F3 所有 child（C4/C5/C6/C7）通过 `prompt_version + rubric_version + model_profile` 引用。
 
 #### 5.3 W3 collective gate
 
@@ -114,9 +114,9 @@ E1 提供 14 tag 全 mock（按 B2 fixtures 自动生成）；前端 4 域跑通
 
 E2 `e2e-scenarios-p0` 创建跨前后端的 P0 主漏斗 BDD；E4 `release-gate-and-rollout` 创建灰度开关 / 版本兼容 / 回滚 runbook / SLO 准入。
 
-#### 6.2 D2/D3/D4 切真后端
+#### 6.2 D2-D6 切真后端
 
-每份前端 child 的 `003-integration` plan 把 fetch 从 E1 mock 切到真后端（W3 跑通的服务）。F1 `observability-stack` 此时把指标接齐 5 个 dashboard；F2 `analytics-funnel` 完成漏斗对账。
+每份 P0 前端 child 的 `003-integration` plan 把 fetch 从 E1 mock 切到真后端（W3 跑通的服务）。F1 `observability-stack` 此时把指标接齐 5 个 dashboard；F2 `analytics-funnel` 完成漏斗对账。
 
 #### 6.3 W4 + W5 collective gate
 
@@ -130,7 +130,7 @@ E2 全场景通过；`04-metrics-observability.md` §15 最低上线门槛全勾
 
 #### 7.2 P1 / P2 child draft
 
-为 C10-C12（P1 后端 3 份）、D5-D6（P1 前端 2 份）、E3 `e2e-scenarios-p1`、F4 `privacy-and-audit-runtime` 创建 draft spec.md（只含 §1 §2 §3 §7，标 `状态: draft`）；为 C13/C14（P2）、D7（P2）也创建同等最小 draft spec.md，避免 P2 只停留在 INDEX 占位。
+为 C10 `backend-readiness-signals`、C11 `backend-retrieval`、C12 `backend-privacy`、E3 `e2e-scenarios-p1`、F4 `privacy-and-audit-runtime` 创建 draft spec.md（只含 §1 §2 §3 §7，标 `状态: draft`）；P1 前端增强不另建恢复旧模块的 child，后续只允许挂到 D5/D6 等已保留 P0 前端 child 的新 plan。为 C13/C14（P2）、D7 `frontend-voice-production`（P2）也创建同等最小 draft spec.md，避免 P2 只停留在 INDEX 占位。
 
 #### 7.3 交付复盘
 
@@ -150,7 +150,7 @@ E2 全场景通过；`04-metrics-observability.md` §15 最低上线门槛全勾
 |------|----------|
 | **B2 OpenAPI v1.0.0 freeze 后被频繁破坏性变更** | B2 plan 必须自带 breaking change linter；任何破坏性变更必须开 ADR 走 B2 spec 修订流程；P0 中后期默认只允许 additive |
 | **C5 `backend-practice` 与 C6 `backend-review` 边界模糊**（turn-light-review） | C5 plan 必须开一个 `turn-light-review` plan 专门讲清楚同步轻量观察 vs 异步完整报告的边界；如果 W3 末发现体量超阈值，把 lightweight-observer 拆为 `backend-review/006-lightweight-observer`，**禁止塞进 C5** |
-| **D3 体量过大**（5 模式 + followup-tree + drill + STAR editor 集中在一份 spec） | D3 内部 4 个 plan 拆分（workspace / practice-core / practice-modes / followup-and-star），每个 plan 单独 review、单独 PR；W2 优先完成 workspace + practice-core，practice-modes / followup-and-star 可滑到 W2 末或 W3 |
+| **D3 体量过大**（Mock Interview Plan + 完整 Interview Session + 文本 / 语音形式 + 辅助程度 + company intel 集中在一份 spec） | D3 内部 plan 拆分为 workspace / session-core / assistance-and-strict / company-intel，每个 plan 单独 review、单独 PR；W2 优先完成 workspace + session-core，语音生产化只保留折返点与 feature flag，真实 STT / 媒体留存归 D7 / C14 P2 |
 | **F3 `prompt-rubric-registry` 没有 baseline 时 W2 业务域偷偷 hardcode prompt** | W1 parent phase 必须先锁 `feature_key + version` 契约；W2 业务域 implementation 只能在 F3 child `001` 验证 baseline prompt / rubric 文件后引用 F3 prompt id，任何业务 spec/plan 不得 hardcode prompt 文本 |
 | **6 项 W0 待决策方案未签字就进入 W1** | Phase 1.1 设为 hard gate；任一 ADR 未签字时 W1 不得开始；具体由 Phase 2 收口的 `/plan-review` 强制执行 |
 | **自托管 PostHog 运维复杂度超过 P0 带宽** | ADR-Q3 锁定“不依赖第三方 Cloud”，但不锁已废弃的 K8s Helm chart；F2 / E4 必须先验证可运维 self-host path、备份、升级与漏斗对账，再允许 W4 release gate 通过；A2 普通本地栈只提供 no-op / file-backed dev mode |

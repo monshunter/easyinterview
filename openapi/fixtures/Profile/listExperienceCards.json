@@ -61,85 +61,34 @@
         "body": {
           "items": [
             {
-              "id": "01918fa0-9fa0-7134-8dbe-5b0f4fbed4de",
-              "title": "购物车/结账链路重写",
+              "id": "01918fa0-5455-7bbc-886c-f52e4b80ebee",
+              "title": "复杂表单平台性能治理",
               "companyName": "Acme",
-              "situation": "结账 LCP 3.2s；第二步流失约 8%；老的 class 组件栈；无 SSR。",
-              "task": "把结账链路从 3.2s 降到 1.5s 以内，同时降低第二步流失。",
-              "action": "提出 RSC + 选择性注水，两周搭出原型；用 feature flag 分 4 波灰度上线。",
-              "result": "LCP 3.2s → 1.4s；流失率 8% → 4.2%；营收季度 +180 万。",
+              "situation": "订单改价系统字段多、校验链路长，用户在高峰期频繁遇到卡顿。",
+              "task": "在不重写业务流程的前提下，把关键交互延迟降到可接受范围。",
+              "action": "拆分表单状态、延迟非关键校验、补齐性能埋点，并和后端约定批量校验接口。",
+              "result": "关键路径交互延迟下降 38%，客服反馈的卡顿工单两周内下降一半。",
               "skills": [
-                "performance",
-                "ownership",
-                "trade-offs"
+                "React",
+                "Performance",
+                "Observability"
               ],
               "language": "zh-CN",
               "createdAt": "2026-04-22T09:30:00Z",
               "updatedAt": "2026-04-28T12:00:00Z"
             },
             {
-              "id": "01918fa0-2edc-7fff-8442-677b0de71c51",
-              "title": "Design System 在 5 个产品的落地",
+              "id": "01918fa0-b8f3-73e0-842a-6347b8727cd4",
+              "title": "Design System 渐进式落地",
               "companyName": "Acme",
-              "situation": "5 个产品、4 套 UI 库、0 个共享 token。",
-              "task": "用 6 个月推动跨 5 个产品迁移到统一组件库。",
-              "action": "搭 tokens + 基础组件；挑一个试点团队；办 3 次推广会；提供结对迁移。",
-              "result": "6 个月内 4/5 产品迁到 v1；试点 PM 反馈新人上手快 ~50%。",
+              "situation": "多个业务线组件风格不一致，发布节奏互相阻塞。",
+              "task": "建立可复用组件和迁移节奏，避免一次性大规模重构。",
+              "action": "先沉淀 token 与表单组件，再用兼容层接入三个高频页面。",
+              "result": "新页面交付周期缩短 25%，设计走查返工次数明显减少。",
               "skills": [
-                "influence",
-                "cross-team",
-                "design-system"
-              ],
-              "language": "zh-CN",
-              "createdAt": "2026-04-22T09:30:00Z",
-              "updatedAt": "2026-04-28T12:00:00Z"
-            },
-            {
-              "id": "01918fa0-ba45-7c40-844f-885928e3c946",
-              "title": "与设计师的分歧（40 字段表单）",
-              "companyName": "Acme",
-              "situation": "设计想把 40 个运营字段放一屏；我担心认知负荷会拖垮效率。",
-              "task": "在不破坏关系的前提下用数据说服对方调整方案。",
-              "action": "跟 6 个真实操作员做影子观察，记录任务耗时和错误率，提出带智能默认的标签页布局。",
-              "result": "任务耗时 -42%；设计师看完数据认可方案，两周上线。",
-              "skills": [
-                "conflict-resolution",
-                "user-research",
-                "data-driven"
-              ],
-              "language": "zh-CN",
-              "createdAt": "2026-04-22T09:30:00Z",
-              "updatedAt": "2026-04-28T12:00:00Z"
-            },
-            {
-              "id": "01918fa0-5a6c-72cc-81dd-3cada34782f2",
-              "title": "结账 CTA 颜色的失败 A/B",
-              "companyName": "Lumen",
-              "situation": "以为把 CTA 从橙改绿能提升转化。",
-              "task": "用一次 A/B 实验验证假设。",
-              "action": "上线实验，跑两周拿到足够样本量。",
-              "result": "没有显著差异；学会先看先验、先讲机制，而不是凭感觉做 A/B。",
-              "skills": [
-                "failure-learning",
-                "ab-testing",
-                "humility"
-              ],
-              "language": "zh-CN",
-              "createdAt": "2026-04-22T09:30:00Z",
-              "updatedAt": "2026-04-28T12:00:00Z"
-            },
-            {
-              "id": "01918fa0-ecb6-7da7-8678-3443ac1f43c4",
-              "title": "带起 3 个前端新人",
-              "companyName": "Acme",
-              "situation": "团队从 4 人扩到 7 人；没有 onboarding 流程。",
-              "task": "把 3 个新人带到独立产出的水平。",
-              "action": "建立两周 onboarding checklist；每周 1v1 复盘；安排小型 owner 任务。",
-              "result": "3 名新人在 6 周内独立交付；后续 onboarding 时长缩短到 2 周以内。",
-              "skills": [
-                "mentorship",
-                "process-design",
-                "leadership"
+                "Design System",
+                "TypeScript",
+                "Collaboration"
               ],
               "language": "zh-CN",
               "createdAt": "2026-04-22T09:30:00Z",

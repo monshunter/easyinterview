@@ -138,16 +138,6 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** getGrowthOverview — get /growth/overview: Get cross-target growth overview */
-	async getGrowthOverview(opts?: RequestOptions): Promise<Types.GrowthOverview> {
-		return this.request<Types.GrowthOverview>(
-			"GET",
-			"/growth/overview",
-			undefined,
-			opts,
-		);
-	}
-
 	/** getJob — get /jobs/{jobId}: Poll the status of an async job */
 	async getJob(jobId: string, opts?: RequestOptions): Promise<Types.Job> {
 		return this.request<Types.Job>(
@@ -174,26 +164,6 @@ export class EasyInterviewClient {
 			"GET",
 			"/me",
 			undefined,
-			opts,
-		);
-	}
-
-	/** listMistakes — get /mistakes: List mistake notebook entries (cursor-paginated) */
-	async listMistakes(opts?: RequestOptions): Promise<Types.PaginatedMistakeEntry> {
-		return this.request<Types.PaginatedMistakeEntry>(
-			"GET",
-			"/mistakes",
-			undefined,
-			opts,
-		);
-	}
-
-	/** retestMistake — post /mistakes/{mistakeId}/retest: Create a retest practice plan from a mistake entry */
-	async retestMistake(mistakeId: string, body: Types.RetestMistakeRequest, opts?: RequestOptions): Promise<Types.PracticePlanContainer> {
-		return this.request<Types.PracticePlanContainer>(
-			"POST",
-			buildPath("/mistakes/{mistakeId}/retest", { mistakeId: mistakeId }),
-			body,
 			opts,
 		);
 	}
@@ -466,12 +436,9 @@ export const ALL_OPERATION_IDS = [
 	"logout",
 	"createDebrief",
 	"getDebrief",
-	"getGrowthOverview",
 	"getJob",
 	"deleteMe",
 	"getMe",
-	"listMistakes",
-	"retestMistake",
 	"createPracticePlan",
 	"getPracticePlan",
 	"startPracticeSession",

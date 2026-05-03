@@ -2,7 +2,7 @@
 """Tests for scripts/codegen/sync_fixtures_from_prototype.py.
 
 Covers Phase 2.2 contract:
-- Running the sync writes a `scenarios.prototype-baseline` to the 8 P0 P0
+- Running the sync writes a `scenarios.prototype-baseline` to the 6 P0
   closed-loop endpoints listed in plan 2.4.
 - Re-running is idempotent (`git diff --exit-code` clean).
 - After sync, `validate_fixtures.py` exits 0 (default + prototype-baseline
@@ -31,8 +31,6 @@ P0_BASELINE_OPS = (
     ("TargetJobs", "getTargetJob"),
     ("PracticeSessions", "getPracticeSession"),
     ("Reports", "getFeedbackReport"),
-    ("Mistakes", "listMistakes"),
-    ("Growth", "getGrowthOverview"),
 )
 
 

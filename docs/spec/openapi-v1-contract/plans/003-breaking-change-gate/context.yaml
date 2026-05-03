@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.8
+    to: 1.9
 spec:
   defaultTarget: contract
   discovery:
@@ -18,7 +18,7 @@ spec:
       - additive-only
       - v1-freeze
       - deleteMe
-      - 37 endpoints
+      - 34 endpoints
       - breaking-change-linter
       - baseline-snapshot
     keywords:

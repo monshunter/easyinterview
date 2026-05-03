@@ -19,7 +19,7 @@ var PrivacyMatrix = []PrivacyMatrixEntry{
 	{Tables: "file_objects,resume_assets", Disposition: "hard_delete_and_object_storage_delete"},
 	{Tables: "target_jobs,target_job_requirements,target_job_sources", Disposition: "cascade_or_hard_delete"},
 	{Tables: "practice_plans,practice_sessions,practice_session_events,practice_turns", Disposition: "cascade_or_hard_delete"},
-	{Tables: "question_assessments,feedback_reports,mistake_entries", Disposition: "hard_delete"},
+	{Tables: "question_assessments,feedback_reports", Disposition: "hard_delete"},
 	{Tables: "resume_tailor_runs,debriefs", Disposition: "hard_delete"},
 	{Tables: "source_records,retrieval_chunks", Disposition: "hard_delete"},
 	{Tables: "ai_task_runs", Disposition: "hard_delete_after_audit_summary"},

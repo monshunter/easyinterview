@@ -14,4 +14,4 @@
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
 | [002-codegen-pipeline](./002-codegen-pipeline/plan.md) | [plan](./002-codegen-pipeline/plan.md) / [checklist](./002-codegen-pipeline/checklist.md) / [context](./002-codegen-pipeline/context.yaml) | 1.1 | completed | 2026-04-30 |
-| [001-bootstrap](./001-bootstrap/plan.md) | [plan](./001-bootstrap/plan.md) / [checklist](./001-bootstrap/checklist.md) / [context](./001-bootstrap/context.yaml) | 1.2 | completed | 2026-04-27 |
+| [001-bootstrap](./001-bootstrap/plan.md) | [plan](./001-bootstrap/plan.md) / [checklist](./001-bootstrap/checklist.md) / [context](./001-bootstrap/context.yaml) | 1.3 | completed | 2026-05-03 |

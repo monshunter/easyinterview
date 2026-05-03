@@ -52,9 +52,15 @@ auth:
 func TestBuildRuntimeConfigAllowlistAndOptOut(t *testing.T) {
 	loader := newRuntimeLoader(t)
 	flags := stubFlags{snapshot: map[string]featureflag.FlagDecision{
-		"practice_hint_enabled":       {Enabled: true, Public: true},
-		"ai_fallback_model_enabled":   {Enabled: true, Public: false},
-		"mistake_book_export_enabled": {Enabled: false, Public: true, Variant: "v1"},
+		"practice_hint_enabled":            {Enabled: true, Public: true},
+		"report_evidence_v2_enabled":       {Enabled: true, Public: true},
+		"report_retry_plan_enabled":        {Enabled: false, Public: true, Variant: "v1"},
+		"readiness_signals_enabled":        {Enabled: true, Public: true},
+		"practice_assistance_mode_enabled": {Enabled: true, Public: true},
+		"ai_fallback_model_enabled":        {Enabled: true, Public: false},
+		"mistake_book_export_enabled":      {Enabled: true, Public: true},
+		"growth_dashboard_v1_enabled":      {Enabled: true, Public: true},
+		"mock_session_dual_track_enabled":  {Enabled: true, Public: true},
 	}}
 
 	rc := config.BuildRuntimeConfig(context.Background(), config.RuntimeConfigInput{
@@ -76,10 +82,29 @@ func TestBuildRuntimeConfigAllowlistAndOptOut(t *testing.T) {
 	if _, ok := rc.FeatureFlags["practice_hint_enabled"]; !ok {
 		t.Errorf("public flag missing")
 	}
+	for _, key := range []string{
+		"report_evidence_v2_enabled",
+		"report_retry_plan_enabled",
+		"readiness_signals_enabled",
+		"practice_assistance_mode_enabled",
+	} {
+		if _, ok := rc.FeatureFlags[key]; !ok {
+			t.Errorf("current public flag %s missing", key)
+		}
+	}
 	if _, ok := rc.FeatureFlags["ai_fallback_model_enabled"]; ok {
 		t.Errorf("operator-only flag must be filtered")
 	}
-	if rc.FeatureFlags["mistake_book_export_enabled"].Variant != "v1" {
+	for _, key := range []string{
+		"mistake_book_export_enabled",
+		"growth_dashboard_v1_enabled",
+		"mock_session_dual_track_enabled",
+	} {
+		if _, ok := rc.FeatureFlags[key]; ok {
+			t.Errorf("removed product-scope flag %s must be filtered", key)
+		}
+	}
+	if rc.FeatureFlags["report_retry_plan_enabled"].Variant != "v1" {
 		t.Errorf("variant pass-through broken")
 	}
 

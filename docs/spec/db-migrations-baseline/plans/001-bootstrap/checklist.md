@@ -1,8 +1,8 @@
 # DB Migrations Baseline Bootstrap Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-04-30
+> **更新日期**: 2026-05-03
 
 **关联计划**: [plan](./plan.md)
 
@@ -41,3 +41,12 @@
 - [x] 4.5 privacy deletion dry-run 输出覆盖 spec §3.1.2 所有表组，且 `prompt_versions` / `rubric_versions` / migration metadata 被 retain。验证: dry-run fixture/probe 输出覆盖所有 disposition，retain 表组无用户内容删除动作，结果记录到工作日志
 - [x] 4.6 本 plan checklist 全部勾选后，将 Header 切 completed，运行 sync-doc-index check/fix，并在 work journal 记录 migrate-check、SQL probes、lint probes 与 downstream handoff。验证: `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` zero drift，work journal 有本 plan commit 记录与下游 handoff
 - [x] 4.7 L2 remediation: prod down 防呆必须在 `DATABASE_URL` 校验前触发，确保无 DB URL 时仍输出 `MIGRATE_DOWN_FORCE=1` 且不执行 down SQL。验证: focused CLI test 与 `APP_ENV=prod make migrate-down` smoke 都先命中 prod guard
+
+## Phase 5: product-scope v1.2 schema remediation
+
+- [x] 5.1 Red: migration inventory / contract tests 期望排除 `mistake_entries`、旧字段和旧 practice enum 后，当前 SQL / probes 必须失败
+  - 2026-05-03: `python3 scripts/lint/migrations_lint.py --repo-root .` exit 1，报 `mistake_entries.status` 的 `MistakeStatus` source 缺失，以及 `practice_plans.goal` / `mode` 与 B1 新枚举漂移；更新 SQL contract expectation 后，`cd backend && go test ./internal/migrations -run TestBaselineMigrationDefinesAllOwnedTables -count=1` exit 1，失败于仍创建 removed `mistake_entries` table。
+- [x] 5.2 Green: 修订 baseline migration、enum source、privacy matrix 和 SQL contract tests，删除独立 `mistake_entries`，字段改为 `open_question_issue_count` / `included_in_retry_plan` / `review_status`
+  - 2026-05-03: 删除 baseline migration 中 `mistake_entries` DDL / indexes / FK / down drop；`target_jobs.open_mistake_count` 改 `open_question_issue_count`；`question_assessments.written_to_mistake_book` 改 `review_status` + `included_in_retry_plan`；`practice_plans` enum 更新为 B1 当前 `PracticeGoal` / `PracticeMode`；`enum-sources.yaml` 和 privacy matrix 同步。
+- [x] 5.3 Verify: `make migrate-check` 或 migration lint / SQL contract tests 通过；repo 搜索确认实现侧无 `mistake_entries`、`open_mistake_count`、`written_to_mistake_book`、旧 practice mode / goal check 值
+  - 2026-05-03: `python3 scripts/lint/migrations_lint.py --repo-root .` exit 0；`python3 -m pytest scripts/lint/migrations_lint_test.py -q` 8 passed；`cd backend && go test ./internal/migrations ./cmd/migrate -count=1` pass；`make privacy-delete-dry-run` 输出不含 removed `mistake_entries`；实现侧搜索仅剩 SQL contract 负向断言，未在 migration/runtime 实现中命中旧字段或旧 enum 值。完整 `make migrate-check` 需真实 DB wrapper，本阶段按 checklist 采用 migration lint / SQL contract tests 验证。

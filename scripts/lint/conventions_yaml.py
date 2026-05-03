@@ -40,6 +40,12 @@ EXPECTED_TOP_LEVEL = {
 EXPECTED_STRUCTURES = {"PageInfo", "ApiError"}
 EXPECTED_ENUM_SECTIONS = {f"5.{i}" for i in range(1, 14)}  # §5.1 .. §5.13
 EXPECTED_JOB_STATUSES = {"queued", "running", "succeeded", "failed", "cancelled", "dead"}
+EXPECTED_PRODUCT_ENUM_VALUES = {
+    "PracticeMode": ["assisted", "strict", "debrief_replay"],
+    "PracticeGoal": ["baseline", "retry_current_round", "next_round", "debrief"],
+    "QuestionReviewStatus": ["open", "queued_for_retry", "resolved"],
+}
+REMOVED_ENUM_NAMES = {"MistakeStatus"}
 REQUIRED_ERROR_CODES = {
     "AUTH_UNAUTHORIZED",
     "TARGET_IMPORT_FAILED",
@@ -137,6 +143,10 @@ def validate(data: dict[str, Any]) -> list[str]:
         if name in seen_names:
             errors.append(f"duplicate enum name: {name!r}")
         seen_names.add(name)
+        if name in REMOVED_ENUM_NAMES:
+            errors.append(
+                f"enum {name!r} was removed by product-scope v1.2; use QuestionReviewStatus for report-internal question review"
+            )
 
         section = enum.get("sourceSection", "")
         if section not in EXPECTED_ENUM_SECTIONS:
@@ -150,11 +160,22 @@ def validate(data: dict[str, Any]) -> list[str]:
         values = enum.get("values") or []
         if not values:
             errors.append(f"enum {name!r} must have at least one value")
+        expected_values = EXPECTED_PRODUCT_ENUM_VALUES.get(name)
+        if expected_values is not None and values != expected_values:
+            errors.append(
+                f"enum {name!r} must equal product-scope v1.2 values {expected_values}, got {values}"
+            )
         for value in values:
             if not ENUM_VALUE_RE.match(value):
                 errors.append(
                     f"enum {name!r} value must be lower_snake_case, got {value!r}"
                 )
+
+    missing_product_enums = set(EXPECTED_PRODUCT_ENUM_VALUES) - seen_names
+    if missing_product_enums:
+        errors.append(
+            f"missing product-scope v1.2 enum(s): {sorted(missing_product_enums)}"
+        )
 
     missing_sections = EXPECTED_ENUM_SECTIONS - seen_sections
     if missing_sections:

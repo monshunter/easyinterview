@@ -18,10 +18,11 @@ governance violation — it bypasses the audit trail and produces silent
 incompatibility for downstream consumers (Go DTOs, TS client, Prism mock,
 docs site).
 
-Current `openapi-v1.0.0.yaml` inventory: 37 operations across 14 tags,
-including `DELETE /api/v1/me` (`operationId=deleteMe`). The v1.8 remediation
-corrected the existing v1.0.0 freeze snapshot in place; it did not create
-`openapi-v1.0.1.yaml`.
+Current `openapi-v1.0.0.yaml` inventory: 34 operations across 12 tags,
+including `DELETE /api/v1/me` (`operationId=deleteMe`) and excluding the
+discarded independent Mistakes / Growth endpoints. The product-scope v1.2
+remediation corrected the existing v1.0.0 freeze snapshot in place; it did not
+create `openapi-v1.0.1.yaml`.
 
 If a breaking change is genuinely required, follow [the SemVer upgrade
 flow](#semver-upgrade-flow) below; never modify an existing baseline file.

@@ -6,8 +6,8 @@ import scripts.lint.openapi_inventory as inventory
 
 
 class OpenAPIInventoryContractTest(unittest.TestCase):
-    def test_v18_inventory_includes_delete_me(self) -> None:
-        self.assertEqual(37, len(inventory.EXPECTED_OPERATIONS))
+    def test_product_scope_v12_inventory_includes_delete_me(self) -> None:
+        self.assertEqual(34, len(inventory.EXPECTED_OPERATIONS))
         self.assertIn(("Auth", "delete", "/me", "deleteMe"), inventory.EXPECTED_OPERATIONS)
         self.assertIn(("delete", "/me"), inventory.IK_REQUIRED)
 

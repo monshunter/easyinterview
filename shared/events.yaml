@@ -153,7 +153,7 @@ events:
       sessionId: { type: uuidv7, source: spec:3.1.4 }
       targetJobId: { type: uuidv7, source: spec:3.1.4 }
       preparednessLevel: { type: $ref:b1.ReadinessTier, source: spec:3.1.4 }
-      mistakeCount: { type: int, source: spec:3.1.4 }
+      questionIssueCount: { type: int, source: spec:3.1.4 }
       promptVersion: { type: string, source: spec:3.1.4 }
       rubricVersion: { type: string, source: spec:3.1.4 }
       modelId: { type: string, source: spec:3.1.4 }
@@ -170,30 +170,6 @@ events:
       retryable: { type: bool, source: spec:3.1.4 }
     optionalPayload: {}
     piiBoundary: No provider response, prompt, or answer text.
-  - name: mistake.created
-    version: 1
-    producer: [worker, review]
-    aggregateType: mistake_entry
-    requiredPayload:
-      mistakeId: { type: uuidv7, source: spec:3.1.4 }
-      targetJobId: { type: uuidv7, source: spec:3.1.4 }
-      sourceSessionId: { type: uuidv7, source: spec:3.1.4 }
-      competencyCode: { type: string, source: spec:3.1.4 }
-      status: { type: $ref:b1.MistakeStatus, source: spec:3.1.4 }
-      priority: { type: int, source: spec:3.1.4 }
-    optionalPayload: {}
-    piiBoundary: No evidence quote or answer snippet.
-  - name: mistake.status.changed
-    version: 1
-    producer: review
-    aggregateType: mistake_entry
-    requiredPayload:
-      mistakeId: { type: uuidv7, source: spec:3.1.4 }
-      fromStatus: { type: $ref:b1.MistakeStatus, source: spec:3.1.4 }
-      toStatus: { type: $ref:b1.MistakeStatus, source: spec:3.1.4 }
-      targetJobId: { type: uuidv7, source: spec:3.1.4 }
-    optionalPayload: {}
-    piiBoundary: IDs and status only.
   - name: resume.parse.completed
     version: 1
     producer: worker
@@ -235,7 +211,7 @@ events:
       debriefId: { type: uuidv7, source: spec:3.1.4 }
       targetJobId: { type: uuidv7, source: spec:3.1.4 }
       riskItemCount: { type: int, source: spec:3.1.4 }
-      generatedMistakeCount: { type: int, source: spec:3.1.4 }
+      practiceFocusCount: { type: int, source: spec:3.1.4 }
     optionalPayload: {}
     piiBoundary: Counts only; no risk item prose.
   - name: source.refreshed

@@ -36,6 +36,13 @@ fail-fast 并打印缺失 key 名（spec C-2）。
 | `feature-flags.yaml` | `FileFlagProvider` 本地真理源；6 项 P0 baseline flag；显式标 `public: true|false` |
 | `ai-profiles/` | A3 Model Profile YAML（A4 仅锁路径，不锁内容） |
 
+当前 P0 baseline flag 固定为 `practice_hint_enabled`、
+`report_evidence_v2_enabled`、`report_retry_plan_enabled`、
+`readiness_signals_enabled`、`ai_fallback_model_enabled`、
+`practice_assistance_mode_enabled`。`runtime-config` 仅按此清单投影公开
+flag；历史 Mistake Book、Growth Dashboard 与双轨 mock session flag 已随
+product-scope v1.2 移除，不再作为配置能力保留。
+
 `*.secret.yaml` / `*.secret.json` / `local.*.yaml` / `feature-flags.local.yaml`
 默认进 `.gitignore`（spec §4.2 / D-6）。
 

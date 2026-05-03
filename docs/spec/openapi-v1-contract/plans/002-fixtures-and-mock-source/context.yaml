@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.8
+    to: 1.9
 spec:
   defaultTarget: contract
   discovery:
@@ -21,6 +21,7 @@ spec:
     keywords:
       - fixtures
       - deleteMe fixture
+      - 34 operations
       - default scenario
       - prototype-baseline
       - data.jsx mapping

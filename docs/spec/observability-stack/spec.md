@@ -1,8 +1,8 @@
 # Observability Stack Spec
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-04-27
+> **更新日期**: 2026-05-03
 
 ## 1 背景与目标
 
@@ -106,7 +106,7 @@
 
 - 任何新增 metric 必须先在本 spec §3.1.1 中登记（spec 修订递增版本）；A5 lint 拦截未登记的 metric 名。
 - 任何 metric label 必须落在 §3.1.1 / D-3 allowed labels 中；新增 label 必须 spec 修订（理由：高基数防御）。
-- 业务域 metric 命名必须 `<domain>_<noun>_<unit_or_total>` 形式，例：`practice_session_duration_seconds`、`mistake_entries_created_total`。
+- 业务域 metric 命名必须 `<domain>_<noun>_<unit_or_total>` 形式，例：`practice_session_duration_seconds`、`feedback_reports_generated_total`。
 
 ### 4.2 logger 约束
 

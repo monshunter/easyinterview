@@ -27,6 +27,11 @@ FIXTURE_PARTS = {"__fixtures__", "fixtures", "testdata", "generated"}
 TEST_FILE_SUFFIXES = ("_test.go", ".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx")
 GO_EVENT_CONST_RE = re.compile(r"\b(EventName[A-Za-z0-9_]*)\s+(?:EventName\s*)?=")
 TS_EVENT_CONST_RE = re.compile(r"\b(EVENT_NAME_[A-Z0-9_]*)\s*=")
+REMOVED_EVENT_NAMES = {"mistake.created", "mistake.status.changed"}
+REMOVED_PAYLOAD_FIELDS = {
+    ("report.generated", "mistakeCount"),
+    ("debrief.completed", "generatedMistakeCount"),
+}
 
 
 def _by_event_name(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -161,6 +166,24 @@ def validate_jobs_contract_shape(jobs: dict[str, Any]) -> list[str]:
     return errors
 
 
+def validate_product_scope_removals(events: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for event in events.get("events") or []:
+        if not isinstance(event, dict):
+            continue
+        name = event.get("name")
+        if name in REMOVED_EVENT_NAMES:
+            errors.append(f"{name}: removed by product-scope v1.2; do not restore independent mistake events")
+        payload = event.get("requiredPayload") or {}
+        for removed_event, removed_field in REMOVED_PAYLOAD_FIELDS:
+            if name == removed_event and removed_field in payload:
+                errors.append(
+                    f"{name}.{removed_field}: removed by product-scope v1.2; use "
+                    f"{'questionIssueCount' if name == 'report.generated' else 'practiceFocusCount'}"
+                )
+    return errors
+
+
 def scan_source_literals(root: Path, events: dict[str, Any], jobs: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     forbidden = _forbidden_literals(events, jobs)
@@ -200,7 +223,7 @@ def validate_generated_contracts(root: Path, events: dict[str, Any], jobs: dict[
             missing = sorted(set(expected_events) - set(generated))
             extra = sorted(set(generated) - set(expected_events))
             errors.append(
-                f"{path.relative_to(root)}: generated event names must match 18 shared/events.yaml entries; "
+                f"{path.relative_to(root)}: generated event names must match 16 shared/events.yaml entries; "
                 f"missing={missing!r} extra={extra!r}"
             )
 
@@ -330,6 +353,7 @@ def main() -> int:
 
     errors = compare_events_baseline(current_events, baseline_events)
     errors.extend(compare_jobs_baseline(current_jobs, baseline_jobs))
+    errors.extend(validate_product_scope_removals(current_events))
     errors.extend(validate_jobs_contract_shape(current_jobs))
     errors.extend(validate_generated_contracts(root, current_events, current_jobs))
     errors.extend(scan_source_literals(root, current_events, current_jobs))

@@ -66,8 +66,8 @@ type DimensionStatus = sharedtypes.DimensionStatus
 // Confidence aliases the B1-owned type.
 type Confidence = sharedtypes.Confidence
 
-// MistakeStatus aliases the B1-owned type.
-type MistakeStatus = sharedtypes.MistakeStatus
+// QuestionReviewStatus aliases the B1-owned type.
+type QuestionReviewStatus = sharedtypes.QuestionReviewStatus
 
 // DebriefStatus aliases the B1-owned type.
 type DebriefStatus = sharedtypes.DebriefStatus
@@ -359,22 +359,22 @@ type TargetJobFitSummary struct {
 }
 
 type TargetJob struct {
-	AnalysisStatus   TargetJobParseStatus   `json:"analysisStatus"`
-	CompanyName      string                 `json:"companyName"`
-	CreatedAt        string                 `json:"createdAt"`
-	FitSummary       *TargetJobFitSummary   `json:"fitSummary,omitempty"`
-	Id               string                 `json:"id"`
-	LatestReportId   *string                `json:"latestReportId,omitempty"`
-	LocationText     *string                `json:"locationText,omitempty"`
-	OpenMistakeCount int32                  `json:"openMistakeCount"`
-	Requirements     []TargetJobRequirement `json:"requirements"`
-	SourceType       string                 `json:"sourceType"`
-	SourceUrl        *string                `json:"sourceUrl,omitempty"`
-	Status           TargetJobStatus        `json:"status"`
-	Summary          *TargetJobSummary      `json:"summary,omitempty"`
-	TargetLanguage   string                 `json:"targetLanguage"`
-	Title            string                 `json:"title"`
-	UpdatedAt        string                 `json:"updatedAt"`
+	AnalysisStatus         TargetJobParseStatus   `json:"analysisStatus"`
+	CompanyName            string                 `json:"companyName"`
+	CreatedAt              string                 `json:"createdAt"`
+	FitSummary             *TargetJobFitSummary   `json:"fitSummary,omitempty"`
+	Id                     string                 `json:"id"`
+	LatestReportId         *string                `json:"latestReportId,omitempty"`
+	LocationText           *string                `json:"locationText,omitempty"`
+	OpenQuestionIssueCount int32                  `json:"openQuestionIssueCount"`
+	Requirements           []TargetJobRequirement `json:"requirements"`
+	SourceType             string                 `json:"sourceType"`
+	SourceUrl              *string                `json:"sourceUrl,omitempty"`
+	Status                 TargetJobStatus        `json:"status"`
+	Summary                *TargetJobSummary      `json:"summary,omitempty"`
+	TargetLanguage         string                 `json:"targetLanguage"`
+	Title                  string                 `json:"title"`
+	UpdatedAt              string                 `json:"updatedAt"`
 }
 
 type UpdateTargetJobRequest struct {
@@ -498,10 +498,11 @@ type ReportNextAction struct {
 }
 
 type QuestionAssessment struct {
-	DimensionResults     map[string]any `json:"dimensionResults"`
-	QuestionIntent       string         `json:"questionIntent"`
-	TurnId               string         `json:"turnId"`
-	WrittenToMistakeBook bool           `json:"writtenToMistakeBook"`
+	DimensionResults    map[string]any       `json:"dimensionResults"`
+	IncludedInRetryPlan bool                 `json:"includedInRetryPlan"`
+	QuestionIntent      string               `json:"questionIntent"`
+	ReviewStatus        QuestionReviewStatus `json:"reviewStatus"`
+	TurnId              string               `json:"turnId"`
 }
 
 type FeedbackReport struct {
@@ -509,11 +510,11 @@ type FeedbackReport struct {
 	Highlights          []ReportHighlight     `json:"highlights,omitempty"`
 	Id                  string                `json:"id"`
 	Issues              []ReportIssue         `json:"issues,omitempty"`
-	MistakeIds          []string              `json:"mistakeIds,omitempty"`
 	NextActions         []ReportNextAction    `json:"nextActions,omitempty"`
 	PreparednessLevel   *ReadinessTier        `json:"preparednessLevel,omitempty"`
 	Provenance          *GenerationProvenance `json:"provenance,omitempty"`
 	QuestionAssessments []QuestionAssessment  `json:"questionAssessments,omitempty"`
+	RetryFocusTurnIds   []string              `json:"retryFocusTurnIds,omitempty"`
 	SessionId           string                `json:"sessionId"`
 	Status              ReportStatus          `json:"status"`
 	TargetJobId         string                `json:"targetJobId"`
@@ -523,38 +524,6 @@ type FeedbackReport struct {
 type PaginatedFeedbackReport struct {
 	Items    []FeedbackReport `json:"items"`
 	PageInfo PageInfo         `json:"pageInfo"`
-}
-
-type MistakeEntry struct {
-	AnswerSummary        string                `json:"answerSummary"`
-	CompetencyCode       string                `json:"competencyCode"`
-	CreatedAt            string                `json:"createdAt"`
-	FailureReasons       []string              `json:"failureReasons"`
-	Id                   string                `json:"id"`
-	Priority             int32                 `json:"priority"`
-	Provenance           *GenerationProvenance `json:"provenance,omitempty"`
-	QuestionText         string                `json:"questionText"`
-	RecommendedFramework string                `json:"recommendedFramework"`
-	SourceDebriefId      *string               `json:"sourceDebriefId,omitempty"`
-	SourceSessionId      *string               `json:"sourceSessionId,omitempty"`
-	Status               MistakeStatus         `json:"status"`
-	TargetJobId          string                `json:"targetJobId"`
-	UpdatedAt            string                `json:"updatedAt"`
-}
-
-type PaginatedMistakeEntry struct {
-	Items    []MistakeEntry `json:"items"`
-	PageInfo PageInfo       `json:"pageInfo"`
-}
-
-type RetestMistakeRequest struct {
-	Language          string       `json:"language"`
-	Mode              PracticeMode `json:"mode"`
-	TimeBudgetMinutes *int32       `json:"timeBudgetMinutes,omitempty"`
-}
-
-type PracticePlanContainer struct {
-	Plan PracticePlan `json:"plan"`
 }
 
 type RequestResumeTailorRequest struct {
@@ -641,26 +610,6 @@ type Debrief struct {
 type DebriefWithJob struct {
 	DebriefId string `json:"debriefId"`
 	Job       Job    `json:"job"`
-}
-
-type GrowthOverviewSummary struct {
-	DebriefCount              int32 `json:"debriefCount"`
-	MistakesMastered          int32 `json:"mistakesMastered"`
-	MistakesOpened            int32 `json:"mistakesOpened"`
-	PracticeSessionsCompleted int32 `json:"practiceSessionsCompleted"`
-	ReportsReady              int32 `json:"reportsReady"`
-}
-
-type GrowthPreparednessTrendPoint struct {
-	Date  string        `json:"date"`
-	Level ReadinessTier `json:"level"`
-}
-
-type GrowthOverview struct {
-	DimensionTrend    map[string]any                 `json:"dimensionTrend"`
-	PreparednessTrend []GrowthPreparednessTrendPoint `json:"preparednessTrend"`
-	Summary           GrowthOverviewSummary          `json:"summary"`
-	Window            string                         `json:"window"`
 }
 
 type Job struct {

@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.4
+    to: 1.5
 spec:
   defaultTarget: backend
   discovery:
@@ -19,8 +19,9 @@ spec:
       - outbox-contract
     keywords:
       - event envelope
-      - 18 events
+      - 16 events
       - dot case event name
+      - question issue count
       - canonical jobtype
       - asynq dotted task
       - api facing jobtype subset

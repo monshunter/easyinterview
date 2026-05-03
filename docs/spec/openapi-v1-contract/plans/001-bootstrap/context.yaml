@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.8
+    to: 1.9
 spec:
   defaultTarget: contract
   discovery:
@@ -21,8 +21,8 @@ spec:
     keywords:
       - openapi 3.1
       - openapi.yaml
-      - 14 tags
-      - 37 endpoints
+      - 12 tags
+      - 34 endpoints
       - deleteMe
       - api/v1 prefix
       - codegen

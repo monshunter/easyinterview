@@ -1,15 +1,15 @@
 # ADR-Q6 · AI 网关与模型路由
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: accepted
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-03
 
 ## 1 背景
 
 `easyinterview` 全链路依赖 LLM / embedding / STT 三类外部 AI 能力，覆盖：
 
 - 同步：JD 解析提示词、模拟面试首题与追问（`practice` 域）
-- 异步：报告生成（`review` 域）、简历定制（`resume` 域）、错题/复练物化、debrief 生成、retrieval 召回
+- 异步：报告生成（`review` 域）、简历定制（`resume` 域）、报告题目回顾 / 本轮复练上下文物化、debrief 生成、retrieval 召回
 - P2：voice STT、source intel
 
 `easyinterview-tech-docs/01-technical-architecture.md` §2 把「AI Adapter Layer」标记为「模型供应商抽象、重试、fallback、成本记录」，§5 把 `ai` 模块拆为 `prompt / rubric registry + provider adapters + 调用记录`，§7 已规划 `ai_fallback_model_enabled` 等 feature flag；`04-metrics-observability.md` §「ai_*」指标与 §「fallback rate」dashboard 早已锁定。`engineering-roadmap/spec.md` §3.2 Q-6 已确认总体方向：**应用内 `AIClient` + Model Profile，生产经外部 AI Gateway**；本 ADR 把 W0 hard gate 落到具体边界。
@@ -139,5 +139,6 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-03 | 1.3 | 对齐 product-scope v1.1：review 域 AI 物化只服务报告题目回顾和本轮复练上下文，不恢复独立错题本 / Drill。 |
 | 2026-04-29 | 1.2 | 收口 A/B spec 全面审查 remediation：明确 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 是 AIClient 的 OpenAI-compatible 连接参数，可指真实 LLM provider 或生产 gateway；fallback 由连接 endpoint / gateway route 承担，A3 client 不自行切换模型；B1 只提供共享字段/常量，A3 owns runtime。 |
 | 2026-04-27 | 1.1 | 明确 stub 只用于单元测试 / 离线 contract 测试；docker compose 与 Kind 本地部署必须使用真实 AI provider 提供的 OpenAI-compatible LLM 服务，不默认降级到 stub，也不要求本地部署 AI gateway 组件。 |

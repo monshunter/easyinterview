@@ -1,8 +1,8 @@
 # Shared Conventions Codified Bootstrap Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-04-27
+> **更新日期**: 2026-05-03
 
 **关联计划**: [plan](./plan.md)
 
@@ -34,3 +34,9 @@
 - [x] 4.4 确认 `docs/spec/INDEX.md` 中 `shared-conventions-codified` 行为真实链接 + 真实状态；不改写已经完成的 `engineering-roadmap/001-decompose-subspecs` Phase 2 spawn 项；将 generator / Go test / TS test 输出贴入工作日志
 - [x] 4.5 L2 remediation: 仓库根级 `go test ./backend/internal/shared/...` 与 `go vet ./backend/...` 必须真实通过，不依赖手动切换到 `backend/`
 - [x] 4.6 文档一致性修订：对齐 A5 单人开发阶段决策，B1 只要求本地 lint/codegen 质量门禁，远端 CI / PR required check / CI drift detection 不作为当前 P0 前置
+
+## Phase 5: product-scope v1.2 enum remediation
+
+- [x] 5.1 Red: 调整 conventions drift / parity 期望后，旧 `PracticeMode` / `PracticeGoal.fix_mistake` / `MistakeStatus` 仍存在时必须失败（2026-05-03：`make lint-conventions` 失败于旧 `PracticeMode` / `PracticeGoal`、移除的 `MistakeStatus` 与缺失 `QuestionReviewStatus`）
+- [x] 5.2 Green: 更新 `shared/conventions.yaml` 并运行 `make codegen-conventions`，生成 `PracticeMode=assisted|strict|debrief_replay`、`PracticeGoal=baseline|retry_current_round|next_round|debrief`、`QuestionReviewStatus=open|queued_for_retry|resolved`
+- [x] 5.3 Verify: `make lint-conventions`、Go / TS parity tests 通过；repo 搜索确认实现侧无旧模式枚举值、`fix_mistake` 或 `MistakeStatus` generated type（2026-05-03：`make lint-conventions`、`cd backend && go test ./internal/shared/types -count=1`、`pnpm --dir frontend test src/lib/conventions/conventions-parity.test.ts src/lib/conventions/enums.test.ts` 通过；剩余旧词命中来自待处理 B2/B3/B4/A4 remediation）

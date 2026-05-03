@@ -42,19 +42,15 @@ tags:
 - name: TargetJobs
   description: JD import, target-job workspace state, and per-target metadata.
 - name: PracticePlans
-  description: Practice plans created from a target job or mistake retest.
+  description: Practice plans created from target-job rounds, report retry plans, or debrief replay.
 - name: PracticeSessions
   description: Mock-interview sessions, session events, and session completion.
 - name: Reports
   description: Evidence-based feedback reports.
-- name: Mistakes
-  description: Mistake notebook entries and retest plans.
 - name: ResumeTailor
   description: Resume tailoring runs (per-target customised resumes).
 - name: Debriefs
   description: Real-interview debrief intake and follow-up.
-- name: Growth
-  description: Cross-session readiness trend and growth overview.
 - name: Jobs
   description: Async job status polling for `202 Accepted` workflows.
 - name: Privacy
@@ -129,16 +125,16 @@ paths:
                 default:
                   summary: Default fixture for deleteMe
                   value:
-                    privacyRequestId: 01918fa0-0000-7000-8000-00000000c100
+                    privacyRequestId: 01918fa0-0000-7000-8000-00000000c200
                     job:
                       id: 01918fa0-0000-7000-8000-00000000b600
                       jobType: privacy_delete
                       status: queued
                       resourceType: privacy_request
-                      resourceId: 01918fa0-0000-7000-8000-00000000c100
+                      resourceId: 01918fa0-0000-7000-8000-00000000c200
                       errorCode: null
-                      createdAt: '2026-04-29T14:34:00Z'
-                      updatedAt: '2026-04-29T14:34:00Z'
+                      createdAt: '2026-04-28T13:45:12Z'
+                      updatedAt: '2026-04-28T13:45:12Z'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /auth/email/start:
@@ -750,7 +746,7 @@ paths:
                         - Cross-team RFC ownership
                         interviewHypotheses:
                         - Will probe scaling design systems across 10+ teams
-                        - Likely STAR drilling on observability for FE infra
+                        - Likely STAR follow-up on observability for FE infra
                         provenance:
                           promptVersion: target_job_summary.v3
                           rubricVersion: not_applicable
@@ -787,7 +783,7 @@ paths:
                           featureFlag: fit_summary_v2
                           dataSourceVersion: target_job.v17
                       latestReportId: 01918fa0-0000-7000-8000-000000007000
-                      openMistakeCount: 2
+                      openQuestionIssueCount: 2
                       createdAt: '2026-04-22T09:30:00Z'
                       updatedAt: '2026-04-28T12:00:00Z'
                     - id: 01918fa0-0000-7000-8000-000000002100
@@ -803,7 +799,7 @@ paths:
                       requirements: []
                       fitSummary: null
                       latestReportId: null
-                      openMistakeCount: 0
+                      openQuestionIssueCount: 0
                       createdAt: '2026-04-22T09:30:00Z'
                       updatedAt: '2026-04-28T12:00:00Z'
                     pageInfo:
@@ -859,7 +855,7 @@ paths:
                       - Cross-team RFC ownership
                       interviewHypotheses:
                       - Will probe scaling design systems across 10+ teams
-                      - Likely STAR drilling on observability for FE infra
+                      - Likely STAR follow-up on observability for FE infra
                       provenance:
                         promptVersion: target_job_summary.v3
                         rubricVersion: not_applicable
@@ -896,7 +892,7 @@ paths:
                         featureFlag: fit_summary_v2
                         dataSourceVersion: target_job.v17
                     latestReportId: 01918fa0-0000-7000-8000-000000007000
-                    openMistakeCount: 2
+                    openQuestionIssueCount: 2
                     createdAt: '2026-04-22T09:30:00Z'
                     updatedAt: '2026-04-28T12:00:00Z'
         default:
@@ -955,7 +951,7 @@ paths:
                       - Cross-team RFC ownership
                       interviewHypotheses:
                       - Will probe scaling design systems across 10+ teams
-                      - Likely STAR drilling on observability for FE infra
+                      - Likely STAR follow-up on observability for FE infra
                       provenance:
                         promptVersion: target_job_summary.v3
                         rubricVersion: not_applicable
@@ -992,7 +988,7 @@ paths:
                         featureFlag: fit_summary_v2
                         dataSourceVersion: target_job.v17
                     latestReportId: 01918fa0-0000-7000-8000-000000007000
-                    openMistakeCount: 2
+                    openQuestionIssueCount: 2
                     createdAt: '2026-04-22T09:30:00Z'
                     updatedAt: '2026-04-28T12:00:00Z'
         default:
@@ -1032,8 +1028,8 @@ paths:
                   value:
                     id: 01918fa0-0000-7000-8000-000000004000
                     targetJobId: 01918fa0-0000-7000-8000-000000002000
-                    goal: sprint
-                    mode: core_interview
+                    goal: baseline
+                    mode: assisted
                     interviewerPersona: hiring_manager
                     difficulty: standard
                     language: zh-CN
@@ -1076,8 +1072,8 @@ paths:
                   value:
                     id: 01918fa0-0000-7000-8000-000000004000
                     targetJobId: 01918fa0-0000-7000-8000-000000002000
-                    goal: sprint
-                    mode: core_interview
+                    goal: baseline
+                    mode: assisted
                     interviewerPersona: hiring_manager
                     difficulty: standard
                     language: zh-CN
@@ -1361,9 +1357,9 @@ paths:
                       evidence: 回答中没有量化迁移过程中的回归率或灰度策略。
                       confidence: medium
                     nextActions:
-                    - type: drill
-                      label: 再练 3 道关于灰度策略的追问。
-                    - type: review
+                    - type: retry_current_round
+                      label: 围绕灰度策略复练当前轮追问。
+                    - type: review_evidence
                       label: 回顾迁移期间的回归数据并准备一段量化叙事。
                     questionAssessments:
                     - turnId: 01918fa0-0000-7000-8000-000000006000
@@ -1378,9 +1374,10 @@ paths:
                         ownership:
                           status: strong
                           confidence: high
-                      writtenToMistakeBook: true
-                    mistakeIds:
-                    - 01918fa0-0000-7000-8000-000000008000
+                      reviewStatus: queued_for_retry
+                      includedInRetryPlan: true
+                    retryFocusTurnIds:
+                    - 01918fa0-0000-7000-8000-000000006000
                     provenance:
                       promptVersion: feedback_report.v3
                       rubricVersion: feedback_report.rubric.v2
@@ -1451,9 +1448,9 @@ paths:
                         evidence: 回答中没有量化迁移过程中的回归率或灰度策略。
                         confidence: medium
                       nextActions:
-                      - type: drill
-                        label: 再练 3 道关于灰度策略的追问。
-                      - type: review
+                      - type: retry_current_round
+                        label: 围绕灰度策略复练当前轮追问。
+                      - type: review_evidence
                         label: 回顾迁移期间的回归数据并准备一段量化叙事。
                       questionAssessments:
                       - turnId: 01918fa0-0000-7000-8000-000000006000
@@ -1468,9 +1465,10 @@ paths:
                           ownership:
                             status: strong
                             confidence: high
-                        writtenToMistakeBook: true
-                      mistakeIds:
-                      - 01918fa0-0000-7000-8000-000000008000
+                        reviewStatus: queued_for_retry
+                        includedInRetryPlan: true
+                      retryFocusTurnIds:
+                      - 01918fa0-0000-7000-8000-000000006000
                       provenance:
                         promptVersion: feedback_report.v3
                         rubricVersion: feedback_report.rubric.v2
@@ -1484,163 +1482,6 @@ paths:
                       nextCursor: null
                       pageSize: 20
                       hasMore: false
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-  /mistakes:
-    get:
-      tags:
-      - Mistakes
-      operationId: listMistakes
-      summary: List mistake notebook entries (cursor-paginated)
-      parameters:
-      - name: targetJobId
-        in: query
-        required: false
-        schema:
-          type: string
-          format: uuid
-      - name: status
-        in: query
-        required: false
-        schema:
-          $ref: '#/components/schemas/MistakeStatus'
-      - name: competencyCode
-        in: query
-        required: false
-        schema:
-          type: string
-      - name: cursor
-        in: query
-        required: false
-        schema:
-          type: string
-      - name: pageSize
-        in: query
-        required: false
-        schema:
-          type: integer
-          format: int32
-          minimum: 1
-          maximum: 100
-      - $ref: '#/components/parameters/XRequestID'
-      - $ref: '#/components/parameters/Traceparent'
-      - $ref: '#/components/parameters/AcceptLanguage'
-      - $ref: '#/components/parameters/XClientVersion'
-      responses:
-        '200':
-          description: Paginated mistake entries.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedMistakeEntry'
-              examples:
-                default:
-                  summary: Default fixture for listMistakes
-                  value:
-                    items:
-                    - id: 01918fa0-0000-7000-8000-000000008000
-                      targetJobId: 01918fa0-0000-7000-8000-000000002000
-                      sourceSessionId: 01918fa0-0000-7000-8000-000000005000
-                      sourceDebriefId: null
-                      competencyCode: technical_depth.rollout_strategy
-                      questionText: 迁移过程中你怎么控制回归？
-                      answerSummary: 回答中只提到了 RFC 与配对评审，没有量化回归率或灰度策略。
-                      failureReasons:
-                      - missing-quantification
-                      - no-rollout-stage-detail
-                      recommendedFramework: STAR + measurable rollout stages
-                      status: open
-                      priority: 70
-                      provenance:
-                        promptVersion: mistake_synthesis.v1
-                        rubricVersion: feedback_report.rubric.v2
-                        modelId: openrouter:anthropic/claude-sonnet-4.6
-                        language: zh-CN
-                        featureFlag: none
-                        dataSourceVersion: feedback_report.v12
-                      createdAt: '2026-04-28T12:00:00Z'
-                      updatedAt: '2026-04-28T13:45:12Z'
-                    - id: 01918fa0-0000-7000-8000-000000008100
-                      targetJobId: 01918fa0-0000-7000-8000-000000002000
-                      sourceSessionId: 01918fa0-0000-7000-8000-000000005000
-                      sourceDebriefId: null
-                      competencyCode: communication.framing
-                      questionText: 请用 90 秒做一个针对 hiring manager 的自我介绍。
-                      answerSummary: 前 60 秒铺垫太长，到结尾才提到与目标岗位的匹配点。
-                      failureReasons:
-                      - delayed-value-proposition
-                      recommendedFramework: Headline-first 自我介绍模板
-                      status: improving
-                      priority: 55
-                      provenance:
-                        promptVersion: mistake_synthesis.v1
-                        rubricVersion: feedback_report.rubric.v2
-                        modelId: openrouter:anthropic/claude-sonnet-4.6
-                        language: zh-CN
-                        featureFlag: none
-                        dataSourceVersion: feedback_report.v12
-                      createdAt: '2026-04-28T12:00:00Z'
-                      updatedAt: '2026-04-28T13:45:12Z'
-                    pageInfo:
-                      nextCursor: null
-                      pageSize: 20
-                      hasMore: false
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-  /mistakes/{mistakeId}/retest:
-    post:
-      tags:
-      - Mistakes
-      operationId: retestMistake
-      summary: Create a retest practice plan from a mistake entry
-      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
-      parameters:
-      - name: mistakeId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - $ref: '#/components/parameters/IdempotencyKey'
-      - $ref: '#/components/parameters/XRequestID'
-      - $ref: '#/components/parameters/Traceparent'
-      - $ref: '#/components/parameters/AcceptLanguage'
-      - $ref: '#/components/parameters/XClientVersion'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RetestMistakeRequest'
-      responses:
-        '201':
-          description: Retest practice plan created.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PracticePlanContainer'
-              examples:
-                default:
-                  summary: Default fixture for retestMistake
-                  value:
-                    plan:
-                      id: 01918fa0-0000-7000-8000-000000004100
-                      targetJobId: 01918fa0-0000-7000-8000-000000002000
-                      goal: fix_mistake
-                      mode: single_drill
-                      interviewerPersona: hiring_manager
-                      difficulty: standard
-                      language: zh-CN
-                      timeBudgetMinutes: 10
-                      questionBudget: 1
-                      status: ready
-                      createdAt: '2026-04-28T13:45:12Z'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /resume/tailor:
@@ -1841,66 +1682,6 @@ paths:
                       dataSourceVersion: debrief.v4
                     createdAt: '2026-04-28T12:00:00Z'
                     updatedAt: '2026-04-28T13:45:12Z'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-  /growth/overview:
-    get:
-      tags:
-      - Growth
-      operationId: getGrowthOverview
-      summary: Get cross-target growth overview
-      parameters:
-      - name: window
-        in: query
-        required: true
-        schema:
-          type: string
-          enum:
-          - 7d
-          - 30d
-          - 90d
-      - name: targetJobId
-        in: query
-        required: false
-        schema:
-          type: string
-          format: uuid
-      - $ref: '#/components/parameters/XRequestID'
-      - $ref: '#/components/parameters/Traceparent'
-      - $ref: '#/components/parameters/AcceptLanguage'
-      - $ref: '#/components/parameters/XClientVersion'
-      responses:
-        '200':
-          description: Growth overview.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GrowthOverview'
-              examples:
-                default:
-                  summary: Default fixture for getGrowthOverview
-                  value:
-                    window: 30d
-                    summary:
-                      practiceSessionsCompleted: 6
-                      reportsReady: 5
-                      mistakesOpened: 9
-                      mistakesMastered: 3
-                      debriefCount: 1
-                    preparednessTrend:
-                    - date: '2026-04-21'
-                      level: needs_practice
-                    - date: '2026-04-25'
-                      level: needs_practice
-                    - date: '2026-04-28'
-                      level: basically_ready
-                    dimensionTrend:
-                      communication: improving
-                      technical_depth: needs_work
-                      ownership: strong
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /jobs/{jobId}:
@@ -2304,18 +2085,16 @@ components:
       type: string
       description: Synced from `shared/conventions.yaml#enums[PracticeMode]` (00-shared-conventions §5.3).
       enum:
-      - warmup
-      - core_interview
-      - single_drill
-      - counter_questions
+      - assisted
+      - strict
       - debrief_replay
     PracticeGoal:
       type: string
       description: Synced from `shared/conventions.yaml#enums[PracticeGoal]` (00-shared-conventions §5.4).
       enum:
       - baseline
-      - sprint
-      - fix_mistake
+      - retry_current_round
+      - next_round
       - debrief
     InterviewerRole:
       type: string
@@ -2367,13 +2146,13 @@ components:
       - high
       - medium
       - low
-    MistakeStatus:
+    QuestionReviewStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[MistakeStatus]` (00-shared-conventions §5.11).
+      description: Synced from `shared/conventions.yaml#enums[QuestionReviewStatus]` (00-shared-conventions §5.11).
       enum:
       - open
-      - improving
-      - mastered
+      - queued_for_retry
+      - resolved
     DebriefStatus:
       type: string
       description: Synced from `shared/conventions.yaml#enums[DebriefStatus]` (00-shared-conventions §5.12).
@@ -3006,7 +2785,7 @@ components:
       - targetLanguage
       - sourceType
       - requirements
-      - openMistakeCount
+      - openQuestionIssueCount
       - createdAt
       - updatedAt
       properties:
@@ -3056,7 +2835,7 @@ components:
           - type: string
             format: uuid
           - type: 'null'
-        openMistakeCount:
+        openQuestionIssueCount:
           type: integer
           format: int32
           minimum: 0
@@ -3412,6 +3191,10 @@ components:
       properties:
         type:
           type: string
+          enum:
+          - retry_current_round
+          - next_round
+          - review_evidence
         label:
           type: string
     QuestionAssessment:
@@ -3420,7 +3203,8 @@ components:
       - turnId
       - questionIntent
       - dimensionResults
-      - writtenToMistakeBook
+      - reviewStatus
+      - includedInRetryPlan
       properties:
         turnId:
           type: string
@@ -3431,7 +3215,9 @@ components:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/DimensionResult'
-        writtenToMistakeBook:
+        reviewStatus:
+          $ref: '#/components/schemas/QuestionReviewStatus'
+        includedInRetryPlan:
           type: boolean
     FeedbackReport:
       type: object
@@ -3481,7 +3267,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/QuestionAssessment'
-        mistakeIds:
+        retryFocusTurnIds:
           type: array
           items:
             type: string
@@ -3506,105 +3292,6 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/FeedbackReport'
-    MistakeEntry:
-      type: object
-      required:
-      - id
-      - targetJobId
-      - competencyCode
-      - questionText
-      - answerSummary
-      - failureReasons
-      - recommendedFramework
-      - status
-      - priority
-      - createdAt
-      - updatedAt
-      description: 'Mistake notebook entry. May be AI-created (during report generation)
-
-        or user-created. Per spec §4.6, AI-created entries must carry
-
-        `provenance`; user-created entries leave `provenance` null.
-
-        '
-      properties:
-        id:
-          type: string
-          format: uuid
-        targetJobId:
-          type: string
-          format: uuid
-        sourceSessionId:
-          oneOf:
-          - type: string
-            format: uuid
-          - type: 'null'
-        sourceDebriefId:
-          oneOf:
-          - type: string
-            format: uuid
-          - type: 'null'
-        competencyCode:
-          type: string
-        questionText:
-          type: string
-        answerSummary:
-          type: string
-        failureReasons:
-          type: array
-          items:
-            type: string
-        recommendedFramework:
-          type: string
-        status:
-          $ref: '#/components/schemas/MistakeStatus'
-        priority:
-          type: integer
-          format: int32
-          minimum: 1
-          maximum: 100
-        provenance:
-          oneOf:
-          - $ref: '#/components/schemas/GenerationProvenance'
-          - type: 'null'
-          description: Present iff this entry was AI-generated; user-created entries leave it null.
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    PaginatedMistakeEntry:
-      allOf:
-      - $ref: '#/components/schemas/PaginatedEnvelope'
-      - type: object
-        properties:
-          items:
-            type: array
-            items:
-              $ref: '#/components/schemas/MistakeEntry'
-    RetestMistakeRequest:
-      type: object
-      required:
-      - mode
-      - language
-      properties:
-        mode:
-          $ref: '#/components/schemas/PracticeMode'
-        language:
-          type: string
-        timeBudgetMinutes:
-          type: integer
-          format: int32
-          minimum: 1
-    PracticePlanContainer:
-      type: object
-      required:
-      - plan
-      description: Wrapper response for `retestMistake` (returns the freshly created `PracticePlan`).
-      properties:
-        plan:
-          $ref: '#/components/schemas/PracticePlan'
     RequestResumeTailorRequest:
       type: object
       required:
@@ -3870,75 +3557,6 @@ components:
           format: uuid
         job:
           $ref: '#/components/schemas/Job'
-    GrowthOverviewSummary:
-      type: object
-      required:
-      - practiceSessionsCompleted
-      - reportsReady
-      - mistakesOpened
-      - mistakesMastered
-      - debriefCount
-      properties:
-        practiceSessionsCompleted:
-          type: integer
-          format: int32
-          minimum: 0
-        reportsReady:
-          type: integer
-          format: int32
-          minimum: 0
-        mistakesOpened:
-          type: integer
-          format: int32
-          minimum: 0
-        mistakesMastered:
-          type: integer
-          format: int32
-          minimum: 0
-        debriefCount:
-          type: integer
-          format: int32
-          minimum: 0
-    GrowthPreparednessTrendPoint:
-      type: object
-      required:
-      - date
-      - level
-      properties:
-        date:
-          type: string
-          format: date
-        level:
-          $ref: '#/components/schemas/ReadinessTier'
-    GrowthOverview:
-      type: object
-      required:
-      - window
-      - summary
-      - preparednessTrend
-      - dimensionTrend
-      properties:
-        window:
-          type: string
-          enum:
-          - 7d
-          - 30d
-          - 90d
-        summary:
-          $ref: '#/components/schemas/GrowthOverviewSummary'
-        preparednessTrend:
-          type: array
-          items:
-            $ref: '#/components/schemas/GrowthPreparednessTrendPoint'
-        dimensionTrend:
-          type: object
-          additionalProperties:
-            type: string
-            enum:
-            - strong
-            - improving
-            - meets_bar
-            - needs_work
     Job:
       type: object
       required:

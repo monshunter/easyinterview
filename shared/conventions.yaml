@@ -10,7 +10,7 @@
 #   error codes        → UPPER_SNAKE_CASE (TS const map key+value, Go const)
 #   JSON fields        → camelCase
 #   Go type names      → PascalCase
-#   Go const naming    → <TypeName><Value>, e.g. PracticeModeCoreInterview
+#   Go const naming    → <TypeName><Value>, e.g. PracticeModeAssisted
 #
 # Counting note: §5 has 13 sections (5.1..5.13). §5.13 ("PrivacyRequest") covers
 # two parallel field domains (type + status), so the catalogue below contains 14
@@ -109,10 +109,8 @@ enums:
     sourceSection: "5.3"
     jsonField: mode
     values:
-      - warmup
-      - core_interview
-      - single_drill
-      - counter_questions
+      - assisted
+      - strict
       - debrief_replay
 
   - name: PracticeGoal
@@ -120,8 +118,8 @@ enums:
     jsonField: goal
     values:
       - baseline
-      - sprint
-      - fix_mistake
+      - retry_current_round
+      - next_round
       - debrief
 
   - name: InterviewerRole
@@ -180,13 +178,13 @@ enums:
       - medium
       - low
 
-  - name: MistakeStatus
+  - name: QuestionReviewStatus
     sourceSection: "5.11"
-    jsonField: mistakeStatus
+    jsonField: questionReviewStatus
     values:
       - open
-      - improving
-      - mastered
+      - queued_for_retry
+      - resolved
 
   - name: DebriefStatus
     sourceSection: "5.12"

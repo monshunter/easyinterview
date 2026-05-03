@@ -52,7 +52,7 @@ func TestConventionsParityFixture_EnumSets(t *testing.T) {
 		"ReadinessTier":         stringsOf(AllReadinessTiers),
 		"DimensionStatus":       stringsOf(AllDimensionStatuses),
 		"Confidence":            stringsOf(AllConfidences),
-		"MistakeStatus":         stringsOf(AllMistakeStatuses),
+		"QuestionReviewStatus":  stringsOf(AllQuestionReviewStatuses),
 		"DebriefStatus":         stringsOf(AllDebriefStatuses),
 		"PrivacyRequestType":    stringsOf(AllPrivacyRequestTypes),
 		"PrivacyRequestStatus":  stringsOf(AllPrivacyRequestStatuses),

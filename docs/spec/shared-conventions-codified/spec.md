@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-03
 
 ## 1 背景与目标
 
@@ -59,6 +59,7 @@
 | D-6 | 枚举值书写 | `lower_snake_case`；TS 用 union string literal，Go 用 named string + 常量集 | 严格覆盖 00-shared-conventions §5 的 13 个小节；§5.13 同时包含隐私请求 type/status 两个并行字段，因此生成 14 个枚举类型 |
 | D-7 | `ApiError` inner object 归属 | `shared/conventions.yaml#structures.ApiError` 表示错误响应 envelope 内部的 `error` 对象（`code` / `message` / `requestId` / `retryable` / `details`），不表示外层 `{error: ...}` envelope；Go 侧 canonical 类型是手写 `backend/internal/shared/errors.APIError` + generated `errors.AllCodes`，TS 侧 canonical 类型是 generated `frontend/src/lib/conventions.ApiError` | B2 OpenAPI 必须把 wire response body 建模为 `ApiErrorResponse` envelope，并在 envelope 内 `$ref` B1 `ApiError` inner object；不得把 Go 侧误写为 `sharedtypes.ApiError` |
 | D-8 | AI shared vocabulary 归属 | B1 提供 `AI_*` 错误码、Model Profile 字段名、AI meta 字段名常量或生成类型；A3 提供 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 填充与 OpenAI-compatible provider adapter；A4 校验 `AI_GATEWAY_*` 连接参数 | 避免 B1/A3/B4/F1 对同一 AI 字段私造名称；同时避免把运行时或连接配置误下沉到 shared conventions |
+| D-9 | 当前 UI 产品范围下的练习 / 报告枚举 | `PracticeMode = assisted / strict / debrief_replay`；`PracticeGoal = baseline / retry_current_round / next_round / debrief`；原 `MistakeStatus` 改为 `QuestionReviewStatus = open / queued_for_retry / resolved` | 对齐 product-scope v1.2 与 `docs/ui-design`：移除热身、单题深钻、反问专练、独立错题本和独立成长中心；报告内部题目回顾与本轮复练仍保留 |
 
 ### 3.2 待确认事项
 
@@ -121,6 +122,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-03 | 1.7 | 对齐 product-scope v1.2 / UI scope：练习入口枚举从旧模式卡片改为会话内 `assisted` / `strict`，复练目标改为 `retry_current_round` / `next_round`，并把旧 `MistakeStatus` 收敛为报告内部 `QuestionReviewStatus`。 | 001-bootstrap Phase 5 remediation |
 | 2026-04-29 | 1.6 | 物化 `002-codegen-pipeline` 为 active：范围限定为 A3 AI vocabulary、跨语言 drift/parity 与本地 codegen-check 接入；F3 prompt bridge 与远端 CI 仅保留 future handoff。 | 002-codegen-pipeline |
 | 2026-04-29 | 1.5 | 按 ADR-Q6 authoritative 边界补齐 AI shared vocabulary：B1 只拥有 `AI_*` 错误码与 Model Profile / AI meta 字段名常量或生成类型；A3 继续拥有 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 与 provider adapter，A4/E4 负责连接参数与 endpoint。 | plan-review remediation |
 | 2026-04-29 | 1.4 | 授权并落地 A3 AI gateway baseline 错误码：`AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED`，作为 `shared/conventions.yaml` 与 Go / TS / OpenAPI codegen 共同消费的唯一真理源；`AICallMeta` 运行时结构仍由 A3 拥有，不进入 B1 共享 DTO。 | ai-gateway-and-model-routing spec remediation |

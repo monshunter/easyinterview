@@ -1,8 +1,8 @@
 # Shared Conventions Codified Bootstrap
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-04-27
+> **更新日期**: 2026-05-03
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -110,6 +110,20 @@ L2 remediation: `scripts/lint/error_codes.py` 必须解析 `ERROR_CODES = { ... 
 - 不修改 [engineering-roadmap/001-decompose-subspecs/checklist.md](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) 中已经完成的 Phase 2 spawn 项；若需要重新打开父 plan，必须由 roadmap owner 明确触发。
 - 把 generator 命令、Go test、TS test 的输出贴入工作日志。
 
+### Phase 5: product-scope v1.2 enum remediation
+
+#### 5.1 Red: conventions drift gate
+
+先调整 B1 enum 期望与测试，使旧 `PracticeMode`（`warmup` / `core_interview` / `single_drill` / `counter_questions`）、旧 `PracticeGoal.fix_mistake` 与旧 `MistakeStatus` 触发 drift / parity 失败，证明旧模式卡片、单题 Drill、反问专练和独立错题本状态仍被代码保留时不能通过 gate。
+
+#### 5.2 Green: 更新共享真理源与生成物
+
+修订 `shared/conventions.yaml`：`PracticeMode` 改为 `assisted` / `strict` / `debrief_replay`；`PracticeGoal` 改为 `baseline` / `retry_current_round` / `next_round` / `debrief`；`MistakeStatus` 重命名为 `QuestionReviewStatus`，值为 `open` / `queued_for_retry` / `resolved`。随后运行 `make codegen-conventions` 重新生成 Go / TS shared types，并同步 B2/B3/B4 引用。
+
+#### 5.3 Verify
+
+运行 `make lint-conventions`、`make codegen-conventions`、Go / TS shared type parity tests；repo 搜索确认实现侧不再出现旧练习模式枚举值、`fix_mistake` 或 `MistakeStatus` generated type。
+
 ## 4 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-5 全部成立（C-6 由 B2 plan 在引用 B1 时验证）。
@@ -130,5 +144,6 @@ L2 remediation: `scripts/lint/error_codes.py` 必须解析 `ERROR_CODES = { ... 
 
 | 日期 | 版本 | 变更 | 证据 |
 |------|------|------|------|
+| 2026-05-03 | 1.3 | 原地 reopen，新增 Phase 5 remediation：对齐 product-scope v1.2 与 UI scope，移除旧模式卡片、单题 Drill、反问专练和独立错题本状态枚举。 | product-scope v1.2 / docs/ui-design |
 | 2026-04-27 | 1.2 | 对齐 A5 单人开发阶段决策：B1 的 lint/codegen drift 只要求本地质量门禁，远端 CI / PR required check / CI drift detection 不作为当前 P0 前置。 | 文档一致性修订；不新增运行时代码范围。 |
 | 2026-04-27 | 1.1 | 回写 [shared-conventions-codified/001-bootstrap 交付复盘报告](../../../../reports/2026-04-27-shared-conventions-codified-001-bootstrap-assessment.md) 中确认真实的 spec-plan 漂移：重排 generator 前置依赖、明确 Go/TS `APIError` 归属、统一 13 个上游小节 / 14 个生成类型口径、补齐 Go/TS idempotency 双端 checklist 落点、把 TS toolchain 上移到 Phase 2。 | 当前代码已落地并通过 Phase 4 验证；本修订不新增运行时代码范围。 |

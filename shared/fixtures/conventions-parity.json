@@ -16,16 +16,14 @@
       "failed"
     ],
     "PracticeMode": [
-      "warmup",
-      "core_interview",
-      "single_drill",
-      "counter_questions",
+      "assisted",
+      "strict",
       "debrief_replay"
     ],
     "PracticeGoal": [
       "baseline",
-      "sprint",
-      "fix_mistake",
+      "retry_current_round",
+      "next_round",
       "debrief"
     ],
     "InterviewerRole": [
@@ -66,10 +64,10 @@
       "medium",
       "low"
     ],
-    "MistakeStatus": [
+    "QuestionReviewStatus": [
       "open",
-      "improving",
-      "mastered"
+      "queued_for_retry",
+      "resolved"
     ],
     "DebriefStatus": [
       "draft",

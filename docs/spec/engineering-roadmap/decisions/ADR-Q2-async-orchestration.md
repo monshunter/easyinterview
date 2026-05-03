@@ -1,8 +1,8 @@
 # ADR-Q2 · 异步编排
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: accepted
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-03
 
 ## 1 背景
 
@@ -13,7 +13,7 @@ P0 已识别的异步链路：
 - JD 解析（public `jobType=target_import`，internal Asynq handler 可映射为 `target.import`）
 - 模拟面试报告生成（public `jobType=report_generate`，internal Asynq handler 可映射为 `report.generate`）
 - 简历定制（`resume.tailor`）
-- Mistake / Drill 物化（`review.materialize_mistakes`）
+- 报告题目回顾与本轮复练上下文物化（`review.materialize_report_items`）；不生成独立错题本或 Drill 队列
 - Email magic link / 通知派发（internal-only canonical `jobType=email_dispatch`，internal Asynq handler 可映射为 `email.dispatch`）
 - Outbox event publish（`outbox.dispatch`）
 
@@ -117,4 +117,5 @@ P0 已识别的异步链路：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-03 | 1.3 | 对齐 product-scope v1.1：异步 review 物化只服务报告内题目回顾与本轮复练上下文，不再承接独立 Mistake / Drill 队列。 | product-scope / engineering-roadmap v2.2 |
 | 2026-04-29 | 1.2 | 将 magic link / 通知派发所需的 `email_dispatch` 明确纳入 internal-only canonical jobType，锁定 `email.dispatch` Asynq dotted name、low priority 队列与 B3/B4 契约同步要求；同时把早期示例 dotted name 对齐 B3 规范。 | plan-review remediation |
