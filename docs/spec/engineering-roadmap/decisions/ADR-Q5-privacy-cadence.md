@@ -1,14 +1,14 @@
 # ADR-Q5 · 隐私节奏
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: accepted
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-03
 
 ## 1 背景
 
 `easyinterview-tech-docs/00-shared-conventions.md` §「隐私请求类型」定义 `export` / `delete` 两个枚举；`02-api-definition.md` §「privacy tag」预留 `POST /privacy/exports` + `POST /privacy/deletions`；`03-db-definition.md` §「privacy_requests」表已就位；`04-metrics-observability.md` §「Privacy Completion」要求「99% 在 24h 内完成」。`README.md` §「待评审的 5 个决策点」第 5 项把隐私节奏选择留作 W0 决策。
 
-产品红线（`easyinterview-spec-v1-0.md` §伦理）：
+产品红线（`docs/spec/product-scope/spec.md` §4.4 / §9.3）：
 
 - 默认保守：音视频 / 简历 / 画像 / 面试内容必须可解释、可关闭、可删除
 - 不做隐形作弊 / 不做企业候选人评估 / 不做实时面试辅助
@@ -103,12 +103,13 @@
 
 - `engineering-roadmap/spec.md` §3.2 Q-5、§5.3 C12、§5.6 F4、§6 C-6
 - `engineering-roadmap/plans/001-decompose-subspecs/plan.md` Phase 1.1、Phase 6.8
-- 上游：`easyinterview-spec-v1-0.md` §伦理、`easyinterview-tech-docs/00-shared-conventions.md` §「隐私请求」、`02-api-definition.md` §「privacy」、`03-db-definition.md` §「privacy_requests」、`04-metrics-observability.md` §「Privacy Completion」
+- 上游：`docs/spec/product-scope/spec.md` §4.4 / §9.3、`easyinterview-tech-docs/00-shared-conventions.md` §「隐私请求」、`02-api-definition.md` §「privacy」、`03-db-definition.md` §「privacy_requests」、`04-metrics-observability.md` §「Privacy Completion」
 - 下游 child：C12 / F4 / B2 / B4 / C8 / D1 / D6 / F1 / E4
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-03 | 1.4 | 同步产品真理源迁移：隐私产品红线引用从根目录旧 spec 改为 `docs/spec/product-scope/spec.md`，不改变 Q5 的 P0 删除-only 决策。 | docs-only |
 | 2026-04-29 | 1.3 | 对齐 B2 / B4 remediation：明确 `DELETE /api/v1/me` 必须进入 OpenAPI freeze 并返回 `202 + PrivacyRequestWithJob`；删除范围改为引用 B4 §3.1.2 per-table matrix，区分 hard delete / cascade / retain / audit tombstone。 | plan-review remediation |
 | 2026-04-29 | 1.2 | 对齐 B4 `db-migrations-baseline` v1.4：移除旧「29 表」背景口径，改为引用 B4 baseline 多表范围；删除范围中的 `resumes` 改为当前表名 `resume_assets`，并纳入 ADR-Q1 指派给 B4 的 `external_identities` 支撑表。 | db-migrations-baseline plan-review remediation |

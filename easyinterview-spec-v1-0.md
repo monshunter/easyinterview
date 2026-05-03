@@ -10,6 +10,14 @@ geometry:
 numbersections: true
 ---
 
+# 文档状态说明
+
+> **状态**: superseded
+> **替代文档**: [docs/spec/product-scope/spec.md](docs/spec/product-scope/spec.md)
+> **更新日期**: 2026-05-03
+
+本文档保留为历史产品输入和旧版取舍参考，不再作为 EasyInterview 当前 active 产品真理源。当前产品范围、P0/P1/P2/P3 边界、非目标、评分/隐私/伦理红线以及与 UI / 工程文档的职责关系，以 [Product Scope Spec](docs/spec/product-scope/spec.md) 为准。
+
 \begin{titlepage}
 \thispagestyle{empty}
 \centering

@@ -1,13 +1,14 @@
 # Engineering Roadmap History
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: active
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-03
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-03 | 2.1 | 同步产品真理源迁移：将 parent roadmap 的产品输入从根目录 `easyinterview-spec-v1-0.md` 改为 `docs/spec/product-scope/spec.md`，并明确旧根 spec 仅作历史参考。 | docs-only |
 | 2026-04-29 | 2.0 | 收口 A/B spec 全面审查 remediation：A1 根目录契约纳入 `shared/` / `config/`；Q2/B3/B4 接入 internal-only `email_dispatch`；Q6 以 ADR-Q6 为准重新锁定 AIClient 连接参数与 gateway fallback 边界；C9 真实面试复现升格为 P0 后端范围；B4 增补 AI call meta 字段与隐私删除表矩阵。 | plan-review remediation |
 | 2026-04-29 | 1.9 | 同步 B4 `db-migrations-baseline` v1.4：parent roadmap 摘要从旧「29 表初始迁移」口径更新为 30 张应用 / auth 支撑表 + 迁移元数据表 + backfill ledger，并吸收 B3 outbox retry 字段承载，与 ADR-Q1 auth/session 表归属和 B4 migration 真理源一致。 | db-migrations-baseline plan-review remediation |
 | 2026-04-27 | 1.8 | 对齐个人单人开发阶段决策：A5 不再作为 P0 远端 CI pipeline，当前只保留本地质量门禁；GitHub Actions、branch protection、artifact、nightly 与 CI secret 延后到多人协作、公开 release 或自动发版触发条件出现后再建。 | 001-decompose-subspecs |
