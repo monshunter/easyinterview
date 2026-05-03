@@ -1,6 +1,6 @@
 # Interview Session 与 Report Dashboard 目标模块
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -62,7 +62,7 @@ MockInterviewPlan
   -> ReportDashboard(sessionId)
 ```
 
-文本面试和语音面试共享同一个面试生命周期、同一套上下文、同一个 `PracticeScreen` 外层骨架和同一种报告形态。旧 `voice` hash / route 只作为兼容入口折回 `practice?mode=voice&modality=voice`，不再渲染独立的语音页面框架。
+文本面试和语音面试共享同一个面试生命周期、同一套上下文、同一个 `PracticeScreen` 外层骨架和同一种报告形态。语音面试只能通过 `practice?mode=voice&modality=voice` 或等价显式参数进入；旧 `voice` hash / route 不再保留为 route alias，也不再渲染独立的语音页面框架。
 
 当前 `screen-report.jsx` 已删除 `ReportEditorial`、`ReportTimeline` 等历史组件定义，`ReportScreen` 固定返回 `ReportDashboard`。设计画板里的报告变体标签和 `reportLayout` hash 参数也已从静态 UI 清理，不改变当前目标。
 
@@ -243,7 +243,7 @@ Debrief
 ## 11 后续实现输入
 
 1. `practice` 是 `InterviewSession` 的目标运行 route；`mode/modality=text` 表示文本面试，`mode/modality=voice` 表示语音面试。
-2. 旧 `voice` route 必须折回 `practice` 并补齐 `mode=voice` 与 `modality=voice`，不得重新进入独立语音页面骨架。
+2. 不得保留或新增 `voice` route；语音面试必须通过 `practice` 显式携带 `mode=voice` 与 `modality=voice` 进入，不得重新进入独立语音页面骨架。
 3. 文本面试输入框的麦克风必须是 `语音转文字`。
 4. 面试官角色是同一场面试的上下文参数，不是练习模式入口。
 5. `带提示练习` / `严格模拟` 是会话内辅助程度，不得恢复为面试前练习模式卡片。

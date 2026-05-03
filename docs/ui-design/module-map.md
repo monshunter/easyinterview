@@ -1,6 +1,6 @@
 # EasyInterview UI 目标模块地图
 
-> **版本**: 2.3
+> **版本**: 2.4
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -33,8 +33,7 @@
 | `resume_versions` | Resume | 作为一级简历模块的当前入口；`flow=create`、`flow=branch`、`versionId` 和 `tab` 驱动创建、分叉和详情子状态 |
 | `resume` | Resume / Mock Interview | 简历资产在 Resume 管，模拟面试页只选择绑定简历 |
 | `jd_match` | Job Picks | 作为一级岗位推荐模块保留 |
-| `practice` | Interview Session | 文本面试与语音面试共享的会话页面；由 `mode/modality` 决定中间 Surface，由 `practiceMode` 决定带提示练习或严格模拟 |
-| `voice` | Interview Session | 兼容入口折回 `practice?mode=voice&modality=voice`；语音内容不再使用独立页面骨架 |
+| `practice` | Interview Session | 文本面试与语音面试共享的会话页面；由 `mode/modality` 决定中间 Surface，由 `practiceMode` 决定带提示练习或严格模拟；语音面试必须通过 `practice?mode=voice&modality=voice` 或等价显式参数进入 |
 | `generating` | Interview / Report 过渡态 | 报告生成状态，不作为顶部导航 |
 | `report` | Report Dashboard | 会话级报告详情，不作为顶部导航 |
 | `debrief` / `debrief_full` | Debrief | 一级复盘流程 |
@@ -83,9 +82,9 @@
 | `auth_logout` | Auth | 退出登录页 |
 | `company_intel` | Mock Interview / Company Intel | 从模拟面试规划页轻量卡片打开的详情页 |
 
-### 5.2 兼容旧路由
+### 5.2 历史原型路由归一
 
-`src/app.jsx` 当前通过 `ROUTE_ALIASES` 把旧路由折回目标模块。它们可被 hash 引用，但不代表恢复对应独立模块。`activeRouteName` 会先经过 `normalizeRoute`，因此旧 route 只作为兼容入口；历史组件即使保留，也不得重新绕过目标 route 骨架。
+`src/app.jsx` 当前通过 `ROUTE_ALIASES` 把部分旧原型路由归一到目标模块。它们可被 hash 引用，但不代表恢复对应独立模块，也不构成线上兼容承诺。`activeRouteName` 会先经过 `normalizeRoute`，因此旧 route 只作为静态原型的历史入口；历史组件即使保留，也不得重新绕过目标 route 骨架。`voice` 不再保留 route alias，语音面试只能从 `practice` 显式参数进入。
 
 | 旧 Route | 运行时折回 | 目标状态 |
 |----------|------------|----------|
@@ -99,13 +98,12 @@
 | `star` | `resume_versions` | 移除独立 STAR 编辑器；简历改写在简历模块内完成 |
 | `resume` | `resume_versions` | 移除历史简历单页；目标入口是新简历工坊 |
 | `onboarding` | `resume_versions` | 移除历史 5 分钟画像 / 经历卡片页；当前简历创建走 `flow=create` |
-| `voice` | `practice` | 语音面试形式；折回后补齐 `mode=voice` 与 `modality=voice` |
 
-### 5.3 兼容但不新增模块的页面
+### 5.3 历史别名但不新增模块的页面
 
 | Route | 当前处理 | 说明 |
 |-------|----------|------|
-| `debrief_full` | 同 `debrief` 的兼容 route | 与 `debrief` 渲染同一目标复盘页面，不新增模块 |
+| `debrief_full` | 同 `debrief` 的历史别名 | 与 `debrief` 渲染同一目标复盘页面，不新增模块 |
 
 ### 5.4 已清理废弃代码清单
 
@@ -113,7 +111,7 @@
 |----------------|-------------------|----------|
 | `screens-rest.jsx` | `mistakes` / `resume` / `growth` / 旧复盘 | 文件已删除 |
 | `screens-completion.jsx` | `welcome` / `drill` / `followup` / `star` | 文件已删除 |
-| `screens-p2.jsx::PlanScreen` | `plan` | 组件已删除；历史 `VoicePracticeScreen` 不再作为 `voice` 目标骨架 |
+| `screens-p2.jsx` | `plan` / `voice` | 文件已删除；历史 `PlanScreen` 和 `VoicePracticeScreen` 不再作为目标骨架 |
 | `screens-p1-depth.jsx::ExperienceLibraryScreen` | `experiences` | 组件已删除；保留 `DebriefFullScreen` |
 | `screens-p1-depth.jsx::ResumeVersionsScreen` | `resume_versions` 旧实现 | 导出已改为 `_LegacyResumeVersionsScreen` dead code；当前 `screen-resume-workshop.jsx` 后加载并覆盖 `window.ResumeVersionsScreen` |
 | `screens-p0-complete.jsx::OnboardingScreen` | `onboarding` | 组件已删除；保留 `ParseScreen`、`ReportGeneratingScreen` 和 `SettingsScreen` |
@@ -160,9 +158,9 @@ User
 1. 顶部导航只出现 `首页 / 岗位推荐 / 模拟面试 / 简历 / 复盘`。
 2. 不再使用 `当前岗位` 表示一级模块；如需表达当前上下文，使用 `当前面试规划`。
 3. 不再使用 `面试报告` 表示一级模块；报告必须带 `sessionId` 或等价上下文。
-4. `voice` 的保留语义是语音面试形式；运行时必须折回 `practice` 的语音 Surface，文本输入框麦克风必须表述为语音转文字。
+4. 语音面试的目标入口是 `practice?mode=voice&modality=voice` 或等价显式参数；不得保留或新增 `voice` route，文本输入框麦克风必须表述为语音转文字。
 5. `jd_match` 不再被描述为首页辅助小入口；它是当前静态 UI 的一级岗位推荐模块。
-6. 旧 route 可通过 `ROUTE_ALIASES` 折回当前模块，但文档不得把旧画板标签当作目标导航或独立模块。
+6. 除 `voice` 外的旧原型 route 可通过 `ROUTE_ALIASES` 归一到当前模块，但文档不得把旧画板标签当作目标导航或独立模块。
 7. `reportLayout`、报告变体组件和报告变体画板不得恢复；目标报告仍是 Dashboard。
 8. 主题色、暗色模式、语言切换和字体预设是全局显示控制，不得被写成岗位、面试、报告或认证模块。
 9. 设置页可以维护界面偏好，但不得把目标岗位、年限、薪资偏好等画像信息移入个人资料。

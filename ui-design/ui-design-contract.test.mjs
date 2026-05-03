@@ -200,14 +200,13 @@ test("P0 voice interview keeps the shared practice shell and renders the voice s
   assert.doesNotMatch(practice, /if\s*\(\s*k\s*===\s*"voice"\s*\)\s*nav\("voice"/);
 });
 
-test("legacy voice route folds into practice voice modality", () => {
+test("voice interview only enters through explicit practice modality params", () => {
   const app = readUiFile("./src/app.jsx");
   const canvas = readUiFile("./canvas.html");
 
-  assert.match(app, /voice:\s*"practice"/);
-  assert.match(app, /const withRouteCompatibilityParams = /);
-  assert.match(app, /rawRoute === "voice"/);
-  assert.match(app, /out\.modality = "voice"/);
-  assert.match(app, /out\.mode = "voice"/);
+  assert.doesNotMatch(app, /voice:\s*"practice"/);
+  assert.doesNotMatch(app, /rawRoute === "voice"/);
+  assert.doesNotMatch(app, /voice:\s*<VoicePracticeScreen/);
+  assert.doesNotMatch(app, /route\.name === "voice"/);
   assert.match(canvas, /route="practice" mode="voice"/);
 });

@@ -1,6 +1,6 @@
 # Product Scope Spec
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -39,7 +39,7 @@
 | 层级 | 当前真理源 | 负责内容 |
 |------|------------|----------|
 | 产品范围 | 本文档 | 用户、JTBD、P0/P1/P2/P3 边界、非目标、质量和伦理红线 |
-| UI / 交互 | `docs/ui-design/` + `ui-design/` | 当前静态 UI、一级导航、页面职责、路由折返、视觉和交互目标 |
+| UI / 交互 | `docs/ui-design/` + `ui-design/` | 当前静态 UI、一级导航、页面职责、目标路由、视觉和交互目标 |
 | 工程拆分 | `docs/spec/engineering-roadmap/spec.md` | child subspec、wave、依赖 DAG、mock-first 集成策略 |
 | 技术契约 | `docs/spec/*`、`openapi/`、`shared/`、`migrations/`、`easyinterview-tech-docs/` | API、DB、事件、共享枚举、AI 网关、可观测性等工程约束 |
 | 历史参考 | `easyinterview-spec-v1-0.md` | 旧版产品愿景和历史取舍，不再作为当前 active truth source |
@@ -99,7 +99,7 @@
 | D-3 | 默认入口 | App 默认进入首页，用户可直接粘贴 / 上传 / URL 导入 JD | 不恢复未登录欢迎页或登录前置页 |
 | D-4 | 一级导航 | `首页 / 岗位推荐 / 模拟面试 / 简历 / 复盘` | `当前岗位`、`面试报告`、`成长` 等不作为一级导航 |
 | D-5 | 模拟面试语义 | 面试是一场完整 session，不提供热身、反问、单题深钻等入口前模式卡片 | 复练和下一轮都从报告 CTA 直接进入对应 session |
-| D-6 | 语音边界 | 语音是面试或复盘的形式，不是独立业务模块；旧 `voice` route 只能折回 `practice` | 不恢复独立语音页面骨架；文本输入框麦克风只表示语音转文字 |
+| D-6 | 语音边界 | 语音是面试或复盘的形式，不是独立业务模块；当前目标路由只允许 `practice` 显式携带 `mode=voice` / `modality=voice` | 删除旧 `voice` route alias 和独立语音页面骨架；文本输入框麦克风只表示语音转文字 |
 | D-7 | 报告形态 | 报告只有 session-scoped Dashboard 一种形态 | 删除报告一级导航、时间线、刊物式报告页和 `reportLayout` 多形态 |
 | D-8 | 错题价值承载 | 错题本的用户价值放在报告题目回顾、证据缺口和本轮复练中 | 不恢复独立错题队列、Drill builder 或单题 retry |
 | D-9 | 真实面试复盘 | 复盘是一级模块，处理真实面试过程；文本和语音添加共享同一份记录 | 不把模拟报告错题自动写成复盘记录 |
@@ -134,7 +134,7 @@
 - `workspace` 的产品语义是 `模拟面试 / 当前面试规划`，不是旧的 `当前岗位` 一级模块。
 - `report` 必须带 `sessionId` 或等价会话上下文；无上下文时不得展示假报告。
 - `debrief` 的上下文选择必须在当前复盘页弹窗内完成，不跳转到模拟面试、报告或简历资产管理页。
-- `voice` 兼容 route 只能作为折返入口，目标仍是 `practice?mode=voice&modality=voice`。
+- 语音面试只能通过 `practice?mode=voice&modality=voice` 或等价显式参数进入；不得保留或新增 `voice` 目标 route / route alias。
 - 旧 route、旧画板标签、dead code 组件不得作为恢复旧模块的依据。
 
 ### 4.3 评分与反馈约束

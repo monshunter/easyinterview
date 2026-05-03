@@ -31,7 +31,6 @@ const ROUTE_ALIASES = {
   star: "resume_versions",
   resume: "resume_versions",
   onboarding: "resume_versions",
-  voice: "practice",
 };
 
 const DEFAULT_INTERVIEW_CONTEXT = {
@@ -44,7 +43,7 @@ const DEFAULT_INTERVIEW_CONTEXT = {
   roundName: "经理面",
 };
 
-const INTERVIEW_CONTEXT_ROUTES = new Set(["workspace", "practice", "voice", "generating", "report", "debrief", "company_intel"]);
+const INTERVIEW_CONTEXT_ROUTES = new Set(["workspace", "practice", "generating", "report", "debrief", "company_intel"]);
 const normalizeRouteName = (name) => ROUTE_ALIASES[name] || name;
 const shouldCarryInterviewContext = (name) => INTERVIEW_CONTEXT_ROUTES.has(normalizeRouteName(name));
 const paramsFromSearch = (params) => {
@@ -55,14 +54,6 @@ const paramsFromSearch = (params) => {
   return out;
 };
 const stripUndefined = (obj) => Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== null));
-const withRouteCompatibilityParams = (rawRoute, params = {}) => {
-  const out = { ...params };
-  if (rawRoute === "voice") {
-    if (!out.mode) out.mode = "voice";
-    if (!out.modality) out.modality = "voice";
-  }
-  return out;
-};
 const createInterviewContext = (params = {}, fallback = DEFAULT_INTERVIEW_CONTEXT) => {
   const targetJobId = params.targetJobId || params.jobId || fallback.targetJobId || fallback.jobId || DEFAULT_INTERVIEW_CONTEXT.targetJobId;
   const ctx = {
@@ -105,7 +96,7 @@ const App = () => {
     if (params.get("route")) {
       const rawRoute = params.get("route");
       const name = normalizeRoute(rawRoute);
-      const parsedParams = withRouteCompatibilityParams(rawRoute, paramsFromSearch(params));
+      const parsedParams = paramsFromSearch(params);
       delete parsedParams.route;
       delete parsedParams.lang;
       delete parsedParams.nochrome;
@@ -114,7 +105,7 @@ const App = () => {
     } else if (hash && !hash.includes("=")) {
       const rawRoute = hash;
       const name = normalizeRoute(rawRoute);
-      const parsedParams = withRouteCompatibilityParams(rawRoute);
+      const parsedParams = {};
       setRoute({ name, params: shouldCarryInterviewContext(name) ? createInterviewContext(parsedParams) : parsedParams });
     } else {
       const saved = localStorage.getItem("ei-route");
@@ -123,7 +114,7 @@ const App = () => {
           const parsed = JSON.parse(saved);
           const rawRoute = parsed.name;
           const name = normalizeRoute(rawRoute);
-          const savedParams = withRouteCompatibilityParams(rawRoute, parsed.params || {});
+          const savedParams = parsed.params || {};
           setRoute({ ...parsed, name, params: shouldCarryInterviewContext(name) ? createInterviewContext(savedParams) : savedParams });
         } catch {}
       }
@@ -208,8 +199,7 @@ const App = () => {
   const currentContext = React.useMemo(() => createInterviewContext(route.params || {}), [route.params]);
   const nav = (name, params = {}) => {
     const nextName = normalizeRoute(name);
-    const compatibleParams = withRouteCompatibilityParams(name, params);
-    const nextParams = shouldCarryInterviewContext(nextName) ? createInterviewContext(compatibleParams, currentContext) : stripUndefined(compatibleParams);
+    const nextParams = shouldCarryInterviewContext(nextName) ? createInterviewContext(params, currentContext) : stripUndefined(params);
     setRoute({ name: nextName, params: nextParams });
   };
   const requestAuth = (pendingAction, run) => {
@@ -224,10 +214,11 @@ const App = () => {
     localStorage.setItem("ei-signed-in", "1");
     const pendingAction = route.params?.pendingAction;
     if (pendingAction?.route) {
-      const pendingParams = withRouteCompatibilityParams(pendingAction.route, pendingAction.params || {});
+      const pendingParams = pendingAction.params || {};
+      const pendingRoute = normalizeRoute(pendingAction.route);
       setRoute({
-        name: normalizeRoute(pendingAction.route),
-        params: shouldCarryInterviewContext(pendingAction.route)
+        name: pendingRoute,
+        params: shouldCarryInterviewContext(pendingRoute)
           ? createInterviewContext(pendingParams, currentContext)
           : stripUndefined(pendingParams),
       });
@@ -250,7 +241,6 @@ const App = () => {
     practice: <PracticeScreen T={T} lang={lang} nav={nav} params={route.params || {}} jobId={currentContext.targetJobId} mode={route.params.mode} role={tweaks.role} setRole={(r) => updateTweak("role", r)} />,
     report: <ReportScreen T={T} lang={lang} nav={nav} params={route.params || {}} requestAuth={requestAuth} />,
     debrief: <DebriefFullScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
-    voice: <VoicePracticeScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
     parse: <ParseScreen T={T} lang={lang} nav={nav} />,
     generating: <ReportGeneratingScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
     settings: <SettingsScreen T={T} lang={lang} nav={nav} fontPreset={tweaks.fontPreset} setFontPreset={setFontPreset} />,
@@ -266,7 +256,7 @@ const App = () => {
     company_intel: <CompanyIntelScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
   };
 
-  const hideTopBar = route.name === "practice" || route.name === "voice" || route.name === "generating" || document.body.getAttribute("data-nochrome") === "1";
+  const hideTopBar = activeRouteName === "practice" || activeRouteName === "generating" || document.body.getAttribute("data-nochrome") === "1";
 
   const isCanvasIframe = document.body.getAttribute("data-nochrome") === "1" || window.location.hash.includes("nochrome=1");
 

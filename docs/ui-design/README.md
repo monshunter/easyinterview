@@ -10,7 +10,7 @@
 ui-design/index.html
 └─ ui-design/src/app.jsx
    ├─ TopBar 一级导航
-   ├─ ROUTE_ALIASES 旧路由折返
+   ├─ ROUTE_ALIASES 历史原型路由归一
    └─ screens 当前可渲染页面
 ```
 
@@ -76,8 +76,8 @@ docs/ui-design/
 - 报告、复练当前轮、进入下一轮之间的边界。
 - 简历原件、结构化主版本和岗位定制版本之间的关系。
 - 用户画像与个人设置的边界。
-- `ROUTE_ALIASES` 对旧 route 的折返关系，以及仍可直达但不属于当前目标入口的历史页面。
-- 已清理或通过 `ROUTE_ALIASES` 折返的废弃 / 历史组件。
+- `ROUTE_ALIASES` 对旧 route 的归一关系，以及仍可直达但不属于当前目标入口的历史页面。
+- 已清理或通过 `ROUTE_ALIASES` 归一的废弃 / 历史组件；`voice` 不保留 route alias，语音面试必须使用 `practice` 显式参数。
 
 ## 7 检查清单
 
@@ -87,5 +87,5 @@ docs/ui-design/
 - [ ] 用户流程包含默认入口、主要动作和返回路径
 - [ ] 登录策略包含触发动作、拦截方式、取消路径和成功后恢复动作
 - [ ] 全局显示控制不被误写成业务模块或认证门槛
-- [ ] 已区分当前目标路由、兼容折返路由、历史直达页面和废弃组件
+- [ ] 已区分当前目标路由、历史原型归一路由、历史直达页面和废弃组件
 - [ ] 已更新 `docs/ui-design/INDEX.md`

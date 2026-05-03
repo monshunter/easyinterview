@@ -10,7 +10,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [product-scope](./product-scope/spec.md) | 1.2 | active | 2026-05-03 | [plans](./product-scope/plans/) |
+| [product-scope](./product-scope/spec.md) | 1.3 | active | 2026-05-03 | [plans](./product-scope/plans/) |
 | [engineering-roadmap](./engineering-roadmap/spec.md) | 2.3 | active | 2026-05-03 | [plans](./engineering-roadmap/plans/) |
 
 ## 2 P0 MVP（Wave 0–5）

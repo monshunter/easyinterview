@@ -1,6 +1,6 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.5
+> **版本**: 2.6
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -31,7 +31,7 @@
 19. 复盘记录的 `文本` 和 `语音` 是同一份记录的两种添加方式；顶部汇总条、来源标记和问题卡片列表跨模式共享。
 20. 语音复盘由 AI 连续对话引导，支持 [空格] 暂停、实时提取待确认卡片、手动加一条、确认 / 编辑 / 删除 / 写入记录；切换回文本不得丢失语音会话状态。
 21. 公司情报不是一级导航；当前 UI 在模拟面试规划页内展示轻量嵌入卡片，并可打开 `company_intel` 详情页后返回面试前确认。
-22. `welcome`、`growth`、`plan`、`mistakes`、`drill`、`followup`、`experiences`、`star`、`resume`、`onboarding`、`voice` 等旧路由不代表独立目标模块；运行时通过 `ROUTE_ALIASES` 折回 `home`、`workspace`、`report`、`practice` 或 `resume_versions`。其中 `voice` 折回 `practice` 后补齐 `mode=voice` 与 `modality=voice`，不据此恢复独立语音页面骨架。
+22. `welcome`、`growth`、`plan`、`mistakes`、`drill`、`followup`、`experiences`、`star`、`resume`、`onboarding` 等旧路由不代表独立目标模块；运行时通过 `ROUTE_ALIASES` 归一到 `home`、`workspace`、`report`、`practice` 或 `resume_versions`。`voice` 不再保留 route alias；语音面试只能通过 `practice` 显式携带 `mode=voice` 与 `modality=voice` 进入，不据此恢复独立语音页面骨架。
 23. 成长、多轮计划、经历库、追问树、单题 Drill、独立错题复练队列仍不进入当前主流程。
 24. 模拟面试规划页的历史列表只展示当前 `MockInterviewPlan` / `TargetJob` / `JD` 范围内的会话，不混入其他公司、岗位或 JD 的历史。
 25. 复盘页的 `目标岗位 / JD`、`关联模拟面试`、`绑定简历` 三个上下文卡片都通过本页弹窗选择，不跳转到模拟面试、报告或简历页面。
@@ -263,7 +263,6 @@ ParseAndConfirmInterview
 InterviewSession(sessionId)
 ReportGenerating(sessionId)
 ReportDashboard(sessionId)
-VoiceInterview(sessionId)
 CompanyIntelDetail
 ```
 
@@ -287,7 +286,7 @@ AuthLogout
 ### 6.4 历史 / 废弃代码
 
 ```text
-Historical routes retained only as aliases
+Historical prototype routes normalized only for the static UI
 ├─ ROUTE_ALIASES 已折返:
 │  ├─ welcome -> home
 │  ├─ growth -> home
@@ -295,15 +294,18 @@ Historical routes retained only as aliases
 │  ├─ mistakes -> report
 │  ├─ drill -> practice
 │  ├─ followup -> practice
-│  ├─ voice -> practice(mode=voice, modality=voice)
 │  ├─ experiences -> resume_versions
 │  ├─ star -> resume_versions
 │  ├─ resume -> resume_versions
 │  └─ onboarding -> resume_versions
+├─ voice route alias 已删除:
+│  └─ 语音面试必须使用 practice(mode=voice, modality=voice)
 └─ 已从当前静态 UI 源码清理:
    ├─ screens-rest.jsx
    ├─ screens-completion.jsx
+   ├─ screens-p2.jsx
    ├─ PlanScreen
+   ├─ VoicePracticeScreen
    ├─ ExperienceLibraryScreen
    ├─ Legacy ResumeVersionsScreen
    ├─ OnboardingScreen
@@ -330,7 +332,7 @@ Historical routes retained only as aliases
 14. 复盘必须先确认目标岗位、关联模拟面试和简历；三个上下文变更动作必须在当前复盘页打开选择弹窗，不直接跳转到其他一级或会话页。
 15. 复盘记录必须把文本添加和语音添加写入同一组问题卡片，并保留来源标记；切换添加方式不得丢状态。
 16. 语音复盘提取的问题必须先进入待确认卡片，用户确认后才写入复盘记录。
-17. `ROUTE_ALIASES` 是当前静态 UI 的兼容层：旧 hash 路由会折回当前目标模块，但不得据此恢复旧导航或旧模块。
+17. `ROUTE_ALIASES` 只归一除 `voice` 外的历史原型 hash route，不构成线上兼容承诺；旧 route 不得据此恢复旧导航或旧模块，语音面试必须使用 `practice` 显式参数。
 18. `canvas.html` 不应保留旧分区标题、旧单页简历画板、旧 onboarding 画板或报告变体画板；文档以 `app.jsx` 实际渲染为准。
 19. 顶栏主题色、暗色和语言切换必须保持为横切显示控制，不进入任何业务模块。
 20. 字体预设必须在设置页作为界面偏好维护，并原子切换 serif/sans 字体组合。
