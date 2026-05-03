@@ -1,6 +1,6 @@
 # DB Migrations Baseline History
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-03 | 1.8 | 将 `easyinterview-tech-docs/03` 降级为历史 DB 输入；当前迁移 baseline 改由本 spec、`migrations/` 与 product-scope v1.4 决定，避免旧 27 应用表 / 旧 enum / 旧索引口径被当作当前迁移依据。 | docs-only |
 | 2026-05-03 | 1.7 | 修正 v1.6 后残留的历史表数量文案：当前 baseline 统一表述为 26 张应用表 + 3 张 auth 支撑表 + 2 张迁移元数据表，应用 / auth 支撑合计 29，public schema count gate ≥31。 | readiness reconcile |
 | 2026-05-03 | 1.6 | 对齐 product-scope v1.2：删除独立 `mistake_entries` 表，报告题目回顾 / 本轮复练由 `question_assessments` / `feedback_reports` 承载；baseline 应用表 27→26，总应用 / auth 支撑表 30→29，public schema count gate 32→31。 | 001-bootstrap Phase 5 remediation |
 | 2026-04-29 | 1.5 | 收口 A/B spec 全面审查 remediation：同步 B3 v1.3 `email_dispatch` internal-only jobType 到 `async_jobs.job_type` check；为 `ai_task_runs` 增补 A3/F1 所需 typed columns；新增 P0 privacy deletion table matrix，锁定 hard delete / cascade / retain / audit tombstone 策略。 | plan-review remediation |

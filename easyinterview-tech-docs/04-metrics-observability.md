@@ -1,5 +1,9 @@
 # 04. Metrics 与可观测性规范
 
+> **状态**: historical-input
+> **更新日期**: 2026-05-03
+> **执行边界**: 本文件是旧产品 spec 阶段的指标和可观测性输入，不是当前 metric / log / dashboard contract。当前可观测性契约以 `docs/spec/observability-stack/spec.md`、各 Layer B/F truth source 和后续 F2 analytics contract 为准；本文件中的旧错题 / 成长漏斗和旧业务域指标不得作为实现依据。
+
 ## 1. 目标
 
 可观测性不是“上线后补监控”，而是 easyinterview 产品可信度的一部分。P0 / P1 必须同时回答 4 类问题：

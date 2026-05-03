@@ -1,5 +1,9 @@
 # 03. 数据库定义（PostgreSQL 16 + pgvector）
 
+> **状态**: historical-input
+> **更新日期**: 2026-05-03
+> **执行边界**: 本文件是旧产品 spec 阶段的 DB 输入，不是当前 migration baseline。当前数据库契约以 `migrations/`、`migrations/enum-sources.yaml` 和 `docs/spec/db-migrations-baseline/spec.md` 为准；本文件中的旧 `mistake_entries`、旧 27 应用表口径和旧成长/错题复练模型不得作为实现依据。
+
 ## 1. 目标
 
 本数据库设计覆盖 P0 / P1 所需核心实体，并满足以下目标：

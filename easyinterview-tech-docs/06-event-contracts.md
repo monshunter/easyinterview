@@ -1,5 +1,9 @@
 # 06. 内部事件契约（Event Contracts）
 
+> **状态**: historical-input
+> **更新日期**: 2026-05-03
+> **执行边界**: 本文件是旧产品 spec 阶段的事件输入，不是当前 internal event / outbox contract。当前事件与 job 契约以 `shared/events.yaml`、`shared/jobs.yaml` 和 `docs/spec/event-and-outbox-contract/spec.md` 为准；本文件中的旧 `mistake.*` 事件、旧 Growth consumer 和旧 18 event 口径不得作为实现依据。
+
 ## 1. 目标
 
 内部事件用于连接 API、Worker、报告生成、错题写入、source 刷新与审计，而不是为了“提前微服务化”。P0 / P1 推荐采用：

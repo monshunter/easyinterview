@@ -1,12 +1,14 @@
 # Observability Stack Spec
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-05-03
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.6](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) 把 F1 `observability-stack` 列为 Layer F · Quality 横切的入口（依赖 [A2 `local-dev-stack`](./../local-dev-stack/spec.md) 与 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)）。它把 [04-metrics-observability.md](../../../easyinterview-tech-docs/04-metrics-observability.md) 与 [05-logging-standard.md](../../../easyinterview-tech-docs/05-logging-standard.md) 合成代码与运维的可观测层。A2 只提供默认本地应用运行时、应用 `/metrics` 与容器日志出口，不默认提供 OTel Collector / Grafana / Loki / Prometheus。
+[engineering-roadmap spec §5.6](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) 把 F1 `observability-stack` 列为 Layer F · Quality 横切的入口（依赖 [A2 `local-dev-stack`](./../local-dev-stack/spec.md) 与 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)）。它从 [04-metrics-observability.md](../../../easyinterview-tech-docs/04-metrics-observability.md) 与 [05-logging-standard.md](../../../easyinterview-tech-docs/05-logging-standard.md) 的有效历史 seed 中收敛当前代码与运维的可观测层。A2 只提供默认本地应用运行时、应用 `/metrics` 与容器日志出口，不默认提供 OTel Collector / Grafana / Loki / Prometheus。
+
+`easyinterview-tech-docs/04` 与 `05` 只保留为历史 metrics / logging 输入。当前 metric、label、log、trace、dashboard 和 alerting 可执行契约由本 spec、F1 后续编码 truth source 与 product-scope v1.4 决定；旧 `mistake_*` 指标、旧 Growth 漏斗和旧业务域列表不得作为实现依据恢复。
 
 本 spec 由 [001-decompose-subspecs Phase 3.4](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 锁定为 **W1 spec-contract lock**：parent phase 先固定 baseline 指标命名约定（Prometheus / OTel label / log 字段 / span attributes）。这是为了让 W2 多个 child（C1-C8 + D 域 + F2 / E1）在落地时不偷偷各自取名；真实 helper、lint、dashboard 与 alerting rules 由 F1 child `001` plan 验证。
 
@@ -14,8 +16,8 @@
 
 1. **指标命名约定锁定**：Counter `*_total` / Histogram `*_duration_seconds` / Gauge `*_in_flight|*_queue_depth` 命名规则，allowed labels 与 forbidden labels 清单（见 §3.1.1）冻结。
 2. **OTel / metrics 接入框架**：API / Worker / Frontend 暴露 `/metrics` 与 OTel SDK 初始化点；生产或可选观测环境再接 OTel Collector / Prometheus / Loki / Sentry（trace backend P0 不锁，留接口）。
-3. **日志字段约束**：[05-logging-standard.md §4](../../../easyinterview-tech-docs/05-logging-standard.md#4-必填字段) 中 7 个分类的字段集落到 Go logger middleware；明文红线见 [05 §5.1](../../../easyinterview-tech-docs/05-logging-standard.md#51-绝对禁止进入应用日志)。
-4. **5 个 dashboard baseline**：[04 §12](../../../easyinterview-tech-docs/04-metrics-observability.md#12-dashboard-建议) 列出的 5 个 dashboard（业务漏斗 / API & Session Health / Report Pipeline / AI Cost & Quality / Privacy & Compliance）在 W4 末完整接齐；W1 baseline 仅交付命名约定 + 接入框架。
+3. **日志字段约束**：从 [05-logging-standard.md §4](../../../easyinterview-tech-docs/05-logging-standard.md#4-必填字段) 的有效历史 seed 收敛字段集并落到 Go logger middleware；明文红线见 [05 §5.1](../../../easyinterview-tech-docs/05-logging-standard.md#51-绝对禁止进入应用日志)，当前执行口径以本 spec / F1 tooling 为准。
+4. **5 个 dashboard baseline**：从 [04 §12](../../../easyinterview-tech-docs/04-metrics-observability.md#12-dashboard-建议) 的有效历史 seed 收敛 5 个 dashboard（业务漏斗 / API & Session Health / Report Pipeline / AI Cost & Quality / Privacy & Compliance）并在 W4 末完整接齐；W1 baseline 仅交付命名约定 + 接入框架。
 
 本 spec 不实现具体业务指标埋点（归各 C / D / F2 域）、不部署生产观测后端（归 [E4 `release-gate-and-rollout`](../engineering-roadmap/spec.md#55-layer-e--integration4-份) + 运维）、不写产品分析事件（归 [F2 `analytics-funnel`](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份)）。
 
@@ -91,7 +93,7 @@
 | AI | `ai_output_validation_failures_total` | Counter | task_type,provider,model_family |
 | AI | `ai_fallback_total` | Counter | task_type,from_model_family,to_model_family,result |
 
-业务域（target / practice / report / mistake / resume / debrief / privacy）指标按 [04 §7](../../../easyinterview-tech-docs/04-metrics-observability.md#7-业务域指标) 列表由各 C 域在自己的 plan 中接入；F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `mistake_` / `resume_` / `debrief_` / `privacy_`）。
+业务域（target / practice / report / resume / debrief / privacy）指标由各 C 域在自己的 plan 中接入；[04 §7](../../../easyinterview-tech-docs/04-metrics-observability.md#7-业务域指标) 仅作历史 seed。F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `resume_` / `debrief_` / `privacy_`）；独立 `mistake_` / `growth_` 前缀不得恢复。
 
 ### 3.2 待确认事项
 

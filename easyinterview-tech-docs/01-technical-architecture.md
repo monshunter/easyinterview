@@ -1,5 +1,9 @@
 # 01. 技术架构
 
+> **状态**: historical-input
+> **更新日期**: 2026-05-03
+> **执行边界**: 本文件是旧产品 spec 阶段的历史架构输入，不是当前模块、路由、API、DB、事件或指标的可执行真理源。当前工程拆分以 `docs/spec/engineering-roadmap/spec.md` 为准，当前产品范围以 `docs/spec/product-scope/spec.md` 和 `docs/ui-design/` 为准，当前编码契约以 Layer B/F spec 与对应 truth source 为准。
+
 ## 1. 目标与范围
 
 本架构面向 easyinterview 的 P0 / P1 阶段，围绕以下主链路落地：

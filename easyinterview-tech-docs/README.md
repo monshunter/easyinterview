@@ -1,6 +1,24 @@
 # easyinterview 技术实施文档包（P0 / P1）
 
-本目录基于产品 spec 的 P0 / P1 主链路整理，面向前后端分离实现落地。文档目标不是复述产品需求，而是把需求收敛成一套可以直接进入开发、联调、评审和上线治理的技术约束。
+> **状态**: historical-input
+> **更新日期**: 2026-05-03
+> **执行边界**: 本目录是 2026-04-26 基于旧产品 spec 整理的历史技术输入，尚未按 `docs/spec/product-scope/spec.md` v1.4、`docs/ui-design/` 和当前 `ui-design/` 静态原型全量重写。它不得作为当前 API、DB、事件、指标、路由或产品模块的可执行真理源。
+
+本目录保留用于考古和解释早期技术假设。当前可执行契约以以下文件为准：
+
+- 产品范围：`docs/spec/product-scope/spec.md`
+- UI / 交互：`docs/ui-design/` 与 `ui-design/`
+- OpenAPI：`openapi/openapi.yaml` 与 `docs/spec/openapi-v1-contract/spec.md`
+- 共享枚举 / 错误码 / ID：`shared/conventions.yaml` 与 `docs/spec/shared-conventions-codified/spec.md`
+- 内部事件 / job：`shared/events.yaml`、`shared/jobs.yaml` 与 `docs/spec/event-and-outbox-contract/spec.md`
+- 数据库：`migrations/` 与 `docs/spec/db-migrations-baseline/spec.md`
+- 可观测性：`docs/spec/observability-stack/spec.md`
+
+本目录仍包含旧 `mistakes` / `growth` / `warmup` / `single_drill` / `counter_questions`、旧 36 endpoint / 14 tag、旧 27 应用表、旧 18 event 等已经被当前产品 spec 和 Layer B/F contract 修订或删除的内容。若本目录与上述当前真理源冲突，一律以后者为准；不得绕过 Layer B/F 的编码 truth source 直接按本目录实施。
+
+以下原文仅作为历史背景保留。
+
+本目录基于早期产品 spec 的 P0 / P1 主链路整理，面向前后端分离实现落地。文档目标不是复述产品需求，而是把需求收敛成一套可以直接进入开发、联调、评审和上线治理的技术约束。
 
 ## 文档清单
 
@@ -37,34 +55,34 @@
 - 可观测性：**OpenTelemetry + Prometheus + Grafana + Loki / ELK + Sentry**。
 - 日志：**结构化 JSON 日志**，禁止把原始简历、原始 JD、完整用户回答直接写入应用日志。
 
-## 使用顺序
+## 历史阅读顺序（非当前实施顺序）
 
-建议按下面顺序进入实施：
+下面顺序只用于理解 2026-04-26 旧技术包的内部依赖，不再用于当前实施排期或契约生成。当前实施必须先读取 `docs/spec/product-scope/spec.md`、`docs/ui-design/` 与 Layer B/F active spec，再以 `openapi/`、`shared/`、`migrations/`、`config/` 等已编码 truth source 为准。
 
-1. 先确认 `00-shared-conventions.md`，尤其是：
+1. 可先阅读 `00-shared-conventions.md`，了解历史命名、ID、错误码和枚举背景；当前枚举 / 错误码以 `shared/conventions.yaml` 与 `docs/spec/shared-conventions-codified/spec.md` 为准。
    - JSON 命名、DB 命名、事件命名
    - ID 规范
    - 枚举值
    - 错误码
    - 版本化要求
 
-2. 再以 `02-api-definition.md` 为联调主文档，产出 OpenAPI。
+2. `02-api-definition.md` 只能作为历史 API 输入；当前联调契约以 `docs/spec/openapi-v1-contract/spec.md` 与 `openapi/openapi.yaml` 为准。
 
-3. 后端根据 `03-db-definition.md` 建模与迁移，前端根据 `02-api-definition.md` 生成 SDK 和类型。
+3. `03-db-definition.md` 只能作为历史 DB 输入；当前迁移、表数量、字段和索引以 `docs/spec/db-migrations-baseline/spec.md` 与 `migrations/` 为准。
 
-4. 上线前补齐 `04-metrics-observability.md` 与 `05-logging-standard.md` 的埋点、日志、告警。
+4. `04-metrics-observability.md` 与 `05-logging-standard.md` 只能作为历史观测输入；当前 metric / log / dashboard 契约以 `docs/spec/observability-stack/spec.md` 和后续 F1 编码 truth source 为准。
 
-5. Worker / 异步逻辑按 `06-event-contracts.md` 与 `01-technical-architecture.md` 实现。
+5. `06-event-contracts.md` 与 `01-technical-architecture.md` 只能作为历史异步和架构输入；当前事件 / job / outbox 契约以 `docs/spec/event-and-outbox-contract/spec.md`、`shared/events.yaml` 与 `shared/jobs.yaml` 为准。
 
-## 本包覆盖范围
+## 本包历史覆盖范围
 
-本包以 P0 必做、P1 可兼容扩展为目标，重点覆盖以下主链路：
+本包曾以旧版 P0/P1 设想为目标，覆盖过以下主链路；其中已被当前产品 spec 与 UI 删除的模块不得从本包恢复为实现范围：
 
 - JD 导入 / 解析
 - 目标岗位工作台
 - 模拟面试计划 / 会话 / 逐题事件
 - 报告生成
-- 错题本与复练
+- 错题本与复练（已删除独立错题本模块；当前只保留报告内题目回顾与本轮复练）
 - 简历定制
 - 真实面试复盘
 - 数据导出 / 删除请求

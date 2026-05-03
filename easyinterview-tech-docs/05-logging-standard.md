@@ -1,5 +1,9 @@
 # 05. 日志规范（Logging Standard）
 
+> **状态**: historical-input
+> **更新日期**: 2026-05-03
+> **执行边界**: 本文件是旧产品 spec 阶段的日志输入。当前日志字段、明文红线和实现 gate 以 `docs/spec/observability-stack/spec.md`、`docs/spec/ai-gateway-and-model-routing/spec.md`、`docs/spec/db-migrations-baseline/spec.md` 与实际 lint / helper 为准；本文件只能作为早期字段集参考。
+
 ## 1. 目标
 
 日志的目标不是“尽量多打”，而是：

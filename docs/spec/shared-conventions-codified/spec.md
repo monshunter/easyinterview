@@ -1,6 +1,6 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -8,13 +8,13 @@
 
 [engineering-roadmap spec §5.2](../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0) 把 B1 `shared-conventions-codified` 列为 Layer B · Contract 的入口 child（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它是 Wave 0 必须落地的两份 spec 之一，决定了：
 
-- [00-shared-conventions.md](../../../easyinterview-tech-docs/00-shared-conventions.md) 的命名 / ID / 时间 / 枚举 / 错误码 / 异步 Job 约定如何在代码层成为强约束；
+- 将 [00-shared-conventions.md](../../../easyinterview-tech-docs/00-shared-conventions.md) 中仍有效的历史命名 / ID / 时间 / 错误码约定迁移到代码层；当前共享枚举和错误码以 `shared/conventions.yaml` 与本 spec 为准；
 - 后端 Go 与前端 TypeScript 在没有 OpenAPI codegen（B2）之前已经能共享的最小类型集合；
 - 后续 child（B2 `openapi-v1-contract` / C 全域 / D 全域）在自己的 plan 中只能引用本 spec 已锁定的 enum / error code / id 工具，不允许私造同义字符串。
 
 目标是：
 
-1. **真理源即代码**：把 00-shared-conventions.md 中的 13 个 §5 小节 / 14 个生成枚举类型、6 个已记录错误码示例、A3 授权追加的 3 个 `AI_*` 错误码、ADR-Q6 授权的 Model Profile / AI meta 字段名共享 vocabulary、ID 规则、时间规则、金额规则同时落到 Go（`backend/internal/shared/types/`）与 TypeScript（`frontend/src/lib/conventions/`）。
+1. **真理源即代码**：把历史 00 文档中仍有效的基础约定，以及 product-scope v1.4 / UI scope 修订后的 14 个生成枚举类型、6 个已记录错误码示例、A3 授权追加的 3 个 `AI_*` 错误码、ADR-Q6 授权的 Model Profile / AI meta 字段名共享 vocabulary、ID 规则、时间规则、金额规则同时落到 Go（`backend/internal/shared/types/`）与 TypeScript（`frontend/src/lib/conventions/`）。
 2. **跨语言对齐**：Go 与 TS 类型必须共用同一份枚举 / 错误码源（YAML 或 JSON），由本 spec 唯一的 generator 在两侧吐出代码。
 3. **lint 强约束**：`UPPER_SNAKE_CASE` 错误码、`lower_snake_case` 枚举值、`camelCase` JSON tag 通过本地 lint 门禁拦截，而不是依赖代码 review。
 4. **monorepo 名称锁定**：在落地任何业务代码前，先把 `go.mod` 名称、`package.json` 名称、pnpm workspace（如启用）拓扑、共享 lib 目录定下来，避免 W2 多个 child 各自重命名雪球。
@@ -56,10 +56,10 @@
 | D-3 | TS 包管理 | pnpm workspace（启用 `pnpm-workspace.yaml`），前端 package 名 `@easyinterview/frontend` | A2 `local-dev-stack` 与 B2 `openapi-v1-contract` 默认沿用 |
 | D-4 | UUID 算法 | UUIDv7（含时序），与 [00-shared-conventions.md §2.2](../../../easyinterview-tech-docs/00-shared-conventions.md#22-id-规则) 对齐；前端临时 id 使用 `tmp_<uuidv4>` | 所有业务主键由 idx 工具生成；不允许 NewV4 直接用作 DB id |
 | D-5 | 错误码命名 | `UPPER_SNAKE_CASE`，前缀按 domain：`AUTH_*` / `TARGET_*` / `PRACTICE_*` / `REPORT_*` / `RESUME_*` / `PRIVACY_*` / `AI_*` / `RATE_LIMITED` / `VALIDATION_FAILED` | 任何非前缀错误码必须由本 spec 修订决定；business code 直接 import 常量；A3 已授权 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED` 三个 baseline code |
-| D-6 | 枚举值书写 | `lower_snake_case`；TS 用 union string literal，Go 用 named string + 常量集 | 严格覆盖 00-shared-conventions §5 的 13 个小节；§5.13 同时包含隐私请求 type/status 两个并行字段，因此生成 14 个枚举类型 |
+| D-6 | 枚举值书写 | `lower_snake_case`；TS 用 union string literal，Go 用 named string + 常量集 | 覆盖 `shared/conventions.yaml` 当前 14 个生成枚举类型；[00-shared-conventions.md §5](../../../easyinterview-tech-docs/00-shared-conventions.md#5-枚举目录) 仅作为历史 seed，不得反向恢复已删除的旧枚举 |
 | D-7 | `ApiError` inner object 归属 | `shared/conventions.yaml#structures.ApiError` 表示错误响应 envelope 内部的 `error` 对象（`code` / `message` / `requestId` / `retryable` / `details`），不表示外层 `{error: ...}` envelope；Go 侧 canonical 类型是手写 `backend/internal/shared/errors.APIError` + generated `errors.AllCodes`，TS 侧 canonical 类型是 generated `frontend/src/lib/conventions.ApiError` | B2 OpenAPI 必须把 wire response body 建模为 `ApiErrorResponse` envelope，并在 envelope 内 `$ref` B1 `ApiError` inner object；不得把 Go 侧误写为 `sharedtypes.ApiError` |
 | D-8 | AI shared vocabulary 归属 | B1 提供 `AI_*` 错误码、Model Profile 字段名、AI meta 字段名常量或生成类型；A3 提供 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 填充与 OpenAI-compatible provider adapter；A4 校验 `AI_GATEWAY_*` 连接参数 | 避免 B1/A3/B4/F1 对同一 AI 字段私造名称；同时避免把运行时或连接配置误下沉到 shared conventions |
-| D-9 | 当前 UI 产品范围下的练习 / 报告枚举 | `PracticeMode = assisted / strict / debrief_replay`；`PracticeGoal = baseline / retry_current_round / next_round / debrief`；原 `MistakeStatus` 改为 `QuestionReviewStatus = open / queued_for_retry / resolved` | 对齐 product-scope v1.2 与 `docs/ui-design`：移除热身、单题深钻、反问专练、独立错题本和独立成长中心；报告内部题目回顾与本轮复练仍保留 |
+| D-9 | 当前 UI 产品范围下的练习 / 报告枚举 | `PracticeMode = assisted / strict / debrief_replay`；`PracticeGoal = baseline / retry_current_round / next_round / debrief`；原 `MistakeStatus` 改为 `QuestionReviewStatus = open / queued_for_retry / resolved` | 对齐 product-scope v1.4 与 `docs/ui-design`：移除热身、单题深钻、反问专练、独立错题本和独立成长中心；报告内部题目回顾与本轮复练仍保留 |
 
 ### 3.2 待确认事项
 
@@ -70,7 +70,7 @@
 
 ### 4.1 真理源约束
 
-- `shared/conventions.yaml` 是 [00-shared-conventions.md](../../../easyinterview-tech-docs/00-shared-conventions.md) 在代码侧的唯一镜像；任何 enum / error code / job status 新增必须先改 00 文档（或在 spec history 中说明授权扩展），再由本 spec 同步到 YAML。
+- `shared/conventions.yaml` 是当前共享枚举、错误码、ID、分页、错误 envelope 和 AI shared vocabulary 的可执行真理源；[00-shared-conventions.md](../../../easyinterview-tech-docs/00-shared-conventions.md) 仅作为历史输入。任何 enum / error code / job status 新增必须先修订本 spec（或对应 owner spec），再同步到 YAML 和生成代码；不得反向以 00 历史文档恢复已删除的旧枚举。
 - generator 必须保持 idempotent：同一份 YAML 多次生成产出完全一致的 Go / TS 文件；当前通过本地 `make codegen-check` 或 `git diff --exit-code` 校验未漂移。
 
 ### 4.2 命名约束
@@ -122,6 +122,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-03 | 1.8 | 将 `easyinterview-tech-docs/00` 降级为历史输入，明确当前共享约定以 `shared/conventions.yaml` 与本 spec 为准；新增枚举 / 错误码不再要求先改 00 历史文档。 | docs-only |
 | 2026-05-03 | 1.7 | 对齐 product-scope v1.2 / UI scope：练习入口枚举从旧模式卡片改为会话内 `assisted` / `strict`，复练目标改为 `retry_current_round` / `next_round`，并把旧 `MistakeStatus` 收敛为报告内部 `QuestionReviewStatus`。 | 001-bootstrap Phase 5 remediation |
 | 2026-04-29 | 1.6 | 物化 `002-codegen-pipeline` 为 active：范围限定为 A3 AI vocabulary、跨语言 drift/parity 与本地 codegen-check 接入；F3 prompt bridge 与远端 CI 仅保留 future handoff。 | 002-codegen-pipeline |
 | 2026-04-29 | 1.5 | 按 ADR-Q6 authoritative 边界补齐 AI shared vocabulary：B1 只拥有 `AI_*` 错误码与 Model Profile / AI meta 字段名常量或生成类型；A3 继续拥有 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 与 provider adapter，A4/E4 负责连接参数与 endpoint。 | plan-review remediation |

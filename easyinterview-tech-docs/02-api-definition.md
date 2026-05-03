@@ -1,5 +1,9 @@
 # 02. API 定义（REST / JSON）
 
+> **状态**: historical-input
+> **更新日期**: 2026-05-03
+> **执行边界**: 本文件是旧产品 spec 阶段的 API 输入，不是当前 HTTP contract。当前 API 以 `openapi/openapi.yaml`、`openapi/fixtures/` 和 `docs/spec/openapi-v1-contract/spec.md` 为准；本文件中的旧 `Mistakes` / `Growth` endpoint、Bearer 鉴权默认值、旧练习模式和旧 schema 不得作为实现依据。
+
 ## 1. 概览
 
 - 基础路径：`/api/v1`

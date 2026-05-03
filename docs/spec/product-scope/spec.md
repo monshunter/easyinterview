@@ -1,6 +1,6 @@
 # Product Scope Spec
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -41,7 +41,7 @@
 | 产品范围 | 本文档 | 用户、JTBD、P0/P1/P2/P3 边界、非目标、质量和伦理红线 |
 | UI / 交互 | `docs/ui-design/` + `ui-design/` | 当前静态 UI、一级导航、页面职责、目标路由、视觉和交互目标 |
 | 工程拆分 | `docs/spec/engineering-roadmap/spec.md` | child subspec、wave、依赖 DAG、mock-first 集成策略 |
-| 技术契约 | `docs/spec/*`、`openapi/`、`shared/`、`migrations/`、`easyinterview-tech-docs/` | API、DB、事件、共享枚举、AI 网关、可观测性等工程约束 |
+| 技术契约 | Layer B/F active spec + 已编码 truth source（`openapi/`、`shared/`、`migrations/`、`config/`） | API、DB、事件、共享枚举、AI 网关、可观测性等工程约束；`easyinterview-tech-docs/` 仅为历史技术输入 |
 | 历史参考 | `easyinterview-spec-v1-0.md` | 旧版产品愿景和历史取舍，不再作为当前 active truth source |
 
 当文档出现冲突时，产品范围以本文档为准，UI 具体交互以 `docs/ui-design/` 为准，工程落地路径以对应 child spec / plan 为准。若工程 roadmap 与本文档出现阶段漂移，必须先通过 `/plan-review` 或新的设计修订对齐，再进入 `/implement`。
@@ -682,7 +682,7 @@ P0 质量评估必须覆盖三类指标：
 - 历史产品输入：[easyinterview-spec-v1-0.md](../../../easyinterview-spec-v1-0.md)，状态为 superseded，仅作历史参考。
 - UI 真理源：[docs/ui-design/README.md](../../ui-design/README.md)、[docs/ui-design/ui-architecture.md](../../ui-design/ui-architecture.md)、[docs/ui-design/module-map.md](../../ui-design/module-map.md)。
 - 工程 roadmap：[docs/spec/engineering-roadmap/spec.md](../engineering-roadmap/spec.md)。
-- 技术输入包：[easyinterview-tech-docs/README.md](../../../easyinterview-tech-docs/README.md)。
+- 历史技术输入：[easyinterview-tech-docs/README.md](../../../easyinterview-tech-docs/README.md)，状态为 historical-input，不作为当前 API / DB / event / metrics 的执行真理源。
 - OpenAPI 契约：[docs/spec/openapi-v1-contract/spec.md](../openapi-v1-contract/spec.md)。
 - Prompt / Rubric：[docs/spec/prompt-rubric-registry/spec.md](../prompt-rubric-registry/spec.md)。
 

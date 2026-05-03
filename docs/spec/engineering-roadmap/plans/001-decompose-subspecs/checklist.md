@@ -27,9 +27,9 @@
 
 - [x] 3.1 并行 spawn 9 份 spec（A2 / A3 / A4 / A5 / B2 / B3 / B4 / F1 / F3），仅写 spec.md + history，**不写 impl plan**
 - [x] 3.2 完成 parent-level W1 cross-spec review：核对 9 份 W1 spec 的 boundary / ownership / ADR-Q1..Q6 继承 / truth-source 引用；本项不声称 9 个 child 已各自拥有独立 plan/context 或已逐个通过 `/plan-review`，child impl plan 必须在逐一核对对应 spec 后再创建
-- [x] 3.3 B2 `openapi-v1-contract` 完成当时的 spec-contract lock：v1.0.0 freeze 清单 / additive-only 规则 / privacy export 501 例外已写入 spec；该历史 lock 后续已由 B2 `001` / `002` / `003` 按 product-scope v1.2 原地收敛为当前 12 tag / 34 operation 可执行 contract（含 `DELETE /api/v1/me`，不含独立 `Mistakes` / `Growth`）
+- [x] 3.3 B2 `openapi-v1-contract` 完成当时的 spec-contract lock：v1.0.0 freeze 清单 / additive-only 规则 / privacy export 501 例外已写入 spec；该历史 lock 后续已由 B2 `001` / `002` / `003` 按当前 product-scope / UI 原地收敛为当前 12 tag / 34 operation 可执行 contract（含 `DELETE /api/v1/me`，不含独立 `Mistakes` / `Growth`）
 - [x] 3.4 F1 `observability-stack` 完成 spec-contract lock：baseline metric 命名、allowed labels、forbidden labels、log 明文红线、dashboard 名称与健康检查契约已写入 spec；helper / lint / dashboard / alerting 实现由 F1 后续 `001` plan 验证
-- [x] 3.5 F3 `prompt-rubric-registry` 完成 spec-contract lock：13 个 P0 feature_key、`(feature_key, version, language)` 坐标、Resolve 调用契约、prompt/rubric 文件落点已写入 spec；baseline prompt/rubric 文件与 loader 由 F3 后续 `001` plan 验证
+- [x] 3.5 F3 `prompt-rubric-registry` 完成当时的 spec-contract lock：feature_key、`(feature_key, version, language)` 坐标、Resolve 调用契约、prompt/rubric 文件落点已写入 spec；该历史 lock 后续已由 F3 spec 按 product-scope v1.4 收敛为当前 12 个 baseline feature_key，不含独立 `mistake.extract`；baseline prompt/rubric 文件与 loader 由 F3 后续 `001` plan 验证
 - [x] 3.6 A2 `local-dev-stack` 完成 spec-contract lock：最小本地依赖（Postgres+pgvector / Redis / MinIO）、项目组件启动语义、`make dev-*` 行为契约、JSON 健康检查口径已写入 spec；`deploy/dev-stack/docker-compose.yaml` 与真实 `make dev-up` 一键健康检查由 A2 后续 `001` plan 验证
 - [x] 3.7 A5 `ci-pipeline-baseline` 完成 spec-contract 修订：当前个人单人开发阶段只保留本地质量门禁，远端 CI pipeline / branch protection / required checks / artifact / nightly / CI secret 延后到触发条件出现后再建
 

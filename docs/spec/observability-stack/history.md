@@ -1,6 +1,6 @@
 # Observability Stack History
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-03 | 1.4 | 将 `easyinterview-tech-docs/04` / `05` 降级为历史 metrics / logging 输入；当前观测契约由本 spec、F1 后续编码 truth source 与 product-scope v1.4 决定，并从业务域 metric 前缀中移除独立 `mistake_` / `growth_`。 | docs-only |
 | 2026-05-03 | 1.3 | 对齐 product-scope v1.2：metric 命名示例移除旧 `mistake_entries` 表语义，改为报告生成相关示例；不恢复独立错题本 / 成长中心指标口径。 | docs consistency remediation |
 | 2026-04-27 | 1.2 | 对齐 A2 local-dev-stack v1.2：F1 消费默认本地环境提供的应用 `/metrics` 与容器日志；OTel Collector / Grafana / Loki / Prometheus 仅作为 F1/E4 可选观测或生产部署路径，不再要求 A2 默认 `make dev-up` 提供。 | local-dev-stack/001-bootstrap review remediation |
 | 2026-04-27 | 1.1 | 修正 baseline metric label contract：将 `operation`、`from_model_family`、`to_model_family` 纳入有界 allowed labels；禁止原始 model id / `from_model` / `to_model` 进入 metric；`ai_fallback_total` 改用 model family label，避免 baseline metric 与 lint 规则互相冲突 | engineering-roadmap/001 Phase 3 remediation |

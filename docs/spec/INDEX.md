@@ -10,8 +10,8 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [product-scope](./product-scope/spec.md) | 1.3 | active | 2026-05-03 | [plans](./product-scope/plans/) |
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 2.3 | active | 2026-05-03 | [plans](./engineering-roadmap/plans/) |
+| [product-scope](./product-scope/spec.md) | 1.4 | active | 2026-05-03 | [plans](./product-scope/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 2.4 | active | 2026-05-03 | [plans](./engineering-roadmap/plans/) |
 
 ## 2 P0 MVP（Wave 0–5）
 
@@ -29,10 +29,10 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.7 | active | 2026-05-03 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.9 | active | 2026-05-03 | [plans](./openapi-v1-contract/plans/) |
-| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 1.5 | active | 2026-05-03 | [plans](./event-and-outbox-contract/plans/) |
-| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.7 | active | 2026-05-03 | [plans](./db-migrations-baseline/plans/) |
+| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.8 | active | 2026-05-03 | [plans](./shared-conventions-codified/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.10 | active | 2026-05-03 | [plans](./openapi-v1-contract/plans/) |
+| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 1.6 | active | 2026-05-03 | [plans](./event-and-outbox-contract/plans/) |
+| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.8 | active | 2026-05-03 | [plans](./db-migrations-baseline/plans/) |
 
 ### 2.3 Layer C · Backend（P0）
 
@@ -71,9 +71,9 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [observability-stack](./observability-stack/spec.md) | 1.3 | active | 2026-05-03 | [plans](./observability-stack/plans/) |
+| [observability-stack](./observability-stack/spec.md) | 1.4 | active | 2026-05-03 | [plans](./observability-stack/plans/) |
 | analytics-funnel（待 W2 spawn） | – | _pending_ | – | – |
-| [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 1.3 | active | 2026-04-29 | [plans](./prompt-rubric-registry/plans/) |
+| [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 1.4 | active | 2026-05-03 | [plans](./prompt-rubric-registry/plans/) |
 
 ## 3 P1 Beta
 

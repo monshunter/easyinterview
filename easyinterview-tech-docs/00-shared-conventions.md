@@ -1,5 +1,9 @@
 # 00. 全局统一约定（Shared Conventions）
 
+> **状态**: historical-input
+> **更新日期**: 2026-05-03
+> **执行边界**: 本文件是旧产品 spec 阶段的历史技术输入，不是当前共享枚举、错误码、ID 或异步 job 的可执行真理源。当前实现以 `shared/conventions.yaml`、生成代码和 `docs/spec/shared-conventions-codified/spec.md` 为准；本文件中已删除的旧练习模式、错题本、成长中心等枚举不得恢复。
+
 ## 1. 目标
 
 本文件定义前端 TypeScript、后端 Go、数据库 PostgreSQL、内部事件与日志字段之间的统一约定。所有其它文档默认继承本文件，除非显式覆盖。

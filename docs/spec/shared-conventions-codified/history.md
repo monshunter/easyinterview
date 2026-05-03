@@ -1,6 +1,6 @@
 # Shared Conventions Codified History
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-03 | 1.8 | 将 `easyinterview-tech-docs/00` 降级为历史输入，明确当前共享约定以 `shared/conventions.yaml` 与本 spec 为准；新增枚举 / 错误码不再要求先改 00 历史文档。 | docs-only |
 | 2026-05-03 | 1.7 | 对齐 product-scope v1.2 / UI scope：练习入口枚举从旧模式卡片改为会话内 `assisted` / `strict`，复练目标改为 `retry_current_round` / `next_round`，旧 `MistakeStatus` 收敛为报告内部 `QuestionReviewStatus`。 | 001-bootstrap Phase 5 remediation |
 | 2026-04-29 | 1.6 | 物化 `002-codegen-pipeline` 为 active：补齐 A3 触发的 AI shared vocabulary、跨语言 drift/parity 与本地 codegen-check 接入；F3 prompt bridge 与远端 CI drift detection 仅保留 future handoff。 | [002-codegen-pipeline](./plans/002-codegen-pipeline/plan.md) |
 | 2026-04-29 | 1.5 | 按 ADR-Q6 authoritative 边界补齐 AI shared vocabulary：B1 只拥有 `AI_*` 错误码与 Model Profile / AI meta 字段名常量或生成类型；A3 继续拥有 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 与 provider adapter，A4/E4 负责连接参数与 endpoint。 | plan-review remediation |
