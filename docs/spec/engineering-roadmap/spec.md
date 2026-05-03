@@ -1,252 +1,201 @@
 # Engineering Roadmap Spec
 
-> **版本**: 2.4
+> **版本**: 3.0
 > **状态**: active
 > **更新日期**: 2026-05-03
 
 ## 1 背景与目标
 
-easyinterview 已沉淀三类输入资产：
+`engineering-roadmap` 曾承担一次性拆出 38 个 child subspec、按 W0-W5 wave 逐步 spawn 的顶层规划职责。随着 `docs/spec/product-scope/spec.md`、`docs/ui-design/` 与 `ui-design/` 在 2026-05-03 收敛，旧 roadmap 的几个假设已经不适合继续作为执行入口：
 
-- **产品真理源**：`docs/spec/product-scope/spec.md`，定义当前产品范围、P0–P3 阶段边界、当前 UI 模块取舍、评分 / 隐私 / 伦理红线；根目录 `easyinterview-spec-v1-0.md` 已退役为历史参考。
-- **技术真理源**：`easyinterview-tech-docs/00`–`06` 仅保留为 2026-04-26 旧产品 spec 阶段的历史技术输入，不再作为可执行契约。当前可执行契约以已编码 truth source 为准：B1 `shared/conventions.yaml`，B2 `openapi/openapi.yaml` / fixtures（34 endpoint / 12 tag），B3 `shared/events.yaml` + `shared/jobs.yaml`（16 个 internal event），B4 `migrations/`（26 张当前应用表 + 3 张 auth 支撑表 + 2 张迁移元数据表），F1/F2/F3 以各自 active spec / 后续编码 truth source 为准。
-- **UI 真理源**：`ui-design/`（CDN React + JSX 原型，28+ 屏，含 `canvas.html` 设计画板与 `src/app.jsx` 路由总览）。
+- 当前产品真理源明确：未被当前 UI / UI 文档保留、重定义或列为规划例外的旧能力默认已丢弃。
+- 当前 UI 一级入口只保留 `首页 / 岗位推荐 / 模拟面试 / 简历 / 复盘`，报告和语音都是上下文能力，不是一级模块。
+- `docs/spec/INDEX.md` 应投影真实存在的 spec，而不是承载大量 `_pending_` backlog 占位。
+- 已落地的 A/B/F 工程契约已经有 active spec 与编码 truth source，后续实现应直接引用这些真理源，而不是按旧 wave 重新生成空壳文档。
 
-工程体量大，若直接逐域开 spec 会出现：spec 边界不清、依赖不明、前后端缺契约层无法并行、mock-first 自验证缺统一 fixtures 源、横切关注点（observability / prompt registry / privacy）被分散埋没。
+因此，本 spec 重新定义 engineering roadmap 的职责：
 
-本 spec 不实现任何业务功能，只承担**项目分解与排期**这一项工程治理职责，目标是：
-
-1. 把整个工程拆成 ~38 份**边界清晰的 child subspec**，每个 child 都能由独立 owner 串行交付。
-2. 给出 child 之间的**依赖 DAG**与 6 个**实施 wave**的硬同步点，并显式排除当前产品真理源已丢弃的旧模块。
-3. 锁定**前后端 mock-first** 集成策略：契约 fixtures 同源、单元测试 stub provider 自验、E2E gate 触发真集成。
-4. 把 6 项历史悬而未决的技术方案（认证 / 异步编排 / 分析 / 云部署 / 隐私节奏 / AI 网关与模型路由）固定为 W0 hard gate，避免 W2 业务域反复 rebase。
+1. 固定当前产品、UI、契约和已编码资产之间的真理源关系。
+2. 保留仍有效的基础设施、契约和质量治理 spec，删除未创建 child 的 pending 索引模型。
+3. 给出当前 P0 MVP 闭环的实施地图和依赖顺序，只在真正进入设计或实现时创建对应 child spec / plan。
+4. 明确哪些旧规划、旧 route、旧模块和旧技术文档不得作为恢复功能的依据。
 
 ## 2 范围
 
 ### 2.1 In Scope
 
-- 38 份 child subspec 的命名、职责一行描述、上游依赖、阶段（P0/P1/P2）、估算 plan 数。
-- 6 层结构（A Foundation / B Contract / C Backend / D Frontend / E Integration / F Quality 横切）的边界与协作约束。
-- 6 个 wave 的同步点定义（W0–W5）与每个 wave 的准入 gate。
-- mock-first 集成策略：fixtures 来源、msw 注入、unit-test stub provider、3 次集成节点（W2 末 / W4 / W5）。
-- 6 项 W0 hard gate 决策清单与各自的默认值（默认值仅作为 ADR 起点，不锁结论）。
-- `docs/spec/INDEX.md` 与 `docs/work-journal/` 的同步约定。
+- 当前 active spec 与已编码 truth source 的工程边界。
+- 当前 P0 MVP 闭环的实施 workstream：JD 导入、岗位推荐、模拟面试规划、完整面试 session、报告 Dashboard、简历工坊、真实面试复盘、认证 / 设置 / 用户画像、mock / E2E / release gate。
+- 后续 child spec / plan 的创建规则、依赖顺序和质量门禁。
+- 已完成 ADR-Q1..Q6 的持续约束：认证、异步编排、分析平台、云部署、隐私节奏、AI 网关与模型路由。
+- `docs/spec/INDEX.md` 与 `plans/INDEX.md` 作为 Header 投影视图的治理规则。
 
 ### 2.2 Out of Scope
 
-- 任何 child subspec 的 spec.md / plan / checklist 的具体内容（由后续 wave 按本 spec 唯一的 plan 触发 spawn）。
-- 6 项 W0 决策的 ADR 正文（仅在本 spec §3 列出待决策项与默认值）。
-- 任何代码（含 `repo-scaffold` 的 makefile、`local-dev-stack` 的 docker-compose；这些归对应 child subspec 的 plan）。
-- 修改 `docs/spec/product-scope/spec.md` / `ui-design/` / `docs/ui-design/` / Layer B/F 编码 truth source（本 spec 只读引用；根目录 `easyinterview-spec-v1-0.md` 与 `easyinterview-tech-docs/` 仅为历史参考）。
-- 任何业务域级评估、性能基线、合规审计（归 Layer F 或对应业务 subspec）。
+- 不在本 spec 中编写具体 API schema、DB schema、事件 payload、prompt 文本、UI 组件代码或 BDD 场景脚本。
+- 不为尚未启动的 P1/P2 方向创建 draft spec、pending INDEX 行或空 plan。
+- 不恢复旧根 spec、旧技术包、旧 route、旧画板标签或历史组件中出现但当前产品 / UI 已丢弃的能力。
+- 不把 `easyinterview-tech-docs/` 当成可执行契约；它只保留为 2026-04-26 旧产品 spec 阶段的历史输入。
+- 不新增 sibling roadmap plan；本 subject 继续原地修订 `001-decompose-subspecs`。
 
 ## 3 用户决策 / 待确认事项
 
-### 3.1 已锁定决策（由 plan-mode 批准）
+### 3.1 已锁定决策
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | 顶层 subspec 目录名 | `engineering-roadmap` | 文件路径 / INDEX 标识 |
-| D-2 | 分层结构 | 6 层（A Foundation / B Contract / C Backend / D Frontend / E Integration / F Quality 横切） | child 总数 38；Layer F 横切自始并行 |
-| D-3 | 现有 UI 原型角色 | 作为 mock fixtures 与视觉真理源 | `src/data.jsx` 折成 OpenAPI fixtures；`screens-*.jsx` 为视觉/交互参考；前端 spec 用 React+TS 重做但保留 `ui-design/` 不动 |
-| D-4 | 6 项历史悬而未决方案 | 设为 W0 hard gate（每项产出 1 份 ADR） | W0 不出 ADR 则不进 W1 |
+| D-1 | 产品真理源 | `docs/spec/product-scope/spec.md` | child spec / plan 不能绕过产品范围恢复旧能力 |
+| D-2 | UI 真理源 | `docs/ui-design/` + `ui-design/` | 前端与端到端流程以当前静态 UI 和 UI 文档为准 |
+| D-3 | 技术契约真理源 | Layer B/F active spec + 已编码 truth source（`openapi/`、`shared/`、`migrations/`、`config/`） | 后续实现必须复用现有契约，不按旧技术包重新定义 API / DB / event / metrics |
+| D-4 | INDEX 语义 | `docs/spec/INDEX.md` 只记录真实存在的 spec | 删除 pending 占位；未 spawn 的 subject 只能在 roadmap 正文中作为候选 workstream 描述 |
+| D-5 | child 创建策略 | 只在进入设计或实现时创建 child spec / plan / checklist / context | 避免空 spec、僵尸 plan 和未审清的 P1/P2 占位 |
+| D-6 | 当前 P0 前端边界 | Home / Job Picks / Mock Interview / Practice Session / Report Dashboard / Resume / Debrief / User Menu | 不恢复 Welcome、Growth、Plan、Mistakes、Drill、Followup、Experiences、STAR 或独立 Voice 页面 |
+| D-7 | ADR-Q1..Q6 | 保留为 engineering-roadmap 的历史架构约束 | 后续推翻必须新增 superseding ADR，并同步本 spec |
 
-### 3.2 W0 已锁定决策（hard gate · 全部 accepted）
+### 3.2 ADR-Q1..Q6 当前约束
 
-6 项 W0 hard gate 在 2026-04-26 全部签字，ADR 固定落点 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md`，由本 roadmap subject 直接承接，不另起 sibling spec。本表只承载锁定结论与影响范围；推翻或升级的具体阈值见各 ADR §5「失效与修订条件」。
+| ID | 主题 | 当前结论 | 当前落地边界 |
+|----|------|----------|--------------|
+| Q-1 | 认证方案 | 自建 passwordless email magic link + first-party session cookie | 认证是操作级拦截；默认入口仍为 Home，登录成功恢复 `pendingAction` |
+| Q-2 | 异步编排 | Asynq + Redis + PG outbox | P0 异步任务服务 JD 解析、报告生成、简历处理、复盘分析和删除链路；不生成独立错题 / Drill 队列 |
+| Q-3 | 分析平台 | 自托管 PostHog，普通本地 dev 可 no-op / file-backed | 分析漏斗围绕导入 -> 规划 -> 练习 -> 报告 -> 复练 / 下一轮 -> 真实复盘 |
+| Q-4 | 云部署目标 | Kubernetes 作为 staging/prod 目标，本地开发走 A2 dev stack，Kind 只用于场景环境 | 部署自动化和 rollout gate 进入后续 release workstream |
+| Q-5 | 隐私节奏 | P0 删除-only；导出延后并以 501 / UI 占位解释 | 删除链路、audit 和 redaction 是 P0 gate；完整导出归后续隐私增强 |
+| Q-6 | AI 网关与模型路由 | 应用内 `AIClient` + Model Profile + OpenAI-compatible endpoint + unit-test stub | 业务代码只依赖 profile / feature_key，不 import 厂商 SDK |
 
-| ID | 决策项 | 锁定结论 | ADR | 影响 child subspec |
-|----|--------|----------|-----|-------------------|
-| Q-1 | 认证方案 | 自建 passwordless email magic link + first-party session cookie；OIDC / 托管 Auth 推迟到 P1 / 团队版触发条件出现 | [ADR-Q1](./decisions/ADR-Q1-auth.md) | C1 `backend-auth`、D1 `frontend-shell`、B2、B4、C8、F1、F4 |
-| Q-2 | 异步编排 | Asynq + Redis 作为唯一异步 runtime；PG outbox + dispatcher 进程；critical/default/low 三级队列；`email_dispatch` 作为 internal-only canonical jobType 支撑 magic link / 通知派发；Temporal 推迟到出现跨日 SLA / 多步补偿 | [ADR-Q2](./decisions/ADR-Q2-async-orchestration.md) | C8 `backend-async-runtime`、A2、B3、B4、C1、C4-C7、F1、A4 |
-| Q-3 | 分析平台 | 自托管 PostHog 作为唯一产品分析后端；不依赖 PostHog Cloud / Segment / Warehouse；F2 adapter 抽象、不入侵业务代码；feature flag 使用自托管 PostHog；部署方式由 F2 / E4 验证可运维路径，普通本地 dev 默认 no-op / file-backed mode | [ADR-Q3](./decisions/ADR-Q3-analytics-platform.md) | F2 `analytics-funnel`、D1、C8、A4、F4、E4、B1、F1、A2 |
-| Q-4 | 云部署目标 | Kubernetes（managed cluster；staging/prod；本地场景测试 = Kind）；普通本地开发走 A2 docker-compose；3 deployment + helm chart 与 `test/scenarios/` 同源；Kind 直连真实 AI provider endpoint，staging/prod 可指 cluster-internal AI Gateway；当前单人阶段不构建 CI pipeline，部署自动化归 E4 后续；ArgoCD/FluxCD/SOPS 等具体工具不锁定 | [ADR-Q4](./decisions/ADR-Q4-cloud-deploy-target.md) | A2、A5、E4、F1、A3、A4、`test/scenarios/` |
-| Q-5 | 隐私节奏 | P0 仅落地删除链路（24h SLA + 跨 17 表硬删 + audit）；导出延后到 P1；`POST /privacy/exports` 在 v1.0.0 freeze 中预留并返回 501；这是对产品 P0「删除与导出路径可用」验收项的 W0 例外，必须在 release gate 中显式记录 | [ADR-Q5](./decisions/ADR-Q5-privacy-cadence.md) | C12 `backend-privacy`、F4 `privacy-and-audit-runtime`、B2、B4、C8、D1、D6、F1、E4 |
-| Q-6 | AI 网关与模型路由 | 应用内 `AIClient` + Model Profile + unit-test stub provider；`AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 是 AIClient 的 OpenAI-compatible 连接参数，可指真实 LLM provider 或生产 gateway；fallback / cost cap / rate limit 归该 endpoint / gateway route 配置；业务零厂商 SDK 入侵 | [ADR-Q6](./decisions/ADR-Q6-ai-gateway-and-model-routing.md) | A3 `ai-gateway-and-model-routing`、A4、F1、F3、C4-C7、C9、C11、C14、E4、B1 |
+### 3.3 待确认事项
 
-ADR 推翻或升级时，新 ADR 显式标注 `supersedes: ADR-Q{n}-*.md`，本表对应行同步更新「锁定结论」与 ADR 链接。
-
-### 3.3 已知边界争议（在对应 child spec 中处理，非本 spec 决策）
-
-- C5 `backend-practice` 的 turn-light-review（同步轻量观察）是否独立成 child？默认仍归 C5 内部 plan；如果在 W3 体量超阈值再升格。
-- D3 `frontend-workspace-and-practice` 的内部拆分由 D3 自己的 plan 文档定义，但只能围绕 Mock Interview Plan、完整 Interview Session、会话内提示 / 严格模拟、公司轻情报和追问能力；不得恢复入口前模式卡片、追问树、单题 Drill 或 STAR 编辑器。
+| ID | 待确认事项 | 默认处理 |
+|----|------------|----------|
+| Q-R1 | P0 实现是否按前端先行还是后端先行切片 | 默认先做 mock-first：B2 fixtures -> E1 mock -> D1-D6 UI 集成，再切真后端 |
+| Q-R2 | 生产级语音是否提前进入 P0 | 默认不提前；P0 保留 UI 语音形式和显式入口，真实 STT、媒体留存、隐私开关归后续语音生产化 workstream |
+| Q-R3 | 全球多平台搜岗是否进入近期 roadmap | 默认不进入当前 MVP；只作为 product-scope 明确规划例外保留，另行设计数据源与合规边界 |
 
 ## 4 设计约束
 
-### 4.1 文档治理约束
+### 4.1 产品与 UI 约束
 
-- **Spec owns plan**：每个 child subspec 的 plan 必须挂在 `docs/spec/${child}/plans/` 之下；不得创建 `docs/plan/`。
-- **原地修订**：同主题后续修订优先原地更新原 spec 与原 plan，不创建 sibling bugfix/follow-up 目录。
-- **设计先行**：任何 child 进入 `/implement` 之前必须先有自己的 spec.md + 至少一个 plan + checklist + context.yaml。
-- **顺序执行**：默认串行 phase；并行只发生在不同 child subspec 之间（同一 wave 内）。
-- **Header 一致性**：每份 child 的 spec.md 与各 plan 的 plan.md / checklist.md Header 字段顺序固定（版本 / 状态 / 更新日期），状态枚举只取 `draft`/`active`/`completed`/`superseded`/`deprecated`。
+- P0 闭环必须围绕 `JD / 推荐岗位 -> 当前面试规划 -> 完整模拟面试 -> Report Dashboard -> 复练当前轮 / 进入下一轮 -> 真实面试复盘`。
+- 顶部导航只能出现当前 UI 真理源确认的五个一级入口。
+- `workspace` 的产品语义是当前模拟面试规划，不是旧 `当前岗位` 一级模块。
+- `practice` 是文本和语音面试共享的会话页面；语音面试只能通过 `practice?mode=voice&modality=voice` 或等价显式参数进入。
+- `report` 必须带 `sessionId` 或等价会话上下文；报告不作为一级导航或无上下文历史中心。
+- `debrief` 处理真实面试复盘，文本添加和语音添加共享同一份复盘记录。
+- 旧 `welcome`、`growth`、`plan`、`mistakes`、`drill`、`followup`、`experiences`、`star`、`resume`、`onboarding`、`voice` 不得作为独立目标模块恢复。
 
-### 4.2 真理源约束
+### 4.2 文档治理约束
 
-- 产品决策与不可逾越红线由 `docs/spec/product-scope/spec.md` 决定，child spec 不得与之冲突。
-- 技术契约由 Layer B/F 的 active spec 与已编码 truth source 决定；`easyinterview-tech-docs/00`–`06` 只能作为历史输入和早期命名/架构背景。child spec 禁止绕过 Layer B/F 的 contract 与 codegen 产物，直接按 `easyinterview-tech-docs` 中的旧 API、DB、event、metrics 或产品模块实施。
-- UI 视觉与交互由 `ui-design/canvas.html` 决定，前端 child spec 重做 React+TS 时可以重组件库但不得改变页面语义。
+- `docs/spec/INDEX.md` 只投影真实 `docs/spec/*/spec.md` Header，不保留 pending 行。
+- 任何同主题修订必须优先原地修改既有 spec / plan / checklist / context，不创建 sibling plan。
+- 尚未进入设计或实现的 P1/P2 能力不得提前创建空 spec、空 plans/INDEX 或 draft 占位。
+- 新增或修订代码逻辑 plan 必须写明 TDD 策略，并通过 `/implement` -> `/tdd` 执行。
+- 新增或修订用户可见 UI、API 行为、业务流程或端到端功能 plan 必须维护 BDD gate。
+- 删除旧规划时优先删除索引占位和死文档；仍作为历史证据的 completed plan 可保留，但正文必须明确它不是当前执行入口。
 
-### 4.3 mock-first 集成策略
+### 4.3 契约与 mock-first 约束
 
-- **前端 mock**：用 `msw`（Mock Service Worker）拦截 fetch；数据来源是 B2 OpenAPI 的 `fixtures/`（当前 12 tag / 34 operation）。**禁止前端 hardcode mock**。`ui-design/src/data.jsx` 折成 fixtures 的一个命名场景（`scenario: prototype-baseline`）。
-- **后端 AI 路由**：A3 `ai-gateway-and-model-routing` 必须交付 provider-neutral `AIClient`、Model Profile 配置、OpenAI-compatible provider/gateway route 与 unit-test `stub`。P0 业务代码只依赖 `AIClient` 与 profile name，不 import Higress SDK 或厂商 SDK；docker compose / Kind / staging / prod 通过 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 连接 AIClient 的 OpenAI-compatible endpoint（真实 LLM provider 或生产 gateway 均可），由 endpoint / gateway route 配置决定 provider / model / fallback / token rate limit。`stub` 输入→输出确定性映射（hash-based），可被 OpenAPI fixtures 反向喂养，但仅用于单元测试、离线契约测试或显式 mock 场景。
-- **集成节点**：
-  - **W2 末**（软集成）：前端从各自 fixtures 切到 E1 `mock-contract-suite`，前后端 mock 同源。
-  - **W4**（硬集成）：每个前端 child 的 `003-integration` plan 切到 W3 跑通的真后端，由 E2 `e2e-scenarios-p0` 担任 BDD-Gate。
-  - **W5**（上线集成）：staging 灰度 + 回滚演练，由 E4 `release-gate-and-rollout` 担任 gate。
-
-### 4.4 Layer F 横切约束
-
-- F1 `observability-stack`、F3 `prompt-rubric-registry` 必须从 W1 起就进入；W1 parent phase 先锁 F3 `feature_key + version` 契约，W2 业务域只有在 F3 child `001` 验证 baseline prompt / rubric 文件后才能引用 prompt id，任何阶段都不得在自己 spec 中 hardcode prompt 文本。
-- F2 `analytics-funnel` 在 W2 起步埋点 stub，不阻塞业务实现。
-- F4 `privacy-and-audit-runtime` 维持 P1 进入，与 C12 `backend-privacy` 协同；[ADR-Q5](./decisions/ADR-Q5-privacy-cadence.md) 锁定 P0 = 删除-only，C12 / F4 不升格 P0；P0 删除链路核心实现下沉到 C8 `backend-async-runtime` 的 `privacy_delete` public `jobType`（内部 Asynq handler 可映射为 `privacy.delete`）；audit_events / privacy_requests schema 在 W1 由 B4 / B1 锁定，W4 release-gate 校验删除 SLA 与 audit 完整性，并记录 P0 导出能力延后这一 W0 例外。
+- 前端 mock 数据来源必须是 B2 OpenAPI fixtures（当前 12 tag / 34 operation），禁止前端重新 hardcode product data truth source。
+- `ui-design/src/data.jsx` 只能作为 prototype-baseline 场景输入，不能越过 OpenAPI fixtures 直接驱动实现。
+- 后端 AI 调用必须通过 A3 `AIClient` 和 F3 prompt/rubric/model profile 契约。
+- 业务 spec 不得 hardcode prompt 正文、rubric 文本、模型名、厂商 SDK 或 feature flag 绕过 A3/A4/F3。
+- OpenAPI、events、migrations、feature flags 和 runtime config 的破坏性变更必须先修订对应 Layer B/A/F spec 与 drift gate。
 
 ## 5 模块边界
 
-本 spec 把工程拆成 6 层 38 份 child subspec。每个 child 是独立 spec 主题（`docs/spec/${child}/`），自己挂 plan 与 checklist。下表列出全集；child 内部 plan 数为估算上限。
+### 5.1 当前已存在的 active spec
 
-### 5.1 Layer A · Foundation（5 份，全部 P0）
+| 层级 | Subject | 当前职责 | 是否保留 |
+|------|---------|----------|----------|
+| 顶层 | `product-scope` | 产品范围、阶段边界、丢弃规则和质量红线 | 保留 |
+| 顶层 | `engineering-roadmap` | 当前实施地图、依赖顺序和文档治理 | 保留 |
+| Foundation | `repo-scaffold` | 仓库骨架、根 Makefile、hook 基础 | 保留 |
+| Foundation | `local-dev-stack` | 本地 dev stack、dev doctor、端口与健康检查契约 | 保留 |
+| Foundation | `ai-gateway-and-model-routing` | AIClient、model profile、OpenAI-compatible endpoint、stub provider | 保留 |
+| Foundation | `secrets-and-config` | 配置、secret、feature flag、runtime config 边界 | 保留 |
+| Foundation | `ci-pipeline-baseline` | 当前本地质量门禁，远端 CI deferred | 保留 |
+| Contract | `shared-conventions-codified` | Go/TS 共享枚举、错误码、ID、codegen / drift gate | 保留 |
+| Contract | `openapi-v1-contract` | 当前 34 endpoint / 12 tag OpenAPI + fixtures | 保留 |
+| Contract | `event-and-outbox-contract` | 当前 16 internal event、jobType、outbox 契约 | 保留 |
+| Contract | `db-migrations-baseline` | 当前 26 应用表 + auth / migration 支撑表 | 保留 |
+| Quality | `observability-stack` | metrics/log/trace/dashboard/alerting 命名和红线 | 保留 |
+| Quality | `prompt-rubric-registry` | 12 个 feature_key、prompt/rubric/model profile 治理 | 保留 |
 
-| ID | Subspec | 一行职责 | 上游依赖 | Plan 数 |
-|----|---------|---------|---------|---------|
-| A1 | `repo-scaffold` | monorepo 目录骨架（`backend/`、`frontend/`、`openapi/`、`migrations/`、`scripts/`、`shared/`、`config/` 等根容器）、根 makefile、git hooks、`.editorconfig`、`.tool-versions` | – | 1 |
-| A2 | `local-dev-stack` | docker-compose：Postgres+pgvector / Redis / MinIO + 当前项目可运行组件；`make dev-up` 一键启动本地环境 | A1 | 1 |
-| A3 | `ai-gateway-and-model-routing` | provider-neutral `AIClient` + Model Profile + OpenAI-compatible provider/gateway route + unit-test `stub` provider；本地部署直连真实 AI provider，Higress 等 AI Gateway 作为 staging/prod 独立部署组件接入 | A1 | 2 |
-| A4 | `secrets-and-config` | 配置分层（`.env.example` / `config.yaml` / env override）、secret manager 抽象、feature flag 文件源 | A1 | 1 |
-| A5 | `ci-pipeline-baseline` | 单人阶段的本地质量门禁（lint/test/build/docs/codegen check）；远端 CI pipeline、branch protection、artifact 延后 | A1, A2 | 1 |
+这些 spec 是当前 engineering roadmap 的基础层。若其中某个计划已完成，后续改动应在该 subject 原地修订，而不是从 roadmap 再 spawn 同主题 plan。
 
-### 5.2 Layer B · Contract（4 份，全部 P0）
+### 5.2 当前 P0 实施 workstream 候选
 
-| ID | Subspec | 一行职责 | 上游依赖 | Plan 数 |
-|----|---------|---------|---------|---------|
-| B1 | `shared-conventions-codified` | 把 `00-shared-conventions.md` 落到代码：Go types / TS types / ID 工具 / 错误码常量 / 枚举 / `UPPER_SNAKE_CASE` lint | A1 | 2 |
-| B2 | `openapi-v1-contract` | 34 endpoint 的 OpenAPI 3.1，`/api/v1/...`，12 tags，含 fixtures；前后端 codegen 入口 | B1 | 3 |
-| B3 | `event-and-outbox-contract` | 16 个 internal event envelope + payload schema，10 个 canonical jobType（含 internal-only `email_dispatch`），outbox 表 schema，dispatcher 协议 | B1 | 1 |
-| B4 | `db-migrations-baseline` | 26 张当前应用表 + 3 张 auth 支撑表 + 2 张迁移元数据表 + pgvector 扩展 + 索引；`golang-migrate` 选型、backfill ledger、AI call meta typed columns 与隐私删除表矩阵 | B1, A2 | 1 |
+以下 subject 尚未全部创建；它们是进入设计或实现时的候选边界，不进入 `docs/spec/INDEX.md` pending 占位。
 
-### 5.3 Layer C · Backend（14 份；P0:9 / P1:3 / P2:2）
+| Workstream | 建议 subject | 当前产品 / UI 范围 | 主要依赖 |
+|------------|--------------|-------------------|----------|
+| App shell + auth + settings | `frontend-shell`、`backend-auth` | TopBar、用户菜单、登录 / 注册 / 验证 / 退出、pendingAction、用户画像入口、设置与隐私 | A4、B1、B2、B4、ADR-Q1 |
+| Home / Job Picks / Parse | `frontend-home-job-picks-and-parse`、`backend-targetjob` | 首页 JD 导入、岗位推荐、解析确认、目标岗位 / JD / 轮次假设 | B2、B3、B4、A3、D1 |
+| Mock Interview + Practice | `frontend-workspace-and-practice`、`backend-practice` | 当前面试规划、简历绑定、公司轻情报卡片、完整文本 / 语音 session、带提示 / 严格模拟 | B2、B3、B4、A3、C4 |
+| Report Dashboard | `frontend-report-dashboard`、`backend-review` | 报告生成、上下文条、准备度、维度、题目回顾、复练当前轮 / 进入下一轮 | B2、B3、B4、A3、C5、F3 |
+| Resume Workshop | `frontend-resume-workshop`、`backend-resume`、`backend-upload` | 原始简历树、结构化主版本、岗位定制版本、创建/解析/确认、版本详情 | B2、B3、B4、A3、C2 |
+| Debrief | `frontend-debrief`、`backend-debrief` | 真实面试上下文选择、文本 / 语音共享记录、复盘分析、复盘面试 | B2、B3、B4、A3、C4、C6 |
+| Async runtime | `backend-async-runtime` | Asynq worker、outbox dispatcher、job retry、删除链路执行 | B3、B4、A2、ADR-Q2/Q5 |
+| Mock + E2E + release | `mock-contract-suite`、`e2e-scenarios-p0`、`analytics-funnel`、`release-gate-and-rollout` | fixture-backed mock、P0 主漏斗 BDD、产品漏斗、staging / rollback / SLO gate | B2、D1-D6、C4-C9、F1-F3 |
 
-业务域纵切（模块化单体）。每个 child 默认 3-5 个 plan：`spec-locked` / `contract-fragment`（贡献到 B2 切片）/ `impl` / `unit-test` / `mock-server`。后两个对纯 CRUD 域可合并。
+### 5.3 Future candidates（不自动 spawn）
 
-| ID | Subspec | 一行职责 | 上游依赖 | Plan 数 | 阶段 |
-|----|---------|---------|---------|---------|------|
-| C1 | `backend-auth` | auth + session + `/me` + 用户上下文中间件 | B1, B2 | 3 | P0 |
-| C2 | `backend-upload` | 预签名上传 + `file_objects` + purpose 枚举 + 扫描 hook | B2, B4, A2 | 3 | P0 |
-| C3 | `backend-profile` | CandidateProfile + ExperienceCard + 偏好 | B2, B4, C1 | 3 | P0 |
-| C4 | `backend-targetjob` | TargetJob + JD 导入 + 解析状态 + 来源记录 + async job 编排 | B2, B3, B4, A3, C2, C3 | 5 | P0 |
-| C5 | `backend-practice` | PracticePlan + Session + Event 流 + Turn 物化 + 状态机 + 同步 AI 首题/追问 | B2, B3, B4, A3, C4 | 5 | P0 |
-| C6 | `backend-review` | QuestionAssessment + FeedbackReport + 题目回顾 / 本轮复练上下文 + 异步报告生成；不暴露独立错题本域 | B3, B4, A3, C5 | 5 | P0 |
-| C7 | `backend-resume` | ResumeAsset + 解析 + `/resume/tailor` 异步定制 | B2, B3, B4, A3, C2 | 4 | P0 |
-| C8 | `backend-async-runtime` | Asynq + worker 进程骨架 + outbox dispatcher + job 表 + 重试 + 幂等 | B3, A2 | 3 | P0 |
-| C9 | `backend-debrief` | P0 真实面试复现 / 复盘文本流 + Debrief 异步生成；感谢信草稿与完整跟进建议延后到 P1 plan | B2, B3, B4, A3, C4, C6 | 4 | P0 |
-| C10 | `backend-readiness-signals` | 嵌入式准备度 / 趋势信号聚合，供报告、画像和面试规划消费；不提供独立成长中心或 `/growth/overview` | B4, C5, C6 | 3 | P1 |
-| C11 | `backend-retrieval` | pgvector embedding upsert + 相似题召回 + 跨实体检索 | B4, A3, C3, C4, C6, C9 | 3 | P1 |
-| C12 | `backend-privacy` | 导出 / 删除请求 + 隐私 worker + 审计联动 | B4, C8 | 3 | P1 |
-| C13 | `backend-source-intel` | 轻量公司情报 + `source_records` + freshness 调度 | B4, C4, C11 | 3 | P2 |
-| C14 | `backend-voice-stt` | 语音模式 STT 适配 + 媒体存储 + retention | A3, C2, C5 | 3 | P2 |
+| 能力方向 | 当前处理 | 创建条件 |
+|----------|----------|----------|
+| 嵌入式 readiness / trends | 可作为报告、画像、面试规划的增强，不是独立成长中心 | P1 设计明确数据来源、展示位置和验收指标 |
+| retrieval / pgvector | 当前 DB baseline 已保留支撑；业务接入后置 | 有明确召回场景、隐私边界和质量评估 |
+| privacy export / advanced audit | P0 删除-only，导出延后 | product-scope 或隐私合规要求升格 |
+| company/source intel | 当前 UI 只有轻量公司情报详情 | 数据源、freshness、合规和维护成本已设计 |
+| production voice | 当前 UI 保留语音形式；真实 STT / 媒体留存 / 隐私开关后置 | 延迟、成本、retention 和删除链路可验证 |
+| multi-platform job search | product-scope 明确规划例外，不属于当前 MVP | 单独设计数据接入、合规、质量和运维边界 |
 
-### 5.4 Layer D · Frontend（7 份；P0:6 / P1:0 / P2:1）
+## 6 实施顺序
 
-每个 child 默认 2-3 个 plan：`spec-locked` / `impl-with-mock` / `integration`（拨真 API）。
+### 6.1 S0 · 已完成基础层
 
-| ID | Subspec | 一行职责 | 关键路由 | 上游依赖 | Plan 数 | 阶段 |
-|----|---------|---------|---------|---------|---------|------|
-| D1 | `frontend-shell` | App 壳 + 路由 + TopBar + 主题（warm/dark）+ 双语 i18n + auth gate + 全局 store/query + 用户菜单入口 | topbar / auth / `profile` / `settings` | A1, B1 | 3 | P0 |
-| D2 | `frontend-home-job-picks-and-parse` | 首页 JD 导入 + 岗位推荐 + Parse 进度 / 确认；不恢复欢迎页或 onboarding 前置 | `home` / `jobs` / `parse` | D1, B2 | 3 | P0 |
-| D3 | `frontend-workspace-and-practice` | Mock Interview Plan + 完整 Interview Session；支持文本 / 语音形式、带提示练习 / 严格模拟、公司轻情报和会话历史 | `workspace` / `practice` / `company_intel` | D1, B2 | 4 | P0 |
-| D4 | `frontend-report-dashboard` | session-scoped Report Dashboard + Generating + 题目回顾 + 复练当前轮 / 进入下一轮 CTA；不提供独立错题队列 | `report` / `generating` | D1, B2 | 3 | P0 |
-| D5 | `frontend-resume-workshop` | 简历工坊：原始简历树、结构化主版本、岗位定制版本、版本详情、改写建议和手动编辑 | `resume_versions` / `resume_detail` | D1, B2 | 3 | P0 |
-| D6 | `frontend-debrief` | 真实面试复盘：上下文选择、文本 / 语音共享记录、复盘分析、复盘面试 | `debrief` | D1, B2 | 3 | P0 |
-| D7 | `frontend-voice-production` | 生产级语音 UI 能力：STT 状态、媒体留存提示、隐私开关和错误恢复；语音仍是 practice / debrief 的形式，不是独立页面 | `practice?modality=voice` / `debrief` | D3, D6, B2 | 2 | P2 |
+当前已完成或已创建 active spec 的基础层包括 A1-A5、B1-B4、F1、F3，以及 ADR-Q1..Q6。后续实现不得绕过这些文档和编码 truth source。
 
-### 5.5 Layer E · Integration（4 份）
+### 6.2 S1 · Contract-backed mock runway
 
-| ID | Subspec | 一行职责 | 上游依赖 | Plan 数 | 阶段 |
-|----|---------|---------|---------|---------|------|
-| E1 | `mock-contract-suite` | B2 fixtures 转可运行 mock server（Prism / 自建）+ 后端 mock-server plan 统一壳 | B2 | 1 | P0 |
-| E2 | `e2e-scenarios-p0` | 跨前后端 P0 主漏斗：导入→规划→练习→报告→复练当前轮 / 下一轮→真实复盘 | C4, C5, C6, C7, C9, D2, D3, D4, D5, D6, E1 | 1 | P0 |
-| E3 | `e2e-scenarios-p1` | 保留模块的 P1 增强场景：真实复盘质量、简历定制联动、嵌入式 readiness signals、多语言 | C10, C11, D5, D6, E2 | 1 | P1 |
-| E4 | `release-gate-and-rollout` | 灰度开关、版本兼容、回滚 runbook、SLO 准入；按 [ADR-Q5](./decisions/ADR-Q5-privacy-cadence.md)（P0 = 删除-only · 24h SLA）与 [ADR-Q6](./decisions/ADR-Q6-ai-gateway-and-model-routing.md)（AI Gateway 路由可观测 + fallback / cost cap）校验上线门槛 | F1, F2, F3, E2 | 1 | P0+持续 |
+目标是让当前 UI 五入口和会话级页面能基于 B2 fixtures 跑通 P0 happy path：
 
-### 5.6 Layer F · Quality 横切（4 份）
+1. 创建或修订 `mock-contract-suite`，把 34 operation fixtures 提供给前端和后端 mock。
+2. 创建或修订 `frontend-shell`，锁 TopBar、用户菜单、display controls、auth pendingAction、settings/profile 入口。
+3. 创建或修订 D2-D6 前端 workstream，严格按 `docs/ui-design/` 和 `ui-design/src/app.jsx` 目标路由实现。
+4. 在每个用户可见 workstream 的 plan 中维护 BDD gate。
 
-| ID | Subspec | 一行职责 | 上游依赖 | Plan 数 | 阶段 |
-|----|---------|---------|---------|---------|------|
-| F1 | `observability-stack` | 应用 `/metrics` / OTel SDK / Sentry 接线、route/job/AI metrics、access log、5 个 dashboard 与生产观测配置 | A2, B1 | 2 | P0 |
-| F2 | `analytics-funnel` | 与 product-scope / 当前 UI scope 对齐的产品分析事件 + 3 漏斗 + 自托管 PostHog adapter；前后端双发去重；部署路径不得依赖 PostHog Cloud | B1, D1 | 2 | P0 |
-| F3 | `prompt-rubric-registry` | Prompt / Rubric / Model Profile 版本表 + 灰度 + 离线评估集（≥50 题）+ LLM Judge | A3, B4 | 3 | P0+持续 |
-| F4 | `privacy-and-audit-runtime` | 审计事件 + 留存策略 + 删除/导出可观测性 + 字段红线 lint | B4, C12 | 2 | P1 |
+### 6.3 S2 · Backend domain implementation
 
-### 5.7 实施 Wave 顺序
+目标是把 P0 主流程所需后端域按契约落地：
 
-| Wave | 周期估算 | 范围 | 包含 child | 准入 gate（W 末） |
-|------|---------|------|-----------|------------------|
-| **W0** | 1 周 | 共识与骨架 | A1, B1，本 spec freeze | 6 项 ADR 全部签字；A1/B1 scaffold 与 context 校验通过 |
-| **W1** | 1.5 周 | 基础设施 + 契约骨架（spec only，不写 impl plan） | A2, A3, A4, A5, B2, B3, B4, F1, F3 | 9 spec 完成 parent-level cross-spec review；A2/B2/F1/F3 的 spec-contract lock 就绪（dev-up 契约 / OpenAPI freeze 范围 / metric 字典 / prompt key 字典）；A5 仅锁本地质量门禁与 deferred CI 边界；可执行 gate 交由各 child `001` plan 逐一闭合，未闭合前不得启动依赖它的 W2 implementation |
-| **W2** | 3-4 周 | 前后端 mock-first 并行（最大并行波） | C1, C2, C3, C8, E1（后端）+ D1, D2, D3, D4, D5, D6（前端）+ F2 | E1 提供当前 B2 12 tag / 34 operation 全 mock；前端跑通 P0 漏斗 happy path（mock）；后端 mock-server 自验证 |
-| **W3** | 3 周 | 核心业务域后端 | C4, C5, C6, C7, C9；F3 接入真实 Model Profile + ≥50 题离线评估集 | 7 P0 后端域 unit + mock-server BDD 通过 |
-| **W4** | 1.5 周 | 真集成 | D2/D3/D4/D5/D6 的 `003-integration` plan + E2 + F1/F2 接齐 | E2 全场景通过 |
-| **W5** | 1 周 | 上线 gate | E4 + 04 文档 §15 最低上线门槛 | P0 准入 |
+1. `backend-auth`、`backend-upload`、`backend-profile` 提供身份、文件与画像基础。
+2. `backend-async-runtime` 提供 job、outbox、retry 和删除链路执行。
+3. `backend-targetjob`、`backend-practice`、`backend-review`、`backend-resume`、`backend-debrief` 分别承接当前产品闭环。
+4. 所有 AI 输出必须引用 A3 / F3，所有长任务必须走 B3 / C8，所有敏感数据必须符合 product-scope 隐私红线。
 
-**P0 总周期估算**：约 10-11 周，与产品 spec 给出的 8-10 周节奏对齐。
+### 6.4 S3 · True integration and release gate
 
-P1 / P2 child（C10-C14、D7、E3、F4）按相同结构进入 Wave 6+，由本 spec 唯一的 plan 在 P0 收尾后追加新 phase 调度；D5/D6 的 P1 增强只作为对应已保留 P0 child 的后续 plan，不创建恢复旧模块的新 child。
+目标是从 fixtures / mock 切到真实后端，并证明 P0 闭环可上线：
 
-### 5.8 关键依赖（DAG 文字版）
+1. D2-D6 各自 integration plan 切真 API。
+2. `e2e-scenarios-p0` 覆盖导入 -> 规划 -> 练习 -> 报告 -> 复练当前轮 / 下一轮 -> 真实复盘。
+3. `analytics-funnel` 对齐当前产品漏斗，不恢复错题或成长独立漏斗。
+4. `release-gate-and-rollout` 验证 SLO、rollback、AI gateway 可观测、删除 SLA、audit 和导出延后例外。
 
-```
-F (横切)：F1 / F2 / F3 与 P0 A→B→C/D 同步推进；F4 默认 P1，除非 Q-5 ADR 将完整隐私链路升格为 P0
+### 6.5 S4 · Future staged capabilities
 
-A1 ─┬─► A2 ─┬─► A4
-    ├─► A3 ─┘
-    └─► A5 ─────────► (local quality gate; remote CI deferred)
+P1/P2 能力只在产品 / UI / 合规设计重新确认后创建 subject。不得提前把 future candidates 写入 `docs/spec/INDEX.md` 或创建空 plan。
 
-A1 ─► B1 ─┬─► B2 (OpenAPI)   ← 整个 DAG 最关键瓶颈节点
-          ├─► B3 (Events)
-          └─► B4 (DB)
-
-C1 auth         ◄── B1, B2
-C2 upload       ◄── B2, B4, A2
-C3 profile      ◄── B2, B4, C1
-C4 targetjob    ◄── B2, B3, B4, A3, C2, C3
-C5 practice     ◄── B2, B3, B4, A3, C4
-C6 review       ◄── B3, B4, A3, C5
-C7 resume       ◄── B2, B3, B4, A3, C2
-C8 async-runtime ◄── B3, A2  (横切 backend，多个 C 域共用)
-C9 debrief      ◄── B2, B3, B4, A3, C4, C6
-C10 readiness   ◄── C5, C6
-C11 retrieval   ◄── C3, C4, C6, C9
-C12 privacy     ◄── C8
-
-D1 shell        ◄── A1, B1
-D2-D6           ◄── D1, B2  (除 D1 外，P0 前端只跨依赖 B2 fixtures——这是 mock-first 能并行的根本)
-D7 voice-prod   ◄── D3, D6, B2
-
-E1 mock-suite   ◄── B2
-E2 e2e P0       ◄── C4, C5, C6, C7, C9, D2, D3, D4, D5, D6, E1
-E3 e2e P1       ◄── C10, E2
-E4 release-gate ◄── F1, F2, F3, E2
-```
-
-**3 个关键观察**：
-
-1. **B2（OpenAPI）是 DAG 瓶颈节点**：C 全域和 D 全域都直接依赖。一旦 codegen 投产，破坏性变更会触发跨 spec 雪球。W1 parent phase 先锁 v1.0.0 freeze 范围与 additive-only 规则；`openapi/openapi.yaml` 与 breaking change linter 由 B2 child `001` 验证后，才能放行依赖 B2 的 W2 implementation。
-2. **C8（async-runtime）+ F3（prompt-rubric-registry）是横切型基础**：必须先于 C4/C5/C6/C9 起来，否则业务域会偷偷 hardcode prompt 与 outbox 行为。
-3. **D1 之外的前端 child 几乎只依赖 B2 fixtures**：是 mock-first 能在 W2 大并行的结构性原因。
-
-## 6 验收标准
+## 7 验收标准
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|----------|
-| C-1 | 顶层 spec freeze | 本 spec §3.2 全部 6 项 ADR 签字（已于 2026-04-26 完成） | W0 收尾 | 本 spec 状态可保持 `active`，进入 W1 | 001 Phase 1-2 |
-| C-2 | W1 spec 契约锁定 | A1 + B1 完成，A2-A5 / B2-B4 / F1 / F3 共 9 份 spec 已 spawn | W1 末 / 001 Phase 3 | 9 份 spec 的 parent-level cross-spec review 证据已记录；A2/B2/F1/F3 的 spec-contract lock 已在各自 spec 中固定；A5 明确当前只做本地质量门禁且远端 CI 延后；`make dev-up`、`openapi/openapi.yaml` v1.0.0、baseline prompt 文件等可执行 gate 不在 parent Phase 3 中冒充完成，必须由对应 child `001` plan 验证通过后才能放行依赖它的 W2 implementation | 001 Phase 3 + 后续 child `001` plans |
-| C-3 | mock-first 软集成 | E1 提供当前 B2 12 tag / 34 operation 全 mock | W2 末 | 前端 6 域跑通 P0 happy path（mock）；前后端 mock 同源（fixtures 同一份） | 001 Phase 4 |
-| C-4 | 业务域 ready | C4–C7 + C9 P0 真实面试复现后端实现完毕 | W3 末 | 7 个 P0 后端域 unit + mock-server BDD 通过；F3 接入真实 Model Profile + ≥50 题离线评估集 | 001 Phase 5 |
-| C-5 | 真集成贯通 | D2/D3/D4/D5/D6 切真 API | W4 末 | E2 `e2e-scenarios-p0` 全场景通过 | 001 Phase 6 |
-| C-6 | 上线 gate | E4 release-gate 跑完 staging 灰度 + 回滚 | W5 末 | `04-metrics-observability.md` §15 最低上线门槛全勾；[ADR-Q5](./decisions/ADR-Q5-privacy-cadence.md) 决定的 P0 删除链路 24h SLA 与 audit 已验证，且导出延后例外已作为 W0 tradeoff 记录；[ADR-Q6](./decisions/ADR-Q6-ai-gateway-and-model-routing.md) 的 AI provider/gateway 路由 / fallback 可观测；P0 准入 | 001 Phase 6 |
-| C-7 | 收尾归档 | P0 全部上线 | W5 后 | 本 spec 状态由 `active` 调整为 `completed`；P1/P2 child draft spec 创建，且不得恢复 product-scope 已丢弃模块；触发 `/retrospective` | 001 Phase 7 |
+| C-1 | Roadmap 真理源一致 | product-scope、docs/ui-design、ui-design 已收敛 | 读取本 spec | 本 spec 不再规划当前 UI 已丢弃的独立模块 | 001 Phase 4 |
+| C-2 | INDEX 无僵尸占位 | 某 subject 尚未创建真实 `spec.md` | 查看 `docs/spec/INDEX.md` | 不出现 `_pending_` 行或待 spawn 占位 | 001 Phase 4 |
+| C-3 | Active spec 保留 | A/B/F 基础契约仍有编码 truth source | 查看 `docs/spec/*/spec.md` | 这些 spec 保持 active，并在后续实现中作为依赖 | 001 Phase 4 |
+| C-4 | Future 不自动恢复旧能力 | 旧 root spec、旧 route 或旧画板标签提到 Growth / Mistakes / Drill / Plan / Voice | 评审后续需求或 plan | 默认视为已丢弃，必须先修订 product-scope 和 UI 文档才能恢复 | 001 Phase 4 |
+| C-5 | P0 workstream 可进入实现 | 某当前 UI 模块准备进入实现 | 创建 child spec / plan | plan 有 context、TDD 策略；用户行为有 BDD gate | 后续 child plan |
+| C-6 | 文档一致性 | roadmap 修订完成 | 运行校验 | `validate_context`、`sync-doc-index --check`、Markdown link check、`git diff --check` 通过 | 001 Phase 4 |
 
-## 7 关联计划
+## 8 关联计划
 
-- [001-decompose-subspecs](./plans/001-decompose-subspecs/plan.md)：按 6 wave spawn P0 child 并通过各自 review；P1/P2 child 在 P0 收尾创建 draft spec，进入 Wave 6+ 前再补齐 plan / checklist / context。这是本 spec 唯一挂的 plan；其他治理类 plan（灰度、release-gate、隐私）归入对应的 child（E4 / F4）。
+- [001-decompose-subspecs](./plans/001-decompose-subspecs/plan.md)：历史上承接 38 child / wave 分解；当前已原地修订为 roadmap rebaseline 与后续 child 创建治理计划，不再维护 pending 占位模型。

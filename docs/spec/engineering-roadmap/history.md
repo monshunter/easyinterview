@@ -1,6 +1,6 @@
 # Engineering Roadmap History
 
-> **版本**: 2.4
+> **版本**: 3.0
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-03 | 3.0 | 根据 product-scope v1.5、当前 `docs/ui-design/` 与 `ui-design/` 重新规划 roadmap：删除 `docs/spec/INDEX.md` 的 pending child 占位模型，保留已存在 active spec 与编码 truth source，后续 child spec / plan 仅在进入设计或实现时按当前 P0 workstream 原地创建。 | 001-decompose-subspecs |
 | 2026-05-03 | 2.4 | 将 `easyinterview-tech-docs/00`–`06` 明确降级为历史技术输入，当前技术契约改由 B1/B2/B3/B4/F1/F2/F3 active spec 与已编码 truth source 决定，禁止后续 child 绕过 Layer B/F 按旧技术包实施。 | docs-only |
 | 2026-05-03 | 2.3 | 对齐 product-scope v1.2 后的可执行契约口径：B2 改为 34 endpoint / 12 tag，B3 internal events 改为 16 个，B4 baseline 改为 26 应用表 + 3 auth 支撑表 + 2 迁移元数据表，E1 mock gate 改为当前 B2 全量 operation。 | product-contract alignment review |
 | 2026-05-03 | 2.2 | 对齐 product-scope v1.1 与当前 UI 真理源：P0 前端 child 改为 Home / Job Picks / Practice / Report / Resume / Debrief 六域；移除 onboarding、独立 mistakes、独立 growth、Drill、followup-tree、STAR、多轮计划和独立 voice page 的 roadmap 口径；C10 改为嵌入式 readiness signals。 | 001-decompose-subspecs |

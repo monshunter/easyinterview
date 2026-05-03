@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 2.0
+    to: 3.0
 spec:
   defaultTarget: docs
   discovery:
@@ -19,12 +19,13 @@ spec:
     keywords:
       - subspec decomposition
       - 工程拆分
-      - wave 编排
+      - roadmap rebaseline
+      - pending 占位删除
+      - on-demand child spec
       - mock-first 集成
       - dependency dag
       - local dev stack
       - minimal dependencies
-      - W0 hard gate
       - AI gateway
       - AI provider
       - unit-test stub
@@ -32,6 +33,8 @@ spec:
       - deferred CI
       - model routing
       - self-hosted PostHog
+      - product-scope alignment
+      - ui-design alignment
   targets:
     docs:
       plan: ./plan.md

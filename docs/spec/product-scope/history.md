@@ -1,6 +1,6 @@
 # Product Scope History
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
 > **更新日期**: 2026-05-03
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-03 | 1.5 | 同步 engineering-roadmap v3.0：删除 `docs/spec/INDEX.md` pending child 占位模型，后续 child 仅按当前产品 / UI 已保留能力 on-demand 创建，旧 route / 旧 pending 名称不得恢复已丢弃模块。 | engineering-roadmap/001-decompose-subspecs |
 | 2026-05-03 | 1.4 | 明确 `easyinterview-tech-docs/` 仅为历史技术输入，当前 API / DB / event / metrics 以 Layer B/F active spec 与已编码 truth source 为准，避免旧技术包按旧产品 spec 误导实现。 | docs-only |
 | 2026-05-03 | 1.3 | 删除旧 `voice` route alias 语义，明确语音面试只通过 `practice` 显式携带 `mode=voice` / `modality=voice` 进入；同步 UI 静态原型删除历史独立语音页组件。 | docs-only |
 | 2026-05-03 | 1.2 | 记录 engineering-roadmap v2.2 已完成产品范围对齐：P0 前端 child 改为当前 UI 五入口相关拆分，旧 growth / mistakes / drill / plan / voice page 不再作为后续 pending child 恢复依据。 | engineering-roadmap/001-decompose-subspecs |

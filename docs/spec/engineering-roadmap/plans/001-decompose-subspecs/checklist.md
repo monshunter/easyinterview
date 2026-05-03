@@ -1,74 +1,29 @@
-# Decompose Subspecs Checklist
+# Roadmap Rebaseline and Subspec Governance Checklist
 
-> **版本**: 2.4
+> **版本**: 3.0
 > **状态**: active
 > **更新日期**: 2026-05-03
 
 **关联计划**: [plan](./plan.md)
 
-## Phase 1: 决策与冻结（W0 入口）
+## Phase 1: 历史完成事实保留
 
-- [x] 1.1 6 项 W0 hard gate 决策完成（Q-1 认证 / Q-2 异步编排 / Q-3 分析平台 / Q-4 云部署 / Q-5 隐私节奏 / Q-6 AI 网关与模型路由），每项在 `docs/spec/engineering-roadmap/decisions/ADR-Q{n}-*.md` 产出一份 ADR
-- [x] 1.2 spec §3.2 表中 6 项决策的最终结论同步更新（ADR 通过后回填）
-- [x] 1.3 `docs/spec/INDEX.md` 中 38 行 child subspec 占位行齐全（按 Layer A-F × Phase P0/P1/P2 两轴分组，状态 `pending`，链接占位）
-- [x] 1.4 顶层 `engineering-roadmap` spec 通过 `/plan-review`，反馈原地修订完毕
-- [x] 1.5 验证 `docs/spec/INDEX.md` 与 `engineering-roadmap/spec.md` Header 一致（运行 `/sync-doc-index --check`）
-- [x] 1.6 L2 remediation：修复 async `jobType` 命名漂移、Q-5 P0 导出例外记录、ADR-Q3 自托管 PostHog 决策切换，并同步 spec / plan / history / context / INDEX
+- [x] 1.1 保留 ADR-Q1..Q6 作为当前认证、异步、分析、部署、隐私和 AI 路由架构约束；验证: roadmap spec v3.0 §3.2 仍链接并摘要 6 项 ADR
+- [x] 1.2 保留当前已存在的 active foundation / contract / quality spec，不删除 A1-A5、B1-B4、F1、F3；验证: roadmap spec v3.0 §5.1 列出当前 active spec 清单
+- [x] 1.3 将旧 “38 child pending INDEX” 任务改为历史事实，不再作为当前执行模型；验证: roadmap plan v3.0 §4 Phase 1 / Phase 2 明确关闭 pending 模型
 
-## Phase 2: Wave 0（共识与骨架）
+## Phase 2: Roadmap rebaseline
 
-- [x] 2.1 spawn `repo-scaffold`：spec.md + history.md + plans 脚手架 + 至少 1 个 plan / checklist / context.yaml
-- [x] 2.2 spawn `shared-conventions-codified`：spec.md + history.md + plans 脚手架 + 至少 1 个 plan
-- [x] 2.3 W0 收口验证：A1 / B1 docs 结构完整（spec + history + plans/INDEX.md + 001-bootstrap 三件套），plan 规则统一引用 `docs/spec/README.md`，plan / checklist / context 模板统一引用 `docs/spec/TEMPLATES.md`；`validate_context.py --target docs` 对 A1 / B1 / engineering-roadmap 三个 context.yaml 全部通过；A1 / B1 bootstrap 实现（make 占位 / Go module / TS lib / generator）随后由各自 child 的 `/implement` 继续推进，W1 末闭合 spec C-2；`make dev-up` 延后到 A2/W1 gate
-- [x] 2.4 `docs/spec/INDEX.md` 中 A1 / B1 两行由占位切换为指向真实 `spec.md` 的链接，状态 `active`、版本 1.0、更新日期 2026-04-26
-- [x] 2.5 W0 脚手架结构修复：移除已生成的 `docs/spec/*/plans/README.md` 与 `docs/spec/*/plans/TEMPLATES.md`，并同步 `init-docs` / `create-doc` / `design` skill 与契约测试，防止后续 child subspec spawn 再次复制局部规则或模板
+- [x] 2.1 对齐产品与 UI 真理源：读取 product-scope、docs/ui-design 与 ui-design/src/app.jsx 当前模块 / 路由 / 删除范围；验证: roadmap spec v3.0 §4.1 只保留当前 UI 范围
+- [x] 2.2 重写 `engineering-roadmap/spec.md` 为当前实施地图；验证: spec Header 版本 3.0，§5.2 只列 P0 workstream 候选，§5.3 只列 future candidates
+- [x] 2.3 修订本 plan、checklist、context 和 plans/INDEX；验证: 本文件、plan.md、context.yaml、plans/INDEX Header / row 均为 3.0
+- [x] 2.4 删除 `docs/spec/INDEX.md` 中所有 `_pending_` 行和待 spawn 分组；验证: INDEX 只包含真实存在的 spec link row
+- [x] 2.5 同步 product-scope 中指向旧 engineering-roadmap v2.2 的交叉引用；验证: product-scope spec/history 更新到 v1.5
+- [x] 2.6 验证文档一致性：`validate_context.py`、`sync-doc-index --check`、`check_md_links.py docs`、`git diff --check` 全部通过（2026-05-03：四项均通过；`sync-doc-index --check` zero drift）
 
-## Phase 3: Wave 1（基础设施 + 契约骨架）
+## Phase 3: 后续 P0 workstream 创建规则
 
-- [x] 3.1 并行 spawn 9 份 spec（A2 / A3 / A4 / A5 / B2 / B3 / B4 / F1 / F3），仅写 spec.md + history，**不写 impl plan**
-- [x] 3.2 完成 parent-level W1 cross-spec review：核对 9 份 W1 spec 的 boundary / ownership / ADR-Q1..Q6 继承 / truth-source 引用；本项不声称 9 个 child 已各自拥有独立 plan/context 或已逐个通过 `/plan-review`，child impl plan 必须在逐一核对对应 spec 后再创建
-- [x] 3.3 B2 `openapi-v1-contract` 完成当时的 spec-contract lock：v1.0.0 freeze 清单 / additive-only 规则 / privacy export 501 例外已写入 spec；该历史 lock 后续已由 B2 `001` / `002` / `003` 按当前 product-scope / UI 原地收敛为当前 12 tag / 34 operation 可执行 contract（含 `DELETE /api/v1/me`，不含独立 `Mistakes` / `Growth`）
-- [x] 3.4 F1 `observability-stack` 完成 spec-contract lock：baseline metric 命名、allowed labels、forbidden labels、log 明文红线、dashboard 名称与健康检查契约已写入 spec；helper / lint / dashboard / alerting 实现由 F1 后续 `001` plan 验证
-- [x] 3.5 F3 `prompt-rubric-registry` 完成当时的 spec-contract lock：feature_key、`(feature_key, version, language)` 坐标、Resolve 调用契约、prompt/rubric 文件落点已写入 spec；该历史 lock 后续已由 F3 spec 按 product-scope v1.4 收敛为当前 12 个 baseline feature_key，不含独立 `mistake.extract`；baseline prompt/rubric 文件与 loader 由 F3 后续 `001` plan 验证
-- [x] 3.6 A2 `local-dev-stack` 完成 spec-contract lock：最小本地依赖（Postgres+pgvector / Redis / MinIO）、项目组件启动语义、`make dev-*` 行为契约、JSON 健康检查口径已写入 spec；`deploy/dev-stack/docker-compose.yaml` 与真实 `make dev-up` 一键健康检查由 A2 后续 `001` plan 验证
-- [x] 3.7 A5 `ci-pipeline-baseline` 完成 spec-contract 修订：当前个人单人开发阶段只保留本地质量门禁，远端 CI pipeline / branch protection / required checks / artifact / nightly / CI secret 延后到触发条件出现后再建
-
-## Phase 4: Wave 2（前后端 mock-first 并行）
-
-- [ ] 4.1 spawn 后端 5 份：C1 / C2 / C3 / C8 / E1（每份完整 spec + plan 链）
-- [ ] 4.2 spawn 前端 6 份：D1 `frontend-shell` / D2 `frontend-home-job-picks-and-parse` / D3 `frontend-workspace-and-practice` / D4 `frontend-report-dashboard` / D5 `frontend-resume-workshop` / D6 `frontend-debrief`；D1 必须先于 D2-D6 完成基础壳
-- [ ] 4.3 spawn 横切 1 份：F2 `analytics-funnel`
-- [ ] 4.4 E1 提供当前 B2 12 tag / 34 operation 全 mock（按 B2 fixtures 自动生成）
-- [ ] 4.5 前端 6 域跑通 P0 happy path（导入→规划→练习→报告→复练当前轮 / 下一轮→真实复盘，且简历绑定可用）全部基于 E1 mock
-- [ ] 4.6 后端 5 域 mock-server plan 自验证通过
-- [ ] 4.7 验证：前后端 mock 同源（fixtures 同一份，禁止前端 hardcode）
-
-## Phase 5: Wave 3（核心业务域后端）
-
-- [ ] 5.1 spawn C4 `backend-targetjob`：完整 spec + plan 链
-- [ ] 5.2 spawn C5 `backend-practice`：完整 spec + plan 链；plan 必须显式写出 turn-light-review 边界
-- [ ] 5.3 spawn C6 `backend-review`：完整 spec + plan 链
-- [ ] 5.4 spawn C7 `backend-resume`：完整 spec + plan 链
-- [ ] 5.5 spawn C9 `backend-debrief`：完整 spec + plan 链；P0 只承接真实面试复现 / 复盘文本流，感谢信草稿与完整跟进建议延后到 C9 P1 plan
-- [ ] 5.6 F3 切到真实 Model Profile（由配置映射到真实 AI provider / gateway endpoint、provider、model），落地 ≥50 题离线评估集
-- [ ] 5.7 7 个 P0 后端域（C1 + C4-C7 + C8 + C9）通过各自 unit 测试 + mock-server BDD
-
-## Phase 6: Wave 4 + Wave 5（真集成 + 上线 gate）
-
-- [ ] 6.1 spawn E2 `e2e-scenarios-p0`：跨前后端 P0 主漏斗 BDD
-- [ ] 6.2 spawn E4 `release-gate-and-rollout`：灰度 / 版本兼容 / 回滚 runbook / SLO 准入
-- [ ] 6.3 D2 / D3 / D4 / D5 / D6 各自的 `003-integration` plan 把 fetch 切到真后端
-- [ ] 6.4 F1 指标接齐 5 个 dashboard；F2 漏斗对账完成
-- [ ] 6.5 E2 全场景通过
-- [ ] 6.6 `04-metrics-observability.md` §15 最低上线门槛全勾
-- [ ] 6.7 E4 staging 灰度演练 + 回滚演练通过
-- [ ] 6.8 Q-5 ADR 决定的 P0 隐私范围完成验证；若 Q-5 选择 P0 完整导出+删除，C12/F4 已在 W4 前升格并通过各自 gate
-- [ ] 6.9 P0 准入
-
-## Phase 7: 收尾
-
-- [ ] 7.1 `engineering-roadmap` spec 状态由 `active` 调整为 `completed`（仅当 P0 全部上线）
-- [ ] 7.2 P1 child draft spec 创建：C10 `backend-readiness-signals` / C11 / C12 / E3 / F4（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`）；P1 前端增强只挂到已保留 P0 前端 child 的新 plan，不恢复旧模块
-- [ ] 7.3 P2 child draft spec 创建：C13 / C14 / D7 `frontend-voice-production`（每份 spec.md 含 §1 §2 §3 §7，状态 `draft`），INDEX 行从占位切为真实链接
-- [ ] 7.4 触发 `/retrospective` 生成 P0 交付复盘报告
-- [ ] 7.5 同步 `docs/work-journal/INDEX.md` 与最近一条工作日志，记录 P0 收尾
+- [ ] 3.1 创建任一 P0 workstream child spec 前，确认 product-scope 和 UI 文档已保留对应用户行为或工程能力
+- [ ] 3.2 创建任一 child plan 时同步生成 `context.yaml`、`plan.md`、`checklist.md`，涉及用户行为时同步 BDD plan / checklist
+- [ ] 3.3 涉及代码逻辑的 child plan 必须通过 `/implement` -> `/tdd` 执行，并按 checklist 顺序即时更新
+- [ ] 3.4 Future candidates（readiness、retrieval、privacy export、source intel、production voice、multi-platform job search）不得提前创建空 spec / empty plan / INDEX pending row
