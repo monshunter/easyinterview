@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-03](2026-05-03.md) | `docs(ui-design): sync docs with latest prototype state` | #docs #ui #test |
 | [2026-05-03](2026-05-03.md) | `fix(ui): fuse debrief text and voice records` | #fix #ui #test |
 | [2026-05-03](2026-05-03.md) | `feat(ui): add conversational voice debrief flow` | #feat #ui #test |
 | [2026-05-02](2026-05-02.md) | `fix(ui): tighten practice header controls` | #fix #ui #test |

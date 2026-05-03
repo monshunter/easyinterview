@@ -1,8 +1,8 @@
 # EasyInterview UI 目标模块地图
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: active
-> **更新日期**: 2026-05-02
+> **更新日期**: 2026-05-03
 
 ## 1 文档目的
 
@@ -15,10 +15,10 @@
 | Home / 首页 | 粘贴 JD 或继续最近模拟面试 | JD 输入、JD 文件/URL 弹窗、最近模拟面试、创建简历入口 | 默认入口，不需要登录页前置 |
 | Job Picks / 岗位推荐 | 基于画像和简历找到值得准备的 JD | 推荐列表、匹配原因、画像摘要、从推荐进入模拟面试 | 一级导航 |
 | Mock Interview / 模拟面试 | 确认一场模拟面试的上下文并立即开始 | 当前面试规划、切换/新建规划、JD/简历绑定、面试轮次、立即面试、会话历史 | 一级导航，不再叫当前岗位 |
-| Interview Session | 完成一场完整模拟面试 | 文本面试、语音面试、语音转文字、问题推进、结束生成报告 | 会话级页面 |
+| Interview Session | 完成一场完整模拟面试 | 文本面试、语音面试、语音转文字、带提示练习 / 严格模拟、问题推进、右侧底部固定结束生成报告 | 会话级页面 |
 | Report Dashboard | 查看一次已完成模拟面试的报告 | 仪表盘、上下文条、准备度、维度、题目回顾、证据、复练计划 | 隶属于 session，不是一级导航 |
 | Resume / 简历 | 管理简历资产 | 原始简历树、结构化主版本、岗位定制版本、版本平铺、上传/粘贴/问答、解析预览确认、分叉定制版本、预览/改写/编辑详情、原件预览、导出/复制/复制版本反馈 | 一级导航 |
-| Debrief / 复盘 | 复盘真实面试并生成复盘面试 | 选择目标岗位/JD、关联模拟面试、绑定简历、复盘记录、复盘分析、复盘面试 | 一级导航 |
+| Debrief / 复盘 | 复盘真实面试并生成复盘面试 | 选择目标岗位/JD、关联模拟面试、绑定简历、文本 / 语音添加共享复盘记录、复盘分析、复盘面试 | 一级导航 |
 | User Profile / 用户画像 | 查看和修正系统理解用户的结构化画像 | 来源统计、画像维度、证据来源、用户纠偏、模块使用开关 | 用户菜单入口 |
 | Account & Settings / 设置与隐私 | 管理账号基础信息、登录安全、界面偏好和隐私 | 个人基础信息、登录方式、字体预设、通知占位、订阅占位、导出、删除 | 用户菜单入口 |
 | Auth / 认证 | 登录、注册和退出 | 登录、注册、邮箱验证、重置登录、退出登录 | 操作级触发，不是默认入口 |
@@ -33,7 +33,7 @@
 | `resume_versions` | Resume | 作为一级简历模块的当前入口；`flow=create`、`flow=branch`、`versionId` 和 `tab` 驱动创建、分叉和详情子状态 |
 | `resume` | Resume / Mock Interview | 简历资产在 Resume 管，模拟面试页只选择绑定简历 |
 | `jd_match` | Job Picks | 作为一级岗位推荐模块保留 |
-| `practice` | Interview Session | 文本面试与语音面试共享的会话页面；由 `mode/modality` 决定中间 Surface |
+| `practice` | Interview Session | 文本面试与语音面试共享的会话页面；由 `mode/modality` 决定中间 Surface，由 `practiceMode` 决定带提示练习或严格模拟 |
 | `voice` | Interview Session | 兼容入口折回 `practice?mode=voice&modality=voice`；语音内容不再使用独立页面骨架 |
 | `generating` | Interview / Report 过渡态 | 报告生成状态，不作为顶部导航 |
 | `report` | Report Dashboard | 会话级报告详情，不作为顶部导航 |
@@ -69,7 +69,7 @@
 | `parse` | JD Parse & Confirm | JD 解析确认步骤；来自首页 JD 导入或岗位推荐确认 |
 | `jd_match` | Job Picks / 岗位推荐 | 一级导航；含为你推荐、联网搜索、关注列表 |
 | `workspace` | Mock Interview / 当前面试规划 | 一级导航 |
-| `practice` | Interview Session / 文本或语音面试 | 会话级页面；`mode/modality` 决定文本输入区或语音波形 / 表达指标区 |
+| `practice` | Interview Session / 文本或语音面试 | 会话级页面；`mode/modality` 决定文本输入区或语音波形 / 表达指标区，`practiceMode` 决定辅助信息显隐 |
 | `generating` | ReportGenerating | 报告生成过渡态 |
 | `report` | Report Dashboard(sessionId) | 会话级详情；当前运行时只渲染仪表盘 |
 | `resume_versions` | Resume / 简历 | 一级导航当前入口 |
@@ -144,9 +144,14 @@ User
 │  └─ roundId
 ├─ InterviewSessions
 │  ├─ modality: text / voice
+│  ├─ practiceMode: assisted / strict
+│  ├─ hintUsed
+│  ├─ hintCount
 │  └─ transcript
 ├─ ReportDashboards
 └─ DebriefRecords
+   ├─ entries
+   │  └─ source: confirmed / text_guided / voice_extracted / manual
    └─ DebriefInterview
 ```
 
@@ -164,3 +169,6 @@ User
 10. 判断当前目标模块时，以 `normalizeRoute` 后的 `activeRouteName` 和 TopBar 一级导航为准，不以旧 hash 或旧画板标签为准。
 11. 已清理或 dead code 化的废弃组件不得重新驱动 `docs/ui-design` 的目标设计、导航或用户流程。
 12. 简历模块的当前目标以 `screen-resume-workshop.jsx` 为准：按原始简历树管理、按版本平铺挑选、创建原始简历、从树分叉岗位定制版本，以及版本详情中的预览 / 改写建议 / 手动编辑。岗位定制版本默认进入 `改写建议`；原件预览、导出、复制、复制为新版本和创建版本都必须有可见反馈。
+13. `带提示练习` / `严格模拟` 是 `PracticeScreen` 内的辅助程度开关，不是面试前模式卡片；严格模拟必须隐藏提示、实时观察、可调用经历和语音现场提示。
+14. `结束并生成报告` 必须保持为面试页右侧底部固定动作，并把 `practiceMode`、`hintUsed` 和 `hintCount` 传入报告上下文。
+15. `debrief` 的文本添加和语音添加必须共享同一份 `entries` 列表；语音提取卡片确认后才写入正式复盘记录，并保留来源标记。
