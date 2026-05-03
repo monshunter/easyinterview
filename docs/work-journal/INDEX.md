@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-03](2026-05-03.md) | `docs(reports): land product contract alignment retrospective` | #docs |
 | [2026-05-03](2026-05-03.md) | `fix(product-contract): align specs and artifacts with ui scope` | #fix #docs #test |
 | [2026-05-03](2026-05-03.md) | `docs(product-scope): align product truth source with ui scope` | #docs #ui |
 | [2026-05-03](2026-05-03.md) | `docs(ui-design): sync docs with latest prototype state` | #docs #ui #test |

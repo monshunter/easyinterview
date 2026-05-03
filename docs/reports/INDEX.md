@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-03](./2026-05-03-product-contract-ui-scope-alignment-assessment.md) | Product Contract UI Scope Alignment 交付复盘 | #assessment |
 | [2026-05-02](./2026-05-02-ui-design-report-cta-direct-session-assessment.md) | UI Design Report CTA Direct Session 交付复盘 | #assessment |
 | [2026-05-02](./2026-05-02-ui-design-voice-mode-regression-assessment.md) | UI Design Voice Mode Regression 交付复盘 | #assessment |
 | [2026-05-02](./2026-05-02-ui-design-p0-backlog-remediation-assessment.md) | UI Design P0 Backlog Remediation 交付复盘 | #assessment |
