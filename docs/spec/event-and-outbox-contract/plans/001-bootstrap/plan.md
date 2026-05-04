@@ -52,7 +52,7 @@
 
 #### 2.1 10 个 canonical job_type 与 dotted name 映射
 
-在 `shared/jobs.yaml` 写入 `jobs:` 列表，按 [spec §3.1.1](../../spec.md#311-dbc8-canonical-jobtype--asynq-dotted-task-name-映射) 落地 10 项：`target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `debrief_generate` / `source_refresh` / `embedding_upsert` / `privacy_export` / `privacy_delete` / `email_dispatch`。每项含 `canonical`（snake_case，与 [03-db-definition.md §5.9 async_jobs.job_type](../../../../../easyinterview-tech-docs/03-db-definition.md) 一致并扩展）、`asynqTask`（`<domain>.<action>` dotted name，与 ADR-Q2 §3.2 一致）、`apiFacing`（boolean，B2 OpenAPI subset 标记）、`triggerEvent`（来自 §3.1.1 触发事件列）、`ownerDomain`（C 域 ID）、`priority`（`critical` / `default` / `low`，按 ADR-Q2 §3.5 分类）。新增 canonical job 必须先递增本 spec / plan，再同步 [B4 async_jobs.job_type check constraint](../../../db-migrations-baseline/spec.md) 与 C8 task registry，本 plan 在 Phase 6 handoff 章节中明示该流程。
+在 `shared/jobs.yaml` 写入 `jobs:` 列表，按 [spec §3.1.1](../../spec.md#311-dbc8-canonical-job_type--asynq-dotted-task-name-映射) 落地 10 项：`target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `debrief_generate` / `source_refresh` / `embedding_upsert` / `privacy_export` / `privacy_delete` / `email_dispatch`。每项含 `canonical`（snake_case，与 [03-db-definition.md §5.9 async_jobs.job_type](../../../../../easyinterview-tech-docs/03-db-definition.md) 一致并扩展）、`asynqTask`（`<domain>.<action>` dotted name，与 ADR-Q2 §3.2 一致）、`apiFacing`（boolean，B2 OpenAPI subset 标记）、`triggerEvent`（来自 §3.1.1 触发事件列）、`ownerDomain`（C 域 ID）、`priority`（`critical` / `default` / `low`，按 ADR-Q2 §3.5 分类）。新增 canonical job 必须先递增本 spec / plan，再同步 [B4 async_jobs.job_type check constraint](../../../db-migrations-baseline/spec.md) 与 C8 task registry，本 plan 在 Phase 6 handoff 章节中明示该流程。
 
 #### 2.2 B2 API-facing JobType subset 锁定
 
@@ -64,7 +64,7 @@
 
 #### 2.4 dotted name typo 自检
 
-写一段轻量校验脚本（同 1.4 风格），断言每条 `asynqTask` 与 `canonical` 之间的映射关系（`canonical = "target_import"` ↔ `asynqTask = "target.import"` 等）严格遵循 [spec §3.1.1](../../spec.md#311-dbc8-canonical-jobtype--asynq-dotted-task-name-映射) 表格，避免 dotted name 笔误（如 `target_import` 写成 `target.imports`）。任一不匹配即 fail。
+写一段轻量校验脚本（同 1.4 风格），断言每条 `asynqTask` 与 `canonical` 之间的映射关系（`canonical = "target_import"` ↔ `asynqTask = "target.import"` 等）严格遵循 [spec §3.1.1](../../spec.md#311-dbc8-canonical-job_type--asynq-dotted-task-name-映射) 表格，避免 dotted name 笔误（如 `target_import` 写成 `target.imports`）。任一不匹配即 fail。
 
 ### Phase 3: B3 generator 与 Go / TS / JSON Schema 输出
 

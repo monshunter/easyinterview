@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-04](./2026-05-04-ci-pipeline-docs-anchor-gate-assessment.md) | CI Pipeline Docs Anchor Gate 交付复盘 | #assessment |
 | [2026-05-04](./2026-05-04-historical-spec-implementation-review-runway-assessment.md) | Historical Spec Implementation Review Runway 交付复盘 | #assessment |
 | [2026-05-04](./2026-05-04-historical-spec-implementation-review-runway-verification.md) | Historical Spec Implementation Review Runway 完成验证 | #verification |
 | [2026-05-04](./2026-05-04-engineering-roadmap-plan-code-review-alignment-assessment.md) | Engineering Roadmap Plan Code Review Alignment 交付复盘 | #assessment |

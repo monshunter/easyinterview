@@ -13,4 +13,4 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-local-quality-gates](./001-local-quality-gates/plan.md) | [plan](./001-local-quality-gates/plan.md) / [checklist](./001-local-quality-gates/checklist.md) / [context](./001-local-quality-gates/context.yaml) | 1.4 | completed | 2026-04-30 |
+| [001-local-quality-gates](./001-local-quality-gates/plan.md) | [plan](./001-local-quality-gates/plan.md) / [checklist](./001-local-quality-gates/checklist.md) / [context](./001-local-quality-gates/context.yaml) | 1.5 | completed | 2026-05-04 |

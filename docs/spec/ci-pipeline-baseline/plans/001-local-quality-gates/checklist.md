@@ -1,8 +1,8 @@
 # Local Quality Gates Bootstrap Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-04-30
+> **更新日期**: 2026-05-04
 
 **关联计划**: [plan](./plan.md)
 
@@ -34,3 +34,10 @@
 - [x] 4.3 临时把 B1 codegen-conventions 输出文件人为修改一行：make codegen-check 报错并 exit 非 0；revert 后恢复 clean；验证: 2026-04-30 在 `backend/internal/shared/types/enums.go` 第 4 行注入 `// INJECTED-DRIFT-FOR-A5-PHASE-4.3-VERIFICATION`，`make codegen-check` exit 2 并打印 `FAIL: enum drift: shared/conventions.yaml -> backend/internal/shared/types/enums.go differs; run make codegen-conventions`；revert 后再跑 exit 0
 - [x] 4.4 临时让 B1 lint 引入一个 lower_snake_case 错误码：make lint 报错并 exit 非 0；revert 后恢复 clean；验证: 2026-04-30 把 `shared/conventions.yaml` 第 46 行的 `AUTH_UNAUTHORIZED` 改为 `auth_unauthorized_lower`，`make lint` exit 2 并打印 `FAIL: error code must be UPPER_SNAKE_CASE, got 'auth_unauthorized_lower'`；revert 后再跑 exit 0
 - [x] 4.5 把本 plan Header 从 active 切到 completed，运行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --fix-index` 同步 plans/INDEX.md；再运行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 确认无 drift；验证: 2026-04-30 plan / checklist Header 切到 `completed` v1.3；`docs/spec/ci-pipeline-baseline/plans/INDEX.md` 状态投影同步；`make docs-check` exit 0
+
+## Phase 5: docs/spec heading anchor gate hardening
+
+- [x] 5.1 Red: 在 `scripts/lint/check_md_links_test.py` 补充 fragment anchor contract tests，覆盖 missing fragment、pure in-page anchor、GitHub-style 中文/标点/multi-hyphen slug、duplicate heading `-1` 与未启用 fragment 检查的兼容行为；验证: 2026-05-04 修改测试后、实现前运行 `python3 -m unittest scripts/lint/check_md_links_test.py` exit 1，3 个新 fragment 测试因 `scan_directory() got an unexpected keyword argument 'check_fragments'` 失败，确认当前脚本缺少 fragment 校验能力
+- [x] 5.2 Green: 扩展 `scripts/lint/check_md_links.py`，新增 `--check-fragments`，在目标 Markdown 文件存在后验证 fragment 是否命中 GitHub-style heading anchor；验证: 2026-05-04 `python3 -m unittest scripts/lint/check_md_links_test.py` exit 0，15 个测试通过，原有相对链接检查测试仍通过
+- [x] 5.3 集成 `make docs-check`：保留全 `docs/` 相对链接检查，并新增 docs/spec fragment anchor pass；验证: 2026-05-04 `make -n docs-check` 可见 `scripts/lint/check_md_links.py` 分别以 `docs` 与 `docs/spec --check-fragments` 执行
+- [x] 5.4 Verification and lifecycle close：执行 `python3 -m unittest scripts/lint/check_md_links_test.py`、`python3 scripts/lint/check_md_links.py docs/spec --ignore '**/TEMPLATES.md' --check-fragments`、`make docs-check`、`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/ci-pipeline-baseline/plans/001-local-quality-gates/context.yaml --target repo`、`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`、`git diff --check`；全部通过后把 plan/checklist Header 切回 completed 并同步 plans INDEX；验证: 2026-05-04 focused unit test exit 0（15 tests），docs/spec fragment audit exit 0，`make docs-check` exit 0，context validation exit 0，`sync-doc-index --check` zero drift，`git diff --check` exit 0；实施过程中修复 3 个 `event-and-outbox-contract` 旧 fragment 链接中的 `job_type` 下划线漂移

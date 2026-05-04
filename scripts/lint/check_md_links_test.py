@@ -71,6 +71,56 @@ class CheckMdLinksTest(unittest.TestCase):
             findings = linter.scan_directory(root)
             self.assertEqual(findings, [])
 
+    def test_check_fragments_reports_missing_heading_anchor(self):
+        linter = load_linter()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "a.md").write_text("# A\n[B Missing](b.md#missing-heading)\n", encoding="utf-8")
+            (root / "b.md").write_text("# B\n## Present Heading\n", encoding="utf-8")
+            findings = linter.scan_directory(root, check_fragments=True)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].target, "b.md#missing-heading")
+            self.assertEqual(findings[0].kind, "fragment")
+
+    def test_check_fragments_validates_in_page_anchor(self):
+        linter = load_linter()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "a.md").write_text("# A\n[Missing](#missing-section)\n", encoding="utf-8")
+            findings = linter.scan_directory(root, check_fragments=True)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].target, "#missing-section")
+
+    def test_check_fragments_accepts_github_style_heading_slugs(self):
+        linter = load_linter()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "a.md").write_text(
+                "# A\n[Chinese](b.md#63-s2--backend-domain-implementation)\n"
+                "[JobType](b.md#311-dbc8-canonical-job_type--asynq-dotted-task-name-映射)\n"
+                "[Duplicate](b.md#重复-heading-1)\n",
+                encoding="utf-8",
+            )
+            (root / "b.md").write_text(
+                "# B\n"
+                "## 6.3 S2 · Backend domain implementation\n"
+                "### 3.1.1 DB/C8 canonical job_type ↔ Asynq dotted task name 映射\n"
+                "## 重复 Heading\n"
+                "## 重复 Heading\n",
+                encoding="utf-8",
+            )
+            findings = linter.scan_directory(root, check_fragments=True)
+            self.assertEqual(findings, [])
+
+    def test_fragments_are_not_checked_unless_enabled(self):
+        linter = load_linter()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "a.md").write_text("# A\n[B Missing](b.md#missing-heading)\n", encoding="utf-8")
+            (root / "b.md").write_text("# B\n", encoding="utf-8")
+            findings = linter.scan_directory(root)
+            self.assertEqual(findings, [])
+
     def test_relative_parent_link_resolves(self):
         linter = load_linter()
         with tempfile.TemporaryDirectory() as tmp:

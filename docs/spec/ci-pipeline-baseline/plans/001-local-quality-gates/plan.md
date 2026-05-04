@@ -1,8 +1,8 @@
 # Local Quality Gates Bootstrap
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-04-30
+> **更新日期**: 2026-05-04
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -10,6 +10,8 @@
 ## 1 目标
 
 把 [ci-pipeline-baseline spec §2.1](../../spec.md#21-in-scope) 锁定的 5 个本地入口 target 在仓库根 `Makefile` 上接齐：`make lint` / `make test` / `make build` / `make docs-check` / `make codegen-check`。本 plan 只是聚合层，不重写已有 owner 的 lint / generator / config check 实现，只把它们组织成单人开发阶段可重复的本地质量门禁，并显式记录从本地门禁升级为远端 CI 的 [D-5 触发条件](../../spec.md#31-已锁定决策)。
+
+2026-05-04 原地修订范围：在已完成的本地质量门禁上补强 `make docs-check`，把 docs/spec Markdown fragment anchor 审计纳入固定 gate。该修订只覆盖 Markdown heading anchor drift，不改变 `lint` / `test` / `build` / `codegen-check` 既有语义，也不引入远端 CI。
 
 本 plan 是 `ci-pipeline-baseline` 当前唯一的 active plan，只负责本地质量门禁聚合。当 D-5 触发条件出现（第二位长期贡献者、公开 release、付费用户上线、自动发版、回归频率过高）时，在本 spec 原地修订并新增 `002-remote-ci` 或等价 plan；远端 CI workflow、branch protection、artifact、runner secret 不得塞回本 plan。
 
@@ -27,10 +29,10 @@
 
 ## 3 质量门禁分类
 
-- **Plan 类型**: `tooling + contract + code-internal`。本 plan 在仓库根 `Makefile` 上聚合 5 个本地质量入口 target（`make lint` / `make test` / `make build` / `make docs-check` / `make codegen-check`），调用 B1 / B2 / A4 / F1 owner 已暴露的 lint / generator / config check 与轻量脚本（`scripts/lint/check_md_links.py`）。属于本地工具链与契约聚合层，不引入用户可感知 UI、HTTP API 行为、业务工作流或端到端功能。
-- **TDD 策略**: 必须通过 `/tdd --file docs/spec/ci-pipeline-baseline/plans/001-local-quality-gates/checklist.md --references docs/spec/ci-pipeline-baseline/plans/001-local-quality-gates/plan.md,docs/spec/ci-pipeline-baseline/spec.md --phase-commit ci-pipeline-baseline/001-local-quality-gates` 顺序执行。每个 checklist item 以本 checklist 内的 `验证:` 子句作为 Red-Green-Refactor 断言来源；涉及 sub-target 接入或占位行为的 item 必须先在缺位 / 失败状态下复现 expected output（占位 `not implemented yet:` exit 0 或 fail-fast exit 非 0），再最小实现并复跑 focused command。
+- **Plan 类型**: `tooling + contract + code-internal`。本 plan 在仓库根 `Makefile` 上聚合 5 个本地质量入口 target（`make lint` / `make test` / `make build` / `make docs-check` / `make codegen-check`），调用 B1 / B2 / A4 / F1 owner 已暴露的 lint / generator / config check 与轻量脚本（`scripts/lint/check_md_links.py`）。2026-05-04 修订把 docs/spec heading fragment anchor drift 纳入 `docs-check`。属于本地工具链与契约聚合层，不引入用户可感知 UI、HTTP API 行为、业务工作流或端到端功能。
+- **TDD 策略**: 必须通过 `/tdd --file docs/spec/ci-pipeline-baseline/plans/001-local-quality-gates/checklist.md --references docs/spec/ci-pipeline-baseline/plans/001-local-quality-gates/plan.md,docs/spec/ci-pipeline-baseline/spec.md --phase-commit ci-pipeline-baseline/001-local-quality-gates` 顺序执行。每个 checklist item 以本 checklist 内的 `验证:` 子句作为 Red-Green-Refactor 断言来源；涉及 sub-target 接入或占位行为的 item 必须先在缺位 / 失败状态下复现 expected output（占位 `not implemented yet:` exit 0 或 fail-fast exit 非 0），再最小实现并复跑 focused command。Phase 5 的 Red 来源是 `scripts/lint/check_md_links_test.py` 对缺失 fragment、GitHub-style slug、重复标题后缀、纯页内 anchor 和非 fragment 相对链接兼容性的断言。
 - **BDD 策略**: BDD 不适用。本 plan 只在 Makefile / 文档 / 自检脚本层操作，不产生浏览器 UI、外部 API、业务工作流或端到端场景测试可观察行为，因此不创建 `bdd-plan.md` / `bdd-checklist.md`，主 checklist 也不设置 `BDD-Gate:`。
-- **替代验证 gate**: 使用本地 lint + drift + smoke 组合代替 BDD：5 个聚合入口端到端跑通（Phase 4.1）；NOT-YET-LANDED 占位 vs 已落地失败穿透双向 fail-injection 自检（Phase 4.3 / 4.4）；`grep -r '\.github/workflows' .` 远端 CI 文件零存在性自检（Phase 4.2）；`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` Header / INDEX drift gate（Phase 4.5）。
+- **替代验证 gate**: 使用本地 lint + drift + smoke 组合代替 BDD：5 个聚合入口端到端跑通（Phase 4.1）；NOT-YET-LANDED 占位 vs 已落地失败穿透双向 fail-injection 自检（Phase 4.3 / 4.4）；`grep -r '\.github/workflows' .` 远端 CI 文件零存在性自检（Phase 4.2）；`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` Header / INDEX drift gate（Phase 4.5）；`python3 scripts/lint/check_md_links.py docs/spec --ignore '**/TEMPLATES.md' --check-fragments` docs/spec fragment anchor drift gate（Phase 5）。
 
 ## 4 实施步骤
 
@@ -72,6 +74,7 @@ AI 单元测试必须走 stub / fixtures provider（[B1 spec §2.1](../../../sha
 
 1. `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`（spec [§4.1 文档约束](../../spec.md#41-本地门禁约束) 强制项）。
 2. 轻量相对链接检查：调用 `python3 scripts/lint/check_md_links.py docs`（由本 plan 新增）或等价脚本扫描 `docs/**/*.md` 内的相对链接。
+3. docs/spec fragment anchor 检查：调用 `python3 scripts/lint/check_md_links.py docs/spec --ignore '**/TEMPLATES.md' --check-fragments` 或等价脚本，确认 `docs/spec/**/*.md` 中每个本地 Markdown fragment 都解析到目标文件内的 GitHub-style heading anchor；缺失 anchor 必须 exit 非 0。
 
 任一步骤报告 drift / 失链必须 exit 非 0（spec C-5）。
 
@@ -160,9 +163,32 @@ AI 单元测试必须走 stub / fixtures provider（[B1 spec §2.1](../../../sha
 - 把本 plan Header 从 `active` 切到 `completed`，运行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --fix-index` 同步 [ci-pipeline-baseline/plans/INDEX.md](../INDEX.md)。
 - 运行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 确认 `docs/spec/INDEX.md` 与 `plans/INDEX.md` 与 spec / plan Header 无 drift。
 
+### Phase 5: docs/spec heading anchor gate hardening
+
+#### 5.1 Red: fragment anchor contract tests
+
+在 `scripts/lint/check_md_links_test.py` 中补充 Red 测试，覆盖：
+
+- `target.md#missing-heading` 必须被报告为 broken fragment。
+- `#local-heading` 纯页内 anchor 在 `--check-fragments` 下必须被验证。
+- GitHub-style heading slug 必须支持中文、标点移除后保留多 hyphen、重复 heading 的 `-1` 后缀。
+- 未启用 `--check-fragments` 时保留既有相对链接检查兼容行为。
+
+#### 5.2 Green: implement fragment-aware markdown link check
+
+扩展 `scripts/lint/check_md_links.py`，新增 `--check-fragments` 参数。启用时，脚本在确认目标 Markdown 文件存在后读取 heading 列表，生成 GitHub-style anchor 集合，验证 fragment 是否命中；未启用时保持当前只检查路径存在的行为。外部链接、代码块、inline code、HTML comment、`TEMPLATES.md` ignore 规则沿用既有语义。
+
+#### 5.3 Integrate with `make docs-check`
+
+把 docs/spec fragment anchor pass 接入根 `Makefile` 的 `docs-check` target。`make docs-check` 必须先跑 Header / INDEX drift，再跑全 `docs/` 相对链接检查，最后跑 docs/spec fragment anchor 检查；任何一步失败均返回非 0。
+
+#### 5.4 Verification and lifecycle close
+
+完成实现后执行 focused unit test、docs/spec fragment audit、`make docs-check`、context validation、`sync-doc-index --check` 与 `git diff --check`。全部通过后把本 plan / checklist Header 切回 `completed`，同步 plans INDEX，并记录 work journal。
+
 ## 5 验收标准
 
-- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 至 C-7 全部成立；占位 / drift / 失败 / 守门 4 类边界由 Phase 4 命令日志佐证。
+- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 至 C-7 全部成立；占位 / drift / 失败 / 守门 4 类边界由 Phase 4 命令日志佐证；docs/spec fragment anchor drift 由 Phase 5 命令日志佐证。
 - 本 plan checklist 全部勾选；Phase 4.1 与 Phase 4.3 关键命令日志贴入工作日志。
 - 不出现 `.github/workflows/*.yml` 由本 plan 创建；文档不声称项目已有远端 CI。
 
@@ -175,11 +201,13 @@ AI 单元测试必须走 stub / fixtures provider（[B1 spec §2.1](../../../sha
 | A5 聚合层与各 owner subspec 的 Make target 命名 / 行为漂移（owner 把 `lint-conventions` 改名后 A5 没跟上） | Phase 1 在 `make help` 中列出 5 个聚合入口与对应 sub-target；任何 owner 修改 sub-target 名称必须递增本 spec / plan，并同步更新聚合层；CI deferral 期内由原作者 + 本 plan owner review 控制 |
 | 因 D-5 条件未触发就提前创建 `.github/workflows/*.yml` | Phase 4.2 把「不存在 ci.yml / nightly.yml / dependabot.yml」纳入收口自检；spec [§3.2](../../spec.md#32-待确认事项) 把升级路径锁定在原地修订；任何 PR 引入 workflow 文件而未先修订 spec 必须被 owner 拒绝 |
 | `make docs-check` 在 macOS / Linux 不同 shell 行为不一致导致 `/sync-doc-index --check` 误报 | Phase 1.4 强制聚合在仓库根；首次落地后在 macOS zsh 与 Linux bash 各跑一次；调用 skill 时显式 set `LC_ALL=C.UTF-8` 避免本地化输出差异 |
+| Fragment anchor slug 规则与 GitHub 渲染锚点存在细微差异导致误报 | Phase 5 单元测试锁定本仓库实际使用的中文标题、标点、多 hyphen 与重复 heading 场景；实现保持最小 GitHub-style slugger，不引入 Markdown 结构格式化检查 |
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-04 | 1.5 | 原地修订 `make docs-check`：新增 docs/spec heading fragment anchor audit gate，补充 TDD 测试与 Makefile 集成要求。 | implement remediation |
 | 2026-04-30 | 1.4 | L2 code-review remediation：顶层 `make codegen-check` 纳入 B3 event/job drift gate。 | plan-code-review --fix |
 | 2026-04-29 | 1.1 | 收口 plan-review：docs-check 改为可执行 sync-doc-index 脚本 + `scripts/lint/check_md_links.py`；B1 codegen diff 覆盖 errors / idx / frontend ids；远端 CI 明确由 future `002-remote-ci` 承接。 | plan-review remediation |
 | 2026-04-30 | 1.2 | 补齐 `## 3 质量门禁分类`：Plan 类型 / TDD 策略 / BDD 不适用声明 / 替代验证 gate；renumber 后续章节并修复内部 §3.2→§4.2 引用。同步 checklist 16 项 `验证:` 子句。 | implement gate remediation |
