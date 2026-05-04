@@ -90,8 +90,8 @@ Mock-server consumers must implement the following selection rules:
    that intentionally exercise scenario fallback should assert against
    `default` directly.
 
-Frontend `msw` and the local backend mock server (E1
-[`mock-contract-suite`](../../docs/spec/engineering-roadmap/spec.md#55-layer-e--integration4-份))
+Frontend `msw` and the local backend mock server workstream
+([engineering-roadmap S1](../../docs/spec/engineering-roadmap/spec.md#62-s1--contract-backed-mock-runway))
 must consume `openapi/fixtures/` as the same source. **Hardcoding mock responses
 inside the frontend is forbidden** per spec §2.1 / §4.7 / §5 — if a consumer
 needs a new variant, it adds a new scenario here and re-runs the consumer's
@@ -189,8 +189,10 @@ the repo root. The verifier exits 0 when every byte-equal check passes.
 
 ### Out of scope here
 
-The plan **does not** stand up a long-running mock server — that belongs to
-[E1 `mock-contract-suite`](../../docs/spec/engineering-roadmap/spec.md#55-layer-e--integration4-份).
+The plan **does not** stand up a long-running mock server — that belongs to the
+mock contract workstream tracked by
+[engineering-roadmap S1](../../docs/spec/engineering-roadmap/spec.md#62-s1--contract-backed-mock-runway).
 Phase 3 of B2 002 only proves the fixtures→OpenAPI examples→Prism response
-loop is byte-stable; the W2 E1 plan will pick up the same `openapi/fixtures/`
-and `openapi/.generated/openapi-with-fixtures.yaml` artefacts as inputs.
+loop is byte-stable; the future mock workstream will pick up the same
+`openapi/fixtures/` and `openapi/.generated/openapi-with-fixtures.yaml`
+artefacts as inputs.

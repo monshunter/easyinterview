@@ -102,6 +102,6 @@ allowlist，B2 引用 A4 时不得反向修改 builder。
   统一通过 `internal/platform/featureflag` 抽象。
 - 新增 secret 字段必须默认 `RedactedString`，并通过 SecretSource 注入。
 - prod fail-fast 缺失 secret 时退出码非 0；deployer 必须先补齐 secret 再恢复
-  supervisor，避免 crash loop（参考 [E4
-  `release-gate-and-rollout`](../docs/spec/engineering-roadmap/spec.md#55-layer-e--integration4-份)
-  runbook handoff）。
+  supervisor，避免 crash loop（后续 release workstream 按
+  [engineering-roadmap S3](../docs/spec/engineering-roadmap/spec.md#64-s3--true-integration-and-release-gate)
+  承接 runbook handoff）。

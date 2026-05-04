@@ -72,10 +72,10 @@ docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compati
 
 ## 5 与场景测试的关系
 
-本目录是 **应用本地开发** 的 docker compose 路径；[test/scenarios/](../../test/scenarios/) 是 **场景集成测试** 的 Kind / K8s 路径，由 [E2 e2e-scenarios-p0](../../docs/spec/engineering-roadmap/spec.md#55-layer-e--integration4-份) 与 [E4 release-gate-and-rollout](../../docs/spec/engineering-roadmap/spec.md#55-layer-e--integration4-份) 在后续 wave spawn。两条路径互不依赖：
+本目录是 **应用本地开发** 的 docker compose 路径；场景集成测试的 Kind / K8s 路径尚未在当前仓库落地，后续由 [engineering-roadmap S3](../../docs/spec/engineering-roadmap/spec.md#64-s3--true-integration-and-release-gate) 的 E2E / release workstream 按 on-demand 规则创建。两条路径互不依赖：
 
 - 应用 dev → 用 `make dev-up`
-- BDD / E2E 场景 → 用 `test/scenarios/` 各 README 锁定的入口
+- BDD / E2E 场景 → 待对应 workstream 创建 `test/scenarios/` 后，以该目录 README 锁定的入口为准
 
 ## 6 故障排查
 
