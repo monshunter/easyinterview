@@ -7,9 +7,9 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.7
+    to: 1.8
 spec:
-  defaultTarget: docs
+  defaultTarget: backend
   discovery:
     aliases:
       - shared-conventions-codified
@@ -33,12 +33,24 @@ spec:
       - local quality gate
       - deferred CI
   targets:
-    docs:
+    backend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
       discovery:
         packages:
-          - docs/spec/shared-conventions-codified
+          - shared/conventions.yaml
+          - backend/go.mod
+          - backend/cmd/codegen/conventions
+          - backend/internal/shared/types
+          - backend/internal/shared/errors
+          - backend/internal/shared/idx
+          - frontend/package.json
+          - frontend/src/lib/conventions
+          - frontend/src/lib/ids
+          - pnpm-workspace.yaml
+          - scripts/lint/conventions_yaml.py
+          - scripts/lint/error_codes.py
+          - Makefile
         uiRoutes: []
         apiNames: []

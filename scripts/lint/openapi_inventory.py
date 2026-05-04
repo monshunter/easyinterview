@@ -110,6 +110,50 @@ AI_PROVENANCE_SCHEMAS: list[str] = [
     "Debrief",
 ]
 
+FORBIDDEN_PRODUCT_SCOPE_TOKENS: tuple[str, ...] = (
+    "Mistakes",
+    "Growth",
+    "Voice",
+    "MistakeEntry",
+    "GrowthOverview",
+    "MistakeStatus",
+    "listMistakes",
+    "retestMistake",
+    "getGrowthOverview",
+    "openMistakeCount",
+    "writtenToMistakeBook",
+    "mistakeIds",
+    "single_drill",
+    "counter_questions",
+    "warmup",
+    "core_interview",
+    "fix_mistake",
+)
+
+EXPECTED_PRODUCT_ENUMS: dict[str, list[str]] = {
+    "PracticeMode": ["assisted", "strict", "debrief_replay"],
+    "PracticeGoal": ["baseline", "retry_current_round", "next_round", "debrief"],
+    "QuestionReviewStatus": ["open", "queued_for_retry", "resolved"],
+    "ReportNextAction.type": ["retry_current_round", "next_round", "review_evidence"],
+    "JobType": [
+        "target_import",
+        "resume_parse",
+        "report_generate",
+        "resume_tailor",
+        "debrief_generate",
+        "privacy_export",
+        "privacy_delete",
+    ],
+    "ResourceType": [
+        "target_job",
+        "feedback_report",
+        "resume_asset",
+        "resume_tailor_run",
+        "debrief",
+        "privacy_request",
+    ],
+}
+
 DEFAULT_OPENAPI_PATH = Path("openapi/openapi.yaml")
 APIERROR_REF = "#/components/responses/ApiErrorResponse"
 IDEMPOTENCY_REF = "#/components/parameters/IdempotencyKey"
@@ -153,6 +197,82 @@ def reachable_schemas(schemas: dict[str, Any], roots: list[str]) -> set[str]:
             if ref.startswith("#/components/schemas/"):
                 stack.append(ref.rsplit("/", 1)[-1])
     return seen
+
+
+def _schema_properties(schemas: dict[str, Any], schema_name: str) -> dict[str, Any]:
+    schema = schemas.get(schema_name) or {}
+    props = schema.get("properties") or {}
+    return props if isinstance(props, dict) else {}
+
+
+def validate_product_scope_contract(data: dict[str, Any], errors: list[str]) -> None:
+    """Enforce product-scope v1.2 / current UI semantic invariants that are
+    stronger than structural OpenAPI validity."""
+    text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
+    for token in FORBIDDEN_PRODUCT_SCOPE_TOKENS:
+        if token in text:
+            errors.append(f"product-scope v1.2 forbidden token still present: {token!r}")
+
+    paths = data.get("paths") or {}
+    for path_str in paths:
+        for forbidden_prefix in ("/mistakes", "/growth", "/voice", "/drill"):
+            if path_str.startswith(forbidden_prefix):
+                errors.append(f"forbidden product-scope path {path_str!r} (matches {forbidden_prefix!r})")
+
+    tags = {tag.get("name") for tag in (data.get("tags") or []) if isinstance(tag, dict)}
+    for tag in ("Mistakes", "Growth", "Voice", "Drill"):
+        if tag in tags:
+            errors.append(f"forbidden product-scope tag {tag!r}")
+
+    schemas = ((data.get("components") or {}).get("schemas") or {})
+    for name, expected in EXPECTED_PRODUCT_ENUMS.items():
+        if name == "ReportNextAction.type":
+            report_next_action_type = ((_schema_properties(schemas, "ReportNextAction").get("type") or {}).get("enum") or [])
+            if report_next_action_type != expected:
+                errors.append(f"ReportNextAction.type enum mismatch: expected {expected}, got {report_next_action_type}")
+            continue
+        actual = (schemas.get(name) or {}).get("enum")
+        if actual != expected:
+            errors.append(f"{name} enum mismatch: expected {expected}, got {actual}")
+
+    feedback_report = schemas.get("FeedbackReport") or {}
+    feedback_props = _schema_properties(schemas, "FeedbackReport")
+    feedback_required = set(feedback_report.get("required") or [])
+    for required in ("sessionId", "targetJobId"):
+        if required not in feedback_required:
+            errors.append(f"FeedbackReport must be session-scoped and require {required!r}")
+    for prop in ("questionAssessments", "retryFocusTurnIds", "provenance"):
+        if prop not in feedback_props:
+            errors.append(f"FeedbackReport missing current product property {prop!r}")
+    for prop in ("mistakes", "mistakeEntries", "mistakeIds", "openMistakeCount"):
+        if prop in feedback_props:
+            errors.append(f"FeedbackReport must not expose old mistake property {prop!r}")
+
+    question_assessment = schemas.get("QuestionAssessment") or {}
+    question_props = _schema_properties(schemas, "QuestionAssessment")
+    question_required = set(question_assessment.get("required") or [])
+    for required in ("reviewStatus", "includedInRetryPlan"):
+        if required not in question_required or required not in question_props:
+            errors.append(f"QuestionAssessment must carry report-internal retry review field {required!r}")
+    if "writtenToMistakeBook" in question_props:
+        errors.append("QuestionAssessment must not restore writtenToMistakeBook")
+
+    target_props = _schema_properties(schemas, "TargetJob")
+    if "openQuestionIssueCount" not in target_props:
+        errors.append("TargetJob must expose openQuestionIssueCount")
+    if "openMistakeCount" in target_props:
+        errors.append("TargetJob must not expose old openMistakeCount")
+
+    debrief = schemas.get("Debrief") or {}
+    debrief_required = set(debrief.get("required") or [])
+    for p1_field in ("thankYouDraft", "nextRoundChecklist"):
+        if p1_field in debrief_required:
+            errors.append(f"Debrief.{p1_field} must remain optional/hidden for P0")
+
+    create_debrief_required = set((schemas.get("CreateDebriefRequest") or {}).get("required") or [])
+    for required in ("targetJobId", "roundType", "language", "questions"):
+        if required not in create_debrief_required:
+            errors.append(f"CreateDebriefRequest missing real-interview debrief required field {required!r}")
 
 
 def has_parameter_ref(operation: dict[str, Any], target_ref: str) -> bool:
@@ -339,6 +459,8 @@ def main(argv: list[str]) -> int:
         reachable = reachable_schemas(schemas, [schema_name])
         if "GenerationProvenance" not in reachable:
             errors.append(f"{schema_name} cannot reach GenerationProvenance via $ref topology (spec §4.6)")
+
+    validate_product_scope_contract(data, errors)
 
     # Sync against B1 truth source (spec C-8 partial).
     conventions_path = Path("shared/conventions.yaml")

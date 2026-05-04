@@ -82,12 +82,89 @@ def valid_data() -> dict:
         "jobStatuses": ["queued", "running", "succeeded", "failed", "cancelled", "dead"],
         "enums": [
             {
-                "name": f"Enum{i}",
-                "sourceSection": f"5.{i}",
-                "jsonField": f"field{i}",
+                "name": "TargetJobStatus",
+                "sourceSection": "5.1",
+                "jsonField": "status",
+                "values": ["draft"],
+            },
+            {
+                "name": "TargetJobParseStatus",
+                "sourceSection": "5.2",
+                "jsonField": "parseStatus",
                 "values": ["ready"],
-            }
-            for i in range(1, 14)
+            },
+            {
+                "name": "PracticeMode",
+                "sourceSection": "5.3",
+                "jsonField": "mode",
+                "values": ["assisted", "strict", "debrief_replay"],
+            },
+            {
+                "name": "PracticeGoal",
+                "sourceSection": "5.4",
+                "jsonField": "goal",
+                "values": ["baseline", "retry_current_round", "next_round", "debrief"],
+            },
+            {
+                "name": "InterviewerRole",
+                "sourceSection": "5.5",
+                "jsonField": "interviewerRole",
+                "values": ["generalist"],
+            },
+            {
+                "name": "SessionStatus",
+                "sourceSection": "5.6",
+                "jsonField": "sessionStatus",
+                "values": ["running"],
+            },
+            {
+                "name": "ReportStatus",
+                "sourceSection": "5.7",
+                "jsonField": "reportStatus",
+                "values": ["ready"],
+            },
+            {
+                "name": "ReadinessTier",
+                "sourceSection": "5.8",
+                "jsonField": "readinessTier",
+                "values": ["needs_practice"],
+            },
+            {
+                "name": "DimensionStatus",
+                "sourceSection": "5.9",
+                "jsonField": "dimensionStatus",
+                "values": ["meets_bar"],
+            },
+            {
+                "name": "Confidence",
+                "sourceSection": "5.10",
+                "jsonField": "confidence",
+                "values": ["medium"],
+            },
+            {
+                "name": "QuestionReviewStatus",
+                "sourceSection": "5.11",
+                "jsonField": "questionReviewStatus",
+                "values": ["open", "queued_for_retry", "resolved"],
+            },
+            {
+                "name": "DebriefStatus",
+                "sourceSection": "5.12",
+                "jsonField": "debriefStatus",
+                "values": ["draft"],
+            },
+            {
+                "name": "PrivacyRequestType",
+                "sourceSection": "5.13",
+                "jsonField": "privacyRequestType",
+                "values": ["export"],
+            },
+            {
+                "name": "PrivacyRequestStatus",
+                "sourceSection": "5.13",
+                "jsonField": "privacyRequestStatus",
+                "values": ["queued"],
+            },
         ],
         "structures": {
             "PageInfo": {
@@ -144,6 +221,38 @@ class ConventionsYAMLTest(unittest.TestCase):
         errs = self.linter.validate(data)
 
         self.assertTrue(any("modelProfileName" in err and "lower_snake_case" in err for err in errs), errs)
+
+    def test_rejects_removed_mistake_status(self) -> None:
+        data = copy.deepcopy(valid_data())
+        data["enums"].append(
+            {
+                "name": "MistakeStatus",
+                "sourceSection": "5.11",
+                "jsonField": "mistakeStatus",
+                "values": ["open"],
+            }
+        )
+
+        errs = self.linter.validate(data)
+
+        self.assertTrue(
+            any("MistakeStatus" in err and "removed by product-scope v1.2" in err for err in errs),
+            errs,
+        )
+
+    def test_rejects_legacy_practice_mode_values(self) -> None:
+        data = copy.deepcopy(valid_data())
+        for enum in data["enums"]:
+            if enum["name"] == "PracticeMode":
+                enum["values"] = ["warmup", "core_interview", "single_drill"]
+                break
+
+        errs = self.linter.validate(data)
+
+        self.assertTrue(
+            any("PracticeMode" in err and "product-scope v1.2 values" in err for err in errs),
+            errs,
+        )
 
 
 if __name__ == "__main__":

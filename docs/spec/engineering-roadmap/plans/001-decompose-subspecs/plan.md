@@ -1,8 +1,8 @@
 # Roadmap Rebaseline and Subspec Governance
 
-> **版本**: 3.0
-> **状态**: active
-> **更新日期**: 2026-05-03
+> **版本**: 3.1
+> **状态**: completed
+> **更新日期**: 2026-05-05
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -81,7 +81,7 @@ ADR-Q1..Q6 继续作为架构约束保留在 `docs/spec/engineering-roadmap/deci
 
 #### 3.1 创建前置条件
 
-任何 P0 workstream 只有在明确进入设计或实现时才能创建 child spec。创建时必须满足：
+本 phase 只记录后续 P0 workstream 的创建规则，不创建 child spec / plan，也不把这些候选项转成当前 implementation target。任何 P0 workstream 只有在明确进入设计或实现时才能创建 child spec。创建时必须满足：
 
 - product-scope 和 UI 文档已明确保留该用户行为或工程能力。
 - 已有同主题 spec / plan 不存在；若存在必须原地修订。
@@ -126,3 +126,4 @@ ADR-Q1..Q6 继续作为架构约束保留在 `docs/spec/engineering-roadmap/deci
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
 | 2026-05-03 | 3.0 | 原地重写为 roadmap rebaseline：删除 pending 占位模型，保留 active spec truth source，改为 on-demand child 创建。 | product-scope v1.5 / docs-ui current |
+| 2026-05-05 | 3.1 | L1 plan-review remediation：确认 Phase 3 只是后续 child 创建治理规则，不创建当前 P0 workstream；本 docs-only plan 完成收口为 completed。 | historical-spec-implementation-review L1 |

@@ -25,6 +25,82 @@ ALTER_TABLE_CHECK_RE = re.compile(
 )
 VALUE_RE = re.compile(r"'([^']+)'")
 FORBIDDEN_SECRET_RE = re.compile(r"\b(raw_token|session_cookie|api_key|provider_token)\b", re.IGNORECASE)
+VENDOR_MODEL_TOKEN_RE = re.compile(
+    r"\b(openrouter|anthropic|claude|gpt-|m4\.7|primary-llm|model-test|gpt-test|text-embedding|gemini|mistral|cohere)\b",
+    re.IGNORECASE,
+)
+
+EXPECTED_BASELINE_TABLES = [
+    "schema_backfills",
+    "users",
+    "user_settings",
+    "candidate_profiles",
+    "experience_cards",
+    "file_objects",
+    "resume_assets",
+    "target_jobs",
+    "target_job_requirements",
+    "target_job_sources",
+    "practice_plans",
+    "practice_sessions",
+    "practice_session_events",
+    "practice_turns",
+    "feedback_reports",
+    "question_assessments",
+    "resume_tailor_runs",
+    "debriefs",
+    "source_records",
+    "retrieval_chunks",
+    "prompt_versions",
+    "rubric_versions",
+    "ai_task_runs",
+    "async_jobs",
+    "outbox_events",
+    "privacy_requests",
+    "audit_events",
+    "auth_challenges",
+    "sessions",
+    "external_identities",
+]
+REMOVED_PRODUCT_SCOPE_TOKENS = [
+    "mistake_entries",
+    "open_mistake_count",
+    "written_to_mistake_book",
+    "mistake_book",
+    "mistake.extract",
+    "'single_drill'",
+    "'core_interview'",
+    "'fix_mistake'",
+    "'counter_questions'",
+    "voice_sessions",
+    "voice_practice",
+    "growth_stage",
+    "growth_plan",
+    "drill_session",
+]
+PRODUCT_SCOPE_REQUIRED_FRAGMENTS = [
+    ("target_jobs.open_question_issue_count", "open_question_issue_count integer not null default 0"),
+    ("practice_plans.goal", "goal text not null check (goal in ('baseline', 'retry_current_round', 'next_round', 'debrief'))"),
+    ("practice_plans.mode", "mode text not null check (mode in ('assisted', 'strict', 'debrief_replay'))"),
+    ("feedback_reports.session_unique", "create unique index idx_feedback_reports_session_unique on feedback_reports (session_id)"),
+    ("question_assessments.review_status", "review_status text not null check (review_status in ('open', 'queued_for_retry', 'resolved'))"),
+    ("question_assessments.included_in_retry_plan", "included_in_retry_plan boolean not null default false"),
+    ("outbox_events.publish_attempts", "publish_attempts integer not null default 0"),
+    ("outbox_events.next_attempt_at", "next_attempt_at timestamptz not null default now()"),
+    ("outbox_events.pending_due_index", "create index idx_outbox_events_pending_due on outbox_events (publish_status, next_attempt_at, created_at)"),
+    ("ai_task_runs.model_family", "model_family text"),
+    ("ai_task_runs.model_profile_name", "model_profile_name text"),
+    ("ai_task_runs.model_profile_version", "model_profile_version text"),
+    ("ai_task_runs.fallback_chain", "fallback_chain jsonb not null default '[]'::jsonb"),
+    ("ai_task_runs.route", "route text"),
+    ("ai_task_runs.validation_status", "validation_status text"),
+    ("ai_task_runs.output_schema_version", "output_schema_version text"),
+    ("ai_task_runs.dashboard_index", "create index idx_ai_task_runs_dashboard on ai_task_runs (model_profile_name, validation_status, created_at desc)"),
+]
+PRODUCT_SCOPE_TABLE_REQUIRED_FRAGMENTS = [
+    ("feedback_reports.session_id", "feedback_reports", "session_id uuid not null references practice_sessions(id) on delete cascade"),
+]
+FEATURE_KEY_ALLOWED_TABLES = {"prompt_versions", "rubric_versions"}
 
 B1_SOURCE_MAP = {
     "experience_cards.confidence": "Confidence",
@@ -91,6 +167,7 @@ def run_checks(repo_root: Path) -> list[str]:
     problems.extend(validate_enum_sources(enum_sources, checks))
     problems.extend(validate_declared_sources(repo_root, enum_sources))
     problems.extend(validate_secret_red_lines(migrations_dir))
+    problems.extend(validate_product_scope_files(migrations_dir))
     return problems
 
 
@@ -241,6 +318,93 @@ def validate_secret_red_lines(migrations_dir: Path) -> list[str]:
             if match:
                 problems.append(f"{path.name}:{lineno}: forbidden plaintext secret field marker {match.group(1)}")
     return problems
+
+
+def validate_product_scope_files(migrations_dir: Path) -> list[str]:
+    if not (migrations_dir / "000001_create_baseline.up.sql").exists():
+        return []
+    sql = "\n".join(path.read_text() for path in sorted(migrations_dir.glob("*.up.sql")))
+    enum_sources = (migrations_dir / "enum-sources.yaml").read_text() if (migrations_dir / "enum-sources.yaml").exists() else ""
+    return validate_product_scope_sql(sql, enum_sources)
+
+
+def validate_product_scope_sql(sql: str, enum_sources: str) -> list[str]:
+    problems: list[str] = []
+    normalized_sql = normalize_sql(sql)
+    normalized_contract = normalize_sql(sql + "\n" + enum_sources)
+    table_bodies = extract_create_table_bodies(sql)
+    table_names = list(table_bodies)
+
+    missing_tables = [table for table in EXPECTED_BASELINE_TABLES if table not in table_bodies]
+    extra_tables = sorted(set(table_names) - set(EXPECTED_BASELINE_TABLES))
+    if missing_tables:
+        problems.append(f"product-scope baseline missing tables: {missing_tables}")
+    if extra_tables:
+        problems.append(f"product-scope baseline has unexpected tables: {extra_tables}")
+
+    for token in REMOVED_PRODUCT_SCOPE_TOKENS:
+        if token in normalized_contract:
+            problems.append(f"product-scope removed token still present: {token}")
+
+    for label, fragment in PRODUCT_SCOPE_REQUIRED_FRAGMENTS:
+        if normalize_sql(fragment) not in normalized_sql:
+            problems.append(f"product-scope required fragment missing: {label}")
+    for label, table, fragment in PRODUCT_SCOPE_TABLE_REQUIRED_FRAGMENTS:
+        if normalize_sql(fragment) not in normalize_sql(table_bodies.get(table, "")):
+            problems.append(f"product-scope required fragment missing: {label}")
+
+    problems.extend(validate_feature_key_scope(sql, table_bodies))
+
+    match = VENDOR_MODEL_TOKEN_RE.search(sql + "\n" + enum_sources)
+    if match:
+        problems.append(f"migration contract contains vendor/model token {match.group(1)!r}; use provider-neutral profile identifiers")
+
+    return problems
+
+
+def extract_create_table_bodies(sql: str) -> dict[str, str]:
+    bodies: dict[str, str] = {}
+    for match in CREATE_TABLE_RE.finditer(sql):
+        bodies[match.group(1).lower()] = match.group(2)
+    return bodies
+
+
+def validate_feature_key_scope(sql: str, table_bodies: dict[str, str]) -> list[str]:
+    problems: list[str] = []
+    for table, body in table_bodies.items():
+        normalized_body = normalize_sql(body)
+        if "feature_key" in normalized_body and table not in FEATURE_KEY_ALLOWED_TABLES:
+            problems.append(f"feature_key is only allowed in prompt_versions/rubric_versions, found in {table}")
+        if table in FEATURE_KEY_ALLOWED_TABLES:
+            for fragment in ("feature_key text not null", "unique (feature_key, version, language)"):
+                if fragment not in normalized_body:
+                    problems.append(f"{table} must keep F3 feature_key coordinate fragment: {fragment}")
+
+    allowed_spans = [
+        match.span()
+        for match in CREATE_TABLE_RE.finditer(sql)
+        if match.group(1).lower() in FEATURE_KEY_ALLOWED_TABLES
+    ]
+    outside_allowed = remove_spans(sql.lower(), allowed_spans)
+    if "feature_key" in outside_allowed:
+        problems.append("feature_key is only allowed in prompt_versions/rubric_versions")
+    return problems
+
+
+def remove_spans(text: str, spans: list[tuple[int, int]]) -> str:
+    if not spans:
+        return text
+    chunks: list[str] = []
+    cursor = 0
+    for start, end in sorted(spans):
+        chunks.append(text[cursor:start])
+        cursor = end
+    chunks.append(text[cursor:])
+    return "".join(chunks)
+
+
+def normalize_sql(value: str) -> str:
+    return re.sub(r"\s+", " ", value.lower()).strip()
 
 
 def checksum_values(values: list[str]) -> str:

@@ -1,8 +1,8 @@
 # Event and Outbox Contract Bootstrap Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-05
 
 **关联计划**: [plan](./plan.md)
 
@@ -35,7 +35,7 @@
 - [x] 4.1 落地 `scripts/lint/lint_events.py`（或等价 Go 工具）作为 `make lint-events` 实体：扫描 `backend/` 与 `frontend/`（白名单仅 `backend/internal/shared/{events,jobs}` 与 `frontend/src/lib/{events,jobs}`），拒绝 16 事件名 / 10 canonical jobType / 10 dotted task name 的裸字面量；验证: `python3 -m pytest scripts/lint/lint_events_test.py -q` 覆盖 backend/frontend 裸字面量失败、generated 白名单通过、文档/fixture 允许 case
 - [x] 4.2 `make lint-events` 校验 generated 文件中事件名集合长度 == 16 且与 `shared/events.yaml` 一致；任何 generated 文件之外手写 `EventName*` 常量声明 fail；验证: `make lint-events` 在临时删除 generated event、额外手写 `EventName*` fixture 时失败，恢复后通过
 - [x] 4.3 `make lint-events` 校验 generated `APIFacingJobTypes` 长度 == 7 且与 `shared/jobs.yaml.apiFacingSubset` 一致；任一项 `apiFacing != true` fail（防止 `email_dispatch` 误扩）；验证: `make lint-events` 在临时把 `email_dispatch` 标为 API-facing 或 subset 增至 8 项时失败，恢复后通过
-- [x] 4.4 落地本地 drift gate 命令：`make codegen-events && make lint-events && git diff --exit-code -- shared/events.yaml shared/jobs.yaml backend/internal/shared/events backend/internal/shared/jobs frontend/src/lib/events frontend/src/lib/jobs shared/events/schemas`；在 `Makefile` 注释中说明远端 CI 仅在 [A5 ci-pipeline-baseline](../../../ci-pipeline-baseline/spec.md) 触发条件成立后再接入；验证: 完整 drift gate 命令 exit 0，临时修改 generated 文件后 `git diff --exit-code -- ...` 失败并指出 drift
+- [x] 4.4 落地本地 drift gate 命令：`make codegen-events && make lint-events && git diff --exit-code -- shared/events.yaml shared/jobs.yaml backend/internal/shared/events/{envelope.go,events.go} backend/internal/shared/jobs/jobs.go frontend/src/lib/events/{envelope.ts,events.ts} frontend/src/lib/jobs/jobs.ts shared/events/{schemas,refs,baseline} shared/jobs/baseline`；手写 `*_test.*` 与 fixtures 由 lint / Go / TS tests 覆盖，不作为 generated drift 路径；在 `Makefile` 注释中说明远端 CI 仅在 [A5 ci-pipeline-baseline](../../../ci-pipeline-baseline/spec.md) 触发条件成立后再接入；验证: 完整 drift gate 命令 exit 0，临时修改 generated 文件后 `git diff --exit-code -- ...` 失败并指出 drift；2026-05-05 A5 deep review 增加 `scripts/lint/makefile_dry_run_test.py` 断言 `codegen-events-check` 只列出 generator 实际输出文件，不覆盖手写 tests / fixtures
 - [x] 4.5 L2 remediation: `make lint-events` 必须在任一 generated contract 文件缺失时 fail-fast，而不是跳过缺失路径；验证: `python3 -m pytest scripts/lint/lint_events_test.py -q` 覆盖 Go/TS events/jobs generated 文件缺失失败 case，`make lint-events` 仍通过当前仓库完整产物
 
 ## Phase 5: 单元测试（envelope / trace 透传 / breaking-change 拦截 / `email_dispatch` 红线）

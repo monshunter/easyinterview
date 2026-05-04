@@ -7,7 +7,8 @@ Phase 1.3 scope (per `002-fixtures-and-mock-source` plan §3 / spec C-6 / C-11):
     2. schema    — request.body and response.body schema-valid against the
        operation's request / status-matched response schema in openapi.yaml.
     3. provenance — every AI-generated schema listed in spec §4.6 carries a
-       complete `GenerationProvenance` (6 non-empty fields).
+       complete `GenerationProvenance` (6 non-empty fields) and uses a
+       provider-neutral model profile id in fixture data.
     4. privacy   — emails restricted to example.{com,org,net} or `.example`,
        phones to `+1-555-01xx`, and the employer-brand blacklist below.
     5. ids       — `format: uuid` values must match UUIDv7 layout, and any
@@ -47,8 +48,7 @@ TEMP_ID_RE = re.compile(r"\btmp_[A-Za-z0-9_-]+\b")
 ALLOWED_EMAIL_DOMAINS = {"example.com", "example.org", "example.net"}
 ALLOWED_PHONE_PREFIX = "+1-555-01"
 
-# Real employer-style brands; AI-vendor names are excluded by design — they
-# only show up in `provenance.modelId` infrastructure metadata.
+# Real employer-style brands.
 COMPANY_BLACKLIST = (
     "alibaba", "tencent", "bytedance", "baidu", "meituan", "didi", "huawei",
     "字节", "腾讯", "阿里巴巴", "百度", "美团", "滴滴", "华为", "星环",
@@ -56,6 +56,11 @@ COMPANY_BLACKLIST = (
 COMPANY_BLACKLIST_RE = re.compile(
     r"(?:^|[^A-Za-z0-9_])(" + "|".join(re.escape(b) for b in COMPANY_BLACKLIST) +
     r")(?:[^A-Za-z0-9_]|$)",
+    re.IGNORECASE,
+)
+MODEL_PROFILE_ID_RE = re.compile(r"^model-profile:[a-z][a-z0-9_.-]*$")
+VENDOR_MODEL_TOKEN_RE = re.compile(
+    r"(?:openrouter|anthropic|claude|openai|gpt-|text-embedding|mistral|gemini|cohere)",
     re.IGNORECASE,
 )
 
@@ -461,6 +466,18 @@ def check_provenance(opid: str, scenario: dict, errors: List[str]) -> None:
                     errors.append(
                         f"{opid}.{path}.{field}: provenance field missing or blank"
                     )
+                    continue
+                if field == "modelId":
+                    if not MODEL_PROFILE_ID_RE.match(v):
+                        errors.append(
+                            f"{opid}.{path}.modelId: fixture provenance must use "
+                            f"a provider-neutral model profile id (`model-profile:<name>`), got {v!r}"
+                        )
+                    if VENDOR_MODEL_TOKEN_RE.search(v):
+                        errors.append(
+                            f"{opid}.{path}.modelId: fixture provenance must not hardcode "
+                            f"vendor/model tokens, got {v!r}"
+                        )
 
 
 def check_privacy_export_error_code(opid: str, scenarios: dict, errors: List[str]) -> None:

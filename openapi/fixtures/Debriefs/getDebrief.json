@@ -30,7 +30,7 @@
           "provenance": {
             "promptVersion": "debrief_generate.v1",
             "rubricVersion": "not_applicable",
-            "modelId": "openrouter:anthropic/claude-sonnet-4.6",
+            "modelId": "model-profile:contract.default",
             "language": "zh-CN",
             "featureFlag": "none",
             "dataSourceVersion": "debrief.v4"

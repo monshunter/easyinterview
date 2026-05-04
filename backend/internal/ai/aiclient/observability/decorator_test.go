@@ -340,15 +340,15 @@ func TestDecorator_FallbackChainTriggersFallbackCounterAndLog(t *testing.T) {
 	innerStub := &fallbackInner{
 		meta: aiclient.AICallMeta{
 			Provider:         "openai_compatible",
-			ModelFamily:      "openai/gpt-4-turbo",
-			ModelID:          "gpt-4-turbo",
+			ModelFamily:      "chat-primary",
+			ModelID:          "chat-primary-2026-05-05",
 			TaskType:         aiclient.TaskTypeChat,
 			ModelProfileName: "practice.followup.default",
 			Language:         "en",
 			InputTokens:      10,
 			OutputTokens:     20,
 			LatencyMs:        50,
-			FallbackChain:    []string{"openai/gpt-4", "anthropic/claude-3"},
+			FallbackChain:    []string{"primary/chat", "fallback/chat"},
 			Route:            "practice.followup",
 			ValidationStatus: aiclient.ValidationStatusOK,
 		},
@@ -386,6 +386,59 @@ func TestDecorator_FallbackChainTriggersFallbackCounterAndLog(t *testing.T) {
 	}
 	if !gotFallbackLog {
 		t.Errorf("expected ai.task.fallback log entry")
+	}
+}
+
+func TestDecorator_FallbackCounterDerivesModelFamilyOnlyFromDateSuffix(t *testing.T) {
+	registry := observability.NewInMemoryRegistry()
+	logger := observability.NewMemoryLogger()
+	runs := &memTaskRunWriter{}
+	audit := &memAuditWriter{}
+
+	innerStub := &fallbackInner{
+		meta: aiclient.AICallMeta{
+			Provider:         "openai_compatible",
+			ModelFamily:      "chat-primary",
+			ModelID:          "chat-primary-2026-05-05",
+			TaskType:         aiclient.TaskTypeChat,
+			ModelProfileName: "practice.followup.default",
+			Language:         "en",
+			InputTokens:      10,
+			OutputTokens:     20,
+			LatencyMs:        50,
+			FallbackChain:    []string{"chat-primary-2026-05-05", "chat-secondary-2026-05-05"},
+			Route:            "practice.followup",
+			ValidationStatus: aiclient.ValidationStatusOK,
+		},
+	}
+	wrap, err := observability.New(innerStub,
+		observability.WithRegisterer(registry),
+		observability.WithLogger(logger),
+		observability.WithAITaskRunWriter(runs),
+		observability.WithAuditEventWriter(audit),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+
+	_, _, err = wrap.Complete(context.Background(), "practice.followup.default", samplePayload())
+	if err != nil {
+		t.Fatalf("Complete: %v", err)
+	}
+
+	labels := []string{
+		"openai_compatible",
+		"chat-primary",
+		"practice.followup.default",
+		"practice.followup",
+		string(aiclient.TaskTypeChat),
+		"en",
+		"fallback",
+		"chat-primary",
+		"chat-secondary",
+	}
+	if got := registry.CounterValue(observability.MetricFallbackTotal, labels...); got != 1 {
+		t.Fatalf("expected fallback counter for date-suffix-derived model families, got %v", got)
 	}
 }
 

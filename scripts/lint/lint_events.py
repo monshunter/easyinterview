@@ -15,6 +15,7 @@ import yaml
 
 BREAKING = "breaking change requires eventVersion + 1"
 SOURCE_SUFFIXES = {".go", ".js", ".jsx", ".ts", ".tsx"}
+CONTRACT_TEXT_SUFFIXES = SOURCE_SUFFIXES | {".json", ".yaml", ".yml"}
 IGNORED_DIRS = {".git", ".next", "coverage", "dist", "node_modules", "vendor"}
 CONTRACT_GENERATED_DIRS = (
     Path("backend/internal/shared/events"),
@@ -32,6 +33,15 @@ REMOVED_PAYLOAD_FIELDS = {
     ("report.generated", "mistakeCount"),
     ("debrief.completed", "generatedMistakeCount"),
 }
+EVENT_CONTRACT_DIRS = (
+    Path("shared/events"),
+    Path("backend/internal/shared/events"),
+    Path("frontend/src/lib/events"),
+)
+VENDOR_MODEL_TOKEN_RE = re.compile(
+    r"(?:openrouter|anthropic|claude|openai|gpt-|text-embedding|mistral|gemini|cohere)",
+    re.IGNORECASE,
+)
 
 
 def _by_event_name(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -205,6 +215,27 @@ def scan_source_literals(root: Path, events: dict[str, Any], jobs: dict[str, Any
     return errors
 
 
+def scan_event_contract_model_tokens(root: Path) -> list[str]:
+    errors: list[str] = []
+    for base in EVENT_CONTRACT_DIRS:
+        abs_base = root / base
+        if not abs_base.exists():
+            continue
+        for path in abs_base.rglob("*"):
+            if not path.is_file() or path.suffix not in CONTRACT_TEXT_SUFFIXES:
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                text = path.read_text(encoding="utf-8", errors="ignore")
+            if VENDOR_MODEL_TOKEN_RE.search(text):
+                errors.append(
+                    f"{path.relative_to(root)}: event contract fixtures/tests must use "
+                    "provider-neutral model profile ids, not vendor/model tokens"
+                )
+    return errors
+
+
 def validate_generated_contracts(root: Path, events: dict[str, Any], jobs: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     expected_events = _event_names(events)
@@ -357,6 +388,7 @@ def main() -> int:
     errors.extend(validate_jobs_contract_shape(current_jobs))
     errors.extend(validate_generated_contracts(root, current_events, current_jobs))
     errors.extend(scan_source_literals(root, current_events, current_jobs))
+    errors.extend(scan_event_contract_model_tokens(root))
     if errors:
         for error in errors:
             print(f"FAIL: {error}", file=sys.stderr)

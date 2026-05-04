@@ -30,7 +30,7 @@
 |---------|------|------|----------|-------|
 | [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.8 | active | 2026-05-03 | [plans](./shared-conventions-codified/plans/) |
 | [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.10 | active | 2026-05-03 | [plans](./openapi-v1-contract/plans/) |
-| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 1.6 | active | 2026-05-03 | [plans](./event-and-outbox-contract/plans/) |
+| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 1.7 | active | 2026-05-05 | [plans](./event-and-outbox-contract/plans/) |
 | [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.8 | active | 2026-05-03 | [plans](./db-migrations-baseline/plans/) |
 
 ## 4 Quality / AI Governance

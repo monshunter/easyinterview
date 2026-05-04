@@ -1,8 +1,8 @@
 # Event and Outbox Contract Spec
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-05
 
 ## 1 背景与目标
 
@@ -165,7 +165,7 @@ B2 OpenAPI v1.0.0 的 `JobType` enum 只允许以下 7 项：`target_import` / `
 
 - 业务包不允许出现裸字面量 `"target.parsed"` / `"report_generate"`；必须 import `events` / `jobs` 包常量。
 - generator 输入：`shared/events.yaml`（envelope schema + 16 事件清单 + §3.1.4 payload schema）+ `shared/jobs.yaml`（10 个 canonical job_type ↔ dotted name 映射 + API-facing subset 标记 + `email_dispatch` payload redaction policy）；B3 owns `backend/cmd/codegen/events`，只 import B1 已生成类型，不复用 B1 generator 进程。
-- 本地 drift gate：`make codegen-events && make lint-events && git diff --exit-code -- shared/events.yaml shared/jobs.yaml backend/internal/shared/events backend/internal/shared/jobs frontend/src/lib/events frontend/src/lib/jobs`；远端 CI 仅在 A5 触发条件成立后再接入。
+- 本地 drift gate：`make codegen-events && make lint-events && git diff --exit-code -- shared/events.yaml shared/jobs.yaml backend/internal/shared/events/{envelope.go,events.go} backend/internal/shared/jobs/jobs.go frontend/src/lib/events/{envelope.ts,events.ts} frontend/src/lib/jobs/jobs.ts shared/events/{schemas,refs,baseline} shared/jobs/baseline`；手写 `*_test.*` 与 fixtures 由 `make lint-events` / Go / TS 单测覆盖，不作为 generated drift 路径；远端 CI 仅在 A5 触发条件成立后再接入。
 
 ## 5 模块边界
 

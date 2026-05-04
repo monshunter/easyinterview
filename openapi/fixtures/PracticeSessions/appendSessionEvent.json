@@ -49,7 +49,7 @@
             "provenance": {
               "promptVersion": "practice_session_assistant.v5",
               "rubricVersion": "not_applicable",
-              "modelId": "openrouter:anthropic/claude-sonnet-4.6",
+              "modelId": "model-profile:contract.default",
               "language": "zh-CN",
               "featureFlag": "follow_up_v3",
               "dataSourceVersion": "practice_session.v9"

@@ -297,11 +297,25 @@ func modelFamily(modelID string) string {
 	if modelID == "" {
 		return ""
 	}
-	// Strip everything after the last "-": "gpt-4-turbo-2024-04-09" → "gpt-4-turbo".
-	if i := strings.LastIndex(modelID, "-"); i > 0 {
-		return modelID[:i]
+	parts := strings.Split(modelID, "-")
+	if len(parts) >= 4 && isDateSuffix(parts[len(parts)-3], parts[len(parts)-2], parts[len(parts)-1]) {
+		return strings.Join(parts[:len(parts)-3], "-")
 	}
 	return modelID
+}
+
+func isDateSuffix(year, month, day string) bool {
+	return len(year) == 4 && len(month) == 2 && len(day) == 2 &&
+		allDigits(year) && allDigits(month) && allDigits(day)
+}
+
+func allDigits(s string) bool {
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return s != ""
 }
 
 func convertMessages(in []aiclient.Message) []wireMessage {

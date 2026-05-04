@@ -1,8 +1,8 @@
 # Secrets and Config Bootstrap Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-05
 
 **关联计划**: [plan](./plan.md)
 
@@ -34,7 +34,7 @@
 
 ## Phase 4: Lint / pre-commit hook / `make lint-config`
 
-- [x] 4.1 在 B1 已落地的 `backend/.golangci.yml` 中追加本地可执行规则：优先 `revive` 自定义 rule，必要时落地 `scripts/lint/os_getenv_boundary.go`（Go AST checker）；allowlist 仅放行 `internal/platform/config/` / `internal/platform/secrets/` / `cmd/{api,worker}/main.go`，其它包出现 `os.Getenv` lint 失败（关闭 spec C-7）
+- [x] 4.1 在 B1 已落地的 `backend/.golangci.yml` 中追加本地可执行规则：优先 `revive` 自定义 rule，必要时落地 `scripts/lint/getenv_boundary.go`（Go AST checker）；allowlist 仅放行 `internal/platform/config/` / `internal/platform/secrets/` / `cmd/{api,worker,migrate}/`，其它包出现 `os.Getenv` lint 失败（关闭 spec C-7）
 - [x] 4.2 落地 `scripts/lint/env_dict.py`（或 `.sh`）：解析 `.env.example` + 代码侧 `os.Getenv` / `Get*` 调用 + spec §3.1.1 表，三方求差集；`Makefile` 新增 `.PHONY: lint-config` 并入 `make lint`，缺失 key 必须 fail（关闭 spec C-9 / C-11）
 - [x] 4.3 落地 `scripts/git-hooks/pre-commit-secrets.sh`：扫描 `git diff --cached` 命中 `AKIA[0-9A-Z]{16}` / `sk-[A-Za-z0-9]{20,}` / `xox[baprs]-[A-Za-z0-9-]+` 即 fail；错误信息列出文件名 + 行号但不输出命中 secret 字面量；通过 A1 已建立的 hook 入口注册（关闭 spec C-8 第一层）
 - [x] 4.4 落地 `scripts/lint/gitleaks.sh` 第二层：调用本地 `gitleaks detect --no-git --redact`；未安装时打印安装提示并 exit 0 不阻塞；`make lint` 调用此脚本；远端 CI secret scan 仅在 A5 触发条件成立后再接入

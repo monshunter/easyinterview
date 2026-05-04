@@ -107,3 +107,64 @@ func TestPrivacyMatrixCoversBaselineRetainTables(t *testing.T) {
 		}
 	}
 }
+
+func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
+	var stdout bytes.Buffer
+
+	WritePrivacyMatrix(&stdout)
+	got := map[string]string{}
+	for _, line := range strings.Split(strings.TrimSpace(stdout.String()), "\n") {
+		table, disposition, ok := strings.Cut(line, ": ")
+		if !ok {
+			t.Fatalf("unexpected privacy matrix line %q", line)
+		}
+		if previous, exists := got[table]; exists {
+			t.Fatalf("privacy matrix has duplicate table %q: %q and %q", table, previous, disposition)
+		}
+		got[table] = disposition
+	}
+
+	for _, table := range []string{
+		"users",
+		"user_settings",
+		"candidate_profiles",
+		"experience_cards",
+		"file_objects",
+		"resume_assets",
+		"target_jobs",
+		"target_job_requirements",
+		"target_job_sources",
+		"practice_plans",
+		"practice_sessions",
+		"practice_session_events",
+		"practice_turns",
+		"feedback_reports",
+		"question_assessments",
+		"resume_tailor_runs",
+		"debriefs",
+		"source_records",
+		"retrieval_chunks",
+		"prompt_versions",
+		"rubric_versions",
+		"ai_task_runs",
+		"async_jobs",
+		"outbox_events",
+		"privacy_requests",
+		"audit_events",
+		"auth_challenges",
+		"sessions",
+		"external_identities",
+		"schema_migrations",
+		"schema_backfills",
+	} {
+		if _, ok := got[table]; !ok {
+			t.Fatalf("privacy matrix missing baseline table %q", table)
+		}
+	}
+	if _, ok := got["mistake_entries"]; ok {
+		t.Fatalf("privacy matrix must not restore removed mistake_entries")
+	}
+	if len(got) != 31 {
+		t.Fatalf("privacy matrix should cover exactly 31 public baseline tables, got %d: %#v", len(got), got)
+	}
+}

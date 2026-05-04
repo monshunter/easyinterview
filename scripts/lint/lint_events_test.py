@@ -227,6 +227,13 @@ class LintEventsSourceScanTest(unittest.TestCase):
 
         self.assertTrue(any("recipientEmail" in err and "redacted" in err for err in errs), errs)
 
+    def test_rejects_vendor_model_tokens_in_event_contract_fixtures(self) -> None:
+        self.write("shared/events/__fixtures__/envelopes.json", '{"modelId":"gpt-test"}\n')
+
+        errs = self.linter.scan_event_contract_model_tokens(self.root)
+
+        self.assertTrue(any("provider-neutral model profile ids" in err for err in errs), errs)
+
 
 def constant_suffix(value: str) -> str:
     return "".join(part.capitalize() for part in value.replace(".", "_").split("_"))

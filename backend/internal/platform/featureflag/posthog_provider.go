@@ -85,6 +85,9 @@ func NewPostHogProvider(opts PostHogProviderOptions) (*PostHogFlagProvider, erro
 	if opts.Host == "" {
 		return nil, fmt.Errorf("featureflag: PostHog host is required")
 	}
+	if opts.APIKey == "" {
+		return nil, fmt.Errorf("featureflag: POSTHOG_PROJECT_API_KEY is required when FEATURE_FLAG_SOURCE=posthog")
+	}
 	if _, err := url.Parse(opts.Host); err != nil {
 		return nil, fmt.Errorf("featureflag: invalid PostHog host %q: %w", opts.Host, err)
 	}

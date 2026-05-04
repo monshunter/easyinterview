@@ -30,7 +30,7 @@
             "provenance": {
               "promptVersion": "target_job_summary.v3",
               "rubricVersion": "not_applicable",
-              "modelId": "openrouter:anthropic/claude-sonnet-4.6",
+              "modelId": "model-profile:contract.default",
               "language": "zh-CN",
               "featureFlag": "none",
               "dataSourceVersion": "target_job.v17"
@@ -70,7 +70,7 @@
             "provenance": {
               "promptVersion": "target_job_fit.v2",
               "rubricVersion": "not_applicable",
-              "modelId": "openrouter:anthropic/claude-sonnet-4.6",
+              "modelId": "model-profile:contract.default",
               "language": "zh-CN",
               "featureFlag": "fit_summary_v2",
               "dataSourceVersion": "target_job.v17"
@@ -114,7 +114,7 @@
             "provenance": {
               "promptVersion": "target_job_summary.v3",
               "rubricVersion": "not_applicable",
-              "modelId": "primary-llm:m4.7-sonnet-2026q1",
+              "modelId": "model-profile:prototype-baseline.default",
               "language": "zh-CN",
               "featureFlag": "none",
               "dataSourceVersion": "prototype-baseline.v1"
@@ -174,14 +174,14 @@
             "provenance": {
               "promptVersion": "target_job_fit.v2",
               "rubricVersion": "not_applicable",
-              "modelId": "primary-llm:m4.7-sonnet-2026q1",
+              "modelId": "model-profile:prototype-baseline.default",
               "language": "zh-CN",
               "featureFlag": "none",
               "dataSourceVersion": "prototype-baseline.v1"
             }
           },
           "latestReportId": "01918fa0-c3cb-7268-8404-d3b2603536d8",
-          "openQuestionIssueCount": 3,
+          "openQuestionIssueCount": 0,
           "createdAt": "2026-04-22T09:30:00Z",
           "updatedAt": "2026-04-28T12:00:00Z"
         }

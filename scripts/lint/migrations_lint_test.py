@@ -151,6 +151,59 @@ ALTER TABLE users ADD CONSTRAINT users_status_check CHECK (status IN ('active', 
     assert any("users.status" in problem and "not registered" in problem for problem in problems)
 
 
+def test_product_scope_contract_accepts_current_baseline() -> None:
+    sql = current_baseline_sql()
+    enum_sources = current_enum_sources()
+
+    problems = migrations_lint.validate_product_scope_sql(sql, enum_sources)
+
+    assert problems == []
+
+
+def test_product_scope_contract_rejects_removed_mistake_schema() -> None:
+    sql = current_baseline_sql() + "\nCREATE TABLE mistake_entries (id uuid PRIMARY KEY);\n"
+
+    problems = migrations_lint.validate_product_scope_sql(sql, current_enum_sources())
+
+    assert any("mistake_entries" in problem for problem in problems)
+
+
+def test_product_scope_contract_rejects_non_session_scoped_report() -> None:
+    sql = current_baseline_sql()
+    start = sql.index("CREATE TABLE feedback_reports (")
+    end = sql.index("CREATE UNIQUE INDEX idx_feedback_reports_session_unique")
+    report_table = sql[start:end].replace(
+        "  session_id uuid NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,\n",
+        "",
+        1,
+    )
+    sql = sql[:start] + report_table + sql[end:]
+
+    problems = migrations_lint.validate_product_scope_sql(sql, current_enum_sources())
+
+    assert any("feedback_reports.session_id" in problem for problem in problems)
+
+
+def test_product_scope_contract_rejects_feature_key_outside_f3_tables() -> None:
+    sql = current_baseline_sql().replace(
+        "CREATE TABLE ai_task_runs (\n",
+        "CREATE TABLE ai_task_runs (\n  feature_key text,\n",
+        1,
+    )
+
+    problems = migrations_lint.validate_product_scope_sql(sql, current_enum_sources())
+
+    assert any("feature_key" in problem and "prompt_versions/rubric_versions" in problem for problem in problems)
+
+
+def test_product_scope_contract_rejects_vendor_model_tokens() -> None:
+    sql = current_baseline_sql() + "\n-- fixture leak: openrouter:anthropic/claude-sonnet-4.6\n"
+
+    problems = migrations_lint.validate_product_scope_sql(sql, current_enum_sources())
+
+    assert any("vendor/model" in problem and "openrouter" in problem for problem in problems)
+
+
 def write_repo(tmp_path: Path, *, sql: str, enum_sources: str) -> Path:
     repo = tmp_path / "repo"
     migrations = repo / "migrations"
@@ -207,3 +260,15 @@ components:
 {enum_values}
 """
     )
+
+
+def repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def current_baseline_sql() -> str:
+    return (repo_root() / "migrations" / "000001_create_baseline.up.sql").read_text()
+
+
+def current_enum_sources() -> str:
+    return (repo_root() / "migrations" / "enum-sources.yaml").read_text()

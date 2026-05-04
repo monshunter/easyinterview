@@ -43,7 +43,7 @@ _all_healthy: # internal: prints "yes" iff all deps running+healthy AND init exi
 	echo "$$all_ok"
 
 up: _ensure_env ## Start dev stack (idempotent; skip if already healthy)
-	@status="$$($(MAKE) -s _all_healthy)"; \
+	@status="$$(make -s -C "$(DEV_STACK_DIR)" _all_healthy)"; \
 	if [ "$$status" = "yes" ]; then \
 		echo "[dev-stack] already healthy, skipping start"; \
 		exit 0; \
@@ -64,7 +64,7 @@ up: _ensure_env ## Start dev stack (idempotent; skip if already healthy)
 	fi; \
 	echo "[dev-stack] running init jobs"; \
 	$(COMPOSE) up -d $(INIT_SERVICES); \
-	$(MAKE) -s _wait_init; \
+	make -s -C "$(DEV_STACK_DIR)" _wait_init; \
 	if [ -x "$(DOCTOR_SCRIPT)" ]; then \
 		echo "[dev-stack] running dev-doctor gate"; \
 		"$(DOCTOR_SCRIPT)" || { \

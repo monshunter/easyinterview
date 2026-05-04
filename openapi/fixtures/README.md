@@ -117,9 +117,10 @@ Per spec §4.7, fixtures **must not** contain real personal information:
 - Phone numbers use the reserved range `+1-555-0100`..`+1-555-0199`.
 - Employer names are kept generic (`Acme`, `Lumen Labs`, …); the validator's
   blacklist rejects real-employer brand names that have appeared in the
-  prototype data. AI-vendor names (`anthropic`, `openai`, …) only appear in
-  `provenance.modelId` infrastructure metadata and are exempt from the
-  employer blacklist.
+  prototype data.
+- `provenance.modelId` uses provider-neutral fixture profile ids such as
+  `model-profile:contract.default`; fixtures must not hardcode vendor or
+  concrete model names.
 - All `format: uuid` values are UUIDv7 literals; any `tmp_*` prefix is
   forbidden.
 

@@ -49,6 +49,16 @@ func newTestClient(t *testing.T) *aiclient.Client {
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
 		},
+		"voice.transcription.reserved": {
+			Name:     "voice.transcription.reserved",
+			TaskType: aiclient.TaskTypeSTT,
+			Default: aiclient.ProviderConfig{
+				Provider: stub.Name,
+				Model:    "stub-stt-1",
+			},
+			TimeoutMs: 5000,
+			Version:   "1.0.0",
+		},
 	}
 	c, err := aiclient.New(
 		aiclient.Config{AppEnv: aiclient.AppEnvTest},
@@ -161,6 +171,14 @@ func TestEmbed_ReturnsVectors(t *testing.T) {
 	}
 	if meta.TaskType != aiclient.TaskTypeEmbed {
 		t.Fatalf("expected meta.TaskType=embed, got %q", meta.TaskType)
+	}
+}
+
+func TestSTTProfileReturnsTaskTypeNotImplemented(t *testing.T) {
+	c := newTestClient(t)
+	_, _, err := c.Complete(context.Background(), "voice.transcription.reserved", samplePayload())
+	if !errors.Is(err, aiclient.ErrTaskTypeNotImplemented) {
+		t.Fatalf("expected ErrTaskTypeNotImplemented for stt profile, got %v", err)
 	}
 }
 

@@ -138,6 +138,18 @@ func TestPostHogProviderRejectsConfigWhenSelfHostedFalseInProd(t *testing.T) {
 	}
 }
 
+func TestPostHogProviderRejectsMissingAPIKey(t *testing.T) {
+	_, err := featureflag.NewPostHogProvider(featureflag.PostHogProviderOptions{
+		Host: "https://posthog.example", SelfHosted: true, AppEnv: "prod",
+	})
+	if err == nil {
+		t.Fatal("expected missing API key to fail-fast")
+	}
+	if !strings.Contains(err.Error(), "POSTHOG_PROJECT_API_KEY") {
+		t.Fatalf("error should mention POSTHOG_PROJECT_API_KEY, got %v", err)
+	}
+}
+
 func TestPostHogProviderAllowsSelfHostedFalseInDev(t *testing.T) {
 	_, err := featureflag.NewPostHogProvider(featureflag.PostHogProviderOptions{
 		Host: "https://posthog.example", APIKey: "k", SelfHosted: false, AppEnv: "dev",

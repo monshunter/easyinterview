@@ -71,6 +71,30 @@ func TestLoaderResolvesParsedProfile(t *testing.T) {
 	}
 }
 
+func TestLoaderAcceptsSTTAsReservedTaskType(t *testing.T) {
+	dir := writeProfileDir(t, map[string]string{"stt.yaml": `name: voice.transcription.reserved
+task_type: stt
+default:
+  provider: stub
+  model: stub-stt-1
+timeout_ms: 5000
+version: 1.0.0
+`})
+	loader, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})
+	if err != nil {
+		t.Fatalf("NewLoader: %v", err)
+	}
+	defer loader.Close()
+
+	p, err := loader.Resolve("voice.transcription.reserved")
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	if p.TaskType != aiclient.TaskTypeSTT {
+		t.Fatalf("expected task_type=stt, got %q", p.TaskType)
+	}
+}
+
 func TestLoaderResolveUnknownProfile(t *testing.T) {
 	dir := writeProfileDir(t, map[string]string{"a.yaml": sampleProfile})
 	loader, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})

@@ -31,7 +31,7 @@
       "questionIssueCount": 2,
       "promptVersion": "prompt-v1",
       "rubricVersion": "rubric-v1",
-      "modelId": "model-test"
+      "modelId": "model-profile:contract.default"
     }
   },
   {

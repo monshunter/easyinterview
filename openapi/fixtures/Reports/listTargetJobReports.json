@@ -67,7 +67,7 @@
               "provenance": {
                 "promptVersion": "feedback_report.v3",
                 "rubricVersion": "feedback_report.rubric.v2",
-                "modelId": "openrouter:anthropic/claude-sonnet-4.6",
+                "modelId": "model-profile:contract.default",
                 "language": "zh-CN",
                 "featureFlag": "none",
                 "dataSourceVersion": "practice_session.v9"

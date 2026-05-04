@@ -9,7 +9,7 @@
 
 ## 1 目标
 
-把 [db-migrations-baseline spec](../../spec.md) v1.6 锁定的迁移工具、29 张应用 / auth 支撑表、2 张迁移元数据表、B3 outbox retry operational columns、A3/F1 `ai_task_runs` typed columns、enum/check 来源矩阵、backfill ledger 与 P0 privacy deletion matrix 落到 `migrations/` 与 `backend/cmd/migrate`。
+把 [db-migrations-baseline spec](../../spec.md) v1.8 锁定的迁移工具、29 张应用 / auth 支撑表、2 张迁移元数据表、B3 outbox retry operational columns、A3/F1 `ai_task_runs` typed columns、enum/check 来源矩阵、backfill ledger 与 P0 privacy deletion matrix 落到 `migrations/` 与 `backend/cmd/migrate`。
 
 本 plan 不实现业务 repository、不实现 C8 dispatcher、不实现 privacy worker；只提供 schema baseline、迁移可执行入口、lint/check gate 与下游 handoff。
 

@@ -86,10 +86,12 @@ codegen-events-check: ## Local B3 event/job contract drift gate
 	@git -C "$(ROOT_DIR)" diff --exit-code -- \
 		"$(ROOT_DIR)/shared/events.yaml" \
 		"$(ROOT_DIR)/shared/jobs.yaml" \
-		"$(ROOT_DIR)/backend/internal/shared/events" \
-		"$(ROOT_DIR)/backend/internal/shared/jobs" \
-		"$(ROOT_DIR)/frontend/src/lib/events" \
-		"$(ROOT_DIR)/frontend/src/lib/jobs" \
+		"$(ROOT_DIR)/backend/internal/shared/events/envelope.go" \
+		"$(ROOT_DIR)/backend/internal/shared/events/events.go" \
+		"$(ROOT_DIR)/backend/internal/shared/jobs/jobs.go" \
+		"$(ROOT_DIR)/frontend/src/lib/events/envelope.ts" \
+		"$(ROOT_DIR)/frontend/src/lib/events/events.ts" \
+		"$(ROOT_DIR)/frontend/src/lib/jobs/jobs.ts" \
 		"$(ROOT_DIR)/shared/events/schemas" \
 		"$(ROOT_DIR)/shared/events/refs" \
 		"$(ROOT_DIR)/shared/events/baseline" \

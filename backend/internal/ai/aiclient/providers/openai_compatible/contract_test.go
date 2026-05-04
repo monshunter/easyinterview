@@ -13,13 +13,20 @@ import (
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
+const (
+	chatModelID      = "chat-primary-2026-05-05"
+	chatModelFamily  = "chat-primary"
+	embedModelID     = "embed-small"
+	embedModelFamily = "embed-small"
+)
+
 func chatProfile(timeoutMs int) *aiclient.ModelProfile {
 	return &aiclient.ModelProfile{
 		Name:     "practice.followup.default",
 		TaskType: aiclient.TaskTypeChat,
 		Default: aiclient.ProviderConfig{
 			Provider: openaicompatible.Name,
-			Model:    "gpt-4-turbo",
+			Model:    chatModelID,
 		},
 		TimeoutMs:    timeoutMs,
 		GatewayRoute: "practice.followup",
@@ -33,7 +40,7 @@ func embedProfile(timeoutMs int) *aiclient.ModelProfile {
 		TaskType: aiclient.TaskTypeEmbed,
 		Default: aiclient.ProviderConfig{
 			Provider: openaicompatible.Name,
-			Model:    "text-embedding-3-small",
+			Model:    embedModelID,
 		},
 		TimeoutMs: timeoutMs,
 		Version:   "1.0.0",
@@ -82,8 +89,11 @@ func TestComplete_NormalChatCompletion(t *testing.T) {
 	if meta.Provider != openaicompatible.Name {
 		t.Fatalf("expected meta.Provider=%q, got %q", openaicompatible.Name, meta.Provider)
 	}
-	if meta.ModelID != "gpt-4-turbo" {
-		t.Fatalf("expected ModelID=gpt-4-turbo, got %q", meta.ModelID)
+	if meta.ModelID != chatModelID {
+		t.Fatalf("expected ModelID=%q, got %q", chatModelID, meta.ModelID)
+	}
+	if meta.ModelFamily != chatModelFamily {
+		t.Fatalf("expected ModelFamily=%q, got %q", chatModelFamily, meta.ModelFamily)
 	}
 	if meta.InputTokens == 0 {
 		t.Fatalf("expected non-zero input tokens, got %+v", meta)
@@ -162,8 +172,11 @@ func TestEmbed_NormalEmbeddings(t *testing.T) {
 	if meta.Provider != openaicompatible.Name {
 		t.Fatalf("provider mismatch: %q", meta.Provider)
 	}
-	if meta.ModelID != "text-embedding-3-small" {
+	if meta.ModelID != embedModelID {
 		t.Fatalf("model mismatch: %q", meta.ModelID)
+	}
+	if meta.ModelFamily != embedModelFamily {
+		t.Fatalf("expected ModelFamily=%q, got %q", embedModelFamily, meta.ModelFamily)
 	}
 	if meta.InputTokens == 0 {
 		t.Fatalf("expected non-zero input tokens, got %+v", meta)
@@ -258,8 +271,8 @@ func TestComplete_4xxUnknownErrorCodeFallsBackToAIOutputInvalid(t *testing.T) {
 func TestComplete_FallbackHeadersPopulateMeta(t *testing.T) {
 	srv := mockserver.New()
 	srv.SetChatBehavior(mockserver.Behavior{
-		FallbackFrom: "openai/gpt-4",
-		FallbackTo:   "anthropic/claude-3",
+		FallbackFrom: "primary/chat",
+		FallbackTo:   "fallback/chat",
 		Route:        "practice.followup",
 	})
 	defer srv.Close()
@@ -269,7 +282,7 @@ func TestComplete_FallbackHeadersPopulateMeta(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
-	if len(meta.FallbackChain) != 2 || meta.FallbackChain[0] != "openai/gpt-4" || meta.FallbackChain[1] != "anthropic/claude-3" {
+	if len(meta.FallbackChain) != 2 || meta.FallbackChain[0] != "primary/chat" || meta.FallbackChain[1] != "fallback/chat" {
 		t.Fatalf("fallback chain not populated: %+v", meta.FallbackChain)
 	}
 	if meta.Route != "practice.followup" {

@@ -57,7 +57,7 @@ func TestBuildRuntimeConfigAllowlistAndOptOut(t *testing.T) {
 		"report_retry_plan_enabled":        {Enabled: false, Public: true, Variant: "v1"},
 		"readiness_signals_enabled":        {Enabled: true, Public: true},
 		"practice_assistance_mode_enabled": {Enabled: true, Public: true},
-		"ai_fallback_model_enabled":        {Enabled: true, Public: false},
+		"ai_fallback_model_enabled":        {Enabled: true, Public: true},
 		"mistake_book_export_enabled":      {Enabled: true, Public: true},
 		"growth_dashboard_v1_enabled":      {Enabled: true, Public: true},
 		"mock_session_dual_track_enabled":  {Enabled: true, Public: true},

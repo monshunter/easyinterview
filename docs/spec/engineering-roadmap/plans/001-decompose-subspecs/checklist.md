@@ -1,8 +1,8 @@
 # Roadmap Rebaseline and Subspec Governance Checklist
 
-> **版本**: 3.0
-> **状态**: active
-> **更新日期**: 2026-05-03
+> **版本**: 3.1
+> **状态**: completed
+> **更新日期**: 2026-05-05
 
 **关联计划**: [plan](./plan.md)
 
@@ -23,7 +23,11 @@
 
 ## Phase 3: 后续 P0 workstream 创建规则
 
-- [ ] 3.1 创建任一 P0 workstream child spec 前，确认 product-scope 和 UI 文档已保留对应用户行为或工程能力
-- [ ] 3.2 创建任一 child plan 时同步生成 `context.yaml`、`plan.md`、`checklist.md`，涉及用户行为时同步 BDD plan / checklist
-- [ ] 3.3 涉及代码逻辑的 child plan 必须通过 `/implement` -> `/tdd` 执行，并按 checklist 顺序即时更新
-- [ ] 3.4 Future candidates（readiness、retrieval、privacy export、source intel、production voice、multi-platform job search）不得提前创建空 spec / empty plan / INDEX pending row
+- [x] 3.1 创建任一 P0 workstream child spec 前，确认 product-scope 和 UI 文档已保留对应用户行为或工程能力
+  <!-- verified: 2026-05-05 evidence=plan.md Phase 3.1 and engineering-roadmap spec §4.2/§5.2; this item records the future creation rule only and does not create a child spec -->
+- [x] 3.2 创建任一 child plan 时同步生成 `context.yaml`、`plan.md`、`checklist.md`，涉及用户行为时同步 BDD plan / checklist
+  <!-- verified: 2026-05-05 evidence=plan.md Phase 3.1 and engineering-roadmap spec §4.2/§7 C-5; this item records the future plan-completeness rule only -->
+- [x] 3.3 涉及代码逻辑的 child plan 必须通过 `/implement` -> `/tdd` 执行，并按 checklist 顺序即时更新
+  <!-- verified: 2026-05-05 evidence=plan.md Phase 3.1 and engineering-roadmap spec §4.2; this item records the future execution rule only -->
+- [x] 3.4 Future candidates（readiness、retrieval、privacy export、source intel、production voice、multi-platform job search）不得提前创建空 spec / empty plan / INDEX pending row
+  <!-- verified: 2026-05-05 evidence=engineering-roadmap spec §5.3/§6.5; no new future candidate spec or pending INDEX row was created -->

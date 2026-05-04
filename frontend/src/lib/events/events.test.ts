@@ -21,7 +21,7 @@ describe('generated event contract', () => {
       userId: '0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e',
     };
     const reportGenerated: ReportGeneratedPayload = {
-      modelId: 'gpt-test',
+      modelId: 'model-profile:contract.default',
       preparednessLevel: 'basically_ready',
       promptVersion: 'p1',
       questionIssueCount: 2,

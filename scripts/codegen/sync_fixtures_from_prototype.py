@@ -41,6 +41,7 @@ NOW = "2026-04-28T13:45:12Z"
 EARLIER = "2026-04-28T12:00:00Z"
 EARLIEST = "2026-04-22T09:30:00Z"
 REQUEST_ID = "req_2026-04-28T13-45-12-prototype"
+PROTOTYPE_MODEL_PROFILE_ID = "model-profile:prototype-baseline.default"
 
 
 # Provenance template reused across AI schemas.
@@ -48,7 +49,7 @@ def _prov(prompt: str, rubric: str = "not_applicable") -> OrderedDict:
     return OrderedDict([
         ("promptVersion", prompt),
         ("rubricVersion", rubric),
-        ("modelId", "primary-llm:m4.7-sonnet-2026q1"),
+        ("modelId", PROTOTYPE_MODEL_PROFILE_ID),
         ("language", "zh-CN"),
         ("featureFlag", "none"),
         ("dataSourceVersion", "prototype-baseline.v1"),

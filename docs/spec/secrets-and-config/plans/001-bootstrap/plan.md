@@ -1,8 +1,8 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-05-04
+> **更新日期**: 2026-05-05
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -70,7 +70,7 @@ type SecretSource interface {
 }
 ```
 
-接口签名固定，P1 升级到 K8s Secret / Vault / SOPS 时只能新增 provider，不允许修改签名。`secrets/env_provider.go` 实现 `EnvSecretSource`：从 `os.Getenv` 读取（注意 `os.Getenv` 仅允许出现在 `internal/platform/config/`、`internal/platform/secrets/` 与 `cmd/{api,worker}/main.go`，由 Phase 4.1 lint 收口）。Phase 1 loader 把 `EnvSecretSource` 作为默认运行时 secret 来源，与 D-1 第一层（`runtime secret > env var ...`）一致。
+接口签名固定，P1 升级到 K8s Secret / Vault / SOPS 时只能新增 provider，不允许修改签名。`secrets/env_provider.go` 实现 `EnvSecretSource`：从 `os.Getenv` 读取（注意 `os.Getenv` 仅允许出现在 `internal/platform/config/`、`internal/platform/secrets/` 与 `cmd/{api,worker,migrate}/main.go`，由 Phase 4.1 lint 收口）。Phase 1 loader 把 `EnvSecretSource` 作为默认运行时 secret 来源，与 D-1 第一层（`runtime secret > env var ...`）一致。
 
 #### 2.2 落地 `backend/internal/platform/featureflag/` 包接口
 
@@ -127,7 +127,7 @@ type FeatureFlagClient interface {
 
 #### 4.1 golangci-lint 自定义规则（拒绝 `os.Getenv` 越界）
 
-按 [secrets-and-config spec §4.1](../../spec.md#41-边界约束) 落地：在 [B1](../../../shared-conventions-codified/plans/001-bootstrap/plan.md#31-go-lint-与错误码校验) 已落地的 `backend/.golangci.yml` 中追加一条本地可执行规则。优先选择 `revive` 自定义 rule（如 `disallow-direct-env-access`）；若 `revive` 表达不动，则在 `scripts/lint/` 下落 `os_getenv_boundary.go`（Go AST checker），由 `make lint` 调用 `go run ./scripts/lint/os_getenv_boundary` 扫描 `backend/...`。规则 allowlist 仅放行 `backend/internal/platform/config/`、`backend/internal/platform/secrets/`、`backend/cmd/api/main.go`、`backend/cmd/worker/main.go`，与 spec §4.1 一致；其它包出现 `os.Getenv` 必须 lint 失败（关闭 [secrets-and-config spec §6 C-7](../../spec.md#6-验收标准)）。
+按 [secrets-and-config spec §4.1](../../spec.md#41-边界约束) 落地：在 [B1](../../../shared-conventions-codified/plans/001-bootstrap/plan.md#31-go-lint-与错误码校验) 已落地的 `backend/.golangci.yml` 中追加一条本地可执行规则。优先选择 `revive` 自定义 rule（如 `disallow-direct-env-access`）；若 `revive` 表达不动，则在 `scripts/lint/` 下落 `getenv_boundary.go`（Go AST checker），由 `make lint-config` / `make lint` 调用 `go run scripts/lint/getenv_boundary.go -root backend` 扫描 `backend/...`。规则 allowlist 仅放行 `backend/internal/platform/config/`、`backend/internal/platform/secrets/`、`backend/cmd/api/`、`backend/cmd/worker/`、`backend/cmd/migrate/`，与当前 spec §4.1 一致；其它包出现 `os.Getenv` 必须 lint 失败（关闭 [secrets-and-config spec §6 C-7](../../spec.md#6-验收标准)）。
 
 #### 4.2 `make lint-config`：env key dictionary drift 检查
 
@@ -286,6 +286,7 @@ type FeatureFlagClient interface {
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-05 | 1.6 | L2 深审修正文档 allowlist 旧口径：`cmd/migrate` 是 B4 迁移 CLI 的合法 env 读取入口；plan 与当前 spec §4.1 / `getenv_boundary.go` 对齐。 | historical deep reconcile |
 | 2026-05-04 | 1.5 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 config/secret/feature flag 范围。 | historical-spec-implementation-review/001 |
 | 2026-05-03 | 1.4 | 原地 reopen，新增 Phase 8 remediation：按 product-scope v1.2 替换旧错题本 / 成长中心 / dual-track feature flag baseline。 | secrets-and-config v1.9 |
 | 2026-04-30 | 1.3 | L2 code-review remediation：补 prod/staging required config 覆盖与 dev-default runtime override 防线。 | plan-code-review --fix |

@@ -215,11 +215,7 @@ ALLOWED_EMAIL_DOMAINS = {"example.com", "example.org", "example.net"}
 ALLOWED_PHONE_PREFIX = "+1-555-01"  # +1-555-0100..0199
 EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,})\b")
 PHONE_RE = re.compile(r"\+\d[\d\-\s()]{7,}\d")
-# Real employer-style brands that must never leak into fixtures. AI vendor
-# strings (anthropic / openai / google as a model provider, etc.) are excluded
-# because they only appear in `provenance.modelId` infrastructure metadata,
-# which is not user PII; the convention is to use vendor-agnostic profile
-# names there anyway.
+# Real employer-style brands that must never leak into fixtures.
 COMPANY_BLACKLIST = {
     "alibaba", "tencent", "bytedance", "baidu", "meituan", "didi", "huawei",
     "字节", "腾讯", "阿里巴巴", "百度", "美团", "滴滴", "华为", "星环",
@@ -230,6 +226,11 @@ COMPANY_BLACKLIST_RE = re.compile(
     re.IGNORECASE,
 )
 TEMP_ID_RE = re.compile(r"\btmp_[A-Za-z0-9_-]+\b")
+MODEL_PROFILE_ID_RE = re.compile(r"^model-profile:[a-z][a-z0-9_.-]*$")
+VENDOR_MODEL_TOKEN_RE = re.compile(
+    r"(?:openrouter|anthropic|claude|openai|gpt-|text-embedding|mistral|gemini|cohere)",
+    re.IGNORECASE,
+)
 
 
 def _walk_strings(data, prefix=""):
@@ -338,10 +339,46 @@ class FixtureContentTest(unittest.TestCase):
                                 value, str,
                                 f"{opid}.{path}.{field} must be a string",
                             )
-                            self.assertTrue(
-                                value.strip(),
-                                f"{opid}.{path}.{field} must be non-empty",
+                        self.assertTrue(
+                            value.strip(),
+                            f"{opid}.{path}.{field} must be non-empty",
+                        )
+                        if field == "modelId":
+                            self.assertRegex(
+                                value,
+                                MODEL_PROFILE_ID_RE,
+                                f"{opid}.{path}.{field} must be a provider-neutral model profile id",
                             )
+                            self.assertNotRegex(
+                                value,
+                                VENDOR_MODEL_TOKEN_RE,
+                                f"{opid}.{path}.{field} must not hardcode vendor/model tokens",
+                            )
+
+    def test_validator_rejects_vendor_specific_model_id(self) -> None:
+        validator = _load_validator()
+        errors = []
+        validator.check_provenance(
+            "getFeedbackReport",
+            {
+                "response": {
+                    "body": {
+                        "provenance": {
+                            "promptVersion": "feedback_report.v3",
+                            "rubricVersion": "feedback_report.rubric.v2",
+                            "modelId": "openrouter:anthropic/claude-sonnet-4.6",
+                            "language": "zh-CN",
+                            "featureFlag": "none",
+                            "dataSourceVersion": "practice_session.v9",
+                        }
+                    }
+                }
+            },
+            errors,
+        )
+
+        self.assertTrue(any("modelId" in err and "provider-neutral" in err for err in errors), errors)
+        self.assertTrue(any("modelId" in err and "vendor/model tokens" in err for err in errors), errors)
 
     def test_with_job_operations_carry_correct_jobType(self) -> None:
         for opid, expected_job_type in WITH_JOB_OPERATIONS.items():

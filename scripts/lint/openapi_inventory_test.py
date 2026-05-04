@@ -1,3 +1,4 @@
+import copy
 import unittest
 from pathlib import Path
 
@@ -35,6 +36,46 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         props = debrief["properties"]
         for name in ("thankYouDraft", "nextRoundChecklist"):
             self.assertIn("P1 optional/hidden", props[name]["description"])
+
+    def test_product_scope_semantic_invariants_are_enforced(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        errors: list[str] = []
+
+        inventory.validate_product_scope_contract(data, errors)
+
+        self.assertEqual([], errors)
+
+    def test_product_scope_semantic_invariants_reject_old_mistakes_scope(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        mutated = copy.deepcopy(data)
+        mutated["tags"].append({"name": "Mistakes"})
+        mutated["paths"]["/mistakes"] = {
+            "get": {
+                "tags": ["Mistakes"],
+                "operationId": "listMistakes",
+                "responses": {"default": {"$ref": inventory.APIERROR_REF}},
+            }
+        }
+        mutated["components"]["schemas"]["TargetJob"]["properties"]["openMistakeCount"] = {"type": "integer"}
+        errors: list[str] = []
+
+        inventory.validate_product_scope_contract(mutated, errors)
+
+        self.assertTrue(any("Mistakes" in err for err in errors), errors)
+        self.assertTrue(any("/mistakes" in err for err in errors), errors)
+        self.assertTrue(any("openMistakeCount" in err for err in errors), errors)
+
+    def test_product_scope_semantic_invariants_reject_legacy_practice_values(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        mutated = copy.deepcopy(data)
+        mutated["components"]["schemas"]["PracticeMode"]["enum"] = ["warmup", "core_interview", "single_drill"]
+        mutated["components"]["schemas"]["ReportNextAction"]["properties"]["type"]["enum"] = ["drill", "review"]
+        errors: list[str] = []
+
+        inventory.validate_product_scope_contract(mutated, errors)
+
+        self.assertTrue(any("PracticeMode" in err for err in errors), errors)
+        self.assertTrue(any("ReportNextAction.type" in err for err in errors), errors)
 
 
 if __name__ == "__main__":

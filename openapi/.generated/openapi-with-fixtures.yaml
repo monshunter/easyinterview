@@ -750,7 +750,7 @@ paths:
                         provenance:
                           promptVersion: target_job_summary.v3
                           rubricVersion: not_applicable
-                          modelId: openrouter:anthropic/claude-sonnet-4.6
+                          modelId: model-profile:contract.default
                           language: zh-CN
                           featureFlag: none
                           dataSourceVersion: target_job.v17
@@ -778,7 +778,7 @@ paths:
                         provenance:
                           promptVersion: target_job_fit.v2
                           rubricVersion: not_applicable
-                          modelId: openrouter:anthropic/claude-sonnet-4.6
+                          modelId: model-profile:contract.default
                           language: zh-CN
                           featureFlag: fit_summary_v2
                           dataSourceVersion: target_job.v17
@@ -859,7 +859,7 @@ paths:
                       provenance:
                         promptVersion: target_job_summary.v3
                         rubricVersion: not_applicable
-                        modelId: openrouter:anthropic/claude-sonnet-4.6
+                        modelId: model-profile:contract.default
                         language: zh-CN
                         featureFlag: none
                         dataSourceVersion: target_job.v17
@@ -887,7 +887,7 @@ paths:
                       provenance:
                         promptVersion: target_job_fit.v2
                         rubricVersion: not_applicable
-                        modelId: openrouter:anthropic/claude-sonnet-4.6
+                        modelId: model-profile:contract.default
                         language: zh-CN
                         featureFlag: fit_summary_v2
                         dataSourceVersion: target_job.v17
@@ -955,7 +955,7 @@ paths:
                       provenance:
                         promptVersion: target_job_summary.v3
                         rubricVersion: not_applicable
-                        modelId: openrouter:anthropic/claude-sonnet-4.6
+                        modelId: model-profile:contract.default
                         language: zh-CN
                         featureFlag: none
                         dataSourceVersion: target_job.v17
@@ -983,7 +983,7 @@ paths:
                       provenance:
                         promptVersion: target_job_fit.v2
                         rubricVersion: not_applicable
-                        modelId: openrouter:anthropic/claude-sonnet-4.6
+                        modelId: model-profile:contract.default
                         language: zh-CN
                         featureFlag: fit_summary_v2
                         dataSourceVersion: target_job.v17
@@ -1255,7 +1255,7 @@ paths:
                       provenance:
                         promptVersion: practice_session_assistant.v5
                         rubricVersion: not_applicable
-                        modelId: openrouter:anthropic/claude-sonnet-4.6
+                        modelId: model-profile:contract.default
                         language: zh-CN
                         featureFlag: follow_up_v3
                         dataSourceVersion: practice_session.v9
@@ -1381,7 +1381,7 @@ paths:
                     provenance:
                       promptVersion: feedback_report.v3
                       rubricVersion: feedback_report.rubric.v2
-                      modelId: openrouter:anthropic/claude-sonnet-4.6
+                      modelId: model-profile:contract.default
                       language: zh-CN
                       featureFlag: none
                       dataSourceVersion: practice_session.v9
@@ -1472,7 +1472,7 @@ paths:
                       provenance:
                         promptVersion: feedback_report.v3
                         rubricVersion: feedback_report.rubric.v2
-                        modelId: openrouter:anthropic/claude-sonnet-4.6
+                        modelId: model-profile:contract.default
                         language: zh-CN
                         featureFlag: none
                         dataSourceVersion: practice_session.v9
@@ -1576,7 +1576,7 @@ paths:
                     provenance:
                       promptVersion: resume_tailor.v2
                       rubricVersion: not_applicable
-                      modelId: openrouter:anthropic/claude-sonnet-4.6
+                      modelId: model-profile:contract.default
                       language: zh-CN
                       featureFlag: none
                       dataSourceVersion: target_job.v17
@@ -1676,7 +1676,7 @@ paths:
                     provenance:
                       promptVersion: debrief_generate.v1
                       rubricVersion: not_applicable
-                      modelId: openrouter:anthropic/claude-sonnet-4.6
+                      modelId: model-profile:contract.default
                       language: zh-CN
                       featureFlag: none
                       dataSourceVersion: debrief.v4

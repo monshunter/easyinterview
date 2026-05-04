@@ -30,7 +30,7 @@
           "provenance": {
             "promptVersion": "resume_tailor.v2",
             "rubricVersion": "not_applicable",
-            "modelId": "openrouter:anthropic/claude-sonnet-4.6",
+            "modelId": "model-profile:contract.default",
             "language": "zh-CN",
             "featureFlag": "none",
             "dataSourceVersion": "target_job.v17"

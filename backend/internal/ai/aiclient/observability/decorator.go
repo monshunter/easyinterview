@@ -496,10 +496,25 @@ func modelFamily(provider string) string {
 		return ""
 	}
 	if i := strings.LastIndex(provider, "/"); i > 0 {
-		return provider[:i]
+		provider = provider[:i]
 	}
-	if i := strings.LastIndex(provider, "-"); i > 0 {
-		return provider[:i]
+	parts := strings.Split(provider, "-")
+	if len(parts) >= 4 && isDateSuffix(parts[len(parts)-3], parts[len(parts)-2], parts[len(parts)-1]) {
+		return strings.Join(parts[:len(parts)-3], "-")
 	}
 	return provider
+}
+
+func isDateSuffix(year, month, day string) bool {
+	return len(year) == 4 && len(month) == 2 && len(day) == 2 &&
+		allDigits(year) && allDigits(month) && allDigits(day)
+}
+
+func allDigits(s string) bool {
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return s != ""
 }

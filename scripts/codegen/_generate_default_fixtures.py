@@ -62,6 +62,7 @@ TARGET_REQ_ID_2            = u7(0xD1)
 TARGET_REQ_ID_3            = u7(0xD2)
 CLIENT_EVENT_ID_1          = u7(0xE0)
 REQUEST_ID                 = "req_2026-04-28T13-45-12-abcdef"
+FIXTURE_MODEL_PROFILE_ID   = "model-profile:contract.default"
 
 NOW       = "2026-04-28T13:45:12Z"
 EARLIER   = "2026-04-28T12:00:00Z"
@@ -79,31 +80,31 @@ def prov(prompt: str, rubric: str, model: str, lang: str, flag: str, dsv: str) -
     ])
 
 PROV_TARGET_SUMMARY = prov(
-    "target_job_summary.v3", "not_applicable", "openrouter:anthropic/claude-sonnet-4.6",
+    "target_job_summary.v3", "not_applicable", FIXTURE_MODEL_PROFILE_ID,
     "zh-CN", "none", "target_job.v17",
 )
 PROV_TARGET_FIT = prov(
-    "target_job_fit.v2", "not_applicable", "openrouter:anthropic/claude-sonnet-4.6",
+    "target_job_fit.v2", "not_applicable", FIXTURE_MODEL_PROFILE_ID,
     "zh-CN", "fit_summary_v2", "target_job.v17",
 )
 PROV_ASSISTANT_ACTION = prov(
     "practice_session_assistant.v5", "not_applicable",
-    "openrouter:anthropic/claude-sonnet-4.6", "zh-CN", "follow_up_v3",
+    FIXTURE_MODEL_PROFILE_ID, "zh-CN", "follow_up_v3",
     "practice_session.v9",
 )
 PROV_FEEDBACK_REPORT = prov(
     "feedback_report.v3", "feedback_report.rubric.v2",
-    "openrouter:anthropic/claude-sonnet-4.6", "zh-CN", "none",
+    FIXTURE_MODEL_PROFILE_ID, "zh-CN", "none",
     "practice_session.v9",
 )
 PROV_RESUME_TAILOR = prov(
     "resume_tailor.v2", "not_applicable",
-    "openrouter:anthropic/claude-sonnet-4.6", "zh-CN", "none",
+    FIXTURE_MODEL_PROFILE_ID, "zh-CN", "none",
     "target_job.v17",
 )
 PROV_DEBRIEF = prov(
     "debrief_generate.v1", "not_applicable",
-    "openrouter:anthropic/claude-sonnet-4.6", "zh-CN", "none",
+    FIXTURE_MODEL_PROFILE_ID, "zh-CN", "none",
     "debrief.v4",
 )
 
