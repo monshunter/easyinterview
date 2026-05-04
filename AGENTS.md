@@ -55,6 +55,17 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 - **Feature plan requires BDD**：凡 plan 引入用户可感知 UI、API 行为、业务流程或端到端功能，必须在同一 plan 目录内维护 `bdd-plan.md` 和 `bdd-checklist.md`，主 `checklist.md` 必须包含引用场景编号的 `BDD-Gate:` 项。
 - **BDD 不适用时必须说明**：纯内部契约 / 工具 / 迁移 / codegen 若不产生用户行为流，可不创建 BDD 文件，但 plan 必须写明“不适用原因 + 替代验证 gate”（如 contract test、lint、drift check、migration check、smoke），并由 `/plan-review` 审查。
 
+### 2.1.2 深度重校对门禁（强制）
+
+当任务要求 review、reconcile、重新实施、忽略历史状态、校对 spec/plan/checklist 与代码事实，或产品 / UI spec 已大规模重构时，必须执行 deep reconcile，而不是轻量核对。
+
+- **历史状态不算证据**：既有 `completed`、checklist 勾选、历史 PASS、历史测试结果和 diff 大小只能作为线索，不能作为当前完成依据。
+- **Artifact-level 反查**：必须直接读取或解析当前真理源、实现代码、生成物、fixtures、baseline、DDL、runtime config、scripts、README、测试断言和 Make target；不得只读 plan/checklist 就进入下一项。
+- **新版语义反向审计**：必须从当前 `docs/spec/product-scope/spec.md`、`docs/ui-design/`、`ui-design/` 和 active spec 中提取不变量，反向审查实现是否仍符合当前产品与交互范围。
+- **旧口径负向搜索**：必须搜索旧 route、旧 tag/schema/table/event/job/config flag、旧 feature flag、旧 AI model/provider 假设、旧 `feature_key` / `featureKey` 路由口径，以及 Mistakes / Growth / Drill / 独立 Voice 等被当前设计丢弃的模块口径。
+- **旧 gate 只是必要条件**：如果现有 gate 只覆盖结构数量或历史断言，必须补充语义 lint、unit test、negative fixture、smoke 或脚本断言后再继续下一个 target。
+- **反馈立即固化**：用户指出工作方式、审查深度或 gate 覆盖不足时，必须先把反馈写入当前执行规章、AGENTS.md、对应 skill 或 plan gate，再继续推进。
+
 ### 2.2 任务开始前必须检查工作日志
 
 **每次开启新任务前，必须：**
@@ -151,6 +162,7 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 5. **禁止擅自修改计划** — 需修改时先与用户对齐
 6. **禁止拆分同主题 sibling plan** — 命中 `completed` plan 时，不得新建同主题 sibling follow-up / bugfix plan；应在原 spec/plan/checklist 上原地修订
 7. **禁止悬空原地修订** — 若当前只处于分析/建议阶段，不得先改写完成态 plan/checklist；若已开始修订，则不得在 owner handoff 前结束会话
+8. **禁止浅层收口** — 不得把“小 diff”“历史 gate 通过”“历史 checklist 已完成”当成 spec/plan 与当前代码事实已经闭环的证明
 
 ### 4.4 必须事项
 
@@ -162,6 +174,8 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 6. **必须收尾复查** — bugfix 或特性修订完成后，必须执行一次 post-pass doc reconcile（plan/spec/index/bug/retrospective）
 7. **必须让原计划成为当前 owner，先更新 spec/plan/checklist，再继续 `/implement` 或其他明确 owner skill** — 命中已完成主题时，必要时先将 Header `状态` 调整回 `active`，完成验证后再恢复 `completed`
 8. **必须使用中文与用户沟通** — 所有面向用户的聊天回复（含状态更新、问询、复述、总结）以及思考过程一律使用简体中文，确保交互语言一致；代码、标识符、命令、文件路径、技术术语、引用的英文原文以及代码内注释/文档遵循各自既有约定，不强制翻译
+9. **必须主动给出下一步** — 每次完成一个复杂任务、阶段收口、提交或验证后，最终回复必须主动给出一个明确、可执行的下一步建议，包括建议 owner skill / plan、目标范围、为什么它是下一步；不要让用户反复追问“下一步是什么”。若存在多个合理路径，给出推荐路径和备选路径；若不能推进，明确 blocker 与解除条件。
+10. **必须主动维护执行规章** — 当一次任务暴露出流程缺陷、审查盲点、误判模式或用户反复纠正的协作成本时，必须把规则沉淀到合适位置（AGENTS.md、skill、spec/plan gate、README 或报告台账），而不是只在当前对话中口头记住。
 
 ---
 

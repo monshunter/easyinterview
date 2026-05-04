@@ -1,6 +1,6 @@
 ---
 name: plan-code-review
-description: "Review or fix code against spec/plan/checklist context. Use when the user wants L2 code review or remediation for already-implemented checklist phases. Reuses implement-owned shared context validator to resolve the target docs, then performs code review directly against the validated markdown and current codebase instead of running parser-heavy precheck scripts. Supports /plan-code-review <subspec/plan> [target] [--base-rev <git-rev>] [--fix]."
+description: "Review or fix code against spec/plan/checklist context. Use when the user wants L2 code review or remediation for already-implemented checklist phases, especially after product/UI spec changes, historical implementation drift, or requests to ignore old checklist/PASS state. Reuses implement-owned shared context validator, then performs artifact-level semantic review against validated markdown, current truth sources, generated artifacts, tests, fixtures, scripts, and negative legacy-scope searches. Supports /plan-code-review <subspec/plan> [target] [--base-rev <git-rev>] [--fix]."
 ---
 
 # Plan Code Review Skill
@@ -41,6 +41,12 @@ Reviewer rule:
 - New plan docs are sequential-only by default.
 - Checked checklist items define the primary implementation scope.
 - Task `**文件**:` declarations are optional hints, not required scope contracts.
+- Historical `completed` status, checked checklist items, previous PASS reports,
+  and small git diffs are never sufficient evidence. Treat them as leads to
+  verify against current artifacts.
+- When product or UI scope may have changed, derive current semantic invariants
+  from active spec, `docs/ui-design/`, and `ui-design/`, then audit the code and
+  generated artifacts against those invariants.
 
 ## Workflow
 
@@ -79,9 +85,12 @@ paths. After validation, read the returned markdown files directly.
    - `--base-rev` git diff filtered to files relevant to the current target
    - target-level discovery in `context.yaml` (`packages`, `uiRoutes`, `apiNames`, `commands`)
    - plan task declarations such as `**文件**:`
-3. Missing phase file declarations do not invalidate the review by themselves.
-4. If no concrete file set can be derived, fall back to target-level advisory review.
-5. `--fix` requires a concrete checklist-section mapping; target-level-only findings stay preview-only until the user confirms the section.
+3. Expand the scope from implementation files to artifact files that prove the
+   behavior: generated output, fixtures, baselines, migrations/DDL, config,
+   scripts, Make targets, README docs, smoke scripts, and tests.
+4. Missing phase file declarations do not invalidate the review by themselves.
+5. If no concrete file set can be derived, fall back to target-level advisory review.
+6. `--fix` requires a concrete checklist-section mapping; target-level-only findings stay preview-only until the user confirms the section.
 
 Code scope sources:
 
@@ -98,14 +107,27 @@ For each in-scope phase:
 3. Read plan task descriptions.
 4. Read checklist items and completion status.
 5. Merge git diff and target discovery context when present.
-6. For completed code phases, verify actual test evidence exists for the implemented checklist scope.
-7. For completed feature phases, verify BDD evidence exists: `bdd-plan` / `bdd-checklist` references, completed scenario asset/execution items, and a passed `BDD-Gate:` verification note.
+6. Build an artifact map that connects each completed checklist item to concrete
+   source code, generated output, fixtures, baselines, DDL/config, scripts,
+   README entries, and tests.
+7. Run negative legacy-scope searches relevant to the target. At minimum, cover
+   stale route/tag/schema/table/event/job/config flag names, vendor/model
+   assumptions, feature-key routing assumptions, and product modules that the
+   current spec/UI has dropped.
+8. Check whether existing gates prove the current semantic contract. If a gate
+   only proves structure counts or historical expectations, record the gap and
+   prefer adding lint, unit tests, negative fixtures, smoke tests, or drift checks
+   before moving to the next target.
+9. For completed code phases, verify actual test evidence exists for the implemented checklist scope.
+10. For completed feature phases, verify BDD evidence exists: `bdd-plan` / `bdd-checklist` references, completed scenario asset/execution items, and a passed `BDD-Gate:` verification note.
 
 Review dimensions:
 
 - `R-series`: consistency with spec definitions
 - `P-series`: completeness against plan tasks and error handling
 - `E-series`: best-practice code quality, tests, naming, security
+- `D-series`: deep reconcile evidence, artifact coverage, negative legacy-scope
+  search, and semantic gate adequacy
 
 Output rules:
 
@@ -113,6 +135,8 @@ Output rules:
 - Cite the relevant spec/plan evidence.
 - Distinguish drift from acceptable design-preserving extension.
 - Put any extra findings under `Extended Findings` with `X-L2-*` IDs.
+- Include a `Deep Evidence` section listing artifact map coverage, negative
+  searches, focused gates/tests run, and any gate gaps discovered or hardened.
 
 ### Step 5: Branch by mode
 
@@ -155,3 +179,9 @@ When the user accepts a fix proposal:
 - Findings with no concrete checklist-section mapping are never auto-fixed.
 - `/plan-code-review --fix` is remediation only; it does not own plan lifecycle sync or retrospective.
 - Do not edit code directly outside the `/tdd` Red-Green-Refactor loop once fix mode is accepted.
+- Do not conclude PASS from checklist state, old reports, previous green tests,
+  or small diffs. PASS requires current artifact evidence and current semantic
+  gate coverage.
+- If the review exposes a shallow workflow or gate blind spot, update the
+  relevant rule, lint/test gate, or plan review notes before proceeding to the
+  next target.
