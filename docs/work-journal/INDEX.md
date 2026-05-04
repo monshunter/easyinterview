@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-04](2026-05-04.md) | `docs(historical-spec): execute implementation review runway` | #docs #test |
 | [2026-05-04](2026-05-04.md) | `docs(historical-spec): add implementation review runway` | #docs |
 | [2026-05-04](2026-05-04.md) | `docs(readme): remove legacy roadmap entry points` | #docs |
 | [2026-05-04](2026-05-04.md) | `docs(ui-design): align prototype route notes with current scope` | #docs #ui #test |

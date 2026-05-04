@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-04
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -21,7 +21,14 @@
 
 每个 phase 是可独立验证的纵向切片：Phase 1 起来就有 34 份 default fixtures；Phase 2 起来就有当前 6 个 P0 prototype-baseline scenario；Phase 3 起来就能用 Prism / 自建 mock server 消费；Phase 4 收口 4 项 AC + handoff；Phase 5 补齐 `deleteMe` fixture；Phase 6 按 product-scope v1.2 删除旧 Mistakes / Growth fixture 范围。本 plan 不引入 BDD 资产（场景覆盖由后续 e2e workstream 承接）。
 
-## 3 实施步骤
+## 3 质量门禁分类
+
+- **Plan 类型**: `contract + tooling + mock-source`。本 plan 修改 OpenAPI fixtures、prototype fixture projection、fixture lint、Prism/example 投影和 mock-source 文档；不实现正式 mock server 运行壳、业务 handler 或用户 workflow。
+- **TDD 策略**: 历史实现以 fixture coverage/schema/provenance/privacy/id validation、prototype sync idempotency、example projection 和 Prism smoke 作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，先让 fixture lint/projection tests 暴露 drift，再最小修复 fixture 或 tooling。
+- **BDD 策略**: BDD 不适用。本 plan 只交付内部 mock data truth source；真实 P0 BDD scenario 由 E2/E2E workstream 创建并执行。
+- **替代验证 gate**: `make validate-fixtures`、`make sync-fixtures-from-prototype`、fixture example render tests、Prism smoke、privacy/provenance negative cases、operation coverage checks、`sync-doc-index --check`。
+
+## 4 实施步骤
 
 ### Phase 1: default fixtures + 校验工具
 
@@ -178,12 +185,12 @@ npx @stoplight/prism-cli mock openapi/.generated/openapi-with-fixtures.yaml -p 4
 
 运行 `make validate-fixtures` 与 fixture example render 测试；搜索确认 `openapi/fixtures/` 中不再存在独立 `Mistakes` / `Growth` operation 或旧单题 Drill 文案。
 
-## 4 验收标准
+## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-6 / C-7 / C-11 全部成立；C-9 中「fixture 同源 + default scenario → OpenAPI example → Prism response 字节级一致」部分成立，剩余「真实 msw / 后端 mock-server 同字节」由 E1 / D1 后续 plan 闭合。
 - 本 plan checklist 全部勾选；Phase 4 关键命令日志贴入工作日志。
 
-## 5 风险与应对
+## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
@@ -195,10 +202,11 @@ npx @stoplight/prism-cli mock openapi/.generated/openapi-with-fixtures.yaml -p 4
 | 隐私敏感字段黑名单遗漏导致真实信息漏入 | Phase 1.3 黑名单 `scripts/lint/fixtures_privacy_blacklist.txt` 持续维护；遇到漏报由 plan 修订（递增本 plan 版本）补充 |
 | Prism / msw 对 `examples` vs `example` 解读差异导致字节不一致 | Phase 3.1 先从 fixtures 投影 OpenAPI named examples，再用 Phase 3.2 Prism 命令固定 `Prefer: example=default`；`openapi/fixtures/<tag>/<operationId>.json` 是真理源，OpenAPI yaml 中 example 由工具同步（不手写两份） |
 
-## 6 修订记录
+## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-04 | 1.4 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 fixture/mock-source 范围。 | historical-spec-implementation-review/001 |
 | 2026-05-03 | 1.3 | 刷新计划主体口径：默认 fixture / example coverage 改为 34 operation / 12 tag，prototype-baseline 只要求当前 P0 关键 6 个 endpoint，避免旧 37-operation 与独立 Mistakes / Growth 验收口径残留。 | product-scope v1.2 / openapi-v1-contract v1.9 |
 | 2026-05-03 | 1.2 | 原地 reopen，新增 Phase 6 remediation：按 product-scope v1.2 移除 Mistakes / Growth fixture 覆盖，更新报告和 TargetJob fixtures 的题目回顾 / 复练字段，并同步 prototype mapping。 | openapi-v1-contract v1.9 |
 | 2026-04-29 | 1.1 | 原地 reopen，新增 Phase 5 remediation：补齐 `Auth/deleteMe` fixture、历史 v1.8 operation coverage 与 P0 debrief fixture 口径。 | plan-review remediation |

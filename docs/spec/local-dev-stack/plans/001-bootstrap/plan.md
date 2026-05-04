@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-04-28
+> **更新日期**: 2026-05-04
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -15,11 +15,18 @@
 
 ## 2 背景
 
-[engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A2 保留为当前 active Foundation spec；后续 workstream 依赖本地数据库 / 缓存 / 对象存储以及统一项目启动入口。本 plan 通过 §3 的 4 个 phase 验收 spec §6 C-1..C-9，关闭 roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺。
+[engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A2 保留为当前 active Foundation spec；后续 workstream 依赖本地数据库 / 缓存 / 对象存储以及统一项目启动入口。本 plan 通过 §4 的 4 个 phase 验收 spec §6 C-1..C-9，关闭 roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺。
 
 每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来就能用 `docker compose` 直连最小依赖与项目组件；Phase 2 起来就能用 `make` 管理生命周期；Phase 3 起来就能机器消费 `make dev-doctor` JSON；Phase 4 收口应用 `/metrics`、容器日志与文档。本 plan 不引入 BDD 资产（场景覆盖由后续 [e2e-scenarios-p0](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) workstream 承接），AC 验证完全由 `make dev-*` 命令驱动。
 
-## 3 实施步骤
+## 3 质量门禁分类
+
+- **Plan 类型**: `tooling + dev-infra + code-internal`。本 plan 修改本地 docker-compose dev stack、Make targets、doctor 脚本、README 与健康检查约定；不产生用户可见 UI、HTTP API 行为或业务 workflow。
+- **TDD 策略**: 历史实现以 checklist 中每个 phase 的 `自检` 命令作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，优先以 `make dev-*`、`dev-doctor` JSON schema/probe、端口冲突复现、volume idempotency 和 README smoke 作为 focused assertions。
+- **BDD 策略**: BDD 不适用。本 plan 只交付开发环境基础设施；后续 P0 用户行为场景由 `e2e-scenarios-p0` 或具体 feature plan 维护 BDD。
+- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、端口冲突复现、pgvector probe、AI provider fail-fast smoke、`sync-doc-index --check`、Markdown link check、`git diff --check`。
+
+## 4 实施步骤
 
 ### Phase 1: docker-compose 与 init 脚本
 
@@ -178,13 +185,13 @@
 - `docs/spec/local-dev-stack/plans/INDEX.md` 把本 plan 从 active 切到 completed。
 - 调用 `/sync-doc-index --check` 确认 `docs/spec/INDEX.md` 与 plans/INDEX 对 Header 无 drift。
 
-## 4 验收标准
+## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-9 全部成立，证据贴入工作日志。
 - 本 plan checklist 全部勾选；Phase 3 / Phase 4 的 `make dev-*` 自检命令日志贴入工作日志。
 - engineering-roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺由 Phase 4.4 关闭；不重复修改父 roadmap checklist。
 
-## 5 风险与应对
+## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
@@ -194,3 +201,9 @@
 | 默认端口（5432 / 6379 / 9000 / 9001 / 项目组件端口）与开发者本机已运行的服务冲突 | C-2 已覆盖端口冲突报错路径；README 提示用 `.env` override `*_HOST_PORT` 字段，不修改容器内端口；本 plan 不实现 host port 自动避让 |
 | init 脚本中 MinIO bucket 创建在 image 升级后字段格式漂移 | 镜像 tag 锁定在 spec D-2；任何 major 升级走 spec 修订流程而非本 plan 静默 bump |
 | 未来组件没有 Dockerfile 或稳定 dev command，导致无法纳入 `make dev-up` | 对应组件 plan 必须先补齐本地运行入口，再声明自己受 `make dev-up` 覆盖；A2 只接入已具备运行入口的组件 |
+
+## 7 修订记录
+
+| 日期 | 版本 | 变更 | 关联 |
+|------|------|------|------|
+| 2026-05-04 | 1.4 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 dev stack 范围。 | historical-spec-implementation-review/001 |

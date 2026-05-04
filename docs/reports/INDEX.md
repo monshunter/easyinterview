@@ -8,6 +8,8 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-04](./2026-05-04-historical-spec-implementation-review-runway-assessment.md) | Historical Spec Implementation Review Runway 交付复盘 | #assessment |
+| [2026-05-04](./2026-05-04-historical-spec-implementation-review-runway-verification.md) | Historical Spec Implementation Review Runway 完成验证 | #verification |
 | [2026-05-04](./2026-05-04-engineering-roadmap-plan-code-review-alignment-assessment.md) | Engineering Roadmap Plan Code Review Alignment 交付复盘 | #assessment |
 | [2026-05-03](./2026-05-03-product-contract-ui-scope-alignment-assessment.md) | Product Contract UI Scope Alignment 交付复盘 | #assessment |
 | [2026-05-02](./2026-05-02-ui-design-report-cta-direct-session-assessment.md) | UI Design Report CTA Direct Session 交付复盘 | #assessment |

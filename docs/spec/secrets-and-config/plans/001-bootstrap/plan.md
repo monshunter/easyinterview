@@ -1,8 +1,8 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-04
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -15,7 +15,7 @@
 
 ## 2 背景
 
-[engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A4 保留为当前 active Foundation spec；后续 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md)、[backend-auth](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)、[frontend-shell](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 等 workstream 依赖本计划输出的配置 / secret / feature flag 契约。本 plan 通过 §3 的 6 个 phase 验收 [secrets-and-config spec §6](../../spec.md#6-验收标准) C-1..C-11，关闭 [001-decompose-subspecs](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) 保留的 A4 bootstrap 承诺。
+[engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A4 保留为当前 active Foundation spec；后续 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md)、[backend-auth](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)、[frontend-shell](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 等 workstream 依赖本计划输出的配置 / secret / feature flag 契约。本 plan 通过 §4 的 6 个 phase 验收 [secrets-and-config spec §6](../../spec.md#6-验收标准) C-1..C-11，关闭 [001-decompose-subspecs](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) 保留的 A4 bootstrap 承诺。
 
 执行本 plan 前必须确认：
 
@@ -27,7 +27,14 @@
 
 本 plan 不部署 PostHog（归 [F2 `analytics-funnel`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [E4 `release-gate-and-rollout`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)），不实现 K8s Secret / Vault / SOPS provider（归 P1 / E4），不冻结 `/api/v1/runtime-config` 的 OpenAPI schema（归 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md)；A4 在本 plan 中只交付 response builder + 最小 stub handler）。
 
-## 3 实施步骤
+## 3 质量门禁分类
+
+- **Plan 类型**: `platform-config + code-internal + contract + tooling`。本 plan 修改 backend config/secrets/featureflag packages、config truth source、secret lint hooks、runtime-config builder/stub、frontend runtime-config fetcher 和本地 lint gate；不直接交付用户可见 workflow。
+- **TDD 策略**: 历史实现以 checklist 每项的 Go tests、TS tests、lint negative cases、pre-commit secret redline、runtime-config allowlist tests 和 config fail-fast smoke 作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行。
+- **BDD 策略**: BDD 不适用。本 plan 是内部配置/secret/feature flag contract 与 tooling；后续 D1/B2/C workstream 把 runtime-config 暴露到用户流程时维护自身 BDD gate。
+- **替代验证 gate**: `go test ./backend/internal/platform/config/... ./backend/internal/platform/secrets/... ./backend/internal/platform/featureflag/...`、frontend runtime-config tests/typecheck、`make lint-config`、secret hook negative tests、`make lint`、runtime-config allowlist smoke、`sync-doc-index --check`。
+
+## 4 实施步骤
 
 ### Phase 1: Three-tier config loader 与 redactor
 
@@ -258,13 +265,13 @@ type FeatureFlagClient interface {
 
 运行 `make lint-config`、focused runtime-config tests；repo 搜索确认实现侧不再出现旧三项 feature flag key。
 
-## 4 验收标准
+## 5 验收标准
 
 - [secrets-and-config spec §6 验收标准](../../spec.md#6-验收标准) C-1..C-5、C-7..C-12 全部成立，证据贴入工作日志；C-6 partial 验收（A4 builder + stub + 前端 fetcher + 单测）成立，跨 plan 完整 verification 由 B2 / D1 后续 plan 关闭并 cross-link 回本工作日志。
 - 本 plan checklist 全部勾选；Phase 6 的 AC 验证命令日志贴入工作日志。
 - engineering-roadmap/001 保留的 A4 bootstrap 承诺由 Phase 6.3 关闭 partial、Phase 6.4 关闭文档侧；不重复修改父 roadmap checklist。
 
-## 5 风险与应对
+## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
@@ -275,10 +282,11 @@ type FeatureFlagClient interface {
 | prod fail-fast 触发 supervisor / k8s 无限重启循环：缺 secret → exit non-zero → restart → 再 exit | Phase 1.5 错误信息明确列出缺失 key 名；`config/README.md` 与 [E4 `release-gate-and-rollout`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 的 runbook handoff 中提示 deployer 必须先补齐 secret 再恢复 supervisor；本 plan 不实现自动重试 / 自动 backoff，避免在缺 secret 时静默运行 |
 | 业务代码绕过 `FeatureFlagClient` 直接 import PostHog SDK，事后切换 provider 时大面积返工 | Phase 4.1 lint 红线扩展：扫描 `import "github.com/posthog/posthog-go"` 与 `import 'posthog-js'` 在 `backend/internal/<domain>/` 与 `frontend/src/<feature>/` 出现即 fail；只允许在 `backend/internal/platform/featureflag/` 与（D1 后续接入时）`frontend/src/lib/analytics/` 中 import；本 plan 不预先在前端 lint 中收口 PostHog 前端 SDK，留给 [D1 `frontend-shell`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [F2 `analytics-funnel`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)，但在 `config/README.md` 显式写明此红线，避免后续 plan 漏接 |
 
-## 6 修订记录
+## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-04 | 1.5 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 config/secret/feature flag 范围。 | historical-spec-implementation-review/001 |
 | 2026-05-03 | 1.4 | 原地 reopen，新增 Phase 8 remediation：按 product-scope v1.2 替换旧错题本 / 成长中心 / dual-track feature flag baseline。 | secrets-and-config v1.9 |
 | 2026-04-30 | 1.3 | L2 code-review remediation：补 prod/staging required config 覆盖与 dev-default runtime override 防线。 | plan-code-review --fix |
 | 2026-04-30 | 1.2 | L2 code-review remediation：worker bindings、AI base URL fail-fast、env_dict code-side binding discovery、runtime-config cold PostHog projection。 | plan-code-review --fix |

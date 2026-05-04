@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-04
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -21,7 +21,14 @@
 
 每个 phase 是可独立验证的纵向切片：Phase 1 起来就能用 `npx @apidevtools/swagger-cli@4.0.4 swagger-cli validate` 校验骨架；Phase 2 起来就能 `make codegen-openapi` 双端生成；Phase 3 起来就能 `make codegen-check` 拦截漂移；Phase 4 收口 5 项 AC + 文档 + handoff。本 plan 不引入 BDD 资产（场景覆盖由后续 [e2e-scenarios-p0](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) workstream 承接），AC 验证完全由 `make` 命令与 `git diff --exit-code` 驱动。
 
-## 3 实施步骤
+## 3 质量门禁分类
+
+- **Plan 类型**: `contract + tooling + codegen + code-internal`。本 plan 修改 OpenAPI 契约真理源、双端 generated API types/client/server、codegen pipeline、docs renderer 与契约 lint；不实现业务 handler、前端 UX 或用户端到端流程。
+- **TDD 策略**: 历史实现以 checklist 各 phase 的 OpenAPI validation、inventory lint、generator idempotency、codegen drift、Go/TS compile assertions 作为 Red-Green-Refactor 来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，先让 inventory / codegen / generated consumer test 失败，再最小修复契约或 generator。
+- **BDD 策略**: BDD 不适用。本 plan 是内部 API contract/codegen freeze，不产生用户可见 UI 或业务 workflow；后续 C/D/E workstream 使用该 contract 时必须维护自身 BDD gate。
+- **替代验证 gate**: `make lint-openapi`、`make codegen-openapi`、`make codegen-check`、OpenAPI inventory tests、Go generated package build/tests、frontend generated TS typecheck、`make docs-openapi`、`sync-doc-index --check`。
+
+## 4 实施步骤
 
 ### Phase 1: openapi.yaml v1.0.0 骨架与共享 components
 
@@ -197,7 +204,7 @@ P0 `Debrief` / `DebriefWithJob` 只保留真实面试复现与复盘所需字段
 
 运行 `make lint-openapi`、`make codegen-openapi`、OpenAPI codegen 单元测试，并搜索确认 generated API client/server 不再出现 `listMistakes`、`retestMistake`、`getGrowthOverview` 或独立 `MistakeEntry` / `GrowthOverview` 类型。
 
-## 4 验收标准
+## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 的 contract/schema 部分、C-2 / C-3 / C-8 全部成立；C-7 / C-11 中本 plan 对应的契约 / schema 部分（非 fixture / 非 baseline）成立，剩余部分由 002 / 003 闭合。
 - 本 plan checklist 全部勾选；Phase 4 关键命令日志贴入工作日志。
@@ -205,7 +212,7 @@ P0 `Debrief` / `DebriefWithJob` 只保留真实面试复现与复盘所需字段
 - Phase 5 remediation 中确认存在的 assessment 问题已修订；`ApiError` inner object 与 OpenAPI response envelope 的 Go/TS 产物一致；未采纳的 R5 有明确 no-op 说明。
 - Phase 6 docs renderer 迁移后，`make docs-openapi` 不再触发 `redoc-cli` deprecated 横幅，仍输出 `openapi/dist/index.html`；C-1 validator 保持 `@apidevtools/swagger-cli@4.0.4` + inventory lint。
 
-## 5 风险与应对
+## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
@@ -216,10 +223,11 @@ P0 `Debrief` / `DebriefWithJob` 只保留真实面试复现与复盘所需字段
 | `GenerationProvenance` 在大量 AI schema 上误传播（错把 transactional schema 也挂上去） | Phase 1.2 在 `openapi/README.md` 与 schema 注释中明确「至少」名单（`TargetJob.summary` / `fitSummary` / `AssistantAction` / `FeedbackReport` / `ResumeTailorRun` / `Debrief`）；非 AI 生成 schema 不应携带 provenance |
 | `make codegen-check` 在 IDE auto-format 后误报漂移 | Phase 2.1 / 2.2 generator 必须固定 import 顺序、行尾、缩进；与 `.editorconfig` 对齐；首次 idempotent baseline 由本 plan 锁定，编辑器若改动须修 generator 模板，不放弃 gate |
 
-## 6 修订记录
+## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联材料 |
 |------|------|------|----------|
+| 2026-05-04 | 1.6 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 OpenAPI freeze/codegen 范围。 | historical-spec-implementation-review/001 |
 | 2026-05-03 | 1.5 | 刷新计划主体口径：OpenAPI freeze 改为当前 34 endpoint / 12 tag，AI provenance 名单移除旧独立 `MistakeEntry`，与 Phase 8 remediation 后的 contract 保持一致。 | product-scope v1.2 / openapi-v1-contract v1.9 |
 | 2026-05-03 | 1.4 | 原地 reopen，新增 Phase 8 remediation：按 product-scope v1.2 移除独立 Mistakes / Growth contract，收敛报告内题目回顾与复练字段，并重新生成 Go/TS API artefacts。 | product-scope v1.2 / engineering-roadmap v2.2 |
 | 2026-04-28 | 1.2 | 根据 `make docs-openapi` deprecated 输出追加 Phase 6：将本地 HTML renderer 从 `redoc-cli@0.13.21` 迁移到 `@redocly/cli@2.30.1 build-docs`，不改变 C-1 validator。 | user report / local reproduction |

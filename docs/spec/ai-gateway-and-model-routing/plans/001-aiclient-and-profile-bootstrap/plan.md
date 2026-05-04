@@ -1,8 +1,8 @@
 # AI Gateway and Model Routing Bootstrap
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-04-30
+> **更新日期**: 2026-05-04
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -21,7 +21,14 @@
 
 每个 phase 是可独立验证的纵向切片：Phase 1 起来即可 `go test ./backend/internal/ai/aiclient/...` 走 stub 路径；Phase 2 起来即可对 OpenAI-compatible mock server 跑契约测试；Phase 3 起来即可在测试中验证 7 个 metric family 注册、`ai_task_runs` 写入、`audit_events` hash + 长度落盘；Phase 4 起来即可在缺失 `AI_GATEWAY_*` 时 fail-fast；Phase 5 收口 8 项 AC 自检 + grep 红线 + 文档与 INDEX 同步。本 plan 不引入 BDD 资产（场景覆盖由后续 [e2e-scenarios-p0](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) workstream 承接），所有 AC 验证完全由 `go test` / `go build` / 本地 `make` / `grep` / 配置注入 + 启动检查驱动。
 
-## 3 实施步骤
+## 3 质量门禁分类
+
+- **Plan 类型**: `code-internal + contract + platform-foundation`。本 plan 修改 A3 AIClient runtime package、OpenAI-compatible adapter、profile loader、observability decorator、config fail-fast 与测试资产；不引入用户可感知 UI、HTTP API 行为或端到端业务流程。
+- **TDD 策略**: 历史实现通过本 checklist 的每个 phase `自检` / `验证` 子句驱动 Red-Green-Refactor；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，focused assertions 来源为 Go package tests、OpenAI-compatible mockserver contract tests、profile loader / config / privacy tests、grep 红线与 `make` gate。
+- **BDD 策略**: BDD 不适用。本 plan 是内部 AI gateway client / profile / observability 契约交付，不产生浏览器 UI、外部 API 行为或用户业务工作流；后续 P0 用户行为由具体 C/D/E workstream 维护 BDD gate。
+- **替代验证 gate**: `go test ./backend/internal/ai/aiclient/...`、OpenAI-compatible mockserver contract tests、profile hot-reload tests、privacy redaction tests、config fail-fast tests、零厂商 SDK grep、明文 prompt/response grep、`go build ./...`、`sync-doc-index --check`。
+
+## 4 实施步骤
 
 ### Phase 0: 前置契约复核
 
@@ -139,7 +146,7 @@ C-5：单次成功调用后查询 in-memory metric registry，确认 7 个 famil
 
 把 plan / checklist Header 在所有验收通过后由 active 切到 completed，运行 `/sync-doc-index --check` 与 `/sync-doc-index --fix-index` 同步 [ai-gateway-and-model-routing/plans/INDEX.md](../INDEX.md) 与根 [docs/spec/INDEX.md](../../../INDEX.md)。不修改 [engineering-roadmap/001-decompose-subspecs](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) 已完成的 roadmap checklist；C-8 不在本 plan 范畴。把 Phase 5.1 / 5.2 / 5.3 命令输出贴入工作日志。给 [F1 observability-stack](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) / [F3 prompt-rubric-registry](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) / [B4 db-migrations-baseline](../../../db-migrations-baseline/spec.md) / 各 C 域 owner 留出 handoff 备注：A3 已暴露 `AITaskRunWriter` / `AuditEventWriter` / `prometheus.Registerer` 三个 DI 入口，依赖注入由各 owner 在自己 plan 中绑定真实实现。
 
-## 4 验收标准
+## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) 中 C-1 / C-2 / C-3 / C-4 / C-5 / C-6 / C-7 / C-9 全部成立；C-8 是 active spec relation gate，本 plan 不重复关闭。
 - 本 plan checklist 全部勾选；Phase 5 关键命令日志（`go test` / grep / hot reload / fail-fast）贴入工作日志。
@@ -149,15 +156,7 @@ C-5：单次成功调用后查询 in-memory metric registry，确认 7 个 famil
 - A3 client 不自行执行 retry-with-different-model：fallback chain 仅消费 endpoint / gateway 返回的 meta；`AI_FALLBACK_EXHAUSTED` 仅透传，不主动构造。
 - 7 个 metric family 完整注册且 counter 语义正确：每次调用 run / latency / token / cost 增长；fallback / validation failure counter 仅在事件发生时增长。
 
-## 6 修订记录
-
-| 日期 | 版本 | 变更 | 关联 |
-|------|------|------|------|
-| 2026-04-30 | 1.3 | L2 code-review remediation：补 B4-compatible `ai_task_runs` row contract 与 B1 error-code registry fallback。 | plan-code-review --fix |
-| 2026-04-30 | 1.2 | L2 code-review remediation：补 BaseURL `/v1` 归一化、`OutputSchema` 基础校验、Profile 校验错误行号。 | plan-code-review remediation |
-| 2026-04-29 | 1.1 | 收口 plan-review：补 Phase 0 前置契约复核，明确 A3 001 不 owns API/worker entrypoint；B1 AI vocabulary 未完全生成时只允许 A3 内部字段表，不得导出跨语言常量。 | plan-review remediation |
-
-## 5 风险与应对
+## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
@@ -168,3 +167,12 @@ C-5：单次成功调用后查询 in-memory metric registry，确认 7 个 famil
 | Audit redaction 失败：日志或 metric label 不慎包含明文 prompt / response（如 debug 日志、错误信息中带 message body） | Phase 3.4 落 white-box `privacy_test.go` 覆盖 metric label / log fields / DB row / audit metadata 四个出口；Phase 5.3 grep 红线兜底；error wrapping helper 强制只接受 `error_code` + `category` 字段，禁止把 raw payload 内容塞进 error string |
 | OpenAI-compatible mock server 与真实 provider 行为漂移（mock 总是 200，掩盖了真实 5xx / fallback header / token 字段命名差异） | Phase 2.4 mock server 覆盖 timeout / 5xx / fallback header / 缺失 usage 等异常路径；预留 smoke 验证步骤要求在本地用真实 endpoint 至少跑一次 `Complete` + `Embed` 并核对 `AICallMeta` 字段非空（Phase 4.3 README 写明），但绝不在自动化测试中嵌入真实 API key |
 | Profile YAML schema 漂移与 F3 / B1 共享字段名不一致（如 `task_type` 字面量改名）导致 loader 解析失败或 client 误归类 | Phase 1.2 / 2.2 引用 B1 共享常量名而非自定义字符串；Profile schema 字段新增必须先递增 spec 与本 plan 版本；loader 在解析未知字段时 warn 但不丢弃，便于 F3 灰度添加可选字段 |
+
+## 7 修订记录
+
+| 日期 | 版本 | 变更 | 关联 |
+|------|------|------|------|
+| 2026-05-04 | 1.4 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成实现范围。 | historical-spec-implementation-review/001 |
+| 2026-04-30 | 1.3 | L2 code-review remediation：补 B4-compatible `ai_task_runs` row contract 与 B1 error-code registry fallback。 | plan-code-review --fix |
+| 2026-04-30 | 1.2 | L2 code-review remediation：补 BaseURL `/v1` 归一化、`OutputSchema` 基础校验、Profile 校验错误行号。 | plan-code-review remediation |
+| 2026-04-29 | 1.1 | 收口 plan-review：补 Phase 0 前置契约复核，明确 A3 001 不 owns API/worker entrypoint；B1 AI vocabulary 未完全生成时只允许 A3 内部字段表，不得导出跨语言常量。 | plan-review remediation |

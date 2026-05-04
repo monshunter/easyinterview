@@ -1,8 +1,8 @@
 # Repo Scaffold Bootstrap Checklist
 
-> **版本**: 1.1
-> **状态**: active
-> **更新日期**: 2026-04-29
+> **版本**: 1.2
+> **状态**: completed
+> **更新日期**: 2026-05-04
 
 **关联计划**: [plan](./plan.md)
 

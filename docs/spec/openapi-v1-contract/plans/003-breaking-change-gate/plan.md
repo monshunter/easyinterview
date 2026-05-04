@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-04
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -30,7 +30,14 @@
 
 每个 phase 是可独立验证的纵向切片：Phase 1 起来就有 baseline 锁定与 diff 工具入口；Phase 2 起来就有 ruleset 与 privacy export 白名单；Phase 3 起来就有 ADR 模板与升级流程；Phase 4 收口 3 项 AC + B2 freeze handoff。本 plan 不引入 BDD 资产。
 
-## 3 实施步骤
+## 3 质量门禁分类
+
+- **Plan 类型**: `contract + tooling + governance`。本 plan 修改 OpenAPI baseline、breaking-change diff wrapper/config、ADR 模板、history 规则和 contract freeze gate；不实现业务 handler、前端 UI 或用户 workflow。
+- **TDD 策略**: 历史实现以 diff wrapper unit tests、breaking/additive/privacy whitelist negative cases、baseline freeze comparison 和 `make openapi-diff` exit-code assertions 作为 Red-Green-Refactor 来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行。
+- **BDD 策略**: BDD 不适用。本 plan 是内部 contract evolution gate；后续用户可见 API/UX 变更由对应 implementation plan 维护 BDD gate。
+- **替代验证 gate**: `make openapi-diff`、wrapper unit tests、composition diff negative cases、privacy export whitelist/history checks、`make codegen-check`、`make validate-fixtures`、`sync-doc-index --check`。
+
+## 4 实施步骤
 
 ### Phase 1: baseline 锁定与 diff 工具入口
 
@@ -186,13 +193,13 @@ info:
 
 更新 `openapi/baseline/README.md` / diff 相关说明中的 endpoint inventory 到 34；运行 `make openapi-diff` 通过，并确认 privacy export `501→202` 白名单仍只作用于 `POST /api/v1/privacy/exports`。
 
-## 4 验收标准
+## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-4 / C-5 / C-10 全部成立，证据贴入工作日志。
 - 本 plan checklist 全部勾选；Phase 4 复跑日志贴入工作日志。
 - B2 三个计划的 executable freeze handoff 收口；implementation 准入 gate 关于 B2 的部分解锁。
 
-## 5 风险与应对
+## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
@@ -203,10 +210,11 @@ info:
 | 工具版本随时间漂移导致 `make openapi-diff` 行为变化 | `openapi/baseline/README.md` 标注最低工具版本；`scripts/lint/openapi_diff.py` 启动时打印 `openapi-diff --version`，与预期不一致时报警 |
 | 后续 C / D 域 plan 误以为 codegen drift 由远端 CI 拦截 | Phase 4.3 工作日志显式声明：当前 P0 阶段 codegen / fixtures / breaking-change 三道 gate 都靠本地 `make` + owner self-review；远端 CI 接入由 A5 后续触发 |
 
-## 6 修订记录
+## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-04 | 1.5 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 breaking-change gate 范围。 | historical-spec-implementation-review/001 |
 | 2026-05-03 | 1.4 | 原地 reopen，新增 Phase 6 remediation：按 product-scope v1.2 重新冻结 v1.0.0 baseline 到 12 tag / 34 endpoint，并记录开发期 breaking 删除授权。 | openapi-v1-contract v1.9 |
 | 2026-04-29 | 1.2 | L2 remediation：补齐 wrapper 对 OpenAPI composition schema diff 与 history-ref base 比较语义的执行要求。 | plan-code-review --fix |
 | 2026-04-28 | 1.1 | 对齐 B2 spec v1.4：privacy export P0 例外类型从旧称 `ApiError` 修正为 wire envelope `ApiErrorResponse`。 | 001-bootstrap assessment remediation |

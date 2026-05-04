@@ -1,8 +1,8 @@
 # Repo Scaffold Bootstrap
 
-> **版本**: 1.1
-> **状态**: active
-> **更新日期**: 2026-04-29
+> **版本**: 1.2
+> **状态**: completed
+> **更新日期**: 2026-05-04
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -19,7 +19,14 @@
 
 本 plan 不接入任何外部依赖（不下载 docker images、不安装 asdf 工具），全部产出限于仓库内文件与可在干净 shell 环境运行的 Makefile / shell script。
 
-## 3 实施步骤
+## 3 质量门禁分类
+
+- **Plan 类型**: `tooling + repo-foundation + code-internal`。本 plan 修改仓库根容器目录、根 Makefile、git hook 占位、bootstrap shell 脚本和入口 README；不产生用户可见 UI、HTTP API 行为或业务 workflow。
+- **TDD 策略**: 历史实现以 checklist 中 `make` / hook / context validator / sync-doc-index 自检项作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，focused assertions 来源为根 Make target smoke、hook symlink idempotency、bootstrap script smoke 与 context validation。
+- **BDD 策略**: BDD 不适用。本 plan 是仓库脚手架和本地工具入口，不引入用户可感知行为；后续 feature plan 维护自身 BDD gate。
+- **替代验证 gate**: `make help`、`make fmt`、`make lint`、`make test`、`make build`、`make dev-up`、`make dev-down`、`make codegen`、`make migrate`、`make install-hooks`、context validation、`sync-doc-index --check`、`git diff --check`。
+
+## 4 实施步骤
 
 ### Phase 1: 根目录与配置文件
 
@@ -85,13 +92,13 @@
 
 把本 plan / checklist / context 版本推进到 1.1，`context.yaml` 的 package discovery 补入 `shared` 与 `config`，并把 [plans/INDEX.md](../INDEX.md) 从 completed 行切回 active，直到 Phase 4 artifact remediation 验证通过。
 
-## 4 验收标准
+## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-5 全部成立；C-1 的根容器计数以 v1.1 的 9 个目录为准。
 - 本 plan checklist 全部勾选；Phase 3 的 `make` 自检命令日志贴入工作日志。
 - engineering-roadmap/001 的 roadmap rebaseline / index 收口已完成；本 plan 只提供 A1 仓库脚手架实现与验证证据，不重复修改父 roadmap checklist。
 
-## 5 风险与应对
+## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
@@ -100,8 +107,9 @@
 | `scripts/git-hooks/` 占位被 B1 / A5 后续 plan 整段重写导致命名漂移 | 文件名（`pre-commit` / `commit-msg`）在本 spec D-4 锁定；后续 child 只能在文件内部追加规则，不得改文件名或新增同名 hook 到其它路径 |
 | 根目录 README 占位被遗忘补全成空指针 | Phase 1.1 强制每个 README 必须包含 owner subspec 链接；任何根 README 缺链接由 sync-doc-index 报告 |
 
-## 6 修订记录
+## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-04 | 1.2 | L1 plan-review remediation：补齐当前强制的质量门禁分类，并在 checklist 全部完成后将 plan lifecycle 收口为 completed。 | historical-spec-implementation-review/001 |
 | 2026-04-29 | 1.1 | 原地 reopen A1 001-bootstrap，补齐 v1.1 spec 已锁定的 `shared/` / `config/` 根容器 artifact、根 README 索引与 context discovery；不创建 sibling plan。 | plan-review remediation |

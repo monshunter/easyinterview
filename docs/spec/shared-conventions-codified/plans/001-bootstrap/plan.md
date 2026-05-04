@@ -1,8 +1,8 @@
 # Shared Conventions Codified Bootstrap
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-04
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -21,7 +21,14 @@
 
 本 plan 不接入 OpenAPI codegen（B2 持有），不实现业务 handler，不依赖 docker / db。所有产出限于仓库内文件 + Go test / TS test 跑得通。
 
-## 3 实施步骤
+## 3 质量门禁分类
+
+- **Plan 类型**: `contract + tooling + code-internal`。本 plan 修改 B1 shared conventions truth source、Go/TS shared modules、generator、idempotency helpers、lint rules 与 parity tests；不引入用户可见 UI、HTTP API 行为或端到端业务流程。
+- **TDD 策略**: 历史实现以 generator idempotency、Go shared package tests、TS typecheck/tests、error-code lint negative cases 和 conventions drift tests 作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行。
+- **BDD 策略**: BDD 不适用。本 plan 是内部共享契约和工具链；后续 API/UI/业务 workstream 在消费 B1 时维护自身 BDD gate。
+- **替代验证 gate**: `make codegen-conventions`、`make lint-conventions`、`go test ./backend/internal/shared/...`、`go vet ./backend/...`、frontend TS typecheck/tests、cross-language parity tests、repo search for retired enum values、`sync-doc-index --check`。
+
+## 4 实施步骤
 
 本 plan v1.1 为完成态文档修订：按已验证的实际依赖关系回写 Phase 1 / Phase 2 的执行顺序与所有权边界，不改变已落地代码范围。执行顺序必须遵循依赖图：先落地真理源与 Go module，再运行归属 `backend/go.mod` 的 generator；TS toolchain 必须先于 TS helper 的原生 typecheck / test gate 完成。
 
@@ -124,13 +131,13 @@ L2 remediation: `scripts/lint/error_codes.py` 必须解析 `ERROR_CODES = { ... 
 
 运行 `make lint-conventions`、`make codegen-conventions`、Go / TS shared type parity tests；repo 搜索确认实现侧不再出现旧练习模式枚举值、`fix_mistake` 或 `MistakeStatus` generated type。
 
-## 4 验收标准
+## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-5 全部成立（C-6 由 B2 plan 在引用 B1 时验证）。
 - 本 plan checklist 全部勾选；Phase 4 的关键命令日志贴入工作日志。
 - engineering-roadmap/001 已完成 roadmap rebaseline；本 plan 完结状态作为 B1 后续实施证据记录在本 checklist 与工作日志中。
 
-## 5 风险与应对
+## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
@@ -140,10 +147,11 @@ L2 remediation: `scripts/lint/error_codes.py` 必须解析 `ERROR_CODES = { ... 
 | Go module path 与 GitHub repo 名称不一致导致 import 失败 | spec D-2 锁定为 `github.com/monshunter/easyinterview/backend`，Phase 1.2 写入 `backend/go.mod` 时直接复用此值；任何重命名必须先递增 B1 spec 版本 |
 | TS 共享 lib 被前端 child（D1+）放在不同 path alias 中导致依赖混乱 | 本 plan 锁定 `frontend/src/lib/{conventions,ids}/` 路径；前端 child 只能加 alias，不能改物理路径；spec D-3 与 §4.3 对此明确禁令 |
 
-## 6 修订记录
+## 7 修订记录
 
 | 日期 | 版本 | 变更 | 证据 |
 |------|------|------|------|
+| 2026-05-04 | 1.4 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 shared conventions 范围。 | historical-spec-implementation-review/001 |
 | 2026-05-03 | 1.3 | 原地 reopen，新增 Phase 5 remediation：对齐 product-scope v1.2 与 UI scope，移除旧模式卡片、单题 Drill、反问专练和独立错题本状态枚举。 | product-scope v1.2 / docs/ui-design |
 | 2026-04-27 | 1.2 | 对齐 A5 单人开发阶段决策：B1 的 lint/codegen drift 只要求本地质量门禁，远端 CI / PR required check / CI drift detection 不作为当前 P0 前置。 | 文档一致性修订；不新增运行时代码范围。 |
 | 2026-04-27 | 1.1 | 回写 [shared-conventions-codified/001-bootstrap 交付复盘报告](../../../../reports/2026-04-27-shared-conventions-codified-001-bootstrap-assessment.md) 中确认真实的 spec-plan 漂移：重排 generator 前置依赖、明确 Go/TS `APIError` 归属、统一 13 个上游小节 / 14 个生成类型口径、补齐 Go/TS idempotency 双端 checklist 落点、把 TS toolchain 上移到 Phase 2。 | 当前代码已落地并通过 Phase 4 验证；本修订不新增运行时代码范围。 |

@@ -8,9 +8,9 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-implement-review-runway](./001-implement-review-runway/plan.md) | [plan](./001-implement-review-runway/plan.md) / [checklist](./001-implement-review-runway/checklist.md) / [context](./001-implement-review-runway/context.yaml) | 1.0 | active | 2026-05-04 |
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
+| [001-implement-review-runway](./001-implement-review-runway/plan.md) | [plan](./001-implement-review-runway/plan.md) / [checklist](./001-implement-review-runway/checklist.md) / [context](./001-implement-review-runway/context.yaml) | 1.0 | completed | 2026-05-04 |
