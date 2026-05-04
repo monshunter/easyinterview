@@ -8,9 +8,9 @@
 //
 // Usage:
 //   <DesignCanvas>
-//     <DCSection id="onboarding" title="Onboarding" subtitle="First-run variants">
-//       <DCArtboard id="a" label="A · Dusk" width={260} height={480}>…</DCArtboard>
-//       <DCArtboard id="b" label="B · Minimal" width={260} height={480}>…</DCArtboard>
+//     <DCSection id="resume_versions" title="Resume Workshop" subtitle="Version flows">
+//       <DCArtboard id="a" label="List" width={260} height={480}>…</DCArtboard>
+//       <DCArtboard id="b" label="Detail" width={260} height={480}>…</DCArtboard>
 //     </DCSection>
 //   </DesignCanvas>
 
@@ -619,4 +619,3 @@ function DCPostIt({ children, top, left, right, bottom, rotate = -2, width = 180
 }
 
 Object.assign(window, { DesignCanvas, DCSection, DCArtboard, DCPostIt });
-

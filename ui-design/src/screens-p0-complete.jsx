@@ -1,4 +1,4 @@
-// P0 completion screens: JD parse flow, Onboarding, Report-generating, Settings/Privacy, Retest state machine, Resume diff
+// P0 support screens: JD parse flow, report generation, settings/privacy, and upload/deletion states.
 
 // ═══════════════════════════════════════════════════════════════════
 // #1 JD PARSE FLOW — loading state + structured preview / confirm
