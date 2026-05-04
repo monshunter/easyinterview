@@ -1,0 +1,61 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: historical-spec-implementation-review
+  name: 001-implement-review-runway
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: docs
+  discovery:
+    aliases:
+      - historical-spec-implementation-review
+      - 001-implement-review-runway
+      - historical spec implementation
+      - implement review runway
+      - implement plus plan-code-review
+      - product-scope
+      - docs-ui-design
+      - ui-design prototype
+    keywords:
+      - historical spec
+      - active spec review
+      - product-scope reference
+      - docs-ui-design reference
+      - ui-design static prototype
+      - UI contract tests
+      - implement order
+      - plan-code-review order
+      - L1 before implement
+      - L2 after implement
+      - parallelism gate
+      - truth source serial
+      - plan-review fix
+      - implement tdd
+      - code review remediation
+      - final reconcile
+  targets:
+    docs:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - docs/spec/product-scope
+          - docs/spec/engineering-roadmap
+          - docs/ui-design
+          - ui-design
+          - docs/spec
+          - openapi
+          - shared
+          - backend
+          - frontend
+          - migrations
+          - config
+          - scripts
+          - test
+        uiRoutes: []
+        apiNames: []

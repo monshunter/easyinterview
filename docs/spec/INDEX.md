@@ -12,6 +12,7 @@
 |---------|------|------|----------|-------|
 | [product-scope](./product-scope/spec.md) | 1.5 | active | 2026-05-03 | [plans](./product-scope/plans/) |
 | [engineering-roadmap](./engineering-roadmap/spec.md) | 3.0 | active | 2026-05-03 | [plans](./engineering-roadmap/plans/) |
+| [historical-spec-implementation-review](./historical-spec-implementation-review/spec.md) | 1.0 | active | 2026-05-04 | [plans](./historical-spec-implementation-review/plans/) |
 
 ## 2 Foundation
 
