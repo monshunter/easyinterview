@@ -6,7 +6,7 @@
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.2](../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0) 把 B1 `shared-conventions-codified` 列为 Layer B · Contract 的入口 child（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它是 Wave 0 必须落地的两份 spec 之一，决定了：
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 B1 `shared-conventions-codified` 保留为当前 active Contract spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它是最早落地的基础契约 spec 之一，决定了：
 
 - 将 [00-shared-conventions.md](../../../easyinterview-tech-docs/00-shared-conventions.md) 中仍有效的历史命名 / ID / 时间 / 错误码约定迁移到代码层；当前共享枚举和错误码以 `shared/conventions.yaml` 与本 spec 为准；
 - 后端 Go 与前端 TypeScript 在没有 OpenAPI codegen（B2）之前已经能共享的最小类型集合；
@@ -17,7 +17,7 @@
 1. **真理源即代码**：把历史 00 文档中仍有效的基础约定，以及 product-scope v1.4 / UI scope 修订后的 14 个生成枚举类型、6 个已记录错误码示例、A3 授权追加的 3 个 `AI_*` 错误码、ADR-Q6 授权的 Model Profile / AI meta 字段名共享 vocabulary、ID 规则、时间规则、金额规则同时落到 Go（`backend/internal/shared/types/`）与 TypeScript（`frontend/src/lib/conventions/`）。
 2. **跨语言对齐**：Go 与 TS 类型必须共用同一份枚举 / 错误码源（YAML 或 JSON），由本 spec 唯一的 generator 在两侧吐出代码。
 3. **lint 强约束**：`UPPER_SNAKE_CASE` 错误码、`lower_snake_case` 枚举值、`camelCase` JSON tag 通过本地 lint 门禁拦截，而不是依赖代码 review。
-4. **monorepo 名称锁定**：在落地任何业务代码前，先把 `go.mod` 名称、`package.json` 名称、pnpm workspace（如启用）拓扑、共享 lib 目录定下来，避免 W2 多个 child 各自重命名雪球。
+4. **monorepo 名称锁定**：在落地任何业务代码前，先把 `go.mod` 名称、`package.json` 名称、pnpm workspace（如启用）拓扑、共享 lib 目录定下来，避免后续多个 subject 各自重命名雪球。
 
 本 spec 不实现 OpenAPI 契约（归 B2）、不写业务 handler、不接入数据库（归 B4 与各 C 域）。
 
@@ -37,7 +37,7 @@
 
 ### 2.2 Out of Scope
 
-- OpenAPI 契约本身：归 [B2 `openapi-v1-contract`](../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0)。
+- OpenAPI 契约本身：归 [B2 `openapi-v1-contract`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)。
 - 事件 envelope / outbox schema：归 B3 `event-and-outbox-contract`。
 - DB 表与 migration：归 B4 `db-migrations-baseline`。
 - 远端 CI 把上述 lint / generator 接到 PR 阶段：当前单人阶段不做；触发多人协作 / 公开 release / 自动发版等条件后再由 A5 `ci-pipeline-baseline` 重新评估。
@@ -64,7 +64,7 @@
 ### 3.2 待确认事项
 
 - generator 工具选型：默认手写 Go template + 简单 YAML loader；如执行阶段发现 schema 复杂度提升，可改用 `cuelang` 或 `quicktype`，由 001-bootstrap plan 在执行时升级并回填 D-1。
-- `frontend/src/lib/conventions/` 是否进一步拆为 `enums.ts` / `errors.ts` / `pagination.ts`：默认拆，具体粒度由 002-codegen-pipeline plan 在 W1 末决定。
+- `frontend/src/lib/conventions/` 是否进一步拆为 `enums.ts` / `errors.ts` / `pagination.ts`：默认拆，具体粒度由 002-codegen-pipeline plan 决定。
 
 ## 4 设计约束
 
@@ -82,7 +82,7 @@
 ### 4.3 边界约束
 
 - 本 spec 输出的 Go module 路径 `backend/internal/shared/...` 不得被任何 child 重命名；后续 child 只能在 `internal/<domain>/` 中 import 这些 shared 类型。
-- TS 共享 lib 路径 `frontend/src/lib/conventions/` 与 `frontend/src/lib/ids/` 不得被前端 child（D1–D7）重命名；可由 D1 `frontend-shell` 在自己的 plan 中扩展 path alias。
+- TS 共享 lib 路径 `frontend/src/lib/conventions/` 与 `frontend/src/lib/ids/` 不得被后续 frontend workstream 重命名；可由 `frontend-shell` 在自己的 plan 中扩展 path alias。
 
 ## 5 模块边界
 
@@ -107,13 +107,13 @@
 | C-3 | UUIDv7 工具可用 | A1 已落地仓库根 | 在 Go test 与 TS test 中调用 idx 工具 | Go `idx.NewID()` / TS `newId()` 返回 UUIDv7 字符串；输入 `tmp_xxx` 时 `idx.RequireServerID()` / `requireServerId()` 抛错 | 001-bootstrap |
 | C-4 | Idempotency-Key 工具 | A1 已落地仓库根 | 生成 + 校验 idempotency key（24h TTL） | Go 与 TS 双端工具产出格式一致的 key；TTL 过期后校验返回 false | 001-bootstrap |
 | C-5 | Lint 拦截违规命名 | 本地提交前引入一个 `auth_unauthorized`（小写）错误码常量 | 跑 `make lint` | B1 本地 lint/config 能报错：错误码必须 `UPPER_SNAKE_CASE`；A5 只约束本地质量门禁与远端 CI 延后边界，不改变规则语义 | 001-bootstrap |
-| C-6 | OpenAPI codegen 复用 B1 | B2 在自己 plan 里生成 OpenAPI types | B2 codegen 完成 | 任何枚举字段直接 import B1 的常量；不出现重复定义 enum 字面量 | engineering-roadmap/001 Phase 3 + B2 自身 plan |
+| C-6 | OpenAPI codegen 复用 B1 | B2 在自己 plan 里生成 OpenAPI types | B2 codegen 完成 | 任何枚举字段直接 import B1 的常量；不出现重复定义 enum 字面量 | B2 自身 plan |
 | C-7 | OpenAPI 错误响应 envelope 复用 B1 inner error | B2 渲染 `components.schemas.ApiError` 与 `components.schemas.ApiErrorResponse` | `make codegen-openapi && make codegen-check` | `ApiError` 只包含 inner error 字段；`ApiErrorResponse.error` `$ref` 到 `ApiError`；Go generated 复用 `sharederrors.APIError`，TS generated 复用 `conventions.ApiError` | openapi-v1-contract/001-bootstrap |
 | C-8 | AI 字段名共享 vocabulary | A3/B4/F1 同时消费 AI meta 字段 | `make codegen-conventions && make codegen-check` | `modelProfileName` / `modelProfileVersion` / `modelFamily` / `fallbackChain` / `route` / `validationStatus` / `outputSchemaVersion` 等字段名由 B1 生成或校验；A3 `AICallMeta` runtime 与 B4 `ai_task_runs` typed columns 使用同一来源；B1 不生成 `AICallMeta` DTO | ai-gateway-and-model-routing spec remediation + db-migrations-baseline remediation |
 
 ## 7 关联计划
 
-- [001-bootstrap](./plans/001-bootstrap/plan.md)：W0 落地真理源 YAML、generator 框架、Go / TS 共享 lib 骨架、UUID / idempotency 工具、本地 lint gate、monorepo 名称（go.mod / pnpm workspace）。
+- [001-bootstrap](./plans/001-bootstrap/plan.md)：落地真理源 YAML、generator 框架、Go / TS 共享 lib 骨架、UUID / idempotency 工具、本地 lint gate、monorepo 名称（go.mod / pnpm workspace）。
 - [002-codegen-pipeline](./plans/002-codegen-pipeline/plan.md)：当前 active；补齐 A3 触发的 AI shared vocabulary、跨语言 drift/parity gate 与本地 `make codegen-check` 接入。F3 prompt/rubric registry bridge 与远端 CI drift detection 只作为 handoff / future scope，不在 002 当前验收中实施。
 
 后续如果 F3 需要共享 `feature_key + version` SDK，或 A5 D-5 触发远端 CI，再递增本 spec 版本并追加后续 plan；不把 F3 bridge / remote CI scope 塞回 002。
@@ -123,7 +123,7 @@
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
 | 2026-05-03 | 1.8 | 将 `easyinterview-tech-docs/00` 降级为历史输入，明确当前共享约定以 `shared/conventions.yaml` 与本 spec 为准；新增枚举 / 错误码不再要求先改 00 历史文档。 | docs-only |
-| 2026-05-03 | 1.7 | 对齐 product-scope v1.2 / UI scope：练习入口枚举从旧模式卡片改为会话内 `assisted` / `strict`，复练目标改为 `retry_current_round` / `next_round`，并把旧 `MistakeStatus` 收敛为报告内部 `QuestionReviewStatus`。 | 001-bootstrap Phase 5 remediation |
+| 2026-05-03 | 1.7 | 对齐 product-scope v1.2 / UI scope：练习入口枚举从旧模式卡片改为会话内 `assisted` / `strict`，复练目标改为 `retry_current_round` / `next_round`，并把旧 `MistakeStatus` 收敛为报告内部 `QuestionReviewStatus`。 | 001-bootstrap remediation |
 | 2026-04-29 | 1.6 | 物化 `002-codegen-pipeline` 为 active：范围限定为 A3 AI vocabulary、跨语言 drift/parity 与本地 codegen-check 接入；F3 prompt bridge 与远端 CI 仅保留 future handoff。 | 002-codegen-pipeline |
 | 2026-04-29 | 1.5 | 按 ADR-Q6 authoritative 边界补齐 AI shared vocabulary：B1 只拥有 `AI_*` 错误码与 Model Profile / AI meta 字段名常量或生成类型；A3 继续拥有 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 与 provider adapter，A4/E4 负责连接参数与 endpoint。 | plan-review remediation |
 | 2026-04-29 | 1.4 | 授权并落地 A3 AI gateway baseline 错误码：`AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED`，作为 `shared/conventions.yaml` 与 Go / TS / OpenAPI codegen 共同消费的唯一真理源；`AICallMeta` 运行时结构仍由 A3 拥有，不进入 B1 共享 DTO。 | ai-gateway-and-model-routing spec remediation |

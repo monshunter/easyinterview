@@ -6,7 +6,7 @@
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 把 A4 `secrets-and-config` 列为 Layer A · Foundation 的第四份 child（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它是 Wave 1 的 9 份契约 / 基础设施 spec 之一，承接 [ADR-Q6](../engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md) 第 4 段「运维注入」与 [ADR-Q3](../engineering-roadmap/decisions/ADR-Q3-analytics-platform.md) 自托管 PostHog 的接入凭证落点，决定了：
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 A4 `secrets-and-config` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 [ADR-Q6](../engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md) 第 4 段「运维注入」与 [ADR-Q3](../engineering-roadmap/decisions/ADR-Q3-analytics-platform.md) 自托管 PostHog 的接入凭证落点，决定了：
 
 - 后端 API / Worker / 前端 dev / staging / prod（以及未来需要时的 CI）各类环境如何拿到自己需要的连接串、API key、AI provider / gateway 地址、feature flag 状态；
 - secrets / config 在仓库里如何 layered（默认值、env override、运行时 secret），不被 hardcode；
@@ -19,7 +19,7 @@
 3. **feature flag 抽象**：`FeatureFlagClient` 接口；本 spec 提供 `FileFlagProvider`（YAML 文件，dev / 单测默认）与 `PostHogFlagProvider`（指向自托管 PostHog 的 HTTP API）；ADR-Q3 已锁定 self-host PostHog。
 4. **lint 红线**：在本地质量门禁中拒绝 `os.Getenv(...)` 出现在 `internal/<domain>/...` 包；secrets 文件名 (`*.secret.yaml`) 一律加入 `.gitignore`；提交前 hook 拦截已知敏感前缀（`AKIA*` / `sk-*`）。
 
-本 spec 不实现具体业务模块的配置消费、不部署 PostHog（[F2 `analytics-funnel`](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) / [E4](../engineering-roadmap/spec.md#55-layer-e--integration4-份) 承接）、不锁定 secret 后端实现（P1 以后再决策）。
+本 spec 不实现具体业务模块的配置消费、不部署 PostHog（[F2 `analytics-funnel`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) / [E4](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 承接）、不锁定 secret 后端实现（P1 以后再决策）。
 
 ## 2 范围
 
@@ -37,15 +37,15 @@
   - `make lint-config` 检查 `.env.example` 与代码 `Get*` 调用一致。
   - `scripts/git-hooks/pre-commit-secrets.sh` 拦截敏感前缀（与 [A1 `scripts/git-hooks/`](../repo-scaffold/spec.md#21-in-scope) 集成）。
   - golangci-lint 自定义规则：禁止 `os.Getenv` 出现在 `internal/<domain>/` 包。
-- **API 端点契约**：`GET /api/v1/runtime-config`（前端获取 feature flag 状态 + 公开配置项；schema 由 [B2 `openapi-v1-contract`](../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0) 收口）。
+- **API 端点契约**：`GET /api/v1/runtime-config`（前端获取 feature flag 状态 + 公开配置项；schema 由 [B2 `openapi-v1-contract`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 收口）。
 
 ### 2.2 Out of Scope
 
-- 真正部署 PostHog：归 [F2](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) + [E4](../engineering-roadmap/spec.md#55-layer-e--integration4-份)；A2 默认本地栈只要求 no-op / file-backed dev mode 不阻塞启动。
+- 真正部署 PostHog：归 [F2](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) + [E4](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)；A2 默认本地栈只要求 no-op / file-backed dev mode 不阻塞启动。
 - K8s Secret / Vault / SOPS 实施：归 P1 / E4；本 spec 仅锁接口。
-- Build-time 注入工具链（Vite envsubst / esbuild defines）：归 [D1 `frontend-shell`](../engineering-roadmap/spec.md#54-layer-d--frontend7-份p04--p12--p21) + [A5 `ci-pipeline-baseline`](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0)。
-- Auth / session 业务语义（magic link challenge 表、server-side sessions 表、cookie 生命周期、风控阈值）：归 [C1 `backend-auth`](../engineering-roadmap/spec.md#53-layer-c--backend14-份p08--p14--p22) 与 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md)；本 spec 只登记 C1 运行所需 secret/env key，并保证它们进入红线与 redaction。
-- 数据库 migration / schema：归 [B4](../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0)。
+- Build-time 注入工具链（Vite envsubst / esbuild defines）：归 [D1 `frontend-shell`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) + [A5 `ci-pipeline-baseline`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)。
+- Auth / session 业务语义（magic link challenge 表、server-side sessions 表、cookie 生命周期、风控阈值）：归 [C1 `backend-auth`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md)；本 spec 只登记 C1 运行所需 secret/env key，并保证它们进入红线与 redaction。
+- 数据库 migration / schema：归 [B4](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)。
 - 业务模块的 config 消费现场：归各 C / D 域。
 
 ## 3 用户决策 / 待确认事项
@@ -122,7 +122,7 @@
 
 - 是否在 P0 引入 `viper` / `koanf` 等成熟 config 库 vs 手写最小 loader：默认 `koanf`（轻量、无 magic），由 001-bootstrap plan 落地时回填。
 - `runtime-config` 端点是否需要鉴权：默认开放（仅返回 §3.1.2 allowlist 中标记为可暴露的字段）；如未来加入按用户分桶 feature flag，必须新增带 session 的 `/api/v1/me/runtime-config`，不得扩大 public endpoint。
-- secret rotation：默认 P0 不实现自动 rotation；ADR / runbook 由 E4 W5 阶段落地。
+- secret rotation：默认 P0 不实现自动 rotation；ADR / runbook 由后续 release gate / 运维阶段落地。
 
 ## 4 设计约束
 
@@ -180,7 +180,7 @@
 
 ## 7 关联计划
 
-A4 在本次 W1 spec 阶段不创建 impl plan（参见 [001-decompose-subspecs §3.1](../engineering-roadmap/plans/001-decompose-subspecs/plan.md#3-实施步骤)）。后续由 A4 自身的 `001-bootstrap`（W2 起）承接：
+A4 当前暂无 active impl plan；后续由 A4 自身的 `001-bootstrap` 承接：
 
 - 落地 `internal/platform/{config,secrets,featureflag}/` Go 包与默认 provider。
 - 落地 `config/*.yaml`、`.env.example`、`config/feature-flags.yaml`。

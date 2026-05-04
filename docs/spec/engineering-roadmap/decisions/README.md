@@ -1,6 +1,6 @@
 # Engineering Roadmap · Decisions（ADR）
 
-> 本目录承载 `engineering-roadmap` subject 的 W0 hard gate ADR 与后续重大架构决策。
+> 本目录承载 `engineering-roadmap` subject 的 foundational hard gate ADR 与后续重大架构决策。
 >
 > ADR 不是独立 subspec，所有 ADR 共享 `engineering-roadmap` 的 owner 与生命周期；通过 `engineering-roadmap/spec.md` §3.2 表回填最终结论后即视为锁定。
 

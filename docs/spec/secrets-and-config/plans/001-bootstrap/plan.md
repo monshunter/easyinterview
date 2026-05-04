@@ -15,7 +15,7 @@
 
 ## 2 背景
 
-[engineering-roadmap §5.7 W2 排程](../../../engineering-roadmap/spec.md#57-实施-wave-顺序) 把 A4 child impl 排在 W1 spec 锁定之后、W2 多个 child（[B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md)、[C1 `backend-auth`](../../../engineering-roadmap/spec.md#53-layer-c--backend14-份p08--p14--p22)、[D1 `frontend-shell`](../../../engineering-roadmap/spec.md#54-layer-d--frontend7-份p04--p12--p21)）依赖之前。本 plan 通过 §3 的 6 个 phase 验收 [secrets-and-config spec §6](../../spec.md#6-验收标准) C-1..C-11，关闭 [001-decompose-subspecs](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) 留给 A4 child 的「W2 起承接」承诺。
+[engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A4 保留为当前 active Foundation spec；后续 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md)、[backend-auth](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)、[frontend-shell](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 等 workstream 依赖本计划输出的配置 / secret / feature flag 契约。本 plan 通过 §3 的 6 个 phase 验收 [secrets-and-config spec §6](../../spec.md#6-验收标准) C-1..C-11，关闭 [001-decompose-subspecs](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) 保留的 A4 bootstrap 承诺。
 
 执行本 plan 前必须确认：
 
@@ -25,7 +25,7 @@
 
 每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来即可由 Go 代码 `config.Get*` 读取三层合并的配置；Phase 2 起来即可由业务代码通过 `SecretSource` / `FeatureFlagClient` 接口隔离 provider；Phase 3 起来即有完整的 `.env.example` 与 `config/*.yaml` 字典；Phase 4 起来即有 `make lint-config` 与 pre-commit secret 拦截；Phase 5 起来即有最小 `runtime-config` 端到端链路；Phase 6 收口验证 C-1..C-11 并完成 handoff。
 
-本 plan 不部署 PostHog（归 [F2 `analytics-funnel`](../../../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) 与 [E4 `release-gate-and-rollout`](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份)），不实现 K8s Secret / Vault / SOPS provider（归 P1 / E4），不冻结 `/api/v1/runtime-config` 的 OpenAPI schema（归 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md)；A4 在本 plan 中只交付 response builder + 最小 stub handler）。
+本 plan 不部署 PostHog（归 [F2 `analytics-funnel`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [E4 `release-gate-and-rollout`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)），不实现 K8s Secret / Vault / SOPS provider（归 P1 / E4），不冻结 `/api/v1/runtime-config` 的 OpenAPI schema（归 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md)；A4 在本 plan 中只交付 response builder + 最小 stub handler）。
 
 ## 3 实施步骤
 
@@ -102,7 +102,7 @@ type FeatureFlagClient interface {
 
 #### 3.3 落地 `.env.example` 与 24 项 env key 字典
 
-按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典) 写入仓库根 `.env.example`，包含全部 24 项 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `WORKER_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_GATEWAY_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写占位说明（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
+按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典24-项) 写入仓库根 `.env.example`，包含全部 24 项 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `WORKER_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_GATEWAY_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写占位说明（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
 
 #### 3.4 落地 `config/feature-flags.yaml` baseline
 
@@ -156,7 +156,7 @@ type FeatureFlagClient interface {
 - 若 `ctx` 携带有效 session 且 `user_settings.analytics_opt_in == false`，则 `analyticsEnabled = false` 且不返回 `postHogPublicKey`（与 D-2 一致）；
 - 任何 secret 字段绝对不能进入 response。
 
-`backend/internal/platform/config/runtime_config_handler.go` 落地最小 `GET /api/v1/runtime-config` HTTP handler stub：直接调用 `BuildRuntimeConfig`，序列化为 JSON。OpenAPI schema 真理源由 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 持有；本 plan 仅交付 builder + stub handler，schema 与 fixture 一致性由 B2 在引用 A4 时验证。`user_settings` 真实接入由 [C1 `backend-auth`](../../../engineering-roadmap/spec.md#53-layer-c--backend14-份p08--p14--p22) 后续完成；本 plan 用 in-memory fake 与 nil session 路径覆盖测试。
+`backend/internal/platform/config/runtime_config_handler.go` 落地最小 `GET /api/v1/runtime-config` HTTP handler stub：直接调用 `BuildRuntimeConfig`，序列化为 JSON。OpenAPI schema 真理源由 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 持有；本 plan 仅交付 builder + stub handler，schema 与 fixture 一致性由 B2 在引用 A4 时验证。`user_settings` 真实接入由 [C1 `backend-auth`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 后续完成；本 plan 用 in-memory fake 与 nil session 路径覆盖测试。
 
 #### 5.2 前端 `frontend/src/lib/runtime-config/` fetcher
 
@@ -164,7 +164,7 @@ type FeatureFlagClient interface {
 
 - `index.ts` 暴露 `fetchRuntimeConfig(): Promise<RuntimeConfig>`：调用 `GET /api/v1/runtime-config`，缓存到 module-scoped `let cached` 直到下一个 page load。
 - `types.ts` 与后端 `RuntimeConfig` 字段同名（`appVersion` / `defaultUiLanguage` / `analyticsEnabled` / `featureFlags: Record<string, FlagDecision>` / `postHogPublicKey?`）。
-- `hooks.placeholder.ts` 留 `useRuntimeConfig()` 占位 React hook（仅类型签名，不导入 React），由 [D1 `frontend-shell`](../../../engineering-roadmap/spec.md#54-layer-d--frontend7-份p04--p12--p21) 在自身 plan 中实现完整 hook + provider；本 plan 只锁字段与 fetcher 行为。
+- `hooks.placeholder.ts` 留 `useRuntimeConfig()` 占位 React hook（仅类型签名，不导入 React），由 [D1 `frontend-shell`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 在自身 plan 中实现完整 hook + provider；本 plan 只锁字段与 fetcher 行为。
 
 前端任何代码不得直接读取 `import.meta.env.VITE_*` 之外的 build-time 变量，与 [secrets-and-config spec §4.1](../../spec.md#41-边界约束) 一致；运行时配置统一通过本 fetcher。
 
@@ -204,7 +204,7 @@ type FeatureFlagClient interface {
 
 #### 6.3 AC C-6 部分验证 + handoff
 
-按 [secrets-and-config spec §6 C-6](../../spec.md#6-验收标准) 与 §1 边界，C-6 完整验收需 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 提供 OpenAPI schema 与 fixture，[D1 `frontend-shell`](../../../engineering-roadmap/spec.md#54-layer-d--frontend7-份p04--p12--p21) 提供前端 React provider 实装，本 plan 只覆盖 builder + stub handler + 前端 fetcher。在工作日志与本 plan §4 验收标准中明确：
+按 [secrets-and-config spec §6 C-6](../../spec.md#6-验收标准) 与 §1 边界，C-6 完整验收需 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 提供 OpenAPI schema 与 fixture，[D1 `frontend-shell`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 提供前端 React provider 实装，本 plan 只覆盖 builder + stub handler + 前端 fetcher。在工作日志与本 plan §4 验收标准中明确：
 
 - A4 已交付：builder allowlist 实装、handler stub、前端 fetcher、单测断言「不返回 secret / 不返回 operator-only flag / 尊重 analytics_opt_in」。
 - 待 B2 在 OpenAPI schema 锁定 response shape 后，A4 在工作日志记录一次跨 plan 验证 token；B2 plan 引用本 plan 时不得反向修改 builder。
@@ -262,7 +262,7 @@ type FeatureFlagClient interface {
 
 - [secrets-and-config spec §6 验收标准](../../spec.md#6-验收标准) C-1..C-5、C-7..C-12 全部成立，证据贴入工作日志；C-6 partial 验收（A4 builder + stub + 前端 fetcher + 单测）成立，跨 plan 完整 verification 由 B2 / D1 后续 plan 关闭并 cross-link 回本工作日志。
 - 本 plan checklist 全部勾选；Phase 6 的 AC 验证命令日志贴入工作日志。
-- engineering-roadmap/001 留给 A4 child 的「W2 起承接」承诺由 Phase 6.3 关闭 partial、Phase 6.4 关闭文档侧；不重复修改父 roadmap checklist。
+- engineering-roadmap/001 保留的 A4 bootstrap 承诺由 Phase 6.3 关闭 partial、Phase 6.4 关闭文档侧；不重复修改父 roadmap checklist。
 
 ## 5 风险与应对
 
@@ -272,8 +272,8 @@ type FeatureFlagClient interface {
 | `koanf` 多 provider 合并顺序歧义导致 dev / prod 行为不同 | Phase 1.2 在 `loader.go` 中显式按 D-1 顺序串行调用 `Load`，禁止并发；写一份 `loader_test.go` 覆盖「config.yaml 默认 + dev.yaml override + env override + secret override」四层场景，断言最终值为 secret 注入值；任何 koanf 升级必须复跑该测试 |
 | feature flag 热加载在进程启动 1s 内 race（mtime 抖动 / YAML 解析中途读取） | Phase 2.3 用 `sync.RWMutex` 保护内部 map；首次加载在构造函数同步完成，热加载 goroutine 仅在首次成功后启动；Phase 6.5 在测试中模拟「启动后立即修改文件」场景，断言不 panic |
 | `.env.example` 与代码侧 env key 漂移：开发者新增 `os.Getenv` 但忘记更新 example | Phase 4.2 `make lint-config` 三方求差集 lint 在本地必跑；任何新增 env key 必须先递增 spec §3.1.1 表 → 同步 `.env.example` → 加 validator → 跑 `make lint-config`，README 写入这 4 步流程 |
-| prod fail-fast 触发 supervisor / k8s 无限重启循环：缺 secret → exit non-zero → restart → 再 exit | Phase 1.5 错误信息明确列出缺失 key 名；`config/README.md` 与 [E4 `release-gate-and-rollout`](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份) 的 runbook handoff 中提示 deployer 必须先补齐 secret 再恢复 supervisor；本 plan 不实现自动重试 / 自动 backoff，避免在缺 secret 时静默运行 |
-| 业务代码绕过 `FeatureFlagClient` 直接 import PostHog SDK，事后切换 provider 时大面积返工 | Phase 4.1 lint 红线扩展：扫描 `import "github.com/posthog/posthog-go"` 与 `import 'posthog-js'` 在 `backend/internal/<domain>/` 与 `frontend/src/<feature>/` 出现即 fail；只允许在 `backend/internal/platform/featureflag/` 与（D1 后续接入时）`frontend/src/lib/analytics/` 中 import；本 plan 不预先在前端 lint 中收口 PostHog 前端 SDK，留给 [D1 `frontend-shell`](../../../engineering-roadmap/spec.md#54-layer-d--frontend7-份p04--p12--p21) 与 [F2 `analytics-funnel`](../../../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份)，但在 `config/README.md` 显式写明此红线，避免后续 plan 漏接 |
+| prod fail-fast 触发 supervisor / k8s 无限重启循环：缺 secret → exit non-zero → restart → 再 exit | Phase 1.5 错误信息明确列出缺失 key 名；`config/README.md` 与 [E4 `release-gate-and-rollout`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 的 runbook handoff 中提示 deployer 必须先补齐 secret 再恢复 supervisor；本 plan 不实现自动重试 / 自动 backoff，避免在缺 secret 时静默运行 |
+| 业务代码绕过 `FeatureFlagClient` 直接 import PostHog SDK，事后切换 provider 时大面积返工 | Phase 4.1 lint 红线扩展：扫描 `import "github.com/posthog/posthog-go"` 与 `import 'posthog-js'` 在 `backend/internal/<domain>/` 与 `frontend/src/<feature>/` 出现即 fail；只允许在 `backend/internal/platform/featureflag/` 与（D1 后续接入时）`frontend/src/lib/analytics/` 中 import；本 plan 不预先在前端 lint 中收口 PostHog 前端 SDK，留给 [D1 `frontend-shell`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [F2 `analytics-funnel`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)，但在 `config/README.md` 显式写明此红线，避免后续 plan 漏接 |
 
 ## 6 修订记录
 

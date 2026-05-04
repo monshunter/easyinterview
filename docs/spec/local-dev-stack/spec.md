@@ -6,7 +6,7 @@
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 把 A2 `local-dev-stack` 列为 Layer A · Foundation 的第二份 child（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 A1 在 W0 占位的 `make dev-up` / `make dev-down` target，并由 [001-decompose-subspecs Phase 3.6](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 锁定为 W1 spec-contract lock：parent phase 只固定本地开发栈的最小依赖、应用组件启动契约、Make target 行为与健康检查口径；真实「克隆仓库 → 一条命令 → 本项目本地环境启动完成」由 A2 child `001` plan 验证。
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 A2 `local-dev-stack` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 A1 已占位的 `make dev-up` / `make dev-down` target；当前执行口径锁定本地开发栈的最小依赖、应用组件启动契约、Make target 行为与健康检查口径，真实「克隆仓库 → 一条命令 → 本项目本地环境启动完成」由 A2 child `001` plan 验证。
 
 本地开发环境不是生产观测环境的缩小版。默认 `make dev-up` 只启动开发 P0 闭环必须的本地依赖与当前仓库内可运行的项目组件，避免把生产才需要的 OTel Collector、Grafana、Loki、Prometheus 等高占用组件变成本地开发前置条件。
 
@@ -18,7 +18,7 @@
 4. **本地观测轻量化**：本地只要求应用自身暴露 `/metrics`（当组件已具备 HTTP runtime 时）并通过容器日志确认行为；不安装 Grafana / Loki / Prometheus / OTel Collector 作为默认依赖。
 5. **本地 AI 调用真实化**：docker compose 本地部署只通过 env 注入真实 AI provider / OpenAI-compatible endpoint，不启动 AI gateway 容器，也不把应用切到单元测试 stub。
 
-本 spec 不实现业务代码、不接入 K8s、不部署 staging（K8s/Kind 由 `test/scenarios/`（W4 spawn，E2 owner）与 ADR-Q4 锁定路径承接，[E4 `release-gate-and-rollout`](../engineering-roadmap/spec.md#55-layer-e--integration4-份) 在 W4/W5 验证）。
+本 spec 不实现业务代码、不接入 K8s、不部署 staging（K8s/Kind 由 `test/scenarios/` 与 ADR-Q4 锁定路径承接，[E4 `release-gate-and-rollout`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 在后续 release workstream 验证）。
 
 ## 2 范围
 
@@ -29,17 +29,17 @@
 - 顶层入口：`docker-compose.yaml`（落点 `deploy/dev-stack/docker-compose.yaml`）+ A1 已占位的 `make dev-up` / `make dev-down` 真实实现。
 - `make dev-doctor`：结构化健康检查，对每个依赖服务与项目组件返回 `OK / DEGRADED / DOWN` 与人类可读原因（输出 JSON + 退出码）。
 - 初始化脚本：Postgres 启用 `pgvector` 扩展；MinIO 创建默认 bucket。
-- `.env` 与 `config.yaml` 的最小 dev override（连接串、bucket 名、端口、应用组件默认 host/port、AI provider / gateway endpoint 与 key 占位）；具体 secrets 抽象与 feature flag 由 [A4 `secrets-and-config`](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 承接，本 spec 只锁 dev 默认值与字段名。
+- `.env` 与 `config.yaml` 的最小 dev override（连接串、bucket 名、端口、应用组件默认 host/port、AI provider / gateway endpoint 与 key 占位）；具体 secrets 抽象与 feature flag 由 [A4 `secrets-and-config`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 承接，本 spec 只锁 dev 默认值与字段名。
 - 数据卷管理：默认命名 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data`；提供 `make dev-reset` 用于显式清空（非默认）。
 - 文档：`deploy/dev-stack/README.md` 一屏说明 + 故障排查 + 与 K8s/Kind 路径的 cross-link。
 
 ### 2.2 Out of Scope
 
-- OTel Collector / Grafana / Loki / Prometheus 默认本地部署：归 [F1 `observability-stack`](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) 或生产部署路径；A2 默认 `make dev-up` 不安装这些组件，也不以它们作为健康检查前提。
+- OTel Collector / Grafana / Loki / Prometheus 默认本地部署：归 [F1 `observability-stack`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 或生产部署路径；A2 默认 `make dev-up` 不安装这些组件，也不以它们作为健康检查前提。
 - AI Gateway 本地 mock 或基础设施服务：AI gateway 不是 A2 本地依赖；A2 不启动 `ai-gateway` / `ai-gateway-mock` 容器。单元测试 stub / 离线 provider mock 归 A3；docker compose 本地部署必须把真实 AI provider / OpenAI-compatible endpoint 配置传给应用组件。
-- 自托管 PostHog：归 [F2 `analytics-funnel`](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份)；ADR-Q3 锁定不依赖 PostHog Cloud，但本地 dev-up 不强制启动 PostHog（资源占用大）。
-- K8s / Kind 场景集群：归 `test/scenarios/` 与 [E4](../engineering-roadmap/spec.md#55-layer-e--integration4-份)；ADR-Q4 锁定场景集成测试路径走 Kind，与本 spec 的 docker-compose 互不依赖（本地双轨：docker-compose for app dev，Kind for scenario tests）。
-- 数据库迁移：归 [B4 `db-migrations-baseline`](../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0)；A2 仅保证 Postgres 实例可用且 `pgvector` 扩展启用。
+- 自托管 PostHog：归 [F2 `analytics-funnel`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)；ADR-Q3 锁定不依赖 PostHog Cloud，但本地 dev-up 不强制启动 PostHog（资源占用大）。
+- K8s / Kind 场景集群：归 `test/scenarios/` 与 [E4](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)；ADR-Q4 锁定场景集成测试路径走 Kind，与本 spec 的 docker-compose 互不依赖（本地双轨：docker-compose for app dev，Kind for scenario tests）。
+- 数据库迁移：归 [B4 `db-migrations-baseline`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)；A2 仅保证 Postgres 实例可用且 `pgvector` 扩展启用。
 - 业务种子数据：归各 C 域 mock-server plan；本 spec 只提供空实例。
 
 ## 3 用户决策 / 待确认事项
@@ -116,7 +116,7 @@
 | C-5 | 显式清空 | 服务正在运行 | `make dev-reset` | 容器停止 + 命名卷删除；操作前提示交互确认（CI 模式跳过通过 `DEV_RESET_FORCE=1`） | 001 |
 | C-6 | pgvector 可用 | `make dev-up` 完成 | 在 Postgres 中执行 `select extname from pg_extension where extname='vector'` | 返回一行，确认扩展已启用 | 001 |
 | C-7 | 本地指标与日志可查 | `make dev-up` 完成，至少一个已启用 HTTP 项目组件声明 `/metrics` | 访问该组件 `/metrics` 并执行 `make dev-logs` | `/metrics` 返回文本指标；容器日志可按服务名查看；不依赖 Grafana / Loki / Prometheus / OTel Collector | 001 |
-| C-8 | A2 executable gate handoff（来自 [001 Phase 3.6](../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架)） | 本 spec 的 contract lock 已完成，A2 `001-bootstrap` plan 完成 | C-1 + C-7 + C-9 都成立 | A2 的 `make dev-up` 可执行 gate 通过；依赖本地栈的 W2 implementation 可启动；parent Phase 3 只记录 spec-contract lock，不单独冒充本项已通过 | 001-bootstrap |
+| C-8 | A2 executable gate handoff | 本 spec 的 contract lock 已完成，A2 `001-bootstrap` plan 完成 | C-1 + C-7 + C-9 都成立 | A2 的 `make dev-up` 可执行 gate 通过；依赖本地栈的后续 implementation 可启动；roadmap 只保留 active spec 关系，不单独冒充本项已通过 | 001-bootstrap |
 | C-9 | 本地 AI provider 配置不走 stub | 启用了需要 AIClient 的 API / worker；`.env` 缺 `AI_GATEWAY_BASE_URL` 或 `AI_GATEWAY_API_KEY` | `make dev-up` / `make dev-doctor` | 组件启动失败或 dev-doctor 报 DOWN/DEGRADED 并说明缺真实 AI provider 配置；补齐真实 provider endpoint / key 后组件健康；不启动 AI gateway 容器，也不把部署切到 stub | 001 |
 
 ## 7 关联计划

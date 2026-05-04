@@ -31,7 +31,7 @@
 - [x] 4.1 跑两次 `make codegen-conventions`，第二次 `git diff --exit-code` 通过；删除任一生成文件后再跑可还原
 - [x] 4.2 `go test ./backend/internal/shared/...` 与 `go vet ./backend/...` 通过；`idx_test.go` / `idempotency_test.go` / `errors_test.go` 覆盖 spec C-3 / C-4 / 错误响应结构
 - [x] 4.3 `pnpm --filter @easyinterview/frontend exec tsc --noEmit` 通过；最小 vitest / node:test 用例覆盖 `requireServerId('tmp_x')` 抛错、枚举 union 类型、TS `Idempotency-Key` wire-format / TTL 语义
-- [x] 4.4 确认 `docs/spec/INDEX.md` 中 `shared-conventions-codified` 行为真实链接 + 真实状态；不改写已经完成的 `engineering-roadmap/001-decompose-subspecs` Phase 2 spawn 项；将 generator / Go test / TS test 输出贴入工作日志
+- [x] 4.4 确认 `docs/spec/INDEX.md` 中 `shared-conventions-codified` 行为真实链接 + 真实状态；不改写已经完成的 `engineering-roadmap/001-decompose-subspecs` roadmap rebaseline 项；将 generator / Go test / TS test 输出贴入工作日志
 - [x] 4.5 L2 remediation: 仓库根级 `go test ./backend/internal/shared/...` 与 `go vet ./backend/...` 必须真实通过，不依赖手动切换到 `backend/`
 - [x] 4.6 文档一致性修订：对齐 A5 单人开发阶段决策，B1 只要求本地 lint/codegen 质量门禁，远端 CI / PR required check / CI drift detection 不作为当前 P0 前置
 

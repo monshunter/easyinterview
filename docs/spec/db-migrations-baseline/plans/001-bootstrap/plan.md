@@ -15,7 +15,7 @@
 
 ## 2 背景
 
-B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 16 + pgvector 本地实例；B1/B2/B3 分别提供 shared enum、API-facing async enum、event/job manifest；A3/F1 需要 `ai_task_runs` typed columns；C8 需要 `outbox_events` retry columns 与 privacy deletion matrix。B4 001 必须在 W2 C/D 域 implementation 读取真实表之前完成。
+B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 16 + pgvector 本地实例；B1/B2/B3 分别提供 shared enum、API-facing async enum、event/job manifest；A3/F1 需要 `ai_task_runs` typed columns；C8 需要 `outbox_events` retry columns 与 privacy deletion matrix。B4 001 必须在后续 C/D 域 implementation 读取真实表之前完成。
 
 ## 3 质量门禁分类
 

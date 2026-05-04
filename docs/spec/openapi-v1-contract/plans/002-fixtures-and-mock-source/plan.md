@@ -9,17 +9,17 @@
 
 ## 1 目标
 
-把 [openapi-v1-contract spec](../../spec.md) §2.1 / §4.7 / §4.6 锁定的「fixtures 同源 + provenance + 隐私脱敏」契约落到 `openapi/fixtures/` 目录：为 [001-bootstrap](../001-bootstrap/plan.md) 落地的 34 个 operationId 生成默认 fixture（`scenario: default`）+ 来源于 `ui-design/src/data.jsx` 的 `scenario: prototype-baseline`；落地 `make validate-fixtures`（schema-valid + provenance + 隐私脱敏）与 `make sync-fixtures-from-prototype`（前端原型数据折叠工具）；将 fixtures 投影为 Prism / 文档站可消费的 OpenAPI named examples，避免手写第二份 example；为 [E1 mock-contract-suite](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份) 提供唯一可消费的 fixture 真理源；通过本 plan Phase 4 / Phase 6 的本地命令证明 spec §6 中 C-6 / C-7 / C-9（partial）/ C-11（fixture 级）已成立。
+把 [openapi-v1-contract spec](../../spec.md) §2.1 / §4.7 / §4.6 锁定的「fixtures 同源 + provenance + 隐私脱敏」契约落到 `openapi/fixtures/` 目录：为 [001-bootstrap](../001-bootstrap/plan.md) 落地的 34 个 operationId 生成默认 fixture（`scenario: default`）+ 来源于 `ui-design/src/data.jsx` 的 `scenario: prototype-baseline`；落地 `make validate-fixtures`（schema-valid + provenance + 隐私脱敏）与 `make sync-fixtures-from-prototype`（前端原型数据折叠工具）；将 fixtures 投影为 Prism / 文档站可消费的 OpenAPI named examples，避免手写第二份 example；为 [E1 mock-contract-suite](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 提供唯一可消费的 fixture 真理源；通过本 plan Phase 4 / Phase 6 的本地命令证明 spec §6 中 C-6 / C-7 / C-9（partial）/ C-11（fixture 级）已成立。
 
 本 plan 不实现 mock server 运行壳（归 E1）、不修改 `openapi/openapi.yaml` schema（归 001 / 003）、不引入 breaking-change linter（归 003）。
 
 ## 2 背景
 
-[engineering-roadmap §4.3 mock-first 集成策略](../../../engineering-roadmap/spec.md#43-mock-first-集成策略) 把 fixtures 列为 `frontend/msw` 与 `backend mock-server` / E1 三处共享的唯一数据来源；[spec §3.1 D-9 / §4.7](../../spec.md) 把「每个 operationId 一份默认 fixture + `prototype-baseline` 同步」绑死在 v1.0.0 freeze 范围内。
+[engineering-roadmap §4.3 mock-first 集成策略](../../../engineering-roadmap/spec.md#43-契约与-mock-first-约束) 把 fixtures 列为 `frontend/msw` 与 `backend mock-server` / E1 三处共享的唯一数据来源；[spec §3.1 D-9 / §4.7](../../spec.md) 把「每个 operationId 一份默认 fixture + `prototype-baseline` 同步」绑死在 v1.0.0 freeze 范围内。
 
 执行本 plan 前必须确认 [001-bootstrap](../001-bootstrap/plan.md) Phase 8 已完成：`openapi/openapi.yaml` 中 34 个 operation 的 schema、`ApiError`、`GenerationProvenance`、`deleteMe` 与 privacy export 501 example 必须已锁定，作为 `make validate-fixtures` 的 schema 校验源。若 001 未完成，先暂停本 plan。
 
-每个 phase 是可独立验证的纵向切片：Phase 1 起来就有 34 份 default fixtures；Phase 2 起来就有当前 6 个 P0 prototype-baseline scenario；Phase 3 起来就能用 Prism / 自建 mock server 消费；Phase 4 收口 4 项 AC + handoff；Phase 5 补齐 `deleteMe` fixture；Phase 6 按 product-scope v1.2 删除旧 Mistakes / Growth fixture 范围。本 plan 不引入 BDD 资产（`test/scenarios/` 由 E2 在 W4 spawn）。
+每个 phase 是可独立验证的纵向切片：Phase 1 起来就有 34 份 default fixtures；Phase 2 起来就有当前 6 个 P0 prototype-baseline scenario；Phase 3 起来就能用 Prism / 自建 mock server 消费；Phase 4 收口 4 项 AC + handoff；Phase 5 补齐 `deleteMe` fixture；Phase 6 按 product-scope v1.2 删除旧 Mistakes / Growth fixture 范围。本 plan 不引入 BDD 资产（场景覆盖由后续 e2e workstream 承接）。
 
 ## 3 实施步骤
 
@@ -62,7 +62,7 @@
    - 必须存在且 `operationId` 与文件名一致；
    - `scenarios.default` 必填；其它 scenario 可选（`prototype-baseline` 在 Phase 2 接入）；
    - 对每个 scenario：`request.body`（若 operation 声明 requestBody）和 `response.body` schema-valid against `openapi/openapi.yaml` 中对应 operation 的 request / response schema；`response.status` 必须是该 operation 已声明状态码或 `default` 可覆盖的错误状态，并按实际状态选择 `2xx` / `4xx` / `5xx` 分支。
-2. AI schema 强制 provenance：扫描固定列表（`TargetJob.summary` / `TargetJob.fitSummary` / `AssistantAction` / `FeedbackReport` / AI-created `MistakeEntry` / `ResumeTailorRun` / `Debrief`）出现的字段，必须含 `provenance` 对象且 6 字段非空（spec §4.6 / C-11）。
+2. AI schema 强制 provenance：扫描固定列表（`TargetJob.summary` / `TargetJob.fitSummary` / `AssistantAction` / `FeedbackReport` / `ResumeTailorRun` / `Debrief`）出现的字段，必须含 `provenance` 对象且 6 字段非空（spec §4.6 / C-11）。报告内题目回顾通过 `FeedbackReport.questionAssessments` 承载，不再扫描独立 `MistakeEntry`。
 3. 隐私敏感字段扫描：拒绝真实邮箱模式（允许 `example.com` / `example.org` / `example.net` / `.example` 保留域）、真实电话区号（允许 `+1-555-0100`..`+1-555-0199` 保留号码）、真实公司名（黑名单可放在 `scripts/lint/fixtures_privacy_blacklist.txt`）。命中即报错。
 4. ID 扫描：所有字段名以 `id` / `Id` 结尾或 schema 标记为 `format: uuid` 的值必须是 UUIDv7 字面量；任何 `tmp_` 前缀直接 fail。
 5. 34 个 operation 必须全部存在 fixture；缺失 operationId 直接 fail。
@@ -122,12 +122,12 @@ npx @stoplight/prism-cli mock openapi/.generated/openapi-with-fixtures.yaml -p 4
 
 #### 3.3 前端 msw / 后端 mock-server 同源声明
 
-更新 `openapi/fixtures/README.md`：明确 frontend `msw` 与 backend `mock-server` / Prism / 自建 mock 在 P0 范围必须共享 `openapi/fixtures/`；前端禁止 hardcode mock（spec §2.1 / §4.7）。该约束落到 [E1 mock-contract-suite](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份) 与 [D 域 frontend-shell](../../../engineering-roadmap/spec.md#54-layer-d--frontend4-份p0) plan，本 plan 只声明真理源位置，不实现 mock server 运行壳。
+更新 `openapi/fixtures/README.md`：明确 frontend `msw` 与 backend `mock-server` / Prism / 自建 mock 在 P0 范围必须共享 `openapi/fixtures/`；前端禁止 hardcode mock（spec §2.1 / §4.7）。该约束落到 [E1 mock-contract-suite](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [D 域 frontend-shell](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) plan，本 plan 只声明真理源位置，不实现 mock server 运行壳。
 
 #### 3.4 C-9 设置完成确认
 
 - 当前 plan 阶段：spec C-9（mock 同源）的「fixture 唯一真理源」与「default scenario → OpenAPI example → Prism response 字节级一致」由本 plan Phase 3.1 / 3.2 / 3.3 关闭。
-- 「前端 msw + 后端 mock-server 真实运行时同字节」由 E1 / D1 后续 plan 在 W2 闭合，本 plan 不替代。
+- 「前端 msw + 后端 mock-server 真实运行时同字节」由 E1 / D1 后续 plan 闭合，本 plan 不替代。
 
 ### Phase 4: Verification + handoff
 
@@ -147,7 +147,7 @@ npx @stoplight/prism-cli mock openapi/.generated/openapi-with-fixtures.yaml -p 4
 
 #### 4.3 E1 handoff
 
-- 在工作日志中明确 [E1 mock-contract-suite](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份) 在 W2 启动时直接消费 `openapi/fixtures/` 与 `openapi/openapi.yaml`，不重建 fixture 真理源。
+- 在工作日志中明确 [E1 mock-contract-suite](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 后续启动时直接消费 `openapi/fixtures/` 与 `openapi/openapi.yaml`，不重建 fixture 真理源。
 - 本 plan 不修改 E1 spec 或 plan；E1 spawn 时由 roadmap owner 触发。
 
 ### Phase 5: v1.8 fixture remediation
@@ -180,7 +180,7 @@ npx @stoplight/prism-cli mock openapi/.generated/openapi-with-fixtures.yaml -p 4
 
 ## 4 验收标准
 
-- spec [§6 验收标准](../../spec.md#6-验收标准) C-6 / C-7 / C-11 全部成立；C-9 中「fixture 同源 + default scenario → OpenAPI example → Prism response 字节级一致」部分成立，剩余「真实 msw / 后端 mock-server 同字节」由 E1 / D1 后续 plan 在 W2 闭合。
+- spec [§6 验收标准](../../spec.md#6-验收标准) C-6 / C-7 / C-11 全部成立；C-9 中「fixture 同源 + default scenario → OpenAPI example → Prism response 字节级一致」部分成立，剩余「真实 msw / 后端 mock-server 同字节」由 E1 / D1 后续 plan 闭合。
 - 本 plan checklist 全部勾选；Phase 4 关键命令日志贴入工作日志。
 
 ## 5 风险与应对
@@ -190,6 +190,10 @@ npx @stoplight/prism-cli mock openapi/.generated/openapi-with-fixtures.yaml -p 4
 | `ui-design/src/data.jsx` 字段命名与 OpenAPI schema 不一致（如 snake_case / 旧字段） | Phase 2.2 同步脚本做 schema 校验且 fail-fast 而非静默兜底；mapping 缺口必须人工补 `PROTOTYPE_MAPPING.md`；不允许 sync 工具自动重命名 |
 | 34 份 fixture 手写量大且容易漂出 schema | Phase 1.3 强制 schema 校验；建议先用 generator / Prism `--seed-fixture` 工具生成最小骨架再人工补字段；本 plan 验证 idempotency，不引入二次手写 |
 | 34 份 fixture 中遗漏 `deleteMe` 或与 `requestPrivacyDelete` 语义不一致 | Phase 5.1 / 5.2 强制 `Auth/deleteMe` fixture + operation count gate；Prism examples 从 fixture 投影，避免单独手写 |
+| privacy export fixture 被误改成 202（被「正常成功」习惯覆盖） | Phase 1.3 校验脚本对 `POST /api/v1/privacy/exports` 单独走白名单：必须 status=501 + error.code=PRIVACY_EXPORT_NOT_AVAILABLE，否则 fail；Phase 4.1 复跑确认 |
+| AI schema provenance 字段被 stub 成空字符串 | Phase 1.3 校验 6 字段非空；`rubricVersion` 在非评分场景必须显式写 `not_applicable` 而非空串；脚本拒绝空白 |
+| 隐私敏感字段黑名单遗漏导致真实信息漏入 | Phase 1.3 黑名单 `scripts/lint/fixtures_privacy_blacklist.txt` 持续维护；遇到漏报由 plan 修订（递增本 plan 版本）补充 |
+| Prism / msw 对 `examples` vs `example` 解读差异导致字节不一致 | Phase 3.1 先从 fixtures 投影 OpenAPI named examples，再用 Phase 3.2 Prism 命令固定 `Prefer: example=default`；`openapi/fixtures/<tag>/<operationId>.json` 是真理源，OpenAPI yaml 中 example 由工具同步（不手写两份） |
 
 ## 6 修订记录
 
@@ -198,7 +202,3 @@ npx @stoplight/prism-cli mock openapi/.generated/openapi-with-fixtures.yaml -p 4
 | 2026-05-03 | 1.3 | 刷新计划主体口径：默认 fixture / example coverage 改为 34 operation / 12 tag，prototype-baseline 只要求当前 P0 关键 6 个 endpoint，避免旧 37-operation 与独立 Mistakes / Growth 验收口径残留。 | product-scope v1.2 / openapi-v1-contract v1.9 |
 | 2026-05-03 | 1.2 | 原地 reopen，新增 Phase 6 remediation：按 product-scope v1.2 移除 Mistakes / Growth fixture 覆盖，更新报告和 TargetJob fixtures 的题目回顾 / 复练字段，并同步 prototype mapping。 | openapi-v1-contract v1.9 |
 | 2026-04-29 | 1.1 | 原地 reopen，新增 Phase 5 remediation：补齐 `Auth/deleteMe` fixture、历史 v1.8 operation coverage 与 P0 debrief fixture 口径。 | plan-review remediation |
-| privacy export fixture 被误改成 202（被「正常成功」习惯覆盖） | Phase 1.3 校验脚本对 `POST /api/v1/privacy/exports` 单独走白名单：必须 status=501 + error.code=PRIVACY_EXPORT_NOT_AVAILABLE，否则 fail；Phase 4.1 复跑确认 |
-| AI schema provenance 字段被 stub 成空字符串 | Phase 1.3 校验 6 字段非空；`rubricVersion` 在非评分场景必须显式写 `not_applicable` 而非空串；脚本拒绝空白 |
-| 隐私敏感字段黑名单遗漏导致真实信息漏入 | Phase 1.3 黑名单 `scripts/lint/fixtures_privacy_blacklist.txt` 持续维护；遇到漏报由 plan 修订（递增本 plan 版本）补充 |
-| Prism / msw 对 `examples` vs `example` 解读差异导致字节不一致 | Phase 3.1 先从 fixtures 投影 OpenAPI named examples，再用 Phase 3.2 Prism 命令固定 `Prefer: example=default`；`openapi/fixtures/<tag>/<operationId>.json` 是真理源，OpenAPI yaml 中 example 由工具同步（不手写两份） |

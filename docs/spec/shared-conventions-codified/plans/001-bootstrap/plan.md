@@ -11,11 +11,11 @@
 
 把 [shared-conventions-codified spec](../../spec.md) §3.1 锁定的 6 项决策落到代码：建立 `shared/conventions.yaml` 真理源、跨语言 generator、Go 共享 module（`backend/go.mod` + `internal/shared/{types,errors,idx}/`）、TS 共享 lib（`frontend/package.json` + `src/lib/{conventions,ids}/`）、UUIDv7 / Idempotency-Key 工具、错误码与枚举命名的本地可执行 lint gate，并通过本 plan 的 verification phase 证明 Go / TS 双侧测试可以编译并通过最小用例。
 
-本 plan 只覆盖 W0 必须冻结的最小集合；后续如需扩展（本地 drift detection、prompt registry 接入、跨语言 contract test），递增 spec 与本 plan 版本，必要时 spawn `002-codegen-pipeline` 等续集 plan。远端 CI drift detection 仅在 A5 触发条件成立后再评估。
+本 plan 只覆盖必须先冻结的最小共享集合；后续如需扩展（本地 drift detection、prompt registry 接入、跨语言 contract test），递增 spec 与本 plan 版本，必要时启用 `002-codegen-pipeline` 等续集 plan。远端 CI drift detection 仅在 A5 触发条件成立后再评估。
 
 ## 2 背景
 
-[engineering-roadmap spec §5.7 / §5.8](../../../engineering-roadmap/spec.md#57-实施-wave-顺序) 把 B1 安排在 W0，与 [A1 `repo-scaffold`](../../../repo-scaffold/spec.md) 同时落地：A1 提供根目录与 Make 入口，B1 在 A1 创建的 `backend/` 与 `frontend/` 容器里写入第一份 `go.mod` / `package.json` 与共享 lib。这两件事必须先于 W1 9 份 spec 进 `/plan-review`，否则 B2 / C 全域 / D 全域会缺少共享枚举与错误码常量。
+[engineering-roadmap spec §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 B1 保留为当前 active Contract spec，并要求后续实现复用 B1 共享枚举、错误码和 drift gate：A1 提供根目录与 Make 入口，B1 在 A1 创建的 `backend/` 与 `frontend/` 容器里写入第一份 `go.mod` / `package.json` 与共享 lib。这两件事必须先于依赖共享契约的 B2 / C / D workstream，否则后续实现会缺少共享枚举与错误码常量。
 
 执行本 plan 前必须确认 A1 已创建根 `Makefile`、`backend/`、`frontend/`、`scripts/` 等容器目录；若 A1 尚未完成，先暂停本 plan 并实施 `repo-scaffold/001-bootstrap`。
 
@@ -128,7 +128,7 @@ L2 remediation: `scripts/lint/error_codes.py` 必须解析 `ERROR_CODES = { ... 
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-5 全部成立（C-6 由 B2 plan 在引用 B1 时验证）。
 - 本 plan checklist 全部勾选；Phase 4 的关键命令日志贴入工作日志。
-- engineering-roadmap/001 Phase 2.2 已完成 spawn；本 plan 完结状态作为 B1 后续实施证据记录在本 checklist 与工作日志中。
+- engineering-roadmap/001 已完成 roadmap rebaseline；本 plan 完结状态作为 B1 后续实施证据记录在本 checklist 与工作日志中。
 
 ## 5 风险与应对
 

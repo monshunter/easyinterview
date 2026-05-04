@@ -7,7 +7,7 @@
 ## 1 修订规则
 
 [plan 003-breaking-change-gate](./plans/003-breaking-change-gate/plan.md) Phase 3.3 锁定的
-`history.md` 写作规则。本节是 [openapi-v1-contract spec §4.4 审计要求](./spec.md#44-breaking-change-linter-规则集w1-末-freeze-后强制) 的执行口径，
+`history.md` 写作规则。本节是 [openapi-v1-contract spec §4.4 审计要求](./spec.md#44-breaking-change-linter-规则集v100-freeze-后强制) 的执行口径，
 与 `make openapi-diff` 白名单 gate（[scripts/lint/openapi_diff.py](../../../scripts/lint/openapi_diff.py)） 一一对应。
 
 | 触发情形 | 必须递增 history 行？ | 行内必须显式标记 |

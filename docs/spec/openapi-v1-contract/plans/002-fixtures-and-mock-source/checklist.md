@@ -25,13 +25,13 @@
 - [x] 3.1 落地 fixtures → OpenAPI named examples 投影工具：读取 `openapi/openapi.yaml` + `openapi/fixtures/`，输出 `openapi/.generated/openapi-with-fixtures.yaml` 或临时等价产物；当前 34 个 default example 全覆盖；生成 example body 与 fixture body 字节级一致；重复运行幂等
 - [x] 3.2 在 `openapi/README.md` / `openapi/fixtures/README.md` 写入 Prism 启动方式（`prism mock openapi/.generated/openapi-with-fixtures.yaml -p 4010`）+ 固定 5 个 operation（`getMe` / `listTargetJobs` / `getPracticeSession` / `getFeedbackReport` / `requestPrivacyExport`）用 curl `Prefer: example=default` 验证返回 body 与 fixture 字节级一致；不落正式 mock server 入口（归 E1）
 - [x] 3.3 在 `openapi/fixtures/README.md` 明确 frontend `msw` 与 backend `mock-server` / Prism 必须共享 `openapi/fixtures/`，前端禁止 hardcode mock；该约束在 E1 / D1 后续 plan 落实，本 plan 只声明真理源位置
-- [x] 3.4 工作日志记录：spec C-9 中「fixture 唯一真理源」与「default scenario → OpenAPI example → Prism response 字节级一致」由本 plan 关闭；「真实 msw / 后端 mock-server 同字节」由 E1 / D1 在 W2 闭合
+- [x] 3.4 工作日志记录：spec C-9 中「fixture 唯一真理源」与「default scenario → OpenAPI example → Prism response 字节级一致」由本 plan 关闭；「真实 msw / 后端 mock-server 同字节」由 E1 / D1 后续 workstream 闭合
 
 ## Phase 4: Verification + handoff
 
 - [x] 4.1 spec C-6 / C-7 / C-9 partial / C-11 自检：`make validate-fixtures` exit 0；删除 fixture / 临时改 request 或 response schema / 临时去 provenance / 临时使用真实邮箱 / 临时使用 `tmp_` id → 各 fail；examples 投影工具通过；Prism 跑 `POST /privacy/exports` 返回 `501 + error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；固定 5 个 operation Prism + curl 字节级一致；当前 6 个 P0 关键 endpoint `prototype-baseline` 非空且 schema-valid
 - [x] 4.2 文档与 INDEX 同步：仅本 plan 切 completed；001 必须已 completed，003 保持 active 并由自身 Phase 4 关闭 B2 freeze handoff；`openapi/fixtures/README.md` 与 `openapi/README.md` Header 完整；`/sync-doc-index --check` 通过
-- [x] 4.3 E1 handoff：工作日志声明 E1 mock-contract-suite 在 W2 直接消费 `openapi/fixtures/` 与 `openapi/openapi.yaml`，不重建 fixture 真理源；本 plan 不修改 E1 spec / plan
+- [x] 4.3 E1 handoff：工作日志声明 E1 mock-contract-suite 后续直接消费 `openapi/fixtures/` 与 `openapi/openapi.yaml`，不重建 fixture 真理源；本 plan 不修改 E1 spec / plan
 
 ## Phase 5: v1.8 fixture remediation
 

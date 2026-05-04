@@ -11,15 +11,15 @@
 
 把 [openapi-v1-contract spec](../../spec.md) §3.1 已锁定的 D-1..D-15 与 §3.1.1 列出的 34 endpoint × 12 tag 落到 `openapi/openapi.yaml` v1.0.0；落地双端 codegen pipeline（Go DTO + chi server interface 在 `backend/internal/api/generated/`，TS SDK 在 `frontend/src/api/generated/`）；接入根 `Makefile` 的 `codegen-openapi` / `codegen-check` 入口；锁定 ADR-Q1 Auth 路径（email magic link + first-party session cookie）、`DELETE /api/v1/me` account deletion、`POST /api/v1/privacy/exports` P0 的 `501 PRIVACY_EXPORT_NOT_AVAILABLE` 例外、B1 共享 enum / 错误码 / `ApiError` 的 `$ref` 拓扑、§4.6 `GenerationProvenance` schema；通过本 plan Phase 4 / Phase 8 的本地命令证明 spec §6 中 C-1 的 contract/schema 部分、C-2 / C-3 / C-8、C-7 / C-11 的 contract/schema 部分已成立，并为 [002-fixtures-and-mock-source](../002-fixtures-and-mock-source/plan.md) 与 [003-breaking-change-gate](../003-breaking-change-gate/plan.md) 提供可消费的契约源。
 
-本 plan 不落地 fixtures（归 002）、不落地 breaking-change linter（归 003）、不实现业务 handler（归 C 域）、不实现前端 fetch 客户端（归 D 域）、不部署 mock server（归 [E1](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份)）。后续如需扩展（v1.0.1 patch、新 endpoint、SSE 子协议接入），在本 spec / plan 上递增版本，原地修订。
+本 plan 不落地 fixtures（归 002）、不落地 breaking-change linter（归 003）、不实现业务 handler（归 C 域）、不实现前端 fetch 客户端（归 D 域）、不部署 mock server（归 [E1](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)）。后续如需扩展（v1.0.1 patch、新 endpoint、SSE 子协议接入），在本 spec / plan 上递增版本，原地修订。
 
 ## 2 背景
 
-[engineering-roadmap §5.2](../../../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0) 把 B2 列为 Layer B Contract 的 DAG 瓶颈节点：W2 启动的 C 全域和 D 全域 child 都依赖本 plan 产出的 codegen output 与 Auth security scheme。[001-decompose-subspecs Phase 3.3](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 已将 spec-contract lock 标记完成；本 plan 是 §7 关联计划列出的 3 个 child 中第一个，承担 v1.0.0 freeze 的所有结构性产出。
+[engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 B2 保留为当前 active Contract spec：后续 C / D workstream 都依赖本 plan 产出的 codegen output 与 Auth security scheme。`engineering-roadmap/001-decompose-subspecs` 已把 B2 spec-contract lock 作为历史完成事实保留；本 plan 是 B2 §7 关联计划列出的 3 个计划中第一个，承担 v1.0.0 freeze 的所有结构性产出。
 
 执行本 plan 前必须确认 [B1 shared-conventions-codified/001-bootstrap](../../../shared-conventions-codified/plans/001-bootstrap/plan.md) 已完成：generator 输出的 `backend/internal/shared/types/enums.go`、`frontend/src/lib/conventions/{enums,errors,pagination}.ts`、`shared/conventions.yaml` 是本 plan 的 `$ref` 真理源；若 B1 未完成，先暂停本 plan。
 
-每个 phase 是可独立验证的纵向切片：Phase 1 起来就能用 `npx @apidevtools/swagger-cli@4.0.4 swagger-cli validate` 校验骨架；Phase 2 起来就能 `make codegen-openapi` 双端生成；Phase 3 起来就能 `make codegen-check` 拦截漂移；Phase 4 收口 5 项 AC + 文档 + handoff。本 plan 不引入 BDD 资产（`test/scenarios/` 由 [E2 e2e-scenarios-p0](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份) 在 W4 spawn），AC 验证完全由 `make` 命令与 `git diff --exit-code` 驱动。
+每个 phase 是可独立验证的纵向切片：Phase 1 起来就能用 `npx @apidevtools/swagger-cli@4.0.4 swagger-cli validate` 校验骨架；Phase 2 起来就能 `make codegen-openapi` 双端生成；Phase 3 起来就能 `make codegen-check` 拦截漂移；Phase 4 收口 5 项 AC + 文档 + handoff。本 plan 不引入 BDD 资产（场景覆盖由后续 [e2e-scenarios-p0](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) workstream 承接），AC 验证完全由 `make` 命令与 `git diff --exit-code` 驱动。
 
 ## 3 实施步骤
 
@@ -38,14 +38,14 @@
 - `Paginated<T>`：使用 `allOf` + `pageInfo: $ref ../PageInfo` 模式（B1 D-5），不为每个列表 endpoint 单独维护字段顺序。
 - `GenerationProvenance`（spec §4.6）：6 字段（`promptVersion` / `rubricVersion` / `modelId` / `language` / `featureFlag` / `dataSourceVersion`），其中 `rubricVersion` 显式允许 `not_applicable` 字面量。
 
-公共 `ResourceType` enum（spec §3.2 待确认事项）独立成 schema，避免与 outbox / Job 引用重复。
+公共 `ResourceType` enum（spec §3.1.2 B2 专属 async enum 字面量）独立成 schema，避免与 outbox / Job 引用重复。
 
 #### 1.3 34 endpoint operation 骨架
 
 按 spec §3.1.1 表格逐行写入 34 operation：
 
 - 每个 operation 至少声明 `tags`、`summary`、`operationId`、`security`（覆盖 §4.1 public/protected 矩阵）、必要的 path/query/header parameters、request body（如有）、success 或 P0 例外 response、`default: $ref ApiErrorResponse`。
-- `POST /api/v1/uploads/presign`、`POST /api/v1/resumes`、`POST /api/v1/targets/import`、`PATCH /api/v1/targets/{targetJobId}`、`POST /api/v1/practice/plans`、`POST /api/v1/practice/sessions`、`POST /api/v1/practice/sessions/{sessionId}/complete`、`POST /api/v1/mistakes/{mistakeId}/retest`、`POST /api/v1/resume/tailor`、`POST /api/v1/debriefs`、`POST /api/v1/privacy/exports`、`POST /api/v1/privacy/deletions` 等副作用 endpoint 必须声明 `Idempotency-Key` header 引用（spec D-6）；ADR-Q1 auth email start 例外见下一条。
+- `POST /api/v1/uploads/presign`、`POST /api/v1/resumes`、`POST /api/v1/targets/import`、`PATCH /api/v1/targets/{targetJobId}`、`POST /api/v1/practice/plans`、`POST /api/v1/practice/sessions`、`POST /api/v1/practice/sessions/{sessionId}/complete`、`POST /api/v1/resume/tailor`、`POST /api/v1/debriefs`、`POST /api/v1/privacy/exports`、`POST /api/v1/privacy/deletions`、`DELETE /api/v1/me` 等当前副作用 endpoint 必须声明 `Idempotency-Key` header 引用或等价 active-request dedupe 语义（spec D-6）；ADR-Q1 auth email start 例外见下一条。
 - `POST /api/v1/practice/sessions/{sessionId}/events`：声明 `clientEventId` 字段，**不**挂 `Idempotency-Key` header；与其他幂等机制不混用（spec D-6）。
 - `POST /api/v1/auth/email/start` 不挂通用 `Idempotency-Key`；rate limit / challenge TTL 归 ADR-Q1（spec §4.1）。
 - 长耗时 operation（resume tailor / debrief / target import / practice complete / privacy delete / resume register 等）success response 走 `202 Accepted` + `*WithJob` schema（spec D-7）；客户端通过 `GET /api/v1/jobs/{jobId}` 轮询。
@@ -58,7 +58,7 @@
 
 - `npx @apidevtools/swagger-cli@4.0.4 swagger-cli validate openapi/openapi.yaml` 通过（spec C-1）。
 - 写一个 `scripts/lint/openapi_inventory.py`（或等价 `make` target 内联脚本）扫描 yaml，断言：
-  - tag 数 == 14 且顺序与 spec §2.1 一致；
+  - tag 数 == 12 且顺序与 spec §2.1 一致；
   - operation 数 == 34 且 `(tag, method, path, operationId)` 与 spec §3.1.1 完全一致；
   - 每个 operation 都有 `default: $ref ApiErrorResponse`；
   - 除 ADR-Q1 auth email start 与 session event 例外外，spec D-6 涉及的副作用 endpoint 都引用 `Idempotency-Key` header；`POST /api/v1/auth/email/start` 与 `POST /api/v1/practice/sessions/{sessionId}/events` 不引用；
@@ -130,7 +130,7 @@
 - 本 plan checklist 全部勾选；Phase 4 关键命令日志贴入工作日志。
 - 本 plan 自身 checklist 与 Phase 4 验证完成后，把本 plan Header 从 active 切到 completed，并用 `/sync-doc-index --fix-index` 同步 [openapi-v1-contract/plans/INDEX.md](../INDEX.md)；不联动 002 / 003 状态。
 - 调用 `/sync-doc-index --check` 确认 `docs/spec/INDEX.md` 与 `plans/INDEX.md` 与 spec / plan Header 无 drift。
-- 不修改 [engineering-roadmap/001-decompose-subspecs Phase 3.3](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 已完成的 spawn 项；W2 implementation 准入 gate（spec C-10）由 [003-breaking-change-gate](../003-breaking-change-gate/plan.md) Phase 4 关闭，不重复登记父 roadmap。
+- 不修改 [engineering-roadmap/001-decompose-subspecs](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) 已完成的 roadmap checklist；implementation 准入 gate（spec C-10）由 [003-breaking-change-gate](../003-breaking-change-gate/plan.md) Phase 4 关闭，不重复登记父 roadmap。
 
 #### 4.4 B2 child 协作 handoff
 

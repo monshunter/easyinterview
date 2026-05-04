@@ -15,13 +15,13 @@
 - 落地 `make openapi-diff`：调用 `openapi-diff`（OpenAPITools，或等价）比较当前 `openapi/openapi.yaml` 与 baseline；
 - 配置规则集：禁止 delete-field / change-type / required-add / enum-remove / endpoint-delete / path-rename / method-change；允许 additive；privacy export `501 → 202` 切换显式白名单（spec D-12）；
 - 落地破坏性变更走 ADR 的工作流模板（`docs/spec/openapi-v1-contract/decisions/TEMPLATE.md` + `history.md` 增量约定）；
-- 通过本 plan Phase 4 的本地命令证明 spec §6 中 C-4 / C-5 / C-10 已成立，并把 B2 三个 child 的 executable freeze handoff 收口为「W2 implementation 准入 gate」可放行状态。
+- 通过本 plan Phase 4 的本地命令证明 spec §6 中 C-4 / C-5 / C-10 已成立，并把 B2 三个计划的 executable freeze handoff 收口为可放行的 implementation 准入 gate。
 
 本 plan 不实现远端 CI required check / label workflow（归 [A5 ci-pipeline-baseline](../../../ci-pipeline-baseline/spec.md) 后续触发）；不修改 fixture 内容（归 002）；不修改 schema / endpoint 范围（归 001 + 后续修订）。
 
 ## 2 背景
 
-[engineering-roadmap §6 关键路径](../../../engineering-roadmap/spec.md#6-关键路径与并行机会) 把 B2 列为 DAG 瓶颈节点：「一旦 codegen 投产，破坏性变更会触发跨 spec 雪球」。spec §3.1 D-10 / §4.4 / §6 C-10 把 v1.0.0 freeze 后的演进路径绑死在 additive-only + ADR 例外两条规则上。本 plan 是 §7 关联计划列出的 3 个 child 中第三个，承担把 freeze gate 从「书面约束」变为「本地可执行 gate」的最后一公里。
+[engineering-roadmap §6 关键路径](../../../engineering-roadmap/spec.md#6-实施顺序) 把 B2 列为 DAG 瓶颈节点：「一旦 codegen 投产，破坏性变更会触发跨 spec 雪球」。spec §3.1 D-10 / §4.4 / §6 C-10 把 v1.0.0 freeze 后的演进路径绑死在 additive-only + ADR 例外两条规则上。本 plan 是 §7 关联计划列出的 3 个 child 中第三个，承担把 freeze gate 从「书面约束」变为「本地可执行 gate」的最后一公里。
 
 执行本 plan 前必须确认：
 
@@ -146,9 +146,9 @@ info:
 
 把上述命令日志贴入工作日志；spec §6 C-10 成立。
 
-#### 4.3 W2 implementation 准入 gate 解锁声明
+#### 4.3 implementation 准入 gate 解锁声明
 
-- 在工作日志中明确声明：本 plan 完结后 [engineering-roadmap §5.2 / §5.7](../../../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0) W2 准入 gate 关于 B2 的部分已闭合；C 全域与 D 全域 child 在 W2 启动时可直接消费 `backend/internal/api/generated/` 与 `frontend/src/api/generated/`。
+- 在工作日志中明确声明：本 plan 完结后 [engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 中 B2 active contract 的可执行 handoff 已闭合；后续 C / D workstream 可直接消费 `backend/internal/api/generated/` 与 `frontend/src/api/generated/`。
 - 不修改 [engineering-roadmap/001-decompose-subspecs](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) 父 checklist；C-10 成立证据由本 plan 持有。
 
 #### 4.4 文档与 INDEX 同步
@@ -190,7 +190,7 @@ info:
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-4 / C-5 / C-10 全部成立，证据贴入工作日志。
 - 本 plan checklist 全部勾选；Phase 4 复跑日志贴入工作日志。
-- B2 三个 child 的 executable freeze handoff 收口；W2 implementation 准入 gate 关于 B2 的部分解锁。
+- B2 三个计划的 executable freeze handoff 收口；implementation 准入 gate 关于 B2 的部分解锁。
 
 ## 5 风险与应对
 
@@ -201,7 +201,7 @@ info:
 | baseline 文件被误编辑（直接改 baseline 让 diff 通过） | Phase 1.1 在 baseline `info.description` 显式写 `DO NOT EDIT`；建议在仓库根 `.gitattributes` 标 baseline 为 `linguist-generated=true`；后续如接入 A5 远端 CI，可加 codeowners 二次校验，但本 plan 不强制 |
 | ADR 与 baseline / history 顺序错位（先改 yaml 后写 ADR / history） | Phase 2.2 wrapper 在 privacy export 白名单切换时强制 `history.md` 同 PR 增量；非白名单 breaking 必须由 wrapper 输出 reclassify 错误并提示先写 ADR；流程靠人工 review，自动化只做闸门 |
 | 工具版本随时间漂移导致 `make openapi-diff` 行为变化 | `openapi/baseline/README.md` 标注最低工具版本；`scripts/lint/openapi_diff.py` 启动时打印 `openapi-diff --version`，与预期不一致时报警 |
-| W2 启动时 C / D 域 plan 误以为 codegen drift 由远端 CI 拦截 | Phase 4.3 工作日志显式声明：当前 P0 阶段 codegen / fixtures / breaking-change 三道 gate 都靠本地 `make` + owner self-review；远端 CI 接入由 A5 后续触发 |
+| 后续 C / D 域 plan 误以为 codegen drift 由远端 CI 拦截 | Phase 4.3 工作日志显式声明：当前 P0 阶段 codegen / fixtures / breaking-change 三道 gate 都靠本地 `make` + owner self-review；远端 CI 接入由 A5 后续触发 |
 
 ## 6 修订记录
 

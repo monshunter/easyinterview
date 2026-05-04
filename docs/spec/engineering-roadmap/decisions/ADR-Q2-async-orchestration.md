@@ -6,7 +6,7 @@
 
 ## 1 背景
 
-`easyinterview-tech-docs/01-technical-architecture.md` §3 把后端拆成 `api` + `worker` 两个进程；`00-shared-conventions.md` §4 把所有长耗时操作统一为「异步 Job 模式」；`03-db-definition.md` §5.9 已定义 `async_jobs` 与 `outbox_events` 两张表。`README.md` §「待评审的 5 个决策点」第 2 项把异步编排选择留作 W0 决策。
+`easyinterview-tech-docs/01-technical-architecture.md` §3 把后端拆成 `api` + `worker` 两个进程；`00-shared-conventions.md` §4 把所有长耗时操作统一为「异步 Job 模式」；`03-db-definition.md` §5.9 已定义 `async_jobs` 与 `outbox_events` 两张表。`README.md` §「待评审的 5 个决策点」第 2 项只作为历史决策输入。
 
 P0 已识别的异步链路：
 
@@ -109,7 +109,7 @@ P0 已识别的异步链路：
 ## 6 关联
 
 - `engineering-roadmap/spec.md` §3.2 Q-2
-- `engineering-roadmap/plans/001-decompose-subspecs/plan.md` Phase 1.1
+- `engineering-roadmap/plans/001-decompose-subspecs/plan.md` checklist 1.1
 - 上游：`easyinterview-tech-docs/00-shared-conventions.md` §4 异步任务约定、`01-technical-architecture.md` §3、`03-db-definition.md` §5.9、`04-metrics-observability.md` §「async_jobs」、`06-event-contracts.md`
 - 下游 child：C8 / B3 / B4 / A2 / A4 / F1；间接：C4-C7 全部
 

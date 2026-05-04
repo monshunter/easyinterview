@@ -15,9 +15,9 @@
 
 ## 2 背景
 
-[engineering-roadmap §5.7 W1 排程](../../../engineering-roadmap/spec.md#57-实施-wave-顺序) 把 A2 child impl 排在 W1 末（W1 spec 锁定后），是 W2 多个 child 依赖本地数据库 / 缓存 / 对象存储以及统一项目启动入口的前置条件。本 plan 通过 §3 的 4 个 phase 验收 spec §6 C-1..C-9，关闭 [001-decompose-subspecs Phase 3.6](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 留下的「executable gate by A2 child」承诺。
+[engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A2 保留为当前 active Foundation spec；后续 workstream 依赖本地数据库 / 缓存 / 对象存储以及统一项目启动入口。本 plan 通过 §3 的 4 个 phase 验收 spec §6 C-1..C-9，关闭 roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺。
 
-每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来就能用 `docker compose` 直连最小依赖与项目组件；Phase 2 起来就能用 `make` 管理生命周期；Phase 3 起来就能机器消费 `make dev-doctor` JSON；Phase 4 收口应用 `/metrics`、容器日志与文档。本 plan 不引入 BDD 资产（`test/scenarios/` 由 [E2 e2e-scenarios-p0](../../../engineering-roadmap/spec.md#55-layer-e--integration4-份) 在 W4 spawn），AC 验证完全由 `make dev-*` 命令驱动。
+每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来就能用 `docker compose` 直连最小依赖与项目组件；Phase 2 起来就能用 `make` 管理生命周期；Phase 3 起来就能机器消费 `make dev-doctor` JSON；Phase 4 收口应用 `/metrics`、容器日志与文档。本 plan 不引入 BDD 资产（场景覆盖由后续 [e2e-scenarios-p0](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) workstream 承接），AC 验证完全由 `make dev-*` 命令驱动。
 
 ## 3 实施步骤
 
@@ -170,7 +170,7 @@
 - 端口冲突路径（C-2 复跑一次）。
 - 重复 `make dev-up`（C-3 复跑一次）。
 
-完成后在工作日志贴出 8 条 AC 的执行证据；spec §6 表格中 C-1..C-9 全部成立。父 [engineering-roadmap/001-decompose-subspecs Phase 3.6](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md#phase-3-wave-1基础设施--契约骨架) 的「executable gate by A2 child」承诺由本 phase 关闭；不再修改 parent checklist。
+完成后在工作日志贴出 8 条 AC 的执行证据；spec §6 表格中 C-1..C-9 全部成立。roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺由本 phase 关闭；不再修改 parent checklist。
 
 #### 4.5 文档收口
 
@@ -182,7 +182,7 @@
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-9 全部成立，证据贴入工作日志。
 - 本 plan checklist 全部勾选；Phase 3 / Phase 4 的 `make dev-*` 自检命令日志贴入工作日志。
-- engineering-roadmap/001 Phase 3.6 留下的「executable gate by A2 child」承诺由 Phase 4.4 关闭；不重复修改父 roadmap checklist。
+- engineering-roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺由 Phase 4.4 关闭；不重复修改父 roadmap checklist。
 
 ## 5 风险与应对
 

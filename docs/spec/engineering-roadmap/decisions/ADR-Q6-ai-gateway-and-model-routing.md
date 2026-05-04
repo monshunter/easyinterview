@@ -1,8 +1,8 @@
 # ADR-Q6 · AI 网关与模型路由
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: accepted
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-04
 
 ## 1 背景
 
@@ -12,7 +12,7 @@
 - 异步：报告生成（`review` 域）、简历定制（`resume` 域）、报告题目回顾 / 本轮复练上下文物化、debrief 生成、retrieval 召回
 - P2：voice STT、source intel
 
-`easyinterview-tech-docs/01-technical-architecture.md` §2 把「AI Adapter Layer」标记为「模型供应商抽象、重试、fallback、成本记录」，§5 把 `ai` 模块拆为 `prompt / rubric registry + provider adapters + 调用记录`，§7 已规划 `ai_fallback_model_enabled` 等 feature flag；`04-metrics-observability.md` §「ai_*」指标与 §「fallback rate」dashboard 早已锁定。`engineering-roadmap/spec.md` §3.2 Q-6 已确认总体方向：**应用内 `AIClient` + Model Profile，生产经外部 AI Gateway**；本 ADR 把 W0 hard gate 落到具体边界。
+`easyinterview-tech-docs/01-technical-architecture.md` §2 把「AI Adapter Layer」标记为「模型供应商抽象、重试、fallback、成本记录」，§5 把 `ai` 模块拆为 `prompt / rubric registry + provider adapters + 调用记录`，§7 已规划 `ai_fallback_model_enabled` 等 feature flag；`04-metrics-observability.md` §「ai_*」指标与 §「fallback rate」dashboard 早已锁定。`engineering-roadmap/spec.md` §3.2 Q-6 已确认总体方向：**应用内 `AIClient` + Model Profile，生产经外部 AI Gateway**；本 ADR 把该架构 gate 落到具体边界。
 
 仓库现状：
 
@@ -108,10 +108,10 @@
 - **A3 `ai-gateway-and-model-routing`** —— 落地 `AIClient` + Model Profile schema + stub provider + OpenAI-compatible adapter
 - **A4 `secrets-and-config`** —— `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` / `AI_MODEL_PROFILE_PATH` 配置项；local deploy 与 Kind 必须能注入真实 provider 凭证
 - **F1 `observability-stack`** —— `ai_*` 指标与 dashboard
-- **F3 `prompt-rubric-registry`** —— 引用 `model_profile_name`；W1 baseline + W3 真实 model profile 切换
+- **F3 `prompt-rubric-registry`** —— 引用 `model_profile_name`；baseline prompt/rubric 与后续真实 model profile 切换
 - **C4 `backend-targetjob`** / **C5 `backend-practice`** / **C6 `backend-review`** / **C7 `backend-resume`** / **C9 `backend-debrief`** / **C11 `backend-retrieval`** —— 全部仅依赖 `AIClient` + profile name；禁止 import 厂商 SDK
 - **C14 `backend-voice-stt`**（P2） —— STT 走同一 `AIClient`（task_type=stt），profile 路由到 STT 专用 gateway route
-- **E4 `release-gate-and-rollout`** —— W4 gate 校验 AI Gateway 路由可观测性 + fallback alert + cost cap 配置
+- **`release-gate-and-rollout`** —— 校验 AI Gateway 路由可观测性 + fallback alert + cost cap 配置
 - **B1 `shared-conventions-codified`** —— Model Profile / AI meta 字段名与 AI 错误码的共享常量或生成类型；A3 仍 owns Model Profile schema、`AIClient` runtime 与 `AICallMeta` 填充语义
 - **CLAUDE.md / `test/scenarios/`** —— Kind 场景默认使用真实 AI provider endpoint；只有离线 contract 测试可显式切 stub / mock gateway
 
@@ -130,7 +130,7 @@
 ## 6 关联
 
 - `engineering-roadmap/spec.md` §3.2 Q-6、§5.1 A3、§4.3 mock-first
-- `engineering-roadmap/plans/001-decompose-subspecs/plan.md` Phase 1.1、Phase 5.2（F3 切真 Model Profile）
+- `engineering-roadmap/plans/001-decompose-subspecs/plan.md` checklist 1.1（保留 ADR-Q1..Q6 约束）与 checklist 3.3（production voice / retrieval 等 future candidates 延后）
 - 上游：`easyinterview-tech-docs/01-technical-architecture.md` §2 §5 §「AI Adapter Layer」、`04-metrics-observability.md` §「ai_*」§「fallback rate」、`05-logging-standard.md`
 - 下游 child：A3 / A4 / F1 / F3 / C4-C7 / C9 / C11 / C14 / E4 / B1
 - 关联 ADR：ADR-Q4-cloud-deploy-target（gateway 作为 cluster-internal Deployment）、ADR-Q5-privacy-cadence（AI 调用 payload 仅写 hash）
@@ -139,6 +139,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-04 | 1.4 | 对齐 engineering-roadmap v3.0：关联章节不再指向旧 Phase 5.2，改为引用当前 ADR 保留与 future candidate 延后规则。 |
 | 2026-05-03 | 1.3 | 对齐 product-scope v1.1：review 域 AI 物化只服务报告题目回顾和本轮复练上下文，不恢复独立错题本 / Drill。 |
 | 2026-04-29 | 1.2 | 收口 A/B spec 全面审查 remediation：明确 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 是 AIClient 的 OpenAI-compatible 连接参数，可指真实 LLM provider 或生产 gateway；fallback 由连接 endpoint / gateway route 承担，A3 client 不自行切换模型；B1 只提供共享字段/常量，A3 owns runtime。 |
 | 2026-04-27 | 1.1 | 明确 stub 只用于单元测试 / 离线 contract 测试；docker compose 与 Kind 本地部署必须使用真实 AI provider 提供的 OpenAI-compatible LLM 服务，不默认降级到 stub，也不要求本地部署 AI gateway 组件。 |

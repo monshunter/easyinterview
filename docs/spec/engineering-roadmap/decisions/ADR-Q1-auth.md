@@ -1,12 +1,12 @@
 # ADR-Q1 · 认证方案
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: accepted
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-04
 
 ## 1 背景
 
-`easyinterview` 是个人向 AI 面试训练产品，目标用户是高意图求职者（C 端单租户），核心场景是 24-72 小时内围绕一份 JD 完成准备闭环。`easyinterview-tech-docs/01-technical-architecture.md` §5 把 `auth` 列为后端模块之一，但未锁定方案；`easyinterview-tech-docs/README.md` §「待评审的 5 个决策点」第 1 项明确把认证方案留作 W0 决策。
+`easyinterview` 是个人向 AI 面试训练产品，目标用户是高意图求职者（C 端单租户），核心场景是 24-72 小时内围绕一份 JD 完成准备闭环。`easyinterview-tech-docs/01-technical-architecture.md` §5 把 `auth` 列为后端模块之一，但未锁定方案；`easyinterview-tech-docs/README.md` §「待评审的 5 个决策点」第 1 项只作为历史决策输入。
 
 产品语义上：
 
@@ -87,7 +87,7 @@
 - **B4 `db-migrations-baseline`** —— `auth_challenges` / `sessions` / `external_identities`（空表）三张表的 0001 迁移
 - **C8 `backend-async-runtime`** —— 邮件发送作为 internal-only canonical `email_dispatch` job_type（由 B3 / B4 加入 DB/C8 内部契约，不进入 B2 API-facing `JobType`），复用 outbox dispatcher
 - **F1 `observability-stack`** —— `auth_challenge_started_total` / `auth_session_minted_total` / `auth_failure_total` 指标接入
-- **F4 `privacy-and-audit-runtime`** —— magic link / session 创建 / 撤销均进 audit_events
+- **advanced audit future candidate** —— magic link / session 创建 / 撤销均进 `audit_events`；后续 advanced audit workstream 只消费既有事件，不重新定义认证审计协议
 
 ## 5 失效与修订条件
 
@@ -103,14 +103,15 @@
 ## 6 关联
 
 - `engineering-roadmap/spec.md` §3.2 Q-1
-- `engineering-roadmap/plans/001-decompose-subspecs/plan.md` Phase 1.1
+- `engineering-roadmap/plans/001-decompose-subspecs/plan.md` checklist 1.1
 - 上游：`easyinterview-tech-docs/01-technical-architecture.md` §「auth」、`02-api-definition.md` §「auth tag」、`03-db-definition.md` §「users」
-- 下游 child：C1 / D1 / B2 / B4 / C8 / F1 / F4
+- 下游 child / future candidate：backend-auth / frontend-shell / B2 / B4 / C8 / F1 / advanced audit
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-04 | 1.5 | 对齐 engineering-roadmap v3.0：将 F4 旧 child 编号改为 advanced audit future candidate，不提前创建空 spec。 | engineering-roadmap v3.0 L2 remediation |
 | 2026-05-03 | 1.4 | 对齐 product-scope v1.1：认证是操作级拦截，不再把 `/welcome` 登录页作为默认入口或前端 P0 child 职责；邮件身份场景移除感谢信草稿旧范围。 | product-scope / engineering-roadmap v2.2 |
 | 2026-04-29 | 1.3 | 将 `email_dispatch` 从 public jobType 修正为 internal-only canonical jobType：仅 DB/C8 内部使用，不进入 B2 API-facing `JobType`；继续复用 outbox dispatcher。 | event-and-outbox-contract/001-bootstrap plan-review remediation |
 | 2026-04-28 | 1.2 | 锁定 first-party session cookie 字面量名为 `ei_session`，供 B2 OpenAPI security scheme、A4 config 文档与后续 C1 backend-auth 实现复用。 | openapi-v1-contract/001-bootstrap assessment remediation |

@@ -6,7 +6,7 @@
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 把 A5 `ci-pipeline-baseline` 列为 Layer A · Foundation 的最后一份 child（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md) 与 [A2 `local-dev-stack`](./../local-dev-stack/spec.md)）。该 subject 名称保留历史占位，但当前项目是个人单人开发者项目，P0 阶段不需要构建 GitHub Actions / GitLab CI 等远端 CI pipeline。
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 A5 `ci-pipeline-baseline` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md) 与 [A2 `local-dev-stack`](./../local-dev-stack/spec.md)）。该 subject 名称保留历史占位，但当前项目是个人单人开发者项目，P0 阶段不需要构建 GitHub Actions / GitLab CI 等远端 CI pipeline。
 
 本 spec 在当前阶段只决定：
 
@@ -44,7 +44,7 @@
 - PR / push required checks、branch protection 自动同步、`gh api` 脚本：单人阶段不做。
 - CI artifact 输出（coverage HTML、构建产物上传、OpenAPI diff artifact）：单人阶段不做。
 - nightly 定时任务、Dependabot 自动 PR、Codecov、GHCR push、Docker buildx 远端缓存：单人阶段不做。
-- 部署到 staging / prod（K8s manifest apply、Helm 升级、SLO 检查）：归 [E4](../engineering-roadmap/spec.md#55-layer-e--integration4-份)。
+- 部署到 staging / prod（K8s manifest apply、Helm 升级、SLO 检查）：归 [E4](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)。
 - 场景测试集群拉起：归 `test/scenarios/` 与 scenario skills；A5 不自动触发。
 - 性能 / 压测 / 漏洞扫描：归 E4 + F4（P1 或 release 前）。
 
@@ -117,4 +117,4 @@
 
 A5 当前已有 [001-local-quality-gates](./plans/001-local-quality-gates/plan.md) 作为本地质量门禁聚合 plan。若触发 D-5 需要远端 CI，再在本 spec 原地修订并创建 `002-remote-ci` 或等价新 plan；不得把远端 CI scope 塞回 001。
 
-当前 W1 阶段只把 001 用于本地命令聚合，并继续约束其它 child 不要把远端 CI pipeline 当成 P0 前置条件。
+当前阶段只把 001 用于本地命令聚合，并继续约束其它 subject 不要把远端 CI pipeline 当成 P0 前置条件。

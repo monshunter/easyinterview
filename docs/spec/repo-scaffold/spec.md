@@ -6,7 +6,7 @@
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 把 A1 `repo-scaffold` 列为 Layer A · Foundation 的入口 child（无上游依赖）。它是 Wave 0 必须先于其他 child 落地的两份 spec 之一（与 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md) 并列），决定了：
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 A1 `repo-scaffold` 保留为当前 active Foundation spec（无上游依赖）。它是最早落地的基础 spec 之一（与历史 B1 `shared-conventions-codified` 并列），决定了：
 
 - 后端、前端、OpenAPI 契约、DB migrations、共享真理源、配置、运维脚本在仓库中分别落在哪个目录；
 - 顶层 `Makefile`、`.editorconfig`、`.tool-versions`、git hooks 提供给所有 child subspec 共享的根入口；
@@ -14,7 +14,7 @@
 
 目标是：
 
-1. **统一根 layout**：在任何 child 落地业务代码之前，先冻结仓库根目录的命名与边界，避免 W2/W3 多个 child 同时在不同位置创建 `backend/`、`frontend/` 雪球。
+1. **统一根 layout**：在任何后续 workstream 落地业务代码之前，先冻结仓库根目录的命名与边界，避免多个 subject 同时在不同位置创建 `backend/`、`frontend/` 雪球。
 2. **提供最小可执行入口**：根 `Makefile` 必须能在空仓库环境下跑通 `help`、`fmt`、`lint`、`test` 等占位 target；具体实现可由后续 child（A2 / A5 / B2）在自己的 plan 中扩展，但根 target 名称在本 spec 锁定。
 3. **统一工具链版本声明**：通过 `.tool-versions`（asdf-style）锁定 Go / Node / pnpm / Python 等关键工具的最低版本，避免本地与 CI 漂移。
 4. **统一格式化与提交前检查**：`.editorconfig` 锁定缩进 / 换行 / 末行换行；git hooks（pre-commit / commit-msg）提供最小占位脚本，具体规则由 B1 / A5 在后续 plan 中加挂。
@@ -34,7 +34,7 @@
 
 ### 2.2 Out of Scope
 
-- `make dev-up` 真正拉起 Postgres / Redis / MinIO / OTel 等本地依赖：归 [A2 `local-dev-stack`](../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0)。
+- `make dev-up` 真正拉起 Postgres / Redis / MinIO / OTel 等本地依赖：归 [A2 `local-dev-stack`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)。
 - CI 管线（lint / test / build / codegen 工作流）：归 A5 `ci-pipeline-baseline`。
 - monorepo 包管理（pnpm workspace 配置、Go module 拓扑）：归 B1 `shared-conventions-codified` 与 A2 `local-dev-stack` 协同。
 - OpenAPI codegen 入口、fixtures 拆分：归 B2 `openapi-v1-contract`。
@@ -56,7 +56,7 @@
 
 ### 3.2 待确认事项
 
-- 是否引入 `go.work` 多 module 模式：A1 默认不创建 `go.work` 或 `go.mod`；如 W2 出现需要拆 module（例如把 `migrations/` 独立成 cmd），由 B1 `shared-conventions-codified` 修订后再落地。
+- 是否引入 `go.work` 多 module 模式：A1 默认不创建 `go.work` 或 `go.mod`；如后续实现出现需要拆 module（例如把 `migrations/` 独立成 cmd），由 B1 `shared-conventions-codified` 修订后再落地。
 - 顶层是否接入 `pre-commit` 框架（python-based）vs 纯 shell hooks：默认纯 shell，B1 / A5 接管时可重审。
 
 ## 4 设计约束
@@ -100,7 +100,7 @@
 | C-2 | 占位 target 不阻塞 | 根 Makefile 已落地 | 在空环境跑 `make fmt` / `make lint` / `make test` / `make build` | 全部 exit 0；缺失工具时打印 "TODO: implemented by <child>" 并以 0 退出 | 001-bootstrap |
 | C-3 | git hooks 安装 | 根仓库 clone 后 | 执行 `make install-hooks` | `.git/hooks/pre-commit`、`.git/hooks/commit-msg` 链接到 `scripts/git-hooks/` 下文件；不修改其它 hook | 001-bootstrap |
 | C-4 | 工具版本声明 | `.tool-versions` 已落地 | `asdf install`（或等价的 mise / nvm）按文件读取 | Go / Node / pnpm / Python 各能解析出锁定的最低版本 | 001-bootstrap |
-| C-5 | 跨 child 不冲突 | A1 完成后 | A2 / B1 / B2 / A5 各自 plan 进入实施 | 每个 child 都在 A1 锁定的根目录内增量；不存在重命名根目录或新增平行业务根 | engineering-roadmap/001 Phase 3+ |
+| C-5 | 跨 subject 不冲突 | A1 完成后 | A2 / B1 / B2 / A5 等 active subject 各自 plan 进入实施 | 每个 subject 都在 A1 锁定的根目录内增量；不存在重命名根目录或新增平行业务根 | 后续 owner plan |
 
 ## 7 关联计划
 

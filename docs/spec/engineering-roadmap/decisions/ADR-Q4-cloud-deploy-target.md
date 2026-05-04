@@ -6,7 +6,7 @@
 
 ## 1 背景
 
-`easyinterview-tech-docs/01-technical-architecture.md` §3 把 P0 / P1 部署形态锁定为「3 个运行单元」（`web-app` / `api` / `worker`）+「共享基础设施」（PostgreSQL / Redis / Object Storage / 监控 / 日志 / 追踪 / 外部 AI Provider）；`README.md` §「待评审的 5 个决策点」第 4 项把云部署目标留作 W0 决策。
+`easyinterview-tech-docs/01-technical-architecture.md` §3 把 P0 / P1 部署形态锁定为「3 个运行单元」（`web-app` / `api` / `worker`）+「共享基础设施」（PostgreSQL / Redis / Object Storage / 监控 / 日志 / 追踪 / 外部 AI Provider）；`README.md` §「待评审的 5 个决策点」第 4 项只作为历史决策输入。
 
 仓库现状（与决策强相关）：
 
@@ -117,7 +117,7 @@
 ## 6 关联
 
 - `engineering-roadmap/spec.md` §3.2 Q-4
-- `engineering-roadmap/plans/001-decompose-subspecs/plan.md` Phase 1.1
+- `engineering-roadmap/plans/001-decompose-subspecs/plan.md` checklist 1.1
 - 上游：`easyinterview-tech-docs/01-technical-architecture.md` §3、`CLAUDE.md` §5 场景测试环境、`test/scenarios/README.md`
 - 下游 child：A2 / A5 / E4 / F1 / A3 / A4
 - 关联 ADR：ADR-Q6-ai-gateway-and-model-routing（Higress as cluster-internal Deployment）

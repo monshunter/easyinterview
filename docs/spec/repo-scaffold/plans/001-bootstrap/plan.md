@@ -15,7 +15,7 @@
 
 ## 2 背景
 
-[engineering-roadmap spec §5.1 / §5.7](../../../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 指出 A1 必须先于 A2 / A5 / B1 / B2 / B4 等所有依赖根目录的 child 落地，否则 W1 / W2 多个 child 会同时在不同根创建 `backend/`、`frontend/` 雪球。本 plan 的关键产出是「占位 target 全部 exit 0」，给后续 child 一个稳定的 fallback：业务实现还没接入时，CI / 本地命令也能跑通最小验证。
+[engineering-roadmap spec §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A1 保留为当前 active Foundation spec；A1 必须先于 A2 / A5 / B1 / B2 / B4 等所有依赖根目录的 subject 落地，否则多个后续 subject 会同时在不同根创建 `backend/`、`frontend/` 雪球。本 plan 的关键产出是「占位 target 全部 exit 0」，给后续 subject 一个稳定的 fallback：业务实现还没接入时，CI / 本地命令也能跑通最小验证。
 
 本 plan 不接入任何外部依赖（不下载 docker images、不安装 asdf 工具），全部产出限于仓库内文件与可在干净 shell 环境运行的 Makefile / shell script。
 
@@ -89,14 +89,14 @@
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-5 全部成立；C-1 的根容器计数以 v1.1 的 9 个目录为准。
 - 本 plan checklist 全部勾选；Phase 3 的 `make` 自检命令日志贴入工作日志。
-- engineering-roadmap/001 Phase 2 的 spawn / index 收口已完成；本 plan 只提供 A1 仓库脚手架实现与验证证据，不重复修改父 roadmap checklist。
+- engineering-roadmap/001 的 roadmap rebaseline / index 收口已完成；本 plan 只提供 A1 仓库脚手架实现与验证证据，不重复修改父 roadmap checklist。
 
 ## 5 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
 | 占位 target 在某个 shell 环境（dash / zsh）行为不一致导致 `exit 0` 不成立 | Phase 3.1 在 macOS zsh 与 Linux bash 各跑一次；若 Makefile 因 BSD/GNU `make` 差异失败，强制 `SHELL := /bin/bash` |
-| 工具版本号写死后被 W1+ child 反复 bump | `.tool-versions` 只锁最低版本；任何 child 想升版必须递增本 spec D-2，避免散落在多份 child plan 中 |
+| 工具版本号写死后被后续 subject 反复 bump | `.tool-versions` 只锁最低版本；任何 subject 想升版必须递增本 spec D-2，避免散落在多份 plan 中 |
 | `scripts/git-hooks/` 占位被 B1 / A5 后续 plan 整段重写导致命名漂移 | 文件名（`pre-commit` / `commit-msg`）在本 spec D-4 锁定；后续 child 只能在文件内部追加规则，不得改文件名或新增同名 hook 到其它路径 |
 | 根目录 README 占位被遗忘补全成空指针 | Phase 1.1 强制每个 README 必须包含 owner subspec 链接；任何根 README 缺链接由 sync-doc-index 报告 |
 

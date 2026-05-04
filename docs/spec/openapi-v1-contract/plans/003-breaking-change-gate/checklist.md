@@ -30,7 +30,7 @@
 
 - [x] 4.1 spec C-4 / C-5 复跑自检：删字段 / 加 optional / privacy export 白名单切换 + history 增量；每段命令 + 退出码贴入工作日志
 - [x] 4.2 spec C-10 B2 freeze handoff：确认 001 / 002 全部勾选；本 plan Phase 1–3 全部勾选；`make codegen-check && make validate-fixtures && make openapi-diff` 一键全绿；命令日志贴入工作日志
-- [x] 4.3 W2 implementation 准入 gate 解锁声明：工作日志声明 B2 的 W2 implementation 准入 gate 已闭合；C / D 域可直接消费 generated 类型；不修改 engineering-roadmap/001 父 checklist
+- [x] 4.3 implementation 准入 gate 解锁声明：工作日志声明 B2 的 implementation 准入 gate 已闭合；C / D 域可直接消费 generated 类型；不修改 engineering-roadmap/001 父 checklist
 - [x] 4.4 文档与 INDEX 同步：plans/INDEX.md 把 001 / 002 / 003 切到 completed；history.md 追加版本变更（视范围决定保持 1.3 还是递增）；`/sync-doc-index --check` 通过
 
 ## Phase 5: v1.8 baseline remediation

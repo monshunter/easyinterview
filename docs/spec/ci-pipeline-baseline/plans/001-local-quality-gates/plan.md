@@ -15,7 +15,7 @@
 
 ## 2 背景
 
-[engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-layer-a--foundation5-份全部-p0) 把 A5 列为 Layer A · Foundation 的最后一份 child；本 plan 也是当前 Foundation 收口的最后一公里。聚合层依赖：
+[engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 把 A5 列为 Layer A · Foundation 的最后一份 child；本 plan 也是当前 Foundation 收口的最后一公里。聚合层依赖：
 
 - [A1 repo-scaffold spec D-3](../../../repo-scaffold/spec.md#31-已锁定决策) 在根 `Makefile` 上锁定的 10 个 phony target（含 `lint` / `test` / `build`），本 plan 把其中已落地占位升级为聚合实现。
 - [B1 shared-conventions-codified spec §2.1](../../../shared-conventions-codified/spec.md#21-in-scope) 提供的 `make codegen-conventions` / `make lint-conventions`（错误码 / 枚举命名 / 共享类型 generator drift）。
@@ -99,7 +99,7 @@ AI 单元测试必须走 stub / fixtures provider（[B1 spec §2.1](../../../sha
 
 #### 2.2 当前 NOT-YET-LANDED 清单
 
-W1 末时点的占位映射：
+当前 baseline 的占位映射：
 
 | Sub-target | Owner | 当前状态 | 占位输出 |
 |------------|-------|----------|----------|

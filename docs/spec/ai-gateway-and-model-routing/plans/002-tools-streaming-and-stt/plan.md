@@ -9,29 +9,29 @@
 
 ## 1 目标
 
-把 [ai-gateway-and-model-routing spec](../../spec.md) §3.2 待确认事项与 §7 关联计划末段所列「按需在 W3 / W4 / P2 阶段决策」的三类扩展能力，落到一份**显式延期**的 plan 中作为占位。本 plan 仅在 [ADR-Q6 §5 失效与修订条件](../../../engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md#5-失效与修订条件) 任一触发条件成立、且对应 ADR / spec 已完成修订后，才被升级为 active 进入实施。覆盖范围：
+把 [ai-gateway-and-model-routing spec](../../spec.md) §3.2 待确认事项与 §7 关联计划末段所列「按需决策」的三类扩展能力，落到一份**显式延期**的 plan 中作为占位。本 plan 仅在 [ADR-Q6 §5 失效与修订条件](../../../engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md#5-失效与修订条件) 任一触发条件成立、且对应 ADR / spec 已完成修订后，才被升级为 active 进入实施。覆盖范围：
 
 - **Tools / function calling**：在 `AIClient` 上扩展 `Tools(ctx, profile, payload) → (response, meta)`（或在 `Complete` payload 上追加 `tools[]` 与结构化 output schema），保持 provider-neutral 红线不破。
 - **Stream consumer 完整化**：基于 plan 001 已冻结的 `AIStreamEvent` 事件合同，落地 provider 侧 SSE / chunked streaming 消费 + `<-chan AIStreamEvent` 完整生命周期，并把 partial-token meta（context cancellation 场景）补齐；同时确定 HTTP wire（SSE 或 chunked）。
-- **STT (`Transcribe(ctx, profile, audio) → (transcript, meta)`)**：新增 OpenAI-compatible `/v1/audio/transcriptions` provider adapter，把 spec §2.1 中保留的 `task_type=stt` 真正实现，归 [C14 backend-voice-stt](../../../engineering-roadmap/spec.md#54-layer-c--backend-domain8-份) P2。
+- **STT (`Transcribe(ctx, profile, audio) → (transcript, meta)`)**：新增 OpenAI-compatible `/v1/audio/transcriptions` provider adapter，把 spec §2.1 中保留的 `task_type=stt` 真正实现，归 [C14 backend-voice-stt](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) P2。
 - **成本上限 / 高级 rate-limit 策略**：当 endpoint / gateway 委派的 cost cap / per-tenant rate-limit 不足以满足业务时，评估在 AIClient 上加可选 middleware（仍不打破 fallback / retry 边界）。
 
 本 plan 不修改 [001-aiclient-and-profile-bootstrap](../001-aiclient-and-profile-bootstrap/plan.md) 的 phase 范围；plan 001 锁定的 `AIStreamEvent` 类型保持稳定并被本 plan 复用。
 
 ## 2 背景
 
-[spec §3.2 待确认事项](../../spec.md#32-待确认事项) 列出三项尚未锁定的边界：`Tools(...)` 是否扩展、`model_profile_version` 是否独立 SemVer、`Stream` HTTP wire 选型。其中 `Tools(...)` 与 stream wire 选型已在 [ADR-Q6 §5](../../../engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md#5-失效与修订条件) 明确为「触发即修订」。STT `Transcribe(...)` 在 spec §2.2 与 §3.1 D-8 中显式归 [C14 backend-voice-stt](../../../engineering-roadmap/spec.md#54-layer-c--backend-domain8-份) P2，A3 spec 仅保留 `task_type=stt` 作为兼容预留。
+[spec §3.2 待确认事项](../../spec.md#32-待确认事项) 列出三项尚未锁定的边界：`Tools(...)` 是否扩展、`model_profile_version` 是否独立 SemVer、`Stream` HTTP wire 选型。其中 `Tools(...)` 与 stream wire 选型已在 [ADR-Q6 §5](../../../engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md#5-失效与修订条件) 明确为「触发即修订」。STT `Transcribe(...)` 在 spec §2.2 与 §3.1 D-8 中显式归 [C14 backend-voice-stt](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) P2，A3 spec 仅保留 `task_type=stt` 作为兼容预留。
 
-为避免在 W2 plan 001 实施期内被业务侧临时需求驱动「就地塞入新接口」破坏 ADR-Q6 9 项硬约束，本 plan 提前把这些扩展项的入口、激活条件与治理流程固化为一份 `draft` 占位。每个 phase 必须在自己的 `激活条件` 满足后才被解冻，否则 checklist 项保持未勾选并不得开始编码。
+为避免在 plan 001 实施边界内被业务侧临时需求驱动「就地塞入新接口」破坏 ADR-Q6 9 项硬约束，本 plan 提前把这些扩展项的入口、激活条件与治理流程固化为一份 `draft` 占位。每个 phase 必须在自己的 `激活条件` 满足后才被解冻，否则 checklist 项保持未勾选并不得开始编码。
 
 ## 3 实施步骤
 
 ### Phase 1: 触发条件复核与 ADR / spec 修订
 
 > **激活条件**: 任一下游触发被记录到工作日志或对应 spec / plan：
-> - W3+ 业务域（典型为 [C5 backend-practice](../../../engineering-roadmap/spec.md#54-layer-c--backend-domain8-份) 的 followup planner）显式要求 tool-based 结构化抽取；
-> - [D3 frontend-workspace-and-practice](../../../engineering-roadmap/spec.md#55-layer-d--frontend-domain) 或 [C5 backend-practice](../../../engineering-roadmap/spec.md#54-layer-c--backend-domain8-份) 要求实时 token streaming 进入产品 UX；
-> - [C14 backend-voice-stt](../../../engineering-roadmap/spec.md#54-layer-c--backend-domain8-份) 进入 P2 实施；
+> - 后续业务域（典型为 [C5 backend-practice](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 的 followup planner）显式要求 tool-based 结构化抽取；
+> - [D3 frontend-workspace-and-practice](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 或 [C5 backend-practice](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 要求实时 token streaming 进入产品 UX；
+> - [C14 backend-voice-stt](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 进入 P2 实施；
 > - endpoint / gateway 委派的 cost cap / rate-limit 出现 ≥ 2 次 P0 级别失效证据。
 
 #### 1.1 触发证据归档
@@ -52,7 +52,7 @@
 
 ### Phase 2: Tools / function calling 实现
 
-> **激活条件**: Phase 1 已收口，且触发记录中包含「W3+ 业务域 tool 调用需求」。
+> **激活条件**: Phase 1 已收口，且触发记录中包含「后续业务域 tool 调用需求」。
 
 #### 2.1 接口扩展
 
@@ -80,11 +80,11 @@
 
 #### 3.3 HTTP wire 选型
 
-按 spec §3.2 待确认事项最终决策结果，落地 SSE 或 chunked 实现，并把决策写回 spec §3.1 决策表。前端消费由 [D3 frontend-workspace-and-practice](../../../engineering-roadmap/spec.md#55-layer-d--frontend-domain) 自行 plan，不由本 plan 承担。
+按 spec §3.2 待确认事项最终决策结果，落地 SSE 或 chunked 实现，并把决策写回 spec §3.1 决策表。前端消费由 [D3 frontend-workspace-and-practice](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 自行 plan，不由本 plan 承担。
 
 ### Phase 4: STT provider adapter
 
-> **激活条件**: Phase 1 已收口，且 [C14 backend-voice-stt](../../../engineering-roadmap/spec.md#54-layer-c--backend-domain8-份) 进入 P2 实施。
+> **激活条件**: Phase 1 已收口，且 [C14 backend-voice-stt](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 进入 P2 实施。
 
 #### 4.1 `Transcribe` 接口
 
@@ -96,7 +96,7 @@
 
 #### 4.3 metric / DB 字段
 
-确认 7 个 ai_* metric family 的 label 集对 `task_type=stt` 仍成立；如需新增 STT 专属 label，先在 spec §2.1 / [F1 observability-stack](../../../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) 同步增量，再实现。
+确认 7 个 ai_* metric family 的 label 集对 `task_type=stt` 仍成立；如需新增 STT 专属 label，先在 spec §2.1 / [F1 observability-stack](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 同步增量，再实现。
 
 ### Phase 5: 接入 F1 / F3 / B1
 
@@ -104,15 +104,15 @@
 
 #### 5.1 F1 metric / event 字段扩展
 
-把本 plan 引入的新 `AICallMeta` 字段（tool_invocations / partial_meta_reason 等）同步到 [F1 observability-stack](../../../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) dashboard 与日志规范，保持「per-call 指标」与「event-only counter」语义不变。
+把本 plan 引入的新 `AICallMeta` 字段（tool_invocations / partial_meta_reason 等）同步到 [F1 observability-stack](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) dashboard 与日志规范，保持「per-call 指标」与「event-only counter」语义不变。
 
 #### 5.2 F3 prompt schema 升级
 
-[F3 prompt-rubric-registry](../../../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份) profile schema 新增 `tools[]` / `output_schema` / `stream_wire` 字段时，必须先增量 spec，再让本 plan 消费。
+[F3 prompt-rubric-registry](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) profile schema 新增 `tools[]` / `output_schema` / `stream_wire` 字段时，必须先增量 spec，再让本 plan 消费。
 
 #### 5.3 B1 共享常量扩展
 
-任何新增 `AI_*` 错误码、共享字段名、`AICallMeta` 字段必须先改 [B1 shared-conventions-codified](../../../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0)；本 plan 严禁直接定义跨语言常量。
+任何新增 `AI_*` 错误码、共享字段名、`AICallMeta` 字段必须先改 [B1 shared-conventions-codified](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec)；本 plan 严禁直接定义跨语言常量。
 
 ### Phase 6: Verification
 

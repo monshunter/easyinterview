@@ -6,7 +6,7 @@
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.2](../engineering-roadmap/spec.md#52-layer-b--contract4-份全部-p0) 把 B3 `event-and-outbox-contract` 列为 Layer B · Contract 第三份 child（依赖 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)）。它把当前产品范围内的 16 个内部事件落到代码契约层，决定了：
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 B3 `event-and-outbox-contract` 保留为当前 active Contract spec（依赖 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)）。它把当前产品范围内的 16 个内部事件落到代码契约层，决定了：
 
 - 业务跨模块通信（API → Worker / Worker → 下游 handler / Worker → analytics）的统一 envelope；
 - `outbox_events` 表与 dispatcher 协议（承接 [03-db-definition.md §5.9](../../../easyinterview-tech-docs/03-db-definition.md) 的有效历史 seed，当前字段与索引以本 spec + B4 为准）；
@@ -14,12 +14,12 @@
 
 `easyinterview-tech-docs/06` / `03` / `04` 只保留为历史事件、DB 与告警输入。当前 internal event / job / outbox 可执行契约由本 spec、`shared/events.yaml`、`shared/jobs.yaml`、B4 migrations 与后续 generated artifacts 决定；旧 `mistake.*` 事件、旧 18 event inventory 与旧 Growth / Mistakes consumer 不得作为实现依据恢复。
 
-[ADR-Q2](../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md) 已锁定 Asynq + Redis 为唯一异步 runtime；[engineering-roadmap §3.1 D-2 Q-2](../engineering-roadmap/spec.md#32-w0-已锁定决策hard-gate--全部-accepted) 进一步约束「公共 API / DB / event / metrics 中 `jobType` 沿用 snake_case」「内部 Asynq handler 可用 dotted task name，但必须由 C8 / B3 / B4 显式维护映射」。本 spec 是该映射的 owner 之一。
+[ADR-Q2](../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md) 已锁定 Asynq + Redis 为唯一异步 runtime；[engineering-roadmap §3.1 D-2 Q-2](../engineering-roadmap/spec.md#32-adr-q1q6-当前约束) 进一步约束「公共 API / DB / event / metrics 中 `jobType` 沿用 snake_case」「内部 Asynq handler 可用 dotted task name，但必须由 C8 / B3 / B4 显式维护映射」。本 spec 是该映射的 owner 之一。
 
 目标是：
 
-1. **16 个事件 envelope freeze**：每个事件有稳定 `eventName`、`eventVersion=1`、`payload` schema；W1 末锁定后只允许 additive。
-2. **outbox 协议清晰**：业务事务 + outbox 双写 → dispatcher 轮询 → Asynq 投递 → consumer 幂等；本 spec 把这套流程定义为可被 [C8 `backend-async-runtime`](../engineering-roadmap/spec.md#53-layer-c--backend14-份p08--p14--p22) 实现的接口。
+1. **16 个事件 envelope freeze**：每个事件有稳定 `eventName`、`eventVersion=1`、`payload` schema；baseline 锁定后只允许 additive。
+2. **outbox 协议清晰**：业务事务 + outbox 双写 → dispatcher 轮询 → Asynq 投递 → consumer 幂等；本 spec 把这套流程定义为可被 [C8 `backend-async-runtime`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 实现的接口。
 3. **DB/C8 canonical jobType ↔ Asynq dotted task name 映射**：B3 owns 这张映射表；新增 DB/worker jobType 必须先改本 spec 再改 B4/C8；能暴露到 B2 OpenAPI 的 API-facing subset 另行锁定；`email_dispatch` 是 C1 magic link / 通知派发的 internal-only canonical jobType，不进入 B2 `JobType`。
 4. **避免事件爆炸**：本 spec 锁 16 个事件命名空间为当前产品范围全集；新事件必须有 spec 修订流程。
 
@@ -44,7 +44,7 @@
 - dispatcher 进程实现 / Asynq handler 注册：归 C8 `backend-async-runtime`。
 - 业务 producer（API 何时写 outbox）：归各 C 域。
 - 业务 consumer（Worker 何时调用 AI）：归各 C 域。
-- analytics 双发去重 / 前端事件埋点：归 [F2 `analytics-funnel`](../engineering-roadmap/spec.md#56-layer-f--quality-横切4-份)。
+- analytics 双发去重 / 前端事件埋点：归 [F2 `analytics-funnel`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)。
 - DB schema 落地：归 B4。
 - 事件 Trace SDK / OTel 初始化：归 [F1 `observability-stack`](./../observability-stack/spec.md)；本 spec 仅约定 envelope 中 `traceId` 的 soft-required 透传语义。
 
@@ -82,7 +82,7 @@
 | `privacy_delete` | yes | `privacy.delete` | `privacy.request.created` | C8（P0 删除链路） |
 | `email_dispatch` | no（internal only） | `email.dispatch` | API: auth email start / notification producer | C1 + C8 |
 
-> 备注：[engineering-roadmap §4.4](../engineering-roadmap/spec.md#44-layer-f-横切约束) 已说明 P0 删除链路核心实现下沉到 C8 `privacy_delete` canonical job_type（同时属于 B2 API-facing subset，内部 Asynq handler 可映射为 `privacy.delete`）。
+> 备注：[engineering-roadmap §4.4](../engineering-roadmap/spec.md#63-s2--backend-domain-implementation) 已说明 P0 删除链路核心实现下沉到 C8 `privacy_delete` canonical job_type（同时属于 B2 API-facing subset，内部 Asynq handler 可映射为 `privacy.delete`）。
 
 #### 3.1.2 B2 API-facing JobType subset
 
@@ -134,7 +134,7 @@ B2 OpenAPI v1.0.0 的 `JobType` enum 只允许以下 7 项：`target_import` / `
 
 ### 3.2 待确认事项
 
-- 是否在 P0 实现「事件重放工具」（从 outbox 历史重新投递给 consumer）：默认不实现；W4/W5 时由 E4 决策。
+- 是否在 P0 实现「事件重放工具」（从 outbox 历史重新投递给 consumer）：默认不实现；由后续 release workstream 决策。
 - 是否引入 Schema Registry（独立 schema 服务）：默认不引入；P0 直接用 generator 出 JSON Schema 文件。
 - 跨进程 dedupe 是否使用 Redis SETNX（短 TTL）vs PG unique key：默认 PG unique（与 outbox dedupe_key 一致）；高频事件如发现性能瓶颈再决策。
 
