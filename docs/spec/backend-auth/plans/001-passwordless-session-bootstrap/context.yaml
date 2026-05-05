@@ -1,0 +1,61 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-auth
+  name: 001-passwordless-session-bootstrap
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-auth
+      - passwordless-session-bootstrap
+      - auth session cookie
+    keywords:
+      - passwordless email
+      - magic link
+      - first-party session cookie
+      - pendingAction backend
+      - runtime config
+      - auth challenge
+      - logout
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../engineering-roadmap/spec.md
+        - ../../../engineering-roadmap/decisions/ADR-Q1-auth.md
+        - ../../../product-scope/spec.md
+        - ../../../frontend-shell/spec.md
+        - ../../../openapi-v1-contract/spec.md
+        - ../../../db-migrations-baseline/spec.md
+        - ../../../secrets-and-config/spec.md
+        - ../../../shared-conventions-codified/spec.md
+        - ../../../observability-stack/spec.md
+      discovery:
+        packages:
+          - backend/cmd/api
+          - backend/internal/api
+          - backend/internal/platform/config
+          - backend/internal/platform/secrets
+          - migrations
+        uiRoutes:
+          - auth_login
+          - auth_register
+          - auth_verify
+          - auth_logout
+          - settings
+        apiNames:
+          - startAuthEmailChallenge
+          - verifyAuthEmailChallenge
+          - getMe
+          - logout
+          - getRuntimeConfig

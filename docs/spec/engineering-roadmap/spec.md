@@ -1,6 +1,6 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.5
+> **版本**: 3.6
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -122,22 +122,22 @@
 | Quality | F1 | `observability-stack` | metrics/log/trace/dashboard/alerting 命名和红线 | 保留 |
 | Quality | F3 | `prompt-rubric-registry` | 12 个 feature_key、prompt/rubric/model profile 治理 | 保留 |
 
-这些 spec 是当前 engineering roadmap 的基础层。若其中某个计划已完成，后续改动应在该 subject 原地修订，而不是从 roadmap 再 spawn 同主题 plan。
+这些 spec 是当前 engineering roadmap 的基础层。若其中某个计划已完成，后续改动应在该 subject 原地修订，而不是从 roadmap 再 spawn 同主题 plan。P0 implementation subject 在进入设计或实现时创建，并在 §5.2 的当前状态列跟踪。
 
 ### 5.2 当前 P0 实施 workstream 候选
 
-以下 subject 尚未全部创建；它们是进入设计或实现时的候选边界，不进入 `docs/spec/INDEX.md` pending 占位。
+以下 subject 在进入设计或实现时创建；未创建的 subject 不进入 `docs/spec/INDEX.md` pending 占位，已创建的 subject 必须作为当前 owner 原地修订。
 
-| Workstream | 建议 subject | 当前产品 / UI 范围 | 主要依赖 |
-|------------|--------------|-------------------|----------|
-| App shell + auth + settings | `frontend-shell`、`backend-auth` | TopBar、用户菜单、登录 / 注册 / 验证 / 退出、pendingAction、用户画像入口、设置与隐私 | A4、B1、B2、B4、ADR-Q1 |
-| Home / Job Picks / Parse | `frontend-home-job-picks-and-parse`、`backend-targetjob` | 首页 JD 导入、岗位推荐、解析确认、目标岗位 / JD / 轮次假设 | B2、B3、B4、A3、D1 |
-| Mock Interview + Practice | `frontend-workspace-and-practice`、`backend-practice` | 当前面试规划、简历绑定、公司轻情报卡片、完整文本 / 语音 session、带提示 / 严格模拟 | B2、B3、B4、A3、C4 |
-| Report Dashboard | `frontend-report-dashboard`、`backend-review` | 报告生成、上下文条、准备度、维度、题目回顾、复练当前轮 / 进入下一轮 | B2、B3、B4、A3、C5、F3 |
-| Resume Workshop | `frontend-resume-workshop`、`backend-resume`、`backend-upload` | 原始简历树、结构化主版本、岗位定制版本、创建/解析/确认、版本详情 | B2、B3、B4、A3、C2 |
-| Debrief | `frontend-debrief`、`backend-debrief` | 真实面试上下文选择、文本 / 语音共享记录、复盘分析、复盘面试 | B2、B3、B4、A3、C4、C6 |
-| Async runtime | `backend-async-runtime` | Asynq worker、outbox dispatcher、job retry、删除链路执行 | B3、B4、A2、ADR-Q2/Q5 |
-| Mock + E2E + release | `mock-contract-suite`、`e2e-scenarios-p0`、`analytics-funnel`、`release-gate-and-rollout` | fixture-backed mock、P0 主漏斗 BDD、产品漏斗、staging / rollback / SLO gate | B2、D1-D6、C4-C9、F1-F3 |
+| Workstream | 建议 subject | 当前状态 | 当前产品 / UI 范围 | 主要依赖 |
+|------------|--------------|----------|-------------------|----------|
+| App shell + auth + settings | `frontend-shell`、`backend-auth` | `frontend-shell` active；`backend-auth` active | TopBar、用户菜单、登录 / 注册 / 验证 / 退出、pendingAction、用户画像入口、设置与隐私 | A4、B1、B2、B4、ADR-Q1 |
+| Home / Job Picks / Parse | `frontend-home-job-picks-and-parse`、`backend-targetjob` | 未创建；进入设计或实现时创建 | 首页 JD 导入、岗位推荐、解析确认、目标岗位 / JD / 轮次假设 | B2、B3、B4、A3、D1 |
+| Mock Interview + Practice | `frontend-workspace-and-practice`、`backend-practice` | 未创建；进入设计或实现时创建 | 当前面试规划、简历绑定、公司轻情报卡片、完整文本 / 语音 session、带提示 / 严格模拟 | B2、B3、B4、A3、C4 |
+| Report Dashboard | `frontend-report-dashboard`、`backend-review` | 未创建；进入设计或实现时创建 | 报告生成、上下文条、准备度、维度、题目回顾、复练当前轮 / 进入下一轮 | B2、B3、B4、A3、C5、F3 |
+| Resume Workshop | `frontend-resume-workshop`、`backend-resume`、`backend-upload` | 未创建；进入设计或实现时创建 | 原始简历树、结构化主版本、岗位定制版本、创建/解析/确认、版本详情 | B2、B3、B4、A3、C2 |
+| Debrief | `frontend-debrief`、`backend-debrief` | 未创建；进入设计或实现时创建 | 真实面试上下文选择、文本 / 语音共享记录、复盘分析、复盘面试 | B2、B3、B4、A3、C4、C6 |
+| Async runtime | `backend-async-runtime` | 未创建；进入设计或实现时创建 | Asynq worker、outbox dispatcher、job retry、删除链路执行 | B3、B4、A2、ADR-Q2/Q5 |
+| Mock + E2E + release | `mock-contract-suite`、`e2e-scenarios-p0`、`analytics-funnel`、`release-gate-and-rollout` | `mock-contract-suite` active；`test/scenarios/e2e` framework 已创建；其余未创建 | fixture-backed mock、P0 主漏斗 BDD、产品漏斗、staging / rollback / SLO gate | B2、D1-D6、C4-C9、F1-F3 |
 
 ### 5.3 Future candidates（不自动 spawn）
 

@@ -1,6 +1,6 @@
 # Engineering Roadmap History
 
-> **版本**: 3.5
+> **版本**: 3.6
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-05 | 3.6 | 按 S1/S2 默认路径派生首批 P0 implementation owner：`mock-contract-suite`、`frontend-shell`、`backend-auth`，并创建 `test/scenarios/e2e` 场景框架；§5.2 增加当前状态列，避免已创建 subject 仍被误读为 pending 候选。 | mock-contract-suite/001 + frontend-shell/001 + backend-auth/001 |
 | 2026-05-05 | 3.5 | 同步 A3 003 Phase 4：roadmap 的 Q-6 / A3 职责改为 Provider Registry + Capability Model Profile + profile coverage lint，不再沿用单一 endpoint 作为当前目标架构。 | ai-provider-and-model-routing/003 Phase 4 |
 | 2026-05-05 | 3.4 | 将已迁移技术草稿从当前项目实体与命名空间中移除：删除旧目录，要求当前文档、代码注释、生成源和生成物只引用 product-scope §1.5、owner spec 与编码 truth source。 | 001-decompose-subspecs |
 | 2026-05-05 | 3.3 | 增加已迁移技术草稿删除前 gate：旧名称不得再作为 Markdown 链接或外部真理源，当前替代必须由 product-scope §1.5、owner spec 与编码 truth source 独立承载。 | 001-decompose-subspecs |

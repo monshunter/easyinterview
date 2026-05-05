@@ -1,0 +1,74 @@
+# Mock Contract Suite Spec
+
+> **版本**: 1.0
+> **状态**: active
+> **更新日期**: 2026-05-05
+
+## 1 背景与目标
+
+`engineering-roadmap` S1 要求先建立 contract-backed mock runway，让当前 UI 五入口和会话级页面能基于 B2 OpenAPI fixtures 跑通 P0 happy path。`mock-contract-suite` 是这条 runway 的工程 owner：它把 B2 fixtures、generated API types、runtime config 和前后端 mock 入口组织成可测试、可复用、可漂移检查的 mock 运行层。
+
+本 subject 的目标是：
+
+1. 让前端开发只消费 B2 fixtures 投影出的 API shape，不再直接读取 `ui-design/src/data.jsx` 作为实现数据源。
+2. 让后端或本地 dev 环境可以用同一批 fixtures 提供稳定 mock response。
+3. 为后续 `frontend-shell`、D2-D6 前端 workstream 和后端切真 API 提供一致的 fake backend。
+4. 把 fixture drift、operation coverage 和 retired UI/module terminology 纳入可执行 gate。
+
+## 2 范围
+
+### 2.1 In Scope
+
+- 读取 `openapi/fixtures/` 当前 12 tag / 34 operation fixtures。
+- 基于 generated OpenAPI types 为前端提供 fixture-backed API client 或 mock transport。
+- 为本地后端或开发服务器提供同源 mock handler / router。
+- 校验 fixtures 与 `openapi/openapi.yaml`、generated packages 和 `openapi/fixtures/PROTOTYPE_MAPPING.md` 的一致性。
+- 统一 mock response 中的 auth/session、target job、practice plan、practice session、report、resume、debrief、privacy 和 runtime config 基线。
+- 为后续 scenario / BDD gate 提供可重置的 seed profile。
+
+### 2.2 Out of Scope
+
+- 不新增或修改 OpenAPI operation；破坏性 API 变更归 B2 `openapi-v1-contract`。
+- 不实现真实业务 store、AI 调用、文件上传、邮箱发送或后台 worker。
+- 不直接恢复旧 Growth、Mistakes、Drill、独立 Voice、旧 `resume` route 或旧 `task_type` profile 口径。
+- 不把 `ui-design/src/data.jsx` 作为运行时真理源；它只保留为 prototype-baseline 对照输入。
+- 不替代后续 `e2e-scenarios-p0` 的真实端到端验证。
+
+## 3 用户决策 / 待确认事项
+
+| ID | 决策 | 锁定值 | 影响 |
+|----|------|--------|------|
+| D-1 | Mock 数据真理源 | B2 `openapi/fixtures/` | 前端和后端 mock 必须从 fixtures 投影，不私造业务数据 |
+| D-2 | Prototype 数据定位 | `ui-design/src/data.jsx` 只做 baseline 映射参考 | 实现不能直接 import prototype data |
+| D-3 | Mock 范围 | P0 happy path + 高风险错误态 | 不扩展 P1/P2 future candidate 空壳 |
+| D-4 | Drift gate | mock runtime 必须跑 fixture coverage、OpenAPI diff / validation 和 retired-name negative search | 后续 UI / API 改动要先更新 owner truth source |
+
+## 4 设计约束
+
+- Mock runtime 必须以 OpenAPI operationId 为检索 key，避免 route string 与 fixture 目录漂移。
+- 前端 mock adapter 必须返回 generated API types，不能把 `any` 或 prototype-only fields 泄漏到业务组件。
+- 后端 mock handler 必须复用同一 fixture registry，不能复制第二套 fixture JSON。
+- seed profile 必须覆盖未登录、已登录、缺 session、缺简历、报告生成中、隐私删除请求等 P0 状态。
+- Mock response 中不得出现旧模块口径：独立 `mistakes`、`growth`、`drill`、`voice` route、旧 `default.provider` 或 `task_type`。
+
+## 5 模块边界
+
+| 边界 | Owner | 说明 |
+|------|-------|------|
+| fixtures | B2 `openapi-v1-contract` | fixture 内容、schema、operation coverage 和 examples provenance |
+| frontend mock | `mock-contract-suite` + `frontend-shell` | generated client 的 mock transport 和 dev runtime wiring |
+| backend mock | `mock-contract-suite` | 本地 handler/router 或 test harness，供 API smoke 使用 |
+| scenarios | `test/scenarios/e2e` | 用户行为场景资产，不由 mock suite 直接标记 ready |
+
+## 6 验收标准
+
+| ID | 场景 | Given | When | Then | 对应 Plan |
+|----|------|-------|------|------|-----------|
+| C-1 | Fixture coverage | B2 已有 34 operation fixtures | 运行 mock coverage gate | 每个 operationId 都能被 registry 解析且 schema 校验通过 | 001-fixture-backed-mock-runtime |
+| C-2 | 前端 mock 同源 | 前端请求 generated client | 切到 mock transport | response shape 来自 B2 fixtures，组件不 import prototype data | 001-fixture-backed-mock-runtime |
+| C-3 | 后端 mock 同源 | 本地 API smoke 请求 mock handler | 命中任一 P0 operation | handler 返回同一 fixture registry 的 typed response | 001-fixture-backed-mock-runtime |
+| C-4 | 旧口径拦截 | mock runtime / fixtures / generated artifacts 已生成 | 运行 negative search | 不含旧 Growth / Mistakes / Drill / 独立 Voice / 旧 AI gateway 运行时口径 | 001-fixture-backed-mock-runtime |
+
+## 7 关联计划
+
+- [001-fixture-backed-mock-runtime](./plans/001-fixture-backed-mock-runtime/plan.md)

@@ -11,7 +11,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [product-scope](./product-scope/spec.md) | 1.8 | active | 2026-05-05 | [plans](./product-scope/plans/) |
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.5 | active | 2026-05-05 | [plans](./engineering-roadmap/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.6 | active | 2026-05-05 | [plans](./engineering-roadmap/plans/) |
 | [historical-spec-implementation-review](./historical-spec-implementation-review/spec.md) | 1.0 | active | 2026-05-04 | [plans](./historical-spec-implementation-review/plans/) |
 
 ## 2 Foundation
@@ -39,3 +39,11 @@
 |---------|------|------|----------|-------|
 | [observability-stack](./observability-stack/spec.md) | 1.5 | active | 2026-05-05 | [plans](./observability-stack/plans/) |
 | [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 1.8 | active | 2026-05-05 | [plans](./prompt-rubric-registry/plans/) |
+
+## 5 P0 Implementation
+
+| Subject | 版本 | 状态 | 更新日期 | Plans |
+|---------|------|------|----------|-------|
+| [mock-contract-suite](./mock-contract-suite/spec.md) | 1.0 | active | 2026-05-05 | [plans](./mock-contract-suite/plans/) |
+| [frontend-shell](./frontend-shell/spec.md) | 1.0 | active | 2026-05-05 | [plans](./frontend-shell/plans/) |
+| [backend-auth](./backend-auth/spec.md) | 1.0 | active | 2026-05-05 | [plans](./backend-auth/plans/) |

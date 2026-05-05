@@ -1,0 +1,72 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: frontend-shell
+  name: 001-app-shell-auth-settings
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: frontend
+  discovery:
+    aliases:
+      - frontend-shell
+      - app-shell-auth-settings
+      - D1 frontend shell
+    keywords:
+      - TopBar
+      - five entry navigation
+      - pendingAction
+      - auth gate
+      - user menu
+      - settings privacy
+      - profile route
+      - display controls
+  targets:
+    frontend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../engineering-roadmap/spec.md
+        - ../../../product-scope/spec.md
+        - ../../../mock-contract-suite/spec.md
+        - ../../../backend-auth/spec.md
+        - ../../../../ui-design/README.md
+        - ../../../../ui-design/INDEX.md
+        - ../../../../ui-design/ui-architecture.md
+        - ../../../../ui-design/user-flow.md
+        - ../../../../ui-design/auth-and-entry.md
+        - ../../../../ui-design/user-profile-and-settings.md
+        - ../../../../ui-design/removed-modules-and-scope.md
+      discovery:
+        packages:
+          - frontend/src
+          - frontend/src/api
+          - frontend/src/lib/runtime-config
+        uiRoutes:
+          - home
+          - jd_match
+          - workspace
+          - practice
+          - generating
+          - report
+          - resume_versions
+          - debrief
+          - profile
+          - settings
+          - auth_login
+          - auth_register
+          - auth_verify
+          - auth_reset
+          - auth_logout
+        apiNames:
+          - getRuntimeConfig
+          - getMe
+          - startAuthEmailChallenge
+          - verifyAuthEmailChallenge
+          - logout

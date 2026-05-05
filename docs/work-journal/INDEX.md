@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-05](2026-05-05.md) | `docs(roadmap): spawn P0 implementation owners` | #docs |
 | [2026-05-05](2026-05-05.md) | `docs(ui-design): add Claude design reference` | #docs #ui |
 | [2026-05-05](2026-05-05.md) | `docs(ai-provider): remediate 002 plan review gates` | #docs |
 | [2026-05-05](2026-05-05.md) | `fix(ai-provider): harden profile catalog drift gates` | #fix #test #docs |

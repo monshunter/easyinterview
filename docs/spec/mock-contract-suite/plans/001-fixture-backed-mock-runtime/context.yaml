@@ -1,0 +1,48 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: mock-contract-suite
+  name: 001-fixture-backed-mock-runtime
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: tooling
+  discovery:
+    aliases:
+      - mock-contract-suite
+      - fixture-backed-mock-runtime
+      - contract-backed mock runway
+    keywords:
+      - OpenAPI fixtures
+      - fixture-backed mock
+      - mock transport
+      - operationId registry
+      - prototype data boundary
+      - P0 mock runway
+  targets:
+    tooling:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      references:
+        - ../../../engineering-roadmap/spec.md
+        - ../../../product-scope/spec.md
+        - ../../../openapi-v1-contract/spec.md
+        - ../../../openapi-v1-contract/history.md
+        - ../../../shared-conventions-codified/spec.md
+      discovery:
+        packages:
+          - openapi/fixtures
+          - frontend/src/api
+          - backend/internal/api
+          - scripts/lint
+        uiRoutes: []
+        apiNames:
+          - getRuntimeConfig
+          - getMe
+          - listTargetJobs
+          - getPracticeSession
+          - getFeedbackReport
