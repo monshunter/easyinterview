@@ -1,6 +1,6 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.1
+> **版本**: 2.2
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -168,10 +168,10 @@
 
 ## 7 关联计划
 
-A3 当前计划拆分为一份 completed bootstrap plan、一份 draft capability adapter extension plan、一份 active provider registry plan：
+A3 当前计划拆分为两份 completed foundation plan 与一份 draft capability adapter extension plan：
 
 - [001-aiclient-and-profile-bootstrap](./plans/001-aiclient-and-profile-bootstrap/plan.md)（completed）：已落地 P0 `Complete` / `Embed`、`Stream` 事件合同类型、unit-test stub provider、`openai_compatible` Chat / Embeddings provider、基础 Model Profile loader 与 observability / audit decorator。
 - [002-tools-streaming-and-stt](./plans/002-tools-streaming-and-stt/plan.md)（draft/blocked）：Tools / full streaming / STT / realtime speech 等协议能力延期占位；必须先触发 ADR / spec 修订，才能切 active。
-- [003-provider-registry-and-capability-profiles](./plans/003-provider-registry-and-capability-profiles/plan.md)（active）：把本 spec v2.0 的 provider registry、capability-scoped profile、central fallback、A4 env dictionary、B1 AI vocabulary、F3 12 profile coverage 与 drift gate 落地，为后续业务域实施提供完整 AI provider 配置面。
+- [003-provider-registry-and-capability-profiles](./plans/003-provider-registry-and-capability-profiles/plan.md)（completed）：已落地本 spec v2.2 的 provider registry、capability-scoped profile、central fallback、A4 env dictionary、B1 AI vocabulary、F3 12 profile coverage、active anti-stub gate 与 drift gate，为后续业务域实施提供完整 AI provider 配置面。
 
 后续如需扩展，递增本 spec 版本并原地修订对应 plan；不创建 sibling spec。

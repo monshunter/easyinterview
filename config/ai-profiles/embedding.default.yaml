@@ -2,8 +2,8 @@ name: embedding.default
 capability: embed
 status: active
 default:
-  provider_ref: unit-test-stub
-  model: stub-embed-1
+  provider_ref: default-openai-compatible
+  model: default-embed
 fallback: []
 timeout_ms: 10000
 rate_limit:

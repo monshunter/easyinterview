@@ -51,6 +51,12 @@ def make_repo(tmp_path: Path, profile_body: str) -> Path:
                 protocol: stub
                 capabilities: [chat]
                 version: 1.0.0
+              - name: default-openai-compatible
+                protocol: openai_compatible
+                base_url_env: AI_PROVIDER_BASE_URL
+                api_key_env: AI_PROVIDER_API_KEY
+                capabilities: [chat]
+                version: 1.0.0
             """
         ).strip(),
     )
@@ -75,8 +81,8 @@ def test_passes_when_docs_and_catalog_align(tmp_path: Path) -> None:
             capability: chat
             status: active
             default:
-              provider_ref: unit-test-stub
-              model: stub-chat-1
+              provider_ref: default-openai-compatible
+              model: default-chat
             timeout_ms: 1000
             version: 1.0.0
             """
@@ -105,7 +111,7 @@ def test_fails_when_provider_does_not_support_capability(tmp_path: Path) -> None
             capability: rerank
             status: active
             default:
-              provider_ref: unit-test-stub
+              provider_ref: default-openai-compatible
               model: rerank-model
             timeout_ms: 1000
             version: 1.0.0
@@ -115,3 +121,24 @@ def test_fails_when_provider_does_not_support_capability(tmp_path: Path) -> None
     result = run(repo)
     assert result.returncode == 1
     assert "capability not declared by provider" in result.stderr
+
+
+def test_fails_when_active_profile_uses_stub_provider(tmp_path: Path) -> None:
+    repo = make_repo(
+        tmp_path,
+        textwrap.dedent(
+            """
+            name: practice.followup.default
+            capability: chat
+            status: active
+            default:
+              provider_ref: unit-test-stub
+              model: stub-chat-1
+            timeout_ms: 1000
+            version: 1.0.0
+            """
+        ).strip(),
+    )
+    result = run(repo)
+    assert result.returncode == 1
+    assert "active profile must not use stub provider" in result.stderr

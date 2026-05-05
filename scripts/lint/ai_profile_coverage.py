@@ -71,17 +71,20 @@ def load_profiles(repo: Path) -> dict[str, dict[str, Any]]:
     return out
 
 
-def load_provider_capabilities(repo: Path) -> dict[str, set[str]]:
+def load_provider_registry(repo: Path) -> dict[str, dict[str, Any]]:
     doc = load_yaml(repo / "config/ai-providers.yaml")
     providers = doc.get("providers") or []
-    out: dict[str, set[str]] = {}
+    out: dict[str, dict[str, Any]] = {}
     for provider in providers:
         name = str(provider.get("name", ""))
         if not name:
             raise ValueError("provider registry entry missing name")
         if name in out:
             raise ValueError(f"duplicate provider name: {name}")
-        out[name] = {str(c) for c in provider.get("capabilities") or []}
+        out[name] = {
+            "protocol": str(provider.get("protocol", "")),
+            "capabilities": {str(c) for c in provider.get("capabilities") or []},
+        }
     return out
 
 
@@ -89,7 +92,7 @@ def validate(repo: Path) -> list[str]:
     problems: list[str] = []
     required = documented_profiles(repo)
     profiles = load_profiles(repo)
-    provider_caps = load_provider_capabilities(repo)
+    providers = load_provider_registry(repo)
 
     missing = required - set(profiles)
     if missing:
@@ -109,13 +112,16 @@ def validate(repo: Path) -> list[str]:
         if not provider_ref:
             problems.append(f"{name}: missing default.provider_ref")
             continue
-        if provider_ref not in provider_caps:
+        if provider_ref not in providers:
             problems.append(f"{name}: provider_ref {provider_ref!r} not found")
             continue
-        if capability and capability not in provider_caps[provider_ref]:
+        provider = providers[provider_ref]
+        if capability and capability not in provider["capabilities"]:
             problems.append(
                 f"{name}: capability not declared by provider {provider_ref!r}: {capability}"
             )
+        if status == "active" and provider["protocol"] == "stub":
+            problems.append(f"{name}: active profile must not use stub provider {provider_ref!r}")
 
     return problems
 

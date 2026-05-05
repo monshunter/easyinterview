@@ -98,12 +98,16 @@ Plan 001 does NOT create or rewrite `cmd/api` or `cmd/worker`. A4
 secrets-and-config and each consuming C domain plan own the runtime
 entrypoint wiring; this package exposes:
 
-- [`aiclient.New`](./client.go) — the constructor + Phase 4.1 fail-fast
-  validation.
+- [`bootstrap.NewClient`](./bootstrap/bootstrap.go) — production runtime
+  bootstrap for `AI_PROVIDER_REGISTRY_PATH` + `AI_MODEL_PROFILE_PATH`; it
+  validates selected active providers through A4 `SecretSource` and wires
+  registry-backed provider refs into the inner client.
+- [`aiclient.New`](./client.go) — the small inner constructor used by tests and
+  bootstrap after the runtime loaders are ready.
 - [`aiclient.WithProfileResolver`](./options.go) — bind a
   [`profile.Loader`](./profile/loader.go).
-- [`aiclient.WithProvider`](./options.go) — register `stub.Provider` or
-  `openai_compatible.Adapter`.
+- [`aiclient.WithProviderResolver`](./options.go) — resolve provider refs from
+  the hot-reloaded provider registry.
 - [`observability.New`](./observability/decorator.go) — wrap the inner
   client with the seven metric families, four log events, the
   `ai_task_runs` writer, and the `audit_events` writer.
@@ -114,40 +118,25 @@ entrypoint wiring; this package exposes:
 A non-test caller is expected to run roughly:
 
 ```go
-registryLoader, err := providerregistry.NewLoader(providerregistry.Options{Path: cfg.AIProviderRegistryPath})
-if err != nil { return err }
-
-profileLoader, err := profile.NewLoader(profile.Options{Dir: cfg.AIModelProfilePath})
-if err != nil { return err }
-
-profile, err := profileLoader.Resolve("practice.followup.default")
-if err != nil { return err }
-
-resolved, err := registryLoader.ResolveSelectedProviders(profile, cfg.AppEnv, secretSource)
-if err != nil { return err }
-
-defaultProvider := resolved[profile.Default.ProviderRef]
-provider, err := openai_compatible.New(openai_compatible.Options{
-    Provider: defaultProvider,
+runtime, err := bootstrap.NewClient(bootstrap.Options{
+    Config: aiclient.Config{
+        AppEnv:               cfg.AppEnv,
+        ProviderRegistryPath: cfg.AIProviderRegistryPath,
+        ModelProfilePath:     cfg.AIModelProfilePath,
+    },
+    SecretSource: secretSource,
+    HTTPClient:   httpClient,
+    OnWarn:       warn,
 })
 if err != nil { return err }
+defer runtime.Close()
 
-inner, err := aiclient.New(aiclient.Config{
-    AppEnv:               cfg.AppEnv,
-    ProviderRegistryPath: cfg.AIProviderRegistryPath,
-    ModelProfilePath:     cfg.AIModelProfilePath,
-},
-    aiclient.WithProfileResolver(profileLoader),
-    aiclient.WithProvider(provider),
-)
-if err != nil { return err }
-
-client, err := observability.New(inner,
+client, err := observability.New(runtime.Client,
     observability.WithRegisterer(prom),
     observability.WithLogger(logger),
     observability.WithAITaskRunWriter(taskRunStore),
     observability.WithAuditEventWriter(auditStore),
-    observability.WithProfileResolver(profileLoader),
+    observability.WithProfileResolver(runtime.Client.Resolver()),
 )
 if err != nil { return err }
 ```

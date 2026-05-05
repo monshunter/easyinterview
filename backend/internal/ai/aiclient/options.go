@@ -6,11 +6,12 @@ package aiclient
 type Option func(*clientOptions)
 
 type clientOptions struct {
-	stubAllowed     bool
-	resolver        ProfileResolver
-	providers       map[string]Provider
-	taskRunWriter   AITaskRunWriter
-	auditWriter     AuditEventWriter
+	stubAllowed      bool
+	resolver         ProfileResolver
+	providers        map[string]Provider
+	providerResolver ProviderResolver
+	taskRunWriter    AITaskRunWriter
+	auditWriter      AuditEventWriter
 }
 
 // WithStubAllowed permits the stub provider to be instantiated even when
@@ -35,6 +36,12 @@ func WithProvider(p Provider) Option {
 		}
 		o.providers[p.Name()] = p
 	}
+}
+
+// WithProviderResolver injects registry-backed provider materialization.
+// Tests usually use WithProvider; production wiring uses this option.
+func WithProviderResolver(r ProviderResolver) Option {
+	return func(o *clientOptions) { o.providerResolver = r }
 }
 
 // WithAITaskRunWriter wires the persistence path for ai_task_runs rows.

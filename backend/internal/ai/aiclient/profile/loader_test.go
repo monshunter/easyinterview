@@ -272,6 +272,51 @@ version: 1.2.0
 	t.Fatal("polling reload did not converge before deadline")
 }
 
+func TestLoaderPollLoopReportsReloadWarningAndKeepsOldSnapshot(t *testing.T) {
+	dir := writeProfileDir(t, map[string]string{"p.yaml": sampleProfile})
+	warnings := make(chan error, 1)
+	loader, err := profile.NewLoader(profile.Options{
+		Dir:          dir,
+		PollInterval: 50 * time.Millisecond,
+		OnWarn: func(err error) {
+			warnings <- err
+		},
+	})
+	if err != nil {
+		t.Fatalf("NewLoader: %v", err)
+	}
+	defer loader.Close()
+
+	if err := os.WriteFile(filepath.Join(dir, "p.yaml"), []byte(`name: invalid
+capability: image
+status: active
+default:
+  provider_ref: unit-test-stub
+  model: m
+timeout_ms: 1
+version: 1
+`), 0o600); err != nil {
+		t.Fatalf("rewrite invalid profile: %v", err)
+	}
+
+	select {
+	case err := <-warnings:
+		if err == nil || !strings.Contains(err.Error(), "unsupported capability") {
+			t.Fatalf("unexpected warning error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected reload warning before deadline")
+	}
+
+	got, err := loader.Resolve("practice.followup.default")
+	if err != nil {
+		t.Fatalf("old snapshot should remain resolvable: %v", err)
+	}
+	if got.Version != "1.0.0" {
+		t.Fatalf("failed reload polluted old snapshot: %+v", got)
+	}
+}
+
 func TestLoaderRejectsDuplicateNames(t *testing.T) {
 	dup := `name: practice.followup.default
 capability: chat

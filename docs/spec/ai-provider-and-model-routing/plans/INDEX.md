@@ -13,7 +13,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [003-provider-registry-and-capability-profiles](./003-provider-registry-and-capability-profiles/plan.md) | [plan](./003-provider-registry-and-capability-profiles/plan.md) / [checklist](./003-provider-registry-and-capability-profiles/checklist.md) / [context](./003-provider-registry-and-capability-profiles/context.yaml) | 1.1 | completed | 2026-05-05 |
+| [003-provider-registry-and-capability-profiles](./003-provider-registry-and-capability-profiles/plan.md) | [plan](./003-provider-registry-and-capability-profiles/plan.md) / [checklist](./003-provider-registry-and-capability-profiles/checklist.md) / [context](./003-provider-registry-and-capability-profiles/context.yaml) | 1.2 | completed | 2026-05-05 |
 | [001-aiclient-and-profile-bootstrap](./001-aiclient-and-profile-bootstrap/plan.md) | [plan](./001-aiclient-and-profile-bootstrap/plan.md) / [checklist](./001-aiclient-and-profile-bootstrap/checklist.md) / [context](./001-aiclient-and-profile-bootstrap/context.yaml) | 1.5 | completed | 2026-05-05 |
 
 ## 3 草案 / 阻塞（Draft / Blocked）

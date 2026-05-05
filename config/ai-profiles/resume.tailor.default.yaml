@@ -2,8 +2,8 @@ name: resume.tailor.default
 capability: chat
 status: active
 default:
-  provider_ref: unit-test-stub
-  model: stub-chat-1
+  provider_ref: default-openai-compatible
+  model: default-chat
   params:
     temperature: 0.4
 fallback: []

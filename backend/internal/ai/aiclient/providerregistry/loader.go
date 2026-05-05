@@ -155,6 +155,16 @@ func (l *Loader) Providers() []aiclient.ProviderRegistryEntry {
 	return snap.registry.Providers()
 }
 
+// ResolveSelectedProviders validates selected providers against the latest good
+// registry snapshot.
+func (l *Loader) ResolveSelectedProviders(profile *aiclient.ModelProfile, appEnv string, secrets SecretSource) (map[string]ResolvedProvider, error) {
+	snap := l.current.Load()
+	if snap == nil || snap.registry == nil {
+		return nil, fmt.Errorf("%w: registry loader is not initialized", ErrProviderConfigInvalid)
+	}
+	return snap.registry.ResolveSelectedProviders(profile, appEnv, secrets)
+}
+
 // LoadedAt returns the timestamp of the last successful registry scan.
 func (l *Loader) LoadedAt() time.Time {
 	snap := l.current.Load()
@@ -225,26 +235,9 @@ func (r *Registry) ResolveSelectedProviders(profile *aiclient.ModelProfile, appE
 		if !entry.Supports(profile.Capability) {
 			return nil, fmt.Errorf("%w: profile %q capability %q is not supported by provider %q", ErrProviderConfigInvalid, profile.Name, profile.Capability, ref)
 		}
-		resolved := ResolvedProvider{Entry: entry}
-		if entry.Protocol != aiclient.ProviderProtocolStub {
-			baseURL, err := resolveSecret(secrets, entry.BaseURLEnv)
-			if err != nil {
-				if appEnv == aiclient.AppEnvTest && errors.Is(err, ErrSecretMissing) {
-					out[ref] = resolved
-					continue
-				}
-				return nil, fmt.Errorf("%w: provider %q missing %s", ErrProviderSecretMissing, ref, entry.BaseURLEnv)
-			}
-			apiKey, err := resolveSecret(secrets, entry.APIKeyEnv)
-			if err != nil {
-				if appEnv == aiclient.AppEnvTest && errors.Is(err, ErrSecretMissing) {
-					out[ref] = resolved
-					continue
-				}
-				return nil, fmt.Errorf("%w: provider %q missing %s", ErrProviderSecretMissing, ref, entry.APIKeyEnv)
-			}
-			resolved.BaseURL = baseURL
-			resolved.APIKey = apiKey
+		resolved, err := ResolveProviderEntry(entry, appEnv, secrets)
+		if err != nil {
+			return nil, fmt.Errorf("provider %q: %w", ref, err)
 		}
 		out[ref] = resolved
 	}
@@ -281,6 +274,32 @@ func resolveSecret(source SecretSource, name string) (string, error) {
 		return "", ErrSecretMissing
 	}
 	return value, nil
+}
+
+// ResolveProviderEntry materializes a single provider entry by resolving its
+// env-secret refs through A4 SecretSource.
+func ResolveProviderEntry(entry aiclient.ProviderRegistryEntry, appEnv string, secrets SecretSource) (ResolvedProvider, error) {
+	resolved := ResolvedProvider{Entry: entry}
+	if entry.Protocol == aiclient.ProviderProtocolStub {
+		return resolved, nil
+	}
+	baseURL, err := resolveSecret(secrets, entry.BaseURLEnv)
+	if err != nil {
+		if appEnv == aiclient.AppEnvTest && errors.Is(err, ErrSecretMissing) {
+			return resolved, nil
+		}
+		return resolved, fmt.Errorf("%w: missing %s", ErrProviderSecretMissing, entry.BaseURLEnv)
+	}
+	apiKey, err := resolveSecret(secrets, entry.APIKeyEnv)
+	if err != nil {
+		if appEnv == aiclient.AppEnvTest && errors.Is(err, ErrSecretMissing) {
+			return resolved, nil
+		}
+		return resolved, fmt.Errorf("%w: missing %s", ErrProviderSecretMissing, entry.APIKeyEnv)
+	}
+	resolved.BaseURL = baseURL
+	resolved.APIKey = apiKey
+	return resolved, nil
 }
 
 // Load parses and validates a provider registry YAML file.

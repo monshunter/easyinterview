@@ -37,3 +37,10 @@ type Provider interface {
 	Embed(ctx context.Context, profile *ModelProfile, input EmbedInput) (EmbedResponse, AICallMeta, error)
 	Stream(ctx context.Context, profile *ModelProfile, payload CompletePayload) (<-chan AIStreamEvent, error)
 }
+
+// ProviderResolver materializes providers by registry provider_ref. Production
+// bootstrap uses it so profile hot reload can route to provider refs without
+// pre-registering a static in-memory map.
+type ProviderResolver interface {
+	ResolveProvider(ref string) (Provider, error)
+}

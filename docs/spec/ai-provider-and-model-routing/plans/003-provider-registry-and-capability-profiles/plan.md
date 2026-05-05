@@ -1,6 +1,6 @@
 # Provider Registry and Capability Profiles
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-05
 
@@ -53,6 +53,14 @@ registry 与 profile loader 使用同一 snapshot 语义：变更后 ≤ 30s 热
 #### 1.4 Registry negative fixtures
 
 新增负向 fixtures / tests 覆盖：重复 provider name、未知 protocol、capability 拼写错误、网络出站 provider 缺 env ref、profile 引用不存在 provider ref、profile capability 与 provider capabilities 不匹配、被选中真实 provider secret 缺失、fallback 超 2 跳；同时补正向 fixture 证明 `stub` provider 不需要伪造 secret。
+
+#### 1.5 L2 remediation: runtime registry/profile wiring
+
+补齐生产可用的 registry/profile bootstrap：非 test AIClient 构造必须实际读取 `AI_PROVIDER_REGISTRY_PATH` 与 `AI_MODEL_PROFILE_PATH`，通过 A4 SecretSource 校验 active profile 选中的 provider primary/fallback secret，按 provider ref materialize adapter，并确保 `ResolveSelectedProviders` 不只存在于单测路径。
+
+#### 1.6 L2 remediation: reload warning evidence
+
+profile hot reload 失败时必须保持当前快照并通过 `OnWarn` 输出结构化 warn；focused test 需覆盖失败 reload 不污染快照且 warning 可观测。
 
 ### Phase 2: Capability-scoped Model Profile schema
 
@@ -110,6 +118,10 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 同步 ADR-Q6、A3 history、A4/F3 spec、engineering-roadmap A3 职责描述与 docs/spec INDEX。完成后 active docs 不得再把“单一 provider base URL/API key”描述成完整目标架构。
 
+#### 4.5 L2 remediation: active profile anti-stub gate
+
+补强 `make lint-ai-profile-coverage`：repo-tracked `status=active` 默认 profile 不得指向 `stub` protocol provider，除单元测试 / 离线 mock fixture 外不得把 P0 active profile 绑定到 `unit-test-stub`。同时将当前 active default profiles 切到真实 provider ref 可解析的 OpenAI-compatible provider 占位。
+
 ### Phase 5: Verification and handoff
 
 #### 5.1 Focused tests
@@ -127,6 +139,10 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 #### 5.4 Lifecycle closeout
 
 全部 gate 通过后，将本 plan / checklist Header 切到 `completed`，同步 `plans/INDEX.md` 与 `docs/spec/INDEX.md`，记录工作日志。向 002 / C14 / practice / report / resume / debrief / F3 eval owner 留出 handoff：可直接引用 capability profile，不需要新增业务侧 provider 配置。
+
+#### 5.5 L2 remediation verification
+
+复跑 L2 remediation focused tests、profile coverage lint、config lint、context validation、negative search 与必要全局 gate；完成后恢复 plan/checklist completed 生命周期并修正 active spec 中的 003 状态投影。
 
 ## 5 验收标准
 
@@ -158,5 +174,6 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-05 | 1.2 | 原地 reopen L2 remediation：补 runtime registry/profile wiring、profile reload warn、active profile anti-stub gate 与 post-fix verification。 | plan-code-review --fix |
 | 2026-05-05 | 1.1 | Phase 5 完成：全局 gate 与 active-scope 负向搜索通过，plan 生命周期切为 completed，并补充后续 owner handoff。 | implementation closeout |
 | 2026-05-05 | 1.0 | 初始创建：承接 A3 spec v1.9，规划 provider registry、capability profile、central fallback、A4/B1/F3 联动与验证门禁。 | design crystallization |

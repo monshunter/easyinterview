@@ -33,6 +33,9 @@ type Options struct {
 	PollInterval time.Duration
 	// Now is injectable for tests; nil falls back to time.Now.
 	Now func() time.Time
+	// OnWarn receives reload errors from the background poller after the old
+	// snapshot has been preserved.
+	OnWarn func(error)
 }
 
 // snapshot holds an immutable view of the loaded profiles plus the last
@@ -168,7 +171,9 @@ func (l *Loader) pollLoop() {
 		case <-l.stop:
 			return
 		case <-t.C:
-			_ = l.Reload(context.Background())
+			if err := l.Reload(context.Background()); err != nil && l.opts.OnWarn != nil {
+				l.opts.OnWarn(err)
+			}
 		}
 	}
 }

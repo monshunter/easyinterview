@@ -1,6 +1,6 @@
 # Provider Registry and Capability Profiles Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-05
 
@@ -12,6 +12,8 @@
 - [x] 1.2 落地 registry loader + A4 SecretSource 解析，覆盖 provider name 唯一、protocol 合法、capability 非空、按 protocol 校验 secret env ref、被选中真实 provider 非 test fail-fast，且 `stub` provider 不需要伪造 secret
 - [x] 1.3 落地 registry/profile snapshot 热加载语义：≤30s 生效、进行中调用使用旧快照、reload 失败不污染当前快照
 - [x] 1.4 补齐 registry negative fixtures：重复 provider、未知 protocol、capability 拼写错误、网络出站 provider 缺 env ref、provider ref 不存在、capability mismatch、被选中真实 provider secret 缺失、fallback 超 2 跳，并补 `stub` 无 secret 正向 fixture
+- [x] 1.5 L2 remediation: 生产 bootstrap 实际读取 registry/profile path、调用 `ResolveSelectedProviders`、按 provider ref materialize adapter，并用 focused tests 覆盖非 test selected provider secret fail-fast
+- [x] 1.6 L2 remediation: profile hot reload 失败保持旧快照且通过 `OnWarn` 输出可观测 warning，并补 focused test
 
 ## Phase 2: Capability-scoped Model Profile schema
 
@@ -33,6 +35,7 @@
 - [x] 4.2 B1 shared vocabulary 新增或迁移 AI capability enum、provider registry field names、profile field names、meta field names 与 provider/profile routing `AI_*` 错误码，codegen parity tests 通过
 - [x] 4.3 F3 + Product/UI profile coverage lint 覆盖 12 个 baseline feature_key 的默认 `model_profile_name` 与 spec §4.5 默认 profile
 - [x] 4.4 同步 ADR-Q6、A3 history、A4/F3 spec、engineering-roadmap A3 职责描述与 docs/spec INDEX
+- [x] 4.5 L2 remediation: `make lint-ai-profile-coverage` 拒绝 repo-tracked active profile 指向 `stub` protocol provider，并将当前 active default profiles 切到 non-stub provider ref
 
 ## Phase 5: Verification and handoff
 
@@ -40,3 +43,4 @@
 - [x] 5.2 Global gates 通过：`make lint-config`、`make codegen-check`、`make docs-check`、`make lint`、`make test`、`make build`
 - [x] 5.3 Active-scope negative search 通过：不含旧 schema key，不把 AI provider 描述为独立 provider-proxy 业务语义或单一全局 endpoint 当前目标架构
 - [x] 5.4 将 plan/checklist Header 切到 `completed`，同步 INDEX 与工作日志，并给 002 / C14 / practice / report / resume / debrief / F3 eval owner 留出 handoff
+- [x] 5.5 L2 remediation verification: focused tests、profile coverage lint、config lint、context validation、negative search 与必要全局 gate 通过后恢复 completed 生命周期并修正 active spec 003 状态投影

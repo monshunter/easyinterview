@@ -13,10 +13,11 @@ import (
 // in the resolved ModelProfile. It is the only concrete AIClient
 // implementation in plan 001.
 type Client struct {
-	cfg       Config
-	resolver  ProfileResolver
-	providers map[string]Provider
-	builder   metaBuilder
+	cfg              Config
+	resolver         ProfileResolver
+	providers        map[string]Provider
+	providerResolver ProviderResolver
+	builder          metaBuilder
 
 	// taskRunWriter and auditWriter are populated by Phase 3's decorator
 	// wiring; plan 001 leaves the call-time observability hookup to
@@ -54,11 +55,12 @@ func New(cfg Config, opts ...Option) (*Client, error) {
 	}
 
 	c := &Client{
-		cfg:           cfg,
-		resolver:      o.resolver,
-		providers:     o.providers,
-		taskRunWriter: o.taskRunWriter,
-		auditWriter:   o.auditWriter,
+		cfg:              cfg,
+		resolver:         o.resolver,
+		providers:        o.providers,
+		providerResolver: o.providerResolver,
+		taskRunWriter:    o.taskRunWriter,
+		auditWriter:      o.auditWriter,
 	}
 	return c, nil
 }
@@ -91,7 +93,7 @@ func (c *Client) Complete(ctx context.Context, profileName string, payload Compl
 		return CompleteResponse{}, failureMeta(profileName, profile, err), err
 	}
 
-	resp, partial, err := executeWithFallback(profile, provider, c.providers, func(p Provider, attempt *ModelProfile) (CompleteResponse, AICallMeta, error) {
+	resp, partial, err := executeWithFallback(profile, provider, c.providers, c.providerResolver, func(p Provider, attempt *ModelProfile) (CompleteResponse, AICallMeta, error) {
 		return p.Complete(ctx, attempt, payload)
 	})
 	meta, mergeErr := c.builder.merge(profile, payload.Metadata, partial)
@@ -116,7 +118,7 @@ func (c *Client) Embed(ctx context.Context, profileName string, input EmbedInput
 		return EmbedResponse{}, failureMeta(profileName, profile, err), err
 	}
 
-	resp, partial, err := executeWithFallback(profile, provider, c.providers, func(p Provider, attempt *ModelProfile) (EmbedResponse, AICallMeta, error) {
+	resp, partial, err := executeWithFallback(profile, provider, c.providers, c.providerResolver, func(p Provider, attempt *ModelProfile) (EmbedResponse, AICallMeta, error) {
 		return p.Embed(ctx, attempt, input)
 	})
 	meta, mergeErr := c.builder.merge(profile, input.Metadata, partial)
@@ -165,7 +167,10 @@ func (c *Client) dispatch(profileName string, expectedCapability Capability) (*M
 			expectedCapability,
 		)
 	}
-	provider, ok := c.providers[profile.Default.ProviderRef]
+	provider, ok, err := resolveProviderRef(profile.Default.ProviderRef, c.providers, c.providerResolver)
+	if err != nil {
+		return profile, nil, err
+	}
 	if !ok {
 		return profile, nil, unsupportedCapabilityError(
 			"profile %q references inactive provider %q for capability %q",
@@ -189,6 +194,7 @@ func executeWithFallback[T any](
 	profile *ModelProfile,
 	primary Provider,
 	providers map[string]Provider,
+	providerResolver ProviderResolver,
 	invoke func(Provider, *ModelProfile) (T, AICallMeta, error),
 ) (T, AICallMeta, error) {
 	chain := []string{fallbackHop(profile.Default)}
@@ -209,7 +215,11 @@ func executeWithFallback[T any](
 		}
 		attemptedFallback = true
 		chain = append(chain, fallbackHop(fb.ProviderConfig))
-		provider, ok := providers[fb.ProviderRef]
+		provider, ok, providerErr := resolveProviderRef(fb.ProviderRef, providers, providerResolver)
+		if providerErr != nil {
+			lastMeta = fallbackFailureMeta(profile, fb.ProviderConfig, chain, providerErr)
+			return zero, lastMeta, providerErr
+		}
 		if !ok {
 			exhausted := fallbackExhaustedError("fallback provider %q is not registered for profile %q", fb.ProviderRef, profile.Name)
 			lastMeta = fallbackFailureMeta(profile, fb.ProviderConfig, chain, exhausted)
@@ -233,6 +243,20 @@ func executeWithFallback[T any](
 		return zero, lastMeta, exhausted
 	}
 	return zero, lastMeta, lastErr
+}
+
+func resolveProviderRef(ref string, providers map[string]Provider, providerResolver ProviderResolver) (Provider, bool, error) {
+	if p, ok := providers[ref]; ok {
+		return p, true, nil
+	}
+	if providerResolver == nil {
+		return nil, false, nil
+	}
+	p, err := providerResolver.ResolveProvider(ref)
+	if err != nil {
+		return nil, false, err
+	}
+	return p, true, nil
 }
 
 func fallbackConditionMatches(err error, when []string) bool {
