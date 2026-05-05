@@ -1,6 +1,6 @@
 # ADR-Q4 · 云部署目标
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: accepted
 > **更新日期**: 2026-05-05
 
@@ -88,8 +88,8 @@
 1. **集群形态**：staging / prod 各 1 个 managed cluster（云厂商 = ops 选择，初期默认 EKS / GKE / AKS 任一；本 ADR 不锁厂商）；本地场景集成测试继续用 Kind（与 `test/scenarios/` 一致），普通本地开发走 A2 docker-compose，不把 Kind 作为开发前置条件
 2. **工作负载拓扑**：3 个 Deployment（`web-app` 静态资源由 ingress 直 serve 或单独 deploy / `api` HPA min=2 / `worker` HPA min=1），1 个 CronJob（outbox dispatcher 兜底重试）
 3. **共享基础设施**：PostgreSQL + pgvector / Redis 优先用云托管（RDS+pgvector or Neon / ElastiCache）；Object Storage 用云对象存储（S3 / GCS / R2）；OTel Collector / Loki / Prometheus / Grafana 自托管在同一 cluster
-4. **AI provider（关联 Q-6）**：业务 deployment 通过 `AI_PROVIDER_BASE_URL` 引用 OpenAI-compatible endpoint；Kind 场景测试默认注入真实 AI provider endpoint，不要求部署 AI provider；staging / prod 也只通过 provider endpoint 契约接入
-5. **Helm chart**：所有组件以 helm chart 形式管理；chart 与 `test/scenarios/` Kind 部署共用同一 values 模板（区别包含 replica / resource / AI endpoint 注入方式）
+4. **AI provider（关联 Q-6）**：业务 deployment 通过 `AI_PROVIDER_REGISTRY_PATH` + `AI_MODEL_PROFILE_PATH` + registry 内 provider-specific secret env ref 注入 AI 连接；`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只可作为默认 OpenAI-compatible provider ref 引用的 env 名；Kind 场景测试注入同一 registry/profile/secret 组合，不要求部署 AI provider
+5. **Helm chart**：所有组件以 helm chart 形式管理；chart 与 `test/scenarios/` Kind 部署共用同一 values 模板（区别包含 replica / resource / AI registry/profile/secret 注入方式）
 6. **CI/CD 延后**：当前个人单人开发阶段不构建远端 CI pipeline，也不做 CI deploy；A5 只约束本地手动质量门禁。自动化 deploy 由 E4 `release-gate-and-rollout` 在公开 release / 多人协作 / 自动发版需求出现后单独管理（GitOps：ArgoCD / FluxCD 任一，本 ADR 不锁工具）
 7. **secrets**：Sealed Secrets / SOPS / External Secrets 任一，通过 A4 `secrets-and-config` 抽象注入；不允许明文 ConfigMap
 
@@ -99,9 +99,9 @@
 - **A5 `ci-pipeline-baseline`** —— 当前只保留本地质量门禁；远端 CI pipeline / image push / branch protection 延后
 - **E4 `release-gate-and-rollout`** —— 灰度（feature flag + Deployment progressive rollout）+ 回滚 runbook 全部基于 K8s 原语
 - **F1 `observability-stack`** —— OTel Collector / Prometheus / Loki / Grafana 以 helm chart 部署在同 cluster
-- **A3 `ai-provider-and-model-routing`** —— OpenAI-compatible provider adapter；staging / prod 只复用同一个 provider endpoint 契约
-- **A4 `secrets-and-config`** —— K8s Secret 抽象（含 sealed / external），Kind 与 docker compose 本地部署注入真实 AI provider endpoint / key
-- **CLAUDE.md / `test/scenarios/`** —— Kind 场景测试栈与生产栈共用 helm chart 路径，但 Kind 默认直连真实 AI provider endpoint；与 A2 docker-compose 本地开发栈保持双轨独立
+- **A3 `ai-provider-and-model-routing`** —— OpenAI-compatible / stub provider adapter 与 Provider Registry + Capability Model Profile；staging / prod 通过 provider ref 解析连接参数
+- **A4 `secrets-and-config`** —— K8s Secret 抽象（含 sealed / external），Kind 与 docker compose 本地部署注入真实 provider registry/profile/secret 组合
+- **CLAUDE.md / `test/scenarios/`** —— Kind 场景测试栈与生产栈共用 helm chart 路径，但 Kind 通过真实 provider registry/profile/secret 组合接入外部 AI 能力；与 A2 docker-compose 本地开发栈保持双轨独立
 
 ## 5 失效与修订条件
 
@@ -126,6 +126,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-05 | 1.5 | 对齐 A3 003 Provider Registry：部署注入从单一 endpoint/key 口径更新为 registry/profile/provider-specific secret 组合，`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 仅作为默认 provider ref 可引用 env。 |
 | 2026-05-05 | 1.4 | 对齐 ADR-Q6 provider 口径：业务 deployment 只通过 `AI_PROVIDER_BASE_URL` 接入 OpenAI-compatible provider endpoint，不把独立转发层写成应用部署前提。 |
 | 2026-04-27 | 1.3 | 对齐个人单人开发阶段决策：P0 当前不构建远端 CI pipeline，不做 CI deploy；A5 只约束本地手动质量门禁，自动化 CI/CD 待多人协作、公开 release 或自动发版需求出现后再建。 |
 | 2026-04-27 | 1.2 | 对齐 ADR-Q6 v1.1：Kind 场景测试属于本地部署，默认注入真实 AI provider endpoint / key，不要求部署 AI provider；staging / prod 也复用 `AI_PROVIDER_BASE_URL` 的 endpoint 契约。 |

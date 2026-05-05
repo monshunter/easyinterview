@@ -1,7 +1,7 @@
 # Provider Registry and Capability Profiles Checklist
 
-> **版本**: 1.0
-> **状态**: active
+> **版本**: 1.1
+> **状态**: completed
 > **更新日期**: 2026-05-05
 
 **关联计划**: [plan](./plan.md)
@@ -36,7 +36,7 @@
 
 ## Phase 5: Verification and handoff
 
-- [ ] 5.1 Focused tests 通过：registry loader、profile schema、AIClient routing/fallback、openai_compatible adapter、observability/privacy、A4 config、B1 vocabulary、F3 + Product/UI profile coverage
-- [ ] 5.2 Global gates 通过：`make lint-config`、`make codegen-check`、`make docs-check`、`make lint`、`make test`、`make build`
-- [ ] 5.3 Active-scope negative search 通过：不含旧 schema key，不把 AI provider 描述为独立 provider-proxy 业务语义或单一全局 endpoint 当前目标架构
-- [ ] 5.4 将 plan/checklist Header 切到 `completed`，同步 INDEX 与工作日志，并给 002 / C14 / practice / report / resume / debrief / F3 eval owner 留出 handoff
+- [x] 5.1 Focused tests 通过：registry loader、profile schema、AIClient routing/fallback、openai_compatible adapter、observability/privacy、A4 config、B1 vocabulary、F3 + Product/UI profile coverage
+- [x] 5.2 Global gates 通过：`make lint-config`、`make codegen-check`、`make docs-check`、`make lint`、`make test`、`make build`
+- [x] 5.3 Active-scope negative search 通过：不含旧 schema key，不把 AI provider 描述为独立 provider-proxy 业务语义或单一全局 endpoint 当前目标架构
+- [x] 5.4 将 plan/checklist Header 切到 `completed`，同步 INDEX 与工作日志，并给 002 / C14 / practice / report / resume / debrief / F3 eval owner 留出 handoff

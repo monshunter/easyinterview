@@ -1,7 +1,7 @@
 # Provider Registry and Capability Profiles
 
-> **版本**: 1.0
-> **状态**: active
+> **版本**: 1.1
+> **状态**: completed
 > **更新日期**: 2026-05-05
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -148,8 +148,15 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 | F3 新增 feature_key 或 Product/UI 新增 AI 场景但 A3 profile catalog 未跟进 | Phase 2.3 / 4.3 profile coverage lint 拦截；新增 AI 场景必须同步 spec §4.5、F3 字典与 profile catalog |
 | A4 env 字典与 A3 registry schema 漂移 | Phase 4.1 将 env/config 字典、bindings、validator 与 lint-config 作为同一阶段交付 |
 
-## 7 修订记录
+## 7 Owner Handoff
+
+- **002 / C14**：可直接基于 `capability=stt|realtime` profile 激活 speech adapter；adapter 未实现前保持 `status=unsupported` 或 `disabled`，不得在业务侧新增 provider 配置。
+- **practice / report / resume / debrief**：业务代码继续只消费 F3 Resolve 返回的 `model_profile_name`，由 A3 `AIClient` 解析 provider ref、capability、fallback 与 secret。
+- **F3 eval**：新增 judge / rerank / eval 场景时先同步 F3 feature_key 字典与 profile catalog；A3 profile coverage lint 会拦截缺失或旧 schema key。
+
+## 8 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-05 | 1.1 | Phase 5 完成：全局 gate 与 active-scope 负向搜索通过，plan 生命周期切为 completed，并补充后续 owner handoff。 | implementation closeout |
 | 2026-05-05 | 1.0 | 初始创建：承接 A3 spec v1.9，规划 provider registry、capability profile、central fallback、A4/B1/F3 联动与验证门禁。 | design crystallization |

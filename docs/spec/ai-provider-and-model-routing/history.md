@@ -1,6 +1,6 @@
 # AI Provider and Model Routing History
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-05 | 2.1 | 003 Phase 5 负向搜索收口：active scope 部署文案改为 registry/profile/provider ref 契约，不再以单一 AI provider endpoint 作为当前目标架构主语。 | 003-provider-registry-and-capability-profiles Phase 5 |
 | 2026-05-05 | 2.0 | 003 实施推进到 A4/B1/F3 集成：A3 runtime `Capability` 改为消费 B1 生成 capability，provider/profile routing 错误码补齐为 B1-owned `AI_*`，profile coverage lint 接入顶层 lint gate。 | 003-provider-registry-and-capability-profiles Phase 4 |
 | 2026-05-05 | 1.9 | 基于 product-scope 与 UI 交互重估 AI 使用场景，将 A3 目标从单一 provider endpoint 升级为 provider registry + capability-scoped Model Profile；新增 Product/UI AI capability catalog、central fallback 边界、F3 12 profile coverage gate，并创建 003 实施计划。 | 003-provider-registry-and-capability-profiles |
 | 2026-05-05 | 1.8 | 全面收口 AI provider 口径：subject 与 ADR 文件更名，运行时连接参数改为 `AI_PROVIDER_*` / `ai.provider*`，Model Profile route schema 改为 `route`，并新增 active surface 负向 terminology gate。 | 001-aiclient-and-profile-bootstrap Phase 6 |

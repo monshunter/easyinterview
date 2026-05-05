@@ -18,8 +18,10 @@ auth:
   sessionCookieSecret: ""
   challengeTokenPepper: ""
 ai:
-  providerBaseURL: ""
-  providerApiKey: ""
+  providerRegistryPath: ""
+  defaultProviderBaseURL: ""
+  defaultProviderApiKey: ""
+  modelProfilePath: ""
 email:
   provider: ""
   providerApiKey: ""
@@ -51,6 +53,7 @@ featureFlag:
 		"LOG_LEVEL":                   "info",
 		"SESSION_COOKIE_SECRET":       "session-secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
+		"AI_PROVIDER_REGISTRY_PATH":   "/etc/easyinterview/ai-providers.yaml",
 		"AI_PROVIDER_BASE_URL":        "https://provider.example",
 		"AI_PROVIDER_API_KEY":         "ai-key",
 		"AI_MODEL_PROFILE_PATH":       "/etc/easyinterview/ai-profiles",
@@ -70,7 +73,13 @@ featureFlag:
 	if err := loader.Validate(); err != nil {
 		t.Fatalf("Validate with complete prod env: %v", err)
 	}
-	if got := loader.GetSecret("ai.providerApiKey").Reveal(); got != "ai-key" {
+	if got := loader.GetString("ai.providerRegistryPath"); got != "/etc/easyinterview/ai-providers.yaml" {
+		t.Fatalf("worker did not load AI provider registry path; got %q", got)
+	}
+	if got := loader.GetString("ai.modelProfilePath"); got != "/etc/easyinterview/ai-profiles" {
+		t.Fatalf("worker did not load AI model profile path; got %q", got)
+	}
+	if got := loader.GetSecret("ai.defaultProviderApiKey").Reveal(); got != "ai-key" {
 		t.Fatalf("worker did not load AI provider secret; got %q", got)
 	}
 }

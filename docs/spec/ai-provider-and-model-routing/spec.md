@@ -1,6 +1,6 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -46,7 +46,7 @@
 
 - 具体 prompt 内容、rubric schema、版本表：归 [F3 `prompt-rubric-registry`](../prompt-rubric-registry/spec.md)。
 - 业务调用现场（哪个 C / D 域调用哪种 profile）：归各自 spec / plan。
-- 真实 AI provider endpoint 的部署、K8s Secret / Vault / cost cap 策略：归 A4 / E4 / 运维；本 spec 只锁应用侧 registry / profile 契约。
+- 外部 AI provider 服务部署、K8s Secret / Vault / cost cap 策略：归 A4 / E4 / 运维；本 spec 只锁应用侧 registry / profile / provider ref 契约。
 - STT / realtime voice 的完整协议 adapter、音频 payload 形态与 HTTP wire：归 002+ 与 C14 / practice voice owner；本 spec 只锁 profile capability 与 fail-closed 规则。
 - LLM Judge / 离线评估集实现：归 F3 后续评估 plan。
 - DB 表本身：归 B4；本 spec 只引用字段名。

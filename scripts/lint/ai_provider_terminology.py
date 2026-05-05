@@ -130,7 +130,7 @@ def main() -> int:
         for finding in findings:
             print(f"  - {finding}", file=sys.stderr)
         print(
-            "Fix: use AI provider endpoint/config/profile route terminology in active surfaces; "
+            "Fix: use AI provider registry/profile/provider-ref terminology in active surfaces; "
             "keep historical wording only in history, work-journal, report, or bug records.",
             file=sys.stderr,
         )

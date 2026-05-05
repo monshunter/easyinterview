@@ -1,6 +1,6 @@
 # ADR-Q6 · AI Provider 与模型路由
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: accepted
 > **更新日期**: 2026-05-05
 
@@ -114,16 +114,16 @@
 - **C14 `backend-voice-stt`**（P2） —— STT / realtime 走同一 `AIClient` capability profile，profile 路由到 speech provider ref
 - **`release-gate-and-rollout`** —— 校验 AI provider 路由可观测性 + fallback alert + cost cap 配置
 - **B1 `shared-conventions-codified`** —— AI capability、Provider Registry / Model Profile / AI meta 字段名与 AI 错误码的共享常量或生成类型；A3 仍 owns Model Profile schema、`AIClient` runtime 与 `AICallMeta` 填充语义
-- **CLAUDE.md / `test/scenarios/`** —— Kind 场景默认使用真实 AI provider endpoint；只有离线 contract 测试可显式切 stub / mock provider endpoint
+- **CLAUDE.md / `test/scenarios/`** —— Kind 场景默认使用真实 provider registry/profile/secret 组合；只有离线 contract 测试可显式切 stub / mock provider ref
 
 ## 5 失效与修订条件
 
 触发推翻或升级本 ADR 的具体阈值：
 
-- provider endpoint 故障导致 ≥ 2 次 P0 事故 / 季 → 评估业务侧降级到显式只读/不可用状态或运维 endpoint 切换机制（仍走 `AIClient`，不打破抽象）
+- provider ref 连接故障导致 ≥ 2 次 P0 事故 / 季 → 评估业务侧降级到显式只读/不可用状态或运维 provider ref 切换机制（仍走 `AIClient`，不打破抽象）
 - 出现需要业务感知 model 内部状态的高级特性（function calling / tool use 跨厂商差异极大）→ 评估在 `AIClient` 上扩展 `Tools(...)` 接口；不打破 provider-neutral
 - 多模型并行评估 / A/B（Q-3 PostHog feature flag 联动）需要按用户分桶 → 由 F3 Resolve + feature flag 选择最终 profile；不入侵业务调用现场
-- provider endpoint 性能成为瓶颈（p95 > business SLA × 1.5）→ 评估更换 provider endpoint 或自建轻量 router（仍保持 `AIClient`）
+- provider ref 性能成为瓶颈（p95 > business SLA × 1.5）→ 评估更换 provider ref 或自建轻量 router（仍保持 `AIClient`）
 - OpenAI-compatible API 不再是行业 lingua franca → 评估 provider adapter 升级；业务无感知
 
 修订流程：本 ADR 状态由 `accepted` → `superseded`，新 ADR 显式标注 `supersedes: ADR-Q6-ai-provider-and-model-routing.md`。
@@ -134,12 +134,13 @@
 - `engineering-roadmap/plans/001-decompose-subspecs/plan.md` checklist 1.1（保留 ADR-Q1..Q6 约束）与 checklist 3.3（production voice / retrieval 等 future candidates 延后）
 - 参考背景：`engineering-roadmap decisions` §2 §5 §「AI Adapter Layer」、`F1 observability-stack` §「ai_*」§「fallback rate」、`F1 observability-stack logging`
 - 下游 child：A3 / A4 / F1 / F3 / C4-C7 / C9 / C11 / C14 / E4 / B1
-- 关联 ADR：ADR-Q4-cloud-deploy-target（AI provider endpoint 注入）、ADR-Q5-privacy-cadence（AI 调用 payload 仅写 hash）
+- 关联 ADR：ADR-Q4-cloud-deploy-target（AI provider registry/profile/secret 注入）、ADR-Q5-privacy-cadence（AI 调用 payload 仅写 hash）
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-05 | 1.8 | 收口 active 部署与失效条件措辞：Kind / staging / prod 均以 provider registry/profile/secret 组合和 provider ref 为当前契约，不再用单一 endpoint 作为当前目标架构描述。 |
 | 2026-05-05 | 1.7 | 同步 A3 003 Phase 4：运行时注入 fail-fast 口径改为 registry/profile path + 被选中 provider secret；B1 边界扩展为 AI capability、provider/profile 字段名与 provider/profile routing 错误码。 |
 | 2026-05-05 | 1.6 | 基于 product-scope 与 UI AI 场景重估，将目标架构从单一 provider endpoint 升级为 Provider Registry + Capability Model Profile；fallback 改由 AIClient 在 profile chain 内集中执行，A4 入口新增 `AI_PROVIDER_REGISTRY_PATH`。 |
 | 2026-05-05 | 1.5 | 全面更名并收口 AI provider 口径：A3 目录与 ADR 文件改为 `ai-provider-and-model-routing`，运行时连接参数改为 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`，并确认不保留旧连接参数或 route schema 兼容层。 |
