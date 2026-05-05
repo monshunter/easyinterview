@@ -1,0 +1,16 @@
+providers:
+  - name: unit-test-stub
+    protocol: stub
+    capabilities:
+      - chat
+      - embed
+    version: 1.0.0
+
+  - name: default-openai-compatible
+    protocol: openai_compatible
+    base_url_env: AI_PROVIDER_BASE_URL
+    api_key_env: AI_PROVIDER_API_KEY
+    capabilities:
+      - chat
+      - embed
+    version: 1.0.0

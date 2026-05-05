@@ -8,10 +8,10 @@
 
 ## Phase 1: Provider Registry schema 与 loader
 
-- [ ] 1.1 定义 `config/ai-providers.yaml` schema：`name` / `protocol` / `base_url_env` / `api_key_env` / `capabilities[]` / `version`；`stub` 可不声明 secret env ref，网络出站 provider 必须声明
-- [ ] 1.2 落地 registry loader + A4 SecretSource 解析，覆盖 provider name 唯一、protocol 合法、capability 非空、按 protocol 校验 secret env ref、被选中真实 provider 非 test fail-fast，且 `stub` provider 不需要伪造 secret
-- [ ] 1.3 落地 registry/profile snapshot 热加载语义：≤30s 生效、进行中调用使用旧快照、reload 失败不污染当前快照
-- [ ] 1.4 补齐 registry negative fixtures：重复 provider、未知 protocol、capability 拼写错误、网络出站 provider 缺 env ref、provider ref 不存在、capability mismatch、被选中真实 provider secret 缺失、fallback 超 2 跳，并补 `stub` 无 secret 正向 fixture
+- [x] 1.1 定义 `config/ai-providers.yaml` schema：`name` / `protocol` / `base_url_env` / `api_key_env` / `capabilities[]` / `version`；`stub` 可不声明 secret env ref，网络出站 provider 必须声明
+- [x] 1.2 落地 registry loader + A4 SecretSource 解析，覆盖 provider name 唯一、protocol 合法、capability 非空、按 protocol 校验 secret env ref、被选中真实 provider 非 test fail-fast，且 `stub` provider 不需要伪造 secret
+- [x] 1.3 落地 registry/profile snapshot 热加载语义：≤30s 生效、进行中调用使用旧快照、reload 失败不污染当前快照
+- [x] 1.4 补齐 registry negative fixtures：重复 provider、未知 protocol、capability 拼写错误、网络出站 provider 缺 env ref、provider ref 不存在、capability mismatch、被选中真实 provider secret 缺失、fallback 超 2 跳，并补 `stub` 无 secret 正向 fixture
 
 ## Phase 2: Capability-scoped Model Profile schema
 

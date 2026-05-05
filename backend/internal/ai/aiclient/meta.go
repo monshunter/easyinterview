@@ -1,20 +1,46 @@
 package aiclient
 
-// TaskType enumerates the AI task families recognized by Model Profiles.
+// Capability enumerates the AI capability families recognized by Provider
+// Registry entries and Model Profiles.
 //
 // B1 shared-conventions-codified has not yet generated a cross-language
-// AITaskType enum; until B1 002 lands, A3 owns this private type. The Phase
+// AICapability enum; until B1 lands it, A3 owns this private type. The Phase
 // 5.4 handoff lists the consumers that must switch to the B1-generated
 // constant once it exists.
-type TaskType string
+type Capability string
 
 const (
-	TaskTypeChat  TaskType = "chat"
-	TaskTypeEmbed TaskType = "embed"
+	CapabilityChat     Capability = "chat"
+	CapabilityEmbed    Capability = "embed"
+	CapabilitySTT      Capability = "stt"
+	CapabilityRealtime Capability = "realtime"
+	CapabilityRerank   Capability = "rerank"
+	CapabilityJudge    Capability = "judge"
+)
+
+// TaskType is kept as a source-compatible alias while plan 003 migrates
+// call sites to capability wording.
+type TaskType = Capability
+
+const (
+	TaskTypeChat  = CapabilityChat
+	TaskTypeEmbed = CapabilityEmbed
 	// TaskTypeSTT is reserved for C14 P2 backend-voice-stt; loader accepts
 	// it but Complete/Embed/Stream return ErrTaskTypeNotImplemented when a
 	// profile resolves to stt.
-	TaskTypeSTT TaskType = "stt"
+	TaskTypeSTT = CapabilitySTT
+)
+
+// ProviderProtocol identifies the protocol adapter a Provider Registry entry
+// uses.
+type ProviderProtocol string
+
+const (
+	ProviderProtocolStub             ProviderProtocol = "stub"
+	ProviderProtocolOpenAICompatible ProviderProtocol = "openai_compatible"
+	ProviderProtocolRealtimeAudio    ProviderProtocol = "realtime_audio"
+	ProviderProtocolRerankCompatible ProviderProtocol = "rerank_compatible"
+	ProviderProtocolJudgeCompatible  ProviderProtocol = "judge_compatible"
 )
 
 // ValidationStatus marks whether the response passed client-side
