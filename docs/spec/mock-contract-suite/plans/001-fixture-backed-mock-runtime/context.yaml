@@ -41,8 +41,37 @@ spec:
           - scripts/lint
         uiRoutes: []
         apiNames:
-          - getRuntimeConfig
           - getMe
+          - deleteMe
+          - startAuthEmailChallenge
+          - verifyAuthEmailChallenge
+          - logout
+          - createUploadPresign
+          - getMyProfile
+          - updateMyProfile
+          - listExperienceCards
+          - createExperienceCard
+          - updateExperienceCard
+          - registerResume
+          - getResume
+          - importTargetJob
           - listTargetJobs
+          - getTargetJob
+          - updateTargetJob
+          - createPracticePlan
+          - getPracticePlan
+          - startPracticeSession
           - getPracticeSession
+          - appendSessionEvent
+          - completePracticeSession
           - getFeedbackReport
+          - listTargetJobReports
+          - requestResumeTailor
+          - getResumeTailorRun
+          - createDebrief
+          - getDebrief
+          - getJob
+          - requestPrivacyExport
+          - requestPrivacyDelete
+          - getPrivacyRequest
+          - getRuntimeConfig

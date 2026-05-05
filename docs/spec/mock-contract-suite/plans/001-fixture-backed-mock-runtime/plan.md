@@ -20,9 +20,9 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `code-internal` + `tooling` + `contract`。
-- **TDD 策略**: 通过 `/implement mock-contract-suite/001-fixture-backed-mock-runtime tooling` -> `/tdd` 执行；每个 checklist item 先补 focused test 或 lint fixture，再实现最小 runtime / gate；测试断言写在 checklist 的 `验证:` 后。
+- **TDD 策略**: 通过 `/implement mock-contract-suite/001-fixture-backed-mock-runtime tooling` -> `/tdd` 执行；每个 checklist item 先补 focused test 或 lint fixture，再实现最小 runtime / gate；测试断言写在 checklist 的 `验证:` 后，且 Phase 4 收口必须实际运行当前 owner gates。
 - **BDD 策略**: BDD 不适用。本 plan 不引入用户可见 UI、API 行为或业务流程，只提供内部 mock runtime 和 contract gate；用户行为验证归 `frontend-shell` 与后续 D2-D6 plan 的 BDD gate。
-- **替代验证 gate**: fixture registry unit tests、frontend mock transport tests、backend mock handler tests、OpenAPI fixture validation、prototype mapping drift check、retired route / module negative search、`make docs-check`。
+- **替代验证 gate**: fixture registry unit tests、frontend mock transport tests、backend mock handler tests、`make validate-fixtures`、`make lint-openapi`、`make codegen-check`、prototype mapping drift check、scoped retired route / tag / schema / config token negative search、`make docs-check`。
 
 ## 4 实施步骤
 
@@ -34,7 +34,7 @@
 
 #### 1.2 补齐 fixture coverage lint
 
-新增或扩展 lint，校验 `openapi/openapi.yaml` 的 operationId 与 fixture 文件一一对应；缺失、多余、旧 tag 或旧 route 直接失败。
+新增或扩展 lint，校验 `openapi/openapi.yaml` 的 operationId 与 fixture 文件一一对应；优先复用 `make validate-fixtures` 与 `make lint-openapi` 的 B2 owner gate，缺失、多余、旧 tag 或旧 route 直接失败，且不得维护第二份手写 operation inventory。
 
 ### Phase 2: Frontend mock transport
 
@@ -54,13 +54,13 @@
 
 #### 3.2 错误态和 seed profile
 
-为未登录、缺 session、缺简历、报告生成中、隐私删除请求等状态建立 seed profile，确保后续 UI shell 能验证空态和错误态。
+为未登录、已登录、缺 session、缺简历、报告生成中、隐私删除请求等状态建立 seed profile。seed profile 必须落在 `openapi/fixtures/<tag>/<operationId>.json` 的 named scenarios 中，由 mock runtime 通过 `Prefer: example=<scenario>` 或等价显式 selector 选择；未知 scenario 必须 fail loudly，不能静默回落到 `default`。
 
 ### Phase 4: Drift gates and handoff
 
 #### 4.1 接入本地质量门禁
 
-把 fixture coverage、prototype import boundary 和旧口径 negative search 接入本地 lint 或 codegen gate。
+把 fixture coverage、prototype import boundary 和旧口径 negative search 接入本地 lint 或 codegen gate。旧口径 gate 必须使用精确 retired token（如 `/mistakes`、`/growth`、`/drill`、`/voice`、`Mistakes` / `Growth` tag、`single_drill`、`gateway_route`、`ai.gateway*`、`default.provider`、`task_type`），避免误杀 `growth-stage` 等普通业务文案。
 
 #### 4.2 Handoff 给 frontend-shell
 
@@ -71,7 +71,7 @@
 - 34 operation fixtures 均能被 operationId registry 解析。
 - 前端 mock transport 返回 generated API types，不依赖 prototype data。
 - 后端 mock harness 与前端 mock 使用同一 fixture registry。
-- 旧 Growth / Mistakes / Drill / 独立 Voice / 旧 AI gateway 运行时口径负向搜索通过。
+- scoped retired route / tag / schema key / config path negative search 通过，且不误杀普通业务文案。
 - 所有 checklist item 的 focused tests / lint / drift gates 实际运行通过。
 
 ## 6 风险与应对

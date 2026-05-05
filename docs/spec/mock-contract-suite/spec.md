@@ -24,7 +24,7 @@
 - 为本地后端或开发服务器提供同源 mock handler / router。
 - 校验 fixtures 与 `openapi/openapi.yaml`、generated packages 和 `openapi/fixtures/PROTOTYPE_MAPPING.md` 的一致性。
 - 统一 mock response 中的 auth/session、target job、practice plan、practice session、report、resume、debrief、privacy 和 runtime config 基线。
-- 为后续 scenario / BDD gate 提供可重置的 seed profile。
+- 为后续 scenario / BDD gate 提供可重置的 seed profile；seed profile 必须表达为 `openapi/fixtures/<tag>/<operationId>.json` 内的 named scenarios，不得引入第二套 seed 数据源。
 
 ### 2.2 Out of Scope
 
@@ -48,8 +48,8 @@
 - Mock runtime 必须以 OpenAPI operationId 为检索 key，避免 route string 与 fixture 目录漂移。
 - 前端 mock adapter 必须返回 generated API types，不能把 `any` 或 prototype-only fields 泄漏到业务组件。
 - 后端 mock handler 必须复用同一 fixture registry，不能复制第二套 fixture JSON。
-- seed profile 必须覆盖未登录、已登录、缺 session、缺简历、报告生成中、隐私删除请求等 P0 状态。
-- Mock response 中不得出现旧模块口径：独立 `mistakes`、`growth`、`drill`、`voice` route、旧 `default.provider` 或 `task_type`。
+- seed profile 必须覆盖未登录、已登录、缺 session、缺简历、报告生成中、隐私删除请求等 P0 状态；消费者按 `openapi/fixtures/README.md` 的 scenario selection contract 读取，未知 scenario 必须 fail loudly，不能静默回落到 `default`。
+- Mock response 中不得出现旧模块口径：独立 `/mistakes`、`/growth`、`/drill`、`/voice` route，`Mistakes` / `Growth` / `Drill` / `Voice` tag，`listMistakes` / `getGrowthOverview` operationId，旧 `single_drill` practice mode，旧 `gateway_route` / `ai.gateway*` / AI gateway 运行时配置，旧 `default.provider` 或 `task_type` schema key。普通业务文案中的 `growth-stage` 等非模块含义词不属于禁止项。
 
 ## 5 模块边界
 
@@ -67,7 +67,7 @@
 | C-1 | Fixture coverage | B2 已有 34 operation fixtures | 运行 mock coverage gate | 每个 operationId 都能被 registry 解析且 schema 校验通过 | 001-fixture-backed-mock-runtime |
 | C-2 | 前端 mock 同源 | 前端请求 generated client | 切到 mock transport | response shape 来自 B2 fixtures，组件不 import prototype data | 001-fixture-backed-mock-runtime |
 | C-3 | 后端 mock 同源 | 本地 API smoke 请求 mock handler | 命中任一 P0 operation | handler 返回同一 fixture registry 的 typed response | 001-fixture-backed-mock-runtime |
-| C-4 | 旧口径拦截 | mock runtime / fixtures / generated artifacts 已生成 | 运行 negative search | 不含旧 Growth / Mistakes / Drill / 独立 Voice / 旧 AI gateway 运行时口径 | 001-fixture-backed-mock-runtime |
+| C-4 | 旧口径拦截 | mock runtime / fixtures / generated artifacts 已生成 | 运行 scoped negative search | 不含旧 route / tag / operationId / schema key / config path 等 retired token；不误杀普通业务文案 | 001-fixture-backed-mock-runtime |
 
 ## 7 关联计划
 
