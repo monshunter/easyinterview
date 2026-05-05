@@ -5,7 +5,7 @@
 A1 [`repo-scaffold`](../docs/spec/repo-scaffold/spec.md) 锁定目录位置；A4
 [`secrets-and-config`](../docs/spec/secrets-and-config/spec.md) 锁定字段语义、
 loader、redactor 与 lint 红线；A3
-[`ai-gateway-and-model-routing`](../docs/spec/ai-gateway-and-model-routing/spec.md)
+[`ai-provider-and-model-routing`](../docs/spec/ai-provider-and-model-routing/spec.md)
 消费 `ai-profiles/`；F3
 [`prompt-rubric-registry`](../docs/spec/prompt-rubric-registry/spec.md) 后续在
 本目录扩展 prompt / rubric registry 路径。

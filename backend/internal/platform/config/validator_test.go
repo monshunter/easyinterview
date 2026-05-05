@@ -9,10 +9,10 @@ import (
 )
 
 func newProdLoader(t *testing.T, secrets mapSecret) *config.Loader {
-	return newProdLoaderWithGatewayBaseURL(t, secrets, "")
+	return newProdLoaderWithProviderBaseURL(t, secrets, "")
 }
 
-func newProdLoaderWithGatewayBaseURL(t *testing.T, secrets mapSecret, gatewayBaseURL string) *config.Loader {
+func newProdLoaderWithProviderBaseURL(t *testing.T, secrets mapSecret, providerBaseURL string) *config.Loader {
 	t.Helper()
 	dir := t.TempDir()
 	writeYAML(t, filepath.Join(dir, "config.yaml"), `
@@ -23,8 +23,8 @@ auth:
   sessionCookieSecret: ""
   challengeTokenPepper: ""
 ai:
-  gatewayBaseURL: "`+gatewayBaseURL+`"
-  gatewayApiKey: ""
+  providerBaseURL: "`+providerBaseURL+`"
+  providerApiKey: ""
 email:
   provider: ""
   providerApiKey: ""
@@ -63,7 +63,7 @@ func setCompleteProdRuntimeEnv(t *testing.T) {
 	t.Setenv("OBJECT_STORAGE_ACCESS_KEY", "object-access")
 	t.Setenv("OBJECT_STORAGE_SECRET_KEY", "object-secret")
 	t.Setenv("LOG_LEVEL", "info")
-	t.Setenv("AI_GATEWAY_BASE_URL", "https://gateway")
+	t.Setenv("AI_PROVIDER_BASE_URL", "https://provider.example")
 	t.Setenv("AI_MODEL_PROFILE_PATH", "/etc/easyinterview/ai-profiles")
 	t.Setenv("FEATURE_FLAG_SOURCE", "posthog")
 	t.Setenv("POSTHOG_HOST", "https://posthog")
@@ -77,7 +77,7 @@ func TestValidateProdMissingSecretFailsFast(t *testing.T) {
 		t.Fatal("expected validate error in prod with missing secrets")
 	}
 	msg := err.Error()
-	for _, key := range []string{"SESSION_COOKIE_SECRET", "AUTH_CHALLENGE_TOKEN_PEPPER", "AI_GATEWAY_API_KEY", "EMAIL_PROVIDER_API_KEY"} {
+	for _, key := range []string{"SESSION_COOKIE_SECRET", "AUTH_CHALLENGE_TOKEN_PEPPER", "AI_PROVIDER_API_KEY", "EMAIL_PROVIDER_API_KEY"} {
 		if !strings.Contains(msg, key) {
 			t.Errorf("error missing key %s: %s", key, msg)
 		}
@@ -89,26 +89,26 @@ func TestValidateProdMissingSecretFailsFast(t *testing.T) {
 
 func TestValidateProdAllSecretsPasses(t *testing.T) {
 	setCompleteProdRuntimeEnv(t)
-	loader := newProdLoaderWithGatewayBaseURL(t, mapSecret{
+	loader := newProdLoaderWithProviderBaseURL(t, mapSecret{
 		"SESSION_COOKIE_SECRET":       "secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
-		"AI_GATEWAY_API_KEY":          "key",
+		"AI_PROVIDER_API_KEY":         "key",
 		"EMAIL_PROVIDER_API_KEY":      "ek",
 		"POSTHOG_PROJECT_API_KEY":     "ph-key",
-	}, "https://gateway")
+	}, "https://provider.example")
 	if err := loader.Validate(); err != nil {
 		t.Errorf("unexpected validate error: %v", err)
 	}
 }
 
 func TestValidateProdRejectsDevDefaultDeploymentDependencies(t *testing.T) {
-	loader := newProdLoaderWithGatewayBaseURL(t, mapSecret{
+	loader := newProdLoaderWithProviderBaseURL(t, mapSecret{
 		"SESSION_COOKIE_SECRET":       "secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
-		"AI_GATEWAY_API_KEY":          "key",
+		"AI_PROVIDER_API_KEY":         "key",
 		"EMAIL_PROVIDER_API_KEY":      "ek",
 		"POSTHOG_PROJECT_API_KEY":     "ph-key",
-	}, "https://gateway")
+	}, "https://provider.example")
 
 	err := loader.Validate()
 	if err == nil {
@@ -135,17 +135,17 @@ func TestValidateProdMissingAIBaseURLFailsFast(t *testing.T) {
 	loader := newProdLoader(t, mapSecret{
 		"SESSION_COOKIE_SECRET":       "secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
-		"AI_GATEWAY_API_KEY":          "key",
+		"AI_PROVIDER_API_KEY":         "key",
 		"EMAIL_PROVIDER_API_KEY":      "ek",
 		"POSTHOG_PROJECT_API_KEY":     "ph-key",
 	})
 
 	err := loader.Validate()
 	if err == nil {
-		t.Fatal("expected validate error when AI_GATEWAY_BASE_URL is missing")
+		t.Fatal("expected validate error when AI_PROVIDER_BASE_URL is missing")
 	}
-	if !strings.Contains(err.Error(), "AI_GATEWAY_BASE_URL") {
-		t.Fatalf("error must mention AI_GATEWAY_BASE_URL: %v", err)
+	if !strings.Contains(err.Error(), "AI_PROVIDER_BASE_URL") {
+		t.Fatalf("error must mention AI_PROVIDER_BASE_URL: %v", err)
 	}
 }
 
@@ -157,8 +157,8 @@ app:
 auth:
   sessionCookieName: ei_session
 ai:
-  gatewayBaseURL: ""
-  gatewayApiKey: ""
+  providerBaseURL: ""
+  providerApiKey: ""
 featureFlag:
   source: file
   filePath: ""
@@ -180,7 +180,7 @@ app:
 auth:
   sessionCookieName: ei_session
 ai:
-  gatewayBaseURL: "https://gateway"
+  providerBaseURL: "https://provider.example"
 featureFlag:
   source: posthog
   posthogSelfHosted: false
@@ -197,14 +197,14 @@ async:
 		SecretBindings: map[string]string{
 			"auth.sessionCookieSecret":         "SESSION_COOKIE_SECRET",
 			"auth.challengeTokenPepper":        "AUTH_CHALLENGE_TOKEN_PEPPER",
-			"ai.gatewayApiKey":                 "AI_GATEWAY_API_KEY",
+			"ai.providerApiKey":                "AI_PROVIDER_API_KEY",
 			"email.providerApiKey":             "EMAIL_PROVIDER_API_KEY",
 			"featureFlag.posthogProjectApiKey": "POSTHOG_PROJECT_API_KEY",
 		},
 		SecretSource: mapSecret{
 			"SESSION_COOKIE_SECRET":       "x",
 			"AUTH_CHALLENGE_TOKEN_PEPPER": "x",
-			"AI_GATEWAY_API_KEY":          "x",
+			"AI_PROVIDER_API_KEY":         "x",
 			"EMAIL_PROVIDER_API_KEY":      "x",
 			"POSTHOG_PROJECT_API_KEY":     "x",
 		},
@@ -229,7 +229,7 @@ app:
 auth:
   sessionCookieName: ei_session
 ai:
-  gatewayBaseURL: "https://gateway"
+  providerBaseURL: "https://provider.example"
 async:
   queueWeights:
     critical: 0

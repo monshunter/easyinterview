@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-secrets-pattern lint-observability lint-events lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-secrets-pattern lint-observability lint-events lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -23,13 +23,16 @@ lint-conventions: ## lint-conventions (B1): validate shared/conventions.yaml str
 	@python3 "$(ROOT_DIR)/scripts/lint/conventions_yaml.py" "$(ROOT_DIR)/shared/conventions.yaml"
 	@python3 "$(ROOT_DIR)/scripts/lint/error_codes.py"
 
-lint-config: lint-getenv-boundary lint-env-dict lint-secrets-pattern ## lint-config (A4): env boundary + .env.example drift + secret-pattern scan
+lint-config: lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-secrets-pattern ## lint-config (A4): env boundary + .env.example drift + provider terminology + secret-pattern scan
 
 lint-getenv-boundary: ## Reject os.Getenv usage outside platform/config / platform/secrets / cmd/{api,worker} (spec C-7)
 	@cd "$(ROOT_DIR)" && go run scripts/lint/getenv_boundary.go -root backend
 
 lint-env-dict: ## Verify .env.example, code-side os.Getenv calls, and spec §3.1.1 dictionary stay aligned (spec C-9 / C-11)
 	@python3 "$(ROOT_DIR)/scripts/lint/env_dict.py" --repo-root "$(ROOT_DIR)"
+
+lint-ai-provider-terminology: ## Reject retired AI gateway terminology in active AI provider surfaces
+	@python3 "$(ROOT_DIR)/scripts/lint/ai_provider_terminology.py" --repo-root "$(ROOT_DIR)"
 
 lint-secrets-pattern: ## Scan staged + tracked files for AKIA / sk- / xox secret prefixes (defense-in-depth; pre-commit hook is the primary gate)
 	@bash "$(ROOT_DIR)/scripts/lint/gitleaks.sh" "$(ROOT_DIR)"

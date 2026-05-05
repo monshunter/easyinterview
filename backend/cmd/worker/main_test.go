@@ -18,8 +18,8 @@ auth:
   sessionCookieSecret: ""
   challengeTokenPepper: ""
 ai:
-  gatewayBaseURL: ""
-  gatewayApiKey: ""
+  providerBaseURL: ""
+  providerApiKey: ""
 email:
   provider: ""
   providerApiKey: ""
@@ -51,8 +51,8 @@ featureFlag:
 		"LOG_LEVEL":                   "info",
 		"SESSION_COOKIE_SECRET":       "session-secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
-		"AI_GATEWAY_BASE_URL":         "https://gateway.example",
-		"AI_GATEWAY_API_KEY":          "ai-key",
+		"AI_PROVIDER_BASE_URL":        "https://provider.example",
+		"AI_PROVIDER_API_KEY":         "ai-key",
 		"AI_MODEL_PROFILE_PATH":       "/etc/easyinterview/ai-profiles",
 		"EMAIL_PROVIDER":              "smtp",
 		"EMAIL_PROVIDER_API_KEY":      "email-key",
@@ -70,8 +70,8 @@ featureFlag:
 	if err := loader.Validate(); err != nil {
 		t.Fatalf("Validate with complete prod env: %v", err)
 	}
-	if got := loader.GetSecret("ai.gatewayApiKey").Reveal(); got != "ai-key" {
-		t.Fatalf("worker did not load AI gateway secret; got %q", got)
+	if got := loader.GetSecret("ai.providerApiKey").Reveal(); got != "ai-key" {
+		t.Fatalf("worker did not load AI provider secret; got %q", got)
 	}
 }
 

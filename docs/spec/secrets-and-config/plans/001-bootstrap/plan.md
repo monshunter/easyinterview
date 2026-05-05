@@ -101,7 +101,7 @@ type FeatureFlagClient interface {
 
 #### 3.1 落地 `config/config.yaml` 默认值
 
-按 [secrets-and-config spec §3.1.2](../../spec.md#312-canonical-config-schema-分类) 锁定的 canonical config schema 写入仓库根 `config/config.yaml`（D-1 第一层默认值）。所有 secret 字段（`database.url` / `redis.url` / `objectStorage.accessKey` / `objectStorage.secretKey` / `auth.sessionCookieSecret` / `auth.challengeTokenPepper` / `email.providerApiKey` / `ai.gatewayApiKey` / `featureFlag.posthogProjectApiKey`）必须留空字符串占位，禁止写入真实凭证；明文字段（如 `runtime.appVersion` / `runtime.defaultUiLanguage` / `app.listenAddr` / `featureFlag.source`）写入 spec 默认值。`auth.sessionCookieName` 固定字面量 `ei_session`，与 [ADR-Q1 §3](../../../engineering-roadmap/decisions/ADR-Q1-auth.md#3-决策) 与 spec D-8 一致；`async.queueWeights` 默认 `critical: 6` / `default: 3` / `low: 1`，不提供 env override；本 plan 不允许任何 env key 覆盖 `ei_session`。
+按 [secrets-and-config spec §3.1.2](../../spec.md#312-canonical-config-schema-分类) 锁定的 canonical config schema 写入仓库根 `config/config.yaml`（D-1 第一层默认值）。所有 secret 字段（`database.url` / `redis.url` / `objectStorage.accessKey` / `objectStorage.secretKey` / `auth.sessionCookieSecret` / `auth.challengeTokenPepper` / `email.providerApiKey` / `ai.providerApiKey` / `featureFlag.posthogProjectApiKey`）必须留空字符串占位，禁止写入真实凭证；明文字段（如 `runtime.appVersion` / `runtime.defaultUiLanguage` / `app.listenAddr` / `featureFlag.source`）写入 spec 默认值。`auth.sessionCookieName` 固定字面量 `ei_session`，与 [ADR-Q1 §3](../../../engineering-roadmap/decisions/ADR-Q1-auth.md#3-决策) 与 spec D-8 一致；`async.queueWeights` 默认 `critical: 6` / `default: 3` / `low: 1`，不提供 env override；本 plan 不允许任何 env key 覆盖 `ei_session`。
 
 #### 3.2 落地 `config/{dev,staging,prod}.yaml` 环境 override
 
@@ -109,7 +109,7 @@ type FeatureFlagClient interface {
 
 #### 3.3 落地 `.env.example` 与 24 项 env key 字典
 
-按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典24-项) 写入仓库根 `.env.example`，包含全部 24 项 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `WORKER_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_GATEWAY_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写占位说明（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
+按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典24-项) 写入仓库根 `.env.example`，包含全部 24 项 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `WORKER_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_PROVIDER_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写占位说明（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
 
 #### 3.4 落地 `config/feature-flags.yaml` baseline
 
@@ -150,7 +150,7 @@ type FeatureFlagClient interface {
 
 #### 4.5 Phase 4 自检
 
-构造一份故意越界改动跑 `make lint`：在 `backend/internal/auth/` 添加一行 `os.Getenv("SESSION_COOKIE_SECRET")` → `make lint` 必须失败并报 `os.Getenv outside platform/config`；删除 `.env.example` 中 `AI_GATEWAY_BASE_URL` → `make lint-config` 失败；在临时文件中程序化生成一行形似真实凭证的值并 `git add` → pre-commit hook 拦截。所有自检完成后必须把越界改动 revert，避免污染主分支；文档与 fixture 中不得长期保存命中 secret 正则的样本文本。
+构造一份故意越界改动跑 `make lint`：在 `backend/internal/auth/` 添加一行 `os.Getenv("SESSION_COOKIE_SECRET")` → `make lint` 必须失败并报 `os.Getenv outside platform/config`；删除 `.env.example` 中 `AI_PROVIDER_BASE_URL` → `make lint-config` 失败；在临时文件中程序化生成一行形似真实凭证的值并 `git add` → pre-commit hook 拦截。所有自检完成后必须把越界改动 revert，避免污染主分支；文档与 fixture 中不得长期保存命中 secret 正则的样本文本。
 
 ### Phase 5: `runtime-config` endpoint 接入与前端 fetcher
 
@@ -205,8 +205,8 @@ type FeatureFlagClient interface {
 
 - **C-7（os.Getenv 红线）**：手动构造越界改动验证 `make lint` 失败，验证后立即 revert。
 - **C-8（secrets 红线）**：通过临时文件程序化生成命中 `AKIA*` / `sk-*` / `xox*` 三类正则的假数据并 `git add`，验证 pre-commit hook 拦截、本地 gitleaks 二次拦截，验证后立即 revert；不在文档中保留真实形态样本。
-- **C-9（env 字典覆盖）**：从 `.env.example` 暂时删除 `AI_GATEWAY_BASE_URL`，`make lint-config` 必须失败并指出代码侧已声明但 example 缺失，验证后恢复。
-- **C-10（AI provider fail-fast）**：`APP_ENV=dev` 且加载 AIClient-enabled 组件但缺 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 时进程启动失败；`APP_ENV=test` 仍可走 stub。
+- **C-9（env 字典覆盖）**：从 `.env.example` 暂时删除 `AI_PROVIDER_BASE_URL`，`make lint-config` 必须失败并指出代码侧已声明但 example 缺失，验证后恢复。
+- **C-10（AI provider fail-fast）**：`APP_ENV=dev` 且加载 AIClient-enabled 组件但缺 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 时进程启动失败；`APP_ENV=test` 仍可走 stub。
 - **C-11（schema 分类）**：`make lint-config` 校验 `SESSION_COOKIE_SECRET` 必须 secret 标注、必须不出现在 runtime-config schema；`runtime.defaultUiLanguage` 必须 public 标注、必须出现在 runtime-config schema。任意一侧错位 lint 必须失败。
 
 #### 6.3 AC C-6 部分验证 + handoff
@@ -233,11 +233,11 @@ type FeatureFlagClient interface {
 
 #### 7.1 修复 worker env / secret binding 对齐
 
-针对 L2 review finding R-7.1：`cmd/worker` 必须复用与 `cmd/api` 一致的 env binding / secret binding 规则，确保 prod 环境中已注入的 `SESSION_COOKIE_SECRET` / `AI_GATEWAY_API_KEY` / `POSTHOG_PROJECT_API_KEY` 等 secret 会被 loader 读取，`loader.Validate()` 不再错误报告缺失。新增或调整 focused Go test / smoke 覆盖 worker 在 prod + 完整 env 下启动校验通过。
+针对 L2 review finding R-7.1：`cmd/worker` 必须复用与 `cmd/api` 一致的 env binding / secret binding 规则，确保 prod 环境中已注入的 `SESSION_COOKIE_SECRET` / `AI_PROVIDER_API_KEY` / `POSTHOG_PROJECT_API_KEY` 等 secret 会被 loader 读取，`loader.Validate()` 不再错误报告缺失。新增或调整 focused Go test / smoke 覆盖 worker 在 prod + 完整 env 下启动校验通过。
 
-#### 7.2 修复 AI gateway base URL fail-fast
+#### 7.2 修复 AI provider base URL fail-fast
 
-针对 L2 review finding R-7.2：`validator.go` 必须同时校验 `AI_GATEWAY_BASE_URL` 与 `AI_GATEWAY_API_KEY`。非 test 的 AIClient-enabled 启动路径缺任一字段都必须 fail-fast，并在错误信息中明确列出缺失 env key；`APP_ENV=test` 仍允许缺 AI gateway 配置。
+针对 L2 review finding R-7.2：`validator.go` 必须同时校验 `AI_PROVIDER_BASE_URL` 与 `AI_PROVIDER_API_KEY`。非 test 的 AIClient-enabled 启动路径缺任一字段都必须 fail-fast，并在错误信息中明确列出缺失 env key；`APP_ENV=test` 仍允许缺 AI provider 配置。
 
 #### 7.3 修复 env_dict code-side key 发现
 

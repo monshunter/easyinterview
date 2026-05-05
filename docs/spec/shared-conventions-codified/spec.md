@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-05
 
 ## 1 背景与目标
 
@@ -32,7 +32,7 @@
 - monorepo 名称：`go.mod` module name（拟 `github.com/monshunter/easyinterview/backend`）、`frontend/package.json` name、可选 `pnpm-workspace.yaml`。
 - Lint 规则：`UPPER_SNAKE_CASE` 错误码常量名、`lower_snake_case` 枚举字面量、`camelCase` JSON tag；B1 提供本地可执行的最小校验，A5 只约束本地质量门禁与远端 CI 延后边界。
 - Idempotency-Key 工具：Go 与 TS 双端的 24h TTL 校验 / 生成工具骨架。
-- AI 共享 vocabulary：Model Profile 字段名、`AICallMeta`/GenerationProvenance/`ai_task_runs` 共同消费的 AI meta 字段名常量或生成类型；B1 不实现 `AIClient`、不拥有 `AICallMeta` runtime 结构体，也不定义 `AI_GATEWAY_*` 连接参数语义。
+- AI 共享 vocabulary：Model Profile 字段名、`AICallMeta`/GenerationProvenance/`ai_task_runs` 共同消费的 AI meta 字段名常量或生成类型；B1 不实现 `AIClient`、不拥有 `AICallMeta` runtime 结构体，也不定义 `AI_PROVIDER_*` 连接参数语义。
 - AI vocabulary 生成落点独立于错误码：Go 侧输出到 `backend/internal/shared/ai/`（或同等 B1-owned AI vocabulary 包），TS 侧输出到 `frontend/src/lib/conventions/ai.ts`（或同等文件）；不得把 model profile / AI meta 字段名塞进 `errors/*`。
 
 ### 2.2 Out of Scope
@@ -42,7 +42,7 @@
 - DB 表与 migration：归 B4 `db-migrations-baseline`。
 - 远端 CI 把上述 lint / generator 接到 PR 阶段：当前单人阶段不做；触发多人协作 / 公开 release / 自动发版等条件后再由 A5 `ci-pipeline-baseline` 重新评估。
 - prompt / rubric / model 版本表与 LLM Judge：归 F3 `prompt-rubric-registry`。
-- `AIClient` runtime、Model Profile schema / loader、provider adapter、fallback 消费与 `AI_GATEWAY_*` 连接参数校验：归 A3 / A4 / E4，B1 只提供字段名和错误码真理源。
+- `AIClient` runtime、Model Profile schema / loader、provider adapter、fallback 消费与 `AI_PROVIDER_*` 连接参数校验：归 A3 / A4 / E4，B1 只提供字段名和错误码真理源。
 - 业务域 handler / store / worker（auth / upload / practice / review …）：归 C1–C8。
 
 ## 3 用户决策 / 待确认事项
@@ -58,7 +58,7 @@
 | D-5 | 错误码命名 | `UPPER_SNAKE_CASE`，前缀按 domain：`AUTH_*` / `TARGET_*` / `PRACTICE_*` / `REPORT_*` / `RESUME_*` / `PRIVACY_*` / `AI_*` / `RATE_LIMITED` / `VALIDATION_FAILED` | 任何非前缀错误码必须由本 spec 修订决定；business code 直接 import 常量；A3 已授权 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED` 三个 baseline code |
 | D-6 | 枚举值书写 | `lower_snake_case`；TS 用 union string literal，Go 用 named string + 常量集 | 覆盖 `shared/conventions.yaml` 当前 14 个生成枚举类型；[00-shared-conventions.md §5](../../../easyinterview-tech-docs/00-shared-conventions.md#5-枚举目录) 仅作为历史 seed，不得反向恢复已删除的旧枚举 |
 | D-7 | `ApiError` inner object 归属 | `shared/conventions.yaml#structures.ApiError` 表示错误响应 envelope 内部的 `error` 对象（`code` / `message` / `requestId` / `retryable` / `details`），不表示外层 `{error: ...}` envelope；Go 侧 canonical 类型是手写 `backend/internal/shared/errors.APIError` + generated `errors.AllCodes`，TS 侧 canonical 类型是 generated `frontend/src/lib/conventions.ApiError` | B2 OpenAPI 必须把 wire response body 建模为 `ApiErrorResponse` envelope，并在 envelope 内 `$ref` B1 `ApiError` inner object；不得把 Go 侧误写为 `sharedtypes.ApiError` |
-| D-8 | AI shared vocabulary 归属 | B1 提供 `AI_*` 错误码、Model Profile 字段名、AI meta 字段名常量或生成类型；A3 提供 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 填充与 OpenAI-compatible provider adapter；A4 校验 `AI_GATEWAY_*` 连接参数 | 避免 B1/A3/B4/F1 对同一 AI 字段私造名称；同时避免把运行时或连接配置误下沉到 shared conventions |
+| D-8 | AI shared vocabulary 归属 | B1 提供 `AI_*` 错误码、Model Profile 字段名、AI meta 字段名常量或生成类型；A3 提供 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 填充与 OpenAI-compatible provider adapter；A4 校验 `AI_PROVIDER_*` 连接参数 | 避免 B1/A3/B4/F1 对同一 AI 字段私造名称；同时避免把运行时或连接配置误下沉到 shared conventions |
 | D-9 | 当前 UI 产品范围下的练习 / 报告枚举 | `PracticeMode = assisted / strict / debrief_replay`；`PracticeGoal = baseline / retry_current_round / next_round / debrief`；原 `MistakeStatus` 改为 `QuestionReviewStatus = open / queued_for_retry / resolved` | 对齐 product-scope v1.4 与 `docs/ui-design`：移除热身、单题深钻、反问专练、独立错题本和独立成长中心；报告内部题目回顾与本轮复练仍保留 |
 
 ### 3.2 待确认事项
@@ -95,7 +95,7 @@
 | pnpm workspace | B1 + A2 | B1 锁名称 + workspace.yaml；A2 在 dev stack 中保证可装 |
 | OpenAPI / fixtures | B2 | 引用 B1 的枚举与错误码常量 |
 | 事件 envelope | B3 | 引用 B1 的 `eventName` 命名约束、`eventVersion` 字段 |
-| AI shared vocabulary | B1 + A3 | B1 输出字段名 / 错误码常量；A3 owns Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 与 `AI_GATEWAY_*` 连接参数消费 |
+| AI shared vocabulary | B1 + A3 | B1 输出字段名 / 错误码常量；A3 owns Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 与 `AI_PROVIDER_*` 连接参数消费 |
 | 本地质量门禁 / 未来远端 CI | B1 + A5 | B1 提供本地 lint/config；A5 只记录本地质量门禁与远端 CI 延后条件 |
 
 ## 6 验收标准
@@ -109,7 +109,7 @@
 | C-5 | Lint 拦截违规命名 | 本地提交前引入一个 `auth_unauthorized`（小写）错误码常量 | 跑 `make lint` | B1 本地 lint/config 能报错：错误码必须 `UPPER_SNAKE_CASE`；A5 只约束本地质量门禁与远端 CI 延后边界，不改变规则语义 | 001-bootstrap |
 | C-6 | OpenAPI codegen 复用 B1 | B2 在自己 plan 里生成 OpenAPI types | B2 codegen 完成 | 任何枚举字段直接 import B1 的常量；不出现重复定义 enum 字面量 | B2 自身 plan |
 | C-7 | OpenAPI 错误响应 envelope 复用 B1 inner error | B2 渲染 `components.schemas.ApiError` 与 `components.schemas.ApiErrorResponse` | `make codegen-openapi && make codegen-check` | `ApiError` 只包含 inner error 字段；`ApiErrorResponse.error` `$ref` 到 `ApiError`；Go generated 复用 `sharederrors.APIError`，TS generated 复用 `conventions.ApiError` | openapi-v1-contract/001-bootstrap |
-| C-8 | AI 字段名共享 vocabulary | A3/B4/F1 同时消费 AI meta 字段 | `make codegen-conventions && make codegen-check` | `modelProfileName` / `modelProfileVersion` / `modelFamily` / `fallbackChain` / `route` / `validationStatus` / `outputSchemaVersion` 等字段名由 B1 生成或校验；A3 `AICallMeta` runtime 与 B4 `ai_task_runs` typed columns 使用同一来源；B1 不生成 `AICallMeta` DTO | ai-gateway-and-model-routing spec remediation + db-migrations-baseline remediation |
+| C-8 | AI 字段名共享 vocabulary | A3/B4/F1 同时消费 AI meta 字段 | `make codegen-conventions && make codegen-check` | `modelProfileName` / `modelProfileVersion` / `modelFamily` / `fallbackChain` / `route` / `validationStatus` / `outputSchemaVersion` 等字段名由 B1 生成或校验；A3 `AICallMeta` runtime 与 B4 `ai_task_runs` typed columns 使用同一来源；B1 不生成 `AICallMeta` DTO | ai-provider-and-model-routing spec remediation + db-migrations-baseline remediation |
 
 ## 7 关联计划
 
@@ -122,11 +122,12 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-05 | 1.9 | 同步 A3/A4 AI provider 命名：B1 shared AI vocabulary 与 generated owner-boundary 注释只引用 `AI_PROVIDER_*` 连接参数，不传播旧连接命名。 | ai-provider-and-model-routing/001 remediation |
 | 2026-05-03 | 1.8 | 将 `easyinterview-tech-docs/00` 降级为历史输入，明确当前共享约定以 `shared/conventions.yaml` 与本 spec 为准；新增枚举 / 错误码不再要求先改 00 历史文档。 | docs-only |
 | 2026-05-03 | 1.7 | 对齐 product-scope v1.2 / UI scope：练习入口枚举从旧模式卡片改为会话内 `assisted` / `strict`，复练目标改为 `retry_current_round` / `next_round`，并把旧 `MistakeStatus` 收敛为报告内部 `QuestionReviewStatus`。 | 001-bootstrap remediation |
 | 2026-04-29 | 1.6 | 物化 `002-codegen-pipeline` 为 active：范围限定为 A3 AI vocabulary、跨语言 drift/parity 与本地 codegen-check 接入；F3 prompt bridge 与远端 CI 仅保留 future handoff。 | 002-codegen-pipeline |
 | 2026-04-29 | 1.5 | 按 ADR-Q6 authoritative 边界补齐 AI shared vocabulary：B1 只拥有 `AI_*` 错误码与 Model Profile / AI meta 字段名常量或生成类型；A3 继续拥有 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 与 provider adapter，A4/E4 负责连接参数与 endpoint。 | plan-review remediation |
-| 2026-04-29 | 1.4 | 授权并落地 A3 AI gateway baseline 错误码：`AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED`，作为 `shared/conventions.yaml` 与 Go / TS / OpenAPI codegen 共同消费的唯一真理源；`AICallMeta` 运行时结构仍由 A3 拥有，不进入 B1 共享 DTO。 | ai-gateway-and-model-routing spec remediation |
+| 2026-04-29 | 1.4 | 授权并落地 A3 AI provider baseline 错误码：`AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED`，作为 `shared/conventions.yaml` 与 Go / TS / OpenAPI codegen 共同消费的唯一真理源；`AICallMeta` 运行时结构仍由 A3 拥有，不进入 B1 共享 DTO。 | ai-provider-and-model-routing spec remediation |
 | 2026-04-28 | 1.3 | 明确 `ApiError` 是错误响应 envelope 内部对象；Go canonical 类型为 `backend/internal/shared/errors.APIError`，TS canonical 类型为 generated `conventions.ApiError`，B2 外层 response body 必须另建 `ApiErrorResponse` envelope。 | openapi-v1-contract/001-bootstrap assessment remediation |
 | 2026-04-27 | 1.2 | 对齐 A5 单人开发阶段决策：B1 只要求本地 lint/codegen 质量门禁，远端 CI / PR required check / CI drift detection 不作为当前 P0 前置。 | 001-bootstrap |
 | 2026-04-27 | 1.1 | 回写 `001-bootstrap` 交付复盘确认的 spec-plan 漂移：明确 13 个上游枚举小节对应 14 个生成类型、Go `APIError` 为手写 errors 包类型、TS `ApiError` / `PageInfo` 由 generator 生成，并保持 C-4 Go/TS idempotency 双端验收语义。 | 001-bootstrap |

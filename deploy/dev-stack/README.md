@@ -4,7 +4,7 @@
 > **状态**: active
 > **更新日期**: 2026-04-28
 
-本目录承载 [local-dev-stack/001-bootstrap](../../docs/spec/local-dev-stack/plans/001-bootstrap/plan.md) 的运行时实现。默认 `make dev-up` 只启动 P0 闭环必须的最小依赖与当前仓库已具备本地运行入口的项目组件，**默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI gateway**。
+本目录承载 [local-dev-stack/001-bootstrap](../../docs/spec/local-dev-stack/plans/001-bootstrap/plan.md) 的运行时实现。默认 `make dev-up` 只启动 P0 闭环必须的最小依赖与当前仓库已具备本地运行入口的项目组件，**默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider**。
 
 ## 1 前置条件
 
@@ -42,7 +42,7 @@
 | `easyinterview.dev-stack.host-port=<port>` | host 上暴露的端口（`/healthz` / `/metrics` 拉取入口） |
 | `easyinterview.dev-stack.healthz=/healthz` | HTTP health endpoint 路径 |
 | `easyinterview.dev-stack.metrics=/metrics` | metrics endpoint 路径（声明后强制 curl 非空校验） |
-| `easyinterview.dev-stack.aiclient=true` | 启用 AIClient 的组件，`dev-doctor` 校验 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 已注入；缺失即报 DOWN |
+| `easyinterview.dev-stack.aiclient=true` | 启用 AIClient 的组件，`dev-doctor` 校验 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 已注入；缺失即报 DOWN |
 
 ## 3 命令清单
 
@@ -59,16 +59,16 @@
 
 ## 4 配置
 
-`deploy/dev-stack/.env.example` 列出所有可调字段，字段名与 [secrets-and-config §3.1.1 P0 env 字典](../../docs/spec/secrets-and-config/spec.md#311-p0-必备-env-key-字典) 对齐。`make dev-up` 第一次执行时若 `.env` 不存在会自动从 `.env.example` 复制；`.env` 由根 `.gitignore` 忽略，**真实 `AI_GATEWAY_API_KEY` 不得提交**。
+`deploy/dev-stack/.env.example` 列出所有可调字段，字段名与 [secrets-and-config §3.1.1 P0 env 字典](../../docs/spec/secrets-and-config/spec.md#311-p0-必备-env-key-字典) 对齐。`make dev-up` 第一次执行时若 `.env` 不存在会自动从 `.env.example` 复制；`.env` 由根 `.gitignore` 忽略，**真实 `AI_PROVIDER_API_KEY` 不得提交**。
 
 ### 4.1 AI provider 配置
 
 docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compatible endpoint：
 
-- 必须设置 `AI_GATEWAY_BASE_URL`（任何 OpenAI-compatible URL，例如 `https://api.openai.com/v1`、自托管 vLLM gateway URL 等）。
-- 必须设置 `AI_GATEWAY_API_KEY` 为对应 provider 的真实 key。
+- 必须设置 `AI_PROVIDER_BASE_URL`（任何 OpenAI-compatible URL，例如 `https://api.openai.com/v1`、自托管 vLLM endpoint 等）。
+- 必须设置 `AI_PROVIDER_API_KEY` 为对应 provider 的真实 key。
 - 缺任一字段时启用 AIClient 的组件 fail-fast，`make dev-doctor` 对该组件报 DOWN/DEGRADED 且 reason 指向缺真实 AI provider 配置（C-9）。
-- **不允许** 把本地部署降级到单元测试 stub。stub 仅在 `APP_ENV=test`（单元测试 / 离线契约测试）下使用，由 [A3 ai-gateway-and-model-routing](../../docs/spec/ai-gateway-and-model-routing/spec.md) 承接。
+- **不允许** 把本地部署降级到单元测试 stub。stub 仅在 `APP_ENV=test`（单元测试 / 离线契约测试）下使用，由 [A3 ai-provider-and-model-routing](../../docs/spec/ai-provider-and-model-routing/spec.md) 承接。
 
 ## 5 与场景测试的关系
 
@@ -86,7 +86,7 @@ docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compati
 | MinIO 启动报 `volume not writable` | macOS Docker Desktop 偶发权限缓存问题；`docker volume rm easyinterview-minio-data` 后重新 up |
 | `pgvector` 扩展未启用 | 数据卷是历史遗留时 init 脚本不会重跑：`docker exec easyinterview-postgres-dev psql -U easyinterview -d easyinterview -c "CREATE EXTENSION IF NOT EXISTS vector;"` 或重置卷 |
 | 镜像首次拉取超过 60s healthy 预算 | 先 `make dev-pull` 预热再 `make dev-up`；预算只针对 image 已在本地的稳态 |
-| `make dev-doctor` 对启用 AIClient 的组件报 DOWN | 检查 `.env` 中 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 是否填了真实 provider；勿提交真实 key |
+| `make dev-doctor` 对启用 AIClient 的组件报 DOWN | 检查 `.env` 中 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 是否填了真实 provider；勿提交真实 key |
 | macOS Docker Desktop 端口冲突看似没冲突 | docker-desktop 用 IPv6 监听，纯 IPv4 squatter 不冲突；用 `python3 -c "...AF_INET6 + IPV6_V6ONLY=0..."` 或绑双栈监听才会触发真实冲突 |
 
 ## 7 升级与扩展

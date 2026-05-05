@@ -11,5 +11,5 @@ max_tokens: 1024
 rate_limit:
   rps: 5
   tpm: 60000
-gateway_route: practice.followup
+route: practice.followup
 version: 1.0.0

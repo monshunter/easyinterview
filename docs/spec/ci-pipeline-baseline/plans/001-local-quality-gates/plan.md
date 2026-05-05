@@ -57,7 +57,7 @@
 1. Go 单元测试：`cd backend && go test ./...`。
 2. TS 单元测试：`pnpm --filter @easyinterview/frontend test`。
 
-AI 单元测试必须走 stub / fixtures provider（[B1 spec §2.1](../../../shared-conventions-codified/spec.md#21-in-scope) + [A3 ai-gateway-and-model-routing spec](../../../ai-gateway-and-model-routing/spec.md) 共同约定）；`AI_GATEWAY_*` 真实 secret 不读取，`APP_ENV=test` 路径才允许 stub（spec [§4.2](../../spec.md#42-安全与权限约束)）。
+AI 单元测试必须走 stub / fixtures provider（[B1 spec §2.1](../../../shared-conventions-codified/spec.md#21-in-scope) + [A3 ai-provider-and-model-routing spec](../../../ai-provider-and-model-routing/spec.md) 共同约定）；`AI_PROVIDER_*` 真实 secret 不读取，`APP_ENV=test` 路径才允许 stub（spec [§4.2](../../spec.md#42-安全与权限约束)）。
 
 #### 1.3 `make build` 聚合
 

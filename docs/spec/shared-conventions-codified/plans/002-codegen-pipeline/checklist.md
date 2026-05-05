@@ -10,7 +10,7 @@
 
 - [x] 1.1 在 `shared/conventions.yaml` 增加 `aiVocabulary` 命名空间，至少包含 `model_profile_name` / `model_profile_version` / `model_family` / `model_id` / `fallback_chain` / `route` / `validation_status` / `output_schema_version` / `prompt_version` / `rubric_version` / `language` / `feature_flag` / `data_source_version`；验证: `scripts/lint/conventions_yaml.py` 缺失或非 snake_case AI vocabulary 字段时失败，字段完整时通过
 - [x] 1.2 generator 输出 Go AI vocabulary 到 `backend/internal/shared/ai/`（或等价 B1-owned 包），TS 输出到 `frontend/src/lib/conventions/ai.ts`；不得把 AI meta 字段名放进 `errors/*`；验证: `backend/cmd/codegen/conventions` focused test 断言两个新增输出文件存在且 `errors/*` 不含 AI meta 字段常量
-- [x] 1.3 生成文件注释明确 B1 owns 字段名 / 校验 helper，A3 owns `AIClient` / `AICallMeta` runtime，A4 owns `AI_GATEWAY_*` 连接参数校验，B4/F1 消费字段名；验证: generator test 断言 Go/TS AI generated headers 包含 owner boundary 文案
+- [x] 1.3 生成文件注释明确 B1 owns 字段名 / 校验 helper，A3 owns `AIClient` / `AICallMeta` runtime，A4 owns `AI_PROVIDER_*` 连接参数校验，B4/F1 消费字段名；验证: generator test 断言 Go/TS AI generated headers 包含 owner boundary 文案
 
 ## Phase 2: Cross-language drift 检测增强
 

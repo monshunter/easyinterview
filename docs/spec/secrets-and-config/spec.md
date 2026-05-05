@@ -1,14 +1,14 @@
 # Secrets and Config Spec
 
-> **版本**: 1.9
+> **版本**: 2.0
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-05
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 A4 `secrets-and-config` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 [ADR-Q6](../engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md) 第 4 段「运维注入」与 [ADR-Q3](../engineering-roadmap/decisions/ADR-Q3-analytics-platform.md) 自托管 PostHog 的接入凭证落点，决定了：
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 A4 `secrets-and-config` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 [ADR-Q6](../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md) 第 4 段「运维注入」与 [ADR-Q3](../engineering-roadmap/decisions/ADR-Q3-analytics-platform.md) 自托管 PostHog 的接入凭证落点，决定了：
 
-- 后端 API / Worker / 前端 dev / staging / prod（以及未来需要时的 CI）各类环境如何拿到自己需要的连接串、API key、AI provider / gateway 地址、feature flag 状态；
+- 后端 API / Worker / 前端 dev / staging / prod（以及未来需要时的 CI）各类环境如何拿到自己需要的连接串、API key、AI provider 地址、feature flag 状态；
 - secrets / config 在仓库里如何 layered（默认值、env override、运行时 secret），不被 hardcode；
 - feature flag 如何接入 PostHog 但不让业务代码直接 import PostHog SDK。
 
@@ -81,8 +81,8 @@
 | `LOG_LEVEL` | 是 | `info` | `debug/info/warn/error` | A4 |
 | `SESSION_COOKIE_SECRET` | prod 必填 | `(空，dev 由 init 生成)` | secret；用于 `ei_session` first-party session cookie 签名 / 加密，server-side `sessions` 表仍是会话真理源 | A4（C1 owner，ADR-Q1） |
 | `AUTH_CHALLENGE_TOKEN_PEPPER` | prod 必填 | `(空，dev 由 init 生成)` | secret；用于 magic link challenge token hash pepper，原始 token 不入库 / 不进日志 | A4（C1 owner，ADR-Q1） |
-| `AI_GATEWAY_BASE_URL` | local deploy / staging / prod 必填；unit test 可空 | `(空；仅 `APP_ENV=test` 允许 stub)` | OpenAI-compatible AI provider / gateway 出站 URL；docker compose 与 Kind 本地部署可直连真实 AI provider，生产可指 gateway | A4（A3 owner） |
-| `AI_GATEWAY_API_KEY` | local deploy / staging / prod 必填；unit test 可空 | `(空)` | AI provider / gateway API key；非 test 环境缺失时 fail-fast | A4（A3 owner） |
+| `AI_PROVIDER_BASE_URL` | local deploy / staging / prod 必填；unit test 可空 | `(空；仅 `APP_ENV=test` 允许 stub)` | OpenAI-compatible AI provider 出站 URL；docker compose、Kind、staging 与 prod 均只关心 provider endpoint | A4（A3 owner） |
+| `AI_PROVIDER_API_KEY` | local deploy / staging / prod 必填；unit test 可空 | `(空)` | AI provider API key；非 test 环境缺失时 fail-fast | A4（A3 owner） |
 | `AI_MODEL_PROFILE_PATH` | 是 | `config/ai-profiles/` | Model Profile YAML 目录 | A4（A3 owner） |
 | `FEATURE_FLAG_SOURCE` | 是 | `file` | `file` 或 `posthog` | A4 |
 | `FEATURE_FLAG_FILE_PATH` | 条件 | `config/feature-flags.yaml` | `FEATURE_FLAG_SOURCE=file` 时必填 | A4 |
@@ -110,7 +110,7 @@
 | `auth.sessionCookieName` | `(无 env key；ADR-Q1 固定)` | 否 | fixed literal `ei_session` | 否 | ADR-Q1 + A4 + C1 |
 | `auth.challengeTokenPepper` | `AUTH_CHALLENGE_TOKEN_PEPPER` | 是 | prod required；dev init generated | 否 | A4 + C1 |
 | `email.provider` / `email.providerApiKey` | `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY` | provider 否；apiKey 是 | prod required | 否 | A4 + C1 |
-| `ai.gatewayBaseURL` / `ai.gatewayApiKey` | `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` | baseURL 否；apiKey 是 | local deploy / Kind / staging / prod required when AIClient-enabled component starts；`APP_ENV=test` may use stub | 否 | A4 + A3 |
+| `ai.providerBaseURL` / `ai.providerApiKey` | `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` | baseURL 否；apiKey 是 | local deploy / Kind / staging / prod required when AIClient-enabled component starts；`APP_ENV=test` may use stub | 否 | A4 + A3 |
 | `ai.modelProfilePath` | `AI_MODEL_PROFILE_PATH` | 否 | always | 否 | A4 + A3 |
 | `featureFlag.source` / `featureFlag.filePath` | `FEATURE_FLAG_SOURCE` / `FEATURE_FLAG_FILE_PATH` | 否 | always；filePath required when source=file | 否 | A4 |
 | `featureFlag.posthogHost` / `featureFlag.posthogSelfHosted` | `POSTHOG_HOST` / `POSTHOG_SELF_HOSTED` | 否 | required when source=posthog; staging/prod must self-host | 否 | A4 + F2 |
@@ -157,7 +157,7 @@
 | `frontend/src/lib/runtime-config/` | A4 + D1 | `runtime-config` fetcher 与本地缓存；A4 锁字段，D1 集成 React hooks |
 | `config/*.yaml` 内容 | 各业务 owner 增量 | A4 锁文件位置与 schema，业务字段由各 child 在 spec 修订时新增 |
 | `config/feature-flags.yaml` 字段集 | F2 + 各业务 owner | A4 锁文件位置；当前 6 项 baseline flag 为 `practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`；旧 `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 已按 product-scope v1.2 删除 |
-| AI provider / gateway env keys 默认值 | A3（决策） + A4（落 env 字典） | A3 决定字段名，A4 写进字典；A4 负责非 test 环境缺失 fail-fast |
+| AI provider env keys 默认值 | A3（决策） + A4（落 env 字典） | A3 决定字段名，A4 写进字典；A4 负责非 test 环境缺失 fail-fast |
 | Auth / Email env keys | C1 + A4 | C1 决定字段名（ADR-Q1），A4 写进字典 |
 | 部署侧 secret 注入 | E4 + 运维 | A4 提供接口，E4 提供 K8s Secret / Vault 路径 |
 
@@ -174,8 +174,8 @@
 | C-7 | lint 红线 | 本地改动在 `internal/auth/` 下出现 `os.Getenv("SESSION_COOKIE_SECRET")` | `make lint` | 报错并阻止本地质量门禁通过 | A4 后续 001 |
 | C-8 | secrets 红线 | 本地改动包含一行形似真实凭证的测试样本（例如 `OPENAI_API_KEY=<redacted-test-token>`；测试文件通过临时生成内容触发正则，不在文档中写真实形态） | pre-commit / 本地 gitleaks | hook 拦截，gitleaks 拦截；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | A4 后续 001 |
 | C-12 | Asynq 队列权重配置 | `config/config.yaml` 声明 `async.queueWeights`，dev/staging/prod override 可调整权重 | C8 worker 初始化读取 typed config | 读取到 `critical/default/low` 三档权重，缺失或非正数 fail-fast；不需要新增 env key | A4 后续 001 + C8 |
-| C-9 | env 字典覆盖 | `.env.example` 中缺 `AI_GATEWAY_BASE_URL` | `make lint-config` | 报错：env key 在代码出现但 `.env.example` 缺失 | A4 后续 001 |
-| C-10 | AI provider 本地部署校验 | `APP_ENV=dev` 且启用了需要 AIClient 的 API / worker，但未设置 `AI_GATEWAY_BASE_URL` 或 `AI_GATEWAY_API_KEY` | docker compose / Kind 启动进程 | 进程启动失败并报告缺失真实 AI provider / gateway 配置；`APP_ENV=test` 的单元测试仍可走 stub | A4 后续 001 + A3 + A2 |
+| C-9 | env 字典覆盖 | `.env.example` 中缺 `AI_PROVIDER_BASE_URL` | `make lint-config` | 报错：env key 在代码出现但 `.env.example` 缺失 | A4 后续 001 |
+| C-10 | AI provider 本地部署校验 | `APP_ENV=dev` 且启用了需要 AIClient 的 API / worker，但未设置 `AI_PROVIDER_BASE_URL` 或 `AI_PROVIDER_API_KEY` | docker compose / Kind 启动进程 | 进程启动失败并报告缺失真实 AI provider 配置；`APP_ENV=test` 的单元测试仍可走 stub | A4 后续 001 + A3 + A2 |
 | C-11 | config schema 分类 | `SESSION_COOKIE_SECRET` 标记为 secret，`runtime.defaultUiLanguage` 标记为 public | `make lint-config` / runtime-config schema check | secret 字段缺 redaction 或出现在 runtime-config schema 时失败；public 字段缺 runtime-config schema 时失败 | A4 后续 001 |
 
 ## 7 关联计划

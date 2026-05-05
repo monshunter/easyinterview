@@ -30,4 +30,4 @@
 | Q-3 | 分析平台 | [ADR-Q3-analytics-platform.md](./ADR-Q3-analytics-platform.md) | accepted | 2026-04-26 |
 | Q-4 | 云部署目标 | [ADR-Q4-cloud-deploy-target.md](./ADR-Q4-cloud-deploy-target.md) | accepted | 2026-04-26 |
 | Q-5 | 隐私节奏 | [ADR-Q5-privacy-cadence.md](./ADR-Q5-privacy-cadence.md) | accepted | 2026-04-26 |
-| Q-6 | AI 网关与模型路由 | [ADR-Q6-ai-gateway-and-model-routing.md](./ADR-Q6-ai-gateway-and-model-routing.md) | accepted | 2026-04-26 |
+| Q-6 | AI 网关与模型路由 | [ADR-Q6-ai-provider-and-model-routing.md](./ADR-Q6-ai-provider-and-model-routing.md) | accepted | 2026-04-26 |

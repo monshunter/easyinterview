@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-05](2026-05-05.md) | `fix(ai-provider): remove gateway terminology from provider contract` | #fix #docs #test |
 | [2026-05-05](2026-05-05.md) | `docs(governance): codify deep reconcile workflow` | #docs |
 | [2026-05-05](2026-05-05.md) | `fix(historical-spec): deep reconcile existing plans` | #fix #docs #test |
 | [2026-05-04](2026-05-04.md) | `fix(ci-pipeline): add docs anchor gate` | #fix #docs #test |

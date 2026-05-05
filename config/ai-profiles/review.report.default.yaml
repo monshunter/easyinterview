@@ -11,5 +11,5 @@ max_tokens: 4096
 rate_limit:
   rps: 3
   tpm: 60000
-gateway_route: review.report
+route: review.report
 version: 1.0.0

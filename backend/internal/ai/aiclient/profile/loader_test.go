@@ -26,7 +26,7 @@ max_tokens: 1024
 rate_limit:
   rps: 5
   tpm: 60000
-gateway_route: practice.followup
+route: practice.followup
 version: 1.0.0
 `
 
@@ -66,7 +66,7 @@ func TestLoaderResolvesParsedProfile(t *testing.T) {
 	if p.TimeoutMs != 5000 || p.MaxTokens != 1024 {
 		t.Fatalf("limits not parsed: timeout=%d max=%d", p.TimeoutMs, p.MaxTokens)
 	}
-	if p.GatewayRoute != "practice.followup" || p.Version != "1.0.0" {
+	if p.Route != "practice.followup" || p.Version != "1.0.0" {
 		t.Fatalf("route/version not parsed: %+v", p)
 	}
 }

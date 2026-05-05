@@ -1,24 +1,25 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: ai-gateway-and-model-routing
+  subspec: ai-provider-and-model-routing
   name: 001-aiclient-and-profile-bootstrap
   sequence: 1
   supersedes: []
   specVersion:
     from: null
-    to: 1.7
+    to: 1.8
 spec:
   defaultTarget: backend
   discovery:
     aliases:
-      - ai-gateway-and-model-routing
+      - ai-provider-and-model-routing
       - 001-aiclient-and-profile-bootstrap
       - aiclient
       - model-profile
       - ai-routing
     keywords:
       - ai client
+      - ai provider
       - model profile
       - openai compatible
       - stub provider

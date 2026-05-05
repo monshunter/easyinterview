@@ -15,7 +15,7 @@
 
 ## 2 背景
 
-A3 `ai-gateway-and-model-routing` 需要稳定字段名来对齐 `AICallMeta` runtime、B4 `ai_task_runs` typed columns、F1 metrics/logs 与 B2 `GenerationProvenance`。这些字段名必须由 B1 提供共享 vocabulary，但 B1 不拥有 `AIClient`、Model Profile schema、provider adapter 或连接参数校验。
+A3 `ai-provider-and-model-routing` 需要稳定字段名来对齐 `AICallMeta` runtime、B4 `ai_task_runs` typed columns、F1 metrics/logs 与 B2 `GenerationProvenance`。这些字段名必须由 B1 提供共享 vocabulary，但 B1 不拥有 `AIClient`、Model Profile schema、provider adapter 或连接参数校验。
 
 001-bootstrap 已经完成错误码、枚举、ID、pagination 与 `ApiError`/`PageInfo` 等共享基础。本 plan 只追加 AI vocabulary 与更强 drift/parity 检测，不替换 001 的 generator 入口，不重命名既有 shared lib 路径。
 
@@ -40,7 +40,7 @@ generator 输出 Go 到 `backend/internal/shared/ai/`（或等价 B1-owned AI vo
 
 #### 1.3 A3 / A4 / F1 / B4 handoff 注释
 
-生成文件注释必须声明：B1 owns 字段名 / 校验 helper；A3 owns `AIClient`、Model Profile schema、`AICallMeta` runtime 填充与 provider adapter；A4 owns `AI_GATEWAY_*` 连接参数校验；B4 owns DB columns；F1 owns metric/log consumption。
+生成文件注释必须声明：B1 owns 字段名 / 校验 helper；A3 owns `AIClient`、Model Profile schema、`AICallMeta` runtime 填充与 provider adapter；A4 owns `AI_PROVIDER_*` 连接参数校验；B4 owns DB columns；F1 owns metric/log consumption。
 
 ### Phase 2: Cross-language drift 检测增强
 

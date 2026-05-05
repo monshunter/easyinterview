@@ -47,7 +47,7 @@ Per [A5 spec D-5](./spec/ci-pipeline-baseline/spec.md#31-已锁定决策), remot
 
 Local quality gates **do not read business secrets**:
 
-- AI provider keys (`AI_GATEWAY_*`)
+- AI provider keys (`AI_PROVIDER_*`)
 - Database / Redis / object-storage credentials (`DB_*` / `REDIS_*` / `MINIO_*`)
 - Analytics keys (`POSTHOG_*`)
 - Any secret listed in [`.env.example`](../config/) for production / staging contexts

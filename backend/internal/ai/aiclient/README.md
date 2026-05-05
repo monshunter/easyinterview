@@ -6,8 +6,8 @@ inside the easyinterview backend. This package owns the public Go interface
 Model Profile schema in [`profile/`](./profile/loader.go), and the
 deterministic stub plus OpenAI-compatible adapter in [`providers/`](./providers/).
 
-Spec authority: [docs/spec/ai-gateway-and-model-routing/spec.md](../../../../docs/spec/ai-gateway-and-model-routing/spec.md).
-ADR authority: [docs/spec/engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md](../../../../docs/spec/engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md).
+Spec authority: [docs/spec/ai-provider-and-model-routing/spec.md](../../../../docs/spec/ai-provider-and-model-routing/spec.md).
+ADR authority: [docs/spec/engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md](../../../../docs/spec/engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md).
 
 ## Hard rules
 
@@ -24,9 +24,9 @@ ADR authority: [docs/spec/engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-mo
   permitted (spec §4.3 / D-7). The
   [`observability/privacy_test.go`](./observability/privacy_test.go) holds
   the line.
-- **Fail-fast on missing gateway.** Outside `APP_ENV=test`, missing
-  `AI_GATEWAY_BASE_URL` or `AI_GATEWAY_API_KEY` returns
-  [`ErrMissingGatewayConfig`](./config.go) — never silent stub fallback
+- **Fail-fast on missing provider config.** Outside `APP_ENV=test`, missing
+  `AI_PROVIDER_BASE_URL` or `AI_PROVIDER_API_KEY` returns
+  [`ErrMissingProviderConfig`](./config.go) — never silent stub fallback
   (spec §6 C-9).
 
 ## Stub provider activation matrix
@@ -38,8 +38,8 @@ and refuses to construct.
 | `cfg.AppEnv` | `aiclient.WithStubAllowed` | `stub.WithAppEnv` | `stub.WithAllowed` | Result |
 | --- | --- | --- | --- | --- |
 | `test` | `true` | `test` | — | OK (the standard unit-test setup) |
-| `test` | unset | `test` | — | `aiclient.New` → `ErrMissingGatewayConfig` |
-| `dev`/`staging`/`prod`/`docker compose`/`Kind` | any | any | any | `aiclient.New` → `ErrMissingGatewayConfig` unless real gateway env vars are set |
+| `test` | unset | `test` | — | `aiclient.New` → `ErrMissingProviderConfig` |
+| `dev`/`staging`/`prod`/`docker compose`/`Kind` | any | any | any | `aiclient.New` → `ErrMissingProviderConfig` unless real provider env vars are set |
 | any | any | non-`test` | `true` | OK at the stub layer (only used by integration tests that explicitly opt in) |
 | any | any | non-`test` | `false` | `stub.New` → `ErrNotAllowed` |
 
@@ -50,13 +50,13 @@ are forbidden by the secrets-and-config boundary lint.
 ## Local deployment / smoke verification
 
 Local docker compose, Kind, staging, and prod must point the AIClient at a
-real OpenAI-compatible endpoint (a real LLM provider or a production AI
-gateway). Set both env vars or the process must fail to boot:
+real OpenAI-compatible endpoint. Set both env vars or the process must fail to
+boot:
 
 ```sh
 export APP_ENV=dev
-export AI_GATEWAY_BASE_URL=https://provider.example/v1
-export AI_GATEWAY_API_KEY=sk-...                # NEVER commit
+export AI_PROVIDER_BASE_URL=https://provider.example/v1
+export AI_PROVIDER_API_KEY=sk-...                # NEVER commit
 export AI_MODEL_PROFILE_PATH=$(pwd)/config/ai-profiles
 ```
 
@@ -112,21 +112,21 @@ loader, err := profile.NewLoader(profile.Options{Dir: cfg.AIModelProfilePath})
 if err != nil { return err }
 
 provider, err := openai_compatible.New(openai_compatible.Options{
-    BaseURL: cfg.AIGatewayBaseURL,
-    APIKey:  cfg.AIGatewayAPIKey,
+    BaseURL: cfg.AIProviderBaseURL,
+    APIKey:  cfg.AIProviderAPIKey,
 })
 if err != nil { return err }
 
 inner, err := aiclient.New(aiclient.Config{
     AppEnv:           cfg.AppEnv,
-    GatewayBaseURL:   cfg.AIGatewayBaseURL,
-    GatewayAPIKey:    cfg.AIGatewayAPIKey,
+    ProviderBaseURL:   cfg.AIProviderBaseURL,
+    ProviderAPIKey:    cfg.AIProviderAPIKey,
     ModelProfilePath: cfg.AIModelProfilePath,
 },
     aiclient.WithProfileResolver(loader),
     aiclient.WithProvider(provider),
 )
-if err != nil { return err } // ErrMissingGatewayConfig → non-zero exit
+if err != nil { return err } // ErrMissingProviderConfig → non-zero exit
 
 client, err := observability.New(inner,
     observability.WithRegisterer(prom),

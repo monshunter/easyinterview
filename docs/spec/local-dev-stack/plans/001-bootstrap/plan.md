@@ -32,7 +32,7 @@
 
 #### 1.1 `deploy/dev-stack/docker-compose.yaml`
 
-按 spec D-1..D-4 落地默认最小依赖服务（Postgres+pgvector / Redis / MinIO）以及当前仓库内所有已具备本地运行入口的项目组件。固定 D-2 镜像 tag、D-3 端口、D-7 命名卷与 D-4 `easyinterview-dev` bridge network。compose v2 schema（不写 `version:` 字段）；默认 compose 不预留也不启动 OTel Collector / Grafana / Loki / Prometheus / AI gateway。
+按 spec D-1..D-4 落地默认最小依赖服务（Postgres+pgvector / Redis / MinIO）以及当前仓库内所有已具备本地运行入口的项目组件。固定 D-2 镜像 tag、D-3 端口、D-7 命名卷与 D-4 `easyinterview-dev` bridge network。compose v2 schema（不写 `version:` 字段）；默认 compose 不预留也不启动 OTel Collector / Grafana / Loki / Prometheus / AI provider。
 
 每个服务必须配置容器级 `healthcheck`（间隔 ≤5s，重试 ≥3）：
 
@@ -53,7 +53,7 @@
 
 #### 1.4 dev `.env` 与 config 默认值
 
-`deploy/dev-stack/.env.example` 落地连接串、bucket 名、端口、项目组件 host/port、AI provider / OpenAI-compatible endpoint 的本地默认占位；字段名与 [A4 secrets-and-config spec](../../../secrets-and-config/spec.md) 对齐（如 `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_ENDPOINT` / `OBJECT_STORAGE_BUCKET` / `API_HOST_PORT` / `FRONTEND_HOST_PORT` / `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY`）。`.env`（无 `.example` 后缀）由根 `.gitignore` 忽略；`make dev-up` 第一次运行时若 `.env` 不存在则从 `.env.example` 复制。`AI_GATEWAY_API_KEY` 在 `.env.example` 中只能写占位说明，不能写真实 key。
+`deploy/dev-stack/.env.example` 落地连接串、bucket 名、端口、项目组件 host/port、AI provider / OpenAI-compatible endpoint 的本地默认占位；字段名与 [A4 secrets-and-config spec](../../../secrets-and-config/spec.md) 对齐（如 `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_ENDPOINT` / `OBJECT_STORAGE_BUCKET` / `API_HOST_PORT` / `FRONTEND_HOST_PORT` / `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`）。`.env`（无 `.example` 后缀）由根 `.gitignore` 忽略；`make dev-up` 第一次运行时若 `.env` 不存在则从 `.env.example` 复制。`AI_PROVIDER_API_KEY` 在 `.env.example` 中只能写占位说明，不能写真实 key。
 
 #### 1.5 Phase 1 自检
 
@@ -113,7 +113,7 @@
 - Redis：`redis-cli set __doctor__ ok EX 5` + `get` + `del`。
 - MinIO：`mc ls` 默认 bucket（不存在则报 DEGRADED + reason）。
 
-项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/metrics`，`GET /metrics` 必须返回非空文本。worker 类组件使用容器运行状态 + 最近 50 行日志无启动失败特征作为最小 probe。对启用 AIClient 的组件，doctor 只校验 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 是否注入并报告缺失；不得在 doctor 中调用真实 LLM。
+项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/metrics`，`GET /metrics` 必须返回非空文本。worker 类组件使用容器运行状态 + 最近 50 行日志无启动失败特征作为最小 probe。对启用 AIClient 的组件，doctor 只校验 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 是否注入并报告缺失；不得在 doctor 中调用真实 LLM。
 
 #### 3.3 dev-up gate 接入（C-1）
 
@@ -131,7 +131,7 @@
 
 - 全员 OK 时 `make dev-doctor` JSON 通过 `jq` schema 校验（自动化验证脚本固定 3 个依赖名，并校验项目组件来自 compose），exit 0。
 - 故意 `docker stop redis-dev` 后 `make dev-doctor`：redis 报 DOWN，summary.down=1，exit 1。
-- 删除 `.env` 中 `AI_GATEWAY_BASE_URL` 或 `AI_GATEWAY_API_KEY` 后，启用 AIClient 的组件必须 fail-fast，`make dev-doctor` 对该组件报 DOWN/DEGRADED 且 reason 指向缺真实 AI provider 配置；补齐真实 provider endpoint / key 后恢复。
+- 删除 `.env` 中 `AI_PROVIDER_BASE_URL` 或 `AI_PROVIDER_API_KEY` 后，启用 AIClient 的组件必须 fail-fast，`make dev-doctor` 对该组件报 DOWN/DEGRADED 且 reason 指向缺真实 AI provider 配置；补齐真实 provider endpoint / key 后恢复。
 - §3.4 的端口冲突复现路径手动跑通并贴日志。
 
 ### Phase 4: 指标日志 + 文档 + AC 收口
@@ -154,10 +154,10 @@
 - 项目组件表（component / compose service / host port / health endpoint / metrics endpoint）。
 - `make dev-*` 命令清单与典型用例。
 - 常见故障排查（端口占用 / 卷不可写 / 镜像拉取失败 / pgvector 扩展未启用）。
-- AI provider 配置说明：docker compose 本地部署使用真实 provider / OpenAI-compatible endpoint；`.env.example` 只提供 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` 占位，真实 key 写入被 `.gitignore` 忽略的 `.env`；单元测试 stub 不适用于本地部署。
+- AI provider 配置说明：docker compose 本地部署使用真实 provider / OpenAI-compatible endpoint；`.env.example` 只提供 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位，真实 key 写入被 `.gitignore` 忽略的 `.env`；单元测试 stub 不适用于本地部署。
 - 与 `test/scenarios/`（Kind 路径，归 E2/E4）的双轨说明：本地 docker-compose 走应用 dev，Kind 走场景测试，互不依赖。
 - 资源占用提示（≥ 8GB RAM 推荐）+ 默认依赖镜像总下载体积估算（< 1.5GB，对 spec §4.3 兑现）。
-- 明确默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI gateway。
+- 明确默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider。
 
 #### 4.3 工具版本与 CI 兼容性核对
 
@@ -169,7 +169,7 @@
 收口验证依次跑：
 
 - `make dev-up`（C-1）→ exit 0，`make dev-doctor` summary.ok==summary.total，且 3 个默认依赖均 OK。
-- AI provider 配置校验（C-9）→ 缺 `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` fail-fast，补齐真实 provider endpoint / key 后恢复；全程不启动 AI gateway 容器，不切 stub。
+- AI provider 配置校验（C-9）→ 缺 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` fail-fast，补齐真实 provider endpoint / key 后恢复；全程不启动 AI provider 容器，不切 stub。
 - pgvector SQL probe（C-6）→ 返回 1 行。
 - `/metrics` + `make dev-logs` 验证（C-7）→ 已声明 metrics 的项目组件返回非空指标，容器日志可按服务名查看。
 - `make dev-down` → 卷保留；`make dev-up` 数据完整（C-4 复跑一次）。

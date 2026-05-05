@@ -29,7 +29,7 @@ func chatProfile(timeoutMs int) *aiclient.ModelProfile {
 			Model:    chatModelID,
 		},
 		TimeoutMs:    timeoutMs,
-		GatewayRoute: "practice.followup",
+		Route: "practice.followup",
 		Version:      "1.0.0",
 	}
 }

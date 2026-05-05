@@ -2,7 +2,7 @@
 #
 # Owned by docs/spec/local-dev-stack/plans/001-bootstrap.
 # Default services: Postgres+pgvector, Redis, MinIO + bucket-init.
-# OTel Collector / Grafana / Loki / Prometheus / AI gateway are intentionally
+# OTel Collector / Grafana / Loki / Prometheus / AI provider are intentionally
 # absent (spec D-1..D-9). Project components (backend/api, worker, frontend)
 # are appended here once their owning child plans land a local runtime entry.
 

@@ -1,18 +1,18 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: ai-gateway-and-model-routing
+  subspec: ai-provider-and-model-routing
   name: 002-tools-streaming-and-stt
   sequence: 2
   supersedes: []
   specVersion:
     from: 1.6
-    to: 1.7
+    to: 1.8
 spec:
   defaultTarget: backend
   discovery:
     aliases:
-      - ai-gateway-and-model-routing
+      - ai-provider-and-model-routing
       - 002-tools-streaming-and-stt
       - ai-tools
       - ai-streaming

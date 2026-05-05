@@ -61,7 +61,7 @@ errors:
   - code: RATE_LIMITED
     message: "rate limit exceeded"
     retryable: true
-  # Authorized by ai-gateway-and-model-routing v1.5. These codes are shared so
+  # Authorized by ai-provider-and-model-routing v1.5. These codes are shared so
   # A3, B2, C-domain handlers, and generated clients do not invent local strings.
   - code: AI_PROVIDER_TIMEOUT
     message: "AI provider request timed out"
@@ -243,7 +243,7 @@ structures:
 # AI shared vocabulary (ADR-Q6 / shared-conventions-codified D-8). These are
 # wire-level snake_case field names consumed by A3 AICallMeta runtime, B4 typed
 # columns, F1 logs/metrics, and B2 GenerationProvenance. B1 owns the names and
-# generated helpers only; runtime fill, storage, and gateway config stay outside
+# generated helpers only; runtime fill, storage, and provider config stay outside
 # this file.
 aiVocabulary:
   fields:

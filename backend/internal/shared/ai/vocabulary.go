@@ -6,7 +6,7 @@ package ai
 // Owner boundary:
 // B1 owns field names and validation helpers.
 // A3 owns AIClient, AICallMeta runtime fill, Model Profile schema, and provider adapters.
-// A4 owns AI_GATEWAY_* connection parameter validation.
+// A4 owns AI_PROVIDER_* connection parameter validation.
 // B4 owns typed database columns.
 // F1 owns metrics and log consumption.
 

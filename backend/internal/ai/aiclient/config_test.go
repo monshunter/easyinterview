@@ -18,56 +18,56 @@ func TestNew_FailFastMatrix(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name:    "test-env-stub-allowed-no-gateway-OK",
+			name:    "test-env-stub-allowed-no-provider-config-OK",
 			cfg:     aiclient.Config{AppEnv: aiclient.AppEnvTest},
 			opts:    []aiclient.Option{aiclient.WithStubAllowed(true)},
 			wantErr: nil,
 		},
 		{
-			name:    "test-env-no-stub-no-gateway-FAIL",
+			name:    "test-env-no-stub-no-provider-config-FAIL",
 			cfg:     aiclient.Config{AppEnv: aiclient.AppEnvTest},
 			opts:    nil,
-			wantErr: aiclient.ErrMissingGatewayConfig,
+			wantErr: aiclient.ErrMissingProviderConfig,
 		},
 		{
-			name: "test-env-with-gateway-OK",
+			name: "test-env-with-provider-config-OK",
 			cfg: aiclient.Config{
-				AppEnv:         aiclient.AppEnvTest,
-				GatewayBaseURL: "http://example",
-				GatewayAPIKey:  "k",
+				AppEnv:          aiclient.AppEnvTest,
+				ProviderBaseURL: "http://example",
+				ProviderAPIKey:  "k",
 			},
 			wantErr: nil,
 		},
 		{
-			name:    "production-no-gateway-FAIL",
+			name:    "production-no-provider-config-FAIL",
 			cfg:     aiclient.Config{AppEnv: "production"},
 			opts:    nil,
-			wantErr: aiclient.ErrMissingGatewayConfig,
+			wantErr: aiclient.ErrMissingProviderConfig,
 		},
 		{
-			name:    "production-stub-allowed-no-gateway-still-FAIL",
+			name:    "production-stub-allowed-no-provider-config-still-FAIL",
 			cfg:     aiclient.Config{AppEnv: "production"},
 			opts:    []aiclient.Option{aiclient.WithStubAllowed(true)},
-			wantErr: aiclient.ErrMissingGatewayConfig,
+			wantErr: aiclient.ErrMissingProviderConfig,
 		},
 		{
-			name: "production-with-gateway-OK",
+			name: "production-with-provider-config-OK",
 			cfg: aiclient.Config{
-				AppEnv:         "production",
-				GatewayBaseURL: "http://gateway",
-				GatewayAPIKey:  "k",
+				AppEnv:          "production",
+				ProviderBaseURL: "http://provider.example",
+				ProviderAPIKey:  "k",
 			},
 			wantErr: nil,
 		},
 		{
 			name:    "staging-missing-api-key-FAIL",
-			cfg:     aiclient.Config{AppEnv: "staging", GatewayBaseURL: "http://gw"},
-			wantErr: aiclient.ErrMissingGatewayConfig,
+			cfg:     aiclient.Config{AppEnv: "staging", ProviderBaseURL: "http://gw"},
+			wantErr: aiclient.ErrMissingProviderConfig,
 		},
 		{
 			name:    "staging-missing-base-url-FAIL",
-			cfg:     aiclient.Config{AppEnv: "staging", GatewayAPIKey: "k"},
-			wantErr: aiclient.ErrMissingGatewayConfig,
+			cfg:     aiclient.Config{AppEnv: "staging", ProviderAPIKey: "k"},
+			wantErr: aiclient.ErrMissingProviderConfig,
 		},
 	}
 	for _, tc := range cases {

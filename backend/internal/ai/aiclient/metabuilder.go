@@ -28,7 +28,7 @@ func (b metaBuilder) merge(profile *ModelProfile, callMeta CallMetadata, partial
 		out.ModelID = profile.Default.Model
 	}
 	if out.Route == "" {
-		out.Route = profile.GatewayRoute
+		out.Route = profile.Route
 	}
 	if len(out.FallbackChain) == 0 {
 		out.FallbackChain = []string{profile.Default.Provider}

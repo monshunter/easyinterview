@@ -6,7 +6,7 @@ type requestIDKey struct{}
 
 // WithRequestID stores a request id on the context. The
 // openai_compatible adapter passes the value verbatim in the X-Request-ID
-// header so an upstream gateway can correlate logs end-to-end. Callers that
+// header so an upstream provider endpoint can correlate logs end-to-end. Callers that
 // already use middleware-stamped request ids should call this helper at the
 // boundary where the request id is set.
 func WithRequestID(ctx context.Context, id string) context.Context {

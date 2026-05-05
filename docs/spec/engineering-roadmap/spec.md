@@ -1,8 +1,8 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.0
+> **版本**: 3.1
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-05
 
 ## 1 背景与目标
 
@@ -110,7 +110,7 @@
 | 顶层 | - | `engineering-roadmap` | 当前实施地图、依赖顺序和文档治理 | 保留 |
 | Foundation | A1 | `repo-scaffold` | 仓库骨架、根 Makefile、hook 基础 | 保留 |
 | Foundation | A2 | `local-dev-stack` | 本地 dev stack、dev doctor、端口与健康检查契约 | 保留 |
-| Foundation | A3 | `ai-gateway-and-model-routing` | AIClient、model profile、OpenAI-compatible endpoint、stub provider | 保留 |
+| Foundation | A3 | `ai-provider-and-model-routing` | AIClient、model profile、OpenAI-compatible endpoint、stub provider | 保留 |
 | Foundation | A4 | `secrets-and-config` | 配置、secret、feature flag、runtime config 边界 | 保留 |
 | Foundation | A5 | `ci-pipeline-baseline` | 当前本地质量门禁，远端 CI deferred | 保留 |
 | Contract | B1 | `shared-conventions-codified` | Go/TS 共享枚举、错误码、ID、codegen / drift gate | 保留 |
@@ -179,7 +179,7 @@
 1. D2-D6 各自 integration plan 切真 API。
 2. `e2e-scenarios-p0` 覆盖导入 -> 规划 -> 练习 -> 报告 -> 复练当前轮 / 下一轮 -> 真实复盘。
 3. `analytics-funnel` 对齐当前产品漏斗，不恢复错题或成长独立漏斗。
-4. `release-gate-and-rollout` 验证 SLO、rollback、AI gateway 可观测、删除 SLA、audit 和导出延后例外。
+4. `release-gate-and-rollout` 验证 SLO、rollback、AI provider 可观测、删除 SLA、audit 和导出延后例外。
 
 ### 6.5 S4 · Future staged capabilities
 

@@ -132,10 +132,10 @@ probe_app() {
     *) emit "$service" app DOWN "container state=$state"; return ;;
   esac
   if [ "$(label_value "$container" "$AICLIENT_LABEL")" = "true" ]; then
-    base=$(env_value "$container" AI_GATEWAY_BASE_URL)
-    key=$(env_value "$container" AI_GATEWAY_API_KEY)
+    base=$(env_value "$container" AI_PROVIDER_BASE_URL)
+    key=$(env_value "$container" AI_PROVIDER_API_KEY)
     if [ -z "$base" ] || [ -z "$key" ]; then
-      emit "$service" app DOWN "missing real AI provider config: AI_GATEWAY_BASE_URL=${base:+set}${base:-empty} AI_GATEWAY_API_KEY=${key:+set}${key:-empty}"; return
+      emit "$service" app DOWN "missing real AI provider config: AI_PROVIDER_BASE_URL=${base:+set}${base:-empty} AI_PROVIDER_API_KEY=${key:+set}${key:-empty}"; return
     fi
   fi
   port=$(label_value "$container" "$HOSTPORT_LABEL")

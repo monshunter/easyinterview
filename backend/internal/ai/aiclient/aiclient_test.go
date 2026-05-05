@@ -207,9 +207,9 @@ func TestStream_DoneEventAndChannelClose(t *testing.T) {
 	}
 }
 
-func TestNew_ProductionWithoutGatewayConfigFails(t *testing.T) {
+func TestNew_ProductionWithoutProviderConfigFails(t *testing.T) {
 	_, err := aiclient.New(aiclient.Config{AppEnv: "production"})
-	if !errors.Is(err, aiclient.ErrMissingGatewayConfig) {
-		t.Fatalf("expected ErrMissingGatewayConfig, got %v", err)
+	if !errors.Is(err, aiclient.ErrMissingProviderConfig) {
+		t.Fatalf("expected ErrMissingProviderConfig, got %v", err)
 	}
 }

@@ -3,7 +3,7 @@
 // mock-contract-suite. The handler covers chat completions, embeddings,
 // timeout simulation, 5xx errors, and fallback header injection so plan
 // 001 can validate every meta-mapping path without standing up a real
-// gateway.
+// provider endpoint.
 //
 // Plan 001 freezes the helper interface — E1 may compose new fixtures on
 // top, but field-level breaking changes here require a spec or plan revision.

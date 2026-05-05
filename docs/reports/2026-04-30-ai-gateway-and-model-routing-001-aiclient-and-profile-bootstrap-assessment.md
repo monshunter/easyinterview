@@ -3,11 +3,11 @@
 > **日期**: 2026-04-30
 > **审查人**: Claude Opus 4.7
 
-**关联计划**: [docs/spec/ai-gateway-and-model-routing/plans/001-aiclient-and-profile-bootstrap/plan.md](../spec/ai-gateway-and-model-routing/plans/001-aiclient-and-profile-bootstrap/plan.md)
+**关联计划**: [docs/spec/ai-gateway-and-model-routing/plans/001-aiclient-and-profile-bootstrap/plan.md](../spec/ai-provider-and-model-routing/plans/001-aiclient-and-profile-bootstrap/plan.md)
 
 ## 1 复盘范围与成功证据
 
-本次交付收口 [ai-gateway-and-model-routing spec §6](../spec/ai-gateway-and-model-routing/spec.md#6-验收标准) Plan 001 全部 5 个 Phase / 17 个 checklist item，落地 `backend/internal/ai/aiclient/` 完整 Go 包：
+本次交付收口 [ai-gateway-and-model-routing spec §6](../spec/ai-provider-and-model-routing/spec.md#6-验收标准) Plan 001 全部 5 个 Phase / 17 个 checklist item，落地 `backend/internal/ai/aiclient/` 完整 Go 包：
 
 - AIClient interface（`Complete` / `Embed` / `Stream` 三方法）+ `AICallMeta` 17 字段固定顺序 + `metaBuilder`
 - 两个 Provider：`stub`（deterministic + APP_ENV 显式注入门）+ `openai_compatible`（纯 net/http + encoding/json，零厂商 SDK）

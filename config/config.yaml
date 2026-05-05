@@ -46,8 +46,8 @@ email:
   providerApiKey: ""
 
 ai:
-  gatewayBaseURL: ""
-  gatewayApiKey: ""
+  providerBaseURL: ""
+  providerApiKey: ""
   modelProfilePath: "config/ai-profiles/"
 
 featureFlag:

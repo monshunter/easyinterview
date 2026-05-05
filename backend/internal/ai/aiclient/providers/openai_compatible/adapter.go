@@ -25,8 +25,8 @@ const (
 	PathEmbeddings      = "/v1/embeddings"
 )
 
-// Header names used for fallback/route metadata. The gateway populates
-// these on responses; A3 client only reads them.
+// Header names used for fallback/route metadata. The provider endpoint
+// populates these on responses; A3 client only reads them.
 const (
 	HeaderRequestID    = "X-Request-ID"
 	HeaderFallbackFrom = "X-Fallback-From"
@@ -268,8 +268,8 @@ func mergeFallbackHeaders(profile *aiclient.ModelProfile, headers http.Header, m
 	}
 	if route := headers.Get(HeaderRoute); route != "" {
 		meta.Route = route
-	} else if profile != nil && profile.GatewayRoute != "" {
-		meta.Route = profile.GatewayRoute
+	} else if profile != nil && profile.Route != "" {
+		meta.Route = profile.Route
 	}
 	from := headers.Get(HeaderFallbackFrom)
 	to := headers.Get(HeaderFallbackTo)

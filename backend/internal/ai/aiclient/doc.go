@@ -3,7 +3,7 @@
 //
 // Business code MUST depend on this package only — never on a vendor SDK such
 // as openai-go, anthropic-sdk-go, cohere-go, or generative-ai-go. ADR-Q6 §3.1
-// and the AI gateway spec §6 (C-2) treat any vendor SDK import inside
+// and the AI provider spec §6 (C-2) treat any vendor SDK import inside
 // backend/ as a hard violation.
 //
 // AICallMeta is owned by this package; callers receive it as the second

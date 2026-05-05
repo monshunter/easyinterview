@@ -26,11 +26,11 @@ type Client struct {
 // New builds a Client. Spec D-4 / plan 4.1 fail-fast rules:
 //
 //   - cfg.AppEnv == "test" + WithStubAllowed(true): success regardless of
-//     gateway config (single-process unit / contract tests).
+//     provider config (single-process unit / contract tests).
 //   - cfg.AppEnv == "test" without WithStubAllowed and missing
-//     GatewayBaseURL/APIKey: ErrMissingGatewayConfig.
-//   - cfg.AppEnv != "test" with missing GatewayBaseURL or GatewayAPIKey:
-//     ErrMissingGatewayConfig regardless of WithStubAllowed; non-test
+//     ProviderBaseURL/APIKey: ErrMissingProviderConfig.
+//   - cfg.AppEnv != "test" with missing ProviderBaseURL or ProviderAPIKey:
+//     ErrMissingProviderConfig regardless of WithStubAllowed; non-test
 //     deployments must point at a real OpenAI-compatible endpoint.
 func New(cfg Config, opts ...Option) (*Client, error) {
 	o := &clientOptions{
@@ -41,12 +41,12 @@ func New(cfg Config, opts ...Option) (*Client, error) {
 	}
 
 	if cfg.AppEnv == AppEnvTest {
-		if !o.stubAllowed && (cfg.GatewayBaseURL == "" || cfg.GatewayAPIKey == "") {
-			return nil, ErrMissingGatewayConfig
+		if !o.stubAllowed && (cfg.ProviderBaseURL == "" || cfg.ProviderAPIKey == "") {
+			return nil, ErrMissingProviderConfig
 		}
 	} else {
-		if cfg.GatewayBaseURL == "" || cfg.GatewayAPIKey == "" {
-			return nil, ErrMissingGatewayConfig
+		if cfg.ProviderBaseURL == "" || cfg.ProviderAPIKey == "" {
+			return nil, ErrMissingProviderConfig
 		}
 	}
 

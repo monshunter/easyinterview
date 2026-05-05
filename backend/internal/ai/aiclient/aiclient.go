@@ -28,8 +28,8 @@ type AIClient interface {
 // A Provider receives the resolved *ModelProfile so it can translate the
 // profile into the on-the-wire request without re-resolving by name.
 // Providers MUST fill at minimum Provider, ModelFamily, ModelID, InputTokens,
-// OutputTokens, and any FallbackChain entries reported by the upstream
-// gateway. The Client's metaBuilder fills the remaining profile- and
+// OutputTokens, and any FallbackChain entries reported by the provider
+// endpoint. The Client's metaBuilder fills the remaining profile- and
 // metadata-derived fields.
 type Provider interface {
 	Name() string

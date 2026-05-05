@@ -6,11 +6,11 @@
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 F3 `prompt-rubric-registry` 保留为当前 active Quality / AI Governance spec（依赖 [A3 `ai-gateway-and-model-routing`](./../ai-gateway-and-model-routing/spec.md) 与 [B4 `db-migrations-baseline`](./../db-migrations-baseline/spec.md)）。它从 [01-technical-architecture.md §10.1 Prompt Registry / Rubric Registry / Context Builder](../../../easyinterview-tech-docs/01-technical-architecture.md#10-ai-编排层设计) 与 [03-db-definition.md §5.8 prompt_versions / rubric_versions / ai_task_runs](../../../easyinterview-tech-docs/03-db-definition.md) 的有效历史 seed 中收敛当前 AI 调用上下文的版本管理层。
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 F3 `prompt-rubric-registry` 保留为当前 active Quality / AI Governance spec（依赖 [A3 `ai-provider-and-model-routing`](./../ai-provider-and-model-routing/spec.md) 与 [B4 `db-migrations-baseline`](./../db-migrations-baseline/spec.md)）。它从 [01-technical-architecture.md §10.1 Prompt Registry / Rubric Registry / Context Builder](../../../easyinterview-tech-docs/01-technical-architecture.md#10-ai-编排层设计) 与 [03-db-definition.md §5.8 prompt_versions / rubric_versions / ai_task_runs](../../../easyinterview-tech-docs/03-db-definition.md) 的有效历史 seed 中收敛当前 AI 调用上下文的版本管理层。
 
 `easyinterview-tech-docs/01` 与 `03` 只保留为历史 prompt / rubric / DB 输入。当前 feature_key、prompt/rubric 坐标与 AI task 命名空间由本 spec、product-scope v1.4、B4 与后续 `config/prompts` / `config/rubrics` 编码 truth source 决定；独立 `mistake.extract`、旧错题本与旧 Growth 相关 prompt 不得作为 baseline 恢复。
 
-[ADR-Q6 §3.6](../engineering-roadmap/decisions/ADR-Q6-ai-gateway-and-model-routing.md) 已锁定：F3 只持有 `(feature_key, prompt_version, rubric_version, model_profile_name)` 四元组，不持有 provider / model 字符串（后者归 A3 Model Profile）。
+[ADR-Q6 §3.6](../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md) 已锁定：F3 只持有 `(feature_key, prompt_version, rubric_version, model_profile_name)` 四元组，不持有 provider / model 字符串（后者归 A3 Model Profile）。
 
 本 spec 历史上由 `engineering-roadmap/001-decompose-subspecs` 的 contract lock 创建；当前执行口径是固定 baseline prompt/rubric 的命名空间、文件落点、`feature_key + version` 坐标与 Resolve 调用契约。真实 baseline prompt / rubric 文件、loader 与 lint 由 F3 后续 plan 验证；未通过前，后续业务域不得 hardcode prompt 文本，也不得启动依赖 F3 的 AI 调用 implementation。
 
@@ -21,7 +21,7 @@
 3. **评估升级路径**：F3 后续切到真实 Model Profile + 落地 ≥ 50 题离线评估集（不在本 spec 范围，但本 spec 锁接口）。
 4. **LLM Judge 接口**：本 spec 锁定 LLM Judge 后续接入的契约（不实现），让评估闭环由后续 plan 承接。
 
-本 spec 不实现具体业务调用现场（归各 C 域）、不实现 AIClient（归 [A3](./../ai-gateway-and-model-routing/spec.md)）、不实现 DB 表（归 B4）。
+本 spec 不实现具体业务调用现场（归各 C 域）、不实现 AIClient（归 [A3](./../ai-provider-and-model-routing/spec.md)）、不实现 DB 表（归 B4）。
 
 ## 2 范围
 
@@ -43,7 +43,7 @@
 
 ### 2.2 Out of Scope
 
-- AI 调用本身：归 [A3](./../ai-gateway-and-model-routing/spec.md)。
+- AI 调用本身：归 [A3](./../ai-provider-and-model-routing/spec.md)。
 - 业务调用现场（C4-C7 / C9 / C11 在哪一行调用）：归各 C 域。
 - LLM Judge 实现：归 F3 后续评估 plan。
 - 离线评估集 ≥ 50 题：归 F3 后续评估 plan，并在相关 backend / release workstream 进入实现前重新确认。

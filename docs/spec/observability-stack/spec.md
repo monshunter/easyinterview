@@ -41,7 +41,7 @@
 
 - 产品分析事件 / 漏斗：归 [F2](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)。
 - 业务域具体指标埋点（如 `target_import_requests_total`）：归各 C 域。
-- AI 调用观测埋点：归 [A3 AIClient](./../ai-gateway-and-model-routing/spec.md) 内置，本 spec 仅锁 metric 命名。
+- AI 调用观测埋点：归 [A3 AIClient](./../ai-provider-and-model-routing/spec.md) 内置，本 spec 仅锁 metric 命名。
 - 生产 OTel Collector / Prometheus / Loki / Grafana 部署 chart：归 E4 + 运维。
 - LLM Judge / 离线评估：归 [F3](./../prompt-rubric-registry/spec.md)。
 - DB 表本身（`audit_events` / `ai_task_runs`）：归 B4。
