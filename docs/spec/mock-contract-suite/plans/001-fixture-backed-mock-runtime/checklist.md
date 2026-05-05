@@ -1,7 +1,7 @@
 # Fixture-backed Mock Runtime Checklist
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-05
 
 **关联计划**: [plan](./plan.md)
@@ -23,5 +23,5 @@
 
 ## Phase 4: Drift gates and handoff
 
-- [ ] 4.1 接入本地质量门禁；验证: 本地 lint/codegen gate 执行 fixture coverage、prototype import boundary 和 scoped retired token negative search，失败时输出 owner spec 指引；收口实际运行 `make validate-fixtures`、`make lint-openapi`、`make codegen-check`、`make docs-check`
-- [ ] 4.2 Handoff 给 frontend-shell；验证: `frontend-shell/001-app-shell-auth-settings` context references 可指向本 spec，mock runtime README 或 package docs 说明可消费入口、seed profile 和阻塞条件
+- [x] 4.1 接入本地质量门禁；验证: 本地 lint/codegen gate 执行 fixture coverage、prototype import boundary 和 scoped retired token negative search，失败时输出 owner spec 指引；收口实际运行 `make validate-fixtures`、`make lint-openapi`、`make codegen-check`、`make docs-check`
+- [x] 4.2 Handoff 给 frontend-shell；验证: `frontend-shell/001-app-shell-auth-settings` context references 可指向本 spec，mock runtime README 或 package docs 说明可消费入口、seed profile 和阻塞条件

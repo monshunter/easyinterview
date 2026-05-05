@@ -70,6 +70,19 @@ class MockRuntimeBoundaryTest(unittest.TestCase):
         self.assertIn("getMe", out.stderr + out.stdout)
         self.assertIn("statusTone", out.stderr + out.stdout)
 
+    def test_scoped_retired_contract_token_fails_with_owner_hint(self) -> None:
+        rel = "openapi/fixtures/Auth/getRuntimeConfig.json"
+        path = self.repo / rel
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["scenarios"]["default"]["response"]["body"]["featureFlags"]["ai.gateway_route"] = True
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+        out = _run_lint(self.repo)
+
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("ai.gateway", out.stderr + out.stdout)
+        self.assertIn("docs/spec/mock-contract-suite/spec.md", out.stderr + out.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

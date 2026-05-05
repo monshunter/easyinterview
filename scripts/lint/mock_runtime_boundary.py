@@ -26,6 +26,29 @@ PROTOTYPE_ONLY_RESPONSE_FIELDS = {
     "qIdx",
     "t",
 }
+OWNER_SPEC_HINT = "docs/spec/mock-contract-suite/spec.md"
+RETIRED_CONTRACT_TOKENS = (
+    "/mistakes",
+    "/growth",
+    "/drill",
+    "/voice",
+    "Mistakes",
+    "Growth",
+    "Drill",
+    "Voice",
+    "single_drill",
+    "gateway_route",
+    "ai.gateway",
+    "default.provider",
+    "task_type",
+)
+RETIRED_TOKEN_SCAN_ROOTS = (
+    "openapi/fixtures",
+    "frontend/src/api",
+    "backend/internal/api/mockruntime",
+    "openapi/templates/ts/client.tmpl",
+)
+RETIRED_TOKEN_EXTENSIONS = {".go", ".ts", ".json", ".tmpl"}
 
 
 def lint(repo_root: Path) -> list[str]:
@@ -33,6 +56,7 @@ def lint(repo_root: Path) -> list[str]:
     errors: list[str] = []
     errors.extend(_lint_frontend_imports(repo_root))
     errors.extend(_lint_fixture_response_fields(repo_root))
+    errors.extend(_lint_retired_contract_tokens(repo_root))
     return errors
 
 
@@ -70,6 +94,33 @@ def _lint_fixture_response_fields(repo_root: Path) -> list[str]:
                         f"{key_path}: prototype-only display field {key!r} is forbidden"
                     )
     return errors
+
+
+def _lint_retired_contract_tokens(repo_root: Path) -> list[str]:
+    errors: list[str] = []
+    for path in _retired_scan_files(repo_root):
+        text = path.read_text(encoding="utf-8")
+        for token in RETIRED_CONTRACT_TOKENS:
+            if token in text:
+                errors.append(
+                    f"{path.relative_to(repo_root)}: retired mock/API token {token!r} is forbidden; "
+                    f"owner spec: {OWNER_SPEC_HINT}"
+                )
+    return errors
+
+
+def _retired_scan_files(repo_root: Path) -> Iterable[Path]:
+    for rel in RETIRED_TOKEN_SCAN_ROOTS:
+        path = repo_root / rel
+        if path.is_file():
+            if path.suffix in RETIRED_TOKEN_EXTENSIONS:
+                yield path
+            continue
+        if not path.is_dir():
+            continue
+        for child in sorted(p for p in path.rglob("*") if p.is_file()):
+            if child.suffix in RETIRED_TOKEN_EXTENSIONS:
+                yield child
 
 
 def _walk_keys(value: Any, prefix: str = "") -> Iterable[tuple[str, str]]:

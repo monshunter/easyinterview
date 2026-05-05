@@ -107,6 +107,17 @@ class MakefileDryRunTest(unittest.TestCase):
             msg="top-level lint must run the A3/F3/Product-UI profile coverage gate",
         )
 
+    def test_lint_wires_mock_contract_gate(self):
+        makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+
+        self.assertIn("lint-mock-contract", makefile)
+        self.assertIn("scripts/lint/mock_runtime_boundary.py", makefile)
+        self.assertRegex(
+            makefile,
+            r"lint: .*lint-mock-contract",
+            msg="top-level lint must run the mock contract runtime boundary gate",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

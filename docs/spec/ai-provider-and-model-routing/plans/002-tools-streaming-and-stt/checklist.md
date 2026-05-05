@@ -45,4 +45,4 @@
 - [ ] 6.1 spec §6 AC 表为每个被激活 phase 追加 ≥ 1 条 AC（含正常 / 错误 / 隐私 / 观测）；验证: AC 行引用本 plan 与被激活 capability，`make docs-check` 通过
 - [ ] 6.2 单测 + 离线契约测试覆盖被激活的 tool / streaming / STT 协议子集；验证: `cd backend && go test ./internal/ai/aiclient/... -count=1`、新增 focused tests 与 adapter contract tests 均通过
 - [ ] 6.3 本地部署 + Kind 场景端到端 smoke 通过，无明文泄漏，埋点齐全；验证: 按 `test/scenarios/README.md` 与 active suite README 执行 smoke，记录真实 provider registry/profile/secret 组合，privacy grep 无明文
-- [ ] 6.4 active-scope 旧口径负向搜索通过；验证: 搜索确认代码、配置、deploy、generated artifacts 与 active docs 不含 `task_type`、`default.provider`、`config/ai-profiles/` 运行时 truth source、旧 AI gateway 术语、独立 `voice` route、独立 Mistakes / Growth / Drill 口径（历史 work journal / reports / bugs 只读例外）
+- [ ] 6.4 active-scope 旧口径负向搜索通过；验证: 搜索确认代码、配置、deploy、generated artifacts 与 active docs 不含 `task_type`、`default.provider`、`config/ai-profiles/` 运行时 truth source、retired AI provider-route 术语、独立 `voice` route、独立 Mistakes / Growth / Drill 口径（历史 work journal / reports / bugs 只读例外）
