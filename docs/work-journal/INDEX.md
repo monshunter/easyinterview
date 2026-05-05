@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-05](2026-05-05.md) | `feat(ai-provider): integrate provider registry contract gates` | #feat #test #docs |
 | [2026-05-05](2026-05-05.md) | `feat(ai-provider): route capability profiles with fallback` | #feat #test #docs |
 | [2026-05-05](2026-05-05.md) | `feat(ai-provider): capability-scoped model profiles` | #feat #test #docs |
 | [2026-05-05](2026-05-05.md) | `feat(ai-provider): provider registry schema and loader` | #feat #test #docs |

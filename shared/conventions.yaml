@@ -73,6 +73,12 @@ errors:
   - code: AI_UNSUPPORTED_CAPABILITY
     message: "AI capability is not supported"
     retryable: false
+  - code: AI_PROVIDER_CONFIG_INVALID
+    message: "AI provider registry or model profile configuration is invalid"
+    retryable: false
+  - code: AI_PROVIDER_SECRET_MISSING
+    message: "AI provider secret is missing"
+    retryable: false
 
 # Async Job statuses.
 jobStatuses:
@@ -247,9 +253,42 @@ structures:
 # generated helpers only; runtime fill, storage, and provider config stay outside
 # this file.
 aiVocabulary:
+  capabilities:
+    - chat
+    - embed
+    - stt
+    - realtime
+    - rerank
+    - judge
+  providerRegistryFields:
+    - name: name
+    - name: protocol
+    - name: base_url_env
+    - name: api_key_env
+    - name: capabilities
+    - name: version
+  modelProfileFields:
+    - name: name
+    - name: capability
+    - name: status
+    - name: unsupported_reason
+    - name: default
+    - name: provider_ref
+    - name: model
+    - name: params
+    - name: fallback
+    - name: when
+    - name: timeout_ms
+    - name: max_tokens
+    - name: rate_limit
+    - name: route
+    - name: version
+    - name: privacy_policy
   fields:
     - name: model_profile_name
     - name: model_profile_version
+    - name: provider
+    - name: capability
     - name: model_family
     - name: model_id
     - name: fallback_chain
@@ -261,3 +300,7 @@ aiVocabulary:
     - name: language
     - name: feature_flag
     - name: data_source_version
+    - name: from_provider
+    - name: from_model_family
+    - name: to_provider
+    - name: to_model_family

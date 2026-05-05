@@ -17,6 +17,10 @@ import {
   ALL_PRIVACY_REQUEST_STATUSES,
   ALL_ERROR_CODES,
   ERROR_CODES,
+  ALL_AI_CAPABILITIES,
+  AI_CAPABILITIES,
+  ALL_AI_PROVIDER_REGISTRY_FIELDS,
+  ALL_AI_MODEL_PROFILE_FIELDS,
   ALL_AI_VOCABULARY_FIELDS,
   type ApiError,
   type PageInfo,
@@ -25,6 +29,9 @@ import {
 interface ParityFixture {
   enums: Record<string, readonly string[]>;
   errorCodes: readonly string[];
+  aiCapabilities: readonly string[];
+  aiProviderRegistryFields: readonly string[];
+  aiModelProfileFields: readonly string[];
   aiVocabularyFields: readonly string[];
   serialization: {
     pageInfo: Record<string, unknown>;
@@ -62,9 +69,16 @@ describe('cross-language conventions parity fixture', () => {
     expect(ERROR_CODES.AI_PROVIDER_TIMEOUT).toBe('AI_PROVIDER_TIMEOUT');
     expect(ERROR_CODES.AI_OUTPUT_INVALID).toBe('AI_OUTPUT_INVALID');
     expect(ERROR_CODES.AI_FALLBACK_EXHAUSTED).toBe('AI_FALLBACK_EXHAUSTED');
+    expect(ERROR_CODES.AI_UNSUPPORTED_CAPABILITY).toBe('AI_UNSUPPORTED_CAPABILITY');
+    expect(ERROR_CODES.AI_PROVIDER_CONFIG_INVALID).toBe('AI_PROVIDER_CONFIG_INVALID');
+    expect(ERROR_CODES.AI_PROVIDER_SECRET_MISSING).toBe('AI_PROVIDER_SECRET_MISSING');
   });
 
   it('matches AI vocabulary fields', () => {
+    expect(ALL_AI_CAPABILITIES).toEqual(parity.aiCapabilities);
+    expect(AI_CAPABILITIES.CHAT).toBe('chat');
+    expect(ALL_AI_PROVIDER_REGISTRY_FIELDS).toEqual(parity.aiProviderRegistryFields);
+    expect(ALL_AI_MODEL_PROFILE_FIELDS).toEqual(parity.aiModelProfileFields);
     expect(ALL_AI_VOCABULARY_FIELDS).toEqual(parity.aiVocabularyFields);
   });
 

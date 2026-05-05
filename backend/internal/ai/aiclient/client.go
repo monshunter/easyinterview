@@ -30,10 +30,11 @@ type Client struct {
 //   - cfg.AppEnv == "test" + WithStubAllowed(true): success regardless of
 //     provider config (single-process unit / contract tests).
 //   - cfg.AppEnv == "test" without WithStubAllowed and missing
-//     ProviderBaseURL/APIKey: ErrMissingProviderConfig.
-//   - cfg.AppEnv != "test" with missing ProviderBaseURL or ProviderAPIKey:
-//     ErrMissingProviderConfig regardless of WithStubAllowed; non-test
-//     deployments must point at a real OpenAI-compatible endpoint.
+//     ProviderRegistryPath/ModelProfilePath: ErrMissingProviderConfig.
+//   - cfg.AppEnv != "test" with missing ProviderRegistryPath or
+//     ModelProfilePath: ErrMissingProviderConfig regardless of
+//     WithStubAllowed; non-test deployments must load registry-backed
+//     providers and capability profiles.
 func New(cfg Config, opts ...Option) (*Client, error) {
 	o := &clientOptions{
 		providers: map[string]Provider{},
@@ -43,11 +44,11 @@ func New(cfg Config, opts ...Option) (*Client, error) {
 	}
 
 	if cfg.AppEnv == AppEnvTest {
-		if !o.stubAllowed && (cfg.ProviderBaseURL == "" || cfg.ProviderAPIKey == "") {
+		if !o.stubAllowed && (cfg.ProviderRegistryPath == "" || cfg.ModelProfilePath == "") {
 			return nil, ErrMissingProviderConfig
 		}
 	} else {
-		if cfg.ProviderBaseURL == "" || cfg.ProviderAPIKey == "" {
+		if cfg.ProviderRegistryPath == "" || cfg.ModelProfilePath == "" {
 			return nil, ErrMissingProviderConfig
 		}
 	}

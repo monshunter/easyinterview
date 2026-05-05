@@ -1,6 +1,6 @@
 # Shared Conventions Codified History
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-05 | 1.11 | 扩展 AI shared vocabulary：新增 AI capability、provider registry/profile 字段名、fallback meta 字段，以及 `AI_UNSUPPORTED_CAPABILITY` / provider config / provider secret 三类 routing 错误码，Go/TS/OpenAPI 生成物同步消费。 | ai-provider-and-model-routing/003 Phase 4 |
 | 2026-05-05 | 1.10 | B1 共享约定职责改为由本 spec、`shared/conventions.yaml`、generator 与 lint gate 独立承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |
 | 2026-05-05 | 1.9 | 同步 A3/A4 AI provider 命名：B1 shared AI vocabulary 与 generated owner-boundary 注释只引用 `AI_PROVIDER_*` 连接参数，不传播旧连接命名。 | ai-provider-and-model-routing/001 remediation |
 | 2026-05-03 | 1.8 | 明确当前共享约定以 `shared/conventions.yaml` 与本 spec 为准；新增枚举 / 错误码必须先修订当前 owner，不依赖外部草稿。 | docs-only |

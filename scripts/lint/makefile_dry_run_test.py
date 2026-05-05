@@ -96,6 +96,17 @@ class MakefileDryRunTest(unittest.TestCase):
         self.assertNotIn(str(REPO_ROOT / "frontend/src/lib/events") + '"', stdout)
         self.assertNotIn(str(REPO_ROOT / "frontend/src/lib/jobs") + '"', stdout)
 
+    def test_lint_wires_ai_profile_coverage_gate(self):
+        makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+
+        self.assertIn("lint-ai-profile-coverage", makefile)
+        self.assertIn("scripts/lint/ai_profile_coverage.py", makefile)
+        self.assertRegex(
+            makefile,
+            r"lint: .*lint-ai-profile-coverage",
+            msg="top-level lint must run the A3/F3/Product-UI profile coverage gate",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

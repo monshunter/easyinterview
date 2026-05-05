@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-secrets-pattern lint-observability lint-events lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-secrets-pattern lint-observability lint-events lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -15,7 +15,7 @@ fmt: ## Format Go and frontend sources (delegates to backend/ and frontend/)
 	@$(call recurse_target,fmt,backend/Makefile,backend)
 	@$(call recurse_target,fmt,frontend/Makefile,frontend)
 
-lint: lint-conventions lint-config lint-observability ## Lint Go and frontend sources (lint-conventions (B1) / lint-config (A4) / lint-observability (F1), then backend golangci-lint + frontend pnpm lint)
+lint: lint-conventions lint-config lint-ai-profile-coverage lint-observability ## Lint Go and frontend sources (B1/A4/A3-F3/F1 local gates, then backend golangci-lint + frontend pnpm lint)
 	@cd "$(ROOT_DIR)/backend" && golangci-lint run ./...
 	@pnpm --filter @easyinterview/frontend lint
 
@@ -33,6 +33,9 @@ lint-env-dict: ## Verify .env.example, code-side os.Getenv calls, and spec §3.1
 
 lint-ai-provider-terminology: ## Reject retired AI gateway terminology in active AI provider surfaces
 	@python3 "$(ROOT_DIR)/scripts/lint/ai_provider_terminology.py" --repo-root "$(ROOT_DIR)"
+
+lint-ai-profile-coverage: ## Validate A3/F3/Product-UI AI profile coverage
+	@python3 "$(ROOT_DIR)/scripts/lint/ai_profile_coverage.py" --repo-root "$(ROOT_DIR)"
 
 lint-secrets-pattern: ## Scan staged + tracked files for AKIA / sk- / xox secret prefixes (defense-in-depth; pre-commit hook is the primary gate)
 	@bash "$(ROOT_DIR)/scripts/lint/gitleaks.sh" "$(ROOT_DIR)"

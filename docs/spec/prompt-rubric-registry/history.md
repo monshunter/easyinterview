@@ -1,6 +1,6 @@
 # Prompt Rubric Registry History
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-05 | 1.7 | 将 A3 profile coverage gate 固化为 `make lint-ai-profile-coverage` / 顶层 `make lint` 的可执行门禁，覆盖 12 个 baseline feature_key 默认 profile 与 A3 Product/UI capability catalog。 | ai-provider-and-model-routing/003 Phase 4 |
 | 2026-05-05 | 1.6 | F3 feature_key、prompt/rubric 坐标、model profile reference 与 lint gate 改为只由本 spec、A3/B4 协作边界和后续编码 truth source 承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |
 | 2026-05-05 | 1.5 | 对齐 A3 provider registry + capability profile 设计：F3 仍只输出 `model_profile_name`，但 12 个 baseline 默认 profile 必须被 A3 profile catalog 覆盖并通过 capability/provider_ref lint。 | ai-provider-and-model-routing/003 |
 | 2026-05-03 | 1.4 | 当前 feature_key baseline 收敛为 12 项，删除独立 `mistake.extract`，报告内题目回顾 / 本轮复练由 `report.generate` 与 `report.question_assessment` 承载。 | docs-only |

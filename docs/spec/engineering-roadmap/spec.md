@@ -1,6 +1,6 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.4
+> **版本**: 3.5
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -61,7 +61,7 @@
 | Q-3 | 分析平台 | 自托管 PostHog，普通本地 dev 可 no-op / file-backed | 分析漏斗围绕导入 -> 规划 -> 练习 -> 报告 -> 复练 / 下一轮 -> 真实复盘 |
 | Q-4 | 云部署目标 | Kubernetes 作为 staging/prod 目标，本地开发走 A2 dev stack，Kind 只用于场景环境 | 部署自动化和 rollout gate 进入后续 release workstream |
 | Q-5 | 隐私节奏 | P0 删除-only；导出延后并以 501 / UI 占位解释 | 删除链路、audit 和 redaction 是 P0 gate；完整导出归后续隐私增强 |
-| Q-6 | AI 网关与模型路由 | 应用内 `AIClient` + Model Profile + OpenAI-compatible endpoint + unit-test stub | 业务代码只依赖 profile / feature_key，不 import 厂商 SDK |
+| Q-6 | AI provider 与模型路由 | 应用内 `AIClient` + Provider Registry + Capability Model Profile + OpenAI-compatible / stub provider | 业务代码只依赖 profile / feature_key，不 import 厂商 SDK；provider/profile/capability drift 由 A3/B1/A4/F3 gate 拦截 |
 
 ### 3.3 待确认事项
 
@@ -112,7 +112,7 @@
 | 顶层 | - | `engineering-roadmap` | 当前实施地图、依赖顺序和文档治理 | 保留 |
 | Foundation | A1 | `repo-scaffold` | 仓库骨架、根 Makefile、hook 基础 | 保留 |
 | Foundation | A2 | `local-dev-stack` | 本地 dev stack、dev doctor、端口与健康检查契约 | 保留 |
-| Foundation | A3 | `ai-provider-and-model-routing` | AIClient、provider registry、capability model profile、OpenAI-compatible / stub provider | 保留 |
+| Foundation | A3 | `ai-provider-and-model-routing` | AIClient、provider registry、capability model profile、OpenAI-compatible / stub provider、profile coverage lint | 保留 |
 | Foundation | A4 | `secrets-and-config` | 配置、secret、feature flag、runtime config 边界 | 保留 |
 | Foundation | A5 | `ci-pipeline-baseline` | 当前本地质量门禁，远端 CI deferred | 保留 |
 | Contract | B1 | `shared-conventions-codified` | Go/TS 共享枚举、错误码、ID、codegen / drift gate | 保留 |

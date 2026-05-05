@@ -1,21 +1,19 @@
 package aiclient
 
+import sharedai "github.com/monshunter/easyinterview/backend/internal/shared/ai"
+
 // Capability enumerates the AI capability families recognized by Provider
-// Registry entries and Model Profiles.
-//
-// B1 shared-conventions-codified has not yet generated a cross-language
-// AICapability enum; until B1 lands it, A3 owns this private type. The Phase
-// 5.4 handoff lists the consumers that must switch to the B1-generated
-// constant once it exists.
-type Capability string
+// Registry entries and Model Profiles. B1 owns the literal set; A3 aliases it
+// so runtime code cannot drift from the cross-language vocabulary.
+type Capability = sharedai.Capability
 
 const (
-	CapabilityChat     Capability = "chat"
-	CapabilityEmbed    Capability = "embed"
-	CapabilitySTT      Capability = "stt"
-	CapabilityRealtime Capability = "realtime"
-	CapabilityRerank   Capability = "rerank"
-	CapabilityJudge    Capability = "judge"
+	CapabilityChat     = sharedai.CapabilityChat
+	CapabilityEmbed    = sharedai.CapabilityEmbed
+	CapabilitySTT      = sharedai.CapabilityStt
+	CapabilityRealtime = sharedai.CapabilityRealtime
+	CapabilityRerank   = sharedai.CapabilityRerank
+	CapabilityJudge    = sharedai.CapabilityJudge
 )
 
 // ProviderProtocol identifies the protocol adapter a Provider Registry entry

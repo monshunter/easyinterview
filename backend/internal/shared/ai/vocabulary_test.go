@@ -6,6 +6,8 @@ func TestAIVocabularyFieldSet(t *testing.T) {
 	want := []FieldName{
 		FieldModelProfileName,
 		FieldModelProfileVersion,
+		FieldProvider,
+		FieldCapability,
 		FieldModelFamily,
 		FieldModelId,
 		FieldFallbackChain,
@@ -17,6 +19,10 @@ func TestAIVocabularyFieldSet(t *testing.T) {
 		FieldLanguage,
 		FieldFeatureFlag,
 		FieldDataSourceVersion,
+		FieldFromProvider,
+		FieldFromModelFamily,
+		FieldToProvider,
+		FieldToModelFamily,
 	}
 
 	if len(AllFieldNames) != len(want) {
@@ -33,6 +39,8 @@ func TestAIVocabularyWireNames(t *testing.T) {
 	cases := map[FieldName]string{
 		FieldModelProfileName:    "model_profile_name",
 		FieldModelProfileVersion: "model_profile_version",
+		FieldProvider:            "provider",
+		FieldCapability:          "capability",
 		FieldModelFamily:         "model_family",
 		FieldModelId:             "model_id",
 		FieldFallbackChain:       "fallback_chain",
@@ -44,6 +52,10 @@ func TestAIVocabularyWireNames(t *testing.T) {
 		FieldLanguage:            "language",
 		FieldFeatureFlag:         "feature_flag",
 		FieldDataSourceVersion:   "data_source_version",
+		FieldFromProvider:        "from_provider",
+		FieldFromModelFamily:     "from_model_family",
+		FieldToProvider:          "to_provider",
+		FieldToModelFamily:       "to_model_family",
 	}
 	for field, want := range cases {
 		if string(field) != want {
@@ -65,6 +77,8 @@ func TestA3ConsumedAIVocabularyFields(t *testing.T) {
 	cases := map[string]FieldName{
 		"model_profile_name":    FieldModelProfileName,
 		"model_profile_version": FieldModelProfileVersion,
+		"provider":              FieldProvider,
+		"capability":            FieldCapability,
 		"model_family":          FieldModelFamily,
 		"fallback_chain":        FieldFallbackChain,
 		"route":                 FieldRoute,
@@ -77,6 +91,69 @@ func TestA3ConsumedAIVocabularyFields(t *testing.T) {
 		}
 		if !IsFieldName(wire) {
 			t.Errorf("A3 field %s missing from IsFieldName", wire)
+		}
+	}
+}
+
+func TestAICapabilityVocabulary(t *testing.T) {
+	want := []Capability{
+		CapabilityChat,
+		CapabilityEmbed,
+		CapabilityStt,
+		CapabilityRealtime,
+		CapabilityRerank,
+		CapabilityJudge,
+	}
+	if len(AllCapabilities) != len(want) {
+		t.Fatalf("AllCapabilities length = %d, want %d", len(AllCapabilities), len(want))
+	}
+	for i := range want {
+		if AllCapabilities[i] != want[i] {
+			t.Errorf("AllCapabilities[%d] = %q, want %q", i, AllCapabilities[i], want[i])
+		}
+	}
+	if !IsCapability("rerank") {
+		t.Fatal("IsCapability(rerank) = false, want true")
+	}
+	if IsCapability("image") {
+		t.Fatal("IsCapability(image) = true, want false")
+	}
+}
+
+func TestAIProviderRegistryAndProfileFieldVocabulary(t *testing.T) {
+	providerRegistryFields := map[string]ProviderRegistryFieldName{
+		"name":         ProviderRegistryFieldNameName,
+		"protocol":     ProviderRegistryFieldNameProtocol,
+		"base_url_env": ProviderRegistryFieldNameBaseUrlEnv,
+		"api_key_env":  ProviderRegistryFieldNameApiKeyEnv,
+		"capabilities": ProviderRegistryFieldNameCapabilities,
+		"version":      ProviderRegistryFieldNameVersion,
+	}
+	for wire, field := range providerRegistryFields {
+		if string(field) != wire {
+			t.Errorf("provider registry field %s maps to %q", wire, field)
+		}
+		if !IsProviderRegistryFieldName(wire) {
+			t.Errorf("provider registry field %s missing from IsProviderRegistryFieldName", wire)
+		}
+	}
+
+	modelProfileFields := map[string]ModelProfileFieldName{
+		"name":               ModelProfileFieldNameName,
+		"capability":         ModelProfileFieldNameCapability,
+		"status":             ModelProfileFieldNameStatus,
+		"unsupported_reason": ModelProfileFieldNameUnsupportedReason,
+		"provider_ref":       ModelProfileFieldNameProviderRef,
+		"fallback":           ModelProfileFieldNameFallback,
+		"timeout_ms":         ModelProfileFieldNameTimeoutMs,
+		"privacy_policy":     ModelProfileFieldNamePrivacyPolicy,
+	}
+	for wire, field := range modelProfileFields {
+		if string(field) != wire {
+			t.Errorf("model profile field %s maps to %q", wire, field)
+		}
+		if !IsModelProfileFieldName(wire) {
+			t.Errorf("model profile field %s missing from IsModelProfileFieldName", wire)
 		}
 	}
 }

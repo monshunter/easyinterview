@@ -46,8 +46,9 @@ email:
   providerApiKey: ""
 
 ai:
-  providerBaseURL: ""
-  providerApiKey: ""
+  providerRegistryPath: "config/ai-providers.yaml"
+  defaultProviderBaseURL: ""
+  defaultProviderApiKey: ""
   modelProfilePath: "config/ai-profiles/"
 
 featureFlag:

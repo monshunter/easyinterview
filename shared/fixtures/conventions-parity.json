@@ -94,11 +94,50 @@
     "RATE_LIMITED",
     "AI_PROVIDER_TIMEOUT",
     "AI_OUTPUT_INVALID",
-    "AI_FALLBACK_EXHAUSTED"
+    "AI_FALLBACK_EXHAUSTED",
+    "AI_UNSUPPORTED_CAPABILITY",
+    "AI_PROVIDER_CONFIG_INVALID",
+    "AI_PROVIDER_SECRET_MISSING"
+  ],
+  "aiCapabilities": [
+    "chat",
+    "embed",
+    "stt",
+    "realtime",
+    "rerank",
+    "judge"
+  ],
+  "aiProviderRegistryFields": [
+    "name",
+    "protocol",
+    "base_url_env",
+    "api_key_env",
+    "capabilities",
+    "version"
+  ],
+  "aiModelProfileFields": [
+    "name",
+    "capability",
+    "status",
+    "unsupported_reason",
+    "default",
+    "provider_ref",
+    "model",
+    "params",
+    "fallback",
+    "when",
+    "timeout_ms",
+    "max_tokens",
+    "rate_limit",
+    "route",
+    "version",
+    "privacy_policy"
   ],
   "aiVocabularyFields": [
     "model_profile_name",
     "model_profile_version",
+    "provider",
+    "capability",
     "model_family",
     "model_id",
     "fallback_chain",
@@ -109,7 +148,11 @@
     "rubric_version",
     "language",
     "feature_flag",
-    "data_source_version"
+    "data_source_version",
+    "from_provider",
+    "from_model_family",
+    "to_provider",
+    "to_model_family"
   ],
   "serialization": {
     "pageInfo": {

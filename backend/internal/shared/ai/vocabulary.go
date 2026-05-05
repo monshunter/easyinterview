@@ -10,12 +10,130 @@ package ai
 // B4 owns typed database columns.
 // F1 owns metrics and log consumption.
 
+// Capability is a B1-owned AI capability literal.
+type Capability string
+
+const (
+	CapabilityChat     Capability = "chat"
+	CapabilityEmbed    Capability = "embed"
+	CapabilityStt      Capability = "stt"
+	CapabilityRealtime Capability = "realtime"
+	CapabilityRerank   Capability = "rerank"
+	CapabilityJudge    Capability = "judge"
+)
+
+// AllCapabilities lists every AI capability in declaration order.
+var AllCapabilities = []Capability{
+	CapabilityChat,
+	CapabilityEmbed,
+	CapabilityStt,
+	CapabilityRealtime,
+	CapabilityRerank,
+	CapabilityJudge,
+}
+
+// IsCapability reports whether value is a documented AI capability.
+func IsCapability(value string) bool {
+	for _, capability := range AllCapabilities {
+		if string(capability) == value {
+			return true
+		}
+	}
+	return false
+}
+
+// ProviderRegistryFieldName is a B1-owned AI provider registry field wire field name.
+type ProviderRegistryFieldName string
+
+const (
+	ProviderRegistryFieldNameName         ProviderRegistryFieldName = "name"
+	ProviderRegistryFieldNameProtocol     ProviderRegistryFieldName = "protocol"
+	ProviderRegistryFieldNameBaseUrlEnv   ProviderRegistryFieldName = "base_url_env"
+	ProviderRegistryFieldNameApiKeyEnv    ProviderRegistryFieldName = "api_key_env"
+	ProviderRegistryFieldNameCapabilities ProviderRegistryFieldName = "capabilities"
+	ProviderRegistryFieldNameVersion      ProviderRegistryFieldName = "version"
+)
+
+// AllProviderRegistryFieldNames lists every AI provider registry field in declaration order.
+var AllProviderRegistryFieldNames = []ProviderRegistryFieldName{
+	ProviderRegistryFieldNameName,
+	ProviderRegistryFieldNameProtocol,
+	ProviderRegistryFieldNameBaseUrlEnv,
+	ProviderRegistryFieldNameApiKeyEnv,
+	ProviderRegistryFieldNameCapabilities,
+	ProviderRegistryFieldNameVersion,
+}
+
+// IsProviderRegistryFieldName reports whether value is a documented AI provider registry field.
+func IsProviderRegistryFieldName(value string) bool {
+	for _, field := range AllProviderRegistryFieldNames {
+		if string(field) == value {
+			return true
+		}
+	}
+	return false
+}
+
+// ModelProfileFieldName is a B1-owned AI model profile field wire field name.
+type ModelProfileFieldName string
+
+const (
+	ModelProfileFieldNameName              ModelProfileFieldName = "name"
+	ModelProfileFieldNameCapability        ModelProfileFieldName = "capability"
+	ModelProfileFieldNameStatus            ModelProfileFieldName = "status"
+	ModelProfileFieldNameUnsupportedReason ModelProfileFieldName = "unsupported_reason"
+	ModelProfileFieldNameDefault           ModelProfileFieldName = "default"
+	ModelProfileFieldNameProviderRef       ModelProfileFieldName = "provider_ref"
+	ModelProfileFieldNameModel             ModelProfileFieldName = "model"
+	ModelProfileFieldNameParams            ModelProfileFieldName = "params"
+	ModelProfileFieldNameFallback          ModelProfileFieldName = "fallback"
+	ModelProfileFieldNameWhen              ModelProfileFieldName = "when"
+	ModelProfileFieldNameTimeoutMs         ModelProfileFieldName = "timeout_ms"
+	ModelProfileFieldNameMaxTokens         ModelProfileFieldName = "max_tokens"
+	ModelProfileFieldNameRateLimit         ModelProfileFieldName = "rate_limit"
+	ModelProfileFieldNameRoute             ModelProfileFieldName = "route"
+	ModelProfileFieldNameVersion           ModelProfileFieldName = "version"
+	ModelProfileFieldNamePrivacyPolicy     ModelProfileFieldName = "privacy_policy"
+)
+
+// AllModelProfileFieldNames lists every AI model profile field in declaration order.
+var AllModelProfileFieldNames = []ModelProfileFieldName{
+	ModelProfileFieldNameName,
+	ModelProfileFieldNameCapability,
+	ModelProfileFieldNameStatus,
+	ModelProfileFieldNameUnsupportedReason,
+	ModelProfileFieldNameDefault,
+	ModelProfileFieldNameProviderRef,
+	ModelProfileFieldNameModel,
+	ModelProfileFieldNameParams,
+	ModelProfileFieldNameFallback,
+	ModelProfileFieldNameWhen,
+	ModelProfileFieldNameTimeoutMs,
+	ModelProfileFieldNameMaxTokens,
+	ModelProfileFieldNameRateLimit,
+	ModelProfileFieldNameRoute,
+	ModelProfileFieldNameVersion,
+	ModelProfileFieldNamePrivacyPolicy,
+}
+
+// IsModelProfileFieldName reports whether value is a documented AI model profile field.
+func IsModelProfileFieldName(value string) bool {
+	for _, field := range AllModelProfileFieldNames {
+		if string(field) == value {
+			return true
+		}
+	}
+	return false
+}
+
 // FieldName is a B1-owned AI metadata wire field name.
 type FieldName string
 
 const (
 	FieldModelProfileName    FieldName = "model_profile_name"
 	FieldModelProfileVersion FieldName = "model_profile_version"
+	FieldProvider            FieldName = "provider"
+	FieldCapability          FieldName = "capability"
 	FieldModelFamily         FieldName = "model_family"
 	FieldModelId             FieldName = "model_id"
 	FieldFallbackChain       FieldName = "fallback_chain"
@@ -27,12 +145,18 @@ const (
 	FieldLanguage            FieldName = "language"
 	FieldFeatureFlag         FieldName = "feature_flag"
 	FieldDataSourceVersion   FieldName = "data_source_version"
+	FieldFromProvider        FieldName = "from_provider"
+	FieldFromModelFamily     FieldName = "from_model_family"
+	FieldToProvider          FieldName = "to_provider"
+	FieldToModelFamily       FieldName = "to_model_family"
 )
 
 // AllFieldNames lists every AI metadata field in declaration order.
 var AllFieldNames = []FieldName{
 	FieldModelProfileName,
 	FieldModelProfileVersion,
+	FieldProvider,
+	FieldCapability,
 	FieldModelFamily,
 	FieldModelId,
 	FieldFallbackChain,
@@ -44,6 +168,10 @@ var AllFieldNames = []FieldName{
 	FieldLanguage,
 	FieldFeatureFlag,
 	FieldDataSourceVersion,
+	FieldFromProvider,
+	FieldFromModelFamily,
+	FieldToProvider,
+	FieldToModelFamily,
 }
 
 // IsFieldName reports whether value is a documented AI metadata field name.

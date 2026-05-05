@@ -23,8 +23,10 @@ auth:
   sessionCookieSecret: ""
   challengeTokenPepper: ""
 ai:
-  providerBaseURL: "`+providerBaseURL+`"
-  providerApiKey: ""
+  providerRegistryPath: ""
+  defaultProviderBaseURL: "`+providerBaseURL+`"
+  defaultProviderApiKey: ""
+  modelProfilePath: ""
 email:
   provider: ""
   providerApiKey: ""
@@ -63,11 +65,36 @@ func setCompleteProdRuntimeEnv(t *testing.T) {
 	t.Setenv("OBJECT_STORAGE_ACCESS_KEY", "object-access")
 	t.Setenv("OBJECT_STORAGE_SECRET_KEY", "object-secret")
 	t.Setenv("LOG_LEVEL", "info")
+	t.Setenv("AI_PROVIDER_REGISTRY_PATH", "/etc/easyinterview/ai-providers.yaml")
 	t.Setenv("AI_PROVIDER_BASE_URL", "https://provider.example")
 	t.Setenv("AI_MODEL_PROFILE_PATH", "/etc/easyinterview/ai-profiles")
 	t.Setenv("FEATURE_FLAG_SOURCE", "posthog")
 	t.Setenv("POSTHOG_HOST", "https://posthog")
 	t.Setenv("EMAIL_PROVIDER", "ses")
+}
+
+func TestDefaultAIDictionaryUsesProviderRegistryPaths(t *testing.T) {
+	envBindings := config.DefaultEnvBindings()
+	if got := envBindings["AI_PROVIDER_REGISTRY_PATH"]; got != "ai.providerRegistryPath" {
+		t.Fatalf("AI_PROVIDER_REGISTRY_PATH binding = %q", got)
+	}
+	if got := envBindings["AI_PROVIDER_BASE_URL"]; got != "ai.defaultProviderBaseURL" {
+		t.Fatalf("AI_PROVIDER_BASE_URL binding = %q", got)
+	}
+	if got := envBindings["AI_PROVIDER_API_KEY"]; got != "ai.defaultProviderApiKey" {
+		t.Fatalf("AI_PROVIDER_API_KEY binding = %q", got)
+	}
+	if got := envBindings["AI_MODEL_PROFILE_PATH"]; got != "ai.modelProfilePath" {
+		t.Fatalf("AI_MODEL_PROFILE_PATH binding = %q", got)
+	}
+
+	secretBindings := config.DefaultSecretBindings()
+	if _, ok := secretBindings["ai.providerApiKey"]; ok {
+		t.Fatalf("retired ai.providerApiKey secret binding must not remain: %+v", secretBindings)
+	}
+	if got := secretBindings["ai.defaultProviderApiKey"]; got != "AI_PROVIDER_API_KEY" {
+		t.Fatalf("ai.defaultProviderApiKey secret binding = %q", got)
+	}
 }
 
 func TestValidateProdMissingSecretFailsFast(t *testing.T) {
@@ -77,7 +104,7 @@ func TestValidateProdMissingSecretFailsFast(t *testing.T) {
 		t.Fatal("expected validate error in prod with missing secrets")
 	}
 	msg := err.Error()
-	for _, key := range []string{"SESSION_COOKIE_SECRET", "AUTH_CHALLENGE_TOKEN_PEPPER", "AI_PROVIDER_API_KEY", "EMAIL_PROVIDER_API_KEY"} {
+	for _, key := range []string{"SESSION_COOKIE_SECRET", "AUTH_CHALLENGE_TOKEN_PEPPER", "EMAIL_PROVIDER_API_KEY"} {
 		if !strings.Contains(msg, key) {
 			t.Errorf("error missing key %s: %s", key, msg)
 		}
@@ -98,6 +125,55 @@ func TestValidateProdAllSecretsPasses(t *testing.T) {
 	}, "https://provider.example")
 	if err := loader.Validate(); err != nil {
 		t.Errorf("unexpected validate error: %v", err)
+	}
+}
+
+func TestValidateProdDoesNotRequireDefaultProviderSecretGlobally(t *testing.T) {
+	setCompleteProdRuntimeEnv(t)
+	t.Setenv("AI_PROVIDER_BASE_URL", "")
+	loader := newProdLoader(t, mapSecret{
+		"SESSION_COOKIE_SECRET":       "secret",
+		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
+		"EMAIL_PROVIDER_API_KEY":      "ek",
+		"POSTHOG_PROJECT_API_KEY":     "ph-key",
+	})
+
+	if err := loader.Validate(); err != nil {
+		t.Fatalf("default provider secret must be required by selected provider resolution, not global config validation: %v", err)
+	}
+}
+
+func TestValidateProdMissingAIRegistryPathFailsFast(t *testing.T) {
+	setCompleteProdRuntimeEnv(t)
+	t.Setenv("AI_PROVIDER_REGISTRY_PATH", "")
+	loader := newProdLoader(t, mapSecret{
+		"SESSION_COOKIE_SECRET":       "secret",
+		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
+		"EMAIL_PROVIDER_API_KEY":      "ek",
+		"POSTHOG_PROJECT_API_KEY":     "ph-key",
+	})
+
+	err := loader.Validate()
+	if err == nil {
+		t.Fatal("expected validate error when AI_PROVIDER_REGISTRY_PATH is missing")
+	}
+	if !strings.Contains(err.Error(), "AI_PROVIDER_REGISTRY_PATH") {
+		t.Fatalf("error must mention AI_PROVIDER_REGISTRY_PATH: %v", err)
+	}
+}
+
+func TestDefaultProviderSecretBindingIsStillAvailableWhenRegistryReferencesIt(t *testing.T) {
+	setCompleteProdRuntimeEnv(t)
+	loader := newProdLoader(t, mapSecret{
+		"SESSION_COOKIE_SECRET":       "secret",
+		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
+		"AI_PROVIDER_API_KEY":         "provider-key",
+		"EMAIL_PROVIDER_API_KEY":      "ek",
+		"POSTHOG_PROJECT_API_KEY":     "ph-key",
+	})
+
+	if got := loader.GetString("ai.defaultProviderApiKey"); got != "provider-key" {
+		t.Fatalf("default provider API key binding = %q", got)
 	}
 }
 
@@ -131,21 +207,22 @@ func TestValidateProdRejectsDevDefaultDeploymentDependencies(t *testing.T) {
 	}
 }
 
-func TestValidateProdMissingAIBaseURLFailsFast(t *testing.T) {
+func TestValidateProdMissingAIModelProfilePathFailsFast(t *testing.T) {
+	setCompleteProdRuntimeEnv(t)
+	t.Setenv("AI_MODEL_PROFILE_PATH", "")
 	loader := newProdLoader(t, mapSecret{
 		"SESSION_COOKIE_SECRET":       "secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
-		"AI_PROVIDER_API_KEY":         "key",
 		"EMAIL_PROVIDER_API_KEY":      "ek",
 		"POSTHOG_PROJECT_API_KEY":     "ph-key",
 	})
 
 	err := loader.Validate()
 	if err == nil {
-		t.Fatal("expected validate error when AI_PROVIDER_BASE_URL is missing")
+		t.Fatal("expected validate error when AI_MODEL_PROFILE_PATH is missing")
 	}
-	if !strings.Contains(err.Error(), "AI_PROVIDER_BASE_URL") {
-		t.Fatalf("error must mention AI_PROVIDER_BASE_URL: %v", err)
+	if !strings.Contains(err.Error(), "AI_MODEL_PROFILE_PATH") {
+		t.Fatalf("error must mention AI_MODEL_PROFILE_PATH: %v", err)
 	}
 }
 
@@ -157,8 +234,10 @@ app:
 auth:
   sessionCookieName: ei_session
 ai:
-  providerBaseURL: ""
-  providerApiKey: ""
+  providerRegistryPath: ""
+  defaultProviderBaseURL: ""
+  defaultProviderApiKey: ""
+  modelProfilePath: ""
 featureFlag:
   source: file
   filePath: ""
@@ -180,7 +259,9 @@ app:
 auth:
   sessionCookieName: ei_session
 ai:
-  providerBaseURL: "https://provider.example"
+  providerRegistryPath: "config/ai-providers.yaml"
+  defaultProviderBaseURL: "https://provider.example"
+  modelProfilePath: "config/ai-profiles"
 featureFlag:
   source: posthog
   posthogSelfHosted: false
@@ -197,7 +278,7 @@ async:
 		SecretBindings: map[string]string{
 			"auth.sessionCookieSecret":         "SESSION_COOKIE_SECRET",
 			"auth.challengeTokenPepper":        "AUTH_CHALLENGE_TOKEN_PEPPER",
-			"ai.providerApiKey":                "AI_PROVIDER_API_KEY",
+			"ai.defaultProviderApiKey":         "AI_PROVIDER_API_KEY",
 			"email.providerApiKey":             "EMAIL_PROVIDER_API_KEY",
 			"featureFlag.posthogProjectApiKey": "POSTHOG_PROJECT_API_KEY",
 		},
@@ -229,7 +310,9 @@ app:
 auth:
   sessionCookieName: ei_session
 ai:
-  providerBaseURL: "https://provider.example"
+  providerRegistryPath: "config/ai-providers.yaml"
+  defaultProviderBaseURL: "https://provider.example"
+  modelProfilePath: "config/ai-profiles"
 async:
   queueWeights:
     critical: 0

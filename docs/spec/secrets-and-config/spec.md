@@ -1,6 +1,6 @@
 # Secrets and Config Spec
 
-> **版本**: 2.1
+> **版本**: 2.2
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -58,7 +58,7 @@
 | D-2 | 前端运行时配置入口 | `GET /api/v1/runtime-config` 只返回 allowlisted public 字段（`defaultUiLanguage`、`featureFlags` 中 `public=true` 的 flag、`appVersion`、`analyticsEnabled`、可选 `postHogPublicKey`）；schema 由 B2 收口 | 前端 0 后端调用即可初始化；secret / operator-only flag 永远不出现在前端；若请求携带有效 session，必须合并 `user_settings.analytics_opt_in`，opt-out 时 `analyticsEnabled=false` 且不返回 `postHogPublicKey`；用户分桶 flag 以后走 protected `/api/v1/me/runtime-config` |
 | D-3 | secrets 抽象 | `SecretSource` 接口 `Get(name) (string, error)`；P0 默认实现 `EnvSecretSource`（env var）；接口在 spec 锁定后不允许在 P1 升级时变更签名 | 后续 K8s Secret / Vault 切换零业务改动 |
 | D-4 | feature flag 抽象 | `FeatureFlagClient` 接口 `IsEnabled(key, ctx) bool` + `Variant(key, ctx) string`；P0 默认 `FileFlagProvider`，prod 切 `PostHogFlagProvider` | ADR-Q3 锁定不依赖第三方 cloud；自托管 PostHog 为生产唯一实现 |
-| D-5 | P0 必备 env key 与 config schema | 见下方 §3.1.1 / §3.1.2；任一新增必须递增本 spec 版本 + 同步 `.env.example` + lint 校验 | 防止业务模块偷偷加 env；让 validator / runtime-config / redaction 共用同一真理源 |
+| D-5 | P0 必备 env key 与 config schema | 见下方 §3.1.1 / §3.1.2；任一新增必须递增本 spec 版本 + 同步 `.env.example` + lint 校验；AI provider registry 中引用的 env ref 也进入 `make lint-config` 字典校验 | 防止业务模块偷偷加 env；让 validator / runtime-config / redaction 共用同一真理源 |
 | D-6 | secret 红线 | `*.secret.yaml` 默认 `.gitignore`；pre-commit hook 拦截 `AKIA[0-9A-Z]{16}` / `sk-[A-Za-z0-9]{20,}` / `xox[baprs]-[A-Za-z0-9-]+`；本地 gitleaks 复扫；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | 阻断仓库内敏感凭证泄漏 |
 | D-7 | 配置热加载 | feature flag 支持热加载（≤ 30s）；其它 config 字段在进程启动时读取，运行时不变；如需热加载，必须递增 spec | 避免业务围绕「config 变了吗」写复杂代码 |
 | D-8 | Session cookie 字面量 | `ei_session`，由 [ADR-Q1 §3](../engineering-roadmap/decisions/ADR-Q1-auth.md#3-决策) 锁定；P0 不提供 env/config override | A4 只管理 `SESSION_COOKIE_SECRET` 等 secret，不允许环境差异改 cookie name 导致 B2 OpenAPI / C1 middleware / D1 fetch 口径分裂 |

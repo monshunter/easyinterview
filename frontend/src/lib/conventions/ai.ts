@@ -8,11 +8,105 @@
 // B4 owns typed database columns.
 // F1 owns metrics and log consumption.
 
-// AI metadata wire field names owned by shared-conventions-codified.
+// AI capability literals and wire field names owned by shared-conventions-codified.
+
+export const AI_CAPABILITIES = {
+  CHAT: 'chat',
+  EMBED: 'embed',
+  STT: 'stt',
+  REALTIME: 'realtime',
+  RERANK: 'rerank',
+  JUDGE: 'judge',
+} as const;
+
+export type AICapability = (typeof AI_CAPABILITIES)[keyof typeof AI_CAPABILITIES];
+
+export const ALL_AI_CAPABILITIES: readonly AICapability[] = [
+  AI_CAPABILITIES.CHAT,
+  AI_CAPABILITIES.EMBED,
+  AI_CAPABILITIES.STT,
+  AI_CAPABILITIES.REALTIME,
+  AI_CAPABILITIES.RERANK,
+  AI_CAPABILITIES.JUDGE,
+] as const;
+
+export function isAICapability(value: string): value is AICapability {
+  return (ALL_AI_CAPABILITIES as readonly string[]).includes(value);
+}
+
+export const AI_PROVIDER_REGISTRY_FIELDS = {
+  NAME: 'name',
+  PROTOCOL: 'protocol',
+  BASE_URL_ENV: 'base_url_env',
+  API_KEY_ENV: 'api_key_env',
+  CAPABILITIES: 'capabilities',
+  VERSION: 'version',
+} as const;
+
+export type AIProviderRegistryField = (typeof AI_PROVIDER_REGISTRY_FIELDS)[keyof typeof AI_PROVIDER_REGISTRY_FIELDS];
+
+export const ALL_AI_PROVIDER_REGISTRY_FIELDS: readonly AIProviderRegistryField[] = [
+  AI_PROVIDER_REGISTRY_FIELDS.NAME,
+  AI_PROVIDER_REGISTRY_FIELDS.PROTOCOL,
+  AI_PROVIDER_REGISTRY_FIELDS.BASE_URL_ENV,
+  AI_PROVIDER_REGISTRY_FIELDS.API_KEY_ENV,
+  AI_PROVIDER_REGISTRY_FIELDS.CAPABILITIES,
+  AI_PROVIDER_REGISTRY_FIELDS.VERSION,
+] as const;
+
+export function isAIProviderRegistryField(value: string): value is AIProviderRegistryField {
+  return (ALL_AI_PROVIDER_REGISTRY_FIELDS as readonly string[]).includes(value);
+}
+
+export const AI_MODEL_PROFILE_FIELDS = {
+  NAME: 'name',
+  CAPABILITY: 'capability',
+  STATUS: 'status',
+  UNSUPPORTED_REASON: 'unsupported_reason',
+  DEFAULT: 'default',
+  PROVIDER_REF: 'provider_ref',
+  MODEL: 'model',
+  PARAMS: 'params',
+  FALLBACK: 'fallback',
+  WHEN: 'when',
+  TIMEOUT_MS: 'timeout_ms',
+  MAX_TOKENS: 'max_tokens',
+  RATE_LIMIT: 'rate_limit',
+  ROUTE: 'route',
+  VERSION: 'version',
+  PRIVACY_POLICY: 'privacy_policy',
+} as const;
+
+export type AIModelProfileField = (typeof AI_MODEL_PROFILE_FIELDS)[keyof typeof AI_MODEL_PROFILE_FIELDS];
+
+export const ALL_AI_MODEL_PROFILE_FIELDS: readonly AIModelProfileField[] = [
+  AI_MODEL_PROFILE_FIELDS.NAME,
+  AI_MODEL_PROFILE_FIELDS.CAPABILITY,
+  AI_MODEL_PROFILE_FIELDS.STATUS,
+  AI_MODEL_PROFILE_FIELDS.UNSUPPORTED_REASON,
+  AI_MODEL_PROFILE_FIELDS.DEFAULT,
+  AI_MODEL_PROFILE_FIELDS.PROVIDER_REF,
+  AI_MODEL_PROFILE_FIELDS.MODEL,
+  AI_MODEL_PROFILE_FIELDS.PARAMS,
+  AI_MODEL_PROFILE_FIELDS.FALLBACK,
+  AI_MODEL_PROFILE_FIELDS.WHEN,
+  AI_MODEL_PROFILE_FIELDS.TIMEOUT_MS,
+  AI_MODEL_PROFILE_FIELDS.MAX_TOKENS,
+  AI_MODEL_PROFILE_FIELDS.RATE_LIMIT,
+  AI_MODEL_PROFILE_FIELDS.ROUTE,
+  AI_MODEL_PROFILE_FIELDS.VERSION,
+  AI_MODEL_PROFILE_FIELDS.PRIVACY_POLICY,
+] as const;
+
+export function isAIModelProfileField(value: string): value is AIModelProfileField {
+  return (ALL_AI_MODEL_PROFILE_FIELDS as readonly string[]).includes(value);
+}
 
 export const AI_VOCABULARY_FIELDS = {
   MODEL_PROFILE_NAME: 'model_profile_name',
   MODEL_PROFILE_VERSION: 'model_profile_version',
+  PROVIDER: 'provider',
+  CAPABILITY: 'capability',
   MODEL_FAMILY: 'model_family',
   MODEL_ID: 'model_id',
   FALLBACK_CHAIN: 'fallback_chain',
@@ -24,6 +118,10 @@ export const AI_VOCABULARY_FIELDS = {
   LANGUAGE: 'language',
   FEATURE_FLAG: 'feature_flag',
   DATA_SOURCE_VERSION: 'data_source_version',
+  FROM_PROVIDER: 'from_provider',
+  FROM_MODEL_FAMILY: 'from_model_family',
+  TO_PROVIDER: 'to_provider',
+  TO_MODEL_FAMILY: 'to_model_family',
 } as const;
 
 export type AIVocabularyField = (typeof AI_VOCABULARY_FIELDS)[keyof typeof AI_VOCABULARY_FIELDS];
@@ -31,6 +129,8 @@ export type AIVocabularyField = (typeof AI_VOCABULARY_FIELDS)[keyof typeof AI_VO
 export const ALL_AI_VOCABULARY_FIELDS: readonly AIVocabularyField[] = [
   AI_VOCABULARY_FIELDS.MODEL_PROFILE_NAME,
   AI_VOCABULARY_FIELDS.MODEL_PROFILE_VERSION,
+  AI_VOCABULARY_FIELDS.PROVIDER,
+  AI_VOCABULARY_FIELDS.CAPABILITY,
   AI_VOCABULARY_FIELDS.MODEL_FAMILY,
   AI_VOCABULARY_FIELDS.MODEL_ID,
   AI_VOCABULARY_FIELDS.FALLBACK_CHAIN,
@@ -42,6 +142,10 @@ export const ALL_AI_VOCABULARY_FIELDS: readonly AIVocabularyField[] = [
   AI_VOCABULARY_FIELDS.LANGUAGE,
   AI_VOCABULARY_FIELDS.FEATURE_FLAG,
   AI_VOCABULARY_FIELDS.DATA_SOURCE_VERSION,
+  AI_VOCABULARY_FIELDS.FROM_PROVIDER,
+  AI_VOCABULARY_FIELDS.FROM_MODEL_FAMILY,
+  AI_VOCABULARY_FIELDS.TO_PROVIDER,
+  AI_VOCABULARY_FIELDS.TO_MODEL_FAMILY,
 ] as const;
 
 export function isAIVocabularyField(value: string): value is AIVocabularyField {

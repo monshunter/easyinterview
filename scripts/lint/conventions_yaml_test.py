@@ -24,6 +24,8 @@ def load_linter():
 REQUIRED_AI_FIELDS = [
     "model_profile_name",
     "model_profile_version",
+    "provider",
+    "capability",
     "model_family",
     "model_id",
     "fallback_chain",
@@ -35,6 +37,40 @@ REQUIRED_AI_FIELDS = [
     "language",
     "feature_flag",
     "data_source_version",
+    "from_provider",
+    "from_model_family",
+    "to_provider",
+    "to_model_family",
+]
+
+REQUIRED_AI_CAPABILITIES = ["chat", "embed", "stt", "realtime", "rerank", "judge"]
+
+REQUIRED_PROVIDER_REGISTRY_FIELDS = [
+    "name",
+    "protocol",
+    "base_url_env",
+    "api_key_env",
+    "capabilities",
+    "version",
+]
+
+REQUIRED_MODEL_PROFILE_FIELDS = [
+    "name",
+    "capability",
+    "status",
+    "unsupported_reason",
+    "default",
+    "provider_ref",
+    "model",
+    "params",
+    "fallback",
+    "when",
+    "timeout_ms",
+    "max_tokens",
+    "rate_limit",
+    "route",
+    "version",
+    "privacy_policy",
 ]
 
 
@@ -183,7 +219,16 @@ def valid_data() -> dict:
                 ]
             },
         },
-        "aiVocabulary": {"fields": [{"name": name} for name in REQUIRED_AI_FIELDS]},
+        "aiVocabulary": {
+            "capabilities": REQUIRED_AI_CAPABILITIES,
+            "providerRegistryFields": [
+                {"name": name} for name in REQUIRED_PROVIDER_REGISTRY_FIELDS
+            ],
+            "modelProfileFields": [
+                {"name": name} for name in REQUIRED_MODEL_PROFILE_FIELDS
+            ],
+            "fields": [{"name": name} for name in REQUIRED_AI_FIELDS],
+        },
     }
 
 
@@ -213,6 +258,40 @@ class ConventionsYAMLTest(unittest.TestCase):
         errs = self.linter.validate(data)
 
         self.assertTrue(any("validation_status" in err for err in errs), errs)
+
+    def test_rejects_missing_ai_capability(self) -> None:
+        data = valid_data()
+        data["aiVocabulary"]["capabilities"] = [
+            value for value in data["aiVocabulary"]["capabilities"] if value != "rerank"
+        ]
+
+        errs = self.linter.validate(data)
+
+        self.assertTrue(any("rerank" in err for err in errs), errs)
+
+    def test_rejects_missing_ai_provider_registry_field(self) -> None:
+        data = valid_data()
+        data["aiVocabulary"]["providerRegistryFields"] = [
+            field
+            for field in data["aiVocabulary"]["providerRegistryFields"]
+            if field["name"] != "api_key_env"
+        ]
+
+        errs = self.linter.validate(data)
+
+        self.assertTrue(any("api_key_env" in err for err in errs), errs)
+
+    def test_rejects_missing_ai_model_profile_field(self) -> None:
+        data = valid_data()
+        data["aiVocabulary"]["modelProfileFields"] = [
+            field
+            for field in data["aiVocabulary"]["modelProfileFields"]
+            if field["name"] != "provider_ref"
+        ]
+
+        errs = self.linter.validate(data)
+
+        self.assertTrue(any("provider_ref" in err for err in errs), errs)
 
     def test_rejects_non_snake_case_ai_vocabulary_field(self) -> None:
         data = copy.deepcopy(valid_data())

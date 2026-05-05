@@ -12,10 +12,13 @@ import (
 )
 
 type parityFixture struct {
-	Enums              map[string][]string `json:"enums"`
-	ErrorCodes         []string            `json:"errorCodes"`
-	AIVocabularyFields []string            `json:"aiVocabularyFields"`
-	Serialization      struct {
+	Enums                    map[string][]string `json:"enums"`
+	ErrorCodes               []string            `json:"errorCodes"`
+	AICapabilities           []string            `json:"aiCapabilities"`
+	AIProviderRegistryFields []string            `json:"aiProviderRegistryFields"`
+	AIModelProfileFields     []string            `json:"aiModelProfileFields"`
+	AIVocabularyFields       []string            `json:"aiVocabularyFields"`
+	Serialization            struct {
 		PageInfo map[string]any `json:"pageInfo"`
 		APIError map[string]any `json:"apiError"`
 	} `json:"serialization"`
@@ -42,20 +45,20 @@ func loadParityFixture(t *testing.T) parityFixture {
 func TestConventionsParityFixture_EnumSets(t *testing.T) {
 	fixture := loadParityFixture(t)
 	got := map[string][]string{
-		"TargetJobStatus":       stringsOf(AllTargetJobStatuses),
-		"TargetJobParseStatus":  stringsOf(AllTargetJobParseStatuses),
-		"PracticeMode":          stringsOf(AllPracticeModes),
-		"PracticeGoal":          stringsOf(AllPracticeGoals),
-		"InterviewerRole":       stringsOf(AllInterviewerRoles),
-		"SessionStatus":         stringsOf(AllSessionStatuses),
-		"ReportStatus":          stringsOf(AllReportStatuses),
-		"ReadinessTier":         stringsOf(AllReadinessTiers),
-		"DimensionStatus":       stringsOf(AllDimensionStatuses),
-		"Confidence":            stringsOf(AllConfidences),
-		"QuestionReviewStatus":  stringsOf(AllQuestionReviewStatuses),
-		"DebriefStatus":         stringsOf(AllDebriefStatuses),
-		"PrivacyRequestType":    stringsOf(AllPrivacyRequestTypes),
-		"PrivacyRequestStatus":  stringsOf(AllPrivacyRequestStatuses),
+		"TargetJobStatus":      stringsOf(AllTargetJobStatuses),
+		"TargetJobParseStatus": stringsOf(AllTargetJobParseStatuses),
+		"PracticeMode":         stringsOf(AllPracticeModes),
+		"PracticeGoal":         stringsOf(AllPracticeGoals),
+		"InterviewerRole":      stringsOf(AllInterviewerRoles),
+		"SessionStatus":        stringsOf(AllSessionStatuses),
+		"ReportStatus":         stringsOf(AllReportStatuses),
+		"ReadinessTier":        stringsOf(AllReadinessTiers),
+		"DimensionStatus":      stringsOf(AllDimensionStatuses),
+		"Confidence":           stringsOf(AllConfidences),
+		"QuestionReviewStatus": stringsOf(AllQuestionReviewStatuses),
+		"DebriefStatus":        stringsOf(AllDebriefStatuses),
+		"PrivacyRequestType":   stringsOf(AllPrivacyRequestTypes),
+		"PrivacyRequestStatus": stringsOf(AllPrivacyRequestStatuses),
 	}
 	if len(got) != 14 {
 		t.Fatalf("generated enum type count = %d, want 14", len(got))
@@ -69,6 +72,18 @@ func TestConventionsParityFixture_ErrorCodesAndAIVocabulary(t *testing.T) {
 	fixture := loadParityFixture(t)
 	if !reflect.DeepEqual(sharederrors.AllCodes, fixture.ErrorCodes) {
 		t.Fatalf("Go error codes differ from fixture\ngot:  %#v\nwant: %#v", sharederrors.AllCodes, fixture.ErrorCodes)
+	}
+	gotCapabilities := stringsOf(sharedai.AllCapabilities)
+	if !reflect.DeepEqual(gotCapabilities, fixture.AICapabilities) {
+		t.Fatalf("Go AI capabilities differ from fixture\ngot:  %#v\nwant: %#v", gotCapabilities, fixture.AICapabilities)
+	}
+	gotRegistryFields := stringsOf(sharedai.AllProviderRegistryFieldNames)
+	if !reflect.DeepEqual(gotRegistryFields, fixture.AIProviderRegistryFields) {
+		t.Fatalf("Go AI provider registry fields differ from fixture\ngot:  %#v\nwant: %#v", gotRegistryFields, fixture.AIProviderRegistryFields)
+	}
+	gotProfileFields := stringsOf(sharedai.AllModelProfileFieldNames)
+	if !reflect.DeepEqual(gotProfileFields, fixture.AIModelProfileFields) {
+		t.Fatalf("Go AI model profile fields differ from fixture\ngot:  %#v\nwant: %#v", gotProfileFields, fixture.AIModelProfileFields)
 	}
 	gotAIFields := stringsOf(sharedai.AllFieldNames)
 	if !reflect.DeepEqual(gotAIFields, fixture.AIVocabularyFields) {

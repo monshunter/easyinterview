@@ -1,6 +1,6 @@
 # Secrets and Config History
 
-> **版本**: 2.1
+> **版本**: 2.2
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-05 | 2.2 | A4 lint-config 现在同时读取 provider registry 中的 provider-specific env refs；`AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 为必填路径，默认 provider base URL / API key 只在被选中 provider 引用时作为 secret 校验来源。 | ai-provider-and-model-routing/003 Phase 4 |
 | 2026-05-05 | 2.1 | 对齐 A3 provider registry 设计：新增 `AI_PROVIDER_REGISTRY_PATH`，将 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 降为默认 provider ref 可引用的 secret env，不再作为全局唯一 AI provider contract。 | ai-provider-and-model-routing/003 |
 | 2026-05-05 | 2.0 | 将 AI 连接 env/config 真理源收口为 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 与 `ai.provider*`，确认非 test 环境缺失 provider config 时 fail-fast，不保留旧连接参数兼容层。 | ai-provider-and-model-routing/001 remediation |
 | 2026-05-03 | 1.9 | 对齐 product-scope v1.2：feature flag baseline 删除独立错题本导出、独立成长中心与旧 dual-track 表述，改为报告复练计划、准备度信号和会话内辅助程度开关。 | 001-bootstrap Phase 8 remediation |

@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
+  AI_CAPABILITIES,
+  ALL_AI_CAPABILITIES,
+  isAICapability,
+  AI_PROVIDER_REGISTRY_FIELDS,
+  ALL_AI_PROVIDER_REGISTRY_FIELDS,
+  isAIProviderRegistryField,
+  AI_MODEL_PROFILE_FIELDS,
+  ALL_AI_MODEL_PROFILE_FIELDS,
+  isAIModelProfileField,
   AI_VOCABULARY_FIELDS,
   ALL_AI_VOCABULARY_FIELDS,
   isAIVocabularyField,
@@ -11,6 +20,8 @@ describe('AI vocabulary generated constants', () => {
     const expected: readonly AIVocabularyField[] = [
       AI_VOCABULARY_FIELDS.MODEL_PROFILE_NAME,
       AI_VOCABULARY_FIELDS.MODEL_PROFILE_VERSION,
+      AI_VOCABULARY_FIELDS.PROVIDER,
+      AI_VOCABULARY_FIELDS.CAPABILITY,
       AI_VOCABULARY_FIELDS.MODEL_FAMILY,
       AI_VOCABULARY_FIELDS.MODEL_ID,
       AI_VOCABULARY_FIELDS.FALLBACK_CHAIN,
@@ -22,6 +33,10 @@ describe('AI vocabulary generated constants', () => {
       AI_VOCABULARY_FIELDS.LANGUAGE,
       AI_VOCABULARY_FIELDS.FEATURE_FLAG,
       AI_VOCABULARY_FIELDS.DATA_SOURCE_VERSION,
+      AI_VOCABULARY_FIELDS.FROM_PROVIDER,
+      AI_VOCABULARY_FIELDS.FROM_MODEL_FAMILY,
+      AI_VOCABULARY_FIELDS.TO_PROVIDER,
+      AI_VOCABULARY_FIELDS.TO_MODEL_FAMILY,
     ];
 
     expect(ALL_AI_VOCABULARY_FIELDS).toEqual(expected);
@@ -30,6 +45,8 @@ describe('AI vocabulary generated constants', () => {
   it('maps TS constant names to canonical snake_case wire names', () => {
     expect(AI_VOCABULARY_FIELDS.MODEL_PROFILE_NAME).toBe('model_profile_name');
     expect(AI_VOCABULARY_FIELDS.MODEL_PROFILE_VERSION).toBe('model_profile_version');
+    expect(AI_VOCABULARY_FIELDS.PROVIDER).toBe('provider');
+    expect(AI_VOCABULARY_FIELDS.CAPABILITY).toBe('capability');
     expect(AI_VOCABULARY_FIELDS.MODEL_FAMILY).toBe('model_family');
     expect(AI_VOCABULARY_FIELDS.MODEL_ID).toBe('model_id');
     expect(AI_VOCABULARY_FIELDS.FALLBACK_CHAIN).toBe('fallback_chain');
@@ -41,6 +58,10 @@ describe('AI vocabulary generated constants', () => {
     expect(AI_VOCABULARY_FIELDS.LANGUAGE).toBe('language');
     expect(AI_VOCABULARY_FIELDS.FEATURE_FLAG).toBe('feature_flag');
     expect(AI_VOCABULARY_FIELDS.DATA_SOURCE_VERSION).toBe('data_source_version');
+    expect(AI_VOCABULARY_FIELDS.FROM_PROVIDER).toBe('from_provider');
+    expect(AI_VOCABULARY_FIELDS.FROM_MODEL_FAMILY).toBe('from_model_family');
+    expect(AI_VOCABULARY_FIELDS.TO_PROVIDER).toBe('to_provider');
+    expect(AI_VOCABULARY_FIELDS.TO_MODEL_FAMILY).toBe('to_model_family');
   });
 
   it('validates documented fields only', () => {
@@ -52,6 +73,8 @@ describe('AI vocabulary generated constants', () => {
     const a3Fields = [
       AI_VOCABULARY_FIELDS.MODEL_PROFILE_NAME,
       AI_VOCABULARY_FIELDS.MODEL_PROFILE_VERSION,
+      AI_VOCABULARY_FIELDS.PROVIDER,
+      AI_VOCABULARY_FIELDS.CAPABILITY,
       AI_VOCABULARY_FIELDS.MODEL_FAMILY,
       AI_VOCABULARY_FIELDS.FALLBACK_CHAIN,
       AI_VOCABULARY_FIELDS.ROUTE,
@@ -62,6 +85,8 @@ describe('AI vocabulary generated constants', () => {
     expect(a3Fields).toEqual([
       'model_profile_name',
       'model_profile_version',
+      'provider',
+      'capability',
       'model_family',
       'fallback_chain',
       'route',
@@ -71,5 +96,27 @@ describe('AI vocabulary generated constants', () => {
     for (const field of a3Fields) {
       expect(isAIVocabularyField(field)).toBe(true);
     }
+  });
+
+  it('documents capability literals and provider/profile schema fields', () => {
+    expect(ALL_AI_CAPABILITIES).toEqual(['chat', 'embed', 'stt', 'realtime', 'rerank', 'judge']);
+    expect(AI_CAPABILITIES.RERANK).toBe('rerank');
+    expect(isAICapability('judge')).toBe(true);
+    expect(isAICapability('image')).toBe(false);
+
+    expect(ALL_AI_PROVIDER_REGISTRY_FIELDS).toEqual([
+      'name',
+      'protocol',
+      'base_url_env',
+      'api_key_env',
+      'capabilities',
+      'version',
+    ]);
+    expect(AI_PROVIDER_REGISTRY_FIELDS.API_KEY_ENV).toBe('api_key_env');
+    expect(isAIProviderRegistryField('base_url_env')).toBe(true);
+
+    expect(ALL_AI_MODEL_PROFILE_FIELDS).toContain('provider_ref');
+    expect(AI_MODEL_PROFILE_FIELDS.UNSUPPORTED_REASON).toBe('unsupported_reason');
+    expect(isAIModelProfileField('privacy_policy')).toBe(true);
   });
 });

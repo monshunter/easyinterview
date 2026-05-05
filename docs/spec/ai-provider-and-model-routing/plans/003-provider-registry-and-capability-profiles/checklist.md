@@ -29,10 +29,10 @@
 
 ## Phase 4: A4 / B1 / F3 integration
 
-- [ ] 4.1 A4 env/config 字典扩展为 `AI_PROVIDER_REGISTRY_PATH` + `AI_MODEL_PROFILE_PATH` + provider-specific secret env refs，并同步 `.env.example`、bindings、validator、redaction 与 `make lint-config`
-- [ ] 4.2 B1 shared vocabulary 新增或迁移 AI capability enum、provider registry field names、profile field names、meta field names 与 provider/profile routing `AI_*` 错误码，codegen parity tests 通过
-- [ ] 4.3 F3 + Product/UI profile coverage lint 覆盖 12 个 baseline feature_key 的默认 `model_profile_name` 与 spec §4.5 默认 profile
-- [ ] 4.4 同步 ADR-Q6、A3 history、A4/F3 spec、engineering-roadmap A3 职责描述与 docs/spec INDEX
+- [x] 4.1 A4 env/config 字典扩展为 `AI_PROVIDER_REGISTRY_PATH` + `AI_MODEL_PROFILE_PATH` + provider-specific secret env refs，并同步 `.env.example`、bindings、validator、redaction 与 `make lint-config`
+- [x] 4.2 B1 shared vocabulary 新增或迁移 AI capability enum、provider registry field names、profile field names、meta field names 与 provider/profile routing `AI_*` 错误码，codegen parity tests 通过
+- [x] 4.3 F3 + Product/UI profile coverage lint 覆盖 12 个 baseline feature_key 的默认 `model_profile_name` 与 spec §4.5 默认 profile
+- [x] 4.4 同步 ADR-Q6、A3 history、A4/F3 spec、engineering-roadmap A3 职责描述与 docs/spec INDEX
 
 ## Phase 5: Verification and handoff
 

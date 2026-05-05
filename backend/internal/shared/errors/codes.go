@@ -16,6 +16,8 @@ const (
 	CodeAiOutputInvalid         = "AI_OUTPUT_INVALID"
 	CodeAiFallbackExhausted     = "AI_FALLBACK_EXHAUSTED"
 	CodeAiUnsupportedCapability = "AI_UNSUPPORTED_CAPABILITY"
+	CodeAiProviderConfigInvalid = "AI_PROVIDER_CONFIG_INVALID"
+	CodeAiProviderSecretMissing = "AI_PROVIDER_SECRET_MISSING"
 )
 
 // AllCodes lists every documented error code in declaration order.
@@ -30,6 +32,8 @@ var AllCodes = []string{
 	CodeAiOutputInvalid,
 	CodeAiFallbackExhausted,
 	CodeAiUnsupportedCapability,
+	CodeAiProviderConfigInvalid,
+	CodeAiProviderSecretMissing,
 }
 
 // CodeMeta holds the documented default message and retryable hint per error code.
@@ -50,4 +54,6 @@ var CodeRegistry = map[string]CodeMeta{
 	CodeAiOutputInvalid:         {Message: "AI output failed schema validation", Retryable: false},
 	CodeAiFallbackExhausted:     {Message: "AI fallback chain exhausted", Retryable: true},
 	CodeAiUnsupportedCapability: {Message: "AI capability is not supported", Retryable: false},
+	CodeAiProviderConfigInvalid: {Message: "AI provider registry or model profile configuration is invalid", Retryable: false},
+	CodeAiProviderSecretMissing: {Message: "AI provider secret is missing", Retryable: false},
 }

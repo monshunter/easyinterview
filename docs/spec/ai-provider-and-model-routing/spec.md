@@ -1,6 +1,6 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 1.9
+> **版本**: 2.0
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -50,7 +50,7 @@
 - STT / realtime voice 的完整协议 adapter、音频 payload 形态与 HTTP wire：归 002+ 与 C14 / practice voice owner；本 spec 只锁 profile capability 与 fail-closed 规则。
 - LLM Judge / 离线评估集实现：归 F3 后续评估 plan。
 - DB 表本身：归 B4；本 spec 只引用字段名。
-- 错误码命名：依赖 B1 已落地的 `AI_*` 前缀错误码；新增错误码必须先改 B1。
+- 错误码与跨语言 AI vocabulary：依赖 B1 已落地的 `AI_*` 前缀错误码、AI capability、provider registry 字段名、model profile 字段名与 AI meta 字段名；新增跨边界字面量必须先改 B1。
 
 ## 3 用户决策 / 待确认事项
 
@@ -69,6 +69,7 @@
 | D-9 | OpenAI-compatible API 协议子集 | 当前可执行协议仍是 Chat Completions + Embeddings；Audio Transcription / realtime / rerank / judge 进入后续 plan 前必须 fail-closed | 主流 provider 可即插即用，同时避免假承诺 voice 能力 |
 | D-10 | F3 profile 覆盖 | F3 12 个 baseline feature_key 必须全部能解析到 A3 profile catalog；P1/P2 capability 可先以 `status=disabled` / `status=unsupported` profile 占位，并写明 `unsupported_reason`，但不得缺命名空间 | 业务域开工前具备完整 AI 调用坐标 |
 | D-11 | Product/UI capability inventory | A3 spec 必须维护产品 / UI AI 场景到 capability family 的映射；新增 AI 场景必须先修订本表与 F3 feature_key / profile 字典 | 防止新业务回到单模型假设 |
+| D-12 | B1 AI vocabulary 边界 | `chat/embed/stt/realtime/rerank/judge` capability、provider registry/profile 字段名、AI meta 字段名与 provider/profile routing `AI_*` 错误码由 B1 生成；A3 只 alias / consume，不私造跨边界常量 | 防止 Go/TS/OpenAPI 与 runtime 常量漂移 |
 
 ### 3.2 待确认事项
 
@@ -82,7 +83,7 @@
 ### 4.1 接口约束
 
 - `AIClient.Complete` 的入参 `payload` 必须包含 `messages[]` + `metadata`（业务侧的 `feature_key` / `prompt_version` / `rubric_version` / `language`，可选 `output_schema`）；client 不直接接受裸 prompt 字符串。
-- `AICallMeta` 字段顺序固定：`provider` / `model_family` / `model_id` / `capability` / `prompt_version` / `rubric_version` / `model_profile_name` / `model_profile_version` / `language` / `input_tokens` / `output_tokens` / `cost_usd_micros` / `latency_ms` / `fallback_chain[]` / `route` / `validation_status` / `error_code`。任何字段新增由本 spec 修订；如需跨前后端共享再追加到 B1。
+- `AICallMeta` 字段顺序固定：`provider` / `model_family` / `model_id` / `capability` / `prompt_version` / `rubric_version` / `model_profile_name` / `model_profile_version` / `language` / `input_tokens` / `output_tokens` / `cost_usd_micros` / `latency_ms` / `fallback_chain[]` / `route` / `validation_status` / `error_code`。其中跨 Go/TS/OpenAPI 边界消费的 capability、profile/provider 字段名、fallback label 字段与错误码由 B1 生成；A3 owns runtime 填充与校验。
 - `Stream` 返回 `AIStreamEvent` channel，event type 固定为 `delta` / `error` / `done`；`delta` 只携带结构化增量，`error` 携带 B1 错误码，`done` 携带最终 `AICallMeta`。`Stream` 必须可中断（context cancellation）。
 - 不支持的 capability 必须 fail-closed：profile 能加载为 `disabled` / `unsupported` 状态，且必须携带 `unsupported_reason`；运行时调用不得静默降级到 chat 模型或 stub。
 
@@ -143,7 +144,7 @@
 | Profile 文件路径 / secret 注入 | A4 | `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 与 provider-specific env secret ref |
 | 真实 provider endpoint | E4 + 运维 | 本地部署可直连真实 AI provider；staging / prod 可接运维提供的 provider endpoint；本 spec 不部署独立代理 |
 | 业务调用现场 | C4-C7 / C9 / C11 / C14 / D3 | 各业务 spec / plan 引用 profile name，不引用 provider/model |
-| 共享约定 | B1 | `AI_*` 错误码、AI capability / meta 字段名共享常量、`ApiError` / `ApiErrorResponse` 消费约定 |
+| 共享约定 | B1 | `AI_*` 错误码、AI capability、provider registry/profile 字段名、AI meta 字段名共享常量、`ApiError` / `ApiErrorResponse` 消费约定 |
 | DB 表 | B4 | `ai_task_runs` schema |
 | Metric / Dashboard | F1 | 7 个 ai_* metric + AI Cost & Quality Dashboard |
 | 测试 stub provider | A3 | 应用内 deterministic stub，仅供单元测试 / 离线契约测试 / 显式 mock 场景 |
@@ -171,6 +172,6 @@ A3 当前计划拆分为一份 completed bootstrap plan、一份 draft capabilit
 
 - [001-aiclient-and-profile-bootstrap](./plans/001-aiclient-and-profile-bootstrap/plan.md)（completed）：已落地 P0 `Complete` / `Embed`、`Stream` 事件合同类型、unit-test stub provider、`openai_compatible` Chat / Embeddings provider、基础 Model Profile loader 与 observability / audit decorator。
 - [002-tools-streaming-and-stt](./plans/002-tools-streaming-and-stt/plan.md)（draft/blocked）：Tools / full streaming / STT / realtime speech 等协议能力延期占位；必须先触发 ADR / spec 修订，才能切 active。
-- [003-provider-registry-and-capability-profiles](./plans/003-provider-registry-and-capability-profiles/plan.md)（active）：把本 spec v1.9 的 provider registry、capability-scoped profile、central fallback、A4 env dictionary、F3 12 profile coverage 与 drift gate 落地，为后续业务域实施提供完整 AI provider 配置面。
+- [003-provider-registry-and-capability-profiles](./plans/003-provider-registry-and-capability-profiles/plan.md)（active）：把本 spec v2.0 的 provider registry、capability-scoped profile、central fallback、A4 env dictionary、B1 AI vocabulary、F3 12 profile coverage 与 drift gate 落地，为后续业务域实施提供完整 AI provider 配置面。
 
 后续如需扩展，递增本 spec 版本并原地修订对应 plan；不创建 sibling spec。

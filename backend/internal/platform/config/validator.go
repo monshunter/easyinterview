@@ -41,8 +41,7 @@ func (l *Loader) Validate() error {
 		problems = append(problems, l.checkRequiredValue("log.level", "LOG_LEVEL")...)
 		problems = append(problems, l.checkRequiredSecret("auth.sessionCookieSecret", "SESSION_COOKIE_SECRET")...)
 		problems = append(problems, l.checkRequiredSecret("auth.challengeTokenPepper", "AUTH_CHALLENGE_TOKEN_PEPPER")...)
-		problems = append(problems, l.checkRequiredValue("ai.providerBaseURL", "AI_PROVIDER_BASE_URL")...)
-		problems = append(problems, l.checkRequiredSecret("ai.providerApiKey", "AI_PROVIDER_API_KEY")...)
+		problems = append(problems, l.checkRequiredValue("ai.providerRegistryPath", "AI_PROVIDER_REGISTRY_PATH")...)
 		problems = append(problems, l.checkRequiredValue("ai.modelProfilePath", "AI_MODEL_PROFILE_PATH")...)
 		problems = append(problems, l.checkRequiredValue("featureFlag.source", "FEATURE_FLAG_SOURCE")...)
 		switch strings.ToLower(strings.TrimSpace(l.GetString("featureFlag.source"))) {

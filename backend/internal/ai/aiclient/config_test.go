@@ -8,7 +8,7 @@ import (
 )
 
 // TestNew_FailFastMatrix exercises the spec D-4 / plan 4.1 fail-fast
-// matrix. Plan checklist 4.2 codifies these three core cases plus one
+// matrix. Plan checklist 4.1 codifies these three core cases plus one
 // non-test happy path.
 func TestNew_FailFastMatrix(t *testing.T) {
 	cases := []struct {
@@ -30,11 +30,11 @@ func TestNew_FailFastMatrix(t *testing.T) {
 			wantErr: aiclient.ErrMissingProviderConfig,
 		},
 		{
-			name: "test-env-with-provider-config-OK",
+			name: "test-env-with-registry-config-OK",
 			cfg: aiclient.Config{
-				AppEnv:          aiclient.AppEnvTest,
-				ProviderBaseURL: "http://example",
-				ProviderAPIKey:  "k",
+				AppEnv:               aiclient.AppEnvTest,
+				ProviderRegistryPath: "config/ai-providers.yaml",
+				ModelProfilePath:     "config/ai-profiles",
 			},
 			wantErr: nil,
 		},
@@ -51,22 +51,22 @@ func TestNew_FailFastMatrix(t *testing.T) {
 			wantErr: aiclient.ErrMissingProviderConfig,
 		},
 		{
-			name: "production-with-provider-config-OK",
+			name: "production-with-registry-config-OK",
 			cfg: aiclient.Config{
-				AppEnv:          "production",
-				ProviderBaseURL: "http://provider.example",
-				ProviderAPIKey:  "k",
+				AppEnv:               "production",
+				ProviderRegistryPath: "config/ai-providers.yaml",
+				ModelProfilePath:     "config/ai-profiles",
 			},
 			wantErr: nil,
 		},
 		{
-			name:    "staging-missing-api-key-FAIL",
-			cfg:     aiclient.Config{AppEnv: "staging", ProviderBaseURL: "http://gw"},
+			name:    "staging-missing-model-profile-path-FAIL",
+			cfg:     aiclient.Config{AppEnv: "staging", ProviderRegistryPath: "config/ai-providers.yaml"},
 			wantErr: aiclient.ErrMissingProviderConfig,
 		},
 		{
-			name:    "staging-missing-base-url-FAIL",
-			cfg:     aiclient.Config{AppEnv: "staging", ProviderAPIKey: "k"},
+			name:    "staging-missing-provider-registry-path-FAIL",
+			cfg:     aiclient.Config{AppEnv: "staging", ModelProfilePath: "config/ai-profiles"},
 			wantErr: aiclient.ErrMissingProviderConfig,
 		},
 	}

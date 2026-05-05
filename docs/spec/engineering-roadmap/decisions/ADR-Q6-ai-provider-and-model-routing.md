@@ -1,6 +1,6 @@
 # ADR-Q6 · AI Provider 与模型路由
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: accepted
 > **更新日期**: 2026-05-05
 
@@ -95,7 +95,7 @@
 4. **Stub provider**（A3 owner）
    - 仅用于单元测试、离线 contract 测试或显式 mock 场景
    - 输入 → 输出 hash-based 确定性映射；可被 OpenAPI fixtures 反向喂养（与 E1 `mock-contract-suite` 同源）
-   - 单元测试默认走 `stub`；docker compose / Kind / staging / prod 不允许默认降级到 stub，缺少真实 provider endpoint / API key 时必须 fail-fast
+   - 单元测试默认走 `stub`；docker compose / Kind / staging / prod 不允许默认降级到 stub，缺少 provider registry、model profile path 或选中 provider 的 secret env ref 时必须 fail-fast
 5. **Provider endpoint 边界**：本 ADR 不锁死供应商、托管形态或代理实现，只锁 provider registry / profile / OpenAI-compatible API 子集和应用侧 secret ref 连接参数
 6. **F3 解耦**：`prompt-rubric-registry` 只持有 `(feature_key, prompt_version, rubric_version, model_profile_name)` 四元组；不持有 provider / model 字符串
 7. **可观测性**（F1 owner）
@@ -113,7 +113,7 @@
 - **C4 `backend-targetjob`** / **C5 `backend-practice`** / **C6 `backend-review`** / **C7 `backend-resume`** / **C9 `backend-debrief`** / **C11 `backend-retrieval`** —— 全部仅依赖 `AIClient` + profile name；禁止 import 厂商 SDK
 - **C14 `backend-voice-stt`**（P2） —— STT / realtime 走同一 `AIClient` capability profile，profile 路由到 speech provider ref
 - **`release-gate-and-rollout`** —— 校验 AI provider 路由可观测性 + fallback alert + cost cap 配置
-- **B1 `shared-conventions-codified`** —— Model Profile / AI meta 字段名与 AI 错误码的共享常量或生成类型；A3 仍 owns Model Profile schema、`AIClient` runtime 与 `AICallMeta` 填充语义
+- **B1 `shared-conventions-codified`** —— AI capability、Provider Registry / Model Profile / AI meta 字段名与 AI 错误码的共享常量或生成类型；A3 仍 owns Model Profile schema、`AIClient` runtime 与 `AICallMeta` 填充语义
 - **CLAUDE.md / `test/scenarios/`** —— Kind 场景默认使用真实 AI provider endpoint；只有离线 contract 测试可显式切 stub / mock provider endpoint
 
 ## 5 失效与修订条件
@@ -140,6 +140,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-05 | 1.7 | 同步 A3 003 Phase 4：运行时注入 fail-fast 口径改为 registry/profile path + 被选中 provider secret；B1 边界扩展为 AI capability、provider/profile 字段名与 provider/profile routing 错误码。 |
 | 2026-05-05 | 1.6 | 基于 product-scope 与 UI AI 场景重估，将目标架构从单一 provider endpoint 升级为 Provider Registry + Capability Model Profile；fallback 改由 AIClient 在 profile chain 内集中执行，A4 入口新增 `AI_PROVIDER_REGISTRY_PATH`。 |
 | 2026-05-05 | 1.5 | 全面更名并收口 AI provider 口径：A3 目录与 ADR 文件改为 `ai-provider-and-model-routing`，运行时连接参数改为 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`，并确认不保留旧连接参数或 route schema 兼容层。 |
 | 2026-05-04 | 1.4 | 对齐 engineering-roadmap v3.0：关联章节不再指向旧 Phase 5.2，改为引用当前 ADR 保留与 future candidate 延后规则。 |

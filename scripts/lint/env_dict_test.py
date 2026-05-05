@@ -10,7 +10,13 @@ THIS_DIR = Path(__file__).resolve().parent
 SCRIPT = THIS_DIR / "env_dict.py"
 
 
-def make_repo(tmp_path: Path, env_example: str, spec_table: str, code_files: dict[str, str] | None = None) -> Path:
+def make_repo(
+    tmp_path: Path,
+    env_example: str,
+    spec_table: str,
+    code_files: dict[str, str] | None = None,
+    provider_registry: str | None = None,
+) -> Path:
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / ".env.example").write_text(env_example)
@@ -24,6 +30,10 @@ def make_repo(tmp_path: Path, env_example: str, spec_table: str, code_files: dic
     code_root.mkdir(parents=True)
     for name, body in (code_files or {}).items():
         (code_root / name).write_text(body)
+    if provider_registry is not None:
+        config_dir = repo / "config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        (config_dir / "ai-providers.yaml").write_text(provider_registry, encoding="utf-8")
     return repo
 
 
@@ -93,6 +103,27 @@ def test_fails_when_binding_literal_declares_undocumented_key(tmp_path: Path) ->
     result = run(repo)
     assert result.returncode == 1
     assert "DATABASE_URL" in result.stderr
+
+
+def test_fails_when_provider_registry_env_ref_is_missing_from_dictionary(tmp_path: Path) -> None:
+    repo = make_repo(
+        tmp_path,
+        env_example="APP_ENV=dev\n",
+        spec_table="| Key | a |\n|-----|---|\n| `APP_ENV` | x |\n",
+        provider_registry=textwrap.dedent("""
+            providers:
+              - name: default-openai-compatible
+                protocol: openai_compatible
+                base_url_env: CUSTOM_PROVIDER_BASE_URL
+                api_key_env: CUSTOM_PROVIDER_API_KEY
+                capabilities: [chat]
+                version: 1.0.0
+        """).strip(),
+    )
+    result = run(repo)
+    assert result.returncode == 1
+    assert "CUSTOM_PROVIDER_BASE_URL" in result.stderr
+    assert "CUSTOM_PROVIDER_API_KEY" in result.stderr
 
 
 def test_fails_when_spec_missing_311_section(tmp_path: Path) -> None:

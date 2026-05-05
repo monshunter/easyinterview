@@ -33,7 +33,10 @@ type Spec struct {
 	Enums        []EnumSpec        `yaml:"enums"`
 	Structures   map[string]Struct `yaml:"structures"`
 	AIVocabulary struct {
-		Fields []AIFieldSpec `yaml:"fields"`
+		Capabilities           []string      `yaml:"capabilities"`
+		ProviderRegistryFields []AIFieldSpec `yaml:"providerRegistryFields"`
+		ModelProfileFields     []AIFieldSpec `yaml:"modelProfileFields"`
+		Fields                 []AIFieldSpec `yaml:"fields"`
 	} `yaml:"aiVocabulary"`
 }
 
@@ -354,6 +357,33 @@ func renderGoAIVocabulary(s *Spec) ([]byte, error) {
 	buf.WriteString("// A4 owns AI_PROVIDER_* connection parameter validation.\n")
 	buf.WriteString("// B4 owns typed database columns.\n")
 	buf.WriteString("// F1 owns metrics and log consumption.\n\n")
+	buf.WriteString("// Capability is a B1-owned AI capability literal.\n")
+	buf.WriteString("type Capability string\n\n")
+	buf.WriteString("const (\n")
+	for _, capability := range s.AIVocabulary.Capabilities {
+		fmt.Fprintf(&buf, "\tCapability%s Capability = %q\n", pascalSuffix(capability), capability)
+	}
+	buf.WriteString(")\n\n")
+
+	buf.WriteString("// AllCapabilities lists every AI capability in declaration order.\n")
+	buf.WriteString("var AllCapabilities = []Capability{\n")
+	for _, capability := range s.AIVocabulary.Capabilities {
+		fmt.Fprintf(&buf, "\tCapability%s,\n", pascalSuffix(capability))
+	}
+	buf.WriteString("}\n\n")
+	buf.WriteString("// IsCapability reports whether value is a documented AI capability.\n")
+	buf.WriteString("func IsCapability(value string) bool {\n")
+	buf.WriteString("\tfor _, capability := range AllCapabilities {\n")
+	buf.WriteString("\t\tif string(capability) == value {\n")
+	buf.WriteString("\t\t\treturn true\n")
+	buf.WriteString("\t\t}\n")
+	buf.WriteString("\t}\n")
+	buf.WriteString("\treturn false\n")
+	buf.WriteString("}\n\n")
+
+	renderGoAIFieldNameType(&buf, "ProviderRegistryFieldName", "provider registry field", s.AIVocabulary.ProviderRegistryFields)
+	renderGoAIFieldNameType(&buf, "ModelProfileFieldName", "model profile field", s.AIVocabulary.ModelProfileFields)
+
 	buf.WriteString("// FieldName is a B1-owned AI metadata wire field name.\n")
 	buf.WriteString("type FieldName string\n\n")
 	buf.WriteString("const (\n")
@@ -380,6 +410,33 @@ func renderGoAIVocabulary(s *Spec) ([]byte, error) {
 	buf.WriteString("}\n")
 
 	return formatGo(buf.Bytes())
+}
+
+func renderGoAIFieldNameType(buf *bytes.Buffer, typeName, label string, fields []AIFieldSpec) {
+	fmt.Fprintf(buf, "// %s is a B1-owned AI %s wire field name.\n", typeName, label)
+	fmt.Fprintf(buf, "type %s string\n\n", typeName)
+	buf.WriteString("const (\n")
+	for _, field := range fields {
+		fmt.Fprintf(buf, "\t%s%s %s = %q\n", typeName, fieldPascal(field.Name), typeName, field.Name)
+	}
+	buf.WriteString(")\n\n")
+
+	fmt.Fprintf(buf, "// All%ss lists every AI %s in declaration order.\n", typeName, label)
+	fmt.Fprintf(buf, "var All%ss = []%s{\n", typeName, typeName)
+	for _, field := range fields {
+		fmt.Fprintf(buf, "\t%s%s,\n", typeName, fieldPascal(field.Name))
+	}
+	buf.WriteString("}\n\n")
+
+	fmt.Fprintf(buf, "// Is%s reports whether value is a documented AI %s.\n", typeName, label)
+	fmt.Fprintf(buf, "func Is%s(value string) bool {\n", typeName)
+	fmt.Fprintf(buf, "\tfor _, field := range All%ss {\n", typeName)
+	buf.WriteString("\t\tif string(field) == value {\n")
+	buf.WriteString("\t\t\treturn true\n")
+	buf.WriteString("\t\t}\n")
+	buf.WriteString("\t}\n")
+	buf.WriteString("\treturn false\n")
+	buf.WriteString("}\n\n")
 }
 
 func formatGo(src []byte) ([]byte, error) {
@@ -480,7 +537,25 @@ func renderTSAIVocabulary(s *Spec) ([]byte, error) {
 	buf.WriteString("// A4 owns AI_PROVIDER_* connection parameter validation.\n")
 	buf.WriteString("// B4 owns typed database columns.\n")
 	buf.WriteString("// F1 owns metrics and log consumption.\n\n")
-	buf.WriteString("// AI metadata wire field names owned by shared-conventions-codified.\n\n")
+	buf.WriteString("// AI capability literals and wire field names owned by shared-conventions-codified.\n\n")
+
+	buf.WriteString("export const AI_CAPABILITIES = {\n")
+	for _, capability := range s.AIVocabulary.Capabilities {
+		fmt.Fprintf(&buf, "  %s: '%s',\n", upperSnakeFromPascal(pascalSuffix(capability)), capability)
+	}
+	buf.WriteString("} as const;\n\n")
+	buf.WriteString("export type AICapability = (typeof AI_CAPABILITIES)[keyof typeof AI_CAPABILITIES];\n\n")
+	buf.WriteString("export const ALL_AI_CAPABILITIES: readonly AICapability[] = [\n")
+	for _, capability := range s.AIVocabulary.Capabilities {
+		fmt.Fprintf(&buf, "  AI_CAPABILITIES.%s,\n", upperSnakeFromPascal(pascalSuffix(capability)))
+	}
+	buf.WriteString("] as const;\n\n")
+	buf.WriteString("export function isAICapability(value: string): value is AICapability {\n")
+	buf.WriteString("  return (ALL_AI_CAPABILITIES as readonly string[]).includes(value);\n")
+	buf.WriteString("}\n\n")
+
+	renderTSAIFieldNameGroup(&buf, "AI_PROVIDER_REGISTRY_FIELDS", "AIProviderRegistryField", "ALL_AI_PROVIDER_REGISTRY_FIELDS", "isAIProviderRegistryField", s.AIVocabulary.ProviderRegistryFields)
+	renderTSAIFieldNameGroup(&buf, "AI_MODEL_PROFILE_FIELDS", "AIModelProfileField", "ALL_AI_MODEL_PROFILE_FIELDS", "isAIModelProfileField", s.AIVocabulary.ModelProfileFields)
 
 	buf.WriteString("export const AI_VOCABULARY_FIELDS = {\n")
 	for _, field := range s.AIVocabulary.Fields {
@@ -501,6 +576,23 @@ func renderTSAIVocabulary(s *Spec) ([]byte, error) {
 	buf.WriteString("}\n")
 
 	return buf.Bytes(), nil
+}
+
+func renderTSAIFieldNameGroup(buf *bytes.Buffer, constName, typeName, allName, guardName string, fields []AIFieldSpec) {
+	fmt.Fprintf(buf, "export const %s = {\n", constName)
+	for _, field := range fields {
+		fmt.Fprintf(buf, "  %s: '%s',\n", upperSnakeFromPascal(fieldPascal(field.Name)), field.Name)
+	}
+	buf.WriteString("} as const;\n\n")
+	fmt.Fprintf(buf, "export type %s = (typeof %s)[keyof typeof %s];\n\n", typeName, constName, constName)
+	fmt.Fprintf(buf, "export const %s: readonly %s[] = [\n", allName, typeName)
+	for _, field := range fields {
+		fmt.Fprintf(buf, "  %s.%s,\n", constName, upperSnakeFromPascal(fieldPascal(field.Name)))
+	}
+	buf.WriteString("] as const;\n\n")
+	fmt.Fprintf(buf, "export function %s(value: string): value is %s {\n", guardName, typeName)
+	fmt.Fprintf(buf, "  return (%s as readonly string[]).includes(value);\n", allName)
+	buf.WriteString("}\n\n")
 }
 
 func renderTSPagination(s *Spec) ([]byte, error) {

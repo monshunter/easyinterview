@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """env_dict drift checker for secrets-and-config spec §3.1.1.
 
-Three-way diff:
+Four-way diff:
 
 1. ``.env.example`` (root)               — repository-versioned dictionary
 2. ``docs/spec/secrets-and-config/spec.md`` table §3.1.1
 3. Code-side env reads (``os.Getenv`` / ``os.LookupEnv``) under
    ``backend/internal/platform/config/``, ``backend/internal/platform/secrets/``,
    ``backend/cmd/api/``, ``backend/cmd/worker/``
+4. Provider registry env refs (``config/ai-providers.yaml``)
 
 Any key present in one source but missing in another causes a non-zero
 exit. Spec C-9 / C-11 / C-12 close on this gate.
@@ -21,6 +22,8 @@ import argparse
 import re
 import sys
 from pathlib import Path
+
+import yaml
 
 ENV_LINE_RE = re.compile(r"^\s*([A-Z][A-Z0-9_]*)\s*=", re.MULTILINE)
 GETENV_RE = re.compile(r"os\.(?:Getenv|LookupEnv)\(\s*\"([A-Z][A-Z0-9_]*)\"")
@@ -70,6 +73,22 @@ def parse_code_env_reads(repo_root: Path) -> set[str]:
     return keys
 
 
+def parse_provider_registry_env_refs(repo_root: Path) -> set[str]:
+    path = repo_root / "config" / "ai-providers.yaml"
+    if not path.exists():
+        return set()
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    keys: set[str] = set()
+    for provider in data.get("providers") or []:
+        if not isinstance(provider, dict):
+            continue
+        for field in ("base_url_env", "api_key_env"):
+            value = provider.get(field)
+            if isinstance(value, str) and value.strip():
+                keys.add(value.strip())
+    return keys
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="env_dict drift checker")
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
@@ -89,16 +108,18 @@ def main() -> int:
     example_keys = parse_env_example(env_example)
     spec_keys = parse_spec_dictionary(spec)
     code_keys = parse_code_env_reads(repo)
+    registry_keys = parse_provider_registry_env_refs(repo)
 
     problems: list[str] = []
+    declared_keys = code_keys | registry_keys
 
-    missing_in_example = (spec_keys | code_keys) - example_keys
+    missing_in_example = (spec_keys | declared_keys) - example_keys
     if missing_in_example:
         problems.append(
             "missing from .env.example: " + ", ".join(sorted(missing_in_example))
         )
 
-    missing_in_spec = (example_keys | code_keys) - spec_keys
+    missing_in_spec = (example_keys | declared_keys) - spec_keys
     # Allow code-only build-time helpers explicitly listed below; everything
     # else must show up in spec §3.1.1.
     if missing_in_spec:
@@ -114,6 +135,13 @@ def main() -> int:
             + ", ".join(sorted(extra_in_code))
         )
 
+    extra_in_registry = registry_keys - spec_keys
+    if extra_in_registry:
+        problems.append(
+            "provider registry references env keys not declared in spec: "
+            + ", ".join(sorted(extra_in_registry))
+        )
+
     if problems:
         print("env_dict drift detected:", file=sys.stderr)
         for line in problems:
@@ -126,7 +154,8 @@ def main() -> int:
 
     print(
         f"env_dict: OK ({len(example_keys)} keys in .env.example, "
-        f"{len(spec_keys)} keys in spec §3.1.1, {len(code_keys)} keys read by code)"
+        f"{len(spec_keys)} keys in spec §3.1.1, {len(code_keys)} keys read by code, "
+        f"{len(registry_keys)} registry env refs)"
     )
     return 0
 

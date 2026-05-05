@@ -11,7 +11,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [product-scope](./product-scope/spec.md) | 1.7 | active | 2026-05-05 | [plans](./product-scope/plans/) |
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.4 | active | 2026-05-05 | [plans](./engineering-roadmap/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.5 | active | 2026-05-05 | [plans](./engineering-roadmap/plans/) |
 | [historical-spec-implementation-review](./historical-spec-implementation-review/spec.md) | 1.0 | active | 2026-05-04 | [plans](./historical-spec-implementation-review/plans/) |
 
 ## 2 Foundation
@@ -20,15 +20,15 @@
 |---------|------|------|----------|-------|
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.2 | active | 2026-05-05 | [plans](./repo-scaffold/plans/) |
 | [local-dev-stack](./local-dev-stack/spec.md) | 1.6 | active | 2026-05-05 | [plans](./local-dev-stack/plans/) |
-| [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 1.9 | active | 2026-05-05 | [plans](./ai-provider-and-model-routing/plans/) |
-| [secrets-and-config](./secrets-and-config/spec.md) | 2.1 | active | 2026-05-05 | [plans](./secrets-and-config/plans/) |
+| [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.0 | active | 2026-05-05 | [plans](./ai-provider-and-model-routing/plans/) |
+| [secrets-and-config](./secrets-and-config/spec.md) | 2.2 | active | 2026-05-05 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.3 | active | 2026-04-29 | [plans](./ci-pipeline-baseline/plans/) |
 
 ## 3 Contract
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.10 | active | 2026-05-05 | [plans](./shared-conventions-codified/plans/) |
+| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.11 | active | 2026-05-05 | [plans](./shared-conventions-codified/plans/) |
 | [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.11 | active | 2026-05-05 | [plans](./openapi-v1-contract/plans/) |
 | [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 1.8 | active | 2026-05-05 | [plans](./event-and-outbox-contract/plans/) |
 | [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.9 | active | 2026-05-05 | [plans](./db-migrations-baseline/plans/) |
@@ -38,4 +38,4 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [observability-stack](./observability-stack/spec.md) | 1.5 | active | 2026-05-05 | [plans](./observability-stack/plans/) |
-| [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 1.6 | active | 2026-05-05 | [plans](./prompt-rubric-registry/plans/) |
+| [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 1.7 | active | 2026-05-05 | [plans](./prompt-rubric-registry/plans/) |

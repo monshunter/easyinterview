@@ -58,6 +58,8 @@ REQUIRED_ERROR_CODES = {
 REQUIRED_AI_VOCABULARY_FIELDS = {
     "model_profile_name",
     "model_profile_version",
+    "provider",
+    "capability",
     "model_family",
     "model_id",
     "fallback_chain",
@@ -69,6 +71,37 @@ REQUIRED_AI_VOCABULARY_FIELDS = {
     "language",
     "feature_flag",
     "data_source_version",
+    "from_provider",
+    "from_model_family",
+    "to_provider",
+    "to_model_family",
+}
+REQUIRED_AI_CAPABILITIES = {"chat", "embed", "stt", "realtime", "rerank", "judge"}
+REQUIRED_AI_PROVIDER_REGISTRY_FIELDS = {
+    "name",
+    "protocol",
+    "base_url_env",
+    "api_key_env",
+    "capabilities",
+    "version",
+}
+REQUIRED_AI_MODEL_PROFILE_FIELDS = {
+    "name",
+    "capability",
+    "status",
+    "unsupported_reason",
+    "default",
+    "provider_ref",
+    "model",
+    "params",
+    "fallback",
+    "when",
+    "timeout_ms",
+    "max_tokens",
+    "rate_limit",
+    "route",
+    "version",
+    "privacy_policy",
 }
 
 
@@ -200,23 +233,60 @@ def validate(data: dict[str, Any]) -> list[str]:
                 )
 
     ai_vocabulary = data.get("aiVocabulary") or {}
-    ai_fields = ai_vocabulary.get("fields") or []
-    if not isinstance(ai_fields, list) or not ai_fields:
-        errors.append("aiVocabulary.fields must declare fields")
-    seen_ai_fields: set[str] = set()
-    for field in ai_fields:
-        if isinstance(field, dict):
-            field_name = field.get("name", "")
-        else:
-            field_name = ""
-        if not ENUM_VALUE_RE.match(field_name):
-            errors.append(
-                f"aiVocabulary field name must be lower_snake_case, got {field_name!r}"
-            )
-            continue
-        if field_name in seen_ai_fields:
-            errors.append(f"duplicate aiVocabulary field: {field_name!r}")
-        seen_ai_fields.add(field_name)
+
+    ai_capabilities = ai_vocabulary.get("capabilities") or []
+    seen_ai_capabilities: set[str] = set()
+    if not isinstance(ai_capabilities, list) or not ai_capabilities:
+        errors.append("aiVocabulary.capabilities must declare capabilities")
+    else:
+        for capability in ai_capabilities:
+            if not isinstance(capability, str) or not ENUM_VALUE_RE.match(capability):
+                errors.append(
+                    f"aiVocabulary capability must be lower_snake_case, got {capability!r}"
+                )
+                continue
+            if capability in seen_ai_capabilities:
+                errors.append(f"duplicate aiVocabulary capability: {capability!r}")
+            seen_ai_capabilities.add(capability)
+    missing_ai_capabilities = REQUIRED_AI_CAPABILITIES - seen_ai_capabilities
+    if missing_ai_capabilities:
+        errors.append(
+            "aiVocabulary.capabilities must include the required AI capabilities; "
+            f"missing {sorted(missing_ai_capabilities)}"
+        )
+
+    seen_registry_fields = _validate_ai_field_list(
+        ai_vocabulary,
+        "providerRegistryFields",
+        "provider registry field",
+        errors,
+    )
+    missing_registry_fields = REQUIRED_AI_PROVIDER_REGISTRY_FIELDS - seen_registry_fields
+    if missing_registry_fields:
+        errors.append(
+            "aiVocabulary.providerRegistryFields must include the required provider registry fields; "
+            f"missing {sorted(missing_registry_fields)}"
+        )
+
+    seen_profile_fields = _validate_ai_field_list(
+        ai_vocabulary,
+        "modelProfileFields",
+        "model profile field",
+        errors,
+    )
+    missing_profile_fields = REQUIRED_AI_MODEL_PROFILE_FIELDS - seen_profile_fields
+    if missing_profile_fields:
+        errors.append(
+            "aiVocabulary.modelProfileFields must include the required model profile fields; "
+            f"missing {sorted(missing_profile_fields)}"
+        )
+
+    seen_ai_fields = _validate_ai_field_list(
+        ai_vocabulary,
+        "fields",
+        "field name",
+        errors,
+    )
 
     missing_ai_fields = REQUIRED_AI_VOCABULARY_FIELDS - seen_ai_fields
     if missing_ai_fields:
@@ -226,6 +296,34 @@ def validate(data: dict[str, Any]) -> list[str]:
         )
 
     return errors
+
+
+def _validate_ai_field_list(
+    ai_vocabulary: dict[str, Any],
+    key: str,
+    label: str,
+    errors: list[str],
+) -> set[str]:
+    fields = ai_vocabulary.get(key) or []
+    if not isinstance(fields, list) or not fields:
+        errors.append(f"aiVocabulary.{key} must declare fields")
+        return set()
+
+    seen: set[str] = set()
+    for field in fields:
+        if isinstance(field, dict):
+            field_name = field.get("name", "")
+        else:
+            field_name = ""
+        if not ENUM_VALUE_RE.match(field_name):
+            errors.append(
+                f"aiVocabulary {label} must be lower_snake_case, got {field_name!r}"
+            )
+            continue
+        if field_name in seen:
+            errors.append(f"duplicate aiVocabulary {label}: {field_name!r}")
+        seen.add(field_name)
+    return seen
 
 
 def main() -> int:

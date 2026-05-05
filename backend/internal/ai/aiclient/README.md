@@ -133,10 +133,9 @@ provider, err := openai_compatible.New(openai_compatible.Options{
 if err != nil { return err }
 
 inner, err := aiclient.New(aiclient.Config{
-    AppEnv:           cfg.AppEnv,
-    ProviderBaseURL:  defaultProvider.BaseURL,
-    ProviderAPIKey:   defaultProvider.APIKey,
-    ModelProfilePath: cfg.AIModelProfilePath,
+    AppEnv:               cfg.AppEnv,
+    ProviderRegistryPath: cfg.AIProviderRegistryPath,
+    ModelProfilePath:     cfg.AIModelProfilePath,
 },
     aiclient.WithProfileResolver(profileLoader),
     aiclient.WithProvider(provider),
