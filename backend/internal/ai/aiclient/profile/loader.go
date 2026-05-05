@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -25,9 +24,9 @@ const DefaultPollInterval = 5 * time.Second
 
 // Options control loader construction. Callers typically use NewLoader.
 type Options struct {
-	// Dir is the directory holding *.yaml profile files
+	// Path is the single YAML profile catalog file
 	// (AI_MODEL_PROFILE_PATH).
-	Dir string
+	Path string
 	// PollInterval overrides DefaultPollInterval. Zero falls back to the
 	// default; negative disables background reload (Reload(ctx) still works).
 	PollInterval time.Duration
@@ -45,7 +44,7 @@ type snapshot struct {
 	loadedAt time.Time
 }
 
-// Loader reads and serves Model Profile YAML files. It implements
+// Loader reads and serves the Model Profile YAML catalog. It implements
 // aiclient.ProfileResolver.
 type Loader struct {
 	opts Options
@@ -63,8 +62,8 @@ type Loader struct {
 // NewLoader constructs a Loader and runs an initial scan synchronously so
 // callers that do `Resolve` immediately see profiles.
 func NewLoader(opts Options) (*Loader, error) {
-	if opts.Dir == "" {
-		return nil, errors.New("profile: Dir is required")
+	if opts.Path == "" {
+		return nil, errors.New("profile: Path is required")
 	}
 	if opts.Now == nil {
 		opts.Now = time.Now
@@ -97,7 +96,7 @@ func (l *Loader) Resolve(name string) (*aiclient.ModelProfile, error) {
 	}
 	p, ok := snap.profiles[name]
 	if !ok {
-		return nil, fmt.Errorf("profile: %q not found in %s", name, l.opts.Dir)
+		return nil, fmt.Errorf("profile: %q not found in %s", name, l.opts.Path)
 	}
 	return p, nil
 }
@@ -116,7 +115,7 @@ func (l *Loader) Names() []string {
 	return names
 }
 
-// Reload re-scans the profile directory and atomically swaps in a new
+// Reload re-scans the profile catalog and atomically swaps in a new
 // snapshot. In-flight callers that have already captured a *ModelProfile
 // pointer keep using it; subsequent Resolve calls observe the new snapshot.
 func (l *Loader) Reload(ctx context.Context) error {
@@ -127,18 +126,14 @@ func (l *Loader) Reload(ctx context.Context) error {
 		return err
 	}
 
-	files, err := listYAMLFiles(l.opts.Dir)
+	loaded, err := readCatalog(l.opts.Path)
 	if err != nil {
 		return err
 	}
-	profiles := make(map[string]*aiclient.ModelProfile, len(files))
-	for _, path := range files {
-		p, err := readProfile(path)
-		if err != nil {
-			return err
-		}
+	profiles := make(map[string]*aiclient.ModelProfile, len(loaded))
+	for _, p := range loaded {
 		if existing, dup := profiles[p.Name]; dup {
-			return fmt.Errorf("profile: duplicate name %q in %s and %s", p.Name, path, existing.Name)
+			return fmt.Errorf("profile: duplicate name %q in %s; first duplicate was %q", p.Name, l.opts.Path, existing.Name)
 		}
 		profiles[p.Name] = p
 	}
@@ -178,27 +173,7 @@ func (l *Loader) pollLoop() {
 	}
 }
 
-func listYAMLFiles(dir string) ([]string, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("profile: read dir %s: %w", dir, err)
-	}
-	var out []string
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		name := e.Name()
-		if !strings.HasSuffix(name, ".yaml") && !strings.HasSuffix(name, ".yml") {
-			continue
-		}
-		out = append(out, filepath.Join(dir, name))
-	}
-	sort.Strings(out)
-	return out, nil
-}
-
-func readProfile(path string) (*aiclient.ModelProfile, error) {
+func readCatalog(path string) ([]*aiclient.ModelProfile, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("profile: open %s: %w", path, err)
@@ -214,18 +189,58 @@ func readProfile(path string) (*aiclient.ModelProfile, error) {
 	if err := dec.Decode(&doc); err != nil {
 		return nil, fmt.Errorf("profile: parse %s: %w", path, err)
 	}
-	if err := rejectRetiredSchemaKeys(path, &doc); err != nil {
-		return nil, err
+	root := yamlRoot(&doc)
+	if root == nil || root.Kind != yaml.MappingNode {
+		return nil, profileValidationError(path, yamlNodeLine(root), "catalog must be a mapping with top-level 'profiles'")
 	}
-	var raw aiclient.ModelProfile
-	if err := doc.Decode(&raw); err != nil {
-		return nil, fmt.Errorf("profile: parse %s: %w", path, err)
+
+	var profilesNode *yaml.Node
+	for i := 0; i+1 < len(root.Content); i += 2 {
+		key := root.Content[i]
+		value := root.Content[i+1]
+		switch key.Value {
+		case "profiles":
+			profilesNode = value
+		default:
+			return nil, profileValidationError(path, yamlNodeLine(key), "unsupported top-level field %q; use 'profiles'", key.Value)
+		}
 	}
+	if profilesNode == nil {
+		return nil, profileValidationError(path, yamlNodeLine(root), "missing required top-level field 'profiles'")
+	}
+	if profilesNode.Kind != yaml.SequenceNode {
+		return nil, profileValidationError(path, yamlNodeLine(profilesNode), "'profiles' must be a sequence")
+	}
+	if len(profilesNode.Content) == 0 {
+		return nil, profileValidationError(path, yamlNodeLine(profilesNode), "'profiles' must contain at least one profile")
+	}
+
+	out := make([]*aiclient.ModelProfile, 0, len(profilesNode.Content))
+	for _, item := range profilesNode.Content {
+		if item.Kind != yaml.MappingNode {
+			return nil, profileValidationError(path, yamlNodeLine(item), "profile entry must be a mapping")
+		}
+		if err := rejectRetiredSchemaKeys(path, item); err != nil {
+			return nil, err
+		}
+		var raw aiclient.ModelProfile
+		if err := item.Decode(&raw); err != nil {
+			return nil, fmt.Errorf("profile: parse %s: %w", path, err)
+		}
+		if err := validateProfile(path, item, &raw); err != nil {
+			return nil, err
+		}
+		out = append(out, &raw)
+	}
+	return out, nil
+}
+
+func validateProfile(path string, doc *yaml.Node, raw *aiclient.ModelProfile) error {
 	if raw.Name == "" {
-		return nil, profileValidationError(path, fieldLine(&doc, "name"), "missing required field 'name'")
+		return profileValidationError(path, fieldLine(doc, "name"), "missing required field 'name'")
 	}
 	if raw.Capability == "" {
-		return nil, profileValidationError(path, fieldLine(&doc, "capability"), "missing required field 'capability'")
+		return profileValidationError(path, fieldLine(doc, "capability"), "missing required field 'capability'")
 	}
 	switch raw.Capability {
 	case aiclient.CapabilityChat,
@@ -235,33 +250,33 @@ func readProfile(path string) (*aiclient.ModelProfile, error) {
 		aiclient.CapabilityRerank,
 		aiclient.CapabilityJudge:
 	default:
-		return nil, profileValidationError(path, fieldLine(&doc, "capability"), "has unsupported capability %q (allowed: chat | embed | stt | realtime | rerank | judge)", raw.Capability)
+		return profileValidationError(path, fieldLine(doc, "capability"), "has unsupported capability %q (allowed: chat | embed | stt | realtime | rerank | judge)", raw.Capability)
 	}
 	if raw.Status == "" {
-		return nil, profileValidationError(path, fieldLine(&doc, "status"), "missing required field 'status'")
+		return profileValidationError(path, fieldLine(doc, "status"), "missing required field 'status'")
 	}
 	switch raw.Status {
 	case aiclient.ProfileStatusActive:
 	case aiclient.ProfileStatusDisabled, aiclient.ProfileStatusUnsupported:
 		if strings.TrimSpace(raw.UnsupportedReason) == "" {
-			return nil, profileValidationError(path, fieldLine(&doc, "unsupported_reason"), "status %q requires 'unsupported_reason'", raw.Status)
+			return profileValidationError(path, fieldLine(doc, "unsupported_reason"), "status %q requires 'unsupported_reason'", raw.Status)
 		}
 	default:
-		return nil, profileValidationError(path, fieldLine(&doc, "status"), "has unsupported status %q (allowed: active | disabled | unsupported)", raw.Status)
+		return profileValidationError(path, fieldLine(doc, "status"), "has unsupported status %q (allowed: active | disabled | unsupported)", raw.Status)
 	}
 	if raw.Default.ProviderRef == "" {
-		return nil, profileValidationError(path, fieldLine(&doc, "default", "provider_ref"), "missing required field 'default.provider_ref'")
+		return profileValidationError(path, fieldLine(doc, "default", "provider_ref"), "missing required field 'default.provider_ref'")
 	}
 	if raw.Default.Model == "" {
-		return nil, profileValidationError(path, fieldLine(&doc, "default", "model"), "missing required field 'default.model'")
+		return profileValidationError(path, fieldLine(doc, "default", "model"), "missing required field 'default.model'")
 	}
 	if raw.TimeoutMs <= 0 {
-		return nil, profileValidationError(path, fieldLine(&doc, "timeout_ms"), "missing or non-positive 'timeout_ms'")
+		return profileValidationError(path, fieldLine(doc, "timeout_ms"), "missing or non-positive 'timeout_ms'")
 	}
 	if raw.Version == "" {
-		return nil, profileValidationError(path, fieldLine(&doc, "version"), "missing required field 'version'")
+		return profileValidationError(path, fieldLine(doc, "version"), "missing required field 'version'")
 	}
-	return &raw, nil
+	return nil
 }
 
 func rejectRetiredSchemaKeys(path string, doc *yaml.Node) error {

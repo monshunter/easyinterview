@@ -60,7 +60,10 @@ def make_repo(tmp_path: Path, profile_body: str) -> Path:
             """
         ).strip(),
     )
-    write(repo / "config/ai-profiles/practice.followup.default.yaml", profile_body)
+    write(
+        repo / "config/ai-profiles.yaml",
+        "profiles:\n  - " + textwrap.indent(profile_body, "    ").lstrip(),
+    )
     return repo
 
 
@@ -95,7 +98,7 @@ def test_passes_when_docs_and_catalog_align(tmp_path: Path) -> None:
 
 def test_fails_when_referenced_profile_is_missing(tmp_path: Path) -> None:
     repo = make_repo(tmp_path, "")
-    (repo / "config/ai-profiles/practice.followup.default.yaml").unlink()
+    (repo / "config/ai-profiles.yaml").write_text("profiles: []\n", encoding="utf-8")
     result = run(repo)
     assert result.returncode == 1
     assert "missing profiles" in result.stderr

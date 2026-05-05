@@ -34,7 +34,7 @@ func TestNew_FailFastMatrix(t *testing.T) {
 			cfg: aiclient.Config{
 				AppEnv:               aiclient.AppEnvTest,
 				ProviderRegistryPath: "config/ai-providers.yaml",
-				ModelProfilePath:     "config/ai-profiles",
+				ModelProfilePath:     "config/ai-profiles.yaml",
 			},
 			wantErr: nil,
 		},
@@ -55,7 +55,7 @@ func TestNew_FailFastMatrix(t *testing.T) {
 			cfg: aiclient.Config{
 				AppEnv:               "production",
 				ProviderRegistryPath: "config/ai-providers.yaml",
-				ModelProfilePath:     "config/ai-profiles",
+				ModelProfilePath:     "config/ai-profiles.yaml",
 			},
 			wantErr: nil,
 		},
@@ -66,7 +66,7 @@ func TestNew_FailFastMatrix(t *testing.T) {
 		},
 		{
 			name:    "staging-missing-provider-registry-path-FAIL",
-			cfg:     aiclient.Config{AppEnv: "staging", ModelProfilePath: "config/ai-profiles"},
+			cfg:     aiclient.Config{AppEnv: "staging", ModelProfilePath: "config/ai-profiles.yaml"},
 			wantErr: aiclient.ErrMissingProviderConfig,
 		},
 	}

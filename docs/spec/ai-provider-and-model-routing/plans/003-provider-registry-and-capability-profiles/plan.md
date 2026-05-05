@@ -1,6 +1,6 @@
 # Provider Registry and Capability Profiles
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-05
 
@@ -14,7 +14,7 @@
 本 plan 覆盖：
 
 - `config/ai-providers.yaml` provider registry schema、loader、secret env ref 解析与 capability 校验；
-- `config/ai-profiles/*.yaml` 从 `task_type` / 全局 provider 口径迁移到 `capability` / `provider_ref` 口径；
+- `config/ai-profiles.yaml` 单一 profile catalog 从 `task_type` / 全局 provider 口径迁移到 `capability` / `provider_ref` 口径，并取代一 profile 一文件目录；
 - AIClient 中央路由与 profile fallback chain，业务代码不得自行 retry-with-different-model；
 - A4 env/config 字典、B1 shared vocabulary、F3 12 个 baseline profile 覆盖与 drift gate；
 - unsupported capability 的 fail-closed 行为，为后续 002 / C14 / F3 eval 打开 STT、realtime、rerank、judge adapter 留出安全边界。
@@ -27,12 +27,14 @@
 
 本 plan 是 A3 001 之后的配置契约升级。它不回滚已完成 bootstrap，而是在现有 `AIClient` / provider adapter / observability decorator 之上补齐 provider registry 与 capability profile。由于当前项目尚未上线，不保留旧 schema / env 兼容层；实施时允许直接迁移 repo-tracked fixtures、A4 bindings、B1 generated vocabulary 与相关 tests。
 
+2026-05-05 本 plan 原地 reopen：用户反馈当前 per-profile YAML 目录对 17 个小 profile 来说文件碎片过多，维护与审查成本高于收益。经 change-intake 匹配，本主题仍由 003 承接，active truth source 改为单一 `config/ai-profiles.yaml` catalog；`AI_MODEL_PROFILE_PATH` env key 保留，但含义改为 catalog 文件路径。
+
 ## 3 质量门禁分类
 
 - **Plan 类型**: `code-internal + contract + platform-foundation`。本 plan 修改 AI provider runtime contract、profile/registry schema、配置绑定、共享字段与 lint gate；不直接引入用户可感知 UI、HTTP API 行为或业务工作流。
 - **TDD 策略**: Code plan requires TDD。后续实施必须通过 `/implement` -> `/tdd` 执行；每个 checklist item 需先补 focused tests / negative fixtures，再改 loader/router/config/codegen。断言来源包括 profile/registry loader tests、AIClient routing/fallback tests、A4 env dictionary tests、B1 generated vocabulary parity tests、F3 profile coverage lint、privacy/observability regression tests 与 negative terminology search。
 - **BDD 策略**: BDD 不适用。本 plan 是内部 AI provider 配置与路由契约，不创建用户可见 UI、外部 API 行为或端到端业务流程。后续 voice interview、report、practice 等用户行为 workstream 必须在自身 plan 维护 BDD gate。
-- **替代验证 gate**: focused Go tests、config/env lint、profile coverage lint、B1 codegen drift check、provider registry negative fixtures、privacy grep、`make lint-config`、`make codegen-check`、`make docs-check`、`make lint`、`make test`、`make build`、context validation。
+- **替代验证 gate**: focused Go tests、config/env lint、profile catalog coverage lint、B1 codegen drift check、provider registry negative fixtures、privacy grep、`make lint-config`、`make codegen-check`、`make docs-check`、`make lint`、`make test`、`make build`、context validation。
 
 ## 4 实施步骤
 
@@ -70,7 +72,7 @@ profile hot reload 失败时必须保持当前快照并通过 `OnWarn` 输出结
 
 #### 2.2 F3 12 baseline profile fixtures
 
-在 `config/ai-profiles/` 补齐 F3 `prompt-rubric-registry` §3.1.1 的 12 个 feature_key 对应默认 profile；其中 `resume.tailor.gap_review` 与 `resume.tailor.bullet_suggestions` 共享 `resume.tailor.default`，因此当前至少需要 11 个唯一默认 profile：`target.import.default`、`practice.first_question.default`、`practice.followup.default`、`practice.turn_observe.default`、`report.generate.default`、`report.assessment.default`、`resume.parse.default`、`resume.tailor.default`、`debrief.generate.default`、`embedding.default`、`retrieval.rerank.default`，并保留必要的 `status=disabled` / `status=unsupported` profile 表达 P1/P2 能力；不可执行 profile 必须写明 `unsupported_reason`。
+在 `config/ai-profiles.yaml` 的 `profiles[]` catalog 中补齐 F3 `prompt-rubric-registry` §3.1.1 的 12 个 feature_key 对应默认 profile；其中 `resume.tailor.gap_review` 与 `resume.tailor.bullet_suggestions` 共享 `resume.tailor.default`，因此当前至少需要 11 个唯一默认 profile：`target.import.default`、`practice.first_question.default`、`practice.followup.default`、`practice.turn_observe.default`、`report.generate.default`、`report.assessment.default`、`resume.parse.default`、`resume.tailor.default`、`debrief.generate.default`、`embedding.default`、`retrieval.rerank.default`，并保留必要的 `status=disabled` / `status=unsupported` profile 表达 P1/P2 能力；不可执行 profile 必须写明 `unsupported_reason`。
 
 同时补齐 spec §4.5 的非 F3 baseline Product/UI placeholder profiles：`target.intel.default`、`profile.update.default`、`practice.dictation.stt.default`、`practice.voice.realtime.default`、`debrief.voice.extract.default`、`judge.default`。这些 profile 在对应 adapter / eval plan 激活前必须以 `disabled` / `unsupported` 状态存在并写明 `unsupported_reason`，不能缺文件、不能静默降级到 chat / stub。
 
@@ -81,6 +83,10 @@ profile hot reload 失败时必须保持当前快照并通过 `OnWarn` 输出结
 #### 2.4 Schema docs and README
 
 同步 `backend/internal/ai/aiclient/README.md`、`config/README.md` 与 profile fixture 注释，说明 provider registry、profile capability、fallback chain、unsupported capability 与 secret redaction 规则。
+
+#### 2.5 Catalog consolidation remediation
+
+新增单一 `config/ai-profiles.yaml` catalog schema：顶层只允许 `profiles[]`，每个 entry 复用 2.1 profile 字段集；loader、bootstrap、tracked catalog tests、F3/Product UI profile coverage lint、A4 默认配置、`.env.example` 与 README 全部改为读取 catalog 文件路径。删除 per-profile YAML directory active truth source，负向搜索确认 active scope 不再依赖该目录；历史 completed plan / journal / reports 可保留只读历史引用。
 
 ### Phase 3: AIClient routing, fallback, and fail-closed behavior
 
@@ -148,6 +154,7 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 - Provider registry schema、loader、secret env ref 解析与热加载已落地，负向 fixtures 覆盖重复 provider、未知 protocol、capability mismatch、网络出站 provider secret 缺失与 fallback 超限；`stub` provider 不需要伪造 secret。
 - Model Profile schema 已迁移到 `capability` / `provider_ref` / `status`；repo-tracked active profiles 不含旧 schema key；F3 12 个 baseline profile 与 spec §4.5 Product/UI placeholder profiles 均存在或显式 `disabled` / `unsupported` 且带 `unsupported_reason`。
+- Repo-tracked Model Profile active truth source 已收敛为单一 `config/ai-profiles.yaml`；loader、coverage lint、bootstrap、A4 env/config 默认值和 README 均使用 catalog 文件路径，active scope 不再引用 per-profile YAML files。
 - AIClient 路由与 fallback 由 A3 中央执行；业务代码没有 retry-with-different-model 循环；fallback meta / metric / log 完整。
 - Unsupported capability fail-closed；STT / realtime / rerank / judge 在 adapter 激活前不会静默降级，并通过 B1-owned `AI_UNSUPPORTED_CAPABILITY` 或同义 approved `AI_*` code 对外表达。
 - A4 env/config 字典、B1 shared vocabulary、F3 + Product/UI profile coverage lint、A3 docs/README/fixtures 全部同步。
@@ -163,6 +170,7 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 | STT / realtime profile 已存在但 adapter 未实现，业务误以为可用 | Unsupported profile 必须 disabled 或 fail-closed；UI voice workstream 在 adapter 未激活前必须 feature-gated |
 | F3 新增 feature_key 或 Product/UI 新增 AI 场景但 A3 profile catalog 未跟进 | Phase 2.3 / 4.3 profile coverage lint 拦截；新增 AI 场景必须同步 spec §4.5、F3 字典与 profile catalog |
 | A4 env 字典与 A3 registry schema 漂移 | Phase 4.1 将 env/config 字典、bindings、validator 与 lint-config 作为同一阶段交付 |
+| 单一 catalog 文件变大导致未来多人冲突 | 当前 17 个 profile 规模优先降低文件碎片；若未来 profile 数量或 owner 并发显著增加，再由 A3/F3 plan 显式重新评估目录型 catalog |
 
 ## 7 Owner Handoff
 
@@ -174,6 +182,7 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-05 | 1.3 | 原地 reopen catalog consolidation：将 per-profile YAML directory active truth source 收敛为单一 `config/ai-profiles.yaml`，并同步 loader、lint、A4/F3 docs 与验证 gate。 | change-intake user-approved revision |
 | 2026-05-05 | 1.2 | 原地 reopen L2 remediation：补 runtime registry/profile wiring、profile reload warn、active profile anti-stub gate 与 post-fix verification。 | plan-code-review --fix |
 | 2026-05-05 | 1.1 | Phase 5 完成：全局 gate 与 active-scope 负向搜索通过，plan 生命周期切为 completed，并补充后续 owner handoff。 | implementation closeout |
 | 2026-05-05 | 1.0 | 初始创建：承接 A3 spec v1.9，规划 provider registry、capability profile、central fallback、A4/B1/F3 联动与验证门禁。 | design crystallization |

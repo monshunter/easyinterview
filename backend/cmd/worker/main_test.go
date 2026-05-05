@@ -56,7 +56,7 @@ featureFlag:
 		"AI_PROVIDER_REGISTRY_PATH":   "/etc/easyinterview/ai-providers.yaml",
 		"AI_PROVIDER_BASE_URL":        "https://provider.example",
 		"AI_PROVIDER_API_KEY":         "ai-key",
-		"AI_MODEL_PROFILE_PATH":       "/etc/easyinterview/ai-profiles",
+		"AI_MODEL_PROFILE_PATH":       "/etc/easyinterview/ai-profiles.yaml",
 		"EMAIL_PROVIDER":              "smtp",
 		"EMAIL_PROVIDER_API_KEY":      "email-key",
 		"POSTHOG_HOST":                "https://posthog.example",
@@ -76,7 +76,7 @@ featureFlag:
 	if got := loader.GetString("ai.providerRegistryPath"); got != "/etc/easyinterview/ai-providers.yaml" {
 		t.Fatalf("worker did not load AI provider registry path; got %q", got)
 	}
-	if got := loader.GetString("ai.modelProfilePath"); got != "/etc/easyinterview/ai-profiles" {
+	if got := loader.GetString("ai.modelProfilePath"); got != "/etc/easyinterview/ai-profiles.yaml" {
 		t.Fatalf("worker did not load AI model profile path; got %q", got)
 	}
 	if got := loader.GetSecret("ai.defaultProviderApiKey").Reveal(); got != "ai-key" {

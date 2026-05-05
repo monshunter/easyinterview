@@ -1,6 +1,6 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -33,7 +33,7 @@
 
 - **AIClient 接口**：Go 包 `backend/internal/ai/aiclient/`。当前同步调用面为 `Complete(ctx, profile, payload) → (response, meta)` / `Embed(ctx, profile, input) → (vector, meta)`；`Stream(ctx, profile, payload) → (<-chan AIStreamEvent, error)` 的事件合同已冻结，完整 provider streaming 消费由 002+ 承接。`Transcribe` / realtime speech / rerank / judge 的可执行 adapter 由后续 plan 打开，但其 capability profile 命名空间由本 spec 锁定。
 - **Provider Registry schema**：配置文件 + 启动加载；字段：`name` / `protocol`（`stub` | `openai_compatible` | `realtime_audio` | `rerank_compatible` | `judge_compatible`）/ `base_url_env` / `api_key_env` / `capabilities[]` / `version`。Registry 文件默认落点 `config/ai-providers.yaml`，A4 通过 `AI_PROVIDER_REGISTRY_PATH` 注入；tracked 文件不得包含 secret 明文，只保存 env secret ref。`base_url_env` / `api_key_env` 对 `stub` 可为空；对需要网络出站的 provider protocol 必须声明，且仅在该 provider 被 profile 选中或进入 fallback chain 时解析实际 secret。
-- **Model Profile schema**：YAML 文件 + 热加载；字段：`name` / `capability`（`chat` | `embed` | `stt` | `realtime` | `rerank` | `judge`）/ `status`（`active` | `disabled` | `unsupported`）/ `unsupported_reason`（`disabled` / `unsupported` 时必填）/ `default.{provider_ref, model, params}` / `fallback[]`（每项包含 `provider_ref` / `model` / `when[]`）/ `timeout_ms` / `max_tokens` / `rate_limit.{rps, tpm}` / `route` / `version` / 可选 `privacy_policy`。Profile 文件默认落点 `config/ai-profiles/*.yaml`，A4 通过 `AI_MODEL_PROFILE_PATH` 注入。
+- **Model Profile schema**：单一 YAML catalog 文件 + 热加载；catalog 顶层字段为 `profiles[]`，每项字段为 `name` / `capability`（`chat` | `embed` | `stt` | `realtime` | `rerank` | `judge`）/ `status`（`active` | `disabled` | `unsupported`）/ `unsupported_reason`（`disabled` / `unsupported` 时必填）/ `default.{provider_ref, model, params}` / `fallback[]`（每项包含 `provider_ref` / `model` / `when[]`）/ `timeout_ms` / `max_tokens` / `rate_limit.{rps, tpm}` / `route` / `version` / 可选 `privacy_policy`。Profile catalog 默认落点 `config/ai-profiles.yaml`，A4 通过 `AI_MODEL_PROFILE_PATH` 注入文件路径。
 - **Provider 实现集**：
   - `stub`：hash-based 确定性输出，从 OpenAPI fixtures 反向喂养（与 [E1 `mock-contract-suite`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 同源）；仅允许在单元测试、离线契约测试或显式 mock 场景启用。
   - `openai_compatible`：P0 已实现 Chat Completions / Embeddings 协议子集；后续 registry 化后通过 provider ref 读取 base URL / API key，不再依赖全局唯一 endpoint 语义；不直接 import 任何厂商 SDK。
@@ -61,6 +61,7 @@
 | D-1 | AIClient 接口形态 | 业务调用面继续只接受 `profile name`；`Complete` / `Embed` 已可执行，`Stream` 事件合同锁定，speech / rerank / judge adapter 由后续 plan 打开 | 业务代码绝对零厂商 SDK 入侵 |
 | D-2 | Provider Registry | A3 owns provider registry schema；tracked registry 只保存 provider ref、protocol、capabilities 与 secret env ref，不保存 secret 明文 | 单一 provider 可作为启动配置，但多 provider / 多能力不需要改业务代码 |
 | D-3 | Model Profile 字段集 | profile 使用 `capability` + `provider_ref`；不再把 profile 绑定为全局 provider endpoint 的 route | provider profile 配置漂移可控 |
+| D-3a | Model Profile 物理落点 | repo-tracked profile catalog 使用单一 `config/ai-profiles.yaml`，`AI_MODEL_PROFILE_PATH` 表示 catalog 文件路径；不再使用一 profile 一文件目录作为 active truth source | 降低小规模 profile catalog 的文件碎片和审查成本 |
 | D-4 | 业务引用形态 | 业务只引用 `model_profile_name`（如 `practice.followup.default` / `report.generate.default`），不引用 provider / model 字符串 | 切换 provider / model = 改 registry/profile，不改业务代码 |
 | D-5 | Stub 触发条件 | 仅 `APP_ENV=test`、离线契约测试或显式 mock 场景允许走 stub；local deploy / Kind / staging / prod 必须能通过 registry 解析真实 provider secret，缺失即 fail-fast | 单测稳定、可重放，同时防止本地部署静默假数据 |
 | D-6 | Fallback 边界 | Fallback 由 AIClient 在 profile fallback chain 内集中执行，最多 2 跳；业务代码不得自行 retry-with-different-model；provider 自身返回的 fallback meta 也必须纳入同一 chain | 防止业务绕开 cost / rate limit / observability |
@@ -139,7 +140,7 @@
 |------|-------|------|
 | `backend/internal/ai/aiclient/` 接口与默认实现 | A3 | `AIClient` / `AICallMeta` / registry loader / profile loader / stub / openai_compatible adapter |
 | Provider Registry schema | A3 + A4 | A3 owns schema / validation；A4 owns path/env/SecretSource 注入 |
-| Model Profile schema | A3 | `config/ai-profiles/*.yaml` schema 与热加载 |
+| Model Profile schema | A3 | `config/ai-profiles.yaml` catalog schema 与热加载 |
 | Profile 文件内容 | F3 + 各 AI feature owner | F3 owns feature_key -> model_profile_name；A3 owns profile schema；业务 owner 负责新增场景时补 profile |
 | Profile 文件路径 / secret 注入 | A4 | `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 与 provider-specific env secret ref |
 | 真实 provider endpoint | E4 + 运维 | 本地部署可直连真实 AI provider；staging / prod 可接运维提供的 provider endpoint；本 spec 不部署独立代理 |
@@ -156,13 +157,13 @@
 | C-1 | Stub 单测 | 单测环境（`APP_ENV=test`，无真实 provider secret） | 业务代码调用 `aiclient.Complete(ctx, "practice.followup.default", payload)` | client 路由到 stub provider；返回结构化 response + meta；`meta.provider == "stub"`；同 input 多次调用结果一致 | 001 |
 | C-2 | Registry provider route | registry 中 `default-openai-compatible` 声明 `chat` / `embed` capability，并引用 env secret | 调用 `Complete` / `Embed` | 出站 HTTP 请求命中该 provider ref 的 OpenAI-compatible endpoint；header 含 `Authorization`；`meta.provider` / `meta.capability` / `meta.model_profile_name` 正确 | 003 |
 | C-3 | Central fallback | profile 声明 primary + fallback provider ref，primary 超时且 fallback 成功 | 调用 `Complete` | AIClient 执行受限 fallback，`fallback_chain` 记录 provider/model hop；`ai_fallback_total` +1；业务代码无 retry-with-different-model 循环 | 003 |
-| C-4 | Registry + profile 热加载 | A3 loader 已启动 | `config/ai-providers.yaml` 或 `config/ai-profiles/*.yaml` 修改后保存 | client 在 ≤ 30s 内热加载；正在进行的调用使用旧快照完成；新调用使用新快照 | 003 |
+| C-4 | Registry + profile 热加载 | A3 loader 已启动 | `config/ai-providers.yaml` 或 `config/ai-profiles.yaml` 修改后保存 | client 在 ≤ 30s 内热加载；正在进行的调用使用旧快照完成；新调用使用新快照 | 003 |
 | C-5 | 观测埋点齐全 | 任一无 fallback、无 validation failure 的调用完成 | F1 metric / log / DB 三方查询 | 7 个 metric family 均已注册；run / latency / token / cost 指标增长；fallback / validation failure counter 不增长；`ai_task_runs` + `audit_events` 各写一行，无明文 | 001 + 003 |
 | C-6 | 隐私红线 | grep 全部生产代码与 log | 任意调用 | 不出现 `payload.messages[*].content` / `response.content` 明文落 log 或 DB metadata；hash / 长度 / profile 三类摘要必须出现 | 001 + 003 |
 | C-7 | 错误码合规 | provider 返回结构化输出非法 | client `validate_output` 失败 | 返回错误码 `AI_OUTPUT_INVALID`；`ai_output_validation_failures_total` +1 | 001 |
 | C-8 | active spec relation gate | 本 spec 通过 `/plan-review` | 与当前 active spec 和 future workstream 关系审查 | A3 与 F3 / B1 / A4 / F1 / release gate 引用关系自洽；A3 不重新引入已废弃的 provider-proxy 业务语义 | plan-review |
 | C-9 | Registry secret fail-fast | local deploy / Kind / staging / prod 缺失 registry 选中 provider 的 base URL 或 API key | 启动 API / worker | 进程启动失败并报配置错误；不得自动回退到 stub provider | 003 + A4 |
-| C-10 | F3 baseline profile coverage | F3 12 个 baseline feature_key 已定义默认 profile name | 运行 profile coverage lint | 每个默认 profile 在 `config/ai-profiles/` 中存在，且 capability / provider_ref / status 合法；允许 P1/P2 profile `disabled` / `unsupported`，但必须携带 `unsupported_reason` 且不得缺文件 | 003 + F3 |
+| C-10 | F3 baseline profile coverage | F3 12 个 baseline feature_key 已定义默认 profile name | 运行 profile coverage lint | 每个默认 profile 在 `config/ai-profiles.yaml` catalog 中存在，且 capability / provider_ref / status 合法；允许 P1/P2 profile `disabled` / `unsupported`，但必须携带 `unsupported_reason` 且不得缺 catalog entry | 003 + F3 |
 | C-11 | Product/UI capability inventory drift | 新增 AI 场景或 UI 交互依赖 AI | `/plan-review` 或 lint 检查 | 本 spec §4.5、F3 feature_key 字典与 A3 profile catalog 同步更新；不得只在业务代码 hardcode 新 profile | 003 + F3 |
 | C-12 | Unsupported capability fail-closed | profile 使用 `stt` / `realtime` / `rerank` / `judge`，但对应 adapter 未激活 | 运行时调用该 profile | 返回明确 unsupported capability 错误并记录 meta/log；不得降级到 chat 或 stub；对应 UI 能力必须 feature-gated | 003 + 002 |
 
@@ -172,6 +173,6 @@ A3 当前计划拆分为两份 completed foundation plan 与一份 draft capabil
 
 - [001-aiclient-and-profile-bootstrap](./plans/001-aiclient-and-profile-bootstrap/plan.md)（completed）：已落地 P0 `Complete` / `Embed`、`Stream` 事件合同类型、unit-test stub provider、`openai_compatible` Chat / Embeddings provider、基础 Model Profile loader 与 observability / audit decorator。
 - [002-tools-streaming-and-stt](./plans/002-tools-streaming-and-stt/plan.md)（draft/blocked）：Tools / full streaming / STT / realtime speech 等协议能力延期占位；必须先触发 ADR / spec 修订，才能切 active。
-- [003-provider-registry-and-capability-profiles](./plans/003-provider-registry-and-capability-profiles/plan.md)（completed）：已落地本 spec v2.2 的 provider registry、capability-scoped profile、central fallback、A4 env dictionary、B1 AI vocabulary、F3 12 profile coverage、active anti-stub gate 与 drift gate，为后续业务域实施提供完整 AI provider 配置面。
+- [003-provider-registry-and-capability-profiles](./plans/003-provider-registry-and-capability-profiles/plan.md)（completed）：已落地本 spec v2.3 的单一 `config/ai-profiles.yaml` catalog 契约，并保留既有 provider registry、capability-scoped profile、central fallback、A4 env dictionary、B1 AI vocabulary、F3 12 profile coverage、active anti-stub gate 与 drift gate。
 
 后续如需扩展，递增本 spec 版本并原地修订对应 plan；不创建 sibling spec。

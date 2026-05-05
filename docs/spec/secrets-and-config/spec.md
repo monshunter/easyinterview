@@ -1,6 +1,6 @@
 # Secrets and Config Spec
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -84,7 +84,7 @@
 | `AI_PROVIDER_REGISTRY_PATH` | 是 | `config/ai-providers.yaml` | AI provider registry 文件路径；registry 内声明 provider ref、protocol、capabilities 与 secret env ref | A4（A3 owner） |
 | `AI_PROVIDER_BASE_URL` | 条件 | `(空；仅默认 provider ref 引用时需要)` | 默认 OpenAI-compatible provider ref 可引用的 base URL env；不再代表全局唯一 AI provider contract | A4（A3 owner） |
 | `AI_PROVIDER_API_KEY` | 条件 | `(空；仅默认 provider ref 引用时需要)` | 默认 OpenAI-compatible provider ref 可引用的 API key env；非 test 环境中被选中 provider 缺 secret 时 fail-fast | A4（A3 owner） |
-| `AI_MODEL_PROFILE_PATH` | 是 | `config/ai-profiles/` | Model Profile YAML 目录 | A4（A3 owner） |
+| `AI_MODEL_PROFILE_PATH` | 是 | `config/ai-profiles.yaml` | Model Profile catalog 文件路径 | A4（A3 owner） |
 | `FEATURE_FLAG_SOURCE` | 是 | `file` | `file` 或 `posthog` | A4 |
 | `FEATURE_FLAG_FILE_PATH` | 条件 | `config/feature-flags.yaml` | `FEATURE_FLAG_SOURCE=file` 时必填 | A4 |
 | `POSTHOG_HOST` | 条件 | `(空)` | `FEATURE_FLAG_SOURCE=posthog` 时必填；指向自托管 PostHog；普通本地 dev 默认不填 | A4（F2 owner） |

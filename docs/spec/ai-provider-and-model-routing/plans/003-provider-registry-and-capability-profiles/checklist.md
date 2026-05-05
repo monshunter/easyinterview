@@ -1,6 +1,6 @@
 # Provider Registry and Capability Profiles Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-05
 
@@ -21,6 +21,7 @@
 - [x] 2.2 补齐 F3 12 个 baseline default profile fixture 与 spec §4.5 非 F3 placeholder profile fixture，并为 P1/P2/002+ profile 使用 `status=disabled` / `status=unsupported` + `unsupported_reason` 表达不可执行状态
 - [x] 2.3 建立 Product/UI capability coverage 检查，确保 spec §4.5 每个默认 profile 都是具体 profile name，且与 F3 feature_key 字典和 profile catalog 同步
 - [x] 2.4 同步 `backend/internal/ai/aiclient/README.md`、`config/README.md` 与 fixture 注释
+- [x] 2.5 将 per-profile YAML directory active truth source 收敛为单一 `config/ai-profiles.yaml` catalog，并用 profile loader / tracked catalog / coverage lint focused tests 验证 catalog 文件路径、重复 profile、缺失 profile 与旧目录引用被拦截
 
 ## Phase 3: AIClient routing, fallback, and fail-closed behavior
 
@@ -44,3 +45,4 @@
 - [x] 5.3 Active-scope negative search 通过：不含旧 schema key，不把 AI provider 描述为独立 provider-proxy 业务语义或单一全局 endpoint 当前目标架构
 - [x] 5.4 将 plan/checklist Header 切到 `completed`，同步 INDEX 与工作日志，并给 002 / C14 / practice / report / resume / debrief / F3 eval owner 留出 handoff
 - [x] 5.5 L2 remediation verification: focused tests、profile coverage lint、config lint、context validation、negative search 与必要全局 gate 通过后恢复 completed 生命周期并修正 active spec 003 状态投影
+- [x] 5.6 Catalog consolidation verification: focused Go profile tests、profile coverage pytest、`make lint-ai-profile-coverage`、`make lint-config`、context validation、`make docs-check`、active-scope legacy profile-directory 负向搜索与必要全局 gate 通过后恢复 completed 生命周期

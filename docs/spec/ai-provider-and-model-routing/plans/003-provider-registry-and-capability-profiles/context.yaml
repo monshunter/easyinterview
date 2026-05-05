@@ -26,6 +26,8 @@ spec:
       - AI_PROVIDER_REGISTRY_PATH
       - AI_MODEL_PROFILE_PATH
       - F3 profile coverage
+      - ai-profiles.yaml
+      - profile catalog consolidation
   targets:
     backend:
       plan: ./plan.md
@@ -48,7 +50,7 @@ spec:
         packages:
           - backend/internal/ai/aiclient
           - backend/internal/platform/config
-          - config/ai-profiles
+          - config/ai-profiles.yaml
           - config/ai-providers.yaml
           - shared
         uiRoutes: []

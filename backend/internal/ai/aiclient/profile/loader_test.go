@@ -31,21 +31,36 @@ route: practice.followup
 version: 1.0.0
 `
 
-func writeProfileDir(t *testing.T, files map[string]string) string {
-	t.Helper()
-	dir := t.TempDir()
-	for name, body := range files {
-		path := filepath.Join(dir, name)
-		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
-			t.Fatalf("WriteFile %s: %v", path, err)
+func catalog(profiles ...string) string {
+	var b strings.Builder
+	b.WriteString("profiles:\n")
+	for _, p := range profiles {
+		for i, line := range strings.Split(strings.TrimSuffix(p, "\n"), "\n") {
+			if i == 0 {
+				b.WriteString("  - ")
+			} else {
+				b.WriteString("    ")
+			}
+			b.WriteString(line)
+			b.WriteByte('\n')
 		}
 	}
-	return dir
+	return b.String()
+}
+
+func writeProfileCatalog(t *testing.T, body string) string {
+	t.Helper()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "ai-profiles.yaml")
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatalf("WriteFile %s: %v", path, err)
+	}
+	return path
 }
 
 func TestLoaderResolvesParsedProfile(t *testing.T) {
-	dir := writeProfileDir(t, map[string]string{"practice.yaml": sampleProfile})
-	loader, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})
+	path := writeProfileCatalog(t, catalog(sampleProfile))
+	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
 	if err != nil {
 		t.Fatalf("NewLoader: %v", err)
 	}
@@ -76,7 +91,7 @@ func TestLoaderResolvesParsedProfile(t *testing.T) {
 }
 
 func TestLoaderAcceptsSTTAsReservedCapability(t *testing.T) {
-	dir := writeProfileDir(t, map[string]string{"stt.yaml": `name: voice.transcription.reserved
+	path := writeProfileCatalog(t, catalog(`name: voice.transcription.reserved
 capability: stt
 status: unsupported
 unsupported_reason: "STT adapter is not active in this build"
@@ -85,8 +100,8 @@ default:
   model: stub-stt-1
 timeout_ms: 5000
 version: 1.0.0
-`})
-	loader, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})
+`))
+	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
 	if err != nil {
 		t.Fatalf("NewLoader: %v", err)
 	}
@@ -137,8 +152,8 @@ version: 1
 	}
 	for label, body := range cases {
 		t.Run(label, func(t *testing.T) {
-			dir := writeProfileDir(t, map[string]string{"p.yaml": body})
-			_, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})
+			path := writeProfileCatalog(t, catalog(body))
+			_, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
 			if err == nil {
 				t.Fatalf("expected retired schema key to be rejected")
 			}
@@ -149,9 +164,20 @@ version: 1
 	}
 }
 
+func TestLoaderRejectsUnknownCatalogTopLevelField(t *testing.T) {
+	path := writeProfileCatalog(t, "profile:\n  name: old\n")
+	_, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
+	if err == nil {
+		t.Fatal("expected unknown top-level field to be rejected")
+	}
+	if !strings.Contains(err.Error(), "unsupported top-level field") {
+		t.Fatalf("expected top-level field error, got %v", err)
+	}
+}
+
 func TestLoaderResolveUnknownProfile(t *testing.T) {
-	dir := writeProfileDir(t, map[string]string{"a.yaml": sampleProfile})
-	loader, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})
+	path := writeProfileCatalog(t, catalog(sampleProfile))
+	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
 	if err != nil {
 		t.Fatalf("NewLoader: %v", err)
 	}
@@ -177,12 +203,12 @@ func TestLoaderMissingRequiredFields(t *testing.T) {
 	}
 	for label, body := range cases {
 		t.Run(label, func(t *testing.T) {
-			dir := writeProfileDir(t, map[string]string{"p.yaml": body})
-			_, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})
+			path := writeProfileCatalog(t, catalog(body))
+			_, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
 			if err == nil {
 				t.Fatalf("expected error for %s", label)
 			}
-			if !strings.Contains(err.Error(), filepath.Join(dir, "p.yaml")) {
+			if !strings.Contains(err.Error(), path) {
 				t.Fatalf("expected file path in error, got %v", err)
 			}
 			if !strings.Contains(err.Error(), ":line ") {
@@ -193,8 +219,8 @@ func TestLoaderMissingRequiredFields(t *testing.T) {
 }
 
 func TestLoaderReloadPicksUpEdits(t *testing.T) {
-	dir := writeProfileDir(t, map[string]string{"p.yaml": sampleProfile})
-	loader, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})
+	path := writeProfileCatalog(t, catalog(sampleProfile))
+	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
 	if err != nil {
 		t.Fatalf("NewLoader: %v", err)
 	}
@@ -217,7 +243,7 @@ default:
 timeout_ms: 9000
 version: 1.1.0
 `
-	if err := os.WriteFile(filepath.Join(dir, "p.yaml"), []byte(updated), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(catalog(updated)), 0o600); err != nil {
 		t.Fatalf("rewrite: %v", err)
 	}
 
@@ -238,9 +264,9 @@ version: 1.1.0
 }
 
 func TestLoaderReloadConvergesUnderHotReloadSLA(t *testing.T) {
-	dir := writeProfileDir(t, map[string]string{"p.yaml": sampleProfile})
+	path := writeProfileCatalog(t, catalog(sampleProfile))
 	loader, err := profile.NewLoader(profile.Options{
-		Dir:          dir,
+		Path:         path,
 		PollInterval: 50 * time.Millisecond,
 	})
 	if err != nil {
@@ -257,7 +283,7 @@ default:
 timeout_ms: 8000
 version: 1.2.0
 `
-	if err := os.WriteFile(filepath.Join(dir, "p.yaml"), []byte(updated), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(catalog(updated)), 0o600); err != nil {
 		t.Fatalf("rewrite: %v", err)
 	}
 
@@ -273,10 +299,10 @@ version: 1.2.0
 }
 
 func TestLoaderPollLoopReportsReloadWarningAndKeepsOldSnapshot(t *testing.T) {
-	dir := writeProfileDir(t, map[string]string{"p.yaml": sampleProfile})
+	path := writeProfileCatalog(t, catalog(sampleProfile))
 	warnings := make(chan error, 1)
 	loader, err := profile.NewLoader(profile.Options{
-		Dir:          dir,
+		Path:         path,
 		PollInterval: 50 * time.Millisecond,
 		OnWarn: func(err error) {
 			warnings <- err
@@ -287,7 +313,7 @@ func TestLoaderPollLoopReportsReloadWarningAndKeepsOldSnapshot(t *testing.T) {
 	}
 	defer loader.Close()
 
-	if err := os.WriteFile(filepath.Join(dir, "p.yaml"), []byte(`name: invalid
+	if err := os.WriteFile(path, []byte(catalog(`name: invalid
 capability: image
 status: active
 default:
@@ -295,7 +321,7 @@ default:
   model: m
 timeout_ms: 1
 version: 1
-`), 0o600); err != nil {
+`)), 0o600); err != nil {
 		t.Fatalf("rewrite invalid profile: %v", err)
 	}
 
@@ -327,19 +353,14 @@ default:
 timeout_ms: 1
 version: 1
 `
-	dir := writeProfileDir(t, map[string]string{
-		"a.yaml": dup,
-		"b.yaml": dup,
-	})
-	if _, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1}); err == nil {
+	path := writeProfileCatalog(t, catalog(dup, dup))
+	if _, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1}); err == nil {
 		t.Fatal("expected duplicate-name error")
 	}
 }
 
 func TestLoaderNamesIsSorted(t *testing.T) {
-	dir := writeProfileDir(t, map[string]string{
-		"a.yaml": sampleProfile,
-		"b.yaml": `name: review.report.default
+	path := writeProfileCatalog(t, catalog(sampleProfile, `name: review.report.default
 capability: chat
 status: active
 default:
@@ -347,9 +368,8 @@ default:
   model: stub-chat-1
 timeout_ms: 1
 version: 1
-`,
-	})
-	loader, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})
+`))
+	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
 	if err != nil {
 		t.Fatalf("NewLoader: %v", err)
 	}
@@ -364,5 +384,19 @@ version: 1
 		if got[i] != want[i] {
 			t.Fatalf("expected %v, got %v", want, got)
 		}
+	}
+}
+
+func TestLoaderRejectsLegacyDirectoryPath(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "practice.followup.default.yaml"), []byte(sampleProfile), 0o600); err != nil {
+		t.Fatalf("WriteFile legacy profile: %v", err)
+	}
+	_, err := profile.NewLoader(profile.Options{Path: dir, PollInterval: -1})
+	if err == nil {
+		t.Fatal("expected legacy profile directory to be rejected")
+	}
+	if !strings.Contains(err.Error(), "read") && !strings.Contains(err.Error(), "open") {
+		t.Fatalf("expected file-path load error, got %v", err)
 	}
 }

@@ -66,7 +66,7 @@ func NewClient(opts Options) (*Runtime, error) {
 	}
 
 	profiles, err := profile.NewLoader(profile.Options{
-		Dir:          opts.Config.ModelProfilePath,
+		Path:         opts.Config.ModelProfilePath,
 		PollInterval: opts.ModelProfilePollInterval,
 		OnWarn:       opts.OnWarn,
 	})

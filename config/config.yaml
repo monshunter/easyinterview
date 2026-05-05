@@ -49,7 +49,7 @@ ai:
   providerRegistryPath: "config/ai-providers.yaml"
   defaultProviderBaseURL: ""
   defaultProviderApiKey: ""
-  modelProfilePath: "config/ai-profiles/"
+  modelProfilePath: "config/ai-profiles.yaml"
 
 featureFlag:
   source: file

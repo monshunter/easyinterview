@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-05](./2026-05-05-ai-profile-catalog-consolidation-assessment.md) | AI Profile Catalog Consolidation 交付复盘 | #assessment |
 | [2026-05-05](./2026-05-05-ai-provider-runtime-bootstrap-remediation-assessment.md) | AI Provider Runtime Bootstrap Remediation 交付复盘 | #assessment |
 | [2026-05-05](./2026-05-05-ai-provider-registry-capability-profiles-assessment.md) | AI Provider Registry Capability Profiles 交付复盘 | #assessment |
 | [2026-05-05](./2026-05-05-ai-provider-terminology-remediation-assessment.md) | AI Provider Terminology Remediation 交付复盘 | #assessment |

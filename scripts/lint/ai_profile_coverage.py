@@ -5,7 +5,7 @@ The gate reads:
 
 1. F3 `prompt-rubric-registry` baseline feature_key table.
 2. A3 Product/UI AI Capability Catalog.
-3. `config/ai-profiles/*.yaml` model profile catalog.
+3. `config/ai-profiles.yaml` model profile catalog.
 4. `config/ai-providers.yaml` provider registry.
 
 Every documented default profile must exist and resolve to a legal capability,
@@ -59,15 +59,20 @@ def load_yaml(path: Path) -> Any:
 
 def load_profiles(repo: Path) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
-    profile_dir = repo / "config/ai-profiles"
-    for path in sorted(profile_dir.glob("*.yaml")):
-        doc = load_yaml(path)
-        name = str(doc.get("name", ""))
+    profile_path = repo / "config/ai-profiles.yaml"
+    doc = load_yaml(profile_path)
+    profiles = doc.get("profiles")
+    if not isinstance(profiles, list):
+        raise ValueError(f"{profile_path}: missing profiles[]")
+    for profile in profiles:
+        if not isinstance(profile, dict):
+            raise ValueError(f"{profile_path}: profile entry must be a mapping")
+        name = str(profile.get("name", ""))
         if not name:
-            raise ValueError(f"{path}: missing name")
+            raise ValueError(f"{profile_path}: profile entry missing name")
         if name in out:
             raise ValueError(f"duplicate profile name: {name}")
-        out[name] = doc
+        out[name] = profile
     return out
 
 

@@ -26,13 +26,13 @@ func (m mapSecret) Get(name string) (string, error) {
 }
 
 func TestNewClientFailsFastWhenSelectedProviderSecretMissing(t *testing.T) {
-	registryPath, profileDir := writeRuntimeConfig(t, "default-openai-compatible")
+	registryPath, profilePath := writeRuntimeConfig(t, "default-openai-compatible")
 
 	_, err := bootstrap.NewClient(bootstrap.Options{
 		Config: aiclient.Config{
 			AppEnv:               "prod",
 			ProviderRegistryPath: registryPath,
-			ModelProfilePath:     profileDir,
+			ModelProfilePath:     profilePath,
 		},
 		SecretSource: mapSecret{},
 	})
@@ -42,7 +42,7 @@ func TestNewClientFailsFastWhenSelectedProviderSecretMissing(t *testing.T) {
 }
 
 func TestNewClientLoadsRegistryProfileAndRoutesThroughProviderRef(t *testing.T) {
-	registryPath, profileDir := writeRuntimeConfig(t, "default-openai-compatible")
+	registryPath, profilePath := writeRuntimeConfig(t, "default-openai-compatible")
 	var sawAuth bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/chat/completions" {
@@ -60,7 +60,7 @@ func TestNewClientLoadsRegistryProfileAndRoutesThroughProviderRef(t *testing.T) 
 		Config: aiclient.Config{
 			AppEnv:               "prod",
 			ProviderRegistryPath: registryPath,
-			ModelProfilePath:     profileDir,
+			ModelProfilePath:     profilePath,
 		},
 		SecretSource: mapSecret{
 			"AI_PROVIDER_BASE_URL": server.URL,
@@ -95,13 +95,13 @@ func TestNewClientLoadsRegistryProfileAndRoutesThroughProviderRef(t *testing.T) 
 }
 
 func TestNewClientRejectsActiveStubProfileOutsideTest(t *testing.T) {
-	registryPath, profileDir := writeRuntimeConfig(t, "unit-test-stub")
+	registryPath, profilePath := writeRuntimeConfig(t, "unit-test-stub")
 
 	_, err := bootstrap.NewClient(bootstrap.Options{
 		Config: aiclient.Config{
 			AppEnv:               "prod",
 			ProviderRegistryPath: registryPath,
-			ModelProfilePath:     profileDir,
+			ModelProfilePath:     profilePath,
 		},
 		SecretSource: mapSecret{},
 	})
@@ -131,22 +131,20 @@ func writeRuntimeConfig(t *testing.T, providerRef string) (string, string) {
 `), 0o600); err != nil {
 		t.Fatalf("write registry: %v", err)
 	}
-	profileDir := filepath.Join(dir, "profiles")
-	if err := os.Mkdir(profileDir, 0o700); err != nil {
-		t.Fatalf("mkdir profiles: %v", err)
-	}
-	profileBody := `name: practice.followup.default
-capability: chat
-status: active
-default:
-  provider_ref: ` + providerRef + `
-  model: chat-runtime-2026-05-05
-timeout_ms: 5000
-route: practice.followup
-version: 1.0.0
+	profilePath := filepath.Join(dir, "ai-profiles.yaml")
+	profileBody := `profiles:
+  - name: practice.followup.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: ` + providerRef + `
+      model: chat-runtime-2026-05-05
+    timeout_ms: 5000
+    route: practice.followup
+    version: 1.0.0
 `
-	if err := os.WriteFile(filepath.Join(profileDir, "practice.followup.default.yaml"), []byte(profileBody), 0o600); err != nil {
+	if err := os.WriteFile(profilePath, []byte(profileBody), 0o600); err != nil {
 		t.Fatalf("write profile: %v", err)
 	}
-	return registryPath, profileDir
+	return registryPath, profilePath
 }

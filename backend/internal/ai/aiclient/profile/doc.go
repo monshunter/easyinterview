@@ -1,6 +1,6 @@
-// Package profile loads Model Profile YAML files from
+// Package profile loads the Model Profile YAML catalog from
 // `AI_MODEL_PROFILE_PATH` and exposes a name-keyed resolver to the
-// AIClient. Profiles are reloaded periodically so a YAML edit takes effect
+// AIClient. Profiles are reloaded periodically so a catalog edit takes effect
 // in the running process within ≤30 s (spec §6 C-4).
 //
 // The loader uses RW mutex + atomic snapshot replacement so an in-flight

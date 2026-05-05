@@ -54,7 +54,7 @@ are forbidden by the secrets-and-config boundary lint.
 ## Local deployment / smoke verification
 
 Local docker compose, Kind, staging, and prod must provide the registry path,
-profile directory, and any provider-specific env refs selected by active
+profile catalog path, and any provider-specific env refs selected by active
 profiles. `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` may be referenced by
 the default OpenAI-compatible provider, but they are no longer the global AI
 provider contract:
@@ -62,7 +62,7 @@ provider contract:
 ```sh
 export APP_ENV=dev
 export AI_PROVIDER_REGISTRY_PATH=$(pwd)/config/ai-providers.yaml
-export AI_MODEL_PROFILE_PATH=$(pwd)/config/ai-profiles
+export AI_MODEL_PROFILE_PATH=$(pwd)/config/ai-profiles.yaml
 export AI_PROVIDER_BASE_URL=https://provider.example/v1
 export AI_PROVIDER_API_KEY=sk-...                # NEVER commit
 ```
@@ -81,7 +81,7 @@ API keys MUST NOT live in test code, fixture YAML, or the repo.
 ## Hot reload
 
 [`providerregistry.Loader`](./providerregistry/loader.go) and
-[`profile.Loader`](./profile/loader.go) re-scans `AI_MODEL_PROFILE_PATH`
+[`profile.Loader`](./profile/loader.go) re-scan `AI_MODEL_PROFILE_PATH`
 periodically so provider registry or profile YAML edits take effect within the
 spec §6 C-4 SLA (≤30 s). Reload failure preserves the last good snapshot and
 does not affect in-flight calls.

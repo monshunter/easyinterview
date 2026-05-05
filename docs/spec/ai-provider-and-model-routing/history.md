@@ -1,6 +1,6 @@
 # AI Provider and Model Routing History
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-05 | 2.3 | 003 原地修订：将 Model Profile active truth source 从 per-profile YAML 目录收敛为单一 `config/ai-profiles.yaml` catalog，`AI_MODEL_PROFILE_PATH` 改为 catalog 文件路径。 | 003-provider-registry-and-capability-profiles catalog consolidation |
 | 2026-05-05 | 2.2 | 003 L2 remediation 收口：补生产 registry/profile bootstrap、profile reload warn、active profile anti-stub gate，并将 003 状态投影恢复为 completed。 | 003-provider-registry-and-capability-profiles L2 remediation |
 | 2026-05-05 | 2.1 | 003 Phase 5 负向搜索收口：active scope 部署文案改为 registry/profile/provider ref 契约，不再以单一 AI provider endpoint 作为当前目标架构主语。 | 003-provider-registry-and-capability-profiles Phase 5 |
 | 2026-05-05 | 2.0 | 003 实施推进到 A4/B1/F3 集成：A3 runtime `Capability` 改为消费 B1 生成 capability，provider/profile routing 错误码补齐为 B1-owned `AI_*`，profile coverage lint 接入顶层 lint gate。 | 003-provider-registry-and-capability-profiles Phase 4 |

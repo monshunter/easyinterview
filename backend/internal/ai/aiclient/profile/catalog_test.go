@@ -9,8 +9,8 @@ import (
 )
 
 func TestTrackedCatalogCoversF3AndProductUICapabilityProfiles(t *testing.T) {
-	dir := filepath.Join("..", "..", "..", "..", "..", "config", "ai-profiles")
-	loader, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})
+	path := filepath.Join("..", "..", "..", "..", "..", "config", "ai-profiles.yaml")
+	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
 	if err != nil {
 		t.Fatalf("NewLoader tracked catalog: %v", err)
 	}

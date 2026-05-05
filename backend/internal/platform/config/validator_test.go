@@ -67,7 +67,7 @@ func setCompleteProdRuntimeEnv(t *testing.T) {
 	t.Setenv("LOG_LEVEL", "info")
 	t.Setenv("AI_PROVIDER_REGISTRY_PATH", "/etc/easyinterview/ai-providers.yaml")
 	t.Setenv("AI_PROVIDER_BASE_URL", "https://provider.example")
-	t.Setenv("AI_MODEL_PROFILE_PATH", "/etc/easyinterview/ai-profiles")
+	t.Setenv("AI_MODEL_PROFILE_PATH", "/etc/easyinterview/ai-profiles.yaml")
 	t.Setenv("FEATURE_FLAG_SOURCE", "posthog")
 	t.Setenv("POSTHOG_HOST", "https://posthog")
 	t.Setenv("EMAIL_PROVIDER", "ses")
@@ -261,7 +261,7 @@ auth:
 ai:
   providerRegistryPath: "config/ai-providers.yaml"
   defaultProviderBaseURL: "https://provider.example"
-  modelProfilePath: "config/ai-profiles"
+  modelProfilePath: "config/ai-profiles.yaml"
 featureFlag:
   source: posthog
   posthogSelfHosted: false
@@ -312,7 +312,7 @@ auth:
 ai:
   providerRegistryPath: "config/ai-providers.yaml"
   defaultProviderBaseURL: "https://provider.example"
-  modelProfilePath: "config/ai-profiles"
+  modelProfilePath: "config/ai-profiles.yaml"
 async:
   queueWeights:
     critical: 0

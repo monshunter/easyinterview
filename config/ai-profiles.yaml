@@ -1,0 +1,277 @@
+# A3 Model Profile catalog.
+# Schema uses capability + provider_ref; retired task_type/default.provider keys
+# are rejected by backend/internal/ai/aiclient/profile loader tests.
+profiles:
+  - name: debrief.generate.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: default-openai-compatible
+      model: default-chat
+      params:
+        temperature: 0.3
+    fallback: []
+    timeout_ms: 20000
+    max_tokens: 2048
+    rate_limit:
+      rps: 5
+      tpm: 60000
+    route: debrief.generate
+    version: 1.0.0
+
+  - name: debrief.voice.extract.default
+    capability: stt
+    status: unsupported
+    unsupported_reason: "voice debrief extraction requires STT activation in 002 tools-streaming-and-stt"
+    default:
+      provider_ref: speech-placeholder
+      model: stt-placeholder-1
+    fallback: []
+    timeout_ms: 10000
+    rate_limit:
+      rps: 5
+      tpm: 60000
+    route: debrief.voice.extract
+    version: 0.1.0
+
+  - name: embedding.default
+    capability: embed
+    status: active
+    default:
+      provider_ref: default-openai-compatible
+      model: default-embed
+    fallback: []
+    timeout_ms: 10000
+    rate_limit:
+      rps: 10
+      tpm: 120000
+    route: embedding.default
+    version: 1.0.0
+
+  - name: judge.default
+    capability: judge
+    status: unsupported
+    unsupported_reason: "LLM judge adapter is reserved for F3 eval implementation"
+    default:
+      provider_ref: judge-placeholder
+      model: judge-placeholder-1
+    fallback: []
+    timeout_ms: 20000
+    rate_limit:
+      rps: 3
+      tpm: 60000
+    route: judge.default
+    version: 0.1.0
+
+  - name: practice.dictation.stt.default
+    capability: stt
+    status: unsupported
+    unsupported_reason: "STT adapter is reserved for 002 tools-streaming-and-stt"
+    default:
+      provider_ref: speech-placeholder
+      model: stt-placeholder-1
+    fallback: []
+    timeout_ms: 10000
+    rate_limit:
+      rps: 5
+      tpm: 60000
+    route: practice.dictation.stt
+    version: 0.1.0
+
+  - name: practice.first_question.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: default-openai-compatible
+      model: default-chat
+      params:
+        temperature: 0.6
+    fallback: []
+    timeout_ms: 15000
+    max_tokens: 1024
+    rate_limit:
+      rps: 5
+      tpm: 60000
+    route: practice.first_question
+    version: 1.0.0
+
+  - name: practice.followup.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: default-openai-compatible
+      model: default-chat
+      params:
+        temperature: 0.7
+    fallback: []
+    timeout_ms: 15000
+    max_tokens: 1024
+    rate_limit:
+      rps: 5
+      tpm: 60000
+    route: practice.followup
+    version: 1.0.0
+
+  - name: practice.turn_observe.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: default-openai-compatible
+      model: default-chat
+      params:
+        temperature: 0.3
+    fallback: []
+    timeout_ms: 8000
+    max_tokens: 512
+    rate_limit:
+      rps: 8
+      tpm: 60000
+    route: practice.turn_observe
+    version: 1.0.0
+
+  - name: practice.voice.realtime.default
+    capability: realtime
+    status: unsupported
+    unsupported_reason: "realtime voice adapter is reserved for 002 tools-streaming-and-stt"
+    default:
+      provider_ref: speech-placeholder
+      model: realtime-placeholder-1
+    fallback: []
+    timeout_ms: 10000
+    rate_limit:
+      rps: 5
+      tpm: 60000
+    route: practice.voice.realtime
+    version: 0.1.0
+
+  - name: profile.update.default
+    capability: chat
+    status: disabled
+    unsupported_reason: "progressive profile update AI workflow is reserved for a future profile implementation"
+    default:
+      provider_ref: default-openai-compatible
+      model: disabled-chat-placeholder
+    fallback: []
+    timeout_ms: 15000
+    max_tokens: 1024
+    rate_limit:
+      rps: 3
+      tpm: 60000
+    route: profile.update
+    version: 0.1.0
+
+  - name: report.assessment.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: default-openai-compatible
+      model: default-chat
+      params:
+        temperature: 0.1
+    fallback: []
+    timeout_ms: 15000
+    max_tokens: 2048
+    rate_limit:
+      rps: 5
+      tpm: 60000
+    route: report.assessment
+    version: 1.0.0
+
+  - name: report.generate.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: default-openai-compatible
+      model: default-chat
+      params:
+        temperature: 0.2
+    fallback: []
+    timeout_ms: 30000
+    max_tokens: 4096
+    rate_limit:
+      rps: 3
+      tpm: 60000
+    route: report.generate
+    version: 1.0.0
+
+  - name: resume.parse.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: default-openai-compatible
+      model: default-chat
+      params:
+        temperature: 0.1
+    fallback: []
+    timeout_ms: 15000
+    max_tokens: 2048
+    rate_limit:
+      rps: 5
+      tpm: 60000
+    route: resume.parse
+    version: 1.0.0
+
+  - name: resume.tailor.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: default-openai-compatible
+      model: default-chat
+      params:
+        temperature: 0.4
+    fallback: []
+    timeout_ms: 20000
+    max_tokens: 2048
+    rate_limit:
+      rps: 5
+      tpm: 60000
+    route: resume.tailor
+    version: 1.0.0
+
+  - name: retrieval.rerank.default
+    capability: rerank
+    status: unsupported
+    unsupported_reason: "rerank adapter is reserved for C11 retrieval implementation"
+    default:
+      provider_ref: rerank-placeholder
+      model: rerank-placeholder-1
+    fallback: []
+    timeout_ms: 10000
+    rate_limit:
+      rps: 5
+      tpm: 60000
+    route: retrieval.rerank
+    version: 0.1.0
+
+  - name: target.import.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: default-openai-compatible
+      model: default-chat
+      params:
+        temperature: 0.1
+    fallback: []
+    timeout_ms: 15000
+    max_tokens: 2048
+    rate_limit:
+      rps: 5
+      tpm: 60000
+    route: target.import
+    version: 1.0.0
+
+  - name: target.intel.default
+    capability: chat
+    status: disabled
+    unsupported_reason: "company/source intelligence data source is outside current P0 implementation"
+    default:
+      provider_ref: default-openai-compatible
+      model: disabled-chat-placeholder
+    fallback: []
+    timeout_ms: 15000
+    max_tokens: 2048
+    rate_limit:
+      rps: 3
+      tpm: 60000
+    route: target.intel
+    version: 0.1.0

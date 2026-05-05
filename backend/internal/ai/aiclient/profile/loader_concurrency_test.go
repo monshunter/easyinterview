@@ -17,24 +17,26 @@ import (
 // rounds with parallel readers must produce no race and no nil pointer.
 func TestLoaderConcurrentReadAndReload(t *testing.T) {
 	dir := t.TempDir()
+	path := filepath.Join(dir, "ai-profiles.yaml")
 	const profileName = "practice.followup.default"
 	writeYAML := func(version string) {
-		body := fmt.Sprintf(`name: %s
-capability: chat
-status: active
-default:
-  provider_ref: unit-test-stub
-  model: stub-chat-1
-timeout_ms: 1000
-version: %s
+		body := fmt.Sprintf(`profiles:
+  - name: %s
+    capability: chat
+    status: active
+    default:
+      provider_ref: unit-test-stub
+      model: stub-chat-1
+    timeout_ms: 1000
+    version: %s
 `, profileName, version)
-		if err := os.WriteFile(filepath.Join(dir, "p.yaml"), []byte(body), 0o600); err != nil {
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 			t.Fatalf("WriteFile: %v", err)
 		}
 	}
 	writeYAML("1.0.0")
 
-	loader, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})
+	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
 	if err != nil {
 		t.Fatalf("NewLoader: %v", err)
 	}
