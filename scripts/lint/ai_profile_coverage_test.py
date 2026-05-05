@@ -64,6 +64,17 @@ def make_repo(tmp_path: Path, profile_body: str) -> Path:
         repo / "config/ai-profiles.yaml",
         "profiles:\n  - " + textwrap.indent(profile_body, "    ").lstrip(),
     )
+    write(
+        repo / "deploy/dev-stack/.env.example",
+        textwrap.dedent(
+            """
+            AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml
+            AI_PROVIDER_BASE_URL=
+            AI_PROVIDER_API_KEY=
+            AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml
+            """
+        ).strip(),
+    )
     return repo
 
 
@@ -145,3 +156,74 @@ def test_fails_when_active_profile_uses_stub_provider(tmp_path: Path) -> None:
     result = run(repo)
     assert result.returncode == 1
     assert "active profile must not use stub provider" in result.stderr
+
+
+def test_fails_when_dev_stack_env_uses_legacy_profile_directory(tmp_path: Path) -> None:
+    repo = make_repo(
+        tmp_path,
+        textwrap.dedent(
+            """
+            name: practice.followup.default
+            capability: chat
+            status: active
+            default:
+              provider_ref: default-openai-compatible
+              model: default-chat
+            timeout_ms: 1000
+            version: 1.0.0
+            """
+        ).strip(),
+    )
+    write(
+        repo / "deploy/dev-stack/.env.example",
+        textwrap.dedent(
+            """
+            AI_PROVIDER_BASE_URL=
+            AI_PROVIDER_API_KEY=
+            AI_MODEL_PROFILE_PATH=config/ai-profiles/
+            """
+        ).strip(),
+    )
+
+    result = run(repo)
+    assert result.returncode == 1
+    assert "deploy/dev-stack/.env.example" in result.stderr
+    assert "AI_MODEL_PROFILE_PATH must point to config/ai-profiles.yaml" in result.stderr
+    assert "AI_PROVIDER_REGISTRY_PATH" in result.stderr
+
+
+def test_fails_when_product_ui_capability_disagrees_with_catalog(tmp_path: Path) -> None:
+    repo = make_repo(
+        tmp_path,
+        textwrap.dedent(
+            """
+            name: practice.followup.default
+            capability: embed
+            status: active
+            default:
+              provider_ref: default-openai-compatible
+              model: default-embed
+            timeout_ms: 1000
+            version: 1.0.0
+            """
+        ).strip(),
+    )
+    (repo / "config/ai-providers.yaml").write_text(
+        textwrap.dedent(
+            """
+            providers:
+              - name: default-openai-compatible
+                protocol: openai_compatible
+                base_url_env: AI_PROVIDER_BASE_URL
+                api_key_env: AI_PROVIDER_API_KEY
+                capabilities: [chat, embed]
+                version: 1.0.0
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+
+    result = run(repo)
+    assert result.returncode == 1
+    assert "Product/UI capability mismatch" in result.stderr
+    assert "practice.followup.default" in result.stderr

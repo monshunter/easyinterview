@@ -1,6 +1,6 @@
 # Repo Scaffold Spec
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -86,7 +86,7 @@
 | 后端 module 拓扑 | B1 | `go.mod` 名称、internal 包命名 |
 | 前端包管理 | A2 + B1 | `package.json` / pnpm workspace |
 | 共享真理源根容器 | A1 + B1/B3 | A1 锁 `shared/` 根；B1 owns `shared/conventions.yaml`，B3 owns `shared/events.yaml` / `shared/jobs.yaml` |
-| 配置根容器 | A1 + A3/A4/F3 | A1 锁 `config/` 根；A4 owns config schema 与 feature flags，A3/F3 消费 `config/ai-profiles/`、prompt/rubric 路径 |
+| 配置根容器 | A1 + A3/A4/F3 | A1 锁 `config/` 根；A4 owns config schema 与 feature flags，A3 消费 `config/ai-providers.yaml` / `config/ai-profiles.yaml`，F3 消费 plan-defined prompt/rubric 路径 |
 | 本地依赖编排 | A2 | docker-compose、`make dev-up` 真正实现 |
 | CI 管线 | A5 | lint/test/build/codegen 工作流 |
 | OpenAPI 契约 | B2 | `openapi/` 内 fixtures、codegen 入口 |

@@ -1,6 +1,6 @@
 # Provider Registry and Capability Profiles Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-05
 
@@ -46,3 +46,4 @@
 - [x] 5.4 将 plan/checklist Header 切到 `completed`，同步 INDEX 与工作日志，并给 002 / C14 / practice / report / resume / debrief / F3 eval owner 留出 handoff
 - [x] 5.5 L2 remediation verification: focused tests、profile coverage lint、config lint、context validation、negative search 与必要全局 gate 通过后恢复 completed 生命周期并修正 active spec 003 状态投影
 - [x] 5.6 Catalog consolidation verification: focused Go profile tests、profile coverage pytest、`make lint-ai-profile-coverage`、`make lint-config`、context validation、`make docs-check`、active-scope legacy profile-directory 负向搜索与必要全局 gate 通过后恢复 completed 生命周期
+- [x] 5.7 L2 remediation: 修复 dev-stack / product owner matrix 旧 profile directory 漂移，并补强 deploy/profile semantic drift gate；验证 `make lint-ai-profile-coverage`、`make lint-config`、context validation、active-scope legacy profile-directory 负向搜索与必要 focused tests 通过

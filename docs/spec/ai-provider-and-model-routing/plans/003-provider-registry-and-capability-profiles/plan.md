@@ -1,6 +1,6 @@
 # Provider Registry and Capability Profiles
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-05
 
@@ -150,6 +150,10 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 复跑 L2 remediation focused tests、profile coverage lint、config lint、context validation、negative search 与必要全局 gate；完成后恢复 plan/checklist completed 生命周期并修正 active spec 中的 003 状态投影。
 
+#### 5.7 L2 remediation: deploy/profile drift gate hardening
+
+修复 catalog consolidation L2 review 发现的 active drift：`deploy/dev-stack/.env.example` 必须使用 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml` 与 `AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml`；active product / repo owner docs 不得再把 `config/ai-profiles/` 描述为 Model Profile active truth source；`make lint-ai-profile-coverage` 或同级 gate 必须覆盖 dev-stack profile catalog path 与 Product/UI capability catalog 对 `config/ai-profiles.yaml` 的 capability 语义一致性。
+
 ## 5 验收标准
 
 - Provider registry schema、loader、secret env ref 解析与热加载已落地，负向 fixtures 覆盖重复 provider、未知 protocol、capability mismatch、网络出站 provider secret 缺失与 fallback 超限；`stub` provider 不需要伪造 secret。
@@ -182,6 +186,7 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-05 | 1.4 | 原地 reopen L2 remediation：修复 dev-stack / product owner matrix 旧 profile directory 漂移，并补强 deploy/profile semantic drift gate。 | plan-code-review --fix |
 | 2026-05-05 | 1.3 | 原地 reopen catalog consolidation：将 per-profile YAML directory active truth source 收敛为单一 `config/ai-profiles.yaml`，并同步 loader、lint、A4/F3 docs 与验证 gate。 | change-intake user-approved revision |
 | 2026-05-05 | 1.2 | 原地 reopen L2 remediation：补 runtime registry/profile wiring、profile reload warn、active profile anti-stub gate 与 post-fix verification。 | plan-code-review --fix |
 | 2026-05-05 | 1.1 | Phase 5 完成：全局 gate 与 active-scope 负向搜索通过，plan 生命周期切为 completed，并补充后续 owner handoff。 | implementation closeout |

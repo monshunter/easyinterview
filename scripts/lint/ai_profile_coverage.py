@@ -22,8 +22,15 @@ from typing import Any
 import yaml
 
 PROFILE_RE = re.compile(r"`([a-z0-9_.-]+\.default)`")
+TABLE_ROW_RE = re.compile(r"^\|(.+)\|$", re.MULTILINE)
+BACKTICK_RE = re.compile(r"`([^`]+)`")
+ENV_LINE_RE = re.compile(r"^\s*([A-Z][A-Z0-9_]*)\s*=\s*([^#\n]*)", re.MULTILINE)
 ALLOWED_CAPABILITIES = {"chat", "embed", "stt", "realtime", "rerank", "judge"}
 ALLOWED_STATUSES = {"active", "disabled", "unsupported"}
+CANONICAL_DEV_STACK_ENV = {
+    "AI_PROVIDER_REGISTRY_PATH": "config/ai-providers.yaml",
+    "AI_MODEL_PROFILE_PATH": "config/ai-profiles.yaml",
+}
 
 
 def read(path: Path) -> str:
@@ -50,6 +57,35 @@ def documented_profiles(repo: Path) -> set[str]:
     if bad:
         raise ValueError("wildcard profile names are forbidden: " + ", ".join(sorted(bad)))
     return profiles
+
+
+def product_ui_capability_expectations(repo: Path) -> list[tuple[str, set[str]]]:
+    a3 = read(repo / "docs/spec/ai-provider-and-model-routing/spec.md")
+    section = section_after(a3, "### 4.5 Product/UI AI Capability Catalog")
+    expectations: list[tuple[str, set[str]]] = []
+    for row in TABLE_ROW_RE.findall(section):
+        cells = [cell.strip() for cell in row.split("|")]
+        if len(cells) < 4:
+            continue
+        if cells[0].startswith("---") or "Capability family" in cells[2]:
+            continue
+        capabilities = list(dict.fromkeys(
+            cap
+            for raw in BACKTICK_RE.findall(cells[2])
+            for cap in re.split(r"[^a-z_]+", raw)
+            if cap in ALLOWED_CAPABILITIES
+        ))
+        profiles = PROFILE_RE.findall(cells[3])
+        if not capabilities or not profiles:
+            continue
+        if len(capabilities) == 1 or len(profiles) == 1:
+            for profile in profiles:
+                expectations.append((profile, set(capabilities)))
+            continue
+        if len(capabilities) == len(profiles):
+            for profile, capability in zip(profiles, list(capabilities), strict=False):
+                expectations.append((profile, {capability}))
+    return expectations
 
 
 def load_yaml(path: Path) -> Any:
@@ -93,11 +129,22 @@ def load_provider_registry(repo: Path) -> dict[str, dict[str, Any]]:
     return out
 
 
+def load_dev_stack_env(repo: Path) -> dict[str, str]:
+    path = repo / "deploy/dev-stack/.env.example"
+    if not path.exists():
+        return {}
+    return {
+        key: value.strip()
+        for key, value in ENV_LINE_RE.findall(path.read_text(encoding="utf-8"))
+    }
+
+
 def validate(repo: Path) -> list[str]:
     problems: list[str] = []
     required = documented_profiles(repo)
     profiles = load_profiles(repo)
     providers = load_provider_registry(repo)
+    dev_stack_env = load_dev_stack_env(repo)
 
     missing = required - set(profiles)
     if missing:
@@ -127,6 +174,25 @@ def validate(repo: Path) -> list[str]:
             )
         if status == "active" and provider["protocol"] == "stub":
             problems.append(f"{name}: active profile must not use stub provider {provider_ref!r}")
+
+    for profile_name, expected_capabilities in product_ui_capability_expectations(repo):
+        profile = profiles.get(profile_name)
+        if not profile:
+            continue
+        actual = str(profile.get("capability", ""))
+        if actual not in expected_capabilities:
+            problems.append(
+                f"{profile_name}: Product/UI capability mismatch: documented "
+                f"{'/'.join(sorted(expected_capabilities))}, catalog {actual!r}"
+            )
+
+    for key, want in CANONICAL_DEV_STACK_ENV.items():
+        got = dev_stack_env.get(key)
+        if got != want:
+            problems.append(
+                f"deploy/dev-stack/.env.example: {key} must point to {want}"
+                + (f" (got {got!r})" if got is not None else " (missing)")
+            )
 
     return problems
 

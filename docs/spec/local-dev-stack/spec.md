@@ -1,6 +1,6 @@
 # Local Dev Stack Spec
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -56,7 +56,7 @@
 | D-6 | dev-up 健康检查口径 | `make dev-doctor` 返回 JSON：`{services:[{name,type:dependency\|app,status:OK\|DEGRADED\|DOWN,reason}], summary:{ok,degraded,down,total}}`；`make dev-up` 在所有启用服务 OK 后才 exit 0 | E4 release-gate 与未来 A5 远端 CI（仅触发条件成立后）可消费此输出；不得硬编码旧的 7-service 口径 |
 | D-7 | 数据持久化默认 | 命名卷（非 bind mount）：`easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data`；`make dev-down` 不删卷，`make dev-reset` 才删 | 避免误操作丢失本地开发数据 |
 | D-8 | 本地观测口径 | 默认依赖容器日志与应用 `/metrics`；`make dev-logs` 汇总容器日志，`make dev-doctor` 可检查已启用 HTTP 组件的 `/metrics` | F1 可以消费这些出口，但不能要求 A2 默认安装观测栈 |
-| D-9 | 本地 AI provider 配置 | `deploy/dev-stack/.env.example` 必须列出 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位；启用 AIClient 的项目组件启动时缺少真实 provider endpoint / key 必须 fail-fast；A2 不启动 AI provider 容器 | 本地部署验证真实 LLM 服务，同时保持 A2 依赖最小化 |
+| D-9 | 本地 AI provider 配置 | `deploy/dev-stack/.env.example` 必须列出 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml`、`AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml` 与 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位；启用 AIClient 的项目组件启动时缺少 catalog path 或当前 provider endpoint / key 必须 fail-fast；A2 不启动 AI provider 容器 | 本地部署验证真实 LLM 服务，同时保持 A2 依赖最小化 |
 
 ### 3.2 待确认事项
 
@@ -99,7 +99,7 @@
 | 项目组件运行入口 | 对应 child owner | backend / frontend / worker 等组件提供 Dockerfile 或 dev command；A2 负责统一 compose 接入 |
 | Postgres 扩展启用 | A2 | `pgvector` 由 init script 启用；B4 不再重复 |
 | DB schema migration | B4 | A2 提供空实例 + 扩展，schema 由 B4 落地 |
-| AI provider 运行时配置 | A3 + A4 + A2 | A3 决定 AIClient / provider 行为；A4 决定 env 字典与 fail-fast；A2 只在 compose 中传递 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位，不启动 AI provider，不切 stub |
+| AI provider 运行时配置 | A3 + A4 + A2 | A3 决定 AIClient / provider 行为；A4 决定 env 字典与 fail-fast；A2 只在 compose 中传递 `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` catalog 路径和 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位，不启动 AI provider，不切 stub |
 | 产品分析 / 自托管 PostHog | F2 | 不阻塞普通 `make dev-up` |
 | 观测 SDK / 指标命名 / dashboard | F1 | F1 消费应用 `/metrics` 与日志出口；生产或可选观测栈不归 A2 默认依赖 |
 | Secrets / config 抽象 | A4 | A2 仅锁 dev 默认值 |
@@ -117,7 +117,7 @@
 | C-6 | pgvector 可用 | `make dev-up` 完成 | 在 Postgres 中执行 `select extname from pg_extension where extname='vector'` | 返回一行，确认扩展已启用 | 001 |
 | C-7 | 本地指标与日志可查 | `make dev-up` 完成，至少一个已启用 HTTP 项目组件声明 `/metrics` | 访问该组件 `/metrics` 并执行 `make dev-logs` | `/metrics` 返回文本指标；容器日志可按服务名查看；不依赖 Grafana / Loki / Prometheus / OTel Collector | 001 |
 | C-8 | A2 executable gate handoff | 本 spec 的 contract lock 已完成，A2 `001-bootstrap` plan 完成 | C-1 + C-7 + C-9 都成立 | A2 的 `make dev-up` 可执行 gate 通过；依赖本地栈的后续 implementation 可启动；roadmap 只保留 active spec 关系，不单独冒充本项已通过 | 001-bootstrap |
-| C-9 | 本地 AI provider 配置不走 stub | 启用了需要 AIClient 的 API / worker；`.env` 缺 `AI_PROVIDER_BASE_URL` 或 `AI_PROVIDER_API_KEY` | `make dev-up` / `make dev-doctor` | 组件启动失败或 dev-doctor 报 DOWN/DEGRADED 并说明缺真实 AI provider 配置；补齐真实 provider endpoint / key 后组件健康；不启动 AI provider 容器，也不把部署切到 stub | 001 |
+| C-9 | 本地 AI provider 配置不走 stub | 启用了需要 AIClient 的 API / worker；`.env` 缺 `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 或当前 profile 选中的 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` | `make dev-up` / `make dev-doctor` | 组件启动失败或 dev-doctor 报 DOWN/DEGRADED 并说明缺真实 AI provider 配置；补齐 catalog path 与真实 provider endpoint / key 后组件健康；不启动 AI provider 容器，也不把部署切到 stub | 001 |
 
 ## 7 关联计划
 

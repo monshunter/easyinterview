@@ -1,6 +1,6 @@
 # Product Scope Spec
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -57,7 +57,7 @@
 | DB 表、索引、enum check、迁移、隐私删除 / 导出占位和 audit 表 | [db-migrations-baseline](../db-migrations-baseline/spec.md) | `migrations/`、`migrations/enum-sources.yaml`、migration lint / probe | 表数量、列名、索引、enum source、migration/backfill 策略和 privacy deletion matrix 以 B4 与实际 migration 为准 |
 | internal event、jobType、outbox envelope、dispatcher 与 breaking-change baseline | [event-and-outbox-contract](../event-and-outbox-contract/spec.md) | `shared/events.yaml`、`shared/jobs.yaml`、generated schemas / baselines | `eventName`、`jobType`、API-facing subset、outbox 字段、dispatcher retry/dead-letter 语义以 B3 为准 |
 | 本地运行、基础架构约束、配置、secret、feature flag、runtime-config | [engineering-roadmap](../engineering-roadmap/spec.md)、[local-dev-stack](../local-dev-stack/spec.md)、[secrets-and-config](../secrets-and-config/spec.md) | `config/`、`config/feature-flags.yaml`、A2/A4 runtime code 与 deploy assets | 运行时、配置字典、secret 归属、feature flag 和公开配置 allowlist 由 A2/A4 决定 |
-| AI provider、model profile、fallback、调用观测字段、prompt / rubric 坐标 | [ai-provider-and-model-routing](../ai-provider-and-model-routing/spec.md)、[prompt-rubric-registry](../prompt-rubric-registry/spec.md) | `config/ai-profiles/`、F3 plan-defined prompt / rubric runtime assets | 业务代码只依赖 provider capability、model profile、feature key 和 prompt/rubric 坐标；模型、fallback 和 prompt/rubric 版本必须可审计 |
+| AI provider、model profile、fallback、调用观测字段、prompt / rubric 坐标 | [ai-provider-and-model-routing](../ai-provider-and-model-routing/spec.md)、[prompt-rubric-registry](../prompt-rubric-registry/spec.md) | `config/ai-providers.yaml`、`config/ai-profiles.yaml`、F3 plan-defined prompt / rubric runtime assets | 业务代码只依赖 provider capability、model profile、feature key 和 prompt/rubric 坐标；模型、fallback 和 prompt/rubric 版本必须可审计 |
 | metrics、logging、trace、dashboard、alerting、敏感字段红线 | [observability-stack](../observability-stack/spec.md) | F1 spec、后续 logger / metric / alert rule 编码 truth source | metric / label / log 字段 / trace attribute / dashboard / alert 和明文红线以 F1 与实现 gate 为准 |
 | 产品模块、一级入口、route、UI 画板标签和用户行为流 | 本文档、`docs/ui-design/`、`ui-design/` | UI 文档、静态原型、后续 BDD / E2E 场景 | 产品和 UI 范围先于技术契约；未被当前产品 / UI 保留的模块不得由技术层自动恢复 |
 

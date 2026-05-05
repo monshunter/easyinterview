@@ -65,9 +65,10 @@
 
 docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compatible endpoint：
 
+- 必须保留 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml` 与 `AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml`，本地组件从单一 provider registry / profile catalog 加载 AI 路由。
 - 必须设置 `AI_PROVIDER_BASE_URL`（任何 OpenAI-compatible URL，例如 `https://api.openai.com/v1`、自托管 vLLM endpoint 等）。
 - 必须设置 `AI_PROVIDER_API_KEY` 为对应 provider 的真实 key。
-- 缺任一字段时启用 AIClient 的组件 fail-fast，`make dev-doctor` 对该组件报 DOWN/DEGRADED 且 reason 指向缺真实 AI provider 配置（C-9）。
+- 缺 registry/profile 路径或当前 profile 选中的 provider secret 时，启用 AIClient 的组件 fail-fast，`make dev-doctor` 对该组件报 DOWN/DEGRADED 且 reason 指向缺真实 AI provider 配置（C-9）。
 - **不允许** 把本地部署降级到单元测试 stub。stub 仅在 `APP_ENV=test`（单元测试 / 离线契约测试）下使用，由 [A3 ai-provider-and-model-routing](../../docs/spec/ai-provider-and-model-routing/spec.md) 承接。
 
 ## 5 与场景测试的关系
@@ -86,7 +87,7 @@ docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compati
 | MinIO 启动报 `volume not writable` | macOS Docker Desktop 偶发权限缓存问题；`docker volume rm easyinterview-minio-data` 后重新 up |
 | `pgvector` 扩展未启用 | 数据卷是历史遗留时 init 脚本不会重跑：`docker exec easyinterview-postgres-dev psql -U easyinterview -d easyinterview -c "CREATE EXTENSION IF NOT EXISTS vector;"` 或重置卷 |
 | 镜像首次拉取超过 60s healthy 预算 | 先 `make dev-pull` 预热再 `make dev-up`；预算只针对 image 已在本地的稳态 |
-| `make dev-doctor` 对启用 AIClient 的组件报 DOWN | 检查 `.env` 中 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 是否填了真实 provider；勿提交真实 key |
+| `make dev-doctor` 对启用 AIClient 的组件报 DOWN | 检查 `.env` 中 `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 是否指向 repo 内 catalog，并确认 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 填了真实 provider；勿提交真实 key |
 | macOS Docker Desktop 端口冲突看似没冲突 | docker-desktop 用 IPv6 监听，纯 IPv4 squatter 不冲突；用 `python3 -c "...AF_INET6 + IPV6_V6ONLY=0..."` 或绑双栈监听才会触发真实冲突 |
 
 ## 7 升级与扩展
