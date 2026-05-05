@@ -13,6 +13,19 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 - `openapi/`、`shared/`、`backend/`、`frontend/`、`migrations/`、`config/`、`scripts/`：API、共享契约、后端、前端、数据库、配置和工程脚本资产。
 - `.agent-skills/`：仓库内自定义 Skill、模板和共享校验脚本。
 - `test/scenarios/`：场景测试框架、环境说明和 BDD / E2E 场景资产。
+- `DESIGN.md`：来自 getdesign.md 的 Anthropic Claude.com 品牌设计系统快照，**前端实施必须参考的 UI 设计体系**（详见下方 §1.1）。
+
+### 1.1 前端实施 UI 设计体系参考
+
+前端创建新页面、新组件、新 token 时必须把仓库根目录的 [`DESIGN.md`](./DESIGN.md) 作为品牌与语义命名的参考体系，与 `ui-design/` 真理源协同使用：
+
+- **语义命名优先复用** `DESIGN.md` 的组件键（`feature-card`、`code-window-card`、`callout-card-coral`、`pricing-tier-card-featured`、`cta-band-coral`、`cta-band-dark`、`product-mockup-card-dark`、`hero-illustration-card`、`badge-coral` 等），让 EasyInterview 与 Claude 品牌族保持结构对齐。
+- **章节节奏**（cream → cream-card → dark-mockup → coral-callout → dark-footer）作为新页面分段的默认参考。
+- **真理源关系**：`ui-design/` 与 `docs/ui-design/` 仍是 UI 验收真理源；`DESIGN.md` 是参考体系，不是验收判据，spec/plan/checklist 不得把"DESIGN.md 第 X 节"作为完成判据。
+- **不要机械同步 token**：不要把 [`ui-design/src/primitives.jsx`](./ui-design/src/primitives.jsx) 的 `EI_THEMES` 色值改成 `DESIGN.md` 的精确 hex；多主题（warm/forest/ocean）+ 双模式（light/dark）已是项目当前真理。
+- **不要引入私有授权字体**：Copernicus 与 StyreneB 是 Anthropic 私有授权字体，使用开源替代（serif: Cormorant Garamond / EB Garamond；sans: Inter）。
+
+完整使用方式与边界见 [`DESIGN.md` 顶部"使用方式与边界"章节](./DESIGN.md#使用方式与边界easyinterview-项目内)。
 
 ---
 

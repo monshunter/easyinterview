@@ -18,10 +18,16 @@
 | [用户画像与设置目标结构](./user-profile-and-settings.md) | 1.4 | active | 2026-05-02 | AI 用户画像、用户修正、账号基础信息、字体预设、隐私设置和已同步的当前模块术语边界 |
 | [移除模块与范围裁剪](./removed-modules-and-scope.md) | 2.4 | active | 2026-05-03 | 成长、多轮计划、经历库、旧简历版本页、入口前练习模式卡片、会话内严格模拟开关边界、已删除 `voice` route alias 与独立语音页骨架、收件箱旧文案、报告一级入口和外观偏好边界等裁剪记录 |
 
-## 2 Superseded
+## 2 参考
+
+| 文档 | 版本 | 状态 | 更新日期 | 说明 |
+|------|------|------|----------|------|
+| [Claude 品牌设计系统(DESIGN.md)](../../DESIGN.md) | alpha | active | 2026-05-05 | 仓库根目录 `DESIGN.md`——来自 getdesign.md 的 Claude.com 品牌设计系统只读快照。前端实施新增页面/组件时的必须参考体系(语义命名、章节节奏、token 参考语言);使用方式与边界详见文件顶部章节,非项目 UI 真理源,不做机械 token 对齐 |
+
+## 3 Superseded
 
 暂无。
 
-## 3 Deprecated
+## 4 Deprecated
 
 暂无。
