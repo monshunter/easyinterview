@@ -106,3 +106,15 @@ export const ALL_OPERATION_IDS = [
 ] as const;
 
 export type OperationId = (typeof ALL_OPERATION_IDS)[number];
+
+export interface Route {
+	operationId: OperationId;
+	method: string;
+	path: string;
+}
+
+export const ALL_ROUTES = [
+{{- range .Operations}}
+	{ operationId: "{{.OperationID}}", method: "{{.MethodUpper}}", path: "{{.Path}}" },
+{{- end}}
+] as const satisfies readonly Route[];

@@ -13,8 +13,8 @@
 
 ## Phase 2: Frontend mock transport
 
-- [ ] 2.1 接入 generated client mock transport；验证: frontend focused test 断言 generated client 在 mock mode 下返回 typed fixture response，至少覆盖 `getRuntimeConfig`、`getMe`、`listTargetJobs`、`getPracticeSession`
-- [ ] 2.2 拦截 prototype data 运行时依赖；验证: lint/test 断言 `frontend/src` 不 import `ui-design/src/data.jsx`，且 mock response 不含 prototype-only display fields
+- [x] 2.1 接入 generated client mock transport；验证: frontend focused test 断言 generated client 在 mock mode 下返回 typed fixture response，至少覆盖 `getRuntimeConfig`、`getMe`、`listTargetJobs`、`getPracticeSession`
+- [x] 2.2 拦截 prototype data 运行时依赖；验证: lint/test 断言 `frontend/src` 不 import `ui-design/src/data.jsx`，且 mock response 不含 prototype-only display fields
 
 ## Phase 3: Backend mock harness
 

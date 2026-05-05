@@ -468,3 +468,46 @@ export const ALL_OPERATION_IDS = [
 ] as const;
 
 export type OperationId = (typeof ALL_OPERATION_IDS)[number];
+
+export interface Route {
+	operationId: OperationId;
+	method: string;
+	path: string;
+}
+
+export const ALL_ROUTES = [
+	{ operationId: "startAuthEmailChallenge", method: "POST", path: "/auth/email/start" },
+	{ operationId: "verifyAuthEmailChallenge", method: "GET", path: "/auth/email/verify" },
+	{ operationId: "logout", method: "POST", path: "/auth/logout" },
+	{ operationId: "createDebrief", method: "POST", path: "/debriefs" },
+	{ operationId: "getDebrief", method: "GET", path: "/debriefs/{debriefId}" },
+	{ operationId: "getJob", method: "GET", path: "/jobs/{jobId}" },
+	{ operationId: "deleteMe", method: "DELETE", path: "/me" },
+	{ operationId: "getMe", method: "GET", path: "/me" },
+	{ operationId: "createPracticePlan", method: "POST", path: "/practice/plans" },
+	{ operationId: "getPracticePlan", method: "GET", path: "/practice/plans/{planId}" },
+	{ operationId: "startPracticeSession", method: "POST", path: "/practice/sessions" },
+	{ operationId: "getPracticeSession", method: "GET", path: "/practice/sessions/{sessionId}" },
+	{ operationId: "completePracticeSession", method: "POST", path: "/practice/sessions/{sessionId}/complete" },
+	{ operationId: "appendSessionEvent", method: "POST", path: "/practice/sessions/{sessionId}/events" },
+	{ operationId: "requestPrivacyDelete", method: "POST", path: "/privacy/deletions" },
+	{ operationId: "requestPrivacyExport", method: "POST", path: "/privacy/exports" },
+	{ operationId: "getPrivacyRequest", method: "GET", path: "/privacy/requests/{privacyRequestId}" },
+	{ operationId: "getMyProfile", method: "GET", path: "/profiles/me" },
+	{ operationId: "updateMyProfile", method: "PATCH", path: "/profiles/me" },
+	{ operationId: "listExperienceCards", method: "GET", path: "/profiles/me/experience-cards" },
+	{ operationId: "createExperienceCard", method: "POST", path: "/profiles/me/experience-cards" },
+	{ operationId: "updateExperienceCard", method: "PATCH", path: "/profiles/me/experience-cards/{cardId}" },
+	{ operationId: "getFeedbackReport", method: "GET", path: "/reports/{reportId}" },
+	{ operationId: "requestResumeTailor", method: "POST", path: "/resume/tailor" },
+	{ operationId: "getResumeTailorRun", method: "GET", path: "/resume/tailor-runs/{tailorRunId}" },
+	{ operationId: "registerResume", method: "POST", path: "/resumes" },
+	{ operationId: "getResume", method: "GET", path: "/resumes/{resumeAssetId}" },
+	{ operationId: "getRuntimeConfig", method: "GET", path: "/runtime-config" },
+	{ operationId: "listTargetJobs", method: "GET", path: "/targets" },
+	{ operationId: "importTargetJob", method: "POST", path: "/targets/import" },
+	{ operationId: "getTargetJob", method: "GET", path: "/targets/{targetJobId}" },
+	{ operationId: "updateTargetJob", method: "PATCH", path: "/targets/{targetJobId}" },
+	{ operationId: "listTargetJobReports", method: "GET", path: "/targets/{targetJobId}/reports" },
+	{ operationId: "createUploadPresign", method: "POST", path: "/uploads/presign" },
+] as const satisfies readonly Route[];
