@@ -6,8 +6,8 @@ metadata:
   sequence: 2
   supersedes: []
   specVersion:
-    from: 1.6
-    to: 1.9
+    from: 2.3
+    to: 2.4
 spec:
   defaultTarget: backend
   discovery:
@@ -31,6 +31,15 @@ spec:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
+      references:
+        - ../../history.md
+        - ../../../engineering-roadmap/spec.md
+        - ../../../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md
+        - ../../../product-scope/spec.md
+        - ../../../prompt-rubric-registry/spec.md
+        - ../../../shared-conventions-codified/spec.md
+        - ../../../observability-stack/spec.md
+        - ../../../secrets-and-config/spec.md
       discovery:
         packages:
           - backend/internal/ai/aiclient

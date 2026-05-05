@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-05](2026-05-05.md) | `docs(ai-provider): remediate 002 plan review gates` | #docs |
 | [2026-05-05](2026-05-05.md) | `fix(ai-provider): harden profile catalog drift gates` | #fix #test #docs |
 | [2026-05-05](2026-05-05.md) | `refactor(ai-provider): consolidate model profile catalog` | #refactor #test #docs |
 | [2026-05-05](2026-05-05.md) | `fix(ai-provider): wire provider registry runtime bootstrap` | #fix #test #docs |
