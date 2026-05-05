@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-05](2026-05-05.md) | `test(scenarios): scaffold e2e scenario framework` | #test #docs |
 | [2026-05-05](2026-05-05.md) | `docs(roadmap): spawn P0 implementation owners` | #docs |
 | [2026-05-05](2026-05-05.md) | `docs(ui-design): add Claude design reference` | #docs #ui |
 | [2026-05-05](2026-05-05.md) | `docs(ai-provider): remediate 002 plan review gates` | #docs |
