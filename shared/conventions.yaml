@@ -70,6 +70,9 @@ errors:
   - code: AI_FALLBACK_EXHAUSTED
     message: "AI fallback chain exhausted"
     retryable: true
+  - code: AI_UNSUPPORTED_CAPABILITY
+    message: "AI capability is not supported"
+    retryable: false
 
 # Async Job statuses.
 jobStatuses:

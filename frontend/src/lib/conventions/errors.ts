@@ -14,6 +14,7 @@ export const ERROR_CODES = {
   AI_PROVIDER_TIMEOUT: 'AI_PROVIDER_TIMEOUT',
   AI_OUTPUT_INVALID: 'AI_OUTPUT_INVALID',
   AI_FALLBACK_EXHAUSTED: 'AI_FALLBACK_EXHAUSTED',
+  AI_UNSUPPORTED_CAPABILITY: 'AI_UNSUPPORTED_CAPABILITY',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -28,6 +29,7 @@ export const ALL_ERROR_CODES: readonly ErrorCode[] = [
   ERROR_CODES.AI_PROVIDER_TIMEOUT,
   ERROR_CODES.AI_OUTPUT_INVALID,
   ERROR_CODES.AI_FALLBACK_EXHAUSTED,
+  ERROR_CODES.AI_UNSUPPORTED_CAPABILITY,
 ] as const;
 
 export interface ErrorMeta {
@@ -45,6 +47,7 @@ export const ERROR_REGISTRY: Readonly<Record<ErrorCode, ErrorMeta>> = {
   AI_PROVIDER_TIMEOUT: { message: 'AI provider request timed out', retryable: true },
   AI_OUTPUT_INVALID: { message: 'AI output failed schema validation', retryable: false },
   AI_FALLBACK_EXHAUSTED: { message: 'AI fallback chain exhausted', retryable: true },
+  AI_UNSUPPORTED_CAPABILITY: { message: 'AI capability is not supported', retryable: false },
 };
 
 export interface ApiError {

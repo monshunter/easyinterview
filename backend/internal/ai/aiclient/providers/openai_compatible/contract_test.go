@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/openai_compatible"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/openai_compatible/mockserver"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
@@ -18,14 +19,16 @@ const (
 	chatModelFamily  = "chat-primary"
 	embedModelID     = "embed-small"
 	embedModelFamily = "embed-small"
+	providerRef      = "default-openai-compatible"
 )
 
 func chatProfile(timeoutMs int) *aiclient.ModelProfile {
 	return &aiclient.ModelProfile{
 		Name:       "practice.followup.default",
 		Capability: aiclient.CapabilityChat,
+		Status:     aiclient.ProfileStatusActive,
 		Default: aiclient.ProviderConfig{
-			ProviderRef: openaicompatible.Name,
+			ProviderRef: providerRef,
 			Model:       chatModelID,
 		},
 		TimeoutMs: timeoutMs,
@@ -38,8 +41,9 @@ func embedProfile(timeoutMs int) *aiclient.ModelProfile {
 	return &aiclient.ModelProfile{
 		Name:       "review.embed.default",
 		Capability: aiclient.CapabilityEmbed,
+		Status:     aiclient.ProfileStatusActive,
 		Default: aiclient.ProviderConfig{
-			ProviderRef: openaicompatible.Name,
+			ProviderRef: providerRef,
 			Model:       embedModelID,
 		},
 		TimeoutMs: timeoutMs,
@@ -65,13 +69,28 @@ func samplePayload() aiclient.CompletePayload {
 func newAdapter(t *testing.T, srv *mockserver.Server) *openaicompatible.Adapter {
 	t.Helper()
 	a, err := openaicompatible.New(openaicompatible.Options{
-		BaseURL: srv.URL(),
-		APIKey:  "test-key",
+		Provider: resolvedProvider(srv.URL()),
 	})
 	if err != nil {
 		t.Fatalf("openai_compatible.New: %v", err)
 	}
 	return a
+}
+
+func resolvedProvider(baseURL string) providerregistry.ResolvedProvider {
+	return providerregistry.ResolvedProvider{
+		Entry: aiclient.ProviderRegistryEntry{
+			Name:     providerRef,
+			Protocol: aiclient.ProviderProtocolOpenAICompatible,
+			Capabilities: []aiclient.Capability{
+				aiclient.CapabilityChat,
+				aiclient.CapabilityEmbed,
+			},
+			Version: "1.0.0",
+		},
+		BaseURL: baseURL,
+		APIKey:  "test-key",
+	}
 }
 
 func TestComplete_NormalChatCompletion(t *testing.T) {
@@ -86,8 +105,8 @@ func TestComplete_NormalChatCompletion(t *testing.T) {
 	if !strings.HasPrefix(resp.Content, "mock response for ") {
 		t.Fatalf("unexpected content: %q", resp.Content)
 	}
-	if meta.Provider != openaicompatible.Name {
-		t.Fatalf("expected meta.Provider=%q, got %q", openaicompatible.Name, meta.Provider)
+	if meta.Provider != providerRef {
+		t.Fatalf("expected meta.Provider=%q, got %q", providerRef, meta.Provider)
 	}
 	if meta.ModelID != chatModelID {
 		t.Fatalf("expected ModelID=%q, got %q", chatModelID, meta.ModelID)
@@ -128,8 +147,7 @@ func TestComplete_BaseURLMayIncludeV1Prefix(t *testing.T) {
 	srv := mockserver.New()
 	defer srv.Close()
 	a, err := openaicompatible.New(openaicompatible.Options{
-		BaseURL: srv.URL() + "/v1",
-		APIKey:  "test-key",
+		Provider: resolvedProvider(srv.URL() + "/v1"),
 	})
 	if err != nil {
 		t.Fatalf("openai_compatible.New: %v", err)
@@ -169,7 +187,7 @@ func TestEmbed_NormalEmbeddings(t *testing.T) {
 	if len(resp.Vectors) != 2 {
 		t.Fatalf("expected 2 vectors, got %d", len(resp.Vectors))
 	}
-	if meta.Provider != openaicompatible.Name {
+	if meta.Provider != providerRef {
 		t.Fatalf("provider mismatch: %q", meta.Provider)
 	}
 	if meta.ModelID != embedModelID {
@@ -323,11 +341,22 @@ func TestComplete_NoFallbackHeadersUsesProfileRoute(t *testing.T) {
 	}
 }
 
-func TestNew_RequiresBaseURLAndAPIKey(t *testing.T) {
-	if _, err := openaicompatible.New(openaicompatible.Options{APIKey: "k"}); err == nil {
-		t.Fatalf("expected error when BaseURL missing")
+func TestNew_RequiresOpenAICompatibleResolvedProviderSecret(t *testing.T) {
+	if _, err := openaicompatible.New(openaicompatible.Options{}); err == nil {
+		t.Fatalf("expected error when resolved provider is missing")
 	}
-	if _, err := openaicompatible.New(openaicompatible.Options{BaseURL: "http://x"}); err == nil {
-		t.Fatalf("expected error when APIKey missing")
+	missingBaseURL := resolvedProvider("")
+	if _, err := openaicompatible.New(openaicompatible.Options{Provider: missingBaseURL}); err == nil {
+		t.Fatalf("expected error when resolved provider BaseURL missing")
+	}
+	missingAPIKey := resolvedProvider("http://x")
+	missingAPIKey.APIKey = ""
+	if _, err := openaicompatible.New(openaicompatible.Options{Provider: missingAPIKey}); err == nil {
+		t.Fatalf("expected error when resolved provider APIKey missing")
+	}
+	wrongProtocol := resolvedProvider("http://x")
+	wrongProtocol.Entry.Protocol = aiclient.ProviderProtocolStub
+	if _, err := openaicompatible.New(openaicompatible.Options{Provider: wrongProtocol}); err == nil {
+		t.Fatalf("expected error when provider protocol is not openai_compatible")
 	}
 }

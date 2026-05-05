@@ -12,11 +12,12 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
-// Name is the canonical provider name. Profiles route to this adapter by
-// setting Default.ProviderRef to "openai_compatible".
+// Name is the adapter protocol name. Concrete Adapter instances identify
+// themselves by Provider Registry ref so profiles route through provider_ref.
 const Name = "openai_compatible"
 
 // Path constants are exported so the mockserver helper can reuse them.
@@ -36,39 +37,47 @@ const (
 
 // Options configures the adapter.
 type Options struct {
-	BaseURL    string
-	APIKey     string
+	Provider   providerregistry.ResolvedProvider
 	HTTPClient *http.Client
 }
 
 // Adapter is the concrete aiclient.Provider implementation.
 type Adapter struct {
-	baseURL string
-	apiKey  string
-	client  *http.Client
+	providerRef string
+	baseURL     string
+	apiKey      string
+	client      *http.Client
 }
 
-// New constructs an Adapter. BaseURL and APIKey are required.
+// New constructs an Adapter from a Provider Registry entry materialized by A4
+// SecretSource. Raw global base URL / API key values are not accepted here.
 func New(opts Options) (*Adapter, error) {
-	if opts.BaseURL == "" {
-		return nil, errors.New("openai_compatible: BaseURL is required")
+	if opts.Provider.Entry.Name == "" {
+		return nil, errors.New("openai_compatible: resolved provider is required")
 	}
-	if opts.APIKey == "" {
-		return nil, errors.New("openai_compatible: APIKey is required")
+	if opts.Provider.Entry.Protocol != aiclient.ProviderProtocolOpenAICompatible {
+		return nil, fmt.Errorf("openai_compatible: provider %q protocol must be %q", opts.Provider.Entry.Name, aiclient.ProviderProtocolOpenAICompatible)
+	}
+	if opts.Provider.BaseURL == "" {
+		return nil, errors.New("openai_compatible: resolved provider BaseURL is required")
+	}
+	if opts.Provider.APIKey == "" {
+		return nil, errors.New("openai_compatible: resolved provider APIKey is required")
 	}
 	hc := opts.HTTPClient
 	if hc == nil {
 		hc = &http.Client{}
 	}
 	return &Adapter{
-		baseURL: normalizeBaseURL(opts.BaseURL),
-		apiKey:  opts.APIKey,
-		client:  hc,
+		providerRef: opts.Provider.Entry.Name,
+		baseURL:     normalizeBaseURL(opts.Provider.BaseURL),
+		apiKey:      opts.Provider.APIKey,
+		client:      hc,
 	}, nil
 }
 
 // Name implements aiclient.Provider.
-func (a *Adapter) Name() string { return Name }
+func (a *Adapter) Name() string { return a.providerRef }
 
 // Complete implements aiclient.Provider.
 func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
@@ -90,24 +99,24 @@ func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, 
 	resp, status, headers, err := a.postJSON(ctx, profile.TimeoutMs, PathChatCompletions, req)
 	latencyMs := time.Since(start).Milliseconds()
 	if err != nil {
-		return aiclient.CompleteResponse{}, errMeta(profile, headers, latencyMs, err), err
+		return aiclient.CompleteResponse{}, a.errMeta(profile, headers, latencyMs, err), err
 	}
 
 	if status >= 400 {
 		errCode := mapHTTPError(status, resp)
-		meta := errMeta(profile, headers, latencyMs, errCode)
+		meta := a.errMeta(profile, headers, latencyMs, errCode)
 		return aiclient.CompleteResponse{}, meta, errCode
 	}
 
 	var body chatCompletionsResponse
 	if err := json.Unmarshal(resp, &body); err != nil {
 		errCode := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "openai_compatible: parse response: "+err.Error(), false)
-		meta := errMeta(profile, headers, latencyMs, errCode)
+		meta := a.errMeta(profile, headers, latencyMs, errCode)
 		return aiclient.CompleteResponse{}, meta, errCode
 	}
 	if len(body.Choices) == 0 {
 		errCode := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "openai_compatible: response missing choices", false)
-		meta := errMeta(profile, headers, latencyMs, errCode)
+		meta := a.errMeta(profile, headers, latencyMs, errCode)
 		return aiclient.CompleteResponse{}, meta, errCode
 	}
 
@@ -116,7 +125,7 @@ func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, 
 		Content:      choice.Message.Content,
 		FinishReason: choice.FinishReason,
 	}
-	meta := buildMeta(profile, headers, latencyMs, body.Model, body.Usage.PromptTokens, body.Usage.CompletionTokens)
+	meta := a.buildMeta(profile, headers, latencyMs, body.Model, body.Usage.PromptTokens, body.Usage.CompletionTokens)
 	return out, meta, nil
 }
 
@@ -135,19 +144,19 @@ func (a *Adapter) Embed(ctx context.Context, profile *aiclient.ModelProfile, inp
 	resp, status, headers, err := a.postJSON(ctx, profile.TimeoutMs, PathEmbeddings, req)
 	latencyMs := time.Since(start).Milliseconds()
 	if err != nil {
-		return aiclient.EmbedResponse{}, errMeta(profile, headers, latencyMs, err), err
+		return aiclient.EmbedResponse{}, a.errMeta(profile, headers, latencyMs, err), err
 	}
 
 	if status >= 400 {
 		errCode := mapHTTPError(status, resp)
-		meta := errMeta(profile, headers, latencyMs, errCode)
+		meta := a.errMeta(profile, headers, latencyMs, errCode)
 		return aiclient.EmbedResponse{}, meta, errCode
 	}
 
 	var body embeddingsResponse
 	if err := json.Unmarshal(resp, &body); err != nil {
 		errCode := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "openai_compatible: parse response: "+err.Error(), false)
-		meta := errMeta(profile, headers, latencyMs, errCode)
+		meta := a.errMeta(profile, headers, latencyMs, errCode)
 		return aiclient.EmbedResponse{}, meta, errCode
 	}
 
@@ -156,7 +165,7 @@ func (a *Adapter) Embed(ctx context.Context, profile *aiclient.ModelProfile, inp
 		vectors[i] = d.Embedding
 	}
 	out := aiclient.EmbedResponse{Vectors: vectors}
-	meta := buildMeta(profile, headers, latencyMs, body.Model, body.Usage.PromptTokens, 0)
+	meta := a.buildMeta(profile, headers, latencyMs, body.Model, body.Usage.PromptTokens, 0)
 	meta.OutputTokens = len(vectors)
 	return out, meta, nil
 }
@@ -234,9 +243,9 @@ func mapHTTPError(status int, body []byte) error {
 	return sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, fmt.Sprintf("openai_compatible: upstream %d", status), false)
 }
 
-func errMeta(profile *aiclient.ModelProfile, headers http.Header, latencyMs int64, err error) aiclient.AICallMeta {
+func (a *Adapter) errMeta(profile *aiclient.ModelProfile, headers http.Header, latencyMs int64, err error) aiclient.AICallMeta {
 	meta := aiclient.AICallMeta{
-		Provider:         Name,
+		Provider:         a.providerRef,
 		ModelID:          profile.Default.Model,
 		LatencyMs:        latencyMs,
 		ValidationStatus: aiclient.ValidationStatusInvalid,
@@ -246,12 +255,12 @@ func errMeta(profile *aiclient.ModelProfile, headers http.Header, latencyMs int6
 	return meta
 }
 
-func buildMeta(profile *aiclient.ModelProfile, headers http.Header, latencyMs int64, modelID string, inputTokens, outputTokens int) aiclient.AICallMeta {
+func (a *Adapter) buildMeta(profile *aiclient.ModelProfile, headers http.Header, latencyMs int64, modelID string, inputTokens, outputTokens int) aiclient.AICallMeta {
 	if modelID == "" {
 		modelID = profile.Default.Model
 	}
 	meta := aiclient.AICallMeta{
-		Provider:     Name,
+		Provider:     a.providerRef,
 		ModelFamily:  modelFamily(modelID),
 		ModelID:      modelID,
 		InputTokens:  inputTokens,

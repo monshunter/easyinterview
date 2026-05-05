@@ -128,8 +128,7 @@ if err != nil { return err }
 
 defaultProvider := resolved[profile.Default.ProviderRef]
 provider, err := openai_compatible.New(openai_compatible.Options{
-    BaseURL: defaultProvider.BaseURL,
-    APIKey:  defaultProvider.APIKey,
+    Provider: defaultProvider,
 })
 if err != nil { return err }
 

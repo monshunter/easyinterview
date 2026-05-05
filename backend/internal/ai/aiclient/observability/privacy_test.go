@@ -31,7 +31,7 @@ func sensitivePayload() aiclient.CompletePayload {
 			RubricVersion: "r1",
 			Language:      "en",
 			TaskRun: aiclient.AITaskRunContext{
-				Capability:     aiclient.AITaskRunTaskFollowupGenerate,
+				Capability:   aiclient.AITaskRunTaskFollowupGenerate,
 				ResourceType: aiclient.AITaskRunResourceTargetJob,
 				ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
 			},

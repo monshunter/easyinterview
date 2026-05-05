@@ -22,10 +22,10 @@
 
 ## Phase 3: AIClient routing, fallback, and fail-closed behavior
 
-- [ ] 3.1 AIClient 按 profile `capability` + `provider_ref` + `status` 路由；disabled / unsupported profile 或 unsupported capability 返回 B1-owned `AI_UNSUPPORTED_CAPABILITY` 或同义 approved `AI_*` code 并记录 meta/log，不降级到 chat 或 stub
-- [ ] 3.2 实现 profile central fallback chain，最多 2 跳，业务代码不得自行 retry-with-different-model
-- [ ] 3.3 更新 observability / privacy tests，覆盖 capability meta、fallback metric/log、DB/audit metadata 无明文
-- [ ] 3.4 重构 openai_compatible adapter 的 base URL / API key 来源为 provider ref secret，并保留 `/v1` 归一化测试
+- [x] 3.1 AIClient 按 profile `capability` + `provider_ref` + `status` 路由；disabled / unsupported profile 或 unsupported capability 返回 B1-owned `AI_UNSUPPORTED_CAPABILITY` 或同义 approved `AI_*` code 并记录 meta/log，不降级到 chat 或 stub
+- [x] 3.2 实现 profile central fallback chain，最多 2 跳，业务代码不得自行 retry-with-different-model
+- [x] 3.3 更新 observability / privacy tests，覆盖 capability meta、fallback metric/log、DB/audit metadata 无明文
+- [x] 3.4 重构 openai_compatible adapter 的 base URL / API key 来源为 provider ref secret，并保留 `/v1` 归一化测试
 
 ## Phase 4: A4 / B1 / F3 integration
 

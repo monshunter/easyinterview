@@ -234,7 +234,9 @@ func (w *Wrap) recordMetricsAndLog(meta aiclient.AICallMeta, err error) {
 	}
 
 	if len(meta.FallbackChain) > 1 {
-		w.metrics.fallback.Inc(append(labels, modelFamily(meta.FallbackChain[0]), modelFamily(meta.FallbackChain[len(meta.FallbackChain)-1]))...)
+		fromProvider, fromModelFamily := fallbackHopLabels(meta.FallbackChain[0])
+		toProvider, toModelFamily := fallbackHopLabels(meta.FallbackChain[len(meta.FallbackChain)-1])
+		w.metrics.fallback.Inc(append(labels, emptyOrUnknown(fromProvider), emptyOrUnknown(fromModelFamily), emptyOrUnknown(toProvider), emptyOrUnknown(toModelFamily))...)
 		w.logger.Log(EventTaskFallback, w.buildLogFields(meta))
 	}
 
@@ -275,7 +277,7 @@ func (w *Wrap) buildLogFields(meta aiclient.AICallMeta) LogFields {
 		ModelProfileVersion: meta.ModelProfileVersion,
 		PromptVersion:       meta.PromptVersion,
 		RubricVersion:       meta.RubricVersion,
-		Capability:            string(meta.Capability),
+		Capability:          string(meta.Capability),
 		Language:            meta.Language,
 		InputTokens:         meta.InputTokens,
 		OutputTokens:        meta.OutputTokens,
@@ -301,7 +303,7 @@ func AITaskRunRowFromMeta(meta aiclient.AICallMeta, taskCtx aiclient.AITaskRunCo
 	return aiclient.AITaskRunRow{
 		ID:                   taskCtx.ID,
 		UserID:               taskCtx.UserID,
-		Capability:             taskCtx.Capability,
+		Capability:           taskCtx.Capability,
 		ResourceType:         taskCtx.ResourceType,
 		ResourceID:           taskCtx.ResourceID,
 		Provider:             meta.Provider,
@@ -491,18 +493,25 @@ func matchesSchemaType(schemaType string, value any) bool {
 	}
 }
 
-func modelFamily(provider string) string {
-	if provider == "" {
+func fallbackHopLabels(hop string) (string, string) {
+	if hop == "" {
+		return "", ""
+	}
+	if provider, model, ok := strings.Cut(hop, "/"); ok {
+		return provider, modelFamily(model)
+	}
+	return "", modelFamily(hop)
+}
+
+func modelFamily(model string) string {
+	if model == "" {
 		return ""
 	}
-	if i := strings.LastIndex(provider, "/"); i > 0 {
-		provider = provider[:i]
-	}
-	parts := strings.Split(provider, "-")
+	parts := strings.Split(model, "-")
 	if len(parts) >= 4 && isDateSuffix(parts[len(parts)-3], parts[len(parts)-2], parts[len(parts)-1]) {
 		return strings.Join(parts[:len(parts)-3], "-")
 	}
-	return provider
+	return model
 }
 
 func isDateSuffix(year, month, day string) bool {

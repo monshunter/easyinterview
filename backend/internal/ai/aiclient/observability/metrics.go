@@ -42,7 +42,7 @@ var (
 		"provider", "model_family", "model_profile_name", "route", "capability", "language", "result",
 	}
 	FallbackLabelKeys = []string{
-		"provider", "model_family", "model_profile_name", "route", "capability", "language", "result", "from_model_family", "to_model_family",
+		"provider", "model_family", "model_profile_name", "route", "capability", "language", "result", "from_provider", "from_model_family", "to_provider", "to_model_family",
 	}
 )
 

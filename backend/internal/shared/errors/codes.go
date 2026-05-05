@@ -15,6 +15,7 @@ const (
 	CodeAiProviderTimeout       = "AI_PROVIDER_TIMEOUT"
 	CodeAiOutputInvalid         = "AI_OUTPUT_INVALID"
 	CodeAiFallbackExhausted     = "AI_FALLBACK_EXHAUSTED"
+	CodeAiUnsupportedCapability = "AI_UNSUPPORTED_CAPABILITY"
 )
 
 // AllCodes lists every documented error code in declaration order.
@@ -28,6 +29,7 @@ var AllCodes = []string{
 	CodeAiProviderTimeout,
 	CodeAiOutputInvalid,
 	CodeAiFallbackExhausted,
+	CodeAiUnsupportedCapability,
 }
 
 // CodeMeta holds the documented default message and retryable hint per error code.
@@ -47,4 +49,5 @@ var CodeRegistry = map[string]CodeMeta{
 	CodeAiProviderTimeout:       {Message: "AI provider request timed out", Retryable: true},
 	CodeAiOutputInvalid:         {Message: "AI output failed schema validation", Retryable: false},
 	CodeAiFallbackExhausted:     {Message: "AI fallback chain exhausted", Retryable: true},
+	CodeAiUnsupportedCapability: {Message: "AI capability is not supported", Retryable: false},
 }

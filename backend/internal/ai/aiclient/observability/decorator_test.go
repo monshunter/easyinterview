@@ -84,6 +84,7 @@ func newTestStack(t *testing.T) (
 		"practice.followup.default": {
 			Name:       "practice.followup.default",
 			Capability: aiclient.CapabilityChat,
+			Status:     aiclient.ProfileStatusActive,
 			Default: aiclient.ProviderConfig{
 				ProviderRef: stub.Name,
 				Model:       "stub-chat-1",
@@ -94,6 +95,7 @@ func newTestStack(t *testing.T) (
 		"review.embed.default": {
 			Name:       "review.embed.default",
 			Capability: aiclient.CapabilityEmbed,
+			Status:     aiclient.ProfileStatusActive,
 			Default: aiclient.ProviderConfig{
 				ProviderRef: stub.Name,
 				Model:       "stub-embed-1",
@@ -263,6 +265,7 @@ func TestDecorator_AITaskRunWriterFailureReturned(t *testing.T) {
 		"practice.followup.default": {
 			Name:       "practice.followup.default",
 			Capability: aiclient.CapabilityChat,
+			Status:     aiclient.ProfileStatusActive,
 			Default: aiclient.ProviderConfig{
 				ProviderRef: stub.Name,
 				Model:       "stub-chat-1",
@@ -434,11 +437,68 @@ func TestDecorator_FallbackCounterDerivesModelFamilyOnlyFromDateSuffix(t *testin
 		string(aiclient.CapabilityChat),
 		"en",
 		"fallback",
+		"unknown",
 		"chat-primary",
+		"unknown",
 		"chat-secondary",
 	}
 	if got := registry.CounterValue(observability.MetricFallbackTotal, labels...); got != 1 {
 		t.Fatalf("expected fallback counter for date-suffix-derived model families, got %v", got)
+	}
+}
+
+func TestDecorator_FallbackCounterSplitsCentralChainProviderAndModelFamily(t *testing.T) {
+	registry := observability.NewInMemoryRegistry()
+	logger := observability.NewMemoryLogger()
+	runs := &memTaskRunWriter{}
+	audit := &memAuditWriter{}
+
+	innerStub := &fallbackInner{
+		meta: aiclient.AICallMeta{
+			Provider:         "fallback",
+			ModelFamily:      "chat-secondary",
+			ModelID:          "chat-secondary-2026-05-05",
+			Capability:       aiclient.CapabilityChat,
+			ModelProfileName: "practice.followup.default",
+			Language:         "en",
+			InputTokens:      10,
+			OutputTokens:     20,
+			LatencyMs:        50,
+			FallbackChain:    []string{"primary/chat-primary-2026-05-05", "fallback/chat-secondary-2026-05-05"},
+			Route:            "practice.followup",
+			ValidationStatus: aiclient.ValidationStatusOK,
+		},
+	}
+	wrap, err := observability.New(innerStub,
+		observability.WithRegisterer(registry),
+		observability.WithLogger(logger),
+		observability.WithAITaskRunWriter(runs),
+		observability.WithAuditEventWriter(audit),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+
+	_, _, err = wrap.Complete(context.Background(), "practice.followup.default", samplePayload())
+	if err != nil {
+		t.Fatalf("Complete: %v", err)
+	}
+
+	labels := []string{
+		"fallback",
+		"chat-secondary",
+		"practice.followup.default",
+		"practice.followup",
+		string(aiclient.CapabilityChat),
+		"en",
+		"fallback",
+		"primary",
+		"chat-primary",
+		"fallback",
+		"chat-secondary",
+	}
+	if got := registry.CounterValue(observability.MetricFallbackTotal, labels...); got != 1 {
+		t.Fatalf("expected fallback counter to split provider/model family labels, got %v", got)
 	}
 }
 
