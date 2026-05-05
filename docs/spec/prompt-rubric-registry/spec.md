@@ -1,14 +1,14 @@
 # Prompt Rubric Registry Spec
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
 > **更新日期**: 2026-05-05
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 F3 `prompt-rubric-registry` 保留为当前 active Quality / AI Governance spec（依赖 [A3 `ai-provider-and-model-routing`](./../ai-provider-and-model-routing/spec.md) 与 [B4 `db-migrations-baseline`](./../db-migrations-baseline/spec.md)）。它从 [01-technical-architecture.md §10.1 Prompt Registry / Rubric Registry / Context Builder](../../../easyinterview-tech-docs/01-technical-architecture.md#10-ai-编排层设计) 与 [03-db-definition.md §5.8 prompt_versions / rubric_versions / ai_task_runs](../../../easyinterview-tech-docs/03-db-definition.md) 的有效历史 seed 中收敛当前 AI 调用上下文的版本管理层。
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 F3 `prompt-rubric-registry` 定义为当前 active Quality / AI Governance spec（依赖 [A3 `ai-provider-and-model-routing`](./../ai-provider-and-model-routing/spec.md) 与 [B4 `db-migrations-baseline`](./../db-migrations-baseline/spec.md)）。它直接承接当前 AI 调用上下文的版本管理层。
 
-`easyinterview-tech-docs/01` 与 `03` 只保留为历史 prompt / rubric / DB 输入。当前 feature_key、prompt/rubric 坐标与 AI task 命名空间由本 spec、product-scope v1.4、B4 与后续 `config/prompts` / `config/rubrics` 编码 truth source 决定；独立 `mistake.extract`、旧错题本与旧 Growth 相关 prompt 不得作为 baseline 恢复。
+当前 feature_key、prompt/rubric 坐标与 AI task 命名空间由本 spec、product-scope 当前范围、B4 与后续 `config/prompts` / `config/rubrics` 编码 truth source 决定。F3 独立承接 `feature_key`、prompt version、rubric version、language、template hash、model profile reference、Resolve 契约、LLM Judge 接口与 prompt/rubric lint gate。
 
 [ADR-Q6 §3.6](../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md) 已锁定：F3 只持有 `(feature_key, prompt_version, rubric_version, model_profile_name)` 四元组，不持有 provider / model 字符串（后者归 A3 Provider Registry + Model Profile）。A3 v1.9 进一步要求 F3 12 个 baseline feature_key 的默认 `model_profile_name` 必须全部能在 A3 profile catalog 中解析到合法 capability profile。
 
@@ -29,7 +29,7 @@
 
 - **prompt 真理源**：`config/prompts/<feature_key>/<version>.{yaml,md}`；YAML 元信息（feature_key / version / language / template_hash / status / created_at），Markdown 模板正文。
 - **rubric 真理源**：`config/rubrics/<feature_key>/<version>.yaml`；schema：`feature_key` / `version` / `dimensions[]`（每个 dimension：`name` / `weight` / `score_levels[{label, threshold, description}]`）/ `language`。
-- **DB 表 schema 引用**：`prompt_versions` / `rubric_versions` 与 [03 §5.8](../../../easyinterview-tech-docs/03-db-definition.md) 一致；本 spec 锁定字段 + index；DB 落地由 B4。
+- **DB 表 schema 引用**：`prompt_versions` / `rubric_versions` 字段与 index 由本 spec 锁定；DB 落地由 B4。
 - **加载器（`internal/ai/registry/`）**：
   - `RegistryClient.GetPrompt(featureKey, version, language) → (template, meta)`
   - `RegistryClient.GetRubric(featureKey, version, language) → (schema, meta)`
@@ -65,7 +65,7 @@
 | D-7 | 灰度规则 | 同 feature_key 只允许 1 个 prompt + 1 个 rubric `is_active=true`；A/B 由 PostHog flag + Resolve 内部分桶（后续实现）；P0 baseline 不分桶 | – |
 | D-8 | 12 个当前 baseline feature_key 字典 | 见 §3.1.1；新增必须 spec 修订 | – |
 | D-9 | LLM Judge 接口 | 签名锁定；后续实现 | – |
-| D-10 | 不入 log 明文 | template_body 不写入 log；只写 prompt_version + template_hash；与 [F1 D-6](../observability-stack/spec.md#31-已锁定决策含命名约定字典) / [05 §5](../../../easyinterview-tech-docs/05-logging-standard.md) 一致 | – |
+| D-10 | 不入 log 明文 | template_body 不写入 log；只写 prompt_version + template_hash；与 [F1 D-6](../observability-stack/spec.md#31-已锁定决策含命名约定字典) 一致 | – |
 | D-11 | A3 profile coverage | §3.1.1 中每个默认 `model_profile_name` 必须在 A3 `config/ai-profiles/` 中存在，并能解析到合法 `capability` / `provider_ref` / `status`；P1/P2 项可为 `status=disabled` / `status=unsupported`，但必须携带 `unsupported_reason` 且不得缺命名空间 | 防止 F3 Resolve 输出悬空 profile |
 
 #### 3.1.1 12 个当前 baseline feature_key 字典
@@ -92,14 +92,14 @@
 - 是否引入 prompt versioning 的语义化命名（如 `v1.0.0-baseline` / `v1.1.0-better-followup`）：默认是；具体由后续评估 plan 决策。
 - 是否引入 `prompt-eng` 工作流编辑器：默认 P0 不上；社区方案（Promptfoo / OpenAI Evals）由后续评估 plan 决策。
 - LLM Judge 本身使用哪个 model profile：默认走 `judge.default` profile（与业务 profile 隔离），由后续评估 plan 决策。
-- rubric 维度名是否与 [04 §9 AI 质量指标](../../../easyinterview-tech-docs/04-metrics-observability.md#9-ai-质量指标) 对齐：默认是（追问相关率 / 报告空泛率 / 异常高分率 / 语言混乱率），由后续评估 plan 决策。
+- rubric 维度名是否与 F1 / F3 AI 质量指标对齐：默认是（追问相关率 / 报告空泛率 / 异常高分率 / 语言混乱率），由后续评估 plan 决策。
 
 ## 4 设计约束
 
 ### 4.1 schema 约束
 
 - prompt 元信息字段顺序固定（与 DB 表列顺序一致）：`feature_key / version / language / template_hash / status / created_at`；`status ∈ {draft, active, deprecated}`。
-- rubric `dimensions[].name` 必须使用 [04 §9 推荐质量指标](../../../easyinterview-tech-docs/04-metrics-observability.md#92-推荐质量指标定义) 中定义的命名 +（业务域专有维度 by C 域 owner）；不允许重新发明同义维度。
+- rubric `dimensions[].name` 必须使用 F1 / F3 推荐质量指标中定义的命名 +（业务域专有维度 by C 域 owner）；不允许重新发明同义维度。
 - `version` 必须递增；同 `(feature_key, version)` 不允许覆盖（CI 拦截）。
 
 ### 4.2 边界约束

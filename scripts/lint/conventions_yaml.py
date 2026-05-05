@@ -3,7 +3,8 @@
 
 Acts as the local lint gate that enforces the cross-language truth source defined by
 [shared-conventions-codified spec](../../docs/spec/shared-conventions-codified/spec.md)
-and [00-shared-conventions.md](../../easyinterview-tech-docs/00-shared-conventions.md).
+and shared/conventions.yaml. Product-scope §1.5 owns the current technical
+contract owner matrix.
 
 Run: `python3 scripts/lint/conventions_yaml.py [path]`
 """
@@ -122,7 +123,7 @@ def validate(data: dict[str, Any]) -> list[str]:
     missing_error_codes = REQUIRED_ERROR_CODES - seen_error_codes
     if missing_error_codes:
         errors.append(
-            "errors must include all 6 upstream examples from 00-shared-conventions §3.2; "
+            "errors must include all 6 shared error-code examples from the owner spec; "
             f"missing {sorted(missing_error_codes)}"
         )
 

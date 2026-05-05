@@ -1,18 +1,18 @@
 # Event and Outbox Contract Spec
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-05-05
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 B3 `event-and-outbox-contract` 保留为当前 active Contract spec（依赖 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)）。它把当前产品范围内的 16 个内部事件落到代码契约层，决定了：
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 B3 `event-and-outbox-contract` 定义为当前 active Contract spec（依赖 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)）。它把当前产品范围内的 16 个内部事件落到代码契约层，决定了：
 
 - 业务跨模块通信（API → Worker / Worker → 下游 handler / Worker → analytics）的统一 envelope；
-- `outbox_events` 表与 dispatcher 协议（承接 [03-db-definition.md §5.9](../../../easyinterview-tech-docs/03-db-definition.md) 的有效历史 seed，当前字段与索引以本 spec + B4 为准）；
+- `outbox_events` 表与 dispatcher 协议（当前字段与索引以本 spec + B4 为准）；
 - 事件版本化（additive only / `eventVersion + 1` for breaking）与幂等规则。
 
-`easyinterview-tech-docs/06` / `03` / `04` 只保留为历史事件、DB 与告警输入。当前 internal event / job / outbox 可执行契约由本 spec、`shared/events.yaml`、`shared/jobs.yaml`、B4 migrations 与后续 generated artifacts 决定；旧 `mistake.*` 事件、旧 18 event inventory 与旧 Growth / Mistakes consumer 不得作为实现依据恢复。
+当前 internal event / job / outbox 可执行契约由本 spec、`shared/events.yaml`、`shared/jobs.yaml`、B4 migrations 与后续 generated artifacts 决定。B3 独立承接 `eventName`、`eventVersion`、payload schema、canonical `job_type`、Asynq task mapping、outbox retry/dead-letter 与 breaking baseline。
 
 [ADR-Q2](../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md) 已锁定 Asynq + Redis 为唯一异步 runtime；[engineering-roadmap §3.1 D-2 Q-2](../engineering-roadmap/spec.md#32-adr-q1q6-当前约束) 进一步约束「公共 API / DB / event / metrics 中 `jobType` 沿用 snake_case」「内部 Asynq handler 可用 dotted task name，但必须由 C8 / B3 / B4 显式维护映射」。本 spec 是该映射的 owner 之一。
 
@@ -33,7 +33,7 @@
 - **16 个事件 schema**：每个事件有 Go 结构体（`<EventName>Payload`）+ JSON Schema + TS 类型；字段清单见 §3.1.4，由 B3 `shared/events.yaml` 作为真理源生成。
 - **outbox 表 schema 引用**：`outbox_events` 表由 B4 落地；本 spec 锁定字段 `event_name` / `event_version` / `aggregate_type` / `aggregate_id` / `payload (jsonb)` / `publish_status`，并追加 dispatcher 必需的 `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message` operational columns。
 - **dispatcher 协议**：dispatcher 必须按 `next_attempt_at asc, created_at asc` + `publish_status='pending'` 拉取；至少 once 发布；成功后置 `published`，临时失败保留 `pending` 并后移 `next_attempt_at`，达到上限后置 `failed`。
-- **DB/C8 canonical job_type 字典**（从 [03 §5.9 async_jobs.job_type](../../../easyinterview-tech-docs/03-db-definition.md) 的有效历史 seed 收敛到当前 B3/B4 字典）：`target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `debrief_generate` / `source_refresh` / `embedding_upsert` / `privacy_export` / `privacy_delete` / `email_dispatch` 共 10 项。
+- **DB/C8 canonical job_type 字典**：`target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `debrief_generate` / `source_refresh` / `embedding_upsert` / `privacy_export` / `privacy_delete` / `email_dispatch` 共 10 项。
 - **DB/C8 canonical job_type ↔ Asynq dotted task name 映射表**：见 §3.1.1；B2 API-facing subset 见 §3.1.2。
 - **lint 规则**：禁止业务包 hardcode `eventName` / `jobType` 字符串；必须 `import constants from "events"` 包；当前由本地 lint gate 接入，远端 CI 仅在 A5 触发条件成立后再接入。
 - **tooling**：`make codegen-events`（B3 owner）；本地 drift 校验。
@@ -54,16 +54,16 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | envelope 字段 | `eventId`（UUIDv7） / `eventName`（dot.case） / `eventVersion`（int，从 1 起）/ `aggregateType` / `aggregateId` / `occurredAt`（RFC3339）/ `producer`（`api`/`worker`/`dispatcher`/`review`）/ `traceId`（optional field, soft-required）/ `payload` | 承接 [06 §3](../../../easyinterview-tech-docs/06-event-contracts.md#3-标准事件-envelope) 的有效历史 seed；当前 schema 以本 spec 与 `shared/events.yaml` 为准，允许无 `traceId`，producer 必须尽力从 F1 trace context 透传 |
+| D-1 | envelope 字段 | `eventId`（UUIDv7） / `eventName`（dot.case） / `eventVersion`（int，从 1 起）/ `aggregateType` / `aggregateId` / `occurredAt`（RFC3339）/ `producer`（`api`/`worker`/`dispatcher`/`review`）/ `traceId`（optional field, soft-required）/ `payload` | 当前 schema 以本 spec 与 `shared/events.yaml` 为准，允许无 `traceId`，producer 必须尽力从 F1 trace context 透传 |
 | D-2 | 命名规则 | `<domain>[.<aggregate>].<verb_past_tense>`；允许 2 段或 3 段 dot.case；最后一段必须是过去式（已发生事实），如 `target.parsed` / `report.generated` / `practice.session.completed`；禁止 `something.updated` / `entity.changed` 等模糊命名 | – |
 | D-3 | 16 个事件全集（当前产品范围） | 见 §3.1.3；任一新增由本 spec 修订；旧 `mistake.created` / `mistake.status.changed` 已随独立错题本删除 | – |
 | D-4 | 版本化 | additive：新增 optional payload 字段 / 新增消费者；breaking：`eventVersion + 1` 且新旧并存一段时间，consumer 显式分支 | – |
 | D-5 | 幂等去重 key | 消费方至少基于 `eventId` 或 `aggregateType + aggregateId + eventName + eventVersion` 去重；Asynq job 基于 `job_type + dedupe_key` | 防重复执行 |
 | D-6 | outbox 投递语义 | At-least-once；消费方必须幂等；同一事件可能重复投递 | – |
 | D-7 | dispatcher 拉取节奏 | 至少每 5 秒扫描一次 `publish_status='pending' and next_attempt_at <= now()`；批量 ≤ 100；失败按 ADR-Q2 指数退避（30s/2m/10m/1h/6h，max 5 attempts） | 与 [ADR-Q2](../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md) 对齐 |
-| D-8 | 死信策略 | `publish_attempts >= 5` 后置 `publish_status='failed'`，保留 `last_error_code` / redacted `last_error_message`；触发 P2 告警；进入人工排查队列 | 告警阈值由 F1 active spec / alert rules 决定；[04 §11.2](../../../easyinterview-tech-docs/04-metrics-observability.md#112-p2中优先级) 仅作历史 seed |
+| D-8 | 死信策略 | `publish_attempts >= 5` 后置 `publish_status='failed'`，保留 `last_error_code` / redacted `last_error_message`；触发 P2 告警；进入人工排查队列 | 告警阈值由 F1 active spec / alert rules 决定 |
 | D-9 | metric 接入 | 必产 `outbox_events_pending` Gauge / `outbox_publish_duration_seconds` Histogram / `outbox_publish_failures_total` Counter；F1 接入 dashboard | – |
-| D-10 | trace 字段 soft-required | `traceId` schema 上可选；producer 必须尽力从 W3C `traceparent` / active span 派生并写入；缺失时 dispatcher 写 warn log 并允许 publish；F1 worker span 只在存在 `traceId` 时重建父链路 | 对齐 F1 trace propagation 与 06 §3 optional 语义 |
+| D-10 | trace 字段 soft-required | `traceId` schema 上可选；producer 必须尽力从 W3C `traceparent` / active span 派生并写入；缺失时 dispatcher 写 warn log 并允许 publish；F1 worker span 只在存在 `traceId` 时重建父链路 | 对齐 F1 trace propagation |
 | D-11 | canonical job_type ↔ dotted task name 映射 | 见 §3.1.1；新增 canonical `job_type` 必须先改本 spec，再同步 B4 check constraint 与 C8 registry | 防止 C8 私自加 dotted task name |
 | D-12 | `email_dispatch` payload 红线 | `email_dispatch` 为 internal-only low-priority job；payload 只允许 `authChallengeId` / `userId` / `templateKey` / `locale` / `deliverySecretRef` / `dedupeKey` 等可审计字段，不得把 raw magic-link token、完整 magic-link URL、邮箱明文或邮件正文写入 `async_jobs.payload` / outbox / log；C1 owns `deliverySecretRef` 的一次性解析语义 | 支撑 ADR-Q1 magic link，同时避免 token / 邮件内容落库 |
 
@@ -143,7 +143,7 @@ B2 OpenAPI v1.0.0 的 `JobType` enum 只允许以下 7 项：`target_import` / `
 ### 4.1 命名约束
 
 - `eventName` 一律 `dot.case`，允许 2 段或 3 段；最后一段必须是过去式动词；前缀 7 个固定 domain：`target / practice / report / resume / debrief / source / privacy`。旧 `mistake` domain 随独立错题本删除；多词状态必须拆为独立 dot segment，例如 `report.generation.failed`，禁止 `generation_failed` 这类 snake segment。
-- `aggregateType` 一律 `snake_case`，与 B4 当前表名 / B2 API-facing resource name 的单数语义一致（`feedback_report` / `practice_session` 等）；[03 §4 表名](../../../easyinterview-tech-docs/03-db-definition.md#4-表清单) 仅作历史 seed。
+- `aggregateType` 一律 `snake_case`，与 B4 当前表名 / B2 API-facing resource name 的单数语义一致（`feedback_report` / `practice_session` 等）。
 - DB/C8 canonical `job_type` 一律 `snake_case`；B2 API-facing `JobType` 只能使用 §3.1.2 subset；Asynq dotted task name 一律 `snake_case.snake_case`；映射表见 §3.1.1。
 
 ### 4.2 schema 约束
@@ -193,7 +193,7 @@ B2 OpenAPI v1.0.0 的 `JobType` enum 只允许以下 7 项：`target_import` / `
 | C-6 | breaking change 拦截 | 故意把 `report.generated` 的 `questionIssueCount` 改为 string 或删除 required 字段，或把事件名写成 `report.generation_failed` | 本地 `make lint-events` | `lint-events` 失败；提示 schema breaking 需 `eventVersion + 1`，事件名必须为真正 dot.case；新增 optional 字段通过 | B3 后续 001 |
 | C-7 | dotted name 映射一致 | 业务包 import `jobs.AsynqTaskTargetImport` | 编译 | 等于 `"target.import"`；与 §3.1.1 表一致 | B3 后续 001 |
 | C-8 | privacy.delete P0 路径 | 用户调用 `POST /privacy/deletions` | API + dispatcher | 触发 `privacy.request.created` → dispatcher → Asynq dotted `privacy.delete` → C8 worker | B3 后续 001 + C8 + C12 |
-| C-9 | metric 接入 | dispatcher 运行 | F1 dashboard | `outbox_events_pending` 可见；积压告警阈值以 F1 active spec / alert rules 为准，[04 §11.1](../../../easyinterview-tech-docs/04-metrics-observability.md#111-p1高优先级影响核心主链路) 仅作历史 seed | B3 后续 001 + F1 |
+| C-9 | metric 接入 | dispatcher 运行 | F1 dashboard | `outbox_events_pending` 可见；积压告警阈值以 F1 active spec / alert rules 为准 | B3 后续 001 + F1 |
 | C-10 | analytics 命名空间不冲突 | F2 在 PostHog 注册产品分析事件 | grep 全部 eventName | 产品分析事件名（如 `target_import_requested` snake_case）与本 spec 16 个 internal eventName（`target.import.requested` dot.case）属于不同命名空间，不互相影响 | B3 + F2 |
 | C-11 | outbox retry 字段承载 | B4 baseline migration 已完成 | `select column_name from information_schema.columns where table_name='outbox_events'` + retry 查询 explain | `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message` 存在；pending + due 查询走索引；失败 5 次后可观察地进入 `failed` | B3 后续 001 + B4 + C8 |
 

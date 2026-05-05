@@ -1,8 +1,8 @@
 # Product Scope Spec
 
-> **版本**: 1.5
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-05
 
 ## 1 背景与目标
 
@@ -41,10 +41,25 @@
 | 产品范围 | 本文档 | 用户、JTBD、P0/P1/P2/P3 边界、非目标、质量和伦理红线 |
 | UI / 交互 | `docs/ui-design/` + `ui-design/` | 当前静态 UI、一级导航、页面职责、目标路由、视觉和交互目标 |
 | 工程拆分 | `docs/spec/engineering-roadmap/spec.md` | child subspec、wave、依赖 DAG、mock-first 集成策略 |
-| 技术契约 | Layer B/F active spec + 已编码 truth source（`openapi/`、`shared/`、`migrations/`、`config/`） | API、DB、事件、共享枚举、AI 网关、可观测性等工程约束；`easyinterview-tech-docs/` 仅为历史技术输入 |
+| 技术契约 | Layer A/B/F active spec + 已编码 truth source（`openapi/`、`shared/`、`migrations/`、`config/`） | API、DB、事件、共享枚举、AI provider / model routing、配置、可观测性等工程约束；owner matrix 见 §1.5 |
 | 历史参考 | `easyinterview-spec-v1-0.md` | 旧版产品愿景和历史取舍，不再作为当前 active truth source |
 
 当文档出现冲突时，产品范围以本文档为准，UI 具体交互以 `docs/ui-design/` 为准，工程落地路径以对应 child spec / plan 为准。若工程 roadmap 与本文档出现阶段漂移，必须先通过 `/plan-review` 或新的设计修订对齐，再进入 `/implement`。
+
+### 1.5 技术契约 owner matrix
+
+本小节是当前项目的工程契约分层索引。后续文档、plan 和实现只能引用下表 owner spec 与编码真理源；如果某个责任没有在对应 owner 中明确字段、模块、schema、事件、指标或 gate，则视为尚未落地，必须先修订 owner spec，再进入 `/implement` 或对应代码计划。
+
+| 契约职责 | 当前 owner spec | 当前可执行真理源 | 统一规则 |
+|----------|-----------------|------------------|----------|
+| 全局命名、ID、时间、错误码、共享枚举、分页和 API error envelope | [shared-conventions-codified](../shared-conventions-codified/spec.md) | `shared/conventions.yaml`、Go / TS generated shared packages | 新增或修改共享字面量必须先修订 B1 或对应 owner spec，再同步 YAML 和生成物；共享 enum / error code / `PageInfo` / `ApiError` 不得在业务域私造 |
+| HTTP API、公共 schema、fixtures、mock contract 和 breaking-change gate | [openapi-v1-contract](../openapi-v1-contract/spec.md) | `openapi/openapi.yaml`、`openapi/fixtures/`、OpenAPI generated packages / baseline | API inventory、tag、auth 形态、header、status code、schema 和 fixture provenance 以 B2 为准；任何破坏性变更必须走 B2 ADR / diff gate |
+| DB 表、索引、enum check、迁移、隐私删除 / 导出占位和 audit 表 | [db-migrations-baseline](../db-migrations-baseline/spec.md) | `migrations/`、`migrations/enum-sources.yaml`、migration lint / probe | 表数量、列名、索引、enum source、migration/backfill 策略和 privacy deletion matrix 以 B4 与实际 migration 为准 |
+| internal event、jobType、outbox envelope、dispatcher 与 breaking-change baseline | [event-and-outbox-contract](../event-and-outbox-contract/spec.md) | `shared/events.yaml`、`shared/jobs.yaml`、generated schemas / baselines | `eventName`、`jobType`、API-facing subset、outbox 字段、dispatcher retry/dead-letter 语义以 B3 为准 |
+| 本地运行、基础架构约束、配置、secret、feature flag、runtime-config | [engineering-roadmap](../engineering-roadmap/spec.md)、[local-dev-stack](../local-dev-stack/spec.md)、[secrets-and-config](../secrets-and-config/spec.md) | `config/`、`config/feature-flags.yaml`、A2/A4 runtime code 与 deploy assets | 运行时、配置字典、secret 归属、feature flag 和公开配置 allowlist 由 A2/A4 决定 |
+| AI provider、model profile、fallback、调用观测字段、prompt / rubric 坐标 | [ai-provider-and-model-routing](../ai-provider-and-model-routing/spec.md)、[prompt-rubric-registry](../prompt-rubric-registry/spec.md) | `config/ai-profiles/`、F3 plan-defined prompt / rubric runtime assets | 业务代码只依赖 provider capability、model profile、feature key 和 prompt/rubric 坐标；模型、fallback 和 prompt/rubric 版本必须可审计 |
+| metrics、logging、trace、dashboard、alerting、敏感字段红线 | [observability-stack](../observability-stack/spec.md) | F1 spec、后续 logger / metric / alert rule 编码 truth source | metric / label / log 字段 / trace attribute / dashboard / alert 和明文红线以 F1 与实现 gate 为准 |
+| 产品模块、一级入口、route、UI 画板标签和用户行为流 | 本文档、`docs/ui-design/`、`ui-design/` | UI 文档、静态原型、后续 BDD / E2E 场景 | 产品和 UI 范围先于技术契约；未被当前产品 / UI 保留的模块不得由技术层自动恢复 |
 
 ## 2 范围
 
@@ -65,7 +80,7 @@
 ### 2.2 Out of Scope
 
 - 不在本 spec 中编写具体 API schema、DB schema、事件 payload、prompt 文本或 UI 组件代码。
-- 不在本 spec 中承载 engineering-roadmap child subspec 的具体重排；roadmap 拆分与后续 child 创建规则以 `docs/spec/engineering-roadmap/spec.md` 为准。当前已通过 engineering-roadmap v3.0 删除 pending 占位模型，并将后续 workstream 限定为当前产品 / UI 已保留能力的 on-demand child。
+- 不在本 spec 中承载 engineering-roadmap child subspec 的具体重排；roadmap 拆分与后续 child 创建规则以 `docs/spec/engineering-roadmap/spec.md` 为准。当前已通过 engineering-roadmap active spec 删除 pending 占位模型，并将后续 workstream 限定为当前产品 / UI 已保留能力的 on-demand child。
 - 不创建实现 plan、TDD checklist 或 BDD scenario；本文档是 docs-only 产品范围结晶。
 - 不恢复旧版独立成长中心、多轮计划、经历库、追问树、单题 Drill、独立错题队列、报告时间线或刊物式报告页。
 - 不定义 Team / EDU、企业端候选人评估、社区或真实面试中的隐形实时辅助。
@@ -105,7 +120,8 @@
 | D-9 | 真实面试复盘 | 复盘是一级模块，处理真实面试过程；文本和语音添加共享同一份记录 | 不把模拟报告错题自动写成复盘记录 |
 | D-10 | 证据和版本化 | 生成结果必须携带 prompt / rubric / model / language / feature flag / data source 等来源信息 | 支撑质量评估、回归检测和问题追踪 |
 | D-11 | 默认丢弃规则 | 当前 UI / UI 文档未保留、未重定义且本 spec 未标为规划例外的旧内容，默认已丢弃 | P1/P2/P3 不自动恢复旧 spec 功能 |
-| D-12 | Roadmap 对齐 | engineering-roadmap v3.0 已删除 `docs/spec/INDEX.md` pending child 占位模型，只保留真实 active spec，并要求后续 child 按当前 Home / Job Picks / Mock Interview / Practice / Report / Resume / Debrief / User Menu 等保留能力 on-demand 创建 | 后续 child spec / plan 不得用旧 pending 名称或旧 route 恢复已丢弃模块 |
+| D-12 | Roadmap 对齐 | engineering-roadmap active spec 已删除 `docs/spec/INDEX.md` pending child 占位模型，只保留真实 active spec，并要求后续 child 按当前 Home / Job Picks / Mock Interview / Practice / Report / Resume / Debrief / User Menu 等保留能力 on-demand 创建 | 后续 child spec / plan 不得用旧 pending 名称或旧 route 恢复已丢弃模块 |
+| D-13 | 技术契约 owner matrix | 本 spec §1.5 定义当前工程契约职责、owner spec、编码真理源和统一规则 | 后续文档必须引用当前 owner spec 和编码 truth source；不得引入未被 owner 承接的实施依据 |
 
 ### 3.2 待确认事项
 
@@ -682,7 +698,7 @@ P0 质量评估必须覆盖三类指标：
 - 历史产品输入：[easyinterview-spec-v1-0.md](../../../easyinterview-spec-v1-0.md)，状态为 superseded，仅作历史参考。
 - UI 真理源：[docs/ui-design/README.md](../../ui-design/README.md)、[docs/ui-design/ui-architecture.md](../../ui-design/ui-architecture.md)、[docs/ui-design/module-map.md](../../ui-design/module-map.md)。
 - 工程 roadmap：[docs/spec/engineering-roadmap/spec.md](../engineering-roadmap/spec.md)。
-- 历史技术输入：[easyinterview-tech-docs/README.md](../../../easyinterview-tech-docs/README.md)，状态为 historical-input，不作为当前 API / DB / event / metrics 的执行真理源。
+- 当前技术契约 owner matrix：本文档 §1.5。
 - OpenAPI 契约：[docs/spec/openapi-v1-contract/spec.md](../openapi-v1-contract/spec.md)。
 - Prompt / Rubric：[docs/spec/prompt-rubric-registry/spec.md](../prompt-rubric-registry/spec.md)。
 

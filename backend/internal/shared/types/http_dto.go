@@ -3,16 +3,16 @@
 
 package types
 
-// Cursor pagination defaults (00-shared-conventions §3.3).
+// Cursor pagination defaults from shared/conventions.yaml.
 const (
 	DefaultPageSize = 20
 	MaxPageSize     = 100
 )
 
-// IdempotencyKeyTTLSeconds is the documented 24h TTL (00-shared-conventions §3.4).
+// IdempotencyKeyTTLSeconds is the B1-documented 24h TTL.
 const IdempotencyKeyTTLSeconds = 86400
 
-// PageInfo is the cursor pagination wire shape (00-shared-conventions §3.1).
+// PageInfo is the B1 cursor pagination wire shape.
 type PageInfo struct {
 	NextCursor *string `json:"nextCursor"`
 	PageSize   int     `json:"pageSize"`

@@ -1,8 +1,8 @@
 # Repo Scaffold Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-05
 
 ## 1 背景与目标
 
@@ -49,7 +49,7 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | 顶层目录命名 | `backend/` / `frontend/` / `openapi/` / `migrations/` / `scripts/` / `test/` / `deploy/` / `shared/` / `config/`；与 [01-technical-architecture.md §5.2 / §6.1](../../../easyinterview-tech-docs/01-technical-architecture.md) 对齐，并补充 B1/A3/A4 已锁定的共享真理源与配置根容器 | 所有 child 子目录必须落在这 9 个根容器之内 |
+| D-1 | 顶层目录命名 | `backend/` / `frontend/` / `openapi/` / `migrations/` / `scripts/` / `test/` / `deploy/` / `shared/` / `config/`；由 engineering roadmap 与 B1/A3/A4 已锁定的共享真理源、配置根容器共同约束 | 所有 child 子目录必须落在这 9 个根容器之内 |
 | D-2 | 工具链锁版 | `.tool-versions` 锁定 Go / Node / pnpm / Python 的最低版本，具体版本号由 001-bootstrap plan 在 codebase 实施时确定 | 本地与 CI 走同一套 asdf 兼容版本声明 |
 | D-3 | Make target 命名 | `help` / `fmt` / `lint` / `test` / `build` / `dev-up` / `dev-down` / `codegen` / `migrate` / `install-hooks`；占位实现允许打印 "TODO" 由后续 child 接手 | 后续 child plan 不得新增同义 target，必须实现既定 target |
 | D-4 | git hooks 落点 | `scripts/git-hooks/`，通过 `make install-hooks` 写入 `.git/hooks/`；不直接版本化 `.git/hooks/` | 兼容 worktree / clone 后再激活 |

@@ -1,40 +1,38 @@
 # shared/conventions.yaml — cross-language single source of truth
 #
 # Owner spec: docs/spec/shared-conventions-codified/spec.md (D-1 locks this file as canonical)
-# Upstream truth: easyinterview-tech-docs/00-shared-conventions.md §3 / §4 / §5
+# This file is the canonical B1 source for generated Go and TypeScript shared types.
 # Generator:    backend/cmd/codegen/conventions/main.go (consumed via `make codegen-conventions`)
 # Validator:    scripts/lint/conventions_yaml.py (run by `make lint`)
 #
-# Naming contract (00-shared-conventions §2.1):
+# Naming contract (shared-conventions-codified D-1 / D-5):
 #   enum values        → lower_snake_case (TS union literal, Go const value)
 #   error codes        → UPPER_SNAKE_CASE (TS const map key+value, Go const)
 #   JSON fields        → camelCase
 #   Go type names      → PascalCase
 #   Go const naming    → <TypeName><Value>, e.g. PracticeModeAssisted
 #
-# Counting note: §5 has 13 sections (5.1..5.13). §5.13 ("PrivacyRequest") covers
-# two parallel field domains (type + status), so the catalogue below contains 14
-# enum entries grouped by `sourceSection`. The validator confirms all 13 sections
-# are present.
+# Counting note: the enum catalogue uses 13 source sections (5.1..5.13).
+# PrivacyRequest has two parallel field domains (type + status), so the catalogue
+# below contains 14 enum entries grouped by `sourceSection`.
 
 version: 1.1
 schemaVersion: 1
 
-# UUIDv7 (00-shared-conventions §2.2): all business primary keys are UUIDv7 strings.
-# The sample below is the same exemplar used in the upstream §4.1 Job snippet, so
-# Go and TS round-trip tests can pin against a fixed value.
+# UUIDv7: all business primary keys are UUIDv7 strings. The sample below lets Go
+# and TS round-trip tests pin against a fixed value.
 sampleUuidV7: "0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e"
 uuidV7Regex: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
 
 # Front-end browser-only temp prefix; backend idx.RequireServerID() rejects it.
 tmpIdPrefix: "tmp_"
 
-# Cursor pagination defaults (§3.3)
+# Cursor pagination defaults.
 pagination:
   defaultPageSize: 20
   maxPageSize: 100
 
-# Idempotency-Key TTL (§3.4): 24 hours.
+# Idempotency-Key TTL: 24 hours.
 # Wire format is implementation-detail and lives in code; only the TTL is contractual.
 idempotency:
   ttlSeconds: 86400
@@ -73,7 +71,7 @@ errors:
     message: "AI fallback chain exhausted"
     retryable: true
 
-# Async Job statuses (§4.2).
+# Async Job statuses.
 jobStatuses:
   - queued
   - running
@@ -82,7 +80,7 @@ jobStatuses:
   - cancelled
   - dead
 
-# Enum catalogue (§5). Entries are ordered by sourceSection then field domain.
+# Enum catalogue. Entries are ordered by sourceSection then field domain.
 enums:
   - name: TargetJobStatus
     sourceSection: "5.1"

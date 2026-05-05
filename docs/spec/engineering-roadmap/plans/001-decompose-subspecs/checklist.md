@@ -1,6 +1,6 @@
 # Roadmap Rebaseline and Subspec Governance Checklist
 
-> **版本**: 3.1
+> **版本**: 3.3
 > **状态**: completed
 > **更新日期**: 2026-05-05
 
@@ -31,3 +31,14 @@
   <!-- verified: 2026-05-05 evidence=plan.md Phase 3.1 and engineering-roadmap spec §4.2; this item records the future execution rule only -->
 - [x] 3.4 Future candidates（readiness、retrieval、privacy export、source intel、production voice、multi-platform job search）不得提前创建空 spec / empty plan / INDEX pending row
   <!-- verified: 2026-05-05 evidence=engineering-roadmap spec §5.3/§6.5; no new future candidate spec or pending INDEX row was created -->
+
+## Phase 4: 已迁移技术草稿移除
+
+- [x] 4.1 product-scope §1.5 持有当前技术契约 owner matrix，roadmap 只消费当前 owner spec / coded truth source
+  <!-- verified: 2026-05-05 evidence=product-scope spec §1.5 + engineering-roadmap spec D-3/C-7 + plan Phase 4.1 -->
+- [x] 4.2 删除或改写已迁移技术草稿的目录名、文件名和旧 shorthand，所有责任改由当前 owner spec / coded truth source 表述
+  <!-- verified: 2026-05-05 evidence=retired-name zero-reference search returned no matches; make docs-check passed -->
+- [x] 4.3 `shared/conventions.yaml`、codegen source 与 generated artifacts 不再把已迁移技术草稿称为外部真理源
+  <!-- verified: 2026-05-05 evidence=external-truth negative search in shared/scripts returned no matches; conventions_yaml.py lint passed -->
+- [x] 4.4 删除前 gate 固化到 engineering-roadmap spec / plan：retired-name zero-reference search、Header/INDEX check、Markdown link check、diff check 必须通过
+  <!-- verified: 2026-05-05 evidence=validate_context.py passed; sync-doc-index --check zero drift; make docs-check passed; retired-name zero-reference search returned no matches; git diff --check passed -->

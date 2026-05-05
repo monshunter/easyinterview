@@ -229,7 +229,7 @@ func renderGoEnums(s *Spec) ([]byte, error) {
 	buf.WriteString("package types\n\n")
 
 	for _, v := range views {
-		fmt.Fprintf(&buf, "// %s mirrors 00-shared-conventions §%s (jsonField: %q).\n", v.Name, v.Section, v.JSONField)
+		fmt.Fprintf(&buf, "// %s mirrors shared/conventions.yaml sourceSection %s (jsonField: %q).\n", v.Name, v.Section, v.JSONField)
 		fmt.Fprintf(&buf, "type %s string\n\n", v.Name)
 		fmt.Fprintf(&buf, "const (\n")
 		for _, c := range v.Consts {
@@ -256,12 +256,12 @@ func renderGoHTTPDTO(s *Spec) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteString(generatedHeader)
 	buf.WriteString("package types\n\n")
-	buf.WriteString("// Cursor pagination defaults (00-shared-conventions §3.3).\n")
+	buf.WriteString("// Cursor pagination defaults from shared/conventions.yaml.\n")
 	fmt.Fprintf(&buf, "const (\n\tDefaultPageSize = %d\n\tMaxPageSize     = %d\n)\n\n", s.Pagination.DefaultPageSize, s.Pagination.MaxPageSize)
-	buf.WriteString("// IdempotencyKeyTTLSeconds is the documented 24h TTL (00-shared-conventions §3.4).\n")
+	buf.WriteString("// IdempotencyKeyTTLSeconds is the B1-documented 24h TTL.\n")
 	fmt.Fprintf(&buf, "const IdempotencyKeyTTLSeconds = %d\n\n", s.Idempotency.TTLSeconds)
 
-	buf.WriteString("// PageInfo is the cursor pagination wire shape (00-shared-conventions §3.1).\n")
+	buf.WriteString("// PageInfo is the B1 cursor pagination wire shape.\n")
 	buf.WriteString("type PageInfo struct {\n")
 	for _, f := range page.Fields {
 		goName := strings.ToUpper(f.Name[:1]) + f.Name[1:]
@@ -297,7 +297,7 @@ func renderGoErrorCodes(s *Spec) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteString(generatedHeader)
 	buf.WriteString("package errors\n\n")
-	buf.WriteString("// Documented error codes (00-shared-conventions §3.2). All values are\n")
+	buf.WriteString("// Documented error codes from shared/conventions.yaml. All values are\n")
 	buf.WriteString("// UPPER_SNAKE_CASE per shared-conventions-codified D-5.\n")
 	buf.WriteString("const (\n")
 	for _, e := range s.Errors {
@@ -338,7 +338,7 @@ func renderGoIdx(s *Spec) ([]byte, error) {
 	fmt.Fprintf(&buf, "const SampleUUIDv7 = %q\n\n", s.SampleUUIDV7)
 	buf.WriteString("// UUIDv7RegexExpr is the regex (string form) used by both Go and TS validators.\n")
 	fmt.Fprintf(&buf, "const UUIDv7RegexExpr = %q\n\n", s.UUIDV7Regex)
-	buf.WriteString("// IdempotencyKeyTTLSeconds mirrors 00-shared-conventions §3.4 (24h TTL).\n")
+	buf.WriteString("// IdempotencyKeyTTLSeconds mirrors the B1 24h TTL.\n")
 	fmt.Fprintf(&buf, "const IdempotencyKeyTTLSeconds = %d\n", s.Idempotency.TTLSeconds)
 
 	return formatGo(buf.Bytes())
@@ -403,7 +403,7 @@ func renderTSEnums(s *Spec) ([]byte, error) {
 		if i > 0 {
 			buf.WriteString("\n")
 		}
-		fmt.Fprintf(&buf, "// %s mirrors 00-shared-conventions §%s (jsonField: %q).\n", e.Name, e.SourceSection, e.JSONField)
+		fmt.Fprintf(&buf, "// %s mirrors shared/conventions.yaml sourceSection %s (jsonField: %q).\n", e.Name, e.SourceSection, e.JSONField)
 		fmt.Fprintf(&buf, "export type %s =\n", e.Name)
 		for j, v := range e.Values {
 			sep := "|"
@@ -428,7 +428,7 @@ func renderTSEnums(s *Spec) ([]byte, error) {
 func renderTSErrors(s *Spec) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteString(generatedTSHeader)
-	buf.WriteString("// Documented error codes (00-shared-conventions §3.2). All values are\n")
+	buf.WriteString("// Documented error codes from shared/conventions.yaml. All values are\n")
 	buf.WriteString("// UPPER_SNAKE_CASE per shared-conventions-codified D-5.\n\n")
 
 	buf.WriteString("export const ERROR_CODES = {\n")
@@ -506,13 +506,13 @@ func renderTSAIVocabulary(s *Spec) ([]byte, error) {
 func renderTSPagination(s *Spec) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteString(generatedTSHeader)
-	buf.WriteString("// Cursor pagination defaults (00-shared-conventions §3.3).\n")
+	buf.WriteString("// Cursor pagination defaults from shared/conventions.yaml.\n")
 	fmt.Fprintf(&buf, "export const PAGE_SIZE_DEFAULT = %d;\n", s.Pagination.DefaultPageSize)
 	fmt.Fprintf(&buf, "export const PAGE_SIZE_MAX = %d;\n\n", s.Pagination.MaxPageSize)
-	buf.WriteString("// IDEMPOTENCY_KEY_TTL_SECONDS is the documented 24h TTL (00-shared-conventions §3.4).\n")
+	buf.WriteString("// IDEMPOTENCY_KEY_TTL_SECONDS is the B1-documented 24h TTL.\n")
 	fmt.Fprintf(&buf, "export const IDEMPOTENCY_KEY_TTL_SECONDS = %d;\n\n", s.Idempotency.TTLSeconds)
 
-	buf.WriteString("// PageInfo is the cursor pagination wire shape (00-shared-conventions §3.1).\n")
+	buf.WriteString("// PageInfo is the B1 cursor pagination wire shape.\n")
 	buf.WriteString("export interface PageInfo {\n")
 	page, ok := s.Structures["PageInfo"]
 	if !ok {

@@ -20,7 +20,7 @@
 
 ### 2.1 spec §4.6 列出的 `Session` cookie name 在 ADR-Q1 与 spec 中均未给出具体字面量
 
-- **证据**：plan §1.1 写 “name 见 ADR-Q1”，但 ADR-Q1 §3 只描述属性（HttpOnly/SameSite=Lax/Secure/30d）未给 cookie 名；02-api-definition / db-definition / observability 等 grep 也无既有引用。落地时只能在 OpenAPI 中自选 `ei_session` 作为字面量。
+- **证据**：plan §1.1 写 “name 见 ADR-Q1”，但 ADR-Q1 §3 只描述属性（HttpOnly/SameSite=Lax/Secure/30d）未给 cookie 名；B2 openapi-v1-contract / db-definition / observability 等 grep 也无既有引用。落地时只能在 OpenAPI 中自选 `ei_session` 作为字面量。
 - **影响**：单点判断；如果未来 C1 选择不同名字，OpenAPI security scheme 与 fixture 都需要修订。
 
 ### 2.2 `ApiError` 在 B1 Go 与 B1 TS 端的产出不对称
@@ -35,8 +35,8 @@
 
 ### 2.4 spec §3.2 待确认事项 (`ResourceType` enum 字面量 / SSE 协议 / API 文档发布平台) 在 plan 落地时仍是开口
 
-- **证据**：spec §3.2 标注 “默认独立成 schema，由 codegen 引导”，但 ResourceType 字面量集合从未被锁定；只能从 `02-api-definition.md` Job 示例反向枚举出 `target_job / feedback_report / resume_asset / resume_tailor_run / debrief / privacy_request` 6 个值。同样 JobType 只能从 jobType 字符串枚举推断 7 个值。
-- **影响**：本 plan 锁定了 6/7 字面量集合，但任何后续 endpoint（如 mistake_entry 直接成为 Job 资源）仍需 spec 修订追加；建议把这种 “由 02-api-definition 反推” 的 enum 列表，作为下一次 spec 修订的明确锁定项。
+- **证据**：spec §3.2 标注 “默认独立成 schema，由 codegen 引导”，但 ResourceType 字面量集合从未被锁定；只能从 `B2 openapi-v1-contract` Job 示例反向枚举出 `target_job / feedback_report / resume_asset / resume_tailor_run / debrief / privacy_request` 6 个值。同样 JobType 只能从 jobType 字符串枚举推断 7 个值。
+- **影响**：本 plan 锁定了 6/7 字面量集合，但任何后续 endpoint（如 mistake_entry 直接成为 Job 资源）仍需 spec 修订追加；建议把这种 “由 B2 openapi-v1-contract 反推” 的 enum 列表，作为下一次 spec 修订的明确锁定项。
 
 ### 2.5 Phase 2 Go generator 第一次运行碰到 `text/template` 不能在 template arg 处调用方法
 
@@ -64,7 +64,7 @@
 | R1 | 在 ADR-Q1 §3 第 2 条直接锁定 cookie 字面量名（候选 `ei_session`），并把它作为 `secrets-and-config/spec.md` §3.1.1 的关联说明，把双方 spec 对齐到同一字面量 | spec-plan（ADR-Q1 + secrets-and-config + openapi-v1-contract spec） | high |
 | R2 | 在 [shared-conventions-codified/spec.md](../spec/shared-conventions-codified/spec.md) D-7（已有 `structures.ApiError` 锁定）增加对称要求：B1 Go generator 必须输出 `sharedtypes.ApiError` 与 `sharedtypes.AllErrorCodes` Go 类型，避免 Go/TS 端不对称 | spec-plan（shared-conventions-codified） | high |
 | R3 | 在 [openapi-v1-contract/spec.md](../spec/openapi-v1-contract/spec.md) §2.1 / §3.1 增加 “tooling 锁定” 小节：明确 swagger-cli 已 deprecated 但 still-valid for OpenAPI 3.1，禁止换用 redocly/cli 直至本 spec 修订；docs-openapi 锁 `redoc-cli@0.13.21` | spec-plan（openapi-v1-contract） | medium |
-| R4 | 在 [openapi-v1-contract/spec.md](../spec/openapi-v1-contract/spec.md) §3.2 把 `ResourceType` (6 值) 与 `JobType` (7 值) 字面量从待确认事项升级为已锁定决策；同步 `02-api-definition.md` 与 `03-db-definition.md#ai_task_runs.resource_type` 引用 | spec-plan（openapi-v1-contract） | medium |
+| R4 | 在 [openapi-v1-contract/spec.md](../spec/openapi-v1-contract/spec.md) §3.2 把 `ResourceType` (6 值) 与 `JobType` (7 值) 字面量从待确认事项升级为已锁定决策；同步 `B2 openapi-v1-contract` 与 `B4 db-migrations-baseline#ai_task_runs.resource_type` 引用 | spec-plan（openapi-v1-contract） | medium |
 | R5 | 在 [.agent-skills/tdd/SKILL.md](../../.agent-skills/tdd/SKILL.md) `## Test Completeness Requirements` 或 generator-related 章节增加 “大文件交付时优先 Edit 分块而非一次 Write”、“text/template 不可调用 struct 方法，需在 builder 阶段预算字段” 的简短提示，避免 generator 类任务首次运行返工 | skill（`/tdd`） | low |
 | R6 | 在 `openapi/README.md` Tooling 节扩展 “每个外部 npm 依赖须显式锁版 + 加 ‘deprecated 但仍合规’ 注释” 的写作约定，作为后续 002 / 003 plan 在引入工具时的引用范本 | README（openapi/） | low |
 
@@ -78,7 +78,7 @@
 **可以延后**：
 
 3. R3 / R6 — 工具锁定与文档约定，跟随 002 / 003 plan 修订时一起处理即可。
-4. R4 — ResourceType / JobType 字面量锁定，下一次 02-api-definition 触动或新增 endpoint 时 batch 同步。
+4. R4 — ResourceType / JobType 字面量锁定，下一次 B2 openapi-v1-contract 触动或新增 endpoint 时 batch 同步。
 5. R5 — `/tdd` 提示，性价比相对低；可以在下次 generator 类 skill 使用频次累计后再考虑。
 
 **无需后续动作**：

@@ -24,7 +24,7 @@
   - **证据**：plan §1.2 列出 generator 渲染 `http_dto.go (PageInfo / APIError)`，§2.2 又写「在 `backend/internal/shared/errors/` 中手写 `APIError struct` 基类与 `Wrap()` helper」。同一个 `APIError` 同时出现在「generator 输出」和「手写代码」两条所有权链上。
   - **影响**：在落地 §1.2 generator 与 §2.2 手写代码之间需要一段额外的设计判断（最终选定：Go side `APIError struct` 在 errors 包手写、TS side `ApiError interface` 通过 generator 写到 `conventions/errors.ts`）；判断结论留在 work-journal 「执行偏差记录」里，未回写到 plan / spec。
 - **`13 类枚举` vs 实际 14 个生成类型的描述不一致**
-  - **证据**：plan §1.1 与 §6 多处写「13 类枚举」，与 `easyinterview-tech-docs/00-shared-conventions.md §5` 13 个章节数对齐；但 §5.13「隐私请求类型 / 状态」一段同时列出两组并行枚举值（`export/delete` + `queued/processing/...`），最终 generator 必须输出 14 个独立 Go / TS 类型。
+  - **证据**：plan §1.1 与 §6 多处写「13 类枚举」，与 `B1 shared-conventions-codified §5` 13 个章节数对齐；但 §5.13「隐私请求类型 / 状态」一段同时列出两组并行枚举值（`export/delete` + `queued/processing/...`），最终 generator 必须输出 14 个独立 Go / TS 类型。
   - **影响**：generator + 校验脚本（`scripts/lint/conventions_yaml.py`）需要额外维护一条「13 source sections / 14 generated types」的映射注释，并在校验中显式断言 §5.1..§5.13 全覆盖。任何 reader（包括未来的 B2 / D1 / C 全域）都得理解这条隐含规则。
 - **spec C-4 跨语言 idempotency 验收无对应 checklist 项**
   - **证据**：spec §6 C-4 要求「Go 与 TS 双端工具产出格式一致的 key」；plan §2.2 提到「`frontend/src/lib/conventions/idempotency.ts` 与 Go 端对偶」，但 plan §3 与 checklist 中的 2.4 文本只覆盖 TS 侧 `Idempotency-Key 24h TTL 工具`，没有任何 Go 侧 idempotency item。

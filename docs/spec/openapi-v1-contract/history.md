@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-05
 
 ## 1 修订规则
 
@@ -29,7 +29,8 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
-| 2026-05-03 | 1.10 | 将 `easyinterview-tech-docs/00` / `02` 明确降级为历史 API 输入；当前 HTTP 契约改由本 spec、`openapi/openapi.yaml`、fixtures / baseline 与 B1 shared conventions 决定，旧 Bearer 默认鉴权、Mistakes/Growth 与 36/14 inventory 不再作为实现依据。 | docs-only |
+| 2026-05-05 | 1.11 | B2 HTTP 契约改为只由本 spec、`openapi/openapi.yaml`、fixtures / baseline、generated packages 与 B1 shared-conventions-codified 承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |
+| 2026-05-03 | 1.10 | 明确当前 HTTP 契约由本 spec、`openapi/openapi.yaml`、fixtures / baseline 与 B1 shared-conventions-codified 决定，旧 Bearer 默认鉴权、Mistakes/Growth 与 36/14 inventory 不再作为实现依据。 | docs-only |
 | 2026-05-03 | 1.9 | 对齐 product-scope v1.2：从 v1.0.0 freeze 删除独立 `Mistakes` / `Growth` endpoint、tag 与 schema，报告问题收敛为题目回顾 / 本轮复练字段，endpoint inventory 37→34、tag 14→12。 | 001-bootstrap Phase 8 / 002-fixtures-and-mock-source Phase 6 / 003-breaking-change-gate Phase 6 |
 | 2026-04-29 | 1.8 | 收口 B2 artifact remediation：`openapi/baseline/openapi-v1.0.0.yaml` 原地重新冻结到 37 endpoint / `DELETE /api/v1/me`，`make openapi-diff` 输出 baseline/current inventory 37/37 且 0 findings；未创建 `openapi-v1.0.1.yaml`。 | 003-breaking-change-gate Phase 5 |
 | 2026-04-29 | 1.8 | 收口 A/B spec 全面审查 remediation：v1.0.0 freeze endpoint inventory 从 36 增至 37，新增 `DELETE /api/v1/me -> 202 PrivacyRequestWithJob`；明确 P0 真实面试复现 / debrief 输出契约，感谢信与完整跟进建议保持 P1 optional；将 internal-only `email_dispatch` 排除在 B2 API-facing `JobType` 外。 | plan-review remediation |
@@ -41,4 +42,4 @@
 | 2026-04-28 | 1.3 | 根据 L1 plan-review 修订 B2 契约：Auth tag 以 ADR-Q1 email magic link + first-party session cookie 为准；将 privacy export 的 P0 `501 Not Implemented` 作为显式状态码例外并标注 P1 切回 `202` 的兼容判定；补齐 schema inventory、header/idempotency 矩阵与 AI 生成结果 `GenerationProvenance` 约束。 | plan-review remediation |
 | 2026-04-27 | 1.2 | 对齐 A5 单人开发阶段决策：B2 当前只要求本地 OpenAPI codegen drift / breaking-change gate，不要求 CI artifact、required check 或 label workflow。 | engineering-roadmap/001 Phase 3 remediation |
 | 2026-04-27 | 1.1 | 修正 W1 gate 口径：parent Phase 3 只锁定 B2 v1.0.0 freeze 范围与 additive-only 规则；真实 `openapi/openapi.yaml`、codegen、fixtures 与 breaking-change linter 由 B2 child `001` 系列 plan 验证后再放行依赖 B2 的 W2 implementation | engineering-roadmap/001 Phase 3 remediation |
-| 2026-04-27 | 1.0 | 初始创建：锁定 `openapi/openapi.yaml` 唯一真理源、`/api/v1` 路径前缀、`camelCase` 字段命名、RFC3339 时间格式、共享 `ApiError` schema、cursor 分页统一、`Idempotency-Key` 与 `Job 202` 异步契约；§3.1.1 列出 v1.0.0 freeze 时的 36 个 endpoint × 14 tag 完整集合；锁定 breaking change linter 规则集（仅允许 additive）；引用 [02-api-definition.md](../../../easyinterview-tech-docs/02-api-definition.md) 全文与 [B1 D-5/D-6 枚举与错误码](../shared-conventions-codified/spec.md#31-已锁定决策)；记录 [ADR-Q5](../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md) `POST /privacy/exports` P0 返回 501 的例外。 | engineering-roadmap/001 Phase 3 |
+| 2026-04-27 | 1.0 | 初始创建：锁定 `openapi/openapi.yaml` 唯一真理源、`/api/v1` 路径前缀、`camelCase` 字段命名、RFC3339 时间格式、共享 `ApiError` schema、cursor 分页统一、`Idempotency-Key` 与 `Job 202` 异步契约；§3.1.1 列出 v1.0.0 freeze 时的 36 个 endpoint × 14 tag 完整集合；锁定 breaking change linter 规则集（仅允许 additive）；引用 `B2 openapi-v1-contract` 全文与 [B1 D-5/D-6 枚举与错误码](../shared-conventions-codified/spec.md#31-已锁定决策)；记录 [ADR-Q5](../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md) `POST /privacy/exports` P0 返回 501 的例外。 | engineering-roadmap/001 Phase 3 |

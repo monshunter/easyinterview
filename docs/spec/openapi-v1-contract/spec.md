@@ -1,16 +1,16 @@
 # OpenAPI v1 Contract Spec
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-05
 
 ## 1 背景与目标
 
 [engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 B2 `openapi-v1-contract` 保留为当前 active Contract spec（依赖 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)；间接依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它是当前 P0 backend / frontend workstream 的 HTTP 契约瓶颈节点：后续实现必须复用本契约的 codegen、fixtures 与 breaking-change gate；任何破坏性变更会触发跨 spec 雪球。
 
-本 spec 历史上由 `engineering-roadmap/001-decompose-subspecs` 的 contract lock 创建；当前执行口径以 roadmap v3.0 的 active spec 保留规则为准：`openapi/openapi.yaml` v1.0.0 freeze 范围为当前 34 endpoints / 12 tags / 字段命名 / additive-only 规则。真实 OpenAPI 文件、codegen、fixtures 与 breaking-change linter 由 B2 `001-bootstrap` / `002-fixtures-and-mock-source` / `003-breaking-change-gate` 分别验证；未通过前不得启动依赖 B2 的 implementation。
+本 spec 历史上由 `engineering-roadmap/001-decompose-subspecs` 的 contract lock 创建；当前执行口径以 roadmap active spec 的保留规则为准：`openapi/openapi.yaml` v1.0.0 freeze 范围为当前 34 endpoints / 12 tags / 字段命名 / additive-only 规则。真实 OpenAPI 文件、codegen、fixtures 与 breaking-change linter 由 B2 `001-bootstrap` / `002-fixtures-and-mock-source` / `003-breaking-change-gate` 分别验证；未通过前不得启动依赖 B2 的 implementation。
 
-`easyinterview-tech-docs/00` 与 `02` 只保留为 2026-04-26 旧技术包的历史输入。当前 HTTP 可执行契约由本 spec、`openapi/openapi.yaml`、OpenAPI fixtures / baseline 与 B1 shared conventions 决定；旧技术包中的 Bearer 默认鉴权、独立 `Mistakes` / `Growth`、36 endpoint / 14 tag 等内容已被当前 product-scope / UI / B2 contract 覆盖，不得作为实现或 codegen 依据恢复。
+当前 HTTP 可执行契约由本 spec、`openapi/openapi.yaml`、OpenAPI fixtures / baseline 与 B1 shared-conventions-codified 决定。B2 独立承接 endpoint inventory、tag、auth 形态、header、status code、schema、fixture provenance 与 breaking-change gate；任何实现或 codegen 都不得绕过这些当前 owner truth source。
 
 目标是：
 
@@ -29,7 +29,7 @@
 - **12 个 tag**：1. `Auth`、2. `Uploads`、3. `Profile`、4. `Resumes`、5. `TargetJobs`、6. `PracticePlans`、7. `PracticeSessions`、8. `Reports`、9. `ResumeTailor`、10. `Debriefs`、11. `Jobs`、12. `Privacy`。旧 `Mistakes` / `Growth` tag 已按当前 product-scope / UI 移除。
 - **endpoint 集**：34 端点，覆盖当前 P0 contract；本 spec §3.1.1 列出 v1.0.0 freeze 时的 endpoint 列表。旧 `/mistakes`、`/mistakes/{mistakeId}/retest`、`/growth/overview` 已按当前 product-scope / UI 从 active contract 删除。
 - **schema 定义**：所有 endpoint request / success 或 P0 例外 response / async wrapper / error response 必须出现在 §4.2 schema inventory，或显式声明无 body / 无响应体；共享 `ApiError` inner object / `PageInfo` / `PaginatedXxx` 与 14 个枚举类型引用 [B1 D-5/D-7](../shared-conventions-codified/spec.md#31-已锁定决策)，OpenAPI 只负责 `ApiErrorResponse` 外层 envelope 与 B2 专属 enum（`ResourceType` / `JobType`），不得重复维护 B1 enum 字面量。
-- **header 与状态码契约**：从 [02 §2](../../../easyinterview-tech-docs/02-api-definition.md#2-通用约定) 与 [00 §3.5](../../../easyinterview-tech-docs/00-shared-conventions.md#35-请求头) 承接仍有效的历史 header / status seed，但认证形态以 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md) 与本 spec 为准：P0 使用 first-party session cookie；`Authorization: Bearer` 不属于当前 P0 contract。状态码矩阵见 §4.1。
+- **header 与状态码契约**：由本 spec §4.1 与 `openapi/openapi.yaml` 的 components 共同承接；认证形态以 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md) 与本 spec 为准：P0 使用 first-party session cookie；`Authorization: Bearer` 不属于当前 P0 contract。状态码矩阵见 §4.1。
 - **codegen pipeline**：`make codegen-openapi`（B2 owner）输出 Go + TS；本地 drift 校验。
 - **fixtures**：每个 operation 对应一份默认 fixture（`scenario: default`）+ `ui-design/src/data.jsx` 折出来的 `scenario: prototype-baseline`（与 [engineering-roadmap §4.3 mock-first](../engineering-roadmap/spec.md#43-契约与-mock-first-约束) 一致）。
 - **breaking change linter**：本地引入 `openapi-diff`（或等价工具）；规则集见 §4.4。
@@ -52,12 +52,12 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | 路径前缀 | 所有 endpoint 以 `/api/v1` 起始 | 承接 [02 §1](../../../easyinterview-tech-docs/02-api-definition.md#1-概览) 的有效历史 seed；当前 endpoint inventory 以 §3.1.1 与 `openapi/openapi.yaml` 为准 |
-| D-2 | 字段命名 | JSON 字段 `camelCase`；URL path 参数 `camelCase`（如 `{targetJobId}`）；query 参数 `camelCase` | 与 B1 当前 shared conventions 一致；[00-shared-conventions](../../../easyinterview-tech-docs/00-shared-conventions.md) 仅作历史背景 |
+| D-1 | 路径前缀 | 所有 endpoint 以 `/api/v1` 起始 | 当前 endpoint inventory 以 §3.1.1 与 `openapi/openapi.yaml` 为准 |
+| D-2 | 字段命名 | JSON 字段 `camelCase`；URL path 参数 `camelCase`（如 `{targetJobId}`）；query 参数 `camelCase` | 与 B1 当前 shared conventions 一致 |
 | D-3 | 时间格式 | `string` + `format: date-time`，RFC3339 UTC（如 `2026-04-23T13:45:12Z`） | – |
 | D-4 | 错误响应 schema | 全部 4xx/5xx wire body 复用 `ApiErrorResponse` envelope（`error.code` / `error.message` / `error.requestId` / `error.retryable` / `error.details`）；inner `error` object 复用 B1 `ApiError`；`error.code` 必须出现在 [B1 D-5](../shared-conventions-codified/spec.md#31-已锁定决策) 锁定的错误码常量集合或本 spec D-12 追加的 `PRIVACY_EXPORT_NOT_AVAILABLE` | 具体业务 handler 不能擅自新增错误码 |
 | D-5 | 分页 | 所有列表 endpoint 使用 cursor 分页 + 统一 `pageInfo`（`nextCursor` / `pageSize` / `hasMore`）；不混用 offset 分页 | – |
-| D-6 | Idempotency | 副作用 endpoint 的 `Idempotency-Key` 支持范围由本 spec §4.1 与 B1 幂等工具共同决定；[00 §3.4](../../../easyinterview-tech-docs/00-shared-conventions.md#34-幂等) 仅作历史 seed。`POST /practice/sessions/{sessionId}/events` 使用 `clientEventId` 去重，不混用 `Idempotency-Key` | 防止不同去重机制叠加导致 handler 语义分裂 |
+| D-6 | Idempotency | 副作用 endpoint 的 `Idempotency-Key` 支持范围由本 spec §4.1 与 B1 幂等工具共同决定；`POST /practice/sessions/{sessionId}/events` 使用 `clientEventId` 去重，不混用 `Idempotency-Key` | 防止不同去重机制叠加导致 handler 语义分裂 |
 | D-7 | Job 异步 | 长耗时操作返回 `202 Accepted` + `Job` schema；客户端通过 `GET /jobs/{jobId}` 轮询 | – |
 | D-8 | content-type | 仅 `application/json` 与 `multipart/form-data`（仅 upload 端点）；不引入 protobuf / msgpack | – |
 | D-9 | v1.0.0 freeze 范围 | §3.1.1 列出 34 个 endpoint + 12 tag；本 spec 锁定范围与 additive-only 规则，B2 `001` 落地 `openapi/openapi.yaml` 后强制执行（新增 endpoint / 新增可选字段 / 新增枚举值）；Auth tag 以 ADR-Q1 的 email magic link + session cookie 路径为准；`DELETE /api/v1/me` 按 ADR-Q5 纳入 P0 删除入口 | 任何 break change 必须 ADR + 本 spec 修订；本次删除旧 Mistakes / Growth 属开发期当前 product-scope / UI 授权的 freeze correction |
@@ -65,7 +65,7 @@
 | D-11 | tags 顺序 | §2.1 12 个 tag 顺序固定；新增 tag 必须递增 spec | – |
 | D-12 | privacy export 例外 | 按 [ADR-Q5](../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md)，`POST /api/v1/privacy/exports` 在 v1.0.0 freeze 中保留路径与 schema，但 P0 必须返回 `501 Not Implemented`（`error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`）；P1 切换实现时是 additive 行为变化，不算 break | 防止 P1 复用时改路径 |
 | D-13 | OpenAPI tooling 锁版 | validation: `@apidevtools/swagger-cli@4.0.4`（deprecated but accepted for current OpenAPI 3.1 contract）；docs: `@redocly/cli@2.30.1 build-docs`。`redoc-cli@0.13.21` 已由 `make docs-openapi` 退役；禁止未修订 spec 时替换 C-1 validator | 避免 002 / 003 在不同 validation gate 间产生不一致错误面；docs renderer 升级必须记录实测兼容证据 |
-| D-14 | B2 专属 async enum 字面量 | `ResourceType` 与 `JobType` 独立成 OpenAPI schema；字面量见 §3.1.2。它们来自当前 02-api-definition Job examples 与 P0 privacy exception，后续新增 endpoint / async job 时必须递增本 spec 并 additive 追加 enum 值 | 不再把 `ResourceType` 留作待确认；fixtures / mock / generated DTO 可直接依赖 |
+| D-14 | B2 专属 async enum 字面量 | `ResourceType` 与 `JobType` 独立成 OpenAPI schema；字面量见 §3.1.2。它们来自当前 B2 API-facing async response set 与 P0 privacy exception，后续新增 endpoint / async job 时必须递增本 spec 并 additive 追加 enum 值 | 不再把 `ResourceType` 留作待确认；fixtures / mock / generated DTO 可直接依赖 |
 | D-15 | 错误响应 envelope | B1 `ApiError` 表示 `error` inner object；B2 `ApiErrorResponse` 表示 wire body `{error: ApiError}`。所有 default 4xx/5xx 与 privacy export 501 响应使用 `ApiErrorResponse` envelope | 消除 Go/TS codegen 对 `ApiError` 名称的歧义 |
 
 #### 3.1.1 v1.0.0 freeze endpoint 列表
@@ -115,7 +115,7 @@
 
 | Schema | 字面量 | 来源 |
 |--------|--------|------|
-| `ResourceType` | `target_job` / `feedback_report` / `resume_asset` / `resume_tailor_run` / `debrief` / `privacy_request` | 当前 B2 API-facing async resource set；[02-api-definition.md §3.1](../../../easyinterview-tech-docs/02-api-definition.md#31-job) 仅作为历史 seed。`ai_task_runs.resource_type` / `async_jobs.resource_type` 必须兼容这些 API-facing resource names |
+| `ResourceType` | `target_job` / `feedback_report` / `resume_asset` / `resume_tailor_run` / `debrief` / `privacy_request` | 当前 B2 API-facing async resource set；`ai_task_runs.resource_type` / `async_jobs.resource_type` 必须兼容这些 API-facing resource names |
 | `JobType` | `target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `debrief_generate` / `privacy_export` / `privacy_delete` | P0 API async job response set；DB 内部可保留 `source_refresh` / `embedding_upsert` / `email_dispatch` 等非 API-facing job type，但它们不得出现在 v1.0.0 `GET /api/v1/jobs/{jobId}` response 中，除非本 spec 修订 additive 追加 |
 
 ### 3.2 待确认事项
@@ -136,8 +136,8 @@
 | Auth public endpoints | `/api/v1/auth/email/start`、`/api/v1/auth/email/verify`、`/api/v1/runtime-config` 不要求既有 session | auth start/verify 归 ADR-Q1；runtime-config 只能返回非敏感公开配置 |
 | Protected endpoints | 除 public endpoints 外，P0 默认要求有效 first-party session cookie | `Authorization: Bearer` 不作为 P0 默认认证形态；如重新启用必须修订 ADR-Q1 与本 spec |
 | Account deletion | `DELETE /api/v1/me` 是 protected endpoint，成功返回 `202 + PrivacyRequestWithJob` | 与 `POST /api/v1/privacy/deletions` 同义；必须支持 `Idempotency-Key` 或等价 active-request dedupe，重复删除请求返回同一未完成 `privacy_delete` job；先撤销 session / 软删用户，再由 C8 `privacy_delete` 按 B4 table matrix 异步硬删 |
-| Request headers | `X-Request-ID` / `traceparent` / `Accept-Language` / `X-Client-Version` 按本 spec 与 B1 当前 shared conventions 入 OpenAPI components；[00 §3.5](../../../easyinterview-tech-docs/00-shared-conventions.md#35-请求头) 仅作历史 seed | `Accept-Language` 只影响展示语言默认值，不覆盖 `targetLanguage` / `language` 等持久业务字段 |
-| Idempotency-Key | 仅本 spec 标记的副作用 endpoint 必须声明并校验；B1 提供 key 格式与 TTL 工具语义，[00 §3.4](../../../easyinterview-tech-docs/00-shared-conventions.md#34-幂等) 仅作历史 seed | `POST /practice/sessions/{sessionId}/events` 必须声明 `clientEventId` 去重；auth email start 使用 ADR-Q1 rate limit / challenge TTL，不挂通用 idempotency |
+| Request headers | `X-Request-ID` / `traceparent` / `Accept-Language` / `X-Client-Version` 按本 spec 与 B1 当前 shared conventions 入 OpenAPI components | `Accept-Language` 只影响展示语言默认值，不覆盖 `targetLanguage` / `language` 等持久业务字段 |
+| Idempotency-Key | 仅本 spec 标记的副作用 endpoint 必须声明并校验；B1 提供 key 格式与 TTL 工具语义 | `POST /practice/sessions/{sessionId}/events` 必须声明 `clientEventId` 去重；auth email start 使用 ADR-Q1 rate limit / challenge TTL，不挂通用 idempotency |
 
 ### 4.2 schema inventory 约束
 
@@ -145,8 +145,8 @@
 |------|-------------------|-------------|
 | B1 shared | `ApiError` inner object、`PageInfo`、`Paginated<T>`、14 个枚举类型、错误码 enum、`IdempotencyKey` 工具语义 | `$ref` / codegen 复用 B1；OpenAPI 不重复维护 B1 enum 字面量；wire error body 另用 B2 `ApiErrorResponse` envelope |
 | Auth / runtime | `UserContext`、`AuthEmailStartRequest`、`AuthEmailVerifyQuery`、`Session`、`RuntimeConfig`、`DeleteMeResponse`（alias `PrivacyRequestWithJob`） | Auth 路径以 ADR-Q1 为准；runtime-config 字段以 [A4 D-2](../secrets-and-config/spec.md#31-已锁定决策含-p0-必备-env-key-字典) 为准；`DELETE /me` 删除语义以 ADR-Q5 / B4 deletion matrix 为准 |
-| Uploads / resumes | `UploadPresignRequest`、`UploadPresign`、`RegisterResumeRequest`、`ResumeAsset`、`ResumeAssetWithJob` | 对齐 [02 §5](../../../easyinterview-tech-docs/02-api-definition.md#5-上传与文件) / [§7](../../../easyinterview-tech-docs/02-api-definition.md#7-简历资产) |
-| Profile | `CandidateProfile`、`UpdateProfileRequest`、`ExperienceCard`、`CreateExperienceCardRequest`、`UpdateExperienceCardRequest`、`PaginatedExperienceCard` | 对齐 [02 §6](../../../easyinterview-tech-docs/02-api-definition.md#6-画像与经历卡) |
+| Uploads / resumes | `UploadPresignRequest`、`UploadPresign`、`RegisterResumeRequest`、`ResumeAsset`、`ResumeAssetWithJob` | B2 owns request/response schema and fixture provenance |
+| Profile | `CandidateProfile`、`UpdateProfileRequest`、`ExperienceCard`、`CreateExperienceCardRequest`、`UpdateExperienceCardRequest`、`PaginatedExperienceCard` | B2 owns request/response schema and fixture provenance |
 | TargetJobs | `ImportTargetJobRequest`、`TargetJobWithJob`、`TargetJob`、`UpdateTargetJobRequest`、`TargetJobRequirement`、`TargetJobSummary`、`TargetJobFitSummary`、`PaginatedTargetJob` | 覆盖 URL / text / file / manual form source variants |
 | Practice | `CreatePracticePlanRequest`、`PracticePlan`、`StartPracticeSessionRequest`、`PracticeSession`、`PracticeSessionEventRequest`、`SessionEventResult`、`AssistantAction`、`CompletePracticeSessionRequest`、`ReportWithJob` | `PracticeSessionEventRequest.clientEventId` 是事件幂等真理源 |
 | Review / question review | `FeedbackReport`、`ReportHighlight`、`ReportIssue`、`ReportNextAction`、`QuestionAssessment`、`PaginatedFeedbackReport` | 报告前台只展示准备度档位、维度状态、题目回顾和本轮复练上下文；不输出精确通过率，不暴露独立错题本 endpoint |

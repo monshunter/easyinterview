@@ -22,7 +22,7 @@
 - [x] 2.3 `outbox_events` 包含 `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message`，并有 `(publish_status, next_attempt_at, created_at)` pending due 查询索引。验证: information_schema column probe + `pg_indexes` probe + pending due `EXPLAIN` 命中对应索引
 - [x] 2.4 `async_jobs.job_type` check 包含 B3 10 个 canonical jobType（含 internal-only `email_dispatch`），且 B2 API-facing subset 仍为 7 项。验证: migration lint 读取 B3/B2 manifests 后断言 DB check 值等于 B3 canonical 10 项，且 B2 API-facing subset 未被 internal-only `email_dispatch` 扩大
 - [x] 2.5 `ai_task_runs` 包含 `model_family` / `model_profile_name` / `model_profile_version` / `fallback_chain` / `route` / `validation_status` / `output_schema_version` typed columns。验证: information_schema probe 断言 typed columns、`fallback_chain jsonb not null default '[]'::jsonb`，并有 dashboard 查询不依赖 JSONB path scan 的 SQL/explain probe
-- [x] 2.6 覆盖 03 §7 B-Tree 索引、`retrieval_chunks.embedding` ivfflat 与可选 `target_jobs` GIN 全文索引。验证: `pg_indexes` inventory 与关键 query `EXPLAIN` probes 覆盖 B-Tree、`idx_retrieval_chunks_embedding` ivfflat、dev 默认 `target_jobs` GIN 全文索引
+- [x] 2.6 覆盖 B4 B-Tree 索引、`retrieval_chunks.embedding` ivfflat 与可选 `target_jobs` GIN 全文索引。验证: `pg_indexes` inventory 与关键 query `EXPLAIN` probes 覆盖 B-Tree、`idx_retrieval_chunks_embedding` ivfflat、dev 默认 `target_jobs` GIN 全文索引
 
 ## Phase 3: enum/check 来源、backfill 与 privacy lint
 

@@ -1,14 +1,14 @@
 # Observability Stack Spec
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-05
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 F1 `observability-stack` 保留为当前 active Quality spec（依赖 [A2 `local-dev-stack`](./../local-dev-stack/spec.md) 与 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)）。它从 [04-metrics-observability.md](../../../easyinterview-tech-docs/04-metrics-observability.md) 与 [05-logging-standard.md](../../../easyinterview-tech-docs/05-logging-standard.md) 的有效历史 seed 中收敛当前代码与运维的可观测层。A2 只提供默认本地应用运行时、应用 `/metrics` 与容器日志出口，不默认提供 OTel Collector / Grafana / Loki / Prometheus。
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 F1 `observability-stack` 定义为当前 active Quality spec（依赖 [A2 `local-dev-stack`](./../local-dev-stack/spec.md) 与 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)）。它直接承接当前代码与运维的可观测层。A2 只提供默认本地应用运行时、应用 `/metrics` 与容器日志出口，不默认提供 OTel Collector / Grafana / Loki / Prometheus。
 
-`easyinterview-tech-docs/04` 与 `05` 只保留为历史 metrics / logging 输入。当前 metric、label、log、trace、dashboard 和 alerting 可执行契约由本 spec、F1 后续编码 truth source 与 product-scope v1.4 决定；旧 `mistake_*` 指标、旧 Growth 漏斗和旧业务域列表不得作为实现依据恢复。
+当前 metric、label、log、trace、dashboard 和 alerting 可执行契约由本 spec、F1 后续编码 truth source 与 product-scope 当前范围决定。F1 独立承接 metric 命名、allowed/forbidden labels、log 字段集、PII redaction、trace attributes、dashboard baseline、alert rules 与上线观测 gate。
 
 本 spec 历史上由 `engineering-roadmap/001-decompose-subspecs` 的 contract lock 创建；当前执行口径是固定 baseline 指标命名约定（Prometheus / OTel label / log 字段 / span attributes），防止后续 P0 backend / frontend / analytics / mock workstream 各自取名。真实 helper、lint、dashboard 与 alerting rules 由 F1 `001` plan 验证。
 
@@ -16,8 +16,8 @@
 
 1. **指标命名约定锁定**：Counter `*_total` / Histogram `*_duration_seconds` / Gauge `*_in_flight|*_queue_depth` 命名规则，allowed labels 与 forbidden labels 清单（见 §3.1.1）冻结。
 2. **OTel / metrics 接入框架**：API / Worker / Frontend 暴露 `/metrics` 与 OTel SDK 初始化点；生产或可选观测环境再接 OTel Collector / Prometheus / Loki / Sentry（trace backend P0 不锁，留接口）。
-3. **日志字段约束**：从 [05-logging-standard.md §4](../../../easyinterview-tech-docs/05-logging-standard.md#4-必填字段) 的有效历史 seed 收敛字段集并落到 Go logger middleware；明文红线见 [05 §5.1](../../../easyinterview-tech-docs/05-logging-standard.md#51-绝对禁止进入应用日志)，当前执行口径以本 spec / F1 tooling 为准。
-4. **5 个 dashboard baseline**：从 [04 §12](../../../easyinterview-tech-docs/04-metrics-observability.md#12-dashboard-建议) 的有效历史 seed 收敛 5 个 dashboard（业务漏斗 / API & Session Health / Report Pipeline / AI Cost & Quality / Privacy & Compliance）并在上线前完整接齐；baseline plan 先交付命名约定 + 接入框架。
+3. **日志字段约束**：本 spec 锁定字段集并落到 Go logger middleware；明文红线以 D-6 和 F1 tooling 为准。
+4. **5 个 dashboard baseline**：本 spec 锁定 5 个 dashboard（业务漏斗 / API & Session Health / Report Pipeline / AI Cost & Quality / Privacy & Compliance）并在上线前完整接齐；baseline plan 先交付命名约定 + 接入框架。
 
 本 spec 不实现具体业务指标埋点（归各 C / D / F2 域）、不部署生产观测后端（归 [E4 `release-gate-and-rollout`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) + 运维）、不写产品分析事件（归 [F2 `analytics-funnel`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)）。
 
@@ -30,10 +30,10 @@
   - Backend：`backend/internal/platform/otel/`（OTel SDK 初始化 + tracer / meter provider + propagator）。
   - Frontend：`frontend/src/lib/otel/`（轻量 client，Trace 透传 `traceparent`）。
   - 运行时配置：可选 `OTEL_EXPORTER_OTLP_ENDPOINT`（来自 [A4 字典](../secrets-and-config/spec.md#311-p0-必备-env-key-字典25-项)）；普通本地 dev 为空时只暴露 `/metrics` 与日志，不尝试上报。
-- **Logger middleware**：`backend/internal/platform/logx/`（基于 `zerolog`，输出 JSON）；自动注入 [05 §4.1 通用字段](../../../easyinterview-tech-docs/05-logging-standard.md#41-通用字段)；明文红线类型 `RedactedString`（来自 A4）+ `Hashed`（基于 sha256+salt）helper。
+- **Logger middleware**：`backend/internal/platform/logx/`（基于 `zerolog`，输出 JSON）；自动注入 F1 通用字段；明文红线类型 `RedactedString`（来自 A4）+ `Hashed`（基于 sha256+salt）helper。
 - **Sentry SDK 接线**：API / Worker / Frontend；DSN 由 A4 env 注入；`SENTRY_DSN` 字段在 §3.1.1 字典中追加（A4 待加入）。
-- **Trace 规范**：[04 §13](../../../easyinterview-tech-docs/04-metrics-observability.md#13-trace-规范) 中 span name / attribute 集合落到 backend 中间件 + [B3 dispatcher](../event-and-outbox-contract/spec.md) 中的 `traceId` 透传协议。
-- **告警规则集 baseline**：[04 §11](../../../easyinterview-tech-docs/04-metrics-observability.md#11-告警策略) P1/P2/P3 列表落到 Prometheus alerting rules YAML（grafana / alertmanager 部署归运维）。
+- **Trace 规范**：F1 span name / attribute 集合落到 backend 中间件 + [B3 dispatcher](../event-and-outbox-contract/spec.md) 中的 `traceId` 透传协议。
+- **告警规则集 baseline**：F1 P1/P2/P3 告警列表落到 Prometheus alerting rules YAML（grafana / alertmanager 部署归运维）。
 - **Dashboard JSON 模板**：5 个 dashboard 的 baseline JSON 落 `deploy/observability/dashboards/`；具体 panel 内容由各 C / D / F2 后续增量贡献，provisioning 由 F1/E4 或可选观测 profile 承接，不进入 A2 默认 `make dev-up`。
 - **健康检查端点**：所有进程暴露 `GET /healthz`（liveness）+ `GET /readyz`（readiness）；schema 锁定。
 
@@ -53,16 +53,16 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | metric 类型与后缀 | Counter `*_total`；Histogram `*_duration_seconds`；Gauge `*_in_flight` / `*_queue_depth` / `*_pending`；Summary 不使用 | 与 [04 §3.1](../../../easyinterview-tech-docs/04-metrics-observability.md#31-prometheus-命名) 一致 |
+| D-1 | metric 类型与后缀 | Counter `*_total`；Histogram `*_duration_seconds`；Gauge `*_in_flight` / `*_queue_depth` / `*_pending`；Summary 不使用 | F1 命名 baseline |
 | D-2 | 单位 | 时间 seconds（不用 ms 作为指标后缀，日志可用 `latencyMs`）/ 大小 bytes / 金额 usd（如必须） | – |
-| D-3 | allowed labels | `service` / `route` / `method` / `status_code` / `operation` / `job_type` / `task_type` / `provider` / `model_family` / `from_model_family` / `to_model_family` / `language` / `feature` / `env` / `result` | 与 [04 §3.2](../../../easyinterview-tech-docs/04-metrics-observability.md#32-允许的-prometheus-labels) 一致；新增 label 必须是有界枚举 |
+| D-3 | allowed labels | `service` / `route` / `method` / `status_code` / `operation` / `job_type` / `task_type` / `provider` / `model_family` / `from_model_family` / `to_model_family` / `language` / `feature` / `env` / `result` | 新增 label 必须是有界枚举 |
 | D-4 | forbidden labels | `user_id` / `target_job_id` / `session_id` / `prompt_version` / 原始 URL 全 path / 原始 provider model id / `from_model` / `to_model` / 任意自由文本 | 高基数禁入 metric；可入 log 或 event |
-| D-5 | log 字段集 | 通用 12 字段 + access / job / AI 三种额外字段集（见 [05 §4](../../../easyinterview-tech-docs/05-logging-standard.md#4-必填字段)） | F1 logger 自动注入 |
-| D-6 | log 明文红线 | 绝不进 log：`rawJdText` / `answerText` / `resumeRawText` / `thankYouDraft` / `parsedSummary` 全量 / `promptTemplateBody` / `modelRawResponse` / 文件上传 / 下载 URL / token | 与 [05 §5](../../../easyinterview-tech-docs/05-logging-standard.md#5-字段红线与脱敏规则) 一致；`Hashed` helper 提供 sha256+salt |
+| D-5 | log 字段集 | 通用 12 字段 + access / job / AI 三种额外字段集 | F1 logger 自动注入 |
+| D-6 | log 明文红线 | 绝不进 log：`rawJdText` / `answerText` / `resumeRawText` / `thankYouDraft` / `parsedSummary` 全量 / `promptTemplateBody` / `modelRawResponse` / 文件上传 / 下载 URL / token | `Hashed` helper 提供 sha256+salt |
 | D-7 | trace propagation | W3C `traceparent` + `tracestate`；浏览器请求带上即透传；OTel SDK 默认 | – |
 | D-8 | 健康检查 | `GET /healthz` 仅检自身存活；`GET /readyz` 检 DB / Redis 等必需依赖；OTel endpoint 仅在显式配置时检查 | A2 `make dev-doctor` 也可消费 healthz / readyz / metrics |
 | D-9 | dashboard 名称固定 | `easyinterview-business-funnel` / `easyinterview-api-session-health` / `easyinterview-report-pipeline` / `easyinterview-ai-cost-quality` / `easyinterview-privacy-compliance` 共 5 个 | 后续 child 在自己 plan 里贡献 panel |
-| D-10 | 告警优先级与阈值 | [04 §11.1 P1](../../../easyinterview-tech-docs/04-metrics-observability.md#111-p1高优先级影响核心主链路) 5 条全部默认开启；P2 / P3 按需 | – |
+| D-10 | 告警优先级与阈值 | P1 5 条全部默认开启；P2 / P3 按需 | – |
 
 #### 3.1.1 Backend / Worker baseline metrics 字典（baseline freeze）
 
@@ -93,7 +93,7 @@
 | AI | `ai_output_validation_failures_total` | Counter | task_type,provider,model_family |
 | AI | `ai_fallback_total` | Counter | task_type,from_model_family,to_model_family,result |
 
-业务域（target / practice / report / resume / debrief / privacy）指标由各 C 域在自己的 plan 中接入；[04 §7](../../../easyinterview-tech-docs/04-metrics-observability.md#7-业务域指标) 仅作历史 seed。F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `resume_` / `debrief_` / `privacy_`）；独立 `mistake_` / `growth_` 前缀不得恢复。
+业务域（target / practice / report / resume / debrief / privacy）指标由各 C 域在自己的 plan 中接入。F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `resume_` / `debrief_` / `privacy_`）；独立 `mistake_` / `growth_` 前缀不得恢复。
 
 ### 3.2 待确认事项
 
@@ -118,9 +118,9 @@
 
 ### 4.3 trace 约束
 
-- 每个 HTTP route 自动产生一个根 span，命名 [04 §13.2](../../../easyinterview-tech-docs/04-metrics-observability.md#132-核心-span-名称建议)。
+- 每个 HTTP route 自动产生一个根 span，命名由 F1 trace convention 决定。
 - 每个异步 job 进入 worker 时从 `traceId` 字段重建 span context（B3 透传）。
-- 每次 AI 调用作为子 span（A3 内部产生），span attributes 见 [04 §13.3](../../../easyinterview-tech-docs/04-metrics-observability.md#133-span-attributes-建议)；不允许写明文 prompt / answer。
+- 每次 AI 调用作为子 span（A3 内部产生），span attributes 由 F1 trace convention 与 A3 AI metadata 决定；不允许写明文 prompt / answer。
 
 ### 4.4 性能约束
 
@@ -156,13 +156,13 @@
 | C-7 | 告警 baseline | 制造模拟事件触发 P1 告警 | Prometheus alerting rules | 5 条 P1 告警 fire；可路由到 Slack/Email（运维端） | F1 后续 001 + 运维 |
 | C-8 | 业务域 helper | C5 调用 `metrics.PracticeSessionStarted(goal, mode, language)` | 单测 | 内部上报 `practice_sessions_started_total{goal,mode,language}` +1 | F1 后续 001 + C5 |
 | C-9 | baseline 验证 | 本 spec 通过 `/plan-review`，F1 后续 001 完成 baseline | active spec 关系已保留 | F1 baseline 指标命名约定、lint / helper / dashboard 框架自洽，后续 workstream 可引用 | F1 后续 001 |
-| C-10 | 上线门槛 | C-1..C-9 + 5 个 dashboard 接齐 | [04 §15](../../../easyinterview-tech-docs/04-metrics-observability.md#15-最低上线门槛) 8 项 checklist | 全部勾选 | F1 后续 002（dashboard 完善）+ E4 |
+| C-10 | 上线门槛 | C-1..C-9 + 5 个 dashboard 接齐 | F1 release-observability checklist | 全部勾选 | F1 后续 002（dashboard 完善）+ E4 |
 
 ## 7 关联计划
 
 F1 当前暂无 active impl plan；后续由 F1 自身的 plans 承接（[engineering-roadmap §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 保留该 active spec）：
 
 - `001-baseline`：`internal/platform/{otel,logx}/` + `frontend/src/lib/otel/` + 5 dashboard 框架 + alerting rules + lint 工具 + 健康检查。
-- `002-dashboards-and-alerts`：完成 5 个 dashboard 的 panel 接齐 + 告警阈值校准；上线前闭合 [04 §15](../../../easyinterview-tech-docs/04-metrics-observability.md#15-最低上线门槛) 8 项最低上线门槛。
+- `002-dashboards-and-alerts`：完成 5 个 dashboard 的 panel 接齐 + 告警阈值校准；上线前闭合 F1 最低上线门槛。
 
 后续如需扩展（profiling / continuous profiling）：递增 spec 版本，原地修订；不创建 sibling spec。

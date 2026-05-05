@@ -12,7 +12,7 @@
 - 异步：报告生成（`review` 域）、简历定制（`resume` 域）、报告题目回顾 / 本轮复练上下文物化、debrief 生成、retrieval 召回
 - P2：voice STT、source intel
 
-`easyinterview-tech-docs/01-technical-architecture.md` §2 把「AI Adapter Layer」标记为「模型供应商抽象、重试、fallback、成本记录」，§5 把 `ai` 模块拆为 `prompt / rubric registry + provider adapters + 调用记录`，§7 已规划 `ai_fallback_model_enabled` 等 feature flag；`04-metrics-observability.md` §「ai_*」指标与 §「fallback rate」dashboard 早已锁定。当前决策收敛为：**应用内 `AIClient` + Provider Registry + Capability-scoped Model Profile**；项目代码和配置只关心 AI provider 能力与连接，不把独立 provider-proxy 作为业务语义。
+`engineering-roadmap decisions` §2 把「AI Adapter Layer」标记为「模型供应商抽象、重试、fallback、成本记录」，§5 把 `ai` 模块拆为 `prompt / rubric registry + provider adapters + 调用记录`，§7 已规划 `ai_fallback_model_enabled` 等 feature flag；`F1 observability-stack` §「ai_*」指标与 §「fallback rate」dashboard 早已锁定。当前决策收敛为：**应用内 `AIClient` + Provider Registry + Capability-scoped Model Profile**；项目代码和配置只关心 AI provider 能力与连接，不把独立 provider-proxy 作为业务语义。
 
 仓库现状：
 
@@ -132,7 +132,7 @@
 
 - `engineering-roadmap/spec.md` §3.2 Q-6、§5.1 A3、§4.3 mock-first
 - `engineering-roadmap/plans/001-decompose-subspecs/plan.md` checklist 1.1（保留 ADR-Q1..Q6 约束）与 checklist 3.3（production voice / retrieval 等 future candidates 延后）
-- 上游：`easyinterview-tech-docs/01-technical-architecture.md` §2 §5 §「AI Adapter Layer」、`04-metrics-observability.md` §「ai_*」§「fallback rate」、`05-logging-standard.md`
+- 参考背景：`engineering-roadmap decisions` §2 §5 §「AI Adapter Layer」、`F1 observability-stack` §「ai_*」§「fallback rate」、`F1 observability-stack logging`
 - 下游 child：A3 / A4 / F1 / F3 / C4-C7 / C9 / C11 / C14 / E4 / B1
 - 关联 ADR：ADR-Q4-cloud-deploy-target（AI provider endpoint 注入）、ADR-Q5-privacy-cadence（AI 调用 payload 仅写 hash）
 

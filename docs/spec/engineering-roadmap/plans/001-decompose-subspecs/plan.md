@@ -1,6 +1,6 @@
 # Roadmap Rebaseline and Subspec Governance
 
-> **版本**: 3.1
+> **版本**: 3.3
 > **状态**: completed
 > **更新日期**: 2026-05-05
 
@@ -33,7 +33,7 @@
 - **Plan 类型**: `docs-only`。
 - **TDD 策略**: 不适用：本 plan 只修订 `docs/spec/` 文档和索引，不修改前端 / 后端 / 工具脚本 / 迁移 / codegen / 测试辅助逻辑。
 - **BDD 策略**: 不适用：本 plan 不新增用户可见 UI、API 行为、业务流程或端到端功能；后续任何 P0 workstream 创建实现 plan 时必须单独维护 BDD gate。
-- **替代验证 gate**: `validate_context.py` 校验本 plan context；`sync-doc-index --check` 校验 Header / INDEX；`check_md_links.py docs` 校验 Markdown 链接；`git diff --check` 校验文本格式。
+- **替代验证 gate**: `validate_context.py` 校验本 plan context；`sync-doc-index --check` 校验 Header / INDEX；`check_md_links.py docs` 校验 Markdown 链接；全仓 retired-name zero-reference search 校验已迁移技术草稿的目录名、文件名和旧 shorthand 均为零匹配；`git diff --check` 校验文本格式。
 
 ## 4 实施步骤
 
@@ -102,12 +102,32 @@ ADR-Q1..Q6 继续作为架构约束保留在 `docs/spec/engineering-roadmap/deci
 
 嵌入式 readiness、retrieval、privacy export、company/source intel、production voice 和 multi-platform job search 不提前建 spec。触发时必须先确认 product-scope / UI / 合规边界。
 
+### Phase 4: 已迁移技术草稿移除
+
+#### 4.1 继承统一 owner matrix
+
+技术契约职责只由 `product-scope` §1.5 统一持有。本 roadmap 消费该矩阵，不复制第二套 API / DB / event / metrics / logging / config 映射。
+
+#### 4.2 移除目录名与文件名引用
+
+所有当前项目文档、代码注释、生成源、生成物、日志与报告都不得保留已迁移技术草稿的目录名或文件名。需要描述责任来源时，正文只能引用当前 owner spec、history 或编码 truth source。
+
+#### 4.3 规范编码 truth source 注释
+
+`shared/conventions.yaml`、`scripts/lint/conventions_yaml.py`、codegen source 与 generated artifacts 不得把已迁移技术草稿称为外部真理源。共享约定、OpenAPI、DB、event、observability 的字段和 gate 必须由当前 owner 独立说明。
+
+#### 4.4 固化删除 gate
+
+删除目录前必须重新运行本 plan §3 gate，并额外确认 retired-name zero-reference search 为零匹配。不允许剩余目录名、文件名、旧 shorthand、Markdown 链接、当前实施前置或外部真理源口径。
+
 ## 5 验收标准
 
 - `engineering-roadmap/spec.md` 不再声明 38 child / W0-W5 pending spawn 为当前执行模型。
 - `docs/spec/INDEX.md` 只包含真实存在的 `docs/spec/*/spec.md`，无 `_pending_` 行。
 - `product-scope` 对 roadmap 的交叉引用不再停留在 v2.2。
 - 当前已存在 active spec 均保留，且没有为 P1/P2 future candidates 创建空 spec 或空 plan。
+- 技术契约 owner matrix 已由 product-scope §1.5 持有，roadmap 和 child spec 只消费当前 owner spec / 编码 truth source。
+- 当前文档和编码 truth source 不再保留已迁移技术草稿的目录名、文件名、Markdown 链接或外部真理源口径。
 - 本 plan checklist 与 Header / INDEX 投影一致。
 - 本 plan §3 的替代验证 gate 全部通过。
 
@@ -116,14 +136,17 @@ ADR-Q1..Q6 继续作为架构约束保留在 `docs/spec/engineering-roadmap/deci
 | 风险 | 应对措施 |
 |------|----------|
 | 删除 pending 行后看不到未来方向 | 将未来方向保留在 roadmap spec §5.2 / §5.3，而不是放入 INDEX |
-| 旧 completed plan 中仍有历史术语 | 保留历史证据，但当前执行口径以本 plan v3.0 与 roadmap spec v3.0 为准 |
+| 旧 completed plan 中仍有历史术语 | 保留历史证据，但当前执行口径以本 plan v3.3 与 roadmap spec v3.4 为准 |
 | 后续实现重新创建旧模块 | product-scope 默认丢弃规则 + UI 文档删除清单 + roadmap §4.1 共同拦截 |
 | P1/P2 能力被提前空壳化 | child 创建规则要求进入设计或实现时才创建 spec / plan |
 | A/B/F active spec 与新 roadmap 表述漂移 | 通过 `sync-doc-index --check`、链接检查和后续 plan-review 原地修订 |
+| 删除已迁移技术草稿后出现断链或上游缺口 | product-scope §1.5 owner matrix + Phase 4 deletion gate + retired-name zero-reference search |
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
-| 2026-05-03 | 3.0 | 原地重写为 roadmap rebaseline：删除 pending 占位模型，保留 active spec truth source，改为 on-demand child 创建。 | product-scope v1.5 / docs-ui current |
+| 2026-05-05 | 3.3 | 按零残留口径执行旧技术草稿删除：移除实体目录，扩展 zero-reference gate 到目录名、文件名和旧 shorthand，并要求当前 owner spec / coded truth source 独立承接。 | product-scope v1.7 / engineering-roadmap v3.4 |
+| 2026-05-05 | 3.2 | 增加已迁移技术草稿移除 Phase 4：清理目录名和文件名引用，规范编码 truth source 注释，并把 zero-reference gate 固化到本 plan。 | product-scope v1.6 / engineering-roadmap v3.3 |
 | 2026-05-05 | 3.1 | L1 plan-review remediation：确认 Phase 3 只是后续 child 创建治理规则，不创建当前 P0 workstream；本 docs-only plan 完成收口为 completed。 | historical-spec-implementation-review L1 |
+| 2026-05-03 | 3.0 | 原地重写为 roadmap rebaseline：删除 pending 占位模型，保留 active spec truth source，改为 on-demand child 创建。 | product-scope v1.5 / docs-ui current |

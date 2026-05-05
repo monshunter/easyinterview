@@ -96,7 +96,7 @@ func renderB1AutoBlock(conv *Conventions) (string, error) {
 	sb.WriteString("    ApiErrorCode:\n")
 	sb.WriteString("      type: string\n")
 	sb.WriteString("      description: |\n")
-	sb.WriteString("        Documented error codes (`00-shared-conventions §3.2`). Synced from\n")
+	sb.WriteString("        Documented error codes synced from\n")
 	sb.WriteString("        `shared/conventions.yaml#errors[].code`; B1 owns the literal set.\n")
 	sb.WriteString("        `PRIVACY_EXPORT_NOT_AVAILABLE` is the P0 example required by spec D-12\n")
 	sb.WriteString("        and is included here so the OpenAPI contract is self-contained for the\n")
@@ -127,7 +127,7 @@ func renderB1AutoBlock(conv *Conventions) (string, error) {
 	sb.WriteString("          description: Request correlation id; equals the X-Request-ID response header for the same request.\n")
 	sb.WriteString("        retryable:\n")
 	sb.WriteString("          type: boolean\n")
-	sb.WriteString("          description: Hint to the client whether retry is safe (per `00-shared-conventions §3.2`).\n")
+	sb.WriteString("          description: Hint to the client whether retry is safe, as defined by B1 shared-conventions-codified.\n")
 	sb.WriteString("        details:\n")
 	sb.WriteString("          type: object\n")
 	sb.WriteString("          description: Optional structured diagnostic. Must not contain provider, prompt, or secret material per A4 redaction rules.\n")
@@ -138,7 +138,7 @@ func renderB1AutoBlock(conv *Conventions) (string, error) {
 	sb.WriteString("    ApiErrorResponse:\n")
 	sb.WriteString("      type: object\n")
 	sb.WriteString("      required: [error]\n")
-	sb.WriteString("      description: Wire error response envelope per `00-shared-conventions §3.2`.\n")
+	sb.WriteString("      description: Wire error response envelope defined by B1 shared-conventions-codified.\n")
 	sb.WriteString("      properties:\n")
 	sb.WriteString("        error:\n")
 	sb.WriteString("          $ref: '#/components/schemas/ApiError'\n")
@@ -166,7 +166,7 @@ func renderB1AutoBlock(conv *Conventions) (string, error) {
 	// JobStatus
 	sb.WriteString("    JobStatus:\n")
 	sb.WriteString("      type: string\n")
-	sb.WriteString("      description: Synced from `shared/conventions.yaml#jobStatuses` (00-shared-conventions §4.1).\n")
+	sb.WriteString("      description: Synced from `shared/conventions.yaml#jobStatuses`.\n")
 	sb.WriteString("      enum:\n")
 	for _, v := range conv.JobStatuses {
 		sb.WriteString("        - ")
@@ -181,7 +181,7 @@ func renderB1AutoBlock(conv *Conventions) (string, error) {
 		sb.WriteString(e.Name)
 		sb.WriteString(":\n")
 		sb.WriteString("      type: string\n")
-		sb.WriteString(fmt.Sprintf("      description: Synced from `shared/conventions.yaml#enums[%s]` (00-shared-conventions §%s).\n", e.Name, e.SourceSection))
+		sb.WriteString(fmt.Sprintf("      description: Synced from `shared/conventions.yaml#enums[%s]` sourceSection %s.\n", e.Name, e.SourceSection))
 		sb.WriteString("      enum: [")
 		for j, v := range e.Values {
 			if j > 0 {

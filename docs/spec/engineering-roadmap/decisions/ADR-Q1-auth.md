@@ -6,7 +6,7 @@
 
 ## 1 背景
 
-`easyinterview` 是个人向 AI 面试训练产品，目标用户是高意图求职者（C 端单租户），核心场景是 24-72 小时内围绕一份 JD 完成准备闭环。`easyinterview-tech-docs/01-technical-architecture.md` §5 把 `auth` 列为后端模块之一，但未锁定方案；`easyinterview-tech-docs/README.md` §「待评审的 5 个决策点」第 1 项只作为历史决策输入。
+`easyinterview` 是个人向 AI 面试训练产品，目标用户是高意图求职者（C 端单租户），核心场景是 24-72 小时内围绕一份 JD 完成准备闭环。`engineering-roadmap decisions` §5 把 `auth` 列为后端模块之一，但未锁定方案；`engineering-roadmap decision brief` §「待评审的 5 个决策点」第 1 项只作为历史决策输入。
 
 产品语义上：
 
@@ -18,7 +18,7 @@
 技术约束：
 
 - 后端是 Go 模块化单体（`chi + pgx + Redis + Asynq`），已有 session-cookie 中间件落点
-- `02-api-definition.md` §「Endpoint 总览」无 `/oauth/...` 端点，`POST /auth/...` 与 `GET /me` 已规划
+- `B2 openapi-v1-contract` §「Endpoint 总览」无 `/oauth/...` 端点，`POST /auth/...` 与 `GET /me` 已规划
 - 03-db `users` / `user_settings` 表已就位，但缺少认证 challenge / token 表
 
 ## 2 选项与取舍
@@ -104,7 +104,7 @@
 
 - `engineering-roadmap/spec.md` §3.2 Q-1
 - `engineering-roadmap/plans/001-decompose-subspecs/plan.md` checklist 1.1
-- 上游：`easyinterview-tech-docs/01-technical-architecture.md` §「auth」、`02-api-definition.md` §「auth tag」、`03-db-definition.md` §「users」
+- 参考背景：`engineering-roadmap decisions` §「auth」、`B2 openapi-v1-contract` §「auth tag」、`B4 db-migrations-baseline` §「users」
 - 下游 child / future candidate：backend-auth / frontend-shell / B2 / B4 / C8 / F1 / advanced audit
 
 ## 7 修订记录

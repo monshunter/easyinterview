@@ -3,7 +3,7 @@
 
 package errors
 
-// Documented error codes (00-shared-conventions §3.2). All values are
+// Documented error codes from shared/conventions.yaml. All values are
 // UPPER_SNAKE_CASE per shared-conventions-codified D-5.
 const (
 	CodeAuthUnauthorized        = "AUTH_UNAUTHORIZED"

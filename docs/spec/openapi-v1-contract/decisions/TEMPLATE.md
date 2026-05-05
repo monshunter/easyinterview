@@ -12,7 +12,7 @@
 
 ## 1 背景
 
-引用真理源（[spec.md](../spec.md) §章节、[02-api-definition.md](../../../../easyinterview-tech-docs/02-api-definition.md)、上游 ADR 等）说明触发本决策的契约 / 调用方 / 兼容性问题。明确「为什么现状不能继续」。
+引用真理源（[spec.md](../spec.md) §章节、`B2 openapi-v1-contract`、上游 ADR 等）说明触发本决策的契约 / 调用方 / 兼容性问题。明确「为什么现状不能继续」。
 
 ## 2 决策
 
@@ -30,7 +30,7 @@ enum 值 / response status code）。例：
 | 后端 | generated DTO / handler interface | C 域 |
 | 前端 | generated TS client / msw fixtures 消费 | D 域 |
 | Mock | E1 mock-server fixtures | E1 |
-| 文档 | spec / history / baseline / 02-api-definition | B2 + 文档 owner |
+| 文档 | spec / history / baseline / B2 openapi-v1-contract | B2 + 文档 owner |
 
 ## 4 迁移与回滚
 
@@ -46,7 +46,7 @@ enum 值 / response status code）。例：
 - [openapi-v1-contract/history.md](../history.md)
 - 上游 ADR：[ADR-Q?](../../engineering-roadmap/decisions/) （如有）
 - 受影响的 child plan：<子 plan 链接>
-- 上游业务文档：[02-api-definition.md](../../../../easyinterview-tech-docs/02-api-definition.md) §<章节>
+- 上游业务文档：`B2 openapi-v1-contract` §<章节>
 
 ## 6 审计
 

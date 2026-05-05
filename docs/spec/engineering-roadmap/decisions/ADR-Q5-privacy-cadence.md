@@ -6,7 +6,7 @@
 
 ## 1 背景
 
-`easyinterview-tech-docs/00-shared-conventions.md` §「隐私请求类型」定义 `export` / `delete` 两个枚举；`02-api-definition.md` §「privacy tag」预留 `POST /privacy/exports` + `POST /privacy/deletions`；`03-db-definition.md` §「privacy_requests」表已就位；`04-metrics-observability.md` §「Privacy Completion」要求「99% 在 24h 内完成」。`README.md` §「待评审的 5 个决策点」第 5 项只作为历史决策输入。
+`B1 shared-conventions-codified` §「隐私请求类型」定义 `export` / `delete` 两个枚举；`B2 openapi-v1-contract` §「privacy tag」预留 `POST /privacy/exports` + `POST /privacy/deletions`；`B4 db-migrations-baseline` §「privacy_requests」表已就位；`F1 observability-stack` §「Privacy Completion」要求「99% 在 24h 内完成」。`README.md` §「待评审的 5 个决策点」第 5 项只作为历史决策输入。
 
 产品红线（`docs/spec/product-scope/spec.md` §4.4 / §9.3）：
 
@@ -70,7 +70,7 @@
 1. **删除语义**：用户级 `DELETE /api/v1/me`（同义于 `POST /api/v1/privacy/deletions` body `{type: "delete"}`）→ 同步软删 `users.deleted_at` 同时立即吊销所有 session → 返回 `202 + PrivacyRequestWithJob` → 异步 worker 逐域硬删（按 B4 `db-migrations-baseline` §3.1.2 table matrix）
 2. **删除范围**（P0 必须覆盖）：B4 baseline 的所有用户关联表、ADR-Q1 auth/session 支撑表、对象存储文件与 AI call/audit/job/outbox 运行痕迹；全局 prompt/rubric 版本与 migration 元数据保留。每表处理策略以 [B4 §3.1.2 P0 privacy deletion table matrix](../../db-migrations-baseline/spec.md#312-p0-privacy-deletion-table-matrix) 为准，`audit_events` 只保留不可反推用户身份的删除完成 tombstone。
 3. **保留例外**：billing 类（如未来引入）/ 法律强制留存的合规日志按对应法规另行 ADR；P0 暂无
-4. **SLA**：删除请求 99% 在 24h 内完成（与 `04-metrics-observability.md` §「Privacy Completion」对齐）；超期写 audit + Sentry alert
+4. **SLA**：删除请求 99% 在 24h 内完成（与 `F1 observability-stack` §「Privacy Completion」对齐）；超期写 audit + Sentry alert
 5. **导出占位 / 产品例外**：`POST /privacy/exports` 在 OpenAPI v1.0.0 freeze 中**预留 endpoint 但返回 `501 Not Implemented`**；Settings / Privacy UI 显示「导出功能即将上线」（i18n 文案锁定）。这显式覆盖产品 spec P0 验收项「删除与导出路径可用」中的导出部分：P0 只保证删除路径可运行，导出路径仅保证契约预留、可观测、可解释地不可用；release gate workstream 必须把该 tradeoff 记录为准入例外
 6. **审计**：所有 privacy 状态变迁（request_created / step_started / step_completed / completed / failed）全部进 `audit_events`；advanced audit workstream 后续触发时复用这些事件，不重新定义并行审计协议
 7. **自助 vs 工单**：P0 用户自助 UI 直接触发；同时保留 `support@` 邮箱兜底路径
@@ -102,7 +102,7 @@
 
 - `engineering-roadmap/spec.md` §3.2 Q-5、§5.3 future candidates、§5.2 release gate workstream
 - `engineering-roadmap/plans/001-decompose-subspecs/plan.md` checklist 1.1、checklist 3.3
-- 上游：`docs/spec/product-scope/spec.md` §4.4 / §9.3、`easyinterview-tech-docs/00-shared-conventions.md` §「隐私请求」、`02-api-definition.md` §「privacy」、`03-db-definition.md` §「privacy_requests」、`04-metrics-observability.md` §「Privacy Completion」
+- 当前约束与参考背景：`docs/spec/product-scope/spec.md` §4.4 / §9.3、`B1 shared-conventions-codified` §「隐私请求」、`B2 openapi-v1-contract` §「privacy」、`B4 db-migrations-baseline` §「privacy_requests」、`F1 observability-stack` §「Privacy Completion」
 - 下游 child / future candidate：B2 / B4 / C8 / frontend-shell Settings / F1 / release-gate-and-rollout / privacy export / advanced audit
 
 ## 7 修订记录

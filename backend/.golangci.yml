@@ -16,6 +16,6 @@ linters:
     revive:
       rules:
         # Enforce var / type / function naming conventions to keep generated
-        # constants and hand-written helpers consistent (00-shared-conventions
-        # §2.1).
+        # constants and hand-written helpers consistent with
+        # shared-conventions-codified naming rules.
         - name: var-naming

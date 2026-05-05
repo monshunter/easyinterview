@@ -1126,7 +1126,7 @@ components:
       in: header
       required: true
       description: |
-        Idempotency key per `00-shared-conventions §3.4` (24h TTL). Required by
+        Idempotency key per `B1 shared-conventions-codified §3.4` (24h TTL). Required by
         side-effect endpoints listed in spec D-6, except `POST /auth/email/start`
         (rate-limited per ADR-Q1) and `POST /practice/sessions/{sessionId}/events`
         (uses `clientEventId` instead).
@@ -1152,7 +1152,7 @@ components:
       in: header
       required: false
       description: |
-        UI-locale hint per `00-shared-conventions §3.5`. Affects display defaults only;
+        UI-locale hint per `B1 shared-conventions-codified §3.5`. Affects display defaults only;
         does **not** override persisted business fields such as `targetLanguage`.
       schema:
         type: string
@@ -1191,7 +1191,7 @@ components:
     ApiErrorCode:
       type: string
       description: |
-        Documented error codes (`00-shared-conventions §3.2`). Synced from
+        Documented error codes synced from
         `shared/conventions.yaml#errors[].code`; B1 owns the literal set.
         `PRIVACY_EXPORT_NOT_AVAILABLE` is the P0 example required by spec D-12
         and is included here so the OpenAPI contract is self-contained for the
@@ -1225,7 +1225,7 @@ components:
           description: Request correlation id; equals the X-Request-ID response header for the same request.
         retryable:
           type: boolean
-          description: Hint to the client whether retry is safe (per `00-shared-conventions §3.2`).
+          description: Hint to the client whether retry is safe, as defined by B1 shared-conventions-codified.
         details:
           type: object
           description: Optional structured diagnostic. Must not contain provider, prompt, or secret material per A4 redaction rules.
@@ -1234,7 +1234,7 @@ components:
     ApiErrorResponse:
       type: object
       required: [error]
-      description: Wire error response envelope per `00-shared-conventions §3.2`.
+      description: Wire error response envelope defined by B1 shared-conventions-codified.
       properties:
         error:
           $ref: '#/components/schemas/ApiError'
@@ -1258,7 +1258,7 @@ components:
 
     JobStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#jobStatuses` (00-shared-conventions §4.1).
+      description: Synced from `shared/conventions.yaml#jobStatuses`.
       enum:
         - queued
         - running
@@ -1269,72 +1269,72 @@ components:
 
     TargetJobStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[TargetJobStatus]` (00-shared-conventions §5.1).
+      description: Synced from `shared/conventions.yaml#enums[TargetJobStatus]` sourceSection 5.1.
       enum: [draft, preparing, applied, interviewing, offer, rejected, archived]
 
     TargetJobParseStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[TargetJobParseStatus]` (00-shared-conventions §5.2).
+      description: Synced from `shared/conventions.yaml#enums[TargetJobParseStatus]` sourceSection 5.2.
       enum: [queued, processing, ready, failed]
 
     PracticeMode:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[PracticeMode]` (00-shared-conventions §5.3).
+      description: Synced from `shared/conventions.yaml#enums[PracticeMode]` sourceSection 5.3.
       enum: [assisted, strict, debrief_replay]
 
     PracticeGoal:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[PracticeGoal]` (00-shared-conventions §5.4).
+      description: Synced from `shared/conventions.yaml#enums[PracticeGoal]` sourceSection 5.4.
       enum: [baseline, retry_current_round, next_round, debrief]
 
     InterviewerRole:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[InterviewerRole]` (00-shared-conventions §5.5).
+      description: Synced from `shared/conventions.yaml#enums[InterviewerRole]` sourceSection 5.5.
       enum: [generalist, hr, hiring_manager, technical_manager, peer]
 
     SessionStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[SessionStatus]` (00-shared-conventions §5.6).
+      description: Synced from `shared/conventions.yaml#enums[SessionStatus]` sourceSection 5.6.
       enum: [queued, running, waiting_user_input, completing, completed, failed, cancelled]
 
     ReportStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[ReportStatus]` (00-shared-conventions §5.7).
+      description: Synced from `shared/conventions.yaml#enums[ReportStatus]` sourceSection 5.7.
       enum: [queued, generating, ready, failed]
 
     ReadinessTier:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[ReadinessTier]` (00-shared-conventions §5.8).
+      description: Synced from `shared/conventions.yaml#enums[ReadinessTier]` sourceSection 5.8.
       enum: [not_ready, needs_practice, basically_ready, well_prepared]
 
     DimensionStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[DimensionStatus]` (00-shared-conventions §5.9).
+      description: Synced from `shared/conventions.yaml#enums[DimensionStatus]` sourceSection 5.9.
       enum: [strong, meets_bar, needs_work]
 
     Confidence:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[Confidence]` (00-shared-conventions §5.10).
+      description: Synced from `shared/conventions.yaml#enums[Confidence]` sourceSection 5.10.
       enum: [high, medium, low]
 
     QuestionReviewStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[QuestionReviewStatus]` (00-shared-conventions §5.11).
+      description: Synced from `shared/conventions.yaml#enums[QuestionReviewStatus]` sourceSection 5.11.
       enum: [open, queued_for_retry, resolved]
 
     DebriefStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[DebriefStatus]` (00-shared-conventions §5.12).
+      description: Synced from `shared/conventions.yaml#enums[DebriefStatus]` sourceSection 5.12.
       enum: [draft, completed]
 
     PrivacyRequestType:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[PrivacyRequestType]` (00-shared-conventions §5.13).
+      description: Synced from `shared/conventions.yaml#enums[PrivacyRequestType]` sourceSection 5.13.
       enum: [export, delete]
 
     PrivacyRequestStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[PrivacyRequestStatus]` (00-shared-conventions §5.13).
+      description: Synced from `shared/conventions.yaml#enums[PrivacyRequestStatus]` sourceSection 5.13.
       enum: [queued, processing, completed, failed, cancelled]
     # === B1-AUTO-END ===
 
@@ -1355,7 +1355,7 @@ components:
     JobType:
       type: string
       description: |
-        Async job type catalogue evidenced by `02-api-definition` examples
+        Async job type catalogue evidenced by `B2 openapi-v1-contract` examples
         (target_import, resume_parse, report_generate, resume_tailor,
         debrief_generate, privacy_export, privacy_delete).
       enum:
@@ -2218,7 +2218,7 @@ components:
       description: |
         Evidence-based feedback report. AI-generated; `provenance` is required
         once `status == ready` per spec §4.6. While generating, the placeholder
-        record still returns 200 (per `02-api-definition §11.1`).
+        record still returns 200 (per `B2 openapi-v1-contract §11.1`).
       properties:
         id:
           type: string

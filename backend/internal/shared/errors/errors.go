@@ -3,7 +3,7 @@ package errors
 import "fmt"
 
 // APIError mirrors the documented error response object
-// (00-shared-conventions §3.2). HTTP handlers wrap it inside an outer
+// (B1 shared-conventions-codified §3.2). HTTP handlers wrap it inside an outer
 // `{"error": APIError}` envelope; the envelope itself is owned by the
 // transport layer in each domain.
 type APIError struct {

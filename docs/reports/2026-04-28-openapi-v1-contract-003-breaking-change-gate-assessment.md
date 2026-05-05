@@ -60,7 +60,7 @@
   - **落点**：`scripts/lint/openapi_diff.py`（默认分支解析逻辑）+ `openapi/diff-config.yaml`（tooling.historyDiffBase）+ `openapi/baseline/README.md` Tooling 表（标注新默认值）
   - **优先级**：medium
 - **建议 2（low）**：plan 003 / future plan 编写规范里加一句：当 Phase N self-check 与 Phase M 永久编辑触碰同一文件（典型如 history.md）时，self-check 应使用 `git stash` 而非 `git checkout` 撤销 working-tree 编辑，或显式要求「Phase 4.1 self-check 必须在 Phase 3.3 commit 之后再跑」。即使建议 1 落地，这一条仍是防御性的执行约束。
-  - **落点**：spec-plan（`/design` skill 模板 + plan 003 §4.1 在下一次再同类计划时复用）
+  - **落点**：spec-plan（`/design` skill 模板 + plan 0B4 table inventory.1 在下一次再同类计划时复用）
   - **优先级**：low
 - **建议 3（low）**：把 plan §1.2 / spec §3.1 D-10 中「OpenAPITools/openapi-diff CLI 默认」改成「wrapper 直接实现 spec §4.4 规则；如未来引入 OpenAPITools / `oasdiff` 等外部 CLI，需在 `openapi/diff-config.yaml.tooling` 固定版本，且 wrapper 仍持有最终退出码」。本次靠 §2.3 兜底落地，但消除字面错位有助于后续 plan-review。
   - **落点**：spec-plan（spec §3.1 D-10 + plan 003 §1.2）

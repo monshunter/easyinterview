@@ -87,7 +87,7 @@ type FeatureFlagClient interface {
 
 #### 2.3 落地 `FileFlagProvider`（YAML，hot reload ≤30s）
 
-`featureflag/file_provider.go` 读取 `config/feature-flags.yaml`，按 [secrets-and-config spec D-7](../../spec.md#31-已锁定决策含-p0-必备-env-key-字典) 实现 ≤ 30s 热加载：使用 `time.Ticker` 定期对比文件 mtime + 解析后的内容 hash，变更则原子替换内部 map。热加载必须避免在进程刚启动且文件锁未稳定时 race（Phase 6 自检覆盖）；加载失败时保留上一次的内存快照并写一条结构化 warn 日志，禁止 panic。文件 schema 以 `flags: { <key>: { enabled: bool, variant?: string, public: bool } }` 为最小集合，与 [01-technical-architecture.md §15.1](../../../../../easyinterview-tech-docs/01-technical-architecture.md#15-发布与灰度) 列出的 6 项 P0 baseline flag 兼容。
+`featureflag/file_provider.go` 读取 `config/feature-flags.yaml`，按 [secrets-and-config spec D-7](../../spec.md#31-已锁定决策含-p0-必备-env-key-字典) 实现 ≤ 30s 热加载：使用 `time.Ticker` 定期对比文件 mtime + 解析后的内容 hash，变更则原子替换内部 map。热加载必须避免在进程刚启动且文件锁未稳定时 race（Phase 6 自检覆盖）；加载失败时保留上一次的内存快照并写一条结构化 warn 日志，禁止 panic。文件 schema 以 `flags: { <key>: { enabled: bool, variant?: string, public: bool } }` 为最小集合，与 `engineering-roadmap decisions §15.1` 列出的 6 项 P0 baseline flag 兼容。
 
 #### 2.4 落地 `PostHogFlagProvider`（自托管 PostHog 原生 HTTP）
 

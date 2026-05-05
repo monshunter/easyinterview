@@ -10,7 +10,7 @@
 - R1：ADR-Q1 锁定 session cookie 字面量 `ei_session`，A4 config spec 明确不允许通过 env/config 改名。
 - R2：把 B1 `ApiError` inner object 与 B2 `ApiErrorResponse` wire envelope 分离，并修复 Go / TS generated shape。
 - R3 / R6：B2 spec 与 `openapi/README.md` 锁定 `@apidevtools/swagger-cli@4.0.4` deprecated-but-accepted validation 边界；随后根据 `make docs-openapi` 的 deprecated 输出，将本地 docs renderer 从 `redoc-cli@0.13.21` 迁移为 `@redocly/cli@2.30.1 build-docs`。
-- R4：B2 spec、02-api-definition、03-db-definition 锁定 `ResourceType` / `JobType` API-facing 字面量。
+- R4：B2 spec、B2 openapi-v1-contract、B4 db-migrations-baseline 锁定 `ResourceType` / `JobType` API-facing 字面量。
 - R5：归类为低价值 no-op，未修改 `.agent-skills/tdd/SKILL.md`。
 
 通过的验证：

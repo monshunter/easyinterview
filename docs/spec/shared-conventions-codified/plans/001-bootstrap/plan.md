@@ -23,7 +23,7 @@
 
 ## 3 质量门禁分类
 
-- **Plan 类型**: `contract + tooling + code-internal`。本 plan 修改 B1 shared conventions truth source、Go/TS shared modules、generator、idempotency helpers、lint rules 与 parity tests；不引入用户可见 UI、HTTP API 行为或端到端业务流程。
+- **Plan 类型**: `contract + tooling + code-internal`。本 plan 修改 B1 shared-conventions-codified truth source、Go/TS shared modules、generator、idempotency helpers、lint rules 与 parity tests；不引入用户可见 UI、HTTP API 行为或端到端业务流程。
 - **TDD 策略**: 历史实现以 generator idempotency、Go shared package tests、TS typecheck/tests、error-code lint negative cases 和 conventions drift tests 作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行。
 - **BDD 策略**: BDD 不适用。本 plan 是内部共享契约和工具链；后续 API/UI/业务 workstream 在消费 B1 时维护自身 BDD gate。
 - **替代验证 gate**: `make codegen-conventions`、`make lint-conventions`、`go test ./backend/internal/shared/...`、`go vet ./backend/...`、frontend TS typecheck/tests、cross-language parity tests、repo search for retired enum values、`sync-doc-index --check`。
@@ -36,7 +36,7 @@
 
 #### 1.1 落地 `shared/conventions.yaml`
 
-按 [00-shared-conventions.md §5](../../../../../easyinterview-tech-docs/00-shared-conventions.md#5-枚举目录) 写入 13 个上游小节覆盖的 14 个生成枚举类型（§5.13 拆为隐私请求 type/status 两个并行类型），按 §3.2 写入错误码示例（`AUTH_UNAUTHORIZED` / `TARGET_IMPORT_FAILED` / `PRACTICE_SESSION_CONFLICT` / `REPORT_NOT_READY` / `VALIDATION_FAILED` / `RATE_LIMITED` 等），按 §4.2 写入 Job 状态，按 §3 写入 `PageInfo` / `ApiError` 结构。文件结构必须可被 `gopkg.in/yaml.v3` 与 `js-yaml` 同等解析。
+按 `B1 shared-conventions-codified §5` 写入 13 个上游小节覆盖的 14 个生成枚举类型（§5.13 拆为隐私请求 type/status 两个并行类型），按 §3.2 写入错误码示例（`AUTH_UNAUTHORIZED` / `TARGET_IMPORT_FAILED` / `PRACTICE_SESSION_CONFLICT` / `REPORT_NOT_READY` / `VALIDATION_FAILED` / `RATE_LIMITED` 等），按 §4.2 写入 Job 状态，按 §3 写入 `PageInfo` / `ApiError` 结构。文件结构必须可被 `gopkg.in/yaml.v3` 与 `js-yaml` 同等解析。
 
 #### 1.2 Go module 初始化
 
@@ -102,7 +102,7 @@ L2 remediation: `scripts/lint/error_codes.py` 必须解析 `ERROR_CODES = { ... 
 - `go test ./backend/internal/shared/...` 通过：
   - `idx_test.go` 验证 `NewID()` 返回 UUIDv7 字符串、`RequireServerID("tmp_xxx")` 返回 error。
   - `idempotency_test.go` 验证 Go 端 `Idempotency-Key` 生成、解析、24h TTL 与非法格式拒绝。
-  - `errors_test.go` 验证 `Wrap(...)` 输出 JSON 满足 [00-shared-conventions.md §3.2](../../../../../easyinterview-tech-docs/00-shared-conventions.md#32-错误响应) 结构。
+  - `errors_test.go` 验证 `Wrap(...)` 输出 JSON 满足 `B1 shared-conventions-codified §3.2` 结构。
 - `go vet ./backend/...` 通过。
 - L2 remediation: 仓库根必须提供 Go workspace 或等价入口，使上述根级 `go test ./backend/...` / `go vet ./backend/...` 命令无需手动 `cd backend` 即可真实运行。
 

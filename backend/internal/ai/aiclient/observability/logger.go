@@ -2,7 +2,7 @@ package observability
 
 import "sync"
 
-// Log event names. Spec §4.3 + 05-logging-standard.md §4.4 lock these
+// Log event names. Spec §4.3 + F1 observability-stack logging §4.4 lock these
 // four; new event names require a logging spec revision.
 const (
 	EventTaskCompleted          = "ai.task.completed"

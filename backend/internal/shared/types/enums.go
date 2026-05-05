@@ -3,7 +3,7 @@
 
 package types
 
-// TargetJobStatus mirrors 00-shared-conventions §5.1 (jsonField: "status").
+// TargetJobStatus mirrors shared/conventions.yaml sourceSection 5.1 (jsonField: "status").
 type TargetJobStatus string
 
 const (
@@ -27,7 +27,7 @@ var AllTargetJobStatuses = []TargetJobStatus{
 	TargetJobStatusArchived,
 }
 
-// TargetJobParseStatus mirrors 00-shared-conventions §5.2 (jsonField: "parseStatus").
+// TargetJobParseStatus mirrors shared/conventions.yaml sourceSection 5.2 (jsonField: "parseStatus").
 type TargetJobParseStatus string
 
 const (
@@ -45,7 +45,7 @@ var AllTargetJobParseStatuses = []TargetJobParseStatus{
 	TargetJobParseStatusFailed,
 }
 
-// PracticeMode mirrors 00-shared-conventions §5.3 (jsonField: "mode").
+// PracticeMode mirrors shared/conventions.yaml sourceSection 5.3 (jsonField: "mode").
 type PracticeMode string
 
 const (
@@ -61,7 +61,7 @@ var AllPracticeModes = []PracticeMode{
 	PracticeModeDebriefReplay,
 }
 
-// PracticeGoal mirrors 00-shared-conventions §5.4 (jsonField: "goal").
+// PracticeGoal mirrors shared/conventions.yaml sourceSection 5.4 (jsonField: "goal").
 type PracticeGoal string
 
 const (
@@ -79,7 +79,7 @@ var AllPracticeGoals = []PracticeGoal{
 	PracticeGoalDebrief,
 }
 
-// InterviewerRole mirrors 00-shared-conventions §5.5 (jsonField: "interviewerRole").
+// InterviewerRole mirrors shared/conventions.yaml sourceSection 5.5 (jsonField: "interviewerRole").
 type InterviewerRole string
 
 const (
@@ -99,7 +99,7 @@ var AllInterviewerRoles = []InterviewerRole{
 	InterviewerRolePeer,
 }
 
-// SessionStatus mirrors 00-shared-conventions §5.6 (jsonField: "sessionStatus").
+// SessionStatus mirrors shared/conventions.yaml sourceSection 5.6 (jsonField: "sessionStatus").
 type SessionStatus string
 
 const (
@@ -123,7 +123,7 @@ var AllSessionStatuses = []SessionStatus{
 	SessionStatusCancelled,
 }
 
-// ReportStatus mirrors 00-shared-conventions §5.7 (jsonField: "reportStatus").
+// ReportStatus mirrors shared/conventions.yaml sourceSection 5.7 (jsonField: "reportStatus").
 type ReportStatus string
 
 const (
@@ -141,7 +141,7 @@ var AllReportStatuses = []ReportStatus{
 	ReportStatusFailed,
 }
 
-// ReadinessTier mirrors 00-shared-conventions §5.8 (jsonField: "readinessTier").
+// ReadinessTier mirrors shared/conventions.yaml sourceSection 5.8 (jsonField: "readinessTier").
 type ReadinessTier string
 
 const (
@@ -159,7 +159,7 @@ var AllReadinessTiers = []ReadinessTier{
 	ReadinessTierWellPrepared,
 }
 
-// DimensionStatus mirrors 00-shared-conventions §5.9 (jsonField: "dimensionStatus").
+// DimensionStatus mirrors shared/conventions.yaml sourceSection 5.9 (jsonField: "dimensionStatus").
 type DimensionStatus string
 
 const (
@@ -175,7 +175,7 @@ var AllDimensionStatuses = []DimensionStatus{
 	DimensionStatusNeedsWork,
 }
 
-// Confidence mirrors 00-shared-conventions §5.10 (jsonField: "confidence").
+// Confidence mirrors shared/conventions.yaml sourceSection 5.10 (jsonField: "confidence").
 type Confidence string
 
 const (
@@ -191,7 +191,7 @@ var AllConfidences = []Confidence{
 	ConfidenceLow,
 }
 
-// QuestionReviewStatus mirrors 00-shared-conventions §5.11 (jsonField: "questionReviewStatus").
+// QuestionReviewStatus mirrors shared/conventions.yaml sourceSection 5.11 (jsonField: "questionReviewStatus").
 type QuestionReviewStatus string
 
 const (
@@ -207,7 +207,7 @@ var AllQuestionReviewStatuses = []QuestionReviewStatus{
 	QuestionReviewStatusResolved,
 }
 
-// DebriefStatus mirrors 00-shared-conventions §5.12 (jsonField: "debriefStatus").
+// DebriefStatus mirrors shared/conventions.yaml sourceSection 5.12 (jsonField: "debriefStatus").
 type DebriefStatus string
 
 const (
@@ -221,7 +221,7 @@ var AllDebriefStatuses = []DebriefStatus{
 	DebriefStatusCompleted,
 }
 
-// PrivacyRequestType mirrors 00-shared-conventions §5.13 (jsonField: "privacyRequestType").
+// PrivacyRequestType mirrors shared/conventions.yaml sourceSection 5.13 (jsonField: "privacyRequestType").
 type PrivacyRequestType string
 
 const (
@@ -235,7 +235,7 @@ var AllPrivacyRequestTypes = []PrivacyRequestType{
 	PrivacyRequestTypeDelete,
 }
 
-// PrivacyRequestStatus mirrors 00-shared-conventions §5.13 (jsonField: "privacyRequestStatus").
+// PrivacyRequestStatus mirrors shared/conventions.yaml sourceSection 5.13 (jsonField: "privacyRequestStatus").
 type PrivacyRequestStatus string
 
 const (
@@ -255,7 +255,7 @@ var AllPrivacyRequestStatuses = []PrivacyRequestStatus{
 	PrivacyRequestStatusCancelled,
 }
 
-// JobStatus mirrors 00-shared-conventions §4.2 (jsonField: "status").
+// JobStatus mirrors shared/conventions.yaml sourceSection 4.2 (jsonField: "status").
 type JobStatus string
 
 const (

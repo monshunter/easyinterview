@@ -6,7 +6,7 @@
 
 ## 1 背景
 
-`easyinterview-tech-docs/01-technical-architecture.md` §3 把后端拆成 `api` + `worker` 两个进程；`00-shared-conventions.md` §4 把所有长耗时操作统一为「异步 Job 模式」；`03-db-definition.md` §5.9 已定义 `async_jobs` 与 `outbox_events` 两张表。`README.md` §「待评审的 5 个决策点」第 2 项只作为历史决策输入。
+`engineering-roadmap decisions` §3 把后端拆成 `api` + `worker` 两个进程；`B1 shared-conventions-codified` §4 把所有长耗时操作统一为「异步 Job 模式」；`B4 db-migrations-baseline` §5.9 已定义 `async_jobs` 与 `outbox_events` 两张表。`README.md` §「待评审的 5 个决策点」第 2 项只作为历史决策输入。
 
 P0 已识别的异步链路：
 
@@ -110,7 +110,7 @@ P0 已识别的异步链路：
 
 - `engineering-roadmap/spec.md` §3.2 Q-2
 - `engineering-roadmap/plans/001-decompose-subspecs/plan.md` checklist 1.1
-- 上游：`easyinterview-tech-docs/00-shared-conventions.md` §4 异步任务约定、`01-technical-architecture.md` §3、`03-db-definition.md` §5.9、`04-metrics-observability.md` §「async_jobs」、`06-event-contracts.md`
+- 参考背景：`B1 shared-conventions-codified` §4 异步任务约定、`engineering-roadmap decisions` §3、`B4 db-migrations-baseline` §5.9、`F1 observability-stack` §「async_jobs」、`B3 event-and-outbox-contract`
 - 下游 child：C8 / B3 / B4 / A2 / A4 / F1；间接：C4-C7 全部
 
 ## 7 修订记录

@@ -1,4 +1,4 @@
-# Feature flag baseline (P0) — 6 flags listed in 01-technical-architecture.md
+# Feature flag baseline (P0) — 6 flags listed in engineering-roadmap decisions
 # §15.1, owned jointly by A4 secrets-and-config and F2 analytics-funnel.
 #
 # Schema: flags.<key>.{enabled, variant?, public}

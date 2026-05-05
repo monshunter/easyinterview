@@ -52,7 +52,7 @@
 
 #### 1.2 34 份 default fixture 内容
 
-按 [02-api-definition.md §4–§17](../../../../../easyinterview-tech-docs/02-api-definition.md) 与 spec §3.1.1 / §4.2 schema inventory 写入合理的 example：
+按 `B2 openapi-v1-contract §4–§17` 与 spec §3.1.1 / §4.2 schema inventory 写入合理的 example：
 
 - 列表 endpoint 默认返回 1–3 条记录 + `pageInfo.nextCursor: null` / `hasMore: false`。
 - 长耗时 operation 返回 `202 + *WithJob`，`job.status` 为 `pending` 或 `running`，`job.kind` 与 endpoint 对应。
