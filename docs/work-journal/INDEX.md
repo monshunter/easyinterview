@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-05](2026-05-05.md) | `feat(mock-contract): backend fixture mock runtime` | #feat #test #docs |
 | [2026-05-05](2026-05-05.md) | `feat(mock-contract): fixture-backed frontend transport` | #feat #test #docs |
 | [2026-05-05](2026-05-05.md) | `feat(mock-contract): fixture registry and coverage lint` | #feat #test #docs |
 | [2026-05-05](2026-05-05.md) | `docs(mock-contract): tighten fixture runtime gates` | #docs |

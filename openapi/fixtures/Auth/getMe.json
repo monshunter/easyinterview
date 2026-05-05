@@ -30,6 +30,40 @@
           "preferredPracticeLanguage": "zh-CN"
         }
       }
+    },
+    "authenticated": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-authenticated"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000000100",
+          "emailMasked": "ali***@example.com",
+          "displayName": "Alice Example",
+          "uiLanguage": "zh-CN",
+          "preferredPracticeLanguage": "zh-CN"
+        }
+      }
+    },
+    "unauthenticated": {
+      "response": {
+        "status": 401,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-unauthenticated"
+        },
+        "body": {
+          "error": {
+            "code": "AUTH_UNAUTHORIZED",
+            "message": "Session cookie is missing or expired.",
+            "requestId": "req_2026-04-28T13-45-12-unauthenticated",
+            "retryable": false,
+            "details": {
+              "seedProfile": "unauthenticated"
+            }
+          }
+        }
+      }
     }
   }
 }

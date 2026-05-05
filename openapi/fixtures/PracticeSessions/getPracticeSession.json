@@ -54,6 +54,25 @@
           "updatedAt": "2026-04-28T13:45:12Z"
         }
       }
+    },
+    "missing-session": {
+      "response": {
+        "status": 401,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-missing-session"
+        },
+        "body": {
+          "error": {
+            "code": "AUTH_UNAUTHORIZED",
+            "message": "Practice session requires an authenticated user session.",
+            "requestId": "req_2026-04-28T13-45-12-missing-session",
+            "retryable": false,
+            "details": {
+              "seedProfile": "missing-session"
+            }
+          }
+        }
+      }
     }
   }
 }

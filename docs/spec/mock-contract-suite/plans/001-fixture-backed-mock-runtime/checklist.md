@@ -18,8 +18,8 @@
 
 ## Phase 3: Backend mock harness
 
-- [ ] 3.1 提供后端 mock handler / router；验证: backend focused test 通过 HTTP request 命中 mock handler，返回与 fixture registry 相同的 JSON shape 和 status code
-- [ ] 3.2 建立错误态和 seed profile；验证: tests 覆盖未登录、已登录、缺 session、缺简历、报告生成中、隐私删除请求至少六种 named fixture scenarios，每种 scenario 可重置；请求未知 scenario 必须 fail loudly，不能静默回落到 `default`
+- [x] 3.1 提供后端 mock handler / router；验证: backend focused test 通过 HTTP request 命中 mock handler，返回与 fixture registry 相同的 JSON shape 和 status code
+- [x] 3.2 建立错误态和 seed profile；验证: tests 覆盖未登录、已登录、缺 session、缺简历、报告生成中、隐私删除请求至少六种 named fixture scenarios，每种 scenario 可重置；请求未知 scenario 必须 fail loudly，不能静默回落到 `default`
 
 ## Phase 4: Drift gates and handoff
 
