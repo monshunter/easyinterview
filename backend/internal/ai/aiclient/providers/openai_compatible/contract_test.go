@@ -22,25 +22,25 @@ const (
 
 func chatProfile(timeoutMs int) *aiclient.ModelProfile {
 	return &aiclient.ModelProfile{
-		Name:     "practice.followup.default",
-		TaskType: aiclient.TaskTypeChat,
+		Name:       "practice.followup.default",
+		Capability: aiclient.CapabilityChat,
 		Default: aiclient.ProviderConfig{
-			Provider: openaicompatible.Name,
-			Model:    chatModelID,
+			ProviderRef: openaicompatible.Name,
+			Model:       chatModelID,
 		},
-		TimeoutMs:    timeoutMs,
-		Route: "practice.followup",
-		Version:      "1.0.0",
+		TimeoutMs: timeoutMs,
+		Route:     "practice.followup",
+		Version:   "1.0.0",
 	}
 }
 
 func embedProfile(timeoutMs int) *aiclient.ModelProfile {
 	return &aiclient.ModelProfile{
-		Name:     "review.embed.default",
-		TaskType: aiclient.TaskTypeEmbed,
+		Name:       "review.embed.default",
+		Capability: aiclient.CapabilityEmbed,
 		Default: aiclient.ProviderConfig{
-			Provider: openaicompatible.Name,
-			Model:    embedModelID,
+			ProviderRef: openaicompatible.Name,
+			Model:       embedModelID,
 		},
 		TimeoutMs: timeoutMs,
 		Version:   "1.0.0",

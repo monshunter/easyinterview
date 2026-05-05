@@ -9,23 +9,23 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 )
 
-// AITaskRunTaskType is the business task_type persisted into B4 ai_task_runs.
-// It is distinct from Model Profile TaskType (chat/embed/stt), which only
+// AITaskRunCapability is the business capability persisted into B4 ai_task_runs.
+// It is distinct from Model Profile Capability (chat/embed/stt), which only
 // describes the provider call shape.
-type AITaskRunTaskType string
+type AITaskRunCapability string
 
 const (
-	AITaskRunTaskJDParse          AITaskRunTaskType = "jd_parse"
-	AITaskRunTaskResumeParse      AITaskRunTaskType = AITaskRunTaskType(jobs.JobTypeResumeParse)
-	AITaskRunTaskQuestionGenerate AITaskRunTaskType = "question_generate"
-	AITaskRunTaskFollowupGenerate AITaskRunTaskType = "followup_generate"
-	AITaskRunTaskReportGenerate   AITaskRunTaskType = AITaskRunTaskType(jobs.JobTypeReportGenerate)
-	AITaskRunTaskResumeTailor     AITaskRunTaskType = AITaskRunTaskType(jobs.JobTypeResumeTailor)
-	AITaskRunTaskDebriefGenerate  AITaskRunTaskType = AITaskRunTaskType(jobs.JobTypeDebriefGenerate)
-	AITaskRunTaskEmbeddingUpsert  AITaskRunTaskType = AITaskRunTaskType(jobs.JobTypeEmbeddingUpsert)
+	AITaskRunTaskJDParse          AITaskRunCapability = "jd_parse"
+	AITaskRunTaskResumeParse      AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeParse)
+	AITaskRunTaskQuestionGenerate AITaskRunCapability = "question_generate"
+	AITaskRunTaskFollowupGenerate AITaskRunCapability = "followup_generate"
+	AITaskRunTaskReportGenerate   AITaskRunCapability = AITaskRunCapability(jobs.JobTypeReportGenerate)
+	AITaskRunTaskResumeTailor     AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeTailor)
+	AITaskRunTaskDebriefGenerate  AITaskRunCapability = AITaskRunCapability(jobs.JobTypeDebriefGenerate)
+	AITaskRunTaskEmbeddingUpsert  AITaskRunCapability = AITaskRunCapability(jobs.JobTypeEmbeddingUpsert)
 )
 
-var allowedAITaskRunTaskTypes = map[AITaskRunTaskType]struct{}{
+var allowedAITaskRunCapabilities = map[AITaskRunCapability]struct{}{
 	AITaskRunTaskJDParse:          {},
 	AITaskRunTaskResumeParse:      {},
 	AITaskRunTaskQuestionGenerate: {},
@@ -64,7 +64,7 @@ const (
 type AITaskRunContext struct {
 	ID                   string
 	UserID               string
-	TaskType             AITaskRunTaskType
+	Capability           AITaskRunCapability
 	ResourceType         AITaskRunResourceType
 	ResourceID           string
 	OutputSchemaVersion  string
@@ -84,8 +84,8 @@ func (c AITaskRunContext) Validate() error {
 			return fmt.Errorf("user_id must be uuid: %w", err)
 		}
 	}
-	if _, ok := allowedAITaskRunTaskTypes[c.TaskType]; !ok {
-		return fmt.Errorf("task_type %q is not allowed by B4 ai_task_runs", c.TaskType)
+	if _, ok := allowedAITaskRunCapabilities[c.Capability]; !ok {
+		return fmt.Errorf("capability %q is not allowed by B4 ai_task_runs", c.Capability)
 	}
 	if c.ResourceType == "" {
 		return fmt.Errorf("resource_type is required")
@@ -105,7 +105,7 @@ func (c AITaskRunContext) Validate() error {
 type AITaskRunRow struct {
 	ID                   string
 	UserID               string
-	TaskType             AITaskRunTaskType
+	Capability           AITaskRunCapability
 	ResourceType         AITaskRunResourceType
 	ResourceID           string
 	Provider             string

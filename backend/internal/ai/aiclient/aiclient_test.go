@@ -30,31 +30,31 @@ func newTestClient(t *testing.T) *aiclient.Client {
 	}
 	resolver := staticResolver{
 		"practice.followup.default": {
-			Name:     "practice.followup.default",
-			TaskType: aiclient.TaskTypeChat,
+			Name:       "practice.followup.default",
+			Capability: aiclient.CapabilityChat,
 			Default: aiclient.ProviderConfig{
-				Provider: stub.Name,
-				Model:    "stub-chat-1",
+				ProviderRef: stub.Name,
+				Model:       "stub-chat-1",
 			},
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
 		},
 		"review.embed.default": {
-			Name:     "review.embed.default",
-			TaskType: aiclient.TaskTypeEmbed,
+			Name:       "review.embed.default",
+			Capability: aiclient.CapabilityEmbed,
 			Default: aiclient.ProviderConfig{
-				Provider: stub.Name,
-				Model:    "stub-embed-1",
+				ProviderRef: stub.Name,
+				Model:       "stub-embed-1",
 			},
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
 		},
 		"voice.transcription.reserved": {
-			Name:     "voice.transcription.reserved",
-			TaskType: aiclient.TaskTypeSTT,
+			Name:       "voice.transcription.reserved",
+			Capability: aiclient.CapabilitySTT,
 			Default: aiclient.ProviderConfig{
-				Provider: stub.Name,
-				Model:    "stub-stt-1",
+				ProviderRef: stub.Name,
+				Model:       "stub-stt-1",
 			},
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
@@ -105,8 +105,8 @@ func TestComplete_RoutesToStubAndReturnsMeta(t *testing.T) {
 	if meta.ModelProfileVersion != "1.0.0" {
 		t.Fatalf("expected meta.ModelProfileVersion=1.0.0, got %q", meta.ModelProfileVersion)
 	}
-	if meta.TaskType != aiclient.TaskTypeChat {
-		t.Fatalf("expected meta.TaskType=chat, got %q", meta.TaskType)
+	if meta.Capability != aiclient.CapabilityChat {
+		t.Fatalf("expected meta.Capability=chat, got %q", meta.Capability)
 	}
 	if meta.PromptVersion != "p1" || meta.RubricVersion != "r1" || meta.Language != "en" {
 		t.Fatalf("call metadata not propagated to meta: %+v", meta)
@@ -169,16 +169,16 @@ func TestEmbed_ReturnsVectors(t *testing.T) {
 	if len(resp.Vectors) != 2 {
 		t.Fatalf("expected 2 vectors, got %d", len(resp.Vectors))
 	}
-	if meta.TaskType != aiclient.TaskTypeEmbed {
-		t.Fatalf("expected meta.TaskType=embed, got %q", meta.TaskType)
+	if meta.Capability != aiclient.CapabilityEmbed {
+		t.Fatalf("expected meta.Capability=embed, got %q", meta.Capability)
 	}
 }
 
-func TestSTTProfileReturnsTaskTypeNotImplemented(t *testing.T) {
+func TestSTTProfileReturnsCapabilityNotImplemented(t *testing.T) {
 	c := newTestClient(t)
 	_, _, err := c.Complete(context.Background(), "voice.transcription.reserved", samplePayload())
-	if !errors.Is(err, aiclient.ErrTaskTypeNotImplemented) {
-		t.Fatalf("expected ErrTaskTypeNotImplemented for stt profile, got %v", err)
+	if !errors.Is(err, aiclient.ErrCapabilityNotImplemented) {
+		t.Fatalf("expected ErrCapabilityNotImplemented for stt profile, got %v", err)
 	}
 }
 

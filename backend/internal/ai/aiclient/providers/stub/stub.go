@@ -12,7 +12,7 @@ import (
 )
 
 // Name is the canonical provider name. It also matches the value Model
-// Profiles set in Default.Provider when they want to route to stub.
+// Profiles set in Default.ProviderRef when they want to route to stub.
 const Name = "stub"
 
 // ProviderName is exposed for cross-package references that prefer a typed
@@ -141,9 +141,9 @@ func (p *Provider) Stream(ctx context.Context, profile *aiclient.ModelProfile, p
 
 func canonicalSeed(profileName string, payload aiclient.CompletePayload) (string, error) {
 	canonical := struct {
-		Profile  string                 `json:"profile"`
-		Messages []aiclient.Message     `json:"messages"`
-		Metadata aiclient.CallMetadata  `json:"metadata"`
+		Profile  string                `json:"profile"`
+		Messages []aiclient.Message    `json:"messages"`
+		Metadata aiclient.CallMetadata `json:"metadata"`
 	}{
 		Profile:  profileName,
 		Messages: payload.Messages,

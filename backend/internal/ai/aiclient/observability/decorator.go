@@ -61,7 +61,7 @@ func WithAuditEventWriter(w aiclient.AuditEventWriter) Option {
 }
 
 // WithProfileResolver wires the profile resolver used to derive
-// task_type and route labels for failures that happen before the
+// capability and route labels for failures that happen before the
 // inner client could populate the meta. When unset, label values fall
 // back to "unknown".
 func WithProfileResolver(r aiclient.ProfileResolver) Option {
@@ -261,7 +261,7 @@ func (w *Wrap) standardLabels(meta aiclient.AICallMeta, err error) []string {
 		emptyOrUnknown(meta.ModelFamily),
 		emptyOrUnknown(meta.ModelProfileName),
 		emptyOrUnknown(meta.Route),
-		emptyOrUnknown(string(meta.TaskType)),
+		emptyOrUnknown(string(meta.Capability)),
 		emptyOrUnknown(meta.Language),
 		result,
 	}
@@ -275,7 +275,7 @@ func (w *Wrap) buildLogFields(meta aiclient.AICallMeta) LogFields {
 		ModelProfileVersion: meta.ModelProfileVersion,
 		PromptVersion:       meta.PromptVersion,
 		RubricVersion:       meta.RubricVersion,
-		TaskType:            string(meta.TaskType),
+		Capability:            string(meta.Capability),
 		Language:            meta.Language,
 		InputTokens:         meta.InputTokens,
 		OutputTokens:        meta.OutputTokens,
@@ -301,7 +301,7 @@ func AITaskRunRowFromMeta(meta aiclient.AICallMeta, taskCtx aiclient.AITaskRunCo
 	return aiclient.AITaskRunRow{
 		ID:                   taskCtx.ID,
 		UserID:               taskCtx.UserID,
-		TaskType:             taskCtx.TaskType,
+		Capability:             taskCtx.Capability,
 		ResourceType:         taskCtx.ResourceType,
 		ResourceID:           taskCtx.ResourceID,
 		Provider:             meta.Provider,

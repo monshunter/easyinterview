@@ -1,0 +1,117 @@
+"""Unit tests for ai_profile_coverage lint."""
+from __future__ import annotations
+
+import subprocess
+import sys
+import textwrap
+from pathlib import Path
+
+THIS_DIR = Path(__file__).resolve().parent
+SCRIPT = THIS_DIR / "ai_profile_coverage.py"
+
+
+def write(path: Path, body: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
+
+
+def make_repo(tmp_path: Path, profile_body: str) -> Path:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    write(
+        repo / "docs/spec/prompt-rubric-registry/spec.md",
+        textwrap.dedent(
+            """
+            #### 3.1.1 12 个当前 baseline feature_key 字典
+
+            | feature_key | 用途 | 关联业务域 | 关联 Model Profile（默认） |
+            |-------------|------|-----------|--------------------------|
+            | `practice.session.follow_up` | 追问生成 | C5 | `practice.followup.default` |
+            """
+        ).strip(),
+    )
+    write(
+        repo / "docs/spec/ai-provider-and-model-routing/spec.md",
+        textwrap.dedent(
+            """
+            ### 4.5 Product/UI AI Capability Catalog
+
+            | 产品 / UI 场景 | 主要输入 | Capability family | 默认 profile 命名 |
+            |----------------|----------|-------------------|-------------------|
+            | 模拟面试追问 | transcript | `chat` | `practice.followup.default` |
+            """
+        ).strip(),
+    )
+    write(
+        repo / "config/ai-providers.yaml",
+        textwrap.dedent(
+            """
+            providers:
+              - name: unit-test-stub
+                protocol: stub
+                capabilities: [chat]
+                version: 1.0.0
+            """
+        ).strip(),
+    )
+    write(repo / "config/ai-profiles/practice.followup.default.yaml", profile_body)
+    return repo
+
+
+def run(repo: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(SCRIPT), "--repo-root", str(repo)],
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_passes_when_docs_and_catalog_align(tmp_path: Path) -> None:
+    repo = make_repo(
+        tmp_path,
+        textwrap.dedent(
+            """
+            name: practice.followup.default
+            capability: chat
+            status: active
+            default:
+              provider_ref: unit-test-stub
+              model: stub-chat-1
+            timeout_ms: 1000
+            version: 1.0.0
+            """
+        ).strip(),
+    )
+    result = run(repo)
+    assert result.returncode == 0, result.stderr
+    assert "OK" in result.stdout
+
+
+def test_fails_when_referenced_profile_is_missing(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, "")
+    (repo / "config/ai-profiles/practice.followup.default.yaml").unlink()
+    result = run(repo)
+    assert result.returncode == 1
+    assert "missing profiles" in result.stderr
+    assert "practice.followup.default" in result.stderr
+
+
+def test_fails_when_provider_does_not_support_capability(tmp_path: Path) -> None:
+    repo = make_repo(
+        tmp_path,
+        textwrap.dedent(
+            """
+            name: practice.followup.default
+            capability: rerank
+            status: active
+            default:
+              provider_ref: unit-test-stub
+              model: rerank-model
+            timeout_ms: 1000
+            version: 1.0.0
+            """
+        ).strip(),
+    )
+    result = run(repo)
+    assert result.returncode == 1
+    assert "capability not declared by provider" in result.stderr

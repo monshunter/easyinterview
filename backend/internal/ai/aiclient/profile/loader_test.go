@@ -13,14 +13,15 @@ import (
 )
 
 const sampleProfile = `name: practice.followup.default
-task_type: chat
+capability: chat
+status: active
 default:
-  provider: stub
+  provider_ref: unit-test-stub
   model: stub-chat-1
 fallback:
-  - provider: stub
+  - provider_ref: unit-test-stub
     model: stub-chat-1
-    trigger: timeout
+    when: [timeout]
 timeout_ms: 5000
 max_tokens: 1024
 rate_limit:
@@ -54,13 +55,16 @@ func TestLoaderResolvesParsedProfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
-	if p.TaskType != aiclient.TaskTypeChat {
-		t.Fatalf("expected task_type=chat, got %q", p.TaskType)
+	if p.Capability != aiclient.CapabilityChat {
+		t.Fatalf("expected capability=chat, got %q", p.Capability)
 	}
-	if p.Default.Provider != "stub" || p.Default.Model != "stub-chat-1" {
+	if p.Status != aiclient.ProfileStatusActive {
+		t.Fatalf("expected status=active, got %q", p.Status)
+	}
+	if p.Default.ProviderRef != "unit-test-stub" || p.Default.Model != "stub-chat-1" {
 		t.Fatalf("unexpected default: %+v", p.Default)
 	}
-	if len(p.Fallback) != 1 || p.Fallback[0].Trigger != "timeout" {
+	if len(p.Fallback) != 1 || len(p.Fallback[0].When) != 1 || p.Fallback[0].When[0] != "timeout" {
 		t.Fatalf("fallback not parsed: %+v", p.Fallback)
 	}
 	if p.TimeoutMs != 5000 || p.MaxTokens != 1024 {
@@ -71,11 +75,13 @@ func TestLoaderResolvesParsedProfile(t *testing.T) {
 	}
 }
 
-func TestLoaderAcceptsSTTAsReservedTaskType(t *testing.T) {
+func TestLoaderAcceptsSTTAsReservedCapability(t *testing.T) {
 	dir := writeProfileDir(t, map[string]string{"stt.yaml": `name: voice.transcription.reserved
-task_type: stt
+capability: stt
+status: unsupported
+unsupported_reason: "STT adapter is not active in this build"
 default:
-  provider: stub
+  provider_ref: unit-test-stub
   model: stub-stt-1
 timeout_ms: 5000
 version: 1.0.0
@@ -90,8 +96,56 @@ version: 1.0.0
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
-	if p.TaskType != aiclient.TaskTypeSTT {
-		t.Fatalf("expected task_type=stt, got %q", p.TaskType)
+	if p.Capability != aiclient.CapabilitySTT {
+		t.Fatalf("expected capability=stt, got %q", p.Capability)
+	}
+}
+
+func TestLoaderRejectsRetiredProfileSchemaKeys(t *testing.T) {
+	cases := map[string]string{
+		"task-type": `name: old
+task_type: chat
+status: active
+default:
+  provider_ref: unit-test-stub
+  model: m
+timeout_ms: 1
+version: 1
+`,
+		"default-provider": `name: old
+capability: chat
+status: active
+default:
+  provider: stub
+  model: m
+timeout_ms: 1
+version: 1
+`,
+		"fallback-provider-trigger": `name: old
+capability: chat
+status: active
+default:
+  provider_ref: unit-test-stub
+  model: m
+fallback:
+  - provider: stub
+    model: m
+    trigger: timeout
+timeout_ms: 1
+version: 1
+`,
+	}
+	for label, body := range cases {
+		t.Run(label, func(t *testing.T) {
+			dir := writeProfileDir(t, map[string]string{"p.yaml": body})
+			_, err := profile.NewLoader(profile.Options{Dir: dir, PollInterval: -1})
+			if err == nil {
+				t.Fatalf("expected retired schema key to be rejected")
+			}
+			if !strings.Contains(err.Error(), "retired schema key") {
+				t.Fatalf("expected retired schema key error, got %v", err)
+			}
+		})
 	}
 }
 
@@ -109,13 +163,17 @@ func TestLoaderResolveUnknownProfile(t *testing.T) {
 
 func TestLoaderMissingRequiredFields(t *testing.T) {
 	cases := map[string]string{
-		"missing-name":     "task_type: chat\ndefault:\n  provider: stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
-		"missing-task":     "name: x\ndefault:\n  provider: stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
-		"missing-provider": "name: x\ntask_type: chat\ndefault:\n  model: m\ntimeout_ms: 1\nversion: 1\n",
-		"missing-model":    "name: x\ntask_type: chat\ndefault:\n  provider: stub\ntimeout_ms: 1\nversion: 1\n",
-		"bad-task-type":    "name: x\ntask_type: image\ndefault:\n  provider: stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
-		"non-positive-to":  "name: x\ntask_type: chat\ndefault:\n  provider: stub\n  model: m\ntimeout_ms: 0\nversion: 1\n",
-		"missing-version":  "name: x\ntask_type: chat\ndefault:\n  provider: stub\n  model: m\ntimeout_ms: 1\n",
+		"missing-name":               "capability: chat\nstatus: active\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
+		"missing-capability":         "name: x\nstatus: active\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
+		"missing-provider-ref":       "name: x\ncapability: chat\nstatus: active\ndefault:\n  model: m\ntimeout_ms: 1\nversion: 1\n",
+		"missing-model":              "name: x\ncapability: chat\nstatus: active\ndefault:\n  provider_ref: unit-test-stub\ntimeout_ms: 1\nversion: 1\n",
+		"bad-capability":             "name: x\ncapability: image\nstatus: active\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
+		"missing-status":             "name: x\ncapability: chat\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
+		"bad-status":                 "name: x\ncapability: chat\nstatus: deprecated\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
+		"unsupported-without-reason": "name: x\ncapability: stt\nstatus: unsupported\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
+		"disabled-without-reason":    "name: x\ncapability: stt\nstatus: disabled\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
+		"non-positive-to":            "name: x\ncapability: chat\nstatus: active\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 0\nversion: 1\n",
+		"missing-version":            "name: x\ncapability: chat\nstatus: active\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\n",
 	}
 	for label, body := range cases {
 		t.Run(label, func(t *testing.T) {
@@ -151,9 +209,10 @@ func TestLoaderReloadPicksUpEdits(t *testing.T) {
 	}
 
 	updated := `name: practice.followup.default
-task_type: chat
+capability: chat
+status: active
 default:
-  provider: stub
+  provider_ref: unit-test-stub
   model: stub-chat-2
 timeout_ms: 9000
 version: 1.1.0
@@ -190,9 +249,10 @@ func TestLoaderReloadConvergesUnderHotReloadSLA(t *testing.T) {
 	defer loader.Close()
 
 	updated := `name: practice.followup.default
-task_type: chat
+capability: chat
+status: active
 default:
-  provider: stub
+  provider_ref: unit-test-stub
   model: stub-chat-2
 timeout_ms: 8000
 version: 1.2.0
@@ -214,9 +274,10 @@ version: 1.2.0
 
 func TestLoaderRejectsDuplicateNames(t *testing.T) {
 	dup := `name: practice.followup.default
-task_type: chat
+capability: chat
+status: active
 default:
-  provider: stub
+  provider_ref: unit-test-stub
   model: stub-chat-1
 timeout_ms: 1
 version: 1
@@ -234,9 +295,10 @@ func TestLoaderNamesIsSorted(t *testing.T) {
 	dir := writeProfileDir(t, map[string]string{
 		"a.yaml": sampleProfile,
 		"b.yaml": `name: review.report.default
-task_type: chat
+capability: chat
+status: active
 default:
-  provider: stub
+  provider_ref: unit-test-stub
   model: stub-chat-1
 timeout_ms: 1
 version: 1

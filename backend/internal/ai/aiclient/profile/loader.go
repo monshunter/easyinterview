@@ -209,6 +209,9 @@ func readProfile(path string) (*aiclient.ModelProfile, error) {
 	if err := dec.Decode(&doc); err != nil {
 		return nil, fmt.Errorf("profile: parse %s: %w", path, err)
 	}
+	if err := rejectRetiredSchemaKeys(path, &doc); err != nil {
+		return nil, err
+	}
 	var raw aiclient.ModelProfile
 	if err := doc.Decode(&raw); err != nil {
 		return nil, fmt.Errorf("profile: parse %s: %w", path, err)
@@ -216,16 +219,33 @@ func readProfile(path string) (*aiclient.ModelProfile, error) {
 	if raw.Name == "" {
 		return nil, profileValidationError(path, fieldLine(&doc, "name"), "missing required field 'name'")
 	}
-	if raw.TaskType == "" {
-		return nil, profileValidationError(path, fieldLine(&doc, "task_type"), "missing required field 'task_type'")
+	if raw.Capability == "" {
+		return nil, profileValidationError(path, fieldLine(&doc, "capability"), "missing required field 'capability'")
 	}
-	switch raw.TaskType {
-	case aiclient.TaskTypeChat, aiclient.TaskTypeEmbed, aiclient.TaskTypeSTT:
+	switch raw.Capability {
+	case aiclient.CapabilityChat,
+		aiclient.CapabilityEmbed,
+		aiclient.CapabilitySTT,
+		aiclient.CapabilityRealtime,
+		aiclient.CapabilityRerank,
+		aiclient.CapabilityJudge:
 	default:
-		return nil, profileValidationError(path, fieldLine(&doc, "task_type"), "has unsupported task_type %q (allowed: chat | embed | stt)", raw.TaskType)
+		return nil, profileValidationError(path, fieldLine(&doc, "capability"), "has unsupported capability %q (allowed: chat | embed | stt | realtime | rerank | judge)", raw.Capability)
 	}
-	if raw.Default.Provider == "" {
-		return nil, profileValidationError(path, fieldLine(&doc, "default", "provider"), "missing required field 'default.provider'")
+	if raw.Status == "" {
+		return nil, profileValidationError(path, fieldLine(&doc, "status"), "missing required field 'status'")
+	}
+	switch raw.Status {
+	case aiclient.ProfileStatusActive:
+	case aiclient.ProfileStatusDisabled, aiclient.ProfileStatusUnsupported:
+		if strings.TrimSpace(raw.UnsupportedReason) == "" {
+			return nil, profileValidationError(path, fieldLine(&doc, "unsupported_reason"), "status %q requires 'unsupported_reason'", raw.Status)
+		}
+	default:
+		return nil, profileValidationError(path, fieldLine(&doc, "status"), "has unsupported status %q (allowed: active | disabled | unsupported)", raw.Status)
+	}
+	if raw.Default.ProviderRef == "" {
+		return nil, profileValidationError(path, fieldLine(&doc, "default", "provider_ref"), "missing required field 'default.provider_ref'")
 	}
 	if raw.Default.Model == "" {
 		return nil, profileValidationError(path, fieldLine(&doc, "default", "model"), "missing required field 'default.model'")
@@ -237,6 +257,51 @@ func readProfile(path string) (*aiclient.ModelProfile, error) {
 		return nil, profileValidationError(path, fieldLine(&doc, "version"), "missing required field 'version'")
 	}
 	return &raw, nil
+}
+
+func rejectRetiredSchemaKeys(path string, doc *yaml.Node) error {
+	root := yamlRoot(doc)
+	if root == nil || root.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i+1 < len(root.Content); i += 2 {
+		key := root.Content[i]
+		value := root.Content[i+1]
+		switch key.Value {
+		case "task_type":
+			return profileValidationError(path, yamlNodeLine(key), "retired schema key 'task_type'; use 'capability'")
+		case "default":
+			if err := rejectRetiredMappingKey(path, value, "provider", "default.provider", "default.provider_ref"); err != nil {
+				return err
+			}
+		case "fallback":
+			if value.Kind != yaml.SequenceNode {
+				continue
+			}
+			for _, item := range value.Content {
+				if err := rejectRetiredMappingKey(path, item, "provider", "fallback[].provider", "fallback[].provider_ref"); err != nil {
+					return err
+				}
+				if err := rejectRetiredMappingKey(path, item, "trigger", "fallback[].trigger", "fallback[].when"); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func rejectRetiredMappingKey(path string, node *yaml.Node, keyName, retired, replacement string) error {
+	if node == nil || node.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i+1 < len(node.Content); i += 2 {
+		key := node.Content[i]
+		if key.Value == keyName {
+			return profileValidationError(path, yamlNodeLine(key), "retired schema key '%s'; use '%s'", retired, replacement)
+		}
+	}
+	return nil
 }
 
 func profileValidationError(path string, line int, format string, args ...any) error {

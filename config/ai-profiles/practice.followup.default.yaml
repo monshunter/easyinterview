@@ -1,7 +1,11 @@
+# A3 Model Profile fixture.
+# Schema uses capability + provider_ref; retired task_type/default.provider keys
+# are rejected by backend/internal/ai/aiclient/profile loader tests.
 name: practice.followup.default
-task_type: chat
+capability: chat
+status: active
 default:
-  provider: stub
+  provider_ref: unit-test-stub
   model: stub-chat-1
   params:
     temperature: 0.7

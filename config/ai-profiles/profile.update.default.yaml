@@ -1,0 +1,15 @@
+name: profile.update.default
+capability: chat
+status: disabled
+unsupported_reason: "progressive profile update AI workflow is reserved for a future profile implementation"
+default:
+  provider_ref: default-openai-compatible
+  model: disabled-chat-placeholder
+fallback: []
+timeout_ms: 15000
+max_tokens: 1024
+rate_limit:
+  rps: 3
+  tpm: 60000
+route: profile.update
+version: 0.1.0

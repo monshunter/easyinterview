@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-05](2026-05-05.md) | `feat(ai-provider): capability-scoped model profiles` | #feat #test #docs |
 | [2026-05-05](2026-05-05.md) | `feat(ai-provider): provider registry schema and loader` | #feat #test #docs |
 | [2026-05-05](2026-05-05.md) | `docs(roadmap): remove legacy tech docs package` | #docs #test |
 | [2026-05-05](2026-05-05.md) | `docs(ai-provider): define provider registry capability profiles` | #docs |

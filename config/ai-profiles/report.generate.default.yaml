@@ -1,7 +1,8 @@
-name: review.report.default
-task_type: chat
+name: report.generate.default
+capability: chat
+status: active
 default:
-  provider: stub
+  provider_ref: unit-test-stub
   model: stub-chat-1
   params:
     temperature: 0.2
@@ -11,5 +12,5 @@ max_tokens: 4096
 rate_limit:
   rps: 3
   tpm: 60000
-route: review.report
+route: report.generate
 version: 1.0.0

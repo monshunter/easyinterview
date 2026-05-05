@@ -15,10 +15,10 @@
 
 ## Phase 2: Capability-scoped Model Profile schema
 
-- [ ] 2.1 将 profile schema 从 `task_type` / 全局 provider 口径迁移到 `capability` / `provider_ref` / `status`，为 `disabled` / `unsupported` 强制校验 `unsupported_reason`，不保留旧 schema key fallback
-- [ ] 2.2 补齐 F3 12 个 baseline default profile fixture 与 spec §4.5 非 F3 placeholder profile fixture，并为 P1/P2/002+ profile 使用 `status=disabled` / `status=unsupported` + `unsupported_reason` 表达不可执行状态
-- [ ] 2.3 建立 Product/UI capability coverage 检查，确保 spec §4.5 每个默认 profile 都是具体 profile name，且与 F3 feature_key 字典和 profile catalog 同步
-- [ ] 2.4 同步 `backend/internal/ai/aiclient/README.md`、`config/README.md` 与 fixture 注释
+- [x] 2.1 将 profile schema 从 `task_type` / 全局 provider 口径迁移到 `capability` / `provider_ref` / `status`，为 `disabled` / `unsupported` 强制校验 `unsupported_reason`，不保留旧 schema key fallback
+- [x] 2.2 补齐 F3 12 个 baseline default profile fixture 与 spec §4.5 非 F3 placeholder profile fixture，并为 P1/P2/002+ profile 使用 `status=disabled` / `status=unsupported` + `unsupported_reason` 表达不可执行状态
+- [x] 2.3 建立 Product/UI capability coverage 检查，确保 spec §4.5 每个默认 profile 都是具体 profile name，且与 F3 feature_key 字典和 profile catalog 同步
+- [x] 2.4 同步 `backend/internal/ai/aiclient/README.md`、`config/README.md` 与 fixture 注释
 
 ## Phase 3: AIClient routing, fallback, and fail-closed behavior
 

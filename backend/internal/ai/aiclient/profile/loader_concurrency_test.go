@@ -20,9 +20,10 @@ func TestLoaderConcurrentReadAndReload(t *testing.T) {
 	const profileName = "practice.followup.default"
 	writeYAML := func(version string) {
 		body := fmt.Sprintf(`name: %s
-task_type: chat
+capability: chat
+status: active
 default:
-  provider: stub
+  provider_ref: unit-test-stub
   model: stub-chat-1
 timeout_ms: 1000
 version: %s
@@ -64,8 +65,8 @@ version: %s
 					t.Errorf("Resolve returned nil profile")
 					return
 				}
-				if p.Default.Provider != "stub" {
-					t.Errorf("provider mutated mid-snapshot: %q", p.Default.Provider)
+				if p.Default.ProviderRef != "unit-test-stub" {
+					t.Errorf("provider mutated mid-snapshot: %q", p.Default.ProviderRef)
 					return
 				}
 			}

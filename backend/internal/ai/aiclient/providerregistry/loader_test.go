@@ -138,9 +138,9 @@ func TestResolveSelectedProvidersUsesA4SecretSource(t *testing.T) {
 	}
 
 	profile := &aiclient.ModelProfile{
-		Name:     "practice.followup.default",
-		TaskType: aiclient.TaskTypeChat,
-		Default:  aiclient.ProviderConfig{Provider: "default-openai-compatible", Model: "chat-model"},
+		Name:       "practice.followup.default",
+		Capability: aiclient.CapabilityChat,
+		Default:    aiclient.ProviderConfig{ProviderRef: "default-openai-compatible", Model: "chat-model"},
 	}
 	resolved, err := reg.ResolveSelectedProviders(profile, "prod", mapSecret{
 		"AI_PROVIDER_BASE_URL": "https://provider.example",
@@ -174,18 +174,18 @@ func TestResolveSelectedProvidersFailFastOnlyForSelectedNonTestNetworkProvider(t
 	}
 
 	stubProfile := &aiclient.ModelProfile{
-		Name:     "practice.followup.default",
-		TaskType: aiclient.TaskTypeChat,
-		Default:  aiclient.ProviderConfig{Provider: "unit-test-stub", Model: "stub-chat"},
+		Name:       "practice.followup.default",
+		Capability: aiclient.CapabilityChat,
+		Default:    aiclient.ProviderConfig{ProviderRef: "unit-test-stub", Model: "stub-chat"},
 	}
 	if _, err := reg.ResolveSelectedProviders(stubProfile, "prod", mapSecret{}); err != nil {
 		t.Fatalf("unselected network provider must not require secrets: %v", err)
 	}
 
 	networkProfile := &aiclient.ModelProfile{
-		Name:     "practice.followup.default",
-		TaskType: aiclient.TaskTypeChat,
-		Default:  aiclient.ProviderConfig{Provider: "default-openai-compatible", Model: "chat-model"},
+		Name:       "practice.followup.default",
+		Capability: aiclient.CapabilityChat,
+		Default:    aiclient.ProviderConfig{ProviderRef: "default-openai-compatible", Model: "chat-model"},
 	}
 	if _, err := reg.ResolveSelectedProviders(networkProfile, "prod", mapSecret{}); !errors.Is(err, providerregistry.ErrProviderSecretMissing) {
 		t.Fatalf("expected ErrProviderSecretMissing, got %v", err)
@@ -213,23 +213,23 @@ func TestResolveSelectedProvidersRejectsProfileRegistryDrift(t *testing.T) {
 
 	cases := map[string]*aiclient.ModelProfile{
 		"provider-ref-not-found": {
-			Name:     "practice.followup.default",
-			TaskType: aiclient.TaskTypeChat,
-			Default:  aiclient.ProviderConfig{Provider: "missing-provider", Model: "chat-model"},
+			Name:       "practice.followup.default",
+			Capability: aiclient.CapabilityChat,
+			Default:    aiclient.ProviderConfig{ProviderRef: "missing-provider", Model: "chat-model"},
 		},
 		"capability-mismatch": {
-			Name:     "practice.followup.default",
-			TaskType: aiclient.TaskTypeChat,
-			Default:  aiclient.ProviderConfig{Provider: "embed-only", Model: "chat-model"},
+			Name:       "practice.followup.default",
+			Capability: aiclient.CapabilityChat,
+			Default:    aiclient.ProviderConfig{ProviderRef: "embed-only", Model: "chat-model"},
 		},
 		"fallback-over-two-hops": {
-			Name:     "practice.followup.default",
-			TaskType: aiclient.TaskTypeChat,
-			Default:  aiclient.ProviderConfig{Provider: "unit-test-stub", Model: "chat-model"},
+			Name:       "practice.followup.default",
+			Capability: aiclient.CapabilityChat,
+			Default:    aiclient.ProviderConfig{ProviderRef: "unit-test-stub", Model: "chat-model"},
 			Fallback: []aiclient.FallbackEntry{
-				{ProviderConfig: aiclient.ProviderConfig{Provider: "unit-test-stub", Model: "fallback-1"}},
-				{ProviderConfig: aiclient.ProviderConfig{Provider: "unit-test-stub", Model: "fallback-2"}},
-				{ProviderConfig: aiclient.ProviderConfig{Provider: "unit-test-stub", Model: "fallback-3"}},
+				{ProviderConfig: aiclient.ProviderConfig{ProviderRef: "unit-test-stub", Model: "fallback-1"}},
+				{ProviderConfig: aiclient.ProviderConfig{ProviderRef: "unit-test-stub", Model: "fallback-2"}},
+				{ProviderConfig: aiclient.ProviderConfig{ProviderRef: "unit-test-stub", Model: "fallback-3"}},
 			},
 		},
 	}

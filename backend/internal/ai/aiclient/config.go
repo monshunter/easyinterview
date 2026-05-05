@@ -7,8 +7,8 @@ import "errors"
 // ProviderAPIKey is empty in any non-test AppEnv.
 type Config struct {
 	AppEnv           string
-	ProviderBaseURL   string
-	ProviderAPIKey    string
+	ProviderBaseURL  string
+	ProviderAPIKey   string
 	ModelProfilePath string
 }
 
@@ -22,7 +22,7 @@ const AppEnvTest = "test"
 // stub.
 var ErrMissingProviderConfig = errors.New("aiclient: AI_PROVIDER_BASE_URL and AI_PROVIDER_API_KEY are required outside APP_ENV=test")
 
-// ErrTaskTypeNotImplemented is returned when a profile resolves to a task
-// type the current build cannot service (e.g. stt while plan 001 is the
-// shipping baseline). Plan 002 lifts this error for the relevant task types.
-var ErrTaskTypeNotImplemented = errors.New("aiclient: task type not implemented in this build")
+// ErrCapabilityNotImplemented is returned when a profile resolves to a
+// capability the current build cannot service (e.g. stt while plan 001 is the
+// shipping baseline). Plan 002 lifts this error for the relevant capabilities.
+var ErrCapabilityNotImplemented = errors.New("aiclient: capability not implemented in this build")

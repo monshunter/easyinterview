@@ -208,8 +208,8 @@ func (r *Registry) ResolveSelectedProviders(profile *aiclient.ModelProfile, appE
 		if !ok {
 			return nil, fmt.Errorf("%w: profile %q references unknown provider %q", ErrProviderConfigInvalid, profile.Name, ref)
 		}
-		if !entry.Supports(profile.TaskType) {
-			return nil, fmt.Errorf("%w: profile %q capability %q is not supported by provider %q", ErrProviderConfigInvalid, profile.Name, profile.TaskType, ref)
+		if !entry.Supports(profile.Capability) {
+			return nil, fmt.Errorf("%w: profile %q capability %q is not supported by provider %q", ErrProviderConfigInvalid, profile.Name, profile.Capability, ref)
 		}
 		resolved := ResolvedProvider{Entry: entry}
 		if entry.Protocol != aiclient.ProviderProtocolStub {
@@ -248,9 +248,9 @@ func selectedProviderRefs(profile *aiclient.ModelProfile) []string {
 		seen[ref] = true
 		out = append(out, ref)
 	}
-	add(profile.Default.Provider)
+	add(profile.Default.ProviderRef)
 	for _, fb := range profile.Fallback {
-		add(fb.Provider)
+		add(fb.ProviderRef)
 	}
 	return out
 }

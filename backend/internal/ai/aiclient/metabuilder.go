@@ -14,7 +14,7 @@ type metaBuilder struct{}
 // builder validates that mandatory fields are populated for success cases.
 func (b metaBuilder) merge(profile *ModelProfile, callMeta CallMetadata, partial AICallMeta) (AICallMeta, error) {
 	out := partial
-	out.TaskType = profile.TaskType
+	out.Capability = profile.Capability
 	out.ModelProfileName = profile.Name
 	out.ModelProfileVersion = profile.Version
 	out.PromptVersion = callMeta.PromptVersion
@@ -22,7 +22,7 @@ func (b metaBuilder) merge(profile *ModelProfile, callMeta CallMetadata, partial
 	out.Language = callMeta.Language
 
 	if out.Provider == "" {
-		out.Provider = profile.Default.Provider
+		out.Provider = profile.Default.ProviderRef
 	}
 	if out.ModelID == "" {
 		out.ModelID = profile.Default.Model
@@ -31,7 +31,7 @@ func (b metaBuilder) merge(profile *ModelProfile, callMeta CallMetadata, partial
 		out.Route = profile.Route
 	}
 	if len(out.FallbackChain) == 0 {
-		out.FallbackChain = []string{profile.Default.Provider}
+		out.FallbackChain = []string{profile.Default.ProviderRef}
 	}
 	if out.ValidationStatus == "" && out.ErrorCode == "" {
 		out.ValidationStatus = ValidationStatusOK

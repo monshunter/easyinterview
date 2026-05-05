@@ -18,19 +18,6 @@ const (
 	CapabilityJudge    Capability = "judge"
 )
 
-// TaskType is kept as a source-compatible alias while plan 003 migrates
-// call sites to capability wording.
-type TaskType = Capability
-
-const (
-	TaskTypeChat  = CapabilityChat
-	TaskTypeEmbed = CapabilityEmbed
-	// TaskTypeSTT is reserved for C14 P2 backend-voice-stt; loader accepts
-	// it but Complete/Embed/Stream return ErrTaskTypeNotImplemented when a
-	// profile resolves to stt.
-	TaskTypeSTT = CapabilitySTT
-)
-
 // ProviderProtocol identifies the protocol adapter a Provider Registry entry
 // uses.
 type ProviderProtocol string
@@ -64,7 +51,7 @@ type AICallMeta struct {
 	Provider            string
 	ModelFamily         string
 	ModelID             string
-	TaskType            TaskType
+	Capability          Capability
 	PromptVersion       string
 	RubricVersion       string
 	ModelProfileName    string

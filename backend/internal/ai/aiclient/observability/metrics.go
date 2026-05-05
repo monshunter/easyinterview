@@ -39,10 +39,10 @@ const (
 // must remain present (spec §2.1).
 var (
 	StandardLabelKeys = []string{
-		"provider", "model_family", "model_profile_name", "route", "task_type", "language", "result",
+		"provider", "model_family", "model_profile_name", "route", "capability", "language", "result",
 	}
 	FallbackLabelKeys = []string{
-		"provider", "model_family", "model_profile_name", "route", "task_type", "language", "result", "from_model_family", "to_model_family",
+		"provider", "model_family", "model_profile_name", "route", "capability", "language", "result", "from_model_family", "to_model_family",
 	}
 )
 

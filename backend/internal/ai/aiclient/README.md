@@ -3,8 +3,9 @@
 Provider-neutral AIClient for every LLM, embedding, and (future) STT call
 inside the easyinterview backend. This package owns the public Go interface
 [`AIClient`](./aiclient.go), the runtime [`AICallMeta`](./meta.go), the
-Model Profile schema in [`profile/`](./profile/loader.go), and the
-deterministic stub plus OpenAI-compatible adapter in [`providers/`](./providers/).
+Provider Registry loader in [`providerregistry/`](./providerregistry/loader.go),
+Model Profile schema in [`profile/`](./profile/loader.go), and the deterministic
+stub plus OpenAI-compatible adapter in [`providers/`](./providers/).
 
 Spec authority: [docs/spec/ai-provider-and-model-routing/spec.md](../../../../docs/spec/ai-provider-and-model-routing/spec.md).
 ADR authority: [docs/spec/engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md](../../../../docs/spec/engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md).
@@ -24,10 +25,13 @@ ADR authority: [docs/spec/engineering-roadmap/decisions/ADR-Q6-ai-provider-and-m
   permitted (spec §4.3 / D-7). The
   [`observability/privacy_test.go`](./observability/privacy_test.go) holds
   the line.
-- **Fail-fast on missing provider config.** Outside `APP_ENV=test`, missing
-  `AI_PROVIDER_BASE_URL` or `AI_PROVIDER_API_KEY` returns
-  [`ErrMissingProviderConfig`](./config.go) — never silent stub fallback
-  (spec §6 C-9).
+- **Provider registry is the connection contract.** Checked-in
+  `config/ai-providers.yaml` stores provider refs, protocols, capabilities, and
+  secret env names only. Secret values come from A4 `SecretSource` and must
+  never be written to YAML, logs, metrics, DB metadata, or audit metadata.
+- **Fail closed on unsupported capability.** Profiles with
+  `status=disabled|unsupported`, or capabilities whose adapter is not active,
+  return an AI error instead of falling back to chat or stub.
 
 ## Stub provider activation matrix
 
@@ -49,15 +53,18 @@ are forbidden by the secrets-and-config boundary lint.
 
 ## Local deployment / smoke verification
 
-Local docker compose, Kind, staging, and prod must point the AIClient at a
-real OpenAI-compatible endpoint. Set both env vars or the process must fail to
-boot:
+Local docker compose, Kind, staging, and prod must provide the registry path,
+profile directory, and any provider-specific env refs selected by active
+profiles. `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` may be referenced by
+the default OpenAI-compatible provider, but they are no longer the global AI
+provider contract:
 
 ```sh
 export APP_ENV=dev
+export AI_PROVIDER_REGISTRY_PATH=$(pwd)/config/ai-providers.yaml
+export AI_MODEL_PROFILE_PATH=$(pwd)/config/ai-profiles
 export AI_PROVIDER_BASE_URL=https://provider.example/v1
 export AI_PROVIDER_API_KEY=sk-...                # NEVER commit
-export AI_MODEL_PROFILE_PATH=$(pwd)/config/ai-profiles
 ```
 
 Smoke verification (run only when you want to exercise a real endpoint;
@@ -73,12 +80,11 @@ API keys MUST NOT live in test code, fixture YAML, or the repo.
 
 ## Hot reload
 
+[`providerregistry.Loader`](./providerregistry/loader.go) and
 [`profile.Loader`](./profile/loader.go) re-scans `AI_MODEL_PROFILE_PATH`
-periodically so a YAML edit takes effect within the spec §6 C-4 SLA
-(≤30 s). Plan 001 ships the polling reloader (default 5 s cadence) which
-plan §2.3 lists as the supported fsnotify-fallback path; an fsnotify
-watcher can be wired into the same `Loader` API in a follow-up plan
-without changing public surface.
+periodically so provider registry or profile YAML edits take effect within the
+spec §6 C-4 SLA (≤30 s). Reload failure preserves the last good snapshot and
+does not affect in-flight calls.
 
 `Reload(ctx) error` is exposed for tests to bypass polling and observe
 convergence deterministically. Concurrent reads + reloads are guarded by
@@ -108,32 +114,42 @@ entrypoint wiring; this package exposes:
 A non-test caller is expected to run roughly:
 
 ```go
-loader, err := profile.NewLoader(profile.Options{Dir: cfg.AIModelProfilePath})
+registryLoader, err := providerregistry.NewLoader(providerregistry.Options{Path: cfg.AIProviderRegistryPath})
 if err != nil { return err }
 
+profileLoader, err := profile.NewLoader(profile.Options{Dir: cfg.AIModelProfilePath})
+if err != nil { return err }
+
+profile, err := profileLoader.Resolve("practice.followup.default")
+if err != nil { return err }
+
+resolved, err := registryLoader.ResolveSelectedProviders(profile, cfg.AppEnv, secretSource)
+if err != nil { return err }
+
+defaultProvider := resolved[profile.Default.ProviderRef]
 provider, err := openai_compatible.New(openai_compatible.Options{
-    BaseURL: cfg.AIProviderBaseURL,
-    APIKey:  cfg.AIProviderAPIKey,
+    BaseURL: defaultProvider.BaseURL,
+    APIKey:  defaultProvider.APIKey,
 })
 if err != nil { return err }
 
 inner, err := aiclient.New(aiclient.Config{
     AppEnv:           cfg.AppEnv,
-    ProviderBaseURL:   cfg.AIProviderBaseURL,
-    ProviderAPIKey:    cfg.AIProviderAPIKey,
+    ProviderBaseURL:  defaultProvider.BaseURL,
+    ProviderAPIKey:   defaultProvider.APIKey,
     ModelProfilePath: cfg.AIModelProfilePath,
 },
-    aiclient.WithProfileResolver(loader),
+    aiclient.WithProfileResolver(profileLoader),
     aiclient.WithProvider(provider),
 )
-if err != nil { return err } // ErrMissingProviderConfig → non-zero exit
+if err != nil { return err }
 
 client, err := observability.New(inner,
     observability.WithRegisterer(prom),
     observability.WithLogger(logger),
     observability.WithAITaskRunWriter(taskRunStore),
     observability.WithAuditEventWriter(auditStore),
-    observability.WithProfileResolver(loader),
+    observability.WithProfileResolver(profileLoader),
 )
 if err != nil { return err }
 ```
@@ -149,7 +165,8 @@ This covers:
 
 - `aiclient` end-to-end stub routing + fail-fast matrix
   ([config_test.go](./config_test.go))
-- `profile` loader + ≤30 s convergence + concurrent read/reload race
+- `providerregistry` schema / secret resolution / hot reload / negative fixtures
+- `profile` capability schema + ≤30 s convergence + concurrent read/reload race
 - `providers/stub` deterministic output + APP_ENV gate
 - `providers/openai_compatible` contract (chat / embeddings / 5xx /
   4xx envelope / timeout / fallback headers / missing choices)

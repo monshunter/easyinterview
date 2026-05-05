@@ -31,7 +31,7 @@ func sensitivePayload() aiclient.CompletePayload {
 			RubricVersion: "r1",
 			Language:      "en",
 			TaskRun: aiclient.AITaskRunContext{
-				TaskType:     aiclient.AITaskRunTaskFollowupGenerate,
+				Capability:     aiclient.AITaskRunTaskFollowupGenerate,
 				ResourceType: aiclient.AITaskRunResourceTargetJob,
 				ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
 			},
@@ -107,7 +107,7 @@ func TestPrivacy_NoPlaintextLeaksAnywhere(t *testing.T) {
 func anyContains(fields observability.LogFields, token string) bool {
 	candidates := []string{
 		fields.Provider, fields.ModelID, fields.ModelProfileName, fields.ModelProfileVersion,
-		fields.PromptVersion, fields.RubricVersion, fields.TaskType, fields.Language,
+		fields.PromptVersion, fields.RubricVersion, fields.Capability, fields.Language,
 		fields.Route, fields.ValidationStatus, fields.ErrorCode,
 	}
 	for _, c := range candidates {
@@ -125,7 +125,7 @@ func anyContains(fields observability.LogFields, token string) bool {
 
 func anyTaskRunContains(row aiclient.AITaskRunRow, token string) bool {
 	candidates := []string{
-		row.Provider, row.ModelFamily, row.ModelID, string(row.TaskType),
+		row.Provider, row.ModelFamily, row.ModelID, string(row.Capability),
 		row.PromptVersion, row.RubricVersion, row.ModelProfileName, row.ModelProfileVersion,
 		row.Language, row.Route, string(row.ValidationStatus), row.ErrorCode,
 		row.Metadata.PromptHash, row.Metadata.ResponseHash, row.Metadata.ProfileName,

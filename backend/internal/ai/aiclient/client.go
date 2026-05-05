@@ -83,7 +83,7 @@ func (c *Client) Complete(ctx context.Context, profileName string, payload Compl
 		}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "messages must be non-empty", false)
 	}
 
-	profile, provider, err := c.dispatch(profileName, TaskTypeChat)
+	profile, provider, err := c.dispatch(profileName, CapabilityChat)
 	if err != nil {
 		return CompleteResponse{}, AICallMeta{ModelProfileName: profileName, ErrorCode: err.Error()}, err
 	}
@@ -106,7 +106,7 @@ func (c *Client) Embed(ctx context.Context, profileName string, input EmbedInput
 		}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "texts must be non-empty", false)
 	}
 
-	profile, provider, err := c.dispatch(profileName, TaskTypeEmbed)
+	profile, provider, err := c.dispatch(profileName, CapabilityEmbed)
 	if err != nil {
 		return EmbedResponse{}, AICallMeta{ModelProfileName: profileName, ErrorCode: err.Error()}, err
 	}
@@ -124,14 +124,14 @@ func (c *Client) Stream(ctx context.Context, profileName string, payload Complet
 	if len(payload.Messages) == 0 {
 		return nil, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "messages must be non-empty", false)
 	}
-	profile, provider, err := c.dispatch(profileName, TaskTypeChat)
+	profile, provider, err := c.dispatch(profileName, CapabilityChat)
 	if err != nil {
 		return nil, err
 	}
 	return provider.Stream(ctx, profile, payload)
 }
 
-func (c *Client) dispatch(profileName string, expectedTaskType TaskType) (*ModelProfile, Provider, error) {
+func (c *Client) dispatch(profileName string, expectedCapability Capability) (*ModelProfile, Provider, error) {
 	if c.resolver == nil {
 		return nil, nil, fmt.Errorf("aiclient: no profile resolver configured")
 	}
@@ -139,15 +139,15 @@ func (c *Client) dispatch(profileName string, expectedTaskType TaskType) (*Model
 	if err != nil {
 		return nil, nil, err
 	}
-	if profile.TaskType == TaskTypeSTT {
-		return nil, nil, ErrTaskTypeNotImplemented
+	if profile.Capability == CapabilitySTT {
+		return nil, nil, ErrCapabilityNotImplemented
 	}
-	if expectedTaskType != "" && profile.TaskType != expectedTaskType {
-		return nil, nil, fmt.Errorf("aiclient: profile %q has task_type %q, caller expected %q", profileName, profile.TaskType, expectedTaskType)
+	if expectedCapability != "" && profile.Capability != expectedCapability {
+		return nil, nil, fmt.Errorf("aiclient: profile %q has capability %q, caller expected %q", profileName, profile.Capability, expectedCapability)
 	}
-	provider, ok := c.providers[profile.Default.Provider]
+	provider, ok := c.providers[profile.Default.ProviderRef]
 	if !ok {
-		return nil, nil, fmt.Errorf("aiclient: provider %q not registered for profile %q", profile.Default.Provider, profileName)
+		return nil, nil, fmt.Errorf("aiclient: provider %q not registered for profile %q", profile.Default.ProviderRef, profileName)
 	}
 	return profile, provider, nil
 }

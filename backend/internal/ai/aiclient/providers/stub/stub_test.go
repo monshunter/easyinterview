@@ -11,11 +11,11 @@ import (
 
 func chatProfile() *aiclient.ModelProfile {
 	return &aiclient.ModelProfile{
-		Name:     "practice.followup.default",
-		TaskType: aiclient.TaskTypeChat,
+		Name:       "practice.followup.default",
+		Capability: aiclient.CapabilityChat,
 		Default: aiclient.ProviderConfig{
-			Provider: stub.Name,
-			Model:    "stub-chat-1",
+			ProviderRef: stub.Name,
+			Model:       "stub-chat-1",
 		},
 		TimeoutMs: 5000,
 		Version:   "1.0.0",

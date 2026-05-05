@@ -1,3 +1,6 @@
+# A3 Provider Registry fixture.
+# Checked-in values are provider refs and secret env names only; actual secrets
+# are resolved by A4 SecretSource at runtime.
 providers:
   - name: unit-test-stub
     protocol: stub
@@ -14,3 +17,28 @@ providers:
       - chat
       - embed
     version: 1.0.0
+
+  - name: speech-placeholder
+    protocol: realtime_audio
+    base_url_env: AI_PROVIDER_BASE_URL
+    api_key_env: AI_PROVIDER_API_KEY
+    capabilities:
+      - stt
+      - realtime
+    version: 0.1.0
+
+  - name: rerank-placeholder
+    protocol: rerank_compatible
+    base_url_env: AI_PROVIDER_BASE_URL
+    api_key_env: AI_PROVIDER_API_KEY
+    capabilities:
+      - rerank
+    version: 0.1.0
+
+  - name: judge-placeholder
+    protocol: judge_compatible
+    base_url_env: AI_PROVIDER_BASE_URL
+    api_key_env: AI_PROVIDER_API_KEY
+    capabilities:
+      - judge
+    version: 0.1.0

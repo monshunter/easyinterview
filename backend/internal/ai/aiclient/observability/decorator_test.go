@@ -82,21 +82,21 @@ func newTestStack(t *testing.T) (
 	}
 	resolver := staticResolver{
 		"practice.followup.default": {
-			Name:     "practice.followup.default",
-			TaskType: aiclient.TaskTypeChat,
+			Name:       "practice.followup.default",
+			Capability: aiclient.CapabilityChat,
 			Default: aiclient.ProviderConfig{
-				Provider: stub.Name,
-				Model:    "stub-chat-1",
+				ProviderRef: stub.Name,
+				Model:       "stub-chat-1",
 			},
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
 		},
 		"review.embed.default": {
-			Name:     "review.embed.default",
-			TaskType: aiclient.TaskTypeEmbed,
+			Name:       "review.embed.default",
+			Capability: aiclient.CapabilityEmbed,
 			Default: aiclient.ProviderConfig{
-				Provider: stub.Name,
-				Model:    "stub-embed-1",
+				ProviderRef: stub.Name,
+				Model:       "stub-embed-1",
 			},
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
@@ -141,7 +141,7 @@ func samplePayload() aiclient.CompletePayload {
 			RubricVersion: "r1",
 			Language:      "en",
 			TaskRun: aiclient.AITaskRunContext{
-				TaskType:     aiclient.AITaskRunTaskFollowupGenerate,
+				Capability:   aiclient.AITaskRunTaskFollowupGenerate,
 				ResourceType: aiclient.AITaskRunResourceTargetJob,
 				ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
 			},
@@ -180,7 +180,7 @@ func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 		t.Fatalf("expected provider=%q, got %q", stub.Name, meta.Provider)
 	}
 
-	successLabels := []string{stub.Name, "stub", "practice.followup.default", "unknown", string(aiclient.TaskTypeChat), "en", "success"}
+	successLabels := []string{stub.Name, "stub", "practice.followup.default", "unknown", string(aiclient.CapabilityChat), "en", "success"}
 	if got := registry.CounterValue(observability.MetricRunsTotal, successLabels...); got != 1 {
 		t.Errorf("ai_task_runs_total: expected 1, got %v", got)
 	}
@@ -220,8 +220,8 @@ func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 	if rows[0].ID == "" {
 		t.Fatalf("ai_task_runs row missing id: %+v", rows[0])
 	}
-	if rows[0].TaskType != aiclient.AITaskRunTaskFollowupGenerate {
-		t.Fatalf("expected B4 task_type=%q, got %q", aiclient.AITaskRunTaskFollowupGenerate, rows[0].TaskType)
+	if rows[0].Capability != aiclient.AITaskRunTaskFollowupGenerate {
+		t.Fatalf("expected B4 capability=%q, got %q", aiclient.AITaskRunTaskFollowupGenerate, rows[0].Capability)
 	}
 	if rows[0].ResourceType != aiclient.AITaskRunResourceTargetJob || rows[0].ResourceID == "" {
 		t.Fatalf("ai_task_runs row missing resource identity: %+v", rows[0])
@@ -261,11 +261,11 @@ func TestDecorator_AITaskRunWriterFailureReturned(t *testing.T) {
 	}
 	resolver := staticResolver{
 		"practice.followup.default": {
-			Name:     "practice.followup.default",
-			TaskType: aiclient.TaskTypeChat,
+			Name:       "practice.followup.default",
+			Capability: aiclient.CapabilityChat,
 			Default: aiclient.ProviderConfig{
-				Provider: stub.Name,
-				Model:    "stub-chat-1",
+				ProviderRef: stub.Name,
+				Model:       "stub-chat-1",
 			},
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
@@ -342,7 +342,7 @@ func TestDecorator_FallbackChainTriggersFallbackCounterAndLog(t *testing.T) {
 			Provider:         "openai_compatible",
 			ModelFamily:      "chat-primary",
 			ModelID:          "chat-primary-2026-05-05",
-			TaskType:         aiclient.TaskTypeChat,
+			Capability:       aiclient.CapabilityChat,
 			ModelProfileName: "practice.followup.default",
 			Language:         "en",
 			InputTokens:      10,
@@ -400,7 +400,7 @@ func TestDecorator_FallbackCounterDerivesModelFamilyOnlyFromDateSuffix(t *testin
 			Provider:         "openai_compatible",
 			ModelFamily:      "chat-primary",
 			ModelID:          "chat-primary-2026-05-05",
-			TaskType:         aiclient.TaskTypeChat,
+			Capability:       aiclient.CapabilityChat,
 			ModelProfileName: "practice.followup.default",
 			Language:         "en",
 			InputTokens:      10,
@@ -431,7 +431,7 @@ func TestDecorator_FallbackCounterDerivesModelFamilyOnlyFromDateSuffix(t *testin
 		"chat-primary",
 		"practice.followup.default",
 		"practice.followup",
-		string(aiclient.TaskTypeChat),
+		string(aiclient.CapabilityChat),
 		"en",
 		"fallback",
 		"chat-primary",
@@ -508,7 +508,7 @@ func TestDecorator_OutputSchemaRequiredFieldMismatchEmitsAIOutputInvalid(t *test
 			Provider:            stub.Name,
 			ModelFamily:         "stub",
 			ModelID:             "stub-chat-1",
-			TaskType:            aiclient.TaskTypeChat,
+			Capability:          aiclient.CapabilityChat,
 			ModelProfileName:    "practice.followup.default",
 			ModelProfileVersion: "1.0.0",
 			Language:            "en",

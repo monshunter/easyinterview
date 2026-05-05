@@ -1,0 +1,16 @@
+name: practice.first_question.default
+capability: chat
+status: active
+default:
+  provider_ref: unit-test-stub
+  model: stub-chat-1
+  params:
+    temperature: 0.6
+fallback: []
+timeout_ms: 15000
+max_tokens: 1024
+rate_limit:
+  rps: 5
+  tpm: 60000
+route: practice.first_question
+version: 1.0.0

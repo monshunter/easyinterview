@@ -21,7 +21,7 @@ type LogFields struct {
 	ModelProfileVersion string
 	PromptVersion       string
 	RubricVersion       string
-	TaskType            string
+	Capability            string
 	Language            string
 	InputTokens         int
 	OutputTokens        int

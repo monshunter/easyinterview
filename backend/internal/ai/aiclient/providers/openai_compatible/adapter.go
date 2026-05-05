@@ -16,7 +16,7 @@ import (
 )
 
 // Name is the canonical provider name. Profiles route to this adapter by
-// setting Default.Provider to "openai_compatible".
+// setting Default.ProviderRef to "openai_compatible".
 const Name = "openai_compatible"
 
 // Path constants are exported so the mockserver helper can reuse them.

@@ -1,12 +1,12 @@
 # Config
 
-应用配置、feature flag 与 AI profile 的根容器。
+应用配置、feature flag、AI provider registry 与 Model Profile 的根容器。
 
 A1 [`repo-scaffold`](../docs/spec/repo-scaffold/spec.md) 锁定目录位置；A4
 [`secrets-and-config`](../docs/spec/secrets-and-config/spec.md) 锁定字段语义、
 loader、redactor 与 lint 红线；A3
 [`ai-provider-and-model-routing`](../docs/spec/ai-provider-and-model-routing/spec.md)
-消费 `ai-profiles/`；F3
+消费 `ai-providers.yaml` 与 `ai-profiles/`；F3
 [`prompt-rubric-registry`](../docs/spec/prompt-rubric-registry/spec.md) 后续在
 本目录扩展 prompt / rubric registry 路径。
 
@@ -34,7 +34,8 @@ fail-fast 并打印缺失 key 名（spec C-2）。
 | `staging.yaml` | staging 环境 override；`featureFlag.source=posthog` + `posthogSelfHosted=true` |
 | `prod.yaml` | prod 环境 override；同 staging，但生产差异在此处沉淀 |
 | `feature-flags.yaml` | `FileFlagProvider` 本地真理源；6 项 P0 baseline flag；显式标 `public: true|false` |
-| `ai-profiles/` | A3 Model Profile YAML（A4 仅锁路径，不锁内容） |
+| `ai-providers.yaml` | A3 Provider Registry；只保存 provider ref、protocol、capabilities 与 secret env ref，不保存 secret 明文 |
+| `ai-profiles/` | A3 Model Profile YAML；使用 `capability` / `provider_ref` / `status`，不可执行能力必须写 `unsupported_reason` |
 
 当前 P0 baseline flag 固定为 `practice_hint_enabled`、
 `report_evidence_v2_enabled`、`report_retry_plan_enabled`、
@@ -61,6 +62,24 @@ product-scope v1.2 移除，不再作为配置能力保留。
 
 `async.queueWeights` 是 config-only 字段（spec D-9），不进 env 字典；新增
 config-only 字段同样需要先递增 spec 版本再同步 `config.yaml`。
+
+## AI provider registry / profile 规则
+
+- `ai-providers.yaml` 的 `providers[]` 只允许写 `name`、`protocol`、
+  `base_url_env`、`api_key_env`、`capabilities[]` 和 `version`；`stub` 可不写
+  secret env ref，网络出站 protocol 必须写 env ref。
+- `ai-profiles/*.yaml` 必须使用 `capability` 与
+  `default.provider_ref`，不得恢复旧 `task_type` / `default.provider` key。
+- `status=disabled|unsupported` 的 profile 必须写 `unsupported_reason`，运行时
+  必须 fail-closed，不得静默降级到 chat 或 stub。
+- `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只是默认
+  OpenAI-compatible provider ref 可引用的 env 名，不是全局唯一 provider
+  contract。
+- 新增 Product/UI AI 场景或 F3 feature_key 时，必须同步
+  `docs/spec/ai-provider-and-model-routing/spec.md` §4.5、
+  `docs/spec/prompt-rubric-registry/spec.md` §3.1.1 和
+  `config/ai-profiles/`，并运行 `python3 scripts/lint/ai_profile_coverage.py
+  --repo-root .`。
 
 ## RedactedString 使用示范
 
