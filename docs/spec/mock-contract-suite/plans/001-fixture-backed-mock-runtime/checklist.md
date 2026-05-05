@@ -8,8 +8,8 @@
 
 ## Phase 1: Fixture registry 与 coverage
 
-- [ ] 1.1 建立 operationId -> fixture registry；验证: 新增 focused unit test 覆盖至少 Auth、TargetJobs、PracticeSessions、Reports、Resumes、Debriefs 的 fixture lookup，未知 operationId 返回明确错误
-- [ ] 1.2 补齐 fixture coverage lint；验证: negative fixture 或临时缺失 fixture 测试先 Red 后 Green，并实际运行 `make validate-fixtures` 与 `make lint-openapi`，确认 `openapi/openapi.yaml` operationId 与 fixture registry 无缺失/多余
+- [x] 1.1 建立 operationId -> fixture registry；验证: 新增 focused unit test 覆盖至少 Auth、TargetJobs、PracticeSessions、Reports、Resumes、Debriefs 的 fixture lookup，未知 operationId 返回明确错误
+- [x] 1.2 补齐 fixture coverage lint；验证: negative fixture 或临时缺失 fixture 测试先 Red 后 Green，并实际运行 `make validate-fixtures` 与 `make lint-openapi`，确认 `openapi/openapi.yaml` operationId 与 fixture registry 无缺失/多余
 
 ## Phase 2: Frontend mock transport
 

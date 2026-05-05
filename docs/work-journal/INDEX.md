@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-05](2026-05-05.md) | `feat(mock-contract): fixture registry and coverage lint` | #feat #test #docs |
 | [2026-05-05](2026-05-05.md) | `docs(mock-contract): tighten fixture runtime gates` | #docs |
 | [2026-05-05](2026-05-05.md) | `test(scenarios): scaffold e2e scenario framework` | #test #docs |
 | [2026-05-05](2026-05-05.md) | `docs(roadmap): spawn P0 implementation owners` | #docs |

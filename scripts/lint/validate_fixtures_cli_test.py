@@ -114,6 +114,66 @@ class ValidatorCliTest(unittest.TestCase):
         self.assertNotEqual(out.returncode, 0)
         self.assertIn("operationId", out.stderr + out.stdout)
 
+    def test_validate_fixtures_uses_openapi_as_operation_inventory(self) -> None:
+        openapi_path = self.repo / "openapi/openapi.yaml"
+        openapi_text = openapi_path.read_text(encoding="utf-8")
+        insertion = """
+  /diagnostics/ping:
+    get:
+      tags: [Auth]
+      operationId: getDiagnosticsPing
+      summary: Temporary test-only additive operation
+      responses:
+        '204':
+          description: No content.
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+"""
+        openapi_path.write_text(
+            openapi_text.replace("\ncomponents:\n", f"\n{insertion}\ncomponents:\n"),
+            encoding="utf-8",
+        )
+        fixture = {
+            "operationId": "getDiagnosticsPing",
+            "scenarios": {
+                "default": {
+                    "response": {
+                        "status": 204,
+                        "headers": {"X-Request-ID": "req_2026-04-28T13-45-12-abcdef"},
+                    }
+                }
+            },
+        }
+        path = self.repo / "openapi/fixtures/Auth/getDiagnosticsPing.json"
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(fixture, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+
+        out = _run_validator(self.repo)
+
+        self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
+        self.assertIn("35", out.stdout)
+
+    def test_fixture_without_openapi_operation_fails(self) -> None:
+        extra = self.repo / "openapi/fixtures/Growth/getGrowthOverview.json"
+        extra.parent.mkdir(exist_ok=True)
+        with extra.open("w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "operationId": "getGrowthOverview",
+                    "scenarios": {"default": {"response": {"status": 200}}},
+                },
+                f,
+                indent=2,
+            )
+            f.write("\n")
+
+        out = _run_validator(self.repo)
+
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("getGrowthOverview", out.stderr + out.stdout)
+        self.assertIn("not present in openapi.yaml", out.stderr + out.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

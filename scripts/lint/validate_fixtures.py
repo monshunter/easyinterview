@@ -64,45 +64,6 @@ VENDOR_MODEL_TOKEN_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Spec §3.1.1 34-endpoint freeze. Mirrors openapi_inventory.py and is the
-# coverage source-of-truth for missing-fixture errors.
-EXPECTED_OPERATIONS: Tuple[Tuple[str, str], ...] = (
-    ("Auth", "getMe"),
-    ("Auth", "deleteMe"),
-    ("Auth", "startAuthEmailChallenge"),
-    ("Auth", "verifyAuthEmailChallenge"),
-    ("Auth", "logout"),
-    ("Auth", "getRuntimeConfig"),
-    ("Uploads", "createUploadPresign"),
-    ("Profile", "getMyProfile"),
-    ("Profile", "updateMyProfile"),
-    ("Profile", "listExperienceCards"),
-    ("Profile", "createExperienceCard"),
-    ("Profile", "updateExperienceCard"),
-    ("Resumes", "registerResume"),
-    ("Resumes", "getResume"),
-    ("TargetJobs", "importTargetJob"),
-    ("TargetJobs", "listTargetJobs"),
-    ("TargetJobs", "getTargetJob"),
-    ("TargetJobs", "updateTargetJob"),
-    ("PracticePlans", "createPracticePlan"),
-    ("PracticePlans", "getPracticePlan"),
-    ("PracticeSessions", "startPracticeSession"),
-    ("PracticeSessions", "getPracticeSession"),
-    ("PracticeSessions", "appendSessionEvent"),
-    ("PracticeSessions", "completePracticeSession"),
-    ("Reports", "getFeedbackReport"),
-    ("Reports", "listTargetJobReports"),
-    ("ResumeTailor", "requestResumeTailor"),
-    ("ResumeTailor", "getResumeTailorRun"),
-    ("Debriefs", "createDebrief"),
-    ("Debriefs", "getDebrief"),
-    ("Jobs", "getJob"),
-    ("Privacy", "requestPrivacyExport"),
-    ("Privacy", "requestPrivacyDelete"),
-    ("Privacy", "getPrivacyRequest"),
-)
-
 # AI-generated schemas listed in spec §4.6. Provenance must resolve from each
 # value path, where `[*]` expands a list and yields its members.
 AI_PROVENANCE_PATHS: dict[str, Tuple[str, ...]] = {
@@ -191,6 +152,22 @@ def build_operation_index(spec: dict) -> dict[str, dict]:
                 "operation": op,
             }
     return index
+
+
+def expected_fixture_operations(spec: dict) -> Tuple[Tuple[str, str], ...]:
+    """Return `(tag, operationId)` rows derived from the live OpenAPI document.
+
+    `make lint-openapi` owns the frozen 34-operation inventory. The fixture
+    validator only checks that whatever operation inventory OpenAPI currently
+    exposes has exactly one matching fixture, so this gate cannot become a
+    second hand-maintained operation list.
+    """
+    rows: list[Tuple[str, str]] = []
+    for operation_id, meta in build_operation_index(spec).items():
+        tag = meta.get("tag")
+        if isinstance(tag, str):
+            rows.append((tag, operation_id))
+    return tuple(sorted(rows, key=lambda row: (row[0], row[1])))
 
 
 def _resolve_ref(ref: str, root: dict) -> dict:
@@ -533,12 +510,14 @@ def validate(repo_root: Path) -> List[str]:
 
     for tag, opid, fixture_path, data in walk_fixtures(fixtures_root):
         seen.add(opid)
-        if (tag, opid) not in EXPECTED_OPERATIONS:
-            errors.append(f"{opid}: fixture in tag {tag!r} not in spec §3.1.1 freeze")
-        op = (op_index.get(opid) or {}).get("operation")
-        if op is None:
+        op_meta = op_index.get(opid)
+        if op_meta is None:
             errors.append(f"{opid}: not present in openapi.yaml")
             continue
+        expected_tag = op_meta.get("tag")
+        if expected_tag != tag:
+            errors.append(f"{opid}: fixture in tag {tag!r} does not match openapi tag {expected_tag!r}")
+        op = op_meta.get("operation")
         check_structural(opid, data, fixture_path, op, errors)
         scenarios = data.get("scenarios", {}) or {}
         for scenario_name, scenario in scenarios.items():
@@ -551,7 +530,7 @@ def validate(repo_root: Path) -> List[str]:
         check_privacy_export_error_code(opid, scenarios, errors)
         check_privacy_and_ids(opid, data, errors)
 
-    expected = {opid for _tag, opid in EXPECTED_OPERATIONS}
+    expected = {opid for _tag, opid in expected_fixture_operations(spec)}
     missing = expected - seen
     for opid in sorted(missing):
         errors.append(f"missing fixture for operationId {opid}")
@@ -578,8 +557,10 @@ def main(argv: Iterable[str]) -> int:
             file=sys.stderr,
         )
         return 1
+    spec = load_openapi(args.repo_root / "openapi" / "openapi.yaml")
+    expected_count = len(expected_fixture_operations(spec))
     print(
-        f"validate-fixtures: OK — {len(EXPECTED_OPERATIONS)} fixtures under {args.repo_root / 'openapi' / 'fixtures'}"
+        f"validate-fixtures: OK — {expected_count} fixtures under {args.repo_root / 'openapi' / 'fixtures'}"
     )
     return 0
 
