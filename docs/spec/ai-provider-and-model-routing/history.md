@@ -1,6 +1,6 @@
 # AI Provider and Model Routing History
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
 > **更新日期**: 2026-05-05
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-05 | 1.9 | 基于 product-scope 与 UI 交互重估 AI 使用场景，将 A3 目标从单一 provider endpoint 升级为 provider registry + capability-scoped Model Profile；新增 Product/UI AI capability catalog、central fallback 边界、F3 12 profile coverage gate，并创建 003 实施计划。 | 003-provider-registry-and-capability-profiles |
 | 2026-05-05 | 1.8 | 全面收口 AI provider 口径：subject 与 ADR 文件更名，运行时连接参数改为 `AI_PROVIDER_*` / `ai.provider*`，Model Profile route schema 改为 `route`，并新增 active surface 负向 terminology gate。 | 001-aiclient-and-profile-bootstrap Phase 6 |
 | 2026-04-29 | 1.7 | 物化 A3 plan 设计：`001-aiclient-and-profile-bootstrap` 切为 active，`002-tools-streaming-and-stt` 保持 draft/blocked；明确 001 只 owns `backend/internal/ai/aiclient/` 与 `config/ai-profiles/` fixture，API/worker entrypoint 是 DI handoff，不由 A3 001 创建。 | plan-review remediation |
 | 2026-04-29 | 1.6 | 按 ADR-Q6 authoritative 边界收口：`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 是 AIClient 的 OpenAI-compatible 连接参数，可指真实 LLM provider 或生产 provider endpoint；fallback 只由连接 provider endpoint route 承担，A3 client 不自行切换模型；B1 提供共享字段名 / 错误码，A3 owns Model Profile schema 与 `AICallMeta` runtime。 | plan-review remediation |

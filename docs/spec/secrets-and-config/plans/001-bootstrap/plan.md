@@ -107,9 +107,9 @@ type FeatureFlagClient interface {
 
 按 [secrets-and-config spec §2.1](../../spec.md#21-in-scope) 写入三份 env override 文件，禁止包含任何 secret 明文。`dev.yaml` 设 `log.level: debug`、`featureFlag.source: file`；`staging.yaml` 与 `prod.yaml` 设 `featureFlag.source: posthog` 与 `featureFlag.posthogSelfHosted: true`，与 [ADR-Q3](../../../engineering-roadmap/decisions/ADR-Q3-analytics-platform.md) 一致；任何运行时 secret 字段在三份文件中都留空，提示运维通过 env / 真正 secret 注入。
 
-#### 3.3 落地 `.env.example` 与 24 项 env key 字典
+#### 3.3 落地 `.env.example` 与 env key 字典
 
-按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典24-项) 写入仓库根 `.env.example`，包含全部 24 项 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `WORKER_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_PROVIDER_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写占位说明（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
+按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典25-项) 写入仓库根 `.env.example`，包含全部 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `WORKER_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_PROVIDER_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写占位说明（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
 
 #### 3.4 落地 `config/feature-flags.yaml` baseline
 

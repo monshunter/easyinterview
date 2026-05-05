@@ -1,0 +1,55 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: ai-provider-and-model-routing
+  name: 003-provider-registry-and-capability-profiles
+  sequence: 3
+  supersedes: []
+  specVersion:
+    from: 1.8
+    to: 1.9
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - ai-provider-and-model-routing
+      - provider-registry
+      - capability-profiles
+      - ai-providers
+      - model-profiles
+    keywords:
+      - provider registry
+      - capability
+      - model profile
+      - provider ref
+      - central fallback
+      - AI_PROVIDER_REGISTRY_PATH
+      - AI_MODEL_PROFILE_PATH
+      - F3 profile coverage
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      references:
+        - ../../../product-scope/spec.md
+        - ../../../secrets-and-config/spec.md
+        - ../../../shared-conventions-codified/spec.md
+        - ../../../prompt-rubric-registry/spec.md
+        - ../../../engineering-roadmap/spec.md
+        - ../../../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md
+        - ../../../../ui-design/INDEX.md
+        - ../../../../ui-design/module-practice-review.md
+        - ../../../../ui-design/report-dashboard.md
+        - ../../../../ui-design/resume-module.md
+        - ../../../../ui-design/review-module.md
+        - ../../../../ui-design/removed-modules-and-scope.md
+      discovery:
+        packages:
+          - backend/internal/ai/aiclient
+          - backend/internal/platform/config
+          - config/ai-profiles
+          - config/ai-providers.yaml
+          - shared
+        uiRoutes: []
+        apiNames: []

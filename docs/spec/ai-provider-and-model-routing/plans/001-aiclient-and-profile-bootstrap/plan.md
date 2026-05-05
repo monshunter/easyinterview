@@ -7,6 +7,8 @@
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
+> **2026-05-05 修订说明**: 本 completed plan 记录 A3 v1.8 以前的 bootstrap implementation history。A3 spec v1.9 已将后续目标架构升级为 provider registry + capability-scoped Model Profile；相关 schema / config / fallback 迁移由 [003-provider-registry-and-capability-profiles](../003-provider-registry-and-capability-profiles/plan.md) 承接，不回写本 plan 的已完成实现范围。
+
 ## 1 目标
 
 把 [ai-provider-and-model-routing spec](../../spec.md#21-in-scope) §2.1 In Scope 与 §7 关联计划列出的 P0 范围一次性落地：在 `backend/internal/ai/aiclient/` 写出 provider-neutral 的 `AIClient` 接口（`Complete` / `Embed` 同步面 + `Stream` 事件合同类型）、A3-owned `AICallMeta` 运行时结构体、`stub` 与 `openai_compatible` 两个 provider、Model Profile YAML schema + loader + ≤30 秒热加载、client-internal observability / audit decorator（7 个 `ai_*` metric family + 4 类结构化事件 + `ai_task_runs` 行 + `audit_events` 行）、配置启动校验 fail-fast，以及覆盖 stub 路径的单元测试和可被 [E1 mock-contract-suite](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 复用的离线 adapter 契约测试，最终通过本 plan Phase 5 的本地命令证明 spec [§6 验收标准](../../spec.md#6-验收标准) 中 C-1 / C-2 / C-3 / C-4 / C-5 / C-6 / C-7 / C-9 全部成立。AC C-8 是当前 active spec relation gate，已由 engineering-roadmap 保留 A3 与 F3 / B1 / A4 / F1 / release gate 的边界关系，本 plan 仅引用不替代。

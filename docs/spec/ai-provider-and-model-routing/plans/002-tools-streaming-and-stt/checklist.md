@@ -1,8 +1,8 @@
 # AI Tools, Streaming, and STT Extension Checklist
 
-> **版本**: 0.1
+> **版本**: 0.2
 > **状态**: draft
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-05-05
 
 **关联计划**: [plan](./plan.md)
 
@@ -12,7 +12,7 @@
 
 - [ ] 1.1 在工作日志中归档触发证据（业务 spec id / plan id / 事故记录 / 上游版本号）
 - [ ] 1.2 完成 ADR-Q6 修订或新增 supersession ADR（保留零 SDK / 隐私 / 唯一对外能力红线）
-- [ ] 1.3 把 spec 版本从当前基线递增到下一版本（当前基线 1.7 时为 1.8+）并同步 history.md
+- [ ] 1.3 把 spec 版本从当前基线递增到下一版本（当前基线 1.9 时为 2.0+）并同步 history.md
 - [ ] 1.4 把本 plan Header 切换为 `状态: active` + `版本: 1.0`，并同步 plans/INDEX.md
 
 ## Phase 2: Tools / function calling 实现
@@ -30,7 +30,7 @@
 ## Phase 4: STT provider adapter
 
 - [ ] 4.1 与 C14 spec 联合锁定 `Transcribe` 入参形态后，更新 spec §4.1
-- [ ] 4.2 落地 openai_compatible `/v1/audio/transcriptions` 适配，`task_type=stt` 升级为可执行
+- [ ] 4.2 落地 openai_compatible `/v1/audio/transcriptions` 适配，`capability=stt` 从 unsupported profile 升级为可执行
 - [ ] 4.3 校验或扩展 7 个 ai_* metric family 的 label 集合，确保 STT 可观测
 
 ## Phase 5: 接入 F1 / F3 / B1

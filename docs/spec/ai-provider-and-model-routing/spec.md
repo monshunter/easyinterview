@@ -1,49 +1,56 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
 > **更新日期**: 2026-05-05
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 A3 `ai-provider-and-model-routing` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)；间接依赖 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md) 提供的错误码与通用 API 约定）。它把 [ADR-Q6](../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md) 的 9 项硬约束落到代码层，决定了：
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A3 `ai-provider-and-model-routing` 保留为当前 active Foundation spec。它把 [ADR-Q6](../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md) 的 AI provider 抽象落到代码层，决定业务域如何以 provider-neutral 方式使用 LLM / embedding / speech / rerank / judge 等 AI 能力。
 
-- 业务代码（C4–C7 / C9 / C11 / C14）调用 LLM / embedding / STT 的唯一接口形态；
-- prompt / rubric / model profile 在调用现场如何串起来；
-- 单元测试 / 离线契约测试 / 本地部署（docker compose 与 Kind）/ staging / prod 如何切换 AI provider；默认本地部署不依赖任何独立 AI 代理服务，但必须接真实 AI provider 的 OpenAI-compatible LLM 服务。
+基于当前 [product-scope](../product-scope/spec.md) 与 `docs/ui-design/` / `ui-design/` 交互，easyinterview 的 AI 使用面已经超过“单一文本 LLM endpoint”：
 
-目标是：
+- JD 导入解析、Job Picks 匹配解释、公司轻情报摘要；
+- 模拟面试首题、追问、轻量观察 / hint、文本输入中的语音转写、voice interview；
+- 报告生成、逐题评估、复练当前轮 / 下一轮上下文；
+- 简历解析、岗位定制、bullet 改写、用户画像信号更新；
+- 真实面试 debrief 文本引导、语音复盘抽取、debrief 分析与复盘练习；
+- embedding upsert、retrieval rerank、离线 LLM Judge / eval。
 
-1. **Provider-neutral 抽象**：业务代码 0 厂商 SDK 入侵，只依赖 `AIClient` 接口与 `Model Profile` name；切换厂商或加 fallback 不改业务代码。
-2. **可观测可计费**：每一次 `AIClient.*` 调用必须产出 A3-owned `AICallMeta`（provider / model_family / model_id / prompt_version / rubric_version / model_profile_version / task_type / language / tokens / cost / latency / fallback_chain / route / validation_status / error_code），并由 [F1 `observability-stack`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 统一接入 metric / log / DB（`ai_task_runs`）。
-3. **可测试可灰度**：`stub` provider 提供 hash-based 确定性输出，仅用于单元测试、离线契约测试或显式 mock 场景；docker compose / Kind / staging / prod 部署必须通过 `AI_PROVIDER_BASE_URL` + `AI_PROVIDER_API_KEY` 连接 OpenAI-compatible AI provider endpoint，不允许默认降级到 stub。
-4. **隐私守约**：AI 调用 payload 在 `audit_events` 写 hash + 长度 + profile，不写明文 prompt / response（与 [ADR-Q5](../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md) 对齐）。
+因此本 spec 的目标从“一个全局 AI provider base URL + profile”升级为：
 
-本 spec 不定义具体 prompt（归 [F3 `prompt-rubric-registry`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)）、不定义业务调用现场（归各 C 域）、不部署或拥有独立 AI provider 代理层（运维 / E4 承接）。
+1. **Provider-neutral 抽象**：业务代码 0 厂商 SDK 入侵，只依赖 `AIClient` 接口与 `model_profile_name`；切换供应商、模型、fallback、成本等级不改业务代码。
+2. **Provider Registry + Capability Profile**：应用维护 provider connection registry；Model Profile 按 `capability`（如 `chat` / `embed` / `stt` / `realtime` / `rerank` / `judge`）引用 provider ref、model、参数与 fallback。单一 provider 可作为启动配置，但不是最终架构约束。
+3. **可观测可计费**：每一次 `AIClient.*` 调用必须产出 A3-owned `AICallMeta`（provider / model_family / model_id / capability / prompt_version / rubric_version / model_profile_version / language / tokens / cost / latency / fallback_chain / route / validation_status / error_code），并由 [F1 `observability-stack`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 统一接入 metric / log / DB（`ai_task_runs`）。
+4. **可测试可灰度**：`stub` provider 提供 hash-based 确定性输出，仅用于单元测试、离线契约测试或显式 mock 场景；local deploy / Kind / staging / prod 必须通过 provider registry 解析真实 provider endpoint 与 secret，缺失即 fail-fast。
+5. **隐私守约**：AI 调用 payload 在 `audit_events` 写 hash + 长度 + profile，不写明文 prompt / response（与 [ADR-Q5](../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md) 对齐）。
+
+本 spec 不定义具体 prompt（归 [F3 `prompt-rubric-registry`](../prompt-rubric-registry/spec.md)）、不定义业务调用现场（归各 C / D 域）、不部署或拥有独立 AI 代理服务。若未来使用外部模型代理 / router，它只是 provider registry 中的一个 provider ref，不成为业务语义。
 
 ## 2 范围
 
 ### 2.1 In Scope
 
-- **AIClient 接口**：Go 包 `backend/internal/ai/aiclient/`，P0 唯一对外能力为 `Complete(ctx, profile, payload) → (response, meta)` / `Embed(ctx, profile, input) → (vector, meta)`；`Stream(ctx, profile, payload) → (<-chan AIStreamEvent, error)` 的事件合同在本 spec 冻结，但完整 provider streaming 消费由 002+ 承接。`AICallMeta` 是 A3-owned 运行时结构体；B1 提供共享错误码、Model Profile / AI meta 字段名等跨语言常量或生成类型，A3 owns runtime 填充与校验语义。
-- **Model Profile schema**：YAML 文件 + 热加载；schema 在本 spec 冻结。字段：`name` / `task_type`（`chat` | `embed` | `stt`，其中 `stt` 为 C14 P2 预留值，A3 001 不实现音频转写调用）/ `default.{provider, model, params}` / `fallback[]`（按序触发条件）/ `timeout_ms` / `max_tokens` / `rate_limit.{rps, tpm}` / `route` / `version`。Profile 文件落点 `config/ai-profiles/*.yaml`（A4 控制 `AI_MODEL_PROFILE_PATH` 指向）。
+- **AIClient 接口**：Go 包 `backend/internal/ai/aiclient/`。当前同步调用面为 `Complete(ctx, profile, payload) → (response, meta)` / `Embed(ctx, profile, input) → (vector, meta)`；`Stream(ctx, profile, payload) → (<-chan AIStreamEvent, error)` 的事件合同已冻结，完整 provider streaming 消费由 002+ 承接。`Transcribe` / realtime speech / rerank / judge 的可执行 adapter 由后续 plan 打开，但其 capability profile 命名空间由本 spec 锁定。
+- **Provider Registry schema**：配置文件 + 启动加载；字段：`name` / `protocol`（`stub` | `openai_compatible` | `realtime_audio` | `rerank_compatible` | `judge_compatible`）/ `base_url_env` / `api_key_env` / `capabilities[]` / `version`。Registry 文件默认落点 `config/ai-providers.yaml`，A4 通过 `AI_PROVIDER_REGISTRY_PATH` 注入；tracked 文件不得包含 secret 明文，只保存 env secret ref。`base_url_env` / `api_key_env` 对 `stub` 可为空；对需要网络出站的 provider protocol 必须声明，且仅在该 provider 被 profile 选中或进入 fallback chain 时解析实际 secret。
+- **Model Profile schema**：YAML 文件 + 热加载；字段：`name` / `capability`（`chat` | `embed` | `stt` | `realtime` | `rerank` | `judge`）/ `status`（`active` | `disabled` | `unsupported`）/ `unsupported_reason`（`disabled` / `unsupported` 时必填）/ `default.{provider_ref, model, params}` / `fallback[]`（每项包含 `provider_ref` / `model` / `when[]`）/ `timeout_ms` / `max_tokens` / `rate_limit.{rps, tpm}` / `route` / `version` / 可选 `privacy_policy`。Profile 文件默认落点 `config/ai-profiles/*.yaml`，A4 通过 `AI_MODEL_PROFILE_PATH` 注入。
 - **Provider 实现集**：
   - `stub`：hash-based 确定性输出，从 OpenAPI fixtures 反向喂养（与 [E1 `mock-contract-suite`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 同源）；仅允许在单元测试、离线契约测试或显式 mock 场景启用。
-  - `openai_compatible`：通过 `AI_PROVIDER_BASE_URL` 出站，P0 仅依赖 OpenAI Chat Completions / Embeddings 协议子集；Audio Transcription 协议为 C14 P2 预留，不进入 A3 001 验收。本地部署可直连真实 AI provider，生产可指向 OpenAI-compatible provider endpoint；不直接 import 任何厂商 SDK。
-- **路由策略**：profile name → provider endpoint route → provider/model；fallback 只允许由 AIClient 连接的 OpenAI-compatible AI provider endpoint 触发。如果该 endpoint 不提供 fallback，A3 client 不自行切换模型。业务看到「成功 + fallback meta」或「最终失败」，不允许业务自行重试切换模型。
-- **观测埋点契约**：A3 必须注册并暴露 `ai_task_runs_total` / `ai_task_latency_seconds` / `ai_task_input_tokens_total` / `ai_task_output_tokens_total` / `ai_task_cost_usd_total` / `ai_output_validation_failures_total` / `ai_fallback_total` 共 7 个 metric family；每次调用递增 run / latency / token / cost，validation failure 与 fallback counter 仅在对应事件发生时递增。同时落 DB 表 `ai_task_runs`，schema 由 [B4](../db-migrations-baseline/spec.md#311-field-level-enum--check-来源矩阵) 落地，并在 [03-db-definition.md §5.8](../../../easyinterview-tech-docs/03-db-definition.md) baseline 外补齐 A3/F1 需要的 typed meta columns。
+  - `openai_compatible`：P0 已实现 Chat Completions / Embeddings 协议子集；后续 registry 化后通过 provider ref 读取 base URL / API key，不再依赖全局唯一 endpoint 语义；不直接 import 任何厂商 SDK。
+  - `realtime_audio` / `rerank_compatible` / `judge_compatible`：本 spec 锁命名空间与 fail-closed 语义；可执行协议 adapter 必须由对应后续 plan 递增 spec 后实现。
+- **路由策略**：业务 `feature_key` 由 F3 Resolve 为 `model_profile_name`；A3 由 profile 解析 provider ref、capability、model、参数与 fallback。Fallback 可由 AIClient 在 profile fallback chain 内集中执行，业务代码不得自行 retry-with-different-model；每次 fallback 都必须写入 meta / metric / log。
+- **观测埋点契约**：A3 必须注册并暴露 `ai_task_runs_total` / `ai_task_latency_seconds` / `ai_task_input_tokens_total` / `ai_task_output_tokens_total` / `ai_task_cost_usd_total` / `ai_output_validation_failures_total` / `ai_fallback_total` 共 7 个 metric family；每次调用递增 run / latency / token / cost，validation failure 与 fallback counter 仅在对应事件发生时递增。同时落 DB 表 `ai_task_runs`，schema 由 [B4](../db-migrations-baseline/spec.md) 落地。
 - **Audit hook**：每次调用产出 `audit_events` 行（`action=ai.call`），`metadata` 字段含 `prompt_hash` / `response_hash` / `prompt_char_length` / `response_char_length` / `profile_name`；不含明文。
 
 ### 2.2 Out of Scope
 
-- 具体 prompt 内容、rubric schema、版本表：归 [F3 `prompt-rubric-registry`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)。
-- 业务调用现场（哪个 C 域调用 `Complete` 还是 `Embed`）：归各自 C 域 spec / plan。
-- 真实 AI provider endpoint 的部署、路由配置、cost cap、rate limit 规则：归运维 + E4；本 spec 仅锁 OpenAI-compatible API 契约与应用侧连接参数。
-- Token 计费成本表：本 spec 把 `cost_usd_micros` 字段定义清楚，具体 provider × model × pricing 由 F3 / F1 维护。
-- LLM Judge / 离线评估集：归 F3。
-- STT / Audio Transcription provider adapter、音频 payload 与 `Transcribe(...)` 接口：归 C14 P2；本 spec 只保留 `task_type=stt` 作为 profile schema 兼容预留值。
+- 具体 prompt 内容、rubric schema、版本表：归 [F3 `prompt-rubric-registry`](../prompt-rubric-registry/spec.md)。
+- 业务调用现场（哪个 C / D 域调用哪种 profile）：归各自 spec / plan。
+- 真实 AI provider endpoint 的部署、K8s Secret / Vault / cost cap 策略：归 A4 / E4 / 运维；本 spec 只锁应用侧 registry / profile 契约。
+- STT / realtime voice 的完整协议 adapter、音频 payload 形态与 HTTP wire：归 002+ 与 C14 / practice voice owner；本 spec 只锁 profile capability 与 fail-closed 规则。
+- LLM Judge / 离线评估集实现：归 F3 后续评估 plan。
 - DB 表本身：归 B4；本 spec 只引用字段名。
-- 错误码命名：依赖 B1 已落地的 `AI_*` 前缀错误码（`AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED`），新增错误码必须先改 B1。
+- 错误码命名：依赖 B1 已落地的 `AI_*` 前缀错误码；新增错误码必须先改 B1。
 
 ## 3 用户决策 / 待确认事项
 
@@ -51,87 +58,119 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | AIClient 接口形态 | P0 调用面为 `Complete(ctx, profile, payload) → (response, meta)` / `Embed(ctx, profile, input) → (vector, meta)`；`Stream(ctx, profile, payload) → (<-chan AIStreamEvent, error)` 的事件合同锁定但完整 streaming provider 消费由 002+ 承接；`payload` 与 `response` 为结构化对象（不直接传 string）；`meta` 由 client 返回，业务不能伪造 | 业务代码绝对零厂商 SDK 入侵 |
-| D-2 | Model Profile 字段集 | 见 §2.1；新增字段必须递增 spec 版本 | provider profile 配置漂移可控 |
-| D-3 | 业务引用形态 | 业务只引用 `profile name`（如 `practice.followup.default` / `review.report.default`），不引用 provider / model 字符串 | 切换 provider / model = 改 profile YAML，不改代码 |
-| D-4 | Stub 触发条件 | 仅 `APP_ENV=test`、离线契约测试或显式 mock 场景允许走 stub；docker compose / Kind / staging / prod 必须配置 `AI_PROVIDER_BASE_URL` 与 `AI_PROVIDER_API_KEY` 指向 OpenAI-compatible endpoint（真实 AI provider 或生产 provider endpoint），缺失即 fail-fast | 单测稳定、可重放，同时保证本地部署验证真实 LLM 服务 |
-| D-5 | Fallback 边界 | fallback 只由 AIClient 连接的 AI provider endpoint 触发；A3 client 不自行按 profile 多次请求不同 provider/model；业务看到「成功 + fallback meta 标记」或「最终失败」；业务代码绝不写 retry-with-different-model 循环 | 防止业务代码绕开 cost cap / rate limit |
-| D-6 | 观测埋点强制 | A3 注册 7 个 metric family；每次调用必须产出 run / latency / token / cost 指标 + DB 行 + log；fallback / validation failure 指标只在对应事件发生时递增；客户端封装为 middleware-style decorator，不允许业务调用绕过埋点 | F1 dashboard 可信且 counter 语义正确 |
-| D-7 | 隐私字段红线 | log / metric / DB metadata 字段中绝不出现明文 prompt / response；只允许 hash / 长度 / profile | 与 ADR-Q5 / [05-logging-standard.md §5](../../../easyinterview-tech-docs/05-logging-standard.md) 对齐 |
-| D-8 | OpenAI-compatible API 协议子集 | P0：Chat Completions（`/v1/chat/completions`）+ Embeddings（`/v1/embeddings`）；P2/C14 才能启用 Audio Transcription（`/v1/audio/transcriptions`）并新增 `Transcribe` 合同；不锁 model_id 命名（由 profile / provider endpoint route 决定） | 主流 OpenAI-compatible provider endpoint 即插即用，同时避免 P0 假承诺 STT |
+| D-1 | AIClient 接口形态 | 业务调用面继续只接受 `profile name`；`Complete` / `Embed` 已可执行，`Stream` 事件合同锁定，speech / rerank / judge adapter 由后续 plan 打开 | 业务代码绝对零厂商 SDK 入侵 |
+| D-2 | Provider Registry | A3 owns provider registry schema；tracked registry 只保存 provider ref、protocol、capabilities 与 secret env ref，不保存 secret 明文 | 单一 provider 可作为启动配置，但多 provider / 多能力不需要改业务代码 |
+| D-3 | Model Profile 字段集 | profile 使用 `capability` + `provider_ref`；不再把 profile 绑定为全局 provider endpoint 的 route | provider profile 配置漂移可控 |
+| D-4 | 业务引用形态 | 业务只引用 `model_profile_name`（如 `practice.followup.default` / `report.generate.default`），不引用 provider / model 字符串 | 切换 provider / model = 改 registry/profile，不改业务代码 |
+| D-5 | Stub 触发条件 | 仅 `APP_ENV=test`、离线契约测试或显式 mock 场景允许走 stub；local deploy / Kind / staging / prod 必须能通过 registry 解析真实 provider secret，缺失即 fail-fast | 单测稳定、可重放，同时防止本地部署静默假数据 |
+| D-6 | Fallback 边界 | Fallback 由 AIClient 在 profile fallback chain 内集中执行，最多 2 跳；业务代码不得自行 retry-with-different-model；provider 自身返回的 fallback meta 也必须纳入同一 chain | 防止业务绕开 cost / rate limit / observability |
+| D-7 | 观测埋点强制 | A3 注册 7 个 metric family；每次调用必须产出 run / latency / token / cost 指标 + DB 行 + log；fallback / validation failure 指标只在对应事件发生时递增 | F1 dashboard 可信且 counter 语义正确 |
+| D-8 | 隐私字段红线 | log / metric / DB metadata 字段中绝不出现明文 prompt / response；只允许 hash / 长度 / profile | 与 ADR-Q5 / logging 标准对齐 |
+| D-9 | OpenAI-compatible API 协议子集 | 当前可执行协议仍是 Chat Completions + Embeddings；Audio Transcription / realtime / rerank / judge 进入后续 plan 前必须 fail-closed | 主流 provider 可即插即用，同时避免假承诺 voice 能力 |
+| D-10 | F3 profile 覆盖 | F3 12 个 baseline feature_key 必须全部能解析到 A3 profile catalog；P1/P2 capability 可先以 `status=disabled` / `status=unsupported` profile 占位，并写明 `unsupported_reason`，但不得缺命名空间 | 业务域开工前具备完整 AI 调用坐标 |
+| D-11 | Product/UI capability inventory | A3 spec 必须维护产品 / UI AI 场景到 capability family 的映射；新增 AI 场景必须先修订本表与 F3 feature_key / profile 字典 | 防止新业务回到单模型假设 |
 
 ### 3.2 待确认事项
 
-- 是否在 `AIClient` 上扩展 `Tools(...)` 接口（function calling / tool use）：默认 P0 不上；如后续业务域出现 tool-use 需求，可在本 spec 修订递增版本后加（仍不打破 provider-neutral；ADR-Q6 §5 已记录此触发条件）。
 - `model_profile_version` 是否独立 SemVer vs 与 prompt_version 联动：默认独立 SemVer（profile 升级不必随 prompt），由 F3 在自己的 plan 里决定如何引用。
-- Stream 暴露到 HTTP 时采用 SSE 还是 chunked：内部 `AIStreamEvent` 合同先固定；具体 HTTP wire 由后续 consumer plan 决定。
+- Stream 暴露到 HTTP 时采用 SSE 还是 chunked：内部 `AIStreamEvent` 合同先固定；具体 HTTP wire 由 002+ consumer plan 决定。
+- Voice Interview 是使用 `stt + chat + tts` 组合还是 realtime multimodal provider：由 C14 / practice voice 进入实现前与本 spec 联合修订；未决前，UI voice 能力必须 feature-gated 或 fail-closed。
+- Rerank / judge 是否使用专用 provider protocol 还是 OpenAI-compatible JSON schema 调用：由 C11 / F3 eval plan 决定；A3 只要求 capability profile 能表达并观测。
 
 ## 4 设计约束
 
 ### 4.1 接口约束
 
 - `AIClient.Complete` 的入参 `payload` 必须包含 `messages[]` + `metadata`（业务侧的 `feature_key` / `prompt_version` / `rubric_version` / `language`，可选 `output_schema`）；client 不直接接受裸 prompt 字符串。
-- `AICallMeta` 字段顺序固定（与 ADR-Q6 §3.1 一致并补齐 B4/F1 消费字段）：`provider` / `model_family` / `model_id` / `task_type` / `prompt_version` / `rubric_version` / `model_profile_name` / `model_profile_version` / `language` / `input_tokens` / `output_tokens` / `cost_usd_micros` / `latency_ms` / `fallback_chain[]` / `route` / `validation_status` / `error_code`。任何字段新增由本 spec 修订；如需跨前后端共享再追加到 B1。
-- `Stream` 返回 `AIStreamEvent` channel，event type 固定为 `delta` / `error` / `done`；`delta` 只携带结构化增量，`error` 携带 B1 错误码，`done` 携带最终 `AICallMeta`。`Stream` 必须可中断（context cancellation），中断后客户端必须尽力产出 partial meta（`input_tokens` / `output_tokens` 截至中断时点），若 provider 不支持 token 增量则填 0，并通过 `error_code` / log `errorCode` 记录取消原因。
+- `AICallMeta` 字段顺序固定：`provider` / `model_family` / `model_id` / `capability` / `prompt_version` / `rubric_version` / `model_profile_name` / `model_profile_version` / `language` / `input_tokens` / `output_tokens` / `cost_usd_micros` / `latency_ms` / `fallback_chain[]` / `route` / `validation_status` / `error_code`。任何字段新增由本 spec 修订；如需跨前后端共享再追加到 B1。
+- `Stream` 返回 `AIStreamEvent` channel，event type 固定为 `delta` / `error` / `done`；`delta` 只携带结构化增量，`error` 携带 B1 错误码，`done` 携带最终 `AICallMeta`。`Stream` 必须可中断（context cancellation）。
+- 不支持的 capability 必须 fail-closed：profile 能加载为 `disabled` / `unsupported` 状态，且必须携带 `unsupported_reason`；运行时调用不得静默降级到 chat 模型或 stub。
 
 ### 4.2 路由与 fallback 约束
 
-- Profile fallback 只描述 AI provider endpoint 可执行的 ordered fallback contract（不支持权重路由 / A-B 桶）；A-B / 用户分桶由 PostHog feature flag 在业务层决定（与 ADR-Q3 一致），不入侵 AIClient。
-- A3 client 只消费 AI provider endpoint 返回的 fallback chain / model family meta；当 endpoint 不支持 fallback 时，本次调用不做 fallback，只按 provider 返回成功或失败记录 meta。
-- 单次调用 fallback 最多 2 跳，超出由 AI provider endpoint 标记 `AI_FALLBACK_EXHAUSTED`；A3 client 只透传并记录该错误码。
+- Provider ref 是 registry 内唯一名；Model Profile 只能引用 registry 中已存在且声明了对应 `capabilities[]` 的 provider ref。
+- Registry 中的 `base_url_env` / `api_key_env` 只是 secret 名称；loader 从 A4 SecretSource 解析实际值。tracked YAML 不得出现真实 API key。
+- Profile fallback chain 由 A3 client 执行或合并 provider 返回的 fallback meta；每次 fallback 记录 `from_provider/from_model` 与 `to_provider/to_model`，最多 2 跳。
+- A/B / 用户分桶仍由 PostHog feature flag 在业务 / F3 Resolve 层决定，不塞入 AIClient；AIClient 只接收最终 profile name。
 - `timeout_ms` 是 client 总超时（含网络 + provider 排队 + provider 推理），到期后客户端必须 return `AI_PROVIDER_TIMEOUT`，不能让 ctx 永久挂起。
 
 ### 4.3 观测与隐私约束
 
-- 每次调用产生的 log（事件名 `ai.task.completed` / `ai.task.failed` / `ai.task.fallback` / `ai.output.validation_failed`）必须遵守 [05-logging-standard.md §4.4](../../../easyinterview-tech-docs/05-logging-standard.md#44-ai-log-额外字段) AI Log 字段集；明文红线见 §5.1。
-- DB `ai_task_runs.metadata` 仅允许写入摘要字段（hash / 长度 / profile）；`raw_response_object_key` 字段在 [03-db-definition.md §5.8](../../../easyinterview-tech-docs/03-db-definition.md) 中已预留为可选，如需保留原始响应必须落到对象存储（非 PG），由 F3 / F1 在自己的 spec 中决定是否启用。
+- 每次调用产生的 log（事件名 `ai.task.completed` / `ai.task.failed` / `ai.task.fallback` / `ai.output.validation_failed`）必须遵守 AI Log 字段集；明文红线见 §1 目标 5。
+- DB `ai_task_runs.metadata` 仅允许写入摘要字段（hash / 长度 / profile / provider ref / capability）；原始响应如需保存必须落对象存储并由业务隐私策略覆盖，不能写 PG metadata。
 - `audit_events.action='ai.call'` 必须由 client 内部写入，业务代码不得跳过。
 
 ### 4.4 测试约束
 
 - Stub provider 的输入 → 输出映射必须 deterministic（相同 input + profile 永远产出相同 output）；不依赖时间 / 随机数。
-- 任何单元测试默认走 stub；不允许某测试在本地测试或未来远端 CI 中悄悄打到真 provider（当前由本地 lint / test gate 强制；远端 CI 仅在 A5 触发条件成立后再接入）。
-- 任何 docker compose / Kind / staging / prod 部署都不得在缺少真实 provider endpoint / API key 时静默回退到 stub；启动期 config validation 必须直接失败。
+- 任何单元测试默认走 stub；不允许某测试在本地测试或未来远端 CI 中悄悄打到真 provider。
+- 任何 local deploy / Kind / staging / prod 部署都不得在被选中的真实 provider secret 缺失时静默回退到 stub；启动期 config validation 必须直接失败。
+- Registry / profile loader 必须有负向 fixture：未知 provider ref、capability 不匹配、secret env 缺失、unsupported capability 被调用、profile fallback 超 2 跳。
+
+### 4.5 Product/UI AI Capability Catalog
+
+| 产品 / UI 场景 | 主要输入 | Capability family | 默认 profile 命名 |
+|----------------|----------|-------------------|-------------------|
+| JD 导入解析 | JD 文本 / URL 提取文本 | `chat` 结构化抽取 | `target.import.default` |
+| Job Picks 匹配解释 | JD + 简历 / 用户画像 | `embed` + `rerank` + `chat` | `embedding.default` / `retrieval.rerank.default` / `target.import.default` |
+| 公司轻情报摘要 | source-grounded public info | `chat` source-grounded summarization | `target.intel.default`（P1/P2 占位） |
+| 简历解析 | 简历文本 / 上传解析结果 | `chat` 结构化抽取 | `resume.parse.default` |
+| 简历定制 / bullet 改写 | JD + 简历证据 | `chat` 写作 / 改写 | `resume.tailor.default` |
+| 用户画像信号更新 | 简历 / JD / session / debrief | `chat` 分类摘要 + `embed` | `profile.update.default`（后续占位） |
+| 模拟面试首题 | JD / round / resume / role | `chat` 对话生成 | `practice.first_question.default` |
+| 模拟面试追问 | transcript / current answer | `chat` 低延迟生成 | `practice.followup.default` |
+| assisted hint / turn observe | 当前回答 + rubric | `chat` 低延迟观察 | `practice.turn_observe.default` |
+| 文本输入语音转写 | audio chunk | `stt` | `practice.dictation.stt.default`（002+） |
+| Voice Interview | audio stream + session state | `realtime` 或 `stt + chat + tts` | `practice.voice.realtime.default`（002+） |
+| 报告生成 | full session + JD + resume | `chat` 长上下文结构化推理 | `report.generate.default` |
+| 单题评估 | 单题回答 + rubric | `chat` rubric assessment | `report.assessment.default` |
+| 复练当前轮 / 下一轮 | report gaps + replay items | `chat` 生成 | `report.generate.default` / `report.assessment.default` / `practice.first_question.default` / `practice.followup.default` |
+| Debrief 文本引导 | JD / mock report / resume | `chat` source-grounded generation | `debrief.generate.default` |
+| Debrief 语音抽取 | audio + running transcript | `stt` + `chat` 抽取 | `debrief.voice.extract.default`（002+） |
+| Debrief 分析 | real questions + mock/JD/resume | `chat` 长上下文分析 | `debrief.generate.default` |
+| Embedding upsert | JD / resume / report / debrief text | `embed` | `embedding.default` |
+| Retrieval rerank | candidate evidence list | `rerank` | `retrieval.rerank.default` |
+| 离线 LLM Judge / eval | prompt output + rubric | `judge` | `judge.default`（F3 eval） |
 
 ## 5 模块边界
 
 | 边界 | Owner | 说明 |
 |------|-------|------|
-| `backend/internal/ai/aiclient/` 接口与默认实现 | A3 | `AIClient` / `AICallMeta` / stub / openai_compatible adapter |
-| Model Profile 文件 schema | A3 | `config/ai-profiles/*.yaml` schema 与热加载 |
-| Profile 文件内容（prompt / rubric / model 三元组） | F3 | A3 只锁 schema 字段，具体值由 F3 + 运维维护 |
-| Profile 文件路径 / secret 注入 | A4 | `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` / `AI_MODEL_PROFILE_PATH`；`AI_PROVIDER_*` 是 AI provider 连接参数名 |
-| 真实 provider endpoint | E4 + 运维 | 本地部署可直连真实 AI provider；staging / prod 可接运维提供的 OpenAI-compatible provider endpoint；本 spec 只锁 OpenAI-compatible 契约 |
-| 业务调用现场 | C4-C7 / C9 / C11 / C14 | 各 C 域 spec / plan 引用 profile name |
-| 共享约定 | B1 | `AI_*` 错误码、Model Profile / AI meta 字段名共享常量、`ApiError` / `ApiErrorResponse` 消费约定；`AICallMeta` runtime 由 A3 拥有 |
+| `backend/internal/ai/aiclient/` 接口与默认实现 | A3 | `AIClient` / `AICallMeta` / registry loader / profile loader / stub / openai_compatible adapter |
+| Provider Registry schema | A3 + A4 | A3 owns schema / validation；A4 owns path/env/SecretSource 注入 |
+| Model Profile schema | A3 | `config/ai-profiles/*.yaml` schema 与热加载 |
+| Profile 文件内容 | F3 + 各 AI feature owner | F3 owns feature_key -> model_profile_name；A3 owns profile schema；业务 owner 负责新增场景时补 profile |
+| Profile 文件路径 / secret 注入 | A4 | `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 与 provider-specific env secret ref |
+| 真实 provider endpoint | E4 + 运维 | 本地部署可直连真实 AI provider；staging / prod 可接运维提供的 provider endpoint；本 spec 不部署独立代理 |
+| 业务调用现场 | C4-C7 / C9 / C11 / C14 / D3 | 各业务 spec / plan 引用 profile name，不引用 provider/model |
+| 共享约定 | B1 | `AI_*` 错误码、AI capability / meta 字段名共享常量、`ApiError` / `ApiErrorResponse` 消费约定 |
 | DB 表 | B4 | `ai_task_runs` schema |
 | Metric / Dashboard | F1 | 7 个 ai_* metric + AI Cost & Quality Dashboard |
-| 测试 stub provider | A3 | 应用内 deterministic stub，仅供单元测试 / 离线契约测试 / 显式 mock 场景；A2 不预留 AI provider mock compose 服务，本地部署不默认使用 stub |
+| 测试 stub provider | A3 | 应用内 deterministic stub，仅供单元测试 / 离线契约测试 / 显式 mock 场景 |
 
 ## 6 验收标准
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | Stub 单测 | 单测环境（`APP_ENV=test`，无 `AI_PROVIDER_BASE_URL`） | 业务代码调用 `aiclient.Complete(ctx, "practice.followup.default", payload)` | client 路由到 stub provider；返回结构化 response + meta；`meta.provider == "stub"`；同 input 多次调用结果一致 | A3 后续 001 |
-| C-2 | OpenAI-compatible 路由 | docker compose / Kind / staging 设置 `AI_PROVIDER_BASE_URL=https://provider.example/v1` 与 `AI_PROVIDER_API_KEY` | 调用 `Complete` | 出站 HTTP 请求命中真实 OpenAI-compatible `/v1/chat/completions`；header 含 `Authorization`；响应被解析为 `response + meta`；`meta.provider != "stub"`；不直接 import 任何厂商 SDK（grep `go.mod` 无 `openai-go` / `anthropic-sdk-go` 等） | A3 后续 001 |
-| C-3 | Fallback 触发 | 连接 provider endpoint route 对 `default.provider` 超时后成功切到 fallback provider/model | 调用 `Complete` | A3 client 接收并记录 endpoint / provider 返回的 fallback meta；`meta.fallback_chain == [primary, fallback0]`；`ai_fallback_total{from_model_family=…,to_model_family=…,result="fallback"}` +1；业务代码与 A3 client 均无 retry-with-different-model 循环 | A3 后续 001 |
-| C-4 | Profile 热加载 | A3 后续 001 完成 | `config/ai-profiles/*.yaml` 修改后保存 | client 在 ≤ 30s 内热加载新 profile；正在进行的调用使用旧 profile 完成；新调用使用新 profile | A3 后续 001 |
-| C-5 | 观测埋点齐全 | 任一无 fallback、无 validation failure 的调用完成 | F1 metric / log / DB 三方查询 | 7 个 metric family 均已注册；run / latency / token / cost 指标按本次调用增长；fallback / validation failure counter 不增长；log 含 §4.3 字段；`ai_task_runs` 写一行；`audit_events` 写一行（`action=ai.call`，无明文） | A3 后续 001 + F1 接入 |
-| C-6 | 隐私红线 | grep 全部生产代码与 log | 任意调用 | 不出现 `payload.messages[*].content` / `response.content` 明文落 log 或 DB metadata；hash / 长度 / profile 三类摘要必须出现 | A3 后续 001 |
-| C-7 | 错误码合规 | provider 返回结构化输出非法 | client `validate_output` 失败 | 返回错误码 `AI_OUTPUT_INVALID`（B1 锁定常量）；`ai_output_validation_failures_total` +1 | A3 后续 001 |
-| C-8 | active spec relation gate | 本 spec 通过 `/plan-review` | 与当前 active spec 和 future workstream 关系审查 | A3 与 F3 / B1 / A4 / F1 / release gate 引用关系自洽；ADR-Q6 为 AI routing 真理源；`AICallMeta` runtime 归 A3，B1 提供共享字段 / 常量，无字段冲突 | plan-review |
-| C-9 | 本地部署缺 AI provider fail-fast | docker compose 或 Kind 未设置 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`，且启用了需要 AIClient 的组件 | 启动 API / worker | 进程启动失败并报配置错误；不得自动回退到 stub provider | A3 后续 001 + A4 + A2 |
+| C-1 | Stub 单测 | 单测环境（`APP_ENV=test`，无真实 provider secret） | 业务代码调用 `aiclient.Complete(ctx, "practice.followup.default", payload)` | client 路由到 stub provider；返回结构化 response + meta；`meta.provider == "stub"`；同 input 多次调用结果一致 | 001 |
+| C-2 | Registry provider route | registry 中 `default-openai-compatible` 声明 `chat` / `embed` capability，并引用 env secret | 调用 `Complete` / `Embed` | 出站 HTTP 请求命中该 provider ref 的 OpenAI-compatible endpoint；header 含 `Authorization`；`meta.provider` / `meta.capability` / `meta.model_profile_name` 正确 | 003 |
+| C-3 | Central fallback | profile 声明 primary + fallback provider ref，primary 超时且 fallback 成功 | 调用 `Complete` | AIClient 执行受限 fallback，`fallback_chain` 记录 provider/model hop；`ai_fallback_total` +1；业务代码无 retry-with-different-model 循环 | 003 |
+| C-4 | Registry + profile 热加载 | A3 loader 已启动 | `config/ai-providers.yaml` 或 `config/ai-profiles/*.yaml` 修改后保存 | client 在 ≤ 30s 内热加载；正在进行的调用使用旧快照完成；新调用使用新快照 | 003 |
+| C-5 | 观测埋点齐全 | 任一无 fallback、无 validation failure 的调用完成 | F1 metric / log / DB 三方查询 | 7 个 metric family 均已注册；run / latency / token / cost 指标增长；fallback / validation failure counter 不增长；`ai_task_runs` + `audit_events` 各写一行，无明文 | 001 + 003 |
+| C-6 | 隐私红线 | grep 全部生产代码与 log | 任意调用 | 不出现 `payload.messages[*].content` / `response.content` 明文落 log 或 DB metadata；hash / 长度 / profile 三类摘要必须出现 | 001 + 003 |
+| C-7 | 错误码合规 | provider 返回结构化输出非法 | client `validate_output` 失败 | 返回错误码 `AI_OUTPUT_INVALID`；`ai_output_validation_failures_total` +1 | 001 |
+| C-8 | active spec relation gate | 本 spec 通过 `/plan-review` | 与当前 active spec 和 future workstream 关系审查 | A3 与 F3 / B1 / A4 / F1 / release gate 引用关系自洽；A3 不重新引入已废弃的 provider-proxy 业务语义 | plan-review |
+| C-9 | Registry secret fail-fast | local deploy / Kind / staging / prod 缺失 registry 选中 provider 的 base URL 或 API key | 启动 API / worker | 进程启动失败并报配置错误；不得自动回退到 stub provider | 003 + A4 |
+| C-10 | F3 baseline profile coverage | F3 12 个 baseline feature_key 已定义默认 profile name | 运行 profile coverage lint | 每个默认 profile 在 `config/ai-profiles/` 中存在，且 capability / provider_ref / status 合法；允许 P1/P2 profile `disabled` / `unsupported`，但必须携带 `unsupported_reason` 且不得缺文件 | 003 + F3 |
+| C-11 | Product/UI capability inventory drift | 新增 AI 场景或 UI 交互依赖 AI | `/plan-review` 或 lint 检查 | 本 spec §4.5、F3 feature_key 字典与 A3 profile catalog 同步更新；不得只在业务代码 hardcode 新 profile | 003 + F3 |
+| C-12 | Unsupported capability fail-closed | profile 使用 `stt` / `realtime` / `rerank` / `judge`，但对应 adapter 未激活 | 运行时调用该 profile | 返回明确 unsupported capability 错误并记录 meta/log；不得降级到 chat 或 stub；对应 UI 能力必须 feature-gated | 003 + 002 |
 
 ## 7 关联计划
 
-A3 当前计划拆分为一份 active P0 bootstrap plan 与一份 draft extension plan：
+A3 当前计划拆分为一份 completed bootstrap plan、一份 draft capability adapter extension plan、一份 active provider registry plan：
 
-- [001-aiclient-and-profile-bootstrap](./plans/001-aiclient-and-profile-bootstrap/plan.md)（active）：落地 `backend/internal/ai/aiclient/` 的 P0 `Complete` / `Embed` 接口、`Stream` 事件合同类型、unit-test stub provider、`openai_compatible` Chat / Embeddings provider。
-- 落地 Model Profile YAML schema + loader + 热加载；`task_type=stt` 仅作为保留值，不实现音频调用。
-- 落地 client 内部 metric / log / DB / audit decorator，并按本 spec 区分 per-call metric 与 event-only counter。
-- 提供单测（stub 路径）、离线 adapter 契约测试（mock server，由 E1 复用）与本地部署 smoke 的真实 provider 配置校验（不在测试中泄漏真实 key）。
-- 该 plan owns `backend/internal/ai/aiclient/` 与 `config/ai-profiles/` fixture；`backend/cmd/api` / `backend/cmd/worker` 只作为 DI handoff，不要求 A3 001 创建或重写运行时 entrypoint。
-
-- [002-tools-streaming-and-stt](./plans/002-tools-streaming-and-stt/plan.md)（draft/blocked）：仅作为 Tools / Streaming / STT 的延期占位；必须先触发 ADR-Q6 / 本 spec 修订，才能切 active。Function calling、stream 完整化、C14 音频转写不得塞回 001。
+- [001-aiclient-and-profile-bootstrap](./plans/001-aiclient-and-profile-bootstrap/plan.md)（completed）：已落地 P0 `Complete` / `Embed`、`Stream` 事件合同类型、unit-test stub provider、`openai_compatible` Chat / Embeddings provider、基础 Model Profile loader 与 observability / audit decorator。
+- [002-tools-streaming-and-stt](./plans/002-tools-streaming-and-stt/plan.md)（draft/blocked）：Tools / full streaming / STT / realtime speech 等协议能力延期占位；必须先触发 ADR / spec 修订，才能切 active。
+- [003-provider-registry-and-capability-profiles](./plans/003-provider-registry-and-capability-profiles/plan.md)（active）：把本 spec v1.9 的 provider registry、capability-scoped profile、central fallback、A4 env dictionary、F3 12 profile coverage 与 drift gate 落地，为后续业务域实施提供完整 AI provider 配置面。
 
 后续如需扩展，递增本 spec 版本并原地修订对应 plan；不创建 sibling spec。

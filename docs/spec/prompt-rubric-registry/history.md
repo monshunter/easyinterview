@@ -1,13 +1,14 @@
 # Prompt Rubric Registry History
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-05
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-05 | 1.5 | 对齐 A3 provider registry + capability profile 设计：F3 仍只输出 `model_profile_name`，但 12 个 baseline 默认 profile 必须被 A3 profile catalog 覆盖并通过 capability/provider_ref lint。 | ai-provider-and-model-routing/003 |
 | 2026-05-03 | 1.4 | 将 `easyinterview-tech-docs/01` / `03` 降级为历史 prompt / DB 输入；当前 feature_key baseline 收敛为 12 项，删除独立 `mistake.extract`，报告内题目回顾 / 本轮复练由 `report.generate` 与 `report.question_assessment` 承载。 | docs-only |
 | 2026-04-29 | 1.3 | 对齐 engineering-roadmap v2.0 的 C9 P0 调整：`debrief.generate` feature_key 现在服务 P0 真实面试复现 / 复盘文本流；感谢信草稿与完整跟进建议仍作为 C9 P1 增强，C11 继续只是 P1 命名空间占位。 | plan-review remediation |
 | 2026-04-27 | 1.2 | 对齐 A5 单人开发阶段决策：F3 当前只要求本地 prompt/rubric lint 与 template_hash drift gate，远端 CI 不作为 P0 前置。 | ci-pipeline-baseline spec-contract remediation |

@@ -110,7 +110,7 @@
 | 顶层 | - | `engineering-roadmap` | 当前实施地图、依赖顺序和文档治理 | 保留 |
 | Foundation | A1 | `repo-scaffold` | 仓库骨架、根 Makefile、hook 基础 | 保留 |
 | Foundation | A2 | `local-dev-stack` | 本地 dev stack、dev doctor、端口与健康检查契约 | 保留 |
-| Foundation | A3 | `ai-provider-and-model-routing` | AIClient、model profile、OpenAI-compatible endpoint、stub provider | 保留 |
+| Foundation | A3 | `ai-provider-and-model-routing` | AIClient、provider registry、capability model profile、OpenAI-compatible / stub provider | 保留 |
 | Foundation | A4 | `secrets-and-config` | 配置、secret、feature flag、runtime config 边界 | 保留 |
 | Foundation | A5 | `ci-pipeline-baseline` | 当前本地质量门禁，远端 CI deferred | 保留 |
 | Contract | B1 | `shared-conventions-codified` | Go/TS 共享枚举、错误码、ID、codegen / drift gate | 保留 |

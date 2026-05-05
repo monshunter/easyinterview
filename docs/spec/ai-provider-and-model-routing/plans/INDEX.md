@@ -8,6 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [003-provider-registry-and-capability-profiles](./003-provider-registry-and-capability-profiles/plan.md) | [plan](./003-provider-registry-and-capability-profiles/plan.md) / [checklist](./003-provider-registry-and-capability-profiles/checklist.md) / [context](./003-provider-registry-and-capability-profiles/context.yaml) | 1.0 | active | 2026-05-05 |
 
 ## 2 已完成（Completed）
 
@@ -19,6 +20,6 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [002-tools-streaming-and-stt](./002-tools-streaming-and-stt/plan.md) | [plan](./002-tools-streaming-and-stt/plan.md) / [checklist](./002-tools-streaming-and-stt/checklist.md) / [context](./002-tools-streaming-and-stt/context.yaml) | 0.2 | draft | 2026-05-04 |
+| [002-tools-streaming-and-stt](./002-tools-streaming-and-stt/plan.md) | [plan](./002-tools-streaming-and-stt/plan.md) / [checklist](./002-tools-streaming-and-stt/checklist.md) / [context](./002-tools-streaming-and-stt/context.yaml) | 0.3 | draft | 2026-05-05 |
 
 > 阻塞条件：需 ADR-Q6 / A3 spec 先打开 Tools、Streaming 或 STT 能力。

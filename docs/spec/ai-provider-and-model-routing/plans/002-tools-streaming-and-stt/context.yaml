@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: 1.6
-    to: 1.8
+    to: 1.9
 spec:
   defaultTarget: backend
   discovery:
@@ -17,6 +17,7 @@ spec:
       - ai-tools
       - ai-streaming
       - stt
+      - capability
     keywords:
       - function calling
       - structured output
