@@ -8,9 +8,9 @@
 
 ## Phase 1: Storage and config boundaries
 
-- [ ] 1.1 锁定 auth storage；验证: store tests 覆盖 `users`、`user_settings`、`auth_challenges`、`sessions` 表读写，确认 `external_identities` 仅作为 P1 SSO 空表槽存在且 C1 不提供 P0 读写 store 方法，确认无需新增 migration；滑动续期使用 `sessions.updated_at`；若需 `last_seen_at` 或 schema 变更，先停止并修订 ADR-Q1 / B4 owner spec
-- [ ] 1.2 锁定 config / secret 边界；验证: config tests 覆盖 `SESSION_COOKIE_SECRET`、`AUTH_CHALLENGE_TOKEN_PEPPER`、`EMAIL_PROVIDER`、`EMAIL_PROVIDER_API_KEY` 缺失时 fail-fast，固定 `ei_session` cookie name，且 15 分钟 challenge TTL / 30 天 session TTL / 1 分钟第 3 次 rate-limit / dev mail sink 默认值作为 C1 代码常量有测试和包级文档；若需新增配置先停止并修订 A4
-- [ ] 1.3 锁定 generated Auth surface 和 session middleware；验证: compile / contract tests 断言 B2 generated `ServerInterface` 的 `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`deleteMe`、`logout`、`getRuntimeConfig` 均被 C1/A4 wiring 覆盖，public endpoints 为 auth start / verify / runtime-config，logout 为 optional-session / always-clear-cookie 特例，其余 protected endpoint 走 first-party session middleware
+- [x] 1.1 锁定 auth storage；验证: store tests 覆盖 `users`、`user_settings`、`auth_challenges`、`sessions` 表读写，确认 `external_identities` 仅作为 P1 SSO 空表槽存在且 C1 不提供 P0 读写 store 方法，确认无需新增 migration；滑动续期使用 `sessions.updated_at`；若需 `last_seen_at` 或 schema 变更，先停止并修订 ADR-Q1 / B4 owner spec
+- [x] 1.2 锁定 config / secret 边界；验证: config tests 覆盖 `SESSION_COOKIE_SECRET`、`AUTH_CHALLENGE_TOKEN_PEPPER`、`EMAIL_PROVIDER`、`EMAIL_PROVIDER_API_KEY` 缺失时 fail-fast，固定 `ei_session` cookie name，且 15 分钟 challenge TTL / 30 天 session TTL / 1 分钟第 3 次 rate-limit / dev mail sink 默认值作为 C1 代码常量有测试和包级文档；若需新增配置先停止并修订 A4
+- [x] 1.3 锁定 generated Auth surface 和 session middleware；验证: compile / contract tests 断言 B2 generated `ServerInterface` 的 `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`deleteMe`、`logout`、`getRuntimeConfig` 均被 C1/A4 wiring 覆盖，public endpoints 为 auth start / verify / runtime-config，logout 为 optional-session / always-clear-cookie 特例，其余 protected endpoint 走 first-party session middleware
 
 ## Phase 2: Challenge issue and delivery
 
