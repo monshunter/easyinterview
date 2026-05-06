@@ -28,4 +28,58 @@ describe("frontend D1 scope guards", () => {
     }
     expect(offenders).toEqual([]);
   });
+
+  it("never ships standalone legacy route screens (voice / growth / mistakes / drill)", () => {
+    const FORBIDDEN_FILE_NAMES = [
+      /\bVoiceScreen\.(tsx|ts)$/,
+      /\bGrowthScreen\.(tsx|ts)$/,
+      /\bMistakesScreen\.(tsx|ts)$/,
+      /\bDrillScreen\.(tsx|ts)$/,
+      /\bFollowupScreen\.(tsx|ts)$/,
+      /\bExperiencesScreen\.(tsx|ts)$/,
+      /\bWelcomeScreen\.(tsx|ts)$/,
+    ];
+    const offenders: string[] = [];
+    for (const file of walk(FRONTEND_SRC)) {
+      for (const pattern of FORBIDDEN_FILE_NAMES) {
+        if (pattern.test(file)) offenders.push(file);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("never references retired route names from active code", () => {
+    // The route alias map in normalizeRoute.ts intentionally references the
+    // legacy names for compat — exclude it. All other active code must avoid
+    // referencing retired aliases as live route names.
+    const ALIAS_OWNER = "/app/normalizeRoute.ts";
+    const FORBIDDEN_LITERALS = [
+      `name: "voice"`,
+      `name: 'voice'`,
+      `name: "growth"`,
+      `name: 'growth'`,
+      `name: "mistakes"`,
+      `name: 'mistakes'`,
+      `name: "drill"`,
+      `name: 'drill'`,
+      `name: "followup"`,
+      `name: 'followup'`,
+      `name: "welcome"`,
+      `name: 'welcome'`,
+    ];
+    const offenders: Array<{ file: string; needle: string }> = [];
+    for (const file of walk(FRONTEND_SRC)) {
+      if (file.endsWith(ALIAS_OWNER)) continue;
+      // Skip test files: tests legitimately exercise legacy aliases through
+      // normalizeRoute and via initialRoute={{ name: "welcome", ... }} loose
+      // input. Their job is to prove the gate works.
+      if (/\.test\.(ts|tsx)$/.test(file)) continue;
+      const content = readFileSync(file, "utf8");
+      for (const needle of FORBIDDEN_LITERALS) {
+        if (content.includes(needle))
+          offenders.push({ file, needle });
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
 });

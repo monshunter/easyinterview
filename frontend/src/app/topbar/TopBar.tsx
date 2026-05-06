@@ -115,9 +115,29 @@ export const TopBar: FC<TopBarProps> = ({
         data-signed-in={signedIn ? "true" : "false"}
       >
         {signedIn ? (
-          // Phase 4.1 expands this into the avatar menu with 用户画像 /
-          // 设置与隐私 / 退出登录.
-          <span data-testid="topbar-user-menu-placeholder" />
+          <nav data-testid="topbar-user-menu" aria-label="user">
+            <button
+              type="button"
+              data-testid="topbar-user-profile"
+              onClick={() => onNavigate({ name: "profile", params: {} })}
+            >
+              用户画像
+            </button>
+            <button
+              type="button"
+              data-testid="topbar-user-settings"
+              onClick={() => onNavigate({ name: "settings", params: {} })}
+            >
+              设置与隐私
+            </button>
+            <button
+              type="button"
+              data-testid="topbar-user-logout"
+              onClick={() => onNavigate({ name: "auth_logout", params: {} })}
+            >
+              退出登录
+            </button>
+          </nav>
         ) : (
           <>
             <button

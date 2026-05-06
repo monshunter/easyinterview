@@ -25,6 +25,8 @@ import {
   type AppRuntimeValue,
 } from "./runtime/AppRuntimeProvider";
 import { PlaceholderScreen } from "./screens/PlaceholderScreen";
+import { ProfileScreen } from "./screens/ProfileScreen";
+import { SettingsScreen } from "./screens/SettingsScreen";
 import { TopBar } from "./topbar/TopBar";
 
 export interface AppProps {
@@ -59,6 +61,15 @@ function renderRouteScreen(
   navigate: (next: LooseRoute) => void,
   runtime: AppRuntimeValue | null,
 ): ReactNode {
+  // Profile / Settings shells are pure UI and do not depend on runtime; render
+  // them whether or not a client is mounted so D2-D6 owners can iterate
+  // without the auth bootstrap.
+  if (route.name === "profile") {
+    return <ProfileScreen route={route} />;
+  }
+  if (route.name === "settings") {
+    return <SettingsScreen route={route} />;
+  }
   if (!runtime) {
     return <PlaceholderScreen route={route} />;
   }

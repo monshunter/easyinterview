@@ -67,6 +67,51 @@ describe("TopBar primary nav", () => {
   });
 });
 
+describe("TopBar user menu", () => {
+  it("renders login + register entries when signed-out", () => {
+    renderInProvider(
+      <TopBar activeRoute="home" onNavigate={() => {}} signedIn={false} />,
+    );
+    expect(screen.getByTestId("topbar-login")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-register")).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("topbar-user-profile"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders 用户画像 / 设置与隐私 / 退出登录 menu when signed-in and dispatches the right routes", async () => {
+    const onNavigate = vi.fn();
+    renderInProvider(
+      <TopBar
+        activeRoute="home"
+        onNavigate={onNavigate}
+        signedIn={true}
+      />,
+    );
+    expect(screen.getByTestId("topbar-user-menu")).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-login")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("topbar-user-profile"));
+    await user.click(screen.getByTestId("topbar-user-settings"));
+    await user.click(screen.getByTestId("topbar-user-logout"));
+    expect(onNavigate).toHaveBeenNthCalledWith(1, {
+      name: "profile",
+      params: {},
+    });
+    expect(onNavigate).toHaveBeenNthCalledWith(2, {
+      name: "settings",
+      params: {},
+    });
+    expect(onNavigate).toHaveBeenNthCalledWith(3, {
+      name: "auth_logout",
+      params: {},
+    });
+  });
+});
+
 describe("TopBar display controls", () => {
   it("exposes theme / dark / lang controls bound to the display preferences provider", async () => {
     renderInProvider(<TopBar activeRoute="home" onNavigate={() => {}} />);

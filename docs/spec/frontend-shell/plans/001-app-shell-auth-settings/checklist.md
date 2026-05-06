@@ -29,11 +29,11 @@
 
 ## Phase 4: User menu, profile, settings
 
-- [ ] 4.1 实现用户菜单入口；验证: component test 断言未登录显示登录/注册，已登录显示 `用户画像`、`设置与隐私`、`退出登录`
-- [ ] 4.2 实现 settings/profile placeholder shell；验证: route/component test 断言 `profile` 和 `settings` 分离，settings 只维护账号/隐私/字体预设，不恢复旧 Growth / Experiences / Mistakes
+- [x] 4.1 实现用户菜单入口；验证: component test 断言未登录显示登录/注册，已登录显示 `用户画像`、`设置与隐私`、`退出登录`
+- [x] 4.2 实现 settings/profile placeholder shell；验证: route/component test 断言 `profile` 和 `settings` 分离，settings 只维护账号/隐私/字体预设，不恢复旧 Growth / Experiences / Mistakes
 
 ## Phase 5: Handoff
 
-- [ ] 5.1 记录后续 D2-D6 shell 接入点；验证: frontend README 或 package docs 说明 route table、pendingAction contract、mock runtime 入口和后续 owner 边界
-- [ ] 5.2 active-scope 负向搜索通过；验证: frontend active code 不含独立 `voice` route、独立 `growth` / `mistakes` / `drill` 页面、prototype data runtime import
-- [ ] 5.3 记录 UI 设计体系 handoff；验证: frontend README 或 package docs 说明 `DESIGN.md` 只读参考边界、可复用语义命名、不得机械同步 token、不得引入私有授权字体，验收仍以 `docs/ui-design/` 与 `ui-design/` 为准
+- [x] 5.1 记录后续 D2-D6 shell 接入点；验证: frontend README 或 package docs 说明 route table、pendingAction contract、mock runtime 入口和后续 owner 边界
+- [x] 5.2 active-scope 负向搜索通过；验证: frontend active code 不含独立 `voice` route、独立 `growth` / `mistakes` / `drill` 页面、prototype data runtime import
+- [x] 5.3 记录 UI 设计体系 handoff；验证: frontend README 或 package docs 说明 `DESIGN.md` 只读参考边界、可复用语义命名、不得机械同步 token、不得引入私有授权字体，验收仍以 `docs/ui-design/` 与 `ui-design/` 为准
