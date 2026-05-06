@@ -149,6 +149,8 @@ const (
 	FieldFromModelFamily     FieldName = "from_model_family"
 	FieldToProvider          FieldName = "to_provider"
 	FieldToModelFamily       FieldName = "to_model_family"
+	FieldToolInvocations     FieldName = "tool_invocations"
+	FieldPartialMetaReason   FieldName = "partial_meta_reason"
 )
 
 // AllFieldNames lists every AI metadata field in declaration order.
@@ -172,6 +174,8 @@ var AllFieldNames = []FieldName{
 	FieldFromModelFamily,
 	FieldToProvider,
 	FieldToModelFamily,
+	FieldToolInvocations,
+	FieldPartialMetaReason,
 }
 
 // IsFieldName reports whether value is a documented AI metadata field name.

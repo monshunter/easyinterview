@@ -2,6 +2,7 @@ package stub_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -73,6 +74,32 @@ func TestStubCompleteIsDeterministic(t *testing.T) {
 	}
 	if a.Content != b.Content {
 		t.Fatalf("expected deterministic stub output, got %q vs %q", a.Content, b.Content)
+	}
+}
+
+func TestStubCompleteWithToolsIsDeterministic(t *testing.T) {
+	p, err := stub.New(stub.WithAppEnv(aiclient.AppEnvTest))
+	if err != nil {
+		t.Fatalf("stub.New: %v", err)
+	}
+	payload := chatPayload()
+	payload.Tools = []aiclient.Tool{{
+		Name:        "extract_signal",
+		Description: "Extract structured signal.",
+		Parameters:  json.RawMessage(`{"type":"object","properties":{"signal":{"type":"string"}}}`),
+	}}
+	payload.ToolChoice = &aiclient.ToolChoice{Mode: aiclient.ToolChoiceModeTool, Name: "extract_signal"}
+
+	a, _, err := p.Complete(context.Background(), chatProfile(), payload)
+	if err != nil {
+		t.Fatalf("first Complete: %v", err)
+	}
+	b, _, err := p.Complete(context.Background(), chatProfile(), payload)
+	if err != nil {
+		t.Fatalf("second Complete: %v", err)
+	}
+	if a.Content != b.Content {
+		t.Fatalf("expected deterministic tool stub output, got %q vs %q", a.Content, b.Content)
 	}
 }
 

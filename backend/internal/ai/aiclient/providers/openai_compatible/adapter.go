@@ -3,6 +3,8 @@ package openaicompatible
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -86,9 +88,11 @@ func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, 
 	}
 
 	req := chatCompletionsRequest{
-		Model:    profile.Default.Model,
-		Messages: convertMessages(payload.Messages),
-		Stream:   false,
+		Model:      profile.Default.Model,
+		Messages:   convertMessages(payload.Messages),
+		Stream:     false,
+		Tools:      convertTools(payload.Tools),
+		ToolChoice: convertToolChoice(payload.ToolChoice),
 	}
 	if profile.MaxTokens > 0 {
 		req.MaxTokens = profile.MaxTokens
@@ -124,8 +128,9 @@ func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, 
 	out := aiclient.CompleteResponse{
 		Content:      choice.Message.Content,
 		FinishReason: choice.FinishReason,
+		ToolCalls:    convertToolCalls(choice.Message.ToolCalls),
 	}
-	meta := a.buildMeta(profile, headers, latencyMs, body.Model, body.Usage.PromptTokens, body.Usage.CompletionTokens)
+	meta := a.buildMeta(profile, headers, latencyMs, body.Model, body.Usage.PromptTokens, body.Usage.CompletionTokens, out.ToolCalls)
 	return out, meta, nil
 }
 
@@ -165,7 +170,7 @@ func (a *Adapter) Embed(ctx context.Context, profile *aiclient.ModelProfile, inp
 		vectors[i] = d.Embedding
 	}
 	out := aiclient.EmbedResponse{Vectors: vectors}
-	meta := a.buildMeta(profile, headers, latencyMs, body.Model, body.Usage.PromptTokens, 0)
+	meta := a.buildMeta(profile, headers, latencyMs, body.Model, body.Usage.PromptTokens, 0, nil)
 	meta.OutputTokens = len(vectors)
 	return out, meta, nil
 }
@@ -255,20 +260,37 @@ func (a *Adapter) errMeta(profile *aiclient.ModelProfile, headers http.Header, l
 	return meta
 }
 
-func (a *Adapter) buildMeta(profile *aiclient.ModelProfile, headers http.Header, latencyMs int64, modelID string, inputTokens, outputTokens int) aiclient.AICallMeta {
+func (a *Adapter) buildMeta(profile *aiclient.ModelProfile, headers http.Header, latencyMs int64, modelID string, inputTokens, outputTokens int, toolCalls []aiclient.ToolCall) aiclient.AICallMeta {
 	if modelID == "" {
 		modelID = profile.Default.Model
 	}
 	meta := aiclient.AICallMeta{
-		Provider:     a.providerRef,
-		ModelFamily:  modelFamily(modelID),
-		ModelID:      modelID,
-		InputTokens:  inputTokens,
-		OutputTokens: outputTokens,
-		LatencyMs:    latencyMs,
+		Provider:        a.providerRef,
+		ModelFamily:     modelFamily(modelID),
+		ModelID:         modelID,
+		InputTokens:     inputTokens,
+		OutputTokens:    outputTokens,
+		LatencyMs:       latencyMs,
+		ToolInvocations: summarizeToolCalls(toolCalls),
 	}
 	mergeFallbackHeaders(profile, headers, &meta)
 	return meta
+}
+
+func summarizeToolCalls(calls []aiclient.ToolCall) []aiclient.ToolInvocationMeta {
+	if len(calls) == 0 {
+		return nil
+	}
+	out := make([]aiclient.ToolInvocationMeta, 0, len(calls))
+	for _, call := range calls {
+		sum := sha256.Sum256(call.Arguments)
+		out = append(out, aiclient.ToolInvocationMeta{
+			Name:            call.Name,
+			ArgumentsHash:   hex.EncodeToString(sum[:]),
+			ArgumentsLength: len(call.Arguments),
+		})
+	}
+	return out
 }
 
 func mergeFallbackHeaders(profile *aiclient.ModelProfile, headers http.Header, meta *aiclient.AICallMeta) {
@@ -331,6 +353,67 @@ func convertMessages(in []aiclient.Message) []wireMessage {
 	out := make([]wireMessage, len(in))
 	for i, m := range in {
 		out[i] = wireMessage{Role: m.Role, Content: m.Content}
+	}
+	return out
+}
+
+func convertTools(in []aiclient.Tool) []wireTool {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]wireTool, len(in))
+	for i, tool := range in {
+		out[i] = wireTool{
+			Type: "function",
+			Function: wireFunction{
+				Name:        tool.Name,
+				Description: tool.Description,
+				Parameters:  tool.Parameters,
+			},
+		}
+	}
+	return out
+}
+
+func convertToolChoice(choice *aiclient.ToolChoice) any {
+	if choice == nil {
+		return nil
+	}
+	switch choice.Mode {
+	case aiclient.ToolChoiceModeAuto:
+		return "auto"
+	case aiclient.ToolChoiceModeNone:
+		return "none"
+	case aiclient.ToolChoiceModeTool:
+		return map[string]any{
+			"type": "function",
+			"function": map[string]string{
+				"name": choice.Name,
+			},
+		}
+	default:
+		return nil
+	}
+}
+
+func convertToolCalls(in []wireToolCall) []aiclient.ToolCall {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]aiclient.ToolCall, 0, len(in))
+	for _, call := range in {
+		if call.Type != "" && call.Type != "function" {
+			continue
+		}
+		args := json.RawMessage(call.Function.Arguments)
+		if len(args) == 0 {
+			args = nil
+		}
+		out = append(out, aiclient.ToolCall{
+			ID:        call.ID,
+			Name:      call.Function.Name,
+			Arguments: args,
+		})
 	}
 	return out
 }

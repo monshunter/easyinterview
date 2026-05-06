@@ -23,6 +23,8 @@ func TestAIVocabularyFieldSet(t *testing.T) {
 		FieldFromModelFamily,
 		FieldToProvider,
 		FieldToModelFamily,
+		FieldToolInvocations,
+		FieldPartialMetaReason,
 	}
 
 	if len(AllFieldNames) != len(want) {
@@ -56,6 +58,8 @@ func TestAIVocabularyWireNames(t *testing.T) {
 		FieldFromModelFamily:     "from_model_family",
 		FieldToProvider:          "to_provider",
 		FieldToModelFamily:       "to_model_family",
+		FieldToolInvocations:     "tool_invocations",
+		FieldPartialMetaReason:   "partial_meta_reason",
 	}
 	for field, want := range cases {
 		if string(field) != want {
@@ -84,6 +88,8 @@ func TestA3ConsumedAIVocabularyFields(t *testing.T) {
 		"route":                 FieldRoute,
 		"validation_status":     FieldValidationStatus,
 		"output_schema_version": FieldOutputSchemaVersion,
+		"tool_invocations":      FieldToolInvocations,
+		"partial_meta_reason":   FieldPartialMetaReason,
 	}
 	for wire, field := range cases {
 		if string(field) != wire {

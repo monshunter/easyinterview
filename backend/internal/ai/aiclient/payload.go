@@ -22,20 +22,57 @@ type CallMetadata struct {
 	TaskRun       AITaskRunContext `json:"taskRun,omitempty"`
 }
 
+// Tool is the provider-neutral function/tool schema subset accepted by
+// AIClient.Complete. Parameters must be a JSON schema object; callers never
+// pass provider/model strings through this contract.
+type Tool struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description,omitempty"`
+	Parameters  json.RawMessage `json:"parameters,omitempty"`
+}
+
+// ToolChoiceMode describes how a Complete call selects a tool.
+type ToolChoiceMode string
+
+const (
+	ToolChoiceModeAuto ToolChoiceMode = "auto"
+	ToolChoiceModeNone ToolChoiceMode = "none"
+	ToolChoiceModeTool ToolChoiceMode = "tool"
+)
+
+// ToolChoice optionally pins tool selection for a Complete call. Name is only
+// meaningful when Mode == ToolChoiceModeTool.
+type ToolChoice struct {
+	Mode ToolChoiceMode `json:"mode"`
+	Name string         `json:"name,omitempty"`
+}
+
 // CompletePayload is the input to AIClient.Complete and AIClient.Stream.
 // Callers cannot pass a bare prompt string; Messages must be non-empty or the
 // client returns AI_OUTPUT_INVALID.
 type CompletePayload struct {
-	Messages []Message    `json:"messages"`
-	Metadata CallMetadata `json:"metadata"`
+	Messages   []Message    `json:"messages"`
+	Metadata   CallMetadata `json:"metadata"`
+	Tools      []Tool       `json:"tools,omitempty"`
+	ToolChoice *ToolChoice  `json:"toolChoice,omitempty"`
 }
 
 // CompleteResponse is the structured response returned by Complete. Content
 // is the assistant message body; FinishReason mirrors the upstream finish
 // reason (e.g. "stop" / "length" / "tool_calls") when available.
 type CompleteResponse struct {
-	Content      string `json:"content"`
-	FinishReason string `json:"finishReason,omitempty"`
+	Content      string     `json:"content"`
+	FinishReason string     `json:"finishReason,omitempty"`
+	ToolCalls    []ToolCall `json:"toolCalls,omitempty"`
+}
+
+// ToolCall is the provider-neutral tool call result surfaced by Complete.
+// Arguments remains JSON so business owners can unmarshal into their own
+// request-specific schema after checking the tool name.
+type ToolCall struct {
+	ID        string          `json:"id,omitempty"`
+	Name      string          `json:"name"`
+	Arguments json.RawMessage `json:"arguments,omitempty"`
 }
 
 // EmbedInput is the input to AIClient.Embed.

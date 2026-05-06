@@ -21,9 +21,12 @@
 
 ## Phase 2: Tools / function calling 实现
 
-- [ ] 2.1 在 spec §4.1 锁定 `Complete` payload tools 扩展形态；验证: 新增/调整的 Go interface contract test 先 Red 后 Green，且业务调用仍只传 `model_profile_name`，不传 provider/model 字符串
-- [ ] 2.2 openai_compatible adapter + stub provider 落地 tool 调用与 deterministic 回放；验证: focused adapter mockserver tests 覆盖 `tool_calls` / `tool_choice` / structured output happy path 与 provider 4xx/5xx error path，stub provider deterministic replay test 通过
-- [ ] 2.3 `AICallMeta` 扩展 tool 相关字段，log / DB 守住 hash / 长度 / profile 红线；验证: observability/privacy tests 断言 tool args 明文不进入 log / DB / audit / metric label，B1 vocabulary/codegen drift gate 通过
+- [x] 2.1 在 spec §4.1 锁定 `Complete` payload tools 扩展形态；验证: 新增/调整的 Go interface contract test 先 Red 后 Green，且业务调用仍只传 `model_profile_name`，不传 provider/model 字符串
+  <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient -run TestComplete_ToolsPayloadRemainsProviderNeutral -count=1 (missing Tools/ToolChoice contract)" green="cd backend && go test ./internal/ai/aiclient -run TestComplete_ToolsPayloadRemainsProviderNeutral -count=1" regression="cd backend && go test ./internal/ai/aiclient -count=1" -->
+- [x] 2.2 openai_compatible adapter + stub provider 落地 tool 调用与 deterministic 回放；验证: focused adapter mockserver tests 覆盖 `tool_calls` / `tool_choice` / structured output happy path 与 provider 4xx/5xx error path，stub provider deterministic replay test 通过
+  <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestComplete_MapsToolsAndParsesToolCalls -count=1 (tool_calls empty)" green="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestComplete_MapsToolsAndParsesToolCalls -count=1 && cd backend && go test ./internal/ai/aiclient/providers/stub -run TestStubCompleteWithToolsIsDeterministic -count=1" regression="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -count=1 && cd backend && go test ./internal/ai/aiclient/providers/stub -count=1" -->
+- [x] 2.3 `AICallMeta` 扩展 tool 相关字段，log / DB 守住 hash / 长度 / profile 红线；验证: observability/privacy tests 断言 tool args 明文不进入 log / DB / audit / metric label，B1 vocabulary/codegen drift gate 通过
+  <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestComplete_MapsToolsAndParsesToolCalls -count=1 (missing ToolInvocations)" green="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestComplete_MapsToolsAndParsesToolCalls -count=1 && cd backend && go test ./internal/shared/ai -count=1 && cd backend && go test ./internal/ai/aiclient/observability -run 'TestPrivacy_NoPlaintextLeaksAnywhere|TestDecorator_SuccessIncrementsRunsAndLogsCompleted' -count=1" drift="make codegen-conventions && python3 scripts/lint/conventions_drift.py --repo-root ." -->
 
 ## Phase 3: Stream consumer 完整化
 

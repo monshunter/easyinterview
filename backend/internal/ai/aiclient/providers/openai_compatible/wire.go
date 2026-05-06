@@ -1,8 +1,11 @@
 package openaicompatible
 
+import "encoding/json"
+
 type wireMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role      string         `json:"role"`
+	Content   string         `json:"content"`
+	ToolCalls []wireToolCall `json:"tool_calls,omitempty"`
 }
 
 type chatCompletionsRequest struct {
@@ -10,6 +13,8 @@ type chatCompletionsRequest struct {
 	Messages    []wireMessage `json:"messages"`
 	MaxTokens   int           `json:"max_tokens,omitempty"`
 	Stream      bool          `json:"stream"`
+	Tools       []wireTool    `json:"tools,omitempty"`
+	ToolChoice  any           `json:"tool_choice,omitempty"`
 	Temperature *float64      `json:"temperature,omitempty"`
 	TopP        *float64      `json:"top_p,omitempty"`
 }
@@ -25,6 +30,24 @@ type chatCompletionsChoice struct {
 	Index        int         `json:"index"`
 	Message      wireMessage `json:"message"`
 	FinishReason string      `json:"finish_reason"`
+}
+
+type wireTool struct {
+	Type     string       `json:"type"`
+	Function wireFunction `json:"function"`
+}
+
+type wireFunction struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description,omitempty"`
+	Parameters  json.RawMessage `json:"parameters,omitempty"`
+	Arguments   string          `json:"arguments,omitempty"`
+}
+
+type wireToolCall struct {
+	ID       string       `json:"id,omitempty"`
+	Type     string       `json:"type"`
+	Function wireFunction `json:"function"`
 }
 
 type embeddingsRequest struct {

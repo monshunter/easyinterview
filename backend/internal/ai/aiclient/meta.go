@@ -63,6 +63,15 @@ type AICallMeta struct {
 	Route               string
 	ValidationStatus    ValidationStatus
 	ErrorCode           string
+	ToolInvocations     []ToolInvocationMeta
+	PartialMetaReason   string
+}
+
+// ToolInvocationMeta summarizes a tool call without retaining raw arguments.
+type ToolInvocationMeta struct {
+	Name            string
+	ArgumentsHash   string
+	ArgumentsLength int
 }
 
 // StreamEventType identifies the variant of an AIStreamEvent. Plan 001

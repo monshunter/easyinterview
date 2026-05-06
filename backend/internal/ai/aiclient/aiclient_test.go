@@ -2,6 +2,7 @@ package aiclient_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -23,15 +24,19 @@ func (r staticResolver) Resolve(name string) (*aiclient.ModelProfile, error) {
 }
 
 type countingProvider struct {
-	inner         aiclient.Provider
-	completeCalls int
-	embedCalls    int
+	inner               aiclient.Provider
+	completeCalls       int
+	embedCalls          int
+	lastCompleteProfile string
+	lastCompletePayload aiclient.CompletePayload
 }
 
 func (p *countingProvider) Name() string { return p.inner.Name() }
 
 func (p *countingProvider) Complete(ctx context.Context, profile *aiclient.ModelProfile, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
 	p.completeCalls++
+	p.lastCompleteProfile = profile.Name
+	p.lastCompletePayload = payload
 	return p.inner.Complete(ctx, profile, payload)
 }
 
@@ -261,6 +266,40 @@ func TestComplete_DeterministicForSameInput(t *testing.T) {
 	}
 	if first.Content != second.Content {
 		t.Fatalf("expected deterministic output across calls, got %q vs %q", first.Content, second.Content)
+	}
+}
+
+func TestComplete_ToolsPayloadRemainsProviderNeutral(t *testing.T) {
+	c, provider := newTestClientWithResolver(t, defaultResolver())
+	payload := samplePayload()
+	payload.Tools = []aiclient.Tool{{
+		Name:        "extract_signal",
+		Description: "Extract structured interview signal.",
+		Parameters:  json.RawMessage(`{"type":"object","properties":{"signal":{"type":"string"}}}`),
+	}}
+	payload.ToolChoice = &aiclient.ToolChoice{
+		Mode: aiclient.ToolChoiceModeTool,
+		Name: "extract_signal",
+	}
+
+	_, meta, err := c.Complete(context.Background(), "practice.followup.default", payload)
+	if err != nil {
+		t.Fatalf("Complete: %v", err)
+	}
+	if provider.lastCompleteProfile != "practice.followup.default" {
+		t.Fatalf("provider should receive resolved profile name only, got %q", provider.lastCompleteProfile)
+	}
+	if len(provider.lastCompletePayload.Tools) != 1 {
+		t.Fatalf("expected one provider-neutral tool, got %+v", provider.lastCompletePayload.Tools)
+	}
+	if provider.lastCompletePayload.Tools[0].Name != "extract_signal" {
+		t.Fatalf("tool name not propagated: %+v", provider.lastCompletePayload.Tools[0])
+	}
+	if provider.lastCompletePayload.ToolChoice == nil || provider.lastCompletePayload.ToolChoice.Name != "extract_signal" {
+		t.Fatalf("tool choice not propagated: %+v", provider.lastCompletePayload.ToolChoice)
+	}
+	if meta.ModelProfileName != "practice.followup.default" || meta.Provider != stub.Name {
+		t.Fatalf("meta must stay profile/provider neutral, got %+v", meta)
 	}
 }
 

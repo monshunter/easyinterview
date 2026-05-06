@@ -304,3 +304,5 @@ aiVocabulary:
     - name: from_model_family
     - name: to_provider
     - name: to_model_family
+    - name: tool_invocations
+    - name: partial_meta_reason

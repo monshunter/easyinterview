@@ -2,6 +2,7 @@ package openaicompatible_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -164,6 +165,84 @@ func TestComplete_BaseURLMayIncludeV1Prefix(t *testing.T) {
 	}
 	if got := requests[0].Path; got != "/v1/chat/completions" {
 		t.Fatalf("expected normalized /v1/chat/completions path, got %q", got)
+	}
+}
+
+func TestComplete_MapsToolsAndParsesToolCalls(t *testing.T) {
+	srv := mockserver.New()
+	srv.SetChatBodyOverride(func() string {
+		return `{
+			"id":"mock-id-tools",
+			"model":"` + chatModelID + `",
+			"choices":[{
+				"index":0,
+				"message":{
+					"role":"assistant",
+					"content":"",
+					"tool_calls":[{
+						"id":"call_1",
+						"type":"function",
+						"function":{
+							"name":"extract_signal",
+							"arguments":"{\"signal\":\"scope\"}"
+						}
+					}]
+				},
+				"finish_reason":"tool_calls"
+			}],
+			"usage":{"prompt_tokens":11,"completion_tokens":3,"total_tokens":14}
+		}`
+	})
+	defer srv.Close()
+	a := newAdapter(t, srv)
+
+	payload := samplePayload()
+	payload.Tools = []aiclient.Tool{{
+		Name:        "extract_signal",
+		Description: "Extract structured signal.",
+		Parameters:  json.RawMessage(`{"type":"object","properties":{"signal":{"type":"string"}}}`),
+	}}
+	payload.ToolChoice = &aiclient.ToolChoice{Mode: aiclient.ToolChoiceModeTool, Name: "extract_signal"}
+
+	resp, meta, err := a.Complete(context.Background(), chatProfile(5000), payload)
+	if err != nil {
+		t.Fatalf("Complete: %v", err)
+	}
+	if resp.FinishReason != "tool_calls" {
+		t.Fatalf("expected finish_reason tool_calls, got %q", resp.FinishReason)
+	}
+	if len(resp.ToolCalls) != 1 {
+		t.Fatalf("expected one tool call, got %+v", resp.ToolCalls)
+	}
+	if resp.ToolCalls[0].Name != "extract_signal" {
+		t.Fatalf("tool call not parsed: %+v", resp.ToolCalls[0])
+	}
+	if string(resp.ToolCalls[0].Arguments) != `{"signal":"scope"}` {
+		t.Fatalf("tool arguments mismatch: %s", resp.ToolCalls[0].Arguments)
+	}
+	if len(meta.ToolInvocations) != 1 {
+		t.Fatalf("expected one tool invocation summary, got %+v", meta.ToolInvocations)
+	}
+	if meta.ToolInvocations[0].Name != "extract_signal" {
+		t.Fatalf("tool invocation name mismatch: %+v", meta.ToolInvocations[0])
+	}
+	if meta.ToolInvocations[0].ArgumentsHash == "" || meta.ToolInvocations[0].ArgumentsLength == 0 {
+		t.Fatalf("tool invocation must include arguments hash and length: %+v", meta.ToolInvocations[0])
+	}
+	if strings.Contains(meta.ToolInvocations[0].ArgumentsHash, "scope") {
+		t.Fatalf("tool invocation hash leaked raw arguments: %+v", meta.ToolInvocations[0])
+	}
+
+	var wire map[string]any
+	if err := json.Unmarshal(srv.Captured()[0].Body, &wire); err != nil {
+		t.Fatalf("unmarshal captured request: %v", err)
+	}
+	if _, ok := wire["tools"].([]any); !ok {
+		t.Fatalf("expected request tools array, got %s", srv.Captured()[0].Body)
+	}
+	choice, ok := wire["tool_choice"].(map[string]any)
+	if !ok || choice["type"] != "function" {
+		t.Fatalf("expected function tool_choice, got %+v", wire["tool_choice"])
 	}
 }
 

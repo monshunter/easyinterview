@@ -122,6 +122,8 @@ export const AI_VOCABULARY_FIELDS = {
   FROM_MODEL_FAMILY: 'from_model_family',
   TO_PROVIDER: 'to_provider',
   TO_MODEL_FAMILY: 'to_model_family',
+  TOOL_INVOCATIONS: 'tool_invocations',
+  PARTIAL_META_REASON: 'partial_meta_reason',
 } as const;
 
 export type AIVocabularyField = (typeof AI_VOCABULARY_FIELDS)[keyof typeof AI_VOCABULARY_FIELDS];
@@ -146,6 +148,8 @@ export const ALL_AI_VOCABULARY_FIELDS: readonly AIVocabularyField[] = [
   AI_VOCABULARY_FIELDS.FROM_MODEL_FAMILY,
   AI_VOCABULARY_FIELDS.TO_PROVIDER,
   AI_VOCABULARY_FIELDS.TO_MODEL_FAMILY,
+  AI_VOCABULARY_FIELDS.TOOL_INVOCATIONS,
+  AI_VOCABULARY_FIELDS.PARTIAL_META_REASON,
 ] as const;
 
 export function isAIVocabularyField(value: string): value is AIVocabularyField {
