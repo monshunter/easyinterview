@@ -25,8 +25,11 @@ export type AuthState =
   | { status: "unauthenticated" };
 
 export interface AppRuntimeValue {
+  client: EasyInterviewClient;
   runtime: RuntimeConfigState;
   auth: AuthState;
+  /** Force a re-fetch of `/me`. Used by auth screens after verify / logout. */
+  refreshAuth: () => void;
 }
 
 export interface AppRuntimeProviderProps {
@@ -54,6 +57,7 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
     status: "loading",
   });
   const [auth, setAuth] = useState<AuthState>({ status: "loading" });
+  const [authNonce, setAuthNonce] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +73,15 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
         setRuntime({ status: "error", error: wrapped });
       });
 
+    return () => {
+      cancelled = true;
+    };
+  }, [client, requestOptions]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setAuth({ status: "loading" });
+
     client
       .getMe(requestOptions?.getMe)
       .then((user) => {
@@ -83,11 +96,16 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [client, requestOptions]);
+  }, [client, requestOptions, authNonce]);
 
   const value = useMemo<AppRuntimeValue>(
-    () => ({ runtime, auth }),
-    [runtime, auth],
+    () => ({
+      client,
+      runtime,
+      auth,
+      refreshAuth: () => setAuthNonce((n) => n + 1),
+    }),
+    [client, runtime, auth],
   );
 
   return (

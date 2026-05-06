@@ -18,8 +18,10 @@
 
 ## E2E.P0.002 登录打断后恢复原业务动作
 
-- [ ] 创建场景目录 `test/scenarios/e2e/p0-002-auth-pending-action-resume/`
-- [ ] 准备测试数据：未登录用户、workspace plan context、`verifyAuthEmailChallenge` / `getMe(authenticated)` mock auth 成功响应
-- [ ] 实现 setup / trigger / verify / cleanup；verify 必须断言登录后恢复 `practice` 且 planId / targetJobId / jdId / resumeVersionId / roundId 未丢失
-- [ ] 执行并通过场景验证
-- [ ] 记录验证证据
+- [x] 创建场景目录 `test/scenarios/e2e/p0-002-auth-pending-action-resume/`
+- [x] 准备测试数据：未登录用户、workspace plan context、`verifyAuthEmailChallenge` / `getMe(authenticated)` mock auth 成功响应
+- [x] 实现 setup / trigger / verify / cleanup；verify 必须断言登录后恢复 `practice` 且 planId / targetJobId / jdId / resumeVersionId / roundId 未丢失
+- [x] 执行并通过场景验证
+- [x] 记录验证证据
+<!-- evidence: .test-output/e2e/p0-002-auth-pending-action-resume/trigger.log (1 vitest test passed; verify.sh: legacy testid + ui-design/src/data leak gates clean) -->
+
