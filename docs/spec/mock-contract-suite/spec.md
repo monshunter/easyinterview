@@ -1,8 +1,8 @@
 # Mock Contract Suite Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 背景与目标
 
@@ -50,6 +50,7 @@
 - 后端 mock handler 必须复用同一 fixture registry，不能复制第二套 fixture JSON。
 - seed profile 必须覆盖未登录、已登录、缺 session、缺简历、报告生成中、隐私删除请求等 P0 状态；消费者按 `openapi/fixtures/README.md` 的 scenario selection contract 读取，未知 scenario 必须 fail loudly，不能静默回落到 `default`。
 - Mock response 中不得出现旧模块口径：独立 `/mistakes`、`/growth`、`/drill`、`/voice` route，`Mistakes` / `Growth` / `Drill` / `Voice` tag，`listMistakes` / `getGrowthOverview` operationId，旧 `single_drill` practice mode，旧 `gateway_route` / `ai.gateway*` / AI gateway 运行时配置，旧 `default.provider` 或 `task_type` schema key。普通业务文案中的 `growth-stage` 等非模块含义词不属于禁止项。
+- 旧 tag 拦截必须覆盖 fixture 目录名本身，包括空目录和 Git 不跟踪的目录；`openapi/fixtures/` 下不得残留 `Growth`、`Mistakes` 等 retired tag 目录。
 
 ## 5 模块边界
 

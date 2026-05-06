@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 from typing import Any, Iterable
 
+import yaml
+
 
 FRONTEND_EXTENSIONS = {".ts", ".tsx", ".js", ".jsx"}
 UI_DATA_IMPORT_RE = re.compile(
@@ -54,9 +56,44 @@ RETIRED_TOKEN_EXTENSIONS = {".go", ".ts", ".json", ".tmpl"}
 def lint(repo_root: Path) -> list[str]:
     repo_root = repo_root.resolve()
     errors: list[str] = []
+    errors.extend(_lint_fixture_tag_directories(repo_root))
     errors.extend(_lint_frontend_imports(repo_root))
     errors.extend(_lint_fixture_response_fields(repo_root))
     errors.extend(_lint_retired_contract_tokens(repo_root))
+    return errors
+
+
+def _lint_fixture_tag_directories(repo_root: Path) -> list[str]:
+    fixtures_root = repo_root / "openapi" / "fixtures"
+    openapi_path = repo_root / "openapi" / "openapi.yaml"
+    if not fixtures_root.is_dir() or not openapi_path.is_file():
+        return []
+
+    spec = yaml.safe_load(openapi_path.read_text(encoding="utf-8"))
+    expected_tags = tuple(
+        tag["name"]
+        for tag in (spec.get("tags") or [])
+        if isinstance(tag, dict) and isinstance(tag.get("name"), str)
+    )
+    expected = set(expected_tags)
+    actual = {
+        path.name
+        for path in fixtures_root.iterdir()
+        if path.is_dir()
+    }
+
+    errors: list[str] = []
+    for tag in sorted(actual - expected):
+        errors.append(
+            f"openapi/fixtures/{tag}: unexpected fixture tag directory {tag!r}; "
+            f"owner spec: {OWNER_SPEC_HINT}"
+        )
+    for tag in expected_tags:
+        if tag not in actual:
+            errors.append(
+                f"openapi/fixtures/{tag}: missing fixture tag directory {tag!r}; "
+                f"owner spec: {OWNER_SPEC_HINT}"
+            )
     return errors
 
 

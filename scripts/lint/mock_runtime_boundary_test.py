@@ -83,6 +83,18 @@ class MockRuntimeBoundaryTest(unittest.TestCase):
         self.assertIn("ai.gateway", out.stderr + out.stdout)
         self.assertIn("docs/spec/mock-contract-suite/spec.md", out.stderr + out.stdout)
 
+    def test_retired_fixture_tag_directory_fails_even_when_empty(self) -> None:
+        retired = self.repo / "openapi/fixtures/Growth"
+        if retired.exists():
+            shutil.rmtree(retired)
+        retired.mkdir()
+
+        out = _run_lint(self.repo)
+
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("unexpected fixture tag directory 'Growth'", out.stderr + out.stdout)
+        self.assertIn("docs/spec/mock-contract-suite/spec.md", out.stderr + out.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

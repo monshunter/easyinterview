@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-06](2026-05-06.md) | `fix(mock-contract): reject retired fixture tag dirs` | #fix #test #docs |
 | [2026-05-06](2026-05-06.md) | `fix(mock-contract): harden runtime drift gates` | #fix #test #docs |
 | [2026-05-05](2026-05-05.md) | `docs(reports): land mock contract runtime retrospective` | #docs |
 | [2026-05-05](2026-05-05.md) | `feat(mock-contract): complete fixture runtime gates` | #feat #test #docs |

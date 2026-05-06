@@ -1,8 +1,8 @@
 # Fixture-backed Mock Runtime Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 **关联计划**: [plan](./plan.md)
 
@@ -27,3 +27,5 @@
 - [x] 4.2 Handoff 给 frontend-shell；验证: `frontend-shell/001-app-shell-auth-settings` context references 可指向本 spec，mock runtime README 或 package docs 说明可消费入口、seed profile 和阻塞条件
 - [x] 4.3 L2 remediation: `lint-mock-contract` 必须执行 operation registry metadata test，Go generated route table 注释不得保留旧 36-row 口径，前端 mock transport 必须有 named scenario / unknown scenario 回归测试；验证: focused Red-Green 后运行 registry unittest、Go codegen test、frontend mockTransport test、`make lint-mock-contract`、`make codegen-check`、`make docs-check`
   <!-- verified: 2026-05-05 method=tdd-red-green focused=makefile-dry-run,go-codegen-openapi,frontend-mockTransport,fixture-registry gates=lint-mock-contract,docs-check,codegen-check-temp-index -->
+- [x] 4.4 L2 remediation: `lint-mock-contract` 必须拒绝 `openapi/fixtures/` 下非当前 12 tag 的旧目录，即使目录为空或 Git 不跟踪；验证: focused Red-Green 先用当前 `Growth` / `Mistakes` 空目录证明 lint/test 失败，再删除旧目录并运行 mock runtime boundary tests、`make lint-mock-contract`、`make codegen-check`、`make docs-check`
+  <!-- verified: 2026-05-06 method=tdd-red-green red=mock_runtime_boundary_empty_retired_tag green=mock_runtime_boundary_tag_set gates=mock-runtime-boundary,lint-mock-contract,codegen-check,docs-check -->

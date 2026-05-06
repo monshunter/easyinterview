@@ -59,5 +59,6 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0011](./BUG-0011.md) | mock contract gate ignored empty retired fixture tag directories | medium | resolved | 2026-05-06 | `fix(mock-contract): reject retired fixture tag dirs` |
 | [BUG-0010](./BUG-0010.md) | mock contract runtime gate missed registry and stale route count | medium | resolved | 2026-05-05 | `fix(mock-contract): harden runtime drift gates` |
 | [BUG-0003](./BUG-0003.md) | local quality gates skipped real backend and frontend execution | medium | resolved | 2026-04-30 | `fix(ci-pipeline): remediate local quality gates` |

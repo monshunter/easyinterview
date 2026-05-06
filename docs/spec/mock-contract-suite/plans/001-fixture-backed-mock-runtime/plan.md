@@ -1,8 +1,8 @@
 # Fixture-backed Mock Runtime
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -22,7 +22,7 @@
 - **Plan 类型**: `code-internal` + `tooling` + `contract`。
 - **TDD 策略**: 通过 `/implement mock-contract-suite/001-fixture-backed-mock-runtime tooling` -> `/tdd` 执行；每个 checklist item 先补 focused test 或 lint fixture，再实现最小 runtime / gate；测试断言写在 checklist 的 `验证:` 后，且 Phase 4 收口必须实际运行当前 owner gates。
 - **BDD 策略**: BDD 不适用。本 plan 不引入用户可见 UI、API 行为或业务流程，只提供内部 mock runtime 和 contract gate；用户行为验证归 `frontend-shell` 与后续 D2-D6 plan 的 BDD gate。
-- **替代验证 gate**: fixture registry unit tests、frontend mock transport tests、backend mock handler tests、`make validate-fixtures`、`make lint-openapi`、`make codegen-check`、prototype mapping drift check、scoped retired route / tag / schema / config token negative search、`make docs-check`。
+- **替代验证 gate**: fixture registry unit tests、frontend mock transport tests、backend mock handler tests、`make validate-fixtures`、`make lint-openapi`、`make codegen-check`、prototype mapping drift check、fixture tag directory set gate、scoped retired route / tag / schema / config token negative search、`make docs-check`。
 
 ## 4 实施步骤
 
@@ -65,6 +65,14 @@
 #### 4.2 Handoff 给 frontend-shell
 
 记录 `frontend-shell` plan 可消费的 mock runtime 入口、seed profile 和阻塞条件，确保后续 `/implement frontend-shell/001-app-shell-auth-settings frontend` 不需要重新设计 mock 数据源。
+
+#### 4.3 L2 runtime drift remediation
+
+补强 `lint-mock-contract` 的 operation registry metadata、Go route table operation count 和前端 named scenario 回归覆盖，确保历史 36-row 与 scenario 静默回退不会重新进入 runtime。
+
+#### 4.4 Fixture tag directory gate
+
+扩展 mock runtime boundary lint，校验 `openapi/fixtures/` 的 tag 目录集合严格等于当前 OpenAPI 12 tag；即使旧 `Growth` / `Mistakes` 为空目录或 Git 不跟踪，也必须被 gate 捕获并清理。
 
 ## 5 验收标准
 

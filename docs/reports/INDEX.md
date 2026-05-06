@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-06](./2026-05-06-mock-contract-fixture-tag-directory-gate-assessment.md) | Mock Contract Fixture Tag Directory Gate 交付复盘 | #assessment |
 | [2026-05-05](./2026-05-05-mock-contract-runtime-gate-remediation-assessment.md) | Mock Contract Runtime Gate Remediation 交付复盘 | #assessment |
 | [2026-05-05](./2026-05-05-mock-contract-fixture-backed-runtime-assessment.md) | Mock Contract Fixture-backed Runtime 交付复盘 | #assessment |
 | [2026-05-05](./2026-05-05-ai-profile-deploy-catalog-drift-remediation-assessment.md) | AI Profile Deploy Catalog Drift Remediation 交付复盘 | #assessment |
