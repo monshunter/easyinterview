@@ -6,8 +6,8 @@ metadata:
   sequence: 2
   supersedes: []
   specVersion:
-    from: 2.3
-    to: 2.4
+    from: 2.4
+    to: 2.5
 spec:
   defaultTarget: backend
   discovery:

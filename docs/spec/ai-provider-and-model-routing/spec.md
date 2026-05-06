@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.3
+> **版本**: 2.4
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 背景与目标
 
@@ -25,7 +25,7 @@
 4. **可测试可灰度**：`stub` provider 提供 hash-based 确定性输出，仅用于单元测试、离线契约测试或显式 mock 场景；local deploy / Kind / staging / prod 必须通过 provider registry 解析真实 provider endpoint 与 secret，缺失即 fail-fast。
 5. **隐私守约**：AI 调用 payload 在 `audit_events` 写 hash + 长度 + profile，不写明文 prompt / response（与 [ADR-Q5](../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md) 对齐）。
 
-本 spec 不定义具体 prompt（归 [F3 `prompt-rubric-registry`](../prompt-rubric-registry/spec.md)）、不定义业务调用现场（归各 C / D 域）、不部署或拥有独立 AI 代理服务。若未来使用外部模型代理 / router，它只是 provider registry 中的一个 provider ref，不成为业务语义。
+本 spec 不定义具体 prompt（归 [F3 `prompt-rubric-registry`](../prompt-rubric-registry/spec.md)）、不定义业务调用现场（归各 backend / frontend owner）、不部署或拥有独立 AI 代理服务。若未来使用外部模型代理 / router，它只是 provider registry 中的一个 provider ref，不成为业务语义。
 
 ## 2 范围
 
@@ -45,9 +45,9 @@
 ### 2.2 Out of Scope
 
 - 具体 prompt 内容、rubric schema、版本表：归 [F3 `prompt-rubric-registry`](../prompt-rubric-registry/spec.md)。
-- 业务调用现场（哪个 C / D 域调用哪种 profile）：归各自 spec / plan。
+- 业务调用现场（哪个 backend / frontend owner 调用哪种 profile）：归各自 spec / plan。
 - 外部 AI provider 服务部署、K8s Secret / Vault / cost cap 策略：归 A4 / E4 / 运维；本 spec 只锁应用侧 registry / profile / provider ref 契约。
-- STT / realtime voice 的完整协议 adapter、音频 payload 形态与 HTTP wire：归 002+ 与 C14 / practice voice owner；本 spec 只锁 profile capability 与 fail-closed 规则。
+- STT / realtime voice 的完整协议 adapter、音频 payload 形态与 HTTP wire：归 002+ 与 production voice / practice voice owner；本 spec 只锁 profile capability 与 fail-closed 规则。
 - LLM Judge / 离线评估集实现：归 F3 后续评估 plan。
 - DB 表本身：归 B4；本 spec 只引用字段名。
 - 错误码与跨语言 AI vocabulary：依赖 B1 已落地的 `AI_*` 前缀错误码、AI capability、provider registry 字段名、model profile 字段名与 AI meta 字段名；新增跨边界字面量必须先改 B1。
@@ -76,8 +76,8 @@
 
 - `model_profile_version` 是否独立 SemVer vs 与 prompt_version 联动：默认独立 SemVer（profile 升级不必随 prompt），由 F3 在自己的 plan 里决定如何引用。
 - Stream 暴露到 HTTP 时采用 SSE 还是 chunked：内部 `AIStreamEvent` 合同先固定；具体 HTTP wire 由 002+ consumer plan 决定。
-- Voice Interview 是使用 `stt + chat + tts` 组合还是 realtime multimodal provider：由 C14 / practice voice 进入实现前与本 spec 联合修订；未决前，UI voice 能力必须 feature-gated 或 fail-closed。
-- Rerank / judge 是否使用专用 provider protocol 还是 OpenAI-compatible JSON schema 调用：由 C11 / F3 eval plan 决定；A3 只要求 capability profile 能表达并观测。
+- Voice Interview 是使用 `stt + chat + tts` 组合还是 realtime multimodal provider：由 production voice / practice voice owner 进入实现前与本 spec 联合修订；未决前，UI voice 能力必须 feature-gated 或 fail-closed。
+- Rerank / judge 是否使用专用 provider protocol 还是 OpenAI-compatible JSON schema 调用：由 future retrieval owner / F3 eval plan 决定；A3 只要求 capability profile 能表达并观测。
 
 ## 4 设计约束
 
@@ -144,10 +144,10 @@
 | Profile 文件内容 | F3 + 各 AI feature owner | F3 owns feature_key -> model_profile_name；A3 owns profile schema；业务 owner 负责新增场景时补 profile |
 | Profile 文件路径 / secret 注入 | A4 | `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 与 provider-specific env secret ref |
 | 真实 provider endpoint | E4 + 运维 | 本地部署可直连真实 AI provider；staging / prod 可接运维提供的 provider endpoint；本 spec 不部署独立代理 |
-| 业务调用现场 | C4-C7 / C9 / C11 / C14 / D3 | 各业务 spec / plan 引用 profile name，不引用 provider/model |
+| 业务调用现场 | `backend-targetjob` / `backend-practice` / `backend-review` / `backend-resume` / `backend-debrief` / future retrieval / production voice owners | 各业务 spec / plan 引用 profile name，不引用 provider/model |
 | 共享约定 | B1 | `AI_*` 错误码、AI capability、provider registry/profile 字段名、AI meta 字段名共享常量、`ApiError` / `ApiErrorResponse` 消费约定 |
 | DB 表 | B4 | `ai_task_runs` schema |
-| Metric / Dashboard | F1 | 7 个 ai_* metric + AI Cost & Quality Dashboard |
+| Metric / Dashboard | F1 | 7 个 ai_* metric + AI Cost & Quality Dashboard；任何 label 迁移（如 `task_type` -> `capability`）必须先由 F1 spec / plan 承接 |
 | 测试 stub provider | A3 | 应用内 deterministic stub，仅供单元测试 / 离线契约测试 / 显式 mock 场景 |
 
 ## 6 验收标准
