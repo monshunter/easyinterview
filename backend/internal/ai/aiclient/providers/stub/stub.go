@@ -78,18 +78,24 @@ func (p *Provider) Complete(ctx context.Context, profile *aiclient.ModelProfile,
 	if err != nil {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
 	}
+	toolCalls := stubToolCalls(profile.Name, seed, payload)
 	content := fmt.Sprintf("stub:%s:%s", profile.Name, seed[:16])
 	resp := aiclient.CompleteResponse{
 		Content:      content,
 		FinishReason: "stop",
+		ToolCalls:    toolCalls,
+	}
+	if len(toolCalls) > 0 {
+		resp.FinishReason = "tool_calls"
 	}
 	meta := aiclient.AICallMeta{
-		Provider:     Name,
-		ModelFamily:  "stub",
-		ModelID:      profile.Default.Model,
-		InputTokens:  countTokens(payload),
-		OutputTokens: len(content),
-		LatencyMs:    1,
+		Provider:        Name,
+		ModelFamily:     "stub",
+		ModelID:         profile.Default.Model,
+		InputTokens:     countTokens(payload),
+		OutputTokens:    len(content),
+		LatencyMs:       1,
+		ToolInvocations: summarizeToolCalls(toolCalls),
 	}
 	return resp, meta, nil
 }
@@ -159,13 +165,17 @@ func (p *Provider) Stream(ctx context.Context, profile *aiclient.ModelProfile, p
 
 func canonicalSeed(profileName string, payload aiclient.CompletePayload) (string, error) {
 	canonical := struct {
-		Profile  string                `json:"profile"`
-		Messages []aiclient.Message    `json:"messages"`
-		Metadata aiclient.CallMetadata `json:"metadata"`
+		Profile    string                `json:"profile"`
+		Messages   []aiclient.Message    `json:"messages"`
+		Metadata   aiclient.CallMetadata `json:"metadata"`
+		Tools      []aiclient.Tool       `json:"tools,omitempty"`
+		ToolChoice *aiclient.ToolChoice  `json:"toolChoice,omitempty"`
 	}{
-		Profile:  profileName,
-		Messages: payload.Messages,
-		Metadata: payload.Metadata,
+		Profile:    profileName,
+		Messages:   payload.Messages,
+		Metadata:   payload.Metadata,
+		Tools:      payload.Tools,
+		ToolChoice: payload.ToolChoice,
 	}
 	b, err := json.Marshal(canonical)
 	if err != nil {
@@ -173,6 +183,62 @@ func canonicalSeed(profileName string, payload aiclient.CompletePayload) (string
 	}
 	sum := sha256.Sum256(b)
 	return hex.EncodeToString(sum[:]), nil
+}
+
+func stubToolCalls(profileName, seed string, payload aiclient.CompletePayload) []aiclient.ToolCall {
+	if len(payload.Tools) == 0 {
+		return nil
+	}
+	tool := payload.Tools[0]
+	if payload.ToolChoice != nil {
+		switch payload.ToolChoice.Mode {
+		case aiclient.ToolChoiceModeNone:
+			return nil
+		case aiclient.ToolChoiceModeTool:
+			found, ok := findTool(payload.Tools, payload.ToolChoice.Name)
+			if !ok {
+				return nil
+			}
+			tool = found
+		}
+	}
+	argumentSeed := sha256.Sum256([]byte(profileName + "\n" + seed + "\n" + tool.Name + "\n" + string(tool.Parameters)))
+	args, err := json.Marshal(map[string]any{
+		"stub_seed": hex.EncodeToString(argumentSeed[:])[:16],
+	})
+	if err != nil {
+		return nil
+	}
+	return []aiclient.ToolCall{{
+		ID:        "stub_" + hex.EncodeToString(argumentSeed[:])[:12],
+		Name:      tool.Name,
+		Arguments: json.RawMessage(args),
+	}}
+}
+
+func findTool(tools []aiclient.Tool, name string) (aiclient.Tool, bool) {
+	for _, tool := range tools {
+		if tool.Name == name {
+			return tool, true
+		}
+	}
+	return aiclient.Tool{}, false
+}
+
+func summarizeToolCalls(calls []aiclient.ToolCall) []aiclient.ToolInvocationMeta {
+	if len(calls) == 0 {
+		return nil
+	}
+	out := make([]aiclient.ToolInvocationMeta, 0, len(calls))
+	for _, call := range calls {
+		sum := sha256.Sum256(call.Arguments)
+		out = append(out, aiclient.ToolInvocationMeta{
+			Name:            call.Name,
+			ArgumentsHash:   hex.EncodeToString(sum[:]),
+			ArgumentsLength: len(call.Arguments),
+		})
+	}
+	return out
 }
 
 func countTokens(payload aiclient.CompletePayload) int {

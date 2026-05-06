@@ -1,6 +1,6 @@
 # AI Tools, Streaming, and STT Extension Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-05-06
 
@@ -27,6 +27,8 @@
   <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestComplete_MapsToolsAndParsesToolCalls -count=1 (tool_calls empty)" green="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestComplete_MapsToolsAndParsesToolCalls -count=1 && cd backend && go test ./internal/ai/aiclient/providers/stub -run TestStubCompleteWithToolsIsDeterministic -count=1" regression="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -count=1 && cd backend && go test ./internal/ai/aiclient/providers/stub -count=1" -->
 - [x] 2.3 `AICallMeta` 扩展 tool 相关字段，log / DB 守住 hash / 长度 / profile 红线；验证: observability/privacy tests 断言 tool args 明文不进入 log / DB / audit / metric label，B1 vocabulary/codegen drift gate 通过
   <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestComplete_MapsToolsAndParsesToolCalls -count=1 (missing ToolInvocations)" green="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestComplete_MapsToolsAndParsesToolCalls -count=1 && cd backend && go test ./internal/shared/ai -count=1 && cd backend && go test ./internal/ai/aiclient/observability -run 'TestPrivacy_NoPlaintextLeaksAnywhere|TestDecorator_SuccessIncrementsRunsAndLogsCompleted' -count=1" drift="make codegen-conventions && python3 scripts/lint/conventions_drift.py --repo-root ." -->
+- [x] 2.4 L2 remediation: stub provider 必须真正 replay provider-neutral tool call，而不是只证明带 tool payload 的文本响应 deterministic；验证: focused Red-Green test 断言 tool choice 返回 deterministic `ToolCalls`，arguments 由 hash/长度摘要进入 `AICallMeta.ToolInvocations` 且不含明文
+  <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/providers/stub -run TestStubCompleteWithToolsIsDeterministic -count=1 (expected deterministic stub tool call replay, got empty ToolCalls)" green="cd backend && go test ./internal/ai/aiclient/providers/stub -run TestStubCompleteWithToolsIsDeterministic -count=1" regression="cd backend && go test ./internal/ai/aiclient/providers/stub -count=1" -->
 
 ## Phase 3: Stream consumer 完整化
 
@@ -36,6 +38,8 @@
   <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestStream_ContextCancelEmitsPartialDoneMeta -count=1 (missing partial done meta)" green="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestStream_ContextCancelEmitsPartialDoneMeta -count=1" regression="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -count=1" -->
 - [x] 3.3 provider-side SSE consumer 选型落地，并把业务 HTTP wire handoff 写回 spec §3.1；验证: spec/history 更新通过 `make docs-check`，adapter contract tests 证明 provider SSE 形态一致，且后续 frontend-workspace-and-practice / backend API 用户可见入口仍需自身 BDD gate
   <!-- verified: 2026-05-06 docs="docs/spec/ai-provider-and-model-routing/spec.md docs/spec/ai-provider-and-model-routing/history.md docs/spec/INDEX.md" tests="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -count=1" command="make docs-check" -->
+- [x] 3.4 L2 remediation: `AIClient.Stream` terminal `done` meta 必须经过 canonical meta merge，补齐 `Capability`、`ModelProfileName`、`ModelProfileVersion`、`PromptVersion`、`RubricVersion`、`Language` 与 `ValidationStatus`；验证: client-level stream Red-Green test 覆盖 normal done 与 cancellation partial done
+  <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient -run 'TestStream_(DoneEventAndChannelClose|PartialDoneMetaIsCanonicalMerged)' -count=1 (done meta missing canonical fields)" green="cd backend && go test ./internal/ai/aiclient -run 'TestStream_(DoneEventAndChannelClose|PartialDoneMetaIsCanonicalMerged)' -count=1" regression="cd backend && go test ./internal/ai/aiclient -count=1" -->
 
 ## Phase 4: STT provider adapter
 
@@ -56,6 +60,8 @@
   <!-- verified: 2026-05-06 docs="docs/spec/prompt-rubric-registry/spec.md docs/spec/prompt-rubric-registry/history.md docs/spec/INDEX.md" command="make lint-ai-profile-coverage && make docs-check" -->
 - [x] 5.3 B1 共享常量 / 错误码扩展先行合入，再在本 plan 引用；验证: `make codegen-check`、Go/TS AI vocabulary parity tests 与 repo-wide negative search 确认未在 A3 私造跨边界常量
   <!-- verified: 2026-05-06 command="make codegen-check" notes="B1 AI vocabulary/codegen remained in sync; no new A3-owned cross-boundary literal was introduced for STT beyond existing B1 capability/error constants." -->
+- [x] 5.4 L2 remediation: observability wrapper 在 stream done / stream error / pre-dispatch failure 记录前必须用 ProfileResolver enrichment 补齐 profile/capability/route label，不得把可解析 profile 的失败路径长期落为 `unknown`；验证: focused observability Red-Green tests 覆盖 stream done、stream error 与 invalid Complete failure labels
+  <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/observability -run 'TestDecorator_(PreDispatchFailureUsesResolvedProfileLabels|StreamDoneUsesResolvedProfileLabels|StreamErrorUsesResolvedProfileLabels)' -count=1 (expected enriched labels, got 0)" green="cd backend && go test ./internal/ai/aiclient/observability -run 'TestDecorator_(PreDispatchFailureUsesResolvedProfileLabels|StreamDoneUsesResolvedProfileLabels|StreamErrorUsesResolvedProfileLabels)' -count=1" regression="cd backend && go test ./internal/ai/aiclient/observability -count=1" -->
 
 ## Phase 6: Verification
 

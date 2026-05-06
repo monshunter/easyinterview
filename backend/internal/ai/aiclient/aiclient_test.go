@@ -71,6 +71,7 @@ type scriptedProvider struct {
 	name            string
 	completeResults []scriptedCompleteResult
 	embedResults    []scriptedEmbedResult
+	streamEvents    []aiclient.AIStreamEvent
 	completeCalls   int
 	embedCalls      int
 	transcribeCalls int
@@ -112,7 +113,10 @@ func (p *scriptedProvider) Transcribe(_ context.Context, profile *aiclient.Model
 }
 
 func (p *scriptedProvider) Stream(_ context.Context, _ *aiclient.ModelProfile, _ aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
-	ch := make(chan aiclient.AIStreamEvent)
+	ch := make(chan aiclient.AIStreamEvent, len(p.streamEvents))
+	for _, ev := range p.streamEvents {
+		ch <- ev
+	}
 	close(ch)
 	return ch, nil
 }
@@ -691,6 +695,61 @@ func TestStream_DoneEventAndChannelClose(t *testing.T) {
 	if last.Meta.Provider != stub.Name {
 		t.Fatalf("expected done meta.Provider=%q, got %q", stub.Name, last.Meta.Provider)
 	}
+	if last.Meta.Capability != aiclient.CapabilityChat ||
+		last.Meta.ModelProfileName != "practice.followup.default" ||
+		last.Meta.ModelProfileVersion != "1.0.0" ||
+		last.Meta.PromptVersion != "p1" ||
+		last.Meta.RubricVersion != "r1" ||
+		last.Meta.Language != "en" ||
+		last.Meta.ValidationStatus != aiclient.ValidationStatusOK {
+		t.Fatalf("stream done meta was not canonical merged: %+v", last.Meta)
+	}
+}
+
+func TestStream_PartialDoneMetaIsCanonicalMerged(t *testing.T) {
+	partial := aiclient.AICallMeta{
+		Provider:          "primary",
+		ModelFamily:       "test-family",
+		ModelID:           "primary-model",
+		InputTokens:       3,
+		OutputTokens:      7,
+		ValidationStatus:  aiclient.ValidationStatusInvalid,
+		ErrorCode:         sharederrors.CodeAiProviderTimeout,
+		PartialMetaReason: "context_cancelled",
+	}
+	provider := &scriptedProvider{
+		name: "primary",
+		streamEvents: []aiclient.AIStreamEvent{{
+			Type: aiclient.StreamEventDone,
+			Meta: &partial,
+		}},
+	}
+	profile := fallbackProfile(aiclient.CapabilityChat, nil)
+	c := newClientWithProviders(t, staticResolver{profile.Name: profile}, provider)
+
+	ch, err := c.Stream(context.Background(), profile.Name, samplePayload())
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	events := collectClientStreamEvents(ch)
+	if len(events) != 1 || events[0].Type != aiclient.StreamEventDone || events[0].Meta == nil {
+		t.Fatalf("expected one done event, got %+v", events)
+	}
+	meta := events[0].Meta
+	if meta.Capability != aiclient.CapabilityChat ||
+		meta.ModelProfileName != profile.Name ||
+		meta.ModelProfileVersion != "1.0.0" ||
+		meta.PromptVersion != "p1" ||
+		meta.RubricVersion != "r1" ||
+		meta.Language != "en" {
+		t.Fatalf("partial done meta missing canonical fields: %+v", meta)
+	}
+	if meta.ErrorCode != sharederrors.CodeAiProviderTimeout ||
+		meta.ValidationStatus != aiclient.ValidationStatusInvalid ||
+		meta.PartialMetaReason != "context_cancelled" ||
+		meta.OutputTokens != 7 {
+		t.Fatalf("partial done meta did not preserve provider fields: %+v", meta)
+	}
 }
 
 func TestNew_ProductionWithoutProviderConfigFails(t *testing.T) {
@@ -698,4 +757,12 @@ func TestNew_ProductionWithoutProviderConfigFails(t *testing.T) {
 	if !errors.Is(err, aiclient.ErrMissingProviderConfig) {
 		t.Fatalf("expected ErrMissingProviderConfig, got %v", err)
 	}
+}
+
+func collectClientStreamEvents(ch <-chan aiclient.AIStreamEvent) []aiclient.AIStreamEvent {
+	var events []aiclient.AIStreamEvent
+	for ev := range ch {
+		events = append(events, ev)
+	}
+	return events
 }

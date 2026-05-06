@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
@@ -90,16 +91,39 @@ func TestStubCompleteWithToolsIsDeterministic(t *testing.T) {
 	}}
 	payload.ToolChoice = &aiclient.ToolChoice{Mode: aiclient.ToolChoiceModeTool, Name: "extract_signal"}
 
-	a, _, err := p.Complete(context.Background(), chatProfile(), payload)
+	a, metaA, err := p.Complete(context.Background(), chatProfile(), payload)
 	if err != nil {
 		t.Fatalf("first Complete: %v", err)
 	}
-	b, _, err := p.Complete(context.Background(), chatProfile(), payload)
+	b, metaB, err := p.Complete(context.Background(), chatProfile(), payload)
 	if err != nil {
 		t.Fatalf("second Complete: %v", err)
 	}
 	if a.Content != b.Content {
 		t.Fatalf("expected deterministic tool stub output, got %q vs %q", a.Content, b.Content)
+	}
+	if len(a.ToolCalls) != 1 || len(b.ToolCalls) != 1 {
+		t.Fatalf("expected deterministic stub tool call replay, got first=%+v second=%+v", a.ToolCalls, b.ToolCalls)
+	}
+	if a.ToolCalls[0].Name != "extract_signal" || b.ToolCalls[0].Name != "extract_signal" {
+		t.Fatalf("stub tool call name mismatch: first=%+v second=%+v", a.ToolCalls[0], b.ToolCalls[0])
+	}
+	if string(a.ToolCalls[0].Arguments) != string(b.ToolCalls[0].Arguments) {
+		t.Fatalf("expected deterministic tool arguments, got %s vs %s", a.ToolCalls[0].Arguments, b.ToolCalls[0].Arguments)
+	}
+	if strings.Contains(string(a.ToolCalls[0].Arguments), "deterministic input") {
+		t.Fatalf("stub tool arguments leaked prompt plaintext: %s", a.ToolCalls[0].Arguments)
+	}
+	if len(metaA.ToolInvocations) != 1 || len(metaB.ToolInvocations) != 1 {
+		t.Fatalf("expected tool invocation summaries, got first=%+v second=%+v", metaA.ToolInvocations, metaB.ToolInvocations)
+	}
+	if metaA.ToolInvocations[0].Name != "extract_signal" ||
+		metaA.ToolInvocations[0].ArgumentsHash == "" ||
+		metaA.ToolInvocations[0].ArgumentsLength != len(a.ToolCalls[0].Arguments) {
+		t.Fatalf("tool invocation summary must contain name/hash/length only: %+v", metaA.ToolInvocations[0])
+	}
+	if metaA.ToolInvocations[0] != metaB.ToolInvocations[0] {
+		t.Fatalf("expected deterministic tool invocation summary, got %+v vs %+v", metaA.ToolInvocations[0], metaB.ToolInvocations[0])
 	}
 }
 

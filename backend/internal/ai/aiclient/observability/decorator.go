@@ -187,6 +187,7 @@ func (w *Wrap) Stream(ctx context.Context, profileName string, payload aiclient.
 }
 
 func (w *Wrap) recordCompleteCall(ctx context.Context, profileName string, payload aiclient.CompletePayload, responseContent string, meta aiclient.AICallMeta, start, completed time.Time, err error) error {
+	meta = w.enrichMeta(profileName, meta, payload.Metadata)
 	w.recordMetricsAndLog(meta, err)
 	auditRow := w.buildAuditRow(profileName, joinMessages(payload.Messages), responseContent)
 	return errors.Join(
@@ -196,6 +197,7 @@ func (w *Wrap) recordCompleteCall(ctx context.Context, profileName string, paylo
 }
 
 func (w *Wrap) recordEmbedCall(ctx context.Context, profileName string, input aiclient.EmbedInput, resp aiclient.EmbedResponse, meta aiclient.AICallMeta, start, completed time.Time, err error) error {
+	meta = w.enrichMeta(profileName, meta, input.Metadata)
 	w.recordMetricsAndLog(meta, err)
 	auditRow := w.buildAuditRow(profileName, strings.Join(input.Texts, "\n"), summarizeVectors(resp.Vectors))
 	return errors.Join(
@@ -205,6 +207,7 @@ func (w *Wrap) recordEmbedCall(ctx context.Context, profileName string, input ai
 }
 
 func (w *Wrap) recordTranscribeCall(ctx context.Context, profileName string, input aiclient.TranscriptionInput, resp aiclient.TranscriptionResponse, meta aiclient.AICallMeta, start, completed time.Time, err error) error {
+	meta = w.enrichMeta(profileName, meta, input.Metadata)
 	w.recordMetricsAndLog(meta, err)
 	auditRow := w.buildAuditRow(profileName, audioAuditSummary(input), resp.Text)
 	auditRow.Metadata.PromptCharLength = len(input.Audio)
@@ -270,6 +273,50 @@ func (w *Wrap) recordMetricsAndLog(meta aiclient.AICallMeta, err error) {
 	case err == nil && meta.ValidationStatus != aiclient.ValidationStatusInvalid:
 		w.logger.Log(EventTaskCompleted, w.buildLogFields(meta))
 	}
+}
+
+func (w *Wrap) enrichMeta(profileName string, meta aiclient.AICallMeta, callMeta aiclient.CallMetadata) aiclient.AICallMeta {
+	if meta.ModelProfileName == "" {
+		meta.ModelProfileName = profileName
+	}
+	if meta.PromptVersion == "" {
+		meta.PromptVersion = callMeta.PromptVersion
+	}
+	if meta.RubricVersion == "" {
+		meta.RubricVersion = callMeta.RubricVersion
+	}
+	if meta.Language == "" {
+		meta.Language = callMeta.Language
+	}
+	if meta.ErrorCode != "" && meta.ValidationStatus == "" {
+		meta.ValidationStatus = aiclient.ValidationStatusInvalid
+	}
+	if w.resolver == nil || profileName == "" {
+		return meta
+	}
+	profile, err := w.resolver.Resolve(profileName)
+	if err != nil || profile == nil {
+		return meta
+	}
+	if meta.Capability == "" {
+		meta.Capability = profile.Capability
+	}
+	if meta.Route == "" {
+		meta.Route = profile.Route
+	}
+	if meta.ModelProfileVersion == "" {
+		meta.ModelProfileVersion = profile.Version
+	}
+	if meta.Provider == "" {
+		meta.Provider = profile.Default.ProviderRef
+	}
+	if meta.ModelID == "" {
+		meta.ModelID = profile.Default.Model
+	}
+	if meta.ModelFamily == "" {
+		meta.ModelFamily = modelFamily(meta.ModelID)
+	}
+	return meta
 }
 
 func (w *Wrap) standardLabels(meta aiclient.AICallMeta, err error) []string {

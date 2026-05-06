@@ -166,7 +166,26 @@ func (c *Client) Stream(ctx context.Context, profileName string, payload Complet
 	if err != nil {
 		return nil, err
 	}
-	return provider.Stream(ctx, profile, payload)
+	providerCh, err := provider.Stream(ctx, profile, payload)
+	if err != nil {
+		return nil, err
+	}
+	out := make(chan AIStreamEvent, 4)
+	go func() {
+		defer close(out)
+		for ev := range providerCh {
+			if ev.Type == StreamEventDone && ev.Meta != nil {
+				merged, mergeErr := c.builder.merge(profile, payload.Metadata, *ev.Meta)
+				if mergeErr != nil {
+					out <- AIStreamEvent{Type: StreamEventError, ErrorCode: sharederrors.CodeAiOutputInvalid}
+					return
+				}
+				ev.Meta = &merged
+			}
+			out <- ev
+		}
+	}()
+	return out, nil
 }
 
 func (c *Client) dispatch(profileName string, expectedCapability Capability) (*ModelProfile, Provider, error) {

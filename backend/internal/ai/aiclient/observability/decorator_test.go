@@ -392,7 +392,7 @@ func TestDecorator_FailureIncrementsFailureLogsFailed(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error for empty messages")
 	}
-	failureLabels := []string{"unknown", "unknown", "practice.followup.default", "unknown", "unknown", "unknown", "failure"}
+	failureLabels := []string{stub.Name, "stub-chat-1", "practice.followup.default", "unknown", string(aiclient.CapabilityChat), "unknown", "failure"}
 	if got := registry.CounterValue(observability.MetricRunsTotal, failureLabels...); got != 1 {
 		t.Errorf("expected runs_total=1 on failure, got %v", got)
 	}
@@ -412,6 +412,128 @@ func TestDecorator_FailureIncrementsFailureLogsFailed(t *testing.T) {
 	}
 	if !hasValidationFailed {
 		t.Errorf("expected ai.output.validation_failed log; got %v", events)
+	}
+}
+
+func TestDecorator_PreDispatchFailureUsesResolvedProfileLabels(t *testing.T) {
+	stubProv, err := stub.New(stub.WithAppEnv(aiclient.AppEnvTest))
+	if err != nil {
+		t.Fatalf("stub.New: %v", err)
+	}
+	resolver := staticResolver{
+		"practice.followup.default": {
+			Name:       "practice.followup.default",
+			Capability: aiclient.CapabilityChat,
+			Status:     aiclient.ProfileStatusActive,
+			Default: aiclient.ProviderConfig{
+				ProviderRef: stub.Name,
+				Model:       "stub-chat-1",
+			},
+			TimeoutMs: 5000,
+			Version:   "1.0.0",
+			Route:     "practice.followup",
+		},
+	}
+	inner, err := aiclient.New(
+		aiclient.Config{AppEnv: aiclient.AppEnvTest},
+		aiclient.WithStubAllowed(true),
+		aiclient.WithProfileResolver(resolver),
+		aiclient.WithProvider(stubProv),
+	)
+	if err != nil {
+		t.Fatalf("aiclient.New: %v", err)
+	}
+	registry := observability.NewInMemoryRegistry()
+	logger := observability.NewMemoryLogger()
+	wrap, err := observability.New(inner,
+		observability.WithRegisterer(registry),
+		observability.WithLogger(logger),
+		observability.WithAITaskRunWriter(&memTaskRunWriter{}),
+		observability.WithAuditEventWriter(&memAuditWriter{}),
+		observability.WithProfileResolver(resolver),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+	payload := samplePayload()
+	payload.Messages = nil
+
+	_, _, err = wrap.Complete(context.Background(), "practice.followup.default", payload)
+	if err == nil {
+		t.Fatalf("expected invalid Complete failure")
+	}
+	labels := []string{stub.Name, "stub-chat-1", "practice.followup.default", "practice.followup", string(aiclient.CapabilityChat), "en", "failure"}
+	if got := registry.CounterValue(observability.MetricRunsTotal, labels...); got != 1 {
+		t.Fatalf("expected failure labels enriched from profile, got %v", got)
+	}
+}
+
+func TestDecorator_StreamDoneUsesResolvedProfileLabels(t *testing.T) {
+	resolver := routeAwareResolver()
+	registry := observability.NewInMemoryRegistry()
+	wrap, err := observability.New(&fallbackInner{
+		streamEvents: []aiclient.AIStreamEvent{{
+			Type: aiclient.StreamEventDone,
+			Meta: &aiclient.AICallMeta{
+				Provider:         "stream-provider",
+				ModelFamily:      "stream-family",
+				ModelID:          "stream-model",
+				InputTokens:      4,
+				OutputTokens:     8,
+				ValidationStatus: aiclient.ValidationStatusOK,
+			},
+		}},
+	},
+		observability.WithRegisterer(registry),
+		observability.WithLogger(observability.NewMemoryLogger()),
+		observability.WithAITaskRunWriter(&memTaskRunWriter{}),
+		observability.WithAuditEventWriter(&memAuditWriter{}),
+		observability.WithProfileResolver(resolver),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+
+	ch, err := wrap.Stream(context.Background(), "practice.followup.default", samplePayload())
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	for range ch {
+	}
+	labels := []string{"stream-provider", "stream-family", "practice.followup.default", "practice.followup", string(aiclient.CapabilityChat), "en", "success"}
+	if got := registry.CounterValue(observability.MetricRunsTotal, labels...); got != 1 {
+		t.Fatalf("expected stream done labels enriched from profile, got %v", got)
+	}
+}
+
+func TestDecorator_StreamErrorUsesResolvedProfileLabels(t *testing.T) {
+	resolver := routeAwareResolver()
+	registry := observability.NewInMemoryRegistry()
+	wrap, err := observability.New(&fallbackInner{
+		streamEvents: []aiclient.AIStreamEvent{{
+			Type:      aiclient.StreamEventError,
+			ErrorCode: sharederrors.CodeAiProviderTimeout,
+		}},
+	},
+		observability.WithRegisterer(registry),
+		observability.WithLogger(observability.NewMemoryLogger()),
+		observability.WithAITaskRunWriter(&memTaskRunWriter{}),
+		observability.WithAuditEventWriter(&memAuditWriter{}),
+		observability.WithProfileResolver(resolver),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+
+	ch, err := wrap.Stream(context.Background(), "practice.followup.default", samplePayload())
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	for range ch {
+	}
+	labels := []string{stub.Name, "stub-chat-1", "practice.followup.default", "practice.followup", string(aiclient.CapabilityChat), "en", "failure"}
+	if got := registry.CounterValue(observability.MetricRunsTotal, labels...); got != 1 {
+		t.Fatalf("expected stream error labels enriched from profile, got %v", got)
 	}
 }
 
@@ -585,8 +707,9 @@ func TestDecorator_FallbackCounterSplitsCentralChainProviderAndModelFamily(t *te
 }
 
 type fallbackInner struct {
-	meta    aiclient.AICallMeta
-	content string
+	meta         aiclient.AICallMeta
+	content      string
+	streamEvents []aiclient.AIStreamEvent
 }
 
 func (f *fallbackInner) Complete(_ context.Context, _ string, _ aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
@@ -603,9 +726,29 @@ func (f *fallbackInner) Transcribe(_ context.Context, _ string, _ aiclient.Trans
 	return aiclient.TranscriptionResponse{Text: "fallback transcript"}, f.meta, nil
 }
 func (f *fallbackInner) Stream(_ context.Context, _ string, _ aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
-	ch := make(chan aiclient.AIStreamEvent, 1)
+	ch := make(chan aiclient.AIStreamEvent, len(f.streamEvents))
+	for _, ev := range f.streamEvents {
+		ch <- ev
+	}
 	close(ch)
 	return ch, nil
+}
+
+func routeAwareResolver() staticResolver {
+	return staticResolver{
+		"practice.followup.default": {
+			Name:       "practice.followup.default",
+			Capability: aiclient.CapabilityChat,
+			Status:     aiclient.ProfileStatusActive,
+			Default: aiclient.ProviderConfig{
+				ProviderRef: stub.Name,
+				Model:       "stub-chat-1",
+			},
+			TimeoutMs: 5000,
+			Version:   "1.0.0",
+			Route:     "practice.followup",
+		},
+	}
 }
 
 func TestDecorator_OutputSchemaInvalidEmitsAIOutputInvalid(t *testing.T) {
