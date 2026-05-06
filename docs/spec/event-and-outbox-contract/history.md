@@ -1,13 +1,14 @@
 # Event and Outbox Contract History
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-06 | 1.9 | 对齐 backend-runtime-topology：event producer enum 将独立进程语义 `worker` 替换为 `backend_async`，job/outbox 契约保留并由 backend internal runner 消费。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-05 | 1.8 | B3 event / job / outbox 契约改为只由本 spec、`shared/events.yaml`、`shared/jobs.yaml`、B4 migrations 与 generated artifacts 承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |
 | 2026-05-03 | 1.6 | 明确当前 event / job / outbox 契约由本 spec、`shared/events.yaml`、`shared/jobs.yaml` 与 B4 migrations 决定，旧 `mistake.*`、18 event inventory 与旧 consumer 不再作为实现依据。 | docs-only |
 | 2026-05-03 | 1.5 | 对齐 product-scope v1.2：删除独立 `mistake` 事件 domain 与 `mistake.created` / `mistake.status.changed`，将 `report.generated.mistakeCount` 改为 `questionIssueCount`，将 `debrief.completed.generatedMistakeCount` 改为 `practiceFocusCount`，事件全集 18→16、domain 8→7。 | 001-bootstrap Phase 8 remediation |

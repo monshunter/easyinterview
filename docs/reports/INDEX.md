@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-06](./2026-05-06-backend-runtime-topology-worker-consolidation-assessment.md) | Backend Runtime Topology Worker Consolidation 交付复盘 | #assessment |
 | [2026-05-06](./2026-05-06-backend-auth-passwordless-l2-remediation-assessment.md) | Backend Auth Passwordless L2 Remediation 交付复盘 | #assessment |
 | [2026-05-06](./2026-05-06-ai-provider-tools-streaming-stt-l2-remediation-assessment.md) | AI Provider Tools Streaming STT L2 Remediation 交付复盘 | #assessment |
 | [2026-05-06](./2026-05-06-mock-contract-fixture-tag-directory-gate-assessment.md) | Mock Contract Fixture Tag Directory Gate 交付复盘 | #assessment |

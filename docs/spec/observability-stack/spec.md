@@ -1,6 +1,6 @@
 # Observability Stack Spec
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-05-06
 
@@ -15,7 +15,7 @@
 目标是：
 
 1. **指标命名约定锁定**：Counter `*_total` / Histogram `*_duration_seconds` / Gauge `*_in_flight|*_queue_depth` 命名规则，allowed labels 与 forbidden labels 清单（见 §3.1.1）冻结。
-2. **OTel / metrics 接入框架**：API / Worker / Frontend 暴露 `/metrics` 与 OTel SDK 初始化点；生产或可选观测环境再接 OTel Collector / Prometheus / Loki / Sentry（trace backend P0 不锁，留接口）。
+2. **OTel / metrics 接入框架**：Backend / backend internal runner / Frontend 暴露或生产 metrics/logs 与 OTel SDK 初始化点；生产或可选观测环境再接 OTel Collector / Prometheus / Loki / Sentry（trace backend P0 不锁，留接口）。
 3. **日志字段约束**：本 spec 锁定字段集并落到 Go logger middleware；明文红线以 D-6 和 F1 tooling 为准。
 4. **5 个 dashboard baseline**：本 spec 锁定 5 个 dashboard（业务漏斗 / API & Session Health / Report Pipeline / AI Cost & Quality / Privacy & Compliance）并在上线前完整接齐；baseline plan 先交付命名约定 + 接入框架。
 
@@ -29,9 +29,9 @@
 - **OTel 接入框架**：
   - Backend：`backend/internal/platform/otel/`（OTel SDK 初始化 + tracer / meter provider + propagator）。
   - Frontend：`frontend/src/lib/otel/`（轻量 client，Trace 透传 `traceparent`）。
-  - 运行时配置：可选 `OTEL_EXPORTER_OTLP_ENDPOINT`（来自 [A4 字典](../secrets-and-config/spec.md#311-p0-必备-env-key-字典25-项)）；普通本地 dev 为空时只暴露 `/metrics` 与日志，不尝试上报。
+  - 运行时配置：可选 `OTEL_EXPORTER_OTLP_ENDPOINT`（来自 [A4 字典](../secrets-and-config/spec.md#311-p0-必备-env-key-字典24-项)）；普通本地 dev 为空时只暴露 `/metrics` 与日志，不尝试上报。
 - **Logger middleware**：`backend/internal/platform/logx/`（基于 `zerolog`，输出 JSON）；自动注入 F1 通用字段；明文红线类型 `RedactedString`（来自 A4）+ `Hashed`（基于 sha256+salt）helper。
-- **Sentry SDK 接线**：API / Worker / Frontend；DSN 由 A4 env 注入；`SENTRY_DSN` 字段在 §3.1.1 字典中追加（A4 待加入）。
+- **Sentry SDK 接线**：Backend / Frontend；DSN 由 A4 env 注入；`SENTRY_DSN` 字段在 §3.1.1 字典中追加（A4 待加入）。
 - **Trace 规范**：F1 span name / attribute 集合落到 backend 中间件 + [B3 dispatcher](../event-and-outbox-contract/spec.md) 中的 `traceId` 透传协议。
 - **告警规则集 baseline**：F1 P1/P2/P3 告警列表落到 Prometheus alerting rules YAML（grafana / alertmanager 部署归运维）。
 - **Dashboard JSON 模板**：5 个 dashboard 的 baseline JSON 落 `deploy/observability/dashboards/`；具体 panel 内容由各 C / D / F2 后续增量贡献，provisioning 由 F1/E4 或可选观测 profile 承接，不进入 A2 默认 `make dev-up`。
@@ -64,7 +64,7 @@
 | D-9 | dashboard 名称固定 | `easyinterview-business-funnel` / `easyinterview-api-session-health` / `easyinterview-report-pipeline` / `easyinterview-ai-cost-quality` / `easyinterview-privacy-compliance` 共 5 个 | 后续 child 在自己 plan 里贡献 panel |
 | D-10 | 告警优先级与阈值 | P1 5 条全部默认开启；P2 / P3 按需 | – |
 
-#### 3.1.1 Backend / Worker baseline metrics 字典（baseline freeze）
+#### 3.1.1 Backend / Background runner baseline metrics 字典（baseline freeze）
 
 | 模块 | 指标名 | 类型 | Labels |
 |------|--------|------|--------|
@@ -126,7 +126,7 @@ Auth 指标由 C1 `backend-auth/001-passwordless-session-bootstrap` 在自身 pl
 ### 4.3 trace 约束
 
 - 每个 HTTP route 自动产生一个根 span，命名由 F1 trace convention 决定。
-- 每个异步 job 进入 worker 时从 `traceId` 字段重建 span context（B3 透传）。
+- 每个异步 job 进入 backend internal runner 时从 `traceId` 字段重建 span context（B3 透传）。
 - 每次 AI 调用作为子 span（A3 内部产生），span attributes 由 F1 trace convention 与 A3 AI metadata 决定；不允许写明文 prompt / answer。
 
 ### 4.4 性能约束
@@ -157,7 +157,7 @@ Auth 指标由 C1 `backend-auth/001-passwordless-session-bootstrap` 在自身 pl
 | C-1 | metric 命名 lint | 故意提交一个 `practice_sessionsCompletedCount`（驼峰、缺单位） | CI | `lint-metrics` 失败；Job Summary 提示规范 | F1 后续 001 + A5 |
 | C-2 | label 高基数防御 | 提交一个 metric 含 `user_id` label | CI | `lint-metrics` 失败 | F1 后续 001 + A5 |
 | C-3 | log 明文红线 | 在 `internal/practice/` 中调用 `logx.Info("answer", "answer", answerText)` | CI | `lint-logs` 失败 | F1 后续 001 + A5 |
-| C-4 | trace propagation | 前端 fetch 带 `traceparent` | API → Worker → AI | 同一 traceId 贯穿 4 层 span；配置了 trace backend 时可查询，未配置时不阻塞 A2 本地开发栈 | F1 后续 001 |
+| C-4 | trace propagation | 前端 fetch 带 `traceparent` | API → backend internal runner → AI | 同一 traceId 贯穿 4 层 span；配置了 trace backend 时可查询，未配置时不阻塞 A2 本地开发栈 | F1 后续 001 |
 | C-5 | dashboard provision | F1 可选观测 profile / E4 部署路径启动 | Grafana | 5 个 dashboard 名称已存在；空 panel 提示「待后续接入」 | F1 后续 001 + E4 |
 | C-6 | 健康检查 | 服务运行 | `GET /healthz` 与 `GET /readyz` | 200 + JSON `{status:"ok",components:[...]}` | F1 后续 001 |
 | C-7 | 告警 baseline | 制造模拟事件触发 P1 告警 | Prometheus alerting rules | 5 条 P1 告警 fire；可路由到 Slack/Email（运维端） | F1 后续 001 + 运维 |

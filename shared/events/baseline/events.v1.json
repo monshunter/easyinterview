@@ -60,7 +60,7 @@
       "name": "target.parsed",
       "optionalPayload": {},
       "piiBoundary": "IDs and controlled slugs only; no parsed JD summary.",
-      "producer": "worker",
+      "producer": "backend_async",
       "requiredPayload": {
         "analysisStatus": {
           "source": "spec:3.1.4",
@@ -90,7 +90,7 @@
       "name": "target.analysis.failed",
       "optionalPayload": {},
       "piiBoundary": "No provider response, prompt, or JD text.",
-      "producer": "worker",
+      "producer": "backend_async",
       "requiredPayload": {
         "errorCode": {
           "source": "spec:3.1.4",
@@ -235,7 +235,7 @@
       "name": "report.generated",
       "optionalPayload": {},
       "piiBoundary": "No report body, answer snippets, raw model response, or prompt body.",
-      "producer": "worker",
+      "producer": "backend_async",
       "requiredPayload": {
         "modelId": {
           "source": "spec:3.1.4",
@@ -277,7 +277,7 @@
       "name": "report.generation.failed",
       "optionalPayload": {},
       "piiBoundary": "No provider response, prompt, or answer text.",
-      "producer": "worker",
+      "producer": "backend_async",
       "requiredPayload": {
         "errorCode": {
           "source": "spec:3.1.4",
@@ -303,7 +303,7 @@
       "name": "resume.parse.completed",
       "optionalPayload": {},
       "piiBoundary": "No resume raw text or parsed summary.",
-      "producer": "worker",
+      "producer": "backend_async",
       "requiredPayload": {
         "parseStatus": {
           "source": "spec:3.1.4",
@@ -325,7 +325,7 @@
       "name": "resume.tailor.completed",
       "optionalPayload": {},
       "piiBoundary": "No tailored bullet text.",
-      "producer": "worker",
+      "producer": "backend_async",
       "requiredPayload": {
         "mode": {
           "source": "spec:3.1.4",
@@ -381,7 +381,7 @@
       "name": "debrief.completed",
       "optionalPayload": {},
       "piiBoundary": "Counts only; no risk item prose.",
-      "producer": "worker",
+      "producer": "backend_async",
       "requiredPayload": {
         "debriefId": {
           "source": "spec:3.1.4",
@@ -407,7 +407,7 @@
       "name": "source.refreshed",
       "optionalPayload": {},
       "piiBoundary": "No source snapshot content or URL secret.",
-      "producer": "worker",
+      "producer": "backend_async",
       "requiredPayload": {
         "freshnessStatus": {
           "source": "spec:3.1.4",
@@ -455,7 +455,7 @@
       "name": "privacy.request.completed",
       "optionalPayload": {},
       "piiBoundary": "Sensitive lifecycle event; no deleted or exported data.",
-      "producer": "worker",
+      "producer": "backend_async",
       "requiredPayload": {
         "privacyRequestId": {
           "source": "spec:3.1.4",

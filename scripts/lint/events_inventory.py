@@ -45,7 +45,7 @@ EXPECTED_ENVELOPE_FIELDS = {
     "traceId": {"type": "string", "required": False, "softRequired": True},
     "payload": {"type": "polymorphic", "required": True},
 }
-EXPECTED_PRODUCERS = ["api", "worker", "dispatcher", "review"]
+EXPECTED_PRODUCERS = ["api", "backend_async", "dispatcher", "review"]
 EXPECTED_EVENT_LOCAL_ENUMS = {
     "TargetImportSourceType": ["url", "text", "file"],
     "ResumeTailorMode": ["inline", "rewrite", "mirror"],
@@ -63,7 +63,7 @@ EXPECTED_EVENTS = {
         },
     },
     "target.parsed": {
-        "producer": "worker",
+        "producer": "backend_async",
         "aggregateType": "target_job",
         "requiredPayload": {
             "targetJobId": "uuidv7",
@@ -74,7 +74,7 @@ EXPECTED_EVENTS = {
         },
     },
     "target.analysis.failed": {
-        "producer": "worker",
+        "producer": "backend_async",
         "aggregateType": "target_job",
         "requiredPayload": {
             "targetJobId": "uuidv7",
@@ -127,7 +127,7 @@ EXPECTED_EVENTS = {
         },
     },
     "report.generated": {
-        "producer": "worker",
+        "producer": "backend_async",
         "aggregateType": "feedback_report",
         "requiredPayload": {
             "reportId": "uuidv7",
@@ -141,7 +141,7 @@ EXPECTED_EVENTS = {
         },
     },
     "report.generation.failed": {
-        "producer": "worker",
+        "producer": "backend_async",
         "aggregateType": "feedback_report",
         "requiredPayload": {
             "reportId": "uuidv7",
@@ -151,7 +151,7 @@ EXPECTED_EVENTS = {
         },
     },
     "resume.parse.completed": {
-        "producer": "worker",
+        "producer": "backend_async",
         "aggregateType": "resume_asset",
         "requiredPayload": {
             "resumeAssetId": "uuidv7",
@@ -160,7 +160,7 @@ EXPECTED_EVENTS = {
         },
     },
     "resume.tailor.completed": {
-        "producer": "worker",
+        "producer": "backend_async",
         "aggregateType": "resume_tailor_run",
         "requiredPayload": {
             "tailorRunId": "uuidv7",
@@ -181,7 +181,7 @@ EXPECTED_EVENTS = {
         },
     },
     "debrief.completed": {
-        "producer": "worker",
+        "producer": "backend_async",
         "aggregateType": "debrief",
         "requiredPayload": {
             "debriefId": "uuidv7",
@@ -191,7 +191,7 @@ EXPECTED_EVENTS = {
         },
     },
     "source.refreshed": {
-        "producer": "worker",
+        "producer": "backend_async",
         "aggregateType": "source_record",
         "requiredPayload": {
             "sourceRecordId": "uuidv7",
@@ -210,7 +210,7 @@ EXPECTED_EVENTS = {
         },
     },
     "privacy.request.completed": {
-        "producer": "worker",
+        "producer": "backend_async",
         "aggregateType": "privacy_request",
         "requiredPayload": {
             "privacyRequestId": "uuidv7",

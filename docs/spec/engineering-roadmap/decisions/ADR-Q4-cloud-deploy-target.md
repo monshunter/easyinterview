@@ -1,12 +1,12 @@
 # ADR-Q4 · 云部署目标
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: accepted
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 背景
 
-`engineering-roadmap decisions` §3 把 P0 / P1 部署形态锁定为「3 个运行单元」（`web-app` / `api` / `worker`）+「共享基础设施」（PostgreSQL / Redis / Object Storage / 监控 / 日志 / 追踪 / 外部 AI Provider）；`README.md` §「待评审的 5 个决策点」第 4 项只作为历史决策输入。
+`engineering-roadmap decisions` 历史上把 P0 / P1 部署形态锁定为「3 个运行单元」（`web-app` / `api` / `worker`）+「共享基础设施」。`backend-runtime-topology` v1.0 已将 P0 运行单元收敛为 `frontend` + `backend`，后台任务在 backend internal runner 中执行；`README.md` §「待评审的 5 个决策点」第 4 项只作为历史决策输入。
 
 仓库现状（与决策强相关）：
 
@@ -28,7 +28,7 @@
 **Pros**：
 
 - 与既有 Kind 场景测试栈天然一致：`test/scenarios/` 的 helm chart / manifest 直接复用到 staging / prod
-- 3 deployment（web / api / worker）+ 1 ingress + secrets / configmaps / hpa 全标准化
+- 2 个应用 deployment（web / backend）+ 1 ingress + secrets / configmaps / hpa 全标准化；未来拆分后台 runner 需新 ADR
 - 可观测性 stack（Prometheus / Loki / OTel Collector / Grafana）以 helm chart 形式分发
 - 运维团队 / SRE 文化对齐；社区方案最成熟
 - 可平滑迁移到自托管 / 私有云（不锁特定云厂商）
@@ -64,7 +64,7 @@
 
 - 无法承载完整 OpenTelemetry / Loki / 自托管 PostHog / Higress 等组件（与 Q-3 / Q-6 / F1 链路冲突）
 - 数据库 / Redis / S3 仍需外部 SaaS（成本叠加）
-- 不可灵活水平扩展长任务 worker（Asynq 大队列场景受限）
+- 不可灵活水平扩展后台 runner（大队列场景受限）
 - 与 Kind 测试栈完全脱节
 
 ### 选项 D · 自托管裸金属 / 单机 docker-compose
@@ -86,7 +86,7 @@
 落地约束：
 
 1. **集群形态**：staging / prod 各 1 个 managed cluster（云厂商 = ops 选择，初期默认 EKS / GKE / AKS 任一；本 ADR 不锁厂商）；本地场景集成测试继续用 Kind（与 `test/scenarios/` 一致），普通本地开发走 A2 docker-compose，不把 Kind 作为开发前置条件
-2. **工作负载拓扑**：3 个 Deployment（`web-app` 静态资源由 ingress 直 serve 或单独 deploy / `api` HPA min=2 / `worker` HPA min=1），1 个 CronJob（outbox dispatcher 兜底重试）
+2. **工作负载拓扑**：P0 为 2 个应用 Deployment（`web-app` 静态资源由 ingress 直 serve 或单独 deploy / `backend` HPA min=2）；outbox / background runner 默认在 backend 内部运行。独立 runner / CronJob 只能作为后续显式扩展，不是 P0 默认拓扑。
 3. **共享基础设施**：PostgreSQL + pgvector / Redis 优先用云托管（RDS+pgvector or Neon / ElastiCache）；Object Storage 用云对象存储（S3 / GCS / R2）；OTel Collector / Loki / Prometheus / Grafana 自托管在同一 cluster
 4. **AI provider（关联 Q-6）**：业务 deployment 通过 `AI_PROVIDER_REGISTRY_PATH` + `AI_MODEL_PROFILE_PATH` + registry 内 provider-specific secret env ref 注入 AI 连接；`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只可作为默认 OpenAI-compatible provider ref 引用的 env 名；Kind 场景测试注入同一 registry/profile/secret 组合，不要求部署 AI provider
 5. **Helm chart**：所有组件以 helm chart 形式管理；chart 与 `test/scenarios/` Kind 部署共用同一 values 模板（区别包含 replica / resource / AI registry/profile/secret 注入方式）
@@ -126,6 +126,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-06 | 1.6 | 对齐 backend-runtime-topology：P0 部署拓扑从 web/api/worker 三应用单元改为 web/backend 两应用单元，后台任务默认由 backend internal runner 承接。 |
 | 2026-05-05 | 1.5 | 对齐 A3 003 Provider Registry：部署注入从单一 endpoint/key 口径更新为 registry/profile/provider-specific secret 组合，`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 仅作为默认 provider ref 可引用 env。 |
 | 2026-05-05 | 1.4 | 对齐 ADR-Q6 provider 口径：业务 deployment 只通过 `AI_PROVIDER_BASE_URL` 接入 OpenAI-compatible provider endpoint，不把独立转发层写成应用部署前提。 |
 | 2026-04-27 | 1.3 | 对齐个人单人开发阶段决策：P0 当前不构建远端 CI pipeline，不做 CI deploy；A5 只约束本地手动质量门禁，自动化 CI/CD 待多人协作、公开 release 或自动发版需求出现后再建。 |

@@ -7,7 +7,7 @@ Four-way diff:
 2. ``docs/spec/secrets-and-config/spec.md`` table §3.1.1
 3. Code-side env reads (``os.Getenv`` / ``os.LookupEnv``) under
    ``backend/internal/platform/config/``, ``backend/internal/platform/secrets/``,
-   ``backend/cmd/api/``, ``backend/cmd/worker/``
+   ``backend/cmd/api/``, ``backend/cmd/migrate/``
 4. Provider registry env refs (``config/ai-providers.yaml``)
 
 Any key present in one source but missing in another causes a non-zero
@@ -55,7 +55,7 @@ def parse_code_env_reads(repo_root: Path) -> set[str]:
         repo_root / "backend" / "internal" / "platform" / "config",
         repo_root / "backend" / "internal" / "platform" / "secrets",
         repo_root / "backend" / "cmd" / "api",
-        repo_root / "backend" / "cmd" / "worker",
+        repo_root / "backend" / "cmd" / "migrate",
     ]
     for root in scan_roots:
         if not root.exists():

@@ -13,10 +13,10 @@ type EventName string
 type Producer string
 
 const (
-	ProducerApi        Producer = "api"
-	ProducerDispatcher Producer = "dispatcher"
-	ProducerReview     Producer = "review"
-	ProducerWorker     Producer = "worker"
+	ProducerApi          Producer = "api"
+	ProducerBackendAsync Producer = "backend_async"
+	ProducerDispatcher   Producer = "dispatcher"
+	ProducerReview       Producer = "review"
 )
 
 type Envelope struct {

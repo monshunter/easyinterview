@@ -94,7 +94,7 @@ ADR-Q1..Q6 继续作为架构约束保留在 `docs/spec/engineering-roadmap/deci
 
 1. `mock-contract-suite` + `frontend-shell`，建立 fixture-backed mock 和 App 壳。
 2. D2-D6 当前 UI workstream：Home / Job Picks / Parse、Workspace / Practice、Report、Resume、Debrief。
-3. 后端基础：`backend-auth`、`backend-upload`、`backend-profile`、`backend-async-runtime`。
+3. 后端基础：`backend-auth`、`backend-upload`、`backend-profile`、`backend-async-runner`（backend 内部 runner，不是独立 worker 进程）。
 4. 后端业务域：`backend-targetjob`、`backend-practice`、`backend-review`、`backend-resume`、`backend-debrief`。
 5. 集成与上线：`e2e-scenarios-p0`、`analytics-funnel`、`release-gate-and-rollout`。
 

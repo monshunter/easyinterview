@@ -109,7 +109,7 @@ type FeatureFlagClient interface {
 
 #### 3.3 落地 `.env.example` 与 env key 字典
 
-按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典25-项) 写入仓库根 `.env.example`，包含全部 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `WORKER_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_PROVIDER_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写占位说明（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
+按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典24-项) 写入仓库根 `.env.example`，包含全部 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_PROVIDER_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写占位说明（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
 
 #### 3.4 落地 `config/feature-flags.yaml` baseline
 

@@ -165,7 +165,7 @@
 | C-6 | 隐私红线 | grep 全部生产代码与 log | 任意调用 | 不出现 `payload.messages[*].content` / `response.content` 明文落 log 或 DB metadata；hash / 长度 / profile 三类摘要必须出现 | 001 + 003 |
 | C-7 | 错误码合规 | provider 返回结构化输出非法 | client `validate_output` 失败 | 返回错误码 `AI_OUTPUT_INVALID`；`ai_output_validation_failures_total` +1 | 001 |
 | C-8 | active spec relation gate | 本 spec 通过 `/plan-review` | 与当前 active spec 和 future workstream 关系审查 | A3 与 F3 / B1 / A4 / F1 / release gate 引用关系自洽；A3 不重新引入已废弃的 provider-proxy 业务语义 | plan-review |
-| C-9 | Registry secret fail-fast | local deploy / Kind / staging / prod 缺失 registry 选中 provider 的 base URL 或 API key | 启动 API / worker | 进程启动失败并报配置错误；不得自动回退到 stub provider | 003 + A4 |
+| C-9 | Registry secret fail-fast | local deploy / Kind / staging / prod 缺失 registry 选中 provider 的 base URL 或 API key | 启动 backend runtime | 进程启动失败并报配置错误；不得自动回退到 stub provider | 003 + A4 |
 | C-10 | F3 baseline profile coverage | F3 12 个 baseline feature_key 已定义默认 profile name | 运行 profile coverage lint | 每个默认 profile 在 `config/ai-profiles.yaml` catalog 中存在，且 capability / provider_ref / status 合法；允许 P1/P2 profile `disabled` / `unsupported`，但必须携带 `unsupported_reason` 且不得缺 catalog entry | 003 + F3 |
 | C-11 | Product/UI capability inventory drift | 新增 AI 场景或 UI 交互依赖 AI | `/plan-review` 或 lint 检查 | 本 spec §4.5、F3 feature_key 字典与 A3 profile catalog 同步更新；不得只在业务代码 hardcode 新 profile | 003 + F3 |
 | C-12 | Unsupported capability fail-closed | profile 使用 `realtime` / `rerank` / `judge`，但对应 adapter 未激活 | 运行时调用该 profile | 返回明确 unsupported capability 错误并记录 meta/log；不得降级到 chat 或 stub；对应 UI 能力必须 feature-gated | 003 + 002 |

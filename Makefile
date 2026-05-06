@@ -25,7 +25,7 @@ lint-conventions: ## lint-conventions (B1): validate shared/conventions.yaml str
 
 lint-config: lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-secrets-pattern ## lint-config (A4): env boundary + .env.example drift + provider terminology + secret-pattern scan
 
-lint-getenv-boundary: ## Reject os.Getenv usage outside platform/config / platform/secrets / cmd/{api,worker} (spec C-7)
+lint-getenv-boundary: ## Reject os.Getenv usage outside platform/config / platform/secrets / cmd/{api,migrate} (spec C-7)
 	@cd "$(ROOT_DIR)" && go run scripts/lint/getenv_boundary.go -root backend
 
 lint-env-dict: ## Verify .env.example, code-side os.Getenv calls, and spec §3.1.1 dictionary stay aligned (spec C-9 / C-11)

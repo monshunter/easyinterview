@@ -10,9 +10,6 @@ app:
   env: dev
   listenAddr: ":8080"
 
-worker:
-  listenAddr: ":8081"
-
 runtime:
   appVersion: "0.0.0-dev"
   defaultUiLanguage: zh-CN
@@ -59,7 +56,7 @@ featureFlag:
   posthogProjectApiKey: ""
   posthogPublicKey: ""
 
-# async.queueWeights is config-only (spec D-9). C8 worker reads typed config;
+# async.queueWeights is config-only (spec D-9). The backend internal runner reads typed config;
 # do NOT add env overrides — keep the env dictionary at 24 keys.
 async:
   queueWeights:

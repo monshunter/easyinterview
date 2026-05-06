@@ -1,13 +1,14 @@
 # Secrets and Config History
 
-> **版本**: 2.3
+> **版本**: 2.4
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-06 | 2.4 | 按 backend-runtime-topology 取消独立 worker 进程：P0 env 字典删除 `WORKER_LISTEN_ADDR`，canonical schema 删除 `worker.listenAddr`，`async.queueWeights` 改由 backend internal runner 消费。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-05 | 2.3 | 对齐 A3 003 catalog consolidation：`AI_MODEL_PROFILE_PATH` 默认值改为 `config/ai-profiles.yaml`，语义从 profile YAML 目录改为 Model Profile catalog 文件路径。 | ai-provider-and-model-routing/003 catalog consolidation |
 | 2026-05-05 | 2.2 | A4 lint-config 现在同时读取 provider registry 中的 provider-specific env refs；`AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 为必填路径，默认 provider base URL / API key 只在被选中 provider 引用时作为 secret 校验来源。 | ai-provider-and-model-routing/003 Phase 4 |
 | 2026-05-05 | 2.1 | 对齐 A3 provider registry 设计：新增 `AI_PROVIDER_REGISTRY_PATH`，将 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 降为默认 provider ref 可引用的 secret env，不再作为全局唯一 AI provider contract。 | ai-provider-and-model-routing/003 |

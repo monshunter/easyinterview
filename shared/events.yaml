@@ -32,7 +32,7 @@ envelope:
       required: true
       values:
         - api
-        - worker
+        - backend_async
         - dispatcher
         - review
     - name: traceId
@@ -76,7 +76,7 @@ events:
     piiBoundary: IDs only; no raw JD text or URL body.
   - name: target.parsed
     version: 1
-    producer: worker
+    producer: backend_async
     aggregateType: target_job
     requiredPayload:
       targetJobId: { type: uuidv7, source: spec:3.1.4 }
@@ -88,7 +88,7 @@ events:
     piiBoundary: IDs and controlled slugs only; no parsed JD summary.
   - name: target.analysis.failed
     version: 1
-    producer: worker
+    producer: backend_async
     aggregateType: target_job
     requiredPayload:
       targetJobId: { type: uuidv7, source: spec:3.1.4 }
@@ -146,7 +146,7 @@ events:
     piiBoundary: IDs only.
   - name: report.generated
     version: 1
-    producer: worker
+    producer: backend_async
     aggregateType: feedback_report
     requiredPayload:
       reportId: { type: uuidv7, source: spec:3.1.4 }
@@ -161,7 +161,7 @@ events:
     piiBoundary: No report body, answer snippets, raw model response, or prompt body.
   - name: report.generation.failed
     version: 1
-    producer: worker
+    producer: backend_async
     aggregateType: feedback_report
     requiredPayload:
       reportId: { type: uuidv7, source: spec:3.1.4 }
@@ -172,7 +172,7 @@ events:
     piiBoundary: No provider response, prompt, or answer text.
   - name: resume.parse.completed
     version: 1
-    producer: worker
+    producer: backend_async
     aggregateType: resume_asset
     requiredPayload:
       resumeAssetId: { type: uuidv7, source: spec:3.1.4 }
@@ -182,7 +182,7 @@ events:
     piiBoundary: No resume raw text or parsed summary.
   - name: resume.tailor.completed
     version: 1
-    producer: worker
+    producer: backend_async
     aggregateType: resume_tailor_run
     requiredPayload:
       tailorRunId: { type: uuidv7, source: spec:3.1.4 }
@@ -205,7 +205,7 @@ events:
     piiBoundary: No debrief notes or transcript text.
   - name: debrief.completed
     version: 1
-    producer: worker
+    producer: backend_async
     aggregateType: debrief
     requiredPayload:
       debriefId: { type: uuidv7, source: spec:3.1.4 }
@@ -216,7 +216,7 @@ events:
     piiBoundary: Counts only; no risk item prose.
   - name: source.refreshed
     version: 1
-    producer: worker
+    producer: backend_async
     aggregateType: source_record
     requiredPayload:
       sourceRecordId: { type: uuidv7, source: spec:3.1.4 }
@@ -237,7 +237,7 @@ events:
     piiBoundary: Sensitive lifecycle event; no email, file URL, or exported data.
   - name: privacy.request.completed
     version: 1
-    producer: worker
+    producer: backend_async
     aggregateType: privacy_request
     requiredPayload:
       privacyRequestId: { type: uuidv7, source: spec:3.1.4 }

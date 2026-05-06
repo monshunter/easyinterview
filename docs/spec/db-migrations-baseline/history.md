@@ -1,13 +1,14 @@
 # DB Migrations Baseline History
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-06 | 1.10 | 对齐 backend-runtime-topology：privacy deletion matrix 的执行方从 C8 worker 改为 backend internal runner，表级删除契约保持不变。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-05 | 1.9 | B4 migration baseline 改为只由本 spec、`migrations/`、`migrations/enum-sources.yaml` 与 migration gate 承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |
 | 2026-05-03 | 1.8 | 明确当前迁移 baseline 由本 spec、`migrations/` 与 product-scope 当前范围决定，避免旧 27 应用表 / 旧 enum / 旧索引口径被当作当前迁移依据。 | docs-only |
 | 2026-05-03 | 1.7 | 修正 v1.6 后残留的历史表数量文案：当前 baseline 统一表述为 26 张应用表 + 3 张 auth 支撑表 + 2 张迁移元数据表，应用 / auth 支撑合计 29，public schema count gate ≥31。 | readiness reconcile |

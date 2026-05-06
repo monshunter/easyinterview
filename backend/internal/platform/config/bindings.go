@@ -9,7 +9,7 @@ type CanonicalOptions struct {
 }
 
 // LoadCanonical loads the repository's P0 config schema with the canonical
-// env and secret bindings. cmd/api and cmd/worker both use this helper so
+// env and secret bindings. Backend runtime entrypoints use this helper so
 // startup validation sees the same code-side env dictionary.
 func LoadCanonical(opts CanonicalOptions) (*Loader, error) {
 	return Load(Options{
@@ -38,7 +38,6 @@ func DefaultSecretBindings() map[string]string {
 var defaultEnvBindings = map[string]string{
 	"APP_ENV":                     "app.env",
 	"APP_LISTEN_ADDR":             "app.listenAddr",
-	"WORKER_LISTEN_ADDR":          "worker.listenAddr",
 	"DATABASE_URL":                "database.url",
 	"REDIS_URL":                   "redis.url",
 	"OBJECT_STORAGE_ENDPOINT":     "objectStorage.endpoint",

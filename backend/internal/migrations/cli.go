@@ -24,7 +24,7 @@ func (e StaticEnv) Getenv(key string) string {
 // Run executes the migration CLI and returns a process-style exit code.
 // env must be non-nil; the os.Getenv-backed adapter lives in cmd/migrate so
 // that this package stays inside the A4 lint-getenv-boundary allow-list (A4
-// spec §4.1 only allows cmd/{api,worker,migrate}/main.go and platform/config|secrets).
+// spec §4.1 only allows cmd/{api,migrate}/main.go and platform/config|secrets).
 func Run(ctx context.Context, args []string, env Env, stdout, stderr io.Writer) int {
 	if env == nil {
 		fmt.Fprintln(stderr, "ERROR: migrations.Run requires a non-nil Env (use migrations.StaticEnv for tests or the os.Getenv adapter from cmd/migrate)")

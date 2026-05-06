@@ -92,9 +92,9 @@ an `atomic.Pointer[snapshot]` plus a single-flight reload mutex, covered
 by `loader_concurrency_test.go` running 100 reload rounds × 8 readers
 under `go test -race`.
 
-## Wiring into cmd/api / cmd/worker
+## Wiring into backend runtime
 
-Plan 001 does NOT create or rewrite `cmd/api` or `cmd/worker`. A4
+Plan 001 does NOT create or rewrite backend runtime entrypoints. A4
 secrets-and-config and each consuming C domain plan own the runtime
 entrypoint wiring; this package exposes:
 

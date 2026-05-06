@@ -56,7 +56,7 @@ docs/spec/${subspec}/
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | frontend | 前端 | 页面、状态、mock flow |
-| backend | 后端 | handler/service/store/worker |
+| backend | 后端 | handler/service/store/background runner |
 | contract | 契约 | OpenAPI、fixtures、schema |
 
 ## 6 验收标准

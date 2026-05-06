@@ -37,7 +37,7 @@ def valid_events_data() -> dict:
                     "name": "producer",
                     "type": "enum",
                     "required": True,
-                    "values": ["api", "worker", "dispatcher", "review"],
+                    "values": ["api", "backend_async", "dispatcher", "review"],
                 },
                 {"name": "traceId", "type": "string", "required": False, "softRequired": True},
                 {"name": "payload", "type": "polymorphic", "required": True},
@@ -228,21 +228,21 @@ def valid_event_entries() -> list[dict]:
     }
     producers = {
         "target.import.requested": "api",
-        "target.parsed": "worker",
-        "target.analysis.failed": "worker",
+        "target.parsed": "backend_async",
+        "target.analysis.failed": "backend_async",
         "practice.session.started": "api",
         "practice.turn.completed": "api",
         "practice.session.completed": "api",
         "report.generation.requested": ["api", "dispatcher"],
-        "report.generated": "worker",
-        "report.generation.failed": "worker",
-        "resume.parse.completed": "worker",
-        "resume.tailor.completed": "worker",
+        "report.generated": "backend_async",
+        "report.generation.failed": "backend_async",
+        "resume.parse.completed": "backend_async",
+        "resume.tailor.completed": "backend_async",
         "debrief.created": "api",
-        "debrief.completed": "worker",
-        "source.refreshed": "worker",
+        "debrief.completed": "backend_async",
+        "source.refreshed": "backend_async",
         "privacy.request.created": "api",
-        "privacy.request.completed": "worker",
+        "privacy.request.completed": "backend_async",
     }
     return [
         {
@@ -350,7 +350,7 @@ class EventsInventoryEnvelopeTest(unittest.TestCase):
     def test_rejects_invalid_producer_enum(self) -> None:
         data = copy.deepcopy(valid_events_data())
         producer = next(field for field in data["envelope"]["fields"] if field["name"] == "producer")
-        producer["values"] = ["api", "worker", "dispatcher", "review", "cron"]
+        producer["values"] = ["api", "backend_async", "dispatcher", "review", "cron"]
 
         errs = self.linter.validate_events_yaml(data)
 

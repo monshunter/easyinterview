@@ -1,13 +1,14 @@
 # Shared Conventions Codified History
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-06 | 1.12 | 对齐 backend-runtime-topology：业务后台执行边界从 worker 泛称改为 backend background runner，不在 B1 引入独立 worker 前置。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-05 | 1.11 | 扩展 AI shared vocabulary：新增 AI capability、provider registry/profile 字段名、fallback meta 字段，以及 `AI_UNSUPPORTED_CAPABILITY` / provider config / provider secret 三类 routing 错误码，Go/TS/OpenAPI 生成物同步消费。 | ai-provider-and-model-routing/003 Phase 4 |
 | 2026-05-05 | 1.10 | B1 共享约定职责改为由本 spec、`shared/conventions.yaml`、generator 与 lint gate 独立承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |
 | 2026-05-05 | 1.9 | 同步 A3/A4 AI provider 命名：B1 shared AI vocabulary 与 generated owner-boundary 注释只引用 `AI_PROVIDER_*` 连接参数，不传播旧连接命名。 | ai-provider-and-model-routing/001 remediation |

@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 背景与目标
 
@@ -43,7 +43,7 @@
 - 远端 CI 把上述 lint / generator 接到 PR 阶段：当前单人阶段不做；触发多人协作 / 公开 release / 自动发版等条件后再由 A5 `ci-pipeline-baseline` 重新评估。
 - prompt / rubric / model 版本表与 LLM Judge：归 F3 `prompt-rubric-registry`。
 - `AIClient` runtime、Model Profile schema / loader、provider adapter、fallback 消费与 `AI_PROVIDER_*` 连接参数校验：归 A3 / A4 / E4，B1 只提供字段名和错误码真理源。
-- 业务域 handler / store / worker（auth / upload / practice / review …）：归 C1–C8。
+- 业务域 handler / store / backend background runner（auth / upload / practice / review …）：归 C1–C8 或对应 runtime owner。
 
 ## 3 用户决策 / 待确认事项
 

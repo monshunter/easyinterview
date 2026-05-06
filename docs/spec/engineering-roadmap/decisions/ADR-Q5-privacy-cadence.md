@@ -1,8 +1,8 @@
 # ADR-Q5 · 隐私节奏
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: accepted
-> **更新日期**: 2026-05-04
+> **更新日期**: 2026-05-06
 
 ## 1 背景
 
@@ -27,7 +27,7 @@
 **Pros**：
 
 - 核心法律红线（用户「我要离开」）有完整闭环
-- 实现集中：privacy_requests 表 + delete worker + audit_event；不涉及跨表数据 assembly / 签名 URL / 大文件下载
+- 实现集中：privacy_requests 表 + backend internal delete runner + audit_event；不涉及跨表数据 assembly / 签名 URL / 大文件下载
 - 与 P0 团队规模匹配
 - 与 roadmap §5.3 的 future candidate 策略一致：P0 只落地可解释的删除链路，不提前空壳化 privacy export / advanced audit
 - 用户感知友好：登出 / 删除按钮即时生效，「导出」UI 可显示「即将上线」占位
@@ -49,7 +49,7 @@
 - 会提前创建尚未启动的 privacy export / advanced audit workstream，与 roadmap v3.0 的 on-demand child 创建策略冲突
 - 需要冻结 export schema 版本（与 B2 OpenAPI v1.0.0 freeze 同时锁定）
 - 跨 B4 baseline 多表 dump 涉及 audio / 简历 / 报告原文等多种格式，复杂度近一个独立子系统
-- 会挤压当前 P0 闭环中的 backend-auth、backend-async-runtime、backend-practice / review / debrief 与 release gate workstream
+- 会挤压当前 P0 闭环中的 backend-auth、backend async runner、backend-practice / review / debrief 与 release gate workstream
 
 ### 选项 C · 不做隐私链路（仅靠手动后台处理）
 
@@ -67,7 +67,7 @@
 
 落地约束：
 
-1. **删除语义**：用户级 `DELETE /api/v1/me`（同义于 `POST /api/v1/privacy/deletions` body `{type: "delete"}`）→ 同步软删 `users.deleted_at` 同时立即吊销所有 session → 返回 `202 + PrivacyRequestWithJob` → 异步 worker 逐域硬删（按 B4 `db-migrations-baseline` §3.1.2 table matrix）
+1. **删除语义**：用户级 `DELETE /api/v1/me`（同义于 `POST /api/v1/privacy/deletions` body `{type: "delete"}`）→ 同步软删 `users.deleted_at` 同时立即吊销所有 session → 返回 `202 + PrivacyRequestWithJob` → backend internal runner 异步逐域硬删（按 B4 `db-migrations-baseline` §3.1.2 table matrix）
 2. **删除范围**（P0 必须覆盖）：B4 baseline 的所有用户关联表、ADR-Q1 auth/session 支撑表、对象存储文件与 AI call/audit/job/outbox 运行痕迹；全局 prompt/rubric 版本与 migration 元数据保留。每表处理策略以 [B4 §3.1.2 P0 privacy deletion table matrix](../../db-migrations-baseline/spec.md#312-p0-privacy-deletion-table-matrix) 为准，`audit_events` 只保留不可反推用户身份的删除完成 tombstone。
 3. **保留例外**：billing 类（如未来引入）/ 法律强制留存的合规日志按对应法规另行 ADR；P0 暂无
 4. **SLA**：删除请求 99% 在 24h 内完成（与 `F1 observability-stack` §「Privacy Completion」对齐）；超期写 audit + Sentry alert
@@ -81,7 +81,7 @@
 - **privacy export / advanced audit future candidates** —— 不提前创建空 spec；触发条件成立时先修订 product-scope / roadmap，再创建对应 child spec / plan
 - **B2 `openapi-v1-contract`** —— 冻结 `/privacy/deletions` + `/privacy/exports`（后者 stub 501）+ `DELETE /api/v1/me`
 - **B4 `db-migrations-baseline`** —— `privacy_requests` / `audit_events` 0001 迁移
-- **C8 `backend-async-runtime`** —— public `privacy_delete` job_type；内部 handler 可为 `privacy.delete`；优先级 critical
+- **backend async runner future subject** —— public `privacy_delete` job_type；内部 handler 可为 `privacy.delete`；优先级 critical；P0 不要求独立 worker 进程
 - **frontend-shell / Settings & Privacy** —— 「删除我的账号」UI + 「导出即将上线」占位；不得把导出延后误写成复盘或独立成长中心功能
 - **F1 `observability-stack`** —— privacy 指标接入
 - **`release-gate-and-rollout`** —— 创建时校验 P0 删除链路 SLA、audit 完整性与 privacy export 501 例外说明
@@ -94,7 +94,7 @@
 - 出现 ≥1 例 EU 用户基于 GDPR Art. 20 的正式 portability 请求 → 评估提前升格 export
 - 监管环境变更（如所在区域强制双向）→ 升级 export 到 P0
 - 用户调研显示 ≥ 30% 受访者把「数据可移植」作为关键决策因素 → 升格 export
-- 删除 SLA 24h 在生产无法稳定达到 → 重新评估 worker 拓扑与跨表 dependency
+- 删除 SLA 24h 在生产无法稳定达到 → 重新评估 backend internal runner 拓扑与跨表 dependency
 
 修订流程：本 ADR 状态由 `accepted` → `superseded`，新 ADR 显式标注 `supersedes: ADR-Q5-privacy-cadence.md`；同步 roadmap §3.2 Q-5、§5.3 future candidates、B2/B4/C8/F1 相关 spec 与 Settings / Privacy UI 文档。
 
@@ -103,12 +103,13 @@
 - `engineering-roadmap/spec.md` §3.2 Q-5、§5.3 future candidates、§5.2 release gate workstream
 - `engineering-roadmap/plans/001-decompose-subspecs/plan.md` checklist 1.1、checklist 3.3
 - 当前约束与参考背景：`docs/spec/product-scope/spec.md` §4.4 / §9.3、`B1 shared-conventions-codified` §「隐私请求」、`B2 openapi-v1-contract` §「privacy」、`B4 db-migrations-baseline` §「privacy_requests」、`F1 observability-stack` §「Privacy Completion」
-- 下游 child / future candidate：B2 / B4 / C8 / frontend-shell Settings / F1 / release-gate-and-rollout / privacy export / advanced audit
+- 下游 child / future candidate：B2 / B4 / backend async runner / frontend-shell Settings / F1 / release-gate-and-rollout / privacy export / advanced audit
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-06 | 1.7 | 对齐 backend-runtime-topology：P0 删除链路执行方从独立 worker 改为 backend internal runner，`privacy_delete` jobType 保留。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-04 | 1.6 | 对齐 engineering-roadmap v3.0：删除对旧 C12/F4/W4 phase 的当前执行口径引用，改为 privacy export / advanced audit future candidate + P0 删除链路由现有契约和后续 release gate 承接。 | engineering-roadmap v3.0 L2 remediation |
 | 2026-05-03 | 1.5 | 对齐 engineering-roadmap v2.2：D6 已改为 P0 `frontend-debrief`，Settings 隐私入口归 D1；不再引用 `frontend-debrief-and-growth`。 | engineering-roadmap v2.2 |
 | 2026-05-03 | 1.4 | 同步产品真理源迁移：隐私产品红线引用从根目录旧 spec 改为 `docs/spec/product-scope/spec.md`，不改变 Q5 的 P0 删除-only 决策。 | docs-only |

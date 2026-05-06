@@ -57,7 +57,6 @@ async:
 func setCompleteProdRuntimeEnv(t *testing.T) {
 	t.Helper()
 	t.Setenv("APP_LISTEN_ADDR", ":8080")
-	t.Setenv("WORKER_LISTEN_ADDR", ":8081")
 	t.Setenv("DATABASE_URL", "postgres://prod:secret@db.internal:5432/easyinterview?sslmode=require")
 	t.Setenv("REDIS_URL", "redis://redis.internal:6379/0")
 	t.Setenv("OBJECT_STORAGE_ENDPOINT", "https://s3.internal")
@@ -71,6 +70,18 @@ func setCompleteProdRuntimeEnv(t *testing.T) {
 	t.Setenv("FEATURE_FLAG_SOURCE", "posthog")
 	t.Setenv("POSTHOG_HOST", "https://posthog")
 	t.Setenv("EMAIL_PROVIDER", "ses")
+}
+
+func TestDefaultEnvDictionaryOmitsWorkerListenAddr(t *testing.T) {
+	envBindings := config.DefaultEnvBindings()
+	if _, ok := envBindings["WORKER_LISTEN_ADDR"]; ok {
+		t.Fatalf("WORKER_LISTEN_ADDR must not remain in the P0 env dictionary: %+v", envBindings)
+	}
+	for _, path := range envBindings {
+		if path == "worker.listenAddr" {
+			t.Fatalf("worker.listenAddr must not remain in canonical config bindings: %+v", envBindings)
+		}
+	}
 }
 
 func TestDefaultAIDictionaryUsesProviderRegistryPaths(t *testing.T) {

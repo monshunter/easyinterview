@@ -1,8 +1,8 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.6
+> **版本**: 3.7
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 背景与目标
 
@@ -57,7 +57,7 @@
 | ID | 主题 | 当前结论 | 当前落地边界 |
 |----|------|----------|--------------|
 | Q-1 | 认证方案 | 自建 passwordless email magic link + first-party session cookie | 认证是操作级拦截；默认入口仍为 Home，登录成功恢复 `pendingAction` |
-| Q-2 | 异步编排 | Asynq + Redis + PG outbox | P0 异步任务服务 JD 解析、报告生成、简历处理、复盘分析和删除链路；不生成独立错题 / Drill 队列 |
+| Q-2 | 异步编排 | B3 job/outbox contract + backend internal runner；Redis/Asynq 仅作为后续 runner implementation option | P0 异步任务服务 JD 解析、报告生成、简历处理、复盘分析和删除链路；不生成独立错题 / Drill 队列，也不要求独立 worker 进程 |
 | Q-3 | 分析平台 | 自托管 PostHog，普通本地 dev 可 no-op / file-backed | 分析漏斗围绕导入 -> 规划 -> 练习 -> 报告 -> 复练 / 下一轮 -> 真实复盘 |
 | Q-4 | 云部署目标 | Kubernetes 作为 staging/prod 目标，本地开发走 A2 dev stack，Kind 只用于场景环境 | 部署自动化和 rollout gate 进入后续 release workstream |
 | Q-5 | 隐私节奏 | P0 删除-only；导出延后并以 501 / UI 占位解释 | 删除链路、audit 和 redaction 是 P0 gate；完整导出归后续隐私增强 |
@@ -115,6 +115,7 @@
 | Foundation | A3 | `ai-provider-and-model-routing` | AIClient、provider registry、capability model profile、OpenAI-compatible / stub provider、profile coverage lint | 保留 |
 | Foundation | A4 | `secrets-and-config` | 配置、secret、feature flag、runtime config 边界 | 保留 |
 | Foundation | A5 | `ci-pipeline-baseline` | 当前本地质量门禁，远端 CI deferred | 保留 |
+| Foundation | - | `backend-runtime-topology` | P0 frontend/backend 进程拓扑、worker 收敛与开发期观测依赖边界 | 保留 |
 | Contract | B1 | `shared-conventions-codified` | Go/TS 共享枚举、错误码、ID、codegen / drift gate | 保留 |
 | Contract | B2 | `openapi-v1-contract` | 当前 34 endpoint / 12 tag OpenAPI + fixtures | 保留 |
 | Contract | B3 | `event-and-outbox-contract` | 当前 16 internal event、jobType、outbox 契约 | 保留 |
@@ -136,7 +137,7 @@
 | Report Dashboard | `frontend-report-dashboard`、`backend-review` | 未创建；进入设计或实现时创建 | 报告生成、上下文条、准备度、维度、题目回顾、复练当前轮 / 进入下一轮 | B2、B3、B4、A3、C5、F3 |
 | Resume Workshop | `frontend-resume-workshop`、`backend-resume`、`backend-upload` | 未创建；进入设计或实现时创建 | 原始简历树、结构化主版本、岗位定制版本、创建/解析/确认、版本详情 | B2、B3、B4、A3、C2 |
 | Debrief | `frontend-debrief`、`backend-debrief` | 未创建；进入设计或实现时创建 | 真实面试上下文选择、文本 / 语音共享记录、复盘分析、复盘面试 | B2、B3、B4、A3、C4、C6 |
-| Async runtime | `backend-async-runtime` | 未创建；进入设计或实现时创建 | Asynq worker、outbox dispatcher、job retry、删除链路执行 | B3、B4、A2、ADR-Q2/Q5 |
+| Backend async runner | `backend-async-runner` | 未创建；进入设计或实现时创建 | backend 内部 job/outbox runner、retry、删除链路执行；不创建独立 worker 进程 | B3、B4、A2、ADR-Q2/Q5、backend-runtime-topology |
 | Mock + E2E + release | `mock-contract-suite`、`e2e-scenarios-p0`、`analytics-funnel`、`release-gate-and-rollout` | `mock-contract-suite` active；`test/scenarios/e2e` framework 已创建；其余未创建 | fixture-backed mock、P0 主漏斗 BDD、产品漏斗、staging / rollback / SLO gate | B2、D1-D6、C4-C9、F1-F3 |
 
 ### 5.3 Future candidates（不自动 spawn）
@@ -170,9 +171,9 @@
 目标是把 P0 主流程所需后端域按契约落地：
 
 1. `backend-auth`、`backend-upload`、`backend-profile` 提供身份、文件与画像基础。
-2. `backend-async-runtime` 提供 job、outbox、retry 和删除链路执行。
+2. `backend-async-runner` 提供 backend 内部 job、outbox、retry 和删除链路执行；P0 不拆独立 worker 进程。
 3. `backend-targetjob`、`backend-practice`、`backend-review`、`backend-resume`、`backend-debrief` 分别承接当前产品闭环。
-4. 所有 AI 输出必须引用 A3 / F3，所有长任务必须走 B3 / C8，所有敏感数据必须符合 product-scope 隐私红线。
+4. 所有 AI 输出必须引用 A3 / F3，所有长任务必须走 B3 job/outbox contract 并由 backend internal runner 承接，所有敏感数据必须符合 product-scope 隐私红线。
 
 ### 6.4 S3 · True integration and release gate
 

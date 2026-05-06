@@ -34,7 +34,7 @@
 
 ### 2.2 项目组件
 
-当前没有具备本地运行入口的项目组件接入 compose。后续 backend / frontend / worker 等 child 落地 Dockerfile 或 dev command 时，必须把 service 接入本 compose 文件并打 label：
+当前没有具备本地运行入口的项目组件接入 compose。后续 backend / frontend 等 child 落地 Dockerfile 或 dev command 时，必须把 service 接入本 compose 文件并打 label：
 
 | label | 含义 |
 |-------|------|

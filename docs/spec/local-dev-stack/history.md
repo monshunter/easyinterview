@@ -1,13 +1,14 @@
 # Local Dev Stack History
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-06 | 1.8 | 对齐 backend-runtime-topology：默认本地栈不接入独立 worker 进程或 worker host port，backend background runner 随 backend 应用组件观测。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-05 | 1.7 | 本地 dev-stack AI provider 配置纳入 A3/A4 单文件 registry/profile catalog path，`.env.example` 必须暴露 `AI_PROVIDER_REGISTRY_PATH` 与 `AI_MODEL_PROFILE_PATH` canonical 值。 | ai-provider-and-model-routing/003 L2 remediation |
 | 2026-05-05 | 1.6 | 收口 AI provider 口径：A2 本地栈只传递真实 provider endpoint 配置，不启动 provider mock / proxy 容器，也不把部署切到单元测试 stub。 | ai-provider-and-model-routing/001 remediation |
 | 2026-04-29 | 1.5 | 文档侧 reconcile：把已落地 compose 的 MinIO / mc 不可变 tag 写回 D-2；A2 executable gate 明确同时覆盖 AI provider fail-fast C-9；§7 从未来计划改为 `001-bootstrap` 已完成事实，不新开 plan。 | plan-review remediation |

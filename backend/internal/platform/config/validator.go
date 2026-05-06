@@ -31,7 +31,6 @@ func (l *Loader) Validate() error {
 
 	if env == "staging" || env == "prod" {
 		problems = append(problems, l.checkRequiredValue("app.listenAddr", "APP_LISTEN_ADDR")...)
-		problems = append(problems, l.checkRequiredValue("worker.listenAddr", "WORKER_LISTEN_ADDR")...)
 		problems = append(problems, l.checkRequiredRuntimeValue("database.url", "DATABASE_URL")...)
 		problems = append(problems, l.checkRequiredRuntimeValue("redis.url", "REDIS_URL")...)
 		problems = append(problems, l.checkRequiredRuntimeValue("objectStorage.endpoint", "OBJECT_STORAGE_ENDPOINT")...)

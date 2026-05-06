@@ -16,8 +16,8 @@ type Config struct {
 const AppEnvTest = "test"
 
 // ErrMissingProviderConfig is returned by New when AppEnv is not "test" and
-// either ProviderRegistryPath or ModelProfilePath is empty. Callers in cmd/api
-// and cmd/worker convert it into a non-zero exit; A3 never silently degrades
+// either ProviderRegistryPath or ModelProfilePath is empty. Runtime callers
+// convert it into a non-zero exit; A3 never silently degrades
 // to stub.
 var ErrMissingProviderConfig = errors.New("aiclient: AI_PROVIDER_REGISTRY_PATH and AI_MODEL_PROFILE_PATH are required outside APP_ENV=test")
 

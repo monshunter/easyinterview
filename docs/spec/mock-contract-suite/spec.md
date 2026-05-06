@@ -1,6 +1,6 @@
 # Mock Contract Suite Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-05-06
 
@@ -29,7 +29,7 @@
 ### 2.2 Out of Scope
 
 - 不新增或修改 OpenAPI operation；破坏性 API 变更归 B2 `openapi-v1-contract`。
-- 不实现真实业务 store、AI 调用、文件上传、邮箱发送或后台 worker。
+- 不实现真实业务 store、AI 调用、文件上传、邮箱发送或 backend internal runner。
 - 不直接恢复旧 Growth、Mistakes、Drill、独立 Voice、旧 `resume` route 或旧 `task_type` profile 口径。
 - 不把 `ui-design/src/data.jsx` 作为运行时真理源；它只保留为 prototype-baseline 对照输入。
 - 不替代后续 `e2e-scenarios-p0` 的真实端到端验证。

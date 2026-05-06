@@ -50,7 +50,7 @@
     },
     "producer": {
       "enum": [
-        "worker"
+        "backend_async"
       ]
     },
     "traceId": {

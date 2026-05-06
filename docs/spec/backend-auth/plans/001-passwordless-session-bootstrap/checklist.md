@@ -1,6 +1,6 @@
 # Passwordless Session Bootstrap Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
 > **更新日期**: 2026-05-06
 
@@ -17,7 +17,7 @@
 - [x] 2.1 实现 `startAuthEmailChallenge`；验证: handler/service tests 覆盖 accepted response、token hash 入库、IP / UA hash、通过 C1 backend-internal mail dispatcher 入队，dev mail sink retrieval 收到一次性链接，且应用日志不输出 token、完整 URL、邮箱明文或邮件正文
 - [x] 2.2 实现 rate-limit / dedupe 基线；验证: tests 覆盖同邮箱或同 IP 1 分钟内第 3 次及以上请求不泄露账号存在性，响应仍符合 B2 schema，dedupe key 不含邮箱明文
 - [x] 2.3 接入 B3 `email_dispatch` redacted payload；验证: tests 使用 generated `BuildEmailDispatchPayload` 构造 allowed payload，通过包含 `rawMagicLinkToken` / `magicLinkUrl` / `recipientEmail` / `emailBody` 任一 redacted field 的 negative case，并确认 in-process queue / dev sink / future outbox / async payload / log / audit 不含 redacted fields
-- [x] 2.4 实现 C1 backend-internal mail dispatcher；验证: tests 覆盖 handler 不等待邮件 provider 即返回 B2 `202`、后台 goroutine / 线程 drain 队列写入 dev mail sink、派发失败不泄露 token / 邮箱、graceful shutdown drain 或明确丢弃策略可观测，且不启动 C8 worker 进程也能完成本地邮件读取
+- [x] 2.4 实现 C1 backend-internal mail dispatcher；验证: tests 覆盖 handler 不等待邮件 provider 即返回 B2 `202`、后台 goroutine / 线程 drain 队列写入 dev mail sink、派发失败不泄露 token / 邮箱、graceful shutdown drain 或明确丢弃策略可观测，且不启动独立 worker 进程也能完成本地邮件读取
 
 ## Phase 3: Verify, session, and current user
 
@@ -25,7 +25,7 @@
 - [x] 3.2 实现 session middleware / current-user resolver；验证: middleware tests 覆盖缺 cookie、无效 session、expired / revoked session 返回 B1 error envelope，active session 更新 `sessions.updated_at` / expiry 且不记录 cookie 明文
 - [x] 3.3 实现 `/me`；验证: handler tests 覆盖有效 session 返回 masked email / displayName / language，缺 cookie 或无效 session 返回 B1 error envelope
 - [x] 3.4 实现 logout；验证: tests 覆盖有效 session 撤销、缺 cookie / 无效 session 仍进入 handler 并 Set-Cookie 清除、重复 logout 幂等和无账号存在性泄露
-- [x] 3.5 实现 `deleteMe` auth handoff；验证: handler tests 覆盖有效 session 返回 B2 `202 + PrivacyRequestWithJob` 兼容响应并撤销 session，`Idempotency-Key` 或等价 active-request dedupe 使重复请求返回同一 active `privacy_delete` job 或同义终态且不创建重复 job，缺/无效 session 返回 B1 error envelope，实际 privacy_delete worker / 删除矩阵不在 C1 中实现
+- [x] 3.5 实现 `deleteMe` auth handoff；验证: handler tests 覆盖有效 session 返回 B2 `202 + PrivacyRequestWithJob` 兼容响应并撤销 session，`Idempotency-Key` 或等价 active-request dedupe 使重复请求返回同一 active `privacy_delete` job 或同义终态且不创建重复 job，缺/无效 session 返回 B1 error envelope，实际 privacy_delete runner / 删除矩阵不在 C1 中实现
 
 ## Phase 4: Runtime config resolver, privacy, and observability
 
@@ -38,7 +38,7 @@
 - [x] 5.1 BDD-Gate: 验证 E2E.P0.003 通过
   <!-- verified: 2026-05-06 method=scenario bddChecklist=complete scenario=E2E.P0.003 run=.test-output/runs/20260506T1911-backend-auth-p0-003/e2e/E2E.P0.003/result.json -->
 - [x] 5.2 Handoff 给 frontend-shell；验证: backend README 或 package docs 说明 Auth API、cookie 行为、dev mail sink、错误码和前端 pendingAction 接入边界
-- [x] 5.3 active-scope 负向搜索通过；验证: backend-auth / API wiring active code 不引入 Bearer token P0 主认证、OAuth / SSO P0 行为、`external_identities` P0 读写 store、明文 token/session 存储、log-only magic token delivery、独立 C8 worker 前置依赖或旧 AI gateway / voice route 口径；允许 A3 provider adapter 内部使用 provider-side `Authorization: Bearer`，不得误判为浏览器主认证
+- [x] 5.3 active-scope 负向搜索通过；验证: backend-auth / API wiring active code 不引入 Bearer token P0 主认证、OAuth / SSO P0 行为、`external_identities` P0 读写 store、明文 token/session 存储、log-only magic token delivery、独立 worker 前置依赖或旧 AI gateway / voice route 口径；允许 A3 provider adapter 内部使用 provider-side `Authorization: Bearer`，不得误判为浏览器主认证
   <!-- verified: 2026-05-06 method=rg scope=backend/internal/auth,backend/cmd/api,backend/internal/api/generated allowed=negative-doc-comments+internal-session-hash-only -->
 
 ## Phase 6: L2 remediation
