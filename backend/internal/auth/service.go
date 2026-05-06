@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net"
@@ -254,6 +255,9 @@ func (s *PasswordlessService) ResolveSession(ctx context.Context, rawToken strin
 	}
 	nextExpiry := now.Add(SessionTTL)
 	if err := s.store.TouchSession(ctx, rec.ID, now, nextExpiry); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return CurrentSession{}, ErrSessionRevoked
+		}
 		return CurrentSession{}, err
 	}
 	return CurrentSession{

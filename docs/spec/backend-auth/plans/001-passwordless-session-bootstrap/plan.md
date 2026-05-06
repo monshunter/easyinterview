@@ -1,6 +1,6 @@
 # Passwordless Session Bootstrap
 
-> **版本**: 1.1
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-05-06
 
@@ -103,6 +103,40 @@ ADR-Q1 已锁定自建 passwordless email magic link + first-party session cooki
 #### 5.2 Handoff 给 frontend-shell
 
 记录前端可依赖的 Auth API、cookie 行为、mock/dev mail sink 和错误路径。
+
+### Phase 6: L2 remediation
+
+#### 6.1 修复 `DELETE /me` idempotency user scope
+
+`DELETE /me` 的 active `privacy_delete` handoff 去重必须按当前用户隔离。相同 `Idempotency-Key` 只能复用同一用户的 active 删除请求，不得让其他用户拿到既有用户的 `privacy_request` / job。实现前补两用户同 key 的 store / handler 回归测试。
+
+#### 6.2 修复 runtime Auth wiring
+
+真实 `cmd/api` runtime 必须挂载 C1 Auth endpoints，并用 C1 session middleware 包装 generated Auth surface 与 protected operation policy；`/runtime-config` 必须接入 C1 session-aware resolver，而不是只提供 anonymous resolver。实现前补 `cmd/api` wiring 测试证明 auth routes mounted、protected `/me` 需要 session、runtime-config 使用 resolver。
+
+#### 6.3 修复 session cookie Secure policy
+
+`verifyAuthEmailChallenge` 和 logout / deleteMe 清 cookie 必须使用同一 cookie policy，保证 ADR-Q1 / OpenAPI 锁定的 `HttpOnly; Secure; SameSite=Lax` 可测试；dev 可按环境降级 Secure，但必须显式测试。实现前补 secure cookie attribute 回归测试。
+
+#### 6.4 修复 challenge rate-limit SQL scope
+
+同邮箱或同 IP 1 分钟第 3 次及以上请求的 SQL 统计必须覆盖最近 challenge attempt，而不是只统计 pending challenge。实现前补 SQL expectation / service 回归测试，证明 consumed challenge 也计入窗口。
+
+#### 6.5 修复 logout revoke failure response
+
+logout 撤销 server-side session 失败时不得静默返回成功。handler 可以继续清 cookie，但必须返回 B1 error envelope，并记录 redacted failure evidence。实现前补 store revoke failure 的 handler 回归测试。
+
+#### 6.6 修复 runtime Auth secret fail-fast
+
+真实 `cmd/api` runtime 构建 `PasswordlessService` 前必须确认 `AUTH_CHALLENGE_TOKEN_PEPPER` 与 `SESSION_COOKIE_SECRET` 非空。dev / test 可以由外部 init 或 env 注入，但不得在缺失 secret 时继续启动并写入可预测 challenge / session hash。实现前补 `cmd/api` builder 回归测试，断言空 secret 返回明确错误且不启动 mail dispatcher。
+
+#### 6.7 修复 logout optional-session resolver error
+
+`logout` 仍保持 optional-session：缺 cookie、invalid / expired / revoked session 可以进入幂等清 cookie路径；但 session resolver / store 错误必须返回 B1 error envelope，不得被 middleware 当作匿名 logout 静默吞掉。实现前补真实 `cmd/api` route 回归测试，断言 cookie-bearing logout 遇到 store error 返回 500 且不泄露 cookie / session id。
+
+#### 6.8 修复 logout revoke race 的 touch zero-row 归类
+
+并发 logout 可能让 `ResolveSession` 先读到 active session，随后 `TouchSession` 因另一个请求已 revoke 而返回零行。该场景必须按已知认证状态失效处理，optional logout 继续走幂等清 cookie，而不是返回 500。实现前补 middleware focused test，断言 `TouchSession` 返回 `sql.ErrNoRows` 时 `logout` optional path 仍进入 handler。
 
 ## 5 验收标准
 

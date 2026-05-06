@@ -42,10 +42,14 @@ func SessionMiddleware(service *PasswordlessService, operationID string, next ht
 		current, err := service.ResolveSession(r.Context(), cookie.Value)
 		if err != nil {
 			if requirement == SessionOptional {
-				next.ServeHTTP(w, r)
+				if isSessionAuthError(err) {
+					next.ServeHTTP(w, r)
+					return
+				}
+				writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "session could not be resolved", false)
 				return
 			}
-			if errors.Is(err, ErrSessionInvalid) || errors.Is(err, ErrSessionExpired) || errors.Is(err, ErrSessionRevoked) {
+			if isSessionAuthError(err) {
 				writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required or invalid", false)
 				return
 			}
@@ -54,4 +58,8 @@ func SessionMiddleware(service *PasswordlessService, operationID string, next ht
 		}
 		next.ServeHTTP(w, r.WithContext(ContextWithCurrentSession(r.Context(), current)))
 	})
+}
+
+func isSessionAuthError(err error) bool {
+	return errors.Is(err, ErrSessionInvalid) || errors.Is(err, ErrSessionExpired) || errors.Is(err, ErrSessionRevoked)
 }

@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
+	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 )
 
 type ChallengePurpose string
@@ -104,11 +106,10 @@ func (s *SQLStore) CountRecentChallenges(ctx context.Context, email string, ipHa
 	}
 	var count int
 	err := s.db.QueryRowContext(ctx, `
-select count(*)
-from auth_challenges
-where created_at >= $1
-  and status = 'pending'
-  and (email = $2 or ip_hash = $3)`,
+	select count(*)
+	from auth_challenges
+	where created_at >= $1
+	  and (email = $2 or ip_hash = $3)`,
 		since,
 		email,
 		ipHash,
@@ -375,15 +376,17 @@ func (s *SQLStore) CreatePrivacyDeleteHandoff(ctx context.Context, userID string
 		return PrivacyDeleteHandoff{}, fmt.Errorf("auth store db is nil")
 	}
 	if idempotencyKey != "" {
+		idempotencyKey = privacyDeleteDedupeKey(userID, idempotencyKey)
 		var existing PrivacyDeleteHandoff
 		err := s.db.QueryRowContext(ctx, `
-select id, resource_id, created_at, updated_at
-from async_jobs
-where job_type = 'privacy_delete'
-  and dedupe_key = $1
-  and status in ('queued', 'running')
-limit 1`,
+	select id, resource_id, created_at, updated_at
+	from async_jobs
+	where job_type = $2
+	  and dedupe_key = $1
+	  and status in ('queued', 'running')
+	limit 1`,
 			idempotencyKey,
+			string(jobs.JobTypePrivacyDelete),
 		).Scan(&existing.JobID, &existing.PrivacyRequestID, &existing.CreatedAt, &existing.UpdatedAt)
 		if err == nil {
 			return existing, nil
@@ -407,9 +410,10 @@ values ($1, $2, 'delete', 'queued', $3)`,
 		return PrivacyDeleteHandoff{}, fmt.Errorf("insert privacy request: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `
-insert into async_jobs (id, job_type, resource_type, resource_id, dedupe_key, status, payload, created_at, updated_at)
-values ($1, 'privacy_delete', 'privacy_request', $2, $3, 'queued', '{}'::jsonb, $4, $4)`,
+	insert into async_jobs (id, job_type, resource_type, resource_id, dedupe_key, status, payload, created_at, updated_at)
+	values ($1, $2, 'privacy_request', $3, $4, 'queued', '{}'::jsonb, $5, $5)`,
 		jobID,
+		string(jobs.JobTypePrivacyDelete),
 		privacyRequestID,
 		idempotencyKey,
 		now,
@@ -420,6 +424,10 @@ values ($1, 'privacy_delete', 'privacy_request', $2, $3, 'queued', '{}'::jsonb, 
 		return PrivacyDeleteHandoff{}, fmt.Errorf("commit privacy delete handoff: %w", err)
 	}
 	return PrivacyDeleteHandoff{PrivacyRequestID: privacyRequestID, JobID: jobID, CreatedAt: now, UpdatedAt: now}, nil
+}
+
+func privacyDeleteDedupeKey(userID string, idempotencyKey string) string {
+	return string(jobs.JobTypePrivacyDelete) + ":" + hashWithPepper(strings.TrimSpace(userID), strings.TrimSpace(idempotencyKey))
 }
 
 var _ Store = (*SQLStore)(nil)

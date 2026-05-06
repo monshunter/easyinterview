@@ -3,6 +3,7 @@ package auth_test
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"reflect"
 	"testing"
 	"time"
@@ -121,6 +122,92 @@ func TestSQLStoreAuthTableBoundaries(t *testing.T) {
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestSQLStorePrivacyDeleteDedupeKeyIsScopedByUser(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	store := auth.NewSQLStore(db)
+	now := time.Date(2026, 5, 6, 19, 30, 0, 0, time.UTC)
+	rawKey := "v1.1777777777.018f2a40-0000-7000-9000-000000000001"
+
+	expectPrivacyHandoffInsert := func(userID, privacyRequestID, jobID string, dedupeMatcher sqlmock.Argument) {
+		mock.ExpectQuery("from async_jobs").
+			WithArgs(dedupeMatcher, "privacy_delete").
+			WillReturnError(sql.ErrNoRows)
+		mock.ExpectBegin()
+		mock.ExpectExec("insert into privacy_requests").
+			WithArgs(privacyRequestID, userID, now).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec("insert into async_jobs").
+			WithArgs(jobID, "privacy_delete", privacyRequestID, dedupeMatcher, now).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+	}
+
+	userOneScoped := &notRawDedupeKey{raw: rawKey}
+	userTwoScoped := &notRawDedupeKey{raw: rawKey}
+	expectPrivacyHandoffInsert("018f2a40-0000-7000-9000-000000000101", "018f2a40-0000-7000-9000-000000000201", "018f2a40-0000-7000-9000-000000000301", userOneScoped)
+	expectPrivacyHandoffInsert("018f2a40-0000-7000-9000-000000000102", "018f2a40-0000-7000-9000-000000000202", "018f2a40-0000-7000-9000-000000000302", userTwoScoped)
+
+	if _, err := store.CreatePrivacyDeleteHandoff(context.Background(), "018f2a40-0000-7000-9000-000000000101", rawKey, "018f2a40-0000-7000-9000-000000000201", "018f2a40-0000-7000-9000-000000000301", now); err != nil {
+		t.Fatalf("first user handoff: %v", err)
+	}
+	if _, err := store.CreatePrivacyDeleteHandoff(context.Background(), "018f2a40-0000-7000-9000-000000000102", rawKey, "018f2a40-0000-7000-9000-000000000202", "018f2a40-0000-7000-9000-000000000302", now); err != nil {
+		t.Fatalf("second user handoff: %v", err)
+	}
+	if userOneScoped.value == "" || userTwoScoped.value == "" {
+		t.Fatalf("scoped dedupe keys were not observed: one=%q two=%q", userOneScoped.value, userTwoScoped.value)
+	}
+	if userOneScoped.value == userTwoScoped.value {
+		t.Fatalf("different users must not share privacy_delete dedupe key: %q", userOneScoped.value)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStoreCountRecentChallengesCountsAllRecentAttempts(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	store := auth.NewSQLStore(db)
+	since := time.Date(2026, 5, 6, 20, 10, 0, 0, time.UTC)
+	mock.ExpectQuery(`select count\(\*\)\s+from auth_challenges\s+where created_at >= \$1\s+and \(email = \$2 or ip_hash = \$3\)`).
+		WithArgs(since, "candidate@example.com", "ip-hash").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
+
+	got, err := store.CountRecentChallenges(context.Background(), "candidate@example.com", "ip-hash", since)
+	if err != nil {
+		t.Fatalf("CountRecentChallenges: %v", err)
+	}
+	if got != 2 {
+		t.Fatalf("recent challenge count = %d, want 2", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+type notRawDedupeKey struct {
+	raw   string
+	value string
+}
+
+func (m *notRawDedupeKey) Match(v driver.Value) bool {
+	s, ok := v.(string)
+	if !ok {
+		return false
+	}
+	m.value = s
+	return s != "" && s != m.raw
 }
 
 func contains(haystack, needle string) bool {

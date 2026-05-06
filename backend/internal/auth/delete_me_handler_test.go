@@ -51,6 +51,10 @@ func TestDeleteMeCreatesPrivacyDeleteHandoffRevokesSessionAndIsIdempotent(t *tes
 		if job["id"] != "job-1" || job["jobType"] != "privacy_delete" || job["resourceType"] != "privacy_request" {
 			t.Fatalf("bad job = %+v", job)
 		}
+		cookies := rec.Result().Cookies()
+		if len(cookies) != 1 || cookies[0].Name != auth.SessionCookieName || cookies[0].MaxAge >= 0 || !cookies[0].Secure {
+			t.Fatalf("deleteMe clear cookie = %#v", cookies)
+		}
 	}
 	if store.revokedSessionID != "session-1" {
 		t.Fatalf("revoked session = %q", store.revokedSessionID)

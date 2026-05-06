@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -14,9 +15,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
+	_ "github.com/lib/pq"
+	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
 	"github.com/monshunter/easyinterview/backend/internal/platform/secrets"
@@ -75,21 +79,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("/api/v1/runtime-config", config.NewRuntimeConfigHandler(config.RuntimeConfigHandlerOptions{
-		Loader: loader,
-		Flags:  flagsClient,
-		FlagContextFunc: func(r *http.Request) featureflag.FlagContext {
-			return featureflag.FlagContext{AppEnv: loader.AppEnv()}
-		},
-		// SessionResolver is owned by C1 backend-auth; unauthenticated
-		// requests default to opt-out per spec D-2.
-		SessionResolver: nil,
-	}))
+	db, err := sql.Open("postgres", loader.GetString("database.url"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: database init: %v\n", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	authService, mailDispatcher, err := buildAuthService(loader, db)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: auth init: %v\n", err)
+		os.Exit(1)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = mailDispatcher.Shutdown(shutdownCtx)
+	}()
 
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           mux,
+		Handler:           buildAPIHandler(loader, flagsClient, authService),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -108,6 +118,57 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(shutdownCtx)
+}
+
+func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessService, *auth.BackgroundMailDispatcher, error) {
+	challengePepper := strings.TrimSpace(loader.GetSecret("auth.challengeTokenPepper").Reveal())
+	sessionCookieSecret := strings.TrimSpace(loader.GetSecret("auth.sessionCookieSecret").Reveal())
+	var missing []string
+	if challengePepper == "" {
+		missing = append(missing, "AUTH_CHALLENGE_TOKEN_PEPPER")
+	}
+	if sessionCookieSecret == "" {
+		missing = append(missing, "SESSION_COOKIE_SECRET")
+	}
+	if len(missing) > 0 {
+		return nil, nil, fmt.Errorf("missing required auth secret(s): %s", strings.Join(missing, ", "))
+	}
+	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: "/api/v1/auth/email/verify"})
+	dispatcher := auth.NewBackgroundMailDispatcher(auth.BackgroundMailDispatcherOptions{Writer: sink})
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               auth.NewSQLStore(db),
+		Dispatcher:          dispatcher,
+		DeliverySecrets:     sink,
+		ChallengePepper:     challengePepper,
+		SessionCookieSecret: sessionCookieSecret,
+	})
+	return service, dispatcher, nil
+}
+
+func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService) http.Handler {
+	mux := http.NewServeMux()
+	authHandler := auth.NewHandler(auth.HandlerOptions{
+		Passwordless: authService,
+		CookiePolicy: pointer(auth.CookiePolicyForAppEnv(loader.AppEnv())),
+	})
+	mux.Handle("POST /api/v1/auth/email/start", auth.SessionMiddleware(authService, "startAuthEmailChallenge", http.HandlerFunc(authHandler.StartAuthEmailChallenge)))
+	mux.Handle("GET /api/v1/auth/email/verify", auth.SessionMiddleware(authService, "verifyAuthEmailChallenge", http.HandlerFunc(authHandler.VerifyAuthEmailChallenge)))
+	mux.Handle("POST /api/v1/auth/logout", auth.SessionMiddleware(authService, "logout", http.HandlerFunc(authHandler.Logout)))
+	mux.Handle("GET /api/v1/me", auth.SessionMiddleware(authService, "getMe", http.HandlerFunc(authHandler.GetMe)))
+	mux.Handle("DELETE /api/v1/me", auth.SessionMiddleware(authService, "deleteMe", http.HandlerFunc(authHandler.DeleteMe)))
+	mux.Handle("GET /api/v1/runtime-config", auth.SessionMiddleware(authService, "getRuntimeConfig", config.NewRuntimeConfigHandler(config.RuntimeConfigHandlerOptions{
+		Loader: loader,
+		Flags:  flagsClient,
+		FlagContextFunc: func(r *http.Request) featureflag.FlagContext {
+			return featureflag.FlagContext{AppEnv: loader.AppEnv()}
+		},
+		SessionResolver: authService.RuntimeConfigSessionResolver(),
+	})))
+	return mux
+}
+
+func pointer[T any](value T) *T {
+	return &value
 }
 
 func buildFlagsClient(loader *config.Loader, logger *slog.Logger) (featureflag.FeatureFlagClient, error) {

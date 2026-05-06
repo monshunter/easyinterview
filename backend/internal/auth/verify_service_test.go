@@ -67,7 +67,7 @@ func TestVerifyAuthEmailChallengeConsumesTokenAndSetsSessionCookie(t *testing.T)
 	if cookie.Value == "" || cookie.Value == store.session.SessionHash {
 		t.Fatalf("cookie must contain opaque raw session token, got %q", cookie.Value)
 	}
-	if !cookie.HttpOnly || cookie.SameSite != http.SameSiteLaxMode || cookie.Path != "/" {
+	if !cookie.HttpOnly || !cookie.Secure || cookie.SameSite != http.SameSiteLaxMode || cookie.Path != "/" {
 		t.Fatalf("cookie attributes = %#v", cookie)
 	}
 	if contains(rec.Body.String(), "raw-session-token") {
@@ -79,6 +79,21 @@ func TestVerifyAuthEmailChallengeConsumesTokenAndSetsSessionCookie(t *testing.T)
 	}
 	if body["userId"] != store.user.ID || body["sessionExpiresAt"] == "" {
 		t.Fatalf("bad session response: %+v", body)
+	}
+}
+
+func TestSessionCookiePolicyAllowsDevInsecureButKeepsProdSecure(t *testing.T) {
+	prod := auth.CookiePolicyForAppEnv("prod")
+	if !prod.Secure {
+		t.Fatalf("prod cookie policy must be secure: %#v", prod)
+	}
+	staging := auth.CookiePolicyForAppEnv("staging")
+	if !staging.Secure {
+		t.Fatalf("staging cookie policy must be secure: %#v", staging)
+	}
+	dev := auth.CookiePolicyForAppEnv("dev")
+	if dev.Secure {
+		t.Fatalf("dev cookie policy must allow explicit insecure local cookie: %#v", dev)
 	}
 }
 

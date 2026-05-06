@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -96,6 +97,51 @@ func TestSessionMiddlewareRejectsMissingInvalidRevokedOrExpiredSession(t *testin
 	}
 }
 
+func TestSessionMiddlewareTreatsTouchLostRaceAsAuthState(t *testing.T) {
+	now := time.Date(2026, 5, 6, 22, 0, 0, 0, time.UTC)
+	store := &sessionStore{
+		session: auth.SessionRecord{
+			ID:        "session-1",
+			UserID:    "user-1",
+			Status:    auth.SessionStatusActive,
+			ExpiresAt: now.Add(auth.SessionTTL),
+		},
+		touchErr: sql.ErrNoRows,
+	}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               store,
+		SessionCookieSecret: "session-secret",
+		Now:                 func() time.Time { return now },
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
+	req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: "raw-session-token"})
+	called := false
+	optionalLogout := auth.SessionMiddleware(service, "logout", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	rec := httptest.NewRecorder()
+
+	optionalLogout.ServeHTTP(rec, req)
+
+	if !called || rec.Code != http.StatusNoContent {
+		t.Fatalf("optional logout should remain idempotent after touch lost race: called=%v status=%d body=%s", called, rec.Code, rec.Body.String())
+	}
+
+	protected := auth.SessionMiddleware(service, "getMe", http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Fatal("protected handler must not run after touch lost race")
+	}))
+	protectedRec := httptest.NewRecorder()
+	protectedReq := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	protectedReq.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: "raw-session-token"})
+
+	protected.ServeHTTP(protectedRec, protectedReq)
+
+	if protectedRec.Code != http.StatusUnauthorized {
+		t.Fatalf("protected touch lost race status = %d body=%s", protectedRec.Code, protectedRec.Body.String())
+	}
+}
+
 type sessionStore struct {
 	session          auth.SessionRecord
 	lookupErr        error
@@ -103,6 +149,7 @@ type sessionStore struct {
 	touchedSessionID string
 	touchNow         time.Time
 	touchExpiresAt   time.Time
+	touchErr         error
 }
 
 func (s *sessionStore) CountRecentChallenges(context.Context, string, string, time.Time) (int, error) {
@@ -141,7 +188,7 @@ func (s *sessionStore) TouchSession(_ context.Context, sessionID string, now tim
 	s.touchedSessionID = sessionID
 	s.touchNow = now
 	s.touchExpiresAt = expiresAt
-	return nil
+	return s.touchErr
 }
 
 func (s *sessionStore) RevokeSession(context.Context, string, time.Time) error {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/api/generated"
@@ -12,14 +13,33 @@ import (
 
 type HandlerOptions struct {
 	Passwordless *PasswordlessService
+	CookiePolicy *CookiePolicy
 }
 
 type Handler struct {
 	passwordless *PasswordlessService
+	cookiePolicy CookiePolicy
 }
 
 func NewHandler(opts HandlerOptions) *Handler {
-	return &Handler{passwordless: opts.Passwordless}
+	policy := CookiePolicyForAppEnv("prod")
+	if opts.CookiePolicy != nil {
+		policy = *opts.CookiePolicy
+	}
+	return &Handler{passwordless: opts.Passwordless, cookiePolicy: policy}
+}
+
+type CookiePolicy struct {
+	Secure bool
+}
+
+func CookiePolicyForAppEnv(appEnv string) CookiePolicy {
+	switch strings.ToLower(strings.TrimSpace(appEnv)) {
+	case "dev", "test":
+		return CookiePolicy{Secure: false}
+	default:
+		return CookiePolicy{Secure: true}
+	}
 }
 
 func (h *Handler) StartAuthEmailChallenge(w http.ResponseWriter, r *http.Request) {
@@ -81,6 +101,7 @@ func (h *Handler) VerifyAuthEmailChallenge(w http.ResponseWriter, r *http.Reques
 		Value:    result.SessionToken,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   h.cookiePolicy.Secure,
 		SameSite: http.SameSiteLaxMode,
 		Expires:  result.SessionExpiresAt,
 		MaxAge:   int(time.Until(result.SessionExpiresAt).Seconds()),
@@ -118,11 +139,20 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	if current, ok := CurrentSessionFromContext(r.Context()); ok && h != nil && h.passwordless != nil {
+	if current, ok := CurrentSessionFromContext(r.Context()); ok {
+		if h == nil || h.passwordless == nil {
+			h.clearSessionCookie(w)
+			writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
+			return
+		}
 		ctx := ContextWithAuthTraceID(r.Context(), TraceIDFromTraceparent(r.Header.Get("traceparent")))
-		_ = h.passwordless.Logout(ctx, current)
+		if err := h.passwordless.Logout(ctx, current); err != nil {
+			h.clearSessionCookie(w)
+			writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "logout could not revoke session", false)
+			return
+		}
 	}
-	clearSessionCookie(w)
+	h.clearSessionCookie(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -142,7 +172,7 @@ func (h *Handler) DeleteMe(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "privacy delete handoff could not be created", false)
 		return
 	}
-	clearSessionCookie(w)
+	h.clearSessionCookie(w)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 	_ = json.NewEncoder(w).Encode(generated.PrivacyRequestWithJob{
@@ -171,12 +201,17 @@ func writeAPIError(w http.ResponseWriter, status int, code string, message strin
 	})
 }
 
-func clearSessionCookie(w http.ResponseWriter) {
+func (h *Handler) clearSessionCookie(w http.ResponseWriter) {
+	policy := CookiePolicyForAppEnv("prod")
+	if h != nil {
+		policy = h.cookiePolicy
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     SessionCookieName,
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   policy.Secure,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
