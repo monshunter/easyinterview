@@ -106,3 +106,13 @@ export function useAppRuntime(): AppRuntimeValue {
   }
   return ctx;
 }
+
+/**
+ * Same as {@link useAppRuntime} but returns `null` when no provider is
+ * mounted. App shells that may run with or without runtime bootstrap (early
+ * tests, isolated component scenarios) consume this variant to stay
+ * provider-optional without re-implementing the hook.
+ */
+export function useAppRuntimeOptional(): AppRuntimeValue | null {
+  return useContext(AppRuntimeContext);
+}

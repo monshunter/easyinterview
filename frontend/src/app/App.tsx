@@ -1,8 +1,16 @@
-import { useState, type FC } from "react";
+import { useCallback, useState, type FC } from "react";
 
+import type { EasyInterviewClient } from "../api/generated/client";
+import { DisplayPreferencesProvider } from "./display/DisplayPreferencesProvider";
 import { normalizeRoute, type LooseRoute } from "./normalizeRoute";
 import { DEFAULT_ROUTE, isChromeHidden, type Route } from "./routes";
+import {
+  AppRuntimeProvider,
+  useAppRuntimeOptional,
+  type AppRuntimeProviderProps,
+} from "./runtime/AppRuntimeProvider";
 import { PlaceholderScreen } from "./screens/PlaceholderScreen";
+import { TopBar } from "./topbar/TopBar";
 
 export interface AppProps {
   /**
@@ -13,20 +21,55 @@ export interface AppProps {
    * to {@link DEFAULT_ROUTE}.
    */
   initialRoute?: LooseRoute;
+  /**
+   * Optional generated API client. When provided, App mounts an
+   * {@link AppRuntimeProvider} and the TopBar derives signed-in state from
+   * `/me`. Tests pass a fixture-backed client; production bootstrap will pass
+   * a client built from `globalThis.fetch`.
+   */
+  client?: EasyInterviewClient;
+  /** Per-operation request options, forwarded to the runtime provider. */
+  requestOptions?: AppRuntimeProviderProps["requestOptions"];
 }
 
-export const App: FC<AppProps> = ({ initialRoute }) => {
-  const [route] = useState<Route>(() =>
+const AppShell: FC<Pick<AppProps, "initialRoute">> = ({ initialRoute }) => {
+  const [route, setRoute] = useState<Route>(() =>
     initialRoute ? normalizeRoute(initialRoute) : DEFAULT_ROUTE,
   );
+  const navigate = useCallback((next: LooseRoute) => {
+    setRoute(normalizeRoute(next));
+  }, []);
   const hideChrome = isChromeHidden(route.name);
+  const runtime = useAppRuntimeOptional();
+  const signedIn = runtime?.auth.status === "authenticated";
 
   return (
     <div data-testid="app-root">
-      {hideChrome ? null : <header data-testid="app-shell-topbar" />}
+      {hideChrome ? null : (
+        <TopBar
+          activeRoute={route.name}
+          onNavigate={navigate}
+          signedIn={signedIn}
+        />
+      )}
       <main>
         <PlaceholderScreen route={route} />
       </main>
     </div>
+  );
+};
+
+export const App: FC<AppProps> = ({ initialRoute, client, requestOptions }) => {
+  const inner = <AppShell initialRoute={initialRoute} />;
+  return (
+    <DisplayPreferencesProvider>
+      {client ? (
+        <AppRuntimeProvider client={client} requestOptions={requestOptions}>
+          {inner}
+        </AppRuntimeProvider>
+      ) : (
+        inner
+      )}
+    </DisplayPreferencesProvider>
   );
 };

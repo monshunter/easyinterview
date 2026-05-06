@@ -8,11 +8,13 @@
 
 ## E2E.P0.001 默认首页与五入口 Shell
 
-- [ ] 创建场景目录 `test/scenarios/e2e/p0-001-default-home-shell/`
-- [ ] 准备测试数据：未登录状态、无保存 route、默认 runtime config
-- [ ] 实现 setup / trigger / verify / cleanup；verify 必须断言 Home、五个一级入口、登录/注册、显示控制可见，welcome、独立 `voice`、Growth / Mistakes / Drill 旧入口不可见
-- [ ] 执行并通过场景验证
-- [ ] 记录验证证据
+- [x] 创建场景目录 `test/scenarios/e2e/p0-001-default-home-shell/`
+- [x] 准备测试数据：未登录状态、无保存 route、默认 runtime config
+- [x] 实现 setup / trigger / verify / cleanup；verify 必须断言 Home、五个一级入口、登录/注册、显示控制可见，welcome、独立 `voice`、Growth / Mistakes / Drill 旧入口不可见
+- [x] 执行并通过场景验证
+- [x] 记录验证证据
+<!-- evidence: .test-output/e2e/p0-001-default-home-shell/trigger.log (1 vitest test passed; verify.sh: no legacy entry leaked) -->
+
 
 ## E2E.P0.002 登录打断后恢复原业务动作
 

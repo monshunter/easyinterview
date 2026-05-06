@@ -14,9 +14,10 @@
 
 ## Phase 2: TopBar and display controls
 
-- [ ] 2.1 实现五入口 TopBar；验证: component test 断言一级导航只包含 `home`、`jd_match`、`workspace`、`resume_versions`、`debrief`
-- [ ] 2.2 实现全局显示控制；验证: state test 断言主题色、暗色、语言切换在未登录/已登录状态切换后保持稳定
-- [ ] 2.3 BDD-Gate: 验证 E2E.P0.001 通过
+- [x] 2.1 实现五入口 TopBar；验证: component test 断言一级导航只包含 `home`、`jd_match`、`workspace`、`resume_versions`、`debrief`
+- [x] 2.2 实现全局显示控制；验证: state test 断言主题色、暗色、语言切换在未登录/已登录状态切换后保持稳定
+- [x] 2.3 BDD-Gate: 验证 E2E.P0.001 通过
+<!-- verified: 2026-05-07 method=scenario bddChecklist=complete -->
 
 ## Phase 3: Auth pages and pending action
 
