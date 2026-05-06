@@ -1,8 +1,8 @@
 # Frontend Shell BDD Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -10,14 +10,14 @@
 
 - [ ] 创建场景目录 `test/scenarios/e2e/p0-001-default-home-shell/`
 - [ ] 准备测试数据：未登录状态、无保存 route、默认 runtime config
-- [ ] 实现 setup / trigger / verify / cleanup
+- [ ] 实现 setup / trigger / verify / cleanup；verify 必须断言 Home、五个一级入口、登录/注册、显示控制可见，welcome、独立 `voice`、Growth / Mistakes / Drill 旧入口不可见
 - [ ] 执行并通过场景验证
 - [ ] 记录验证证据
 
 ## E2E.P0.002 登录打断后恢复原业务动作
 
 - [ ] 创建场景目录 `test/scenarios/e2e/p0-002-auth-pending-action-resume/`
-- [ ] 准备测试数据：未登录用户、workspace plan context、mock auth 成功响应
-- [ ] 实现 setup / trigger / verify / cleanup
+- [ ] 准备测试数据：未登录用户、workspace plan context、`verifyAuthEmailChallenge` / `getMe(authenticated)` mock auth 成功响应
+- [ ] 实现 setup / trigger / verify / cleanup；verify 必须断言登录后恢复 `practice` 且 planId / targetJobId / jdId / resumeVersionId / roundId 未丢失
 - [ ] 执行并通过场景验证
 - [ ] 记录验证证据
