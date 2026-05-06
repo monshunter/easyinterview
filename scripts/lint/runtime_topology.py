@@ -75,7 +75,14 @@ RETIRED_PATTERNS = [
     ),
     RetiredPattern(
         "worker listen addr config",
-        re.compile(r"\bWORKER_LISTEN_ADDR\b|\bworker\.listenAddr\b"),
+        re.compile(
+            r"\bWORKER_LISTEN_ADDR\b|\bworker\.listenAddr\b|\bapp/worker listen addr\b",
+            re.IGNORECASE,
+        ),
+    ),
+    RetiredPattern(
+        "worker config bindings",
+        re.compile(r"\bworker bindings?\b", re.IGNORECASE),
     ),
     RetiredPattern(
         "worker build target",
@@ -83,7 +90,14 @@ RETIRED_PATTERNS = [
     ),
     RetiredPattern(
         "worker producer enum",
-        re.compile(r"\bproducer\b.*(?:`worker`|/ worker\b|\bworker\s*/)"),
+        re.compile(
+            r"(?:\bproducer\b.*(?:`worker`|/ worker\b|\bworker\s*/))|"
+            r"(?:(?:`worker`|/ worker\b|\bworker\s*/).*\bproducer\b)"
+        ),
+    ),
+    RetiredPattern(
+        "backend async runner subject shorthand",
+        re.compile(r"\bbackend-async-runtime\b"),
     ),
     RetiredPattern(
         "worker component probe",

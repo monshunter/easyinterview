@@ -1,6 +1,6 @@
 # Worker Consolidation Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-06
 
@@ -35,6 +35,8 @@
   <!-- verified: 2026-05-06 command="rg -n 'WORKER_LISTEN_ADDR|worker\\.listenAddr|cmd/worker|build-worker|Asynq worker' .env.example config backend frontend shared scripts Makefile -S && rg -n 'WORKER_LISTEN_ADDR|worker\\.listenAddr|cmd/worker|build-worker|Asynq worker' docs/spec/*/spec.md docs/spec/engineering-roadmap/decisions/*.md docs/spec/*/history.md docs/spec/backend-runtime-topology/plans/001-worker-consolidation/*.md -S" evidence="runtime/code/config only has negative config test assertions; docs hits are new owner negative assertions, history, or explicit P0-not-retained text" -->
 - [x] 4.3 L2 remediation: 落地 `scripts/lint/runtime_topology.py` / `make lint-runtime-topology`，扫描 active code/doc handoff 中的 retired standalone worker process 口径回流；同步清理旧 code comments 与 completed owner plan/checklist 正文残留；验证: Red `python3 -m unittest scripts.lint.runtime_topology_test` 先失败，Green 后 `python3 -m unittest scripts.lint.runtime_topology_test`、`make lint-runtime-topology`、`make lint` 通过
   <!-- verified: 2026-05-06 command="python3 -m unittest scripts.lint.runtime_topology_test && make lint-runtime-topology && make lint" evidence="Red failed before runtime_topology.py existed; Green/unit lint/aggregate lint pass; active scan reports runtime_topology OK (274 active files scanned)" -->
+- [x] 4.4 L2 remediation: 补强 `scripts/lint/runtime_topology.py` false-negative 覆盖，拦截 active handoff 中 `` `worker` producer``、`app/worker listen addr`、`worker bindings` 与 `backend-async-runtime` shorthand；同步修订 B3/A4/ADR-Q3 active handoff 文案；验证: Red `python3 -m unittest scripts.lint.runtime_topology_test` 先失败，Green 后 `python3 -m unittest scripts.lint.runtime_topology_test`、`make lint-runtime-topology`、`make lint` 通过
+  <!-- verified: 2026-05-06 command="python3 -m unittest scripts.lint.runtime_topology_test && make lint-runtime-topology && make lint" evidence="Red failed on new false-negative fixtures; Green/unit lint/aggregate lint pass; active scan reports runtime_topology OK (274 active files scanned)" -->
 
 ## Phase 5: Verification and lifecycle
 

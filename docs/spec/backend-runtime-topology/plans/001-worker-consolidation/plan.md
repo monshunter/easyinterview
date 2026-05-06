@@ -1,6 +1,6 @@
 # Worker Consolidation
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-06
 
@@ -68,6 +68,10 @@
 
 落地 `scripts/lint/runtime_topology.py` 与 `make lint-runtime-topology`，把 retired standalone worker process 术语从人工 `rg` 升级为可执行 lint gate。扫描范围覆盖 runtime code/config/deploy/generated contract 与 active `docs/spec/*/plans/**` handoff；允许 tests、history 与本 owner 负向断言保留历史证据。同步清理旧 code comments 与已完成 owner plan/checklist 正文中的 `cmd/worker`、worker producer、worker component probe、privacy worker 等当前口径残留。
 
+#### 4.4 L2 remediation: runtime topology false-negative hardening
+
+补强 `scripts/lint/runtime_topology.py` 的语义覆盖，确保 active handoff 中的 `` `worker` producer``、`app/worker listen addr`、`worker bindings` 与旧 `backend-async-runtime` shorthand 会失败；同步修订 B3/A4/ADR-Q3 active handoff 文案到 `backend_async`、`app listen addr` 和 `backend-async-runner`。
+
 ### Phase 5: Verification and lifecycle
 
 #### 5.1 执行 focused gates
@@ -85,6 +89,7 @@
 - B3 generated Go/TS/schema/baseline 与 `shared/events.yaml` 一致，producer 使用 `backend_async`。
 - 开发期观测 gate 不依赖 Prometheus/Grafana/OTel/Loki 实例。
 - `make lint-runtime-topology` 与 `make lint` 拦截 active code/doc handoff 中的 retired standalone worker process 口径回流。
+- `make lint-runtime-topology` 与 `make lint` 拦截 active code/doc handoff 中的旧 producer、listen addr、worker binding 与 `backend-async-runtime` shorthand 回流。
 - 本计划 checklist、Header、INDEX、context 与验证证据一致。
 
 ## 6 风险与应对
@@ -96,3 +101,4 @@
 | codegen drift 漏同步 | `make codegen-events-check` 与 `make codegen-check` 作为强 gate |
 | 观测消费端再次阻塞研发 | F1/A2 文档明确 consumer 只进生产或 opt-in profile |
 | 手工负向搜索漏扫 completed owner plan 正文 | `make lint-runtime-topology` 扫描 active code/doc handoff，并把 tests / history / owner 负向断言设为显式例外 |
+| lint 正则 false negative 放过旧 shorthand | Phase 4.4 用 Red fixture 覆盖旧 producer、listen addr、worker binding 与 `backend-async-runtime` shorthand，再修 active handoff 文案 |

@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.1
+    to: 1.2
   baseBranch: dev
   branch: backend-worker-consolidation
 spec:
@@ -27,6 +27,7 @@ spec:
       - app-produced metrics
       - Prometheus not dev dependency
       - OTel optional profile
+      - backend-async-runtime
   targets:
     repo:
       plan: ./plan.md

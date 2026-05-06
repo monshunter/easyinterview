@@ -249,7 +249,7 @@ type FeatureFlagClient interface {
 
 #### 7.5 修复 prod/staging required config 覆盖
 
-针对 L2 review finding R-7.5：`validator.go` 必须覆盖 spec §3.1.1 / §3.1.2 标记为 prod/staging required 或 conditional 的 P0 keys，包括 app/worker listen addr、database、redis、object storage、AI model profile path、feature flag source/file/posthog、email provider 与现有 auth/AI secrets。对 database/redis/object storage 这类 `config/config.yaml` 中含 dev 默认值的部署依赖，staging/prod 必须要求 runtime env/secret override，避免生产静默连接本机 dev 服务。新增 focused tests 覆盖缺 storage/cache/database override 失败、缺 PostHog host 失败、缺 email provider 失败与完整 prod runtime bindings 通过。
+针对 L2 review finding R-7.5：`validator.go` 必须覆盖 spec §3.1.1 / §3.1.2 标记为 prod/staging required 或 conditional 的 P0 keys，包括 app listen addr、database、redis、object storage、AI model profile path、feature flag source/file/posthog、email provider 与现有 auth/AI secrets。对 database/redis/object storage 这类 `config/config.yaml` 中含 dev 默认值的部署依赖，staging/prod 必须要求 runtime env/secret override，避免生产静默连接本机 dev 服务。新增 focused tests 覆盖缺 storage/cache/database override 失败、缺 PostHog host 失败、缺 email provider 失败与完整 prod runtime bindings 通过。
 
 ### Phase 8: product-scope v1.2 feature flag remediation
 
@@ -290,5 +290,5 @@ type FeatureFlagClient interface {
 | 2026-05-04 | 1.5 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 config/secret/feature flag 范围。 | historical-spec-implementation-review/001 |
 | 2026-05-03 | 1.4 | 原地 reopen，新增 Phase 8 remediation：按 product-scope v1.2 替换旧错题本 / 成长中心 / dual-track feature flag baseline。 | secrets-and-config v1.9 |
 | 2026-04-30 | 1.3 | L2 code-review remediation：补 prod/staging required config 覆盖与 dev-default runtime override 防线。 | plan-code-review --fix |
-| 2026-04-30 | 1.2 | L2 code-review remediation：worker bindings、AI base URL fail-fast、env_dict code-side binding discovery、runtime-config cold PostHog projection。 | plan-code-review --fix |
+| 2026-04-30 | 1.2 | L2 code-review remediation：retired worker config bindings、AI base URL fail-fast、env_dict code-side binding discovery、runtime-config cold PostHog projection。 | plan-code-review --fix |
 | 2026-04-29 | 1.1 | 对齐 spec v1.7：24 项 env key、`async.queueWeights` config-only 字段、PostHog last-known-good 缓存降级、secret 样本只允许临时生成不入文档。 | plan-review remediation |

@@ -66,7 +66,7 @@ class RuntimeTopologyLintTest(unittest.TestCase):
                 / "plans"
                 / "001-bootstrap"
                 / "plan.md",
-                "producer enum (`api` / `worker` / `dispatcher` / `review`)\n",
+                "round-trip fixtures cover `api` / `worker` producer.\n",
             )
             write(
                 repo
@@ -78,6 +78,25 @@ class RuntimeTopologyLintTest(unittest.TestCase):
                 / "checklist.md",
                 "验证: go test ./internal/platform/config ./cmd/worker -count=1\n",
             )
+            write(
+                repo
+                / "docs"
+                / "spec"
+                / "secrets-and-config"
+                / "plans"
+                / "001-bootstrap"
+                / "plan.md",
+                "validator.go covers app/worker listen addr.\nworker bindings stayed in the remediation note.\n",
+            )
+            write(
+                repo
+                / "docs"
+                / "spec"
+                / "engineering-roadmap"
+                / "decisions"
+                / "ADR-Q3-analytics-platform.md",
+                "C8 backend-async-runtime owns analytics_dispatch.\n",
+            )
 
             result = run_lint(repo)
 
@@ -85,6 +104,9 @@ class RuntimeTopologyLintTest(unittest.TestCase):
             self.assertIn("privacy worker wording", result.stderr)
             self.assertIn("worker producer enum", result.stderr)
             self.assertIn("cmd/worker entrypoint", result.stderr)
+            self.assertIn("worker listen addr config", result.stderr)
+            self.assertIn("worker config bindings", result.stderr)
+            self.assertIn("backend async runner subject shorthand", result.stderr)
 
     def test_allows_owner_negative_assertions_history_and_tests(self) -> None:
         with tempfile.TemporaryDirectory() as td:
