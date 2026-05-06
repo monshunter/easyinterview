@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 )
 
 type ChallengePurpose string
@@ -59,6 +61,7 @@ type UserContext struct {
 // Store is the P0 passwordless session persistence surface. It intentionally
 // omits external_identities methods; that table is only a P1 SSO slot.
 type Store interface {
+	CountRecentChallenges(context.Context, string, string, time.Time) (int, error)
 	CreateChallenge(context.Context, ChallengeRecord) error
 	CreateSession(context.Context, SessionRecord) error
 	GetUserContext(context.Context, string) (UserContext, error)
@@ -71,6 +74,27 @@ type SQLStore struct {
 
 func NewSQLStore(db *sql.DB) *SQLStore {
 	return &SQLStore{db: db}
+}
+
+func (s *SQLStore) CountRecentChallenges(ctx context.Context, email string, ipHash string, since time.Time) (int, error) {
+	if s == nil || s.db == nil {
+		return 0, fmt.Errorf("auth store db is nil")
+	}
+	var count int
+	err := s.db.QueryRowContext(ctx, `
+select count(*)
+from auth_challenges
+where created_at >= $1
+  and status = 'pending'
+  and (email = $2 or ip_hash = $3)`,
+		since,
+		email,
+		ipHash,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count recent auth challenges: %w", err)
+	}
+	return count, nil
 }
 
 func (s *SQLStore) CreateChallenge(ctx context.Context, rec ChallengeRecord) error {
@@ -197,3 +221,7 @@ func (s *SQLStore) TouchSession(ctx context.Context, sessionID string, now time.
 }
 
 var _ Store = (*SQLStore)(nil)
+
+func NewID() string {
+	return idx.NewID()
+}

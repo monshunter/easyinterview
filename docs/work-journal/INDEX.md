@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-06](2026-05-06.md) | `feat(backend-auth): challenge issue and delivery` | #feat #test #docs |
 | [2026-05-06](2026-05-06.md) | `feat(backend-auth): storage and config boundaries` | #feat #test #docs |
 | [2026-05-06](2026-05-06.md) | `docs(backend-auth): remediate passwordless plan review gates` | #docs |
 | [2026-05-06](2026-05-06.md) | `docs(frontend-shell): remediate app shell plan review gates` | #docs #ui |

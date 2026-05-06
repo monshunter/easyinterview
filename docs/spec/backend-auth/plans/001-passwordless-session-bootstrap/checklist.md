@@ -14,10 +14,10 @@
 
 ## Phase 2: Challenge issue and delivery
 
-- [ ] 2.1 实现 `startAuthEmailChallenge`；验证: handler/service tests 覆盖 accepted response、token hash 入库、IP / UA hash、通过 C1 backend-internal mail dispatcher 入队，dev mail sink retrieval 收到一次性链接，且应用日志不输出 token、完整 URL、邮箱明文或邮件正文
-- [ ] 2.2 实现 rate-limit / dedupe 基线；验证: tests 覆盖同邮箱或同 IP 1 分钟内第 3 次及以上请求不泄露账号存在性，响应仍符合 B2 schema，dedupe key 不含邮箱明文
-- [ ] 2.3 接入 B3 `email_dispatch` redacted payload；验证: tests 使用 generated `BuildEmailDispatchPayload` 构造 allowed payload，通过包含 `rawMagicLinkToken` / `magicLinkUrl` / `recipientEmail` / `emailBody` 任一 redacted field 的 negative case，并确认 in-process queue / dev sink / future outbox / async payload / log / audit 不含 redacted fields
-- [ ] 2.4 实现 C1 backend-internal mail dispatcher；验证: tests 覆盖 handler 不等待邮件 provider 即返回 B2 `202`、后台 goroutine / 线程 drain 队列写入 dev mail sink、派发失败不泄露 token / 邮箱、graceful shutdown drain 或明确丢弃策略可观测，且不启动 C8 worker 进程也能完成本地邮件读取
+- [x] 2.1 实现 `startAuthEmailChallenge`；验证: handler/service tests 覆盖 accepted response、token hash 入库、IP / UA hash、通过 C1 backend-internal mail dispatcher 入队，dev mail sink retrieval 收到一次性链接，且应用日志不输出 token、完整 URL、邮箱明文或邮件正文
+- [x] 2.2 实现 rate-limit / dedupe 基线；验证: tests 覆盖同邮箱或同 IP 1 分钟内第 3 次及以上请求不泄露账号存在性，响应仍符合 B2 schema，dedupe key 不含邮箱明文
+- [x] 2.3 接入 B3 `email_dispatch` redacted payload；验证: tests 使用 generated `BuildEmailDispatchPayload` 构造 allowed payload，通过包含 `rawMagicLinkToken` / `magicLinkUrl` / `recipientEmail` / `emailBody` 任一 redacted field 的 negative case，并确认 in-process queue / dev sink / future outbox / async payload / log / audit 不含 redacted fields
+- [x] 2.4 实现 C1 backend-internal mail dispatcher；验证: tests 覆盖 handler 不等待邮件 provider 即返回 B2 `202`、后台 goroutine / 线程 drain 队列写入 dev mail sink、派发失败不泄露 token / 邮箱、graceful shutdown drain 或明确丢弃策略可观测，且不启动 C8 worker 进程也能完成本地邮件读取
 
 ## Phase 3: Verify, session, and current user
 
