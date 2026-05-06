@@ -2,7 +2,9 @@ package auth
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/api/generated"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
@@ -50,6 +52,109 @@ func (h *Handler) StartAuthEmailChallenge(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusAccepted)
 }
 
+func (h *Handler) VerifyAuthEmailChallenge(w http.ResponseWriter, r *http.Request) {
+	if h == nil || h.passwordless == nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
+		return
+	}
+	result, err := h.passwordless.VerifyEmailChallenge(r.Context(), VerifyEmailChallengeInput{
+		Token:      r.URL.Query().Get("token"),
+		RemoteAddr: r.RemoteAddr,
+		UserAgent:  r.UserAgent(),
+	})
+	if err != nil {
+		status := http.StatusBadRequest
+		code := sharederrors.CodeValidationFailed
+		message := "challenge could not be verified"
+		if errors.Is(err, ErrChallengeInvalid) || errors.Is(err, ErrChallengeExpired) || errors.Is(err, ErrChallengeConsumed) {
+			status = http.StatusUnauthorized
+			code = sharederrors.CodeAuthUnauthorized
+			message = "challenge token is invalid or expired"
+		}
+		writeAPIError(w, status, code, message, false)
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     SessionCookieName,
+		Value:    result.SessionToken,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  result.SessionExpiresAt,
+		MaxAge:   int(time.Until(result.SessionExpiresAt).Seconds()),
+	})
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(generated.Session{
+		UserId:           result.UserID,
+		SessionExpiresAt: result.SessionExpiresAt.Format(time.RFC3339),
+	})
+}
+
+func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
+	current, ok := CurrentSessionFromContext(r.Context())
+	if !ok {
+		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required or invalid", false)
+		return
+	}
+	if h == nil || h.passwordless == nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
+		return
+	}
+	user, err := h.passwordless.CurrentUser(r.Context(), current.UserID)
+	if err != nil {
+		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required or invalid", false)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(generated.UserContext{
+		Id:                        user.ID,
+		EmailMasked:               maskEmail(user.Email),
+		DisplayName:               user.DisplayName,
+		UiLanguage:                user.UILanguage,
+		PreferredPracticeLanguage: user.PreferredPracticeLanguage,
+	})
+}
+
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	if current, ok := CurrentSessionFromContext(r.Context()); ok && h != nil && h.passwordless != nil {
+		_ = h.passwordless.Logout(r.Context(), current)
+	}
+	clearSessionCookie(w)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) DeleteMe(w http.ResponseWriter, r *http.Request) {
+	current, ok := CurrentSessionFromContext(r.Context())
+	if !ok {
+		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required or invalid", false)
+		return
+	}
+	if h == nil || h.passwordless == nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
+		return
+	}
+	handoff, err := h.passwordless.DeleteMe(r.Context(), current, r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "privacy delete handoff could not be created", false)
+		return
+	}
+	clearSessionCookie(w)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	_ = json.NewEncoder(w).Encode(generated.PrivacyRequestWithJob{
+		PrivacyRequestId: handoff.PrivacyRequestID,
+		Job: generated.Job{
+			Id:           handoff.JobID,
+			JobType:      generated.JobTypePrivacyDelete,
+			ResourceType: generated.ResourceTypePrivacyRequest,
+			ResourceId:   handoff.PrivacyRequestID,
+			Status:       generated.JobStatus("queued"),
+			CreatedAt:    handoff.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:    handoff.UpdatedAt.Format(time.RFC3339),
+		},
+	})
+}
+
 func writeAPIError(w http.ResponseWriter, status int, code string, message string, retryable bool) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -60,4 +165,34 @@ func writeAPIError(w http.ResponseWriter, status int, code string, message strin
 			Retryable: retryable,
 		},
 	})
+}
+
+func clearSessionCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     SessionCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+	})
+}
+
+func maskEmail(email string) string {
+	at := -1
+	for i, ch := range email {
+		if ch == '@' {
+			at = i
+			break
+		}
+	}
+	if at <= 0 {
+		return "***"
+	}
+	local := email[:at]
+	domain := email[at:]
+	if len(local) == 1 {
+		return local[:1] + "***" + domain
+	}
+	return local[:1] + "***" + local[len(local)-1:] + domain
 }

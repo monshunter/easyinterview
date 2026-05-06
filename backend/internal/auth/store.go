@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -22,6 +23,15 @@ const (
 	SessionStatusActive  SessionStatus = "active"
 	SessionStatusRevoked SessionStatus = "revoked"
 	SessionStatusExpired SessionStatus = "expired"
+)
+
+var (
+	ErrChallengeInvalid  = errors.New("auth challenge invalid")
+	ErrChallengeExpired  = errors.New("auth challenge expired")
+	ErrChallengeConsumed = errors.New("auth challenge consumed")
+	ErrSessionInvalid    = errors.New("auth session invalid")
+	ErrSessionExpired    = errors.New("auth session expired")
+	ErrSessionRevoked    = errors.New("auth session revoked")
 )
 
 type ChallengeRecord struct {
@@ -63,9 +73,21 @@ type UserContext struct {
 type Store interface {
 	CountRecentChallenges(context.Context, string, string, time.Time) (int, error)
 	CreateChallenge(context.Context, ChallengeRecord) error
+	ConsumeChallenge(context.Context, string, time.Time) (ChallengeRecord, error)
+	FindOrCreateUserByEmail(context.Context, string, string, time.Time) (UserContext, error)
 	CreateSession(context.Context, SessionRecord) error
+	GetSessionByHash(context.Context, string, time.Time) (SessionRecord, error)
 	GetUserContext(context.Context, string) (UserContext, error)
 	TouchSession(context.Context, string, time.Time, time.Time) error
+	RevokeSession(context.Context, string, time.Time) error
+	CreatePrivacyDeleteHandoff(context.Context, string, string, string, string, time.Time) (PrivacyDeleteHandoff, error)
+}
+
+type PrivacyDeleteHandoff struct {
+	PrivacyRequestID string
+	JobID            string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 type SQLStore struct {
@@ -133,6 +155,78 @@ insert into auth_challenges (
 	return nil
 }
 
+func (s *SQLStore) ConsumeChallenge(ctx context.Context, tokenHash string, now time.Time) (ChallengeRecord, error) {
+	if s == nil || s.db == nil {
+		return ChallengeRecord{}, fmt.Errorf("auth store db is nil")
+	}
+	var rec ChallengeRecord
+	var userID sql.NullString
+	var ipHash sql.NullString
+	var uaHash sql.NullString
+	var purpose string
+	err := s.db.QueryRowContext(ctx, `
+update auth_challenges
+set status = 'consumed', consumed_at = $2
+where challenge_token_hash = $1
+  and status = 'pending'
+  and expires_at > $2
+returning id, user_id, email, purpose, ip_hash, user_agent_hash, expires_at, created_at`,
+		tokenHash,
+		now,
+	).Scan(
+		&rec.ID,
+		&userID,
+		&rec.Email,
+		&purpose,
+		&ipHash,
+		&uaHash,
+		&rec.ExpiresAt,
+		&rec.CreatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ChallengeRecord{}, ErrChallengeInvalid
+	}
+	if err != nil {
+		return ChallengeRecord{}, fmt.Errorf("consume auth challenge: %w", err)
+	}
+	rec.UserID = userID.String
+	rec.Purpose = ChallengePurpose(purpose)
+	rec.IPHash = ipHash.String
+	rec.UserAgentHash = uaHash.String
+	return rec, nil
+}
+
+func (s *SQLStore) FindOrCreateUserByEmail(ctx context.Context, email string, userID string, now time.Time) (UserContext, error) {
+	if s == nil || s.db == nil {
+		return UserContext{}, fmt.Errorf("auth store db is nil")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return UserContext{}, fmt.Errorf("begin find or create user: %w", err)
+	}
+	defer tx.Rollback()
+	var id string
+	err = tx.QueryRowContext(ctx, `
+insert into users (id, email, updated_at)
+values ($1, $2, $3)
+on conflict (email) do update set updated_at = excluded.updated_at
+returning id`,
+		userID,
+		email,
+		now,
+	).Scan(&id)
+	if err != nil {
+		return UserContext{}, fmt.Errorf("upsert user: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, "insert into user_settings (user_id) values ($1) on conflict (user_id) do nothing", id); err != nil {
+		return UserContext{}, fmt.Errorf("ensure user settings: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return UserContext{}, fmt.Errorf("commit find or create user: %w", err)
+	}
+	return s.GetUserContext(ctx, id)
+}
+
 func (s *SQLStore) CreateSession(ctx context.Context, rec SessionRecord) error {
 	if s == nil || s.db == nil {
 		return fmt.Errorf("auth store db is nil")
@@ -163,6 +257,47 @@ insert into sessions (
 		return fmt.Errorf("insert session: %w", err)
 	}
 	return nil
+}
+
+func (s *SQLStore) GetSessionByHash(ctx context.Context, sessionHash string, _ time.Time) (SessionRecord, error) {
+	if s == nil || s.db == nil {
+		return SessionRecord{}, fmt.Errorf("auth store db is nil")
+	}
+	var rec SessionRecord
+	var status string
+	var ipHash sql.NullString
+	var uaHash sql.NullString
+	var revokedAt sql.NullTime
+	err := s.db.QueryRowContext(ctx, `
+select id, user_id, session_hash, status, ip_hash, user_agent_hash, expires_at, revoked_at, created_at, updated_at
+from sessions
+where session_hash = $1`,
+		sessionHash,
+	).Scan(
+		&rec.ID,
+		&rec.UserID,
+		&rec.SessionHash,
+		&status,
+		&ipHash,
+		&uaHash,
+		&rec.ExpiresAt,
+		&revokedAt,
+		&rec.CreatedAt,
+		&rec.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return SessionRecord{}, ErrSessionInvalid
+	}
+	if err != nil {
+		return SessionRecord{}, fmt.Errorf("select session: %w", err)
+	}
+	rec.Status = SessionStatus(status)
+	rec.IPHash = ipHash.String
+	rec.UserAgentHash = uaHash.String
+	if revokedAt.Valid {
+		rec.RevokedAt = revokedAt.Time
+	}
+	return rec, nil
 }
 
 func (s *SQLStore) GetUserContext(ctx context.Context, userID string) (UserContext, error) {
@@ -218,6 +353,73 @@ func (s *SQLStore) TouchSession(ctx context.Context, sessionID string, now time.
 		return sql.ErrNoRows
 	}
 	return nil
+}
+
+func (s *SQLStore) RevokeSession(ctx context.Context, sessionID string, now time.Time) error {
+	if s == nil || s.db == nil {
+		return fmt.Errorf("auth store db is nil")
+	}
+	_, err := s.db.ExecContext(ctx,
+		"update sessions set status = 'revoked', revoked_at = $1, updated_at = $1 where id = $2 and status = 'active'",
+		now,
+		sessionID,
+	)
+	if err != nil {
+		return fmt.Errorf("revoke session: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLStore) CreatePrivacyDeleteHandoff(ctx context.Context, userID string, idempotencyKey string, privacyRequestID string, jobID string, now time.Time) (PrivacyDeleteHandoff, error) {
+	if s == nil || s.db == nil {
+		return PrivacyDeleteHandoff{}, fmt.Errorf("auth store db is nil")
+	}
+	if idempotencyKey != "" {
+		var existing PrivacyDeleteHandoff
+		err := s.db.QueryRowContext(ctx, `
+select id, resource_id, created_at, updated_at
+from async_jobs
+where job_type = 'privacy_delete'
+  and dedupe_key = $1
+  and status in ('queued', 'running')
+limit 1`,
+			idempotencyKey,
+		).Scan(&existing.JobID, &existing.PrivacyRequestID, &existing.CreatedAt, &existing.UpdatedAt)
+		if err == nil {
+			return existing, nil
+		}
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return PrivacyDeleteHandoff{}, fmt.Errorf("select privacy delete handoff: %w", err)
+		}
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return PrivacyDeleteHandoff{}, fmt.Errorf("begin privacy delete handoff: %w", err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `
+insert into privacy_requests (id, user_id, request_type, status, requested_at)
+values ($1, $2, 'delete', 'queued', $3)`,
+		privacyRequestID,
+		userID,
+		now,
+	); err != nil {
+		return PrivacyDeleteHandoff{}, fmt.Errorf("insert privacy request: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+insert into async_jobs (id, job_type, resource_type, resource_id, dedupe_key, status, payload, created_at, updated_at)
+values ($1, 'privacy_delete', 'privacy_request', $2, $3, 'queued', '{}'::jsonb, $4, $4)`,
+		jobID,
+		privacyRequestID,
+		idempotencyKey,
+		now,
+	); err != nil {
+		return PrivacyDeleteHandoff{}, fmt.Errorf("insert privacy delete job: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return PrivacyDeleteHandoff{}, fmt.Errorf("commit privacy delete handoff: %w", err)
+	}
+	return PrivacyDeleteHandoff{PrivacyRequestID: privacyRequestID, JobID: jobID, CreatedAt: now, UpdatedAt: now}, nil
 }
 
 var _ Store = (*SQLStore)(nil)

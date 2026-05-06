@@ -88,7 +88,19 @@ func (s *recordingChallengeStore) CreateChallenge(_ context.Context, rec auth.Ch
 	return nil
 }
 
+func (s *recordingChallengeStore) ConsumeChallenge(context.Context, string, time.Time) (auth.ChallengeRecord, error) {
+	panic("not used")
+}
+
+func (s *recordingChallengeStore) FindOrCreateUserByEmail(context.Context, string, string, time.Time) (auth.UserContext, error) {
+	panic("not used")
+}
+
 func (s *recordingChallengeStore) CreateSession(context.Context, auth.SessionRecord) error {
+	panic("not used")
+}
+
+func (s *recordingChallengeStore) GetSessionByHash(context.Context, string, time.Time) (auth.SessionRecord, error) {
 	panic("not used")
 }
 
@@ -97,6 +109,14 @@ func (s *recordingChallengeStore) GetUserContext(context.Context, string) (auth.
 }
 
 func (s *recordingChallengeStore) TouchSession(context.Context, string, time.Time, time.Time) error {
+	panic("not used")
+}
+
+func (s *recordingChallengeStore) RevokeSession(context.Context, string, time.Time) error {
+	panic("not used")
+}
+
+func (s *recordingChallengeStore) CreatePrivacyDeleteHandoff(context.Context, string, string, string, string, time.Time) (auth.PrivacyDeleteHandoff, error) {
 	panic("not used")
 }
 

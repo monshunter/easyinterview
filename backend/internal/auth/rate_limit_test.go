@@ -73,7 +73,19 @@ func (s *rateLimitStore) CreateChallenge(context.Context, auth.ChallengeRecord) 
 	return nil
 }
 
+func (s *rateLimitStore) ConsumeChallenge(context.Context, string, time.Time) (auth.ChallengeRecord, error) {
+	panic("not used")
+}
+
+func (s *rateLimitStore) FindOrCreateUserByEmail(context.Context, string, string, time.Time) (auth.UserContext, error) {
+	panic("not used")
+}
+
 func (s *rateLimitStore) CreateSession(context.Context, auth.SessionRecord) error {
+	panic("not used")
+}
+
+func (s *rateLimitStore) GetSessionByHash(context.Context, string, time.Time) (auth.SessionRecord, error) {
 	panic("not used")
 }
 
@@ -82,6 +94,14 @@ func (s *rateLimitStore) GetUserContext(context.Context, string) (auth.UserConte
 }
 
 func (s *rateLimitStore) TouchSession(context.Context, string, time.Time, time.Time) error {
+	panic("not used")
+}
+
+func (s *rateLimitStore) RevokeSession(context.Context, string, time.Time) error {
+	panic("not used")
+}
+
+func (s *rateLimitStore) CreatePrivacyDeleteHandoff(context.Context, string, string, string, string, time.Time) (auth.PrivacyDeleteHandoff, error) {
 	panic("not used")
 }
 

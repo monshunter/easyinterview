@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -11,23 +12,27 @@ import (
 )
 
 type PasswordlessServiceOptions struct {
-	Store           Store
-	Dispatcher      MailDispatcher
-	DeliverySecrets DeliverySecretStore
-	TokenGenerator  TokenGenerator
-	ChallengePepper string
-	Now             func() time.Time
-	NewID           func() string
+	Store                 Store
+	Dispatcher            MailDispatcher
+	DeliverySecrets       DeliverySecretStore
+	TokenGenerator        TokenGenerator
+	SessionTokenGenerator TokenGenerator
+	ChallengePepper       string
+	SessionCookieSecret   string
+	Now                   func() time.Time
+	NewID                 func() string
 }
 
 type PasswordlessService struct {
-	store           Store
-	dispatcher      MailDispatcher
-	deliverySecrets DeliverySecretStore
-	tokenGenerator  TokenGenerator
-	challengePepper string
-	now             func() time.Time
-	newID           func() string
+	store                 Store
+	dispatcher            MailDispatcher
+	deliverySecrets       DeliverySecretStore
+	tokenGenerator        TokenGenerator
+	sessionTokenGenerator TokenGenerator
+	challengePepper       string
+	sessionCookieSecret   string
+	now                   func() time.Time
+	newID                 func() string
 }
 
 type StartEmailChallengeInput struct {
@@ -44,6 +49,24 @@ type StartEmailChallengeResult struct {
 	RateLimited bool
 }
 
+type VerifyEmailChallengeInput struct {
+	Token      string
+	RemoteAddr string
+	UserAgent  string
+}
+
+type VerifyEmailChallengeResult struct {
+	UserID           string
+	SessionToken     string
+	SessionExpiresAt time.Time
+}
+
+type CurrentSession struct {
+	SessionID string
+	UserID    string
+	ExpiresAt time.Time
+}
+
 func NewPasswordlessService(opts PasswordlessServiceOptions) *PasswordlessService {
 	now := opts.Now
 	if now == nil {
@@ -53,18 +76,24 @@ func NewPasswordlessService(opts PasswordlessServiceOptions) *PasswordlessServic
 	if generator == nil {
 		generator = SecureTokenGenerator{}
 	}
+	sessionGenerator := opts.SessionTokenGenerator
+	if sessionGenerator == nil {
+		sessionGenerator = SecureTokenGenerator{}
+	}
 	newID := opts.NewID
 	if newID == nil {
 		newID = NewID
 	}
 	return &PasswordlessService{
-		store:           opts.Store,
-		dispatcher:      opts.Dispatcher,
-		deliverySecrets: opts.DeliverySecrets,
-		tokenGenerator:  generator,
-		challengePepper: opts.ChallengePepper,
-		now:             now,
-		newID:           newID,
+		store:                 opts.Store,
+		dispatcher:            opts.Dispatcher,
+		deliverySecrets:       opts.DeliverySecrets,
+		tokenGenerator:        generator,
+		sessionTokenGenerator: sessionGenerator,
+		challengePepper:       opts.ChallengePepper,
+		sessionCookieSecret:   opts.SessionCookieSecret,
+		now:                   now,
+		newID:                 newID,
 	}
 }
 
@@ -127,6 +156,126 @@ func (s *PasswordlessService) StartEmailChallenge(ctx context.Context, in StartE
 		return StartEmailChallengeResult{}, err
 	}
 	return StartEmailChallengeResult{ChallengeID: challengeID, Accepted: true}, nil
+}
+
+func (s *PasswordlessService) VerifyEmailChallenge(ctx context.Context, in VerifyEmailChallengeInput) (VerifyEmailChallengeResult, error) {
+	if s == nil || s.store == nil {
+		return VerifyEmailChallengeResult{}, fmt.Errorf("passwordless service store is nil")
+	}
+	token := strings.TrimSpace(in.Token)
+	if token == "" {
+		return VerifyEmailChallengeResult{}, ErrChallengeInvalid
+	}
+	now := s.now().UTC()
+	challenge, err := s.store.ConsumeChallenge(ctx, hashWithPepper(s.challengePepper, token), now)
+	if err != nil {
+		if errors.Is(err, ErrChallengeExpired) || errors.Is(err, ErrChallengeConsumed) || errors.Is(err, ErrChallengeInvalid) {
+			return VerifyEmailChallengeResult{}, err
+		}
+		return VerifyEmailChallengeResult{}, err
+	}
+	user, err := s.store.FindOrCreateUserByEmail(ctx, challenge.Email, s.newID(), now)
+	if err != nil {
+		return VerifyEmailChallengeResult{}, err
+	}
+	sessionToken, err := s.sessionTokenGenerator.GenerateToken()
+	if err != nil {
+		return VerifyEmailChallengeResult{}, err
+	}
+	expiresAt := now.Add(SessionTTL)
+	sessionID := s.newID()
+	sessionHash := hashWithPepper(s.sessionCookieSecret, sessionToken)
+	if err := s.store.CreateSession(ctx, SessionRecord{
+		ID:            sessionID,
+		UserID:        user.ID,
+		SessionHash:   sessionHash,
+		Status:        SessionStatusActive,
+		IPHash:        hashWithPepper(s.challengePepper, clientIP(in.RemoteAddr)),
+		UserAgentHash: hashWithPepper(s.challengePepper, strings.TrimSpace(in.UserAgent)),
+		ExpiresAt:     expiresAt,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}); err != nil {
+		return VerifyEmailChallengeResult{}, err
+	}
+	return VerifyEmailChallengeResult{
+		UserID:           user.ID,
+		SessionToken:     sessionToken,
+		SessionExpiresAt: expiresAt,
+	}, nil
+}
+
+func (s *PasswordlessService) ResolveSession(ctx context.Context, rawToken string) (CurrentSession, error) {
+	if s == nil || s.store == nil {
+		return CurrentSession{}, fmt.Errorf("passwordless service store is nil")
+	}
+	token := strings.TrimSpace(rawToken)
+	if token == "" {
+		return CurrentSession{}, ErrSessionInvalid
+	}
+	now := s.now().UTC()
+	rec, err := s.store.GetSessionByHash(ctx, hashWithPepper(s.sessionCookieSecret, token), now)
+	if err != nil {
+		return CurrentSession{}, err
+	}
+	switch rec.Status {
+	case SessionStatusActive:
+	case SessionStatusRevoked:
+		return CurrentSession{}, ErrSessionRevoked
+	case SessionStatusExpired:
+		return CurrentSession{}, ErrSessionExpired
+	default:
+		return CurrentSession{}, ErrSessionInvalid
+	}
+	if !rec.ExpiresAt.After(now) {
+		return CurrentSession{}, ErrSessionExpired
+	}
+	nextExpiry := now.Add(SessionTTL)
+	if err := s.store.TouchSession(ctx, rec.ID, now, nextExpiry); err != nil {
+		return CurrentSession{}, err
+	}
+	return CurrentSession{
+		SessionID: rec.ID,
+		UserID:    rec.UserID,
+		ExpiresAt: nextExpiry,
+	}, nil
+}
+
+func (s *PasswordlessService) CurrentUser(ctx context.Context, userID string) (UserContext, error) {
+	if s == nil || s.store == nil {
+		return UserContext{}, fmt.Errorf("passwordless service store is nil")
+	}
+	return s.store.GetUserContext(ctx, userID)
+}
+
+func (s *PasswordlessService) Logout(ctx context.Context, current CurrentSession) error {
+	if s == nil || s.store == nil {
+		return fmt.Errorf("passwordless service store is nil")
+	}
+	if current.SessionID == "" {
+		return nil
+	}
+	return s.store.RevokeSession(ctx, current.SessionID, s.now().UTC())
+}
+
+func (s *PasswordlessService) DeleteMe(ctx context.Context, current CurrentSession, idempotencyKey string) (PrivacyDeleteHandoff, error) {
+	if s == nil || s.store == nil {
+		return PrivacyDeleteHandoff{}, fmt.Errorf("passwordless service store is nil")
+	}
+	now := s.now().UTC()
+	if idempotencyKey == "" {
+		idempotencyKey = "privacy_delete:" + current.UserID
+	}
+	handoff, err := s.store.CreatePrivacyDeleteHandoff(ctx, current.UserID, idempotencyKey, s.newID(), s.newID(), now)
+	if err != nil {
+		return PrivacyDeleteHandoff{}, err
+	}
+	if current.SessionID != "" {
+		if err := s.store.RevokeSession(ctx, current.SessionID, now); err != nil {
+			return PrivacyDeleteHandoff{}, err
+		}
+	}
+	return handoff, nil
 }
 
 func normalizeEmail(email string) string {
