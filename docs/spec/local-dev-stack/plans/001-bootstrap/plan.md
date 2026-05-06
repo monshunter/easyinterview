@@ -39,7 +39,7 @@
 - Postgres：`pg_isready -U $POSTGRES_USER`
 - Redis：`redis-cli ping`
 - MinIO：`mc ready local` 或 HTTP `/minio/health/live`
-- 项目 HTTP 组件：`GET /healthz`；无 HTTP 端口的 worker 类组件使用进程存活检查 + 最近日志探测
+- 项目 HTTP 组件：`GET /healthz`；backend internal runner 随 backend 组件观测，不单独声明进程 probe
 
 #### 1.2 init 脚本与 provisioning
 
@@ -113,7 +113,7 @@
 - Redis：`redis-cli set __doctor__ ok EX 5` + `get` + `del`。
 - MinIO：`mc ls` 默认 bucket（不存在则报 DEGRADED + reason）。
 
-项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/metrics`，`GET /metrics` 必须返回非空文本。worker 类组件使用容器运行状态 + 最近 50 行日志无启动失败特征作为最小 probe。对启用 AIClient 的组件，doctor 只校验 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 是否注入并报告缺失；不得在 doctor 中调用真实 LLM。
+项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/metrics`，`GET /metrics` 必须返回非空文本。backend internal runner 通过 backend 组件状态、最近日志与 `/metrics` 出口观测，不单独注册本地进程 probe。对启用 AIClient 的组件，doctor 只校验 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 是否注入并报告缺失；不得在 doctor 中调用真实 LLM。
 
 #### 3.3 dev-up gate 接入（C-1）
 

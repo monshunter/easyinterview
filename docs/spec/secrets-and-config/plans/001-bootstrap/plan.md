@@ -56,7 +56,7 @@
 
 #### 1.5 启动期 fail-fast validator
 
-`validator.go` 在进程启动期消费 spec §3.1.2 标记为 `required` 的字段集合，按 `APP_ENV` 维度判定：`APP_ENV=test` 允许缺 AI / Email / Session 相关 secret；`APP_ENV=staging|prod` 必填 secret 缺失时返回 `error`，由 `cmd/{api,worker}/main.go` 接住后非零退出。错误信息必须明确列出缺失 key 名（与 [secrets-and-config spec §6 C-2](../../spec.md#6-验收标准) 一致），避免 prod 退出后 deployer 不知道补哪个 key。
+`validator.go` 在进程启动期消费 spec §3.1.2 标记为 `required` 的字段集合，按 `APP_ENV` 维度判定：`APP_ENV=test` 允许缺 AI / Email / Session 相关 secret；`APP_ENV=staging|prod` 必填 secret 缺失时返回 `error`，由当前 backend runtime entrypoint 接住后非零退出。错误信息必须明确列出缺失 key 名（与 [secrets-and-config spec §6 C-2](../../spec.md#6-验收标准) 一致），避免 prod 退出后 deployer 不知道补哪个 key。
 
 ### Phase 2: SecretSource + FeatureFlagClient 抽象与 provider 实现
 
@@ -70,7 +70,7 @@ type SecretSource interface {
 }
 ```
 
-接口签名固定，P1 升级到 K8s Secret / Vault / SOPS 时只能新增 provider，不允许修改签名。`secrets/env_provider.go` 实现 `EnvSecretSource`：从 `os.Getenv` 读取（注意 `os.Getenv` 仅允许出现在 `internal/platform/config/`、`internal/platform/secrets/` 与 `cmd/{api,worker,migrate}/main.go`，由 Phase 4.1 lint 收口）。Phase 1 loader 把 `EnvSecretSource` 作为默认运行时 secret 来源，与 D-1 第一层（`runtime secret > env var ...`）一致。
+接口签名固定，P1 升级到 K8s Secret / Vault / SOPS 时只能新增 provider，不允许修改签名。`secrets/env_provider.go` 实现 `EnvSecretSource`：从 `os.Getenv` 读取（注意 `os.Getenv` 仅允许出现在 `internal/platform/config/`、`internal/platform/secrets/` 与 `cmd/{api,migrate}/main.go`，由 Phase 4.1 lint 收口）。Phase 1 loader 把 `EnvSecretSource` 作为默认运行时 secret 来源，与 D-1 第一层（`runtime secret > env var ...`）一致。
 
 #### 2.2 落地 `backend/internal/platform/featureflag/` 包接口
 
@@ -127,14 +127,14 @@ type FeatureFlagClient interface {
 
 #### 4.1 golangci-lint 自定义规则（拒绝 `os.Getenv` 越界）
 
-按 [secrets-and-config spec §4.1](../../spec.md#41-边界约束) 落地：在 [B1](../../../shared-conventions-codified/plans/001-bootstrap/plan.md#31-go-lint-与错误码校验) 已落地的 `backend/.golangci.yml` 中追加一条本地可执行规则。优先选择 `revive` 自定义 rule（如 `disallow-direct-env-access`）；若 `revive` 表达不动，则在 `scripts/lint/` 下落 `getenv_boundary.go`（Go AST checker），由 `make lint-config` / `make lint` 调用 `go run scripts/lint/getenv_boundary.go -root backend` 扫描 `backend/...`。规则 allowlist 仅放行 `backend/internal/platform/config/`、`backend/internal/platform/secrets/`、`backend/cmd/api/`、`backend/cmd/worker/`、`backend/cmd/migrate/`，与当前 spec §4.1 一致；其它包出现 `os.Getenv` 必须 lint 失败（关闭 [secrets-and-config spec §6 C-7](../../spec.md#6-验收标准)）。
+按 [secrets-and-config spec §4.1](../../spec.md#41-边界约束) 落地：在 [B1](../../../shared-conventions-codified/plans/001-bootstrap/plan.md#31-go-lint-与错误码校验) 已落地的 `backend/.golangci.yml` 中追加一条本地可执行规则。优先选择 `revive` 自定义 rule（如 `disallow-direct-env-access`）；若 `revive` 表达不动，则在 `scripts/lint/` 下落 `getenv_boundary.go`（Go AST checker），由 `make lint-config` / `make lint` 调用 `go run scripts/lint/getenv_boundary.go -root backend` 扫描 `backend/...`。规则 allowlist 仅放行 `backend/internal/platform/config/`、`backend/internal/platform/secrets/`、`backend/cmd/api/`、`backend/cmd/migrate/`，与当前 spec §4.1 一致；其它包出现 `os.Getenv` 必须 lint 失败（关闭 [secrets-and-config spec §6 C-7](../../spec.md#6-验收标准)）。
 
 #### 4.2 `make lint-config`：env key dictionary drift 检查
 
 按 [secrets-and-config spec §6 C-9](../../spec.md#6-验收标准) 落地：在 `scripts/lint/env_dict.py`（或 `scripts/lint/env_dict.sh`）实现一次性扫描器：
 
 - 解析 `.env.example` 提取所有 env key 名。
-- AST / regex 解析 `backend/internal/platform/config/` 与 `cmd/{api,worker}/main.go` 中所有 `os.Getenv("...")` / `Get*("...")` 调用，提取代码侧已声明的 env key。
+- AST / regex 解析 `backend/internal/platform/config/` 与 `backend/cmd/{api,migrate}/main.go` 中所有 `os.Getenv("...")` / `Get*("...")` 调用，提取代码侧已声明的 env key。
 - 解析 spec `§3.1.1` 表格（通过定位 markdown 表头与列分隔符）并提取「Key」列。
 - 三方求差集：任一方缺失 key 必须 fail，错误信息列出缺失项与三方分别声明的差异。
 
@@ -231,9 +231,9 @@ type FeatureFlagClient interface {
 
 ### Phase 7: L2 review remediation
 
-#### 7.1 修复 worker env / secret binding 对齐
+#### 7.1 修复 runtime entrypoint env / secret binding 对齐
 
-针对 L2 review finding R-7.1：`cmd/worker` 必须复用与 `cmd/api` 一致的 env binding / secret binding 规则，确保 prod 环境中已注入的 `SESSION_COOKIE_SECRET` / `AI_PROVIDER_API_KEY` / `POSTHOG_PROJECT_API_KEY` 等 secret 会被 loader 读取，`loader.Validate()` 不再错误报告缺失。新增或调整 focused Go test / smoke 覆盖 worker 在 prod + 完整 env 下启动校验通过。
+针对 L2 review finding R-7.1：runtime entrypoint 必须复用 `cmd/api` 的 canonical env binding / secret binding 规则，确保 prod 环境中已注入的 `SESSION_COOKIE_SECRET` / `AI_PROVIDER_API_KEY` / `POSTHOG_PROJECT_API_KEY` 等 secret 会被 loader 读取，`loader.Validate()` 不再错误报告缺失。backend-runtime-topology v1.0 后不再保留单独 runtime entrypoint；验证以 current backend entrypoint 与 config package focused tests 为准。
 
 #### 7.2 修复 AI provider base URL fail-fast
 

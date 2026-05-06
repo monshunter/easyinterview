@@ -40,7 +40,7 @@
 ## Phase 4: 配置校验与本地部署 fail-fast
 
 - [x] 4.1 落地 `config.go` 配置 struct（`AppEnv` / `ProviderBaseURL` / `ProviderAPIKey` / `ModelProfilePath`）与 `New(cfg)` 启动期校验：`AppEnv != "test"` 且 provider config 任一字段空时返回 `ErrMissingProviderConfig`；`AppEnv == "test"` 路径允许 `WithStubAllowed(true)` 启用 stub
-- [x] 4.2 落地 `config_test.go`：`AppEnv=test` 缺 provider config 但启用 stub → 成功；`AppEnv=production` 缺 provider config → 错误；`AppEnv=test` 但 stub 选项未启用且无 provider config → 错误；提供 `New(cfg)` / DI 构造契约供 A4 / C 域在 `cmd/api` / `cmd/worker` 接入时把 cfg 错误转换为 non-zero exit，本 plan 不创建或重写 entrypoint
+- [x] 4.2 落地 `config_test.go`：`AppEnv=test` 缺 provider config 但启用 stub → 成功；`AppEnv=production` 缺 provider config → 错误；`AppEnv=test` 但 stub 选项未启用且无 provider config → 错误；提供 `New(cfg)` / DI 构造契约供 A4 / C 域在 backend runtime entrypoint 接入时把 cfg 错误转换为 non-zero exit，本 plan 不创建或重写 entrypoint
 - [x] 4.3 落地 `backend/internal/ai/aiclient/README.md`：写明 stub 仅 `APP_ENV=test` 启用、docker compose / Kind / staging / prod 必须真实 OpenAI-compatible endpoint、smoke 验证步骤示意（导出真实 endpoint env 后跑 `go test -tags smoke`，绝不在测试代码 / fixture 中嵌入真实 API key），fsnotify ↔ polling 兜底机制说明
 
 ## Phase 5: Verification + handoff
@@ -54,8 +54,8 @@
 
 - [x] 6.1 重命名 A3 subject 目录与 ADR-Q6 文件为 `ai-provider-and-model-routing` / `ADR-Q6-ai-provider-and-model-routing.md`，同步 active spec/plan/context/INDEX/ADR/roadmap/A4/A2/B1/F1/F3 引用；验证 `validate_context.py --context docs/spec/ai-provider-and-model-routing/plans/001-aiclient-and-profile-bootstrap/context.yaml --target backend` 通过，retired subject 路径不存在且 active docs 不引用retired identifier
   <!-- verified: 2026-05-05 method=validate_context+rg evidence=validate_context OK; old subject path absent; no active references to retired subject/ADR path -->
-- [x] 6.2 重命名 runtime config contract：`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`、`ProviderBaseURL` / `ProviderAPIKey` / `ErrMissingProviderConfig`、`ai.providerBaseURL` / `ai.providerApiKey` 全量落地；同步 `.env.example`、`config/config.yaml`、A4 bindings/validator、cmd worker tests、dev-stack env/doctor/docs、shared generated comments；验证 `python3 scripts/lint/env_dict.py --repo-root .` 与 focused config tests 通过，且不保留旧 env key fallback
-  <!-- verified: 2026-05-05 method=lint-config+go-test+rg evidence=env_dict OK; go test ./internal/platform/config ./cmd/worker ./internal/ai/aiclient -count=1 OK; no retired env/API/config identifiers in active scope -->
+- [x] 6.2 重命名 runtime config contract：`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`、`ProviderBaseURL` / `ProviderAPIKey` / `ErrMissingProviderConfig`、`ai.providerBaseURL` / `ai.providerApiKey` 全量落地；同步 `.env.example`、`config/config.yaml`、A4 bindings/validator、runtime entrypoint tests、dev-stack env/doctor/docs、shared generated comments；验证 `python3 scripts/lint/env_dict.py --repo-root .` 与 focused config tests 通过，且不保留旧 env key fallback
+  <!-- verified: 2026-05-05 method=lint-config+go-test+rg evidence=env_dict OK; go test ./internal/platform/config ./cmd/api ./internal/ai/aiclient -count=1 OK; no retired env/API/config identifiers in active scope -->
 - [x] 6.3 重命名 Model Profile route schema：YAML `route` 与 Go `Route` 使用 provider-neutral 命名；同步 fixtures、loader tests、openai_compatible contract tests、meta builder 与 README；验证 `go test ./internal/ai/aiclient/profile ./internal/ai/aiclient/providers/openai_compatible ./internal/ai/aiclient -count=1` 通过，active fixtures 不含 retired schema key
   <!-- verified: 2026-05-05 method=go-test+rg evidence=go test ./internal/ai/aiclient/profile ./internal/ai/aiclient/providers/openai_compatible ./internal/ai/aiclient -count=1 OK; no retired route schema/API terms in active profile scope -->
 - [x] 6.4 增加 provider 旧口径负向 gate：当前代码、配置、active docs、deploy 资产、generated artifacts 不得出现 retired env/schema/API identifiers 或把 AI provider 连接描述为独立转发层；历史 `docs/work-journal/`、`docs/reports/`、`docs/bugs/` 与 history 修订记录仅作为只读例外

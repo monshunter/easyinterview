@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-06](2026-05-06.md) | `fix(runtime): harden worker topology drift gate` | #fix #test #docs |
 | [2026-05-06](2026-05-06.md) | `refactor(runtime): consolidate backend worker topology` | #refactor #test #docs |
 | [2026-05-06](2026-05-06.md) | `fix(backend-auth): remediate passwordless L2 findings` | #fix #test #docs |
 | [2026-05-06](2026-05-06.md) | `feat(backend-auth): bdd and handoff` | #feat #test #docs |

@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-mock-contract lint-secrets-pattern lint-observability lint-events lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-mock-contract lint-secrets-pattern lint-observability lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -15,7 +15,7 @@ fmt: ## Format Go and frontend sources (delegates to backend/ and frontend/)
 	@$(call recurse_target,fmt,backend/Makefile,backend)
 	@$(call recurse_target,fmt,frontend/Makefile,frontend)
 
-lint: lint-conventions lint-config lint-ai-profile-coverage lint-mock-contract lint-observability ## Lint Go and frontend sources (B1/A4/A3-F3/E1/F1 local gates, then backend golangci-lint + frontend pnpm lint)
+lint: lint-conventions lint-config lint-ai-profile-coverage lint-mock-contract lint-runtime-topology lint-observability ## Lint Go and frontend sources (B1/A4/A3-F3/E1/runtime-topology/F1 local gates, then backend golangci-lint + frontend pnpm lint)
 	@cd "$(ROOT_DIR)/backend" && golangci-lint run ./...
 	@pnpm --filter @easyinterview/frontend lint
 
@@ -49,6 +49,9 @@ lint-observability: ## lint-observability (F1): observability-stack metrics/log 
 
 lint-events: ## Validate event/job baselines and local B3 contract drift
 	@python3 "$(ROOT_DIR)/scripts/lint/lint_events.py" --repo-root "$(ROOT_DIR)"
+
+lint-runtime-topology: ## Reject retired standalone backend worker process terminology in active code/docs
+	@python3 "$(ROOT_DIR)/scripts/lint/runtime_topology.py" --repo-root "$(ROOT_DIR)"
 
 test: ## A5 test aggregator: backend Go + frontend pnpm; AI tests use stub/fixture only, no provider secrets
 	@cd "$(ROOT_DIR)/backend" && go test ./...

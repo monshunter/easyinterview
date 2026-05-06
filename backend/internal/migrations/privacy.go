@@ -31,7 +31,7 @@ var PrivacyMatrix = []PrivacyMatrixEntry{
 	{Tables: "schema_migrations,schema_backfills", Disposition: "retain"},
 }
 
-// WritePrivacyMatrix writes a stable dry-run view for downstream privacy workers.
+// WritePrivacyMatrix writes a stable dry-run view for the backend internal privacy runner.
 func WritePrivacyMatrix(w io.Writer) {
 	for _, entry := range PrivacyMatrix {
 		for _, table := range strings.Split(entry.Tables, ",") {

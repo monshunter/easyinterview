@@ -1,6 +1,6 @@
 # Backend Runtime Topology Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-05-06
 
@@ -42,6 +42,7 @@
 - `WORKER_LISTEN_ADDR` 与 `worker.listenAddr` 不得出现在 active config truth source、`.env.example`、validator、lint allowlist 或 dev-stack 默认配置中。
 - `backend/cmd/worker` 不得作为可构建 binary 保留；`go build ./cmd/...` 只能构建当前真实入口。
 - Event producer 只能使用 `api` / `backend_async` / `dispatcher` / `review`；若未来新增 producer，先修订 B3 与本 spec。
+- Active owner plan/checklist、runtime code comments、config/deploy docs 与 generated contract handoff 不得继续把 retired standalone worker process 当作当前执行口径；`make lint-runtime-topology` 作为负向 gate。
 - `job_type`、Asynq dotted task name、outbox retry columns 可以继续存在，因为它们是任务契约，不等于独立进程拓扑。
 - F1 metrics helper 和业务埋点不得依赖 Prometheus 实例可用；测试使用内存 registry 或文本 scrape 断言。
 - 默认 local dev stack 不启动观测消费端；可选观测 profile 必须显式 opt-in，且不得成为 `make dev-up` 默认依赖。
@@ -65,6 +66,7 @@
 | C-2 | 后台任务契约保留 | B3 jobs/outbox contract 已存在 | 重命名 producer 并重生成 artifacts | `job_type` / outbox / retry / redaction 契约保持，producer 使用 `backend_async` | 001-worker-consolidation |
 | C-3 | 开发期观测不阻塞 | 应用产生 metrics/logs | 运行本地与测试 gate | 无 gate 需要 Prometheus/Grafana/OTel/Loki 实例；内存 registry / `/metrics` 文本断言可通过 | 001-worker-consolidation |
 | C-4 | 文档口径一致 | active specs / plans / ADRs 存在旧 worker 进程说法 | 执行负向搜索 | active truth source 不再把独立 worker 作为 P0 默认前置 | 001-worker-consolidation |
+| C-5 | 旧 worker 口径回流被拦截 | active code/doc handoff 中误写 retired standalone worker process 术语 | 执行 `make lint-runtime-topology` / `make lint` | lint 失败并定位文件行号；history、tests 与本 owner 负向断言仍允许保留历史证据 | 001-worker-consolidation |
 
 ## 7 关联计划
 

@@ -1,6 +1,6 @@
 # Worker Consolidation
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-06
 
@@ -20,7 +20,7 @@
 - **Plan 类型**: `code-internal` + `contract` + `tooling` + `docs`。
 - **TDD 策略**: 通过 `/implement backend-runtime-topology/001-worker-consolidation repo` -> `/tdd` 执行；每个代码/契约 checklist item 先写或调整 focused test / lint expectation，再实现最小变更；配置、event lint、codegen drift、Go/TS contract tests 是主要 Red-Green 证据。
 - **BDD 策略**: 不适用：本计划不新增用户可见 UI、API 行为或端到端业务流程；它调整内部运行拓扑、配置字典、生成物和开发期 gate。
-- **替代验证 gate**: `validate_context.py`、`sync-doc-index --check`、`make lint-config`、`make lint-events`、`make codegen-events-check`、focused Go/Python/TS tests、`make codegen-check`、`make docs-check`、worker/process 旧口径负向搜索、`git diff --check`。
+- **替代验证 gate**: `validate_context.py`、`sync-doc-index --check`、`make lint-config`、`make lint-events`、`make lint-runtime-topology`、`make codegen-events-check`、focused Go/Python/TS tests、`make codegen-check`、`make docs-check`、worker/process 旧口径负向搜索、`git diff --check`。
 
 ## 4 实施步骤
 
@@ -64,6 +64,10 @@
 
 对 active truth source 和 runtime code 执行 zero-reference 搜索：`WORKER_LISTEN_ADDR`、`worker.listenAddr`、`cmd/worker`、`build-worker`、独立 worker 进程默认前置等不得残留；允许历史 changelog / completed assessment 中作为历史证据出现。
 
+#### 4.3 L2 remediation: runtime topology lint gate
+
+落地 `scripts/lint/runtime_topology.py` 与 `make lint-runtime-topology`，把 retired standalone worker process 术语从人工 `rg` 升级为可执行 lint gate。扫描范围覆盖 runtime code/config/deploy/generated contract 与 active `docs/spec/*/plans/**` handoff；允许 tests、history 与本 owner 负向断言保留历史证据。同步清理旧 code comments 与已完成 owner plan/checklist 正文中的 `cmd/worker`、worker producer、worker component probe、privacy worker 等当前口径残留。
+
 ### Phase 5: Verification and lifecycle
 
 #### 5.1 执行 focused gates
@@ -80,6 +84,7 @@
 - `job_type` / outbox / async queue 权重继续存在，但解释为 backend internal runner 消费的任务契约。
 - B3 generated Go/TS/schema/baseline 与 `shared/events.yaml` 一致，producer 使用 `backend_async`。
 - 开发期观测 gate 不依赖 Prometheus/Grafana/OTel/Loki 实例。
+- `make lint-runtime-topology` 与 `make lint` 拦截 active code/doc handoff 中的 retired standalone worker process 口径回流。
 - 本计划 checklist、Header、INDEX、context 与验证证据一致。
 
 ## 6 风险与应对
@@ -90,3 +95,4 @@
 | 历史文档负向搜索误伤 | 将 active truth source 与历史记录分开处理；历史 changelog 可保留 |
 | codegen drift 漏同步 | `make codegen-events-check` 与 `make codegen-check` 作为强 gate |
 | 观测消费端再次阻塞研发 | F1/A2 文档明确 consumer 只进生产或 opt-in profile |
+| 手工负向搜索漏扫 completed owner plan 正文 | `make lint-runtime-topology` 扫描 active code/doc handoff，并把 tests / history / owner 负向断言设为显式例外 |

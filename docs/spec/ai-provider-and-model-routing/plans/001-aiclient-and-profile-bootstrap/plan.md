@@ -13,7 +13,7 @@
 
 把 [ai-provider-and-model-routing spec](../../spec.md#21-in-scope) §2.1 In Scope 与 §7 关联计划列出的 P0 范围一次性落地：在 `backend/internal/ai/aiclient/` 写出 provider-neutral 的 `AIClient` 接口（`Complete` / `Embed` 同步面 + `Stream` 事件合同类型）、A3-owned `AICallMeta` 运行时结构体、`stub` 与 `openai_compatible` 两个 provider、Model Profile YAML schema + loader + ≤30 秒热加载、client-internal observability / audit decorator（7 个 `ai_*` metric family + 4 类结构化事件 + `ai_task_runs` 行 + `audit_events` 行）、配置启动校验 fail-fast，以及覆盖 stub 路径的单元测试和可被 [E1 mock-contract-suite](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 复用的离线 adapter 契约测试，最终通过本 plan Phase 5 的本地命令证明 spec [§6 验收标准](../../spec.md#6-验收标准) 中 C-1 / C-2 / C-3 / C-4 / C-5 / C-6 / C-7 / C-9 全部成立。AC C-8 是当前 active spec relation gate，已由 engineering-roadmap 保留 A3 与 F3 / B1 / A4 / F1 / release gate 的边界关系，本 plan 仅引用不替代。
 
-本 plan 的写入边界是 `backend/internal/ai/aiclient/` 与 `config/ai-profiles/` fixture。`backend/cmd/api` / `backend/cmd/worker` 运行时 entrypoint 由 A4 / C 域在自身 plan 中接入，本 plan 只提供 AIClient 构造、配置校验 API 与 DI handoff，不创建或重写 API/worker main。
+本 plan 的写入边界是 `backend/internal/ai/aiclient/` 与 `config/ai-profiles/` fixture。`backend/cmd/api` 等 backend runtime entrypoint 由 A4 / C 域在自身 plan 中接入，本 plan 只提供 AIClient 构造、配置校验 API 与 DI handoff，不创建或重写 runtime main。
 
 本 plan 不实现 `Stream` 的完整 provider 消费循环（事件类型在本 plan 冻结，完整流式由 002+ 承接，对应 [ADR-Q6 §3.1](../../../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md#3-决策) D-1）；不实现 `Tools(...)` / function calling（[spec §3.2](../../spec.md#32-待确认事项)）；不实现 Audio Transcription `/v1/audio/transcriptions` 与 `Transcribe(...)`（C14 P2 预留，[spec §2.2 / D-8](../../spec.md#22-out-of-scope)）；不实现真实 provider endpoint 部署 / cost cap / rate limit policy（归 E4 + 运维）；不维护具体 prompt / rubric 内容（归 [F3 prompt-rubric-registry](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec)）；不维护 `ai_task_runs` 表 schema（归 [B4 db-migrations-baseline](../../../db-migrations-baseline/spec.md)）；不接入远端 CI required check（A5 deferred-CI 边界，本 plan 全部 gate 在本地 `make` / `go test` 命令运行）。后续如需扩展 Streaming 完整化、function calling、STT，则递增本 spec 与本 plan 版本，原地修订或 spawn `002-tools-streaming-and-stt`。
 
@@ -120,11 +120,11 @@ decorator 在 `meta.FallbackChain[]` 长度 > 1 时对 `ai_fallback_total{from_m
 
 #### 4.1 配置 struct 与启动期校验
 
-在 `backend/internal/ai/aiclient/config.go` 定义 client 启动时所需配置 struct：`AppEnv` / `ProviderBaseURL` / `ProviderAPIKey` / `ModelProfilePath`，由 [A4 secrets-and-config](../../../secrets-and-config/spec.md) 在 `cmd/api` / `cmd/worker` wire 阶段注入。client 在 `New(cfg)` 时必须执行启动校验：当 `AppEnv != "test"` 且 `ProviderBaseURL == ""` 或 `ProviderAPIKey == ""` 时立即返回明确错误（建议常量名 `ErrMissingProviderConfig`），由 `cmd/api` / `cmd/worker` 在 main 中转换为 fail-fast exit（[spec D-4 / C-9](../../spec.md#31-已锁定决策)）。`AppEnv == "test"` 路径不强制 ProviderBaseURL / API key，但允许通过 `WithStubAllowed(true)` 选项显式启用 stub；其它任何路径（dev / staging / prod / docker compose / Kind）缺凭证即失败，绝不静默回退到 stub。
+在 `backend/internal/ai/aiclient/config.go` 定义 client 启动时所需配置 struct：`AppEnv` / `ProviderBaseURL` / `ProviderAPIKey` / `ModelProfilePath`，由 [A4 secrets-and-config](../../../secrets-and-config/spec.md) 在 backend runtime wire 阶段注入。client 在 `New(cfg)` 时必须执行启动校验：当 `AppEnv != "test"` 且 `ProviderBaseURL == ""` 或 `ProviderAPIKey == ""` 时立即返回明确错误（建议常量名 `ErrMissingProviderConfig`），由 runtime main 转换为 fail-fast exit（[spec D-4 / C-9](../../spec.md#31-已锁定决策)）。`AppEnv == "test"` 路径不强制 ProviderBaseURL / API key，但允许通过 `WithStubAllowed(true)` 选项显式启用 stub；其它任何路径（dev / staging / prod / docker compose / Kind）缺凭证即失败，绝不静默回退到 stub。
 
 #### 4.2 cmd 入口接入 + 单测
 
-落地 `backend/internal/ai/aiclient/config_test.go` 用例：`AppEnv=test` 且 missing provider config + 显式 stub → 成功；`AppEnv=production` 且 missing provider config → 错误；`AppEnv=test` 但 stub 选项未启用且无 provider config → 错误。本 plan 不在 `cmd/api` 与 `cmd/worker` 实现完整 wire，也不要求创建这些 entrypoint；只提供 `New(cfg)` / DI 构造契约，让 [A4](../../../secrets-and-config/spec.md) / 各 C 域在自身 plan 中把 cfg 错误传播为 non-zero exit。
+落地 `backend/internal/ai/aiclient/config_test.go` 用例：`AppEnv=test` 且 missing provider config + 显式 stub → 成功；`AppEnv=production` 且 missing provider config → 错误；`AppEnv=test` 但 stub 选项未启用且无 provider config → 错误。本 plan 不在 runtime entrypoint 实现完整 wire，也不要求创建这些 entrypoint；只提供 `New(cfg)` / DI 构造契约，让 [A4](../../../secrets-and-config/spec.md) / 各 C 域在自身 plan 中把 cfg 错误传播为 non-zero exit。
 
 #### 4.3 docker compose / Kind smoke 校验
 
@@ -156,7 +156,7 @@ C-5：单次成功调用后查询 in-memory metric registry，确认 7 个 famil
 
 #### 6.2 Runtime config contract rename
 
-将 A3/A4 运行时连接参数改为 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`，Go API 改为 `ProviderBaseURL` / `ProviderAPIKey` / `ErrMissingProviderConfig`，canonical config path 改为 `ai.provider*`。同步更新 `.env.example`、`config/config.yaml`、A4 validator/bindings、cmd worker tests、dev-stack env/doctor/docs、shared generated owner-boundary comments；不保留旧 env key fallback。
+将 A3/A4 运行时连接参数改为 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`，Go API 改为 `ProviderBaseURL` / `ProviderAPIKey` / `ErrMissingProviderConfig`，canonical config path 改为 `ai.provider*`。同步更新 `.env.example`、`config/config.yaml`、A4 validator/bindings、runtime entrypoint tests、dev-stack env/doctor/docs、shared generated owner-boundary comments；不保留旧 env key fallback。
 
 #### 6.3 Model Profile route schema rename
 

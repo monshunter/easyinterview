@@ -34,7 +34,7 @@
 
 ## Phase 4: Lint / pre-commit hook / `make lint-config`
 
-- [x] 4.1 在 B1 已落地的 `backend/.golangci.yml` 中追加本地可执行规则：优先 `revive` 自定义 rule，必要时落地 `scripts/lint/getenv_boundary.go`（Go AST checker）；allowlist 仅放行 `internal/platform/config/` / `internal/platform/secrets/` / `cmd/{api,worker,migrate}/`，其它包出现 `os.Getenv` lint 失败（关闭 spec C-7）
+- [x] 4.1 在 B1 已落地的 `backend/.golangci.yml` 中追加本地可执行规则：优先 `revive` 自定义 rule，必要时落地 `scripts/lint/getenv_boundary.go`（Go AST checker）；allowlist 仅放行 `internal/platform/config/` / `internal/platform/secrets/` / `cmd/{api,migrate}/`，其它包出现 `os.Getenv` lint 失败（关闭 spec C-7）
 - [x] 4.2 落地 `scripts/lint/env_dict.py`（或 `.sh`）：解析 `.env.example` + 代码侧 `os.Getenv` / `Get*` 调用 + spec §3.1.1 表，三方求差集；`Makefile` 新增 `.PHONY: lint-config` 并入 `make lint`，缺失 key 必须 fail（关闭 spec C-9 / C-11）
 - [x] 4.3 落地 `scripts/git-hooks/pre-commit-secrets.sh`：扫描 `git diff --cached` 命中 `AKIA[0-9A-Z]{16}` / `sk-[A-Za-z0-9]{20,}` / `xox[baprs]-[A-Za-z0-9-]+` 即 fail；错误信息列出文件名 + 行号但不输出命中 secret 字面量；通过 A1 已建立的 hook 入口注册（关闭 spec C-8 第一层）
 - [x] 4.4 落地 `scripts/lint/gitleaks.sh` 第二层：调用本地 `gitleaks detect --no-git --redact`；未安装时打印安装提示并 exit 0 不阻塞；`make lint` 调用此脚本；远端 CI secret scan 仅在 A5 触发条件成立后再接入
@@ -58,11 +58,11 @@
 
 ## Phase 7: L2 review remediation
 
-- [x] 7.1 修复 `cmd/worker` env / secret binding 对齐：prod + 完整 env 注入时 worker loader 校验通过；缺失 secret 仍 fail-fast 并列出 env key
+- [x] 7.1 修复 runtime entrypoint env / secret binding 对齐：prod + 完整 env 注入时 current backend loader 校验通过；缺失 secret 仍 fail-fast 并列出 env key；backend-runtime-topology v1.0 后不再保留单独 runtime entrypoint
 - [x] 7.2 修复 `AI_PROVIDER_BASE_URL` fail-fast：non-test AIClient-enabled 启动路径缺 base URL 或 API key 任一项都失败；`APP_ENV=test` 仍可缺 AI provider 配置
 - [x] 7.3 修复 `scripts/lint/env_dict.py` code-side key 发现：`EnvBindings` / `SecretBindings` 字面量纳入三方求差集；binding map 声明但 `.env.example` 缺 key 的 pytest 必须失败
 - [x] 7.4 修复 runtime-config cold PostHog flag projection：首次请求按 `FlagContext` evaluation 后返回 public flags、过滤 operator-only flags；PostHog provider 初始化携带 public allowlist；D-4 业务接口不扩大
-- [x] 7.5 修复 prod/staging required config 覆盖：`validator.go` 校验 spec required/conditional P0 keys，database/redis/object storage 在 staging/prod 必须有 runtime override，缺 PostHog host / email provider / AI model profile path 等 fail-fast；补 focused tests 覆盖失败与通过路径；验证: 2026-04-30 `go test ./internal/platform/config -run 'TestValidateProd(AllSecretsPasses|RejectsDevDefaultDeploymentDependencies)' -count=1` 与 `go test ./internal/platform/... ./cmd/api ./cmd/worker -count=1`
+- [x] 7.5 修复 prod/staging required config 覆盖：`validator.go` 校验 spec required/conditional P0 keys，database/redis/object storage 在 staging/prod 必须有 runtime override，缺 PostHog host / email provider / AI model profile path 等 fail-fast；补 focused tests 覆盖失败与通过路径；验证: 2026-04-30 `go test ./internal/platform/config -run 'TestValidateProd(AllSecretsPasses|RejectsDevDefaultDeploymentDependencies)' -count=1` 与 `go test ./internal/platform/... ./cmd/api -count=1`
 
 ## Phase 8: product-scope v1.2 feature flag remediation
 
