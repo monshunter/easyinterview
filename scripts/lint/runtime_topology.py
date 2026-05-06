@@ -13,6 +13,9 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+import yaml
 
 
 TEXT_SUFFIXES = {
@@ -119,6 +122,23 @@ RETIRED_PATTERNS = [
     ),
 ]
 
+STRUCTURED_PRODUCER_ROOTS = (
+    Path("shared"),
+)
+STRUCTURED_WORKER_LINE_RE = re.compile(r"(?:-\s*)?[`\"']?worker[`\"']?,?\s*$")
+PRODUCER_CONTEXT_RE = re.compile(r"\bproducer\b", re.IGNORECASE)
+OWNER_CURRENT_CUE_RE = re.compile(
+    r"\bcurrent\b|\bhandoff\b|\bbuild\b|\brun\b|\bruntime\b|\bentry\b|"
+    r"\bverification command\b|\bcommand=|当前|构建|运行|执行|入口|验证[:：]",
+    re.IGNORECASE,
+)
+OWNER_NEGATIVE_CONTEXT_RE = re.compile(
+    r"删除|移除|取消|不(?:再|得|保留|存在|构建|要求|作为|新增)|无独立|"
+    r"旧|历史|负向|回流|拦截|retired|removed|must not|not remain|absent|"
+    r"zero-reference|negative|not-retained|assertions?|rejects?|fails?|failed|omits?",
+    re.IGNORECASE,
+)
+
 
 def is_text_path(path: Path) -> bool:
     return path.name in TEXT_NAMES or path.suffix in TEXT_SUFFIXES
@@ -136,7 +156,7 @@ def is_excluded_path(repo: Path, path: Path) -> bool:
         return True
     if rel == Path("scripts/lint/runtime_topology.py"):
         return True
-    if rel.parts[:3] == ("docs", "spec", "backend-runtime-topology"):
+    if rel.parts[:3] == ("docs", "spec", "backend-runtime-topology") and not is_owner_plan_handoff_path(rel):
         return True
     if path.name == "history.md":
         return True
@@ -171,10 +191,99 @@ def scan_file(repo: Path, path: Path) -> list[str]:
 
     findings: list[str] = []
     rel = path.relative_to(repo)
+    if is_owner_plan_handoff_path(rel):
+        return scan_owner_current_handoff_file(rel, text)
     for lineno, line in enumerate(text.splitlines(), start=1):
         for retired in RETIRED_PATTERNS:
             if retired.pattern.search(line):
                 findings.append(f"{rel}:{lineno}: {retired.label}: {line.strip()}")
+                break
+    findings.extend(scan_structured_producer_values(repo, path, text, findings))
+    return findings
+
+
+def scan_structured_producer_values(repo: Path, path: Path, text: str, existing: list[str]) -> list[str]:
+    rel = path.relative_to(repo)
+    if path.suffix not in {".json", ".yaml", ".yml"}:
+        return []
+    if not any(is_relative_to(rel, root) for root in STRUCTURED_PRODUCER_ROOTS):
+        return []
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return []
+    if not contains_retired_producer_value(data):
+        return []
+    if any(finding.startswith(f"{rel}:") and ": worker producer enum:" in finding for finding in existing):
+        return []
+
+    lineno = find_structured_worker_lineno(text)
+    finding = f"{rel}:{lineno}: worker producer enum: structured producer value contains retired worker"
+    return [finding]
+
+
+def contains_retired_producer_value(value: Any) -> bool:
+    if isinstance(value, dict):
+        string_keys = {str(key): item for key, item in value.items()}
+        if string_keys.get("name") == "producer" and contains_worker_scalar(string_keys.get("values")):
+            return True
+        if "producer" in string_keys and contains_worker_scalar(string_keys["producer"]):
+            return True
+        return any(contains_retired_producer_value(item) for item in value.values())
+    if isinstance(value, list):
+        return any(contains_retired_producer_value(item) for item in value)
+    return False
+
+
+def contains_worker_scalar(value: Any) -> bool:
+    if isinstance(value, str):
+        return value.strip() == "worker"
+    if isinstance(value, dict):
+        return any(contains_worker_scalar(item) for item in value.values())
+    if isinstance(value, list):
+        return any(contains_worker_scalar(item) for item in value)
+    return False
+
+
+def find_structured_worker_lineno(text: str) -> int:
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if not STRUCTURED_WORKER_LINE_RE.search(line.strip()):
+            continue
+        window = "\n".join(lines[max(0, index - 12) : index + 1])
+        if PRODUCER_CONTEXT_RE.search(window):
+            return index + 1
+    for index, line in enumerate(lines):
+        if PRODUCER_CONTEXT_RE.search(line):
+            return index + 1
+    return 1
+
+
+def is_relative_to(path: Path, base: Path) -> bool:
+    try:
+        path.relative_to(base)
+    except ValueError:
+        return False
+    return True
+
+
+def is_owner_plan_handoff_path(rel: Path) -> bool:
+    return (
+        rel.parts[:4] == ("docs", "spec", "backend-runtime-topology", "plans")
+        and rel.name in {"plan.md", "checklist.md"}
+    )
+
+
+def scan_owner_current_handoff_file(rel: Path, text: str) -> list[str]:
+    findings: list[str] = []
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        if OWNER_NEGATIVE_CONTEXT_RE.search(line):
+            continue
+        if not OWNER_CURRENT_CUE_RE.search(line):
+            continue
+        for retired in RETIRED_PATTERNS:
+            if retired.pattern.search(line):
+                findings.append(f"{rel}:{lineno}: owner current handoff: {retired.label}: {line.strip()}")
                 break
     return findings
 

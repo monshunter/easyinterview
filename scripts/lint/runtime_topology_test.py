@@ -128,6 +128,43 @@ class RuntimeTopologyLintTest(unittest.TestCase):
             self.assertIn("shared/events.yaml", result.stderr)
             self.assertIn("shared/events/baseline/events.v1.json", result.stderr)
 
+    def test_rejects_structured_multiline_worker_producer_values(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td)
+            write(
+                repo / "shared" / "events.yaml",
+                "envelope:\n"
+                "  fields:\n"
+                "    - name: producer\n"
+                "      values:\n"
+                "        - api\n"
+                "        - worker\n"
+                "events:\n"
+                "  - name: target.parsed\n"
+                "    producer:\n"
+                "      - worker\n",
+            )
+            write(
+                repo / "shared" / "events" / "schemas" / "target.parsed.v1.json",
+                '{\n'
+                '  "properties": {\n'
+                '    "producer": {\n'
+                '      "enum": [\n'
+                '        "api",\n'
+                '        "worker"\n'
+                "      ]\n"
+                "    }\n"
+                "  }\n"
+                "}\n",
+            )
+
+            result = run_lint(repo)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("worker producer enum", result.stderr)
+            self.assertIn("shared/events.yaml", result.stderr)
+            self.assertIn("shared/events/schemas/target.parsed.v1.json", result.stderr)
+
     def test_allows_owner_negative_assertions_history_and_tests(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td)
@@ -138,6 +175,16 @@ class RuntimeTopologyLintTest(unittest.TestCase):
                 / "backend-runtime-topology"
                 / "spec.md",
                 "`cmd/worker`, `WORKER_LISTEN_ADDR`, `worker.listenAddr` must be removed.\n",
+            )
+            write(
+                repo
+                / "docs"
+                / "spec"
+                / "backend-runtime-topology"
+                / "plans"
+                / "001-worker-consolidation"
+                / "checklist.md",
+                "删除 `cmd/worker`，确认 `WORKER_LISTEN_ADDR` 不再作为 current config。\n",
             )
             write(
                 repo
@@ -159,6 +206,37 @@ class RuntimeTopologyLintTest(unittest.TestCase):
             result = run_lint(repo)
 
             self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_rejects_owner_current_handoff_worker_process_terms(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td)
+            write(
+                repo
+                / "docs"
+                / "spec"
+                / "backend-runtime-topology"
+                / "plans"
+                / "001-worker-consolidation"
+                / "plan.md",
+                "Current handoff: build backend/cmd/worker as the runtime entry.\n",
+            )
+            write(
+                repo
+                / "docs"
+                / "spec"
+                / "backend-runtime-topology"
+                / "plans"
+                / "001-worker-consolidation"
+                / "checklist.md",
+                "Verification command: go test ./internal/platform/config ./cmd/worker -count=1\n",
+            )
+
+            result = run_lint(repo)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("owner current handoff", result.stderr)
+            self.assertIn("docs/spec/backend-runtime-topology/plans/001-worker-consolidation/plan.md", result.stderr)
+            self.assertIn("docs/spec/backend-runtime-topology/plans/001-worker-consolidation/checklist.md", result.stderr)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Backend Runtime Topology Spec
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-05-07
 
@@ -66,7 +66,7 @@
 | C-2 | 后台任务契约保留 | B3 jobs/outbox contract 已存在 | 重命名 producer 并重生成 artifacts | `job_type` / outbox / retry / redaction 契约保持，producer 使用 `backend_async` | 001-worker-consolidation |
 | C-3 | 开发期观测不阻塞 | 应用产生 metrics/logs | 运行本地与测试 gate | 无 gate 需要 Prometheus/Grafana/OTel/Loki 实例；内存 registry / `/metrics` 文本断言可通过 | 001-worker-consolidation |
 | C-4 | 文档口径一致 | active specs / plans / ADRs 存在旧 worker 进程说法 | 执行负向搜索 | active truth source 不再把独立 worker 作为 P0 默认前置 | 001-worker-consolidation |
-| C-5 | 旧 worker 口径回流被拦截 | active code/doc handoff、tooling scripts、generated contract 或 shared event truth source 中误写 retired standalone worker process 术语、`producer: worker` / `"producer": "worker"`、旧 listen addr 口径或 `backend-async-runtime` shorthand | 执行 `make lint-runtime-topology` / `make lint` | lint 失败并定位文件行号；history、tests、本 lint 自身与本 owner 负向断言仍允许保留历史证据 | 001-worker-consolidation |
+| C-5 | 旧 worker 口径回流被拦截 | active code/doc handoff、tooling scripts、generated contract 或 shared event truth source 中误写 retired standalone worker process 术语、`producer: worker` / `"producer": "worker"`、跨行 YAML / JSON producer 字段中的 `worker`、旧 listen addr 口径或 `backend-async-runtime` shorthand；owner plan/checklist 把 retired worker 口径写成 current handoff / build / runtime / verification 入口 | 执行 `make lint-runtime-topology` / `make lint` | lint 失败并定位文件行号；history、tests、本 lint 自身与本 owner 负向断言仍允许保留历史证据 | 001-worker-consolidation |
 
 ## 7 关联计划
 

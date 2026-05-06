@@ -1,6 +1,6 @@
 # Worker Consolidation Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-07
 
@@ -39,6 +39,10 @@
   <!-- verified: 2026-05-06 command="python3 -m unittest scripts.lint.runtime_topology_test && make lint-runtime-topology && make lint" evidence="Red failed on new false-negative fixtures; Green/unit lint/aggregate lint pass; active scan reports runtime_topology OK (274 active files scanned)" -->
 - [x] 4.5 L2 remediation: 补强 `scripts/lint/runtime_topology.py` 对 `scripts/` tooling 面和 raw producer 字段形态的 false-negative 覆盖；验证: Red `python3 -m unittest scripts.lint.runtime_topology_test` 先失败，Green 后 `python3 -m unittest scripts.lint.runtime_topology_test`、`make lint-runtime-topology`、`make lint` 通过；负向 fixture 覆盖 `scripts/lint/env_dict.py` / `scripts/lint/getenv_boundary.go` 回流 `cmd/worker` / `WORKER_LISTEN_ADDR`，以及 `shared/events.yaml` / `shared/events/baseline/events.v1.json` 回流 `producer: worker` / `"producer": "worker"`
   <!-- verified: 2026-05-07 command="python3 -m unittest scripts.lint.runtime_topology_test && make lint-runtime-topology && make lint" evidence="Red initially missed scripts/raw producer fixtures; Green/unit lint/aggregate lint pass; active scan reports runtime_topology OK (299 active files scanned)" -->
+- [x] 4.6 L2 remediation: 补强 `scripts/lint/runtime_topology.py` 对 YAML / JSON 结构化 producer 字段跨行 `worker` 回流的 false-negative 覆盖；验证: Red `python3 -m unittest scripts.lint.runtime_topology_test` 先失败，Green 后 `python3 -m unittest scripts.lint.runtime_topology_test`、`make lint-runtime-topology`、`make lint` 通过；负向 fixture 覆盖 `shared/events.yaml` 的 producer block / list 与 `shared/events/schemas/*.json` 的 producer enum / values 形态
+  <!-- verified: 2026-05-07 command="python3 -m unittest scripts.lint.runtime_topology_test && make lint-runtime-topology && make lint" evidence="Red failed because multiline YAML/JSON producer worker fixtures were accepted; Green/unit lint/aggregate lint pass; structured producer scan rejects shared/events.yaml block/list and shared/events/schemas JSON enum values" -->
+- [x] 4.7 L2 remediation: 补强 `scripts/lint/runtime_topology.py` 对 owner plan/checklist 当前 handoff 口径的 false-negative 覆盖；验证: Red `python3 -m unittest scripts.lint.runtime_topology_test` 先失败，Green 后 `python3 -m unittest scripts.lint.runtime_topology_test`、`make lint-runtime-topology`、`make lint` 通过；owner 负向断言、history、tests 与 lint 定义允许保留历史证据，但 current handoff / build / runtime / verification 入口不得使用 retired worker 口径
+  <!-- verified: 2026-05-07 command="python3 -m unittest scripts.lint.runtime_topology_test && make lint-runtime-topology && make lint" evidence="Red failed because owner plan/checklist current handoff fixtures were accepted; Green/unit lint/aggregate lint pass; owner plan/checklist are scanned with negative-evidence exceptions, runtime_topology OK reports 301 active files scanned" -->
 
 ## Phase 5: Verification and lifecycle
 

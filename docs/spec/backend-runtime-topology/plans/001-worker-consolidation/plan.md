@@ -1,6 +1,6 @@
 # Worker Consolidation
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-07
 
@@ -76,6 +76,14 @@
 
 补强 `scripts/lint/runtime_topology.py` 的扫描范围与 producer 旧口径匹配：`scripts/` 下 lint / tooling 脚本若重新写入 `cmd/worker`、`WORKER_LISTEN_ADDR`、`worker.listenAddr` 或 `build-worker` 必须失败；shared event truth source、baseline、schema 或 fixture 中的 raw `producer: worker` / `"producer": "worker"` 形态也必须失败。`runtime_topology.py` 自身和 tests 作为 lint 定义与负向 fixture 例外。
 
+#### 4.6 L2 remediation: structured producer false-negative hardening
+
+补强 `scripts/lint/runtime_topology.py` 对 YAML / JSON 结构化 producer 字段的跨行扫描：event truth source、baseline、schema 或 fixture 中的 `producer` block、`producer.enum`、`producer.values` 或 event-local producer list 若重新包含 `worker` 必须失败，即使 `producer` 与 `worker` 分布在不同行。
+
+#### 4.7 L2 remediation: owner handoff false-negative hardening
+
+补强 `scripts/lint/runtime_topology.py` 对 `backend-runtime-topology` owner plan/checklist 的当前 handoff 口径扫描：owner 负向断言、history、tests 与 lint 定义可保留旧词作为证据，但 owner plan/checklist 不得把 `cmd/worker`、worker listen addr、worker producer 或 `backend-async-runtime` 当作当前构建、运行、验证或 handoff 入口。
+
 ### Phase 5: Verification and lifecycle
 
 #### 5.1 执行 focused gates
@@ -95,6 +103,8 @@
 - `make lint-runtime-topology` 与 `make lint` 拦截 active code/doc handoff 中的 retired standalone worker process 口径回流。
 - `make lint-runtime-topology` 与 `make lint` 拦截 active code/doc handoff 中的旧 producer、listen addr、worker binding 与 `backend-async-runtime` shorthand 回流。
 - `make lint-runtime-topology` 与 `make lint` 拦截 `scripts/` tooling 面旧 worker 入口 / env / build 口径，以及 event truth source / generated artifacts 中 raw `producer: worker` / `"producer": "worker"` 回流。
+- `make lint-runtime-topology` 与 `make lint` 拦截 event truth source / generated artifacts 中跨行 YAML / JSON producer 字段包含 `worker` 的回流。
+- `make lint-runtime-topology` 与 `make lint` 拦截 owner plan/checklist 将 retired worker 口径写成当前 handoff / build / runtime / verification 入口。
 - 本计划 checklist、Header、INDEX、context 与验证证据一致。
 
 ## 6 风险与应对
@@ -108,3 +118,5 @@
 | 手工负向搜索漏扫 completed owner plan 正文 | `make lint-runtime-topology` 扫描 active code/doc handoff，并把 tests / history / owner 负向断言设为显式例外 |
 | lint 正则 false negative 放过旧 shorthand | Phase 4.4 用 Red fixture 覆盖旧 producer、listen addr、worker binding 与 `backend-async-runtime` shorthand，再修 active handoff 文案 |
 | lint 扫描范围漏掉 tooling scripts 或 raw producer 字段 | Phase 4.5 用 Red fixture 覆盖 `scripts/` 回流与 YAML/JSON producer 字段形态，并保留 lint 自身 / tests 显式例外 |
+| lint 逐行扫描漏掉跨行 producer 字段 | Phase 4.6 用结构化 YAML / JSON fixture 覆盖 producer block、enum、values 与 list 形态 |
+| owner docs 例外过宽漏掉当前 handoff 回流 | Phase 4.7 用 owner plan/checklist Red fixture 覆盖 current handoff / build / runtime / verification 形态，同时保留负向断言例外 |
