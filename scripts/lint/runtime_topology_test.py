@@ -97,6 +97,22 @@ class RuntimeTopologyLintTest(unittest.TestCase):
                 / "ADR-Q3-analytics-platform.md",
                 "C8 backend-async-runtime owns analytics_dispatch.\n",
             )
+            write(
+                repo / "scripts" / "lint" / "env_dict.py",
+                'scan_roots = ["backend/cmd/api", "backend/cmd/worker"]\n',
+            )
+            write(
+                repo / "scripts" / "lint" / "getenv_boundary.go",
+                'package main\n\nvar keys = []string{"APP_LISTEN_ADDR", "WORKER_LISTEN_ADDR"}\n',
+            )
+            write(
+                repo / "shared" / "events.yaml",
+                "events:\n  - name: target.parsed\n    producer: worker\n",
+            )
+            write(
+                repo / "shared" / "events" / "baseline" / "events.v1.json",
+                '{"events":[{"name":"target.parsed","producer":"worker"}]}\n',
+            )
 
             result = run_lint(repo)
 
@@ -107,6 +123,10 @@ class RuntimeTopologyLintTest(unittest.TestCase):
             self.assertIn("worker listen addr config", result.stderr)
             self.assertIn("worker config bindings", result.stderr)
             self.assertIn("backend async runner subject shorthand", result.stderr)
+            self.assertIn("scripts/lint/env_dict.py", result.stderr)
+            self.assertIn("scripts/lint/getenv_boundary.go", result.stderr)
+            self.assertIn("shared/events.yaml", result.stderr)
+            self.assertIn("shared/events/baseline/events.v1.json", result.stderr)
 
     def test_allows_owner_negative_assertions_history_and_tests(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -130,6 +150,10 @@ class RuntimeTopologyLintTest(unittest.TestCase):
             write(
                 repo / "backend" / "internal" / "platform" / "config" / "validator_test.go",
                 "package config_test\n\nfunc TestWorkerRemoved() { _ = \"WORKER_LISTEN_ADDR\" }\n",
+            )
+            write(
+                repo / "scripts" / "lint" / "runtime_topology.py",
+                "RETIRED_PATTERNS = ['cmd/worker', 'WORKER_LISTEN_ADDR', 'producer: worker']\n",
             )
 
             result = run_lint(repo)

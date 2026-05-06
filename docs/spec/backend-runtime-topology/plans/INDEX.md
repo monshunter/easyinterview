@@ -13,4 +13,4 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-worker-consolidation](./001-worker-consolidation/plan.md) | [plan](./001-worker-consolidation/plan.md) / [checklist](./001-worker-consolidation/checklist.md) / [context](./001-worker-consolidation/context.yaml) | 1.2 | completed | 2026-05-06 |
+| [001-worker-consolidation](./001-worker-consolidation/plan.md) | [plan](./001-worker-consolidation/plan.md) / [checklist](./001-worker-consolidation/checklist.md) / [context](./001-worker-consolidation/context.yaml) | 1.3 | completed | 2026-05-07 |

@@ -1,8 +1,8 @@
 # Worker Consolidation
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-07
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -72,6 +72,10 @@
 
 补强 `scripts/lint/runtime_topology.py` 的语义覆盖，确保 active handoff 中的 `` `worker` producer``、`app/worker listen addr`、`worker bindings` 与旧 `backend-async-runtime` shorthand 会失败；同步修订 B3/A4/ADR-Q3 active handoff 文案到 `backend_async`、`app listen addr` 和 `backend-async-runner`。
 
+#### 4.5 L2 remediation: scripts and raw producer false-negative hardening
+
+补强 `scripts/lint/runtime_topology.py` 的扫描范围与 producer 旧口径匹配：`scripts/` 下 lint / tooling 脚本若重新写入 `cmd/worker`、`WORKER_LISTEN_ADDR`、`worker.listenAddr` 或 `build-worker` 必须失败；shared event truth source、baseline、schema 或 fixture 中的 raw `producer: worker` / `"producer": "worker"` 形态也必须失败。`runtime_topology.py` 自身和 tests 作为 lint 定义与负向 fixture 例外。
+
 ### Phase 5: Verification and lifecycle
 
 #### 5.1 执行 focused gates
@@ -90,6 +94,7 @@
 - 开发期观测 gate 不依赖 Prometheus/Grafana/OTel/Loki 实例。
 - `make lint-runtime-topology` 与 `make lint` 拦截 active code/doc handoff 中的 retired standalone worker process 口径回流。
 - `make lint-runtime-topology` 与 `make lint` 拦截 active code/doc handoff 中的旧 producer、listen addr、worker binding 与 `backend-async-runtime` shorthand 回流。
+- `make lint-runtime-topology` 与 `make lint` 拦截 `scripts/` tooling 面旧 worker 入口 / env / build 口径，以及 event truth source / generated artifacts 中 raw `producer: worker` / `"producer": "worker"` 回流。
 - 本计划 checklist、Header、INDEX、context 与验证证据一致。
 
 ## 6 风险与应对
@@ -102,3 +107,4 @@
 | 观测消费端再次阻塞研发 | F1/A2 文档明确 consumer 只进生产或 opt-in profile |
 | 手工负向搜索漏扫 completed owner plan 正文 | `make lint-runtime-topology` 扫描 active code/doc handoff，并把 tests / history / owner 负向断言设为显式例外 |
 | lint 正则 false negative 放过旧 shorthand | Phase 4.4 用 Red fixture 覆盖旧 producer、listen addr、worker binding 与 `backend-async-runtime` shorthand，再修 active handoff 文案 |
+| lint 扫描范围漏掉 tooling scripts 或 raw producer 字段 | Phase 4.5 用 Red fixture 覆盖 `scripts/` 回流与 YAML/JSON producer 字段形态，并保留 lint 自身 / tests 显式例外 |

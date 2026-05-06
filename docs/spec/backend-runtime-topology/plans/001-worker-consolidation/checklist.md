@@ -1,8 +1,8 @@
 # Worker Consolidation Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-07
 
 **关联计划**: [plan](./plan.md)
 
@@ -37,6 +37,8 @@
   <!-- verified: 2026-05-06 command="python3 -m unittest scripts.lint.runtime_topology_test && make lint-runtime-topology && make lint" evidence="Red failed before runtime_topology.py existed; Green/unit lint/aggregate lint pass; active scan reports runtime_topology OK (274 active files scanned)" -->
 - [x] 4.4 L2 remediation: 补强 `scripts/lint/runtime_topology.py` false-negative 覆盖，拦截 active handoff 中 `` `worker` producer``、`app/worker listen addr`、`worker bindings` 与 `backend-async-runtime` shorthand；同步修订 B3/A4/ADR-Q3 active handoff 文案；验证: Red `python3 -m unittest scripts.lint.runtime_topology_test` 先失败，Green 后 `python3 -m unittest scripts.lint.runtime_topology_test`、`make lint-runtime-topology`、`make lint` 通过
   <!-- verified: 2026-05-06 command="python3 -m unittest scripts.lint.runtime_topology_test && make lint-runtime-topology && make lint" evidence="Red failed on new false-negative fixtures; Green/unit lint/aggregate lint pass; active scan reports runtime_topology OK (274 active files scanned)" -->
+- [x] 4.5 L2 remediation: 补强 `scripts/lint/runtime_topology.py` 对 `scripts/` tooling 面和 raw producer 字段形态的 false-negative 覆盖；验证: Red `python3 -m unittest scripts.lint.runtime_topology_test` 先失败，Green 后 `python3 -m unittest scripts.lint.runtime_topology_test`、`make lint-runtime-topology`、`make lint` 通过；负向 fixture 覆盖 `scripts/lint/env_dict.py` / `scripts/lint/getenv_boundary.go` 回流 `cmd/worker` / `WORKER_LISTEN_ADDR`，以及 `shared/events.yaml` / `shared/events/baseline/events.v1.json` 回流 `producer: worker` / `"producer": "worker"`
+  <!-- verified: 2026-05-07 command="python3 -m unittest scripts.lint.runtime_topology_test && make lint-runtime-topology && make lint" evidence="Red initially missed scripts/raw producer fixtures; Green/unit lint/aggregate lint pass; active scan reports runtime_topology OK (299 active files scanned)" -->
 
 ## Phase 5: Verification and lifecycle
 

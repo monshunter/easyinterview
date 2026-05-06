@@ -21,6 +21,7 @@ TEXT_SUFFIXES = {
     ".go",
     ".json",
     ".md",
+    ".py",
     ".sh",
     ".ts",
     ".tsx",
@@ -38,6 +39,7 @@ SCAN_PATHS = [
     "backend",
     "frontend",
     "shared",
+    "scripts",
     "config",
     "deploy/dev-stack",
     "docs/spec",
@@ -71,7 +73,7 @@ class RetiredPattern:
 RETIRED_PATTERNS = [
     RetiredPattern(
         "cmd/worker entrypoint",
-        re.compile(r"(?:\./)?cmd/(?:\{api,)?worker(?:[,}\/\s]|$)|\./cmd/worker\b"),
+        re.compile(r"(?:\./|backend/)?cmd/(?:\{api,)?worker(?=[,}'\"\/\s]|$)|\./cmd/worker\b"),
     ),
     RetiredPattern(
         "worker listen addr config",
@@ -91,8 +93,8 @@ RETIRED_PATTERNS = [
     RetiredPattern(
         "worker producer enum",
         re.compile(
-            r"(?:\bproducer\b.*(?:`worker`|/ worker\b|\bworker\s*/))|"
-            r"(?:(?:`worker`|/ worker\b|\bworker\s*/).*\bproducer\b)"
+            r"(?:\bproducer\b.*(?:[`\"']?worker[`\"']?\b|/ worker\b|\bworker\s*/))|"
+            r"(?:(?:[`\"']?worker[`\"']?\b|/ worker\b|\bworker\s*/).*\bproducer\b)"
         ),
     ),
     RetiredPattern(
@@ -131,6 +133,8 @@ def is_excluded_path(repo: Path, path: Path) -> bool:
     if any(part in EXCLUDED_DIR_PARTS for part in rel.parts):
         return True
     if is_test_path(path):
+        return True
+    if rel == Path("scripts/lint/runtime_topology.py"):
         return True
     if rel.parts[:3] == ("docs", "spec", "backend-runtime-topology"):
         return True
