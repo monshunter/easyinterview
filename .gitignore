@@ -10,6 +10,7 @@ target/
 coverage.out
 coverage.txt
 *.cover
+.test-output/
 
 # ── Go ───────────────────────────────────────────────────────────
 *.exe~
