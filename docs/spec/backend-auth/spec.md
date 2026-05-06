@@ -1,8 +1,8 @@
 # Backend Auth Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 背景与目标
 
@@ -18,15 +18,19 @@
 - `GET /api/v1/auth/email/verify` 邮箱挑战验证并签发 first-party session cookie。
 - `GET /api/v1/me` 当前用户读取。
 - `POST /api/v1/auth/logout` 清除 session。
+- first-party session middleware / current-user resolver：保护除 B2 public endpoints 外的 P0 API；`logout` 使用 optional-session / always-clear-cookie 路径以保持幂等；`DELETE /api/v1/me` 提供认证态、session 撤销和 idempotent privacy_delete handoff。
 - 为既有 `GET /api/v1/runtime-config` 注入 C1 session-aware resolver，供 A4 handler 合并用户级公开偏好。
-- 本地 dev 邮件 sink / log-only challenge delivery 的可观测与脱敏。
+- 本 plan 内实现 C1 backend-internal mail dispatcher（Go goroutine / 后台线程）与 dev mail sink / test delivery retrieval；过渡期不依赖独立 C8 worker 进程。
+- 复用 B3 internal-only `email_dispatch` payload contract 与 generated `BuildEmailDispatchPayload` redaction policy 构造邮件派发输入；payload 只允许 helper 支持的脱敏字段。
 - session cookie 属性、安全默认值、过期、幂等 logout、错误码映射。
+- auth metrics / audit 事件最小生产边界：记录 started / minted / failure / logout / delete handoff 等可观测事实，但不落 secret / PII 明文。
 
 ### 2.2 Out of Scope
 
 - 不实现 OAuth / SSO / 企业账号体系。
 - 不实现 Team / EDU、订阅或计费能力。
-- 不实现完整隐私导出；P0 隐私导出延后，删除能力按 product-scope / B4 owner 另行计划。
+- 不实现完整隐私导出；P0 隐私导出延后，删除执行按 product-scope / B4 / C8 owner 另行计划，C1 只负责 `DELETE /me` 的认证、session 撤销与 privacy_delete handoff。
+- 不实现独立 C8 worker 进程、Asynq dispatcher 或生产级 outbox consumer；当前无真实用户阶段允许 C1 用 backend 内部后台派发器作为过渡实现，后续切换到 C8 时必须复用同一 B3 payload 红线。
 - 不在日志中输出验证码、magic link token、完整邮箱、session secret 或 PII。
 - 不修改 B2 Auth operation shape；需要变更时先修订 `openapi-v1-contract`。
 
@@ -39,25 +43,33 @@
 | D-3 | Cookie 安全 | HttpOnly、SameSite、Secure 按环境配置 | dev 可降级 Secure，但必须可测试 |
 | D-4 | 配置来源 | A4 secrets/config 只提供 `SESSION_COOKIE_SECRET`、`AUTH_CHALLENGE_TOKEN_PEPPER`、`EMAIL_PROVIDER`、`EMAIL_PROVIDER_API_KEY` 和固定 `ei_session` cookie name；TTL、rate-limit 与 dev mail sink 默认值由 C1 代码常量持有并在包级文档记录 | 邮件、cookie、session secret 不私造配置 key；如需把 TTL / mail sink 变成配置，先修订 A4 |
 | D-5 | 错误码 | B1 shared error envelope | 认证错误必须使用共享错误 shape |
+| D-6 | 过渡期邮件派发 | C1 在 backend 进程内用 goroutine / 后台线程派发邮件并写入 dev mail sink；派发输入必须由 generated `BuildEmailDispatchPayload` 传 `authChallengeId` / `userId` / `templateKey` / `locale` / `deliverySecretRef` / `dedupeKey` | 不要求独立 worker 进程；不把 raw token、完整 URL、邮箱明文、邮件正文或标题写入 in-process queue / dev sink / future outbox / async payload / 日志 |
+| D-7 | Account deletion auth handoff | `DELETE /api/v1/me` 使用 C1 session middleware 验证当前用户，支持 `Idempotency-Key` 或等价 active-request dedupe，撤销 session 并返回 B2 `202 + PrivacyRequestWithJob`；实际 privacy_delete job 执行归 C8 / B4 | C1 不扩展删除 schema，不绕过 B2 contract；重复请求不得创建重复 active 删除任务 |
 
 ## 4 设计约束
 
 - Challenge token 必须 hash 后存储或在本地 stub 中以不可逆形式比较；明文 token 只能在一次性发送边界短暂存在。
 - Session ID / secret 不得进入日志、metrics label、audit 明文字段或 API response。
+- Challenge TTL 固定 15 分钟；同邮箱或同 IP 1 分钟内第 3 次及以上请求必须 rate-limit / dedupe，响应不得泄露账号存在性。
+- Session 默认 30 天滑动续期；B4 当前 `sessions` 表以 `updated_at` / `revoked_at` 承载续期触点与撤销时间，如实现需要独立 `last_seen_at` 字段，必须先修订 ADR-Q1 / B4 migration owner。
 - Logout 必须幂等；没有有效 session 时返回可预期结果，不泄露账号存在性。
 - `/runtime-config` 由 A4 handler 持有公开 allowlist；C1 只能提供 session-aware resolver，不得扩大 response 字段。
 - `/me` 未登录必须返回 B2 / B1 约定的认证错误，不返回假用户。
 - 邮箱挑战发送失败、挑战过期、重复验证、缺 cookie、无效 session 都必须有可测试错误路径。
+- Auth metrics 必须先登记到 F1 baseline metrics 字典或由 F1 owner 明确承接；label 只能使用 F1 allowed labels，禁止 `user_id`、邮箱、session id、token、URL path 明文等高基数或敏感 label。
 
 ## 5 模块边界
 
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | API contract | B2 `openapi-v1-contract` | Auth endpoints、response schema、cookie 描述 |
-| backend auth | `backend-auth` | handlers、service、store、session、challenge delivery |
+| backend auth | `backend-auth` | handlers、service、store、session、C1 backend-internal mail dispatcher / dev sink、challenge delivery |
+| event/outbox job contract | B3 `event-and-outbox-contract` + C8 future worker | `email_dispatch` payload redaction helper 与未来 worker/outbox 替换边界；不是本 plan 运行前置 |
 | config/secrets | A4 `secrets-and-config` | session secret、challenge pepper、email provider secret、固定 `ei_session` cookie name；TTL / dev mail sink 默认值归 C1 代码常量，新增配置前先修订 A4 |
 | frontend gate | `frontend-shell` | pendingAction、登录页面和登录后恢复 |
 | DB/session storage | B4 `db-migrations-baseline` | session/challenge 表或等价持久化边界 |
+| privacy deletion execution | C8 / B4 | `DELETE /me` 后续 privacy_delete job 与数据删除矩阵执行，C1 只做认证与 handoff |
+| observability registry | F1 `observability-stack` | auth metric names 与 allowed labels 登记；C1 只消费已登记指标 |
 
 ## 6 验收标准
 
@@ -67,6 +79,9 @@
 | C-2 | Logout 幂等 | 用户已有或没有有效 session | 调用 logout | cookie 被清除且响应不泄露账号状态 | 001-passwordless-session-bootstrap |
 | C-3 | 错误路径 | challenge 过期、重复验证、缺 cookie、配置缺失 | 调用对应 endpoint | 返回 B1 error envelope，日志无 secret / PII 明文 | 001-passwordless-session-bootstrap |
 | C-4 | Runtime config session resolver | 前端启动，用户可能携带有效 session | 请求 `/runtime-config` | A4 handler 仍只返回公开 allowlist 字段；C1 session resolver 只影响允许公开的用户级偏好，不泄露 secret / internal flag | 001-passwordless-session-bootstrap |
+| C-5 | Auth middleware and delete handoff | 用户携带有效或无效 `ei_session` | 访问 protected Auth operation、logout 或 `DELETE /me` | auth start / verify / runtime-config 不要求 session；logout optional-session 且总是清 cookie；protected endpoints 使用 first-party session；`DELETE /me` 支持 idempotency / active-request dedupe，返回 B2 删除响应并撤销 session，删除执行仍由 C8 / B4 承接 | 001-passwordless-session-bootstrap |
+| C-6 | Email dispatch redaction | 用户请求邮箱挑战 | C1 创建派发任务并由 backend 内部后台派发器写入 dev mail sink | `email_dispatch` payload 只含 allowed fields；raw token / URL / 邮箱明文 / 邮件正文不进入 in-process queue、dev sink、future outbox、async_jobs、log 或 audit；无需独立 C8 worker 进程即可通过本地验证 | 001-passwordless-session-bootstrap |
+| C-7 | Auth observability | challenge / verify / logout / failure 发生 | 记录 metrics / audit | 指标名已在 F1 baseline 或 F1 承接 gate 中登记，label 符合 F1，audit 只含 ID / hash / 状态，不含 secret / PII 明文 | 001-passwordless-session-bootstrap |
 
 ## 7 关联计划
 

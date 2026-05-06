@@ -8,7 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-passwordless-session-bootstrap](./001-passwordless-session-bootstrap/plan.md) | [plan](./001-passwordless-session-bootstrap/plan.md) / [checklist](./001-passwordless-session-bootstrap/checklist.md) / [context](./001-passwordless-session-bootstrap/context.yaml) / [bdd-plan](./001-passwordless-session-bootstrap/bdd-plan.md) / [bdd-checklist](./001-passwordless-session-bootstrap/bdd-checklist.md) | 1.0 | active | 2026-05-05 |
+| [001-passwordless-session-bootstrap](./001-passwordless-session-bootstrap/plan.md) | [plan](./001-passwordless-session-bootstrap/plan.md) / [checklist](./001-passwordless-session-bootstrap/checklist.md) / [context](./001-passwordless-session-bootstrap/context.yaml) / [bdd-plan](./001-passwordless-session-bootstrap/bdd-plan.md) / [bdd-checklist](./001-passwordless-session-bootstrap/bdd-checklist.md) | 1.1 | active | 2026-05-06 |
 
 ## 2 已完成（Completed）
 

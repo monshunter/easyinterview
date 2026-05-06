@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.0
+    to: 1.1
 spec:
   defaultTarget: backend
   discovery:
@@ -23,6 +23,11 @@ spec:
       - runtime config
       - auth challenge
       - logout
+      - deleteMe auth handoff
+      - email_dispatch
+      - backend-internal mail dispatcher
+      - dev mail sink runner
+      - protected session middleware
   targets:
     backend:
       plan: ./plan.md
@@ -36,6 +41,7 @@ spec:
         - ../../../product-scope/spec.md
         - ../../../frontend-shell/spec.md
         - ../../../openapi-v1-contract/spec.md
+        - ../../../event-and-outbox-contract/spec.md
         - ../../../db-migrations-baseline/spec.md
         - ../../../secrets-and-config/spec.md
         - ../../../shared-conventions-codified/spec.md
@@ -46,6 +52,7 @@ spec:
           - backend/internal/api
           - backend/internal/platform/config
           - backend/internal/platform/secrets
+          - backend/internal/shared/jobs
           - migrations
         uiRoutes:
           - auth_login
@@ -57,5 +64,6 @@ spec:
           - startAuthEmailChallenge
           - verifyAuthEmailChallenge
           - getMe
+          - deleteMe
           - logout
           - getRuntimeConfig
