@@ -420,6 +420,136 @@ func TestComplete_NoFallbackHeadersUsesProfileRoute(t *testing.T) {
 	}
 }
 
+func TestStream_ParsesSSEDeltaAndDone(t *testing.T) {
+	srv := mockserver.New()
+	srv.SetChatStreamChunks([]string{
+		`{"model":"` + chatModelID + `","choices":[{"delta":{"content":"hello "}}]}`,
+		`{"model":"` + chatModelID + `","choices":[{"delta":{"content":"world"},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":2,"total_tokens":7}}`,
+		`[DONE]`,
+	})
+	defer srv.Close()
+	a := newAdapter(t, srv)
+
+	ch, err := a.Stream(context.Background(), chatProfile(5000), samplePayload())
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	events := collectStreamEvents(t, ch)
+	if len(events) != 3 {
+		t.Fatalf("expected 3 events, got %+v", events)
+	}
+	if events[0].Type != aiclient.StreamEventDelta || events[0].Delta != "hello " {
+		t.Fatalf("first delta mismatch: %+v", events[0])
+	}
+	if events[1].Type != aiclient.StreamEventDelta || events[1].Delta != "world" {
+		t.Fatalf("second delta mismatch: %+v", events[1])
+	}
+	if events[2].Type != aiclient.StreamEventDone || events[2].Meta == nil {
+		t.Fatalf("expected done with meta, got %+v", events[2])
+	}
+	if events[2].Meta.Provider != providerRef || events[2].Meta.ModelID != chatModelID {
+		t.Fatalf("done meta mismatch: %+v", events[2].Meta)
+	}
+	if events[2].Meta.InputTokens != 5 || events[2].Meta.OutputTokens != 2 {
+		t.Fatalf("usage meta mismatch: %+v", events[2].Meta)
+	}
+}
+
+func TestStream_MalformedChunkEmitsAIOutputInvalid(t *testing.T) {
+	srv := mockserver.New()
+	srv.SetChatStreamChunks([]string{`{"choices":[`})
+	defer srv.Close()
+	a := newAdapter(t, srv)
+
+	ch, err := a.Stream(context.Background(), chatProfile(5000), samplePayload())
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	events := collectStreamEvents(t, ch)
+	if len(events) != 1 || events[0].Type != aiclient.StreamEventError {
+		t.Fatalf("expected one error event, got %+v", events)
+	}
+	if events[0].ErrorCode != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("expected %s, got %q", sharederrors.CodeAiOutputInvalid, events[0].ErrorCode)
+	}
+}
+
+func TestStream_ProviderErrorEventEmitsSharedError(t *testing.T) {
+	srv := mockserver.New()
+	srv.SetChatStreamChunks([]string{`{"error":{"code":"AI_PROVIDER_TIMEOUT","message":"upstream timeout"}}`})
+	defer srv.Close()
+	a := newAdapter(t, srv)
+
+	ch, err := a.Stream(context.Background(), chatProfile(5000), samplePayload())
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	events := collectStreamEvents(t, ch)
+	if len(events) != 1 || events[0].Type != aiclient.StreamEventError {
+		t.Fatalf("expected one error event, got %+v", events)
+	}
+	if events[0].ErrorCode != sharederrors.CodeAiProviderTimeout {
+		t.Fatalf("expected %s, got %q", sharederrors.CodeAiProviderTimeout, events[0].ErrorCode)
+	}
+}
+
+func TestStream_ContextCancelEmitsPartialDoneMeta(t *testing.T) {
+	srv := mockserver.New()
+	srv.SetChatStreamChunks([]string{
+		`{"model":"` + chatModelID + `","choices":[{"delta":{"content":"partial"}}]}`,
+		`{"model":"` + chatModelID + `","choices":[{"delta":{"content":" after cancel"},"finish_reason":"stop"}]}`,
+	})
+	srv.SetChatStreamDelay(200 * time.Millisecond)
+	defer srv.Close()
+	a := newAdapter(t, srv)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	ch, err := a.Stream(ctx, chatProfile(5000), samplePayload())
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	first := receiveStreamEvent(t, ch)
+	if first.Type != aiclient.StreamEventDelta || first.Delta != "partial" {
+		t.Fatalf("expected first partial delta, got %+v", first)
+	}
+
+	cancel()
+	events := collectStreamEvents(t, ch)
+	if len(events) != 1 || events[0].Type != aiclient.StreamEventDone || events[0].Meta == nil {
+		t.Fatalf("expected one partial done event, got %+v", events)
+	}
+	meta := events[0].Meta
+	if meta.ErrorCode != sharederrors.CodeAiProviderTimeout || meta.ValidationStatus != aiclient.ValidationStatusInvalid {
+		t.Fatalf("expected invalid timeout meta, got %+v", meta)
+	}
+	if meta.PartialMetaReason != "context_cancelled" || meta.OutputTokens != len("partial") {
+		t.Fatalf("expected partial meta reason and token estimate, got %+v", meta)
+	}
+}
+
+func collectStreamEvents(t *testing.T, ch <-chan aiclient.AIStreamEvent) []aiclient.AIStreamEvent {
+	t.Helper()
+	var events []aiclient.AIStreamEvent
+	for ev := range ch {
+		events = append(events, ev)
+	}
+	return events
+}
+
+func receiveStreamEvent(t *testing.T, ch <-chan aiclient.AIStreamEvent) aiclient.AIStreamEvent {
+	t.Helper()
+	select {
+	case ev, ok := <-ch:
+		if !ok {
+			t.Fatalf("stream closed before event")
+		}
+		return ev
+	case <-time.After(time.Second):
+		t.Fatalf("timed out waiting for stream event")
+		return aiclient.AIStreamEvent{}
+	}
+}
+
 func TestNew_RequiresOpenAICompatibleResolvedProviderSecret(t *testing.T) {
 	if _, err := openaicompatible.New(openaicompatible.Options{}); err == nil {
 		t.Fatalf("expected error when resolved provider is missing")

@@ -1,6 +1,7 @@
 package openaicompatible
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -176,22 +177,159 @@ func (a *Adapter) Embed(ctx context.Context, profile *aiclient.ModelProfile, inp
 }
 
 // Stream implements aiclient.Provider. Plan 001 honors the channel contract
-// by issuing the equivalent non-streaming request and emitting a single
-// `done` event followed by close. Plan 002 replaces this body with a real
-// SSE/chunked consumer.
+// by consuming OpenAI-compatible SSE chunks and mapping them to the frozen
+// AIStreamEvent contract.
 func (a *Adapter) Stream(ctx context.Context, profile *aiclient.ModelProfile, payload aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
-	resp, meta, err := a.Complete(ctx, profile, payload)
-	ch := make(chan aiclient.AIStreamEvent, 1)
+	if profile == nil {
+		return nil, errors.New("openai_compatible: profile is nil")
+	}
+	req := chatCompletionsRequest{
+		Model:      profile.Default.Model,
+		Messages:   convertMessages(payload.Messages),
+		Stream:     true,
+		Tools:      convertTools(payload.Tools),
+		ToolChoice: convertToolChoice(payload.ToolChoice),
+	}
+	if profile.MaxTokens > 0 {
+		req.MaxTokens = profile.MaxTokens
+	}
+	applyParams(profile.Default.Params, &req)
+
+	streamCtx := ctx
+	var cancel context.CancelFunc
+	if profile.TimeoutMs > 0 {
+		streamCtx, cancel = context.WithTimeout(ctx, time.Duration(profile.TimeoutMs)*time.Millisecond)
+	}
+
+	start := time.Now()
+	resp, err := a.postStream(streamCtx, PathChatCompletions, req)
+	latencyMs := time.Since(start).Milliseconds()
+	ch := make(chan aiclient.AIStreamEvent, 4)
 	if err != nil {
+		if cancel != nil {
+			cancel()
+		}
 		ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: errorCodeOf(err)}
 		close(ch)
 		return ch, nil
 	}
-	final := meta
-	final.OutputTokens = len(resp.Content)
-	ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventDone, Meta: &final}
-	close(ch)
+	go a.consumeStream(streamCtx, cancel, resp, profile, latencyMs, ch)
 	return ch, nil
+}
+
+func (a *Adapter) postStream(ctx context.Context, path string, body any) (*http.Response, error) {
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("openai_compatible: marshal request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.baseURL+path, bytes.NewReader(buf))
+	if err != nil {
+		return nil, fmt.Errorf("openai_compatible: build request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Authorization", "Bearer "+a.apiKey)
+	if rid := aiclient.RequestIDFromContext(ctx); rid != "" {
+		req.Header.Set(HeaderRequestID, rid)
+	}
+	resp, err := a.client.Do(req)
+	if err != nil {
+		if ctxErr := ctx.Err(); errors.Is(ctxErr, context.DeadlineExceeded) {
+			return nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: timeout", true)
+		}
+		return nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: transport error: "+err.Error(), true)
+	}
+	return resp, nil
+}
+
+func (a *Adapter) consumeStream(ctx context.Context, cancel context.CancelFunc, resp *http.Response, profile *aiclient.ModelProfile, latencyMs int64, ch chan<- aiclient.AIStreamEvent) {
+	defer close(ch)
+	defer resp.Body.Close()
+	if cancel != nil {
+		defer cancel()
+	}
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: errorCodeOf(mapHTTPError(resp.StatusCode, body))}
+		return
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	modelID := profile.Default.Model
+	inputTokens := 0
+	outputTokens := 0
+	outputChars := 0
+	emittedDone := false
+
+	emitDone := func(errorCode, partialReason string) {
+		if emittedDone {
+			return
+		}
+		if outputTokens == 0 {
+			outputTokens = outputChars
+		}
+		meta := a.buildMeta(profile, resp.Header, latencyMs, modelID, inputTokens, outputTokens, nil)
+		if errorCode != "" {
+			meta.ValidationStatus = aiclient.ValidationStatusInvalid
+			meta.ErrorCode = errorCode
+			meta.PartialMetaReason = partialReason
+		}
+		ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventDone, Meta: &meta}
+		emittedDone = true
+	}
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, ":") {
+			continue
+		}
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "[DONE]" {
+			emitDone("", "")
+			continue
+		}
+		var chunk streamChunk
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: sharederrors.CodeAiOutputInvalid}
+			return
+		}
+		if chunk.Error.Code != "" {
+			ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: sharedOrOutputInvalid(chunk.Error.Code)}
+			return
+		}
+		if chunk.Model != "" {
+			modelID = chunk.Model
+		}
+		if chunk.Usage.PromptTokens > 0 {
+			inputTokens = chunk.Usage.PromptTokens
+		}
+		if chunk.Usage.CompletionTokens > 0 {
+			outputTokens = chunk.Usage.CompletionTokens
+		}
+		for _, choice := range chunk.Choices {
+			if choice.Delta.Content != "" {
+				outputChars += len(choice.Delta.Content)
+				ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventDelta, Delta: choice.Delta.Content}
+			}
+			if choice.FinishReason != "" {
+				emitDone("", "")
+			}
+		}
+	}
+	if ctx.Err() != nil {
+		emitDone(sharederrors.CodeAiProviderTimeout, "context_cancelled")
+		return
+	}
+	if err := scanner.Err(); err != nil {
+		ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: sharederrors.CodeAiProviderTimeout}
+		return
+	}
+	emitDone("", "")
 }
 
 func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body any) ([]byte, int, http.Header, error) {
@@ -322,6 +460,13 @@ func errorCodeOf(err error) string {
 		return apiErr.Code
 	}
 	return ""
+}
+
+func sharedOrOutputInvalid(code string) string {
+	if _, ok := sharederrors.CodeRegistry[code]; ok {
+		return code
+	}
+	return sharederrors.CodeAiOutputInvalid
 }
 
 func modelFamily(modelID string) string {

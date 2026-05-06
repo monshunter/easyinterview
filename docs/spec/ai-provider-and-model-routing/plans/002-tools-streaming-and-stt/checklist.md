@@ -30,9 +30,12 @@
 
 ## Phase 3: Stream consumer 完整化
 
-- [ ] 3.1 openai_compatible SSE / chunked 解析映射到 plan 001 锁定的 delta / error / done 事件；验证: provider-side stream parser tests 覆盖多 chunk、malformed chunk、provider error event 与 done event，channel close 语义通过
-- [ ] 3.2 context cancellation 路径补齐 partial token meta 与 B1 错误码；验证: focused cancellation test 断言 context cancel 后 channel 收到 error/done 终态、partial token meta 尽力填充且错误码来自 B1 `AI_*`
-- [ ] 3.3 provider-side SSE consumer 选型落地，并把业务 HTTP wire handoff 写回 spec §3.1；验证: spec/history 更新通过 `make docs-check`，adapter contract tests 证明 provider SSE 形态一致，且后续 frontend-workspace-and-practice / backend API 用户可见入口仍需自身 BDD gate
+- [x] 3.1 openai_compatible SSE / chunked 解析映射到 plan 001 锁定的 delta / error / done 事件；验证: provider-side stream parser tests 覆盖多 chunk、malformed chunk、provider error event 与 done event，channel close 语义通过
+  <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run 'TestStream_ParsesSSEDeltaAndDone|TestStream_MalformedChunkEmitsAIOutputInvalid|TestStream_ProviderErrorEventEmitsSharedError' -count=1 (stream returned single done event)" green="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run 'TestStream_ParsesSSEDeltaAndDone|TestStream_MalformedChunkEmitsAIOutputInvalid|TestStream_ProviderErrorEventEmitsSharedError' -count=1" regression="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -count=1" -->
+- [x] 3.2 context cancellation 路径补齐 partial token meta 与 B1 错误码；验证: focused cancellation test 断言 context cancel 后 channel 收到 error/done 终态、partial token meta 尽力填充且错误码来自 B1 `AI_*`
+  <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestStream_ContextCancelEmitsPartialDoneMeta -count=1 (missing partial done meta)" green="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestStream_ContextCancelEmitsPartialDoneMeta -count=1" regression="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -count=1" -->
+- [x] 3.3 provider-side SSE consumer 选型落地，并把业务 HTTP wire handoff 写回 spec §3.1；验证: spec/history 更新通过 `make docs-check`，adapter contract tests 证明 provider SSE 形态一致，且后续 frontend-workspace-and-practice / backend API 用户可见入口仍需自身 BDD gate
+  <!-- verified: 2026-05-06 docs="docs/spec/ai-provider-and-model-routing/spec.md docs/spec/ai-provider-and-model-routing/history.md docs/spec/INDEX.md" tests="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -count=1" command="make docs-check" -->
 
 ## Phase 4: STT provider adapter
 

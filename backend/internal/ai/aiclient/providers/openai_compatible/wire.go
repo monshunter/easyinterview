@@ -79,3 +79,19 @@ type errorEnvelope struct {
 		Type    string `json:"type"`
 	} `json:"error"`
 }
+
+type streamChunk struct {
+	Model   string `json:"model"`
+	Choices []struct {
+		Delta struct {
+			Content string `json:"content"`
+		} `json:"delta"`
+		FinishReason string `json:"finish_reason"`
+	} `json:"choices"`
+	Usage wireUsage `json:"usage"`
+	Error struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		Type    string `json:"type"`
+	} `json:"error"`
+}

@@ -46,11 +46,13 @@ type CapturedRequest struct {
 type Server struct {
 	HTTPServer *httptest.Server
 
-	mu              sync.Mutex
-	captured        []CapturedRequest
-	chatBehavior    Behavior
-	embedBehavior   Behavior
+	mu               sync.Mutex
+	captured         []CapturedRequest
+	chatBehavior     Behavior
+	embedBehavior    Behavior
 	chatBodyOverride func() string
+	chatStreamChunks []string
+	chatStreamDelay  time.Duration
 }
 
 // New starts a server with default Behavior (200 OK responses).
@@ -88,6 +90,24 @@ func (s *Server) SetChatBodyOverride(fn func() string) {
 	s.chatBodyOverride = fn
 }
 
+// SetChatStreamChunks configures a text/event-stream response for chat
+// completion requests that set stream=true. Each chunk is written as one
+// `data: ...` SSE frame.
+func (s *Server) SetChatStreamChunks(chunks []string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.chatStreamChunks = append([]string(nil), chunks...)
+}
+
+// SetChatStreamDelay configures the delay before each stream chunk after the
+// first one. This keeps the first delta observable while tests cancel the
+// request before the terminal frame arrives.
+func (s *Server) SetChatStreamDelay(delay time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.chatStreamDelay = delay
+}
+
 // Captured returns a copy of all captured requests in arrival order.
 func (s *Server) Captured() []CapturedRequest {
 	s.mu.Lock()
@@ -113,6 +133,8 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 	chat := s.chatBehavior
 	embed := s.embedBehavior
 	bodyOverride := s.chatBodyOverride
+	streamChunks := append([]string(nil), s.chatStreamChunks...)
+	streamDelay := s.chatStreamDelay
 	s.mu.Unlock()
 
 	switch r.URL.Path {
@@ -127,6 +149,11 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
+		if len(streamChunks) > 0 && chatRequestWantsStream(body) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			writeChatStream(w, streamChunks, streamDelay)
+			return
+		}
 		if bodyOverride != nil {
 			io.WriteString(w, bodyOverride())
 			return
@@ -163,10 +190,32 @@ func applyHeaders(w http.ResponseWriter, b Behavior) {
 
 type chatRequest struct {
 	Model    string `json:"model"`
+	Stream   bool   `json:"stream"`
 	Messages []struct {
 		Role    string `json:"role"`
 		Content string `json:"content"`
 	} `json:"messages"`
+}
+
+func chatRequestWantsStream(body []byte) bool {
+	var req chatRequest
+	_ = json.Unmarshal(body, &req)
+	return req.Stream
+}
+
+func writeChatStream(w http.ResponseWriter, chunks []string, delay time.Duration) {
+	flusher, _ := w.(http.Flusher)
+	for i, chunk := range chunks {
+		if i > 0 && delay > 0 {
+			time.Sleep(delay)
+		}
+		io.WriteString(w, "data: ")
+		io.WriteString(w, chunk)
+		io.WriteString(w, "\n\n")
+		if flusher != nil {
+			flusher.Flush()
+		}
+	}
 }
 
 type chatResponse struct {

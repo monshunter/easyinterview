@@ -1,6 +1,6 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.5
+> **版本**: 2.6
 > **状态**: active
 > **更新日期**: 2026-05-06
 
@@ -71,6 +71,7 @@
 | D-10 | F3 profile 覆盖 | F3 12 个 baseline feature_key 必须全部能解析到 A3 profile catalog；P1/P2 capability 可先以 `status=disabled` / `status=unsupported` profile 占位，并写明 `unsupported_reason`，但不得缺命名空间 | 业务域开工前具备完整 AI 调用坐标 |
 | D-11 | Product/UI capability inventory | A3 spec 必须维护产品 / UI AI 场景到 capability family 的映射；新增 AI 场景必须先修订本表与 F3 feature_key / profile 字典 | 防止新业务回到单模型假设 |
 | D-12 | B1 AI vocabulary 边界 | `chat/embed/stt/realtime/rerank/judge` capability、provider registry/profile 字段名、AI meta 字段名与 provider/profile routing `AI_*` 错误码由 B1 生成；A3 只 alias / consume，不私造跨边界常量 | 防止 Go/TS/OpenAPI 与 runtime 常量漂移 |
+| D-13 | Provider-side streaming consumer | A3 固定消费 OpenAI-compatible SSE `data:` frames 并映射为 `AIStreamEvent` 的 `delta` / `error` / `done`；context cancel 以 B1 `AI_*` 错误码和 `partial_meta_reason` 形成 terminal event；业务 HTTP SSE / chunked wire 由 backend / frontend owner 在自身 API plan 决定 | 后续业务域可复用 provider streaming 底座，同时不提前承诺用户可见 HTTP wire |
 
 ### 3.2 待确认事项
 
