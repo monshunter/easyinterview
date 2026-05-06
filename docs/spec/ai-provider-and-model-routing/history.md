@@ -1,6 +1,6 @@
 # AI Provider and Model Routing History
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: active
 > **更新日期**: 2026-05-06
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-06 | 2.7 | 落地 STT Transcribe 底座：`default-openai-compatible` 支持 `stt`，`practice.dictation.stt.default` 与 `debrief.voice.extract.default` 升为 active；`practice.voice.realtime.default` 继续 fail-closed。 | 002-tools-streaming-and-stt Phase 4 |
 | 2026-05-06 | 2.6 | 锁定 provider-side streaming consumer 决策：A3 消费 OpenAI-compatible SSE `data:` frames 并映射为 `AIStreamEvent`，context cancel 产出带 B1 错误码的 partial terminal meta；业务 HTTP wire 继续交给 backend / frontend owner。 | 002-tools-streaming-and-stt Phase 3 |
 | 2026-05-06 | 2.5 | 按用户确认提前激活 002：打开 Complete tools payload、provider-side streaming SSE consumer 与 STT Audio Transcriptions 底座；realtime / rerank / judge 仍 fail-closed。 | 002-tools-streaming-and-stt activation |
 | 2026-05-06 | 2.4 | 002 L1 remediation：将 voice / practice 下游 owner 口径从旧 C/D shorthand 对齐到当前 roadmap subject 命名，并明确 F1 metric label 迁移必须由 F1 owner 先承接。 | 002-tools-streaming-and-stt plan-review --fix |

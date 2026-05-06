@@ -1,6 +1,6 @@
 # aiclient
 
-Provider-neutral AIClient for every LLM, embedding, and (future) STT call
+Provider-neutral AIClient for every LLM, embedding, and STT transcription call
 inside the easyinterview backend. This package owns the public Go interface
 [`AIClient`](./aiclient.go), the runtime [`AICallMeta`](./meta.go), the
 Provider Registry loader in [`providerregistry/`](./providerregistry/loader.go),

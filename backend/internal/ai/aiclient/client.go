@@ -128,6 +128,35 @@ func (c *Client) Embed(ctx context.Context, profileName string, input EmbedInput
 	return resp, meta, err
 }
 
+// Transcribe implements AIClient.
+func (c *Client) Transcribe(ctx context.Context, profileName string, input TranscriptionInput) (TranscriptionResponse, AICallMeta, error) {
+	if len(input.Audio) == 0 || input.Filename == "" || input.ContentType == "" {
+		return TranscriptionResponse{}, AICallMeta{
+			ModelProfileName: profileName,
+			ValidationStatus: ValidationStatusInvalid,
+			ErrorCode:        sharederrors.CodeAiOutputInvalid,
+		}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "audio, filename, and content_type must be non-empty", false)
+	}
+
+	profile, provider, err := c.dispatch(profileName, CapabilitySTT)
+	if err != nil {
+		return TranscriptionResponse{}, failureMeta(profileName, profile, err), err
+	}
+
+	resp, partial, err := executeWithFallback(profile, provider, c.providers, c.providerResolver, func(p Provider, attempt *ModelProfile) (TranscriptionResponse, AICallMeta, error) {
+		return p.Transcribe(ctx, attempt, input)
+	})
+	callMeta := input.Metadata
+	if callMeta.Language == "" {
+		callMeta.Language = input.Language
+	}
+	meta, mergeErr := c.builder.merge(profile, callMeta, partial)
+	if mergeErr != nil && err == nil {
+		err = mergeErr
+	}
+	return resp, meta, err
+}
+
 // Stream implements AIClient.
 func (c *Client) Stream(ctx context.Context, profileName string, payload CompletePayload) (<-chan AIStreamEvent, error) {
 	if len(payload.Messages) == 0 {

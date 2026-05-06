@@ -86,3 +86,22 @@ type EmbedInput struct {
 type EmbedResponse struct {
 	Vectors [][]float64 `json:"vectors"`
 }
+
+// TranscriptionInput is the provider-neutral input to AIClient.Transcribe.
+// The caller supplies in-memory audio bytes plus the minimal wire metadata
+// needed by OpenAI-compatible Audio Transcriptions. Raw audio bytes must never
+// be logged or persisted by observability layers.
+type TranscriptionInput struct {
+	Audio       []byte       `json:"-"`
+	Filename    string       `json:"filename"`
+	ContentType string       `json:"contentType"`
+	Language    string       `json:"language,omitempty"`
+	Prompt      string       `json:"prompt,omitempty"`
+	Metadata    CallMetadata `json:"metadata"`
+}
+
+// TranscriptionResponse is the provider-neutral output returned by
+// AIClient.Transcribe.
+type TranscriptionResponse struct {
+	Text string `json:"text"`
+}

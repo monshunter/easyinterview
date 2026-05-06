@@ -1,6 +1,6 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: active
 > **更新日期**: 2026-05-06
 
@@ -150,7 +150,7 @@
 | 业务调用现场 | `backend-targetjob` / `backend-practice` / `backend-review` / `backend-resume` / `backend-debrief` / future retrieval / production voice owners | 各业务 spec / plan 引用 profile name，不引用 provider/model |
 | 共享约定 | B1 | `AI_*` 错误码、AI capability、provider registry/profile 字段名、AI meta 字段名共享常量、`ApiError` / `ApiErrorResponse` 消费约定 |
 | DB 表 | B4 | `ai_task_runs` schema |
-| Metric / Dashboard | F1 | 7 个 ai_* metric + AI Cost & Quality Dashboard；任何 label 迁移（如 `task_type` -> `capability`）必须先由 F1 spec / plan 承接 |
+| Metric / Dashboard | F1 | 7 个 ai_* metric + AI Cost & Quality Dashboard；任何 label 迁移（例如从旧任务分类 label 迁到 `capability`）必须先由 F1 spec / plan 承接 |
 | 测试 stub provider | A3 | 应用内 deterministic stub，仅供单元测试 / 离线契约测试 / 显式 mock 场景 |
 
 ## 6 验收标准
@@ -158,7 +158,7 @@
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-1 | Stub 单测 | 单测环境（`APP_ENV=test`，无真实 provider secret） | 业务代码调用 `aiclient.Complete(ctx, "practice.followup.default", payload)` | client 路由到 stub provider；返回结构化 response + meta；`meta.provider == "stub"`；同 input 多次调用结果一致 | 001 |
-| C-2 | Registry provider route | registry 中 `default-openai-compatible` 声明 `chat` / `embed` capability，并引用 env secret | 调用 `Complete` / `Embed` | 出站 HTTP 请求命中该 provider ref 的 OpenAI-compatible endpoint；header 含 `Authorization`；`meta.provider` / `meta.capability` / `meta.model_profile_name` 正确 | 003 |
+| C-2 | Registry provider route | registry 中 `default-openai-compatible` 声明 `chat` / `embed` / `stt` capability，并引用 env secret | 调用 `Complete` / `Embed` / `Transcribe` | 出站 HTTP 请求命中该 provider ref 的 OpenAI-compatible endpoint；header 含 `Authorization`；`meta.provider` / `meta.capability` / `meta.model_profile_name` 正确 | 003 + 002 |
 | C-3 | Central fallback | profile 声明 primary + fallback provider ref，primary 超时且 fallback 成功 | 调用 `Complete` | AIClient 执行受限 fallback，`fallback_chain` 记录 provider/model hop；`ai_fallback_total` +1；业务代码无 retry-with-different-model 循环 | 003 |
 | C-4 | Registry + profile 热加载 | A3 loader 已启动 | `config/ai-providers.yaml` 或 `config/ai-profiles.yaml` 修改后保存 | client 在 ≤ 30s 内热加载；正在进行的调用使用旧快照完成；新调用使用新快照 | 003 |
 | C-5 | 观测埋点齐全 | 任一无 fallback、无 validation failure 的调用完成 | F1 metric / log / DB 三方查询 | 7 个 metric family 均已注册；run / latency / token / cost 指标增长；fallback / validation failure counter 不增长；`ai_task_runs` + `audit_events` 各写一行，无明文 | 001 + 003 |

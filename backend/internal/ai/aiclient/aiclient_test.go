@@ -27,8 +27,10 @@ type countingProvider struct {
 	inner               aiclient.Provider
 	completeCalls       int
 	embedCalls          int
+	transcribeCalls     int
 	lastCompleteProfile string
 	lastCompletePayload aiclient.CompletePayload
+	lastTranscribeInput aiclient.TranscriptionInput
 }
 
 func (p *countingProvider) Name() string { return p.inner.Name() }
@@ -43,6 +45,12 @@ func (p *countingProvider) Complete(ctx context.Context, profile *aiclient.Model
 func (p *countingProvider) Embed(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.EmbedInput) (aiclient.EmbedResponse, aiclient.AICallMeta, error) {
 	p.embedCalls++
 	return p.inner.Embed(ctx, profile, input)
+}
+
+func (p *countingProvider) Transcribe(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
+	p.transcribeCalls++
+	p.lastTranscribeInput = input
+	return p.inner.Transcribe(ctx, profile, input)
 }
 
 func (p *countingProvider) Stream(ctx context.Context, profile *aiclient.ModelProfile, payload aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
@@ -65,6 +73,7 @@ type scriptedProvider struct {
 	embedResults    []scriptedEmbedResult
 	completeCalls   int
 	embedCalls      int
+	transcribeCalls int
 }
 
 func (p *scriptedProvider) Name() string { return p.name }
@@ -95,6 +104,11 @@ func (p *scriptedProvider) Embed(_ context.Context, profile *aiclient.ModelProfi
 		return aiclient.EmbedResponse{}, meta, result.err
 	}
 	return aiclient.EmbedResponse{Vectors: result.vectors}, meta, nil
+}
+
+func (p *scriptedProvider) Transcribe(_ context.Context, profile *aiclient.ModelProfile, _ aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
+	p.transcribeCalls++
+	return aiclient.TranscriptionResponse{Text: "scripted transcript"}, scriptedMeta(p.name, profile, nil), nil
 }
 
 func (p *scriptedProvider) Stream(_ context.Context, _ *aiclient.ModelProfile, _ aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
@@ -171,6 +185,29 @@ func defaultResolver() staticResolver {
 			},
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
+		},
+		"practice.dictation.stt.default": {
+			Name:       "practice.dictation.stt.default",
+			Capability: aiclient.CapabilitySTT,
+			Status:     aiclient.ProfileStatusActive,
+			Default: aiclient.ProviderConfig{
+				ProviderRef: stub.Name,
+				Model:       "stub-stt-1",
+			},
+			TimeoutMs: 5000,
+			Version:   "1.0.0",
+		},
+		"practice.voice.realtime.default": {
+			Name:              "practice.voice.realtime.default",
+			Capability:        aiclient.CapabilityRealtime,
+			Status:            aiclient.ProfileStatusUnsupported,
+			UnsupportedReason: "realtime voice adapter remains fail-closed",
+			Default: aiclient.ProviderConfig{
+				ProviderRef: stub.Name,
+				Model:       "stub-realtime-1",
+			},
+			TimeoutMs: 5000,
+			Version:   "0.1.0",
 		},
 	}
 }
@@ -343,6 +380,72 @@ func TestEmbed_ReturnsVectors(t *testing.T) {
 	}
 	if meta.Capability != aiclient.CapabilityEmbed {
 		t.Fatalf("expected meta.Capability=embed, got %q", meta.Capability)
+	}
+}
+
+func TestTranscribe_RoutesSTTProfileThroughProvider(t *testing.T) {
+	c, provider := newTestClientWithResolver(t, defaultResolver())
+	input := aiclient.TranscriptionInput{
+		Audio:       []byte("fake-webm-bytes"),
+		Filename:    "answer.webm",
+		ContentType: "audio/webm",
+		Language:    "en",
+		Prompt:      "Interview answer",
+		Metadata: aiclient.CallMetadata{
+			FeatureKey:    "practice.dictation.stt",
+			PromptVersion: "stt-p1",
+			Language:      "en",
+		},
+	}
+
+	resp, meta, err := c.Transcribe(context.Background(), "practice.dictation.stt.default", input)
+	if err != nil {
+		t.Fatalf("Transcribe: %v", err)
+	}
+	if resp.Text == "" {
+		t.Fatalf("expected non-empty transcript")
+	}
+	if provider.transcribeCalls != 1 {
+		t.Fatalf("expected one provider transcription call, got %d", provider.transcribeCalls)
+	}
+	if string(provider.lastTranscribeInput.Audio) != string(input.Audio) || provider.lastTranscribeInput.Filename != "answer.webm" {
+		t.Fatalf("transcription input not propagated: %+v", provider.lastTranscribeInput)
+	}
+	if meta.Capability != aiclient.CapabilitySTT || meta.ModelProfileName != "practice.dictation.stt.default" {
+		t.Fatalf("expected stt meta for profile, got %+v", meta)
+	}
+}
+
+func TestTranscribe_RequiresAudioBytesFilenameAndContentType(t *testing.T) {
+	c, provider := newTestClientWithResolver(t, defaultResolver())
+
+	_, meta, err := c.Transcribe(context.Background(), "practice.dictation.stt.default", aiclient.TranscriptionInput{})
+	if err == nil {
+		t.Fatalf("expected invalid input error")
+	}
+	var apiErr *sharederrors.APIError
+	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("expected AI_OUTPUT_INVALID, got %v", err)
+	}
+	if meta.ErrorCode != sharederrors.CodeAiOutputInvalid || meta.ValidationStatus != aiclient.ValidationStatusInvalid {
+		t.Fatalf("expected invalid meta, got %+v", meta)
+	}
+	if provider.transcribeCalls != 0 {
+		t.Fatalf("invalid transcription input must not reach provider, got %d calls", provider.transcribeCalls)
+	}
+}
+
+func TestTranscribe_RealtimeProfileFailsClosed(t *testing.T) {
+	c, provider := newTestClientWithResolver(t, defaultResolver())
+
+	_, meta, err := c.Transcribe(context.Background(), "practice.voice.realtime.default", aiclient.TranscriptionInput{
+		Audio:       []byte("fake"),
+		Filename:    "voice.webm",
+		ContentType: "audio/webm",
+	})
+	assertUnsupportedCapabilityError(t, err, meta, aiclient.CapabilityRealtime)
+	if provider.transcribeCalls != 0 {
+		t.Fatalf("realtime profile must stay fail-closed for Transcribe, got %d calls", provider.transcribeCalls)
 	}
 }
 

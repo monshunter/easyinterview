@@ -121,6 +121,24 @@ func (p *Provider) Embed(ctx context.Context, profile *aiclient.ModelProfile, in
 	return aiclient.EmbedResponse{Vectors: vectors}, meta, nil
 }
 
+// Transcribe implements aiclient.Provider with deterministic transcript text.
+func (p *Provider) Transcribe(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
+	if profile == nil {
+		return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, fmt.Errorf("stub: profile is nil")
+	}
+	seed := transcriptionSeed(profile.Name, input)
+	text := fmt.Sprintf("stub transcript:%s:%s", profile.Name, seed[:16])
+	meta := aiclient.AICallMeta{
+		Provider:     Name,
+		ModelFamily:  "stub",
+		ModelID:      profile.Default.Model,
+		InputTokens:  len(input.Audio),
+		OutputTokens: len(text),
+		LatencyMs:    1,
+	}
+	return aiclient.TranscriptionResponse{Text: text}, meta, nil
+}
+
 // Stream implements aiclient.Provider as a one-shot terminal event channel.
 // Plan 001 freezes the stream contract; plan 002 will replace this with a
 // real SSE / chunked consumer.
@@ -163,4 +181,20 @@ func countTokens(payload aiclient.CompletePayload) int {
 		n += len(m.Content)
 	}
 	return n
+}
+
+func transcriptionSeed(profileName string, input aiclient.TranscriptionInput) string {
+	sum := sha256.New()
+	sum.Write([]byte(profileName))
+	sum.Write([]byte{0})
+	sum.Write([]byte(input.Filename))
+	sum.Write([]byte{0})
+	sum.Write([]byte(input.ContentType))
+	sum.Write([]byte{0})
+	sum.Write([]byte(input.Language))
+	sum.Write([]byte{0})
+	sum.Write([]byte(input.Prompt))
+	sum.Write([]byte{0})
+	sum.Write(input.Audio)
+	return hex.EncodeToString(sum.Sum(nil))
 }

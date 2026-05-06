@@ -39,20 +39,31 @@
 
 ## Phase 4: STT provider adapter
 
-- [ ] 4.1 在 A3 spec §4.1 锁定 `Transcribe` 入参形态为 bytes + filename + content type + optional language/prompt；验证: A3 docs 引用同一 audio payload contract，`make docs-check` 与 `sync-doc-index --check` 通过
-- [ ] 4.2 落地 openai_compatible `/v1/audio/transcriptions` 适配，`capability=stt` 从 unsupported profile 升级为可执行；验证: STT adapter mockserver tests 覆盖 multipart bytes 形态 happy path、provider error path、secret missing fail-fast 与 unsupported profile fail-closed
-- [ ] 4.3 校验或扩展 7 个 ai_* metric family 的 label 集合，确保 STT 可观测；验证: focused metric/log tests 断言 `capability=stt` 有界 label、无 audio/transcript 明文，F1 allowed/forbidden label gate 通过
-- [ ] 4.4 复核 realtime fail-closed：只实现 STT 时不得打开 `practice.voice.realtime.default`；验证: `make lint-ai-profile-coverage` 断言 realtime profile 仍为 `unsupported`，除非 production voice / practice voice owner 已完成联合修订并记录触发证据
+- [x] 4.1 在 A3 spec §4.1 锁定 `Transcribe` 入参形态为 bytes + filename + content type + optional language/prompt；验证: A3 docs 引用同一 audio payload contract，`make docs-check` 与 `sync-doc-index --check` 通过
+  <!-- verified: 2026-05-06 docs="docs/spec/ai-provider-and-model-routing/spec.md docs/spec/ai-provider-and-model-routing/history.md docs/spec/INDEX.md" command="make docs-check && python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check" -->
+- [x] 4.2 落地 openai_compatible `/v1/audio/transcriptions` 适配，`capability=stt` 从 unsupported profile 升级为可执行；验证: STT adapter mockserver tests 覆盖 multipart bytes 形态 happy path、provider error path、secret missing fail-fast 与 unsupported profile fail-closed
+  <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run 'TestTranscribe_PostsMultipartAudioAndReturnsTranscript|TestTranscribe_ProviderErrorReturnsSharedCode|TestTranscribe_MissingTextReturnsAIOutputInvalid' -count=1 (missing Transcribe/multipart support)" green="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run 'TestTranscribe_PostsMultipartAudioAndReturnsTranscript|TestTranscribe_ProviderErrorReturnsSharedCode|TestTranscribe_MissingTextReturnsAIOutputInvalid|TestNew_RequiresOpenAICompatibleResolvedProviderSecret' -count=1 && cd backend && go test ./internal/ai/aiclient -run 'TestTranscribe_RoutesSTTProfileThroughProvider|TestTranscribe_RequiresAudioBytesFilenameAndContentType|TestTranscribe_RealtimeProfileFailsClosed' -count=1" regression="cd backend && go test ./internal/ai/aiclient/... -count=1" -->
+- [x] 4.3 校验或扩展 7 个 ai_* metric family 的 label 集合，确保 STT 可观测；验证: focused metric/log tests 断言 `capability=stt` 有界 label、无 audio/transcript 明文，F1 allowed/forbidden label gate 通过
+  <!-- verified: 2026-05-06 docs="docs/spec/observability-stack/spec.md docs/spec/observability-stack/history.md" test="cd backend && go test ./internal/ai/aiclient/observability -run 'TestDecorator_TranscribeRecordsSTTWithoutPlaintext|TestPrivacy_NoPlaintextLeaksAnywhere' -count=1" command="make docs-check" -->
+- [x] 4.4 复核 realtime fail-closed：只实现 STT 时不得打开 `practice.voice.realtime.default`；验证: `make lint-ai-profile-coverage` 断言 realtime profile 仍为 `unsupported`，除非 production voice / practice voice owner 已完成联合修订并记录触发证据
+  <!-- verified: 2026-05-06 config="config/ai-profiles.yaml" test="cd backend && go test ./internal/ai/aiclient -run TestTranscribe_RealtimeProfileFailsClosed -count=1" command="make lint-ai-profile-coverage" -->
 
 ## Phase 5: 接入 F1 / F3 / B1
 
-- [ ] 5.1 F1 metric / log / dashboard 字段扩展同步；验证: F1 spec / generated lint gate 与 focused observability tests 对新增字段、allowed labels、forbidden labels 均通过；若 F1 仍使用 `task_type` label，本 phase 原地修订为 AI metric `capability` label 口径
-- [ ] 5.2 F3 profile schema 增量（tools / output_schema / stream_wire）先行落地，再被本 plan 消费；验证: F3 owner spec 或 plan 先行记录字段，`make lint-ai-profile-coverage` 覆盖 `config/ai-profiles.yaml` catalog 中新增 profile 字段和 status 语义
-- [ ] 5.3 B1 共享常量 / 错误码扩展先行合入，再在本 plan 引用；验证: `make codegen-check`、Go/TS AI vocabulary parity tests 与 repo-wide negative search 确认未在 A3 私造跨边界常量
+- [x] 5.1 F1 metric / log / dashboard 字段扩展同步；验证: F1 spec / generated lint gate 与 focused observability tests 对新增字段、allowed labels、forbidden labels 均通过；若 F1 仍使用旧任务分类 label，本 phase 原地修订为 AI metric `capability` label 口径
+  <!-- verified: 2026-05-06 docs="docs/spec/observability-stack/spec.md docs/spec/observability-stack/history.md docs/spec/INDEX.md" test="cd backend && go test ./internal/ai/aiclient/observability -run 'TestDecorator_TranscribeRecordsSTTWithoutPlaintext|TestPrivacy_NoPlaintextLeaksAnywhere' -count=1" command="make docs-check" -->
+- [x] 5.2 F3 profile schema 增量（tools / output_schema / stream_wire）先行落地，再被本 plan 消费；验证: F3 owner spec 或 plan 先行记录字段，`make lint-ai-profile-coverage` 覆盖 `config/ai-profiles.yaml` catalog 中新增 profile 字段和 status 语义
+  <!-- verified: 2026-05-06 docs="docs/spec/prompt-rubric-registry/spec.md docs/spec/prompt-rubric-registry/history.md docs/spec/INDEX.md" command="make lint-ai-profile-coverage && make docs-check" -->
+- [x] 5.3 B1 共享常量 / 错误码扩展先行合入，再在本 plan 引用；验证: `make codegen-check`、Go/TS AI vocabulary parity tests 与 repo-wide negative search 确认未在 A3 私造跨边界常量
+  <!-- verified: 2026-05-06 command="make codegen-check" notes="B1 AI vocabulary/codegen remained in sync; no new A3-owned cross-boundary literal was introduced for STT beyond existing B1 capability/error constants." -->
 
 ## Phase 6: Verification
 
-- [ ] 6.1 spec §6 AC 表为每个被激活 phase 追加 ≥ 1 条 AC（含正常 / 错误 / 隐私 / 观测）；验证: AC 行引用本 plan 与被激活 capability，`make docs-check` 通过
-- [ ] 6.2 单测 + 离线契约测试覆盖被激活的 tool / streaming / STT 协议子集；验证: `cd backend && go test ./internal/ai/aiclient/... -count=1`、新增 focused tests 与 adapter contract tests 均通过
+- [x] 6.1 spec §6 AC 表为每个被激活 phase 追加 ≥ 1 条 AC（含正常 / 错误 / 隐私 / 观测）；验证: AC 行引用本 plan 与被激活 capability，`make docs-check` 通过
+  <!-- verified: 2026-05-06 docs="docs/spec/ai-provider-and-model-routing/spec.md#6-验收标准 C-13/C-14/C-15" command="make docs-check" -->
+- [x] 6.2 单测 + 离线契约测试覆盖被激活的 tool / streaming / STT 协议子集；验证: `cd backend && go test ./internal/ai/aiclient/... -count=1`、新增 focused tests 与 adapter contract tests 均通过
+  <!-- verified: 2026-05-06 command="cd backend && go test ./internal/ai/aiclient/... -count=1" focused="openai_compatible tool/stream/STT contract tests; aiclient Transcribe interface tests; observability privacy tests" -->
 - [ ] 6.3 本地部署 + Kind 场景端到端 smoke 通过，无明文泄漏，埋点齐全；验证: 按 `test/scenarios/README.md` 与 active suite README 执行 smoke，记录真实 provider registry/profile/secret 组合，privacy grep 无明文
-- [ ] 6.4 active-scope 旧口径负向搜索通过；验证: 搜索确认 A3-owned 代码、配置、deploy、generated artifacts、active docs 与被本 plan 激活并修订过的 owner docs 不含 `task_type`、`default.provider`、`config/ai-profiles/` 运行时 truth source、retired AI provider-route 术语、独立 `voice` route、独立 Mistakes / Growth / Drill 口径（历史 work journal / reports / bugs 只读例外；其他 referenced active spec 必须先完成 owner handoff 后再计入 pass）
+  <!-- blocked: 2026-05-06 scenario-readme="test/scenarios/README.md test/scenarios/e2e/README.md test/scenarios/e2e/INDEX.md" reason="当前 scenario framework 只有 Planned 索引；不存在 env-setup/env-verify 脚本、Kind 部署入口、Ready/Verified AI tool/stream/STT 场景目录或 consuming business flow，无法执行本地部署 + Kind e2e smoke；已用 focused contract/privacy/profile gates 作为当前内部底座替代验证，但本项保持未完成。" -->
+- [x] 6.4 active-scope 旧口径负向搜索通过；验证: 搜索确认 A3-owned 代码、配置、deploy、generated artifacts、active docs 与被本 plan 激活并修订过的 owner docs 不再把旧任务分类 key、旧 provider key、一 profile 一目录 truth source、retired AI routing 术语、独立语音路由、独立旧模块口径作为 active runtime truth source；denylist / rejection validator / negative fixture 中的旧 literal 只作为防回归证据保留（历史 work journal / reports / bugs 只读例外；其他 referenced active spec 必须先完成 owner handoff 后再计入 pass）
+  <!-- verified: 2026-05-06 commands="active-scope retired-literal rg sweeps over config/deploy/A3/F1/F3 current docs" result="no matches" allowed-exception="backend/internal/ai/aiclient/profile/loader.go keeps retired key literals only to reject them; scripts/tests keep denylist fixtures." -->

@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-06](2026-05-06.md) | `feat(ai-provider): add stt transcription adapter` | #feat #test #docs |
 | [2026-05-06](2026-05-06.md) | `feat(ai-provider): consume provider streaming events` | #feat #test #docs |
 | [2026-05-06](2026-05-06.md) | `feat(ai-provider): add provider-neutral tool calls` | #feat #test #docs |
 | [2026-05-06](2026-05-06.md) | `docs(ai-provider): activate tools streaming stt plan` | #docs |

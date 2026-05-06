@@ -1,8 +1,11 @@
 package mockserver
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -46,13 +49,15 @@ type CapturedRequest struct {
 type Server struct {
 	HTTPServer *httptest.Server
 
-	mu               sync.Mutex
-	captured         []CapturedRequest
-	chatBehavior     Behavior
-	embedBehavior    Behavior
-	chatBodyOverride func() string
-	chatStreamChunks []string
-	chatStreamDelay  time.Duration
+	mu                     sync.Mutex
+	captured               []CapturedRequest
+	chatBehavior           Behavior
+	embedBehavior          Behavior
+	transcribeBehavior     Behavior
+	chatBodyOverride       func() string
+	transcribeBodyOverride func() string
+	chatStreamChunks       []string
+	chatStreamDelay        time.Duration
 }
 
 // New starts a server with default Behavior (200 OK responses).
@@ -82,12 +87,27 @@ func (s *Server) SetEmbedBehavior(b Behavior) {
 	s.embedBehavior = b
 }
 
+// SetTranscriptionBehavior atomically replaces the transcription behavior.
+func (s *Server) SetTranscriptionBehavior(b Behavior) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.transcribeBehavior = b
+}
+
 // SetChatBodyOverride installs a function that produces the raw response
 // body for chat completions. Used to test malformed payloads.
 func (s *Server) SetChatBodyOverride(fn func() string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.chatBodyOverride = fn
+}
+
+// SetTranscriptionBodyOverride installs a function that produces the raw
+// response body for Audio Transcriptions. Used to test malformed payloads.
+func (s *Server) SetTranscriptionBodyOverride(fn func() string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.transcribeBodyOverride = fn
 }
 
 // SetChatStreamChunks configures a text/event-stream response for chat
@@ -132,7 +152,9 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 	})
 	chat := s.chatBehavior
 	embed := s.embedBehavior
+	transcribe := s.transcribeBehavior
 	bodyOverride := s.chatBodyOverride
+	transcribeBodyOverride := s.transcribeBodyOverride
 	streamChunks := append([]string(nil), s.chatStreamChunks...)
 	streamDelay := s.chatStreamDelay
 	s.mu.Unlock()
@@ -171,6 +193,22 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		writeEmbedResponse(w, body, embed)
+	case "/v1/audio/transcriptions":
+		applyHeaders(w, transcribe)
+		if transcribe.SleepBeforeRespond > 0 {
+			time.Sleep(transcribe.SleepBeforeRespond)
+		}
+		if transcribe.StatusCode >= 400 {
+			w.WriteHeader(transcribe.StatusCode)
+			io.WriteString(w, transcribe.ErrorBody)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if transcribeBodyOverride != nil {
+			io.WriteString(w, transcribeBodyOverride())
+			return
+		}
+		writeTranscriptionResponse(w, r.Header.Get("Content-Type"), body)
 	default:
 		http.NotFound(w, r)
 	}
@@ -303,4 +341,43 @@ func writeEmbedResponse(w http.ResponseWriter, body []byte, _ Behavior) {
 	}
 	resp.Usage.TotalTokens = resp.Usage.PromptTokens
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+type transcriptionResponse struct {
+	Text string `json:"text"`
+}
+
+func writeTranscriptionResponse(w http.ResponseWriter, contentType string, body []byte) {
+	_, filename := parseTranscriptionMultipart(contentType, body)
+	if filename == "" {
+		filename = "audio"
+	}
+	_ = json.NewEncoder(w).Encode(transcriptionResponse{Text: "mock transcript for " + filename})
+}
+
+func parseTranscriptionMultipart(contentType string, body []byte) (string, string) {
+	mediaType, params, err := mime.ParseMediaType(contentType)
+	if err != nil || mediaType != "multipart/form-data" {
+		return "", ""
+	}
+	reader := multipart.NewReader(bytes.NewReader(body), params["boundary"])
+	model := ""
+	filename := ""
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return model, filename
+		}
+		data, _ := io.ReadAll(part)
+		switch part.FormName() {
+		case "model":
+			model = string(data)
+		case "file":
+			filename = part.FileName()
+		}
+	}
+	return model, filename
 }

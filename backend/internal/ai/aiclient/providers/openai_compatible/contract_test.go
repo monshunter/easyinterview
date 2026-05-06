@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"mime"
+	"mime/multipart"
 	"strings"
 	"testing"
 	"time"
@@ -20,6 +23,8 @@ const (
 	chatModelFamily  = "chat-primary"
 	embedModelID     = "embed-small"
 	embedModelFamily = "embed-small"
+	sttModelID       = "stt-transcribe-1"
+	sttModelFamily   = "stt-transcribe-1"
 	providerRef      = "default-openai-compatible"
 )
 
@@ -48,6 +53,21 @@ func embedProfile(timeoutMs int) *aiclient.ModelProfile {
 			Model:       embedModelID,
 		},
 		TimeoutMs: timeoutMs,
+		Version:   "1.0.0",
+	}
+}
+
+func sttProfile(timeoutMs int) *aiclient.ModelProfile {
+	return &aiclient.ModelProfile{
+		Name:       "practice.dictation.stt.default",
+		Capability: aiclient.CapabilitySTT,
+		Status:     aiclient.ProfileStatusActive,
+		Default: aiclient.ProviderConfig{
+			ProviderRef: providerRef,
+			Model:       sttModelID,
+		},
+		TimeoutMs: timeoutMs,
+		Route:     "practice.dictation.stt",
 		Version:   "1.0.0",
 	}
 }
@@ -86,6 +106,7 @@ func resolvedProvider(baseURL string) providerregistry.ResolvedProvider {
 			Capabilities: []aiclient.Capability{
 				aiclient.CapabilityChat,
 				aiclient.CapabilityEmbed,
+				aiclient.CapabilitySTT,
 			},
 			Version: "1.0.0",
 		},
@@ -165,6 +186,102 @@ func TestComplete_BaseURLMayIncludeV1Prefix(t *testing.T) {
 	}
 	if got := requests[0].Path; got != "/v1/chat/completions" {
 		t.Fatalf("expected normalized /v1/chat/completions path, got %q", got)
+	}
+}
+
+func TestTranscribe_PostsMultipartAudioAndReturnsTranscript(t *testing.T) {
+	srv := mockserver.New()
+	defer srv.Close()
+	a := newAdapter(t, srv)
+
+	input := aiclient.TranscriptionInput{
+		Audio:       []byte("fake-audio-bytes"),
+		Filename:    "answer.webm",
+		ContentType: "audio/webm",
+		Language:    "en",
+		Prompt:      "interview answer",
+		Metadata: aiclient.CallMetadata{
+			FeatureKey:    "practice.dictation.stt",
+			PromptVersion: "stt-p1",
+			Language:      "en",
+		},
+	}
+	resp, meta, err := a.Transcribe(aiclient.WithRequestID(context.Background(), "req-stt-1"), sttProfile(5000), input)
+	if err != nil {
+		t.Fatalf("Transcribe: %v", err)
+	}
+	if resp.Text != "mock transcript for answer.webm" {
+		t.Fatalf("unexpected transcript: %q", resp.Text)
+	}
+	if meta.Provider != providerRef || meta.ModelID != sttModelID || meta.ModelFamily != sttModelFamily {
+		t.Fatalf("meta mismatch: %+v", meta)
+	}
+	if meta.InputTokens != len(input.Audio) || meta.OutputTokens != len(resp.Text) {
+		t.Fatalf("usage meta mismatch: %+v", meta)
+	}
+
+	requests := srv.Captured()
+	if len(requests) != 1 {
+		t.Fatalf("expected 1 captured request, got %d", len(requests))
+	}
+	got := requests[0]
+	if got.Path != "/v1/audio/transcriptions" {
+		t.Fatalf("expected /v1/audio/transcriptions, got %q", got.Path)
+	}
+	if got.Authorization != "Bearer test-key" || got.RequestID != "req-stt-1" {
+		t.Fatalf("headers not propagated: %+v", got)
+	}
+	form := parseMultipartRequest(t, got.ContentType, got.Body)
+	if form.values["model"] != sttModelID || form.values["language"] != "en" || form.values["prompt"] != "interview answer" {
+		t.Fatalf("multipart fields mismatch: %+v", form.values)
+	}
+	if form.fileName != "answer.webm" || form.fileContentType != "audio/webm" || string(form.fileBytes) != string(input.Audio) {
+		t.Fatalf("multipart file mismatch: %+v", form)
+	}
+}
+
+func TestTranscribe_ProviderErrorReturnsSharedCode(t *testing.T) {
+	srv := mockserver.New()
+	srv.SetTranscriptionBehavior(mockserver.Behavior{StatusCode: 503, ErrorBody: `{"error":{"code":"AI_PROVIDER_TIMEOUT"}}`})
+	defer srv.Close()
+	a := newAdapter(t, srv)
+
+	_, meta, err := a.Transcribe(context.Background(), sttProfile(5000), aiclient.TranscriptionInput{
+		Audio:       []byte("fake"),
+		Filename:    "answer.webm",
+		ContentType: "audio/webm",
+	})
+	if err == nil {
+		t.Fatalf("expected provider error")
+	}
+	var apiErr *sharederrors.APIError
+	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiProviderTimeout {
+		t.Fatalf("expected AI_PROVIDER_TIMEOUT, got %v", err)
+	}
+	if meta.ErrorCode != sharederrors.CodeAiProviderTimeout || meta.ValidationStatus != aiclient.ValidationStatusInvalid {
+		t.Fatalf("expected timeout meta, got %+v", meta)
+	}
+}
+
+func TestTranscribe_MissingTextReturnsAIOutputInvalid(t *testing.T) {
+	srv := mockserver.New()
+	srv.SetTranscriptionBodyOverride(func() string {
+		return `{"duration":1.2}`
+	})
+	defer srv.Close()
+	a := newAdapter(t, srv)
+
+	_, _, err := a.Transcribe(context.Background(), sttProfile(5000), aiclient.TranscriptionInput{
+		Audio:       []byte("fake"),
+		Filename:    "answer.webm",
+		ContentType: "audio/webm",
+	})
+	if err == nil {
+		t.Fatalf("expected output invalid error")
+	}
+	var apiErr *sharederrors.APIError
+	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("expected AI_OUTPUT_INVALID, got %v", err)
 	}
 }
 
@@ -548,6 +665,47 @@ func receiveStreamEvent(t *testing.T, ch <-chan aiclient.AIStreamEvent) aiclient
 		t.Fatalf("timed out waiting for stream event")
 		return aiclient.AIStreamEvent{}
 	}
+}
+
+type multipartCapture struct {
+	values          map[string]string
+	fileName        string
+	fileContentType string
+	fileBytes       []byte
+}
+
+func parseMultipartRequest(t *testing.T, contentType string, body []byte) multipartCapture {
+	t.Helper()
+	mediaType, params, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		t.Fatalf("ParseMediaType: %v", err)
+	}
+	if mediaType != "multipart/form-data" {
+		t.Fatalf("expected multipart/form-data, got %q", mediaType)
+	}
+	reader := multipart.NewReader(strings.NewReader(string(body)), params["boundary"])
+	out := multipartCapture{values: map[string]string{}}
+	for {
+		part, err := reader.NextPart()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatalf("NextPart: %v", err)
+		}
+		data, err := io.ReadAll(part)
+		if err != nil {
+			t.Fatalf("ReadAll multipart part: %v", err)
+		}
+		if part.FormName() == "file" {
+			out.fileName = part.FileName()
+			out.fileContentType = part.Header.Get("Content-Type")
+			out.fileBytes = data
+			continue
+		}
+		out.values[part.FormName()] = string(data)
+	}
+	return out
 }
 
 func TestNew_RequiresOpenAICompatibleResolvedProviderSecret(t *testing.T) {

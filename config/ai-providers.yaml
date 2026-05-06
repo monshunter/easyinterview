@@ -16,6 +16,7 @@ providers:
     capabilities:
       - chat
       - embed
+      - stt
     version: 1.0.0
 
   - name: speech-placeholder
@@ -23,7 +24,6 @@ providers:
     base_url_env: AI_PROVIDER_BASE_URL
     api_key_env: AI_PROVIDER_API_KEY
     capabilities:
-      - stt
       - realtime
     version: 0.1.0
 

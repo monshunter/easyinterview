@@ -103,6 +103,18 @@ func newTestStack(t *testing.T) (
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
 		},
+		"practice.dictation.stt.default": {
+			Name:       "practice.dictation.stt.default",
+			Capability: aiclient.CapabilitySTT,
+			Status:     aiclient.ProfileStatusActive,
+			Default: aiclient.ProviderConfig{
+				ProviderRef: stub.Name,
+				Model:       "stub-stt-1",
+			},
+			TimeoutMs: 5000,
+			Version:   "1.0.0",
+			Route:     "practice.dictation.stt",
+		},
 	}
 	inner, err := aiclient.New(
 		aiclient.Config{AppEnv: aiclient.AppEnvTest},
@@ -149,6 +161,35 @@ func samplePayload() aiclient.CompletePayload {
 			},
 		},
 	}
+}
+
+func sampleTranscriptionInput() aiclient.TranscriptionInput {
+	return aiclient.TranscriptionInput{
+		Audio:       []byte("raw-audio-secret"),
+		Filename:    "answer.webm",
+		ContentType: "audio/webm",
+		Language:    "en",
+		Prompt:      "private pronunciation hint",
+		Metadata: aiclient.CallMetadata{
+			FeatureKey:    "practice.dictation.stt",
+			PromptVersion: "stt-p1",
+			Language:      "en",
+			TaskRun: aiclient.AITaskRunContext{
+				Capability:   aiclient.AITaskRunTaskFollowupGenerate,
+				ResourceType: aiclient.AITaskRunResourceTargetJob,
+				ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
+			},
+		},
+	}
+}
+
+func mustJSON(t *testing.T, v any) string {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	return string(b)
 }
 
 func TestDecorator_AllSevenMetricFamiliesRegistered(t *testing.T) {
@@ -300,6 +341,47 @@ func TestDecorator_AITaskRunWriterFailureReturned(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "write ai_task_runs") || !strings.Contains(err.Error(), "db down") {
 		t.Fatalf("expected ai_task_runs write context in error, got: %v", err)
+	}
+}
+
+func TestDecorator_TranscribeRecordsSTTWithoutPlaintext(t *testing.T) {
+	wrap, registry, logger, runs, audit := newTestStack(t)
+	input := sampleTranscriptionInput()
+
+	resp, meta, err := wrap.Transcribe(context.Background(), "practice.dictation.stt.default", input)
+	if err != nil {
+		t.Fatalf("Transcribe: %v", err)
+	}
+	if resp.Text == "" {
+		t.Fatalf("expected transcript")
+	}
+	if meta.Capability != aiclient.CapabilitySTT {
+		t.Fatalf("expected stt capability, got %+v", meta)
+	}
+	labels := []string{stub.Name, "stub", "practice.dictation.stt.default", "practice.dictation.stt", string(aiclient.CapabilitySTT), "en", "success"}
+	if got := registry.CounterValue(observability.MetricRunsTotal, labels...); got != 1 {
+		t.Fatalf("expected stt run counter=1, got %v", got)
+	}
+
+	serialized := mustJSON(t, map[string]any{
+		"logs":  logger.Entries(),
+		"runs":  runs.Rows(),
+		"audit": audit.Rows(),
+	})
+	for _, forbidden := range []string{"raw-audio-secret", "stub transcript", "private pronunciation hint"} {
+		if strings.Contains(serialized, forbidden) {
+			t.Fatalf("observability output leaked plaintext %q: %s", forbidden, serialized)
+		}
+	}
+	auditRows := audit.Rows()
+	if len(auditRows) != 1 {
+		t.Fatalf("expected one audit row, got %+v", auditRows)
+	}
+	if auditRows[0].Metadata.PromptHash == "" || auditRows[0].Metadata.ResponseHash == "" {
+		t.Fatalf("expected audio/transcript hash summaries, got %+v", auditRows[0].Metadata)
+	}
+	if auditRows[0].Metadata.PromptCharLength != len(input.Audio) || auditRows[0].Metadata.ResponseCharLength != len(resp.Text) {
+		t.Fatalf("expected length summaries only, got %+v", auditRows[0].Metadata)
 	}
 }
 
@@ -516,6 +598,9 @@ func (f *fallbackInner) Complete(_ context.Context, _ string, _ aiclient.Complet
 }
 func (f *fallbackInner) Embed(_ context.Context, _ string, _ aiclient.EmbedInput) (aiclient.EmbedResponse, aiclient.AICallMeta, error) {
 	return aiclient.EmbedResponse{}, f.meta, nil
+}
+func (f *fallbackInner) Transcribe(_ context.Context, _ string, _ aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
+	return aiclient.TranscriptionResponse{Text: "fallback transcript"}, f.meta, nil
 }
 func (f *fallbackInner) Stream(_ context.Context, _ string, _ aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
 	ch := make(chan aiclient.AIStreamEvent, 1)

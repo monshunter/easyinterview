@@ -61,6 +61,10 @@ type embeddingsResponse struct {
 	Usage wireUsage       `json:"usage"`
 }
 
+type transcriptionResponse struct {
+	Text string `json:"text"`
+}
+
 type embeddingItem struct {
 	Index     int       `json:"index"`
 	Embedding []float64 `json:"embedding"`

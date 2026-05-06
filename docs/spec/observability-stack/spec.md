@@ -1,8 +1,8 @@
 # Observability Stack Spec
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 背景与目标
 
@@ -55,7 +55,7 @@
 |----|------|--------|------|
 | D-1 | metric 类型与后缀 | Counter `*_total`；Histogram `*_duration_seconds`；Gauge `*_in_flight` / `*_queue_depth` / `*_pending`；Summary 不使用 | F1 命名 baseline |
 | D-2 | 单位 | 时间 seconds（不用 ms 作为指标后缀，日志可用 `latencyMs`）/ 大小 bytes / 金额 usd（如必须） | – |
-| D-3 | allowed labels | `service` / `route` / `method` / `status_code` / `operation` / `job_type` / `task_type` / `provider` / `model_family` / `from_model_family` / `to_model_family` / `language` / `feature` / `env` / `result` | 新增 label 必须是有界枚举 |
+| D-3 | allowed labels | `service` / `route` / `method` / `status_code` / `operation` / `job_type` / `provider` / `model_family` / `model_profile_name` / `capability` / `language` / `feature` / `env` / `result` / `from_provider` / `from_model_family` / `to_provider` / `to_model_family` | 新增 label 必须是有界枚举 |
 | D-4 | forbidden labels | `user_id` / `target_job_id` / `session_id` / `prompt_version` / 原始 URL 全 path / 原始 provider model id / `from_model` / `to_model` / 任意自由文本 | 高基数禁入 metric；可入 log 或 event |
 | D-5 | log 字段集 | 通用 12 字段 + access / job / AI 三种额外字段集 | F1 logger 自动注入 |
 | D-6 | log 明文红线 | 绝不进 log：`rawJdText` / `answerText` / `resumeRawText` / `thankYouDraft` / `parsedSummary` 全量 / `promptTemplateBody` / `modelRawResponse` / 文件上传 / 下载 URL / token | `Hashed` helper 提供 sha256+salt |
@@ -85,15 +85,15 @@
 | Outbox | `outbox_events_pending` | Gauge | – |
 | Outbox | `outbox_publish_duration_seconds` | Histogram | – |
 | Outbox | `outbox_publish_failures_total` | Counter | – |
-| AI | `ai_task_runs_total` | Counter | task_type,provider,model_family,result |
-| AI | `ai_task_latency_seconds` | Histogram | task_type,provider,model_family |
-| AI | `ai_task_input_tokens_total` | Counter | task_type,provider,model_family |
-| AI | `ai_task_output_tokens_total` | Counter | task_type,provider,model_family |
-| AI | `ai_task_cost_usd_total` | Counter | task_type,provider,model_family |
-| AI | `ai_output_validation_failures_total` | Counter | task_type,provider,model_family |
-| AI | `ai_fallback_total` | Counter | task_type,from_model_family,to_model_family,result |
+| AI | `ai_task_runs_total` | Counter | provider,model_family,model_profile_name,route,capability,language,result |
+| AI | `ai_task_latency_seconds` | Histogram | provider,model_family,model_profile_name,route,capability,language,result |
+| AI | `ai_task_input_tokens_total` | Counter | provider,model_family,model_profile_name,route,capability,language,result |
+| AI | `ai_task_output_tokens_total` | Counter | provider,model_family,model_profile_name,route,capability,language,result |
+| AI | `ai_task_cost_usd_total` | Counter | provider,model_family,model_profile_name,route,capability,language,result |
+| AI | `ai_output_validation_failures_total` | Counter | provider,model_family,model_profile_name,route,capability,language,result |
+| AI | `ai_fallback_total` | Counter | provider,model_family,model_profile_name,route,capability,language,result,from_provider,from_model_family,to_provider,to_model_family |
 
-业务域（target / practice / report / resume / debrief / privacy）指标由各 C 域在自己的 plan 中接入。F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `resume_` / `debrief_` / `privacy_`）；独立 `mistake_` / `growth_` 前缀不得恢复。
+业务域（target / practice / report / resume / debrief / privacy）指标由各 C 域在自己的 plan 中接入。F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `resume_` / `debrief_` / `privacy_`）；已移除的旧独立域前缀不得恢复。
 
 ### 3.2 待确认事项
 

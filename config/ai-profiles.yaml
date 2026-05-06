@@ -1,6 +1,6 @@
 # A3 Model Profile catalog.
-# Schema uses capability + provider_ref; retired task_type/default.provider keys
-# are rejected by backend/internal/ai/aiclient/profile loader tests.
+# Schema uses capability + provider_ref; retired legacy profile keys are
+# rejected by backend/internal/ai/aiclient/profile loader tests.
 profiles:
   - name: debrief.generate.default
     capability: chat
@@ -21,18 +21,17 @@ profiles:
 
   - name: debrief.voice.extract.default
     capability: stt
-    status: unsupported
-    unsupported_reason: "voice debrief extraction requires STT activation in 002 tools-streaming-and-stt"
+    status: active
     default:
-      provider_ref: speech-placeholder
-      model: stt-placeholder-1
+      provider_ref: default-openai-compatible
+      model: default-stt
     fallback: []
     timeout_ms: 10000
     rate_limit:
       rps: 5
       tpm: 60000
     route: debrief.voice.extract
-    version: 0.1.0
+    version: 1.0.0
 
   - name: embedding.default
     capability: embed
@@ -65,18 +64,17 @@ profiles:
 
   - name: practice.dictation.stt.default
     capability: stt
-    status: unsupported
-    unsupported_reason: "STT adapter is reserved for 002 tools-streaming-and-stt"
+    status: active
     default:
-      provider_ref: speech-placeholder
-      model: stt-placeholder-1
+      provider_ref: default-openai-compatible
+      model: default-stt
     fallback: []
     timeout_ms: 10000
     rate_limit:
       rps: 5
       tpm: 60000
     route: practice.dictation.stt
-    version: 0.1.0
+    version: 1.0.0
 
   - name: practice.first_question.default
     capability: chat

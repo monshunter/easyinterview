@@ -1,13 +1,14 @@
 # Prompt Rubric Registry History
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-06 | 1.9 | 对齐 A3 002 Tools / streaming handoff：记录 F3 Resolve 后续可输出 provider-neutral `tools[]`、`output_schema`、`stream_wire` hints，且不得携带 provider/model 字符串。 | ai-provider-and-model-routing/002 Phase 5 |
 | 2026-05-05 | 1.8 | 对齐 A3 003 catalog consolidation：F3 默认 `model_profile_name` coverage gate 指向单一 `config/ai-profiles.yaml` catalog。 | ai-provider-and-model-routing/003 catalog consolidation |
 | 2026-05-05 | 1.7 | 将 A3 profile coverage gate 固化为 `make lint-ai-profile-coverage` / 顶层 `make lint` 的可执行门禁，覆盖 12 个 baseline feature_key 默认 profile 与 A3 Product/UI capability catalog。 | ai-provider-and-model-routing/003 Phase 4 |
 | 2026-05-05 | 1.6 | F3 feature_key、prompt/rubric 坐标、model profile reference 与 lint gate 改为只由本 spec、A3/B4 协作边界和后续编码 truth source 承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |

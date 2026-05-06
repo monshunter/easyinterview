@@ -10,7 +10,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"strings"
 	"time"
 
@@ -27,6 +29,7 @@ const Name = "openai_compatible"
 const (
 	PathChatCompletions = "/v1/chat/completions"
 	PathEmbeddings      = "/v1/embeddings"
+	PathTranscriptions  = "/v1/audio/transcriptions"
 )
 
 // Header names used for fallback/route metadata. The provider endpoint
@@ -173,6 +176,52 @@ func (a *Adapter) Embed(ctx context.Context, profile *aiclient.ModelProfile, inp
 	out := aiclient.EmbedResponse{Vectors: vectors}
 	meta := a.buildMeta(profile, headers, latencyMs, body.Model, body.Usage.PromptTokens, 0, nil)
 	meta.OutputTokens = len(vectors)
+	return out, meta, nil
+}
+
+// Transcribe implements aiclient.Provider using the OpenAI-compatible Audio
+// Transcriptions multipart wire shape.
+func (a *Adapter) Transcribe(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
+	if profile == nil {
+		return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, errors.New("openai_compatible: profile is nil")
+	}
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	if err := writeTranscriptionForm(writer, profile.Default.Model, input); err != nil {
+		return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, err
+	}
+	if err := writer.Close(); err != nil {
+		return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, fmt.Errorf("openai_compatible: close transcription multipart: %w", err)
+	}
+
+	start := time.Now()
+	resp, status, headers, err := a.postMultipart(ctx, profile.TimeoutMs, PathTranscriptions, writer.FormDataContentType(), &buf)
+	latencyMs := time.Since(start).Milliseconds()
+	if err != nil {
+		return aiclient.TranscriptionResponse{}, a.errMeta(profile, headers, latencyMs, err), err
+	}
+
+	if status >= 400 {
+		errCode := mapHTTPError(status, resp)
+		meta := a.errMeta(profile, headers, latencyMs, errCode)
+		return aiclient.TranscriptionResponse{}, meta, errCode
+	}
+
+	var body transcriptionResponse
+	if err := json.Unmarshal(resp, &body); err != nil {
+		errCode := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "openai_compatible: parse transcription response: "+err.Error(), false)
+		meta := a.errMeta(profile, headers, latencyMs, errCode)
+		return aiclient.TranscriptionResponse{}, meta, errCode
+	}
+	if body.Text == "" {
+		errCode := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "openai_compatible: transcription response missing text", false)
+		meta := a.errMeta(profile, headers, latencyMs, errCode)
+		return aiclient.TranscriptionResponse{}, meta, errCode
+	}
+
+	out := aiclient.TranscriptionResponse{Text: body.Text}
+	meta := a.buildMeta(profile, headers, latencyMs, profile.Default.Model, len(input.Audio), len(out.Text), nil)
 	return out, meta, nil
 }
 
@@ -347,6 +396,37 @@ func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body
 		return nil, 0, nil, fmt.Errorf("openai_compatible: build request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+a.apiKey)
+	if rid := aiclient.RequestIDFromContext(ctx); rid != "" {
+		req.Header.Set(HeaderRequestID, rid)
+	}
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		if ctxErr := ctx.Err(); errors.Is(ctxErr, context.DeadlineExceeded) {
+			return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: timeout", true)
+		}
+		return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: transport error: "+err.Error(), true)
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp.StatusCode, resp.Header, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: read response: "+err.Error(), true)
+	}
+	return respBody, resp.StatusCode, resp.Header, nil
+}
+
+func (a *Adapter) postMultipart(ctx context.Context, timeoutMs int, path, contentType string, body io.Reader) ([]byte, int, http.Header, error) {
+	if timeoutMs > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutMs)*time.Millisecond)
+		defer cancel()
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.baseURL+path, body)
+	if err != nil {
+		return nil, 0, nil, fmt.Errorf("openai_compatible: build request: %w", err)
+	}
+	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Authorization", "Bearer "+a.apiKey)
 	if rid := aiclient.RequestIDFromContext(ctx); rid != "" {
 		req.Header.Set(HeaderRequestID, rid)
@@ -561,6 +641,37 @@ func convertToolCalls(in []wireToolCall) []aiclient.ToolCall {
 		})
 	}
 	return out
+}
+
+func writeTranscriptionForm(writer *multipart.Writer, model string, input aiclient.TranscriptionInput) error {
+	if err := writer.WriteField("model", model); err != nil {
+		return fmt.Errorf("openai_compatible: write transcription model: %w", err)
+	}
+	if input.Language != "" {
+		if err := writer.WriteField("language", input.Language); err != nil {
+			return fmt.Errorf("openai_compatible: write transcription language: %w", err)
+		}
+	}
+	if input.Prompt != "" {
+		if err := writer.WriteField("prompt", input.Prompt); err != nil {
+			return fmt.Errorf("openai_compatible: write transcription prompt: %w", err)
+		}
+	}
+	header := textproto.MIMEHeader{}
+	header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, escapeMultipartValue(input.Filename)))
+	header.Set("Content-Type", input.ContentType)
+	part, err := writer.CreatePart(header)
+	if err != nil {
+		return fmt.Errorf("openai_compatible: create transcription file part: %w", err)
+	}
+	if _, err := part.Write(input.Audio); err != nil {
+		return fmt.Errorf("openai_compatible: write transcription audio: %w", err)
+	}
+	return nil
+}
+
+func escapeMultipartValue(s string) string {
+	return strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(s)
 }
 
 func applyParams(params map[string]any, req *chatCompletionsRequest) {

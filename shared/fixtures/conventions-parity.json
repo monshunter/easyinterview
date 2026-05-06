@@ -152,7 +152,9 @@
     "from_provider",
     "from_model_family",
     "to_provider",
-    "to_model_family"
+    "to_model_family",
+    "tool_invocations",
+    "partial_meta_reason"
   ],
   "serialization": {
     "pageInfo": {

@@ -37,6 +37,8 @@ describe('AI vocabulary generated constants', () => {
       AI_VOCABULARY_FIELDS.FROM_MODEL_FAMILY,
       AI_VOCABULARY_FIELDS.TO_PROVIDER,
       AI_VOCABULARY_FIELDS.TO_MODEL_FAMILY,
+      AI_VOCABULARY_FIELDS.TOOL_INVOCATIONS,
+      AI_VOCABULARY_FIELDS.PARTIAL_META_REASON,
     ];
 
     expect(ALL_AI_VOCABULARY_FIELDS).toEqual(expected);
@@ -62,6 +64,8 @@ describe('AI vocabulary generated constants', () => {
     expect(AI_VOCABULARY_FIELDS.FROM_MODEL_FAMILY).toBe('from_model_family');
     expect(AI_VOCABULARY_FIELDS.TO_PROVIDER).toBe('to_provider');
     expect(AI_VOCABULARY_FIELDS.TO_MODEL_FAMILY).toBe('to_model_family');
+    expect(AI_VOCABULARY_FIELDS.TOOL_INVOCATIONS).toBe('tool_invocations');
+    expect(AI_VOCABULARY_FIELDS.PARTIAL_META_REASON).toBe('partial_meta_reason');
   });
 
   it('validates documented fields only', () => {
@@ -80,6 +84,8 @@ describe('AI vocabulary generated constants', () => {
       AI_VOCABULARY_FIELDS.ROUTE,
       AI_VOCABULARY_FIELDS.VALIDATION_STATUS,
       AI_VOCABULARY_FIELDS.OUTPUT_SCHEMA_VERSION,
+      AI_VOCABULARY_FIELDS.TOOL_INVOCATIONS,
+      AI_VOCABULARY_FIELDS.PARTIAL_META_REASON,
     ] as const;
 
     expect(a3Fields).toEqual([
@@ -92,6 +98,8 @@ describe('AI vocabulary generated constants', () => {
       'route',
       'validation_status',
       'output_schema_version',
+      'tool_invocations',
+      'partial_meta_reason',
     ]);
     for (const field of a3Fields) {
       expect(isAIVocabularyField(field)).toBe(true);

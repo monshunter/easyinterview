@@ -14,6 +14,11 @@ type AIClient interface {
 	// Embed runs an embedding request.
 	Embed(ctx context.Context, profileName string, input EmbedInput) (EmbedResponse, AICallMeta, error)
 
+	// Transcribe runs an audio transcription request. The payload carries
+	// audio bytes plus filename/content type metadata; callers still reference
+	// only a Model Profile name.
+	Transcribe(ctx context.Context, profileName string, input TranscriptionInput) (TranscriptionResponse, AICallMeta, error)
+
 	// Stream returns a channel of AIStreamEvent values whose lifecycle is
 	// frozen by spec §4.1: at most one terminal `done` or `error` event,
 	// channel closes after the terminal event. Plan 001 only ships the type
@@ -35,6 +40,7 @@ type Provider interface {
 	Name() string
 	Complete(ctx context.Context, profile *ModelProfile, payload CompletePayload) (CompleteResponse, AICallMeta, error)
 	Embed(ctx context.Context, profile *ModelProfile, input EmbedInput) (EmbedResponse, AICallMeta, error)
+	Transcribe(ctx context.Context, profile *ModelProfile, input TranscriptionInput) (TranscriptionResponse, AICallMeta, error)
 	Stream(ctx context.Context, profile *ModelProfile, payload CompletePayload) (<-chan AIStreamEvent, error)
 }
 

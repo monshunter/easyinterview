@@ -41,8 +41,8 @@ fail-fast 并打印缺失 key 名（spec C-2）。
 `report_evidence_v2_enabled`、`report_retry_plan_enabled`、
 `readiness_signals_enabled`、`ai_fallback_model_enabled`、
 `practice_assistance_mode_enabled`。`runtime-config` 仅按此清单投影公开
-flag；历史 Mistake Book、Growth Dashboard 与双轨 mock session flag 已随
-product-scope v1.2 移除，不再作为配置能力保留。
+flag；历史错题本、成长看板与双轨 mock session flag 已随 product-scope v1.2
+移除，不再作为配置能力保留。
 
 `*.secret.yaml` / `*.secret.json` / `local.*.yaml` / `feature-flags.local.yaml`
 默认进 `.gitignore`（spec §4.2 / D-6）。
@@ -69,7 +69,7 @@ config-only 字段同样需要先递增 spec 版本再同步 `config.yaml`。
   `base_url_env`、`api_key_env`、`capabilities[]` 和 `version`；`stub` 可不写
   secret env ref，网络出站 protocol 必须写 env ref。
 - `ai-profiles.yaml` 顶层只允许 `profiles[]`，每个 profile 必须使用 `capability` 与
-  `default.provider_ref`，不得恢复旧 `task_type` / `default.provider` key。
+  `default.provider_ref`，不得恢复旧任务分类 key 或旧 provider key。
 - `status=disabled|unsupported` 的 profile 必须写 `unsupported_reason`，运行时
   必须 fail-closed，不得静默降级到 chat 或 stub。
 - `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只是默认

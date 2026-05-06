@@ -147,6 +147,19 @@ func (w *Wrap) Embed(ctx context.Context, profileName string, input aiclient.Emb
 	return resp, meta, joinRecordError(err, recordErr)
 }
 
+// Transcribe implements aiclient.AIClient.
+func (w *Wrap) Transcribe(ctx context.Context, profileName string, input aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
+	start := w.now()
+	resp, meta, err := w.inner.Transcribe(ctx, profileName, input)
+	completed := w.now()
+	latencyMs := completed.Sub(start).Milliseconds()
+	if meta.LatencyMs == 0 {
+		meta.LatencyMs = latencyMs
+	}
+	recordErr := w.recordTranscribeCall(ctx, profileName, input, resp, meta, start, completed, err)
+	return resp, meta, joinRecordError(err, recordErr)
+}
+
 // Stream implements aiclient.AIClient. Plan 001 emits one decorator
 // record on the terminal `done` event; plan 002's full SSE/chunked
 // consumer will call recordCompleteCall on the consolidated meta.
@@ -185,6 +198,17 @@ func (w *Wrap) recordCompleteCall(ctx context.Context, profileName string, paylo
 func (w *Wrap) recordEmbedCall(ctx context.Context, profileName string, input aiclient.EmbedInput, resp aiclient.EmbedResponse, meta aiclient.AICallMeta, start, completed time.Time, err error) error {
 	w.recordMetricsAndLog(meta, err)
 	auditRow := w.buildAuditRow(profileName, strings.Join(input.Texts, "\n"), summarizeVectors(resp.Vectors))
+	return errors.Join(
+		w.writeTaskRun(ctx, meta, input.Metadata.TaskRun, auditRow.Metadata, start, completed, err),
+		w.writeAuditEvent(ctx, auditRow),
+	)
+}
+
+func (w *Wrap) recordTranscribeCall(ctx context.Context, profileName string, input aiclient.TranscriptionInput, resp aiclient.TranscriptionResponse, meta aiclient.AICallMeta, start, completed time.Time, err error) error {
+	w.recordMetricsAndLog(meta, err)
+	auditRow := w.buildAuditRow(profileName, audioAuditSummary(input), resp.Text)
+	auditRow.Metadata.PromptCharLength = len(input.Audio)
+	auditRow.Metadata.ResponseCharLength = len(resp.Text)
 	return errors.Join(
 		w.writeTaskRun(ctx, meta, input.Metadata.TaskRun, auditRow.Metadata, start, completed, err),
 		w.writeAuditEvent(ctx, auditRow),
@@ -380,6 +404,18 @@ func hashHex(s string) string {
 	}
 	sum := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(sum[:])
+}
+
+func hashBytesHex(b []byte) string {
+	if len(b) == 0 {
+		return ""
+	}
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])
+}
+
+func audioAuditSummary(input aiclient.TranscriptionInput) string {
+	return fmt.Sprintf("audio:%d:%s", len(input.Audio), hashBytesHex(input.Audio))
 }
 
 func joinMessages(messages []aiclient.Message) string {
