@@ -8,6 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [002-tools-streaming-and-stt](./002-tools-streaming-and-stt/plan.md) | [plan](./002-tools-streaming-and-stt/plan.md) / [checklist](./002-tools-streaming-and-stt/checklist.md) / [context](./002-tools-streaming-and-stt/context.yaml) | 1.0 | active | 2026-05-06 |
 
 ## 2 已完成（Completed）
 
@@ -20,6 +21,5 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [002-tools-streaming-and-stt](./002-tools-streaming-and-stt/plan.md) | [plan](./002-tools-streaming-and-stt/plan.md) / [checklist](./002-tools-streaming-and-stt/checklist.md) / [context](./002-tools-streaming-and-stt/context.yaml) | 0.5 | draft | 2026-05-06 |
 
 > 阻塞条件：需 ADR-Q6 / A3 spec 先打开 Tools、Streaming 或 STT 能力。

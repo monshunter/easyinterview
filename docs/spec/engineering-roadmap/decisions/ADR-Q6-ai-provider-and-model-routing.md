@@ -1,8 +1,8 @@
 # ADR-Q6 · AI Provider 与模型路由
 
-> **版本**: 1.8
+> **版本**: 2.0
 > **状态**: accepted
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-06
 
 ## 1 背景
 
@@ -81,10 +81,13 @@
 
 ## 3 决策
 
-**P0 锁定选项 A**。本 ADR 把 §3.2 Q-6 已确认方向固化为以下 9 项硬约束：
+**P0 锁定选项 A**。2026-05-06 经执行者确认，为避免后续 `backend-practice`、`backend-debrief`、production voice 与 F3 schema 接入时重复改造 AI 底座，原先在 §5 中列为“触发后评估”的 Tools / provider streaming / STT 能力提前纳入 A3 当前底座实施。该激活不推翻 provider-neutral 抽象，仍保持业务只依赖 `AIClient` + profile name，不引入厂商 SDK。
+
+本 ADR 把 §3.2 Q-6 已确认方向固化为以下 9 项硬约束：
 
 1. **AIClient 接口**（A3 owner）
-   - 唯一对外能力：`Complete(ctx, profile, payload) → (response, meta)` / `Embed(ctx, profile, input) → (vector, meta)` / `Stream(ctx, profile, payload) → channel`
+   - 唯一对外能力：`Complete(ctx, profile, payload) → (response, meta)` / `Embed(ctx, profile, input) → (vector, meta)` / `Stream(ctx, profile, payload) → channel` / `Transcribe(ctx, profile, audio) → (transcript, meta)`
+   - Tool / function calling 作为 `CompletePayload.tools[]`、`tool_choice`、`output_schema` 与 `CompleteResponse.tool_calls[]` 的 provider-neutral 扩展，不新增业务侧可绕过 profile 的 provider-specific 接口
    - `meta` 携带：`provider`、`model_family`、`model`、`prompt_version`、`rubric_version`、`model_profile_version`、`tokens_in/out`、`cost_usd`、`latency_ms`、`fallback_chain[]`、`route`
 2. **Provider Registry + Model Profile**（A3 owner）
    - Provider Registry：`config/ai-providers.yaml` + 热加载；字段：`name` / `protocol` / `base_url_env` / `api_key_env` / `capabilities[]` / `version`；`stub` 可不声明 secret env ref，网络出站 provider 必须声明
@@ -96,7 +99,7 @@
    - 仅用于单元测试、离线 contract 测试或显式 mock 场景
    - 输入 → 输出 hash-based 确定性映射；可被 OpenAPI fixtures 反向喂养（与 E1 `mock-contract-suite` 同源）
    - 单元测试默认走 `stub`；docker compose / Kind / staging / prod 不允许默认降级到 stub，缺少 provider registry、model profile path 或选中 provider 的 secret env ref 时必须 fail-fast
-5. **Provider endpoint 边界**：本 ADR 不锁死供应商、托管形态或代理实现，只锁 provider registry / profile / OpenAI-compatible API 子集和应用侧 secret ref 连接参数
+5. **Provider endpoint 边界**：本 ADR 不锁死供应商、托管形态或代理实现，只锁 provider registry / profile / OpenAI-compatible API 子集和应用侧 secret ref 连接参数。当前可执行 OpenAI-compatible 子集包含 Chat Completions、Embeddings、chat streaming SSE 与 Audio Transcriptions；realtime multimodal、rerank、judge 仍需各自 owner 后续递增 spec 后打开
 6. **F3 解耦**：`prompt-rubric-registry` 只持有 `(feature_key, prompt_version, rubric_version, model_profile_name)` 四元组；不持有 provider / model 字符串
 7. **可观测性**（F1 owner）
    - 每次 `AIClient.*` 调用必须落 `ai_task_runs_total` + `ai_task_latency_seconds` + `ai_task_input/output_tokens_total` + `ai_task_cost_usd_total` + `ai_output_validation_failures_total` + `ai_fallback_total`
@@ -121,10 +124,11 @@
 触发推翻或升级本 ADR 的具体阈值：
 
 - provider ref 连接故障导致 ≥ 2 次 P0 事故 / 季 → 评估业务侧降级到显式只读/不可用状态或运维 provider ref 切换机制（仍走 `AIClient`，不打破抽象）
-- 出现需要业务感知 model 内部状态的高级特性（function calling / tool use 跨厂商差异极大）→ 评估在 `AIClient` 上扩展 `Tools(...)` 接口；不打破 provider-neutral
+- 出现超出当前 OpenAI-compatible tool subset 的 provider-specific 高级特性 → 先递增 A3 / F3 / B1 owner spec，再评估是否扩展 provider-neutral payload；不得把厂商私有字段直接暴露给业务
 - 多模型并行评估 / A/B（Q-3 PostHog feature flag 联动）需要按用户分桶 → 由 F3 Resolve + feature flag 选择最终 profile；不入侵业务调用现场
 - provider ref 性能成为瓶颈（p95 > business SLA × 1.5）→ 评估更换 provider ref 或自建轻量 router（仍保持 `AIClient`）
 - OpenAI-compatible API 不再是行业 lingua franca → 评估 provider adapter 升级；业务无感知
+- realtime multimodal voice 进入 P0/P1 发布 → 新增或修订 ADR 明确音频留存、双向流、TTS、成本、隐私删除链路与 UI release gate；不得由当前 STT adapter 顺手打开
 
 修订流程：本 ADR 状态由 `accepted` → `superseded`，新 ADR 显式标注 `supersedes: ADR-Q6-ai-provider-and-model-routing.md`。
 
@@ -140,6 +144,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-06 | 2.0 | 提前激活 A3 002：在保持 provider-neutral / 零 SDK / 隐私红线的前提下，将 Tools payload 扩展、provider-side streaming consumer 与 STT Audio Transcriptions 纳入当前 AI 底座实施范围；realtime multimodal 仍 fail-closed。 |
 | 2026-05-05 | 1.8 | 收口 active 部署与失效条件措辞：Kind / staging / prod 均以 provider registry/profile/secret 组合和 provider ref 为当前契约，不再用单一 endpoint 作为当前目标架构描述。 |
 | 2026-05-05 | 1.7 | 同步 A3 003 Phase 4：运行时注入 fail-fast 口径改为 registry/profile path + 被选中 provider secret；B1 边界扩展为 AI capability、provider/profile 字段名与 provider/profile routing 错误码。 |
 | 2026-05-05 | 1.6 | 基于 product-scope 与 UI AI 场景重估，将目标架构从单一 provider endpoint 升级为 Provider Registry + Capability Model Profile；fallback 改由 AIClient 在 profile chain 内集中执行，A4 入口新增 `AI_PROVIDER_REGISTRY_PATH`。 |

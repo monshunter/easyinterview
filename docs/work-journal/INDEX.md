@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-06](2026-05-06.md) | `docs(ai-provider): activate tools streaming stt plan` | #docs |
 | [2026-05-06](2026-05-06.md) | `docs(ai-provider): harden 002 activation gates` | #docs |
 | [2026-05-06](2026-05-06.md) | `fix(mock-contract): reject retired fixture tag dirs` | #fix #test #docs |
 | [2026-05-06](2026-05-06.md) | `fix(mock-contract): harden runtime drift gates` | #fix #test #docs |
