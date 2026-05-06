@@ -1,6 +1,6 @@
 # Observability Stack Spec
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
 > **更新日期**: 2026-05-06
 
@@ -92,6 +92,13 @@
 | AI | `ai_task_cost_usd_total` | Counter | provider,model_family,model_profile_name,route,capability,language,result |
 | AI | `ai_output_validation_failures_total` | Counter | provider,model_family,model_profile_name,route,capability,language,result |
 | AI | `ai_fallback_total` | Counter | provider,model_family,model_profile_name,route,capability,language,result,from_provider,from_model_family,to_provider,to_model_family |
+| Auth | `auth_challenge_started_total` | Counter | service,result |
+| Auth | `auth_session_minted_total` | Counter | service,result |
+| Auth | `auth_logout_total` | Counter | service,result |
+| Auth | `auth_delete_handoff_total` | Counter | service,result |
+| Auth | `auth_failure_total` | Counter | service,operation,result |
+
+Auth 指标由 C1 `backend-auth/001-passwordless-session-bootstrap` 在自身 plan 中接入；F1 仅登记 metric 名和 label contract。Auth metric labels 只能使用 `service` / `operation` / `result`，不得包含 `user_id`、`session_id`、邮箱、token、完整 URL 或任意自由文本。
 
 业务域（target / practice / report / resume / debrief / privacy）指标由各 C 域在自己的 plan 中接入。F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `resume_` / `debrief_` / `privacy_`）；已移除的旧独立域前缀不得恢复。
 

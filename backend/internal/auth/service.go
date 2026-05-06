@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"strings"
 	"time"
 
@@ -19,6 +20,8 @@ type PasswordlessServiceOptions struct {
 	SessionTokenGenerator TokenGenerator
 	ChallengePepper       string
 	SessionCookieSecret   string
+	Metrics               AuthMetrics
+	Audit                 AuthAuditRecorder
 	Now                   func() time.Time
 	NewID                 func() string
 }
@@ -31,6 +34,8 @@ type PasswordlessService struct {
 	sessionTokenGenerator TokenGenerator
 	challengePepper       string
 	sessionCookieSecret   string
+	metrics               AuthMetrics
+	audit                 AuthAuditRecorder
 	now                   func() time.Time
 	newID                 func() string
 }
@@ -92,6 +97,8 @@ func NewPasswordlessService(opts PasswordlessServiceOptions) *PasswordlessServic
 		sessionTokenGenerator: sessionGenerator,
 		challengePepper:       opts.ChallengePepper,
 		sessionCookieSecret:   opts.SessionCookieSecret,
+		metrics:               opts.Metrics,
+		audit:                 opts.Audit,
 		now:                   now,
 		newID:                 newID,
 	}
@@ -109,6 +116,7 @@ func (s *PasswordlessService) StartEmailChallenge(ctx context.Context, in StartE
 	}
 	email := normalizeEmail(in.Email)
 	if email == "" {
+		s.recordAuthFailure(ctx, "start_challenge", "validation", "", "")
 		return StartEmailChallengeResult{}, fmt.Errorf("email is required")
 	}
 	now := s.now().UTC()
@@ -117,13 +125,16 @@ func (s *PasswordlessService) StartEmailChallenge(ctx context.Context, in StartE
 	uaHash := hashWithPepper(s.challengePepper, strings.TrimSpace(in.UserAgent))
 	recent, err := s.store.CountRecentChallenges(ctx, email, ipHash, now.Add(-RateLimitWindow))
 	if err != nil {
+		s.recordAuthFailure(ctx, "start_challenge", "store_error", "", challengeID)
 		return StartEmailChallengeResult{}, err
 	}
 	if recent >= RateLimitThreshold-1 {
+		s.recordChallengeStarted(ctx, challengeID, "rate_limited")
 		return StartEmailChallengeResult{ChallengeID: challengeID, Accepted: true, RateLimited: true}, nil
 	}
 	token, err := s.tokenGenerator.GenerateToken()
 	if err != nil {
+		s.recordAuthFailure(ctx, "start_challenge", "token_generation_error", "", challengeID)
 		return StartEmailChallengeResult{}, err
 	}
 	tokenHash := hashWithPepper(s.challengePepper, token)
@@ -137,6 +148,7 @@ func (s *PasswordlessService) StartEmailChallenge(ctx context.Context, in StartE
 		ExpiresAt:     now.Add(ChallengeTTL),
 		CreatedAt:     now,
 	}); err != nil {
+		s.recordAuthFailure(ctx, "start_challenge", "store_error", "", challengeID)
 		return StartEmailChallengeResult{}, err
 	}
 
@@ -150,11 +162,14 @@ func (s *PasswordlessService) StartEmailChallenge(ctx context.Context, in StartE
 		"dedupeKey":         hashWithPepper(s.challengePepper, "email:"+email),
 	})
 	if err != nil {
+		s.recordAuthFailure(ctx, "start_challenge", "dispatch_payload_error", "", challengeID)
 		return StartEmailChallengeResult{}, err
 	}
 	if err := s.dispatcher.Enqueue(ctx, payload); err != nil {
+		s.recordAuthFailure(ctx, "start_challenge", "dispatch_error", "", challengeID)
 		return StartEmailChallengeResult{}, err
 	}
+	s.recordChallengeStarted(ctx, challengeID, "accepted")
 	return StartEmailChallengeResult{ChallengeID: challengeID, Accepted: true}, nil
 }
 
@@ -164,22 +179,27 @@ func (s *PasswordlessService) VerifyEmailChallenge(ctx context.Context, in Verif
 	}
 	token := strings.TrimSpace(in.Token)
 	if token == "" {
+		s.recordAuthFailure(ctx, "verify_challenge", "invalid", "", "")
 		return VerifyEmailChallengeResult{}, ErrChallengeInvalid
 	}
 	now := s.now().UTC()
 	challenge, err := s.store.ConsumeChallenge(ctx, hashWithPepper(s.challengePepper, token), now)
 	if err != nil {
 		if errors.Is(err, ErrChallengeExpired) || errors.Is(err, ErrChallengeConsumed) || errors.Is(err, ErrChallengeInvalid) {
+			s.recordAuthFailure(ctx, "verify_challenge", challengeFailureResult(err), "", "")
 			return VerifyEmailChallengeResult{}, err
 		}
+		s.recordAuthFailure(ctx, "verify_challenge", "store_error", "", "")
 		return VerifyEmailChallengeResult{}, err
 	}
 	user, err := s.store.FindOrCreateUserByEmail(ctx, challenge.Email, s.newID(), now)
 	if err != nil {
+		s.recordAuthFailure(ctx, "verify_challenge", "store_error", "", challenge.ID)
 		return VerifyEmailChallengeResult{}, err
 	}
 	sessionToken, err := s.sessionTokenGenerator.GenerateToken()
 	if err != nil {
+		s.recordAuthFailure(ctx, "verify_challenge", "token_generation_error", user.ID, challenge.ID)
 		return VerifyEmailChallengeResult{}, err
 	}
 	expiresAt := now.Add(SessionTTL)
@@ -196,8 +216,10 @@ func (s *PasswordlessService) VerifyEmailChallenge(ctx context.Context, in Verif
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}); err != nil {
+		s.recordAuthFailure(ctx, "verify_challenge", "store_error", user.ID, challenge.ID)
 		return VerifyEmailChallengeResult{}, err
 	}
+	s.recordSessionMinted(ctx, user.ID, challenge.ID)
 	return VerifyEmailChallengeResult{
 		UserID:           user.ID,
 		SessionToken:     sessionToken,
@@ -255,7 +277,12 @@ func (s *PasswordlessService) Logout(ctx context.Context, current CurrentSession
 	if current.SessionID == "" {
 		return nil
 	}
-	return s.store.RevokeSession(ctx, current.SessionID, s.now().UTC())
+	if err := s.store.RevokeSession(ctx, current.SessionID, s.now().UTC()); err != nil {
+		s.recordAuthFailure(ctx, "logout", "store_error", current.UserID, "")
+		return err
+	}
+	s.recordLogout(ctx, current.UserID)
+	return nil
 }
 
 func (s *PasswordlessService) DeleteMe(ctx context.Context, current CurrentSession, idempotencyKey string) (PrivacyDeleteHandoff, error) {
@@ -268,14 +295,38 @@ func (s *PasswordlessService) DeleteMe(ctx context.Context, current CurrentSessi
 	}
 	handoff, err := s.store.CreatePrivacyDeleteHandoff(ctx, current.UserID, idempotencyKey, s.newID(), s.newID(), now)
 	if err != nil {
+		s.recordAuthFailure(ctx, "delete_handoff", "store_error", current.UserID, "")
 		return PrivacyDeleteHandoff{}, err
 	}
 	if current.SessionID != "" {
 		if err := s.store.RevokeSession(ctx, current.SessionID, now); err != nil {
+			s.recordAuthFailure(ctx, "delete_handoff", "store_error", current.UserID, "")
 			return PrivacyDeleteHandoff{}, err
 		}
 	}
+	s.recordDeleteHandoff(ctx, current.UserID, handoff)
 	return handoff, nil
+}
+
+func (s *PasswordlessService) RuntimeConfigSessionResolver() func(*http.Request) bool {
+	return func(r *http.Request) bool {
+		if s == nil || r == nil {
+			return false
+		}
+		cookie, err := r.Cookie(SessionCookieName)
+		if err != nil || cookie.Value == "" {
+			return false
+		}
+		current, err := s.ResolveSession(r.Context(), cookie.Value)
+		if err != nil {
+			return false
+		}
+		user, err := s.CurrentUser(r.Context(), current.UserID)
+		if err != nil {
+			return false
+		}
+		return user.AnalyticsOptIn
+	}
 }
 
 func normalizeEmail(email string) string {
@@ -295,4 +346,88 @@ func localeOrDefault(locale string) string {
 		return locale
 	}
 	return "en"
+}
+
+func (s *PasswordlessService) recordChallengeStarted(ctx context.Context, challengeID string, result string) {
+	s.metrics.recordChallengeStarted(result)
+	s.recordAuthAudit(ctx, AuthAuditEvent{
+		Action:      AuthAuditActionChallengeStarted,
+		Result:      authMetricResult(result),
+		ChallengeID: challengeID,
+		TraceID:     AuthTraceIDFromContext(ctx),
+	})
+}
+
+func (s *PasswordlessService) recordSessionMinted(ctx context.Context, userID string, challengeID string) {
+	s.metrics.recordSessionMinted("success")
+	s.recordAuthAudit(ctx, AuthAuditEvent{
+		Action:      AuthAuditActionSessionMinted,
+		Result:      "success",
+		UserIDHash:  s.auditUserIDHash(userID),
+		ChallengeID: challengeID,
+		TraceID:     AuthTraceIDFromContext(ctx),
+	})
+}
+
+func (s *PasswordlessService) recordLogout(ctx context.Context, userID string) {
+	s.metrics.recordLogout("success")
+	s.recordAuthAudit(ctx, AuthAuditEvent{
+		Action:     AuthAuditActionLogout,
+		Result:     "success",
+		UserIDHash: s.auditUserIDHash(userID),
+		TraceID:    AuthTraceIDFromContext(ctx),
+	})
+}
+
+func (s *PasswordlessService) recordDeleteHandoff(ctx context.Context, userID string, handoff PrivacyDeleteHandoff) {
+	s.metrics.recordDeleteHandoff("success")
+	s.recordAuthAudit(ctx, AuthAuditEvent{
+		Action:           AuthAuditActionDeleteHandoff,
+		Result:           "success",
+		UserIDHash:       s.auditUserIDHash(userID),
+		PrivacyRequestID: handoff.PrivacyRequestID,
+		JobID:            handoff.JobID,
+		TraceID:          AuthTraceIDFromContext(ctx),
+	})
+}
+
+func (s *PasswordlessService) recordAuthFailure(ctx context.Context, operation string, result string, userID string, challengeID string) {
+	result = authMetricResult(result)
+	operation = authMetricOperation(operation)
+	s.metrics.recordFailure(operation, result)
+	s.recordAuthAudit(ctx, AuthAuditEvent{
+		Action:      AuthAuditActionFailure,
+		Operation:   operation,
+		Result:      result,
+		UserIDHash:  s.auditUserIDHash(userID),
+		ChallengeID: challengeID,
+		TraceID:     AuthTraceIDFromContext(ctx),
+	})
+}
+
+func (s *PasswordlessService) recordAuthAudit(ctx context.Context, event AuthAuditEvent) {
+	if s == nil || s.audit == nil {
+		return
+	}
+	_ = s.audit.RecordAuthAuditEvent(ctx, event)
+}
+
+func (s *PasswordlessService) auditUserIDHash(userID string) string {
+	if strings.TrimSpace(userID) == "" {
+		return ""
+	}
+	return hashWithPepper(s.challengePepper, "user:"+userID)
+}
+
+func challengeFailureResult(err error) string {
+	switch {
+	case errors.Is(err, ErrChallengeExpired):
+		return "expired"
+	case errors.Is(err, ErrChallengeConsumed):
+		return "consumed"
+	case errors.Is(err, ErrChallengeInvalid):
+		return "invalid"
+	default:
+		return "error"
+	}
 }

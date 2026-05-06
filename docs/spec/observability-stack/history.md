@@ -1,6 +1,6 @@
 # Observability Stack History
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
 > **更新日期**: 2026-05-06
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-06 | 1.7 | 登记 C1 passwordless auth 最小指标：challenge started、session minted、logout、delete handoff 与 failure counter，并锁定 labels 只使用 F1 allowed set，不携带邮箱、token、session id 或 URL。 | backend-auth/001-passwordless-session-bootstrap Phase 4 |
 | 2026-05-06 | 1.6 | 对齐 A3 002 STT / streaming / tool 底座：AI metric label contract 从旧 `task_type` 迁移为 `capability`，并补齐 `model_profile_name`、`route`、fallback provider labels，与 A3 observability wrapper 当前 truth source 一致。 | ai-provider-and-model-routing/002 Phase 5 |
 | 2026-05-05 | 1.5 | F1 metric / logging / trace / dashboard / alerting 契约改为只由本 spec 与后续编码 truth source 承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |
 | 2026-05-03 | 1.4 | 明确当前观测契约由本 spec、F1 后续编码 truth source 与 product-scope 当前范围决定，并从业务域 metric 前缀中移除独立 `mistake_` / `growth_`。 | docs-only |

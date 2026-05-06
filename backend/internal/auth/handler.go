@@ -38,7 +38,8 @@ func (h *Handler) StartAuthEmailChallenge(w http.ResponseWriter, r *http.Request
 	if body.ReturnTo != nil {
 		returnTo = *body.ReturnTo
 	}
-	_, err := h.passwordless.StartEmailChallenge(r.Context(), StartEmailChallengeInput{
+	ctx := ContextWithAuthTraceID(r.Context(), TraceIDFromTraceparent(r.Header.Get("traceparent")))
+	_, err := h.passwordless.StartEmailChallenge(ctx, StartEmailChallengeInput{
 		Email:        body.Email,
 		ReturnTo:     returnTo,
 		RemoteAddr:   r.RemoteAddr,
@@ -57,7 +58,8 @@ func (h *Handler) VerifyAuthEmailChallenge(w http.ResponseWriter, r *http.Reques
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
 		return
 	}
-	result, err := h.passwordless.VerifyEmailChallenge(r.Context(), VerifyEmailChallengeInput{
+	ctx := ContextWithAuthTraceID(r.Context(), TraceIDFromTraceparent(r.Header.Get("traceparent")))
+	result, err := h.passwordless.VerifyEmailChallenge(ctx, VerifyEmailChallengeInput{
 		Token:      r.URL.Query().Get("token"),
 		RemoteAddr: r.RemoteAddr,
 		UserAgent:  r.UserAgent(),
@@ -117,7 +119,8 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	if current, ok := CurrentSessionFromContext(r.Context()); ok && h != nil && h.passwordless != nil {
-		_ = h.passwordless.Logout(r.Context(), current)
+		ctx := ContextWithAuthTraceID(r.Context(), TraceIDFromTraceparent(r.Header.Get("traceparent")))
+		_ = h.passwordless.Logout(ctx, current)
 	}
 	clearSessionCookie(w)
 	w.WriteHeader(http.StatusNoContent)
@@ -133,7 +136,8 @@ func (h *Handler) DeleteMe(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
 		return
 	}
-	handoff, err := h.passwordless.DeleteMe(r.Context(), current, r.Header.Get("Idempotency-Key"))
+	ctx := ContextWithAuthTraceID(r.Context(), TraceIDFromTraceparent(r.Header.Get("traceparent")))
+	handoff, err := h.passwordless.DeleteMe(ctx, current, r.Header.Get("Idempotency-Key"))
 	if err != nil {
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "privacy delete handoff could not be created", false)
 		return

@@ -29,9 +29,9 @@
 
 ## Phase 4: Runtime config resolver, privacy, and observability
 
-- [ ] 4.1 接入 A4 `/runtime-config` session resolver；验证: tests 断言 C1 只向 A4 handler 注入 session-aware resolver，未登录保持 public response，有效 session 只影响 A4 allowlist 内用户级偏好，secret / internal flag 不出 response
-- [ ] 4.2 补隐私和可观测红线；验证: privacy tests / grep 确认日志、metric label、audit 不含 magic token、session cookie、完整邮箱、secret 或 PII 明文
-- [ ] 4.3 接入 auth metrics / audit 最小事件；验证: F1 registry preflight 断言 `auth_challenge_started_total`、`auth_session_minted_total`、`auth_failure_total` 等 metric 已登记到 F1 baseline metrics 字典或 F1 owner plan；tests / lint 断言 metric 只使用 F1 allowed labels，challenge started / session minted / logout / delete handoff / failure audit 只含 ID / hash / 状态 / trace，不含 token、session id、邮箱明文或 URL
+- [x] 4.1 接入 A4 `/runtime-config` session resolver；验证: tests 断言 C1 只向 A4 handler 注入 session-aware resolver，未登录保持 public response，有效 session 只影响 A4 allowlist 内用户级偏好，secret / internal flag 不出 response
+- [x] 4.2 补隐私和可观测红线；验证: privacy tests / grep 确认日志、metric label、audit 不含 magic token、session cookie、完整邮箱、secret 或 PII 明文
+- [x] 4.3 接入 auth metrics / audit 最小事件；验证: F1 registry preflight 断言 `auth_challenge_started_total`、`auth_session_minted_total`、`auth_failure_total` 等 metric 已登记到 F1 baseline metrics 字典或 F1 owner plan；tests / lint 断言 metric 只使用 F1 allowed labels，challenge started / session minted / logout / delete handoff / failure audit 只含 ID / hash / 状态 / trace，不含 token、session id、邮箱明文或 URL
 
 ## Phase 5: BDD and handoff
 

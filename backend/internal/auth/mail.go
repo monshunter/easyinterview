@@ -146,6 +146,19 @@ func (s *DevMailSink) ContainsStoredSecret(value string) bool {
 	return false
 }
 
+func (s *DevMailSink) String() string {
+	if s == nil {
+		return "DevMailSink<nil>"
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return fmt.Sprintf("DevMailSink{deliveries:%d secrets:redacted verifyBaseURL:redacted}", len(s.deliveries))
+}
+
+func (s *DevMailSink) GoString() string {
+	return s.String()
+}
+
 type ImmediateMailDispatcher struct {
 	sink *DevMailSink
 }
