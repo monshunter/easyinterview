@@ -1,0 +1,108 @@
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type FC,
+  type ReactNode,
+} from "react";
+
+import {
+  EasyInterviewClient,
+  type RequestOptions,
+} from "../../api/generated/client";
+import type { RuntimeConfig, UserContext } from "../../api/generated/types";
+
+export type RuntimeConfigState =
+  | { status: "loading" }
+  | { status: "ready"; config: RuntimeConfig }
+  | { status: "error"; error: Error };
+
+export type AuthState =
+  | { status: "loading" }
+  | { status: "authenticated"; user: UserContext }
+  | { status: "unauthenticated" };
+
+export interface AppRuntimeValue {
+  runtime: RuntimeConfigState;
+  auth: AuthState;
+}
+
+export interface AppRuntimeProviderProps {
+  client: EasyInterviewClient;
+  /**
+   * Per-operation request options. Tests use this to inject `Prefer:
+   * example=<scenario>` headers; production bootstrap leaves this undefined
+   * and lets the mock transport / real backend resolve scenarios on its own.
+   */
+  requestOptions?: {
+    runtimeConfig?: RequestOptions;
+    getMe?: RequestOptions;
+  };
+  children: ReactNode;
+}
+
+const AppRuntimeContext = createContext<AppRuntimeValue | null>(null);
+
+export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
+  client,
+  requestOptions,
+  children,
+}) => {
+  const [runtime, setRuntime] = useState<RuntimeConfigState>({
+    status: "loading",
+  });
+  const [auth, setAuth] = useState<AuthState>({ status: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    client
+      .getRuntimeConfig(requestOptions?.runtimeConfig)
+      .then((config) => {
+        if (!cancelled) setRuntime({ status: "ready", config });
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        const wrapped = error instanceof Error ? error : new Error(String(error));
+        setRuntime({ status: "error", error: wrapped });
+      });
+
+    client
+      .getMe(requestOptions?.getMe)
+      .then((user) => {
+        if (!cancelled) setAuth({ status: "authenticated", user });
+      })
+      .catch(() => {
+        // Spec D-3: `/me` only drives the user area; any failure (401, network,
+        // etc.) collapses to "unauthenticated" so the default Home keeps loading.
+        if (!cancelled) setAuth({ status: "unauthenticated" });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [client, requestOptions]);
+
+  const value = useMemo<AppRuntimeValue>(
+    () => ({ runtime, auth }),
+    [runtime, auth],
+  );
+
+  return (
+    <AppRuntimeContext.Provider value={value}>
+      {children}
+    </AppRuntimeContext.Provider>
+  );
+};
+
+export function useAppRuntime(): AppRuntimeValue {
+  const ctx = useContext(AppRuntimeContext);
+  if (!ctx) {
+    throw new Error(
+      "useAppRuntime must be used inside an <AppRuntimeProvider>",
+    );
+  }
+  return ctx;
+}

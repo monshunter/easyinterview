@@ -5,17 +5,30 @@
   "type": "module",
   "description": "easyinterview frontend workspace package; surfaces JD onboarding, target job workspace, mock interview, and report screens.",
   "scripts": {
-    "build": "echo 'TODO: build implemented by D1 frontend-shell' && exit 0",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
     "lint": "echo 'TODO: full lint wired by D1; B1 only enforces error-code boundary in scripts/lint' && exit 0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "uuid": "^11.0.0"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/node": "^22.10.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "jsdom": "^25.0.1",
     "typescript": "^5.6.0",
+    "vite": "^5.4.10",
     "vitest": "^2.1.0"
   }
 }

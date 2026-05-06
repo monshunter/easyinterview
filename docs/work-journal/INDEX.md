@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-07](2026-05-07.md) | `feat(frontend-shell): app bootstrap and route normalization` | #feat #test #ui #docs |
 | [2026-05-07](2026-05-07.md) | `fix(runtime): harden worker topology structured gate` | #fix #test #docs |
 | [2026-05-07](2026-05-07.md) | `fix(runtime): harden worker topology scripts gate` | #fix #test #docs |
 | [2026-05-06](2026-05-06.md) | `fix(runtime): harden worker topology false-negative gate` | #fix #test #docs |
