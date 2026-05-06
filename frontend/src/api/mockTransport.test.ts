@@ -33,4 +33,19 @@ describe("fixture-backed generated client transport", () => {
 		expect(targetJobs.items[0]?.title).toBe("Senior Frontend Engineer");
 		expect(session.currentTurn?.questionIntent).toBe("behavioral.leadership.design_system");
 	});
+
+	it("selects named scenarios from Prefer and rejects unknown scenarios", async () => {
+		const client = new EasyInterviewClient({
+			fetch: createFixtureBackedFetch(createFixtureRegistry([getMeFixture])),
+		});
+
+		const authenticated = await client.getMe({
+			headers: { Prefer: "example=authenticated" },
+		});
+
+		expect(authenticated.displayName).toBe("Alice Example");
+		await expect(
+			client.getMe({ headers: { Prefer: "example=does-not-exist" } }),
+		).rejects.toThrow("unknown fixture scenario does-not-exist for operationId: getMe");
+	});
 });

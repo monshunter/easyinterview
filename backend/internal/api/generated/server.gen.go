@@ -12,7 +12,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 36-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// 34-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
 	// startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email magic-link challenge

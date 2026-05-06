@@ -111,6 +111,7 @@ class MakefileDryRunTest(unittest.TestCase):
         makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
 
         self.assertIn("lint-mock-contract", makefile)
+        self.assertIn("scripts.mock_contract.fixture_registry_test", makefile)
         self.assertIn("scripts/lint/mock_runtime_boundary.py", makefile)
         self.assertRegex(
             makefile,

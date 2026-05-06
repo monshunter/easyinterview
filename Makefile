@@ -37,7 +37,8 @@ lint-ai-provider-terminology: ## Reject retired AI gateway terminology in active
 lint-ai-profile-coverage: ## Validate A3/F3/Product-UI AI profile coverage
 	@python3 "$(ROOT_DIR)/scripts/lint/ai_profile_coverage.py" --repo-root "$(ROOT_DIR)"
 
-lint-mock-contract: validate-fixtures lint-openapi ## Validate fixture coverage, mock runtime boundaries, and retired mock/API tokens
+lint-mock-contract: validate-fixtures lint-openapi ## Validate fixture coverage, registry metadata, mock runtime boundaries, and retired mock/API tokens
+	@python3 -m unittest scripts.mock_contract.fixture_registry_test
 	@python3 "$(ROOT_DIR)/scripts/lint/mock_runtime_boundary.py" --repo-root "$(ROOT_DIR)"
 
 lint-secrets-pattern: ## Scan staged + tracked files for AKIA / sk- / xox secret prefixes (defense-in-depth; pre-commit hook is the primary gate)

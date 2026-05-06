@@ -1,6 +1,6 @@
 # Fixture-backed Mock Runtime Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-05
 
@@ -25,3 +25,5 @@
 
 - [x] 4.1 接入本地质量门禁；验证: 本地 lint/codegen gate 执行 fixture coverage、prototype import boundary 和 scoped retired token negative search，失败时输出 owner spec 指引；收口实际运行 `make validate-fixtures`、`make lint-openapi`、`make codegen-check`、`make docs-check`
 - [x] 4.2 Handoff 给 frontend-shell；验证: `frontend-shell/001-app-shell-auth-settings` context references 可指向本 spec，mock runtime README 或 package docs 说明可消费入口、seed profile 和阻塞条件
+- [x] 4.3 L2 remediation: `lint-mock-contract` 必须执行 operation registry metadata test，Go generated route table 注释不得保留旧 36-row 口径，前端 mock transport 必须有 named scenario / unknown scenario 回归测试；验证: focused Red-Green 后运行 registry unittest、Go codegen test、frontend mockTransport test、`make lint-mock-contract`、`make codegen-check`、`make docs-check`
+  <!-- verified: 2026-05-05 method=tdd-red-green focused=makefile-dry-run,go-codegen-openapi,frontend-mockTransport,fixture-registry gates=lint-mock-contract,docs-check,codegen-check-temp-index -->

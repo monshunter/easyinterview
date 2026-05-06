@@ -140,6 +140,10 @@ func TestRun_ApiErrorInnerObjectAndResponseEnvelope(t *testing.T) {
 
 	tsClient := readFile(t, filepath.Join(tmp, "frontend/src/api/generated/client.ts"))
 	mustContain(t, tsClient, "async requestPrivacyExport(opts?: RequestOptions): Promise<Types.ApiErrorResponse>")
+
+	goServer := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/server.gen.go"))
+	mustContain(t, goServer, "// 34-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
+	mustNotContain(t, goServer, "// 36-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 }
 
 func mustFindRepoRoot(t *testing.T) string {

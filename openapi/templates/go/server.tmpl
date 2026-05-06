@@ -11,7 +11,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 36-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// {{len .Operations}}-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 {{range .Operations}}
 	// {{.OperationID}} — {{.Method}} {{.Path}}{{if .Summary}}: {{.Summary}}{{end}}

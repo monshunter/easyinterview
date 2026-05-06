@@ -1,6 +1,6 @@
 # Fixture-backed Mock Runtime
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-05
 
@@ -60,7 +60,7 @@
 
 #### 4.1 接入本地质量门禁
 
-把 fixture coverage、prototype import boundary 和旧口径 negative search 接入本地 lint 或 codegen gate。旧口径 gate 必须使用精确 retired token（如 `/mistakes`、`/growth`、`/drill`、`/voice`、`Mistakes` / `Growth` tag、`single_drill`、`gateway_route`、`ai.gateway*`、`default.provider`、`task_type`），避免误杀 `growth-stage` 等普通业务文案。
+把 fixture coverage、operation registry metadata test、prototype import boundary 和旧口径 negative search 接入本地 lint 或 codegen gate。旧口径 gate 必须使用精确 retired token（如 `/mistakes`、`/growth`、`/drill`、`/voice`、`Mistakes` / `Growth` tag、`single_drill`、`gateway_route`、`ai.gateway*`、`default.provider`、`task_type`），避免误杀 `growth-stage` 等普通业务文案。
 
 #### 4.2 Handoff 给 frontend-shell
 

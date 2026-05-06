@@ -39,6 +39,7 @@ spec:
           - frontend/src/api
           - backend/internal/api
           - scripts/lint
+          - scripts/mock_contract
         uiRoutes: []
         apiNames:
           - getMe
