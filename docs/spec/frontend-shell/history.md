@@ -1,13 +1,14 @@
 # Frontend Shell History
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-05-07
+> **更新日期**: 2026-05-08
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-08 | 1.8 | 派生 D2 follow-up 003 plan：新增 §6 C-9 真实浏览器 pixel parity gate，要求 Playwright + chromium 在 desktop / mobile viewport 下断言 `frontend/dist/index.html` 与 `ui-design/index.html` golden preview 的 DOM 锚点 / computed style / bounding box / 截图差异；E2E.P0.005（jsdom）保留作为 fast smoke。 | 003-ui-design-pixel-parity-gate |
 | 2026-05-07 | 1.7 | 删除废弃外部设计来源；前端视觉实施只以 `ui-design/` 与 `docs/ui-design/` 为唯一 UI 真理源，要求正式前端 100% 源级复刻静态原型并通过 parity gate 验证。 | 002-app-shell-visual-system |
 | 2026-05-07 | 1.6 | 修订 D2 视觉系统接入门禁：确认 `ui-design/` 是验收真理源头，`customAccent` 必须进入正式前端主题系统，并新增 visual smoke 工具作为用户可见视觉渲染 gate。 | 002-app-shell-visual-system |
 | 2026-05-07 | 1.5 | 派生 D2 视觉系统接入计划；新增 §6 C-8 视觉接入验收，将 `ui-design/` 真理源、4 主题 × 2 模式 wiring、字体与 D1 regression 固化为视觉接入门禁。 | 002-app-shell-visual-system |

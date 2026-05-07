@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `docs(frontend-shell): derive D2 follow-up pixel parity gate plan` | #docs |
 | [2026-05-07](2026-05-07.md) | `docs(reports): land frontend-shell app shell visual system retrospective` | #docs |
 | [2026-05-07](2026-05-07.md) | `docs(frontend-shell): close 002-app-shell-visual-system plan lifecycle` | #docs |
 | [2026-05-07](2026-05-07.md) | `feat(frontend-shell): visual system regression and handoff` | #feat #ui #test #docs |

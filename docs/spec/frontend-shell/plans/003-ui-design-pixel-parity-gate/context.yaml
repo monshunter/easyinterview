@@ -1,0 +1,72 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: frontend-shell
+  name: 003-ui-design-pixel-parity-gate
+  sequence: 3
+  supersedes: []
+  specVersion:
+    from: 1.7
+    to: 1.8
+spec:
+  defaultTarget: frontend
+  discovery:
+    aliases:
+      - frontend-shell
+      - ui-design-pixel-parity-gate
+      - D2 follow-up Playwright gate
+      - frontend pixel parity
+    keywords:
+      - playwright
+      - chromium
+      - desktop viewport
+      - mobile viewport
+      - bounding box
+      - computed style
+      - screenshot diff
+      - toHaveScreenshot
+      - golden preview
+      - ui-design parity
+      - real browser visual smoke
+      - serve-pixel-parity
+      - test:pixel-parity
+      - E2E.P0.006
+  targets:
+    frontend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../../ui-design/README.md
+        - ../../../../ui-design/INDEX.md
+        - ../../../../ui-design/ui-architecture.md
+        - ../../../../reports/2026-05-07-frontend-shell-app-shell-visual-system-assessment.md
+        - ../002-app-shell-visual-system/plan.md
+        - ../002-app-shell-visual-system/checklist.md
+        - ../002-app-shell-visual-system/bdd-plan.md
+        - ../002-app-shell-visual-system/bdd-checklist.md
+      discovery:
+        packages:
+          - frontend/playwright.config.ts
+          - frontend/scripts
+          - frontend/tests/pixel-parity
+          - frontend/dist
+          - ui-design
+          - test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate
+        uiRoutes:
+          - home
+          - jd_match
+          - workspace
+          - resume_versions
+          - debrief
+          - profile
+          - settings
+          - auth_login
+          - auth_register
+          - auth_verify
+          - auth_reset
+          - auth_logout
+          - company_intel
+        apiNames: []
