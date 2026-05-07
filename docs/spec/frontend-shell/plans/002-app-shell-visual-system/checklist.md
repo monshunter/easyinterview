@@ -42,8 +42,11 @@
 
 ## Phase 5: Profile / Settings placeholder 视觉接入
 
-- [ ] 5.1 Profile / Settings shell 视觉；验证: component/parity test 断言 `profile` 与 `settings` route 渲染对应 placeholder shell（账号 / 隐私 / 字体预设分区标题），并与 `ui-design/src/screen-profile.jsx` 及 `docs/ui-design/user-profile-and-settings.md` 的布局、分区标题、卡片、间距和字体层级逐项匹配；D1 `data-testid` 与 settings 字段 regression 通过；negative search 断言无 `growth` / `experiences` / `mistakes` / `drill` / 独立 `voice` 视觉残留
-- [ ] 5.2 PlaceholderScreen 视觉占位；验证: component/parity test 断言 `route-${name}` 渲染骨架卡片（标题 + 描述 + skeleton 区），其布局、卡片、标题、描述和 skeleton 样式来自对应 `ui-design/src/screen-*.jsx` 原型骨架，`data-route-name` / `data-route-params` 不变，i18n 切换后标题文案 regression 通过
+- [x] 5.1 Profile / Settings shell 视觉；验证: component/parity test 断言 `profile` 与 `settings` route 渲染对应 placeholder shell（账号 / 隐私 / 字体预设分区标题），并与 `ui-design/src/screen-profile.jsx` 及 `docs/ui-design/user-profile-and-settings.md` 的布局、分区标题、卡片、间距和字体层级逐项匹配；D1 `data-testid` 与 settings 字段 regression 通过；negative search 断言无 `growth` / `experiences` / `mistakes` / `drill` / 独立 `voice` 视觉残留
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/screens/ScreensVisual.test.tsx PASS (Phase 5.1 5 tests, ei-screen-shell + display title, ei-screen-card sections, retired-module negative); ProfileScreen.test.tsx (5) D1 regression PASS" -->
+- [x] 5.2 PlaceholderScreen 视觉占位；验证: component/parity test 断言 `route-${name}` 渲染骨架卡片（标题 + 描述 + skeleton 区），其布局、卡片、标题、描述和 skeleton 样式来自对应 `ui-design/src/screen-*.jsx` 原型骨架，`data-route-name` / `data-route-params` 不变，i18n 切换后标题文案 regression 通过
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/screens/ScreensVisual.test.tsx PASS (Phase 5.2 2 tests + 4 screens.css rhythm tests, ei-skeleton-stripe striped placeholder, screen-profile.jsx trace); App routing tests retain data-route-name / data-route-params" -->
+
 
 ## Phase 6: Regression / handoff
 

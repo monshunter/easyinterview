@@ -1,0 +1,184 @@
+// @vitest-environment jsdom
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { describe, expect, it } from "vitest";
+import { render } from "@testing-library/react";
+
+import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
+import { PlaceholderScreen } from "./PlaceholderScreen";
+import { ProfileScreen } from "./ProfileScreen";
+import { SettingsScreen } from "./SettingsScreen";
+
+const HERE = resolve(__dirname);
+const REPO_ROOT = resolve(HERE, "..", "..", "..", "..");
+const SCREENS_CSS = resolve(HERE, "screens.css");
+const SCREEN_PROFILE_JSX = resolve(REPO_ROOT, "ui-design", "src", "screen-profile.jsx");
+
+function withProvider(node: React.ReactElement) {
+  return <DisplayPreferencesProvider>{node}</DisplayPreferencesProvider>;
+}
+
+describe("Profile shell visual contract (Phase 5.1)", () => {
+  it("renders ei-screen-shell with display title and body sub copy", () => {
+    const { container } = render(
+      withProvider(<ProfileScreen route={{ name: "profile", params: {} }} />),
+    );
+    const root = container.querySelector("[data-testid='route-profile']");
+    expect(root).toBeTruthy();
+    expect(root!.className).toMatch(/\bei-screen-shell\b/);
+
+    const heading = root!.querySelector("h1");
+    expect(heading?.className).toMatch(/\bei-text-display\b/);
+
+    const sub = root!.querySelector("header p");
+    expect(sub?.className).toMatch(/\bei-text-body\b/);
+  });
+
+  it("wraps every section in ei-screen-card with ei-text-title section heading", () => {
+    const { container } = render(
+      withProvider(<ProfileScreen route={{ name: "profile", params: {} }} />),
+    );
+    for (const sectionId of [
+      "profile-identity-summary",
+      "profile-sections",
+      "profile-insight-cards",
+      "profile-used-by",
+      "profile-recent-evidence",
+    ]) {
+      const section = container.querySelector(`[data-testid='${sectionId}']`);
+      expect(section, `${sectionId} missing`).toBeTruthy();
+      expect(section!.className).toMatch(/\bei-screen-card\b/);
+      const heading = section!.querySelector("h2");
+      expect(heading?.className).toMatch(/\bei-text-title\b/);
+    }
+  });
+});
+
+describe("Settings shell visual contract (Phase 5.1)", () => {
+  it("renders ei-screen-shell with display title and ei-screen-card sections", () => {
+    const { container } = render(
+      withProvider(<SettingsScreen route={{ name: "settings", params: {} }} />),
+    );
+    const root = container.querySelector("[data-testid='route-settings']");
+    expect(root).toBeTruthy();
+    expect(root!.className).toMatch(/\bei-screen-shell\b/);
+    const heading = root!.querySelector("h1");
+    expect(heading?.className).toMatch(/\bei-text-display\b/);
+    for (const sectionId of [
+      "settings-account",
+      "settings-login-security",
+      "settings-font-preset",
+      "settings-privacy",
+      "settings-notifications-placeholder",
+      "settings-subscription-placeholder",
+    ]) {
+      const section = container.querySelector(`[data-testid='${sectionId}']`);
+      expect(section, `${sectionId} missing`).toBeTruthy();
+      expect(section!.className).toMatch(/\bei-screen-card\b/);
+    }
+  });
+
+  it("rejects retired Growth / Experiences / Mistakes / Drill / 独立 voice copy and testid", () => {
+    const { container } = render(
+      withProvider(<SettingsScreen route={{ name: "settings", params: {} }} />),
+    );
+    const html = container.innerHTML;
+    for (const banned of [
+      "growth",
+      "experiences",
+      "mistakes",
+      "drill",
+      "voice",
+    ]) {
+      expect(
+        new RegExp(`data-testid=["']settings-${banned}["']`).test(html),
+        `legacy testid settings-${banned} must not appear`,
+      ).toBe(false);
+    }
+    expect(html).not.toMatch(/错题本|成长中心|经历库|目标角色|技能标签/);
+  });
+});
+
+describe("PlaceholderScreen card skeleton (Phase 5.2)", () => {
+  it("renders a card skeleton (title + description + skeleton stripes) for D2-D6 routes", () => {
+    const { container } = render(
+      withProvider(
+        <PlaceholderScreen
+          route={{ name: "workspace", params: { jobId: "tj-1" } }}
+        />,
+      ),
+    );
+    const root = container.querySelector("[data-testid='route-workspace']");
+    expect(root).toBeTruthy();
+    expect(root!.className).toMatch(/\bei-screen-shell\b/);
+    expect(root!.getAttribute("data-route-name")).toBe("workspace");
+    expect(root!.getAttribute("data-route-params")).toBe(
+      JSON.stringify({ jobId: "tj-1" }),
+    );
+
+    const heading = root!.querySelector("h1");
+    expect(heading?.className).toMatch(/\bei-text-display\b/);
+    const card = root!.querySelector(".ei-screen-card");
+    expect(card).toBeTruthy();
+    expect(card!.querySelector(".ei-skeleton-stripe")).toBeTruthy();
+  });
+
+  it("falls back to placeholder.default copy for unmapped route names", () => {
+    const { container } = render(
+      withProvider(
+        <PlaceholderScreen
+          route={{ name: "company_intel", params: {} }}
+        />,
+      ),
+    );
+    expect(container.querySelector("h1")?.textContent).toMatch(/Route shell|页面壳/);
+  });
+});
+
+describe("screens.css visual rhythm (Phase 5.1 + 5.2)", () => {
+  const css = readFileSync(SCREENS_CSS, "utf8");
+
+  it("declares ei-screen-shell layout (max-width / padding / gap)", () => {
+    expect(css).toMatch(/\.ei-screen-shell\s*\{[^}]*max-width:\s*1160px/);
+    expect(css).toMatch(/\.ei-screen-shell\s*\{[^}]*padding:\s*54px\s+48px\s+96px/);
+    expect(css).toMatch(/\.ei-screen-shell\s*\{[^}]*display:\s*flex/);
+    expect(css).toMatch(
+      /\.ei-screen-shell\s*\{[^}]*flex-direction:\s*column/,
+    );
+    expect(css).toMatch(/\.ei-screen-shell\s*\{[^}]*gap:\s*var\(--ei-space-7\)/);
+  });
+
+  it("ei-screen-card carries bg-card + rule + radius and section padding", () => {
+    expect(css).toMatch(
+      /\.ei-screen-card\s*\{[^}]*background:\s*var\(--ei-color-bg-card\)/,
+    );
+    expect(css).toMatch(
+      /\.ei-screen-card\s*\{[^}]*border:\s*1px solid var\(--ei-color-rule-strong\)/,
+    );
+    expect(css).toMatch(
+      /\.ei-screen-card\s*\{[^}]*border-radius:\s*var\(--ei-radius-md\)/,
+    );
+    expect(css).toMatch(/\.ei-screen-card\s*\{[^}]*padding:\s*28px/);
+  });
+
+  it("ei-skeleton-stripe defines striped placeholder background", () => {
+    expect(css).toMatch(
+      /\.ei-skeleton-stripe\s*\{[^}]*background:\s*repeating-linear-gradient/,
+    );
+  });
+
+  it("values can be traced back to ui-design/src/screen-profile.jsx", () => {
+    const src = readFileSync(SCREEN_PROFILE_JSX, "utf8");
+    expect(src).toContain("padding: 28");
+    expect(src).toContain("padding: 14");
+  });
+
+  it("global.css imports screens.css", () => {
+    const globalCss = readFileSync(
+      resolve(HERE, "..", "theme", "global.css"),
+      "utf8",
+    );
+    expect(globalCss).toMatch(/@import\s+["']\.\.\/screens\/screens\.css["'];/);
+  });
+});

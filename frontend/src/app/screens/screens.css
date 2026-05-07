@@ -1,0 +1,124 @@
+/*
+ * D2 screen shell visual rhythm. Transcribed from
+ * ui-design/src/screen-profile.jsx (Profile + Settings card cadence) and the
+ * generic placeholder cards used across screen-home / screen-jd-match /
+ * screen-workspace.
+ *
+ * Contract:
+ *   - ei-screen-shell: full-bleed page wrapper, max-width 1160, padding 54
+ *     48 96, vertical stack with gap 28 (var(--ei-space-7)).
+ *   - ei-screen-card: bg-card + rule + radius, padding 28 inside.
+ *   - ei-screen-section: spacing helper for section labels above cards.
+ *   - ei-skeleton-stripe: striped placeholder transcribed from primitives.jsx
+ *     `Placeholder` atom (`repeating-linear-gradient(135deg, ...)`).
+ */
+
+.ei-screen-shell {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 54px 48px 96px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ei-space-7);
+}
+
+.ei-screen-shell > header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ei-space-2);
+}
+
+.ei-screen-shell > header h1 {
+  margin: 0;
+  color: var(--ei-color-fg-primary);
+}
+
+.ei-screen-shell > header p {
+  margin: 0;
+  color: var(--ei-color-fg-tertiary);
+  max-width: 720px;
+}
+
+.ei-screen-card {
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: var(--ei-radius-md);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ei-space-3);
+}
+
+.ei-screen-card h2 {
+  margin: 0;
+  color: var(--ei-color-fg-primary);
+}
+
+.ei-screen-card p {
+  margin: 0;
+  color: var(--ei-color-fg-secondary);
+  line-height: 1.6;
+}
+
+.ei-screen-card ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ei-screen-card li {
+  position: relative;
+  padding: 8px 0;
+  border-bottom: 1px dotted var(--ei-color-rule-strong);
+  color: var(--ei-color-fg-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.ei-screen-card li:last-child {
+  border-bottom: none;
+}
+
+.ei-screen-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ei-space-3);
+}
+
+.ei-skeleton-stripe {
+  height: 120px;
+  border-radius: var(--ei-radius-sm);
+  border: 1px solid var(--ei-color-rule-strong);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--ei-color-bg-soft) 0 8px,
+    var(--ei-color-rule-soft) 8px 9px
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ei-color-fg-tertiary);
+  font-family: var(--ei-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ei-skeleton-line {
+  height: 12px;
+  border-radius: var(--ei-radius-sm);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--ei-color-bg-soft) 0 8px,
+    var(--ei-color-rule-soft) 8px 9px
+  );
+}
+
+.ei-screen-card--placeholder {
+  gap: var(--ei-space-4);
+}
