@@ -1,6 +1,6 @@
 # Local Dev Stack Spec
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: active
 > **更新日期**: 2026-05-08
 
@@ -24,7 +24,7 @@
 
 ### 2.1 In Scope
 
-- 最小本地依赖清单：`PostgreSQL 16`、`Redis 7`、`MinIO` 的本地版本、端口、卷、network alias。
+- 最小本地依赖清单：`PostgreSQL 18`、`Redis 7`、`MinIO` 的本地版本、端口、卷、network alias。
 - 项目组件启动：`docker-compose.yaml` 必须包含当前仓库内所有已具备本地运行入口的项目组件；后续 backend / frontend 等 child 落地运行入口时，必须接入同一个 compose，而不是另起平行本地环境。后台任务随 backend internal runner 观测，不单独接入 worker service。
 - 顶层入口：`docker-compose.yaml`（落点 `deploy/dev-stack/docker-compose.yaml`）+ A1 已占位的 `make dev-up` / `make dev-down` 真实实现。
 - `make dev-doctor`：结构化健康检查，对每个依赖服务与项目组件返回 `OK / DEGRADED / DOWN` 与人类可读原因（输出 JSON + 退出码）。
@@ -49,7 +49,7 @@
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
 | D-1 | docker-compose 落点 | `deploy/dev-stack/docker-compose.yaml`（A1 已锁定 `deploy/` 根容器） | 任何 child 不得在仓库根另起平行 compose 文件 |
-| D-2 | 服务镜像 tag | 默认依赖锁定 `postgres:16-alpine` / `redis:7-alpine` / `minio/minio:RELEASE.2024-12-18T13-15-44Z`；MinIO bucket init 工具锁 `minio/mc:RELEASE.2024-11-21T17-21-54Z`。项目组件优先从仓库内 Dockerfile 或 dev command 构建，不从外部拉取业务镜像 | 升级须递增 spec 版本；默认 compose 不含生产观测镜像 |
+| D-2 | 服务镜像 tag | 默认依赖锁定 `postgres:18-alpine` / `redis:7-alpine` / `minio/minio:RELEASE.2024-12-18T13-15-44Z`；MinIO bucket init 工具锁 `minio/mc:RELEASE.2024-11-21T17-21-54Z`。项目组件优先从仓库内 Dockerfile 或 dev command 构建，不从外部拉取业务镜像 | 升级须递增 spec 版本；默认 compose 不含生产观测镜像 |
 | D-3 | 服务端口 | Postgres 5432 / Redis 6379 / MinIO 9000(API) + 9001(Console)；项目组件端口由各组件 dev defaults 声明（frontend 默认 5173，backend 默认 8080） | 不预留 worker host port、Grafana 3000 / Prometheus 9090 / Loki 3100 / OTLP 4317/4318 给默认本地栈 |
 | D-4 | network 命名 | `easyinterview-dev`（bridge 模式）；依赖服务与项目组件通过短名互访 | backend 启动时 `host=postgres-dev` / `redis-dev` / `minio-dev` 等命名解析 |
 | D-5 | Postgres 扩展启用 | 当前不启用未使用扩展；后续 `pg_trgm` / `pg_stat_statements` 或向量扩展由 B4 决定是否前置 | A2 默认栈保持最小依赖 |

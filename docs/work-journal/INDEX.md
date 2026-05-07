@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `chore(dev-stack): use postgres 18` | #chore #docs |
 | [2026-05-08](2026-05-08.md) | `refactor(ai-provider): remove retrieval placeholders and use deepseek` | #refactor #test #docs |
 | [2026-05-08](2026-05-08.md) | `docs(governance): codify frontend backend contract workflow` | #docs |
 | [2026-05-08](2026-05-08.md) | `feat(skills): require ui-design source parity matrix` | #feat #docs #ui |

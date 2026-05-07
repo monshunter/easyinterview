@@ -10,7 +10,7 @@ name: easyinterview-dev
 
 services:
   postgres-dev:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: easyinterview-postgres-dev
     restart: unless-stopped
     environment:

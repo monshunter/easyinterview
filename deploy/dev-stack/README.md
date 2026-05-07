@@ -17,7 +17,7 @@
 | `curl` | 任意 | 验证已声明 `/metrics` 的项目组件 |
 | Bash 4+ / POSIX sh | — | Makefile 与 `dev-doctor.sh` 均按 POSIX sh 编写 |
 
-资源占用：≥ 8GB RAM 推荐；默认依赖镜像（`postgres:16-alpine` + `redis:7-alpine` + `minio/minio` + `minio/mc`）首次拉取总体积 < 1.5GB。慢网络下先 `make dev-pull` 预热再 `make dev-up`。
+资源占用：≥ 8GB RAM 推荐；默认依赖镜像（`postgres:18-alpine` + `redis:7-alpine` + `minio/minio` + `minio/mc`）首次拉取总体积 < 1.5GB。慢网络下先 `make dev-pull` 预热再 `make dev-up`。
 
 ## 2 默认服务
 
@@ -25,7 +25,7 @@
 
 | name | image | host port | 默认凭据 | 命名卷 |
 |------|-------|-----------|----------|--------|
-| `postgres-dev` | `postgres:16-alpine` | `${POSTGRES_HOST_PORT:-5432}` | `easyinterview` / `dev` (DB `easyinterview`) | `easyinterview-pg-data` |
+| `postgres-dev` | `postgres:18-alpine` | `${POSTGRES_HOST_PORT:-5432}` | `easyinterview` / `dev` (DB `easyinterview`) | `easyinterview-pg-data` |
 | `redis-dev` | `redis:7-alpine` | `${REDIS_HOST_PORT:-6379}` | 无密码（dev only） | `easyinterview-redis-data` |
 | `minio-dev` | `minio/minio:RELEASE.2024-12-18T13-15-44Z` | `${MINIO_API_HOST_PORT:-9000}` API + `${MINIO_CONSOLE_HOST_PORT:-9001}` Console | `dev-access-key` / `dev-secret-key` | `easyinterview-minio-data` |
 | `minio-init` | `minio/mc:RELEASE.2024-11-21T17-21-54Z` | — | 复用 minio-dev 凭据 | — (一次性 init job) |

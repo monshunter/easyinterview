@@ -1,6 +1,6 @@
 # DB Migrations Baseline Bootstrap
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-05-08
 
@@ -9,13 +9,13 @@
 
 ## 1 目标
 
-把 [db-migrations-baseline spec](../../spec.md) v1.11 锁定的迁移工具、28 张应用 / auth 支撑表、2 张迁移元数据表、B3 outbox retry operational columns、A3/F1 `ai_task_runs` typed columns、enum/check 来源矩阵、backfill ledger 与 P0 privacy deletion matrix 落到 `migrations/` 与 `backend/cmd/migrate`。
+把 [db-migrations-baseline spec](../../spec.md) v1.12 锁定的迁移工具、28 张应用 / auth 支撑表、2 张迁移元数据表、B3 outbox retry operational columns、A3/F1 `ai_task_runs` typed columns、enum/check 来源矩阵、backfill ledger 与 P0 privacy deletion matrix 落到 `migrations/` 与 `backend/cmd/migrate`。
 
 本 plan 不实现业务 repository、不实现 C8 dispatcher、不实现 privacy_delete runner；只提供 schema baseline、迁移可执行入口、lint/check gate 与下游 handoff。
 
 ## 2 背景
 
-B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 16 本地实例；B1/B2/B3 分别提供 shared enum、API-facing async enum、event/job manifest；A3/F1 需要 `ai_task_runs` typed columns；C8 需要 `outbox_events` retry columns 与 privacy deletion matrix。B4 001 必须在后续 C/D 域 implementation 读取真实表之前完成。
+B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例；B1/B2/B3 分别提供 shared enum、API-facing async enum、event/job manifest；A3/F1 需要 `ai_task_runs` typed columns；C8 需要 `outbox_events` retry columns 与 privacy deletion matrix。B4 001 必须在后续 C/D 域 implementation 读取真实表之前完成。
 
 ## 3 质量门禁分类
 
@@ -76,7 +76,7 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 16 本地实例
 
 #### 4.1 migrate-check
 
-在干净 Postgres 16 上执行 `make migrate-check`：`migrate-up -> migrate-down -> migrate-up` 全部成功；`APP_ENV=prod make migrate-down` 必须 fail-fast；`schema_backfills` ledger 无重复成功记录。
+在干净 Postgres 18 上执行 `make migrate-check`：`migrate-up -> migrate-down -> migrate-up` 全部成功；`APP_ENV=prod make migrate-down` 必须 fail-fast；`schema_backfills` ledger 无重复成功记录。
 
 #### 4.2 table / column / index probes
 
@@ -124,6 +124,7 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 16 本地实例
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-08 | 1.6 | 对齐 A2 用户决策：本地迁移验证前提升级为 Postgres 18。 | local-dev-stack/001 post-pass revision |
 | 2026-05-03 | 1.4 | 修正 Phase 2 / Phase 4 中遗留的旧表数量口径：当时 baseline 为应用表 + auth 支撑表 + 迁移元数据表。 | readiness reconcile |
 | 2026-05-08 | 1.5 | 对齐 A3 003 Phase 6：删除向量扩展、向量检索表/索引与 extension drop gate；当前 baseline 为 25 应用表 + 3 auth 支撑表 + 2 迁移元数据表，public schema count gate ≥30。 | ai-provider-and-model-routing/003 Phase 6 |
 | 2026-05-03 | 1.3 | 原地 reopen，新增 Phase 5 remediation：按 product-scope v1.2 删除独立 `mistake_entries` 表，迁移字段改为报告题目回顾 / 本轮复练语义。 | db-migrations-baseline v1.6 |

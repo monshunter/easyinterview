@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-05-08
 
@@ -207,4 +207,5 @@
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
 | 2026-05-04 | 1.4 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 dev stack 范围。 | historical-spec-implementation-review/001 |
-| 2026-05-08 | 1.5 | 对齐 A3/B4 当前决策：默认 dev stack 删除未使用扩展依赖与 probe，仅保留普通 Postgres 16；未来需要时重新设计。 | ai-provider-and-model-routing/003 Phase 6 |
+| 2026-05-08 | 1.5 | 对齐 A3/B4 当前决策：默认 dev stack 删除未使用扩展依赖与 probe，仅保留普通 Postgres；未来需要时重新设计。 | ai-provider-and-model-routing/003 Phase 6 |
+| 2026-05-08 | 1.6 | 按用户决策将默认 dev stack Postgres 镜像升级到 18，并同步迁移基线前提。 | local-dev-stack/001 post-pass revision |

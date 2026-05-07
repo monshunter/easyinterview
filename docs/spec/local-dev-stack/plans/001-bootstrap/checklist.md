@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
 > **更新日期**: 2026-05-08
 

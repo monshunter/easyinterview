@@ -1,6 +1,6 @@
 # DB Migrations Baseline Bootstrap Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-05-08
 
@@ -34,7 +34,7 @@
 
 ## Phase 4: Verification + handoff
 
-- [x] 4.1 在干净 Postgres 16 上执行 `make migrate-check`：`migrate-up -> migrate-down -> migrate-up` 全部成功。验证: 使用 A2 dev stack 或本地等价 Postgres 16 运行 `make migrate-check`，记录 migrate-up/down/up、backfill ledger 去重、exit 0 输出
+- [x] 4.1 在干净 Postgres 18 上执行 `make migrate-check`：`migrate-up -> migrate-down -> migrate-up` 全部成功。验证: 使用 A2 dev stack 或本地等价 Postgres 18 运行 `make migrate-check`，记录 migrate-up/down/up、backfill ledger 去重、exit 0 输出
 - [x] 4.2 `APP_ENV=prod make migrate-down` fail-fast；stderr 提示需显式 force / 操作窗口。验证: `APP_ENV=prod make migrate-down` exit 非 0，stderr 包含 `MIGRATE_DOWN_FORCE=1` 或等价操作窗口提示；不连接 DB 或不执行 down SQL
 - [x] 4.3 SQL probes 验证 table count ≥30、outbox retry columns、AI typed columns、pending due / B-Tree 索引存在且 explain 命中。验证: probe 命令输出保存到工作日志，覆盖 spec C-1 / C-2 / C-8 / C-11 / C-12
 - [x] 4.4 临时修改 B3 job manifest 或 B1 enum，确认 `make migrate-check` / lint 报 drift；revert 后恢复。验证: negative drift case 先失败并指向具体 table.column/source/checksum，恢复 manifest 后 `make migrate-check` 通过且 `git diff --check` 通过

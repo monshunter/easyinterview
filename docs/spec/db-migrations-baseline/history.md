@@ -1,6 +1,6 @@
 # DB Migrations Baseline History
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
 > **更新日期**: 2026-05-08
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-08 | 1.12 | 对齐 A2 用户决策：B4 本地迁移验证前提升级为 Postgres 18。 | local-dev-stack/001 post-pass revision |
 | 2026-05-08 | 1.11 | 对齐 A3 003 Phase 6：删除向量扩展、向量检索表/索引、extension drop gate 与对应 privacy/enum/source 条目；当前 baseline 收敛为 25 应用表 + 3 auth 支撑表 + 2 迁移元数据表。 | ai-provider-and-model-routing/003 Phase 6 |
 | 2026-05-06 | 1.10 | 对齐 backend-runtime-topology：privacy deletion matrix 的执行方从 C8 worker 改为 backend internal runner，表级删除契约保持不变。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-05 | 1.9 | B4 migration baseline 改为只由本 spec、`migrations/`、`migrations/enum-sources.yaml` 与 migration gate 承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |
