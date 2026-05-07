@@ -1,0 +1,84 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: frontend-shell
+  name: 002-app-shell-visual-system
+  sequence: 2
+  supersedes: []
+  specVersion:
+    from: 1.4
+    to: 1.6
+spec:
+  defaultTarget: frontend
+  discovery:
+    aliases:
+      - frontend-shell
+      - app-shell-visual-system
+      - D2 frontend visual system
+    keywords:
+      - design token
+      - theme wiring
+      - dark mode
+      - custom accent
+      - typography scale
+      - open source font
+      - Cormorant Garamond
+      - EB Garamond
+      - Inter
+      - fontsource
+      - CSS variables
+      - data-theme attribute
+      - data-mode attribute
+      - DESIGN.md reference boundary
+      - EI_THEMES
+      - visual contract test
+      - visual regression
+      - visual smoke
+      - Playwright
+      - placeholder shell
+      - card rhythm
+      - no tailwind
+      - no styled-components
+      - no private fonts
+  targets:
+    frontend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../../ui-design/README.md
+        - ../../../../ui-design/INDEX.md
+        - ../../../../ui-design/ui-architecture.md
+        - ../../../../ui-design/auth-and-entry.md
+        - ../../../../ui-design/user-profile-and-settings.md
+        - ../../../../ui-design/removed-modules-and-scope.md
+        - ../001-app-shell-auth-settings/plan.md
+        - ../001-app-shell-auth-settings/checklist.md
+      discovery:
+        packages:
+          - frontend/src/app/theme
+          - frontend/src/app/topbar
+          - frontend/src/app/auth
+          - frontend/src/app/screens
+          - frontend/src/app/display
+          - frontend/src/main.tsx
+          - ui-design/src
+        uiRoutes:
+          - home
+          - jd_match
+          - workspace
+          - resume_versions
+          - debrief
+          - profile
+          - settings
+          - auth_login
+          - auth_register
+          - auth_verify
+          - auth_reset
+          - auth_logout
+          - parse
+          - report
+          - company_intel
+        apiNames: []

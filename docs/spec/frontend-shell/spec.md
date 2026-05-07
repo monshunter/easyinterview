@@ -1,6 +1,6 @@
 # Frontend Shell Spec
 
-> **版本**: 1.4
+> **版本**: 1.6
 > **状态**: active
 > **更新日期**: 2026-05-07
 
@@ -57,7 +57,7 @@
 - Auth bootstrap 必须使用 B2 generated client 和 C1 passwordless session cookie 契约；不得在前端私造 Bearer token、密码登录 API、OAuth API 或自定义 session storage contract。
 - `getRuntimeConfig` 必须先经过 A4 allowlist / generated type 解析，再影响 feature flag 或公开配置；缺失或错误响应必须有可测试 fallback。UI 语言不由 runtime config 决定。
 - Generated API client 默认请求头或 App runtime request options 必须带当前 UI locale 的 `Accept-Language` display hint；该 header 不得覆盖业务字段（如 `targetLanguage` / practice language）。
-- 新增 App shell / TopBar / auth / settings 组件时必须参考根目录 `DESIGN.md` 的语义命名和节奏，但 `docs/ui-design/` 与 `ui-design/` 仍是验收真理源；不得机械同步 token 或引入私有授权字体。
+- 新增 App shell / TopBar / auth / settings 组件时必须参考根目录 `DESIGN.md` 的语义命名和节奏，但 `docs/ui-design/` 与 `ui-design/` 是验收真理源头；不得机械同步 token 或引入私有授权字体。主题系统必须承接 `ui-design/` 的 warm / forest / ocean / plum 与 `customAccent`，自定义 accent 不是降级项。
 
 ## 5 模块边界
 
@@ -80,7 +80,9 @@
 | C-5 | Runtime / session bootstrap | App 启动且 mock transport 可用 | 读取 runtime config 与 `/me` | 公开配置按 allowlist 生效，未登录返回认证态，已登录渲染用户区，不读取 prototype data | 001-app-shell-auth-settings |
 | C-6 | Parse shell 可达 | 用户从 Home 或 Job Picks 进入 JD 解析确认 | App route 到 `parse` | 保留 App shell / route params，不把 JD 解析业务细节并入 D1 | 001-app-shell-auth-settings |
 | C-7 | 中英 UI 切换 | 用户打开默认 App shell | 在 TopBar 下拉框切换语言到 English / 中文 | TopBar、auth 入口和 D1 shell 静态文案即时切换；初始语言跟随浏览器 locale，不支持时 fallback English；登录态和 runtime locale 不覆盖前端语言设置；后续 API 请求带 `Accept-Language`；`zh` / `en` 文案分别来自独立 locale 文件 | 001-app-shell-auth-settings |
+| C-8 | 视觉接入对齐 ui-design 真理源 | D1 已交付的 App 壳 / TopBar / 五入口 / 显示控制 / 认证页 / 用户菜单 / settings & profile placeholder | D2 视觉系统接入 | 渲染语义对齐 `ui-design/` 静态原型与根目录 `DESIGN.md` 节奏；4 基础主题（warm 完整对齐，其余主题至少色板正确）+ `customAccent` 在 light / dark 下均通过根级 `data-theme` / `data-mode` / `data-custom-accent` 或等价 CSS variable 切换生效；字体使用开源 serif (Cormorant Garamond / EB Garamond) 与 sans (Inter)，不引入私有授权字体；`EI_THEMES` 不被 `DESIGN.md` hex 机械覆盖；`E2E.P0.005` visual smoke 工具对关键 viewport 完成非空渲染、无核心控件重叠、主题/暗色/custom accent 可见变化检查；D1 testid 与 `E2E.P0.001` / `E2E.P0.002` / `E2E.P0.004` regression 全部通过 | 002-app-shell-visual-system |
 
 ## 7 关联计划
 
 - [001-app-shell-auth-settings](./plans/001-app-shell-auth-settings/plan.md)
+- [002-app-shell-visual-system](./plans/002-app-shell-visual-system/plan.md)
