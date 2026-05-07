@@ -28,8 +28,11 @@
 
 ## Phase 3: TopBar 视觉接入
 
-- [ ] 3.1 TopBar shell 节奏与卡片化；验证: component/parity test 断言 `app-shell-topbar` 渲染时根级 className 命中卡片 token，并与 `ui-design/src/app.jsx` TopBar 的 DOM 锚点、header 高度、padding、gap、背景、阴影、圆角和对齐方式逐项匹配；D1 `topbar-primary-nav` / `topbar-display-controls` / `topbar-user-area` testid 与 `aria-current` / `aria-pressed` 行为 regression 通过
-- [ ] 3.2 五入口与显示控制视觉；验证: component/parity test 断言 `topbar-nav-home` / `topbar-nav-jd_match` / `topbar-nav-workspace` / `topbar-nav-resume_versions` / `topbar-nav-debrief` 与主题下拉、custom accent 控件、暗色 toggle、语言下拉、登录 / 注册 / 用户菜单按钮均挂载语义 className，并与 `ui-design/src/app.jsx` / `ui-design/src/screen-home.jsx` 的字体、字号、行高、padding、gap、圆角、颜色、active/hover 状态和控件密度逐项匹配；i18n 切换后文案与 D1 测试断言一致；custom accent 激活后 TopBar swatch / accent token 可见变化
+- [x] 3.1 TopBar shell 节奏与卡片化；验证: component/parity test 断言 `app-shell-topbar` 渲染时根级 className 命中卡片 token，并与 `ui-design/src/app.jsx` TopBar 的 DOM 锚点、header 高度、padding、gap、背景、阴影、圆角和对齐方式逐项匹配；D1 `topbar-primary-nav` / `topbar-display-controls` / `topbar-user-area` testid 与 `aria-current` / `aria-pressed` 行为 regression 通过
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/topbar/TopBarVisual.test.tsx PASS (Phase 3.1 4 tests, height 58 / padding 0 32 / gap 28 / sticky / z-index 30 / app.jsx trace); D1 TopBar.test.tsx PASS (8 tests, testids + aria contract intact)" -->
+- [x] 3.2 五入口与显示控制视觉；验证: component/parity test 断言 `topbar-nav-home` / `topbar-nav-jd_match` / `topbar-nav-workspace` / `topbar-nav-resume_versions` / `topbar-nav-debrief` 与主题下拉、custom accent 控件、暗色 toggle、语言下拉、登录 / 注册 / 用户菜单按钮均挂载语义 className，并与 `ui-design/src/app.jsx` / `ui-design/src/screen-home.jsx` 的字体、字号、行高、padding、gap、圆角、颜色、active/hover 状态和控件密度逐项匹配；i18n 切换后文案与 D1 测试断言一致；custom accent 激活后 TopBar swatch / accent token 可见变化
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/topbar/TopBarVisual.test.tsx PASS (Phase 3.2 8 tests, ei-topbar-nav-button + ei-text-body, ei-topbar-theme/dark/lang/custom-accent/auth-login/auth-register className wiring, hue/chroma sliders, customAccent swatch oklch); E2E.P0.004 lang switch scenario PASS" -->
+
 
 ## Phase 4: 认证页视觉接入
 
