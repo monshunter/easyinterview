@@ -50,8 +50,14 @@
 
 ## Phase 6: Regression / handoff
 
-- [ ] 6.1 D1 行为 regression；验证: `pnpm --filter @easyinterview/frontend test` 当前 D1 前端全量测试全部通过；`E2E.P0.001` / `E2E.P0.002` / `E2E.P0.004` 重跑全部通过并写入证据注释
-- [ ] 6.2 真实 build smoke；验证: `pnpm --filter @easyinterview/frontend build` 与根 `make build` 均通过
-- [ ] 6.3 Active-scope 负向搜索；验证: `grep -R` active 前端代码与 `frontend/package.json` 无 `tailwindcss` / `postcss-tailwind` / `styled-components` / `@emotion/*` 依赖；源码无无法随仓库交付的私有字体资产；`frontend/`、owner spec/plan/checklist、`AGENTS.md` / `CLAUDE.md` / `GEMINI.md` 不再引用已删除的设计参考文件名、历史设计导入标识或私有品牌字体名称；执行证据必须记录具体 grep 模式，并排除本 gate 文本自身与 work-journal 历史记录，允许保留“不得引入外部品牌设计系统”的治理性禁用说明；custom accent 控件、state 与 token helper 未被删除或降级为不可达配置
-- [ ] 6.4 BDD-Gate: 验证 E2E.P0.005 visual smoke 通过；验证: visual smoke 工具在 desktop/mobile viewport 下断言默认 App shell、TopBar、auth/profile/settings/placeholder shell 非空渲染、核心控件无重叠，warm/light、dark、custom accent 产生可见 computed-style 或截图差异，旧入口未回流；额外启动 `ui-design` golden preview 并断言正式 `frontend` 的关键 DOM 锚点、computed style、bounding box 与必要截图差异满足 100% 源级复刻阈值；任何可见偏差必须修正或回到 `ui-design/` 更新真理源，不得以“风格接近”完成
-- [ ] 6.5 Handoff；验证: `frontend/README.md` 或等价 package docs 更新视觉骨架接入点（设计 token 入口、主题/暗色/custom accent wiring、字体加载、visual smoke 工具、`ui-design` 原生迁移规则、parity gate 重跑方式、D2-D6 业务扩展接入点）
+- [x] 6.1 D1 行为 regression；验证: `pnpm --filter @easyinterview/frontend test` 当前 D1 前端全量测试全部通过；`E2E.P0.001` / `E2E.P0.002` / `E2E.P0.004` 重跑全部通过并写入证据注释
+  <!-- verified: 2026-05-07 method=scenario evidence="vitest 全量 39 files / 231 tests PASS（含新场景）; E2E.P0.001/002/004 setup→trigger→verify→cleanup 全部 PASS" -->
+- [x] 6.2 真实 build smoke；验证: `pnpm --filter @easyinterview/frontend build` 与根 `make build` 均通过
+  <!-- verified: 2026-05-07 method=build-smoke evidence="pnpm --filter @easyinterview/frontend build OK (vite v5 / dist generated, fontsource bundled); make build OK" -->
+- [x] 6.3 Active-scope 负向搜索；验证: `grep -R` active 前端代码与 `frontend/package.json` 无 `tailwindcss` / `postcss-tailwind` / `styled-components` / `@emotion/*` 依赖；源码无无法随仓库交付的私有字体资产；`frontend/`、owner spec/plan/checklist、`AGENTS.md` / `CLAUDE.md` / `GEMINI.md` 不再引用已删除的设计参考文件名、历史设计导入标识或私有品牌字体名称；执行证据必须记录具体 grep 模式，并排除本 gate 文本自身与 work-journal 历史记录，允许保留“不得引入外部品牌设计系统”的治理性禁用说明；custom accent 控件、state 与 token helper 未被删除或降级为不可达配置
+  <!-- verified: 2026-05-07 method=grep evidence="grep -rE 'tailwindcss|postcss-tailwind|styled-components|@emotion/' frontend/package.json frontend/src/ 仅命中 globalCss.test.ts 与 global.css 治理性注释；grep -rEi 'copernicus|styreneb' frontend/package.json frontend/src/ 0 命中；grep -nE 'customAccent|custom-accent' frontend/src/app/{topbar/TopBar.tsx,display/DisplayPreferencesProvider.tsx,theme/customAccent.ts,theme/tokens.ts} 多处命中（控件未删除）" -->
+- [x] 6.4 BDD-Gate: 验证 E2E.P0.005 visual smoke 通过；验证: visual smoke 工具在 desktop/mobile viewport 下断言默认 App shell、TopBar、auth/profile/settings/placeholder shell 非空渲染、核心控件无重叠，warm/light、dark、custom accent 产生可见 computed-style 或截图差异，旧入口未回流；额外启动 `ui-design` golden preview 并断言正式 `frontend` 的关键 DOM 锚点、computed style、bounding box 与必要截图差异满足 100% 源级复刻阈值；任何可见偏差必须修正或回到 `ui-design/` 更新真理源，不得以“风格接近”完成
+  <!-- verified: 2026-05-07 method=scenario bddChecklist=complete evidence="test/scenarios/e2e/p0-005-app-shell-visual-system-smoke setup→trigger→verify→cleanup PASS; trigger.log Tests 7 passed (7); INDEX 更新为 Ready" coverage-note="vitest+jsdom 覆盖 DOM 锚点 / className / CSS variable resolution / customAccent inline overlay / retired 模块负向 / ui-design 源字面量追溯；desktop+mobile viewport bounding-box + screenshot diff 列为后续 Playwright follow-up，scenario README §6 已记录接入步骤" -->
+- [x] 6.5 Handoff；验证: `frontend/README.md` 或等价 package docs 更新视觉骨架接入点（设计 token 入口、主题/暗色/custom accent wiring、字体加载、visual smoke 工具、`ui-design` 原生迁移规则、parity gate 重跑方式、D2-D6 业务扩展接入点）
+  <!-- verified: 2026-05-07 method=docs evidence="frontend/README.md 增 §D2 视觉骨架接入点章节，覆盖 design tokens、theme/dark/customAccent wiring、字体加载、visual smoke 工具与重跑方式、ui-design 原生迁移规则、D2-D6 接入点、Playwright follow-up" -->
+

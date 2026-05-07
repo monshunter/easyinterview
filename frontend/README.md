@@ -82,6 +82,55 @@ requestAuth({
 
 替换 `PlaceholderScreen` 派发时只需在 [`src/app/App.tsx`](./src/app/App.tsx) `renderRouteScreen` switch 内增加分支；不要新增独立路由表或独立 navigation provider。
 
+### 2.7 D2 视觉骨架接入点
+
+D2 (`frontend-shell/002-app-shell-visual-system`) 把 ui-design 静态原型整体迁移到正式前端，建立了统一的视觉 token、字体、TopBar 节奏、auth 卡片骨架与通用 screen shell。后续 D2-D6 owner 在以下接入点内扩展业务内容，不要绕过 token 体系或重写视觉骨架。
+
+#### Design tokens 入口
+
+- 语义 token：[`src/app/theme/tokens.ts`](./src/app/theme/tokens.ts) — 仅导出 CSS variable 名（`--ei-color-*` / `--ei-radius-*` / `--ei-shadow-*` / `--ei-space-*` / `--ei-text-*` / `--ei-font-*`），不导出 hex 字面量。
+- 主题数据：[`src/app/theme/themes.data.ts`](./src/app/theme/themes.data.ts)（私有）— 4 主题 × 2 模式 21 色板与 7 字体预设，逐项转写自 `ui-design/src/primitives.jsx::EI_THEMES` / `EI_FONT_PRESETS` / `EI_THEME_LIST`。
+- 主题 CSS：[`src/app/theme/themes.css`](./src/app/theme/themes.css) — `:root[data-theme=X][data-mode=Y]` 8 组合声明所有色板。
+- Custom accent helper：[`src/app/theme/customAccent.ts`](./src/app/theme/customAccent.ts) — 镜像 `app.jsx` oklch 公式（light=58 / dark=68 / soft 92/28，chroma clamp [0,0.28]，hue normalize [0,360)），仅覆盖 `--ei-color-accent` / `--ei-color-accent-soft`。
+
+新增 token 必须按 `tokens.test.ts` / `themes.css` / `themes.data.ts` 三处同步追加，并在测试中固化追溯到 `ui-design` 源。
+
+#### 主题 / 暗色 / customAccent 根级 wiring
+
+[`src/app/display/DisplayPreferencesProvider.tsx`](./src/app/display/DisplayPreferencesProvider.tsx) 在 `theme` / `dark` / `customAccent` 任一切换时立即把 `<html>` 的 `data-theme` / `data-mode` / `data-custom-accent` 翻转，并把 customAccent overlay 写入根元素 inline style。**所有主题相关样式必须走 `:root[data-theme][data-mode]` selector + var() token，不在组件内 hardcode hex / rgb。**
+
+- TopBar 主题下拉、暗色 toggle、custom accent 控件、语言下拉的 testid / aria 契约见 §2.5 与 [`src/app/topbar/TopBar.tsx`](./src/app/topbar/TopBar.tsx)。
+- D2 testid 新增：`topbar-custom-accent-{button,swatch,picker,hue,chroma,clear}`。
+
+#### 字体加载
+
+- 字体来源：[`src/app/theme/fonts.css`](./src/app/theme/fonts.css) 通过 `@fontsource/{noto-serif-sc,inter,source-serif-pro,cormorant-garamond,ibm-plex-sans,geist-sans,jetbrains-mono}` 引入；fontsource 默认带 `font-display: swap`，首屏使用 system fallback 链。
+- Typography scale：[`src/app/theme/typography.css`](./src/app/theme/typography.css) 提供 `--ei-text-{display,title,subtitle,body,caption,label}-*` 4 维度 24 个 token + `.ei-text-*` 6 类 className。组件内**禁止内联 px font-size / line-height**，改用 `ei-text-*` className。
+- 不引入私有品牌字体（`copernicus` / `styreneb` 等）；新增字体必须以 fontsource 或可仓库自托管为前提。
+
+#### 视觉骨架与卡片节奏
+
+| 区域 | className 入口 | CSS 文件 |
+|------|---------------|---------|
+| TopBar | `ei-shell-topbar` / `ei-topbar-{nav,nav-button,controls,user,theme,dark,lang,custom-accent,auth-{login,register},user-button}` | [`src/app/topbar/topbar.css`](./src/app/topbar/topbar.css) |
+| 认证页 | `ei-auth-shell` / `ei-auth-{side,side-panel,card,form,field,cta,stub,status,row}` | [`src/app/auth/auth.css`](./src/app/auth/auth.css) |
+| Profile / Settings / Placeholder / D2-D6 业务 | `ei-screen-shell` / `ei-screen-card` / `ei-skeleton-{stripe,line}` / `ei-screen-card-grid` | [`src/app/screens/screens.css`](./src/app/screens/screens.css) |
+
+D2-D6 owner 替换 `PlaceholderScreen` 时应保留 `ei-screen-shell` 外壳与 `ei-screen-card` 节奏；新分区只在 card 内部展开内容，不在 shell 外加自定义 wrapper。
+
+#### Visual smoke 工具与 parity gate 重跑
+
+- 在仓库内：`pnpm --filter @easyinterview/frontend test src/app/scenarios/p0-005-app-shell-visual-system-smoke.test.tsx` 跑视觉 smoke + ui-design 源追溯。
+- 端到端 scenario：`./test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/scripts/{setup,trigger,verify,cleanup}.sh` 等价于一次完整 BDD-Gate 执行，证据落在 `.test-output/e2e/p0-005-app-shell-visual-system-smoke/`。
+- 当前覆盖：DOM 锚点 / className / `:root[data-theme][data-mode]` selector resolution / customAccent inline overlay / retired-module 负向 / `ui-design` 源字面量追溯。
+- Playwright follow-up（推荐独立 plan）：desktop + mobile viewport 真实浏览器、bounding-box overlap、`ui-design/index.html` golden preview screenshot diff。接入步骤见 [`test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/README.md`](../test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/README.md) §6。
+
+#### `ui-design` 原生迁移规则
+
+- 新组件 / 新视觉先在 `ui-design/src/*.jsx` 落原型，再在正式前端原生迁移；不允许 AI 自由发挥或外部品牌设计系统补全。
+- 每条样式 / token / className 必须能追溯到 `ui-design/src/*.jsx`、`ui-design/src/primitives.jsx` 或 `ui-design/src/app.jsx`；test 文件已固化 hex / fontSize / 布局值 → ui-design 源的 lint 关系。
+- 任何视觉偏差不得以「风格接近」收口；要么修到与原型一致，要么先修改 `ui-design/` 真理源（更新 `docs/ui-design/` + 静态原型 + scenario test），再回到正式前端做迁移。
+
 ## 3 UI 真理源与原生迁移
 
 - `docs/ui-design/` 与 `ui-design/` 源码是前端 UI 验收的唯一真理源。新页面或大幅视觉修订必须先在 `ui-design/` 完成静态原型，并同步 `docs/ui-design/` 说明。
