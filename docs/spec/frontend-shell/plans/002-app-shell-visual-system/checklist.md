@@ -1,8 +1,8 @@
 # App Shell Visual System Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-07
+> **更新日期**: 2026-05-08
 
 **关联计划**: [plan](./plan.md)
 
@@ -11,7 +11,7 @@
 - [x] 1.1 建立设计 token 模块；验证: focused test 断言 `frontend/src/app/theme/` 下 token 模块仅导出语义键（`color.bg.canvas` / `color.fg.primary` / `radius.md` / `shadow.elev1` 等）且不导出 hex 字面量；CSS variables 在 `:root[data-theme=warm][data-mode=light]` 等所有 8 个基础组合上有定义且非空；`customAccent` helper 只覆盖 accent / accentSoft 语义变量，不覆盖 `EI_THEMES` 基础色板；token 测试必须断言颜色、字体、圆角、阴影和间距值均能追溯到 `ui-design/src/primitives.jsx` 或 `ui-design/src/app.jsx`
   <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/theme/tokens.test.ts PASS (13 tests)" -->
 
-- [x] 1.2 主题 / 暗色 / custom accent 根级 wiring；验证: state test 断言 `DisplayPreferencesProvider` 切换 `theme` / `dark` / `customAccent` 后根元素 `data-theme` / `data-mode` / `data-custom-accent` 或等价 CSS variable 即时翻转，CSS variable `getComputedStyle(document.documentElement).getPropertyValue('--ei-color-bg-canvas')` 与 `--ei-color-accent` 在切换前后按预期变化；D1 `topbar-theme-select` / `topbar-dark-toggle` 行为 regression 通过
+- [x] 1.2 主题 / 暗色 / custom accent 根级 wiring；验证: state test 断言 `DisplayPreferencesProvider` 切换 `theme` / `dark` / `customAccent` 后根元素 `data-theme` / `data-mode` / `data-custom-accent` 或等价 CSS variable 即时翻转，CSS variable `getComputedStyle(document.documentElement).getPropertyValue('--ei-color-bg-canvas')` 与 `--ei-color-accent` 在切换前后按预期变化；D1 `topbar-theme-button` / `topbar-dark-toggle` / `topbar-lang-toggle` 行为 regression 通过
   <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/display/DisplayPreferencesRootWiring.test.tsx PASS (5 tests); D1 DisplayPreferencesProvider.test.tsx PASS (4 tests); TopBar.test.tsx PASS (8 tests); full frontend suite 156 tests PASS" -->
 
 - [x] 1.3 全局基础样式入口；验证: focused test 断言 `main.tsx` 一次性引入 `app/theme/global.css`（或等价 entry）；structural test 断言 `frontend/package.json` 不含 `tailwindcss` / `postcss-tailwind` / `styled-components` / `@emotion/*` 依赖
@@ -30,8 +30,10 @@
 
 - [x] 3.1 TopBar shell 节奏与卡片化；验证: component/parity test 断言 `app-shell-topbar` 渲染时根级 className 命中卡片 token，并与 `ui-design/src/app.jsx` TopBar 的 DOM 锚点、header 高度、padding、gap、背景、阴影、圆角和对齐方式逐项匹配；D1 `topbar-primary-nav` / `topbar-display-controls` / `topbar-user-area` testid 与 `aria-current` / `aria-pressed` 行为 regression 通过
   <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/topbar/TopBarVisual.test.tsx PASS (Phase 3.1 4 tests, height 58 / padding 0 32 / gap 28 / sticky / z-index 30 / app.jsx trace); D1 TopBar.test.tsx PASS (8 tests, testids + aria contract intact)" -->
-- [x] 3.2 五入口与显示控制视觉；验证: component/parity test 断言 `topbar-nav-home` / `topbar-nav-jd_match` / `topbar-nav-workspace` / `topbar-nav-resume_versions` / `topbar-nav-debrief` 与主题下拉、custom accent 控件、暗色 toggle、语言下拉、登录 / 注册 / 用户菜单按钮均挂载语义 className，并与 `ui-design/src/app.jsx` / `ui-design/src/screen-home.jsx` 的字体、字号、行高、padding、gap、圆角、颜色、active/hover 状态和控件密度逐项匹配；i18n 切换后文案与 D1 测试断言一致；custom accent 激活后 TopBar swatch / accent token 可见变化
+- [x] 3.2 五入口与显示控制视觉；验证: component/parity test 断言 `topbar-nav-home` / `topbar-nav-jd_match` / `topbar-nav-workspace` / `topbar-nav-resume_versions` / `topbar-nav-debrief` 与主题 menu、custom accent 控件、暗色 icon toggle、语言 icon toggle、登录 / 注册 / 用户菜单按钮均挂载语义 className，并与 `ui-design/src/app.jsx` / `ui-design/src/screen-home.jsx` 的字体、字号、行高、padding、gap、圆角、颜色、active/hover 状态和控件密度逐项匹配；i18n 切换后文案与 D1 测试断言一致；custom accent 激活后 TopBar swatch / accent token 可见变化
   <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/topbar/TopBarVisual.test.tsx PASS (Phase 3.2 8 tests, ei-topbar-nav-button + ei-text-body, ei-topbar-theme/dark/lang/custom-accent/auth-login/auth-register className wiring, hue/chroma sliders, customAccent swatch oklch); E2E.P0.004 lang switch scenario PASS" -->
+- [x] 3.3 L2 remediation: source-level TopBar parity；验证: 正式 TopBar 不再使用 native theme/lang `select` 或独立 custom accent popover，改为 `ui-design/src/app.jsx` 一致的 brand subtitle、nav icons、theme menu、Custom row 内嵌 AccentPicker、icon-only dark toggle 与 language toggle；Vitest 和 Playwright 均断言旧 `topbar-theme-select` / `topbar-lang-select` 不存在，`topbar-theme-button` / `topbar-theme-menu` / `topbar-theme-option-*` / `topbar-theme-custom-option` / `topbar-lang-toggle` 存在且可操作
+  <!-- verified: 2026-05-08 method=focused+playwright evidence="pnpm --filter @easyinterview/frontend test src/app/topbar/TopBarVisual.test.tsx src/app/topbar/TopBar.test.tsx PASS (20 tests); pnpm --filter @easyinterview/frontend test:pixel-parity --project=desktop frontend/tests/pixel-parity/topbar.spec.ts frontend/tests/pixel-parity/layout.spec.ts frontend/tests/pixel-parity/screenshot.spec.ts PASS (17 tests)" -->
 
 
 ## Phase 4: 认证页视觉接入
@@ -60,4 +62,3 @@
   <!-- verified: 2026-05-07 method=scenario bddChecklist=complete evidence="test/scenarios/e2e/p0-005-app-shell-visual-system-smoke setup→trigger→verify→cleanup PASS; trigger.log Tests 7 passed (7); INDEX 更新为 Ready" coverage-note="vitest+jsdom 覆盖 DOM 锚点 / className / CSS variable resolution / customAccent inline overlay / retired 模块负向 / ui-design 源字面量追溯；desktop+mobile viewport bounding-box + screenshot diff 列为后续 Playwright follow-up，scenario README §6 已记录接入步骤" -->
 - [x] 6.5 Handoff；验证: `frontend/README.md` 或等价 package docs 更新视觉骨架接入点（设计 token 入口、主题/暗色/custom accent wiring、字体加载、visual smoke 工具、`ui-design` 原生迁移规则、parity gate 重跑方式、D2-D6 业务扩展接入点）
   <!-- verified: 2026-05-07 method=docs evidence="frontend/README.md 增 §D2 视觉骨架接入点章节，覆盖 design tokens、theme/dark/customAccent wiring、字体加载、visual smoke 工具与重跑方式、ui-design 原生迁移规则、D2-D6 接入点、Playwright follow-up" -->
-

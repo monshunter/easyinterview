@@ -46,10 +46,64 @@ test.describe("TopBar DOM + computed style parity", () => {
     await page.goto(FRONTEND_PATH);
     await page.waitForSelector("[data-testid='app-shell-topbar']");
     const labels = await page.$$eval(
-      "[data-testid='topbar-primary-nav'] [data-testid^='topbar-nav-']",
+      "[data-testid='topbar-primary-nav'] button[data-testid^='topbar-nav-']",
       (els) => els.map((el) => el.textContent?.trim()),
     );
     expect(labels).toEqual([...PRIMARY_NAV_LABELS_EN]);
+  });
+
+  test("frontend TopBar visible structure matches ui-design source-level controls", async ({
+    page,
+  }) => {
+    await page.goto(FRONTEND_PATH);
+    await page.waitForSelector("[data-testid='app-shell-topbar']");
+    const summary = await page.evaluate(() => {
+      const topbar = document.querySelector(
+        "[data-testid='app-shell-topbar']",
+      ) as HTMLElement | null;
+      if (!topbar) throw new Error("frontend topbar missing");
+      return {
+        brand: topbar.querySelector(".ei-topbar-brand")?.textContent?.replace(/\s+/g, " ").trim(),
+        selectCount: topbar.querySelectorAll("select").length,
+        navIconCount: topbar.querySelectorAll("[data-testid^='topbar-nav-icon-']").length,
+        buttonTexts: Array.from(topbar.querySelectorAll("button")).map((button) =>
+          (button.textContent ?? "").replace(/\s+/g, " ").trim(),
+        ),
+        themeTitle: topbar
+          .querySelector("[data-testid='topbar-theme-button']")
+          ?.getAttribute("title"),
+        langText: topbar
+          .querySelector("[data-testid='topbar-lang-toggle']")
+          ?.textContent?.replace(/\s+/g, " ").trim(),
+      };
+    });
+
+    expect(summary.brand).toBe("EEasyInterview面试训练器 · v1.0");
+    expect(summary.selectCount).toBe(0);
+    expect(summary.navIconCount).toBe(5);
+    expect(summary.themeTitle).toBe("Theme");
+    expect(summary.langText).toBe("EN · 中");
+    expect(summary.buttonTexts).toContain("EN · 中");
+  });
+
+  test("frontend theme menu exposes the ui-design theme list and custom accent picker", async ({
+    page,
+  }) => {
+    await page.goto(FRONTEND_PATH);
+    await page.waitForSelector("[data-testid='topbar-theme-button']");
+    await page.click("[data-testid='topbar-theme-button']");
+    await page.waitForSelector("[data-testid='topbar-theme-menu']");
+
+    const menu = page.locator("[data-testid='topbar-theme-menu']");
+    await expect(menu).toBeVisible();
+    await expect(page.locator("[data-testid^='topbar-theme-option-']")).toHaveCount(4);
+    await expect(page.locator("[data-testid='topbar-theme-custom-option']")).toHaveText(/Custom/);
+
+    await page.click("[data-testid='topbar-theme-custom-option']");
+    await expect(page.locator("[data-testid='topbar-custom-accent-picker']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='topbar-custom-accent-hue']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='topbar-custom-accent-chroma']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='topbar-custom-accent-clear']")).toHaveCount(1);
   });
 
   test("ui-design golden preview renders five primary nav buttons with Chinese labels", async ({

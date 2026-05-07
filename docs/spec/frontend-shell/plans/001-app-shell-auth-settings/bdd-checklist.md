@@ -1,8 +1,8 @@
 # Frontend Shell BDD Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-05-07
+> **更新日期**: 2026-05-08
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -19,10 +19,10 @@
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-004-app-shell-language-switch/`
 - [x] 准备测试数据：可归一为中文的浏览器 locale、未登录 `/me`、可触发语言切换的 TopBar 与 D1 shell route 集
-- [x] 实现 setup / trigger / verify / cleanup；verify 必须断言语言切换控件是 TopBar 下拉框，切换到 English 后 TopBar、登录/注册、用户菜单、auth/profile/settings/placeholder shell 文案为英文，route/testid/params 未被 locale 改写，generated client 请求包含 `Accept-Language`，runtime locale 与登录态不覆盖前端语言设置
+- [x] 实现 setup / trigger / verify / cleanup；verify 必须断言语言切换控件是 TopBar language toggle，切换到 English 后 TopBar、登录/注册、用户菜单、auth/profile/settings/placeholder shell 文案为英文，route/testid/params 未被 locale 改写，generated client 请求包含 `Accept-Language`，runtime locale 与登录态不覆盖前端语言设置
 - [x] 执行并通过场景验证
 - [x] 记录验证证据
-<!-- evidence: .test-output/e2e/p0-004-app-shell-language-switch/trigger.log (1 vitest test passed; verify.sh: English copy + Accept-Language evidence present; legacy/prototype leak gates clean) -->
+<!-- evidence: .test-output/e2e/p0-004-app-shell-language-switch/trigger.log (1 vitest test passed; verify.sh: language toggle + English copy + Accept-Language evidence present; legacy/prototype leak gates clean) -->
 
 
 ## E2E.P0.002 登录打断后恢复原业务动作

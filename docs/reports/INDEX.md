@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-08](./2026-05-08-frontend-shell-topbar-ui-design-parity-assessment.md) | Frontend Shell TopBar UI-Design Parity 交付复盘 | #assessment |
 | [2026-05-08](./2026-05-08-frontend-shell-ui-design-pixel-parity-gate-assessment.md) | Frontend Shell UI-Design Pixel Parity Gate 交付复盘 | #assessment |
 | [2026-05-07](./2026-05-07-frontend-shell-app-shell-visual-system-assessment.md) | Frontend Shell App Shell Visual System 交付复盘 | #assessment |
 | [2026-05-07](./2026-05-07-frontend-shell-i18n-remediation-assessment.md) | Frontend Shell I18n Remediation 交付复盘 | #assessment |

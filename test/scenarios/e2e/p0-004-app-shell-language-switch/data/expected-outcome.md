@@ -1,14 +1,14 @@
 # E2E.P0.004 Expected Outcome
 
 - Default Chinese shell remains available before switching.
-- After selecting English:
-  - `topbar-lang-select` is a `select` dropdown.
+- After toggling English:
+  - `topbar-lang-toggle` is a button aligned with `ui-design/src/app.jsx`.
   - `topbar-nav-home` shows `Home`.
   - `topbar-nav-jd_match` shows `Job Picks`.
   - `topbar-login` shows `Sign in`.
   - `topbar-register` shows `Register`.
   - Auth/profile/settings/placeholder shell labels are English.
 - Stable route/test IDs remain unchanged; no localized route names are introduced.
-- Generated client requests made after locale selection include
+- Generated client requests made after locale toggle include
   `Accept-Language: en`.
 - Legacy entries and prototype data imports remain absent from scenario output.

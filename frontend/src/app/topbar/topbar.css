@@ -9,10 +9,9 @@
  *
  * Keep the testid contract intact (`app-shell-topbar`, `topbar-primary-nav`,
  * `topbar-display-controls`, `topbar-user-area`, `topbar-nav-*`,
- * `topbar-theme-select`, `topbar-dark-toggle`, `topbar-lang-select`,
- * `topbar-login`, `topbar-register`, `topbar-user-menu`, `topbar-user-{profile,
- * settings,logout}`); D2 only adds `topbar-custom-accent-{button,swatch,hue,
- * chroma,clear,picker}`.
+   * `topbar-theme-button`, `topbar-dark-toggle`, `topbar-lang-toggle`,
+   * `topbar-login`, `topbar-register`, `topbar-user-menu`, `topbar-user-{profile,
+   * settings,logout}`); D2 only adds theme-menu/custom-accent picker anchors.
  */
 
 .ei-shell-topbar {
@@ -32,7 +31,8 @@
 .ei-topbar-brand {
   display: inline-flex;
   align-items: center;
-  gap: var(--ei-space-2);
+  gap: 10px;
+  cursor: pointer;
 }
 
 .ei-topbar-brand-mark {
@@ -47,6 +47,19 @@
   font-family: var(--ei-font-serif);
   font-size: 15px;
   font-weight: 600;
+}
+
+.ei-topbar-brand-copy {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.ei-topbar-brand-subtitle {
+  color: var(--ei-color-fg-tertiary);
+  font-size: 9px;
+  margin-top: 2px;
 }
 
 .ei-topbar-nav {
@@ -111,15 +124,6 @@
   border-color: var(--ei-color-fg-tertiary);
 }
 
-.ei-topbar-theme {
-  /* native <select> styled as a compact swatch chip; rely on the parent
-     wrapper to render the theme swatch dot via ::before. */
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: none;
-  padding-right: 16px;
-}
-
 .ei-topbar-theme-wrap {
   position: relative;
   display: inline-flex;
@@ -140,28 +144,99 @@
   background: var(--ei-color-accent);
 }
 
+.ei-topbar-theme-button {
+  padding: 4px 8px;
+  height: 26px;
+  min-width: 42px;
+  justify-content: center;
+}
+
+.ei-topbar-caret {
+  color: var(--ei-color-fg-tertiary);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.ei-topbar-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.ei-topbar-theme-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 240px;
+  padding: 6px;
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: var(--ei-radius-md);
+  box-shadow: var(--ei-shadow-elev2);
+  z-index: 40;
+}
+
+.ei-topbar-theme-menu-label {
+  padding: 8px 10px 6px;
+  color: var(--ei-color-fg-tertiary);
+}
+
+.ei-topbar-theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--ei-radius-sm);
+  background: transparent;
+  color: var(--ei-color-fg-secondary);
+  cursor: pointer;
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  text-align: left;
+}
+
+.ei-topbar-theme-option:hover,
+.ei-topbar-theme-option--selected {
+  background: var(--ei-color-bg-soft);
+}
+
+.ei-topbar-theme-option svg:last-child,
+.ei-topbar-theme-option .ei-topbar-caret:last-child {
+  margin-left: auto;
+  color: var(--ei-color-accent);
+}
+
+.ei-topbar-theme-option-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  border: 1px solid var(--ei-color-rule-strong);
+  flex-shrink: 0;
+}
+
+.ei-topbar-theme-separator {
+  height: 1px;
+  background: var(--ei-color-rule-strong);
+  margin: 4px 6px;
+}
+
 .ei-topbar-dark {
   height: 26px;
-  width: 32px;
-  padding: 0;
+  width: 30px;
+  padding: 5px 8px;
   justify-content: center;
 }
 
 .ei-topbar-lang {
-  appearance: auto;
-  height: 26px;
-  padding: 0 8px;
-}
-
-.ei-topbar-custom-accent {
-  height: 26px;
-  width: 32px;
-  padding: 0;
-  justify-content: center;
-}
-
-.ei-topbar-custom-accent[aria-pressed="true"] {
-  border-color: var(--ei-color-fg-primary);
+  height: 29px;
+  padding: 5px 10px;
 }
 
 .ei-topbar-custom-accent-rainbow {
@@ -183,19 +258,34 @@
 }
 
 .ei-topbar-custom-accent-picker {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 220px;
-  padding: 12px 12px 14px;
-  background: var(--ei-color-bg-card);
-  border: 1px solid var(--ei-color-rule-strong);
-  border-radius: var(--ei-radius-md);
-  box-shadow: var(--ei-shadow-elev2);
-  z-index: 40;
+  padding: 10px 10px 12px;
+  margin-top: 4px;
+  border-top: 1px dotted var(--ei-color-rule-strong);
   display: flex;
   flex-direction: column;
   gap: var(--ei-space-2);
+}
+
+.ei-topbar-custom-accent-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ei-topbar-custom-accent-preview-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  border: 1px solid var(--ei-color-rule-strong);
+  flex-shrink: 0;
+}
+
+.ei-topbar-custom-accent-value {
+  flex: 1;
+  color: var(--ei-color-fg-tertiary);
+  font-family: var(--ei-font-mono);
+  font-size: 10.5px;
+  line-height: 1.4;
 }
 
 .ei-topbar-custom-accent-row {
@@ -209,6 +299,12 @@
   height: 16px;
   border-radius: 8px;
   border: 1px solid var(--ei-color-rule-strong);
+}
+
+.ei-topbar-icon {
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .ei-topbar-custom-accent-input {

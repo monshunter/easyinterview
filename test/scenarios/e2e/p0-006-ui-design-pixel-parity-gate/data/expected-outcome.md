@@ -15,7 +15,7 @@
     toggle 翻转 token + body bg、customAccent 内联仅覆盖 accent / accent-
     soft、retired entries 0 命中。
 - trigger.log 必须出现：
-  - `42 passed`
+  - `46 passed`
   - `0 failed`
   - 不含 `topbar-nav-welcome` / `topbar-nav-mistakes` / `topbar-nav-growth` /
     `topbar-nav-drill` / `topbar-nav-voice` / `route-welcome` 任何一个 token。

@@ -143,7 +143,8 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
       getComputedStyle(root).getPropertyValue("--ei-color-fg-primary").trim(),
     ).toBe("#f5f0e4");
 
-    await user.selectOptions(screen.getByTestId("topbar-theme-select"), "ocean");
+    await user.click(screen.getByTestId("topbar-theme-button"));
+    await user.click(screen.getByTestId("topbar-theme-option-ocean"));
     expect(root.getAttribute("data-theme")).toBe("ocean");
     expect(
       getComputedStyle(root).getPropertyValue("--ei-color-bg-canvas").trim(),
@@ -161,7 +162,8 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
       />,
     );
     const user = userEvent.setup();
-    await user.click(screen.getByTestId("topbar-custom-accent-button"));
+    await user.click(screen.getByTestId("topbar-theme-button"));
+    await user.click(screen.getByTestId("topbar-theme-custom-option"));
     const root = document.documentElement;
     expect(root.getAttribute("data-custom-accent")).toBe("active");
 

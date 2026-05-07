@@ -15,7 +15,7 @@
 ## 2 When
 
 场景在 jsdom 中渲染 `<App client={fixtureClient} requestOptions={Prefer:
-example=unauthenticated} />`，模拟用户通过 TopBar 语言下拉框把语言从中文切换到
+example=unauthenticated} />`，模拟用户通过 TopBar language toggle 把语言从中文切换到
 English，并进入 auth / profile / settings / placeholder shell。
 
 ## 3 Then
@@ -26,7 +26,7 @@ English，并进入 auth / profile / settings / placeholder shell。
   D1 静态文案随 locale 切换。
 - RouteName、testid、route params 与业务字段不被 locale 改写。
 - D1 generated client 请求携带当前 UI locale 的 `Accept-Language` display hint。
-- 语言切换控件是下拉框，不是按钮组或纯状态占位。
+- 语言切换控件是 `ui-design/src/app.jsx` 一致的 icon toggle，不是 native select、按钮组或纯状态占位。
 - 旧入口 `welcome`、独立 `voice`、`growth` / `mistakes` / `drill`
   仍不可达，且场景不读取 `ui-design/src/data.jsx`。
 

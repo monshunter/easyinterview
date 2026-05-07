@@ -1,8 +1,8 @@
 # App Shell Visual System BDD Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-07
+> **更新日期**: 2026-05-08
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 

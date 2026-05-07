@@ -153,7 +153,7 @@ describe("locale bootstrap", () => {
     );
 
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByTestId("topbar-lang-select"), "en");
+    await user.click(screen.getByTestId("topbar-lang-toggle"));
     await user.click(screen.getByTestId("topbar-login"));
     await user.type(screen.getByTestId("auth-login-email"), "liuzhe@example.com");
     await user.click(screen.getByTestId("auth-login-submit-email"));

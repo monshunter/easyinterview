@@ -1,4 +1,4 @@
-import { useCallback, useState, type FC } from "react";
+import { useCallback, useEffect, useState, type FC } from "react";
 
 import {
   useDisplayPreferences,
@@ -40,19 +40,21 @@ const THEME_LABEL_KEYS: Record<Theme, Parameters<typeof translate>[1]> = {
   plum: "theme.plum",
 };
 
-const LANG_LABELS: Record<Lang, string> = {
-  zh: "中文",
-  en: "English",
-};
-
 const THEME_OPTIONS: readonly Theme[] = ["warm", "forest", "ocean", "plum"];
-const LANG_OPTIONS: readonly Lang[] = ["zh", "en"];
 
 const CUSTOM_ACCENT_SEEDS: Record<Theme, CustomAccent> = {
   warm: { h: 30, c: 0.16 },
   forest: { h: 130, c: 0.13 },
   ocean: { h: 255, c: 0.16 },
   plum: { h: 340, c: 0.15 },
+};
+
+const NAV_ICONS: Record<(typeof PRIMARY_NAV_ROUTES)[number], IconName> = {
+  home: "target",
+  jd_match: "search",
+  workspace: "play",
+  resume_versions: "file",
+  debrief: "flag",
 };
 
 export interface TopBarProps {
@@ -75,6 +77,7 @@ export const TopBar: FC<TopBarProps> = ({
   const t = (key: Parameters<typeof translate>[1]) => translate(prefs.lang, key);
   const customActive = prefs.customAccent != null;
   const [pickerOpen, setPickerOpen] = useState<boolean>(customActive);
+  const [themeMenuOpen, setThemeMenuOpen] = useState<boolean>(false);
 
   const seed = CUSTOM_ACCENT_SEEDS[prefs.theme] ?? CUSTOM_ACCENT_SEEDS.warm;
   const accentValue: CustomAccent = prefs.customAccent ?? seed;
@@ -82,15 +85,14 @@ export const TopBar: FC<TopBarProps> = ({
     ? `oklch(${prefs.dark ? 68 : 58}% ${accentValue.c.toFixed(3)} ${accentValue.h.toFixed(1)})`
     : "";
 
-  const handleToggleCustomAccent = useCallback(() => {
-    if (customActive) {
-      prefs.setCustomAccent(null);
-      setPickerOpen(false);
-    } else {
-      prefs.setCustomAccent({ ...seed });
-      setPickerOpen(true);
-    }
-  }, [customActive, prefs, seed]);
+  useEffect(() => {
+    if (!themeMenuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setThemeMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [themeMenuOpen]);
 
   const handleAccentChange = useCallback(
     (next: Partial<CustomAccent>) => {
@@ -105,7 +107,12 @@ export const TopBar: FC<TopBarProps> = ({
         <span className="ei-topbar-brand-mark" aria-hidden="true">
           E
         </span>
-        <span className="ei-text-subtitle">EasyInterview</span>
+        <span className="ei-topbar-brand-copy">
+          <span className="ei-text-subtitle">EasyInterview</span>
+          <span data-testid="topbar-brand-subtitle" className="ei-text-label ei-topbar-brand-subtitle">
+            面试训练器 · v1.0
+          </span>
+        </span>
       </div>
       <nav
         data-testid="topbar-primary-nav"
@@ -121,6 +128,11 @@ export const TopBar: FC<TopBarProps> = ({
             className="ei-topbar-nav-button ei-text-body"
             onClick={() => onNavigate({ name, params: {} })}
           >
+            <Icon
+              name={NAV_ICONS[name]}
+              size={13}
+              data-testid={`topbar-nav-icon-${name}`}
+            />
             {t(NAV_LABEL_KEYS[name])}
           </button>
         ))}
@@ -131,90 +143,156 @@ export const TopBar: FC<TopBarProps> = ({
         className="ei-topbar-controls"
       >
         <span className="ei-topbar-theme-wrap">
-          <span
-            className={
-              customActive
-                ? "ei-topbar-theme-swatch ei-topbar-theme-swatch--custom-active"
-                : "ei-topbar-theme-swatch"
-            }
-            data-testid="topbar-theme-swatch"
-          />
-          <label className="ei-topbar-control">
-            <span className="visually-hidden">{t("display.theme")}</span>
-            <select
-              data-testid="topbar-theme-select"
-              className="ei-topbar-theme"
-              value={prefs.theme}
-              onChange={(e) => prefs.setTheme(e.target.value as Theme)}
-            >
-              {THEME_OPTIONS.map((theme) => (
-                <option key={theme} value={theme}>
-                  {t(THEME_LABEL_KEYS[theme])}
-                </option>
-              ))}
-            </select>
-          </label>
-        </span>
-        <span className="ei-topbar-custom-accent-host">
           <button
             type="button"
-            data-testid="topbar-custom-accent-button"
-            aria-pressed={customActive}
-            aria-label={
-              prefs.lang === "en" ? "Toggle custom accent" : "切换自定义主题色"
-            }
-            className="ei-topbar-control ei-topbar-custom-accent"
-            onClick={handleToggleCustomAccent}
+            data-testid="topbar-theme-button"
+            title={prefs.lang === "en" ? "Theme" : "主题色"}
+            aria-label={prefs.lang === "en" ? "Theme" : "主题色"}
+            aria-expanded={themeMenuOpen}
+            className="ei-topbar-control ei-topbar-theme-button"
+            onClick={() => setThemeMenuOpen((open) => !open)}
           >
-            {customActive ? (
-              <span
-                data-testid="topbar-custom-accent-swatch"
-                className="ei-topbar-custom-accent-rainbow"
-                style={{ background: swatchOklch }}
-              />
-            ) : (
-              <span
-                data-testid="topbar-custom-accent-swatch"
-                className="ei-topbar-custom-accent-rainbow"
-              />
-            )}
-          </button>
-          {pickerOpen && (
-            <CustomAccentPicker
-              accent={accentValue}
-              onChange={handleAccentChange}
-              onClear={() => {
-                prefs.setCustomAccent(null);
-                setPickerOpen(false);
-              }}
-              lang={prefs.lang}
+            <span
+              className="ei-topbar-theme-swatch"
+              data-testid="topbar-theme-swatch"
             />
+            <span className="ei-topbar-caret" aria-hidden="true">
+              ▾
+            </span>
+          </button>
+          {themeMenuOpen && (
+            <>
+              <button
+                type="button"
+                className="ei-topbar-menu-backdrop"
+                aria-label={prefs.lang === "en" ? "Close theme menu" : "关闭主题菜单"}
+                onClick={() => setThemeMenuOpen(false)}
+              />
+              <div
+                data-testid="topbar-theme-menu"
+                className="ei-topbar-theme-menu"
+              >
+                <div className="ei-text-label ei-topbar-theme-menu-label">
+                  {prefs.lang === "en" ? "Theme" : "主题色"}
+                </div>
+                {THEME_OPTIONS.map((theme) => {
+                  const selected = prefs.theme === theme && !customActive;
+                  const metadata = THEME_METADATA.find((item) => item.key === theme);
+                  return (
+                    <button
+                      key={theme}
+                      type="button"
+                      data-testid={`topbar-theme-option-${theme}`}
+                      aria-pressed={selected}
+                      className={
+                        selected
+                          ? "ei-topbar-theme-option ei-topbar-theme-option--selected"
+                          : "ei-topbar-theme-option"
+                      }
+                      onClick={() => {
+                        prefs.setTheme(theme);
+                        prefs.setCustomAccent(null);
+                        setPickerOpen(false);
+                        setThemeMenuOpen(false);
+                      }}
+                    >
+                      <span
+                        className="ei-topbar-theme-option-swatch"
+                        style={{ background: metadata?.swatch }}
+                        aria-hidden="true"
+                      />
+                      <span>{t(THEME_LABEL_KEYS[theme])}</span>
+                      {selected && <Icon name="check" size={12} />}
+                    </button>
+                  );
+                })}
+                <div className="ei-topbar-theme-separator" />
+                <button
+                  type="button"
+                  data-testid="topbar-theme-custom-option"
+                  aria-pressed={customActive}
+                  className={
+                    customActive
+                      ? "ei-topbar-theme-option ei-topbar-theme-option--selected"
+                      : "ei-topbar-theme-option"
+                  }
+                  onClick={() => {
+                    if (!customActive) {
+                      prefs.setCustomAccent({ ...seed });
+                      setPickerOpen(true);
+                    } else {
+                      setPickerOpen((open) => !open);
+                    }
+                  }}
+                >
+                  <span
+                    data-testid="topbar-custom-accent-swatch"
+                    className="ei-topbar-custom-accent-rainbow"
+                    style={customActive ? { background: swatchOklch } : undefined}
+                  />
+                  <span>{prefs.lang === "en" ? "Custom" : "自定义"}</span>
+                  {customActive ? (
+                    <Icon name="check" size={12} />
+                  ) : (
+                    <span className="ei-topbar-caret" aria-hidden="true">
+                      {pickerOpen ? "▴" : "▾"}
+                    </span>
+                  )}
+                </button>
+                {pickerOpen && (
+                  <CustomAccentPicker
+                    accent={accentValue}
+                    active={customActive}
+                    onChange={handleAccentChange}
+                    onClear={() => {
+                      prefs.setCustomAccent(null);
+                      setPickerOpen(false);
+                    }}
+                    lang={prefs.lang}
+                    dark={prefs.dark}
+                  />
+                )}
+              </div>
+            </>
           )}
         </span>
         <button
           type="button"
           data-testid="topbar-dark-toggle"
           aria-pressed={prefs.dark}
+          aria-label={
+            prefs.dark
+              ? prefs.lang === "en"
+                ? "Switch to light"
+                : "切换到浅色"
+              : prefs.lang === "en"
+                ? "Switch to dark"
+                : "切换到暗色"
+          }
+          title={
+            prefs.dark
+              ? prefs.lang === "en"
+                ? "Switch to light"
+                : "切换到浅色"
+              : prefs.lang === "en"
+                ? "Switch to dark"
+                : "切换到暗色"
+          }
           className="ei-topbar-control ei-topbar-dark"
           onClick={() => prefs.setDark(!prefs.dark)}
         >
-          {prefs.dark ? t("display.dark") : t("display.light")}
+          <Icon name={prefs.dark ? "sun" : "moon"} size={12} />
         </button>
-        <label className="ei-topbar-control">
-          <span className="visually-hidden">{t("display.language")}</span>
-          <select
-            data-testid="topbar-lang-select"
-            className="ei-topbar-lang"
-            value={prefs.lang}
-            onChange={(e) => prefs.setLang(e.target.value as Lang)}
-          >
-            {LANG_OPTIONS.map((lang) => (
-              <option key={lang} value={lang}>
-                {LANG_LABELS[lang]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <button
+          type="button"
+          data-testid="topbar-lang-toggle"
+          aria-label={t("display.language")}
+          className="ei-topbar-control ei-topbar-lang"
+          onClick={() => prefs.setLang(prefs.lang === "zh" ? "en" : "zh")}
+        >
+          <Icon name="globe" size={12} />
+          {prefs.lang === "zh" ? "中 · EN" : "EN · 中"}
+        </button>
       </div>
       <div
         data-testid="topbar-user-area"
@@ -279,17 +357,31 @@ export const TopBar: FC<TopBarProps> = ({
 
 interface CustomAccentPickerProps {
   accent: CustomAccent;
+  active: boolean;
   onChange: (next: Partial<CustomAccent>) => void;
   onClear: () => void;
   lang: Lang;
+  dark: boolean;
 }
 
 const CustomAccentPicker: FC<CustomAccentPickerProps> = ({
   accent,
+  active,
   onChange,
   onClear,
   lang,
+  dark,
 }) => {
+  const accentL = dark ? 68 : 58;
+  const normalizedHue = ((accent.h % 360) + 360) % 360;
+  const hueStops = Array.from({ length: 13 }, (_, index) => {
+    const h = (index / 12) * 360;
+    return `oklch(${accentL}% 0.18 ${h})`;
+  }).join(", ");
+  const hueGradient = `linear-gradient(to right, ${hueStops})`;
+  const chromaGradient = `linear-gradient(to right, oklch(${accentL}% 0 ${normalizedHue}), oklch(${accentL}% 0.25 ${normalizedHue}))`;
+  const previewAccent = `oklch(${accentL}% ${accent.c.toFixed(3)} ${normalizedHue.toFixed(1)})`;
+
   return (
     <div
       data-testid="topbar-custom-accent-picker"
@@ -297,11 +389,24 @@ const CustomAccentPicker: FC<CustomAccentPickerProps> = ({
       role="group"
       aria-label={lang === "en" ? "Custom accent picker" : "自定义主题色"}
     >
+      <div className="ei-topbar-custom-accent-preview">
+        <span
+          className="ei-topbar-custom-accent-preview-swatch"
+          style={{ background: previewAccent, opacity: active ? 1 : 0.55 }}
+          aria-hidden="true"
+        />
+        <span className="ei-topbar-custom-accent-value">
+          oklch({accentL}% {accent.c.toFixed(3)} {Math.round(normalizedHue)})
+        </span>
+      </div>
       <div className="ei-topbar-custom-accent-row">
         <span className="ei-text-label">
           {lang === "en" ? "Hue" : "色相"}
         </span>
-        <div className="ei-topbar-custom-accent-track">
+        <div
+          className="ei-topbar-custom-accent-track"
+          style={{ background: hueGradient, opacity: active ? 1 : 0.55 }}
+        >
           <input
             data-testid="topbar-custom-accent-hue"
             className="ei-topbar-custom-accent-input"
@@ -319,7 +424,10 @@ const CustomAccentPicker: FC<CustomAccentPickerProps> = ({
         <span className="ei-text-label">
           {lang === "en" ? "Chroma" : "饱和度"}
         </span>
-        <div className="ei-topbar-custom-accent-track">
+        <div
+          className="ei-topbar-custom-accent-track"
+          style={{ background: chromaGradient, opacity: active ? 1 : 0.55 }}
+        >
           <input
             data-testid="topbar-custom-accent-chroma"
             className="ei-topbar-custom-accent-input"
@@ -347,7 +455,71 @@ const CustomAccentPicker: FC<CustomAccentPickerProps> = ({
   );
 };
 
-// Side effect: theme metadata is imported above so the theme dropdown can
-// surface a consistent swatch dot. It is currently only used to validate
-// theme keys at runtime; future iterations may render per-theme dot variants.
-void THEME_METADATA;
+type IconName =
+  | "target"
+  | "search"
+  | "play"
+  | "file"
+  | "flag"
+  | "check"
+  | "moon"
+  | "sun"
+  | "globe";
+
+interface IconProps {
+  name: IconName;
+  size?: number;
+  "data-testid"?: string;
+}
+
+const Icon: FC<IconProps> = ({ name, size = 13, "data-testid": testId }) => {
+  const paths: Record<IconName, JSX.Element> = {
+    target: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="5" />
+        <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      </>
+    ),
+    search: (
+      <>
+        <circle cx="11" cy="11" r="7" />
+        <path d="M20 20l-4-4" />
+      </>
+    ),
+    play: <path d="M7 5l12 7-12 7V5z" fill="currentColor" stroke="none" />,
+    file: <path d="M7 3h8l4 4v14H7z M15 3v5h4" />,
+    flag: <path d="M5 22V3h13l-3 5 3 5H5" />,
+    check: <path d="M5 12l5 5L20 7" />,
+    moon: <path d="M21 13.5A8.5 8.5 0 1110.5 3a7 7 0 0010.5 10.5z" />,
+    sun: (
+      <>
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 3v2M12 19v2M5 12H3M21 12h-2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" />
+      </>
+    ),
+    globe: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
+      </>
+    ),
+  };
+  return (
+    <svg
+      data-testid={testId}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="ei-topbar-icon"
+    >
+      {paths[name]}
+    </svg>
+  );
+};

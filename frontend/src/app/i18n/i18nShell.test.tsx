@@ -40,8 +40,9 @@ describe("D1 shell i18n", () => {
     expect(screen.getAllByTestId("topbar-register")[0]).toHaveTextContent(
       "Register",
     );
-    for (const languageControl of screen.getAllByLabelText("Language")) {
-      expect(languageControl.tagName).toBe("SELECT");
+    for (const languageControl of screen.getAllByTestId("topbar-lang-toggle")) {
+      expect(languageControl.tagName).toBe("BUTTON");
+      expect(languageControl).toHaveTextContent("EN · 中");
     }
     expect(screen.getByTestId("topbar-user-profile")).toHaveTextContent(
       "User profile",

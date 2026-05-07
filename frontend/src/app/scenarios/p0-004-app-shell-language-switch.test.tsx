@@ -6,7 +6,7 @@
  *               + bdd-checklist.md.
  *
  * Given a default App shell with runtime config and generated client bootstrap,
- * switching the TopBar language to English must update D1 shell copy while
+ * switching the TopBar language toggle to English must update D1 shell copy while
  * preserving route/test IDs and sending Accept-Language as a display hint.
  */
 import { describe, expect, it } from "vitest";
@@ -83,9 +83,10 @@ describe("E2E.P0.004 app shell language switch", () => {
     await waitFor(() =>
       expect(screen.getByTestId("topbar-login")).toHaveTextContent("登录"),
     );
-    const languageSelect = screen.getByTestId("topbar-lang-select");
-    expect(languageSelect.tagName).toBe("SELECT");
-    await user.selectOptions(languageSelect, "en");
+    const languageToggle = screen.getByTestId("topbar-lang-toggle");
+    expect(languageToggle.tagName).toBe("BUTTON");
+    expect(languageToggle).toHaveTextContent("中 · EN");
+    await user.click(languageToggle);
 
     expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("Home");
     expect(screen.getByTestId("topbar-nav-jd_match")).toHaveTextContent(
@@ -121,7 +122,7 @@ describe("E2E.P0.004 app shell language switch", () => {
         "true",
       ),
     );
-    await user.selectOptions(screen.getByTestId("topbar-lang-select"), "en");
+    await user.click(screen.getByTestId("topbar-lang-toggle"));
     expect(screen.getByTestId("topbar-user-profile")).toHaveTextContent(
       "User profile",
     );
@@ -146,7 +147,7 @@ describe("E2E.P0.004 app shell language switch", () => {
         screen.queryByTestId(`topbar-nav-${legacy}`),
       ).not.toBeInTheDocument();
     }
-    console.log("E2E.P0.004 evidence: language dropdown select Home Job Picks Sign in Register Accept-Language: en");
+    console.log("E2E.P0.004 evidence: language toggle Home Job Picks Sign in Register Accept-Language: en");
   });
 });
 

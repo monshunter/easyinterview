@@ -56,12 +56,12 @@ describe("E2E.P0.001 default home shell", () => {
       expect(screen.getByTestId(`topbar-nav-${name}`)).toBeInTheDocument();
     }
     expect(
-      primaryNav.querySelectorAll("[data-testid^='topbar-nav-']"),
+      primaryNav.querySelectorAll("button[data-testid^='topbar-nav-']"),
     ).toHaveLength(5);
 
-    expect(screen.getByTestId("topbar-theme-select")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-theme-button")).toBeInTheDocument();
     expect(screen.getByTestId("topbar-dark-toggle")).toBeInTheDocument();
-    expect(screen.getByTestId("topbar-lang-select")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-lang-toggle")).toBeInTheDocument();
 
     await waitFor(() =>
       expect(screen.getByTestId("topbar-user-area")).toHaveAttribute(

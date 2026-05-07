@@ -17,7 +17,7 @@ describe("TopBar primary nav", () => {
   it("renders exactly the five primary nav entries", () => {
     renderInProvider(<TopBar activeRoute="home" onNavigate={() => {}} />);
     const nav = screen.getByTestId("topbar-primary-nav");
-    const items = nav.querySelectorAll("[data-testid^='topbar-nav-']");
+    const items = nav.querySelectorAll("button[data-testid^='topbar-nav-']");
     expect(items).toHaveLength(5);
     const ids = Array.from(items).map((el) =>
       el.getAttribute("data-testid")?.replace("topbar-nav-", ""),
@@ -121,25 +121,23 @@ describe("TopBar display controls", () => {
     );
     const user = userEvent.setup();
 
-    const themeSelect = screen.getByTestId(
-      "topbar-theme-select",
-    ) as HTMLSelectElement;
+    const themeButton = screen.getByTestId("topbar-theme-button");
     const darkToggle = screen.getByTestId("topbar-dark-toggle");
-    const langSelect = screen.getByTestId(
-      "topbar-lang-select",
-    ) as HTMLSelectElement;
+    const langToggle = screen.getByTestId("topbar-lang-toggle");
 
-    expect(themeSelect.value).toBe("warm");
+    expect(themeButton).toHaveAttribute("aria-expanded", "false");
     expect(darkToggle).toHaveAttribute("aria-pressed", "false");
-    expect(langSelect.value).toBe("zh");
+    expect(langToggle).toHaveTextContent("中 · EN");
 
-    await user.selectOptions(themeSelect, "forest");
-    expect(themeSelect.value).toBe("forest");
+    await user.click(themeButton);
+    expect(themeButton).toHaveAttribute("aria-expanded", "true");
+    await user.click(screen.getByTestId("topbar-theme-option-forest"));
+    expect(themeButton).toHaveAttribute("aria-expanded", "false");
 
     await user.click(darkToggle);
     expect(darkToggle).toHaveAttribute("aria-pressed", "true");
 
-    await user.selectOptions(langSelect, "en");
-    expect(langSelect.value).toBe("en");
+    await user.click(langToggle);
+    expect(langToggle).toHaveTextContent("EN · 中");
   });
 });

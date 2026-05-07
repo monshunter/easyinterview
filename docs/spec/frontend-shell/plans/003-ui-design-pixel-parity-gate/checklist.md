@@ -1,6 +1,6 @@
 # UI-Design Pixel Parity Gate Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-08
 
@@ -38,10 +38,10 @@
 
 ## Phase 5: Scenario + handoff
 
-- [x] 5.1 派生 `test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/`；验证: README.md 含 Playwright 安装步骤、`data/{seed-input,expected-outcome}.md` 描述输入与期望、`scripts/{setup,trigger,verify,cleanup}.sh` 形成完整契约：setup 预检 chromium + dist、trigger 跑 `pnpm --filter @easyinterview/frontend test:pixel-parity`、verify 断言 trigger.log 含 `42 passed` + 0 failed + 4 spec markers + desktop/mobile project markers、cleanup 清理 setup marker；`test/scenarios/e2e/INDEX.md` 添加 P0.006 行
+- [x] 5.1 派生 `test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/`；验证: README.md 含 Playwright 安装步骤、`data/{seed-input,expected-outcome}.md` 描述输入与期望、`scripts/{setup,trigger,verify,cleanup}.sh` 形成完整契约：setup 预检 chromium + dist、trigger 跑 `pnpm --filter @easyinterview/frontend test:pixel-parity`、verify 断言 trigger.log 含 `46 passed` + 0 failed + 4 spec markers + desktop/mobile project markers、cleanup 清理 setup marker；`test/scenarios/e2e/INDEX.md` 添加 P0.006 行
   <!-- verified: 2026-05-08 method=scenario evidence="目录 + README + data + scripts 全部就位；INDEX.md 已加 P0.006 (frontend-shell C-9, automated, Ready)" -->
 - [x] 5.2 BDD-Gate: 验证 E2E.P0.006 通过；验证: 跑通 setup→trigger→verify→cleanup 完整链路；trigger.log 落在 `.test-output/e2e/p0-006-ui-design-pixel-parity-gate/trigger.log`；verify 阻断旧 entry / 旧文案回流的 grep 模式；BDD-checklist 同步勾选并写入证据
-  <!-- verified: 2026-05-08 method=scenario bddChecklist=complete evidence="setup→trigger→verify→cleanup 全 PASS；trigger.log 含 '42 passed' '[desktop]' '[mobile]' 4 spec 路径标记；retired-entry grep 0 命中" -->
+  <!-- verified: 2026-05-08 method=scenario bddChecklist=complete evidence="setup→trigger→verify→cleanup 全 PASS；trigger.log 含 '46 passed' '[desktop]' '[mobile]' 4 spec 路径标记；retired-entry grep 0 命中" -->
 - [x] 5.3 Handoff；验证: `frontend/README.md` §2.7 更新 pixel parity gate 入口、jsdom fast smoke 与 Playwright gate 分工、`--update-snapshots` baseline 重生成方式、E2E.P0.006 scenario 入口、chromium 安装步骤；`make docs-check` zero drift；负向搜索：`frontend/`、active spec/plan/checklist 不再有「Playwright follow-up 待派生」类 TODO 语句（保留 002/p0-005 evidence 注释和本 plan 5.3 自引用作为已闭环 follow-up 的历史记录）
   <!-- verified: 2026-05-08 method=docs evidence="frontend/README.md §2.7 更新两层 gate 分工、Playwright 三段命令、baseline 维护、离线局限提示；make docs-check zero drift；grep 'Playwright follow-up' 命中只剩 002 evidence + 003 self-reference + p0-005 历史注释，无新增 TODO" -->
 
@@ -53,4 +53,3 @@
   <!-- verified: 2026-05-08 method=build-smoke evidence="pnpm build OK (vite v5, dist 305 KB CSS / 179 KB JS)；make build OK；serve-pixel-parity.mjs / 与 /ui-design/ 两路均 200" -->
 - [x] 6.3 Active-scope 负向搜索；验证: `grep -R` `frontend/` + active 文档无遗留 retired-module testid 或文案；Playwright config / spec / scenario 中无私有 brand 字体名 / 旧设计参考；`@playwright/test` 是新增的唯一 visual-rendering 依赖，没有引入 cypress / puppeteer / @emotion / styled-components
   <!-- verified: 2026-05-08 method=grep evidence="grep -rE 'cypress|puppeteer|@emotion/|styled-components|tailwindcss|postcss-tailwind' frontend/ 命中只有 globalCss.test.ts 与 fonts.test.ts 负向断言；grep -rEi 'copernicus|styreneb' frontend/ 命中只有 fonts.test.ts negative；retired-module testid (welcome / mistakes / growth / drill / voice) 命中只有 p0-001/004/005 + topbar/screens/screenshot.spec / scope.test 负向断言" -->
-

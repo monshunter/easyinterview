@@ -1,8 +1,8 @@
 # App Shell Visual System
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-07
+> **更新日期**: 2026-05-08
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -60,7 +60,7 @@ D1 plan 完成后，正式前端已具备 `home` 默认壳、五入口 TopBar、
 
 #### 3.2 五入口与显示控制视觉
 
-为五入口按钮、主题下拉、custom accent 控件、暗色 toggle、语言下拉、登录 / 注册 / 用户菜单按钮接入语义 className，并原生复刻 `ui-design/src/app.jsx` TopBar 与 `ui-design/src/screen-home.jsx` 的视觉节奏。`aria-current` / `aria-pressed` / `aria-label` 行为不变；字号、padding、圆角、gap、active 状态、控件密度必须来自原型事实，不得凭组件库默认值自由生成。
+为五入口按钮、主题 menu、custom accent 控件、暗色 icon toggle、语言 icon toggle、登录 / 注册 / 用户菜单按钮接入语义 className，并原生复刻 `ui-design/src/app.jsx` TopBar 与 `ui-design/src/screen-home.jsx` 的视觉节奏。`aria-current` / `aria-pressed` / `aria-label` 行为不变；字号、padding、圆角、gap、active 状态、控件密度必须来自原型事实，不得凭组件库默认值自由生成。
 
 ### Phase 4: 认证页视觉接入
 

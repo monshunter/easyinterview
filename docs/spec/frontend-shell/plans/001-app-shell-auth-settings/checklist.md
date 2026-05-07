@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-05-07
+> **更新日期**: 2026-05-08
 
 **关联计划**: [plan](./plan.md)
 
@@ -25,7 +25,7 @@
   <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/i18n/localeRuntime.test.tsx PASS; pnpm --filter @easyinterview/frontend test src/app/runtime/AppRuntimeProvider.test.tsx src/app/AppAuthDispatch.test.tsx src/app/auth/AppPendingAction.test.tsx src/app/i18n/i18nShell.test.tsx PASS" -->
 - [x] 2.6 BDD-Gate: 验证 E2E.P0.004 通过
 <!-- verified: 2026-05-07 method=scenario bddChecklist=complete -->
-- [x] 2.7 I18n remediation: 拆分独立 locale 文件并固化语言下拉框契约；验证: focused structural test 断言 `zh` / `en` 各自位于独立 locale 文件且 `messages.ts` 不糅合多语言 map，component / scenario test 断言 TopBar 语言切换是 `select` 下拉框
+- [x] 2.7 I18n remediation: 拆分独立 locale 文件并固化语言切换契约；验证: focused structural test 断言 `zh` / `en` 各自位于独立 locale 文件且 `messages.ts` 不糅合多语言 map；当前控件结构由 002 L2 remediation 按 `ui-design/src/app.jsx` 更新为 TopBar icon toggle，component / scenario test 断言 `topbar-lang-toggle` 可切换文案与 `Accept-Language`
   <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/i18n/localeFiles.test.ts src/app/i18n/i18nShell.test.tsx src/app/scenarios/p0-004-app-shell-language-switch.test.tsx PASS" -->
 - [x] 2.8 I18n remediation: 前端语言偏好独立于登录态；验证: focused runtime/App regression test 断言浏览器语言初始化后，runtime `defaultUiLanguage` 与 `/me.uiLanguage` 不一致也不会覆盖当前 UI 语言或造成 locale 循环请求
   <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/display/DisplayPreferencesProvider.test.tsx src/app/i18n/localeRuntime.test.tsx src/app/topbar/TopBar.test.tsx PASS; pnpm --filter @easyinterview/frontend test PASS (30 files / 138 tests)" -->

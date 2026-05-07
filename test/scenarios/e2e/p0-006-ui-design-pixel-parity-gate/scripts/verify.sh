@@ -7,7 +7,7 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-006-ui-design-pixel-parity-gate"
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
-grep -Eq '42 passed' "$LOG_FILE"
+grep -Eq '46 passed' "$LOG_FILE"
 if grep -Eq '[0-9]+ failed' "$LOG_FILE"; then
   echo "[verify] trigger.log reports failed tests" >&2
   exit 1

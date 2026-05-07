@@ -79,7 +79,7 @@ pnpm --filter @easyinterview/frontend test:pixel-parity:install
 `setup.sh` 检查 chromium 缓存 + `frontend/dist/index.html` 存在；缺失任一
 都 exit ≠ 0 并给出可读提示。`trigger.sh` 跑 Playwright 后把日志写到
 `.test-output/e2e/p0-006-ui-design-pixel-parity-gate/trigger.log`。
-`verify.sh` 断言日志包含 `42 passed` 与 `0 failed`，并 grep retired-module
+`verify.sh` 断言日志包含 `46 passed` 与 `0 failed`，并 grep retired-module
 testid 不在 trigger 输出里出现。
 
 ## 5 污染控制

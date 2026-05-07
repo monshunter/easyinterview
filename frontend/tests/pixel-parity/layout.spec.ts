@@ -76,7 +76,7 @@ test.describe("frontend dist layout + bounding box parity", () => {
     const navRects = await page.evaluate(() => {
       const buttons = Array.from(
         document.querySelectorAll(
-          "[data-testid='topbar-primary-nav'] [data-testid^='topbar-nav-']",
+          "[data-testid='topbar-primary-nav'] button[data-testid^='topbar-nav-']",
         ),
       ) as HTMLElement[];
       return buttons.map((el) => {

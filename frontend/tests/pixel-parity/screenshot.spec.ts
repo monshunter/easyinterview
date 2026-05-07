@@ -100,7 +100,7 @@ test.describe("dark + customAccent visual diff (Phase 4.2)", () => {
     page,
   }) => {
     await page.goto("/");
-    await page.waitForSelector("[data-testid='topbar-custom-accent-button']");
+    await page.waitForSelector("[data-testid='topbar-theme-button']");
     const before = await page.evaluate(() => ({
       accent: document.documentElement.style.getPropertyValue("--ei-color-accent"),
       attr: document.documentElement.getAttribute("data-custom-accent"),
@@ -108,7 +108,8 @@ test.describe("dark + customAccent visual diff (Phase 4.2)", () => {
     expect(before.accent).toBe("");
     expect(before.attr).toBeNull();
 
-    await page.click("[data-testid='topbar-custom-accent-button']");
+    await page.click("[data-testid='topbar-theme-button']");
+    await page.click("[data-testid='topbar-theme-custom-option']");
     const after = await page.evaluate(() => ({
       accent: document.documentElement.style.getPropertyValue("--ei-color-accent"),
       accentSoft: document.documentElement.style.getPropertyValue(
@@ -130,6 +131,9 @@ test.describe("dark + customAccent visual diff (Phase 4.2)", () => {
     expect(after.fgPrimary).toBe("");
 
     // Hue + chroma sliders are surfaced when the picker opens.
+    await expect(
+      page.locator("[data-testid='topbar-custom-accent-picker']"),
+    ).toHaveCount(1);
     await expect(
       page.locator("[data-testid='topbar-custom-accent-hue']"),
     ).toHaveCount(1);

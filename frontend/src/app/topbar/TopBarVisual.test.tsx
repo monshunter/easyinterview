@@ -145,16 +145,36 @@ describe("TopBar five-entry + display controls visual (Phase 3.2)", () => {
     );
   });
 
-  it("display controls and user-area buttons carry ei-topbar-control classNames", () => {
+  it("display controls replicate ui-design button/menu controls instead of native selects", async () => {
     renderTopBar();
-    expect(screen.getByTestId("topbar-theme-select").className).toMatch(
-      /\bei-topbar-theme\b/,
+    const user = userEvent.setup();
+
+    expect(screen.queryByTestId("topbar-theme-select")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-lang-select")).not.toBeInTheDocument();
+    expect(screen.getByTestId("topbar-brand-subtitle")).toHaveTextContent(
+      "面试训练器 · v1.0",
     );
+    expect(screen.getAllByTestId(/^topbar-nav-icon-/)).toHaveLength(5);
+
+    const themeButton = screen.getByTestId("topbar-theme-button");
+    expect(themeButton).toHaveClass("ei-topbar-control");
+    expect(themeButton).toHaveAttribute("title", "Theme");
+    await user.click(themeButton);
+    expect(screen.getByTestId("topbar-theme-menu")).toBeInTheDocument();
+    expect(screen.getAllByTestId(/^topbar-theme-option-/)).toHaveLength(4);
+    expect(screen.getByTestId("topbar-theme-custom-option")).toHaveTextContent(
+      "Custom",
+    );
+
     expect(screen.getByTestId("topbar-dark-toggle").className).toMatch(
       /\bei-topbar-dark\b/,
     );
-    expect(screen.getByTestId("topbar-lang-select").className).toMatch(
+    expect(screen.getByTestId("topbar-dark-toggle")).toHaveTextContent("");
+    expect(screen.getByTestId("topbar-lang-toggle").className).toMatch(
       /\bei-topbar-lang\b/,
+    );
+    expect(screen.getByTestId("topbar-lang-toggle")).toHaveTextContent(
+      "EN · 中",
     );
     expect(screen.getByTestId("topbar-login").className).toMatch(
       /\bei-topbar-auth-login\b/,
@@ -164,33 +184,37 @@ describe("TopBar five-entry + display controls visual (Phase 3.2)", () => {
     );
   });
 
-  it("custom accent control exists and carries ei-topbar-custom-accent className", async () => {
+  it("custom accent picker is nested in the ui-design theme menu", async () => {
     renderTopBar();
-    const button = screen.getByTestId("topbar-custom-accent-button");
-    expect(button.className).toMatch(/\bei-topbar-custom-accent\b/);
-    expect(button).toHaveAttribute("aria-pressed", "false");
-
     const user = userEvent.setup();
-    await user.click(button);
-    expect(button).toHaveAttribute("aria-pressed", "true");
-    // Activating custom accent must produce the picker popover with hue + chroma sliders.
+    await user.click(screen.getByTestId("topbar-theme-button"));
+    const customOption = screen.getByTestId("topbar-theme-custom-option");
+    expect(customOption.className).toMatch(/\bei-topbar-theme-option\b/);
+    await user.click(customOption);
+
+    expect(document.documentElement).toHaveAttribute(
+      "data-custom-accent",
+      "active",
+    );
     expect(screen.getByTestId("topbar-custom-accent-hue")).toBeInTheDocument();
     expect(
       screen.getByTestId("topbar-custom-accent-chroma"),
     ).toBeInTheDocument();
   });
 
-  it("active customAccent renders the TopBar swatch with oklch inline value", () => {
+  it("active customAccent renders the TopBar swatch with oklch inline value", async () => {
     renderTopBar({
       initial: {
         customAccent: { h: 200, c: 0.18 },
       },
     });
+    // ui-design only renders the custom row while the theme menu is open.
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("topbar-theme-button"));
     const swatch = screen.getByTestId("topbar-custom-accent-swatch");
     expect(swatch.style.background).toMatch(/^oklch\(/);
-    // Toggle aria-pressed when accent is active.
     expect(
-      screen.getByTestId("topbar-custom-accent-button"),
+      screen.getByTestId("topbar-theme-custom-option"),
     ).toHaveAttribute("aria-pressed", "true");
   });
 });
@@ -208,7 +232,7 @@ describe("TopBar i18n regression after visual parity (Phase 3.2)", () => {
       "岗位推荐",
     );
 
-    await user.selectOptions(screen.getByTestId("topbar-lang-select"), "en");
+    await user.click(screen.getByTestId("topbar-lang-toggle"));
     expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("Home");
     expect(screen.getByTestId("topbar-nav-jd_match")).toHaveTextContent(
       "Job Picks",

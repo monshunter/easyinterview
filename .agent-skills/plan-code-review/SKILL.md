@@ -120,10 +120,22 @@ For each in-scope phase:
    stale route/tag/schema/table/event/job/config flag names, vendor/model
    assumptions, feature-key routing assumptions, and product modules that the
    current spec/UI has dropped.
+   - For UI parity targets, include stale positive UI contract searches across
+     `docs/`, package READMEs, scenario assets, tests, and runtime code. Examples
+     include old `data-testid` names, old control types (`select`/dropdown vs
+     menu/toggle), old screen labels, old component shorthands, and outdated
+     prototype route names.
 9. Check whether existing gates prove the current semantic contract. If a gate
    only proves structure counts or historical expectations, record the gap and
    prefer adding lint, unit tests, negative fixtures, smoke tests, or drift checks
    before moving to the next target.
+   - For `ui-design` source-level parity, computed style, bounding-box, and
+     screenshot checks are necessary but not sufficient. Also reverse-audit
+     `ui-design/src/*.jsx`, `ui-design/src/app.jsx`, and
+     `ui-design/src/primitives.jsx` for DOM shape, control type, menu/popup
+     hierarchy, icons, labels, aria state, and primary interaction paths; then
+     verify official frontend tests fail if any of those source-level structures
+     drift.
 10. For completed code phases, verify actual test evidence exists for the implemented checklist scope, including meaningful negative/boundary assertions where the coverage matrix marks them in scope.
 11. For completed feature phases, verify BDD evidence exists: `bdd-plan` / `bdd-checklist` references, completed scenario asset/execution items, a passed `BDD-Gate:` verification note, and scenario coverage for the primary journey plus the highest-risk alternate or failure/recovery journey per deployable phase.
 
