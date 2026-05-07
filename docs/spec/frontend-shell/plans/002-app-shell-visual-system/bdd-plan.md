@@ -1,7 +1,7 @@
 # App Shell Visual System BDD Plan
 
-> **版本**: 1.1
-> **状态**: active
+> **版本**: 1.2
+> **状态**: completed
 > **更新日期**: 2026-05-07
 
 ## Phase 6: Visual smoke and regression
