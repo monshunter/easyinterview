@@ -3,6 +3,7 @@ import { useState, type FC, type FormEvent } from "react";
 import { useI18n } from "../i18n/messages";
 import type { LooseRoute } from "../normalizeRoute";
 import type { Route } from "../routes";
+import { AuthShell } from "./AuthShell";
 
 export interface AuthResetScreenProps {
   route: Route;
@@ -31,13 +32,24 @@ export const AuthResetScreen: FC<AuthResetScreenProps> = ({ onNavigate }) => {
   };
 
   return (
-    <section data-testid="route-auth_reset" data-route-name="auth_reset">
-      <h1>{t("auth.resetTitle")}</h1>
-      <form data-testid="auth-reset-form" onSubmit={submit}>
-        <label>
-          {t("auth.accountEmail")}
+    <AuthShell
+      routeName="auth_reset"
+      eyebrowKey="auth.reset.eyebrow"
+      titleKey="auth.reset.title"
+      subKey="auth.reset.sub"
+    >
+      <form
+        data-testid="auth-reset-form"
+        className="ei-auth-form"
+        onSubmit={submit}
+      >
+        <label className="ei-auth-field">
+          <span className="ei-auth-field-label ei-text-label">
+            {t("auth.accountEmail")}
+          </span>
           <input
             data-testid="auth-reset-email"
+            className="ei-auth-field-input"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -45,22 +57,30 @@ export const AuthResetScreen: FC<AuthResetScreenProps> = ({ onNavigate }) => {
             autoComplete="email"
           />
         </label>
-        <button type="submit" data-testid="auth-reset-send-stub">
+        <button
+          type="submit"
+          data-testid="auth-reset-send-stub"
+          className="ei-auth-cta"
+        >
           {t("auth.sendResetUnavailable")}
         </button>
       </form>
       {submitted ? (
-        <p data-testid="auth-reset-stub-hint">
+        <p
+          data-testid="auth-reset-stub-hint"
+          className="ei-auth-status ei-auth-status--neutral"
+        >
           {t("auth.resetHint")}
         </p>
       ) : null}
       <button
         type="button"
         data-testid="auth-reset-link-login"
+        className="ei-auth-secondary-link"
         onClick={() => onNavigate({ name: "auth_login", params: {} })}
       >
         {t("auth.backToLogin")}
       </button>
-    </section>
+    </AuthShell>
   );
 };

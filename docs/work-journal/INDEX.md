@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-07](2026-05-07.md) | `feat(frontend-shell): auth shell card visuals` | #feat #ui #test |
 | [2026-05-07](2026-05-07.md) | `feat(frontend-shell): topbar visual rhythm and custom accent` | #feat #ui #test |
 | [2026-05-07](2026-05-07.md) | `feat(frontend-shell): open-source fonts and typography scale` | #feat #ui #test |
 | [2026-05-07](2026-05-07.md) | `feat(frontend-shell): design tokens for ui-design parity` | #feat #ui #test |

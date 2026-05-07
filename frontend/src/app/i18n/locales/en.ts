@@ -45,6 +45,32 @@ export const en: LocaleMessages = {
     "Signing out clears the local session. Account data stays in place.",
   "auth.confirmLogout": "Sign out",
   "auth.backHome": "Back home",
+  "auth.principle.eyebrow": "AUTH PRINCIPLE",
+  "auth.principle.body":
+    "The app can be browsed first. Authentication is requested only when a user needs to save, sync, export, or continue across devices.",
+  "auth.pendingAction.eyebrow": "PENDING ACTION",
+  "auth.pendingAction.body":
+    "After sign-in, EasyInterview returns to this exact action instead of sending you home.",
+  "auth.login.eyebrow": "LOGIN",
+  "auth.login.title": "Continue your interview preparation.",
+  "auth.login.sub":
+    "Sign in when you want to save resumes, keep mock interview history, or sync across devices.",
+  "auth.register.eyebrow": "REGISTER",
+  "auth.register.title": "Create an account only when you need persistence.",
+  "auth.register.sub":
+    "Registration creates the account identity. Resume, JD, and interview data remain separate assets under your control.",
+  "auth.verify.eyebrow": "EMAIL VERIFICATION",
+  "auth.verify.title": "Confirm this is your email.",
+  "auth.verify.sub":
+    "We sent a six-digit code to your email.",
+  "auth.reset.eyebrow": "PASSWORD RESET",
+  "auth.reset.title": "Reset access without losing your data.",
+  "auth.reset.sub":
+    "We send a secure link or code to your verified email. Existing resumes, JDs, and reports remain unchanged.",
+  "auth.logout.eyebrow": "LOGOUT",
+  "auth.logout.title": "Sign out of this device?",
+  "auth.logout.sub":
+    "This only clears the local session. Saved resumes, JDs, reports, and debrief records stay in your account.",
   "profile.title": "User profile",
   "profile.subtitle": "How the system understands you",
   "profile.identity": "Identity summary",

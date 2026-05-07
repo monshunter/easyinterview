@@ -15,6 +15,7 @@
 @import "./themes.css";
 @import "./typography.css";
 @import "../topbar/topbar.css";
+@import "../auth/auth.css";
 
 * {
   box-sizing: border-box;

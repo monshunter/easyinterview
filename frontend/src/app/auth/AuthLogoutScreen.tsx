@@ -3,6 +3,7 @@ import type { FC } from "react";
 import { useI18n } from "../i18n/messages";
 import type { LooseRoute } from "../normalizeRoute";
 import type { Route } from "../routes";
+import { AuthShell } from "./AuthShell";
 
 export interface AuthLogoutScreenProps {
   route: Route;
@@ -22,17 +23,36 @@ export const AuthLogoutScreen: FC<AuthLogoutScreenProps> = ({
   };
   const cancel = () => onNavigate({ name: "home", params: {} });
   return (
-    <section data-testid="route-auth_logout" data-route-name="auth_logout">
-      <h1>{t("user.logout")}</h1>
-      <p data-testid="auth-logout-data-hint">
+    <AuthShell
+      routeName="auth_logout"
+      eyebrowKey="auth.logout.eyebrow"
+      titleKey="auth.logout.title"
+      subKey="auth.logout.sub"
+    >
+      <p
+        data-testid="auth-logout-data-hint"
+        className="ei-auth-status ei-auth-status--warn"
+      >
         {t("auth.logoutHint")}
       </p>
-      <button type="button" data-testid="auth-logout-confirm" onClick={confirm}>
-        {t("auth.confirmLogout")}
-      </button>
-      <button type="button" data-testid="auth-logout-cancel" onClick={cancel}>
-        {t("auth.backHome")}
-      </button>
-    </section>
+      <div className="ei-auth-row">
+        <button
+          type="button"
+          data-testid="auth-logout-confirm"
+          className="ei-auth-cta"
+          onClick={confirm}
+        >
+          {t("auth.confirmLogout")}
+        </button>
+        <button
+          type="button"
+          data-testid="auth-logout-cancel"
+          className="ei-auth-secondary-link"
+          onClick={cancel}
+        >
+          {t("auth.backHome")}
+        </button>
+      </div>
+    </AuthShell>
   );
 };

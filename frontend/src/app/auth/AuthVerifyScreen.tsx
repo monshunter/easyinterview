@@ -3,6 +3,7 @@ import { useState, type FC, type FormEvent } from "react";
 import { normalizeRoute, type LooseRoute } from "../normalizeRoute";
 import { useI18n } from "../i18n/messages";
 import type { Route } from "../routes";
+import { AuthShell } from "./AuthShell";
 import {
   decodePendingActionRoute,
   PENDING_ACTION_INTERVIEW_KEYS,
@@ -56,6 +57,7 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
 }) => {
   const { t } = useI18n();
   const [code, setCode] = useState("");
+  const hasPendingAction = decodePendingActionRoute(route.params) !== null;
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmed = code.trim();
@@ -65,18 +67,33 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
   };
 
   return (
-    <section data-testid="route-auth_verify" data-route-name="auth_verify">
-      <h1>{t("auth.verifyTitle")}</h1>
+    <AuthShell
+      routeName="auth_verify"
+      eyebrowKey="auth.verify.eyebrow"
+      titleKey="auth.verify.title"
+      subKey="auth.verify.sub"
+      pendingAction={hasPendingAction}
+    >
       {route.params.email ? (
-        <p data-testid="auth-verify-email-hint">
+        <p
+          data-testid="auth-verify-email-hint"
+          className="ei-auth-status ei-auth-status--neutral"
+        >
           {t("auth.verifySentPrefix")} {route.params.email}
         </p>
       ) : null}
-      <form data-testid="auth-verify-form" onSubmit={submit}>
-        <label>
-          {t("auth.code")}
+      <form
+        data-testid="auth-verify-form"
+        className="ei-auth-form"
+        onSubmit={submit}
+      >
+        <label className="ei-auth-field">
+          <span className="ei-auth-field-label ei-text-label">
+            {t("auth.code")}
+          </span>
           <input
             data-testid="auth-verify-code"
+            className="ei-auth-field-input"
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
@@ -86,13 +103,21 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
             required
           />
         </label>
-        <button type="submit" data-testid="auth-verify-submit">
+        <button
+          type="submit"
+          data-testid="auth-verify-submit"
+          className="ei-auth-cta"
+        >
           {t("auth.verifyContinue")}
         </button>
       </form>
-      <button type="button" data-testid="auth-verify-resend">
+      <button
+        type="button"
+        data-testid="auth-verify-resend"
+        className="ei-auth-secondary-link"
+      >
         {t("auth.resend")}
       </button>
-    </section>
+    </AuthShell>
   );
 };

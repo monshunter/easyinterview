@@ -36,7 +36,9 @@
 
 ## Phase 4: 认证页视觉接入
 
-- [ ] 4.1 Auth 页 shell 视觉；验证: component/parity test 断言 `auth_login` / `auth_register` / `auth_verify` / `auth_reset` / `auth_logout` 五个 screen 渲染卡片 shell（标题 + 表单容器 + CTA + 状态提示），且布局、字体、间距、卡片、按钮和状态提示样式逐项来自 `ui-design/src/screen-auth.jsx`；D1 表单字段 testid、`requestAuth(pendingAction)` 恢复行为、`verifyAuthEmailChallenge` token 传递、auth-only params 隔离 regression 通过
+- [x] 4.1 Auth 页 shell 视觉；验证: component/parity test 断言 `auth_login` / `auth_register` / `auth_verify` / `auth_reset` / `auth_logout` 五个 screen 渲染卡片 shell（标题 + 表单容器 + CTA + 状态提示），且布局、字体、间距、卡片、按钮和状态提示样式逐项来自 `ui-design/src/screen-auth.jsx`；D1 表单字段 testid、`requestAuth(pendingAction)` 恢复行为、`verifyAuthEmailChallenge` token 传递、auth-only params 隔离 regression 通过
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/auth/AuthVisual.test.tsx PASS (18 tests, ei-auth-shell two-column / ei-text-display + ei-text-label / auth.css transcribed values / screen-auth.jsx trace / global.css import / D1 testid regression on all 5 screens); src/app/auth/AuthScreens.test.tsx (10) + AppPendingAction.test.tsx (3) + pendingAction.test.ts (5) + authContractGate.test.ts (7) PASS" -->
+
 
 ## Phase 5: Profile / Settings placeholder 视觉接入
 

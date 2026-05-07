@@ -41,6 +41,32 @@ export const zh = {
   "auth.logoutHint": "退出后会清除本机登录态，账号数据保留。",
   "auth.confirmLogout": "确认退出",
   "auth.backHome": "返回首页",
+  "auth.principle.eyebrow": "认证原则",
+  "auth.principle.body":
+    "用户可以先进入产品浏览和开始准备；只有当需要保存、同步、导出或跨设备继续时，才进入登录或注册流程。",
+  "auth.pendingAction.eyebrow": "待恢复操作",
+  "auth.pendingAction.body":
+    "登录成功后会回到刚才的动作，不会统一回首页。",
+  "auth.login.eyebrow": "登录",
+  "auth.login.title": "继续你的面试准备。",
+  "auth.login.sub":
+    "当你需要保存简历、保留模拟面试历史或跨设备继续时，再登录即可。",
+  "auth.register.eyebrow": "注册",
+  "auth.register.title": "需要保存时，再创建账号。",
+  "auth.register.sub":
+    "注册只创建账号身份。简历、JD、模拟面试和复盘仍然是独立资产，由用户决定是否保存和删除。",
+  "auth.verify.eyebrow": "邮箱验证",
+  "auth.verify.title": "确认这是你的邮箱。",
+  "auth.verify.sub":
+    "我们已向你的邮箱发送 6 位验证码。",
+  "auth.reset.eyebrow": "找回密码",
+  "auth.reset.title": "重置登录方式，不影响你的数据。",
+  "auth.reset.sub":
+    "系统会向已验证邮箱发送安全链接或验证码。你的简历、JD 和报告不会被改动。",
+  "auth.logout.eyebrow": "退出登录",
+  "auth.logout.title": "从这台设备退出？",
+  "auth.logout.sub":
+    "这只会清除本机登录态。已保存的简历、JD、报告和复盘记录仍保留在你的账号里。",
   "profile.title": "用户画像",
   "profile.subtitle": "系统理解你的那份画像",
   "profile.identity": "身份摘要",
