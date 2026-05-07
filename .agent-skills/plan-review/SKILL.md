@@ -1,6 +1,6 @@
 ---
 name: plan-review
-description: "Review or fix spec/plan/checklist/context documents for a spec-centric plan target. Use when the user wants L1 review or document remediation for spec/plan/checklist consistency, including spec-owned issues that should be repaired in the same fix pass. Reuses implement-owned shared context validator to resolve the target docs, then performs semantic review directly on the validated markdown instead of running parser-heavy format checkers. Supports /plan-review [subspec/plan] [target] [--fix]."
+description: "Review or fix spec/plan/checklist/context documents for a spec-centric plan target. Use when the user wants L1 review or document remediation for spec/plan/checklist consistency, including spec-owned issues that should be repaired in the same fix pass. Reuses implement-owned shared context validator to resolve the target docs, then performs semantic review directly on the validated markdown, including coverage-matrix review for primary paths, edge conditions, failure/recovery paths, cross-layer contracts, BDD/TDD gates, and regression/legacy-negative checks. Supports /plan-review [subspec/plan] [target] [--fix]."
 ---
 
 # Plan Review Skill
@@ -133,6 +133,42 @@ Baseline rule:
 
 - Always execute the full semantic review once the target docs are validated.
 - Do not pre-filter the review through deterministic markdown-format checks.
+- Reconstruct the expected coverage matrix from the current spec, plan, checklist,
+  test-plan/test-checklist, bdd-plan/bdd-checklist, risks, non-goals, and
+  context discovery. Treat this matrix as review evidence even when older plans
+  did not explicitly include a `Coverage Matrix` heading.
+
+Coverage-matrix review:
+
+- Primary path: the main user/system success flow has an implementation phase,
+  checklist item, and execution-based verification source.
+- Alternate path: meaningful variants such as auth state, role/permission,
+  config/profile/provider choice, locale/theme/mode, optional input, or
+  feature-disabled behavior are either covered or explicitly ruled out.
+- Failure / recovery path: invalid or missing input, downstream failure,
+  timeout/retry, partial state, conflict, cancellation, cleanup, and recovery
+  behavior are covered where they affect correctness.
+- Boundary condition: empty/min/max values, duplicate records, ordering,
+  pagination, concurrency/idempotency, rerun safety, migration on non-empty
+  data, unknown enum/route/config/provider, and retention/deletion edges are
+  considered for the subject.
+- Cross-layer contract: API/schema/OpenAPI/shared types/codegen, fixtures/mock
+  parity, event/job contracts, database constraints, runtime config, generated
+  artifacts, README/Make/script gates, and scenario data contracts are mapped
+  when they are part of the delivery.
+- Privacy / security / observability: auth boundary, sensitive data redaction,
+  secret/token persistence, audit/log/metric expectations, and OWASP-relevant
+  input handling are not left implicit.
+- UX quality: loading/empty/error states, accessibility semantics, localization
+  fallback, display preferences, responsive-state risk, and user-visible copy
+  are considered for UI-facing plans.
+- Regression / legacy-negative: retired route/module/tag/table/event/job/config
+  flag/model/provider/feature-key terminology has explicit negative search or
+  drift-gate ownership when the current design rejects it.
+
+For high-risk categories marked not applicable, require a short rationale and
+an alternate verification gate when the category is displaced to unit, contract,
+lint, drift, migration, smoke, or BDD evidence.
 
 Review dimensions:
 
@@ -148,12 +184,14 @@ Baseline checks:
 - `S-004`: orphan judgment
 - `S-005`: test completion gates are execution-based; flag plan/checklist items that use raw code coverage percentages as completion, commit, or phase-exit criteria
 - `S-006`: TDD/BDD quality gate classification; Code plan requires TDD, Feature plan requires BDD, and internal code plans without BDD must document why BDD is not applicable plus a substitute verification gate
+- `S-007`: coverage matrix adequacy; flag plan/checklist/test-plan/BDD sets that cover only the happy path, omit meaningful edge/failure/security/UX/contract/regression-negative risks, or defer edge coverage without a concrete owner phase and deployability rationale
 
 Extension review:
 
 - `X-L1-Value`: practical value / operator workflow closure
 - `X-L1-Landing`: delivery and landing feasibility
 - `X-L1-Risk`: security, privacy, and operational risk
+- `X-L1-Coverage`: coverage matrix clarity, scenario selection quality, and whether the proposed gates would catch semantic drift instead of only structure drift
 
 ### Step 7: Report contract
 

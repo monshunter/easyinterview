@@ -45,3 +45,15 @@ class TestPlanReviewSkill:
         assert "Code plan requires TDD" in text
         assert "Feature plan requires BDD" in text
         assert "substitute verification gate" in text
+
+    def test_reviews_coverage_matrix_for_edges_and_negative_scope(self):
+        text = _skill_text()
+        assert "Reconstruct the expected coverage matrix" in text
+        assert "Primary path" in text
+        assert "Failure / recovery path" in text
+        assert "Boundary condition" in text
+        assert "Cross-layer contract" in text
+        assert "Privacy / security / observability" in text
+        assert "Regression / legacy-negative" in text
+        assert "`S-007`: coverage matrix adequacy" in text
+        assert "`X-L1-Coverage`: coverage matrix clarity" in text

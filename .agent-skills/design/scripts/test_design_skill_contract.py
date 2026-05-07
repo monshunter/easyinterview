@@ -62,6 +62,21 @@ def test_design_skill_requires_tdd_for_code_and_bdd_for_user_behavior():
     assert "BDD is not a discretionary optional artifact" in text
 
 
+def test_design_skill_requires_explicit_coverage_matrix_for_plan_and_tests():
+    text = _read(SKILL_PATH)
+
+    assert "Step 3.5: Build the Coverage Matrix" in text
+    assert "Primary path" in text
+    assert "Failure / recovery path" in text
+    assert "Boundary condition" in text
+    assert "Cross-layer contract" in text
+    assert "Privacy / security / observability" in text
+    assert "Regression / legacy-negative" in text
+    assert "Every non-docs checklist item must name its verification source" in text
+    assert "Test plans must include a coverage matrix" in text
+    assert "BDD scenario selection must cover the primary user journey plus the highest-risk alternate or failure/recovery journey" in text
+
+
 def test_spec_templates_include_quality_gate_classification():
     plan_template = _read(SPEC_TEMPLATE_PATH)
     init_template = _read(INIT_SPEC_TEMPLATE_PATH)

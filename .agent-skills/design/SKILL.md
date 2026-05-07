@@ -1,6 +1,6 @@
 ---
 name: design
-description: "Design crystallizer: turn a converged design discussion into the minimal sufficient set of spec/plan/test/BDD documents. IMPORTANT: Invoke this skill automatically when a design discussion has converged and needs to be formalized into project documents. Triggers on /design, or when the user says 'crystallize this design', 'turn this into a spec', 'create spec and plan from this discussion', 'formalize this design', or otherwise indicates that a design conversation should produce actionable documents. Also triggers when the user has a design document or discussion file and wants to generate the matching plan/checklist/test suite."
+description: "Design crystallizer: turn a converged design discussion into the minimal sufficient set of spec/plan/test/BDD documents with explicit main-path, edge-condition, failure-path, and regression coverage. IMPORTANT: Invoke this skill automatically when a design discussion has converged and needs to be formalized into project documents. Triggers on /design, or when the user says 'crystallize this design', 'turn this into a spec', 'create spec and plan from this discussion', 'formalize this design', or otherwise indicates that a design conversation should produce actionable documents. Also triggers when the user has a design document or discussion file and wants to generate the matching plan/checklist/test suite."
 ---
 
 # /design Skill
@@ -43,6 +43,8 @@ piece of discussion content to the Brief fields below.
 | `interfaces` | API / data structure definitions | spec 5 |
 | `source_spec` | Existing spec path to reuse when no new spec is generated | context.yaml `spec` + summary |
 | `components` | Involved components mapped to main code areas | plan phases + context discovery |
+| `coverage_matrix` | Primary flows, alternate flows, failure paths, edge conditions, regressions, and out-of-scope boundaries | plan/checklist/test-plan/bdd coverage |
+| `test_surface` | Unit / contract / integration / scenario / lint / drift / smoke verification needed for each coverage row | test-plan + checklist + BDD-Gate |
 | `risks` | Risks and mitigations | plan Risks |
 | `open_questions` | Unresolved items | spec Open Questions |
 | `inferred_outputs` | Recommended document set (see Step 3) | Output scope |
@@ -58,7 +60,8 @@ Present the Brief to the user in a structured format:
 1. **Summary table** with subject, goals, key decisions
 2. **Recommended output scope** — which documents will be generated and why (see Step 3 logic)
 3. **BDD strategy** — whether BDD phase gates are recommended and the reasoning
-4. **Acceptance criteria summary** (if any criteria were extracted) + BDD scenario matrix (when BDD is active)
+4. **Coverage matrix** — primary flows, important edge conditions, failure paths, regression/legacy-negative checks, and which plan/test/BDD artifact will cover each one
+5. **Acceptance criteria summary** (if any criteria were extracted) + BDD scenario matrix (when BDD is active)
 
 Wait for explicit user confirmation before proceeding. If the user cancels, stop without
 generating any files.
@@ -91,6 +94,34 @@ user toggle. This prevents users from accidentally under-scoping or over-generat
 
 **Output the reasoning** for each decision so the user can challenge it in Step 2.
 
+### Step 3.5: Build the Coverage Matrix
+
+Before generating plan/checklist/test/BDD artifacts, build an explicit coverage matrix from the Brief.
+This matrix is the guardrail that prevents plan documents from covering only the happy path.
+
+For every behavior, invariant, interface, data transition, or risk in scope, classify rows using the smallest useful set of these categories:
+
+- **Primary path**: the expected user or system flow that proves the feature works.
+- **Alternate path**: legitimate variants such as unauthenticated/authenticated, role or permission differences, config variants, language/theme/mode differences, optional inputs, provider/profile choices, or feature-disabled behavior.
+- **Failure / recovery path**: validation errors, missing or malformed input, downstream unavailable, timeout/retry, partial state, transaction failure, stale data, conflict, cancellation, or cleanup after failure.
+- **Boundary condition**: empty/min/max values, duplicate records, ordering, pagination, concurrency/idempotency, rerun behavior, migration on non-empty data, unknown enum/route/provider/config, and data retention/deletion edges.
+- **Cross-layer contract**: API/schema/OpenAPI/shared type/codegen parity, generated client behavior, fixture/mock parity, event/job contract, database constraint, runtime config, and scenario data contract.
+- **Privacy / security / observability**: auth boundary, sensitive data redaction, audit/log/metric expectations, OWASP-relevant input handling, and no secret/token persistence.
+- **UX quality**: loading/empty/error states, accessibility semantics, localization fallback, display preference behavior, responsive layout, and copy visible to the user.
+- **Regression / legacy-negative**: retired route/module/tag/table/event/config/model/provider/feature flag terminology must not reappear when the current design rejects it.
+
+Each coverage row must map to one or more concrete artifacts:
+
+| Coverage row field | Requirement |
+|--------------------|-------------|
+| `source` | Spec requirement, decision, acceptance criterion, risk, or explicit inference from the Brief |
+| `category` | One of the categories above |
+| `plan_phase` | The phase/checklist item that implements or verifies it |
+| `verification` | Unit test, contract test, lint/drift check, migration check, smoke, or BDD scenario ID |
+| `negative_scope` | Deprecated or intentionally excluded behavior to search for, when relevant |
+
+Do not create synthetic edge cases for irrelevant categories, but do not silently omit a category just because the user did not name it. If a high-risk category is not applicable, write a short `N/A` rationale in the plan quality gate or test plan.
+
 ### Step 4: Generate Documents
 
 Generate only the documents determined in Step 3. For each document type, follow the
@@ -122,6 +153,9 @@ owns the repository's document creation mechanics.
 - Phase design must follow the phase closability principle from spec 4.4:
   each behavior phase is a vertical behavior slice that can be independently deployed and verified
 - Every implementation plan must include `## 3 质量门禁分类` with Plan 类型, TDD 策略, BDD 策略, and 替代验证 gate.
+- Every non-docs checklist item must name its verification source: a unit/contract/integration test, lint/drift gate, migration check, smoke, or BDD-Gate that covers the row in the coverage matrix.
+- Each implementation phase must cover its primary path and any directly coupled failure, cleanup, idempotency, privacy/security, or legacy-negative checks before the phase can be marked closable.
+- If an edge condition is deferred, the plan must say which later phase owns it and why the current phase remains safely deployable without it.
 
 #### 4.3 Unit Test Plan + Checklist
 
@@ -131,6 +165,10 @@ owns the repository's document creation mechanics.
 - Write unit-test completion items against the planned test set itself, for example `Phase N 本计划定义的单元测试项全部通过`.
 - Do not generate hard coverage-percentage gates in acceptance criteria or checklist items.
 - If coverage is mentioned at all, keep it as observational background rather than a completion, commit, or phase-exit condition.
+- Test plans must include a coverage matrix that maps primary, alternate, failure/recovery, boundary, cross-layer contract, privacy/security/observability, UX quality, and regression/legacy-negative rows to concrete test files or commands.
+- Unit/contract test checklists must include negative and boundary assertions for meaningful risks, not only success assertions. Prefer deterministic checks for malformed input, empty data, unknown identifiers, duplicate/conflict handling, rerun/idempotency, config fallback, generated contract drift, and deprecated terminology reintroduction when those risks are in scope.
+- UI-related test plans must consider loading, empty, error, auth, localization fallback, display preference, accessibility, and responsive-state risks; include only the rows that matter for the subject and mark high-risk exclusions explicitly.
+- Backend/tooling/migration test plans must consider validation errors, persistence failures, transaction/concurrency behavior, retry/idempotency, non-empty data, rerun safety, generated artifacts, logs/metrics/audit redaction, and drift gates.
 
 #### 4.4 BDD Test Plan + Checklist
 
@@ -142,6 +180,9 @@ owns the repository's document creation mechanics.
 - `bdd-plan.md` contains detailed Given/When/Then scenarios grouped by Phase and does not contain execution progress checkboxes
 - `bdd-checklist.md` contains scenario asset and execution tasks for each scenario ID: create scenario directory, prepare data, implement setup/trigger/verify/cleanup, execute verification, and record evidence
 - Each scenario uses a behavior-oriented scenario ID such as `E2E.P0.001` or `E2E.P1.003`; if needed, map back to spec acceptance criteria inside `bdd-plan.md`, not in `BDD-Gate` items
+- BDD scenario selection must cover the primary user journey plus the highest-risk alternate or failure/recovery journey for each independently deployable behavior phase. Do not push unit-level edge cases into BDD, but do include user-visible auth, permission, empty/error, recovery, and legacy-negative flows when they define product correctness.
+- `bdd-plan.md` must include a scenario matrix that labels each scenario as primary, alternate, failure/recovery, or regression/legacy-negative, and maps it to the plan phase and checklist BDD-Gate.
+- `bdd-checklist.md` must make setup, data isolation, cleanup, pollution recovery, execution command, and evidence capture explicit for every scenario.
 
 #### 4.5 context.yaml
 
@@ -181,14 +222,22 @@ Run validation and present a summary:
 2. **BDD reference integrity** (when BDD is active):
    - Every scenario ID in the checklist has a corresponding entry in `bdd-plan.md`
    - Every scenario ID in `bdd-plan.md` has a corresponding asset/execution section in `bdd-checklist.md`
-- Every generated scenario ID follows the relevant layer `README.md` / `INDEX.md` numbering convention
+   - Every generated scenario ID follows the relevant layer `README.md` / `INDEX.md` numbering convention
    - Report any gaps as errors
 
-3. **Output summary**:
+3. **Coverage integrity**:
+   - Every non-docs checklist item names a concrete verification source
+   - Every coverage matrix row maps to a plan phase and at least one verification artifact
+   - Every BDD-Gate item maps to a scenario labeled in the BDD scenario matrix
+   - Any high-risk category marked `N/A` includes a rationale
+   - Regression/legacy-negative rows include explicit search targets when retired terminology, routes, modules, schemas, events, configs, or model/provider assumptions are part of the risk
+
+4. **Output summary**:
    - Files generated (with paths)
    - Reused spec input (when Step 3 skipped new spec generation)
    - Output scope decision rationale
    - BDD strategy rationale
+   - Coverage matrix summary, including any high-risk `N/A` rationale
    - INDEX entries added
    - Any warnings or items needing attention
 
@@ -207,5 +256,7 @@ Run validation and present a summary:
 - Inventing BDD scenario IDs without first consulting the relevant `test/scenarios/<layer>/README.md` and `INDEX.md` when such conventions exist
 - Creating or updating files under `docs/` without invoking `/create-doc`
 - Generating test plan acceptance criteria or checklist items that use raw code coverage percentages as hard gates
+- Generating plan/checklist/test-plan/BDD artifacts that only verify the primary path while omitting obvious failure, boundary, security/privacy, UX, contract, or regression/legacy-negative risks
+- Marking edge coverage as "later" without assigning a concrete owner phase and explaining why the current phase is still independently deployable
 - Proceeding past Step 2 without explicit user confirmation of the Brief
 - Persisting the Brief as a file (it is a transient conversation artifact)

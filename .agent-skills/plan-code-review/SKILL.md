@@ -1,6 +1,6 @@
 ---
 name: plan-code-review
-description: "Review or fix code against spec/plan/checklist context. Use when the user wants L2 code review or remediation for already-implemented checklist phases, especially after product/UI spec changes, historical implementation drift, or requests to ignore old checklist/PASS state. Reuses implement-owned shared context validator, then performs artifact-level semantic review against validated markdown, current truth sources, generated artifacts, tests, fixtures, scripts, and negative legacy-scope searches. Supports /plan-code-review <subspec/plan> [target] [--base-rev <git-rev>] [--fix]."
+description: "Review or fix code against spec/plan/checklist context. Use when the user wants L2 code review or remediation for already-implemented checklist phases, especially after product/UI spec changes, historical implementation drift, or requests to ignore old checklist/PASS state. Reuses implement-owned shared context validator, then performs artifact-level semantic review against validated markdown, current truth sources, generated artifacts, tests, fixtures, scripts, coverage-matrix expectations, and negative legacy-scope searches. Supports /plan-code-review <subspec/plan> [target] [--base-rev <git-rev>] [--fix]."
 ---
 
 # Plan Code Review Skill
@@ -110,16 +110,46 @@ For each in-scope phase:
 6. Build an artifact map that connects each completed checklist item to concrete
    source code, generated output, fixtures, baselines, DDL/config, scripts,
    README entries, and tests.
-7. Run negative legacy-scope searches relevant to the target. At minimum, cover
+7. Reconstruct the expected coverage matrix from the validated spec/plan/checklist,
+   test-plan/test-checklist, bdd-plan/bdd-checklist, quality-gate classification,
+   non-goals, risks, and active product/UI truth sources. For each completed
+   checklist item, verify the artifact map proves the relevant primary,
+   alternate, failure/recovery, boundary, cross-layer contract, privacy/security/
+   observability, UX, and regression/legacy-negative rows.
+8. Run negative legacy-scope searches relevant to the target. At minimum, cover
    stale route/tag/schema/table/event/job/config flag names, vendor/model
    assumptions, feature-key routing assumptions, and product modules that the
    current spec/UI has dropped.
-8. Check whether existing gates prove the current semantic contract. If a gate
+9. Check whether existing gates prove the current semantic contract. If a gate
    only proves structure counts or historical expectations, record the gap and
    prefer adding lint, unit tests, negative fixtures, smoke tests, or drift checks
    before moving to the next target.
-9. For completed code phases, verify actual test evidence exists for the implemented checklist scope.
-10. For completed feature phases, verify BDD evidence exists: `bdd-plan` / `bdd-checklist` references, completed scenario asset/execution items, and a passed `BDD-Gate:` verification note.
+10. For completed code phases, verify actual test evidence exists for the implemented checklist scope, including meaningful negative/boundary assertions where the coverage matrix marks them in scope.
+11. For completed feature phases, verify BDD evidence exists: `bdd-plan` / `bdd-checklist` references, completed scenario asset/execution items, a passed `BDD-Gate:` verification note, and scenario coverage for the primary journey plus the highest-risk alternate or failure/recovery journey per deployable phase.
+
+Coverage rows to verify:
+
+- **Primary path**: implemented behavior matches the spec/plan and has current passing evidence.
+- **Alternate path**: auth/permission, config/provider/profile, locale/theme/mode,
+  optional input, and feature-disabled variants are implemented or explicitly N/A.
+- **Failure / recovery path**: invalid input, missing data, downstream failure,
+  timeout/retry, partial state, conflict, cancellation, cleanup, and recovery are
+  handled and tested where user/system correctness depends on them.
+- **Boundary condition**: empty/min/max, duplicate, ordering, pagination,
+  concurrency/idempotency, rerun safety, migration on non-empty data, unknown
+  enum/route/config/provider, and retention/deletion cases are covered where in scope.
+- **Cross-layer contract**: API/schema/OpenAPI/shared type/codegen, fixtures/mock
+  parity, event/job, DDL/config, generated artifacts, README/Make/script, and
+  scenario data contracts remain aligned.
+- **Privacy / security / observability**: authz, sensitive data redaction,
+  secret/token persistence, audit/log/metric behavior, and unsafe input handling
+  are checked against code and tests.
+- **UX quality**: UI loading/empty/error states, accessibility, localization
+  fallback, display preferences, responsive-state behavior, and visible copy are
+  checked against current UI truth sources when relevant.
+- **Regression / legacy-negative**: retired routes/modules/tags/schema names,
+  events/jobs/config flags, feature keys, and model/provider assumptions are
+  absent from active code or guarded by explicit drift gates.
 
 Review dimensions:
 
@@ -128,6 +158,10 @@ Review dimensions:
 - `E-series`: best-practice code quality, tests, naming, security
 - `D-series`: deep reconcile evidence, artifact coverage, negative legacy-scope
   search, and semantic gate adequacy
+- `C-series`: coverage matrix proof; primary, alternate, failure/recovery,
+  boundary, cross-layer contract, privacy/security/observability, UX, and
+  regression-negative rows each map to current artifacts or an explicit N/A
+  rationale
 
 Output rules:
 
@@ -137,6 +171,8 @@ Output rules:
 - Put any extra findings under `Extended Findings` with `X-L2-*` IDs.
 - Include a `Deep Evidence` section listing artifact map coverage, negative
   searches, focused gates/tests run, and any gate gaps discovered or hardened.
+- Include a `Coverage Matrix Evidence` section summarizing which coverage rows
+  are proven by current artifacts, which are explicitly N/A, and which are gaps.
 
 ### Step 5: Branch by mode
 

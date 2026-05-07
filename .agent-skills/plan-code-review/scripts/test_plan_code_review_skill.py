@@ -41,3 +41,16 @@ class TestPlanCodeReviewSkill:
         text = _skill_text()
         assert "For completed code phases, verify actual test evidence" in text
         assert "For completed feature phases, verify BDD evidence" in text
+
+    def test_review_reconstructs_coverage_matrix_against_current_artifacts(self):
+        text = _skill_text()
+        assert "Reconstruct the expected coverage matrix" in text
+        assert "Coverage rows to verify" in text
+        assert "Primary path" in text
+        assert "Failure / recovery path" in text
+        assert "Boundary condition" in text
+        assert "Cross-layer contract" in text
+        assert "Privacy / security / observability" in text
+        assert "Regression / legacy-negative" in text
+        assert "`C-series`: coverage matrix proof" in text
+        assert "`Coverage Matrix Evidence` section" in text
