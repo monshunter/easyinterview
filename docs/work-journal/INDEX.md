@@ -8,6 +8,8 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `docs(reports): land ui-design pixel parity gate retrospective` | #docs |
+| [2026-05-08](2026-05-08.md) | `docs(frontend-shell): close 003-ui-design-pixel-parity-gate plan lifecycle` | #docs |
 | [2026-05-08](2026-05-08.md) | `feat(frontend-shell): land ui-design pixel parity gate (Playwright)` | #feat #ui #test #docs |
 | [2026-05-08](2026-05-08.md) | `docs(frontend-shell): derive D2 follow-up pixel parity gate plan` | #docs |
 | [2026-05-07](2026-05-07.md) | `docs(reports): land frontend-shell app shell visual system retrospective` | #docs |
