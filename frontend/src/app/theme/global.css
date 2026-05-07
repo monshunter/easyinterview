@@ -1,0 +1,145 @@
+/*
+ * D2 global stylesheet entry. Transcribed from the `ei-global` <style> block
+ * in ui-design/src/primitives.jsx so the static prototype's reset, focus,
+ * scrollbar and animation rules apply identically in the production frontend.
+ *
+ * `main.tsx` imports this file exactly once. We use the vite default CSS
+ * pipeline only (no Tailwind / PostCSS-Tailwind / styled-components /
+ * Emotion); the project lint surface for this is enforced by globalCss.test.ts.
+ *
+ * The themes.css palette is imported here so a single import in main.tsx
+ * brings in both the per-theme CSS variables and the base reset.
+ */
+
+@import "./themes.css";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ei-color-bg-canvas);
+  color: var(--ei-color-fg-primary);
+  font-family: var(--ei-font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+.ei-serif {
+  font-family: var(--ei-font-serif);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.ei-sans {
+  font-family: var(--ei-font-sans);
+}
+
+.ei-mono {
+  font-family: var(--ei-font-mono);
+  font-feature-settings: "tnum";
+}
+
+.ei-label {
+  font-family: var(--ei-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ei-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+
+.ei-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ei-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+}
+
+.ei-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes ei-fadein {
+  from {
+    opacity: 0.01;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ei-fadein {
+  animation: ei-fadein 0.28s ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes ei-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.ei-pulse {
+  animation: ei-pulse 1.6s ease-in-out infinite;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea {
+  font-family: inherit;
+}
+
+.ei-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: currentColor;
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.ei-link:hover {
+  opacity: 1;
+}
+
+:where(button, [role="button"], a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--ei-color-accent);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

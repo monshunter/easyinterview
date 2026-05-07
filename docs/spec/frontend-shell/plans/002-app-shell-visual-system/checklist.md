@@ -8,9 +8,15 @@
 
 ## Phase 1: 设计 token 与主题/暗色 wiring
 
-- [ ] 1.1 建立设计 token 模块；验证: focused test 断言 `frontend/src/app/theme/` 下 token 模块仅导出语义键（`color.bg.canvas` / `color.fg.primary` / `radius.md` / `shadow.elev1` 等）且不导出 hex 字面量；CSS variables 在 `:root[data-theme=warm][data-mode=light]` 等所有 8 个基础组合上有定义且非空；`customAccent` helper 只覆盖 accent / accentSoft 语义变量，不覆盖 `EI_THEMES` 基础色板；token 测试必须断言颜色、字体、圆角、阴影和间距值均能追溯到 `ui-design/src/primitives.jsx` 或 `ui-design/src/app.jsx`
-- [ ] 1.2 主题 / 暗色 / custom accent 根级 wiring；验证: state test 断言 `DisplayPreferencesProvider` 切换 `theme` / `dark` / `customAccent` 后根元素 `data-theme` / `data-mode` / `data-custom-accent` 或等价 CSS variable 即时翻转，CSS variable `getComputedStyle(document.documentElement).getPropertyValue('--ei-color-bg-canvas')` 与 `--ei-color-accent` 在切换前后按预期变化；D1 `topbar-theme-select` / `topbar-dark-toggle` 行为 regression 通过
-- [ ] 1.3 全局基础样式入口；验证: focused test 断言 `main.tsx` 一次性引入 `app/theme/global.css`（或等价 entry）；structural test 断言 `frontend/package.json` 不含 `tailwindcss` / `postcss-tailwind` / `styled-components` / `@emotion/*` 依赖
+- [x] 1.1 建立设计 token 模块；验证: focused test 断言 `frontend/src/app/theme/` 下 token 模块仅导出语义键（`color.bg.canvas` / `color.fg.primary` / `radius.md` / `shadow.elev1` 等）且不导出 hex 字面量；CSS variables 在 `:root[data-theme=warm][data-mode=light]` 等所有 8 个基础组合上有定义且非空；`customAccent` helper 只覆盖 accent / accentSoft 语义变量，不覆盖 `EI_THEMES` 基础色板；token 测试必须断言颜色、字体、圆角、阴影和间距值均能追溯到 `ui-design/src/primitives.jsx` 或 `ui-design/src/app.jsx`
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/theme/tokens.test.ts PASS (13 tests)" -->
+
+- [x] 1.2 主题 / 暗色 / custom accent 根级 wiring；验证: state test 断言 `DisplayPreferencesProvider` 切换 `theme` / `dark` / `customAccent` 后根元素 `data-theme` / `data-mode` / `data-custom-accent` 或等价 CSS variable 即时翻转，CSS variable `getComputedStyle(document.documentElement).getPropertyValue('--ei-color-bg-canvas')` 与 `--ei-color-accent` 在切换前后按预期变化；D1 `topbar-theme-select` / `topbar-dark-toggle` 行为 regression 通过
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/display/DisplayPreferencesRootWiring.test.tsx PASS (5 tests); D1 DisplayPreferencesProvider.test.tsx PASS (4 tests); TopBar.test.tsx PASS (8 tests); full frontend suite 156 tests PASS" -->
+
+- [x] 1.3 全局基础样式入口；验证: focused test 断言 `main.tsx` 一次性引入 `app/theme/global.css`（或等价 entry）；structural test 断言 `frontend/package.json` 不含 `tailwindcss` / `postcss-tailwind` / `styled-components` / `@emotion/*` 依赖
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/theme/globalCss.test.ts PASS (5 tests, structural + transcription)" -->
+
 
 ## Phase 2: 字体与 typography scale
 
