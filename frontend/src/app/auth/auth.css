@@ -24,6 +24,25 @@
   align-items: start;
 }
 
+/*
+ * Mobile fold: under 768px the two-column AuthShell grid collapses to a
+ * single column so the side hero + card stack vertically. Keeps the visual
+ * intent (eyebrow / display title / sub copy on top, form below) while
+ * preventing the card from overflowing the viewport on narrow screens.
+ */
+@media (max-width: 768px) {
+  .ei-auth-shell {
+    grid-template-columns: 1fr;
+    padding: 32px 20px 64px;
+    gap: var(--ei-space-5);
+  }
+
+  .ei-auth-side {
+    position: static;
+    top: auto;
+  }
+}
+
 .ei-auth-side {
   position: sticky;
   top: 92px;

@@ -120,10 +120,47 @@ D2-D6 owner 替换 `PlaceholderScreen` 时应保留 `ei-screen-shell` 外壳与 
 
 #### Visual smoke 工具与 parity gate 重跑
 
-- 在仓库内：`pnpm --filter @easyinterview/frontend test src/app/scenarios/p0-005-app-shell-visual-system-smoke.test.tsx` 跑视觉 smoke + ui-design 源追溯。
-- 端到端 scenario：`./test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/scripts/{setup,trigger,verify,cleanup}.sh` 等价于一次完整 BDD-Gate 执行，证据落在 `.test-output/e2e/p0-005-app-shell-visual-system-smoke/`。
-- 当前覆盖：DOM 锚点 / className / `:root[data-theme][data-mode]` selector resolution / customAccent inline overlay / retired-module 负向 / `ui-design` 源字面量追溯。
-- Playwright follow-up（推荐独立 plan）：desktop + mobile viewport 真实浏览器、bounding-box overlap、`ui-design/index.html` golden preview screenshot diff。接入步骤见 [`test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/README.md`](../test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/README.md) §6。
+D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
+
+1. **jsdom fast smoke（E2E.P0.005，毫秒级）**：覆盖 DOM 锚点 / className / `:root[data-theme][data-mode]` selector resolution / customAccent inline overlay / retired-module 负向 / `ui-design` 源字面量追溯。日常开发循环跑这个就够。
+
+   ```bash
+   pnpm --filter @easyinterview/frontend test src/app/scenarios/p0-005-app-shell-visual-system-smoke.test.tsx
+   # 端到端 scenario
+   ./test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/scripts/{setup,trigger,verify,cleanup}.sh
+   ```
+
+2. **Playwright + chromium pixel parity gate（E2E.P0.006，秒级）**：在 desktop (1440×900) 与 mobile (390×844) 两个 chromium project 下加载 `frontend/dist/index.html` 与 `ui-design/index.html` golden preview，断言 DOM 锚点 + computed style + bounding box + 截图差异。CI / 主线合并前必跑。
+
+   ```bash
+   # 0. 一次性预装 chromium 二进制（首次或新机器）
+   pnpm --filter @easyinterview/frontend test:pixel-parity:install
+
+   # 1. 构建 frontend dist（serve-pixel-parity.mjs 依赖）
+   pnpm --filter @easyinterview/frontend build
+
+   # 2. 跑 4 个 spec × 2 viewport = 42 项 Playwright gate
+   pnpm --filter @easyinterview/frontend test:pixel-parity
+
+   # 3. 完整 scenario 入口（包含 pre-check / verify / cleanup）
+   ./test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/scripts/{setup,trigger,verify,cleanup}.sh
+   ```
+
+   规约入口：
+
+   - Playwright config：[`frontend/playwright.config.ts`](./playwright.config.ts) 声明 desktop / mobile 两个 chromium project + `webServer` 指向 `serve-pixel-parity.mjs`。
+   - 静态 server fixture：[`frontend/scripts/serve-pixel-parity.mjs`](./scripts/serve-pixel-parity.mjs) 同时挂载 `frontend/dist`（`/`）与 `ui-design/`（`/ui-design/`），并暴露 `/health` 探活。
+   - 4 个 spec：[`tests/pixel-parity/topbar.spec.ts`](./tests/pixel-parity/topbar.spec.ts)、[`screens.spec.ts`](./tests/pixel-parity/screens.spec.ts)、[`layout.spec.ts`](./tests/pixel-parity/layout.spec.ts)、[`screenshot.spec.ts`](./tests/pixel-parity/screenshot.spec.ts)。
+
+   截图基线维护：
+
+   ```bash
+   pnpm exec playwright test tests/pixel-parity/screenshot.spec.ts --update-snapshots
+   ```
+
+   baseline 文件位于 `frontend/tests/pixel-parity/screenshot.spec.ts-snapshots/`，默认通过 `frontend/.gitignore` 排除入 git；CI / 本地各自维护。
+
+   离线 / 无外网时的局限：`ui-design/index.html` 通过 unpkg.com 加载 React + Babel，并通过 Google Fonts 加载字体；离线运行 ui-design 对照断言会失败。需要离线运行时按 [`test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/README.md`](../test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/README.md) §7 vendor CDN 资源。
 
 #### `ui-design` 原生迁移规则
 
