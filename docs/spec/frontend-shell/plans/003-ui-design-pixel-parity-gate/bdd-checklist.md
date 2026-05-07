@@ -1,7 +1,7 @@
 # UI-Design Pixel Parity Gate BDD Checklist
 
-> **版本**: 1.0
-> **状态**: active
+> **版本**: 1.1
+> **状态**: completed
 > **更新日期**: 2026-05-08
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
