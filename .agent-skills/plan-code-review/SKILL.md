@@ -78,6 +78,29 @@ Use the shared plan-context contract for role mapping and common errors.
 Validation scope is limited to manifest shape/content and referenced markdown
 paths. After validation, read the returned markdown files directly.
 
+### Step 2.5: Frontend / Backend Contract Preflight
+
+Before deriving findings, check whether the target, validated files, diff scope,
+or discovered artifacts involve `frontend/`, `backend/`, `openapi/`,
+`migrations/`, `config/ai-*`, `deploy/dev-stack/`, or `test/scenarios/`.
+
+If yes, read the current execution contracts and include them in `Deep Evidence`:
+
+1. `docs/development.md` §2 Frontend / Backend Contract Workflow.
+2. Relevant module README files for the touched roots.
+3. UI-visible targets: `docs/ui-design/` plus relevant `ui-design/src/*.jsx`,
+   `ui-design/src/primitives.jsx`, or `ui-design/src/app.jsx` source.
+4. API/fixture/handler targets: `openapi/openapi.yaml`, related fixtures,
+   generated artifacts, and the operation matrix.
+5. Local integration/scenario targets: `deploy/dev-stack/README.md` and
+   `test/scenarios/README.md`, with Docker Compose vs Kind boundaries checked
+   against current docs rather than historical reports.
+
+If the reviewed plan lacks the operation matrix required by
+`docs/development.md` §2.1, record a blocking finding. In `--fix` mode, map the
+finding to a plan/document repair first; do not treat code or fixture presence as
+evidence of frontend/backend closure.
+
 ### Step 3: Determine code review scope
 
 1. Main scope: checklist phases with at least one `[x]` item.

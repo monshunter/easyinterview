@@ -77,6 +77,18 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 - **旧 gate 只是必要条件**：如果现有 gate 只覆盖结构数量或历史断言，必须补充语义 lint、unit test、negative fixture、smoke 或脚本断言后再继续下一个 target。
 - **反馈立即固化**：用户指出工作方式、审查深度或 gate 覆盖不足时，必须先把反馈写入当前执行规章、AGENTS.md、对应 skill 或 plan gate，再继续推进。
 
+### 2.1.3 前后端契约执行门禁（强制）
+
+凡任务涉及 `frontend/`、`backend/`、`openapi/`、`migrations/`、`config/ai-*`、`deploy/dev-stack/` 或 `test/scenarios/` 的代码实施、接口变更、mock 数据、场景验证或 L2 code review，Agent 必须在动手前读取并遵守以下当前契约：
+
+1. `docs/development.md` §2 Frontend / Backend Contract Workflow
+2. 相关模块 README：至少包括命中目录的 `README.md`，例如 `frontend/README.md`、`backend/README.md`、`openapi/README.md`、`deploy/dev-stack/README.md`、`test/scenarios/README.md`
+3. 若涉及用户可见 UI：同时读取 `docs/ui-design/` 对应文档与 `ui-design/src/*.jsx` / `ui-design/src/primitives.jsx` / `ui-design/src/app.jsx` 的相关源码
+4. 若涉及 API / fixture / generated client / handler：读取 `openapi/openapi.yaml`、相关 `openapi/fixtures/<tag>/<operationId>.json`、generated client/server artifacts，以及计划中的 operation matrix
+5. 若涉及本地依赖或场景验证：区分 Docker Compose dev stack 与 Kind scenario target，按 `deploy/dev-stack/README.md` 和 `test/scenarios/README.md` 执行，不得凭历史印象假设环境入口
+
+若计划或 checklist 缺少 operation matrix，或未标明 `operationId`、fixture、frontend consumer、backend handler、persistence、AI dependency、scenario coverage 的当前状态，必须先回到 `/plan-review --fix` 或请求用户批准修订，不得直接实施或宣称验证闭环。
+
 ### 2.2 任务开始前必须检查工作日志
 
 **每次开启新任务前，必须：**
@@ -187,6 +199,7 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 8. **必须使用中文与用户沟通** — 所有面向用户的聊天回复（含状态更新、问询、复述、总结）以及思考过程一律使用简体中文，确保交互语言一致；代码、标识符、命令、文件路径、技术术语、引用的英文原文以及代码内注释/文档遵循各自既有约定，不强制翻译
 9. **必须主动给出下一步** — 每次完成一个复杂任务、阶段收口、提交或验证后，最终回复必须主动给出一个明确、可执行的下一步建议，包括建议 owner skill / plan、目标范围、为什么它是下一步；不要让用户反复追问“下一步是什么”。若存在多个合理路径，给出推荐路径和备选路径；若不能推进，明确 blocker 与解除条件。
 10. **必须主动维护执行规章** — 当一次任务暴露出流程缺陷、审查盲点、误判模式或用户反复纠正的协作成本时，必须把规则沉淀到合适位置（AGENTS.md、skill、spec/plan gate、README 或报告台账），而不是只在当前对话中口头记住。
+11. **必须执行前后端契约预读** — 命中 §2.1.3 范围的实施、验证或 review，必须在编码或下结论前读取 `docs/development.md` §2 与相关模块 README，并在结果中说明已遵守的关键契约或发现的缺口。
 
 ---
 

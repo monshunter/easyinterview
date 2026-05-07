@@ -82,6 +82,28 @@ When `--section` and `--phase-commit` are both present, trigger Step 9.5 exactly
 2. If multiple candidates exist, ask user to choose one.
 3. Read the chosen checklist and existing context references.
 
+### Step 1.5: Frontend / Backend Contract Preflight
+
+Before selecting the next checklist item or editing files, inspect the loaded
+checklist/references and intended write scope. If the work involves `frontend/`,
+`backend/`, `openapi/`, `migrations/`, `config/ai-*`, `deploy/dev-stack/`, or
+`test/scenarios/`, read the current contracts that govern that scope:
+
+1. `docs/development.md` §2 Frontend / Backend Contract Workflow.
+2. The relevant root README files for the touched modules.
+3. UI-visible work: relevant `docs/ui-design/` document plus
+   `ui-design/src/*.jsx` / `ui-design/src/primitives.jsx` /
+   `ui-design/src/app.jsx` sources.
+4. API/fixture/handler work: `openapi/openapi.yaml`, related fixture files,
+   generated artifacts, and the operation matrix.
+5. Local integration or scenario work: `deploy/dev-stack/README.md` and
+   `test/scenarios/README.md`; distinguish Docker Compose dependencies from the
+   Kind scenario target.
+
+If the current checklist item requires a missing operation matrix or contradicts
+these contracts, stop and route back to `/plan-review --fix` or user-approved
+plan revision. Do not continue by relying on memory of prior repository state.
+
 ### Step 2: Check plan/checklist lifecycle status
 
 After loading documents:

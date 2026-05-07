@@ -169,6 +169,29 @@ Required document-level rules:
 
 If any required classification, BDD file, BDD-Gate, TDD strategy, or substitute gate is missing, stop and route to `/plan-review --fix` before coding. Do not infer missing quality gates during implementation.
 
+### Step 4.3: Frontend / Backend Contract Preflight
+
+Before branch resolution or `/tdd` handoff, check whether the selected target or
+validated files touch `frontend/`, `backend/`, `openapi/`, `migrations/`,
+`config/ai-*`, `deploy/dev-stack/`, or `test/scenarios/`.
+
+If yes, read and summarize the applicable execution contracts:
+
+1. `docs/development.md` §2 Frontend / Backend Contract Workflow.
+2. Every relevant module README, at minimum the README for each touched root
+   directory (`frontend/README.md`, `backend/README.md`, `openapi/README.md`,
+   `deploy/dev-stack/README.md`, `test/scenarios/README.md`, etc.).
+3. For UI-visible work, the relevant `docs/ui-design/` document and
+   `ui-design/src/*.jsx` source files.
+4. For API/fixture/handler work, `openapi/openapi.yaml`, related
+   `openapi/fixtures/<tag>/<operationId>.json`, generated artifacts, and the
+   plan's operation matrix.
+
+If a feature/API/cross-layer data plan lacks the operation matrix required by
+`docs/development.md` §2.1, stop and route to `/plan-review --fix` before
+coding. Do not hand off to `/tdd` while frontend mock progress and backend real
+implementation status are ambiguous.
+
 ### Step 4.5: Branch Resolution
 
 Insert branch creation and checkout between Step 4 and Step 5.

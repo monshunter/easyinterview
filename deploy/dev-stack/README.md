@@ -1,8 +1,8 @@
 # Local Dev Stack
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-04-28
+> **更新日期**: 2026-05-08
 
 本目录承载 [local-dev-stack/001-bootstrap](../../docs/spec/local-dev-stack/plans/001-bootstrap/plan.md) 的运行时实现。默认 `make dev-up` 只启动 P0 闭环必须的最小依赖与当前仓库已具备本地运行入口的项目组件，**默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider**。
 
@@ -73,10 +73,11 @@ docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compati
 
 ## 5 与场景测试的关系
 
-本目录是 **应用本地开发** 的 docker compose 路径；场景集成测试的 Kind / K8s 路径尚未在当前仓库落地，后续由 [engineering-roadmap S3](../../docs/spec/engineering-roadmap/spec.md#64-s3--true-integration-and-release-gate) 的 E2E / release workstream 按 on-demand 规则创建。两条路径互不依赖：
+本目录是 **应用本地开发** 的 Docker Compose 路径；`test/scenarios/` 是 BDD / E2E 场景契约路径。两条路径互不替代：
 
-- 应用 dev → 用 `make dev-up`
-- BDD / E2E 场景 → 待对应 workstream 创建 `test/scenarios/` 后，以该目录 README 锁定的入口为准
+- 应用 dev → 用 `make dev-up` 启动 Postgres+pgvector / Redis / MinIO 依赖；backend/frontend 进程当前可在宿主机单独启动，直到 app service 接入 compose。
+- BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。框架目标环境是单一本地 Kind 集群；当前 Ready 场景在缺少部署资产时可通过 repo-tracked Go / Vitest / Playwright 脚本验证同一行为契约。
+- 需要真实 AI provider 的应用部署不得降级到单元测试 stub；`APP_ENV=test` 以外缺真实 provider config 时必须 fail-fast。
 
 ## 6 故障排查
 

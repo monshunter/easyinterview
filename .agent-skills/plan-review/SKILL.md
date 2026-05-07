@@ -96,6 +96,20 @@ Validation scope is limited to manifest shape, target selection, path boundary,
 and referenced markdown existence. After validation, read the returned markdown
 files directly; do not run separate markdown structure checkers.
 
+### Step 3.5: Frontend / Backend Contract Preflight
+
+Before L1 findings or fixes, check whether the target docs involve
+`frontend/`, `backend/`, `openapi/`, `migrations/`, `config/ai-*`,
+`deploy/dev-stack/`, or `test/scenarios/`.
+
+If yes, read `docs/development.md` §2 and the relevant module README files, then
+review the plan against the frontend/backend contract workflow. Feature/API or
+cross-layer data plans must contain an operation matrix with `operationId`,
+fixture, frontend consumer, backend handler, persistence, AI dependency, and
+scenario coverage status. Missing or ambiguous matrix rows are L1 findings and,
+in `--fix` mode, should be repaired before `/implement`, `/tdd`, or
+`/plan-code-review --fix` proceeds.
+
 ### Step 4: Load current target context
 
 Read the validated files for the current target:
