@@ -26,7 +26,7 @@ func (m mapSecret) Get(name string) (string, error) {
 }
 
 func TestNewClientFailsFastWhenSelectedProviderSecretMissing(t *testing.T) {
-	registryPath, profilePath := writeRuntimeConfig(t, "default-openai-compatible")
+	registryPath, profilePath := writeRuntimeConfig(t, "deepseek")
 
 	_, err := bootstrap.NewClient(bootstrap.Options{
 		Config: aiclient.Config{
@@ -42,7 +42,7 @@ func TestNewClientFailsFastWhenSelectedProviderSecretMissing(t *testing.T) {
 }
 
 func TestNewClientLoadsRegistryProfileAndRoutesThroughProviderRef(t *testing.T) {
-	registryPath, profilePath := writeRuntimeConfig(t, "default-openai-compatible")
+	registryPath, profilePath := writeRuntimeConfig(t, "deepseek")
 	var sawAuth bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/chat/completions" {
@@ -89,7 +89,7 @@ func TestNewClientLoadsRegistryProfileAndRoutesThroughProviderRef(t *testing.T) 
 	if resp.Content != "runtime ok" {
 		t.Fatalf("unexpected response %q", resp.Content)
 	}
-	if meta.Provider != "default-openai-compatible" || meta.ModelProfileName != "practice.followup.default" {
+	if meta.Provider != "deepseek" || meta.ModelProfileName != "practice.followup.default" {
 		t.Fatalf("meta not routed through provider ref/profile: %+v", meta)
 	}
 }
@@ -120,13 +120,13 @@ func writeRuntimeConfig(t *testing.T, providerRef string) (string, string) {
 	if err := os.WriteFile(registryPath, []byte(`providers:
   - name: unit-test-stub
     protocol: stub
-    capabilities: [chat, embed]
+    capabilities: [chat, stt]
     version: 1.0.0
-  - name: default-openai-compatible
+  - name: deepseek
     protocol: openai_compatible
     base_url_env: AI_PROVIDER_BASE_URL
     api_key_env: AI_PROVIDER_API_KEY
-    capabilities: [chat, embed]
+    capabilities: [chat]
     version: 1.0.0
 `), 0o600); err != nil {
 		t.Fatalf("write registry: %v", err)

@@ -6,17 +6,15 @@ providers:
     protocol: stub
     capabilities:
       - chat
-      - embed
+      - stt
     version: 1.0.0
 
-  - name: default-openai-compatible
+  - name: deepseek
     protocol: openai_compatible
     base_url_env: AI_PROVIDER_BASE_URL
     api_key_env: AI_PROVIDER_API_KEY
     capabilities:
       - chat
-      - embed
-      - stt
     version: 1.0.0
 
   - name: speech-placeholder
@@ -25,14 +23,6 @@ providers:
     api_key_env: AI_PROVIDER_API_KEY
     capabilities:
       - realtime
-    version: 0.1.0
-
-  - name: rerank-placeholder
-    protocol: rerank_compatible
-    base_url_env: AI_PROVIDER_BASE_URL
-    api_key_env: AI_PROVIDER_API_KEY
-    capabilities:
-      - rerank
     version: 0.1.0
 
   - name: judge-placeholder

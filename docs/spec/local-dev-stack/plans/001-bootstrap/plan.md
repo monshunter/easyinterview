@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-04
+> **更新日期**: 2026-05-08
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -24,7 +24,7 @@
 - **Plan 类型**: `tooling + dev-infra + code-internal`。本 plan 修改本地 docker-compose dev stack、Make targets、doctor 脚本、README 与健康检查约定；不产生用户可见 UI、HTTP API 行为或业务 workflow。
 - **TDD 策略**: 历史实现以 checklist 中每个 phase 的 `自检` 命令作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，优先以 `make dev-*`、`dev-doctor` JSON schema/probe、端口冲突复现、volume idempotency 和 README smoke 作为 focused assertions。
 - **BDD 策略**: BDD 不适用。本 plan 只交付开发环境基础设施；后续 P0 用户行为场景由 `e2e-scenarios-p0` 或具体 feature plan 维护 BDD。
-- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、端口冲突复现、pgvector probe、AI provider fail-fast smoke、`sync-doc-index --check`、Markdown link check、`git diff --check`。
+- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、端口冲突复现、Postgres connectivity probe、AI provider fail-fast smoke、`sync-doc-index --check`、Markdown link check、`git diff --check`。
 
 ## 4 实施步骤
 
@@ -32,7 +32,7 @@
 
 #### 1.1 `deploy/dev-stack/docker-compose.yaml`
 
-按 spec D-1..D-4 落地默认最小依赖服务（Postgres+pgvector / Redis / MinIO）以及当前仓库内所有已具备本地运行入口的项目组件。固定 D-2 镜像 tag、D-3 端口、D-7 命名卷与 D-4 `easyinterview-dev` bridge network。compose v2 schema（不写 `version:` 字段）；默认 compose 不预留也不启动 OTel Collector / Grafana / Loki / Prometheus / AI provider。
+按 spec D-1..D-4 落地默认最小依赖服务（Postgres / Redis / MinIO）以及当前仓库内所有已具备本地运行入口的项目组件。固定 D-2 镜像 tag、D-3 端口、D-7 命名卷与 D-4 `easyinterview-dev` bridge network。compose v2 schema（不写 `version:` 字段）；默认 compose 不预留也不启动 OTel Collector / Grafana / Loki / Prometheus / AI provider。
 
 每个服务必须配置容器级 `healthcheck`（间隔 ≤5s，重试 ≥3）：
 
@@ -43,7 +43,7 @@
 
 #### 1.2 init 脚本与 provisioning
 
-- `deploy/dev-stack/init/postgres/01-pgvector.sql`：`CREATE EXTENSION IF NOT EXISTS vector;`，由 Postgres image `/docker-entrypoint-initdb.d/` 自动执行（D-5）。
+- Postgres 默认不挂载 extension init 脚本；新增 DB extension 必须先由 B4 owner spec 决策并同步本 plan。
 - `deploy/dev-stack/init/minio/create-buckets.sh`：通过 `mc` 创建默认 bucket（bucket 名按 spec §2.1 与 [A4 secrets-and-config](../../../secrets-and-config/spec.md) dev defaults 对齐为 `easyinterview-dev`），bucket 已存在不报错。
 - 不落地 Grafana / OTel / Loki / Prometheus provisioning；本地观测通过应用 `/metrics` 与容器日志完成。
 
@@ -58,7 +58,7 @@
 #### 1.5 Phase 1 自检
 
 - `cd deploy/dev-stack && docker compose up -d`：Postgres / Redis / MinIO 与当前已接入的项目组件全部进入 `healthy`（用 `docker compose ps --format json | jq` 校验）。
-- `docker exec` 进入 Postgres 容器执行 `psql -U $POSTGRES_USER -d $POSTGRES_DB -c "select extname from pg_extension where extname='vector'"` 必须返回 1 行（关闭 spec C-6）。
+- `docker exec` 进入 Postgres 容器执行 `psql -U $POSTGRES_USER -d $POSTGRES_DB -c "select 1"` 必须返回 1 行（关闭 spec C-6）。
 - 拆下后 `docker compose down`（不带 `--volumes`），命名卷在 `docker volume ls` 中保留。
 
 ### Phase 2: Make targets 与生命周期语义
@@ -109,7 +109,7 @@
 
 容器健康基础上对 PG / Redis / MinIO 必须执行 e2e probe：
 
-- Postgres：`pg_isready` + 一次 `select 1` + 一次 `vector` 扩展检查。
+- Postgres：`pg_isready` + 一次 `select 1`。
 - Redis：`redis-cli set __doctor__ ok EX 5` + `get` + `del`。
 - MinIO：`mc ls` 默认 bucket（不存在则报 DEGRADED + reason）。
 
@@ -153,7 +153,7 @@
 - 服务表（name / image / port / 默认 credentials / 命名卷）。
 - 项目组件表（component / compose service / host port / health endpoint / metrics endpoint）。
 - `make dev-*` 命令清单与典型用例。
-- 常见故障排查（端口占用 / 卷不可写 / 镜像拉取失败 / pgvector 扩展未启用）。
+- 常见故障排查（端口占用 / 卷不可写 / 镜像拉取失败 / Postgres 连接失败）。
 - AI provider 配置说明：docker compose 本地部署使用真实 provider / OpenAI-compatible endpoint；`.env.example` 只提供 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位，真实 key 写入被 `.gitignore` 忽略的 `.env`；单元测试 stub 不适用于本地部署。
 - 与 `test/scenarios/`（Kind 路径，归 E2/E4）的双轨说明：本地 docker-compose 走应用 dev，Kind 走场景测试，互不依赖。
 - 资源占用提示（≥ 8GB RAM 推荐）+ 默认依赖镜像总下载体积估算（< 1.5GB，对 spec §4.3 兑现）。
@@ -170,7 +170,7 @@
 
 - `make dev-up`（C-1）→ exit 0，`make dev-doctor` summary.ok==summary.total，且 3 个默认依赖均 OK。
 - AI provider 配置校验（C-9）→ 缺 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` fail-fast，补齐真实 provider endpoint / key 后恢复；全程不启动 AI provider 容器，不切 stub。
-- pgvector SQL probe（C-6）→ 返回 1 行。
+- Postgres SQL probe（C-6）→ `select 1` 返回 1 行。
 - `/metrics` + `make dev-logs` 验证（C-7）→ 已声明 metrics 的项目组件返回非空指标，容器日志可按服务名查看。
 - `make dev-down` → 卷保留；`make dev-up` 数据完整（C-4 复跑一次）。
 - `DEV_RESET_FORCE=1 make dev-reset` → 卷清空（C-5 复跑一次）。
@@ -207,3 +207,4 @@
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
 | 2026-05-04 | 1.4 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 dev stack 范围。 | historical-spec-implementation-review/001 |
+| 2026-05-08 | 1.5 | 对齐 A3/B4 当前决策：默认 dev stack 删除未使用扩展依赖与 probe，仅保留普通 Postgres 16；未来需要时重新设计。 | ai-provider-and-model-routing/003 Phase 6 |

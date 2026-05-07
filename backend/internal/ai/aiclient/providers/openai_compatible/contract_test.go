@@ -19,13 +19,11 @@ import (
 )
 
 const (
-	chatModelID      = "chat-primary-2026-05-05"
-	chatModelFamily  = "chat-primary"
-	embedModelID     = "embed-small"
-	embedModelFamily = "embed-small"
-	sttModelID       = "stt-transcribe-1"
-	sttModelFamily   = "stt-transcribe-1"
-	providerRef      = "default-openai-compatible"
+	chatModelID     = "chat-primary-2026-05-05"
+	chatModelFamily = "chat-primary"
+	sttModelID      = "stt-transcribe-1"
+	sttModelFamily  = "stt-transcribe-1"
+	providerRef     = "deepseek"
 )
 
 func chatProfile(timeoutMs int) *aiclient.ModelProfile {
@@ -39,20 +37,6 @@ func chatProfile(timeoutMs int) *aiclient.ModelProfile {
 		},
 		TimeoutMs: timeoutMs,
 		Route:     "practice.followup",
-		Version:   "1.0.0",
-	}
-}
-
-func embedProfile(timeoutMs int) *aiclient.ModelProfile {
-	return &aiclient.ModelProfile{
-		Name:       "review.embed.default",
-		Capability: aiclient.CapabilityEmbed,
-		Status:     aiclient.ProfileStatusActive,
-		Default: aiclient.ProviderConfig{
-			ProviderRef: providerRef,
-			Model:       embedModelID,
-		},
-		TimeoutMs: timeoutMs,
 		Version:   "1.0.0",
 	}
 }
@@ -105,7 +89,6 @@ func resolvedProvider(baseURL string) providerregistry.ResolvedProvider {
 			Protocol: aiclient.ProviderProtocolOpenAICompatible,
 			Capabilities: []aiclient.Capability{
 				aiclient.CapabilityChat,
-				aiclient.CapabilityEmbed,
 				aiclient.CapabilitySTT,
 			},
 			Version: "1.0.0",
@@ -360,40 +343,6 @@ func TestComplete_MapsToolsAndParsesToolCalls(t *testing.T) {
 	choice, ok := wire["tool_choice"].(map[string]any)
 	if !ok || choice["type"] != "function" {
 		t.Fatalf("expected function tool_choice, got %+v", wire["tool_choice"])
-	}
-}
-
-func TestEmbed_NormalEmbeddings(t *testing.T) {
-	srv := mockserver.New()
-	defer srv.Close()
-	a := newAdapter(t, srv)
-
-	resp, meta, err := a.Embed(context.Background(), embedProfile(5000), aiclient.EmbedInput{
-		Texts: []string{"hello", "world"},
-		Metadata: aiclient.CallMetadata{
-			FeatureKey:    "review.embed",
-			PromptVersion: "p1",
-			RubricVersion: "r1",
-			Language:      "en",
-		},
-	})
-	if err != nil {
-		t.Fatalf("Embed: %v", err)
-	}
-	if len(resp.Vectors) != 2 {
-		t.Fatalf("expected 2 vectors, got %d", len(resp.Vectors))
-	}
-	if meta.Provider != providerRef {
-		t.Fatalf("provider mismatch: %q", meta.Provider)
-	}
-	if meta.ModelID != embedModelID {
-		t.Fatalf("model mismatch: %q", meta.ModelID)
-	}
-	if meta.ModelFamily != embedModelFamily {
-		t.Fatalf("expected ModelFamily=%q, got %q", embedModelFamily, meta.ModelFamily)
-	}
-	if meta.InputTokens == 0 {
-		t.Fatalf("expected non-zero input tokens, got %+v", meta)
 	}
 }
 

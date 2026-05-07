@@ -1,5 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS vector;
-
 CREATE TABLE schema_backfills (
   id bigserial PRIMARY KEY,
   version integer NOT NULL,
@@ -340,22 +338,6 @@ CREATE TABLE source_records (
 );
 CREATE INDEX idx_source_records_owner ON source_records (owner_type, owner_id, created_at DESC);
 
-CREATE TABLE retrieval_chunks (
-  id uuid PRIMARY KEY,
-  user_id uuid REFERENCES users(id) ON DELETE SET NULL,
-  owner_type text NOT NULL CHECK (owner_type IN ('target_job', 'experience_card', 'resume_asset', 'debrief')),
-  owner_id uuid NOT NULL,
-  chunk_index integer NOT NULL DEFAULT 0,
-  language text NOT NULL DEFAULT 'en',
-  content text NOT NULL,
-  embedding vector(1536) NOT NULL,
-  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (owner_type, owner_id, chunk_index)
-);
-CREATE INDEX idx_retrieval_chunks_owner ON retrieval_chunks (owner_type, owner_id);
-CREATE INDEX idx_retrieval_chunks_embedding ON retrieval_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
-
 CREATE TABLE prompt_versions (
   id uuid PRIMARY KEY,
   feature_key text NOT NULL,
@@ -382,7 +364,7 @@ CREATE TABLE rubric_versions (
 CREATE TABLE ai_task_runs (
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES users(id) ON DELETE SET NULL,
-  task_type text NOT NULL CHECK (task_type IN ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'resume_tailor', 'debrief_generate', 'embedding_upsert')),
+  task_type text NOT NULL CHECK (task_type IN ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'resume_tailor', 'debrief_generate')),
   resource_type text NOT NULL,
   resource_id uuid NOT NULL,
   provider text NOT NULL,
@@ -415,7 +397,7 @@ CREATE INDEX idx_ai_task_runs_dashboard ON ai_task_runs (model_profile_name, val
 
 CREATE TABLE async_jobs (
   id uuid PRIMARY KEY,
-  job_type text NOT NULL CHECK (job_type IN ('target_import', 'resume_parse', 'report_generate', 'resume_tailor', 'debrief_generate', 'source_refresh', 'embedding_upsert', 'privacy_export', 'privacy_delete', 'email_dispatch')),
+  job_type text NOT NULL CHECK (job_type IN ('target_import', 'resume_parse', 'report_generate', 'resume_tailor', 'debrief_generate', 'source_refresh', 'privacy_export', 'privacy_delete', 'email_dispatch')),
   resource_type text NOT NULL,
   resource_id uuid NOT NULL,
   dedupe_key text,

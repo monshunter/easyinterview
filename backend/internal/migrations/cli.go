@@ -75,10 +75,6 @@ func Run(ctx context.Context, args []string, env Env, stdout, stderr io.Writer) 
 		fmt.Fprintln(stderr, "ERROR: refusing migrate-down in APP_ENV=prod; set MIGRATE_DOWN_FORCE=1 during an approved operation window")
 		return 1
 	}
-	if command == "down" && env.Getenv("MIGRATE_DROP_EXTENSIONS") == "1" && env.Getenv("APP_ENV") != "dev" {
-		fmt.Fprintln(stderr, "ERROR: MIGRATE_DROP_EXTENSIONS=1 is only allowed when APP_ENV=dev")
-		return 1
-	}
 	if env.Getenv("DATABASE_URL") == "" {
 		fmt.Fprintln(stderr, "ERROR: DATABASE_URL is required for migration commands")
 		return 1
@@ -90,7 +86,6 @@ func Run(ctx context.Context, args []string, env Env, stdout, stderr io.Writer) 
 		MigrationsDir:    opts.MigrationsDir,
 		BackfillManifest: opts.BackfillManifest,
 		AppEnv:           env.Getenv("APP_ENV"),
-		DropExtensions:   env.Getenv("MIGRATE_DROP_EXTENSIONS") == "1" && env.Getenv("APP_ENV") == "dev",
 		ForceBackfill:    env.Getenv("MIGRATE_BACKFILL_FORCE") == "1",
 		Stdout:           stdout,
 	}); err != nil {

@@ -263,13 +263,6 @@ EXPECTED_JOBS = {
         "ownerDomain": "C13",
         "priority": "low",
     },
-    "embedding_upsert": {
-        "asynqTask": "embedding.upsert",
-        "apiFacing": False,
-        "triggerEvent": "target.parsed",
-        "ownerDomain": "C11",
-        "priority": "low",
-    },
     "privacy_export": {
         "asynqTask": "privacy.export",
         "apiFacing": True,

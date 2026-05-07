@@ -8,16 +8,16 @@ import (
 	"testing"
 )
 
-func TestBaselineMigrationEnablesVectorAndKeepsDownSafe(t *testing.T) {
+func TestBaselineMigrationDoesNotEnableVectorExtension(t *testing.T) {
 	root := repoRoot(t)
 	up := readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql"))
 	down := readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.down.sql"))
 
-	if !strings.Contains(strings.ToLower(up), "create extension if not exists vector") {
-		t.Fatalf("baseline up migration must enable vector extension idempotently")
+	if strings.Contains(strings.ToLower(up), "create extension if not exists vector") {
+		t.Fatalf("baseline up migration must not enable vector extension")
 	}
 	if strings.Contains(strings.ToLower(down), "drop extension") {
-		t.Fatalf("baseline down migration must not drop vector by default")
+		t.Fatalf("baseline down migration must not manage extensions")
 	}
 }
 
@@ -44,7 +44,6 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 		"resume_tailor_runs",
 		"debriefs",
 		"source_records",
-		"retrieval_chunks",
 		"prompt_versions",
 		"rubric_versions",
 		"ai_task_runs",

@@ -1,5 +1,5 @@
 // Package observability is the AIClient decorator that wraps every
-// Complete / Embed (and Stream `done` event) with the four mandatory
+// Complete / Transcribe (and Stream `done` event) with the four mandatory
 // outputs: structured log, metric counters, ai_task_runs row, and
 // audit_events row.
 //

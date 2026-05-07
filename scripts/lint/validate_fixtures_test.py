@@ -228,7 +228,7 @@ COMPANY_BLACKLIST_RE = re.compile(
 TEMP_ID_RE = re.compile(r"\btmp_[A-Za-z0-9_-]+\b")
 MODEL_PROFILE_ID_RE = re.compile(r"^model-profile:[a-z][a-z0-9_.-]*$")
 VENDOR_MODEL_TOKEN_RE = re.compile(
-    r"(?:openrouter|anthropic|claude|openai|gpt-|text-embedding|mistral|gemini|cohere)",
+    r"(?:openrouter|anthropic|claude|openai|gpt-|mistral|gemini|cohere)",
     re.IGNORECASE,
 )
 

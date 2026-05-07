@@ -1,8 +1,8 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.7
+> **版本**: 3.8
 > **状态**: active
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-08
 
 ## 1 背景与目标
 
@@ -112,16 +112,16 @@
 | 顶层 | - | `engineering-roadmap` | 当前实施地图、依赖顺序和文档治理 | 保留 |
 | Foundation | A1 | `repo-scaffold` | 仓库骨架、根 Makefile、hook 基础 | 保留 |
 | Foundation | A2 | `local-dev-stack` | 本地 dev stack、dev doctor、端口与健康检查契约 | 保留 |
-| Foundation | A3 | `ai-provider-and-model-routing` | AIClient、provider registry、capability model profile、OpenAI-compatible / stub provider、profile coverage lint | 保留 |
+| Foundation | A3 | `ai-provider-and-model-routing` | AIClient、provider registry、capability model profile、DeepSeek V4 Flash/Pro 开发主力、OpenAI-compatible / stub provider、profile coverage lint | 保留 |
 | Foundation | A4 | `secrets-and-config` | 配置、secret、feature flag、runtime config 边界 | 保留 |
 | Foundation | A5 | `ci-pipeline-baseline` | 当前本地质量门禁，远端 CI deferred | 保留 |
 | Foundation | - | `backend-runtime-topology` | P0 frontend/backend 进程拓扑、worker 收敛与开发期观测依赖边界 | 保留 |
 | Contract | B1 | `shared-conventions-codified` | Go/TS 共享枚举、错误码、ID、codegen / drift gate | 保留 |
 | Contract | B2 | `openapi-v1-contract` | 当前 34 endpoint / 12 tag OpenAPI + fixtures | 保留 |
 | Contract | B3 | `event-and-outbox-contract` | 当前 16 internal event、jobType、outbox 契约 | 保留 |
-| Contract | B4 | `db-migrations-baseline` | 当前 26 应用表 + auth / migration 支撑表 | 保留 |
+| Contract | B4 | `db-migrations-baseline` | 当前 25 应用表 + auth / migration 支撑表 | 保留 |
 | Quality | F1 | `observability-stack` | metrics/log/trace/dashboard/alerting 命名和红线 | 保留 |
-| Quality | F3 | `prompt-rubric-registry` | 12 个 feature_key、prompt/rubric/model profile 治理 | 保留 |
+| Quality | F3 | `prompt-rubric-registry` | 10 个当前 baseline feature_key、prompt/rubric/model profile 治理 | 保留 |
 
 这些 spec 是当前 engineering roadmap 的基础层。若其中某个计划已完成，后续改动应在该 subject 原地修订，而不是从 roadmap 再 spawn 同主题 plan。P0 implementation subject 在进入设计或实现时创建，并在 §5.2 的当前状态列跟踪。
 
@@ -145,7 +145,7 @@
 | 能力方向 | 当前处理 | 创建条件 |
 |----------|----------|----------|
 | 嵌入式 readiness / trends | 可作为报告、画像、面试规划的增强，不是独立成长中心 | P1 设计明确数据来源、展示位置和验收指标 |
-| retrieval / pgvector | 当前 DB baseline 已保留支撑；业务接入后置 | 有明确召回场景、隐私边界和质量评估 |
+| personal knowledge retrieval | 当前不保留实现或基础设施；业务接入后置 | 有明确大量资料场景、隐私边界和质量评估后重新设计 |
 | privacy export / advanced audit | P0 删除-only，导出延后 | product-scope 或隐私合规要求升格 |
 | company/source intel | 当前 UI 只有轻量公司情报详情 | 数据源、freshness、合规和维护成本已设计 |
 | production voice | 当前 UI 保留语音形式；真实 STT / 媒体留存 / 隐私开关后置 | 延迟、成本、retention 和删除链路可验证 |

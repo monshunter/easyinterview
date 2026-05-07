@@ -19,7 +19,7 @@ spec:
       - dev-doctor
     keywords:
       - docker compose
-      - postgres pgvector
+      - postgres
       - redis
       - minio
       - application components

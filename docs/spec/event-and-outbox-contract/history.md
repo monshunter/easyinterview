@@ -1,13 +1,14 @@
 # Event and Outbox Contract History
 
-> **版本**: 1.9
+> **版本**: 2.0
 > **状态**: active
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-08
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-08 | 2.0 | 对齐 A3 003 Phase 6：删除 C11 当前内部任务占位，canonical job_type 从 10 项收敛为 9 项。 | ai-provider-and-model-routing/003 Phase 6 |
 | 2026-05-06 | 1.9 | 对齐 backend-runtime-topology：event producer enum 将独立进程语义 `worker` 替换为 `backend_async`，job/outbox 契约保留并由 backend internal runner 消费。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-05 | 1.8 | B3 event / job / outbox 契约改为只由本 spec、`shared/events.yaml`、`shared/jobs.yaml`、B4 migrations 与 generated artifacts 承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |
 | 2026-05-03 | 1.6 | 明确当前 event / job / outbox 契约由本 spec、`shared/events.yaml`、`shared/jobs.yaml` 与 B4 migrations 决定，旧 `mistake.*`、18 event inventory 与旧 consumer 不再作为实现依据。 | docs-only |

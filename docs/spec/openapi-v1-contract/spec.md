@@ -116,7 +116,7 @@
 | Schema | 字面量 | 来源 |
 |--------|--------|------|
 | `ResourceType` | `target_job` / `feedback_report` / `resume_asset` / `resume_tailor_run` / `debrief` / `privacy_request` | 当前 B2 API-facing async resource set；`ai_task_runs.resource_type` / `async_jobs.resource_type` 必须兼容这些 API-facing resource names |
-| `JobType` | `target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `debrief_generate` / `privacy_export` / `privacy_delete` | P0 API async job response set；DB 内部可保留 `source_refresh` / `embedding_upsert` / `email_dispatch` 等非 API-facing job type，但它们不得出现在 v1.0.0 `GET /api/v1/jobs/{jobId}` response 中，除非本 spec 修订 additive 追加 |
+| `JobType` | `target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `debrief_generate` / `privacy_export` / `privacy_delete` | P0 API async job response set；DB 内部可保留 `source_refresh` / `email_dispatch` 等非 API-facing job type，但它们不得出现在 v1.0.0 `GET /api/v1/jobs/{jobId}` response 中，除非本 spec 修订 additive 追加 |
 
 ### 3.2 待确认事项
 

@@ -26,7 +26,6 @@ func (r staticResolver) Resolve(name string) (*aiclient.ModelProfile, error) {
 type countingProvider struct {
 	inner               aiclient.Provider
 	completeCalls       int
-	embedCalls          int
 	transcribeCalls     int
 	lastCompleteProfile string
 	lastCompletePayload aiclient.CompletePayload
@@ -40,11 +39,6 @@ func (p *countingProvider) Complete(ctx context.Context, profile *aiclient.Model
 	p.lastCompleteProfile = profile.Name
 	p.lastCompletePayload = payload
 	return p.inner.Complete(ctx, profile, payload)
-}
-
-func (p *countingProvider) Embed(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.EmbedInput) (aiclient.EmbedResponse, aiclient.AICallMeta, error) {
-	p.embedCalls++
-	return p.inner.Embed(ctx, profile, input)
 }
 
 func (p *countingProvider) Transcribe(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
@@ -62,18 +56,11 @@ type scriptedCompleteResult struct {
 	err     error
 }
 
-type scriptedEmbedResult struct {
-	vectors [][]float64
-	err     error
-}
-
 type scriptedProvider struct {
 	name            string
 	completeResults []scriptedCompleteResult
-	embedResults    []scriptedEmbedResult
 	streamEvents    []aiclient.AIStreamEvent
 	completeCalls   int
-	embedCalls      int
 	transcribeCalls int
 }
 
@@ -91,20 +78,6 @@ func (p *scriptedProvider) Complete(_ context.Context, profile *aiclient.ModelPr
 		return aiclient.CompleteResponse{}, meta, result.err
 	}
 	return aiclient.CompleteResponse{Content: result.content, FinishReason: "stop"}, meta, nil
-}
-
-func (p *scriptedProvider) Embed(_ context.Context, profile *aiclient.ModelProfile, _ aiclient.EmbedInput) (aiclient.EmbedResponse, aiclient.AICallMeta, error) {
-	p.embedCalls++
-	idx := p.embedCalls - 1
-	if idx >= len(p.embedResults) {
-		return aiclient.EmbedResponse{}, scriptedMeta(p.name, profile, nil), errors.New("unexpected embed call")
-	}
-	result := p.embedResults[idx]
-	meta := scriptedMeta(p.name, profile, result.err)
-	if result.err != nil {
-		return aiclient.EmbedResponse{}, meta, result.err
-	}
-	return aiclient.EmbedResponse{Vectors: result.vectors}, meta, nil
 }
 
 func (p *scriptedProvider) Transcribe(_ context.Context, profile *aiclient.ModelProfile, _ aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
@@ -163,17 +136,6 @@ func defaultResolver() staticResolver {
 			Default: aiclient.ProviderConfig{
 				ProviderRef: stub.Name,
 				Model:       "stub-chat-1",
-			},
-			TimeoutMs: 5000,
-			Version:   "1.0.0",
-		},
-		"review.embed.default": {
-			Name:       "review.embed.default",
-			Capability: aiclient.CapabilityEmbed,
-			Status:     aiclient.ProfileStatusActive,
-			Default: aiclient.ProviderConfig{
-				ProviderRef: stub.Name,
-				Model:       "stub-embed-1",
 			},
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
@@ -365,28 +327,6 @@ func TestComplete_EmptyMessagesReturnsAIOutputInvalid(t *testing.T) {
 	}
 }
 
-func TestEmbed_ReturnsVectors(t *testing.T) {
-	c := newTestClient(t)
-	resp, meta, err := c.Embed(context.Background(), "review.embed.default", aiclient.EmbedInput{
-		Texts: []string{"hello", "world"},
-		Metadata: aiclient.CallMetadata{
-			FeatureKey:    "review.embed",
-			PromptVersion: "p1",
-			RubricVersion: "r1",
-			Language:      "en",
-		},
-	})
-	if err != nil {
-		t.Fatalf("Embed: %v", err)
-	}
-	if len(resp.Vectors) != 2 {
-		t.Fatalf("expected 2 vectors, got %d", len(resp.Vectors))
-	}
-	if meta.Capability != aiclient.CapabilityEmbed {
-		t.Fatalf("expected meta.Capability=embed, got %q", meta.Capability)
-	}
-}
-
 func TestTranscribe_RoutesSTTProfileThroughProvider(t *testing.T) {
 	c, provider := newTestClientWithResolver(t, defaultResolver())
 	input := aiclient.TranscriptionInput{
@@ -477,10 +417,12 @@ func TestComplete_UnsupportedCapabilityFailsClosedWithSharedError(t *testing.T) 
 }
 
 func TestComplete_ProfileCapabilityMismatchFailsClosedWithSharedError(t *testing.T) {
-	c, provider := newTestClientWithResolver(t, defaultResolver())
+	resolver := defaultResolver()
+	resolver["practice.followup.default"].Capability = aiclient.CapabilitySTT
+	c, provider := newTestClientWithResolver(t, resolver)
 
-	_, meta, err := c.Complete(context.Background(), "review.embed.default", samplePayload())
-	assertUnsupportedCapabilityError(t, err, meta, aiclient.CapabilityEmbed)
+	_, meta, err := c.Complete(context.Background(), "practice.followup.default", samplePayload())
+	assertUnsupportedCapabilityError(t, err, meta, aiclient.CapabilitySTT)
 	if provider.completeCalls != 0 {
 		t.Fatalf("capability mismatch must fail before provider invocation, got %d calls", provider.completeCalls)
 	}
@@ -599,31 +541,6 @@ func TestComplete_FallbackOverTwoHopsRejectedBeforeProviderCall(t *testing.T) {
 	}
 	if meta.ErrorCode != sharederrors.CodeAiFallbackExhausted {
 		t.Fatalf("expected meta fallback exhausted, got %+v", meta)
-	}
-}
-
-func TestEmbed_CentralFallbackRetriesMatchingTimeout(t *testing.T) {
-	primaryTimeout := sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "primary timeout", true)
-	primary := &scriptedProvider{name: "primary", embedResults: []scriptedEmbedResult{{err: primaryTimeout}}}
-	fallback := &scriptedProvider{name: "fallback", embedResults: []scriptedEmbedResult{{vectors: [][]float64{{1, 2, 3}}}}}
-	profile := fallbackProfile(aiclient.CapabilityEmbed, []aiclient.FallbackEntry{{
-		ProviderConfig: aiclient.ProviderConfig{ProviderRef: fallback.Name(), Model: "fallback-embed"},
-		When:           []string{"AI_PROVIDER_TIMEOUT"},
-	}})
-	c := newClientWithProviders(t, staticResolver{profile.Name: profile}, primary, fallback)
-
-	resp, meta, err := c.Embed(context.Background(), profile.Name, aiclient.EmbedInput{Texts: []string{"hello"}})
-	if err != nil {
-		t.Fatalf("Embed: %v", err)
-	}
-	if len(resp.Vectors) != 1 {
-		t.Fatalf("expected fallback embedding vector, got %+v", resp.Vectors)
-	}
-	if primary.embedCalls != 1 || fallback.embedCalls != 1 {
-		t.Fatalf("expected primary and fallback embed once, got primary=%d fallback=%d", primary.embedCalls, fallback.embedCalls)
-	}
-	if meta.Provider != fallback.Name() || meta.ModelID != "fallback-embed" || meta.Capability != aiclient.CapabilityEmbed {
-		t.Fatalf("expected final embed fallback meta, got %+v", meta)
 	}
 }
 

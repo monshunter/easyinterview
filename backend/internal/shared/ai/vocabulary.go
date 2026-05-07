@@ -15,20 +15,16 @@ type Capability string
 
 const (
 	CapabilityChat     Capability = "chat"
-	CapabilityEmbed    Capability = "embed"
 	CapabilityStt      Capability = "stt"
 	CapabilityRealtime Capability = "realtime"
-	CapabilityRerank   Capability = "rerank"
 	CapabilityJudge    Capability = "judge"
 )
 
 // AllCapabilities lists every AI capability in declaration order.
 var AllCapabilities = []Capability{
 	CapabilityChat,
-	CapabilityEmbed,
 	CapabilityStt,
 	CapabilityRealtime,
-	CapabilityRerank,
 	CapabilityJudge,
 }
 

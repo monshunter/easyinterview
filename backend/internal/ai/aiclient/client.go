@@ -103,31 +103,6 @@ func (c *Client) Complete(ctx context.Context, profileName string, payload Compl
 	return resp, meta, err
 }
 
-// Embed implements AIClient.
-func (c *Client) Embed(ctx context.Context, profileName string, input EmbedInput) (EmbedResponse, AICallMeta, error) {
-	if len(input.Texts) == 0 {
-		return EmbedResponse{}, AICallMeta{
-			ModelProfileName: profileName,
-			ValidationStatus: ValidationStatusInvalid,
-			ErrorCode:        sharederrors.CodeAiOutputInvalid,
-		}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "texts must be non-empty", false)
-	}
-
-	profile, provider, err := c.dispatch(profileName, CapabilityEmbed)
-	if err != nil {
-		return EmbedResponse{}, failureMeta(profileName, profile, err), err
-	}
-
-	resp, partial, err := executeWithFallback(profile, provider, c.providers, c.providerResolver, func(p Provider, attempt *ModelProfile) (EmbedResponse, AICallMeta, error) {
-		return p.Embed(ctx, attempt, input)
-	})
-	meta, mergeErr := c.builder.merge(profile, input.Metadata, partial)
-	if mergeErr != nil && err == nil {
-		err = mergeErr
-	}
-	return resp, meta, err
-}
-
 // Transcribe implements AIClient.
 func (c *Client) Transcribe(ctx context.Context, profileName string, input TranscriptionInput) (TranscriptionResponse, AICallMeta, error) {
 	if len(input.Audio) == 0 || input.Filename == "" || input.ContentType == "" {

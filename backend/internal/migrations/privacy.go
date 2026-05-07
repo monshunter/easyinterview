@@ -21,7 +21,7 @@ var PrivacyMatrix = []PrivacyMatrixEntry{
 	{Tables: "practice_plans,practice_sessions,practice_session_events,practice_turns", Disposition: "cascade_or_hard_delete"},
 	{Tables: "question_assessments,feedback_reports", Disposition: "hard_delete"},
 	{Tables: "resume_tailor_runs,debriefs", Disposition: "hard_delete"},
-	{Tables: "source_records,retrieval_chunks", Disposition: "hard_delete"},
+	{Tables: "source_records", Disposition: "hard_delete"},
 	{Tables: "ai_task_runs", Disposition: "hard_delete_after_audit_summary"},
 	{Tables: "async_jobs,outbox_events", Disposition: "hard_delete_or_redacted_terminal_tombstone"},
 	{Tables: "privacy_requests", Disposition: "audit_tombstone"},

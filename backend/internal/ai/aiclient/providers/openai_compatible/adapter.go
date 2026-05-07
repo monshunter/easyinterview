@@ -28,7 +28,6 @@ const Name = "openai_compatible"
 // Path constants are exported so the mockserver helper can reuse them.
 const (
 	PathChatCompletions = "/v1/chat/completions"
-	PathEmbeddings      = "/v1/embeddings"
 	PathTranscriptions  = "/v1/audio/transcriptions"
 )
 
@@ -135,47 +134,6 @@ func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, 
 		ToolCalls:    convertToolCalls(choice.Message.ToolCalls),
 	}
 	meta := a.buildMeta(profile, headers, latencyMs, body.Model, body.Usage.PromptTokens, body.Usage.CompletionTokens, out.ToolCalls)
-	return out, meta, nil
-}
-
-// Embed implements aiclient.Provider.
-func (a *Adapter) Embed(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.EmbedInput) (aiclient.EmbedResponse, aiclient.AICallMeta, error) {
-	if profile == nil {
-		return aiclient.EmbedResponse{}, aiclient.AICallMeta{}, errors.New("openai_compatible: profile is nil")
-	}
-
-	req := embeddingsRequest{
-		Model: profile.Default.Model,
-		Input: input.Texts,
-	}
-
-	start := time.Now()
-	resp, status, headers, err := a.postJSON(ctx, profile.TimeoutMs, PathEmbeddings, req)
-	latencyMs := time.Since(start).Milliseconds()
-	if err != nil {
-		return aiclient.EmbedResponse{}, a.errMeta(profile, headers, latencyMs, err), err
-	}
-
-	if status >= 400 {
-		errCode := mapHTTPError(status, resp)
-		meta := a.errMeta(profile, headers, latencyMs, errCode)
-		return aiclient.EmbedResponse{}, meta, errCode
-	}
-
-	var body embeddingsResponse
-	if err := json.Unmarshal(resp, &body); err != nil {
-		errCode := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "openai_compatible: parse response: "+err.Error(), false)
-		meta := a.errMeta(profile, headers, latencyMs, errCode)
-		return aiclient.EmbedResponse{}, meta, errCode
-	}
-
-	vectors := make([][]float64, len(body.Data))
-	for i, d := range body.Data {
-		vectors[i] = d.Embedding
-	}
-	out := aiclient.EmbedResponse{Vectors: vectors}
-	meta := a.buildMeta(profile, headers, latencyMs, body.Model, body.Usage.PromptTokens, 0, nil)
-	meta.OutputTokens = len(vectors)
 	return out, meta, nil
 }
 

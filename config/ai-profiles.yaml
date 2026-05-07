@@ -6,8 +6,8 @@ profiles:
     capability: chat
     status: active
     default:
-      provider_ref: default-openai-compatible
-      model: default-chat
+      provider_ref: deepseek
+      model: deepseek-v4-pro
       params:
         temperature: 0.3
     fallback: []
@@ -17,35 +17,22 @@ profiles:
       rps: 5
       tpm: 60000
     route: debrief.generate
-    version: 1.0.0
+    version: 1.1.0
 
   - name: debrief.voice.extract.default
     capability: stt
-    status: active
+    status: unsupported
+    unsupported_reason: "DeepSeek V4 Flash/Pro do not provide STT; keep fail-closed until a speech provider is explicitly added"
     default:
-      provider_ref: default-openai-compatible
-      model: default-stt
+      provider_ref: unit-test-stub
+      model: stt-provider-required
     fallback: []
     timeout_ms: 10000
     rate_limit:
       rps: 5
       tpm: 60000
     route: debrief.voice.extract
-    version: 1.0.0
-
-  - name: embedding.default
-    capability: embed
-    status: active
-    default:
-      provider_ref: default-openai-compatible
-      model: default-embed
-    fallback: []
-    timeout_ms: 10000
-    rate_limit:
-      rps: 10
-      tpm: 120000
-    route: embedding.default
-    version: 1.0.0
+    version: 0.2.0
 
   - name: judge.default
     capability: judge
@@ -53,7 +40,7 @@ profiles:
     unsupported_reason: "LLM judge adapter is reserved for F3 eval implementation"
     default:
       provider_ref: judge-placeholder
-      model: judge-placeholder-1
+      model: judge-provider-required
     fallback: []
     timeout_ms: 20000
     rate_limit:
@@ -64,24 +51,25 @@ profiles:
 
   - name: practice.dictation.stt.default
     capability: stt
-    status: active
+    status: unsupported
+    unsupported_reason: "DeepSeek V4 Flash/Pro do not provide STT; keep fail-closed until a speech provider is explicitly added"
     default:
-      provider_ref: default-openai-compatible
-      model: default-stt
+      provider_ref: unit-test-stub
+      model: stt-provider-required
     fallback: []
     timeout_ms: 10000
     rate_limit:
       rps: 5
       tpm: 60000
     route: practice.dictation.stt
-    version: 1.0.0
+    version: 0.2.0
 
   - name: practice.first_question.default
     capability: chat
     status: active
     default:
-      provider_ref: default-openai-compatible
-      model: default-chat
+      provider_ref: deepseek
+      model: deepseek-v4-flash
       params:
         temperature: 0.6
     fallback: []
@@ -91,14 +79,14 @@ profiles:
       rps: 5
       tpm: 60000
     route: practice.first_question
-    version: 1.0.0
+    version: 1.1.0
 
   - name: practice.followup.default
     capability: chat
     status: active
     default:
-      provider_ref: default-openai-compatible
-      model: default-chat
+      provider_ref: deepseek
+      model: deepseek-v4-flash
       params:
         temperature: 0.7
     fallback: []
@@ -108,14 +96,14 @@ profiles:
       rps: 5
       tpm: 60000
     route: practice.followup
-    version: 1.0.0
+    version: 1.1.0
 
   - name: practice.turn_observe.default
     capability: chat
     status: active
     default:
-      provider_ref: default-openai-compatible
-      model: default-chat
+      provider_ref: deepseek
+      model: deepseek-v4-flash
       params:
         temperature: 0.3
     fallback: []
@@ -125,15 +113,15 @@ profiles:
       rps: 8
       tpm: 60000
     route: practice.turn_observe
-    version: 1.0.0
+    version: 1.1.0
 
   - name: practice.voice.realtime.default
     capability: realtime
     status: unsupported
-    unsupported_reason: "realtime voice adapter is reserved for 002 tools-streaming-and-stt"
+    unsupported_reason: "realtime voice adapter is reserved for a future speech provider implementation"
     default:
       provider_ref: speech-placeholder
-      model: realtime-placeholder-1
+      model: realtime-provider-required
     fallback: []
     timeout_ms: 10000
     rate_limit:
@@ -147,8 +135,8 @@ profiles:
     status: disabled
     unsupported_reason: "progressive profile update AI workflow is reserved for a future profile implementation"
     default:
-      provider_ref: default-openai-compatible
-      model: disabled-chat-placeholder
+      provider_ref: deepseek
+      model: deepseek-v4-flash
     fallback: []
     timeout_ms: 15000
     max_tokens: 1024
@@ -156,14 +144,14 @@ profiles:
       rps: 3
       tpm: 60000
     route: profile.update
-    version: 0.1.0
+    version: 0.2.0
 
   - name: report.assessment.default
     capability: chat
     status: active
     default:
-      provider_ref: default-openai-compatible
-      model: default-chat
+      provider_ref: deepseek
+      model: deepseek-v4-pro
       params:
         temperature: 0.1
     fallback: []
@@ -173,14 +161,14 @@ profiles:
       rps: 5
       tpm: 60000
     route: report.assessment
-    version: 1.0.0
+    version: 1.1.0
 
   - name: report.generate.default
     capability: chat
     status: active
     default:
-      provider_ref: default-openai-compatible
-      model: default-chat
+      provider_ref: deepseek
+      model: deepseek-v4-pro
       params:
         temperature: 0.2
     fallback: []
@@ -190,14 +178,14 @@ profiles:
       rps: 3
       tpm: 60000
     route: report.generate
-    version: 1.0.0
+    version: 1.1.0
 
   - name: resume.parse.default
     capability: chat
     status: active
     default:
-      provider_ref: default-openai-compatible
-      model: default-chat
+      provider_ref: deepseek
+      model: deepseek-v4-flash
       params:
         temperature: 0.1
     fallback: []
@@ -207,14 +195,14 @@ profiles:
       rps: 5
       tpm: 60000
     route: resume.parse
-    version: 1.0.0
+    version: 1.1.0
 
   - name: resume.tailor.default
     capability: chat
     status: active
     default:
-      provider_ref: default-openai-compatible
-      model: default-chat
+      provider_ref: deepseek
+      model: deepseek-v4-pro
       params:
         temperature: 0.4
     fallback: []
@@ -224,29 +212,14 @@ profiles:
       rps: 5
       tpm: 60000
     route: resume.tailor
-    version: 1.0.0
-
-  - name: retrieval.rerank.default
-    capability: rerank
-    status: unsupported
-    unsupported_reason: "rerank adapter is reserved for C11 retrieval implementation"
-    default:
-      provider_ref: rerank-placeholder
-      model: rerank-placeholder-1
-    fallback: []
-    timeout_ms: 10000
-    rate_limit:
-      rps: 5
-      tpm: 60000
-    route: retrieval.rerank
-    version: 0.1.0
+    version: 1.1.0
 
   - name: target.import.default
     capability: chat
     status: active
     default:
-      provider_ref: default-openai-compatible
-      model: default-chat
+      provider_ref: deepseek
+      model: deepseek-v4-flash
       params:
         temperature: 0.1
     fallback: []
@@ -256,15 +229,15 @@ profiles:
       rps: 5
       tpm: 60000
     route: target.import
-    version: 1.0.0
+    version: 1.1.0
 
   - name: target.intel.default
     capability: chat
     status: disabled
     unsupported_reason: "company/source intelligence data source is outside current P0 implementation"
     default:
-      provider_ref: default-openai-compatible
-      model: disabled-chat-placeholder
+      provider_ref: deepseek
+      model: deepseek-v4-flash
     fallback: []
     timeout_ms: 15000
     max_tokens: 2048
@@ -272,4 +245,4 @@ profiles:
       rps: 3
       tpm: 60000
     route: target.intel
-    version: 0.1.0
+    version: 0.2.0

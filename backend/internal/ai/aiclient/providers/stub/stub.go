@@ -100,33 +100,6 @@ func (p *Provider) Complete(ctx context.Context, profile *aiclient.ModelProfile,
 	return resp, meta, nil
 }
 
-// Embed implements aiclient.Provider.
-func (p *Provider) Embed(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.EmbedInput) (aiclient.EmbedResponse, aiclient.AICallMeta, error) {
-	if profile == nil {
-		return aiclient.EmbedResponse{}, aiclient.AICallMeta{}, fmt.Errorf("stub: profile is nil")
-	}
-	vectors := make([][]float64, len(input.Texts))
-	totalIn := 0
-	for i, text := range input.Texts {
-		seed := sha256.Sum256([]byte(profile.Name + "\n" + text))
-		vec := make([]float64, 4)
-		for j := range vec {
-			vec[j] = float64(seed[j]) / 255.0
-		}
-		vectors[i] = vec
-		totalIn += len(text)
-	}
-	meta := aiclient.AICallMeta{
-		Provider:     Name,
-		ModelFamily:  "stub",
-		ModelID:      profile.Default.Model,
-		InputTokens:  totalIn,
-		OutputTokens: len(vectors),
-		LatencyMs:    1,
-	}
-	return aiclient.EmbedResponse{Vectors: vectors}, meta, nil
-}
-
 // Transcribe implements aiclient.Provider with deterministic transcript text.
 func (p *Provider) Transcribe(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
 	if profile == nil {

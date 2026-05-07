@@ -52,7 +52,6 @@ type Server struct {
 	mu                     sync.Mutex
 	captured               []CapturedRequest
 	chatBehavior           Behavior
-	embedBehavior          Behavior
 	transcribeBehavior     Behavior
 	chatBodyOverride       func() string
 	transcribeBodyOverride func() string
@@ -78,13 +77,6 @@ func (s *Server) SetChatBehavior(b Behavior) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.chatBehavior = b
-}
-
-// SetEmbedBehavior atomically replaces the embeddings behavior.
-func (s *Server) SetEmbedBehavior(b Behavior) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.embedBehavior = b
 }
 
 // SetTranscriptionBehavior atomically replaces the transcription behavior.
@@ -151,7 +143,6 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 		Body:          json.RawMessage(body),
 	})
 	chat := s.chatBehavior
-	embed := s.embedBehavior
 	transcribe := s.transcribeBehavior
 	bodyOverride := s.chatBodyOverride
 	transcribeBodyOverride := s.transcribeBodyOverride
@@ -181,18 +172,6 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeChatResponse(w, body, chat)
-	case "/v1/embeddings":
-		applyHeaders(w, embed)
-		if embed.SleepBeforeRespond > 0 {
-			time.Sleep(embed.SleepBeforeRespond)
-		}
-		if embed.StatusCode >= 400 {
-			w.WriteHeader(embed.StatusCode)
-			io.WriteString(w, embed.ErrorBody)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		writeEmbedResponse(w, body, embed)
 	case "/v1/audio/transcriptions":
 		applyHeaders(w, transcribe)
 		if transcribe.SleepBeforeRespond > 0 {
@@ -307,40 +286,6 @@ func inputTokens(req chatRequest) int {
 		n += len(strings.Fields(m.Content))
 	}
 	return n
-}
-
-type embedRequest struct {
-	Model string   `json:"model"`
-	Input []string `json:"input"`
-}
-
-type embedResponse struct {
-	Model string `json:"model"`
-	Data  []struct {
-		Index     int       `json:"index"`
-		Embedding []float64 `json:"embedding"`
-	} `json:"data"`
-	Usage struct {
-		PromptTokens int `json:"prompt_tokens"`
-		TotalTokens  int `json:"total_tokens"`
-	} `json:"usage"`
-}
-
-func writeEmbedResponse(w http.ResponseWriter, body []byte, _ Behavior) {
-	var req embedRequest
-	_ = json.Unmarshal(body, &req)
-	resp := embedResponse{Model: req.Model}
-	for i, text := range req.Input {
-		item := struct {
-			Index     int       `json:"index"`
-			Embedding []float64 `json:"embedding"`
-		}{Index: i}
-		item.Embedding = []float64{0.1, 0.2, 0.3, float64(len(text))}
-		resp.Data = append(resp.Data, item)
-		resp.Usage.PromptTokens += len(text)
-	}
-	resp.Usage.TotalTokens = resp.Usage.PromptTokens
-	_ = json.NewEncoder(w).Encode(resp)
 }
 
 type transcriptionResponse struct {

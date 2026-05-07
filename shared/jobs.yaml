@@ -53,12 +53,6 @@ jobs:
     triggerEvent: target.parsed
     ownerDomain: C13
     priority: low
-  - canonical: embedding_upsert
-    asynqTask: embedding.upsert
-    apiFacing: false
-    triggerEvent: target.parsed
-    ownerDomain: C11
-    priority: low
   - canonical: privacy_export
     asynqTask: privacy.export
     apiFacing: true

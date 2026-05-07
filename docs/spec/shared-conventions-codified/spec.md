@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: active
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-08
 
 ## 1 背景与目标
 
@@ -109,7 +109,7 @@
 | C-5 | Lint 拦截违规命名 | 本地提交前引入一个 `auth_unauthorized`（小写）错误码常量 | 跑 `make lint` | B1 本地 lint/config 能报错：错误码必须 `UPPER_SNAKE_CASE`；A5 只约束本地质量门禁与远端 CI 延后边界，不改变规则语义 | 001-bootstrap |
 | C-6 | OpenAPI codegen 复用 B1 | B2 在自己 plan 里生成 OpenAPI types | B2 codegen 完成 | 任何枚举字段直接 import B1 的常量；不出现重复定义 enum 字面量 | B2 自身 plan |
 | C-7 | OpenAPI 错误响应 envelope 复用 B1 inner error | B2 渲染 `components.schemas.ApiError` 与 `components.schemas.ApiErrorResponse` | `make codegen-openapi && make codegen-check` | `ApiError` 只包含 inner error 字段；`ApiErrorResponse.error` `$ref` 到 `ApiError`；Go generated 复用 `sharederrors.APIError`，TS generated 复用 `conventions.ApiError` | openapi-v1-contract/001-bootstrap |
-| C-8 | AI vocabulary 共享 | A3/B4/F1/B2/TS client 同时消费 AI capability、provider/profile 字段、AI meta 字段与 `AI_*` 错误码 | `make codegen-conventions && make codegen-openapi`，再跑 parity tests / drift gate | `chat/embed/stt/realtime/rerank/judge`、provider registry 字段、Model Profile 字段、`model_profile_name` / `capability` / fallback label 等字段名由 B1 生成或校验；A3 `AICallMeta` runtime 与 B4 `ai_task_runs` typed columns 使用同一来源；B1 不生成 `AICallMeta` DTO | ai-provider-and-model-routing/003 + db-migrations-baseline remediation |
+| C-8 | AI vocabulary 共享 | A3/B4/F1/B2/TS client 同时消费 AI capability、provider/profile 字段、AI meta 字段与 `AI_*` 错误码 | `make codegen-conventions && make codegen-openapi`，再跑 parity tests / drift gate | `chat/stt/realtime/judge`、provider registry 字段、Model Profile 字段、`model_profile_name` / `capability` / fallback label 等字段名由 B1 生成或校验；A3 `AICallMeta` runtime 与 B4 `ai_task_runs` typed columns 使用同一来源；B1 不生成 `AICallMeta` DTO | ai-provider-and-model-routing/003 Phase 6 + db-migrations-baseline remediation |
 
 ## 7 关联计划
 

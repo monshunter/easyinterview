@@ -26,7 +26,7 @@ ALTER_TABLE_CHECK_RE = re.compile(
 VALUE_RE = re.compile(r"'([^']+)'")
 FORBIDDEN_SECRET_RE = re.compile(r"\b(raw_token|session_cookie|api_key|provider_token)\b", re.IGNORECASE)
 VENDOR_MODEL_TOKEN_RE = re.compile(
-    r"\b(openrouter|anthropic|claude|gpt-|m4\.7|primary-llm|model-test|gpt-test|text-embedding|gemini|mistral|cohere)\b",
+    r"\b(openrouter|anthropic|claude|gpt-|m4\.7|primary-llm|model-test|gpt-test|gemini|mistral|cohere)\b",
     re.IGNORECASE,
 )
 
@@ -50,7 +50,6 @@ EXPECTED_BASELINE_TABLES = [
     "resume_tailor_runs",
     "debriefs",
     "source_records",
-    "retrieval_chunks",
     "prompt_versions",
     "rubric_versions",
     "ai_task_runs",

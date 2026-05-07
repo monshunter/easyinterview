@@ -1,15 +1,15 @@
 # ADR-Q6 · AI Provider 与模型路由
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: accepted
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-08
 
 ## 1 背景
 
-`easyinterview` 全链路依赖 LLM / embedding / STT 三类外部 AI 能力，覆盖：
+`easyinterview` 当前开发期依赖 LLM / STT 占位 / judge 占位三类外部 AI 能力，覆盖：
 
 - 同步：JD 解析提示词、模拟面试首题与追问（`practice` 域）
-- 异步：报告生成（`review` 域）、简历定制（`resume` 域）、报告题目回顾 / 本轮复练上下文物化、debrief 生成、retrieval 召回
+- 异步：报告生成（`review` 域）、简历定制（`resume` 域）、报告题目回顾 / 本轮复练上下文物化、debrief 生成
 - P2：voice STT、source intel
 
 `engineering-roadmap decisions` §2 把「AI Adapter Layer」标记为「模型供应商抽象、重试、fallback、成本记录」，§5 把 `ai` 模块拆为 `prompt / rubric registry + provider adapters + 调用记录`，§7 已规划 `ai_fallback_model_enabled` 等 feature flag；`F1 observability-stack` §「ai_*」指标与 §「fallback rate」dashboard 早已锁定。当前决策收敛为：**应用内 `AIClient` + Provider Registry + Capability-scoped Model Profile**；项目代码和配置只关心 AI provider 能力与连接，不把独立 provider-proxy 作为业务语义。
@@ -22,7 +22,7 @@
 
 业务约束：
 
-- P0 可以从一个默认 OpenAI-compatible provider 起步，但产品 / UI 已要求 chat、embed、stt、realtime、rerank、judge 等多能力配置面；单一全局 base URL / API key 不能作为长期契约
+- P0 当前开发期以 DeepSeek V4 Flash/Pro 作为主要 chat provider；STT、realtime、judge 保持 fail-closed 占位。单一全局 base URL / API key 不能作为长期契约
 - 隐私（Q-5）要求所有 AI 调用记录可观测、可审计、可关闭
 - 成本控制：每次调用必须记录 token / 美元 / 模型 / fallback 次数
 
@@ -86,20 +86,20 @@
 本 ADR 把 §3.2 Q-6 已确认方向固化为以下 9 项硬约束：
 
 1. **AIClient 接口**（A3 owner）
-   - 唯一对外能力：`Complete(ctx, profile, payload) → (response, meta)` / `Embed(ctx, profile, input) → (vector, meta)` / `Stream(ctx, profile, payload) → channel` / `Transcribe(ctx, profile, audio) → (transcript, meta)`
+   - 唯一对外能力：`Complete(ctx, profile, payload) → (response, meta)` / `Stream(ctx, profile, payload) → channel` / `Transcribe(ctx, profile, audio) → (transcript, meta)`
    - Tool / function calling 作为 `CompletePayload.tools[]`、`tool_choice`、`output_schema` 与 `CompleteResponse.tool_calls[]` 的 provider-neutral 扩展，不新增业务侧可绕过 profile 的 provider-specific 接口
    - `meta` 携带：`provider`、`model_family`、`model`、`prompt_version`、`rubric_version`、`model_profile_version`、`tokens_in/out`、`cost_usd`、`latency_ms`、`fallback_chain[]`、`route`
 2. **Provider Registry + Model Profile**（A3 owner）
    - Provider Registry：`config/ai-providers.yaml` + 热加载；字段：`name` / `protocol` / `base_url_env` / `api_key_env` / `capabilities[]` / `version`；`stub` 可不声明 secret env ref，网络出站 provider 必须声明
    - Model Profile：YAML 文件 + 热加载；schema 在 A3 spec 中冻结
-   - 字段：`name`（业务引用）/ `capability`（chat | embed | stt | realtime | rerank | judge）/ `status`（active | disabled | unsupported）/ `unsupported_reason`（disabled / unsupported 时必填）/ `default.provider_ref+model+params` / `fallback[]`（provider-aware chain）/ `timeout_ms` / `max_tokens` / `rate_limit`（rps + tpm）/ `route`
+   - 字段：`name`（业务引用）/ `capability`（chat | stt | realtime | judge）/ `status`（active | disabled | unsupported）/ `unsupported_reason`（disabled / unsupported 时必填）/ `default.provider_ref+model+params` / `fallback[]`（provider-aware chain）/ `timeout_ms` / `max_tokens` / `rate_limit`（rps + tpm）/ `route`
    - 业务代码引用 `profile name`，不引用 provider / model 字符串
 3. **运行时注入**：非单元测试运行环境通过 `AI_PROVIDER_REGISTRY_PATH` + `AI_MODEL_PROFILE_PATH` + registry 内 provider-specific secret env ref 注入；`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只可作为默认 OpenAI-compatible provider ref 的 env 名。仓库不保留旧 provider-proxy 连接参数兼容层。
 4. **Stub provider**（A3 owner）
    - 仅用于单元测试、离线 contract 测试或显式 mock 场景
    - 输入 → 输出 hash-based 确定性映射；可被 OpenAPI fixtures 反向喂养（与 E1 `mock-contract-suite` 同源）
    - 单元测试默认走 `stub`；docker compose / Kind / staging / prod 不允许默认降级到 stub，缺少 provider registry、model profile path 或选中 provider 的 secret env ref 时必须 fail-fast
-5. **Provider endpoint 边界**：本 ADR 不锁死供应商、托管形态或代理实现，只锁 provider registry / profile / OpenAI-compatible API 子集和应用侧 secret ref 连接参数。当前可执行 OpenAI-compatible 子集包含 Chat Completions、Embeddings、chat streaming SSE 与 Audio Transcriptions；realtime multimodal、rerank、judge 仍需各自 owner 后续递增 spec 后打开
+5. **Provider endpoint 边界**：本 ADR 不锁死供应商、托管形态或代理实现，只锁 provider registry / profile / OpenAI-compatible API 子集和应用侧 secret ref 连接参数。当前可执行 OpenAI-compatible 子集包含 Chat Completions、chat streaming SSE 与 Audio Transcriptions；realtime multimodal、judge 仍需各自 owner 后续递增 spec 后打开
 6. **F3 解耦**：`prompt-rubric-registry` 只持有 `(feature_key, prompt_version, rubric_version, model_profile_name)` 四元组；不持有 provider / model 字符串
 7. **可观测性**（F1 owner）
    - 每次 `AIClient.*` 调用必须落 `ai_task_runs_total` + `ai_task_latency_seconds` + `ai_task_input/output_tokens_total` + `ai_task_cost_usd_total` + `ai_output_validation_failures_total` + `ai_fallback_total`
@@ -113,7 +113,7 @@
 - **A4 `secrets-and-config`** —— `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` / provider-specific secret env ref 配置项；local deploy 与 Kind 必须能注入真实 provider 凭证
 - **F1 `observability-stack`** —— `ai_*` 指标与 dashboard
 - **F3 `prompt-rubric-registry`** —— 引用 `model_profile_name`；baseline prompt/rubric 与后续真实 model profile 切换
-- **C4 `backend-targetjob`** / **C5 `backend-practice`** / **C6 `backend-review`** / **C7 `backend-resume`** / **C9 `backend-debrief`** / **C11 `backend-retrieval`** —— 全部仅依赖 `AIClient` + profile name；禁止 import 厂商 SDK
+- **C4 `backend-targetjob`** / **C5 `backend-practice`** / **C6 `backend-review`** / **C7 `backend-resume`** / **C9 `backend-debrief`** —— 全部仅依赖 `AIClient` + profile name；禁止 import 厂商 SDK
 - **C14 `backend-voice-stt`**（P2） —— STT / realtime 走同一 `AIClient` capability profile，profile 路由到 speech provider ref
 - **`release-gate-and-rollout`** —— 校验 AI provider 路由可观测性 + fallback alert + cost cap 配置
 - **B1 `shared-conventions-codified`** —— AI capability、Provider Registry / Model Profile / AI meta 字段名与 AI 错误码的共享常量或生成类型；A3 仍 owns Model Profile schema、`AIClient` runtime 与 `AICallMeta` 填充语义
@@ -135,7 +135,7 @@
 ## 6 关联
 
 - `engineering-roadmap/spec.md` §3.2 Q-6、§5.1 A3、§4.3 mock-first
-- `engineering-roadmap/plans/001-decompose-subspecs/plan.md` checklist 1.1（保留 ADR-Q1..Q6 约束）与 checklist 3.3（production voice / retrieval 等 future candidates 延后）
+- `engineering-roadmap/plans/001-decompose-subspecs/plan.md` checklist 1.1（保留 ADR-Q1..Q6 约束）与 checklist 3.3（production voice / personal knowledge search 等 future candidates 延后）
 - 参考背景：`engineering-roadmap decisions` §2 §5 §「AI Adapter Layer」、`F1 observability-stack` §「ai_*」§「fallback rate」、`F1 observability-stack logging`
 - 下游 child：A3 / A4 / F1 / F3 / C4-C7 / C9 / C11 / C14 / E4 / B1
 - 关联 ADR：ADR-Q4-cloud-deploy-target（AI provider registry/profile/secret 注入）、ADR-Q5-privacy-cadence（AI 调用 payload 仅写 hash）
@@ -144,6 +144,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-08 | 2.1 | 对齐 A3 003 Phase 6：当前开发期删除向量化 / 重排能力与基础设施，DeepSeek V4 Flash/Pro 成为 repo-tracked chat provider 主力；未来资料检索需求需重新设计。 |
 | 2026-05-06 | 2.0 | 提前激活 A3 002：在保持 provider-neutral / 零 SDK / 隐私红线的前提下，将 Tools payload 扩展、provider-side streaming consumer 与 STT Audio Transcriptions 纳入当前 AI 底座实施范围；realtime multimodal 仍 fail-closed。 |
 | 2026-05-05 | 1.8 | 收口 active 部署与失效条件措辞：Kind / staging / prod 均以 provider registry/profile/secret 组合和 provider ref 为当前契约，不再用单一 endpoint 作为当前目标架构描述。 |
 | 2026-05-05 | 1.7 | 同步 A3 003 Phase 4：运行时注入 fail-fast 口径改为 registry/profile path + 被选中 provider secret；B1 边界扩展为 AI capability、provider/profile 字段名与 provider/profile routing 错误码。 |

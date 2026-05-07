@@ -112,7 +112,7 @@ def test_fails_when_provider_registry_env_ref_is_missing_from_dictionary(tmp_pat
         spec_table="| Key | a |\n|-----|---|\n| `APP_ENV` | x |\n",
         provider_registry=textwrap.dedent("""
             providers:
-              - name: default-openai-compatible
+              - name: deepseek
                 protocol: openai_compatible
                 base_url_env: CUSTOM_PROVIDER_BASE_URL
                 api_key_env: CUSTOM_PROVIDER_API_KEY

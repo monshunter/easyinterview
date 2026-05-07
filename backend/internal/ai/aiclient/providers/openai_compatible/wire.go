@@ -50,24 +50,8 @@ type wireToolCall struct {
 	Function wireFunction `json:"function"`
 }
 
-type embeddingsRequest struct {
-	Model string   `json:"model"`
-	Input []string `json:"input"`
-}
-
-type embeddingsResponse struct {
-	Model string          `json:"model"`
-	Data  []embeddingItem `json:"data"`
-	Usage wireUsage       `json:"usage"`
-}
-
 type transcriptionResponse struct {
 	Text string `json:"text"`
-}
-
-type embeddingItem struct {
-	Index     int       `json:"index"`
-	Embedding []float64 `json:"embedding"`
 }
 
 type wireUsage struct {

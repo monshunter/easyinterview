@@ -1,8 +1,8 @@
 # Provider Registry and Capability Profiles
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-08
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -16,14 +16,14 @@
 - `config/ai-providers.yaml` provider registry schema、loader、secret env ref 解析与 capability 校验；
 - `config/ai-profiles.yaml` 单一 profile catalog 从 `task_type` / 全局 provider 口径迁移到 `capability` / `provider_ref` 口径，并取代一 profile 一文件目录；
 - AIClient 中央路由与 profile fallback chain，业务代码不得自行 retry-with-different-model；
-- A4 env/config 字典、B1 shared vocabulary、F3 12 个 baseline profile 覆盖与 drift gate；
-- unsupported capability 的 fail-closed 行为，为后续 002 / C14 / F3 eval 打开 STT、realtime、rerank、judge adapter 留出安全边界。
+- A4 env/config 字典、B1 shared vocabulary、F3 10 个 baseline profile 覆盖与 drift gate；
+- unsupported capability 的 fail-closed 行为，为后续 002 / C14 / F3 eval 打开 STT、realtime、judge adapter 留出安全边界。
 
-本 plan 不实现完整 STT / realtime speech / rerank / judge provider 协议；这些 adapter 仍由 [002-tools-streaming-and-stt](../002-tools-streaming-and-stt/plan.md) 或对应业务 / eval plan 激活后承接。
+本 plan 不实现完整 STT / realtime speech / judge provider 协议；这些 adapter 仍由 [002-tools-streaming-and-stt](../002-tools-streaming-and-stt/plan.md) 或对应业务 / eval plan 激活后承接。
 
 ## 2 背景
 
-2026-05-05 基于 product-scope 与 UI 交互的 AI 场景梳理确认：easyinterview 至少需要结构化抽取、对话生成、低延迟观察、长上下文报告、写作改写、embedding、rerank、STT / realtime voice、source-grounded 摘要与 judge/eval 等能力族。当前 001 bootstrap 已交付可工作的 `AIClient`、stub、OpenAI-compatible chat/embed adapter 与两个最小 profile fixture，但它仍以一个全局 provider 连接配置作为运行时入口，无法完整表达 voice、rerank、judge、provider-specific secrets、feature-level fallback 与 F3 12 个 baseline profile。
+2026-05-08 基于当前个人开发阶段与用户决策重新收敛：easyinterview 当前只保留结构化抽取、对话生成、低延迟观察、长上下文报告、写作改写、STT / realtime voice 占位与 judge/eval 占位。当前阶段删除向量化 / 重排实现与基础设施，AIClient 只保留当前可执行 chat 能力和 fail-closed 的 speech / judge 占位；repo-tracked 开发主力 provider 收敛为 DeepSeek V4 Flash/Pro。
 
 本 plan 是 A3 001 之后的配置契约升级。它不回滚已完成 bootstrap，而是在现有 `AIClient` / provider adapter / observability decorator 之上补齐 provider registry 与 capability profile。由于当前项目尚未上线，不保留旧 schema / env 兼容层；实施时允许直接迁移 repo-tracked fixtures、A4 bindings、B1 generated vocabulary 与相关 tests。
 
@@ -42,7 +42,7 @@
 
 #### 1.1 Registry schema truth source
 
-定义 `config/ai-providers.yaml` schema：`providers[]` 每项包含 `name`、`protocol`、`base_url_env`、`api_key_env`、`capabilities[]`、`version`。`protocol` 初始允许 `stub`、`openai_compatible`、`realtime_audio`、`rerank_compatible`、`judge_compatible`；`capabilities[]` 初始允许 `chat`、`embed`、`stt`、`realtime`、`rerank`、`judge`。tracked registry 只保存 env key 名，不保存 secret 明文；`stub` provider 允许 `base_url_env` / `api_key_env` 为空，其他需要网络出站的 protocol 必须声明 env ref。
+定义 `config/ai-providers.yaml` schema：`providers[]` 每项包含 `name`、`protocol`、`base_url_env`、`api_key_env`、`capabilities[]`、`version`。`protocol` 当前允许 `stub`、`openai_compatible`、`realtime_audio`、`judge_compatible`；`capabilities[]` 当前允许 `chat`、`stt`、`realtime`、`judge`。tracked registry 只保存 env key 名，不保存 secret 明文；`stub` provider 允许 `base_url_env` / `api_key_env` 为空，其他需要网络出站的 protocol 必须声明 env ref。
 
 #### 1.2 Registry loader + secret resolution
 
@@ -70,9 +70,9 @@ profile hot reload 失败时必须保持当前快照并通过 `OnWarn` 输出结
 
 将 Model Profile schema 从 `task_type` 迁移到 `capability`，将 `default.provider` 语义明确为 `default.provider_ref`，并将 `fallback[]` 扩展为 provider-aware chain。Profile 字段集必须对齐 spec §2.1，新增 `status=active|disabled|unsupported` 与 `unsupported_reason` 校验；旧 schema key 不保留兼容层。
 
-#### 2.2 F3 12 baseline profile fixtures
+#### 2.2 F3 10 baseline profile fixtures
 
-在 `config/ai-profiles.yaml` 的 `profiles[]` catalog 中补齐 F3 `prompt-rubric-registry` §3.1.1 的 12 个 feature_key 对应默认 profile；其中 `resume.tailor.gap_review` 与 `resume.tailor.bullet_suggestions` 共享 `resume.tailor.default`，因此当前至少需要 11 个唯一默认 profile：`target.import.default`、`practice.first_question.default`、`practice.followup.default`、`practice.turn_observe.default`、`report.generate.default`、`report.assessment.default`、`resume.parse.default`、`resume.tailor.default`、`debrief.generate.default`、`embedding.default`、`retrieval.rerank.default`，并保留必要的 `status=disabled` / `status=unsupported` profile 表达 P1/P2 能力；不可执行 profile 必须写明 `unsupported_reason`。
+在 `config/ai-profiles.yaml` 的 `profiles[]` catalog 中补齐 F3 `prompt-rubric-registry` §3.1.1 的 10 个 feature_key 对应默认 profile；其中 `resume.tailor.gap_review` 与 `resume.tailor.bullet_suggestions` 共享 `resume.tailor.default`，因此当前至少需要 9 个唯一默认 profile：`target.import.default`、`practice.first_question.default`、`practice.followup.default`、`practice.turn_observe.default`、`report.generate.default`、`report.assessment.default`、`resume.parse.default`、`resume.tailor.default`、`debrief.generate.default`，并保留必要的 `status=disabled` / `status=unsupported` profile 表达 P1/P2 能力；不可执行 profile 必须写明 `unsupported_reason`。
 
 同时补齐 spec §4.5 的非 F3 baseline Product/UI placeholder profiles：`target.intel.default`、`profile.update.default`、`practice.dictation.stt.default`、`practice.voice.realtime.default`、`debrief.voice.extract.default`、`judge.default`。这些 profile 在对应 adapter / eval plan 激活前必须以 `disabled` / `unsupported` 状态存在并写明 `unsupported_reason`，不能缺文件、不能静默降级到 chat / stub。
 
@@ -92,7 +92,7 @@ profile hot reload 失败时必须保持当前快照并通过 `OnWarn` 输出结
 
 #### 3.1 Provider ref routing
 
-AIClient 在每次调用前解析 profile snapshot，再根据 `capability` 与 `provider_ref` 选择 provider adapter。Chat / embeddings 继续走已有 `openai_compatible` adapter；`status=disabled` / `status=unsupported` 或 adapter 未激活的 capability 返回 B1-owned `AI_UNSUPPORTED_CAPABILITY`（或同义且已由 B1 批准的 `AI_*` 错误码）并写 meta/log，不得降级到 chat 或 stub。
+AIClient 在每次调用前解析 profile snapshot，再根据 `capability` 与 `provider_ref` 选择 provider adapter。Chat 走 `openai_compatible` adapter；`status=disabled` / `status=unsupported` 或 adapter 未激活的 capability 返回 B1-owned `AI_UNSUPPORTED_CAPABILITY`（或同义且已由 B1 批准的 `AI_*` 错误码）并写 meta/log，不得降级到 chat 或 stub。
 
 #### 3.2 Central fallback chain
 
@@ -154,13 +154,32 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 修复 catalog consolidation L2 review 发现的 active drift：`deploy/dev-stack/.env.example` 必须使用 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml` 与 `AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml`；active product / repo owner docs 不得再把 `config/ai-profiles/` 描述为 Model Profile active truth source；`make lint-ai-profile-coverage` 或同级 gate 必须覆盖 dev-stack profile catalog path 与 Product/UI capability catalog 对 `config/ai-profiles.yaml` 的 capability 语义一致性。
 
+### Phase 6: DeepSeek baseline and retrieval cleanup
+
+#### 6.1 Capability surface cleanup
+
+删除当前 active scope 中的向量化与重排 capability、profile、provider protocol、AIClient 方法、adapter wire、stub、job type、migration 表/索引/dev-stack 依赖；未来如产品确有个人知识库或大规模资料检索需求，必须另开 spec/plan 重新设计。
+
+#### 6.2 DeepSeek provider baseline
+
+将 repo-tracked 开发期 provider ref 收敛为 `deepseek`，chat profile 只使用 `deepseek-v4-flash` 与 `deepseek-v4-pro`。低延迟交互、解析、轻量观察默认 Flash；报告、评估、简历改写、debrief 分析默认 Pro。不得使用兼容旧别名。
+
+#### 6.3 Cross-contract drift repair
+
+同步 A3 / B1 / B3 / B4 / F3 active spec、README、lint、generated artifacts、fixtures 与 config，使当前代码、配置、迁移和文档都只暴露现阶段真实可用能力。STT / realtime / judge 仍保留 fail-closed 命名空间；DeepSeek 不承担 STT。
+
+#### 6.4 Verification
+
+运行 focused Go tests、B1/B3 codegen、profile coverage lint、config lint、migration lint、docs check 与 active-scope negative search。负向搜索应证明当前代码/配置/基础设施中没有向量化 / 重排实现、profile、provider ref、job type、migration 表或 dev-stack 依赖。
+
 ## 5 验收标准
 
 - Provider registry schema、loader、secret env ref 解析与热加载已落地，负向 fixtures 覆盖重复 provider、未知 protocol、capability mismatch、网络出站 provider secret 缺失与 fallback 超限；`stub` provider 不需要伪造 secret。
-- Model Profile schema 已迁移到 `capability` / `provider_ref` / `status`；repo-tracked active profiles 不含旧 schema key；F3 12 个 baseline profile 与 spec §4.5 Product/UI placeholder profiles 均存在或显式 `disabled` / `unsupported` 且带 `unsupported_reason`。
+- Model Profile schema 已迁移到 `capability` / `provider_ref` / `status`；repo-tracked active profiles 不含旧 schema key；F3 10 个 baseline profile 与 spec §4.5 Product/UI placeholder profiles 均存在或显式 `disabled` / `unsupported` 且带 `unsupported_reason`。
 - Repo-tracked Model Profile active truth source 已收敛为单一 `config/ai-profiles.yaml`；loader、coverage lint、bootstrap、A4 env/config 默认值和 README 均使用 catalog 文件路径，active scope 不再引用 per-profile YAML files。
 - AIClient 路由与 fallback 由 A3 中央执行；业务代码没有 retry-with-different-model 循环；fallback meta / metric / log 完整。
-- Unsupported capability fail-closed；STT / realtime / rerank / judge 在 adapter 激活前不会静默降级，并通过 B1-owned `AI_UNSUPPORTED_CAPABILITY` 或同义 approved `AI_*` code 对外表达。
+- Unsupported capability fail-closed；STT / realtime / judge 在 adapter 激活前不会静默降级，并通过 B1-owned `AI_UNSUPPORTED_CAPABILITY` 或同义 approved `AI_*` code 对外表达。
+- 当前 active scope 已删除向量化 / 重排代码与基础设施；chat profiles 全部指向 `deepseek` provider ref 且模型 ID 只使用 `deepseek-v4-flash` / `deepseek-v4-pro`。
 - A4 env/config 字典、B1 shared vocabulary、F3 + Product/UI profile coverage lint、A3 docs/README/fixtures 全部同步。
 - 隐私红线与零厂商 SDK 红线保持；全局 gate 与 context validation 通过。
 
@@ -180,12 +199,13 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 - **002 / C14**：可直接基于 `capability=stt|realtime` profile 激活 speech adapter；adapter 未实现前保持 `status=unsupported` 或 `disabled`，不得在业务侧新增 provider 配置。
 - **practice / report / resume / debrief**：业务代码继续只消费 F3 Resolve 返回的 `model_profile_name`，由 A3 `AIClient` 解析 provider ref、capability、fallback 与 secret。
-- **F3 eval**：新增 judge / rerank / eval 场景时先同步 F3 feature_key 字典与 profile catalog；A3 profile coverage lint 会拦截缺失或旧 schema key。
+- **F3 eval**：新增 judge / eval 场景时先同步 F3 feature_key 字典与 profile catalog；A3 profile coverage lint 会拦截缺失或旧 schema key。
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-08 | 1.5 | 原地 reopen：删除向量化 / 重排当前实现与基础设施，开发期 AI provider 收敛到 DeepSeek V4 Flash/Pro。 | change-intake user-approved revision |
 | 2026-05-05 | 1.4 | 原地 reopen L2 remediation：修复 dev-stack / product owner matrix 旧 profile directory 漂移，并补强 deploy/profile semantic drift gate。 | plan-code-review --fix |
 | 2026-05-05 | 1.3 | 原地 reopen catalog consolidation：将 per-profile YAML directory active truth source 收敛为单一 `config/ai-profiles.yaml`，并同步 loader、lint、A4/F3 docs 与验证 gate。 | change-intake user-approved revision |
 | 2026-05-05 | 1.2 | 原地 reopen L2 remediation：补 runtime registry/profile wiring、profile reload warn、active profile anti-stub gate 与 post-fix verification。 | plan-code-review --fix |

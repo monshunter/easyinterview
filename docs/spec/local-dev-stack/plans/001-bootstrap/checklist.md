@@ -1,18 +1,18 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-04-28
+> **更新日期**: 2026-05-08
 
 **关联计划**: [plan](./plan.md)
 
 ## Phase 1: docker-compose 与 init 脚本
 
-- [x] 1.1 落地 `deploy/dev-stack/docker-compose.yaml`：默认最小依赖（Postgres+pgvector / Redis / MinIO）+ 当前仓库所有已具备本地运行入口的项目组件，按 D-2 锁定镜像 tag、D-3 端口、D-4 network alias、D-7 命名卷；compose v2 schema；默认不预留也不启动 OTel / Grafana / Loki / Prometheus / AI provider；每个服务配置容器级 healthcheck（≤5s 间隔、≥3 重试）
-- [x] 1.2 落地 init 脚本：`init/postgres/01-pgvector.sql` 启用 vector 扩展；`init/minio/create-buckets.sh` 创建默认 bucket（幂等）；不创建 Grafana / OTel / Loki / Prometheus provisioning
+- [x] 1.1 落地 `deploy/dev-stack/docker-compose.yaml`：默认最小依赖（Postgres / Redis / MinIO）+ 当前仓库所有已具备本地运行入口的项目组件，按 D-2 锁定镜像 tag、D-3 端口、D-4 network alias、D-7 命名卷；compose v2 schema；默认不预留也不启动 OTel / Grafana / Loki / Prometheus / AI provider；每个服务配置容器级 healthcheck（≤5s 间隔、≥3 重试）
+- [x] 1.2 落地 init 脚本：`init/minio/create-buckets.sh` 创建默认 bucket（幂等）；Postgres 默认不启用未使用扩展；不创建 Grafana / OTel / Loki / Prometheus provisioning
 - [x] 1.3 顶层 `volumes:` 声明 3 个命名卷（pg-data / redis-data / minio-data），不使用 bind mount
 - [x] 1.4 落地 `deploy/dev-stack/.env.example`：连接串 / bucket 名 / 依赖端口 / 项目组件 host port / `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位默认值，字段名与 A4 secrets-and-config spec 对齐；`.env` 由根 `.gitignore` 忽略；`make dev-up` 首次运行时若 `.env` 不存在则从 `.env.example` 复制；`.env.example` 不写真实 AI key
-- [x] 1.5 Phase 1 自检：`docker compose up -d` 后 Postgres / Redis / MinIO 与当前已接入项目组件均 healthy；Postgres 内 `select extname from pg_extension where extname='vector'` 返回 1 行（关闭 C-6）；`docker compose down`（无 `--volumes`）后命名卷保留
+- [x] 1.5 Phase 1 自检：`docker compose up -d` 后 Postgres / Redis / MinIO 与当前已接入项目组件均 healthy；Postgres 内 `select 1` 返回 1 行（关闭 C-6）；`docker compose down`（无 `--volumes`）后命名卷保留
 
 ## Phase 2: Make targets 与生命周期语义
 
@@ -25,7 +25,7 @@
 ## Phase 3: dev-doctor 结构化健康检查
 
 - [x] 3.1 落地 `deploy/dev-stack/scripts/dev-doctor.sh`（POSIX sh + jq，≤200 行）：输出 spec D-6 锁定的 JSON 结构（services 含 `type=dependency|app` + summary）；`summary.down==0 && summary.degraded==0` 时 exit 0；不得硬编码旧 7-service 口径
-- [x] 3.2 实现 e2e probe：PG `pg_isready` + `select 1` + vector 扩展检查；Redis set/get/del 一次；MinIO `mc ls` 默认 bucket；项目 HTTP 组件查 `/healthz`，已声明 `/metrics` 的组件查 `/metrics` 非空；backend internal runner 随 backend 组件日志和 `/metrics` 观测；启用 AIClient 的组件只校验真实 provider env 已注入，不调用真实 LLM
+- [x] 3.2 实现 e2e probe：PG `pg_isready` + `select 1`；Redis set/get/del 一次；MinIO `mc ls` 默认 bucket；项目 HTTP 组件查 `/healthz`，已声明 `/metrics` 的组件查 `/metrics` 非空；backend internal runner 随 backend 组件日志和 `/metrics` 观测；启用 AIClient 的组件只校验真实 provider env 已注入，不调用真实 LLM
 - [x] 3.3 dev-up gate 接入（C-1）：`up` target 在 `docker compose up -d --wait` 后调用 dev-doctor；`summary.ok == total` 才 exit 0；否则输出 DOWN/DEGRADED 服务的最近 50 行 `docker logs` 尾段
 - [x] 3.4 失败可观察（C-2）：构造 Postgres 5432 或任一已启用项目组件 host port 冲突复现路径；`make dev-up` 非 0 退出且 stderr 含冲突服务名 + 占用进程；`make dev-doctor` 对冲突服务报 `status=DOWN, reason="port conflict: ..."`，其它服务保持 OK
 - [x] 3.5 Phase 3 自检：全员 OK 时 dev-doctor JSON 通过 schema 校验（3 个依赖名固定，项目组件来自 compose）且 exit 0；`docker stop redis-dev` 后报 DOWN/exit 1；缺 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 时启用 AIClient 的组件 fail-fast 且 dev-doctor 报缺真实 provider 配置；端口冲突复现路径日志贴入工作日志

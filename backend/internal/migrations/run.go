@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"io"
 	"net/url"
@@ -21,7 +20,6 @@ type Command struct {
 	MigrationsDir    string
 	BackfillManifest string
 	AppEnv           string
-	DropExtensions   bool
 	ForceBackfill    bool
 	Stdout           io.Writer
 }
@@ -81,9 +79,6 @@ func runDown(cmd Command) error {
 	if err := m.Down(); err != nil && err != migrate.ErrNoChange {
 		return err
 	}
-	if cmd.DropExtensions {
-		return DropVectorExtension(cmd.DatabaseURL)
-	}
 	return nil
 }
 
@@ -117,15 +112,4 @@ func newMigrate(cmd Command) (*migrate.Migrate, error) {
 func closeMigrate(m *migrate.Migrate) {
 	sourceErr, databaseErr := m.Close()
 	_, _ = sourceErr, databaseErr
-}
-
-// DropVectorExtension is intentionally gated by CLI env checks before it is called.
-func DropVectorExtension(databaseURL string) error {
-	db, err := sql.Open("postgres", databaseURL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-	_, err = db.Exec(`DROP EXTENSION IF EXISTS vector`)
-	return err
 }

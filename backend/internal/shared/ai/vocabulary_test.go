@@ -104,10 +104,8 @@ func TestA3ConsumedAIVocabularyFields(t *testing.T) {
 func TestAICapabilityVocabulary(t *testing.T) {
 	want := []Capability{
 		CapabilityChat,
-		CapabilityEmbed,
 		CapabilityStt,
 		CapabilityRealtime,
-		CapabilityRerank,
 		CapabilityJudge,
 	}
 	if len(AllCapabilities) != len(want) {
@@ -118,8 +116,8 @@ func TestAICapabilityVocabulary(t *testing.T) {
 			t.Errorf("AllCapabilities[%d] = %q, want %q", i, AllCapabilities[i], want[i])
 		}
 	}
-	if !IsCapability("rerank") {
-		t.Fatal("IsCapability(rerank) = false, want true")
+	if !IsCapability("judge") {
+		t.Fatal("IsCapability(judge) = false, want true")
 	}
 	if IsCapability("image") {
 		t.Fatal("IsCapability(image) = true, want false")

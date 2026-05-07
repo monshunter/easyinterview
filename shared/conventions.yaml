@@ -255,10 +255,8 @@ structures:
 aiVocabulary:
   capabilities:
     - chat
-    - embed
     - stt
     - realtime
-    - rerank
     - judge
   providerRegistryFields:
     - name: name

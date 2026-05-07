@@ -92,17 +92,6 @@ func newTestStack(t *testing.T) (
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
 		},
-		"review.embed.default": {
-			Name:       "review.embed.default",
-			Capability: aiclient.CapabilityEmbed,
-			Status:     aiclient.ProfileStatusActive,
-			Default: aiclient.ProviderConfig{
-				ProviderRef: stub.Name,
-				Model:       "stub-embed-1",
-			},
-			TimeoutMs: 5000,
-			Version:   "1.0.0",
-		},
 		"practice.dictation.stt.default": {
 			Name:       "practice.dictation.stt.default",
 			Capability: aiclient.CapabilitySTT,
@@ -718,9 +707,6 @@ func (f *fallbackInner) Complete(_ context.Context, _ string, _ aiclient.Complet
 		content = "ok"
 	}
 	return aiclient.CompleteResponse{Content: content}, f.meta, nil
-}
-func (f *fallbackInner) Embed(_ context.Context, _ string, _ aiclient.EmbedInput) (aiclient.EmbedResponse, aiclient.AICallMeta, error) {
-	return aiclient.EmbedResponse{}, f.meta, nil
 }
 func (f *fallbackInner) Transcribe(_ context.Context, _ string, _ aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
 	return aiclient.TranscriptionResponse{Text: "fallback transcript"}, f.meta, nil

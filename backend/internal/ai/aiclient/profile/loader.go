@@ -244,13 +244,11 @@ func validateProfile(path string, doc *yaml.Node, raw *aiclient.ModelProfile) er
 	}
 	switch raw.Capability {
 	case aiclient.CapabilityChat,
-		aiclient.CapabilityEmbed,
 		aiclient.CapabilitySTT,
 		aiclient.CapabilityRealtime,
-		aiclient.CapabilityRerank,
 		aiclient.CapabilityJudge:
 	default:
-		return profileValidationError(path, fieldLine(doc, "capability"), "has unsupported capability %q (allowed: chat | embed | stt | realtime | rerank | judge)", raw.Capability)
+		return profileValidationError(path, fieldLine(doc, "capability"), "has unsupported capability %q (allowed: chat | stt | realtime | judge)", raw.Capability)
 	}
 	if raw.Status == "" {
 		return profileValidationError(path, fieldLine(doc, "status"), "missing required field 'status'")

@@ -1,5 +1,5 @@
 // Package aiclient is the provider-neutral entry point for every LLM,
-// embedding, and (future) STT call inside the easyinterview backend.
+// STT call inside the easyinterview backend.
 //
 // Business code MUST depend on this package only — never on a vendor SDK such
 // as openai-go, anthropic-sdk-go, cohere-go, or generative-ai-go. ADR-Q6 §3.1

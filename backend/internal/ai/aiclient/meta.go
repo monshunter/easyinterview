@@ -9,10 +9,8 @@ type Capability = sharedai.Capability
 
 const (
 	CapabilityChat     = sharedai.CapabilityChat
-	CapabilityEmbed    = sharedai.CapabilityEmbed
 	CapabilitySTT      = sharedai.CapabilityStt
 	CapabilityRealtime = sharedai.CapabilityRealtime
-	CapabilityRerank   = sharedai.CapabilityRerank
 	CapabilityJudge    = sharedai.CapabilityJudge
 )
 
@@ -24,7 +22,6 @@ const (
 	ProviderProtocolStub             ProviderProtocol = "stub"
 	ProviderProtocolOpenAICompatible ProviderProtocol = "openai_compatible"
 	ProviderProtocolRealtimeAudio    ProviderProtocol = "realtime_audio"
-	ProviderProtocolRerankCompatible ProviderProtocol = "rerank_compatible"
 	ProviderProtocolJudgeCompatible  ProviderProtocol = "judge_compatible"
 )
 

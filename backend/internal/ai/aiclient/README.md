@@ -1,6 +1,6 @@
 # aiclient
 
-Provider-neutral AIClient for every LLM, embedding, and STT transcription call
+Provider-neutral AIClient for every chat/LLM and STT transcription call
 inside the easyinterview backend. This package owns the public Go interface
 [`AIClient`](./aiclient.go), the runtime [`AICallMeta`](./meta.go), the
 Provider Registry loader in [`providerregistry/`](./providerregistry/loader.go),
@@ -56,14 +56,15 @@ are forbidden by the secrets-and-config boundary lint.
 Local docker compose, Kind, staging, and prod must provide the registry path,
 profile catalog path, and any provider-specific env refs selected by active
 profiles. `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` may be referenced by
-the default OpenAI-compatible provider, but they are no longer the global AI
-provider contract:
+the `deepseek` provider ref, but they are no longer the global AI provider
+contract. Current development profiles use `deepseek-v4-flash` for low-latency
+interactive work and `deepseek-v4-pro` for report / assessment / rewrite work:
 
 ```sh
 export APP_ENV=dev
 export AI_PROVIDER_REGISTRY_PATH=$(pwd)/config/ai-providers.yaml
 export AI_MODEL_PROFILE_PATH=$(pwd)/config/ai-profiles.yaml
-export AI_PROVIDER_BASE_URL=https://provider.example/v1
+export AI_PROVIDER_BASE_URL=https://api.deepseek.com
 export AI_PROVIDER_API_KEY=sk-...                # NEVER commit
 ```
 
@@ -155,7 +156,7 @@ This covers:
 - `providerregistry` schema / secret resolution / hot reload / negative fixtures
 - `profile` capability schema + ≤30 s convergence + concurrent read/reload race
 - `providers/stub` deterministic output + APP_ENV gate
-- `providers/openai_compatible` contract (chat / embeddings / 5xx /
+- `providers/openai_compatible` contract (chat / STT / 5xx /
   4xx envelope / timeout / fallback headers / missing choices)
 - `observability` decorator metrics / logs / DB / audit
 - `observability` privacy white-box (no plaintext leak across all four

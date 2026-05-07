@@ -70,16 +70,6 @@
       "triggerEvent": "target.parsed"
     },
     {
-      "apiFacing": false,
-      "asynqTask": "embedding.upsert",
-      "canonical": "embedding_upsert",
-      "ownerDomain": "C11",
-      "payloadSchema": {},
-      "priority": "low",
-      "redactedFields": null,
-      "triggerEvent": "target.parsed"
-    },
-    {
       "apiFacing": true,
       "asynqTask": "privacy.export",
       "canonical": "privacy_export",

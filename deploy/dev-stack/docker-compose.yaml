@@ -1,7 +1,7 @@
 # easyinterview local dev stack — minimal default profile.
 #
 # Owned by docs/spec/local-dev-stack/plans/001-bootstrap.
-# Default services: Postgres+pgvector, Redis, MinIO + bucket-init.
+# Default services: Postgres, Redis, MinIO + bucket-init.
 # OTel Collector / Grafana / Loki / Prometheus / AI provider are intentionally
 # absent (spec D-1..D-9). Project components (backend, frontend)
 # are appended here once their owning child plans land a local runtime entry.
@@ -10,7 +10,7 @@ name: easyinterview-dev
 
 services:
   postgres-dev:
-    image: pgvector/pgvector:pg16
+    image: postgres:16-alpine
     container_name: easyinterview-postgres-dev
     restart: unless-stopped
     environment:

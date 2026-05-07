@@ -72,9 +72,10 @@ config-only 字段同样需要先递增 spec 版本再同步 `config.yaml`。
   `default.provider_ref`，不得恢复旧任务分类 key 或旧 provider key。
 - `status=disabled|unsupported` 的 profile 必须写 `unsupported_reason`，运行时
   必须 fail-closed，不得静默降级到 chat 或 stub。
-- `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只是默认
-  OpenAI-compatible provider ref 可引用的 env 名，不是全局唯一 provider
-  contract。
+- 当前开发主力 provider ref 是 `deepseek`，profile 只使用
+  `deepseek-v4-flash` / `deepseek-v4-pro` 两个模型 ID；不得使用已弃用或兼容层旧名。
+- `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只是 `deepseek` provider ref
+  引用的 env 名，不是全局唯一 provider contract。
 - 新增 Product/UI AI 场景或 F3 feature_key 时，必须同步
   `docs/spec/ai-provider-and-model-routing/spec.md` §4.5、
   `docs/spec/prompt-rubric-registry/spec.md` §3.1.1 和

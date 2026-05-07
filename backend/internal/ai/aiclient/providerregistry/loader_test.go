@@ -27,13 +27,13 @@ func TestLoadParsesProviderRegistrySchema(t *testing.T) {
 	path := writeRegistry(t, `providers:
   - name: unit-test-stub
     protocol: stub
-    capabilities: [chat, embed]
+    capabilities: [chat, stt]
     version: 1.0.0
-  - name: default-openai-compatible
+  - name: deepseek
     protocol: openai_compatible
     base_url_env: AI_PROVIDER_BASE_URL
     api_key_env: AI_PROVIDER_API_KEY
-    capabilities: [chat, embed]
+    capabilities: [chat]
     version: 1.0.0
 `)
 
@@ -52,13 +52,13 @@ func TestLoadParsesProviderRegistrySchema(t *testing.T) {
 	if stubProvider.BaseURLEnv != "" || stubProvider.APIKeyEnv != "" {
 		t.Fatalf("stub provider must not require env refs: %+v", stubProvider)
 	}
-	if !stubProvider.Supports(aiclient.CapabilityChat) || !stubProvider.Supports(aiclient.CapabilityEmbed) {
+	if !stubProvider.Supports(aiclient.CapabilityChat) || !stubProvider.Supports(aiclient.CapabilitySTT) {
 		t.Fatalf("stub capabilities not parsed: %+v", stubProvider.Capabilities)
 	}
 
-	openAIProvider, ok := reg.Provider("default-openai-compatible")
+	openAIProvider, ok := reg.Provider("deepseek")
 	if !ok {
-		t.Fatalf("expected default-openai-compatible provider")
+		t.Fatalf("expected deepseek provider")
 	}
 	if openAIProvider.Protocol != aiclient.ProviderProtocolOpenAICompatible {
 		t.Fatalf("expected openai_compatible protocol, got %q", openAIProvider.Protocol)
@@ -77,7 +77,7 @@ func TestLoadRejectsSchemaViolations(t *testing.T) {
     version: 1.0.0
   - name: duplicate
     protocol: stub
-    capabilities: [embed]
+    capabilities: [stt]
     version: 1.0.0
 `,
 		"unknown-protocol": `providers:
@@ -126,7 +126,7 @@ func TestResolveSelectedProvidersUsesA4SecretSource(t *testing.T) {
     protocol: stub
     capabilities: [chat]
     version: 1.0.0
-  - name: default-openai-compatible
+  - name: deepseek
     protocol: openai_compatible
     base_url_env: AI_PROVIDER_BASE_URL
     api_key_env: AI_PROVIDER_API_KEY
@@ -141,7 +141,7 @@ func TestResolveSelectedProvidersUsesA4SecretSource(t *testing.T) {
 	profile := &aiclient.ModelProfile{
 		Name:       "practice.followup.default",
 		Capability: aiclient.CapabilityChat,
-		Default:    aiclient.ProviderConfig{ProviderRef: "default-openai-compatible", Model: "chat-model"},
+		Default:    aiclient.ProviderConfig{ProviderRef: "deepseek", Model: "chat-model"},
 	}
 	resolved, err := reg.ResolveSelectedProviders(profile, "prod", mapSecret{
 		"AI_PROVIDER_BASE_URL": "https://provider.example",
@@ -150,7 +150,7 @@ func TestResolveSelectedProvidersUsesA4SecretSource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveSelectedProviders: %v", err)
 	}
-	got := resolved["default-openai-compatible"]
+	got := resolved["deepseek"]
 	if got.BaseURL != "https://provider.example" || got.APIKey != "secret" {
 		t.Fatalf("secret values not resolved: %+v", got)
 	}
@@ -162,7 +162,7 @@ func TestResolveSelectedProvidersFailFastOnlyForSelectedNonTestNetworkProvider(t
     protocol: stub
     capabilities: [chat]
     version: 1.0.0
-  - name: default-openai-compatible
+  - name: deepseek
     protocol: openai_compatible
     base_url_env: AI_PROVIDER_BASE_URL
     api_key_env: AI_PROVIDER_API_KEY
@@ -186,7 +186,7 @@ func TestResolveSelectedProvidersFailFastOnlyForSelectedNonTestNetworkProvider(t
 	networkProfile := &aiclient.ModelProfile{
 		Name:       "practice.followup.default",
 		Capability: aiclient.CapabilityChat,
-		Default:    aiclient.ProviderConfig{ProviderRef: "default-openai-compatible", Model: "chat-model"},
+		Default:    aiclient.ProviderConfig{ProviderRef: "deepseek", Model: "chat-model"},
 	}
 	if _, err := reg.ResolveSelectedProviders(networkProfile, "prod", mapSecret{}); !errors.Is(err, providerregistry.ErrProviderSecretMissing) {
 		t.Fatalf("expected ErrProviderSecretMissing, got %v", err)
@@ -202,9 +202,9 @@ func TestResolveSelectedProvidersRejectsProfileRegistryDrift(t *testing.T) {
     protocol: stub
     capabilities: [chat]
     version: 1.0.0
-  - name: embed-only
+  - name: stt-only
     protocol: stub
-    capabilities: [embed]
+    capabilities: [stt]
     version: 1.0.0
 `)
 	reg, err := providerregistry.Load(path)
@@ -221,7 +221,7 @@ func TestResolveSelectedProvidersRejectsProfileRegistryDrift(t *testing.T) {
 		"capability-mismatch": {
 			Name:       "practice.followup.default",
 			Capability: aiclient.CapabilityChat,
-			Default:    aiclient.ProviderConfig{ProviderRef: "embed-only", Model: "chat-model"},
+			Default:    aiclient.ProviderConfig{ProviderRef: "stt-only", Model: "chat-model"},
 		},
 		"fallback-over-two-hops": {
 			Name:       "practice.followup.default",
@@ -310,7 +310,7 @@ func TestLoaderHotReloadPicksUpRegistryEdits(t *testing.T) {
 	if err := os.WriteFile(path, []byte(`providers:
   - name: unit-test-stub
     protocol: stub
-    capabilities: [chat, embed]
+    capabilities: [chat, stt]
     version: 1.1.0
 `), 0o600); err != nil {
 		t.Fatalf("rewrite registry: %v", err)
@@ -319,7 +319,7 @@ func TestLoaderHotReloadPicksUpRegistryEdits(t *testing.T) {
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		p, ok := loader.Provider("unit-test-stub")
-		if ok && p.Version == "1.1.0" && p.Supports(aiclient.CapabilityEmbed) {
+		if ok && p.Version == "1.1.0" && p.Supports(aiclient.CapabilitySTT) {
 			return
 		}
 		time.Sleep(20 * time.Millisecond)

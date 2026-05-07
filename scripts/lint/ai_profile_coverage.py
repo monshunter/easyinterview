@@ -24,8 +24,8 @@ import yaml
 PROFILE_RE = re.compile(r"`([a-z0-9_.-]+\.default)`")
 TABLE_ROW_RE = re.compile(r"^\|(.+)\|$", re.MULTILINE)
 BACKTICK_RE = re.compile(r"`([^`]+)`")
-ENV_LINE_RE = re.compile(r"^\s*([A-Z][A-Z0-9_]*)\s*=\s*([^#\n]*)", re.MULTILINE)
-ALLOWED_CAPABILITIES = {"chat", "embed", "stt", "realtime", "rerank", "judge"}
+ENV_LINE_RE = re.compile(r"^[ \t]*([A-Z][A-Z0-9_]*)[ \t]*=[ \t]*([^#\n]*)", re.MULTILINE)
+ALLOWED_CAPABILITIES = {"chat", "stt", "realtime", "judge"}
 ALLOWED_STATUSES = {"active", "disabled", "unsupported"}
 CANONICAL_DEV_STACK_ENV = {
     "AI_PROVIDER_REGISTRY_PATH": "config/ai-providers.yaml",
@@ -51,7 +51,7 @@ def documented_profiles(repo: Path) -> set[str]:
     f3 = read(repo / "docs/spec/prompt-rubric-registry/spec.md")
     a3 = read(repo / "docs/spec/ai-provider-and-model-routing/spec.md")
     profiles: set[str] = set()
-    profiles.update(PROFILE_RE.findall(section_after(f3, "#### 3.1.1 12 个当前 baseline feature_key 字典")))
+    profiles.update(PROFILE_RE.findall(section_after(f3, "#### 3.1.1 10 个当前 baseline feature_key 字典")))
     profiles.update(PROFILE_RE.findall(section_after(a3, "### 4.5 Product/UI AI Capability Catalog")))
     bad = [p for p in profiles if "*" in p]
     if bad:

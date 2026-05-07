@@ -309,8 +309,7 @@ func TestRenderAIVocabulary_OutputsDedicatedFiles(t *testing.T) {
 	mustGo := []string{
 		"package ai",
 		"type Capability string",
-		`CapabilityRerank`,
-		`"rerank"`,
+		`"judge"`,
 		"type ProviderRegistryFieldName string",
 		`ProviderRegistryFieldNameApiKeyEnv`,
 		"type ModelProfileFieldName string",
@@ -329,7 +328,7 @@ func TestRenderAIVocabulary_OutputsDedicatedFiles(t *testing.T) {
 
 	mustTS := []string{
 		"export const AI_CAPABILITIES = {",
-		"RERANK: 'rerank',",
+		"JUDGE: 'judge',",
 		"export const AI_PROVIDER_REGISTRY_FIELDS = {",
 		"API_KEY_ENV: 'api_key_env',",
 		"export const AI_MODEL_PROFILE_FIELDS = {",

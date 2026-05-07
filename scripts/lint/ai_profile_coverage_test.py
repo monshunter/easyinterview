@@ -22,7 +22,7 @@ def make_repo(tmp_path: Path, profile_body: str) -> Path:
         repo / "docs/spec/prompt-rubric-registry/spec.md",
         textwrap.dedent(
             """
-            #### 3.1.1 12 个当前 baseline feature_key 字典
+            #### 3.1.1 10 个当前 baseline feature_key 字典
 
             | feature_key | 用途 | 关联业务域 | 关联 Model Profile（默认） |
             |-------------|------|-----------|--------------------------|
@@ -51,7 +51,7 @@ def make_repo(tmp_path: Path, profile_body: str) -> Path:
                 protocol: stub
                 capabilities: [chat]
                 version: 1.0.0
-              - name: default-openai-compatible
+              - name: deepseek
                 protocol: openai_compatible
                 base_url_env: AI_PROVIDER_BASE_URL
                 api_key_env: AI_PROVIDER_API_KEY
@@ -95,8 +95,8 @@ def test_passes_when_docs_and_catalog_align(tmp_path: Path) -> None:
             capability: chat
             status: active
             default:
-              provider_ref: default-openai-compatible
-              model: default-chat
+                provider_ref: deepseek
+                model: deepseek-v4-flash
             timeout_ms: 1000
             version: 1.0.0
             """
@@ -122,11 +122,11 @@ def test_fails_when_provider_does_not_support_capability(tmp_path: Path) -> None
         textwrap.dedent(
             """
             name: practice.followup.default
-            capability: rerank
+            capability: stt
             status: active
             default:
-              provider_ref: default-openai-compatible
-              model: rerank-model
+              provider_ref: deepseek
+              model: stt-model
             timeout_ms: 1000
             version: 1.0.0
             """
@@ -167,8 +167,8 @@ def test_fails_when_dev_stack_env_uses_legacy_profile_directory(tmp_path: Path) 
             capability: chat
             status: active
             default:
-              provider_ref: default-openai-compatible
-              model: default-chat
+              provider_ref: deepseek
+              model: deepseek-v4-flash
             timeout_ms: 1000
             version: 1.0.0
             """
@@ -198,11 +198,11 @@ def test_fails_when_product_ui_capability_disagrees_with_catalog(tmp_path: Path)
         textwrap.dedent(
             """
             name: practice.followup.default
-            capability: embed
+            capability: stt
             status: active
             default:
-              provider_ref: default-openai-compatible
-              model: default-embed
+              provider_ref: deepseek
+              model: stt-model
             timeout_ms: 1000
             version: 1.0.0
             """
@@ -212,11 +212,11 @@ def test_fails_when_product_ui_capability_disagrees_with_catalog(tmp_path: Path)
         textwrap.dedent(
             """
             providers:
-              - name: default-openai-compatible
+              - name: deepseek
                 protocol: openai_compatible
                 base_url_env: AI_PROVIDER_BASE_URL
                 api_key_env: AI_PROVIDER_API_KEY
-                capabilities: [chat, embed]
+                capabilities: [chat, stt]
                 version: 1.0.0
             """
         ).strip(),

@@ -12,10 +12,8 @@
 
 export const AI_CAPABILITIES = {
   CHAT: 'chat',
-  EMBED: 'embed',
   STT: 'stt',
   REALTIME: 'realtime',
-  RERANK: 'rerank',
   JUDGE: 'judge',
 } as const;
 
@@ -23,10 +21,8 @@ export type AICapability = (typeof AI_CAPABILITIES)[keyof typeof AI_CAPABILITIES
 
 export const ALL_AI_CAPABILITIES: readonly AICapability[] = [
   AI_CAPABILITIES.CHAT,
-  AI_CAPABILITIES.EMBED,
   AI_CAPABILITIES.STT,
   AI_CAPABILITIES.REALTIME,
-  AI_CAPABILITIES.RERANK,
   AI_CAPABILITIES.JUDGE,
 ] as const;
 

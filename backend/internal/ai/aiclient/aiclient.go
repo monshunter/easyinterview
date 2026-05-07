@@ -11,9 +11,6 @@ type AIClient interface {
 	// response plus the AICallMeta filled by the client.
 	Complete(ctx context.Context, profileName string, payload CompletePayload) (CompleteResponse, AICallMeta, error)
 
-	// Embed runs an embedding request.
-	Embed(ctx context.Context, profileName string, input EmbedInput) (EmbedResponse, AICallMeta, error)
-
 	// Transcribe runs an audio transcription request. The payload carries
 	// audio bytes plus filename/content type metadata; callers still reference
 	// only a Model Profile name.
@@ -39,7 +36,6 @@ type AIClient interface {
 type Provider interface {
 	Name() string
 	Complete(ctx context.Context, profile *ModelProfile, payload CompletePayload) (CompleteResponse, AICallMeta, error)
-	Embed(ctx context.Context, profile *ModelProfile, input EmbedInput) (EmbedResponse, AICallMeta, error)
 	Transcribe(ctx context.Context, profile *ModelProfile, input TranscriptionInput) (TranscriptionResponse, AICallMeta, error)
 	Stream(ctx context.Context, profile *ModelProfile, payload CompletePayload) (<-chan AIStreamEvent, error)
 }

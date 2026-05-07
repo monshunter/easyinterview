@@ -1,13 +1,14 @@
 # Shared Conventions Codified History
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: active
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-08
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-08 | 1.13 | 对齐 A3 003 Phase 6：AI capability vocabulary 删除向量化 / 重排当前能力，只保留 `chat/stt/realtime/judge`。 | ai-provider-and-model-routing/003 Phase 6 |
 | 2026-05-06 | 1.12 | 对齐 backend-runtime-topology：业务后台执行边界从 worker 泛称改为 backend background runner，不在 B1 引入独立 worker 前置。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-05 | 1.11 | 扩展 AI shared vocabulary：新增 AI capability、provider registry/profile 字段名、fallback meta 字段，以及 `AI_UNSUPPORTED_CAPABILITY` / provider config / provider secret 三类 routing 错误码，Go/TS/OpenAPI 生成物同步消费。 | ai-provider-and-model-routing/003 Phase 4 |
 | 2026-05-05 | 1.10 | B1 共享约定职责改为由本 spec、`shared/conventions.yaml`、generator 与 lint gate 独立承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |

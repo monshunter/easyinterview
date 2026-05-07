@@ -72,9 +72,6 @@ probe_postgres() {
   if ! compose exec -T postgres-dev psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select 1" 2>/dev/null | tr -d '\r\n ' | grep -qx '1'; then
     emit postgres-dev dependency DEGRADED "select 1 failed"; return
   fi
-  if ! compose exec -T postgres-dev psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select extname from pg_extension where extname='vector'" 2>/dev/null | tr -d '\r\n ' | grep -qx 'vector'; then
-    emit postgres-dev dependency DEGRADED "pgvector extension missing"; return
-  fi
   emit postgres-dev dependency OK ""
 }
 

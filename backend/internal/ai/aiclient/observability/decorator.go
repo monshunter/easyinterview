@@ -134,19 +134,6 @@ func (w *Wrap) Complete(ctx context.Context, profileName string, payload aiclien
 	return resp, meta, joinRecordError(err, recordErr)
 }
 
-// Embed implements aiclient.AIClient.
-func (w *Wrap) Embed(ctx context.Context, profileName string, input aiclient.EmbedInput) (aiclient.EmbedResponse, aiclient.AICallMeta, error) {
-	start := w.now()
-	resp, meta, err := w.inner.Embed(ctx, profileName, input)
-	completed := w.now()
-	latencyMs := completed.Sub(start).Milliseconds()
-	if meta.LatencyMs == 0 {
-		meta.LatencyMs = latencyMs
-	}
-	recordErr := w.recordEmbedCall(ctx, profileName, input, resp, meta, start, completed, err)
-	return resp, meta, joinRecordError(err, recordErr)
-}
-
 // Transcribe implements aiclient.AIClient.
 func (w *Wrap) Transcribe(ctx context.Context, profileName string, input aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
 	start := w.now()
@@ -192,16 +179,6 @@ func (w *Wrap) recordCompleteCall(ctx context.Context, profileName string, paylo
 	auditRow := w.buildAuditRow(profileName, joinMessages(payload.Messages), responseContent)
 	return errors.Join(
 		w.writeTaskRun(ctx, meta, payload.Metadata.TaskRun, auditRow.Metadata, start, completed, err),
-		w.writeAuditEvent(ctx, auditRow),
-	)
-}
-
-func (w *Wrap) recordEmbedCall(ctx context.Context, profileName string, input aiclient.EmbedInput, resp aiclient.EmbedResponse, meta aiclient.AICallMeta, start, completed time.Time, err error) error {
-	meta = w.enrichMeta(profileName, meta, input.Metadata)
-	w.recordMetricsAndLog(meta, err)
-	auditRow := w.buildAuditRow(profileName, strings.Join(input.Texts, "\n"), summarizeVectors(resp.Vectors))
-	return errors.Join(
-		w.writeTaskRun(ctx, meta, input.Metadata.TaskRun, auditRow.Metadata, start, completed, err),
 		w.writeAuditEvent(ctx, auditRow),
 	)
 }
@@ -471,13 +448,6 @@ func joinMessages(messages []aiclient.Message) string {
 		parts[i] = m.Role + ":" + m.Content
 	}
 	return strings.Join(parts, "\n")
-}
-
-func summarizeVectors(vectors [][]float64) string {
-	// We only feed the audit pipeline an opaque length-derived summary;
-	// the actual vector values must not be hashed/logged because they
-	// can be inverted to reveal the input.
-	return fmt.Sprintf("vectors:%d", len(vectors))
 }
 
 type outputSchema struct {

@@ -10,7 +10,7 @@ import (
 )
 
 // AITaskRunCapability is the business capability persisted into B4 ai_task_runs.
-// It is distinct from Model Profile Capability (chat/embed/stt), which only
+// It is distinct from Model Profile Capability (chat/stt), which only
 // describes the provider call shape.
 type AITaskRunCapability string
 
@@ -22,7 +22,6 @@ const (
 	AITaskRunTaskReportGenerate   AITaskRunCapability = AITaskRunCapability(jobs.JobTypeReportGenerate)
 	AITaskRunTaskResumeTailor     AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeTailor)
 	AITaskRunTaskDebriefGenerate  AITaskRunCapability = AITaskRunCapability(jobs.JobTypeDebriefGenerate)
-	AITaskRunTaskEmbeddingUpsert  AITaskRunCapability = AITaskRunCapability(jobs.JobTypeEmbeddingUpsert)
 )
 
 var allowedAITaskRunCapabilities = map[AITaskRunCapability]struct{}{
@@ -33,7 +32,6 @@ var allowedAITaskRunCapabilities = map[AITaskRunCapability]struct{}{
 	AITaskRunTaskReportGenerate:   {},
 	AITaskRunTaskResumeTailor:     {},
 	AITaskRunTaskDebriefGenerate:  {},
-	AITaskRunTaskEmbeddingUpsert:  {},
 }
 
 // AITaskRunResourceType mirrors the B2 API-facing ResourceType values. B4

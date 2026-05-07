@@ -17,7 +17,7 @@
 | `curl` | 任意 | 验证已声明 `/metrics` 的项目组件 |
 | Bash 4+ / POSIX sh | — | Makefile 与 `dev-doctor.sh` 均按 POSIX sh 编写 |
 
-资源占用：≥ 8GB RAM 推荐；默认依赖镜像（`pgvector/pgvector:pg16` + `redis:7-alpine` + `minio/minio` + `minio/mc`）首次拉取总体积 < 1.5GB。慢网络下先 `make dev-pull` 预热再 `make dev-up`。
+资源占用：≥ 8GB RAM 推荐；默认依赖镜像（`postgres:16-alpine` + `redis:7-alpine` + `minio/minio` + `minio/mc`）首次拉取总体积 < 1.5GB。慢网络下先 `make dev-pull` 预热再 `make dev-up`。
 
 ## 2 默认服务
 
@@ -25,12 +25,12 @@
 
 | name | image | host port | 默认凭据 | 命名卷 |
 |------|-------|-----------|----------|--------|
-| `postgres-dev` | `pgvector/pgvector:pg16` | `${POSTGRES_HOST_PORT:-5432}` | `easyinterview` / `dev` (DB `easyinterview`) | `easyinterview-pg-data` |
+| `postgres-dev` | `postgres:16-alpine` | `${POSTGRES_HOST_PORT:-5432}` | `easyinterview` / `dev` (DB `easyinterview`) | `easyinterview-pg-data` |
 | `redis-dev` | `redis:7-alpine` | `${REDIS_HOST_PORT:-6379}` | 无密码（dev only） | `easyinterview-redis-data` |
 | `minio-dev` | `minio/minio:RELEASE.2024-12-18T13-15-44Z` | `${MINIO_API_HOST_PORT:-9000}` API + `${MINIO_CONSOLE_HOST_PORT:-9001}` Console | `dev-access-key` / `dev-secret-key` | `easyinterview-minio-data` |
 | `minio-init` | `minio/mc:RELEASE.2024-11-21T17-21-54Z` | — | 复用 minio-dev 凭据 | — (一次性 init job) |
 
-所有服务通过 bridge network `easyinterview-dev` 互访，短名解析（`postgres-dev` / `redis-dev` / `minio-dev`）。Postgres init 自动启用 `pgvector` 扩展（D-5）。MinIO init 幂等创建默认 bucket `easyinterview-dev`（D-1..D-9）。
+所有服务通过 bridge network `easyinterview-dev` 互访，短名解析（`postgres-dev` / `redis-dev` / `minio-dev`）。MinIO init 幂等创建默认 bucket `easyinterview-dev`（D-1..D-9）。
 
 ### 2.2 项目组件
 
@@ -63,10 +63,10 @@
 
 ### 4.1 AI provider 配置
 
-docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compatible endpoint：
+docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compatible endpoint；当前 repo-tracked 开发主力为 DeepSeek：
 
 - 必须保留 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml` 与 `AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml`，本地组件从单一 provider registry / profile catalog 加载 AI 路由。
-- 必须设置 `AI_PROVIDER_BASE_URL`（任何 OpenAI-compatible URL，例如 `https://api.openai.com/v1`、自托管 vLLM endpoint 等）。
+- 必须设置 `AI_PROVIDER_BASE_URL=https://api.deepseek.com`，与 `deepseek` provider ref 对齐。
 - 必须设置 `AI_PROVIDER_API_KEY` 为对应 provider 的真实 key。
 - 缺 registry/profile 路径或当前 profile 选中的 provider secret 时，启用 AIClient 的组件 fail-fast，`make dev-doctor` 对该组件报 DOWN/DEGRADED 且 reason 指向缺真实 AI provider 配置（C-9）。
 - **不允许** 把本地部署降级到单元测试 stub。stub 仅在 `APP_ENV=test`（单元测试 / 离线契约测试）下使用，由 [A3 ai-provider-and-model-routing](../../docs/spec/ai-provider-and-model-routing/spec.md) 承接。
@@ -75,7 +75,7 @@ docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compati
 
 本目录是 **应用本地开发** 的 Docker Compose 路径；`test/scenarios/` 是 BDD / E2E 场景契约路径。两条路径互不替代：
 
-- 应用 dev → 用 `make dev-up` 启动 Postgres+pgvector / Redis / MinIO 依赖；backend/frontend 进程当前可在宿主机单独启动，直到 app service 接入 compose。
+- 应用 dev → 用 `make dev-up` 启动 Postgres / Redis / MinIO 依赖；backend/frontend 进程当前可在宿主机单独启动，直到 app service 接入 compose。
 - BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。框架目标环境是单一本地 Kind 集群；当前 Ready 场景在缺少部署资产时可通过 repo-tracked Go / Vitest / Playwright 脚本验证同一行为契约。
 - 需要真实 AI provider 的应用部署不得降级到单元测试 stub；`APP_ENV=test` 以外缺真实 provider config 时必须 fail-fast。
 
@@ -86,7 +86,6 @@ docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compati
 | `make dev-up` 报 `bind: address already in use` | `make dev-doctor` 会指出占用端口的 pid 与 cmd；通过 `.env` 的 `*_HOST_PORT` 字段 override 端口，不要修改容器内端口 |
 | Postgres healthcheck 反复失败但容器在跑 | `make dev-logs SERVICE=postgres-dev`；常见原因：旧卷里 `POSTGRES_PASSWORD` / `POSTGRES_USER` 与 `.env` 不一致 → `DEV_RESET_FORCE=1 make dev-reset` 后重新 up |
 | MinIO 启动报 `volume not writable` | macOS Docker Desktop 偶发权限缓存问题；`docker volume rm easyinterview-minio-data` 后重新 up |
-| `pgvector` 扩展未启用 | 数据卷是历史遗留时 init 脚本不会重跑：`docker exec easyinterview-postgres-dev psql -U easyinterview -d easyinterview -c "CREATE EXTENSION IF NOT EXISTS vector;"` 或重置卷 |
 | 镜像首次拉取超过 60s healthy 预算 | 先 `make dev-pull` 预热再 `make dev-up`；预算只针对 image 已在本地的稳态 |
 | `make dev-doctor` 对启用 AIClient 的组件报 DOWN | 检查 `.env` 中 `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 是否指向 repo 内 catalog，并确认 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 填了真实 provider；勿提交真实 key |
 | macOS Docker Desktop 端口冲突看似没冲突 | docker-desktop 用 IPv6 监听，纯 IPv4 squatter 不冲突；用 `python3 -c "...AF_INET6 + IPV6_V6ONLY=0..."` 或绑双栈监听才会触发真实冲突 |

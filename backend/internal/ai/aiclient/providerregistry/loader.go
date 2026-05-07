@@ -366,7 +366,6 @@ func isAllowedProtocol(p aiclient.ProviderProtocol) bool {
 	case aiclient.ProviderProtocolStub,
 		aiclient.ProviderProtocolOpenAICompatible,
 		aiclient.ProviderProtocolRealtimeAudio,
-		aiclient.ProviderProtocolRerankCompatible,
 		aiclient.ProviderProtocolJudgeCompatible:
 		return true
 	default:
@@ -377,10 +376,8 @@ func isAllowedProtocol(p aiclient.ProviderProtocol) bool {
 func isAllowedCapability(c aiclient.Capability) bool {
 	switch c {
 	case aiclient.CapabilityChat,
-		aiclient.CapabilityEmbed,
 		aiclient.CapabilitySTT,
 		aiclient.CapabilityRealtime,
-		aiclient.CapabilityRerank,
 		aiclient.CapabilityJudge:
 		return true
 	default:

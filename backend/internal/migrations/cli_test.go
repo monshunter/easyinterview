@@ -40,24 +40,6 @@ func TestRunRejectsProdDownWithoutForceBeforeOpeningDatabase(t *testing.T) {
 	}
 }
 
-func TestRunRejectsDropExtensionsOutsideDev(t *testing.T) {
-	var stderr bytes.Buffer
-
-	exitCode := Run(context.Background(), []string{"down"}, StaticEnv{
-		"APP_ENV":                 "staging",
-		"DATABASE_URL":            "postgres://example.invalid/easyinterview",
-		"MIGRATE_DROP_EXTENSIONS": "1",
-		"MIGRATE_DOWN_FORCE":      "1",
-	}, nil, &stderr)
-
-	if exitCode == 0 {
-		t.Fatal("expected non-dev extension drop to fail")
-	}
-	if !strings.Contains(stderr.String(), "MIGRATE_DROP_EXTENSIONS=1") || !strings.Contains(stderr.String(), "APP_ENV=dev") {
-		t.Fatalf("stderr should describe dev-only extension drop gate, got %q", stderr.String())
-	}
-}
-
 func TestRunDispatchesCreateThroughGenerator(t *testing.T) {
 	tmp := t.TempDir()
 	var stdout bytes.Buffer
@@ -143,7 +125,6 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 		"resume_tailor_runs",
 		"debriefs",
 		"source_records",
-		"retrieval_chunks",
 		"prompt_versions",
 		"rubric_versions",
 		"ai_task_runs",
@@ -164,7 +145,7 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 	if _, ok := got["mistake_entries"]; ok {
 		t.Fatalf("privacy matrix must not restore removed mistake_entries")
 	}
-	if len(got) != 31 {
-		t.Fatalf("privacy matrix should cover exactly 31 public baseline tables, got %d: %#v", len(got), got)
+	if len(got) != 30 {
+		t.Fatalf("privacy matrix should cover exactly 30 public baseline tables, got %d: %#v", len(got), got)
 	}
 }

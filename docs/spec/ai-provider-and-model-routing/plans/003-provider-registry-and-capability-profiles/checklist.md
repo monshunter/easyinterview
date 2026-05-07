@@ -1,8 +1,8 @@
 # Provider Registry and Capability Profiles Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-08
 
 **关联计划**: [plan](./plan.md)
 
@@ -18,7 +18,7 @@
 ## Phase 2: Capability-scoped Model Profile schema
 
 - [x] 2.1 将 profile schema 从 `task_type` / 全局 provider 口径迁移到 `capability` / `provider_ref` / `status`，为 `disabled` / `unsupported` 强制校验 `unsupported_reason`，不保留旧 schema key fallback
-- [x] 2.2 补齐 F3 12 个 baseline default profile fixture 与 spec §4.5 非 F3 placeholder profile fixture，并为 P1/P2/002+ profile 使用 `status=disabled` / `status=unsupported` + `unsupported_reason` 表达不可执行状态
+- [x] 2.2 补齐 F3 10 个 baseline default profile fixture 与 spec §4.5 非 F3 placeholder profile fixture，并为 P1/P2/002+ profile 使用 `status=disabled` / `status=unsupported` + `unsupported_reason` 表达不可执行状态
 - [x] 2.3 建立 Product/UI capability coverage 检查，确保 spec §4.5 每个默认 profile 都是具体 profile name，且与 F3 feature_key 字典和 profile catalog 同步
 - [x] 2.4 同步 `backend/internal/ai/aiclient/README.md`、`config/README.md` 与 fixture 注释
 - [x] 2.5 将 per-profile YAML directory active truth source 收敛为单一 `config/ai-profiles.yaml` catalog，并用 profile loader / tracked catalog / coverage lint focused tests 验证 catalog 文件路径、重复 profile、缺失 profile 与旧目录引用被拦截
@@ -34,7 +34,7 @@
 
 - [x] 4.1 A4 env/config 字典扩展为 `AI_PROVIDER_REGISTRY_PATH` + `AI_MODEL_PROFILE_PATH` + provider-specific secret env refs，并同步 `.env.example`、bindings、validator、redaction 与 `make lint-config`
 - [x] 4.2 B1 shared vocabulary 新增或迁移 AI capability enum、provider registry field names、profile field names、meta field names 与 provider/profile routing `AI_*` 错误码，codegen parity tests 通过
-- [x] 4.3 F3 + Product/UI profile coverage lint 覆盖 12 个 baseline feature_key 的默认 `model_profile_name` 与 spec §4.5 默认 profile
+- [x] 4.3 F3 + Product/UI profile coverage lint 覆盖 10 个 baseline feature_key 的默认 `model_profile_name` 与 spec §4.5 默认 profile
 - [x] 4.4 同步 ADR-Q6、A3 history、A4/F3 spec、engineering-roadmap A3 职责描述与 docs/spec INDEX
 - [x] 4.5 L2 remediation: `make lint-ai-profile-coverage` 拒绝 repo-tracked active profile 指向 `stub` protocol provider，并将当前 active default profiles 切到 non-stub provider ref
 
@@ -47,3 +47,10 @@
 - [x] 5.5 L2 remediation verification: focused tests、profile coverage lint、config lint、context validation、negative search 与必要全局 gate 通过后恢复 completed 生命周期并修正 active spec 003 状态投影
 - [x] 5.6 Catalog consolidation verification: focused Go profile tests、profile coverage pytest、`make lint-ai-profile-coverage`、`make lint-config`、context validation、`make docs-check`、active-scope legacy profile-directory 负向搜索与必要全局 gate 通过后恢复 completed 生命周期
 - [x] 5.7 L2 remediation: 修复 dev-stack / product owner matrix 旧 profile directory 漂移，并补强 deploy/profile semantic drift gate；验证 `make lint-ai-profile-coverage`、`make lint-config`、context validation、active-scope legacy profile-directory 负向搜索与必要 focused tests 通过
+
+## Phase 6: DeepSeek baseline and retrieval cleanup
+
+- [x] 6.1 删除当前 active scope 的向量化 / 重排 capability、profile、provider protocol、AIClient 方法、OpenAI-compatible wire、stub、job type、migration 表/索引与 dev-stack 依赖。验证: focused Go tests、B1/B3 codegen drift、migration lint、active-scope negative search
+- [x] 6.2 将 repo-tracked AI provider 开发主力收敛为 `deepseek`，chat profile 只使用 `deepseek-v4-flash` / `deepseek-v4-pro`，且 STT / realtime / judge 继续 fail-closed。验证: profile catalog tests、`make lint-ai-profile-coverage`、旧模型别名负向搜索
+- [x] 6.3 同步 A3 / B1 / B3 / B4 / F3 active spec、README、lint、fixtures 与 generated artifacts，使文档、配置、代码和基础设施契约一致。验证: `make docs-check`、context validation、`make lint-config`
+- [x] 6.4 完成全局验证并恢复 lifecycle：focused tests、codegen idempotency、`make lint-ai-profile-coverage`、`make lint-config`、`make docs-check`、active-scope negative search 通过后将 plan/checklist 切回 `completed`

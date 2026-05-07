@@ -87,7 +87,7 @@
 
 1. **集群形态**：staging / prod 各 1 个 managed cluster（云厂商 = ops 选择，初期默认 EKS / GKE / AKS 任一；本 ADR 不锁厂商）；本地场景集成测试继续用 Kind（与 `test/scenarios/` 一致），普通本地开发走 A2 docker-compose，不把 Kind 作为开发前置条件
 2. **工作负载拓扑**：P0 为 2 个应用 Deployment（`web-app` 静态资源由 ingress 直 serve 或单独 deploy / `backend` HPA min=2）；outbox / background runner 默认在 backend 内部运行。独立 runner / CronJob 只能作为后续显式扩展，不是 P0 默认拓扑。
-3. **共享基础设施**：PostgreSQL + pgvector / Redis 优先用云托管（RDS+pgvector or Neon / ElastiCache）；Object Storage 用云对象存储（S3 / GCS / R2）；OTel Collector / Loki / Prometheus / Grafana 自托管在同一 cluster
+3. **共享基础设施**：PostgreSQL / Redis 优先用云托管（RDS / Neon / ElastiCache）；Object Storage 用云对象存储（S3 / GCS / R2）；OTel Collector / Loki / Prometheus / Grafana 自托管在同一 cluster
 4. **AI provider（关联 Q-6）**：业务 deployment 通过 `AI_PROVIDER_REGISTRY_PATH` + `AI_MODEL_PROFILE_PATH` + registry 内 provider-specific secret env ref 注入 AI 连接；`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只可作为默认 OpenAI-compatible provider ref 引用的 env 名；Kind 场景测试注入同一 registry/profile/secret 组合，不要求部署 AI provider
 5. **Helm chart**：所有组件以 helm chart 形式管理；chart 与 `test/scenarios/` Kind 部署共用同一 values 模板（区别包含 replica / resource / AI registry/profile/secret 注入方式）
 6. **CI/CD 延后**：当前个人单人开发阶段不构建远端 CI pipeline，也不做 CI deploy；A5 只约束本地手动质量门禁。自动化 deploy 由 E4 `release-gate-and-rollout` 在公开 release / 多人协作 / 自动发版需求出现后单独管理（GitOps：ArgoCD / FluxCD 任一，本 ADR 不锁工具）

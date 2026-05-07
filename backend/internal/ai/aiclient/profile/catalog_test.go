@@ -29,13 +29,11 @@ func TestTrackedCatalogCoversF3AndProductUICapabilityProfiles(t *testing.T) {
 		"resume.parse.default":            {aiclient.CapabilityChat, aiclient.ProfileStatusActive},
 		"resume.tailor.default":           {aiclient.CapabilityChat, aiclient.ProfileStatusActive},
 		"debrief.generate.default":        {aiclient.CapabilityChat, aiclient.ProfileStatusActive},
-		"embedding.default":               {aiclient.CapabilityEmbed, aiclient.ProfileStatusActive},
-		"retrieval.rerank.default":        {aiclient.CapabilityRerank, aiclient.ProfileStatusUnsupported},
 		"target.intel.default":            {aiclient.CapabilityChat, aiclient.ProfileStatusDisabled},
 		"profile.update.default":          {aiclient.CapabilityChat, aiclient.ProfileStatusDisabled},
-		"practice.dictation.stt.default":  {aiclient.CapabilitySTT, aiclient.ProfileStatusActive},
+		"practice.dictation.stt.default":  {aiclient.CapabilitySTT, aiclient.ProfileStatusUnsupported},
 		"practice.voice.realtime.default": {aiclient.CapabilityRealtime, aiclient.ProfileStatusUnsupported},
-		"debrief.voice.extract.default":   {aiclient.CapabilitySTT, aiclient.ProfileStatusActive},
+		"debrief.voice.extract.default":   {aiclient.CapabilitySTT, aiclient.ProfileStatusUnsupported},
 		"judge.default":                   {aiclient.CapabilityJudge, aiclient.ProfileStatusUnsupported},
 	}
 

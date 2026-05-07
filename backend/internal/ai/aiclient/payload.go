@@ -75,18 +75,6 @@ type ToolCall struct {
 	Arguments json.RawMessage `json:"arguments,omitempty"`
 }
 
-// EmbedInput is the input to AIClient.Embed.
-type EmbedInput struct {
-	Texts    []string     `json:"texts"`
-	Metadata CallMetadata `json:"metadata"`
-}
-
-// EmbedResponse holds the embedding vectors in the same order as
-// EmbedInput.Texts.
-type EmbedResponse struct {
-	Vectors [][]float64 `json:"vectors"`
-}
-
 // TranscriptionInput is the provider-neutral input to AIClient.Transcribe.
 // The caller supplies in-memory audio bytes plus the minimal wire metadata
 // needed by OpenAI-compatible Audio Transcriptions. Raw audio bytes must never

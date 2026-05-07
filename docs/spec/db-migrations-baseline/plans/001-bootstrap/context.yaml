@@ -20,7 +20,7 @@ spec:
       - golang-migrate
       - schema migrations
       - schema backfills
-      - pgvector
+      - postgres
       - outbox retry columns
       - ai task runs
       - privacy deletion matrix

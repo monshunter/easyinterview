@@ -39,7 +39,7 @@ EVENT_CONTRACT_DIRS = (
     Path("frontend/src/lib/events"),
 )
 VENDOR_MODEL_TOKEN_RE = re.compile(
-    r"(?:openrouter|anthropic|claude|openai|gpt-|text-embedding|mistral|gemini|cohere)",
+    r"(?:openrouter|anthropic|claude|openai|gpt-|mistral|gemini|cohere)",
     re.IGNORECASE,
 )
 
