@@ -33,6 +33,8 @@ const RESERVED_KEYS = [
   "pendingType",
   "pendingLabel",
   "returnTo",
+  "email",
+  "displayName",
 ] as const;
 
 const RESERVED_KEY_SET = new Set<string>(RESERVED_KEYS);

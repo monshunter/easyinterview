@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import { normalizeRoute, normalizeRouteName } from "./normalizeRoute";
 
 describe("normalizeRouteName", () => {
-  it("maps every legacy alias documented in ui-design to a current route", () => {
-    // Sourced from ui-design/src/app.jsx ROUTE_ALIASES + auth-and-entry.md §9.1
-    // (welcome) + frontend-shell/spec.md §4 (standalone voice removed).
+  it("maps every retained legacy alias documented in ui-design to a current route", () => {
+    // Sourced from ui-design/src/app.jsx ROUTE_ALIASES + auth-and-entry.md §9.1.
+    // `voice` is intentionally excluded: current product-scope deletes the
+    // route alias and keeps voice only as practice route params.
     expect(normalizeRouteName("welcome")).toBe("home");
     expect(normalizeRouteName("growth")).toBe("home");
     expect(normalizeRouteName("plan")).toBe("workspace");
@@ -16,7 +17,10 @@ describe("normalizeRouteName", () => {
     expect(normalizeRouteName("star")).toBe("resume_versions");
     expect(normalizeRouteName("resume")).toBe("resume_versions");
     expect(normalizeRouteName("onboarding")).toBe("resume_versions");
-    expect(normalizeRouteName("voice")).toBe("practice");
+  });
+
+  it("does not preserve the retired standalone voice route alias", () => {
+    expect(normalizeRouteName("voice")).toBe("home");
   });
 
   it("preserves valid current route names", () => {

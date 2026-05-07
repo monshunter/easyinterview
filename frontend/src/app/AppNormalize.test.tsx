@@ -16,7 +16,7 @@ describe("App route normalization", () => {
     ["star", "resume_versions"],
     ["resume", "resume_versions"],
     ["onboarding", "resume_versions"],
-    ["voice", "practice"],
+    ["voice", "home"],
   ];
 
   it.each(legacyAliases)(

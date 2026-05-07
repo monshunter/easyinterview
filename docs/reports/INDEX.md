@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-07](./2026-05-07-frontend-shell-l2-remediation-assessment.md) | Frontend Shell L2 Remediation 交付复盘 | #assessment |
 | [2026-05-07](./2026-05-07-backend-runtime-topology-structured-gate-assessment.md) | Backend Runtime Topology Structured Gate 交付复盘 | #assessment |
 | [2026-05-07](./2026-05-07-backend-runtime-topology-gate-hardening-assessment.md) | Backend Runtime Topology Gate Hardening 交付复盘 | #assessment |
 | [2026-05-06](./2026-05-06-backend-runtime-topology-false-negative-gate-assessment.md) | Backend Runtime Topology False-negative Gate 交付复盘 | #assessment |

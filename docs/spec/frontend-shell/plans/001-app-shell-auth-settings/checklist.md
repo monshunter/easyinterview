@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-07
 
 **关联计划**: [plan](./plan.md)
 
@@ -11,6 +11,7 @@
 - [x] 1.1 建立正式前端 App shell；验证: frontend focused test 断言默认 route 为 `home`，`parse` / `report` / `company_intel` 等上下文 route 保留 App chrome，`practice` / `generating` 隐藏 TopBar
 - [x] 1.2 实现 route normalization 与旧 route 拦截；验证: route-state test 覆盖 `welcome`、`growth`、`plan`、`mistakes`、`drill`、`followup`、`experiences`、`star`、`resume`、`onboarding`、`voice` 映射到当前 route 或 Home，不创建独立 screen
 - [x] 1.3 接入 runtime config 与 typed API bootstrap；验证: focused test 断言 `getRuntimeConfig` 经 generated client + fixture-backed mock transport 读取，`getMe` 覆盖 `unauthenticated` / `authenticated`，unknown scenario fail loudly，frontend shell 不 import `ui-design/src/data.jsx`
+- [x] 1.4 L2 remediation: 删除正式前端 `voice` route alias；验证: route-state / scope focused test 断言 `voice` fallback `home`，且 `normalizeRoute.ts` 不包含 `voice:` alias，语音面试只通过 `practice` params 表达
 
 ## Phase 2: TopBar and display controls
 
@@ -26,6 +27,7 @@
 - [x] 3.3 Auth API contract gate；验证: negative search / focused test 断言 frontend shell 不新增 password auth API、OAuth API、Bearer token auth 或自定义 session storage contract；`auth_reset` 保持 UI shell / stub，真实 API 变更必须先修订 C1 / B2
 - [x] 3.4 BDD-Gate: 验证 E2E.P0.002 通过
 <!-- verified: 2026-05-07 method=scenario bddChecklist=complete -->
+- [x] 3.5 L2 remediation: 修复 `auth_verify` token wire 与 pendingAction auth-only params 泄漏；验证: focused test 断言 verify 请求带 `token` query，恢复后的业务 route params 不含 `email` / `displayName`
 
 ## Phase 4: User menu, profile, settings
 

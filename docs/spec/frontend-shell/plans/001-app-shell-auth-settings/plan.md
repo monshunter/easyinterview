@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-07
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -40,6 +40,10 @@
 
 使用 generated client、fixture-backed mock transport 和 `getRuntimeConfig` 建立 App 启动边界；`/me` 只驱动用户区登录态，不得阻塞默认 Home。
 
+#### 1.4 L2 remediation: 删除 `voice` route alias
+
+正式前端不得保留 `voice` route alias。旧 `voice` 输入必须作为未知 route fallback `home`，语音面试只能由 `practice` route 显式携带 `mode=voice` / `modality=voice` 表达。
+
 ### Phase 2: TopBar and display controls
 
 #### 2.1 实现五入口 TopBar
@@ -63,6 +67,10 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 #### 3.3 固化 Auth API contract gate
 
 为 auth shell 增加负向断言：正式前端不得新增 password / OAuth / Bearer token / 自定义 session API；真实网络边界只通过 B2 generated auth operations 和 first-party session cookie。
+
+#### 3.5 L2 remediation: verify token 与 auth-only params 隔离
+
+`auth_verify` 必须把用户输入的验证 token 传给 generated `verifyAuthEmailChallenge` query；登录 / 注册页临时字段只允许停留在认证页，不得随 pendingAction 恢复到业务 route params。
 
 ### Phase 4: User menu, profile, settings
 

@@ -82,4 +82,10 @@ describe("frontend D1 scope guards", () => {
     }
     expect(offenders).toEqual([]);
   });
+
+  it("does not keep the retired voice alias in normalizeRoute", () => {
+    const file = join(FRONTEND_SRC, "app", "normalizeRoute.ts");
+    const content = readFileSync(file, "utf8");
+    expect(content).not.toMatch(/^\s*voice\s*:/m);
+  });
 });

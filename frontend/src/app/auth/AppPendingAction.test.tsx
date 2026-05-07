@@ -129,6 +129,8 @@ describe("requestAuth pending-action flow", () => {
     ]) {
       expect(parsed[key]).toBe(SAMPLE_ACTION.params[key]);
     }
+    expect(parsed.email).toBeUndefined();
+    expect(parsed.displayName).toBeUndefined();
   });
 
   it("navigates straight to the action route when the user is already signed in", async () => {

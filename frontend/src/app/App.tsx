@@ -99,8 +99,10 @@ function renderRouteScreen(
         <AuthVerifyScreen
           route={route}
           onNavigate={navigate}
-          onVerify={async () => {
-            await runtime.client.verifyAuthEmailChallenge();
+          onVerify={async (req) => {
+            await runtime.client.verifyAuthEmailChallenge({
+              query: { token: req.token },
+            });
             runtime.refreshAuth();
           }}
         />

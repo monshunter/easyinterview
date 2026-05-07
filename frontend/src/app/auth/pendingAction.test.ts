@@ -62,6 +62,8 @@ describe("pendingAction encode/decode", () => {
       pendingType: "start_practice",
       pendingLabel: "立即面试",
       returnTo: "/practice",
+      email: "alice@example.com",
+      displayName: "Alice",
       planId: "plan-1",
       targetJobId: "tj-1",
     });

@@ -3,7 +3,7 @@
  *
  * Truth source: ui-design/src/app.jsx ROUTE_ALIASES, docs/ui-design/auth-and-entry.md §9
  * (welcome removed), docs/ui-design/removed-modules-and-scope.md (growth / mistakes /
- * drill / followup / experiences / star / standalone voice removed),
+ * drill / followup / experiences / star removed; standalone voice alias deleted),
  * docs/spec/frontend-shell/spec.md §2.2 / §4.
  *
  * Design constraint (frontend-shell §4): old route names must NEVER materialize
@@ -24,9 +24,6 @@ const ROUTE_ALIASES: Record<string, RouteName> = {
   star: "resume_versions",
   resume: "resume_versions",
   onboarding: "resume_versions",
-  // Standalone `voice` is retired; the explicit voice entry is
-  // `practice?mode=voice&modality=voice` (frontend-shell spec.md §4).
-  voice: "practice",
 };
 
 export function normalizeRouteName(raw: string): RouteName {
