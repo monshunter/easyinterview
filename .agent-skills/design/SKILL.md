@@ -46,6 +46,7 @@ piece of discussion content to the Brief fields below.
 | `coverage_matrix` | Primary flows, alternate flows, failure paths, edge conditions, regressions, and out-of-scope boundaries | plan/checklist/test-plan/bdd coverage |
 | `test_surface` | Unit / contract / integration / scenario / lint / drift / smoke verification needed for each coverage row | test-plan + checklist + BDD-Gate |
 | `risks` | Risks and mitigations | plan Risks |
+| `ui_truth_source` | `docs/ui-design/`, `ui-design/src/*.jsx`, `ui-design/src/app.jsx`, `ui-design/src/primitives.jsx`, or another explicitly named UI source when user-visible UI is in scope | UI source parity rows in coverage matrix |
 | `open_questions` | Unresolved items | spec Open Questions |
 | `inferred_outputs` | Recommended document set (see Step 3) | Output scope |
 | `bdd_scenarios` | Target test layers, numbering rules, and scenario IDs/reservations | bdd-plan + bdd-checklist + checklist BDD-Gate |
@@ -110,6 +111,12 @@ For every behavior, invariant, interface, data transition, or risk in scope, cla
 - **UX quality**: loading/empty/error states, accessibility semantics, localization fallback, display preference behavior, responsive layout, and copy visible to the user.
 - **Regression / legacy-negative**: retired route/module/tag/table/event/config/model/provider/feature flag terminology must not reappear when the current design rejects it.
 
+For UI plans whose truth source is `ui-design/`, add explicit source-level parity rows instead of relying only on visual similarity:
+
+- **UI source structure parity**: DOM composition, component nesting, control type, menu/popover hierarchy, icons, labels, aria state, keyboard/close behavior, and primary interaction paths must map from `ui-design/src/*.jsx`, `ui-design/src/app.jsx`, and `ui-design/src/primitives.jsx` to concrete frontend components/tests.
+- **UI visual geometry parity**: computed style, spacing, typography, colors, responsive layout, bounding boxes, and screenshot/baseline checks must be verified separately from source structure parity. A passing screenshot or bounding-box gate is not sufficient evidence for source-level replication.
+- **UI stale-contract negative**: old positive UI contracts such as retired `data-testid`s, old route labels, old dropdown/select controls, old screen names, and old prototype shorthand must be searched across spec/plan/README/scenario/test/runtime files when they conflict with the current truth source.
+
 Each coverage row must map to one or more concrete artifacts:
 
 | Coverage row field | Requirement |
@@ -119,6 +126,7 @@ Each coverage row must map to one or more concrete artifacts:
 | `plan_phase` | The phase/checklist item that implements or verifies it |
 | `verification` | Unit test, contract test, lint/drift check, migration check, smoke, or BDD scenario ID |
 | `negative_scope` | Deprecated or intentionally excluded behavior to search for, when relevant |
+| `ui_source_anchor` | Required for UI parity rows; cite the concrete `ui-design/src/*.jsx` function/component/constant or docs/ui-design section that owns the target shape |
 
 Do not create synthetic edge cases for irrelevant categories, but do not silently omit a category just because the user did not name it. If a high-risk category is not applicable, write a short `N/A` rationale in the plan quality gate or test plan.
 
@@ -154,6 +162,7 @@ owns the repository's document creation mechanics.
   each behavior phase is a vertical behavior slice that can be independently deployed and verified
 - Every implementation plan must include `## 3 质量门禁分类` with Plan 类型, TDD 策略, BDD 策略, and 替代验证 gate.
 - Every non-docs checklist item must name its verification source: a unit/contract/integration test, lint/drift gate, migration check, smoke, or BDD-Gate that covers the row in the coverage matrix.
+- UI implementation checklist items that migrate from `ui-design/` must include both source-structure parity and visual-geometry parity verification. The checklist must name the source anchors, target components, and tests that fail on control-type or interaction-shape drift (for example select/dropdown vs menu/toggle).
 - Each implementation phase must cover its primary path and any directly coupled failure, cleanup, idempotency, privacy/security, or legacy-negative checks before the phase can be marked closable.
 - If an edge condition is deferred, the plan must say which later phase owns it and why the current phase remains safely deployable without it.
 
@@ -167,7 +176,8 @@ owns the repository's document creation mechanics.
 - If coverage is mentioned at all, keep it as observational background rather than a completion, commit, or phase-exit condition.
 - Test plans must include a coverage matrix that maps primary, alternate, failure/recovery, boundary, cross-layer contract, privacy/security/observability, UX quality, and regression/legacy-negative rows to concrete test files or commands.
 - Unit/contract test checklists must include negative and boundary assertions for meaningful risks, not only success assertions. Prefer deterministic checks for malformed input, empty data, unknown identifiers, duplicate/conflict handling, rerun/idempotency, config fallback, generated contract drift, and deprecated terminology reintroduction when those risks are in scope.
-- UI-related test plans must consider loading, empty, error, auth, localization fallback, display preference, accessibility, and responsive-state risks; include only the rows that matter for the subject and mark high-risk exclusions explicitly.
+- UI-related test plans must consider loading, empty, error, auth, localization fallback, display preference, accessibility, responsive-state risks, and source-level UI parity; include only the rows that matter for the subject and mark high-risk exclusions explicitly.
+- For `ui-design/` parity, test plans must split assertions into source-structure tests (DOM shape, control type, menu/popover hierarchy, icons, labels, aria state, primary interactions), visual-geometry tests (computed style, bounding boxes, responsive layout, screenshots), and stale-contract negative searches. Do not treat pixel/screenshot parity as a substitute for DOM/interaction parity.
 - Backend/tooling/migration test plans must consider validation errors, persistence failures, transaction/concurrency behavior, retry/idempotency, non-empty data, rerun safety, generated artifacts, logs/metrics/audit redaction, and drift gates.
 
 #### 4.4 BDD Test Plan + Checklist
@@ -228,6 +238,7 @@ Run validation and present a summary:
 3. **Coverage integrity**:
    - Every non-docs checklist item names a concrete verification source
    - Every coverage matrix row maps to a plan phase and at least one verification artifact
+   - Every UI source parity row maps to a `ui_source_anchor`, a target component/file, and at least one source-structure test plus one visual-geometry or explicit N/A rationale
    - Every BDD-Gate item maps to a scenario labeled in the BDD scenario matrix
    - Any high-risk category marked `N/A` includes a rationale
    - Regression/legacy-negative rows include explicit search targets when retired terminology, routes, modules, schemas, events, configs, or model/provider assumptions are part of the risk
