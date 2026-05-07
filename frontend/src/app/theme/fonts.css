@@ -1,0 +1,43 @@
+/*
+ * D2 fontsource imports for ui-design EI_FONT_PRESETS.
+ *
+ * Sources of truth:
+ *   - ui-design/src/primitives.jsx::EI_FONT_PRESETS
+ *
+ * Each preset declared in primitives.jsx must be loadable at runtime so the
+ * settings page (Phase 5.1) can switch presets atomically without flashing
+ * a fallback. We also load JetBrains Mono for ei-mono / labels.
+ *
+ * Subsets:
+ *   - Latin glyphs: default fontsource bundles cover the Latin presets.
+ *   - Chinese glyphs: Noto Serif SC ships its `chinese-simplified` subset
+ *     separately so we explicitly request it alongside the latin bundle.
+ *
+ * `font-display: swap` is enforced by fontsource defaults; first paint will
+ * use the system fallback chain declared in `themes.css`.
+ */
+
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+
+@import "@fontsource/noto-serif-sc/400.css";
+@import "@fontsource/noto-serif-sc/500.css";
+@import "@fontsource/noto-serif-sc/chinese-simplified-400.css";
+@import "@fontsource/noto-serif-sc/chinese-simplified-500.css";
+
+@import "@fontsource/source-serif-pro/400.css";
+@import "@fontsource/source-serif-pro/600.css";
+
+@import "@fontsource/cormorant-garamond/400.css";
+@import "@fontsource/cormorant-garamond/600.css";
+
+@import "@fontsource/geist-sans/400.css";
+@import "@fontsource/geist-sans/500.css";
+@import "@fontsource/geist-sans/600.css";
+
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";

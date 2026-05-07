@@ -20,8 +20,11 @@
 
 ## Phase 2: 字体与 typography scale
 
-- [ ] 2.1 接入开源字体；验证: structural test 断言 `frontend/package.json` 包含开源字体来源（fontsource 或等价自托管），且不包含 `copernicus` / `styreneb` 字符串；focused test 断言根 `font-family` 链以开源 serif / sans 起始，含 system fallback
-- [ ] 2.2 Typography scale token；验证: focused test 断言 `ei-text-display` / `ei-text-body` / `ei-text-caption` 等语义 className 解析后的 `font-size` / `line-height` / `font-weight` 与设计 token 一致，且 token 来源映射到 `EI_FONT_PRESETS` 或对应 screen 原型；TopBar 标题与正文使用语义 className，不使用内联 px
+- [x] 2.1 接入开源字体；验证: structural test 断言 `frontend/package.json` 包含开源字体来源（fontsource 或等价自托管），且不包含 `copernicus` / `styreneb` 字符串；focused test 断言根 `font-family` 链以开源 serif / sans 起始，含 system fallback
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/theme/fonts.test.ts PASS (5 tests, fontsource deps + private-font negative + global.css + themes.css fallback chain)" -->
+- [x] 2.2 Typography scale token；验证: focused test 断言 `ei-text-display` / `ei-text-body` / `ei-text-caption` 等语义 className 解析后的 `font-size` / `line-height` / `font-weight` 与设计 token 一致，且 token 来源映射到 `EI_FONT_PRESETS` 或对应 screen 原型；TopBar 标题与正文使用语义 className，不使用内联 px
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/theme/typography.test.tsx PASS (17 tests, semantic class wiring + family routing + uppercase scope + ui-design source trace + import order + TopBar inline-px contract)" -->
+
 
 ## Phase 3: TopBar 视觉接入
 

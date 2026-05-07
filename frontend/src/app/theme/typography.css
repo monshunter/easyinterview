@@ -1,0 +1,95 @@
+/*
+ * D2 typography scale. Defines :root token variables for each tier of the
+ * 6-step scale (display / title / subtitle / body / caption / label) and
+ * exposes them as semantic className helpers so component callers stop
+ * hardcoding inline `style={{ fontSize: NN }}` literals.
+ *
+ * Source mapping (tracked by `typography.test.tsx`):
+ *   - display:  ui-design/src/screen-home.jsx  hero h1 (48 / 1.1 / 500 / -0.025em)
+ *   - title:    ui-design/src/primitives.jsx   SectionHeader title (22 / 1.25 / 500 / -0.02em)
+ *   - subtitle: ui-design/src/app.jsx          TopBar logo (16 / 1 / 500 / -0.01em)
+ *   - body:     ui-design/src/screen-auth.jsx  paragraph copy (14 / 1.5 / 400)
+ *   - caption:  ui-design/src/screen-home.jsx  card location (12.5 / 1.4 / 400)
+ *   - label:    ui-design/src/primitives.jsx   ei-label (11 / 1.4 / 500 / 0.08em mono uppercase)
+ */
+
+:root {
+  --ei-text-display-size: 48px;
+  --ei-text-display-line: 1.1;
+  --ei-text-display-weight: 500;
+  --ei-text-display-track: -0.025em;
+
+  --ei-text-title-size: 22px;
+  --ei-text-title-line: 1.25;
+  --ei-text-title-weight: 500;
+  --ei-text-title-track: -0.02em;
+
+  --ei-text-subtitle-size: 16px;
+  --ei-text-subtitle-line: 1;
+  --ei-text-subtitle-weight: 500;
+  --ei-text-subtitle-track: -0.01em;
+
+  --ei-text-body-size: 14px;
+  --ei-text-body-line: 1.5;
+  --ei-text-body-weight: 400;
+  --ei-text-body-track: normal;
+
+  --ei-text-caption-size: 12.5px;
+  --ei-text-caption-line: 1.4;
+  --ei-text-caption-weight: 400;
+  --ei-text-caption-track: normal;
+
+  --ei-text-label-size: 11px;
+  --ei-text-label-line: 1.4;
+  --ei-text-label-weight: 500;
+  --ei-text-label-track: 0.08em;
+}
+
+.ei-text-display {
+  font-family: var(--ei-font-serif);
+  font-size: var(--ei-text-display-size);
+  line-height: var(--ei-text-display-line);
+  font-weight: var(--ei-text-display-weight);
+  letter-spacing: var(--ei-text-display-track);
+}
+
+.ei-text-title {
+  font-family: var(--ei-font-serif);
+  font-size: var(--ei-text-title-size);
+  line-height: var(--ei-text-title-line);
+  font-weight: var(--ei-text-title-weight);
+  letter-spacing: var(--ei-text-title-track);
+}
+
+.ei-text-subtitle {
+  font-family: var(--ei-font-serif);
+  font-size: var(--ei-text-subtitle-size);
+  line-height: var(--ei-text-subtitle-line);
+  font-weight: var(--ei-text-subtitle-weight);
+  letter-spacing: var(--ei-text-subtitle-track);
+}
+
+.ei-text-body {
+  font-family: var(--ei-font-sans);
+  font-size: var(--ei-text-body-size);
+  line-height: var(--ei-text-body-line);
+  font-weight: var(--ei-text-body-weight);
+  letter-spacing: var(--ei-text-body-track);
+}
+
+.ei-text-caption {
+  font-family: var(--ei-font-sans);
+  font-size: var(--ei-text-caption-size);
+  line-height: var(--ei-text-caption-line);
+  font-weight: var(--ei-text-caption-weight);
+  letter-spacing: var(--ei-text-caption-track);
+}
+
+.ei-text-label {
+  font-family: var(--ei-font-mono);
+  font-size: var(--ei-text-label-size);
+  line-height: var(--ei-text-label-line);
+  font-weight: var(--ei-text-label-weight);
+  letter-spacing: var(--ei-text-label-track);
+  text-transform: uppercase;
+}
