@@ -61,7 +61,16 @@ requestAuth({
 - 生产入口与测试均以 `openapi/fixtures/<tag>/<operationId>.json` 为唯一 mock 来源；`src/app/scope.test.ts` 阻止 `frontend/src` 直接 import `ui-design/src/data*`。
 - 缺失 scenario 必须先在 fixtures 仓库补，再消费；`createFixtureBackedFetch` 在未知 scenario 上 fail loudly。
 
-### 2.5 D2-D6 owner 边界
+### 2.5 I18n 接入边界
+
+- D1 shell i18n helper 位于 [`src/app/i18n/messages.ts`](./src/app/i18n/messages.ts)，只负责导入 locale、BCP 47 tag 归一化、类型约束和 `useI18n()` helper。
+- 每种 UI 语言必须有独立 locale 文件：[`src/app/i18n/locales/zh.ts`](./src/app/i18n/locales/zh.ts)、[`src/app/i18n/locales/en.ts`](./src/app/i18n/locales/en.ts)。不要把多语言 message map 糅合回 `messages.ts` 或组件文件。
+- UI 语言默认跟随浏览器 locale；未知、缺失或不支持时 fallback English。语言切换只关联前端显示偏好，不由 runtime config 或登录态覆盖。
+- 新增语言时新增 locale 文件，并让 TypeScript 通过 `LocaleMessages` 校验 key 完整性；同时扩展 `localeFiles.test.ts`、i18n component test 和 E2E.P0.004 类场景。
+- TopBar 语言切换必须保持为可访问下拉框（当前为 `select[data-testid="topbar-lang-select"]`），不要改成按钮组或只切状态的占位控件。
+- RouteName、testid、URL/hash 和业务语言字段不本地化；`Accept-Language` 只作为 generated client 的 UI display hint，不覆盖 `targetLanguage` / practice language 等业务字段。
+
+### 2.6 D2-D6 owner 边界
 
 | owner | 写入范围 |
 |-------|----------|

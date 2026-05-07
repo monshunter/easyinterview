@@ -1,5 +1,6 @@
 import type { FC } from "react";
 
+import { useI18n } from "../i18n/messages";
 import type { Route } from "../routes";
 
 /**
@@ -12,57 +13,55 @@ import type { Route } from "../routes";
  *
  * Notifications + Subscription are P1 placeholders.
  */
-export const SettingsScreen: FC<{ route: Route }> = ({ route }) => (
-  <section
-    data-testid={`route-${route.name}`}
-    data-route-name={route.name}
-    data-route-params={JSON.stringify(route.params)}
-  >
-    <header>
-      <h1>设置与隐私</h1>
-    </header>
-    <div data-testid="settings-account">
-      <h2>账号基础信息</h2>
-      <ul>
-        <li>显示姓名</li>
-        <li>登录邮箱</li>
-        <li>手机号</li>
-        <li>界面语言</li>
-        <li>时区</li>
-      </ul>
-    </div>
-    <div data-testid="settings-login-security">
-      <h2>登录与安全</h2>
-      <ul>
-        <li>密码（C1 / B2 接入后可用）</li>
-        <li>登录方式</li>
-        <li>两步验证</li>
-      </ul>
-    </div>
-    <div data-testid="settings-font-preset">
-      <h2>字体预设</h2>
-      <ul>
-        <li>编辑级: Noto Serif SC + Inter</li>
-        <li>现代: Source Serif Pro + Geist</li>
-        <li>杂志: Cormorant Garamond + IBM Plex Sans</li>
-      </ul>
-    </div>
-    <div data-testid="settings-privacy">
-      <h2>隐私与数据</h2>
-      <ul>
-        <li>数据留存开关</li>
-        <li>数据概览</li>
-        <li>导出数据</li>
-        <li>删除单次会话</li>
-        <li>删除所有练习数据</li>
-        <li>注销账号</li>
-      </ul>
-    </div>
-    <div data-testid="settings-notifications-placeholder">
-      <h2>通知（P1 占位）</h2>
-    </div>
-    <div data-testid="settings-subscription-placeholder">
-      <h2>订阅（P1 占位）</h2>
-    </div>
-  </section>
-);
+export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
+  const { t, list } = useI18n();
+  return (
+    <section
+      data-testid={`route-${route.name}`}
+      data-route-name={route.name}
+      data-route-params={JSON.stringify(route.params)}
+    >
+      <header>
+        <h1>{t("settings.title")}</h1>
+      </header>
+      <div data-testid="settings-account">
+        <h2>{t("settings.account")}</h2>
+        <ul>
+          {list("settings.accountItems").map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+      <div data-testid="settings-login-security">
+        <h2>{t("settings.security")}</h2>
+        <ul>
+          {list("settings.securityItems").map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+      <div data-testid="settings-font-preset">
+        <h2>{t("settings.fontPreset")}</h2>
+        <ul>
+          {list("settings.fontPresetItems").map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+      <div data-testid="settings-privacy">
+        <h2>{t("settings.privacy")}</h2>
+        <ul>
+          {list("settings.privacyItems").map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+      <div data-testid="settings-notifications-placeholder">
+        <h2>{t("settings.notifications")}</h2>
+      </div>
+      <div data-testid="settings-subscription-placeholder">
+        <h2>{t("settings.subscription")}</h2>
+      </div>
+    </section>
+  );
+};

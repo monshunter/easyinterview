@@ -1,5 +1,6 @@
 import type { FC } from "react";
 
+import { useI18n } from "../i18n/messages";
 import type { Route } from "../routes";
 
 /**
@@ -8,10 +9,17 @@ import type { Route } from "../routes";
  * route-state tests can assert routing behavior without coupling to screen
  * markup that the follow-on owners will replace.
  */
-export const PlaceholderScreen: FC<{ route: Route }> = ({ route }) => (
-  <section
-    data-testid={`route-${route.name}`}
-    data-route-name={route.name}
-    data-route-params={JSON.stringify(route.params)}
-  />
-);
+export const PlaceholderScreen: FC<{ route: Route }> = ({ route }) => {
+  const { t } = useI18n();
+  const title =
+    route.name === "workspace" ? t("placeholder.workspace") : t("placeholder.default");
+  return (
+    <section
+      data-testid={`route-${route.name}`}
+      data-route-name={route.name}
+      data-route-params={JSON.stringify(route.params)}
+    >
+      <h1>{title}</h1>
+    </section>
+  );
+};

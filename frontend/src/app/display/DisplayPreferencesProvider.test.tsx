@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState, type FC } from "react";
@@ -58,12 +58,34 @@ const Harness: FC = () => {
   );
 };
 
+function setNavigatorLanguages(language: string, languages = [language]) {
+  Object.defineProperty(window.navigator, "language", {
+    value: language,
+    configurable: true,
+  });
+  Object.defineProperty(window.navigator, "languages", {
+    value: languages,
+    configurable: true,
+  });
+}
+
 describe("DisplayPreferencesProvider", () => {
-  it("starts with the documented defaults (warm / light / zh)", () => {
+  afterEach(() => {
+    setNavigatorLanguages("en-US", ["en-US"]);
+  });
+
+  it("starts with the documented defaults and follows browser locale", () => {
+    setNavigatorLanguages("zh-CN", ["zh-CN", "en-US"]);
     render(<Harness />);
     expect(screen.getByTestId("theme")).toHaveTextContent("warm");
     expect(screen.getByTestId("dark")).toHaveTextContent("false");
     expect(screen.getByTestId("lang")).toHaveTextContent("zh");
+  });
+
+  it("falls back to English for unsupported browser locales", () => {
+    setNavigatorLanguages("fr-FR", ["fr-FR"]);
+    render(<Harness />);
+    expect(screen.getByTestId("lang")).toHaveTextContent("en");
   });
 
   it("preserves theme / dark / lang across signed-in state transitions", async () => {

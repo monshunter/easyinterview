@@ -1,5 +1,6 @@
 import type { FC } from "react";
 
+import { useI18n } from "../i18n/messages";
 import type { LooseRoute } from "../normalizeRoute";
 import type { Route } from "../routes";
 
@@ -14,6 +15,7 @@ export const AuthLogoutScreen: FC<AuthLogoutScreenProps> = ({
   onNavigate,
   onLogout,
 }) => {
+  const { t } = useI18n();
   const confirm = async () => {
     await onLogout();
     onNavigate({ name: "home", params: {} });
@@ -21,15 +23,15 @@ export const AuthLogoutScreen: FC<AuthLogoutScreenProps> = ({
   const cancel = () => onNavigate({ name: "home", params: {} });
   return (
     <section data-testid="route-auth_logout" data-route-name="auth_logout">
-      <h1>退出登录</h1>
+      <h1>{t("user.logout")}</h1>
       <p data-testid="auth-logout-data-hint">
-        退出后会清除本机登录态，账号数据保留。
+        {t("auth.logoutHint")}
       </p>
       <button type="button" data-testid="auth-logout-confirm" onClick={confirm}>
-        确认退出
+        {t("auth.confirmLogout")}
       </button>
       <button type="button" data-testid="auth-logout-cancel" onClick={cancel}>
-        返回首页
+        {t("auth.backHome")}
       </button>
     </section>
   );

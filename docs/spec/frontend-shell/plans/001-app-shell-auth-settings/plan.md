@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.3
+> **版本**: 1.6
 > **状态**: active
 > **更新日期**: 2026-05-07
 
@@ -11,11 +11,11 @@
 
 ## 1 目标
 
-落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
+落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件，并把 TopBar 语言切换固化为下拉框；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
 
 ## 2 背景
 
-当前静态原型已经在 `ui-design/src/app.jsx` 和 `docs/ui-design/` 中锁定了目标 route、TopBar、认证页面和 pending action 模型。`engineering-roadmap` S1 要求先创建 `frontend-shell`，再推进 D2-D6 前端 workstream。本 plan 是第一个正式前端代码 plan。前端新增 shell / auth / settings 组件时参考根目录 `DESIGN.md` 的语义命名和节奏，但验收仍以 `docs/ui-design/`、`ui-design/` 和本 spec 为准。
+当前静态原型已经在 `ui-design/src/app.jsx` 和 `docs/ui-design/` 中锁定了目标 route、TopBar、认证页面、pending action 模型和中英语言切换。`engineering-roadmap` S1 要求先创建 `frontend-shell`，再推进 D2-D6 前端 workstream。本 plan 是第一个正式前端代码 plan。前端新增 shell / auth / settings 组件时参考根目录 `DESIGN.md` 的语义命名和节奏，但验收仍以 `docs/ui-design/`、`ui-design/` 和本 spec 为准。
 
 ## 3 质量门禁分类
 
@@ -53,6 +53,26 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 #### 2.2 实现全局显示控制
 
 主题色、暗色和语言切换由 TopBar 持有；显示偏好在登录前后保持稳定。
+
+#### 2.4 I18n remediation: 建立 D1 shell message catalog
+
+为 TopBar、auth shell、profile/settings shell 和 placeholder route shell 建立 typed `zh` / `en` message catalog 或等价 helper。切换语言必须立即重绘 D1 可见静态文案；RouteName、testid、URL/hash 与业务字段仍使用稳定英文 key，不受 UI locale 影响。
+
+#### 2.5 I18n remediation: browser locale bootstrap 与 request header
+
+把浏览器 locale 归一为 `zh` / `en` 后作为初始默认；不支持、未知或缺失时 fallback `en`。用户显式切换优先级最高，登录态刷新、`/me.uiLanguage` 与 runtime `defaultUiLanguage` 不得覆盖。App runtime 通过 generated client request options 或默认 header 把当前 UI locale 作为 `Accept-Language` display hint 传给 `getRuntimeConfig`、`getMe` 和 D1 auth operations。
+
+#### 2.6 I18n remediation: BDD language switch gate
+
+新增 BDD 场景验证默认 App shell 从中文切到 English 后，TopBar 导航、登录/注册、用户菜单和 D1 auth/settings/profile shell 静态文案同步切换，并保留旧 route / prototype data 负向约束。
+
+#### 2.7 I18n remediation: 独立 locale 文件与下拉框契约
+
+把 `zh` / `en` message map 拆到独立 locale 文件，`messages.ts` 仅保留导入、类型约束、locale 归一化和 helper；新增结构测试阻止多语言字面量回流到同一文件。TopBar 语言切换必须继续使用可访问下拉框，并由 component / scenario test 直接断言。
+
+#### 2.8 I18n remediation: 前端偏好独立于登录态
+
+删除 App shell 中从 runtime config 或 `/me` 回写 UI 语言的 bootstrap 逻辑；DisplayPreferencesProvider 负责根据浏览器语言初始化，后续只响应 TopBar 前端设置。Focused regression test 必须覆盖 `/me.uiLanguage` 与 runtime `defaultUiLanguage` 跟浏览器语言不一致时，已登录刷新不会改写当前 UI 语言或造成 locale 循环请求。
 
 ### Phase 3: Auth pages and pending action
 
@@ -111,6 +131,8 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 - 用户菜单的 `用户画像` 与 `设置与隐私` 分别进入 `profile` 和 `settings`。
 - `parse` route 作为 shell route 可达，但 JD 解析业务细节留给后续 owner。
 - Runtime config、`/me` 和 auth generated operations 均通过 fixture-backed client 测试，不直接读取 prototype data。
+- TopBar 语言切换通过下拉框驱动 `zh` / `en` 静态文案；初始语言跟随浏览器 locale，未知时 fallback English；runtime `defaultUiLanguage` / `/me.uiLanguage` 不参与 UI 语言决策；D1 generated client 请求带当前 locale 的 `Accept-Language` display hint。
+- `zh` / `en` message map 分别位于独立 locale 文件，i18n helper 只聚合导入并提供类型安全 API，不在单文件内糅合多语言文案。
 - 旧 route negative search 确认正式前端不保留独立 old route screen。
 - `DESIGN.md` 参考边界写入 handoff，不作为验收真理源或 token 同步目标。
 - BDD-Gate `E2E.P0.001`、`E2E.P0.002` 通过。
@@ -126,3 +148,5 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 | mock 数据源漂移 | 依赖 `mock-contract-suite`，禁止 import prototype data |
 | Auth UI 超出 C1/B2 契约 | Phase 3.1 / 3.3 只允许 generated passwordless session operations；密码 / OAuth / reset 不 wire 真实 API |
 | 品牌参考被误当验收真理源 | Phase 5.4 明确 `DESIGN.md` 只读参考，验收仍回到 UI truth source |
+| 语言切换退化为状态占位 | Phase 2.4 / 2.6 增加文案切换测试与 BDD gate，禁止只断言 select value |
+| i18n 资源糅合导致后续语言扩展困难 | Phase 2.7 增加 locale 文件结构测试，要求每个语言独立文件，聚合层只做 helper |

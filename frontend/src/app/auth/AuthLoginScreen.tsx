@@ -1,6 +1,7 @@
 import { useState, type FC, type FormEvent } from "react";
 
 import type { AuthEmailStartRequest } from "../../api/generated/types";
+import { useI18n } from "../i18n/messages";
 import type { LooseRoute } from "../normalizeRoute";
 import type { Route } from "../routes";
 
@@ -25,6 +26,7 @@ export const AuthLoginScreen: FC<AuthLoginScreenProps> = ({
   onNavigate,
   onStartChallenge,
 }) => {
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const returnTo = route.params.returnTo;
 
@@ -45,10 +47,10 @@ export const AuthLoginScreen: FC<AuthLoginScreenProps> = ({
 
   return (
     <section data-testid="route-auth_login" data-route-name="auth_login">
-      <h1>登录</h1>
+      <h1>{t("auth.login")}</h1>
       <form data-testid="auth-login-email-form" onSubmit={submit}>
         <label>
-          邮箱
+          {t("auth.email")}
           <input
             data-testid="auth-login-email"
             type="email"
@@ -58,21 +60,21 @@ export const AuthLoginScreen: FC<AuthLoginScreenProps> = ({
           />
         </label>
         <button type="submit" data-testid="auth-login-submit-email">
-          发送登录邮件
+          {t("auth.sendEmail")}
         </button>
       </form>
       <fieldset data-testid="auth-login-password-stub" disabled>
-        <legend>密码登录（暂未开放）</legend>
+        <legend>{t("auth.passwordLoginUnavailable")}</legend>
         <input
           aria-label="password"
           type="password"
           autoComplete="current-password"
         />
-        <button type="button">密码登录</button>
+        <button type="button">{t("auth.passwordLogin")}</button>
       </fieldset>
       <div data-testid="auth-login-oauth-stub" aria-disabled="true">
         <button type="button" disabled>
-          第三方登录（暂未开放）
+          {t("auth.oauthUnavailable")}
         </button>
       </div>
       <button
@@ -82,14 +84,14 @@ export const AuthLoginScreen: FC<AuthLoginScreenProps> = ({
           onNavigate({ name: "auth_register", params: { ...route.params } })
         }
       >
-        注册新账号
+        {t("auth.registerNew")}
       </button>
       <button
         type="button"
         data-testid="auth-login-link-reset"
         onClick={() => onNavigate({ name: "auth_reset", params: {} })}
       >
-        忘记密码
+        {t("auth.forgotPassword")}
       </button>
     </section>
   );

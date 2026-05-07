@@ -1,6 +1,7 @@
 import { useState, type FC, type FormEvent } from "react";
 
 import { normalizeRoute, type LooseRoute } from "../normalizeRoute";
+import { useI18n } from "../i18n/messages";
 import type { Route } from "../routes";
 import {
   decodePendingActionRoute,
@@ -53,6 +54,7 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
   onNavigate,
   onVerify,
 }) => {
+  const { t } = useI18n();
   const [code, setCode] = useState("");
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -64,15 +66,15 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
 
   return (
     <section data-testid="route-auth_verify" data-route-name="auth_verify">
-      <h1>邮箱验证</h1>
+      <h1>{t("auth.verifyTitle")}</h1>
       {route.params.email ? (
         <p data-testid="auth-verify-email-hint">
-          已发送至 {route.params.email}
+          {t("auth.verifySentPrefix")} {route.params.email}
         </p>
       ) : null}
       <form data-testid="auth-verify-form" onSubmit={submit}>
         <label>
-          验证码
+          {t("auth.code")}
           <input
             data-testid="auth-verify-code"
             type="text"
@@ -85,11 +87,11 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
           />
         </label>
         <button type="submit" data-testid="auth-verify-submit">
-          验证并继续
+          {t("auth.verifyContinue")}
         </button>
       </form>
       <button type="button" data-testid="auth-verify-resend">
-        重新发送
+        {t("auth.resend")}
       </button>
     </section>
   );

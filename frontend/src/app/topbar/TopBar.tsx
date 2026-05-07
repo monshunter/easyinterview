@@ -5,6 +5,7 @@ import {
   type Lang,
   type Theme,
 } from "../display/DisplayPreferencesProvider";
+import { translate } from "../i18n/messages";
 import type { LooseRoute } from "../normalizeRoute";
 import { PRIMARY_NAV_ROUTES, type RouteName } from "../routes";
 
@@ -13,22 +14,22 @@ import { PRIMARY_NAV_ROUTES, type RouteName } from "../routes";
  * docs/ui-design/auth-and-entry.md §4. Reports / company-intel / auth /
  * profile / settings are intentionally NOT promoted to first-level nav.
  *
- * Labels are user-facing Chinese; English keys remain the canonical RouteName
- * so route-state tests and URL hashes do not depend on i18n state.
+ * Labels are rendered through the D1 i18n catalog. English RouteName keys stay
+ * canonical so route-state tests and URL hashes do not depend on UI locale.
  */
-const NAV_LABELS: Record<(typeof PRIMARY_NAV_ROUTES)[number], string> = {
-  home: "首页",
-  jd_match: "岗位推荐",
-  workspace: "面试规划",
-  resume_versions: "简历版本",
-  debrief: "复盘",
+const NAV_LABEL_KEYS: Record<(typeof PRIMARY_NAV_ROUTES)[number], Parameters<typeof translate>[1]> = {
+  home: "nav.home",
+  jd_match: "nav.jd_match",
+  workspace: "nav.workspace",
+  resume_versions: "nav.resume_versions",
+  debrief: "nav.debrief",
 };
 
-const THEME_LABELS: Record<Theme, string> = {
-  warm: "暖陶",
-  forest: "苔林",
-  ocean: "深海",
-  plum: "梅子",
+const THEME_LABEL_KEYS: Record<Theme, Parameters<typeof translate>[1]> = {
+  warm: "theme.warm",
+  forest: "theme.forest",
+  ocean: "theme.ocean",
+  plum: "theme.plum",
 };
 
 const LANG_LABELS: Record<Lang, string> = {
@@ -57,6 +58,7 @@ export const TopBar: FC<TopBarProps> = ({
   signedIn = false,
 }) => {
   const prefs = useDisplayPreferences();
+  const t = (key: Parameters<typeof translate>[1]) => translate(prefs.lang, key);
   return (
     <header data-testid="app-shell-topbar">
       <nav data-testid="topbar-primary-nav" aria-label="primary">
@@ -68,13 +70,13 @@ export const TopBar: FC<TopBarProps> = ({
             aria-current={activeRoute === name ? "page" : undefined}
             onClick={() => onNavigate({ name, params: {} })}
           >
-            {NAV_LABELS[name]}
+            {t(NAV_LABEL_KEYS[name])}
           </button>
         ))}
       </nav>
       <div data-testid="topbar-display-controls">
         <label>
-          <span className="visually-hidden">主题</span>
+          <span className="visually-hidden">{t("display.theme")}</span>
           <select
             data-testid="topbar-theme-select"
             value={prefs.theme}
@@ -82,7 +84,7 @@ export const TopBar: FC<TopBarProps> = ({
           >
             {THEME_OPTIONS.map((theme) => (
               <option key={theme} value={theme}>
-                {THEME_LABELS[theme]}
+                {t(THEME_LABEL_KEYS[theme])}
               </option>
             ))}
           </select>
@@ -93,10 +95,10 @@ export const TopBar: FC<TopBarProps> = ({
           aria-pressed={prefs.dark}
           onClick={() => prefs.setDark(!prefs.dark)}
         >
-          {prefs.dark ? "暗色" : "亮色"}
+          {prefs.dark ? t("display.dark") : t("display.light")}
         </button>
         <label>
-          <span className="visually-hidden">语言</span>
+          <span className="visually-hidden">{t("display.language")}</span>
           <select
             data-testid="topbar-lang-select"
             value={prefs.lang}
@@ -121,21 +123,21 @@ export const TopBar: FC<TopBarProps> = ({
               data-testid="topbar-user-profile"
               onClick={() => onNavigate({ name: "profile", params: {} })}
             >
-              用户画像
+              {t("user.profile")}
             </button>
             <button
               type="button"
               data-testid="topbar-user-settings"
               onClick={() => onNavigate({ name: "settings", params: {} })}
             >
-              设置与隐私
+              {t("user.settings")}
             </button>
             <button
               type="button"
               data-testid="topbar-user-logout"
               onClick={() => onNavigate({ name: "auth_logout", params: {} })}
             >
-              退出登录
+              {t("user.logout")}
             </button>
           </nav>
         ) : (
@@ -145,14 +147,14 @@ export const TopBar: FC<TopBarProps> = ({
               data-testid="topbar-login"
               onClick={() => onNavigate({ name: "auth_login", params: {} })}
             >
-              登录
+              {t("auth.login")}
             </button>
             <button
               type="button"
               data-testid="topbar-register"
               onClick={() => onNavigate({ name: "auth_register", params: {} })}
             >
-              注册
+              {t("auth.register")}
             </button>
           </>
         )}

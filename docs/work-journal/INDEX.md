@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-07](2026-05-07.md) | `fix(frontend-shell): restore app shell i18n` | #fix #ui #i18n #test #docs |
 | [2026-05-07](2026-05-07.md) | `fix(frontend-shell): harden app shell review remediation` | #fix #test #ui #docs |
 | [2026-05-07](2026-05-07.md) | `fix(frontend-shell): remediate app shell L2 findings` | #fix #test #ui #docs |
 | [2026-05-07](2026-05-07.md) | `feat(frontend-shell): user menu, settings, and D2-D6 handoff` | #feat #test #ui #docs |

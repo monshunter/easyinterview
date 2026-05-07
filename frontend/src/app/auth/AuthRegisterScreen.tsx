@@ -1,6 +1,7 @@
 import { useState, type FC, type FormEvent } from "react";
 
 import type { AuthEmailStartRequest } from "../../api/generated/types";
+import { useI18n } from "../i18n/messages";
 import type { LooseRoute } from "../normalizeRoute";
 import type { Route } from "../routes";
 
@@ -15,6 +16,7 @@ export const AuthRegisterScreen: FC<AuthRegisterScreenProps> = ({
   onNavigate,
   onStartChallenge,
 }) => {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -41,10 +43,10 @@ export const AuthRegisterScreen: FC<AuthRegisterScreenProps> = ({
 
   return (
     <section data-testid="route-auth_register" data-route-name="auth_register">
-      <h1>注册</h1>
+      <h1>{t("auth.register")}</h1>
       <form data-testid="auth-register-form" onSubmit={submit}>
         <label>
-          显示姓名
+          {t("auth.displayName")}
           <input
             data-testid="auth-register-name"
             type="text"
@@ -54,7 +56,7 @@ export const AuthRegisterScreen: FC<AuthRegisterScreenProps> = ({
           />
         </label>
         <label>
-          邮箱
+          {t("auth.email")}
           <input
             data-testid="auth-register-email"
             type="email"
@@ -65,7 +67,7 @@ export const AuthRegisterScreen: FC<AuthRegisterScreenProps> = ({
           />
         </label>
         <fieldset data-testid="auth-register-password-stub" disabled>
-          <legend>设置密码（暂未开放）</legend>
+          <legend>{t("auth.setPasswordUnavailable")}</legend>
           <input
             aria-label="password"
             type="password"
@@ -79,14 +81,14 @@ export const AuthRegisterScreen: FC<AuthRegisterScreenProps> = ({
             checked={agreed}
             onChange={(e) => setAgreed(e.target.checked)}
           />
-          同意服务条款与隐私政策
+          {t("auth.acceptTerms")}
         </label>
         <button
           type="submit"
           data-testid="auth-register-submit"
           disabled={!email.trim() || !agreed}
         >
-          创建账号并验证邮箱
+          {t("auth.createAndVerify")}
         </button>
       </form>
     </section>

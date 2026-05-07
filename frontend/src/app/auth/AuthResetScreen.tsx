@@ -1,5 +1,6 @@
 import { useState, type FC, type FormEvent } from "react";
 
+import { useI18n } from "../i18n/messages";
 import type { LooseRoute } from "../normalizeRoute";
 import type { Route } from "../routes";
 
@@ -16,6 +17,7 @@ export interface AuthResetScreenProps {
 }
 
 export const AuthResetScreen: FC<AuthResetScreenProps> = ({ onNavigate }) => {
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
@@ -30,10 +32,10 @@ export const AuthResetScreen: FC<AuthResetScreenProps> = ({ onNavigate }) => {
 
   return (
     <section data-testid="route-auth_reset" data-route-name="auth_reset">
-      <h1>重置登录</h1>
+      <h1>{t("auth.resetTitle")}</h1>
       <form data-testid="auth-reset-form" onSubmit={submit}>
         <label>
-          账号邮箱
+          {t("auth.accountEmail")}
           <input
             data-testid="auth-reset-email"
             type="email"
@@ -44,12 +46,12 @@ export const AuthResetScreen: FC<AuthResetScreenProps> = ({ onNavigate }) => {
           />
         </label>
         <button type="submit" data-testid="auth-reset-send-stub">
-          发送重置说明（暂未开放）
+          {t("auth.sendResetUnavailable")}
         </button>
       </form>
       {submitted ? (
         <p data-testid="auth-reset-stub-hint">
-          重置流程暂未开放。请使用邮箱验证码登录或联系支持。
+          {t("auth.resetHint")}
         </p>
       ) : null}
       <button
@@ -57,7 +59,7 @@ export const AuthResetScreen: FC<AuthResetScreenProps> = ({ onNavigate }) => {
         data-testid="auth-reset-link-login"
         onClick={() => onNavigate({ name: "auth_login", params: {} })}
       >
-        返回登录
+        {t("auth.backToLogin")}
       </button>
     </section>
   );

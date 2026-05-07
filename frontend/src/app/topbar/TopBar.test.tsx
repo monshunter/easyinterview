@@ -114,7 +114,11 @@ describe("TopBar user menu", () => {
 
 describe("TopBar display controls", () => {
   it("exposes theme / dark / lang controls bound to the display preferences provider", async () => {
-    renderInProvider(<TopBar activeRoute="home" onNavigate={() => {}} />);
+    render(
+      <DisplayPreferencesProvider initial={{ lang: "zh" }}>
+        <TopBar activeRoute="home" onNavigate={() => {}} />
+      </DisplayPreferencesProvider>,
+    );
     const user = userEvent.setup();
 
     const themeSelect = screen.getByTestId(

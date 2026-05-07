@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useMemo,
   useState,
@@ -32,7 +33,7 @@ export interface DisplayPreferences {
 const DEFAULTS = {
   theme: "warm" as Theme,
   dark: false,
-  lang: "zh" as Lang,
+  lang: "en" as Lang,
 };
 
 const Context = createContext<DisplayPreferences | null>(null);
@@ -47,11 +48,24 @@ export const DisplayPreferencesProvider: FC<
 > = ({ children, initial }) => {
   const [theme, setTheme] = useState<Theme>(initial?.theme ?? DEFAULTS.theme);
   const [dark, setDark] = useState<boolean>(initial?.dark ?? DEFAULTS.dark);
-  const [lang, setLang] = useState<Lang>(initial?.lang ?? DEFAULTS.lang);
+  const [lang, setLangState] = useState<Lang>(
+    initial?.lang ?? getBrowserLang(),
+  );
+
+  const setLang = useCallback((next: Lang) => {
+    setLangState(next);
+  }, []);
 
   const value = useMemo<DisplayPreferences>(
-    () => ({ theme, dark, lang, setTheme, setDark, setLang }),
-    [theme, dark, lang],
+    () => ({
+      theme,
+      dark,
+      lang,
+      setTheme,
+      setDark,
+      setLang,
+    }),
+    [theme, dark, lang, setLang],
   );
 
   return <Context.Provider value={value}>{children}</Context.Provider>;
@@ -65,4 +79,28 @@ export function useDisplayPreferences(): DisplayPreferences {
     );
   }
   return ctx;
+}
+
+export function useDisplayPreferencesOptional(): DisplayPreferences | null {
+  return useContext(Context);
+}
+
+function getBrowserLang(): Lang {
+  const candidates = [
+    ...(globalThis.navigator?.languages ?? []),
+    globalThis.navigator?.language,
+  ];
+  for (const candidate of candidates) {
+    const normalized = normalizeLang(candidate);
+    if (normalized) return normalized;
+  }
+  return DEFAULTS.lang;
+}
+
+function normalizeLang(tag: string | undefined | null): Lang | null {
+  const lower = tag?.trim().toLowerCase();
+  if (!lower) return null;
+  if (lower === "en" || lower.startsWith("en-")) return "en";
+  if (lower === "zh" || lower.startsWith("zh-")) return "zh";
+  return null;
 }

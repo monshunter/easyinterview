@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.3
+> **版本**: 1.6
 > **状态**: active
 > **更新日期**: 2026-05-07
 
@@ -19,6 +19,16 @@
 - [x] 2.2 实现全局显示控制；验证: state test 断言主题色、暗色、语言切换在未登录/已登录状态切换后保持稳定
 - [x] 2.3 BDD-Gate: 验证 E2E.P0.001 通过
 <!-- verified: 2026-05-07 method=scenario bddChecklist=complete -->
+- [x] 2.4 I18n remediation: 建立 D1 shell `zh` / `en` message catalog；验证: focused component tests 断言 TopBar、auth shell、profile/settings shell 和 placeholder route shell 在切换 `lang=en` 后展示英文文案，RouteName/testid/params 保持稳定
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/i18n/i18nShell.test.tsx PASS; pnpm --filter @easyinterview/frontend test src/app/topbar/TopBar.test.tsx src/app/auth/AuthScreens.test.tsx src/app/screens/ProfileScreen.test.tsx PASS" -->
+- [x] 2.5 I18n remediation: 接入 browser locale bootstrap 与 `Accept-Language` display hint；验证: focused runtime/App tests 覆盖浏览器 locale 归一化、English fallback、用户显式切换优先、`getRuntimeConfig` / `getMe` / auth operations 请求带当前 locale header
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/i18n/localeRuntime.test.tsx PASS; pnpm --filter @easyinterview/frontend test src/app/runtime/AppRuntimeProvider.test.tsx src/app/AppAuthDispatch.test.tsx src/app/auth/AppPendingAction.test.tsx src/app/i18n/i18nShell.test.tsx PASS" -->
+- [x] 2.6 BDD-Gate: 验证 E2E.P0.004 通过
+<!-- verified: 2026-05-07 method=scenario bddChecklist=complete -->
+- [x] 2.7 I18n remediation: 拆分独立 locale 文件并固化语言下拉框契约；验证: focused structural test 断言 `zh` / `en` 各自位于独立 locale 文件且 `messages.ts` 不糅合多语言 map，component / scenario test 断言 TopBar 语言切换是 `select` 下拉框
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/i18n/localeFiles.test.ts src/app/i18n/i18nShell.test.tsx src/app/scenarios/p0-004-app-shell-language-switch.test.tsx PASS" -->
+- [x] 2.8 I18n remediation: 前端语言偏好独立于登录态；验证: focused runtime/App regression test 断言浏览器语言初始化后，runtime `defaultUiLanguage` 与 `/me.uiLanguage` 不一致也不会覆盖当前 UI 语言或造成 locale 循环请求
+  <!-- verified: 2026-05-07 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/display/DisplayPreferencesProvider.test.tsx src/app/i18n/localeRuntime.test.tsx src/app/topbar/TopBar.test.tsx PASS; pnpm --filter @easyinterview/frontend test PASS (30 files / 138 tests)" -->
 
 ## Phase 3: Auth pages and pending action
 

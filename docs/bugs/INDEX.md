@@ -39,6 +39,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0020](./BUG-0020.md) | frontend shell language switch was state-only | medium | resolved | 2026-05-07 | `fix(frontend-shell): restore app shell i18n` |
 | [BUG-0019](./BUG-0019.md) | frontend shell review remediation missed build and auth edge gates | medium | resolved | 2026-05-07 | `fix(frontend-shell): harden app shell review remediation` |
 | [BUG-0018](./BUG-0018.md) | frontend shell L2 review exposed route and auth wire drift | medium | resolved | 2026-05-07 | `fix(frontend-shell): remediate app shell L2 findings` |
 

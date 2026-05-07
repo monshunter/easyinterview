@@ -6,7 +6,10 @@ import {
   type ReactNode,
 } from "react";
 
-import type { EasyInterviewClient } from "../api/generated/client";
+import type {
+  EasyInterviewClient,
+  RequestOptions,
+} from "../api/generated/client";
 import {
   AuthLoginScreen,
   AuthLogoutScreen,
@@ -14,7 +17,11 @@ import {
   AuthResetScreen,
   AuthVerifyScreen,
 } from "./auth";
-import { DisplayPreferencesProvider } from "./display/DisplayPreferencesProvider";
+import {
+  DisplayPreferencesProvider,
+  useDisplayPreferences,
+  type Lang,
+} from "./display/DisplayPreferencesProvider";
 import { NavigationProvider } from "./navigation/NavigationProvider";
 import { normalizeRoute, type LooseRoute } from "./normalizeRoute";
 import { DEFAULT_ROUTE, isChromeHidden, type Route } from "./routes";
@@ -60,6 +67,7 @@ function renderRouteScreen(
   route: Route,
   navigate: (next: LooseRoute) => void,
   runtime: AppRuntimeValue | null,
+  lang: Lang,
 ): ReactNode {
   // Profile / Settings shells are pure UI and do not depend on runtime; render
   // them whether or not a client is mounted so D2-D6 owners can iterate
@@ -80,7 +88,10 @@ function renderRouteScreen(
           route={route}
           onNavigate={navigate}
           onStartChallenge={async (req) => {
-            await runtime.client.startAuthEmailChallenge(req);
+            await runtime.client.startAuthEmailChallenge(
+              req,
+              withLocaleHeader(lang),
+            );
           }}
         />
       );
@@ -90,7 +101,10 @@ function renderRouteScreen(
           route={route}
           onNavigate={navigate}
           onStartChallenge={async (req) => {
-            await runtime.client.startAuthEmailChallenge(req);
+            await runtime.client.startAuthEmailChallenge(
+              req,
+              withLocaleHeader(lang),
+            );
           }}
         />
       );
@@ -100,9 +114,9 @@ function renderRouteScreen(
           route={route}
           onNavigate={navigate}
           onVerify={async (req) => {
-            await runtime.client.verifyAuthEmailChallenge({
-              query: { token: req.token },
-            });
+            await runtime.client.verifyAuthEmailChallenge(
+              withLocaleHeader(lang, { query: { token: req.token } }),
+            );
             runtime.refreshAuth();
           }}
         />
@@ -115,7 +129,7 @@ function renderRouteScreen(
           route={route}
           onNavigate={navigate}
           onLogout={async () => {
-            await runtime.client.logout();
+            await runtime.client.logout(withLocaleHeader(lang));
             runtime.refreshAuth();
           }}
         />
@@ -123,6 +137,26 @@ function renderRouteScreen(
     default:
       return <PlaceholderScreen route={route} />;
   }
+}
+
+function withLocaleHeader(lang: Lang, opts?: RequestOptions): RequestOptions {
+  return {
+    ...opts,
+    headers: {
+      ...(opts?.headers ?? {}),
+      "Accept-Language": lang,
+    },
+  };
+}
+
+function withRuntimeLocaleHeaders(
+  lang: Lang,
+  requestOptions?: AppRuntimeProviderProps["requestOptions"],
+): AppRuntimeProviderProps["requestOptions"] {
+  return {
+    runtimeConfig: withLocaleHeader(lang, requestOptions?.runtimeConfig),
+    getMe: withLocaleHeader(lang, requestOptions?.getMe),
+  };
 }
 
 const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
@@ -139,6 +173,7 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
   const hideChrome = isChromeHidden(route.name);
   const runtime = useAppRuntimeOptional();
   const signedIn = runtime?.auth.status === "authenticated";
+  const prefs = useDisplayPreferences();
 
   return (
     <NavigationProvider value={navigationValue}>
@@ -150,10 +185,30 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
             signedIn={signedIn}
           />
         )}
-        <main>{renderRouteScreen(route, navigate, runtime)}</main>
+        <main>{renderRouteScreen(route, navigate, runtime, prefs.lang)}</main>
         {children}
       </div>
     </NavigationProvider>
+  );
+};
+
+const AppRuntimeShell: FC<{
+  client: EasyInterviewClient;
+  requestOptions?: AppRuntimeProviderProps["requestOptions"];
+  children: ReactNode;
+}> = ({ client, requestOptions, children }) => {
+  const prefs = useDisplayPreferences();
+  const localizedRequestOptions = useMemo(
+    () => withRuntimeLocaleHeaders(prefs.lang, requestOptions),
+    [prefs.lang, requestOptions],
+  );
+  return (
+    <AppRuntimeProvider
+      client={client}
+      requestOptions={localizedRequestOptions}
+    >
+      {children}
+    </AppRuntimeProvider>
   );
 };
 
@@ -169,9 +224,9 @@ export const App: FC<AppProps> = ({
   return (
     <DisplayPreferencesProvider>
       {client ? (
-        <AppRuntimeProvider client={client} requestOptions={requestOptions}>
+        <AppRuntimeShell client={client} requestOptions={requestOptions}>
           {inner}
-        </AppRuntimeProvider>
+        </AppRuntimeShell>
       ) : (
         inner
       )}
