@@ -8,6 +8,8 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-07](2026-05-07.md) | `docs(reports): land frontend-shell app shell visual system retrospective` | #docs |
+| [2026-05-07](2026-05-07.md) | `docs(frontend-shell): close 002-app-shell-visual-system plan lifecycle` | #docs |
 | [2026-05-07](2026-05-07.md) | `feat(frontend-shell): visual system regression and handoff` | #feat #ui #test #docs |
 | [2026-05-07](2026-05-07.md) | `feat(frontend-shell): profile, settings, and placeholder card shells` | #feat #ui #test |
 | [2026-05-07](2026-05-07.md) | `feat(frontend-shell): auth shell card visuals` | #feat #ui #test |
