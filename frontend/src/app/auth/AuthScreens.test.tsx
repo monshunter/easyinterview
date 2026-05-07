@@ -85,6 +85,38 @@ describe("AuthLoginScreen", () => {
       params: {},
     });
   });
+
+  it("preserves pending action params when switching from login to register", async () => {
+    const onNavigate = vi.fn();
+    render(
+      <AuthLoginScreen
+        route={{
+          name: "auth_login",
+          params: {
+            pendingRoute: "practice",
+            pendingType: "start_practice",
+            pendingLabel: "立即面试",
+            planId: "plan-tj-1",
+          },
+        }}
+        onNavigate={onNavigate}
+        onStartChallenge={async () => {}}
+      />,
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("auth-login-link-register"));
+
+    expect(onNavigate).toHaveBeenCalledWith({
+      name: "auth_register",
+      params: expect.objectContaining({
+        pendingRoute: "practice",
+        pendingType: "start_practice",
+        pendingLabel: "立即面试",
+        planId: "plan-tj-1",
+      }),
+    });
+  });
 });
 
 describe("AuthRegisterScreen", () => {
@@ -153,6 +185,42 @@ describe("AuthVerifyScreen", () => {
     await waitFor(() => expect(onNavigate).toHaveBeenCalled());
     const navArg = onNavigate.mock.calls[0]![0];
     expect(navArg).toMatchObject({ name: "practice" });
+  });
+
+  it("restores interview context from raw returnTo query params", async () => {
+    const onVerify = vi.fn().mockResolvedValue(undefined);
+    const onNavigate = vi.fn();
+    render(
+      <AuthVerifyScreen
+        route={{
+          name: "auth_verify",
+          params: {
+            email: "alice@example.com",
+            returnTo:
+              "/practice?planId=plan_1&targetJobId=tj_1&jdId=jd_1&resumeVersionId=resume_1&roundId=round_1",
+          },
+        }}
+        onNavigate={onNavigate}
+        onVerify={onVerify}
+      />,
+    );
+
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId("auth-verify-code"), "654321");
+    await user.click(screen.getByTestId("auth-verify-submit"));
+
+    await waitFor(() =>
+      expect(onNavigate).toHaveBeenCalledWith({
+        name: "practice",
+        params: {
+          planId: "plan_1",
+          targetJobId: "tj_1",
+          jdId: "jd_1",
+          resumeVersionId: "resume_1",
+          roundId: "round_1",
+        },
+      }),
+    );
   });
 });
 

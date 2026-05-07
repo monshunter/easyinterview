@@ -78,7 +78,9 @@ export const AuthLoginScreen: FC<AuthLoginScreenProps> = ({
       <button
         type="button"
         data-testid="auth-login-link-register"
-        onClick={() => onNavigate({ name: "auth_register", params: {} })}
+        onClick={() =>
+          onNavigate({ name: "auth_register", params: { ...route.params } })
+        }
       >
         注册新账号
       </button>

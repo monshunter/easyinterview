@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
 > **更新日期**: 2026-05-07
 
@@ -20,7 +20,7 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `frontend`。
-- **TDD 策略**: 通过 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 执行；每个 checklist item 先写 focused Vitest / component test / route-state test，再实现最小前端代码；测试断言写在 checklist 的 `验证:` 后。Runtime / API bootstrap 测试必须覆盖 `getRuntimeConfig`、`getMe` authenticated / unauthenticated、auth generated operations 与 mock scenario fail-loud。
+- **TDD 策略**: 通过 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 执行；每个 checklist item 先写 focused Vitest / component test / route-state test，再实现最小前端代码；测试断言写在 checklist 的 `验证:` 后。Runtime / API bootstrap 测试必须覆盖 `getRuntimeConfig`、`getMe` authenticated / unauthenticated、auth generated operations 与 mock scenario fail-loud。当前 plan 一旦把 frontend package `build` script 从占位切换为真实 bundler gate，必须在同一验证面运行 `pnpm --filter @easyinterview/frontend build` 与根 `make build`。
 - **BDD 策略**: 需要 BDD。本 plan 引入用户可见 App shell、TopBar、认证页面和 pending action 行为，必须维护 `bdd-plan.md`、`bdd-checklist.md`，并在主 checklist 中使用 `BDD-Gate:` 引用 `E2E.P0.001`、`E2E.P0.002`。
 - **替代验证 gate**: 不适用；BDD gate 是本 plan 的用户行为验证入口。补充 gate 包括 frontend unit tests、typecheck、mock-contract-suite handoff、route negative search、`make docs-check`。
 
@@ -100,6 +100,10 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 
 记录 `DESIGN.md` 在 D1 后续组件中的只读参考边界：可复用语义组件命名和页面节奏，不机械同步 token，不引入私有授权字体。
 
+#### 5.5 Review hardening: 真实 build smoke gate
+
+把 [Frontend Shell Review Remediation Hardening 交付复盘](../../../../reports/2026-05-07-frontend-shell-review-remediation-hardening-assessment.md) 的最高优先级建议固化为 owner gate：当 D1 / 后续 frontend owner 将 package `build` 从占位切换为真实 Vite bundler 时，必须同时具备 HTML / runtime entry，并通过 `pnpm --filter @easyinterview/frontend build` 与根 `make build`。
+
 ## 5 验收标准
 
 - 默认打开 App 渲染 Home、五入口 TopBar、登录 / 注册、显示控制，不出现 welcome。
@@ -110,6 +114,7 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 - 旧 route negative search 确认正式前端不保留独立 old route screen。
 - `DESIGN.md` 参考边界写入 handoff，不作为验收真理源或 token 同步目标。
 - BDD-Gate `E2E.P0.001`、`E2E.P0.002` 通过。
+- Frontend package 真实 build gate 与根 build 聚合 gate 通过，避免 `frontend/package.json` 脚本升级后缺 entry 破坏 `make build`。
 
 ## 6 风险与应对
 

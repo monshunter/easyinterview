@@ -36,6 +36,9 @@ const Probe: FC = () => {
       {auth.status === "authenticated" ? (
         <div data-testid="auth-user-name">{auth.user.displayName}</div>
       ) : null}
+      {auth.status === "error" ? (
+        <div data-testid="auth-error">{auth.error.message}</div>
+      ) : null}
     </div>
   );
 };
@@ -118,6 +121,26 @@ describe("AppRuntimeProvider", () => {
       expect(screen.getByTestId("runtime-status")).toHaveTextContent("error"),
     );
     expect(screen.getByTestId("runtime-error").textContent).toMatch(
+      /unknown fixture scenario/i,
+    );
+  });
+
+  it("fails loudly when /me uses an unknown fixture scenario", async () => {
+    const client = buildFixtureClient();
+    render(
+      <AppRuntimeProvider
+        client={client}
+        requestOptions={{
+          getMe: { headers: { Prefer: "example=does-not-exist" } },
+        }}
+      >
+        <Probe />
+      </AppRuntimeProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("auth-status")).toHaveTextContent("error"),
+    );
+    expect(screen.getByTestId("auth-error").textContent).toMatch(
       /unknown fixture scenario/i,
     );
   });

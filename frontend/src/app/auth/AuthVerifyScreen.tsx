@@ -37,7 +37,12 @@ function buildResumeRoute(params: Record<string, string>): LooseRoute {
   }
   const returnTo = params.returnTo;
   if (returnTo) {
-    const candidate = returnTo.replace(/^\/+/, "").split("?")[0] || "home";
+    const parsed = new URL(returnTo, "http://easyinterview.local");
+    for (const key of PENDING_ACTION_INTERVIEW_KEYS) {
+      const value = parsed.searchParams.get(key);
+      if (value !== null) resumeParams[key] = value;
+    }
+    const candidate = parsed.pathname.replace(/^\/+/, "") || "home";
     return normalizeRoute({ name: candidate, params: resumeParams });
   }
   return { name: "home", params: resumeParams };

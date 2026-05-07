@@ -22,7 +22,8 @@ export type RuntimeConfigState =
 export type AuthState =
   | { status: "loading" }
   | { status: "authenticated"; user: UserContext }
-  | { status: "unauthenticated" };
+  | { status: "unauthenticated" }
+  | { status: "error"; error: Error };
 
 export interface AppRuntimeValue {
   client: EasyInterviewClient;
@@ -48,6 +49,14 @@ export interface AppRuntimeProviderProps {
 
 const AppRuntimeContext = createContext<AppRuntimeValue | null>(null);
 
+function wrapError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+function isUnauthenticatedError(error: Error): boolean {
+  return /^HTTP 401\b/.test(error.message);
+}
+
 export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
   client,
   requestOptions,
@@ -69,8 +78,7 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        const wrapped = error instanceof Error ? error : new Error(String(error));
-        setRuntime({ status: "error", error: wrapped });
+        setRuntime({ status: "error", error: wrapError(error) });
       });
 
     return () => {
@@ -87,10 +95,16 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
       .then((user) => {
         if (!cancelled) setAuth({ status: "authenticated", user });
       })
-      .catch(() => {
-        // Spec D-3: `/me` only drives the user area; any failure (401, network,
-        // etc.) collapses to "unauthenticated" so the default Home keeps loading.
-        if (!cancelled) setAuth({ status: "unauthenticated" });
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        const wrapped = wrapError(error);
+        // Spec D-3: `/me` only drives the user area. A real 401 is the signed
+        // out state; fixture or transport wiring errors must stay visible.
+        setAuth(
+          isUnauthenticatedError(wrapped)
+            ? { status: "unauthenticated" }
+            : { status: "error", error: wrapped },
+        );
       });
 
     return () => {

@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
 > **更新日期**: 2026-05-07
 
@@ -39,3 +39,5 @@
 - [x] 5.1 记录后续 D2-D6 shell 接入点；验证: frontend README 或 package docs 说明 route table、pendingAction contract、mock runtime 入口和后续 owner 边界
 - [x] 5.2 active-scope 负向搜索通过；验证: frontend active code 不含独立 `voice` route、独立 `growth` / `mistakes` / `drill` 页面、prototype data runtime import
 - [x] 5.3 记录 UI 设计体系 handoff；验证: frontend README 或 package docs 说明 `DESIGN.md` 只读参考边界、可复用语义命名、不得机械同步 token、不得引入私有授权字体，验收仍以 `docs/ui-design/` 与 `ui-design/` 为准
+- [x] 5.4 Review hardening: 固化真实 build smoke gate；验证: `pnpm --filter @easyinterview/frontend build` 与根 `make build` 均通过，确保 package `build` script 真实化时 HTML/runtime entry 与聚合构建同步可用
+  <!-- verified: 2026-05-07 method=build-smoke evidence="pnpm --filter @easyinterview/frontend build PASS; make build PASS" -->
