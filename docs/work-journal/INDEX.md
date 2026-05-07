@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-07](2026-05-07.md) | `docs(frontend-shell): enforce ui-design source parity` | #docs #ui |
 | [2026-05-07](2026-05-07.md) | `docs(frontend-shell): derive D2 visual system plan` | #docs #ui |
 | [2026-05-07](2026-05-07.md) | `feat(skills): enforce coverage matrix gate across design and review skills` | #feat #docs #test |
 | [2026-05-07](2026-05-07.md) | `fix(frontend-shell): restore app shell i18n` | #fix #ui #i18n #test #docs |

@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
 > **更新日期**: 2026-05-07
 
@@ -15,7 +15,7 @@
 
 ## 2 背景
 
-当前静态原型已经在 `ui-design/src/app.jsx` 和 `docs/ui-design/` 中锁定了目标 route、TopBar、认证页面、pending action 模型和中英语言切换。`engineering-roadmap` S1 要求先创建 `frontend-shell`，再推进 D2-D6 前端 workstream。本 plan 是第一个正式前端代码 plan。前端新增 shell / auth / settings 组件时参考根目录 `DESIGN.md` 的语义命名和节奏，但验收仍以 `docs/ui-design/`、`ui-design/` 和本 spec 为准。
+当前静态原型已经在 `ui-design/src/app.jsx` 和 `docs/ui-design/` 中锁定了目标 route、TopBar、认证页面、pending action 模型和中英语言切换。`engineering-roadmap` S1 要求先创建 `frontend-shell`，再推进 D2-D6 前端 workstream。本 plan 是第一个正式前端代码 plan。前端新增 shell / auth / settings 组件时只以 `docs/ui-design/`、`ui-design/` 和本 spec 为准；外部品牌设计系统不再作为实现参考。
 
 ## 3 质量门禁分类
 
@@ -116,9 +116,9 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 
 记录稳定 route、shell API、mock runtime 入口和后续页面 owner 的接入点。
 
-#### 5.4 UI 设计体系 handoff
+#### 5.4 UI 真理源 handoff
 
-记录 `DESIGN.md` 在 D1 后续组件中的只读参考边界：可复用语义组件命名和页面节奏，不机械同步 token，不引入私有授权字体。
+记录 D1 后续组件的 UI 真理源边界：正式前端视觉只从 `ui-design/` 与 `docs/ui-design/` 原生迁移，不允许 AI 自由重设计，不引入外部品牌设计系统作为替代参考。
 
 #### 5.5 Review hardening: 真实 build smoke gate
 
@@ -134,7 +134,7 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 - TopBar 语言切换通过下拉框驱动 `zh` / `en` 静态文案；初始语言跟随浏览器 locale，未知时 fallback English；runtime `defaultUiLanguage` / `/me.uiLanguage` 不参与 UI 语言决策；D1 generated client 请求带当前 locale 的 `Accept-Language` display hint。
 - `zh` / `en` message map 分别位于独立 locale 文件，i18n helper 只聚合导入并提供类型安全 API，不在单文件内糅合多语言文案。
 - 旧 route negative search 确认正式前端不保留独立 old route screen。
-- `DESIGN.md` 参考边界写入 handoff，不作为验收真理源或 token 同步目标。
+- UI 真理源边界写入 handoff：正式前端视觉只以 `ui-design/` 与 `docs/ui-design/` 为准。
 - BDD-Gate `E2E.P0.001`、`E2E.P0.002` 通过。
 - Frontend package 真实 build gate 与根 build 聚合 gate 通过，避免 `frontend/package.json` 脚本升级后缺 entry 破坏 `make build`。
 
@@ -147,6 +147,6 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 | 旧 route 被当兼容入口保留 | Phase 1.2 和 negative search 要求旧 route 只能 normalize，不建独立 screen |
 | mock 数据源漂移 | 依赖 `mock-contract-suite`，禁止 import prototype data |
 | Auth UI 超出 C1/B2 契约 | Phase 3.1 / 3.3 只允许 generated passwordless session operations；密码 / OAuth / reset 不 wire 真实 API |
-| 品牌参考被误当验收真理源 | Phase 5.4 明确 `DESIGN.md` 只读参考，验收仍回到 UI truth source |
+| 外部品牌参考或 AI 自由发挥被误当正式视觉依据 | Phase 5.4 明确 `ui-design/` 与 `docs/ui-design/` 是唯一 UI truth source |
 | 语言切换退化为状态占位 | Phase 2.4 / 2.6 增加文案切换测试与 BDD gate，禁止只断言 select value |
 | i18n 资源糅合导致后续语言扩展困难 | Phase 2.7 增加 locale 文件结构测试，要求每个语言独立文件，聚合层只做 helper |

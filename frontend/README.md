@@ -82,10 +82,11 @@ requestAuth({
 
 替换 `PlaceholderScreen` 派发时只需在 [`src/app/App.tsx`](./src/app/App.tsx) `renderRouteScreen` switch 内增加分支；不要新增独立路由表或独立 navigation provider。
 
-## 3 UI 设计体系参考边界（DESIGN.md handoff）
+## 3 UI 真理源与原生迁移
 
-- [`DESIGN.md`](../DESIGN.md) 是 Anthropic Claude.com 品牌设计体系快照，仅作为**只读参考**：复用语义命名（`feature-card` / `code-window-card` / `callout-card-coral` / `pricing-tier-card-featured` / `cta-band-coral` 等）与章节节奏（cream → cream-card → dark-mockup → coral-callout → dark-footer）。
-- `docs/ui-design/` 与 `ui-design/` 仍是 UI 验收的唯一真理源。spec / plan / checklist 不得把 “DESIGN.md 第 X 节” 写为完成判据。
-- **不要机械同步 token**：[`ui-design/src/primitives.jsx`](../ui-design/src/primitives.jsx) `EI_THEMES` 是当前真理（warm / forest / ocean / plum + light / dark），不要替换为 `DESIGN.md` 的精确 hex。
-- **不要引入私有授权字体**：Copernicus / StyreneB 是 Anthropic 私有授权字体；前端继续使用 serif: Cormorant Garamond / EB Garamond，sans: Inter（与 `EI_FONT_PRESETS` 对齐）。
-- 完整使用方式与边界见 [`DESIGN.md` 顶部「使用方式与边界」章节](../DESIGN.md#使用方式与边界easyinterview-项目内)。
+- `docs/ui-design/` 与 `ui-design/` 源码是前端 UI 验收的唯一真理源。新页面或大幅视觉修订必须先在 `ui-design/` 完成静态原型，并同步 `docs/ui-design/` 说明。
+- 正式 `frontend/` 只做 100% 源级复刻：DOM 构图、布局、间距、字号、字体层级、控件密度、颜色、阴影、边框、圆角、状态、响应式行为和交互节奏必须来自对应 `ui-design/src/*.jsx` 与文档。真实路由、鉴权、数据、可访问性和工程约束可以适配，但不得重新设计、重新解释或重新组合视觉。
+- 每个正式组件的样式、token、className 和布局规则必须能追溯到对应 `ui-design/src/*.jsx`、[`ui-design/src/primitives.jsx`](../ui-design/src/primitives.jsx)、[`ui-design/src/app.jsx`](../ui-design/src/app.jsx) 或 `docs/ui-design/`；不得凭 AI 判断补齐未在原型中出现的视觉值。
+- 视觉 plan / checklist 必须带 parity gate：至少验证 DOM 锚点、关键 computed style、bounding box、viewport 布局和必要截图差异。只断言“组件存在”“不重叠”不足以证明符合 UI 原型；任何可见偏差必须修正或先回到 `ui-design/` 更新真理源。
+- [`ui-design/src/primitives.jsx`](../ui-design/src/primitives.jsx) 的 `EI_THEMES` / `EI_FONT_PRESETS` 和 [`ui-design/src/app.jsx`](../ui-design/src/app.jsx) 的 runtime 交互模型是正式 token / theme / display controls 的抽取来源。
+- 不引入外部品牌设计系统作为替代参考；后续如果需要新的视觉方向，先改 `ui-design/`，再迁移到正式前端。

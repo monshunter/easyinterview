@@ -1,6 +1,6 @@
 # App Shell Visual System BDD Plan
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-05-07
 
@@ -8,7 +8,7 @@
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.005 | App Shell 视觉系统 smoke | D1 App shell 已可渲染，用户未登录，显示偏好默认 warm/light，`ui-design/` 是视觉验收真理源头 | 用户打开默认 App shell，切换 dark，激活 custom accent，并在 desktop / mobile viewport 查看 TopBar、auth、profile、settings 和 placeholder shell | 页面非空渲染；TopBar、五入口、显示控制和用户区不重叠；warm/light、dark 与 custom accent 在 computed-style 或截图中产生可见差异；D1 testid / route / i18n 行为不变；welcome、growth、mistakes、drill、独立 voice 等旧入口不回流 | `test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/` |
+| E2E.P0.005 | App Shell 视觉系统 smoke + ui-design 100% parity | D1 App shell 已可渲染，用户未登录，显示偏好默认 warm/light，`ui-design/` 源码是唯一视觉验收真理源头 | 用户打开默认 App shell，切换 dark，激活 custom accent，并在 desktop / mobile viewport 对照 `ui-design` golden preview 查看 TopBar、auth、profile、settings 和 placeholder shell | 页面非空渲染；TopBar、五入口、显示控制和用户区不重叠；warm/light、dark 与 custom accent 在 computed-style 或截图中产生可见差异；正式 frontend 的关键 DOM 锚点、computed style、bounding box 与必要截图差异满足 `ui-design` 100% 源级复刻阈值；任何可见偏差必须修正或回到 `ui-design/` 更新真理源，不得以“风格接近”完成；D1 testid / route / i18n 行为不变；welcome、growth、mistakes、drill、独立 voice 等旧入口不回流 | `test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/` |
 
 ## Regression References
 

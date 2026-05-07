@@ -46,5 +46,5 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [mock-contract-suite](./mock-contract-suite/spec.md) | 1.2 | active | 2026-05-06 | [plans](./mock-contract-suite/plans/) |
-| [frontend-shell](./frontend-shell/spec.md) | 1.6 | active | 2026-05-07 | [plans](./frontend-shell/plans/) |
+| [frontend-shell](./frontend-shell/spec.md) | 1.7 | active | 2026-05-07 | [plans](./frontend-shell/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 1.2 | active | 2026-05-06 | [plans](./backend-auth/plans/) |

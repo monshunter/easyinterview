@@ -13,19 +13,16 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 - `openapi/`、`shared/`、`backend/`、`frontend/`、`migrations/`、`config/`、`scripts/`：API、共享契约、后端、前端、数据库、配置和工程脚本资产。
 - `.agent-skills/`：仓库内自定义 Skill、模板和共享校验脚本。
 - `test/scenarios/`：场景测试框架、环境说明和 BDD / E2E 场景资产。
-- `DESIGN.md`：来自 getdesign.md 的 Anthropic Claude.com 品牌设计系统快照，**前端实施必须参考的 UI 设计体系**（详见下方 §1.1）。
 
-### 1.1 前端实施 UI 设计体系参考
+### 1.1 前端实施 UI 真理源
 
-前端创建新页面、新组件、新 token 时必须把仓库根目录的 [`DESIGN.md`](./DESIGN.md) 作为品牌与语义命名的参考体系，与 `ui-design/` 真理源协同使用：
+前端创建新页面、新组件、新 token 时必须以 `ui-design/` 静态原型源码和 `docs/ui-design/` 文档作为唯一 UI 真理源。正式前端的视觉目标是 100% 源级复刻 `ui-design/`；AI 不得基于自身审美自由生成正式前端视觉，也不得引入外部品牌设计系统作为参考替代。
 
-- **语义命名优先复用** `DESIGN.md` 的组件键（`feature-card`、`code-window-card`、`callout-card-coral`、`pricing-tier-card-featured`、`cta-band-coral`、`cta-band-dark`、`product-mockup-card-dark`、`hero-illustration-card`、`badge-coral` 等），让 EasyInterview 与 Claude 品牌族保持结构对齐。
-- **章节节奏**（cream → cream-card → dark-mockup → coral-callout → dark-footer）作为新页面分段的默认参考。
-- **真理源关系**：`ui-design/` 与 `docs/ui-design/` 仍是 UI 验收真理源；`DESIGN.md` 是参考体系，不是验收判据，spec/plan/checklist 不得把"DESIGN.md 第 X 节"作为完成判据。
-- **不要机械同步 token**：不要把 [`ui-design/src/primitives.jsx`](./ui-design/src/primitives.jsx) 的 `EI_THEMES` 色值改成 `DESIGN.md` 的精确 hex；多主题（warm/forest/ocean）+ 双模式（light/dark）已是项目当前真理。
-- **不要引入私有授权字体**：Copernicus 与 StyreneB 是 Anthropic 私有授权字体，使用开源替代（serif: Cormorant Garamond / EB Garamond；sans: Inter）。
-
-完整使用方式与边界见 [`DESIGN.md` 顶部"使用方式与边界"章节](./DESIGN.md#使用方式与边界easyinterview-项目内)。
+- **先设计后实现**：新页面或大幅视觉修订必须先在 `ui-design/` 落地静态原型，并同步 `docs/ui-design/` 说明，再进入正式 `frontend/` 实施。
+- **源级复刻，不做二次设计**：正式前端必须逐项复刻 `ui-design/` 中的 DOM 构图、布局、间距、字号、字体层级、控件密度、颜色、阴影、边框、圆角、状态、响应式行为和交互节奏；只允许为真实数据、路由、鉴权、可访问性和工程约束做必要适配，不允许重新设计、重新解释、重新组合视觉。
+- **样式来源必须可追溯**：每个正式组件的样式、token、className 和布局规则必须能追溯到对应 `ui-design/src/*.jsx`、`ui-design/src/primitives.jsx`、`ui-design/src/app.jsx` 或 `docs/ui-design/`；不得凭 AI 判断补齐未在原型中出现的视觉值。
+- **Parity gate 必须可执行**：涉及用户可见 UI 的 plan/checklist 必须包含对 `ui-design/` 的 100% 复刻验证，至少覆盖 DOM 锚点、关键 computed style、bounding box、viewport 布局和必要截图差异；“语义相似”“风格接近”“视觉大致一致”不能作为完成依据。
+- **删除外部设计参考口径**：仓库不再保留独立外部品牌设计系统参考文件；后续若需要新的视觉方向，由用户先更新 `ui-design/` 原型，Agent 再做原生迁移。
 
 ---
 
