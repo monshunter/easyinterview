@@ -405,9 +405,20 @@ func (s *Service) ListTargetJobs(ctx context.Context, in ListRequest) (api.Pagin
 	}
 	out.PageInfo = api.PageInfo{
 		NextCursor: optionalString(res.NextCursor),
+		PageSize:   effectiveListPageSize(in.PageSize),
 		HasMore:    res.HasMore,
 	}
 	return out, nil
+}
+
+func effectiveListPageSize(pageSize int32) int {
+	if pageSize <= 0 {
+		return sharedtypes.DefaultPageSize
+	}
+	if pageSize > ListMaxPageSize {
+		return ListMaxPageSize
+	}
+	return int(pageSize)
 }
 
 // GetTargetJob returns the full detail view for a single TargetJob.

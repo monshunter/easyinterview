@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -14,9 +15,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
+	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
 func TestBuildFlagsClientLoadsPostHogPublicAllowlist(t *testing.T) {
@@ -234,6 +237,28 @@ ai:
 	}()
 	if runtime.Handler == nil || runtime.Drainer == nil || runtime.AI == nil || runtime.AI.Client == nil {
 		t.Fatalf("runtime missing handler/drainer/AI wiring: %+v", runtime)
+	}
+	resp, _, err := runtime.ParseAI.Complete(context.Background(), "target.import.default", aiclient.CompletePayload{
+		Messages: []aiclient.Message{{Role: "user", Content: "Backend Engineer JD"}},
+		Metadata: aiclient.CallMetadata{
+			FeatureKey: targetjob.FeatureKeyTargetImportParse,
+			Language:   "en",
+		},
+	})
+	if err != nil {
+		t.Fatalf("test runtime target import parse fixture: %v", err)
+	}
+	var parsed struct {
+		Requirements []struct {
+			Kind  string `json:"kind"`
+			Label string `json:"label"`
+		} `json:"requirements"`
+	}
+	if err := json.Unmarshal([]byte(resp.Content), &parsed); err != nil {
+		t.Fatalf("test runtime parse fixture did not return JSON: %v; content=%s", err, resp.Content)
+	}
+	if len(parsed.Requirements) == 0 || parsed.Requirements[0].Kind != string(targetjob.RequirementMustHave) {
+		t.Fatalf("test runtime parse fixture returned invalid requirements: %+v", parsed.Requirements)
 	}
 }
 

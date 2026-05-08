@@ -201,6 +201,7 @@ type targetJobRuntime struct {
 	Handler *targetjob.Handler
 	Drainer *targetjob.Drainer
 	AI      *bootstrap.Runtime
+	ParseAI aiclient.AIClient
 }
 
 func (r *targetJobRuntime) Start(ctx context.Context) {
@@ -250,10 +251,14 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 		Timeout:   targetjob.URLFetchTimeout,
 		BodyCap:   targetjob.URLFetchBodyCap,
 	})
+	var parseAI aiclient.AIClient = aiRuntime.Client
+	if targetjob.IsTestAppEnv(loader.AppEnv()) {
+		parseAI = targetjob.NewDeterministicParseAIClient(parseAI)
+	}
 	executor := targetjob.NewParseExecutor(targetjob.ParseExecutorOptions{
 		Store:    store,
 		Registry: targetjob.NewStaticPromptRegistry(),
-		AI:       aiRuntime.Client,
+		AI:       parseAI,
 		Fetcher:  fetcher,
 		NewID:    idx.NewID,
 	})
@@ -269,6 +274,7 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 		Handler: buildTargetJobHandler(loader, store),
 		Drainer: drainer,
 		AI:      aiRuntime,
+		ParseAI: parseAI,
 	}, nil
 }
 

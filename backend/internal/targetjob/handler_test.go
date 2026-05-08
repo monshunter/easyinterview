@@ -12,6 +12,7 @@ import (
 	"time"
 
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
@@ -140,6 +141,7 @@ func TestHandler_ImportTargetJob_RejectsMissingIdempotencyKey(t *testing.T) {
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
+	assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeValidationFailed, false)
 }
 
 func TestHandler_ImportTargetJob_RejectsMissingSession(t *testing.T) {
@@ -154,6 +156,107 @@ func TestHandler_ImportTargetJob_RejectsMissingSession(t *testing.T) {
 	h.ImportTargetJob(rec, req)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeAuthUnauthorized, false)
+}
+
+func TestHandler_ErrorResponsesUseGeneratedEnvelope(t *testing.T) {
+	errorBody := func() []byte {
+		body, _ := json.Marshal(api.ImportTargetJobRequest{
+			Source:         map[string]any{"type": "manual_text", "rawText": "x"},
+			TargetLanguage: "en",
+		})
+		return body
+	}
+
+	t.Run("list missing session", func(t *testing.T) {
+		h, _ := newWiredHandler(t)
+		rec := httptest.NewRecorder()
+		h.ListTargetJobs(rec, httptest.NewRequest(http.MethodGet, "/targets", nil))
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+		}
+		assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeAuthUnauthorized, false)
+	})
+
+	t.Run("get not found", func(t *testing.T) {
+		h, store := newWiredHandler(t)
+		store.getErr = targetjob.ErrTargetJobNotFound
+		req := httptest.NewRequest(http.MethodGet, "/targets/target-1", nil)
+		req = req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user-1"))
+		rec := httptest.NewRecorder()
+		h.GetTargetJob(rec, req, "target-1")
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+		}
+		assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeTargetJobNotFound, false)
+	})
+
+	t.Run("import source unavailable", func(t *testing.T) {
+		h, store := newWiredHandler(t, "target-1", "job-1", "source-1", "outbox-1")
+		store.err = &targetjob.ServiceImportError{Code: sharederrors.CodeTargetImportSourceUnavailable, Message: "source temporarily unavailable"}
+		req := httptest.NewRequest(http.MethodPost, "/targets/import", bytes.NewReader(errorBody()))
+		req.Header.Set(targetjob.IdempotencyKeyHeader, "key-1")
+		req = req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user-1"))
+		rec := httptest.NewRecorder()
+		h.ImportTargetJob(rec, req)
+		if rec.Code != http.StatusBadGateway {
+			t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+		}
+		assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeTargetImportSourceUnavailable, true)
+	})
+
+	t.Run("update invalid transition", func(t *testing.T) {
+		h, store := newWiredHandler(t, "marker-1")
+		store.updateErr = &targetjob.ServiceImportError{Code: sharederrors.CodeTargetInvalidStateTransition, Message: "transition draft -> offer is not allowed"}
+		status := sharedtypes.TargetJobStatusOffer
+		body, _ := json.Marshal(api.UpdateTargetJobRequest{Status: &status})
+		req := httptest.NewRequest(http.MethodPatch, "/targets/target-1", bytes.NewReader(body))
+		req.Header.Set(targetjob.IdempotencyKeyHeader, "key-1")
+		req = req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user-1"))
+		rec := httptest.NewRecorder()
+		h.UpdateTargetJob(rec, req, "target-1")
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+		}
+		assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeTargetInvalidStateTransition, false)
+	})
+}
+
+func assertGeneratedErrorEnvelope(t *testing.T, rec *httptest.ResponseRecorder, wantCode string, wantRetryable bool) {
+	t.Helper()
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(rec.Body.Bytes(), &raw); err != nil {
+		t.Fatalf("decode error envelope: %v; body=%s", err, rec.Body.String())
+	}
+	if _, ok := raw["errors"]; ok {
+		t.Fatalf("legacy errors envelope must not be present: %s", rec.Body.String())
+	}
+	errRaw, ok := raw["error"]
+	if !ok {
+		t.Fatalf("generated error envelope missing error object: %s", rec.Body.String())
+	}
+	var errObj map[string]any
+	if err := json.Unmarshal(errRaw, &errObj); err != nil {
+		t.Fatalf("decode error object: %v", err)
+	}
+	for _, key := range []string{"code", "message", "requestId", "retryable"} {
+		if _, ok := errObj[key]; !ok {
+			t.Fatalf("error object missing %q: %s", key, rec.Body.String())
+		}
+	}
+	var out api.ApiErrorResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("decode generated ApiErrorResponse: %v", err)
+	}
+	if out.Error.Code != wantCode {
+		t.Fatalf("error code = %q, want %q; body=%s", out.Error.Code, wantCode, rec.Body.String())
+	}
+	if out.Error.Message == "" {
+		t.Fatalf("error message must be populated: %s", rec.Body.String())
+	}
+	if out.Error.Retryable != wantRetryable {
+		t.Fatalf("retryable = %v, want %v; body=%s", out.Error.Retryable, wantRetryable, rec.Body.String())
 	}
 }
 

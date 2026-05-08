@@ -447,8 +447,39 @@ func TestService_ListTargetJobs_PassesFiltersAndShapesPaginated(t *testing.T) {
 	if !res.PageInfo.HasMore || res.PageInfo.NextCursor == nil || *res.PageInfo.NextCursor != "cursor-2" {
 		t.Fatalf("page info not propagated: %+v", res.PageInfo)
 	}
+	if res.PageInfo.PageSize != 20 {
+		t.Fatalf("page size = %d, want 20", res.PageInfo.PageSize)
+	}
 	if store.capturedListFilter.Status == nil || *store.capturedListFilter.Status != sharedtypes.TargetJobStatusPreparing {
 		t.Fatal("status filter not propagated to store")
+	}
+}
+
+func TestService_ListTargetJobs_PageInfoReportsEffectivePageSize(t *testing.T) {
+	cases := []struct {
+		name string
+		in   int32
+		want int
+	}{
+		{name: "default", in: 0, want: 20},
+		{name: "negative defaults", in: -10, want: 20},
+		{name: "explicit", in: 7, want: 7},
+		{name: "clamped max", in: 1000, want: 100},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc, _ := newServiceWithFake()
+			res, err := svc.ListTargetJobs(context.Background(), targetjob.ListRequest{
+				UserID:   "u1",
+				PageSize: tc.in,
+			})
+			if err != nil {
+				t.Fatalf("ListTargetJobs: %v", err)
+			}
+			if res.PageInfo.PageSize != tc.want {
+				t.Fatalf("page size = %d, want %d", res.PageInfo.PageSize, tc.want)
+			}
+		})
 	}
 }
 

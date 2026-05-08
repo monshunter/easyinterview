@@ -1,6 +1,6 @@
 # Backend TargetJob Spec
 
-> **版本**: 1.2
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-05-08
 
@@ -151,7 +151,7 @@
 
 ## 7 关联计划
 
-- [001-targetjob-import-and-parse-bootstrap](./plans/001-targetjob-import-and-parse-bootstrap/plan.md)（completed）：先修 B1/B2/B3/F1 owner 契约，再落地 4 个 TargetJob operation、4 类导入源处理、`target_import` 异步解析管线、隐私 / 观测红线、`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 四个 BDD 场景。
+- [001-targetjob-import-and-parse-bootstrap](./plans/001-targetjob-import-and-parse-bootstrap/plan.md)（active）：先修 B1/B2/B3/F1 owner 契约，再落地 4 个 TargetJob operation、4 类导入源处理、`target_import` 异步解析管线、隐私 / 观测红线、`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 四个 BDD 场景；当前 4 个 BDD gate 已通过 `cmd/api` HTTP scenario harness，计划生命周期待单独确认后切换为 `completed`。
 
 ## 8 相关文档
 

@@ -29,4 +29,4 @@
 
 ## 5 污染控制
 
-场景使用 Go focused tests、fake fetcher 与 urlfetch unit matrix，不写共享数据库，不启动 Kind cluster；`cleanup.sh` 只清理 setup marker，保留 trigger log 与 result evidence。
+当前脚本使用 `cmd/api` HTTP 场景测试，覆盖 auth middleware、generated route、TargetJob handler/service、in-process drainer runtime 与 URL fetch boundary；`cleanup.sh` 只清理 setup marker，保留 trigger log 与 result evidence。`result.json.validBddEvidence=true`。

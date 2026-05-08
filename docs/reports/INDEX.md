@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-08](./2026-05-08-backend-targetjob-contract-remediation-assessment.md) | Backend TargetJob Contract Remediation 交付复盘 | #assessment |
 | [2026-05-08](./2026-05-08-backend-targetjob-l2-remediation-assessment.md) | Backend TargetJob L2 Remediation 交付复盘 | #assessment |
 | [2026-05-08](./2026-05-08-backend-targetjob-import-parse-bootstrap-assessment.md) | Backend TargetJob Import Parse Bootstrap 交付复盘 | #assessment |
 | [2026-05-08](./2026-05-08-frontend-shell-language-dropdown-assessment.md) | Frontend Shell Language Dropdown 交付复盘 | #assessment |

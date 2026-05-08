@@ -24,11 +24,12 @@ type StaticPromptRegistry struct {
 func NewStaticPromptRegistry() *StaticPromptRegistry {
 	return &StaticPromptRegistry{
 		Resolution: PromptResolution{
-			PromptVersion:     defaultTargetImportPromptVersion,
-			RubricVersion:     defaultTargetImportRubricVersion,
-			ModelProfileName:  defaultTargetImportModelProfileName,
-			DataSourceVersion: defaultTargetImportDataSourceVersion,
-			FeatureFlag:       "none",
+			PromptVersion:       defaultTargetImportPromptVersion,
+			RubricVersion:       defaultTargetImportRubricVersion,
+			ModelProfileName:    defaultTargetImportModelProfileName,
+			DataSourceVersion:   defaultTargetImportDataSourceVersion,
+			FeatureFlag:         "none",
+			UserMessageTemplate: "{{jd_text}}",
 		},
 	}
 }

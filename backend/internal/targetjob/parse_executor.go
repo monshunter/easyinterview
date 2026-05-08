@@ -23,11 +23,13 @@ const FeatureKeyTargetImportParse = "target.import.parse"
 // executor consumes. Spec D-4 fixes the three required fields plus the
 // language echo and the data_source_version slot.
 type PromptResolution struct {
-	PromptVersion     string
-	RubricVersion     string
-	ModelProfileName  string
-	DataSourceVersion string
-	FeatureFlag       string
+	PromptVersion       string
+	RubricVersion       string
+	ModelProfileName    string
+	DataSourceVersion   string
+	FeatureFlag         string
+	SystemMessage       string
+	UserMessageTemplate string
 }
 
 // PromptRegistryClient is the F3 boundary. The targetjob domain references
@@ -145,10 +147,7 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	}
 
 	complete, _, err := p.ai.Complete(ctx, resolution.ModelProfileName, aiclient.CompletePayload{
-		Messages: []aiclient.Message{
-			{Role: "system", Content: "You are an extraction assistant for the target.import.parse feature. Return strict JSON."},
-			{Role: "user", Content: jdText},
-		},
+		Messages: buildPromptMessages(resolution, target.TargetLanguage, jdText),
 		Metadata: aiclient.CallMetadata{
 			FeatureKey:        FeatureKeyTargetImportParse,
 			PromptVersion:     resolution.PromptVersion,
@@ -167,7 +166,10 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		return p.fail(ctx, targetJobID, sharederrors.CodeAiOutputInvalid, err.Error(), false)
 	}
 
-	requirements := buildRequirements(parsed.Requirements, p.newID)
+	requirements, err := buildRequirements(parsed.Requirements, p.newID)
+	if err != nil {
+		return p.fail(ctx, targetJobID, sharederrors.CodeAiOutputInvalid, err.Error(), false)
+	}
 	summary := mustMarshal(map[string]any{
 		"coreThemes":          parsed.CoreThemes,
 		"interviewHypotheses": parsed.InterviewHypotheses,
@@ -345,17 +347,40 @@ func decodeParseResponse(content string) (parseAIResponse, error) {
 	return out, nil
 }
 
-func buildRequirements(input []parseAIResponseReq, newID IDGenerator) []RequirementRecord {
+func buildPromptMessages(resolution PromptResolution, language string, jdText string) []aiclient.Message {
+	messages := make([]aiclient.Message, 0, 2)
+	if system := strings.TrimSpace(resolution.SystemMessage); system != "" {
+		messages = append(messages, aiclient.Message{Role: "system", Content: system})
+	}
+	user := strings.TrimSpace(jdText)
+	if template := strings.TrimSpace(resolution.UserMessageTemplate); template != "" {
+		user = strings.ReplaceAll(template, "{{jd_text}}", jdText)
+		user = strings.ReplaceAll(user, "{{language}}", language)
+		user = strings.TrimSpace(user)
+	}
+	if user != "" {
+		messages = append(messages, aiclient.Message{Role: "user", Content: user})
+	}
+	return messages
+}
+
+func buildRequirements(input []parseAIResponseReq, newID IDGenerator) ([]RequirementRecord, error) {
 	out := make([]RequirementRecord, 0, len(input))
-	for _, r := range input {
+	for i, r := range input {
 		kind := RequirementKind(strings.TrimSpace(r.Kind))
 		label := strings.TrimSpace(r.Label)
-		if !validRequirementKind(kind) || label == "" {
-			continue
+		if !validRequirementKind(kind) {
+			return nil, fmt.Errorf("AI response requirement %d has invalid kind", i)
+		}
+		if label == "" {
+			return nil, fmt.Errorf("AI response requirement %d has empty label", i)
 		}
 		evidence := EvidenceLevel(strings.TrimSpace(r.EvidenceLevel))
 		if evidence == "" {
 			evidence = EvidenceExplicit
+		}
+		if !validEvidenceLevel(evidence) {
+			return nil, fmt.Errorf("AI response requirement %d has invalid evidence level", i)
 		}
 		out = append(out, RequirementRecord{
 			ID:            newID(),
@@ -365,12 +390,24 @@ func buildRequirements(input []parseAIResponseReq, newID IDGenerator) []Requirem
 			EvidenceLevel: evidence,
 		})
 	}
-	return out
+	if len(out) == 0 {
+		return nil, fmt.Errorf("AI response has no valid requirements")
+	}
+	return out, nil
 }
 
 func validRequirementKind(k RequirementKind) bool {
 	switch k {
 	case RequirementMustHave, RequirementNiceToHave, RequirementHiddenSignal, RequirementInterviewFocus:
+		return true
+	default:
+		return false
+	}
+}
+
+func validEvidenceLevel(e EvidenceLevel) bool {
+	switch e {
+	case EvidenceExplicit, EvidenceInferred:
 		return true
 	default:
 		return false

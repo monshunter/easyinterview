@@ -90,8 +90,9 @@
 // test/scenarios/e2e/p0-010-targetjob-text-import-parse-ready/,
 // p0-011-targetjob-url-import-fetch-and-parse/,
 // p0-012-targetjob-parse-failure-retryable/,
-// p0-013-targetjob-manual-form-ready/. In the current repository state
-// these gates execute through repo-tracked go-test scenario scripts
-// (setup -> trigger -> verify -> cleanup) and record result.json evidence
-// under .test-output/runs/<run-id>/e2e/E2E.P0.010..013/.
+// p0-013-targetjob-manual-form-ready/. These scripts execute cmd/api HTTP
+// scenario tests through auth middleware, generated API routes, this package's
+// Handler/Service, and the in-process drainer runtime. Successful verify
+// output records method=cmd-api-http and validBddEvidence=true under
+// .test-output/runs/<run-id>/e2e/E2E.P0.010..013/.
 package targetjob

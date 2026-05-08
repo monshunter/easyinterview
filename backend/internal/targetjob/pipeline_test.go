@@ -2,8 +2,10 @@ package targetjob_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -271,6 +273,137 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 	}
 	if !store.sourceRefreshCalled {
 		t.Fatal("source_refresh placeholder not enqueued")
+	}
+}
+
+func TestParseExecutor_UsesPromptMessagesFromRegistryResolution(t *testing.T) {
+	exec, store, registry, ai, _ := newParseExecutorWithFakes(t)
+	registry.resolution.SystemMessage = "registry-owned target import system prompt"
+	registry.resolution.UserMessageTemplate = "registry-owned target import user prompt: {{jd_text}}"
+	ai.resp = aiclient.CompleteResponse{Content: happyResponseJSON}
+	store.target = targetjob.TargetJobRecord{
+		ID:             "tgt-1",
+		UserID:         "user-1",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "en",
+		RawJDText:      "JD text from caller",
+	}
+
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+
+	if !outcome.Succeeded {
+		t.Fatalf("parse should succeed, got %+v", outcome)
+	}
+	if len(ai.lastPayload.Messages) != 2 {
+		t.Fatalf("messages = %+v", ai.lastPayload.Messages)
+	}
+	if ai.lastPayload.Messages[0].Role != "system" || ai.lastPayload.Messages[0].Content != "registry-owned target import system prompt" {
+		t.Fatalf("system message not sourced from registry resolution: %+v", ai.lastPayload.Messages)
+	}
+	if ai.lastPayload.Messages[1].Role != "user" || ai.lastPayload.Messages[1].Content != "registry-owned target import user prompt: JD text from caller" {
+		t.Fatalf("user message not sourced from registry template: %+v", ai.lastPayload.Messages)
+	}
+	for _, msg := range ai.lastPayload.Messages {
+		if strings.Contains(msg.Content, "extraction assistant") {
+			t.Fatalf("ParseExecutor must not carry hardcoded prompt text: %+v", ai.lastPayload.Messages)
+		}
+	}
+}
+
+func TestParseExecutor_AIOutputInvalid_WhenRequirementsAreSemanticallyInvalid(t *testing.T) {
+	cases := []struct {
+		name    string
+		content string
+	}{
+		{
+			name: "all invalid kind",
+			content: `{"requirements":[
+				{"kind":"legacy_signal","label":"Legacy signal","evidenceLevel":"explicit"}
+			]}`,
+		},
+		{
+			name: "empty label",
+			content: `{"requirements":[
+				{"kind":"must_have","label":"   ","evidenceLevel":"explicit"}
+			]}`,
+		},
+		{
+			name: "invalid evidence level",
+			content: `{"requirements":[
+				{"kind":"must_have","label":"Go","evidenceLevel":"rumor"}
+			]}`,
+		},
+		{
+			name: "mixed valid and invalid",
+			content: `{"requirements":[
+				{"kind":"must_have","label":"Go","evidenceLevel":"explicit"},
+				{"kind":"legacy_signal","label":"Legacy signal","evidenceLevel":"explicit"}
+			]}`,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+			ai.resp = aiclient.CompleteResponse{Content: tc.content}
+			store.target = targetjob.TargetJobRecord{
+				ID:             "tgt-1",
+				UserID:         "user-1",
+				SourceType:     targetjob.SourceTypeManualText,
+				TargetLanguage: "en",
+				RawJDText:      "JD text",
+			}
+
+			outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+
+			if outcome.Succeeded || outcome.ErrorCode != "AI_OUTPUT_INVALID" || outcome.Retryable {
+				t.Fatalf("invalid semantic requirements must fail non-retryable AI_OUTPUT_INVALID, got %+v", outcome)
+			}
+			if store.completeSuccessIn != nil {
+				t.Fatalf("invalid AI output must not mark target ready: %+v", store.completeSuccessIn)
+			}
+			if store.completeFailureIn == nil {
+				t.Fatal("invalid AI output must write target.analysis.failed")
+			}
+		})
+	}
+}
+
+func TestDeterministicParseAIClient_OnlyInterceptsTargetImportParse(t *testing.T) {
+	inner := &fakeAIClient{resp: aiclient.CompleteResponse{Content: "delegated"}}
+	client := targetjob.NewDeterministicParseAIClient(inner)
+
+	resp, _, err := client.Complete(context.Background(), "target.import.default", aiclient.CompletePayload{
+		Messages: []aiclient.Message{{Role: "user", Content: "JD text"}},
+		Metadata: aiclient.CallMetadata{
+			FeatureKey: targetjob.FeatureKeyTargetImportParse,
+			Language:   "en",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Complete target.import.parse: %v", err)
+	}
+	var parsed struct {
+		Requirements []struct {
+			Kind  string `json:"kind"`
+			Label string `json:"label"`
+		} `json:"requirements"`
+	}
+	if err := json.Unmarshal([]byte(resp.Content), &parsed); err != nil {
+		t.Fatalf("fixture did not return JSON parse content: %v; content=%s", err, resp.Content)
+	}
+	if len(parsed.Requirements) == 0 || parsed.Requirements[0].Kind != string(targetjob.RequirementMustHave) || parsed.Requirements[0].Label == "" {
+		t.Fatalf("fixture returned invalid requirements: %+v", parsed.Requirements)
+	}
+
+	delegated, _, err := client.Complete(context.Background(), "practice.followup.default", aiclient.CompletePayload{
+		Messages: []aiclient.Message{{Role: "user", Content: "other"}},
+		Metadata: aiclient.CallMetadata{FeatureKey: "practice.followup"},
+	})
+	if err != nil {
+		t.Fatalf("delegated Complete: %v", err)
+	}
+	if delegated.Content != "delegated" || inner.lastProfileName != "practice.followup.default" {
+		t.Fatalf("non target import calls must delegate, got resp=%+v profile=%q", delegated, inner.lastProfileName)
 	}
 }
 

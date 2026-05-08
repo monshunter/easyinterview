@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): align targetjob review contracts` | #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): wire parse runtime and atomic commits` | #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): harden targetjob L2 runtime gates` | #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): remediate import parse L2 findings` | #fix #test #docs |

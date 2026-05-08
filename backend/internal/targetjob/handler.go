@@ -235,10 +235,16 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 }
 
 func writeAPIError(w http.ResponseWriter, status int, code string, message string) {
-	w.Header().Set("Content-Type", "application/problem+json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	envelope := map[string]any{
-		"errors": []map[string]any{{"code": code, "message": message}},
+	meta := sharederrors.CodeRegistry[code]
+	envelope := api.ApiErrorResponse{
+		Error: api.ApiError{
+			Code:      code,
+			Message:   message,
+			RequestID: "",
+			Retryable: meta.Retryable,
+		},
 	}
 	raw, _ := json.Marshal(envelope)
 	_, _ = w.Write(raw)
