@@ -32,6 +32,7 @@ import {
   type AppRuntimeValue,
 } from "./runtime/AppRuntimeProvider";
 import { HomeScreen } from "./screens/home/HomeScreen";
+import { JDMatchScreen } from "./screens/jd_match/JDMatchScreen";
 import { PlaceholderScreen } from "./screens/PlaceholderScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
@@ -81,6 +82,9 @@ function renderRouteScreen(
   }
   if (route.name === "home") {
     return <HomeScreen route={route} />;
+  }
+  if (route.name === "jd_match") {
+    return <JDMatchScreen route={route} />;
   }
   if (!runtime) {
     return <PlaceholderScreen route={route} />;

@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `feat(frontend-parse): implement parse screen and jd_match placeholder shell` | #feat #ui #test #i18n |
 | [2026-05-08](2026-05-08.md) | `feat(frontend-home): implement jd import with three source variants` | #feat #ui #test |
 | [2026-05-08](2026-05-08.md) | `feat(home-screen): add recent mock interviews with listTargetJobs integration` | #feat #ui #test |
 | [2026-05-08](2026-05-08.md) | `feat(home-screen): land home screen static shell with i18n and route binding` | #feat #ui #i18n |
