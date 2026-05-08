@@ -29,7 +29,7 @@ export type ApiError = ApiErrorAlias;
 
 export type PageInfo = PageInfoAlias;
 
-export type ApiErrorCode = "AUTH_UNAUTHORIZED" | "TARGET_IMPORT_FAILED" | "PRACTICE_SESSION_CONFLICT" | "REPORT_NOT_READY" | "VALIDATION_FAILED" | "RATE_LIMITED" | "AI_PROVIDER_TIMEOUT" | "AI_OUTPUT_INVALID" | "AI_FALLBACK_EXHAUSTED" | "AI_UNSUPPORTED_CAPABILITY" | "AI_PROVIDER_CONFIG_INVALID" | "AI_PROVIDER_SECRET_MISSING" | "PRIVACY_EXPORT_NOT_AVAILABLE";
+export type ApiErrorCode = "AUTH_UNAUTHORIZED" | "TARGET_IMPORT_FAILED" | "TARGET_JOB_NOT_FOUND" | "TARGET_IMPORT_SOURCE_INVALID" | "TARGET_IMPORT_SOURCE_UNAVAILABLE" | "TARGET_INVALID_STATE_TRANSITION" | "PRACTICE_SESSION_CONFLICT" | "REPORT_NOT_READY" | "VALIDATION_FAILED" | "RATE_LIMITED" | "AI_PROVIDER_TIMEOUT" | "AI_OUTPUT_INVALID" | "AI_FALLBACK_EXHAUSTED" | "AI_UNSUPPORTED_CAPABILITY" | "AI_PROVIDER_CONFIG_INVALID" | "AI_PROVIDER_SECRET_MISSING" | "PRIVACY_EXPORT_NOT_AVAILABLE";
 
 export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled" | "dead";
 
@@ -255,7 +255,7 @@ export interface TargetJobWithJob {
 export interface TargetJobRequirement {
 	evidenceLevel: "explicit" | "implicit" | "inferred";
 	id: string;
-	kind: "must_have" | "nice_to_have";
+	kind: "must_have" | "nice_to_have" | "hidden_signal" | "interview_focus";
 	label: string;
 }
 

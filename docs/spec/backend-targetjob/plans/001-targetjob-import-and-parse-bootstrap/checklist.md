@@ -8,9 +8,9 @@
 
 ## Phase 0: Owner contract remediation
 
-- [ ] 0.1 修订 B1/B2 TargetJob API 场景契约；验证: `shared/conventions.yaml` 增加 `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` / `TARGET_INVALID_STATE_TRANSITION` 并重生成 Go/TS/OpenAPI 错误码；B2 additive 扩展 `TargetJobRequirement.kind` 到 `must_have` / `nice_to_have` / `hidden_signal` / `interview_focus`；TargetJobs fixtures 增加 manual_text、manual_form terminal job、URL invalid/unavailable、cross-user hidden 404、invalid transition scenarios；`make codegen-conventions && make codegen-openapi && make codegen-check && make validate-fixtures` 通过
-- [ ] 0.2 修订 B3 import source event 语义；验证: B3 spec / `shared/events.yaml` / generated docs 明确 `manual_text -> sourceType=text`，`manual_form` 不发 `target.import.requested`；`make codegen-events && make lint-events` 通过，禁止业务包把 `manual_form` 写入当前 v1 event sourceType
-- [ ] 0.3 修订 F1 TargetJob metrics registry；验证: F1 metrics 字典登记 `target_job_imports_total` / `target_job_parse_duration_seconds` / `target_job_parse_failures_total`，allowed labels 包含有界 `error_code` / `source_type`；新增 metric registry tests 断言不含 URL、target id、user id、prompt version 或自由文本 label
+- [x] 0.1 修订 B1/B2 TargetJob API 场景契约；验证: `shared/conventions.yaml` 增加 `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` / `TARGET_INVALID_STATE_TRANSITION` 并重生成 Go/TS/OpenAPI 错误码；B2 additive 扩展 `TargetJobRequirement.kind` 到 `must_have` / `nice_to_have` / `hidden_signal` / `interview_focus`；TargetJobs fixtures 增加 manual_text、manual_form terminal job、URL invalid/unavailable、cross-user hidden 404、invalid transition scenarios；`make codegen-conventions && make codegen-openapi && make codegen-check && make validate-fixtures` 通过
+- [x] 0.2 修订 B3 import source event 语义；验证: B3 spec / `shared/events.yaml` / generated docs 明确 `manual_text -> sourceType=text`，`manual_form` 不发 `target.import.requested`；`make codegen-events && make lint-events` 通过，禁止业务包把 `manual_form` 写入当前 v1 event sourceType
+- [x] 0.3 修订 F1 TargetJob metrics registry；验证: F1 metrics 字典登记 `target_job_imports_total` / `target_job_parse_duration_seconds` / `target_job_parse_failures_total`，allowed labels 包含有界 `error_code` / `source_type`；新增 metric registry tests 断言不含 URL、target id、user id、prompt version 或自由文本 label
 
 ## Phase 1: Storage / config / generated surface boundaries
 

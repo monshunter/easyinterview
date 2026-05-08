@@ -33,6 +33,124 @@
           }
         }
       }
+    },
+    "manual-text-primary": {
+      "request": {
+        "headers": {},
+        "body": {
+          "source": {
+            "type": "manual_text",
+            "rawText": "We are hiring a Senior Frontend Engineer to lead our design system program. Required: 5+ years React, SSR experience, design-system leadership."
+          },
+          "titleHint": "Senior Frontend Engineer",
+          "companyNameHint": "Acme",
+          "targetLanguage": "zh-CN"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-mtxt01"
+        },
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002001",
+          "job": {
+            "id": "01918fa0-0000-7000-8000-00000000b001",
+            "jobType": "target_import",
+            "status": "queued",
+            "resourceType": "target_job",
+            "resourceId": "01918fa0-0000-7000-8000-000000002001",
+            "errorCode": null,
+            "createdAt": "2026-04-28T13:45:12Z",
+            "updatedAt": "2026-04-28T13:45:12Z"
+          }
+        }
+      }
+    },
+    "manual-form-ready-terminal-job": {
+      "request": {
+        "headers": {},
+        "body": {
+          "source": {
+            "type": "manual_form",
+            "title": "Frontend Architect",
+            "companyName": "Acme",
+            "rawDescription": "Lead frontend architecture across 12 squads. Must have prior staff/principal-level scope and React platform experience."
+          },
+          "targetLanguage": "zh-CN"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-mform1"
+        },
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002002",
+          "job": {
+            "id": "01918fa0-0000-7000-8000-00000000b002",
+            "jobType": "target_import",
+            "status": "succeeded",
+            "resourceType": "target_job",
+            "resourceId": "01918fa0-0000-7000-8000-000000002002",
+            "errorCode": null,
+            "createdAt": "2026-04-28T13:45:12Z",
+            "updatedAt": "2026-04-28T13:45:12Z"
+          }
+        }
+      }
+    },
+    "url-invalid-source": {
+      "request": {
+        "headers": {},
+        "body": {
+          "source": {
+            "type": "url",
+            "url": "http://192.0.2.1/job"
+          },
+          "targetLanguage": "zh-CN"
+        }
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-urlinv"
+        },
+        "body": {
+          "error": {
+            "code": "TARGET_IMPORT_SOURCE_INVALID",
+            "message": "target import source is invalid or unreachable per policy",
+            "requestId": "req_2026-04-28T13-45-12-urlinv",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "url-source-unavailable": {
+      "request": {
+        "headers": {},
+        "body": {
+          "source": {
+            "type": "url",
+            "url": "https://acme.example/careers/temporarily-down"
+          },
+          "targetLanguage": "zh-CN"
+        }
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-urlunv"
+        },
+        "body": {
+          "error": {
+            "code": "TARGET_IMPORT_SOURCE_UNAVAILABLE",
+            "message": "target import source is temporarily unavailable",
+            "requestId": "req_2026-04-28T13-45-12-urlunv",
+            "retryable": true
+          }
+        }
+      }
     }
   }
 }

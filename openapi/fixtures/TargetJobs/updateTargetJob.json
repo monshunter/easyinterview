@@ -89,6 +89,50 @@
           "updatedAt": "2026-04-28T12:00:00Z"
         }
       }
+    },
+    "invalid-state-transition": {
+      "request": {
+        "headers": {},
+        "body": {
+          "status": "draft"
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-invtrn"
+        },
+        "body": {
+          "error": {
+            "code": "TARGET_INVALID_STATE_TRANSITION",
+            "message": "target job state transition is not allowed",
+            "requestId": "req_2026-04-28T13-45-12-invtrn",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "cross-user-hidden-not-found": {
+      "request": {
+        "headers": {},
+        "body": {
+          "status": "interviewing"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-xuhide"
+        },
+        "body": {
+          "error": {
+            "code": "TARGET_JOB_NOT_FOUND",
+            "message": "target job not found",
+            "requestId": "req_2026-04-28T13-45-12-xuhide",
+            "retryable": false
+          }
+        }
+      }
     }
   }
 }

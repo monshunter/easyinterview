@@ -1199,6 +1199,10 @@ components:
       enum:
         - AUTH_UNAUTHORIZED
         - TARGET_IMPORT_FAILED
+        - TARGET_JOB_NOT_FOUND
+        - TARGET_IMPORT_SOURCE_INVALID
+        - TARGET_IMPORT_SOURCE_UNAVAILABLE
+        - TARGET_INVALID_STATE_TRANSITION
         - PRACTICE_SESSION_CONFLICT
         - REPORT_NOT_READY
         - VALIDATION_FAILED
@@ -1809,7 +1813,7 @@ components:
           format: uuid
         kind:
           type: string
-          enum: [must_have, nice_to_have]
+          enum: [must_have, nice_to_have, hidden_signal, interview_focus]
         label:
           type: string
         evidenceLevel:

@@ -82,3 +82,52 @@ func TestWrap_UsesGeneratedConstants(t *testing.T) {
 		}
 	}
 }
+
+// TargetJob bootstrap (backend-targetjob 001 Phase 0.1) requires four shared
+// error codes. They must be documented in CodeRegistry with the retryable
+// flag matching backend-targetjob spec D-10.
+func TestTargetJobErrorCodes_Documented(t *testing.T) {
+	cases := []struct {
+		code      string
+		retryable bool
+	}{
+		{"TARGET_JOB_NOT_FOUND", false},
+		{"TARGET_IMPORT_SOURCE_INVALID", false},
+		{"TARGET_IMPORT_SOURCE_UNAVAILABLE", true},
+		{"TARGET_INVALID_STATE_TRANSITION", false},
+	}
+	for _, tc := range cases {
+		meta, ok := CodeRegistry[tc.code]
+		if !ok {
+			t.Errorf("CodeRegistry missing %s", tc.code)
+			continue
+		}
+		if meta.Retryable != tc.retryable {
+			t.Errorf("%s retryable = %v, want %v", tc.code, meta.Retryable, tc.retryable)
+		}
+		if meta.Message == "" {
+			t.Errorf("%s message must not be empty", tc.code)
+		}
+	}
+	wantCodes := []string{
+		"CodeTargetJobNotFound",
+		"CodeTargetImportSourceInvalid",
+		"CodeTargetImportSourceUnavailable",
+		"CodeTargetInvalidStateTransition",
+	}
+	have := map[string]bool{}
+	for _, c := range AllCodes {
+		have[c] = true
+	}
+	for _, c := range []string{
+		"TARGET_JOB_NOT_FOUND",
+		"TARGET_IMPORT_SOURCE_INVALID",
+		"TARGET_IMPORT_SOURCE_UNAVAILABLE",
+		"TARGET_INVALID_STATE_TRANSITION",
+	} {
+		if !have[c] {
+			t.Errorf("AllCodes missing %s", c)
+		}
+	}
+	_ = wantCodes
+}
