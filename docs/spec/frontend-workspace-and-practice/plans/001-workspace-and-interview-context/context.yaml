@@ -1,0 +1,122 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: frontend-workspace-and-practice
+  name: 001-workspace-and-interview-context
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.2
+spec:
+  defaultTarget: frontend
+  discovery:
+    aliases:
+      - frontend-workspace-and-practice
+      - workspace-and-interview-context
+      - workspace and interview context
+      - workspace screen takeover
+      - interview context store
+      - start practice contract
+    keywords:
+      - WorkspaceScreen
+      - InterviewContext
+      - InterviewContextProvider
+      - useInterviewContext
+      - useStartPractice
+      - PlanSwitcherModal
+      - ResumePickerModal
+      - WorkspaceEmptyState
+      - WorkspaceMissingResumeState
+      - CompanyIntelEmbed
+      - InterviewRoundRail
+      - BindingPill
+      - listTargetJobs
+      - getTargetJob
+      - getResume
+      - getPracticePlan
+      - createPracticePlan
+      - startPracticeSession
+      - Idempotency-Key
+      - newIdempotencyBatch
+      - requestAuth start_practice
+      - pendingAction
+      - PracticeDisplayContext
+      - autoStartPractice
+      - practiceMode
+      - hintsEnabled
+      - companyIntel handoff
+      - report handoff
+      - sessionHistory placeholder
+      - listResumes blocker
+      - getCompanyIntel blocker
+      - workspace pixel parity
+      - E2E.P0.018
+      - E2E.P0.019
+      - E2E.P0.020
+      - E2E.P0.021
+  targets:
+    frontend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../../ui-design/module-job-workspace.md
+        - ../../../../ui-design/module-practice-review.md
+        - ../../../../ui-design/module-map.md
+        - ../../../../ui-design/ui-architecture.md
+        - ../../../frontend-shell/spec.md
+        - ../../../frontend-shell/plans/001-app-shell-auth-settings/plan.md
+        - ../../../frontend-shell/plans/002-app-shell-visual-system/plan.md
+        - ../../../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md
+        - ../../../frontend-home-job-picks-and-parse/spec.md
+        - ../../../frontend-home-job-picks-and-parse/plans/001-home-jd-import-and-parse/plan.md
+        - ../../../backend-practice/spec.md
+        - ../../../backend-targetjob/spec.md
+        - ../../../openapi-v1-contract/spec.md
+        - ../../../mock-contract-suite/spec.md
+        - ../../../shared-conventions-codified/spec.md
+        - ../../../product-scope/spec.md
+        - ../../../engineering-roadmap/spec.md
+      discovery:
+        packages:
+          - frontend/src/app/screens/workspace
+          - frontend/src/app/screens/workspace/hooks
+          - frontend/src/app/screens/workspace/modals
+          - frontend/src/app/interview-context
+          - frontend/src/app/i18n/locales
+          - frontend/src/app/auth
+          - frontend/src/app/navigation
+          - frontend/src/api
+          - frontend/src/api/generated
+          - frontend/src/lib/conventions
+          - frontend/tests/pixel-parity
+          - ui-design/src
+          - ui-design
+          - openapi
+          - openapi/fixtures/TargetJobs
+          - openapi/fixtures/Resumes
+          - openapi/fixtures/PracticePlans
+          - openapi/fixtures/PracticeSessions
+          - test/scenarios/e2e/p0-018-workspace-default-render
+          - test/scenarios/e2e/p0-019-workspace-context-loading
+          - test/scenarios/e2e/p0-020-workspace-start-practice
+          - test/scenarios/e2e/p0-021-workspace-handoff
+        uiRoutes:
+          - workspace
+          - practice
+          - generating
+          - report
+          - company_intel
+          - auth_login
+          - home
+          - resume_versions
+        apiNames:
+          - listTargetJobs
+          - getTargetJob
+          - getResume
+          - getPracticePlan
+          - createPracticePlan
+          - startPracticeSession
