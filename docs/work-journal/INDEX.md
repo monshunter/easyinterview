@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `docs(backend-practice): seed workstream backend owner subspec` | #docs |
 | [2026-05-08](2026-05-08.md) | `chore(governance): migrate default base branch to main` | #chore #docs #test |
 | [2026-05-08](2026-05-08.md) | `chore(governance): revise branch lifecycle rules` | #chore #docs #test |
 | [2026-05-08](2026-05-08.md) | `docs(backend-targetjob): land package handoff doc and active scope gate` | #docs #test |
