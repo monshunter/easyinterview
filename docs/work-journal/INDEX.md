@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `docs(reports): add language dropdown delivery assessment` | #docs |
 | [2026-05-08](2026-05-08.md) | `test(scenarios): update language dropdown terminology and pass counts` | #test #docs |
 | [2026-05-08](2026-05-08.md) | `feat(ui-design): add language dropdown and product info to prototype` | #feat #ui |
 | [2026-05-08](2026-05-08.md) | `feat(frontend-shell): implement language dropdown and locale catalog` | #feat #ui #test #docs |
