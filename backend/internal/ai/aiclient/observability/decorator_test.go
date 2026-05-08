@@ -104,6 +104,18 @@ func newTestStack(t *testing.T) (
 			Version:   "1.0.0",
 			Route:     "practice.dictation.stt",
 		},
+		"practice.voice.tts.default": {
+			Name:       "practice.voice.tts.default",
+			Capability: aiclient.CapabilityTts,
+			Status:     aiclient.ProfileStatusActive,
+			Default: aiclient.ProviderConfig{
+				ProviderRef: stub.Name,
+				Model:       "stub-tts-1",
+			},
+			TimeoutMs: 5000,
+			Version:   "1.0.0",
+			Route:     "practice.voice.tts",
+		},
 	}
 	inner, err := aiclient.New(
 		aiclient.Config{AppEnv: aiclient.AppEnvTest},
@@ -162,6 +174,26 @@ func sampleTranscriptionInput() aiclient.TranscriptionInput {
 		Metadata: aiclient.CallMetadata{
 			FeatureKey:    "practice.dictation.stt",
 			PromptVersion: "stt-p1",
+			Language:      "en",
+			TaskRun: aiclient.AITaskRunContext{
+				Capability:   aiclient.AITaskRunTaskFollowupGenerate,
+				ResourceType: aiclient.AITaskRunResourceTargetJob,
+				ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
+			},
+		},
+	}
+}
+
+func sampleSynthesisInput() aiclient.SynthesisInput {
+	return aiclient.SynthesisInput{
+		Text:         "private coaching feedback should be spoken",
+		Voice:        "coach-a",
+		Format:       "mp3",
+		SpeakingRate: 1.05,
+		Language:     "en",
+		Metadata: aiclient.CallMetadata{
+			FeatureKey:    "practice.voice.tts",
+			PromptVersion: "tts-p1",
 			Language:      "en",
 			TaskRun: aiclient.AITaskRunContext{
 				Capability:   aiclient.AITaskRunTaskFollowupGenerate,

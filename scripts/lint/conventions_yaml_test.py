@@ -43,7 +43,7 @@ REQUIRED_AI_FIELDS = [
     "to_model_family",
 ]
 
-REQUIRED_AI_CAPABILITIES = ["chat", "stt", "realtime", "judge"]
+REQUIRED_AI_CAPABILITIES = ["chat", "stt", "tts", "realtime", "judge"]
 
 REQUIRED_PROVIDER_REGISTRY_FIELDS = [
     "name",
@@ -260,14 +260,18 @@ class ConventionsYAMLTest(unittest.TestCase):
         self.assertTrue(any("validation_status" in err for err in errs), errs)
 
     def test_rejects_missing_ai_capability(self) -> None:
-        data = valid_data()
-        data["aiVocabulary"]["capabilities"] = [
-            value for value in data["aiVocabulary"]["capabilities"] if value != "judge"
-        ]
+        for capability in REQUIRED_AI_CAPABILITIES:
+            with self.subTest(capability=capability):
+                data = valid_data()
+                data["aiVocabulary"]["capabilities"] = [
+                    value
+                    for value in data["aiVocabulary"]["capabilities"]
+                    if value != capability
+                ]
 
-        errs = self.linter.validate(data)
+                errs = self.linter.validate(data)
 
-        self.assertTrue(any("judge" in err for err in errs), errs)
+                self.assertTrue(any(capability in err for err in errs), errs)
 
     def test_rejects_missing_ai_provider_registry_field(self) -> None:
         data = valid_data()

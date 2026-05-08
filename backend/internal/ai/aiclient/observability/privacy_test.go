@@ -19,6 +19,11 @@ var sensitiveTokens = []string{
 	"COMPANY-PROPRIETARY-XYZ",
 }
 
+var sensitiveTTSTokens = []string{
+	"TTS-PRIVATE-FEEDBACK",
+	"VOICE-OUTPUT-SECRET",
+}
+
 func sensitivePayload() aiclient.CompletePayload {
 	return aiclient.CompletePayload{
 		Messages: []aiclient.Message{
@@ -102,6 +107,138 @@ func TestPrivacy_NoPlaintextLeaksAnywhere(t *testing.T) {
 	if rows[0].Metadata.PromptCharLength == 0 || rows[0].Metadata.ResponseCharLength == 0 {
 		t.Fatalf("audit char lengths zero: %+v", rows[0].Metadata)
 	}
+}
+
+func TestPrivacy_SynthesizeNoPlaintextLeaksAndUsesTTSLabels(t *testing.T) {
+	registry := observability.NewInMemoryRegistry()
+	logger := observability.NewMemoryLogger()
+	runs := &memTaskRunWriter{}
+	audit := &memAuditWriter{}
+	resolver := staticResolver{
+		"practice.voice.tts.default": {
+			Name:       "practice.voice.tts.default",
+			Capability: aiclient.CapabilityTts,
+			Status:     aiclient.ProfileStatusActive,
+			Default: aiclient.ProviderConfig{
+				ProviderRef: "tts-provider",
+				Model:       "speech-model",
+			},
+			TimeoutMs: 5000,
+			Version:   "1.0.0",
+			Route:     "practice.voice.tts",
+		},
+	}
+	wrap, err := observability.New(&sensitiveSynthesisInner{},
+		observability.WithRegisterer(registry),
+		observability.WithLogger(logger),
+		observability.WithAITaskRunWriter(runs),
+		observability.WithAuditEventWriter(audit),
+		observability.WithProfileResolver(resolver),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+	input := sampleSynthesisInput()
+	input.Text = "spoken coaching note " + sensitiveTTSTokens[0]
+
+	_, meta, err := wrap.Synthesize(context.Background(), "practice.voice.tts.default", input)
+	if err != nil {
+		t.Fatalf("Synthesize: %v", err)
+	}
+	if meta.Capability != aiclient.CapabilityTts {
+		t.Fatalf("expected capability=%q, got %q", aiclient.CapabilityTts, meta.Capability)
+	}
+
+	successLabels := []string{"tts-provider", "speech-family", "practice.voice.tts.default", "practice.voice.tts", string(aiclient.CapabilityTts), "en", "success"}
+	if got := registry.CounterValue(observability.MetricRunsTotal, successLabels...); got != 1 {
+		t.Fatalf("expected tts run counter=1, got %v", got)
+	}
+
+	for _, token := range sensitiveTTSTokens {
+		for _, family := range []string{
+			observability.MetricRunsTotal,
+			observability.MetricInputTokensTotal,
+			observability.MetricOutputTokensTotal,
+			observability.MetricCostUSDTotal,
+			observability.MetricOutputValidationFailures,
+			observability.MetricFallbackTotal,
+		} {
+			for _, labels := range registry.CounterLabelValues(family) {
+				for _, lv := range labels {
+					if strings.Contains(lv, token) {
+						t.Errorf("plaintext token %q leaked into metric %q label %q", token, family, lv)
+					}
+				}
+			}
+		}
+		for _, entry := range logger.Entries() {
+			if anyContains(entry.Fields, token) {
+				t.Errorf("plaintext token %q leaked into log fields: %+v", token, entry.Fields)
+			}
+		}
+		for _, row := range runs.Rows() {
+			if anyTaskRunContains(row, token) {
+				t.Errorf("plaintext token %q leaked into ai_task_runs row: %+v", token, row)
+			}
+		}
+		for _, row := range audit.Rows() {
+			meta := row.Metadata
+			if strings.Contains(meta.PromptHash, token) ||
+				strings.Contains(meta.ResponseHash, token) ||
+				strings.Contains(meta.ProfileName, token) {
+				t.Errorf("plaintext token %q leaked into audit metadata: %+v", token, meta)
+			}
+		}
+	}
+
+	auditRows := audit.Rows()
+	if len(auditRows) != 1 {
+		t.Fatalf("expected 1 audit row, got %d", len(auditRows))
+	}
+	if auditRows[0].Metadata.PromptHash == "" || auditRows[0].Metadata.ResponseHash == "" {
+		t.Fatalf("audit hashes missing: %+v", auditRows[0].Metadata)
+	}
+	if auditRows[0].Metadata.PromptCharLength != len(input.Text) {
+		t.Fatalf("expected prompt length=%d, got %+v", len(input.Text), auditRows[0].Metadata)
+	}
+}
+
+type sensitiveSynthesisInner struct{}
+
+func (s *sensitiveSynthesisInner) Complete(context.Context, string, aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
+	return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, nil
+}
+
+func (s *sensitiveSynthesisInner) Transcribe(context.Context, string, aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
+	return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, nil
+}
+
+func (s *sensitiveSynthesisInner) Synthesize(_ context.Context, _ string, _ aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
+	return aiclient.SynthesisResponse{
+			Audio:       []byte("rendered " + sensitiveTTSTokens[1]),
+			ContentType: "audio/mpeg",
+			DurationMs:  320,
+			CharCount:   24,
+		}, aiclient.AICallMeta{
+			Provider:            "tts-provider",
+			ModelFamily:         "speech-family",
+			ModelID:             "speech-model",
+			Capability:          aiclient.CapabilityTts,
+			ModelProfileName:    "practice.voice.tts.default",
+			ModelProfileVersion: "1.0.0",
+			Language:            "en",
+			InputTokens:         24,
+			OutputTokens:        320,
+			LatencyMs:           1,
+			ValidationStatus:    aiclient.ValidationStatusOK,
+			Route:               "practice.voice.tts",
+		}, nil
+}
+
+func (s *sensitiveSynthesisInner) Stream(context.Context, string, aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
+	ch := make(chan aiclient.AIStreamEvent)
+	close(ch)
+	return ch, nil
 }
 
 func anyContains(fields observability.LogFields, token string) bool {

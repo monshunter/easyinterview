@@ -76,7 +76,7 @@ REQUIRED_AI_VOCABULARY_FIELDS = {
     "to_provider",
     "to_model_family",
 }
-REQUIRED_AI_CAPABILITIES = {"chat", "stt", "realtime", "judge"}
+REQUIRED_AI_CAPABILITIES = {"chat", "stt", "tts", "realtime", "judge"}
 REQUIRED_AI_PROVIDER_REGISTRY_FIELDS = {
     "name",
     "protocol",

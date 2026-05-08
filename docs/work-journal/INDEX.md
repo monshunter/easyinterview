@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `feat(ai-provider): tts 隐私测试与 lint capability 收口` | #feat #test |
 | [2026-05-08](2026-05-08.md) | `feat(ai-provider): voice profiles 与 drift gate 收口` | #feat #test #docs |
 | [2026-05-08](2026-05-08.md) | `feat(ai-provider): doubao 与 minimax speech adapters` | #feat #test |
 | [2026-05-08](2026-05-08.md) | `feat(ai-provider): synthesize provider-neutral 接口` | #feat #test |
