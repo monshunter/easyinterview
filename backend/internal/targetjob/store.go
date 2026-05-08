@@ -211,6 +211,29 @@ type ImportTargetJobResult struct {
 	Existing     bool
 }
 
+// ClaimedJob is the structured handoff between the store-level claim
+// query and the drainer's per-job handler. The drainer treats async_jobs
+// rows as the source of truth for retry / completion bookkeeping.
+type ClaimedJob struct {
+	JobID        string
+	JobType      string
+	ResourceType string
+	ResourceID   string
+	Payload      []byte
+	Attempts     int32
+	MaxAttempts  int32
+	AvailableAt  time.Time
+}
+
+// JobOutcome captures the parse-pipeline result so the drainer can update
+// async_jobs.status / error_code / completed_at consistently.
+type JobOutcome struct {
+	Succeeded    bool
+	ErrorCode    string
+	ErrorMessage string
+	Retryable    bool
+}
+
 // FileAttachmentRecord is the minimal projection of file_objects needed by
 // the import flow to confirm a referenced upload belongs to the caller and
 // has the expected purpose.
@@ -234,6 +257,13 @@ type Store interface {
 	ApplyParseResult(ctx context.Context, in ApplyParseResultInput) error
 	UpdateSourceFreshness(ctx context.Context, targetJobID string, freshness FreshnessStatus, now time.Time) error
 	LookupFileAttachmentForUser(ctx context.Context, userID string, fileObjectID string) (FileAttachmentRecord, error)
+	ClaimNextAsyncJob(ctx context.Context, jobTypes []string, now time.Time) (ClaimedJob, bool, error)
+	FinalizeAsyncJob(ctx context.Context, jobID string, outcome JobOutcome, now time.Time) error
+	EnqueueSourceRefresh(ctx context.Context, jobID string, targetJobID string, now time.Time) error
+	WriteParseFailedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error
+	WriteTargetParsedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error
+	GetTargetJobForParse(ctx context.Context, targetJobID string) (TargetJobRecord, []SourceRecord, error)
+	UpdateTargetJobAnalysisFailure(ctx context.Context, targetJobID string, now time.Time) error
 }
 
 // SQLStore is the default Postgres-backed Store implementation.
@@ -880,6 +910,281 @@ limit 1`,
 		JobUpdatedAt: updatedAt,
 		Existing:     true,
 	}, true, nil
+}
+
+// ClaimNextAsyncJob atomically picks the oldest queued row whose job_type
+// matches one of the provided values and whose available_at <= now. The
+// claim flips status to running, increments attempts, and stamps locked_at,
+// then returns the claimed row to the drainer. The (false, nil) tuple
+// means there is currently nothing to do.
+func (s *SQLStore) ClaimNextAsyncJob(ctx context.Context, jobTypes []string, now time.Time) (ClaimedJob, bool, error) {
+	if err := s.checkDB(); err != nil {
+		return ClaimedJob{}, false, err
+	}
+	if len(jobTypes) == 0 {
+		return ClaimedJob{}, false, fmt.Errorf("ClaimNextAsyncJob requires at least one job type")
+	}
+	// Render the IN (...) list with positional placeholders.
+	placeholders := make([]string, 0, len(jobTypes))
+	args := make([]any, 0, len(jobTypes)+1)
+	for i, jt := range jobTypes {
+		placeholders = append(placeholders, fmt.Sprintf("$%d", i+1))
+		args = append(args, jt)
+	}
+	args = append(args, now)
+	query := fmt.Sprintf(`
+update async_jobs
+set status = 'running',
+    attempts = attempts + 1,
+    locked_at = $%[1]d,
+    updated_at = $%[1]d
+where id = (
+  select id from async_jobs
+  where status = 'queued' and available_at <= $%[1]d and job_type in (%s)
+  order by available_at asc, created_at asc
+  for update skip locked
+  limit 1
+)
+returning id, job_type, resource_type, resource_id, payload, attempts, max_attempts, available_at`,
+		len(args),
+		strings.Join(placeholders, ","),
+	)
+	var (
+		claimed     ClaimedJob
+		payload     []byte
+	)
+	err := s.db.QueryRowContext(ctx, query, args...).Scan(
+		&claimed.JobID,
+		&claimed.JobType,
+		&claimed.ResourceType,
+		&claimed.ResourceID,
+		&payload,
+		&claimed.Attempts,
+		&claimed.MaxAttempts,
+		&claimed.AvailableAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ClaimedJob{}, false, nil
+	}
+	if err != nil {
+		return ClaimedJob{}, false, fmt.Errorf("claim async_jobs: %w", err)
+	}
+	if len(payload) > 0 {
+		claimed.Payload = append([]byte{}, payload...)
+	}
+	return claimed, true, nil
+}
+
+// FinalizeAsyncJob applies the outcome to async_jobs. Failed + retryable
+// requeues the row by clearing locked_at and bumping available_at by a
+// modest backoff; failed + non-retryable terminates with status='failed'.
+func (s *SQLStore) FinalizeAsyncJob(ctx context.Context, jobID string, outcome JobOutcome, now time.Time) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	if jobID == "" {
+		return fmt.Errorf("FinalizeAsyncJob requires jobID")
+	}
+	if outcome.Succeeded {
+		_, err := s.db.ExecContext(ctx, `
+update async_jobs
+set status = 'succeeded',
+    completed_at = $1,
+    updated_at = $1,
+    locked_at = null,
+    error_code = null,
+    error_message = null
+where id = $2`, now, jobID)
+		if err != nil {
+			return fmt.Errorf("finalize async_jobs succeeded: %w", err)
+		}
+		return nil
+	}
+	if outcome.Retryable {
+		_, err := s.db.ExecContext(ctx, `
+update async_jobs
+set status = case when attempts >= max_attempts then 'dead' else 'queued' end,
+    available_at = $1,
+    updated_at = $1,
+    locked_at = null,
+    error_code = $2,
+    error_message = $3
+where id = $4`,
+			now.Add(15*time.Second),
+			outcome.ErrorCode,
+			nullableString(outcome.ErrorMessage),
+			jobID,
+		)
+		if err != nil {
+			return fmt.Errorf("finalize async_jobs retryable: %w", err)
+		}
+		return nil
+	}
+	_, err := s.db.ExecContext(ctx, `
+update async_jobs
+set status = 'failed',
+    completed_at = $1,
+    updated_at = $1,
+    locked_at = null,
+    error_code = $2,
+    error_message = $3
+where id = $4`,
+		now,
+		outcome.ErrorCode,
+		nullableString(outcome.ErrorMessage),
+		jobID,
+	)
+	if err != nil {
+		return fmt.Errorf("finalize async_jobs failed: %w", err)
+	}
+	return nil
+}
+
+// EnqueueSourceRefresh writes the placeholder source_refresh async_jobs row
+// (D-3 / plan 4.5). Payload is intentionally empty: the row exists only as
+// a downstream trigger for a future refresh implementation.
+func (s *SQLStore) EnqueueSourceRefresh(ctx context.Context, jobID string, targetJobID string, now time.Time) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, `
+insert into async_jobs (
+  id, job_type, resource_type, resource_id, dedupe_key, status, payload,
+  available_at, created_at, updated_at
+) values ($1, $2, 'target_job', $3, null, 'queued', '{}'::jsonb, $4, $4, $4)`,
+		jobID,
+		string(jobs.JobTypeSourceRefresh),
+		targetJobID,
+		now,
+	)
+	if err != nil {
+		return fmt.Errorf("enqueue source_refresh: %w", err)
+	}
+	return nil
+}
+
+// WriteTargetParsedOutbox inserts a target.parsed event row.
+func (s *SQLStore) WriteTargetParsedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error {
+	return s.writeOutbox(ctx, eventID, "target.parsed", targetJobID, payload, now)
+}
+
+// WriteParseFailedOutbox inserts a target.analysis.failed event row.
+func (s *SQLStore) WriteParseFailedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error {
+	return s.writeOutbox(ctx, eventID, "target.analysis.failed", targetJobID, payload, now)
+}
+
+func (s *SQLStore) writeOutbox(ctx context.Context, eventID, eventName, targetJobID string, payload []byte, now time.Time) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, `
+insert into outbox_events (
+  id, event_name, event_version, aggregate_type, aggregate_id, payload, publish_status, created_at
+) values ($1, $2, 1, 'target_job', $3, $4, 'pending', $5)`,
+		eventID,
+		eventName,
+		targetJobID,
+		payload,
+		now,
+	)
+	if err != nil {
+		return fmt.Errorf("insert outbox %s: %w", eventName, err)
+	}
+	return nil
+}
+
+// GetTargetJobForParse returns the bare row needed by the parse executor
+// without joining cross-tenant filters (the drainer is internal). Sources
+// are returned alongside so the executor can fetch URL bodies.
+func (s *SQLStore) GetTargetJobForParse(ctx context.Context, targetJobID string) (TargetJobRecord, []SourceRecord, error) {
+	if err := s.checkDB(); err != nil {
+		return TargetJobRecord{}, nil, err
+	}
+	var rec TargetJobRecord
+	var (
+		profileID          sql.NullString
+		title              sql.NullString
+		companyName        sql.NullString
+		locationText       sql.NullString
+		employmentType     sql.NullString
+		seniorityLevel     sql.NullString
+		sourceURL          sql.NullString
+		sourceFileObjectID sql.NullString
+		rawJDText          sql.NullString
+		notes              sql.NullString
+		latestReportID     sql.NullString
+		summary            []byte
+		fitSummary         []byte
+		status             string
+		analysisStatus     string
+		sourceType         string
+	)
+	err := s.db.QueryRowContext(ctx, `
+select id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+       employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
+       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
+       created_at, updated_at
+from target_jobs
+where id = $1 and deleted_at is null`,
+		targetJobID,
+	).Scan(
+		&rec.ID, &rec.UserID, &profileID, &status, &analysisStatus,
+		&title, &companyName, &locationText, &employmentType, &seniorityLevel,
+		&rec.TargetLanguage, &sourceType, &sourceURL, &sourceFileObjectID,
+		&rawJDText, &summary, &fitSummary, &notes, &latestReportID,
+		&rec.OpenQuestionIssueCount, &rec.CreatedAt, &rec.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return TargetJobRecord{}, nil, ErrTargetJobNotFound
+	}
+	if err != nil {
+		return TargetJobRecord{}, nil, fmt.Errorf("select target_jobs for parse: %w", err)
+	}
+	rec.ProfileID = profileID.String
+	rec.Status = sharedtypes.TargetJobStatus(status)
+	rec.AnalysisStatus = sharedtypes.TargetJobParseStatus(analysisStatus)
+	rec.Title = title.String
+	rec.CompanyName = companyName.String
+	rec.LocationText = locationText.String
+	rec.EmploymentType = employmentType.String
+	rec.SeniorityLevel = seniorityLevel.String
+	rec.SourceType = SourceType(sourceType)
+	rec.SourceURL = sourceURL.String
+	rec.SourceFileObjectID = sourceFileObjectID.String
+	rec.RawJDText = rawJDText.String
+	rec.Notes = notes.String
+	rec.LatestReportID = latestReportID.String
+	if len(summary) > 0 {
+		rec.Summary = append(json.RawMessage{}, summary...)
+	}
+	if len(fitSummary) > 0 {
+		rec.FitSummary = append(json.RawMessage{}, fitSummary...)
+	}
+
+	sources, err := s.listSourcesForJob(ctx, s.db, targetJobID)
+	if err != nil {
+		return TargetJobRecord{}, nil, err
+	}
+	return rec, sources, nil
+}
+
+// UpdateTargetJobAnalysisFailure flips analysis_status to 'failed' on the
+// target_jobs row without touching summary / fit_summary.
+func (s *SQLStore) UpdateTargetJobAnalysisFailure(ctx context.Context, targetJobID string, now time.Time) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, `
+update target_jobs
+set analysis_status = 'failed', updated_at = $1
+where id = $2 and deleted_at is null`,
+		now,
+		targetJobID,
+	)
+	if err != nil {
+		return fmt.Errorf("update target_jobs analysis_status=failed: %w", err)
+	}
+	return nil
 }
 
 // LookupFileAttachmentForUser confirms the referenced file_object belongs

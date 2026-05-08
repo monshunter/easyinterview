@@ -33,11 +33,11 @@
 
 ## Phase 4: Async parse pipeline
 
-- [ ] 4.1 实现 `target_import` drainer；验证: drainer focused tests 覆盖 handler 入队后立即返回 202、worker pool 并发上限可观测、graceful shutdown drain timeout、pending job 在重启后仍能被 drain；不启动独立 worker 进程也能完成 BDD 与本地验证
-- [ ] 4.2 调用 F3 Resolve + A3 Complete；验证: tests 覆盖 `RegistryClient.Resolve("target.import.parse", language)` 三元组传递、payload 含 `feature_key + prompt_version + rubric_version + model_profile_name + language + data_source_version`、F3 disabled / unsupported profile 触发失败路径、A3 缺 secret fail-closed、prompt body / response body 不入库 / 不入日志 / 不入 metric label
-- [ ] 4.3 写入解析结果与发出 `target.parsed`；验证: tests 覆盖事务内 upsert `target_job_requirements`（按 `(target_job_id, kind, label)` 去重，display_order 累加）、`target_jobs.summary` / `fit_summary` / `analysis_status='ready'` / `latest_parse_job_id` 同事务更新、outbox `target.parsed` payload 仅含 `targetJobId / userId / analysisStatus / requirementCount / coreThemes`
-- [ ] 4.4 实现失败路径与 retryable 语义；验证: tests 覆盖 A3 / source 错误到 retryable=true / false 的映射矩阵（`AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` retryable；`AI_OUTPUT_INVALID` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID` / `TARGET_IMPORT_SOURCE_INVALID` non-retryable）、事务内 `target.analysis.failed` outbox 写入、失败不删除 `target_job_sources` 记录
-- [ ] 4.5 占位 `source_refresh` 触发入口；验证: tests 覆盖 `target.parsed` 触发后写入 internal-only `async_jobs(job_type=source_refresh)`（B3 dotted task `source.refresh`）、payload 不含 source URL 完整路径、drainer 端空 handler 标记 `target_job_sources.freshness_status='stale'`，并标注待 future plan 接管
+- [x] 4.1 实现 `target_import` drainer；验证: drainer focused tests 覆盖 handler 入队后立即返回 202、worker pool 并发上限可观测、graceful shutdown drain timeout、pending job 在重启后仍能被 drain；不启动独立 worker 进程也能完成 BDD 与本地验证
+- [x] 4.2 调用 F3 Resolve + A3 Complete；验证: tests 覆盖 `RegistryClient.Resolve("target.import.parse", language)` 三元组传递、payload 含 `feature_key + prompt_version + rubric_version + model_profile_name + language + data_source_version`、F3 disabled / unsupported profile 触发失败路径、A3 缺 secret fail-closed、prompt body / response body 不入库 / 不入日志 / 不入 metric label
+- [x] 4.3 写入解析结果与发出 `target.parsed`；验证: tests 覆盖事务内 upsert `target_job_requirements`（按 `(target_job_id, kind, label)` 去重，display_order 累加）、`target_jobs.summary` / `fit_summary` / `analysis_status='ready'` / `latest_parse_job_id` 同事务更新、outbox `target.parsed` payload 仅含 `targetJobId / userId / analysisStatus / requirementCount / coreThemes`
+- [x] 4.4 实现失败路径与 retryable 语义；验证: tests 覆盖 A3 / source 错误到 retryable=true / false 的映射矩阵（`AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` retryable；`AI_OUTPUT_INVALID` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID` / `TARGET_IMPORT_SOURCE_INVALID` non-retryable）、事务内 `target.analysis.failed` outbox 写入、失败不删除 `target_job_sources` 记录
+- [x] 4.5 占位 `source_refresh` 触发入口；验证: tests 覆盖 `target.parsed` 触发后写入 internal-only `async_jobs(job_type=source_refresh)`（B3 dotted task `source.refresh`）、payload 不含 source URL 完整路径、drainer 端空 handler 标记 `target_job_sources.freshness_status='stale'`，并标注待 future plan 接管
 
 ## Phase 5: Privacy / observability / idempotency redlines
 

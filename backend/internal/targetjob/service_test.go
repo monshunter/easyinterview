@@ -93,6 +93,26 @@ func (f *fakeStore) UpdateSourceFreshness(context.Context, string, targetjob.Fre
 	panic("not used")
 }
 
+func (f *fakeStore) ClaimNextAsyncJob(context.Context, []string, time.Time) (targetjob.ClaimedJob, bool, error) {
+	return targetjob.ClaimedJob{}, false, nil
+}
+func (f *fakeStore) FinalizeAsyncJob(context.Context, string, targetjob.JobOutcome, time.Time) error {
+	return nil
+}
+func (f *fakeStore) EnqueueSourceRefresh(context.Context, string, string, time.Time) error { return nil }
+func (f *fakeStore) WriteParseFailedOutbox(context.Context, string, string, []byte, time.Time) error {
+	return nil
+}
+func (f *fakeStore) WriteTargetParsedOutbox(context.Context, string, string, []byte, time.Time) error {
+	return nil
+}
+func (f *fakeStore) GetTargetJobForParse(context.Context, string) (targetjob.TargetJobRecord, []targetjob.SourceRecord, error) {
+	return targetjob.TargetJobRecord{}, nil, nil
+}
+func (f *fakeStore) UpdateTargetJobAnalysisFailure(context.Context, string, time.Time) error {
+	return nil
+}
+
 func (f *fakeStore) LookupFileAttachmentForUser(_ context.Context, userID string, fileObjectID string) (targetjob.FileAttachmentRecord, error) {
 	if f.fileLookupErr != nil {
 		return targetjob.FileAttachmentRecord{}, f.fileLookupErr
