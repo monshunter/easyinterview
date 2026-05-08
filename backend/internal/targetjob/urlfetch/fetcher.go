@@ -183,8 +183,10 @@ func (f *Fetcher) parseAndValidate(rawURL string) (*url.URL, error) {
 		return nil, fmt.Errorf("%w: host is required", ErrInvalidSource)
 	}
 	// Reject userinfo / fragment so the runner does not accidentally pass
-	// credentials or anchor strings.
+	// credentials, query secrets, or anchor strings.
 	u.User = nil
+	u.RawQuery = ""
+	u.ForceQuery = false
 	u.Fragment = ""
 	return u, nil
 }

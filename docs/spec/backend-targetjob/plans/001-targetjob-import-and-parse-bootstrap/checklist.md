@@ -17,6 +17,7 @@
 - [x] 1.1 锁定 store 接口与 SQL 实现；验证: store tests 覆盖 `target_jobs` / `target_job_requirements` / `target_job_sources` 三表的 insert / get / list (含 status / analysisStatus / q / cursor / pageSize) / update / parse-result upsert / 软删过滤；所有 read / write 必须按 `user_id` scope，越权返回 `sql.ErrNoRows` 并由 handler 映射 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`；不新增 migration
 - [x] 1.2 锁定 config / secret 边界；验证: config tests 覆盖 URL fetch timeout / UA 标记由本域代码常量提供；统一出网代理不作为 app-level 配置，代码和文档不得新增等价 proxy key；A3 / F3 缺 provider secret 或 disabled / unsupported profile 时除 `APP_ENV=test` 外 fail-closed；新增 app-level 配置 key 触发 panic 并提示先修订 A4
 - [x] 1.3 锁定 generated handler / outbox / job surface；验证: compile / contract tests 断言 4 个 TargetJob handler 经由 B2 generated `ServerInterface` 注册；outbox 写入与 `target_import` 派发使用 B3 generated payload helper，redacted fields negative tests 覆盖 `raw_jd_text` / `source_url` / 文件 URL / prompt / response / provider secret 等违规
+- [x] 1.4 Remediation: 修复 `cmd/api` 编译与 TargetJob runtime registration；验证: `backend/internal/platform/secrets` 恢复 A4 `EnvSecretSource` 实现，`go test ./cmd/api` 通过，`cmd/api` route tests 证明 `/api/v1/targets`、`/api/v1/targets/import`、`/api/v1/targets/{targetJobId}` 经 auth middleware 挂载到 `targetjob.Handler`
 
 ## Phase 2: Synchronous TargetJob CRUD
 
@@ -24,12 +25,14 @@
 - [x] 2.2 实现 `listTargetJobs`；验证: tests 覆盖 status / analysisStatus / q / cursor / pageSize 过滤与索引使用、cursor base64url 编码 / decode、pageSize clamp 到 [1,100]、跨用户行不返回、软删行不返回、空结果返回 generated `PaginatedTargetJob` 空 envelope
 - [x] 2.3 实现 `getTargetJob`；验证: handler tests 覆盖按 `(user_id, target_job_id)` 读取、requirements 数组按 `display_order` 排序、`summary` / `fitSummary` / `provenance` 字段非空校验、`latestReportId` 暂为 nil 占位、越权 / 软删返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`
 - [x] 2.4 实现 `updateTargetJob`；验证: handler tests 覆盖状态机合法迁移（`draft → preparing → applied → interviewing → offer | rejected → archived` + `archived` 兜底）、非法迁移返回 B1 `TARGET_INVALID_STATE_TRANSITION`、`Idempotency-Key` 跨用户隔离、仅写入非空字段、不修改 analysis_status
+- [x] 2.5 Remediation: 实现 `updateTargetJob` 按 `(user_id, idempotency_key)` 去重；验证: service / store tests 覆盖同一用户同 key 重复 PATCH 不重复执行 mutation、不同用户同 key 不复用记录、重复 key 返回同一 `targetJobId`，且不修改 `analysis_status`
 
 ## Phase 3: Source ingestion (URL / file / manual)
 
 - [x] 3.1 实现 `manual_text` / `manual_form` 写入；验证: tests 覆盖 manual_text 在 `target_job_sources.source_type='manual_text'` 与 `target_jobs.raw_jd_text` 同源写入；manual_form 同步 `analysis_status='ready'` + 至少 1 条草稿 `must_have` requirement，返回 terminal `target_import/succeeded` job，且不派发 runner job、不发出 `target.import.requested` / `target.parsed`
 - [x] 3.2 实现 `file` 引用；验证: tests 覆盖 `file_objects.purpose='target_job_attachment'` + `(user_id, file_object_id)` 校验、缺失 / 越权 / purpose 不符返回 B1 `TARGET_JOB_NOT_FOUND` 或 `TARGET_IMPORT_SOURCE_INVALID`（按是否泄露存在性决策）、`target_jobs.source_file_object_id` 与 `target_job_sources.file_object_id` 写入正确，本 plan 下 `raw_jd_text` 允许暂留空待异步阶段或 manual_text 兜底
 - [x] 3.3 实现 `url` 抓取守护；验证: SSRF 测试矩阵覆盖 scheme 非 https 拒绝 / 私网 (RFC1918 / 169.254 / `::1` / `fc00::/7`) / 元数据服务 / cross-origin redirect 进入私网 / body cap 1 MiB / timeout 10s / UA 标记；非法/超长/空白映射 B1 `TARGET_IMPORT_SOURCE_INVALID`，上游暂时不可达映射 `TARGET_IMPORT_SOURCE_UNAVAILABLE`；`target_job_sources.url` 为 sanitized URL，`snapshot_text` 为抓取文本且不含 query secret
+- [x] 3.4 Remediation: URL source 去除 query secret 并持久化抓取 snapshot；验证: service / urlfetch / pipeline tests 覆盖 `source_url` 与 `target_job_sources.url` 不含 query / fragment / userinfo，合法 URL fetch body 被写入 `snapshot_text` 并作为 parse 输入
 
 ## Phase 4: Async parse pipeline
 
@@ -38,12 +41,14 @@
 - [x] 4.3 写入解析结果与发出 `target.parsed`；验证: tests 覆盖事务内 upsert `target_job_requirements`（按 `(target_job_id, kind, label)` 去重，display_order 累加）、`target_jobs.summary` / `fit_summary` / `analysis_status='ready'` / `latest_parse_job_id` 同事务更新、outbox `target.parsed` payload 仅含 `targetJobId / userId / analysisStatus / requirementCount / coreThemes`
 - [x] 4.4 实现失败路径与 retryable 语义；验证: tests 覆盖 A3 / source 错误到 retryable=true / false 的映射矩阵（`AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` retryable；`AI_OUTPUT_INVALID` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID` / `TARGET_IMPORT_SOURCE_INVALID` non-retryable）、事务内 `target.analysis.failed` outbox 写入、失败不删除 `target_job_sources` 记录
 - [x] 4.5 占位 `source_refresh` 触发入口；验证: tests 覆盖 `target.parsed` 触发后写入 internal-only `async_jobs(job_type=source_refresh)`（B3 dotted task `source.refresh`）、payload 不含 source URL 完整路径、drainer 端空 handler 标记 `target_job_sources.freshness_status='stale'`，并标注待 future plan 接管
+- [x] 4.6 Remediation: 解析成功事务写入 `latest_parse_job_id`；验证: parse executor 将 claimed `jobID` 传入 store，SQL store tests 覆盖 `target_jobs.latest_parse_job_id` 与 `analysis_status / summary / fit_summary` 同事务更新
 
 ## Phase 5: Privacy / observability / idempotency redlines
 
 - [x] 5.1 隐私 grep / payload negative tests；验证: privacy grep 0 命中 `raw_jd_text` / `source_url`(含完整 URL 与 query 串) / 文件 object URL / prompt body / response body / provider secret / `Authorization:` 模式；generated outbox / job payload helper 在 negative test 中拒绝任何 redacted field
 - [x] 5.2 F1 metric registry preflight；验证: F1 baseline metrics 字典已登记 `target_job_imports_total` / `target_job_parse_duration_seconds` / `target_job_parse_failures_total` 与 allowed labels (`service` / `operation` / `job_type` / `source_type` / `language` / `result` / `error_code`)；metric tests 证明 label 不含 URL、target id、user id、prompt version 或自由文本
 - [x] 5.3 Idempotency 跨 user 隔离；验证: store / handler tests 覆盖两个不同用户使用相同 `Idempotency-Key` 不会复用 active `target_import` job；同一用户同 key 重复请求返回同一 `targetJobId` 与同一 active job，DB / outbox 不出现重复 row 与重复事件
+- [x] 5.4 Remediation: 强化 privacy / negative gates 覆盖本轮修复；验证: redline tests 覆盖 URL query secret 不进入 stored source URL / event / job payload，active-scope negative search 只允许测试自身声明 forbidden token
 
 ## Phase 6: BDD and handoff
 

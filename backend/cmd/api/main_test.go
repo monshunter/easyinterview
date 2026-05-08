@@ -108,7 +108,7 @@ featureFlag:
 		Now:                   func() time.Time { return time.Date(2026, 5, 6, 20, 0, 0, 0, time.UTC) },
 		NewID:                 apiFixedIDs("challenge-1"),
 	})
-	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service)
+	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
 
 	start := httptest.NewRecorder()
 	handler.ServeHTTP(start, httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", bytes.NewBufferString(`{"email":"Candidate@Example.COM"}`)))
@@ -137,6 +137,46 @@ featureFlag:
 	handler.ServeHTTP(logout, httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil))
 	if logout.Code != http.StatusNoContent {
 		t.Fatalf("logout route status = %d body=%s", logout.Code, logout.Body.String())
+	}
+}
+
+func TestBuildAPIHandlerMountsTargetJobRoutesBehindSessionMiddleware(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               &apiAuthStore{},
+		SessionCookieSecret: "session-secret",
+	})
+	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
+
+	cases := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/v1/targets"},
+		{http.MethodPost, "/api/v1/targets/import"},
+		{http.MethodGet, "/api/v1/targets/018f2a40-0000-7000-9000-0000000000a1"},
+		{http.MethodPatch, "/api/v1/targets/018f2a40-0000-7000-9000-0000000000a1"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, httptest.NewRequest(tc.method, tc.path, nil))
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("status = %d body=%s; route is not mounted behind auth middleware", rec.Code, rec.Body.String())
+			}
+			if !strings.Contains(rec.Body.String(), `"code":"AUTH_UNAUTHORIZED"`) {
+				t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())
+			}
+		})
 	}
 }
 
@@ -184,7 +224,7 @@ runtime:
 		SessionCookieSecret: "session-secret",
 		Now:                 func() time.Time { return time.Date(2026, 5, 6, 21, 0, 0, 0, time.UTC) },
 	})
-	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service)
+	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 	req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: "raw-session-token"})
 	rec := httptest.NewRecorder()
@@ -227,7 +267,7 @@ runtime:
 				SessionCookieSecret: "session-secret",
 				Now:                 func() time.Time { return time.Date(2026, 5, 6, 21, 0, 0, 0, time.UTC) },
 			})
-			handler := buildAPIHandler(loader, apiRuntimeFlags{}, service)
+			handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 			req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: "raw-session-token"})
 			rec := httptest.NewRecorder()

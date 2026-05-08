@@ -24,6 +24,8 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
 	"github.com/monshunter/easyinterview/backend/internal/platform/secrets"
+	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
+	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
 func main() {
@@ -99,7 +101,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           buildAPIHandler(loader, flagsClient, authService),
+		Handler:           buildAPIHandler(loader, flagsClient, authService, db),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -145,11 +147,25 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessServ
 	return service, dispatcher, nil
 }
 
-func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService) http.Handler {
+func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, db *sql.DB) http.Handler {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(auth.HandlerOptions{
 		Passwordless: authService,
 		CookiePolicy: pointer(auth.CookiePolicyForAppEnv(loader.AppEnv())),
+	})
+	targetJobHandler := targetjob.NewHandler(targetjob.HandlerOptions{
+		Service: targetjob.NewService(targetjob.ServiceOptions{
+			Store:        targetjob.NewSQLStore(db),
+			NewID:        idx.NewID,
+			DedupePepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+		}),
+		Session: func(ctx context.Context) (string, bool) {
+			current, ok := auth.CurrentSessionFromContext(ctx)
+			if !ok || strings.TrimSpace(current.UserID) == "" {
+				return "", false
+			}
+			return current.UserID, true
+		},
 	})
 	mux.Handle("POST /api/v1/auth/email/start", auth.SessionMiddleware(authService, "startAuthEmailChallenge", http.HandlerFunc(authHandler.StartAuthEmailChallenge)))
 	mux.Handle("GET /api/v1/auth/email/verify", auth.SessionMiddleware(authService, "verifyAuthEmailChallenge", http.HandlerFunc(authHandler.VerifyAuthEmailChallenge)))
@@ -163,6 +179,14 @@ func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagC
 			return featureflag.FlagContext{AppEnv: loader.AppEnv()}
 		},
 		SessionResolver: authService.RuntimeConfigSessionResolver(),
+	})))
+	mux.Handle("GET /api/v1/targets", auth.SessionMiddleware(authService, "listTargetJobs", http.HandlerFunc(targetJobHandler.ListTargetJobs)))
+	mux.Handle("POST /api/v1/targets/import", auth.SessionMiddleware(authService, "importTargetJob", http.HandlerFunc(targetJobHandler.ImportTargetJob)))
+	mux.Handle("GET /api/v1/targets/{targetJobId}", auth.SessionMiddleware(authService, "getTargetJob", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetJobHandler.GetTargetJob(w, r, r.PathValue("targetJobId"))
+	})))
+	mux.Handle("PATCH /api/v1/targets/{targetJobId}", auth.SessionMiddleware(authService, "updateTargetJob", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetJobHandler.UpdateTargetJob(w, r, r.PathValue("targetJobId"))
 	})))
 	return mux
 }

@@ -117,7 +117,7 @@ func (s *Service) ImportTargetJob(ctx context.Context, in ImportRequest) (Import
 	now := s.now()
 	targetJobID := s.newID()
 	jobID := s.newID()
-	dedupeKey := s.dedupeKey(in.UserID, in.IdempotencyKey)
+	dedupeKey := s.importDedupeKey(in.UserID, in.IdempotencyKey)
 
 	storeIn := ImportTargetJobInput{
 		UserID:                 in.UserID,
@@ -241,9 +241,17 @@ func (s *Service) attachRunnerEnvelope(in *ImportTargetJobInput) error {
 	return nil
 }
 
-func (s *Service) dedupeKey(userID, idempotencyKey string) string {
+func (s *Service) importDedupeKey(userID, idempotencyKey string) string {
+	return s.dedupeKey("targetjob.import.v1", userID, idempotencyKey)
+}
+
+func (s *Service) updateDedupeKey(userID, idempotencyKey string) string {
+	return s.dedupeKey("targetjob.update.v1", userID, idempotencyKey)
+}
+
+func (s *Service) dedupeKey(namespace, userID, idempotencyKey string) string {
 	h := sha256.New()
-	h.Write([]byte("targetjob.import.v1"))
+	h.Write([]byte(namespace))
 	if s.dedupePepper != "" {
 		h.Write([]byte("|"))
 		h.Write([]byte(s.dedupePepper))
@@ -346,6 +354,9 @@ func sanitizeJDURL(raw string) (string, error) {
 	if u.Host == "" {
 		return "", &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: "url host is required"}
 	}
+	u.User = nil
+	u.RawQuery = ""
+	u.ForceQuery = false
 	u.Fragment = ""
 	return u.String(), nil
 }
@@ -438,6 +449,12 @@ func (s *Service) UpdateTargetJob(ctx context.Context, in UpdateRequest) (api.Ta
 	if strings.TrimSpace(in.IdempotencyKey) == "" {
 		return api.TargetJob{}, ErrIdempotencyKeyRequired
 	}
+	dedupeKey := s.updateDedupeKey(in.UserID, in.IdempotencyKey)
+	if rec, reqs, hit, err := s.store.LookupUpdateDedupe(ctx, in.UserID, dedupeKey); err != nil {
+		return api.TargetJob{}, err
+	} else if hit {
+		return recordToAPI(rec, reqs), nil
+	}
 	current, _, _, err := s.store.GetTargetJobByUser(ctx, in.UserID, in.TargetJobID)
 	if err != nil {
 		if errors.Is(err, ErrTargetJobNotFound) {
@@ -456,6 +473,8 @@ func (s *Service) UpdateTargetJob(ctx context.Context, in UpdateRequest) (api.Ta
 		Notes:           in.Notes,
 		TitleHint:       in.TitleHint,
 		CompanyNameHint: in.CompanyNameHint,
+		DedupeKey:       dedupeKey,
+		DedupeMarkerID:  s.newID(),
 	}, s.now())
 	if err != nil {
 		if errors.Is(err, ErrTargetJobNotFound) {

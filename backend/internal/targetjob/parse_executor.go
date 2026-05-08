@@ -86,12 +86,12 @@ func NewParseExecutor(opts ParseExecutorOptions) *ParseExecutor {
 // drift from this shape surfaces as AI_OUTPUT_INVALID (non-retryable). The
 // upstream prompt is owned by F3 so the schema lives here as the consumer.
 type parseAIResponse struct {
-	CoreThemes          []string                  `json:"coreThemes"`
-	InterviewHypotheses []string                  `json:"interviewHypotheses"`
-	Strengths           []string                  `json:"strengths"`
-	Gaps                []string                  `json:"gaps"`
-	RiskSignals         []string                  `json:"riskSignals"`
-	Requirements        []parseAIResponseReq      `json:"requirements"`
+	CoreThemes          []string             `json:"coreThemes"`
+	InterviewHypotheses []string             `json:"interviewHypotheses"`
+	Strengths           []string             `json:"strengths"`
+	Gaps                []string             `json:"gaps"`
+	RiskSignals         []string             `json:"riskSignals"`
+	Requirements        []parseAIResponseReq `json:"requirements"`
 }
 
 type parseAIResponseReq struct {
@@ -114,10 +114,13 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, err.Error(), false)
 	}
 
+	var fetchedURLBody string
 	if target.SourceType == SourceTypeURL {
-		if err := p.fetchURLSnapshot(ctx, target, sources); err != nil {
+		body, err := p.fetchURLSnapshot(ctx, target, sources)
+		if err != nil {
 			return p.translateAndFail(ctx, targetJobID, err)
 		}
+		fetchedURLBody = body
 	}
 
 	resolution, err := p.registry.Resolve(ctx, FeatureKeyTargetImportParse, target.TargetLanguage)
@@ -127,11 +130,14 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		return p.fail(ctx, targetJobID, sharederrors.CodeAiProviderConfigInvalid, err.Error(), false)
 	}
 
-	jdText := target.RawJDText
-	for _, src := range sources {
-		if src.SnapshotText != "" {
-			jdText = src.SnapshotText
-			break
+	jdText := fetchedURLBody
+	if strings.TrimSpace(jdText) == "" {
+		jdText = target.RawJDText
+		for _, src := range sources {
+			if src.SnapshotText != "" {
+				jdText = src.SnapshotText
+				break
+			}
 		}
 	}
 	if strings.TrimSpace(jdText) == "" {
@@ -189,12 +195,13 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 
 	now := p.now()
 	if err := p.store.ApplyParseResult(ctx, ApplyParseResultInput{
-		TargetJobID:    targetJobID,
-		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
-		Summary:        summary,
-		FitSummary:     fitSummary,
-		Requirements:   requirements,
-		Now:            now,
+		TargetJobID:      targetJobID,
+		AnalysisStatus:   sharedtypes.TargetJobParseStatusReady,
+		Summary:          summary,
+		FitSummary:       fitSummary,
+		LatestParseJobID: job.JobID,
+		Requirements:     requirements,
+		Now:              now,
 	}); err != nil {
 		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, err.Error(), true)
 	}
@@ -224,16 +231,16 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	return JobOutcome{Succeeded: true}
 }
 
-func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRecord, sources []SourceRecord) error {
+func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRecord, sources []SourceRecord) (string, error) {
 	if p.fetcher == nil {
-		return fmt.Errorf("%w: url fetcher not configured", urlfetch.ErrSourceUnavailable)
+		return "", fmt.Errorf("%w: url fetcher not configured", urlfetch.ErrSourceUnavailable)
 	}
 	if target.SourceURL == "" {
-		return fmt.Errorf("%w: no source url recorded", urlfetch.ErrInvalidSource)
+		return "", fmt.Errorf("%w: no source url recorded", urlfetch.ErrInvalidSource)
 	}
 	res, err := p.fetcher.Fetch(ctx, target.SourceURL)
 	if err != nil {
-		return err
+		return "", err
 	}
 	// Find the most recent url source row to update.
 	var sourceID string
@@ -247,16 +254,12 @@ func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRe
 		// Nothing to update — proceed; the fetch result is in memory but
 		// will not be persisted in target_job_sources. Phase 1 ImportTargetJob
 		// always inserts a source row for url, so this is a defensive no-op.
-		return nil
+		return res.Body, nil
 	}
-	// We do not have a transactional UpdateSource method yet; mirror via
-	// existing freshness updater plus an inline patch. For the boot plan
-	// we settle for refreshing freshness; spec follow-up plan can extend
-	// the store to write snapshot_text. This still satisfies the parse
-	// pipeline because we already pass jdText via the in-memory FetchResult
-	// above (see Handle).
-	_ = res
-	return nil
+	if err := p.store.UpdateSourceSnapshot(ctx, sourceID, res.SanitizedURL, res.Body, res.FetchedAt, p.now()); err != nil {
+		return "", err
+	}
+	return res.Body, nil
 }
 
 func (p *ParseExecutor) fail(ctx context.Context, targetJobID, code, message string, retryable bool) JobOutcome {

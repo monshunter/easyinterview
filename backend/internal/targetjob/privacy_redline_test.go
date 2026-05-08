@@ -175,6 +175,49 @@ func TestImportTargetJob_DedupeKeyIsUserScopedAcrossServices(t *testing.T) {
 	}
 }
 
+func TestImportTargetJob_URLQuerySecretDoesNotEnterStoreOrPayloads(t *testing.T) {
+	store := &fakeStore{}
+	ids := []string{
+		"018f2a40-0000-7000-9000-0000000000a1",
+		"018f2a40-0000-7000-9000-0000000000f1",
+		"018f2a40-0000-7000-9000-0000000000c1",
+		"018f2a40-0000-7000-9000-0000000000e1",
+	}
+	idx := 0
+	svc := targetjob.NewService(targetjob.ServiceOptions{
+		Store: store,
+		NewID: func() string {
+			v := ids[idx]
+			idx++
+			return v
+		},
+		Now:          func() time.Time { return time.Date(2026, 5, 9, 23, 10, 0, 0, time.UTC) },
+		DedupePepper: "shared-pepper",
+	})
+
+	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
+		UserID:         "user-url",
+		IdempotencyKey: "url-key",
+		TargetLanguage: "en",
+		Source: map[string]any{
+			"type": "url",
+			"url":  "https://jobs.example.com/role/123?token=super-secret#share",
+		},
+	})
+	if err != nil {
+		t.Fatalf("ImportTargetJob URL: %v", err)
+	}
+	for name, raw := range map[string]string{
+		"source_url": string(store.captured.SourceURL),
+		"outbox":     string(store.captured.OutboxEventPayload),
+		"job":        string(store.captured.JobPayload),
+	} {
+		if strings.Contains(raw, "super-secret") || strings.Contains(raw, "token=") || strings.Contains(raw, "#share") {
+			t.Fatalf("%s leaked URL secret: %s", name, raw)
+		}
+	}
+}
+
 // TestUrlFetcher_HasReasonableDefaultsAfterFactory keeps Phase 5 honest:
 // changing URLFetchTimeout or URLFetchBodyCap requires updating spec D-7
 // first, which is enforced separately by config_test.go. This test

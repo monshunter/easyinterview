@@ -30,6 +30,9 @@ type pipelineFakeStore struct {
 	failedOutboxPayload []byte
 	sourceRefreshCalled bool
 	sourceFreshnessUpd  string
+	sourceSnapshotURL   string
+	sourceSnapshotText  string
+	sourceSnapshotAt    *time.Time
 	updateAnalysisFail  int
 	pollMu              chan struct{}
 }
@@ -49,6 +52,9 @@ func (s *pipelineFakeStore) GetTargetJobByUser(context.Context, string, string) 
 func (s *pipelineFakeStore) ListTargetJobsForUser(context.Context, string, targetjob.ListFilter) (targetjob.ListResult, error) {
 	return targetjob.ListResult{}, nil
 }
+func (s *pipelineFakeStore) LookupUpdateDedupe(context.Context, string, string) (targetjob.TargetJobRecord, []targetjob.RequirementRecord, bool, error) {
+	return targetjob.TargetJobRecord{}, nil, false, nil
+}
 func (s *pipelineFakeStore) UpdateTargetJobLifecycle(context.Context, string, string, targetjob.UpdateLifecycleFields, time.Time) (targetjob.TargetJobRecord, error) {
 	return targetjob.TargetJobRecord{}, nil
 }
@@ -59,6 +65,13 @@ func (s *pipelineFakeStore) ApplyParseResult(_ context.Context, in targetjob.App
 }
 func (s *pipelineFakeStore) UpdateSourceFreshness(_ context.Context, _ string, status targetjob.FreshnessStatus, _ time.Time) error {
 	s.sourceFreshnessUpd = string(status)
+	return nil
+}
+func (s *pipelineFakeStore) UpdateSourceSnapshot(_ context.Context, _ string, sanitizedURL string, snapshotText string, fetchedAt time.Time, _ time.Time) error {
+	s.sourceSnapshotURL = sanitizedURL
+	s.sourceSnapshotText = snapshotText
+	cp := fetchedAt
+	s.sourceSnapshotAt = &cp
 	return nil
 }
 func (s *pipelineFakeStore) LookupFileAttachmentForUser(context.Context, string, string) (targetjob.FileAttachmentRecord, error) {
@@ -213,6 +226,9 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 	if store.applyResultIn == nil || len(store.applyResultIn.Requirements) != 2 {
 		t.Fatalf("expected 2 requirements applied, got %+v", store.applyResultIn)
 	}
+	if store.applyResultIn.LatestParseJobID != "j-1" {
+		t.Fatalf("latest parse job id = %q", store.applyResultIn.LatestParseJobID)
+	}
 	if store.parsedOutboxPayload == nil {
 		t.Fatal("target.parsed outbox payload missing")
 	}
@@ -286,6 +302,39 @@ func TestParseExecutor_URLFetchInvalid_NonRetryable(t *testing.T) {
 	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
 	if outcome.ErrorCode != "TARGET_IMPORT_SOURCE_INVALID" || outcome.Retryable {
 		t.Fatalf("invalid source must map to TARGET_IMPORT_SOURCE_INVALID non-retryable, got %+v", outcome)
+	}
+}
+
+func TestParseExecutor_URLFetchBodyIsPersistedAndParsed(t *testing.T) {
+	exec, store, _, ai, fetcher := newParseExecutorWithFakes(t)
+	ai.resp = aiclient.CompleteResponse{Content: happyResponseJSON}
+	fetchedAt := time.Date(2026, 5, 9, 22, 30, 0, 0, time.UTC)
+	fetcher.res = urlfetch.FetchResult{
+		SanitizedURL: "https://jobs.example.com/role/1",
+		Body:         "Fetched JD body for a Backend Engineer.",
+		FetchedAt:    fetchedAt,
+	}
+	store.target = targetjob.TargetJobRecord{
+		ID:             "tgt-1",
+		UserID:         "user-1",
+		SourceType:     targetjob.SourceTypeURL,
+		SourceURL:      "https://jobs.example.com/role/1?token=secret",
+		TargetLanguage: "en",
+	}
+	store.sources = []targetjob.SourceRecord{{ID: "src-1", SourceType: targetjob.SourceTypeURL}}
+
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{JobID: "j-1", ResourceID: "tgt-1"})
+	if !outcome.Succeeded {
+		t.Fatalf("URL fetch body should drive parse success, got %+v", outcome)
+	}
+	if store.sourceSnapshotText != "Fetched JD body for a Backend Engineer." || store.sourceSnapshotAt == nil {
+		t.Fatalf("source snapshot not persisted: text=%q at=%v", store.sourceSnapshotText, store.sourceSnapshotAt)
+	}
+	if store.sourceSnapshotURL != "https://jobs.example.com/role/1" {
+		t.Fatalf("sanitized source URL = %q", store.sourceSnapshotURL)
+	}
+	if store.applyResultIn == nil || len(store.applyResultIn.Requirements) == 0 {
+		t.Fatalf("parse result was not applied from fetched URL body: %+v", store.applyResultIn)
 	}
 }
 
