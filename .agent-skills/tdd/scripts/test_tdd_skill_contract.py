@@ -21,9 +21,10 @@ def test_skill_declares_phase_commit_argument():
 def test_skill_defines_step_95_phase_commit_gate():
     text = _skill_text()
 
-    assert "### Step 9.5: Phase Commit + Merge Success Gate" in text
+    assert "### Step 9.5: Phase Commit Gate" in text
     assert "call `/work-journal --auto --plan <name> --phase <heading>` on the feature branch" in text
-    assert "`git checkout <base-branch> && git merge <feature-branch> --ff-only && git checkout <feature-branch>`" in text
+    assert "keep the current feature branch checked out; do not checkout, merge, or ff-only merge the base branch automatically" in text
+    assert "Base branch integration is a separate explicit operation owned by the user" in text
     assert "Only after Step 9.5 succeeds may `/tdd` continue to the next implementation phase." in text
 
 
@@ -36,7 +37,7 @@ def test_section_mode_can_still_trigger_single_phase_commit():
 def test_phase_commit_failures_stop_tdd_run():
     text = _skill_text()
 
-    assert "If `/work-journal --auto`, drift repair, branch checkout, or `--ff-only` merge fails, stop the current `/tdd` run immediately." in text
+    assert "If `/work-journal --auto` or drift repair fails, stop the current `/tdd` run immediately." in text
     assert "Preserve the current branch and working tree for retry or manual intervention." in text
     assert "Do not advance to the next phase or Step 10 while the phase-commit failure remains unresolved." in text
 

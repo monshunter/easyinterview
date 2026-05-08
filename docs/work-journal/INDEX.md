@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `chore(governance): revise branch lifecycle rules` | #chore #docs #test |
 | [2026-05-08](2026-05-08.md) | `docs(backend-targetjob): land package handoff doc and active scope gate` | #docs #test |
 | [2026-05-08](2026-05-08.md) | `test(backend-targetjob): seal privacy and idempotency redlines` | #test #docs |
 | [2026-05-08](2026-05-08.md) | `feat(backend-targetjob): land async drainer and parse executor` | #feat #test |

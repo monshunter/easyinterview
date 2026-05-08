@@ -131,7 +131,7 @@ belong to repo README / INDEX / scenario documents.
 
 | Field | Type | Required | Meaning |
 |------|------|----------|---------|
-| `metadata.baseBranch` | string | No | Base branch and merge target used by `/implement` Step 4.5 |
+| `metadata.baseBranch` | string | No | Base branch used by `/implement` Step 4.5 for fast-forward refresh, feature branch creation, and explicit integration decisions |
 | `metadata.branch` | string | No | Feature branch name stem used by `/implement` Step 4.5 before the date/collision suffix is appended |
 
 Rules:
@@ -147,6 +147,10 @@ Rules:
 1. `context.yaml` `metadata.baseBranch`
 2. `AGENTS.md` project-level Git branch strategy
 3. Git default branch auto-detection
+
+Before creating a new feature branch, `/implement` must update the resolved base
+branch to the latest upstream state with fast-forward-only semantics. If the base
+branch cannot be updated cleanly, `/implement` must stop before branch creation.
 
 `metadata.branch` only overrides the human-authored branch stem. `/implement` still owns
 the generated suffixes such as `-{MMDD}` and collision suffixes like `-{MMDD}-2`.

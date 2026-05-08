@@ -214,8 +214,13 @@ If `metadata.branch` exists, pass it as `--branch-stem`.
    - `context.yaml` `metadata.baseBranch`
    - `AGENTS.md` project-level Git branch strategy
    - Git default branch auto-detection
-7. Resolve the feature branch stem from `metadata.branch` when present; otherwise derive it from `{subspec}-{plan}`.
-8. Otherwise, create or switch branches using the naming convention below.
+7. Before creating a new session feature branch, update the resolved base branch to the latest upstream state with fast-forward-only semantics.
+   - Checkout the resolved base branch.
+   - Fetch its upstream remote and fast-forward the local base branch (for example `git pull --ff-only` or an equivalent explicit `fetch` + fast-forward).
+   - If the base branch has no upstream, cannot be fast-forwarded, or the update fails, stop before creating the feature branch and report the blocker.
+   - Do not perform this base-branch update when the current branch already matches the session feature branch and the run is a retry/resume.
+8. Resolve the feature branch stem from `metadata.branch` when present; otherwise derive it from `{subspec}-{plan}`.
+9. Otherwise, create or switch branches from the updated base branch using the naming convention below.
 
 Branch naming convention:
 

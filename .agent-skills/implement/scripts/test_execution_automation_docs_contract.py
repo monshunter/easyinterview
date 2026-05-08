@@ -24,7 +24,9 @@ def test_agents_declares_git_branch_strategy_section():
     assert "## 7 Git 分支策略" in text
     assert "- 默认父分支:" in text
     assert "- `/implement` 自动从父分支创建 feature branch" in text
-    assert "- phase commit 后自动 merge 回父分支" in text
+    assert "- 创建 feature branch 前必须先更新父分支到最新远端状态；更新必须采用 fast-forward-only 语义，失败时停止并报告，不得从过期父分支派生新分支" in text
+    assert "- phase commit 只在当前 feature branch 上提交并记录工作日志，默认不自动 merge / ff-merge 回父分支" in text
+    assert "- 多方并行协作期间，父分支整合由用户在明确的 merge / rebase / PR review 阶段决定；Agent 不得在 phase 边界自动切回父分支合并" in text
 
 
 def test_agents_work_journal_row_mentions_dual_mode():
@@ -80,11 +82,13 @@ def test_agents_declares_tdd_bdd_quality_gate_rules():
 def test_plan_context_contract_mentions_branch_metadata_usage():
     text = _plan_context_contract_text()
 
-    assert "| `metadata.baseBranch` | string | No | Base branch and merge target used by `/implement` Step 4.5 |" in text
+    assert "| `metadata.baseBranch` | string | No | Base branch used by `/implement` Step 4.5 for fast-forward refresh, feature branch creation, and explicit integration decisions |" in text
     assert "| `metadata.branch` | string | No | Feature branch name stem used by `/implement` Step 4.5 before the date/collision suffix is appended |" in text
     assert "1. `context.yaml` `metadata.baseBranch`" in text
     assert "2. `AGENTS.md` project-level Git branch strategy" in text
     assert "3. Git default branch auto-detection" in text
+    assert "Before creating a new feature branch, `/implement` must update the resolved base" in text
+    assert "branch to the latest upstream state with fast-forward-only semantics." in text
 
 
 def test_plan_context_contract_limits_validator_scope_to_manifest_and_paths():

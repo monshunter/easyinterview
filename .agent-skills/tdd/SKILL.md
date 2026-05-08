@@ -229,16 +229,19 @@ Phase completion detection:
 - Legacy sequential and legacy parallel section headings remain readable for compatibility.
 - Test checklist mapping prefers section-heading inference and only falls back to `<!-- phase-mapping: {id} -->` when that legacy annotation is present.
 
-### Step 9.5: Phase Commit + Merge Success Gate
+### Step 9.5: Phase Commit Gate
 
 When `--phase-commit` is present and the current implementation phase is complete
 (including any mapped test sections executed in Step 9):
 
 1. call `/work-journal --auto --plan <name> --phase <heading>` on the feature branch
-2. run `git checkout <base-branch> && git merge <feature-branch> --ff-only && git checkout <feature-branch>`
-3. if both commands succeed, continue to the next implementation phase
+2. keep the current feature branch checked out; do not checkout, merge, or ff-only merge the base branch automatically
+3. if the phase commit succeeds, continue to the next implementation phase
 
-If `/work-journal --auto`, drift repair, branch checkout, or `--ff-only` merge fails, stop the current `/tdd` run immediately.
+Base branch integration is a separate explicit operation owned by the user,
+merge/rebase workflow, or PR review stage. Do not perform it at a phase boundary.
+
+If `/work-journal --auto` or drift repair fails, stop the current `/tdd` run immediately.
 Preserve the current branch and working tree for retry or manual intervention.
 Do not advance to the next phase or Step 10 while the phase-commit failure remains unresolved.
 

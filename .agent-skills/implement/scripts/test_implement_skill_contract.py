@@ -102,3 +102,11 @@ class TestImplementSkillContract:
         assert "`AGENTS.md` project-level Git branch strategy" in text
         assert "Git default branch auto-detection" in text
         assert "If the current branch is already the session feature branch, treat the run as retry/resume and continue without creating a new branch." in text
+
+    def test_branch_resolution_refreshes_base_branch_before_new_branch(self):
+        text = _skill_text()
+        assert "Before creating a new session feature branch, update the resolved base branch to the latest upstream state with fast-forward-only semantics." in text
+        assert "Checkout the resolved base branch." in text
+        assert "git pull --ff-only" in text
+        assert "stop before creating the feature branch and report the blocker" in text
+        assert "Do not perform this base-branch update when the current branch already matches the session feature branch" in text
