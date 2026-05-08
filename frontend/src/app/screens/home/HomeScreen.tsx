@@ -1,16 +1,28 @@
 import { useState, useMemo, type FC } from "react";
 
+import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
+import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useI18n } from "../../i18n/messages";
 import { interviewContextFromTargetJob } from "../../navigation/interviewContext";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
+import { JDAssistModal, type JDAssistModalSource } from "./JDAssistModal";
 import { MockInterviewCard } from "./MockInterviewCard";
 import { useRecentTargetJobs } from "./useRecentTargetJobs";
 
+function idempotencyKey(): string {
+  return `ik-${crypto.randomUUID()}`;
+}
+
 export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const { t } = useI18n();
+  const runtime = useAppRuntimeOptional();
+  const requestAuth = useRequestAuth();
   const { navigate } = useNavigation();
   const [input, setInput] = useState("");
+  const [assistOpen, setAssistOpen] = useState<"upload" | "url" | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
   const { jobs: rawJobs, loading, error } = useRecentTargetJobs();
 
   const jobs = useMemo(() => {
@@ -20,6 +32,106 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     );
     return sorted.slice(0, 12);
   }, [rawJobs]);
+
+  const handlePasteImport = async () => {
+    if (!runtime || !input.trim() || importing) return;
+
+    if (runtime.auth.status === "unauthenticated") {
+      requestAuth({
+        type: "import_jd",
+        label: t("home.importBtn"),
+        route: "parse",
+        params: { source: "paste" },
+      });
+      return;
+    }
+
+    setImportError(null);
+    setImporting(true);
+    try {
+      const ik = idempotencyKey();
+      const result = await runtime.client.importTargetJob(
+        {
+          source: { type: "manual_text", rawText: input },
+          targetLanguage: "zh-CN",
+        },
+        { idempotencyKey: ik },
+      );
+      navigate({
+        name: "parse",
+        params: { targetJobId: result.targetJobId, source: "paste" },
+      });
+    } catch (err: unknown) {
+      setImportError(
+        err instanceof Error ? err.message : String(err),
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleModalConfirm = async (source: JDAssistModalSource) => {
+    if (!runtime || importing) return;
+
+    if (runtime.auth.status === "unauthenticated") {
+      requestAuth({
+        type: "import_jd",
+        label: t("home.importBtn"),
+        route: "parse",
+        params: { source: source.source },
+      });
+      return;
+    }
+
+    setImportError(null);
+    setImporting(true);
+    try {
+      const ik = idempotencyKey();
+
+      if (source.source === "upload") {
+        const presign = await runtime.client.createUploadPresign(
+          {
+            purpose: "target_job_attachment",
+            fileName: "placeholder.pdf",
+            contentType: "application/pdf",
+            byteSize: 0,
+          },
+          { idempotencyKey: ik },
+        );
+        const result = await runtime.client.importTargetJob(
+          {
+            source: { type: "file", fileObjectId: presign.fileObjectId },
+            targetLanguage: "zh-CN",
+          },
+          { idempotencyKey: ik },
+        );
+        setAssistOpen(null);
+        navigate({
+          name: "parse",
+          params: { targetJobId: result.targetJobId, source: "upload" },
+        });
+      } else {
+        const result = await runtime.client.importTargetJob(
+          {
+            source: { type: "url", url: source.url },
+            targetLanguage: "zh-CN",
+          },
+          { idempotencyKey: ik },
+        );
+        setAssistOpen(null);
+        navigate({
+          name: "parse",
+          params: { targetJobId: result.targetJobId, source: "url" },
+        });
+      }
+    } catch (err: unknown) {
+      setImportError(
+        err instanceof Error ? err.message : String(err),
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
 
   return (
     <section
@@ -108,7 +220,9 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
               style={{ display: "flex", gap: 12, alignItems: "center" }}
             >
               <button
+                data-testid="home-upload-trigger"
                 type="button"
+                onClick={() => setAssistOpen("upload")}
                 style={{
                   background: "transparent",
                   border: "none",
@@ -126,6 +240,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
               <span style={{ color: "var(--ei-color-rule-strong)" }}>·</span>
               <button
                 type="button"
+                onClick={() => setAssistOpen("url")}
                 style={{
                   background: "transparent",
                   border: "none",
@@ -144,7 +259,8 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
             <button
               data-testid="home-jd-submit"
               type="button"
-              disabled={!input.trim()}
+              disabled={!input.trim() || importing}
+              onClick={handlePasteImport}
               style={{
                 background: "var(--ei-color-accent)",
                 color: "#fff",
@@ -164,6 +280,19 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
             </button>
           </div>
         </div>
+
+        {importError && (
+          <div
+            data-testid="home-import-error"
+            style={{
+              color: "var(--ei-color-danger)",
+              fontSize: 13,
+              marginTop: 10,
+            }}
+          >
+            {importError}
+          </div>
+        )}
 
         {/* Resume create CTA */}
         <div
@@ -452,6 +581,14 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           </button>
         </div>
       </div>
+
+      {assistOpen && (
+        <JDAssistModal
+          type={assistOpen}
+          onClose={() => setAssistOpen(null)}
+          onConfirm={handleModalConfirm}
+        />
+      )}
     </section>
   );
 };

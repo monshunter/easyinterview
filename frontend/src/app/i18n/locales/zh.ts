@@ -111,6 +111,16 @@ export const zh = {
   "home.debriefSub": "把面试问过的问题丢进来，沉淀成下一轮的弹药。",
   "home.debriefBtn": "打开复盘",
   "home.resumeCreateLink": "还没有简历？1 分钟创建 →",
+  "home.modalLabel": "JD 输入",
+  "home.modalUploadTitle": "上传 JD 文件",
+  "home.modalUrlTitle": "从 URL 导入",
+  "home.modalUploadDropzone": "拖入 .pdf / .docx / .md 格式的 JD 文件",
+  "home.modalUploadHint": "支持格式：PDF、DOCX、Markdown。",
+  "home.modalUrlLabel": "JD 链接",
+  "home.modalUrlPlaceholder": "https://company.com/careers/job...",
+  "home.modalUrlHint": "系统会读取 JD 内容，然后进入解析结果确认。",
+  "home.modalCancel": "取消",
+  "home.modalContinue": "继续解析",
 } as const;
 
 export type MessageKey = keyof typeof zh;

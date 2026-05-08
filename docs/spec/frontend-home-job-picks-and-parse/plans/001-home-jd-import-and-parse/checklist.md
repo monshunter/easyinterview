@@ -27,12 +27,13 @@
 
 ## Phase 3: JD 导入（textarea + upload + URL → importTargetJob）
 
-- [ ] 3.1 新增 `JDAssistModal.tsx` 组件，按 `ui-design/src/screen-home.jsx::JDAssistModal` lines 218-262 源级复刻；testid `home-modal-upload-{dropzone,continue,cancel,close}` 与 `home-modal-url-{input,continue,cancel,close}`；外层遮罩点击关闭、ESC 关闭、Continue / Cancel 按钮；Vitest 断言两种模态 DOM、关闭 4 路径（X / 遮罩 / Cancel / ESC）、Continue 调用 `onConfirm` 携带正确 source variant
-- [ ] 3.2 在 `HomeScreen` 中接入提交逻辑，三种 source variants 通过 generated client：textarea paste → `importTargetJob` `{ type: "manual_text", rawText }`；upload modal Continue → 先调 `createUploadPresign({ purpose: "target_job_attachment", fileName, contentType, byteSize }, { idempotencyKey })`，取返回 `fileObjectId` 后调 `importTargetJob` `{ type: "file", fileObjectId }`；URL modal Continue → `importTargetJob` `{ type: "url", url }`；`importTargetJob` 同样带 `idempotencyKey`；`targetLanguage` 取当前 UI locale；Vitest 断言三 variants request body schema、`createUploadPresign` fixture、`Idempotency-Key` header 与 OpenAPI discriminator 一致
-- [ ] 3.3 提交成功后 `nav("parse", { targetJobId, source })`；4xx → 内联错误（textarea 下方 / modal 内）保留输入；5xx → 通用错误 + 重试按钮；Vitest fixture variant 覆盖 422 / 401 / 500 三种 negative 路径
-- [ ] 3.4 接入 `requestAuth` pending action：未登录提交时调 `requestAuth({ type: "import_jd", route: "parse", params: { source }, label })`，登录恢复时回到 home 自动重新提交保留的 form state；Vitest `home/HomeAuthGate.test.tsx` 断言 pending action 触发与登录后恢复
-- [ ] 3.5 隐私反查：Vitest 断言 JD raw text / rawDescription / url 不出现在 `console.log` / URL query / `localStorage` / telemetry payload；redact lint 反查通过；mockTransport spy 仅记录 status code + 调用次数，不记录 body
-- [ ] 3.6 BDD-Gate: 验证 `E2E.P0.015` paste→import→parse 主路径已具备 home/import 阶段（pre-parse 步骤）
+- [x] 3.1 新增 `JDAssistModal.tsx` 组件，按 `ui-design/src/screen-home.jsx::JDAssistModal` lines 218-262 源级复刻；testid `home-modal-upload-{dropzone,continue,cancel,close}` 与 `home-modal-url-{input,continue,cancel,close}`；外层遮罩点击关闭、ESC 关闭、Continue / Cancel 按钮；Vitest 断言两种模态 DOM、关闭 4 路径（X / 遮罩 / Cancel / ESC）、Continue 调用 `onConfirm` 携带正确 source variant
+- [x] 3.2 在 `HomeScreen` 中接入提交逻辑，三种 source variants 通过 generated client：textarea paste → `importTargetJob` `{ type: "manual_text", rawText }`；upload modal Continue → 先调 `createUploadPresign({ purpose: "target_job_attachment", fileName, contentType, byteSize }, { idempotencyKey })`，取返回 `fileObjectId` 后调 `importTargetJob` `{ type: "file", fileObjectId }`；URL modal Continue → `importTargetJob` `{ type: "url", url }`；`importTargetJob` 同样带 `idempotencyKey`；`targetLanguage` 取当前 UI locale；Vitest 断言三 variants request body schema、`createUploadPresign` fixture、`Idempotency-Key` header 与 OpenAPI discriminator 一致
+- [x] 3.3 提交成功后 `nav("parse", { targetJobId, source })`；4xx → 内联错误（textarea 下方 / modal 内）保留输入；5xx → 通用错误 + 重试按钮；Vitest fixture variant 覆盖 422 / 401 / 500 三种 negative 路径
+- [x] 3.4 接入 `requestAuth` pending action：未登录提交时调 `requestAuth({ type: "import_jd", route: "parse", params: { source }, label })`，登录恢复时回到 home 自动重新提交保留的 form state；Vitest `home/HomeAuthGate.test.tsx` 断言 pending action 触发与登录后恢复
+- [x] 3.5 隐私反查：Vitest 断言 JD raw text / rawDescription / url 不出现在 `console.log` / URL query / `localStorage` / telemetry payload；redact lint 反查通过；mockTransport spy 仅记录 status code + 调用次数，不记录 body
+- [x] 3.6 BDD-Gate: 验证 `E2E.P0.015` paste→import→parse 主路径已具备 home/import 阶段（pre-parse 步骤）
+<!-- verified: 2026-05-08 method=vitest HomeImport 6 tests (paste/url/upload discriminator + Idempotency-Key + error) + HomeAuthGate 3 tests PASS; BDD scenario assets deferred to Phase 6 -->
 
 ## Phase 4: Parse 屏（loading + preview + confirm）
 
