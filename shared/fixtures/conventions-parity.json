@@ -102,6 +102,7 @@
   "aiCapabilities": [
     "chat",
     "stt",
+    "tts",
     "realtime",
     "judge"
   ],

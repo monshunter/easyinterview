@@ -154,7 +154,9 @@ func (r *providerResolver) ResolveProvider(ref string) (aiclient.Provider, error
 			Provider:   resolved,
 			HTTPClient: r.httpClient,
 		})
-	case aiclient.ProviderProtocolRealtimeAudio,
+	case aiclient.ProviderProtocolDoubaoSpeech,
+		aiclient.ProviderProtocolMinimaxSpeech,
+		aiclient.ProviderProtocolRealtimeAudio,
 		aiclient.ProviderProtocolJudgeCompatible:
 		return nil, sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, fmt.Sprintf("provider protocol %q is not implemented", entry.Protocol), false)
 	default:

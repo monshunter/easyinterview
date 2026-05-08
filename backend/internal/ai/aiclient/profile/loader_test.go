@@ -400,3 +400,29 @@ func TestLoaderRejectsLegacyDirectoryPath(t *testing.T) {
 		t.Fatalf("expected file-path load error, got %v", err)
 	}
 }
+
+func TestLoaderAcceptsTTSAsReservedCapability(t *testing.T) {
+	path := writeProfileCatalog(t, catalog(`name: voice.tts.reserved
+capability: tts
+status: unsupported
+unsupported_reason: "TTS adapter is not active in this build"
+default:
+  provider_ref: unit-test-stub
+  model: stub-tts-1
+timeout_ms: 5000
+version: 1.0.0
+`))
+	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
+	if err != nil {
+		t.Fatalf("expected tts capability to be accepted: %v", err)
+	}
+	defer loader.Close()
+
+	p, err := loader.Resolve("voice.tts.reserved")
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	if p.Capability != aiclient.CapabilityTts {
+		t.Fatalf("expected capability=tts, got %q", p.Capability)
+	}
+}

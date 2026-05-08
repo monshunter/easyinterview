@@ -105,6 +105,7 @@ func TestAICapabilityVocabulary(t *testing.T) {
 	want := []Capability{
 		CapabilityChat,
 		CapabilityStt,
+		CapabilityTts,
 		CapabilityRealtime,
 		CapabilityJudge,
 	}
@@ -118,6 +119,9 @@ func TestAICapabilityVocabulary(t *testing.T) {
 	}
 	if !IsCapability("judge") {
 		t.Fatal("IsCapability(judge) = false, want true")
+	}
+	if !IsCapability("tts") {
+		t.Fatal("IsCapability(tts) = false, want true")
 	}
 	if IsCapability("image") {
 		t.Fatal("IsCapability(image) = true, want false")

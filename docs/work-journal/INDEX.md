@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `feat(ai-provider): b1 capability 与 a3 schema 对齐` | #feat #test |
 | [2026-05-08](2026-05-08.md) | `docs(ai-provider): add cascaded speech provider foundation spec` | #docs |
 | [2026-05-08](2026-05-08.md) | `chore(governance): migrate agent config from gemini to opencode` | #chore |
 | [2026-05-08](2026-05-08.md) | `chore(dev-stack): use postgres 18` | #chore #docs |

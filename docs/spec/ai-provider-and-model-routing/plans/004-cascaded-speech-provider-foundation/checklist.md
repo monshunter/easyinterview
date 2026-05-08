@@ -8,8 +8,8 @@
 
 ## Phase 1: B1 capability 与 A3 schema 对齐
 
-- [ ] 1.1 扩展 B1 AI capability 增加 `tts` 并同步 Go/TS/OpenAPI 生成物；验证: B1 spec/history + `shared/conventions.yaml` 同步、Go/TS AI vocabulary parity tests + `make codegen-check`，且 active-scope negative search 证明 `tts` 未被私造为 A3-only 常量
-- [ ] 1.2 扩展 registry/profile validator 支持 `doubao_speech`、`minimax_speech` 与 `capability=tts`；验证: profile/registry loader tests 覆盖未知 protocol、capability 不匹配、secret missing、unsupported profile
+- [x] 1.1 扩展 B1 AI capability 增加 `tts` 并同步 Go/TS/OpenAPI 生成物；验证: B1 spec/history + `shared/conventions.yaml` 同步、Go/TS AI vocabulary parity tests + `make codegen-check`，且 active-scope negative search 证明 `tts` 未被私造为 A3-only 常量
+- [x] 1.2 扩展 registry/profile validator 支持 `doubao_speech`、`minimax_speech` 与 `capability=tts`；验证: profile/registry loader tests 覆盖未知 protocol、capability 不匹配、secret missing、unsupported profile
 
 ## Phase 2: `Synthesize` provider-neutral 接口
 

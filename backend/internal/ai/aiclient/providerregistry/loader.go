@@ -365,6 +365,8 @@ func isAllowedProtocol(p aiclient.ProviderProtocol) bool {
 	switch p {
 	case aiclient.ProviderProtocolStub,
 		aiclient.ProviderProtocolOpenAICompatible,
+		aiclient.ProviderProtocolDoubaoSpeech,
+		aiclient.ProviderProtocolMinimaxSpeech,
 		aiclient.ProviderProtocolRealtimeAudio,
 		aiclient.ProviderProtocolJudgeCompatible:
 		return true
@@ -377,6 +379,7 @@ func isAllowedCapability(c aiclient.Capability) bool {
 	switch c {
 	case aiclient.CapabilityChat,
 		aiclient.CapabilitySTT,
+		aiclient.CapabilityTts,
 		aiclient.CapabilityRealtime,
 		aiclient.CapabilityJudge:
 		return true

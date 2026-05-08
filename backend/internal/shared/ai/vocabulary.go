@@ -16,6 +16,7 @@ type Capability string
 const (
 	CapabilityChat     Capability = "chat"
 	CapabilityStt      Capability = "stt"
+	CapabilityTts      Capability = "tts"
 	CapabilityRealtime Capability = "realtime"
 	CapabilityJudge    Capability = "judge"
 )
@@ -24,6 +25,7 @@ const (
 var AllCapabilities = []Capability{
 	CapabilityChat,
 	CapabilityStt,
+	CapabilityTts,
 	CapabilityRealtime,
 	CapabilityJudge,
 }

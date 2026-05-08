@@ -256,6 +256,7 @@ aiVocabulary:
   capabilities:
     - chat
     - stt
+    - tts
     - realtime
     - judge
   providerRegistryFields:

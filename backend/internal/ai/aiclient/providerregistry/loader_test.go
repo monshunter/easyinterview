@@ -326,3 +326,62 @@ func TestLoaderHotReloadPicksUpRegistryEdits(t *testing.T) {
 	}
 	t.Fatal("registry hot reload did not converge before deadline")
 }
+
+func TestLoaderAcceptsSpeechProtocols(t *testing.T) {
+	cases := map[string]string{
+		"doubao_speech-tts": `providers:
+  - name: doubao
+    protocol: doubao_speech
+    base_url_env: DOUBAO_SPEECH_BASE_URL
+    api_key_env: DOUBAO_SPEECH_API_KEY
+    capabilities: [tts]
+    version: 1.0.0
+`,
+		"minimax_speech-tts": `providers:
+  - name: minimax
+    protocol: minimax_speech
+    base_url_env: MINIMAX_SPEECH_BASE_URL
+    api_key_env: MINIMAX_SPEECH_API_KEY
+    capabilities: [tts]
+    version: 1.0.0
+`,
+		"doubao_speech-with-stt": `providers:
+  - name: doubao-stt
+    protocol: doubao_speech
+    base_url_env: DOUBAO_SPEECH_BASE_URL
+    api_key_env: DOUBAO_SPEECH_API_KEY
+    capabilities: [stt]
+    version: 1.0.0
+`,
+	}
+
+	for label, body := range cases {
+		t.Run(label, func(t *testing.T) {
+			reg, err := providerregistry.Load(writeRegistry(t, body))
+			if err != nil {
+				t.Fatalf("expected %s protocol to be accepted: %v", label, err)
+			}
+			_ = reg
+		})
+	}
+}
+
+func TestLoaderAcceptsTTSCapability(t *testing.T) {
+	path := writeRegistry(t, `providers:
+  - name: stub-tts
+    protocol: stub
+    capabilities: [tts]
+    version: 1.0.0
+`)
+	reg, err := providerregistry.Load(path)
+	if err != nil {
+		t.Fatalf("expected tts capability to be accepted: %v", err)
+	}
+	entry, ok := reg.Provider("stub-tts")
+	if !ok {
+		t.Fatal("expected stub-tts provider")
+	}
+	if !entry.Supports(aiclient.CapabilityTts) {
+		t.Fatal("expected stub-tts to support tts capability")
+	}
+}

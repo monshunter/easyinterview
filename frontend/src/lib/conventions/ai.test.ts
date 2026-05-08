@@ -107,7 +107,7 @@ describe('AI vocabulary generated constants', () => {
   });
 
   it('documents capability literals and provider/profile schema fields', () => {
-    expect(ALL_AI_CAPABILITIES).toEqual(['chat', 'stt', 'realtime', 'judge']);
+    expect(ALL_AI_CAPABILITIES).toEqual(['chat', 'stt', 'tts', 'realtime', 'judge']);
     expect(AI_CAPABILITIES.JUDGE).toBe('judge');
     expect(isAICapability('judge')).toBe(true);
     expect(isAICapability('image')).toBe(false);

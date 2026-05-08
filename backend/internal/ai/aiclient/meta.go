@@ -10,6 +10,7 @@ type Capability = sharedai.Capability
 const (
 	CapabilityChat     = sharedai.CapabilityChat
 	CapabilitySTT      = sharedai.CapabilityStt
+	CapabilityTts      = sharedai.CapabilityTts
 	CapabilityRealtime = sharedai.CapabilityRealtime
 	CapabilityJudge    = sharedai.CapabilityJudge
 )
@@ -21,6 +22,8 @@ type ProviderProtocol string
 const (
 	ProviderProtocolStub             ProviderProtocol = "stub"
 	ProviderProtocolOpenAICompatible ProviderProtocol = "openai_compatible"
+	ProviderProtocolDoubaoSpeech     ProviderProtocol = "doubao_speech"
+	ProviderProtocolMinimaxSpeech    ProviderProtocol = "minimax_speech"
 	ProviderProtocolRealtimeAudio    ProviderProtocol = "realtime_audio"
 	ProviderProtocolJudgeCompatible  ProviderProtocol = "judge_compatible"
 )
