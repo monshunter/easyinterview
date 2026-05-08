@@ -51,5 +51,5 @@
 - [ ] 6.2 BDD-Gate: 验证 E2E.P0.011 通过
 - [ ] 6.3 BDD-Gate: 验证 E2E.P0.012 通过
 - [ ] 6.4 BDD-Gate: 验证 E2E.P0.013 通过
-- [ ] 6.5 Handoff 给 frontend-home-job-picks-and-parse；验证: `backend/README.md` 或 `backend/internal/targetjob/doc.go` 说明 4 个 operation 的同步 / 异步语义、错误码、idempotency 行为、URL fetch 守护规则、隐私红线、可观测 metric 名、BDD 入口与 mock → real 切换边界
-- [ ] 6.6 Active-scope 负向搜索通过；验证: `backend/internal/targetjob`、`backend/cmd/api`、`docs/spec/backend-targetjob`、`test/scenarios/e2e/p0-010..013-*` active code/docs 不引入 `mistake.*` / `growth.*` / 独立 `voice` route / 独立 `report` 一级 route / 旧 `feature_key` 别名（如 `jd.parse` / `target.parse`）/ embedding / rerank capability / 独立 worker 进程前置依赖 / 旧 `interview_round` 独立模块；负向 grep 0 命中
+- [x] 6.5 Handoff 给 frontend-home-job-picks-and-parse；验证: `backend/README.md` 或 `backend/internal/targetjob/doc.go` 说明 4 个 operation 的同步 / 异步语义、错误码、idempotency 行为、URL fetch 守护规则、隐私红线、可观测 metric 名、BDD 入口与 mock → real 切换边界
+- [x] 6.6 Active-scope 负向搜索通过；验证: `backend/internal/targetjob`、`backend/cmd/api`、`docs/spec/backend-targetjob`、`test/scenarios/e2e/p0-010..013-*` active code/docs 不引入 `mistake.*` / `growth.*` / 独立 `voice` route / 独立 `report` 一级 route / 旧 `feature_key` 别名（如 `jd.parse` / `target.parse`）/ embedding / rerank capability / 独立 worker 进程前置依赖 / 旧 `interview_round` 独立模块；负向 grep 0 命中
