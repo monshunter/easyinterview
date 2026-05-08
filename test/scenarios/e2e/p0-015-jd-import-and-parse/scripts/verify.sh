@@ -28,3 +28,12 @@ for forbidden in 'prompt.registry' 'promptRegistry' 'provider.key' 'providerKey'
     exit 1
   fi
 done
+
+# Source-level negative gate: frontend implementation must not hard-code
+# provider/model/prompt assumptions while rendering home/import/parse.
+if grep -R --exclude='*.test.ts' --exclude='*.test.tsx' -E 'claude|haiku|prompt@|prompt\.registry|promptRegistry|provider\.key|providerKey|AIClient|LLM\.endpoint' \
+  "$REPO_ROOT/frontend/src/app/screens/home" \
+  "$REPO_ROOT/frontend/src/app/screens/parse"; then
+  echo "AI provider or prompt assumption leaked in frontend source" >&2
+  exit 1
+fi

@@ -28,3 +28,11 @@ for forbidden in \
     exit 1
   fi
 done
+
+# Source-level negative gate: hidden old business anchors must not remain in
+# the placeholder implementation even if the Vitest log does not print them.
+if grep -R --exclude='*.test.ts' --exclude='*.test.tsx' -E 'jdmatch-card-|jdmatch-saved-search-|jdmatch-watchlist-|jdmatch-market-signal-|jdmatch-search-bar|jdmatch-search-results|jdmatch-jd-detail-|jdmatch-agent-status' \
+  "$REPO_ROOT/frontend/src/app/screens/jd_match"; then
+  echo "forbidden legacy jd_match anchor leaked in frontend source" >&2
+  exit 1
+fi
