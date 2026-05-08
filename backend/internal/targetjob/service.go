@@ -438,10 +438,10 @@ type UpdateRequest struct {
 	CompanyNameHint *string
 }
 
-// UpdateTargetJob validates the state-machine transition and applies the
-// requested mutation via the store. Spec D-6 / plan 2.4 require an
-// Idempotency-Key header; the handler enforces presence, the service
-// enforces transition legality.
+// UpdateTargetJob applies the requested mutation via the store. Spec D-6 /
+// plan 2.4 require an Idempotency-Key header; the handler enforces
+// presence, and the SQL store validates status transitions inside the update
+// transaction after locking the current row.
 func (s *Service) UpdateTargetJob(ctx context.Context, in UpdateRequest) (api.TargetJob, error) {
 	if in.UserID == "" || in.TargetJobID == "" {
 		return api.TargetJob{}, fmt.Errorf("userId and targetJobId are required")
@@ -454,18 +454,6 @@ func (s *Service) UpdateTargetJob(ctx context.Context, in UpdateRequest) (api.Ta
 		return api.TargetJob{}, err
 	} else if hit {
 		return recordToAPI(rec, reqs), nil
-	}
-	current, _, _, err := s.store.GetTargetJobByUser(ctx, in.UserID, in.TargetJobID)
-	if err != nil {
-		if errors.Is(err, ErrTargetJobNotFound) {
-			return api.TargetJob{}, &ServiceImportError{Code: sharederrors.CodeTargetJobNotFound, Message: "target job not found"}
-		}
-		return api.TargetJob{}, err
-	}
-	if in.Status != nil {
-		if err := validateLifecycleTransition(current.Status, *in.Status); err != nil {
-			return api.TargetJob{}, err
-		}
 	}
 	updated, err := s.store.UpdateTargetJobLifecycle(ctx, in.UserID, in.TargetJobID, UpdateLifecycleFields{
 		Status:          in.Status,

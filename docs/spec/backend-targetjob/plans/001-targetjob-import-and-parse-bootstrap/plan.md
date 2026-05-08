@@ -1,7 +1,7 @@
 # TargetJob Import and Parse Bootstrap
 
-> **版本**: 1.2
-> **状态**: completed
+> **版本**: 1.3
+> **状态**: active
 > **更新日期**: 2026-05-08
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -31,7 +31,7 @@
 
 - **Plan 类型**: `feature-behavior` + `backend` + `contract` + `async-pipeline`。
 - **TDD 策略**: 通过 `/implement backend-targetjob/001-targetjob-import-and-parse-bootstrap backend` → `/tdd` 执行；Phase 0 先以 contract tests / codegen drift tests 修订 B1/B2/B3/F1 owner truth source，后续每个 backend checklist item 先写 focused Go test（handler contract test、service test、store test、URL fetcher SSRF test、drainer test、outbox emit test、privacy grep test）再实现最小代码；checklist 的 `验证:` 后必须列出测试断言。
-- **BDD 策略**: 需要 BDD。本计划引入用户可见 API 行为（4 个 operation + 异步解析观测 + manual_form 同步兜底），必须维护 `bdd-plan.md` / `bdd-checklist.md`，并在主 checklist 用 `BDD-Gate:` 引用 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013`。
+- **BDD 策略**: 需要 BDD。本计划引入用户可见 API 行为（4 个 operation + 异步解析观测 + manual_form 同步兜底），必须维护 `bdd-plan.md` / `bdd-checklist.md`，并在主 checklist 用 `BDD-Gate:` 引用 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013`。2026-05-08 L2 code review 重新打开该 gate：现有场景脚本仍是包级 `go test` 代理证据，不等价于 `auth -> HTTP API -> cmd/api runtime drainer -> F3 prompt registry + A3 AI client + urlfetch -> DB/outbox` 的真实 BDD 链路。
 - **替代验证 gate**: 不适用；BDD gate 是行为入口。补充 gate 包括 focused Go tests、OpenAPI generated contract tests、B1/B2 codegen drift check（`make codegen-conventions && make codegen-openapi && make codegen-check`）、fixtures validation（`make validate-fixtures`）、events.yaml / jobs.yaml drift check（`make codegen-events && make lint-events`）、`migrations_lint`、F1 metric registry tests、privacy grep（`raw_jd_text` / `Authorization` / `prompt body`）、URL fetch SSRF unit test 矩阵、drainer drain / shutdown test、F3 Resolve fail-closed test、`make docs-check`、`make lint-config`。
 
 ### 3.1 Operation Matrix
@@ -155,7 +155,25 @@ privacy grep 必须覆盖：log / metric label / audit / outbox payload / async 
 
 #### 6.3 Active-scope 负向搜索
 
-代码 / 文档 active scope 不得引入：`mistake.*` / `growth.*` / 独立 `voice` route / 独立 `report` 一级 route / 旧 `feature_key` 命名（如 `jd.parse` / `target.parse` 旧别名）/ embedding / rerank capability / 独立 worker 进程依赖 / 旧 `interview_round` 独立模块假设。grep 命中即视为 plan 失败。
+代码 / 文档 active scope 不得引入：`mistake.*` / `growth.*` / 独立 `voice` route / 独立 `report` 一级 route / 旧 `feature_key` 命名（如 `jd.parse` / `target.parse` 旧别名）/ embedding / rerank capability / 独立 worker 进程依赖 / 旧 `interview_round` 独立模块假设。除本 gate 文本、negative test token、test fake 未实现方法和 handler service-not-configured guard 外，grep 命中即视为 plan 失败。
+
+### Phase 7: L2 remediation and reopened BDD gate
+
+#### 7.1 URL fetch DNS rebinding remediation
+
+`urlfetch` 的实际 dial 路径必须绑定到已校验的 public IP，避免 `checkURLPolicy` 与 `http.Client.Do` 之间发生 DNS rebinding / TOCTOU。验证必须覆盖解析阶段返回 public IP、dial 阶段返回 private / metadata / loopback IP 时请求被拒绝且不发起连接。
+
+#### 7.2 `updateTargetJob` transactional state-machine remediation
+
+`updateTargetJob` 的状态机校验必须进入 store 事务，在持有目标 row lock 后基于当前 DB 状态重新校验；service 层不得用事务外 preflight 结果作为最终迁移依据。验证必须覆盖不同 `Idempotency-Key` 并发或 stale 迁移不能越过当前 DB 状态。
+
+#### 7.3 BDD evidence honesty remediation
+
+`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 在迁移到真实 HTTP 场景前不得再标记为 completed。脚本若仍走包级 focused tests，必须显式阻断或标注 proxy-only，防止未来 L2 review 把包级证据误读为真实 BDD 通过。
+
+#### 7.4 `cmd/api` runtime drainer blocker
+
+`cmd/api` 当前只注册 TargetJob HTTP handler / service / store，尚未把 `target_import` / `source_refresh` drainer、`ParseExecutor`、F3 prompt/rubric runtime client、A3 AI runtime client 与 `urlfetch` 组装到 API 进程。F3 runtime package 未在当前 backend code truth source 中提供可消费实现前，本计划不能恢复 completed；完成条件是 `cmd/api` 进程内真实 drain `target_import`，并由 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` 通过 HTTP 场景证明。
 
 ## 5 验收标准
 
@@ -165,7 +183,7 @@ privacy grep 必须覆盖：log / metric label / audit / outbox payload / async 
 - F3 Resolve fail-closed 与 A3 缺 secret fail-closed 路径覆盖；除 `APP_ENV=test` 外不静默回退 stub。
 - privacy grep 0 命中 `raw_jd_text` / `source_url` 完整 URL / 文件 URL / prompt / response / `Authorization:` 等敏感模式。
 - F1 metric registry preflight 通过；`make codegen-events` / `make codegen-conventions` / `make codegen-openapi` / `make validate-fixtures` / `make migrations_lint` / `make lint-config` / `make lint-events` / `make docs-check` 全绿。
-- BDD-Gate `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 全部通过，verify 输出可追溯证据。
+- BDD-Gate `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 全部通过，verify 输出可追溯证据；包级 `go test` 代理证据不得作为该 gate 的完成依据。
 - Active-scope 负向搜索 0 命中已丢弃模块 / route / capability。
 
 ## 6 风险与应对
@@ -179,3 +197,4 @@ privacy grep 必须覆盖：log / metric label / audit / outbox payload / async 
 | Idempotency 被跨用户复用 | Phase 5.3 store-level user-scoped dedupe + handler 层 user_id 过滤 + 越权返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND` |
 | 旧 `feature_key` / 旧 voice / 旧 mistake 模块在 review 中悄悄回潮 | Phase 6.3 active-scope 负向搜索 + plan-code-review L2 检查 |
 | `manual_form` 草稿 requirements 质量低 | 仅作为 P0 兜底；后续若产品要求细化，由独立 plan 处理，不在本 plan 引入 AI 重解析 |
+| `cmd/api` 缺真实 TargetJob drainer / F3 runtime wiring 导致 BDD 代理证据误报 | Phase 7.3 / 7.4 重新打开 BDD gate；在 F3 runtime 可消费实现到位前保持计划 active，并阻断包级代理脚本冒充场景通过 |

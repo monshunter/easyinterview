@@ -565,7 +565,30 @@ func (s *SQLStore) UpdateTargetJobLifecycle(ctx context.Context, userID string, 
 	if fields.DedupeKey != "" {
 		return s.updateTargetJobLifecycleIdempotent(ctx, userID, targetJobID, fields, now)
 	}
+	if fields.Status != nil {
+		return s.updateTargetJobLifecycleLocked(ctx, userID, targetJobID, fields, now)
+	}
 	return updateTargetJobLifecycleRow(ctx, s.db, userID, targetJobID, fields, now)
+}
+
+func (s *SQLStore) updateTargetJobLifecycleLocked(ctx context.Context, userID string, targetJobID string, fields UpdateLifecycleFields, now time.Time) (TargetJobRecord, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return TargetJobRecord{}, fmt.Errorf("begin update target job lifecycle: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := validateStatusTransitionUnderLock(ctx, tx, userID, targetJobID, fields); err != nil {
+		return TargetJobRecord{}, err
+	}
+	updated, err := updateTargetJobLifecycleRow(ctx, tx, userID, targetJobID, fields, now)
+	if err != nil {
+		return TargetJobRecord{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return TargetJobRecord{}, fmt.Errorf("commit update target job lifecycle: %w", err)
+	}
+	return updated, nil
 }
 
 // LookupUpdateDedupe checks whether updateTargetJob has already completed for
@@ -618,6 +641,9 @@ func (s *SQLStore) updateTargetJobLifecycleIdempotent(ctx context.Context, userI
 		return rec, nil
 	}
 
+	if err := validateStatusTransitionUnderLock(ctx, tx, userID, targetJobID, fields); err != nil {
+		return TargetJobRecord{}, err
+	}
 	updated, err := updateTargetJobLifecycleRow(ctx, tx, userID, targetJobID, fields, now)
 	if err != nil {
 		return TargetJobRecord{}, err
@@ -695,6 +721,17 @@ returning id, user_id, profile_id, status, analysis_status, title, company_name,
 	return rec, nil
 }
 
+func validateStatusTransitionUnderLock(ctx context.Context, q rowQueryer, userID string, targetJobID string, fields UpdateLifecycleFields) error {
+	if fields.Status == nil {
+		return nil
+	}
+	current, err := selectTargetJobRecordByUserForUpdate(ctx, q, userID, targetJobID)
+	if err != nil {
+		return err
+	}
+	return validateLifecycleTransition(current.Status, *fields.Status)
+}
+
 func lookupExistingUpdateDedupe(ctx context.Context, q rowQueryer, dedupeKey string) (string, bool, error) {
 	var resourceID string
 	err := q.QueryRowContext(ctx, `
@@ -713,6 +750,27 @@ limit 1`,
 		return "", false, fmt.Errorf("lookup update dedupe marker: %w", err)
 	}
 	return resourceID, true, nil
+}
+
+func selectTargetJobRecordByUserForUpdate(ctx context.Context, q rowQueryer, userID string, targetJobID string) (TargetJobRecord, error) {
+	rec, err := scanTargetJobRow(q.QueryRowContext(ctx, `
+select id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+       employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
+       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
+       created_at, updated_at
+from target_jobs
+where id = $1 and user_id = $2 and deleted_at is null
+for update`,
+		targetJobID,
+		userID,
+	))
+	if errors.Is(err, sql.ErrNoRows) {
+		return TargetJobRecord{}, ErrTargetJobNotFound
+	}
+	if err != nil {
+		return TargetJobRecord{}, fmt.Errorf("select target_jobs for update: %w", err)
+	}
+	return rec, nil
 }
 
 func selectTargetJobRecordByUser(ctx context.Context, q rowQueryer, userID string, targetJobID string) (TargetJobRecord, error) {

@@ -352,6 +352,21 @@ func TestSQLStore_UpdateTargetJobLifecycle_ScopesByUser_ReturnsRow(t *testing.T)
 		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
 		"created_at", "updated_at",
 	}
+	mock.ExpectBegin()
+	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null\s+for update`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000a1",
+			"018f2a40-0000-7000-9000-0000000000b1",
+		).
+		WillReturnRows(sqlmock.NewRows(rowCols).AddRow(
+			"018f2a40-0000-7000-9000-0000000000a1",
+			"018f2a40-0000-7000-9000-0000000000b1",
+			nil, "draft", "ready",
+			"Backend Engineer", "Acme", nil, nil, nil,
+			"en", "manual_text", nil, nil,
+			"raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0),
+			now, now,
+		))
 	mock.ExpectQuery(`update target_jobs\s+set status = \$1, location_text = \$2, notes = \$3, updated_at = \$4\s+where id = \$5 and user_id = \$6 and deleted_at is null\s+returning`).
 		WithArgs("preparing", "Remote", "applied via portal", now,
 			"018f2a40-0000-7000-9000-0000000000a1",
@@ -366,6 +381,7 @@ func TestSQLStore_UpdateTargetJobLifecycle_ScopesByUser_ReturnsRow(t *testing.T)
 			"raw jd", []byte(`{}`), []byte(`{}`), "applied via portal", nil, int32(0),
 			now, now,
 		))
+	mock.ExpectCommit()
 
 	status := sharedtypes.TargetJobStatusPreparing
 	loc := "Remote"
@@ -444,17 +460,74 @@ func TestSQLStore_UpdateTargetJobLifecycle_DedupeHitReturnsExistingWithoutMutati
 	}
 }
 
+func TestSQLStore_UpdateTargetJobLifecycle_IdempotentRejectsStaleStatusTransition(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 14, 20, 0, 0, time.UTC)
+	dedupeKey := "targetjob:update:user1:key2"
+	targetID := "018f2a40-0000-7000-9000-0000000000a1"
+	userID := "018f2a40-0000-7000-9000-0000000000b1"
+	rowCols := []string{
+		"id", "user_id", "profile_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
+		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
+		"created_at", "updated_at",
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`pg_advisory_xact_lock`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
+		WithArgs("target_import", dedupeKey).
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null\s+for update`).
+		WithArgs(targetID, userID).
+		WillReturnRows(sqlmock.NewRows(rowCols).AddRow(
+			targetID,
+			userID,
+			nil, "applied", "ready",
+			"Backend Engineer", "Acme", "Remote", nil, nil,
+			"en", "manual_text", nil, nil,
+			"raw jd", []byte(`{}`), []byte(`{}`), "current state changed", nil, int32(0),
+			now, now,
+		))
+	mock.ExpectRollback()
+
+	status := sharedtypes.TargetJobStatusOffer
+	_, err := store.UpdateTargetJobLifecycle(context.Background(),
+		userID,
+		targetID,
+		targetjob.UpdateLifecycleFields{
+			Status:         &status,
+			DedupeKey:      dedupeKey,
+			DedupeMarkerID: "018f2a40-0000-7000-9000-0000000000d2",
+		},
+		now,
+	)
+	var apiErr *targetjob.ServiceImportError
+	if !errors.As(err, &apiErr) || apiErr.Code != "TARGET_INVALID_STATE_TRANSITION" {
+		t.Fatalf("expected TARGET_INVALID_STATE_TRANSITION from locked current row, got %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSQLStore_UpdateTargetJobLifecycle_NotFoundForCrossUser(t *testing.T) {
 	store, mock, cleanup := newMockStore(t)
 	defer cleanup()
 
 	now := time.Date(2026, 5, 9, 14, 0, 0, 0, time.UTC)
-	mock.ExpectQuery(`update target_jobs`).
-		WithArgs("preparing", now,
+	mock.ExpectBegin()
+	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null\s+for update`).
+		WithArgs(
 			"018f2a40-0000-7000-9000-0000000000a1",
 			"018f2a40-0000-7000-9000-0000000000b9",
 		).
 		WillReturnError(sql.ErrNoRows)
+	mock.ExpectRollback()
 
 	status := sharedtypes.TargetJobStatusPreparing
 	_, err := store.UpdateTargetJobLifecycle(context.Background(),

@@ -1,7 +1,7 @@
 # TargetJob Import and Parse Bootstrap Checklist
 
-> **版本**: 1.2
-> **状态**: completed
+> **版本**: 1.3
+> **状态**: active
 > **更新日期**: 2026-05-08
 
 **关联计划**: [plan](./plan.md)
@@ -52,13 +52,20 @@
 
 ## Phase 6: BDD and handoff
 
-- [x] 6.1 BDD-Gate: 验证 E2E.P0.010 通过（覆盖 `importTargetJob` / `listTargetJobs` / `getTargetJob` / `updateTargetJob` 的 primary path）
-  <!-- verified: 2026-05-08 method=scenario bddChecklist=complete evidence=.test-output/runs/targetjob-20260508-001/e2e/E2E.P0.010/result.json -->
-- [x] 6.2 BDD-Gate: 验证 E2E.P0.011 通过
-  <!-- verified: 2026-05-08 method=scenario bddChecklist=complete evidence=.test-output/runs/targetjob-20260508-001/e2e/E2E.P0.011/result.json -->
-- [x] 6.3 BDD-Gate: 验证 E2E.P0.012 通过
-  <!-- verified: 2026-05-08 method=scenario bddChecklist=complete evidence=.test-output/runs/targetjob-20260508-001/e2e/E2E.P0.012/result.json -->
-- [x] 6.4 BDD-Gate: 验证 E2E.P0.013 通过
-  <!-- verified: 2026-05-08 method=scenario bddChecklist=complete evidence=.test-output/runs/targetjob-20260508-001/e2e/E2E.P0.013/result.json -->
+- [ ] 6.1 BDD-Gate: 验证 E2E.P0.010 通过（覆盖 `importTargetJob` / `listTargetJobs` / `getTargetJob` / `updateTargetJob` 的 primary path）
+  <!-- reopened: 2026-05-08 L2 review found prior evidence was package-level go test proxy, not auth -> HTTP API -> cmd/api drainer runtime -->
+- [ ] 6.2 BDD-Gate: 验证 E2E.P0.011 通过
+  <!-- reopened: 2026-05-08 L2 review found prior evidence was package-level go test proxy, not URL HTTP API -> cmd/api drainer -> urlfetch + F3 prompt registry + A3 AI client runtime -->
+- [ ] 6.3 BDD-Gate: 验证 E2E.P0.012 通过
+  <!-- reopened: 2026-05-08 L2 review found prior evidence was package-level go test proxy, not HTTP API -> cmd/api drainer failure-path runtime -->
+- [ ] 6.4 BDD-Gate: 验证 E2E.P0.013 通过
+  <!-- reopened: 2026-05-08 L2 review found prior evidence was package-level go test proxy, not auth -> HTTP API scenario execution -->
 - [x] 6.5 Handoff 给 frontend-home-job-picks-and-parse；验证: `backend/README.md` 或 `backend/internal/targetjob/doc.go` 说明 4 个 operation 的同步 / 异步语义、错误码、idempotency 行为、URL fetch 守护规则、隐私红线、可观测 metric 名、BDD 入口与 mock → real 切换边界
-- [x] 6.6 Active-scope 负向搜索通过；验证: `backend/internal/targetjob`、`backend/cmd/api`、`docs/spec/backend-targetjob`、`test/scenarios/e2e/p0-010..013-*` active code/docs 不引入 `mistake.*` / `growth.*` / 独立 `voice` route / 独立 `report` 一级 route / 旧 `feature_key` 别名（如 `jd.parse` / `target.parse`）/ embedding / rerank capability / 独立 worker 进程前置依赖 / 旧 `interview_round` 独立模块；负向 grep 0 命中
+- [x] 6.6 Active-scope 负向搜索通过；验证: `backend/internal/targetjob`、`backend/cmd/api`、`docs/spec/backend-targetjob`、`test/scenarios/e2e/p0-010..013-*` active code/docs 不引入 `mistake.*` / `growth.*` / 独立 `voice` route / 独立 `report` 一级 route / 旧 `feature_key` 别名（如 `jd.parse` / `target.parse`）/ embedding / rerank capability / 独立 worker 进程前置依赖 / 旧 `interview_round` 独立模块；允许命中仅限本 gate 文本、negative test token、test fake 未实现方法和 handler service-not-configured guard
+
+## Phase 7: L2 remediation and reopened BDD gate
+
+- [x] 7.1 Remediation: URL fetch dial 路径绑定已校验 public IP，覆盖 DNS rebinding / TOCTOU；验证: `cd backend && go test ./internal/targetjob/urlfetch -run 'TestFetch_RejectsDNSRebindOnDial|TestDialContextRejectsPrivateResolvedAddress' -count=1`
+- [x] 7.2 Remediation: `updateTargetJob` 状态机校验移入 store 事务并锁定 target row；验证: `cd backend && go test ./internal/targetjob -run 'TestSQLStore_UpdateTargetJobLifecycle_IdempotentRejectsStaleStatusTransition|TestService_UpdateTargetJob_DelegatesStatusTransitionValidationToStore' -count=1`
+- [x] 7.3 Remediation: BDD 场景脚本与索引不再把包级 focused tests 标记为真实场景通过；验证: `rg -n "proxy-only|runtime wiring blocker|package-level go test proxy" test/scenarios/e2e/p0-010-targetjob-text-import-parse-ready test/scenarios/e2e/p0-011-targetjob-url-import-fetch-and-parse test/scenarios/e2e/p0-012-targetjob-parse-failure-retryable test/scenarios/e2e/p0-013-targetjob-manual-form-ready test/scenarios/e2e/INDEX.md docs/spec/backend-targetjob/plans/001-targetjob-import-and-parse-bootstrap`
+- [ ] 7.4 Blocked: `cmd/api` 接入真实 `target_import` / `source_refresh` drainer、`ParseExecutor`、F3 runtime client、A3 runtime client 与 `urlfetch`，并把 E2E.P0.010 / 011 / 012 迁移为 auth -> HTTP API -> drainer 的真实场景；阻塞条件: 当前 backend truth source 尚未提供可消费的 F3 prompt/rubric runtime package

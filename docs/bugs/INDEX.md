@@ -6,6 +6,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0027](./BUG-0027.md) | targetjob L2 review exposed runtime gate and SSRF gaps | medium | resolved | 2026-05-08 | `fix(backend-targetjob): harden targetjob L2 runtime gates` |
 | [BUG-0026](./BUG-0026.md) | targetjob L2 review exposed import parse contract drift | medium | resolved | 2026-05-08 | `fix(backend-targetjob): remediate import parse L2 findings` |
 | [BUG-0025](./BUG-0025.md) | analysis failed redline rejected documented provider secret code | medium | resolved | 2026-05-08 | `feat(backend-targetjob): complete import parse bootstrap handoff` |
 | [BUG-0024](./BUG-0024.md) | targetjob detail omitted parsed summary provenance | medium | resolved | 2026-05-08 | `feat(backend-targetjob): complete import parse bootstrap handoff` |

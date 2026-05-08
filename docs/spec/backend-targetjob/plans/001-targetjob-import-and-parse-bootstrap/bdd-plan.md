@@ -1,7 +1,7 @@
 # Backend TargetJob BDD Plan
 
-> **版本**: 1.2
-> **状态**: completed
+> **版本**: 1.3
+> **状态**: active
 > **更新日期**: 2026-05-08
 
 ## 0 场景矩阵
@@ -14,6 +14,8 @@
 | E2E.P0.013 | primary / manual fallback | Phase 2.1 + Phase 3.1 | 6.4 | C-3 / C-6 / C-9 / C-11 / C-13 |
 
 > 备注：编号承接 `practice-voice-mvp/spec.md §4.3` 已预留的 `E2E.P0.007` / `E2E.P0.008` / `E2E.P0.009`；本计划接续使用 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013`。
+>
+> L2 remediation 备注（2026-05-08）：当前 `test/scenarios/e2e/p0-010..013-*` 脚本是包级 `go test` proxy，不满足本表声明的 auth / HTTP API / cmd/api runtime drainer 行为入口。场景状态保持 active，完成证据必须来自真实场景链路；包级 focused tests 只可作为 TDD 辅助证据。
 
 ## Phase 6: TargetJob backend behavior
 

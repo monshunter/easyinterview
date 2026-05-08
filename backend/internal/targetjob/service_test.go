@@ -562,14 +562,8 @@ func TestService_UpdateTargetJob_DedupeHitBypassesLaterStateTransition(t *testin
 }
 
 func TestService_UpdateTargetJob_RejectsIllegalTransition(t *testing.T) {
-	svc, store := newServiceWithFake()
-	store.getRecord = targetjob.TargetJobRecord{
-		ID:             "018f2a40-0000-7000-9000-0000000000a1",
-		UserID:         "u1",
-		Status:         sharedtypes.TargetJobStatusDraft,
-		SourceType:     targetjob.SourceTypeManualText,
-		TargetLanguage: "en",
-	}
+	svc, store := newServiceWithFake("018f2a40-0000-7000-9000-0000000000d4")
+	store.updateErr = &targetjob.ServiceImportError{Code: "TARGET_INVALID_STATE_TRANSITION", Message: "transition draft -> offer is not allowed"}
 	target := sharedtypes.TargetJobStatusOffer // draft -> offer is invalid
 	_, err := svc.UpdateTargetJob(context.Background(), targetjob.UpdateRequest{
 		UserID:         "u1",
@@ -580,6 +574,29 @@ func TestService_UpdateTargetJob_RejectsIllegalTransition(t *testing.T) {
 	var apiErr *targetjob.ServiceImportError
 	if !errors.As(err, &apiErr) || apiErr.Code != "TARGET_INVALID_STATE_TRANSITION" {
 		t.Fatalf("expected TARGET_INVALID_STATE_TRANSITION, got %v", err)
+	}
+}
+
+func TestService_UpdateTargetJob_DelegatesStatusTransitionValidationToStore(t *testing.T) {
+	svc, store := newServiceWithFake("018f2a40-0000-7000-9000-0000000000d3")
+	store.updateErr = &targetjob.ServiceImportError{Code: "TARGET_INVALID_STATE_TRANSITION", Message: "stale transition rejected"}
+	target := sharedtypes.TargetJobStatusOffer
+
+	_, err := svc.UpdateTargetJob(context.Background(), targetjob.UpdateRequest{
+		UserID:         "u1",
+		TargetJobID:    "018f2a40-0000-7000-9000-0000000000a1",
+		IdempotencyKey: "k",
+		Status:         &target,
+	})
+	var apiErr *targetjob.ServiceImportError
+	if !errors.As(err, &apiErr) || apiErr.Code != "TARGET_INVALID_STATE_TRANSITION" {
+		t.Fatalf("expected store-sourced TARGET_INVALID_STATE_TRANSITION, got %v", err)
+	}
+	if store.getCallCount != 0 {
+		t.Fatalf("service must not preflight target status outside the store transaction, getCallCount=%d", store.getCallCount)
+	}
+	if store.capturedUpdateTarget == "" {
+		t.Fatal("service did not delegate the status update to the store")
 	}
 }
 
