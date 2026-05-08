@@ -10,6 +10,8 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/profile"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
+	doubaospeech "github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/doubao_speech"
+	minimaxspeech "github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/minimax_speech"
 	openaicompatible "github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/openai_compatible"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/stub"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
@@ -154,9 +156,25 @@ func (r *providerResolver) ResolveProvider(ref string) (aiclient.Provider, error
 			Provider:   resolved,
 			HTTPClient: r.httpClient,
 		})
-	case aiclient.ProviderProtocolDoubaoSpeech,
-		aiclient.ProviderProtocolMinimaxSpeech,
-		aiclient.ProviderProtocolRealtimeAudio,
+	case aiclient.ProviderProtocolDoubaoSpeech:
+		resolved, err := providerregistry.ResolveProviderEntry(entry, r.appEnv, r.secrets)
+		if err != nil {
+			return nil, err
+		}
+		return doubaospeech.New(doubaospeech.Options{
+			Provider:   resolved,
+			HTTPClient: r.httpClient,
+		})
+	case aiclient.ProviderProtocolMinimaxSpeech:
+		resolved, err := providerregistry.ResolveProviderEntry(entry, r.appEnv, r.secrets)
+		if err != nil {
+			return nil, err
+		}
+		return minimaxspeech.New(minimaxspeech.Options{
+			Provider:   resolved,
+			HTTPClient: r.httpClient,
+		})
+	case aiclient.ProviderProtocolRealtimeAudio,
 		aiclient.ProviderProtocolJudgeCompatible:
 		return nil, sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, fmt.Sprintf("provider protocol %q is not implemented", entry.Protocol), false)
 	default:

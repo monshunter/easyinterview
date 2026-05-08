@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `feat(ai-provider): doubao 与 minimax speech adapters` | #feat #test |
 | [2026-05-08](2026-05-08.md) | `feat(ai-provider): synthesize provider-neutral 接口` | #feat #test |
 | [2026-05-08](2026-05-08.md) | `feat(ai-provider): b1 capability 与 a3 schema 对齐` | #feat #test |
 | [2026-05-08](2026-05-08.md) | `docs(ai-provider): add cascaded speech provider foundation spec` | #docs |

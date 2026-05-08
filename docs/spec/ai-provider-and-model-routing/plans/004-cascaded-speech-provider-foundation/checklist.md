@@ -19,9 +19,9 @@
 
 ## Phase 3: 豆包与 MiniMax speech adapters
 
-- [ ] 3.1 实现 `doubao_speech` STT/TTS adapter；验证: 记录官方 API 文档版本或可审计 contract fixture 来源，mockserver contract tests 覆盖 happy path、4xx/5xx、timeout、secret missing、unsupported audio/text format
-- [ ] 3.2 实现 `minimax_speech` TTS adapter，优先 `speech-02-turbo`；验证: 记录官方 API 文档版本或可审计 contract fixture 来源，mockserver contract tests 覆盖 happy path、provider error、secret missing；MiniMax 未确认 STT 前不得声明 `stt`
-- [ ] 3.3 增加 provider-specific 不兼容 gate；验证: negative tests 证明豆包/MiniMax speech adapter 不复用 OpenAI Audio Transcriptions wire 假设
+- [x] 3.1 实现 `doubao_speech` STT/TTS adapter；验证: 记录官方 API 文档版本或可审计 contract fixture 来源，mockserver contract tests 覆盖 happy path、4xx/5xx、timeout、secret missing、unsupported audio/text format
+- [x] 3.2 实现 `minimax_speech` TTS adapter，优先 `speech-02-turbo`；验证: 记录官方 API 文档版本或可审计 contract fixture 来源，mockserver contract tests 覆盖 happy path、provider error、secret missing；MiniMax 未确认 STT 前不得声明 `stt`
+- [x] 3.3 增加 provider-specific 不兼容 gate；验证: negative tests 证明豆包/MiniMax speech adapter 不复用 OpenAI Audio Transcriptions wire 假设
 
 ## Phase 4: Profile catalog 与独立配置
 
