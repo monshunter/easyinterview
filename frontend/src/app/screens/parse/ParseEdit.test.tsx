@@ -277,4 +277,19 @@ describe("ParseEdit — re-parse and cancel", () => {
       expect(screen.getByTestId("parse-loading-step-0")).toBeInTheDocument();
     });
   });
+
+  it("re-parse triggers a fresh getTargetJob poll", async () => {
+    const client = createClient();
+    const spy = vi.spyOn(client, "getTargetJob");
+    renderParse(client);
+
+    await screen.findByTestId("parse-action-reparse");
+    const callsBeforeReparse = spy.mock.calls.length;
+
+    fireEvent.click(screen.getByTestId("parse-action-reparse"));
+
+    await waitFor(() => {
+      expect(spy.mock.calls.length).toBeGreaterThan(callsBeforeReparse);
+    });
+  });
 });

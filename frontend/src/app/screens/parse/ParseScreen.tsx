@@ -61,6 +61,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [pollNonce, setPollNonce] = useState(0);
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCountRef = useRef(0);
 
@@ -123,7 +124,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       pollCountRef.current = 0;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runtime, route.params?.targetJobId, _mockStage, _mockTargetJob]);
+  }, [runtime, route.params?.targetJobId, _mockStage, _mockTargetJob, pollNonce]);
 
   // Simulated loading animation (mock mode only)
   useEffect(() => {
@@ -174,8 +175,15 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   }, [navigate]);
 
   const handleReparse = useCallback(() => {
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current);
+      pollingRef.current = null;
+    }
+    pollCountRef.current = 0;
+    setErrorMessage(null);
     setStep(0);
     setStage("loading");
+    setPollNonce((n) => n + 1);
     safeScrollToTop();
   }, []);
 

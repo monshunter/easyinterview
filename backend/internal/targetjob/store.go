@@ -716,10 +716,10 @@ func updateTargetJobLifecycleRow(ctx context.Context, q rowQueryer, userID strin
 		sets = append(sets, "notes = "+nextArg(*fields.Notes))
 	}
 	if fields.TitleHint != nil {
-		sets = append(sets, "title = coalesce(title, "+nextArg(*fields.TitleHint)+")")
+		sets = append(sets, "title = "+nextArg(*fields.TitleHint))
 	}
 	if fields.CompanyNameHint != nil {
-		sets = append(sets, "company_name = coalesce(company_name, "+nextArg(*fields.CompanyNameHint)+")")
+		sets = append(sets, "company_name = "+nextArg(*fields.CompanyNameHint))
 	}
 	sets = append(sets, "updated_at = "+nextArg(now))
 

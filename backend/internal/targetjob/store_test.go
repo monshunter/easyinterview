@@ -403,6 +403,51 @@ func TestSQLStore_UpdateTargetJobLifecycle_ScopesByUser_ReturnsRow(t *testing.T)
 	}
 }
 
+func TestSQLStore_UpdateTargetJobLifecycle_OverwritesTitleAndCompanyHints(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 14, 5, 0, 0, time.UTC)
+	rowCols := []string{
+		"id", "user_id", "profile_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
+		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
+		"created_at", "updated_at",
+	}
+	mock.ExpectQuery(`update target_jobs\s+set title = \$1, company_name = \$2, updated_at = \$3\s+where id = \$4 and user_id = \$5 and deleted_at is null\s+returning`).
+		WithArgs("Senior Frontend Engineer", "Acme Labs", now,
+			"018f2a40-0000-7000-9000-0000000000a1",
+			"018f2a40-0000-7000-9000-0000000000b1",
+		).
+		WillReturnRows(sqlmock.NewRows(rowCols).AddRow(
+			"018f2a40-0000-7000-9000-0000000000a1",
+			"018f2a40-0000-7000-9000-0000000000b1",
+			nil, "draft", "ready",
+			"Senior Frontend Engineer", "Acme Labs", nil, nil, nil,
+			"en", "manual_text", nil, nil,
+			"raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0),
+			now, now,
+		))
+
+	title := "Senior Frontend Engineer"
+	company := "Acme Labs"
+	rec, err := store.UpdateTargetJobLifecycle(context.Background(),
+		"018f2a40-0000-7000-9000-0000000000b1",
+		"018f2a40-0000-7000-9000-0000000000a1",
+		targetjob.UpdateLifecycleFields{TitleHint: &title, CompanyNameHint: &company},
+		now,
+	)
+	if err != nil {
+		t.Fatalf("UpdateTargetJobLifecycle: %v", err)
+	}
+	if rec.Title != title || rec.CompanyName != company {
+		t.Fatalf("title/company hints were not persisted: %+v", rec)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSQLStore_UpdateTargetJobLifecycle_DedupeHitReturnsExistingWithoutMutation(t *testing.T) {
 	store, mock, cleanup := newMockStore(t)
 	defer cleanup()
