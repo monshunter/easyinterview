@@ -31,6 +31,13 @@ describe("App shell", () => {
     }
   });
 
+  it("renders HomeScreen on the home route instead of PlaceholderScreen", () => {
+    render(<App />);
+    expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-title")).toBeInTheDocument();
+    expect(screen.getByTestId("home-jd-textarea")).toBeInTheDocument();
+  });
+
   it("propagates route params to the rendered route view", () => {
     render(
       <App

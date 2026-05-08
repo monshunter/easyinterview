@@ -8,11 +8,12 @@
 
 ## Phase 1: Home shell 静态壳 + 路由壳 + i18n（无数据）
 
-- [ ] 1.1 新增 `frontend/src/app/screens/home/HomeScreen.tsx`，按 `ui-design/src/screen-home.jsx::HomeScreen` lines 49-90 + 105-128 源级复刻 Hero（label/title/sub）+ JD textarea card（含 upload / URL / Submit Btn）+ Resume create CTA + 2 张 aux cards（JOB PICKS / POST-INTERVIEW）；recent mocks 与数据相关区域留 placeholder；Vitest 断言 `home-hero-label` / `home-hero-title` / `home-hero-sub` / `home-jd-textarea` / `home-jd-submit` / `home-aux-jobpicks` / `home-aux-debrief` 7 个 testid 存在 + 控件类型断言（textarea / button）
-- [ ] 1.2 在 `frontend/src/app/App.tsx` route table 中绑定 `home` → `<HomeScreen />`，替换 D1 PlaceholderScreen；Vitest 断言 `App.tsx` 内 `home` route render 命中 `HomeScreen` 而非 PlaceholderScreen
-- [ ] 1.3 扩展 `frontend/src/app/i18n/locales/zh.ts` 与 `en.ts` 新增 `home.*` 命名空间（≥14 key 覆盖 tag/title/sub/ph/importBtn/orUpload/active/activeSub/startAfter/startAfterSub/startAfterBtn/jobPicks/jobPicksSub/jobPicksBtn/resumeCreate）；`frontend/src/app/i18n/messages.ts` 类型聚合补齐；Vitest `i18n` 套件断言新 namespace zh/en 同步无缺漏
-- [ ] 1.4 新增 `home/HomeScreen.test.tsx`：测 i18n zh/en 切换重绘、空 textarea Submit 按钮 disabled、aux cards 点击调用 `nav` stub（含正确 route name "jd_match" / "debrief"）、Resume create CTA 点击调用 `nav("resume_versions", { flow: "create" })`；负向断言旧 prototype 中存在但当前真理源已移除的 testid 不命中（`home-pasted-success-*` / `home-mocked-recent-*` 等若有）
-- [ ] 1.5 BDD-Gate: 验证 `E2E.P0.014` 中 home 静态部分（hero + textarea card + aux cards + topbar 高亮）资产构建到 ready 态
+- [x] 1.1 新增 `frontend/src/app/screens/home/HomeScreen.tsx`，按 `ui-design/src/screen-home.jsx::HomeScreen` lines 49-90 + 105-128 源级复刻 Hero（label/title/sub）+ JD textarea card（含 upload / URL / Submit Btn）+ Resume create CTA + 2 张 aux cards（JOB PICKS / POST-INTERVIEW）；recent mocks 与数据相关区域留 placeholder；Vitest 断言 `home-hero-label` / `home-hero-title` / `home-hero-sub` / `home-jd-textarea` / `home-jd-submit` / `home-aux-jobpicks` / `home-aux-debrief` 7 个 testid 存在 + 控件类型断言（textarea / button）
+- [x] 1.2 在 `frontend/src/app/App.tsx` route table 中绑定 `home` → `<HomeScreen />`，替换 D1 PlaceholderScreen；Vitest 断言 `App.tsx` 内 `home` route render 命中 `HomeScreen` 而非 PlaceholderScreen
+- [x] 1.3 扩展 `frontend/src/app/i18n/locales/zh.ts` 与 `en.ts` 新增 `home.*` 命名空间（≥14 key 覆盖 tag/title/sub/ph/importBtn/orUpload/active/activeSub/startAfter/startAfterSub/startAfterBtn/jobPicks/jobPicksSub/jobPicksBtn/resumeCreate）；`frontend/src/app/i18n/messages.ts` 类型聚合补齐；Vitest `i18n` 套件断言新 namespace zh/en 同步无缺漏
+- [x] 1.4 新增 `home/HomeScreen.test.tsx`：测 i18n zh/en 切换重绘、空 textarea Submit 按钮 disabled、aux cards 点击调用 `nav` stub（含正确 route name "jd_match" / "debrief"）、Resume create CTA 点击调用 `nav("resume_versions", { flow: "create" })`；负向断言旧 prototype 中存在但当前真理源已移除的 testid 不命中（`home-pasted-success-*` / `home-mocked-recent-*` 等若有）
+- [x] 1.5 BDD-Gate: 验证 `E2E.P0.014` 中 home 静态部分（hero + textarea card + aux cards + topbar 高亮）资产构建到 ready 态
+<!-- verified: 2026-05-08 method=vitest HomeScreen 10 tests + App 5 tests PASS; BDD scenario assets deferred to Phase 6 -->
 
 ## Phase 2: Recent mock interviews 列表（消费 listTargetJobs）
 

@@ -96,6 +96,21 @@ export const zh = {
   "settings.appInfoItems": "产品名称: EasyInterview|版本: v1.0",
   "placeholder.workspace": "面试规划",
   "placeholder.default": "页面壳",
+  "home.heroLabel": "首页 · 模拟面试",
+  "home.heroTitle": "先把你已经拿在手里的那场面试，赢下来。",
+  "home.heroSub": "粘贴 JD，或继续最近一次模拟面试。每一次练习都绑定具体岗位，而不是泛用题库。",
+  "home.jdPlaceholder": "把 JD 粘贴到这里…",
+  "home.importBtn": "解析并确认面试",
+  "home.orUpload": "也可以上传 .pdf / .docx / .md",
+  "home.recentSection": "最近模拟面试",
+  "home.recentSectionSub": "按最近准备排序。每张卡片都对应一个目标岗位和一轮面试。",
+  "home.jobPicksTitle": "按简历匹配更多 JD",
+  "home.jobPicksSub": "用你的简历和岗位偏好筛出值得准备的 JD，再从匹配结果进入模拟面试前确认。",
+  "home.jobPicksBtn": "打开岗位推荐",
+  "home.debriefTitle": "刚面完一轮？",
+  "home.debriefSub": "把面试问过的问题丢进来，沉淀成下一轮的弹药。",
+  "home.debriefBtn": "打开复盘",
+  "home.resumeCreateLink": "还没有简历？1 分钟创建 →",
 } as const;
 
 export type MessageKey = keyof typeof zh;
