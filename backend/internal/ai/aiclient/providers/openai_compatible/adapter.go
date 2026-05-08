@@ -224,6 +224,12 @@ func (a *Adapter) Stream(ctx context.Context, profile *aiclient.ModelProfile, pa
 	return ch, nil
 }
 
+// Synthesize implements aiclient.Provider. The openai_compatible protocol does
+// not support TTS synthesis; speech adapters use doubao_speech / minimax_speech.
+func (a *Adapter) Synthesize(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
+	return aiclient.SynthesisResponse{}, a.errMeta(profile, nil, 0, sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "openai_compatible protocol does not support TTS synthesis", false)), sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "openai_compatible protocol does not support TTS synthesis", false)
+}
+
 func (a *Adapter) postStream(ctx context.Context, path string, body any) (*http.Response, error) {
 	buf, err := json.Marshal(body)
 	if err != nil {

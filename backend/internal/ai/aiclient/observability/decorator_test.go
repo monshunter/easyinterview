@@ -711,6 +711,9 @@ func (f *fallbackInner) Complete(_ context.Context, _ string, _ aiclient.Complet
 func (f *fallbackInner) Transcribe(_ context.Context, _ string, _ aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
 	return aiclient.TranscriptionResponse{Text: "fallback transcript"}, f.meta, nil
 }
+func (f *fallbackInner) Synthesize(_ context.Context, _ string, _ aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
+	return aiclient.SynthesisResponse{Audio: []byte("fallback-tts"), ContentType: "audio/mpeg", DurationMs: 100, CharCount: 5}, f.meta, nil
+}
 func (f *fallbackInner) Stream(_ context.Context, _ string, _ aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
 	ch := make(chan aiclient.AIStreamEvent, len(f.streamEvents))
 	for _, ev := range f.streamEvents {

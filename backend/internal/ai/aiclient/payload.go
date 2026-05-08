@@ -93,3 +93,25 @@ type TranscriptionInput struct {
 type TranscriptionResponse struct {
 	Text string `json:"text"`
 }
+
+// SynthesisInput is the provider-neutral input to AIClient.Synthesize.
+// The caller supplies text plus voice/format/speaking-rate metadata.
+// Raw text must never be logged or persisted by observability layers.
+type SynthesisInput struct {
+	Text         string       `json:"text"`
+	Voice        string       `json:"voice,omitempty"`
+	Format       string       `json:"format,omitempty"`
+	SpeakingRate float64      `json:"speakingRate,omitempty"`
+	Language     string       `json:"language,omitempty"`
+	Metadata     CallMetadata `json:"metadata"`
+}
+
+// SynthesisResponse is the provider-neutral output returned by
+// AIClient.Synthesize. Audio bytes are not JSON-serializable and must
+// never be written to logs, DB metadata, or metric labels.
+type SynthesisResponse struct {
+	Audio       []byte `json:"-"`
+	ContentType string `json:"contentType"`
+	DurationMs  int    `json:"durationMs"`
+	CharCount   int    `json:"charCount"`
+}

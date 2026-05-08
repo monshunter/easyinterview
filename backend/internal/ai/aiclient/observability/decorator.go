@@ -173,6 +173,19 @@ func (w *Wrap) Stream(ctx context.Context, profileName string, payload aiclient.
 	return out, nil
 }
 
+// Synthesize implements aiclient.AIClient.
+func (w *Wrap) Synthesize(ctx context.Context, profileName string, input aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
+	start := w.now()
+	resp, meta, err := w.inner.Synthesize(ctx, profileName, input)
+	completed := w.now()
+	latencyMs := completed.Sub(start).Milliseconds()
+	if meta.LatencyMs == 0 {
+		meta.LatencyMs = latencyMs
+	}
+	recordErr := w.recordSynthesizeCall(ctx, profileName, input, resp, meta, start, completed, err)
+	return resp, meta, joinRecordError(err, recordErr)
+}
+
 func (w *Wrap) recordCompleteCall(ctx context.Context, profileName string, payload aiclient.CompletePayload, responseContent string, meta aiclient.AICallMeta, start, completed time.Time, err error) error {
 	meta = w.enrichMeta(profileName, meta, payload.Metadata)
 	w.recordMetricsAndLog(meta, err)
@@ -189,6 +202,18 @@ func (w *Wrap) recordTranscribeCall(ctx context.Context, profileName string, inp
 	auditRow := w.buildAuditRow(profileName, audioAuditSummary(input), resp.Text)
 	auditRow.Metadata.PromptCharLength = len(input.Audio)
 	auditRow.Metadata.ResponseCharLength = len(resp.Text)
+	return errors.Join(
+		w.writeTaskRun(ctx, meta, input.Metadata.TaskRun, auditRow.Metadata, start, completed, err),
+		w.writeAuditEvent(ctx, auditRow),
+	)
+}
+
+func (w *Wrap) recordSynthesizeCall(ctx context.Context, profileName string, input aiclient.SynthesisInput, resp aiclient.SynthesisResponse, meta aiclient.AICallMeta, start, completed time.Time, err error) error {
+	meta = w.enrichMeta(profileName, meta, input.Metadata)
+	w.recordMetricsAndLog(meta, err)
+	auditRow := w.buildAuditRow(profileName, synthesisAuditSummary(input), synthesisResponseAuditSummary(resp))
+	auditRow.Metadata.PromptCharLength = len(input.Text)
+	auditRow.Metadata.ResponseCharLength = len(resp.Audio)
 	return errors.Join(
 		w.writeTaskRun(ctx, meta, input.Metadata.TaskRun, auditRow.Metadata, start, completed, err),
 		w.writeAuditEvent(ctx, auditRow),
@@ -440,6 +465,14 @@ func hashBytesHex(b []byte) string {
 
 func audioAuditSummary(input aiclient.TranscriptionInput) string {
 	return fmt.Sprintf("audio:%d:%s", len(input.Audio), hashBytesHex(input.Audio))
+}
+
+func synthesisAuditSummary(input aiclient.SynthesisInput) string {
+	return fmt.Sprintf("tts-text:%d:%s", len(input.Text), hashBytesHex([]byte(input.Text)))
+}
+
+func synthesisResponseAuditSummary(resp aiclient.SynthesisResponse) string {
+	return fmt.Sprintf("tts-audio:%d:%s:%s:%dms", len(resp.Audio), hashBytesHex(resp.Audio), resp.ContentType, resp.DurationMs)
 }
 
 func joinMessages(messages []aiclient.Message) string {

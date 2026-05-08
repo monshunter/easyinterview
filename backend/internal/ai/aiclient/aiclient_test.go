@@ -27,9 +27,11 @@ type countingProvider struct {
 	inner               aiclient.Provider
 	completeCalls       int
 	transcribeCalls     int
+	synthesizeCalls     int
 	lastCompleteProfile string
 	lastCompletePayload aiclient.CompletePayload
 	lastTranscribeInput aiclient.TranscriptionInput
+	lastSynthesizeInput aiclient.SynthesisInput
 }
 
 func (p *countingProvider) Name() string { return p.inner.Name() }
@@ -47,6 +49,12 @@ func (p *countingProvider) Transcribe(ctx context.Context, profile *aiclient.Mod
 	return p.inner.Transcribe(ctx, profile, input)
 }
 
+func (p *countingProvider) Synthesize(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
+	p.synthesizeCalls++
+	p.lastSynthesizeInput = input
+	return p.inner.Synthesize(ctx, profile, input)
+}
+
 func (p *countingProvider) Stream(ctx context.Context, profile *aiclient.ModelProfile, payload aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
 	return p.inner.Stream(ctx, profile, payload)
 }
@@ -62,6 +70,7 @@ type scriptedProvider struct {
 	streamEvents    []aiclient.AIStreamEvent
 	completeCalls   int
 	transcribeCalls int
+	synthesizeCalls int
 }
 
 func (p *scriptedProvider) Name() string { return p.name }
@@ -83,6 +92,11 @@ func (p *scriptedProvider) Complete(_ context.Context, profile *aiclient.ModelPr
 func (p *scriptedProvider) Transcribe(_ context.Context, profile *aiclient.ModelProfile, _ aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
 	p.transcribeCalls++
 	return aiclient.TranscriptionResponse{Text: "scripted transcript"}, scriptedMeta(p.name, profile, nil), nil
+}
+
+func (p *scriptedProvider) Synthesize(_ context.Context, profile *aiclient.ModelProfile, _ aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
+	p.synthesizeCalls++
+	return aiclient.SynthesisResponse{Audio: []byte("fake-audio"), ContentType: "audio/mpeg", DurationMs: 1000, CharCount: 5}, scriptedMeta(p.name, profile, nil), nil
 }
 
 func (p *scriptedProvider) Stream(_ context.Context, _ *aiclient.ModelProfile, _ aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
@@ -159,6 +173,17 @@ func defaultResolver() staticResolver {
 			Default: aiclient.ProviderConfig{
 				ProviderRef: stub.Name,
 				Model:       "stub-stt-1",
+			},
+			TimeoutMs: 5000,
+			Version:   "1.0.0",
+		},
+		"practice.voice.tts.default": {
+			Name:       "practice.voice.tts.default",
+			Capability: aiclient.CapabilityTts,
+			Status:     aiclient.ProfileStatusActive,
+			Default: aiclient.ProviderConfig{
+				ProviderRef: stub.Name,
+				Model:       "stub-tts-1",
 			},
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
@@ -682,4 +707,86 @@ func collectClientStreamEvents(ch <-chan aiclient.AIStreamEvent) []aiclient.AISt
 		events = append(events, ev)
 	}
 	return events
+}
+
+func TestSynthesize_RoutesTTSProfileThroughProvider(t *testing.T) {
+	c, provider := newTestClientWithResolver(t, defaultResolver())
+	input := aiclient.SynthesisInput{
+		Text:         "你好，欢迎参加面试",
+		Voice:        "zh_female_qingxin",
+		Format:       "mp3",
+		SpeakingRate: 1.0,
+		Language:     "zh-CN",
+		Metadata: aiclient.CallMetadata{
+			FeatureKey:    "practice.voice.tts",
+			PromptVersion: "tts-p1",
+			Language:      "zh-CN",
+		},
+	}
+
+	resp, meta, err := c.Synthesize(context.Background(), "practice.voice.tts.default", input)
+	if err != nil {
+		t.Fatalf("Synthesize: %v", err)
+	}
+	if len(resp.Audio) == 0 {
+		t.Fatal("expected non-empty audio bytes")
+	}
+	if resp.ContentType == "" {
+		t.Fatal("expected non-empty content type")
+	}
+	if provider.synthesizeCalls != 1 {
+		t.Fatalf("expected one provider synthesizes call, got %d", provider.synthesizeCalls)
+	}
+	if provider.lastSynthesizeInput.Text != input.Text || provider.lastSynthesizeInput.Voice != "zh_female_qingxin" {
+		t.Fatalf("synthesis input not propagated: %+v", provider.lastSynthesizeInput)
+	}
+	if meta.Capability != aiclient.CapabilityTts || meta.ModelProfileName != "practice.voice.tts.default" {
+		t.Fatalf("expected tts meta for profile, got %+v", meta)
+	}
+}
+
+func TestSynthesize_RequiresNonEmptyText(t *testing.T) {
+	c, provider := newTestClientWithResolver(t, defaultResolver())
+
+	_, meta, err := c.Synthesize(context.Background(), "practice.voice.tts.default", aiclient.SynthesisInput{})
+	if err == nil {
+		t.Fatal("expected invalid input error for empty text")
+	}
+	var apiErr *sharederrors.APIError
+	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("expected AI_OUTPUT_INVALID, got %v", err)
+	}
+	if meta.ErrorCode != sharederrors.CodeAiOutputInvalid || meta.ValidationStatus != aiclient.ValidationStatusInvalid {
+		t.Fatalf("expected invalid meta, got %+v", meta)
+	}
+	if provider.synthesizeCalls != 0 {
+		t.Fatalf("invalid synthesize input must not reach provider, got %d calls", provider.synthesizeCalls)
+	}
+}
+
+func TestSynthesize_UnsupportedCapabilityFailsClosedWithSharedError(t *testing.T) {
+	c, provider := newTestClientWithResolver(t, defaultResolver())
+
+	_, meta, err := c.Synthesize(context.Background(), "practice.dictation.stt.default", aiclient.SynthesisInput{
+		Text: "test",
+	})
+	assertUnsupportedCapabilityError(t, err, meta, aiclient.CapabilitySTT)
+	if provider.synthesizeCalls != 0 {
+		t.Fatalf("capability mismatch must fail before provider invocation, got %d calls", provider.synthesizeCalls)
+	}
+}
+
+func TestSynthesize_DisabledProfileFailsClosedWithSharedError(t *testing.T) {
+	resolver := defaultResolver()
+	resolver["practice.voice.tts.default"].Status = aiclient.ProfileStatusDisabled
+	resolver["practice.voice.tts.default"].UnsupportedReason = "disabled until TTS adapter lands"
+	c, provider := newTestClientWithResolver(t, resolver)
+
+	_, meta, err := c.Synthesize(context.Background(), "practice.voice.tts.default", aiclient.SynthesisInput{
+		Text: "test",
+	})
+	assertUnsupportedCapabilityError(t, err, meta, aiclient.CapabilityTts)
+	if provider.synthesizeCalls != 0 {
+		t.Fatalf("disabled profile must fail before provider invocation, got %d calls", provider.synthesizeCalls)
+	}
 }

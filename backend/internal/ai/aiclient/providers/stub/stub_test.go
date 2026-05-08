@@ -157,3 +157,104 @@ func TestStubFactoryRejectsWhenNoAppEnvProvided(t *testing.T) {
 		t.Fatalf("expected ErrNotAllowed when no AppEnv option set, got %v", err)
 	}
 }
+
+func ttsProfile() *aiclient.ModelProfile {
+	return &aiclient.ModelProfile{
+		Name:       "practice.voice.tts.default",
+		Capability: aiclient.CapabilityTts,
+		Default: aiclient.ProviderConfig{
+			ProviderRef: stub.Name,
+			Model:       "stub-tts-1",
+		},
+		TimeoutMs: 5000,
+		Version:   "1.0.0",
+	}
+}
+
+func ttsInput() aiclient.SynthesisInput {
+	return aiclient.SynthesisInput{
+		Text:         "你好，欢迎参加面试",
+		Voice:        "zh_female_qingxin",
+		Format:       "mp3",
+		SpeakingRate: 1.0,
+		Language:     "zh-CN",
+		Metadata: aiclient.CallMetadata{
+			FeatureKey:    "practice.voice.tts",
+			PromptVersion: "tts-p1",
+			Language:      "zh-CN",
+		},
+	}
+}
+
+func TestStubSynthesizeIsDeterministic(t *testing.T) {
+	p, err := stub.New(stub.WithAppEnv(aiclient.AppEnvTest))
+	if err != nil {
+		t.Fatalf("stub.New: %v", err)
+	}
+	a, metaA, err := p.Synthesize(context.Background(), ttsProfile(), ttsInput())
+	if err != nil {
+		t.Fatalf("first Synthesize: %v", err)
+	}
+	b, metaB, err := p.Synthesize(context.Background(), ttsProfile(), ttsInput())
+	if err != nil {
+		t.Fatalf("second Synthesize: %v", err)
+	}
+	if string(a.Audio) != string(b.Audio) {
+		t.Fatalf("expected deterministic stub tts output, got %q vs %q", a.Audio, b.Audio)
+	}
+	if a.ContentType != b.ContentType {
+		t.Fatalf("content type mismatch: %q vs %q", a.ContentType, b.ContentType)
+	}
+	if a.DurationMs != b.DurationMs || a.DurationMs <= 0 {
+		t.Fatalf("duration mismatch or non-positive: %d vs %d", a.DurationMs, b.DurationMs)
+	}
+	if a.CharCount != b.CharCount || a.CharCount != len([]rune(ttsInput().Text)) {
+		t.Fatalf("char count mismatch: %d vs %d (expected %d)", a.CharCount, b.CharCount, len([]rune(ttsInput().Text)))
+	}
+	if metaA.Provider != stub.Name || metaB.Provider != stub.Name {
+		t.Fatalf("expected provider=stub, got %q / %q", metaA.Provider, metaB.Provider)
+	}
+}
+
+func TestStubSynthesizeDifferentInputYieldsDifferentOutput(t *testing.T) {
+	p, err := stub.New(stub.WithAppEnv(aiclient.AppEnvTest))
+	if err != nil {
+		t.Fatalf("stub.New: %v", err)
+	}
+	input1 := ttsInput()
+	a, _, err := p.Synthesize(context.Background(), ttsProfile(), input1)
+	if err != nil {
+		t.Fatalf("first Synthesize: %v", err)
+	}
+
+	input2 := ttsInput()
+	input2.Text = "好的，我们开始面试吧"
+	b, _, err := p.Synthesize(context.Background(), ttsProfile(), input2)
+	if err != nil {
+		t.Fatalf("second Synthesize: %v", err)
+	}
+
+	if string(a.Audio) == string(b.Audio) {
+		t.Fatal("expected different audio for different input text")
+	}
+}
+
+func TestStubSynthesizeMetaReturnsDurationAndCharCount(t *testing.T) {
+	p, err := stub.New(stub.WithAppEnv(aiclient.AppEnvTest))
+	if err != nil {
+		t.Fatalf("stub.New: %v", err)
+	}
+	resp, meta, err := p.Synthesize(context.Background(), ttsProfile(), ttsInput())
+	if err != nil {
+		t.Fatalf("Synthesize: %v", err)
+	}
+	if resp.DurationMs <= 0 {
+		t.Fatalf("expected positive DurationMs, got %d", resp.DurationMs)
+	}
+	if resp.CharCount <= 0 {
+		t.Fatalf("expected positive CharCount, got %d", resp.CharCount)
+	}
+	if meta.Provider != stub.Name {
+		t.Fatalf("expected meta.Provider=%q, got %q", stub.Name, meta.Provider)
+	}
+}

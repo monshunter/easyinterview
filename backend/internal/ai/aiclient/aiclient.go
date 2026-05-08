@@ -21,6 +21,12 @@ type AIClient interface {
 	// channel closes after the terminal event. Plan 001 only ships the type
 	// contract; full provider-side streaming consumption lands in plan 002.
 	Stream(ctx context.Context, profileName string, payload CompletePayload) (<-chan AIStreamEvent, error)
+
+	// Synthesize runs a text-to-speech synthesis request. Callers reference
+	// only a Model Profile name and receive audio bytes plus metadata.
+	// Raw input text and output audio must never be logged or persisted by
+	// observability layers.
+	Synthesize(ctx context.Context, profileName string, input SynthesisInput) (SynthesisResponse, AICallMeta, error)
 }
 
 // Provider is the lower-level interface every concrete backend implements
@@ -38,6 +44,7 @@ type Provider interface {
 	Complete(ctx context.Context, profile *ModelProfile, payload CompletePayload) (CompleteResponse, AICallMeta, error)
 	Transcribe(ctx context.Context, profile *ModelProfile, input TranscriptionInput) (TranscriptionResponse, AICallMeta, error)
 	Stream(ctx context.Context, profile *ModelProfile, payload CompletePayload) (<-chan AIStreamEvent, error)
+	Synthesize(ctx context.Context, profile *ModelProfile, input SynthesisInput) (SynthesisResponse, AICallMeta, error)
 }
 
 // ProviderResolver materializes providers by registry provider_ref. Production

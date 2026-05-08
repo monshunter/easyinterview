@@ -13,9 +13,9 @@
 
 ## Phase 2: `Synthesize` provider-neutral 接口
 
-- [ ] 2.1 定义 `SynthesisInput` / `SynthesisResponse`，包含文本、voice、format、rate、language、metadata 与音频摘要；验证: interface contract tests 先 Red 后 Green
-- [ ] 2.2 扩展 `AIClient` / `Provider` / client dispatch 支持 `Synthesize` + `CapabilityTTS`；验证: client-level tests 覆盖 canonical meta merge、fallback、timeout、fail-closed
-- [ ] 2.3 stub provider 实现 deterministic TTS placeholder；验证: stub deterministic tests 且 local deploy / Kind / staging / prod anti-stub gate 保持通过
+- [x] 2.1 定义 `SynthesisInput` / `SynthesisResponse`，包含文本、voice、format、rate、language、metadata 与音频摘要；验证: interface contract tests 先 Red 后 Green
+- [x] 2.2 扩展 `AIClient` / `Provider` / client dispatch 支持 `Synthesize` + `CapabilityTTS`；验证: client-level tests 覆盖 canonical meta merge、fallback、timeout、fail-closed
+- [x] 2.3 stub provider 实现 deterministic TTS placeholder；验证: stub deterministic tests 且 local deploy / Kind / staging / prod anti-stub gate 保持通过
 
 ## Phase 3: 豆包与 MiniMax speech adapters
 

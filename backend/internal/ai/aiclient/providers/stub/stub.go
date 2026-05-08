@@ -136,6 +136,29 @@ func (p *Provider) Stream(ctx context.Context, profile *aiclient.ModelProfile, p
 	return ch, nil
 }
 
+// Synthesize implements aiclient.Provider with deterministic TTS placeholder.
+func (p *Provider) Synthesize(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
+	if profile == nil {
+		return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, fmt.Errorf("stub: profile is nil")
+	}
+	seed := synthesisSeed(profile.Name, input)
+	audio := []byte(fmt.Sprintf("stub tts:%s:%s", profile.Name, seed[:16]))
+	meta := aiclient.AICallMeta{
+		Provider:     Name,
+		ModelFamily:  "stub",
+		ModelID:      profile.Default.Model,
+		InputTokens:  len(input.Text),
+		OutputTokens: len(audio),
+		LatencyMs:    1,
+	}
+	return aiclient.SynthesisResponse{
+		Audio:       audio,
+		ContentType: "audio/mpeg",
+		DurationMs:  len(input.Text) * 100,
+		CharCount:   len([]rune(input.Text)),
+	}, meta, nil
+}
+
 func canonicalSeed(profileName string, payload aiclient.CompletePayload) (string, error) {
 	canonical := struct {
 		Profile    string                `json:"profile"`
@@ -235,5 +258,19 @@ func transcriptionSeed(profileName string, input aiclient.TranscriptionInput) st
 	sum.Write([]byte(input.Prompt))
 	sum.Write([]byte{0})
 	sum.Write(input.Audio)
+	return hex.EncodeToString(sum.Sum(nil))
+}
+
+func synthesisSeed(profileName string, input aiclient.SynthesisInput) string {
+	sum := sha256.New()
+	sum.Write([]byte(profileName))
+	sum.Write([]byte{0})
+	sum.Write([]byte(input.Text))
+	sum.Write([]byte{0})
+	sum.Write([]byte(input.Voice))
+	sum.Write([]byte{0})
+	sum.Write([]byte(input.Format))
+	sum.Write([]byte{0})
+	sum.Write([]byte(input.Language))
 	return hex.EncodeToString(sum.Sum(nil))
 }
