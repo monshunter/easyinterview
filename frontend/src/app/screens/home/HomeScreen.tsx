@@ -1,4 +1,4 @@
-import { useState, useMemo, type FC } from "react";
+import { useCallback, useEffect, useMemo, useState, type FC } from "react";
 
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
@@ -8,6 +8,11 @@ import { useNavigation } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
 import { JDAssistModal, type JDAssistModalSource } from "./JDAssistModal";
 import { MockInterviewCard } from "./MockInterviewCard";
+import {
+  consumePendingImportSource,
+  storePendingImportSource,
+  type PendingImportSource,
+} from "./pendingImportState";
 import { useRecentTargetJobs } from "./useRecentTargetJobs";
 
 function idempotencyKey(): string {
@@ -15,7 +20,7 @@ function idempotencyKey(): string {
 }
 
 export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
-  const { t } = useI18n();
+  const { lang, t } = useI18n();
   const runtime = useAppRuntimeOptional();
   const requestAuth = useRequestAuth();
   const { navigate } = useNavigation();
@@ -24,6 +29,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const { jobs: rawJobs, loading, error } = useRecentTargetJobs();
+  const targetLanguage = lang === "zh" ? "zh-CN" : "en";
 
   const jobs = useMemo(() => {
     const sorted = [...rawJobs].sort(
@@ -33,60 +39,13 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     return sorted.slice(0, 12);
   }, [rawJobs]);
 
-  const handlePasteImport = async () => {
-    if (!runtime || !input.trim() || importing) return;
-
-    if (runtime.auth.status === "unauthenticated") {
-      requestAuth({
-        type: "import_jd",
-        label: t("home.importBtn"),
-        route: "parse",
-        params: { source: "paste" },
-      });
-      return;
-    }
-
+  const submitImportSource = useCallback(async (source: PendingImportSource) => {
+    if (!runtime) return;
     setImportError(null);
     setImporting(true);
     try {
       const ik = idempotencyKey();
-      const result = await runtime.client.importTargetJob(
-        {
-          source: { type: "manual_text", rawText: input },
-          targetLanguage: "zh-CN",
-        },
-        { idempotencyKey: ik },
-      );
-      navigate({
-        name: "parse",
-        params: { targetJobId: result.targetJobId, source: "paste" },
-      });
-    } catch (err: unknown) {
-      setImportError(
-        err instanceof Error ? err.message : String(err),
-      );
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const handleModalConfirm = async (source: JDAssistModalSource) => {
-    if (!runtime || importing) return;
-
-    if (runtime.auth.status === "unauthenticated") {
-      requestAuth({
-        type: "import_jd",
-        label: t("home.importBtn"),
-        route: "parse",
-        params: { source: source.source },
-      });
-      return;
-    }
-
-    setImportError(null);
-    setImporting(true);
-    try {
-      const ik = idempotencyKey();
+      let targetJobId: string;
 
       if (source.source === "upload") {
         const presign = await runtime.client.createUploadPresign(
@@ -101,29 +60,36 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         const result = await runtime.client.importTargetJob(
           {
             source: { type: "file", fileObjectId: presign.fileObjectId },
-            targetLanguage: "zh-CN",
+            targetLanguage,
           },
           { idempotencyKey: ik },
         );
+        targetJobId = result.targetJobId;
         setAssistOpen(null);
-        navigate({
-          name: "parse",
-          params: { targetJobId: result.targetJobId, source: "upload" },
-        });
-      } else {
+      } else if (source.source === "url") {
         const result = await runtime.client.importTargetJob(
           {
             source: { type: "url", url: source.url },
-            targetLanguage: "zh-CN",
+            targetLanguage,
           },
           { idempotencyKey: ik },
         );
+        targetJobId = result.targetJobId;
         setAssistOpen(null);
-        navigate({
-          name: "parse",
-          params: { targetJobId: result.targetJobId, source: "url" },
-        });
+      } else {
+        const result = await runtime.client.importTargetJob(
+          {
+            source: { type: "manual_text", rawText: source.rawText },
+            targetLanguage,
+          },
+          { idempotencyKey: ik },
+        );
+        targetJobId = result.targetJobId;
       }
+      navigate({
+        name: "parse",
+        params: { targetJobId, source: source.source },
+      });
     } catch (err: unknown) {
       setImportError(
         err instanceof Error ? err.message : String(err),
@@ -131,6 +97,54 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     } finally {
       setImporting(false);
     }
+  }, [navigate, runtime, targetLanguage]);
+
+  useEffect(() => {
+    if (!runtime || runtime.auth.status !== "authenticated") return;
+    const pendingImportId = route.params.pendingImportId;
+    if (!pendingImportId) return;
+    const pendingSource = consumePendingImportSource(pendingImportId);
+    if (!pendingSource) {
+      setImportError("Pending JD import expired. Please submit the JD again.");
+      return;
+    }
+    void submitImportSource(pendingSource);
+  }, [route.params.pendingImportId, runtime, submitImportSource]);
+
+  const handlePasteImport = async () => {
+    if (!runtime || !input.trim() || importing) return;
+    const source: PendingImportSource = { source: "paste", rawText: input };
+
+    if (runtime.auth.status === "unauthenticated") {
+      const pendingImportId = storePendingImportSource(source);
+      requestAuth({
+        type: "import_jd",
+        label: t("home.importBtn"),
+        route: "home",
+        params: { source: "paste", pendingImportId },
+      });
+      return;
+    }
+
+    await submitImportSource(source);
+  };
+
+  const handleModalConfirm = async (source: JDAssistModalSource) => {
+    if (!runtime || importing) return;
+    const pendingSource: PendingImportSource = source;
+
+    if (runtime.auth.status === "unauthenticated") {
+      const pendingImportId = storePendingImportSource(pendingSource);
+      requestAuth({
+        type: "import_jd",
+        label: t("home.importBtn"),
+        route: "home",
+        params: { source: source.source, pendingImportId },
+      });
+      return;
+    }
+
+    await submitImportSource(pendingSource);
   };
 
   return (

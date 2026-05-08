@@ -31,6 +31,19 @@ describe("ParseScreen", () => {
     expect(screen.getByTestId("parse-loading-footer")).toBeInTheDocument();
   });
 
+  it("renders loading footer without frontend provider or prompt assumptions", () => {
+    render(
+      wrap(
+        <ParseScreen
+          route={{ name: "parse", params: { targetJobId: "tj-1" } }}
+        />,
+      ),
+    );
+
+    const footer = screen.getByTestId("parse-loading-footer");
+    expect(footer.textContent).not.toMatch(/claude|haiku|prompt@/i);
+  });
+
   it("renders shell data attributes", () => {
     render(
       wrap(

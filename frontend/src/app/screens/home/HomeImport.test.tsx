@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { createFixtureBackedFetch, createFixtureRegistry } from "../../../api/mockTransport";
 import { EasyInterviewClient } from "../../../api/generated/client";
 import { DisplayPreferencesProvider } from "../../display/DisplayPreferencesProvider";
+import type { Lang } from "../../i18n/messages";
 import { NavigationProvider } from "../../navigation/NavigationProvider";
 import { AppRuntimeProvider } from "../../runtime/AppRuntimeProvider";
 import { HomeScreen } from "./HomeScreen";
@@ -21,12 +22,12 @@ function createClient(scenario?: string) {
   return new EasyInterviewClient({ fetch });
 }
 
-function renderHome(client: EasyInterviewClient) {
+function renderHome(client: EasyInterviewClient, options?: { lang?: Lang }) {
   const navigate = vi.fn();
   return {
     navigate,
     ...render(
-      <DisplayPreferencesProvider>
+      <DisplayPreferencesProvider initial={{ lang: options?.lang ?? "zh" }}>
         <AppRuntimeProvider client={client}>
           <NavigationProvider value={{ navigate }}>
             <HomeScreen route={{ name: "home", params: {} }} />
@@ -66,6 +67,27 @@ describe("HomeImport — paste (manual_text)", () => {
     const callOpts = spy.mock.calls[0]?.[1];
     expect(callOpts?.idempotencyKey).toBeTruthy();
     expect(typeof callOpts?.idempotencyKey).toBe("string");
+  });
+
+  it("uses the current English UI locale as targetLanguage", async () => {
+    const client = createClient("manual-text-primary");
+    const spy = vi.spyOn(client, "importTargetJob");
+
+    renderHome(client, { lang: "en" });
+
+    await userEvent.type(
+      screen.getByTestId("home-jd-textarea"),
+      "Senior Frontend Engineer needed",
+    );
+    screen.getByTestId("home-jd-submit").click();
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    expect(spy.mock.calls[0]?.[0]).toMatchObject({
+      targetLanguage: "en",
+    });
   });
 
   it("navigates to parse on successful paste import", async () => {

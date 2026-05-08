@@ -87,10 +87,15 @@ describe("HomeRecentMocks", () => {
 
     await waitFor(() => {
       const cards = screen.queryAllByTestId(/home-recent-mock-card-/);
-      expect(cards.length).toBeLessThanOrEqual(12);
-      // The 13th card (Job Mike) should be excluded
+      expect(cards).toHaveLength(12);
+      expect(cards[0]?.getAttribute("data-testid")).toBe(
+        "home-recent-mock-card-01918fa0-0000-7000-8000-00000000a013",
+      );
       expect(
-        screen.queryByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-00000000a013"),
+        screen.getByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-00000000a013"),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-00000000a001"),
       ).not.toBeInTheDocument();
     });
   });

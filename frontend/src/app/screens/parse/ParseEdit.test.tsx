@@ -245,6 +245,24 @@ describe("ParseEdit — confirm call", () => {
 });
 
 describe("ParseEdit — re-parse and cancel", () => {
+  it("re-parse does not throw when scrollTo is unavailable", async () => {
+    const client = createClient();
+    renderParse(client);
+
+    await screen.findByTestId("parse-action-reparse");
+    const scrollSpy = vi
+      .spyOn(window, "scrollTo")
+      .mockImplementation(() => {
+        throw new Error("scrollTo unavailable");
+      });
+
+    expect(() => {
+      fireEvent.click(screen.getByTestId("parse-action-reparse"));
+    }).not.toThrow();
+
+    scrollSpy.mockRestore();
+  });
+
   it("re-parse button resets to loading stage", async () => {
     const client = createClient();
     renderParse(client);

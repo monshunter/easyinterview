@@ -31,7 +31,7 @@ export function useRecentTargetJobs(): UseRecentTargetJobsResult {
       .listTargetJobs({ query: { pageSize: "12" } })
       .then((page) => {
         if (!cancelled) {
-          setJobs(page.items.slice(0, 12));
+          setJobs(Array.isArray(page.items) ? page.items : []);
           setError(null);
         }
       })

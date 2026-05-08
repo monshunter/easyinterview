@@ -30,6 +30,15 @@ const loadingStepKeys = [
   "parse.loadingStep4",
 ] as const;
 
+function safeScrollToTop(): void {
+  if (navigator.userAgent.toLowerCase().includes("jsdom")) return;
+  try {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch {
+    // jsdom exposes scrollTo but throws because it is not implemented.
+  }
+}
+
 export const ParseScreen: FC<ParseScreenProps> = ({
   route,
   _mockStage,
@@ -167,7 +176,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const handleReparse = useCallback(() => {
     setStep(0);
     setStage("loading");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    safeScrollToTop();
   }, []);
 
   const handleConfirm = useCallback(async () => {
@@ -550,8 +559,8 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               lineHeight: 1.6,
             }}
           >
-            <div>model · claude-haiku-4.5 · zh-CN</div>
-            <div>rubric · jd-parse-v1.3 · prompt@a8f2e1</div>
+            <div>model · backend-managed · current locale</div>
+            <div>rubric · target-job parse · provenance redacted</div>
             <div>typical · 3–6s · this one · slightly richer JD</div>
           </div>
         </div>
