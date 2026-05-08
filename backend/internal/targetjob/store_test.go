@@ -733,6 +733,46 @@ func TestSQLStore_ImportTargetJob_DedupeReturnsExistingActiveRunnerJob(t *testin
 	}
 }
 
+func TestSQLStore_LookupFileAttachmentForUser_HappyPath(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	mock.ExpectQuery(`from file_objects\s+where id = \$1 and user_id = \$2 and deleted_at is null`).
+		WithArgs("018f2a40-0000-7000-9000-0000000000ff", "018f2a40-0000-7000-9000-0000000000b1").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "purpose"}).AddRow(
+			"018f2a40-0000-7000-9000-0000000000ff",
+			"018f2a40-0000-7000-9000-0000000000b1",
+			"target_job_attachment",
+		))
+	rec, err := store.LookupFileAttachmentForUser(context.Background(),
+		"018f2a40-0000-7000-9000-0000000000b1",
+		"018f2a40-0000-7000-9000-0000000000ff")
+	if err != nil {
+		t.Fatalf("LookupFileAttachmentForUser: %v", err)
+	}
+	if rec.Purpose != "target_job_attachment" {
+		t.Fatalf("purpose not propagated: %+v", rec)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_LookupFileAttachmentForUser_NotFound(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	mock.ExpectQuery(`from file_objects`).
+		WithArgs("018f2a40-0000-7000-9000-0000000000ff", "018f2a40-0000-7000-9000-0000000000b9").
+		WillReturnError(sql.ErrNoRows)
+	_, err := store.LookupFileAttachmentForUser(context.Background(),
+		"018f2a40-0000-7000-9000-0000000000b9",
+		"018f2a40-0000-7000-9000-0000000000ff")
+	if !errors.Is(err, targetjob.ErrTargetJobNotFound) {
+		t.Fatalf("expected ErrTargetJobNotFound, got %v", err)
+	}
+}
+
 func TestSQLStore_ImportTargetJob_RequiresMandatoryIDs(t *testing.T) {
 	store, _, cleanup := newMockStore(t)
 	defer cleanup()

@@ -27,9 +27,9 @@
 
 ## Phase 3: Source ingestion (URL / file / manual)
 
-- [ ] 3.1 实现 `manual_text` / `manual_form` 写入；验证: tests 覆盖 manual_text 在 `target_job_sources.source_type='manual_text'` 与 `target_jobs.raw_jd_text` 同源写入；manual_form 同步 `analysis_status='ready'` + 至少 1 条草稿 `must_have` requirement，返回 terminal `target_import/succeeded` job，且不派发 runner job、不发出 `target.import.requested` / `target.parsed`
-- [ ] 3.2 实现 `file` 引用；验证: tests 覆盖 `file_objects.purpose='target_job_attachment'` + `(user_id, file_object_id)` 校验、缺失 / 越权 / purpose 不符返回 B1 `TARGET_JOB_NOT_FOUND` 或 `TARGET_IMPORT_SOURCE_INVALID`（按是否泄露存在性决策）、`target_jobs.source_file_object_id` 与 `target_job_sources.file_object_id` 写入正确，本 plan 下 `raw_jd_text` 允许暂留空待异步阶段或 manual_text 兜底
-- [ ] 3.3 实现 `url` 抓取守护；验证: SSRF 测试矩阵覆盖 scheme 非 https 拒绝 / 私网 (RFC1918 / 169.254 / `::1` / `fc00::/7`) / 元数据服务 / cross-origin redirect 进入私网 / body cap 1 MiB / timeout 10s / UA 标记；非法/超长/空白映射 B1 `TARGET_IMPORT_SOURCE_INVALID`，上游暂时不可达映射 `TARGET_IMPORT_SOURCE_UNAVAILABLE`；`target_job_sources.url` 为 sanitized URL，`snapshot_text` 为抓取文本且不含 query secret
+- [x] 3.1 实现 `manual_text` / `manual_form` 写入；验证: tests 覆盖 manual_text 在 `target_job_sources.source_type='manual_text'` 与 `target_jobs.raw_jd_text` 同源写入；manual_form 同步 `analysis_status='ready'` + 至少 1 条草稿 `must_have` requirement，返回 terminal `target_import/succeeded` job，且不派发 runner job、不发出 `target.import.requested` / `target.parsed`
+- [x] 3.2 实现 `file` 引用；验证: tests 覆盖 `file_objects.purpose='target_job_attachment'` + `(user_id, file_object_id)` 校验、缺失 / 越权 / purpose 不符返回 B1 `TARGET_JOB_NOT_FOUND` 或 `TARGET_IMPORT_SOURCE_INVALID`（按是否泄露存在性决策）、`target_jobs.source_file_object_id` 与 `target_job_sources.file_object_id` 写入正确，本 plan 下 `raw_jd_text` 允许暂留空待异步阶段或 manual_text 兜底
+- [x] 3.3 实现 `url` 抓取守护；验证: SSRF 测试矩阵覆盖 scheme 非 https 拒绝 / 私网 (RFC1918 / 169.254 / `::1` / `fc00::/7`) / 元数据服务 / cross-origin redirect 进入私网 / body cap 1 MiB / timeout 10s / UA 标记；非法/超长/空白映射 B1 `TARGET_IMPORT_SOURCE_INVALID`，上游暂时不可达映射 `TARGET_IMPORT_SOURCE_UNAVAILABLE`；`target_job_sources.url` 为 sanitized URL，`snapshot_text` 为抓取文本且不含 query secret
 
 ## Phase 4: Async parse pipeline
 

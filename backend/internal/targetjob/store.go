@@ -211,6 +211,15 @@ type ImportTargetJobResult struct {
 	Existing     bool
 }
 
+// FileAttachmentRecord is the minimal projection of file_objects needed by
+// the import flow to confirm a referenced upload belongs to the caller and
+// has the expected purpose.
+type FileAttachmentRecord struct {
+	ID      string
+	UserID  string
+	Purpose string
+}
+
 // Store is the persistence boundary for the target_jobs / target_job_requirements
 // / target_job_sources tables. Every read / write filters by user_id; cross-user
 // or soft-deleted rows surface as ErrTargetJobNotFound (handler maps to 404 +
@@ -224,6 +233,7 @@ type Store interface {
 	UpdateTargetJobLifecycle(ctx context.Context, userID string, targetJobID string, fields UpdateLifecycleFields, now time.Time) (TargetJobRecord, error)
 	ApplyParseResult(ctx context.Context, in ApplyParseResultInput) error
 	UpdateSourceFreshness(ctx context.Context, targetJobID string, freshness FreshnessStatus, now time.Time) error
+	LookupFileAttachmentForUser(ctx context.Context, userID string, fileObjectID string) (FileAttachmentRecord, error)
 }
 
 // SQLStore is the default Postgres-backed Store implementation.
@@ -870,6 +880,37 @@ limit 1`,
 		JobUpdatedAt: updatedAt,
 		Existing:     true,
 	}, true, nil
+}
+
+// LookupFileAttachmentForUser confirms the referenced file_object belongs
+// to userID, is not soft-deleted, and returns its purpose so callers can
+// reject mismatched uploads (e.g., a resume blob being passed in a target
+// import). ErrTargetJobNotFound is returned for cross-user or soft-deleted
+// rows so handlers can render HTTP 404 + TARGET_JOB_NOT_FOUND without
+// leaking existence (spec D-9).
+func (s *SQLStore) LookupFileAttachmentForUser(ctx context.Context, userID string, fileObjectID string) (FileAttachmentRecord, error) {
+	if err := s.checkDB(); err != nil {
+		return FileAttachmentRecord{}, err
+	}
+	var (
+		rec     FileAttachmentRecord
+		purpose string
+	)
+	err := s.db.QueryRowContext(ctx, `
+select id, user_id, purpose
+from file_objects
+where id = $1 and user_id = $2 and deleted_at is null`,
+		fileObjectID,
+		userID,
+	).Scan(&rec.ID, &rec.UserID, &purpose)
+	if errors.Is(err, sql.ErrNoRows) {
+		return FileAttachmentRecord{}, ErrTargetJobNotFound
+	}
+	if err != nil {
+		return FileAttachmentRecord{}, fmt.Errorf("lookup file_objects: %w", err)
+	}
+	rec.Purpose = purpose
+	return rec, nil
 }
 
 func (s *SQLStore) UpdateSourceFreshness(ctx context.Context, targetJobID string, freshness FreshnessStatus, now time.Time) error {

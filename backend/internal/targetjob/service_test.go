@@ -31,6 +31,8 @@ type fakeStore struct {
 	capturedUpdateUser   string
 	capturedUpdateTarget string
 	getCallCount         int
+	fileLookup           targetjob.FileAttachmentRecord
+	fileLookupErr        error
 }
 
 func (f *fakeStore) ImportTargetJob(_ context.Context, in targetjob.ImportTargetJobInput) (targetjob.ImportTargetJobResult, error) {
@@ -89,6 +91,16 @@ func (f *fakeStore) ApplyParseResult(context.Context, targetjob.ApplyParseResult
 
 func (f *fakeStore) UpdateSourceFreshness(context.Context, string, targetjob.FreshnessStatus, time.Time) error {
 	panic("not used")
+}
+
+func (f *fakeStore) LookupFileAttachmentForUser(_ context.Context, userID string, fileObjectID string) (targetjob.FileAttachmentRecord, error) {
+	if f.fileLookupErr != nil {
+		return targetjob.FileAttachmentRecord{}, f.fileLookupErr
+	}
+	if f.fileLookup.ID == "" {
+		return targetjob.FileAttachmentRecord{ID: fileObjectID, UserID: userID, Purpose: "target_job_attachment"}, nil
+	}
+	return f.fileLookup, nil
 }
 
 func newServiceWithFake(ids ...string) (*targetjob.Service, *fakeStore) {
@@ -218,6 +230,11 @@ func TestService_ImportTargetJob_FilePath(t *testing.T) {
 		"018f2a40-0000-7000-9000-0000000000c4",
 		"018f2a40-0000-7000-9000-0000000000e4",
 	)
+	store.fileLookup = targetjob.FileAttachmentRecord{
+		ID:      "018f2a40-0000-7000-9000-0000000000ff",
+		UserID:  "018f2a40-0000-7000-9000-0000000000b1",
+		Purpose: "target_job_attachment",
+	}
 	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
 		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
 		IdempotencyKey: "key-4",
@@ -235,6 +252,46 @@ func TestService_ImportTargetJob_FilePath(t *testing.T) {
 	}
 	if store.captured.OutboxEventID == "" {
 		t.Fatal("file path must attach runner envelope")
+	}
+}
+
+func TestService_ImportTargetJob_FilePath_RejectsCrossUserOrDeleted(t *testing.T) {
+	svc, store := newServiceWithFake("a", "b", "c", "d")
+	store.fileLookupErr = targetjob.ErrTargetJobNotFound
+	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
+		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
+		IdempotencyKey: "k",
+		TargetLanguage: "en",
+		Source: map[string]any{
+			"type":         "file",
+			"fileObjectId": "018f2a40-0000-7000-9000-0000000000ff",
+		},
+	})
+	var apiErr *targetjob.ServiceImportError
+	if !errors.As(err, &apiErr) || apiErr.Code != "TARGET_JOB_NOT_FOUND" {
+		t.Fatalf("expected TARGET_JOB_NOT_FOUND, got %v", err)
+	}
+}
+
+func TestService_ImportTargetJob_FilePath_RejectsWrongPurpose(t *testing.T) {
+	svc, store := newServiceWithFake("a", "b", "c", "d")
+	store.fileLookup = targetjob.FileAttachmentRecord{
+		ID:      "018f2a40-0000-7000-9000-0000000000ff",
+		UserID:  "018f2a40-0000-7000-9000-0000000000b1",
+		Purpose: "resume", // wrong purpose
+	}
+	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
+		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
+		IdempotencyKey: "k",
+		TargetLanguage: "en",
+		Source: map[string]any{
+			"type":         "file",
+			"fileObjectId": "018f2a40-0000-7000-9000-0000000000ff",
+		},
+	})
+	var apiErr *targetjob.ServiceImportError
+	if !errors.As(err, &apiErr) || apiErr.Code != "TARGET_IMPORT_SOURCE_INVALID" {
+		t.Fatalf("expected TARGET_IMPORT_SOURCE_INVALID, got %v", err)
 	}
 }
 

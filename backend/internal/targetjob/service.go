@@ -154,6 +154,21 @@ func (s *Service) ImportTargetJob(ctx context.Context, in ImportRequest) (Import
 			return ImportResponse{}, err
 		}
 	case SourceTypeFile:
+		// Spec D-9 / plan 3.2: confirm the referenced upload belongs to the
+		// caller and was uploaded with the target_job_attachment purpose.
+		// Cross-user / soft-deleted IDs surface as TARGET_JOB_NOT_FOUND so
+		// the handler returns 404 without leaking existence; mismatched
+		// purpose surfaces as TARGET_IMPORT_SOURCE_INVALID.
+		attachment, err := s.store.LookupFileAttachmentForUser(ctx, in.UserID, decoded.FileObjectID)
+		if err != nil {
+			if errors.Is(err, ErrTargetJobNotFound) {
+				return ImportResponse{}, &ServiceImportError{Code: sharederrors.CodeTargetJobNotFound, Message: "file attachment not found"}
+			}
+			return ImportResponse{}, err
+		}
+		if attachment.Purpose != "target_job_attachment" {
+			return ImportResponse{}, &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: "file attachment purpose is not target_job_attachment"}
+		}
 		storeIn.InitialAnalysisStatus = sharedtypes.TargetJobParseStatusQueued
 		storeIn.SourceFileObjectID = decoded.FileObjectID
 		storeIn.SourceID = s.newID()
