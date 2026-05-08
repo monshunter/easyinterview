@@ -418,10 +418,9 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
                 onClick={() =>
                   navigate({
                     name: "workspace",
-                    params: interviewContextFromTargetJob(j) as Record<
-                      string,
-                      string
-                    >,
+                    params: interviewContextFromTargetJob(
+                      j,
+                    ) as unknown as Record<string, string>,
                   })
                 }
               />

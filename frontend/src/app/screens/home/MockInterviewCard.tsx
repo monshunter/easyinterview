@@ -221,7 +221,7 @@ export const MockInterviewCard: FC<MockInterviewCardProps> = ({
   onClick,
 }) => {
   const tone = statusTone(job.status);
-  const colors = statusColorMap[tone];
+  const colors = statusColorMap[tone] ?? { bg: "transparent", fg: "var(--ei-color-fg-tertiary)" };
   const ci = roundIndexFromStatus(job.status, DEFAULT_ROUNDS.length);
 
   return (
