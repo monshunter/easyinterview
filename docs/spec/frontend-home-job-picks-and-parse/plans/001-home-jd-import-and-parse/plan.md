@@ -1,7 +1,7 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-08
 
 **关联 Checklist**: [checklist](./checklist.md)

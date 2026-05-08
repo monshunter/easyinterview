@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-08](./2026-05-08-001-home-jd-import-and-parse-assessment.md) | 001 Home JD Import and Parse 交付复盘 | #assessment |
 | [2026-05-08](./2026-05-08-frontend-shell-language-dropdown-assessment.md) | Frontend Shell Language Dropdown 交付复盘 | #assessment |
 | [2026-05-08](./2026-05-08-ai-provider-deepseek-retrieval-cleanup-assessment.md) | AI Provider DeepSeek And Retrieval Cleanup 交付复盘 | #assessment |
 | [2026-05-08](./2026-05-08-frontend-shell-topbar-ui-design-parity-assessment.md) | Frontend Shell TopBar UI-Design Parity 交付复盘 | #assessment |
