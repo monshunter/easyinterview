@@ -11,7 +11,8 @@
  * `topbar-display-controls`, `topbar-user-area`, `topbar-nav-*`,
    * `topbar-theme-button`, `topbar-dark-toggle`, `topbar-lang-toggle`,
    * `topbar-login`, `topbar-register`, `topbar-user-menu`, `topbar-user-{profile,
-   * settings,logout}`); D2 only adds theme-menu/custom-accent picker anchors.
+   * settings,logout}`); D2 only adds theme-menu/language-menu/custom-accent
+   * picker anchors.
  */
 
 .ei-shell-topbar {
@@ -51,15 +52,7 @@
 
 .ei-topbar-brand-copy {
   display: inline-flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-}
-
-.ei-topbar-brand-subtitle {
-  color: var(--ei-color-fg-tertiary);
-  font-size: 9px;
-  margin-top: 2px;
+  align-items: center;
 }
 
 .ei-topbar-nav {
@@ -237,6 +230,67 @@
 .ei-topbar-lang {
   height: 29px;
   padding: 5px 10px;
+  min-width: 88px;
+  justify-content: center;
+}
+
+.ei-topbar-lang-current {
+  white-space: nowrap;
+}
+
+.ei-topbar-lang-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ei-topbar-lang-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 148px;
+  padding: 6px;
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: var(--ei-radius-md);
+  box-shadow: var(--ei-shadow-elev2);
+  z-index: 40;
+}
+
+.ei-topbar-lang-menu-label {
+  padding: 8px 10px 6px;
+  color: var(--ei-color-fg-tertiary);
+}
+
+.ei-topbar-lang-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--ei-radius-sm);
+  background: transparent;
+  color: var(--ei-color-fg-secondary);
+  cursor: pointer;
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  text-align: left;
+}
+
+.ei-topbar-lang-option:hover,
+.ei-topbar-lang-option--selected {
+  background: var(--ei-color-bg-soft);
+}
+
+.ei-topbar-lang-option span:nth-child(2) {
+  flex: 1;
+}
+
+.ei-topbar-lang-option svg:last-child,
+.ei-topbar-lang-short {
+  margin-left: auto;
+  color: var(--ei-color-accent);
 }
 
 .ei-topbar-custom-accent-rainbow {

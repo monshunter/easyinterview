@@ -6,6 +6,7 @@ import {
   type Lang,
   type Theme,
 } from "../display/DisplayPreferencesProvider";
+import { SUPPORTED_LOCALES } from "../i18n/localeCatalog";
 import { translate } from "../i18n/messages";
 import type { LooseRoute } from "../normalizeRoute";
 import { PRIMARY_NAV_ROUTES, type RouteName } from "../routes";
@@ -22,7 +23,9 @@ import { THEME_METADATA } from "../theme/themes.data";
  * D2 visual contract: every text node uses `ei-text-*` className, every layout
  * literal (height 58, padding 0 32, gap 28, etc.) is sourced from
  * `topbar.css`, and the custom-accent control surfaces hue / chroma sliders
- * mirroring `ui-design/src/app.jsx` `AccentPicker`. D1 testids and the
+ * mirroring `ui-design/src/app.jsx` `AccentPicker`. Language selection is a
+ * TopBar dropdown, not a binary toggle, so future locale options can be added
+ * without changing the control shape. D1 testids and the
  * `aria-current` / `aria-pressed` contract remain unchanged.
  */
 const NAV_LABEL_KEYS: Record<(typeof PRIMARY_NAV_ROUTES)[number], Parameters<typeof translate>[1]> = {
@@ -41,7 +44,6 @@ const THEME_LABEL_KEYS: Record<Theme, Parameters<typeof translate>[1]> = {
 };
 
 const THEME_OPTIONS: readonly Theme[] = ["warm", "forest", "ocean", "plum"];
-
 const CUSTOM_ACCENT_SEEDS: Record<Theme, CustomAccent> = {
   warm: { h: 30, c: 0.16 },
   forest: { h: 130, c: 0.13 },
@@ -78,21 +80,29 @@ export const TopBar: FC<TopBarProps> = ({
   const customActive = prefs.customAccent != null;
   const [pickerOpen, setPickerOpen] = useState<boolean>(customActive);
   const [themeMenuOpen, setThemeMenuOpen] = useState<boolean>(false);
+  const [langMenuOpen, setLangMenuOpen] = useState<boolean>(false);
 
   const seed = CUSTOM_ACCENT_SEEDS[prefs.theme] ?? CUSTOM_ACCENT_SEEDS.warm;
   const accentValue: CustomAccent = prefs.customAccent ?? seed;
   const swatchOklch = customActive
     ? `oklch(${prefs.dark ? 68 : 58}% ${accentValue.c.toFixed(3)} ${accentValue.h.toFixed(1)})`
     : "";
+  const currentLocale =
+    SUPPORTED_LOCALES.find((locale) => locale.code === prefs.lang) ??
+    SUPPORTED_LOCALES.find((locale) => locale.code === "en") ??
+    SUPPORTED_LOCALES[0];
 
   useEffect(() => {
-    if (!themeMenuOpen) return;
+    if (!themeMenuOpen && !langMenuOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setThemeMenuOpen(false);
+      if (event.key === "Escape") {
+        setThemeMenuOpen(false);
+        setLangMenuOpen(false);
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [themeMenuOpen]);
+  }, [themeMenuOpen, langMenuOpen]);
 
   const handleAccentChange = useCallback(
     (next: Partial<CustomAccent>) => {
@@ -109,9 +119,6 @@ export const TopBar: FC<TopBarProps> = ({
         </span>
         <span className="ei-topbar-brand-copy">
           <span className="ei-text-subtitle">EasyInterview</span>
-          <span data-testid="topbar-brand-subtitle" className="ei-text-label ei-topbar-brand-subtitle">
-            面试训练器 · v1.0
-          </span>
         </span>
       </div>
       <nav
@@ -283,16 +290,70 @@ export const TopBar: FC<TopBarProps> = ({
         >
           <Icon name={prefs.dark ? "sun" : "moon"} size={12} />
         </button>
-        <button
-          type="button"
-          data-testid="topbar-lang-toggle"
-          aria-label={t("display.language")}
-          className="ei-topbar-control ei-topbar-lang"
-          onClick={() => prefs.setLang(prefs.lang === "zh" ? "en" : "zh")}
-        >
-          <Icon name="globe" size={12} />
-          {prefs.lang === "zh" ? "中 · EN" : "EN · 中"}
-        </button>
+        <span className="ei-topbar-lang-wrap">
+          <button
+            type="button"
+            data-testid="topbar-lang-toggle"
+            aria-label={`${t("display.language")}: ${currentLocale.label}`}
+            aria-expanded={langMenuOpen}
+            className="ei-topbar-control ei-topbar-lang"
+            onClick={() => setLangMenuOpen((open) => !open)}
+          >
+            <Icon name="globe" size={12} />
+            <span className="ei-topbar-lang-current">{currentLocale.label}</span>
+            <span className="ei-topbar-caret" aria-hidden="true">
+              ▾
+            </span>
+          </button>
+          {langMenuOpen && (
+            <>
+              <button
+                type="button"
+                className="ei-topbar-menu-backdrop"
+                aria-label={prefs.lang === "en" ? "Close language menu" : "关闭语言菜单"}
+                onClick={() => setLangMenuOpen(false)}
+              />
+              <div
+                data-testid="topbar-lang-menu"
+                className="ei-topbar-lang-menu"
+              >
+                <div className="ei-text-label ei-topbar-lang-menu-label">
+                  {prefs.lang === "en" ? "Language" : "界面语言"}
+                </div>
+                {SUPPORTED_LOCALES.map((locale) => {
+                  const selected = prefs.lang === locale.code;
+                  return (
+                    <button
+                      key={locale.code}
+                      type="button"
+                      data-testid={`topbar-lang-option-${locale.code}`}
+                      aria-pressed={selected}
+                      className={
+                        selected
+                          ? "ei-topbar-lang-option ei-topbar-lang-option--selected"
+                          : "ei-topbar-lang-option"
+                      }
+                      onClick={() => {
+                        prefs.setLang(locale.code);
+                        setLangMenuOpen(false);
+                      }}
+                    >
+                      <Icon name="globe" size={13} />
+                      <span>{locale.label}</span>
+                      {selected ? (
+                        <Icon name="check" size={12} />
+                      ) : (
+                        <span className="ei-text-label ei-topbar-lang-short">
+                          {locale.shortLabel}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </span>
       </div>
       <div
         data-testid="topbar-user-area"

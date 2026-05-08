@@ -45,6 +45,7 @@ describe("SettingsScreen", () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId("settings-font-preset")).toBeInTheDocument();
     expect(screen.getByTestId("settings-privacy")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-app-info")).toHaveTextContent("v1.0");
   });
 
   it("does not restore legacy Growth / Experiences / Mistakes / Drill modules", () => {

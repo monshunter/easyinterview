@@ -16,6 +16,13 @@ import {
   ROOT_MODE_ATTR,
   ROOT_THEME_ATTR,
 } from "../theme/tokens";
+import {
+  DEFAULT_LANG,
+  resolveSupportedLocale,
+  type Lang,
+} from "../i18n/localeCatalog";
+
+export type { Lang } from "../i18n/localeCatalog";
 
 /**
  * Global display preferences (Spec D-4 / docs/ui-design/auth-and-entry.md §4):
@@ -36,7 +43,6 @@ import {
  */
 
 export type Theme = "warm" | "forest" | "ocean" | "plum";
-export type Lang = "zh" | "en";
 
 export interface CustomAccent {
   /** Hue in degrees, [0, 360). Out-of-range inputs are normalized. */
@@ -59,11 +65,12 @@ export interface DisplayPreferences {
 const DEFAULTS = {
   theme: "warm" as Theme,
   dark: false,
-  lang: "en" as Lang,
+  lang: DEFAULT_LANG,
   customAccent: null as CustomAccent | null,
 };
 
 const Context = createContext<DisplayPreferences | null>(null);
+const LANG_STORAGE_KEY = "ei-lang";
 
 export interface DisplayPreferencesProviderProps {
   children: ReactNode;
@@ -81,7 +88,7 @@ export const DisplayPreferencesProvider: FC<
   const [theme, setTheme] = useState<Theme>(initial?.theme ?? DEFAULTS.theme);
   const [dark, setDark] = useState<boolean>(initial?.dark ?? DEFAULTS.dark);
   const [lang, setLangState] = useState<Lang>(
-    initial?.lang ?? getBrowserLang(),
+    initial?.lang ?? getStoredLang() ?? getBrowserLang(),
   );
   const [customAccent, setCustomAccentState] = useState<CustomAccent | null>(
     initial?.customAccent ?? DEFAULTS.customAccent,
@@ -89,6 +96,7 @@ export const DisplayPreferencesProvider: FC<
 
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
+    writeStoredLang(next);
   }, []);
 
   const setCustomAccent = useCallback((next: CustomAccent | null) => {
@@ -159,16 +167,26 @@ function getBrowserLang(): Lang {
     globalThis.navigator?.language,
   ];
   for (const candidate of candidates) {
-    const normalized = normalizeLang(candidate);
-    if (normalized) return normalized;
+    const normalized = resolveSupportedLocale(candidate);
+    if (normalized) {
+      return normalized;
+    }
   }
   return DEFAULTS.lang;
 }
 
-function normalizeLang(tag: string | undefined | null): Lang | null {
-  const lower = tag?.trim().toLowerCase();
-  if (!lower) return null;
-  if (lower === "en" || lower.startsWith("en-")) return "en";
-  if (lower === "zh" || lower.startsWith("zh-")) return "zh";
-  return null;
+function getStoredLang(): Lang | null {
+  try {
+    return resolveSupportedLocale(globalThis.localStorage?.getItem(LANG_STORAGE_KEY));
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredLang(next: Lang): void {
+  try {
+    globalThis.localStorage?.setItem(LANG_STORAGE_KEY, next);
+  } catch {
+    // Display preferences still work for browsers that block localStorage.
+  }
 }

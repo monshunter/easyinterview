@@ -6,8 +6,8 @@
  *               + bdd-checklist.md.
  *
  * Given a default App shell with runtime config and generated client bootstrap,
- * switching the TopBar language toggle to English must update D1 shell copy while
- * preserving route/test IDs and sending Accept-Language as a display hint.
+ * selecting English from the TopBar language dropdown must update D1 shell copy
+ * while preserving route/test IDs and sending Accept-Language as a display hint.
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -85,8 +85,11 @@ describe("E2E.P0.004 app shell language switch", () => {
     );
     const languageToggle = screen.getByTestId("topbar-lang-toggle");
     expect(languageToggle.tagName).toBe("BUTTON");
-    expect(languageToggle).toHaveTextContent("中 · EN");
+    expect(languageToggle).toHaveAttribute("aria-expanded", "false");
+    expect(languageToggle).toHaveTextContent("中文");
     await user.click(languageToggle);
+    expect(screen.getByTestId("topbar-lang-menu")).toBeInTheDocument();
+    await user.click(screen.getByTestId("topbar-lang-option-en"));
 
     expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("Home");
     expect(screen.getByTestId("topbar-nav-jd_match")).toHaveTextContent(
@@ -123,6 +126,7 @@ describe("E2E.P0.004 app shell language switch", () => {
       ),
     );
     await user.click(screen.getByTestId("topbar-lang-toggle"));
+    await user.click(screen.getByTestId("topbar-lang-option-en"));
     expect(screen.getByTestId("topbar-user-profile")).toHaveTextContent(
       "User profile",
     );
@@ -147,7 +151,7 @@ describe("E2E.P0.004 app shell language switch", () => {
         screen.queryByTestId(`topbar-nav-${legacy}`),
       ).not.toBeInTheDocument();
     }
-    console.log("E2E.P0.004 evidence: language toggle Home Job Picks Sign in Register Accept-Language: en");
+    console.log("E2E.P0.004 evidence: language dropdown Home Job Picks Sign in Register Accept-Language: en");
   });
 });
 

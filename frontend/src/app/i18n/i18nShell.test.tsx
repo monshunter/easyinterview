@@ -42,7 +42,7 @@ describe("D1 shell i18n", () => {
     );
     for (const languageControl of screen.getAllByTestId("topbar-lang-toggle")) {
       expect(languageControl.tagName).toBe("BUTTON");
-      expect(languageControl).toHaveTextContent("EN · 中");
+      expect(languageControl).toHaveTextContent("English");
     }
     expect(screen.getByTestId("topbar-user-profile")).toHaveTextContent(
       "User profile",

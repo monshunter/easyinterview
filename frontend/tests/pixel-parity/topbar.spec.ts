@@ -10,8 +10,8 @@ import { expect, test } from "@playwright/test";
  * ui-design golden preview is mounted at `/ui-design/`. Both default to the
  * Home route and render the TopBar. We compare:
  *
- *   - Five primary nav entries by visible label (English by default for
- *     frontend, Chinese-default for ui-design).
+ *   - Five primary nav entries by visible label (English by default when the
+ *     browser locale is unsupported or English).
  *   - TopBar shell computed style (height, padding-left, padding-right,
  *     border-bottom-width, background-color) within a small tolerance.
  *
@@ -24,13 +24,6 @@ import { expect, test } from "@playwright/test";
 const FRONTEND_PATH = "/";
 const UI_DESIGN_PATH = "/ui-design/";
 
-const PRIMARY_NAV_LABELS_ZH = [
-  "首页",
-  "岗位推荐",
-  "模拟面试",
-  "简历",
-  "复盘",
-] as const;
 const PRIMARY_NAV_LABELS_EN = [
   "Home",
   "Job Picks",
@@ -67,23 +60,40 @@ test.describe("TopBar DOM + computed style parity", () => {
         selectCount: topbar.querySelectorAll("select").length,
         navIconCount: topbar.querySelectorAll("[data-testid^='topbar-nav-icon-']").length,
         buttonTexts: Array.from(topbar.querySelectorAll("button")).map((button) =>
-          (button.textContent ?? "").replace(/\s+/g, " ").trim(),
+          (button.textContent ?? "").replace(/[▾▴]/g, "").replace(/\s+/g, " ").trim(),
         ),
         themeTitle: topbar
           .querySelector("[data-testid='topbar-theme-button']")
           ?.getAttribute("title"),
         langText: topbar
           .querySelector("[data-testid='topbar-lang-toggle']")
-          ?.textContent?.replace(/\s+/g, " ").trim(),
+          ?.textContent?.replace(/[▾▴]/g, "").replace(/\s+/g, " ").trim(),
       };
     });
 
-    expect(summary.brand).toBe("EEasyInterview面试训练器 · v1.0");
+    expect(summary.brand).toBe("EEasyInterview");
     expect(summary.selectCount).toBe(0);
     expect(summary.navIconCount).toBe(5);
     expect(summary.themeTitle).toBe("Theme");
-    expect(summary.langText).toBe("EN · 中");
-    expect(summary.buttonTexts).toContain("EN · 中");
+    expect(summary.langText).toBe("English");
+    expect(summary.buttonTexts).toContain("English");
+  });
+
+  test("frontend language dropdown exposes the ui-design locale list", async ({
+    page,
+  }) => {
+    await page.goto(FRONTEND_PATH);
+    await page.waitForSelector("[data-testid='topbar-lang-toggle']");
+    await page.click("[data-testid='topbar-lang-toggle']");
+    await page.waitForSelector("[data-testid='topbar-lang-menu']");
+
+    await expect(page.locator("[data-testid='topbar-lang-menu']")).toBeVisible();
+    await expect(page.locator("[data-testid='topbar-lang-option-zh']")).toHaveText(/中文/);
+    await expect(page.locator("[data-testid='topbar-lang-option-en']")).toHaveText(/English/);
+    await expect(page.locator("[data-testid='topbar-lang-option-en']")).toHaveAttribute("aria-pressed", "true");
+
+    await page.click("[data-testid='topbar-lang-option-zh']");
+    await expect(page.locator("[data-testid='topbar-nav-home']")).toHaveText(/首页/);
   });
 
   test("frontend theme menu exposes the ui-design theme list and custom accent picker", async ({
@@ -106,7 +116,7 @@ test.describe("TopBar DOM + computed style parity", () => {
     await expect(page.locator("[data-testid='topbar-custom-accent-clear']")).toHaveCount(1);
   });
 
-  test("ui-design golden preview renders five primary nav buttons with Chinese labels", async ({
+  test("ui-design golden preview renders five primary nav buttons with browser-default English labels", async ({
     page,
   }) => {
     await page.goto(UI_DESIGN_PATH);
@@ -123,7 +133,7 @@ test.describe("TopBar DOM + computed style parity", () => {
     // ui-design renders an `<Icon />` SVG followed by a label; the resulting
     // textContent should end with the label string. We assert each expected
     // label appears as a suffix of one nav button.
-    for (const label of PRIMARY_NAV_LABELS_ZH) {
+    for (const label of PRIMARY_NAV_LABELS_EN) {
       const matched = navTexts.some((text) => text.endsWith(label));
       expect(matched, `ui-design nav must contain a button ending with ${label} (got ${JSON.stringify(navTexts)})`).toBe(true);
     }

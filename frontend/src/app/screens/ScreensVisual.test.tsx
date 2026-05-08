@@ -72,6 +72,7 @@ describe("Settings shell visual contract (Phase 5.1)", () => {
       "settings-privacy",
       "settings-notifications-placeholder",
       "settings-subscription-placeholder",
+      "settings-app-info",
     ]) {
       const section = container.querySelector(`[data-testid='${sectionId}']`);
       expect(section, `${sectionId} missing`).toBeTruthy();

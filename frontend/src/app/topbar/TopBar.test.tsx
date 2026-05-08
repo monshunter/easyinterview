@@ -113,7 +113,7 @@ describe("TopBar user menu", () => {
 });
 
 describe("TopBar display controls", () => {
-  it("exposes theme / dark / lang controls bound to the display preferences provider", async () => {
+  it("exposes theme / dark / lang dropdown controls bound to the display preferences provider", async () => {
     render(
       <DisplayPreferencesProvider initial={{ lang: "zh" }}>
         <TopBar activeRoute="home" onNavigate={() => {}} />
@@ -127,7 +127,8 @@ describe("TopBar display controls", () => {
 
     expect(themeButton).toHaveAttribute("aria-expanded", "false");
     expect(darkToggle).toHaveAttribute("aria-pressed", "false");
-    expect(langToggle).toHaveTextContent("中 · EN");
+    expect(langToggle).toHaveAttribute("aria-expanded", "false");
+    expect(langToggle).toHaveTextContent("中文");
 
     await user.click(themeButton);
     expect(themeButton).toHaveAttribute("aria-expanded", "true");
@@ -138,6 +139,10 @@ describe("TopBar display controls", () => {
     expect(darkToggle).toHaveAttribute("aria-pressed", "true");
 
     await user.click(langToggle);
-    expect(langToggle).toHaveTextContent("EN · 中");
+    expect(langToggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByTestId("topbar-lang-menu")).toBeInTheDocument();
+    await user.click(screen.getByTestId("topbar-lang-option-en"));
+    expect(langToggle).toHaveAttribute("aria-expanded", "false");
+    expect(langToggle).toHaveTextContent("English");
   });
 });

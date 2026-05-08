@@ -145,15 +145,14 @@ describe("TopBar five-entry + display controls visual (Phase 3.2)", () => {
     );
   });
 
-  it("display controls replicate ui-design button/menu controls instead of native selects", async () => {
+  it("display controls replicate ui-design dropdown controls instead of native selects", async () => {
     renderTopBar();
     const user = userEvent.setup();
 
     expect(screen.queryByTestId("topbar-theme-select")).not.toBeInTheDocument();
     expect(screen.queryByTestId("topbar-lang-select")).not.toBeInTheDocument();
-    expect(screen.getByTestId("topbar-brand-subtitle")).toHaveTextContent(
-      "面试训练器 · v1.0",
-    );
+    expect(screen.getByText("EasyInterview")).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-brand-subtitle")).not.toBeInTheDocument();
     expect(screen.getAllByTestId(/^topbar-nav-icon-/)).toHaveLength(5);
 
     const themeButton = screen.getByTestId("topbar-theme-button");
@@ -174,7 +173,24 @@ describe("TopBar five-entry + display controls visual (Phase 3.2)", () => {
       /\bei-topbar-lang\b/,
     );
     expect(screen.getByTestId("topbar-lang-toggle")).toHaveTextContent(
-      "EN · 中",
+      "English",
+    );
+    expect(screen.getByTestId("topbar-lang-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await user.click(screen.getByTestId("topbar-lang-toggle"));
+    expect(screen.getByTestId("topbar-lang-menu")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-lang-option-en")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByTestId("topbar-lang-option-zh")).toHaveTextContent(
+      "中文",
+    );
+    await user.click(screen.getByTestId("topbar-lang-option-zh"));
+    expect(screen.getByTestId("topbar-lang-toggle")).toHaveTextContent(
+      "中文",
     );
     expect(screen.getByTestId("topbar-login").className).toMatch(
       /\bei-topbar-auth-login\b/,
@@ -233,6 +249,7 @@ describe("TopBar i18n regression after visual parity (Phase 3.2)", () => {
     );
 
     await user.click(screen.getByTestId("topbar-lang-toggle"));
+    await user.click(screen.getByTestId("topbar-lang-option-en"));
     expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("Home");
     expect(screen.getByTestId("topbar-nav-jd_match")).toHaveTextContent(
       "Job Picks",
@@ -250,5 +267,11 @@ describe("TopBar inline-style budget (Phase 3.2)", () => {
     expect(tsx).not.toMatch(/style=\{\{[^}]*\bpadding:\s*\d+(px|\s)/);
     expect(tsx).not.toMatch(/style=\{\{[^}]*\bgap:\s*\d/);
     expect(tsx).not.toMatch(/style=\{\{[^}]*\bheight:\s*\d/);
+  });
+
+  it("renders language options from the i18n locale catalog instead of a two-language TopBar constant", () => {
+    expect(tsx).toContain("SUPPORTED_LOCALES.map");
+    expect(tsx).not.toMatch(/const\s+LANG_OPTIONS/);
+    expect(tsx).not.toMatch(/const\s+LANG_LABELS/);
   });
 });

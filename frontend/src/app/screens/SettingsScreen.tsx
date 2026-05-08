@@ -82,6 +82,16 @@ export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
         <h2 className="ei-text-title">{t("settings.subscription")}</h2>
         <div className="ei-skeleton-stripe">P1</div>
       </div>
+      <div data-testid="settings-app-info" className="ei-screen-card">
+        <h2 className="ei-text-title">{t("settings.appInfo")}</h2>
+        <ul>
+          {list("settings.appInfoItems").map((item) => (
+            <li key={item} className="ei-text-body">
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 };

@@ -92,6 +92,8 @@ export const zh = {
     "数据留存开关|数据概览|导出数据|删除单次会话|删除所有练习数据|注销账号",
   "settings.notifications": "通知（P1 占位）",
   "settings.subscription": "订阅（P1 占位）",
+  "settings.appInfo": "产品信息",
+  "settings.appInfoItems": "产品名称: EasyInterview|版本: v1.0",
   "placeholder.workspace": "面试规划",
   "placeholder.default": "页面壳",
 } as const;

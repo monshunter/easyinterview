@@ -5,7 +5,6 @@ import {
   ASYNQ_TASK_EMAIL_DISPATCH,
   ASYNQ_TASK_PRIVACY_DELETE,
   ASYNQ_TASK_TARGET_IMPORT,
-  JOB_TYPE_EMBEDDING_UPSERT,
   JOB_TYPE_EMAIL_DISPATCH,
   JOB_TYPE_SOURCE_REFRESH,
   JOB_TYPE_TARGET_IMPORT,
@@ -24,8 +23,7 @@ describe('generated job contract', () => {
   it('keeps internal-only jobs out of the API-facing subset', () => {
     expect(API_FACING_JOB_TYPES).toContain('target_import');
     expect(API_FACING_JOB_TYPES).not.toContain(JOB_TYPE_SOURCE_REFRESH);
-    expect(API_FACING_JOB_TYPES).not.toContain(JOB_TYPE_EMBEDDING_UPSERT);
-    expect(API_FACING_JOB_TYPES).not.toContain('email_dispatch');
+    expect(API_FACING_JOB_TYPES).not.toContain(JOB_TYPE_EMAIL_DISPATCH);
   });
 
   it('exports email_dispatch redaction policy', () => {

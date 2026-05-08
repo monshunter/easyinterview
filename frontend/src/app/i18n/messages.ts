@@ -1,19 +1,19 @@
 import {
   useDisplayPreferencesOptional,
-  type Lang,
 } from "../display/DisplayPreferencesProvider";
+import {
+  DEFAULT_LANG,
+  type Lang,
+} from "./localeCatalog";
 import { en } from "./locales/en";
 import { zh, type LocaleMessages, type MessageKey } from "./locales/zh";
 
-export const DEFAULT_LANG: Lang = "en";
-
-export function normalizeLocaleTag(tag: string | undefined | null): Lang {
-  const lower = tag?.trim().toLowerCase();
-  if (!lower) return DEFAULT_LANG;
-  if (lower === "en" || lower.startsWith("en-")) return "en";
-  if (lower === "zh" || lower.startsWith("zh-")) return "zh";
-  return DEFAULT_LANG;
-}
+export {
+  DEFAULT_LANG,
+  SUPPORTED_LOCALES,
+  normalizeLocaleTag,
+} from "./localeCatalog";
+export type { Lang } from "./localeCatalog";
 
 export const MESSAGES = {
   zh,

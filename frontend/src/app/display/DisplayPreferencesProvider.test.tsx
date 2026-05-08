@@ -72,6 +72,7 @@ function setNavigatorLanguages(language: string, languages = [language]) {
 describe("DisplayPreferencesProvider", () => {
   afterEach(() => {
     setNavigatorLanguages("en-US", ["en-US"]);
+    window.localStorage.clear();
   });
 
   it("starts with the documented defaults and follows browser locale", () => {
@@ -86,6 +87,26 @@ describe("DisplayPreferencesProvider", () => {
     setNavigatorLanguages("fr-FR", ["fr-FR"]);
     render(<Harness />);
     expect(screen.getByTestId("lang")).toHaveTextContent("en");
+  });
+
+  it("uses a stored user language before browser locale", () => {
+    window.localStorage.setItem("ei-lang", "en");
+    setNavigatorLanguages("zh-CN", ["zh-CN", "en-US"]);
+    render(<Harness />);
+    expect(screen.getByTestId("lang")).toHaveTextContent("en");
+  });
+
+  it("ignores unsupported stored languages and persists explicit choices", async () => {
+    window.localStorage.setItem("ei-lang", "de-DE");
+    setNavigatorLanguages("zh-CN", ["zh-CN", "en-US"]);
+    render(<Harness />);
+    const user = userEvent.setup();
+
+    expect(screen.getByTestId("lang")).toHaveTextContent("zh");
+
+    await user.click(screen.getByTestId("set-lang-en"));
+    expect(screen.getByTestId("lang")).toHaveTextContent("en");
+    expect(window.localStorage.getItem("ei-lang")).toBe("en");
   });
 
   it("preserves theme / dark / lang across signed-in state transitions", async () => {

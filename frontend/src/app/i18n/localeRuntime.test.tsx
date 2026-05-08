@@ -18,6 +18,7 @@ function jsonResponse(body: unknown, init?: ResponseInit): Response {
 describe("locale bootstrap", () => {
   afterEach(() => {
     setNavigatorLanguages("en-US", ["en-US"]);
+    window.localStorage.clear();
   });
 
   it("normalizes BCP 47 UI locale tags to supported shell languages", () => {
@@ -154,6 +155,7 @@ describe("locale bootstrap", () => {
 
     const user = userEvent.setup();
     await user.click(screen.getByTestId("topbar-lang-toggle"));
+    await user.click(screen.getByTestId("topbar-lang-option-en"));
     await user.click(screen.getByTestId("topbar-login"));
     await user.type(screen.getByTestId("auth-login-email"), "liuzhe@example.com");
     await user.click(screen.getByTestId("auth-login-submit-email"));

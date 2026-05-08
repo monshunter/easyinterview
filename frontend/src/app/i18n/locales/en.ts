@@ -103,6 +103,8 @@ export const en: LocaleMessages = {
     "Data retention toggles|Data overview|Export data|Delete one session|Delete all practice data|Delete account",
   "settings.notifications": "Notifications (P1 placeholder)",
   "settings.subscription": "Subscription (P1 placeholder)",
+  "settings.appInfo": "Product info",
+  "settings.appInfoItems": "Product: EasyInterview|Version: v1.0",
   "placeholder.workspace": "Workspace",
   "placeholder.default": "Route shell",
 };
