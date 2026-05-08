@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
-# Repo-scaffold A1 placeholder commit-msg hook.
-# Extended by B1 shared-conventions-codified (commit message rules) and A5 ci-pipeline-baseline
-# in later plans. Filename and location are locked by repo-scaffold spec D-4.
+# Repo-scaffold A1 commit-msg hook entry.
+# Filename and location are locked by repo-scaffold spec D-4.
 set -euo pipefail
+
+msg_file="${1:-}"
+
+if [ -z "$msg_file" ] || [ ! -f "$msg_file" ]; then
+  echo "commit-msg: missing commit message file argument." >&2
+  exit 1
+fi
+
+if ! LC_ALL=C perl -ne 'if (/[^\x00-\x7F]/) { print STDERR "commit-msg: non-ASCII character found on line $. .\n"; exit 1 }' "$msg_file"; then
+  echo "commit-msg: commit messages must be English and ASCII-only." >&2
+  exit 1
+fi
 
 exit 0

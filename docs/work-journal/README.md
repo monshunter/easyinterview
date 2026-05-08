@@ -31,6 +31,21 @@ docs/work-journal/
 
 **核心理念**：代码变更与工作日志在同一次 commit 中提交，使用 commit message 作为关联标识。
 
+### 3.1 Commit message 语言规则
+
+所有 commit message 必须使用英文，且必须通过 ASCII-only 校验。
+
+- 约束范围包括 commit subject、body、bullet、trailer，以及写入 `INDEX.md` 和日志 `### 关联 Commit` 的同一条 commit message。
+- 日志正文可以继续使用中文；只有 commit message 字符串必须是英文。
+- 不得直接把中文 plan 标题、phase 标题、checklist 文案或缺陷摘要复制进 commit message；必须翻译或概括为简洁英文。
+- 提交前必须先校验完整 commit message：
+
+```bash
+LC_ALL=C perl -ne 'if (/[^\x00-\x7F]/) { print; exit 1 }' <message-file>
+```
+
+安装仓库 hook 后，`scripts/git-hooks/commit-msg` 会执行同一条 ASCII-only 拦截。
+
 ### 步骤 1：创建或追加日志文件
 
 - 文件名格式：`YYYY-MM-DD.md`（如 `2025-01-15.md`）
@@ -85,9 +100,10 @@ git log --grep="feat(module): implement feature"
 完成工作日志记录前，确认以下事项：
 
 - [ ] 日志文件命名正确（`YYYY-MM-DD.md`）
-- [ ] 包含完成事项和关联 Commit
+- [ ] 包含完成事项和关联 Commit，且关联 Commit 为英文 / ASCII-only
 - [ ] 已更新 `INDEX.md` 索引（每个 commit 独立一行）
 - [ ] 标签选择恰当
+- [ ] 已校验完整 commit message 不含非 ASCII 字符
 - [ ] 代码和日志在同一次 commit 中提交
 
 ## 7 记录原则

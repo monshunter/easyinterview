@@ -250,3 +250,4 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 - 默认父分支: dev（优先自动探测；若未配置则使用当前主开发分支）
 - `/implement` 自动从父分支创建 feature branch
 - phase commit 后自动 merge 回父分支
+- 所有 commit message 必须使用英文，并通过 ASCII-only 校验；`/work-journal` 写入日志和索引的关联 Commit 必须与真实英文 commit message 完全一致。

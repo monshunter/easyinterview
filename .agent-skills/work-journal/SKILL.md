@@ -23,6 +23,16 @@ Rules:
 - `--auto` must be used together with `--plan` and `--phase`
 - `--plan` and `--phase` are reserved for auto mode and must not change manual mode behavior
 
+## Commit Message Language Policy
+
+All git commit messages created through this skill must be English and ASCII-only.
+
+- Apply this to the entire commit message: subject, body, bullet points, trailers, and any text copied into `docs/work-journal/INDEX.md` or the journal `### 关联 Commit` block.
+- Journal prose may remain Chinese, but commit message strings recorded in the journal and index must exactly match the English commit message.
+- Do not copy Chinese plan names, phase headings, checklist text, feature names, or bug summaries directly into the commit message. Translate or summarize them into concise English.
+- If a clear English subject cannot be derived from a Chinese phase/checklist heading, stop and ask the user for the English commit subject before writing the journal entry or committing.
+- Prefer stable English domain terms already used in the repository, for example `tts`, `speech adapters`, `provider-neutral interface`, `profile catalog`, `privacy gate`, `drift gate`, and `handoff`.
+
 ## Prerequisites
 
 Before using this skill, ensure `docs/work-journal/` directory exists with README.md and INDEX.md.
@@ -92,8 +102,9 @@ Auto mode commit message derivation rules:
 
 - `type`: infer from the phase content; default to `feat`
 - `scope`: derive from the plan name core term
-- `subject`: remove the `Phase N:` prefix from the phase heading and lowercase the remainder
+- `subject`: remove the `Phase N:` prefix from the phase heading, translate or summarize the remainder into concise English, and lowercase the result where natural for Conventional Commit style
 - The full commit message must also include a body summarizing checklist, phase, and completed items.
+- Before writing the journal entry, validate that the derived subject and body satisfy the Commit Message Language Policy.
 
 ### Step 4: Update INDEX.md
 
@@ -131,12 +142,19 @@ type(scope): subject
 - Detail 2
 ```
 
+Commit message validation is mandatory:
+
+1. Write the full proposed commit message to a temporary file.
+2. Run `LC_ALL=C perl -ne 'if (/[^\x00-\x7F]/) { print; exit 1 }' <message-file>` and fix the message if the command fails.
+3. Commit with the validated file, for example `git commit -F <message-file>`. If `make install-hooks` has been run, `scripts/git-hooks/commit-msg` enforces the same ASCII-only rule during the commit.
+
 ### Step 6: Verify commit result
 
 **After every `git add` and `git commit` (including amend), the following checks must be performed:**
 
 1. `git status` — Confirm that the staging area and working tree status match expectations (no missing files, no accidentally added files)
 2. `git log --oneline -3` — Confirm the latest commit message is correct and previous commits have not been overwritten
+3. `git log -1 --format=%B | LC_ALL=C perl -ne 'if (/[^\x00-\x7F]/) { print; exit 1 }'` — Confirm the committed message is English / ASCII-only
 
 If any anomalies are found (e.g., missing files, incorrect commit message), immediately notify the user and discuss a fix.
 
@@ -192,6 +210,7 @@ Before completing:
 - [ ] INDEX.md updated (each commit on its own line)
 - [ ] Appropriate tags selected
 - [ ] Staged docs Header/INDEX drift check passed (or skipped with reason)
+- [ ] Proposed commit message is English / ASCII-only and validated before commit
 - [ ] Code and journal committed together
-- [ ] `git status` + `git log` verified after each commit (Step 6)
+- [ ] `git status` + `git log` + committed-message ASCII validation verified after each commit (Step 6)
 - [ ] If split: all commits completed with their journal entries
