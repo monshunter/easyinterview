@@ -41,9 +41,9 @@
 
 ## Phase 5: Privacy / observability / idempotency redlines
 
-- [ ] 5.1 隐私 grep / payload negative tests；验证: privacy grep 0 命中 `raw_jd_text` / `source_url`(含完整 URL 与 query 串) / 文件 object URL / prompt body / response body / provider secret / `Authorization:` 模式；generated outbox / job payload helper 在 negative test 中拒绝任何 redacted field
-- [ ] 5.2 F1 metric registry preflight；验证: F1 baseline metrics 字典已登记 `target_job_imports_total` / `target_job_parse_duration_seconds` / `target_job_parse_failures_total` 与 allowed labels (`service` / `operation` / `job_type` / `source_type` / `language` / `result` / `error_code`)；metric tests 证明 label 不含 URL、target id、user id、prompt version 或自由文本
-- [ ] 5.3 Idempotency 跨 user 隔离；验证: store / handler tests 覆盖两个不同用户使用相同 `Idempotency-Key` 不会复用 active `target_import` job；同一用户同 key 重复请求返回同一 `targetJobId` 与同一 active job，DB / outbox 不出现重复 row 与重复事件
+- [x] 5.1 隐私 grep / payload negative tests；验证: privacy grep 0 命中 `raw_jd_text` / `source_url`(含完整 URL 与 query 串) / 文件 object URL / prompt body / response body / provider secret / `Authorization:` 模式；generated outbox / job payload helper 在 negative test 中拒绝任何 redacted field
+- [x] 5.2 F1 metric registry preflight；验证: F1 baseline metrics 字典已登记 `target_job_imports_total` / `target_job_parse_duration_seconds` / `target_job_parse_failures_total` 与 allowed labels (`service` / `operation` / `job_type` / `source_type` / `language` / `result` / `error_code`)；metric tests 证明 label 不含 URL、target id、user id、prompt version 或自由文本
+- [x] 5.3 Idempotency 跨 user 隔离；验证: store / handler tests 覆盖两个不同用户使用相同 `Idempotency-Key` 不会复用 active `target_import` job；同一用户同 key 重复请求返回同一 `targetJobId` 与同一 active job，DB / outbox 不出现重复 row 与重复事件
 
 ## Phase 6: BDD and handoff
 
