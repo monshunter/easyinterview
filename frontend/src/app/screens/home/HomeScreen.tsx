@@ -1,13 +1,25 @@
-import { useState, type FC } from "react";
+import { useState, useMemo, type FC } from "react";
 
 import { useI18n } from "../../i18n/messages";
+import { interviewContextFromTargetJob } from "../../navigation/interviewContext";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
+import { MockInterviewCard } from "./MockInterviewCard";
+import { useRecentTargetJobs } from "./useRecentTargetJobs";
 
 export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const { t } = useI18n();
   const { navigate } = useNavigation();
   const [input, setInput] = useState("");
+  const { jobs: rawJobs, loading, error } = useRecentTargetJobs();
+
+  const jobs = useMemo(() => {
+    const sorted = [...rawJobs].sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
+    return sorted.slice(0, 12);
+  }, [rawJobs]);
 
   return (
     <section
@@ -183,11 +195,110 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         </div>
       </div>
 
-      {/* Recent mock interviews placeholder */}
+      {/* Recent mock interviews */}
       <div style={{ marginBottom: 48 }}>
-        <div className="ei-skeleton-stripe">
-          Recent mock interviews (Phase 2)
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            marginBottom: 16,
+            gap: 20,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                color: "var(--ei-color-fg-tertiary)",
+                marginBottom: 8,
+                fontSize: 11,
+                fontWeight: 500,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                fontFamily: "var(--ei-font-mono)",
+              }}
+            >
+              RECENT
+            </div>
+            <div
+              style={{
+                fontSize: 22,
+                color: "var(--ei-color-fg-primary)",
+                fontFamily: "var(--ei-font-serif)",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {t("home.recentSection")}
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--ei-color-fg-tertiary)",
+                marginTop: 4,
+              }}
+            >
+              {t("home.recentSectionSub")}
+            </div>
+          </div>
         </div>
+        {loading ? (
+          <div className="ei-skeleton-stripe">
+            {t("home.recentSection")}...
+          </div>
+        ) : error ? (
+          <div
+            style={{
+              color: "var(--ei-color-danger)",
+              fontSize: 13,
+            }}
+          >
+            {error.message}
+          </div>
+        ) : jobs.length === 0 ? (
+          <div
+            style={{
+              background: "var(--ei-color-bg-soft)",
+              border: "1px solid var(--ei-color-rule-strong)",
+              borderRadius: 3,
+              padding: 32,
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{
+                color: "var(--ei-color-fg-secondary)",
+                fontSize: 14,
+                margin: 0,
+              }}
+            >
+              {t("home.recentSection")}
+            </p>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+              gap: 16,
+            }}
+          >
+            {jobs.map((j) => (
+              <MockInterviewCard
+                key={j.id}
+                job={j}
+                onClick={() =>
+                  navigate({
+                    name: "workspace",
+                    params: interviewContextFromTargetJob(j) as Record<
+                      string,
+                      string
+                    >,
+                  })
+                }
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Auxiliary cards */}
