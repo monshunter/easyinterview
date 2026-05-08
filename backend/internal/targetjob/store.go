@@ -1,0 +1,846 @@
+package targetjob
+
+import (
+	"context"
+	"database/sql"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
+	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
+)
+
+// SourceType mirrors B4 baseline check list for target_jobs.source_type and
+// target_job_sources.source_type (see migrations/000001_create_baseline.up.sql).
+type SourceType string
+
+const (
+	SourceTypeManualText SourceType = "manual_text"
+	SourceTypeURL        SourceType = "url"
+	SourceTypeFile       SourceType = "file"
+	SourceTypeManualForm SourceType = "manual_form"
+)
+
+// RequirementKind mirrors B4 baseline check list for target_job_requirements.kind.
+type RequirementKind string
+
+const (
+	RequirementMustHave       RequirementKind = "must_have"
+	RequirementNiceToHave     RequirementKind = "nice_to_have"
+	RequirementHiddenSignal   RequirementKind = "hidden_signal"
+	RequirementInterviewFocus RequirementKind = "interview_focus"
+)
+
+// EvidenceLevel mirrors B4 baseline check list for target_job_requirements.evidence_level.
+type EvidenceLevel string
+
+const (
+	EvidenceExplicit EvidenceLevel = "explicit"
+	EvidenceInferred EvidenceLevel = "inferred"
+)
+
+// FreshnessStatus mirrors B4 baseline check list for target_job_sources.freshness_status.
+type FreshnessStatus string
+
+const (
+	FreshnessFresh   FreshnessStatus = "fresh"
+	FreshnessStale   FreshnessStatus = "stale"
+	FreshnessExpired FreshnessStatus = "expired"
+)
+
+// ListMaxPageSize bounds the per-page row count regardless of caller request.
+const ListMaxPageSize = 100
+
+// ErrTargetJobNotFound is returned by reads / writes that would touch a row
+// the caller is not permitted to see (cross-user) or that has been soft
+// deleted. Per spec §3.1 D-9 handlers map this to HTTP 404 + B1
+// TARGET_JOB_NOT_FOUND, never to FORBIDDEN.
+var ErrTargetJobNotFound = errors.New("target job not found")
+
+// TargetJobRecord is the in-process representation of a row in target_jobs.
+type TargetJobRecord struct {
+	ID                     string
+	UserID                 string
+	ProfileID              string
+	Status                 sharedtypes.TargetJobStatus
+	AnalysisStatus         sharedtypes.TargetJobParseStatus
+	Title                  string
+	CompanyName            string
+	LocationText           string
+	EmploymentType         string
+	SeniorityLevel         string
+	TargetLanguage         string
+	SourceType             SourceType
+	SourceURL              string
+	SourceFileObjectID     string
+	RawJDText              string
+	Summary                json.RawMessage
+	FitSummary             json.RawMessage
+	Notes                  string
+	LatestReportID         string
+	OpenQuestionIssueCount int32
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+	DeletedAt              *time.Time
+}
+
+// RequirementRecord represents a row in target_job_requirements.
+type RequirementRecord struct {
+	ID            string
+	TargetJobID   string
+	Kind          RequirementKind
+	Label         string
+	Description   string
+	EvidenceLevel EvidenceLevel
+	DisplayOrder  int32
+	CreatedAt     time.Time
+}
+
+// SourceRecord represents a row in target_job_sources.
+type SourceRecord struct {
+	ID              string
+	TargetJobID     string
+	SourceType      SourceType
+	URL             string
+	FileObjectID    string
+	SnapshotText    string
+	FetchedAt       *time.Time
+	FreshnessStatus FreshnessStatus
+	CreatedAt       time.Time
+}
+
+// ListFilter is the read-side filter passed to ListTargetJobsForUser. The
+// store enforces user_id scope and deleted_at filtering on top of these.
+type ListFilter struct {
+	Status         *sharedtypes.TargetJobStatus
+	AnalysisStatus *sharedtypes.TargetJobParseStatus
+	SearchQuery    string
+	Cursor         string
+	PageSize       int32
+}
+
+// ListResult captures one page of TargetJob rows plus a cursor pointing at
+// the next page. The cursor is opaque base64url(updated_at + id).
+type ListResult struct {
+	Items      []TargetJobRecord
+	NextCursor string
+	HasMore    bool
+}
+
+// UpdateLifecycleFields is the optional-field update payload for
+// UpdateTargetJobLifecycle. Nil pointers leave the field untouched.
+type UpdateLifecycleFields struct {
+	Status          *sharedtypes.TargetJobStatus
+	LocationText    *string
+	Notes           *string
+	TitleHint       *string
+	CompanyNameHint *string
+}
+
+// ApplyParseResultInput is the parse-pipeline output the store will merge in
+// a single transaction with the target_jobs analysis-status / summary fields.
+type ApplyParseResultInput struct {
+	TargetJobID    string
+	AnalysisStatus sharedtypes.TargetJobParseStatus
+	Summary        json.RawMessage
+	FitSummary     json.RawMessage
+	Requirements   []RequirementRecord
+	Now            time.Time
+}
+
+// Store is the persistence boundary for the target_jobs / target_job_requirements
+// / target_job_sources tables. Every read / write filters by user_id; cross-user
+// or soft-deleted rows surface as ErrTargetJobNotFound (handler maps to 404 +
+// TARGET_JOB_NOT_FOUND).
+type Store interface {
+	InsertTargetJob(ctx context.Context, rec TargetJobRecord) error
+	InsertTargetJobSource(ctx context.Context, rec SourceRecord) error
+	GetTargetJobByUser(ctx context.Context, userID string, targetJobID string) (TargetJobRecord, []RequirementRecord, []SourceRecord, error)
+	ListTargetJobsForUser(ctx context.Context, userID string, filter ListFilter) (ListResult, error)
+	UpdateTargetJobLifecycle(ctx context.Context, userID string, targetJobID string, fields UpdateLifecycleFields, now time.Time) (TargetJobRecord, error)
+	ApplyParseResult(ctx context.Context, in ApplyParseResultInput) error
+	UpdateSourceFreshness(ctx context.Context, targetJobID string, freshness FreshnessStatus, now time.Time) error
+}
+
+// SQLStore is the default Postgres-backed Store implementation.
+type SQLStore struct {
+	db *sql.DB
+}
+
+// NewSQLStore wires a SQLStore against the given *sql.DB.
+func NewSQLStore(db *sql.DB) *SQLStore { return &SQLStore{db: db} }
+
+func (s *SQLStore) checkDB() error {
+	if s == nil || s.db == nil {
+		return fmt.Errorf("targetjob store db is nil")
+	}
+	return nil
+}
+
+func (s *SQLStore) InsertTargetJob(ctx context.Context, rec TargetJobRecord) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	summary := nullJSON(rec.Summary)
+	fitSummary := nullJSON(rec.FitSummary)
+	_, err := s.db.ExecContext(ctx, `
+insert into target_jobs (
+  id,
+  user_id,
+  profile_id,
+  status,
+  analysis_status,
+  title,
+  company_name,
+  location_text,
+  employment_type,
+  seniority_level,
+  target_language,
+  source_type,
+  source_url,
+  source_file_object_id,
+  raw_jd_text,
+  summary,
+  fit_summary,
+  notes,
+  open_question_issue_count,
+  created_at,
+  updated_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+		rec.ID,
+		nullableUUID(rec.UserID),
+		nullableUUID(rec.ProfileID),
+		string(rec.Status),
+		string(rec.AnalysisStatus),
+		nullableString(rec.Title),
+		nullableString(rec.CompanyName),
+		nullableString(rec.LocationText),
+		nullableString(rec.EmploymentType),
+		nullableString(rec.SeniorityLevel),
+		rec.TargetLanguage,
+		string(rec.SourceType),
+		nullableString(rec.SourceURL),
+		nullableUUID(rec.SourceFileObjectID),
+		nullableString(rec.RawJDText),
+		summary,
+		fitSummary,
+		nullableString(rec.Notes),
+		rec.OpenQuestionIssueCount,
+		rec.CreatedAt,
+		rec.UpdatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("insert target_jobs: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLStore) InsertTargetJobSource(ctx context.Context, rec SourceRecord) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	freshness := rec.FreshnessStatus
+	if freshness == "" {
+		freshness = FreshnessFresh
+	}
+	var fetchedAt any
+	if rec.FetchedAt != nil {
+		fetchedAt = *rec.FetchedAt
+	}
+	_, err := s.db.ExecContext(ctx, `
+insert into target_job_sources (
+  id,
+  target_job_id,
+  source_type,
+  url,
+  file_object_id,
+  snapshot_text,
+  fetched_at,
+  freshness_status,
+  created_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		rec.ID,
+		rec.TargetJobID,
+		string(rec.SourceType),
+		nullableString(rec.URL),
+		nullableUUID(rec.FileObjectID),
+		nullableString(rec.SnapshotText),
+		fetchedAt,
+		string(freshness),
+		rec.CreatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("insert target_job_sources: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLStore) GetTargetJobByUser(ctx context.Context, userID string, targetJobID string) (TargetJobRecord, []RequirementRecord, []SourceRecord, error) {
+	if err := s.checkDB(); err != nil {
+		return TargetJobRecord{}, nil, nil, err
+	}
+	rec := TargetJobRecord{ID: targetJobID, UserID: userID}
+	var (
+		profileID          sql.NullString
+		title              sql.NullString
+		companyName        sql.NullString
+		locationText       sql.NullString
+		employmentType     sql.NullString
+		seniorityLevel     sql.NullString
+		sourceURL          sql.NullString
+		sourceFileObjectID sql.NullString
+		rawJDText          sql.NullString
+		notes              sql.NullString
+		latestReportID     sql.NullString
+		summary            []byte
+		fitSummary         []byte
+		status             string
+		analysisStatus     string
+		sourceType         string
+	)
+	err := s.db.QueryRowContext(ctx, `
+select id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+       employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
+       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
+       created_at, updated_at
+from target_jobs
+where id = $1 and user_id = $2 and deleted_at is null`,
+		targetJobID,
+		userID,
+	).Scan(
+		&rec.ID,
+		&rec.UserID,
+		&profileID,
+		&status,
+		&analysisStatus,
+		&title,
+		&companyName,
+		&locationText,
+		&employmentType,
+		&seniorityLevel,
+		&rec.TargetLanguage,
+		&sourceType,
+		&sourceURL,
+		&sourceFileObjectID,
+		&rawJDText,
+		&summary,
+		&fitSummary,
+		&notes,
+		&latestReportID,
+		&rec.OpenQuestionIssueCount,
+		&rec.CreatedAt,
+		&rec.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return TargetJobRecord{}, nil, nil, ErrTargetJobNotFound
+	}
+	if err != nil {
+		return TargetJobRecord{}, nil, nil, fmt.Errorf("select target_jobs: %w", err)
+	}
+	rec.ProfileID = profileID.String
+	rec.Status = sharedtypes.TargetJobStatus(status)
+	rec.AnalysisStatus = sharedtypes.TargetJobParseStatus(analysisStatus)
+	rec.Title = title.String
+	rec.CompanyName = companyName.String
+	rec.LocationText = locationText.String
+	rec.EmploymentType = employmentType.String
+	rec.SeniorityLevel = seniorityLevel.String
+	rec.SourceType = SourceType(sourceType)
+	rec.SourceURL = sourceURL.String
+	rec.SourceFileObjectID = sourceFileObjectID.String
+	rec.RawJDText = rawJDText.String
+	rec.Notes = notes.String
+	rec.LatestReportID = latestReportID.String
+	if len(summary) > 0 {
+		rec.Summary = append(json.RawMessage{}, summary...)
+	}
+	if len(fitSummary) > 0 {
+		rec.FitSummary = append(json.RawMessage{}, fitSummary...)
+	}
+
+	requirements, err := s.listRequirementsForJob(ctx, s.db, targetJobID)
+	if err != nil {
+		return TargetJobRecord{}, nil, nil, err
+	}
+	sources, err := s.listSourcesForJob(ctx, s.db, targetJobID)
+	if err != nil {
+		return TargetJobRecord{}, nil, nil, err
+	}
+	return rec, requirements, sources, nil
+}
+
+func (s *SQLStore) ListTargetJobsForUser(ctx context.Context, userID string, filter ListFilter) (ListResult, error) {
+	if err := s.checkDB(); err != nil {
+		return ListResult{}, err
+	}
+	pageSize := filter.PageSize
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	if pageSize > ListMaxPageSize {
+		pageSize = ListMaxPageSize
+	}
+	var (
+		args      []any
+		clauses   []string
+		nextArg   = func(v any) string {
+			args = append(args, v)
+			return fmt.Sprintf("$%d", len(args))
+		}
+	)
+	args = append(args, userID)
+	clauses = append(clauses, "user_id = $1", "deleted_at is null")
+	if filter.Status != nil {
+		clauses = append(clauses, "status = "+nextArg(string(*filter.Status)))
+	}
+	if filter.AnalysisStatus != nil {
+		clauses = append(clauses, "analysis_status = "+nextArg(string(*filter.AnalysisStatus)))
+	}
+	if q := strings.TrimSpace(filter.SearchQuery); q != "" {
+		clauses = append(clauses,
+			"to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(company_name,'')) @@ plainto_tsquery('simple', "+nextArg(q)+")")
+	}
+	if filter.Cursor != "" {
+		updatedAt, id, err := decodeCursor(filter.Cursor)
+		if err != nil {
+			return ListResult{}, fmt.Errorf("decode cursor: %w", err)
+		}
+		uPlaceholder := nextArg(updatedAt)
+		idPlaceholder := nextArg(id)
+		clauses = append(clauses, fmt.Sprintf("(updated_at, id) < (%s, %s)", uPlaceholder, idPlaceholder))
+	}
+
+	limitArg := nextArg(int(pageSize) + 1)
+	query := `
+select id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+       employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
+       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
+       created_at, updated_at
+from target_jobs
+where ` + strings.Join(clauses, " and ") + `
+order by updated_at desc, id desc
+limit ` + limitArg
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return ListResult{}, fmt.Errorf("list target_jobs: %w", err)
+	}
+	defer rows.Close()
+
+	out := ListResult{}
+	for rows.Next() {
+		rec, err := scanTargetJobRow(rows)
+		if err != nil {
+			return ListResult{}, err
+		}
+		out.Items = append(out.Items, rec)
+	}
+	if err := rows.Err(); err != nil {
+		return ListResult{}, fmt.Errorf("list target_jobs rows: %w", err)
+	}
+
+	if int32(len(out.Items)) > pageSize {
+		last := out.Items[pageSize-1]
+		out.Items = out.Items[:pageSize]
+		out.HasMore = true
+		out.NextCursor = encodeCursor(last.UpdatedAt, last.ID)
+	}
+	return out, nil
+}
+
+func (s *SQLStore) UpdateTargetJobLifecycle(ctx context.Context, userID string, targetJobID string, fields UpdateLifecycleFields, now time.Time) (TargetJobRecord, error) {
+	if err := s.checkDB(); err != nil {
+		return TargetJobRecord{}, err
+	}
+	var (
+		sets    []string
+		args    []any
+		nextArg = func(v any) string {
+			args = append(args, v)
+			return fmt.Sprintf("$%d", len(args))
+		}
+	)
+	if fields.Status != nil {
+		sets = append(sets, "status = "+nextArg(string(*fields.Status)))
+	}
+	if fields.LocationText != nil {
+		sets = append(sets, "location_text = "+nextArg(*fields.LocationText))
+	}
+	if fields.Notes != nil {
+		sets = append(sets, "notes = "+nextArg(*fields.Notes))
+	}
+	if fields.TitleHint != nil {
+		sets = append(sets, "title = coalesce(title, "+nextArg(*fields.TitleHint)+")")
+	}
+	if fields.CompanyNameHint != nil {
+		sets = append(sets, "company_name = coalesce(company_name, "+nextArg(*fields.CompanyNameHint)+")")
+	}
+	sets = append(sets, "updated_at = "+nextArg(now))
+
+	args = append(args, targetJobID, userID)
+	query := fmt.Sprintf(`
+update target_jobs
+set %s
+where id = $%d and user_id = $%d and deleted_at is null
+returning id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+          employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
+          raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
+          created_at, updated_at`,
+		strings.Join(sets, ", "),
+		len(args)-1,
+		len(args),
+	)
+	rows := s.db.QueryRowContext(ctx, query, args...)
+	rec, err := scanTargetJobRow(rows)
+	if errors.Is(err, sql.ErrNoRows) {
+		return TargetJobRecord{}, ErrTargetJobNotFound
+	}
+	if err != nil {
+		return TargetJobRecord{}, fmt.Errorf("update target_jobs lifecycle: %w", err)
+	}
+	return rec, nil
+}
+
+func (s *SQLStore) ApplyParseResult(ctx context.Context, in ApplyParseResultInput) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin apply parse result: %w", err)
+	}
+	defer tx.Rollback()
+
+	existing, err := s.listRequirementsForJobTx(ctx, tx, in.TargetJobID)
+	if err != nil {
+		return err
+	}
+	existingByKey := map[string]struct{}{}
+	maxOrder := int32(0)
+	for _, r := range existing {
+		key := string(r.Kind) + "\x00" + r.Label
+		existingByKey[key] = struct{}{}
+		if r.DisplayOrder > maxOrder {
+			maxOrder = r.DisplayOrder
+		}
+	}
+
+	nextOrder := maxOrder + 1
+	for _, req := range in.Requirements {
+		key := string(req.Kind) + "\x00" + req.Label
+		if _, dup := existingByKey[key]; dup {
+			continue
+		}
+		evidence := req.EvidenceLevel
+		if evidence == "" {
+			evidence = EvidenceExplicit
+		}
+		_, err := tx.ExecContext(ctx, `
+insert into target_job_requirements (
+  id, target_job_id, kind, label, description, evidence_level, display_order, created_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+			req.ID,
+			in.TargetJobID,
+			string(req.Kind),
+			req.Label,
+			nullableString(req.Description),
+			string(evidence),
+			nextOrder,
+			in.Now,
+		)
+		if err != nil {
+			return fmt.Errorf("insert target_job_requirements: %w", err)
+		}
+		existingByKey[key] = struct{}{}
+		nextOrder++
+	}
+
+	res, err := tx.ExecContext(ctx, `
+update target_jobs
+set analysis_status = $1,
+    summary = $2,
+    fit_summary = $3,
+    updated_at = $4
+where id = $5 and deleted_at is null`,
+		string(in.AnalysisStatus),
+		nullJSON(in.Summary),
+		nullJSON(in.FitSummary),
+		in.Now,
+		in.TargetJobID,
+	)
+	if err != nil {
+		return fmt.Errorf("update target_jobs analysis_status: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("apply parse result rows affected: %w", err)
+	}
+	if rows == 0 {
+		return ErrTargetJobNotFound
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit apply parse result: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLStore) UpdateSourceFreshness(ctx context.Context, targetJobID string, freshness FreshnessStatus, now time.Time) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	res, err := s.db.ExecContext(ctx, `
+update target_job_sources
+set freshness_status = $1,
+    fetched_at = $2
+where target_job_id = $3`,
+		string(freshness),
+		now,
+		targetJobID,
+	)
+	if err != nil {
+		return fmt.Errorf("update target_job_sources freshness: %w", err)
+	}
+	if _, err := res.RowsAffected(); err != nil {
+		return fmt.Errorf("update target_job_sources rows affected: %w", err)
+	}
+	return nil
+}
+
+// ----- helpers -----
+
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanTargetJobRow(scanner rowScanner) (TargetJobRecord, error) {
+	var (
+		rec                TargetJobRecord
+		profileID          sql.NullString
+		title              sql.NullString
+		companyName        sql.NullString
+		locationText       sql.NullString
+		employmentType     sql.NullString
+		seniorityLevel     sql.NullString
+		sourceURL          sql.NullString
+		sourceFileObjectID sql.NullString
+		rawJDText          sql.NullString
+		notes              sql.NullString
+		latestReportID     sql.NullString
+		summary            []byte
+		fitSummary         []byte
+		status             string
+		analysisStatus     string
+		sourceType         string
+	)
+	err := scanner.Scan(
+		&rec.ID,
+		&rec.UserID,
+		&profileID,
+		&status,
+		&analysisStatus,
+		&title,
+		&companyName,
+		&locationText,
+		&employmentType,
+		&seniorityLevel,
+		&rec.TargetLanguage,
+		&sourceType,
+		&sourceURL,
+		&sourceFileObjectID,
+		&rawJDText,
+		&summary,
+		&fitSummary,
+		&notes,
+		&latestReportID,
+		&rec.OpenQuestionIssueCount,
+		&rec.CreatedAt,
+		&rec.UpdatedAt,
+	)
+	if err != nil {
+		return TargetJobRecord{}, err
+	}
+	rec.ProfileID = profileID.String
+	rec.Status = sharedtypes.TargetJobStatus(status)
+	rec.AnalysisStatus = sharedtypes.TargetJobParseStatus(analysisStatus)
+	rec.Title = title.String
+	rec.CompanyName = companyName.String
+	rec.LocationText = locationText.String
+	rec.EmploymentType = employmentType.String
+	rec.SeniorityLevel = seniorityLevel.String
+	rec.SourceType = SourceType(sourceType)
+	rec.SourceURL = sourceURL.String
+	rec.SourceFileObjectID = sourceFileObjectID.String
+	rec.RawJDText = rawJDText.String
+	rec.Notes = notes.String
+	rec.LatestReportID = latestReportID.String
+	if len(summary) > 0 {
+		rec.Summary = append(json.RawMessage{}, summary...)
+	}
+	if len(fitSummary) > 0 {
+		rec.FitSummary = append(json.RawMessage{}, fitSummary...)
+	}
+	return rec, nil
+}
+
+type queryer interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+}
+
+func (s *SQLStore) listRequirementsForJob(ctx context.Context, q queryer, targetJobID string) ([]RequirementRecord, error) {
+	rows, err := q.QueryContext(ctx, `
+select id, target_job_id, kind, label, description, evidence_level, display_order, created_at
+from target_job_requirements
+where target_job_id = $1
+order by display_order asc, created_at asc`,
+		targetJobID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list target_job_requirements: %w", err)
+	}
+	defer rows.Close()
+	var out []RequirementRecord
+	for rows.Next() {
+		var (
+			rec         RequirementRecord
+			description sql.NullString
+			kind        string
+			evidence    string
+		)
+		if err := rows.Scan(
+			&rec.ID,
+			&rec.TargetJobID,
+			&kind,
+			&rec.Label,
+			&description,
+			&evidence,
+			&rec.DisplayOrder,
+			&rec.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan target_job_requirements: %w", err)
+		}
+		rec.Kind = RequirementKind(kind)
+		rec.Description = description.String
+		rec.EvidenceLevel = EvidenceLevel(evidence)
+		out = append(out, rec)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows target_job_requirements: %w", err)
+	}
+	return out, nil
+}
+
+func (s *SQLStore) listRequirementsForJobTx(ctx context.Context, tx *sql.Tx, targetJobID string) ([]RequirementRecord, error) {
+	return s.listRequirementsForJob(ctx, txQueryer{tx: tx}, targetJobID)
+}
+
+type txQueryer struct{ tx *sql.Tx }
+
+func (t txQueryer) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return t.tx.QueryContext(ctx, query, args...)
+}
+
+func (s *SQLStore) listSourcesForJob(ctx context.Context, q queryer, targetJobID string) ([]SourceRecord, error) {
+	rows, err := q.QueryContext(ctx, `
+select id, target_job_id, source_type, url, file_object_id, snapshot_text, fetched_at, freshness_status, created_at
+from target_job_sources
+where target_job_id = $1
+order by created_at desc`,
+		targetJobID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list target_job_sources: %w", err)
+	}
+	defer rows.Close()
+	var out []SourceRecord
+	for rows.Next() {
+		var (
+			rec          SourceRecord
+			urlStr       sql.NullString
+			fileObjectID sql.NullString
+			snapshot     sql.NullString
+			fetchedAt    sql.NullTime
+			sourceType   string
+			freshness    string
+		)
+		if err := rows.Scan(
+			&rec.ID,
+			&rec.TargetJobID,
+			&sourceType,
+			&urlStr,
+			&fileObjectID,
+			&snapshot,
+			&fetchedAt,
+			&freshness,
+			&rec.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan target_job_sources: %w", err)
+		}
+		rec.SourceType = SourceType(sourceType)
+		rec.URL = urlStr.String
+		rec.FileObjectID = fileObjectID.String
+		rec.SnapshotText = snapshot.String
+		if fetchedAt.Valid {
+			t := fetchedAt.Time
+			rec.FetchedAt = &t
+		}
+		rec.FreshnessStatus = FreshnessStatus(freshness)
+		out = append(out, rec)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows target_job_sources: %w", err)
+	}
+	return out, nil
+}
+
+// nullableString returns nil for empty strings so Postgres stores NULL rather
+// than an empty literal in nullable columns.
+func nullableString(v string) any {
+	if v == "" {
+		return nil
+	}
+	return v
+}
+
+// nullableUUID is the same as nullableString but documents that the column
+// expects a UUID.
+func nullableUUID(v string) any {
+	if v == "" {
+		return nil
+	}
+	return v
+}
+
+func nullJSON(raw json.RawMessage) any {
+	if len(raw) == 0 {
+		return []byte(`{}`)
+	}
+	return []byte(raw)
+}
+
+// encodeCursor and decodeCursor pack (updated_at, id) so list pagination
+// remains stable when updated_at ties exist.
+func encodeCursor(updatedAt time.Time, id string) string {
+	payload := updatedAt.UTC().Format(time.RFC3339Nano) + "|" + id
+	return base64.RawURLEncoding.EncodeToString([]byte(payload))
+}
+
+func decodeCursor(cursor string) (time.Time, string, error) {
+	raw, err := base64.RawURLEncoding.DecodeString(cursor)
+	if err != nil {
+		return time.Time{}, "", err
+	}
+	parts := strings.SplitN(string(raw), "|", 2)
+	if len(parts) != 2 {
+		return time.Time{}, "", fmt.Errorf("malformed cursor")
+	}
+	t, err := time.Parse(time.RFC3339Nano, parts[0])
+	if err != nil {
+		return time.Time{}, "", err
+	}
+	return t, parts[1], nil
+}
+
+var _ Store = (*SQLStore)(nil)

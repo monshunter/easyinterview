@@ -14,9 +14,9 @@
 
 ## Phase 1: Storage / config / generated surface boundaries
 
-- [ ] 1.1 锁定 store 接口与 SQL 实现；验证: store tests 覆盖 `target_jobs` / `target_job_requirements` / `target_job_sources` 三表的 insert / get / list (含 status / analysisStatus / q / cursor / pageSize) / update / parse-result upsert / 软删过滤；所有 read / write 必须按 `user_id` scope，越权返回 `sql.ErrNoRows` 并由 handler 映射 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`；不新增 migration
-- [ ] 1.2 锁定 config / secret 边界；验证: config tests 覆盖 URL fetch timeout / UA 标记由本域代码常量提供；统一出网代理不作为 app-level 配置，代码和文档不得新增等价 proxy key；A3 / F3 缺 provider secret 或 disabled / unsupported profile 时除 `APP_ENV=test` 外 fail-closed；新增 app-level 配置 key 触发 panic 并提示先修订 A4
-- [ ] 1.3 锁定 generated handler / outbox / job surface；验证: compile / contract tests 断言 4 个 TargetJob handler 经由 B2 generated `ServerInterface` 注册；outbox 写入与 `target_import` 派发使用 B3 generated payload helper，redacted fields negative tests 覆盖 `raw_jd_text` / `source_url` / 文件 URL / prompt / response / provider secret 等违规
+- [x] 1.1 锁定 store 接口与 SQL 实现；验证: store tests 覆盖 `target_jobs` / `target_job_requirements` / `target_job_sources` 三表的 insert / get / list (含 status / analysisStatus / q / cursor / pageSize) / update / parse-result upsert / 软删过滤；所有 read / write 必须按 `user_id` scope，越权返回 `sql.ErrNoRows` 并由 handler 映射 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`；不新增 migration
+- [x] 1.2 锁定 config / secret 边界；验证: config tests 覆盖 URL fetch timeout / UA 标记由本域代码常量提供；统一出网代理不作为 app-level 配置，代码和文档不得新增等价 proxy key；A3 / F3 缺 provider secret 或 disabled / unsupported profile 时除 `APP_ENV=test` 外 fail-closed；新增 app-level 配置 key 触发 panic 并提示先修订 A4
+- [x] 1.3 锁定 generated handler / outbox / job surface；验证: compile / contract tests 断言 4 个 TargetJob handler 经由 B2 generated `ServerInterface` 注册；outbox 写入与 `target_import` 派发使用 B3 generated payload helper，redacted fields negative tests 覆盖 `raw_jd_text` / `source_url` / 文件 URL / prompt / response / provider secret 等违规
 
 ## Phase 2: Synchronous TargetJob CRUD
 
