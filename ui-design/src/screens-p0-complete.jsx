@@ -640,6 +640,21 @@ const SettingsProfile = ({ T, lang, fontPreset, setFontPreset }) => {
           })}
         </div>
       </section>
+
+      <section>
+        <div className="ei-label" style={{ color: T.ink3, marginBottom: 14 }}>{lang === "en" ? "PRODUCT INFO" : "产品信息"}</div>
+        <div style={{ padding: "16px 20px", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2 }}>
+          {[
+            { k: lang === "en" ? "Product" : "产品名称", v: "EasyInterview" },
+            { k: lang === "en" ? "Version" : "版本", v: "v1.0" },
+          ].map((r, i, arr) => (
+            <div key={r.k} style={{ display: "flex", gap: 16, padding: "10px 0", borderBottom: i < arr.length - 1 ? `1px dotted ${T.rule}` : "none", alignItems: "baseline" }}>
+              <div className="ei-label" style={{ color: T.ink3, minWidth: 160, fontSize: 11 }}>{r.k}</div>
+              <div style={{ fontSize: 14, color: T.ink, flex: 1, fontFamily: r.v === "v1.0" ? "var(--ei-mono)" : "var(--ei-sans)" }}>{r.v}</div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };

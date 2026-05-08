@@ -20,6 +20,36 @@ const CUSTOM_ACCENT_SEEDS = {
   plum:   { h: 340, c: 0.15 },
 };
 
+const LANGUAGE_OPTIONS = [
+  { key: "zh", label: "中文", short: "中", aliases: ["zh", "zh-CN"] },
+  { key: "en", label: "English", short: "EN", aliases: ["en", "en-US"] },
+];
+const DEFAULT_LANGUAGE = "en";
+
+function normalizeLanguage(value) {
+  const lower = String(value || "").trim().toLowerCase();
+  if (!lower) return null;
+  const match = LANGUAGE_OPTIONS.find((item) =>
+    item.aliases.map((alias) => alias.toLowerCase()).includes(lower) ||
+    item.key === lower ||
+    lower.split("-")[0] === item.key
+  );
+  return match ? match.key : null;
+}
+
+function getInitialLanguage() {
+  try {
+    const saved = normalizeLanguage(localStorage.getItem("ei-lang"));
+    if (saved) return saved;
+  } catch {}
+  const browserLanguages = [...(navigator.languages || []), navigator.language];
+  for (const item of browserLanguages) {
+    const normalized = normalizeLanguage(item);
+    if (normalized) return normalized;
+  }
+  return DEFAULT_LANGUAGE;
+}
+
 const ROUTE_ALIASES = {
   welcome: "home",
   mistakes: "report",
@@ -78,7 +108,7 @@ Object.assign(window, {
 
 const App = () => {
   const [route, setRoute] = useState({ name: "home", params: {} });
-  const [lang, setLang] = useState("zh");
+  const [lang, setLang] = useState(getInitialLanguage);
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [tweaksAvailable, setTweaksAvailable] = useState(false);
@@ -119,7 +149,7 @@ const App = () => {
         } catch {}
       }
     }
-    const savedLang = localStorage.getItem("ei-lang");
+    const savedLang = normalizeLanguage(localStorage.getItem("ei-lang"));
     if (savedLang) setLang(savedLang);
     // tweak overrides
     const overrides = {};
@@ -137,7 +167,8 @@ const App = () => {
       }
     }
     if (Object.keys(overrides).length) setTweaks((t) => ({ ...t, ...overrides }));
-    if (params.get("lang")) setLang(params.get("lang"));
+    const hashLang = normalizeLanguage(params.get("lang"));
+    if (hashLang) setLang(hashLang);
     if (params.get("nochrome") === "1") document.body.setAttribute("data-nochrome", "1");
   }, []);
   useEffect(() => { if (!window.location.hash) localStorage.setItem("ei-route", JSON.stringify(route)); }, [route]);
@@ -276,19 +307,22 @@ const App = () => {
 const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, customAccent, setCustomAccent, signedIn, signOut }) => {
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = React.useState(false);
+  const [langMenuOpen, setLangMenuOpen] = React.useState(false);
   const [pickerOpen, setPickerOpen] = React.useState(!!customAccent);
   const customActive = !!customAccent;
+  const currentLanguage = LANGUAGE_OPTIONS.find((item) => item.key === lang) || LANGUAGE_OPTIONS.find((item) => item.key === DEFAULT_LANGUAGE) || LANGUAGE_OPTIONS[0];
   React.useEffect(() => {
-    if (!userMenuOpen && !themeMenuOpen) return;
+    if (!userMenuOpen && !themeMenuOpen && !langMenuOpen) return;
     const onKey = (e) => {
       if (e.key === "Escape") {
         setUserMenuOpen(false);
         setThemeMenuOpen(false);
+        setLangMenuOpen(false);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [userMenuOpen, themeMenuOpen]);
+  }, [userMenuOpen, themeMenuOpen, langMenuOpen]);
   const RAINBOW = "conic-gradient(from 0deg, oklch(60% 0.2 0), oklch(60% 0.2 60), oklch(60% 0.2 120), oklch(60% 0.2 180), oklch(60% 0.2 240), oklch(60% 0.2 300), oklch(60% 0.2 360))";
   const nav_items = [
     { k: "home", labelZh: "首页", labelEn: "Home", icon: "target" },
@@ -306,7 +340,6 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
         <div style={{ width: 26, height: 26, borderRadius: 13, background: T.accent, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ei-serif)", fontSize: 15, fontWeight: 600 }}>E</div>
         <div>
           <div className="ei-serif" style={{ fontSize: 16, color: T.ink, letterSpacing: "-0.01em", lineHeight: 1 }}>EasyInterview</div>
-          <div className="ei-label" style={{ color: T.ink3, fontSize: 9, marginTop: 2 }}>面试训练器 · v1.0</div>
         </div>
       </div>
 
@@ -425,12 +458,46 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
         <Icon name={dark ? "sun" : "moon"} size={12} />
       </button>
 
-      <button onClick={() => setLang(lang === "zh" ? "en" : "zh")} style={{
-        background: "transparent", border: `1px solid ${T.rule}`, padding: "5px 10px", borderRadius: 2,
-        color: T.ink2, fontSize: 12, display: "flex", gap: 6, alignItems: "center", cursor: "pointer",
-      }}>
-        <Icon name="globe" size={12} /> {lang === "zh" ? "中 · EN" : "EN · 中"}
-      </button>
+      <div style={{ position: "relative" }}>
+        <button onClick={() => setLangMenuOpen((o) => !o)} aria-expanded={langMenuOpen} style={{
+          background: "transparent", border: `1px solid ${T.rule}`, padding: "5px 10px", borderRadius: 2,
+          color: T.ink2, fontSize: 12, display: "flex", gap: 6, alignItems: "center", cursor: "pointer",
+        }}>
+          <Icon name="globe" size={12} /> {currentLanguage.label}
+          <span style={{ fontSize: 9, color: T.ink3 }}>▾</span>
+        </button>
+        {langMenuOpen && (
+          <>
+            <div onClick={() => setLangMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 39 }} />
+            <div style={{
+              position: "absolute", top: "calc(100% + 6px)", right: 0, width: 148,
+              background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3,
+              boxShadow: "0 12px 36px rgba(20,15,10,0.16)", padding: 6, zIndex: 40,
+            }}>
+              <div className="ei-label" style={{ padding: "8px 10px 6px", color: T.ink3 }}>
+                {lang === "en" ? "Language" : "界面语言"}
+              </div>
+              {LANGUAGE_OPTIONS.map((item) => {
+                const selected = lang === item.key;
+                return (
+                  <button key={item.key} onClick={() => { setLang(item.key); setLangMenuOpen(false); }} style={{
+                    display: "flex", alignItems: "center", gap: 10, width: "100%",
+                    background: selected ? T.bgSoft : "transparent",
+                    border: "none", textAlign: "left",
+                    padding: "8px 10px", borderRadius: 2, cursor: "pointer", color: T.ink2, fontSize: 13,
+                  }}
+                    onMouseEnter={(e) => { if (!selected) e.currentTarget.style.background = T.bgSoft; }}
+                    onMouseLeave={(e) => { if (!selected) e.currentTarget.style.background = "transparent"; }}>
+                    <Icon name="globe" size={13} style={{ color: T.ink3 }} />
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    {selected ? <Icon name="check" size={12} style={{ color: T.accent }} /> : <span className="ei-label" style={{ color: T.ink3 }}>{item.short}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
 
       {signedIn ? (
         <div style={{ position: "relative" }}>
