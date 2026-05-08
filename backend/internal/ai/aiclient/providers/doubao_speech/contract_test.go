@@ -3,6 +3,7 @@ package doubao_speech_test
 import (
 	"context"
 	"errors"
+	"mime"
 	"testing"
 	"time"
 
@@ -149,6 +150,48 @@ func TestSynthesize_ProviderError4xx(t *testing.T) {
 	}
 }
 
+func TestSynthesize_UnsupportedFormatMapsSharedError(t *testing.T) {
+	srv := mockserver.New()
+	defer srv.Close()
+	srv.SetTTSBehavior(mockserver.Behavior{
+		StatusCode: 400,
+		ErrorBody:  `{"error":{"code":"AI_OUTPUT_INVALID","message":"unsupported text format"}}`,
+	})
+
+	input := ttsInput()
+	input.Format = "unsupported"
+	a := newAdapter(t, srv)
+	_, meta, err := a.Synthesize(context.Background(), ttsProfile(), input)
+	assertCode(t, err, meta, sharederrors.CodeAiOutputInvalid)
+}
+
+func TestTranscribe_UnsupportedAudioFormatMapsSharedError(t *testing.T) {
+	srv := mockserver.New()
+	defer srv.Close()
+	srv.SetSTTBehavior(mockserver.Behavior{
+		StatusCode: 400,
+		ErrorBody:  `{"error":{"code":"AI_OUTPUT_INVALID","message":"unsupported audio format"}}`,
+	})
+
+	sttProfile := &aiclient.ModelProfile{
+		Name:       "practice.voice.stt.default",
+		Capability: aiclient.CapabilitySTT,
+		Default: aiclient.ProviderConfig{
+			ProviderRef: "doubao",
+			Model:       "stt-model",
+		},
+		TimeoutMs: 5000,
+		Version:   "1.0.0",
+	}
+	a := newAdapter(t, srv)
+	_, meta, err := a.Transcribe(context.Background(), sttProfile, aiclient.TranscriptionInput{
+		Audio:       []byte("test"),
+		Filename:    "test.bin",
+		ContentType: "application/octet-stream",
+	})
+	assertCode(t, err, meta, sharederrors.CodeAiOutputInvalid)
+}
+
 func TestTranscribe_RespectsProfileTimeout(t *testing.T) {
 	srv := mockserver.New()
 	defer srv.Close()
@@ -234,6 +277,30 @@ func TestNew_RejectsNonDoubaoProtocol(t *testing.T) {
 	}
 }
 
+func TestNew_RejectsMissingBaseURL(t *testing.T) {
+	srv := mockserver.New()
+	defer srv.Close()
+	rp := resolvedProvider(srv.URL())
+	rp.BaseURL = ""
+
+	_, err := doubao_speech.New(doubao_speech.Options{Provider: rp})
+	if err == nil {
+		t.Fatal("expected error for missing BaseURL")
+	}
+}
+
+func TestNew_RejectsMissingAPIKey(t *testing.T) {
+	srv := mockserver.New()
+	defer srv.Close()
+	rp := resolvedProvider(srv.URL())
+	rp.APIKey = ""
+
+	_, err := doubao_speech.New(doubao_speech.Options{Provider: rp})
+	if err == nil {
+		t.Fatal("expected error for missing APIKey")
+	}
+}
+
 func assertCode(t *testing.T, err error, meta aiclient.AICallMeta, code string) {
 	t.Helper()
 	if err == nil {
@@ -251,6 +318,10 @@ func assertCode(t *testing.T, err error, meta aiclient.AICallMeta, code string) 
 func TestDoesNotReuseOpenAIAudioTranscriptionsWire(t *testing.T) {
 	srv := mockserver.New()
 	defer srv.Close()
+	srv.SetSTTBehavior(mockserver.Behavior{
+		StatusCode: 200,
+		Body:       mockserver.DefaultSTTSuccessBody(),
+	})
 	a := newAdapter(t, srv)
 
 	// doubao_speech uses its own /v1/audio/recognize path (JSON POST),
@@ -267,16 +338,27 @@ func TestDoesNotReuseOpenAIAudioTranscriptionsWire(t *testing.T) {
 		TimeoutMs: 5000,
 		Version:   "1.0.0",
 	}
-	// Even with valid input, the openai_compatible wire is not used.
 	_, _, err := a.Transcribe(context.Background(), sttProfile, aiclient.TranscriptionInput{
 		Audio:       []byte("test"),
 		Filename:    "test.webm",
 		ContentType: "audio/webm",
 	})
-	// The mock server returns 404 for unexpected paths; adapter should
-	// map this as provider timeout (5xx behavior).
-	if err == nil {
-		t.Fatal("expected doubao_speech to use its own STT wire, not OpenAI-compatible")
+	if err != nil {
+		t.Fatalf("Transcribe: %v", err)
+	}
+	got := srv.LastRequest()
+	if got.Method != "POST" {
+		t.Fatalf("expected POST, got %q", got.Method)
+	}
+	if got.Path != doubao_speech.PathSTTRecognize {
+		t.Fatalf("expected %s, got %q", doubao_speech.PathSTTRecognize, got.Path)
+	}
+	mediaType, _, err := mime.ParseMediaType(got.ContentType)
+	if err != nil {
+		t.Fatalf("parse Content-Type: %v", err)
+	}
+	if mediaType != "application/json" {
+		t.Fatalf("expected application/json, got %q", mediaType)
 	}
 }
 

@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `fix(ai-provider): harden speech adapter contract gates` | #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `fix(ai-provider): enforce speech adapter timeouts` | #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `chore(governance): enforce english ascii-only commit messages` | #chore #docs |
 | [2026-05-08](2026-05-08.md) | `feat(ai-provider): tts privacy tests and lint capability fix` | #feat #test |
