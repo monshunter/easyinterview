@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): remediate import parse L2 findings` | #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `feat(backend-targetjob): complete import parse bootstrap handoff` | #feat #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): remediate targetjob L2 runtime gaps` | #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `chore(governance): migrate default base branch to main` | #chore #docs #test |

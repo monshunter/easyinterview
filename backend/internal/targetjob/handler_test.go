@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -156,7 +157,7 @@ func TestHandler_ImportTargetJob_RejectsMissingSession(t *testing.T) {
 	}
 }
 
-func TestHandlerStubReturns501UntilPhase2Lands(t *testing.T) {
+func TestHandlerMissingServiceReturnsInternalConfigurationError(t *testing.T) {
 	h := targetjob.NewHandler()
 	cases := []struct {
 		name string
@@ -164,15 +165,22 @@ func TestHandlerStubReturns501UntilPhase2Lands(t *testing.T) {
 	}{
 		{"ImportTargetJob", h.ImportTargetJob},
 		{"ListTargetJobs", h.ListTargetJobs},
-		{"GetTargetJob", func(w http.ResponseWriter, r *http.Request) { h.GetTargetJob(w, r, "018f2a40-0000-7000-9000-0000000000a1") }},
-		{"UpdateTargetJob", func(w http.ResponseWriter, r *http.Request) { h.UpdateTargetJob(w, r, "018f2a40-0000-7000-9000-0000000000a1") }},
+		{"GetTargetJob", func(w http.ResponseWriter, r *http.Request) {
+			h.GetTargetJob(w, r, "018f2a40-0000-7000-9000-0000000000a1")
+		}},
+		{"UpdateTargetJob", func(w http.ResponseWriter, r *http.Request) {
+			h.UpdateTargetJob(w, r, "018f2a40-0000-7000-9000-0000000000a1")
+		}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
 			tc.exec(rec, httptest.NewRequest(http.MethodGet, "/", nil))
-			if rec.Code != http.StatusNotImplemented {
-				t.Fatalf("%s: status = %d, want %d", tc.name, rec.Code, http.StatusNotImplemented)
+			if rec.Code != http.StatusInternalServerError {
+				t.Fatalf("%s: status = %d, want %d", tc.name, rec.Code, http.StatusInternalServerError)
+			}
+			if strings.Contains(rec.Body.String(), "NOT_IMPLEMENTED") {
+				t.Fatalf("%s: missing service must not expose stale NOT_IMPLEMENTED stub: %s", tc.name, rec.Body.String())
 			}
 		})
 	}

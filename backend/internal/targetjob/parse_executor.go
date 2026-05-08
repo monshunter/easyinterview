@@ -150,10 +150,11 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 			{Role: "user", Content: jdText},
 		},
 		Metadata: aiclient.CallMetadata{
-			FeatureKey:    FeatureKeyTargetImportParse,
-			PromptVersion: resolution.PromptVersion,
-			RubricVersion: resolution.RubricVersion,
-			Language:      target.TargetLanguage,
+			FeatureKey:        FeatureKeyTargetImportParse,
+			PromptVersion:     resolution.PromptVersion,
+			RubricVersion:     resolution.RubricVersion,
+			Language:          target.TargetLanguage,
+			DataSourceVersion: resolution.DataSourceVersion,
 		},
 	})
 	if err != nil {
@@ -279,7 +280,7 @@ func (p *ParseExecutor) fail(ctx context.Context, targetJobID, code, message str
 	}
 	return JobOutcome{
 		ErrorCode:    code,
-		ErrorMessage: redactErrorMessage(message),
+		ErrorMessage: safeFailureMessage(code, message),
 		Retryable:    retryable,
 	}
 }
@@ -384,6 +385,22 @@ func coalesceFlag(v string) string {
 	return v
 }
 
+func safeFailureMessage(code, msg string) string {
+	switch code {
+	case sharederrors.CodeAiProviderTimeout,
+		sharederrors.CodeAiFallbackExhausted,
+		sharederrors.CodeAiOutputInvalid,
+		sharederrors.CodeAiUnsupportedCapability,
+		sharederrors.CodeAiProviderSecretMissing,
+		sharederrors.CodeAiProviderConfigInvalid,
+		sharederrors.CodeTargetImportSourceInvalid,
+		sharederrors.CodeTargetImportSourceUnavailable:
+		return code
+	default:
+		return redactErrorMessage(msg)
+	}
+}
+
 func redactErrorMessage(msg string) string {
 	// Defensive redaction: never let raw JD or prompt body leak into the
 	// async_jobs.error_message column. Truncate at 240 chars and strip
@@ -391,8 +408,17 @@ func redactErrorMessage(msg string) string {
 	if len(msg) > 240 {
 		msg = msg[:240]
 	}
-	for _, kw := range []string{"raw_jd_text", "Authorization:", "Bearer "} {
-		if strings.Contains(msg, kw) {
+	lower := strings.ToLower(msg)
+	for _, kw := range []string{
+		"raw_jd_text",
+		"authorization:",
+		"bearer ",
+		"provider secret",
+		"prompt body",
+		"response body",
+		"private jd body",
+	} {
+		if strings.Contains(lower, kw) {
 			return "redacted error message containing forbidden token"
 		}
 	}

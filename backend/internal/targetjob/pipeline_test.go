@@ -129,11 +129,15 @@ func (f *fakeRegistry) Resolve(_ context.Context, _ string, _ string) (targetjob
 }
 
 type fakeAIClient struct {
-	resp aiclient.CompleteResponse
-	err  error
+	resp            aiclient.CompleteResponse
+	err             error
+	lastProfileName string
+	lastPayload     aiclient.CompletePayload
 }
 
-func (f *fakeAIClient) Complete(context.Context, string, aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
+func (f *fakeAIClient) Complete(_ context.Context, profileName string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
+	f.lastProfileName = profileName
+	f.lastPayload = payload
 	if f.err != nil {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, f.err
 	}
@@ -228,6 +232,16 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 	}
 	if store.applyResultIn.LatestParseJobID != "j-1" {
 		t.Fatalf("latest parse job id = %q", store.applyResultIn.LatestParseJobID)
+	}
+	if ai.lastProfileName != "target.import.default" {
+		t.Fatalf("profileName = %q", ai.lastProfileName)
+	}
+	if got := ai.lastPayload.Metadata; got.FeatureKey != "target.import.parse" ||
+		got.PromptVersion != "v1.0.0" ||
+		got.RubricVersion != "v1.0.0" ||
+		got.Language != "en" ||
+		got.DataSourceVersion != "v1" {
+		t.Fatalf("AI metadata did not carry F3 resolution: %+v", got)
 	}
 	if store.parsedOutboxPayload == nil {
 		t.Fatal("target.parsed outbox payload missing")

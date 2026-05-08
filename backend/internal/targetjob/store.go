@@ -842,17 +842,23 @@ func (s *SQLStore) ImportTargetJob(ctx context.Context, in ImportTargetJobInput)
 		return ImportTargetJobResult{}, fmt.Errorf("import target job requires userId, targetJobId, dedupeKey")
 	}
 
-	if existing, hit, err := s.lookupExistingImport(ctx, in.DedupeKey); err != nil {
-		return ImportTargetJobResult{}, err
-	} else if hit {
-		return existing, nil
-	}
-
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return ImportTargetJobResult{}, fmt.Errorf("begin import target job: %w", err)
 	}
 	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `select pg_advisory_xact_lock(hashtext($1))`, in.DedupeKey); err != nil {
+		return ImportTargetJobResult{}, fmt.Errorf("lock import dedupe key: %w", err)
+	}
+	if existing, hit, err := s.lookupExistingImport(ctx, tx, in.DedupeKey); err != nil {
+		return ImportTargetJobResult{}, err
+	} else if hit {
+		if err := tx.Commit(); err != nil {
+			return ImportTargetJobResult{}, fmt.Errorf("commit import target job dedupe hit: %w", err)
+		}
+		return existing, nil
+	}
 
 	if _, err := tx.ExecContext(ctx, `
 insert into target_jobs (
@@ -975,10 +981,9 @@ insert into async_jobs (
 	} else {
 		// manual_form: a terminal succeeded async_jobs row records the
 		// import for SELECT-based dedupe and supplies a real Job.id for the
-		// response. The unique-active partial index does not cover
-		// succeeded rows, so dedupe is best-effort within the synchronous
-		// race window — acceptable since manual_form completes inside a
-		// single request lifecycle.
+		// response. The transaction-scoped advisory lock above closes the
+		// same-key race even though succeeded rows are outside the active
+		// partial index.
 		if _, err := tx.ExecContext(ctx, `
 insert into async_jobs (
   id, job_type, resource_type, resource_id, dedupe_key, status, payload,
@@ -1011,7 +1016,7 @@ insert into async_jobs (
 	}, nil
 }
 
-func (s *SQLStore) lookupExistingImport(ctx context.Context, dedupeKey string) (ImportTargetJobResult, bool, error) {
+func (s *SQLStore) lookupExistingImport(ctx context.Context, q rowQueryer, dedupeKey string) (ImportTargetJobResult, bool, error) {
 	var (
 		jobID      string
 		resourceID string
@@ -1019,7 +1024,7 @@ func (s *SQLStore) lookupExistingImport(ctx context.Context, dedupeKey string) (
 		createdAt  time.Time
 		updatedAt  time.Time
 	)
-	err := s.db.QueryRowContext(ctx, `
+	err := q.QueryRowContext(ctx, `
 select id, resource_id, status, created_at, updated_at
 from async_jobs
 where job_type = $1 and dedupe_key = $2

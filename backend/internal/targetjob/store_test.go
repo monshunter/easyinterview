@@ -597,11 +597,13 @@ func TestSQLStore_ImportTargetJob_RunnerBoundPathInsertsAllFourTables(t *testing
 	now := time.Date(2026, 5, 9, 17, 0, 0, 0, time.UTC)
 	dedupeKey := "tj:dedupe:user1:key1"
 
+	mock.ExpectBegin()
+	mock.ExpectExec(`select pg_advisory_xact_lock\(hashtext\(\$1\)\)`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
 		WithArgs("target_import", dedupeKey).
 		WillReturnError(sql.ErrNoRows)
-
-	mock.ExpectBegin()
 	mock.ExpectExec(`insert into target_jobs`).
 		WithArgs(
 			"018f2a40-0000-7000-9000-0000000000a1",
@@ -685,11 +687,13 @@ func TestSQLStore_ImportTargetJob_ManualFormSyncSucceededAndNoOutbox(t *testing.
 	now := time.Date(2026, 5, 9, 17, 30, 0, 0, time.UTC)
 	dedupeKey := "tj:dedupe:user1:manualform"
 
+	mock.ExpectBegin()
+	mock.ExpectExec(`select pg_advisory_xact_lock\(hashtext\(\$1\)\)`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
 		WithArgs("target_import", dedupeKey).
 		WillReturnError(sql.ErrNoRows)
-
-	mock.ExpectBegin()
 	mock.ExpectExec(`insert into target_jobs`).
 		WithArgs(
 			"018f2a40-0000-7000-9000-0000000000a2",
@@ -757,6 +761,10 @@ func TestSQLStore_ImportTargetJob_DedupeReturnsExistingActiveRunnerJob(t *testin
 	now := time.Date(2026, 5, 9, 18, 0, 0, 0, time.UTC)
 	dedupeKey := "tj:dedupe:user1:keydup"
 
+	mock.ExpectBegin()
+	mock.ExpectExec(`select pg_advisory_xact_lock\(hashtext\(\$1\)\)`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
 		WithArgs("target_import", dedupeKey).
 		WillReturnRows(sqlmock.NewRows([]string{
@@ -766,6 +774,7 @@ func TestSQLStore_ImportTargetJob_DedupeReturnsExistingActiveRunnerJob(t *testin
 			"018f2a40-0000-7000-9000-0000000000a9",
 			"queued", now, now,
 		))
+	mock.ExpectCommit()
 
 	res, err := store.ImportTargetJob(context.Background(), targetjob.ImportTargetJobInput{
 		UserID:                 "018f2a40-0000-7000-9000-0000000000b1",
@@ -787,6 +796,53 @@ func TestSQLStore_ImportTargetJob_DedupeReturnsExistingActiveRunnerJob(t *testin
 	}
 	if res.TargetJobID != "018f2a40-0000-7000-9000-0000000000a9" {
 		t.Fatalf("expected dedupe to surface existing target id, got %q", res.TargetJobID)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_ImportTargetJob_DedupeLockClosesManualFormRaceWindow(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 18, 15, 0, 0, time.UTC)
+	dedupeKey := "tj:dedupe:user1:manualform-race"
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`select pg_advisory_xact_lock\(hashtext\(\$1\)\)`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
+		WithArgs("target_import", dedupeKey).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "resource_id", "status", "created_at", "updated_at",
+		}).AddRow(
+			"018f2a40-0000-7000-9000-0000000000fa",
+			"018f2a40-0000-7000-9000-0000000000aa",
+			"succeeded", now, now,
+		))
+	mock.ExpectCommit()
+
+	res, err := store.ImportTargetJob(context.Background(), targetjob.ImportTargetJobInput{
+		UserID:                 "018f2a40-0000-7000-9000-0000000000b1",
+		DedupeKey:              dedupeKey,
+		TargetJobID:            "ignored-because-dedupe",
+		TargetLanguage:         "en",
+		APISourceType:          targetjob.SourceTypeManualForm,
+		InitialLifecycleStatus: sharedtypes.TargetJobStatusDraft,
+		InitialAnalysisStatus:  sharedtypes.TargetJobParseStatusReady,
+		JobID:                  "ignored",
+		DraftRequirements: []targetjob.RequirementRecord{
+			{ID: "ignored-req", Kind: targetjob.RequirementMustHave, Label: "ignored", DisplayOrder: 1},
+		},
+		Now: now,
+	})
+	if err != nil {
+		t.Fatalf("manual_form dedupe hit: %v", err)
+	}
+	if !res.Existing || res.TargetJobID != "018f2a40-0000-7000-9000-0000000000aa" || res.JobStatus != sharedtypes.JobStatusSucceeded {
+		t.Fatalf("manual_form dedupe must return existing succeeded marker, got %+v", res)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)

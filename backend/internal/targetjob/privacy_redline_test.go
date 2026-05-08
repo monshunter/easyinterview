@@ -95,6 +95,43 @@ func TestParseExecutor_RedactsForbiddenTokensInErrorMessage(t *testing.T) {
 	if strings.Contains(outcome.ErrorMessage, "raw_jd_text") {
 		t.Fatalf("error message must redact raw_jd_text, got %q", outcome.ErrorMessage)
 	}
+	if outcome.ErrorMessage != "AI_PROVIDER_CONFIG_INVALID" {
+		t.Fatalf("registry failure must persist code-based safe summary, got %q", outcome.ErrorMessage)
+	}
+}
+
+func TestParseExecutor_RedactsPromptResponseAndProviderSecretInErrorMessage(t *testing.T) {
+	for _, leaked := range []string{
+		"provider secret leaked from upstream",
+		"prompt body: private JD text",
+		"response body: model returned private JD text",
+		"Private JD body that must not leak",
+	} {
+		t.Run(leaked, func(t *testing.T) {
+			exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+			ai.err = errors.New(leaked)
+			store.target = targetjob.TargetJobRecord{
+				ID:             "tgt-privacy",
+				SourceType:     targetjob.SourceTypeManualText,
+				TargetLanguage: "en",
+				RawJDText:      "x",
+			}
+			outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-privacy"})
+			if outcome.Succeeded {
+				t.Fatal("expected failure, got success")
+			}
+			if strings.Contains(outcome.ErrorMessage, leaked) ||
+				strings.Contains(outcome.ErrorMessage, "provider secret") ||
+				strings.Contains(outcome.ErrorMessage, "prompt body") ||
+				strings.Contains(outcome.ErrorMessage, "response body") ||
+				strings.Contains(outcome.ErrorMessage, "Private JD body") {
+				t.Fatalf("error message leaked forbidden token: %q", outcome.ErrorMessage)
+			}
+			if outcome.ErrorMessage != "AI_FALLBACK_EXHAUSTED" {
+				t.Fatalf("AI failure must persist code-based safe summary, got %q", outcome.ErrorMessage)
+			}
+		})
+	}
 }
 
 // TestParseExecutor_OutboxPayloadsContainOnlyAllowedTokens scans the

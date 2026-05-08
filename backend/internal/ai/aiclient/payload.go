@@ -14,12 +14,13 @@ type Message struct {
 // supplied by the caller and copied into AICallMeta (PromptVersion,
 // RubricVersion, Language) plus AI logs / audit metadata.
 type CallMetadata struct {
-	FeatureKey    string           `json:"featureKey"`
-	PromptVersion string           `json:"promptVersion"`
-	RubricVersion string           `json:"rubricVersion"`
-	Language      string           `json:"language"`
-	OutputSchema  json.RawMessage  `json:"outputSchema,omitempty"`
-	TaskRun       AITaskRunContext `json:"taskRun,omitempty"`
+	FeatureKey        string           `json:"featureKey"`
+	PromptVersion     string           `json:"promptVersion"`
+	RubricVersion     string           `json:"rubricVersion"`
+	Language          string           `json:"language"`
+	DataSourceVersion string           `json:"dataSourceVersion,omitempty"`
+	OutputSchema      json.RawMessage  `json:"outputSchema,omitempty"`
+	TaskRun           AITaskRunContext `json:"taskRun,omitempty"`
 }
 
 // Tool is the provider-neutral function/tool schema subset accepted by

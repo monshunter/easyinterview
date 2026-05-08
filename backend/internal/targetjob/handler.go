@@ -24,22 +24,20 @@ const IdempotencyKeyHeader = "Idempotency-Key"
 type SessionResolver func(ctx context.Context) (userID string, ok bool)
 
 // Handler binds the four B2-defined TargetJob OpenAPI operations into the
-// targetjob domain. Phase 2 wires `importTargetJob` to the Service; the
-// remaining three operations stay as stubs until items 2.2 / 2.3 / 2.4
-// land.
+// targetjob domain.
 type Handler struct {
 	service *Service
 	session SessionResolver
 }
 
-// HandlerOptions wires the Handler. Service may be nil for the Phase 1
-// scaffolding state, in which case all four operations respond 501.
+// HandlerOptions wires the Handler. Service is required for production
+// wiring; a missing Service is treated as server misconfiguration.
 type HandlerOptions struct {
 	Service *Service
 	Session SessionResolver
 }
 
-// NewHandler returns a Handler. Pass nil options for the pre-Phase-2 stub.
+// NewHandler returns a Handler.
 func NewHandler(opts ...HandlerOptions) *Handler {
 	h := &Handler{}
 	if len(opts) > 0 {
@@ -52,7 +50,7 @@ func NewHandler(opts ...HandlerOptions) *Handler {
 // ImportTargetJob is the POST /targets/import binding.
 func (h *Handler) ImportTargetJob(w http.ResponseWriter, r *http.Request) {
 	if h == nil || h.service == nil {
-		notImplemented(w, "importTargetJob")
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeTargetImportFailed, "targetjob service is not configured")
 		return
 	}
 	userID, ok := h.resolveUser(r)
@@ -94,7 +92,7 @@ func (h *Handler) ImportTargetJob(w http.ResponseWriter, r *http.Request) {
 // ListTargetJobs is the GET /targets binding.
 func (h *Handler) ListTargetJobs(w http.ResponseWriter, r *http.Request) {
 	if h == nil || h.service == nil {
-		notImplemented(w, "listTargetJobs")
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeTargetImportFailed, "targetjob service is not configured")
 		return
 	}
 	userID, ok := h.resolveUser(r)
@@ -133,7 +131,7 @@ func (h *Handler) ListTargetJobs(w http.ResponseWriter, r *http.Request) {
 // GetTargetJob is the GET /targets/{targetJobId} binding.
 func (h *Handler) GetTargetJob(w http.ResponseWriter, r *http.Request, targetJobId string) {
 	if h == nil || h.service == nil {
-		notImplemented(w, "getTargetJob")
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeTargetImportFailed, "targetjob service is not configured")
 		return
 	}
 	userID, ok := h.resolveUser(r)
@@ -152,7 +150,7 @@ func (h *Handler) GetTargetJob(w http.ResponseWriter, r *http.Request, targetJob
 // UpdateTargetJob is the PATCH /targets/{targetJobId} binding.
 func (h *Handler) UpdateTargetJob(w http.ResponseWriter, r *http.Request, targetJobId string) {
 	if h == nil || h.service == nil {
-		notImplemented(w, "updateTargetJob")
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeTargetImportFailed, "targetjob service is not configured")
 		return
 	}
 	userID, ok := h.resolveUser(r)
@@ -224,12 +222,6 @@ type targetJobServerSurface interface {
 }
 
 var _ targetJobServerSurface = (*Handler)(nil)
-
-func notImplemented(w http.ResponseWriter, op string) {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(http.StatusNotImplemented)
-	_, _ = w.Write([]byte(`{"errors":[{"code":"NOT_IMPLEMENTED","message":"` + op + ` is not yet implemented"}]}`))
-}
 
 func writeJSON(w http.ResponseWriter, status int, body any) {
 	raw, err := json.Marshal(body)
