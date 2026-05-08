@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
@@ -134,6 +135,11 @@ func (a *Adapter) Synthesize(ctx context.Context, profile *aiclient.ModelProfile
 }
 
 func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body any) ([]byte, int, http.Header, error) {
+	if timeoutMs > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutMs)*time.Millisecond)
+		defer cancel()
+	}
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, 0, nil, fmt.Errorf("minimax_speech: marshal request: %w", err)
@@ -152,6 +158,9 @@ func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body
 
 	resp, err := a.client.Do(req)
 	if err != nil {
+		if ctxErr := ctx.Err(); errors.Is(ctxErr, context.DeadlineExceeded) {
+			return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "minimax_speech: timeout", true)
+		}
 		return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "minimax_speech: transport error: "+err.Error(), true)
 	}
 	defer resp.Body.Close()

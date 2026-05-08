@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
@@ -113,6 +114,26 @@ func TestSynthesize_ProviderError5xx(t *testing.T) {
 	}
 }
 
+func TestSynthesize_RespectsProfileTimeout(t *testing.T) {
+	srv := mockserver.New()
+	defer srv.Close()
+	srv.SetTTSBehavior(mockserver.Behavior{
+		StatusCode: 200,
+		Body:       mockserver.DefaultTTSSuccessBody(),
+		SleepMs:    100,
+	})
+
+	profile := ttsProfile()
+	profile.TimeoutMs = 10
+	a := newAdapter(t, srv)
+	start := time.Now()
+	_, meta, err := a.Synthesize(context.Background(), profile, ttsInput())
+	if time.Since(start) > 500*time.Millisecond {
+		t.Fatal("Synthesize did not return promptly after profile timeout")
+	}
+	assertCode(t, err, meta, sharederrors.CodeAiProviderTimeout)
+}
+
 func TestSynthesize_ProviderError4xx(t *testing.T) {
 	srv := mockserver.New()
 	defer srv.Close()
@@ -126,6 +147,38 @@ func TestSynthesize_ProviderError4xx(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for 4xx response")
 	}
+}
+
+func TestTranscribe_RespectsProfileTimeout(t *testing.T) {
+	srv := mockserver.New()
+	defer srv.Close()
+	srv.SetSTTBehavior(mockserver.Behavior{
+		StatusCode: 200,
+		Body:       mockserver.DefaultSTTSuccessBody(),
+		SleepMs:    100,
+	})
+
+	sttProfile := &aiclient.ModelProfile{
+		Name:       "practice.voice.stt.default",
+		Capability: aiclient.CapabilitySTT,
+		Default: aiclient.ProviderConfig{
+			ProviderRef: "doubao",
+			Model:       "stt-model",
+		},
+		TimeoutMs: 10,
+		Version:   "1.0.0",
+	}
+	a := newAdapter(t, srv)
+	start := time.Now()
+	_, meta, err := a.Transcribe(context.Background(), sttProfile, aiclient.TranscriptionInput{
+		Audio:       []byte("test"),
+		Filename:    "test.webm",
+		ContentType: "audio/webm",
+	})
+	if time.Since(start) > 500*time.Millisecond {
+		t.Fatal("Transcribe did not return promptly after profile timeout")
+	}
+	assertCode(t, err, meta, sharederrors.CodeAiProviderTimeout)
 }
 
 func TestSynthesize_MissingAudioReturnsInvalid(t *testing.T) {

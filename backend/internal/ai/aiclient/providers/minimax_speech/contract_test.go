@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
@@ -101,6 +102,26 @@ func TestSynthesize_ProviderError5xx(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for 5xx response")
 	}
+}
+
+func TestSynthesize_RespectsProfileTimeout(t *testing.T) {
+	srv := mockserver.New()
+	defer srv.Close()
+	srv.SetTTSBehavior(mockserver.Behavior{
+		StatusCode: 200,
+		Body:       mockserver.DefaultTTSSuccessBody(),
+		SleepMs:    100,
+	})
+
+	profile := ttsProfile()
+	profile.TimeoutMs = 10
+	a := newAdapter(t, srv)
+	start := time.Now()
+	_, _, err := a.Synthesize(context.Background(), profile, ttsInput())
+	if time.Since(start) > 500*time.Millisecond {
+		t.Fatal("Synthesize did not return promptly after profile timeout")
+	}
+	assertCode(t, err, sharederrors.CodeAiProviderTimeout)
 }
 
 func TestTranscribe_ReturnsUnsupportedCapability(t *testing.T) {

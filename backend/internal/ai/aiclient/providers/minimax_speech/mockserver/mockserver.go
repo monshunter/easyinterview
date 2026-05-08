@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"time"
 )
 
 // Behavior controls the mock server response.
@@ -12,6 +13,7 @@ type Behavior struct {
 	StatusCode  int
 	Body        string
 	ErrorBody   string
+	SleepMs     int
 	ContentType string
 }
 
@@ -57,6 +59,9 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) serveBehavior(w http.ResponseWriter, b Behavior) {
+	if b.SleepMs > 0 {
+		time.Sleep(time.Duration(b.SleepMs) * time.Millisecond)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	if b.ContentType != "" {
 		w.Header().Set("Content-Type", b.ContentType)

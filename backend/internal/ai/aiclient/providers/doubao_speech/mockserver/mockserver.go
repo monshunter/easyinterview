@@ -7,22 +7,23 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"time"
 )
 
 // Behavior controls the mock server response for a single endpoint.
 type Behavior struct {
-	StatusCode   int
-	Body         string        // success response body JSON
-	ErrorBody    string        // error response body JSON
-	SleepMs      int           // simulated delay for timeout tests
-	ContentType  string        // override Content-Type header
+	StatusCode  int
+	Body        string // success response body JSON
+	ErrorBody   string // error response body JSON
+	SleepMs     int    // simulated delay for timeout tests
+	ContentType string // override Content-Type header
 }
 
 // Server wraps an httptest.Server with configurable endpoint behavior.
 type Server struct {
-	HTTPServer          *httptest.Server
-	ttsBehavior         Behavior
-	sttBehavior         Behavior
+	HTTPServer  *httptest.Server
+	ttsBehavior Behavior
+	sttBehavior Behavior
 }
 
 // New starts a new mock server with default 200 OK behavior.
@@ -71,6 +72,9 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) serveBehavior(w http.ResponseWriter, r *http.Request, b Behavior) {
+	if b.SleepMs > 0 {
+		time.Sleep(time.Duration(b.SleepMs) * time.Millisecond)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	if b.ContentType != "" {
 		w.Header().Set("Content-Type", b.ContentType)
