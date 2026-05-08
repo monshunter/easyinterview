@@ -8,6 +8,8 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `docs(ai-provider): add cascaded speech provider foundation spec` | #docs |
+| [2026-05-08](2026-05-08.md) | `chore(governance): migrate agent config from gemini to opencode` | #chore |
 | [2026-05-08](2026-05-08.md) | `chore(dev-stack): use postgres 18` | #chore #docs |
 | [2026-05-08](2026-05-08.md) | `refactor(ai-provider): remove retrieval placeholders and use deepseek` | #refactor #test #docs |
 | [2026-05-08](2026-05-08.md) | `docs(governance): codify frontend backend contract workflow` | #docs |

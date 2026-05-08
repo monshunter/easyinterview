@@ -1,0 +1,57 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: ai-provider-and-model-routing
+  name: 004-cascaded-speech-provider-foundation
+  sequence: 4
+  supersedes: []
+  specVersion:
+    from: 2.8
+    to: 2.9
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - ai-provider-and-model-routing
+      - cascaded-speech-provider-foundation
+      - stt-llm-tts
+      - tts capability
+      - doubao speech
+      - minimax speech
+    keywords:
+      - tts
+      - synthesize
+      - speech synthesis
+      - doubao_speech
+      - minimax_speech
+      - speech-02-turbo
+      - practice.voice.stt.default
+      - practice.voice.tts.default
+      - cascaded voice
+      - realtime fail-closed
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      references:
+        - ../../../shared-conventions-codified/spec.md
+        - ../../../secrets-and-config/spec.md
+        - ../../../observability-stack/spec.md
+        - ../../../prompt-rubric-registry/spec.md
+        - ../../../practice-voice-mvp/spec.md
+        - ../002-tools-streaming-and-stt/plan.md
+        - ../003-provider-registry-and-capability-profiles/plan.md
+        - ../../../practice-voice-mvp/plans/001-cascaded-stt-llm-tts/plan.md
+        - ../../../practice-voice-mvp/plans/001-cascaded-stt-llm-tts/bdd-plan.md
+        - ../../../practice-voice-mvp/plans/001-cascaded-stt-llm-tts/bdd-checklist.md
+      discovery:
+        packages:
+          - backend/internal/ai/aiclient
+          - backend/internal/ai/aiclient/providers
+          - backend/internal/shared/ai
+          - config/ai-providers.yaml
+          - config/ai-profiles.yaml
+          - shared/conventions.yaml
+        uiRoutes: []
+        apiNames: []

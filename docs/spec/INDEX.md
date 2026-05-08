@@ -21,7 +21,7 @@
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.3 | active | 2026-05-05 | [plans](./repo-scaffold/plans/) |
 | [local-dev-stack](./local-dev-stack/spec.md) | 1.10 | active | 2026-05-08 | [plans](./local-dev-stack/plans/) |
 | [backend-runtime-topology](./backend-runtime-topology/spec.md) | 1.4 | active | 2026-05-07 | [plans](./backend-runtime-topology/plans/) |
-| [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.8 | active | 2026-05-08 | [plans](./ai-provider-and-model-routing/plans/) |
+| [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.9 | active | 2026-05-08 | [plans](./ai-provider-and-model-routing/plans/) |
 | [secrets-and-config](./secrets-and-config/spec.md) | 2.4 | active | 2026-05-06 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.3 | active | 2026-04-29 | [plans](./ci-pipeline-baseline/plans/) |
 
@@ -48,3 +48,4 @@
 | [mock-contract-suite](./mock-contract-suite/spec.md) | 1.2 | active | 2026-05-06 | [plans](./mock-contract-suite/plans/) |
 | [frontend-shell](./frontend-shell/spec.md) | 1.9 | active | 2026-05-08 | [plans](./frontend-shell/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 1.2 | active | 2026-05-06 | [plans](./backend-auth/plans/) |
+| [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.0 | active | 2026-05-08 | [plans](./practice-voice-mvp/plans/) |

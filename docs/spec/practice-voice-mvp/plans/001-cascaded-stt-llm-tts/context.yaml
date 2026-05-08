@@ -1,0 +1,83 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: practice-voice-mvp
+  name: 001-cascaded-stt-llm-tts
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - practice-voice-mvp
+      - cascaded-stt-llm-tts
+      - voice MVP
+      - practice voice
+      - barge-in
+    keywords:
+      - createPracticeVoiceTurn
+      - appendSessionEvent
+      - practice.voice.stt.default
+      - practice.voice.tts.default
+      - practice.followup.default
+      - STT LLM TTS
+      - committed context
+      - assistant_text_draft
+      - tts_chunk_played
+      - barge_in_detected
+      - E2E.P0.007
+      - E2E.P0.008
+      - E2E.P0.009
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../ai-provider-and-model-routing/spec.md
+        - ../../../ai-provider-and-model-routing/plans/004-cascaded-speech-provider-foundation/plan.md
+        - ../../../product-scope/spec.md
+        - ../../../../development.md
+        - ../../../../ui-design/module-practice-review.md
+        - ../../../../ui-design/user-flow.md
+      discovery:
+        packages:
+          - openapi/openapi.yaml
+          - openapi/fixtures/PracticeSessions
+          - backend/internal/practice
+          - backend/internal/ai/aiclient
+          - frontend/src/app/screens
+          - test/scenarios/e2e
+        uiRoutes:
+          - practice
+        apiNames:
+          - createPracticeVoiceTurn
+          - appendSessionEvent
+    frontend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../../ui-design/module-practice-review.md
+        - ../../../../ui-design/user-flow.md
+        - ../../../../ui-design/ui-architecture.md
+        - ../../../../ui-design/removed-modules-and-scope.md
+      discovery:
+        packages:
+          - frontend/src/app/screens/PracticeScreen.tsx
+          - frontend/src/api/generated
+          - frontend/src/api/mockTransport.ts
+          - ui-design/src/screen-practice.jsx
+          - test/scenarios/e2e
+        uiRoutes:
+          - practice
+        apiNames:
+          - createPracticeVoiceTurn
+          - appendSessionEvent
