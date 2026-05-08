@@ -1,0 +1,42 @@
+# 001 BDD Plan
+
+> **版本**: 1.0
+> **状态**: active
+> **更新日期**: 2026-05-08
+
+**关联 Plan**: [plan](./plan.md)
+
+## 1 场景矩阵
+
+| 场景 ID | 类别 | 关联 Phase | 关联 Spec C-* | 关联 BDD-Gate（主 checklist） |
+|---------|------|-----------|--------------|----------------------------|
+| E2E.P0.014 | primary path · home 默认渲染 | Phase 1 + 2 | C-1, C-4 | Phase 1.5、Phase 2.6 |
+| E2E.P0.015 | primary path · paste→import→parse 主路径 + alternate path（upload / URL variants） + failure path（4xx / failed） | Phase 3 + 4 | C-2, C-3, C-6 | Phase 3.6、Phase 4.10 |
+| E2E.P0.016 | primary path · parse 编辑 + Confirm → workspace + failure（updateTargetJob 4xx）+ alternate（auth pending action） | Phase 4 | C-5, C-7 | Phase 4.10 |
+| E2E.P0.017 | regression / legacy-negative · jd_match P1 placeholder smoke + 旧 prototype 业务 testid 反向 grep | Phase 5 | C-8 | Phase 5.5 |
+
+---
+
+## Phase 1 + 2: Home 默认渲染（含 Recent mocks 三态）
+
+| 场景 ID | 场景 | Given | When | Then | 验证入口 |
+|---------|------|-------|------|------|----------|
+| E2E.P0.014 | Home 默认渲染（empty + non-empty + 12+） | 用户打开 frontend dev server，未登录，listTargetJobs fixture 配置三种 variant：empty / one-job / 12+jobs | 切换三种 fixture variant 分别加载 `/#route=home` | （1）Hero `home-hero-{label,title,sub}`、JD textarea + Submit、aux cards `home-aux-{jobpicks,debrief}`、Resume create CTA 全部渲染并 testid 命中；（2）empty variant 显示 `HomeEmptyState`，点击「回到 JD 输入」按钮 focus textarea；（3）one-job variant 渲染 1 张 `home-recent-mock-card-${id}`，status pill computed background 对应 D2 token，MiniRoundRail 当前轮次圆点位置正确；（4）12+jobs variant 仅渲染 12 张卡片，按 `updatedAt desc` 排序；（5）TopBar `topbar-nav-home` 高亮；（6）切换 zh/en、warm→dark→customAccent，关键文本 / computed background 出现可见变化 | `test/scenarios/e2e/p0-014-home-default-render/` |
+
+## Phase 3 + 4: Paste/Upload/URL → Import → Parse 主路径
+
+| 场景 ID | 场景 | Given | When | Then | 验证入口 |
+|---------|------|-------|------|------|----------|
+| E2E.P0.015 | Paste/Upload/URL → import → parse loading → preview | 用户已登录，importTargetJob fixture 返回 `{ targetJobId: "uuid", job }`，createUploadPresign fixture 返回 `fileObjectId`，getTargetJob fixture 配置 `analysisStatus` 序列 `queued → processing → ready` 与 `failed` 两种 variant | 用户在 home 分别走三条路径：（A）粘贴 JD 文本点 Submit；（B）打开 upload modal 拖入 placeholder 文件后 Continue；（C）打开 URL modal 输入 URL 后 Continue；并在解析过程中切换 `failed` variant 触发失败态 | （1）A/C 路径分别提交 `source.type=manual_text|url` 的 `ImportTargetJobRequest`；B 路径先调用 `createUploadPresign` `purpose=target_job_attachment` 并把返回 `fileObjectId` 写入 `source.type=file`；side-effect 调用均带 `Idempotency-Key`；（2）成功响应后 route 跳 `parse?targetJobId=…&source=…`；（3）Parse 屏先渲染 `parse-loading-step-${0..3}` + `parse-loading-footer`，按 ≥600ms 节奏推进，footer 只展示 backend parse metadata / fixture metadata，不触发任何 LLM/provider 请求；（4）`analysisStatus=ready` 后切到 preview，渲染 fixture/backend response 中 title/companyName/locationText/requirements/summary.interviewHypotheses/summary.coreThemes/fitSummary.riskSignals，且 summary/fitSummary `GenerationProvenance` 可追溯；（5）`analysisStatus=failed` variant 下显示 failed UI（重新解析 / 返回首页 2 button），不展示伪造 preview；（6）JD raw text 在 console / URL / localStorage / telemetry 全部 0 命中；（7）4xx import / presign 响应触发 inline 错误并保留 textarea/modal 输入；（8）network/client spy 只允许 generated `createUploadPresign`、TargetJobs client + existing shell runtime/auth 调用，不允许前端直连 AI provider、prompt registry 或 provider-specific endpoint | `test/scenarios/e2e/p0-015-jd-import-and-parse/` |
+
+## Phase 4: Parse 编辑 + Confirm → workspace（含 auth pending action）
+
+| 场景 ID | 场景 | Given | When | Then | 验证入口 |
+|---------|------|-------|------|------|----------|
+| E2E.P0.016 | Parse 编辑 + Confirm → workspace + auth pending action | 用户在 parse 屏 preview 阶段；分两子场景：（A）已登录；（B）未登录 | 用户编辑 title 字段、修改 location、切换若干 hit toggle，点击 Confirm | （A 已登录）（1）调 `updateTargetJob(targetJobId, body, { idempotencyKey })` body 仅含 supplied fields（titleHint / locationText 等，至多 4 字段），不含 hit toggle 状态、summary、fitSummary 或 hidden signals，并带 `Idempotency-Key`；（2）成功后 route 跳 `workspace?targetJobId=&jdId=&planId=&resumeVersionId=&roundId=` 完整携带；（3）`updateTargetJob` 4xx 触发 inline 错误并保留编辑态；（B 未登录）（1）Confirm 触发 `requestAuth({ type: "confirm_interview", route: "workspace", params })`；（2）route 跳 `auth_login`；（3）登录成功后 route 自动跳 `workspace` 携带原 params；（C 通用）（1）Re-parse 重置 stage=loading 并重新轮询 `getTargetJob`，不直接调用 LLM；（2）Cancel 跳 `home`；（3）JD raw text / provenance 完整 hash 不出现在 URL / localStorage / telemetry | `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/` |
+
+## Phase 5: jd_match P1 Placeholder Shell
+
+| 场景 ID | 场景 | Given | When | Then | 验证入口 |
+|---------|------|-------|------|------|----------|
+| E2E.P0.017 | jd_match P1 placeholder smoke | 用户已登录或未登录均可 | 通过 TopBar Job Picks 入口与 home 的 `home-aux-jobpicks` aux card 分别进入 `jd_match` 路由 | （1）route 渲染 `jd_match` 命中 `JDMatchScreen` 而非 PlaceholderScreen；（2）testid `jdmatch-hero-{label,title,sub}`、`jdmatch-profile-chip-{title,years,location,skills,sources}`、`jdmatch-tab-{recommended,search,watchlist}`、`jdmatch-placeholder`、`jdmatch-placeholder-cta` 全部命中；（3）TopBar `topbar-nav-jd_match` 高亮；（4）i18n zh/en placeholder 文案切换；（5）旧 prototype 业务 testid（`jdmatch-card-*` / `jdmatch-saved-search-*` / `jdmatch-watchlist-*` / `jdmatch-market-signal-*` / `jdmatch-search-bar` / `jdmatch-search-results` / `jdmatch-jd-detail-*` / `jdmatch-agent-status`）grep 0 命中；（6）warm/light → dark → customAccent 三态切换 hero 与 profile chip computed background 出现可见变化；（7）mobile (390×844) viewport 下 hero / profile chip / 三 tab 不溢出 | `test/scenarios/e2e/p0-017-jd-match-placeholder/` |

@@ -1,13 +1,14 @@
 # Observability Stack History
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-08
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-08 | 1.9 | 登记 C4 TargetJob import/parse 最小指标，并将有界 `error_code` / `source_type` 纳入 allowed labels；禁止 URL、target id、user id、prompt version 或自由文本进入 labels。 | backend-targetjob/001 Phase 0 |
 | 2026-05-06 | 1.8 | 对齐 backend-runtime-topology：baseline metrics 从 Backend/Worker 改为 Backend/Background runner，开发期 gate 只要求应用生产 metrics/logs，不依赖 Prometheus/Grafana/OTel/Loki 消费端实例。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-06 | 1.7 | 登记 C1 passwordless auth 最小指标：challenge started、session minted、logout、delete handoff 与 failure counter，并锁定 labels 只使用 F1 allowed set，不携带邮箱、token、session id 或 URL。 | backend-auth/001-passwordless-session-bootstrap Phase 4 |
 | 2026-05-06 | 1.6 | 对齐 A3 002 STT / streaming / tool 底座：AI metric label contract 从旧 `task_type` 迁移为 `capability`，并补齐 `model_profile_name`、`route`、fallback provider labels，与 A3 observability wrapper 当前 truth source 一致。 | ai-provider-and-model-routing/002 Phase 5 |

@@ -1,0 +1,94 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: frontend-home-job-picks-and-parse
+  name: 001-home-jd-import-and-parse
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: frontend
+  discovery:
+    aliases:
+      - frontend-home-job-picks-and-parse
+      - home-jd-import-and-parse
+      - home and parse
+      - JD import and parse
+      - target job import
+    keywords:
+      - home screen
+      - parse screen
+      - jd_match placeholder
+      - importTargetJob
+      - createUploadPresign
+      - listTargetJobs
+      - getTargetJob
+      - updateTargetJob
+      - JDAssistModal
+      - MockInterviewCard
+      - MiniRoundRail
+      - RequirementBlock
+      - hit toggle
+      - hidden signals
+      - round assumptions
+      - analysisStatus polling
+      - eiCreateInterviewContext
+      - requestAuth import_jd
+      - requestAuth confirm_interview
+      - E2E.P0.014
+      - E2E.P0.015
+      - E2E.P0.016
+      - E2E.P0.017
+  targets:
+    frontend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../../ui-design/jd-resume-management.md
+        - ../../../../ui-design/ui-architecture.md
+        - ../../../../ui-design/module-job-workspace.md
+        - ../../../frontend-shell/spec.md
+        - ../../../frontend-shell/plans/001-app-shell-auth-settings/plan.md
+        - ../../../frontend-shell/plans/002-app-shell-visual-system/plan.md
+        - ../../../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md
+        - ../../../openapi-v1-contract/spec.md
+        - ../../../mock-contract-suite/spec.md
+        - ../../../product-scope/spec.md
+        - ../../../engineering-roadmap/spec.md
+        - ../../../backend-targetjob/spec.md
+      discovery:
+        packages:
+          - frontend/src/app/screens/home
+          - frontend/src/app/screens/parse
+          - frontend/src/app/screens/jd_match
+          - frontend/src/app/navigation
+          - frontend/src/app/i18n/locales
+          - frontend/src/api
+          - frontend/src/api/generated
+          - frontend/tests/pixel-parity
+          - ui-design/src
+          - ui-design
+          - openapi
+          - openapi/fixtures/TargetJobs
+          - openapi/fixtures/Uploads
+          - test/scenarios/e2e/p0-014-home-default-render
+          - test/scenarios/e2e/p0-015-jd-import-and-parse
+          - test/scenarios/e2e/p0-016-parse-confirm-to-workspace
+          - test/scenarios/e2e/p0-017-jd-match-placeholder
+        uiRoutes:
+          - home
+          - parse
+          - jd_match
+          - workspace
+          - auth_login
+        apiNames:
+          - importTargetJob
+          - createUploadPresign
+          - listTargetJobs
+          - getTargetJob
+          - updateTargetJob

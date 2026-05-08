@@ -17,8 +17,8 @@
 
 ## Phase 2: DOM + computed style parity
 
-- [x] 2.1 TopBar DOM + computed style；验证: `frontend/tests/pixel-parity/topbar.spec.ts` 在 desktop + mobile 两个 project 下断言 frontend dist 与 ui-design 加载后 5 个 `topbar-nav-*` testid 都存在、文本随 lang 一致、`getComputedStyle()` 读出的 height / padding / gap / border-bottom-width / background-color 在两边 1px / 1 hex 容差内；`aria-current` / `aria-pressed` 在两边等价
-  <!-- verified: 2026-05-08 method=playwright evidence="topbar.spec.ts 14 项 PASS (7 用例 × desktop+mobile chromium project)：5 入口 testid / ui-design 5 button text 后缀匹配 / 高 ≈ 58px ±1 / padding 32px / border 1px solid rgb(231,226,214) / aria-current=page on home / aria-pressed=false on dark toggle" -->
+- [x] 2.1 TopBar DOM + computed style；验证: `frontend/tests/pixel-parity/topbar.spec.ts` 在 desktop + mobile 两个 project 下断言 frontend dist 与 ui-design 加载后 5 个 `topbar-nav-*` testid 都存在、文本随 lang 一致、语言 dropdown 选项从 locale catalog 渲染，`getComputedStyle()` 读出的 height / padding / gap / border-bottom-width / background-color 在两边 1px / 1 hex 容差内；`aria-current` / `aria-pressed` 在两边等价
+  <!-- verified: 2026-05-08 method=playwright evidence="topbar.spec.ts 20 项 PASS (10 用例 × desktop+mobile chromium project)：5 入口 testid / ui-design 5 button text 后缀匹配 / language dropdown option zh+en / 高 ≈ 58px ±1 / padding 32px / border 1px solid rgb(231,226,214) / aria-current=page on home / aria-pressed=false on dark toggle" -->
 - [x] 2.2 Auth / Profile / Settings / Placeholder DOM 锚点；验证: Playwright 范围聚焦可点击进入的 auth_login shell（`screens.spec.ts`，6 用例 × desktop+mobile = 12 项 PASS：ei-auth-shell + ei-auth-{side,card} 渲染、ei-text-display 头部 48px、ei-text-label eyebrow 字体族 JetBrains Mono、ui-design hash route #route=auth_login 头部 ≥40px ≤48px、卡片 padding 28px、retired entries 0 命中）；profile / settings / placeholder DOM parity 在 jsdom E2E.P0.005 已覆盖（`p0-005-app-shell-visual-system-smoke.test.tsx` 7 项 PASS），不重复跑真实浏览器以避免 sign-in fixture 引入耦合
   <!-- verified: 2026-05-08 method=playwright+jsdom evidence="screens.spec.ts 12 项 PASS；p0-005 jsdom scenario 维持 PASS 覆盖 profile / settings / placeholder ei-screen-card 结构" -->
 
@@ -38,10 +38,10 @@
 
 ## Phase 5: Scenario + handoff
 
-- [x] 5.1 派生 `test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/`；验证: README.md 含 Playwright 安装步骤、`data/{seed-input,expected-outcome}.md` 描述输入与期望、`scripts/{setup,trigger,verify,cleanup}.sh` 形成完整契约：setup 预检 chromium + dist、trigger 跑 `pnpm --filter @easyinterview/frontend test:pixel-parity`、verify 断言 trigger.log 含 `46 passed` + 0 failed + 4 spec markers + desktop/mobile project markers、cleanup 清理 setup marker；`test/scenarios/e2e/INDEX.md` 添加 P0.006 行
+- [x] 5.1 派生 `test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/`；验证: README.md 含 Playwright 安装步骤、`data/{seed-input,expected-outcome}.md` 描述输入与期望、`scripts/{setup,trigger,verify,cleanup}.sh` 形成完整契约：setup 预检 chromium + dist、trigger 跑 `pnpm --filter @easyinterview/frontend test:pixel-parity`、verify 断言 trigger.log 含 `48 passed` + 0 failed + 4 spec markers + desktop/mobile project markers、cleanup 清理 setup marker；`test/scenarios/e2e/INDEX.md` 添加 P0.006 行
   <!-- verified: 2026-05-08 method=scenario evidence="目录 + README + data + scripts 全部就位；INDEX.md 已加 P0.006 (frontend-shell C-9, automated, Ready)" -->
 - [x] 5.2 BDD-Gate: 验证 E2E.P0.006 通过；验证: 跑通 setup→trigger→verify→cleanup 完整链路；trigger.log 落在 `.test-output/e2e/p0-006-ui-design-pixel-parity-gate/trigger.log`；verify 阻断旧 entry / 旧文案回流的 grep 模式；BDD-checklist 同步勾选并写入证据
-  <!-- verified: 2026-05-08 method=scenario bddChecklist=complete evidence="setup→trigger→verify→cleanup 全 PASS；trigger.log 含 '46 passed' '[desktop]' '[mobile]' 4 spec 路径标记；retired-entry grep 0 命中" -->
+  <!-- verified: 2026-05-08 method=scenario bddChecklist=complete evidence="setup→trigger→verify→cleanup 全 PASS；trigger.log 含 '48 passed' '[desktop]' '[mobile]' 4 spec 路径标记；retired-entry grep 0 命中" -->
 - [x] 5.3 Handoff；验证: `frontend/README.md` §2.7 更新 pixel parity gate 入口、jsdom fast smoke 与 Playwright gate 分工、`--update-snapshots` baseline 重生成方式、E2E.P0.006 scenario 入口、chromium 安装步骤；`make docs-check` zero drift；负向搜索：`frontend/`、active spec/plan/checklist 不再有「Playwright follow-up 待派生」类 TODO 语句（保留 002/p0-005 evidence 注释和本 plan 5.3 自引用作为已闭环 follow-up 的历史记录）
   <!-- verified: 2026-05-08 method=docs evidence="frontend/README.md §2.7 更新两层 gate 分工、Playwright 三段命令、baseline 维护、离线局限提示；make docs-check zero drift；grep 'Playwright follow-up' 命中只剩 002 evidence + 003 self-reference + p0-005 历史注释，无新增 TODO" -->
 

@@ -1,6 +1,6 @@
 # Event and Outbox Contract Spec
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: active
 > **更新日期**: 2026-05-08
 
@@ -66,6 +66,7 @@
 | D-10 | trace 字段 soft-required | `traceId` schema 上可选；producer 必须尽力从 W3C `traceparent` / active span 派生并写入；缺失时 dispatcher 写 warn log 并允许 publish；F1 backend runner span 只在存在 `traceId` 时重建父链路 | 对齐 F1 trace propagation |
 | D-11 | canonical job_type ↔ dotted task name 映射 | 见 §3.1.1；新增 canonical `job_type` 必须先改本 spec，再同步 B4 check constraint 与 backend runner registry | 防止 runner 私自加 dotted task name |
 | D-12 | `email_dispatch` payload 红线 | `email_dispatch` 为 internal-only low-priority job；payload 只允许 `authChallengeId` / `userId` / `templateKey` / `locale` / `deliverySecretRef` / `dedupeKey` 等可审计字段，不得把 raw magic-link token、完整 magic-link URL、邮箱明文或邮件正文写入 `async_jobs.payload` / outbox / log；C1 owns `deliverySecretRef` 的一次性解析语义 | 支撑 ADR-Q1 magic link，同时避免 token / 邮件内容落库 |
+| D-13 | `target.import.requested.sourceType` 语义 | `sourceType` 是异步导入请求的粗粒度输入来源，固定为 `url` / `text` / `file`；B2 `manual_text` 在事件中映射为 `text`；B2 `manual_form` 是同步 ready 兜底路径，不发 `target.import.requested`，不创建 runner 待处理事件 | 避免把 API source variant 与 async runner payload enum 混为一谈；如未来 analytics 需要 exact variant，只能新增 optional 字段或新事件版本，不能复用当前字段塞 `manual_form` |
 
 #### 3.1.1 DB/backend runner canonical job_type ↔ Asynq dotted task name 映射
 
@@ -114,7 +115,7 @@ B2 OpenAPI v1.0.0 的 `JobType` enum 只允许以下 7 项：`target_import` / `
 
 | eventName | required payload fields | optional payload fields | enum / source | PII / logging boundary |
 |-----------|-------------------------|-------------------------|---------------|------------------------|
-| `target.import.requested` | `targetJobId:uuidv7`, `userId:uuidv7`, `sourceType:string`, `targetLanguage:string` | – | `sourceType` event-local `TargetImportSourceType` (`url`/`text`/`file`); `targetLanguage` BCP-47 | IDs only; no raw JD text / URL body |
+| `target.import.requested` | `targetJobId:uuidv7`, `userId:uuidv7`, `sourceType:string`, `targetLanguage:string` | – | `sourceType` event-local `TargetImportSourceType` (`url`/`text`/`file`); B2 `manual_text` maps to `text`; B2 `manual_form` does not emit this event; `targetLanguage` BCP-47 | IDs only; no raw JD text / URL body |
 | `target.parsed` | `targetJobId:uuidv7`, `userId:uuidv7`, `analysisStatus:TargetJobParseStatus`, `requirementCount:int`, `coreThemes:string[]` | – | B1 `TargetJobParseStatus`; `coreThemes` are controlled slugs | No parsed JD summary or requirement text |
 | `target.analysis.failed` | `targetJobId:uuidv7`, `errorCode:string`, `retryable:bool` | – | `errorCode` UPPER_SNAKE_CASE producer-owned code | No raw provider response / prompt / JD text |
 | `practice.session.started` | `sessionId:uuidv7`, `planId:uuidv7`, `targetJobId:uuidv7`, `goal:PracticeGoal`, `mode:PracticeMode`, `language:string` | – | B1 `PracticeGoal` / `PracticeMode`; `language` BCP-47 | IDs only; no question or answer text |

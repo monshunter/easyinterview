@@ -1,6 +1,6 @@
 # Event and Outbox Contract History
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: active
 > **更新日期**: 2026-05-08
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-08 | 2.1 | 明确 `target.import.requested.sourceType` 是异步导入粗粒度来源：`manual_text` 映射为 `text`，`manual_form` 同步 ready 路径不发该事件；exact API source variant 不进入当前 v1 payload。 | backend-targetjob/001 Phase 0 |
 | 2026-05-08 | 2.0 | 对齐 A3 003 Phase 6：删除 C11 当前内部任务占位，canonical job_type 从 10 项收敛为 9 项。 | ai-provider-and-model-routing/003 Phase 6 |
 | 2026-05-06 | 1.9 | 对齐 backend-runtime-topology：event producer enum 将独立进程语义 `worker` 替换为 `backend_async`，job/outbox 契约保留并由 backend internal runner 消费。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-05 | 1.8 | B3 event / job / outbox 契约改为只由本 spec、`shared/events.yaml`、`shared/jobs.yaml`、B4 migrations 与 generated artifacts 承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |

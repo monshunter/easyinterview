@@ -1,0 +1,85 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-targetjob
+  name: 001-targetjob-import-and-parse-bootstrap
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.1
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-targetjob
+      - targetjob-import-and-parse-bootstrap
+      - target job import parse
+      - jd parse backend
+    keywords:
+      - importTargetJob
+      - listTargetJobs
+      - getTargetJob
+      - updateTargetJob
+      - target_import job
+      - target.import.requested
+      - target.parsed
+      - target.analysis.failed
+      - source_refresh placeholder
+      - target.import.parse feature_key
+      - target.import.default profile
+      - target_jobs table
+      - target_job_requirements table
+      - target_job_sources table
+      - E2E.P0.013 manual_form terminal job
+      - TARGET_JOB_NOT_FOUND
+      - TARGET_IMPORT_SOURCE_INVALID
+      - TARGET_IMPORT_SOURCE_UNAVAILABLE
+      - TARGET_INVALID_STATE_TRANSITION
+      - URL fetch SSRF guard
+      - manual_form synchronous path
+      - backend-internal goroutine drainer
+      - idempotency user-scoped dedupe
+      - privacy redline raw_jd_text
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../engineering-roadmap/spec.md
+        - ../../../product-scope/spec.md
+        - ../../../openapi-v1-contract/spec.md
+        - ../../../event-and-outbox-contract/spec.md
+        - ../../../db-migrations-baseline/spec.md
+        - ../../../ai-provider-and-model-routing/spec.md
+        - ../../../prompt-rubric-registry/spec.md
+        - ../../../secrets-and-config/spec.md
+        - ../../../observability-stack/spec.md
+        - ../../../shared-conventions-codified/spec.md
+        - ../../../backend-auth/spec.md
+        - ../../../backend-runtime-topology/spec.md
+        - ../../../../ui-design/jd-resume-management.md
+        - ../../../../ui-design/auth-and-entry.md
+        - ../../../../development.md
+      discovery:
+        packages:
+          - backend/cmd/api
+          - backend/internal/api
+          - backend/internal/targetjob
+          - backend/internal/platform/config
+          - backend/internal/platform/secrets
+          - backend/internal/shared/jobs
+          - backend/internal/ai
+          - migrations
+        uiRoutes:
+          - home
+          - parse
+          - workspace
+        apiNames:
+          - importTargetJob
+          - listTargetJobs
+          - getTargetJob
+          - updateTargetJob

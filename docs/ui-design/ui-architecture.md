@@ -1,8 +1,8 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.6
+> **版本**: 2.8
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-05-08
 
 ## 1 文档目的
 
@@ -12,7 +12,7 @@
 
 1. App 默认进入首页，不再有未登录欢迎页或登录前置页。
 2. 顶部导航为：`首页`、`岗位推荐`、`模拟面试`、`简历`、`复盘`。
-3. 顶栏固定提供全局显示控制：主题色菜单、暗色模式、语言切换；这些控制不属于业务模块，也不要求登录。
+3. 顶栏固定提供全局显示控制：主题色菜单、暗色模式、语言下拉；这些控制不属于业务模块，也不要求登录。
 4. 主题色与 dark/light 模式正交：当前运行时主题为 `暖陶 / 苔林 / 深海 / 梅子 / 自定义 accent`，暗色按钮只切换所选主题的明暗版本。
 5. 字体预设在 `设置与隐私` 的个人资料页维护，当前有 `编辑级 / 现代 / 杂志` 三组；切换时必须原子更新标题 serif 与正文 sans，等宽字体保持不变。
 6. `当前岗位` 不再作为一级模块；用户从 `模拟面试` 进入当前面试规划，规划由 `JD/目标岗位 + 简历 + 当前面试轮次` 组成。
@@ -38,15 +38,17 @@
 26. 旧 `screens-p1-depth.jsx::ResumeVersionsScreen` 已被 `_LegacyResumeVersionsScreen` dead code 化；`ui-design/index.html` 后加载 `screen-resume-workshop.jsx` 并覆盖 `window.ResumeVersionsScreen`，因此新简历工坊而不是旧版本页驱动目标架构。
 27. 路由层维护 `InterviewContext`，在 `workspace`、`practice`、`generating`、`report`、`debrief`、`company_intel` 间贯通 `planId / targetJobId / jdId / resumeVersionId / roundId / sessionId`。
 28. 登录打断使用 `pendingAction` 恢复原动作；当前静态稿已覆盖立即面试、复练当前轮和进入下一轮。
+29. TopBar 品牌区只保留 `E` mark 与 `EasyInterview`；`EasyInterview` 作为产品名不翻译，解释性定位文案和版本号不在 TopBar 常驻展示。版本号作为产品元数据放在设置页产品信息区。
 
 ## 3 目标产品骨架
 
 ```text
 [EasyInterview App]
 ├─ TopBar / 全局控制
+│  ├─ Brand: E mark + EasyInterview
 │  ├─ 主题色: 暖陶 / 苔林 / 深海 / 梅子 / 自定义
 │  ├─ Dark / Light
-│  ├─ 中 / EN
+│  ├─ 语言下拉: Globe icon + 当前语言标签
 │  └─ 用户区
 ├─ Home / 首页
 │  ├─ JD 粘贴输入
@@ -136,7 +138,7 @@
 ├─ 复盘
 ├─ 主题色菜单
 ├─ 暗色模式
-├─ 语言切换
+├─ 语言下拉
 └─ 用户区
    ├─ 未登录: 登录 / 注册
    └─ 已登录:
@@ -178,7 +180,9 @@ TopBar Display Controls
 │     ├─ 饱和度
 │     └─ 恢复主题默认色
 ├─ Dark / Light toggle
-└─ Language toggle: 中 / EN
+└─ Language dropdown
+   ├─ 中文
+   └─ English
 
 Settings -> 个人资料 -> 界面偏好
 └─ Font preset
@@ -188,6 +192,11 @@ Settings -> 个人资料 -> 界面偏好
 ```
 
 这些控制影响 UI 呈现，不改变当前业务路由、模块归属或认证状态。
+语言下拉必须按 locale 元数据渲染选项；当前静态原型在 `ui-design/src/app.jsx`
+通过 `LANGUAGE_OPTIONS` 维护 `key`、展示标签、短标签和别名，按钮只显示 globe icon
+与当前语言标签（如 `中文` / `English`），后续新增语言时扩展该列表而不是把
+TopBar 改回二选一 toggle 或把多个候选语言拼在按钮上。Locale 初始化优先级为
+用户显式选择（`localStorage["ei-lang"]`）> 浏览器 locale > English fallback。
 
 ## 5 目标模块关系
 
@@ -334,7 +343,7 @@ Historical prototype routes normalized only for the static UI
 16. 语音复盘提取的问题必须先进入待确认卡片，用户确认后才写入复盘记录。
 17. `ROUTE_ALIASES` 只归一除 `voice` 外的历史原型 hash route，不构成线上兼容承诺；旧 route 不得据此恢复旧导航或旧模块，语音面试必须使用 `practice` 显式参数。
 18. `canvas.html` 不应保留旧分区标题、旧单页简历画板、旧 onboarding 画板或报告变体画板；文档以 `app.jsx` 实际渲染为准。
-19. 顶栏主题色、暗色和语言切换必须保持为横切显示控制，不进入任何业务模块。
+19. 顶栏主题色、暗色和语言下拉必须保持为横切显示控制，不进入任何业务模块。
 20. 字体预设必须在设置页作为界面偏好维护，并原子切换 serif/sans 字体组合。
 21. 简历模块目标实现以 `screen-resume-workshop.jsx` 为准；旧 `_LegacyResumeVersionsScreen` 不得重新驱动文档、画板或运行时入口。
 22. 简历创建必须经过解析进度和预览确认；岗位定制版本必须从某棵原始简历树分叉，并记录目标岗位、侧重方向和 bullet 初始化方式。

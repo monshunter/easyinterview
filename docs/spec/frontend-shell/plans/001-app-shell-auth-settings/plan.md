@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon toggle，旧 native select/dropdown 口径不再作为正式前端契约。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
+落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
 
 ## 2 背景
 
@@ -68,7 +68,7 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 
 #### 2.7 I18n remediation: 独立 locale 文件与语言切换契约
 
-把 `zh` / `en` message map 拆到独立 locale 文件，`messages.ts` 仅保留导入、类型约束、locale 归一化和 helper；新增结构测试阻止多语言字面量回流到同一文件。TopBar 语言切换必须按 `ui-design/src/app.jsx` 复刻为可访问 icon toggle，并由 component / scenario test 直接断言。
+把 `zh` / `en` message map 拆到独立 locale 文件，`messages.ts` 仅保留导入、类型约束、locale 归一化和 helper；新增结构测试阻止多语言字面量回流到同一文件。TopBar 语言切换必须按 `ui-design/src/app.jsx` 复刻为可访问 icon dropdown，并由 component / scenario test 直接断言。
 
 #### 2.8 I18n remediation: 前端偏好独立于登录态
 
@@ -131,7 +131,7 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 - 用户菜单的 `用户画像` 与 `设置与隐私` 分别进入 `profile` 和 `settings`。
 - `parse` route 作为 shell route 可达，但 JD 解析业务细节留给后续 owner。
 - Runtime config、`/me` 和 auth generated operations 均通过 fixture-backed client 测试，不直接读取 prototype data。
-- TopBar 语言切换通过 `ui-design/src/app.jsx` 一致的 icon toggle 驱动 `zh` / `en` 静态文案；初始语言跟随浏览器 locale，未知时 fallback English；runtime `defaultUiLanguage` / `/me.uiLanguage` 不参与 UI 语言决策；D1 generated client 请求带当前 locale 的 `Accept-Language` display hint。
+- TopBar 语言切换通过 `ui-design/src/app.jsx` 一致的 icon dropdown 驱动 `zh` / `en` 静态文案；按钮显示当前语言标签，locale 优先级为用户显式选择（`localStorage["ei-lang"]`）> 浏览器 locale > English fallback；runtime `defaultUiLanguage` / `/me.uiLanguage` 不参与 UI 语言决策；D1 generated client 请求带当前 locale 的 `Accept-Language` display hint。
 - `zh` / `en` message map 分别位于独立 locale 文件，i18n helper 只聚合导入并提供类型安全 API，不在单文件内糅合多语言文案。
 - 旧 route negative search 确认正式前端不保留独立 old route screen。
 - UI 真理源边界写入 handoff：正式前端视觉只以 `ui-design/` 与 `docs/ui-design/` 为准。
@@ -148,5 +148,5 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 | mock 数据源漂移 | 依赖 `mock-contract-suite`，禁止 import prototype data |
 | Auth UI 超出 C1/B2 契约 | Phase 3.1 / 3.3 只允许 generated passwordless session operations；密码 / OAuth / reset 不 wire 真实 API |
 | 外部品牌参考或 AI 自由发挥被误当正式视觉依据 | Phase 5.4 明确 `ui-design/` 与 `docs/ui-design/` 是唯一 UI truth source |
-| 语言切换退化为状态占位 | Phase 2.4 / 2.6 增加文案切换测试与 BDD gate，禁止只断言控件状态；控件结构必须继续对齐 `ui-design/src/app.jsx` icon toggle |
+| 语言切换退化为状态占位 | Phase 2.4 / 2.6 增加文案切换测试与 BDD gate，禁止只断言控件状态；控件结构必须继续对齐 `ui-design/src/app.jsx` icon dropdown |
 | i18n 资源糅合导致后续语言扩展困难 | Phase 2.7 增加 locale 文件结构测试，要求每个语言独立文件，聚合层只做 helper |

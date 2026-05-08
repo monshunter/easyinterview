@@ -31,7 +31,7 @@ spec:
       - i18n
       - locale
       - locale file
-      - language toggle
+      - language dropdown
       - Accept-Language
       - defaultUiLanguage
       - uiLanguage

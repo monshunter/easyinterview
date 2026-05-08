@@ -16,4 +16,4 @@
 |---------|------|----------|----------|
 | E2E.P0.001 | 默认首页与五入口 Shell | 证明视觉接入未破坏默认 App shell 与旧入口负向约束 | `test/scenarios/e2e/p0-001-default-home-shell/` |
 | E2E.P0.002 | 登录打断后恢复原业务动作 | 证明视觉接入未破坏 auth pendingAction 恢复 | `test/scenarios/e2e/p0-002-auth-pending-action-resume/` |
-| E2E.P0.004 | App Shell 中英语言切换 | 证明视觉接入未破坏 TopBar language toggle、i18n 与 `Accept-Language` display hint | `test/scenarios/e2e/p0-004-app-shell-language-switch/` |
+| E2E.P0.004 | App Shell 中英语言切换 | 证明视觉接入未破坏 TopBar language dropdown、i18n 与 `Accept-Language` display hint | `test/scenarios/e2e/p0-004-app-shell-language-switch/` |

@@ -1,8 +1,8 @@
 # Observability Stack Spec
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-08
 
 ## 1 背景与目标
 
@@ -55,7 +55,7 @@
 |----|------|--------|------|
 | D-1 | metric 类型与后缀 | Counter `*_total`；Histogram `*_duration_seconds`；Gauge `*_in_flight` / `*_queue_depth` / `*_pending`；Summary 不使用 | F1 命名 baseline |
 | D-2 | 单位 | 时间 seconds（不用 ms 作为指标后缀，日志可用 `latencyMs`）/ 大小 bytes / 金额 usd（如必须） | – |
-| D-3 | allowed labels | `service` / `route` / `method` / `status_code` / `operation` / `job_type` / `provider` / `model_family` / `model_profile_name` / `capability` / `language` / `feature` / `env` / `result` / `from_provider` / `from_model_family` / `to_provider` / `to_model_family` | 新增 label 必须是有界枚举 |
+| D-3 | allowed labels | `service` / `route` / `method` / `status_code` / `operation` / `job_type` / `provider` / `model_family` / `model_profile_name` / `capability` / `language` / `feature` / `env` / `result` / `error_code` / `source_type` / `from_provider` / `from_model_family` / `to_provider` / `to_model_family` | 新增 label 必须是有界枚举；`error_code` 必须来自 B1 `ApiErrorCode`，`source_type` 必须来自 B2/B3 有界 source enum，禁止原始 URL 或自由文本 |
 | D-4 | forbidden labels | `user_id` / `target_job_id` / `session_id` / `prompt_version` / 原始 URL 全 path / 原始 provider model id / `from_model` / `to_model` / 任意自由文本 | 高基数禁入 metric；可入 log 或 event |
 | D-5 | log 字段集 | 通用 12 字段 + access / job / AI 三种额外字段集 | F1 logger 自动注入 |
 | D-6 | log 明文红线 | 绝不进 log：`rawJdText` / `answerText` / `resumeRawText` / `thankYouDraft` / `parsedSummary` 全量 / `promptTemplateBody` / `modelRawResponse` / 文件上传 / 下载 URL / token | `Hashed` helper 提供 sha256+salt |
@@ -97,10 +97,15 @@
 | Auth | `auth_logout_total` | Counter | service,result |
 | Auth | `auth_delete_handoff_total` | Counter | service,result |
 | Auth | `auth_failure_total` | Counter | service,operation,result |
+| TargetJob | `target_job_imports_total` | Counter | service,operation,source_type,result,error_code |
+| TargetJob | `target_job_parse_duration_seconds` | Histogram | service,job_type,source_type,language,result |
+| TargetJob | `target_job_parse_failures_total` | Counter | service,job_type,source_type,language,error_code,result |
 
 Auth 指标由 C1 `backend-auth/001-passwordless-session-bootstrap` 在自身 plan 中接入；F1 仅登记 metric 名和 label contract。Auth metric labels 只能使用 `service` / `operation` / `result`，不得包含 `user_id`、`session_id`、邮箱、token、完整 URL 或任意自由文本。
 
 业务域（target / practice / report / resume / debrief / privacy）指标由各 C 域在自己的 plan 中接入。F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `resume_` / `debrief_` / `privacy_`）；已移除的旧独立域前缀不得恢复。
+
+TargetJob 指标由 C4 `backend-targetjob/001` 接入：`source_type` 只能是 `url` / `text` / `file` / `manual_form` 等有界导入来源，`error_code` 只能是 B1 错误码常量，`language` 只能是 BCP-47 归一化值；不得把 target id、user id、source URL、prompt version 或任意自由文本作为 label。
 
 ### 3.2 待确认事项
 
