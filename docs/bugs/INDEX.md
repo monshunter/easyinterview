@@ -64,6 +64,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0023](./BUG-0023.md) | jobs_test referenced removed embedding_upsert constant after capability cleanup | medium | resolved | 2026-05-08 | `fix(event-outbox): drop stale embedding job reference in jobs_test` |
 | [BUG-0001](./BUG-0001.md) | OpenAPI breaking-change gate missed composition diffs | medium | resolved | 2026-04-29 | `fix(openapi): tighten breaking-change gate composition diff` |
 
 ## Test
