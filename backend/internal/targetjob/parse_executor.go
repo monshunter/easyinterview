@@ -57,7 +57,7 @@ type ParseExecutorOptions struct {
 	Now      func() time.Time
 }
 
-// ParseExecutor is the JobHandler for the `target_import` async job type.
+// ParseExecutor is the JobHandler for the TargetJob import async job type.
 type ParseExecutor struct {
 	store    Store
 	registry PromptRegistryClient
@@ -103,7 +103,7 @@ type parseAIResponseReq struct {
 
 // Handle satisfies JobHandler. It returns success or the appropriate
 // retryable / non-retryable failure outcome and writes the matching
-// target.parsed / target.analysis.failed outbox event before returning.
+// parsed / analysis-failed outbox event before returning.
 func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	if p == nil || p.store == nil {
 		return JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: "parse executor not initialised"}

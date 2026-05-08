@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/events"
+	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
@@ -34,7 +36,7 @@ var ForbiddenOutboxFields = []string{
 }
 
 // TargetImportRequestedInput captures the four fields B3 allows for the
-// `target.import.requested` outbox event. The struct is intentionally
+// events.EventNameTargetImportRequested outbox event. The struct is intentionally
 // closed: any additional metadata the caller wants to record must be
 // added via B3 spec revision first, never piggy-backed here.
 type TargetImportRequestedInput struct {
@@ -49,13 +51,13 @@ type TargetImportRequestedInput struct {
 // does not enter the async runner (D-13).
 func BuildTargetImportRequestedPayload(in TargetImportRequestedInput) (events.TargetImportRequestedPayload, error) {
 	if in.TargetJobID == "" {
-		return events.TargetImportRequestedPayload{}, fmt.Errorf("target.import.requested: targetJobId is required")
+		return events.TargetImportRequestedPayload{}, fmt.Errorf("%s: targetJobId is required", events.EventNameTargetImportRequested)
 	}
 	if in.UserID == "" {
-		return events.TargetImportRequestedPayload{}, fmt.Errorf("target.import.requested: userId is required")
+		return events.TargetImportRequestedPayload{}, fmt.Errorf("%s: userId is required", events.EventNameTargetImportRequested)
 	}
 	if in.TargetLanguage == "" {
-		return events.TargetImportRequestedPayload{}, fmt.Errorf("target.import.requested: targetLanguage is required")
+		return events.TargetImportRequestedPayload{}, fmt.Errorf("%s: targetLanguage is required", events.EventNameTargetImportRequested)
 	}
 	srcType, err := events.MapAPISourceTypeToEvent(string(in.APISourceType))
 	if err != nil {
@@ -74,7 +76,7 @@ func BuildTargetImportRequestedPayload(in TargetImportRequestedInput) (events.Ta
 }
 
 // TargetParsedInput captures the structured-only fields B3 allows for the
-// `target.parsed` event. Raw AI output, prompts, and response bodies are
+// events.EventNameTargetParsed event. Raw AI output, prompts, and response bodies are
 // not part of this struct (and would be rejected by assertNoForbidden).
 type TargetParsedInput struct {
 	TargetJobID      string
@@ -85,19 +87,19 @@ type TargetParsedInput struct {
 }
 
 // BuildTargetParsedPayload validates input and produces a B3-typed payload
-// for the `target.parsed` outbox event.
+// for the events.EventNameTargetParsed outbox event.
 func BuildTargetParsedPayload(in TargetParsedInput) (events.TargetParsedPayload, error) {
 	if in.TargetJobID == "" {
-		return events.TargetParsedPayload{}, fmt.Errorf("target.parsed: targetJobId is required")
+		return events.TargetParsedPayload{}, fmt.Errorf("%s: targetJobId is required", events.EventNameTargetParsed)
 	}
 	if in.UserID == "" {
-		return events.TargetParsedPayload{}, fmt.Errorf("target.parsed: userId is required")
+		return events.TargetParsedPayload{}, fmt.Errorf("%s: userId is required", events.EventNameTargetParsed)
 	}
 	if in.AnalysisStatus == "" {
-		return events.TargetParsedPayload{}, fmt.Errorf("target.parsed: analysisStatus is required")
+		return events.TargetParsedPayload{}, fmt.Errorf("%s: analysisStatus is required", events.EventNameTargetParsed)
 	}
 	if in.RequirementCount < 0 {
-		return events.TargetParsedPayload{}, fmt.Errorf("target.parsed: requirementCount cannot be negative")
+		return events.TargetParsedPayload{}, fmt.Errorf("%s: requirementCount cannot be negative", events.EventNameTargetParsed)
 	}
 	out := events.TargetParsedPayload{
 		AnalysisStatus:   in.AnalysisStatus,
@@ -113,7 +115,7 @@ func BuildTargetParsedPayload(in TargetParsedInput) (events.TargetParsedPayload,
 }
 
 // TargetAnalysisFailedInput captures the three structured fields B3 allows
-// for `target.analysis.failed`. Error envelopes / messages must reach this
+// for events.EventNameTargetAnalysisFailed. Error envelopes / messages must reach this
 // helper as a B1 error code only — never as raw provider error strings.
 type TargetAnalysisFailedInput struct {
 	TargetJobID string
@@ -122,26 +124,38 @@ type TargetAnalysisFailedInput struct {
 }
 
 // BuildTargetAnalysisFailedPayload validates input and produces a B3-typed
-// payload for the `target.analysis.failed` outbox event.
+// payload for the events.EventNameTargetAnalysisFailed outbox event.
 func BuildTargetAnalysisFailedPayload(in TargetAnalysisFailedInput) (events.TargetAnalysisFailedPayload, error) {
 	if in.TargetJobID == "" {
-		return events.TargetAnalysisFailedPayload{}, fmt.Errorf("target.analysis.failed: targetJobId is required")
+		return events.TargetAnalysisFailedPayload{}, fmt.Errorf("%s: targetJobId is required", events.EventNameTargetAnalysisFailed)
 	}
 	if in.ErrorCode == "" {
-		return events.TargetAnalysisFailedPayload{}, fmt.Errorf("target.analysis.failed: errorCode is required")
+		return events.TargetAnalysisFailedPayload{}, fmt.Errorf("%s: errorCode is required", events.EventNameTargetAnalysisFailed)
+	}
+	if _, ok := sharederrors.CodeRegistry[in.ErrorCode]; !ok {
+		return events.TargetAnalysisFailedPayload{}, fmt.Errorf("%s: errorCode must be a documented B1 code", events.EventNameTargetAnalysisFailed)
 	}
 	out := events.TargetAnalysisFailedPayload{
 		ErrorCode:   in.ErrorCode,
 		Retryable:   in.Retryable,
 		TargetJobID: in.TargetJobID,
 	}
-	if err := assertNoForbiddenOutboxFields(out); err != nil {
+	if err := assertNoForbiddenAnalysisFailedPayload(out); err != nil {
 		return events.TargetAnalysisFailedPayload{}, err
 	}
 	return out, nil
 }
 
-// TargetImportJobPayload is the JSON contract for the `target_import` async
+func assertNoForbiddenAnalysisFailedPayload(out events.TargetAnalysisFailedPayload) error {
+	redline := events.TargetAnalysisFailedPayload{
+		ErrorCode:   "B1_DOCUMENTED_ERROR_CODE",
+		Retryable:   out.Retryable,
+		TargetJobID: out.TargetJobID,
+	}
+	return assertNoForbiddenOutboxFields(redline)
+}
+
+// TargetImportJobPayload is the JSON contract for the jobs.JobTypeTargetImport async
 // job row. It mirrors the same redline as the outbox event: only structured
 // references, never raw JD text or full URLs.
 type TargetImportJobPayload struct {
@@ -151,13 +165,13 @@ type TargetImportJobPayload struct {
 	TargetLanguage string `json:"targetLanguage"`
 }
 
-// BuildTargetImportJobPayload validates a `target_import` async_jobs payload
+// BuildTargetImportJobPayload validates a jobs.JobTypeTargetImport async_jobs payload
 // and returns it as a JSON-encoded byte slice ready to write to
 // `async_jobs.payload`. The same forbidden-token negative scan runs over
 // the marshalled bytes.
 func BuildTargetImportJobPayload(in TargetImportJobPayload) ([]byte, error) {
 	if in.TargetJobID == "" || in.UserID == "" || in.SourceType == "" || in.TargetLanguage == "" {
-		return nil, fmt.Errorf("target_import payload requires targetJobId, userId, sourceType, targetLanguage")
+		return nil, fmt.Errorf("%s payload requires targetJobId, userId, sourceType, targetLanguage", jobs.JobTypeTargetImport)
 	}
 	if err := assertNoForbiddenOutboxFields(in); err != nil {
 		return nil, err
@@ -182,4 +196,3 @@ func assertNoForbiddenOutboxFields(v any) error {
 	}
 	return nil
 }
-

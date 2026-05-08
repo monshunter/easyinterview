@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/monshunter/easyinterview/backend/internal/shared/events"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
@@ -823,7 +824,7 @@ where id = $6 and deleted_at is null`,
 // target_job_requirements + outbox_events + async_jobs) atomically. It
 // dedupes by (user_id, idempotency_key) hashed into in.DedupeKey: if an
 // existing async_jobs row with the same dedupe_key and job_type
-// 'target_import' is found, the result wraps that row instead of inserting
+// jobs.JobTypeTargetImport is found, the result wraps that row instead of inserting
 // a new TargetJob (see spec C-12 / D-6).
 //
 // Source variant contract:
@@ -945,7 +946,7 @@ insert into outbox_events (
   id, event_name, event_version, aggregate_type, aggregate_id, payload, publish_status, created_at
 ) values ($1,$2,$3,$4,$5,$6,$7,$8)`,
 			in.OutboxEventID,
-			"target.import.requested",
+			string(events.EventNameTargetImportRequested),
 			1,
 			"target_job",
 			in.TargetJobID,
@@ -1031,7 +1032,7 @@ limit 1`,
 		return ImportTargetJobResult{}, false, nil
 	}
 	if err != nil {
-		return ImportTargetJobResult{}, false, fmt.Errorf("lookup existing target_import: %w", err)
+		return ImportTargetJobResult{}, false, fmt.Errorf("lookup existing %s: %w", jobs.JobTypeTargetImport, err)
 	}
 	return ImportTargetJobResult{
 		TargetJobID:  resourceID,
@@ -1194,14 +1195,14 @@ insert into async_jobs (
 	return nil
 }
 
-// WriteTargetParsedOutbox inserts a target.parsed event row.
+// WriteTargetParsedOutbox inserts an events.EventNameTargetParsed event row.
 func (s *SQLStore) WriteTargetParsedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error {
-	return s.writeOutbox(ctx, eventID, "target.parsed", targetJobID, payload, now)
+	return s.writeOutbox(ctx, eventID, string(events.EventNameTargetParsed), targetJobID, payload, now)
 }
 
-// WriteParseFailedOutbox inserts a target.analysis.failed event row.
+// WriteParseFailedOutbox inserts an events.EventNameTargetAnalysisFailed event row.
 func (s *SQLStore) WriteParseFailedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error {
-	return s.writeOutbox(ctx, eventID, "target.analysis.failed", targetJobID, payload, now)
+	return s.writeOutbox(ctx, eventID, string(events.EventNameTargetAnalysisFailed), targetJobID, payload, now)
 }
 
 func (s *SQLStore) writeOutbox(ctx context.Context, eventID, eventName, targetJobID string, payload []byte, now time.Time) error {

@@ -547,6 +547,8 @@ func recordToAPI(rec TargetJobRecord, reqs []RequirementRecord) api.TargetJob {
 		SourceType:             string(rec.SourceType),
 		SourceUrl:              optionalString(rec.SourceURL),
 		Status:                 rec.Status,
+		Summary:                decodeTargetJobSummary(rec.Summary),
+		FitSummary:             decodeTargetJobFitSummary(rec.FitSummary),
 		TargetLanguage:         rec.TargetLanguage,
 		Title:                  rec.Title,
 		UpdatedAt:              rec.UpdatedAt.UTC().Format(time.RFC3339),
@@ -564,6 +566,47 @@ func recordToAPI(rec TargetJobRecord, reqs []RequirementRecord) api.TargetJob {
 		})
 	}
 	return out
+}
+
+func decodeTargetJobSummary(raw json.RawMessage) *api.TargetJobSummary {
+	if !hasMaterializedJSON(raw) {
+		return nil
+	}
+	var out api.TargetJobSummary
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil
+	}
+	if !hasGenerationProvenance(out.Provenance) {
+		return nil
+	}
+	return &out
+}
+
+func decodeTargetJobFitSummary(raw json.RawMessage) *api.TargetJobFitSummary {
+	if !hasMaterializedJSON(raw) {
+		return nil
+	}
+	var out api.TargetJobFitSummary
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil
+	}
+	if !hasGenerationProvenance(out.Provenance) {
+		return nil
+	}
+	return &out
+}
+
+func hasMaterializedJSON(raw json.RawMessage) bool {
+	trimmed := strings.TrimSpace(string(raw))
+	return trimmed != "" && trimmed != "{}" && trimmed != "null"
+}
+
+func hasGenerationProvenance(p api.GenerationProvenance) bool {
+	return p.PromptVersion != "" &&
+		p.RubricVersion != "" &&
+		p.ModelId != "" &&
+		p.Language != "" &&
+		p.DataSourceVersion != ""
 }
 
 func optionalString(v string) *string {

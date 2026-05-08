@@ -117,16 +117,28 @@ func TestBuildTargetAnalysisFailedPayload_HappyPath(t *testing.T) {
 	}
 }
 
-func TestBuildTargetAnalysisFailedPayload_RejectsForbiddenError(t *testing.T) {
-	// A leaked provider response body would surface as ErrorCode; the
-	// helper must refuse to ship it.
+func TestBuildTargetAnalysisFailedPayload_AllowsDocumentedProviderSecretCode(t *testing.T) {
+	p, err := targetjob.BuildTargetAnalysisFailedPayload(targetjob.TargetAnalysisFailedInput{
+		TargetJobID: "018f2a40-0000-7000-9000-0000000000a1",
+		ErrorCode:   "AI_PROVIDER_SECRET_MISSING",
+		Retryable:   false,
+	})
+	if err != nil {
+		t.Fatalf("documented B1 provider-secret code must be allowed: %v", err)
+	}
+	if p.ErrorCode != "AI_PROVIDER_SECRET_MISSING" {
+		t.Fatalf("unexpected code: %+v", p)
+	}
+}
+
+func TestBuildTargetAnalysisFailedPayload_RejectsUndocumentedError(t *testing.T) {
 	_, err := targetjob.BuildTargetAnalysisFailedPayload(targetjob.TargetAnalysisFailedInput{
 		TargetJobID: "t",
 		ErrorCode:   "Authorization: Bearer leaked",
 		Retryable:   false,
 	})
-	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "authorization") {
-		t.Fatalf("expected forbidden-token rejection, got %v", err)
+	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "documented b1 code") {
+		t.Fatalf("expected documented-code rejection, got %v", err)
 	}
 }
 
