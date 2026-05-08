@@ -530,6 +530,217 @@ func TestSQLStore_UpdateSourceFreshness_StalesAllSourcesForTarget(t *testing.T) 
 	}
 }
 
+func TestSQLStore_ImportTargetJob_RunnerBoundPathInsertsAllFourTables(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 17, 0, 0, 0, time.UTC)
+	dedupeKey := "tj:dedupe:user1:key1"
+
+	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
+		WithArgs("target_import", dedupeKey).
+		WillReturnError(sql.ErrNoRows)
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`insert into target_jobs`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000a1",
+			"018f2a40-0000-7000-9000-0000000000b1",
+			"draft", "queued",
+			"Backend Engineer", "Acme",
+			nil, nil, nil,
+			"en", "manual_text",
+			nil, nil,
+			"raw jd",
+			[]byte(`{}`), []byte(`{}`),
+			int32(0), now, now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into target_job_sources`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000c1",
+			"018f2a40-0000-7000-9000-0000000000a1",
+			"manual_text", nil, nil, "raw jd", nil, "fresh", now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into outbox_events`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000e1",
+			"target.import.requested", 1,
+			"target_job",
+			"018f2a40-0000-7000-9000-0000000000a1",
+			[]byte(`{"sourceType":"text"}`),
+			"pending", now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into async_jobs`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000f1",
+			"target_import", "target_job",
+			"018f2a40-0000-7000-9000-0000000000a1",
+			dedupeKey, "queued",
+			[]byte(`{"targetJobId":"x"}`),
+			now, now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	res, err := store.ImportTargetJob(context.Background(), targetjob.ImportTargetJobInput{
+		UserID:                 "018f2a40-0000-7000-9000-0000000000b1",
+		DedupeKey:              dedupeKey,
+		TargetJobID:            "018f2a40-0000-7000-9000-0000000000a1",
+		Title:                  "Backend Engineer",
+		CompanyName:            "Acme",
+		TargetLanguage:         "en",
+		APISourceType:          targetjob.SourceTypeManualText,
+		RawJDText:              "raw jd",
+		InitialLifecycleStatus: sharedtypes.TargetJobStatusDraft,
+		InitialAnalysisStatus:  sharedtypes.TargetJobParseStatusQueued,
+		SourceID:               "018f2a40-0000-7000-9000-0000000000c1",
+		SourceSnapshotText:     "raw jd",
+		JobID:                  "018f2a40-0000-7000-9000-0000000000f1",
+		OutboxEventID:          "018f2a40-0000-7000-9000-0000000000e1",
+		OutboxEventPayload:     []byte(`{"sourceType":"text"}`),
+		JobPayload:             []byte(`{"targetJobId":"x"}`),
+		Now:                    now,
+	})
+	if err != nil {
+		t.Fatalf("ImportTargetJob: %v", err)
+	}
+	if res.Existing {
+		t.Fatal("expected fresh import, got existing=true")
+	}
+	if res.JobStatus != sharedtypes.JobStatusQueued {
+		t.Fatalf("expected queued status, got %q", res.JobStatus)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_ImportTargetJob_ManualFormSyncSucceededAndNoOutbox(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 17, 30, 0, 0, time.UTC)
+	dedupeKey := "tj:dedupe:user1:manualform"
+
+	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
+		WithArgs("target_import", dedupeKey).
+		WillReturnError(sql.ErrNoRows)
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`insert into target_jobs`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000a2",
+			"018f2a40-0000-7000-9000-0000000000b1",
+			"draft", "ready",
+			"PM", "Acme",
+			nil, nil, nil,
+			"en", "manual_form",
+			nil, nil, "manual jd",
+			[]byte(`{}`), []byte(`{}`),
+			int32(0), now, now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into target_job_requirements`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000d1",
+			"018f2a40-0000-7000-9000-0000000000a2",
+			"must_have", "draft must-have", nil, "explicit", int32(1), now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into async_jobs`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000f2",
+			"target_import", "target_job",
+			"018f2a40-0000-7000-9000-0000000000a2",
+			dedupeKey, "succeeded",
+			[]byte(`{}`),
+			now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	res, err := store.ImportTargetJob(context.Background(), targetjob.ImportTargetJobInput{
+		UserID:                 "018f2a40-0000-7000-9000-0000000000b1",
+		DedupeKey:              dedupeKey,
+		TargetJobID:            "018f2a40-0000-7000-9000-0000000000a2",
+		Title:                  "PM",
+		CompanyName:            "Acme",
+		TargetLanguage:         "en",
+		APISourceType:          targetjob.SourceTypeManualForm,
+		RawJDText:              "manual jd",
+		InitialLifecycleStatus: sharedtypes.TargetJobStatusDraft,
+		InitialAnalysisStatus:  sharedtypes.TargetJobParseStatusReady,
+		JobID:                  "018f2a40-0000-7000-9000-0000000000f2",
+		DraftRequirements: []targetjob.RequirementRecord{
+			{ID: "018f2a40-0000-7000-9000-0000000000d1", Kind: targetjob.RequirementMustHave, Label: "draft must-have", DisplayOrder: 1},
+		},
+		Now: now,
+	})
+	if err != nil {
+		t.Fatalf("ImportTargetJob: %v", err)
+	}
+	if res.JobStatus != sharedtypes.JobStatusSucceeded {
+		t.Fatalf("manual_form must yield succeeded job, got %q", res.JobStatus)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_ImportTargetJob_DedupeReturnsExistingActiveRunnerJob(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 18, 0, 0, 0, time.UTC)
+	dedupeKey := "tj:dedupe:user1:keydup"
+
+	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
+		WithArgs("target_import", dedupeKey).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "resource_id", "status", "created_at", "updated_at",
+		}).AddRow(
+			"018f2a40-0000-7000-9000-0000000000f9",
+			"018f2a40-0000-7000-9000-0000000000a9",
+			"queued", now, now,
+		))
+
+	res, err := store.ImportTargetJob(context.Background(), targetjob.ImportTargetJobInput{
+		UserID:                 "018f2a40-0000-7000-9000-0000000000b1",
+		DedupeKey:              dedupeKey,
+		TargetJobID:            "ignored-because-dedupe",
+		TargetLanguage:         "en",
+		APISourceType:          targetjob.SourceTypeManualText,
+		InitialLifecycleStatus: sharedtypes.TargetJobStatusDraft,
+		InitialAnalysisStatus:  sharedtypes.TargetJobParseStatusQueued,
+		JobID:                  "ignored",
+		OutboxEventID:          "ignored",
+		Now:                    now,
+	})
+	if err != nil {
+		t.Fatalf("dedupe: %v", err)
+	}
+	if !res.Existing {
+		t.Fatal("expected Existing=true on dedupe hit")
+	}
+	if res.TargetJobID != "018f2a40-0000-7000-9000-0000000000a9" {
+		t.Fatalf("expected dedupe to surface existing target id, got %q", res.TargetJobID)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_ImportTargetJob_RequiresMandatoryIDs(t *testing.T) {
+	store, _, cleanup := newMockStore(t)
+	defer cleanup()
+	if _, err := store.ImportTargetJob(context.Background(), targetjob.ImportTargetJobInput{}); err == nil {
+		t.Fatal("empty input must be rejected")
+	}
+}
+
 // TestStoreSurfaceRequiresUserScopeOnReadsAndWrites guards against accidental
 // "GetByID" / "FindByID" methods that don't take user_id, which would break
 // spec D-9 cross-user isolation.

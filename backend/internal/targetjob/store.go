@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
@@ -151,11 +152,71 @@ type ApplyParseResultInput struct {
 	Now            time.Time
 }
 
+// ImportTargetJobInput is the input to the compound ImportTargetJob store
+// method. The service layer pre-generates IDs, chooses the right initial
+// status and runner-vs-synchronous path, and hands the assembled input here.
+//
+// Source-type specific contracts:
+//   - url / manual_text / file: InitialAnalysisStatus must be queued, the
+//     RunnerJob fields (JobID / OutboxEventID / Payloads) must be filled,
+//     and DraftRequirements must be empty.
+//   - manual_form: InitialAnalysisStatus must be ready, RunnerJob fields
+//     must be empty, and DraftRequirements must contain at least one entry.
+type ImportTargetJobInput struct {
+	UserID    string
+	DedupeKey string
+
+	TargetJobID            string
+	Title                  string
+	CompanyName            string
+	LocationText           string
+	EmploymentType         string
+	SeniorityLevel         string
+	TargetLanguage         string
+	APISourceType          SourceType
+	SourceURL              string
+	SourceFileObjectID     string
+	RawJDText              string
+	InitialLifecycleStatus sharedtypes.TargetJobStatus
+	InitialAnalysisStatus  sharedtypes.TargetJobParseStatus
+
+	// SourceRecord fields. For manual_form, leave SourceID empty to skip the
+	// target_job_sources insert (per plan §3.1).
+	SourceID           string
+	SourceSnapshotText string
+	SourceFetchedAt    *time.Time
+
+	// Runner-bound async path (url / manual_text / file). All four must be
+	// set together; for manual_form they must all be empty.
+	JobID              string
+	OutboxEventID      string
+	OutboxEventPayload []byte
+	JobPayload         []byte
+
+	// Manual form synchronous-ready path. Empty for runner-bound source
+	// variants.
+	DraftRequirements []RequirementRecord
+
+	Now time.Time
+}
+
+// ImportTargetJobResult is what the service layer returns to the handler so
+// it can shape the generated TargetJobWithJob response.
+type ImportTargetJobResult struct {
+	TargetJobID  string
+	JobID        string
+	JobStatus    sharedtypes.JobStatus
+	JobCreatedAt time.Time
+	JobUpdatedAt time.Time
+	Existing     bool
+}
+
 // Store is the persistence boundary for the target_jobs / target_job_requirements
 // / target_job_sources tables. Every read / write filters by user_id; cross-user
 // or soft-deleted rows surface as ErrTargetJobNotFound (handler maps to 404 +
 // TARGET_JOB_NOT_FOUND).
 type Store interface {
+	ImportTargetJob(ctx context.Context, in ImportTargetJobInput) (ImportTargetJobResult, error)
 	InsertTargetJob(ctx context.Context, rec TargetJobRecord) error
 	InsertTargetJobSource(ctx context.Context, rec SourceRecord) error
 	GetTargetJobByUser(ctx context.Context, userID string, targetJobID string) (TargetJobRecord, []RequirementRecord, []SourceRecord, error)
@@ -585,6 +646,230 @@ where id = $5 and deleted_at is null`,
 		return fmt.Errorf("commit apply parse result: %w", err)
 	}
 	return nil
+}
+
+// ImportTargetJob writes target_jobs (+ optional target_job_sources +
+// target_job_requirements + outbox_events + async_jobs) atomically. It
+// dedupes by (user_id, idempotency_key) hashed into in.DedupeKey: if an
+// existing async_jobs row with the same dedupe_key and job_type
+// 'target_import' is found, the result wraps that row instead of inserting
+// a new TargetJob (see spec C-12 / D-6).
+//
+// Source variant contract:
+//   - Runner-bound (url / manual_text / file): all of JobID, OutboxEventID,
+//     OutboxEventPayload, JobPayload must be set; DraftRequirements must be
+//     empty; InitialAnalysisStatus must be queued.
+//   - manual_form: JobID and outbox / job payload fields must be empty;
+//     DraftRequirements must contain at least one entry; InitialAnalysisStatus
+//     must be ready.
+func (s *SQLStore) ImportTargetJob(ctx context.Context, in ImportTargetJobInput) (ImportTargetJobResult, error) {
+	if err := s.checkDB(); err != nil {
+		return ImportTargetJobResult{}, err
+	}
+	if in.UserID == "" || in.TargetJobID == "" || in.DedupeKey == "" {
+		return ImportTargetJobResult{}, fmt.Errorf("import target job requires userId, targetJobId, dedupeKey")
+	}
+
+	if existing, hit, err := s.lookupExistingImport(ctx, in.DedupeKey); err != nil {
+		return ImportTargetJobResult{}, err
+	} else if hit {
+		return existing, nil
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return ImportTargetJobResult{}, fmt.Errorf("begin import target job: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `
+insert into target_jobs (
+  id, user_id, status, analysis_status, title, company_name, location_text,
+  employment_type, seniority_level, target_language, source_type, source_url,
+  source_file_object_id, raw_jd_text, summary, fit_summary,
+  open_question_issue_count, created_at, updated_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+		in.TargetJobID,
+		in.UserID,
+		string(in.InitialLifecycleStatus),
+		string(in.InitialAnalysisStatus),
+		nullableString(in.Title),
+		nullableString(in.CompanyName),
+		nullableString(in.LocationText),
+		nullableString(in.EmploymentType),
+		nullableString(in.SeniorityLevel),
+		in.TargetLanguage,
+		string(in.APISourceType),
+		nullableString(in.SourceURL),
+		nullableUUID(in.SourceFileObjectID),
+		nullableString(in.RawJDText),
+		[]byte(`{}`),
+		[]byte(`{}`),
+		int32(0),
+		in.Now,
+		in.Now,
+	); err != nil {
+		return ImportTargetJobResult{}, fmt.Errorf("insert target_jobs: %w", err)
+	}
+
+	if in.SourceID != "" {
+		var fetchedAt any
+		if in.SourceFetchedAt != nil {
+			fetchedAt = *in.SourceFetchedAt
+		}
+		if _, err := tx.ExecContext(ctx, `
+insert into target_job_sources (
+  id, target_job_id, source_type, url, file_object_id, snapshot_text,
+  fetched_at, freshness_status, created_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+			in.SourceID,
+			in.TargetJobID,
+			string(in.APISourceType),
+			nullableString(in.SourceURL),
+			nullableUUID(in.SourceFileObjectID),
+			nullableString(in.SourceSnapshotText),
+			fetchedAt,
+			string(FreshnessFresh),
+			in.Now,
+		); err != nil {
+			return ImportTargetJobResult{}, fmt.Errorf("insert target_job_sources: %w", err)
+		}
+	}
+
+	for _, req := range in.DraftRequirements {
+		evidence := req.EvidenceLevel
+		if evidence == "" {
+			evidence = EvidenceExplicit
+		}
+		if _, err := tx.ExecContext(ctx, `
+insert into target_job_requirements (
+  id, target_job_id, kind, label, description, evidence_level, display_order, created_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+			req.ID,
+			in.TargetJobID,
+			string(req.Kind),
+			req.Label,
+			nullableString(req.Description),
+			string(evidence),
+			req.DisplayOrder,
+			in.Now,
+		); err != nil {
+			return ImportTargetJobResult{}, fmt.Errorf("insert draft requirement: %w", err)
+		}
+	}
+
+	if in.JobID == "" {
+		return ImportTargetJobResult{}, fmt.Errorf("import target job requires JobID")
+	}
+
+	jobStatus := sharedtypes.JobStatusQueued
+	runnerBound := in.OutboxEventID != ""
+	if !runnerBound {
+		jobStatus = sharedtypes.JobStatusSucceeded
+	}
+
+	if runnerBound {
+		if _, err := tx.ExecContext(ctx, `
+insert into outbox_events (
+  id, event_name, event_version, aggregate_type, aggregate_id, payload, publish_status, created_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+			in.OutboxEventID,
+			"target.import.requested",
+			1,
+			"target_job",
+			in.TargetJobID,
+			in.OutboxEventPayload,
+			"pending",
+			in.Now,
+		); err != nil {
+			return ImportTargetJobResult{}, fmt.Errorf("insert outbox_events: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+insert into async_jobs (
+  id, job_type, resource_type, resource_id, dedupe_key, status, payload, available_at, created_at, updated_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)`,
+			in.JobID,
+			string(jobs.JobTypeTargetImport),
+			"target_job",
+			in.TargetJobID,
+			in.DedupeKey,
+			string(sharedtypes.JobStatusQueued),
+			in.JobPayload,
+			in.Now,
+			in.Now,
+		); err != nil {
+			return ImportTargetJobResult{}, fmt.Errorf("insert async_jobs: %w", err)
+		}
+	} else {
+		// manual_form: a terminal succeeded async_jobs row records the
+		// import for SELECT-based dedupe and supplies a real Job.id for the
+		// response. The unique-active partial index does not cover
+		// succeeded rows, so dedupe is best-effort within the synchronous
+		// race window — acceptable since manual_form completes inside a
+		// single request lifecycle.
+		if _, err := tx.ExecContext(ctx, `
+insert into async_jobs (
+  id, job_type, resource_type, resource_id, dedupe_key, status, payload,
+  available_at, completed_at, created_at, updated_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$8,$8,$8)`,
+			in.JobID,
+			string(jobs.JobTypeTargetImport),
+			"target_job",
+			in.TargetJobID,
+			in.DedupeKey,
+			string(sharedtypes.JobStatusSucceeded),
+			[]byte(`{}`),
+			in.Now,
+		); err != nil {
+			return ImportTargetJobResult{}, fmt.Errorf("insert manual_form async_jobs marker: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return ImportTargetJobResult{}, fmt.Errorf("commit import target job: %w", err)
+	}
+
+	return ImportTargetJobResult{
+		TargetJobID:  in.TargetJobID,
+		JobID:        in.JobID,
+		JobStatus:    jobStatus,
+		JobCreatedAt: in.Now,
+		JobUpdatedAt: in.Now,
+		Existing:     false,
+	}, nil
+}
+
+func (s *SQLStore) lookupExistingImport(ctx context.Context, dedupeKey string) (ImportTargetJobResult, bool, error) {
+	var (
+		jobID        string
+		resourceID   string
+		statusStr    string
+		createdAt    time.Time
+		updatedAt    time.Time
+	)
+	err := s.db.QueryRowContext(ctx, `
+select id, resource_id, status, created_at, updated_at
+from async_jobs
+where job_type = $1 and dedupe_key = $2
+order by created_at desc
+limit 1`,
+		string(jobs.JobTypeTargetImport),
+		dedupeKey,
+	).Scan(&jobID, &resourceID, &statusStr, &createdAt, &updatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ImportTargetJobResult{}, false, nil
+	}
+	if err != nil {
+		return ImportTargetJobResult{}, false, fmt.Errorf("lookup existing target_import: %w", err)
+	}
+	return ImportTargetJobResult{
+		TargetJobID:  resourceID,
+		JobID:        jobID,
+		JobStatus:    sharedtypes.JobStatus(statusStr),
+		JobCreatedAt: createdAt,
+		JobUpdatedAt: updatedAt,
+		Existing:     true,
+	}, true, nil
 }
 
 func (s *SQLStore) UpdateSourceFreshness(ctx context.Context, targetJobID string, freshness FreshnessStatus, now time.Time) error {

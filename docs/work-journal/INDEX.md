@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `feat(backend-targetjob): wire synchronous targetjob crud handlers` | #feat #test |
 | [2026-05-08](2026-05-08.md) | `feat(backend-targetjob): land storage config and generated contract surface` | #feat #test |
 | [2026-05-08](2026-05-08.md) | `docs(bugs): record BUG-0023 stale embedding test consumer` | #docs #fix |
 | [2026-05-08](2026-05-08.md) | `fix(event-outbox): drop stale embedding job reference in jobs_test` | #fix #test |

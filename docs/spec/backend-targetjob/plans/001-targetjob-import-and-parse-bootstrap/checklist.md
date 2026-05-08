@@ -20,10 +20,10 @@
 
 ## Phase 2: Synchronous TargetJob CRUD
 
-- [ ] 2.1 实现 `importTargetJob` 同步阶段；验证: handler / service tests 覆盖 4 类 source 各自路径、`Idempotency-Key` 必填；`url` / `manual_text` / `file` 新建场景在事务内插入 `target_jobs` + `target_job_sources` + outbox `target.import.requested`（manual_text event `sourceType=text`）+ 派发 `target_import` job，202 响应包含 generated `TargetJobWithJob` + `Job(jobType=target_import,status=queued)`；`manual_form` 同步 ready 并返回 `Job(jobType=target_import,status=succeeded)`，不发 import requested / parsed 事件
-- [ ] 2.2 实现 `listTargetJobs`；验证: tests 覆盖 status / analysisStatus / q / cursor / pageSize 过滤与索引使用、cursor base64url 编码 / decode、pageSize clamp 到 [1,100]、跨用户行不返回、软删行不返回、空结果返回 generated `PaginatedTargetJob` 空 envelope
-- [ ] 2.3 实现 `getTargetJob`；验证: handler tests 覆盖按 `(user_id, target_job_id)` 读取、requirements 数组按 `display_order` 排序、`summary` / `fitSummary` / `provenance` 字段非空校验、`latestReportId` 暂为 nil 占位、越权 / 软删返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`
-- [ ] 2.4 实现 `updateTargetJob`；验证: handler tests 覆盖状态机合法迁移（`draft → preparing → applied → interviewing → offer | rejected → archived` + `archived` 兜底）、非法迁移返回 B1 `TARGET_INVALID_STATE_TRANSITION`、`Idempotency-Key` 跨用户隔离、仅写入非空字段、不修改 analysis_status
+- [x] 2.1 实现 `importTargetJob` 同步阶段；验证: handler / service tests 覆盖 4 类 source 各自路径、`Idempotency-Key` 必填；`url` / `manual_text` / `file` 新建场景在事务内插入 `target_jobs` + `target_job_sources` + outbox `target.import.requested`（manual_text event `sourceType=text`）+ 派发 `target_import` job，202 响应包含 generated `TargetJobWithJob` + `Job(jobType=target_import,status=queued)`；`manual_form` 同步 ready 并返回 `Job(jobType=target_import,status=succeeded)`，不发 import requested / parsed 事件
+- [x] 2.2 实现 `listTargetJobs`；验证: tests 覆盖 status / analysisStatus / q / cursor / pageSize 过滤与索引使用、cursor base64url 编码 / decode、pageSize clamp 到 [1,100]、跨用户行不返回、软删行不返回、空结果返回 generated `PaginatedTargetJob` 空 envelope
+- [x] 2.3 实现 `getTargetJob`；验证: handler tests 覆盖按 `(user_id, target_job_id)` 读取、requirements 数组按 `display_order` 排序、`summary` / `fitSummary` / `provenance` 字段非空校验、`latestReportId` 暂为 nil 占位、越权 / 软删返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`
+- [x] 2.4 实现 `updateTargetJob`；验证: handler tests 覆盖状态机合法迁移（`draft → preparing → applied → interviewing → offer | rejected → archived` + `archived` 兜底）、非法迁移返回 B1 `TARGET_INVALID_STATE_TRANSITION`、`Idempotency-Key` 跨用户隔离、仅写入非空字段、不修改 analysis_status
 
 ## Phase 3: Source ingestion (URL / file / manual)
 
