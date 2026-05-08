@@ -8,7 +8,7 @@ metadata:
   specVersion:
     from: null
     to: 1.4
-  baseBranch: dev
+  baseBranch: main
   branch: backend-worker-consolidation
 spec:
   defaultTarget: repo

@@ -132,7 +132,7 @@ def _resolve_history_ref(repo_root: Path, requested_ref: str, config: Dict[str, 
         return requested_ref
 
     tooling = config.get("tooling") or {}
-    configured_base = tooling.get("historyDiffBase") or "dev"
+    configured_base = tooling.get("historyDiffBase") or "main"
     candidates: List[str] = []
     for ref in (
         configured_base,

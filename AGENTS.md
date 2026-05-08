@@ -247,7 +247,7 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 
 ## 7 Git 分支策略
 
-- 默认父分支: dev（优先自动探测；若未配置则使用当前主开发分支）
+- 默认父分支: main（优先自动探测；若未配置则使用当前主开发分支）
 - `/implement` 自动从父分支创建 feature branch
 - 创建 feature branch 前必须先更新父分支到最新远端状态；更新必须采用 fast-forward-only 语义，失败时停止并报告，不得从过期父分支派生新分支
 - phase commit 只在当前 feature branch 上提交并记录工作日志，默认不自动 merge / ff-merge 回父分支

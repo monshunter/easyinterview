@@ -53,7 +53,7 @@ until that decision is recorded.
 | `OpenAPITools/openapi-diff` (可选) | 暂未启用 | wrapper 直接实现 spec §4.4 规则；如未来引入 OpenAPITools CLI，需在 [openapi/diff-config.yaml](../diff-config.yaml) `tooling` 中固定版本，且 wrapper 仍持有最终退出码 |
 
 `make openapi-diff` 默认使用 [openapi/diff-config.yaml](../diff-config.yaml)
-中的 `tooling.historyDiffBase`（当前为 `dev`）与 `HEAD` 的 merge-base 作为
+中的 `tooling.historyDiffBase`（当前为 `main`）与 `HEAD` 的 merge-base 作为
 privacy export 白名单 history 增量比较基准；如果该 ref 不存在，会回退到
 `main` / `master` 候选，最后才回退 `HEAD`。需要复现旧自检或临时指定基准时，
 使用 `HISTORY_REF=<git-ref> make openapi-diff`。

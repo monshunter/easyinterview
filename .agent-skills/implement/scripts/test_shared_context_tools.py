@@ -276,7 +276,7 @@ def test_validate_context_includes_optional_branch_metadata(tmp_path):
     docs_root, _, context_path = _write_context_fixture(
         tmp_path,
         metadata_overrides={
-            "baseBranch": "dev",
+            "baseBranch": "main",
             "branch": "execution-automation-closure",
         },
     )
@@ -287,7 +287,7 @@ def test_validate_context_includes_optional_branch_metadata(tmp_path):
         target="backend",
     )
 
-    assert result["baseBranch"] == "dev"
+    assert result["baseBranch"] == "main"
     assert result["branch"] == "execution-automation-closure"
 
 
@@ -399,7 +399,7 @@ def test_generate_context_yaml_preserves_branch_metadata(tmp_path):
     docs_root, plan_dir, context_path = _write_context_fixture(
         tmp_path,
         metadata_overrides={
-            "baseBranch": "dev",
+            "baseBranch": "main",
             "branch": "execution-automation-closure",
         },
     )
@@ -415,7 +415,7 @@ def test_generate_context_yaml_preserves_branch_metadata(tmp_path):
     config = generator.merge_preserved_discovery(config, existing)
     rendered = yaml.safe_load(generator.format_yaml("001-backend", config))
 
-    assert rendered["metadata"]["baseBranch"] == "dev"
+    assert rendered["metadata"]["baseBranch"] == "main"
     assert rendered["metadata"]["branch"] == "execution-automation-closure"
 
 
