@@ -59,6 +59,8 @@ env/
 *.pem
 *.key
 secrets/
+!backend/internal/platform/secrets/
+!backend/internal/platform/secrets/**
 .secret/
 
 # A4 secrets-and-config red lines

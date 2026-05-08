@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/monshunter/easyinterview/backend/internal/shared/events"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
@@ -485,9 +486,9 @@ func (s *SQLStore) ListTargetJobsForUser(ctx context.Context, userID string, fil
 		pageSize = ListMaxPageSize
 	}
 	var (
-		args      []any
-		clauses   []string
-		nextArg   = func(v any) string {
+		args    []any
+		clauses []string
+		nextArg = func(v any) string {
 			args = append(args, v)
 			return fmt.Sprintf("$%d", len(args))
 		}
@@ -692,7 +693,7 @@ where id = $5 and deleted_at is null`,
 // target_job_requirements + outbox_events + async_jobs) atomically. It
 // dedupes by (user_id, idempotency_key) hashed into in.DedupeKey: if an
 // existing async_jobs row with the same dedupe_key and job_type
-// 'target_import' is found, the result wraps that row instead of inserting
+// a TargetImport job is found, the result wraps that row instead of inserting
 // a new TargetJob (see spec C-12 / D-6).
 //
 // Source variant contract:
@@ -814,7 +815,7 @@ insert into outbox_events (
   id, event_name, event_version, aggregate_type, aggregate_id, payload, publish_status, created_at
 ) values ($1,$2,$3,$4,$5,$6,$7,$8)`,
 			in.OutboxEventID,
-			"target.import.requested",
+			string(events.EventNameTargetImportRequested),
 			1,
 			"target_job",
 			in.TargetJobID,
@@ -881,11 +882,11 @@ insert into async_jobs (
 
 func (s *SQLStore) lookupExistingImport(ctx context.Context, dedupeKey string) (ImportTargetJobResult, bool, error) {
 	var (
-		jobID        string
-		resourceID   string
-		statusStr    string
-		createdAt    time.Time
-		updatedAt    time.Time
+		jobID      string
+		resourceID string
+		statusStr  string
+		createdAt  time.Time
+		updatedAt  time.Time
 	)
 	err := s.db.QueryRowContext(ctx, `
 select id, resource_id, status, created_at, updated_at
@@ -900,7 +901,7 @@ limit 1`,
 		return ImportTargetJobResult{}, false, nil
 	}
 	if err != nil {
-		return ImportTargetJobResult{}, false, fmt.Errorf("lookup existing target_import: %w", err)
+		return ImportTargetJobResult{}, false, fmt.Errorf("lookup existing %s: %w", jobs.JobTypeTargetImport, err)
 	}
 	return ImportTargetJobResult{
 		TargetJobID:  resourceID,
@@ -950,8 +951,8 @@ returning id, job_type, resource_type, resource_id, payload, attempts, max_attem
 		strings.Join(placeholders, ","),
 	)
 	var (
-		claimed     ClaimedJob
-		payload     []byte
+		claimed ClaimedJob
+		payload []byte
 	)
 	err := s.db.QueryRowContext(ctx, query, args...).Scan(
 		&claimed.JobID,
@@ -1065,12 +1066,12 @@ insert into async_jobs (
 
 // WriteTargetParsedOutbox inserts a target.parsed event row.
 func (s *SQLStore) WriteTargetParsedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error {
-	return s.writeOutbox(ctx, eventID, "target.parsed", targetJobID, payload, now)
+	return s.writeOutbox(ctx, eventID, string(events.EventNameTargetParsed), targetJobID, payload, now)
 }
 
 // WriteParseFailedOutbox inserts a target.analysis.failed event row.
 func (s *SQLStore) WriteParseFailedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error {
-	return s.writeOutbox(ctx, eventID, "target.analysis.failed", targetJobID, payload, now)
+	return s.writeOutbox(ctx, eventID, string(events.EventNameTargetAnalysisFailed), targetJobID, payload, now)
 }
 
 func (s *SQLStore) writeOutbox(ctx context.Context, eventID, eventName, targetJobID string, payload []byte, now time.Time) error {

@@ -57,7 +57,7 @@ type ParseExecutorOptions struct {
 	Now      func() time.Time
 }
 
-// ParseExecutor is the JobHandler for the `target_import` async job type.
+// ParseExecutor is the JobHandler for the TargetImport async job type.
 type ParseExecutor struct {
 	store    Store
 	registry PromptRegistryClient
@@ -86,12 +86,12 @@ func NewParseExecutor(opts ParseExecutorOptions) *ParseExecutor {
 // drift from this shape surfaces as AI_OUTPUT_INVALID (non-retryable). The
 // upstream prompt is owned by F3 so the schema lives here as the consumer.
 type parseAIResponse struct {
-	CoreThemes          []string                  `json:"coreThemes"`
-	InterviewHypotheses []string                  `json:"interviewHypotheses"`
-	Strengths           []string                  `json:"strengths"`
-	Gaps                []string                  `json:"gaps"`
-	RiskSignals         []string                  `json:"riskSignals"`
-	Requirements        []parseAIResponseReq      `json:"requirements"`
+	CoreThemes          []string             `json:"coreThemes"`
+	InterviewHypotheses []string             `json:"interviewHypotheses"`
+	Strengths           []string             `json:"strengths"`
+	Gaps                []string             `json:"gaps"`
+	RiskSignals         []string             `json:"riskSignals"`
+	Requirements        []parseAIResponseReq `json:"requirements"`
 }
 
 type parseAIResponseReq struct {
