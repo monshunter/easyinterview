@@ -69,8 +69,8 @@ func TestE2EP0010TextImportParseReady(t *testing.T) {
 	if !outcome.Succeeded {
 		t.Fatalf("parse outcome = %+v", outcome)
 	}
-	if parseStore.applyResultIn == nil || parseStore.applyResultIn.LatestParseJobID != "018f2a40-0000-7000-9000-0000000000f1" {
-		t.Fatalf("parse result did not persist latest job id: %+v", parseStore.applyResultIn)
+	if parseStore.completeSuccessIn == nil || len(parseStore.completeSuccessIn.Requirements) == 0 {
+		t.Fatalf("parse result did not commit ready state atomically: %+v", parseStore.completeSuccessIn)
 	}
 	assertPayloadOmits(t, parseStore.parsedOutboxPayload, "Lead React platform", "prompt", "response")
 	if !parseStore.sourceRefreshCalled {
@@ -87,12 +87,12 @@ func TestE2EP0010TextImportParseReady(t *testing.T) {
 		CompanyName:    "Acme",
 		TargetLanguage: "zh-CN",
 		SourceType:     targetjob.SourceTypeManualText,
-		Summary:        parseStore.applyResultIn.Summary,
-		FitSummary:     parseStore.applyResultIn.FitSummary,
+		Summary:        parseStore.completeSuccessIn.Summary,
+		FitSummary:     parseStore.completeSuccessIn.FitSummary,
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}
-	store.getRequirements = parseStore.applyResultIn.Requirements
+	store.getRequirements = parseStore.completeSuccessIn.Requirements
 	detail, err := svc.GetTargetJob(context.Background(), scenarioUserID, imported.TargetJobID)
 	if err != nil {
 		t.Fatalf("get target job: %v", err)

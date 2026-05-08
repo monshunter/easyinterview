@@ -147,13 +147,37 @@ type UpdateLifecycleFields struct {
 // ApplyParseResultInput is the parse-pipeline output the store will merge in
 // a single transaction with the target_jobs analysis-status / summary fields.
 type ApplyParseResultInput struct {
-	TargetJobID      string
-	AnalysisStatus   sharedtypes.TargetJobParseStatus
-	Summary          json.RawMessage
-	FitSummary       json.RawMessage
-	LatestParseJobID string
-	Requirements     []RequirementRecord
-	Now              time.Time
+	TargetJobID    string
+	AnalysisStatus sharedtypes.TargetJobParseStatus
+	Summary        json.RawMessage
+	FitSummary     json.RawMessage
+	Requirements   []RequirementRecord
+	Now            time.Time
+}
+
+// CompleteParseSuccessInput is the parse executor's success-side commit
+// bundle. The store applies target_jobs, requirements, target.parsed outbox,
+// and the source_refresh placeholder in one database transaction.
+type CompleteParseSuccessInput struct {
+	TargetJobID        string
+	AnalysisStatus     sharedtypes.TargetJobParseStatus
+	Summary            json.RawMessage
+	FitSummary         json.RawMessage
+	Requirements       []RequirementRecord
+	ParsedEventID      string
+	ParsedEventPayload []byte
+	SourceRefreshJobID string
+	Now                time.Time
+}
+
+// CompleteParseFailureInput is the parse executor's failure-side commit
+// bundle. The analysis_status flip and target.analysis.failed outbox event
+// are written atomically so consumers never observe split-brain state.
+type CompleteParseFailureInput struct {
+	TargetJobID        string
+	FailedEventID      string
+	FailedEventPayload []byte
+	Now                time.Time
 }
 
 // ImportTargetJobInput is the input to the compound ImportTargetJob store
@@ -260,6 +284,8 @@ type Store interface {
 	LookupUpdateDedupe(ctx context.Context, userID string, dedupeKey string) (TargetJobRecord, []RequirementRecord, bool, error)
 	UpdateTargetJobLifecycle(ctx context.Context, userID string, targetJobID string, fields UpdateLifecycleFields, now time.Time) (TargetJobRecord, error)
 	ApplyParseResult(ctx context.Context, in ApplyParseResultInput) error
+	CompleteParseSuccess(ctx context.Context, in CompleteParseSuccessInput) error
+	CompleteParseFailure(ctx context.Context, in CompleteParseFailureInput) error
 	UpdateSourceFreshness(ctx context.Context, targetJobID string, freshness FreshnessStatus, now time.Time) error
 	UpdateSourceSnapshot(ctx context.Context, sourceID string, sanitizedURL string, snapshotText string, fetchedAt time.Time, now time.Time) error
 	LookupFileAttachmentForUser(ctx context.Context, userID string, fileObjectID string) (FileAttachmentRecord, error)
@@ -803,6 +829,86 @@ func (s *SQLStore) ApplyParseResult(ctx context.Context, in ApplyParseResultInpu
 	}
 	defer tx.Rollback()
 
+	if err := s.applyParseResultTx(ctx, tx, in); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit apply parse result: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLStore) CompleteParseSuccess(ctx context.Context, in CompleteParseSuccessInput) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin complete parse success: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := s.applyParseResultTx(ctx, tx, ApplyParseResultInput{
+		TargetJobID:    in.TargetJobID,
+		AnalysisStatus: in.AnalysisStatus,
+		Summary:        in.Summary,
+		FitSummary:     in.FitSummary,
+		Requirements:   in.Requirements,
+		Now:            in.Now,
+	}); err != nil {
+		return err
+	}
+	if err := s.writeOutboxTx(ctx, tx, in.ParsedEventID, string(events.EventNameTargetParsed), in.TargetJobID, in.ParsedEventPayload, in.Now); err != nil {
+		return err
+	}
+	if in.SourceRefreshJobID != "" {
+		if err := s.enqueueSourceRefreshTx(ctx, tx, in.SourceRefreshJobID, in.TargetJobID, in.Now); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit complete parse success: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLStore) CompleteParseFailure(ctx context.Context, in CompleteParseFailureInput) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin complete parse failure: %w", err)
+	}
+	defer tx.Rollback()
+
+	res, err := tx.ExecContext(ctx, `
+update target_jobs
+set analysis_status = 'failed', updated_at = $1
+where id = $2 and deleted_at is null`,
+		in.Now,
+		in.TargetJobID,
+	)
+	if err != nil {
+		return fmt.Errorf("update target_jobs analysis_status=failed: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("complete parse failure rows affected: %w", err)
+	}
+	if rows == 0 {
+		return ErrTargetJobNotFound
+	}
+	if err := s.writeOutboxTx(ctx, tx, in.FailedEventID, string(events.EventNameTargetAnalysisFailed), in.TargetJobID, in.FailedEventPayload, in.Now); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit complete parse failure: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLStore) applyParseResultTx(ctx context.Context, tx *sql.Tx, in ApplyParseResultInput) error {
 	existing, err := s.listRequirementsForJobTx(ctx, tx, in.TargetJobID)
 	if err != nil {
 		return err
@@ -852,13 +958,11 @@ update target_jobs
 set analysis_status = $1,
     summary = $2,
     fit_summary = $3,
-    latest_parse_job_id = $4,
-    updated_at = $5
-where id = $6 and deleted_at is null`,
+    updated_at = $4
+where id = $5 and deleted_at is null`,
 		string(in.AnalysisStatus),
 		nullJSON(in.Summary),
 		nullJSON(in.FitSummary),
-		nullableUUID(in.LatestParseJobID),
 		in.Now,
 		in.TargetJobID,
 	)
@@ -871,9 +975,6 @@ where id = $6 and deleted_at is null`,
 	}
 	if rows == 0 {
 		return ErrTargetJobNotFound
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit apply parse result: %w", err)
 	}
 	return nil
 }
@@ -1242,7 +1343,11 @@ func (s *SQLStore) EnqueueSourceRefresh(ctx context.Context, jobID string, targe
 	if err := s.checkDB(); err != nil {
 		return err
 	}
-	_, err := s.db.ExecContext(ctx, `
+	return s.enqueueSourceRefreshTx(ctx, s.db, jobID, targetJobID, now)
+}
+
+func (s *SQLStore) enqueueSourceRefreshTx(ctx context.Context, exec execer, jobID string, targetJobID string, now time.Time) error {
+	_, err := exec.ExecContext(ctx, `
 insert into async_jobs (
   id, job_type, resource_type, resource_id, dedupe_key, status, payload,
   available_at, created_at, updated_at
@@ -1272,7 +1377,11 @@ func (s *SQLStore) writeOutbox(ctx context.Context, eventID, eventName, targetJo
 	if err := s.checkDB(); err != nil {
 		return err
 	}
-	_, err := s.db.ExecContext(ctx, `
+	return s.writeOutboxTx(ctx, s.db, eventID, eventName, targetJobID, payload, now)
+}
+
+func (s *SQLStore) writeOutboxTx(ctx context.Context, exec execer, eventID, eventName, targetJobID string, payload []byte, now time.Time) error {
+	_, err := exec.ExecContext(ctx, `
 insert into outbox_events (
   id, event_name, event_version, aggregate_type, aggregate_id, payload, publish_status, created_at
 ) values ($1, $2, 1, 'target_job', $3, $4, 'pending', $5)`,
@@ -1475,6 +1584,10 @@ type rowScanner interface {
 
 type rowQueryer interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+type execer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
 func scanTargetJobRow(scanner rowScanner) (TargetJobRecord, error) {

@@ -195,18 +195,6 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	})
 
 	now := p.now()
-	if err := p.store.ApplyParseResult(ctx, ApplyParseResultInput{
-		TargetJobID:      targetJobID,
-		AnalysisStatus:   sharedtypes.TargetJobParseStatusReady,
-		Summary:          summary,
-		FitSummary:       fitSummary,
-		LatestParseJobID: job.JobID,
-		Requirements:     requirements,
-		Now:              now,
-	}); err != nil {
-		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, err.Error(), true)
-	}
-
 	parsedPayload, err := BuildTargetParsedPayload(TargetParsedInput{
 		TargetJobID:      targetJobID,
 		UserID:           target.UserID,
@@ -218,15 +206,22 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, err.Error(), false)
 	}
 	rawParsed, _ := json.Marshal(parsedPayload)
-	if err := p.store.WriteTargetParsedOutbox(ctx, p.newID(), targetJobID, rawParsed, now); err != nil {
-		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, err.Error(), true)
-	}
-
-	// 4.5: enqueue source_refresh placeholder; failure here does not roll
-	// back the parse, but we surface it so observability sees the gap.
-	if err := p.store.EnqueueSourceRefresh(ctx, p.newID(), targetJobID, now); err != nil {
-		// Log-style non-fatal: still succeed but record the issue.
-		_ = err
+	if err := p.store.CompleteParseSuccess(ctx, CompleteParseSuccessInput{
+		TargetJobID:        targetJobID,
+		AnalysisStatus:     sharedtypes.TargetJobParseStatusReady,
+		Summary:            summary,
+		FitSummary:         fitSummary,
+		Requirements:       requirements,
+		ParsedEventID:      p.newID(),
+		ParsedEventPayload: rawParsed,
+		SourceRefreshJobID: p.newID(),
+		Now:                now,
+	}); err != nil {
+		return JobOutcome{
+			ErrorCode:    sharederrors.CodeTargetImportFailed,
+			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
+			Retryable:    true,
+		}
 	}
 
 	return JobOutcome{Succeeded: true}
@@ -265,18 +260,30 @@ func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRe
 
 func (p *ParseExecutor) fail(ctx context.Context, targetJobID, code, message string, retryable bool) JobOutcome {
 	now := p.now()
-	if err := p.store.UpdateTargetJobAnalysisFailure(ctx, targetJobID, now); err != nil {
-		// stay with the original failure outcome regardless
-		_ = err
-	}
 	payload, err := BuildTargetAnalysisFailedPayload(TargetAnalysisFailedInput{
 		TargetJobID: targetJobID,
 		ErrorCode:   code,
 		Retryable:   retryable,
 	})
-	if err == nil {
-		raw, _ := json.Marshal(payload)
-		_ = p.store.WriteParseFailedOutbox(ctx, p.newID(), targetJobID, raw, now)
+	if err != nil {
+		return JobOutcome{
+			ErrorCode:    sharederrors.CodeTargetImportFailed,
+			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
+			Retryable:    true,
+		}
+	}
+	raw, _ := json.Marshal(payload)
+	if err := p.store.CompleteParseFailure(ctx, CompleteParseFailureInput{
+		TargetJobID:        targetJobID,
+		FailedEventID:      p.newID(),
+		FailedEventPayload: raw,
+		Now:                now,
+	}); err != nil {
+		return JobOutcome{
+			ErrorCode:    sharederrors.CodeTargetImportFailed,
+			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
+			Retryable:    true,
+		}
 	}
 	return JobOutcome{
 		ErrorCode:    code,

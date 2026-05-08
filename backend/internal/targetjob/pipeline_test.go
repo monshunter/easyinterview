@@ -26,6 +26,10 @@ type pipelineFakeStore struct {
 	getErr              error
 	applyResultIn       *targetjob.ApplyParseResultInput
 	applyResultErr      error
+	completeSuccessIn   *targetjob.CompleteParseSuccessInput
+	completeSuccessErr  error
+	completeFailureIn   *targetjob.CompleteParseFailureInput
+	completeFailureErr  error
 	parsedOutboxPayload []byte
 	failedOutboxPayload []byte
 	sourceRefreshCalled bool
@@ -62,6 +66,25 @@ func (s *pipelineFakeStore) ApplyParseResult(_ context.Context, in targetjob.App
 	cp := in
 	s.applyResultIn = &cp
 	return s.applyResultErr
+}
+func (s *pipelineFakeStore) CompleteParseSuccess(_ context.Context, in targetjob.CompleteParseSuccessInput) error {
+	cp := in
+	s.completeSuccessIn = &cp
+	if len(in.ParsedEventPayload) > 0 {
+		s.parsedOutboxPayload = append([]byte{}, in.ParsedEventPayload...)
+	}
+	if in.SourceRefreshJobID != "" {
+		s.sourceRefreshCalled = true
+	}
+	return s.completeSuccessErr
+}
+func (s *pipelineFakeStore) CompleteParseFailure(_ context.Context, in targetjob.CompleteParseFailureInput) error {
+	cp := in
+	s.completeFailureIn = &cp
+	if len(in.FailedEventPayload) > 0 {
+		s.failedOutboxPayload = append([]byte{}, in.FailedEventPayload...)
+	}
+	return s.completeFailureErr
 }
 func (s *pipelineFakeStore) UpdateSourceFreshness(_ context.Context, _ string, status targetjob.FreshnessStatus, _ time.Time) error {
 	s.sourceFreshnessUpd = string(status)
@@ -227,11 +250,11 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 	if !outcome.Succeeded {
 		t.Fatalf("happy path must succeed, got %+v", outcome)
 	}
-	if store.applyResultIn == nil || len(store.applyResultIn.Requirements) != 2 {
-		t.Fatalf("expected 2 requirements applied, got %+v", store.applyResultIn)
+	if store.completeSuccessIn == nil || len(store.completeSuccessIn.Requirements) != 2 {
+		t.Fatalf("expected 2 requirements applied atomically, got %+v", store.completeSuccessIn)
 	}
-	if store.applyResultIn.LatestParseJobID != "j-1" {
-		t.Fatalf("latest parse job id = %q", store.applyResultIn.LatestParseJobID)
+	if store.applyResultIn != nil {
+		t.Fatalf("parse executor must not apply results before atomic outbox write: %+v", store.applyResultIn)
 	}
 	if ai.lastProfileName != "target.import.default" {
 		t.Fatalf("profileName = %q", ai.lastProfileName)
@@ -248,6 +271,36 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 	}
 	if !store.sourceRefreshCalled {
 		t.Fatal("source_refresh placeholder not enqueued")
+	}
+}
+
+func TestParseExecutor_SuccessCommitFailureDoesNotWriteFailureAfterPartialSuccess(t *testing.T) {
+	exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+	ai.resp = aiclient.CompleteResponse{Content: happyResponseJSON}
+	store.completeSuccessErr = errors.New("outbox unavailable")
+	store.target = targetjob.TargetJobRecord{
+		ID:             "tgt-1",
+		UserID:         "user-1",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "en",
+		RawJDText:      "JD text",
+	}
+
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
+	})
+
+	if outcome.Succeeded || outcome.ErrorCode != "TARGET_IMPORT_FAILED" || !outcome.Retryable {
+		t.Fatalf("atomic success commit failure must be retryable TARGET_IMPORT_FAILED, got %+v", outcome)
+	}
+	if store.completeSuccessIn == nil {
+		t.Fatal("success side effects were not delegated to the atomic store method")
+	}
+	if store.updateAnalysisFail != 0 || store.completeFailureIn != nil {
+		t.Fatalf("must not write analysis.failed after a failed success transaction: updateFail=%d failure=%+v", store.updateAnalysisFail, store.completeFailureIn)
+	}
+	if store.applyResultIn != nil {
+		t.Fatalf("parse result was applied outside the atomic success transaction: %+v", store.applyResultIn)
 	}
 }
 
@@ -347,8 +400,8 @@ func TestParseExecutor_URLFetchBodyIsPersistedAndParsed(t *testing.T) {
 	if store.sourceSnapshotURL != "https://jobs.example.com/role/1" {
 		t.Fatalf("sanitized source URL = %q", store.sourceSnapshotURL)
 	}
-	if store.applyResultIn == nil || len(store.applyResultIn.Requirements) == 0 {
-		t.Fatalf("parse result was not applied from fetched URL body: %+v", store.applyResultIn)
+	if store.completeSuccessIn == nil || len(store.completeSuccessIn.Requirements) == 0 {
+		t.Fatalf("parse result was not applied from fetched URL body: %+v", store.completeSuccessIn)
 	}
 }
 

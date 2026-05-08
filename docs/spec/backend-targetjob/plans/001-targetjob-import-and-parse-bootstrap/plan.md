@@ -65,7 +65,7 @@ F1 metrics dictionary 必须登记 `target_job_imports_total`、`target_job_pars
 
 #### 1.1 锁定 store 接口与 SQL 实现
 
-复用 B4 baseline 的 `target_jobs` / `target_job_requirements` / `target_job_sources` 三张表与现有索引。store 接口必须覆盖：插入 target_job（含初始 `analysis_status='queued'` 或 `'ready'`）、读取按 `(user_id, id)`、列表按 `(user_id, status, analysis_status, q, cursor, page_size)`、更新生命周期字段、写入 requirements 批量、更新 `analysis_status` + `latest_parse_job_id` + `summary` + `fit_summary`、写入 / 更新 `target_job_sources`。所有方法必须按 `user_id` 过滤；越权返回 `sql.ErrNoRows` 等价语义，handler 层映射为 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`。不新增 migration；如需新列必须先停止并修订 [B4](../../../db-migrations-baseline/spec.md)。
+复用 B4 baseline 的 `target_jobs` / `target_job_requirements` / `target_job_sources` 三张表与现有索引。store 接口必须覆盖：插入 target_job（含初始 `analysis_status='queued'` 或 `'ready'`）、读取按 `(user_id, id)`、列表按 `(user_id, status, analysis_status, q, cursor, page_size)`、更新生命周期字段、写入 requirements 批量、更新 `analysis_status` + `summary` + `fit_summary`、写入 / 更新 `target_job_sources`，并提供解析成功 / 失败的原子提交方法。所有方法必须按 `user_id` 过滤；越权返回 `sql.ErrNoRows` 等价语义，handler 层映射为 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`。不新增 migration；如需新列必须先停止并修订 [B4](../../../db-migrations-baseline/spec.md)。
 
 #### 1.2 锁定 config / secret 边界
 
@@ -119,11 +119,11 @@ F1 metrics dictionary 必须登记 `target_job_imports_total`、`target_job_pars
 
 #### 4.3 写入解析结果与发出 `target.parsed`
 
-事务内 upsert `target_job_requirements`（按 `(target_job_id, kind, label)` 去重，`display_order` 累加）；更新 `target_jobs.summary` / `fit_summary` / `analysis_status='ready'` / `latest_parse_job_id`；事务内 outbox 写入 `target.parsed` 事件（payload 仅 `targetJobId / userId / analysisStatus / requirementCount / coreThemes`）。事务外不再读取 AI response 明文。
+事务内 upsert `target_job_requirements`（按 `(target_job_id, kind, label)` 去重，`display_order` 累加）；更新 `target_jobs.summary` / `fit_summary` / `analysis_status='ready'`；事务内 outbox 写入 `target.parsed` 事件（payload 仅 `targetJobId / userId / analysisStatus / requirementCount / coreThemes`），并写入 `source_refresh` 占位 async job。事务外不再读取 AI response 明文。
 
 #### 4.4 实现失败路径与 retryable 语义
 
-A3 / source 错误映射：`AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` → `retryable=true`；`AI_OUTPUT_INVALID` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID` / `TARGET_IMPORT_SOURCE_INVALID` → `retryable=false`。事务内更新 `target_jobs.analysis_status='failed'` + `latest_parse_job_id` 不变；outbox 写入 `target.analysis.failed` 事件（`targetJobId / errorCode / retryable`）。失败不删除已写入的 `target_job_sources` 记录，保证用户可重新 import。
+A3 / source 错误映射：`AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` → `retryable=true`；`AI_OUTPUT_INVALID` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID` / `TARGET_IMPORT_SOURCE_INVALID` → `retryable=false`。事务内更新 `target_jobs.analysis_status='failed'` 并写入 `target.analysis.failed` outbox 事件（`targetJobId / errorCode / retryable`）。失败不删除已写入的 `target_job_sources` 记录，保证用户可重新 import。
 
 #### 4.5 占位 `source_refresh` 触发入口
 
@@ -171,9 +171,9 @@ privacy grep 必须覆盖：log / metric label / audit / outbox payload / async 
 
 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 在迁移到真实 HTTP 场景前不得再标记为 completed。脚本若仍走包级 focused tests，必须显式阻断或标注 proxy-only，防止未来 L2 review 把包级证据误读为真实 BDD 通过。
 
-#### 7.4 `cmd/api` runtime drainer blocker
+#### 7.4 `cmd/api` runtime drainer wiring remediation
 
-`cmd/api` 当前只注册 TargetJob HTTP handler / service / store，尚未把 `target_import` / `source_refresh` drainer、`ParseExecutor`、F3 prompt/rubric runtime client、A3 AI runtime client 与 `urlfetch` 组装到 API 进程。F3 runtime package 未在当前 backend code truth source 中提供可消费实现前，本计划不能恢复 completed；完成条件是 `cmd/api` 进程内真实 drain `target_import`，并由 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` 通过 HTTP 场景证明。
+`cmd/api` 必须在同一进程中组装 `target_import` / `source_refresh` drainer、`ParseExecutor`、A3 AI runtime client、`urlfetch` 与 F3 `target.import.parse` contract bridge。当前 backend truth source 仍未提供可消费的 F3 prompt/rubric runtime package，因此 runtime wiring 可用静态 contract bridge 先闭合启动路径；真实 HTTP BDD 仍必须等 F3 runtime package 或场景注入能力到位后再完成。
 
 ## 5 验收标准
 
@@ -197,4 +197,4 @@ privacy grep 必须覆盖：log / metric label / audit / outbox payload / async 
 | Idempotency 被跨用户复用 | Phase 5.3 store-level user-scoped dedupe + handler 层 user_id 过滤 + 越权返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND` |
 | 旧 `feature_key` / 旧 voice / 旧 mistake 模块在 review 中悄悄回潮 | Phase 6.3 active-scope 负向搜索 + plan-code-review L2 检查 |
 | `manual_form` 草稿 requirements 质量低 | 仅作为 P0 兜底；后续若产品要求细化，由独立 plan 处理，不在本 plan 引入 AI 重解析 |
-| `cmd/api` 缺真实 TargetJob drainer / F3 runtime wiring 导致 BDD 代理证据误报 | Phase 7.3 / 7.4 重新打开 BDD gate；在 F3 runtime 可消费实现到位前保持计划 active，并阻断包级代理脚本冒充场景通过 |
+| 真实 HTTP BDD 仍缺 F3 prompt/rubric runtime 注入能力，容易被包级代理证据误报 | Phase 7.3 重新打开 BDD gate；Phase 7.4 先闭合 `cmd/api` runtime wiring；在 F3 runtime 可消费实现或场景注入能力到位前保持计划 active，并阻断包级代理脚本冒充场景通过 |

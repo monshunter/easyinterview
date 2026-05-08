@@ -180,6 +180,63 @@ runtime:
 	}
 }
 
+func TestBuildTargetJobRuntimeWiresDrainerAndAIClient(t *testing.T) {
+	dir := t.TempDir()
+	providersPath := filepath.Join(dir, "ai-providers.yaml")
+	profilesPath := filepath.Join(dir, "ai-profiles.yaml")
+	writeAPIFile(t, providersPath, `
+providers:
+  - name: unit-test-stub
+    protocol: stub
+    capabilities: [chat]
+    version: 1.0.0
+`)
+	writeAPIFile(t, profilesPath, `
+profiles:
+  - name: target.import.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: unit-test-stub
+      model: stub-chat
+    fallback: []
+    timeout_ms: 1000
+    max_tokens: 256
+    rate_limit:
+      rps: 1
+      tpm: 1000
+    route: target.import
+    version: 1.0.0
+`)
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  providerRegistryPath: "`+providersPath+`"
+  modelProfilePath: "`+profilesPath+`"
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatalf("buildTargetJobRuntime: %v", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := runtime.Shutdown(shutdownCtx); err != nil {
+			t.Fatalf("Shutdown: %v", err)
+		}
+	}()
+	if runtime.Handler == nil || runtime.Drainer == nil || runtime.AI == nil || runtime.AI.Client == nil {
+		t.Fatalf("runtime missing handler/drainer/AI wiring: %+v", runtime)
+	}
+}
+
 func TestBuildAuthServiceRejectsEmptyAuthSecrets(t *testing.T) {
 	dir := t.TempDir()
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `

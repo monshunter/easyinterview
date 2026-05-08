@@ -99,6 +99,12 @@ func (f *fakeStore) LookupUpdateDedupe(_ context.Context, _ string, _ string) (t
 func (f *fakeStore) ApplyParseResult(context.Context, targetjob.ApplyParseResultInput) error {
 	panic("not used")
 }
+func (f *fakeStore) CompleteParseSuccess(context.Context, targetjob.CompleteParseSuccessInput) error {
+	panic("not used")
+}
+func (f *fakeStore) CompleteParseFailure(context.Context, targetjob.CompleteParseFailureInput) error {
+	panic("not used")
+}
 
 func (f *fakeStore) UpdateSourceFreshness(context.Context, string, targetjob.FreshnessStatus, time.Time) error {
 	panic("not used")

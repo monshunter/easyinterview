@@ -577,11 +577,10 @@ func TestSQLStore_ApplyParseResult_MergesByKindLabelAndAccumulatesDisplayOrder(t
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	mock.ExpectExec(`update target_jobs\s+set analysis_status = \$1,\s+summary = \$2,\s+fit_summary = \$3,\s+latest_parse_job_id = \$4,\s+updated_at = \$5\s+where id = \$6 and deleted_at is null`).
+	mock.ExpectExec(`update target_jobs\s+set analysis_status = \$1,\s+summary = \$2,\s+fit_summary = \$3,\s+updated_at = \$4\s+where id = \$5 and deleted_at is null`).
 		WithArgs("ready",
 			[]byte(`{"coreThemes":["api"]}`),
 			[]byte(`{}`),
-			"018f2a40-0000-7000-9000-0000000000f1",
 			now,
 			"018f2a40-0000-7000-9000-0000000000a1",
 		).
@@ -590,10 +589,9 @@ func TestSQLStore_ApplyParseResult_MergesByKindLabelAndAccumulatesDisplayOrder(t
 	mock.ExpectCommit()
 
 	in := targetjob.ApplyParseResultInput{
-		TargetJobID:      "018f2a40-0000-7000-9000-0000000000a1",
-		AnalysisStatus:   sharedtypes.TargetJobParseStatusReady,
-		Summary:          []byte(`{"coreThemes":["api"]}`),
-		LatestParseJobID: "018f2a40-0000-7000-9000-0000000000f1",
+		TargetJobID:    "018f2a40-0000-7000-9000-0000000000a1",
+		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
+		Summary:        []byte(`{"coreThemes":["api"]}`),
 		Requirements: []targetjob.RequirementRecord{
 			{ID: "018f2a40-0000-7000-9000-0000000000d2", Kind: targetjob.RequirementMustHave, Label: "Go"},
 			{ID: "018f2a40-0000-7000-9000-0000000000d3", Kind: targetjob.RequirementInterviewFocus, Label: "system design"},
@@ -602,6 +600,145 @@ func TestSQLStore_ApplyParseResult_MergesByKindLabelAndAccumulatesDisplayOrder(t
 	}
 	if err := store.ApplyParseResult(context.Background(), in); err != nil {
 		t.Fatalf("ApplyParseResult: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_CompleteParseSuccess_WritesReadyStateParsedOutboxAndSourceRefreshAtomically(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 15, 10, 0, 0, time.UTC)
+	targetID := "018f2a40-0000-7000-9000-0000000000a1"
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`from target_job_requirements`).
+		WithArgs(targetID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "target_job_id", "kind", "label", "description", "evidence_level", "display_order", "created_at"}))
+	mock.ExpectExec(`insert into target_job_requirements`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000d1",
+			targetID,
+			"must_have",
+			"Go",
+			nil,
+			"explicit",
+			int32(1),
+			now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`update target_jobs\s+set analysis_status = \$1,\s+summary = \$2,\s+fit_summary = \$3,\s+updated_at = \$4\s+where id = \$5 and deleted_at is null`).
+		WithArgs("ready", []byte(`{"coreThemes":["api"]}`), []byte(`{}`), now, targetID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into outbox_events`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000e1",
+			"target.parsed",
+			targetID,
+			[]byte(`{"targetJobId":"018f2a40-0000-7000-9000-0000000000a1"}`),
+			now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into async_jobs`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000f2",
+			"source_refresh",
+			targetID,
+			now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err := store.CompleteParseSuccess(context.Background(), targetjob.CompleteParseSuccessInput{
+		TargetJobID:        targetID,
+		AnalysisStatus:     sharedtypes.TargetJobParseStatusReady,
+		Summary:            []byte(`{"coreThemes":["api"]}`),
+		FitSummary:         []byte(`{}`),
+		ParsedEventID:      "018f2a40-0000-7000-9000-0000000000e1",
+		ParsedEventPayload: []byte(`{"targetJobId":"018f2a40-0000-7000-9000-0000000000a1"}`),
+		SourceRefreshJobID: "018f2a40-0000-7000-9000-0000000000f2",
+		Requirements: []targetjob.RequirementRecord{
+			{ID: "018f2a40-0000-7000-9000-0000000000d1", Kind: targetjob.RequirementMustHave, Label: "Go"},
+		},
+		Now: now,
+	})
+	if err != nil {
+		t.Fatalf("CompleteParseSuccess: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_CompleteParseSuccess_RollsBackWhenParsedOutboxInsertFails(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 15, 20, 0, 0, time.UTC)
+	targetID := "018f2a40-0000-7000-9000-0000000000a1"
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`from target_job_requirements`).
+		WithArgs(targetID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "target_job_id", "kind", "label", "description", "evidence_level", "display_order", "created_at"}))
+	mock.ExpectExec(`update target_jobs\s+set analysis_status = \$1,\s+summary = \$2,\s+fit_summary = \$3,\s+updated_at = \$4\s+where id = \$5 and deleted_at is null`).
+		WithArgs("ready", []byte(`{}`), []byte(`{}`), now, targetID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into outbox_events`).
+		WithArgs("018f2a40-0000-7000-9000-0000000000e1", "target.parsed", targetID, []byte(`{}`), now).
+		WillReturnError(errors.New("outbox unavailable"))
+	mock.ExpectRollback()
+
+	err := store.CompleteParseSuccess(context.Background(), targetjob.CompleteParseSuccessInput{
+		TargetJobID:        targetID,
+		AnalysisStatus:     sharedtypes.TargetJobParseStatusReady,
+		Summary:            []byte(`{}`),
+		FitSummary:         []byte(`{}`),
+		ParsedEventID:      "018f2a40-0000-7000-9000-0000000000e1",
+		ParsedEventPayload: []byte(`{}`),
+		SourceRefreshJobID: "018f2a40-0000-7000-9000-0000000000f2",
+		Now:                now,
+	})
+	if err == nil {
+		t.Fatal("expected outbox failure")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_CompleteParseFailure_WritesFailedStateAndOutboxAtomically(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 15, 25, 0, 0, time.UTC)
+	targetID := "018f2a40-0000-7000-9000-0000000000a1"
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`update target_jobs\s+set analysis_status = 'failed', updated_at = \$1\s+where id = \$2 and deleted_at is null`).
+		WithArgs(now, targetID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into outbox_events`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000e2",
+			"target.analysis.failed",
+			targetID,
+			[]byte(`{"targetJobId":"018f2a40-0000-7000-9000-0000000000a1","errorCode":"AI_OUTPUT_INVALID"}`),
+			now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err := store.CompleteParseFailure(context.Background(), targetjob.CompleteParseFailureInput{
+		TargetJobID:        targetID,
+		FailedEventID:      "018f2a40-0000-7000-9000-0000000000e2",
+		FailedEventPayload: []byte(`{"targetJobId":"018f2a40-0000-7000-9000-0000000000a1","errorCode":"AI_OUTPUT_INVALID"}`),
+		Now:                now,
+	})
+	if err != nil {
+		t.Fatalf("CompleteParseFailure: %v", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
@@ -622,7 +759,6 @@ func TestSQLStore_ApplyParseResult_NotFoundForSoftDeletedTarget(t *testing.T) {
 		WithArgs("failed",
 			[]byte(`{}`),
 			[]byte(`{}`),
-			nil,
 			now,
 			"018f2a40-0000-7000-9000-0000000000a1",
 		).
