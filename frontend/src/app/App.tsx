@@ -31,6 +31,9 @@ import {
   type AppRuntimeProviderProps,
   type AppRuntimeValue,
 } from "./runtime/AppRuntimeProvider";
+import { HomeScreen } from "./screens/home/HomeScreen";
+import { JDMatchScreen } from "./screens/jd_match/JDMatchScreen";
+import { ParseScreen } from "./screens/parse/ParseScreen";
 import { PlaceholderScreen } from "./screens/PlaceholderScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
@@ -69,14 +72,23 @@ function renderRouteScreen(
   runtime: AppRuntimeValue | null,
   lang: Lang,
 ): ReactNode {
-  // Profile / Settings shells are pure UI and do not depend on runtime; render
-  // them whether or not a client is mounted so D2-D6 owners can iterate
-  // without the auth bootstrap.
+  // Profile / Settings / Home shells are pure UI and do not depend on
+  // runtime; render them whether or not a client is mounted so D2-D6 owners
+  // can iterate without the auth bootstrap.
   if (route.name === "profile") {
     return <ProfileScreen route={route} />;
   }
   if (route.name === "settings") {
     return <SettingsScreen route={route} />;
+  }
+  if (route.name === "home") {
+    return <HomeScreen route={route} />;
+  }
+  if (route.name === "jd_match") {
+    return <JDMatchScreen route={route} />;
+  }
+  if (route.name === "parse") {
+    return <ParseScreen route={route} />;
   }
   if (!runtime) {
     return <PlaceholderScreen route={route} />;

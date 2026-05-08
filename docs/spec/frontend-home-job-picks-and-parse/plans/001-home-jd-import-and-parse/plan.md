@@ -1,7 +1,7 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder
 
-> **版本**: 1.0
-> **状态**: active
+> **版本**: 1.1
+> **状态**: completed
 > **更新日期**: 2026-05-08
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -184,7 +184,7 @@ textarea paste 提交 → `source.type=manual_text`；upload 模态 Continue 先
 
 #### 3.4 Auth pending action
 
-未登录提交时调 `requestAuth({ type: "import_jd", route: "parse", params: { source }, label: "继续解析 JD" })`；登录成功后回到 home 并自动以保留的 form state 重新发起 importTargetJob。
+未登录提交时调 `requestAuth({ type: "import_jd", route: "home", params: { source, pendingImportId }, label: "继续解析 JD" })`；`pendingImportId` 只引用当前 SPA 会话内存中的待提交 source payload，不把 JD 原文 / source URL / rawDescription 写入 URL 或 localStorage；登录成功后回到 home 并自动以保留的 form state 重新发起 importTargetJob，成功后跳 parse。
 
 #### 3.5 Vitest
 
@@ -326,5 +326,5 @@ Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；Can
 | `eiCreateInterviewContext` 等价契约不 stable 导致 workspace 携带的 params 漂移 | 在 D1 已有 helper 之上抽 `frontend/src/app/navigation/interviewContext.ts` 集中契约；新增 unit test 锁定字段集合与回退默认值 |
 | jd_match P1 placeholder 后续被 plan 002 替换时 testid 漂移 | placeholder testid 命名锁定为 `jdmatch-placeholder-*`（不与未来 `jdmatch-recommendations-*` 冲突），plan 002 不需要改 D1 path |
 | Pixel parity 跨 fontsource 字体子像素差异（D3 retrospective 已识别） | 沿用 D3 经验：home / parse / jd_match 的 toHaveScreenshot 仅作 frontend 内部 regression（含 maxDiffPixels 阈值），不与 ui-design golden 跨字体源做硬 diff |
-| Auth pending action 在 paste 流恢复时表单 state 丢失 | 把待提交 source payload 存入 React state 并通过 D1 `pendingAction.params` 序列化；登录恢复时 deserialise 并自动重新发起 importTargetJob；新增 Vitest 测试锁定行为 |
+| Auth pending action 在 paste 流恢复时表单 state 丢失 | 把待提交 source payload 存入当前 SPA 会话内存，并只通过 D1 `pendingAction.params` 序列化 opaque `pendingImportId`；登录恢复时消费内存 payload 并自动重新发起 importTargetJob；新增 Vitest 测试锁定行为，同时负向断言 JD 原文 / source URL 不进入 URL 或 localStorage |
 | 旧 prototype data 渗透（开发者从 `ui-design/src/screen-home.jsx` 复制粘贴时把 `D.targetJobs` / `D.jdSample` 一并带过来） | Vitest negative grep + `eslint-rules` 反查（`no-restricted-imports` 限制 `ui-design/`）；scenario verify 阶段 grep `EI_DATA` / `targetJobs` literal |

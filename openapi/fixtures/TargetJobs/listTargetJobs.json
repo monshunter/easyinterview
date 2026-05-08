@@ -180,6 +180,308 @@
           }
         }
       }
+    },
+    "empty": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_empty_variant"
+        },
+        "body": {
+          "items": [],
+          "pageInfo": {
+            "nextCursor": null,
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
+    },
+    "one-job": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_one_job_variant"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "01918fa0-0000-7000-8000-000000000001",
+              "status": "preparing",
+              "analysisStatus": "ready",
+              "title": "Software Engineer",
+              "companyName": "SingleCo",
+              "locationText": "Remote",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-05-01T00:00:00Z",
+              "updatedAt": "2026-05-08T00:00:00Z"
+            }
+          ],
+          "pageInfo": {
+            "nextCursor": null,
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
+    },
+    "twelve-plus": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_twelve_plus_variant"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a001",
+              "status": "draft",
+              "analysisStatus": "ready",
+              "title": "Job Alpha",
+              "companyName": "ManyCo",
+              "locationText": "City A",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-01T00:00:00Z",
+              "updatedAt": "2026-05-01T00:00:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a002",
+              "status": "preparing",
+              "analysisStatus": "ready",
+              "title": "Job Bravo",
+              "companyName": "ManyCo",
+              "locationText": "City B",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-02T00:00:00Z",
+              "updatedAt": "2026-05-02T00:00:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a003",
+              "status": "applied",
+              "analysisStatus": "ready",
+              "title": "Job Charlie",
+              "companyName": "ManyCo",
+              "locationText": "City C",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-03T00:00:00Z",
+              "updatedAt": "2026-05-03T00:00:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a004",
+              "status": "interviewing",
+              "analysisStatus": "ready",
+              "title": "Job Delta",
+              "companyName": "ManyCo",
+              "locationText": "City D",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-04T00:00:00Z",
+              "updatedAt": "2026-05-04T00:00:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a005",
+              "status": "offer",
+              "analysisStatus": "ready",
+              "title": "Job Echo",
+              "companyName": "ManyCo",
+              "locationText": "City E",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-05T00:00:00Z",
+              "updatedAt": "2026-05-05T00:00:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a006",
+              "status": "rejected",
+              "analysisStatus": "ready",
+              "title": "Job Foxtrot",
+              "companyName": "ManyCo",
+              "locationText": "City F",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-06T00:00:00Z",
+              "updatedAt": "2026-05-06T00:00:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a007",
+              "status": "draft",
+              "analysisStatus": "ready",
+              "title": "Job Golf",
+              "companyName": "ManyCo",
+              "locationText": "City G",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-07T00:00:00Z",
+              "updatedAt": "2026-05-07T00:00:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a008",
+              "status": "preparing",
+              "analysisStatus": "ready",
+              "title": "Job Hotel",
+              "companyName": "ManyCo",
+              "locationText": "City H",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-08T00:00:00Z",
+              "updatedAt": "2026-05-08T00:00:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a009",
+              "status": "applied",
+              "analysisStatus": "ready",
+              "title": "Job India",
+              "companyName": "ManyCo",
+              "locationText": "City I",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-09T00:00:00Z",
+              "updatedAt": "2026-05-09T00:00:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a010",
+              "status": "interviewing",
+              "analysisStatus": "ready",
+              "title": "Job Juliet",
+              "companyName": "ManyCo",
+              "locationText": "City J",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-10T00:00:00Z",
+              "updatedAt": "2026-05-10T00:00:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a011",
+              "status": "offer",
+              "analysisStatus": "ready",
+              "title": "Job Kilo",
+              "companyName": "ManyCo",
+              "locationText": "City K",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-11T00:00:00Z",
+              "updatedAt": "2026-05-11T00:00:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a012",
+              "status": "rejected",
+              "analysisStatus": "ready",
+              "title": "Job Lima",
+              "companyName": "ManyCo",
+              "locationText": "City L",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-12T00:00:00Z",
+              "updatedAt": "2026-05-12T00:00:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a013",
+              "status": "draft",
+              "analysisStatus": "ready",
+              "title": "Job Mike (excluded)",
+              "companyName": "ManyCo",
+              "locationText": "City M",
+              "targetLanguage": "en",
+              "sourceType": "manual_text",
+              "sourceUrl": null,
+              "summary": null,
+              "requirements": [],
+              "fitSummary": null,
+              "latestReportId": null,
+              "openQuestionIssueCount": 0,
+              "createdAt": "2026-04-13T00:00:00Z",
+              "updatedAt": "2026-05-13T00:00:00Z"
+            }
+          ],
+          "pageInfo": {
+            "nextCursor": null,
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
     }
   }
 }

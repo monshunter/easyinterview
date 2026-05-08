@@ -72,3 +72,15 @@ func TestActiveScopeNegativeSearchInUrlfetch(t *testing.T) {
 		}
 	}
 }
+
+func TestPackageDocReflectsCompletedScenarioGateState(t *testing.T) {
+	raw, err := os.ReadFile("doc.go")
+	if err != nil {
+		t.Fatalf("read doc.go: %v", err)
+	}
+	for _, stale := range []string{"remain unchecked", "scenarios stay parked", "until F3 lands"} {
+		if strings.Contains(string(raw), stale) {
+			t.Fatalf("doc.go still carries stale BDD handoff state %q", stale)
+		}
+	}
+}

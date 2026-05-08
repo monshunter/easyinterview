@@ -20,7 +20,15 @@ const ALLOWED_AUTH_OPERATIONS = new Set<string>([
 ]);
 
 /** D1 also bootstraps the public runtime config, but that is not an auth op. */
-const ALLOWED_NON_AUTH_OPERATIONS = new Set<string>(["getRuntimeConfig"]);
+const ALLOWED_NON_AUTH_OPERATIONS = new Set<string>([
+  "getRuntimeConfig",
+  // Phase 2-4 TargetJobs operations (frontend-home-job-picks-and-parse)
+  "listTargetJobs",
+  "importTargetJob",
+  "createUploadPresign",
+  "getTargetJob",
+  "updateTargetJob",
+]);
 
 const ALL_CLIENT_CALL_RE = /\.client\.(\w+)\(/g;
 const APP_AUTH_DISPATCH_RE = /runtime\.client\.(\w+)\(/g;

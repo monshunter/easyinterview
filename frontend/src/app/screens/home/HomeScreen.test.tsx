@@ -1,0 +1,134 @@
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+import { DisplayPreferencesProvider } from "../../display/DisplayPreferencesProvider";
+import { NavigationProvider } from "../../navigation/NavigationProvider";
+import { HomeScreen } from "./HomeScreen";
+
+function wrap(ui: React.ReactElement, navigate = vi.fn()) {
+  return (
+    <NavigationProvider value={{ navigate }}>
+      <DisplayPreferencesProvider>{ui}</DisplayPreferencesProvider>
+    </NavigationProvider>
+  );
+}
+
+describe("HomeScreen", () => {
+  it("renders the home shell with required testids", () => {
+    render(wrap(<HomeScreen route={{ name: "home", params: {} }} />));
+
+    expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-title")).toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-sub")).toBeInTheDocument();
+    expect(screen.getByTestId("home-jd-textarea")).toBeInTheDocument();
+    expect(screen.getByTestId("home-jd-submit")).toBeInTheDocument();
+    expect(screen.getByTestId("home-aux-jobpicks")).toBeInTheDocument();
+    expect(screen.getByTestId("home-aux-debrief")).toBeInTheDocument();
+  });
+
+  it("renders correct control types", () => {
+    render(wrap(<HomeScreen route={{ name: "home", params: {} }} />));
+
+    const textarea = screen.getByTestId("home-jd-textarea");
+    expect(textarea.tagName).toBe("TEXTAREA");
+
+    const submitBtn = screen.getByTestId("home-jd-submit");
+    expect(submitBtn.tagName).toBe("BUTTON");
+  });
+
+  it("renders shell data attributes", () => {
+    render(wrap(<HomeScreen route={{ name: "home", params: {} }} />));
+
+    const root = screen.getByTestId("route-home");
+    expect(root).toBeInTheDocument();
+    expect(root.getAttribute("data-route-name")).toBe("home");
+    expect(root.className).toMatch(/\bei-screen-shell\b/);
+  });
+
+  it("submit button is disabled when textarea is empty", () => {
+    render(wrap(<HomeScreen route={{ name: "home", params: {} }} />));
+
+    const submitBtn = screen.getByTestId("home-jd-submit");
+    expect(submitBtn).toBeDisabled();
+  });
+
+  it("submit button becomes enabled when textarea has content", async () => {
+    render(wrap(<HomeScreen route={{ name: "home", params: {} }} />));
+
+    const textarea = screen.getByTestId("home-jd-textarea");
+    const submitBtn = screen.getByTestId("home-jd-submit");
+
+    await userEvent.type(textarea, "Software Engineer JD");
+
+    expect(submitBtn).not.toBeDisabled();
+  });
+
+  it("navigates to jd_match on Job Picks aux card button click", () => {
+    const navigate = vi.fn();
+    render(wrap(<HomeScreen route={{ name: "home", params: {} }} />, navigate));
+
+    const jobPicksCard = screen.getByTestId("home-aux-jobpicks");
+    const btn = jobPicksCard.querySelector("button");
+    fireEvent.click(btn!);
+
+    expect(navigate).toHaveBeenCalledWith({ name: "jd_match", params: {} });
+  });
+
+  it("navigates to debrief on Post-Interview aux card button click", () => {
+    const navigate = vi.fn();
+    render(wrap(<HomeScreen route={{ name: "home", params: {} }} />, navigate));
+
+    const debriefCard = screen.getByTestId("home-aux-debrief");
+    const btn = debriefCard.querySelector("button");
+    fireEvent.click(btn!);
+
+    expect(navigate).toHaveBeenCalledWith({ name: "debrief", params: {} });
+  });
+
+  it("navigates to resume_versions on resume create CTA click", () => {
+    const navigate = vi.fn();
+    render(wrap(<HomeScreen route={{ name: "home", params: {} }} />, navigate));
+
+    const cta = screen.getByTestId("home-resume-create");
+    fireEvent.click(cta);
+
+    expect(navigate).toHaveBeenCalledWith({
+      name: "resume_versions",
+      params: { flow: "create" },
+    });
+  });
+
+  it("renders i18n content in English", () => {
+    render(
+      <NavigationProvider value={{ navigate: vi.fn() }}>
+        <DisplayPreferencesProvider initial={{ lang: "en" }}>
+          <HomeScreen route={{ name: "home", params: {} }} />
+        </DisplayPreferencesProvider>
+      </NavigationProvider>,
+    );
+
+    expect(screen.getByTestId("home-hero-label")).toHaveTextContent(
+      "HOME · MOCK INTERVIEWS",
+    );
+    expect(screen.getByTestId("home-hero-title")).toHaveTextContent(
+      "Let's win the interview you already care about.",
+    );
+    expect(screen.getByTestId("home-jd-submit")).toHaveTextContent(
+      "Parse & confirm interview",
+    );
+  });
+
+  it("does not surface legacy prototype testids", () => {
+    render(wrap(<HomeScreen route={{ name: "home", params: {} }} />));
+
+    expect(screen.queryByTestId("home-pasted-success")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("home-mocked-recent"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("home-recent-mock-card-default"),
+    ).not.toBeInTheDocument();
+  });
+});

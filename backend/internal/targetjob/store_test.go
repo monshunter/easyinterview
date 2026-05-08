@@ -12,8 +12,8 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 
-	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
+	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
 func reflectStoreType() reflect.Type {
@@ -47,25 +47,25 @@ func TestSQLStore_InsertTargetJob_WritesAllColumnsAndDefaultsJSON(t *testing.T) 
 		WithArgs(
 			"018f2a40-0000-7000-9000-0000000000a1", // id
 			"018f2a40-0000-7000-9000-0000000000b1", // user_id
-			nil,                                     // profile_id (empty)
-			"draft",                                 // status
-			"queued",                                // analysis_status
-			"Backend Engineer",                      // title
-			"Acme",                                  // company_name
-			nil,                                     // location_text
-			nil,                                     // employment_type
-			nil,                                     // seniority_level
-			"en",                                    // target_language
-			"manual_text",                           // source_type
-			nil,                                     // source_url
-			nil,                                     // source_file_object_id
-			"raw jd",                                // raw_jd_text
-			[]byte(`{}`),                            // summary
-			[]byte(`{}`),                            // fit_summary
-			nil,                                     // notes
-			int32(0),                                // open_question_issue_count
-			now,                                     // created_at
-			now,                                     // updated_at
+			nil,                                    // profile_id (empty)
+			"draft",                                // status
+			"queued",                               // analysis_status
+			"Backend Engineer",                     // title
+			"Acme",                                 // company_name
+			nil,                                    // location_text
+			nil,                                    // employment_type
+			nil,                                    // seniority_level
+			"en",                                   // target_language
+			"manual_text",                          // source_type
+			nil,                                    // source_url
+			nil,                                    // source_file_object_id
+			"raw jd",                               // raw_jd_text
+			[]byte(`{}`),                           // summary
+			[]byte(`{}`),                           // fit_summary
+			nil,                                    // notes
+			int32(0),                               // open_question_issue_count
+			now,                                    // created_at
+			now,                                    // updated_at
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -352,6 +352,21 @@ func TestSQLStore_UpdateTargetJobLifecycle_ScopesByUser_ReturnsRow(t *testing.T)
 		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
 		"created_at", "updated_at",
 	}
+	mock.ExpectBegin()
+	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null\s+for update`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000a1",
+			"018f2a40-0000-7000-9000-0000000000b1",
+		).
+		WillReturnRows(sqlmock.NewRows(rowCols).AddRow(
+			"018f2a40-0000-7000-9000-0000000000a1",
+			"018f2a40-0000-7000-9000-0000000000b1",
+			nil, "draft", "ready",
+			"Backend Engineer", "Acme", nil, nil, nil,
+			"en", "manual_text", nil, nil,
+			"raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0),
+			now, now,
+		))
 	mock.ExpectQuery(`update target_jobs\s+set status = \$1, location_text = \$2, notes = \$3, updated_at = \$4\s+where id = \$5 and user_id = \$6 and deleted_at is null\s+returning`).
 		WithArgs("preparing", "Remote", "applied via portal", now,
 			"018f2a40-0000-7000-9000-0000000000a1",
@@ -366,6 +381,7 @@ func TestSQLStore_UpdateTargetJobLifecycle_ScopesByUser_ReturnsRow(t *testing.T)
 			"raw jd", []byte(`{}`), []byte(`{}`), "applied via portal", nil, int32(0),
 			now, now,
 		))
+	mock.ExpectCommit()
 
 	status := sharedtypes.TargetJobStatusPreparing
 	loc := "Remote"
@@ -387,17 +403,176 @@ func TestSQLStore_UpdateTargetJobLifecycle_ScopesByUser_ReturnsRow(t *testing.T)
 	}
 }
 
+func TestSQLStore_UpdateTargetJobLifecycle_OverwritesTitleAndCompanyHints(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 14, 5, 0, 0, time.UTC)
+	rowCols := []string{
+		"id", "user_id", "profile_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
+		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
+		"created_at", "updated_at",
+	}
+	mock.ExpectQuery(`update target_jobs\s+set title = \$1, company_name = \$2, updated_at = \$3\s+where id = \$4 and user_id = \$5 and deleted_at is null\s+returning`).
+		WithArgs("Senior Frontend Engineer", "Acme Labs", now,
+			"018f2a40-0000-7000-9000-0000000000a1",
+			"018f2a40-0000-7000-9000-0000000000b1",
+		).
+		WillReturnRows(sqlmock.NewRows(rowCols).AddRow(
+			"018f2a40-0000-7000-9000-0000000000a1",
+			"018f2a40-0000-7000-9000-0000000000b1",
+			nil, "draft", "ready",
+			"Senior Frontend Engineer", "Acme Labs", nil, nil, nil,
+			"en", "manual_text", nil, nil,
+			"raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0),
+			now, now,
+		))
+
+	title := "Senior Frontend Engineer"
+	company := "Acme Labs"
+	rec, err := store.UpdateTargetJobLifecycle(context.Background(),
+		"018f2a40-0000-7000-9000-0000000000b1",
+		"018f2a40-0000-7000-9000-0000000000a1",
+		targetjob.UpdateLifecycleFields{TitleHint: &title, CompanyNameHint: &company},
+		now,
+	)
+	if err != nil {
+		t.Fatalf("UpdateTargetJobLifecycle: %v", err)
+	}
+	if rec.Title != title || rec.CompanyName != company {
+		t.Fatalf("title/company hints were not persisted: %+v", rec)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_UpdateTargetJobLifecycle_DedupeHitReturnsExistingWithoutMutation(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 14, 15, 0, 0, time.UTC)
+	dedupeKey := "targetjob:update:user1:key1"
+	targetID := "018f2a40-0000-7000-9000-0000000000a1"
+	userID := "018f2a40-0000-7000-9000-0000000000b1"
+	rowCols := []string{
+		"id", "user_id", "profile_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
+		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
+		"created_at", "updated_at",
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`pg_advisory_xact_lock`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
+		WithArgs("target_import", dedupeKey).
+		WillReturnRows(sqlmock.NewRows([]string{"resource_id"}).AddRow(targetID))
+	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null`).
+		WithArgs(targetID, userID).
+		WillReturnRows(sqlmock.NewRows(rowCols).AddRow(
+			targetID,
+			userID,
+			nil, "preparing", "ready",
+			"Backend Engineer", "Acme", "Remote", nil, nil,
+			"en", "manual_text", nil, nil,
+			"raw jd", []byte(`{}`), []byte(`{}`), "already updated", nil, int32(0),
+			now, now,
+		))
+	mock.ExpectCommit()
+
+	status := sharedtypes.TargetJobStatusApplied
+	rec, err := store.UpdateTargetJobLifecycle(context.Background(),
+		userID,
+		targetID,
+		targetjob.UpdateLifecycleFields{
+			Status:         &status,
+			DedupeKey:      dedupeKey,
+			DedupeMarkerID: "018f2a40-0000-7000-9000-0000000000d1",
+		},
+		now,
+	)
+	if err != nil {
+		t.Fatalf("UpdateTargetJobLifecycle dedupe hit: %v", err)
+	}
+	if rec.Status != sharedtypes.TargetJobStatusPreparing || rec.Notes != "already updated" {
+		t.Fatalf("dedupe hit returned wrong row: %+v", rec)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_UpdateTargetJobLifecycle_IdempotentRejectsStaleStatusTransition(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 14, 20, 0, 0, time.UTC)
+	dedupeKey := "targetjob:update:user1:key2"
+	targetID := "018f2a40-0000-7000-9000-0000000000a1"
+	userID := "018f2a40-0000-7000-9000-0000000000b1"
+	rowCols := []string{
+		"id", "user_id", "profile_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
+		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
+		"created_at", "updated_at",
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`pg_advisory_xact_lock`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
+		WithArgs("target_import", dedupeKey).
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null\s+for update`).
+		WithArgs(targetID, userID).
+		WillReturnRows(sqlmock.NewRows(rowCols).AddRow(
+			targetID,
+			userID,
+			nil, "applied", "ready",
+			"Backend Engineer", "Acme", "Remote", nil, nil,
+			"en", "manual_text", nil, nil,
+			"raw jd", []byte(`{}`), []byte(`{}`), "current state changed", nil, int32(0),
+			now, now,
+		))
+	mock.ExpectRollback()
+
+	status := sharedtypes.TargetJobStatusOffer
+	_, err := store.UpdateTargetJobLifecycle(context.Background(),
+		userID,
+		targetID,
+		targetjob.UpdateLifecycleFields{
+			Status:         &status,
+			DedupeKey:      dedupeKey,
+			DedupeMarkerID: "018f2a40-0000-7000-9000-0000000000d2",
+		},
+		now,
+	)
+	var apiErr *targetjob.ServiceImportError
+	if !errors.As(err, &apiErr) || apiErr.Code != "TARGET_INVALID_STATE_TRANSITION" {
+		t.Fatalf("expected TARGET_INVALID_STATE_TRANSITION from locked current row, got %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSQLStore_UpdateTargetJobLifecycle_NotFoundForCrossUser(t *testing.T) {
 	store, mock, cleanup := newMockStore(t)
 	defer cleanup()
 
 	now := time.Date(2026, 5, 9, 14, 0, 0, 0, time.UTC)
-	mock.ExpectQuery(`update target_jobs`).
-		WithArgs("preparing", now,
+	mock.ExpectBegin()
+	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null\s+for update`).
+		WithArgs(
 			"018f2a40-0000-7000-9000-0000000000a1",
 			"018f2a40-0000-7000-9000-0000000000b9",
 		).
 		WillReturnError(sql.ErrNoRows)
+	mock.ExpectRollback()
 
 	status := sharedtypes.TargetJobStatusPreparing
 	_, err := store.UpdateTargetJobLifecycle(context.Background(),
@@ -476,6 +651,145 @@ func TestSQLStore_ApplyParseResult_MergesByKindLabelAndAccumulatesDisplayOrder(t
 	}
 }
 
+func TestSQLStore_CompleteParseSuccess_WritesReadyStateParsedOutboxAndSourceRefreshAtomically(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 15, 10, 0, 0, time.UTC)
+	targetID := "018f2a40-0000-7000-9000-0000000000a1"
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`from target_job_requirements`).
+		WithArgs(targetID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "target_job_id", "kind", "label", "description", "evidence_level", "display_order", "created_at"}))
+	mock.ExpectExec(`insert into target_job_requirements`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000d1",
+			targetID,
+			"must_have",
+			"Go",
+			nil,
+			"explicit",
+			int32(1),
+			now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`update target_jobs\s+set analysis_status = \$1,\s+summary = \$2,\s+fit_summary = \$3,\s+updated_at = \$4\s+where id = \$5 and deleted_at is null`).
+		WithArgs("ready", []byte(`{"coreThemes":["api"]}`), []byte(`{}`), now, targetID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into outbox_events`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000e1",
+			"target.parsed",
+			targetID,
+			[]byte(`{"targetJobId":"018f2a40-0000-7000-9000-0000000000a1"}`),
+			now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into async_jobs`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000f2",
+			"source_refresh",
+			targetID,
+			now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err := store.CompleteParseSuccess(context.Background(), targetjob.CompleteParseSuccessInput{
+		TargetJobID:        targetID,
+		AnalysisStatus:     sharedtypes.TargetJobParseStatusReady,
+		Summary:            []byte(`{"coreThemes":["api"]}`),
+		FitSummary:         []byte(`{}`),
+		ParsedEventID:      "018f2a40-0000-7000-9000-0000000000e1",
+		ParsedEventPayload: []byte(`{"targetJobId":"018f2a40-0000-7000-9000-0000000000a1"}`),
+		SourceRefreshJobID: "018f2a40-0000-7000-9000-0000000000f2",
+		Requirements: []targetjob.RequirementRecord{
+			{ID: "018f2a40-0000-7000-9000-0000000000d1", Kind: targetjob.RequirementMustHave, Label: "Go"},
+		},
+		Now: now,
+	})
+	if err != nil {
+		t.Fatalf("CompleteParseSuccess: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_CompleteParseSuccess_RollsBackWhenParsedOutboxInsertFails(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 15, 20, 0, 0, time.UTC)
+	targetID := "018f2a40-0000-7000-9000-0000000000a1"
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`from target_job_requirements`).
+		WithArgs(targetID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "target_job_id", "kind", "label", "description", "evidence_level", "display_order", "created_at"}))
+	mock.ExpectExec(`update target_jobs\s+set analysis_status = \$1,\s+summary = \$2,\s+fit_summary = \$3,\s+updated_at = \$4\s+where id = \$5 and deleted_at is null`).
+		WithArgs("ready", []byte(`{}`), []byte(`{}`), now, targetID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into outbox_events`).
+		WithArgs("018f2a40-0000-7000-9000-0000000000e1", "target.parsed", targetID, []byte(`{}`), now).
+		WillReturnError(errors.New("outbox unavailable"))
+	mock.ExpectRollback()
+
+	err := store.CompleteParseSuccess(context.Background(), targetjob.CompleteParseSuccessInput{
+		TargetJobID:        targetID,
+		AnalysisStatus:     sharedtypes.TargetJobParseStatusReady,
+		Summary:            []byte(`{}`),
+		FitSummary:         []byte(`{}`),
+		ParsedEventID:      "018f2a40-0000-7000-9000-0000000000e1",
+		ParsedEventPayload: []byte(`{}`),
+		SourceRefreshJobID: "018f2a40-0000-7000-9000-0000000000f2",
+		Now:                now,
+	})
+	if err == nil {
+		t.Fatal("expected outbox failure")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_CompleteParseFailure_WritesFailedStateAndOutboxAtomically(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 15, 25, 0, 0, time.UTC)
+	targetID := "018f2a40-0000-7000-9000-0000000000a1"
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`update target_jobs\s+set analysis_status = 'failed', updated_at = \$1\s+where id = \$2 and deleted_at is null`).
+		WithArgs(now, targetID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into outbox_events`).
+		WithArgs(
+			"018f2a40-0000-7000-9000-0000000000e2",
+			"target.analysis.failed",
+			targetID,
+			[]byte(`{"targetJobId":"018f2a40-0000-7000-9000-0000000000a1","errorCode":"AI_OUTPUT_INVALID"}`),
+			now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err := store.CompleteParseFailure(context.Background(), targetjob.CompleteParseFailureInput{
+		TargetJobID:        targetID,
+		FailedEventID:      "018f2a40-0000-7000-9000-0000000000e2",
+		FailedEventPayload: []byte(`{"targetJobId":"018f2a40-0000-7000-9000-0000000000a1","errorCode":"AI_OUTPUT_INVALID"}`),
+		Now:                now,
+	})
+	if err != nil {
+		t.Fatalf("CompleteParseFailure: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSQLStore_ApplyParseResult_NotFoundForSoftDeletedTarget(t *testing.T) {
 	store, mock, cleanup := newMockStore(t)
 	defer cleanup()
@@ -537,11 +851,13 @@ func TestSQLStore_ImportTargetJob_RunnerBoundPathInsertsAllFourTables(t *testing
 	now := time.Date(2026, 5, 9, 17, 0, 0, 0, time.UTC)
 	dedupeKey := "tj:dedupe:user1:key1"
 
+	mock.ExpectBegin()
+	mock.ExpectExec(`select pg_advisory_xact_lock\(hashtext\(\$1\)\)`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
 		WithArgs("target_import", dedupeKey).
 		WillReturnError(sql.ErrNoRows)
-
-	mock.ExpectBegin()
 	mock.ExpectExec(`insert into target_jobs`).
 		WithArgs(
 			"018f2a40-0000-7000-9000-0000000000a1",
@@ -625,11 +941,13 @@ func TestSQLStore_ImportTargetJob_ManualFormSyncSucceededAndNoOutbox(t *testing.
 	now := time.Date(2026, 5, 9, 17, 30, 0, 0, time.UTC)
 	dedupeKey := "tj:dedupe:user1:manualform"
 
+	mock.ExpectBegin()
+	mock.ExpectExec(`select pg_advisory_xact_lock\(hashtext\(\$1\)\)`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
 		WithArgs("target_import", dedupeKey).
 		WillReturnError(sql.ErrNoRows)
-
-	mock.ExpectBegin()
 	mock.ExpectExec(`insert into target_jobs`).
 		WithArgs(
 			"018f2a40-0000-7000-9000-0000000000a2",
@@ -697,6 +1015,10 @@ func TestSQLStore_ImportTargetJob_DedupeReturnsExistingActiveRunnerJob(t *testin
 	now := time.Date(2026, 5, 9, 18, 0, 0, 0, time.UTC)
 	dedupeKey := "tj:dedupe:user1:keydup"
 
+	mock.ExpectBegin()
+	mock.ExpectExec(`select pg_advisory_xact_lock\(hashtext\(\$1\)\)`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
 		WithArgs("target_import", dedupeKey).
 		WillReturnRows(sqlmock.NewRows([]string{
@@ -706,6 +1028,7 @@ func TestSQLStore_ImportTargetJob_DedupeReturnsExistingActiveRunnerJob(t *testin
 			"018f2a40-0000-7000-9000-0000000000a9",
 			"queued", now, now,
 		))
+	mock.ExpectCommit()
 
 	res, err := store.ImportTargetJob(context.Background(), targetjob.ImportTargetJobInput{
 		UserID:                 "018f2a40-0000-7000-9000-0000000000b1",
@@ -727,6 +1050,53 @@ func TestSQLStore_ImportTargetJob_DedupeReturnsExistingActiveRunnerJob(t *testin
 	}
 	if res.TargetJobID != "018f2a40-0000-7000-9000-0000000000a9" {
 		t.Fatalf("expected dedupe to surface existing target id, got %q", res.TargetJobID)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_ImportTargetJob_DedupeLockClosesManualFormRaceWindow(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 9, 18, 15, 0, 0, time.UTC)
+	dedupeKey := "tj:dedupe:user1:manualform-race"
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`select pg_advisory_xact_lock\(hashtext\(\$1\)\)`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
+		WithArgs("target_import", dedupeKey).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "resource_id", "status", "created_at", "updated_at",
+		}).AddRow(
+			"018f2a40-0000-7000-9000-0000000000fa",
+			"018f2a40-0000-7000-9000-0000000000aa",
+			"succeeded", now, now,
+		))
+	mock.ExpectCommit()
+
+	res, err := store.ImportTargetJob(context.Background(), targetjob.ImportTargetJobInput{
+		UserID:                 "018f2a40-0000-7000-9000-0000000000b1",
+		DedupeKey:              dedupeKey,
+		TargetJobID:            "ignored-because-dedupe",
+		TargetLanguage:         "en",
+		APISourceType:          targetjob.SourceTypeManualForm,
+		InitialLifecycleStatus: sharedtypes.TargetJobStatusDraft,
+		InitialAnalysisStatus:  sharedtypes.TargetJobParseStatusReady,
+		JobID:                  "ignored",
+		DraftRequirements: []targetjob.RequirementRecord{
+			{ID: "ignored-req", Kind: targetjob.RequirementMustHave, Label: "ignored", DisplayOrder: 1},
+		},
+		Now: now,
+	})
+	if err != nil {
+		t.Fatalf("manual_form dedupe hit: %v", err)
+	}
+	if !res.Existing || res.TargetJobID != "018f2a40-0000-7000-9000-0000000000aa" || res.JobStatus != sharedtypes.JobStatusSucceeded {
+		t.Fatalf("manual_form dedupe must return existing succeeded marker, got %+v", res)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)

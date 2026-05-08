@@ -2,8 +2,10 @@ package targetjob_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -26,10 +28,17 @@ type pipelineFakeStore struct {
 	getErr              error
 	applyResultIn       *targetjob.ApplyParseResultInput
 	applyResultErr      error
+	completeSuccessIn   *targetjob.CompleteParseSuccessInput
+	completeSuccessErr  error
+	completeFailureIn   *targetjob.CompleteParseFailureInput
+	completeFailureErr  error
 	parsedOutboxPayload []byte
 	failedOutboxPayload []byte
 	sourceRefreshCalled bool
 	sourceFreshnessUpd  string
+	sourceSnapshotURL   string
+	sourceSnapshotText  string
+	sourceSnapshotAt    *time.Time
 	updateAnalysisFail  int
 	pollMu              chan struct{}
 }
@@ -49,6 +58,9 @@ func (s *pipelineFakeStore) GetTargetJobByUser(context.Context, string, string) 
 func (s *pipelineFakeStore) ListTargetJobsForUser(context.Context, string, targetjob.ListFilter) (targetjob.ListResult, error) {
 	return targetjob.ListResult{}, nil
 }
+func (s *pipelineFakeStore) LookupUpdateDedupe(context.Context, string, string) (targetjob.TargetJobRecord, []targetjob.RequirementRecord, bool, error) {
+	return targetjob.TargetJobRecord{}, nil, false, nil
+}
 func (s *pipelineFakeStore) UpdateTargetJobLifecycle(context.Context, string, string, targetjob.UpdateLifecycleFields, time.Time) (targetjob.TargetJobRecord, error) {
 	return targetjob.TargetJobRecord{}, nil
 }
@@ -57,8 +69,34 @@ func (s *pipelineFakeStore) ApplyParseResult(_ context.Context, in targetjob.App
 	s.applyResultIn = &cp
 	return s.applyResultErr
 }
+func (s *pipelineFakeStore) CompleteParseSuccess(_ context.Context, in targetjob.CompleteParseSuccessInput) error {
+	cp := in
+	s.completeSuccessIn = &cp
+	if len(in.ParsedEventPayload) > 0 {
+		s.parsedOutboxPayload = append([]byte{}, in.ParsedEventPayload...)
+	}
+	if in.SourceRefreshJobID != "" {
+		s.sourceRefreshCalled = true
+	}
+	return s.completeSuccessErr
+}
+func (s *pipelineFakeStore) CompleteParseFailure(_ context.Context, in targetjob.CompleteParseFailureInput) error {
+	cp := in
+	s.completeFailureIn = &cp
+	if len(in.FailedEventPayload) > 0 {
+		s.failedOutboxPayload = append([]byte{}, in.FailedEventPayload...)
+	}
+	return s.completeFailureErr
+}
 func (s *pipelineFakeStore) UpdateSourceFreshness(_ context.Context, _ string, status targetjob.FreshnessStatus, _ time.Time) error {
 	s.sourceFreshnessUpd = string(status)
+	return nil
+}
+func (s *pipelineFakeStore) UpdateSourceSnapshot(_ context.Context, _ string, sanitizedURL string, snapshotText string, fetchedAt time.Time, _ time.Time) error {
+	s.sourceSnapshotURL = sanitizedURL
+	s.sourceSnapshotText = snapshotText
+	cp := fetchedAt
+	s.sourceSnapshotAt = &cp
 	return nil
 }
 func (s *pipelineFakeStore) LookupFileAttachmentForUser(context.Context, string, string) (targetjob.FileAttachmentRecord, error) {
@@ -116,11 +154,15 @@ func (f *fakeRegistry) Resolve(_ context.Context, _ string, _ string) (targetjob
 }
 
 type fakeAIClient struct {
-	resp aiclient.CompleteResponse
-	err  error
+	resp            aiclient.CompleteResponse
+	err             error
+	lastProfileName string
+	lastPayload     aiclient.CompletePayload
 }
 
-func (f *fakeAIClient) Complete(context.Context, string, aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
+func (f *fakeAIClient) Complete(_ context.Context, profileName string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
+	f.lastProfileName = profileName
+	f.lastPayload = payload
 	if f.err != nil {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, f.err
 	}
@@ -210,14 +252,188 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 	if !outcome.Succeeded {
 		t.Fatalf("happy path must succeed, got %+v", outcome)
 	}
-	if store.applyResultIn == nil || len(store.applyResultIn.Requirements) != 2 {
-		t.Fatalf("expected 2 requirements applied, got %+v", store.applyResultIn)
+	if store.completeSuccessIn == nil || len(store.completeSuccessIn.Requirements) != 2 {
+		t.Fatalf("expected 2 requirements applied atomically, got %+v", store.completeSuccessIn)
+	}
+	if store.applyResultIn != nil {
+		t.Fatalf("parse executor must not apply results before atomic outbox write: %+v", store.applyResultIn)
+	}
+	if ai.lastProfileName != "target.import.default" {
+		t.Fatalf("profileName = %q", ai.lastProfileName)
+	}
+	if got := ai.lastPayload.Metadata; got.FeatureKey != "target.import.parse" ||
+		got.PromptVersion != "v1.0.0" ||
+		got.RubricVersion != "v1.0.0" ||
+		got.Language != "en" ||
+		got.DataSourceVersion != "v1" {
+		t.Fatalf("AI metadata did not carry F3 resolution: %+v", got)
 	}
 	if store.parsedOutboxPayload == nil {
 		t.Fatal("target.parsed outbox payload missing")
 	}
 	if !store.sourceRefreshCalled {
 		t.Fatal("source_refresh placeholder not enqueued")
+	}
+}
+
+func TestParseExecutor_UsesPromptMessagesFromRegistryResolution(t *testing.T) {
+	exec, store, registry, ai, _ := newParseExecutorWithFakes(t)
+	registry.resolution.SystemMessage = "registry-owned target import system prompt"
+	registry.resolution.UserMessageTemplate = "registry-owned target import user prompt: {{jd_text}}"
+	ai.resp = aiclient.CompleteResponse{Content: happyResponseJSON}
+	store.target = targetjob.TargetJobRecord{
+		ID:             "tgt-1",
+		UserID:         "user-1",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "en",
+		RawJDText:      "JD text from caller",
+	}
+
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+
+	if !outcome.Succeeded {
+		t.Fatalf("parse should succeed, got %+v", outcome)
+	}
+	if len(ai.lastPayload.Messages) != 2 {
+		t.Fatalf("messages = %+v", ai.lastPayload.Messages)
+	}
+	if ai.lastPayload.Messages[0].Role != "system" || ai.lastPayload.Messages[0].Content != "registry-owned target import system prompt" {
+		t.Fatalf("system message not sourced from registry resolution: %+v", ai.lastPayload.Messages)
+	}
+	if ai.lastPayload.Messages[1].Role != "user" || ai.lastPayload.Messages[1].Content != "registry-owned target import user prompt: JD text from caller" {
+		t.Fatalf("user message not sourced from registry template: %+v", ai.lastPayload.Messages)
+	}
+	for _, msg := range ai.lastPayload.Messages {
+		if strings.Contains(msg.Content, "extraction assistant") {
+			t.Fatalf("ParseExecutor must not carry hardcoded prompt text: %+v", ai.lastPayload.Messages)
+		}
+	}
+}
+
+func TestParseExecutor_AIOutputInvalid_WhenRequirementsAreSemanticallyInvalid(t *testing.T) {
+	cases := []struct {
+		name    string
+		content string
+	}{
+		{
+			name: "all invalid kind",
+			content: `{"requirements":[
+				{"kind":"legacy_signal","label":"Legacy signal","evidenceLevel":"explicit"}
+			]}`,
+		},
+		{
+			name: "empty label",
+			content: `{"requirements":[
+				{"kind":"must_have","label":"   ","evidenceLevel":"explicit"}
+			]}`,
+		},
+		{
+			name: "invalid evidence level",
+			content: `{"requirements":[
+				{"kind":"must_have","label":"Go","evidenceLevel":"rumor"}
+			]}`,
+		},
+		{
+			name: "mixed valid and invalid",
+			content: `{"requirements":[
+				{"kind":"must_have","label":"Go","evidenceLevel":"explicit"},
+				{"kind":"legacy_signal","label":"Legacy signal","evidenceLevel":"explicit"}
+			]}`,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+			ai.resp = aiclient.CompleteResponse{Content: tc.content}
+			store.target = targetjob.TargetJobRecord{
+				ID:             "tgt-1",
+				UserID:         "user-1",
+				SourceType:     targetjob.SourceTypeManualText,
+				TargetLanguage: "en",
+				RawJDText:      "JD text",
+			}
+
+			outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+
+			if outcome.Succeeded || outcome.ErrorCode != "AI_OUTPUT_INVALID" || outcome.Retryable {
+				t.Fatalf("invalid semantic requirements must fail non-retryable AI_OUTPUT_INVALID, got %+v", outcome)
+			}
+			if store.completeSuccessIn != nil {
+				t.Fatalf("invalid AI output must not mark target ready: %+v", store.completeSuccessIn)
+			}
+			if store.completeFailureIn == nil {
+				t.Fatal("invalid AI output must write target.analysis.failed")
+			}
+		})
+	}
+}
+
+func TestDeterministicParseAIClient_OnlyInterceptsTargetImportParse(t *testing.T) {
+	inner := &fakeAIClient{resp: aiclient.CompleteResponse{Content: "delegated"}}
+	client := targetjob.NewDeterministicParseAIClient(inner)
+
+	resp, _, err := client.Complete(context.Background(), "target.import.default", aiclient.CompletePayload{
+		Messages: []aiclient.Message{{Role: "user", Content: "JD text"}},
+		Metadata: aiclient.CallMetadata{
+			FeatureKey: targetjob.FeatureKeyTargetImportParse,
+			Language:   "en",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Complete target.import.parse: %v", err)
+	}
+	var parsed struct {
+		Requirements []struct {
+			Kind  string `json:"kind"`
+			Label string `json:"label"`
+		} `json:"requirements"`
+	}
+	if err := json.Unmarshal([]byte(resp.Content), &parsed); err != nil {
+		t.Fatalf("fixture did not return JSON parse content: %v; content=%s", err, resp.Content)
+	}
+	if len(parsed.Requirements) == 0 || parsed.Requirements[0].Kind != string(targetjob.RequirementMustHave) || parsed.Requirements[0].Label == "" {
+		t.Fatalf("fixture returned invalid requirements: %+v", parsed.Requirements)
+	}
+
+	delegated, _, err := client.Complete(context.Background(), "practice.followup.default", aiclient.CompletePayload{
+		Messages: []aiclient.Message{{Role: "user", Content: "other"}},
+		Metadata: aiclient.CallMetadata{FeatureKey: "practice.followup"},
+	})
+	if err != nil {
+		t.Fatalf("delegated Complete: %v", err)
+	}
+	if delegated.Content != "delegated" || inner.lastProfileName != "practice.followup.default" {
+		t.Fatalf("non target import calls must delegate, got resp=%+v profile=%q", delegated, inner.lastProfileName)
+	}
+}
+
+func TestParseExecutor_SuccessCommitFailureDoesNotWriteFailureAfterPartialSuccess(t *testing.T) {
+	exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+	ai.resp = aiclient.CompleteResponse{Content: happyResponseJSON}
+	store.completeSuccessErr = errors.New("outbox unavailable")
+	store.target = targetjob.TargetJobRecord{
+		ID:             "tgt-1",
+		UserID:         "user-1",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "en",
+		RawJDText:      "JD text",
+	}
+
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
+	})
+
+	if outcome.Succeeded || outcome.ErrorCode != "TARGET_IMPORT_FAILED" || !outcome.Retryable {
+		t.Fatalf("atomic success commit failure must be retryable TARGET_IMPORT_FAILED, got %+v", outcome)
+	}
+	if store.completeSuccessIn == nil {
+		t.Fatal("success side effects were not delegated to the atomic store method")
+	}
+	if store.updateAnalysisFail != 0 || store.completeFailureIn != nil {
+		t.Fatalf("must not write analysis.failed after a failed success transaction: updateFail=%d failure=%+v", store.updateAnalysisFail, store.completeFailureIn)
+	}
+	if store.applyResultIn != nil {
+		t.Fatalf("parse result was applied outside the atomic success transaction: %+v", store.applyResultIn)
 	}
 }
 
@@ -286,6 +502,39 @@ func TestParseExecutor_URLFetchInvalid_NonRetryable(t *testing.T) {
 	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
 	if outcome.ErrorCode != "TARGET_IMPORT_SOURCE_INVALID" || outcome.Retryable {
 		t.Fatalf("invalid source must map to TARGET_IMPORT_SOURCE_INVALID non-retryable, got %+v", outcome)
+	}
+}
+
+func TestParseExecutor_URLFetchBodyIsPersistedAndParsed(t *testing.T) {
+	exec, store, _, ai, fetcher := newParseExecutorWithFakes(t)
+	ai.resp = aiclient.CompleteResponse{Content: happyResponseJSON}
+	fetchedAt := time.Date(2026, 5, 9, 22, 30, 0, 0, time.UTC)
+	fetcher.res = urlfetch.FetchResult{
+		SanitizedURL: "https://jobs.example.com/role/1",
+		Body:         "Fetched JD body for a Backend Engineer.",
+		FetchedAt:    fetchedAt,
+	}
+	store.target = targetjob.TargetJobRecord{
+		ID:             "tgt-1",
+		UserID:         "user-1",
+		SourceType:     targetjob.SourceTypeURL,
+		SourceURL:      "https://jobs.example.com/role/1?token=secret",
+		TargetLanguage: "en",
+	}
+	store.sources = []targetjob.SourceRecord{{ID: "src-1", SourceType: targetjob.SourceTypeURL}}
+
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{JobID: "j-1", ResourceID: "tgt-1"})
+	if !outcome.Succeeded {
+		t.Fatalf("URL fetch body should drive parse success, got %+v", outcome)
+	}
+	if store.sourceSnapshotText != "Fetched JD body for a Backend Engineer." || store.sourceSnapshotAt == nil {
+		t.Fatalf("source snapshot not persisted: text=%q at=%v", store.sourceSnapshotText, store.sourceSnapshotAt)
+	}
+	if store.sourceSnapshotURL != "https://jobs.example.com/role/1" {
+		t.Fatalf("sanitized source URL = %q", store.sourceSnapshotURL)
+	}
+	if store.completeSuccessIn == nil || len(store.completeSuccessIn.Requirements) == 0 {
+		t.Fatalf("parse result was not applied from fetched URL body: %+v", store.completeSuccessIn)
 	}
 }
 

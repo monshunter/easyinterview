@@ -94,8 +94,12 @@ func New(opts FetcherOptions) *Fetcher {
 	if opts.HTTPClient != nil {
 		f.client = opts.HTTPClient
 	} else {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.Proxy = nil
+		transport.DialContext = f.dialContext
 		f.client = &http.Client{
-			Timeout: f.timeout,
+			Timeout:   f.timeout,
+			Transport: transport,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if len(via) >= 5 {
 					return fmt.Errorf("too many redirects")
@@ -183,8 +187,10 @@ func (f *Fetcher) parseAndValidate(rawURL string) (*url.URL, error) {
 		return nil, fmt.Errorf("%w: host is required", ErrInvalidSource)
 	}
 	// Reject userinfo / fragment so the runner does not accidentally pass
-	// credentials or anchor strings.
+	// credentials, query secrets, or anchor strings.
 	u.User = nil
+	u.RawQuery = ""
+	u.ForceQuery = false
 	u.Fragment = ""
 	return u, nil
 }
@@ -194,27 +200,60 @@ func (f *Fetcher) checkURLPolicy(ctx context.Context, u *url.URL) error {
 	if host == "" {
 		return fmt.Errorf("%w: host is required", ErrInvalidSource)
 	}
-	// If the host is already an IP literal, skip resolution and check it
-	// directly. Otherwise resolve and check every returned IP.
+	_, err := f.resolvePublicIPs(ctx, host)
+	return err
+}
+
+func (f *Fetcher) resolvePublicIPs(ctx context.Context, host string) ([]net.IP, error) {
+	if strings.TrimSpace(host) == "" {
+		return nil, fmt.Errorf("%w: host is required", ErrInvalidSource)
+	}
 	if ip := net.ParseIP(host); ip != nil {
 		if !isPublicIP(ip) {
-			return fmt.Errorf("%w: target host resolves to non-public address", ErrInvalidSource)
+			return nil, fmt.Errorf("%w: target host resolves to non-public address", ErrInvalidSource)
 		}
-		return nil
+		return []net.IP{ip}, nil
 	}
 	ips, err := f.resolver(ctx, host)
 	if err != nil {
-		return fmt.Errorf("%w: dns lookup: %v", ErrSourceUnavailable, err)
+		return nil, fmt.Errorf("%w: dns lookup: %v", ErrSourceUnavailable, err)
 	}
 	if len(ips) == 0 {
-		return fmt.Errorf("%w: dns returned no addresses", ErrSourceUnavailable)
+		return nil, fmt.Errorf("%w: dns returned no addresses", ErrSourceUnavailable)
 	}
 	for _, ip := range ips {
 		if !isPublicIP(ip) {
-			return fmt.Errorf("%w: target host resolves to non-public address", ErrInvalidSource)
+			return nil, fmt.Errorf("%w: target host resolves to non-public address", ErrInvalidSource)
 		}
 	}
-	return nil
+	return ips, nil
+}
+
+func (f *Fetcher) resolveDialAddress(ctx context.Context, network, address string) (string, error) {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return "", fmt.Errorf("%w: split dial address %q: %v", ErrSourceUnavailable, address, err)
+	}
+	if port == "" {
+		return "", fmt.Errorf("%w: dial port is required", ErrSourceUnavailable)
+	}
+	ips, err := f.resolvePublicIPs(ctx, host)
+	if err != nil {
+		return "", err
+	}
+	if len(ips) == 0 {
+		return "", fmt.Errorf("%w: dns returned no addresses", ErrSourceUnavailable)
+	}
+	return net.JoinHostPort(ips[0].String(), port), nil
+}
+
+func (f *Fetcher) dialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	resolved, err := f.resolveDialAddress(ctx, network, address)
+	if err != nil {
+		return nil, err
+	}
+	dialer := &net.Dialer{Timeout: f.timeout}
+	return dialer.DialContext(ctx, network, resolved)
 }
 
 // isPublicIP returns true when the IP is allowed for outbound JD fetch:

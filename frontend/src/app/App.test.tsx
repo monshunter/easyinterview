@@ -31,6 +31,26 @@ describe("App shell", () => {
     }
   });
 
+  it("renders HomeScreen on the home route instead of PlaceholderScreen", () => {
+    render(<App />);
+    expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-title")).toBeInTheDocument();
+    expect(screen.getByTestId("home-jd-textarea")).toBeInTheDocument();
+  });
+
+  it("renders ParseScreen on the parse route instead of PlaceholderScreen", () => {
+    render(
+      <App
+        initialRoute={{
+          name: "parse",
+          params: { targetJobId: "01918fa0-0000-7000-8000-000000002000" },
+        }}
+      />,
+    );
+    expect(screen.getByTestId("parse-loading-step-0")).toBeInTheDocument();
+    expect(screen.queryByText("D2-D6")).not.toBeInTheDocument();
+  });
+
   it("propagates route params to the rendered route view", () => {
     render(
       <App

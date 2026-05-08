@@ -41,13 +41,19 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
 - `tests/pixel-parity/screenshot.spec.ts` — 默认 warm/light 截图基线
   regression（`toHaveScreenshot`）+ dark / customAccent 状态变更的可见 token
   diff（不依赖跨 ui-design 像素 diff，避免字体源差异引入 false positive）。
+- `tests/pixel-parity/home.spec.ts` — Home hero / textarea / aux cards DOM 锚点、
+  bounding box 与 dark/customAccent token 变化。
+- `tests/pixel-parity/parse.spec.ts` — Home 到 parse 入口、textarea submit enable、
+  upload modal DOM 锚点。
+- `tests/pixel-parity/jd_match.spec.ts` — jd_match placeholder 从 home aux card 进入、
+  viewport 内布局与旧业务 testid 负向断言。
 
 `webServer` 由 `frontend/scripts/serve-pixel-parity.mjs` 提供（Node 内置
 模块；同时挂载 `frontend/dist` 与 `ui-design/`，并暴露 `/health` 探活）。
 
 ## 3 Then
 
-- 全部 48 个 Playwright 用例（4 个 spec × 2 project）PASS、0 failed。
+- 全部 68 个 Playwright 用例（7 个 spec × 2 project）PASS、0 failed。
 - TopBar 五入口 testid 在两个 project 下都存在；TopBar shell 高 58 / padding
   0 32 / border-bottom 1px solid `rgb(231, 226, 214)`。
 - 默认 home 渲染 `topbar-nav-home[aria-current=page]`、`topbar-dark-toggle`
@@ -62,7 +68,7 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
 - 激活 customAccent 后 `<html data-custom-accent="active"`、内联
   `--ei-color-accent` 为 `oklch(58% ...)`、base palette token 不被覆盖。
 - 截图 baseline（`tests/pixel-parity/screenshot.spec.ts-snapshots/`）与本次
-  渲染像素差异在配置阈值内（`maxDiffPixels: 4000`，desktop / mobile 各自 baseline）。
+  渲染像素差异在配置阈值内（`maxDiffPixels: 2000`，desktop / mobile 各自 baseline）。
 
 ## 4 执行
 
@@ -80,8 +86,9 @@ pnpm --filter @easyinterview/frontend test:pixel-parity:install
 `setup.sh` 检查 chromium 缓存 + `frontend/dist/index.html` 存在；缺失任一
 都 exit ≠ 0 并给出可读提示。`trigger.sh` 跑 Playwright 后把日志写到
 `.test-output/e2e/p0-006-ui-design-pixel-parity-gate/trigger.log`。
-`verify.sh` 断言日志包含 `48 passed` 与 `0 failed`，并 grep retired-module
-testid 不在 trigger 输出里出现。
+`verify.sh` 断言日志包含 `68 passed` 与 `0 failed`，并 grep retired-module
+testid 不在 trigger 输出里出现，同时确认 home / parse / jd_match 新增 parity spec
+已实际执行。
 
 ## 5 污染控制
 

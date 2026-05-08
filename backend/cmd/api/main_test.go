@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -14,9 +15,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
+	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
 func TestBuildFlagsClientLoadsPostHogPublicAllowlist(t *testing.T) {
@@ -108,7 +111,7 @@ featureFlag:
 		Now:                   func() time.Time { return time.Date(2026, 5, 6, 20, 0, 0, 0, time.UTC) },
 		NewID:                 apiFixedIDs("challenge-1"),
 	})
-	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service)
+	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
 
 	start := httptest.NewRecorder()
 	handler.ServeHTTP(start, httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", bytes.NewBufferString(`{"email":"Candidate@Example.COM"}`)))
@@ -137,6 +140,125 @@ featureFlag:
 	handler.ServeHTTP(logout, httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil))
 	if logout.Code != http.StatusNoContent {
 		t.Fatalf("logout route status = %d body=%s", logout.Code, logout.Body.String())
+	}
+}
+
+func TestBuildAPIHandlerMountsTargetJobRoutesBehindSessionMiddleware(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               &apiAuthStore{},
+		SessionCookieSecret: "session-secret",
+	})
+	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
+
+	cases := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/v1/targets"},
+		{http.MethodPost, "/api/v1/targets/import"},
+		{http.MethodGet, "/api/v1/targets/018f2a40-0000-7000-9000-0000000000a1"},
+		{http.MethodPatch, "/api/v1/targets/018f2a40-0000-7000-9000-0000000000a1"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, httptest.NewRequest(tc.method, tc.path, nil))
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("status = %d body=%s; route is not mounted behind auth middleware", rec.Code, rec.Body.String())
+			}
+			if !strings.Contains(rec.Body.String(), `"code":"AUTH_UNAUTHORIZED"`) {
+				t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestBuildTargetJobRuntimeWiresDrainerAndAIClient(t *testing.T) {
+	dir := t.TempDir()
+	providersPath := filepath.Join(dir, "ai-providers.yaml")
+	profilesPath := filepath.Join(dir, "ai-profiles.yaml")
+	writeAPIFile(t, providersPath, `
+providers:
+  - name: unit-test-stub
+    protocol: stub
+    capabilities: [chat]
+    version: 1.0.0
+`)
+	writeAPIFile(t, profilesPath, `
+profiles:
+  - name: target.import.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: unit-test-stub
+      model: stub-chat
+    fallback: []
+    timeout_ms: 1000
+    max_tokens: 256
+    rate_limit:
+      rps: 1
+      tpm: 1000
+    route: target.import
+    version: 1.0.0
+`)
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  providerRegistryPath: "`+providersPath+`"
+  modelProfilePath: "`+profilesPath+`"
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatalf("buildTargetJobRuntime: %v", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := runtime.Shutdown(shutdownCtx); err != nil {
+			t.Fatalf("Shutdown: %v", err)
+		}
+	}()
+	if runtime.Handler == nil || runtime.Drainer == nil || runtime.AI == nil || runtime.AI.Client == nil {
+		t.Fatalf("runtime missing handler/drainer/AI wiring: %+v", runtime)
+	}
+	resp, _, err := runtime.ParseAI.Complete(context.Background(), "target.import.default", aiclient.CompletePayload{
+		Messages: []aiclient.Message{{Role: "user", Content: "Backend Engineer JD"}},
+		Metadata: aiclient.CallMetadata{
+			FeatureKey: targetjob.FeatureKeyTargetImportParse,
+			Language:   "en",
+		},
+	})
+	if err != nil {
+		t.Fatalf("test runtime target import parse fixture: %v", err)
+	}
+	var parsed struct {
+		Requirements []struct {
+			Kind  string `json:"kind"`
+			Label string `json:"label"`
+		} `json:"requirements"`
+	}
+	if err := json.Unmarshal([]byte(resp.Content), &parsed); err != nil {
+		t.Fatalf("test runtime parse fixture did not return JSON: %v; content=%s", err, resp.Content)
+	}
+	if len(parsed.Requirements) == 0 || parsed.Requirements[0].Kind != string(targetjob.RequirementMustHave) {
+		t.Fatalf("test runtime parse fixture returned invalid requirements: %+v", parsed.Requirements)
 	}
 }
 
@@ -184,7 +306,7 @@ runtime:
 		SessionCookieSecret: "session-secret",
 		Now:                 func() time.Time { return time.Date(2026, 5, 6, 21, 0, 0, 0, time.UTC) },
 	})
-	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service)
+	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 	req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: "raw-session-token"})
 	rec := httptest.NewRecorder()
@@ -227,7 +349,7 @@ runtime:
 				SessionCookieSecret: "session-secret",
 				Now:                 func() time.Time { return time.Date(2026, 5, 6, 21, 0, 0, 0, time.UTC) },
 			})
-			handler := buildAPIHandler(loader, apiRuntimeFlags{}, service)
+			handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 			req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: "raw-session-token"})
 			rec := httptest.NewRecorder()

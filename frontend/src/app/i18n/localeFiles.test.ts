@@ -26,4 +26,40 @@ describe("D1 shell i18n locale file structure", () => {
     expect(catalogSource).toContain("aliases");
     expect(catalogSource).toContain("shortLabel");
   });
+
+  it("contains home.* namespace keys in both zh and en (≥14 keys)", () => {
+    const zhSource = readFileSync(
+      new URL("./locales/zh.ts", import.meta.url),
+      "utf8",
+    );
+    const enSource = readFileSync(
+      new URL("./locales/en.ts", import.meta.url),
+      "utf8",
+    );
+
+    const requiredKeys = [
+      "home.heroLabel",
+      "home.heroTitle",
+      "home.heroSub",
+      "home.jdPlaceholder",
+      "home.importBtn",
+      "home.orUpload",
+      "home.recentSection",
+      "home.recentSectionSub",
+      "home.jobPicksTitle",
+      "home.jobPicksSub",
+      "home.jobPicksBtn",
+      "home.debriefTitle",
+      "home.debriefSub",
+      "home.debriefBtn",
+      "home.resumeCreateLink",
+    ];
+
+    expect(requiredKeys.length).toBeGreaterThanOrEqual(14);
+
+    for (const key of requiredKeys) {
+      expect(zhSource).toContain(`"${key}"`);
+      expect(enSource).toContain(`"${key}"`);
+    }
+  });
 });

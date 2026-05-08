@@ -39,9 +39,9 @@ func TestFetch_HappyPath_ReturnsBody(t *testing.T) {
 	}))
 	defer srv.Close()
 	f := urlfetch.New(urlfetch.FetcherOptions{
-		UserAgent: "EasyInterview JD-Crawler/test",
+		UserAgent:  "EasyInterview JD-Crawler/test",
 		HTTPClient: srv.Client(),
-		Resolver: newPublicResolver("8.8.8.8"),
+		Resolver:   newPublicResolver("8.8.8.8"),
 	})
 	got, err := f.Fetch(context.Background(), srv.URL)
 	if err == nil {
@@ -71,7 +71,7 @@ func TestFetch_HappyPath_PublicIPViaInjectedTransport(t *testing.T) {
 		HTTPClient: &http.Client{Transport: transport, Timeout: 5 * time.Second},
 		Resolver:   newPublicResolver("8.8.8.8"),
 	})
-	got, err := f.Fetch(context.Background(), "https://jobs.example.com/role/123")
+	got, err := f.Fetch(context.Background(), "https://jobs.example.com/role/123?token=secret")
 	if err != nil {
 		t.Fatalf("Fetch: %v", err)
 	}
@@ -80,6 +80,9 @@ func TestFetch_HappyPath_PublicIPViaInjectedTransport(t *testing.T) {
 	}
 	if got.SanitizedURL != "https://jobs.example.com/role/123" {
 		t.Fatalf("sanitized url drifted: %q", got.SanitizedURL)
+	}
+	if strings.Contains(got.SanitizedURL, "token=secret") || strings.Contains(got.SanitizedURL, "?") {
+		t.Fatalf("sanitized URL leaked query secret: %q", got.SanitizedURL)
 	}
 }
 
@@ -107,15 +110,15 @@ func TestFetch_RejectsMissingHost(t *testing.T) {
 
 func TestFetch_RejectsPrivateNetworkResolution(t *testing.T) {
 	cases := map[string]string{
-		"rfc1918":          "10.0.0.5",
-		"link-local":       "169.254.10.20",
-		"metadata":         "169.254.169.254",
-		"loopback":         "127.0.0.1",
-		"ipv6-loopback":    "::1",
-		"ipv6-link-local":  "fe80::1",
+		"rfc1918":           "10.0.0.5",
+		"link-local":        "169.254.10.20",
+		"metadata":          "169.254.169.254",
+		"loopback":          "127.0.0.1",
+		"ipv6-loopback":     "::1",
+		"ipv6-link-local":   "fe80::1",
 		"ipv6-unique-local": "fc00::1",
-		"cgnat":            "100.64.1.1",
-		"benchmark":        "198.18.0.1",
+		"cgnat":             "100.64.1.1",
+		"benchmark":         "198.18.0.1",
 	}
 	for name, ip := range cases {
 		t.Run(name, func(t *testing.T) {

@@ -23,11 +23,13 @@ const FeatureKeyTargetImportParse = "target.import.parse"
 // executor consumes. Spec D-4 fixes the three required fields plus the
 // language echo and the data_source_version slot.
 type PromptResolution struct {
-	PromptVersion     string
-	RubricVersion     string
-	ModelProfileName  string
-	DataSourceVersion string
-	FeatureFlag       string
+	PromptVersion       string
+	RubricVersion       string
+	ModelProfileName    string
+	DataSourceVersion   string
+	FeatureFlag         string
+	SystemMessage       string
+	UserMessageTemplate string
 }
 
 // PromptRegistryClient is the F3 boundary. The targetjob domain references
@@ -57,7 +59,7 @@ type ParseExecutorOptions struct {
 	Now      func() time.Time
 }
 
-// ParseExecutor is the JobHandler for the `target_import` async job type.
+// ParseExecutor is the JobHandler for the TargetJob import async job type.
 type ParseExecutor struct {
 	store    Store
 	registry PromptRegistryClient
@@ -86,12 +88,12 @@ func NewParseExecutor(opts ParseExecutorOptions) *ParseExecutor {
 // drift from this shape surfaces as AI_OUTPUT_INVALID (non-retryable). The
 // upstream prompt is owned by F3 so the schema lives here as the consumer.
 type parseAIResponse struct {
-	CoreThemes          []string                  `json:"coreThemes"`
-	InterviewHypotheses []string                  `json:"interviewHypotheses"`
-	Strengths           []string                  `json:"strengths"`
-	Gaps                []string                  `json:"gaps"`
-	RiskSignals         []string                  `json:"riskSignals"`
-	Requirements        []parseAIResponseReq      `json:"requirements"`
+	CoreThemes          []string             `json:"coreThemes"`
+	InterviewHypotheses []string             `json:"interviewHypotheses"`
+	Strengths           []string             `json:"strengths"`
+	Gaps                []string             `json:"gaps"`
+	RiskSignals         []string             `json:"riskSignals"`
+	Requirements        []parseAIResponseReq `json:"requirements"`
 }
 
 type parseAIResponseReq struct {
@@ -103,7 +105,7 @@ type parseAIResponseReq struct {
 
 // Handle satisfies JobHandler. It returns success or the appropriate
 // retryable / non-retryable failure outcome and writes the matching
-// target.parsed / target.analysis.failed outbox event before returning.
+// parsed / analysis-failed outbox event before returning.
 func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	if p == nil || p.store == nil {
 		return JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: "parse executor not initialised"}
@@ -114,10 +116,13 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, err.Error(), false)
 	}
 
+	var fetchedURLBody string
 	if target.SourceType == SourceTypeURL {
-		if err := p.fetchURLSnapshot(ctx, target, sources); err != nil {
+		body, err := p.fetchURLSnapshot(ctx, target, sources)
+		if err != nil {
 			return p.translateAndFail(ctx, targetJobID, err)
 		}
+		fetchedURLBody = body
 	}
 
 	resolution, err := p.registry.Resolve(ctx, FeatureKeyTargetImportParse, target.TargetLanguage)
@@ -127,11 +132,14 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		return p.fail(ctx, targetJobID, sharederrors.CodeAiProviderConfigInvalid, err.Error(), false)
 	}
 
-	jdText := target.RawJDText
-	for _, src := range sources {
-		if src.SnapshotText != "" {
-			jdText = src.SnapshotText
-			break
+	jdText := fetchedURLBody
+	if strings.TrimSpace(jdText) == "" {
+		jdText = target.RawJDText
+		for _, src := range sources {
+			if src.SnapshotText != "" {
+				jdText = src.SnapshotText
+				break
+			}
 		}
 	}
 	if strings.TrimSpace(jdText) == "" {
@@ -139,15 +147,13 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	}
 
 	complete, _, err := p.ai.Complete(ctx, resolution.ModelProfileName, aiclient.CompletePayload{
-		Messages: []aiclient.Message{
-			{Role: "system", Content: "You are an extraction assistant for the target.import.parse feature. Return strict JSON."},
-			{Role: "user", Content: jdText},
-		},
+		Messages: buildPromptMessages(resolution, target.TargetLanguage, jdText),
 		Metadata: aiclient.CallMetadata{
-			FeatureKey:    FeatureKeyTargetImportParse,
-			PromptVersion: resolution.PromptVersion,
-			RubricVersion: resolution.RubricVersion,
-			Language:      target.TargetLanguage,
+			FeatureKey:        FeatureKeyTargetImportParse,
+			PromptVersion:     resolution.PromptVersion,
+			RubricVersion:     resolution.RubricVersion,
+			Language:          target.TargetLanguage,
+			DataSourceVersion: resolution.DataSourceVersion,
 		},
 	})
 	if err != nil {
@@ -160,7 +166,10 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		return p.fail(ctx, targetJobID, sharederrors.CodeAiOutputInvalid, err.Error(), false)
 	}
 
-	requirements := buildRequirements(parsed.Requirements, p.newID)
+	requirements, err := buildRequirements(parsed.Requirements, p.newID)
+	if err != nil {
+		return p.fail(ctx, targetJobID, sharederrors.CodeAiOutputInvalid, err.Error(), false)
+	}
 	summary := mustMarshal(map[string]any{
 		"coreThemes":          parsed.CoreThemes,
 		"interviewHypotheses": parsed.InterviewHypotheses,
@@ -188,17 +197,6 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	})
 
 	now := p.now()
-	if err := p.store.ApplyParseResult(ctx, ApplyParseResultInput{
-		TargetJobID:    targetJobID,
-		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
-		Summary:        summary,
-		FitSummary:     fitSummary,
-		Requirements:   requirements,
-		Now:            now,
-	}); err != nil {
-		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, err.Error(), true)
-	}
-
 	parsedPayload, err := BuildTargetParsedPayload(TargetParsedInput{
 		TargetJobID:      targetJobID,
 		UserID:           target.UserID,
@@ -210,30 +208,37 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, err.Error(), false)
 	}
 	rawParsed, _ := json.Marshal(parsedPayload)
-	if err := p.store.WriteTargetParsedOutbox(ctx, p.newID(), targetJobID, rawParsed, now); err != nil {
-		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, err.Error(), true)
-	}
-
-	// 4.5: enqueue source_refresh placeholder; failure here does not roll
-	// back the parse, but we surface it so observability sees the gap.
-	if err := p.store.EnqueueSourceRefresh(ctx, p.newID(), targetJobID, now); err != nil {
-		// Log-style non-fatal: still succeed but record the issue.
-		_ = err
+	if err := p.store.CompleteParseSuccess(ctx, CompleteParseSuccessInput{
+		TargetJobID:        targetJobID,
+		AnalysisStatus:     sharedtypes.TargetJobParseStatusReady,
+		Summary:            summary,
+		FitSummary:         fitSummary,
+		Requirements:       requirements,
+		ParsedEventID:      p.newID(),
+		ParsedEventPayload: rawParsed,
+		SourceRefreshJobID: p.newID(),
+		Now:                now,
+	}); err != nil {
+		return JobOutcome{
+			ErrorCode:    sharederrors.CodeTargetImportFailed,
+			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
+			Retryable:    true,
+		}
 	}
 
 	return JobOutcome{Succeeded: true}
 }
 
-func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRecord, sources []SourceRecord) error {
+func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRecord, sources []SourceRecord) (string, error) {
 	if p.fetcher == nil {
-		return fmt.Errorf("%w: url fetcher not configured", urlfetch.ErrSourceUnavailable)
+		return "", fmt.Errorf("%w: url fetcher not configured", urlfetch.ErrSourceUnavailable)
 	}
 	if target.SourceURL == "" {
-		return fmt.Errorf("%w: no source url recorded", urlfetch.ErrInvalidSource)
+		return "", fmt.Errorf("%w: no source url recorded", urlfetch.ErrInvalidSource)
 	}
 	res, err := p.fetcher.Fetch(ctx, target.SourceURL)
 	if err != nil {
-		return err
+		return "", err
 	}
 	// Find the most recent url source row to update.
 	var sourceID string
@@ -247,36 +252,44 @@ func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRe
 		// Nothing to update — proceed; the fetch result is in memory but
 		// will not be persisted in target_job_sources. Phase 1 ImportTargetJob
 		// always inserts a source row for url, so this is a defensive no-op.
-		return nil
+		return res.Body, nil
 	}
-	// We do not have a transactional UpdateSource method yet; mirror via
-	// existing freshness updater plus an inline patch. For the boot plan
-	// we settle for refreshing freshness; spec follow-up plan can extend
-	// the store to write snapshot_text. This still satisfies the parse
-	// pipeline because we already pass jdText via the in-memory FetchResult
-	// above (see Handle).
-	_ = res
-	return nil
+	if err := p.store.UpdateSourceSnapshot(ctx, sourceID, res.SanitizedURL, res.Body, res.FetchedAt, p.now()); err != nil {
+		return "", err
+	}
+	return res.Body, nil
 }
 
 func (p *ParseExecutor) fail(ctx context.Context, targetJobID, code, message string, retryable bool) JobOutcome {
 	now := p.now()
-	if err := p.store.UpdateTargetJobAnalysisFailure(ctx, targetJobID, now); err != nil {
-		// stay with the original failure outcome regardless
-		_ = err
-	}
 	payload, err := BuildTargetAnalysisFailedPayload(TargetAnalysisFailedInput{
 		TargetJobID: targetJobID,
 		ErrorCode:   code,
 		Retryable:   retryable,
 	})
-	if err == nil {
-		raw, _ := json.Marshal(payload)
-		_ = p.store.WriteParseFailedOutbox(ctx, p.newID(), targetJobID, raw, now)
+	if err != nil {
+		return JobOutcome{
+			ErrorCode:    sharederrors.CodeTargetImportFailed,
+			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
+			Retryable:    true,
+		}
+	}
+	raw, _ := json.Marshal(payload)
+	if err := p.store.CompleteParseFailure(ctx, CompleteParseFailureInput{
+		TargetJobID:        targetJobID,
+		FailedEventID:      p.newID(),
+		FailedEventPayload: raw,
+		Now:                now,
+	}); err != nil {
+		return JobOutcome{
+			ErrorCode:    sharederrors.CodeTargetImportFailed,
+			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
+			Retryable:    true,
+		}
 	}
 	return JobOutcome{
 		ErrorCode:    code,
-		ErrorMessage: redactErrorMessage(message),
+		ErrorMessage: safeFailureMessage(code, message),
 		Retryable:    retryable,
 	}
 }
@@ -334,17 +347,40 @@ func decodeParseResponse(content string) (parseAIResponse, error) {
 	return out, nil
 }
 
-func buildRequirements(input []parseAIResponseReq, newID IDGenerator) []RequirementRecord {
+func buildPromptMessages(resolution PromptResolution, language string, jdText string) []aiclient.Message {
+	messages := make([]aiclient.Message, 0, 2)
+	if system := strings.TrimSpace(resolution.SystemMessage); system != "" {
+		messages = append(messages, aiclient.Message{Role: "system", Content: system})
+	}
+	user := strings.TrimSpace(jdText)
+	if template := strings.TrimSpace(resolution.UserMessageTemplate); template != "" {
+		user = strings.ReplaceAll(template, "{{jd_text}}", jdText)
+		user = strings.ReplaceAll(user, "{{language}}", language)
+		user = strings.TrimSpace(user)
+	}
+	if user != "" {
+		messages = append(messages, aiclient.Message{Role: "user", Content: user})
+	}
+	return messages
+}
+
+func buildRequirements(input []parseAIResponseReq, newID IDGenerator) ([]RequirementRecord, error) {
 	out := make([]RequirementRecord, 0, len(input))
-	for _, r := range input {
+	for i, r := range input {
 		kind := RequirementKind(strings.TrimSpace(r.Kind))
 		label := strings.TrimSpace(r.Label)
-		if !validRequirementKind(kind) || label == "" {
-			continue
+		if !validRequirementKind(kind) {
+			return nil, fmt.Errorf("AI response requirement %d has invalid kind", i)
+		}
+		if label == "" {
+			return nil, fmt.Errorf("AI response requirement %d has empty label", i)
 		}
 		evidence := EvidenceLevel(strings.TrimSpace(r.EvidenceLevel))
 		if evidence == "" {
 			evidence = EvidenceExplicit
+		}
+		if !validEvidenceLevel(evidence) {
+			return nil, fmt.Errorf("AI response requirement %d has invalid evidence level", i)
 		}
 		out = append(out, RequirementRecord{
 			ID:            newID(),
@@ -354,12 +390,24 @@ func buildRequirements(input []parseAIResponseReq, newID IDGenerator) []Requirem
 			EvidenceLevel: evidence,
 		})
 	}
-	return out
+	if len(out) == 0 {
+		return nil, fmt.Errorf("AI response has no valid requirements")
+	}
+	return out, nil
 }
 
 func validRequirementKind(k RequirementKind) bool {
 	switch k {
 	case RequirementMustHave, RequirementNiceToHave, RequirementHiddenSignal, RequirementInterviewFocus:
+		return true
+	default:
+		return false
+	}
+}
+
+func validEvidenceLevel(e EvidenceLevel) bool {
+	switch e {
+	case EvidenceExplicit, EvidenceInferred:
 		return true
 	default:
 		return false
@@ -381,6 +429,22 @@ func coalesceFlag(v string) string {
 	return v
 }
 
+func safeFailureMessage(code, msg string) string {
+	switch code {
+	case sharederrors.CodeAiProviderTimeout,
+		sharederrors.CodeAiFallbackExhausted,
+		sharederrors.CodeAiOutputInvalid,
+		sharederrors.CodeAiUnsupportedCapability,
+		sharederrors.CodeAiProviderSecretMissing,
+		sharederrors.CodeAiProviderConfigInvalid,
+		sharederrors.CodeTargetImportSourceInvalid,
+		sharederrors.CodeTargetImportSourceUnavailable:
+		return code
+	default:
+		return redactErrorMessage(msg)
+	}
+}
+
 func redactErrorMessage(msg string) string {
 	// Defensive redaction: never let raw JD or prompt body leak into the
 	// async_jobs.error_message column. Truncate at 240 chars and strip
@@ -388,8 +452,17 @@ func redactErrorMessage(msg string) string {
 	if len(msg) > 240 {
 		msg = msg[:240]
 	}
-	for _, kw := range []string{"raw_jd_text", "Authorization:", "Bearer "} {
-		if strings.Contains(msg, kw) {
+	lower := strings.ToLower(msg)
+	for _, kw := range []string{
+		"raw_jd_text",
+		"authorization:",
+		"bearer ",
+		"provider secret",
+		"prompt body",
+		"response body",
+		"private jd body",
+	} {
+		if strings.Contains(lower, kw) {
 			return "redacted error message containing forbidden token"
 		}
 	}

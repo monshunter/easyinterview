@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/monshunter/easyinterview/backend/internal/shared/events"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
@@ -139,6 +140,8 @@ type UpdateLifecycleFields struct {
 	Notes           *string
 	TitleHint       *string
 	CompanyNameHint *string
+	DedupeKey       string
+	DedupeMarkerID  string
 }
 
 // ApplyParseResultInput is the parse-pipeline output the store will merge in
@@ -150,6 +153,31 @@ type ApplyParseResultInput struct {
 	FitSummary     json.RawMessage
 	Requirements   []RequirementRecord
 	Now            time.Time
+}
+
+// CompleteParseSuccessInput is the parse executor's success-side commit
+// bundle. The store applies target_jobs, requirements, target.parsed outbox,
+// and the source_refresh placeholder in one database transaction.
+type CompleteParseSuccessInput struct {
+	TargetJobID        string
+	AnalysisStatus     sharedtypes.TargetJobParseStatus
+	Summary            json.RawMessage
+	FitSummary         json.RawMessage
+	Requirements       []RequirementRecord
+	ParsedEventID      string
+	ParsedEventPayload []byte
+	SourceRefreshJobID string
+	Now                time.Time
+}
+
+// CompleteParseFailureInput is the parse executor's failure-side commit
+// bundle. The analysis_status flip and target.analysis.failed outbox event
+// are written atomically so consumers never observe split-brain state.
+type CompleteParseFailureInput struct {
+	TargetJobID        string
+	FailedEventID      string
+	FailedEventPayload []byte
+	Now                time.Time
 }
 
 // ImportTargetJobInput is the input to the compound ImportTargetJob store
@@ -253,9 +281,13 @@ type Store interface {
 	InsertTargetJobSource(ctx context.Context, rec SourceRecord) error
 	GetTargetJobByUser(ctx context.Context, userID string, targetJobID string) (TargetJobRecord, []RequirementRecord, []SourceRecord, error)
 	ListTargetJobsForUser(ctx context.Context, userID string, filter ListFilter) (ListResult, error)
+	LookupUpdateDedupe(ctx context.Context, userID string, dedupeKey string) (TargetJobRecord, []RequirementRecord, bool, error)
 	UpdateTargetJobLifecycle(ctx context.Context, userID string, targetJobID string, fields UpdateLifecycleFields, now time.Time) (TargetJobRecord, error)
 	ApplyParseResult(ctx context.Context, in ApplyParseResultInput) error
+	CompleteParseSuccess(ctx context.Context, in CompleteParseSuccessInput) error
+	CompleteParseFailure(ctx context.Context, in CompleteParseFailureInput) error
 	UpdateSourceFreshness(ctx context.Context, targetJobID string, freshness FreshnessStatus, now time.Time) error
+	UpdateSourceSnapshot(ctx context.Context, sourceID string, sanitizedURL string, snapshotText string, fetchedAt time.Time, now time.Time) error
 	LookupFileAttachmentForUser(ctx context.Context, userID string, fileObjectID string) (FileAttachmentRecord, error)
 	ClaimNextAsyncJob(ctx context.Context, jobTypes []string, now time.Time) (ClaimedJob, bool, error)
 	FinalizeAsyncJob(ctx context.Context, jobID string, outcome JobOutcome, now time.Time) error
@@ -485,9 +517,9 @@ func (s *SQLStore) ListTargetJobsForUser(ctx context.Context, userID string, fil
 		pageSize = ListMaxPageSize
 	}
 	var (
-		args      []any
-		clauses   []string
-		nextArg   = func(v any) string {
+		args    []any
+		clauses []string
+		nextArg = func(v any) string {
 			args = append(args, v)
 			return fmt.Sprintf("$%d", len(args))
 		}
@@ -556,6 +588,116 @@ func (s *SQLStore) UpdateTargetJobLifecycle(ctx context.Context, userID string, 
 	if err := s.checkDB(); err != nil {
 		return TargetJobRecord{}, err
 	}
+	if fields.DedupeKey != "" {
+		return s.updateTargetJobLifecycleIdempotent(ctx, userID, targetJobID, fields, now)
+	}
+	if fields.Status != nil {
+		return s.updateTargetJobLifecycleLocked(ctx, userID, targetJobID, fields, now)
+	}
+	return updateTargetJobLifecycleRow(ctx, s.db, userID, targetJobID, fields, now)
+}
+
+func (s *SQLStore) updateTargetJobLifecycleLocked(ctx context.Context, userID string, targetJobID string, fields UpdateLifecycleFields, now time.Time) (TargetJobRecord, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return TargetJobRecord{}, fmt.Errorf("begin update target job lifecycle: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := validateStatusTransitionUnderLock(ctx, tx, userID, targetJobID, fields); err != nil {
+		return TargetJobRecord{}, err
+	}
+	updated, err := updateTargetJobLifecycleRow(ctx, tx, userID, targetJobID, fields, now)
+	if err != nil {
+		return TargetJobRecord{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return TargetJobRecord{}, fmt.Errorf("commit update target job lifecycle: %w", err)
+	}
+	return updated, nil
+}
+
+// LookupUpdateDedupe checks whether updateTargetJob has already completed for
+// this user-scoped dedupe key. It is a preflight convenience for the service;
+// the transactional update path still rechecks under an advisory lock to close
+// races.
+func (s *SQLStore) LookupUpdateDedupe(ctx context.Context, userID string, dedupeKey string) (TargetJobRecord, []RequirementRecord, bool, error) {
+	if err := s.checkDB(); err != nil {
+		return TargetJobRecord{}, nil, false, err
+	}
+	targetID, hit, err := lookupExistingUpdateDedupe(ctx, s.db, dedupeKey)
+	if err != nil {
+		return TargetJobRecord{}, nil, false, err
+	}
+	if !hit {
+		return TargetJobRecord{}, nil, false, nil
+	}
+	rec, reqs, _, err := s.GetTargetJobByUser(ctx, userID, targetID)
+	if err != nil {
+		return TargetJobRecord{}, nil, false, err
+	}
+	return rec, reqs, true, nil
+}
+
+func (s *SQLStore) updateTargetJobLifecycleIdempotent(ctx context.Context, userID string, targetJobID string, fields UpdateLifecycleFields, now time.Time) (TargetJobRecord, error) {
+	if fields.DedupeMarkerID == "" {
+		return TargetJobRecord{}, fmt.Errorf("update target job requires DedupeMarkerID")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return TargetJobRecord{}, fmt.Errorf("begin update target job lifecycle: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `select pg_advisory_xact_lock(hashtext($1))`, fields.DedupeKey); err != nil {
+		return TargetJobRecord{}, fmt.Errorf("lock update dedupe key: %w", err)
+	}
+	existingTargetID, hit, err := lookupExistingUpdateDedupe(ctx, tx, fields.DedupeKey)
+	if err != nil {
+		return TargetJobRecord{}, err
+	}
+	if hit {
+		rec, err := selectTargetJobRecordByUser(ctx, tx, userID, existingTargetID)
+		if err != nil {
+			return TargetJobRecord{}, err
+		}
+		if err := tx.Commit(); err != nil {
+			return TargetJobRecord{}, fmt.Errorf("commit update target job dedupe hit: %w", err)
+		}
+		return rec, nil
+	}
+
+	if err := validateStatusTransitionUnderLock(ctx, tx, userID, targetJobID, fields); err != nil {
+		return TargetJobRecord{}, err
+	}
+	updated, err := updateTargetJobLifecycleRow(ctx, tx, userID, targetJobID, fields, now)
+	if err != nil {
+		return TargetJobRecord{}, err
+	}
+	if _, err := tx.ExecContext(ctx, `
+insert into async_jobs (
+  id, job_type, resource_type, resource_id, dedupe_key, status, payload, result,
+  available_at, completed_at, created_at, updated_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$9,$9)`,
+		fields.DedupeMarkerID,
+		string(jobs.JobTypeTargetImport),
+		"target_job_update",
+		targetJobID,
+		fields.DedupeKey,
+		string(sharedtypes.JobStatusSucceeded),
+		[]byte(`{}`),
+		[]byte(`{}`),
+		now,
+	); err != nil {
+		return TargetJobRecord{}, fmt.Errorf("insert update dedupe marker: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return TargetJobRecord{}, fmt.Errorf("commit update target job lifecycle: %w", err)
+	}
+	return updated, nil
+}
+
+func updateTargetJobLifecycleRow(ctx context.Context, q rowQueryer, userID string, targetJobID string, fields UpdateLifecycleFields, now time.Time) (TargetJobRecord, error) {
 	var (
 		sets    []string
 		args    []any
@@ -574,10 +716,10 @@ func (s *SQLStore) UpdateTargetJobLifecycle(ctx context.Context, userID string, 
 		sets = append(sets, "notes = "+nextArg(*fields.Notes))
 	}
 	if fields.TitleHint != nil {
-		sets = append(sets, "title = coalesce(title, "+nextArg(*fields.TitleHint)+")")
+		sets = append(sets, "title = "+nextArg(*fields.TitleHint))
 	}
 	if fields.CompanyNameHint != nil {
-		sets = append(sets, "company_name = coalesce(company_name, "+nextArg(*fields.CompanyNameHint)+")")
+		sets = append(sets, "company_name = "+nextArg(*fields.CompanyNameHint))
 	}
 	sets = append(sets, "updated_at = "+nextArg(now))
 
@@ -594,13 +736,85 @@ returning id, user_id, profile_id, status, analysis_status, title, company_name,
 		len(args)-1,
 		len(args),
 	)
-	rows := s.db.QueryRowContext(ctx, query, args...)
+	rows := q.QueryRowContext(ctx, query, args...)
 	rec, err := scanTargetJobRow(rows)
 	if errors.Is(err, sql.ErrNoRows) {
 		return TargetJobRecord{}, ErrTargetJobNotFound
 	}
 	if err != nil {
 		return TargetJobRecord{}, fmt.Errorf("update target_jobs lifecycle: %w", err)
+	}
+	return rec, nil
+}
+
+func validateStatusTransitionUnderLock(ctx context.Context, q rowQueryer, userID string, targetJobID string, fields UpdateLifecycleFields) error {
+	if fields.Status == nil {
+		return nil
+	}
+	current, err := selectTargetJobRecordByUserForUpdate(ctx, q, userID, targetJobID)
+	if err != nil {
+		return err
+	}
+	return validateLifecycleTransition(current.Status, *fields.Status)
+}
+
+func lookupExistingUpdateDedupe(ctx context.Context, q rowQueryer, dedupeKey string) (string, bool, error) {
+	var resourceID string
+	err := q.QueryRowContext(ctx, `
+select resource_id
+from async_jobs
+where job_type = $1 and dedupe_key = $2
+order by created_at desc
+limit 1`,
+		string(jobs.JobTypeTargetImport),
+		dedupeKey,
+	).Scan(&resourceID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("lookup update dedupe marker: %w", err)
+	}
+	return resourceID, true, nil
+}
+
+func selectTargetJobRecordByUserForUpdate(ctx context.Context, q rowQueryer, userID string, targetJobID string) (TargetJobRecord, error) {
+	rec, err := scanTargetJobRow(q.QueryRowContext(ctx, `
+select id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+       employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
+       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
+       created_at, updated_at
+from target_jobs
+where id = $1 and user_id = $2 and deleted_at is null
+for update`,
+		targetJobID,
+		userID,
+	))
+	if errors.Is(err, sql.ErrNoRows) {
+		return TargetJobRecord{}, ErrTargetJobNotFound
+	}
+	if err != nil {
+		return TargetJobRecord{}, fmt.Errorf("select target_jobs for update: %w", err)
+	}
+	return rec, nil
+}
+
+func selectTargetJobRecordByUser(ctx context.Context, q rowQueryer, userID string, targetJobID string) (TargetJobRecord, error) {
+	rec, err := scanTargetJobRow(q.QueryRowContext(ctx, `
+select id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+       employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
+       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
+       created_at, updated_at
+from target_jobs
+where id = $1 and user_id = $2 and deleted_at is null`,
+		targetJobID,
+		userID,
+	))
+	if errors.Is(err, sql.ErrNoRows) {
+		return TargetJobRecord{}, ErrTargetJobNotFound
+	}
+	if err != nil {
+		return TargetJobRecord{}, fmt.Errorf("select target_jobs by update dedupe: %w", err)
 	}
 	return rec, nil
 }
@@ -615,6 +829,86 @@ func (s *SQLStore) ApplyParseResult(ctx context.Context, in ApplyParseResultInpu
 	}
 	defer tx.Rollback()
 
+	if err := s.applyParseResultTx(ctx, tx, in); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit apply parse result: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLStore) CompleteParseSuccess(ctx context.Context, in CompleteParseSuccessInput) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin complete parse success: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := s.applyParseResultTx(ctx, tx, ApplyParseResultInput{
+		TargetJobID:    in.TargetJobID,
+		AnalysisStatus: in.AnalysisStatus,
+		Summary:        in.Summary,
+		FitSummary:     in.FitSummary,
+		Requirements:   in.Requirements,
+		Now:            in.Now,
+	}); err != nil {
+		return err
+	}
+	if err := s.writeOutboxTx(ctx, tx, in.ParsedEventID, string(events.EventNameTargetParsed), in.TargetJobID, in.ParsedEventPayload, in.Now); err != nil {
+		return err
+	}
+	if in.SourceRefreshJobID != "" {
+		if err := s.enqueueSourceRefreshTx(ctx, tx, in.SourceRefreshJobID, in.TargetJobID, in.Now); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit complete parse success: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLStore) CompleteParseFailure(ctx context.Context, in CompleteParseFailureInput) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin complete parse failure: %w", err)
+	}
+	defer tx.Rollback()
+
+	res, err := tx.ExecContext(ctx, `
+update target_jobs
+set analysis_status = 'failed', updated_at = $1
+where id = $2 and deleted_at is null`,
+		in.Now,
+		in.TargetJobID,
+	)
+	if err != nil {
+		return fmt.Errorf("update target_jobs analysis_status=failed: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("complete parse failure rows affected: %w", err)
+	}
+	if rows == 0 {
+		return ErrTargetJobNotFound
+	}
+	if err := s.writeOutboxTx(ctx, tx, in.FailedEventID, string(events.EventNameTargetAnalysisFailed), in.TargetJobID, in.FailedEventPayload, in.Now); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit complete parse failure: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLStore) applyParseResultTx(ctx context.Context, tx *sql.Tx, in ApplyParseResultInput) error {
 	existing, err := s.listRequirementsForJobTx(ctx, tx, in.TargetJobID)
 	if err != nil {
 		return err
@@ -682,9 +976,6 @@ where id = $5 and deleted_at is null`,
 	if rows == 0 {
 		return ErrTargetJobNotFound
 	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit apply parse result: %w", err)
-	}
 	return nil
 }
 
@@ -692,7 +983,7 @@ where id = $5 and deleted_at is null`,
 // target_job_requirements + outbox_events + async_jobs) atomically. It
 // dedupes by (user_id, idempotency_key) hashed into in.DedupeKey: if an
 // existing async_jobs row with the same dedupe_key and job_type
-// 'target_import' is found, the result wraps that row instead of inserting
+// jobs.JobTypeTargetImport is found, the result wraps that row instead of inserting
 // a new TargetJob (see spec C-12 / D-6).
 //
 // Source variant contract:
@@ -710,17 +1001,23 @@ func (s *SQLStore) ImportTargetJob(ctx context.Context, in ImportTargetJobInput)
 		return ImportTargetJobResult{}, fmt.Errorf("import target job requires userId, targetJobId, dedupeKey")
 	}
 
-	if existing, hit, err := s.lookupExistingImport(ctx, in.DedupeKey); err != nil {
-		return ImportTargetJobResult{}, err
-	} else if hit {
-		return existing, nil
-	}
-
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return ImportTargetJobResult{}, fmt.Errorf("begin import target job: %w", err)
 	}
 	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `select pg_advisory_xact_lock(hashtext($1))`, in.DedupeKey); err != nil {
+		return ImportTargetJobResult{}, fmt.Errorf("lock import dedupe key: %w", err)
+	}
+	if existing, hit, err := s.lookupExistingImport(ctx, tx, in.DedupeKey); err != nil {
+		return ImportTargetJobResult{}, err
+	} else if hit {
+		if err := tx.Commit(); err != nil {
+			return ImportTargetJobResult{}, fmt.Errorf("commit import target job dedupe hit: %w", err)
+		}
+		return existing, nil
+	}
 
 	if _, err := tx.ExecContext(ctx, `
 insert into target_jobs (
@@ -814,7 +1111,7 @@ insert into outbox_events (
   id, event_name, event_version, aggregate_type, aggregate_id, payload, publish_status, created_at
 ) values ($1,$2,$3,$4,$5,$6,$7,$8)`,
 			in.OutboxEventID,
-			"target.import.requested",
+			string(events.EventNameTargetImportRequested),
 			1,
 			"target_job",
 			in.TargetJobID,
@@ -843,10 +1140,9 @@ insert into async_jobs (
 	} else {
 		// manual_form: a terminal succeeded async_jobs row records the
 		// import for SELECT-based dedupe and supplies a real Job.id for the
-		// response. The unique-active partial index does not cover
-		// succeeded rows, so dedupe is best-effort within the synchronous
-		// race window — acceptable since manual_form completes inside a
-		// single request lifecycle.
+		// response. The transaction-scoped advisory lock above closes the
+		// same-key race even though succeeded rows are outside the active
+		// partial index.
 		if _, err := tx.ExecContext(ctx, `
 insert into async_jobs (
   id, job_type, resource_type, resource_id, dedupe_key, status, payload,
@@ -879,15 +1175,15 @@ insert into async_jobs (
 	}, nil
 }
 
-func (s *SQLStore) lookupExistingImport(ctx context.Context, dedupeKey string) (ImportTargetJobResult, bool, error) {
+func (s *SQLStore) lookupExistingImport(ctx context.Context, q rowQueryer, dedupeKey string) (ImportTargetJobResult, bool, error) {
 	var (
-		jobID        string
-		resourceID   string
-		statusStr    string
-		createdAt    time.Time
-		updatedAt    time.Time
+		jobID      string
+		resourceID string
+		statusStr  string
+		createdAt  time.Time
+		updatedAt  time.Time
 	)
-	err := s.db.QueryRowContext(ctx, `
+	err := q.QueryRowContext(ctx, `
 select id, resource_id, status, created_at, updated_at
 from async_jobs
 where job_type = $1 and dedupe_key = $2
@@ -900,7 +1196,7 @@ limit 1`,
 		return ImportTargetJobResult{}, false, nil
 	}
 	if err != nil {
-		return ImportTargetJobResult{}, false, fmt.Errorf("lookup existing target_import: %w", err)
+		return ImportTargetJobResult{}, false, fmt.Errorf("lookup existing %s: %w", jobs.JobTypeTargetImport, err)
 	}
 	return ImportTargetJobResult{
 		TargetJobID:  resourceID,
@@ -950,8 +1246,8 @@ returning id, job_type, resource_type, resource_id, payload, attempts, max_attem
 		strings.Join(placeholders, ","),
 	)
 	var (
-		claimed     ClaimedJob
-		payload     []byte
+		claimed ClaimedJob
+		payload []byte
 	)
 	err := s.db.QueryRowContext(ctx, query, args...).Scan(
 		&claimed.JobID,
@@ -1047,7 +1343,11 @@ func (s *SQLStore) EnqueueSourceRefresh(ctx context.Context, jobID string, targe
 	if err := s.checkDB(); err != nil {
 		return err
 	}
-	_, err := s.db.ExecContext(ctx, `
+	return s.enqueueSourceRefreshTx(ctx, s.db, jobID, targetJobID, now)
+}
+
+func (s *SQLStore) enqueueSourceRefreshTx(ctx context.Context, exec execer, jobID string, targetJobID string, now time.Time) error {
+	_, err := exec.ExecContext(ctx, `
 insert into async_jobs (
   id, job_type, resource_type, resource_id, dedupe_key, status, payload,
   available_at, created_at, updated_at
@@ -1063,21 +1363,25 @@ insert into async_jobs (
 	return nil
 }
 
-// WriteTargetParsedOutbox inserts a target.parsed event row.
+// WriteTargetParsedOutbox inserts an events.EventNameTargetParsed event row.
 func (s *SQLStore) WriteTargetParsedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error {
-	return s.writeOutbox(ctx, eventID, "target.parsed", targetJobID, payload, now)
+	return s.writeOutbox(ctx, eventID, string(events.EventNameTargetParsed), targetJobID, payload, now)
 }
 
-// WriteParseFailedOutbox inserts a target.analysis.failed event row.
+// WriteParseFailedOutbox inserts an events.EventNameTargetAnalysisFailed event row.
 func (s *SQLStore) WriteParseFailedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error {
-	return s.writeOutbox(ctx, eventID, "target.analysis.failed", targetJobID, payload, now)
+	return s.writeOutbox(ctx, eventID, string(events.EventNameTargetAnalysisFailed), targetJobID, payload, now)
 }
 
 func (s *SQLStore) writeOutbox(ctx context.Context, eventID, eventName, targetJobID string, payload []byte, now time.Time) error {
 	if err := s.checkDB(); err != nil {
 		return err
 	}
-	_, err := s.db.ExecContext(ctx, `
+	return s.writeOutboxTx(ctx, s.db, eventID, eventName, targetJobID, payload, now)
+}
+
+func (s *SQLStore) writeOutboxTx(ctx context.Context, exec execer, eventID, eventName, targetJobID string, payload []byte, now time.Time) error {
+	_, err := exec.ExecContext(ctx, `
 insert into outbox_events (
   id, event_name, event_version, aggregate_type, aggregate_id, payload, publish_status, created_at
 ) values ($1, $2, 1, 'target_job', $3, $4, 'pending', $5)`,
@@ -1240,10 +1544,50 @@ where target_job_id = $3`,
 	return nil
 }
 
+// UpdateSourceSnapshot persists the sanitized URL and fetched JD body for a URL
+// source row after the SSRF guard has accepted the upstream response.
+func (s *SQLStore) UpdateSourceSnapshot(ctx context.Context, sourceID string, sanitizedURL string, snapshotText string, fetchedAt time.Time, now time.Time) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	res, err := s.db.ExecContext(ctx, `
+update target_job_sources
+set url = $1,
+    snapshot_text = $2,
+    fetched_at = $3,
+    freshness_status = $4
+where id = $5`,
+		nullableString(sanitizedURL),
+		nullableString(snapshotText),
+		fetchedAt,
+		string(FreshnessFresh),
+		sourceID,
+	)
+	if err != nil {
+		return fmt.Errorf("update target_job_sources snapshot: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("update target_job_sources snapshot rows affected: %w", err)
+	}
+	if rows == 0 {
+		return ErrTargetJobNotFound
+	}
+	return nil
+}
+
 // ----- helpers -----
 
 type rowScanner interface {
 	Scan(dest ...any) error
+}
+
+type rowQueryer interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+type execer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
 func scanTargetJobRow(scanner rowScanner) (TargetJobRecord, error) {

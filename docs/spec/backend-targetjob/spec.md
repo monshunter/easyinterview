@@ -1,6 +1,6 @@
 # Backend TargetJob Spec
 
-> **版本**: 1.1
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-05-08
 
@@ -24,7 +24,7 @@
 - 4 类导入源（`url` / `manual_text` / `file` / `manual_form`）的写入路径与归一化：source snapshot 写入 `target_job_sources`，`raw_jd_text` 只在 `target_jobs` 表内部保留，事件 / 日志 / metric / audit 不携带原文。
 - URL 导入的 fetch 边界：scheme / DNS-IP SSRF 防护、length cap、timeout、`fetched_at` 与 `freshness_status` 写入；不抓登录后内容、不绕过 robots / ToS、不抓非 HTML 资源。
 - File 导入的 `file_objects` 引用：仅接受 `purpose='target_job_attachment'` 的 file object；缺失或越权返回 B1 error envelope，不泄露文件内容。
-- 异步 JD 解析管线：消费 `target_import` job → 使用 [F3 `RegistryClient.Resolve("target.import.parse", language)`](../prompt-rubric-registry/spec.md) 解析三元组 → 调用 [A3 `AIClient`](../ai-provider-and-model-routing/spec.md) → 写入 `target_job_requirements` + `target_jobs.summary` + `target_jobs.fit_summary` + `provenance`，事务内更新 `analysis_status` 与 `latest_parse_job_id`，并发出 `target.parsed` 或 `target.analysis.failed` 事件。
+- 异步 JD 解析管线：消费 `target_import` job → 使用 [F3 `RegistryClient.Resolve("target.import.parse", language)`](../prompt-rubric-registry/spec.md) 解析三元组 → 调用 [A3 `AIClient`](../ai-provider-and-model-routing/spec.md) → 写入 `target_job_requirements` + `target_jobs.summary` + `target_jobs.fit_summary` + `provenance`，事务内更新 `analysis_status`，并与 `target.parsed` / `target.analysis.failed` outbox 事件及 `source_refresh` 占位 job 保持原子提交。
 - 异步执行边界：复用 [backend-auth](../backend-auth/spec.md) 同款 backend-internal goroutine drainer 模式，在 `cmd/api` 进程内 drain `target_import` 队列；本 plan 不引入独立 worker 进程，也不自建 Asynq 集群；后续 [`backend-async-runner`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 落地后必须能无损替换。
 - Cross-user / cross-tenant 隔离：所有 read / write 必须按 `user_id` 过滤；越权访问返回 404，不泄露目标存在性。
 - Idempotency：`importTargetJob` / `updateTargetJob` 必须按 `(user_id, idempotency_key)` 去重；同 key 重复请求返回同一 `targetJobId` / 同一 `target_import` job，不创建多余记录或多余 job。
@@ -151,7 +151,7 @@
 
 ## 7 关联计划
 
-- [001-targetjob-import-and-parse-bootstrap](./plans/001-targetjob-import-and-parse-bootstrap/plan.md)（active）：先修 B1/B2/B3/F1 owner 契约，再落地 4 个 TargetJob operation、4 类导入源处理、`target_import` 异步解析管线、隐私 / 观测红线、`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 四个 BDD 场景。
+- [001-targetjob-import-and-parse-bootstrap](./plans/001-targetjob-import-and-parse-bootstrap/plan.md)（active）：先修 B1/B2/B3/F1 owner 契约，再落地 4 个 TargetJob operation、4 类导入源处理、`target_import` 异步解析管线、隐私 / 观测红线、`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 四个 BDD 场景；当前 4 个 BDD gate 已通过 `cmd/api` HTTP scenario harness，计划生命周期待单独确认后切换为 `completed`。
 
 ## 8 相关文档
 
