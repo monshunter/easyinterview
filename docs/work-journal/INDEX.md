@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `fix(event-outbox): drop stale embedding job reference in jobs_test` | #fix #test |
 | [2026-05-08](2026-05-08.md) | `feat(backend-targetjob): seed phase 0 owner contract surface` | #feat #test #docs |
 | [2026-05-08](2026-05-08.md) | `docs(reports): add language dropdown delivery assessment` | #docs |
 | [2026-05-08](2026-05-08.md) | `test(scenarios): update language dropdown terminology and pass counts` | #test #docs |

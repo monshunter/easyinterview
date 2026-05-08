@@ -43,7 +43,7 @@ func TestGeneratedJobMappings(t *testing.T) {
 	if AsynqTaskEmailDispatch != "email.dispatch" {
 		t.Fatalf("AsynqTaskEmailDispatch = %q", AsynqTaskEmailDispatch)
 	}
-	for _, internalOnly := range []JobType{JobTypeSourceRefresh, JobTypeEmbeddingUpsert, JobTypeEmailDispatch} {
+	for _, internalOnly := range []JobType{JobTypeSourceRefresh, JobTypeEmailDispatch} {
 		if containsJobType(APIFacingJobTypes, internalOnly) {
 			t.Fatalf("%s must stay out of APIFacingJobTypes", internalOnly)
 		}
