@@ -16,7 +16,7 @@ for required in \
   'Job Picks' \
   'Sign in' \
   'Register' \
-  'language toggle' \
+  'language dropdown' \
   'Accept-Language: en'; do
   if ! grep -Fq "$required" "$LOG_FILE"; then
     echo "missing language-switch evidence: $required" >&2
