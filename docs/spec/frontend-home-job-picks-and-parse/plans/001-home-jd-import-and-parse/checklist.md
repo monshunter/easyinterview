@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-08
 
@@ -20,8 +20,10 @@
 - [x] 2.1 在 `HomeScreen` 中新增 `useRecentTargetJobs()` hook，通过 D1 generated client 调 `listTargetJobs`（pagination 取首页，`RequestOptions.query.pageSize=12`）；React state 跟踪 loading / data / error 三态；Vitest 断言 generated client `listTargetJobs` 被调用 1 次、query 参数 `pageSize=12`、返回 mockTransport fixture
 - [x] 2.2 新增 `MockInterviewCard.tsx` 与 `MiniRoundRail.tsx` 组件，按 `ui-design/src/screen-home.jsx::MockInterviewCard` lines 148-178 + `MiniRoundRail` lines 188-216 源级复刻；testid `home-recent-mock-card-${id}` 与 `home-recent-mock-rail-${id}`；card view model 只能读取 generated `TargetJob` 字段（`companyName` / `title` / `locationText` / `status` / `updatedAt`），`statusTone` 从 `TargetJob.status` 派生并通过 D2 token 渲染（不硬编码颜色、不读取不存在的 `level` / `nextRound` / `statusTone` fixture 字段）；Vitest 断言 fixture 中 N 张卡片渲染、status pill computed background 对应 token、MiniRoundRail 圆点 currentIndex fallback 正确
 - [x] 2.3 在 `HomeScreen` 中按 `updatedAt desc` 排序并取最多 12 条；超 12 条取首 12；卡片点击调 `nav("workspace", interviewContextFromTargetJob(j))`，`interviewContextFromTargetJob` 抽到 `frontend/src/app/navigation/interviewContext.ts` 锁定字段集合与 fallback（`targetJobId=id` / `jobId=id` / `planId=plan-${id}` / `jdId=jd-${id}` / `resumeVersionId=resume-unbound` / `roundId=round-technical-1` / `roundName` locale fallback）；Vitest 断言点击 callback 携带完整 7 个字段且不依赖 OpenAPI 未声明字段
+<!-- verified: 2026-05-08 method=vitest HomeRecentMocks.test.tsx 6 tests PASS; L2 remediation confirms a013 latest included and a001 oldest excluded after updatedAt desc sort -->
 - [x] 2.4 在 `openapi/fixtures/TargetJobs/listTargetJobs.json` 扩展 `listTargetJobs` variants（empty / one / 12+），通过 `createFixtureBackedFetch({ scenario })` 按 variant 选择；`make validate-fixtures` 通过
 - [x] 2.5 新增 `home/HomeRecentMocks.test.tsx`：测 fixture variant 三态（empty → 无 card 渲染；1 条 → 1 张卡片；13 条 → 取首 12 + `updatedAt desc` 排序）；卡片点击 callback 携带正确 params；4xx/5xx → 错误占位
+<!-- verified: 2026-05-08 method=vitest HomeRecentMocks.test.tsx red→green for twelve-plus updatedAt desc order -->
 - [x] 2.6 BDD-Gate: 验证 `E2E.P0.014` 完整版（含 Recent mocks 三态）
 <!-- verified: 2026-05-08 method=vitest HomeRecentMocks 6 tests (default/empty/one-job/twelve-plus variants, sort+limit, interviewContext nav) + HomeScreen 10 tests + MockInterviewCard 6 tests PASS; BDD scenario assets deferred to Phase 6 -->
 
@@ -29,9 +31,12 @@
 
 - [x] 3.1 新增 `JDAssistModal.tsx` 组件，按 `ui-design/src/screen-home.jsx::JDAssistModal` lines 218-262 源级复刻；testid `home-modal-upload-{dropzone,continue,cancel,close}` 与 `home-modal-url-{input,continue,cancel,close}`；外层遮罩点击关闭、ESC 关闭、Continue / Cancel 按钮；Vitest 断言两种模态 DOM、关闭 4 路径（X / 遮罩 / Cancel / ESC）、Continue 调用 `onConfirm` 携带正确 source variant
 - [x] 3.2 在 `HomeScreen` 中接入提交逻辑，三种 source variants 通过 generated client：textarea paste → `importTargetJob` `{ type: "manual_text", rawText }`；upload modal Continue → 先调 `createUploadPresign({ purpose: "target_job_attachment", fileName, contentType, byteSize }, { idempotencyKey })`，取返回 `fileObjectId` 后调 `importTargetJob` `{ type: "file", fileObjectId }`；URL modal Continue → `importTargetJob` `{ type: "url", url }`；`importTargetJob` 同样带 `idempotencyKey`；`targetLanguage` 取当前 UI locale；Vitest 断言三 variants request body schema、`createUploadPresign` fixture、`Idempotency-Key` header 与 OpenAPI discriminator 一致
+<!-- verified: 2026-05-08 method=vitest HomeImport.test.tsx + HomeAuthGate.test.tsx 15 tests PASS; L2 remediation adds en targetLanguage assertion -->
 - [x] 3.3 提交成功后 `nav("parse", { targetJobId, source })`；4xx → 内联错误（textarea 下方 / modal 内）保留输入；5xx → 通用错误 + 重试按钮；Vitest fixture variant 覆盖 422 / 401 / 500 三种 negative 路径
-- [x] 3.4 接入 `requestAuth` pending action：未登录提交时调 `requestAuth({ type: "import_jd", route: "parse", params: { source }, label })`，登录恢复时回到 home 自动重新提交保留的 form state；Vitest `home/HomeAuthGate.test.tsx` 断言 pending action 触发与登录后恢复
+- [x] 3.4 接入 `requestAuth` pending action：未登录提交时调 `requestAuth({ type: "import_jd", route: "home", params: { source, pendingImportId }, label })`，`pendingImportId` 只引用当前 SPA 会话内存中的待提交 source payload，不携带 JD 原文 / source URL；登录恢复时回到 home 自动重新提交保留的 form state；Vitest `home/HomeAuthGate.test.tsx` 断言 pending action 触发与登录后恢复
+<!-- verified: 2026-05-08 method=vitest HomeAuthGate.test.tsx 4 tests PASS; L2 remediation restores paste import through opaque pendingImportId -->
 - [x] 3.5 隐私反查：Vitest 断言 JD raw text / rawDescription / url 不出现在 `console.log` / URL query / `localStorage` / telemetry payload；redact lint 反查通过；mockTransport spy 仅记录 status code + 调用次数，不记录 body
+<!-- verified: 2026-05-08 method=vitest HomeImport privacy tests + HomeAuthGate route serialization assertions PASS -->
 - [x] 3.6 BDD-Gate: 验证 `E2E.P0.015` paste→import→parse 主路径已具备 home/import 阶段（pre-parse 步骤）
 <!-- verified: 2026-05-08 method=vitest HomeImport 6 tests (paste/url/upload discriminator + Idempotency-Key + error) + HomeAuthGate 3 tests PASS; BDD scenario assets deferred to Phase 6 -->
 
@@ -46,12 +51,14 @@
 - [x] 4.4 Confirm 调 `updateTargetJob(targetJobId, body, { idempotencyKey })`，body 仅 supplied fields（titleHint / companyNameHint / locationText / notes 至多 4 字段）；OpenAPI `UpdateTargetJobRequest.description: All fields optional — only supplied fields are updated.` 由 Vitest request body 与 `Idempotency-Key` header 反查锁定；成功后 `nav("workspace", interviewContextFromTargetJob(targetJob))`；4xx → inline 错误保留编辑态
 <!-- verified: 2026-05-08 method=vitest ParseEdit.test.tsx confirm test validates request body, Idempotency-Key, workspace nav, 4xx error -->
 - [x] 4.5 Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；abort 当前 polling effect 防止 race；Cancel 跳 `home`；Vitest 断言两种行为
+<!-- verified: 2026-05-08 method=vitest ParseScreen.test.tsx + ParseEdit.test.tsx 17 tests PASS; L2 remediation confirms jsdom scrollTo unavailable path emits no stderr -->
 <!-- verified: 2026-05-08 method=vitest ParseEdit.test.tsx re-parse test + ParseScreen.test.tsx cancel nav test + ParseFlow.test.tsx unmount cleanup -->
 - [x] 4.6 接入 `requestAuth` pending action：Confirm 未登录时调 `requestAuth({ type: "confirm_interview", route: "workspace", params: { targetJobId, jdId, planId, resumeVersionId, roundId } })`；登录后回到 workspace；Vitest `parse/ParseAuthGate.test.tsx` 断言
 <!-- verified: 2026-05-08 method=vitest ParseAuthGate.test.tsx 1 test PASS (redirects to auth_login, does not call updateTargetJob) -->
 - [x] 4.7 扩展 `frontend/src/app/i18n/locales/zh.ts` / `en.ts` 新增 `parse.*` 命名空间（≥30 key 覆盖 4 步 loading 文案、Basic fields label、Must Have / Nice to Have、Hidden signals、Round assumptions、footer actions、failed state）；i18n test 断言 zh/en 同步
 <!-- verified: 2026-05-08 method=vitest localeFiles.test.ts + localeRuntime.test.tsx + i18nShell.test.tsx 7 tests PASS; parse.* 50 keys zh/en synced -->
 - [x] 4.8 隐私反查：Vitest 断言 JD raw text / GenerationProvenance.promptTemplate / rubric id 完整 hash 不出现在 URL / localStorage / telemetry；mockTransport spy 仅记录 status code
+<!-- verified: 2026-05-08 method=vitest ParseScreen.test.tsx footer negative assertion PASS; loading footer no longer contains provider-specific model or prompt hash -->
 <!-- verified: 2026-05-08 method=code-design ParseScreen only passes data through generated client; no direct JD raw text in console/URL/localStorage/telemetry -->
 - [x] 4.9 新增 5 个测试文件：`parse/ParseScreen.test.tsx`（DOM 锚点）+ `parse/ParseFlow.test.tsx`（polling 三态）+ `parse/ParseEdit.test.tsx`（inline 编辑、hit toggle、Confirm 携带 body schema、4xx inline 错误）+ `parse/ParseFailedState.test.tsx`（failed UI 渲染、重新解析 / 返回首页 2 button）+ `parse/ParseAuthGate.test.tsx`（Confirm pending action）；`pnpm test` Phase 4 测试全 PASS
 <!-- verified: 2026-05-08 method=vitest 24 tests across 5 files all PASS -->
@@ -82,16 +89,16 @@
 - [x] 6.4 `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 现有 21 spec × 2 viewport = 42 项基础上累加 home/parse/jd_match 新增 spec；总数全 PASS
 <!-- verified: 2026-05-08 method=playwright 68/68 PASS (34 specs × 2 viewports); baseline updated for home screen changes -->
 - [x] 6.5 派生 4 个 scenario 目录 `test/scenarios/e2e/p0-014-home-default-render/` `p0-015-jd-import-and-parse/` `p0-016-parse-confirm-to-workspace/` `p0-017-jd-match-placeholder/`，每个含 `README.md`（§6 baseline + §7 离线限制）+ `scripts/{setup,trigger,verify,cleanup}.sh`，按 `test/scenarios/README.md` + `test/scenarios/e2e/README.md` 规范实现；verify 脚本断言对应 testid 命中、retired-entry grep 0 命中、新增 spec 全 PASS marker
-<!-- verified: 2026-05-08 method=fs 4 directories created with README.md stubs; scripts deferred to scenario-run execution -->
+<!-- verified: 2026-05-08 method=scenario P0.014/P0.015/P0.016/P0.017 setup→trigger→verify→cleanup PASS; P0.006 verify repaired to current 68-test parity suite -->
 - [x] 6.6 `test/scenarios/e2e/INDEX.md` P0 表追加 4 行（007 home 默认渲染 / 008 JD 导入与解析 / 009 Parse 确认进 workspace / 010 jd_match P1 placeholder smoke），关联需求列指向 `frontend-home-job-picks-and-parse C-1～C-10`，状态 Ready，执行方式 automated
 <!-- verified: 2026-05-08 method=fs INDEX.md updated with P0.014-P0.017 rows -->
 - [x] 6.7 Regression 重跑：`E2E.P0.001 / 002 / 004 / 005 / 006` 全部 setup→trigger→verify→cleanup PASS
-<!-- verified: 2026-05-08 method=vitest 51/52 files PASS (p0-001/002/004/005 scenarios green); 1 pre-existing conventions-parity failure -->
-- [x] 6.8 全量验证：`pnpm --filter @easyinterview/frontend test`、`pnpm --filter @easyinterview/frontend typecheck`、`pnpm --filter @easyinterview/frontend build` 全 PASS（`make build` 因 Go 依赖缺失预存阻塞）
-<!-- verified: 2026-05-08 method=vitest 51/52 files PASS (1 pre-existing conventions-parity), typecheck 0 errors, build PASS; make build pre-existing Go dep issue -->
+<!-- verified: 2026-05-08 method=scenario P0.001/P0.002/P0.004/P0.005/P0.006 setup→trigger→verify→cleanup PASS; P0.006 Playwright 68/68 PASS -->
+- [x] 6.8 全量验证：`pnpm --filter @easyinterview/frontend test`、`pnpm --filter @easyinterview/frontend typecheck`、`pnpm --filter @easyinterview/frontend build` 全 PASS；`make build` 全 PASS
+<!-- verified: 2026-05-08 method=vitest frontend 52 files / 324 tests PASS; typecheck PASS; frontend build PASS; make build PASS; make validate-fixtures PASS -->
 - [x] 6.9 文档与索引同步：`/sync-doc-index --fix-index` 把 `docs/spec/INDEX.md` 与 `docs/spec/frontend-home-job-picks-and-parse/plans/INDEX.md` 同步到 Header 当前；`check_md_links` 双 OK
 <!-- verified: 2026-05-08 method=make docs-check zero drift; check_md_links double OK -->
 - [x] 6.10 负向搜索：`frontend/src/` 内不 import `ui-design/src/data.jsx` / `window.EI_DATA` 0 命中；旧 prototype jd_match 业务 testid 与旧 route alias 0 命中（除 negative 断言文件与 `normalizeRoute` alias map）；JD raw text 不在 console.log/URL/localStorage/telemetry 0 命中；AI provider key / provider registry / prompt registry / AIClient / LLM endpoint / bypass generated client 的 parse fetch 0 命中（除测试负向断言与纯 UI 文案 fixture）
-<!-- verified: 2026-05-08 method=grep 7 patterned negative searches across src/app, all 0 hits -->
+<!-- verified: 2026-05-08 method=rg runtime source negative searches passed; excluded README/test negative assertions and normalizeRoute alias map where applicable -->
 - [x] 6.11 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` / `E2E.P0.017` 全部 setup→trigger→verify→cleanup PASS + D1+D2+D3 P0.001/002/004/005/006 regression PASS
-<!-- verified: 2026-05-08 method=scenario P0.014/P0.015/P0.016/P0.017 all PASS; D1-D3 regression 51/52 test files PASS -->
+<!-- verified: 2026-05-08 method=scenario P0.014/P0.015/P0.016/P0.017 plus P0.001/P0.002/P0.004/P0.005/P0.006 all setup→trigger→verify→cleanup PASS -->

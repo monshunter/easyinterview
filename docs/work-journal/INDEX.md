@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-08](2026-05-08.md) | `docs(frontend-home): record l2 remediation closure with bug log and retrospective` | #docs #fix |
 | [2026-05-08](2026-05-08.md) | `test(scenarios): align p0-006 wrapper to 68 parity tests and add source-level negative grep` | #test #docs |
 | [2026-05-08](2026-05-08.md) | `fix(frontend-home,parse): seal recent sort, jd import privacy, and parse footer provenance` | #fix #ui #test |
 | [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): replace event and job literals with generated constants` | #fix #test |

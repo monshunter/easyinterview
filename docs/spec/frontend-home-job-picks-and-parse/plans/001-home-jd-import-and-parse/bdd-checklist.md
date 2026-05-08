@@ -1,6 +1,6 @@
 # 001 BDD Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-08
 
@@ -44,8 +44,8 @@
 
 ## 整体 Regression（Phase 6 收口）
 
-- [ ] D1+D2+D3 Regression 重跑：`E2E.P0.001 / 002 / 004 / 005 / 006` setup→trigger→verify→cleanup 全部 PASS（D2 视觉系统不被 home/parse/jd_match 改动破坏）
-- [ ] `pnpm --filter @easyinterview/frontend test` 全量 Vitest PASS（含本 plan 新增测试文件）
-- [ ] `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 现有 21 spec × 2 viewport = 42 项基础上累加 home/parse/jd_match 新增 spec，总数全 PASS，并确认 parse loading footer 与 `ui-design` 源级结构一致但无前端 LLM/provider 请求
-- [ ] `pnpm --filter @easyinterview/frontend typecheck` + `pnpm --filter @easyinterview/frontend build` + `make build` 全 PASS
-- [ ] `make docs-check` zero drift；`/sync-doc-index --fix-index` post-fix zero drift；`check_md_links` 双 OK
+- [x] D1+D2+D3 Regression 重跑：`E2E.P0.001 / 002 / 004 / 005 / 006` setup→trigger→verify→cleanup 全部 PASS（D2 视觉系统不被 home/parse/jd_match 改动破坏）
+- [x] `pnpm --filter @easyinterview/frontend test` 全量 Vitest PASS（含本 plan 新增测试文件）
+- [x] `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 现有 21 spec × 2 viewport = 42 项基础上累加 home/parse/jd_match 新增 spec，总数全 PASS，并确认 parse loading footer 与 `ui-design` 源级结构一致但无前端 LLM/provider 请求
+- [x] `pnpm --filter @easyinterview/frontend typecheck` + `pnpm --filter @easyinterview/frontend build` + `make build` 全 PASS
+- [x] `make docs-check` zero drift；`/sync-doc-index --fix-index` post-fix zero drift；`check_md_links` 双 OK
