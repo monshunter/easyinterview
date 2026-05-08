@@ -117,7 +117,7 @@ func (s *Service) ImportTargetJob(ctx context.Context, in ImportRequest) (Import
 	now := s.now()
 	targetJobID := s.newID()
 	jobID := s.newID()
-	dedupeKey := s.dedupeKey(in.UserID, in.IdempotencyKey)
+	dedupeKey := s.importDedupeKey(in.UserID, in.IdempotencyKey)
 
 	storeIn := ImportTargetJobInput{
 		UserID:                 in.UserID,
@@ -241,9 +241,17 @@ func (s *Service) attachRunnerEnvelope(in *ImportTargetJobInput) error {
 	return nil
 }
 
-func (s *Service) dedupeKey(userID, idempotencyKey string) string {
+func (s *Service) importDedupeKey(userID, idempotencyKey string) string {
+	return s.dedupeKey("targetjob.import.v1", userID, idempotencyKey)
+}
+
+func (s *Service) updateDedupeKey(userID, idempotencyKey string) string {
+	return s.dedupeKey("targetjob.update.v1", userID, idempotencyKey)
+}
+
+func (s *Service) dedupeKey(namespace, userID, idempotencyKey string) string {
 	h := sha256.New()
-	h.Write([]byte("targetjob.import.v1"))
+	h.Write([]byte(namespace))
 	if s.dedupePepper != "" {
 		h.Write([]byte("|"))
 		h.Write([]byte(s.dedupePepper))
@@ -346,6 +354,9 @@ func sanitizeJDURL(raw string) (string, error) {
 	if u.Host == "" {
 		return "", &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: "url host is required"}
 	}
+	u.User = nil
+	u.RawQuery = ""
+	u.ForceQuery = false
 	u.Fragment = ""
 	return u.String(), nil
 }
@@ -394,9 +405,20 @@ func (s *Service) ListTargetJobs(ctx context.Context, in ListRequest) (api.Pagin
 	}
 	out.PageInfo = api.PageInfo{
 		NextCursor: optionalString(res.NextCursor),
+		PageSize:   effectiveListPageSize(in.PageSize),
 		HasMore:    res.HasMore,
 	}
 	return out, nil
+}
+
+func effectiveListPageSize(pageSize int32) int {
+	if pageSize <= 0 {
+		return sharedtypes.DefaultPageSize
+	}
+	if pageSize > ListMaxPageSize {
+		return ListMaxPageSize
+	}
+	return int(pageSize)
 }
 
 // GetTargetJob returns the full detail view for a single TargetJob.
@@ -427,10 +449,10 @@ type UpdateRequest struct {
 	CompanyNameHint *string
 }
 
-// UpdateTargetJob validates the state-machine transition and applies the
-// requested mutation via the store. Spec D-6 / plan 2.4 require an
-// Idempotency-Key header; the handler enforces presence, the service
-// enforces transition legality.
+// UpdateTargetJob applies the requested mutation via the store. Spec D-6 /
+// plan 2.4 require an Idempotency-Key header; the handler enforces
+// presence, and the SQL store validates status transitions inside the update
+// transaction after locking the current row.
 func (s *Service) UpdateTargetJob(ctx context.Context, in UpdateRequest) (api.TargetJob, error) {
 	if in.UserID == "" || in.TargetJobID == "" {
 		return api.TargetJob{}, fmt.Errorf("userId and targetJobId are required")
@@ -438,17 +460,11 @@ func (s *Service) UpdateTargetJob(ctx context.Context, in UpdateRequest) (api.Ta
 	if strings.TrimSpace(in.IdempotencyKey) == "" {
 		return api.TargetJob{}, ErrIdempotencyKeyRequired
 	}
-	current, _, _, err := s.store.GetTargetJobByUser(ctx, in.UserID, in.TargetJobID)
-	if err != nil {
-		if errors.Is(err, ErrTargetJobNotFound) {
-			return api.TargetJob{}, &ServiceImportError{Code: sharederrors.CodeTargetJobNotFound, Message: "target job not found"}
-		}
+	dedupeKey := s.updateDedupeKey(in.UserID, in.IdempotencyKey)
+	if rec, reqs, hit, err := s.store.LookupUpdateDedupe(ctx, in.UserID, dedupeKey); err != nil {
 		return api.TargetJob{}, err
-	}
-	if in.Status != nil {
-		if err := validateLifecycleTransition(current.Status, *in.Status); err != nil {
-			return api.TargetJob{}, err
-		}
+	} else if hit {
+		return recordToAPI(rec, reqs), nil
 	}
 	updated, err := s.store.UpdateTargetJobLifecycle(ctx, in.UserID, in.TargetJobID, UpdateLifecycleFields{
 		Status:          in.Status,
@@ -456,6 +472,8 @@ func (s *Service) UpdateTargetJob(ctx context.Context, in UpdateRequest) (api.Ta
 		Notes:           in.Notes,
 		TitleHint:       in.TitleHint,
 		CompanyNameHint: in.CompanyNameHint,
+		DedupeKey:       dedupeKey,
+		DedupeMarkerID:  s.newID(),
 	}, s.now())
 	if err != nil {
 		if errors.Is(err, ErrTargetJobNotFound) {
@@ -528,6 +546,8 @@ func recordToAPI(rec TargetJobRecord, reqs []RequirementRecord) api.TargetJob {
 		SourceType:             string(rec.SourceType),
 		SourceUrl:              optionalString(rec.SourceURL),
 		Status:                 rec.Status,
+		Summary:                decodeTargetJobSummary(rec.Summary),
+		FitSummary:             decodeTargetJobFitSummary(rec.FitSummary),
 		TargetLanguage:         rec.TargetLanguage,
 		Title:                  rec.Title,
 		UpdatedAt:              rec.UpdatedAt.UTC().Format(time.RFC3339),
@@ -545,6 +565,47 @@ func recordToAPI(rec TargetJobRecord, reqs []RequirementRecord) api.TargetJob {
 		})
 	}
 	return out
+}
+
+func decodeTargetJobSummary(raw json.RawMessage) *api.TargetJobSummary {
+	if !hasMaterializedJSON(raw) {
+		return nil
+	}
+	var out api.TargetJobSummary
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil
+	}
+	if !hasGenerationProvenance(out.Provenance) {
+		return nil
+	}
+	return &out
+}
+
+func decodeTargetJobFitSummary(raw json.RawMessage) *api.TargetJobFitSummary {
+	if !hasMaterializedJSON(raw) {
+		return nil
+	}
+	var out api.TargetJobFitSummary
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil
+	}
+	if !hasGenerationProvenance(out.Provenance) {
+		return nil
+	}
+	return &out
+}
+
+func hasMaterializedJSON(raw json.RawMessage) bool {
+	trimmed := strings.TrimSpace(string(raw))
+	return trimmed != "" && trimmed != "{}" && trimmed != "null"
+}
+
+func hasGenerationProvenance(p api.GenerationProvenance) bool {
+	return p.PromptVersion != "" &&
+		p.RubricVersion != "" &&
+		p.ModelId != "" &&
+		p.Language != "" &&
+		p.DataSourceVersion != ""
 }
 
 func optionalString(v string) *string {

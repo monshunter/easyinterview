@@ -60,7 +60,7 @@ env/
 *.key
 secrets/
 !backend/internal/platform/secrets/
-!backend/internal/platform/secrets/**
+!backend/internal/platform/secrets/*.go
 .secret/
 
 # A4 secrets-and-config red lines

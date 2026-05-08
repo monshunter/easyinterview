@@ -12,11 +12,17 @@
 | [2026-05-08](2026-05-08.md) | `test(scenarios): align p0-006 wrapper to 68 parity tests and add source-level negative grep` | #test #docs |
 | [2026-05-08](2026-05-08.md) | `fix(frontend-home,parse): seal recent sort, jd import privacy, and parse footer provenance` | #fix #ui #test |
 | [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): replace event and job literals with generated constants` | #fix #test |
+| [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): align targetjob review contracts` | #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `docs(frontend-home): close plan lifecycle and add delivery retrospective` | #docs |
 | [2026-05-08](2026-05-08.md) | `chore(frontend-home): finalize plan with pixel parity, scenarios, and gate closure` | #chore #ui #test #docs |
+| [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): wire parse runtime and atomic commits` | #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `feat(frontend-parse): implement parse screen and jd_match placeholder shell` | #feat #ui #test #i18n |
+| [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): harden targetjob L2 runtime gates` | #fix #test #docs |
+| [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): remediate import parse L2 findings` | #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `feat(frontend-home): implement jd import with three source variants` | #feat #ui #test |
+| [2026-05-08](2026-05-08.md) | `feat(backend-targetjob): complete import parse bootstrap handoff` | #feat #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `feat(home-screen): add recent mock interviews with listTargetJobs integration` | #feat #ui #test |
+| [2026-05-08](2026-05-08.md) | `fix(backend-targetjob): remediate targetjob L2 runtime gaps` | #fix #test #docs |
 | [2026-05-08](2026-05-08.md) | `feat(home-screen): land home screen static shell with i18n and route binding` | #feat #ui #i18n |
 | [2026-05-08](2026-05-08.md) | `chore(governance): migrate default base branch to main` | #chore #docs #test |
 | [2026-05-08](2026-05-08.md) | `chore(governance): revise branch lifecycle rules` | #chore #docs #test |

@@ -19,18 +19,22 @@ type fakeStore struct {
 	err       error
 	callCount int
 
-	listResult        targetjob.ListResult
-	getRecord         targetjob.TargetJobRecord
-	getRequirements   []targetjob.RequirementRecord
-	getSources        []targetjob.SourceRecord
-	getErr            error
-	updateResult      targetjob.TargetJobRecord
-	updateErr         error
-	capturedListFilter targetjob.ListFilter
+	listResult           targetjob.ListResult
+	getRecord            targetjob.TargetJobRecord
+	getRequirements      []targetjob.RequirementRecord
+	getSources           []targetjob.SourceRecord
+	getErr               error
+	updateResult         targetjob.TargetJobRecord
+	updateErr            error
+	capturedListFilter   targetjob.ListFilter
 	capturedUpdateFields targetjob.UpdateLifecycleFields
 	capturedUpdateUser   string
 	capturedUpdateTarget string
 	getCallCount         int
+	updateDedupeHit      bool
+	updateDedupeRecord   targetjob.TargetJobRecord
+	updateDedupeReqs     []targetjob.RequirementRecord
+	updateDedupeErr      error
 	fileLookup           targetjob.FileAttachmentRecord
 	fileLookupErr        error
 }
@@ -85,11 +89,27 @@ func (f *fakeStore) UpdateTargetJobLifecycle(_ context.Context, userID string, t
 	return f.updateResult, nil
 }
 
+func (f *fakeStore) LookupUpdateDedupe(_ context.Context, _ string, _ string) (targetjob.TargetJobRecord, []targetjob.RequirementRecord, bool, error) {
+	if f.updateDedupeErr != nil {
+		return targetjob.TargetJobRecord{}, nil, false, f.updateDedupeErr
+	}
+	return f.updateDedupeRecord, f.updateDedupeReqs, f.updateDedupeHit, nil
+}
+
 func (f *fakeStore) ApplyParseResult(context.Context, targetjob.ApplyParseResultInput) error {
+	panic("not used")
+}
+func (f *fakeStore) CompleteParseSuccess(context.Context, targetjob.CompleteParseSuccessInput) error {
+	panic("not used")
+}
+func (f *fakeStore) CompleteParseFailure(context.Context, targetjob.CompleteParseFailureInput) error {
 	panic("not used")
 }
 
 func (f *fakeStore) UpdateSourceFreshness(context.Context, string, targetjob.FreshnessStatus, time.Time) error {
+	panic("not used")
+}
+func (f *fakeStore) UpdateSourceSnapshot(context.Context, string, string, string, time.Time, time.Time) error {
 	panic("not used")
 }
 
@@ -99,7 +119,9 @@ func (f *fakeStore) ClaimNextAsyncJob(context.Context, []string, time.Time) (tar
 func (f *fakeStore) FinalizeAsyncJob(context.Context, string, targetjob.JobOutcome, time.Time) error {
 	return nil
 }
-func (f *fakeStore) EnqueueSourceRefresh(context.Context, string, string, time.Time) error { return nil }
+func (f *fakeStore) EnqueueSourceRefresh(context.Context, string, string, time.Time) error {
+	return nil
+}
 func (f *fakeStore) WriteParseFailedOutbox(context.Context, string, string, []byte, time.Time) error {
 	return nil
 }
@@ -206,7 +228,7 @@ func TestService_ImportTargetJob_URLRunnerPathValidatesHttps(t *testing.T) {
 		TargetLanguage: "zh-CN",
 		Source: map[string]any{
 			"type": "url",
-			"url":  "https://jobs.example.com/role/123#share",
+			"url":  "https://jobs.example.com/role/123?token=secret#share",
 		},
 	})
 	if err != nil {
@@ -220,6 +242,9 @@ func TestService_ImportTargetJob_URLRunnerPathValidatesHttps(t *testing.T) {
 	}
 	if strings.Contains(store.captured.SourceURL, "#share") {
 		t.Fatal("fragment must be stripped per Phase 2.1 sanitisation")
+	}
+	if strings.Contains(store.captured.SourceURL, "token=secret") || strings.Contains(store.captured.SourceURL, "?") {
+		t.Fatalf("query secret must be stripped from stored URL, got %s", store.captured.SourceURL)
 	}
 }
 
@@ -422,8 +447,39 @@ func TestService_ListTargetJobs_PassesFiltersAndShapesPaginated(t *testing.T) {
 	if !res.PageInfo.HasMore || res.PageInfo.NextCursor == nil || *res.PageInfo.NextCursor != "cursor-2" {
 		t.Fatalf("page info not propagated: %+v", res.PageInfo)
 	}
+	if res.PageInfo.PageSize != 20 {
+		t.Fatalf("page size = %d, want 20", res.PageInfo.PageSize)
+	}
 	if store.capturedListFilter.Status == nil || *store.capturedListFilter.Status != sharedtypes.TargetJobStatusPreparing {
 		t.Fatal("status filter not propagated to store")
+	}
+}
+
+func TestService_ListTargetJobs_PageInfoReportsEffectivePageSize(t *testing.T) {
+	cases := []struct {
+		name string
+		in   int32
+		want int
+	}{
+		{name: "default", in: 0, want: 20},
+		{name: "negative defaults", in: -10, want: 20},
+		{name: "explicit", in: 7, want: 7},
+		{name: "clamped max", in: 1000, want: 100},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc, _ := newServiceWithFake()
+			res, err := svc.ListTargetJobs(context.Background(), targetjob.ListRequest{
+				UserID:   "u1",
+				PageSize: tc.in,
+			})
+			if err != nil {
+				t.Fatalf("ListTargetJobs: %v", err)
+			}
+			if res.PageInfo.PageSize != tc.want {
+				t.Fatalf("page size = %d, want %d", res.PageInfo.PageSize, tc.want)
+			}
+		})
 	}
 }
 
@@ -438,24 +494,24 @@ func TestService_GetTargetJob_NotFoundMaps404Code(t *testing.T) {
 }
 
 func TestService_UpdateTargetJob_AllowsLegalTransition(t *testing.T) {
-	svc, store := newServiceWithFake()
+	svc, store := newServiceWithFake("018f2a40-0000-7000-9000-0000000000d0")
 	now := time.Date(2026, 5, 9, 21, 0, 0, 0, time.UTC)
 	store.getRecord = targetjob.TargetJobRecord{
-		ID:        "018f2a40-0000-7000-9000-0000000000a1",
-		UserID:    "u1",
-		Status:    sharedtypes.TargetJobStatusDraft,
-		CreatedAt: now,
-		UpdatedAt: now,
-		SourceType: targetjob.SourceTypeManualText,
+		ID:             "018f2a40-0000-7000-9000-0000000000a1",
+		UserID:         "u1",
+		Status:         sharedtypes.TargetJobStatusDraft,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 	}
 	store.updateResult = targetjob.TargetJobRecord{
-		ID:        "018f2a40-0000-7000-9000-0000000000a1",
-		UserID:    "u1",
-		Status:    sharedtypes.TargetJobStatusPreparing,
-		CreatedAt: now,
-		UpdatedAt: now,
-		SourceType: targetjob.SourceTypeManualText,
+		ID:             "018f2a40-0000-7000-9000-0000000000a1",
+		UserID:         "u1",
+		Status:         sharedtypes.TargetJobStatusPreparing,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 	}
 	target := sharedtypes.TargetJobStatusPreparing
@@ -473,15 +529,78 @@ func TestService_UpdateTargetJob_AllowsLegalTransition(t *testing.T) {
 	}
 }
 
-func TestService_UpdateTargetJob_RejectsIllegalTransition(t *testing.T) {
-	svc, store := newServiceWithFake()
+func TestService_UpdateTargetJob_PassesUserScopedDedupeToStore(t *testing.T) {
+	svc, store := newServiceWithFake("018f2a40-0000-7000-9000-0000000000d1")
+	now := time.Date(2026, 5, 9, 21, 0, 0, 0, time.UTC)
 	store.getRecord = targetjob.TargetJobRecord{
-		ID:     "018f2a40-0000-7000-9000-0000000000a1",
-		UserID: "u1",
-		Status: sharedtypes.TargetJobStatusDraft,
-		SourceType: targetjob.SourceTypeManualText,
+		ID:             "018f2a40-0000-7000-9000-0000000000a1",
+		UserID:         "user-1",
+		Status:         sharedtypes.TargetJobStatusDraft,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 	}
+	store.updateResult = store.getRecord
+	store.updateResult.Status = sharedtypes.TargetJobStatusPreparing
+	target := sharedtypes.TargetJobStatusPreparing
+
+	_, err := svc.UpdateTargetJob(context.Background(), targetjob.UpdateRequest{
+		UserID:         "user-1",
+		TargetJobID:    "018f2a40-0000-7000-9000-0000000000a1",
+		IdempotencyKey: "same-client-key",
+		Status:         &target,
+	})
+	if err != nil {
+		t.Fatalf("UpdateTargetJob: %v", err)
+	}
+	if store.capturedUpdateFields.DedupeKey == "" {
+		t.Fatal("update dedupe key was not passed to the store")
+	}
+	if strings.Contains(store.capturedUpdateFields.DedupeKey, "same-client-key") {
+		t.Fatalf("dedupe key must be hashed/redacted, got %q", store.capturedUpdateFields.DedupeKey)
+	}
+	if store.capturedUpdateFields.DedupeMarkerID != "018f2a40-0000-7000-9000-0000000000d1" {
+		t.Fatalf("marker id = %q", store.capturedUpdateFields.DedupeMarkerID)
+	}
+}
+
+func TestService_UpdateTargetJob_DedupeHitBypassesLaterStateTransition(t *testing.T) {
+	svc, store := newServiceWithFake()
+	now := time.Date(2026, 5, 9, 21, 5, 0, 0, time.UTC)
+	store.updateDedupeHit = true
+	store.updateDedupeRecord = targetjob.TargetJobRecord{
+		ID:             "018f2a40-0000-7000-9000-0000000000a1",
+		UserID:         "user-1",
+		Status:         sharedtypes.TargetJobStatusApplied,
+		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "en",
+	}
+	status := sharedtypes.TargetJobStatusPreparing
+
+	out, err := svc.UpdateTargetJob(context.Background(), targetjob.UpdateRequest{
+		UserID:         "user-1",
+		TargetJobID:    "018f2a40-0000-7000-9000-0000000000a1",
+		IdempotencyKey: "same-client-key",
+		Status:         &status,
+	})
+	if err != nil {
+		t.Fatalf("dedupe hit should not revalidate later state: %v", err)
+	}
+	if out.Status != sharedtypes.TargetJobStatusApplied {
+		t.Fatalf("dedupe hit returned status %s", out.Status)
+	}
+	if store.capturedUpdateTarget != "" || store.getCallCount != 0 {
+		t.Fatalf("dedupe hit must bypass get/update, get=%d updateTarget=%q", store.getCallCount, store.capturedUpdateTarget)
+	}
+}
+
+func TestService_UpdateTargetJob_RejectsIllegalTransition(t *testing.T) {
+	svc, store := newServiceWithFake("018f2a40-0000-7000-9000-0000000000d4")
+	store.updateErr = &targetjob.ServiceImportError{Code: "TARGET_INVALID_STATE_TRANSITION", Message: "transition draft -> offer is not allowed"}
 	target := sharedtypes.TargetJobStatusOffer // draft -> offer is invalid
 	_, err := svc.UpdateTargetJob(context.Background(), targetjob.UpdateRequest{
 		UserID:         "u1",
@@ -495,13 +614,36 @@ func TestService_UpdateTargetJob_RejectsIllegalTransition(t *testing.T) {
 	}
 }
 
+func TestService_UpdateTargetJob_DelegatesStatusTransitionValidationToStore(t *testing.T) {
+	svc, store := newServiceWithFake("018f2a40-0000-7000-9000-0000000000d3")
+	store.updateErr = &targetjob.ServiceImportError{Code: "TARGET_INVALID_STATE_TRANSITION", Message: "stale transition rejected"}
+	target := sharedtypes.TargetJobStatusOffer
+
+	_, err := svc.UpdateTargetJob(context.Background(), targetjob.UpdateRequest{
+		UserID:         "u1",
+		TargetJobID:    "018f2a40-0000-7000-9000-0000000000a1",
+		IdempotencyKey: "k",
+		Status:         &target,
+	})
+	var apiErr *targetjob.ServiceImportError
+	if !errors.As(err, &apiErr) || apiErr.Code != "TARGET_INVALID_STATE_TRANSITION" {
+		t.Fatalf("expected store-sourced TARGET_INVALID_STATE_TRANSITION, got %v", err)
+	}
+	if store.getCallCount != 0 {
+		t.Fatalf("service must not preflight target status outside the store transaction, getCallCount=%d", store.getCallCount)
+	}
+	if store.capturedUpdateTarget == "" {
+		t.Fatal("service did not delegate the status update to the store")
+	}
+}
+
 func TestService_UpdateTargetJob_AllowsArchivedFromAnyState(t *testing.T) {
-	svc, store := newServiceWithFake()
+	svc, store := newServiceWithFake("018f2a40-0000-7000-9000-0000000000d2")
 	store.getRecord = targetjob.TargetJobRecord{
-		ID: "018f2a40-0000-7000-9000-0000000000a1",
-		UserID: "u1",
-		Status: sharedtypes.TargetJobStatusOffer,
-		SourceType: targetjob.SourceTypeManualText,
+		ID:             "018f2a40-0000-7000-9000-0000000000a1",
+		UserID:         "u1",
+		Status:         sharedtypes.TargetJobStatusOffer,
+		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 	}
 	store.updateResult = store.getRecord

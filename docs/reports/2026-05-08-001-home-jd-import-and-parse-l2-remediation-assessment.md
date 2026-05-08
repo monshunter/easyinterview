@@ -16,7 +16,7 @@
 - `E2E.P0.014 / P0.015 / P0.016 / P0.017 / P0.001 / P0.002 / P0.004 / P0.005 / P0.006`：全部 setup→trigger→verify→cleanup PASS
 - `make validate-fixtures`、`make codegen-check`、`make build`、`make docs-check`：PASS
 - `cd backend && go test ./internal/targetjob ./internal/platform/secrets -count=1`：PASS
-- `BUG-0024` 已建档；owner plan/checklist/BDD checklist 恢复 `completed`，INDEX zero drift。
+- `BUG-0029` 已建档；owner plan/checklist/BDD checklist 恢复 `completed`，INDEX zero drift。
 
 ## 2 会话中的主要阻点/痛点
 

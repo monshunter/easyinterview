@@ -20,10 +20,16 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/bootstrap"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
 	"github.com/monshunter/easyinterview/backend/internal/platform/secrets"
+	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
+	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
+	"github.com/monshunter/easyinterview/backend/internal/targetjob"
+	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
 )
 
 func main() {
@@ -97,14 +103,26 @@ func main() {
 		_ = mailDispatcher.Shutdown(shutdownCtx)
 	}()
 
+	targetJobRuntime, err := buildTargetJobRuntime(loader, db, logger)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: target job runtime init: %v\n", err)
+		os.Exit(1)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = targetJobRuntime.Shutdown(shutdownCtx)
+	}()
+
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           buildAPIHandler(loader, flagsClient, authService),
+		Handler:           buildAPIHandlerWithTargetJobHandler(loader, flagsClient, authService, targetJobRuntime.Handler),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	targetJobRuntime.Start(ctx)
 
 	go func() {
 		logger.Info("api: listening", "addr", srv.Addr, "env", loader.AppEnv())
@@ -145,7 +163,11 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessServ
 	return service, dispatcher, nil
 }
 
-func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService) http.Handler {
+func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, db *sql.DB) http.Handler {
+	return buildAPIHandlerWithTargetJobHandler(loader, flagsClient, authService, buildTargetJobHandler(loader, targetjob.NewSQLStore(db)))
+}
+
+func buildAPIHandlerWithTargetJobHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler) http.Handler {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(auth.HandlerOptions{
 		Passwordless: authService,
@@ -164,7 +186,113 @@ func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagC
 		},
 		SessionResolver: authService.RuntimeConfigSessionResolver(),
 	})))
+	mux.Handle("GET /api/v1/targets", auth.SessionMiddleware(authService, "listTargetJobs", http.HandlerFunc(targetJobHandler.ListTargetJobs)))
+	mux.Handle("POST /api/v1/targets/import", auth.SessionMiddleware(authService, "importTargetJob", http.HandlerFunc(targetJobHandler.ImportTargetJob)))
+	mux.Handle("GET /api/v1/targets/{targetJobId}", auth.SessionMiddleware(authService, "getTargetJob", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetJobHandler.GetTargetJob(w, r, r.PathValue("targetJobId"))
+	})))
+	mux.Handle("PATCH /api/v1/targets/{targetJobId}", auth.SessionMiddleware(authService, "updateTargetJob", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetJobHandler.UpdateTargetJob(w, r, r.PathValue("targetJobId"))
+	})))
 	return mux
+}
+
+type targetJobRuntime struct {
+	Handler *targetjob.Handler
+	Drainer *targetjob.Drainer
+	AI      *bootstrap.Runtime
+	ParseAI aiclient.AIClient
+}
+
+func (r *targetJobRuntime) Start(ctx context.Context) {
+	if r == nil || r.Drainer == nil {
+		return
+	}
+	r.Drainer.Start(ctx)
+}
+
+func (r *targetJobRuntime) Shutdown(ctx context.Context) error {
+	if r == nil {
+		return nil
+	}
+	var err error
+	if r.Drainer != nil {
+		err = r.Drainer.Shutdown(ctx)
+	}
+	if r.AI != nil {
+		r.AI.Close()
+	}
+	return err
+}
+
+func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger) (*targetJobRuntime, error) {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	store := targetjob.NewSQLStore(db)
+	aiRuntime, err := bootstrap.NewClient(bootstrap.Options{
+		Config: aiclient.Config{
+			AppEnv:               loader.AppEnv(),
+			ProviderRegistryPath: loader.GetString("ai.providerRegistryPath"),
+			ModelProfilePath:     loader.GetString("ai.modelProfilePath"),
+		},
+		SecretSource:      secrets.EnvSecretSource{},
+		AllowStubProvider: targetjob.IsTestAppEnv(loader.AppEnv()),
+		OnWarn: func(err error) {
+			logger.Warn("targetjob.ai reload warning", "error", err.Error())
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("build targetjob AI runtime: %w", err)
+	}
+
+	fetcher := urlfetch.New(urlfetch.FetcherOptions{
+		UserAgent: targetjob.URLFetchUserAgent(loader.GetString("runtime.appVersion")),
+		Timeout:   targetjob.URLFetchTimeout,
+		BodyCap:   targetjob.URLFetchBodyCap,
+	})
+	var parseAI aiclient.AIClient = aiRuntime.Client
+	if targetjob.IsTestAppEnv(loader.AppEnv()) {
+		parseAI = targetjob.NewDeterministicParseAIClient(parseAI)
+	}
+	executor := targetjob.NewParseExecutor(targetjob.ParseExecutorOptions{
+		Store:    store,
+		Registry: targetjob.NewStaticPromptRegistry(),
+		AI:       parseAI,
+		Fetcher:  fetcher,
+		NewID:    idx.NewID,
+	})
+	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
+		Store: store,
+		Handlers: map[string]targetjob.JobHandler{
+			string(jobs.JobTypeTargetImport):  executor,
+			string(jobs.JobTypeSourceRefresh): &targetjob.SourceRefreshHandler{Store: store},
+		},
+		Logger: logger,
+	})
+	return &targetJobRuntime{
+		Handler: buildTargetJobHandler(loader, store),
+		Drainer: drainer,
+		AI:      aiRuntime,
+		ParseAI: parseAI,
+	}, nil
+}
+
+func buildTargetJobHandler(loader *config.Loader, store targetjob.Store) *targetjob.Handler {
+	return targetjob.NewHandler(targetjob.HandlerOptions{
+		Service: targetjob.NewService(targetjob.ServiceOptions{
+			Store:        store,
+			NewID:        idx.NewID,
+			DedupePepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+		}),
+		Session: func(ctx context.Context) (string, bool) {
+			current, ok := auth.CurrentSessionFromContext(ctx)
+			if !ok || strings.TrimSpace(current.UserID) == "" {
+				return "", false
+			}
+			return current.UserID, true
+		},
+	})
 }
 
 func pointer[T any](value T) *T {

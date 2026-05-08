@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/events"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
@@ -35,7 +36,7 @@ var ForbiddenOutboxFields = []string{
 }
 
 // TargetImportRequestedInput captures the four fields B3 allows for the
-// TargetImportRequested outbox event. The struct is intentionally
+// events.EventNameTargetImportRequested outbox event. The struct is intentionally
 // closed: any additional metadata the caller wants to record must be
 // added via B3 spec revision first, never piggy-backed here.
 type TargetImportRequestedInput struct {
@@ -75,7 +76,7 @@ func BuildTargetImportRequestedPayload(in TargetImportRequestedInput) (events.Ta
 }
 
 // TargetParsedInput captures the structured-only fields B3 allows for the
-// TargetParsed event. Raw AI output, prompts, and response bodies are
+// events.EventNameTargetParsed event. Raw AI output, prompts, and response bodies are
 // not part of this struct (and would be rejected by assertNoForbidden).
 type TargetParsedInput struct {
 	TargetJobID      string
@@ -86,7 +87,7 @@ type TargetParsedInput struct {
 }
 
 // BuildTargetParsedPayload validates input and produces a B3-typed payload
-// for the TargetParsed outbox event.
+// for the events.EventNameTargetParsed outbox event.
 func BuildTargetParsedPayload(in TargetParsedInput) (events.TargetParsedPayload, error) {
 	if in.TargetJobID == "" {
 		return events.TargetParsedPayload{}, fmt.Errorf("%s: targetJobId is required", events.EventNameTargetParsed)
@@ -114,7 +115,7 @@ func BuildTargetParsedPayload(in TargetParsedInput) (events.TargetParsedPayload,
 }
 
 // TargetAnalysisFailedInput captures the three structured fields B3 allows
-// for TargetAnalysisFailed. Error envelopes / messages must reach this
+// for events.EventNameTargetAnalysisFailed. Error envelopes / messages must reach this
 // helper as a B1 error code only — never as raw provider error strings.
 type TargetAnalysisFailedInput struct {
 	TargetJobID string
@@ -123,7 +124,7 @@ type TargetAnalysisFailedInput struct {
 }
 
 // BuildTargetAnalysisFailedPayload validates input and produces a B3-typed
-// payload for the TargetAnalysisFailed outbox event.
+// payload for the events.EventNameTargetAnalysisFailed outbox event.
 func BuildTargetAnalysisFailedPayload(in TargetAnalysisFailedInput) (events.TargetAnalysisFailedPayload, error) {
 	if in.TargetJobID == "" {
 		return events.TargetAnalysisFailedPayload{}, fmt.Errorf("%s: targetJobId is required", events.EventNameTargetAnalysisFailed)
@@ -131,18 +132,30 @@ func BuildTargetAnalysisFailedPayload(in TargetAnalysisFailedInput) (events.Targ
 	if in.ErrorCode == "" {
 		return events.TargetAnalysisFailedPayload{}, fmt.Errorf("%s: errorCode is required", events.EventNameTargetAnalysisFailed)
 	}
+	if _, ok := sharederrors.CodeRegistry[in.ErrorCode]; !ok {
+		return events.TargetAnalysisFailedPayload{}, fmt.Errorf("%s: errorCode must be a documented B1 code", events.EventNameTargetAnalysisFailed)
+	}
 	out := events.TargetAnalysisFailedPayload{
 		ErrorCode:   in.ErrorCode,
 		Retryable:   in.Retryable,
 		TargetJobID: in.TargetJobID,
 	}
-	if err := assertNoForbiddenOutboxFields(out); err != nil {
+	if err := assertNoForbiddenAnalysisFailedPayload(out); err != nil {
 		return events.TargetAnalysisFailedPayload{}, err
 	}
 	return out, nil
 }
 
-// TargetImportJobPayload is the JSON contract for the TargetImport async
+func assertNoForbiddenAnalysisFailedPayload(out events.TargetAnalysisFailedPayload) error {
+	redline := events.TargetAnalysisFailedPayload{
+		ErrorCode:   "B1_DOCUMENTED_ERROR_CODE",
+		Retryable:   out.Retryable,
+		TargetJobID: out.TargetJobID,
+	}
+	return assertNoForbiddenOutboxFields(redline)
+}
+
+// TargetImportJobPayload is the JSON contract for the jobs.JobTypeTargetImport async
 // job row. It mirrors the same redline as the outbox event: only structured
 // references, never raw JD text or full URLs.
 type TargetImportJobPayload struct {
@@ -152,7 +165,7 @@ type TargetImportJobPayload struct {
 	TargetLanguage string `json:"targetLanguage"`
 }
 
-// BuildTargetImportJobPayload validates a TargetImport async_jobs payload
+// BuildTargetImportJobPayload validates a jobs.JobTypeTargetImport async_jobs payload
 // and returns it as a JSON-encoded byte slice ready to write to
 // `async_jobs.payload`. The same forbidden-token negative scan runs over
 // the marshalled bytes.

@@ -8,21 +8,23 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/platform/secrets"
 )
 
-func TestEnvSecretSourceGet(t *testing.T) {
-	t.Setenv("SESSION_COOKIE_SECRET", "session-secret")
+func TestEnvSecretSourceGetReadsEnvironment(t *testing.T) {
+	t.Setenv("EASYINTERVIEW_SECRET_TEST", "runtime-secret")
 
-	got, err := (secrets.EnvSecretSource{}).Get("SESSION_COOKIE_SECRET")
+	got, err := (secrets.EnvSecretSource{}).Get("EASYINTERVIEW_SECRET_TEST")
 	if err != nil {
 		t.Fatalf("Get returned error: %v", err)
 	}
-	if got != "session-secret" {
-		t.Fatalf("Get = %q, want session-secret", got)
+	if got != "runtime-secret" {
+		t.Fatalf("secret = %q, want runtime-secret", got)
 	}
 }
 
-func TestEnvSecretSourceMissing(t *testing.T) {
-	_, err := (secrets.EnvSecretSource{}).Get("MISSING_SECRET")
+func TestEnvSecretSourceGetMissingReturnsConfigSentinel(t *testing.T) {
+	t.Setenv("EASYINTERVIEW_SECRET_TEST_MISSING", "")
+
+	_, err := (secrets.EnvSecretSource{}).Get("EASYINTERVIEW_SECRET_TEST_MISSING")
 	if !errors.Is(err, config.ErrSecretMissing) {
-		t.Fatalf("Get error = %v, want ErrSecretMissing", err)
+		t.Fatalf("expected ErrSecretMissing, got %v", err)
 	}
 }

@@ -95,6 +95,43 @@ func TestParseExecutor_RedactsForbiddenTokensInErrorMessage(t *testing.T) {
 	if strings.Contains(outcome.ErrorMessage, "raw_jd_text") {
 		t.Fatalf("error message must redact raw_jd_text, got %q", outcome.ErrorMessage)
 	}
+	if outcome.ErrorMessage != "AI_PROVIDER_CONFIG_INVALID" {
+		t.Fatalf("registry failure must persist code-based safe summary, got %q", outcome.ErrorMessage)
+	}
+}
+
+func TestParseExecutor_RedactsPromptResponseAndProviderSecretInErrorMessage(t *testing.T) {
+	for _, leaked := range []string{
+		"provider secret leaked from upstream",
+		"prompt body: private JD text",
+		"response body: model returned private JD text",
+		"Private JD body that must not leak",
+	} {
+		t.Run(leaked, func(t *testing.T) {
+			exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+			ai.err = errors.New(leaked)
+			store.target = targetjob.TargetJobRecord{
+				ID:             "tgt-privacy",
+				SourceType:     targetjob.SourceTypeManualText,
+				TargetLanguage: "en",
+				RawJDText:      "x",
+			}
+			outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-privacy"})
+			if outcome.Succeeded {
+				t.Fatal("expected failure, got success")
+			}
+			if strings.Contains(outcome.ErrorMessage, leaked) ||
+				strings.Contains(outcome.ErrorMessage, "provider secret") ||
+				strings.Contains(outcome.ErrorMessage, "prompt body") ||
+				strings.Contains(outcome.ErrorMessage, "response body") ||
+				strings.Contains(outcome.ErrorMessage, "Private JD body") {
+				t.Fatalf("error message leaked forbidden token: %q", outcome.ErrorMessage)
+			}
+			if outcome.ErrorMessage != "AI_FALLBACK_EXHAUSTED" {
+				t.Fatalf("AI failure must persist code-based safe summary, got %q", outcome.ErrorMessage)
+			}
+		})
+	}
 }
 
 // TestParseExecutor_OutboxPayloadsContainOnlyAllowedTokens scans the
@@ -172,6 +209,49 @@ func TestImportTargetJob_DedupeKeyIsUserScopedAcrossServices(t *testing.T) {
 	}
 	if store1.captured.DedupeKey == store2.captured.DedupeKey {
 		t.Fatalf("dedupe key must be user-scoped, both got %s", store1.captured.DedupeKey)
+	}
+}
+
+func TestImportTargetJob_URLQuerySecretDoesNotEnterStoreOrPayloads(t *testing.T) {
+	store := &fakeStore{}
+	ids := []string{
+		"018f2a40-0000-7000-9000-0000000000a1",
+		"018f2a40-0000-7000-9000-0000000000f1",
+		"018f2a40-0000-7000-9000-0000000000c1",
+		"018f2a40-0000-7000-9000-0000000000e1",
+	}
+	idx := 0
+	svc := targetjob.NewService(targetjob.ServiceOptions{
+		Store: store,
+		NewID: func() string {
+			v := ids[idx]
+			idx++
+			return v
+		},
+		Now:          func() time.Time { return time.Date(2026, 5, 9, 23, 10, 0, 0, time.UTC) },
+		DedupePepper: "shared-pepper",
+	})
+
+	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
+		UserID:         "user-url",
+		IdempotencyKey: "url-key",
+		TargetLanguage: "en",
+		Source: map[string]any{
+			"type": "url",
+			"url":  "https://jobs.example.com/role/123?token=super-secret#share",
+		},
+	})
+	if err != nil {
+		t.Fatalf("ImportTargetJob URL: %v", err)
+	}
+	for name, raw := range map[string]string{
+		"source_url": string(store.captured.SourceURL),
+		"outbox":     string(store.captured.OutboxEventPayload),
+		"job":        string(store.captured.JobPayload),
+	} {
+		if strings.Contains(raw, "super-secret") || strings.Contains(raw, "token=") || strings.Contains(raw, "#share") {
+			t.Fatalf("%s leaked URL secret: %s", name, raw)
+		}
 	}
 }
 

@@ -90,9 +90,9 @@
 // test/scenarios/e2e/p0-010-targetjob-text-import-parse-ready/,
 // p0-011-targetjob-url-import-fetch-and-parse/,
 // p0-012-targetjob-parse-failure-retryable/,
-// p0-013-targetjob-manual-form-ready/. Their setup -> trigger -> verify
-// -> cleanup contracts depend on a running backend that exposes this
-// handler plus a real F3 prompt registry; until F3 lands a real Resolve
-// implementation the BDD-Gate items in the plan checklist remain
-// unchecked and the scenarios stay parked.
+// p0-013-targetjob-manual-form-ready/. These scripts execute cmd/api HTTP
+// scenario tests through auth middleware, generated API routes, this package's
+// Handler/Service, and the in-process drainer runtime. Successful verify
+// output records method=cmd-api-http and validBddEvidence=true under
+// .test-output/runs/<run-id>/e2e/E2E.P0.010..013/.
 package targetjob

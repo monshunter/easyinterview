@@ -1,2 +1,2 @@
-// Package secrets contains runtime secret providers for the config loader.
+// Package secrets implements the P0 A4 runtime secret provider boundary.
 package secrets
