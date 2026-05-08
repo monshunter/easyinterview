@@ -34,6 +34,21 @@ profiles:
     route: debrief.voice.extract
     version: 0.2.0
 
+  - name: debrief.voice.tts.default
+    capability: tts
+    status: disabled
+    unsupported_reason: "TTS for debrief voice playback is reserved for a future debrief owner implementation"
+    default:
+      provider_ref: minimax_speech
+      model: speech-02-turbo
+    fallback: []
+    timeout_ms: 15000
+    rate_limit:
+      rps: 3
+      tpm: 60000
+    route: debrief.voice.tts
+    version: 0.1.0
+
   - name: judge.default
     capability: judge
     status: unsupported
@@ -63,6 +78,41 @@ profiles:
       tpm: 60000
     route: practice.dictation.stt
     version: 0.2.0
+
+  - name: practice.voice.stt.default
+    capability: stt
+    status: disabled
+    unsupported_reason: "Doubao speech STT adapter is implemented but awaiting secret provisioning and real-provider smoke test"
+    default:
+      provider_ref: doubao_speech
+      model: stt-default
+    fallback: []
+    timeout_ms: 10000
+    rate_limit:
+      rps: 5
+      tpm: 60000
+    route: practice.voice.stt
+    version: 0.1.0
+
+  - name: practice.voice.tts.default
+    capability: tts
+    status: disabled
+    unsupported_reason: "TTS adapter is implemented but awaiting secret provisioning and real-provider smoke test"
+    default:
+      provider_ref: doubao_speech
+      model: tts-default
+    fallback:
+      - provider_ref: minimax_speech
+        model: speech-02-turbo
+        when:
+          - timeout
+          - AI_FALLBACK_EXHAUSTED
+    timeout_ms: 15000
+    rate_limit:
+      rps: 3
+      tpm: 60000
+    route: practice.voice.tts
+    version: 0.1.0
 
   - name: practice.first_question.default
     capability: chat

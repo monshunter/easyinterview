@@ -83,6 +83,10 @@
 | `AI_PROVIDER_REGISTRY_PATH` | 是 | `config/ai-providers.yaml` | AI provider registry 文件路径；registry 内声明 provider ref、protocol、capabilities 与 secret env ref | A4（A3 owner） |
 | `AI_PROVIDER_BASE_URL` | 条件 | `(空；仅默认 provider ref 引用时需要)` | 默认 OpenAI-compatible provider ref 可引用的 base URL env；不再代表全局唯一 AI provider contract | A4（A3 owner） |
 | `AI_PROVIDER_API_KEY` | 条件 | `(空；仅默认 provider ref 引用时需要)` | 默认 OpenAI-compatible provider ref 可引用的 API key env；非 test 环境中被选中 provider 缺 secret 时 fail-fast | A4（A3 owner） |
+| `DOUBAO_SPEECH_BASE_URL` | 条件 | `(空；仅 doubao_speech provider 被选中时需要)` | 豆包语音 provider-specific base URL | A4（A3 owner） |
+| `DOUBAO_SPEECH_API_KEY` | 条件 | `(空；仅 doubao_speech provider 被选中时需要)` | secret | A4（A3 owner） |
+| `MINIMAX_SPEECH_BASE_URL` | 条件 | `(空；仅 minimax_speech provider 被选中时需要)` | MiniMax 语音 provider-specific base URL | A4（A3 owner） |
+| `MINIMAX_SPEECH_API_KEY` | 条件 | `(空；仅 minimax_speech provider 被选中时需要)` | secret | A4（A3 owner） |
 | `AI_MODEL_PROFILE_PATH` | 是 | `config/ai-profiles.yaml` | Model Profile catalog 文件路径 | A4（A3 owner） |
 | `FEATURE_FLAG_SOURCE` | 是 | `file` | `file` 或 `posthog` | A4 |
 | `FEATURE_FLAG_FILE_PATH` | 条件 | `config/feature-flags.yaml` | `FEATURE_FLAG_SOURCE=file` 时必填 | A4 |
@@ -112,6 +116,8 @@
 | `email.provider` / `email.providerApiKey` | `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY` | provider 否；apiKey 是 | prod required | 否 | A4 + C1 |
 | `ai.providerRegistryPath` | `AI_PROVIDER_REGISTRY_PATH` | 否 | always | 否 | A4 + A3 |
 | `ai.defaultProviderBaseURL` / `ai.defaultProviderApiKey` | `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` | baseURL 否；apiKey 是 | required only when provider registry references these env names and the corresponding AIClient-enabled component starts；`APP_ENV=test` may use stub | 否 | A4 + A3 |
+| `ai.doubaoSpeechBaseURL` / `ai.doubaoSpeechApiKey` | `DOUBAO_SPEECH_BASE_URL` / `DOUBAO_SPEECH_API_KEY` | baseURL 否；apiKey 是 | required only when doubao_speech provider is selected；`APP_ENV=test` may use stub | 否 | A4 + A3 |
+| `ai.minimaxSpeechBaseURL` / `ai.minimaxSpeechApiKey` | `MINIMAX_SPEECH_BASE_URL` / `MINIMAX_SPEECH_API_KEY` | baseURL 否；apiKey 是 | required only when minimax_speech provider is selected；`APP_ENV=test` may use stub | 否 | A4 + A3 |
 | `ai.modelProfilePath` | `AI_MODEL_PROFILE_PATH` | 否 | always | 否 | A4 + A3 |
 | `featureFlag.source` / `featureFlag.filePath` | `FEATURE_FLAG_SOURCE` / `FEATURE_FLAG_FILE_PATH` | 否 | always；filePath required when source=file | 否 | A4 |
 | `featureFlag.posthogHost` / `featureFlag.posthogSelfHosted` | `POSTHOG_HOST` / `POSTHOG_SELF_HOSTED` | 否 | required when source=posthog; staging/prod must self-host | 否 | A4 + F2 |

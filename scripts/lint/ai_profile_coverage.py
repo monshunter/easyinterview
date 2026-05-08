@@ -25,7 +25,7 @@ PROFILE_RE = re.compile(r"`([a-z0-9_.-]+\.default)`")
 TABLE_ROW_RE = re.compile(r"^\|(.+)\|$", re.MULTILINE)
 BACKTICK_RE = re.compile(r"`([^`]+)`")
 ENV_LINE_RE = re.compile(r"^[ \t]*([A-Z][A-Z0-9_]*)[ \t]*=[ \t]*([^#\n]*)", re.MULTILINE)
-ALLOWED_CAPABILITIES = {"chat", "stt", "realtime", "judge"}
+ALLOWED_CAPABILITIES = {"chat", "stt", "tts", "realtime", "judge"}
 ALLOWED_STATUSES = {"active", "disabled", "unsupported"}
 CANONICAL_DEV_STACK_ENV = {
     "AI_PROVIDER_REGISTRY_PATH": "config/ai-providers.yaml",

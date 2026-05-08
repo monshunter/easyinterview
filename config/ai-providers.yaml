@@ -7,6 +7,7 @@ providers:
     capabilities:
       - chat
       - stt
+      - tts
     version: 1.0.0
 
   - name: deepseek
@@ -16,6 +17,23 @@ providers:
     capabilities:
       - chat
     version: 1.0.0
+
+  - name: doubao_speech
+    protocol: doubao_speech
+    base_url_env: DOUBAO_SPEECH_BASE_URL
+    api_key_env: DOUBAO_SPEECH_API_KEY
+    capabilities:
+      - tts
+      - stt
+    version: 0.1.0
+
+  - name: minimax_speech
+    protocol: minimax_speech
+    base_url_env: MINIMAX_SPEECH_BASE_URL
+    api_key_env: MINIMAX_SPEECH_API_KEY
+    capabilities:
+      - tts
+    version: 0.1.0
 
   - name: speech-placeholder
     protocol: realtime_audio
