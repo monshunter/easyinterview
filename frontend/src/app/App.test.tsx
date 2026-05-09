@@ -98,7 +98,7 @@ describe("App shell", () => {
       <App
         initialRoute={{
           name: "workspace",
-          params: { targetJobId: "tj-1" },
+          params: { targetJobId: "01918fa0-0000-7000-8000-000000002000" },
         }}
       />,
     );

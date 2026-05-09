@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { render, renderHook, screen, waitFor } from "@testing-library/react";
 import { useEffect, type ReactNode } from "react";
 
 import { EasyInterviewClient } from "../../../../api/generated/client";
@@ -19,6 +19,9 @@ import { AppRuntimeProvider } from "../../../runtime/AppRuntimeProvider";
 import { useWorkspaceTargetJob } from "./useWorkspaceTargetJob";
 
 import getTargetJobFixture from "../../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
+
+const TARGET_A = "01918fa0-0000-7000-8000-000000002000";
+const TARGET_B = "01918fa0-0000-7000-8000-000000003000";
 
 function buildClient() {
   return new EasyInterviewClient({
@@ -153,7 +156,7 @@ describe("useWorkspaceTargetJob", () => {
 
     const { result } = renderHook(() => useWorkspaceTargetJob(), {
       wrapper: ({ children }) => (
-        <Wrapper client={client} initialTargetJobId="tj-err">
+        <Wrapper client={client} initialTargetJobId="01918fa0-0000-7000-8000-000000009999">
           {children}
         </Wrapper>
       ),
@@ -166,4 +169,96 @@ describe("useWorkspaceTargetJob", () => {
     expect(result.current.data).toBeNull();
     expect(result.current.error).toBeDefined();
   });
+
+  it("keys target fetches by targetJobId and ignores stale completions", async () => {
+    const first = deferredTarget(TARGET_A, "Old Target");
+    const second = deferredTarget(TARGET_B, "New Target");
+    const client = new EasyInterviewClient({
+      fetch: async (input) => {
+        const url = String(input);
+        if (url.includes(TARGET_A)) return first.promise;
+        if (url.includes(TARGET_B)) return second.promise;
+        throw new Error(`unexpected url ${url}`);
+      },
+    });
+    const spy = vi.spyOn(client, "getTargetJob");
+
+    const { rerender } = render(
+      <TargetJobHarness client={client} targetJobId={TARGET_A} />,
+    );
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(TARGET_A);
+    });
+
+    rerender(<TargetJobHarness client={client} targetJobId={TARGET_B} />);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(TARGET_B);
+    });
+
+    second.resolve();
+    await waitFor(() => {
+      expect(screen.getByTestId("target-job-hook-data").textContent).toBe(TARGET_B);
+    });
+
+    first.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.getByTestId("target-job-hook-data").textContent).toBe(TARGET_B);
+  });
 });
+
+function TargetJobHarness({
+  client,
+  targetJobId,
+}: {
+  client: EasyInterviewClient;
+  targetJobId: string;
+}) {
+  return (
+    <InterviewContextProvider>
+      <AppRuntimeProvider client={client}>
+        <HydrateContext targetJobId={targetJobId}>
+          <TargetJobProbe />
+        </HydrateContext>
+      </AppRuntimeProvider>
+    </InterviewContextProvider>
+  );
+}
+
+function TargetJobProbe() {
+  const result = useWorkspaceTargetJob();
+  return (
+    <div data-testid="target-job-hook-data">{result.data?.id ?? ""}</div>
+  );
+}
+
+function deferredTarget(id: string, title: string) {
+  let resolve!: () => void;
+  const promise = new Promise<Response>((res) => {
+    resolve = () =>
+      res(
+        new Response(
+          JSON.stringify({
+            id,
+            status: "interviewing",
+            title,
+            companyName: "Acme",
+            locationText: "Remote",
+            targetLanguage: "en",
+            sourceType: "manual_text",
+            sourceUrl: null,
+            summary: null,
+            requirements: [],
+            fitSummary: null,
+            latestReportId: null,
+            openQuestionIssueCount: 0,
+            createdAt: "2026-05-09T00:00:00Z",
+            updatedAt: "2026-05-09T00:00:00Z",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+  });
+  return { promise, resolve };
+}

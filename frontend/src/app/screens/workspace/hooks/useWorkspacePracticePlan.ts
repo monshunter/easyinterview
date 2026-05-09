@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { PracticePlan } from "../../../../api/generated/types";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 import { useInterviewContext } from "../../../interview-context/InterviewContext";
+import { normalizeServerBoundId } from "../../../interview-context/apiIds";
 
 export interface UseWorkspacePracticePlanResult {
   loading: boolean;
@@ -18,60 +19,70 @@ export interface UseWorkspacePracticePlanResult {
  */
 export function useWorkspacePracticePlan(): UseWorkspacePracticePlanResult {
   const runtime = useAppRuntimeOptional();
+  const client = runtime?.client;
   const { ctx, dispatch } = useInterviewContext();
-  const planId = ctx.planId;
+  const planId = normalizeServerBoundId(ctx.planId);
 
   const [loading, setLoading] = useState(!!planId);
   const [data, setData] = useState<PracticePlan | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [ready, setReady] = useState(false);
-  const inFlightRef = useRef(false);
+  const requestSeqRef = useRef(0);
 
-  const fetch = useCallback(() => {
-    if (!runtime || !planId) {
+  useEffect(() => {
+    if (!client || !planId) {
       setLoading(false);
+      setData(null);
+      setError(null);
+      setReady(false);
+      if (ctx.planId && !planId) {
+        dispatch({ type: "CLEAR_PRACTICE_PLAN" });
+      }
       return;
     }
 
-    if (inFlightRef.current) return;
-
-    let cancelled = false;
-    inFlightRef.current = true;
+    let active = true;
+    const requestSeq = requestSeqRef.current + 1;
+    requestSeqRef.current = requestSeq;
     setLoading(true);
+    setData(null);
     setError(null);
 
-    runtime.client
+    client
       .getPracticePlan(planId)
       .then((plan) => {
-        if (cancelled) return;
+        if (!active || requestSeqRef.current !== requestSeq) return;
         setData(plan);
         const isReady = plan.status === "ready";
         setReady(isReady);
         if (isReady) {
-          dispatch({ type: "MERGE_PRACTICE_PLAN", plan: plan as unknown as { id: string; [key: string]: unknown } });
+          dispatch({
+            type: "MERGE_PRACTICE_PLAN",
+            plan: plan as unknown as { id: string; [key: string]: unknown },
+          });
         } else {
           dispatch({ type: "CLEAR_PRACTICE_PLAN" });
         }
       })
       .catch((err: unknown) => {
-        if (cancelled) return;
+        if (!active || requestSeqRef.current !== requestSeq) return;
         const error = err instanceof Error ? err : new Error(String(err));
+        setData(null);
         setError(error);
+        setReady(false);
         if (isNotFound(error)) {
           dispatch({ type: "CLEAR_PRACTICE_PLAN" });
         }
       })
       .finally(() => {
-        if (!cancelled) {
+        if (active && requestSeqRef.current === requestSeq) {
           setLoading(false);
-          inFlightRef.current = false;
         }
       });
-  }, [runtime, planId, dispatch]);
-
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
+    return () => {
+      active = false;
+    };
+  }, [client, planId, ctx.planId, dispatch]);
 
   return { loading, data, error, ready };
 }

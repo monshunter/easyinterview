@@ -128,4 +128,24 @@ describe("useWorkspacePracticePlan", () => {
 
     expect(spy).not.toHaveBeenCalled();
   });
+
+  it("treats synthetic plan ids as absent before calling getPracticePlan", () => {
+    const client = buildClient();
+    const spy = vi.spyOn(client, "getPracticePlan");
+
+    const { result } = renderHook(() => useWorkspacePracticePlan(), {
+      wrapper: ({ children }) => (
+        <Wrapper
+          client={client}
+          planId="plan-01918fa0-0000-7000-8000-000000002000"
+        >
+          {children}
+        </Wrapper>
+      ),
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.ready).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
+  });
 });

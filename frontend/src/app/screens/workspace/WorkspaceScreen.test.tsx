@@ -44,7 +44,7 @@ function withProviders(ui: ReactNode, route: Route) {
 const WORKSPACE_ROUTE: Route = {
   name: "workspace",
   params: {
-    targetJobId: "tj-1",
+    targetJobId: "01918fa0-0000-7000-8000-000000002000",
     jdId: "jd-1",
     planId: "plan-1",
     resumeVersionId: "rv-1",
@@ -192,6 +192,7 @@ describe("WorkspaceScreen static shell (Phase 1)", () => {
           <NavigationProvider
             value={{ navigate: vi.fn() }}
           >
+            <HydrateRoute route={WORKSPACE_ROUTE} />
             <WorkspaceScreen route={WORKSPACE_ROUTE} />
           </NavigationProvider>
         </InterviewContextProvider>
@@ -211,6 +212,7 @@ describe("WorkspaceScreen static shell (Phase 1)", () => {
           <NavigationProvider
             value={{ navigate: vi.fn() }}
           >
+            <HydrateRoute route={WORKSPACE_ROUTE} />
             <WorkspaceScreen route={WORKSPACE_ROUTE} />
           </NavigationProvider>
         </InterviewContextProvider>
@@ -219,6 +221,13 @@ describe("WorkspaceScreen static shell (Phase 1)", () => {
     expect(screen.getByTestId("workspace-plan-eyebrow-label").textContent).toBe(
       "Current Interview Plan",
     );
+    expect(screen.getByTestId("workspace-round-rail")).toHaveTextContent("HR Screen");
+    expect(screen.getByTestId("workspace-round-rail")).toHaveTextContent("Technical 1");
+    expect(screen.getByTestId("workspace-jd-block-must")).toHaveTextContent("Must Have");
+    expect(screen.getByTestId("workspace-jd-block-nice")).toHaveTextContent("Nice to Have");
+    expect(screen.getByTestId("workspace-jd-block-hidden")).toHaveTextContent("Hidden Signals");
+    expect(document.body).not.toHaveTextContent("必需项");
+    expect(document.body).not.toHaveTextContent("技术一面");
     localStorage.removeItem("ei-lang");
   });
 

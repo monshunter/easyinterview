@@ -53,8 +53,7 @@ function clientWithScenarios(opts: {
   });
 }
 
-function renderScreen(route: Route) {
-  const client = clientWithScenarios();
+function renderScreen(route: Route, client = clientWithScenarios()) {
   const nav = vi.fn();
   return {
     client,
@@ -105,6 +104,26 @@ describe("WorkspaceEmptyState", () => {
 
     screen.getByTestId("workspace-empty-cta").click();
     expect(nav).toHaveBeenCalledWith({ name: "home", params: {} });
+  });
+
+  it("renders recovery empty state when getTargetJob returns not found", async () => {
+    renderScreen(
+      {
+        name: "workspace",
+        params: {
+          targetJobId: "01918fa0-0000-7000-8000-000000009999",
+          resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+        },
+      },
+      clientWithScenarios({ targetJobScenario: "not-found" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-empty")).toBeDefined();
+    });
+
+    expect(screen.queryByTestId("workspace-launcher")).toBeNull();
+    expect(screen.getByTestId("workspace-empty-cta")).toBeDefined();
   });
 });
 

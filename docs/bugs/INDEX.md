@@ -44,6 +44,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0031](./BUG-0031.md) | workspace follow-up review exposed synthetic id and fetch race drift | medium | resolved | 2026-05-09 | `fix(frontend-workspace): harden workspace review follow-up` |
 | [BUG-0030](./BUG-0030.md) | workspace L2 review exposed route hydration and start flow drift | medium | resolved | 2026-05-09 | `fix(frontend-workspace): remediate workspace L2 findings` |
 | [BUG-0029](./BUG-0029.md) | home JD import L2 review exposed privacy and gate drift | medium | resolved | 2026-05-08 | `fix(frontend-home): remediate jd import L2 findings` |
 | [BUG-0021](./BUG-0021.md) | frontend shell TopBar drifted from ui-design source structure | medium | resolved | 2026-05-08 | `fix(frontend-shell): restore topbar ui-design source parity` |

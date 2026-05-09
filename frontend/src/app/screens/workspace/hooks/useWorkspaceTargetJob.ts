@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { TargetJob } from "../../../../api/generated/types";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 import { useInterviewContext } from "../../../interview-context/InterviewContext";
+import { normalizeServerBoundId } from "../../../interview-context/apiIds";
 
 export interface UseWorkspaceTargetJobResult {
   loading: boolean;
@@ -19,50 +20,55 @@ export interface UseWorkspaceTargetJobResult {
  */
 export function useWorkspaceTargetJob(): UseWorkspaceTargetJobResult {
   const runtime = useAppRuntimeOptional();
+  const client = runtime?.client;
   const { ctx, dispatch } = useInterviewContext();
-  const targetJobId = ctx.targetJobId;
+  const targetJobId = normalizeServerBoundId(ctx.targetJobId);
 
   const [loading, setLoading] = useState(!!targetJobId);
   const [data, setData] = useState<TargetJob | null>(null);
   const [error, setError] = useState<Error | null>(null);
-  const inFlightRef = useRef(false);
+  const requestSeqRef = useRef(0);
 
-  const fetch = useCallback(() => {
-    if (!runtime || !targetJobId) {
+  useEffect(() => {
+    if (!client || !targetJobId) {
       setLoading(false);
+      setData(null);
+      setError(null);
       return;
     }
 
-    if (inFlightRef.current) return;
-
-    let cancelled = false;
-    inFlightRef.current = true;
+    let active = true;
+    const requestSeq = requestSeqRef.current + 1;
+    requestSeqRef.current = requestSeq;
     setLoading(true);
+    setData(null);
     setError(null);
 
-    runtime.client
+    client
       .getTargetJob(targetJobId)
       .then((job) => {
-        if (cancelled) return;
+        if (!active || requestSeqRef.current !== requestSeq) return;
         setData(job);
         setError(null);
-        dispatch({ type: "MERGE_TARGET_JOB", targetJob: job as unknown as { id: string; [key: string]: unknown } });
+        dispatch({
+          type: "MERGE_TARGET_JOB",
+          targetJob: job as unknown as { id: string; [key: string]: unknown },
+        });
       })
       .catch((err: unknown) => {
-        if (cancelled) return;
+        if (!active || requestSeqRef.current !== requestSeq) return;
+        setData(null);
         setError(err instanceof Error ? err : new Error(String(err)));
       })
       .finally(() => {
-        if (!cancelled) {
+        if (active && requestSeqRef.current === requestSeq) {
           setLoading(false);
-          inFlightRef.current = false;
         }
       });
-  }, [runtime, targetJobId, dispatch]);
-
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
+    return () => {
+      active = false;
+    };
+  }, [client, targetJobId, dispatch]);
 
   return { loading, data, error, empty: !targetJobId };
 }

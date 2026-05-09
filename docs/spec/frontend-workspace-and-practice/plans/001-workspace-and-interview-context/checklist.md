@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-09
 
@@ -66,7 +66,7 @@
 - [x] 6.3 派生 4 个 scenario 目录 `test/scenarios/e2e/p0-018` ~ `p0-021`，各含 README.md + scripts/{setup,trigger,verify,cleanup}.sh + data/seed-input.md + data/expected-outcome.md
 - [x] 6.4 `test/scenarios/e2e/INDEX.md` P0 表追加 4 行（P0.018-P0.021），关联需求 frontend-workspace-and-practice C-1~C-12，状态 Ready，automated
 - [x] 6.5 Regression 重跑：`P0.001/002/004/005` 由 full Vitest + full pixel parity 等价覆盖；P0.006 pixel parity 96/96 PASS；workspace `P0.018/019/020/021` 均 `setup -> trigger -> verify -> cleanup` PASS；`P0.014/015/016/017` 场景目录存在但属 home plan active gate，记录为条件 gate（当前不适用）
-- [x] 6.6 全量验证：`pnpm --filter @easyinterview/frontend test` (66 files, 423 tests PASS)、`pnpm --filter @easyinterview/frontend build` (PASS，包含 `tsc --noEmit` + `vite build`)；`make build` 未作为本次 L2 code review fix 的必要 gate 执行
+- [x] 6.6 全量验证：`pnpm --filter @easyinterview/frontend test` (67 files, 432 tests PASS)、`pnpm --filter @easyinterview/frontend build` (PASS，包含 `tsc --noEmit` + `vite build`)；`make build` 未作为本次 L2 code review fix 的必要 gate 执行
 - [x] 6.7 文档与索引同步：checklist、bdd-checklist 与 plans INDEX 已更新至最新；`make docs-check` + `/sync-doc-index --fix-index` post-fix zero drift gate 执行
 - [x] 6.8 负向搜索：prototype helper imports、旧 testid、旧 route alias、JD 原文/简历正文泄漏、AI/LLM 直接调用、listResumes/getCompanyIntel/getFeedbackReport 运行时调用 → 全部 0 命中（仅注释与测试断言命中）
 - [x] 6.9 BDD-Gate: 验证 `E2E.P0.018/019/020/021` 全部 `setup -> trigger -> verify -> cleanup` PASS；D1+D2+D3 regression 由 full Vitest + full pixel parity 覆盖；`P0.006` pixel parity 96/96 PASS；home plan `P0.014-017` 条件 gate 当前不适用 <!-- verified: 2026-05-09 method=scenario -->
@@ -79,3 +79,9 @@
 - [x] P-L2-004 `autoStartPractice=1` 恢复：登录回到 workspace 后自动启动 startPractice，启动前清理控制位，pendingAction 敏感字段负向断言通过。
 - [x] C-L2-005 BDD 场景脚本强断言：P0.018-P0.021 trigger/verify 脚本补齐真实 Vitest entry、runtime negative grep 与 completion marker。
 - [x] D-L2-006 full workspace pixel parity：workspace pixel spec 从空态扩展到 fixture-backed full workspace、两 modal、desktop/mobile bounding boxes 与 screenshots；full `test:pixel-parity` 96/96 PASS。
+
+## L2 Code Review Follow-up Remediation（2026-05-09）
+
+- [x] P-L2-007 server-bound id normalization：synthetic `plan-${targetJobId}` / `resume-unbound` / invalid UUID route params must be treated as absent before `getPracticePlan` / `getResume` / `createPracticePlan` / `startPracticeSession`; Vitest must assert generated client methods are not called with synthetic ids. <!-- verified: 2026-05-09 method=vitest files=buildCreatePlanRequest.test.ts,useWorkspacePracticePlan.test.tsx,useWorkspaceResume.test.tsx,WorkspaceStartPractice.test.tsx -->
+- [x] P-L2-008 target-job stale/error recovery：`getTargetJob` 404/5xx must render workspace empty/error recovery instead of the full workspace shell, and target changes must key/ignore stale in-flight completions; Vitest must cover stale completion ordering. <!-- verified: 2026-05-09 method=vitest files=useWorkspaceTargetJob.test.tsx,WorkspaceEmptyState.test.tsx -->
+- [x] P-L2-009 workspace label localization：JD block labels, round fallback labels, target status labels, source labels, and derived prep labels must resolve through `workspace.*` locale keys; English Vitest must assert Chinese labels are absent. <!-- verified: 2026-05-09 method=vitest files=WorkspaceScreen.test.tsx,WorkspaceHeader.test.tsx -->

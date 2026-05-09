@@ -16,7 +16,10 @@ import {
   useInterviewContext,
 } from "../../interview-context/InterviewContext";
 import { AppRuntimeProvider } from "../../runtime/AppRuntimeProvider";
-import { DisplayPreferencesProvider } from "../../display/DisplayPreferencesProvider";
+import {
+  DisplayPreferencesProvider,
+  type Lang,
+} from "../../display/DisplayPreferencesProvider";
 import { NavigationProvider } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
 import { WorkspaceScreen } from "./WorkspaceScreen";
@@ -29,7 +32,7 @@ const WORKSPACE_ROUTE: Route = {
     targetJobId: "01918fa0-0000-7000-8000-000000003000",
     jdId: "jd-1",
     planId: "plan-1",
-    resumeVersionId: "rv-1",
+    resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
     roundId: "round-hr",
   },
 };
@@ -42,12 +45,16 @@ function HydrateRoute({ params }: { params: Record<string, string> }) {
   return null;
 }
 
-function renderWorkspace(client: EasyInterviewClient, route: Route = WORKSPACE_ROUTE) {
+function renderWorkspace(
+  client: EasyInterviewClient,
+  route: Route = WORKSPACE_ROUTE,
+  lang: Lang = "en",
+) {
   const nav = vi.fn();
   return {
     nav,
     ...render(
-      <DisplayPreferencesProvider>
+      <DisplayPreferencesProvider initial={{ lang }}>
         <InterviewContextProvider>
           <AppRuntimeProvider client={client}>
             <NavigationProvider value={{ navigate: nav }}>
@@ -73,11 +80,13 @@ function clientWithScenario(scenario: string) {
 describe("WorkspaceHeader (Phase 2.7)", () => {
   it("renders header with fixture data (with-rounds scenario)", async () => {
     const client = clientWithScenario("with-rounds");
-    renderWorkspace(client);
+    renderWorkspace(client, WORKSPACE_ROUTE, "zh");
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-header-title")).toBeDefined();
-    });
+      expect(screen.getByTestId("workspace-header-title").textContent).toBe(
+        "Staff Frontend Engineer",
+      );
+    }, { timeout: 5000 });
 
     expect(screen.getByTestId("workspace-header-title").textContent).toBe(
       "Staff Frontend Engineer",
@@ -89,6 +98,24 @@ describe("WorkspaceHeader (Phase 2.7)", () => {
     expect(screen.getByTestId("workspace-plan-eyebrow-title").textContent).toContain(
       "Vercel · Staff Frontend Engineer",
     );
+  });
+
+  it("renders generated status and source labels in English locale", async () => {
+    const client = clientWithScenario("with-rounds");
+    renderWorkspace(client, WORKSPACE_ROUTE, "en");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-header-subtitle").textContent).toContain(
+        "URL import",
+      );
+    }, { timeout: 5000 });
+
+    expect(screen.getByTestId("workspace-header-tag").textContent).toBe("Interviewing");
+    expect(screen.getByTestId("workspace-header-subtitle").textContent).toContain(
+      "URL import",
+    );
+    expect(document.body).not.toHaveTextContent("面试中");
+    expect(document.body).not.toHaveTextContent("链接导入");
   });
 
   it("renders JD breakdown with requirements grouped by kind", async () => {
@@ -121,7 +148,9 @@ describe("WorkspaceHeader (Phase 2.7)", () => {
     renderWorkspace(client);
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-header-updated")).toBeDefined();
+      expect(screen.getByTestId("workspace-header-updated").textContent).toContain(
+        "5/5",
+      );
     });
 
     // updatedAt is 2026-05-05 → 5/5

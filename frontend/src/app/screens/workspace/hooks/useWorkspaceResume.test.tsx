@@ -129,6 +129,24 @@ describe("useWorkspaceResume", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
+  it("treats synthetic resume placeholders as missing before calling getResume", () => {
+    const client = buildClient();
+    const spy = vi.spyOn(client, "getResume");
+
+    const { result } = renderHook(() => useWorkspaceResume(), {
+      wrapper: ({ children }) => (
+        <Wrapper client={client} resumeVersionId="resume-unbound">
+          {children}
+        </Wrapper>
+      ),
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.empty).toBe(true);
+    expect(result.current.data).toBeNull();
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it("handles 404 error and sets error state", async () => {
     const errorFixture = [
       {

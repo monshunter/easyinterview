@@ -5,6 +5,7 @@ import { useInterviewContext } from "../../../interview-context/InterviewContext
 import { buildCreatePlanRequest } from "../../../interview-context/buildCreatePlanRequest";
 import { newIdempotencyBatch } from "../../../../lib/conventions/idempotency";
 import { useI18n } from "../../../i18n/messages";
+import { normalizeServerBoundId } from "../../../interview-context/apiIds";
 
 export type StartState =
   | { kind: "idle" }
@@ -42,7 +43,7 @@ export function useStartPractice() {
     const batch = batchRef.current;
 
     try {
-      let planId = ctx.planId;
+      let planId = normalizeServerBoundId(ctx.planId);
       if (planId) {
         try {
           const existingPlan = await runtime.client.getPracticePlan(planId);

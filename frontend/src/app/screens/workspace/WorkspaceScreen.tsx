@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type FC } from "react";
 
-import { useI18n } from "../../i18n/messages";
+import { useI18n, type MessageKey } from "../../i18n/messages";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import { useInterviewContext } from "../../interview-context/InterviewContext";
+import { normalizeServerBoundId } from "../../interview-context/apiIds";
 import type { Route } from "../../routes";
 import { useWorkspaceTargetJob } from "./hooks/useWorkspaceTargetJob";
 import { useWorkspaceResume } from "./hooks/useWorkspaceResume";
@@ -25,7 +26,7 @@ interface WorkspaceScreenProps {
 export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   const { t, lang } = useI18n();
   const { navigate } = useNavigation();
-  const { loading, data: tj, error } = useWorkspaceTargetJob();
+  const { loading, data: tj, error: targetError, empty: targetEmpty } = useWorkspaceTargetJob();
   const { data: resume, empty: resumeEmpty } = useWorkspaceResume();
   useWorkspacePracticePlan();
   const { ctx, dispatch } = useInterviewContext();
@@ -35,9 +36,9 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   const compactLayout = useWorkspaceCompactLayout();
 
   // ── Empty / missing states ──
-  const hasTarget = !!(ctx.targetJobId || route.params.targetJobId);
-  const showEmptyState = !hasTarget && !loading && !tj;
-  const showMissingResume = hasTarget && !loading && tj && (resumeEmpty || !ctx.resumeVersionId);
+  const hasBoundResume = !!normalizeServerBoundId(ctx.resumeVersionId);
+  const showEmptyState = (targetEmpty || !!targetError) && !loading && !tj;
+  const showMissingResume = !targetEmpty && !loading && tj && (resumeEmpty || !hasBoundResume);
 
   // ── Derived display values per plan §3.7 mapping ──
 
@@ -46,20 +47,20 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
     : t("workspace.planEyebrowTitle");
 
   const planEyebrowStatus = tj
-    ? formatStatus(tj.status)
+    ? formatStatus(tj.status, t)
     : t("workspace.planEyebrowStatus");
 
   const planEyebrowSub = tj
-    ? `${roundLabel(route.params.roundId) ?? t("workspace.planEyebrowSub")} · ${t("workspace.resumeBound")}`
+    ? `${roundLabel(route.params.roundId, t) ?? t("workspace.planEyebrowSub")} · ${t("workspace.resumeBound")}`
     : t("workspace.planEyebrowSub");
 
   const headerTitle = tj?.title ?? t("workspace.headerTitle");
   const headerSubtitle = tj
-    ? [tj.companyName, tj.locationText, tj.sourceType ? formatSourceType(tj.sourceType) : null]
+    ? [tj.companyName, tj.locationText, tj.sourceType ? formatSourceType(tj.sourceType, t) : null]
         .filter(Boolean)
         .join(" · ")
     : t("workspace.headerSubtitle");
-  const headerPrepStatus = tj ? derivePrepStatus(tj) : t("workspace.headerPrepStatus");
+  const headerPrepStatus = tj ? derivePrepStatus(tj, t) : t("workspace.headerPrepStatus");
   const headerUpdated = tj
     ? t("workspace.headerUpdated").replace("4/20", formatDate(tj.updatedAt))
     : t("workspace.headerUpdated");
@@ -69,7 +70,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
 
   const jdTitle = tj?.title ?? t("workspace.jdTitle");
   const jdMeta = tj
-    ? [tj.companyName, tj.locationText, tj.sourceType ? formatSourceType(tj.sourceType) : null]
+    ? [tj.companyName, tj.locationText, tj.sourceType ? formatSourceType(tj.sourceType, t) : null]
         .filter(Boolean)
         .join(" · ")
     : t("workspace.jdMeta");
@@ -113,7 +114,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
     if (ctx.autoStartPractice !== "1") return;
     if (autoStartRef.current) return;
     if (runtime?.auth.status !== "authenticated") return;
-    if (!ctx.targetJobId || !ctx.resumeVersionId) return;
+    if (!normalizeServerBoundId(ctx.targetJobId) || !normalizeServerBoundId(ctx.resumeVersionId)) return;
 
     autoStartRef.current = true;
     dispatch({ type: "CLEAR_AUTO_START" });
@@ -642,11 +643,11 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: `repeat(${ROUND_FALLBACK.length}, 1fr)`,
+                gridTemplateColumns: `repeat(${ROUND_FALLBACK_KEYS.length}, 1fr)`,
                 alignItems: "start",
               }}
             >
-              {ROUND_FALLBACK.map((name, i) => (
+              {ROUND_FALLBACK_KEYS.map((nameKey, i) => (
                 <div
                   key={i}
                   style={{
@@ -656,7 +657,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
                     alignItems:
                       i === 0
                         ? "flex-start"
-                        : i === ROUND_FALLBACK.length - 1
+                        : i === ROUND_FALLBACK_KEYS.length - 1
                           ? "flex-end"
                           : "center",
                     minHeight: 72,
@@ -692,13 +693,13 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
                       textAlign:
                         i === 0
                           ? "left"
-                          : i === ROUND_FALLBACK.length - 1
+                          : i === ROUND_FALLBACK_KEYS.length - 1
                             ? "right"
                             : "center",
                       maxWidth: 140,
                     }}
                   >
-                    {name}
+                    {t(nameKey)}
                   </div>
                   <div
                     style={{
@@ -708,7 +709,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
                       textAlign:
                         i === 0
                           ? "left"
-                          : i === ROUND_FALLBACK.length - 1
+                          : i === ROUND_FALLBACK_KEYS.length - 1
                             ? "right"
                             : "center",
                       maxWidth: 140,
@@ -1177,7 +1178,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
                           whiteSpace: "nowrap",
                         }}
                       >
-                        {block.label}
+                        {t(block.labelKey)}
                       </span>
                     </div>
                     {items.length === 0 ? (
@@ -1385,7 +1386,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
               targetJobId,
               jobId: targetJobId,
               jdId: `jd-${targetJobId}`,
-              planId: `plan-${targetJobId}`,
+              planId: "",
               resumeVersionId: ctx.resumeVersionId ?? "",
               roundId: ctx.roundId ?? "round-technical-1",
               roundName: ctx.roundName ?? "",
@@ -1413,35 +1414,40 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
 
 const JD_BLOCKS: {
   kind: "must_have" | "nice_to_have" | "hidden_signal";
-  label: string;
+  labelKey: MessageKey;
   testSuffix: string;
   tagBg: string;
   tagColor: string;
 }[] = [
   {
     kind: "must_have",
-    label: "必需项",
+    labelKey: "workspace.must",
     testSuffix: "must",
     tagBg: "var(--ei-color-accentSoft)",
     tagColor: "var(--ei-color-accent)",
   },
   {
     kind: "nice_to_have",
-    label: "加分项",
+    labelKey: "workspace.nice",
     testSuffix: "nice",
     tagBg: "var(--ei-color-amberSoft)",
     tagColor: "var(--ei-color-warn)",
   },
   {
     kind: "hidden_signal",
-    label: "隐性关注点",
+    labelKey: "workspace.hidden",
     testSuffix: "hidden",
     tagBg: "var(--ei-color-coolSoft)",
     tagColor: "var(--ei-color-cool)",
   },
 ];
 
-const ROUND_FALLBACK = ["HR 初筛", "技术一面", "技术二面", "经理面"] as const;
+const ROUND_FALLBACK_KEYS = [
+  "workspace.roundName1",
+  "workspace.roundName2",
+  "workspace.roundName3",
+  "workspace.roundName4",
+] as const satisfies readonly MessageKey[];
 const ROUND_IDS = ["round-hr", "round-tech1", "round-tech2", "round-manager"] as const;
 
 type StatusTone = "amber" | "muted" | "neutral";
@@ -1459,17 +1465,18 @@ function getStatusTone(status: string): StatusTone {
   }
 }
 
-function formatStatus(status: string): string {
-  const map: Record<string, string> = {
-    draft: "规划中",
-    preparing: "准备中",
-    applied: "已投递",
-    interviewing: "面试中",
-    offer: "已获Offer",
-    rejected: "已结束",
-    archived: "已归档",
+function formatStatus(status: string, t: (key: MessageKey) => string): string {
+  const map: Record<string, MessageKey> = {
+    draft: "workspace.status.draft",
+    preparing: "workspace.status.preparing",
+    applied: "workspace.status.applied",
+    interviewing: "workspace.status.interviewing",
+    offer: "workspace.status.offer",
+    rejected: "workspace.status.rejected",
+    archived: "workspace.status.archived",
   };
-  return map[status] ?? status;
+  const key = map[status];
+  return key ? t(key) : status;
 }
 
 function formatDate(iso: string): string {
@@ -1481,20 +1488,21 @@ function formatDate(iso: string): string {
   }
 }
 
-function formatSourceType(s: string): string {
-  const map: Record<string, string> = {
-    manual_text: "手动输入",
-    url: "链接导入",
-    file: "文件上传",
-    manual_form: "表单填写",
+function formatSourceType(s: string, t: (key: MessageKey) => string): string {
+  const map: Record<string, MessageKey> = {
+    manual_text: "workspace.source.manualText",
+    url: "workspace.source.url",
+    file: "workspace.source.file",
+    manual_form: "workspace.source.manualForm",
   };
-  return map[s] ?? s;
+  const key = map[s];
+  return key ? t(key) : s;
 }
 
-function roundLabel(roundId?: string): string | null {
+function roundLabel(roundId: string | undefined, t: (key: MessageKey) => string): string | null {
   if (!roundId) return null;
   const idx = ROUND_IDS.indexOf(roundId as typeof ROUND_IDS[number]);
-  if (idx >= 0) return ROUND_FALLBACK[idx] as string;
+  if (idx >= 0) return t(ROUND_FALLBACK_KEYS[idx]!);
   return null;
 }
 
@@ -1510,14 +1518,21 @@ function readResumeSummary(parsedSummary: Record<string, unknown> | null): strin
   return parts.length > 0 ? parts.join(" · ") : "—";
 }
 
-function derivePrepStatus(tj: { fitSummary?: { strengths?: unknown[]; gaps?: unknown[]; riskSignals?: unknown[] } | null; openQuestionIssueCount: number }): string {
+function derivePrepStatus(
+  tj: { fitSummary?: { strengths?: unknown[]; gaps?: unknown[]; riskSignals?: unknown[] } | null; openQuestionIssueCount: number },
+  t: (key: MessageKey) => string,
+): string {
   const fs = tj.fitSummary;
   if (!fs) return "—";
   const strongs = (fs.strengths?.length ?? 0);
   const risks = (fs.riskSignals?.length ?? 0);
   const gaps = (fs.gaps?.length ?? 0);
-  if (strongs > 0) return `${strongs} 项命中`;
-  if (risks > 0 || gaps > 0 || tj.openQuestionIssueCount > 0) return "待补强";
+  if (strongs > 0) {
+    return t("workspace.prepStatus.hitCount").replace("{count}", String(strongs));
+  }
+  if (risks > 0 || gaps > 0 || tj.openQuestionIssueCount > 0) {
+    return t("workspace.prepStatus.needsWork");
+  }
   return "—";
 }
 

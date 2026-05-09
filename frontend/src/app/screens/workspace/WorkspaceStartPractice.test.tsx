@@ -126,6 +126,17 @@ const PLAN_EXISTS_ROUTE: Route = {
   },
 };
 
+const SYNTHETIC_PLAN_ROUTE: Route = {
+  name: "workspace",
+  params: {
+    targetJobId: "01918fa0-0000-7000-8000-000000002000",
+    jdId: "jd-1",
+    resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+    roundId: "round-hr",
+    planId: "plan-01918fa0-0000-7000-8000-000000002000",
+  },
+};
+
 // ── Phase 4.7 Comprehensive Tests ──
 
 describe("WorkspaceStartPractice (Phase 4.7)", () => {
@@ -189,6 +200,35 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
     const navCall = nav.mock.calls[0]![0] as Record<string, unknown>;
     expect(navCall.name).toBe("practice");
     expect((navCall.params as Record<string, unknown>).sessionId).toBeDefined();
+  });
+
+  it("synthetic plan id is ignored before generated client calls", async () => {
+    const client = buildClient();
+    const { nav } = renderScreen(SYNTHETIC_PLAN_ROUTE, client);
+    const getPlanSpy = vi.spyOn(client, "getPracticePlan");
+    const createSpy = vi.spyOn(client, "createPracticePlan");
+    const startSpy = vi.spyOn(client, "startPracticeSession");
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
+    });
+
+    await user.click(screen.getByTestId("workspace-cta-start"));
+
+    await waitFor(() => {
+      expect(nav).toHaveBeenCalled();
+    });
+
+    expect(getPlanSpy).not.toHaveBeenCalledWith(
+      SYNTHETIC_PLAN_ROUTE.params.planId,
+    );
+    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(startSpy).toHaveBeenCalledTimes(1);
+    const startRequest = startSpy.mock.calls[0]![0] as unknown as {
+      planId: string;
+    };
+    expect(startRequest.planId).toBe("01918fa0-0000-7000-8000-000000004000");
   });
 
   it("plan exists + archived → refreshes plan, creates replacement plan, then starts session", async () => {

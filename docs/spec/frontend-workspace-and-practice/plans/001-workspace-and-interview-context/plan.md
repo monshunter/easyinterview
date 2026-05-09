@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-09
 
@@ -34,6 +34,12 @@
 `backend-practice` v1.3 spec 已锁 6 个 Practice operation 与 D-13 `startPracticeSession` 同步首题语义，并记录当前 OpenAPI/generated `PracticeMode` 仍有旧 `debrief_replay` enum 漂移；`backend-targetjob` 实施 plan `001` 已交付 `listTargetJobs / getTargetJob / updateTargetJob / importTargetJob` 真实 handler。本 plan 只通过 generated client 消费已存在的 OpenAPI operation；`createPracticePlan / getPracticePlan / startPracticeSession` 真实 backend handler 由 `backend-practice/001-plan-and-session-orchestration`（待派生）承接，本 plan 阶段保持 fixture-backed `not-yet-implemented` 状态。
 
 `workspace / practice / generating` 三屏在 D1 仍由 `PlaceholderScreen` 占位；本 plan 是 `frontend-workspace-and-practice` 子 spec 的首个计划，承接 spec §7 预留编号 `001-workspace-and-interview-context`。`practice` 与 `generating` 屏继续保持 PlaceholderScreen，由 plan `002` / `003` / `004` 在 backend-practice handler / voice / report 契约就位后替换。
+
+## 2.1 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-05-09 | 1.2 | L2 follow-up 修复 workspace generated API server-bound id 归一化、target-job stale/error recovery、target 切换竞态与英文本地化派生标签。 |
 
 ## 3 质量门禁分类
 
