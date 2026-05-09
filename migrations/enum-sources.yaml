@@ -16,10 +16,11 @@ checks:
   - {table: target_job_sources, column: source_type, source: db-local, values: [url, file, manual_text, manual_form], checksum: "sha256:90e5815bf44675c9"}
   - {table: target_job_sources, column: freshness_status, source: db-local, values: [fresh, stale, expired], checksum: "sha256:509736b3cb89eda5"}
   - {table: practice_plans, column: goal, source: shared-conventions-codified, values: [baseline, retry_current_round, next_round, debrief], checksum: "sha256:c373629b4b846cbf"}
-  - {table: practice_plans, column: mode, source: shared-conventions-codified, values: [assisted, strict, debrief_replay], checksum: "sha256:62faca87d2ba4215"}
+  - {table: practice_plans, column: mode, source: shared-conventions-codified, values: [assisted, strict], checksum: "sha256:58040c145fc07913"}
   - {table: practice_plans, column: interviewer_persona, source: shared-conventions-codified, values: [generalist, hr, hiring_manager, technical_manager, peer], checksum: "sha256:1d16f396c7e825b7"}
   - {table: practice_plans, column: difficulty, source: db-local, values: [easy, standard, stretch], checksum: "sha256:e769a78f1c8f2cec"}
   - {table: practice_plans, column: status, source: db-local, values: [draft, ready, archived], checksum: "sha256:272f8f3f29256b61"}
+  - {table: idempotency_records, column: status, source: db-local, values: [pending, succeeded, failed_retryable, failed_terminal], checksum: "sha256:c37e9049b27ec756"}
   - {table: practice_sessions, column: status, source: shared-conventions-codified, values: [queued, running, waiting_user_input, completing, completed, failed, cancelled], checksum: "sha256:ded4ea5f66cc1e82"}
   - {table: practice_session_events, column: event_type, source: db-local, values: [session_started, question_started, answer_submitted, hint_requested, follow_up_generated, turn_skipped, turn_completed, session_paused, session_resumed, session_completed], checksum: "sha256:6595c65cd42245c8"}
   - {table: practice_turns, column: status, source: db-local, values: [asked, answered, follow_up_requested, assessed, skipped], checksum: "sha256:0c9f3ca09f13faee"}

@@ -42,7 +42,7 @@ EXPECTED_STRUCTURES = {"PageInfo", "ApiError"}
 EXPECTED_ENUM_SECTIONS = {f"5.{i}" for i in range(1, 14)}  # §5.1 .. §5.13
 EXPECTED_JOB_STATUSES = {"queued", "running", "succeeded", "failed", "cancelled", "dead"}
 EXPECTED_PRODUCT_ENUM_VALUES = {
-    "PracticeMode": ["assisted", "strict", "debrief_replay"],
+    "PracticeMode": ["assisted", "strict"],
     "PracticeGoal": ["baseline", "retry_current_round", "next_round", "debrief"],
     "QuestionReviewStatus": ["open", "queued_for_retry", "resolved"],
 }

@@ -133,7 +133,7 @@ def valid_data() -> dict:
                 "name": "PracticeMode",
                 "sourceSection": "5.3",
                 "jsonField": "mode",
-                "values": ["assisted", "strict", "debrief_replay"],
+                "values": ["assisted", "strict"],
             },
             {
                 "name": "PracticeGoal",

@@ -1,13 +1,14 @@
 # DB Migrations Baseline History
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-09
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-09 | 1.13 | 对齐 backend-practice Phase 0：PracticeMode 收敛为 `assisted` / `strict`，新增共享 `idempotency_records` 表、幂等唯一键与过期索引，并将 baseline 表范围更新为 26 应用表 + 3 auth 支撑表 + 2 迁移元数据表。 | backend-practice/001 Phase 0 |
 | 2026-05-08 | 1.12 | 对齐 A2 用户决策：B4 本地迁移验证前提升级为 Postgres 18。 | local-dev-stack/001 post-pass revision |
 | 2026-05-08 | 1.11 | 对齐 A3 003 Phase 6：删除向量扩展、向量检索表/索引、extension drop gate 与对应 privacy/enum/source 条目；当前 baseline 收敛为 25 应用表 + 3 auth 支撑表 + 2 迁移元数据表。 | ai-provider-and-model-routing/003 Phase 6 |
 | 2026-05-06 | 1.10 | 对齐 backend-runtime-topology：privacy deletion matrix 的执行方从 C8 worker 改为 backend internal runner，表级删除契约保持不变。 | backend-runtime-topology/001-worker-consolidation |

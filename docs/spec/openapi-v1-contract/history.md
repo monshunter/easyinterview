@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-09
 
 ## 1 修订规则
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-09 | 1.14 | 授权 backend-practice Phase 0 HTTP 契约修订：`PracticeMode` enum 删除旧辅助/来源混合取值，`ApiError.code` enum 新增 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND`，并原地 rebase `openapi/baseline/openapi-v1.0.0.yaml`。 | backend-practice/001 Phase 0 |
 | 2026-05-08 | 1.13 | 授权 TargetJob import 场景契约修订：`manual_form` 保持 `202 + TargetJobWithJob` 但返回 terminal `target_import/succeeded` job；`TargetJobRequirement.kind` additive 扩展到 B4 四类；TargetJobs fixtures 必须补 manual_text、manual_form、URL invalid/unavailable、cross-user 404 与 invalid transition scenarios。 | backend-targetjob/001 Phase 0 |
 | 2026-05-06 | 1.12 | 对齐 backend-runtime-topology：`DELETE /api/v1/me` 的 `privacy_delete` 执行方从后续 C8 worker 改为 backend internal privacy runner，HTTP 契约与 `JobType` 不变。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-05 | 1.11 | B2 HTTP 契约改为只由本 spec、`openapi/openapi.yaml`、fixtures / baseline、generated packages 与 B1 shared-conventions-codified 承接；移除旧技术草稿名称和旧 shorthand 依赖。 | engineering-roadmap/001-decompose-subspecs |

@@ -43,14 +43,14 @@
 
 | 任务 | 测试文件 / 命令 | 预期 Red/Green 证据 |
 |------|----------------|---------------------|
-| shared types regenerate after PracticeMode 二值 | `make codegen-conventions` + `python3 scripts/lint/conventions_drift.py --repo-root .` + `cd backend && go test ./internal/shared/types ./internal/shared/errors ./internal/shared/idx ./internal/shared/ai` + frontend conventions focused tests | Red: drift 检测发现 `debrief_replay` 残留；Green: drift 通过 + `PracticeMode` 仅含 `assisted/strict` |
+| shared types regenerate after PracticeMode 二值 | `make codegen-conventions` + `python3 scripts/lint/conventions_drift.py --repo-root .` + `cd backend && go test ./internal/shared/types ./internal/shared/errors ./internal/shared/idx ./internal/shared/ai` + frontend conventions focused tests | Red: drift 检测发现 `legacy debrief replay value` 残留；Green: drift 通过 + `PracticeMode` 仅含 `assisted/strict` |
 | 错误码注册 | shared types unit + drift | Red: 错误码常量缺失；Green: `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND` 在 Go / TS / OpenAPI 一致 |
 | OpenAPI enum 删除 + ApiError 错误码新增 | `make openapi-diff` + fixture parity | Red: 检测到 enum 删除（按 D-21 标记 pre-launch baseline rebase）；Green: baseline 同步 rebase + ApiError additive 通过 |
 | B3 events 二值化 | `make codegen-events` + `make lint-events` | Red: generated event refs 含旧 PracticeMode；Green: regenerate 后 lint 通过 |
-| `idempotency_records` 表 + `practice_plans.mode` CHECK | `make migrate-up` + `make migrate-down` + 单元测试 | Red: CHECK 接受 `debrief_replay`；Green: CHECK 拒绝 + idempotency_records UNIQUE 约束生效 |
+| `idempotency_records` 表 + `practice_plans.mode` CHECK | `make migrate-up` + `make migrate-down` + 单元测试 | Red: CHECK 接受 `legacy debrief replay value`；Green: CHECK 拒绝 + idempotency_records UNIQUE 约束生效 |
 | owner spec history append | `/sync-doc-index --check` | Red: Header / INDEX drift；Green: 5 个 spec Header 与 history.md 版本同步 |
 | F3 baseline preflight | preflight script + 单元测试 | Red: F3 baseline 状态非 `completed` 时 preflight 抛错；Green: 状态 `completed` + `Resolve` 三个 feature_key 都返回 valid 三元组 |
-| Legacy-negative grep | CI grep script | Red: `debrief_replay` 在 PracticeMode 上下文出现；Green: 仅 PracticeGoal 上下文保留 |
+| Legacy-negative grep | CI grep script | Red: `legacy debrief replay value` 在 PracticeMode 上下文出现；Green: 仅 PracticeGoal 上下文保留 |
 
 ## 4 Phase 1: Plan + Session 主流程
 

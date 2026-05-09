@@ -4,6 +4,8 @@ import (
 	"context"
 	"strings"
 	"sync/atomic"
+
+	sharedjobs "github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 )
 
 // resolveSnapshot looks up the active prompt+rubric pair for a feature_key
@@ -88,17 +90,17 @@ func defaultModelProfile(featureKey string) string {
 		return "practice.followup.default"
 	case "practice.turn.lightweight_observe":
 		return "practice.turn_observe.default"
-	case "report.generate":
+	case string(sharedjobs.AsynqTaskReportGenerate):
 		return "report.generate.default"
 	case "report.question_assessment":
 		return "report.assessment.default"
-	case "resume.parse":
+	case string(sharedjobs.AsynqTaskResumeParse):
 		return "resume.parse.default"
 	case "resume.tailor.gap_review":
 		return "resume.tailor.default"
 	case "resume.tailor.bullet_suggestions":
 		return "resume.tailor.default"
-	case "debrief.generate":
+	case string(sharedjobs.AsynqTaskDebriefGenerate):
 		return "debrief.generate.default"
 	default:
 		return ""

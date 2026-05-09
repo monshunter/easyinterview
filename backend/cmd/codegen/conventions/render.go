@@ -126,7 +126,7 @@ func writeIfChanged(path string, content []byte) error {
 }
 
 // pascalSuffix turns a lower_snake_case enum value into a PascalCase suffix
-// suitable for Go const naming, e.g. "debrief_replay" -> "DebriefReplay".
+// suitable for Go const naming, e.g. "retry_current_round" -> "RetryCurrentRound".
 func pascalSuffix(value string) string {
 	parts := strings.Split(value, "_")
 	for i, p := range parts {

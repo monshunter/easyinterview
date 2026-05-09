@@ -38,5 +38,5 @@
 ## Phase 5: product-scope v1.2 enum remediation
 
 - [x] 5.1 Red: 调整 conventions drift / parity 期望后，旧 `PracticeMode` / `PracticeGoal.fix_mistake` / `MistakeStatus` 仍存在时必须失败（2026-05-03：`make lint-conventions` 失败于旧 `PracticeMode` / `PracticeGoal`、移除的 `MistakeStatus` 与缺失 `QuestionReviewStatus`）
-- [x] 5.2 Green: 更新 `shared/conventions.yaml` 并运行 `make codegen-conventions`，生成 `PracticeMode=assisted|strict|debrief_replay`、`PracticeGoal=baseline|retry_current_round|next_round|debrief`、`QuestionReviewStatus=open|queued_for_retry|resolved`
+- [x] 5.2 Green: 更新 `shared/conventions.yaml` 并运行 `make codegen-conventions`，生成 `PracticeMode=assisted|strict|legacy debrief replay value`、`PracticeGoal=baseline|retry_current_round|next_round|debrief`、`QuestionReviewStatus=open|queued_for_retry|resolved`
 - [x] 5.3 Verify: `make lint-conventions`、Go / TS parity tests 通过；repo 搜索确认实现侧无旧模式枚举值、`fix_mistake` 或 `MistakeStatus` generated type（2026-05-03：`make lint-conventions`、`cd backend && go test ./internal/shared/types -count=1`、`pnpm --dir frontend test src/lib/conventions/conventions-parity.test.ts src/lib/conventions/enums.test.ts` 通过；B2/B3/B4/A4 remediation 已完成，剩余旧词仅允许出现在历史记录、remediation 证据或负向断言中）

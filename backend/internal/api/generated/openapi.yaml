@@ -1204,6 +1204,8 @@ components:
         - TARGET_IMPORT_SOURCE_UNAVAILABLE
         - TARGET_INVALID_STATE_TRANSITION
         - PRACTICE_SESSION_CONFLICT
+        - PRACTICE_PLAN_NOT_FOUND
+        - PRACTICE_SESSION_NOT_FOUND
         - REPORT_NOT_READY
         - VALIDATION_FAILED
         - RATE_LIMITED
@@ -1287,7 +1289,7 @@ components:
     PracticeMode:
       type: string
       description: Synced from `shared/conventions.yaml#enums[PracticeMode]` sourceSection 5.3.
-      enum: [assisted, strict, debrief_replay]
+      enum: [assisted, strict]
 
     PracticeGoal:
       type: string

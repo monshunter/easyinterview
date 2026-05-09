@@ -38,13 +38,11 @@ export const ALL_TARGET_JOB_PARSE_STATUSES: readonly TargetJobParseStatus[] = [
 // PracticeMode mirrors shared/conventions.yaml sourceSection 5.3 (jsonField: "mode").
 export type PracticeMode =
   | 'assisted'
-  | 'strict'
-  | 'debrief_replay';
+  | 'strict';
 
 export const ALL_PRACTICE_MODES: readonly PracticeMode[] = [
   'assisted',
   'strict',
-  'debrief_replay',
 ] as const;
 
 // PracticeGoal mirrors shared/conventions.yaml sourceSection 5.4 (jsonField: "goal").

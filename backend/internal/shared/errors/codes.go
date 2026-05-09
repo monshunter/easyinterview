@@ -13,6 +13,8 @@ const (
 	CodeTargetImportSourceUnavailable = "TARGET_IMPORT_SOURCE_UNAVAILABLE"
 	CodeTargetInvalidStateTransition  = "TARGET_INVALID_STATE_TRANSITION"
 	CodePracticeSessionConflict       = "PRACTICE_SESSION_CONFLICT"
+	CodePracticePlanNotFound          = "PRACTICE_PLAN_NOT_FOUND"
+	CodePracticeSessionNotFound       = "PRACTICE_SESSION_NOT_FOUND"
 	CodeReportNotReady                = "REPORT_NOT_READY"
 	CodeValidationFailed              = "VALIDATION_FAILED"
 	CodeRateLimited                   = "RATE_LIMITED"
@@ -33,6 +35,8 @@ var AllCodes = []string{
 	CodeTargetImportSourceUnavailable,
 	CodeTargetInvalidStateTransition,
 	CodePracticeSessionConflict,
+	CodePracticePlanNotFound,
+	CodePracticeSessionNotFound,
 	CodeReportNotReady,
 	CodeValidationFailed,
 	CodeRateLimited,
@@ -59,6 +63,8 @@ var CodeRegistry = map[string]CodeMeta{
 	CodeTargetImportSourceUnavailable: {Message: "target import source is temporarily unavailable", Retryable: true},
 	CodeTargetInvalidStateTransition:  {Message: "target job state transition is not allowed", Retryable: false},
 	CodePracticeSessionConflict:       {Message: "practice session is in conflicting state", Retryable: false},
+	CodePracticePlanNotFound:          {Message: "practice plan not found", Retryable: false},
+	CodePracticeSessionNotFound:       {Message: "practice session not found", Retryable: false},
 	CodeReportNotReady:                {Message: "report is not ready yet", Retryable: true},
 	CodeValidationFailed:              {Message: "request validation failed", Retryable: false},
 	CodeRateLimited:                   {Message: "rate limit exceeded", Retryable: true},

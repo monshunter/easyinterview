@@ -29,10 +29,10 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.14 | active | 2026-05-08 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.13 | active | 2026-05-08 | [plans](./openapi-v1-contract/plans/) |
-| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.1 | active | 2026-05-08 | [plans](./event-and-outbox-contract/plans/) |
-| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.12 | active | 2026-05-08 | [plans](./db-migrations-baseline/plans/) |
+| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.15 | active | 2026-05-09 | [plans](./shared-conventions-codified/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.14 | active | 2026-05-09 | [plans](./openapi-v1-contract/plans/) |
+| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.2 | active | 2026-05-09 | [plans](./event-and-outbox-contract/plans/) |
+| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.13 | active | 2026-05-09 | [plans](./db-migrations-baseline/plans/) |
 
 ## 4 Quality / AI Governance
 

@@ -45,6 +45,14 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
 
         self.assertEqual([], errors)
 
+    def test_practice_mode_contract_is_binary_and_not_found_errors_registered(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        schemas = data["components"]["schemas"]
+
+        self.assertEqual(["assisted", "strict"], schemas["PracticeMode"]["enum"])
+        self.assertIn("PRACTICE_PLAN_NOT_FOUND", schemas["ApiErrorCode"]["enum"])
+        self.assertIn("PRACTICE_SESSION_NOT_FOUND", schemas["ApiErrorCode"]["enum"])
+
     def test_product_scope_semantic_invariants_reject_old_mistakes_scope(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         mutated = copy.deepcopy(data)

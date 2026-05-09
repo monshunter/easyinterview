@@ -14,7 +14,7 @@
 - [ ] 准备 `data/expected-outcome.md`：201 PracticePlan 响应字段、DB 行、audit row、cross-user 404 envelope
 - [ ] 实现 `scripts/setup.sh`：登录用户 A / B + 准备 target_job + resume_asset + 清理同名 idempotency_key
 - [ ] 实现 `scripts/trigger.sh`：用户 A POST /practice/plans → GET /practice/plans/{id}；用户 B GET /practice/plans/{id}
-- [ ] 实现 `scripts/verify.sh`：断言 201 + DB 写入 + audit 摘要无 question/answer 文本 + cross-user 404 + grep 隐私红线（PracticeMode 上下文 `debrief_replay` 零出现）
+- [ ] 实现 `scripts/verify.sh`：断言 201 + DB 写入 + audit 摘要无 question/answer 文本 + cross-user 404 + grep 隐私红线（PracticeMode 上下文 `legacy debrief replay value` 零出现）
 - [ ] 实现 `scripts/cleanup.sh`：删除场景自身 plan / idempotency / audit / users（按 §5 清理顺序）
 - [ ] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.022 行
 - [ ] 执行 `bash scripts/{setup,trigger,verify,cleanup}.sh` 通过

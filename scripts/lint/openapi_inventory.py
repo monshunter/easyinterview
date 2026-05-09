@@ -131,7 +131,7 @@ FORBIDDEN_PRODUCT_SCOPE_TOKENS: tuple[str, ...] = (
 )
 
 EXPECTED_PRODUCT_ENUMS: dict[str, list[str]] = {
-    "PracticeMode": ["assisted", "strict", "debrief_replay"],
+    "PracticeMode": ["assisted", "strict"],
     "PracticeGoal": ["baseline", "retry_current_round", "next_round", "debrief"],
     "QuestionReviewStatus": ["open", "queued_for_retry", "resolved"],
     "ReportNextAction.type": ["retry_current_round", "next_round", "review_evidence"],

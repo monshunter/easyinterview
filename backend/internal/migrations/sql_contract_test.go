@@ -36,6 +36,7 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 		"target_job_requirements",
 		"target_job_sources",
 		"practice_plans",
+		"idempotency_records",
 		"practice_sessions",
 		"practice_session_events",
 		"practice_turns",
@@ -86,6 +87,27 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 	}
 }
 
+func TestPracticeIdempotencyMigrationContract(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readAllUpMigrations(t, filepath.Join(root, "migrations")))
+	removedPracticeMode := "debrief" + "_replay"
+
+	for _, required := range []string{
+		"create table idempotency_records",
+		"user_id uuid not null references users(id) on delete cascade",
+		"unique (user_id, domain, operation, idempotency_key_hash)",
+		"create index idx_idempotency_records_expires_at on idempotency_records (expires_at)",
+		"mode text not null check (mode in ('assisted', 'strict'))",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("practice idempotency migration contract missing %q", required)
+		}
+	}
+	if strings.Contains(up, removedPracticeMode) {
+		t.Fatalf("practice migrations must not accept removed mode %s", removedPracticeMode)
+	}
+}
+
 func TestBaselineMigrationDoesNotStoreRawAuthSecrets(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
@@ -118,4 +140,18 @@ func readFile(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return string(b)
+}
+
+func readAllUpMigrations(t *testing.T, dir string) string {
+	t.Helper()
+	matches, err := filepath.Glob(filepath.Join(dir, "*.up.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b strings.Builder
+	for _, path := range matches {
+		b.WriteString(readFile(t, path))
+		b.WriteString("\n")
+	}
+	return b.String()
 }
