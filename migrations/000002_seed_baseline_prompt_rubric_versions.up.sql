@@ -225,37 +225,69 @@ Return strict JSON with keys: `alignment_score` (0..1), `gaps` (array of
 `{topic, evidence}`), `risks` (array). Severity must be `low`, `medium`, or
 `high`.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('45115454-a2f6-5863-8962-2fafce569f01', 'target.import.parse', 'v0.1.0', 'en', '452bb0d5dd1052b7ff58d3e7167699b7ae3a560b0d4bf4130be7ddeea07f5542', $body$You are an expert technical interviewer assistant. Extract structured job
-requirements from the following job description. Respond in English.
+  ('45115454-a2f6-5863-8962-2fafce569f01', 'target.import.parse', 'v0.1.0', 'en', '469f2e645d3329d5e389a2e954150d9139c30c37d4fd9555a9e755325d248432', $body$You are an expert technical interviewer assistant. Extract the interview-ready
+target job model from the following job description. Respond in English.
 
-JD source URL: `{{jd_source_url}}`
+JD source URL (empty for non-URL imports): `{{jd_source_url}}`
 JD raw text:
 
 {{jd_text}}
 
-Output strict JSON with the keys role_title, seniority, required_skills,
-responsibilities, language_signals, parse_confidence. Do not include markdown
-fences in the JSON output.
+Return strict JSON only, with exactly these top-level keys:
+
+- `coreThemes`: array of concise strings summarizing the role's main technical
+  or domain themes.
+- `interviewHypotheses`: array of likely interview focus hypotheses grounded in
+  the JD.
+- `strengths`: array of candidate-fit strengths that the JD would reward.
+- `gaps`: array of likely candidate gaps or preparation areas implied by the JD.
+- `riskSignals`: array of risk or ambiguity signals in the JD; use an empty
+  array if none are evident.
+- `requirements`: non-empty array of objects with keys `kind`, `label`,
+  `description`, and `evidenceLevel`.
+
+For each `requirements` item:
+
+- `kind` must be one of `must_have`, `nice_to_have`, `hidden_signal`,
+  `interview_focus`.
+- `label` must be a short requirement phrase.
+- `description` may explain why the requirement matters.
+- `evidenceLevel` must be `explicit` when directly stated in the JD or
+  `inferred` when derived from context.
+
+Do not include markdown fences in the JSON output.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('3e4dae23-7bc3-56cb-868e-72e7c8a6c331', 'target.import.parse', 'v0.1.0', 'multi', '905c54d1bfcf4badc35dc1bedbc8c1282b61429256c37090bfb44556a27749dc', $body$You are an expert technical interviewer assistant. Extract structured job
-requirements from the following job description. Respond strictly in the
+  ('3e4dae23-7bc3-56cb-868e-72e7c8a6c331', 'target.import.parse', 'v0.1.0', 'multi', 'c5e77be7d5166980e3c917c983c1314c4b1f4ffa9fa0606d9fd4b630f4788c71', $body$You are an expert technical interviewer assistant. Extract the interview-ready
+target job model from the following job description. Respond strictly in the
 language identified by the `{{language}}` variable; if `{{language}}` is empty
 or unknown, respond in English.
 
-JD source URL: `{{jd_source_url}}`
+JD source URL (empty for non-URL imports): `{{jd_source_url}}`
 JD raw text:
 
 {{jd_text}}
 
-Output strict JSON with the following keys:
+Return strict JSON only, with exactly these top-level keys:
 
-- `role_title`: string
-- `seniority`: one of `intern`, `junior`, `mid`, `senior`, `staff`, `principal`,
-  or `unknown`
-- `required_skills`: array of short skill phrases
-- `responsibilities`: array of responsibility statements
-- `language_signals`: array of language tags inferred from the JD
-- `parse_confidence`: number between 0 and 1
+- `coreThemes`: array of concise strings summarizing the role's main technical
+  or domain themes.
+- `interviewHypotheses`: array of likely interview focus hypotheses grounded in
+  the JD.
+- `strengths`: array of candidate-fit strengths that the JD would reward.
+- `gaps`: array of likely candidate gaps or preparation areas implied by the JD.
+- `riskSignals`: array of risk or ambiguity signals in the JD; use an empty
+  array if none are evident.
+- `requirements`: non-empty array of objects with keys `kind`, `label`,
+  `description`, and `evidenceLevel`.
+
+For each `requirements` item:
+
+- `kind` must be one of `must_have`, `nice_to_have`, `hidden_signal`,
+  `interview_focus`.
+- `label` must be a short requirement phrase.
+- `description` may explain why the requirement matters.
+- `evidenceLevel` must be `explicit` when directly stated in the JD or
+  `inferred` when derived from context.
 
 Do not include markdown fences in the JSON output.
 $body$, TRUE, '2026-05-09T11:30:00Z')

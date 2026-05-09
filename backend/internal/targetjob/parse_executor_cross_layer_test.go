@@ -3,6 +3,7 @@ package targetjob_test
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -92,6 +93,62 @@ func TestParseExecutorRegistryAdapterCrossLayer(t *testing.T) {
 	// loss; consumers downstream parse it as openapi GenerationProvenance.
 	if _, err := json.Marshal(provenance); err != nil {
 		t.Fatalf("provenance marshal: %v", err)
+	}
+}
+
+func TestTargetImportPromptMatchesParseResponseSchema(t *testing.T) {
+	t.Parallel()
+
+	prompts, rubrics := repoConfigRoots(t)
+	client, err := registry.NewRegistryClient(registry.RegistryOptions{
+		PromptsDir: prompts,
+		RubricsDir: rubrics,
+	})
+	if err != nil {
+		t.Fatalf("NewRegistryClient: %v", err)
+	}
+	adapter := targetjob.NewRegistryAdapter(client)
+
+	for _, tc := range []struct {
+		name     string
+		language string
+	}{
+		{name: "exact en", language: "en"},
+		{name: "multi fallback", language: "fr"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resolved, err := adapter.Resolve(context.Background(), targetjob.FeatureKeyTargetImportParse, tc.language)
+			if err != nil {
+				t.Fatalf("adapter.Resolve(%q): %v", tc.language, err)
+			}
+			body := resolved.UserMessageTemplate
+			for _, key := range []string{
+				"coreThemes",
+				"interviewHypotheses",
+				"strengths",
+				"gaps",
+				"riskSignals",
+				"requirements",
+				"kind",
+				"label",
+				"evidenceLevel",
+			} {
+				if !strings.Contains(body, key) {
+					t.Errorf("target.import.parse prompt must instruct parser key %q; body=%s", key, body)
+				}
+			}
+			for _, legacyKey := range []string{
+				"role_title",
+				"required_skills",
+				"responsibilities",
+				"language_signals",
+				"parse_confidence",
+			} {
+				if strings.Contains(body, legacyKey) {
+					t.Errorf("target.import.parse prompt still instructs legacy parser key %q; body=%s", legacyKey, body)
+				}
+			}
+		})
 	}
 }
 

@@ -670,8 +670,9 @@ func TestParseExecutor_URLFetchInvalid_NonRetryable(t *testing.T) {
 }
 
 func TestParseExecutor_URLFetchBodyIsPersistedAndParsed(t *testing.T) {
-	exec, store, _, ai, fetcher := newParseExecutorWithFakes(t)
+	exec, store, registry, ai, fetcher := newParseExecutorWithFakes(t)
 	ai.resp = aiclient.CompleteResponse{Content: happyResponseJSON}
+	registry.resolution.UserMessageTemplate = "source={{jd_source_url}}\ntext={{jd_text}}"
 	fetchedAt := time.Date(2026, 5, 9, 22, 30, 0, 0, time.UTC)
 	fetcher.res = urlfetch.FetchResult{
 		SanitizedURL: "https://jobs.example.com/role/1",
@@ -699,6 +700,16 @@ func TestParseExecutor_URLFetchBodyIsPersistedAndParsed(t *testing.T) {
 	}
 	if store.completeSuccessIn == nil || len(store.completeSuccessIn.Requirements) == 0 {
 		t.Fatalf("parse result was not applied from fetched URL body: %+v", store.completeSuccessIn)
+	}
+	if len(ai.lastPayload.Messages) == 0 {
+		t.Fatalf("AI messages missing")
+	}
+	gotPrompt := ai.lastPayload.Messages[len(ai.lastPayload.Messages)-1].Content
+	if !strings.Contains(gotPrompt, "source=https://jobs.example.com/role/1") {
+		t.Fatalf("prompt did not include sanitized source URL: %q", gotPrompt)
+	}
+	if strings.Contains(gotPrompt, "token=secret") || strings.Contains(gotPrompt, "{{jd_source_url}}") {
+		t.Fatalf("prompt leaked raw source URL or unresolved placeholder: %q", gotPrompt)
 	}
 }
 
