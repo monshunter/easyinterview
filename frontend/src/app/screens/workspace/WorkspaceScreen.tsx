@@ -1,4 +1,4 @@
-import { type FC } from "react";
+import { useCallback, useEffect, useRef, useState, type FC } from "react";
 
 import { useI18n } from "../../i18n/messages";
 import { useNavigation } from "../../navigation/NavigationProvider";
@@ -7,7 +7,10 @@ import type { Route } from "../../routes";
 import { useWorkspaceTargetJob } from "./hooks/useWorkspaceTargetJob";
 import { useWorkspaceResume } from "./hooks/useWorkspaceResume";
 import { useStartPractice } from "./hooks/useStartPractice";
+import { useWorkspacePracticePlan } from "./hooks/useWorkspacePracticePlan";
 import { CompanyIntelEmbed } from "./CompanyIntelEmbed";
+import { PlanSwitcherModal } from "./modals/PlanSwitcherModal";
+import { ResumePickerModal } from "./modals/ResumePickerModal";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 
@@ -24,7 +27,12 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   const { navigate } = useNavigation();
   const { loading, data: tj, error } = useWorkspaceTargetJob();
   const { data: resume, empty: resumeEmpty } = useWorkspaceResume();
-  const { ctx } = useInterviewContext();
+  useWorkspacePracticePlan();
+  const { ctx, dispatch } = useInterviewContext();
+  const [plannerOpen, setPlannerOpen] = useState(false);
+  const [resumePickerOpen, setResumePickerOpen] = useState(false);
+  const autoStartRef = useRef(false);
+  const compactLayout = useWorkspaceCompactLayout();
 
   // ── Empty / missing states ──
   const hasTarget = !!(ctx.targetJobId || route.params.targetJobId);
@@ -77,6 +85,53 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   const runtime = useAppRuntimeOptional();
   const requestAuth = useRequestAuth();
 
+  const navigateToPractice = useCallback(
+    (result: { sessionId: string; planId: string }) => {
+      navigate({
+        name: "practice",
+        params: {
+          ...route.params,
+          sessionId: result.sessionId,
+          planId: result.planId,
+          targetJobId: ctx.targetJobId,
+          jdId: ctx.jdId ?? "",
+          resumeVersionId: ctx.resumeVersionId ?? "",
+          roundId: ctx.roundId ?? "",
+          mode: ctx.mode,
+          modality: ctx.modality,
+          practiceMode: ctx.practiceMode,
+          practiceGoal: ctx.practiceGoal,
+          hintUsed: ctx.hintUsed,
+          hintCount: ctx.hintCount,
+        },
+      });
+    },
+    [ctx, navigate, route.params],
+  );
+
+  useEffect(() => {
+    if (ctx.autoStartPractice !== "1") return;
+    if (autoStartRef.current) return;
+    if (runtime?.auth.status !== "authenticated") return;
+    if (!ctx.targetJobId || !ctx.resumeVersionId) return;
+
+    autoStartRef.current = true;
+    dispatch({ type: "CLEAR_AUTO_START" });
+    void doStart().then((result) => {
+      if (result.kind === "success") {
+        navigateToPractice(result);
+      }
+    });
+  }, [
+    ctx.autoStartPractice,
+    ctx.targetJobId,
+    ctx.resumeVersionId,
+    dispatch,
+    doStart,
+    navigateToPractice,
+    runtime?.auth.status,
+  ]);
+
   const handleStart = async () => {
     if (runtime?.auth.status !== "authenticated") {
       requestAuth({
@@ -103,30 +158,21 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
 
     const result = await doStart();
     if (result.kind === "success") {
-      navigate({
-        name: "practice",
-        params: {
-          ...route.params,
-          sessionId: result.sessionId,
-          planId: ctx.planId ?? "",
-          targetJobId: ctx.targetJobId,
-          jdId: ctx.jdId ?? "",
-          resumeVersionId: ctx.resumeVersionId ?? "",
-          roundId: ctx.roundId ?? "",
-          mode: ctx.mode,
-          modality: ctx.modality,
-          practiceMode: ctx.practiceMode,
-          practiceGoal: ctx.practiceGoal,
-          hintUsed: ctx.hintUsed,
-          hintCount: ctx.hintCount,
-        },
-      });
+      navigateToPractice(result);
     }
   };
 
   if (showEmptyState) {
     return (
-      <div className="ei-fadein" style={{ maxWidth: 560, margin: "80px auto", padding: "0 24px" }}>
+      <div
+        className="ei-fadein"
+        style={{
+          width: "100%",
+          maxWidth: 560,
+          margin: compactLayout ? "48px auto" : "80px auto",
+          padding: compactLayout ? "0 16px" : "0 24px",
+        }}
+      >
         <div
           data-testid="workspace-empty"
           style={{
@@ -181,7 +227,15 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
 
   if (showMissingResume) {
     return (
-      <div className="ei-fadein" style={{ maxWidth: 560, margin: "80px auto", padding: "0 24px" }}>
+      <div
+        className="ei-fadein"
+        style={{
+          width: "100%",
+          maxWidth: 560,
+          margin: compactLayout ? "48px auto" : "80px auto",
+          padding: compactLayout ? "0 16px" : "0 24px",
+        }}
+      >
         <div
           data-testid="workspace-missing-resume"
           style={{
@@ -240,7 +294,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
       style={{
         maxWidth: 1280,
         margin: "0 auto",
-        padding: "32px 48px 96px",
+        padding: compactLayout ? "24px 16px 72px" : "32px 48px 96px",
       }}
     >
       {/* crumbs */}
@@ -289,7 +343,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
           flexWrap: "wrap",
         }}
       >
-        <div style={{ minWidth: 280 }}>
+        <div style={{ minWidth: compactLayout ? 0 : 280 }}>
           <div
             data-testid="workspace-plan-eyebrow-label"
             className="ei-label"
@@ -363,9 +417,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <button
             data-testid="workspace-plan-action-switch"
-            onClick={() =>
-              navigate({ name: "workspace", params: route.params })
-            }
+            onClick={() => setPlannerOpen(true)}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -422,7 +474,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
           marginBottom: 32,
         }}
       >
-        <div style={{ flex: 1, minWidth: 320 }}>
+        <div style={{ flex: 1, minWidth: compactLayout ? 0 : 320 }}>
           <div
             style={{
               display: "flex",
@@ -518,7 +570,11 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
           </div>
         </div>
         <div
-          style={{ minWidth: 168, textAlign: "right", paddingTop: 4 }}
+          style={{
+            minWidth: compactLayout ? 0 : 168,
+            textAlign: compactLayout ? "left" : "right",
+            paddingTop: 4,
+          }}
         >
           <div
             className="ei-label"
@@ -816,7 +872,9 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            gridTemplateColumns: compactLayout
+              ? "1fr"
+              : "minmax(0, 1fr) minmax(0, 1fr)",
             gap: 12,
           }}
         >
@@ -829,7 +887,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
               border: "1px solid var(--ei-color-rule)",
               borderRadius: 2,
               display: "grid",
-              gridTemplateColumns: "32px 1fr auto",
+              gridTemplateColumns: "32px minmax(0, 1fr)",
               gap: 12,
               alignItems: "center",
             }}
@@ -905,7 +963,9 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
               border: "1px solid var(--ei-color-rule)",
               borderRadius: 2,
               display: "grid",
-              gridTemplateColumns: "32px 1fr auto",
+              gridTemplateColumns: compactLayout
+                ? "32px minmax(0, 1fr)"
+                : "32px minmax(0, 1fr) auto",
               gap: 12,
               alignItems: "center",
             }}
@@ -971,10 +1031,10 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
               </div>
             <button
               data-testid="workspace-binding-resume-change"
-              onClick={() =>
-                navigate({ name: "workspace", params: route.params })
-              }
+              onClick={() => setResumePickerOpen(true)}
               style={{
+                gridColumn: compactLayout ? "1 / -1" : undefined,
+                justifySelf: compactLayout ? "start" : undefined,
                 background: "transparent",
                 border: "1px solid var(--ei-color-rule)",
                 borderRadius: 2,
@@ -1019,7 +1079,9 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1.4fr 1fr",
+          gridTemplateColumns: compactLayout
+            ? "1fr"
+            : "minmax(0, 1.4fr) minmax(0, 1fr)",
           gap: 24,
         }}
       >
@@ -1029,6 +1091,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
             display: "flex",
             flexDirection: "column",
             gap: 24,
+            minWidth: 0,
           }}
         >
           {/* CompanyIntelEmbed */}
@@ -1153,6 +1216,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
             display: "flex",
             flexDirection: "column",
             gap: 24,
+            minWidth: 0,
           }}
         >
           {/* Risks & strengths */}
@@ -1311,6 +1375,36 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
           </div>
         </div>
       </div>
+      <PlanSwitcherModal
+        open={plannerOpen}
+        onClose={() => setPlannerOpen(false)}
+        onSelectPlan={(targetJobId) => {
+          dispatch({
+            type: "HYDRATE_FROM_ROUTE",
+            params: {
+              targetJobId,
+              jobId: targetJobId,
+              jdId: `jd-${targetJobId}`,
+              planId: `plan-${targetJobId}`,
+              resumeVersionId: ctx.resumeVersionId ?? "",
+              roundId: ctx.roundId ?? "round-technical-1",
+              roundName: ctx.roundName ?? "",
+              practiceMode: ctx.practiceMode,
+              practiceGoal: ctx.practiceGoal,
+              mode: ctx.mode,
+              modality: ctx.modality,
+              hintUsed: ctx.hintUsed,
+              hintCount: ctx.hintCount,
+            },
+          });
+          setPlannerOpen(false);
+        }}
+      />
+      <ResumePickerModal
+        open={resumePickerOpen}
+        onClose={() => setResumePickerOpen(false)}
+        boundResumeId={ctx.resumeVersionId}
+      />
     </div>
   );
 };
@@ -1425,4 +1519,24 @@ function derivePrepStatus(tj: { fitSummary?: { strengths?: unknown[]; gaps?: unk
   if (strongs > 0) return `${strongs} 项命中`;
   if (risks > 0 || gaps > 0 || tj.openQuestionIssueCount > 0) return "待补强";
   return "—";
+}
+
+function useWorkspaceCompactLayout(): boolean {
+  const [compact, setCompact] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (typeof window.matchMedia !== "function") return false;
+    return window.matchMedia("(max-width: 720px)").matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia("(max-width: 720px)");
+    const update = () => setCompact(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  return compact;
 }

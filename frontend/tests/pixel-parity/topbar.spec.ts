@@ -139,9 +139,9 @@ test.describe("TopBar DOM + computed style parity", () => {
     }
   });
 
-  test("frontend TopBar shell height matches ui-design TopBar shell height (58px)", async ({
+  test("frontend TopBar shell height matches desktop source and mobile responsive contract", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.goto(FRONTEND_PATH);
     const frontendHeight = await page.evaluate(() => {
       const el = document.querySelector(
@@ -168,17 +168,22 @@ test.describe("TopBar DOM + computed style parity", () => {
       return header.getBoundingClientRect().height;
     });
 
-    // Both sides target 58px height per ui-design/src/app.jsx TopBar literal.
-    expect(frontendHeight).toBeCloseTo(58, 0);
     expect(uiDesignHeight).toBeCloseTo(58, 0);
-    // Pairwise tolerance: 1px (ui-design rounds to integer; frontend uses
-    // semantic CSS variable that resolves to 58px exactly).
-    expect(Math.abs(frontendHeight - uiDesignHeight)).toBeLessThanOrEqual(1);
+    if (testInfo.project.name === "desktop") {
+      // Desktop targets 58px height per ui-design/src/app.jsx TopBar literal.
+      expect(frontendHeight).toBeCloseTo(58, 0);
+      expect(Math.abs(frontendHeight - uiDesignHeight)).toBeLessThanOrEqual(1);
+    } else {
+      // Mobile wraps nav into a second row instead of preserving an overflowing
+      // one-row desktop bar.
+      expect(frontendHeight).toBeGreaterThanOrEqual(58);
+      expect(frontendHeight).toBeLessThanOrEqual(150);
+    }
   });
 
-  test("frontend TopBar padding-left / padding-right honours --ei-space-8 (32px)", async ({
+  test("frontend TopBar padding-left / padding-right follows desktop and mobile contracts", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.goto(FRONTEND_PATH);
     const padding = await page.evaluate(() => {
       const el = document.querySelector(
@@ -188,8 +193,13 @@ test.describe("TopBar DOM + computed style parity", () => {
       const cs = getComputedStyle(el);
       return { left: cs.paddingLeft, right: cs.paddingRight };
     });
-    expect(padding.left).toBe("32px");
-    expect(padding.right).toBe("32px");
+    if (testInfo.project.name === "desktop") {
+      expect(padding.left).toBe("32px");
+      expect(padding.right).toBe("32px");
+    } else {
+      expect(padding.left).toBe("14px");
+      expect(padding.right).toBe("14px");
+    }
   });
 
   test("frontend TopBar border-bottom resolves to 1px solid via --ei-color-rule-strong", async ({

@@ -49,12 +49,17 @@ export function useWorkspacePracticePlan(): UseWorkspacePracticePlanResult {
         setReady(isReady);
         if (isReady) {
           dispatch({ type: "MERGE_PRACTICE_PLAN", plan: plan as unknown as { id: string; [key: string]: unknown } });
+        } else {
+          dispatch({ type: "CLEAR_PRACTICE_PLAN" });
         }
-        // archived or other non-ready → don't merge, caller resets planId
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err : new Error(String(err)));
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
+        if (isNotFound(error)) {
+          dispatch({ type: "CLEAR_PRACTICE_PLAN" });
+        }
       })
       .finally(() => {
         if (!cancelled) {
@@ -69,4 +74,8 @@ export function useWorkspacePracticePlan(): UseWorkspacePracticePlanResult {
   }, [fetch]);
 
   return { loading, data, error, ready };
+}
+
+function isNotFound(error: Error): boolean {
+  return /^HTTP 404\b/.test(error.message);
 }

@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * Phase 6.1 — Workspace screen DOM anchor and layout parity.
@@ -8,20 +10,96 @@ import { expect, test } from "@playwright/test";
  * context/plan.md §4 Phase 6.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects:
- * - DOM anchors (workspace crumbs, plan eyebrow, empty/missing states)
+ * - DOM anchors (workspace crumbs, plan eyebrow, launcher, main columns, modals,
+ *   empty/missing states)
  * - Bounding box stays in viewport, no overlap
  * - warm/light -> dark -> customAccent theme switching
  * - toHaveScreenshot baseline
  * - Negative: old prototype testids absent
  *
- * Without fixture-backed transport in the production build, the workspace
- * renders empty/missing state when navigated through TopBar. Full
- * data-driven rendering parity is covered by the Vitest + jsdom test suite.
+ * Full data-driven rendering is reached through Home recent cards with
+ * Playwright API route fixtures. TopBar navigation still covers the no-context
+ * empty state.
  */
 
 interface Rect {
   left: number; top: number; right: number; bottom: number;
   width: number; height: number;
+}
+
+interface OperationFixture {
+  scenarios: Record<
+    string,
+    {
+      response: {
+        status: number;
+        headers?: Record<string, string>;
+        body: unknown;
+      };
+    }
+  >;
+}
+
+const WORKSPACE_TARGET_ID = "01918fa0-0000-7000-8000-000000002000";
+
+function fixtureResponse(relativePath: string, scenario = "default") {
+  const absolutePath = resolve(process.cwd(), "..", relativePath);
+  const fixture = JSON.parse(readFileSync(absolutePath, "utf8")) as OperationFixture;
+  const response = fixture.scenarios[scenario]?.response;
+  if (!response) throw new Error(`missing fixture scenario ${relativePath}#${scenario}`);
+  return response;
+}
+
+async function fulfillFixture(
+  route: import("@playwright/test").Route,
+  relativePath: string,
+  scenario = "default",
+) {
+  const response = fixtureResponse(relativePath, scenario);
+  await route.fulfill({
+    status: response.status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      ...(response.headers ?? {}),
+    },
+    body: JSON.stringify(response.body),
+  });
+}
+
+async function mockWorkspaceApis(page: import("@playwright/test").Page): Promise<void> {
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    const path = url.pathname.replace(/^\/api\/v1/, "");
+    if (path === "/runtime-config") {
+      await fulfillFixture(route, "openapi/fixtures/Auth/getRuntimeConfig.json");
+      return;
+    }
+    if (path === "/me") {
+      await fulfillFixture(route, "openapi/fixtures/Auth/getMe.json", "authenticated");
+      return;
+    }
+    if (path === "/targets") {
+      await fulfillFixture(route, "openapi/fixtures/TargetJobs/listTargetJobs.json");
+      return;
+    }
+    if (path.startsWith("/targets/")) {
+      await fulfillFixture(route, "openapi/fixtures/TargetJobs/getTargetJob.json");
+      return;
+    }
+    if (path.startsWith("/resumes/")) {
+      await fulfillFixture(route, "openapi/fixtures/Resumes/getResume.json");
+      return;
+    }
+    if (path.startsWith("/practice/plans/")) {
+      await fulfillFixture(route, "openapi/fixtures/PracticePlans/getPracticePlan.json");
+      return;
+    }
+    await route.fulfill({
+      status: 404,
+      headers: { "content-type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ error: { code: "NOT_FOUND", message: `No fixture for ${path}` } }),
+    });
+  });
 }
 
 async function rectOf(page: import("@playwright/test").Page, selector: string): Promise<Rect> {
@@ -62,6 +140,19 @@ async function goToWorkspace(page: import("@playwright/test").Page) {
   await page.waitForTimeout(400);
 }
 
+/** Navigate to a hydrated workspace through the Home recent card path. */
+async function goToHydratedWorkspace(page: import("@playwright/test").Page) {
+  await mockWorkspaceApis(page);
+  await page.goto("/");
+  await page.waitForSelector(`[data-testid='home-recent-mock-card-${WORKSPACE_TARGET_ID}']`);
+  await page.click(`[data-testid='home-recent-mock-card-${WORKSPACE_TARGET_ID}']`);
+  await page.waitForSelector("[data-testid='workspace-header-title']");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.locator("[data-testid='workspace-header-title']")).toContainText(
+    "Senior Frontend Engineer",
+  );
+}
+
 test.describe("workspace DOM anchor parity", () => {
   test("workspace route is reachable via TopBar and renders workspace-specific chrome", async ({ page }) => {
     await goToWorkspace(page);
@@ -81,6 +172,51 @@ test.describe("workspace DOM anchor parity", () => {
     await goToWorkspace(page);
     const ariaCurrent = await page.getAttribute("[data-testid='topbar-nav-workspace']", "aria-current");
     expect(ariaCurrent).toBe("page");
+  });
+
+  test("hydrated workspace renders full source-level anchor set", async ({ page }) => {
+    await goToHydratedWorkspace(page);
+    const anchorIds = [
+      "workspace-crumbs",
+      "workspace-plan-eyebrow",
+      "workspace-plan-eyebrow-title",
+      "workspace-plan-action-switch",
+      "workspace-header",
+      "workspace-header-title",
+      "workspace-launcher",
+      "workspace-round-rail",
+      "workspace-cta-start",
+      "workspace-binding-jd",
+      "workspace-binding-resume",
+      "workspace-companyintel-summary",
+      "workspace-companyintel-open",
+      "workspace-jd-card",
+      "workspace-jd-block-must",
+      "workspace-jd-block-nice",
+      "workspace-jd-block-hidden",
+      "workspace-prep-card",
+      "workspace-prep-strongs",
+      "workspace-prep-risks",
+      "workspace-history-card",
+      "workspace-history-empty",
+    ];
+    for (const id of anchorIds) {
+      await expect(page.locator(`[data-testid='${id}']`), id).toHaveCount(1);
+    }
+  });
+
+  test("hydrated workspace opens plan switcher and resume picker modals", async ({ page }) => {
+    await goToHydratedWorkspace(page);
+
+    await page.click("[data-testid='workspace-plan-action-switch']");
+    await expect(page.locator("[data-testid='workspace-plan-modal-card']")).toBeVisible();
+    await expect(page.locator("[data-testid^='workspace-plan-modal-card-']")).toHaveCount(2);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("[data-testid='workspace-plan-modal-card']")).toHaveCount(0);
+
+    await page.click("[data-testid='workspace-binding-resume-change']");
+    await expect(page.locator("[data-testid='workspace-resume-modal-card']")).toBeVisible();
+    await expect(page.locator("[data-testid='workspace-resume-modal-disabled-note']")).toBeVisible();
   });
 });
 
@@ -115,6 +251,30 @@ test.describe("workspace bounding box parity", () => {
       expect(r.width, `${id} width is zero`).toBeGreaterThan(0);
       expect(r.top, `${id} top is negative`).toBeGreaterThanOrEqual(-5);
       expect(r.left, `${id} left is negative`).toBeGreaterThanOrEqual(-5);
+    }
+  });
+
+  test("hydrated workspace primary anchors stay in viewport", async ({ page }) => {
+    await goToHydratedWorkspace(page);
+    const viewport = page.viewportSize();
+    expect(viewport).toBeTruthy();
+
+    const anchorIds = [
+      "workspace-plan-eyebrow",
+      "workspace-header",
+      "workspace-launcher",
+      "workspace-companyintel-summary",
+      "workspace-jd-card",
+      "workspace-prep-card",
+      "workspace-history-card",
+    ];
+
+    for (const id of anchorIds) {
+      const r = await rectOf(page, `[data-testid='${id}']`);
+      expect(r.width, `${id} width is zero`).toBeGreaterThan(0);
+      expect(r.height, `${id} height is zero`).toBeGreaterThan(0);
+      expect(r.left, `${id} left`).toBeGreaterThanOrEqual(-5);
+      expect(r.right, `${id} right`).toBeLessThanOrEqual(viewport!.width + 5);
     }
   });
 });
@@ -166,6 +326,15 @@ test.describe("workspace screenshot regression", () => {
     await expect(page).toHaveScreenshot(
       `workspace-empty-${testInfo.project.name}.png`,
       { fullPage: false, maxDiffPixels: 4000 },
+    );
+  });
+
+  test("hydrated workspace matches the colocated baseline", async ({ page }, testInfo) => {
+    await goToHydratedWorkspace(page);
+    await freezeAnimations(page);
+    await expect(page).toHaveScreenshot(
+      `workspace-full-${testInfo.project.name}.png`,
+      { fullPage: false, maxDiffPixels: 5000 },
     );
   });
 });

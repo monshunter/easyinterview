@@ -1,7 +1,6 @@
 import { type FC } from "react";
 
 import { useI18n } from "../../../i18n/messages";
-import { useNavigation } from "../../../navigation/NavigationProvider";
 import { useModalA11y } from "./useModalA11y";
 
 interface ResumePickerModalProps {
@@ -26,7 +25,6 @@ export const ResumePickerModal: FC<ResumePickerModalProps> = ({
   onUseResume,
 }) => {
   const { t } = useI18n();
-  const { navigate } = useNavigation();
   const { modalRef, handleKeyDown, handleBackdropClick } = useModalA11y({
     open,
     onClose,

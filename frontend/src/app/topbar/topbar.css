@@ -445,3 +445,72 @@
   background: var(--ei-color-danger-soft);
   color: var(--ei-color-danger);
 }
+
+@media (max-width: 720px) {
+  .ei-shell-topbar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 58px;
+    padding: 8px 14px;
+    gap: 8px 10px;
+    overflow-x: clip;
+  }
+
+  .ei-topbar-brand {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .ei-topbar-brand-copy {
+    min-width: 0;
+  }
+
+  .ei-topbar-brand-copy .ei-text-subtitle {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ei-topbar-spacer {
+    display: none;
+  }
+
+  .ei-topbar-controls,
+  .ei-topbar-user {
+    flex: 0 0 auto;
+  }
+
+  .ei-topbar-nav {
+    order: 10;
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .ei-topbar-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ei-topbar-nav-button {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 460px) {
+  .ei-topbar-brand-copy {
+    display: none;
+  }
+
+  .ei-topbar-lang {
+    min-width: 54px;
+  }
+
+  .ei-topbar-lang-current {
+    max-width: 38px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

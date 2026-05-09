@@ -10,7 +10,7 @@ export type StartState =
   | { kind: "idle" }
   | { kind: "loading" }
   | { kind: "error"; message: string; retryable: boolean }
-  | { kind: "success"; sessionId: string };
+  | { kind: "success"; sessionId: string; planId: string };
 
 /**
  * Phase 4: Implements the dual-step "Start Interview" contract:
@@ -43,6 +43,24 @@ export function useStartPractice() {
 
     try {
       let planId = ctx.planId;
+      if (planId) {
+        try {
+          const existingPlan = await runtime.client.getPracticePlan(planId);
+          if (existingPlan.status === "ready") {
+            planId = existingPlan.id;
+            dispatch({ type: "MERGE_PRACTICE_PLAN", plan: existingPlan as unknown as { id: string; [key: string]: unknown } });
+          } else {
+            planId = undefined;
+            dispatch({ type: "CLEAR_PRACTICE_PLAN" });
+          }
+        } catch (err: unknown) {
+          const error = err instanceof Error ? err : new Error(String(err));
+          if (!isNotFound(error)) throw error;
+          planId = undefined;
+          dispatch({ type: "CLEAR_PRACTICE_PLAN" });
+        }
+      }
+
       if (!planId) {
         const plan = await runtime.client.createPracticePlan(
           buildCreatePlanRequest(ctx, lang),
@@ -59,9 +77,10 @@ export function useStartPractice() {
 
       dispatch({ type: "MERGE_SESSION", session: session as unknown as { id: string; [key: string]: unknown } });
 
-      setState({ kind: "success", sessionId: session.id });
+      const result = { kind: "success" as const, sessionId: session.id, planId };
+      setState(result);
       inFlightRef.current = false;
-      return { kind: "success" as const, sessionId: session.id };
+      return result;
     } catch (err: unknown) {
       attemptRef.current += 1;
       const message = err instanceof Error ? err.message : String(err);
@@ -81,4 +100,8 @@ export function useStartPractice() {
   }, []);
 
   return { state, start, reset };
+}
+
+function isNotFound(error: Error): boolean {
+  return /^HTTP 404\b/.test(error.message);
 }

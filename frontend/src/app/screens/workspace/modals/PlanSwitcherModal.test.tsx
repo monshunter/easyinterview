@@ -92,10 +92,11 @@ describe("PlanSwitcherModal (Phase 3.4)", () => {
     expect(nav).toHaveBeenCalledWith({ name: "home", params: {} });
   });
 
-  it("calls onSelectPlan when clicking a plan card", async () => {
+  it("calls onSelectPlan when confirming the selected plan card", async () => {
     const onSelect = vi.fn();
+    const onClose = vi.fn();
     const { container } = withProviders(
-      <PlanSwitcherModal open onClose={vi.fn()} onSelectPlan={onSelect} />,
+      <PlanSwitcherModal open onClose={onClose} onSelectPlan={onSelect} />,
     );
     const user = userEvent.setup();
 
@@ -108,7 +109,12 @@ describe("PlanSwitcherModal (Phase 3.4)", () => {
     ) as HTMLElement;
     expect(firstCard).toBeDefined();
     await user.click(firstCard);
-    expect(onSelect).toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalled();
+    await user.click(screen.getByTestId("workspace-plan-modal-confirm"));
+    expect(onSelect).toHaveBeenCalledWith(
+      firstCard.dataset.testid?.replace("workspace-plan-modal-card-", ""),
+    );
+    expect(onClose).toHaveBeenCalled();
   });
 
   it("has aria-modal attribute", async () => {

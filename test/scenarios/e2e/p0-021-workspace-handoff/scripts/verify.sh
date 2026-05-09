@@ -7,7 +7,33 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/$SCENARIO_ID"
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 test -s "$LOG_FILE"
 grep -Eq 'Test Files +[0-9]+ passed \([0-9]+\)' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing test files" >&2; exit 1; }
-for forbidden in 'getCompanyIntel' 'getFeedbackReport' 'listResumes' 'recentSessions' 'questionText' 'console.log'; do
-  if grep -Fiq "$forbidden" "$LOG_FILE"; then echo "$SCENARIO_ID: forbidden $forbidden in log (may be test name - check)" >&2; fi
-done
+grep -Fq 'WorkspaceHandoff.test.tsx' "$LOG_FILE" || { echo "$SCENARIO_ID: handoff test did not run" >&2; exit 1; }
+if rg -n '\.getCompanyIntel\(|\.getFeedbackReport\(|\.listResumes\(|recentSessions|console\.log\(' \
+  "$REPO_ROOT/frontend/src/app/screens/workspace" \
+  "$REPO_ROOT/frontend/src/app/interview-context" \
+  -g '!*.test.tsx'; then
+  echo "$SCENARIO_ID: forbidden runtime call or legacy field leaked" >&2
+  exit 1
+fi
+if rg -n 'questionText|answerText|hintText|promptHash|rawTranscript|jdRaw|resumeRaw' \
+  "$REPO_ROOT/frontend/src/app/screens/workspace" \
+  "$REPO_ROOT/frontend/src/app/interview-context" \
+  -g '!*.test.tsx'; then
+  echo "$SCENARIO_ID: forbidden runtime privacy field leaked" >&2
+  exit 1
+fi
+if rg -n 'practice-mode-card-|growth-center|drill-builder|mistake-queue|workspace-mocked-' \
+  "$REPO_ROOT/frontend/src/app/screens/workspace" \
+  "$REPO_ROOT/frontend/src/app/interview-context" \
+  -g '!*.test.tsx'; then
+  echo "$SCENARIO_ID: forbidden legacy runtime testid leaked" >&2
+  exit 1
+fi
+if rg -n 'ui-design/src/data|window\.EI_DATA|getWorkspace' \
+  "$REPO_ROOT/frontend/src/app/screens/workspace" \
+  "$REPO_ROOT/frontend/src/app/interview-context" \
+  -g '!*.test.tsx'; then
+  echo "$SCENARIO_ID: prototype data import/helper leaked into runtime" >&2
+  exit 1
+fi
 echo "$SCENARIO_ID PASS"

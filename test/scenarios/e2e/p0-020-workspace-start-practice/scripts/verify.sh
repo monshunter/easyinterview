@@ -7,7 +7,13 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/$SCENARIO_ID"
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 test -s "$LOG_FILE"
 grep -Eq 'Test Files +[0-9]+ passed \([0-9]+\)' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing test files" >&2; exit 1; }
-for forbidden in 'debrief_replay' 'answerText' 'hintText' 'promptHash'; do
-  if grep -Fiq "$forbidden" "$LOG_FILE"; then echo "$SCENARIO_ID: forbidden $forbidden leaked" >&2; exit 1; fi
-done
+grep -Fq 'WorkspaceStartPractice.test.tsx' "$LOG_FILE" || { echo "$SCENARIO_ID: start practice test did not run" >&2; exit 1; }
+grep -Fq 'WorkspaceAuthGate.test.tsx' "$LOG_FILE" || { echo "$SCENARIO_ID: auth gate test did not run" >&2; exit 1; }
+if rg -n 'debrief_replay|answerText|hintText|promptHash|questionText' \
+  "$REPO_ROOT/frontend/src/app/screens/workspace" \
+  "$REPO_ROOT/frontend/src/app/interview-context" \
+  -g '!*.test.tsx'; then
+  echo "$SCENARIO_ID: forbidden workspace runtime handoff field leaked" >&2
+  exit 1
+fi
 echo "$SCENARIO_ID PASS"

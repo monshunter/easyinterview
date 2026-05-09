@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useEffect,
   useMemo,
   useState,
   type FC,
@@ -24,7 +25,12 @@ import {
 } from "./display/DisplayPreferencesProvider";
 import { NavigationProvider } from "./navigation/NavigationProvider";
 import { normalizeRoute, type LooseRoute } from "./normalizeRoute";
-import { DEFAULT_ROUTE, isChromeHidden, type Route } from "./routes";
+import {
+  DEFAULT_ROUTE,
+  isChromeHidden,
+  shouldCarryInterviewContext,
+  type Route,
+} from "./routes";
 import {
   AppRuntimeProvider,
   useAppRuntimeOptional,
@@ -38,7 +44,10 @@ import { PlaceholderScreen } from "./screens/PlaceholderScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { WorkspaceScreen } from "./screens/workspace/WorkspaceScreen";
-import { InterviewContextProvider } from "./interview-context/InterviewContext";
+import {
+  InterviewContextProvider,
+  useInterviewContext,
+} from "./interview-context/InterviewContext";
 import { TopBar } from "./topbar/TopBar";
 
 export interface AppProps {
@@ -204,6 +213,7 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
         )}
         <main>
           <InterviewContextProvider>
+            <InterviewContextRouteSync route={route} />
             {renderRouteScreen(route, navigate, runtime, prefs.lang)}
           </InterviewContextProvider>
         </main>
@@ -211,6 +221,20 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
       </div>
     </NavigationProvider>
   );
+};
+
+const InterviewContextRouteSync: FC<{ route: Route }> = ({ route }) => {
+  const { dispatch } = useInterviewContext();
+
+  useEffect(() => {
+    if (shouldCarryInterviewContext(route.name)) {
+      dispatch({ type: "HYDRATE_FROM_ROUTE", params: route.params });
+      return;
+    }
+    dispatch({ type: "CLEAR" });
+  }, [dispatch, route.name, route.params]);
+
+  return null;
 };
 
 const AppRuntimeShell: FC<{

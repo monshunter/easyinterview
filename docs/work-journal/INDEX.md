@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-09](2026-05-09.md) | `fix(frontend-workspace): remediate workspace L2 findings` | #fix #ui #test #docs |
 | [2026-05-09](2026-05-09.md) | `feat(workspace): add auth gate, comprehensive tests, pixel parity, and scenario assets` | #feat #ui #test #docs |
 | [2026-05-09](2026-05-09.md) | `docs(prompt-rubric-registry): derive baseline plan and bump spec to v2.1` | #docs |
 | [2026-05-09](2026-05-09.md) | `feat(workspace): add start practice flow, error handling, and idempotency retry` | #feat #ui #test |

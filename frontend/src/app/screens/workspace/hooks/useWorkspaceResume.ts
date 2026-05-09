@@ -51,7 +51,11 @@ export function useWorkspaceResume(): UseWorkspaceResumeResult {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err : new Error(String(err)));
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
+        if (isNotFound(error)) {
+          dispatch({ type: "CLEAR_RESUME" });
+        }
       })
       .finally(() => {
         if (!cancelled) {
@@ -66,4 +70,8 @@ export function useWorkspaceResume(): UseWorkspaceResumeResult {
   }, [fetch]);
 
   return { loading, data, error, empty: !resumeVersionId };
+}
+
+function isNotFound(error: Error): boolean {
+  return /^HTTP 404\b/.test(error.message);
 }

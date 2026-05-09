@@ -46,7 +46,7 @@ function intersects(a: Rect, b: Rect): boolean {
 }
 
 test.describe("frontend dist layout + bounding box parity", () => {
-  test("TopBar header fits inside the documented viewport (height 58, sticky top 0)", async ({
+  test("TopBar header fits inside the documented viewport", async ({
     page,
   }, testInfo) => {
     await page.goto("/");
@@ -57,8 +57,15 @@ test.describe("frontend dist layout + bounding box parity", () => {
 
     expect(topbarRect.top).toBeCloseTo(0, 0);
     expect(topbarRect.left).toBeCloseTo(0, 0);
-    // height matches ui-design TopBar literal (58px) with 1px tolerance.
-    expect(Math.abs(topbarRect.height - 58)).toBeLessThanOrEqual(1);
+    if (testInfo.project.name === "desktop") {
+      // Desktop height matches ui-design TopBar literal (58px) with 1px tolerance.
+      expect(Math.abs(topbarRect.height - 58)).toBeLessThanOrEqual(1);
+    } else {
+      // Mobile intentionally wraps controls/nav into two rows to avoid
+      // horizontal overflow while preserving all primary entries.
+      expect(topbarRect.height).toBeGreaterThanOrEqual(58);
+      expect(topbarRect.height).toBeLessThanOrEqual(150);
+    }
     // TopBar must span full viewport width (1440 desktop / 390 mobile).
     expect(Math.abs(topbarRect.right - viewport!.width)).toBeLessThanOrEqual(1);
     // Sanity: bottom of TopBar inside viewport.
@@ -112,7 +119,7 @@ test.describe("frontend dist layout + bounding box parity", () => {
 
   test("display controls + user area do not overlap the primary nav", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.goto("/");
     const navRect = await rectOf(page, "[data-testid='topbar-primary-nav']");
     const controlsRect = await rectOf(
@@ -123,9 +130,21 @@ test.describe("frontend dist layout + bounding box parity", () => {
     expect(intersects(navRect, controlsRect)).toBe(false);
     expect(intersects(navRect, userRect)).toBe(false);
     expect(intersects(controlsRect, userRect)).toBe(false);
-    // The three regions follow flex order: nav → controls → user (left → right).
-    expect(navRect.right).toBeLessThanOrEqual(controlsRect.left + 1);
-    expect(controlsRect.right).toBeLessThanOrEqual(userRect.left + 1);
+    const viewport = page.viewportSize()!;
+    for (const r of [navRect, controlsRect, userRect]) {
+      expect(r.left).toBeGreaterThanOrEqual(-1);
+      expect(r.right).toBeLessThanOrEqual(viewport.width + 1);
+    }
+    if (testInfo.project.name === "desktop") {
+      // Desktop keeps the source-level flex order: nav → controls → user.
+      expect(navRect.right).toBeLessThanOrEqual(controlsRect.left + 1);
+      expect(controlsRect.right).toBeLessThanOrEqual(userRect.left + 1);
+    } else {
+      // Mobile moves the nav into its own wrapped row.
+      expect(navRect.top).toBeGreaterThanOrEqual(
+        Math.min(controlsRect.bottom, userRect.bottom) - 1,
+      );
+    }
   });
 
   test("auth_login two-column layout fits the viewport", async ({

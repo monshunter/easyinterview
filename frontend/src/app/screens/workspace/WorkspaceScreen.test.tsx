@@ -3,7 +3,8 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useEffect, type ReactNode } from "react";
 
 import { DisplayPreferencesProvider } from "../../display/DisplayPreferencesProvider";
@@ -221,13 +222,17 @@ describe("WorkspaceScreen static shell (Phase 1)", () => {
     localStorage.removeItem("ei-lang");
   });
 
-  it("clicking 'Switch Plan' stub calls navigate with correct nav stub", () => {
+  it("clicking 'Switch Plan' opens the plan switcher modal", async () => {
     const { nav } = withProviders(
       <WorkspaceScreen route={WORKSPACE_ROUTE} />,
       WORKSPACE_ROUTE,
     );
-    screen.getByTestId("workspace-plan-action-switch").click();
-    expect(nav).toHaveBeenCalled();
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("workspace-plan-action-switch"));
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-plan-modal-card")).toBeDefined();
+    });
+    expect(nav).not.toHaveBeenCalled();
   });
 
   it("clicking company intel open stub calls navigate", () => {

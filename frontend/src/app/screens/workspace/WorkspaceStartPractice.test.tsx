@@ -152,7 +152,7 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
     expect(navCall.name).toBe("practice");
     const params = navCall.params as Record<string, unknown>;
     expect(params).toHaveProperty("sessionId");
-    expect(params).toHaveProperty("planId");
+    expect(params.planId).toBe("01918fa0-0000-7000-8000-000000004000");
     expect(params).toHaveProperty("targetJobId");
     expect(params).toHaveProperty("jdId");
     expect(params).toHaveProperty("resumeVersionId");
@@ -189,6 +189,41 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
     const navCall = nav.mock.calls[0]![0] as Record<string, unknown>;
     expect(navCall.name).toBe("practice");
     expect((navCall.params as Record<string, unknown>).sessionId).toBeDefined();
+  });
+
+  it("plan exists + archived → refreshes plan, creates replacement plan, then starts session", async () => {
+    const archivedPlanClient = buildCustomFixtures([
+      {
+        ...getPracticePlanFixture,
+        scenarios: {
+          ...getPracticePlanFixture.scenarios,
+          default: getPracticePlanFixture.scenarios.archived!,
+        },
+      },
+      startPracticeSessionFixture,
+    ]);
+    const createSpy = vi.spyOn(archivedPlanClient, "createPracticePlan");
+    const getPlanSpy = vi.spyOn(archivedPlanClient, "getPracticePlan");
+    const startSpy = vi.spyOn(archivedPlanClient, "startPracticeSession");
+    const { nav } = renderScreen(PLAN_EXISTS_ROUTE, archivedPlanClient);
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
+    });
+
+    await user.click(screen.getByTestId("workspace-cta-start"));
+
+    await waitFor(() => {
+      expect(nav).toHaveBeenCalled();
+    });
+
+    expect(getPlanSpy).toHaveBeenCalledWith(PLAN_EXISTS_ROUTE.params.planId);
+    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(startSpy).toHaveBeenCalledTimes(1);
+    expect((startSpy.mock.calls[0]![0] as unknown as Record<string, unknown>).planId).toBe(
+      "01918fa0-0000-7000-8000-000000004000",
+    );
   });
 
   it("createPracticePlan 4xx (missing-resume) shows error and does NOT call startPracticeSession", async () => {

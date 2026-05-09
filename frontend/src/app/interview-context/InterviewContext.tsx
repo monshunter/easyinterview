@@ -71,6 +71,9 @@ export type InterviewContextAction =
       type: "MERGE_SESSION";
       session: { id: string; [key: string]: unknown };
     }
+  | { type: "CLEAR_RESUME" }
+  | { type: "CLEAR_PRACTICE_PLAN" }
+  | { type: "CLEAR_AUTO_START" }
   | { type: "CLEAR" };
 
 export function interviewContextReducer(
@@ -92,8 +95,13 @@ export function interviewContextReducer(
         resumeVersionId: p.resumeVersionId || state.resumeVersionId,
         roundId: p.roundId || state.roundId,
         roundName: p.roundName || state.roundName,
+        mode: p.mode || state.mode,
+        modality: p.modality || state.modality,
         practiceMode: p.practiceMode || state.practiceMode,
         practiceGoal: p.practiceGoal || state.practiceGoal,
+        hintUsed: p.hintUsed || state.hintUsed,
+        hintCount: p.hintCount || state.hintCount,
+        sessionId: p.sessionId || state.sessionId,
         autoStartPractice: p.autoStartPractice ?? state.autoStartPractice,
       };
     }
@@ -117,6 +125,21 @@ export function interviewContextReducer(
       return {
         ...state,
         sessionId: action.session.id || state.sessionId,
+      };
+    case "CLEAR_RESUME":
+      return {
+        ...state,
+        resumeVersionId: undefined,
+      };
+    case "CLEAR_PRACTICE_PLAN":
+      return {
+        ...state,
+        planId: undefined,
+      };
+    case "CLEAR_AUTO_START":
+      return {
+        ...state,
+        autoStartPractice: undefined,
       };
     case "CLEAR":
       return { ...DEFAULT_INTERVIEW_CONTEXT };

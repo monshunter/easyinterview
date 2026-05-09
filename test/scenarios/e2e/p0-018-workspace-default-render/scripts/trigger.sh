@@ -7,8 +7,11 @@ mkdir -p "$OUTPUT_DIR"
 (
   cd "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
+    src/app/App.test.tsx \
     src/app/screens/workspace/WorkspaceScreen.test.tsx \
     src/app/screens/workspace/WorkspaceHeader.test.tsx \
+    src/app/screens/workspace/WorkspaceModalIntegration.test.tsx \
     src/app/screens/workspace/modals/PlanSwitcherModal.test.tsx \
-    src/app/screens/workspace/modals/ResumePickerModal.test.tsx
+    src/app/screens/workspace/modals/ResumePickerModal.test.tsx \
+    src/app/screens/workspace/modals/useModalA11y.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"

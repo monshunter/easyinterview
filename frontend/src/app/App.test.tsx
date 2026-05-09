@@ -1,8 +1,34 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 
+import { EasyInterviewClient } from "../api/generated/client";
+import {
+  createFixtureBackedFetch,
+  createFixtureRegistry,
+} from "../api/mockTransport";
 import { App } from "./App";
+
+import getRuntimeConfigFixture from "../../../openapi/fixtures/Auth/getRuntimeConfig.json";
+import getMeFixture from "../../../openapi/fixtures/Auth/getMe.json";
+import getTargetJobFixture from "../../../openapi/fixtures/TargetJobs/getTargetJob.json";
+import getResumeFixture from "../../../openapi/fixtures/Resumes/getResume.json";
+import getPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
+
+function buildWorkspaceClient(): EasyInterviewClient {
+  return new EasyInterviewClient({
+    fetch: createFixtureBackedFetch(
+      createFixtureRegistry([
+        getRuntimeConfigFixture,
+        getMeFixture,
+        getTargetJobFixture,
+        getResumeFixture,
+        getPracticePlanFixture,
+      ]),
+      { scenario: "default" },
+    ),
+  });
+}
 
 describe("App shell", () => {
   it("defaults to the home route with App chrome rendered", () => {
@@ -78,6 +104,37 @@ describe("App shell", () => {
     );
     expect(screen.getByTestId("workspace-crumbs")).toBeInTheDocument();
     expect(screen.queryByTestId("route-workspace")).not.toBeInTheDocument();
+  });
+
+  it("hydrates workspace route params into InterviewContext and loads fixture data", async () => {
+    const client = buildWorkspaceClient();
+    const getTargetJobSpy = vi.spyOn(client, "getTargetJob");
+    render(
+      <App
+        client={client}
+        requestOptions={{ getMe: { headers: { Prefer: "example=authenticated" } } }}
+        initialRoute={{
+          name: "workspace",
+          params: {
+            targetJobId: "01918fa0-0000-7000-8000-000000002000",
+            jdId: "jd-1",
+            resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+            roundId: "round-hr",
+            planId: "01918fa0-0000-7000-8000-000000004000",
+          },
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-header-title")).toHaveTextContent(
+        "Senior Frontend Engineer",
+      );
+    });
+    expect(getTargetJobSpy).toHaveBeenCalledWith(
+      "01918fa0-0000-7000-8000-000000002000",
+    );
+    expect(screen.queryByTestId("workspace-empty")).not.toBeInTheDocument();
   });
 
   it("practice route still renders PlaceholderScreen", () => {

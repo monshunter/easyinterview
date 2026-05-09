@@ -81,6 +81,14 @@ const WORKSPACE_ROUTE: Route = {
   },
 };
 
+const AUTO_START_ROUTE: Route = {
+  name: "workspace",
+  params: {
+    ...WORKSPACE_ROUTE.params,
+    autoStartPractice: "1",
+  },
+};
+
 function renderWorkspace(
   client: EasyInterviewClient,
   nav: ReturnType<typeof vi.fn>,
@@ -222,6 +230,37 @@ describe("WorkspaceAuthGate (Phase 4.8)", () => {
     const navCall = nav.mock.calls[0]![0] as Record<string, unknown>;
     expect(navCall.name).toBe("practice");
     expect(startSpy).toHaveBeenCalled();
+  });
+
+  it("authenticated pendingAction restore: autoStartPractice=1 starts practice without another click", async () => {
+    const client = buildAuthenticatedClient();
+    const nav = vi.fn();
+    const startSpy = vi.spyOn(client, "startPracticeSession");
+
+    render(
+      <DisplayPreferencesProvider>
+        <InterviewContextProvider>
+          <AppRuntimeProvider
+            client={client}
+            requestOptions={{ getMe: { headers: { Prefer: "example=authenticated" } } }}
+          >
+            <NavigationProvider value={{ navigate: nav }}>
+              <HydrateContext route={AUTO_START_ROUTE} />
+              <WorkspaceScreen route={AUTO_START_ROUTE} />
+            </NavigationProvider>
+          </AppRuntimeProvider>
+        </InterviewContextProvider>
+      </DisplayPreferencesProvider>,
+    );
+
+    await waitFor(() => {
+      expect(startSpy).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(nav).toHaveBeenCalled();
+    });
+    const navCall = nav.mock.calls[0]![0] as Record<string, unknown>;
+    expect(navCall.name).toBe("practice");
   });
 
   it("pendingAction label matches workspace.startCore i18n key", async () => {

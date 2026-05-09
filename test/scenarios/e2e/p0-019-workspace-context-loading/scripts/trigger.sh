@@ -8,7 +8,10 @@ mkdir -p "$OUTPUT_DIR"
 (
   cd "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
+    src/app/App.test.tsx \
     src/app/screens/workspace/WorkspaceEmptyState.test.tsx \
     src/app/screens/workspace/WorkspaceScreen.test.tsx \
+    src/app/screens/workspace/hooks/useWorkspaceTargetJob.test.tsx \
+    src/app/screens/workspace/hooks/useWorkspaceResume.test.tsx \
     src/app/screens/workspace/hooks/useWorkspacePracticePlan.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"
