@@ -34,6 +34,22 @@
           "updatedAt": "2026-04-28T13:45:12Z"
         }
       }
+    },
+    "ai-timeout-502": {
+      "response": {
+        "status": 502,
+        "headers": {
+          "X-Request-ID": "req_2026-05-09T10-00-00-ai-timeout"
+        },
+        "body": {
+          "error": {
+            "code": "AI_PROVIDER_TIMEOUT",
+            "message": "AI provider timed out while generating the first question",
+            "requestId": "req_2026-05-09T10-00-00-ai-timeout",
+            "retryable": true
+          }
+        }
+      }
     }
   }
 }

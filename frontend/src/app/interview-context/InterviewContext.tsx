@@ -84,11 +84,11 @@ export function interviewContextReducer(
       return {
         ...state,
         planId:
-          p.planId || (targetJobId ? `plan-${targetJobId}` : state.planId),
+          p.planId !== undefined ? (p.planId || undefined) : (targetJobId ? `plan-${targetJobId}` : state.planId),
         targetJobId,
         jobId: targetJobId,
         jdId:
-          p.jdId || (targetJobId ? `jd-${targetJobId}` : state.jdId),
+          p.jdId !== undefined ? (p.jdId || undefined) : (targetJobId ? `jd-${targetJobId}` : state.jdId),
         resumeVersionId: p.resumeVersionId || state.resumeVersionId,
         roundId: p.roundId || state.roundId,
         roundName: p.roundName || state.roundName,

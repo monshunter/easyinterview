@@ -59,10 +59,9 @@ export function useStartPractice() {
 
       dispatch({ type: "MERGE_SESSION", session: session as unknown as { id: string; [key: string]: unknown } });
 
-      const result: StartState = { kind: "success", sessionId: session.id };
-      setState(result);
+      setState({ kind: "success", sessionId: session.id });
       inFlightRef.current = false;
-      return result;
+      return { kind: "success" as const, sessionId: session.id };
     } catch (err: unknown) {
       attemptRef.current += 1;
       const message = err instanceof Error ? err.message : String(err);

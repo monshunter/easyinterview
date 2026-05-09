@@ -703,25 +703,86 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
               padding: "0 16px",
               fontSize: 14,
               fontWeight: 500,
-              background: "var(--ei-color-accent)",
+              background: startState.kind === "loading"
+                ? "var(--ei-color-ink4)"
+                : "var(--ei-color-accent)",
               color: "#fff",
               border: "1px solid var(--ei-color-accent)",
               borderRadius: 2,
-              cursor: "pointer",
+              cursor: startState.kind === "loading" ? "default" : "pointer",
               fontFamily: "var(--ei-sans)",
+              opacity: startState.kind === "loading" ? 0.7 : 1,
             }}
           >
-            <svg
-              width={16}
-              height={16}
-              viewBox="0 0 24 24"
-              fill="#fff"
-              stroke="none"
-            >
-              <path d="M7 5l12 7-12 7V5z" />
-            </svg>
-            {t("workspace.startCore")}
+            {startState.kind === "loading" ? (
+              <>{t("workspace.placeholder")}</>
+            ) : (
+              <>
+                <svg
+                  width={16}
+                  height={16}
+                  viewBox="0 0 24 24"
+                  fill="#fff"
+                  stroke="none"
+                >
+                  <path d="M7 5l12 7-12 7V5z" />
+                </svg>
+                {t("workspace.startCore")}
+              </>
+            )}
           </button>
+
+          {startState.kind === "error" && (
+            <div
+              data-testid="workspace-cta-error"
+              style={{
+                marginTop: 12,
+                fontSize: 13,
+                color: "var(--ei-color-danger)",
+              }}
+            >
+              {startState.message}
+              {startState.retryable && (
+                <button
+                  data-testid="workspace-cta-retry"
+                  onClick={handleStart}
+                  style={{
+                    marginLeft: 10,
+                    height: 28,
+                    padding: "0 10px",
+                    fontSize: 12,
+                    background: "transparent",
+                    color: "var(--ei-color-ink2)",
+                    border: "1px solid var(--ei-color-rule)",
+                    borderRadius: 2,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t("workspace.errors.retry")}
+                </button>
+              )}
+            </div>
+          )}
+
+          {startState.kind === "error" && !startState.retryable && (
+            <button
+              data-testid="workspace-cta-back-home"
+              onClick={() => navigate({ name: "home", params: {} })}
+              style={{
+                marginTop: 12,
+                height: 28,
+                padding: "0 12px",
+                fontSize: 12,
+                background: "transparent",
+                color: "var(--ei-color-ink2)",
+                border: "1px solid var(--ei-color-rule)",
+                borderRadius: 2,
+                cursor: "pointer",
+              }}
+            >
+              {t("workspace.errors.backHome")}
+            </button>
+          )}
         </div>
 
         <div
