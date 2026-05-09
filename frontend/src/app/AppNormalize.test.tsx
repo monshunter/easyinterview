@@ -25,10 +25,10 @@ describe("App route normalization", () => {
       const { unmount } = render(
         <App initialRoute={{ name: legacy, params: {} }} />,
       );
-      // workspace now renders WorkspaceScreen with its own testids
+      // workspace now renders WorkspaceScreen; empty params → WorkspaceEmptyState
       const currentTestId =
         current === "workspace"
-          ? "workspace-crumbs"
+          ? "workspace-empty"
           : `route-${current}`;
       expect(screen.getByTestId(currentTestId)).toBeInTheDocument();
       expect(screen.queryByTestId(`route-${legacy}`)).not.toBeInTheDocument();

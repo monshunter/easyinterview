@@ -2,9 +2,11 @@ import { type FC } from "react";
 
 import { useI18n } from "../../i18n/messages";
 import { useNavigation } from "../../navigation/NavigationProvider";
+import { useInterviewContext } from "../../interview-context/InterviewContext";
 import type { Route } from "../../routes";
 import { useWorkspaceTargetJob } from "./hooks/useWorkspaceTargetJob";
 import { useWorkspaceResume } from "./hooks/useWorkspaceResume";
+import { useStartPractice } from "./hooks/useStartPractice";
 
 interface WorkspaceScreenProps {
   route: Route;
@@ -18,7 +20,13 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   const { t, lang } = useI18n();
   const { navigate } = useNavigation();
   const { loading, data: tj, error } = useWorkspaceTargetJob();
-  const { data: resume } = useWorkspaceResume();
+  const { data: resume, empty: resumeEmpty } = useWorkspaceResume();
+  const { ctx } = useInterviewContext();
+
+  // ── Empty / missing states ──
+  const hasTarget = !!(ctx.targetJobId || route.params.targetJobId);
+  const showEmptyState = !hasTarget && !loading && !tj;
+  const showMissingResume = hasTarget && !loading && tj && (resumeEmpty || !ctx.resumeVersionId);
 
   // ── Derived display values per plan §3.7 mapping ──
 
@@ -62,9 +70,141 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
 
   const statusTone = tj ? getStatusTone(tj.status) : "amber";
 
-  const startInterviewStub = () => {
-    navigate({ name: "practice", params: { ...route.params } });
+  const { state: startState, start: doStart } = useStartPractice();
+
+  const handleStart = async () => {
+    const result = await doStart();
+    if (result.kind === "success") {
+      navigate({
+        name: "practice",
+        params: {
+          ...route.params,
+          sessionId: result.sessionId,
+          planId: ctx.planId ?? "",
+          targetJobId: ctx.targetJobId,
+          jdId: ctx.jdId ?? "",
+          resumeVersionId: ctx.resumeVersionId ?? "",
+          roundId: ctx.roundId ?? "",
+          mode: ctx.mode,
+          modality: ctx.modality,
+          practiceMode: ctx.practiceMode,
+          practiceGoal: ctx.practiceGoal,
+          hintUsed: ctx.hintUsed,
+          hintCount: ctx.hintCount,
+        },
+      });
+    }
   };
+
+  if (showEmptyState) {
+    return (
+      <div className="ei-fadein" style={{ maxWidth: 560, margin: "80px auto", padding: "0 24px" }}>
+        <div
+          data-testid="workspace-empty"
+          style={{
+            background: "var(--ei-color-bgCard)",
+            border: "1px solid var(--ei-color-rule)",
+            borderRadius: 3,
+            padding: 32,
+            textAlign: "center",
+          }}
+        >
+          <div
+            data-testid="workspace-empty-eyebrow"
+            className="ei-label"
+            style={{ color: "var(--ei-color-ink3)", marginBottom: 8 }}
+          >
+            {t("workspace.empty.eyebrow")}
+          </div>
+          <div
+            data-testid="workspace-empty-title"
+            className="ei-serif"
+            style={{ fontSize: 18, color: "var(--ei-color-ink)", marginBottom: 12 }}
+          >
+            {t("workspace.empty.title")}
+          </div>
+          <div
+            data-testid="workspace-empty-desc"
+            style={{ fontSize: 13, color: "var(--ei-color-ink3)", marginBottom: 20, lineHeight: 1.55 }}
+          >
+            {t("workspace.empty.desc")}
+          </div>
+          <button
+            data-testid="workspace-empty-cta"
+            onClick={() => navigate({ name: "home", params: {} })}
+            style={{
+              height: 34,
+              padding: "0 16px",
+              fontSize: 13,
+              fontWeight: 500,
+              background: "var(--ei-color-accent)",
+              color: "#fff",
+              border: "1px solid var(--ei-color-accent)",
+              borderRadius: 2,
+              cursor: "pointer",
+            }}
+          >
+            {t("workspace.empty.cta")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (showMissingResume) {
+    return (
+      <div className="ei-fadein" style={{ maxWidth: 560, margin: "80px auto", padding: "0 24px" }}>
+        <div
+          data-testid="workspace-missing-resume"
+          style={{
+            background: "var(--ei-color-bgCard)",
+            border: "1px solid var(--ei-color-rule)",
+            borderRadius: 3,
+            padding: 32,
+            textAlign: "center",
+          }}
+        >
+          <div
+            data-testid="workspace-missing-resume-eyebrow"
+            className="ei-label"
+            style={{ color: "var(--ei-color-ink3)", marginBottom: 8 }}
+          >
+            {t("workspace.missingResume.eyebrow")}
+          </div>
+          <div
+            data-testid="workspace-missing-resume-title"
+            className="ei-serif"
+            style={{ fontSize: 18, color: "var(--ei-color-ink)", marginBottom: 12 }}
+          >
+            {t("workspace.missingResume.title")}
+          </div>
+          <div
+            data-testid="workspace-missing-resume-desc"
+            style={{ fontSize: 13, color: "var(--ei-color-ink3)", marginBottom: 20, lineHeight: 1.55 }}
+          >
+            {t("workspace.missingResume.desc")}
+          </div>
+          <button
+            data-testid="workspace-missing-resume-cta"
+            onClick={() => navigate({ name: "resume_versions", params: { flow: "create" } })}
+            style={{
+              height: 34,
+              padding: "0 16px",
+              fontSize: 13,
+              fontWeight: 500,
+              background: "var(--ei-color-accent)",
+              color: "#fff",
+              border: "1px solid var(--ei-color-accent)",
+              borderRadius: 2,
+              cursor: "pointer",
+            }}
+          >
+            {t("workspace.missingResume.cta")}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -552,7 +692,8 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
           </div>
           <button
             data-testid="workspace-cta-start"
-            onClick={startInterviewStub}
+            onClick={handleStart}
+            disabled={startState.kind === "loading"}
             style={{
               display: "inline-flex",
               alignItems: "center",

@@ -71,3 +71,11 @@ export function isIdempotencyKeyExpired(raw: string, now: Date = new Date()): bo
   const ageSeconds = (now.getTime() - parsed.issuedAt.getTime()) / 1000;
   return ageSeconds > IDEMPOTENCY_KEY_TTL_SECONDS;
 }
+
+/** Stable idempotency key pair for createPracticePlan + startPracticeSession dual-step. */
+export function newIdempotencyBatch(now: Date = new Date()) {
+  return {
+    create: formatIdempotencyKey(now, newId()),
+    start: formatIdempotencyKey(now, newId()),
+  };
+}

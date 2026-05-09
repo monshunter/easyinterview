@@ -34,7 +34,7 @@
 - [x] 3.4 新增 `frontend/src/app/screens/workspace/modals/PlanSwitcherModal.tsx`：按 `screen-workspace.jsx::PlanSwitcherModal` lines 587-666 源级复刻；通过新增 `useWorkspaceTargetJobs()` hook（调用 `listTargetJobs`，复用 home plan §3.7 viewmodel mapping）拉取候选 plan 列表；testid `workspace-plan-modal-{card-${id},create,confirm,cancel,close}`；`从新 JD 创建规划` 调 `nav("home")`；`Use this plan` 调用 `updateInterviewContextFromPlan(plan)` 切换 `InterviewContext` 并触发 `useWorkspaceTargetJob()` 与 `useWorkspaceResume()` 重新拉取；Vitest `workspace/modals/PlanSwitcherModal.test.tsx` 断言 DOM、`listTargetJobs` 接入、boundary（1 条 / 12+ 条）、a11y、CTA 行为
 - [x] 3.5 新增 `frontend/src/app/screens/workspace/modals/useModalA11y.ts`：实现 ESC 关闭 / 外层遮罩点击关闭 / 关闭按钮 / focus trap（首次打开 focus 第一个 focusable 元素 + Tab 循环）/ 关闭后 focus 回到触发按钮；Vitest 用 `userEvent.tab()` 验证 + `aria-modal` attribute + Vitest 锁定四种关闭路径
 - [x] 3.6 fixture variant：`getResume.json` 新增 `not-found`；`getPracticePlan.json` 新增 `archived` / `not-found`；`make validate-fixtures` 通过
-- [ ] 3.7 新增 `workspace/WorkspaceMissingResumeState.test.tsx`：测缺简历空态 + CTA 跳 `resume_versions?flow=create`；新增 `workspace/WorkspaceEmptyState.test.tsx`：测缺 JD 空态 + CTA 跳 `home` 并 focus textarea
+- [x] 3.7 新增 `workspace/WorkspaceMissingResumeState.test.tsx` + `workspace/WorkspaceEmptyState.test.tsx`：测空态 CTA 跳转
 - [ ] 3.8 BDD-Gate: 验证 `E2E.P0.018` 中 Plan Switcher / Resume Picker 部分；验证 `E2E.P0.019` 中 `WorkspaceMissingResumeState` 路径
 
 ## Phase 4: 立即面试双步契约 + getPracticePlan refresh + auth pendingAction

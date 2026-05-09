@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-09](2026-05-09.md) | `feat(workspace): add empty states, practice plan hook, and start practice dual-step contract` | #feat #ui #test |
 | [2026-05-09](2026-05-09.md) | `feat(workspace): add Phase 2-3 data hooks, JD breakdown, modals, and fixture variants` | #feat #ui #test |
 | [2026-05-09](2026-05-09.md) | `feat(workspace): add InterviewContext store, WorkspaceScreen shell, and i18n` | #feat #ui #i18n #test |
 | [2026-05-09](2026-05-09.md) | `fix(home-jd-import): address parse review findings` | #fix #ui #test |

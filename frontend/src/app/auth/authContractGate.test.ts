@@ -28,6 +28,11 @@ const ALLOWED_NON_AUTH_OPERATIONS = new Set<string>([
   "createUploadPresign",
   "getTargetJob",
   "updateTargetJob",
+  // Phase 2-4 workspace-and-practice operations (frontend-workspace-and-practice)
+  "getResume",
+  "getPracticePlan",
+  "createPracticePlan",
+  "startPracticeSession",
 ]);
 
 const ALL_CLIENT_CALL_RE = /\.client\.(\w+)\(/g;
