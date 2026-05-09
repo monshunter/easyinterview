@@ -1,8 +1,8 @@
 # Prompt Rubric Registry Spec
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-09
 
 ## 1 背景与目标
 
@@ -27,8 +27,8 @@
 
 ### 2.1 In Scope
 
-- **prompt 真理源**：`config/prompts/<feature_key>/<version>.{yaml,md}`；YAML 元信息（feature_key / version / language / template_hash / status / created_at），Markdown 模板正文。
-- **rubric 真理源**：`config/rubrics/<feature_key>/<version>.yaml`；schema：`feature_key` / `version` / `dimensions[]`（每个 dimension：`name` / `weight` / `score_levels[{label, threshold, description}]`）/ `language`。
+- **prompt 真理源**：`config/prompts/<feature_key>/<version>.{yaml,md}` 表示 `language: multi` 的默认 baseline；语言变体使用 `config/prompts/<feature_key>/<version>.<language>.{yaml,md}`（如 `v0.1.0.en.yaml` / `v0.1.0.zh.yaml`）。YAML 元信息字段为 feature_key / version / language / template_hash / status / created_at，Markdown 模板正文与同名 YAML 成对存在。
+- **rubric 真理源**：`config/rubrics/<feature_key>/<version>.yaml` 表示 `language: multi` 的默认 baseline；语言变体使用 `config/rubrics/<feature_key>/<version>.<language>.yaml`。schema：`feature_key` / `version` / `dimensions[]`（每个 dimension：`name` / `weight` / `score_levels[{label, threshold, description}]`）/ `language`。
 - **DB 表 schema 引用**：`prompt_versions` / `rubric_versions` 字段与 index 由本 spec 锁定；DB 落地由 B4。
 - **加载器（`internal/ai/registry/`）**：
   - `RegistryClient.GetPrompt(featureKey, version, language) → (template, meta)`
@@ -37,9 +37,9 @@
   - 启动时从 `config/prompts/` + `config/rubrics/` + DB 同步；DB 是 staging / prod 真理源；本地 dev 直接读文件。
 - **业务调用规约**：业务代码必须先 `Resolve(featureKey, ctx.Language)` 拿到三元组，然后传给 `AIClient.Complete(profileName, payload)`；payload 中携带 `prompt_version + rubric_version + feature_key`。
 - **lint 规则**：禁止业务包出现 `prompt :=` 字面量字符串 / 多行字符串模板；当前由本地 lint gate 接入，远端 CI 仅在 A5 触发条件成立后再接入；任何 prompt 必须从 registry 加载。
-- **contract 内容**：10 个当前 baseline feature_key 各 1 份 v0.1 baseline prompt + rubric 的坐标、schema 与落点在本 spec 中锁定；实际 `config/prompts/` / `config/rubrics/` 文件由 F3 `001` plan 创建（prompt 文本可先是「TBD by real model profile」，但 schema 必须就位）。
+- **contract 内容**：10 个当前 baseline feature_key 各 1 份 v0.1.0 baseline prompt + rubric 的坐标、schema 与落点在本 spec 中锁定；实际 `config/prompts/` / `config/rubrics/` 文件由 F3 `001` plan 创建，prompt 文本必须是可用 baseline 文案，不写「TBD」占位。
 - **LLM Judge 接口**：`Judge(featureKey, prompt_version, output, rubric_version) → (score, reasoning)`；接口签名锁定，实现归后续评估 plan。
-- **灰度策略**：每个 feature_key 同时只允许 1 个 `is_active=true`；灰度切换由 PostHog feature flag（[A4 D-4](../secrets-and-config/spec.md#31-已锁定决策含-p0-必备-env-key-字典)）+ `Resolve` 内部分桶逻辑实现（后续接入）。
+- **灰度策略**：同 `(feature_key, language)` 同时只允许 1 个 `is_active=true`；灰度切换由 PostHog feature flag（[A4 D-4](../secrets-and-config/spec.md#31-已锁定决策含-p0-必备-env-key-字典)）+ `Resolve` 内部分桶逻辑实现（后续接入）。
 
 ### 2.2 Out of Scope
 
@@ -57,12 +57,12 @@
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
 | D-1 | 唯一标识 | 三元组 `(feature_key, version, language)` 是 prompt 与 rubric 的唯一坐标；version 用 SemVer（major.minor.patch） | DB 表 unique 约束已就位 |
-| D-2 | 文件落点 | `config/prompts/<feature_key>/<version>.yaml`（meta） + `<version>.md`（template）；`config/rubrics/<feature_key>/<version>.yaml`；`config/` 目录由 [A4](./../secrets-and-config/spec.md) 拥有，F3 在此命名空间 | 防止散落 |
-| D-3 | template_hash | `sha256(template_body + meta_canonical_json)`；自动计算，写入 yaml；本地 drift 校验 | – |
+| D-2 | 文件落点 | `config/prompts/<feature_key>/<version>.yaml`（meta）+ `<version>.md`（template）与 `config/rubrics/<feature_key>/<version>.yaml` 是 `language: multi` 默认文件；语言变体统一追加 `.<language>` 后缀（如 `v0.1.0.en.yaml` / `v0.1.0.en.md`）。`config/` 目录由 [A4](./../secrets-and-config/spec.md) 拥有，F3 在此命名空间 | 防止散落；避免同一 version 多 language 文件名冲突 |
+| D-3 | template_hash | `sha256(template_body + meta_for_hash_canonical_json)`；`meta_for_hash` 是删除 `template_hash` 字段后的 YAML meta，避免 hash 自引用；自动计算，写入 yaml；本地 drift 校验 | – |
 | D-4 | model_profile_name 引用 | `Resolve` 输出三元组 +「model_profile_name」（如 `practice.followup.default`），由 A3 Model Profile 定义 | F3 不持有 provider / model 字符串（与 ADR-Q6 一致） |
 | D-5 | 业务调用契约 | 业务必须先 `Resolve(featureKey, ctx.Language)` 再调 `AIClient`；payload 中带三元组，便于 ai_task_runs 表写入 | 强制可追溯 |
 | D-6 | language 兼容 | `language` 列允许 `multi` 表示语言无关；Resolve 优先匹配精确 language → fallback `multi` | – |
-| D-7 | 灰度规则 | 同 feature_key 只允许 1 个 prompt + 1 个 rubric `is_active=true`；A/B 由 PostHog flag + Resolve 内部分桶（后续实现）；P0 baseline 不分桶 | – |
+| D-7 | 灰度规则 | 同 `(feature_key, language)` 只允许 1 个 prompt active version + 1 个 rubric active version；A/B 由 PostHog flag + Resolve 内部分桶（后续实现）；P0 baseline 不分桶 | – |
 | D-8 | 10 个当前 baseline feature_key 字典 | 见 §3.1.1；新增必须 spec 修订 | – |
 | D-9 | LLM Judge 接口 | 签名锁定；后续实现 | – |
 | D-10 | 不入 log 明文 | template_body 不写入 log；只写 prompt_version + template_hash；与 [F1 D-6](../observability-stack/spec.md#31-已锁定决策含命名约定字典) 一致 | – |
@@ -99,7 +99,7 @@
 
 - prompt 元信息字段顺序固定（与 DB 表列顺序一致）：`feature_key / version / language / template_hash / status / created_at`；`status ∈ {draft, active, deprecated}`。
 - rubric `dimensions[].name` 必须使用 F1 / F3 推荐质量指标中定义的命名 +（业务域专有维度 by C 域 owner）；不允许重新发明同义维度。
-- `version` 必须递增；同 `(feature_key, version)` 不允许覆盖（CI 拦截）。
+- `version` 必须递增并使用 SemVer 字符串（baseline 从 `v0.1.0` 起）；同 `(feature_key, version, language)` 不允许覆盖（CI 拦截）。
 
 ### 4.2 边界约束
 
@@ -110,7 +110,7 @@
 ### 4.3 性能约束
 
 - `Resolve(featureKey, language)` P95 ≤ 5ms（内存 cache + 30s TTL）。
-- 启动时全量预加载 ≤ 1s（12 × 多 language baseline）。
+- 启动时全量预加载 ≤ 1s（10 × 多 language baseline）。
 - 文件改动后 ≤ 30s 热加载（与 A3 Model Profile 同节奏）。
 
 ## 5 模块边界
@@ -131,23 +131,23 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 10 个 baseline 全集 | F3 后续 001 完成 | `ls config/prompts/ \| wc -l` 与 `ls config/rubrics/ \| wc -l` | 各 10 个目录；每个目录至少 1 份 v0.1 baseline | F3 后续 001 |
+| C-1 | 10 个 baseline 全集 | F3 后续 001 完成 | `find config/prompts -mindepth 1 -maxdepth 1 -type d -print` 与 `find config/rubrics -mindepth 1 -maxdepth 1 -type d -print` | 各输出 10 个 feature_key 目录；`README.md` 等根级说明文件不计入；每个目录至少 1 份 v0.1.0 baseline；如计划声明多 language 验证，文件命名必须符合 D-2 | F3 后续 001 |
 | C-2 | template_hash 一致 | 修改 prompt template body 但忘改 hash | CI | `lint-prompts` 失败；提示重新生成 hash | F3 后续 001 + A5 |
 | C-3 | Resolve 业务调用 | C5 调用 `registry.Resolve("practice.session.follow_up", "en")` | 单测 | 返回 `(prompt_version, rubric_version, model_profile_name)` 三元组 | F3 后续 001 + C5 |
 | C-4 | 业务不允许 hardcode prompt | 故意在 `internal/practice/` 中加 `prompt := "You are an interviewer..."` | CI | `lint-prompts-hardcode` 失败 | F3 后续 001 + A5 |
-| C-5 | 灰度切换 | F3 自行 plan `is_active` 字段 | DB 直接修改 | 同 feature_key 旧 prompt → deprecated；新 prompt → active；Resolve 输出新 version | F3 后续 002 |
+| C-5 | 灰度切换 | F3 自行 plan `is_active` 字段 | DB 直接修改 | 同 `(feature_key, language)` 旧 prompt → deprecated；新 prompt → active；Resolve 输出新 version | F3 后续 002 |
 | C-6 | 多 language fallback | 调 `Resolve("report.generate", "fr")`，`fr` baseline 不存在 | 加载逻辑 | 退化到 `multi` baseline；log warn | F3 后续 001 |
 | C-7 | LLM Judge 接口锁定 | 编译期 | F3 包 export `Judge` 接口 | 接口签名固定（后续实现）；业务代码可 import 抽象 | F3 后续 001 |
 | C-8 | F3 executable baseline handoff | 本 spec 的 contract lock 已完成，F3 后续 `001` 完成 baseline | active spec 关系已保留 | 10 个 baseline prompt / rubric 文件、loader 与 lint 均通过验证；依赖 F3 的后续 implementation 可启动；roadmap 只保留 active spec 关系，不单独冒充本项已通过 | F3 后续 `001` |
-| C-9 | DB 表写入闭环 | A3 调用产生 `ai_task_runs` 行 | 数据库 | `prompt_version` + `rubric_version` 字段非空，与 Resolve 输出一致 | A3 + B4 + F3 |
+| C-9 | DB 表写入闭环 | A3 调用产生 `ai_task_runs` 行 | 数据库 | `feature_key` + `prompt_version` + `rubric_version` + `feature_flag` + `data_source_version` typed 字段非空；其中 feature/prompt/rubric/data-source 与 Resolve / CallMetadata 输出一致，flag 无分桶时写 `none` | A3 + B4 + F3 |
 | C-10 | 评估升级 | F3 后续 002 完成 ≥ 50 题离线评估集 + LLM Judge | 对应 backend / release workstream 准备切真模型 | 评估集、Judge 接口与 model profile 切换策略均已验证 | F3 后续 002 |
 | C-11 | A3 profile coverage | A3 003 完成 provider registry + capability profile catalog | 运行 `make lint-ai-profile-coverage` 或顶层 `make lint` | §3.1.1 的默认 `model_profile_name` 全部存在于 `config/ai-profiles.yaml`，且 capability / provider_ref / status 合法；`disabled` / `unsupported` profile 必须显式标记并携带 `unsupported_reason` | A3 003 + F3 后续 001 |
 
 ## 7 关联计划
 
-F3 当前暂无 active impl plan；后续由 F3 自身的 plans 承接（[engineering-roadmap §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 保留该 active spec）：
+F3 当前 active impl plan 由 F3 自身的 plans 承接（[engineering-roadmap §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 保留该 active spec）：
 
-- `001-baseline`：`internal/ai/registry/` + `config/prompts/` + `config/rubrics/` 10 份 baseline + Resolve 实现 + lint 规则。
+- `001-baseline`：`internal/ai/registry/` + `config/prompts/` + `config/rubrics/` 10 个 feature_key 的 baseline truth source + Resolve 实现 + lint 规则。
 - `002-real-model-profile-and-evals`：切到真实 Model Profile + ≥ 50 题离线评估集 + LLM Judge 实现；依赖 A3 `003-provider-registry-and-capability-profiles` 提供完整 profile coverage 与 judge capability profile。
 - `003-grayscale-and-quality-feedback`：PostHog 灰度分桶 + 报告页质量主观评分回流。
 
