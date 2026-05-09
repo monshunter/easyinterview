@@ -160,6 +160,10 @@ For each in-scope phase:
      verify official frontend tests fail if any of those source-level structures
      drift.
 10. For completed code phases, verify actual test evidence exists for the implemented checklist scope, including meaningful negative/boundary assertions where the coverage matrix marks them in scope.
+    - When a checklist, plan, report, or previous handoff cites a focused `go test ... -run TestX` gate, verify that the command executed at least one intended test before treating it as evidence.
+    - Use `go test -list` or source search for `func Test...` to confirm the named test or regex exists when the command output is unavailable or ambiguous.
+    - Treat `testing: warning: no tests to run`, package output ending in `[no tests to run]`, or a focused `-run` pattern with zero matching tests as a gate failure and record a finding. Do not count it as PASS even if the command exits 0.
+    - In `--fix` mode, map the finding to either adding the missing executable test, correcting the focused gate name, or reopening the checklist item whose evidence was no-op.
 11. For completed feature phases, verify BDD evidence exists: `bdd-plan` / `bdd-checklist` references, completed scenario asset/execution items, a passed `BDD-Gate:` verification note, and scenario coverage for the primary journey plus the highest-risk alternate or failure/recovery journey per deployable phase.
 
 Coverage rows to verify:
@@ -206,6 +210,8 @@ Output rules:
 - Put any extra findings under `Extended Findings` with `X-L2-*` IDs.
 - Include a `Deep Evidence` section listing artifact map coverage, negative
   searches, focused gates/tests run, and any gate gaps discovered or hardened.
+  For every cited `go test -run` focused gate, state the matching test name(s)
+  or explicitly record the no-op finding if zero tests ran.
 - Include a `Coverage Matrix Evidence` section summarizing which coverage rows
   are proven by current artifacts, which are explicitly N/A, and which are gaps.
 
