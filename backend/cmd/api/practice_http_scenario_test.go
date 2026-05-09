@@ -144,14 +144,114 @@ func TestE2EP0023PracticeSessionStartAndFirstQuestion(t *testing.T) {
 	assertNoEvidenceLeak(t, h.store.outboxPayloads(), started.CurrentTurn.QuestionText, "question_text", "answer_text", "hint_text", "prompt body", "response body", "provider secret")
 }
 
+func TestE2EP0024PracticeSessionAIFailureRetry(t *testing.T) {
+	ai := &scenarioPracticeAIClient{
+		failures: []error{sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "prompt body and response body timed out", true)},
+	}
+	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai})
+	h.seedReadyScenarioPlan("practice-plan-p0-024", "target-job-p0-024-a", "resume-asset-p0-024-a", practiceHTTPScenarioUserAID)
+
+	body := api.StartPracticeSessionRequest{PlanId: "practice-plan-p0-024", HintsEnabled: practiceBoolPtr(true)}
+	failedRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-024-start-session", body, http.StatusBadGateway)
+	var failed api.ApiErrorResponse
+	decodeJSON(t, failedRaw, &failed)
+	if failed.Error.Code != sharederrors.CodeAiProviderTimeout || !failed.Error.Retryable {
+		t.Fatalf("first failure should map to retryable AI_PROVIDER_TIMEOUT: %+v", failed.Error)
+	}
+	assertNoEvidenceLeak(t, [][]byte{failedRaw}, "prompt body", "response body")
+	if h.store.idempotencyStatus(practiceHTTPScenarioUserAID, "practice", "startPracticeSession", "e2e-p0-024-start-session") != idempotency.StatusFailedRetry {
+		t.Fatalf("first failure should leave idempotency record failed_retryable")
+	}
+	if h.store.failedSessionCount("practice-plan-p0-024") != 1 || h.store.outboxCount() != 0 {
+		t.Fatalf("first failure should mark one failed session and emit no outbox, failed=%d outbox=%d", h.store.failedSessionCount("practice-plan-p0-024"), h.store.outboxCount())
+	}
+
+	retryRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-024-start-session", body, http.StatusCreated)
+	var retry api.PracticeSession
+	decodeJSON(t, retryRaw, &retry)
+	if retry.Status != sharedtypes.SessionStatusRunning || retry.CurrentTurn == nil || retry.CurrentTurn.TurnIndex != 1 {
+		t.Fatalf("retry did not start a running session with first turn: %+v", retry)
+	}
+	if h.store.idempotencyStatus(practiceHTTPScenarioUserAID, "practice", "startPracticeSession", "e2e-p0-024-start-session") != idempotency.StatusSucceeded {
+		t.Fatalf("retry success should mark idempotency succeeded")
+	}
+	if h.store.outboxCount() != 1 || ai.calls != 2 {
+		t.Fatalf("retry should call AI twice total and emit one outbox, calls=%d outbox=%d", ai.calls, h.store.outboxCount())
+	}
+}
+
+func TestE2EP0025PracticeIdempotencyAndIsolationMatrix(t *testing.T) {
+	h := newPracticeHTTPScenarioHarness(t)
+	planA1 := h.seedReadyScenarioPlan("practice-plan-p0-025-a1", "target-job-p0-025-a1", "resume-asset-p0-025-a1", practiceHTTPScenarioUserAID)
+	planA2 := h.seedReadyScenarioPlan("practice-plan-p0-025-a2", "target-job-p0-025-a2", "resume-asset-p0-025-a2", practiceHTTPScenarioUserAID)
+	planB := h.seedReadyScenarioPlan("practice-plan-p0-025-b1", "target-job-p0-025-b1", "resume-asset-p0-025-b1", practiceHTTPScenarioUserBID)
+
+	bodyA1 := api.StartPracticeSessionRequest{PlanId: planA1.ID, HintsEnabled: practiceBoolPtr(true)}
+	firstRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-025-shared-key", bodyA1, http.StatusCreated)
+	var first api.PracticeSession
+	decodeJSON(t, firstRaw, &first)
+	replayRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-025-shared-key", bodyA1, http.StatusCreated)
+	var replay api.PracticeSession
+	decodeJSON(t, replayRaw, &replay)
+	if replay.Id != first.Id || h.store.outboxCount() != 1 {
+		t.Fatalf("same user/key/fingerprint should replay without duplicate outbox: first=%+v replay=%+v outbox=%d", first, replay, h.store.outboxCount())
+	}
+
+	mismatchRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-025-shared-key", api.StartPracticeSessionRequest{
+		PlanId: planA1.ID, HintsEnabled: practiceBoolPtr(false),
+	}, http.StatusConflict)
+	var mismatch api.ApiErrorResponse
+	decodeJSON(t, mismatchRaw, &mismatch)
+	if mismatch.Error.Code != sharederrors.CodePracticeSessionConflict || strings.Contains(string(mismatchRaw), first.Id) {
+		t.Fatalf("fingerprint mismatch should return conflict without first resource leak: %s", string(mismatchRaw))
+	}
+
+	bodyB := api.StartPracticeSessionRequest{PlanId: planB.ID, HintsEnabled: practiceBoolPtr(true)}
+	userBRaw := h.doJSON(t, practiceHTTPScenarioUserBID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-025-shared-key", bodyB, http.StatusCreated)
+	var userB api.PracticeSession
+	decodeJSON(t, userBRaw, &userB)
+	if userB.Id == first.Id || h.store.outboxCount() != 2 {
+		t.Fatalf("cross-user same key should be isolated: userA=%s userB=%s outbox=%d", first.Id, userB.Id, h.store.outboxCount())
+	}
+
+	bodyA2 := api.StartPracticeSessionRequest{PlanId: planA2.ID, HintsEnabled: practiceBoolPtr(true)}
+	activeRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-025-active-1", bodyA2, http.StatusCreated)
+	var active api.PracticeSession
+	decodeJSON(t, activeRaw, &active)
+	conflictRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-025-active-2", bodyA2, http.StatusConflict)
+	var conflict api.ApiErrorResponse
+	decodeJSON(t, conflictRaw, &conflict)
+	if conflict.Error.Code != sharederrors.CodePracticeSessionConflict || strings.Contains(string(conflictRaw), active.Id) {
+		t.Fatalf("same plan multi-key conflict should not leak active session: %s", string(conflictRaw))
+	}
+
+	planCrossRaw := h.doJSON(t, practiceHTTPScenarioUserBID, http.MethodGet, "/api/v1/practice/plans/"+planA1.ID, "", nil, http.StatusNotFound)
+	var planCross api.ApiErrorResponse
+	decodeJSON(t, planCrossRaw, &planCross)
+	sessionCrossRaw := h.doJSON(t, practiceHTTPScenarioUserBID, http.MethodGet, "/api/v1/practice/sessions/"+first.Id, "", nil, http.StatusNotFound)
+	var sessionCross api.ApiErrorResponse
+	decodeJSON(t, sessionCrossRaw, &sessionCross)
+	if planCross.Error.Code != sharederrors.CodePracticePlanNotFound || sessionCross.Error.Code != sharederrors.CodePracticeSessionNotFound {
+		t.Fatalf("cross-user GET should hide plan/session existence: plan=%+v session=%+v", planCross.Error, sessionCross.Error)
+	}
+}
+
 type practiceHTTPScenarioHarness struct {
 	handler http.Handler
 	store   *scenarioPracticeStore
 	cookies map[string]*http.Cookie
 }
 
-func newPracticeHTTPScenarioHarness(t *testing.T) *practiceHTTPScenarioHarness {
+type practiceHTTPScenarioOptions struct {
+	ai *scenarioPracticeAIClient
+}
+
+func newPracticeHTTPScenarioHarness(t *testing.T, options ...practiceHTTPScenarioOptions) *practiceHTTPScenarioHarness {
 	t.Helper()
+	var opts practiceHTTPScenarioOptions
+	if len(options) > 0 {
+		opts = options[0]
+	}
 	dir := t.TempDir()
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
@@ -176,10 +276,14 @@ auth:
 		SessionCookieSecret: "scenario-session-secret",
 		Now:                 fixedScenarioNow,
 	})
+	ai := opts.ai
+	if ai == nil {
+		ai = &scenarioPracticeAIClient{}
+	}
 	service := domainpractice.NewService(domainpractice.ServiceOptions{
 		Store:    store,
 		Registry: &scenarioPracticeRegistry{},
-		AI:       &scenarioPracticeAIClient{store: store},
+		AI:       ai.withStore(store),
 		Now:      fixedScenarioNow,
 		NewID:    store.nextID,
 	})
@@ -202,6 +306,27 @@ auth:
 		store:   store,
 		cookies: cookies,
 	}
+}
+
+func (h *practiceHTTPScenarioHarness) seedReadyScenarioPlan(planID, targetJobID, resumeAssetID, userID string) domainpractice.PlanRecord {
+	h.store.prerequisiteTargetOwner[targetJobID] = userID
+	h.store.prerequisiteResumeOwner[resumeAssetID] = userID
+	return h.store.seedReadyPlan(domainpractice.CreatePlanStoreInput{
+		PlanID:               planID,
+		AuditEventID:         "audit-" + planID,
+		UserID:               userID,
+		TargetJobID:          targetJobID,
+		ResumeAssetID:        resumeAssetID,
+		Goal:                 sharedtypes.PracticeGoalBaseline,
+		Mode:                 sharedtypes.PracticeModeAssisted,
+		InterviewerPersona:   sharedtypes.InterviewerRoleHiringManager,
+		Difficulty:           "standard",
+		Language:             "zh-CN",
+		TimeBudgetMinutes:    30,
+		QuestionBudget:       6,
+		FocusCompetencyCodes: []string{"system-design"},
+		Now:                  fixedScenarioNow(),
+	})
 }
 
 func (h *practiceHTTPScenarioHarness) doJSON(t *testing.T, userID, method, path string, idempotencyKey string, body any, wantStatus int) []byte {
@@ -251,12 +376,28 @@ func (r *scenarioPracticeRegistry) ResolveActive(ctx context.Context, featureKey
 }
 
 type scenarioPracticeAIClient struct {
-	store *scenarioPracticeStore
+	store    *scenarioPracticeStore
+	failures []error
+	calls    int
+}
+
+func (c *scenarioPracticeAIClient) withStore(store *scenarioPracticeStore) *scenarioPracticeAIClient {
+	if c == nil {
+		return &scenarioPracticeAIClient{store: store}
+	}
+	c.store = store
+	return c
 }
 
 func (c *scenarioPracticeAIClient) Complete(ctx context.Context, profileName string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
+	c.calls++
 	if c.store != nil {
 		c.store.recordAIObservation()
+	}
+	if len(c.failures) > 0 {
+		err := c.failures[0]
+		c.failures = c.failures[1:]
+		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
 	}
 	if profileName != "practice.first_question.default" {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("unexpected profile %q", profileName)
@@ -307,7 +448,8 @@ type scenarioPracticePlan struct {
 
 type scenarioPracticeSession struct {
 	domainpractice.SessionRecord
-	UserID string
+	UserID      string
+	FailureCode string
 }
 
 type scenarioPracticeSessionEvent struct {
@@ -333,6 +475,8 @@ type scenarioPracticeIdempotencyRecord struct {
 	ExpiresAt   time.Time
 	Response    []byte
 	HTTPStatus  int
+	ResourceID  string
+	ErrorCode   string
 }
 
 func newScenarioPracticeStore() *scenarioPracticeStore {
@@ -422,15 +566,49 @@ func (s *scenarioPracticeStore) ReserveSessionStart(_ context.Context, in domain
 	defer func() { s.inTransaction = false }()
 
 	key := s.idempotencyRecordKey(in.UserID, "practice", "startPracticeSession", in.IdempotencyKeyHash)
-	s.idempotencyRecords[key] = scenarioPracticeIdempotencyRecord{
-		RecordID:    in.IdempotencyRecordID,
-		UserID:      in.UserID,
-		Domain:      "practice",
-		Operation:   "startPracticeSession",
-		KeyHash:     in.IdempotencyKeyHash,
-		Fingerprint: in.RequestFingerprint,
-		Status:      idempotency.StatusPending,
-		ExpiresAt:   in.ExpiresAt,
+	recordID := in.IdempotencyRecordID
+	if existing, ok := s.idempotencyRecords[key]; ok {
+		if existing.Fingerprint != in.RequestFingerprint {
+			return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
+		}
+		switch existing.Status {
+		case idempotency.StatusPending:
+			return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
+		case idempotency.StatusSucceeded:
+			session, ok := s.sessions[existing.ResourceID]
+			if !ok || session.UserID != in.UserID {
+				return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
+			}
+			replay := session.SessionRecord
+			return domainpractice.SessionReservation{ReplaySession: &replay}, nil
+		case idempotency.StatusFailedRetry:
+			recordID = existing.RecordID
+			existing.Status = idempotency.StatusPending
+			existing.ErrorCode = ""
+			existing.ResourceID = ""
+			existing.Response = nil
+			existing.HTTPStatus = 0
+			existing.ExpiresAt = in.ExpiresAt
+			s.idempotencyRecords[key] = existing
+		default:
+			return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
+		}
+	} else {
+		s.idempotencyRecords[key] = scenarioPracticeIdempotencyRecord{
+			RecordID:    recordID,
+			UserID:      in.UserID,
+			Domain:      "practice",
+			Operation:   "startPracticeSession",
+			KeyHash:     in.IdempotencyKeyHash,
+			Fingerprint: in.RequestFingerprint,
+			Status:      idempotency.StatusPending,
+			ExpiresAt:   in.ExpiresAt,
+		}
+	}
+	for _, session := range s.sessions {
+		if session.UserID == in.UserID && session.PlanID == in.PlanID && (session.Status == sharedtypes.SessionStatusQueued || session.Status == sharedtypes.SessionStatusRunning) {
+			return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
+		}
 	}
 	session := domainpractice.SessionRecord{
 		ID:           in.SessionID,
@@ -445,7 +623,7 @@ func (s *scenarioPracticeStore) ReserveSessionStart(_ context.Context, in domain
 	}
 	s.sessions[in.SessionID] = scenarioPracticeSession{SessionRecord: session, UserID: in.UserID}
 	return domainpractice.SessionReservation{
-		IdempotencyRecordID: in.IdempotencyRecordID,
+		IdempotencyRecordID: recordID,
 		SessionID:           in.SessionID,
 		PlanID:              in.PlanID,
 		TargetJobID:         plan.TargetJobID,
@@ -536,11 +714,41 @@ func (s *scenarioPracticeStore) CommitSessionStart(_ context.Context, in domainp
 			record.Status = idempotency.StatusSucceeded
 			record.Response = responseBody
 			record.HTTPStatus = http.StatusCreated
+			record.ResourceID = in.SessionID
 			s.idempotencyRecords[key] = record
 			break
 		}
 	}
 	return session.SessionRecord, nil
+}
+
+func (s *scenarioPracticeStore) FailSessionStart(_ context.Context, in domainpractice.FailSessionStartInput) error {
+	session, ok := s.sessions[in.SessionID]
+	if !ok || session.UserID != in.UserID {
+		return domainpractice.ErrSessionNotFound
+	}
+	s.inTransaction = true
+	defer func() { s.inTransaction = false }()
+
+	session.Status = sharedtypes.SessionStatusFailed
+	session.UpdatedAt = in.FailedAt
+	s.sessions[in.SessionID] = session
+
+	status := idempotency.StatusFailedTerminal
+	if in.Retryable {
+		status = idempotency.StatusFailedRetry
+	}
+	for key, record := range s.idempotencyRecords {
+		if record.RecordID == in.IdempotencyRecordID {
+			record.Status = status
+			record.HTTPStatus = http.StatusBadGateway
+			record.ResourceID = in.SessionID
+			record.ErrorCode = in.ErrorCode
+			s.idempotencyRecords[key] = record
+			return nil
+		}
+	}
+	return idempotency.ErrReservationNotFound
 }
 
 func (s *scenarioPracticeStore) Reserve(_ context.Context, in idempotency.ReservationInput) (idempotency.Reservation, error) {
@@ -636,6 +844,16 @@ func (s *scenarioPracticeStore) outboxPayloads() [][]byte {
 		out = append(out, append([]byte{}, event.Payload...))
 	}
 	return out
+}
+
+func (s *scenarioPracticeStore) failedSessionCount(planID string) int {
+	count := 0
+	for _, session := range s.sessions {
+		if session.PlanID == planID && session.Status == sharedtypes.SessionStatusFailed {
+			count++
+		}
+	}
+	return count
 }
 
 func (s *scenarioPracticeStore) idempotencyStatus(userID, domain, operation, rawKey string) idempotency.Status {

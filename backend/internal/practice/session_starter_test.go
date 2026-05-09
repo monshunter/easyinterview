@@ -9,6 +9,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
@@ -107,8 +108,11 @@ func TestStartPracticeSessionRejectsMissingFirstQuestionText(t *testing.T) {
 	if _, err := service.StartPracticeSession(context.Background(), StartSessionRequest{UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "key-hash", RequestFingerprint: "fingerprint"}); err == nil {
 		t.Fatalf("expected invalid first question error")
 	}
-	if len(store.steps) != 2 || store.steps[0] != "reserve" || store.steps[1] != "ai" {
-		t.Fatalf("commit should not run after invalid first question, steps=%v", store.steps)
+	if len(store.steps) != 3 || store.steps[0] != "reserve" || store.steps[1] != "ai" || store.steps[2] != "fail" {
+		t.Fatalf("invalid first question should persist failed reservation without commit, steps=%v", store.steps)
+	}
+	if store.fail.ErrorCode != sharederrors.CodeAiOutputInvalid || store.fail.Retryable {
+		t.Fatalf("invalid first question failure not recorded correctly: %+v", store.fail)
 	}
 }
 

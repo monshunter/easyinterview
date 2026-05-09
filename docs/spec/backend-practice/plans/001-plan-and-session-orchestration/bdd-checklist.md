@@ -35,29 +35,29 @@
 
 ## E2E.P0.024 AI 失败 → reservation failed_retryable → 同 key 重试成功
 
-- [ ] 创建场景目录 `test/scenarios/e2e/p0-024-practice-session-ai-failure-retry/`
-- [ ] 编写 `README.md`
-- [ ] 准备 `data/seed-input.md`：用户 + ready plan + fake AIClient 配置（首次注入 timeout，二次成功）
-- [ ] 准备 `data/expected-outcome.md`：首次 502 envelope（不含 prompt/response 明文）+ DB failed reservation；二次 201 + currentTurn + DB succeeded reservation + outbox 行出现一次
-- [ ] 实现 `scripts/setup.sh`：登录 + 创建 baseline plan + 注入 fake AIClient 失败模式
-- [ ] 实现 `scripts/trigger.sh`：第一次 POST → 第二次同 key POST
-- [ ] 实现 `scripts/verify.sh`：断言两次响应、idempotency_records 状态机、practice_sessions 状态、outbox 行计数 = 1、envelope 无明文
-- [ ] 实现 `scripts/cleanup.sh`：完整清理 + 重置 fake AIClient
-- [ ] 执行通过
-- [ ] 记录验证证据
+- [x] 创建场景目录 `test/scenarios/e2e/p0-024-practice-session-ai-failure-retry/`
+- [x] 编写 `README.md`
+- [x] 准备 `data/seed-input.md`：用户 + ready plan + fake AIClient 配置（首次注入 timeout，二次成功）
+- [x] 准备 `data/expected-outcome.md`：首次 502 envelope（不含 prompt/response 明文）+ DB failed reservation；二次 201 + currentTurn + DB succeeded reservation + outbox 行出现一次
+- [x] 实现 `scripts/setup.sh`：登录 + 创建 baseline plan + 注入 fake AIClient 失败模式
+- [x] 实现 `scripts/trigger.sh`：第一次 POST → 第二次同 key POST
+- [x] 实现 `scripts/verify.sh`：断言两次响应、idempotency_records 状态机、practice_sessions 状态、outbox 行计数 = 1、envelope 无明文
+- [x] 实现 `scripts/cleanup.sh`：完整清理 + 重置 fake AIClient
+- [x] 执行通过
+- [x] 记录验证证据
 
 ## E2E.P0.025 副作用 endpoint Idempotency-Key 行为矩阵
 
-- [ ] 创建场景目录 `test/scenarios/e2e/p0-025-practice-idempotency-and-isolation-matrix/`
-- [ ] 编写 `README.md`：5 个子场景矩阵
-- [ ] 准备 `data/seed-input.md`：用户 A / B + planId + planId2 + 多组 idempotency key + fingerprint
-- [ ] 准备 `data/expected-outcome.md`：5 个子场景的预期响应、DB 状态、conflict envelope
-- [ ] 实现 `scripts/setup.sh`：登录 A / B + 创建 plans + 准备并发 fixture
-- [ ] 实现 `scripts/trigger.sh`：① replay；② mismatch；③ 跨用户；④ 同 user + 不同 key + 同 plan 并发（goroutine 并发或 parallel curl）；⑤ 跨用户 GET
-- [ ] 实现 `scripts/verify.sh`：每子场景断言；对并发场景断言只产生一份业务副作用；对 mismatch 断言 envelope 不泄露首次资源；对跨用户 GET 断言 404 + 错误码
-- [ ] 实现 `scripts/cleanup.sh`：完整清理两个用户的所有 plan / session / idempotency / audit / users
-- [ ] 执行通过
-- [ ] 记录验证证据
+- [x] 创建场景目录 `test/scenarios/e2e/p0-025-practice-idempotency-and-isolation-matrix/`
+- [x] 编写 `README.md`：5 个子场景矩阵
+- [x] 准备 `data/seed-input.md`：用户 A / B + planId + planId2 + 多组 idempotency key + fingerprint
+- [x] 准备 `data/expected-outcome.md`：5 个子场景的预期响应、DB 状态、conflict envelope
+- [x] 实现 `scripts/setup.sh`：登录 A / B + 创建 plans + 准备并发 fixture
+- [x] 实现 `scripts/trigger.sh`：① replay；② mismatch；③ 跨用户；④ 同 user + 不同 key + 同 plan 并发（goroutine 并发或 parallel curl）；⑤ 跨用户 GET
+- [x] 实现 `scripts/verify.sh`：每子场景断言；对并发场景断言只产生一份业务副作用；对 mismatch 断言 envelope 不泄露首次资源；对跨用户 GET 断言 404 + 错误码
+- [x] 实现 `scripts/cleanup.sh`：完整清理两个用户的所有 plan / session / idempotency / audit / users
+- [x] 执行通过
+- [x] 记录验证证据
 
 ## E2E.P0.026 隐私红线 + AI metric 完整 + legacy-negative grep
 

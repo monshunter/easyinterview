@@ -96,6 +96,8 @@ type recordingPlanStore struct {
 	reserveErr       error
 	commit           CommitSessionStartInput
 	commitErr        error
+	fail             FailSessionStartInput
+	failErr          error
 	steps            []string
 	inTx             bool
 }
@@ -177,6 +179,14 @@ func (s *recordingPlanStore) CommitSessionStart(ctx context.Context, in CommitSe
 		CreatedAt: in.CreatedAt,
 		UpdatedAt: in.StartedAt,
 	}, nil
+}
+
+func (s *recordingPlanStore) FailSessionStart(ctx context.Context, in FailSessionStartInput) error {
+	s.steps = append(s.steps, "fail")
+	s.inTx = true
+	defer func() { s.inTx = false }()
+	s.fail = in
+	return s.failErr
 }
 
 func validCreatePlanRequest(mutators ...func(*CreatePlanRequest)) CreatePlanRequest {

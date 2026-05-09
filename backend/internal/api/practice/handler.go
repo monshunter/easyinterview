@@ -226,6 +226,14 @@ func writeServiceError(w http.ResponseWriter, err error) {
 			status = http.StatusNotFound
 		case sharederrors.CodePracticeSessionNotFound:
 			status = http.StatusNotFound
+		case sharederrors.CodePracticeSessionConflict:
+			status = http.StatusConflict
+		case sharederrors.CodeAiProviderTimeout,
+			sharederrors.CodeAiOutputInvalid,
+			sharederrors.CodeAiProviderSecretMissing:
+			status = http.StatusBadGateway
+		case sharederrors.CodeAiFallbackExhausted:
+			status = http.StatusServiceUnavailable
 		}
 		writeAPIError(w, status, svcErr.Code, svcErr.Message, svcErr.Details)
 		return

@@ -33,15 +33,15 @@
 
 ## Phase 2: 错误路径 + Idempotency 完备性
 
-- [ ] 2.1 实现 AI 失败映射（D-19）：timeout → `502 AI_PROVIDER_TIMEOUT`、invalid output → `502 AI_OUTPUT_INVALID`、secret missing → `502 AI_PROVIDER_SECRET_MISSING`、fallback exhausted → `503 AI_FALLBACK_EXHAUSTED`；session reservation 进入 `failed` + `failure_code`；envelope 不含 prompt / response 明文；验证: error_mapping 单元测试每错误码一例
-- [ ] 2.2 实现 reservation `failed_retryable` 语义（D-23）：首题失败时把 `idempotency_records.status='failed_retryable'` + `practice_sessions.status='failed'` + `failure_code` 记录；同 Idempotency-Key 重试可重新生成首题，成功后固化为 `succeeded` 并升级为 `running`；验证: 集成单元测试（fake AIClient 注入失败 → 重试成功）
-- [ ] 2.3 实现 idempotency body mismatch 拒绝（C-22）：同 key 不同 fingerprint 返回 `409 PRACTICE_SESSION_CONFLICT`，不执行第二个副作用；envelope 不泄露首次资源内容；验证: middleware 单元测试
-- [ ] 2.4 实现跨用户 idempotency 隔离（C-23）：DB UNIQUE 约束包含 `user_id`，repository 全部带 `user_id` 过滤；用户 A / B 同 key 各自独立 record；验证: middleware 单元测试 + repository 集成测试
-- [ ] 2.5 实现并发单执行者（C-24）：DB UNIQUE + row lock 串行化；并发 goroutine 测试断言只一个执行者写 `pending` row，其它请求 replay 或阻塞；验证: 集成测试（goroutine 并发 fixture）
-- [ ] 2.6 实现同 plan 多 key 并发约束（C-25）：partial UNIQUE INDEX 保证同一 `(user_id, plan_id)` 最多一个 `practice_sessions.status IN ('queued','running')`；第二个返回 `409 PRACTICE_SESSION_CONFLICT`；验证: 集成测试
-- [ ] 2.7 BDD-Gate: 验证 `E2E.P0.024` 通过（`test/scenarios/e2e/p0-024-practice-session-ai-failure-retry/`）
-- [ ] 2.8 BDD-Gate: 验证 `E2E.P0.025` 通过（`test/scenarios/e2e/p0-025-practice-idempotency-and-isolation-matrix/`）
-- [ ] 2.9 Phase 2 commit + work-journal
+- [x] 2.1 实现 AI 失败映射（D-19）：timeout → `502 AI_PROVIDER_TIMEOUT`、invalid output → `502 AI_OUTPUT_INVALID`、secret missing → `502 AI_PROVIDER_SECRET_MISSING`、fallback exhausted → `503 AI_FALLBACK_EXHAUSTED`；session reservation 进入 `failed` + `failure_code`；envelope 不含 prompt / response 明文；验证: error_mapping 单元测试每错误码一例
+- [x] 2.2 实现 reservation `failed_retryable` 语义（D-23）：首题失败时把 `idempotency_records.status='failed_retryable'` + `practice_sessions.status='failed'` + `failure_code` 记录；同 Idempotency-Key 重试可重新生成首题，成功后固化为 `succeeded` 并升级为 `running`；验证: 集成单元测试（fake AIClient 注入失败 → 重试成功）
+- [x] 2.3 实现 idempotency body mismatch 拒绝（C-22）：同 key 不同 fingerprint 返回 `409 PRACTICE_SESSION_CONFLICT`，不执行第二个副作用；envelope 不泄露首次资源内容；验证: middleware 单元测试
+- [x] 2.4 实现跨用户 idempotency 隔离（C-23）：DB UNIQUE 约束包含 `user_id`，repository 全部带 `user_id` 过滤；用户 A / B 同 key 各自独立 record；验证: middleware 单元测试 + repository 集成测试
+- [x] 2.5 实现并发单执行者（C-24）：DB UNIQUE + row lock 串行化；并发 goroutine 测试断言只一个执行者写 `pending` row，其它请求 replay 或阻塞；验证: 集成测试（goroutine 并发 fixture）
+- [x] 2.6 实现同 plan 多 key 并发约束（C-25）：partial UNIQUE INDEX 保证同一 `(user_id, plan_id)` 最多一个 `practice_sessions.status IN ('queued','running')`；第二个返回 `409 PRACTICE_SESSION_CONFLICT`；验证: 集成测试
+- [x] 2.7 BDD-Gate: 验证 `E2E.P0.024` 通过（`test/scenarios/e2e/p0-024-practice-session-ai-failure-retry/`）
+- [x] 2.8 BDD-Gate: 验证 `E2E.P0.025` 通过（`test/scenarios/e2e/p0-025-practice-idempotency-and-isolation-matrix/`）
+- [x] 2.9 Phase 2 commit + work-journal
 
 ## Phase 3: 观测 / 隐私 / 收尾
 

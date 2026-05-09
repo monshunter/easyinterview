@@ -12,6 +12,7 @@ import (
 
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	domain "github.com/monshunter/easyinterview/backend/internal/practice"
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
@@ -52,6 +53,24 @@ func TestStartPracticeSessionFixtureParityDefault(t *testing.T) {
 		t.Fatalf("status = %d, want %d; body=%s", rec.Code, scenario.Response.Status, rec.Body.String())
 	}
 	assertJSONEqual(t, mustJSON(t, scenario.Response.Body), rec.Body.Bytes())
+}
+
+func TestStartPracticeSessionMapsAIServiceErrorTo502(t *testing.T) {
+	service := &fakePlanService{startErr: &domain.ServiceError{Code: sharederrors.CodeAiProviderTimeout, Message: "AI provider request timed out"}}
+	handler := newTestHandler(service)
+
+	rec := httptest.NewRecorder()
+	handler.StartPracticeSession(rec, newStartSessionHTTPRequest(t, api.StartPracticeSessionRequest{PlanId: "plan-1"}))
+	if rec.Code != http.StatusBadGateway {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	var out api.ApiErrorResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("decode error response: %v", err)
+	}
+	if out.Error.Code != sharederrors.CodeAiProviderTimeout || !out.Error.Retryable {
+		t.Fatalf("unexpected error response: %+v", out.Error)
+	}
 }
 
 func newStartSessionHTTPRequest(t *testing.T, body api.StartPracticeSessionRequest) *http.Request {

@@ -86,6 +86,36 @@ func TestMiddlewareReplaysSucceededResponse(t *testing.T) {
 	}
 }
 
+func TestMiddlewareRejectsFingerprintMismatchWithoutSideEffect(t *testing.T) {
+	now := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
+	store := newMemoryStore()
+	mw := newTestMiddleware(store, func() time.Time { return now })
+
+	var nextCalls atomic.Int32
+	handler := mw.Handler("practice", "startPracticeSession", userFromHeader, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nextCalls.Add(1)
+		writeJSONForTest(t, w, http.StatusCreated, map[string]string{"id": "session-1"})
+	}))
+
+	first := httptest.NewRecorder()
+	handler.ServeHTTP(first, newJSONRequest("user-1", "same-key", `{"planId":"plan-1"}`))
+	if first.Code != http.StatusCreated {
+		t.Fatalf("first status: want %d, got %d", http.StatusCreated, first.Code)
+	}
+
+	second := httptest.NewRecorder()
+	handler.ServeHTTP(second, newJSONRequest("user-1", "same-key", `{"planId":"plan-2"}`))
+	if second.Code != http.StatusConflict {
+		t.Fatalf("mismatch status: want %d, got %d body=%s", http.StatusConflict, second.Code, second.Body.String())
+	}
+	if strings.Contains(second.Body.String(), "session-1") {
+		t.Fatalf("mismatch response leaked first resource: %s", second.Body.String())
+	}
+	if nextCalls.Load() != 1 {
+		t.Fatalf("fingerprint mismatch executed second side effect: calls=%d", nextCalls.Load())
+	}
+}
+
 func TestMiddlewareIsolatesRecordsPerUser(t *testing.T) {
 	now := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 	store := newMemoryStore()

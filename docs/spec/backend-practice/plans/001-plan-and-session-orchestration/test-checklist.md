@@ -16,7 +16,7 @@
 
 ## Phase 2: 错误路径 + Idempotency 完备性
 
-- [ ] Phase 2 本计划定义的单元测试项全部通过：error_mapping 每错误码一例（timeout / invalid output / secret missing / fallback exhausted）；reservation_retry 集成测试（fake AIClient 注入失败 → 重试成功）；conflict body mismatch 单元测试；cross-user 隔离 middleware + repository 集成测试；并发单执行者 goroutine 集成测试；同 plan 多 key 并发 partial UNIQUE INDEX 集成测试
+- [x] Phase 2 本计划定义的单元测试项全部通过：error_mapping 每错误码一例（timeout / invalid output / secret missing / fallback exhausted）；reservation_retry 集成测试（fake AIClient 注入失败 → 重试成功）；conflict body mismatch 单元测试；cross-user 隔离 middleware + repository 集成测试；并发单执行者 goroutine 集成测试；同 plan 多 key 并发 partial UNIQUE INDEX 集成测试
 
 ## Phase 3: 观测 / 隐私 / 收尾
 

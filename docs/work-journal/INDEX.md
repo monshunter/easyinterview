@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-09](2026-05-09.md) | `feat(backend-practice): complete phase 2 idempotency recovery` | #feat #test #docs |
 | [2026-05-09](2026-05-09.md) | `feat(backend-practice): complete phase 1 practice orchestration` | #feat #test #docs |
 | [2026-05-09](2026-05-09.md) | `feat(backend-practice): complete phase 0 contract preflight` | #feat #test #docs |
 | [2026-05-09](2026-05-09.md) | `docs(frontend-home): derive jd_match plan and bump spec to v1.2` | #docs |

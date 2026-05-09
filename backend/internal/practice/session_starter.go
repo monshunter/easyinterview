@@ -49,6 +49,7 @@ type SessionReservation struct {
 	HintsEnabled        bool
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
+	ReplaySession       *SessionRecord
 }
 
 type CommitSessionStartInput struct {
@@ -68,6 +69,15 @@ type CommitSessionStartInput struct {
 	QuestionIntent      string
 	StartedAt           time.Time
 	CreatedAt           time.Time
+}
+
+type FailSessionStartInput struct {
+	IdempotencyRecordID string
+	SessionID           string
+	UserID              string
+	ErrorCode           string
+	Retryable           bool
+	FailedAt            time.Time
 }
 
 type TurnRecord struct {
@@ -129,8 +139,14 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 	if stderrs.Is(err, ErrPlanNotFound) {
 		return SessionRecord{}, planNotFoundError()
 	}
+	if stderrs.Is(err, ErrSessionConflict) {
+		return SessionRecord{}, sessionConflictError()
+	}
 	if err != nil {
 		return SessionRecord{}, err
+	}
+	if reservation.ReplaySession != nil {
+		return *reservation.ReplaySession, nil
 	}
 
 	resolution, err := s.registry.ResolveActive(ctx, firstQuestionFeatureKey, reservation.Language)
@@ -139,11 +155,11 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 	}
 	resp, _, err := s.ai.Complete(ctx, resolution.ModelProfileName, firstQuestionPayload(resolution, reservation))
 	if err != nil {
-		return SessionRecord{}, err
+		return SessionRecord{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromAI(err))
 	}
 	question, err := parseFirstQuestion(resp.Content)
 	if err != nil {
-		return SessionRecord{}, err
+		return SessionRecord{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromAI(err))
 	}
 
 	return s.store.CommitSessionStart(ctx, CommitSessionStartInput{
@@ -164,6 +180,25 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 		StartedAt:           s.now().UTC(),
 		CreatedAt:           reservation.CreatedAt,
 	})
+}
+
+func (s *Service) failReservedSessionStart(ctx context.Context, userID string, reservation SessionReservation, err error) error {
+	var svcErr *ServiceError
+	if !stderrs.As(err, &svcErr) || !isPracticeAIErrorCode(svcErr.Code) {
+		return err
+	}
+	meta := sharederrors.CodeRegistry[svcErr.Code]
+	if failErr := s.store.FailSessionStart(ctx, FailSessionStartInput{
+		IdempotencyRecordID: reservation.IdempotencyRecordID,
+		SessionID:           reservation.SessionID,
+		UserID:              userID,
+		ErrorCode:           svcErr.Code,
+		Retryable:           meta.Retryable,
+		FailedAt:            s.now().UTC(),
+	}); failErr != nil {
+		return failErr
+	}
+	return svcErr
 }
 
 func firstQuestionPayload(resolution registry.PromptResolution, reservation SessionReservation) aiclient.CompletePayload {

@@ -18,6 +18,7 @@ var (
 	ErrPlanPrerequisiteNotFound = stderrs.New("practice plan prerequisite not found")
 	ErrPlanNotFound             = stderrs.New("practice plan not found")
 	ErrSessionNotFound          = stderrs.New("practice session not found")
+	ErrSessionConflict          = stderrs.New("practice session conflict")
 )
 
 type ServiceError struct {
@@ -39,6 +40,7 @@ type Store interface {
 	GetSession(ctx context.Context, userID, sessionID string) (SessionRecord, error)
 	ReserveSessionStart(ctx context.Context, in StartSessionReservationInput) (SessionReservation, error)
 	CommitSessionStart(ctx context.Context, in CommitSessionStartInput) (SessionRecord, error)
+	FailSessionStart(ctx context.Context, in FailSessionStartInput) error
 }
 
 type PromptResolver interface {
@@ -239,6 +241,10 @@ func planNotFoundError() *ServiceError {
 
 func sessionNotFoundError() *ServiceError {
 	return &ServiceError{Code: sharederrors.CodePracticeSessionNotFound, Message: "practice session not found"}
+}
+
+func sessionConflictError() *ServiceError {
+	return &ServiceError{Code: sharederrors.CodePracticeSessionConflict, Message: "practice session is in conflicting state"}
 }
 
 func validPracticeMode(mode sharedtypes.PracticeMode) bool {

@@ -156,63 +156,7 @@ func (r *SQLRepository) GetSession(ctx context.Context, userID, sessionID string
 	if r == nil || r.db == nil {
 		return domain.SessionRecord{}, fmt.Errorf("practice SQL repository is not configured")
 	}
-	var session domain.SessionRecord
-	var turnID sql.NullString
-	var turnIndex sql.NullInt64
-	var questionText sql.NullString
-	var questionIntent sql.NullString
-	var turnStatus sql.NullString
-	var askedAt sql.NullTime
-	err := r.db.QueryRowContext(ctx, `
-select s.id, s.plan_id, s.target_job_id, s.status, s.language, s.hints_enabled,
-       s.turn_count, s.created_at, s.updated_at,
-       t.id, t.turn_index, t.question_text, t.question_intent, t.status, t.asked_at
-from practice_sessions s
-left join lateral (
-  select id, turn_index, question_text, question_intent, status, asked_at
-  from practice_turns
-  where session_id = s.id
-  order by turn_index desc
-  limit 1
-) t on true
-where s.user_id = $1
-  and s.id = $2`,
-		userID,
-		sessionID,
-	).Scan(
-		&session.ID,
-		&session.PlanID,
-		&session.TargetJobID,
-		&session.Status,
-		&session.Language,
-		&session.HintsEnabled,
-		&session.TurnCount,
-		&session.CreatedAt,
-		&session.UpdatedAt,
-		&turnID,
-		&turnIndex,
-		&questionText,
-		&questionIntent,
-		&turnStatus,
-		&askedAt,
-	)
-	if stderrs.Is(err, sql.ErrNoRows) {
-		return domain.SessionRecord{}, domain.ErrSessionNotFound
-	}
-	if err != nil {
-		return domain.SessionRecord{}, fmt.Errorf("select practice session: %w", err)
-	}
-	if turnID.Valid {
-		session.CurrentTurn = &domain.TurnRecord{
-			ID:             turnID.String,
-			TurnIndex:      int32(turnIndex.Int64),
-			QuestionText:   questionText.String,
-			QuestionIntent: questionIntent.String,
-			Status:         turnStatus.String,
-			AskedAt:        askedAt.Time,
-		}
-	}
-	return session, nil
+	return selectSessionForUser(ctx, r.db, userID, sessionID)
 }
 
 func (r *SQLRepository) ReserveSessionStart(ctx context.Context, in domain.StartSessionReservationInput) (domain.SessionReservation, error) {
@@ -225,12 +169,68 @@ func (r *SQLRepository) ReserveSessionStart(ctx context.Context, in domain.Start
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.ExecContext(ctx, `
+	if _, err := tx.ExecContext(ctx, `select pg_advisory_xact_lock(hashtext($1))`, strings.Join([]string{in.UserID, "practice", "startPracticeSession", in.IdempotencyKeyHash}, "\x00")); err != nil {
+		return domain.SessionReservation{}, fmt.Errorf("lock start session idempotency reservation: %w", err)
+	}
+
+	recordID := in.IdempotencyRecordID
+	existing, hit, err := selectStartSessionIdempotency(ctx, tx, in)
+	if err != nil {
+		return domain.SessionReservation{}, err
+	}
+	if hit {
+		if existing.fingerprint != in.RequestFingerprint {
+			return domain.SessionReservation{}, domain.ErrSessionConflict
+		}
+		switch existing.status {
+		case idempotency.StatusPending:
+			return domain.SessionReservation{}, domain.ErrSessionConflict
+		case idempotency.StatusSucceeded:
+			if strings.TrimSpace(existing.resourceID) == "" {
+				return domain.SessionReservation{}, domain.ErrSessionConflict
+			}
+			session, err := selectSessionForUser(ctx, tx, in.UserID, existing.resourceID)
+			if err != nil {
+				return domain.SessionReservation{}, err
+			}
+			if err := tx.Commit(); err != nil {
+				return domain.SessionReservation{}, fmt.Errorf("commit start session idempotency replay: %w", err)
+			}
+			return domain.SessionReservation{ReplaySession: &session}, nil
+		case idempotency.StatusFailedRetry:
+			recordID = existing.id
+			if _, err := tx.ExecContext(ctx, `
+update idempotency_records
+set request_fingerprint = $1,
+    status = $2,
+    resource_type = null,
+    resource_id = null,
+    response_body = null,
+    error_code = null,
+    expires_at = $3,
+    updated_at = $4
+where id = $5
+  and user_id = $6
+  and domain = 'practice'
+  and operation = 'startPracticeSession'`,
+				in.RequestFingerprint,
+				string(idempotency.StatusPending),
+				in.ExpiresAt,
+				in.Now,
+				existing.id,
+				in.UserID,
+			); err != nil {
+				return domain.SessionReservation{}, fmt.Errorf("reset retryable start session idempotency reservation: %w", err)
+			}
+		default:
+			return domain.SessionReservation{}, domain.ErrSessionConflict
+		}
+	} else if _, err := tx.ExecContext(ctx, `
 insert into idempotency_records (
   id, user_id, domain, operation, idempotency_key_hash,
   request_fingerprint, status, expires_at, created_at, updated_at
 ) values ($1,$2,'practice','startPracticeSession',$3,$4,$5,$6,$7,$7)`,
-		in.IdempotencyRecordID,
+		recordID,
 		in.UserID,
 		in.IdempotencyKeyHash,
 		in.RequestFingerprint,
@@ -285,13 +285,116 @@ join selected_plan on selected_plan.id = inserted.plan_id`,
 		return domain.SessionReservation{}, domain.ErrPlanNotFound
 	}
 	if err != nil {
+		if isUniqueViolation(err) {
+			return domain.SessionReservation{}, domain.ErrSessionConflict
+		}
 		return domain.SessionReservation{}, fmt.Errorf("reserve practice session: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return domain.SessionReservation{}, fmt.Errorf("commit reserve practice session: %w", err)
 	}
-	reservation.IdempotencyRecordID = in.IdempotencyRecordID
+	reservation.IdempotencyRecordID = recordID
 	return reservation, nil
+}
+
+type selectedStartSessionIdempotency struct {
+	id          string
+	fingerprint string
+	status      idempotency.Status
+	resourceID  string
+}
+
+func selectStartSessionIdempotency(ctx context.Context, tx *sql.Tx, in domain.StartSessionReservationInput) (selectedStartSessionIdempotency, bool, error) {
+	var rec selectedStartSessionIdempotency
+	var status string
+	var resourceID sql.NullString
+	err := tx.QueryRowContext(ctx, `
+select id, request_fingerprint, status, resource_id::text
+from idempotency_records
+where user_id = $1
+  and domain = 'practice'
+  and operation = 'startPracticeSession'
+  and idempotency_key_hash = $2
+for update`,
+		in.UserID,
+		in.IdempotencyKeyHash,
+	).Scan(&rec.id, &rec.fingerprint, &status, &resourceID)
+	if stderrs.Is(err, sql.ErrNoRows) {
+		return selectedStartSessionIdempotency{}, false, nil
+	}
+	if err != nil {
+		return selectedStartSessionIdempotency{}, false, fmt.Errorf("select start session idempotency reservation: %w", err)
+	}
+	rec.status = idempotency.Status(status)
+	rec.resourceID = resourceID.String
+	return rec, true, nil
+}
+
+func selectSessionForUser(ctx context.Context, q interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}, userID, sessionID string) (domain.SessionRecord, error) {
+	var session domain.SessionRecord
+	var turnID sql.NullString
+	var turnIndex sql.NullInt64
+	var questionText sql.NullString
+	var questionIntent sql.NullString
+	var turnStatus sql.NullString
+	var askedAt sql.NullTime
+	err := q.QueryRowContext(ctx, `
+select s.id, s.plan_id, s.target_job_id, s.status, s.language, s.hints_enabled,
+       s.turn_count, s.created_at, s.updated_at,
+       t.id, t.turn_index, t.question_text, t.question_intent, t.status, t.asked_at
+from practice_sessions s
+left join lateral (
+  select id, turn_index, question_text, question_intent, status, asked_at
+  from practice_turns
+  where session_id = s.id
+  order by turn_index desc
+  limit 1
+) t on true
+where s.user_id = $1
+  and s.id = $2`,
+		userID,
+		sessionID,
+	).Scan(
+		&session.ID,
+		&session.PlanID,
+		&session.TargetJobID,
+		&session.Status,
+		&session.Language,
+		&session.HintsEnabled,
+		&session.TurnCount,
+		&session.CreatedAt,
+		&session.UpdatedAt,
+		&turnID,
+		&turnIndex,
+		&questionText,
+		&questionIntent,
+		&turnStatus,
+		&askedAt,
+	)
+	if stderrs.Is(err, sql.ErrNoRows) {
+		return domain.SessionRecord{}, domain.ErrSessionNotFound
+	}
+	if err != nil {
+		return domain.SessionRecord{}, fmt.Errorf("select practice session: %w", err)
+	}
+	if turnID.Valid {
+		session.CurrentTurn = &domain.TurnRecord{
+			ID:             turnID.String,
+			TurnIndex:      int32(turnIndex.Int64),
+			QuestionText:   questionText.String,
+			QuestionIntent: questionIntent.String,
+			Status:         turnStatus.String,
+			AskedAt:        askedAt.Time,
+		}
+	}
+	return session, nil
+}
+
+func isUniqueViolation(err error) bool {
+	var pqErr *pq.Error
+	return stderrs.As(err, &pqErr) && string(pqErr.Code) == "23505"
 }
 
 func (r *SQLRepository) CommitSessionStart(ctx context.Context, in domain.CommitSessionStartInput) (domain.SessionRecord, error) {
@@ -437,6 +540,79 @@ where id = $5`,
 		return domain.SessionRecord{}, fmt.Errorf("commit practice session start: %w", err)
 	}
 	return session, nil
+}
+
+func (r *SQLRepository) FailSessionStart(ctx context.Context, in domain.FailSessionStartInput) error {
+	if r == nil || r.db == nil {
+		return fmt.Errorf("practice SQL repository is not configured")
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin fail practice session start: %w", err)
+	}
+	defer tx.Rollback()
+
+	res, err := tx.ExecContext(ctx, `
+update practice_sessions
+set status = $1,
+    failure_code = $2,
+    updated_at = $3
+where id = $4
+  and user_id = $5`,
+		string(sharedtypes.SessionStatusFailed),
+		in.ErrorCode,
+		in.FailedAt,
+		in.SessionID,
+		in.UserID,
+	)
+	if err != nil {
+		return fmt.Errorf("mark practice session failed: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("mark practice session failed rows affected: %w", err)
+	}
+	if rows == 0 {
+		return domain.ErrSessionNotFound
+	}
+
+	status := idempotency.StatusFailedTerminal
+	if in.Retryable {
+		status = idempotency.StatusFailedRetry
+	}
+	res, err = tx.ExecContext(ctx, `
+update idempotency_records
+set status = $1,
+    error_code = $2,
+    resource_type = 'practice_session',
+    resource_id = $3,
+    response_body = null,
+    updated_at = $4
+where id = $5
+  and user_id = $6
+  and domain = 'practice'
+  and operation = 'startPracticeSession'`,
+		string(status),
+		in.ErrorCode,
+		in.SessionID,
+		in.FailedAt,
+		in.IdempotencyRecordID,
+		in.UserID,
+	)
+	if err != nil {
+		return fmt.Errorf("mark start session idempotency failed: %w", err)
+	}
+	rows, err = res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("mark start session idempotency failed rows affected: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("start session idempotency reservation not found")
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit fail practice session start: %w", err)
+	}
+	return nil
 }
 
 func nullableString(value string) any {
