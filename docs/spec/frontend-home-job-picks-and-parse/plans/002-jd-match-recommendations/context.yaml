@@ -1,0 +1,125 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: frontend-home-job-picks-and-parse
+  name: 002-jd-match-recommendations
+  sequence: 2
+  supersedes: []
+  specVersion:
+    from: 1.1
+    to: 1.2
+spec:
+  defaultTarget: frontend
+  discovery:
+    aliases:
+      - frontend-home-job-picks-and-parse
+      - jd-match-recommendations
+      - jd_match three tabs
+      - JD Match full implementation
+      - jd_match recommended search watchlist
+      - JobMatch OpenAPI tag
+      - frontend job picks
+    keywords:
+      - JDMatchScreen
+      - JobMatchCard
+      - JDDetail
+      - SearchTab
+      - WatchlistTab
+      - RecommendedTab
+      - MarketSignalsGrid
+      - SavedSearchesGrid
+      - AgentScanStatusBadge
+      - JobMatchProfileChip
+      - listJobRecommendations
+      - getJobRecommendation
+      - searchJobs
+      - listSavedSearches
+      - createSavedSearch
+      - listWatchlist
+      - addToWatchlist
+      - removeFromWatchlist
+      - markJobNotRelevant
+      - getJobMatchProfile
+      - getAgentScanStatus
+      - getMarketSignals
+      - 12 operationId JobMatch
+      - 13 tag 46 endpoint OpenAPI inventory
+      - openapi_inventory.py JobMatch
+      - validate_fixtures.py JobMatch
+      - SearchTab single loading truth source
+      - getJobRecommendation detail required
+      - JobMatch tag
+      - source jd_match sourceJobMatchId
+      - confirm interview from jd_match
+      - requestAuth jd_match_action
+      - jdMatch.search.searching
+      - jdMatch.recommended namespace
+      - jdMatch.watchlist namespace
+      - jdMatch.profile namespace
+      - jdMatch.agent namespace
+      - E2E.P0.022
+      - E2E.P0.023
+      - E2E.P0.024
+      - E2E.P0.025
+      - E2E.P0.026
+  targets:
+    frontend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../../ui-design/jd-resume-management.md
+        - ../../../../ui-design/ui-architecture.md
+        - ../../../../ui-design/module-map.md
+        - ../../../frontend-shell/spec.md
+        - ../../../frontend-shell/plans/001-app-shell-auth-settings/plan.md
+        - ../../../frontend-shell/plans/002-app-shell-visual-system/plan.md
+        - ../../../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md
+        - ../001-home-jd-import-and-parse/plan.md
+        - ../001-home-jd-import-and-parse/checklist.md
+        - ../001-home-jd-import-and-parse/bdd-plan.md
+        - ../001-home-jd-import-and-parse/bdd-checklist.md
+        - ../../../openapi-v1-contract/spec.md
+        - ../../../mock-contract-suite/spec.md
+        - ../../../product-scope/spec.md
+        - ../../../engineering-roadmap/spec.md
+      discovery:
+        packages:
+          - frontend/src/app/screens/jd_match
+          - frontend/src/app/navigation
+          - frontend/src/app/i18n/locales
+          - frontend/src/api
+          - frontend/src/api/generated
+          - frontend/tests/pixel-parity
+          - ui-design/src
+          - ui-design
+          - openapi
+          - openapi/fixtures/JobMatch
+          - scripts/lint/openapi_inventory.py
+          - scripts/lint/validate_fixtures.py
+          - test/scenarios/e2e/p0-017-jd-match-placeholder
+          - test/scenarios/e2e/p0-022-jd-match-recommended-and-confirm
+          - test/scenarios/e2e/p0-023-jd-match-search-and-saved
+          - test/scenarios/e2e/p0-024-jd-match-watchlist-and-signals
+          - test/scenarios/e2e/p0-025-jd-match-profile-and-agent-status
+          - test/scenarios/e2e/p0-026-jd-match-confirm-interview-handoff
+        uiRoutes:
+          - jd_match
+          - parse
+          - auth_login
+          - home
+        apiNames:
+          - getJobMatchProfile
+          - getAgentScanStatus
+          - listJobRecommendations
+          - getJobRecommendation
+          - addToWatchlist
+          - removeFromWatchlist
+          - markJobNotRelevant
+          - searchJobs
+          - listSavedSearches
+          - createSavedSearch
+          - listWatchlist
+          - getMarketSignals

@@ -8,18 +8,9 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [002-jd-match-recommendations](./002-jd-match-recommendations/plan.md) | [plan](./002-jd-match-recommendations/plan.md) / [checklist](./002-jd-match-recommendations/checklist.md) / [context](./002-jd-match-recommendations/context.yaml) / [bdd-plan](./002-jd-match-recommendations/bdd-plan.md) / [bdd-checklist](./002-jd-match-recommendations/bdd-checklist.md) | 1.0 | active | 2026-05-09 |
 
 ## 2 已完成（Completed）
-
-*暂无已完成计划*
-
-<!--
-保留编号：
-
-- 002-jd-match-recommendations — 启动条件：backend recommendations API（`listJobRecommendations` / `searchJobs` / `listWatchlist` operationId）落地并进入 OpenAPI 与 fixture；spec.md §3 D-1 锁定。
--->
-
-## 3 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
