@@ -1,17 +1,107 @@
 import { useState, type FC } from "react";
 
+import type { Lang } from "../../i18n/messages";
 import { useI18n } from "../../i18n/messages";
 import type { Route } from "../../routes";
+import { useAgentScanStatus } from "./useAgentScanStatus";
+import { useJobMatchProfile } from "./useJobMatchProfile";
+
+const PROFILE_INITIALS_FALLBACK = "—";
+
+function computeInitials(name?: string | null): string {
+  if (!name) return PROFILE_INITIALS_FALLBACK;
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return PROFILE_INITIALS_FALLBACK;
+  return parts
+    .slice(0, 2)
+    .map((p) => (p[0] ?? "").toUpperCase())
+    .join("");
+}
+
+function formatRelativeMinutes(
+  iso: string,
+  lang: Lang,
+  direction: "past" | "future",
+): string {
+  const target = new Date(iso).getTime();
+  if (Number.isNaN(target)) return "—";
+  const now = Date.now();
+  const diffMs = direction === "past" ? now - target : target - now;
+  const minutes = Math.max(0, Math.round(diffMs / 60000));
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  if (days > 0) return lang === "en" ? `${days}d` : `${days} 天`;
+  if (hours > 0) return lang === "en" ? `${hours}h` : `${hours} 小时`;
+  return lang === "en" ? `${minutes}m` : `${minutes} 分钟`;
+}
+
+type AgentStatusEnum = "idle" | "scanning" | "error" | "loading";
+
+function resolveAgentTone(status: string | undefined): AgentStatusEnum {
+  if (status === "idle" || status === "scanning" || status === "error") {
+    return status;
+  }
+  return "loading";
+}
+
+function agentToneColor(tone: AgentStatusEnum): string {
+  switch (tone) {
+    case "scanning":
+      return "var(--ei-color-accent)";
+    case "error":
+      return "var(--ei-color-warn)";
+    case "idle":
+      return "var(--ei-color-ok)";
+    case "loading":
+    default:
+      return "var(--ei-color-fg-tertiary)";
+  }
+}
 
 export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
-  const { t } = useI18n();
-  const [tab] = useState<string>("recommended");
+  const { t, lang } = useI18n();
+  const [tab, setTab] = useState<string>("recommended");
+  const profileQuery = useJobMatchProfile();
+  const agentQuery = useAgentScanStatus(tab);
+  const profile = profileQuery.data;
+  const agent = agentQuery.data;
+  const tone = resolveAgentTone(agent?.status);
+  const dotColor = agentToneColor(tone);
 
-  const tabs = [
-    { k: "recommended", t: t("jdMatch.tabRecommended") },
-    { k: "search", t: t("jdMatch.tabSearch") },
-    { k: "watchlist", t: t("jdMatch.tabWatchlist") },
+  const initials = computeInitials(profile?.displayName);
+  const summaryParts: string[] = [];
+  if (profile) {
+    if (profile.displayName) summaryParts.push(profile.displayName);
+    if (profile.yearsOfExperience != null) {
+      summaryParts.push(
+        `${profile.yearsOfExperience} ${t("jdMatch.profile.summaryYearsUnit")}`,
+      );
+    }
+    if (profile.locationText) summaryParts.push(profile.locationText);
+  }
+  const summaryText = summaryParts.length
+    ? summaryParts.join(" · ")
+    : t("jdMatch.profile.searchingAsLoading");
+
+  const tabs: Array<{ k: string; label: string; count: number | null }> = [
+    { k: "recommended", label: t("jdMatch.tabRecommended"), count: null },
+    { k: "search", label: t("jdMatch.tabSearch"), count: null },
+    { k: "watchlist", label: t("jdMatch.tabWatchlist"), count: null },
   ];
+
+  const agentStatusLabel = (() => {
+    switch (tone) {
+      case "scanning":
+        return t("jdMatch.agent.statusScanning");
+      case "error":
+        return t("jdMatch.agent.statusError");
+      case "idle":
+        return t("jdMatch.agent.statusIdle");
+      case "loading":
+      default:
+        return t("jdMatch.agent.statusLoading");
+    }
+  })();
 
   return (
     <section
@@ -79,6 +169,7 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
       >
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <div
+            data-testid="jdmatch-profile-chip-avatar"
             style={{
               width: 32,
               height: 32,
@@ -91,9 +182,18 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
               fontFamily: "var(--ei-font-serif)",
               fontWeight: 600,
               fontSize: 14,
+              overflow: "hidden",
             }}
           >
-            {t("jdMatch.profileInitials")}
+            {profile?.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              initials
+            )}
           </div>
           <div>
             <div
@@ -103,17 +203,17 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
                 marginBottom: 2,
               }}
             >
-              {t("jdMatch.searchingAs")}
+              {t("jdMatch.profile.searchingAs")}
             </div>
             <div
-              data-testid="jdmatch-profile-chip-title"
+              data-testid="jdmatch-profile-chip-searching-as"
               style={{
                 fontSize: 13.5,
                 color: "var(--ei-color-fg-primary)",
                 fontWeight: 500,
               }}
             >
-              {t("jdMatch.profileSummary")}
+              {summaryText}
             </div>
           </div>
         </div>
@@ -124,10 +224,14 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
             background: "var(--ei-color-rule-strong)",
           }}
         />
-        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-          {["React", "TypeScript", "Node.js"].map((s) => (
+        <div
+          data-testid="jdmatch-profile-chip-skills"
+          style={{ display: "flex", gap: 5, flexWrap: "wrap" }}
+        >
+          {(profile?.skills ?? []).map((skill, i) => (
             <span
-              key={s}
+              key={`${skill}-${i}`}
+              data-testid={`jdmatch-profile-chip-skill-${i}`}
               style={{
                 padding: "2px 8px",
                 fontSize: 11,
@@ -138,12 +242,13 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
                 color: "var(--ei-color-fg-secondary)",
               }}
             >
-              {s}
+              {skill}
             </span>
           ))}
         </div>
         <div style={{ flex: 1, minWidth: 40 }} />
         <div
+          data-testid="jdmatch-profile-chip-sources"
           style={{
             textAlign: "right",
             color: "var(--ei-color-fg-tertiary)",
@@ -152,9 +257,18 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
           }}
         >
           <div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)" }}>
-            {t("jdMatch.profileSources")}
+            {t("jdMatch.profile.sourcesHeading")}
           </div>
-          <div>{t("jdMatch.profileSourcesStats")}</div>
+          {profile?.sources ? (
+            <div>
+              {`${profile.sources.resumes} ${t("jdMatch.profile.sourcesUnitResumes")} · `}
+              {`${profile.sources.jds} ${t("jdMatch.profile.sourcesUnitJds")} · `}
+              {`${profile.sources.mocks} ${t("jdMatch.profile.sourcesUnitMocks")} · `}
+              {`${profile.sources.debriefs} ${t("jdMatch.profile.sourcesUnitDebriefs")}`}
+            </div>
+          ) : (
+            <div>{t("jdMatch.profile.sourcesEmpty")}</div>
+          )}
         </div>
       </div>
 
@@ -171,6 +285,7 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
           <button
             key={tabItem.k}
             data-testid={`jdmatch-tab-${tabItem.k}`}
+            onClick={() => setTab(tabItem.k)}
             style={{
               padding: "12px 22px",
               background: "transparent",
@@ -189,13 +304,39 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
               fontSize: 13.5,
               fontWeight: tab === tabItem.k ? 500 : 400,
               marginBottom: -1,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
           >
-            {tabItem.t}
+            <span>{tabItem.label}</span>
+            {tabItem.count != null && (
+              <span
+                data-testid={`jdmatch-tab-${tabItem.k}-count`}
+                style={{
+                  fontFamily: "var(--ei-font-mono)",
+                  fontSize: 10.5,
+                  padding: "1px 6px",
+                  borderRadius: 10,
+                  background:
+                    tab === tabItem.k
+                      ? "var(--ei-color-accent-soft)"
+                      : "var(--ei-color-bg-soft)",
+                  color:
+                    tab === tabItem.k
+                      ? "var(--ei-color-accent)"
+                      : "var(--ei-color-fg-tertiary)",
+                }}
+              >
+                {tabItem.count}
+              </span>
+            )}
           </button>
         ))}
         <div style={{ flex: 1 }} />
         <div
+          data-testid="jdmatch-agent-status-badge"
+          data-tone={tone}
           style={{
             alignSelf: "center",
             fontSize: 11.5,
@@ -203,6 +344,9 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
             fontFamily: "var(--ei-font-mono)",
             letterSpacing: "0.04em",
             paddingRight: 6,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
           }}
         >
           <span
@@ -211,54 +355,30 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
               width: 6,
               height: 6,
               borderRadius: 3,
-              background: "var(--ei-color-ok)",
-              marginRight: 6,
+              background: dotColor,
               verticalAlign: "middle",
             }}
           />
-          {t("jdMatch.agentStatus")}
-        </div>
-      </div>
-
-      {/* Placeholder content */}
-      <div
-        data-testid="jdmatch-placeholder"
-        className="ei-screen-card"
-        style={{
-          padding: "48px 40px",
-          textAlign: "center",
-        }}
-      >
-        <div
-          className="ei-serif"
-          style={{
-            fontSize: 24,
-            color: "var(--ei-color-fg-primary)",
-            marginBottom: 12,
-          }}
-        >
-          {t("jdMatch.placeholderTitle")}
-        </div>
-        <div
-          style={{
-            fontSize: 14,
-            color: "var(--ei-color-fg-tertiary)",
-            maxWidth: 520,
-            margin: "0 auto 24px",
-            lineHeight: 1.6,
-          }}
-        >
-          {t("jdMatch.placeholderCopy")}
-        </div>
-        <div
-          data-testid="jdmatch-placeholder-cta"
-          style={{
-            fontSize: 12,
-            color: "var(--ei-color-fg-muted)",
-            fontFamily: "var(--ei-font-mono)",
-          }}
-        >
-          {t("jdMatch.placeholderCta")}
+          <span>{agentStatusLabel}</span>
+          {tone === "error" && agent?.message ? (
+            <span style={{ color: "var(--ei-color-warn)" }}>
+              · {agent.message}
+            </span>
+          ) : null}
+          {agent?.lastScanAt ? (
+            <span data-testid="jdmatch-agent-status-last-scan">
+              {" · "}
+              {t("jdMatch.agent.lastScanLabel")}{" "}
+              {formatRelativeMinutes(agent.lastScanAt, lang, "past")}
+            </span>
+          ) : null}
+          {agent?.nextScanAt && tone !== "scanning" ? (
+            <span data-testid="jdmatch-agent-status-next-scan">
+              {" · "}
+              {t("jdMatch.agent.nextScanLabel")}{" "}
+              {formatRelativeMinutes(agent.nextScanAt, lang, "future")}
+            </span>
+          ) : null}
         </div>
       </div>
     </section>

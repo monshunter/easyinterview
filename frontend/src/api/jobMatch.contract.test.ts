@@ -43,7 +43,15 @@ const ALL_JOB_MATCH_FIXTURES = [
 	getMarketSignalsFixture,
 ];
 
-const SIDE_EFFECT_FIXTURES: Array<{ id: string; fixture: typeof addToWatchlistFixture }> = [
+type SideEffectFixtureShape = {
+	scenarios: {
+		default?: {
+			request?: { headers?: Record<string, string> };
+		};
+	};
+};
+
+const SIDE_EFFECT_FIXTURES: Array<{ id: string; fixture: SideEffectFixtureShape }> = [
 	{ id: "addToWatchlist", fixture: addToWatchlistFixture },
 	{ id: "removeFromWatchlist", fixture: removeFromWatchlistFixture },
 	{ id: "markJobNotRelevant", fixture: markJobNotRelevantFixture },
