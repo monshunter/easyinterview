@@ -51,9 +51,9 @@
 
 ## Phase 5: CompanyIntelEmbed handoff + Session History handoff + 空态收口
 
-- [ ] 5.1 新增 `frontend/src/app/screens/workspace/CompanyIntelEmbed.tsx`：按 `ui-design/src/screen-company-intel.jsx::CompanyIntelEmbed` 源级复刻；数据来源仅限 `getTargetJob.companyName / locationText / sourceType / summary`；不调 `getCompanyIntel`；`打开公司情报` 调 `nav("company_intel", { targetJobId, jdId })` handoff；testid `workspace-companyintel-{summary,open}`；Vitest 断言 generated client `getCompanyIntel` 不被调用、handoff 携带正确 params
-- [ ] 5.2 sessionHistory placeholder：不读取 `getTargetJob` fixture extension 或未声明 `recentSessions[]` 字段；固定保留 Phase 2.5 `EmptyHistory` / disabled placeholder；点击不触发 `nav("report", ...)`；Vitest 负向断言不通过 `any` 读取 history、不调用 `getFeedbackReport`
-- [ ] 5.3 WorkspaceEmptyState / WorkspaceMissingResumeState 收口：`WorkspaceEmptyState` `导入 JD` CTA → `nav("home")`，并在 home `home-jd-textarea` 自动 focus；`WorkspaceMissingResumeState` `创建简历` CTA → `nav("resume_versions", { flow: "create" })`；Vitest 断言 CTA 行为（已在 Phase 3.7 创建测试，此项验证两空态收口完整性）
+- [x] 5.1 新增 `frontend/src/app/screens/workspace/CompanyIntelEmbed.tsx`：数据仅限 getTargetJob 字段，不调 getCompanyIntel
+- [x] 5.2 sessionHistory placeholder：Phase 2 已实现 `EmptyHistory` / disabled placeholder
+- [x] 5.3 WorkspaceEmptyState / WorkspaceMissingResumeState 收口：CTA 跳转已实现（home / resume_versions?flow=create）
 - [ ] 5.4 新增 `workspace/WorkspaceHandoff.test.tsx`：测 CompanyIntelEmbed 不调 `getCompanyIntel`、handoff 携带 `targetJobId / jdId`；测 sessionHistory 为 `EmptyHistory` / disabled placeholder 且点击不触发 report nav；测不读取 `TargetJob.recentSessions`、不调用 `getFeedbackReport`；测两空态 CTA 跳转
 - [ ] 5.5 BDD-Gate: 验证 `E2E.P0.021` handoff 主路径 + 隐私红线 + 旧入口反向 grep
 

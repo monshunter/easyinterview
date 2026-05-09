@@ -7,6 +7,7 @@ import type { Route } from "../../routes";
 import { useWorkspaceTargetJob } from "./hooks/useWorkspaceTargetJob";
 import { useWorkspaceResume } from "./hooks/useWorkspaceResume";
 import { useStartPractice } from "./hooks/useStartPractice";
+import { CompanyIntelEmbed } from "./CompanyIntelEmbed";
 
 interface WorkspaceScreenProps {
   route: Route;
@@ -1003,74 +1004,15 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
             gap: 24,
           }}
         >
-          {/* CompanyIntelEmbed placeholder */}
-          <div
-            data-testid="workspace-companyintel-summary"
-            style={{
-              background: "var(--ei-color-bgCard)",
-              border: "1px solid var(--ei-color-rule)",
-              borderRadius: 3,
-              padding: 16,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div>
-              <div
-                className="ei-label"
-                style={{
-                  color: "var(--ei-color-ink3)",
-                  marginBottom: 6,
-                }}
-              >
-                {t("workspace.intelLabel")}
-              </div>
-              <div
-                className="ei-serif"
-                style={{
-                  fontSize: 15,
-                  color: "var(--ei-color-ink)",
-                }}
-              >
-                {t("workspace.intelTitle")}
-              </div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--ei-color-ink3)",
-                  marginTop: 4,
-                  lineHeight: 1.5,
-                }}
-              >
-                {t("workspace.intelSub")}
-              </div>
-            </div>
-            <button
-              data-testid="workspace-companyintel-open"
-              onClick={() =>
-                navigate({
-                  name: "company_intel",
-                  params: {
-                    targetJobId: route.params.targetJobId || "",
-                    jdId: route.params.jdId || "",
-                  },
-                })
-              }
-              style={{
-                background: "transparent",
-                border: "1px solid var(--ei-color-rule)",
-                borderRadius: 2,
-                color: "var(--ei-color-ink2)",
-                padding: "5px 10px",
-                fontSize: 12,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {t("workspace.intelOpen")}
-            </button>
-          </div>
+          {/* CompanyIntelEmbed */}
+          <CompanyIntelEmbed
+            companyName={tj?.companyName}
+            locationText={tj?.locationText}
+            sourceType={tj?.sourceType}
+            summary={typeof tj?.summary?.coreThemes?.[0] === "string" ? tj.summary.coreThemes[0] : undefined}
+            targetJobId={ctx.targetJobId || (route.params.targetJobId as string)}
+            jdId={ctx.jdId || (route.params.jdId as string)}
+          />
 
           {/* JD breakdown card */}
           <div
