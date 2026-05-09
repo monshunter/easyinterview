@@ -52,4 +52,4 @@
 - [x] 3.5 Phase 3 legacy-negative grep（收口子集）：`warmup` / `single_drill` / `drill_builder` / `mistake_queue` / `growth_center` / 独立 `voice` route（除 `practice-voice-mvp` 内部占位）/ `practiceModeCard` 在本 plan 输出文档与代码 diff 零出现；验证: CI grep gate
 - [x] 3.6 BDD-Gate: 验证 `E2E.P0.026` 通过（`test/scenarios/e2e/p0-026-practice-observability-and-privacy-redlines/`）
 - [x] 3.7 文档收口：plan / checklist / test-plan / test-checklist / bdd-plan / bdd-checklist 状态 `active` → `completed`（待 §5 验收 gate 全绿后）；同步 `plans/INDEX.md` 与 `docs/spec/INDEX.md`；运行 `/sync-doc-index --check` 无 drift
-- [ ] 3.8 Phase 3 commit + work-journal + `/retrospective`（成功交付后沉淀复盘建议）
+- [x] 3.8 Phase 3 commit + work-journal + `/retrospective`（成功交付后沉淀复盘建议）
