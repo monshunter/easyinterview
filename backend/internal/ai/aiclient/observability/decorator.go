@@ -388,6 +388,18 @@ func AITaskRunRowFromMeta(meta aiclient.AICallMeta, taskCtx aiclient.AITaskRunCo
 	if err := taskCtx.Validate(); err != nil {
 		return aiclient.AITaskRunRow{}, fmt.Errorf("observability: build ai_task_runs row: %w", err)
 	}
+	featureKey := strings.TrimSpace(meta.FeatureKey)
+	if featureKey == "" {
+		return aiclient.AITaskRunRow{}, fmt.Errorf("observability: build ai_task_runs row: feature_key is required")
+	}
+	featureFlag := strings.TrimSpace(meta.FeatureFlag)
+	if featureFlag == "" {
+		featureFlag = "none"
+	}
+	dataSourceVersion := strings.TrimSpace(meta.DataSourceVersion)
+	if dataSourceVersion == "" {
+		dataSourceVersion = "not_applicable"
+	}
 	return aiclient.AITaskRunRow{
 		ID:                   taskCtx.ID,
 		UserID:               taskCtx.UserID,
@@ -401,9 +413,9 @@ func AITaskRunRowFromMeta(meta aiclient.AICallMeta, taskCtx aiclient.AITaskRunCo
 		RubricVersion:        meta.RubricVersion,
 		ModelProfileName:     meta.ModelProfileName,
 		ModelProfileVersion:  meta.ModelProfileVersion,
-		FeatureKey:           meta.FeatureKey,
-		FeatureFlag:          meta.FeatureFlag,
-		DataSourceVersion:    meta.DataSourceVersion,
+		FeatureKey:           featureKey,
+		FeatureFlag:          featureFlag,
+		DataSourceVersion:    dataSourceVersion,
 		Language:             meta.Language,
 		InputTokens:          meta.InputTokens,
 		OutputTokens:         meta.OutputTokens,

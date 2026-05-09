@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
@@ -213,6 +214,42 @@ func mustJSON(t *testing.T, v any) string {
 		t.Fatalf("Marshal: %v", err)
 	}
 	return string(b)
+}
+
+func TestAITaskRunRowFromMeta_RequiresFeatureKeyAndDefaultsProvenanceSentinels(t *testing.T) {
+	taskCtx := aiclient.AITaskRunContext{
+		Capability:   aiclient.AITaskRunTaskFollowupGenerate,
+		ResourceType: aiclient.AITaskRunResourceTargetJob,
+		ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
+	}
+	now := time.Unix(1710000000, 0).UTC()
+	meta := aiclient.AICallMeta{
+		Provider:      stub.Name,
+		ModelFamily:   "stub",
+		ModelID:       "stub-chat-1",
+		PromptVersion: "p1",
+		RubricVersion: "r1",
+	}
+
+	if _, err := observability.AITaskRunRowFromMeta(meta, taskCtx, aiclient.AuditMetadata{}, now, now, nil); err == nil ||
+		!strings.Contains(err.Error(), "feature_key") {
+		t.Fatalf("expected missing feature_key error, got %v", err)
+	}
+
+	meta.FeatureKey = " practice.followup "
+	row, err := observability.AITaskRunRowFromMeta(meta, taskCtx, aiclient.AuditMetadata{}, now, now, nil)
+	if err != nil {
+		t.Fatalf("AITaskRunRowFromMeta: %v", err)
+	}
+	if row.FeatureKey != "practice.followup" {
+		t.Fatalf("expected trimmed feature_key, got %q", row.FeatureKey)
+	}
+	if row.FeatureFlag != "none" {
+		t.Fatalf("expected default feature_flag=none, got %q", row.FeatureFlag)
+	}
+	if row.DataSourceVersion != "not_applicable" {
+		t.Fatalf("expected default data_source_version=not_applicable, got %q", row.DataSourceVersion)
+	}
 }
 
 func TestDecorator_AllSevenMetricFamiliesRegistered(t *testing.T) {

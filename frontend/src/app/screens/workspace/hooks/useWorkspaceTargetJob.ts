@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { TargetJob } from "../../../../api/generated/types";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
@@ -10,6 +10,8 @@ export interface UseWorkspaceTargetJobResult {
   data: TargetJob | null;
   error: Error | null;
   empty: boolean;
+  notFound: boolean;
+  retry: () => void;
 }
 
 /**
@@ -27,7 +29,12 @@ export function useWorkspaceTargetJob(): UseWorkspaceTargetJobResult {
   const [loading, setLoading] = useState(!!targetJobId);
   const [data, setData] = useState<TargetJob | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [reloadSeq, setReloadSeq] = useState(0);
   const requestSeqRef = useRef(0);
+
+  const retry = useCallback(() => {
+    setReloadSeq((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     if (!client || !targetJobId) {
@@ -68,7 +75,12 @@ export function useWorkspaceTargetJob(): UseWorkspaceTargetJobResult {
     return () => {
       active = false;
     };
-  }, [client, targetJobId, dispatch]);
+  }, [client, targetJobId, dispatch, reloadSeq]);
 
-  return { loading, data, error, empty: !targetJobId };
+  const notFound = error ? isHttpStatus(error, 404) : false;
+  return { loading, data, error, empty: !targetJobId, notFound, retry };
+}
+
+function isHttpStatus(error: Error, status: number): boolean {
+  return error.message.startsWith(`HTTP ${status} `);
 }

@@ -214,12 +214,12 @@
               "Likely deep-dive on streaming partial hydration trade-offs"
             ],
             "provenance": {
-              "promptVersion": "target_job_summary.v3",
-              "rubricVersion": "not_applicable",
-              "modelId": "model-profile:contract.default",
+              "promptVersion": "v0.1.0",
+              "rubricVersion": "v0.1.0",
+              "modelId": "fixture-model:target-import-parse",
               "language": "en",
               "featureFlag": "none",
-              "dataSourceVersion": "target_job.v17"
+              "dataSourceVersion": "registry.v1"
             }
           },
           "requirements": [
@@ -281,12 +281,12 @@
               "Role may require frequent public communication (talks, RFCs, GitHub discussions)"
             ],
             "provenance": {
-              "promptVersion": "target_job_fit.v2",
+              "promptVersion": "v0.1.0",
               "rubricVersion": "not_applicable",
-              "modelId": "model-profile:contract.default",
+              "modelId": "fixture-model:target-import-parse",
               "language": "en",
-              "featureFlag": "fit_summary_v2",
-              "dataSourceVersion": "target_job.v17"
+              "featureFlag": "none",
+              "dataSourceVersion": "registry.v1"
             }
           },
           "latestReportId": "01918fa0-0000-7000-8000-000000008000",
@@ -308,6 +308,22 @@
             "message": "TargetJob not found",
             "requestId": "req_2026-05-09T10-00-00-not-found",
             "retryable": false
+          }
+        }
+      }
+    },
+    "5xx": {
+      "response": {
+        "status": 500,
+        "headers": {
+          "X-Request-ID": "req_2026-05-09T10-00-00-5xx"
+        },
+        "body": {
+          "error": {
+            "code": "INTERNAL",
+            "message": "TargetJob fetch failed",
+            "requestId": "req_2026-05-09T10-00-00-5xx",
+            "retryable": true
           }
         }
       }

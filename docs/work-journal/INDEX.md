@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-09](2026-05-09.md) | `fix(review): address workspace and provenance findings` | #fix #ui #test |
 | [2026-05-09](2026-05-09.md) | `feat(prompt-rubric-registry): upgrade target.import.parse prompt schema and inject source URL` | #feat #test |
 | [2026-05-09](2026-05-09.md) | `feat(observability): enrich ai call metadata with provenance defaults` | #feat #test |
 | [2026-05-09](2026-05-09.md) | `fix(frontend-workspace): harden workspace review follow-up` | #fix #ui #i18n #test #docs |

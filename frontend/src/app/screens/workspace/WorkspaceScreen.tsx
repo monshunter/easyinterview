@@ -26,7 +26,14 @@ interface WorkspaceScreenProps {
 export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   const { t, lang } = useI18n();
   const { navigate } = useNavigation();
-  const { loading, data: tj, error: targetError, empty: targetEmpty } = useWorkspaceTargetJob();
+  const {
+    loading,
+    data: tj,
+    error: targetError,
+    empty: targetEmpty,
+    notFound: targetNotFound,
+    retry: retryTargetJob,
+  } = useWorkspaceTargetJob();
   const { data: resume, empty: resumeEmpty } = useWorkspaceResume();
   useWorkspacePracticePlan();
   const { ctx, dispatch } = useInterviewContext();
@@ -37,7 +44,8 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
 
   // ── Empty / missing states ──
   const hasBoundResume = !!normalizeServerBoundId(ctx.resumeVersionId);
-  const showEmptyState = (targetEmpty || !!targetError) && !loading && !tj;
+  const showEmptyState = (targetEmpty || targetNotFound) && !loading && !tj;
+  const showTargetError = !!targetError && !targetNotFound && !loading && !tj;
   const showMissingResume = !targetEmpty && !loading && tj && (resumeEmpty || !hasBoundResume);
 
   // ── Derived display values per plan §3.7 mapping ──
@@ -162,6 +170,69 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
       navigateToPractice(result);
     }
   };
+
+  if (showTargetError) {
+    return (
+      <div
+        className="ei-fadein"
+        style={{
+          width: "100%",
+          maxWidth: 560,
+          margin: compactLayout ? "48px auto" : "80px auto",
+          padding: compactLayout ? "0 16px" : "0 24px",
+        }}
+      >
+        <div
+          data-testid="workspace-target-error"
+          style={{
+            background: "var(--ei-color-bgCard)",
+            border: "1px solid var(--ei-color-rule)",
+            borderRadius: 3,
+            padding: 32,
+            textAlign: "center",
+          }}
+        >
+          <div
+            data-testid="workspace-target-error-eyebrow"
+            className="ei-label"
+            style={{ color: "var(--ei-color-danger)", marginBottom: 8 }}
+          >
+            {t("workspace.targetError.eyebrow")}
+          </div>
+          <div
+            data-testid="workspace-target-error-title"
+            className="ei-serif"
+            style={{ fontSize: 18, color: "var(--ei-color-ink)", marginBottom: 12 }}
+          >
+            {t("workspace.targetError.title")}
+          </div>
+          <div
+            data-testid="workspace-target-error-desc"
+            style={{ fontSize: 13, color: "var(--ei-color-ink3)", marginBottom: 20, lineHeight: 1.55 }}
+          >
+            {t("workspace.targetError.desc")}
+          </div>
+          <button
+            data-testid="workspace-target-error-retry"
+            onClick={retryTargetJob}
+            style={{
+              height: 34,
+              padding: "0 16px",
+              fontSize: 13,
+              fontWeight: 500,
+              background: "var(--ei-color-accent)",
+              color: "#fff",
+              border: "1px solid var(--ei-color-accent)",
+              borderRadius: 2,
+              cursor: "pointer",
+            }}
+          >
+            {t("workspace.errors.retry")}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (showEmptyState) {
     return (

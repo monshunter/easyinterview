@@ -4,6 +4,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useEffect, type ReactNode } from "react";
 
 import { EasyInterviewClient } from "../../../api/generated/client";
@@ -124,6 +125,34 @@ describe("WorkspaceEmptyState", () => {
 
     expect(screen.queryByTestId("workspace-launcher")).toBeNull();
     expect(screen.getByTestId("workspace-empty-cta")).toBeDefined();
+  });
+
+  it("renders recoverable target error state with retry when getTargetJob returns 5xx", async () => {
+    const user = userEvent.setup();
+    const client = clientWithScenarios({ targetJobScenario: "5xx" });
+    const spy = vi.spyOn(client, "getTargetJob");
+    renderScreen(
+      {
+        name: "workspace",
+        params: {
+          targetJobId: "01918fa0-0000-7000-8000-000000002000",
+          resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+        },
+      },
+      client,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-target-error")).toBeDefined();
+    });
+
+    expect(screen.queryByTestId("workspace-empty")).toBeNull();
+    expect(screen.queryByTestId("workspace-launcher")).toBeNull();
+
+    await user.click(screen.getByTestId("workspace-target-error-retry"));
+    await waitFor(() => {
+      expect(spy.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
   });
 });
 
