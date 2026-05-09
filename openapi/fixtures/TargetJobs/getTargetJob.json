@@ -186,6 +186,131 @@
           "updatedAt": "2026-04-28T12:00:00Z"
         }
       }
+    },
+    "with-rounds": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-09T10-00-00-with-rounds"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000003000",
+          "status": "interviewing",
+          "analysisStatus": "ready",
+          "title": "Staff Frontend Engineer",
+          "companyName": "Vercel",
+          "locationText": "Remote · US",
+          "targetLanguage": "en",
+          "sourceType": "url",
+          "sourceUrl": "https://vercel.example/careers/staff-frontend",
+          "summary": {
+            "coreThemes": [
+              "Edge runtime architecture and streaming SSR at scale",
+              "Framework-level contributions to Next.js ecosystem",
+              "Cross-functional platform team leadership"
+            ],
+            "interviewHypotheses": [
+              "Will probe understanding of React Server Components internals",
+              "Likely deep-dive on streaming partial hydration trade-offs"
+            ],
+            "provenance": {
+              "promptVersion": "target_job_summary.v3",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:contract.default",
+              "language": "en",
+              "featureFlag": "none",
+              "dataSourceVersion": "target_job.v17"
+            }
+          },
+          "requirements": [
+            {
+              "id": "01918fa0-0000-7000-8000-00000000e000",
+              "kind": "must_have",
+              "label": "8+ years building production React applications at scale",
+              "evidenceLevel": "explicit"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000e100",
+              "kind": "must_have",
+              "label": "Deep understanding of React Server Components and streaming SSR",
+              "evidenceLevel": "explicit"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000e200",
+              "kind": "must_have",
+              "label": "Experience contributing to or maintaining a major JS framework",
+              "evidenceLevel": "explicit"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000e300",
+              "kind": "nice_to_have",
+              "label": "Published technical writing or conference talks on web performance",
+              "evidenceLevel": "implicit"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000e400",
+              "kind": "nice_to_have",
+              "label": "Experience with WebAssembly or Rust-based tooling",
+              "evidenceLevel": "implicit"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000e500",
+              "kind": "hidden_signal",
+              "label": "JD language emphasizes platform thinking over feature delivery",
+              "evidenceLevel": "inferred"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000e600",
+              "kind": "hidden_signal",
+              "label": "Multiple references to cross-team enablement suggest IC influence expectations",
+              "evidenceLevel": "inferred"
+            }
+          ],
+          "fitSummary": {
+            "strengths": [
+              "React Server Components expertise (matches must-have #2)",
+              "Maintained open-source framework with 5k+ GitHub stars (matches must-have #3)",
+              "Published 3 conference talks on streaming SSR performance"
+            ],
+            "gaps": [
+              "No direct WebAssembly or Rust experience",
+              "Limited platform-level observability stories"
+            ],
+            "riskSignals": [
+              "Hiring manager explicitly values framework-level contributions",
+              "Role may require frequent public communication (talks, RFCs, GitHub discussions)"
+            ],
+            "provenance": {
+              "promptVersion": "target_job_fit.v2",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:contract.default",
+              "language": "en",
+              "featureFlag": "fit_summary_v2",
+              "dataSourceVersion": "target_job.v17"
+            }
+          },
+          "latestReportId": "01918fa0-0000-7000-8000-000000008000",
+          "openQuestionIssueCount": 0,
+          "createdAt": "2026-05-01T10:00:00Z",
+          "updatedAt": "2026-05-05T08:30:00Z"
+        }
+      }
+    },
+    "not-found": {
+      "response": {
+        "status": 404,
+        "headers": {
+          "X-Request-ID": "req_2026-05-09T10-00-00-not-found"
+        },
+        "body": {
+          "error": {
+            "code": "NOT_FOUND",
+            "message": "TargetJob not found",
+            "requestId": "req_2026-05-09T10-00-00-not-found",
+            "retryable": false
+          }
+        }
+      }
     }
   }
 }

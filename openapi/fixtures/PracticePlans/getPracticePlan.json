@@ -21,6 +21,43 @@
           "createdAt": "2026-04-28T12:00:00Z"
         }
       }
+    },
+    "archived": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-09T10-00-00-archived"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000004001",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "goal": "baseline",
+          "mode": "assisted",
+          "interviewerPersona": "hiring_manager",
+          "difficulty": "standard",
+          "language": "zh-CN",
+          "timeBudgetMinutes": 30,
+          "questionBudget": 6,
+          "status": "archived",
+          "createdAt": "2026-04-28T12:00:00Z"
+        }
+      }
+    },
+    "not-found": {
+      "response": {
+        "status": 404,
+        "headers": {
+          "X-Request-ID": "req_2026-05-09T10-00-00-not-found"
+        },
+        "body": {
+          "error": {
+            "code": "NOT_FOUND",
+            "message": "PracticePlan not found",
+            "requestId": "req_2026-05-09T10-00-00-not-found",
+            "retryable": false
+          }
+        }
+      }
     }
   }
 }

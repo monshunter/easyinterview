@@ -4,6 +4,7 @@ import { useI18n } from "../../i18n/messages";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
 import { useWorkspaceTargetJob } from "./hooks/useWorkspaceTargetJob";
+import { useWorkspaceResume } from "./hooks/useWorkspaceResume";
 
 interface WorkspaceScreenProps {
   route: Route;
@@ -17,6 +18,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   const { t, lang } = useI18n();
   const { navigate } = useNavigation();
   const { loading, data: tj, error } = useWorkspaceTargetJob();
+  const { data: resume } = useWorkspaceResume();
 
   // ── Derived display values per plan §3.7 mapping ──
 
@@ -52,6 +54,11 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
         .filter(Boolean)
         .join(" · ")
     : t("workspace.jdMeta");
+
+  const resumeTitle = resume?.title ?? t("workspace.resumeTitle");
+  const resumeMeta = resume
+    ? readResumeSummary(resume.parsedSummary ?? null)
+    : t("workspace.resumeMeta");
 
   const statusTone = tj ? getStatusTone(tj.status) : "amber";
 
@@ -697,41 +704,41 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
                 <path d="M7 3h8l4 4v14H7V3zM15 3v5h5M9 12h8M9 16h6M9 8h3" />
               </svg>
             </div>
-            <div style={{ minWidth: 0 }}>
-              <div
-                className="ei-label"
-                style={{
-                  color: "var(--ei-color-ink3)",
-                  marginBottom: 3,
-                }}
-              >
-                {t("workspace.resumeBound")}
+              <div style={{ minWidth: 0 }}>
+                <div
+                  className="ei-label"
+                  style={{
+                    color: "var(--ei-color-ink3)",
+                    marginBottom: 3,
+                  }}
+                >
+                  {t("workspace.resumeBound")}
+                </div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    color: "var(--ei-color-ink)",
+                    fontWeight: 500,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {resumeTitle}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--ei-color-ink3)",
+                    marginTop: 2,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {resumeMeta}
+                </div>
               </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  color: "var(--ei-color-ink)",
-                  fontWeight: 500,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {t("workspace.resumeTitle")}
-              </div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--ei-color-ink3)",
-                  marginTop: 2,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {t("workspace.resumeMeta")}
-              </div>
-            </div>
             <button
               data-testid="workspace-binding-resume-change"
               onClick={() =>
@@ -903,131 +910,68 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
               </div>
             </div>
             <div style={{ padding: 20 }}>
-              {/* Must Have */}
-              <div data-testid="workspace-jd-block-must">
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  <span
-                    className="ei-mono"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                      padding: "3px 8px",
-                      borderRadius: 3,
-                      fontSize: 11.5,
-                      letterSpacing: "0.04em",
-                      background:
-                        "var(--ei-color-accentSoft)",
-                      color: "var(--ei-color-accent)",
-                      whiteSpace: "nowrap",
-                    }}
+              {JD_BLOCKS.map((block) => {
+                const items = tj
+                  ? tj.requirements.filter((r) => r.kind === block.kind)
+                  : [];
+                return (
+                  <div
+                    key={block.kind}
+                    data-testid={`workspace-jd-block-${block.testSuffix}`}
+                    style={{ marginTop: block.kind === "must_have" ? 0 : 18 }}
                   >
-                    {t("workspace.must")}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: 13.5,
-                    color: "var(--ei-color-ink2)",
-                  }}
-                >
-                  <span>{"○"}</span>{" "}
-                  {t("workspace.placeholder")}
-                </div>
-              </div>
-
-              {/* Nice to Have */}
-              <div
-                data-testid="workspace-jd-block-nice"
-                style={{ marginTop: 18 }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  <span
-                    className="ei-mono"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                      padding: "3px 8px",
-                      borderRadius: 3,
-                      fontSize: 11.5,
-                      letterSpacing: "0.04em",
-                      background:
-                        "var(--ei-color-amberSoft)",
-                      color: "var(--ei-color-warn)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {t("workspace.nice")}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: 13.5,
-                    color: "var(--ei-color-ink2)",
-                  }}
-                >
-                  <span>{"○"}</span>{" "}
-                  {t("workspace.placeholder")}
-                </div>
-              </div>
-
-              {/* Hidden signals */}
-              <div
-                data-testid="workspace-jd-block-hidden"
-                style={{ marginTop: 18 }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  <span
-                    className="ei-mono"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                      padding: "3px 8px",
-                      borderRadius: 3,
-                      fontSize: 11.5,
-                      letterSpacing: "0.04em",
-                      background:
-                        "var(--ei-color-coolSoft)",
-                      color: "var(--ei-color-cool)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {t("workspace.hidden")}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: 13.5,
-                    color: "var(--ei-color-ink2)",
-                  }}
-                >
-                  <span>{"○"}</span>{" "}
-                  {t("workspace.placeholder")}
-                </div>
-              </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 8,
+                      }}
+                    >
+                      <span
+                        className="ei-mono"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "3px 8px",
+                          borderRadius: 3,
+                          fontSize: 11.5,
+                          letterSpacing: "0.04em",
+                          background: block.tagBg,
+                          color: block.tagColor,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {block.label}
+                      </span>
+                    </div>
+                    {items.length === 0 ? (
+                      <div
+                        style={{
+                          fontSize: 13.5,
+                          color: "var(--ei-color-ink2)",
+                        }}
+                      >
+                        <span>○</span> {t("workspace.placeholder")}
+                      </div>
+                    ) : (
+                      items.map((r) => (
+                        <div
+                          key={r.id}
+                          style={{
+                            fontSize: 13.5,
+                            color: "var(--ei-color-ink2)",
+                            padding: "3px 0",
+                          }}
+                        >
+                          <span>○</span> {r.label}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1073,15 +1017,31 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
               >
                 ● {t("workspace.strongs")}
               </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: "var(--ei-color-ink2)",
-                  padding: "4px 0",
-                }}
-              >
-                {t("workspace.placeholder")}
-              </div>
+              {tj?.fitSummary?.strengths?.length ? (
+                tj.fitSummary.strengths.map((s, i) => (
+                  <div
+                    key={i}
+                    data-testid={`workspace-prep-strong-${i}`}
+                    style={{
+                      fontSize: 13,
+                      color: "var(--ei-color-ink2)",
+                      padding: "4px 0",
+                    }}
+                  >
+                    {s}
+                  </div>
+                ))
+              ) : (
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "var(--ei-color-ink2)",
+                    padding: "4px 0",
+                  }}
+                >
+                  {t("workspace.placeholder")}
+                </div>
+              )}
             </div>
             <div data-testid="workspace-prep-risks">
               <div
@@ -1094,15 +1054,35 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
               >
                 ● {t("workspace.risks")}
               </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: "var(--ei-color-ink2)",
-                  padding: "4px 0",
-                }}
-              >
-                {t("workspace.placeholder")}
-              </div>
+              {tj?.fitSummary &&
+              (tj.fitSummary.riskSignals?.length || tj.fitSummary.gaps?.length) ? (
+                [
+                  ...(tj.fitSummary.riskSignals ?? []),
+                  ...(tj.fitSummary.gaps ?? []),
+                ].map((r, i) => (
+                  <div
+                    key={i}
+                    data-testid={`workspace-prep-risk-${i}`}
+                    style={{
+                      fontSize: 13,
+                      color: "var(--ei-color-ink2)",
+                      padding: "4px 0",
+                    }}
+                  >
+                    {r}
+                  </div>
+                ))
+              ) : (
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "var(--ei-color-ink2)",
+                    padding: "4px 0",
+                  }}
+                >
+                  {t("workspace.placeholder")}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1166,6 +1146,36 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
 
 // ── Phase 2 helpers (colocated) ──
 
+const JD_BLOCKS: {
+  kind: "must_have" | "nice_to_have" | "hidden_signal";
+  label: string;
+  testSuffix: string;
+  tagBg: string;
+  tagColor: string;
+}[] = [
+  {
+    kind: "must_have",
+    label: "必需项",
+    testSuffix: "must",
+    tagBg: "var(--ei-color-accentSoft)",
+    tagColor: "var(--ei-color-accent)",
+  },
+  {
+    kind: "nice_to_have",
+    label: "加分项",
+    testSuffix: "nice",
+    tagBg: "var(--ei-color-amberSoft)",
+    tagColor: "var(--ei-color-warn)",
+  },
+  {
+    kind: "hidden_signal",
+    label: "隐性关注点",
+    testSuffix: "hidden",
+    tagBg: "var(--ei-color-coolSoft)",
+    tagColor: "var(--ei-color-cool)",
+  },
+];
+
 const ROUND_FALLBACK = ["HR 初筛", "技术一面", "技术二面", "经理面"] as const;
 const ROUND_IDS = ["round-hr", "round-tech1", "round-tech2", "round-manager"] as const;
 
@@ -1221,6 +1231,18 @@ function roundLabel(roundId?: string): string | null {
   const idx = ROUND_IDS.indexOf(roundId as typeof ROUND_IDS[number]);
   if (idx >= 0) return ROUND_FALLBACK[idx] as string;
   return null;
+}
+
+function readResumeSummary(parsedSummary: Record<string, unknown> | null): string {
+  if (!parsedSummary) return "—";
+  const parts: string[] = [];
+  const headline = typeof parsedSummary.headline === "string" ? parsedSummary.headline : null;
+  const yoe = typeof parsedSummary.yearsOfExperience === "number"
+    ? `${parsedSummary.yearsOfExperience}y`
+    : null;
+  if (headline) parts.push(headline);
+  if (yoe) parts.push(yoe);
+  return parts.length > 0 ? parts.join(" · ") : "—";
 }
 
 function derivePrepStatus(tj: { fitSummary?: { strengths?: unknown[]; gaps?: unknown[]; riskSignals?: unknown[] } | null; openQuestionIssueCount: number }): string {

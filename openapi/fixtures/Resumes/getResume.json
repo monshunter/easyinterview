@@ -21,6 +21,22 @@
           "updatedAt": "2026-04-28T12:00:00Z"
         }
       }
+    },
+    "not-found": {
+      "response": {
+        "status": 404,
+        "headers": {
+          "X-Request-ID": "req_2026-05-09T10-00-00-not-found"
+        },
+        "body": {
+          "error": {
+            "code": "NOT_FOUND",
+            "message": "Resume not found",
+            "requestId": "req_2026-05-09T10-00-00-not-found",
+            "retryable": false
+          }
+        }
+      }
     }
   }
 }
