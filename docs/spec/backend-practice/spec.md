@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-09
 
 ## 1 背景与目标
 
@@ -88,9 +88,10 @@
 | D-24 | Derived plan source 字段前置 | `retry_current_round` / `next_round` 需要 B2 `sourceReportId` + B4 `practice_plans.source_report_id`；`debrief` 需要 B2 `sourceDebriefId` + B4 `practice_plans.source_debrief_id` + CHECK 互斥；这些字段由 `004-derived-plans-debrief` Phase 0 owner 修订，001/002 不依赖它们 | baseline start 可先实施；复练/下一轮/复盘面试不能靠隐藏字段或本地 mock |
 | D-25 | Turn status API/DB 映射 | DB `practice_turns.status` 允许内部状态 `asked/answered/follow_up_requested/assessed/skipped`；OpenAPI `PracticeTurn.status` 当前只暴露 `asked/answered/skipped`，handler 必须做映射，除非先回 B2 扩展 schema | 避免前端 SDK 与 DB internal state 漂移；不把内部评估状态强塞进 wire enum |
 | D-26 | Practice 错误码前置 | B1/B2 必须新增 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND` 并同步 generated Go/TS/OpenAPI 后，backend-practice 才能在 404 隔离路径使用这些 code；未认证统一使用既有 `AUTH_UNAUTHORIZED` | 保持错误码单一真理源；避免 spec 中出现未注册字面量 |
-| D-27 | Practice idempotency 存储与 replay 语义 | B4 / backend-practice Phase 0 必须新增 `practice_idempotency_records` 或等价 user-scoped API idempotency 表，至少保存 `user_id`、`operation`、`idempotency_key_hash`、`request_fingerprint`、`status(pending/succeeded/failed_retryable/failed_terminal)`、`resource_type`、`resource_id`、`response_body`、`error_code`、`expires_at`；副作用 endpoint 用该记录锁定单执行者、replay 成功响应、拒绝同 key 不同 fingerprint、隔离跨用户；`startPracticeSession` 首题前失败可写 `failed_retryable` 并允许同 key 重试 | 让 D-7/D-23/C-10 可落库、可测试、可并发；避免仅靠业务表猜测重复请求 |
+| D-27 | Practice idempotency 存储与 replay 语义 | B4 / backend-practice Phase 0 必须新增 user-scoped API idempotency 表（载体已由 D-30 收敛为 shared `idempotency_records`，含 `domain` / `operation` namespace 字段），至少保存 `user_id`、`domain`、`operation`、`idempotency_key_hash`、`request_fingerprint`、`status(pending/succeeded/failed_retryable/failed_terminal)`、`resource_type`、`resource_id`、`response_body`、`error_code`、`expires_at`；副作用 endpoint 用该记录锁定单执行者、replay 成功响应、拒绝同 key 不同 fingerprint、隔离跨用户；`startPracticeSession` 首题前失败可写 `failed_retryable` 并允许同 key 重试 | 让 D-7/D-23/C-10 可落库、可测试、可并发；避免仅靠业务表猜测重复请求；shared 载体让 backend-targetjob / backend-review / 002 复用同款基建 |
 | D-28 | D-22 下 B3 job ownership 前置 | 用户已确认坚持 D-22：`completePracticeSession` 同事务创建 `feedback_reports` placeholder 与 `async_jobs(report_generate)`。因此 B3 `event-and-outbox-contract` / `shared/jobs.yaml` / generated jobs docs 必须在 Phase 0 明确 `practice.session.completed` 是 report job 的 source event 与 analytics fact，不能再由 outbox dispatcher 根据同一事件创建第二个 `report_generate` job；dispatcher / backend-review 只消费既有 queued job 或按 dedupe key 查找既有 job | 保持 `ReportWithJob` 可执行，同时避免重复 job、重复报告与 dispatcher 职责冲突 |
 | D-29 | F3 baseline 独立前置 | `prompt-rubric-registry/001-baseline` 必须独立派生、完成并通过其 Resolve / prompt / rubric / lint gates 后，backend-practice 才能进入依赖 `practice.session.first_question` / `practice.session.follow_up` / `practice.turn.lightweight_observe` 的实现阶段；未完成前只允许契约 / migration / 非 AI store work | 防止 backend-practice hardcode prompt 或在 F3 真理源未落地时启动 AI handler |
+| D-30 | 001-Phase-0 跨 spec 修订归属与 idempotency 表载体 | (a) `001-plan-and-session-orchestration` Phase 0 直接修订 B1 `shared/conventions.yaml` / B2 `openapi/openapi.yaml` / B3 generated event refs / B4 migrations 编码真理源（integrator 模式），同时同步追加各 owner spec 的 `history.md` 与 `spec.md` Header 授权记录与版本号；不再为 D-21 / D-26 / D-27 各派 sibling owner spec plan。(b) D-27 idempotency 存储载体收敛为 **shared** `idempotency_records` 表（含 `domain` / `operation` namespace 字段），由 001 Phase 0 引入并设计为可被 backend-targetjob / backend-review / 自身 002 等未来 backend domain 直接复用 | 缩短 critical path；shared idempotency 基建在引入第一个 caller 时一并设计，避免后续重构；ownership 软化由各 owner spec 在 history 显式登记"协调修订模式 / 关联计划: backend-practice/001 Phase 0"兜底 |
 
 ### 3.2 非后端 owner 决策
 
@@ -142,7 +143,7 @@
 ### 4.4 异步 / 可观测约束
 
 - 必须复用 [backend-auth](../backend-auth/spec.md) 同款 backend-internal goroutine drainer 模式或共享其封装；drainer 必须有 graceful shutdown / drain timeout 测试。本域 P0 只创建 `report_generate` queued job、不消费该 job，但必须按 D-28 保证 job row / outbox emit 路径与 dispatcher 兼容，且 outbox 重放不会创建第二个 report/job。
-- F1 metric 字典登记前置：`practice_sessions_started_total` / `practice_turns_completed_total` / `practice_sessions_completed_total` / `practice_session_complete_latency_seconds` / `practice_ai_call_total{feature_key}` / `practice_ai_call_failures_total{feature_key, error_code}` 实施前先在 [F1 baseline](../observability-stack/spec.md) 字典登记；label 仅使用 F1 allowed labels，`error_code` 来自 B1，`mode` / `goal` / `interviewer_persona` 来自 B1 有界枚举。
+- F1 metric 字典登记前置：practice-specific business metrics（如 session started / completed / duration）实施前必须先在 [F1 baseline](../observability-stack/spec.md) 字典登记，并且 label 只能使用 F1 allowed labels 与 B1 有界枚举；AI 调用 metric 复用 A3 已登记的 7 个 `ai_task_*` metric family，`feature_key` / `prompt_version` / `rubric_version` 只进入 `ai_task_runs` typed columns 或审计摘要，不进入 metric label。
 - 同步首题与 follow-up 的 P95 延迟作为观测目标登记，但不作为本 spec 验收 gate。
 
 ### 4.5 文档治理约束
@@ -211,9 +212,9 @@
 
 ## 7 关联计划
 
-本 spec v1.3 暂未派 plan。后续按 phase closability 与 owner 边界，建议依次派生。全局前置：必须先独立派生并完成 `prompt-rubric-registry/001-baseline`（D-29），否则 backend-practice 只能推进不依赖 AI 输出的契约 / migration / store 准备工作。
+`001-plan-and-session-orchestration` 已派 plan（spec v1.4 同会话），其余 plan 按 phase closability 与 owner 边界依次派生。全局前置：必须先独立派生并完成 `prompt-rubric-registry/001-baseline`（D-29），否则 backend-practice 只能推进不依赖 AI 输出的契约 / migration / store 准备工作。
 
-1. `001-plan-and-session-orchestration`：D-12 + D-13 + D-21 + D-23 + D-26 + D-27 主流程（createPracticePlan baseline + startPracticeSession reservation/首题/失败重试 + getPracticePlan/getPracticeSession + practice.session.started outbox）；Phase 0 包含 PracticeMode 二值化、practice not-found 错误码、B3 PracticeMode event surface、Practice idempotency storage/replay 语义与 F3 baseline preflight 检查
+1. [`001-plan-and-session-orchestration`](./plans/001-plan-and-session-orchestration/plan.md)：D-12 + D-13 + D-21 + D-23 + D-26 + D-27 + D-30 主流程（createPracticePlan baseline + startPracticeSession reservation/首题/失败重试 + getPracticePlan/getPracticeSession + practice.session.started outbox + shared `idempotency_records` 表）；Phase 0 按 D-30 Q1=A integrator 模式直接修订 B1/B2/B3/B4 编码真理源，并同步追加各 owner spec history append 与 Header bump；含 PracticeMode 二值化、practice not-found 错误码、B3 PracticeMode event surface、Practice idempotency storage/replay 语义与 F3 baseline preflight 检查
 2. `002-event-loop-and-completion`：D-6 + D-7 + D-22 + D-25 + D-27 + D-28 全 5 种 event kind 状态机 + completePracticeSession 202 + placeholder report/job + practice.turn.completed / practice.session.completed outbox + 双轨 idempotency + DB/internal turn status 映射 + B3 report_generate ownership 修订
 3. `003-mode-policies-and-provenance`：D-5 + D-10 mode 策略（仅 assisted/strict 两支） + AssistantAction provenance + show_hint feature_key + lightweight observe
 4. `004-derived-plans-debrief`：D-4 + D-14 retry/next_round/debrief plan 派生 + B4 修订 source_debrief_id 列；显式验证 goal='debrief' 与 mode='assisted'/'strict' 的 4 种组合

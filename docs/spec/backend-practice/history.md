@@ -1,13 +1,14 @@
 # Backend Practice History
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-09
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-09 | 1.4 | 派生第一个 plan `001-plan-and-session-orchestration`：通过 `/design` 与用户对齐 Q1 + Q2 trade-off，新增 D-30 固化两项决策：(a) Phase 0 跨 spec 修订采用 integrator 模式（plan 001 Phase 0 直接修订 B1 `shared/conventions.yaml` / B2 `openapi/openapi.yaml` / B3 generated event refs / B4 migrations 编码真理源，并在四个 owner spec 的 `history.md` 与 `spec.md` Header 同步追加授权记录与版本号），不再为 D-21 / D-26 / D-27 各派 sibling owner spec plan；(b) D-27 idempotency 存储载体收敛为 shared `idempotency_records` 表（含 `domain` / `operation` namespace 字段），由 plan 001 Phase 0 引入并设计为可被 backend-targetjob / backend-review / 自身 002 等未来 backend domain 复用。同步微调 D-27 wording 指向 D-30，并在 §7 把第一个 plan 链接化。 | [001-plan-and-session-orchestration](./plans/001-plan-and-session-orchestration/plan.md) |
 | 2026-05-08 | 1.3 | 按同会话 plan-review 后用户确认修订：保留 D-22 `completePracticeSession` 同事务创建 `feedback_reports` placeholder + `async_jobs(report_generate)` 的边界，同时新增 D-28 要求 B3 / `shared/jobs.yaml` 把 `practice.session.completed` 解释为 report job source event 而非二次 job creator；新增 D-27 Practice API idempotency 存储与 replay 语义，覆盖 user-scoped key、request fingerprint、pending 单执行者、成功 response replay、mismatch 冲突、cross-user 隔离、`startPracticeSession` retryable first-turn failure 与 `completePracticeSession` report/job 去重；新增 D-29，要求 `prompt-rubric-registry/001-baseline` 独立派生并完成后，backend-practice 才能实现依赖 F3 首题 / 追问 / hint 的 AI handler；同步扩展 C-21..C-27 和 §7 plan 前置条件。 | 暂无（spec-only 修订） |
 | 2026-05-08 | 1.2 | 按同会话 L1 review 结论修订 backend-practice spec：把 `startPracticeSession` 从“AI 包在事务内并回滚”改为 reservation + 事务外 AI + 成功/失败短事务，明确 failed reservation 可用同 key 重试；把 `completePracticeSession` 收口为同事务创建 `feedback_reports(status='queued')` placeholder + `async_jobs(report_generate)` queued row + outbox，以支撑 `ReportWithJob` 响应；补齐 D-24/D-25/D-26 前置契约（derived plan source 字段、DB/internal turn status 与 OpenAPI wire 映射、practice not-found 错误码）；统一未认证错误为既有 `AUTH_UNAUTHORIZED`，并将 AssistantAction provenance 收敛到 B2 当前 `GenerationProvenance` wire 字段。 | 暂无（spec-only 修订） |
 | 2026-05-08 | 1.1 | 同会话用户 review 反馈：原 PracticeMode 三值（assisted/strict/debrief_replay）把"辅助度档位"与"会话数据来源"两条正交轴塞进同一枚举。本版本把 mode 收敛为 2 值（assisted/strict，仅控制 hint 与 lightweight observe 启停），把 debrief 重放语义完整迁到 `goal='debrief'` + `source_debrief_id`（D-14）；新增 D-21 把 B1 `shared/conventions.yaml#enums[PracticeMode]`、B2 `openapi.yaml#PracticeMode`、B4 `practice_plans.mode` CHECK 的修订作为任何 implementation plan 的 Phase 0 前置；C-3 调整为 "debrief 来源 plan 派生" 并显式接受任意合法 mode；C-8 收紧为仅 mode=`strict` 拒绝 hint，新增 C-8b 验证 mode=`assisted` + goal=`debrief` 组合 hint 仍生效；§7 plan 路径建议同步去除 `_replay` 后缀，将 D-21 契约前置写入 001 Phase 0。 | 暂无 |

@@ -1,0 +1,50 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-practice
+  name: 001-plan-and-session-orchestration
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.4
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-practice
+      - backend-practice/001
+      - 001-plan-and-session-orchestration
+      - plan-and-session-orchestration
+    keywords:
+      - practice
+      - practiceplan
+      - practicesession
+      - createpracticeplan
+      - startpracticesession
+      - getpracticeplan
+      - getpracticesession
+      - reservation
+      - first_question
+      - idempotency
+      - idempotency_records
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      testPlan: ./test-plan.md
+      testChecklist: ./test-checklist.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      discovery:
+        packages:
+          - backend/internal/api/practice
+          - backend/internal/practice
+          - backend/internal/store/practice
+          - backend/internal/middleware/idempotency
+        apiNames:
+          - createPracticePlan
+          - getPracticePlan
+          - startPracticeSession
+          - getPracticeSession
