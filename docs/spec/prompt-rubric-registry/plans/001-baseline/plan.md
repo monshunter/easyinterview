@@ -295,6 +295,116 @@ L1 review 同时确认：B2 `GenerationProvenance` 已要求 `featureFlag` / `da
 | OpenAPI / fixture provenance | `GenerationProvenance` 6 fields, `importTargetJob` fixture path, `getTargetJob` fixture provenance slots, and ParseScreen polling consumer | `openapi/openapi.yaml` + `openapi/fixtures/TargetJobs/*.json` + `frontend/src/app/screens/parse/ParseScreen.tsx` |
 | B1/B4/A3 provenance | `feature_key` vocabulary gap, `ai_task_runs` prompt provenance typed-column gap, and A3 metadata / writer field gap | `shared/conventions.yaml` + B4/A3 docs and code |
 
+### 8.1.2 Phase 0 recorded snapshots
+
+#### 8.1.2.1 Profile catalog snapshot (item 0.1)
+
+Source: `config/ai-profiles.yaml` (recorded 2026-05-09). All 10 baseline default profiles are currently `status=active` and use `provider_ref=deepseek` (`deepseek-v4-flash` for chat default, `deepseek-v4-pro` for higher-reasoning routes). `resume.tailor.default` is shared between `resume.tailor.gap_review` and `resume.tailor.bullet_suggestions`, so the catalog has 9 unique profile rows for 10 feature_keys.
+
+| feature_key | model_profile_name | status | capability | provider_ref | unsupported_reason |
+|---|---|---|---|---|---|
+| `target.import.parse` | `target.import.default` | active | chat | deepseek | – |
+| `practice.session.first_question` | `practice.first_question.default` | active | chat | deepseek | – |
+| `practice.session.follow_up` | `practice.followup.default` | active | chat | deepseek | – |
+| `practice.turn.lightweight_observe` | `practice.turn_observe.default` | active | chat | deepseek | – |
+| `report.generate` | `report.generate.default` | active | chat | deepseek | – |
+| `report.question_assessment` | `report.assessment.default` | active | chat | deepseek | – |
+| `resume.parse` | `resume.parse.default` | active | chat | deepseek | – |
+| `resume.tailor.gap_review` | `resume.tailor.default` | active | chat | deepseek | – |
+| `resume.tailor.bullet_suggestions` | `resume.tailor.default` (shared) | active | chat | deepseek | – |
+| `debrief.generate` | `debrief.generate.default` | active | chat | deepseek | – |
+
+Phase 5 `make lint-ai-profile-coverage` therefore only needs to assert (a) every spec §3.1.1 default profile name resolves in `config/ai-profiles.yaml`, and (b) any future flip to `disabled` / `unsupported` ships with a non-empty `unsupported_reason`. This plan does not modify any profile `status` field; profile lifecycle stays with `ai-provider-and-model-routing/004` and F3 002.
+
+#### 8.1.2.2 DB schema gap snapshot (item 0.2)
+
+Source: `migrations/000001_create_baseline.up.sql` L341-396 (recorded 2026-05-09).
+
+`prompt_versions` columns match spec §4.1 verbatim: `id uuid PK, feature_key text not null, version text not null, language text not null default 'multi', template_hash text not null, template_body text not null, is_active boolean not null default false, created_at timestamptz not null default now(), UNIQUE(feature_key, version, language)`. Phase 4 seed migration writes exactly this column set.
+
+`rubric_versions` columns match spec §4.1: `id uuid PK, feature_key, version, language default 'multi', schema_json jsonb not null, is_active boolean default false, created_at, UNIQUE(feature_key, version, language)`. Phase 4 seed writes the canonical rubric schema_json from yaml.
+
+`ai_task_runs` typed columns currently provide model routing (`provider, model_family, model_id, model_profile_name, model_profile_version, route, language, prompt_version, rubric_version`) but **omit** the prompt/rubric provenance triple required by spec §6 C-9 + plan §3.1: `feature_key`, `feature_flag`, `data_source_version`. Today these only live in untyped `metadata jsonb`, which violates B4 typed-column policy. Phase 4 must add them as typed columns via additive migration `NNNNNN_add_ai_task_runs_prompt_provenance.{up,down}.sql` (or directly amend `000001` with explicit justification logged here, since dev baseline allows pre-launch revision).
+
+D-7 active uniqueness is **not** enforced by DB today: there is no `UNIQUE INDEX ... (feature_key, language) WHERE is_active = true` partial index on either table. Phase 4.7 may add a partial unique index; otherwise registry runtime check covers D-7. Phase 4.7 checklist accepts either option.
+
+Spec §4.1 requires `status ∈ {draft, active, deprecated}` for prompt yaml meta — this is yaml-level only and does not reflect into DB column; DB uses `is_active boolean` for staging/prod gating. The two should not be conflated.
+
+#### 8.1.2.3 Targetjob bridge retire snapshot (item 0.3)
+
+Source: `backend/internal/targetjob/prompt_registry.go` + `parse_executor.go` L17-44 (recorded 2026-05-09).
+
+**Retire list** (Phase 3.1 must delete and Phase 3.3 negative-test must assert absent):
+
+| Identifier | Kind | Location |
+|---|---|---|
+| `defaultTargetImportPromptVersion` | const | `prompt_registry.go:9` |
+| `defaultTargetImportRubricVersion` | const | `prompt_registry.go:10` |
+| `defaultTargetImportModelProfileName` | const | `prompt_registry.go:11` |
+| `defaultTargetImportDataSourceVersion` | const | `prompt_registry.go:12` |
+| `StaticPromptRegistry` | struct | `prompt_registry.go:18` |
+| `NewStaticPromptRegistry` | func | `prompt_registry.go:24` |
+| `(*StaticPromptRegistry).Resolve` | method | `prompt_registry.go:38` |
+
+**Preserve** (Phase 3.1 RegistryAdapter must satisfy these unchanged):
+
+| Identifier | Kind | Contract |
+|---|---|---|
+| `FeatureKeyTargetImportParse` | const = `"target.import.parse"` | parse pipeline still resolves through this constant |
+| `PromptResolution` | struct (7 fields) | `PromptVersion / RubricVersion / ModelProfileName / DataSourceVersion / FeatureFlag / SystemMessage / UserMessageTemplate` |
+| `PromptRegistryClient` | interface | `Resolve(ctx, featureKey, language) (PromptResolution, error)` |
+| `ErrPromptUnsupported` | sentinel error | returned when (featureKey, language) is not enabled |
+
+**Adapter contract** (Phase 3.1):
+
+- `NewRegistryAdapter(client *registry.Client) *RegistryAdapter`
+- `(*RegistryAdapter).Resolve(ctx, featureKey, language) (PromptResolution, error)` — must map all 7 fields and assert `registry.PromptResolution.FeatureKey == featureKey`; mismatch returns `ErrPromptUnsupported` to keep the targetjob fail-closed contract.
+
+The bridge currently only resolves `target.import.parse`; the adapter must continue to satisfy that single feature_key for the parse pipeline while transparently exposing all 10 baseline feature_keys to other future C-domain consumers.
+
+#### 8.1.2.4 OpenAPI / fixture provenance snapshot (item 0.4)
+
+Source: `openapi/openapi.yaml` L1377-1411 (`GenerationProvenance` schema) + `docs/spec/backend-practice/spec.md` v1.3 L93 D-29 (recorded 2026-05-09).
+
+**`GenerationProvenance` 6 required fields** (cross-layer assertion target for Phase 3.4 + 4.8):
+
+| Field | OpenAPI type | Source authority |
+|---|---|---|
+| `promptVersion` | string | F3 RegistryClient.PromptResolution.PromptVersion |
+| `rubricVersion` | string | F3 RegistryClient.PromptResolution.RubricVersion (literal `not_applicable` allowed for non-scoring) |
+| `modelId` | string | A3 resolved adapter model id at call time (NOT registry's ModelProfileName — these are different layers) |
+| `language` | string | BCP 47 tag from request context |
+| `featureFlag` | string | A3 CallMetadata.FeatureFlag (literal `none` when no PostHog flag is active) |
+| `dataSourceVersion` | string | F3 RegistryClient.PromptResolution.DataSourceVersion |
+
+**D-29 frontload** (backend-practice/spec.md v1.3 L93): `prompt-rubric-registry/001-baseline` must independently derive, complete, and pass its Resolve / prompt / rubric / lint gates before backend-practice can enter implementation that depends on AI output (`practice.session.first_question`, `practice.session.follow_up`, `practice.turn.lightweight_observe`). This plan unblocks D-29 by Phase 5.6 closure.
+
+**Cross-layer mapping nuance**: registry's `ModelProfileName` → `ai_task_runs.model_profile_name` typed column (Phase 4 already typed); A3's resolved `modelId` → `ai_task_runs.model_id` typed column → response `GenerationProvenance.modelId`. The wire layer surfaces `modelId` (not profile name) so Phase 3.4 fake AI writer must echo the resolved adapter model rather than the profile name.
+
+**TargetJobs fixture provenance slots** (Phase 3.5 update target): `openapi/fixtures/TargetJobs/getTargetJob.json` carries `summary.provenance` and `fitSummary.provenance` examples; `openapi/fixtures/TargetJobs/importTargetJob.json` is `202 + Job` with `job.provenance`. Phase 3.5 must update example values to match `target.import.parse v0.1.0` baseline coordinates and the A3 `target.import.default` profile-resolved model. ParseScreen.tsx polling consumer is read-only.
+
+#### 8.1.2.5 B1/B4/A3 provenance contract gap snapshot (item 0.5)
+
+Source: `shared/conventions.yaml` + `backend/internal/shared/ai/vocabulary.go` + `backend/internal/ai/aiclient/{payload.go,meta.go,writers.go}` + `backend/internal/ai/aiclient/observability/decorator.go` + `migrations/000001_create_baseline.up.sql` (recorded 2026-05-09).
+
+| Layer | Surface | feature_key | feature_flag | data_source_version | Phase 4 action |
+|---|---|---|---|---|---|
+| B1 | `shared/conventions.yaml` `ai_provenance_fields[]` | ✗ missing | ✓ present (L312) | ✓ present (L313) | 4.1 add `feature_key` row |
+| B1 | `backend/internal/shared/ai/vocabulary.go` | ✗ no `FieldFeatureKey` | ✓ `FieldFeatureFlag` (L144) | ✓ `FieldDataSourceVersion` (L145) | 4.1 add constant + add to allowlist (L169) |
+| B4 | `migrations/000001_create_baseline.up.sql` `ai_task_runs` | ✗ no typed col | ✗ no typed col | ✗ no typed col | 4.2 add 3 typed columns (additive migration); update `migrations_lint.py` to allow + require |
+| B4 | `prompt_versions` / `rubric_versions` | ✓ typed | n/a | n/a | – |
+| A3 | `aiclient.CallMetadata` | ✓ `FeatureKey` (payload.go:17) | ✗ missing | ✓ `DataSourceVersion` (payload.go:21) | 4.3 add `FeatureFlag` field |
+| A3 | `aiclient.AICallMeta` | ✗ missing | ✗ missing | ✗ missing | 4.3 add 3 fields, freeze field order per spec §4.1 / ADR-Q6 §3.1 |
+| A3 | `aiclient.AITaskRunRow` | ✗ missing | ✗ missing | ✗ missing | 4.3 add 3 fields; writer must reject empty values or use registered defaults (`none` / `not_applicable`) |
+| A3 | `aiclient/observability/decorator.go` | ✗ no propagation | ✗ no propagation | ✗ no propagation | 4.3 propagate from CallMetadata → AICallMeta → AITaskRunRow + privacy red line update if needed |
+
+**Conclusions for Phase 4 sequencing**:
+
+1. B1 vocabulary update must land first because vocabulary.go is the cross-language source of truth — a downstream change to AICallMeta without B1 first would fail conventions drift lint.
+2. B4 schema migration must land before A3 writer changes — A3 cannot write a typed column that doesn't exist. Phase 4.2 (B4 migration) must precede Phase 4.3 (A3 metadata/writer).
+3. A3 CallMetadata is a public API surface on aiclient.AIClient.Complete callers; adding `FeatureFlag` is additive (new field), but every existing caller must populate it (with literal `none` if no flag is active). Phase 4.3 negative test must cover the empty-string rejection.
+4. F1 metric labels must NOT add the 3 new columns — they are append-only provenance, not high-cardinality dashboards. Confirm in Phase 4.3 via existing F1 test or registered F1 spec.
+
 ### 8.2 Owner handoff
 
 - **B1 shared-conventions-codified**: `feature_key` joins `feature_flag` / `data_source_version` as AI provenance vocabulary; no F1 metric label expansion.

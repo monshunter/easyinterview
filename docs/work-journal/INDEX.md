@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-09](2026-05-09.md) | `docs(prompt-rubric-registry): snapshot upstream contracts for f3 baseline` | #docs |
 | [2026-05-09](2026-05-09.md) | `docs(prompt-rubric-registry): derive baseline plan and bump spec to v2.1` | #docs |
 | [2026-05-09](2026-05-09.md) | `fix(home-jd-import): address parse review findings` | #fix #ui #test |
 | [2026-05-08](2026-05-08.md) | `docs(frontend-home): record l2 remediation closure with bug log and retrospective` | #docs #fix |
