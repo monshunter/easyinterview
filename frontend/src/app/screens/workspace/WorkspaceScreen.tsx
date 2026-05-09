@@ -1,0 +1,1235 @@
+import { type FC } from "react";
+
+import { useI18n } from "../../i18n/messages";
+import { useNavigation } from "../../navigation/NavigationProvider";
+import type { Route } from "../../routes";
+import { useWorkspaceTargetJob } from "./hooks/useWorkspaceTargetJob";
+
+interface WorkspaceScreenProps {
+  route: Route;
+}
+
+/**
+ * Phase 2: WorkspaceScreen wired with useWorkspaceTargetJob data hook.
+ * Dynamic fields render real data when available, fallback to placeholder.
+ */
+export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
+  const { t, lang } = useI18n();
+  const { navigate } = useNavigation();
+  const { loading, data: tj, error } = useWorkspaceTargetJob();
+
+  // ── Derived display values per plan §3.7 mapping ──
+
+  const planEyebrowTitle = tj?.title
+    ? `${tj.companyName} · ${tj.title}`
+    : t("workspace.planEyebrowTitle");
+
+  const planEyebrowStatus = tj
+    ? formatStatus(tj.status)
+    : t("workspace.planEyebrowStatus");
+
+  const planEyebrowSub = tj
+    ? `${roundLabel(route.params.roundId) ?? t("workspace.planEyebrowSub")} · ${t("workspace.resumeBound")}`
+    : t("workspace.planEyebrowSub");
+
+  const headerTitle = tj?.title ?? t("workspace.headerTitle");
+  const headerSubtitle = tj
+    ? [tj.companyName, tj.locationText, tj.sourceType ? formatSourceType(tj.sourceType) : null]
+        .filter(Boolean)
+        .join(" · ")
+    : t("workspace.headerSubtitle");
+  const headerPrepStatus = tj ? derivePrepStatus(tj) : t("workspace.headerPrepStatus");
+  const headerUpdated = tj
+    ? t("workspace.headerUpdated").replace("4/20", formatDate(tj.updatedAt))
+    : t("workspace.headerUpdated");
+  const headerLevel = tj?.targetLanguage
+    ? tj.targetLanguage.toUpperCase()
+    : t("workspace.headerLevel");
+
+  const jdTitle = tj?.title ?? t("workspace.jdTitle");
+  const jdMeta = tj
+    ? [tj.companyName, tj.locationText, tj.sourceType ? formatSourceType(tj.sourceType) : null]
+        .filter(Boolean)
+        .join(" · ")
+    : t("workspace.jdMeta");
+
+  const statusTone = tj ? getStatusTone(tj.status) : "amber";
+
+  const startInterviewStub = () => {
+    navigate({ name: "practice", params: { ...route.params } });
+  };
+
+  return (
+    <div
+      className="ei-fadein"
+      style={{
+        maxWidth: 1280,
+        margin: "0 auto",
+        padding: "32px 48px 96px",
+      }}
+    >
+      {/* crumbs */}
+      <button
+        data-testid="workspace-crumbs"
+        onClick={() => navigate({ name: "home", params: {} })}
+        style={{
+          background: "transparent",
+          border: "none",
+          color: "var(--ei-color-ink3)",
+          fontSize: 13,
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: 0,
+          marginBottom: 20,
+          cursor: "pointer",
+        }}
+      >
+        <svg
+          width={14}
+          height={14}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.5}
+        >
+          <path d="M19 12H5M11 18l-6-6 6-6" />
+        </svg>{" "}
+        {t("workspace.crumbs")}
+      </button>
+
+      {/* Plan eyebrow */}
+      <div
+        data-testid="workspace-plan-eyebrow"
+        style={{
+          background: "var(--ei-color-bgCard)",
+          border: "1px solid var(--ei-color-rule)",
+          borderRadius: 3,
+          padding: "14px 16px",
+          marginBottom: 24,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 18,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ minWidth: 280 }}>
+          <div
+            data-testid="workspace-plan-eyebrow-label"
+            className="ei-label"
+            style={{
+              color: "var(--ei-color-ink3)",
+              marginBottom: 5,
+            }}
+          >
+            {t("workspace.planEyebrow")}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            <div
+              data-testid="workspace-plan-eyebrow-title"
+              className="ei-serif"
+              style={{ fontSize: 18, color: "var(--ei-color-ink)" }}
+            >
+              {planEyebrowTitle}
+            </div>
+            <span
+              data-testid="workspace-plan-eyebrow-status"
+              className="ei-mono"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "3px 8px",
+                borderRadius: 3,
+                fontSize: 11.5,
+                letterSpacing: "0.04em",
+                background:
+                  statusTone === "amber"
+                    ? "var(--ei-color-amberSoft)"
+                    : statusTone === "muted"
+                      ? "var(--ei-color-bgSoft)"
+                      : "transparent",
+                color:
+                  statusTone === "amber"
+                    ? "var(--ei-color-warn)"
+                    : statusTone === "muted"
+                      ? "var(--ei-color-ink3)"
+                      : "var(--ei-color-ink2)",
+                border:
+                  statusTone === "neutral"
+                    ? "1px solid var(--ei-color-rule)"
+                    : "1px solid transparent",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {planEyebrowStatus}
+            </span>
+          </div>
+          <div
+            data-testid="workspace-plan-eyebrow-sub"
+            style={{
+              fontSize: 12.5,
+              color: "var(--ei-color-ink3)",
+              marginTop: 5,
+              lineHeight: 1.55,
+            }}
+          >
+            {planEyebrowSub}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <button
+            data-testid="workspace-plan-action-switch"
+            onClick={() =>
+              navigate({ name: "workspace", params: route.params })
+            }
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              height: 30,
+              padding: "0 12px",
+              fontSize: 13,
+              fontWeight: 500,
+              background: "var(--ei-color-bg)",
+              color: "var(--ei-color-ink)",
+              border: "1px solid var(--ei-color-rule)",
+              borderRadius: 2,
+              cursor: "pointer",
+              fontFamily: "var(--ei-sans)",
+            }}
+          >
+            {t("workspace.switchPlan")}
+          </button>
+          <button
+            data-testid="workspace-plan-action-create"
+            onClick={() => navigate({ name: "home", params: {} })}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              height: 30,
+              padding: "0 12px",
+              fontSize: 13,
+              fontWeight: 500,
+              background: "transparent",
+              color: "var(--ei-color-ink2)",
+              border: "1px solid transparent",
+              borderRadius: 2,
+              cursor: "pointer",
+              fontFamily: "var(--ei-sans)",
+            }}
+          >
+            {t("workspace.createPlan")}
+          </button>
+        </div>
+      </div>
+
+      {/* Header summary */}
+      <div
+        data-testid="workspace-header"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 24,
+          flexWrap: "wrap",
+          marginBottom: 32,
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 320 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              marginBottom: 10,
+            }}
+          >
+            <span
+              data-testid="workspace-header-tag"
+              className="ei-mono"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "3px 8px",
+                borderRadius: 3,
+                fontSize: 11.5,
+                letterSpacing: "0.04em",
+                background:
+                  statusTone === "amber"
+                    ? "var(--ei-color-amberSoft)"
+                    : statusTone === "muted"
+                      ? "var(--ei-color-bgSoft)"
+                      : "transparent",
+                color:
+                  statusTone === "amber"
+                    ? "var(--ei-color-warn)"
+                    : statusTone === "muted"
+                      ? "var(--ei-color-ink3)"
+                      : "var(--ei-color-ink2)",
+                border:
+                  statusTone === "neutral"
+                    ? "1px solid var(--ei-color-rule)"
+                    : "1px solid transparent",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {planEyebrowStatus}
+            </span>
+            <span
+              data-testid="workspace-header-level"
+              className="ei-mono"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "3px 8px",
+                borderRadius: 3,
+                fontSize: 11.5,
+                letterSpacing: "0.04em",
+                background: "transparent",
+                color: "var(--ei-color-ink3)",
+                border: "1px solid var(--ei-color-rule)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {headerLevel}
+            </span>
+            <span
+              data-testid="workspace-header-updated"
+              className="ei-mono"
+              style={{
+                fontSize: 12,
+                color: "var(--ei-color-ink3)",
+              }}
+            >
+              {headerUpdated}
+            </span>
+          </div>
+          <h1
+            data-testid="workspace-header-title"
+            className="ei-serif"
+            style={{
+              fontSize: 38,
+              color: "var(--ei-color-ink)",
+              margin: 0,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.15,
+            }}
+          >
+            {headerTitle}
+          </h1>
+          <div
+            data-testid="workspace-header-subtitle"
+            style={{
+              fontSize: 15,
+              color: "var(--ei-color-ink2)",
+              marginTop: 6,
+            }}
+          >
+            {headerSubtitle}
+          </div>
+        </div>
+        <div
+          style={{ minWidth: 168, textAlign: "right", paddingTop: 4 }}
+        >
+          <div
+            className="ei-label"
+            style={{
+              color: "var(--ei-color-ink3)",
+              marginBottom: 6,
+            }}
+          >
+            {t("workspace.prepStatus")}
+          </div>
+          <div
+            data-testid="workspace-header-prep"
+            className="ei-serif"
+            style={{
+              fontSize: 22,
+              color: "var(--ei-color-ink)",
+              marginBottom: 8,
+            }}
+          >
+            {headerPrepStatus}
+          </div>
+        </div>
+      </div>
+
+      {/* Interview Launcher */}
+      <div
+        data-testid="workspace-launcher"
+        style={{
+          background: "var(--ei-color-bgCard)",
+          border: "1px solid var(--ei-color-rule)",
+          borderRadius: 3,
+          padding: 22,
+          marginBottom: 32,
+        }}
+      >
+        {/* Round Rail */}
+        <div data-testid="workspace-round-rail">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 16,
+              alignItems: "baseline",
+              marginBottom: 12,
+            }}
+          >
+            <div
+              className="ei-label"
+              style={{ color: "var(--ei-color-ink3)" }}
+            >
+              {t("workspace.flow")}
+            </div>
+          </div>
+          <div style={{ position: "relative" }}>
+            <div
+              style={{
+                position: "absolute",
+                top: 13,
+                left: 13,
+                right: 13,
+                height: 1,
+                background: "var(--ei-color-rule)",
+              }}
+            />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${ROUND_FALLBACK.length}, 1fr)`,
+                alignItems: "start",
+              }}
+            >
+              {ROUND_FALLBACK.map((name, i) => (
+                <div
+                  key={i}
+                  style={{
+                    position: "relative",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems:
+                      i === 0
+                        ? "flex-start"
+                        : i === ROUND_FALLBACK.length - 1
+                          ? "flex-end"
+                          : "center",
+                    minHeight: 72,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 13,
+                      border:
+                        "1px solid var(--ei-color-rule)",
+                      background: "var(--ei-color-bgCard)",
+                      color: "var(--ei-color-ink3)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      zIndex: 1,
+                    }}
+                  >
+                    <span
+                      className="ei-mono"
+                      style={{ fontSize: 11 }}
+                    >
+                      {i + 1}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12.5,
+                      color: "var(--ei-color-ink3)",
+                      marginTop: 8,
+                      textAlign:
+                        i === 0
+                          ? "left"
+                          : i === ROUND_FALLBACK.length - 1
+                            ? "right"
+                            : "center",
+                      maxWidth: 140,
+                    }}
+                  >
+                    {name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "var(--ei-color-ink4)",
+                      marginTop: 3,
+                      textAlign:
+                        i === 0
+                          ? "left"
+                          : i === ROUND_FALLBACK.length - 1
+                            ? "right"
+                            : "center",
+                      maxWidth: 140,
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    {t(`workspace.roundState${i + 1}` as any)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginTop: 22,
+            marginBottom: 18,
+            gap: 20,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <div
+              className="ei-label"
+              style={{
+                color: "var(--ei-color-ink3)",
+                marginBottom: 4,
+              }}
+            >
+              {t("workspace.launchLabel")}
+            </div>
+            <div
+              className="ei-serif"
+              style={{
+                fontSize: 21,
+                color: "var(--ei-color-ink)",
+              }}
+            >
+              {t("workspace.launchTitle")}
+            </div>
+            <div
+              style={{
+                fontSize: 13.5,
+                color: "var(--ei-color-ink2)",
+                marginTop: 6,
+              }}
+            >
+              {t("workspace.roundStatus")}
+            </div>
+            <div
+              style={{
+                fontSize: 13.5,
+                color: "var(--ei-color-ink3)",
+                marginTop: 6,
+                lineHeight: 1.6,
+                maxWidth: 680,
+              }}
+            >
+              {t("workspace.launchSub")}
+            </div>
+          </div>
+          <button
+            data-testid="workspace-cta-start"
+            onClick={startInterviewStub}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              height: 38,
+              padding: "0 16px",
+              fontSize: 14,
+              fontWeight: 500,
+              background: "var(--ei-color-accent)",
+              color: "#fff",
+              border: "1px solid var(--ei-color-accent)",
+              borderRadius: 2,
+              cursor: "pointer",
+              fontFamily: "var(--ei-sans)",
+            }}
+          >
+            <svg
+              width={16}
+              height={16}
+              viewBox="0 0 24 24"
+              fill="#fff"
+              stroke="none"
+            >
+              <path d="M7 5l12 7-12 7V5z" />
+            </svg>
+            {t("workspace.startCore")}
+          </button>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 12,
+          }}
+        >
+          {/* JD BindingPill */}
+          <div
+            data-testid="workspace-binding-jd"
+            style={{
+              padding: "14px 16px",
+              background: "var(--ei-color-bgSoft)",
+              border: "1px solid var(--ei-color-rule)",
+              borderRadius: 2,
+              display: "grid",
+              gridTemplateColumns: "32px 1fr auto",
+              gap: 12,
+              alignItems: "center",
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                background: "var(--ei-color-bgCard)",
+                border: "1px solid var(--ei-color-rule)",
+                color: "var(--ei-color-accent)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg
+                width={15}
+                height={15}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <rect x="3" y="7" width="18" height="13" rx="1" />
+                <path d="M8 7V4h8v3M3 12h18" />
+              </svg>
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div
+                className="ei-label"
+                style={{
+                  color: "var(--ei-color-ink3)",
+                  marginBottom: 3,
+                }}
+              >
+                {t("workspace.jdBound")}
+              </div>
+              <div
+                style={{
+                  fontSize: 14,
+                  color: "var(--ei-color-ink)",
+                  fontWeight: 500,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {jdTitle}
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--ei-color-ink3)",
+                  marginTop: 2,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {jdMeta}
+              </div>
+            </div>
+          </div>
+
+          {/* Resume BindingPill */}
+          <div
+            data-testid="workspace-binding-resume"
+            style={{
+              padding: "14px 16px",
+              background: "var(--ei-color-bgSoft)",
+              border: "1px solid var(--ei-color-rule)",
+              borderRadius: 2,
+              display: "grid",
+              gridTemplateColumns: "32px 1fr auto",
+              gap: 12,
+              alignItems: "center",
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                background: "var(--ei-color-bgCard)",
+                border: "1px solid var(--ei-color-rule)",
+                color: "var(--ei-color-accent)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg
+                width={15}
+                height={15}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path d="M7 3h8l4 4v14H7V3zM15 3v5h5M9 12h8M9 16h6M9 8h3" />
+              </svg>
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div
+                className="ei-label"
+                style={{
+                  color: "var(--ei-color-ink3)",
+                  marginBottom: 3,
+                }}
+              >
+                {t("workspace.resumeBound")}
+              </div>
+              <div
+                style={{
+                  fontSize: 14,
+                  color: "var(--ei-color-ink)",
+                  fontWeight: 500,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {t("workspace.resumeTitle")}
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--ei-color-ink3)",
+                  marginTop: 2,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {t("workspace.resumeMeta")}
+              </div>
+            </div>
+            <button
+              data-testid="workspace-binding-resume-change"
+              onClick={() =>
+                navigate({ name: "workspace", params: route.params })
+              }
+              style={{
+                background: "transparent",
+                border: "1px solid var(--ei-color-rule)",
+                borderRadius: 2,
+                color: "var(--ei-color-ink2)",
+                padding: "5px 10px",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              {t("workspace.changeResume")}
+            </button>
+          </div>
+        </div>
+
+        <div
+          data-testid="workspace-note-practice"
+          style={{
+            fontSize: 12,
+            color: "var(--ei-color-ink3)",
+            marginTop: 12,
+            display: "flex",
+            gap: 6,
+            alignItems: "center",
+          }}
+        >
+          <svg
+            width={12}
+            height={12}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v.01M11 12h1v5h1" />
+          </svg>{" "}
+          {t("workspace.notePractice")}
+        </div>
+      </div>
+
+      {/* 2-column Main */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1.4fr 1fr",
+          gap: 24,
+        }}
+      >
+        {/* Left column */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 24,
+          }}
+        >
+          {/* CompanyIntelEmbed placeholder */}
+          <div
+            data-testid="workspace-companyintel-summary"
+            style={{
+              background: "var(--ei-color-bgCard)",
+              border: "1px solid var(--ei-color-rule)",
+              borderRadius: 3,
+              padding: 16,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <div
+                className="ei-label"
+                style={{
+                  color: "var(--ei-color-ink3)",
+                  marginBottom: 6,
+                }}
+              >
+                {t("workspace.intelLabel")}
+              </div>
+              <div
+                className="ei-serif"
+                style={{
+                  fontSize: 15,
+                  color: "var(--ei-color-ink)",
+                }}
+              >
+                {t("workspace.intelTitle")}
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--ei-color-ink3)",
+                  marginTop: 4,
+                  lineHeight: 1.5,
+                }}
+              >
+                {t("workspace.intelSub")}
+              </div>
+            </div>
+            <button
+              data-testid="workspace-companyintel-open"
+              onClick={() =>
+                navigate({
+                  name: "company_intel",
+                  params: {
+                    targetJobId: route.params.targetJobId || "",
+                    jdId: route.params.jdId || "",
+                  },
+                })
+              }
+              style={{
+                background: "transparent",
+                border: "1px solid var(--ei-color-rule)",
+                borderRadius: 2,
+                color: "var(--ei-color-ink2)",
+                padding: "5px 10px",
+                fontSize: 12,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {t("workspace.intelOpen")}
+            </button>
+          </div>
+
+          {/* JD breakdown card */}
+          <div
+            data-testid="workspace-jd-card"
+            style={{
+              background: "var(--ei-color-bgCard)",
+              border: "1px solid var(--ei-color-rule)",
+              borderRadius: 3,
+            }}
+          >
+            <div
+              style={{
+                padding: "16px 20px",
+                borderBottom: "1px solid var(--ei-color-rule)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div
+                  className="ei-label"
+                  style={{
+                    color: "var(--ei-color-ink3)",
+                    marginBottom: 2,
+                  }}
+                >
+                  {t("workspace.jdCardLabel")}
+                </div>
+                <div
+                  className="ei-serif"
+                  style={{
+                    fontSize: 17,
+                    color: "var(--ei-color-ink)",
+                  }}
+                >
+                  {t("workspace.requirements")}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: 20 }}>
+              {/* Must Have */}
+              <div data-testid="workspace-jd-block-must">
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <span
+                    className="ei-mono"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "3px 8px",
+                      borderRadius: 3,
+                      fontSize: 11.5,
+                      letterSpacing: "0.04em",
+                      background:
+                        "var(--ei-color-accentSoft)",
+                      color: "var(--ei-color-accent)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {t("workspace.must")}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 13.5,
+                    color: "var(--ei-color-ink2)",
+                  }}
+                >
+                  <span>{"○"}</span>{" "}
+                  {t("workspace.placeholder")}
+                </div>
+              </div>
+
+              {/* Nice to Have */}
+              <div
+                data-testid="workspace-jd-block-nice"
+                style={{ marginTop: 18 }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <span
+                    className="ei-mono"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "3px 8px",
+                      borderRadius: 3,
+                      fontSize: 11.5,
+                      letterSpacing: "0.04em",
+                      background:
+                        "var(--ei-color-amberSoft)",
+                      color: "var(--ei-color-warn)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {t("workspace.nice")}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 13.5,
+                    color: "var(--ei-color-ink2)",
+                  }}
+                >
+                  <span>{"○"}</span>{" "}
+                  {t("workspace.placeholder")}
+                </div>
+              </div>
+
+              {/* Hidden signals */}
+              <div
+                data-testid="workspace-jd-block-hidden"
+                style={{ marginTop: 18 }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <span
+                    className="ei-mono"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "3px 8px",
+                      borderRadius: 3,
+                      fontSize: 11.5,
+                      letterSpacing: "0.04em",
+                      background:
+                        "var(--ei-color-coolSoft)",
+                      color: "var(--ei-color-cool)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {t("workspace.hidden")}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 13.5,
+                    color: "var(--ei-color-ink2)",
+                  }}
+                >
+                  <span>{"○"}</span>{" "}
+                  {t("workspace.placeholder")}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 24,
+          }}
+        >
+          {/* Risks & strengths */}
+          <div
+            data-testid="workspace-prep-card"
+            style={{
+              background: "var(--ei-color-bgCard)",
+              border: "1px solid var(--ei-color-rule)",
+              borderRadius: 3,
+              padding: 20,
+            }}
+          >
+            <div
+              className="ei-label"
+              style={{
+                color: "var(--ei-color-ink3)",
+                marginBottom: 14,
+              }}
+            >
+              {t("workspace.prep")}
+            </div>
+            <div
+              data-testid="workspace-prep-strongs"
+              style={{ marginBottom: 14 }}
+            >
+              <div
+                style={{
+                  fontSize: 12.5,
+                  color: "var(--ei-color-ok)",
+                  fontWeight: 500,
+                  marginBottom: 6,
+                }}
+              >
+                ● {t("workspace.strongs")}
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "var(--ei-color-ink2)",
+                  padding: "4px 0",
+                }}
+              >
+                {t("workspace.placeholder")}
+              </div>
+            </div>
+            <div data-testid="workspace-prep-risks">
+              <div
+                style={{
+                  fontSize: 12.5,
+                  color: "var(--ei-color-danger)",
+                  fontWeight: 500,
+                  marginBottom: 6,
+                }}
+              >
+                ● {t("workspace.risks")}
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "var(--ei-color-ink2)",
+                  padding: "4px 0",
+                }}
+              >
+                {t("workspace.placeholder")}
+              </div>
+            </div>
+          </div>
+
+          {/* Session history placeholder */}
+          <div
+            data-testid="workspace-history-card"
+            style={{
+              background: "var(--ei-color-bgCard)",
+              border: "1px solid var(--ei-color-rule)",
+              borderRadius: 3,
+            }}
+          >
+            <div
+              style={{
+                padding: "16px 20px",
+                borderBottom:
+                  "1px solid var(--ei-color-rule)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div
+                  className="ei-label"
+                  style={{
+                    color: "var(--ei-color-ink3)",
+                    marginBottom: 2,
+                  }}
+                >
+                  {t("workspace.historyLabel")}
+                </div>
+                <div
+                  className="ei-serif"
+                  style={{
+                    fontSize: 17,
+                    color: "var(--ei-color-ink)",
+                  }}
+                >
+                  {t("workspace.practices")}
+                </div>
+              </div>
+            </div>
+            <div
+              data-testid="workspace-history-empty"
+              style={{
+                padding: "24px 20px",
+                fontSize: 13,
+                color: "var(--ei-color-ink3)",
+                textAlign: "center",
+              }}
+            >
+              {t("workspace.historyEmpty")}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Phase 2 helpers (colocated) ──
+
+const ROUND_FALLBACK = ["HR 初筛", "技术一面", "技术二面", "经理面"] as const;
+const ROUND_IDS = ["round-hr", "round-tech1", "round-tech2", "round-manager"] as const;
+
+type StatusTone = "amber" | "muted" | "neutral";
+
+function getStatusTone(status: string): StatusTone {
+  switch (status) {
+    case "applied":
+    case "interviewing":
+      return "amber";
+    case "draft":
+    case "preparing":
+      return "muted";
+    default:
+      return "neutral";
+  }
+}
+
+function formatStatus(status: string): string {
+  const map: Record<string, string> = {
+    draft: "规划中",
+    preparing: "准备中",
+    applied: "已投递",
+    interviewing: "面试中",
+    offer: "已获Offer",
+    rejected: "已结束",
+    archived: "已归档",
+  };
+  return map[status] ?? status;
+}
+
+function formatDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  } catch {
+    return "—";
+  }
+}
+
+function formatSourceType(s: string): string {
+  const map: Record<string, string> = {
+    manual_text: "手动输入",
+    url: "链接导入",
+    file: "文件上传",
+    manual_form: "表单填写",
+  };
+  return map[s] ?? s;
+}
+
+function roundLabel(roundId?: string): string | null {
+  if (!roundId) return null;
+  const idx = ROUND_IDS.indexOf(roundId as typeof ROUND_IDS[number]);
+  if (idx >= 0) return ROUND_FALLBACK[idx] as string;
+  return null;
+}
+
+function derivePrepStatus(tj: { fitSummary?: { strengths?: unknown[]; gaps?: unknown[]; riskSignals?: unknown[] } | null; openQuestionIssueCount: number }): string {
+  const fs = tj.fitSummary;
+  if (!fs) return "—";
+  const strongs = (fs.strengths?.length ?? 0);
+  const risks = (fs.riskSignals?.length ?? 0);
+  const gaps = (fs.gaps?.length ?? 0);
+  if (strongs > 0) return `${strongs} 项命中`;
+  if (risks > 0 || gaps > 0 || tj.openQuestionIssueCount > 0) return "待补强";
+  return "—";
+}

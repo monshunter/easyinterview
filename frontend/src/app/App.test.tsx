@@ -66,4 +66,41 @@ describe("App shell", () => {
       JSON.stringify({ mode: "voice", planId: "plan-tj-1" }),
     );
   });
+
+  it("renders WorkspaceScreen on workspace route instead of PlaceholderScreen", () => {
+    render(
+      <App
+        initialRoute={{
+          name: "workspace",
+          params: { targetJobId: "tj-1" },
+        }}
+      />,
+    );
+    expect(screen.getByTestId("workspace-crumbs")).toBeInTheDocument();
+    expect(screen.queryByTestId("route-workspace")).not.toBeInTheDocument();
+  });
+
+  it("practice route still renders PlaceholderScreen", () => {
+    render(
+      <App
+        initialRoute={{
+          name: "practice",
+          params: { sessionId: "sess-1" },
+        }}
+      />,
+    );
+    expect(screen.getByTestId("route-practice")).toBeInTheDocument();
+  });
+
+  it("generating route still renders PlaceholderScreen", () => {
+    render(
+      <App
+        initialRoute={{
+          name: "generating",
+          params: { sessionId: "sess-1", reportId: "rpt-1" },
+        }}
+      />,
+    );
+    expect(screen.getByTestId("route-generating")).toBeInTheDocument();
+  });
 });

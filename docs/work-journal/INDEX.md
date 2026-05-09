@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-09](2026-05-09.md) | `feat(workspace): add InterviewContext store, WorkspaceScreen shell, and i18n` | #feat #ui #i18n #test |
 | [2026-05-09](2026-05-09.md) | `fix(home-jd-import): address parse review findings` | #fix #ui #test |
 | [2026-05-08](2026-05-08.md) | `docs(frontend-home): record l2 remediation closure with bug log and retrospective` | #docs #fix |
 | [2026-05-08](2026-05-08.md) | `test(scenarios): align p0-006 wrapper to 68 parity tests and add source-level negative grep` | #test #docs |

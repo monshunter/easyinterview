@@ -88,7 +88,7 @@ describe("E2E.P0.002 auth pending-action resume", () => {
         "false",
       ),
     );
-    expect(screen.getByTestId("route-workspace")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace-crumbs")).toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.click(screen.getByTestId("workspace-start-practice"));

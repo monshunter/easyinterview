@@ -37,6 +37,8 @@ import { ParseScreen } from "./screens/parse/ParseScreen";
 import { PlaceholderScreen } from "./screens/PlaceholderScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import { WorkspaceScreen } from "./screens/workspace/WorkspaceScreen";
+import { InterviewContextProvider } from "./interview-context/InterviewContext";
 import { TopBar } from "./topbar/TopBar";
 
 export interface AppProps {
@@ -89,6 +91,9 @@ function renderRouteScreen(
   }
   if (route.name === "parse") {
     return <ParseScreen route={route} />;
+  }
+  if (route.name === "workspace") {
+    return <WorkspaceScreen route={route} />;
   }
   if (!runtime) {
     return <PlaceholderScreen route={route} />;
@@ -197,7 +202,11 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
             signedIn={signedIn}
           />
         )}
-        <main>{renderRouteScreen(route, navigate, runtime, prefs.lang)}</main>
+        <main>
+          <InterviewContextProvider>
+            {renderRouteScreen(route, navigate, runtime, prefs.lang)}
+          </InterviewContextProvider>
+        </main>
         {children}
       </div>
     </NavigationProvider>
