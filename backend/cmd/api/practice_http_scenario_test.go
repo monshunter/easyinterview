@@ -191,10 +191,17 @@ func TestE2EP0025PracticeIdempotencyAndIsolationMatrix(t *testing.T) {
 	firstRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-025-shared-key", bodyA1, http.StatusCreated)
 	var first api.PracticeSession
 	decodeJSON(t, firstRaw, &first)
+	h.store.forceSessionReplayDrift(first.Id)
 	replayRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-025-shared-key", bodyA1, http.StatusCreated)
 	var replay api.PracticeSession
 	decodeJSON(t, replayRaw, &replay)
-	if replay.Id != first.Id || h.store.outboxCount() != 1 {
+	if replay.Id != first.Id ||
+		replay.Status != first.Status ||
+		replay.TurnCount != first.TurnCount ||
+		replay.CurrentTurn == nil ||
+		first.CurrentTurn == nil ||
+		replay.CurrentTurn.QuestionText != first.CurrentTurn.QuestionText ||
+		h.store.outboxCount() != 1 {
 		t.Fatalf("same user/key/fingerprint should replay without duplicate outbox: first=%+v replay=%+v outbox=%d", first, replay, h.store.outboxCount())
 	}
 
@@ -744,11 +751,16 @@ func (s *scenarioPracticeStore) ReserveSessionStart(_ context.Context, in domain
 		case idempotency.StatusPending:
 			return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
 		case idempotency.StatusSucceeded:
-			session, ok := s.sessions[existing.ResourceID]
-			if !ok || session.UserID != in.UserID {
+			if len(existing.Response) == 0 {
 				return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
 			}
-			replay := session.SessionRecord
+			replay, err := scenarioSessionRecordFromResponseBody(existing.Response)
+			if err != nil {
+				return domainpractice.SessionReservation{}, err
+			}
+			if replay.ID != existing.ResourceID {
+				return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
+			}
 			return domainpractice.SessionReservation{ReplaySession: &replay}, nil
 		case idempotency.StatusFailedRetry:
 			recordID = existing.RecordID
@@ -1037,6 +1049,69 @@ func (s *scenarioPracticeStore) failedSessionCount(planID string) int {
 		}
 	}
 	return count
+}
+
+func (s *scenarioPracticeStore) forceSessionReplayDrift(sessionID string) {
+	session, ok := s.sessions[sessionID]
+	if !ok {
+		return
+	}
+	session.Status = sharedtypes.SessionStatusCompleted
+	session.TurnCount = 99
+	if session.CurrentTurn != nil {
+		turn := *session.CurrentTurn
+		turn.QuestionText = "mutated question that must not appear in idempotency replay"
+		session.CurrentTurn = &turn
+	}
+	s.sessions[sessionID] = session
+}
+
+func scenarioSessionRecordFromResponseBody(raw []byte) (domainpractice.SessionRecord, error) {
+	var decoded api.PracticeSession
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return domainpractice.SessionRecord{}, err
+	}
+	createdAt, err := time.Parse(time.RFC3339, decoded.CreatedAt)
+	if err != nil {
+		return domainpractice.SessionRecord{}, err
+	}
+	updatedAt, err := time.Parse(time.RFC3339, decoded.UpdatedAt)
+	if err != nil {
+		return domainpractice.SessionRecord{}, err
+	}
+	session := domainpractice.SessionRecord{
+		ID:           decoded.Id,
+		PlanID:       decoded.PlanId,
+		TargetJobID:  decoded.TargetJobId,
+		Status:       decoded.Status,
+		Language:     decoded.Language,
+		HintsEnabled: decoded.HintsEnabled,
+		TurnCount:    decoded.TurnCount,
+		CreatedAt:    createdAt,
+		UpdatedAt:    updatedAt,
+	}
+	if decoded.CurrentTurn != nil {
+		var askedAt time.Time
+		if decoded.CurrentTurn.AskedAt != nil && strings.TrimSpace(*decoded.CurrentTurn.AskedAt) != "" {
+			askedAt, err = time.Parse(time.RFC3339, *decoded.CurrentTurn.AskedAt)
+			if err != nil {
+				return domainpractice.SessionRecord{}, err
+			}
+		}
+		intent := ""
+		if decoded.CurrentTurn.QuestionIntent != nil {
+			intent = *decoded.CurrentTurn.QuestionIntent
+		}
+		session.CurrentTurn = &domainpractice.TurnRecord{
+			ID:             decoded.CurrentTurn.Id,
+			TurnIndex:      decoded.CurrentTurn.TurnIndex,
+			QuestionText:   decoded.CurrentTurn.QuestionText,
+			QuestionIntent: intent,
+			Status:         decoded.CurrentTurn.Status,
+			AskedAt:        askedAt,
+		}
+	}
+	return session, nil
 }
 
 func (s *scenarioPracticeStore) idempotencyStatus(userID, domain, operation, rawKey string) idempotency.Status {

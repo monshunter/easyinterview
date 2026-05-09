@@ -189,9 +189,15 @@ func (r *SQLRepository) ReserveSessionStart(ctx context.Context, in domain.Start
 			if strings.TrimSpace(existing.resourceID) == "" {
 				return domain.SessionReservation{}, domain.ErrSessionConflict
 			}
-			session, err := selectSessionForUser(ctx, tx, in.UserID, existing.resourceID)
+			if len(existing.responseBody) == 0 {
+				return domain.SessionReservation{}, fmt.Errorf("start session idempotency response body is empty")
+			}
+			session, err := sessionRecordFromStoredResponse(existing.responseBody)
 			if err != nil {
 				return domain.SessionReservation{}, err
+			}
+			if session.ID != existing.resourceID {
+				return domain.SessionReservation{}, fmt.Errorf("start session idempotency response resource mismatch")
 			}
 			if err := tx.Commit(); err != nil {
 				return domain.SessionReservation{}, fmt.Errorf("commit start session idempotency replay: %w", err)
@@ -299,18 +305,20 @@ join selected_plan on selected_plan.id = inserted.plan_id`,
 }
 
 type selectedStartSessionIdempotency struct {
-	id          string
-	fingerprint string
-	status      idempotency.Status
-	resourceID  string
+	id           string
+	fingerprint  string
+	status       idempotency.Status
+	resourceID   string
+	responseBody []byte
 }
 
 func selectStartSessionIdempotency(ctx context.Context, tx *sql.Tx, in domain.StartSessionReservationInput) (selectedStartSessionIdempotency, bool, error) {
 	var rec selectedStartSessionIdempotency
 	var status string
 	var resourceID sql.NullString
+	var responseBody sql.NullString
 	err := tx.QueryRowContext(ctx, `
-select id, request_fingerprint, status, resource_id::text
+select id, request_fingerprint, status, resource_id::text, response_body
 from idempotency_records
 where user_id = $1
   and domain = 'practice'
@@ -319,7 +327,7 @@ where user_id = $1
 for update`,
 		in.UserID,
 		in.IdempotencyKeyHash,
-	).Scan(&rec.id, &rec.fingerprint, &status, &resourceID)
+	).Scan(&rec.id, &rec.fingerprint, &status, &resourceID, &responseBody)
 	if stderrs.Is(err, sql.ErrNoRows) {
 		return selectedStartSessionIdempotency{}, false, nil
 	}
@@ -328,6 +336,9 @@ for update`,
 	}
 	rec.status = idempotency.Status(status)
 	rec.resourceID = resourceID.String
+	if responseBody.Valid {
+		rec.responseBody = []byte(responseBody.String)
+	}
 	return rec, true, nil
 }
 
@@ -677,6 +688,79 @@ func marshalSessionResponseBody(session domain.SessionRecord) ([]byte, error) {
 		return nil, fmt.Errorf("marshal start session idempotency response: %w", err)
 	}
 	return raw, nil
+}
+
+func sessionRecordFromStoredResponse(raw []byte) (domain.SessionRecord, error) {
+	var decoded struct {
+		ID           string                    `json:"id"`
+		PlanID       string                    `json:"planId"`
+		TargetJobID  string                    `json:"targetJobId"`
+		Status       sharedtypes.SessionStatus `json:"status"`
+		Language     string                    `json:"language"`
+		HintsEnabled bool                      `json:"hintsEnabled"`
+		TurnCount    int32                     `json:"turnCount"`
+		CurrentTurn  *struct {
+			ID             string  `json:"id"`
+			TurnIndex      int32   `json:"turnIndex"`
+			QuestionText   string  `json:"questionText"`
+			QuestionIntent *string `json:"questionIntent"`
+			Status         string  `json:"status"`
+			AskedAt        *string `json:"askedAt"`
+		} `json:"currentTurn"`
+		CreatedAt string `json:"createdAt"`
+		UpdatedAt string `json:"updatedAt"`
+	}
+	if len(raw) == 0 {
+		return domain.SessionRecord{}, fmt.Errorf("stored session response is empty")
+	}
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return domain.SessionRecord{}, fmt.Errorf("unmarshal stored session response: %w", err)
+	}
+	if strings.TrimSpace(decoded.ID) == "" {
+		return domain.SessionRecord{}, fmt.Errorf("stored session response missing id")
+	}
+	createdAt, err := time.Parse(time.RFC3339, decoded.CreatedAt)
+	if err != nil {
+		return domain.SessionRecord{}, fmt.Errorf("parse stored session createdAt: %w", err)
+	}
+	updatedAt, err := time.Parse(time.RFC3339, decoded.UpdatedAt)
+	if err != nil {
+		return domain.SessionRecord{}, fmt.Errorf("parse stored session updatedAt: %w", err)
+	}
+	session := domain.SessionRecord{
+		ID:           decoded.ID,
+		PlanID:       decoded.PlanID,
+		TargetJobID:  decoded.TargetJobID,
+		Status:       decoded.Status,
+		Language:     decoded.Language,
+		HintsEnabled: decoded.HintsEnabled,
+		TurnCount:    decoded.TurnCount,
+		CreatedAt:    createdAt,
+		UpdatedAt:    updatedAt,
+	}
+	if decoded.CurrentTurn != nil {
+		var askedAt time.Time
+		if decoded.CurrentTurn.AskedAt != nil && strings.TrimSpace(*decoded.CurrentTurn.AskedAt) != "" {
+			parsedAskedAt, err := time.Parse(time.RFC3339, *decoded.CurrentTurn.AskedAt)
+			if err != nil {
+				return domain.SessionRecord{}, fmt.Errorf("parse stored turn askedAt: %w", err)
+			}
+			askedAt = parsedAskedAt
+		}
+		intent := ""
+		if decoded.CurrentTurn.QuestionIntent != nil {
+			intent = *decoded.CurrentTurn.QuestionIntent
+		}
+		session.CurrentTurn = &domain.TurnRecord{
+			ID:             decoded.CurrentTurn.ID,
+			TurnIndex:      decoded.CurrentTurn.TurnIndex,
+			QuestionText:   decoded.CurrentTurn.QuestionText,
+			QuestionIntent: intent,
+			Status:         decoded.CurrentTurn.Status,
+			AskedAt:        askedAt,
+		}
+	}
+	return session, nil
 }
 
 var _ domain.Store = (*SQLRepository)(nil)

@@ -38,7 +38,7 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 		DataSourceVersion:   "registry.v1",
 		UserMessageTemplate: "ask the first question",
 	}}
-	ai := &fakeAIClient{content: `{"questionText":"请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。","questionIntent":"behavioral.leadership.design_system"}`, store: store}
+	ai := &fakeAIClient{content: `{"question":"请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。","intent":"behavioral.leadership.design_system","focus_dimension":"leadership","expected_signals":["scope","tradeoffs"],"time_budget_seconds":180}`, store: store}
 	service := NewService(ServiceOptions{
 		Store:    store,
 		Registry: registryClient,
@@ -66,7 +66,9 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 	if session.Status != sharedtypes.SessionStatusRunning || session.CurrentTurn == nil {
 		t.Fatalf("unexpected session: %+v", session)
 	}
-	if session.CurrentTurn.QuestionIntent != "behavioral.leadership.design_system" || session.CurrentTurn.TurnIndex != 1 {
+	if session.CurrentTurn.QuestionText != "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。" ||
+		session.CurrentTurn.QuestionIntent != "behavioral.leadership.design_system" ||
+		session.CurrentTurn.TurnIndex != 1 {
 		t.Fatalf("unexpected first turn: %+v", session.CurrentTurn)
 	}
 	if store.commit.IdempotencyRecordID != "idem-1" ||
@@ -124,6 +126,36 @@ func TestStartPracticeSessionRejectsMissingFirstQuestionText(t *testing.T) {
 	}
 	if store.fail.ErrorCode != sharederrors.CodeAiOutputInvalid || store.fail.Retryable {
 		t.Fatalf("invalid first question failure not recorded correctly: %+v", store.fail)
+	}
+}
+
+func TestStartPracticeSessionRejectsNonJSONFirstQuestionResponse(t *testing.T) {
+	store := &recordingPlanStore{
+		reservation: SessionReservation{
+			SessionID:          "session-1",
+			PlanID:             "plan-1",
+			TargetJobID:        "target-1",
+			Goal:               sharedtypes.PracticeGoalBaseline,
+			Mode:               sharedtypes.PracticeModeAssisted,
+			InterviewerPersona: sharedtypes.InterviewerRoleHiringManager,
+			Language:           "zh-CN",
+		},
+	}
+	service := NewService(ServiceOptions{
+		Store:    store,
+		Registry: &fakePromptResolver{resolution: registry.PromptResolution{FeatureKey: "practice.session.first_question", PromptVersion: "p", RubricVersion: "r", ModelProfileName: "practice.first_question.default", FeatureFlag: "none", DataSourceVersion: "registry.v1"}},
+		AI:       &fakeAIClient{content: `Here is a first question without strict JSON.`, store: store},
+		NewID:    sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1", "audit-1"),
+	})
+
+	if _, err := service.StartPracticeSession(context.Background(), StartSessionRequest{UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "key-hash", RequestFingerprint: "fingerprint"}); err == nil {
+		t.Fatalf("expected non-JSON first question to be rejected")
+	}
+	if len(store.steps) != 3 || store.steps[0] != "reserve" || store.steps[1] != "ai" || store.steps[2] != "fail" {
+		t.Fatalf("non-JSON first question should persist failed reservation without commit, steps=%v", store.steps)
+	}
+	if store.fail.ErrorCode != sharederrors.CodeAiOutputInvalid || store.fail.Retryable {
+		t.Fatalf("non-JSON first question failure not recorded correctly: %+v", store.fail)
 	}
 }
 

@@ -108,6 +108,20 @@ func TestPracticeIdempotencyMigrationContract(t *testing.T) {
 	}
 }
 
+func TestPracticeIdempotencyMigrationDownDoesNotDropBaselineOwnedTable(t *testing.T) {
+	root := repoRoot(t)
+	down := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000003_practice_idempotency_baseline.down.sql")))
+
+	for _, forbidden := range []string{
+		"drop index if exists idx_idempotency_records_expires_at",
+		"drop table if exists idempotency_records",
+	} {
+		if strings.Contains(down, forbidden) {
+			t.Fatalf("practice idempotency down migration must not contain %q", forbidden)
+		}
+	}
+}
+
 func TestBaselineMigrationDoesNotStoreRawAuthSecrets(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))

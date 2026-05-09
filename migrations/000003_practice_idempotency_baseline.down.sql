@@ -3,5 +3,5 @@ ALTER TABLE practice_plans
 ALTER TABLE practice_plans
   ADD CONSTRAINT practice_plans_mode_check CHECK (mode IN ('assisted', 'strict'));
 
-DROP INDEX IF EXISTS idx_idempotency_records_expires_at;
-DROP TABLE IF EXISTS idempotency_records CASCADE;
+-- idempotency_records and idx_idempotency_records_expires_at are owned by
+-- 000001_create_baseline after the pre-launch baseline rebase.

@@ -16,6 +16,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0033](./BUG-0033.md) | practice session L2 review exposed first-question and replay drift | high | resolved | 2026-05-10 | `fix(backend-practice): remediate session orchestration L2 findings` |
 | [BUG-0004](./BUG-0004.md) | voice interview surface was removed while unifying practice routes | medium | resolved | 2026-05-02 | `fix(ui-design): restore voice interview surface in practice shell` |
 
 ## Review

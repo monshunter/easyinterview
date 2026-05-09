@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-05-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -18,6 +18,7 @@
 - [x] 0.8 F3 baseline preflight assert：grep `prompt-rubric-registry/001-baseline` Header 状态 = `completed`，且其 `Resolve` 对 3 个 practice feature_key 返回 valid `(prompt_version, rubric_version, model_profile_name)` 三元组；验证: preflight script + 单元测试断言（fail-fast 在 plan 001 启动 AI 实现前）
 - [x] 0.9 Phase 0 legacy-negative grep：仓库范围 removed legacy mode literal 在 `PracticeMode` / `mode` / `practice_plans.mode` / `session.mode` / `PracticeDisplayContext.practiceMode` 上下文零出现；`PracticeGoal` 上下文允许保留；验证: CI grep gate
 - [x] 0.10 Phase 0 commit + work-journal：单 phase commit `phase 0: backend-practice plan-001 contract preflight`；运行 `/work-journal` 一条记录
+- [x] 0.11 Remediation: 修复 `migrations/000003_practice_idempotency_baseline.down.sql` baseline ownership，禁止 rollback 000003 删除由 `000001_create_baseline.up.sql` 拥有的 `idempotency_records` 表 / index；验证: migration contract test 覆盖 down-path zero-drop 断言 + migration lint
 
 ## Phase 1: Plan + Session 主流程 (success path) + idempotency replay 基础
 
@@ -30,6 +31,7 @@
 - [x] 1.7 BDD-Gate: 验证 `E2E.P0.022` 通过（`test/scenarios/e2e/p0-022-practice-plan-baseline-create-and-read/`）
 - [x] 1.8 BDD-Gate: 验证 `E2E.P0.023` 通过（`test/scenarios/e2e/p0-023-practice-session-start-and-first-question/`）
 - [x] 1.9 Phase 1 commit + work-journal
+- [x] 1.10 Remediation: 修复 `startPracticeSession` 首题解析与 F3 `practice.session.first_question` prompt JSON schema 对齐，接受 `question` / `intent` / `focus_dimension` / `expected_signals` / `time_budget_seconds`，保留兼容 `questionText` / `questionIntent`，并拒绝非 JSON 或缺少 question 的 AI 输出；验证: `session_starter` focused tests 覆盖 F3 schema success 与 invalid-output failure
 
 ## Phase 2: 错误路径 + Idempotency 完备性
 
@@ -42,6 +44,7 @@
 - [x] 2.7 BDD-Gate: 验证 `E2E.P0.024` 通过（`test/scenarios/e2e/p0-024-practice-session-ai-failure-retry/`）
 - [x] 2.8 BDD-Gate: 验证 `E2E.P0.025` 通过（`test/scenarios/e2e/p0-025-practice-idempotency-and-isolation-matrix/`）
 - [x] 2.9 Phase 2 commit + work-journal
+- [x] 2.10 Remediation: 修复 `startPracticeSession` success replay，必须返回首次成功时持久化在 `idempotency_records.response_body` 的 response snapshot，而不是读取当前 session mutable state；验证: SQL repository focused test + scenario in-memory harness test 覆盖 replay snapshot 不随 session 后续状态漂移
 
 ## Phase 3: 观测 / 隐私 / 收尾
 
