@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-09](2026-05-09.md) | `feat(observability): enrich ai call metadata with provenance defaults` | #feat #test |
 | [2026-05-09](2026-05-09.md) | `fix(skills): reject no-op go test run evidence` | #fix #test #docs |
 | [2026-05-09](2026-05-09.md) | `fix(prompt-rubric-registry): remediate provenance L2 findings` | #fix #test #docs |
 | [2026-05-09](2026-05-09.md) | `docs(prompt-rubric-registry): close 001-baseline lifecycle and record ac self-check` | #docs |
