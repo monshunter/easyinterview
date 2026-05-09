@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-10](2026-05-10.md) | `feat(openapi): additive upgrade jobmatch tag and 12 jd-match operations` | #feat #docs |
 | [2026-05-09](2026-05-09.md) | `docs(plan-002-jd-match): retain ui-design 5-step agent panel via i18n` | #docs |
 | [2026-05-09](2026-05-09.md) | `docs(frontend-home): derive jd_match plan and bump spec to v1.2` | #docs |
 | [2026-05-09](2026-05-09.md) | `docs(backend-practice): derive orchestration plan and bump spec to v1.4` | #docs |

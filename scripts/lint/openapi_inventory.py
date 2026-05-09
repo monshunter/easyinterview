@@ -31,9 +31,10 @@ EXPECTED_TAGS: list[str] = [
     "Debriefs",
     "Jobs",
     "Privacy",
+    "JobMatch",
 ]
 
-# (tag, method, path, operationId) tuples per spec §3.1.1 (34 entries).
+# (tag, method, path, operationId) tuples per spec §3.1.1 (46 entries).
 EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("Auth", "get", "/me", "getMe"),
     ("Auth", "delete", "/me", "deleteMe"),
@@ -69,6 +70,18 @@ EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("Privacy", "post", "/privacy/deletions", "requestPrivacyDelete"),
     ("Privacy", "get", "/privacy/requests/{privacyRequestId}", "getPrivacyRequest"),
     ("Auth", "get", "/runtime-config", "getRuntimeConfig"),
+    ("JobMatch", "get", "/jd-match/profile", "getJobMatchProfile"),
+    ("JobMatch", "get", "/jd-match/agent-status", "getAgentScanStatus"),
+    ("JobMatch", "get", "/jd-match/recommendations", "listJobRecommendations"),
+    ("JobMatch", "get", "/jd-match/recommendations/{jobMatchId}", "getJobRecommendation"),
+    ("JobMatch", "post", "/jd-match/watchlist", "addToWatchlist"),
+    ("JobMatch", "delete", "/jd-match/watchlist/{jobMatchId}", "removeFromWatchlist"),
+    ("JobMatch", "post", "/jd-match/recommendations/{jobMatchId}/dismiss", "markJobNotRelevant"),
+    ("JobMatch", "post", "/jd-match/search", "searchJobs"),
+    ("JobMatch", "get", "/jd-match/saved-searches", "listSavedSearches"),
+    ("JobMatch", "post", "/jd-match/saved-searches", "createSavedSearch"),
+    ("JobMatch", "get", "/jd-match/watchlist", "listWatchlist"),
+    ("JobMatch", "get", "/jd-match/market-signals", "getMarketSignals"),
 ]
 
 # Side-effect endpoints that must reference `Idempotency-Key` per plan §1.3 / spec D-6.
@@ -85,6 +98,11 @@ IK_REQUIRED: set[tuple[str, str]] = {
     ("post", "/debriefs"),
     ("post", "/privacy/exports"),
     ("post", "/privacy/deletions"),
+    ("post", "/jd-match/watchlist"),
+    ("delete", "/jd-match/watchlist/{jobMatchId}"),
+    ("post", "/jd-match/recommendations/{jobMatchId}/dismiss"),
+    ("post", "/jd-match/search"),
+    ("post", "/jd-match/saved-searches"),
 }
 
 # Endpoints that must NOT carry `Idempotency-Key` per plan §1.3 (ADR-Q1 + clientEventId).
@@ -108,6 +126,7 @@ AI_PROVENANCE_SCHEMAS: list[str] = [
     "FeedbackReport",
     "ResumeTailorRun",
     "Debrief",
+    "JobMatchRecommendation",
 ]
 
 FORBIDDEN_PRODUCT_SCOPE_TOKENS: tuple[str, ...] = (
@@ -348,8 +367,8 @@ def main(argv: list[str]) -> int:
         errors.append("missing operations: " + ", ".join(sorted(f"{m.upper()} {p} ({o})" for _, m, p, o in missing)))
     if extra:
         errors.append("unexpected operations: " + ", ".join(sorted(f"{m.upper()} {p} ({o})" for _, m, p, o in extra)))
-    if operation_count != 34:
-        errors.append(f"operation count must be 34 (spec §3.1.1); got {operation_count}")
+    if operation_count != 46:
+        errors.append(f"operation count must be 46 (spec §3.1.1); got {operation_count}")
 
     # operationId uniqueness.
     op_ids = [op for _, _, _, op in seen_ops]
