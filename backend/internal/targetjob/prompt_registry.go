@@ -2,45 +2,71 @@ package targetjob
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strings"
+
+	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 )
 
-const (
-	defaultTargetImportPromptVersion     = "targetjob.import.prompt.v0"
-	defaultTargetImportRubricVersion     = "targetjob.import.rubric.v0"
-	defaultTargetImportModelProfileName  = "target.import.default"
-	defaultTargetImportDataSourceVersion = "targetjob.import.v1"
-)
-
-// StaticPromptRegistry is the cmd/api bootstrap bridge for the F3-owned
-// prompt registry. It exposes only the spec-locked target.import.parse tuple
-// until the F3 runtime package lands as a shared dependency.
-type StaticPromptRegistry struct {
-	Resolution PromptResolution
+// RegistryAdapter satisfies targetjob.PromptRegistryClient by translating
+// registry.PromptResolution into the local targetjob.PromptResolution. It
+// is the only path through which the parse executor reaches the F3
+// registry; the executor must not import the registry package directly
+// because that would couple targetjob to F3's import path.
+//
+// Phase 3 of plan prompt-rubric-registry/001-baseline retired the previous
+// in-package static bridge (and its four hardcoded version constants) in
+// favor of this adapter.
+type RegistryAdapter struct {
+	client *registry.Client
 }
 
-// NewStaticPromptRegistry returns the target.import.parse prompt resolution
-// currently required by backend-targetjob plan 001.
-func NewStaticPromptRegistry() *StaticPromptRegistry {
-	return &StaticPromptRegistry{
-		Resolution: PromptResolution{
-			PromptVersion:       defaultTargetImportPromptVersion,
-			RubricVersion:       defaultTargetImportRubricVersion,
-			ModelProfileName:    defaultTargetImportModelProfileName,
-			DataSourceVersion:   defaultTargetImportDataSourceVersion,
-			FeatureFlag:         "none",
-			UserMessageTemplate: "{{jd_text}}",
-		},
+// NewRegistryAdapter wires a *registry.Client into the targetjob domain.
+// A nil client returns nil so callers can detect a misconfigured wiring
+// during construction rather than at first request.
+func NewRegistryAdapter(client *registry.Client) *RegistryAdapter {
+	if client == nil {
+		return nil
 	}
+	return &RegistryAdapter{client: client}
 }
 
-// Resolve implements PromptRegistryClient.
-func (r *StaticPromptRegistry) Resolve(_ context.Context, featureKey string, language string) (PromptResolution, error) {
-	if strings.TrimSpace(featureKey) != FeatureKeyTargetImportParse || strings.TrimSpace(language) == "" {
+// Resolve implements PromptRegistryClient. The adapter forwards to the
+// registry client, asserts that the returned FeatureKey matches the
+// caller's input (so a registry-side bug cannot silently substitute a
+// different baseline), and projects all 7 targetjob fields plus the
+// caller's feature_key.
+func (a *RegistryAdapter) Resolve(ctx context.Context, featureKey string, language string) (PromptResolution, error) {
+	if a == nil || a.client == nil {
 		return PromptResolution{}, ErrPromptUnsupported
 	}
-	if r == nil || r.Resolution.ModelProfileName == "" {
-		return NewStaticPromptRegistry().Resolution, nil
+	if strings.TrimSpace(featureKey) == "" || strings.TrimSpace(language) == "" {
+		return PromptResolution{}, ErrPromptUnsupported
 	}
-	return r.Resolution, nil
+
+	resolved, err := a.client.ResolveActive(ctx, featureKey, language)
+	if err != nil {
+		if errors.Is(err, registry.ErrPromptUnsupported) ||
+			errors.Is(err, registry.ErrLanguageUnsupported) {
+			return PromptResolution{}, ErrPromptUnsupported
+		}
+		return PromptResolution{}, fmt.Errorf("targetjob: registry resolve: %w", err)
+	}
+	if resolved.FeatureKey != featureKey {
+		return PromptResolution{}, fmt.Errorf(
+			"targetjob: registry returned feature_key %q, expected %q",
+			resolved.FeatureKey, featureKey,
+		)
+	}
+
+	return PromptResolution{
+		PromptVersion:       resolved.PromptVersion,
+		RubricVersion:       resolved.RubricVersion,
+		ModelProfileName:    resolved.ModelProfileName,
+		DataSourceVersion:   resolved.DataSourceVersion,
+		FeatureFlag:         resolved.FeatureFlag,
+		SystemMessage:       resolved.SystemMessage,
+		UserMessageTemplate: resolved.UserMessageTemplate,
+	}, nil
 }

@@ -319,7 +319,7 @@ runtime:
 	}
 	registry := opts.registry
 	if registry == nil {
-		registry = targetjob.NewStaticPromptRegistry()
+		registry = newStaticTestPromptRegistry()
 	}
 	fetcher := opts.fetcher
 	if fetcher == nil {
@@ -808,7 +808,35 @@ func (r scenarioRegistry) Resolve(ctx context.Context, featureKey string, langua
 	if r.err != nil {
 		return targetjob.PromptResolution{}, r.err
 	}
-	return targetjob.NewStaticPromptRegistry().Resolve(ctx, featureKey, language)
+	return newStaticTestPromptRegistry().Resolve(ctx, featureKey, language)
+}
+
+// staticTestPromptRegistry replaces the retired targetjob.StaticPromptRegistry
+// for cmd/api scenario tests. It mirrors the F3 RegistryAdapter shape with a
+// fixed target.import.parse resolution so HTTP scenarios can assert the
+// provenance flow without spinning up a real registry.Client.
+type staticTestPromptRegistry struct {
+	resolution targetjob.PromptResolution
+}
+
+func newStaticTestPromptRegistry() *staticTestPromptRegistry {
+	return &staticTestPromptRegistry{
+		resolution: targetjob.PromptResolution{
+			PromptVersion:       "v0.1.0",
+			RubricVersion:       "v0.1.0",
+			ModelProfileName:    "target.import.default",
+			DataSourceVersion:   "registry.v1",
+			FeatureFlag:         "none",
+			UserMessageTemplate: "{{jd_text}}",
+		},
+	}
+}
+
+func (r *staticTestPromptRegistry) Resolve(_ context.Context, featureKey string, language string) (targetjob.PromptResolution, error) {
+	if featureKey != targetjob.FeatureKeyTargetImportParse || strings.TrimSpace(language) == "" {
+		return targetjob.PromptResolution{}, targetjob.ErrPromptUnsupported
+	}
+	return r.resolution, nil
 }
 
 type scenarioFetcher struct{}

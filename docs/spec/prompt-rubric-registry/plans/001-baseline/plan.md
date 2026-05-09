@@ -425,6 +425,16 @@ Source: `shared/conventions.yaml` + `backend/internal/shared/ai/vocabulary.go` +
 - `go vet ./backend/internal/ai/registry/`: green.
 - F3 RegistryClient publishes ResolveActive / GetPrompt / GetRubric, NotImplementedJudge default, atomic.Value-backed snapshot with 30s TTL + explicit Reload, FallbackCount counter for D-6 test assertions, and SnapshotSize accessor for cache idempotency tests.
 
+### 8.1.5 Phase 3 evidence summary
+
+- `go test ./backend/internal/targetjob -run TestRegistryAdapter -race`: green (TestRegistryAdapterMapsAllSevenFields, TestRegistryAdapterRejectsNilClient, TestRegistryAdapterRejectsUnknownFeatureKey).
+- `go test ./backend/internal/targetjob -run TestActiveScopeNegative -race`: green (extended forbidden-token list now covers `StaticPromptRegistry`, `NewStaticPromptRegistry`, and all 4 `defaultTargetImport*` constants).
+- `go test ./backend/internal/targetjob -run TestParseExecutor -race`: green; new `TestParseExecutorRegistryAdapterCrossLayer` and `TestParseExecutorMetadataCarriesF3Triple` exercise the F3 RegistryAdapter end-to-end against the on-disk `config/prompts/target.import.parse/v0.1.0*.yaml` baseline and confirm the 6-field provenance shape (`language`, `featureFlag`, `promptVersion`, `rubricVersion`, `modelId`, `dataSourceVersion`).
+- `go test ./backend/cmd/api -race`: green; `TestBuildTargetJobRuntimeWiresDrainerAndAIClient` now points the loader at the in-repo `config/prompts` and `config/rubrics` roots through new `ai.promptsDir` / `ai.rubricsDir` config keys, replacing the retired `targetjob.NewStaticPromptRegistry()` wiring with `registry.NewRegistryClient` + `targetjob.NewRegistryAdapter`. cmd/api scenario test gets a local `staticTestPromptRegistry` shim mirroring the old shape so HTTP-level assertions stay stable.
+- `go vet ./backend/internal/targetjob ./backend/cmd/api ./backend/internal/ai/registry`: green.
+- `make validate-fixtures`: green; `openapi/fixtures/TargetJobs/getTargetJob.json` now uses F3 baseline coordinates (`promptVersion=v0.1.0`, `rubricVersion=v0.1.0|not_applicable`, `modelId=model-profile:target.import.default`, `featureFlag=none`, `dataSourceVersion=registry.v1`). `importTargetJob.json` path casing remains aligned with the operation matrix and the response is still `202 + Job` with no provenance shape change.
+- `! grep -rE "StaticPromptRegistry|defaultTargetImport(Prompt|Rubric|ModelProfile|DataSource)" backend/` (production scope, `--include='*.go' --exclude='*_test.go'`): zero matches. The full recursive grep still hits the negative-test file `active_scope_negative_test.go` and the cmd/api scenario shim comment, both of which intentionally name the retired identifiers as forbidden tokens — these are regression guards, not residual production references. The 2.9-style filtering convention applies.
+
 ### 8.2 Owner handoff
 
 - **B1 shared-conventions-codified**: `feature_key` joins `feature_flag` / `data_source_version` as AI provenance vocabulary; no F1 metric label expansion.
