@@ -51,8 +51,8 @@
         },
         "body": {
           "error": {
-            "code": "NOT_FOUND",
-            "message": "PracticePlan not found",
+            "code": "PRACTICE_PLAN_NOT_FOUND",
+            "message": "practice plan not found",
             "requestId": "req_2026-05-09T10-00-00-not-found",
             "retryable": false
           }

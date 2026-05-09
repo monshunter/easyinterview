@@ -23,12 +23,16 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/bootstrap"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
+	apipractice "github.com/monshunter/easyinterview/backend/internal/api/practice"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
+	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
 	"github.com/monshunter/easyinterview/backend/internal/platform/secrets"
+	domainpractice "github.com/monshunter/easyinterview/backend/internal/practice"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
+	storepractice "github.com/monshunter/easyinterview/backend/internal/store/practice"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
 )
@@ -114,10 +118,15 @@ func main() {
 		defer cancel()
 		_ = targetJobRuntime.Shutdown(shutdownCtx)
 	}()
+	practiceRoutes, err := buildPracticeRoutes(loader, db, targetJobRuntime.AI.Client)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: practice runtime init: %v\n", err)
+		os.Exit(1)
+	}
 
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           buildAPIHandlerWithTargetJobHandler(loader, flagsClient, authService, targetJobRuntime.Handler),
+		Handler:           buildAPIHandlerWithHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -169,6 +178,15 @@ func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagC
 }
 
 func buildAPIHandlerWithTargetJobHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler) http.Handler {
+	return buildAPIHandlerWithHandlers(loader, flagsClient, authService, targetJobHandler, practiceRoutes{})
+}
+
+type practiceRoutes struct {
+	Handler     *apipractice.Handler
+	Idempotency *idempotency.Middleware
+}
+
+func buildAPIHandlerWithHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes) http.Handler {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(auth.HandlerOptions{
 		Passwordless: authService,
@@ -195,7 +213,48 @@ func buildAPIHandlerWithTargetJobHandler(loader *config.Loader, flagsClient feat
 	mux.Handle("PATCH /api/v1/targets/{targetJobId}", auth.SessionMiddleware(authService, "updateTargetJob", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		targetJobHandler.UpdateTargetJob(w, r, r.PathValue("targetJobId"))
 	})))
+	if practice.Handler != nil {
+		createPracticePlan := http.HandlerFunc(practice.Handler.CreatePracticePlan)
+		if practice.Idempotency != nil {
+			createPracticePlan = practice.Idempotency.Handler("practice", "createPracticePlan", requestUserFromContext, createPracticePlan).ServeHTTP
+		}
+		mux.Handle("POST /api/v1/practice/plans", auth.SessionMiddleware(authService, "createPracticePlan", createPracticePlan))
+		mux.Handle("GET /api/v1/practice/plans/{planId}", auth.SessionMiddleware(authService, "getPracticePlan", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			practice.Handler.GetPracticePlan(w, r, r.PathValue("planId"))
+		})))
+		mux.Handle("POST /api/v1/practice/sessions", auth.SessionMiddleware(authService, "startPracticeSession", http.HandlerFunc(practice.Handler.StartPracticeSession)))
+		mux.Handle("GET /api/v1/practice/sessions/{sessionId}", auth.SessionMiddleware(authService, "getPracticeSession", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			practice.Handler.GetPracticeSession(w, r, r.PathValue("sessionId"))
+		})))
+	}
 	return mux
+}
+
+func buildPracticeRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient) (practiceRoutes, error) {
+	registryClient, err := registry.NewRegistryClient(registry.RegistryOptions{
+		PromptsDir: registryDirOrDefault(loader, "ai.promptsDir", "config/prompts"),
+		RubricsDir: registryDirOrDefault(loader, "ai.rubricsDir", "config/rubrics"),
+	})
+	if err != nil {
+		return practiceRoutes{}, fmt.Errorf("build practice prompt registry: %w", err)
+	}
+	store := storepractice.NewSQLRepository(db)
+	handler := apipractice.NewHandler(apipractice.HandlerOptions{
+		Service: domainpractice.NewService(domainpractice.ServiceOptions{
+			Store:    store,
+			Registry: registryClient,
+			AI:       ai,
+			NewID:    idx.NewID,
+		}),
+		Session: currentUserFromContext,
+	})
+	return practiceRoutes{
+		Handler: handler,
+		Idempotency: idempotency.New(idempotency.MiddlewareOptions{
+			Store:     idempotency.NewSQLStore(db),
+			KeyPepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+		}),
+	}, nil
 }
 
 type targetJobRuntime struct {
@@ -295,14 +354,20 @@ func buildTargetJobHandler(loader *config.Loader, store targetjob.Store) *target
 			NewID:        idx.NewID,
 			DedupePepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
 		}),
-		Session: func(ctx context.Context) (string, bool) {
-			current, ok := auth.CurrentSessionFromContext(ctx)
-			if !ok || strings.TrimSpace(current.UserID) == "" {
-				return "", false
-			}
-			return current.UserID, true
-		},
+		Session: currentUserFromContext,
 	})
+}
+
+func currentUserFromContext(ctx context.Context) (string, bool) {
+	current, ok := auth.CurrentSessionFromContext(ctx)
+	if !ok || strings.TrimSpace(current.UserID) == "" {
+		return "", false
+	}
+	return current.UserID, true
+}
+
+func requestUserFromContext(r *http.Request) (string, bool) {
+	return currentUserFromContext(r.Context())
 }
 
 // registryDirOrDefault returns the configured F3 truth-source path or

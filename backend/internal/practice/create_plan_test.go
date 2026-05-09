@@ -1,0 +1,212 @@
+package practice
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
+	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
+)
+
+func TestServiceCreatePracticePlanCreatesBaselinePlan(t *testing.T) {
+	now := time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC)
+	store := &recordingPlanStore{}
+	service := NewService(ServiceOptions{
+		Store: store,
+		Now:   func() time.Time { return now },
+		NewID: sequenceIDs("plan-1", "audit-1"),
+	})
+
+	plan, err := service.CreatePracticePlan(context.Background(), CreatePlanRequest{
+		UserID:               "user-1",
+		TargetJobID:          "target-1",
+		ResumeAssetID:        "resume-1",
+		Goal:                 sharedtypes.PracticeGoalBaseline,
+		Mode:                 sharedtypes.PracticeModeAssisted,
+		InterviewerPersona:   sharedtypes.InterviewerRoleHiringManager,
+		Difficulty:           "standard",
+		Language:             "zh-CN",
+		QuestionBudget:       6,
+		TimeBudgetMinutes:    30,
+		FocusCompetencyCodes: []string{"communication", "design-systems"},
+	})
+	if err != nil {
+		t.Fatalf("CreatePracticePlan returned error: %v", err)
+	}
+	if plan.ID != "plan-1" || plan.Status != "ready" || plan.CreatedAt != now {
+		t.Fatalf("unexpected plan: %+v", plan)
+	}
+	if store.last.PlanID != "plan-1" || store.last.AuditEventID != "audit-1" {
+		t.Fatalf("ids not propagated to store: %+v", store.last)
+	}
+	if store.last.UserID != "user-1" || store.last.TargetJobID != "target-1" || store.last.ResumeAssetID != "resume-1" {
+		t.Fatalf("ownership inputs not propagated: %+v", store.last)
+	}
+	if store.last.Goal != sharedtypes.PracticeGoalBaseline || store.last.Mode != sharedtypes.PracticeModeAssisted {
+		t.Fatalf("plan enum inputs not propagated: %+v", store.last)
+	}
+}
+
+func TestServiceCreatePracticePlanRejectsFutureGoals(t *testing.T) {
+	service := NewService(ServiceOptions{Store: &recordingPlanStore{}, NewID: sequenceIDs("plan-1", "audit-1")})
+
+	_, err := service.CreatePracticePlan(context.Background(), validCreatePlanRequest(func(in *CreatePlanRequest) {
+		in.Goal = sharedtypes.PracticeGoalNextRound
+	}))
+	var svcErr *ServiceError
+	if !errors.As(err, &svcErr) {
+		t.Fatalf("expected ServiceError, got %T: %v", err, err)
+	}
+	if svcErr.Code != sharederrors.CodeValidationFailed {
+		t.Fatalf("code = %q", svcErr.Code)
+	}
+	if svcErr.Details["goal"] != string(sharedtypes.PracticeGoalNextRound) || svcErr.Details["owner"] != "004-derived-plans-debrief" {
+		t.Fatalf("unexpected details: %+v", svcErr.Details)
+	}
+}
+
+func TestServiceCreatePracticePlanRejectsMissingResume(t *testing.T) {
+	service := NewService(ServiceOptions{Store: &recordingPlanStore{}, NewID: sequenceIDs("plan-1", "audit-1")})
+
+	_, err := service.CreatePracticePlan(context.Background(), validCreatePlanRequest(func(in *CreatePlanRequest) {
+		in.ResumeAssetID = ""
+	}))
+	var svcErr *ServiceError
+	if !errors.As(err, &svcErr) {
+		t.Fatalf("expected ServiceError, got %T: %v", err, err)
+	}
+	if svcErr.Code != sharederrors.CodeValidationFailed || svcErr.Details["field"] != "resumeAssetId" {
+		t.Fatalf("unexpected missing resume error: %+v", svcErr)
+	}
+}
+
+type recordingPlanStore struct {
+	last             CreatePlanStoreInput
+	getRecord        PlanRecord
+	getErr           error
+	getUserID        string
+	getPlanID        string
+	getSessionRecord SessionRecord
+	getSessionErr    error
+	getSessionUserID string
+	getSessionID     string
+	reservation      SessionReservation
+	reserveErr       error
+	commit           CommitSessionStartInput
+	commitErr        error
+	steps            []string
+	inTx             bool
+}
+
+func (s *recordingPlanStore) CreatePlan(ctx context.Context, in CreatePlanStoreInput) (PlanRecord, error) {
+	s.last = in
+	return PlanRecord{
+		ID:                 in.PlanID,
+		TargetJobID:        in.TargetJobID,
+		Goal:               in.Goal,
+		Mode:               in.Mode,
+		InterviewerPersona: in.InterviewerPersona,
+		Difficulty:         in.Difficulty,
+		Language:           in.Language,
+		TimeBudgetMinutes:  in.TimeBudgetMinutes,
+		QuestionBudget:     in.QuestionBudget,
+		Status:             "ready",
+		CreatedAt:          in.Now,
+	}, nil
+}
+
+func (s *recordingPlanStore) GetPlan(ctx context.Context, userID, planID string) (PlanRecord, error) {
+	s.getUserID = userID
+	s.getPlanID = planID
+	if s.getErr != nil {
+		return PlanRecord{}, s.getErr
+	}
+	return s.getRecord, nil
+}
+
+func (s *recordingPlanStore) GetSession(ctx context.Context, userID, sessionID string) (SessionRecord, error) {
+	s.getSessionUserID = userID
+	s.getSessionID = sessionID
+	if s.getSessionErr != nil {
+		return SessionRecord{}, s.getSessionErr
+	}
+	return s.getSessionRecord, nil
+}
+
+func (s *recordingPlanStore) ReserveSessionStart(ctx context.Context, in StartSessionReservationInput) (SessionReservation, error) {
+	s.steps = append(s.steps, "reserve")
+	s.inTx = true
+	defer func() { s.inTx = false }()
+	if s.reserveErr != nil {
+		return SessionReservation{}, s.reserveErr
+	}
+	if s.reservation.SessionID == "" {
+		s.reservation.SessionID = in.SessionID
+	}
+	s.reservation.IdempotencyRecordID = in.IdempotencyRecordID
+	s.reservation.HintsEnabled = in.HintsEnabled
+	return s.reservation, nil
+}
+
+func (s *recordingPlanStore) CommitSessionStart(ctx context.Context, in CommitSessionStartInput) (SessionRecord, error) {
+	s.steps = append(s.steps, "commit")
+	s.inTx = true
+	defer func() { s.inTx = false }()
+	s.commit = in
+	if s.commitErr != nil {
+		return SessionRecord{}, s.commitErr
+	}
+	return SessionRecord{
+		ID:           in.SessionID,
+		PlanID:       in.PlanID,
+		TargetJobID:  in.TargetJobID,
+		Status:       sharedtypes.SessionStatusRunning,
+		Language:     in.Language,
+		HintsEnabled: in.HintsEnabled,
+		TurnCount:    1,
+		CurrentTurn: &TurnRecord{
+			ID:             in.TurnID,
+			TurnIndex:      1,
+			QuestionText:   in.QuestionText,
+			QuestionIntent: in.QuestionIntent,
+			Status:         "asked",
+			AskedAt:        in.StartedAt,
+		},
+		CreatedAt: in.CreatedAt,
+		UpdatedAt: in.StartedAt,
+	}, nil
+}
+
+func validCreatePlanRequest(mutators ...func(*CreatePlanRequest)) CreatePlanRequest {
+	in := CreatePlanRequest{
+		UserID:               "user-1",
+		TargetJobID:          "target-1",
+		ResumeAssetID:        "resume-1",
+		Goal:                 sharedtypes.PracticeGoalBaseline,
+		Mode:                 sharedtypes.PracticeModeAssisted,
+		InterviewerPersona:   sharedtypes.InterviewerRoleHiringManager,
+		Difficulty:           "standard",
+		Language:             "zh-CN",
+		QuestionBudget:       6,
+		TimeBudgetMinutes:    30,
+		FocusCompetencyCodes: []string{"communication", "design-systems"},
+	}
+	for _, mutate := range mutators {
+		mutate(&in)
+	}
+	return in
+}
+
+func sequenceIDs(ids ...string) func() string {
+	i := 0
+	return func() string {
+		if i >= len(ids) {
+			return "extra-id"
+		}
+		id := ids[i]
+		i++
+		return id
+	}
+}

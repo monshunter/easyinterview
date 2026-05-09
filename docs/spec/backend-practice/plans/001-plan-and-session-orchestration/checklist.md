@@ -21,15 +21,15 @@
 
 ## Phase 1: Plan + Session 主流程 (success path) + idempotency replay 基础
 
-- [ ] 1.1 在 `backend/internal/middleware/idempotency/` 实现 shared idempotency middleware：消费 `idempotency_records` 表，提供 `(domain, operation)` 注入入口，支持 pending lock + success replay + per-user 隔离 + TTL expire；验证: middleware 单元测试 5 项（pending lock / success replay / per-user 隔离 / TTL expire / domain namespace 隔离）
-- [ ] 1.2 在 `backend/internal/api/practice/` 实现 `createPracticePlan` handler（仅 `goal='baseline'`，其它 goal 返回 `422 VALIDATION_FAILED` + detail 指向 future `004-derived-plans-debrief` owner）；走 idempotency middleware；写 `practice_plans(status='ready')` 短事务 + audit_events；返回 `201`；验证: handler 单元测试 + `openapi/fixtures/PracticePlans/createPracticePlan.json` parity contract test + repository 单元测试
-- [ ] 1.3 在 `backend/internal/api/practice/` 实现 `getPracticePlan` handler：user_id 过滤、404 + `PRACTICE_PLAN_NOT_FOUND`；验证: handler 单元测试（含越权 404 返回，不泄露存在性）+ contract test
-- [ ] 1.4 在 `backend/internal/practice/` 实现 startPracticeSession 三段式（baseline goal）：reservation 短事务写 `practice_sessions.status='queued'` → 事务外 F3 `Resolve("practice.session.first_question", language)` + A3 observed `AIClient.Complete` → 短事务 commit `practice_turns(turn_index=1, status='asked')` + `practice_session_events(seq_no=1, event_type='session_started')` + outbox `practice.session.started` + `practice_sessions.status='running'`；返回 `201` 含 `currentTurn`；验证: 集成单元测试（fake F3 + fake AIClient + DB lock 检测断言外部 AI 调用不在 tx 内）+ contract test
-- [ ] 1.5 在 `backend/internal/api/practice/` 实现 `getPracticeSession` handler：user_id 过滤、404 + `PRACTICE_SESSION_NOT_FOUND`；验证: handler 单元测试 + contract test
-- [ ] 1.6 outbox emit 与 B3 payload 对齐：`outbox_emitter` 单元断言 `practice.session.started` payload 与 `shared/events/practice.session.started.json` 一致 + piiBoundary 通过；验证: outbox 序列化单元测试
-- [ ] 1.7 BDD-Gate: 验证 `E2E.P0.022` 通过（`test/scenarios/e2e/p0-022-practice-plan-baseline-create-and-read/`）
-- [ ] 1.8 BDD-Gate: 验证 `E2E.P0.023` 通过（`test/scenarios/e2e/p0-023-practice-session-start-and-first-question/`）
-- [ ] 1.9 Phase 1 commit + work-journal
+- [x] 1.1 在 `backend/internal/middleware/idempotency/` 实现 shared idempotency middleware：消费 `idempotency_records` 表，提供 `(domain, operation)` 注入入口，支持 pending lock + success replay + per-user 隔离 + TTL expire；验证: middleware 单元测试 5 项（pending lock / success replay / per-user 隔离 / TTL expire / domain namespace 隔离）
+- [x] 1.2 在 `backend/internal/api/practice/` 实现 `createPracticePlan` handler（仅 `goal='baseline'`，其它 goal 返回 `422 VALIDATION_FAILED` + detail 指向 future `004-derived-plans-debrief` owner）；走 idempotency middleware；写 `practice_plans(status='ready')` 短事务 + audit_events；返回 `201`；验证: handler 单元测试 + `openapi/fixtures/PracticePlans/createPracticePlan.json` parity contract test + repository 单元测试
+- [x] 1.3 在 `backend/internal/api/practice/` 实现 `getPracticePlan` handler：user_id 过滤、404 + `PRACTICE_PLAN_NOT_FOUND`；验证: handler 单元测试（含越权 404 返回，不泄露存在性）+ contract test
+- [x] 1.4 在 `backend/internal/practice/` 实现 startPracticeSession 三段式（baseline goal）：reservation 短事务写 `practice_sessions.status='queued'` → 事务外 F3 `Resolve("practice.session.first_question", language)` + A3 observed `AIClient.Complete` → 短事务 commit `practice_turns(turn_index=1, status='asked')` + `practice_session_events(seq_no=1, event_type='session_started')` + outbox `practice.session.started` + `practice_sessions.status='running'`；返回 `201` 含 `currentTurn`；验证: 集成单元测试（fake F3 + fake AIClient + DB lock 检测断言外部 AI 调用不在 tx 内）+ contract test
+- [x] 1.5 在 `backend/internal/api/practice/` 实现 `getPracticeSession` handler：user_id 过滤、404 + `PRACTICE_SESSION_NOT_FOUND`；验证: handler 单元测试 + contract test
+- [x] 1.6 outbox emit 与 B3 payload 对齐：`outbox_emitter` 单元断言 `practice.session.started` payload 与 `shared/events/practice.session.started.json` 一致 + piiBoundary 通过；验证: outbox 序列化单元测试
+- [x] 1.7 BDD-Gate: 验证 `E2E.P0.022` 通过（`test/scenarios/e2e/p0-022-practice-plan-baseline-create-and-read/`）
+- [x] 1.8 BDD-Gate: 验证 `E2E.P0.023` 通过（`test/scenarios/e2e/p0-023-practice-session-start-and-first-question/`）
+- [x] 1.9 Phase 1 commit + work-journal
 
 ## Phase 2: 错误路径 + Idempotency 完备性
 

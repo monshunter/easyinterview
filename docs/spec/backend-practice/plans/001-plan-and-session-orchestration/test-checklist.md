@@ -12,7 +12,7 @@
 
 ## Phase 1: Plan + Session 主流程 (success path) + idempotency replay 基础
 
-- [ ] Phase 1 本计划定义的单元测试项全部通过：idempotency middleware 5 项（pending lock / success replay / per-user 隔离 / TTL expire / domain namespace）；createPracticePlan handler + repository + contract test；getPracticePlan handler（含越权 404）+ contract test；startPracticeSession 集成单元测试（fake F3 + fake AIClient + DB lock 检测断言外部 AI 调用不在 tx 内）+ contract test；getPracticeSession handler（含越权 404）+ contract test；outbox_emitter 序列化单元测试
+- [x] Phase 1 本计划定义的单元测试项全部通过：idempotency middleware 5 项（pending lock / success replay / per-user 隔离 / TTL expire / domain namespace）；createPracticePlan handler + repository + contract test；getPracticePlan handler（含越权 404）+ contract test；startPracticeSession 集成单元测试（fake F3 + fake AIClient + DB lock 检测断言外部 AI 调用不在 tx 内）+ contract test；getPracticeSession handler（含越权 404）+ contract test；outbox_emitter 序列化单元测试
 
 ## Phase 2: 错误路径 + Idempotency 完备性
 
