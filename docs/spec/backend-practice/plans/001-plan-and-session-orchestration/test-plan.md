@@ -1,7 +1,7 @@
 # 001 — Plan and Session Orchestration Test Plan
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-09
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)

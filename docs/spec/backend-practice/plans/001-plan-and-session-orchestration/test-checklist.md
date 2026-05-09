@@ -1,14 +1,14 @@
 # 001 — Plan and Session Orchestration Test Checklist
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-09
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
 ## Phase 0: 跨 spec 前置修订 + Preflight
 
-- [ ] Phase 0 本计划定义的测试项全部通过：shared types unit + drift；openapi-diff + fixture parity；codegen-events + lint-events；migrate up/down + CHECK 约束单元测试；F3 baseline preflight 单元测试；legacy-negative grep（PracticeMode 上下文）
+- [x] Phase 0 本计划定义的测试项全部通过：shared types unit + drift；openapi-diff + fixture parity；codegen-events + lint-events；migrate up/down + CHECK 约束单元测试；F3 baseline preflight 单元测试；legacy-negative grep（PracticeMode 上下文）
 
 ## Phase 1: Plan + Session 主流程 (success path) + idempotency replay 基础
 
@@ -20,4 +20,4 @@
 
 ## Phase 3: 观测 / 隐私 / 收尾
 
-- [ ] Phase 3 本计划定义的单元测试项全部通过：observability ai_task_runs typed columns 集成测试；audit_events 单元测试；redaction negative-fixture 单元测试；Phase 3 legacy-negative grep（retired 模块术语）
+- [x] Phase 3 本计划定义的单元测试项全部通过：observability ai_task_runs typed columns 集成测试；audit_events 单元测试；redaction negative-fixture 单元测试；Phase 3 legacy-negative grep（retired 模块术语）

@@ -26,7 +26,8 @@ for forbidden in \
   fi
 done
 
-if rg -n 'legacy debrief replay value|debrief_replay' \
+removed_mode_literal="debrief""_replay"
+if rg -n "legacy debrief replay value|${removed_mode_literal}" \
   "$REPO_ROOT/shared" \
   "$REPO_ROOT/openapi" \
   "$REPO_ROOT/backend/internal/shared" \

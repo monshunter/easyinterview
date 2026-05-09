@@ -1,7 +1,7 @@
 # 001 — Plan and Session Orchestration Checklist
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-09
 
 **关联计划**: [plan](./plan.md)
@@ -45,11 +45,11 @@
 
 ## Phase 3: 观测 / 隐私 / 收尾
 
-- [ ] 3.1 验证 A3 observed AIClient metric label 边界：不私造 `practice_*` metric，不把 `feature_key` / `prompt_version` / `rubric_version` 放入 metric label；practice-specific business metrics 若需要，必须留给 F1 owner 先落可执行 lint/helper；验证: metric label allowlist 单元测试
-- [ ] 3.2 接线 A3 observed AIClient + `AITaskRunContext`：业务包不得直接写 `ai_task_runs` 或绕过 `backend/internal/ai/aiclient/observability` decorator；每次 AI 调用结束由 fake `AITaskRunWriter` 捕获一行，含 `feature_key` / `model_profile_name` / `model_family` / `fallback_chain` / `validation_status` / `route` / `feature_flag` / `data_source_version` 完整；验证: 集成单元测试断言每列非空 + 与 A3 AICallMeta payload 一致
-- [ ] 3.3 实现 audit_events 写入：`createPracticePlan` / `startPracticeSession` 触发；metadata 仅 `plan_id` / `session_id` / `goal` / `mode` / `language` / `target_job_id`，不含 question / answer 文本；验证: audit 单元测试
-- [ ] 3.4 实现并断言隐私红线（D-11）：log / metric label / audit / outbox payload 中 `question_text` / `answer_text` / `hint_text` / AI prompt body / response body / provider secret 全部零出现；用 negative-fixture 单元测试覆盖；验证: redaction 单元测试 + scenario verify.sh 内 grep 断言
-- [ ] 3.5 Phase 3 legacy-negative grep（收口子集）：`warmup` / `single_drill` / `drill_builder` / `mistake_queue` / `growth_center` / 独立 `voice` route（除 `practice-voice-mvp` 内部占位）/ `practiceModeCard` 在本 plan 输出文档与代码 diff 零出现；验证: CI grep gate
-- [ ] 3.6 BDD-Gate: 验证 `E2E.P0.026` 通过（`test/scenarios/e2e/p0-026-practice-observability-and-privacy-redlines/`）
-- [ ] 3.7 文档收口：plan / checklist / test-plan / test-checklist / bdd-plan / bdd-checklist 状态 `active` → `completed`（待 §5 验收 gate 全绿后）；同步 `plans/INDEX.md` 与 `docs/spec/INDEX.md`；运行 `/sync-doc-index --check` 无 drift
+- [x] 3.1 验证 A3 observed AIClient metric label 边界：不私造 `practice_*` metric，不把 `feature_key` / `prompt_version` / `rubric_version` 放入 metric label；practice-specific business metrics 若需要，必须留给 F1 owner 先落可执行 lint/helper；验证: metric label allowlist 单元测试
+- [x] 3.2 接线 A3 observed AIClient + `AITaskRunContext`：业务包不得直接写 `ai_task_runs` 或绕过 `backend/internal/ai/aiclient/observability` decorator；每次 AI 调用结束由 fake `AITaskRunWriter` 捕获一行，含 `feature_key` / `model_profile_name` / `model_family` / `fallback_chain` / `validation_status` / `route` / `feature_flag` / `data_source_version` 完整；验证: 集成单元测试断言每列非空 + 与 A3 AICallMeta payload 一致
+- [x] 3.3 实现 audit_events 写入：`createPracticePlan` / `startPracticeSession` 触发；metadata 仅 `plan_id` / `session_id` / `goal` / `mode` / `language` / `target_job_id`，不含 question / answer 文本；验证: audit 单元测试
+- [x] 3.4 实现并断言隐私红线（D-11）：log / metric label / audit / outbox payload 中 `question_text` / `answer_text` / `hint_text` / AI prompt body / response body / provider secret 全部零出现；用 negative-fixture 单元测试覆盖；验证: redaction 单元测试 + scenario verify.sh 内 grep 断言
+- [x] 3.5 Phase 3 legacy-negative grep（收口子集）：`warmup` / `single_drill` / `drill_builder` / `mistake_queue` / `growth_center` / 独立 `voice` route（除 `practice-voice-mvp` 内部占位）/ `practiceModeCard` 在本 plan 输出文档与代码 diff 零出现；验证: CI grep gate
+- [x] 3.6 BDD-Gate: 验证 `E2E.P0.026` 通过（`test/scenarios/e2e/p0-026-practice-observability-and-privacy-redlines/`）
+- [x] 3.7 文档收口：plan / checklist / test-plan / test-checklist / bdd-plan / bdd-checklist 状态 `active` → `completed`（待 §5 验收 gate 全绿后）；同步 `plans/INDEX.md` 与 `docs/spec/INDEX.md`；运行 `/sync-doc-index --check` 无 drift
 - [ ] 3.8 Phase 3 commit + work-journal + `/retrospective`（成功交付后沉淀复盘建议）

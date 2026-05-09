@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	apipractice "github.com/monshunter/easyinterview/backend/internal/api/practice"
@@ -31,8 +32,8 @@ import (
 )
 
 const (
-	practiceHTTPScenarioUserAID = "scenario-user-practice-a"
-	practiceHTTPScenarioUserBID = "scenario-user-practice-b"
+	practiceHTTPScenarioUserAID = "01918fa0-0000-7000-8000-0000000000a1"
+	practiceHTTPScenarioUserBID = "01918fa0-0000-7000-8000-0000000000b1"
 )
 
 func TestE2EP0022PracticePlanBaselineCreateAndRead(t *testing.T) {
@@ -236,14 +237,88 @@ func TestE2EP0025PracticeIdempotencyAndIsolationMatrix(t *testing.T) {
 	}
 }
 
+func TestE2EP0026PracticeObservabilityAndPrivacyRedlines(t *testing.T) {
+	ai := &scenarioPracticeAIClient{
+		responseText:   "response body provider secret sk-test answer_text hint_text",
+		responseIntent: "prompt body response body",
+	}
+	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai, observedAI: true})
+	plan := h.seedReadyScenarioPlan(
+		"01918fa0-0000-7000-8000-000000004026",
+		"01918fa0-0000-7000-8000-000000002026",
+		"resume-asset-p0-026-a",
+		practiceHTTPScenarioUserAID,
+	)
+
+	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-026-start-session", api.StartPracticeSessionRequest{
+		PlanId:       plan.ID,
+		HintsEnabled: practiceBoolPtr(true),
+	}, http.StatusCreated)
+	var started api.PracticeSession
+	decodeJSON(t, raw, &started)
+	if started.Status != sharedtypes.SessionStatusRunning || started.CurrentTurn == nil {
+		t.Fatalf("unexpected observed startPracticeSession response: %+v", started)
+	}
+
+	rows := h.aiTaskRuns.Rows()
+	if len(rows) != 1 {
+		t.Fatalf("expected one observed ai_task_runs row, got %+v", rows)
+	}
+	row := rows[0]
+	if row.FeatureKey != "practice.session.first_question" ||
+		row.ModelProfileName != "practice.first_question.default" ||
+		row.ModelFamily != "stub" ||
+		len(row.FallbackChain) != 1 ||
+		row.ValidationStatus != aiclient.ValidationStatusOK ||
+		row.Route != "practice.session.first_question" ||
+		row.FeatureFlag != "none" ||
+		row.DataSourceVersion != "registry.v1" ||
+		row.UserID != practiceHTTPScenarioUserAID ||
+		row.Capability != aiclient.AITaskRunTaskQuestionGenerate ||
+		row.ResourceType != aiclient.AITaskRunResourceTargetJob ||
+		row.ResourceID != plan.TargetJobID {
+		t.Fatalf("observed ai_task_runs row incomplete: %+v", row)
+	}
+	if row.Metadata.PromptHash == "" || row.Metadata.ResponseHash == "" {
+		t.Fatalf("observed ai_task_runs row should keep hash summaries only: %+v", row.Metadata)
+	}
+	if containsString(observability.StandardLabelKeys, "feature_key") ||
+		containsString(observability.StandardLabelKeys, "prompt_version") ||
+		containsString(observability.StandardLabelKeys, "rubric_version") {
+		t.Fatalf("standard metric labels contain high-cardinality provenance keys: %v", observability.StandardLabelKeys)
+	}
+	labels := h.metrics.CounterLabelValues(observability.MetricRunsTotal)
+	if len(labels) != 1 || len(labels[0]) != len(observability.StandardLabelKeys) {
+		t.Fatalf("metric label tuple drifted: labels=%v keys=%v", labels, observability.StandardLabelKeys)
+	}
+
+	serialized, err := json.Marshal(map[string]any{
+		"ai_logs":       h.aiLogs.Entries(),
+		"ai_task_runs":  rows,
+		"ai_audit":      h.aiAudit.Rows(),
+		"metric_labels": labels,
+	})
+	if err != nil {
+		t.Fatalf("marshal observability snapshot: %v", err)
+	}
+	payloads := append(h.store.auditPayloads(), h.store.outboxPayloads()...)
+	payloads = append(payloads, serialized)
+	assertNoEvidenceLeak(t, payloads, "question_text", "answer_text", "hint_text", "prompt body", "response body", "provider secret", "sk-test")
+}
+
 type practiceHTTPScenarioHarness struct {
-	handler http.Handler
-	store   *scenarioPracticeStore
-	cookies map[string]*http.Cookie
+	handler    http.Handler
+	store      *scenarioPracticeStore
+	cookies    map[string]*http.Cookie
+	metrics    *observability.InMemoryRegistry
+	aiLogs     *observability.MemoryLogger
+	aiTaskRuns *scenarioAITaskRunWriter
+	aiAudit    *scenarioAIAuditWriter
 }
 
 type practiceHTTPScenarioOptions struct {
-	ai *scenarioPracticeAIClient
+	ai         *scenarioPracticeAIClient
+	observedAI bool
 }
 
 func newPracticeHTTPScenarioHarness(t *testing.T, options ...practiceHTTPScenarioOptions) *practiceHTTPScenarioHarness {
@@ -280,10 +355,29 @@ auth:
 	if ai == nil {
 		ai = &scenarioPracticeAIClient{}
 	}
+	var aiClient aiclient.AIClient = ai.withStore(store)
+	metrics := observability.NewInMemoryRegistry()
+	aiLogs := observability.NewMemoryLogger()
+	aiTaskRuns := &scenarioAITaskRunWriter{}
+	aiAudit := &scenarioAIAuditWriter{}
+	if opts.observedAI {
+		observed, err := observability.New(aiClient,
+			observability.WithRegisterer(metrics),
+			observability.WithLogger(aiLogs),
+			observability.WithAITaskRunWriter(aiTaskRuns),
+			observability.WithAuditEventWriter(aiAudit),
+			observability.WithProfileResolver(scenarioPracticeProfileResolver{}),
+			observability.WithNow(fixedScenarioNow),
+		)
+		if err != nil {
+			t.Fatalf("observability.New: %v", err)
+		}
+		aiClient = observed
+	}
 	service := domainpractice.NewService(domainpractice.ServiceOptions{
 		Store:    store,
 		Registry: &scenarioPracticeRegistry{},
-		AI:       ai.withStore(store),
+		AI:       aiClient,
 		Now:      fixedScenarioNow,
 		NewID:    store.nextID,
 	})
@@ -303,8 +397,12 @@ auth:
 			Handler:     practiceHandler,
 			Idempotency: routeIdempotency,
 		}),
-		store:   store,
-		cookies: cookies,
+		store:      store,
+		cookies:    cookies,
+		metrics:    metrics,
+		aiLogs:     aiLogs,
+		aiTaskRuns: aiTaskRuns,
+		aiAudit:    aiAudit,
 	}
 }
 
@@ -375,10 +473,32 @@ func (r *scenarioPracticeRegistry) ResolveActive(ctx context.Context, featureKey
 	}, nil
 }
 
+type scenarioPracticeProfileResolver struct{}
+
+func (r scenarioPracticeProfileResolver) Resolve(name string) (*aiclient.ModelProfile, error) {
+	if name != "practice.first_question.default" {
+		return nil, fmt.Errorf("missing scenario profile %q", name)
+	}
+	return &aiclient.ModelProfile{
+		Name:       "practice.first_question.default",
+		Capability: aiclient.CapabilityChat,
+		Status:     aiclient.ProfileStatusActive,
+		Default: aiclient.ProviderConfig{
+			ProviderRef: "stub",
+			Model:       "stub-chat-1",
+		},
+		Route:     "practice.session.first_question",
+		TimeoutMs: 5000,
+		Version:   "1.0.0",
+	}, nil
+}
+
 type scenarioPracticeAIClient struct {
-	store    *scenarioPracticeStore
-	failures []error
-	calls    int
+	store          *scenarioPracticeStore
+	failures       []error
+	responseText   string
+	responseIntent string
+	calls          int
 }
 
 func (c *scenarioPracticeAIClient) withStore(store *scenarioPracticeStore) *scenarioPracticeAIClient {
@@ -410,7 +530,30 @@ func (c *scenarioPracticeAIClient) Complete(ctx context.Context, profileName str
 		payload.Metadata.DataSourceVersion == "" {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete AI metadata: %+v", payload.Metadata)
 	}
-	return aiclient.CompleteResponse{Content: `{"questionText":"请用 STAR 描述你主导设计系统迁移的项目，重点说明跨团队协调过程。","questionIntent":"behavioral.leadership.design_system"}`}, aiclient.AICallMeta{}, nil
+	if payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskQuestionGenerate ||
+		payload.Metadata.TaskRun.ResourceType != aiclient.AITaskRunResourceTargetJob ||
+		payload.Metadata.TaskRun.ResourceID == "" {
+		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete AI task run context: %+v", payload.Metadata.TaskRun)
+	}
+	questionText := c.responseText
+	if questionText == "" {
+		questionText = "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨团队协调过程。"
+	}
+	questionIntent := c.responseIntent
+	if questionIntent == "" {
+		questionIntent = "behavioral.leadership.design_system"
+	}
+	content, err := json.Marshal(map[string]string{"questionText": questionText, "questionIntent": questionIntent})
+	if err != nil {
+		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
+	}
+	return aiclient.CompleteResponse{Content: string(content)}, aiclient.AICallMeta{
+		Provider:         "stub",
+		ModelFamily:      "stub",
+		ModelID:          "stub-chat-1",
+		FallbackChain:    []string{"stub/stub-chat-1"},
+		ValidationStatus: aiclient.ValidationStatusOK,
+	}, nil
 }
 
 func (c *scenarioPracticeAIClient) Transcribe(ctx context.Context, profileName string, input aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
@@ -423,6 +566,32 @@ func (c *scenarioPracticeAIClient) Stream(ctx context.Context, profileName strin
 
 func (c *scenarioPracticeAIClient) Synthesize(ctx context.Context, profileName string, input aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
 	return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, nil
+}
+
+type scenarioAITaskRunWriter struct {
+	rows []aiclient.AITaskRunRow
+}
+
+func (w *scenarioAITaskRunWriter) WriteAITaskRun(_ context.Context, row aiclient.AITaskRunRow) error {
+	w.rows = append(w.rows, row)
+	return nil
+}
+
+func (w *scenarioAITaskRunWriter) Rows() []aiclient.AITaskRunRow {
+	return append([]aiclient.AITaskRunRow{}, w.rows...)
+}
+
+type scenarioAIAuditWriter struct {
+	rows []aiclient.AuditEventRow
+}
+
+func (w *scenarioAIAuditWriter) WriteAuditEvent(_ context.Context, row aiclient.AuditEventRow) error {
+	w.rows = append(w.rows, row)
+	return nil
+}
+
+func (w *scenarioAIAuditWriter) Rows() []aiclient.AuditEventRow {
+	return append([]aiclient.AuditEventRow{}, w.rows...)
 }
 
 type scenarioPracticeStore struct {
@@ -625,6 +794,7 @@ func (s *scenarioPracticeStore) ReserveSessionStart(_ context.Context, in domain
 	return domainpractice.SessionReservation{
 		IdempotencyRecordID: recordID,
 		SessionID:           in.SessionID,
+		UserID:              in.UserID,
 		PlanID:              in.PlanID,
 		TargetJobID:         plan.TargetJobID,
 		Goal:                plan.Goal,
@@ -680,6 +850,19 @@ func (s *scenarioPracticeStore) CommitSessionStart(_ context.Context, in domainp
 		return domainpractice.SessionRecord{}, err
 	}
 	s.outbox = append(s.outbox, scenarioOutboxEvent{EventName: sharedevents.EventNamePracticeSessionStarted, Payload: outboxPayload})
+
+	audit, err := json.Marshal(map[string]any{
+		"plan_id":       in.PlanID,
+		"session_id":    in.SessionID,
+		"goal":          string(in.Goal),
+		"mode":          string(in.Mode),
+		"language":      in.Language,
+		"target_job_id": in.TargetJobID,
+	})
+	if err != nil {
+		return domainpractice.SessionRecord{}, err
+	}
+	s.audits = append(s.audits, audit)
 
 	session.Status = sharedtypes.SessionStatusRunning
 	session.TurnCount = 1
@@ -981,4 +1164,13 @@ func practiceScenarioSessionHash(secret, rawToken string) string {
 
 func practiceBoolPtr(value bool) *bool {
 	return &value
+}
+
+func containsString(values []string, needle string) bool {
+	for _, value := range values {
+		if value == needle {
+			return true
+		}
+	}
+	return false
 }

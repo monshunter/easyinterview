@@ -5,4 +5,4 @@
 - `getPracticePlan` returns the created plan for User A.
 - User B receives `404 + PRACTICE_PLAN_NOT_FOUND` for the same `planId`.
 - Audit metadata includes only `plan_id`, `goal`, `mode`, `language`, and `target_job_id`; it excludes question / answer / hint / prompt / response text.
-- PracticeMode generated/runtime code has zero `legacy debrief replay value` or `debrief_replay` literal.
+- PracticeMode generated/runtime code has zero legacy replay wording or retired enum literal.

@@ -3,6 +3,8 @@ package practice
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -12,6 +14,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	domain "github.com/monshunter/easyinterview/backend/internal/practice"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
+	sharedevents "github.com/monshunter/easyinterview/backend/internal/shared/events"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
@@ -61,7 +64,17 @@ func TestSQLRepositoryCreatePlanWritesPlanAndAuditInOneTransaction(t *testing.T)
 			in.UserID,
 			in.UserID,
 			in.PlanID,
-			sqlmock.AnyArg(),
+			auditMetadataArg{
+				t: t,
+				expected: map[string]string{
+					"plan_id":       in.PlanID,
+					"goal":          string(in.Goal),
+					"mode":          string(in.Mode),
+					"language":      in.Language,
+					"target_job_id": in.TargetJobID,
+				},
+				forbidden: []string{"question_text", "answer_text", "hint_text", "prompt body", "response body"},
+			},
 			in.Now,
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -73,6 +86,77 @@ func TestSQLRepositoryCreatePlanWritesPlanAndAuditInOneTransaction(t *testing.T)
 	}
 	if plan.ID != in.PlanID || plan.Status != "ready" || plan.CreatedAt != in.Now {
 		t.Fatalf("unexpected plan: %+v", plan)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestSQLRepositoryCommitSessionStartWritesAuditMetadataWithoutQuestionText(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 5, 9, 12, 45, 0, 0, time.UTC)
+	in := validCommitSessionStartInput(now)
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`insert into practice_turns`).
+		WithArgs(in.TurnID, in.SessionID, in.QuestionText, in.QuestionIntent, string(in.InterviewerPersona), in.StartedAt).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into practice_session_events`).
+		WithArgs(in.SessionEventID, in.SessionID, sqlmock.AnyArg(), in.StartedAt).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into outbox_events`).
+		WithArgs(in.OutboxEventID, string(sharedevents.EventNamePracticeSessionStarted), in.SessionID, sqlmock.AnyArg(), in.StartedAt).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into audit_events`).
+		WithArgs(
+			in.AuditEventID,
+			in.UserID,
+			in.UserID,
+			in.SessionID,
+			auditMetadataArg{
+				t: t,
+				expected: map[string]string{
+					"plan_id":       in.PlanID,
+					"session_id":    in.SessionID,
+					"goal":          string(in.Goal),
+					"mode":          string(in.Mode),
+					"language":      in.Language,
+					"target_job_id": in.TargetJobID,
+				},
+				forbidden: []string{in.QuestionText, in.QuestionIntent, "question_text", "answer_text", "hint_text", "prompt body", "response body"},
+			},
+			in.StartedAt,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`update practice_sessions`).
+		WithArgs(string(sharedtypes.SessionStatusRunning), in.StartedAt, in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "plan_id", "target_job_id", "status", "language", "hints_enabled",
+			"turn_count", "created_at", "updated_at",
+		}).AddRow(
+			in.SessionID,
+			in.PlanID,
+			in.TargetJobID,
+			string(sharedtypes.SessionStatusRunning),
+			in.Language,
+			true,
+			1,
+			in.CreatedAt,
+			in.StartedAt,
+		))
+	mock.ExpectExec(`update idempotency_records`).
+		WithArgs(string(idempotency.StatusSucceeded), in.SessionID, sqlmock.AnyArg(), in.StartedAt, in.IdempotencyRecordID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	session, err := repo.CommitSessionStart(context.Background(), in)
+	if err != nil {
+		t.Fatalf("CommitSessionStart returned error: %v", err)
+	}
+	if session.ID != in.SessionID || session.CurrentTurn == nil || session.CurrentTurn.QuestionText != in.QuestionText {
+		t.Fatalf("unexpected committed session: %+v", session)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
@@ -397,4 +481,87 @@ func validCreatePlanStoreInput(now time.Time) domain.CreatePlanStoreInput {
 		FocusCompetencyCodes: []string{"communication", "design-systems"},
 		Now:                  now,
 	}
+}
+
+func validCommitSessionStartInput(now time.Time) domain.CommitSessionStartInput {
+	return domain.CommitSessionStartInput{
+		IdempotencyRecordID: "01918fa0-0000-7000-8000-000000005000",
+		SessionID:           "01918fa0-0000-7000-8000-000000006000",
+		UserID:              "01918fa0-0000-7000-8000-000000000001",
+		PlanID:              "01918fa0-0000-7000-8000-000000004000",
+		TargetJobID:         "01918fa0-0000-7000-8000-000000002000",
+		Goal:                sharedtypes.PracticeGoalBaseline,
+		Mode:                sharedtypes.PracticeModeAssisted,
+		InterviewerPersona:  sharedtypes.InterviewerRoleHiringManager,
+		Language:            "zh-CN",
+		HintsEnabled:        true,
+		TurnID:              "01918fa0-0000-7000-8000-000000007000",
+		SessionEventID:      "01918fa0-0000-7000-8000-000000008000",
+		OutboxEventID:       "01918fa0-0000-7000-8000-000000009000",
+		AuditEventID:        "01918fa0-0000-7000-8000-000000010000",
+		QuestionText:        "请描述一次跨团队设计系统迁移。",
+		QuestionIntent:      "behavioral.leadership.design_system",
+		StartedAt:           now,
+		CreatedAt:           now.Add(-time.Minute),
+	}
+}
+
+type auditMetadataArg struct {
+	t         *testing.T
+	expected  map[string]string
+	forbidden []string
+}
+
+func (a auditMetadataArg) Match(value driver.Value) bool {
+	var raw []byte
+	switch v := value.(type) {
+	case []byte:
+		raw = append([]byte{}, v...)
+	case string:
+		raw = []byte(v)
+	default:
+		a.t.Errorf("audit metadata has unexpected type %T", value)
+		return false
+	}
+	for _, forbidden := range a.forbidden {
+		if forbidden != "" && containsBytes(raw, []byte(forbidden)) {
+			a.t.Errorf("audit metadata leaked forbidden evidence %q: %s", forbidden, string(raw))
+			return false
+		}
+	}
+	var got map[string]string
+	if err := json.Unmarshal(raw, &got); err != nil {
+		a.t.Errorf("audit metadata is not string map JSON: %v; raw=%s", err, string(raw))
+		return false
+	}
+	if len(got) != len(a.expected) {
+		a.t.Errorf("audit metadata keys drifted: got=%v want=%v", got, a.expected)
+		return false
+	}
+	for key, want := range a.expected {
+		if got[key] != want {
+			a.t.Errorf("audit metadata[%s]=%q want %q; full=%v", key, got[key], want, got)
+			return false
+		}
+	}
+	return true
+}
+
+func containsBytes(haystack, needle []byte) bool {
+	if len(needle) == 0 || len(needle) > len(haystack) {
+		return false
+	}
+	for i := 0; i <= len(haystack)-len(needle); i++ {
+		match := true
+		for j := range needle {
+			if haystack[i+j] != needle[j] {
+				match = false
+				break
+			}
+		}
+		if match {
+			return true
+		}
+	}
+	return false
 }

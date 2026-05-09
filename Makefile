@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-secrets-pattern lint-observability lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-secrets-pattern lint-observability lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -15,7 +15,7 @@ fmt: ## Format Go and frontend sources (delegates to backend/ and frontend/)
 	@$(call recurse_target,fmt,backend/Makefile,backend)
 	@$(call recurse_target,fmt,frontend/Makefile,frontend)
 
-lint: lint-conventions lint-config lint-ai-profile-coverage lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-runtime-topology lint-observability ## Lint Go and frontend sources (B1/A4/A3-F3/E1/runtime-topology/F1 local gates, then backend golangci-lint + frontend pnpm lint)
+lint: lint-conventions lint-config lint-ai-profile-coverage lint-backend-practice-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-runtime-topology lint-observability ## Lint Go and frontend sources (B1/A4/A3-F3/E1/runtime-topology/F1 local gates, then backend golangci-lint + frontend pnpm lint)
 	@cd "$(ROOT_DIR)/backend" && golangci-lint run ./...
 	@pnpm --filter @easyinterview/frontend lint
 
@@ -36,6 +36,9 @@ lint-ai-provider-terminology: ## Reject retired AI gateway terminology in active
 
 lint-ai-profile-coverage: ## Validate A3/F3/Product-UI AI profile coverage
 	@python3 "$(ROOT_DIR)/scripts/lint/ai_profile_coverage.py" --repo-root "$(ROOT_DIR)"
+
+lint-backend-practice-legacy: ## Reject backend-practice plan 001 retired mode/module terms
+	@python3 "$(ROOT_DIR)/scripts/lint/backend_practice_legacy.py" --repo-root "$(ROOT_DIR)" --phase all
 
 lint-prompts: ## lint-prompts (F3): validate config/prompts/ schema, hash, and seed-migration drift
 	@python3 "$(ROOT_DIR)/scripts/lint/prompt_lint.py" --prompts-dir "$(ROOT_DIR)/config/prompts" --migrations-dir "$(ROOT_DIR)/migrations"

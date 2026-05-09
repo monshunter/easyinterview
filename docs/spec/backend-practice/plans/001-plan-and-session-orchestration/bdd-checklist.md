@@ -1,7 +1,7 @@
 # 001 — Plan and Session Orchestration BDD Checklist
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-09
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -61,13 +61,13 @@
 
 ## E2E.P0.026 隐私红线 + AI metric 完整 + legacy-negative grep
 
-- [ ] 创建场景目录 `test/scenarios/e2e/p0-026-practice-observability-and-privacy-redlines/`
-- [ ] 编写 `README.md`
-- [ ] 准备 `data/seed-input.md`：依赖 P0.022 / P0.023 / P0.024 已运行的 fixture（或本场景 setup 内重放）
-- [ ] 准备 `data/expected-outcome.md`：log/metric/audit/outbox 中 zero-trace、ai_task_runs typed columns 完整、legacy-negative grep zero-hit
-- [ ] 实现 `scripts/setup.sh`：触发若干 createPlan + startSession + 失败重试 → 收集 log / metric / audit / outbox 快照
-- [ ] 实现 `scripts/trigger.sh`：触发 grep / metric scrape / DB query
-- [ ] 实现 `scripts/verify.sh`：① 全集合 grep 红线（question_text / answer_text / hint_text / prompt body / response body / provider secret） 必须 0 命中；② `ai_task_runs` 行包含全部 D-15 typed columns；③ A3 `ai_task_*` metric label 命中 F1 allowlist，且不包含 `feature_key` / prompt / rubric version；④ repo-wide grep retired 术语（warmup / single_drill / drill_builder / mistake_queue / growth_center / 独立 voice route / practiceModeCard）必须 0 命中
-- [ ] 实现 `scripts/cleanup.sh`：清理本场景与依赖场景的 fixture
-- [ ] 执行通过
-- [ ] 记录验证证据
+- [x] 创建场景目录 `test/scenarios/e2e/p0-026-practice-observability-and-privacy-redlines/`
+- [x] 编写 `README.md`
+- [x] 准备 `data/seed-input.md`：依赖 P0.022 / P0.023 / P0.024 已运行的 fixture（或本场景 setup 内重放）
+- [x] 准备 `data/expected-outcome.md`：log/metric/audit/outbox 中 zero-trace、ai_task_runs typed columns 完整、legacy-negative grep zero-hit
+- [x] 实现 `scripts/setup.sh`：触发若干 createPlan + startSession + 失败重试 → 收集 log / metric / audit / outbox 快照
+- [x] 实现 `scripts/trigger.sh`：触发 grep / metric scrape / DB query
+- [x] 实现 `scripts/verify.sh`：① 全集合 grep 红线（question_text / answer_text / hint_text / prompt body / response body / provider secret） 必须 0 命中；② `ai_task_runs` 行包含全部 D-15 typed columns；③ A3 `ai_task_*` metric label 命中 F1 allowlist，且不包含 `feature_key` / prompt / rubric version；④ repo-wide grep retired 术语（warmup / single_drill / drill_builder / mistake_queue / growth_center / 独立 voice route / practiceModeCard）必须 0 命中
+- [x] 实现 `scripts/cleanup.sh`：清理本场景与依赖场景的 fixture
+- [x] 执行通过
+- [x] 记录验证证据

@@ -40,6 +40,7 @@ type StartSessionReservationInput struct {
 type SessionReservation struct {
 	IdempotencyRecordID string
 	SessionID           string
+	UserID              string
 	PlanID              string
 	TargetJobID         string
 	Goal                sharedtypes.PracticeGoal
@@ -55,6 +56,7 @@ type SessionReservation struct {
 type CommitSessionStartInput struct {
 	IdempotencyRecordID string
 	SessionID           string
+	UserID              string
 	PlanID              string
 	TargetJobID         string
 	Goal                sharedtypes.PracticeGoal
@@ -65,6 +67,7 @@ type CommitSessionStartInput struct {
 	TurnID              string
 	SessionEventID      string
 	OutboxEventID       string
+	AuditEventID        string
 	QuestionText        string
 	QuestionIntent      string
 	StartedAt           time.Time
@@ -165,6 +168,7 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 	return s.store.CommitSessionStart(ctx, CommitSessionStartInput{
 		IdempotencyRecordID: reservation.IdempotencyRecordID,
 		SessionID:           reservation.SessionID,
+		UserID:              reservation.UserID,
 		PlanID:              reservation.PlanID,
 		TargetJobID:         reservation.TargetJobID,
 		Goal:                reservation.Goal,
@@ -175,6 +179,7 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 		TurnID:              s.newID(),
 		SessionEventID:      s.newID(),
 		OutboxEventID:       s.newID(),
+		AuditEventID:        s.newID(),
 		QuestionText:        question.Text,
 		QuestionIntent:      question.Intent,
 		StartedAt:           s.now().UTC(),
@@ -220,6 +225,12 @@ func firstQuestionPayload(resolution registry.PromptResolution, reservation Sess
 			Language:          reservation.Language,
 			FeatureFlag:       resolution.FeatureFlag,
 			DataSourceVersion: resolution.DataSourceVersion,
+			TaskRun: aiclient.AITaskRunContext{
+				UserID:       reservation.UserID,
+				Capability:   aiclient.AITaskRunTaskQuestionGenerate,
+				ResourceType: aiclient.AITaskRunResourceTargetJob,
+				ResourceID:   reservation.TargetJobID,
+			},
 		},
 	}
 }

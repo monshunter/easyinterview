@@ -294,6 +294,7 @@ join selected_plan on selected_plan.id = inserted.plan_id`,
 		return domain.SessionReservation{}, fmt.Errorf("commit reserve practice session: %w", err)
 	}
 	reservation.IdempotencyRecordID = recordID
+	reservation.UserID = in.UserID
 	return reservation, nil
 }
 
@@ -468,6 +469,32 @@ insert into outbox_events (
 		in.StartedAt,
 	); err != nil {
 		return domain.SessionRecord{}, fmt.Errorf("insert practice session started outbox event: %w", err)
+	}
+
+	auditMetadata, err := json.Marshal(map[string]any{
+		"plan_id":       in.PlanID,
+		"session_id":    in.SessionID,
+		"goal":          string(in.Goal),
+		"mode":          string(in.Mode),
+		"language":      in.Language,
+		"target_job_id": in.TargetJobID,
+	})
+	if err != nil {
+		return domain.SessionRecord{}, fmt.Errorf("marshal practice session start audit metadata: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+insert into audit_events (
+  id, user_id, actor_type, actor_id, action, resource_type,
+  resource_id, result, metadata, created_at
+) values ($1,$2,'user',$3,'practice.session.start','practice_session',$4,'success',$5,$6)`,
+		in.AuditEventID,
+		in.UserID,
+		in.UserID,
+		in.SessionID,
+		auditMetadata,
+		in.StartedAt,
+	); err != nil {
+		return domain.SessionRecord{}, fmt.Errorf("insert practice session start audit event: %w", err)
 	}
 
 	var session domain.SessionRecord

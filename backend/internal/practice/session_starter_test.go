@@ -44,7 +44,7 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 		Registry: registryClient,
 		AI:       ai,
 		Now:      func() time.Time { return now },
-		NewID:    sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1"),
+		NewID:    sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1", "audit-1"),
 	})
 
 	session, err := service.StartPracticeSession(context.Background(), StartSessionRequest{
@@ -69,7 +69,12 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 	if session.CurrentTurn.QuestionIntent != "behavioral.leadership.design_system" || session.CurrentTurn.TurnIndex != 1 {
 		t.Fatalf("unexpected first turn: %+v", session.CurrentTurn)
 	}
-	if store.commit.IdempotencyRecordID != "idem-1" || store.commit.TurnID != "turn-1" || store.commit.SessionEventID != "event-1" || store.commit.OutboxEventID != "outbox-1" {
+	if store.commit.IdempotencyRecordID != "idem-1" ||
+		store.commit.UserID != "user-1" ||
+		store.commit.TurnID != "turn-1" ||
+		store.commit.SessionEventID != "event-1" ||
+		store.commit.OutboxEventID != "outbox-1" ||
+		store.commit.AuditEventID != "audit-1" {
 		t.Fatalf("commit ids not generated: %+v", store.commit)
 	}
 	if ai.profileName != "practice.first_question.default" {
@@ -83,6 +88,12 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 		meta.FeatureFlag != "none" ||
 		meta.DataSourceVersion != "registry.v1" {
 		t.Fatalf("AI metadata incomplete: %+v", meta)
+	}
+	if meta.TaskRun.UserID != "user-1" ||
+		meta.TaskRun.Capability != aiclient.AITaskRunTaskQuestionGenerate ||
+		meta.TaskRun.ResourceType != aiclient.AITaskRunResourceTargetJob ||
+		meta.TaskRun.ResourceID != "target-1" {
+		t.Fatalf("AI task run context incomplete: %+v", meta.TaskRun)
 	}
 }
 
@@ -102,7 +113,7 @@ func TestStartPracticeSessionRejectsMissingFirstQuestionText(t *testing.T) {
 		Store:    store,
 		Registry: &fakePromptResolver{resolution: registry.PromptResolution{FeatureKey: "practice.session.first_question", PromptVersion: "p", RubricVersion: "r", ModelProfileName: "practice.first_question.default", FeatureFlag: "none", DataSourceVersion: "registry.v1"}},
 		AI:       &fakeAIClient{content: `{"questionIntent":"missing.text"}`, store: store},
-		NewID:    sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1"),
+		NewID:    sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1", "audit-1"),
 	})
 
 	if _, err := service.StartPracticeSession(context.Background(), StartSessionRequest{UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "key-hash", RequestFingerprint: "fingerprint"}); err == nil {
@@ -132,6 +143,7 @@ func (r *fakePromptResolver) ResolveActive(ctx context.Context, featureKey, lang
 type fakeAIClient struct {
 	content                  string
 	err                      error
+	meta                     aiclient.AICallMeta
 	profileName              string
 	payload                  aiclient.CompletePayload
 	calledOutsideTransaction bool
@@ -148,7 +160,7 @@ func (c *fakeAIClient) Complete(ctx context.Context, profileName string, payload
 	if c.err != nil {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, c.err
 	}
-	return aiclient.CompleteResponse{Content: c.content}, aiclient.AICallMeta{}, nil
+	return aiclient.CompleteResponse{Content: c.content}, c.meta, nil
 }
 
 func (c *fakeAIClient) Transcribe(ctx context.Context, input string, payload aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {

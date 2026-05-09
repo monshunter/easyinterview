@@ -50,7 +50,7 @@ func TestStartPracticeSessionMapsAIErrorsToPracticeServiceErrors(t *testing.T) {
 				Store:    store,
 				Registry: &fakePromptResolver{resolution: validPromptResolution()},
 				AI:       &fakeAIClient{err: tc.err, store: store},
-				NewID:    sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1"),
+				NewID:    sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1", "audit-1"),
 			})
 
 			_, err := service.StartPracticeSession(context.Background(), StartSessionRequest{

@@ -148,6 +148,7 @@ func (s *recordingPlanStore) ReserveSessionStart(ctx context.Context, in StartSe
 		s.reservation.SessionID = in.SessionID
 	}
 	s.reservation.IdempotencyRecordID = in.IdempotencyRecordID
+	s.reservation.UserID = in.UserID
 	s.reservation.HintsEnabled = in.HintsEnabled
 	return s.reservation, nil
 }
