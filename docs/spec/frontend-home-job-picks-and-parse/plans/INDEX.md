@@ -8,7 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [002-jd-match-recommendations](./002-jd-match-recommendations/plan.md) | [plan](./002-jd-match-recommendations/plan.md) / [checklist](./002-jd-match-recommendations/checklist.md) / [context](./002-jd-match-recommendations/context.yaml) / [bdd-plan](./002-jd-match-recommendations/bdd-plan.md) / [bdd-checklist](./002-jd-match-recommendations/bdd-checklist.md) | 1.0 | active | 2026-05-09 |
+| [002-jd-match-recommendations](./002-jd-match-recommendations/plan.md) | [plan](./002-jd-match-recommendations/plan.md) / [checklist](./002-jd-match-recommendations/checklist.md) / [context](./002-jd-match-recommendations/context.yaml) / [bdd-plan](./002-jd-match-recommendations/bdd-plan.md) / [bdd-checklist](./002-jd-match-recommendations/bdd-checklist.md) | 1.1 | active | 2026-05-09 |
 
 ## 2 已完成（Completed）
 

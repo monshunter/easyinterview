@@ -1,6 +1,6 @@
 # 002 BDD Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-05-09
 
@@ -15,11 +15,11 @@
 - [ ] 记录验证证据：mockTransport 调用日志 spy + 4 button request body 截取 + auth pending action 路径流 + 4xx revert 截图 + retired-testid grep 0 命中日志
 - [ ] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.022 行（关联需求 `frontend-home-job-picks-and-parse C-12, C-13, C-15`，状态 Ready，automated）
 
-## E2E.P0.023 jd_match Search tab 自然语言搜索 + Saved searches + 4 chip filter + 单一加载文案 + failure + auth gate + privacy
+## E2E.P0.023 jd_match Search tab 自然语言搜索 + Saved searches + 4 chip filter + 5 步 AGENT panel + failure + auth gate + privacy
 
 - [ ] 创建场景目录 `test/scenarios/e2e/p0-023-jd-match-search-and-saved/`，含 `README.md`
-- [ ] 准备 fixture variant：`searchJobs.json`（`default/empty/failed/slow-response`）、`listSavedSearches.json`（`default/empty/4xx`）、`createSavedSearch.json`（`default/4xx-validation`）；signed-in / signed-out 切换入口；`slow-response` variant 配置可观察延迟（≥1.5s）以便验证单一加载文案持续渲染；`make validate-fixtures` PASS
-- [ ] 实现 `scripts/setup.sh`（含 fixture variant 切换 + signed-in/out 切换）/ `scripts/trigger.sh`（按 A-I 9 个子用例运行：切 tab listSavedSearches / Run default / Run slow-response / Run failed / Run empty / 4 filter 切换 / Save current + 4xx / 未登录 Run / 切 tab abort in-flight）/ `scripts/verify.sh`（断言 searchJobs body / Idempotency-Key、单一加载文案 testid 持续渲染、负向断言 5 步步骤文案与 opacity 切换 DOM 0 命中、createSavedSearch body / Idempotency-Key、filter 4 状态、auth pending action params 不含 query / label、隐私反查 query / label / sourceJobUrl 0 命中、in-flight abort）/ `scripts/cleanup.sh`
+- [ ] 准备 fixture variant：`searchJobs.json`（`default/empty/failed/slow-response`）、`listSavedSearches.json`（`default/empty/4xx`）、`createSavedSearch.json`（`default/4xx-validation`）；signed-in / signed-out 切换入口；`slow-response` variant 配置可观察延迟（≥1.5s）以便验证 5 步 AGENT panel 持续渲染；`make validate-fixtures` PASS
+- [ ] 实现 `scripts/setup.sh`（含 fixture variant 切换 + signed-in/out 切换）/ `scripts/trigger.sh`（按 A-I 9 个子用例运行：切 tab listSavedSearches / Run default / Run slow-response / Run failed / Run empty / 4 filter 切换 / Save current + 4xx / 未登录 Run / 切 tab abort in-flight）/ `scripts/verify.sh`（断言 searchJobs body / Idempotency-Key、5 步 AGENT panel `jdmatch-search-searching-panel` + 5 个 `jdmatch-search-searching-step-${i}` testid 持续渲染至 settle、`opacity: 1` 前 3 步与 `opacity: 0.4` 后 2 步 computed style 命中、`● AGENT SCANNING` / `● AGENT 扫描中` accent label + accent 边框命中、动态 JD 数字（`248` / `87` / `unique postings` / `唯一岗位` / `248 → 87`）在 SearchTab DOM 与前端 i18n 0 命中、createSavedSearch body / Idempotency-Key、filter 4 状态、auth pending action params 不含 query / label、隐私反查 query / label / sourceJobUrl 0 命中、in-flight abort）/ `scripts/cleanup.sh`
 - [ ] 执行 `setup → trigger → verify → cleanup` 全 PASS（A-I 共 ≥9 子用例）
 - [ ] 记录验证证据：mockTransport 调用日志 + 加载文案截图（in-flight + settle 后）+ 4 filter 切换截图 + auth pending action params 截取 + 隐私反查 grep 日志
 - [ ] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.023 行（关联需求 `frontend-home-job-picks-and-parse C-14, C-15`，状态 Ready，automated）
