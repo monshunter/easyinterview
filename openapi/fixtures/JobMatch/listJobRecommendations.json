@@ -1,0 +1,435 @@
+{
+  "operationId": "listJobRecommendations",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-rec-default"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a001",
+              "title": "Senior Frontend Engineer · Design Systems",
+              "company": "Acme",
+              "companyTag": "Series C SaaS",
+              "level": "Senior",
+              "location": "Shanghai · Hybrid",
+              "comp": "70-95 LPA",
+              "posted": "2 days ago",
+              "score": 92,
+              "fit": {
+                "must": 4,
+                "total": 5,
+                "plus": 3,
+                "totalPlus": 4
+              },
+              "reasons": [
+                "Drove design-system migration across 12 teams",
+                "Production SSR experience aligned with platform team focus"
+              ],
+              "risks": [
+                "Edge runtime experience marked as nice-to-have — light coverage"
+              ],
+              "highlights": [
+                "Design system migration",
+                "Performance budgets",
+                "SSR / streaming"
+              ],
+              "seen": false,
+              "saved": false,
+              "sourceUrl": "https://acme.example/careers/senior-frontend",
+              "sourceLabel": "acme.example/careers/senior-frontend",
+              "networkNote": "2 alumni from past mocks at this team",
+              "similarInterviewers": 3,
+              "interviewHypotheses": [
+                "Likely deep-dive on design-system rollout governance"
+              ],
+              "provenance": {
+                "promptVersion": "jd_match_recommendation.v1",
+                "rubricVersion": "jd_match_recommendation_rubric.v1",
+                "modelId": "model-profile:contract.default",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "jd_match.v1"
+              }
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a002",
+              "title": "Staff Frontend Engineer · Platform",
+              "company": "Lumen Labs",
+              "companyTag": "Growth-stage",
+              "level": "Staff",
+              "location": "Remote · APAC",
+              "comp": "85-110 LPA",
+              "posted": "5 days ago",
+              "score": 78,
+              "fit": {
+                "must": 3,
+                "total": 5,
+                "plus": 2,
+                "totalPlus": 4
+              },
+              "reasons": [
+                "Platform-team scope matches recent leadership stories",
+                "Remote setup matches preferences"
+              ],
+              "risks": [
+                "Heavier backend-coordination expectation",
+                "Travel for quarterly onsite"
+              ],
+              "highlights": [
+                "Platform engineering",
+                "API ergonomics",
+                "Cross-team RFC ownership"
+              ],
+              "seen": true,
+              "saved": true,
+              "sourceUrl": "https://lumenlabs.example/jobs/staff-frontend",
+              "sourceLabel": "lumenlabs.example/jobs/staff-frontend",
+              "networkNote": null,
+              "similarInterviewers": null,
+              "interviewHypotheses": [
+                "Will probe API ergonomics and RFC review process"
+              ],
+              "provenance": {
+                "promptVersion": "jd_match_recommendation.v1",
+                "rubricVersion": "jd_match_recommendation_rubric.v1",
+                "modelId": "model-profile:contract.default",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "jd_match.v1"
+              }
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a003",
+              "title": "Frontend Tech Lead · Web Platform",
+              "company": "Northwind",
+              "companyTag": null,
+              "level": "Lead",
+              "location": "Singapore · Hybrid",
+              "comp": null,
+              "posted": "1 week ago",
+              "score": 64,
+              "fit": {
+                "must": 2,
+                "total": 5,
+                "plus": 1,
+                "totalPlus": 4
+              },
+              "reasons": [
+                "Stretch role exploring platform-team leadership"
+              ],
+              "risks": [
+                "Location requires relocation",
+                "Compensation undisclosed"
+              ],
+              "highlights": [
+                "Web platform engineering",
+                "Mentorship"
+              ],
+              "seen": false,
+              "saved": false,
+              "sourceUrl": null,
+              "sourceLabel": null,
+              "networkNote": null,
+              "similarInterviewers": null,
+              "interviewHypotheses": [],
+              "provenance": {
+                "promptVersion": "jd_match_recommendation.v1",
+                "rubricVersion": "jd_match_recommendation_rubric.v1",
+                "modelId": "model-profile:contract.default",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "jd_match.v1"
+              }
+            }
+          ],
+          "pageInfo": {
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
+    },
+    "empty": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-rec-empty"
+        },
+        "body": {
+          "items": [],
+          "pageInfo": {
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
+    },
+    "one": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-rec-one"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a001",
+              "title": "Senior Frontend Engineer · Design Systems",
+              "company": "Acme",
+              "companyTag": "Series C SaaS",
+              "level": "Senior",
+              "location": "Shanghai · Hybrid",
+              "comp": "70-95 LPA",
+              "posted": "2 days ago",
+              "score": 92,
+              "fit": {
+                "must": 4,
+                "total": 5,
+                "plus": 3,
+                "totalPlus": 4
+              },
+              "reasons": [
+                "Drove design-system migration across 12 teams"
+              ],
+              "risks": [
+                "Edge runtime experience marked as nice-to-have"
+              ],
+              "highlights": [
+                "Design system migration"
+              ],
+              "seen": false,
+              "saved": false,
+              "sourceUrl": "https://acme.example/careers/senior-frontend",
+              "sourceLabel": "acme.example/careers/senior-frontend",
+              "networkNote": null,
+              "similarInterviewers": null,
+              "interviewHypotheses": [],
+              "provenance": {
+                "promptVersion": "jd_match_recommendation.v1",
+                "rubricVersion": "jd_match_recommendation_rubric.v1",
+                "modelId": "model-profile:contract.default",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "jd_match.v1"
+              }
+            }
+          ],
+          "pageInfo": {
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
+    },
+    "many": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-rec-many"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a001",
+              "title": "Senior Frontend Engineer · Design Systems",
+              "company": "Acme",
+              "companyTag": "Series C SaaS",
+              "level": "Senior",
+              "location": "Shanghai · Hybrid",
+              "comp": "70-95 LPA",
+              "posted": "2 days ago",
+              "score": 92,
+              "fit": {
+                "must": 4,
+                "total": 5,
+                "plus": 3,
+                "totalPlus": 4
+              },
+              "reasons": [
+                "Drove design-system migration across 12 teams",
+                "Production SSR experience aligned with platform team focus"
+              ],
+              "risks": [
+                "Edge runtime experience marked as nice-to-have"
+              ],
+              "highlights": [
+                "Design system migration",
+                "Performance budgets"
+              ],
+              "seen": false,
+              "saved": false,
+              "sourceUrl": "https://acme.example/careers/senior-frontend",
+              "sourceLabel": "acme.example/careers/senior-frontend",
+              "networkNote": "2 alumni from past mocks at this team",
+              "similarInterviewers": 3,
+              "interviewHypotheses": [
+                "Likely deep-dive on design-system rollout governance"
+              ],
+              "provenance": {
+                "promptVersion": "jd_match_recommendation.v1",
+                "rubricVersion": "jd_match_recommendation_rubric.v1",
+                "modelId": "model-profile:contract.default",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "jd_match.v1"
+              }
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a002",
+              "title": "Staff Frontend Engineer · Platform",
+              "company": "Lumen Labs",
+              "companyTag": "Growth-stage",
+              "level": "Staff",
+              "location": "Remote · APAC",
+              "comp": "85-110 LPA",
+              "posted": "5 days ago",
+              "score": 78,
+              "fit": {
+                "must": 3,
+                "total": 5,
+                "plus": 2,
+                "totalPlus": 4
+              },
+              "reasons": [
+                "Platform-team scope matches recent leadership stories"
+              ],
+              "risks": [
+                "Heavier backend-coordination expectation"
+              ],
+              "highlights": [
+                "Platform engineering",
+                "API ergonomics"
+              ],
+              "seen": true,
+              "saved": true,
+              "sourceUrl": "https://lumenlabs.example/jobs/staff-frontend",
+              "sourceLabel": "lumenlabs.example/jobs/staff-frontend",
+              "networkNote": null,
+              "similarInterviewers": null,
+              "interviewHypotheses": [],
+              "provenance": {
+                "promptVersion": "jd_match_recommendation.v1",
+                "rubricVersion": "jd_match_recommendation_rubric.v1",
+                "modelId": "model-profile:contract.default",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "jd_match.v1"
+              }
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a003",
+              "title": "Frontend Tech Lead · Web Platform",
+              "company": "Northwind",
+              "companyTag": null,
+              "level": "Lead",
+              "location": "Singapore · Hybrid",
+              "comp": null,
+              "posted": "1 week ago",
+              "score": 64,
+              "fit": {
+                "must": 2,
+                "total": 5,
+                "plus": 1,
+                "totalPlus": 4
+              },
+              "reasons": [
+                "Stretch role exploring platform-team leadership"
+              ],
+              "risks": [
+                "Location requires relocation"
+              ],
+              "highlights": [
+                "Web platform engineering"
+              ],
+              "seen": false,
+              "saved": false,
+              "sourceUrl": null,
+              "sourceLabel": null,
+              "networkNote": null,
+              "similarInterviewers": null,
+              "interviewHypotheses": [],
+              "provenance": {
+                "promptVersion": "jd_match_recommendation.v1",
+                "rubricVersion": "jd_match_recommendation_rubric.v1",
+                "modelId": "model-profile:contract.default",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "jd_match.v1"
+              }
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000a004",
+              "title": "Frontend Engineer · Internal Tooling",
+              "company": "Globex",
+              "companyTag": "Bootstrapped",
+              "level": "Mid",
+              "location": "Beijing · On-site",
+              "comp": "40-55 LPA",
+              "posted": "3 days ago",
+              "score": 86,
+              "fit": {
+                "must": 4,
+                "total": 5,
+                "plus": 2,
+                "totalPlus": 4
+              },
+              "reasons": [
+                "Internal tools focus aligns with developer-experience interests"
+              ],
+              "risks": [
+                "On-site only"
+              ],
+              "highlights": [
+                "Developer tools",
+                "TypeScript",
+                "React"
+              ],
+              "seen": false,
+              "saved": false,
+              "sourceUrl": "https://globex.example/jobs/frontend-tools",
+              "sourceLabel": "globex.example/jobs/frontend-tools",
+              "networkNote": null,
+              "similarInterviewers": null,
+              "interviewHypotheses": [],
+              "provenance": {
+                "promptVersion": "jd_match_recommendation.v1",
+                "rubricVersion": "jd_match_recommendation_rubric.v1",
+                "modelId": "model-profile:contract.default",
+                "language": "zh-CN",
+                "featureFlag": "none",
+                "dataSourceVersion": "jd_match.v1"
+              }
+            }
+          ],
+          "pageInfo": {
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
+    },
+    "failed": {
+      "response": {
+        "status": 502,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-rec-failed"
+        },
+        "body": {
+          "error": {
+            "code": "AI_PROVIDER_TIMEOUT",
+            "message": "Recommendation pipeline timed out. Please retry shortly.",
+            "requestId": "req_2026-05-10T09-00-00-rec-failed",
+            "retryable": true,
+            "details": {
+              "seedProfile": "failed"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "operationId": "markJobNotRelevant",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "ik_2026-05-10T09-00-00-dismiss-default"
+        },
+        "body": {
+          "reason": "not_relevant"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-dismiss-default"
+        },
+        "body": {
+          "jobMatchId": "01918fa0-0000-7000-8000-00000000a002",
+          "dismissedAt": "2026-05-10T09:00:00Z"
+        }
+      }
+    },
+    "4xx": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "ik_2026-05-10T09-00-00-dismiss-4xx"
+        },
+        "body": {
+          "reason": "not_relevant"
+        }
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-dismiss-4xx"
+        },
+        "body": {
+          "error": {
+            "code": "VALIDATION_FAILED",
+            "message": "Dismiss target is invalid or already dismissed.",
+            "requestId": "req_2026-05-10T09-00-00-dismiss-4xx",
+            "retryable": false,
+            "details": {
+              "seedProfile": "4xx"
+            }
+          }
+        }
+      }
+    }
+  }
+}

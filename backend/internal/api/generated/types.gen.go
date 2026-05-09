@@ -650,3 +650,206 @@ type PrivacyRequestWithJob struct {
 	Job              Job    `json:"job"`
 	PrivacyRequestId string `json:"privacyRequestId"`
 }
+
+type JobMatchProfileSourceCounts struct {
+	Debriefs int32 `json:"debriefs"`
+	Jds      int32 `json:"jds"`
+	Mocks    int32 `json:"mocks"`
+	Resumes  int32 `json:"resumes"`
+}
+
+type JobMatchProfile struct {
+	AvatarUrl         *string                     `json:"avatarUrl,omitempty"`
+	CompensationText  *string                     `json:"compensationText,omitempty"`
+	DisplayName       string                      `json:"displayName"`
+	Headline          *string                     `json:"headline,omitempty"`
+	LocationText      *string                     `json:"locationText,omitempty"`
+	Skills            []string                    `json:"skills"`
+	Sources           JobMatchProfileSourceCounts `json:"sources"`
+	YearsOfExperience *int32                      `json:"yearsOfExperience,omitempty"`
+}
+
+type JobMatchAgentStatus string
+
+const (
+	JobMatchAgentStatusIdle     JobMatchAgentStatus = "idle"
+	JobMatchAgentStatusScanning JobMatchAgentStatus = "scanning"
+	JobMatchAgentStatusError    JobMatchAgentStatus = "error"
+)
+
+// AllJobMatchAgentStatuses lists every defined value in declaration order.
+var AllJobMatchAgentStatuses = []JobMatchAgentStatus{
+	JobMatchAgentStatusIdle,
+	JobMatchAgentStatusScanning,
+	JobMatchAgentStatusError,
+}
+
+type AgentScanStatus struct {
+	LastScanAt *string             `json:"lastScanAt,omitempty"`
+	Message    *string             `json:"message,omitempty"`
+	NextScanAt *string             `json:"nextScanAt,omitempty"`
+	Status     JobMatchAgentStatus `json:"status"`
+}
+
+type JobMatchFitFooter struct {
+	Must      int32 `json:"must"`
+	Plus      int32 `json:"plus"`
+	Total     int32 `json:"total"`
+	TotalPlus int32 `json:"totalPlus"`
+}
+
+type JobMatchRecommendation struct {
+	Comp                *string              `json:"comp,omitempty"`
+	Company             string               `json:"company"`
+	CompanyTag          *string              `json:"companyTag,omitempty"`
+	Fit                 JobMatchFitFooter    `json:"fit"`
+	Highlights          []string             `json:"highlights"`
+	Id                  string               `json:"id"`
+	InterviewHypotheses []string             `json:"interviewHypotheses,omitempty"`
+	Level               *string              `json:"level,omitempty"`
+	Location            string               `json:"location"`
+	NetworkNote         *string              `json:"networkNote,omitempty"`
+	Posted              string               `json:"posted"`
+	Provenance          GenerationProvenance `json:"provenance"`
+	Reasons             []string             `json:"reasons"`
+	Risks               []string             `json:"risks"`
+	Saved               bool                 `json:"saved"`
+	Score               int32                `json:"score"`
+	Seen                bool                 `json:"seen"`
+	SimilarInterviewers *int32               `json:"similarInterviewers,omitempty"`
+	SourceLabel         *string              `json:"sourceLabel,omitempty"`
+	SourceUrl           *string              `json:"sourceUrl,omitempty"`
+	Title               string               `json:"title"`
+}
+
+type PaginatedJobMatchRecommendation struct {
+	Items    []JobMatchRecommendation `json:"items"`
+	PageInfo PageInfo                 `json:"pageInfo"`
+}
+
+type AddToWatchlistRequest struct {
+	JobMatchId string `json:"jobMatchId"`
+}
+
+type WatchlistItemTone string
+
+const (
+	WatchlistItemToneOk    WatchlistItemTone = "ok"
+	WatchlistItemToneWarn  WatchlistItemTone = "warn"
+	WatchlistItemToneMuted WatchlistItemTone = "muted"
+)
+
+// AllWatchlistItemTones lists every defined value in declaration order.
+var AllWatchlistItemTones = []WatchlistItemTone{
+	WatchlistItemToneOk,
+	WatchlistItemToneWarn,
+	WatchlistItemToneMuted,
+}
+
+type WatchlistItem struct {
+	AddedAt          string            `json:"addedAt"`
+	Change           *string           `json:"change,omitempty"`
+	Company          string            `json:"company"`
+	Id               string            `json:"id"`
+	Label            *string           `json:"label,omitempty"`
+	LinkedJobMatchId string            `json:"linkedJobMatchId"`
+	Title            string            `json:"title"`
+	Tone             WatchlistItemTone `json:"tone"`
+}
+
+type WatchlistResponse struct {
+	Items []WatchlistItem `json:"items"`
+}
+
+type MarkNotRelevantReason string
+
+const (
+	MarkNotRelevantReasonNotRelevant       MarkNotRelevantReason = "not_relevant"
+	MarkNotRelevantReasonWrongLevel        MarkNotRelevantReason = "wrong_level"
+	MarkNotRelevantReasonWrongLocation     MarkNotRelevantReason = "wrong_location"
+	MarkNotRelevantReasonWrongCompensation MarkNotRelevantReason = "wrong_compensation"
+	MarkNotRelevantReasonOther             MarkNotRelevantReason = "other"
+)
+
+// AllMarkNotRelevantReasons lists every defined value in declaration order.
+var AllMarkNotRelevantReasons = []MarkNotRelevantReason{
+	MarkNotRelevantReasonNotRelevant,
+	MarkNotRelevantReasonWrongLevel,
+	MarkNotRelevantReasonWrongLocation,
+	MarkNotRelevantReasonWrongCompensation,
+	MarkNotRelevantReasonOther,
+}
+
+type MarkNotRelevantRequest struct {
+	FreeNote *string               `json:"freeNote,omitempty"`
+	Reason   MarkNotRelevantReason `json:"reason"`
+}
+
+type MarkNotRelevantResult struct {
+	DismissedAt string `json:"dismissedAt"`
+	JobMatchId  string `json:"jobMatchId"`
+}
+
+type SearchJobsFilters struct {
+	Location *string `json:"location,omitempty"`
+	MinScore *int32  `json:"minScore,omitempty"`
+	Remote   *bool   `json:"remote,omitempty"`
+}
+
+type SearchJobsRequest struct {
+	Filters           *SearchJobsFilters `json:"filters,omitempty"`
+	ProfileSnapshotId *string            `json:"profileSnapshotId,omitempty"`
+	Query             string             `json:"query"`
+}
+
+type SearchJobsResponse struct {
+	Items       []JobMatchRecommendation `json:"items"`
+	SearchRunId string                   `json:"searchRunId"`
+}
+
+type SavedSearch struct {
+	CreatedAt    string             `json:"createdAt"`
+	Filters      *SearchJobsFilters `json:"filters,omitempty"`
+	Id           string             `json:"id"`
+	Label        string             `json:"label"`
+	LastRunAt    *string            `json:"lastRunAt,omitempty"`
+	NewJobsCount *int32             `json:"newJobsCount,omitempty"`
+	Query        string             `json:"query"`
+}
+
+type SavedSearchesResponse struct {
+	Items []SavedSearch `json:"items"`
+}
+
+type CreateSavedSearchRequest struct {
+	Filters *SearchJobsFilters `json:"filters,omitempty"`
+	Label   string             `json:"label"`
+	Query   string             `json:"query"`
+}
+
+type MarketSignalTone string
+
+const (
+	MarketSignalToneOk    MarketSignalTone = "ok"
+	MarketSignalToneWarn  MarketSignalTone = "warn"
+	MarketSignalToneMuted MarketSignalTone = "muted"
+)
+
+// AllMarketSignalTones lists every defined value in declaration order.
+var AllMarketSignalTones = []MarketSignalTone{
+	MarketSignalToneOk,
+	MarketSignalToneWarn,
+	MarketSignalToneMuted,
+}
+
+type MarketSignal struct {
+	D    *string          `json:"d,omitempty"`
+	K    string           `json:"k"`
+	Tone MarketSignalTone `json:"tone"`
+	V    string           `json:"v"`
+}
+
+type MarketSignalsResponse struct {
+	AsOf    *string        `json:"asOf,omitempty"`
+	Signals []MarketSignal `json:"signals"`
+}

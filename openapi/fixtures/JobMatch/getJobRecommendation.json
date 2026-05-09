@@ -1,0 +1,133 @@
+{
+  "operationId": "getJobRecommendation",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-rec-detail-default"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-00000000a001",
+          "title": "Senior Frontend Engineer · Design Systems",
+          "company": "Acme",
+          "companyTag": "Series C SaaS",
+          "level": "Senior",
+          "location": "Shanghai · Hybrid",
+          "comp": "70-95 LPA",
+          "posted": "2 days ago",
+          "score": 92,
+          "fit": {
+            "must": 4,
+            "total": 5,
+            "plus": 3,
+            "totalPlus": 4
+          },
+          "reasons": [
+            "Drove design-system migration across 12 teams",
+            "Production SSR experience aligned with platform team focus",
+            "Mentorship of mid-level engineers documented"
+          ],
+          "risks": [
+            "Edge runtime experience marked as nice-to-have",
+            "Hiring manager prefers very deep observability stories"
+          ],
+          "highlights": [
+            "Design system migration",
+            "Performance budgets",
+            "SSR / streaming",
+            "Cross-team RFC ownership"
+          ],
+          "seen": false,
+          "saved": false,
+          "sourceUrl": "https://acme.example/careers/senior-frontend",
+          "sourceLabel": "acme.example/careers/senior-frontend",
+          "networkNote": "Public interview-review signals: 2 alumni from past mocks at this team",
+          "similarInterviewers": 3,
+          "interviewHypotheses": [
+            "Likely deep-dive on design-system rollout governance",
+            "STAR follow-up on performance budgets"
+          ],
+          "provenance": {
+            "promptVersion": "jd_match_recommendation.v1",
+            "rubricVersion": "jd_match_recommendation_rubric.v1",
+            "modelId": "model-profile:contract.default",
+            "language": "zh-CN",
+            "featureFlag": "none",
+            "dataSourceVersion": "jd_match.v1"
+          }
+        }
+      }
+    },
+    "network-intel-empty": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-rec-detail-no-intel"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-00000000a003",
+          "title": "Frontend Tech Lead · Web Platform",
+          "company": "Northwind",
+          "companyTag": null,
+          "level": "Lead",
+          "location": "Singapore · Hybrid",
+          "comp": null,
+          "posted": "1 week ago",
+          "score": 64,
+          "fit": {
+            "must": 2,
+            "total": 5,
+            "plus": 1,
+            "totalPlus": 4
+          },
+          "reasons": [
+            "Stretch role exploring platform-team leadership"
+          ],
+          "risks": [
+            "Location requires relocation",
+            "Compensation undisclosed"
+          ],
+          "highlights": [
+            "Web platform engineering",
+            "Mentorship"
+          ],
+          "seen": false,
+          "saved": false,
+          "sourceUrl": null,
+          "sourceLabel": null,
+          "networkNote": null,
+          "similarInterviewers": null,
+          "interviewHypotheses": [],
+          "provenance": {
+            "promptVersion": "jd_match_recommendation.v1",
+            "rubricVersion": "jd_match_recommendation_rubric.v1",
+            "modelId": "model-profile:contract.default",
+            "language": "zh-CN",
+            "featureFlag": "none",
+            "dataSourceVersion": "jd_match.v1"
+          }
+        }
+      }
+    },
+    "failed": {
+      "response": {
+        "status": 502,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-rec-detail-failed"
+        },
+        "body": {
+          "error": {
+            "code": "AI_PROVIDER_TIMEOUT",
+            "message": "Recommendation detail pipeline timed out.",
+            "requestId": "req_2026-05-10T09-00-00-rec-detail-failed",
+            "retryable": true,
+            "details": {
+              "seedProfile": "failed"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "operationId": "listWatchlist",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-watchlist-default"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "01918fa0-0000-7000-8000-00000000b001",
+              "linkedJobMatchId": "01918fa0-0000-7000-8000-00000000a001",
+              "label": null,
+              "title": "Senior Frontend Engineer · Design Systems",
+              "company": "Acme",
+              "tone": "ok",
+              "addedAt": "2026-05-08T10:00:00Z",
+              "change": null
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000b002",
+              "linkedJobMatchId": "01918fa0-0000-7000-8000-00000000a002",
+              "label": null,
+              "title": "Staff Frontend Engineer · Platform",
+              "company": "Lumen Labs",
+              "tone": "warn",
+              "addedAt": "2026-05-06T11:30:00Z",
+              "change": "JD updated · check diff"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000b003",
+              "linkedJobMatchId": "01918fa0-0000-7000-8000-00000000a004",
+              "label": null,
+              "title": "Frontend Engineer · Internal Tooling",
+              "company": "Globex",
+              "tone": "muted",
+              "addedAt": "2026-04-29T09:00:00Z",
+              "change": null
+            }
+          ]
+        }
+      }
+    },
+    "empty": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-watchlist-empty"
+        },
+        "body": {
+          "items": []
+        }
+      }
+    },
+    "few": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-watchlist-few"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "01918fa0-0000-7000-8000-00000000b001",
+              "linkedJobMatchId": "01918fa0-0000-7000-8000-00000000a001",
+              "label": null,
+              "title": "Senior Frontend Engineer · Design Systems",
+              "company": "Acme",
+              "tone": "ok",
+              "addedAt": "2026-05-08T10:00:00Z",
+              "change": null
+            }
+          ]
+        }
+      }
+    },
+    "4xx": {
+      "response": {
+        "status": 401,
+        "headers": {
+          "X-Request-ID": "req_2026-05-10T09-00-00-watchlist-4xx"
+        },
+        "body": {
+          "error": {
+            "code": "AUTH_UNAUTHORIZED",
+            "message": "Watchlist requires an authenticated session.",
+            "requestId": "req_2026-05-10T09-00-00-watchlist-4xx",
+            "retryable": false,
+            "details": {
+              "seedProfile": "4xx"
+            }
+          }
+        }
+      }
+    }
+  }
+}
