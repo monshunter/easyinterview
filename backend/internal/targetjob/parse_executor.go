@@ -146,19 +146,29 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportSourceInvalid, "no JD text available for parse", false)
 	}
 
-	complete, _, err := p.ai.Complete(ctx, resolution.ModelProfileName, aiclient.CompletePayload{
+	complete, aiMeta, err := p.ai.Complete(ctx, resolution.ModelProfileName, aiclient.CompletePayload{
 		Messages: buildPromptMessages(resolution, target.TargetLanguage, jdText),
 		Metadata: aiclient.CallMetadata{
 			FeatureKey:        FeatureKeyTargetImportParse,
 			PromptVersion:     resolution.PromptVersion,
 			RubricVersion:     resolution.RubricVersion,
 			Language:          target.TargetLanguage,
+			FeatureFlag:       coalesceFlag(resolution.FeatureFlag),
 			DataSourceVersion: resolution.DataSourceVersion,
+			TaskRun: aiclient.AITaskRunContext{
+				Capability:   aiclient.AITaskRunTaskJDParse,
+				ResourceType: aiclient.AITaskRunResourceTargetJob,
+				ResourceID:   targetJobID,
+			},
 		},
 	})
 	if err != nil {
 		code, retryable := translateAIClientError(err)
 		return p.fail(ctx, targetJobID, code, err.Error(), retryable)
+	}
+	modelID := strings.TrimSpace(aiMeta.ModelID)
+	if modelID == "" {
+		return p.fail(ctx, targetJobID, sharederrors.CodeAiProviderConfigInvalid, "AI call meta missing model_id", false)
 	}
 
 	parsed, err := decodeParseResponse(complete.Content)
@@ -178,7 +188,7 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 			"featureFlag":       coalesceFlag(resolution.FeatureFlag),
 			"promptVersion":     resolution.PromptVersion,
 			"rubricVersion":     resolution.RubricVersion,
-			"modelId":           resolution.ModelProfileName,
+			"modelId":           modelID,
 			"dataSourceVersion": resolution.DataSourceVersion,
 		},
 	})
@@ -191,7 +201,7 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 			"featureFlag":       coalesceFlag(resolution.FeatureFlag),
 			"promptVersion":     resolution.PromptVersion,
 			"rubricVersion":     "not_applicable",
-			"modelId":           resolution.ModelProfileName,
+			"modelId":           modelID,
 			"dataSourceVersion": resolution.DataSourceVersion,
 		},
 	})

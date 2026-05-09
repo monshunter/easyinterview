@@ -226,7 +226,7 @@ COMPANY_BLACKLIST_RE = re.compile(
     re.IGNORECASE,
 )
 TEMP_ID_RE = re.compile(r"\btmp_[A-Za-z0-9_-]+\b")
-MODEL_PROFILE_ID_RE = re.compile(r"^model-profile:[a-z][a-z0-9_.-]*$")
+PROVIDER_NEUTRAL_MODEL_ID_RE = re.compile(r"^(?:model-profile|fixture-model):[a-z][a-z0-9_.-]*$")
 VENDOR_MODEL_TOKEN_RE = re.compile(
     r"(?:openrouter|anthropic|claude|openai|gpt-|mistral|gemini|cohere)",
     re.IGNORECASE,
@@ -346,8 +346,8 @@ class FixtureContentTest(unittest.TestCase):
                         if field == "modelId":
                             self.assertRegex(
                                 value,
-                                MODEL_PROFILE_ID_RE,
-                                f"{opid}.{path}.{field} must be a provider-neutral model profile id",
+                                PROVIDER_NEUTRAL_MODEL_ID_RE,
+                                f"{opid}.{path}.{field} must be a provider-neutral model id",
                             )
                             self.assertNotRegex(
                                 value,
@@ -379,6 +379,42 @@ class FixtureContentTest(unittest.TestCase):
 
         self.assertTrue(any("modelId" in err and "provider-neutral" in err for err in errors), errors)
         self.assertTrue(any("modelId" in err and "vendor/model tokens" in err for err in errors), errors)
+
+    def test_validator_accepts_provider_neutral_fixture_model_id(self) -> None:
+        validator = _load_validator()
+        errors = []
+        validator.check_provenance(
+            "getTargetJob",
+            {
+                "response": {
+                    "body": {
+                        "summary": {
+                            "provenance": {
+                                "promptVersion": "v0.1.0",
+                                "rubricVersion": "v0.1.0",
+                                "modelId": "fixture-model:target-import-parse",
+                                "language": "zh-CN",
+                                "featureFlag": "none",
+                                "dataSourceVersion": "registry.v1",
+                            }
+                        },
+                        "fitSummary": {
+                            "provenance": {
+                                "promptVersion": "v0.1.0",
+                                "rubricVersion": "not_applicable",
+                                "modelId": "fixture-model:target-import-parse",
+                                "language": "zh-CN",
+                                "featureFlag": "none",
+                                "dataSourceVersion": "registry.v1",
+                            }
+                        },
+                    }
+                }
+            },
+            errors,
+        )
+
+        self.assertFalse([err for err in errors if "modelId" in err], errors)
 
     def test_with_job_operations_carry_correct_jobType(self) -> None:
         for opid, expected_job_type in WITH_JOB_OPERATIONS.items():

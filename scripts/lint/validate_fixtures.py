@@ -8,7 +8,7 @@ Phase 1.3 scope (per `002-fixtures-and-mock-source` plan §3 / spec C-6 / C-11):
        operation's request / status-matched response schema in openapi.yaml.
     3. provenance — every AI-generated schema listed in spec §4.6 carries a
        complete `GenerationProvenance` (6 non-empty fields) and uses a
-       provider-neutral model profile id in fixture data.
+       provider-neutral model id in fixture data.
     4. privacy   — emails restricted to example.{com,org,net} or `.example`,
        phones to `+1-555-01xx`, and the employer-brand blacklist below.
     5. ids       — `format: uuid` values must match UUIDv7 layout, and any
@@ -58,7 +58,7 @@ COMPANY_BLACKLIST_RE = re.compile(
     r")(?:[^A-Za-z0-9_]|$)",
     re.IGNORECASE,
 )
-MODEL_PROFILE_ID_RE = re.compile(r"^model-profile:[a-z][a-z0-9_.-]*$")
+PROVIDER_NEUTRAL_MODEL_ID_RE = re.compile(r"^(?:model-profile|fixture-model):[a-z][a-z0-9_.-]*$")
 VENDOR_MODEL_TOKEN_RE = re.compile(
     r"(?:openrouter|anthropic|claude|openai|gpt-|mistral|gemini|cohere)",
     re.IGNORECASE,
@@ -445,10 +445,11 @@ def check_provenance(opid: str, scenario: dict, errors: List[str]) -> None:
                     )
                     continue
                 if field == "modelId":
-                    if not MODEL_PROFILE_ID_RE.match(v):
+                    if not PROVIDER_NEUTRAL_MODEL_ID_RE.match(v):
                         errors.append(
                             f"{opid}.{path}.modelId: fixture provenance must use "
-                            f"a provider-neutral model profile id (`model-profile:<name>`), got {v!r}"
+                            f"a provider-neutral model id (`model-profile:<name>` or "
+                            f"`fixture-model:<name>`), got {v!r}"
                         )
                     if VENDOR_MODEL_TOKEN_RE.search(v):
                         errors.append(

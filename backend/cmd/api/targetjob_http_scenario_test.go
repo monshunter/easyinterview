@@ -781,11 +781,23 @@ type scenarioAIClient struct {
 	err  error
 }
 
-func (c *scenarioAIClient) Complete(context.Context, string, aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
+func (c *scenarioAIClient) Complete(_ context.Context, profileName string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
 	if c.err != nil {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, c.err
 	}
-	return c.resp, aiclient.AICallMeta{}, nil
+	return c.resp, aiclient.AICallMeta{
+		Provider:          "scenario-test-provider",
+		ModelFamily:       "fixture",
+		ModelID:           "fixture-model:target-import-parse",
+		ModelProfileName:  profileName,
+		Language:          payload.Metadata.Language,
+		PromptVersion:     payload.Metadata.PromptVersion,
+		RubricVersion:     payload.Metadata.RubricVersion,
+		FeatureKey:        payload.Metadata.FeatureKey,
+		FeatureFlag:       payload.Metadata.FeatureFlag,
+		DataSourceVersion: payload.Metadata.DataSourceVersion,
+		ValidationStatus:  aiclient.ValidationStatusOK,
+	}, nil
 }
 
 func (c *scenarioAIClient) Transcribe(context.Context, string, aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {

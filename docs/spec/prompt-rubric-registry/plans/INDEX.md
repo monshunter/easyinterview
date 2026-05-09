@@ -13,7 +13,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-baseline](./001-baseline/plan.md) | [plan](./001-baseline/plan.md) / [checklist](./001-baseline/checklist.md) / [context](./001-baseline/context.yaml) | 1.1 | completed | 2026-05-09 |
+| [001-baseline](./001-baseline/plan.md) | [plan](./001-baseline/plan.md) / [checklist](./001-baseline/checklist.md) / [context](./001-baseline/context.yaml) | 1.2 | completed | 2026-05-09 |
 
 ## 3 草案 / 阻塞（Draft / Blocked）
 

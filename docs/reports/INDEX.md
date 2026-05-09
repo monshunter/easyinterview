@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-09](./2026-05-09-prompt-rubric-registry-l2-remediation-assessment.md) | Prompt Rubric Registry L2 Remediation 交付复盘 | #assessment |
 | [2026-05-09](./2026-05-09-prompt-rubric-registry-001-baseline-assessment.md) | Prompt Rubric Registry 001-baseline 交付复盘 | #assessment |
 | [2026-05-08](./2026-05-08-001-home-jd-import-and-parse-l2-remediation-assessment.md) | 001 Home JD Import and Parse L2 Remediation 交付复盘 | #assessment |
 | [2026-05-08](./2026-05-08-backend-targetjob-contract-remediation-assessment.md) | Backend TargetJob Contract Remediation 交付复盘 | #assessment |

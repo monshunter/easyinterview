@@ -65,15 +65,14 @@ func TestParseExecutorRegistryAdapterCrossLayer(t *testing.T) {
 	// Plan §3.4 second clause: provenance JSON written by ParseExecutor
 	// must contain promptVersion / rubricVersion / modelId / language /
 	// featureFlag / dataSourceVersion (the GenerationProvenance 6 fields).
-	// We assert the construction shape directly so the test does not
-	// require running the executor end-to-end. The fields below mirror
-	// parse_executor.go ~L176 and ~L189.
+	// modelId is the A3 resolved adapter model id, not the registry profile.
+	aiModelID := "fixture-model:target-import-parse"
 	provenance := map[string]string{
 		"language":          "en",
 		"featureFlag":       coalesceFlagForTest(resolved.FeatureFlag),
 		"promptVersion":     resolved.PromptVersion,
 		"rubricVersion":     resolved.RubricVersion,
-		"modelId":           resolved.ModelProfileName,
+		"modelId":           aiModelID,
 		"dataSourceVersion": resolved.DataSourceVersion,
 	}
 	for _, field := range []string{
@@ -165,6 +164,14 @@ func TestParseExecutorMetadataCarriesF3Triple(t *testing.T) {
 	if captured.metadata.DataSourceVersion == "" {
 		t.Errorf("metadata.DataSourceVersion must be populated")
 	}
+	if captured.metadata.FeatureFlag != "none" {
+		t.Errorf("metadata.FeatureFlag: want none, got %q", captured.metadata.FeatureFlag)
+	}
+	if captured.metadata.TaskRun.Capability != aiclient.AITaskRunTaskJDParse ||
+		captured.metadata.TaskRun.ResourceType != aiclient.AITaskRunResourceTargetJob ||
+		captured.metadata.TaskRun.ResourceID != "tgt-1" {
+		t.Errorf("metadata.TaskRun did not carry B4 targetjob context: %+v", captured.metadata.TaskRun)
+	}
 }
 
 // captureAIClient records the metadata of the most recent Complete call.
@@ -176,7 +183,13 @@ type captureAIClient struct {
 
 func (c *captureAIClient) Complete(_ context.Context, _ string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
 	c.metadata = payload.Metadata
-	return aiclient.CompleteResponse{Content: `{"requirements":[]}`}, aiclient.AICallMeta{}, nil
+	return aiclient.CompleteResponse{Content: `{"requirements":[]}`}, aiclient.AICallMeta{
+		Provider:         "unit-test-provider",
+		ModelFamily:      "fixture",
+		ModelID:          "fixture-model:target-import-parse",
+		ModelProfileName: "target.import.default",
+		Language:         payload.Metadata.Language,
+	}, nil
 }
 func (c *captureAIClient) Transcribe(context.Context, string, aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
 	return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, nil

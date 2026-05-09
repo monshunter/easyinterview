@@ -1,6 +1,6 @@
 # F3 Baseline Registry, Resolve and Lint Gates
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-09
 
@@ -37,7 +37,7 @@ L1 review 同时确认：B2 `GenerationProvenance` 已要求 `featureFlag` / `da
 | 决策点 | 选择 | 落入方式 |
 |---|---|---|
 | A3 profile coverage（C-11 / D-11） | 仅校验 entry 存在 + 状态合法 | Phase 5 跑 `make lint-ai-profile-coverage`；本 plan 不动 `config/ai-profiles.yaml` 的 status；`disabled` / `unsupported` 必须携带 `unsupported_reason` |
-| C-9 DB seed | Phase 4 纳入本 plan | 新增 seed migration + dockertest 集成测试 |
+| C-9 DB seed | Phase 4 纳入本 plan | 新增 seed migration + static SQL parse / migration lint gate；live PG down/up 由配置 `DATABASE_URL` 的 `make migrate-check` 环境承接 |
 | Prompt body depth | schema 完整 + 文本可用文案 | 10 个 feature_key 的 baseline prompt 全部写真实可用文案（system message 骨架 + user template + 输出 schema 提示），002 切真实模型时再迭代 |
 | LLM Judge stub | interface + 空实现 + `ErrJudgeNotImplemented` | `backend/internal/ai/registry/judge.go` 导出 `Judge` interface + `NotImplementedJudge`；002 plan 仅替换实现 |
 | `ai_task_runs` provenance | 保留并补齐 typed columns，不删除 C-9 断言 | Phase 0 复核 B1/B4/A3 当前缺口；Phase 4 先修订上游 spec / lint / schema / writer，再写 seed 与 cross-layer tests |
@@ -45,9 +45,9 @@ L1 review 同时确认：B2 `GenerationProvenance` 已要求 `featureFlag` / `da
 ## 3 质量门禁分类
 
 - **Plan 类型**: `code-internal + contract + truth-source + migration + tooling`。本 plan 落地 F3-owned Go 包 + `config/` truth source + `scripts/lint/` 静态校验 + 一份 idempotent seed migration；同时在同一 owner slice 内修订 B1/B4/A3 prompt provenance 契约与实现。不引入用户可感知 UI、HTTP API 行为或端到端业务工作流，但通过 `ai_task_runs` cross-layer assertion 与 `targetjob.PromptResolution` 字段映射跨包对齐 backend-practice GenerationProvenance schema。
-- **TDD 策略**: Code plan requires TDD。所有 checklist item 必须先红后绿：① lint script 先写 negative fixtures（hash drift / dimensions 缺 weight / 业务包注入 `prompt :=`）；② Go 包按 `loader → resolver → cache → judge → registry` 顺序补 focused tests，再写实现；③ targetjob retire 走 grep red-line 单测先红、改 wiring 后绿；④ B1/B4/A3 provenance remediation 先写 schema / writer / lint drift tests，再改 shared conventions、migration spec、A3 writer 与 schema migration；⑤ DB seed migration 先写 dockertest assertion，再写 `up.sql` / `down.sql`。每个 phase 的退出 gate 都是 `go test` / `make lint` / `make migrate-check` 可执行命令。
+- **TDD 策略**: Code plan requires TDD。所有 checklist item 必须先红后绿：① lint script 先写 negative fixtures（hash drift / dimensions 缺 weight / 业务包注入 `prompt :=`）；② Go 包按 `loader → resolver → cache → judge → registry` 顺序补 focused tests，再写实现；③ targetjob retire 走 grep red-line 单测先红、改 wiring 后绿；④ B1/B4/A3 provenance remediation 先写 schema / writer / lint drift tests，再改 shared conventions、migration spec、A3 writer 与 schema migration；⑤ DB seed migration 先写 static SQL parse / migration lint assertion，再写 `up.sql` / `down.sql`；live PG down/up 必须在配置 `DATABASE_URL` 的环境执行。每个 phase 的退出 gate 都是 `go test` / lint / fixture validation / migration lint 等可执行命令。
 - **BDD 策略**: BDD 不适用。本 plan 是 F3-owned 内部 Go 包（`backend/internal/ai/registry/`）+ `config/` truth source + `scripts/lint/` 静态校验，不新增用户可见 UI、HTTP API 行为或端到端业务工作流；TargetJobs fixture 仅做既有 provenance 示例对齐并由 `make validate-fixtures` 验证。Resolve 契约是 Go interface 与 yaml schema，不可通过浏览器或外部 API 触发。后续 P0 用户行为（first_question / followup / hint / report 等）由 `backend-practice` / `backend-report` / `backend-resume` 各自 plan 维护 BDD/E2E gate。
-- **替代验证 gate**: ① `make lint-prompts` / `make lint-rubrics` / `make lint-prompts-hardcode` / `make lint-ai-profile-coverage` 静态门禁；② `go test ./backend/internal/ai/registry/... -race`（含 `BenchmarkResolve` P95 + `TestStartupBudget` 1s budget）；③ `go test ./backend/internal/targetjob/... -race` 跨包契约对齐 + active-scope negative grep；④ `go test ./backend/internal/ai/aiclient/... -race` 覆盖 `CallMetadata` / `AICallMeta` / `AITaskRunRow` provenance 映射；⑤ `go test -tags=integration ./backend/internal/ai/registry/...` dockertest seed migration cross-layer；⑥ `make migrate-check` 验证 B4 schema / lint / down-up 闭环；⑦ `make validate-fixtures` 验证 TargetJobs fixtures 与 B2 schema / provenance shape；⑧ grep red-line：旧 `StaticPromptRegistry` / 4 个 `defaultTargetImport*` 常量 / 业务包 hardcode prompt / 已退役 `mistakes` / `growth` / `drill` / `mistake.extract` 模块名；⑨ `python3 .agent-skills/implement/shared/scripts/validate_context.py` + `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`。
+- **替代验证 gate**: ① `make lint-prompts` / `make lint-rubrics` / `make lint-prompts-hardcode` / `make lint-ai-profile-coverage` 静态门禁；② `go test ./backend/internal/ai/registry/... -race`（含 `BenchmarkResolve` P95 + `TestStartupBudget` 1s budget）；③ `go test ./backend/internal/targetjob/... -race` 跨包契约对齐 + active-scope negative grep；④ `go test ./backend/internal/ai/aiclient/... -race` 覆盖 `CallMetadata` / `AICallMeta` / `AITaskRunRow` provenance 映射；⑤ `backend/internal/ai/registry/db_integration_test.go` static SQL parse + `scripts/lint/migrations_lint.py` seed/schema gate；⑥ `make migrate-check` 仅在本地配置 `DATABASE_URL` 时验证 live DB down/up 闭环，未配置时必须记录 blocker；⑦ `make validate-fixtures` 验证 TargetJobs fixtures 与 B2 schema / provenance shape；⑧ grep red-line：旧 `StaticPromptRegistry` / 4 个 `defaultTargetImport*` 常量 / 业务包 hardcode prompt / 已退役 `mistakes` / `growth` / `drill` / `mistake.extract` 模块名；⑨ `python3 .agent-skills/implement/shared/scripts/validate_context.py` + `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`。
 
 ### 3.1 Cross-layer Operation Matrix
 
@@ -206,13 +206,13 @@ L1 review 同时确认：B2 `GenerationProvenance` 已要求 `featureFlag` / `da
 
 增强 lint：扫 `migrations/*seed_baseline_prompt_rubric_versions*.up.sql` 中每行的 `template_hash`，与对应 `config/prompts/<feature_key>/v0.1.0*.yaml` 的 `template_hash` 比对一致性；不一致 → exit 1。
 
-#### 4.7 `db_integration_test.go` (build tag: integration)
+#### 4.7 `db_integration_test.go` static SQL parse gate
 
-新增 `backend/internal/ai/registry/db_integration_test.go` 用 `//go:build integration`：dockertest / pgtestdb（沿用 `backend/internal/targetjob/store_test.go` 已有 PG fixture 约定）拉本地 PG，跑当前 migration chain + 本 plan seed migration，断言：① prompt_versions / rubric_versions 行数覆盖 10 个 feature_key × 实际 language 坐标（至少 20 行）且 prompt/rubric language 集合一致；② `is_active = true`；③ `template_hash` 与 yaml 一致；④ `ai_task_runs` 存在 `feature_key` / `feature_flag` / `data_source_version` typed columns；⑤ 同 feature_key 第二行 `is_active = true` 被 unique partial index 拒绝（如 schema 已支持），否则在 RegistryClient 层加运行时校验单测覆盖 D-7。
+新增 `backend/internal/ai/registry/db_integration_test.go` 作为 static SQL parse gate：解析当前 migration chain + 本 plan seed migration，断言 prompt_versions / rubric_versions 行数覆盖 10 个 feature_key × 实际 language 坐标（至少 20 行）、prompt/rubric language 集合一致、`template_hash` 与 yaml 一致，并确认 `ai_task_runs` 存在 `feature_key` / `feature_flag` / `data_source_version` typed columns。live Postgres down/up 与 partial unique index 行为不在当前 repo harness 内，必须通过配置 `DATABASE_URL` 后运行 `make migrate-check` 或后续 B4 PG harness plan 承接。
 
 #### 4.8 ai_task_runs cross-layer 验证
 
-在 `backend/internal/targetjob/parse_executor_test.go` 已有 fake writer 路径（不需要 dockertest）追加 assertion：`ai_task_runs.feature_key / prompt_version / rubric_version / model_profile_name / data_source_version / feature_flag` 6 字段非空且与 RegistryAdapter 返回的 PromptResolution 及调用 `featureKey` 一致。F1 observability tests 必须确认这些 provenance 字段不被新增为高基数 metric labels。
+新增真实执行的 `TestParseExecutorAITaskRuns`：通过 observability wrapper + in-memory `AITaskRunWriter` 运行 `ParseExecutor`，断言 `ai_task_runs.feature_key / prompt_version / rubric_version / model_profile_name / model_id / data_source_version / feature_flag` 与 RegistryAdapter / A3 meta 一致。F1 observability tests 必须确认这些 provenance 字段不被新增为高基数 metric labels。
 
 ### Phase 5: 收口 + A3 coverage gate + sync-doc-index
 
@@ -222,7 +222,7 @@ L1 review 同时确认：B2 `GenerationProvenance` 已要求 `featureFlag` / `da
 
 #### 5.2 顶层 `make lint` + 全量 verification 命令串联
 
-确认顶层 `make lint` 包含本 plan 新增的 `lint-prompts` / `lint-rubrics` / `lint-prompts-hardcode` + 已有 `lint-ai-profile-coverage`；另跑 `make migrate-check` 覆盖 `migrations_lint` 与 migration down/up 闭环。§8 handoff 列出完整 verification one-liner（11 个 AC × 命令证据）。
+确认顶层 `make lint` 包含本 plan 新增的 `lint-prompts` / `lint-rubrics` / `lint-prompts-hardcode` + 已有 `lint-ai-profile-coverage`；本地无 `DATABASE_URL` 时单独运行 `scripts/lint/migrations_lint.py` 作为 schema/static gate，并记录 `make migrate-check` 的 live DB 子步骤 blocker。§8 handoff 列出完整 verification one-liner（11 个 AC × 命令证据）。
 
 #### 5.3 Plans INDEX 与 history 同步
 
@@ -235,6 +235,24 @@ L1 review 同时确认：B2 `GenerationProvenance` 已要求 `featureFlag` / `da
 #### 5.5 retrospective 候选清单
 
 §8 handoff 记录值得复盘的点：① `StaticPromptRegistry` retire 节奏与 backend-targetjob/001 的 phase boundary 对齐；② `template_hash` Go ↔ Python canonical 算法跨工具对齐策略；③ B1/B4/A3 provenance remediation 由本 plan 接管后，对后续 F1 / backend-practice plan 的影响；不直接生成 retrospective 报告，由用户在本 plan 收尾时通过 `/retrospective` 决定。
+
+### Phase 6: L2 remediation（2026-05-09 code review follow-up）
+
+#### 6.1 ParseExecutor provenance 与 A3 call metadata 修订
+
+修订 `backend/internal/targetjob/parse_executor.go`：保留 registry `ModelProfileName` 作为 AI profile 入参与 `ai_task_runs.model_profile_name` 来源，但 `summary.provenance.modelId` / `fitSummary.provenance.modelId` 必须使用 `AIClient.Complete` 返回的 `AICallMeta.ModelID`。同一调用的 `CallMetadata` 必须显式携带 `FeatureFlag=coalesceFlag(resolution.FeatureFlag)`，并填充 `TaskRun` context（`capability=jd_parse`、`resource_type=target_job`、`resource_id=targetJobID`），使 observability decorator 能写出 B4 `ai_task_runs` row。
+
+TDD gate：先更新 `pipeline_test.go` / `parse_executor_cross_layer_test.go` 的失败断言，覆盖非 `none` feature flag、实际 model id 与 `TaskRun` context；再修 implementation；执行 `go test ./backend/internal/targetjob -run 'TestParseExecutor_(HappyPath|MetadataCarriesF3Triple)' -race` 与相邻 targetjob package 测试。
+
+#### 6.2 TargetJobs fixture provenance model id contract 修订
+
+修订 `openapi/fixtures/TargetJobs/getTargetJob.json` 与 fixture lint contract：TargetJobs `GenerationProvenance.modelId` 示例不得继续使用 registry profile id（`model-profile:target.import.default`），应使用 provider-neutral fixture model id 表示 A3 resolved model id；保留 validator 对真实 vendor/model token 的拒绝。同步 `openapi/fixtures/README.md`、`scripts/lint/validate_fixtures.py` 与对应测试，避免 `make validate-fixtures` 把旧 profile id 误当成唯一合法形态。
+
+TDD gate：先让 validator test 暴露 `fixture-model:*` 通过 / vendor token 拒绝语义，再改 validator 与 fixtures；执行 `python3 -m pytest scripts/lint/validate_fixtures_test.py -q` 与 `make validate-fixtures`。
+
+#### 6.3 Gate evidence reconciliation
+
+修订本 plan/checklist 的 Phase 4.7 / 4.8 / 5.2 evidence：明确 4.7 当前是 static SQL parse gate 而非 dockertest `//go:build integration` gate；`make migrate-check` 在本地无 `DATABASE_URL` 时不能作为已执行绿色 DB gate；4.8 必须由 `TestParseExecutorAITaskRuns` 这个真实存在且会执行断言的测试承接，不再记录 `[no tests to run]`。完成后重新运行 context validator 与 sync-doc-index。
 
 ## 5 验收标准
 
@@ -282,7 +300,7 @@ L1 review 同时确认：B2 `GenerationProvenance` 已要求 `featureFlag` / `da
 | Phase 1 | Truth source + lint | `make lint-prompts && make lint-rubrics && make lint-prompts-hardcode` |
 | Phase 2 | Registry package | `go test ./backend/internal/ai/registry/... -race` + Resolve benchmark / startup budget |
 | Phase 3 | targetjob retire + TargetJobs fixture provenance | `go test ./backend/internal/targetjob/... -race` + `make validate-fixtures` + checklist 3.6 retire grep gate returns 0 matches |
-| Phase 4 | Upstream remediation + DB seed | `go test ./backend/internal/ai/aiclient/... -race` + `go test -tags=integration ./backend/internal/ai/registry/...` + `make migrate-check` |
+| Phase 4 | Upstream remediation + DB seed | `go test ./backend/internal/ai/aiclient/... -race` + `go test ./backend/internal/ai/registry/... -race` + `python3 scripts/lint/migrations_lint.py --repo-root .`; `make migrate-check` live DB substep requires `DATABASE_URL` |
 | Phase 5 | Final reconcile | `make lint` + context validator + sync-doc-index check |
 
 #### 8.1.1 Phase 0 handoff snapshot template
@@ -413,7 +431,7 @@ Source: `shared/conventions.yaml` + `backend/internal/shared/ai/vocabulary.go` +
 - `python3 -m pytest scripts/lint/prompt_lint_test.py`: 4 passed (baseline / canonical hash vs README §3 / hash drift negative / field order negative).
 - `python3 -m pytest scripts/lint/rubric_lint_test.py`: 4 passed (baseline / weight tolerance / dimension allowlist / missing weight negative).
 - `python3 -m pytest scripts/lint/prompt_hardcode_lint_test.py`: 6 passed (default scan / raw string negative / long quoted negative / PromptVersion short-string passes / `_test.go` allowlisted / systemMessage flagged).
-- `make migrate-check` substep `migrations_lint.py`: green (`migration lint: ok`); the `cmd/migrate ... check` substep requires `DATABASE_URL` and exits early in this local environment, which is the expected dev shape until Phase 4 dockertest lands.
+- `make migrate-check` substep `migrations_lint.py`: green (`migration lint: ok`); the `cmd/migrate ... check` substep requires `DATABASE_URL` and exits early in this local environment. This is a live DB gate blocker, not a green DB migration execution.
 - Pre-existing aggregate `make lint` warnings noted: `backend/internal/ai/aiclient/providers/minimax_speech/*.go` and `backend/internal/targetjob/handler.go targetJobId` (revive `var-naming`) are emitted by previously committed code (`f2f5fc9` and earlier). Phase 1 introduces no new lint violations; these pre-existing findings are out of scope for this plan and stay with the originating subspecs.
 
 ### 8.1.4 Phase 2 evidence summary
@@ -432,7 +450,7 @@ Source: `shared/conventions.yaml` + `backend/internal/shared/ai/vocabulary.go` +
 - `go test ./backend/internal/targetjob -run TestParseExecutor -race`: green; new `TestParseExecutorRegistryAdapterCrossLayer` and `TestParseExecutorMetadataCarriesF3Triple` exercise the F3 RegistryAdapter end-to-end against the on-disk `config/prompts/target.import.parse/v0.1.0*.yaml` baseline and confirm the 6-field provenance shape (`language`, `featureFlag`, `promptVersion`, `rubricVersion`, `modelId`, `dataSourceVersion`).
 - `go test ./backend/cmd/api -race`: green; `TestBuildTargetJobRuntimeWiresDrainerAndAIClient` now points the loader at the in-repo `config/prompts` and `config/rubrics` roots through new `ai.promptsDir` / `ai.rubricsDir` config keys, replacing the retired `targetjob.NewStaticPromptRegistry()` wiring with `registry.NewRegistryClient` + `targetjob.NewRegistryAdapter`. cmd/api scenario test gets a local `staticTestPromptRegistry` shim mirroring the old shape so HTTP-level assertions stay stable.
 - `go vet ./backend/internal/targetjob ./backend/cmd/api ./backend/internal/ai/registry`: green.
-- `make validate-fixtures`: green; `openapi/fixtures/TargetJobs/getTargetJob.json` now uses F3 baseline coordinates (`promptVersion=v0.1.0`, `rubricVersion=v0.1.0|not_applicable`, `modelId=model-profile:target.import.default`, `featureFlag=none`, `dataSourceVersion=registry.v1`). `importTargetJob.json` path casing remains aligned with the operation matrix and the response is still `202 + Job` with no provenance shape change.
+- `make validate-fixtures`: green; `openapi/fixtures/TargetJobs/getTargetJob.json` now uses F3 baseline coordinates (`promptVersion=v0.1.0`, `rubricVersion=v0.1.0|not_applicable`, `modelId=fixture-model:target-import-parse`, `featureFlag=none`, `dataSourceVersion=registry.v1`). `importTargetJob.json` path casing remains aligned with the operation matrix and the response is still `202 + Job` with no provenance shape change.
 - `! grep -rE "StaticPromptRegistry|defaultTargetImport(Prompt|Rubric|ModelProfile|DataSource)" backend/` (production scope, `--include='*.go' --exclude='*_test.go'`): zero matches. The full recursive grep still hits the negative-test file `active_scope_negative_test.go` and the cmd/api scenario shim comment, both of which intentionally name the retired identifiers as forbidden tokens — these are regression guards, not residual production references. The 2.9-style filtering convention applies.
 
 ### 8.1.6 Phase 4 evidence summary
@@ -444,9 +462,9 @@ Source: `shared/conventions.yaml` + `backend/internal/shared/ai/vocabulary.go` +
 - 4.5 Seed migration down: `migrations/000002_seed_baseline_prompt_rubric_versions.down.sql` deletes only the 10 baseline `feature_key` rows scoped to `version='v0.1.0'` so future versions are not touched.
 - 4.6 Cross-file `template_hash` check is part of `scripts/lint/prompt_lint.py` (`lint_seed_migration`) and runs automatically once the seed migration is present; `python3 scripts/lint/prompt_lint.py --prompts-dir config/prompts --migrations-dir migrations` is green.
 - 4.7 `backend/internal/ai/registry/db_integration_test.go` ships as a static SQL parse test (not `//go:build integration`) because the repo currently uses `go-sqlmock` rather than dockertest/pgtestdb; the test counts 20 prompt + 20 rubric INSERT rows, asserts the 10 spec §3.1.1 feature_keys are covered, and verifies each prompt INSERT's `template_hash` matches the on-disk yaml meta. The full Postgres up/down round-trip remains gated by `make migrate-check` under `DATABASE_URL`, which is unchanged.
-- 4.8 `decorator_test.go::TestDecorator_SuccessIncrementsRunsAndLogsCompleted` extended to assert all six F3 provenance fields land in the persisted `AITaskRunRow`: `FeatureKey`, `FeatureFlag`, `DataSourceVersion`, `PromptVersion`, `RubricVersion`, `ModelProfileName`. Sample payload now carries `FeatureFlag` / `DataSourceVersion` so the cross-layer flow is exercised end-to-end through the production decorator.
-- F1 metric labels: the seven `MetricRunsTotal` label families remain unchanged (`provider, model_family, model_profile_name, model_id, capability, language, status`); the three new typed columns are append-only provenance and never join the metric label set.
-- `go test ./backend/... -race` 全绿（包含 ai/registry / ai/aiclient / observability / targetjob / cmd/api / shared/types / shared/ai / migrations / auth / platform 等所有受影响包）。
+- 4.8 `decorator_test.go::TestDecorator_SuccessIncrementsRunsAndLogsCompleted` asserts all six F3 provenance fields land in the persisted `AITaskRunRow`; L2 remediation adds `targetjob.TestParseExecutorAITaskRuns`, which runs `ParseExecutor` through the observability wrapper and confirms `FeatureKey`, `FeatureFlag`, `DataSourceVersion`, `PromptVersion`, `RubricVersion`, `ModelProfileName`, and A3 `ModelID`.
+- F1 metric labels: the seven `MetricRunsTotal` label families remain unchanged (`provider, model_family, model_profile_name, route, capability, language, status`); the three new typed columns are append-only provenance and never join the metric label set.
+- F3-scoped Go packages (`ai/registry`, `ai/aiclient`, `targetjob`, `cmd/api`, shared ai/types) 全绿；top-level package sweep remains owned by the repo-level CI / release gate.
 
 ### 8.1.7 Phase 5 evidence summary
 
@@ -456,6 +474,15 @@ Source: `shared/conventions.yaml` + `backend/internal/shared/ai/vocabulary.go` +
 - 5.4 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 全绿（`All documents are in sync. Zero drift detected.`）；`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/prompt-rubric-registry/plans/001-baseline/context.yaml --docs-root docs --target backend` 退出码 0。
 - 5.5 Retrospective 候选清单已写入 §8.3。由 `/implement` 在收口时触发 `/retrospective`，`/tdd` 不直接生成报告。
 - 5.6 11 AC × 命令证据自检（见 §8.4 ACTraceability matrix）：C-1~C-9、C-11 全部通过；C-5 / C-10 按 spec §2.2 显式推到 plan 002 / 003，与 §1 scope 一致。
+
+### 8.1.8 Phase 6 L2 remediation evidence summary
+
+- 6.1 Red: `go test ./internal/targetjob -run 'TestParseExecutor_(HappyPath|MetadataCarriesF3Triple|AITaskRuns)' -count=1 -race` failed before implementation because `CallMetadata.FeatureFlag` and `TaskRun` were empty and provenance still used the registry profile name.
+- 6.1 Green: same focused command passed after `ParseExecutor` captured `AICallMeta.ModelID`, populated `FeatureFlag`, and attached B4 `TaskRun` context; `go test ./internal/targetjob -count=1 -race` also passed.
+- 6.2 Red/Green: `python3 -m pytest scripts/lint/validate_fixtures_test.py -q -k fixture_model_id` first rejected `fixture-model:target-import-parse`; after validator/fixture/README revision, full `python3 -m pytest scripts/lint/validate_fixtures_test.py -q` passed (20 tests, 2384 subtests) and `make validate-fixtures` passed for all 34 fixtures.
+- Adjacent gates: `go test ./internal/ai/registry/... -count=1 -race`, `go test ./internal/ai/aiclient/... -count=1 -race`, and `go test ./cmd/api -count=1 -race` all passed. `cmd/api` required its invalid-output scenario stub to return a valid A3 `ModelID` so the test continues to exercise invalid output rather than missing metadata.
+- Migration gates: `python3 scripts/lint/migrations_lint.py --repo-root .` passed. `make migrate-check` ran `migration lint: ok` and then stopped at `ERROR: DATABASE_URL is required for migration commands`; this remains a live DB environment blocker, not a green migrate-check.
+- Doc gates: context validator and `sync-doc-index --check` passed before lifecycle closure; final closure reruns them after Header / INDEX migration.
 
 ### 8.4 Acceptance criteria self-check (C-1 through C-11)
 
@@ -469,7 +496,7 @@ Source: `shared/conventions.yaml` + `backend/internal/shared/ai/vocabulary.go` +
 | C-6 | spec §6 | Phase 2.4 | `TestResolveFallbackToMulti` confirms `Resolve("report.generate", "fr")` falls back to multi and bumps `FallbackCount` warn counter | PASS |
 | C-7 | spec §6 | Phase 2.2 + 2.6 | `TestJudgeSignature` reflects spec D-9 input order; `TestNotImplementedJudgeAlwaysFails` confirms ErrJudgeNotImplemented default | PASS |
 | C-8 | spec §6 | Phase 5 closure | This plan's §8 evidence log: 10 baselines + Resolve + lint + LLM Judge stub + DB seed all green; backend-practice D-29 unblocked | PASS |
-| C-9 | spec §6 | Phase 4.2 + 4.3 + 4.8 | `migrations/000001_create_baseline.up.sql` + `migrations_lint.py` allowlist + decorator_test six-field assertion confirm ai_task_runs typed columns carry feature_key / prompt_version / rubric_version / feature_flag / data_source_version (model_profile_name unchanged) | PASS |
+| C-9 | spec §6 | Phase 4.2 + 4.3 + 4.8 + 6.1 | `migrations/000001_create_baseline.up.sql` + `migrations_lint.py` allowlist + decorator_test + `TestParseExecutorAITaskRuns` confirm ai_task_runs typed columns carry feature_key / prompt_version / rubric_version / feature_flag / data_source_version / model_id / model_profile_name | PASS |
 | C-10 | spec §6 | Phase 002 | `prompt-rubric-registry/002-real-model-profile-and-evals` (out of scope for 001 per spec §1 + §2.2) | DEFERRED |
 | C-11 | spec §6 | Phase 5.1 | `make lint-ai-profile-coverage` returns `ai_profile_coverage: OK`; spec §3.1.1 10 default profile names all present in `config/ai-profiles.yaml` with valid capability/provider_ref or `unsupported_reason` | PASS |
 
