@@ -39,7 +39,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [observability-stack](./observability-stack/spec.md) | 1.9 | active | 2026-05-08 | [plans](./observability-stack/plans/) |
-| [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 2.0 | active | 2026-05-08 | [plans](./prompt-rubric-registry/plans/) |
+| [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 2.1 | active | 2026-05-09 | [plans](./prompt-rubric-registry/plans/) |
 
 ## 5 P0 Implementation
 
