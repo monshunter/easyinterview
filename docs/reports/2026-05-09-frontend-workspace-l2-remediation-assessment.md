@@ -9,7 +9,7 @@
 - 代码验证：`pnpm --filter @easyinterview/frontend test` 66 files / 423 tests PASS；`pnpm --filter @easyinterview/frontend build` PASS；`pnpm --filter @easyinterview/frontend test:pixel-parity` 96/96 PASS。
 - 场景验证：`test/scenarios/e2e/p0-018-workspace-default-render`、`p0-019-workspace-context-loading`、`p0-020-workspace-start-practice`、`p0-021-workspace-handoff` 均 `setup -> trigger -> verify -> cleanup` PASS。
 - 文档与契约验证：`make validate-fixtures` PASS；`make docs-check` zero drift；context validator PASS；`git diff --check` clean。
-- 生命周期收口：001 plan / checklist / BDD plan / BDD checklist 更新到 `v1.1 completed`，plans INDEX 同步；新增 [BUG-0030](../bugs/BUG-0030.md) 记录本次 L2 漂移。
+- 生命周期收口：001 plan / checklist / BDD plan / BDD checklist 更新到 `v1.1 completed`，plans INDEX 同步；新增 [BUG-0031](../bugs/BUG-0031.md) 记录本次 L2 漂移。
 
 ## 2 会话中的主要阻点/痛点
 

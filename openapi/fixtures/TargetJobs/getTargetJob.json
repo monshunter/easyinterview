@@ -28,12 +28,12 @@
               "Likely STAR follow-up on observability for FE infra"
             ],
             "provenance": {
-              "promptVersion": "target_job_summary.v3",
-              "rubricVersion": "not_applicable",
-              "modelId": "model-profile:contract.default",
+              "promptVersion": "v0.1.0",
+              "rubricVersion": "v0.1.0",
+              "modelId": "fixture-model:target-import-parse",
               "language": "zh-CN",
               "featureFlag": "none",
-              "dataSourceVersion": "target_job.v17"
+              "dataSourceVersion": "registry.v1"
             }
           },
           "requirements": [
@@ -68,12 +68,12 @@
               "Role mentions hiring manager prefers very deep observability stories"
             ],
             "provenance": {
-              "promptVersion": "target_job_fit.v2",
+              "promptVersion": "v0.1.0",
               "rubricVersion": "not_applicable",
-              "modelId": "model-profile:contract.default",
+              "modelId": "fixture-model:target-import-parse",
               "language": "zh-CN",
-              "featureFlag": "fit_summary_v2",
-              "dataSourceVersion": "target_job.v17"
+              "featureFlag": "none",
+              "dataSourceVersion": "registry.v1"
             }
           },
           "latestReportId": "01918fa0-0000-7000-8000-000000007000",
@@ -112,9 +112,9 @@
               "经理面: 影响力、冲突处理、目标一致性"
             ],
             "provenance": {
-              "promptVersion": "target_job_summary.v3",
-              "rubricVersion": "not_applicable",
-              "modelId": "model-profile:prototype-baseline.default",
+              "promptVersion": "v0.1.0",
+              "rubricVersion": "v0.1.0",
+              "modelId": "fixture-model:target-import-parse",
               "language": "zh-CN",
               "featureFlag": "none",
               "dataSourceVersion": "prototype-baseline.v1"
@@ -172,9 +172,9 @@
               "面试官团队倾向听到可量化的改进故事"
             ],
             "provenance": {
-              "promptVersion": "target_job_fit.v2",
+              "promptVersion": "v0.1.0",
               "rubricVersion": "not_applicable",
-              "modelId": "model-profile:prototype-baseline.default",
+              "modelId": "fixture-model:target-import-parse",
               "language": "zh-CN",
               "featureFlag": "none",
               "dataSourceVersion": "prototype-baseline.v1"

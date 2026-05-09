@@ -211,6 +211,7 @@ profiles:
     route: target.import
     version: 1.0.0
 `)
+	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
   appVersion: "1.2.3"
@@ -218,6 +219,8 @@ runtime:
 ai:
   providerRegistryPath: "`+providersPath+`"
   modelProfilePath: "`+profilesPath+`"
+  promptsDir: "`+promptsDir+`"
+  rubricsDir: "`+rubricsDir+`"
 `)
 	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
 	if err != nil {
@@ -451,4 +454,31 @@ func (s *apiAuthStore) RevokeSession(context.Context, string, time.Time) error {
 
 func (s *apiAuthStore) CreatePrivacyDeleteHandoff(context.Context, string, string, string, string, time.Time) (auth.PrivacyDeleteHandoff, error) {
 	panic("not used")
+}
+
+// repoConfigPromptsRubrics walks upward from the test working directory
+// until it finds the backend go.mod, then returns the in-repo
+// config/prompts and config/rubrics absolute paths so cmd/api tests can
+// wire a real F3 registry without copying the truth source into a tmpdir.
+func repoConfigPromptsRubrics(t *testing.T) (string, string) {
+	t.Helper()
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	dir := wd
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			break
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			t.Skipf("could not locate backend go.mod from %s", wd)
+			return "", ""
+		}
+		dir = parent
+	}
+	repoRoot := filepath.Dir(dir)
+	return filepath.Join(repoRoot, "config", "prompts"),
+		filepath.Join(repoRoot, "config", "rubrics")
 }

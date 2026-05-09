@@ -20,6 +20,23 @@ func (b metaBuilder) merge(profile *ModelProfile, callMeta CallMetadata, partial
 	out.PromptVersion = callMeta.PromptVersion
 	out.RubricVersion = callMeta.RubricVersion
 	out.Language = callMeta.Language
+	out.FeatureKey = callMeta.FeatureKey
+	// FeatureFlag defaults to the documented "none" sentinel when no
+	// PostHog flag is active so AITaskRunRow + audit pipeline carry a
+	// non-empty value (B4 typed column has the same default).
+	if callMeta.FeatureFlag == "" {
+		out.FeatureFlag = "none"
+	} else {
+		out.FeatureFlag = callMeta.FeatureFlag
+	}
+	// DataSourceVersion defaults to "not_applicable" with the same
+	// rationale; F3 baseline ships a real value, but call sites that
+	// have no source (for example synthetic eval calls) emit the sentinel.
+	if callMeta.DataSourceVersion == "" {
+		out.DataSourceVersion = "not_applicable"
+	} else {
+		out.DataSourceVersion = callMeta.DataSourceVersion
+	}
 
 	if out.Provider == "" {
 		out.Provider = profile.Default.ProviderRef
@@ -43,6 +60,9 @@ func (b metaBuilder) merge(profile *ModelProfile, callMeta CallMetadata, partial
 		}
 		if out.ModelID == "" {
 			return AICallMeta{}, fmt.Errorf("aiclient: model_id missing in success meta")
+		}
+		if out.FeatureKey == "" {
+			return AICallMeta{}, fmt.Errorf("aiclient: feature_key missing in success meta")
 		}
 	}
 	return out, nil

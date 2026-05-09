@@ -1,0 +1,52 @@
+feature_key: "debrief.generate"
+version: "v0.1.0"
+language: "multi"
+dimensions:
+  - name: "debrief_recall_completeness"
+    weight: 0.35
+    description: "Debrief covers the major beats the candidate described."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "Falls clearly short of the dimension; the artifact would not satisfy the user goal."
+      - label: "developing"
+        threshold: 0.4
+        description: "Partially satisfies the dimension; still has obvious gaps a reviewer would call out."
+      - label: "proficient"
+        threshold: 0.7
+        description: "Meets the dimension at production-baseline quality with only minor refinements."
+      - label: "strong"
+        threshold: 0.9
+        description: "Exceeds the dimension's expectation; an experienced reviewer would highlight the work."
+  - name: "debrief_lesson_specificity"
+    weight: 0.35
+    description: "Lessons name the underlying signal rather than restating the event."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "Falls clearly short of the dimension; the artifact would not satisfy the user goal."
+      - label: "developing"
+        threshold: 0.4
+        description: "Partially satisfies the dimension; still has obvious gaps a reviewer would call out."
+      - label: "proficient"
+        threshold: 0.7
+        description: "Meets the dimension at production-baseline quality with only minor refinements."
+      - label: "strong"
+        threshold: 0.9
+        description: "Exceeds the dimension's expectation; an experienced reviewer would highlight the work."
+  - name: "debrief_action_quality"
+    weight: 0.3
+    description: "Follow-up actions are concrete and feasible within the named due window."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "Falls clearly short of the dimension; the artifact would not satisfy the user goal."
+      - label: "developing"
+        threshold: 0.4
+        description: "Partially satisfies the dimension; still has obvious gaps a reviewer would call out."
+      - label: "proficient"
+        threshold: 0.7
+        description: "Meets the dimension at production-baseline quality with only minor refinements."
+      - label: "strong"
+        threshold: 0.9
+        description: "Exceeds the dimension's expectation; an experienced reviewer would highlight the work."

@@ -150,6 +150,7 @@
     "prompt_version",
     "rubric_version",
     "language",
+    "feature_key",
     "feature_flag",
     "data_source_version",
     "from_provider",

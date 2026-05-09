@@ -118,9 +118,10 @@ Per spec §4.7, fixtures **must not** contain real personal information:
 - Employer names are kept generic (`Acme`, `Lumen Labs`, …); the validator's
   blacklist rejects real-employer brand names that have appeared in the
   prototype data.
-- `provenance.modelId` uses provider-neutral fixture profile ids such as
-  `model-profile:contract.default`; fixtures must not hardcode vendor or
-  concrete model names.
+- `provenance.modelId` uses provider-neutral fixture ids. Generic contract
+  fixtures may use `model-profile:contract.default`; fixtures that model an
+  actual A3 resolved model id use `fixture-model:<name>`. Fixtures must not
+  hardcode vendor or concrete model names.
 - All `format: uuid` values are UUIDv7 literals; any `tmp_*` prefix is
   forbidden.
 

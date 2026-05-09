@@ -42,6 +42,13 @@ class TestPlanCodeReviewSkill:
         assert "For completed code phases, verify actual test evidence" in text
         assert "For completed feature phases, verify BDD evidence" in text
 
+    def test_rejects_no_op_go_test_run_gates(self):
+        text = _skill_text()
+        assert "`go test" in text
+        assert "[no tests to run]" in text
+        assert "go test -list" in text
+        assert "executed at least one intended test" in text
+
     def test_review_reconstructs_coverage_matrix_against_current_artifacts(self):
         text = _skill_text()
         assert "Reconstruct the expected coverage matrix" in text

@@ -117,12 +117,14 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	}
 
 	var fetchedURLBody string
+	var sourceURLForPrompt string
 	if target.SourceType == SourceTypeURL {
-		body, err := p.fetchURLSnapshot(ctx, target, sources)
+		fetched, err := p.fetchURLSnapshot(ctx, target, sources)
 		if err != nil {
 			return p.translateAndFail(ctx, targetJobID, err)
 		}
-		fetchedURLBody = body
+		fetchedURLBody = fetched.Body
+		sourceURLForPrompt = fetched.SanitizedURL
 	}
 
 	resolution, err := p.registry.Resolve(ctx, FeatureKeyTargetImportParse, target.TargetLanguage)
@@ -146,19 +148,29 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportSourceInvalid, "no JD text available for parse", false)
 	}
 
-	complete, _, err := p.ai.Complete(ctx, resolution.ModelProfileName, aiclient.CompletePayload{
-		Messages: buildPromptMessages(resolution, target.TargetLanguage, jdText),
+	complete, aiMeta, err := p.ai.Complete(ctx, resolution.ModelProfileName, aiclient.CompletePayload{
+		Messages: buildPromptMessages(resolution, target.TargetLanguage, jdText, sourceURLForPrompt),
 		Metadata: aiclient.CallMetadata{
 			FeatureKey:        FeatureKeyTargetImportParse,
 			PromptVersion:     resolution.PromptVersion,
 			RubricVersion:     resolution.RubricVersion,
 			Language:          target.TargetLanguage,
+			FeatureFlag:       coalesceFlag(resolution.FeatureFlag),
 			DataSourceVersion: resolution.DataSourceVersion,
+			TaskRun: aiclient.AITaskRunContext{
+				Capability:   aiclient.AITaskRunTaskJDParse,
+				ResourceType: aiclient.AITaskRunResourceTargetJob,
+				ResourceID:   targetJobID,
+			},
 		},
 	})
 	if err != nil {
 		code, retryable := translateAIClientError(err)
 		return p.fail(ctx, targetJobID, code, err.Error(), retryable)
+	}
+	modelID := strings.TrimSpace(aiMeta.ModelID)
+	if modelID == "" {
+		return p.fail(ctx, targetJobID, sharederrors.CodeAiProviderConfigInvalid, "AI call meta missing model_id", false)
 	}
 
 	parsed, err := decodeParseResponse(complete.Content)
@@ -178,7 +190,7 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 			"featureFlag":       coalesceFlag(resolution.FeatureFlag),
 			"promptVersion":     resolution.PromptVersion,
 			"rubricVersion":     resolution.RubricVersion,
-			"modelId":           resolution.ModelProfileName,
+			"modelId":           modelID,
 			"dataSourceVersion": resolution.DataSourceVersion,
 		},
 	})
@@ -191,7 +203,7 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 			"featureFlag":       coalesceFlag(resolution.FeatureFlag),
 			"promptVersion":     resolution.PromptVersion,
 			"rubricVersion":     "not_applicable",
-			"modelId":           resolution.ModelProfileName,
+			"modelId":           modelID,
 			"dataSourceVersion": resolution.DataSourceVersion,
 		},
 	})
@@ -229,16 +241,16 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	return JobOutcome{Succeeded: true}
 }
 
-func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRecord, sources []SourceRecord) (string, error) {
+func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRecord, sources []SourceRecord) (urlfetch.FetchResult, error) {
 	if p.fetcher == nil {
-		return "", fmt.Errorf("%w: url fetcher not configured", urlfetch.ErrSourceUnavailable)
+		return urlfetch.FetchResult{}, fmt.Errorf("%w: url fetcher not configured", urlfetch.ErrSourceUnavailable)
 	}
 	if target.SourceURL == "" {
-		return "", fmt.Errorf("%w: no source url recorded", urlfetch.ErrInvalidSource)
+		return urlfetch.FetchResult{}, fmt.Errorf("%w: no source url recorded", urlfetch.ErrInvalidSource)
 	}
 	res, err := p.fetcher.Fetch(ctx, target.SourceURL)
 	if err != nil {
-		return "", err
+		return urlfetch.FetchResult{}, err
 	}
 	// Find the most recent url source row to update.
 	var sourceID string
@@ -252,12 +264,12 @@ func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRe
 		// Nothing to update — proceed; the fetch result is in memory but
 		// will not be persisted in target_job_sources. Phase 1 ImportTargetJob
 		// always inserts a source row for url, so this is a defensive no-op.
-		return res.Body, nil
+		return res, nil
 	}
 	if err := p.store.UpdateSourceSnapshot(ctx, sourceID, res.SanitizedURL, res.Body, res.FetchedAt, p.now()); err != nil {
-		return "", err
+		return urlfetch.FetchResult{}, err
 	}
-	return res.Body, nil
+	return res, nil
 }
 
 func (p *ParseExecutor) fail(ctx context.Context, targetJobID, code, message string, retryable bool) JobOutcome {
@@ -347,7 +359,7 @@ func decodeParseResponse(content string) (parseAIResponse, error) {
 	return out, nil
 }
 
-func buildPromptMessages(resolution PromptResolution, language string, jdText string) []aiclient.Message {
+func buildPromptMessages(resolution PromptResolution, language string, jdText string, sourceURL string) []aiclient.Message {
 	messages := make([]aiclient.Message, 0, 2)
 	if system := strings.TrimSpace(resolution.SystemMessage); system != "" {
 		messages = append(messages, aiclient.Message{Role: "system", Content: system})
@@ -356,6 +368,7 @@ func buildPromptMessages(resolution PromptResolution, language string, jdText st
 	if template := strings.TrimSpace(resolution.UserMessageTemplate); template != "" {
 		user = strings.ReplaceAll(template, "{{jd_text}}", jdText)
 		user = strings.ReplaceAll(user, "{{language}}", language)
+		user = strings.ReplaceAll(user, "{{jd_source_url}}", sourceURL)
 		user = strings.TrimSpace(user)
 	}
 	if user != "" {

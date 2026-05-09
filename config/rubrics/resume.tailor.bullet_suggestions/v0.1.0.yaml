@@ -1,0 +1,52 @@
+feature_key: "resume.tailor.bullet_suggestions"
+version: "v0.1.0"
+language: "multi"
+dimensions:
+  - name: "resume_impact"
+    weight: 0.4
+    description: "Bullets read as outcomes rather than activities and quantify the impact when possible."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "Falls clearly short of the dimension; the artifact would not satisfy the user goal."
+      - label: "developing"
+        threshold: 0.4
+        description: "Partially satisfies the dimension; still has obvious gaps a reviewer would call out."
+      - label: "proficient"
+        threshold: 0.7
+        description: "Meets the dimension at production-baseline quality with only minor refinements."
+      - label: "strong"
+        threshold: 0.9
+        description: "Exceeds the dimension's expectation; an experienced reviewer would highlight the work."
+  - name: "resume_truthfulness"
+    weight: 0.3
+    description: "Edits preserve the candidate's stated facts and avoid embellishment."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "Falls clearly short of the dimension; the artifact would not satisfy the user goal."
+      - label: "developing"
+        threshold: 0.4
+        description: "Partially satisfies the dimension; still has obvious gaps a reviewer would call out."
+      - label: "proficient"
+        threshold: 0.7
+        description: "Meets the dimension at production-baseline quality with only minor refinements."
+      - label: "strong"
+        threshold: 0.9
+        description: "Exceeds the dimension's expectation; an experienced reviewer would highlight the work."
+  - name: "resume_clarity"
+    weight: 0.3
+    description: "Bullets and section structure read cleanly without filler or jargon."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "Falls clearly short of the dimension; the artifact would not satisfy the user goal."
+      - label: "developing"
+        threshold: 0.4
+        description: "Partially satisfies the dimension; still has obvious gaps a reviewer would call out."
+      - label: "proficient"
+        threshold: 0.7
+        description: "Meets the dimension at production-baseline quality with only minor refinements."
+      - label: "strong"
+        threshold: 0.9
+        description: "Exceeds the dimension's expectation; an experienced reviewer would highlight the work."

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
 )
@@ -155,7 +156,9 @@ func (f *fakeRegistry) Resolve(_ context.Context, _ string, _ string) (targetjob
 
 type fakeAIClient struct {
 	resp            aiclient.CompleteResponse
+	meta            aiclient.AICallMeta
 	err             error
+	echoMetadata    bool
 	lastProfileName string
 	lastPayload     aiclient.CompletePayload
 }
@@ -166,7 +169,17 @@ func (f *fakeAIClient) Complete(_ context.Context, profileName string, payload a
 	if f.err != nil {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, f.err
 	}
-	return f.resp, aiclient.AICallMeta{}, nil
+	meta := f.meta
+	if f.echoMetadata {
+		meta.ModelProfileName = profileName
+		meta.PromptVersion = payload.Metadata.PromptVersion
+		meta.RubricVersion = payload.Metadata.RubricVersion
+		meta.Language = payload.Metadata.Language
+		meta.FeatureKey = payload.Metadata.FeatureKey
+		meta.FeatureFlag = payload.Metadata.FeatureFlag
+		meta.DataSourceVersion = payload.Metadata.DataSourceVersion
+	}
+	return f.resp, meta, nil
 }
 func (f *fakeAIClient) Transcribe(context.Context, string, aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
 	return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, errors.New("not implemented")
@@ -209,9 +222,20 @@ func newParseExecutorWithFakes(t *testing.T) (*targetjob.ParseExecutor, *pipelin
 			RubricVersion:     "v1.0.0",
 			ModelProfileName:  "target.import.default",
 			DataSourceVersion: "v1",
+			FeatureFlag:       "rollout-f3-target-import",
 		},
 	}
-	ai := &fakeAIClient{}
+	ai := &fakeAIClient{
+		meta: aiclient.AICallMeta{
+			Provider:            "unit-test-provider",
+			ModelFamily:         "fixture",
+			ModelID:             "fixture-model:target-import-parse",
+			ModelProfileVersion: "1.1.0",
+			Capability:          aiclient.CapabilityChat,
+			ValidationStatus:    aiclient.ValidationStatusOK,
+		},
+		echoMetadata: true,
+	}
 	fetcher := &fakeFetcher{}
 	exec := targetjob.NewParseExecutor(targetjob.ParseExecutorOptions{
 		Store:    store,
@@ -265,8 +289,25 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 		got.PromptVersion != "v1.0.0" ||
 		got.RubricVersion != "v1.0.0" ||
 		got.Language != "en" ||
+		got.FeatureFlag != "rollout-f3-target-import" ||
 		got.DataSourceVersion != "v1" {
 		t.Fatalf("AI metadata did not carry F3 resolution: %+v", got)
+	}
+	if got := ai.lastPayload.Metadata.TaskRun; got.Capability != aiclient.AITaskRunTaskJDParse ||
+		got.ResourceType != aiclient.AITaskRunResourceTargetJob ||
+		got.ResourceID != "tgt-1" {
+		t.Fatalf("AI task run context did not carry B4 targetjob scope: %+v", got)
+	}
+	summaryProv := decodeProvenanceForTest(t, store.completeSuccessIn.Summary)
+	if summaryProv["modelId"] != "fixture-model:target-import-parse" {
+		t.Fatalf("summary provenance modelId must use A3 resolved model id, got %+v", summaryProv)
+	}
+	if summaryProv["featureFlag"] != "rollout-f3-target-import" {
+		t.Fatalf("summary provenance featureFlag drift: %+v", summaryProv)
+	}
+	fitProv := decodeProvenanceForTest(t, store.completeSuccessIn.FitSummary)
+	if fitProv["modelId"] != "fixture-model:target-import-parse" {
+		t.Fatalf("fitSummary provenance modelId must use A3 resolved model id, got %+v", fitProv)
 	}
 	if store.parsedOutboxPayload == nil {
 		t.Fatal("target.parsed outbox payload missing")
@@ -366,6 +407,129 @@ func TestParseExecutor_AIOutputInvalid_WhenRequirementsAreSemanticallyInvalid(t 
 			}
 		})
 	}
+}
+
+func TestParseExecutorAITaskRuns(t *testing.T) {
+	exec, store, registry, ai, _ := newParseExecutorWithFakes(t)
+	store.target = targetjob.TargetJobRecord{
+		ID:             "01918fa0-0000-7000-8000-000000002000",
+		UserID:         "01918fa0-0000-7000-8000-000000001000",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "en",
+		RawJDText:      "JD text",
+	}
+	registry.resolution = targetjob.PromptResolution{
+		PromptVersion:     "v0.1.0",
+		RubricVersion:     "v0.1.0",
+		ModelProfileName:  "target.import.default",
+		DataSourceVersion: "registry.v1",
+		FeatureFlag:       "rollout-f3-target-import",
+	}
+	ai.resp = aiclient.CompleteResponse{Content: happyResponseJSON}
+	ai.meta.ModelID = "fixture-model:target-import-parse"
+	runWriter := &targetjobMemTaskRunWriter{}
+	auditWriter := &targetjobMemAuditWriter{}
+	wrappedAI, err := observability.New(ai,
+		observability.WithRegisterer(observability.NewInMemoryRegistry()),
+		observability.WithLogger(observability.NewMemoryLogger()),
+		observability.WithAITaskRunWriter(runWriter),
+		observability.WithAuditEventWriter(auditWriter),
+		observability.WithProfileResolver(targetjobStaticResolver{
+			"target.import.default": {
+				Name:       "target.import.default",
+				Capability: aiclient.CapabilityChat,
+				Status:     aiclient.ProfileStatusActive,
+				Default: aiclient.ProviderConfig{
+					ProviderRef: "unit-test-provider",
+					Model:       "fixture-model:target-import-parse",
+				},
+				TimeoutMs: 15000,
+				Route:     "target.import",
+				Version:   "1.1.0",
+			},
+		}),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+	exec = targetjob.NewParseExecutor(targetjob.ParseExecutorOptions{
+		Store:    store,
+		Registry: registry,
+		AI:       wrappedAI,
+		Fetcher:  &fakeFetcher{},
+		NewID:    idSeq("id"),
+		Now:      func() time.Time { return time.Date(2026, 5, 9, 22, 0, 0, 0, time.UTC) },
+	})
+
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: store.target.ID,
+	})
+
+	if !outcome.Succeeded {
+		t.Fatalf("parse should succeed with observability wrapper, got %+v", outcome)
+	}
+	rows := runWriter.Rows()
+	if len(rows) != 1 {
+		t.Fatalf("expected one ai_task_runs row, got %+v", rows)
+	}
+	row := rows[0]
+	if row.Capability != aiclient.AITaskRunTaskJDParse ||
+		row.ResourceType != aiclient.AITaskRunResourceTargetJob ||
+		row.ResourceID != store.target.ID {
+		t.Fatalf("ai_task_runs task context drift: %+v", row)
+	}
+	if row.FeatureKey != targetjob.FeatureKeyTargetImportParse ||
+		row.PromptVersion != "v0.1.0" ||
+		row.RubricVersion != "v0.1.0" ||
+		row.ModelProfileName != "target.import.default" ||
+		row.ModelID != "fixture-model:target-import-parse" ||
+		row.DataSourceVersion != "registry.v1" ||
+		row.FeatureFlag != "rollout-f3-target-import" {
+		t.Fatalf("ai_task_runs provenance drift: %+v", row)
+	}
+}
+
+func decodeProvenanceForTest(t *testing.T, raw json.RawMessage) map[string]string {
+	t.Helper()
+	var envelope struct {
+		Provenance map[string]string `json:"provenance"`
+	}
+	if err := json.Unmarshal(raw, &envelope); err != nil {
+		t.Fatalf("decode provenance: %v", err)
+	}
+	return envelope.Provenance
+}
+
+type targetjobMemTaskRunWriter struct {
+	rows []aiclient.AITaskRunRow
+}
+
+func (m *targetjobMemTaskRunWriter) WriteAITaskRun(_ context.Context, row aiclient.AITaskRunRow) error {
+	m.rows = append(m.rows, row)
+	return nil
+}
+
+func (m *targetjobMemTaskRunWriter) Rows() []aiclient.AITaskRunRow {
+	return append([]aiclient.AITaskRunRow{}, m.rows...)
+}
+
+type targetjobMemAuditWriter struct {
+	rows []aiclient.AuditEventRow
+}
+
+func (m *targetjobMemAuditWriter) WriteAuditEvent(_ context.Context, row aiclient.AuditEventRow) error {
+	m.rows = append(m.rows, row)
+	return nil
+}
+
+type targetjobStaticResolver map[string]*aiclient.ModelProfile
+
+func (r targetjobStaticResolver) Resolve(name string) (*aiclient.ModelProfile, error) {
+	profile, ok := r[name]
+	if !ok {
+		return nil, errors.New("not found: " + name)
+	}
+	return profile, nil
 }
 
 func TestDeterministicParseAIClient_OnlyInterceptsTargetImportParse(t *testing.T) {
@@ -506,8 +670,9 @@ func TestParseExecutor_URLFetchInvalid_NonRetryable(t *testing.T) {
 }
 
 func TestParseExecutor_URLFetchBodyIsPersistedAndParsed(t *testing.T) {
-	exec, store, _, ai, fetcher := newParseExecutorWithFakes(t)
+	exec, store, registry, ai, fetcher := newParseExecutorWithFakes(t)
 	ai.resp = aiclient.CompleteResponse{Content: happyResponseJSON}
+	registry.resolution.UserMessageTemplate = "source={{jd_source_url}}\ntext={{jd_text}}"
 	fetchedAt := time.Date(2026, 5, 9, 22, 30, 0, 0, time.UTC)
 	fetcher.res = urlfetch.FetchResult{
 		SanitizedURL: "https://jobs.example.com/role/1",
@@ -535,6 +700,16 @@ func TestParseExecutor_URLFetchBodyIsPersistedAndParsed(t *testing.T) {
 	}
 	if store.completeSuccessIn == nil || len(store.completeSuccessIn.Requirements) == 0 {
 		t.Fatalf("parse result was not applied from fetched URL body: %+v", store.completeSuccessIn)
+	}
+	if len(ai.lastPayload.Messages) == 0 {
+		t.Fatalf("AI messages missing")
+	}
+	gotPrompt := ai.lastPayload.Messages[len(ai.lastPayload.Messages)-1].Content
+	if !strings.Contains(gotPrompt, "source=https://jobs.example.com/role/1") {
+		t.Fatalf("prompt did not include sanitized source URL: %q", gotPrompt)
+	}
+	if strings.Contains(gotPrompt, "token=secret") || strings.Contains(gotPrompt, "{{jd_source_url}}") {
+		t.Fatalf("prompt leaked raw source URL or unresolved placeholder: %q", gotPrompt)
 	}
 }
 

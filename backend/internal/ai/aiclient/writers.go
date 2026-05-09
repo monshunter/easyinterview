@@ -100,6 +100,13 @@ func (c AITaskRunContext) Validate() error {
 // AITaskRunRow is the typed payload A3 writes for every AIClient call. B4
 // db-migrations-baseline owns the table schema; this struct mirrors the
 // columns A3 fills (spec §2.1 / D-6).
+//
+// FeatureKey, FeatureFlag, and DataSourceVersion are F3 prompt-rubric
+// provenance fields added by plan prompt-rubric-registry/001-baseline
+// phase 4.3. The writer rejects empty FeatureKey (the F3 coordinate is
+// required) and substitutes documented defaults for the other two
+// (FeatureFlag = "none", DataSourceVersion = "not_applicable") when the
+// caller passes empty strings.
 type AITaskRunRow struct {
 	ID                   string
 	UserID               string
@@ -113,6 +120,9 @@ type AITaskRunRow struct {
 	RubricVersion        string
 	ModelProfileName     string
 	ModelProfileVersion  string
+	FeatureKey           string
+	FeatureFlag          string
+	DataSourceVersion    string
 	Language             string
 	InputTokens          int
 	OutputTokens         int

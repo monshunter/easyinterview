@@ -290,6 +290,21 @@ func (w *Wrap) enrichMeta(profileName string, meta aiclient.AICallMeta, callMeta
 	if meta.Language == "" {
 		meta.Language = callMeta.Language
 	}
+	if strings.TrimSpace(meta.FeatureKey) == "" {
+		meta.FeatureKey = strings.TrimSpace(callMeta.FeatureKey)
+	}
+	if strings.TrimSpace(meta.FeatureFlag) == "" {
+		meta.FeatureFlag = strings.TrimSpace(callMeta.FeatureFlag)
+	}
+	if strings.TrimSpace(meta.FeatureFlag) == "" {
+		meta.FeatureFlag = "none"
+	}
+	if strings.TrimSpace(meta.DataSourceVersion) == "" {
+		meta.DataSourceVersion = strings.TrimSpace(callMeta.DataSourceVersion)
+	}
+	if strings.TrimSpace(meta.DataSourceVersion) == "" {
+		meta.DataSourceVersion = "not_applicable"
+	}
 	if meta.ErrorCode != "" && meta.ValidationStatus == "" {
 		meta.ValidationStatus = aiclient.ValidationStatusInvalid
 	}
@@ -386,6 +401,9 @@ func AITaskRunRowFromMeta(meta aiclient.AICallMeta, taskCtx aiclient.AITaskRunCo
 		RubricVersion:        meta.RubricVersion,
 		ModelProfileName:     meta.ModelProfileName,
 		ModelProfileVersion:  meta.ModelProfileVersion,
+		FeatureKey:           meta.FeatureKey,
+		FeatureFlag:          meta.FeatureFlag,
+		DataSourceVersion:    meta.DataSourceVersion,
 		Language:             meta.Language,
 		InputTokens:          meta.InputTokens,
 		OutputTokens:         meta.OutputTokens,

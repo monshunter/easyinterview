@@ -22,6 +22,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/bootstrap"
+	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
@@ -255,9 +256,18 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 	if targetjob.IsTestAppEnv(loader.AppEnv()) {
 		parseAI = targetjob.NewDeterministicParseAIClient(parseAI)
 	}
+
+	registryClient, err := registry.NewRegistryClient(registry.RegistryOptions{
+		PromptsDir: registryDirOrDefault(loader, "ai.promptsDir", "config/prompts"),
+		RubricsDir: registryDirOrDefault(loader, "ai.rubricsDir", "config/rubrics"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("build prompt registry: %w", err)
+	}
+
 	executor := targetjob.NewParseExecutor(targetjob.ParseExecutorOptions{
 		Store:    store,
-		Registry: targetjob.NewStaticPromptRegistry(),
+		Registry: targetjob.NewRegistryAdapter(registryClient),
 		AI:       parseAI,
 		Fetcher:  fetcher,
 		NewID:    idx.NewID,
@@ -293,6 +303,15 @@ func buildTargetJobHandler(loader *config.Loader, store targetjob.Store) *target
 			return current.UserID, true
 		},
 	})
+}
+
+// registryDirOrDefault returns the configured F3 truth-source path or
+// `defaultPath` (relative to repo root) when the config key is empty.
+func registryDirOrDefault(loader *config.Loader, key, defaultPath string) string {
+	if v := strings.TrimSpace(loader.GetString(key)); v != "" {
+		return v
+	}
+	return defaultPath
 }
 
 func pointer[T any](value T) *T {

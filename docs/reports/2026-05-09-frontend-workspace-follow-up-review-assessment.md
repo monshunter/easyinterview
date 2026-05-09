@@ -6,7 +6,7 @@
 ## 1 复盘范围与成功证据
 
 - 本次交付范围：修复 `frontend-workspace-and-practice/001-workspace-and-interview-context` L2 follow-up review 中的四类问题：server-bound id 归一化、target-job stale/error recovery、target 切换竞态、workspace 派生标签本地化。
-- 同步修订 owner plan/checklist 到 v1.2 completed，并新增 [BUG-0031](../bugs/BUG-0031.md) 记录本次缺陷模式。
+- 同步修订 owner plan/checklist 到 v1.2 completed，并新增 [BUG-0032](../bugs/BUG-0032.md) 记录本次缺陷模式。
 - 成功证据：
   - Focused Vitest：`buildCreatePlanRequest`、workspace hooks、`WorkspaceStartPractice`、`WorkspaceEmptyState`、`WorkspaceScreen`、`WorkspaceHeader` 共 58 tests PASS。
   - `pnpm --filter @easyinterview/frontend typecheck`：PASS。
@@ -52,4 +52,4 @@
 ## 5 建议优先级与后续动作
 
 - 最高优先级：在 plan `002-practice-text-event-loop` 启动前，把 server-bound ID boundary 和 async hook keying gate 写入该 plan/checklist，避免 practice/generating 继续继承 workspace 的 synthetic id 漂移。
-- 可延后：把上述 hook dependency pattern 提炼进通用前端 review checklist 或 Bug pattern library；当前已由 BUG-0031 和本复盘沉淀，后续若再次出现同类问题再升级为通用 PATTERNS 条目。
+- 可延后：把上述 hook dependency pattern 提炼进通用前端 review checklist 或 Bug pattern library；当前已由 BUG-0032 和本复盘沉淀，后续若再次出现同类问题再升级为通用 PATTERNS 条目。

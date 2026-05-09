@@ -8,9 +8,19 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-09](2026-05-09.md) | `feat(prompt-rubric-registry): upgrade target.import.parse prompt schema and inject source URL` | #feat #test |
+| [2026-05-09](2026-05-09.md) | `feat(observability): enrich ai call metadata with provenance defaults` | #feat #test |
 | [2026-05-09](2026-05-09.md) | `fix(frontend-workspace): harden workspace review follow-up` | #fix #ui #i18n #test #docs |
+| [2026-05-09](2026-05-09.md) | `fix(skills): reject no-op go test run evidence` | #fix #test #docs |
 | [2026-05-09](2026-05-09.md) | `fix(frontend-workspace): remediate workspace L2 findings` | #fix #ui #test #docs |
+| [2026-05-09](2026-05-09.md) | `fix(prompt-rubric-registry): remediate provenance L2 findings` | #fix #test #docs |
 | [2026-05-09](2026-05-09.md) | `feat(workspace): add auth gate, comprehensive tests, pixel parity, and scenario assets` | #feat #ui #test #docs |
+| [2026-05-09](2026-05-09.md) | `docs(prompt-rubric-registry): close 001-baseline lifecycle and record ac self-check` | #docs |
+| [2026-05-09](2026-05-09.md) | `feat(prompt-rubric-registry): land f3 provenance contract and seed migration` | #feat #test |
+| [2026-05-09](2026-05-09.md) | `feat(prompt-rubric-registry): retire targetjob static bridge and align cross-layer provenance` | #feat #refactor #test |
+| [2026-05-09](2026-05-09.md) | `feat(prompt-rubric-registry): land f3 registry go package and runtime cache` | #feat #test |
+| [2026-05-09](2026-05-09.md) | `feat(prompt-rubric-registry): land f3 baseline truth source and lint gates` | #feat #test |
+| [2026-05-09](2026-05-09.md) | `docs(prompt-rubric-registry): snapshot upstream contracts for f3 baseline` | #docs |
 | [2026-05-09](2026-05-09.md) | `docs(prompt-rubric-registry): derive baseline plan and bump spec to v2.1` | #docs |
 | [2026-05-09](2026-05-09.md) | `feat(workspace): add start practice flow, error handling, and idempotency retry` | #feat #ui #test |
 | [2026-05-09](2026-05-09.md) | `feat(workspace): add empty states, practice plan hook, and start practice dual-step contract` | #feat #ui #test |

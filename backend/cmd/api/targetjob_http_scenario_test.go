@@ -319,7 +319,7 @@ runtime:
 	}
 	registry := opts.registry
 	if registry == nil {
-		registry = targetjob.NewStaticPromptRegistry()
+		registry = newStaticTestPromptRegistry()
 	}
 	fetcher := opts.fetcher
 	if fetcher == nil {
@@ -781,11 +781,23 @@ type scenarioAIClient struct {
 	err  error
 }
 
-func (c *scenarioAIClient) Complete(context.Context, string, aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
+func (c *scenarioAIClient) Complete(_ context.Context, profileName string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
 	if c.err != nil {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, c.err
 	}
-	return c.resp, aiclient.AICallMeta{}, nil
+	return c.resp, aiclient.AICallMeta{
+		Provider:          "scenario-test-provider",
+		ModelFamily:       "fixture",
+		ModelID:           "fixture-model:target-import-parse",
+		ModelProfileName:  profileName,
+		Language:          payload.Metadata.Language,
+		PromptVersion:     payload.Metadata.PromptVersion,
+		RubricVersion:     payload.Metadata.RubricVersion,
+		FeatureKey:        payload.Metadata.FeatureKey,
+		FeatureFlag:       payload.Metadata.FeatureFlag,
+		DataSourceVersion: payload.Metadata.DataSourceVersion,
+		ValidationStatus:  aiclient.ValidationStatusOK,
+	}, nil
 }
 
 func (c *scenarioAIClient) Transcribe(context.Context, string, aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
@@ -808,7 +820,35 @@ func (r scenarioRegistry) Resolve(ctx context.Context, featureKey string, langua
 	if r.err != nil {
 		return targetjob.PromptResolution{}, r.err
 	}
-	return targetjob.NewStaticPromptRegistry().Resolve(ctx, featureKey, language)
+	return newStaticTestPromptRegistry().Resolve(ctx, featureKey, language)
+}
+
+// staticTestPromptRegistry replaces the retired targetjob.StaticPromptRegistry
+// for cmd/api scenario tests. It mirrors the F3 RegistryAdapter shape with a
+// fixed target.import.parse resolution so HTTP scenarios can assert the
+// provenance flow without spinning up a real registry.Client.
+type staticTestPromptRegistry struct {
+	resolution targetjob.PromptResolution
+}
+
+func newStaticTestPromptRegistry() *staticTestPromptRegistry {
+	return &staticTestPromptRegistry{
+		resolution: targetjob.PromptResolution{
+			PromptVersion:       "v0.1.0",
+			RubricVersion:       "v0.1.0",
+			ModelProfileName:    "target.import.default",
+			DataSourceVersion:   "registry.v1",
+			FeatureFlag:         "none",
+			UserMessageTemplate: "{{jd_text}}",
+		},
+	}
+}
+
+func (r *staticTestPromptRegistry) Resolve(_ context.Context, featureKey string, language string) (targetjob.PromptResolution, error) {
+	if featureKey != targetjob.FeatureKeyTargetImportParse || strings.TrimSpace(language) == "" {
+		return targetjob.PromptResolution{}, targetjob.ErrPromptUnsupported
+	}
+	return r.resolution, nil
 }
 
 type scenarioFetcher struct{}

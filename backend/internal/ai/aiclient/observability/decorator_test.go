@@ -151,10 +151,12 @@ func samplePayload() aiclient.CompletePayload {
 			{Role: "user", Content: "tell me about yourself."},
 		},
 		Metadata: aiclient.CallMetadata{
-			FeatureKey:    "practice.followup",
-			PromptVersion: "p1",
-			RubricVersion: "r1",
-			Language:      "en",
+			FeatureKey:        "practice.followup",
+			PromptVersion:     "p1",
+			RubricVersion:     "r1",
+			Language:          "en",
+			FeatureFlag:       "none",
+			DataSourceVersion: "registry.v1",
 			TaskRun: aiclient.AITaskRunContext{
 				Capability:   aiclient.AITaskRunTaskFollowupGenerate,
 				ResourceType: aiclient.AITaskRunResourceTargetJob,
@@ -301,6 +303,24 @@ func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 	}
 	if rows[0].Metadata.PromptHash == "" || rows[0].Metadata.ResponseHash == "" {
 		t.Fatalf("ai_task_runs metadata missing hash summary: %+v", rows[0].Metadata)
+	}
+	// Plan prompt-rubric-registry/001-baseline phase 4.8 cross-layer
+	// assertion: ai_task_runs row must carry the F3 prompt-rubric
+	// provenance triple plus the data source version typed column.
+	if rows[0].FeatureKey != "practice.followup" {
+		t.Errorf("ai_task_runs.feature_key: want practice.followup, got %q", rows[0].FeatureKey)
+	}
+	if rows[0].FeatureFlag != "none" {
+		t.Errorf("ai_task_runs.feature_flag: want 'none' default, got %q", rows[0].FeatureFlag)
+	}
+	if rows[0].DataSourceVersion != "registry.v1" {
+		t.Errorf("ai_task_runs.data_source_version: want registry.v1, got %q", rows[0].DataSourceVersion)
+	}
+	if rows[0].PromptVersion != "p1" || rows[0].RubricVersion != "r1" {
+		t.Errorf("ai_task_runs prompt/rubric version drift: %+v", rows[0])
+	}
+	if rows[0].ModelProfileName != "practice.followup.default" {
+		t.Errorf("ai_task_runs.model_profile_name drift: %q", rows[0].ModelProfileName)
 	}
 
 	auditRows := audit.Rows()
@@ -466,10 +486,11 @@ func TestDecorator_PreDispatchFailureUsesResolvedProfileLabels(t *testing.T) {
 	}
 	registry := observability.NewInMemoryRegistry()
 	logger := observability.NewMemoryLogger()
+	runs := &memTaskRunWriter{}
 	wrap, err := observability.New(inner,
 		observability.WithRegisterer(registry),
 		observability.WithLogger(logger),
-		observability.WithAITaskRunWriter(&memTaskRunWriter{}),
+		observability.WithAITaskRunWriter(runs),
 		observability.WithAuditEventWriter(&memAuditWriter{}),
 		observability.WithProfileResolver(resolver),
 	)
@@ -486,6 +507,15 @@ func TestDecorator_PreDispatchFailureUsesResolvedProfileLabels(t *testing.T) {
 	labels := []string{stub.Name, "stub-chat-1", "practice.followup.default", "practice.followup", string(aiclient.CapabilityChat), "en", "failure"}
 	if got := registry.CounterValue(observability.MetricRunsTotal, labels...); got != 1 {
 		t.Fatalf("expected failure labels enriched from profile, got %v", got)
+	}
+	rows := runs.Rows()
+	if len(rows) != 1 {
+		t.Fatalf("expected one ai_task_runs failure row, got %+v", rows)
+	}
+	if rows[0].FeatureKey != payload.Metadata.FeatureKey ||
+		rows[0].FeatureFlag != payload.Metadata.FeatureFlag ||
+		rows[0].DataSourceVersion != payload.Metadata.DataSourceVersion {
+		t.Fatalf("failure row lost payload provenance: row=%+v payload=%+v", rows[0], payload.Metadata)
 	}
 }
 
@@ -530,6 +560,7 @@ func TestDecorator_StreamDoneUsesResolvedProfileLabels(t *testing.T) {
 func TestDecorator_StreamErrorUsesResolvedProfileLabels(t *testing.T) {
 	resolver := routeAwareResolver()
 	registry := observability.NewInMemoryRegistry()
+	runs := &memTaskRunWriter{}
 	wrap, err := observability.New(&fallbackInner{
 		streamEvents: []aiclient.AIStreamEvent{{
 			Type:      aiclient.StreamEventError,
@@ -538,7 +569,7 @@ func TestDecorator_StreamErrorUsesResolvedProfileLabels(t *testing.T) {
 	},
 		observability.WithRegisterer(registry),
 		observability.WithLogger(observability.NewMemoryLogger()),
-		observability.WithAITaskRunWriter(&memTaskRunWriter{}),
+		observability.WithAITaskRunWriter(runs),
 		observability.WithAuditEventWriter(&memAuditWriter{}),
 		observability.WithProfileResolver(resolver),
 	)
@@ -555,6 +586,15 @@ func TestDecorator_StreamErrorUsesResolvedProfileLabels(t *testing.T) {
 	labels := []string{stub.Name, "stub-chat-1", "practice.followup.default", "practice.followup", string(aiclient.CapabilityChat), "en", "failure"}
 	if got := registry.CounterValue(observability.MetricRunsTotal, labels...); got != 1 {
 		t.Fatalf("expected stream error labels enriched from profile, got %v", got)
+	}
+	rows := runs.Rows()
+	if len(rows) != 1 {
+		t.Fatalf("expected one ai_task_runs stream failure row, got %+v", rows)
+	}
+	if rows[0].FeatureKey != samplePayload().Metadata.FeatureKey ||
+		rows[0].FeatureFlag != samplePayload().Metadata.FeatureFlag ||
+		rows[0].DataSourceVersion != samplePayload().Metadata.DataSourceVersion {
+		t.Fatalf("stream failure row lost payload provenance: %+v", rows[0])
 	}
 }
 

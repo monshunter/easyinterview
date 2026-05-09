@@ -8,12 +8,12 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-baseline](./001-baseline/plan.md) | [plan](./001-baseline/plan.md) / [checklist](./001-baseline/checklist.md) / [context](./001-baseline/context.yaml) | 1.1 | active | 2026-05-09 |
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
+| [001-baseline](./001-baseline/plan.md) | [plan](./001-baseline/plan.md) / [checklist](./001-baseline/checklist.md) / [context](./001-baseline/context.yaml) | 1.2 | completed | 2026-05-09 |
 
 ## 3 草案 / 阻塞（Draft / Blocked）
 

@@ -90,6 +90,9 @@ PRODUCT_SCOPE_REQUIRED_FRAGMENTS = [
     ("ai_task_runs.model_family", "model_family text"),
     ("ai_task_runs.model_profile_name", "model_profile_name text"),
     ("ai_task_runs.model_profile_version", "model_profile_version text"),
+    ("ai_task_runs.feature_key", "feature_key text not null"),
+    ("ai_task_runs.feature_flag", "feature_flag text not null default 'none'"),
+    ("ai_task_runs.data_source_version", "data_source_version text not null default 'not_applicable'"),
     ("ai_task_runs.fallback_chain", "fallback_chain jsonb not null default '[]'::jsonb"),
     ("ai_task_runs.route", "route text"),
     ("ai_task_runs.validation_status", "validation_status text"),
@@ -99,7 +102,27 @@ PRODUCT_SCOPE_REQUIRED_FRAGMENTS = [
 PRODUCT_SCOPE_TABLE_REQUIRED_FRAGMENTS = [
     ("feedback_reports.session_id", "feedback_reports", "session_id uuid not null references practice_sessions(id) on delete cascade"),
 ]
-FEATURE_KEY_ALLOWED_TABLES = {"prompt_versions", "rubric_versions"}
+# F3 prompt-rubric-registry/001-baseline phase 4.2 expanded the
+# feature_key column scope: ai_task_runs now carries the F3 coordinate as a
+# typed column (alongside feature_flag and data_source_version) so B4 cross-
+# layer provenance reads do not have to crawl the metadata jsonb. The lint
+# requires every active table in the allowlist to keep the typed column.
+FEATURE_KEY_ALLOWED_TABLES = {"prompt_versions", "rubric_versions", "ai_task_runs"}
+FEATURE_KEY_REQUIRED_FRAGMENTS = {
+    "prompt_versions": (
+        "feature_key text not null",
+        "unique (feature_key, version, language)",
+    ),
+    "rubric_versions": (
+        "feature_key text not null",
+        "unique (feature_key, version, language)",
+    ),
+    "ai_task_runs": (
+        "feature_key text not null",
+        "feature_flag text not null default 'none'",
+        "data_source_version text not null default 'not_applicable'",
+    ),
+}
 
 B1_SOURCE_MAP = {
     "experience_cards.confidence": "Confidence",
@@ -370,23 +393,47 @@ def extract_create_table_bodies(sql: str) -> dict[str, str]:
 
 def validate_feature_key_scope(sql: str, table_bodies: dict[str, str]) -> list[str]:
     problems: list[str] = []
+    allowed_label = ", ".join(sorted(FEATURE_KEY_ALLOWED_TABLES))
     for table, body in table_bodies.items():
         normalized_body = normalize_sql(body)
         if "feature_key" in normalized_body and table not in FEATURE_KEY_ALLOWED_TABLES:
-            problems.append(f"feature_key is only allowed in prompt_versions/rubric_versions, found in {table}")
+            problems.append(f"feature_key is only allowed in {allowed_label}, found in {table}")
         if table in FEATURE_KEY_ALLOWED_TABLES:
-            for fragment in ("feature_key text not null", "unique (feature_key, version, language)"):
+            required = FEATURE_KEY_REQUIRED_FRAGMENTS.get(table, ())
+            for fragment in required:
                 if fragment not in normalized_body:
                     problems.append(f"{table} must keep F3 feature_key coordinate fragment: {fragment}")
 
+    # Strip dollar-quoted body literals AND single-line SQL comments
+    # before scanning so multi-line prompt bodies in seed migrations
+    # cannot derail the feature_key boundary check (a literal ';' inside
+    # a $body$...$body$ string would otherwise truncate the DML span
+    # detection below) and so harmless `-- ...` comments mentioning
+    # feature_key do not trigger false positives.
+    stripped_sql = re.sub(r"\$([a-zA-Z_]*)\$.*?\$\1\$", "", sql, flags=re.DOTALL)
+    stripped_sql = re.sub(r"--[^\n]*", "", stripped_sql)
     allowed_spans = [
         match.span()
-        for match in CREATE_TABLE_RE.finditer(sql)
+        for match in CREATE_TABLE_RE.finditer(stripped_sql)
         if match.group(1).lower() in FEATURE_KEY_ALLOWED_TABLES
     ]
-    outside_allowed = remove_spans(sql.lower(), allowed_spans)
+    # Also exempt DML statements (INSERT/UPDATE/DELETE/SELECT) targeting
+    # the allowlisted tables. Seed migrations under
+    # migrations/*seed_baseline_prompt_rubric*.up.sql legitimately
+    # reference feature_key in INSERT VALUES against prompt_versions /
+    # rubric_versions; flagging those would break the F3 baseline seed
+    # contract introduced in plan prompt-rubric-registry/001-baseline §4.4.
+    dml_re = re.compile(
+        r"(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|SELECT[^;]*?FROM)\s+("
+        + "|".join(re.escape(t) for t in FEATURE_KEY_ALLOWED_TABLES)
+        + r")\b[^;]*;",
+        re.IGNORECASE | re.DOTALL,
+    )
+    for match in dml_re.finditer(stripped_sql):
+        allowed_spans.append(match.span())
+    outside_allowed = remove_spans(stripped_sql.lower(), allowed_spans)
     if "feature_key" in outside_allowed:
-        problems.append("feature_key is only allowed in prompt_versions/rubric_versions")
+        problems.append(f"feature_key is only allowed in {allowed_label}")
     return problems
 
 
