@@ -416,6 +416,15 @@ Source: `shared/conventions.yaml` + `backend/internal/shared/ai/vocabulary.go` +
 - `make migrate-check` substep `migrations_lint.py`: green (`migration lint: ok`); the `cmd/migrate ... check` substep requires `DATABASE_URL` and exits early in this local environment, which is the expected dev shape until Phase 4 dockertest lands.
 - Pre-existing aggregate `make lint` warnings noted: `backend/internal/ai/aiclient/providers/minimax_speech/*.go` and `backend/internal/targetjob/handler.go targetJobId` (revive `var-naming`) are emitted by previously committed code (`f2f5fc9` and earlier). Phase 1 introduces no new lint violations; these pre-existing findings are out of scope for this plan and stay with the originating subspecs.
 
+### 8.1.4 Phase 2 evidence summary
+
+- `go test ./backend/internal/ai/registry/... -race`: green (TestTypeShape, TestJudgeSignature, TestLoadHappyPath, TestLoadHashDriftRejected, TestLoadMissingMarkdownBody, TestLoadInvalidYAML, TestResolveExactLanguage, TestResolveFallbackToMulti, TestResolveUnknownFeatureKey, TestResolveEmptyArgsRejected, TestGetPromptExact, TestGetRubricExact, TestCacheReloadIdempotent, TestCacheTTLDrivesReload, TestCacheConcurrentReadsAndReload, TestNotImplementedJudgeAlwaysFails, TestNewRegistryClientLoadsAllBaselines, TestNewRegistryClientRequiresDirs, TestNewRegistryClientRejectsOrphanFeatureKey, TestStartupBudget, TestResolveP95Budget).
+- `go test -bench=. -benchtime=200x -run=^$ ./backend/internal/ai/registry/`: `BenchmarkResolve` ~235ns/op (well under spec C-3 5ms P95 budget).
+- `! grep -rE "AIClient|aiclient\.|metric\.Counter|secret\.|Secret\.|os\.Getenv" backend/internal/ai/registry/`: green (zero matches; doc.go was rephrased so red-line documentation does not collide with the lint regex).
+- `! grep -rE "github.com/.*/targetjob|aiclient\.|metric\.Counter" backend/internal/ai/registry/`: green.
+- `go vet ./backend/internal/ai/registry/`: green.
+- F3 RegistryClient publishes ResolveActive / GetPrompt / GetRubric, NotImplementedJudge default, atomic.Value-backed snapshot with 30s TTL + explicit Reload, FallbackCount counter for D-6 test assertions, and SnapshotSize accessor for cache idempotency tests.
+
 ### 8.2 Owner handoff
 
 - **B1 shared-conventions-codified**: `feature_key` joins `feature_flag` / `data_source_version` as AI provenance vocabulary; no F1 metric label expansion.

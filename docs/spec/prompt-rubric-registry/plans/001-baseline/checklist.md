@@ -27,15 +27,15 @@
 
 ## Phase 2: `backend/internal/ai/registry/` Go 包
 
-- [ ] 2.1 新增 `backend/internal/ai/registry/doc.go`：包注释 + 红线（不依赖 targetjob、不调 aiclient、不写业务 metric / log）。验证: `! grep -rE "github.com/.*/targetjob|aiclient\.|metric\.Counter" backend/internal/ai/registry/` 通过；如需在 doc 注释中记录红线，测试需显式过滤注释而不是放宽源码命中
-- [ ] 2.2 实现 `types.go`：`PromptResolution`（包含 `FeatureKey` + 兼容 targetjob 7 字段 + D-12 预留 Tools/OutputSchema/StreamWire）、`PromptMeta`、`RubricSchema`、`RubricDimension`、`ScoreLevel`、`Judge` interface（签名 = spec D-9）、错误类型。验证: `go test ./backend/internal/ai/registry -run TestTypeShape -race` 通过；反射断言 `Judge` 入参顺序与 spec D-9 一致
-- [ ] 2.3 实现 `loader.go` + `loader_test.go`：扫 `config/prompts/` + `config/rubrics/`，逐项校验 template_hash drift；canonical algorithm 与 `prompt_lint.py` 共享。验证: `go test ./backend/internal/ai/registry -run TestLoad -race` 全绿（happy / hash drift / missing meta / yaml 解析失败）
-- [ ] 2.4 实现 `resolver.go` + `resolver_test.go`：`ResolveActive` 精确 language → `multi` fallback；unknown feature_key → `ErrPromptUnsupported`；空字符串拒绝。验证: `go test ./backend/internal/ai/registry -run TestResolve -race` 全绿（精确 language / fallback to multi 含 warn 计数 / unknown feature_key / unknown language warn / 空字符串）
-- [ ] 2.5 实现 `cache.go` + `cache_test.go`：atomic.Value snapshot + 30s TTL + Reload 钩子。验证: `go test ./backend/internal/ai/registry -run TestCache -race` 全绿（TTL expiry / Reload idempotent ×5 / 100 goroutine 并发 + Reload 交错无 race）
-- [ ] 2.6 实现 `judge.go` + `judge_test.go`：`NotImplementedJudge` 默认实现，始终返回 `ErrJudgeNotImplemented`；签名 freeze 反射断言。验证: `go test ./backend/internal/ai/registry -run TestJudge -race` 全绿
-- [ ] 2.7 实现 `registry.go` + `registry_test.go`：`NewRegistryClient(opts)` 全量加载；不允许悬空 feature_key（prompt 有 rubric 无或反之 → 启动 fail）。验证: `go test ./backend/internal/ai/registry -run TestNewRegistryClient -race` 全绿
-- [ ] 2.8 实现 `perf_test.go`：`BenchmarkResolve` P95 ≤ 5ms 硬断言；`TestStartupBudget` < 1s。验证: `go test -bench=. -benchtime=200x ./backend/internal/ai/registry/...` 输出 P95 通过；`go test -run TestStartupBudget ./backend/internal/ai/registry/...` 通过
-- [ ] 2.9 边界 grep red-line：registry 包不持 secret、不调 AI、不写 metric、不读 env。验证: `! grep -rE "AIClient|aiclient\.|metric\.Counter|secret\.|Secret\.|os\.Getenv" backend/internal/ai/registry/` 通过；如需在 doc 注释中记录红线，测试需显式过滤注释而不是放宽源码命中
+- [x] 2.1 新增 `backend/internal/ai/registry/doc.go`：包注释 + 红线（不依赖 targetjob、不调 aiclient、不写业务 metric / log）。验证: `! grep -rE "github.com/.*/targetjob|aiclient\.|metric\.Counter" backend/internal/ai/registry/` 通过；如需在 doc 注释中记录红线，测试需显式过滤注释而不是放宽源码命中
+- [x] 2.2 实现 `types.go`：`PromptResolution`（包含 `FeatureKey` + 兼容 targetjob 7 字段 + D-12 预留 Tools/OutputSchema/StreamWire）、`PromptMeta`、`RubricSchema`、`RubricDimension`、`ScoreLevel`、`Judge` interface（签名 = spec D-9）、错误类型。验证: `go test ./backend/internal/ai/registry -run TestTypeShape -race` 通过；反射断言 `Judge` 入参顺序与 spec D-9 一致
+- [x] 2.3 实现 `loader.go` + `loader_test.go`：扫 `config/prompts/` + `config/rubrics/`，逐项校验 template_hash drift；canonical algorithm 与 `prompt_lint.py` 共享。验证: `go test ./backend/internal/ai/registry -run TestLoad -race` 全绿（happy / hash drift / missing meta / yaml 解析失败）
+- [x] 2.4 实现 `resolver.go` + `resolver_test.go`：`ResolveActive` 精确 language → `multi` fallback；unknown feature_key → `ErrPromptUnsupported`；空字符串拒绝。验证: `go test ./backend/internal/ai/registry -run TestResolve -race` 全绿（精确 language / fallback to multi 含 warn 计数 / unknown feature_key / unknown language warn / 空字符串）
+- [x] 2.5 实现 `cache.go` + `cache_test.go`：atomic.Value snapshot + 30s TTL + Reload 钩子。验证: `go test ./backend/internal/ai/registry -run TestCache -race` 全绿（TTL expiry / Reload idempotent ×5 / 100 goroutine 并发 + Reload 交错无 race）
+- [x] 2.6 实现 `judge.go` + `judge_test.go`：`NotImplementedJudge` 默认实现，始终返回 `ErrJudgeNotImplemented`；签名 freeze 反射断言。验证: `go test ./backend/internal/ai/registry -run TestJudge -race` 全绿
+- [x] 2.7 实现 `registry.go` + `registry_test.go`：`NewRegistryClient(opts)` 全量加载；不允许悬空 feature_key（prompt 有 rubric 无或反之 → 启动 fail）。验证: `go test ./backend/internal/ai/registry -run TestNewRegistryClient -race` 全绿
+- [x] 2.8 实现 `perf_test.go`：`BenchmarkResolve` P95 ≤ 5ms 硬断言；`TestStartupBudget` < 1s。验证: `go test -bench=. -benchtime=200x ./backend/internal/ai/registry/...` 输出 P95 通过；`go test -run TestStartupBudget ./backend/internal/ai/registry/...` 通过
+- [x] 2.9 边界 grep red-line：registry 包不持 secret、不调 AI、不写 metric、不读 env。验证: `! grep -rE "AIClient|aiclient\.|metric\.Counter|secret\.|Secret\.|os\.Getenv" backend/internal/ai/registry/` 通过；如需在 doc 注释中记录红线，测试需显式过滤注释而不是放宽源码命中
 
 ## Phase 3: targetjob StaticPromptRegistry retire + cross-layer 对齐
 
