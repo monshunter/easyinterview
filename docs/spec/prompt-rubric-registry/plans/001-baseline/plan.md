@@ -405,6 +405,17 @@ Source: `shared/conventions.yaml` + `backend/internal/shared/ai/vocabulary.go` +
 3. A3 CallMetadata is a public API surface on aiclient.AIClient.Complete callers; adding `FeatureFlag` is additive (new field), but every existing caller must populate it (with literal `none` if no flag is active). Phase 4.3 negative test must cover the empty-string rejection.
 4. F1 metric labels must NOT add the 3 new columns — they are append-only provenance, not high-cardinality dashboards. Confirm in Phase 4.3 via existing F1 test or registered F1 spec.
 
+### 8.1.3 Phase 1 evidence summary
+
+- `make lint-prompts`: green (`prompt_lint: 20 files clean`).
+- `make lint-rubrics`: green (`rubric_lint: 20 files clean`).
+- `make lint-prompts-hardcode`: green (no hardcoded prompt assignments in `backend/internal/{practice,report,resume,debrief,targetjob}`).
+- `python3 -m pytest scripts/lint/prompt_lint_test.py`: 4 passed (baseline / canonical hash vs README §3 / hash drift negative / field order negative).
+- `python3 -m pytest scripts/lint/rubric_lint_test.py`: 4 passed (baseline / weight tolerance / dimension allowlist / missing weight negative).
+- `python3 -m pytest scripts/lint/prompt_hardcode_lint_test.py`: 6 passed (default scan / raw string negative / long quoted negative / PromptVersion short-string passes / `_test.go` allowlisted / systemMessage flagged).
+- `make migrate-check` substep `migrations_lint.py`: green (`migration lint: ok`); the `cmd/migrate ... check` substep requires `DATABASE_URL` and exits early in this local environment, which is the expected dev shape until Phase 4 dockertest lands.
+- Pre-existing aggregate `make lint` warnings noted: `backend/internal/ai/aiclient/providers/minimax_speech/*.go` and `backend/internal/targetjob/handler.go targetJobId` (revive `var-naming`) are emitted by previously committed code (`f2f5fc9` and earlier). Phase 1 introduces no new lint violations; these pre-existing findings are out of scope for this plan and stay with the originating subspecs.
+
 ### 8.2 Owner handoff
 
 - **B1 shared-conventions-codified**: `feature_key` joins `feature_flag` / `data_source_version` as AI provenance vocabulary; no F1 metric label expansion.
