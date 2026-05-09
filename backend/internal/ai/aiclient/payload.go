@@ -12,12 +12,18 @@ type Message struct {
 
 // CallMetadata is the per-call business context required by AIClient. It is
 // supplied by the caller and copied into AICallMeta (PromptVersion,
-// RubricVersion, Language) plus AI logs / audit metadata.
+// RubricVersion, Language, FeatureKey, FeatureFlag, DataSourceVersion)
+// plus AI logs / audit metadata.
+//
+// FeatureFlag carries the active PostHog flag bucket for the call. The
+// literal string "none" denotes "no grayscale flag is active"; empty
+// strings are treated as missing and rejected by the writer.
 type CallMetadata struct {
 	FeatureKey        string           `json:"featureKey"`
 	PromptVersion     string           `json:"promptVersion"`
 	RubricVersion     string           `json:"rubricVersion"`
 	Language          string           `json:"language"`
+	FeatureFlag       string           `json:"featureFlag,omitempty"`
 	DataSourceVersion string           `json:"dataSourceVersion,omitempty"`
 	OutputSchema      json.RawMessage  `json:"outputSchema,omitempty"`
 	TaskRun           AITaskRunContext `json:"taskRun,omitempty"`

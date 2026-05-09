@@ -309,6 +309,7 @@ aiVocabulary:
     - name: prompt_version
     - name: rubric_version
     - name: language
+    - name: feature_key
     - name: feature_flag
     - name: data_source_version
     - name: from_provider

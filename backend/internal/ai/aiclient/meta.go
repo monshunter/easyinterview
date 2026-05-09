@@ -43,6 +43,12 @@ const (
 // order is fixed by spec §4.1 / ADR-Q6 §3.1; new fields require a spec
 // version bump and, for cross-language sharing, a B1 update.
 //
+// FeatureKey, FeatureFlag, and DataSourceVersion are F3 prompt-rubric
+// provenance fields shipped by plan prompt-rubric-registry/001-baseline
+// phase 4.3. They flow from CallMetadata through the meta builder into
+// AITaskRunRow and the audit pipeline; F1 metric labels do not consume
+// them (provenance is high-cardinality append-only data).
+//
 // Callers cannot construct this struct themselves — the AIClient owns
 // metaBuilder which fills, validates, and freezes the value.
 type AICallMeta struct {
@@ -55,6 +61,9 @@ type AICallMeta struct {
 	ModelProfileName    string
 	ModelProfileVersion string
 	Language            string
+	FeatureKey          string
+	FeatureFlag         string
+	DataSourceVersion   string
 	InputTokens         int
 	OutputTokens        int
 	CostUSDMicros       int64

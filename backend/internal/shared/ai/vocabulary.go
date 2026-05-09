@@ -141,6 +141,7 @@ const (
 	FieldPromptVersion       FieldName = "prompt_version"
 	FieldRubricVersion       FieldName = "rubric_version"
 	FieldLanguage            FieldName = "language"
+	FieldFeatureKey          FieldName = "feature_key"
 	FieldFeatureFlag         FieldName = "feature_flag"
 	FieldDataSourceVersion   FieldName = "data_source_version"
 	FieldFromProvider        FieldName = "from_provider"
@@ -166,6 +167,7 @@ var AllFieldNames = []FieldName{
 	FieldPromptVersion,
 	FieldRubricVersion,
 	FieldLanguage,
+	FieldFeatureKey,
 	FieldFeatureFlag,
 	FieldDataSourceVersion,
 	FieldFromProvider,

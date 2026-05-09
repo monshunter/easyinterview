@@ -185,15 +185,22 @@ def test_product_scope_contract_rejects_non_session_scoped_report() -> None:
 
 
 def test_product_scope_contract_rejects_feature_key_outside_f3_tables() -> None:
+    # F3 prompt-rubric-registry/001-baseline phase 4.2 expanded the
+    # feature_key allowlist to include ai_task_runs. The lint must still
+    # reject feature_key in any other table; users is a safe canary that
+    # has nothing to do with F3 provenance.
     sql = current_baseline_sql().replace(
-        "CREATE TABLE ai_task_runs (\n",
-        "CREATE TABLE ai_task_runs (\n  feature_key text,\n",
+        "CREATE TABLE users (\n",
+        "CREATE TABLE users (\n  feature_key text,\n",
         1,
     )
 
     problems = migrations_lint.validate_product_scope_sql(sql, current_enum_sources())
 
-    assert any("feature_key" in problem and "prompt_versions/rubric_versions" in problem for problem in problems)
+    assert any(
+        "feature_key" in problem and "ai_task_runs" in problem and "prompt_versions" in problem
+        for problem in problems
+    ), problems
 
 
 def test_product_scope_contract_rejects_vendor_model_tokens() -> None:

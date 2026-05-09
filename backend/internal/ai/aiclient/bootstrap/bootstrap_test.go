@@ -75,6 +75,7 @@ func TestNewClientLoadsRegistryProfileAndRoutesThroughProviderRef(t *testing.T) 
 	resp, meta, err := runtime.Client.Complete(context.Background(), "practice.followup.default", aiclient.CompletePayload{
 		Messages: []aiclient.Message{{Role: "user", Content: "hello"}},
 		Metadata: aiclient.CallMetadata{
+			FeatureKey:    "practice.session.follow_up",
 			PromptVersion: "p1",
 			RubricVersion: "r1",
 			Language:      "en",
