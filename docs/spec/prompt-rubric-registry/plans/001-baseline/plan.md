@@ -1,7 +1,7 @@
 # F3 Baseline Registry, Resolve and Lint Gates
 
 > **版本**: 1.1
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-09
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -447,6 +447,31 @@ Source: `shared/conventions.yaml` + `backend/internal/shared/ai/vocabulary.go` +
 - 4.8 `decorator_test.go::TestDecorator_SuccessIncrementsRunsAndLogsCompleted` extended to assert all six F3 provenance fields land in the persisted `AITaskRunRow`: `FeatureKey`, `FeatureFlag`, `DataSourceVersion`, `PromptVersion`, `RubricVersion`, `ModelProfileName`. Sample payload now carries `FeatureFlag` / `DataSourceVersion` so the cross-layer flow is exercised end-to-end through the production decorator.
 - F1 metric labels: the seven `MetricRunsTotal` label families remain unchanged (`provider, model_family, model_profile_name, model_id, capability, language, status`); the three new typed columns are append-only provenance and never join the metric label set.
 - `go test ./backend/... -race` 全绿（包含 ai/registry / ai/aiclient / observability / targetjob / cmd/api / shared/types / shared/ai / migrations / auth / platform 等所有受影响包）。
+
+### 8.1.7 Phase 5 evidence summary
+
+- 5.1 `make lint-ai-profile-coverage`: green (`ai_profile_coverage: OK`). Spec §3.1.1 10 default `model_profile_name` entries all present in `config/ai-profiles.yaml`; this plan did not modify any profile `status` field.
+- 5.2 F3-scoped verification chain: `make lint-prompts && make lint-rubrics && make lint-prompts-hardcode && make lint-ai-profile-coverage && python3 scripts/lint/migrations_lint.py --repo-root . && python3 scripts/lint/conventions_drift.py && go test ./backend/internal/ai/registry/... ./backend/internal/targetjob/... ./backend/cmd/api/... ./backend/internal/ai/aiclient/... ./backend/internal/shared/ai/... ./backend/internal/shared/types/... -race && make validate-fixtures` 全绿。Top-level `make lint` 仍带历史 revive 警告（`backend/internal/ai/aiclient/providers/minimax_speech/`、`backend/internal/targetjob/handler.go targetJobId`），与 Phase 1.7 evidence 一致，不属于本 plan 引入；`make migrate-check` 的 `cmd/migrate ... check` 子步骤需要 `DATABASE_URL`，dev 环境未配置时与既有形态一致。
+- 5.3 INDEX / history sync: `docs/spec/prompt-rubric-registry/plans/INDEX.md` Active 段 001-baseline 行已存在；`history.md` v2.1 entry 已记录 plan derivation + B1/B4/A3 remediation 口径；`spec.md` Header 保持 v2.1 / 2026-05-09，`docs/spec/INDEX.md` prompt-rubric-registry 行已为 2.1 / 2026-05-09。同步 `docs/spec/db-migrations-baseline/spec.md` D-15 + C-12 与 `docs/spec/shared-conventions-codified/spec.md` C-8 引用 F3 plan 阶段 4.1 / 4.2 落地的 typed column 与 vocabulary 字段。
+- 5.4 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 全绿（`All documents are in sync. Zero drift detected.`）；`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/prompt-rubric-registry/plans/001-baseline/context.yaml --docs-root docs --target backend` 退出码 0。
+- 5.5 Retrospective 候选清单已写入 §8.3。由 `/implement` 在收口时触发 `/retrospective`，`/tdd` 不直接生成报告。
+- 5.6 11 AC × 命令证据自检（见 §8.4 ACTraceability matrix）：C-1~C-9、C-11 全部通过；C-5 / C-10 按 spec §2.2 显式推到 plan 002 / 003，与 §1 scope 一致。
+
+### 8.4 Acceptance criteria self-check (C-1 through C-11)
+
+| AC | Spec ref | Plan slot | Evidence command / artifact | Status |
+|----|----------|-----------|-----------------------------|--------|
+| C-1 | spec §6 | Phase 1.2 / 1.3 | `find config/prompts -mindepth 1 -maxdepth 1 -type d \| wc -l` = 10; `find config/rubrics -mindepth 1 -maxdepth 1 -type d \| wc -l` = 10; each dir ships v0.1.0 multi + en variant | PASS |
+| C-2 | spec §6 | Phase 1.4 + 4.6 | `make lint-prompts` (`prompt_lint: 20 files clean`); negative fixtures cover hash drift / field order; cross-file seed drift gate active | PASS |
+| C-3 | spec §6 | Phase 2.4 / 2.7 | `go test ./backend/internal/ai/registry -run TestResolve -race` (TestResolveExactLanguage / TestResolveFallbackToMulti / TestResolveUnknownFeatureKey / TestResolveEmptyArgsRejected) | PASS |
+| C-4 | spec §6 | Phase 1.6 | `make lint-prompts-hardcode`; negative fixtures (raw / long quoted / system message / test allowlist / PromptVersion short-string) | PASS |
+| C-5 | spec §6 | Phase 003 | `prompt-rubric-registry/003-grayscale-and-quality-feedback` (out of scope for 001 per spec §2.1 D-7) | DEFERRED |
+| C-6 | spec §6 | Phase 2.4 | `TestResolveFallbackToMulti` confirms `Resolve("report.generate", "fr")` falls back to multi and bumps `FallbackCount` warn counter | PASS |
+| C-7 | spec §6 | Phase 2.2 + 2.6 | `TestJudgeSignature` reflects spec D-9 input order; `TestNotImplementedJudgeAlwaysFails` confirms ErrJudgeNotImplemented default | PASS |
+| C-8 | spec §6 | Phase 5 closure | This plan's §8 evidence log: 10 baselines + Resolve + lint + LLM Judge stub + DB seed all green; backend-practice D-29 unblocked | PASS |
+| C-9 | spec §6 | Phase 4.2 + 4.3 + 4.8 | `migrations/000001_create_baseline.up.sql` + `migrations_lint.py` allowlist + decorator_test six-field assertion confirm ai_task_runs typed columns carry feature_key / prompt_version / rubric_version / feature_flag / data_source_version (model_profile_name unchanged) | PASS |
+| C-10 | spec §6 | Phase 002 | `prompt-rubric-registry/002-real-model-profile-and-evals` (out of scope for 001 per spec §1 + §2.2) | DEFERRED |
+| C-11 | spec §6 | Phase 5.1 | `make lint-ai-profile-coverage` returns `ai_profile_coverage: OK`; spec §3.1.1 10 default profile names all present in `config/ai-profiles.yaml` with valid capability/provider_ref or `unsupported_reason` | PASS |
 
 ### 8.2 Owner handoff
 

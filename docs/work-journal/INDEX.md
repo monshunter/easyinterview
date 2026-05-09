@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-09](2026-05-09.md) | `docs(prompt-rubric-registry): close 001-baseline lifecycle and record ac self-check` | #docs |
 | [2026-05-09](2026-05-09.md) | `feat(prompt-rubric-registry): land f3 provenance contract and seed migration` | #feat #test |
 | [2026-05-09](2026-05-09.md) | `feat(prompt-rubric-registry): retire targetjob static bridge and align cross-layer provenance` | #feat #refactor #test |
 | [2026-05-09](2026-05-09.md) | `feat(prompt-rubric-registry): land f3 registry go package and runtime cache` | #feat #test |

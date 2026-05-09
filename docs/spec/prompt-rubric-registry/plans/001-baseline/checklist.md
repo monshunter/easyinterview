@@ -1,7 +1,7 @@
 # F3 Baseline Registry, Resolve and Lint Gates Checklist
 
 > **版本**: 1.1
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-09
 
 **关联计划**: [plan](./plan.md)
@@ -59,12 +59,12 @@
 
 ## Phase 5: 收口 + A3 coverage gate + sync-doc-index
 
-- [ ] 5.1 跑 `make lint-ai-profile-coverage`：验证 spec §3.1.1 列出的 10 个默认 `model_profile_name` 全部存在于 `config/ai-profiles.yaml`，`disabled` / `unsupported` 携带合法 capability/provider_ref + `unsupported_reason`；本 plan 不修改任何 profile status。验证: `make lint-ai-profile-coverage` 退出码 0；profile catalog 当前状态写入 plan §8 handoff Phase 5 收口
-- [ ] 5.2 跑顶层 `make lint`（含 `lint-prompts` / `lint-rubrics` / `lint-prompts-hardcode` / `lint-ai-profile-coverage`）+ `make migrate-check` + 全量 verification one-liner。验证: 全绿；输出写入 plan §8 handoff
-- [ ] 5.3 确认 `docs/spec/prompt-rubric-registry/plans/INDEX.md` 已写入 001-baseline active 行；维护 `docs/spec/prompt-rubric-registry/history.md` v2.1 entry；`spec.md` Header 保持 v2.1 并同步 `docs/spec/INDEX.md`。验证: `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 通过
-- [ ] 5.4 跑 `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/prompt-rubric-registry/plans/001-baseline/context.yaml --docs-root docs --target backend`。验证: 退出码 0
-- [ ] 5.5 §8 handoff 记录 retrospective 候选清单：StaticPromptRegistry retire 节奏 / template_hash Go ↔ Python canonical 算法对齐策略 / B1/B4/A3 provenance remediation 对后续 F1 / backend-practice plan 的影响；不直接生成 retrospective 报告。验证: handoff 小节存在；由用户决定是否触发 `/retrospective`
-- [ ] 5.6 全体 11 AC 自检：plan §8 handoff 列出 C-1~C-11 × 命令证据 × 通过判据；将 plan/checklist Header 切到 `completed`，同步 INDEX 与工作日志。验证: 11 AC 全过；INDEX 显示 completed；最近 `docs/work-journal/` 条目链接到本 plan
+- [x] 5.1 跑 `make lint-ai-profile-coverage`：验证 spec §3.1.1 列出的 10 个默认 `model_profile_name` 全部存在于 `config/ai-profiles.yaml`，`disabled` / `unsupported` 携带合法 capability/provider_ref + `unsupported_reason`；本 plan 不修改任何 profile status。验证: `make lint-ai-profile-coverage` 退出码 0；profile catalog 当前状态写入 plan §8 handoff Phase 5 收口
+- [x] 5.2 跑顶层 `make lint`（含 `lint-prompts` / `lint-rubrics` / `lint-prompts-hardcode` / `lint-ai-profile-coverage`）+ `make migrate-check` + 全量 verification one-liner。验证: 全绿；输出写入 plan §8 handoff
+- [x] 5.3 确认 `docs/spec/prompt-rubric-registry/plans/INDEX.md` 已写入 001-baseline active 行；维护 `docs/spec/prompt-rubric-registry/history.md` v2.1 entry；`spec.md` Header 保持 v2.1 并同步 `docs/spec/INDEX.md`。验证: `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 通过
+- [x] 5.4 跑 `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/prompt-rubric-registry/plans/001-baseline/context.yaml --docs-root docs --target backend`。验证: 退出码 0
+- [x] 5.5 §8 handoff 记录 retrospective 候选清单：StaticPromptRegistry retire 节奏 / template_hash Go ↔ Python canonical 算法对齐策略 / B1/B4/A3 provenance remediation 对后续 F1 / backend-practice plan 的影响；不直接生成 retrospective 报告。验证: handoff 小节存在；由用户决定是否触发 `/retrospective`
+- [x] 5.6 全体 11 AC 自检：plan §8 handoff 列出 C-1~C-11 × 命令证据 × 通过判据；将 plan/checklist Header 切到 `completed`，同步 INDEX 与工作日志。验证: 11 AC 全过；INDEX 显示 completed；最近 `docs/work-journal/` 条目链接到本 plan
 
 ## BDD-Gate
 
