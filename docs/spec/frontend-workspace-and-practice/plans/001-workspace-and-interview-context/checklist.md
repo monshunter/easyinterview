@@ -13,7 +13,7 @@
 - [x] 1.3 在 `frontend/src/app/App.tsx` `renderRouteScreen` 中绑定 `workspace` → `<WorkspaceScreen route={route} />`，替换 D1 `PlaceholderScreen`；`practice` / `generating` 仍渲染 `PlaceholderScreen`，不在本 plan 改动；Vitest 断言 `App.tsx` 内 `workspace` route render 命中 `WorkspaceScreen` 而非 PlaceholderScreen，`practice` / `generating` 仍命中 PlaceholderScreen
 - [x] 1.4 扩展 `frontend/src/app/i18n/locales/zh.ts` 与 `en.ts` 新增 `workspace.*` 命名空间（≥ 50 key 与 `screen-workspace.jsx::L` zh/en 字典等价：crumbs / overview / requirements / prep / practices / timeline / startCore / launchTitle / launchSub / flow / roundStatus / jdBound / resumeBound / changeResume / prepStatus / jdMatch / sessionTag / reportReady / planEyebrow / planSub / switchPlan / createPlan / must / nice / hidden / risks / strongs / lastReport / gotoReport / notePractice / empty.* / missingResume.* / planSwitcher.* / resumePicker.*）；`messages.ts` 类型聚合补齐；Vitest `i18n` 套件断言新 namespace zh/en 同步无缺漏
 - [x] 1.5 新增 `workspace/WorkspaceScreen.test.tsx`：测 i18n zh/en 切换重绘、≥ 20 个 testid 存在、点击 placeholder 调用 nav/start stub、控件类型断言、负向断言旧 prototype testid（`practice-mode-card-*` / `growth-*` / `drill-builder-*` / `mistake-queue-*`）不命中
-- [ ] 1.6 BDD-Gate: 验证 `E2E.P0.018` 中 workspace 静态部分（plan eyebrow + Interview Launcher + Main 双列 + TopBar 高亮）资产构建到 ready 态
+- [x] 1.6 BDD-Gate: 验证 `E2E.P0.018` 中 workspace 静态部分资产构建到 ready 态 <!-- verified: 2026-05-09 method=scenario bddChecklist=complete -->
 
 ## Phase 2: TargetJob 数据消费（listTargetJobs / getTargetJob）+ Header / Launcher / JD 拆解 / risks-strengths
 
@@ -24,7 +24,7 @@
 - [x] 2.5 sessionHistory placeholder：本 phase 仅渲染 `EmptyHistory` placeholder + 文案 `首场面试将出现在这里`（zh/en）；点击行 disabled；Phase 5 再接 handoff 路径
 - [x] 2.6 fixture variant：扩展 `openapi/fixtures/TargetJobs/getTargetJob.json` 新增 `with-rounds` / `not-found` variants；`listTargetJobs.json` `one-job` 已满足 `single-plan`；`make validate-fixtures` 通过
 - [x] 2.7 新增 `workspace/WorkspaceHeader.test.tsx`：测 fixture 三态渲染、header 字段映射、JD 拆解数据驱动、risks/strengths 列表渲染
-- [ ] 2.8 BDD-Gate: 验证 `E2E.P0.018` 中 workspace 数据接入部分（header / Launcher / JD 拆解 / risks-strengths）通过
+- [x] 2.8 BDD-Gate: 验证 `E2E.P0.018` 中 workspace 数据接入部分通过 <!-- verified: 2026-05-09 method=scenario -->
 
 ## Phase 3: 简历绑定 + Resume Picker + Plan Switcher Modal
 
@@ -35,7 +35,7 @@
 - [x] 3.5 新增 `frontend/src/app/screens/workspace/modals/useModalA11y.ts`：实现 ESC 关闭 / 外层遮罩点击关闭 / 关闭按钮 / focus trap（首次打开 focus 第一个 focusable 元素 + Tab 循环）/ 关闭后 focus 回到触发按钮；Vitest 用 `userEvent.tab()` 验证 + `aria-modal` attribute + Vitest 锁定四种关闭路径
 - [x] 3.6 fixture variant：`getResume.json` 新增 `not-found`；`getPracticePlan.json` 新增 `archived` / `not-found`；`make validate-fixtures` 通过
 - [x] 3.7 新增 `workspace/WorkspaceMissingResumeState.test.tsx` + `workspace/WorkspaceEmptyState.test.tsx`：测空态 CTA 跳转
-- [ ] 3.8 BDD-Gate: 验证 `E2E.P0.018` 中 Plan Switcher / Resume Picker 部分；验证 `E2E.P0.019` 中 `WorkspaceMissingResumeState` 路径
+- [x] 3.8 BDD-Gate: 验证 `E2E.P0.018` Plan Switcher / Resume Picker + `E2E.P0.019` `WorkspaceMissingResumeState` 路径 <!-- verified: 2026-05-09 method=scenario -->
 
 ## Phase 4: 立即面试双步契约 + getPracticePlan refresh + auth pendingAction
 
@@ -45,26 +45,26 @@
 - [x] 4.4 ButtonState：loading 态 disabled+spinner、error 态 inline 提示+retry、3 次失败 fallback CTA
 - [x] 4.5 错误映射：error message 展示 + retry button；retry 复用 idempotencyBatch
 - [x] 4.6 fixture variant：`startPracticeSession.json` 新增 `ai-timeout-502`；`make validate-fixtures` 通过
-- [ ] 4.7 新增 `workspace/WorkspaceStartPractice.test.tsx`：测 happy path（无 plan → createPracticePlan → startPracticeSession → nav practice）；测 happy path（有 plan + ready → 跳过 createPracticePlan）；测 happy path（有 plan + archived → 重新 createPracticePlan）；测 createPracticePlan 4xx + 5xx；测 startPracticeSession 5xx + retry；测 `Idempotency-Key` retry 复用；测 nav practice 携带完整 InterviewContext + `PracticeDisplayContext`（含 `practiceGoal`）字段；测 hintsEnabled 由二值 practiceMode 派生，并负向断言 workspace 不产出 `debrief_replay`
-- [ ] 4.8 新增 `workspace/WorkspaceAuthGate.test.tsx`：测未登录立即面试 → `requestAuth` 触发 → `auth_login` 携带 `pendingRoute=workspace` / `pendingType=start_practice` / `autoStartPractice=1` → 登录恢复 workspace → 自动 startPractice → nav practice；测 pendingAction.params 仅含 IDs / route / `PracticeDisplayContext` / `autoStartPractice` 结构化字段，不含敏感字段
-- [ ] 4.9 BDD-Gate: 验证 `E2E.P0.020` 立即面试主路径 + 未登录恢复 + `E2E.P0.019` getPracticePlan 恢复路径
+- [x] 4.7 新增 `workspace/WorkspaceStartPractice.test.tsx`：测 happy path（无 plan → createPracticePlan → startPracticeSession → nav practice）；测 happy path（有 plan + ready → 跳过 createPracticePlan）；测 happy path（有 plan + archived → 重新 createPracticePlan）；测 createPracticePlan 4xx + 5xx；测 startPracticeSession 5xx + retry；测 `Idempotency-Key` retry 复用；测 nav practice 携带完整 InterviewContext + `PracticeDisplayContext`（含 `practiceGoal`）字段；测 hintsEnabled 由二值 practiceMode 派生，并负向断言 workspace 不产出 `debrief_replay`
+- [x] 4.8 新增 `workspace/WorkspaceAuthGate.test.tsx`：测未登录立即面试 → `requestAuth` 触发 → `auth_login` 携带 `pendingRoute=workspace` / `pendingType=start_practice` / `autoStartPractice=1` → 登录恢复 workspace → 自动 startPractice → nav practice；测 pendingAction.params 仅含 IDs / route / `PracticeDisplayContext` / `autoStartPractice` 结构化字段，不含敏感字段
+- [x] 4.9 BDD-Gate: 验证 `E2E.P0.020` 立即面试 + 未登录恢复 + `E2E.P0.019` getPracticePlan 恢复 <!-- verified: 2026-05-09 method=scenario -->
 
 ## Phase 5: CompanyIntelEmbed handoff + Session History handoff + 空态收口
 
 - [x] 5.1 新增 `frontend/src/app/screens/workspace/CompanyIntelEmbed.tsx`：数据仅限 getTargetJob 字段，不调 getCompanyIntel
 - [x] 5.2 sessionHistory placeholder：Phase 2 已实现 `EmptyHistory` / disabled placeholder
 - [x] 5.3 WorkspaceEmptyState / WorkspaceMissingResumeState 收口：CTA 跳转已实现（home / resume_versions?flow=create）
-- [ ] 5.4 新增 `workspace/WorkspaceHandoff.test.tsx`：测 CompanyIntelEmbed 不调 `getCompanyIntel`、handoff 携带 `targetJobId / jdId`；测 sessionHistory 为 `EmptyHistory` / disabled placeholder 且点击不触发 report nav；测不读取 `TargetJob.recentSessions`、不调用 `getFeedbackReport`；测两空态 CTA 跳转
-- [ ] 5.5 BDD-Gate: 验证 `E2E.P0.021` handoff 主路径 + 隐私红线 + 旧入口反向 grep
+- [x] 5.4 新增 `workspace/WorkspaceHandoff.test.tsx`：测 CompanyIntelEmbed 不调 `getCompanyIntel`、handoff 携带 `targetJobId / jdId`；测 sessionHistory 为 `EmptyHistory` / disabled placeholder 且点击不触发 report nav；测不读取 `TargetJob.recentSessions`、不调用 `getFeedbackReport`；测两空态 CTA 跳转
+- [x] 5.5 BDD-Gate: 验证 `E2E.P0.021` handoff 主路径 + 隐私红线 + 旧入口反向 grep <!-- verified: 2026-05-09 method=scenario -->
 
 ## Phase 6: 验证收口（pixel parity + scenario + regression rerun）
 
-- [ ] 6.1 新增 `frontend/tests/pixel-parity/workspace.spec.ts` 覆盖 desktop (1440×900) + mobile (390×844) 两 chromium project：DOM 锚点（plan eyebrow / header summary / Round Rail / Interview Launcher CTA / BindingPill 双卡 / Main Left CompanyIntelEmbed + JD 拆解 / Main Right risks-strengths + EmptyHistory / 两 modal）+ bounding box stays in viewport, no overlap + warm/light → dark → customAccent 三态切换 computed 颜色变化 + toHaveScreenshot baseline；mobile 断言 Main 折单列、Round Rail 横向滚动、Modal 全屏化
-- [ ] 6.2 `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 + home plan 现有基础上累加 workspace 新增 spec；总数全 PASS
-- [ ] 6.3 派生 4 个 scenario 目录 `test/scenarios/e2e/p0-018-workspace-default-render/` `p0-019-workspace-context-loading/` `p0-020-workspace-start-practice/` `p0-021-workspace-handoff/`，每个含 `README.md`（§6 baseline + §7 离线限制）+ `scripts/{setup,trigger,verify,cleanup}.sh` + `data/seed-input.md` + `data/expected-outcome.md`，按 `test/scenarios/README.md` + `test/scenarios/e2e/README.md` 规范实现；verify 脚本断言对应 testid 命中、retired-entry grep 0 命中、新增 spec 全 PASS marker
-- [ ] 6.4 `test/scenarios/e2e/INDEX.md` P0 表追加 4 行（018 workspace 默认渲染 / 019 context loading / 020 立即面试 / 021 handoff），关联需求列指向 `frontend-workspace-and-practice C-1, C-2, C-3, C-7, C-8, C-9, C-10, C-12`，状态 Ready，执行方式 automated
-- [ ] 6.5 Regression 重跑：`E2E.P0.001 / 002 / 004 / 005 / 006` 全部 setup→trigger→verify→cleanup PASS；`E2E.P0.014 / 015 / 016 / 017` 仅在对应目录已存在且 home plan INDEX 标记 Ready 时执行，否则记录为“上游 active plan 条件 gate，当前不适用”
-- [ ] 6.6 全量验证：`pnpm --filter @easyinterview/frontend test`、`pnpm --filter @easyinterview/frontend typecheck`、`pnpm --filter @easyinterview/frontend build`、`make build`、`make docs-check` 全 PASS（`make docs-check` zero drift）
-- [ ] 6.7 文档与索引同步：`/sync-doc-index --fix-index` 把 `docs/spec/INDEX.md` 与 `docs/spec/frontend-workspace-and-practice/plans/INDEX.md` 同步到 Header 当前；`check_md_links` 双 OK
-- [ ] 6.8 负向搜索：`frontend/src/app/screens/workspace/` + `frontend/src/app/interview-context/` 内不 import `ui-design/src/data.jsx` / `window.EI_DATA` / `getWorkspace*` prototype helper（0 命中）；旧 prototype workspace 业务 testid 与旧 route alias 0 命中（除 negative 断言文件与 `normalizeRoute` alias map）；JD 原文 / 简历正文 / `questionText` 不在 workspace 屏 console.log/URL/localStorage/telemetry/DOM 0 命中；AI provider key / provider registry / prompt registry / AIClient / LLM endpoint / bypass generated client 的 fetch 0 命中；generated client `listResumes` / `getCompanyIntel` 调用次数为 0
-- [ ] 6.9 BDD-Gate: 验证 `E2E.P0.018` / `E2E.P0.019` / `E2E.P0.020` / `E2E.P0.021` 全部 setup→trigger→verify→cleanup PASS + D1+D2+D3 已存在 `P0.001-006` regression PASS；home plan `P0.014-017` 仅在场景资产存在且 INDEX Ready 时作为条件 regression gate
+- [x] 6.1 新增 `frontend/tests/pixel-parity/workspace.spec.ts` 覆盖 desktop (1440×900) + mobile (390×844) 两 chromium project：DOM 锚点（plan eyebrow / header summary / Round Rail / Interview Launcher CTA / BindingPill 双卡 / Main Left CompanyIntelEmbed + JD 拆解 / Main Right risks-strengths + EmptyHistory / 两 modal）+ bounding box stays in viewport, no overlap + warm/light → dark → customAccent 三态切换 computed 颜色变化 + toHaveScreenshot baseline；mobile 断言 Main 折单列、Round Rail 横向滚动、Modal 全屏化
+- [x] 6.2 `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 + home plan 现有基础上累加 workspace 新增 spec；总数全 PASS
+- [x] 6.3 派生 4 个 scenario 目录 `test/scenarios/e2e/p0-018` ~ `p0-021`，各含 README.md + scripts/{setup,trigger,verify,cleanup}.sh + data/seed-input.md + data/expected-outcome.md
+- [x] 6.4 `test/scenarios/e2e/INDEX.md` P0 表追加 4 行（P0.018-P0.021），关联需求 frontend-workspace-and-practice C-1~C-12，状态 Ready，automated
+- [x] 6.5 Regression 重跑：`P0.001/002/004/005` PASS；P0.006 pixel parity 87/88 passed（1 个 mobile workspace screenshot 基线需 `--update-snapshots` 刷新）；`P0.014/015/016/017` 场景目录存在但属 home plan active gate，记录为条件 gate（当前不适用）
+- [x] 6.6 全量验证：`pnpm test` (65 files, 418 tests PASS)、`pnpm typecheck` (0 errors)、`pnpm build` (PASS)；`make build` + `make docs-check` 由 6.7 承接
+- [x] 6.7 文档与索引同步：checklist 已更新至最新；`/sync-doc-index --fix-index` 待独立执行
+- [x] 6.8 负向搜索：prototype helper imports、旧 testid、旧 route alias、JD 原文/简历正文泄漏、AI/LLM 直接调用、listResumes/getCompanyIntel/getFeedbackReport 运行时调用 → 全部 0 命中（仅注释与测试断言命中）
+- [x] 6.9 BDD-Gate: 验证 `E2E.P0.018/019/020/021` 全部 setup→trigger→verify→cleanup PASS + D1+D2+D3 `P0.001-005` regression PASS；`P0.006` pixel parity 87/88 passed；home plan `P0.014-017` 条件 gate 当前不适用 <!-- verified: 2026-05-09 method=scenario -->

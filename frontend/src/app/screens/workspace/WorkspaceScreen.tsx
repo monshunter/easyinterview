@@ -8,6 +8,8 @@ import { useWorkspaceTargetJob } from "./hooks/useWorkspaceTargetJob";
 import { useWorkspaceResume } from "./hooks/useWorkspaceResume";
 import { useStartPractice } from "./hooks/useStartPractice";
 import { CompanyIntelEmbed } from "./CompanyIntelEmbed";
+import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
+import { useRequestAuth } from "../../auth/useRequestAuth";
 
 interface WorkspaceScreenProps {
   route: Route;
@@ -72,8 +74,33 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   const statusTone = tj ? getStatusTone(tj.status) : "amber";
 
   const { state: startState, start: doStart } = useStartPractice();
+  const runtime = useAppRuntimeOptional();
+  const requestAuth = useRequestAuth();
 
   const handleStart = async () => {
+    if (runtime?.auth.status !== "authenticated") {
+      requestAuth({
+        type: "start_practice",
+        label: t("workspace.startCore"),
+        route: "workspace",
+        params: {
+          targetJobId: ctx.targetJobId,
+          jdId: ctx.jdId ?? "",
+          resumeVersionId: ctx.resumeVersionId ?? "",
+          roundId: ctx.roundId ?? "",
+          planId: ctx.planId ?? "",
+          mode: ctx.mode,
+          modality: ctx.modality,
+          practiceMode: ctx.practiceMode,
+          practiceGoal: ctx.practiceGoal,
+          hintUsed: ctx.hintUsed,
+          hintCount: ctx.hintCount,
+          autoStartPractice: "1",
+        },
+      });
+      return;
+    }
+
     const result = await doStart();
     if (result.kind === "success") {
       navigate({
