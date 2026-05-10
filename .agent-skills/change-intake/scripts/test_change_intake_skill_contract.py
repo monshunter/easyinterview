@@ -16,3 +16,14 @@ def test_skill_mentions_matcher_script_and_post_pass_reconcile():
     text = SKILL_PATH.read_text(encoding="utf-8")
     assert ".agent-skills/change-intake/scripts/match_change_context.py" in text
     assert "invoke `/retrospective --this` before final close-out" in text
+
+
+def test_skill_requires_branch_guard_before_mutation():
+    text = SKILL_PATH.read_text(encoding="utf-8")
+    assert "## Branch Guard Before Mutation" in text
+    assert "git status --short --branch" in text
+    assert "Never revise spec / plan / checklist on the default parent branch." in text
+    assert (
+        "If dirty changes already came from the current session while still on the"
+        in text
+    )

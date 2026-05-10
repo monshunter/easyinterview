@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-10](./2026-05-10-frontend-dev-mock-runtime-assessment.md) | Frontend Dev Mock Runtime 交付复盘 | #assessment |
 | [2026-05-10](./2026-05-10-mockruntime-named-scenario-drift-assessment.md) | Mockruntime Named Scenario Drift 交付复盘 | #assessment |
 | [2026-05-10](./2026-05-10-backend-practice-001-l2-remediation-assessment.md) | Backend Practice 001 L2 Remediation 交付复盘 | #assessment |
 | [2026-05-09](./2026-05-09-backend-practice-001-orchestration-assessment.md) | Backend Practice 001 Orchestration 交付复盘 | #assessment |
