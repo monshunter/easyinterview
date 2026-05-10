@@ -9,11 +9,16 @@ import type { Route } from "../../routes";
 import type { JobMatchRecommendation } from "../../../api/generated/types";
 
 import { RecommendedTab } from "./RecommendedTab";
+import { applySearchFilter } from "./searchFilters";
+import { SearchTab, type SearchResultFilter } from "./SearchTab";
 import { useAgentScanStatus } from "./useAgentScanStatus";
 import { useDismissRecommendation } from "./useDismissRecommendation";
 import { useJobMatchProfile } from "./useJobMatchProfile";
 import { useJobMatchRecommendations } from "./useJobMatchRecommendations";
+import { useSavedSearches, useCreateSavedSearch } from "./useSavedSearches";
+import { useSearchJobs } from "./useSearchJobs";
 import { useToggleWatchlist } from "./useToggleWatchlist";
+import type { SavedSearch } from "../../../api/generated/types";
 
 type JdMatchAction =
   | "save"
@@ -238,6 +243,110 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
       void dismissCtl.dismiss(rec);
     },
     [dismissCtl, isUnauthenticated, requestAuthForJdMatch, t],
+  );
+
+  // Search tab state — query is local to the tab session and resets on tab
+  // switch / unmount per plan §4.6 privacy contract (no localStorage / URL).
+  const [query, setQuery] = useState<string>("");
+  const [resultFilter, setResultFilter] =
+    useState<SearchResultFilter>("all");
+  const [savedSearchesOverlay, setSavedSearchesOverlay] = useState<
+    SavedSearch[]
+  >([]);
+
+  const searchTabActive = tab === "search";
+  const searchJobs = useSearchJobs();
+  const savedSearchesQuery = useSavedSearches(searchTabActive);
+  const handleSavedSearchCreated = useCallback((saved: SavedSearch) => {
+    setSavedSearchesOverlay((prev) => [saved, ...prev]);
+  }, []);
+  const createSavedSearchCtl = useCreateSavedSearch({
+    onCreated: handleSavedSearchCreated,
+  });
+
+  // Reset query and abort in-flight search when leaving the Search tab.
+  useEffect(() => {
+    if (!searchTabActive) {
+      setQuery("");
+      setResultFilter("all");
+      searchJobs.abort();
+      searchJobs.reset();
+      setSavedSearchesOverlay([]);
+    }
+    // We deliberately omit `searchJobs` from deps; its identity is stable
+    // enough and abort+reset are idempotent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTabActive]);
+
+  const requestAuthForSearchAction = useCallback(
+    (action: JdMatchAction, label: string) => {
+      requestAuth({
+        type: "jd_match_action",
+        label,
+        route: "jd_match",
+        params: { tab: "search", action },
+      });
+    },
+    [requestAuth],
+  );
+
+  const handleRunSearch = useCallback(() => {
+    if (!query.trim()) return;
+    if (isUnauthenticated) {
+      requestAuthForSearchAction(
+        "run_search",
+        t("jdMatch.search.runButton"),
+      );
+      return;
+    }
+    void searchJobs.run(query);
+  }, [
+    query,
+    isUnauthenticated,
+    requestAuthForSearchAction,
+    searchJobs,
+    t,
+  ]);
+
+  const handleSaveCurrentSearch = useCallback(() => {
+    if (!query.trim()) return;
+    if (isUnauthenticated) {
+      requestAuthForSearchAction(
+        "create_saved_search",
+        t("jdMatch.search.savedSearchSaveCurrent"),
+      );
+      return;
+    }
+    void createSavedSearchCtl.create({ label: query.trim(), query });
+  }, [
+    query,
+    isUnauthenticated,
+    requestAuthForSearchAction,
+    createSavedSearchCtl,
+    t,
+  ]);
+
+  const handleOpenJobFromSearch = useCallback(
+    (rec: JobMatchRecommendation) => {
+      setSelectedId(rec.id);
+      setTab("recommended");
+    },
+    [],
+  );
+
+  const handleCreateSavedSearchRetry = useCallback(() => {
+    if (!query.trim()) return;
+    void createSavedSearchCtl.create({ label: query.trim(), query });
+  }, [query, createSavedSearchCtl]);
+
+  const filteredResults = useMemo(
+    () => applySearchFilter(searchJobs.results, resultFilter),
+    [searchJobs.results, resultFilter],
+  );
+
+  const mergedSavedSearches = useMemo(
+    () => [...savedSearchesOverlay, ...savedSearchesQuery.items],
+    [savedSearchesOverlay, savedSearchesQuery.items],
   );
 
   const initials = computeInitials(profile?.displayName);
@@ -572,6 +681,26 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
           onOpenSource={handleOpenSource}
           onMarkNotRelevant={handleDismiss}
           onRetry={recsQuery.retry}
+        />
+      ) : null}
+      {tab === "search" ? (
+        <SearchTab
+          query={query}
+          searching={searchJobs.searching}
+          results={filteredResults}
+          savedSearches={mergedSavedSearches}
+          resultFilter={resultFilter}
+          error={searchJobs.error}
+          savedSearchesError={savedSearchesQuery.error}
+          savedSearchCreating={createSavedSearchCtl.creating}
+          savedSearchCreateError={createSavedSearchCtl.error}
+          hasRunOnce={searchJobs.hasRunOnce}
+          setQuery={setQuery}
+          onRun={handleRunSearch}
+          onSaveCurrent={handleSaveCurrentSearch}
+          setResultFilter={setResultFilter}
+          onOpenJob={handleOpenJobFromSearch}
+          onCreateSavedSearchRetry={handleCreateSavedSearchRetry}
         />
       ) : null}
     </section>
