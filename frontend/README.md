@@ -55,12 +55,15 @@ requestAuth({
 
 - [`src/api/generated/client.ts`](./src/api/generated/client.ts) 是 B2 OpenAPI 生成的强类型客户端，禁止手改。
 - [`src/api/mockTransport.ts`](./src/api/mockTransport.ts) 提供 `createFixtureBackedFetch + createFixtureRegistry`，scenario 通过请求头 `Prefer: example=<scenario>` 选择 fixture。
+- [`src/api/clientFactory.ts`](./src/api/clientFactory.ts) 是正式 bootstrap 入口：Vite dev (`import.meta.env.DEV`) 默认使用 fixture-backed client，production 默认使用 same-origin `/api/v1`。
+- 需要在 dev 下打真实 backend 时显式运行 `VITE_EI_API_MODE=real pnpm --filter @easyinterview/frontend dev`；未设置 `VITE_EI_API_BASE_URL` 时默认指向 `http://localhost:8080/api/v1`，也可设置完整 API base URL（例如 `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`）。不要依赖相对 `/api/v1`，否则浏览器会打到 Vite 前端端口 5173。
 - App 的 runtime + auth 状态通过 [`src/app/runtime/AppRuntimeProvider.tsx`](./src/app/runtime/AppRuntimeProvider.tsx) 暴露：`useAppRuntime()` 拿到 `client / runtime / auth / refreshAuth`；非 React 路径用 [`src/lib/runtime-config`](./src/lib/runtime-config) 直接读取 runtime config。
 - D1 only wires `getRuntimeConfig` / `getMe` / `startAuthEmailChallenge` / `verifyAuthEmailChallenge` / `logout`。**新增 client 操作必须先修订 B2 + C1 spec**，然后通过 `src/app/auth/authContractGate.test.ts` 把允许集合扩到允许列表。
 
 ### 2.4 Mock 数据源边界
 
 - 生产入口与测试均以 `openapi/fixtures/<tag>/<operationId>.json` 为唯一 mock 来源；`src/app/scope.test.ts` 阻止 `frontend/src` 直接 import `ui-design/src/data*`。
+- Vite dev 默认也以 `openapi/fixtures/<tag>/<operationId>.json` 为 mock 来源，确保未启动真实 backend 时仍能看到已开发页面；真实 backend 联调必须显式切 `VITE_EI_API_MODE=real`。
 - 缺失 scenario 必须先在 fixtures 仓库补，再消费；`createFixtureBackedFetch` 在未知 scenario 上 fail loudly。
 - 新增或改动业务数据消费时，前端 owner 必须同步维护 [development operation matrix](../docs/development.md#21-operation-matrix-requirement)，不得把 fixture-backed UI 误标为真实 backend 闭环。
 - 只有 `src/api/generated/client.ts` 暴露的 generated method 和 `src/api/mockTransport.ts` 的 fixture-backed fetch 可以作为 API 接入边界；不得在 screen 内手写 ad hoc fetch shape 或复制 fixture JSON。

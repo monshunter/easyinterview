@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-10](./2026-05-10-frontend-dev-mock-runtime-assessment.md) | Frontend Dev Mock Runtime 交付复盘 | #assessment |
 | [2026-05-09](./2026-05-09-frontend-workspace-follow-up-review-assessment.md) | Frontend Workspace Follow-up Review 交付复盘 | #assessment |
 | [2026-05-09](./2026-05-09-frontend-workspace-l2-remediation-assessment.md) | Frontend Workspace L2 Remediation 交付复盘 | #assessment |
 | [2026-05-09](./2026-05-09-prompt-rubric-registry-l2-remediation-assessment.md) | Prompt Rubric Registry L2 Remediation 交付复盘 | #assessment |

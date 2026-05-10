@@ -6,7 +6,7 @@ import { createRoot } from "react-dom/client";
 // ui-design/src/primitives.jsx.
 import "./app/theme/global.css";
 
-import { EasyInterviewClient } from "./api/generated/client";
+import { createAppClient } from "./api/clientFactory";
 import { App } from "./app/App";
 
 const root = document.getElementById("root");
@@ -17,6 +17,6 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <App client={new EasyInterviewClient()} />
+    <App client={createAppClient()} />
   </StrictMode>,
 );

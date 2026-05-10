@@ -31,6 +31,7 @@ describe('AI vocabulary generated constants', () => {
       AI_VOCABULARY_FIELDS.PROMPT_VERSION,
       AI_VOCABULARY_FIELDS.RUBRIC_VERSION,
       AI_VOCABULARY_FIELDS.LANGUAGE,
+      AI_VOCABULARY_FIELDS.FEATURE_KEY,
       AI_VOCABULARY_FIELDS.FEATURE_FLAG,
       AI_VOCABULARY_FIELDS.DATA_SOURCE_VERSION,
       AI_VOCABULARY_FIELDS.FROM_PROVIDER,
@@ -58,6 +59,7 @@ describe('AI vocabulary generated constants', () => {
     expect(AI_VOCABULARY_FIELDS.PROMPT_VERSION).toBe('prompt_version');
     expect(AI_VOCABULARY_FIELDS.RUBRIC_VERSION).toBe('rubric_version');
     expect(AI_VOCABULARY_FIELDS.LANGUAGE).toBe('language');
+    expect(AI_VOCABULARY_FIELDS.FEATURE_KEY).toBe('feature_key');
     expect(AI_VOCABULARY_FIELDS.FEATURE_FLAG).toBe('feature_flag');
     expect(AI_VOCABULARY_FIELDS.DATA_SOURCE_VERSION).toBe('data_source_version');
     expect(AI_VOCABULARY_FIELDS.FROM_PROVIDER).toBe('from_provider');
