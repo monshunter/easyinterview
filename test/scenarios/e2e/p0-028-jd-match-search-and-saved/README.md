@@ -9,7 +9,8 @@
 
 Verifies the Search tab end-to-end loop landed in plan 002 Phase 4:
 
-- Natural-language search bar + Run web search button + source chips
+- Natural-language search bar + Run web search button + `SOURCES` label +
+  five source chips, including Company sites / 公司官网
 - 5-step AGENT scanning panel during in-flight search (`opacity 1/1/1/0.4/0.4`
   i18n-driven, no setInterval, no real step advancement)
 - Saved searches list (`listSavedSearches` 1 call on tab entry) + create
@@ -34,6 +35,8 @@ Verifies the Search tab end-to-end loop landed in plan 002 Phase 4:
 ## Verification Points
 
 - All Search-tab Vitest spec files pass
+- Source-level parity asserts `NATURAL LANGUAGE SEARCH`, the search icon,
+  and `jdmatch-search-source-company`
 - 5-step scanning panel testid + opacity gradient asserted
 - Filter switching does not enqueue an extra `searchJobs` call
 - Negative grep on dynamic JD numbers and on `query` / `label` leaks

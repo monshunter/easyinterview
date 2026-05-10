@@ -38,10 +38,12 @@ const RECOMMENDED_REQUIRED_KEYS = [
 ];
 
 const SEARCH_REQUIRED_KEYS = [
+  "jdMatch.search.naturalLanguageHeading",
   "jdMatch.search.inputPlaceholder",
   "jdMatch.search.runButton",
   "jdMatch.search.runButtonRunning",
   "jdMatch.search.dataSourcesHeading",
+  "jdMatch.search.dataSourceCompany",
   "jdMatch.search.searchingPanelLabel",
   "jdMatch.search.searchingStep1",
   "jdMatch.search.searchingStep2",

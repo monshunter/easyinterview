@@ -28,14 +28,22 @@ done
 PENDING_STATE_FILE="$REPO_ROOT/frontend/src/app/screens/jd_match/pendingJdMatchActionState.ts"
 SCREEN_FILE="$REPO_ROOT/frontend/src/app/screens/jd_match/JDMatchScreen.tsx"
 AUTO_RESUME_TEST="$REPO_ROOT/frontend/src/app/screens/jd_match/JDMatchAutoResume.test.tsx"
+SEARCH_TAB_TEST="$REPO_ROOT/frontend/src/app/screens/jd_match/SearchTab.test.tsx"
+PIXEL_TEST="$REPO_ROOT/frontend/tests/pixel-parity/jd_match.spec.ts"
 test -s "$PENDING_STATE_FILE"
 test -s "$SCREEN_FILE"
 test -s "$AUTO_RESUME_TEST"
+test -s "$SEARCH_TAB_TEST"
+test -s "$PIXEL_TEST"
 grep -Fq 'pending-jd-match-' "$PENDING_STATE_FILE"
 grep -Fq 'pendingJdMatchActionId' "$SCREEN_FILE"
 grep -Fq 'consumePendingJdMatchAction' "$SCREEN_FILE"
 grep -Fq 'secret frontend remote' "$AUTO_RESUME_TEST"
 grep -Fq 'not.toContain(secretQuery)' "$AUTO_RESUME_TEST"
+grep -Fq 'NATURAL LANGUAGE SEARCH' "$SEARCH_TAB_TEST"
+grep -Fq 'jdmatch-search-input-icon' "$SEARCH_TAB_TEST"
+grep -Fq 'jdmatch-search-source-company' "$SEARCH_TAB_TEST"
+grep -Fq 'jdmatch-search-source-company' "$PIXEL_TEST"
 if grep -Eq 'params: *\{[^}]*query|params: *\{[^}]*label' "$SCREEN_FILE"; then
   echo 'Search pendingAction params must not carry query or label directly' >&2
   exit 1

@@ -15,10 +15,11 @@ const FILTER_KEYS: SearchResultFilter[] = ["all", "strong", "remote", "unseen"];
 const RESULTS_CAP = 6;
 
 const SOURCE_KEYS = [
-  "linkedin",
-  "boss",
-  "maimai",
-  "lagou",
+  { key: "linkedin", count: 42 },
+  { key: "boss", count: 128 },
+  { key: "maimai", count: 36 },
+  { key: "lagou", count: 24 },
+  { key: "company", count: 18 },
 ] as const;
 
 export interface SearchTabProps {
@@ -76,35 +77,63 @@ export const SearchTab: FC<SearchTabProps> = ({
       >
         <div
           className="ei-label"
+          data-testid="jdmatch-search-natural-language-heading"
           style={{
             color: "var(--ei-color-fg-tertiary)",
             marginBottom: 10,
           }}
         >
-          {t("jdMatch.search.dataSourcesHeading")}
+          {t("jdMatch.search.naturalLanguageHeading")}
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <input
-            data-testid="jdmatch-search-input"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !searching && query.trim()) onRun();
-            }}
-            placeholder={t("jdMatch.search.inputPlaceholder")}
+          <div
             style={{
               flex: 1,
-              padding: "12px 14px",
-              fontSize: 14,
-              color: "var(--ei-color-fg-primary)",
-              background: "var(--ei-color-bg)",
-              border: "1px solid var(--ei-color-rule-strong)",
-              borderRadius: "var(--ei-radius-sm)",
-              fontFamily: "var(--ei-font-sans)",
-              outline: "none",
-              boxSizing: "border-box",
+              position: "relative",
             }}
-          />
+          >
+            <svg
+              aria-hidden="true"
+              data-testid="jdmatch-search-input-icon"
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              style={{
+                position: "absolute",
+                left: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "var(--ei-color-fg-tertiary)",
+                pointerEvents: "none",
+              }}
+            >
+              <path
+                d="M10.5 4a6.5 6.5 0 0 1 5.16 10.45l4.45 4.44-1.42 1.42-4.44-4.45A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"
+                fill="currentColor"
+              />
+            </svg>
+            <input
+              data-testid="jdmatch-search-input"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !searching && query.trim()) onRun();
+              }}
+              placeholder={t("jdMatch.search.inputPlaceholder")}
+              style={{
+                width: "100%",
+                padding: "12px 14px 12px 36px",
+                fontSize: 14,
+                color: "var(--ei-color-fg-primary)",
+                background: "var(--ei-color-bg)",
+                border: "1px solid var(--ei-color-rule-strong)",
+                borderRadius: "var(--ei-radius-sm)",
+                fontFamily: "var(--ei-font-sans)",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
           <button
             type="button"
             data-testid="jdmatch-search-run"
@@ -138,10 +167,22 @@ export const SearchTab: FC<SearchTabProps> = ({
             alignItems: "center",
           }}
         >
-          {SOURCE_KEYS.map((k) => (
+          <span
+            data-testid="jdmatch-search-sources-label"
+            style={{
+              fontSize: 11,
+              color: "var(--ei-color-fg-tertiary)",
+              fontFamily: "var(--ei-font-mono)",
+              letterSpacing: "0.06em",
+              marginRight: 4,
+            }}
+          >
+            {t("jdMatch.search.dataSourcesHeading")}
+          </span>
+          {SOURCE_KEYS.map((source) => (
             <span
-              key={k}
-              data-testid={`jdmatch-search-source-${k}`}
+              key={source.key}
+              data-testid={`jdmatch-search-source-${source.key}`}
               style={{
                 padding: "2px 8px",
                 fontSize: 11,
@@ -152,7 +193,15 @@ export const SearchTab: FC<SearchTabProps> = ({
                 color: "var(--ei-color-fg-secondary)",
               }}
             >
-              {t(`jdMatch.search.dataSource${capitalize(k)}` as never)}
+              {t(`jdMatch.search.dataSource${capitalize(source.key)}` as never)}
+              <span
+                style={{
+                  color: "var(--ei-color-fg-tertiary)",
+                  marginLeft: 4,
+                }}
+              >
+                {source.count}
+              </span>
             </span>
           ))}
         </div>

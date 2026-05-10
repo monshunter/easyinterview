@@ -167,6 +167,10 @@ D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
 
    baseline 文件位于 `frontend/tests/pixel-parity/screenshot.spec.ts-snapshots/`，默认通过 `frontend/.gitignore` 排除入 git；CI / 本地各自维护。
 
+   Clean checkout gate 不能依赖被 `.gitignore` 排除的本地 snapshot baseline：常规 PASS 证据必须来自 DOM anchor、computed style、bounding box、responsive geometry 或 screenshot smoke（例如非空截图 buffer）。只有在 baseline 可由 CI / checkout 稳定取得或本次显式 `--update-snapshots` 维护时，才能把 `toHaveScreenshot` diff 作为完成 gate。
+
+   修改 frontend bundle 后重跑 Playwright parity 时，先确认 4173 端口没有复用旧 `dist` 的 server；若存在 stale server，停止后重新运行 gate，避免 `reuseExistingServer` 读取旧构建产物。
+
    离线 / 无外网时的局限：`ui-design/index.html` 通过 unpkg.com 加载 React + Babel，并通过 Google Fonts 加载字体；离线运行 ui-design 对照断言会失败。需要离线运行时按 [`test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/README.md`](../test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/README.md) §7 vendor CDN 资源。
 
 #### `ui-design` 原生迁移规则

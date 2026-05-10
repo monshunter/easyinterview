@@ -65,7 +65,7 @@ function wrap(node: ReactNode, lang: "zh" | "en" = "en") {
 }
 
 describe("SearchTab — view-model parity (item 4.1)", () => {
-  it("renders root + input + run + sources testids", () => {
+  it("renders natural-language search heading, input, run, icon, and five source chips", () => {
     wrap(
       <SearchTab
         query=""
@@ -81,9 +81,44 @@ describe("SearchTab — view-model parity (item 4.1)", () => {
       />,
     );
     expect(screen.getByTestId("jdmatch-search-tab")).toBeInTheDocument();
+    expect(screen.getByTestId("jdmatch-search-natural-language-heading"))
+      .toHaveTextContent("NATURAL LANGUAGE SEARCH");
+    expect(screen.getByText("NATURAL LANGUAGE SEARCH")).toBeInTheDocument();
+    expect(screen.getByTestId("jdmatch-search-input-icon")).toBeInTheDocument();
     expect(screen.getByTestId("jdmatch-search-input")).toBeInTheDocument();
     expect(screen.getByTestId("jdmatch-search-run")).toBeInTheDocument();
     expect(screen.getByTestId("jdmatch-search-sources")).toBeInTheDocument();
+    expect(screen.getByTestId("jdmatch-search-sources-label"))
+      .toHaveTextContent("SOURCES");
+    expect(screen.getByText("SOURCES")).toBeInTheDocument();
+    for (const k of ["linkedin", "boss", "maimai", "lagou", "company"]) {
+      expect(screen.getByTestId(`jdmatch-search-source-${k}`))
+        .toBeInTheDocument();
+    }
+  });
+
+  it("renders zh natural-language search heading and company-site source", () => {
+    wrap(
+      <SearchTab
+        query=""
+        searching={false}
+        results={[]}
+        savedSearches={[]}
+        resultFilter="all"
+        error={null}
+        savedSearchesError={null}
+        savedSearchCreating={false}
+        savedSearchCreateError={null}
+        {...noopHandlers}
+      />,
+      "zh",
+    );
+    expect(screen.getByTestId("jdmatch-search-natural-language-heading"))
+      .toHaveTextContent("自然语言搜索");
+    expect(screen.getByTestId("jdmatch-search-sources-label"))
+      .toHaveTextContent("数据源");
+    expect(screen.getByTestId("jdmatch-search-source-company"))
+      .toHaveTextContent("公司官网");
   });
 
   it("does NOT render searching panel when searching=false", () => {
