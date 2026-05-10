@@ -20,6 +20,7 @@ IGNORED_DIRS = {".git", ".next", "coverage", "dist", "node_modules", "vendor"}
 CONTRACT_GENERATED_DIRS = (
     Path("backend/internal/shared/events"),
     Path("backend/internal/shared/jobs"),
+    Path("backend/internal/shared/featurekeys"),
     Path("frontend/src/lib/events"),
     Path("frontend/src/lib/jobs"),
 )

@@ -4,6 +4,8 @@ import (
 	"context"
 	"strings"
 	"sync/atomic"
+
+	"github.com/monshunter/easyinterview/backend/internal/shared/featurekeys"
 )
 
 // resolveSnapshot looks up the active prompt+rubric pair for a feature_key
@@ -78,27 +80,31 @@ func selectByLanguage[T any](entries map[string]T, requested string) (any, strin
 // defaultModelProfile maps a feature_key to its spec §3.1.1 default
 // model_profile_name. Resolve does not look up the A3 profile catalog;
 // callers translate the profile name through their own A3 wiring.
+//
+// All feature_key strings are sourced through the featurekeys package so the
+// events lint gate ("naked event/job literal") stays green even when a
+// feature_key value semantically overlaps with an AsynqTask name.
 func defaultModelProfile(featureKey string) string {
-	switch featureKey {
-	case "target.import.parse":
+	switch FeatureKey := featurekeys.FeatureKey(featureKey); FeatureKey {
+	case featurekeys.TargetImportParse:
 		return "target.import.default"
-	case "practice.session.first_question":
+	case featurekeys.PracticeSessionFirstQuestion:
 		return "practice.first_question.default"
-	case "practice.session.follow_up":
+	case featurekeys.PracticeSessionFollowUp:
 		return "practice.followup.default"
-	case "practice.turn.lightweight_observe":
+	case featurekeys.PracticeTurnLightweightObserve:
 		return "practice.turn_observe.default"
-	case "report.generate":
+	case featurekeys.ReportGenerate:
 		return "report.generate.default"
-	case "report.question_assessment":
+	case featurekeys.ReportQuestionAssessment:
 		return "report.assessment.default"
-	case "resume.parse":
+	case featurekeys.ResumeParse:
 		return "resume.parse.default"
-	case "resume.tailor.gap_review":
+	case featurekeys.ResumeTailorGapReview:
 		return "resume.tailor.default"
-	case "resume.tailor.bullet_suggestions":
+	case featurekeys.ResumeTailorBulletSuggestions:
 		return "resume.tailor.default"
-	case "debrief.generate":
+	case featurekeys.DebriefGenerate:
 		return "debrief.generate.default"
 	default:
 		return ""
