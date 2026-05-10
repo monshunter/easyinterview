@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-10](2026-05-10.md) | `fix(change-intake): require branch guard before mutation` | #fix #docs #test |
 | [2026-05-09](2026-05-09.md) | `docs(frontend-home): derive jd_match plan and bump spec to v1.2` | #docs |
 | [2026-05-09](2026-05-09.md) | `docs(backend-practice): derive orchestration plan and bump spec to v1.4` | #docs |
 | [2026-05-09](2026-05-09.md) | `fix(review): address workspace and provenance findings` | #fix #ui #test |

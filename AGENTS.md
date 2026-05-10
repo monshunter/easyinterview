@@ -249,7 +249,9 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 
 - 默认父分支: main（优先自动探测；若未配置则使用当前主开发分支）
 - `/implement` 自动从父分支创建 feature branch
+- 任何会写入文件的入口 skill（包括 `/change-intake` 的原地 spec/plan/checklist 修订、`/plan-review --fix`、`/plan-code-review --fix`、`/bug-report`、`/retrospective`、`/create-doc`）都必须在首次文件编辑前执行分支前置门禁；不得在默认父分支上修改代码、文档、计划、报告或日志
 - 创建 feature branch 前必须先更新父分支到最新远端状态；更新必须采用 fast-forward-only 语义，失败时停止并报告，不得从过期父分支派生新分支
+- 若发现已经在默认父分支上产生了当前会话的未提交改动，必须立即停止继续编辑，先在确认父分支与远端同步后创建 feature branch 并保留这些改动，再报告恢复动作；若 dirty 内容来源不明或可能属于用户，必须先询问用户，不得擅自 stash、reset 或 checkout
 - phase commit 只在当前 feature branch 上提交并记录工作日志，默认不自动 merge / ff-merge 回父分支
 - 多方并行协作期间，父分支整合由用户在明确的 merge / rebase / PR review 阶段决定；Agent 不得在 phase 边界自动切回父分支合并
 - 所有 commit message 必须使用英文，并通过 ASCII-only 校验；`/work-journal` 写入日志和索引的关联 Commit 必须与真实英文 commit message 完全一致。
