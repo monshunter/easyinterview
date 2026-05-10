@@ -78,6 +78,21 @@ function isSearchAction(
   return action === "run_search" || action === "create_saved_search";
 }
 
+function normalizeHttpSourceUrl(
+  sourceUrl: string | null | undefined,
+): string | null {
+  if (!sourceUrl) return null;
+  try {
+    const parsed = new URL(sourceUrl);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.href;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 const PROFILE_INITIALS_FALLBACK = "—";
 
 function computeInitials(name?: string | null): string {
@@ -284,9 +299,10 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
   );
 
   const handleOpenSource = useCallback((rec: JobMatchRecommendation) => {
-    if (!rec.sourceUrl) return;
+    const sourceUrl = normalizeHttpSourceUrl(rec.sourceUrl);
+    if (!sourceUrl) return;
     if (typeof window !== "undefined") {
-      window.open(rec.sourceUrl, "_blank", "noopener,noreferrer");
+      window.open(sourceUrl, "_blank", "noopener,noreferrer");
     }
   }, []);
 

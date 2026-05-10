@@ -50,7 +50,9 @@ export function useSearchJobs(): UseSearchJobsResult {
 
   useEffect(
     () => () => {
+      seqRef.current += 1;
       abortRef.current?.abort();
+      abortRef.current = null;
     },
     [],
   );
@@ -105,12 +107,14 @@ export function useSearchJobs(): UseSearchJobsResult {
   );
 
   const abort = useCallback(() => {
+    seqRef.current += 1;
     abortRef.current?.abort();
     abortRef.current = null;
     setSearching(false);
   }, []);
 
   const reset = useCallback(() => {
+    seqRef.current += 1;
     abortRef.current?.abort();
     abortRef.current = null;
     setSearching(false);

@@ -55,6 +55,9 @@ export function createFixtureBackedFetch(
 		if (scenario.response.body !== undefined && !headers.has("Content-Type")) {
 			headers.set("Content-Type", "application/json");
 		}
+		throwIfAborted(request.signal);
+		await waitForMockDelay(readMockDelayMs(headers), request.signal);
+		throwIfAborted(request.signal);
 		return new Response(
 			scenario.response.body === undefined ? null : JSON.stringify(scenario.response.body),
 			{ status: scenario.response.status, headers },
@@ -62,7 +65,10 @@ export function createFixtureBackedFetch(
 	};
 }
 
-function normalizeRequest(input: RequestInfo | URL, init?: RequestInit): { method: string; url: string; headers: Headers } {
+function normalizeRequest(
+	input: RequestInfo | URL,
+	init?: RequestInit,
+): { method: string; url: string; headers: Headers; signal?: AbortSignal | null } {
 	if (input instanceof Request) {
 		const headers = new Headers(input.headers);
 		new Headers(init?.headers).forEach((value, key) => headers.set(key, value));
@@ -70,13 +76,59 @@ function normalizeRequest(input: RequestInfo | URL, init?: RequestInit): { metho
 			method: init?.method ?? input.method,
 			url: input.url,
 			headers,
+			signal: init?.signal ?? input.signal,
 		};
 	}
 	return {
 		method: init?.method ?? "GET",
 		url: input instanceof URL ? input.href : input,
 		headers: new Headers(init?.headers),
+		signal: init?.signal,
 	};
+}
+
+function readMockDelayMs(headers: Headers): number {
+	const raw = headers.get("X-Mock-Delay-Ms");
+	if (!raw) return 0;
+	const parsed = Number(raw);
+	if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+	return Math.floor(parsed);
+}
+
+function waitForMockDelay(
+	delayMs: number,
+	signal?: AbortSignal | null,
+): Promise<void> {
+	if (delayMs <= 0) return Promise.resolve();
+	return new Promise<void>((resolve, reject) => {
+		const timer = setTimeout(() => {
+			signal?.removeEventListener("abort", onAbort);
+			resolve();
+		}, delayMs);
+		const onAbort = () => {
+			clearTimeout(timer);
+			reject(createAbortError());
+		};
+		if (signal?.aborted) {
+			clearTimeout(timer);
+			reject(createAbortError());
+			return;
+		}
+		signal?.addEventListener("abort", onAbort, { once: true });
+	});
+}
+
+function throwIfAborted(signal?: AbortSignal | null): void {
+	if (signal?.aborted) throw createAbortError();
+}
+
+function createAbortError(): DOMException | Error {
+	if (typeof DOMException !== "undefined") {
+		return new DOMException("Aborted", "AbortError");
+	}
+	const error = new Error("Aborted");
+	error.name = "AbortError";
+	return error;
 }
 
 function isOperationId(value: string): value is OperationId {

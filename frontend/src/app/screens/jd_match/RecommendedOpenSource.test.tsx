@@ -21,13 +21,39 @@ import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRun
 
 import { JDMatchScreen } from "./JDMatchScreen";
 
-function buildClient() {
+function buildClient(opts: { sourceUrlOverride?: string } = {}) {
+  const recommendationsFixture =
+    opts.sourceUrlOverride === undefined
+      ? listJobRecommendationsFixture
+      : {
+          ...listJobRecommendationsFixture,
+          scenarios: {
+            ...listJobRecommendationsFixture.scenarios,
+            default: {
+              ...listJobRecommendationsFixture.scenarios.default,
+              response: {
+                ...listJobRecommendationsFixture.scenarios.default.response,
+                body: {
+                  ...listJobRecommendationsFixture.scenarios.default.response
+                    .body,
+                  items:
+                    listJobRecommendationsFixture.scenarios.default.response.body.items.map(
+                      (item, index) =>
+                        index === 0
+                          ? { ...item, sourceUrl: opts.sourceUrlOverride }
+                          : item,
+                    ),
+                },
+              },
+            },
+          },
+        };
   return new EasyInterviewClient({
     fetch: createFixtureBackedFetch(
       createFixtureRegistry([
         getJobMatchProfileFixture,
         getAgentScanStatusFixture,
-        listJobRecommendationsFixture,
+        recommendationsFixture,
         getMeFixture,
         getRuntimeConfigFixture,
       ]),
@@ -35,8 +61,8 @@ function buildClient() {
   });
 }
 
-function wrap(ui: ReactNode) {
-  const client = buildClient();
+function wrap(ui: ReactNode, opts: { sourceUrlOverride?: string } = {}) {
+  const client = buildClient(opts);
   const navigate = vi.fn();
   const tree = (
     <DisplayPreferencesProvider initial={{ lang: "en" }}>
@@ -84,6 +110,17 @@ describe("RecommendedOpenSource integration (item 3.6)", () => {
       "jdmatch-detail-action-source",
     );
     expect((sourceBtn as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(sourceBtn);
+    expect(openSpy).not.toHaveBeenCalled();
+  });
+
+  it("Source button ignores non-http sourceUrl schemes", async () => {
+    wrap(<JDMatchScreen route={{ name: "jd_match", params: {} }} />, {
+      sourceUrlOverride: "javascript:alert(1)",
+    });
+    const sourceBtn = await screen.findByTestId(
+      "jdmatch-detail-action-source",
+    );
     fireEvent.click(sourceBtn);
     expect(openSpy).not.toHaveBeenCalled();
   });

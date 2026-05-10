@@ -185,6 +185,58 @@ describe("useSearchJobs (item 4.2)", () => {
     expect(result.current.searching).toBe(false);
   });
 
+  it("reset() prevents late in-flight responses from repopulating results when abort is ignored", async () => {
+    let resolveFn: ((value: Response) => void) | null = null;
+    const abortIgnoringFetch = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFn = resolve;
+        }),
+    );
+    const client = new EasyInterviewClient({
+      fetch: abortIgnoringFetch as unknown as typeof fetch,
+    });
+    const { result } = renderHook(() => useSearchJobs(), {
+      wrapper: withRuntime(client),
+    });
+    let runPromise: Promise<void> | null = null;
+    await act(async () => {
+      runPromise = result.current.run("late response");
+    });
+    expect(result.current.searching).toBe(true);
+
+    await act(async () => {
+      result.current.reset();
+    });
+    expect(result.current.results).toEqual([]);
+    expect(result.current.hasRunOnce).toBe(false);
+
+    await act(async () => {
+      resolveFn?.(
+        new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: "late-result",
+                title: "Late Result",
+                company: "Ignored Co",
+              },
+            ],
+            searchRunId: "run-late",
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      );
+      await runPromise;
+    });
+    expect(result.current.results).toEqual([]);
+    expect(result.current.hasRunOnce).toBe(false);
+    expect(result.current.searching).toBe(false);
+  });
+
   it("inert when no AppRuntimeProvider is mounted", async () => {
     const { result } = renderHook(() => useSearchJobs());
     await act(async () => {

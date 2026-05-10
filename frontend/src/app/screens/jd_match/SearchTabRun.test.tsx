@@ -257,9 +257,16 @@ describe("SearchTabRun integration (item 4.2 + 4.8)", () => {
     fireEvent.click(await screen.findByTestId("jdmatch-tab-search"));
     const input = await screen.findByTestId("jdmatch-search-input");
     fireEvent.change(input, { target: { value: "to-be-cleared" } });
+    fireEvent.click(screen.getByTestId("jdmatch-search-run"));
+    expect(
+      await screen.findByTestId("jdmatch-search-searching-panel"),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("jdmatch-tab-recommended"));
     fireEvent.click(screen.getByTestId("jdmatch-tab-search"));
     const inputAgain = await screen.findByTestId("jdmatch-search-input");
     expect((inputAgain as HTMLInputElement).value).toBe("");
+    expect(
+      screen.queryByTestId("jdmatch-search-searching-panel"),
+    ).not.toBeInTheDocument();
   });
 });

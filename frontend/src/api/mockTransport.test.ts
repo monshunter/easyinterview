@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import getMeFixture from "../../../openapi/fixtures/Auth/getMe.json";
 import getRuntimeConfigFixture from "../../../openapi/fixtures/Auth/getRuntimeConfig.json";
@@ -47,5 +47,73 @@ describe("fixture-backed generated client transport", () => {
 		await expect(
 			client.getMe({ headers: { Prefer: "example=does-not-exist" } }),
 		).rejects.toThrow("unknown fixture scenario does-not-exist for operationId: getMe");
+	});
+
+	it("honors fixture X-Mock-Delay-Ms before resolving responses", async () => {
+		vi.useFakeTimers();
+		try {
+			const fetch = createFixtureBackedFetch(
+				createFixtureRegistry([
+					{
+						...getMeFixture,
+						scenarios: {
+							default: {
+								response: {
+									...getMeFixture.scenarios.default.response,
+									headers: {
+										"X-Mock-Delay-Ms": "25",
+									},
+								},
+							},
+						},
+					},
+				]),
+			);
+			const promise = fetch("http://fixture.local/api/v1/me");
+			const settled = vi.fn();
+			void promise.then(settled);
+
+			await vi.advanceTimersByTimeAsync(24);
+			expect(settled).not.toHaveBeenCalled();
+
+			await vi.advanceTimersByTimeAsync(1);
+			const response = await promise;
+			expect(response.status).toBe(200);
+			expect(settled).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("rejects delayed fixture responses when the request is aborted", async () => {
+		vi.useFakeTimers();
+		try {
+			const fetch = createFixtureBackedFetch(
+				createFixtureRegistry([
+					{
+						...getMeFixture,
+						scenarios: {
+							default: {
+								response: {
+									...getMeFixture.scenarios.default.response,
+									headers: {
+										"X-Mock-Delay-Ms": "25",
+									},
+								},
+							},
+						},
+					},
+				]),
+			);
+			const controller = new AbortController();
+			const promise = fetch("http://fixture.local/api/v1/me", {
+				signal: controller.signal,
+			});
+			controller.abort();
+			await expect(promise).rejects.toMatchObject({ name: "AbortError" });
+			await vi.advanceTimersByTimeAsync(25);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });
