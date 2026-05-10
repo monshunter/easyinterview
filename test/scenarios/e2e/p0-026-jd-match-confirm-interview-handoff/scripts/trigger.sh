@@ -2,10 +2,10 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
-OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-017-jd-match-placeholder"
+OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-026-jd-match-confirm-interview-handoff"
 mkdir -p "$OUTPUT_DIR"
 (
   cd "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend exec vitest run \
-    src/app/screens/jd_match/
+    src/app/screens/jd_match/RecommendedConfirmInterview.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"
