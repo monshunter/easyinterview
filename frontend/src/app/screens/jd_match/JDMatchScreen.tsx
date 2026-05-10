@@ -18,7 +18,23 @@ import { useJobMatchRecommendations } from "./useJobMatchRecommendations";
 import { useSavedSearches, useCreateSavedSearch } from "./useSavedSearches";
 import { useSearchJobs } from "./useSearchJobs";
 import { useToggleWatchlist } from "./useToggleWatchlist";
-import type { SavedSearch } from "../../../api/generated/types";
+import { useMarketSignals, useWatchlist } from "./useWatchlist";
+import { WatchlistTab } from "./WatchlistTab";
+import type {
+  SavedSearch,
+  WatchlistItem,
+} from "../../../api/generated/types";
+
+type ToastTone = "ok" | "warn" | "danger" | "neutral";
+type EiToast = (
+  message: string,
+  opts?: { tone?: ToastTone },
+) => void;
+function fireToast(message: string, tone: ToastTone): void {
+  if (typeof window === "undefined") return;
+  const fn = (window as unknown as { eiToast?: EiToast }).eiToast;
+  if (typeof fn === "function") fn(message, { tone });
+}
 
 type JdMatchAction =
   | "save"
@@ -347,6 +363,29 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
   const mergedSavedSearches = useMemo(
     () => [...savedSearchesOverlay, ...savedSearchesQuery.items],
     [savedSearchesOverlay, savedSearchesQuery.items],
+  );
+
+  // Watchlist tab state
+  const watchlistTabActive = tab === "watchlist";
+  const watchlistQuery = useWatchlist(watchlistTabActive);
+  const marketSignalsQuery = useMarketSignals(watchlistTabActive);
+
+  const handleWatchlistChevron = useCallback(
+    (item: WatchlistItem) => {
+      const targetId = item.linkedJobMatchId;
+      const targetExists = visibleItems.some((r) => r.id === targetId);
+      if (targetExists) {
+        setSelectedId(targetId);
+        setTab("recommended");
+        return;
+      }
+      // Fallback: switch to Recommended tab and select the first visible item.
+      const fallback = visibleItems[0]?.id ?? null;
+      setSelectedId(fallback);
+      setTab("recommended");
+      fireToast(t("jdMatch.watchlist.chevronFallbackToast"), "warn");
+    },
+    [visibleItems, t],
   );
 
   const initials = computeInitials(profile?.displayName);
@@ -701,6 +740,17 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
           setResultFilter={setResultFilter}
           onOpenJob={handleOpenJobFromSearch}
           onCreateSavedSearchRetry={handleCreateSavedSearchRetry}
+        />
+      ) : null}
+      {tab === "watchlist" ? (
+        <WatchlistTab
+          items={watchlistQuery.items}
+          loading={watchlistQuery.loading}
+          error={watchlistQuery.error}
+          signals={marketSignalsQuery.signals}
+          signalsLoading={marketSignalsQuery.loading}
+          signalsError={marketSignalsQuery.error}
+          onChevron={handleWatchlistChevron}
         />
       ) : null}
     </section>
