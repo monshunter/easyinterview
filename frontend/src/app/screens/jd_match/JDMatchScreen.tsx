@@ -1,10 +1,27 @@
-import { useState, type FC } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FC } from "react";
 
+import { useRequestAuth } from "../../auth/useRequestAuth";
 import type { Lang } from "../../i18n/messages";
 import { useI18n } from "../../i18n/messages";
+import { useNavigation } from "../../navigation/NavigationProvider";
+import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import type { Route } from "../../routes";
+import type { JobMatchRecommendation } from "../../../api/generated/types";
+
+import { RecommendedTab } from "./RecommendedTab";
 import { useAgentScanStatus } from "./useAgentScanStatus";
+import { useDismissRecommendation } from "./useDismissRecommendation";
 import { useJobMatchProfile } from "./useJobMatchProfile";
+import { useJobMatchRecommendations } from "./useJobMatchRecommendations";
+import { useToggleWatchlist } from "./useToggleWatchlist";
+
+type JdMatchAction =
+  | "save"
+  | "unsave"
+  | "dismiss"
+  | "confirm_interview"
+  | "run_search"
+  | "create_saved_search";
 
 const PROFILE_INITIALS_FALLBACK = "—";
 
@@ -60,13 +77,168 @@ function agentToneColor(tone: AgentStatusEnum): string {
 
 export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
   const { t, lang } = useI18n();
+  const { navigate } = useNavigation();
+  const requestAuth = useRequestAuth();
+  const runtime = useAppRuntimeOptional();
+  const isUnauthenticated =
+    runtime?.auth.status === "unauthenticated" ||
+    runtime?.auth.status === "loading";
   const [tab, setTab] = useState<string>("recommended");
   const profileQuery = useJobMatchProfile();
   const agentQuery = useAgentScanStatus(tab);
+  const recsQuery = useJobMatchRecommendations();
   const profile = profileQuery.data;
   const agent = agentQuery.data;
   const tone = resolveAgentTone(agent?.status);
   const dotColor = agentToneColor(tone);
+
+  // Local view-model overlays: dismissed ids hide cards; saved overrides toggle
+  // the saved flag without mutating the upstream hook's items array. This keeps
+  // optimistic updates revertible without touching cached server data.
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [savedOverrides, setSavedOverrides] = useState<
+    ReadonlyMap<string, boolean>
+  >(new Map());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // First mount or list refresh: pick the first visible item by default.
+  const visibleItems = useMemo<JobMatchRecommendation[]>(
+    () =>
+      recsQuery.items
+        .filter((r) => !hiddenIds.has(r.id))
+        .map((r) =>
+          savedOverrides.has(r.id)
+            ? { ...r, saved: savedOverrides.get(r.id) ?? r.saved }
+            : r,
+        ),
+    [recsQuery.items, hiddenIds, savedOverrides],
+  );
+
+  useEffect(() => {
+    if (visibleItems.length === 0) {
+      if (selectedId !== null) setSelectedId(null);
+      return;
+    }
+    if (
+      selectedId == null ||
+      !visibleItems.some((r) => r.id === selectedId)
+    ) {
+      setSelectedId(visibleItems[0]!.id);
+    }
+  }, [visibleItems, selectedId]);
+
+  const applySaved = useCallback((id: string, savedNext: boolean) => {
+    setSavedOverrides((prev) => {
+      const next = new Map(prev);
+      next.set(id, savedNext);
+      return next;
+    });
+  }, []);
+
+  const lastSelectedRef = useRef<string | null>(null);
+  const applyHide = useCallback(
+    (rec: JobMatchRecommendation) => {
+      const wasSelectedAtCall = lastSelectedRef.current;
+      setHiddenIds((prev) => {
+        const next = new Set(prev);
+        next.add(rec.id);
+        return next;
+      });
+      return () => {
+        setHiddenIds((prev) => {
+          const next = new Set(prev);
+          next.delete(rec.id);
+          return next;
+        });
+        if (wasSelectedAtCall === rec.id) setSelectedId(rec.id);
+      };
+    },
+    [],
+  );
+
+  // Track selected id snapshot for revert callbacks
+  useEffect(() => {
+    lastSelectedRef.current = selectedId;
+  }, [selectedId]);
+
+  const toggle = useToggleWatchlist({ applyOptimistic: applySaved });
+  const dismissCtl = useDismissRecommendation({
+    applyOptimisticHide: applyHide,
+  });
+
+  const requestAuthForJdMatch = useCallback(
+    (rec: JobMatchRecommendation, action: JdMatchAction, label: string) => {
+      requestAuth({
+        type: "jd_match_action",
+        label,
+        route: "jd_match",
+        params: {
+          tab: "recommended",
+          selectedJobMatchId: rec.id,
+          action,
+        },
+      });
+    },
+    [requestAuth],
+  );
+
+  const handleConfirmInterview = useCallback(
+    (rec: JobMatchRecommendation) => {
+      if (isUnauthenticated) {
+        requestAuthForJdMatch(
+          rec,
+          "confirm_interview",
+          t("jdMatch.recommended.actionConfirm"),
+        );
+        return;
+      }
+      navigate({
+        name: "parse",
+        params: { source: "jd_match", sourceJobMatchId: rec.id },
+      });
+    },
+    [navigate, isUnauthenticated, requestAuthForJdMatch, t],
+  );
+
+  const handleOpenSource = useCallback((rec: JobMatchRecommendation) => {
+    if (!rec.sourceUrl) return;
+    if (typeof window !== "undefined") {
+      window.open(rec.sourceUrl, "_blank", "noopener,noreferrer");
+    }
+  }, []);
+
+  const handleToggleSave = useCallback(
+    (rec: JobMatchRecommendation) => {
+      if (isUnauthenticated) {
+        const action: JdMatchAction = rec.saved ? "unsave" : "save";
+        requestAuthForJdMatch(
+          rec,
+          action,
+          rec.saved
+            ? t("jdMatch.recommended.actionUnsave")
+            : t("jdMatch.recommended.actionSave"),
+        );
+        return;
+      }
+      void toggle.toggleSave(rec);
+    },
+    [toggle, isUnauthenticated, requestAuthForJdMatch, t],
+  );
+
+  const handleDismiss = useCallback(
+    (rec: JobMatchRecommendation) => {
+      if (isUnauthenticated) {
+        requestAuthForJdMatch(
+          rec,
+          "dismiss",
+          t("jdMatch.recommended.actionDismiss"),
+        );
+        return;
+      }
+      void dismissCtl.dismiss(rec);
+    },
+    [dismissCtl, isUnauthenticated, requestAuthForJdMatch, t],
+  );
 
   const initials = computeInitials(profile?.displayName);
   const summaryParts: string[] = [];
@@ -83,8 +255,13 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
     ? summaryParts.join(" · ")
     : t("jdMatch.profile.searchingAsLoading");
 
+  const recommendedCount = visibleItems.length;
   const tabs: Array<{ k: string; label: string; count: number | null }> = [
-    { k: "recommended", label: t("jdMatch.tabRecommended"), count: null },
+    {
+      k: "recommended",
+      label: t("jdMatch.tabRecommended"),
+      count: recsQuery.loading ? null : recommendedCount,
+    },
     { k: "search", label: t("jdMatch.tabSearch"), count: null },
     { k: "watchlist", label: t("jdMatch.tabWatchlist"), count: null },
   ];
@@ -381,6 +558,22 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
           ) : null}
         </div>
       </div>
+
+      {/* Tab body */}
+      {tab === "recommended" ? (
+        <RecommendedTab
+          recommendations={visibleItems}
+          loading={recsQuery.loading}
+          error={recsQuery.error}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          onConfirmInterview={handleConfirmInterview}
+          onToggleSave={handleToggleSave}
+          onOpenSource={handleOpenSource}
+          onMarkNotRelevant={handleDismiss}
+          onRetry={recsQuery.retry}
+        />
+      ) : null}
     </section>
   );
 };

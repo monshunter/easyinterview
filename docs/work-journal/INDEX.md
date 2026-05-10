@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-10](2026-05-10.md) | `feat(jd_match): land recommended tab with jd-detail, watchlist loop and auth gate` | #feat #ui #i18n #test |
 | [2026-05-10](2026-05-10.md) | `refactor(ai-provider): adopt typed feature_key constants in registry resolver` | #refactor #test |
 | [2026-05-10](2026-05-10.md) | `fix(shared-conventions): align ai vocabulary baseline test with feature_key field` | #fix #test |
 | [2026-05-10](2026-05-10.md) | `feat(jd_match): wire data-driven shell with profile chip and agent badge` | #feat #ui #i18n #test |
