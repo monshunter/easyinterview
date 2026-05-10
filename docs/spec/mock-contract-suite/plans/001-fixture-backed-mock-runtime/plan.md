@@ -1,8 +1,8 @@
 # Fixture-backed Mock Runtime
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -73,6 +73,10 @@
 #### 4.4 Fixture tag directory gate
 
 扩展 mock runtime boundary lint，校验 `openapi/fixtures/` 的 tag 目录集合严格等于当前 OpenAPI 12 tag；即使旧 `Growth` / `Mistakes` 为空目录或 Git 不跟踪，也必须被 gate 捕获并清理。
+
+#### 4.5 Remediation: named scenario expectations follow fixture truth source
+
+修复后端 mock runtime named scenario 回归测试中的 hard-coded response expectation。`TestHandlerSelectsNamedSeedScenariosAndFailsUnknown` 必须读取对应 fixture scenario 的 `response.status` 和 `response.body` 作为断言真理源，覆盖 `getPracticeSession` 的 `missing-session` scenario 当前为 `404 PRACTICE_SESSION_NOT_FOUND`，避免测试继续期待旧的 `401 AUTH_UNAUTHORIZED`。
 
 ## 5 验收标准
 

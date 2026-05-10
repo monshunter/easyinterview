@@ -1,8 +1,8 @@
 # Fixture-backed Mock Runtime Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -29,3 +29,5 @@
   <!-- verified: 2026-05-05 method=tdd-red-green focused=makefile-dry-run,go-codegen-openapi,frontend-mockTransport,fixture-registry gates=lint-mock-contract,docs-check,codegen-check-temp-index -->
 - [x] 4.4 L2 remediation: `lint-mock-contract` 必须拒绝 `openapi/fixtures/` 下非当前 12 tag 的旧目录，即使目录为空或 Git 不跟踪；验证: focused Red-Green 先用当前 `Growth` / `Mistakes` 空目录证明 lint/test 失败，再删除旧目录并运行 mock runtime boundary tests、`make lint-mock-contract`、`make codegen-check`、`make docs-check`
   <!-- verified: 2026-05-06 method=tdd-red-green red=mock_runtime_boundary_empty_retired_tag green=mock_runtime_boundary_tag_set gates=mock-runtime-boundary,lint-mock-contract,codegen-check,docs-check -->
+- [x] 4.5 Remediation: 修复后端 mock runtime named scenario 回归测试复制过期 response expectation，改为从 `openapi/fixtures` scenario response 读取 status/body 真理源；验证: `cd backend && go test ./internal/api/mockruntime -run TestHandlerSelectsNamedSeedScenariosAndFailsUnknown -count=1` 覆盖 `getPracticeSession` `missing-session` 为 `404 PRACTICE_SESSION_NOT_FOUND`，unknown scenario 仍 fail loudly
+  <!-- verified: 2026-05-10 method=tdd-red-green red=hardcoded-401 green=fixture-scenario-response gates=go-test-mockruntime,go-test-backend-all -->

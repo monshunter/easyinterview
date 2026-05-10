@@ -76,60 +76,53 @@ func TestHandlerSelectsNamedSeedScenariosAndFailsUnknown(t *testing.T) {
 	handler := NewHandler(registry)
 
 	cases := []struct {
-		name       string
-		method     string
-		path       string
-		scenario   string
-		wantStatus int
-		wantField  [2]string
+		name        string
+		method      string
+		path        string
+		fixturePath string
+		scenario    string
 	}{
 		{
-			name:       "unauthenticated",
-			method:     http.MethodGet,
-			path:       "/api/v1/me",
-			scenario:   "unauthenticated",
-			wantStatus: http.StatusUnauthorized,
-			wantField:  [2]string{"error.code", "AUTH_UNAUTHORIZED"},
+			name:        "unauthenticated",
+			method:      http.MethodGet,
+			path:        "/api/v1/me",
+			fixturePath: "openapi/fixtures/Auth/getMe.json",
+			scenario:    "unauthenticated",
 		},
 		{
-			name:       "authenticated",
-			method:     http.MethodGet,
-			path:       "/api/v1/me",
-			scenario:   "authenticated",
-			wantStatus: http.StatusOK,
-			wantField:  [2]string{"displayName", "Alice Example"},
+			name:        "authenticated",
+			method:      http.MethodGet,
+			path:        "/api/v1/me",
+			fixturePath: "openapi/fixtures/Auth/getMe.json",
+			scenario:    "authenticated",
 		},
 		{
-			name:       "missing-session",
-			method:     http.MethodGet,
-			path:       "/api/v1/practice/sessions/01918fa0-0000-7000-8000-000000005000",
-			scenario:   "missing-session",
-			wantStatus: http.StatusUnauthorized,
-			wantField:  [2]string{"error.code", "AUTH_UNAUTHORIZED"},
+			name:        "missing-session",
+			method:      http.MethodGet,
+			path:        "/api/v1/practice/sessions/01918fa0-0000-7000-8000-000000005000",
+			fixturePath: "openapi/fixtures/PracticeSessions/getPracticeSession.json",
+			scenario:    "missing-session",
 		},
 		{
-			name:       "missing-resume",
-			method:     http.MethodPost,
-			path:       "/api/v1/practice/plans",
-			scenario:   "missing-resume",
-			wantStatus: http.StatusUnprocessableEntity,
-			wantField:  [2]string{"error.code", "VALIDATION_FAILED"},
+			name:        "missing-resume",
+			method:      http.MethodPost,
+			path:        "/api/v1/practice/plans",
+			fixturePath: "openapi/fixtures/PracticePlans/createPracticePlan.json",
+			scenario:    "missing-resume",
 		},
 		{
-			name:       "report-generating",
-			method:     http.MethodGet,
-			path:       "/api/v1/reports/01918fa0-0000-7000-8000-000000007000",
-			scenario:   "report-generating",
-			wantStatus: http.StatusOK,
-			wantField:  [2]string{"status", "generating"},
+			name:        "report-generating",
+			method:      http.MethodGet,
+			path:        "/api/v1/reports/01918fa0-0000-7000-8000-000000007000",
+			fixturePath: "openapi/fixtures/Reports/getFeedbackReport.json",
+			scenario:    "report-generating",
 		},
 		{
-			name:       "privacy-delete-requested",
-			method:     http.MethodPost,
-			path:       "/api/v1/privacy/deletions",
-			scenario:   "privacy-delete-requested",
-			wantStatus: http.StatusAccepted,
-			wantField:  [2]string{"job.jobType", "privacy_delete"},
+			name:        "privacy-delete-requested",
+			method:      http.MethodPost,
+			path:        "/api/v1/privacy/deletions",
+			fixturePath: "openapi/fixtures/Privacy/requestPrivacyDelete.json",
+			scenario:    "privacy-delete-requested",
 		},
 	}
 
@@ -142,10 +135,11 @@ func TestHandlerSelectsNamedSeedScenariosAndFailsUnknown(t *testing.T) {
 
 				handler.ServeHTTP(response, request)
 
-				if response.Code != tc.wantStatus {
-					t.Fatalf("status = %d, want %d; body=%s", response.Code, tc.wantStatus, response.Body.String())
+				wantStatus, wantBody := fixtureScenarioResponse(t, filepath.Join(repoRoot, tc.fixturePath), tc.scenario)
+				if response.Code != wantStatus {
+					t.Fatalf("status = %d, want %d; body=%s", response.Code, wantStatus, response.Body.String())
 				}
-				assertJSONField(t, response.Body.Bytes(), tc.wantField[0], tc.wantField[1])
+				assertJSONEqual(t, response.Body.Bytes(), wantBody)
 			}
 		})
 	}
@@ -166,6 +160,11 @@ func TestHandlerSelectsNamedSeedScenariosAndFailsUnknown(t *testing.T) {
 
 func fixtureDefaultResponse(t *testing.T, path string) (int, []byte) {
 	t.Helper()
+	return fixtureScenarioResponse(t, path, "default")
+}
+
+func fixtureScenarioResponse(t *testing.T, path string, scenarioName string) (int, []byte) {
+	t.Helper()
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
@@ -181,8 +180,11 @@ func fixtureDefaultResponse(t *testing.T, path string) (int, []byte) {
 	if err := json.Unmarshal(raw, &fixture); err != nil {
 		t.Fatalf("parse fixture: %v", err)
 	}
-	defaultScenario := fixture.Scenarios["default"]
-	return defaultScenario.Response.Status, defaultScenario.Response.Body
+	scenario, ok := fixture.Scenarios[scenarioName]
+	if !ok {
+		t.Fatalf("fixture %s missing scenario %q", path, scenarioName)
+	}
+	return scenario.Response.Status, scenario.Response.Body
 }
 
 func assertJSONEqual(t *testing.T, got []byte, want []byte) {
