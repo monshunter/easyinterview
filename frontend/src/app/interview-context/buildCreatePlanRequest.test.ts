@@ -26,14 +26,13 @@ describe("buildCreatePlanRequest", () => {
     expect(body.resumeAssetId).toBe(VALID_RESUME_ID);
   });
 
-  it("treats synthetic resume placeholders as absent before API calls", () => {
-    const body = buildCreatePlanRequest(
-      context({ resumeVersionId: "resume-unbound" }),
-      "en",
-    );
-
-    expect(body.targetJobId).toBe(VALID_TARGET_JOB_ID);
-    expect(body.resumeAssetId).toBeUndefined();
+  it("rejects synthetic resume placeholders instead of sending incomplete API bodies", () => {
+    expect(() =>
+      buildCreatePlanRequest(
+        context({ resumeVersionId: "resume-unbound" }),
+        "en",
+      ),
+    ).toThrow("invalid resumeAssetId");
   });
 
   it("rejects synthetic target ids instead of sending them to generated APIs", () => {

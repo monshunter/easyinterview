@@ -29,10 +29,10 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.14 | active | 2026-05-08 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.14 | active | 2026-05-10 | [plans](./openapi-v1-contract/plans/) |
-| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.1 | active | 2026-05-08 | [plans](./event-and-outbox-contract/plans/) |
-| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.12 | active | 2026-05-08 | [plans](./db-migrations-baseline/plans/) |
+| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.15 | active | 2026-05-09 | [plans](./shared-conventions-codified/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.15 | active | 2026-05-10 | [plans](./openapi-v1-contract/plans/) |
+| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.2 | active | 2026-05-09 | [plans](./event-and-outbox-contract/plans/) |
+| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.13 | active | 2026-05-09 | [plans](./db-migrations-baseline/plans/) |
 
 ## 4 Quality / AI Governance
 
@@ -45,11 +45,11 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [mock-contract-suite](./mock-contract-suite/spec.md) | 1.3 | active | 2026-05-10 | [plans](./mock-contract-suite/plans/) |
+| [mock-contract-suite](./mock-contract-suite/spec.md) | 1.4 | active | 2026-05-10 | [plans](./mock-contract-suite/plans/) |
 | [frontend-shell](./frontend-shell/spec.md) | 1.11 | active | 2026-05-08 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 1.6 | completed | 2026-05-10 | [plans](./frontend-home-job-picks-and-parse/plans/) |
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.2 | active | 2026-05-08 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 1.2 | active | 2026-05-06 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 1.4 | active | 2026-05-08 | [plans](./backend-targetjob/plans/) |
-| [backend-practice](./backend-practice/spec.md) | 1.4 | active | 2026-05-09 | [plans](./backend-practice/plans/) |
+| [backend-practice](./backend-practice/spec.md) | 1.5 | active | 2026-05-10 | [plans](./backend-practice/plans/) |
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.0 | active | 2026-05-08 | [plans](./practice-voice-mvp/plans/) |

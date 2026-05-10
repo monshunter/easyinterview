@@ -15,6 +15,9 @@ describe('enum union literals', () => {
     const mode: PracticeMode = 'strict';
     expect(ALL_PRACTICE_MODES).toContain(mode);
   });
+  it('PracticeMode is the binary assisted/strict set', () => {
+    expect(ALL_PRACTICE_MODES).toEqual(['assisted', 'strict']);
+  });
   it('SessionStatus allows waiting_user_input', () => {
     const status: SessionStatus = 'waiting_user_input';
     expect(ALL_SESSION_STATUSES).toContain(status);

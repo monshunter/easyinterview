@@ -1,4 +1,4 @@
-package minimax_speech
+package minimaxspeech
 
 // ttsSynthesizeRequest is the JSON body posted to the MiniMax TTS endpoint.
 type ttsSynthesizeRequest struct {

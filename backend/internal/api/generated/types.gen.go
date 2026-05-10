@@ -97,6 +97,8 @@ const (
 	ApiErrorCodeTARGETIMPORTSOURCEUNAVAILABLE ApiErrorCode = "TARGET_IMPORT_SOURCE_UNAVAILABLE"
 	ApiErrorCodeTARGETINVALIDSTATETRANSITION  ApiErrorCode = "TARGET_INVALID_STATE_TRANSITION"
 	ApiErrorCodePRACTICESESSIONCONFLICT       ApiErrorCode = "PRACTICE_SESSION_CONFLICT"
+	ApiErrorCodePRACTICEPLANNOTFOUND          ApiErrorCode = "PRACTICE_PLAN_NOT_FOUND"
+	ApiErrorCodePRACTICESESSIONNOTFOUND       ApiErrorCode = "PRACTICE_SESSION_NOT_FOUND"
 	ApiErrorCodeREPORTNOTREADY                ApiErrorCode = "REPORT_NOT_READY"
 	ApiErrorCodeVALIDATIONFAILED              ApiErrorCode = "VALIDATION_FAILED"
 	ApiErrorCodeRATELIMITED                   ApiErrorCode = "RATE_LIMITED"
@@ -118,6 +120,8 @@ var AllApiErrorCodes = []ApiErrorCode{
 	ApiErrorCodeTARGETIMPORTSOURCEUNAVAILABLE,
 	ApiErrorCodeTARGETINVALIDSTATETRANSITION,
 	ApiErrorCodePRACTICESESSIONCONFLICT,
+	ApiErrorCodePRACTICEPLANNOTFOUND,
+	ApiErrorCodePRACTICESESSIONNOTFOUND,
 	ApiErrorCodeREPORTNOTREADY,
 	ApiErrorCodeVALIDATIONFAILED,
 	ApiErrorCodeRATELIMITED,
@@ -412,7 +416,7 @@ type CreatePracticePlanRequest struct {
 	Language             string          `json:"language"`
 	Mode                 PracticeMode    `json:"mode"`
 	QuestionBudget       int32           `json:"questionBudget"`
-	ResumeAssetId        *string         `json:"resumeAssetId,omitempty"`
+	ResumeAssetId        string          `json:"resumeAssetId"`
 	TargetJobId          string          `json:"targetJobId"`
 	TimeBudgetMinutes    int32           `json:"timeBudgetMinutes"`
 }

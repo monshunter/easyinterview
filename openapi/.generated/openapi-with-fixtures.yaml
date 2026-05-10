@@ -857,12 +857,12 @@ paths:
                       - Will probe scaling design systems across 10+ teams
                       - Likely STAR follow-up on observability for FE infra
                       provenance:
-                        promptVersion: target_job_summary.v3
-                        rubricVersion: not_applicable
-                        modelId: model-profile:contract.default
+                        promptVersion: v0.1.0
+                        rubricVersion: v0.1.0
+                        modelId: fixture-model:target-import-parse
                         language: zh-CN
                         featureFlag: none
-                        dataSourceVersion: target_job.v17
+                        dataSourceVersion: registry.v1
                     requirements:
                     - id: 01918fa0-0000-7000-8000-00000000d000
                       kind: must_have
@@ -885,12 +885,12 @@ paths:
                       riskSignals:
                       - Role mentions hiring manager prefers very deep observability stories
                       provenance:
-                        promptVersion: target_job_fit.v2
+                        promptVersion: v0.1.0
                         rubricVersion: not_applicable
-                        modelId: model-profile:contract.default
+                        modelId: fixture-model:target-import-parse
                         language: zh-CN
-                        featureFlag: fit_summary_v2
-                        dataSourceVersion: target_job.v17
+                        featureFlag: none
+                        dataSourceVersion: registry.v1
                     latestReportId: 01918fa0-0000-7000-8000-000000007000
                     openQuestionIssueCount: 2
                     createdAt: '2026-04-22T09:30:00Z'
@@ -1989,13 +1989,22 @@ components:
       enum:
       - AUTH_UNAUTHORIZED
       - TARGET_IMPORT_FAILED
+      - TARGET_JOB_NOT_FOUND
+      - TARGET_IMPORT_SOURCE_INVALID
+      - TARGET_IMPORT_SOURCE_UNAVAILABLE
+      - TARGET_INVALID_STATE_TRANSITION
       - PRACTICE_SESSION_CONFLICT
+      - PRACTICE_PLAN_NOT_FOUND
+      - PRACTICE_SESSION_NOT_FOUND
       - REPORT_NOT_READY
       - VALIDATION_FAILED
       - RATE_LIMITED
       - AI_PROVIDER_TIMEOUT
       - AI_OUTPUT_INVALID
       - AI_FALLBACK_EXHAUSTED
+      - AI_UNSUPPORTED_CAPABILITY
+      - AI_PROVIDER_CONFIG_INVALID
+      - AI_PROVIDER_SECRET_MISSING
       - PRIVACY_EXPORT_NOT_AVAILABLE
     ApiError:
       type: object
@@ -2087,7 +2096,6 @@ components:
       enum:
       - assisted
       - strict
-      - debrief_replay
     PracticeGoal:
       type: string
       description: Synced from `shared/conventions.yaml#enums[PracticeGoal]` sourceSection 5.4.
@@ -2724,6 +2732,8 @@ components:
           enum:
           - must_have
           - nice_to_have
+          - hidden_signal
+          - interview_focus
         label:
           type: string
         evidenceLevel:

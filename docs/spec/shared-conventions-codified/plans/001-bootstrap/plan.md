@@ -125,7 +125,7 @@ L2 remediation: `scripts/lint/error_codes.py` 必须解析 `ERROR_CODES = { ... 
 
 #### 5.2 Green: 更新共享真理源与生成物
 
-修订 `shared/conventions.yaml`：`PracticeMode` 改为 `assisted` / `strict` / `debrief_replay`；`PracticeGoal` 改为 `baseline` / `retry_current_round` / `next_round` / `debrief`；`MistakeStatus` 重命名为 `QuestionReviewStatus`，值为 `open` / `queued_for_retry` / `resolved`。随后运行 `make codegen-conventions` 重新生成 Go / TS shared types，并同步 B2/B3/B4 引用。
+修订 `shared/conventions.yaml`：`PracticeMode` 改为 `assisted` / `strict` / `legacy debrief replay value`；`PracticeGoal` 改为 `baseline` / `retry_current_round` / `next_round` / `debrief`；`MistakeStatus` 重命名为 `QuestionReviewStatus`，值为 `open` / `queued_for_retry` / `resolved`。随后运行 `make codegen-conventions` 重新生成 Go / TS shared types，并同步 B2/B3/B4 引用。
 
 #### 5.3 Verify
 

@@ -15,6 +15,9 @@ export function buildCreatePlanRequest(
   }
 
   const resumeAssetId = normalizeServerBoundId(ctx.resumeVersionId);
+  if (!resumeAssetId) {
+    throw new Error("invalid resumeAssetId");
+  }
 
   return {
     targetJobId,

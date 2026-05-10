@@ -42,6 +42,7 @@ EXPECTED_BASELINE_TABLES = [
     "target_job_requirements",
     "target_job_sources",
     "practice_plans",
+    "idempotency_records",
     "practice_sessions",
     "practice_session_events",
     "practice_turns",
@@ -80,7 +81,9 @@ REMOVED_PRODUCT_SCOPE_TOKENS = [
 PRODUCT_SCOPE_REQUIRED_FRAGMENTS = [
     ("target_jobs.open_question_issue_count", "open_question_issue_count integer not null default 0"),
     ("practice_plans.goal", "goal text not null check (goal in ('baseline', 'retry_current_round', 'next_round', 'debrief'))"),
-    ("practice_plans.mode", "mode text not null check (mode in ('assisted', 'strict', 'debrief_replay'))"),
+    ("practice_plans.mode", "mode text not null check (mode in ('assisted', 'strict'))"),
+    ("idempotency_records.unique_key", "unique (user_id, domain, operation, idempotency_key_hash)"),
+    ("idempotency_records.expires_at_index", "create index idx_idempotency_records_expires_at on idempotency_records (expires_at)"),
     ("feedback_reports.session_unique", "create unique index idx_feedback_reports_session_unique on feedback_reports (session_id)"),
     ("question_assessments.review_status", "review_status text not null check (review_status in ('open', 'queued_for_retry', 'resolved'))"),
     ("question_assessments.included_in_retry_plan", "included_in_retry_plan boolean not null default false"),

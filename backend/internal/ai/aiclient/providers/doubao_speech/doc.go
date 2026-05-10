@@ -1,4 +1,4 @@
-// Package doubao_speech implements the aiclient.Provider contract for
+// Package doubaospeech implements the aiclient.Provider contract for
 // Doubao (豆包) speech services. It supports TTS synthesis and STT
 // transcription via provider-specific REST/JSON protocols and does not
 // assume OpenAI-compatible wire shapes.
@@ -10,4 +10,4 @@
 //
 // The adapter mockserver is the auditable normalized fixture source for
 // plan 004 contract tests.
-package doubao_speech
+package doubaospeech

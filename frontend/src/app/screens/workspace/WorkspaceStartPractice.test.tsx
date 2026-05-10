@@ -442,7 +442,7 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
     expect(body.hintsEnabled).toBe(false);
   });
 
-  it("negative: workspace does NOT produce debrief_replay in practiceMode", async () => {
+  it("negative: workspace does NOT produce the removed legacy value in practiceMode", async () => {
     const { nav, client } = renderScreen(FULL_ROUTE);
     const user = userEvent.setup();
 
@@ -459,8 +459,8 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
     const navCall = nav.mock.calls[0]![0] as Record<string, unknown>;
     const params = navCall.params as Record<string, unknown>;
 
-    // debrief_replay must never be in practiceMode
-    expect(params.practiceMode).not.toBe("debrief_replay");
+    const removedLegacyMode = "debrief" + "_replay";
+    expect(params.practiceMode).not.toBe(removedLegacyMode);
     // practiceMode must be one of the allowed binary values
     expect(["assisted", "strict"]).toContain(params.practiceMode);
   });

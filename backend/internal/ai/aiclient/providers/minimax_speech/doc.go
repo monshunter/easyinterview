@@ -1,4 +1,4 @@
-// Package minimax_speech implements the aiclient.Provider contract for
+// Package minimaxspeech implements the aiclient.Provider contract for
 // MiniMax speech services. It supports TTS synthesis via provider-specific
 // REST/JSON protocol and does not assume OpenAI-compatible wire shapes.
 // MiniMax STT is not confirmed per plan 004 and must not be declared.
@@ -9,4 +9,4 @@
 //
 // The adapter mockserver is the auditable normalized fixture source for
 // plan 004 contract tests.
-package minimax_speech
+package minimaxspeech

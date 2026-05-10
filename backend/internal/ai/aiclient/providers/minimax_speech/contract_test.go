@@ -1,4 +1,4 @@
-package minimax_speech_test
+package minimaxspeech_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
-	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/minimax_speech"
+	minimaxspeech "github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/minimax_speech"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/minimax_speech/mockserver"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
@@ -48,9 +48,9 @@ func ttsInput() aiclient.SynthesisInput {
 	}
 }
 
-func newAdapter(t *testing.T, srv *mockserver.Server) *minimax_speech.Adapter {
+func newAdapter(t *testing.T, srv *mockserver.Server) *minimaxspeech.Adapter {
 	t.Helper()
-	a, err := minimax_speech.New(minimax_speech.Options{
+	a, err := minimaxspeech.New(minimaxspeech.Options{
 		Provider: resolvedProvider(srv.URL()),
 	})
 	if err != nil {
@@ -154,7 +154,7 @@ func TestNew_RejectsNonMinimaxProtocol(t *testing.T) {
 	rp := resolvedProvider(srv.URL())
 	rp.Entry.Protocol = aiclient.ProviderProtocolOpenAICompatible
 
-	_, err := minimax_speech.New(minimax_speech.Options{Provider: rp})
+	_, err := minimaxspeech.New(minimaxspeech.Options{Provider: rp})
 	if err == nil {
 		t.Fatal("expected error for non-minimax protocol")
 	}
@@ -166,7 +166,7 @@ func TestNew_RejectsMissingBaseURL(t *testing.T) {
 	rp := resolvedProvider(srv.URL())
 	rp.BaseURL = ""
 
-	_, err := minimax_speech.New(minimax_speech.Options{Provider: rp})
+	_, err := minimaxspeech.New(minimaxspeech.Options{Provider: rp})
 	if err == nil {
 		t.Fatal("expected error for missing BaseURL")
 	}
@@ -178,7 +178,7 @@ func TestNew_RejectsMissingAPIKey(t *testing.T) {
 	rp := resolvedProvider(srv.URL())
 	rp.APIKey = ""
 
-	_, err := minimax_speech.New(minimax_speech.Options{Provider: rp})
+	_, err := minimaxspeech.New(minimaxspeech.Options{Provider: rp})
 	if err == nil {
 		t.Fatal("expected error for missing APIKey")
 	}

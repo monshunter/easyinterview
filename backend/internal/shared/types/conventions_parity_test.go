@@ -68,6 +68,13 @@ func TestConventionsParityFixture_EnumSets(t *testing.T) {
 	}
 }
 
+func TestPracticeModeIsBinary(t *testing.T) {
+	want := []string{"assisted", "strict"}
+	if got := stringsOf(AllPracticeModes); !reflect.DeepEqual(got, want) {
+		t.Fatalf("PracticeMode values = %#v, want %#v", got, want)
+	}
+}
+
 func TestConventionsParityFixture_ErrorCodesAndAIVocabulary(t *testing.T) {
 	fixture := loadParityFixture(t)
 	if !reflect.DeepEqual(sharederrors.AllCodes, fixture.ErrorCodes) {
@@ -88,6 +95,15 @@ func TestConventionsParityFixture_ErrorCodesAndAIVocabulary(t *testing.T) {
 	gotAIFields := stringsOf(sharedai.AllFieldNames)
 	if !reflect.DeepEqual(gotAIFields, fixture.AIVocabularyFields) {
 		t.Fatalf("Go AI vocabulary fields differ from fixture\ngot:  %#v\nwant: %#v", gotAIFields, fixture.AIVocabularyFields)
+	}
+}
+
+func TestPracticeNotFoundErrorCodesRegistered(t *testing.T) {
+	want := []string{"PRACTICE_PLAN_NOT_FOUND", "PRACTICE_SESSION_NOT_FOUND"}
+	for _, code := range want {
+		if !contains(sharederrors.AllCodes, code) {
+			t.Fatalf("shared error code %s is not registered in AllCodes: %#v", code, sharederrors.AllCodes)
+		}
 	}
 }
 
@@ -124,6 +140,15 @@ func stringsOf[T ~string](values []T) []string {
 		out = append(out, string(value))
 	}
 	return out
+}
+
+func contains[T comparable](values []T, want T) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }
 
 func assertJSONShape(t *testing.T, label string, value any, want map[string]any) {

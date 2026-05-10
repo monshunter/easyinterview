@@ -16,6 +16,7 @@ DROP TABLE IF EXISTS feedback_reports CASCADE;
 DROP TABLE IF EXISTS practice_turns CASCADE;
 DROP TABLE IF EXISTS practice_session_events CASCADE;
 DROP TABLE IF EXISTS practice_sessions CASCADE;
+DROP TABLE IF EXISTS idempotency_records CASCADE;
 DROP TABLE IF EXISTS practice_plans CASCADE;
 DROP TABLE IF EXISTS target_job_sources CASCADE;
 DROP TABLE IF EXISTS target_job_requirements CASCADE;

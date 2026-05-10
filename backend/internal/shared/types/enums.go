@@ -49,16 +49,14 @@ var AllTargetJobParseStatuses = []TargetJobParseStatus{
 type PracticeMode string
 
 const (
-	PracticeModeAssisted      PracticeMode = "assisted"
-	PracticeModeStrict        PracticeMode = "strict"
-	PracticeModeDebriefReplay PracticeMode = "debrief_replay"
+	PracticeModeAssisted PracticeMode = "assisted"
+	PracticeModeStrict   PracticeMode = "strict"
 )
 
 // AllPracticeModes lists every defined value in declaration order.
 var AllPracticeModes = []PracticeMode{
 	PracticeModeAssisted,
 	PracticeModeStrict,
-	PracticeModeDebriefReplay,
 }
 
 // PracticeGoal mirrors shared/conventions.yaml sourceSection 5.4 (jsonField: "goal").

@@ -57,11 +57,11 @@ spec:
       - jdMatch.watchlist namespace
       - jdMatch.profile namespace
       - jdMatch.agent namespace
-      - E2E.P0.022
-      - E2E.P0.023
-      - E2E.P0.024
-      - E2E.P0.025
-      - E2E.P0.026
+      - E2E.P0.027
+      - E2E.P0.028
+      - E2E.P0.029
+      - E2E.P0.030
+      - E2E.P0.031
   targets:
     frontend:
       plan: ./plan.md
@@ -100,11 +100,11 @@ spec:
           - scripts/lint/openapi_inventory.py
           - scripts/lint/validate_fixtures.py
           - test/scenarios/e2e/p0-017-jd-match-placeholder
-          - test/scenarios/e2e/p0-022-jd-match-recommended-and-confirm
-          - test/scenarios/e2e/p0-023-jd-match-search-and-saved
-          - test/scenarios/e2e/p0-024-jd-match-watchlist-and-signals
-          - test/scenarios/e2e/p0-025-jd-match-profile-and-agent-status
-          - test/scenarios/e2e/p0-026-jd-match-confirm-interview-handoff
+          - test/scenarios/e2e/p0-027-jd-match-recommended-and-confirm
+          - test/scenarios/e2e/p0-028-jd-match-search-and-saved
+          - test/scenarios/e2e/p0-029-jd-match-watchlist-and-signals
+          - test/scenarios/e2e/p0-030-jd-match-profile-and-agent-status
+          - test/scenarios/e2e/p0-031-jd-match-confirm-interview-handoff
         uiRoutes:
           - jd_match
           - parse

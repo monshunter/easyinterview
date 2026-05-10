@@ -8,6 +8,17 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-10](2026-05-10.md) | `fix(backend-practice): enforce resumeAssetId required and wire idempotency pepper` | #fix #test #docs |
+| [2026-05-10](2026-05-10.md) | `fix(frontend-dev): default vite preview to fixture-backed API` | #fix #ui #test #docs |
+| [2026-05-10](2026-05-10.md) | `fix(mock-contract): align mockruntime named scenarios` | #fix #test #docs |
+| [2026-05-10](2026-05-10.md) | `fix(change-intake): require branch guard before mutation` | #fix #docs #test |
+| [2026-05-10](2026-05-10.md) | `fix(backend-practice): harden session idempotency review paths` | #fix #test #docs |
+| [2026-05-10](2026-05-10.md) | `fix(backend-practice): remediate session orchestration L2 findings` | #fix #test #docs |
+| [2026-05-09](2026-05-09.md) | `docs(backend-practice): close phase 3 retrospective` | #docs |
+| [2026-05-09](2026-05-09.md) | `feat(backend-practice): complete phase 3 observability closure` | #feat #test #docs |
+| [2026-05-09](2026-05-09.md) | `feat(backend-practice): complete phase 2 idempotency recovery` | #feat #test #docs |
+| [2026-05-09](2026-05-09.md) | `feat(backend-practice): complete phase 1 practice orchestration` | #feat #test #docs |
+| [2026-05-09](2026-05-09.md) | `feat(backend-practice): complete phase 0 contract preflight` | #feat #test #docs |
 | [2026-05-10](2026-05-10.md) | `test(jd_match): add failed and retry coverage for job recommendation detail` | #test #docs |
 | [2026-05-10](2026-05-10.md) | `fix(frontend-jd-match): remediate jd match L2 findings` | #fix #ui #test #docs |
 | [2026-05-10](2026-05-10.md) | `feat(jd_match): close plan 002 with verification suite, scenarios and lifecycle to completed` | #feat #docs #test |
@@ -190,11 +201,6 @@
 | [2026-05-01](2026-05-01.md) | `docs(reports): land ui design prototype retrospective` | #docs |
 | [2026-05-01](2026-05-01.md) | `feat(ui): align prototype with ui design` | #feat #ui |
 | [2026-05-01](2026-05-01.md) | `docs(ui-design): land ui design document set` | #docs #ui |
-
-## 2026-04
-
-| 日期 | Commit Message | 标签 |
-|------|----------------|------|
 | [2026-04-30](2026-04-30.md) | `fix(plan-code-review): remediate A/B L2 findings` | #fix #test #docs |
 | [2026-04-30](2026-04-30.md) | `docs(governance): require Chinese user-facing communication` | #docs |
 | [2026-04-30](2026-04-30.md) | `fix(ci-pipeline): remediate local quality gates` | #fix #docs #test |
@@ -296,29 +302,3 @@
 | [2026-04-26](2026-04-26.md) | `docs(spec): import product spec and P0/P1 technical docs` | #docs |
 | [2026-04-26](2026-04-26.md) | `docs(skeleton): initialize project documentation directories` | #docs |
 | [2026-04-26](2026-04-26.md) | `chore(governance): bootstrap agent governance and shared skills` | #chore |
-
-<!--
-示例格式：
-
-## 2025-01
-
-| 日期 | Commit Message | 标签 |
-|------|----------------|------|
-| [2025-01-15](2025-01-15.md) | `feat(module): implement core logic` | #feat |
-| [2025-01-14](2025-01-14.md) | `fix(api): resolve timeout issue` | #fix |
-
-## 2024-12
-
-| 日期 | Commit Message | 标签 |
-|------|----------------|------|
-| [2024-12-28](2024-12-28.md) | `chore: initial project setup` | #chore |
-
-**常用标签**：
-- `#feat` - 新功能
-- `#fix` - Bug 修复
-- `#refactor` - 重构
-- `#docs` - 文档
-- `#test` - 测试
-- `#chore` - 构建/工具
-
--->

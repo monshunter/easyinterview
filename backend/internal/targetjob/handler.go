@@ -129,7 +129,7 @@ func (h *Handler) ListTargetJobs(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetTargetJob is the GET /targets/{targetJobId} binding.
-func (h *Handler) GetTargetJob(w http.ResponseWriter, r *http.Request, targetJobId string) {
+func (h *Handler) GetTargetJob(w http.ResponseWriter, r *http.Request, targetJobID string) {
 	if h == nil || h.service == nil {
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeTargetImportFailed, "targetjob service is not configured")
 		return
@@ -139,7 +139,7 @@ func (h *Handler) GetTargetJob(w http.ResponseWriter, r *http.Request, targetJob
 		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required")
 		return
 	}
-	res, err := h.service.GetTargetJob(r.Context(), userID, targetJobId)
+	res, err := h.service.GetTargetJob(r.Context(), userID, targetJobID)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -148,7 +148,7 @@ func (h *Handler) GetTargetJob(w http.ResponseWriter, r *http.Request, targetJob
 }
 
 // UpdateTargetJob is the PATCH /targets/{targetJobId} binding.
-func (h *Handler) UpdateTargetJob(w http.ResponseWriter, r *http.Request, targetJobId string) {
+func (h *Handler) UpdateTargetJob(w http.ResponseWriter, r *http.Request, targetJobID string) {
 	if h == nil || h.service == nil {
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeTargetImportFailed, "targetjob service is not configured")
 		return
@@ -170,7 +170,7 @@ func (h *Handler) UpdateTargetJob(w http.ResponseWriter, r *http.Request, target
 	}
 	res, err := h.service.UpdateTargetJob(r.Context(), UpdateRequest{
 		UserID:          userID,
-		TargetJobID:     targetJobId,
+		TargetJobID:     targetJobID,
 		IdempotencyKey:  idempotencyKey,
 		Status:          body.Status,
 		LocationText:    body.LocationText,
@@ -217,8 +217,8 @@ func (h *Handler) resolveUser(r *http.Request) (string, bool) {
 type targetJobServerSurface interface {
 	ImportTargetJob(w http.ResponseWriter, r *http.Request)
 	ListTargetJobs(w http.ResponseWriter, r *http.Request)
-	GetTargetJob(w http.ResponseWriter, r *http.Request, targetJobId string)
-	UpdateTargetJob(w http.ResponseWriter, r *http.Request, targetJobId string)
+	GetTargetJob(w http.ResponseWriter, r *http.Request, targetJobID string)
+	UpdateTargetJob(w http.ResponseWriter, r *http.Request, targetJobID string)
 }
 
 var _ targetJobServerSurface = (*Handler)(nil)

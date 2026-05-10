@@ -1,13 +1,14 @@
 # Event and Outbox Contract History
 
-> **版本**: 2.1
+> **版本**: 2.2
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-09
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-09 | 2.2 | 对齐 backend-practice Phase 0：B3 generated event refs 中引用 B1 `PracticeMode` 的 surface 跟随二值化，`practice.session.started.mode` 继续只引用 B1 `PracticeMode`，不保留来源语义别名。 | backend-practice/001 Phase 0 |
 | 2026-05-08 | 2.1 | 明确 `target.import.requested.sourceType` 是异步导入粗粒度来源：`manual_text` 映射为 `text`，`manual_form` 同步 ready 路径不发该事件；exact API source variant 不进入当前 v1 payload。 | backend-targetjob/001 Phase 0 |
 | 2026-05-08 | 2.0 | 对齐 A3 003 Phase 6：删除 C11 当前内部任务占位，canonical job_type 从 10 项收敛为 9 项。 | ai-provider-and-model-routing/003 Phase 6 |
 | 2026-05-06 | 1.9 | 对齐 backend-runtime-topology：event producer enum 将独立进程语义 `worker` 替换为 `backend_async`，job/outbox 契约保留并由 backend internal runner 消费。 | backend-runtime-topology/001-worker-consolidation |

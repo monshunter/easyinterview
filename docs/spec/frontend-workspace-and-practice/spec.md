@@ -70,7 +70,7 @@
 |----|------|--------|------|
 | D-1 | Route owner 范围 | 本 subspec 只接管 `workspace / practice / generating`；`report / company_intel` 是外部 owner handoff | 消除与 `frontend-report-dashboard` / company-intel owner 的边界冲突，避免 plan 把报告详情和公司情报详情混入 workspace/practice |
 | D-2 | workspace 语义 | `workspace` = 当前面试规划，不是岗位资产管理中心；不展示练习模式卡片，不提供专项练习入口；唯一主 CTA `立即面试` | 与 `module-job-workspace.md` §1-§2 + product-scope §5.2 一致 |
-| D-3 | practice 三轴分离 | 形式 `mode/modality∈{text,voice}`、辅助度 `practiceMode∈{assisted,strict}`、数据来源 `practiceGoal/goal∈{baseline,retry_current_round,next_round,debrief}` 分离；`goal='debrief'` 可与 assisted 或 strict 组合，不再作为 practiceMode，也不天然禁用 hint | 与 backend-practice D-5/D-21 一致；当前 OpenAPI 仍可能残留 `debrief_replay` generated enum 值，正式前端不得产出该旧值，B1/B2/backend-practice owner 负责收敛契约漂移 |
+| D-3 | practice 三轴分离 | 形式 `mode/modality∈{text,voice}`、辅助度 `practiceMode∈{assisted,strict}`、数据来源 `practiceGoal/goal∈{baseline,retry_current_round,next_round,debrief}` 分离；`goal='debrief'` 可与 assisted 或 strict 组合，不再作为 practiceMode，也不天然禁用 hint | 与 backend-practice D-5/D-21 一致；当前 OpenAPI 仍可能残留 `legacy debrief replay value` generated enum 值，正式前端不得产出该旧值，B1/B2/backend-practice owner 负责收敛契约漂移 |
 | D-4 | TopBar 隐藏 | `practice` 与 `generating` 路由隐藏 chrome；`workspace` 保留 chrome | 与 `routes.ts::NO_CHROME_ROUTES` 和 `ui-design/src/app.jsx::hideTopBar` 一致 |
 | D-5 | Route 最小上下文 | 本 spec owner route 使用完整 InterviewContext；外部 `report` 最小键是 `sessionId/reportId`，外部 `company_intel` 最小键是 `targetJobId/jdId` | 不把可继承字段误判为所有 route 必填，避免无谓空态 |
 | D-6 | Report handoff | generating 成功后只导航到 `report?sessionId&reportId`；ReportScreen 内部渲染、复练和下一轮动作由外部 owner 实现 | 本 spec 只验证 handoff 参数与生成态，不验证 report dashboard |

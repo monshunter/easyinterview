@@ -167,7 +167,7 @@ CREATE TABLE practice_plans (
   target_job_id uuid NOT NULL REFERENCES target_jobs(id) ON DELETE CASCADE,
   source_report_id uuid,
   goal text NOT NULL CHECK (goal IN ('baseline', 'retry_current_round', 'next_round', 'debrief')),
-  mode text NOT NULL CHECK (mode IN ('assisted', 'strict', 'debrief_replay')),
+  mode text NOT NULL CHECK (mode IN ('assisted', 'strict')),
   interviewer_persona text NOT NULL CHECK (interviewer_persona IN ('generalist', 'hr', 'hiring_manager', 'technical_manager', 'peer')),
   difficulty text NOT NULL DEFAULT 'standard' CHECK (difficulty IN ('easy', 'standard', 'stretch')),
   language text NOT NULL DEFAULT 'en',
@@ -180,6 +180,25 @@ CREATE TABLE practice_plans (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_practice_plans_target_job_created ON practice_plans (target_job_id, created_at DESC);
+
+CREATE TABLE idempotency_records (
+  id uuid PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  domain text NOT NULL,
+  operation text NOT NULL,
+  idempotency_key_hash text NOT NULL,
+  request_fingerprint text NOT NULL,
+  status text NOT NULL CHECK (status IN ('pending', 'succeeded', 'failed_retryable', 'failed_terminal')),
+  resource_type text,
+  resource_id uuid,
+  response_body jsonb,
+  error_code text,
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, domain, operation, idempotency_key_hash)
+);
+CREATE INDEX idx_idempotency_records_expires_at ON idempotency_records (expires_at);
 
 CREATE TABLE practice_sessions (
   id uuid PRIMARY KEY,

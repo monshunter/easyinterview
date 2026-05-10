@@ -4,7 +4,7 @@
     "default": {
       "request": {
         "headers": {
-          "Idempotency-Key": "ik_2026-05-10T09-00-00-dismiss-default"
+          "Idempotency-Key": "ik_mark_job_not_relevant_default"
         },
         "body": {
           "reason": "not_relevant"
@@ -24,7 +24,7 @@
     "4xx": {
       "request": {
         "headers": {
-          "Idempotency-Key": "ik_2026-05-10T09-00-00-dismiss-4xx"
+          "Idempotency-Key": "ik_mark_job_not_relevant_invalid"
         },
         "body": {
           "reason": "not_relevant"

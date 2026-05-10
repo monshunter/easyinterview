@@ -1,8 +1,8 @@
 # Fixture-backed Mock Runtime
 
-> **版本**: 1.2
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -17,12 +17,19 @@
 
 本 plan 只建立 contract-backed mock runtime，不新增用户可见流程，也不修改 API schema。
 
+## 2.1 修订记录
+
+| 日期 | 版本 | 变更 | 原因 |
+|------|------|------|------|
+| 2026-05-10 | 1.4 | 合并 Phase 4.5 named scenario truth-source remediation 与 Phase 5 frontend dev preview mock wiring。 | 当前分支和 `main` 均已完成 mock-contract-suite 修订，合并后必须保留两边 gate 并消除同版本并行语义。 |
+| 2026-05-10 | 1.3 | 重新激活本 plan，新增 Phase 5 frontend dev preview mock wiring。 | 既有交付只覆盖测试/可注入 client，没有覆盖 `pnpm --filter @easyinterview/frontend dev` 的默认预览路径，导致无真实 backend 时大量 `/api/v1` 报错且页面不可见。 |
+
 ## 3 质量门禁分类
 
 - **Plan 类型**: `code-internal` + `tooling` + `contract`。
-- **TDD 策略**: 通过 `/implement mock-contract-suite/001-fixture-backed-mock-runtime tooling` -> `/tdd` 执行；每个 checklist item 先补 focused test 或 lint fixture，再实现最小 runtime / gate；测试断言写在 checklist 的 `验证:` 后，且 Phase 4 收口必须实际运行当前 owner gates。
+- **TDD 策略**: 通过 `/implement mock-contract-suite/001-fixture-backed-mock-runtime tooling` -> `/tdd` 执行；每个 checklist item 先补 focused test 或 lint fixture，再实现最小 runtime / gate；测试断言写在 checklist 的 `验证:` 后。Phase 4.5 必须用后端 focused test 证明 named scenario response expectation 来自 fixture truth source；Phase 5 必须先用 frontend focused tests 证明 dev client 默认 fixture-backed、真实 backend opt-out 保留、fixture coverage 覆盖全部 generated operationId，再接入 `main.tsx`。
 - **BDD 策略**: BDD 不适用。本 plan 不引入用户可见 UI、API 行为或业务流程，只提供内部 mock runtime 和 contract gate；用户行为验证归 `frontend-shell` 与后续 D2-D6 plan 的 BDD gate。
-- **替代验证 gate**: fixture registry unit tests、frontend mock transport tests、backend mock handler tests、`make validate-fixtures`、`make lint-openapi`、`make codegen-check`、prototype mapping drift check、fixture tag directory set gate、scoped retired route / tag / schema / config token negative search、`make docs-check`。
+- **替代验证 gate**: fixture registry unit tests、frontend mock transport tests、frontend dev mock bootstrap tests、backend mock handler tests、`make validate-fixtures`、`make lint-openapi`、`make codegen-check`、prototype mapping drift check、fixture tag directory set gate、scoped retired route / tag / schema / config token negative search、frontend typecheck/build smoke、`make docs-check`。
 
 ## 4 实施步骤
 
@@ -74,11 +81,30 @@
 
 扩展 mock runtime boundary lint，校验 `openapi/fixtures/` 的 tag 目录集合严格等于当前 OpenAPI 12 tag；即使旧 `Growth` / `Mistakes` 为空目录或 Git 不跟踪，也必须被 gate 捕获并清理。
 
+#### 4.5 Remediation: named scenario expectations follow fixture truth source
+
+修复后端 mock runtime named scenario 回归测试中的 hard-coded response expectation。`TestHandlerSelectsNamedSeedScenariosAndFailsUnknown` 必须读取对应 fixture scenario 的 `response.status` 和 `response.body` 作为断言真理源，覆盖 `getPracticeSession` 的 `missing-session` scenario 当前为 `404 PRACTICE_SESSION_NOT_FOUND`，避免测试继续期待旧的 `401 AUTH_UNAUTHORIZED`。
+
+### Phase 5: Frontend dev preview mock wiring
+
+#### 5.1 建立 dev preview mock client factory
+
+在 `frontend/src/api` 提供 dev-only fixture-backed client 工厂，默认读取全部 `openapi/fixtures/<tag>/<operationId>.json` 并校验 generated operationId 覆盖；测试必须证明 `DEV` 环境默认返回 fixture 数据，且 `VITE_EI_API_MODE=real` 会回到真实 generated client。
+
+#### 5.2 接入 Vite frontend bootstrap
+
+把 `frontend/src/main.tsx` 的默认 client 构造改为通过 factory 解析：Vite dev 默认 fixture-backed，production build 默认真实 backend，显式 `VITE_EI_API_MODE=real` 可在 dev 下打真实 backend。dev real 模式必须使用 `VITE_EI_API_BASE_URL` 或 backend 默认 `http://localhost:8080/api/v1`，不得继续用相对 `/api/v1` 打到 frontend 5173。
+
+#### 5.3 文档与本地 smoke 收口
+
+更新 frontend API handoff 文档，说明 dev mock 默认行为、真实 backend opt-out、`VITE_EI_API_BASE_URL` 与新增 fixture scenario 的维护入口；运行 focused frontend tests、typecheck/build，并用本地 dev server smoke 证明页面不再因真实接口错误不可见。
+
 ## 5 验收标准
 
 - 34 operation fixtures 均能被 operationId registry 解析。
 - 前端 mock transport 返回 generated API types，不依赖 prototype data。
 - 后端 mock harness 与前端 mock 使用同一 fixture registry。
+- Vite dev frontend 在没有真实 backend 时默认使用 fixture-backed client，已开发页面可渲染；真实 backend opt-out 只能通过显式 `VITE_EI_API_MODE=real`。
 - scoped retired route / tag / schema key / config path negative search 通过，且不误杀普通业务文案。
 - 所有 checklist item 的 focused tests / lint / drift gates 实际运行通过。
 
@@ -90,3 +116,4 @@
 | 前端为了速度继续 import prototype data | Phase 2.2 增加 import boundary test / lint |
 | Mock handler 与真实 OpenAPI 漂移 | Phase 1.2 与 Phase 4.1 接入 fixture coverage 和 OpenAPI validation |
 | 场景测试误把 mock smoke 当真实 E2E | 本 plan 不创建 BDD-Gate；真实用户行为由后续 feature plan 和 `test/scenarios/e2e` 承接 |
+| Dev preview mock 被误用于真实集成验证 | README 与 factory opt-out 明确 `VITE_EI_API_MODE=real`，operation matrix 仍区分 fixture-backed 与真实 backend |

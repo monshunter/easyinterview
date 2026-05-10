@@ -16,6 +16,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0033](./BUG-0033.md) | practice session L2 reviews exposed first-question and idempotency drift | high | resolved | 2026-05-10 | `fix(backend-practice): remediate session orchestration L2 findings` |
 | [BUG-0004](./BUG-0004.md) | voice interview surface was removed while unifying practice routes | medium | resolved | 2026-05-02 | `fix(ui-design): restore voice interview surface in practice shell` |
 
 ## Review
@@ -45,7 +46,8 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
-| [BUG-0033](./BUG-0033.md) | jd_match L2 review exposed detail fetch and auth resume drift | medium | resolved | 2026-05-10 | `fix(frontend-jd-match): remediate jd match L2 findings` |
+| [BUG-0036](./BUG-0036.md) | Vite dev preview hit frontend port instead of fixture-backed API | high | resolved | 2026-05-10 | `fix(frontend-dev): default vite preview to fixture-backed API` |
+| [BUG-0037](./BUG-0037.md) | jd_match L2 review exposed detail fetch and auth resume drift | medium | resolved | 2026-05-10 | `fix(frontend-jd-match): remediate jd match L2 findings` |
 | [BUG-0032](./BUG-0032.md) | workspace follow-up review exposed synthetic id and fetch race drift | medium | resolved | 2026-05-09 | `fix(frontend-workspace): harden workspace review follow-up` |
 | [BUG-0031](./BUG-0031.md) | workspace L2 review exposed route hydration and start flow drift | medium | resolved | 2026-05-09 | `fix(frontend-workspace): remediate workspace L2 findings` |
 | [BUG-0029](./BUG-0029.md) | home JD import L2 review exposed privacy and gate drift | medium | resolved | 2026-05-08 | `fix(frontend-home): remediate jd import L2 findings` |
@@ -58,6 +60,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0035](./BUG-0035.md) | change-intake mutated main before branch guard | high | resolved | 2026-05-10 | `fix(change-intake): require branch guard before mutation` |
 | [BUG-0022](./BUG-0022.md) | speech adapters ignored profile timeouts | medium | resolved | 2026-05-08 | `fix(ai-provider): enforce speech adapter timeouts` |
 | [BUG-0017](./BUG-0017.md) | runtime topology lint missed structured producer and owner handoff forms | medium | resolved | 2026-05-07 | `fix(runtime): harden worker topology structured gate` |
 | [BUG-0016](./BUG-0016.md) | runtime topology lint missed scripts and raw producer fields | medium | resolved | 2026-05-07 | `fix(runtime): harden worker topology scripts gate` |
@@ -81,6 +84,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0034](./BUG-0034.md) | mockruntime named scenario test copied stale fixture expectation | medium | resolved | 2026-05-10 | `fix(mock-contract): align mockruntime named scenarios` |
 | [BUG-0011](./BUG-0011.md) | mock contract gate ignored empty retired fixture tag directories | medium | resolved | 2026-05-06 | `fix(mock-contract): reject retired fixture tag dirs` |
 | [BUG-0010](./BUG-0010.md) | mock contract runtime gate missed registry and stale route count | medium | resolved | 2026-05-05 | `fix(mock-contract): harden runtime drift gates` |
 | [BUG-0003](./BUG-0003.md) | local quality gates skipped real backend and frontend execution | medium | resolved | 2026-04-30 | `fix(ci-pipeline): remediate local quality gates` |

@@ -1,4 +1,4 @@
-package minimax_speech
+package minimaxspeech
 
 import (
 	"context"

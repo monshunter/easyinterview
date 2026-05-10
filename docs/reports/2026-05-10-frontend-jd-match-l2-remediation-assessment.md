@@ -5,10 +5,10 @@
 
 ## 1 复盘范围与成功证据
 
-- 范围：`/plan-code-review 002-jd-match-recommendations --fix` 的 L2 remediation，覆盖 `getJobRecommendation` 详情必调、`jd_match_action` 登录后 auto-resume、Search opaque pending payload、pixel parity gate、P0.022/P0.023/P0.025/P0.026 scenario verify 强化，以及 plan 002 文档生命周期恢复 completed。
+- 范围：`/plan-code-review 002-jd-match-recommendations --fix` 的 L2 remediation，覆盖 `getJobRecommendation` 详情必调、`jd_match_action` 登录后 auto-resume、Search opaque pending payload、pixel parity gate、P0.027/P0.028/P0.030/P0.031 scenario verify 强化，以及 plan 002 文档生命周期恢复 completed。
 - 关联计划：[002 JD Match Recommendations](../spec/frontend-home-job-picks-and-parse/plans/002-jd-match-recommendations/plan.md)。
-- 关联 Bug：[BUG-0033](../bugs/BUG-0033.md)。
-- 成功证据：`pnpm --filter @easyinterview/frontend test` 105 files / 663 tests PASS；`typecheck` PASS；`build` PASS；`make build` PASS；`make validate-fixtures` OK 46 fixtures；`pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/jd_match.spec.ts` 20 passed；P0.022/P0.023/P0.024/P0.025/P0.026/P0.017 scenario setup→trigger→verify→cleanup 均 PASS；`sync-doc-index --check` 与 `make docs-check` zero drift。
+- 关联 Bug：[BUG-0037](../bugs/BUG-0037.md)。
+- 成功证据：`pnpm --filter @easyinterview/frontend test` 105 files / 663 tests PASS；`typecheck` PASS；`build` PASS；`make build` PASS；`make validate-fixtures` OK 46 fixtures；`pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/jd_match.spec.ts` 20 passed；P0.027/P0.028/P0.029/P0.030/P0.031/P0.017 scenario setup→trigger→verify→cleanup 均 PASS；`sync-doc-index --check` 与 `make docs-check` zero drift。
 
 ## 2 会话中的主要阻点/痛点
 
@@ -16,7 +16,7 @@
   - **证据**：原实现能通过历史 checklist，但缺少 `getJobRecommendation(jobMatchId)` detail fetch 红测和 auth auto-resume 一次性执行断言。
   - **影响**：需要新增 hook、状态恢复模块、组件接线、测试和 scenario verify，修复范围横跨代码、E2E 脚本和 plan 文档。
 - BDD checklist 与实际已完成场景证据不同步。
-  - **证据**：主 checklist 已显示 Phase 6 完成，但 `bdd-checklist.md` 多数项仍为 `[ ]`，需要重新补跑 P0.024/P0.017 并回写证据。
+  - **证据**：主 checklist 已显示 Phase 6 完成，但 `bdd-checklist.md` 多数项仍为 `[ ]`，需要重新补跑 P0.029/P0.017 并回写证据。
   - **影响**：L2 reviewer 必须额外判断历史 PASS 是否可复用，增加误判风险。
 - Pixel parity 旧 gate 没有覆盖具体响应式布局不变量。
   - **证据**：补红测后发现 mobile Recommended grid 仍为 2 列，Market signals 缺可测 inner anchor，focused screenshot baseline 缺失。
@@ -51,12 +51,12 @@
 - 在 auth pending action gate 中固定四类断言：pending params 最小化、登录后一次性恢复、重复触发防护、隐私字段负向搜索。
   - **落点**：spec-plan
   - **优先级**：high
-- 将 BUG-0033 的检查模式候选沉淀到 `docs/bugs/PATTERNS.md`：L2 review 不能只看 route/DOM PASS，必须验证 operation-consumer 语义和 pending action resume 语义。
+- 将 BUG-0037 的检查模式候选沉淀到 `docs/bugs/PATTERNS.md`：L2 review 不能只看 route/DOM PASS，必须验证 operation-consumer 语义和 pending action resume 语义。
   - **落点**：README / bug pattern library
   - **优先级**：medium
 
 ## 5 建议优先级与后续动作
 
-- 优先做：把 BUG-0033 的模式写入 `docs/bugs/PATTERNS.md`，并在下一次用户确认后更新，避免同类 L2 drift 再次只靠人工记忆发现。
+- 优先做：把 BUG-0037 的模式写入 `docs/bugs/PATTERNS.md`，并在下一次用户确认后更新，避免同类 L2 drift 再次只靠人工记忆发现。
 - 其次做：在后续 plan-review / plan-code-review 中，把“旧设计口径负向搜索词”列入 owner plan gate，而不是只在执行末尾临时搜索。
 - 可延后：清理现有测试中的 React `act(...)` warning；本轮所有断言通过，但这些 warning 会降低长输出的审查信噪比。

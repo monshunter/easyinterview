@@ -160,6 +160,22 @@ def test_product_scope_contract_accepts_current_baseline() -> None:
     assert problems == []
 
 
+def test_product_scope_contract_requires_binary_practice_mode() -> None:
+    normalized_contract = migrations_lint.normalize_sql(current_migration_up_sql() + "\n" + current_enum_sources())
+    removed_mode = "debrief" + "_replay"
+
+    assert "mode text not null check (mode in ('assisted', 'strict'))" in normalized_contract
+    assert removed_mode not in normalized_contract
+
+
+def test_product_scope_contract_requires_shared_idempotency_records() -> None:
+    normalized_sql = migrations_lint.normalize_sql(current_migration_up_sql())
+
+    assert "create table idempotency_records" in normalized_sql
+    assert "unique (user_id, domain, operation, idempotency_key_hash)" in normalized_sql
+    assert "create index idx_idempotency_records_expires_at on idempotency_records (expires_at)" in normalized_sql
+
+
 def test_product_scope_contract_rejects_removed_mistake_schema() -> None:
     sql = current_baseline_sql() + "\nCREATE TABLE mistake_entries (id uuid PRIMARY KEY);\n"
 
@@ -275,6 +291,10 @@ def repo_root() -> Path:
 
 def current_baseline_sql() -> str:
     return (repo_root() / "migrations" / "000001_create_baseline.up.sql").read_text()
+
+
+def current_migration_up_sql() -> str:
+    return "\n".join(path.read_text() for path in sorted((repo_root() / "migrations").glob("*.up.sql")))
 
 
 def current_enum_sources() -> str:

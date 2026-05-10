@@ -49,6 +49,33 @@ python3 .agent-skills/change-intake/scripts/match_change_context.py \
   --query "<issue text>"
 ```
 
+## Branch Guard Before Mutation
+
+`/change-intake` may inspect files on any branch, but it must not mutate files on
+the default parent branch. Run this guard before the first file edit, including
+spec / plan / checklist revision, generated document creation, formatting,
+`bug-report`, `retrospective`, or downstream implementation handoff that will
+write files:
+
+1. Check the current branch and worktree with `git status --short --branch`.
+2. If the current branch already matches the session feature branch, treat the
+   run as a retry/resume and continue.
+3. If the current branch is the default parent branch and the worktree is clean,
+   update the parent branch with fast-forward-only semantics, then create or
+   switch to a feature branch before editing files.
+4. If dirty changes already came from the current session while still on the
+   default parent branch, create the feature branch immediately while preserving
+   those changes, report the recovery, and continue only after the branch switch.
+5. If the default parent branch is dirty for unclear or user-owned reasons, stop
+   and ask the user before creating or switching branches.
+6. If a non-parent branch has unrelated dirty changes and does not match the
+   session feature branch, stop and ask the user before mutating anything.
+
+Never revise spec / plan / checklist on the default parent branch. For completed
+plans that require in-place revision, the branch guard must complete before
+setting the plan back to `active` or changing any owner document. For pure
+proposal/backlog guidance with no file edits, no branch switch is required.
+
 ## Matching Workflow
 
 ### Step 1: Collect signals

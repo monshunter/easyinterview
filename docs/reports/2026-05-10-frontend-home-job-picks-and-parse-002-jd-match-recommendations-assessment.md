@@ -15,7 +15,7 @@
 - TypeScript：`pnpm --filter @easyinterview/frontend typecheck` → 0 errors。
 - 构建：`pnpm --filter @easyinterview/frontend build` 与 `make build` 全绿。
 - Fixture：`make validate-fixtures` → OK 46 fixtures。
-- Scenario suite：6 个 jd_match scenario 全 `setup → trigger → verify → cleanup` 闭环 PASS（P0.017 升级到三 tab 数据驱动 smoke 34 files / 209 tests；P0.022 12 files / 93 tests；P0.023 9 files / 54 tests；P0.024 7 files / 26 tests；P0.025 7 files / 42 tests；P0.026 1 file / 2 tests）。
+- Scenario suite：6 个 jd_match scenario 全 `setup → trigger → verify → cleanup` 闭环 PASS（P0.017 升级到三 tab 数据驱动 smoke 34 files / 209 tests；P0.027 12 files / 93 tests；P0.028 9 files / 54 tests；P0.029 7 files / 26 tests；P0.030 7 files / 42 tests；P0.031 1 file / 2 tests）。
 - Regression：P0.001 / P0.002 / P0.004 / P0.005 / P0.014 / P0.015 / P0.016 全部 setup→trigger→verify→cleanup PASS。
 - Playwright pixel parity：`tests/pixel-parity/jd_match.spec.ts` → 14/14 PASS（desktop + mobile × 7 tests）。
 - 文档同步：`sync-doc-index.py --check` → "All documents are in sync. Zero drift detected."；plans/INDEX.md 002 行迁移到 Completed section；history.md 追加 1.4 完成行。
@@ -28,8 +28,8 @@
   - **影响**：Vitest 已经全 PASS、TS 仍然挂在严格模式 → 需要额外 1-2 轮 typecheck → 修复 → 再次 typecheck。Phase 3 typecheck 修复期占去会话约 8 分钟，Phase 4 / 5 各 3-5 分钟。
 
 - **痛点 B — scenario verify.sh 的源级负向 grep 跨 grep 实现（BSD / GNU / ugrep）行为不一致**
-  - **证据**：P0.017 verify.sh 在 ugrep 下命中 `JDMatchScreen.test.tsx`，尽管 `--exclude='*.test.tsx'` 已显式声明；P0.023 同样命中测试文件中的 `"248"` token。直接运行 `grep -R --include --exclude` 在 ugrep alias 下与 GNU grep 行为不一致，导致 verify.sh 误报。需要重写所有 4 个含负向 grep 的 verify.sh（P0.017 / P0.022 / P0.023 / P0.025），改为 `git ls-files | grep -Ev` + while-read + 显式逐文件 `grep -Fq` 模式。
-  - **影响**：第一次跑 P0.017 / P0.023 verify 时误报失败，造成 ≈10 分钟额外调试；最终修复后所有 6 个 scenario 全 PASS。
+  - **证据**：P0.017 verify.sh 在 ugrep 下命中 `JDMatchScreen.test.tsx`，尽管 `--exclude='*.test.tsx'` 已显式声明；P0.028 同样命中测试文件中的 `"248"` token。直接运行 `grep -R --include --exclude` 在 ugrep alias 下与 GNU grep 行为不一致，导致 verify.sh 误报。需要重写所有 4 个含负向 grep 的 verify.sh（P0.017 / P0.027 / P0.028 / P0.030），改为 `git ls-files | grep -Ev` + while-read + 显式逐文件 `grep -Fq` 模式。
+  - **影响**：第一次跑 P0.017 / P0.028 verify 时误报失败，造成 ≈10 分钟额外调试；最终修复后所有 6 个 scenario 全 PASS。
 
 - **痛点 C — 正式 dev server 不启用 fixture-backed mock transport，Playwright pixel parity 默认状态下 `JDDetail` / `Recommended` 列表为空**
   - **证据**：`pnpm test:pixel-parity tests/pixel-parity/jd_match.spec.ts` 第一次运行时 `Recommended tab renders the data-driven list and sticky JDDetail` 用例 desktop + mobile 双双失败，trace 显示 `[data-testid='jdmatch-detail']` 0 命中（dev server 没有 backend，profile / recommendations 永远 loading 或 error）。修复方案：把断言放宽为 detail OR empty/loading/error 任一渲染，detail 渲染时再校验 4 个 action 按钮。
@@ -107,4 +107,4 @@
 工程化角度的下一步：
 
 - `frontend-home-job-picks-and-parse` 当前 P0 范围已收口；预占的真实 backend 行为（recommendations / agent scan / 真实联网搜索 / market signals 计算）由独立未来 subspec `backend-jobs-recommendations` 承接，可以与 `mock-contract-suite` fixture meta header 契约 follow-up 并行启动
-- `auto-resume` 自动重新触发 action（pendingAction params 解码 + selectedJobMatchId fallback）作为本 plan 002 的 frontend follow-up 议题（ui-design `auth-and-entry.md` §6 + plan §3.7 已锁定语义），可在新增小型 plan 中落地，结合 P0.025 scenario 资产已就位的便利
+- `auto-resume` 自动重新触发 action（pendingAction params 解码 + selectedJobMatchId fallback）作为本 plan 002 的 frontend follow-up 议题（ui-design `auth-and-entry.md` §6 + plan §3.7 已锁定语义），可在新增小型 plan 中落地，结合 P0.030 scenario 资产已就位的便利

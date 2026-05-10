@@ -1,4 +1,4 @@
-package doubao_speech
+package doubaospeech
 
 import (
 	"context"

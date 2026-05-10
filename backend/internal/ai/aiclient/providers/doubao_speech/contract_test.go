@@ -1,4 +1,4 @@
-package doubao_speech_test
+package doubaospeech_test
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
-	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/doubao_speech"
+	doubaospeech "github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/doubao_speech"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/doubao_speech/mockserver"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
@@ -49,9 +49,9 @@ func ttsInput() aiclient.SynthesisInput {
 	}
 }
 
-func newAdapter(t *testing.T, srv *mockserver.Server) *doubao_speech.Adapter {
+func newAdapter(t *testing.T, srv *mockserver.Server) *doubaospeech.Adapter {
 	t.Helper()
-	a, err := doubao_speech.New(doubao_speech.Options{
+	a, err := doubaospeech.New(doubaospeech.Options{
 		Provider: resolvedProvider(srv.URL()),
 	})
 	if err != nil {
@@ -271,7 +271,7 @@ func TestNew_RejectsNonDoubaoProtocol(t *testing.T) {
 	rp := resolvedProvider(srv.URL())
 	rp.Entry.Protocol = aiclient.ProviderProtocolOpenAICompatible
 
-	_, err := doubao_speech.New(doubao_speech.Options{Provider: rp})
+	_, err := doubaospeech.New(doubaospeech.Options{Provider: rp})
 	if err == nil {
 		t.Fatal("expected error for non-doubao protocol")
 	}
@@ -283,7 +283,7 @@ func TestNew_RejectsMissingBaseURL(t *testing.T) {
 	rp := resolvedProvider(srv.URL())
 	rp.BaseURL = ""
 
-	_, err := doubao_speech.New(doubao_speech.Options{Provider: rp})
+	_, err := doubaospeech.New(doubaospeech.Options{Provider: rp})
 	if err == nil {
 		t.Fatal("expected error for missing BaseURL")
 	}
@@ -295,7 +295,7 @@ func TestNew_RejectsMissingAPIKey(t *testing.T) {
 	rp := resolvedProvider(srv.URL())
 	rp.APIKey = ""
 
-	_, err := doubao_speech.New(doubao_speech.Options{Provider: rp})
+	_, err := doubaospeech.New(doubaospeech.Options{Provider: rp})
 	if err == nil {
 		t.Fatal("expected error for missing APIKey")
 	}
@@ -350,8 +350,8 @@ func TestDoesNotReuseOpenAIAudioTranscriptionsWire(t *testing.T) {
 	if got.Method != "POST" {
 		t.Fatalf("expected POST, got %q", got.Method)
 	}
-	if got.Path != doubao_speech.PathSTTRecognize {
-		t.Fatalf("expected %s, got %q", doubao_speech.PathSTTRecognize, got.Path)
+	if got.Path != doubaospeech.PathSTTRecognize {
+		t.Fatalf("expected %s, got %q", doubaospeech.PathSTTRecognize, got.Path)
 	}
 	mediaType, _, err := mime.ParseMediaType(got.ContentType)
 	if err != nil {
@@ -368,7 +368,7 @@ func TestRejectsOpenAICompatibleProtocol(t *testing.T) {
 	rp := resolvedProvider(srv.URL())
 	rp.Entry.Protocol = aiclient.ProviderProtocolOpenAICompatible
 
-	_, err := doubao_speech.New(doubao_speech.Options{Provider: rp})
+	_, err := doubaospeech.New(doubaospeech.Options{Provider: rp})
 	if err == nil {
 		t.Fatal("doubao_speech must reject openai_compatible protocol")
 	}

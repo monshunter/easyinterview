@@ -1,4 +1,4 @@
-package doubao_speech
+package doubaospeech
 
 // ttsSynthesizeRequest is the JSON body posted to the Doubao TTS endpoint.
 type ttsSynthesizeRequest struct {

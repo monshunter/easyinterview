@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_practice_sessions_one_active_per_plan;

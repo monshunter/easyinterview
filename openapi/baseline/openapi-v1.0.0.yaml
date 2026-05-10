@@ -3,10 +3,15 @@ info:
   title: easyinterview API
   version: 1.0.0
   summary: HTTP contract for easyinterview P0 — JD onboarding, mock interview, evidence-based review.
-  description: |-
-    BASELINE — DO NOT EDIT.
-    本文件是 openapi-v1-contract spec v1.9 / product-scope spec v1.2 锁定的 v1.0.0 freeze 快照。
-    任何 breaking change 必须走 ADR + 本 spec 修订流程，新版本写入 openapi/baseline/openapi-v<MAJOR>.<MINOR>.<PATCH>.yaml。
+  description: |
+    Single source of truth for all easyinterview HTTP endpoints. Owned by spec
+    `docs/spec/openapi-v1-contract/spec.md` (B2). Any change must follow the
+    additive-only / breaking-change rules locked in spec §4.4 and ADR review flow.
+
+    Auth path follows ADR-Q1: first-party session cookie minted by
+    `GET /api/v1/auth/email/verify` after the magic-link challenge issued by
+    `POST /api/v1/auth/email/start`. `Authorization: Bearer` is **not** a P0
+    default scheme.
   contact:
     name: easyinterview engineering
     url: https://github.com/monshunter/easyinterview
@@ -1186,7 +1191,7 @@ components:
     ApiErrorCode:
       type: string
       description: |
-        Documented error codes (`B1 shared-conventions-codified §3.2`). Synced from
+        Documented error codes synced from
         `shared/conventions.yaml#errors[].code`; B1 owns the literal set.
         `PRIVACY_EXPORT_NOT_AVAILABLE` is the P0 example required by spec D-12
         and is included here so the OpenAPI contract is self-contained for the
@@ -1194,13 +1199,22 @@ components:
       enum:
         - AUTH_UNAUTHORIZED
         - TARGET_IMPORT_FAILED
+        - TARGET_JOB_NOT_FOUND
+        - TARGET_IMPORT_SOURCE_INVALID
+        - TARGET_IMPORT_SOURCE_UNAVAILABLE
+        - TARGET_INVALID_STATE_TRANSITION
         - PRACTICE_SESSION_CONFLICT
+        - PRACTICE_PLAN_NOT_FOUND
+        - PRACTICE_SESSION_NOT_FOUND
         - REPORT_NOT_READY
         - VALIDATION_FAILED
         - RATE_LIMITED
         - AI_PROVIDER_TIMEOUT
         - AI_OUTPUT_INVALID
         - AI_FALLBACK_EXHAUSTED
+        - AI_UNSUPPORTED_CAPABILITY
+        - AI_PROVIDER_CONFIG_INVALID
+        - AI_PROVIDER_SECRET_MISSING
         - PRIVACY_EXPORT_NOT_AVAILABLE
 
     ApiError:
@@ -1220,7 +1234,7 @@ components:
           description: Request correlation id; equals the X-Request-ID response header for the same request.
         retryable:
           type: boolean
-          description: Hint to the client whether retry is safe (per `B1 shared-conventions-codified §3.2`).
+          description: Hint to the client whether retry is safe, as defined by B1 shared-conventions-codified.
         details:
           type: object
           description: Optional structured diagnostic. Must not contain provider, prompt, or secret material per A4 redaction rules.
@@ -1229,7 +1243,7 @@ components:
     ApiErrorResponse:
       type: object
       required: [error]
-      description: Wire error response envelope per `B1 shared-conventions-codified §3.2`.
+      description: Wire error response envelope defined by B1 shared-conventions-codified.
       properties:
         error:
           $ref: '#/components/schemas/ApiError'
@@ -1253,7 +1267,7 @@ components:
 
     JobStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#jobStatuses` (B1 shared-conventions-codified §4.1).
+      description: Synced from `shared/conventions.yaml#jobStatuses`.
       enum:
         - queued
         - running
@@ -1264,72 +1278,72 @@ components:
 
     TargetJobStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[TargetJobStatus]` (B1 shared-conventions-codified §5.1).
+      description: Synced from `shared/conventions.yaml#enums[TargetJobStatus]` sourceSection 5.1.
       enum: [draft, preparing, applied, interviewing, offer, rejected, archived]
 
     TargetJobParseStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[TargetJobParseStatus]` (B1 shared-conventions-codified §5.2).
+      description: Synced from `shared/conventions.yaml#enums[TargetJobParseStatus]` sourceSection 5.2.
       enum: [queued, processing, ready, failed]
 
     PracticeMode:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[PracticeMode]` (B1 shared-conventions-codified §5.3).
-      enum: [assisted, strict, debrief_replay]
+      description: Synced from `shared/conventions.yaml#enums[PracticeMode]` sourceSection 5.3.
+      enum: [assisted, strict]
 
     PracticeGoal:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[PracticeGoal]` (B1 shared-conventions-codified §5.4).
+      description: Synced from `shared/conventions.yaml#enums[PracticeGoal]` sourceSection 5.4.
       enum: [baseline, retry_current_round, next_round, debrief]
 
     InterviewerRole:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[InterviewerRole]` (B1 shared-conventions-codified §5.5).
+      description: Synced from `shared/conventions.yaml#enums[InterviewerRole]` sourceSection 5.5.
       enum: [generalist, hr, hiring_manager, technical_manager, peer]
 
     SessionStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[SessionStatus]` (B1 shared-conventions-codified §5.6).
+      description: Synced from `shared/conventions.yaml#enums[SessionStatus]` sourceSection 5.6.
       enum: [queued, running, waiting_user_input, completing, completed, failed, cancelled]
 
     ReportStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[ReportStatus]` (B1 shared-conventions-codified §5.7).
+      description: Synced from `shared/conventions.yaml#enums[ReportStatus]` sourceSection 5.7.
       enum: [queued, generating, ready, failed]
 
     ReadinessTier:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[ReadinessTier]` (B1 shared-conventions-codified §5.8).
+      description: Synced from `shared/conventions.yaml#enums[ReadinessTier]` sourceSection 5.8.
       enum: [not_ready, needs_practice, basically_ready, well_prepared]
 
     DimensionStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[DimensionStatus]` (B1 shared-conventions-codified §5.9).
+      description: Synced from `shared/conventions.yaml#enums[DimensionStatus]` sourceSection 5.9.
       enum: [strong, meets_bar, needs_work]
 
     Confidence:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[Confidence]` (B1 shared-conventions-codified §5.10).
+      description: Synced from `shared/conventions.yaml#enums[Confidence]` sourceSection 5.10.
       enum: [high, medium, low]
 
     QuestionReviewStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[QuestionReviewStatus]` (B1 shared-conventions-codified §5.11).
+      description: Synced from `shared/conventions.yaml#enums[QuestionReviewStatus]` sourceSection 5.11.
       enum: [open, queued_for_retry, resolved]
 
     DebriefStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[DebriefStatus]` (B1 shared-conventions-codified §5.12).
+      description: Synced from `shared/conventions.yaml#enums[DebriefStatus]` sourceSection 5.12.
       enum: [draft, completed]
 
     PrivacyRequestType:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[PrivacyRequestType]` (B1 shared-conventions-codified §5.13).
+      description: Synced from `shared/conventions.yaml#enums[PrivacyRequestType]` sourceSection 5.13.
       enum: [export, delete]
 
     PrivacyRequestStatus:
       type: string
-      description: Synced from `shared/conventions.yaml#enums[PrivacyRequestStatus]` (B1 shared-conventions-codified §5.13).
+      description: Synced from `shared/conventions.yaml#enums[PrivacyRequestStatus]` sourceSection 5.13.
       enum: [queued, processing, completed, failed, cancelled]
     # === B1-AUTO-END ===
 
@@ -1801,7 +1815,7 @@ components:
           format: uuid
         kind:
           type: string
-          enum: [must_have, nice_to_have]
+          enum: [must_have, nice_to_have, hidden_signal, interview_focus]
         label:
           type: string
         evidenceLevel:
@@ -1934,7 +1948,7 @@ components:
     # ----- Practice Plans / Sessions -----
     CreatePracticePlanRequest:
       type: object
-      required: [targetJobId, goal, mode, interviewerPersona, difficulty, language, questionBudget, timeBudgetMinutes]
+      required: [targetJobId, goal, mode, interviewerPersona, difficulty, language, questionBudget, timeBudgetMinutes, resumeAssetId]
       properties:
         targetJobId:
           type: string
