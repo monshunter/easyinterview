@@ -53,6 +53,7 @@ const (
 type Store interface {
 	Reserve(ctx context.Context, in ReservationInput) (Reservation, error)
 	MarkSucceeded(ctx context.Context, in CompletionInput) error
+	MarkFailed(ctx context.Context, in CompletionInput) error
 }
 
 type ReservationInput struct {
@@ -190,19 +191,24 @@ func (m *Middleware) Handler(domain, operation string, resolveUser UserIDResolve
 		if status == 0 {
 			status = http.StatusOK
 		}
+		complete := CompletionInput{
+			RecordID:       reservation.RecordID,
+			UserID:         strings.TrimSpace(userID),
+			Domain:         strings.TrimSpace(domain),
+			Operation:      strings.TrimSpace(operation),
+			ResponseStatus: status,
+			ResponseBody:   buffer.body.Bytes(),
+			Now:            m.now().UTC(),
+		}
+		var completeErr error
 		if status >= 200 && status < 300 {
-			if err := m.store.MarkSucceeded(r.Context(), CompletionInput{
-				RecordID:       reservation.RecordID,
-				UserID:         strings.TrimSpace(userID),
-				Domain:         strings.TrimSpace(domain),
-				Operation:      strings.TrimSpace(operation),
-				ResponseStatus: status,
-				ResponseBody:   buffer.body.Bytes(),
-				Now:            m.now().UTC(),
-			}); err != nil {
-				writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "idempotency response could not be persisted")
-				return
-			}
+			completeErr = m.store.MarkSucceeded(r.Context(), complete)
+		} else {
+			completeErr = m.store.MarkFailed(r.Context(), complete)
+		}
+		if completeErr != nil {
+			writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "idempotency response could not be persisted")
+			return
 		}
 		buffer.flushTo(w)
 	})

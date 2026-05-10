@@ -744,26 +744,9 @@ func (s *scenarioPracticeStore) ReserveSessionStart(_ context.Context, in domain
 	key := s.idempotencyRecordKey(in.UserID, "practice", "startPracticeSession", in.IdempotencyKeyHash)
 	recordID := in.IdempotencyRecordID
 	if existing, ok := s.idempotencyRecords[key]; ok {
-		if existing.Fingerprint != in.RequestFingerprint {
-			return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
-		}
-		switch existing.Status {
-		case idempotency.StatusPending:
-			return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
-		case idempotency.StatusSucceeded:
-			if len(existing.Response) == 0 {
-				return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
-			}
-			replay, err := scenarioSessionRecordFromResponseBody(existing.Response)
-			if err != nil {
-				return domainpractice.SessionReservation{}, err
-			}
-			if replay.ID != existing.ResourceID {
-				return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
-			}
-			return domainpractice.SessionReservation{ReplaySession: &replay}, nil
-		case idempotency.StatusFailedRetry:
+		if !in.Now.Before(existing.ExpiresAt) {
 			recordID = existing.RecordID
+			existing.Fingerprint = in.RequestFingerprint
 			existing.Status = idempotency.StatusPending
 			existing.ErrorCode = ""
 			existing.ResourceID = ""
@@ -771,8 +754,37 @@ func (s *scenarioPracticeStore) ReserveSessionStart(_ context.Context, in domain
 			existing.HTTPStatus = 0
 			existing.ExpiresAt = in.ExpiresAt
 			s.idempotencyRecords[key] = existing
-		default:
-			return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
+		} else {
+			if existing.Fingerprint != in.RequestFingerprint {
+				return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
+			}
+			switch existing.Status {
+			case idempotency.StatusPending:
+				return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
+			case idempotency.StatusSucceeded:
+				if len(existing.Response) == 0 {
+					return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
+				}
+				replay, err := scenarioSessionRecordFromResponseBody(existing.Response)
+				if err != nil {
+					return domainpractice.SessionReservation{}, err
+				}
+				if replay.ID != existing.ResourceID {
+					return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
+				}
+				return domainpractice.SessionReservation{ReplaySession: &replay}, nil
+			case idempotency.StatusFailedRetry:
+				recordID = existing.RecordID
+				existing.Status = idempotency.StatusPending
+				existing.ErrorCode = ""
+				existing.ResourceID = ""
+				existing.Response = nil
+				existing.HTTPStatus = 0
+				existing.ExpiresAt = in.ExpiresAt
+				s.idempotencyRecords[key] = existing
+			default:
+				return domainpractice.SessionReservation{}, domainpractice.ErrSessionConflict
+			}
 		}
 	} else {
 		s.idempotencyRecords[key] = scenarioPracticeIdempotencyRecord{
@@ -962,6 +974,17 @@ func (s *scenarioPracticeStore) Reserve(_ context.Context, in idempotency.Reserv
 		}
 		return idempotency.Reservation{State: idempotency.StateExecute, RecordID: in.RecordID}, nil
 	}
+	if rec.Status == idempotency.StatusFailedTerminal {
+		rec.Status = idempotency.StatusPending
+		rec.ExpiresAt = in.ExpiresAt
+		rec.Fingerprint = in.RequestFingerprint
+		rec.Response = nil
+		rec.HTTPStatus = 0
+		rec.ResourceID = ""
+		rec.ErrorCode = ""
+		s.idempotencyRecords[key] = rec
+		return idempotency.Reservation{State: idempotency.StateExecute, RecordID: rec.RecordID}, nil
+	}
 	if rec.Fingerprint != in.RequestFingerprint {
 		return idempotency.Reservation{}, idempotency.ErrFingerprintMismatch
 	}
@@ -997,6 +1020,33 @@ func (s *scenarioPracticeStore) MarkSucceeded(_ context.Context, in idempotency.
 		}
 	}
 	return idempotency.ErrReservationNotFound
+}
+
+func (s *scenarioPracticeStore) MarkFailed(_ context.Context, in idempotency.CompletionInput) error {
+	for key, rec := range s.idempotencyRecords {
+		if rec.RecordID == in.RecordID && rec.UserID == in.UserID && rec.Domain == in.Domain && rec.Operation == in.Operation {
+			rec.Status = idempotency.StatusFailedTerminal
+			rec.Response = append([]byte{}, in.ResponseBody...)
+			rec.HTTPStatus = in.ResponseStatus
+			rec.ResourceID = ""
+			rec.ErrorCode = scenarioErrorCodeFromResponseBody(in.ResponseBody)
+			s.idempotencyRecords[key] = rec
+			return nil
+		}
+	}
+	return idempotency.ErrReservationNotFound
+}
+
+func scenarioErrorCodeFromResponseBody(raw []byte) string {
+	var decoded struct {
+		Error *struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(raw, &decoded); err != nil || decoded.Error == nil {
+		return ""
+	}
+	return decoded.Error.Code
 }
 
 func (s *scenarioPracticeStore) recordAIObservation() {

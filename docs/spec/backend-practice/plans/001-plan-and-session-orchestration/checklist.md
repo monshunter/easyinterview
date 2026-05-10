@@ -1,6 +1,6 @@
 # 001 — Plan and Session Orchestration Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-10
 
@@ -32,6 +32,7 @@
 - [x] 1.8 BDD-Gate: 验证 `E2E.P0.023` 通过（`test/scenarios/e2e/p0-023-practice-session-start-and-first-question/`）
 - [x] 1.9 Phase 1 commit + work-journal
 - [x] 1.10 Remediation: 修复 `startPracticeSession` 首题解析与 F3 `practice.session.first_question` prompt JSON schema 对齐，接受 `question` / `intent` / `focus_dimension` / `expected_signals` / `time_budget_seconds`，保留兼容 `questionText` / `questionIntent`，并拒绝非 JSON 或缺少 question 的 AI 输出；验证: `session_starter` focused tests 覆盖 F3 schema success 与 invalid-output failure
+- [x] 1.11 Remediation: 修复 `startPracticeSession` reservation 后 F3 `ResolveActive` 失败 cleanup，并渲染 first-question prompt template 的 `language` / `role_title` / `seniority` / `top_skills` / `rubric_dimensions` / `practice_goal` 占位；验证: `session_starter` focused tests 覆盖 resolution failure 调用 `FailSessionStart`、AI payload 无 raw `{{...}}` 且包含语言与目标岗位上下文
 
 ## Phase 2: 错误路径 + Idempotency 完备性
 
@@ -45,6 +46,8 @@
 - [x] 2.8 BDD-Gate: 验证 `E2E.P0.025` 通过（`test/scenarios/e2e/p0-025-practice-idempotency-and-isolation-matrix/`）
 - [x] 2.9 Phase 2 commit + work-journal
 - [x] 2.10 Remediation: 修复 `startPracticeSession` success replay，必须返回首次成功时持久化在 `idempotency_records.response_body` 的 response snapshot，而不是读取当前 session mutable state；验证: SQL repository focused test + scenario in-memory harness test 覆盖 replay snapshot 不随 session 后续状态漂移
+- [x] 2.11 Remediation: 修复 shared idempotency middleware 非 2xx response 收口，避免 `createPracticePlan` validation/error 后保留 pending 并允许同 key corrected body 重新执行；验证: middleware focused test 覆盖 422 后同 key corrected body 成功且 service 执行两次
+- [x] 2.12 Remediation: 修复 `startPracticeSession` 自定义 idempotency reservation honoring `expires_at`，过期 pending / succeeded record reset 后重新执行；验证: SQL repository focused tests 覆盖 expired pending 与 expired succeeded 不 conflict / 不 replay
 
 ## Phase 3: 观测 / 隐私 / 收尾
 

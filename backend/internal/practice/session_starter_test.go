@@ -3,7 +3,9 @@ package practice
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,6 +27,10 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 			InterviewerPersona: sharedtypes.InterviewerRoleHiringManager,
 			Language:           "zh-CN",
 			HintsEnabled:       true,
+			RoleTitle:          "Staff Frontend Architect",
+			Seniority:          "staff",
+			TopSkills:          []string{"React", "design systems", "cross-team migration"},
+			RubricDimensions:   []string{"practice_depth", "language_consistency"},
 			CreatedAt:          now.Add(-time.Hour),
 			UpdatedAt:          now.Add(-time.Hour),
 		},
@@ -36,7 +42,7 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 		ModelProfileName:    "practice.first_question.default",
 		FeatureFlag:         "none",
 		DataSourceVersion:   "registry.v1",
-		UserMessageTemplate: "ask the first question",
+		UserMessageTemplate: "Respond in {{language}}. Role: {{role_title}} ({{seniority}}). Top required skills: {{top_skills}}. Rubric dimensions: {{rubric_dimensions}}. Practice goal: {{practice_goal}}.",
 	}}
 	ai := &fakeAIClient{content: `{"question":"请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。","intent":"behavioral.leadership.design_system","focus_dimension":"leadership","expected_signals":["scope","tradeoffs"],"time_budget_seconds":180}`, store: store}
 	service := NewService(ServiceOptions{
@@ -96,6 +102,62 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 		meta.TaskRun.ResourceType != aiclient.AITaskRunResourceTargetJob ||
 		meta.TaskRun.ResourceID != "target-1" {
 		t.Fatalf("AI task run context incomplete: %+v", meta.TaskRun)
+	}
+	userPrompt := ai.payload.Messages[len(ai.payload.Messages)-1].Content
+	for _, forbidden := range []string{"{{language}}", "{{role_title}}", "{{top_skills}}", "{{practice_goal}}", "{{rubric_dimensions}}"} {
+		if strings.Contains(userPrompt, forbidden) {
+			t.Fatalf("first-question prompt still contains raw placeholder %q: %s", forbidden, userPrompt)
+		}
+	}
+	for _, required := range []string{"zh-CN", "Staff Frontend Architect", "React, design systems, cross-team migration", "practice_depth, language_consistency", "baseline"} {
+		if !strings.Contains(userPrompt, required) {
+			t.Fatalf("first-question prompt missing %q: %s", required, userPrompt)
+		}
+	}
+}
+
+func TestStartPracticeSessionFailsReservationWhenPromptResolutionFails(t *testing.T) {
+	store := &recordingPlanStore{
+		reservation: SessionReservation{
+			IdempotencyRecordID: "idem-1",
+			SessionID:           "session-1",
+			PlanID:              "plan-1",
+			TargetJobID:         "target-1",
+			Goal:                sharedtypes.PracticeGoalBaseline,
+			Mode:                sharedtypes.PracticeModeAssisted,
+			InterviewerPersona:  sharedtypes.InterviewerRoleHiringManager,
+			Language:            "zh-CN",
+		},
+	}
+	ai := &fakeAIClient{content: firstQuestionJSON(t, "Question?", "behavioral"), store: store}
+	service := NewService(ServiceOptions{
+		Store:    store,
+		Registry: &fakePromptResolver{err: registry.ErrPromptUnsupported},
+		AI:       ai,
+		NewID:    sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1", "audit-1"),
+	})
+
+	_, err := service.StartPracticeSession(context.Background(), StartSessionRequest{
+		UserID:             "user-1",
+		PlanID:             "plan-1",
+		IdempotencyKeyHash: "key-hash",
+		RequestFingerprint: "fingerprint",
+	})
+	if err == nil {
+		t.Fatalf("expected prompt resolution failure")
+	}
+	var svcErr *ServiceError
+	if !errors.As(err, &svcErr) || svcErr.Code != sharederrors.CodeAiProviderConfigInvalid {
+		t.Fatalf("expected AI_PROVIDER_CONFIG_INVALID service error, got %v", err)
+	}
+	if !reflect.DeepEqual(store.steps, []string{"reserve", "fail"}) {
+		t.Fatalf("prompt resolution failure must fail reserved session without AI/commit, steps=%v", store.steps)
+	}
+	if store.fail.ErrorCode != sharederrors.CodeAiProviderConfigInvalid || store.fail.Retryable {
+		t.Fatalf("prompt resolution failure not recorded as terminal config failure: %+v", store.fail)
+	}
+	if ai.profileName != "" {
+		t.Fatalf("AI client must not be called after prompt resolution failure")
 	}
 }
 

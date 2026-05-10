@@ -250,10 +250,10 @@ func TestSQLRepositoryReserveSessionStartReusesFailedRetryableRecord(t *testing.
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
 		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text`).
+	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "request_fingerprint", "status", "resource_id", "response_body"}).
-			AddRow("idem-existing", in.RequestFingerprint, string(idempotency.StatusFailedRetry), nil, nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "request_fingerprint", "status", "resource_id", "response_body", "expires_at"}).
+			AddRow("idem-existing", in.RequestFingerprint, string(idempotency.StatusFailedRetry), nil, nil, in.ExpiresAt))
 	mock.ExpectExec(`update idempotency_records`).
 		WithArgs(in.RequestFingerprint, string(idempotency.StatusPending), in.ExpiresAt, in.Now, "idem-existing", in.UserID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -261,7 +261,7 @@ func TestSQLRepositoryReserveSessionStartReusesFailedRetryableRecord(t *testing.
 		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
-			"language", "hints_enabled", "created_at", "updated_at",
+			"language", "role_title", "seniority", "top_skills", "hints_enabled", "created_at", "updated_at",
 		}).AddRow(
 			in.SessionID,
 			in.PlanID,
@@ -270,6 +270,9 @@ func TestSQLRepositoryReserveSessionStartReusesFailedRetryableRecord(t *testing.
 			string(sharedtypes.PracticeModeAssisted),
 			string(sharedtypes.InterviewerRoleHiringManager),
 			"zh-CN",
+			"Staff Frontend Architect",
+			"staff",
+			"React, design systems",
 			true,
 			in.Now,
 			in.Now,
@@ -332,10 +335,10 @@ func TestSQLRepositoryReserveSessionStartReplaysStoredResponseBody(t *testing.T)
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
 		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body`).
+	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "request_fingerprint", "status", "resource_id", "response_body"}).
-			AddRow("idem-existing", in.RequestFingerprint, string(idempotency.StatusSucceeded), snapshot.ID, string(responseBody)))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "request_fingerprint", "status", "resource_id", "response_body", "expires_at"}).
+			AddRow("idem-existing", in.RequestFingerprint, string(idempotency.StatusSucceeded), snapshot.ID, string(responseBody), in.ExpiresAt))
 	mock.ExpectCommit()
 
 	reservation, err := repo.ReserveSessionStart(context.Background(), in)
@@ -350,6 +353,145 @@ func TestSQLRepositoryReserveSessionStartReplaysStoredResponseBody(t *testing.T)
 		reservation.ReplaySession.CurrentTurn == nil ||
 		reservation.ReplaySession.CurrentTurn.QuestionText != "original first question" {
 		t.Fatalf("unexpected replay session: %+v", reservation.ReplaySession)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestSQLRepositoryReserveSessionStartResetsExpiredPendingRecord(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 5, 10, 12, 0, 0, 0, time.UTC)
+	in := domain.StartSessionReservationInput{
+		IdempotencyRecordID: "new-idem-ignored",
+		SessionID:           "session-after-expiry",
+		UserID:              "user-1",
+		PlanID:              "plan-1",
+		HintsEnabled:        true,
+		IdempotencyKeyHash:  "key-hash",
+		RequestFingerprint:  "new-fingerprint",
+		ExpiresAt:           now.Add(24 * time.Hour),
+		Now:                 now,
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`select pg_advisory_xact_lock`).
+		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
+		WithArgs(in.UserID, in.IdempotencyKeyHash).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "request_fingerprint", "status", "resource_id", "response_body", "expires_at"}).
+			AddRow("idem-expired", "old-fingerprint", string(idempotency.StatusPending), nil, nil, now.Add(-time.Second)))
+	mock.ExpectExec(`update idempotency_records`).
+		WithArgs(in.RequestFingerprint, string(idempotency.StatusPending), in.ExpiresAt, in.Now, "idem-expired", in.UserID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`with selected_plan`).
+		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
+			"language", "role_title", "seniority", "top_skills", "hints_enabled", "created_at", "updated_at",
+		}).AddRow(
+			in.SessionID,
+			in.PlanID,
+			"target-1",
+			string(sharedtypes.PracticeGoalBaseline),
+			string(sharedtypes.PracticeModeAssisted),
+			string(sharedtypes.InterviewerRoleHiringManager),
+			"zh-CN",
+			"Staff Frontend Architect",
+			"staff",
+			"React, design systems",
+			true,
+			in.Now,
+			in.Now,
+		))
+	mock.ExpectCommit()
+
+	reservation, err := repo.ReserveSessionStart(context.Background(), in)
+	if err != nil {
+		t.Fatalf("ReserveSessionStart returned error: %v", err)
+	}
+	if reservation.IdempotencyRecordID != "idem-expired" || reservation.ReplaySession != nil {
+		t.Fatalf("expired pending record should reset into fresh execution: %+v", reservation)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestSQLRepositoryReserveSessionStartResetsExpiredSucceededRecord(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 5, 10, 12, 5, 0, 0, time.UTC)
+	in := domain.StartSessionReservationInput{
+		IdempotencyRecordID: "new-idem-ignored",
+		SessionID:           "session-after-success-expiry",
+		UserID:              "user-1",
+		PlanID:              "plan-1",
+		HintsEnabled:        true,
+		IdempotencyKeyHash:  "key-hash",
+		RequestFingerprint:  "new-fingerprint",
+		ExpiresAt:           now.Add(24 * time.Hour),
+		Now:                 now,
+	}
+	snapshot := domain.SessionRecord{
+		ID:           "old-session",
+		PlanID:       "old-plan",
+		TargetJobID:  "old-target",
+		Status:       sharedtypes.SessionStatusRunning,
+		Language:     "zh-CN",
+		HintsEnabled: true,
+		TurnCount:    1,
+		CreatedAt:    now.Add(-25 * time.Hour),
+		UpdatedAt:    now.Add(-25 * time.Hour),
+	}
+	responseBody, err := marshalSessionResponseBody(snapshot)
+	if err != nil {
+		t.Fatalf("marshal response snapshot: %v", err)
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`select pg_advisory_xact_lock`).
+		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
+		WithArgs(in.UserID, in.IdempotencyKeyHash).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "request_fingerprint", "status", "resource_id", "response_body", "expires_at"}).
+			AddRow("idem-expired-success", "old-fingerprint", string(idempotency.StatusSucceeded), snapshot.ID, string(responseBody), now.Add(-time.Second)))
+	mock.ExpectExec(`update idempotency_records`).
+		WithArgs(in.RequestFingerprint, string(idempotency.StatusPending), in.ExpiresAt, in.Now, "idem-expired-success", in.UserID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`with selected_plan`).
+		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
+			"language", "role_title", "seniority", "top_skills", "hints_enabled", "created_at", "updated_at",
+		}).AddRow(
+			in.SessionID,
+			in.PlanID,
+			"target-1",
+			string(sharedtypes.PracticeGoalBaseline),
+			string(sharedtypes.PracticeModeAssisted),
+			string(sharedtypes.InterviewerRoleHiringManager),
+			"zh-CN",
+			"Staff Frontend Architect",
+			"staff",
+			"React, design systems",
+			true,
+			in.Now,
+			in.Now,
+		))
+	mock.ExpectCommit()
+
+	reservation, err := repo.ReserveSessionStart(context.Background(), in)
+	if err != nil {
+		t.Fatalf("ReserveSessionStart returned error: %v", err)
+	}
+	if reservation.IdempotencyRecordID != "idem-expired-success" || reservation.ReplaySession != nil || reservation.SessionID != in.SessionID {
+		t.Fatalf("expired succeeded record should not replay old response: %+v", reservation)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
@@ -376,7 +518,7 @@ func TestSQLRepositoryReserveSessionStartScopesIdempotencyByUser(t *testing.T) {
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
 		WithArgs("user-b\x00practice\x00startPracticeSession\x00shared-key-hash").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text`).
+	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectExec(`insert into idempotency_records`).
@@ -386,7 +528,7 @@ func TestSQLRepositoryReserveSessionStartScopesIdempotencyByUser(t *testing.T) {
 		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
-			"language", "hints_enabled", "created_at", "updated_at",
+			"language", "role_title", "seniority", "top_skills", "hints_enabled", "created_at", "updated_at",
 		}).AddRow(
 			in.SessionID,
 			in.PlanID,
@@ -395,6 +537,9 @@ func TestSQLRepositoryReserveSessionStartScopesIdempotencyByUser(t *testing.T) {
 			string(sharedtypes.PracticeModeAssisted),
 			string(sharedtypes.InterviewerRoleHiringManager),
 			"en",
+			"Product Manager",
+			"mid",
+			"prioritization, stakeholder communication",
 			false,
 			in.Now,
 			in.Now,
@@ -433,10 +578,10 @@ func TestSQLRepositoryReserveSessionStartRejectsFingerprintMismatch(t *testing.T
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
 		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text`).
+	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "request_fingerprint", "status", "resource_id", "response_body"}).
-			AddRow("idem-existing", "fingerprint-original", string(idempotency.StatusFailedRetry), nil, nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "request_fingerprint", "status", "resource_id", "response_body", "expires_at"}).
+			AddRow("idem-existing", "fingerprint-original", string(idempotency.StatusFailedRetry), nil, nil, in.ExpiresAt))
 	mock.ExpectRollback()
 
 	_, err := repo.ReserveSessionStart(context.Background(), in)
@@ -468,10 +613,10 @@ func TestSQLRepositoryReserveSessionStartRejectsConcurrentPendingRecord(t *testi
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
 		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text`).
+	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "request_fingerprint", "status", "resource_id", "response_body"}).
-			AddRow("idem-existing", in.RequestFingerprint, string(idempotency.StatusPending), nil, nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "request_fingerprint", "status", "resource_id", "response_body", "expires_at"}).
+			AddRow("idem-existing", in.RequestFingerprint, string(idempotency.StatusPending), nil, nil, in.ExpiresAt))
 	mock.ExpectRollback()
 
 	_, err := repo.ReserveSessionStart(context.Background(), in)
@@ -503,7 +648,7 @@ func TestSQLRepositoryReserveSessionStartMapsActivePlanUniqueViolationToConflict
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
 		WithArgs("user-1\x00practice\x00startPracticeSession\x00different-key-hash").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text`).
+	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectExec(`insert into idempotency_records`).

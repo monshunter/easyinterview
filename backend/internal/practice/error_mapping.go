@@ -32,8 +32,10 @@ func aiErrorCode(err error) (string, bool) {
 	for _, code := range []string{
 		sharederrors.CodeAiProviderTimeout,
 		sharederrors.CodeAiOutputInvalid,
+		sharederrors.CodeAiProviderConfigInvalid,
 		sharederrors.CodeAiProviderSecretMissing,
 		sharederrors.CodeAiFallbackExhausted,
+		sharederrors.CodeAiUnsupportedCapability,
 	} {
 		if strings.Contains(text, code) {
 			return code, true
@@ -49,8 +51,10 @@ func isPracticeAIErrorCode(code string) bool {
 	switch code {
 	case sharederrors.CodeAiProviderTimeout,
 		sharederrors.CodeAiOutputInvalid,
+		sharederrors.CodeAiProviderConfigInvalid,
 		sharederrors.CodeAiProviderSecretMissing,
-		sharederrors.CodeAiFallbackExhausted:
+		sharederrors.CodeAiFallbackExhausted,
+		sharederrors.CodeAiUnsupportedCapability:
 		return true
 	default:
 		return false

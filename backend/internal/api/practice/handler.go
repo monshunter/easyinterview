@@ -230,7 +230,9 @@ func writeServiceError(w http.ResponseWriter, err error) {
 			status = http.StatusConflict
 		case sharederrors.CodeAiProviderTimeout,
 			sharederrors.CodeAiOutputInvalid,
-			sharederrors.CodeAiProviderSecretMissing:
+			sharederrors.CodeAiProviderSecretMissing,
+			sharederrors.CodeAiProviderConfigInvalid,
+			sharederrors.CodeAiUnsupportedCapability:
 			status = http.StatusBadGateway
 		case sharederrors.CodeAiFallbackExhausted:
 			status = http.StatusServiceUnavailable

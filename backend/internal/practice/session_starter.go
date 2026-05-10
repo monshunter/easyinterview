@@ -48,6 +48,10 @@ type SessionReservation struct {
 	InterviewerPersona  sharedtypes.InterviewerRole
 	Language            string
 	HintsEnabled        bool
+	RoleTitle           string
+	Seniority           string
+	TopSkills           []string
+	RubricDimensions    []string
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 	ReplaySession       *SessionRecord
@@ -154,7 +158,7 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 
 	resolution, err := s.registry.ResolveActive(ctx, firstQuestionFeatureKey, reservation.Language)
 	if err != nil {
-		return SessionRecord{}, err
+		return SessionRecord{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromRegistry(err))
 	}
 	resp, _, err := s.ai.Complete(ctx, resolution.ModelProfileName, firstQuestionPayload(resolution, reservation))
 	if err != nil {
@@ -211,7 +215,7 @@ func firstQuestionPayload(resolution registry.PromptResolution, reservation Sess
 	if strings.TrimSpace(resolution.SystemMessage) != "" {
 		messages = append(messages, aiclient.Message{Role: "system", Content: resolution.SystemMessage})
 	}
-	userContent := strings.TrimSpace(resolution.UserMessageTemplate)
+	userContent := renderFirstQuestionTemplate(resolution.UserMessageTemplate, reservation)
 	if userContent == "" {
 		userContent = "Generate the first interview question."
 	}
@@ -233,6 +237,55 @@ func firstQuestionPayload(resolution registry.PromptResolution, reservation Sess
 			},
 		},
 	}
+}
+
+func serviceErrorFromRegistry(err error) error {
+	if err == nil {
+		return nil
+	}
+	if code, ok := aiErrorCode(err); ok {
+		meta := sharederrors.CodeRegistry[code]
+		return &ServiceError{Code: code, Message: meta.Message}
+	}
+	meta := sharederrors.CodeRegistry[sharederrors.CodeAiProviderConfigInvalid]
+	return &ServiceError{Code: sharederrors.CodeAiProviderConfigInvalid, Message: meta.Message}
+}
+
+func renderFirstQuestionTemplate(template string, reservation SessionReservation) string {
+	content := strings.TrimSpace(template)
+	if content == "" {
+		return ""
+	}
+	replacer := strings.NewReplacer(
+		"{{language}}", fallbackText(reservation.Language, "en"),
+		"{{role_title}}", fallbackText(reservation.RoleTitle, "target role"),
+		"{{seniority}}", fallbackText(reservation.Seniority, "not specified"),
+		"{{top_skills}}", fallbackList(reservation.TopSkills, "target job requirements"),
+		"{{rubric_dimensions}}", fallbackList(reservation.RubricDimensions, "practice_depth, practice_dimension_coverage, language_consistency"),
+		"{{practice_goal}}", fallbackText(string(reservation.Goal), string(sharedtypes.PracticeGoalBaseline)),
+	)
+	return strings.TrimSpace(replacer.Replace(content))
+}
+
+func fallbackText(value, fallback string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func fallbackList(values []string, fallback string) string {
+	clean := make([]string, 0, len(values))
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			clean = append(clean, trimmed)
+		}
+	}
+	if len(clean) == 0 {
+		return fallback
+	}
+	return strings.Join(clean, ", ")
 }
 
 type firstQuestion struct {

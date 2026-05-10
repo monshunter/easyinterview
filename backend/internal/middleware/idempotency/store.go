@@ -61,6 +61,16 @@ func (s *SQLStore) Reserve(ctx context.Context, in ReservationInput) (Reservatio
 		return Reservation{State: StateExecute, RecordID: rec.id}, nil
 	}
 
+	if rec.status == StatusFailedTerminal {
+		if err := resetPendingReservation(ctx, tx, rec.id, in); err != nil {
+			return Reservation{}, err
+		}
+		if err := tx.Commit(); err != nil {
+			return Reservation{}, fmt.Errorf("commit failed idempotency reservation reset: %w", err)
+		}
+		return Reservation{State: StateExecute, RecordID: rec.id}, nil
+	}
+
 	if rec.fingerprint != in.RequestFingerprint {
 		return Reservation{}, ErrFingerprintMismatch
 	}
@@ -137,6 +147,55 @@ where id = $6
 	rows, err := res.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("mark idempotency reservation rows affected: %w", err)
+	}
+	if rows == 0 {
+		return ErrReservationNotFound
+	}
+	return nil
+}
+
+func (s *SQLStore) MarkFailed(ctx context.Context, in CompletionInput) error {
+	if err := s.checkDB(); err != nil {
+		return err
+	}
+	if strings.TrimSpace(in.RecordID) == "" || strings.TrimSpace(in.UserID) == "" || strings.TrimSpace(in.Domain) == "" || strings.TrimSpace(in.Operation) == "" {
+		return fmt.Errorf("complete failed idempotency reservation requires recordId, userId, domain, operation")
+	}
+	now := in.Now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	responseBody, err := encodeStoredResponse(in.ResponseStatus, in.ResponseBody)
+	if err != nil {
+		return fmt.Errorf("encode failed idempotency response: %w", err)
+	}
+	res, err := s.db.ExecContext(ctx, `
+update idempotency_records
+set status = $1,
+    response_body = $2,
+    resource_type = null,
+    resource_id = null,
+    error_code = $3,
+    updated_at = $4
+where id = $5
+  and user_id = $6
+  and domain = $7
+  and operation = $8`,
+		string(StatusFailedTerminal),
+		responseBody,
+		nullableString(errorCodeFromResponseBody(in.ResponseBody)),
+		now,
+		in.RecordID,
+		in.UserID,
+		in.Domain,
+		in.Operation,
+	)
+	if err != nil {
+		return fmt.Errorf("mark idempotency reservation failed: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("mark idempotency reservation failed rows affected: %w", err)
 	}
 	if rows == 0 {
 		return ErrReservationNotFound
@@ -305,6 +364,18 @@ func decodeStoredResponse(raw []byte) (int, []byte) {
 		return resp.Status, append([]byte(nil), resp.Body...)
 	}
 	return httpStatusOK, append([]byte(nil), raw...)
+}
+
+func errorCodeFromResponseBody(body []byte) string {
+	var decoded struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(bytes.TrimSpace(body), &decoded); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(decoded.Error.Code)
 }
 
 const httpStatusOK = 200

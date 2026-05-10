@@ -179,63 +179,49 @@ func (r *SQLRepository) ReserveSessionStart(ctx context.Context, in domain.Start
 		return domain.SessionReservation{}, err
 	}
 	if hit {
-		if existing.fingerprint != in.RequestFingerprint {
-			return domain.SessionReservation{}, domain.ErrSessionConflict
-		}
-		switch existing.status {
-		case idempotency.StatusPending:
-			return domain.SessionReservation{}, domain.ErrSessionConflict
-		case idempotency.StatusSucceeded:
-			if strings.TrimSpace(existing.resourceID) == "" {
-				return domain.SessionReservation{}, domain.ErrSessionConflict
-			}
-			if len(existing.responseBody) == 0 {
-				return domain.SessionReservation{}, fmt.Errorf("start session idempotency response body is empty")
-			}
-			session, err := sessionRecordFromStoredResponse(existing.responseBody)
-			if err != nil {
+		recordID = existing.id
+		if !in.Now.Before(existing.expiresAt) {
+			if err := resetStartSessionIdempotency(ctx, tx, existing.id, in); err != nil {
 				return domain.SessionReservation{}, err
 			}
-			if session.ID != existing.resourceID {
-				return domain.SessionReservation{}, fmt.Errorf("start session idempotency response resource mismatch")
+		} else {
+			if existing.fingerprint != in.RequestFingerprint {
+				return domain.SessionReservation{}, domain.ErrSessionConflict
 			}
-			if err := tx.Commit(); err != nil {
-				return domain.SessionReservation{}, fmt.Errorf("commit start session idempotency replay: %w", err)
+			switch existing.status {
+			case idempotency.StatusPending:
+				return domain.SessionReservation{}, domain.ErrSessionConflict
+			case idempotency.StatusSucceeded:
+				if strings.TrimSpace(existing.resourceID) == "" {
+					return domain.SessionReservation{}, domain.ErrSessionConflict
+				}
+				if len(existing.responseBody) == 0 {
+					return domain.SessionReservation{}, fmt.Errorf("start session idempotency response body is empty")
+				}
+				session, err := sessionRecordFromStoredResponse(existing.responseBody)
+				if err != nil {
+					return domain.SessionReservation{}, err
+				}
+				if session.ID != existing.resourceID {
+					return domain.SessionReservation{}, fmt.Errorf("start session idempotency response resource mismatch")
+				}
+				if err := tx.Commit(); err != nil {
+					return domain.SessionReservation{}, fmt.Errorf("commit start session idempotency replay: %w", err)
+				}
+				return domain.SessionReservation{ReplaySession: &session}, nil
+			case idempotency.StatusFailedRetry:
+				if err := resetStartSessionIdempotency(ctx, tx, existing.id, in); err != nil {
+					return domain.SessionReservation{}, err
+				}
+			default:
+				return domain.SessionReservation{}, domain.ErrSessionConflict
 			}
-			return domain.SessionReservation{ReplaySession: &session}, nil
-		case idempotency.StatusFailedRetry:
-			recordID = existing.id
-			if _, err := tx.ExecContext(ctx, `
-update idempotency_records
-set request_fingerprint = $1,
-    status = $2,
-    resource_type = null,
-    resource_id = null,
-    response_body = null,
-    error_code = null,
-    expires_at = $3,
-    updated_at = $4
-where id = $5
-  and user_id = $6
-  and domain = 'practice'
-  and operation = 'startPracticeSession'`,
-				in.RequestFingerprint,
-				string(idempotency.StatusPending),
-				in.ExpiresAt,
-				in.Now,
-				existing.id,
-				in.UserID,
-			); err != nil {
-				return domain.SessionReservation{}, fmt.Errorf("reset retryable start session idempotency reservation: %w", err)
-			}
-		default:
-			return domain.SessionReservation{}, domain.ErrSessionConflict
 		}
 	} else if _, err := tx.ExecContext(ctx, `
-insert into idempotency_records (
-  id, user_id, domain, operation, idempotency_key_hash,
-  request_fingerprint, status, expires_at, created_at, updated_at
-) values ($1,$2,'practice','startPracticeSession',$3,$4,$5,$6,$7,$7)`,
+	insert into idempotency_records (
+	  id, user_id, domain, operation, idempotency_key_hash,
+	  request_fingerprint, status, expires_at, created_at, updated_at
+	) values ($1,$2,'practice','startPracticeSession',$3,$4,$5,$6,$7,$7)`,
 		recordID,
 		in.UserID,
 		in.IdempotencyKeyHash,
@@ -248,13 +234,28 @@ insert into idempotency_records (
 	}
 
 	var reservation domain.SessionReservation
+	var topSkills string
 	err = tx.QueryRowContext(ctx, `
 with selected_plan as (
-  select id, target_job_id, goal, mode, interviewer_persona, language
-  from practice_plans
-  where id = $3
-    and user_id = $2
-    and status = 'ready'
+  select p.id, p.target_job_id, p.goal, p.mode, p.interviewer_persona, p.language,
+         coalesce(nullif(tj.title, ''), 'target role') as role_title,
+         coalesce(nullif(tj.seniority_level, ''), 'not specified') as seniority,
+         coalesce(nullif(array_to_string(array(
+           select r.label
+           from target_job_requirements r
+           where r.target_job_id = p.target_job_id
+             and r.kind in ('must_have','interview_focus','nice_to_have')
+           order by r.display_order asc, r.created_at asc
+           limit 6
+         ), ', '), ''), 'target job requirements') as top_skills
+  from practice_plans p
+  left join target_jobs tj
+    on tj.id = p.target_job_id
+   and tj.user_id = p.user_id
+   and tj.deleted_at is null
+  where p.id = $3
+    and p.user_id = $2
+    and p.status = 'ready'
 ),
 inserted as (
   insert into practice_sessions (
@@ -267,7 +268,8 @@ inserted as (
 )
 select inserted.id, inserted.plan_id, inserted.target_job_id,
        selected_plan.goal, selected_plan.mode, selected_plan.interviewer_persona,
-       inserted.language, inserted.hints_enabled, inserted.created_at, inserted.updated_at
+       inserted.language, selected_plan.role_title, selected_plan.seniority,
+       selected_plan.top_skills, inserted.hints_enabled, inserted.created_at, inserted.updated_at
 from inserted
 join selected_plan on selected_plan.id = inserted.plan_id`,
 		in.SessionID,
@@ -283,6 +285,9 @@ join selected_plan on selected_plan.id = inserted.plan_id`,
 		&reservation.Mode,
 		&reservation.InterviewerPersona,
 		&reservation.Language,
+		&reservation.RoleTitle,
+		&reservation.Seniority,
+		&topSkills,
 		&reservation.HintsEnabled,
 		&reservation.CreatedAt,
 		&reservation.UpdatedAt,
@@ -296,6 +301,8 @@ join selected_plan on selected_plan.id = inserted.plan_id`,
 		}
 		return domain.SessionReservation{}, fmt.Errorf("reserve practice session: %w", err)
 	}
+	reservation.TopSkills = splitCommaList(topSkills)
+	reservation.RubricDimensions = []string{"practice_depth", "practice_dimension_coverage", "language_consistency"}
 	if err := tx.Commit(); err != nil {
 		return domain.SessionReservation{}, fmt.Errorf("commit reserve practice session: %w", err)
 	}
@@ -310,6 +317,7 @@ type selectedStartSessionIdempotency struct {
 	status       idempotency.Status
 	resourceID   string
 	responseBody []byte
+	expiresAt    time.Time
 }
 
 func selectStartSessionIdempotency(ctx context.Context, tx *sql.Tx, in domain.StartSessionReservationInput) (selectedStartSessionIdempotency, bool, error) {
@@ -318,16 +326,16 @@ func selectStartSessionIdempotency(ctx context.Context, tx *sql.Tx, in domain.St
 	var resourceID sql.NullString
 	var responseBody sql.NullString
 	err := tx.QueryRowContext(ctx, `
-select id, request_fingerprint, status, resource_id::text, response_body
-from idempotency_records
-where user_id = $1
-  and domain = 'practice'
-  and operation = 'startPracticeSession'
+	select id, request_fingerprint, status, resource_id::text, response_body, expires_at
+	from idempotency_records
+	where user_id = $1
+	  and domain = 'practice'
+	  and operation = 'startPracticeSession'
   and idempotency_key_hash = $2
 for update`,
 		in.UserID,
 		in.IdempotencyKeyHash,
-	).Scan(&rec.id, &rec.fingerprint, &status, &resourceID, &responseBody)
+	).Scan(&rec.id, &rec.fingerprint, &status, &resourceID, &responseBody, &rec.expiresAt)
 	if stderrs.Is(err, sql.ErrNoRows) {
 		return selectedStartSessionIdempotency{}, false, nil
 	}
@@ -340,6 +348,34 @@ for update`,
 		rec.responseBody = []byte(responseBody.String)
 	}
 	return rec, true, nil
+}
+
+func resetStartSessionIdempotency(ctx context.Context, tx *sql.Tx, recordID string, in domain.StartSessionReservationInput) error {
+	_, err := tx.ExecContext(ctx, `
+update idempotency_records
+set request_fingerprint = $1,
+    status = $2,
+    resource_type = null,
+    resource_id = null,
+    response_body = null,
+    error_code = null,
+    expires_at = $3,
+    updated_at = $4
+where id = $5
+  and user_id = $6
+  and domain = 'practice'
+  and operation = 'startPracticeSession'`,
+		in.RequestFingerprint,
+		string(idempotency.StatusPending),
+		in.ExpiresAt,
+		in.Now,
+		recordID,
+		in.UserID,
+	)
+	if err != nil {
+		return fmt.Errorf("reset start session idempotency reservation: %w", err)
+	}
+	return nil
 }
 
 func selectSessionForUser(ctx context.Context, q interface {
@@ -658,6 +694,17 @@ func nullableString(value string) any {
 		return nil
 	}
 	return strings.TrimSpace(value)
+}
+
+func splitCommaList(value string) []string {
+	parts := strings.Split(value, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }
 
 func marshalSessionResponseBody(session domain.SessionRecord) ([]byte, error) {

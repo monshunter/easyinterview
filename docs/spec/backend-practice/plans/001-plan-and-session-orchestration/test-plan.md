@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration Test Plan
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-05-10
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 
@@ -26,6 +26,7 @@
 | createPracticePlan handler | R1 / R9 / R20 | Phase 1 | 单元 + contract | `cd backend && go test ./internal/api/practice/...` + `openapi/fixtures/PracticePlans/createPracticePlan.json` parity |
 | getPracticePlan handler | R1 / R13 | Phase 1 | 单元 + contract | 同上 + cross-user fixture |
 | startPracticeSession 三段式 | R2 / R10 / R11 / R16 | Phase 1 | 集成 + contract | `cd backend && go test ./internal/practice/...` (fake F3 + fake AIClient + DB lock 检测) |
+| first-question template render + F3 resolution cleanup | R21 / R24 | Phase 1 | 单元 | `cd backend && go test ./internal/practice -run 'TestStartPracticeSession(Render|FailsReservationWhenPromptResolutionFails)' -count=1` |
 | getPracticeSession handler | R2 / R13 | Phase 1 | 单元 + contract | `cd backend && go test ./internal/api/practice/...` + cross-user fixture |
 | outbox emit | R10 | Phase 1 | 单元（序列化）+ 事务断言 | `outbox_emitter` unit test |
 | AI 失败映射 | R3 / R17 | Phase 2 | 单元（每错误码一例） | `error_mapping_test.go` |
@@ -34,6 +35,8 @@
 | 跨用户隔离 | R13 / R14 | Phase 2 | 单元 + repository 集成 | repository_test.go cross-user fixture |
 | 并发单执行者 | R7 | Phase 2 | 集成（goroutine 并发） | concurrency_test.go |
 | 同 plan 多 key 并发 | R8 | Phase 2 | 集成 | session_repository_test.go partial UNIQUE INDEX 测试 |
+| non-2xx idempotency recovery | R22 | Phase 2 | 单元 | `cd backend && go test ./internal/middleware/idempotency -run TestMiddlewareFinalizesNon2xxAndAllowsCorrectedSameKey -count=1` |
+| startPracticeSession TTL expiry | R23 | Phase 2 | SQL mock | `cd backend && go test ./internal/store/practice -run 'TestSQLRepositoryReserveSessionStartResetsExpired' -count=1` |
 | A3 observed AIClient + ai_task_runs writer | R11 / R15 | Phase 3 | 集成 | observed_client_test.go / observability wiring test with fake `AITaskRunWriter` |
 | audit_events 写入 | R15 | Phase 3 | 单元 | audit_test.go |
 | 隐私红线 | R12 / R17 | Phase 3 | 单元 + scenario verify.sh grep | redaction_test.go + verify.sh assertion |
@@ -60,6 +63,7 @@
 | createPracticePlan handler | `backend/internal/api/practice/create_practice_plan_test.go` + `openapi/fixtures/PracticePlans/createPracticePlan.json` parity contract test | Red: handler 未走 idempotency / 非 baseline goal 未返回 `VALIDATION_FAILED` / 响应字段缺失；Green: 全部断言 PASS + fixture 与 generated server schema 一致 |
 | getPracticePlan handler | `backend/internal/api/practice/get_practice_plan_test.go` | Red: 越权未返回 404 / 泄露存在性；Green: cross-user fixture 验证 404 + `PRACTICE_PLAN_NOT_FOUND` |
 | startPracticeSession 三段式 | `backend/internal/practice/session_starter_test.go` (fake F3 + fake AIClient + DB lock 检测) | Red: 外部 AI 调用在 DB tx 内 / 三段式合并到单事务；Green: lock 检测显示 reservation tx 与 commit tx 之间 AI 调用无锁；session row + turn row + outbox row 同 commit tx 写入 |
+| first-question template render + F3 resolution cleanup | `backend/internal/practice/session_starter_test.go` | Red: `ResolveActive` 失败后不调用 `FailSessionStart` / payload 仍含 raw `{{...}}`；Green: failed reservation 持久化 + prompt body 携带 language / role / skills / rubric / goal |
 | getPracticeSession handler | `backend/internal/api/practice/get_practice_session_test.go` | Red: 越权未返回 404；Green: cross-user 404 + `PRACTICE_SESSION_NOT_FOUND` |
 | outbox emit | `backend/internal/store/practice/outbox_emitter_test.go` | Red: payload schema 与 B3 不一致 / piiBoundary 未通过；Green: 序列化结果与 `shared/events/practice.session.started.json` 一致 + 不含 raw question text |
 
@@ -73,6 +77,8 @@
 | 跨用户隔离 | `backend/internal/middleware/idempotency/cross_user_test.go` + repository test | Red: 用户 A response 被用户 B 看到；Green: 各自独立 record |
 | 并发单执行者 | `backend/internal/middleware/idempotency/concurrency_test.go` (goroutine fixture) | Red: 多个执行者写 pending row；Green: UNIQUE 约束保证仅一个 |
 | 同 plan 多 key 并发 | `backend/internal/store/practice/session_repository_concurrency_test.go` | Red: 同 user + plan 出现两个 active session；Green: partial UNIQUE INDEX 覆盖 `queued/running` 并拒绝第二个，返回 `PRACTICE_SESSION_CONFLICT` |
+| non-2xx idempotency recovery | `backend/internal/middleware/idempotency/middleware_test.go` | Red: 422 后同 key corrected body 仍 pending / mismatch；Green: 非 2xx reservation 进入 failed terminal / reset path，corrected body 可重新执行 |
+| startPracticeSession TTL expiry | `backend/internal/store/practice/create_plan_test.go` | Red: 过期 pending / succeeded record 仍 conflict / replay；Green: 读取 `expires_at` 并 reset pending 后重新 reserve |
 
 ## 6 Phase 3: 观测 / 隐私 / 收尾
 

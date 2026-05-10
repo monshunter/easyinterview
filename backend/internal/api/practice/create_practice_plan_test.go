@@ -367,6 +367,15 @@ func (s *routeMemoryStore) Reserve(ctx context.Context, in idempotency.Reservati
 		}
 		return idempotency.Reservation{State: idempotency.StateExecute, RecordID: in.RecordID}, nil
 	}
+	if rec.status == idempotency.StatusFailedTerminal {
+		rec.fingerprint = in.RequestFingerprint
+		rec.status = idempotency.StatusPending
+		rec.response = nil
+		rec.httpStatus = 0
+		rec.expiresAt = in.ExpiresAt
+		s.records[key] = rec
+		return idempotency.Reservation{State: idempotency.StateExecute, RecordID: rec.recordID}, nil
+	}
 	if rec.fingerprint != in.RequestFingerprint {
 		return idempotency.Reservation{}, idempotency.ErrFingerprintMismatch
 	}
@@ -387,6 +396,21 @@ func (s *routeMemoryStore) MarkSucceeded(ctx context.Context, in idempotency.Com
 	for key, rec := range s.records {
 		if rec.recordID == in.RecordID {
 			rec.status = idempotency.StatusSucceeded
+			rec.response = append([]byte(nil), in.ResponseBody...)
+			rec.httpStatus = in.ResponseStatus
+			s.records[key] = rec
+			return nil
+		}
+	}
+	return idempotency.ErrReservationNotFound
+}
+
+func (s *routeMemoryStore) MarkFailed(ctx context.Context, in idempotency.CompletionInput) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for key, rec := range s.records {
+		if rec.recordID == in.RecordID {
+			rec.status = idempotency.StatusFailedTerminal
 			rec.response = append([]byte(nil), in.ResponseBody...)
 			rec.httpStatus = in.ResponseStatus
 			s.records[key] = rec

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -172,6 +173,43 @@ func TestMiddlewareExpiresRecordsByTTL(t *testing.T) {
 	}
 }
 
+func TestMiddlewareFinalizesNon2xxAndAllowsCorrectedSameKey(t *testing.T) {
+	now := time.Date(2026, 5, 10, 10, 0, 0, 0, time.UTC)
+	store := newMemoryStore()
+	mw := newTestMiddleware(store, func() time.Time { return now })
+
+	var nextCalls atomic.Int32
+	handler := mw.Handler("practice", "createPracticePlan", userFromHeader, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nextCalls.Add(1)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("read request body: %v", err)
+		}
+		if !bytes.Contains(body, []byte(`"resumeAssetId"`)) {
+			writeJSONForTest(t, w, http.StatusUnprocessableEntity, map[string]any{
+				"error": map[string]any{"code": "VALIDATION_FAILED", "message": "resumeAssetId is required"},
+			})
+			return
+		}
+		writeJSONForTest(t, w, http.StatusCreated, map[string]string{"id": "plan-1"})
+	}))
+
+	first := httptest.NewRecorder()
+	handler.ServeHTTP(first, newJSONRequest("user-1", "recovery-key", `{"goal":"baseline"}`))
+	if first.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("first status: want %d, got %d body=%s", http.StatusUnprocessableEntity, first.Code, first.Body.String())
+	}
+
+	second := httptest.NewRecorder()
+	handler.ServeHTTP(second, newJSONRequest("user-1", "recovery-key", `{"goal":"baseline","resumeAssetId":"resume-1"}`))
+	if second.Code != http.StatusCreated {
+		t.Fatalf("corrected retry status: want %d, got %d body=%s", http.StatusCreated, second.Code, second.Body.String())
+	}
+	if nextCalls.Load() != 2 {
+		t.Fatalf("corrected same-key retry should re-execute after non-2xx finalization, calls=%d", nextCalls.Load())
+	}
+}
+
 func TestMiddlewareSeparatesDomainNamespace(t *testing.T) {
 	now := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 	store := newMemoryStore()
@@ -268,6 +306,15 @@ func (s *memoryStore) Reserve(ctx context.Context, in ReservationInput) (Reserva
 		}
 		return Reservation{State: StateExecute, RecordID: in.RecordID}, nil
 	}
+	if rec.status == StatusFailedTerminal {
+		rec.fingerprint = in.RequestFingerprint
+		rec.status = StatusPending
+		rec.expiresAt = in.ExpiresAt
+		rec.response = nil
+		rec.httpStatus = 0
+		s.records[key] = rec
+		return Reservation{State: StateExecute, RecordID: rec.recordID}, nil
+	}
 	if rec.fingerprint != in.RequestFingerprint {
 		return Reservation{}, ErrFingerprintMismatch
 	}
@@ -293,6 +340,22 @@ func (s *memoryStore) MarkSucceeded(ctx context.Context, in CompletionInput) err
 	for key, rec := range s.records {
 		if rec.recordID == in.RecordID && rec.status == StatusPending {
 			rec.status = StatusSucceeded
+			rec.response = append([]byte(nil), in.ResponseBody...)
+			rec.httpStatus = in.ResponseStatus
+			s.records[key] = rec
+			return nil
+		}
+	}
+	return ErrReservationNotFound
+}
+
+func (s *memoryStore) MarkFailed(ctx context.Context, in CompletionInput) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for key, rec := range s.records {
+		if rec.recordID == in.RecordID && rec.status == StatusPending {
+			rec.status = StatusFailedTerminal
 			rec.response = append([]byte(nil), in.ResponseBody...)
 			rec.httpStatus = in.ResponseStatus
 			s.records[key] = rec
