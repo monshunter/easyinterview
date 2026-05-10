@@ -1,6 +1,6 @@
 # 001 — Plan and Session Orchestration Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-10
 
@@ -19,6 +19,7 @@
 - [x] 0.9 Phase 0 legacy-negative grep：仓库范围 removed legacy mode literal 在 `PracticeMode` / `mode` / `practice_plans.mode` / `session.mode` / `PracticeDisplayContext.practiceMode` 上下文零出现；`PracticeGoal` 上下文允许保留；验证: CI grep gate
 - [x] 0.10 Phase 0 commit + work-journal：单 phase commit `phase 0: backend-practice plan-001 contract preflight`；运行 `/work-journal` 一条记录
 - [x] 0.11 Remediation: 修复 `migrations/000003_practice_idempotency_baseline.down.sql` baseline ownership，禁止 rollback 000003 删除由 `000001_create_baseline.up.sql` 拥有的 `idempotency_records` 表 / index；验证: migration contract test 覆盖 down-path zero-drop 断言 + migration lint
+- [x] 0.12 Remediation: 修复 `CreatePracticePlanRequest.resumeAssetId` 必填契约漂移，更新 `openapi/openapi.yaml`、`openapi/baseline/openapi-v1.0.0.yaml`、fixtures、Go/TS generated artifacts、frontend request builder 与 backend/openapi owner spec 记录；验证: `make codegen-openapi` + focused frontend test + fixture validation / codegen drift gate
 
 ## Phase 1: Plan + Session 主流程 (success path) + idempotency replay 基础
 
@@ -48,6 +49,7 @@
 - [x] 2.10 Remediation: 修复 `startPracticeSession` success replay，必须返回首次成功时持久化在 `idempotency_records.response_body` 的 response snapshot，而不是读取当前 session mutable state；验证: SQL repository focused test + scenario in-memory harness test 覆盖 replay snapshot 不随 session 后续状态漂移
 - [x] 2.11 Remediation: 修复 shared idempotency middleware 非 2xx response 收口，避免 `createPracticePlan` validation/error 后保留 pending 并允许同 key corrected body 重新执行；验证: middleware focused test 覆盖 422 后同 key corrected body 成功且 service 执行两次
 - [x] 2.12 Remediation: 修复 `startPracticeSession` 自定义 idempotency reservation honoring `expires_at`，过期 pending / succeeded record reset 后重新执行；验证: SQL repository focused tests 覆盖 expired pending 与 expired succeeded 不 conflict / 不 replay
+- [x] 2.13 Remediation: 修复 `startPracticeSession` 自定义 idempotency key hash 空 pepper，handler/main/scenario harness 使用与 shared idempotency middleware 相同的 pepper；验证: focused handler test + practice HTTP scenario tests
 
 ## Phase 3: 观测 / 隐私 / 收尾
 

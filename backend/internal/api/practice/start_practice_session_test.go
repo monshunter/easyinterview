@@ -11,6 +11,7 @@ import (
 	"time"
 
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
+	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	domain "github.com/monshunter/easyinterview/backend/internal/practice"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
@@ -18,7 +19,7 @@ import (
 
 func TestStartPracticeSessionReturns201WithCurrentTurn(t *testing.T) {
 	service := &fakePlanService{startRecord: fixtureSessionRecord()}
-	handler := newTestHandler(service)
+	handler := newTestHandlerWithPepper(service, "test-pepper")
 
 	req := newStartSessionHTTPRequest(t, api.StartPracticeSessionRequest{PlanId: "plan-1", HintsEnabled: pointerBool(true)})
 	rec := httptest.NewRecorder()
@@ -38,6 +39,9 @@ func TestStartPracticeSessionReturns201WithCurrentTurn(t *testing.T) {
 	}
 	if service.startKeyHash == "" || service.startFingerprint == "" {
 		t.Fatalf("idempotency metadata was not mapped to service")
+	}
+	if service.startKeyHash != idempotency.HashKey("session-key-1", "test-pepper") {
+		t.Fatalf("idempotency key hash = %q, want peppered hash", service.startKeyHash)
 	}
 }
 

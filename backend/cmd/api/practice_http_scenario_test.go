@@ -34,13 +34,14 @@ import (
 const (
 	practiceHTTPScenarioUserAID = "01918fa0-0000-7000-8000-0000000000a1"
 	practiceHTTPScenarioUserBID = "01918fa0-0000-7000-8000-0000000000b1"
+	scenarioIdempotencyPepper   = "scenario-challenge-pepper"
 )
 
 func TestE2EP0022PracticePlanBaselineCreateAndRead(t *testing.T) {
 	h := newPracticeHTTPScenarioHarness(t)
 	body := api.CreatePracticePlanRequest{
 		TargetJobId:          "target-job-p0-022-a",
-		ResumeAssetId:        strPtr("resume-asset-p0-022-a"),
+		ResumeAssetId:        "resume-asset-p0-022-a",
 		Goal:                 sharedtypes.PracticeGoalBaseline,
 		Mode:                 sharedtypes.PracticeModeAssisted,
 		InterviewerPersona:   sharedtypes.InterviewerRoleHiringManager,
@@ -389,14 +390,15 @@ auth:
 		NewID:    store.nextID,
 	})
 	practiceHandler := apipractice.NewHandler(apipractice.HandlerOptions{
-		Service: service,
-		Session: currentUserFromContext,
+		Service:              service,
+		Session:              currentUserFromContext,
+		IdempotencyKeyPepper: scenarioIdempotencyPepper,
 	})
 	routeIdempotency := idempotency.New(idempotency.MiddlewareOptions{
 		Store:     store,
 		Now:       fixedScenarioNow,
 		NewID:     store.nextID,
-		KeyPepper: "scenario-challenge-pepper",
+		KeyPepper: scenarioIdempotencyPepper,
 	})
 
 	return &practiceHTTPScenarioHarness{
@@ -1165,7 +1167,7 @@ func scenarioSessionRecordFromResponseBody(raw []byte) (domainpractice.SessionRe
 }
 
 func (s *scenarioPracticeStore) idempotencyStatus(userID, domain, operation, rawKey string) idempotency.Status {
-	rec, ok := s.idempotencyRecords[s.idempotencyRecordKey(userID, domain, operation, idempotency.HashKey(rawKey, ""))]
+	rec, ok := s.idempotencyRecords[s.idempotencyRecordKey(userID, domain, operation, idempotency.HashKey(rawKey, scenarioIdempotencyPepper))]
 	if !ok {
 		return ""
 	}

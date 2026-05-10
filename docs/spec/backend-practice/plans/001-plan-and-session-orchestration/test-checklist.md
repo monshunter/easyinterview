@@ -1,6 +1,6 @@
 # 001 — Plan and Session Orchestration Test Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-10
 
@@ -9,6 +9,7 @@
 ## Phase 0: 跨 spec 前置修订 + Preflight
 
 - [x] Phase 0 本计划定义的测试项全部通过：shared types unit + drift；openapi-diff + fixture parity；codegen-events + lint-events；migrate up/down + CHECK 约束单元测试；F3 baseline preflight 单元测试；legacy-negative grep（PracticeMode 上下文）
+- [x] Phase 0 remediation focused tests 通过：`CreatePracticePlanRequest.resumeAssetId` required codegen、schema-valid missing-resume fixture validation、frontend request-builder synthetic resume fail-fast
 
 ## Phase 1: Plan + Session 主流程 (success path) + idempotency replay 基础
 
@@ -19,6 +20,7 @@
 
 - [x] Phase 2 本计划定义的单元测试项全部通过：error_mapping 每错误码一例（timeout / invalid output / secret missing / fallback exhausted）；reservation_retry 集成测试（fake AIClient 注入失败 → 重试成功）；conflict body mismatch 单元测试；cross-user 隔离 middleware + repository 集成测试；并发单执行者 goroutine 集成测试；同 plan 多 key 并发 partial UNIQUE INDEX 集成测试
 - [x] Phase 2 remediation focused tests 通过：shared idempotency 非 2xx response recovery；startPracticeSession 自定义 reservation `expires_at` reset
+- [x] Phase 2 remediation focused tests 通过：startPracticeSession handler 使用配置 pepper 计算 `IdempotencyKeyHash`，practice HTTP scenario harness 用同 pepper 验证 reservation 状态
 
 ## Phase 3: 观测 / 隐私 / 收尾
 

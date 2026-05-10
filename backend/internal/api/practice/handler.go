@@ -24,17 +24,19 @@ type planService interface {
 }
 
 type HandlerOptions struct {
-	Service planService
-	Session SessionResolver
+	Service              planService
+	Session              SessionResolver
+	IdempotencyKeyPepper string
 }
 
 type Handler struct {
-	service planService
-	session SessionResolver
+	service              planService
+	session              SessionResolver
+	idempotencyKeyPepper string
 }
 
 func NewHandler(opts HandlerOptions) *Handler {
-	return &Handler{service: opts.Service, session: opts.Session}
+	return &Handler{service: opts.Service, session: opts.Session, idempotencyKeyPepper: opts.IdempotencyKeyPepper}
 }
 
 func (h *Handler) CreatePracticePlan(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +58,7 @@ func (h *Handler) CreatePracticePlan(w http.ResponseWriter, r *http.Request) {
 	res, err := h.service.CreatePracticePlan(r.Context(), domain.CreatePlanRequest{
 		UserID:               userID,
 		TargetJobID:          body.TargetJobId,
-		ResumeAssetID:        derefString(body.ResumeAssetId),
+		ResumeAssetID:        body.ResumeAssetId,
 		Goal:                 body.Goal,
 		Mode:                 body.Mode,
 		InterviewerPersona:   body.InterviewerPersona,
@@ -124,7 +126,7 @@ func (h *Handler) StartPracticeSession(w http.ResponseWriter, r *http.Request) {
 		UserID:             userID,
 		PlanID:             body.PlanId,
 		HintsEnabled:       hintsEnabled,
-		IdempotencyKeyHash: idempotency.HashKey(idempotencyKey, ""),
+		IdempotencyKeyHash: idempotency.HashKey(idempotencyKey, h.idempotencyKeyPepper),
 		RequestFingerprint: idempotency.Fingerprint(r.Method, r.URL.EscapedPath(), r.URL.RawQuery, rawBody),
 	})
 	if err != nil {

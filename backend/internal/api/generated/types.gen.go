@@ -416,7 +416,7 @@ type CreatePracticePlanRequest struct {
 	Language             string          `json:"language"`
 	Mode                 PracticeMode    `json:"mode"`
 	QuestionBudget       int32           `json:"questionBudget"`
-	ResumeAssetId        *string         `json:"resumeAssetId,omitempty"`
+	ResumeAssetId        string          `json:"resumeAssetId"`
 	TargetJobId          string          `json:"targetJobId"`
 	TimeBudgetMinutes    int32           `json:"timeBudgetMinutes"`
 }

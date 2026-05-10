@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-05-10
 
 ## 1 背景与目标
 
@@ -92,6 +92,7 @@
 | D-28 | D-22 下 B3 job ownership 前置 | 用户已确认坚持 D-22：`completePracticeSession` 同事务创建 `feedback_reports` placeholder 与 `async_jobs(report_generate)`。因此 B3 `event-and-outbox-contract` / `shared/jobs.yaml` / generated jobs docs 必须在 Phase 0 明确 `practice.session.completed` 是 report job 的 source event 与 analytics fact，不能再由 outbox dispatcher 根据同一事件创建第二个 `report_generate` job；dispatcher / backend-review 只消费既有 queued job 或按 dedupe key 查找既有 job | 保持 `ReportWithJob` 可执行，同时避免重复 job、重复报告与 dispatcher 职责冲突 |
 | D-29 | F3 baseline 独立前置 | `prompt-rubric-registry/001-baseline` 必须独立派生、完成并通过其 Resolve / prompt / rubric / lint gates 后，backend-practice 才能进入依赖 `practice.session.first_question` / `practice.session.follow_up` / `practice.turn.lightweight_observe` 的实现阶段；未完成前只允许契约 / migration / 非 AI store work | 防止 backend-practice hardcode prompt 或在 F3 真理源未落地时启动 AI handler |
 | D-30 | 001-Phase-0 跨 spec 修订归属与 idempotency 表载体 | (a) `001-plan-and-session-orchestration` Phase 0 直接修订 B1 `shared/conventions.yaml` / B2 `openapi/openapi.yaml` / B3 generated event refs / B4 migrations 编码真理源（integrator 模式），同时同步追加各 owner spec 的 `history.md` 与 `spec.md` Header 授权记录与版本号；不再为 D-21 / D-26 / D-27 各派 sibling owner spec plan。(b) D-27 idempotency 存储载体收敛为 **shared** `idempotency_records` 表（含 `domain` / `operation` namespace 字段），由 001 Phase 0 引入并设计为可被 backend-targetjob / backend-review / 自身 002 等未来 backend domain 直接复用 | 缩短 critical path；shared idempotency 基建在引入第一个 caller 时一并设计，避免后续重构；ownership 软化由各 owner spec 在 history 显式登记"协调修订模式 / 关联计划: backend-practice/001 Phase 0"兜底 |
+| D-31 | baseline plan 必须绑定简历资产 | `createPracticePlan` 的 baseline 路径要求 `resumeAssetId` 为 schema 必填字段，并且该 resume asset 必须属于当前用户且未删除；缺失、空值或不可用 resume 均返回 `422 VALIDATION_FAILED`。B2 `CreatePracticePlanRequest.required`、fixtures、Go/TS generated artifacts、frontend request builder 与 backend service/store 必须保持同一口径 | 当前 workspace UI 已把缺简历作为进入面试前的阻塞空状态；首题上下文和后续报告证据链依赖目标岗位 + 简历绑定，避免契约允许客户端发送不完整 plan |
 
 ### 3.2 非后端 owner 决策
 
@@ -181,7 +182,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | baseline plan 创建 | 已登录用户拥有 `target_job_id` 与可选 `resume_asset_id`，`goal='baseline'` | `POST /practice/plans` 携带 `Idempotency-Key` | 返回 201 + `PracticePlan{status:'ready'}`，DB 写入 `practice_plans`，`source_report_id` / `source_debrief_id` 均为空，audit_events 写入元数据摘要 | 001-plan-and-session-orchestration |
+| C-1 | baseline plan 创建 | 已登录用户拥有 `target_job_id` 与 `resume_asset_id`，`goal='baseline'` | `POST /practice/plans` 携带 `Idempotency-Key` | 返回 201 + `PracticePlan{status:'ready'}`，DB 写入 `practice_plans`，`source_report_id` / `source_debrief_id` 均为空，audit_events 写入元数据摘要 | 001-plan-and-session-orchestration |
 | C-2 | retry / next_round plan 派生 | 用户对某 `feedback_reports` 选择 `复练当前轮` 或 `进入下一轮` | `POST /practice/plans` 携带 `goal IN ('retry_current_round','next_round')` 与 `sourceReportId` | DB 写入 `source_report_id`；`focus_competency_codes` 来源于 report `next_actions` 中 `included_in_retry_plan=true` 的 turn id 集合 | 004-derived-plans-debrief |
 | C-3 | debrief 来源 plan 派生 | 用户在 debrief 模块完成复盘，已确认问题序列存在 | `POST /practice/plans` 携带 `goal='debrief'` + `sourceDebriefId` + 任意合法 `mode IN ('assisted','strict')` | DB 写入 `source_debrief_id`；CHECK 约束保证 source_report_id 为空；turn seeding 由 backend-debrief 接入接口提供；mode 字段独立保留辅助度策略 | 004-derived-plans-debrief |
 | C-4 | 同步启动 session 与首题 | plan 处于 `status='ready'`，F3 / A3 active | `POST /practice/sessions` 携带 `Idempotency-Key` 与 `planId` | 返回 201 + `PracticeSession{status:'running', currentTurn:{turnIndex:1, status:'asked', questionText, questionIntent, askedAt}}`，事件 `practice.session.started` 出 outbox | 001 |

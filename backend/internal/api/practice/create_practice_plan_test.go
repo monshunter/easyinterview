@@ -115,6 +115,10 @@ func TestCreatePracticePlanFixtureParityDefault(t *testing.T) {
 }
 
 func newTestHandler(service planService) *Handler {
+	return newTestHandlerWithPepper(service, "")
+}
+
+func newTestHandlerWithPepper(service planService, pepper string) *Handler {
 	return NewHandler(HandlerOptions{
 		Service: service,
 		Session: func(ctx context.Context) (string, bool) {
@@ -123,6 +127,7 @@ func newTestHandler(service planService) *Handler {
 			}
 			return "", false
 		},
+		IdempotencyKeyPepper: pepper,
 	})
 }
 
@@ -222,7 +227,6 @@ func newCreatePlanHTTPRequest(t *testing.T, body api.CreatePracticePlanRequest) 
 }
 
 func fixtureCreatePlanRequest() api.CreatePracticePlanRequest {
-	resumeID := "01918fa0-0000-7000-8000-000000001000"
 	return api.CreatePracticePlanRequest{
 		TargetJobId:          "01918fa0-0000-7000-8000-000000002000",
 		Goal:                 sharedtypes.PracticeGoalBaseline,
@@ -232,7 +236,7 @@ func fixtureCreatePlanRequest() api.CreatePracticePlanRequest {
 		Language:             "zh-CN",
 		QuestionBudget:       6,
 		TimeBudgetMinutes:    30,
-		ResumeAssetId:        &resumeID,
+		ResumeAssetId:        "01918fa0-0000-7000-8000-000000001000",
 		FocusCompetencyCodes: []string{"communication", "design-systems"},
 	}
 }

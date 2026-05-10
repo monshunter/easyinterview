@@ -246,7 +246,8 @@ func buildPracticeRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient
 			AI:       ai,
 			NewID:    idx.NewID,
 		}),
-		Session: currentUserFromContext,
+		Session:              currentUserFromContext,
+		IdempotencyKeyPepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
 	})
 	return practiceRoutes{
 		Handler: handler,

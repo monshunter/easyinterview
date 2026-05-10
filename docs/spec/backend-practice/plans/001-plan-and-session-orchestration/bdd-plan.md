@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration BDD Plan
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-05-10
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 **关联 BDD Checklist**: [bdd-checklist](./bdd-checklist.md)
@@ -34,7 +34,7 @@
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| `E2E.P0.022` | createPracticePlan baseline + getPracticePlan + cross-user 隔离 | 已登录用户 A 拥有 `target_job_id` 与可选 `resume_asset_id`；用户 B 已登录但无关 | 用户 A `POST /practice/plans` 携带 `Idempotency-Key` + `goal=baseline` → 用户 A `GET /practice/plans/{planId}` → 用户 B `GET /practice/plans/{planId}` | 用户 A 收到 `201 + PracticePlan{status:'ready', source*: null}`；DB `practice_plans` 写入；audit_events 写入元数据摘要；用户 A `GET` 拿到完整 plan；用户 B `GET` 返回 `404 + PRACTICE_PLAN_NOT_FOUND`，不泄露存在性 | `test/scenarios/e2e/p0-022-practice-plan-baseline-create-and-read/` |
+| `E2E.P0.022` | createPracticePlan baseline + getPracticePlan + cross-user 隔离 | 已登录用户 A 拥有 `target_job_id` 与 `resume_asset_id`；用户 B 已登录但无关 | 用户 A `POST /practice/plans` 携带 `Idempotency-Key` + `goal=baseline` → 用户 A `GET /practice/plans/{planId}` → 用户 B `GET /practice/plans/{planId}` | 用户 A 收到 `201 + PracticePlan{status:'ready', source*: null}`；DB `practice_plans` 写入；audit_events 写入元数据摘要；用户 A `GET` 拿到完整 plan；用户 B `GET` 返回 `404 + PRACTICE_PLAN_NOT_FOUND`，不泄露存在性 | `test/scenarios/e2e/p0-022-practice-plan-baseline-create-and-read/` |
 | `E2E.P0.023` | startPracticeSession 同步首题 + getPracticeSession + outbox started | 用户 A 拥有 `practice_plans(id=planId, status='ready', goal='baseline')`；F3 baseline active；A3 真实或 fake AIClient 配置可返回 first-question | 用户 A `POST /practice/sessions` 携带 `Idempotency-Key` + `planId` → 用户 A `GET /practice/sessions/{sessionId}` | `201 + PracticeSession{status:'running', currentTurn:{turnIndex:1, status:'asked', questionText, questionIntent, askedAt}}`；DB `practice_sessions(status='running')` + `practice_turns(turn_index=1, status='asked')` + `practice_session_events(seq_no=1, event_type='session_started')` 写入；`outbox_events` 表中 `practice.session.started` 行存在且 payload 与 B3 schema 一致；`GET` 拿到完整 session；外部 AI 调用不在 DB tx 内（通过 lock 检测 / 时序断言） | `test/scenarios/e2e/p0-023-practice-session-start-and-first-question/` |
 
 ## 3 Phase 2 — 错误与边界场景

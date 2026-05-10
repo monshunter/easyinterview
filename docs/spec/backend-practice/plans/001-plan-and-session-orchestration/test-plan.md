@@ -1,6 +1,6 @@
 # 001 — Plan and Session Orchestration Test Plan
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-10
 
@@ -18,6 +18,7 @@
 |--------|-------------------|-------|----------|------------|
 | shared conventions generated artifacts | R9 / R18 | Phase 0 | 单元 + drift | `make codegen-conventions` + `python3 scripts/lint/conventions_drift.py --repo-root .` + `cd backend && go test ./internal/shared/types ./internal/shared/errors ./internal/shared/idx ./internal/shared/ai` + frontend conventions focused tests |
 | openapi diff | R9 / R18 | Phase 0 | drift gate | `make openapi-diff` (with HISTORY_REF base) + `make docs-openapi` |
+| createPracticePlan resumeAssetId required contract | R25 | Phase 0 + Phase 1 | contract + generated type + frontend unit | `make codegen-openapi` + `make validate-fixtures` + `pnpm --filter @easyinterview/frontend test src/app/interview-context/buildCreatePlanRequest.test.ts` |
 | events drift | R10 / R18 | Phase 0 | drift gate | `make codegen-events` + `make lint-events` |
 | migration check | R5 / R7 / R8 / R18 | Phase 0 | 集成 + drift | `make migrate-up` + `make migrate-down` + `make migrate-status` + 自定义 CHECK 约束断言测试 |
 | F3 baseline preflight | (Plan §6 风险) | Phase 0 | preflight script + 单元测试 | `prompt-rubric-registry/001-baseline` 状态读取断言 + `RegistryClient.Resolve` mock test |
@@ -37,6 +38,7 @@
 | 同 plan 多 key 并发 | R8 | Phase 2 | 集成 | session_repository_test.go partial UNIQUE INDEX 测试 |
 | non-2xx idempotency recovery | R22 | Phase 2 | 单元 | `cd backend && go test ./internal/middleware/idempotency -run TestMiddlewareFinalizesNon2xxAndAllowsCorrectedSameKey -count=1` |
 | startPracticeSession TTL expiry | R23 | Phase 2 | SQL mock | `cd backend && go test ./internal/store/practice -run 'TestSQLRepositoryReserveSessionStartResetsExpired' -count=1` |
+| startPracticeSession idempotency pepper | R26 | Phase 2 | handler + scenario harness | `cd backend && go test ./internal/api/practice -run TestStartPracticeSessionReturns201WithCurrentTurn -count=1` + `cd backend && go test ./cmd/api -run 'TestE2EP002(3|4|5)' -count=1` |
 | A3 observed AIClient + ai_task_runs writer | R11 / R15 | Phase 3 | 集成 | observed_client_test.go / observability wiring test with fake `AITaskRunWriter` |
 | audit_events 写入 | R15 | Phase 3 | 单元 | audit_test.go |
 | 隐私红线 | R12 / R17 | Phase 3 | 单元 + scenario verify.sh grep | redaction_test.go + verify.sh assertion |
@@ -49,6 +51,7 @@
 | shared types regenerate after PracticeMode 二值 | `make codegen-conventions` + `python3 scripts/lint/conventions_drift.py --repo-root .` + `cd backend && go test ./internal/shared/types ./internal/shared/errors ./internal/shared/idx ./internal/shared/ai` + frontend conventions focused tests | Red: drift 检测发现 `legacy debrief replay value` 残留；Green: drift 通过 + `PracticeMode` 仅含 `assisted/strict` |
 | 错误码注册 | shared types unit + drift | Red: 错误码常量缺失；Green: `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND` 在 Go / TS / OpenAPI 一致 |
 | OpenAPI enum 删除 + ApiError 错误码新增 | `make openapi-diff` + fixture parity | Red: 检测到 enum 删除（按 D-21 标记 pre-launch baseline rebase）；Green: baseline 同步 rebase + ApiError additive 通过 |
+| `resumeAssetId` 必填契约对齐 | `make codegen-openapi` + `make validate-fixtures` + focused frontend request-builder test | Red: generated TS type 仍允许省略 / fixture request 缺少 required 字段 / frontend 可生成 incomplete body；Green: generated type required、schema-valid unavailable-resume fixture 通过、frontend 对 synthetic resume id fail fast |
 | B3 events 二值化 | `make codegen-events` + `make lint-events` | Red: generated event refs 含旧 PracticeMode；Green: regenerate 后 lint 通过 |
 | `idempotency_records` 表 + `practice_plans.mode` CHECK | `make migrate-up` + `make migrate-down` + 单元测试 | Red: CHECK 接受 `legacy debrief replay value`；Green: CHECK 拒绝 + idempotency_records UNIQUE 约束生效 |
 | owner spec history append | `/sync-doc-index --check` | Red: Header / INDEX drift；Green: 5 个 spec Header 与 history.md 版本同步 |
@@ -79,6 +82,7 @@
 | 同 plan 多 key 并发 | `backend/internal/store/practice/session_repository_concurrency_test.go` | Red: 同 user + plan 出现两个 active session；Green: partial UNIQUE INDEX 覆盖 `queued/running` 并拒绝第二个，返回 `PRACTICE_SESSION_CONFLICT` |
 | non-2xx idempotency recovery | `backend/internal/middleware/idempotency/middleware_test.go` | Red: 422 后同 key corrected body 仍 pending / mismatch；Green: 非 2xx reservation 进入 failed terminal / reset path，corrected body 可重新执行 |
 | startPracticeSession TTL expiry | `backend/internal/store/practice/create_plan_test.go` | Red: 过期 pending / succeeded record 仍 conflict / replay；Green: 读取 `expires_at` 并 reset pending 后重新 reserve |
+| startPracticeSession idempotency pepper | `backend/internal/api/practice/start_practice_session_test.go` + `backend/cmd/api/practice_http_scenario_test.go` | Red: handler 传入空 pepper hash / scenario harness 查不到 peppered reservation；Green: handler 使用配置 pepper 计算 hash，scenario create/start side-effect path 共用同一 pepper |
 
 ## 6 Phase 3: 观测 / 隐私 / 收尾
 

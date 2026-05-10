@@ -1,13 +1,14 @@
 # Backend Practice History
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-05-10
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-10 | 1.5 | L2 follow-up remediation：新增 D-31，明确 baseline `createPracticePlan` 必须绑定 `resumeAssetId`，并要求 B2 OpenAPI required、fixtures、generated artifacts、frontend request builder 与 backend service/store 同步；同时要求 `startPracticeSession` 自定义幂等路径与 shared idempotency middleware 使用同一 pepper 口径。 | [001-plan-and-session-orchestration](./plans/001-plan-and-session-orchestration/plan.md) |
 | 2026-05-09 | 1.4 | 派生第一个 plan `001-plan-and-session-orchestration`：通过 `/design` 与用户对齐 Q1 + Q2 trade-off，新增 D-30 固化两项决策：(a) Phase 0 跨 spec 修订采用 integrator 模式（plan 001 Phase 0 直接修订 B1 `shared/conventions.yaml` / B2 `openapi/openapi.yaml` / B3 generated event refs / B4 migrations 编码真理源，并在四个 owner spec 的 `history.md` 与 `spec.md` Header 同步追加授权记录与版本号），不再为 D-21 / D-26 / D-27 各派 sibling owner spec plan；(b) D-27 idempotency 存储载体收敛为 shared `idempotency_records` 表（含 `domain` / `operation` namespace 字段），由 plan 001 Phase 0 引入并设计为可被 backend-targetjob / backend-review / 自身 002 等未来 backend domain 复用。同步微调 D-27 wording 指向 D-30，并在 §7 把第一个 plan 链接化。 | [001-plan-and-session-orchestration](./plans/001-plan-and-session-orchestration/plan.md) |
 | 2026-05-08 | 1.3 | 按同会话 plan-review 后用户确认修订：保留 D-22 `completePracticeSession` 同事务创建 `feedback_reports` placeholder + `async_jobs(report_generate)` 的边界，同时新增 D-28 要求 B3 / `shared/jobs.yaml` 把 `practice.session.completed` 解释为 report job source event 而非二次 job creator；新增 D-27 Practice API idempotency 存储与 replay 语义，覆盖 user-scoped key、request fingerprint、pending 单执行者、成功 response replay、mismatch 冲突、cross-user 隔离、`startPracticeSession` retryable first-turn failure 与 `completePracticeSession` report/job 去重；新增 D-29，要求 `prompt-rubric-registry/001-baseline` 独立派生并完成后，backend-practice 才能实现依赖 F3 首题 / 追问 / hint 的 AI handler；同步扩展 C-21..C-27 和 §7 plan 前置条件。 | 暂无（spec-only 修订） |
 | 2026-05-08 | 1.2 | 按同会话 L1 review 结论修订 backend-practice spec：把 `startPracticeSession` 从“AI 包在事务内并回滚”改为 reservation + 事务外 AI + 成功/失败短事务，明确 failed reservation 可用同 key 重试；把 `completePracticeSession` 收口为同事务创建 `feedback_reports(status='queued')` placeholder + `async_jobs(report_generate)` queued row + outbox，以支撑 `ReportWithJob` 响应；补齐 D-24/D-25/D-26 前置契约（derived plan source 字段、DB/internal turn status 与 OpenAPI wire 映射、practice not-found 错误码）；统一未认证错误为既有 `AUTH_UNAUTHORIZED`，并将 AssistantAction provenance 收敛到 B2 当前 `GenerationProvenance` wire 字段。 | 暂无（spec-only 修订） |

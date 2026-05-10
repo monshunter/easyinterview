@@ -1948,7 +1948,7 @@ components:
     # ----- Practice Plans / Sessions -----
     CreatePracticePlanRequest:
       type: object
-      required: [targetJobId, goal, mode, interviewerPersona, difficulty, language, questionBudget, timeBudgetMinutes]
+      required: [targetJobId, goal, mode, interviewerPersona, difficulty, language, questionBudget, timeBudgetMinutes, resumeAssetId]
       properties:
         targetJobId:
           type: string

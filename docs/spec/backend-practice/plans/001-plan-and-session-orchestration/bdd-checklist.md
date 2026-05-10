@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration BDD Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-05-10
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 

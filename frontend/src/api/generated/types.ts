@@ -312,7 +312,7 @@ export interface CreatePracticePlanRequest {
 	language: string;
 	mode: PracticeMode;
 	questionBudget: number;
-	resumeAssetId?: string;
+	resumeAssetId: string;
 	targetJobId: string;
 	timeBudgetMinutes: number;
 }

@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-10](2026-05-10.md) | `fix(backend-practice): enforce resumeAssetId required and wire idempotency pepper` | #fix #test #docs |
 | [2026-05-10](2026-05-10.md) | `fix(frontend-dev): default vite preview to fixture-backed API` | #fix #ui #test #docs |
 | [2026-05-10](2026-05-10.md) | `fix(mock-contract): align mockruntime named scenarios` | #fix #test #docs |
 | [2026-05-10](2026-05-10.md) | `fix(change-intake): require branch guard before mutation` | #fix #docs #test |
