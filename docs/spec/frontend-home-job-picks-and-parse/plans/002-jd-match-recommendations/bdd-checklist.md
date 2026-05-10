@@ -1,6 +1,6 @@
 # 002 BDD Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
 > **更新日期**: 2026-05-10
 
@@ -11,7 +11,7 @@
 - [x] 创建场景目录 `test/scenarios/e2e/p0-022-jd-match-recommended-and-confirm/`，含 `README.md`（§6 baseline + §7 离线限制） <!-- evidence: 2026-05-10 directory + README + scripts present; scenario verified below -->
 - [x] 准备 fixture variant：`getJobMatchProfile.json`（`default`）、`getAgentScanStatus.json`（`idle/scanning/error`）、`listJobRecommendations.json`（`empty/one/many/failed`）、`getJobRecommendation.json`（`default/network-intel-empty/failed`）、`addToWatchlist.json`（`default/4xx-validation/5xx`）、`removeFromWatchlist.json`（`default/4xx-not-found`）、`markJobNotRelevant.json`（`default/4xx`）；signed-in / signed-out 两种状态切换入口；`make validate-fixtures` PASS <!-- evidence: 2026-05-10 plan §1.2 fixtures landed, validate-fixtures OK 46 fixtures; signed-in/out via existing Auth/getMe authenticated/unauthenticated fixtures -->
 - [x] 实现 `scripts/setup.sh`（含 fixture variant 切换 + signed-in/out 切换 + 三主题态预置入口）/ `scripts/trigger.sh`（按 A-I 9 个子用例运行）/ `scripts/verify.sh`（断言 9 子用例 Then 子句全部命中、`getJobRecommendation` 详情必调、4 button request body / Idempotency-Key、4xx revert 行为、auth pending action params 隐私字段、Source 不触发 pendingAction 且 `window.open` flags 命中、mockTransport spy 仅 status code、jobMatchId/sourceUrl/freeNote 隐私反查、plan 001 placeholder testid 0 命中）/ `scripts/cleanup.sh` <!-- evidence: 2026-05-10 L2 remediation verify.sh now requires JDMatchDetailFetch/useJobRecommendation/JDMatchAutoResume specs and greps useJobRecommendation.ts + JDMatchScreen.tsx detail-fetch wiring -->
-- [x] 执行 `setup → trigger → verify → cleanup` 全 PASS（A-I 共 ≥9 子用例） <!-- evidence: 2026-05-10 P0.022 setup→trigger→verify→cleanup PASS; trigger 15 files / 98 tests PASS -->
+- [x] 执行 `setup → trigger → verify → cleanup` 全 PASS（A-I 共 ≥9 子用例） <!-- evidence: 2026-05-10 P0.022 setup→trigger→verify→cleanup PASS; trigger 15 files / 101 tests PASS -->
 - [x] 记录验证证据：mockTransport 调用日志 spy + 4 button request body 截取 + auth pending action 路径流 + 4xx revert 截图 + retired-testid grep 0 命中日志 <!-- evidence: 2026-05-10 verify.sh checks request body/idempotency/auth privacy/detail-fetch/retired placeholders; Vitest assertions cover revert and pending action flows -->
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.022 行（关联需求 `frontend-home-job-picks-and-parse C-12, C-13, C-15`，状态 Ready，automated） <!-- evidence: 2026-05-10 INDEX contains P0.022 Ready/automated -->
 
@@ -61,7 +61,7 @@
 ## 整体 Regression（Phase 6 收口）
 
 - [x] D1+D2+D3+plan001 Regression 重跑：`E2E.P0.001 / 002 / 004 / 005 / 006 / 014 / 015 / 016` setup→trigger→verify→cleanup 全部 PASS（D2 视觉系统、D1 auth pending action、plan001 home/parse 流不被 plan 002 改动破坏） <!-- evidence: 2026-05-10 historical plan closeout PASS plus L2 P0.026 reran P0.015/P0.016 PASS -->
-- [x] `pnpm --filter @easyinterview/frontend test` 全量 Vitest PASS（含本 plan 新增 ≥25 spec） <!-- evidence: 2026-05-10 L2 final full suite PASS: 105 files / 663 tests -->
+- [x] `pnpm --filter @easyinterview/frontend test` 全量 Vitest PASS（含本 plan 新增 ≥25 spec） <!-- evidence: 2026-05-10 L2 final full suite PASS: 105 files / 666 tests -->
 - [x] `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 plan 001 已升级 baseline 上累加新增三 tab × 三主题 spec，总数全 PASS，并确认升级后 jd_match SearchTab 的 5 步 AGENT panel 与 ui-design 真理源结构一致、focused screenshot baseline PASS <!-- evidence: 2026-05-10 L2 `pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/jd_match.spec.ts` → 20 passed; responsive geometry + dark/customAccent computed style + focused screenshot covered -->
 - [x] `pnpm --filter @easyinterview/frontend typecheck` + `pnpm --filter @easyinterview/frontend build` + `make build` + `make validate-fixtures` 全 PASS <!-- evidence: 2026-05-10 L2 final: typecheck PASS; frontend build PASS; make build PASS; validate-fixtures OK 46 fixtures -->
 - [x] `make docs-check` zero drift；`/sync-doc-index --fix-index` post-fix zero drift；`check_md_links` 双 OK <!-- evidence: 2026-05-10 sync-doc-index --fix-index applied status/version/index sync; sync-doc-index --check zero drift; make docs-check zero drift + docs/spec link checks OK -->

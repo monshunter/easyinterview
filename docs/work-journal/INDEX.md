@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-10](2026-05-10.md) | `test(jd_match): add failed and retry coverage for job recommendation detail` | #test #docs |
 | [2026-05-10](2026-05-10.md) | `fix(frontend-jd-match): remediate jd match L2 findings` | #fix #ui #test #docs |
 | [2026-05-10](2026-05-10.md) | `feat(jd_match): close plan 002 with verification suite, scenarios and lifecycle to completed` | #feat #docs #test |
 | [2026-05-10](2026-05-10.md) | `feat(jd_match): land watchlist tab with market signals and chevron handoff` | #feat #ui #test |

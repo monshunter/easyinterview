@@ -94,4 +94,30 @@ describe("JDMatchScreen detail fetch (item 3.11)", () => {
       );
     });
   });
+
+  it("falls back to the selected list summary when detail fetch fails", async () => {
+    const client = buildClient();
+    const detailSpy = vi
+      .spyOn(client, "getJobRecommendation")
+      .mockRejectedValue(new Error("detail unavailable"));
+
+    wrap(<JDMatchScreen route={{ name: "jd_match", params: {} }} />, client);
+
+    const secondCard = await screen.findByTestId(
+      "jdmatch-card-01918fa0-0000-7000-8000-00000000a002",
+    );
+    fireEvent.click(secondCard);
+
+    await waitFor(() =>
+      expect(detailSpy).toHaveBeenCalledWith(
+        "01918fa0-0000-7000-8000-00000000a002",
+      ),
+    );
+    expect(screen.getByTestId("jdmatch-detail-header")).toHaveTextContent(
+      "Staff Frontend Engineer · Platform",
+    );
+    expect(screen.getByTestId("jdmatch-detail-action-bar")).toBeVisible();
+    expect(screen.getByTestId("jdmatch-detail-action-confirm")).toBeEnabled();
+    expect(screen.getByTestId("jdmatch-detail-action-save")).toBeEnabled();
+  });
 });
