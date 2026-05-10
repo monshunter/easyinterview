@@ -1,6 +1,6 @@
 # 002 JD Match Recommendations (Recommended / Search / Watchlist)
 
-> **版本**: 1.2
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-10
 
@@ -49,7 +49,7 @@ ui-design 真理源由用户独立维护：用户决定 plan 002 实施期间不
 | Alternate · Search query + filter | 输入 query → Run → `searchJobs` + Idempotency-Key；4 chip filter 纯 client-side 切换 | `JDMatchScreen::runSearch` line 173 + `filterPredicate` line 226 | 4 | Vitest + E2E.P0.023 |
 | Alternate · Saved search create | `saveCurrentAsWatch` → `createSavedSearch` + Idempotency-Key + toast | `JDMatchScreen::saveCurrentAsWatch` line 219 | 4 | Vitest + E2E.P0.023 |
 | Alternate · Watchlist chevron handoff | `openJob(id)` → tab 切 Recommended + selected = `WatchlistItem.linkedJobMatchId` | `JDMatchScreen::openJob` line 235 + `WatchlistTab::findJobIdFor` line 594 | 5 | Vitest + E2E.P0.024 |
-| Alternate · Auth pending action | 未登录 side-effect 操作触发 `requestAuth({ type: "jd_match_action", route: "jd_match", params: { tab, selectedJobMatchId, action } })`；登录后回到 jd_match 自动重新触发 | D1 `requestAuth` + plan 001 C-7 模式 | 3+4+5 | Vitest `jd_match/JDMatchAuthGate.test.tsx` + E2E.P0.025 |
+| Alternate · Auth pending action | 未登录 side-effect 操作触发 `requestAuth({ type: "jd_match_action", route: "jd_match", params })`；Recommended params 为 `{ tab: "recommended", selectedJobMatchId, action }`，Search params 为 `{ tab: "search", action, pendingJdMatchActionId }` 且 query/label 仅存当前 SPA 会话内存；登录后回到 jd_match 自动恢复 tab/selected 并重新触发 action | D1 `requestAuth` + plan 001 C-7 模式 | 3+4+5 | Vitest `jd_match/JDMatchAuthGate.test.tsx` + `SearchTabAuthGate.test.tsx` + E2E.P0.025 |
 | Failure / recovery · listJobRecommendations 4xx/5xx | failed variant → 错误占位 + retry button | n/a (error state) | 3 | Vitest + fixture variant |
 | Failure / recovery · addToWatchlist 4xx revert | save 调用失败 → button 状态 revert + error toast；卡片不进入 watchlist | n/a | 3 | Vitest + E2E.P0.022 sub-case |
 | Failure / recovery · markJobNotRelevant 4xx revert | dismiss 失败 → 卡片重新显示 + error toast | n/a | 3 | Vitest + E2E.P0.022 sub-case |
@@ -214,7 +214,7 @@ ui-design 真理源由用户独立维护：用户决定 plan 002 实施期间不
 
 在 `frontend/src/app/i18n/locales/zh.ts` / `en.ts` 中：
 - 删除 `jdMatch.placeholderTitle` / `placeholderCopy` / `placeholderCta` 三个 key
-- 扩展为 5 子命名空间：`jdMatch.profile.*`（≥8 key）/ `jdMatch.agent.*`（≥6 key）/ `jdMatch.recommended.*`（≥10 key）/ `jdMatch.search.*`（≥12 key 含 `searching` 单一加载文案）/ `jdMatch.watchlist.*`（≥10 key）；保留 plan 001 已有的 `jdMatch.hero.*` / `jdMatch.tab.*`；`messages.ts` typed helper 同步
+- 扩展为 5 子命名空间：`jdMatch.profile.*`（≥8 key）/ `jdMatch.agent.*`（≥6 key）/ `jdMatch.recommended.*`（≥10 key）/ `jdMatch.search.*`（≥16 key，含 `searchingPanelLabel` 与 `searchingStep1..5` 5 步 AGENT panel 文案）/ `jdMatch.watchlist.*`（≥10 key）；保留 plan 001 已有的 `jdMatch.hero.*` / `jdMatch.tab.*`；`messages.ts` typed helper 同步
 - Vitest `i18n` 套件断言 zh/en 同步无缺漏；删除的 placeholder key 不再被任何代码引用
 
 #### 2.5 Vitest
@@ -267,7 +267,7 @@ Vitest 断言 jobMatchId / sourceUrl / freeNote 不出现在 `console.log` / URL
 
 - BDD-Gate: 验证 `E2E.P0.022` Recommended tab 主路径 + 4 button 闭环 + auth pending action + `E2E.P0.026` Confirm interview → parse 出口 params 完整性
 
-### Phase 4: Search tab — 自然语言搜索 + Saved searches + Result filters + 单一加载文案
+### Phase 4: Search tab — 自然语言搜索 + Saved searches + Result filters + 5 步 AGENT panel
 
 #### 4.1 新增 `SearchTab.tsx` + 子组件
 
@@ -511,4 +511,3 @@ mockTransport spy 仅记录 status code + 调用次数，不记录 request / res
 - 7.5 隐私字段负向清单 7 项已 freeze + mockTransport spy 仅 status code + window.open `noopener,noreferrer` 已 freeze
 
 Phase 0 → Phase 1 移交：feature branch 已就位、spec/plan/checklist/bdd-plan/bdd-checklist + INDEX + history 已修订完成（spec 1.2 → 1.3，plan/checklist/bdd-plan/bdd-checklist 1.0 → 1.1，context.yaml `to: 1.3`）。Phase 1 可以开始 OpenAPI `JobMatch` tag + 12 operationId + fixtures + B2 owner additive 升级 + codegen 重建 + contract test。
-

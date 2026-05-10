@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * Phase 6.1 — JD Match three-tab DOM anchor parity.
@@ -22,6 +24,96 @@ interface Rect {
   bottom: number;
   width: number;
   height: number;
+}
+
+interface OperationFixture {
+  scenarios: Record<
+    string,
+    {
+      response: {
+        status: number;
+        headers?: Record<string, string>;
+        body: unknown;
+      };
+    }
+  >;
+}
+
+function fixtureResponse(relativePath: string, scenario = "default") {
+  const absolutePath = resolve(process.cwd(), "..", relativePath);
+  const fixture = JSON.parse(readFileSync(absolutePath, "utf8")) as OperationFixture;
+  const response = fixture.scenarios[scenario]?.response;
+  if (!response) throw new Error(`missing fixture scenario ${relativePath}#${scenario}`);
+  return response;
+}
+
+async function fulfillFixture(
+  route: import("@playwright/test").Route,
+  relativePath: string,
+  scenario = "default",
+) {
+  const response = fixtureResponse(relativePath, scenario);
+  await route.fulfill({
+    status: response.status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      ...(response.headers ?? {}),
+    },
+    body: JSON.stringify(response.body),
+  });
+}
+
+async function mockJdMatchApis(page: import("@playwright/test").Page): Promise<void> {
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    const path = url.pathname.replace(/^\/api\/v1/, "");
+    const method = route.request().method();
+    if (path === "/runtime-config") {
+      await fulfillFixture(route, "openapi/fixtures/Auth/getRuntimeConfig.json");
+      return;
+    }
+    if (path === "/me") {
+      await fulfillFixture(route, "openapi/fixtures/Auth/getMe.json", "authenticated");
+      return;
+    }
+    if (path === "/jd-match/profile") {
+      await fulfillFixture(route, "openapi/fixtures/JobMatch/getJobMatchProfile.json");
+      return;
+    }
+    if (path === "/jd-match/agent-status") {
+      await fulfillFixture(route, "openapi/fixtures/JobMatch/getAgentScanStatus.json");
+      return;
+    }
+    if (path === "/jd-match/recommendations" && method === "GET") {
+      await fulfillFixture(route, "openapi/fixtures/JobMatch/listJobRecommendations.json");
+      return;
+    }
+    if (path.startsWith("/jd-match/recommendations/") && method === "GET") {
+      await fulfillFixture(route, "openapi/fixtures/JobMatch/getJobRecommendation.json");
+      return;
+    }
+    if (path === "/jd-match/saved-searches" && method === "GET") {
+      await fulfillFixture(route, "openapi/fixtures/JobMatch/listSavedSearches.json");
+      return;
+    }
+    if (path === "/jd-match/search" && method === "POST") {
+      await fulfillFixture(route, "openapi/fixtures/JobMatch/searchJobs.json");
+      return;
+    }
+    if (path === "/jd-match/watchlist" && method === "GET") {
+      await fulfillFixture(route, "openapi/fixtures/JobMatch/listWatchlist.json");
+      return;
+    }
+    if (path === "/jd-match/market-signals") {
+      await fulfillFixture(route, "openapi/fixtures/JobMatch/getMarketSignals.json");
+      return;
+    }
+    await route.fulfill({
+      status: 404,
+      headers: { "content-type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ error: { code: "NOT_FOUND", message: `No fixture for ${path}` } }),
+    });
+  });
 }
 
 async function rectOf(
@@ -51,6 +143,37 @@ async function gotoJdMatch(page: import("@playwright/test").Page) {
     await button.click();
   }
   await page.waitForSelector("[data-testid='route-jd_match']");
+}
+
+async function gridColumnCount(
+  page: import("@playwright/test").Page,
+  selector: string,
+): Promise<number> {
+  return page.evaluate(({ selector }) => {
+    const el = document.querySelector(selector) as HTMLElement | null;
+    if (!el) throw new Error(`selector not found: ${selector}`);
+    return getComputedStyle(el)
+      .gridTemplateColumns
+      .split(" ")
+      .filter(Boolean).length;
+  }, { selector });
+}
+
+async function freezeAnimations(page: import("@playwright/test").Page): Promise<void> {
+  await page.addStyleTag({
+    content: `
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+        caret-color: transparent !important;
+      }
+    `,
+  });
+  await page.evaluate(async () => {
+    if (document.fonts && typeof document.fonts.ready?.then === "function") {
+      await document.fonts.ready;
+    }
+  });
 }
 
 test.describe("jd_match three-tab DOM anchor parity", () => {
@@ -172,6 +295,99 @@ test.describe("jd_match three-tab DOM anchor parity", () => {
     );
     expect(heroRect.left).toBeGreaterThanOrEqual(0);
     expect(heroRect.right).toBeLessThanOrEqual(viewport!.width + 1);
+  });
+
+  test("Responsive geometry matches jd_match layout contracts", async ({
+    page,
+  }) => {
+    await mockJdMatchApis(page);
+    await gotoJdMatch(page);
+    await page.waitForSelector("[data-testid='jdmatch-detail']");
+    const viewport = page.viewportSize()!;
+    const mobile = viewport.width <= 700;
+
+    await expect(page.locator("[data-testid='jdmatch-recommended-tab']"))
+      .toHaveCount(1);
+    expect(
+      await gridColumnCount(page, "[data-testid='jdmatch-recommended-tab']"),
+    ).toBe(mobile ? 1 : 2);
+    const detailPosition = await page
+      .locator("[data-testid='jdmatch-detail']")
+      .evaluate((el) => getComputedStyle(el as HTMLElement).position);
+    expect(detailPosition).toBe(mobile ? "static" : "sticky");
+
+    await page.locator("[data-testid='jdmatch-tab-search']").click();
+    await expect(page.locator("[data-testid='jdmatch-search-saved-grid']"))
+      .toHaveCount(1);
+    expect(
+      await gridColumnCount(page, "[data-testid='jdmatch-search-saved-grid']"),
+    ).toBe(mobile ? 1 : 3);
+    await page.locator("[data-testid='jdmatch-search-input']").fill("frontend remote");
+    await page.locator("[data-testid='jdmatch-search-run']").click();
+    await page.waitForSelector("[data-testid='jdmatch-search-results']");
+    expect(
+      await gridColumnCount(page, "[data-testid='jdmatch-search-results']"),
+    ).toBe(mobile ? 1 : 2);
+
+    await page.locator("[data-testid='jdmatch-tab-watchlist']").click();
+    await page.waitForSelector("[data-testid='jdmatch-market-signal-0']");
+    expect(
+      await gridColumnCount(page, "[data-testid='jdmatch-market-signals-inner']"),
+    ).toBe(mobile ? 2 : 4);
+  });
+
+  test("dark mode and customAccent visibly affect jd_match computed colors", async ({
+    page,
+  }) => {
+    await mockJdMatchApis(page);
+    await gotoJdMatch(page);
+    await page.waitForSelector("[data-testid='jdmatch-detail']");
+
+    const before = await page.evaluate(() => ({
+      body: getComputedStyle(document.body).backgroundColor,
+      card: getComputedStyle(
+        document.querySelector("[data-testid='jdmatch-card-01918fa0-0000-7000-8000-00000000a001']") as HTMLElement,
+      ).borderLeftColor,
+      accent: getComputedStyle(document.documentElement)
+        .getPropertyValue("--ei-color-accent")
+        .trim(),
+    }));
+
+    await page.click("[data-testid='topbar-dark-toggle']");
+    const dark = await page.evaluate(() => ({
+      body: getComputedStyle(document.body).backgroundColor,
+      mode: document.documentElement.getAttribute("data-mode"),
+    }));
+    expect(dark.mode).toBe("dark");
+    expect(dark.body).not.toBe(before.body);
+
+    await page.click("[data-testid='topbar-theme-button']");
+    await page.click("[data-testid='topbar-theme-custom-option']");
+    const custom = await page.evaluate(() => ({
+      attr: document.documentElement.getAttribute("data-custom-accent"),
+      accent: getComputedStyle(document.documentElement)
+        .getPropertyValue("--ei-color-accent")
+        .trim(),
+      detailButton: getComputedStyle(
+        document.querySelector("[data-testid='jdmatch-detail-action-save']") as HTMLElement,
+      ).borderColor,
+    }));
+    expect(custom.attr).toBe("active");
+    expect(custom.accent).not.toBe(before.accent);
+    expect(custom.detailButton).not.toBe(before.card);
+  });
+
+  test("Recommended tab focused screenshot matches the colocated baseline", async ({
+    page,
+  }, testInfo) => {
+    await mockJdMatchApis(page);
+    await gotoJdMatch(page);
+    await page.waitForSelector("[data-testid='jdmatch-detail']");
+    await freezeAnimations(page);
+    await expect(page.locator("[data-testid='jdmatch-recommended-tab']"))
+      .toHaveScreenshot(`jd-match-recommended-${testInfo.project.name}.png`, {
+        maxDiffPixels: 4000,
+      });
   });
 
   test("Negative — legacy plan-001 placeholder testid stays absent", async ({

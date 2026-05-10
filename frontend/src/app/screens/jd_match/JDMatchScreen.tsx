@@ -9,11 +9,16 @@ import type { Route } from "../../routes";
 import type { JobMatchRecommendation } from "../../../api/generated/types";
 
 import { RecommendedTab } from "./RecommendedTab";
+import {
+  consumePendingJdMatchAction,
+  storePendingJdMatchAction,
+} from "./pendingJdMatchActionState";
 import { applySearchFilter } from "./searchFilters";
 import { SearchTab, type SearchResultFilter } from "./SearchTab";
 import { useAgentScanStatus } from "./useAgentScanStatus";
 import { useDismissRecommendation } from "./useDismissRecommendation";
 import { useJobMatchProfile } from "./useJobMatchProfile";
+import { useJobRecommendation } from "./useJobRecommendation";
 import { useJobMatchRecommendations } from "./useJobMatchRecommendations";
 import { useSavedSearches, useCreateSavedSearch } from "./useSavedSearches";
 import { useSearchJobs } from "./useSearchJobs";
@@ -43,6 +48,35 @@ type JdMatchAction =
   | "confirm_interview"
   | "run_search"
   | "create_saved_search";
+
+type JdMatchTab = "recommended" | "search" | "watchlist";
+type SearchJdMatchAction = Extract<
+  JdMatchAction,
+  "run_search" | "create_saved_search"
+>;
+type RecommendedJdMatchAction = Exclude<JdMatchAction, SearchJdMatchAction>;
+
+function normalizeTab(value?: string): JdMatchTab {
+  if (value === "search" || value === "watchlist") return value;
+  return "recommended";
+}
+
+function isRecommendedAction(
+  action: string | undefined,
+): action is RecommendedJdMatchAction {
+  return (
+    action === "save" ||
+    action === "unsave" ||
+    action === "dismiss" ||
+    action === "confirm_interview"
+  );
+}
+
+function isSearchAction(
+  action: string | undefined,
+): action is SearchJdMatchAction {
+  return action === "run_search" || action === "create_saved_search";
+}
 
 const PROFILE_INITIALS_FALLBACK = "—";
 
@@ -104,7 +138,9 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
   const isUnauthenticated =
     runtime?.auth.status === "unauthenticated" ||
     runtime?.auth.status === "loading";
-  const [tab, setTab] = useState<string>("recommended");
+  const [tab, setTab] = useState<JdMatchTab>(() =>
+    normalizeTab(route.params.tab),
+  );
   const profileQuery = useJobMatchProfile();
   const agentQuery = useAgentScanStatus(tab);
   const recsQuery = useJobMatchRecommendations();
@@ -120,7 +156,9 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
   const [savedOverrides, setSavedOverrides] = useState<
     ReadonlyMap<string, boolean>
   >(new Map());
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => route.params.selectedJobMatchId ?? null,
+  );
 
   // First mount or list refresh: pick the first visible item by default.
   const visibleItems = useMemo<JobMatchRecommendation[]>(
@@ -134,9 +172,24 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
         ),
     [recsQuery.items, hiddenIds, savedOverrides],
   );
+  const selectedSummary = useMemo(
+    () => visibleItems.find((r) => r.id === selectedId) ?? null,
+    [visibleItems, selectedId],
+  );
+  const detailQuery = useJobRecommendation(selectedId);
+  const detailRecommendation = useMemo(() => {
+    if (!detailQuery.data || detailQuery.data.id !== selectedSummary?.id) {
+      return null;
+    }
+    return {
+      ...detailQuery.data,
+      saved: selectedSummary.saved,
+    };
+  }, [detailQuery.data, selectedSummary]);
 
   useEffect(() => {
     if (visibleItems.length === 0) {
+      if (recsQuery.loading) return;
       if (selectedId !== null) setSelectedId(null);
       return;
     }
@@ -146,7 +199,16 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
     ) {
       setSelectedId(visibleItems[0]!.id);
     }
-  }, [visibleItems, selectedId]);
+  }, [visibleItems, selectedId, recsQuery.loading]);
+
+  const restoredSelectionRef = useRef<string | null>(null);
+  useEffect(() => {
+    const restoredId = route.params.selectedJobMatchId;
+    if (!restoredId || restoredSelectionRef.current === restoredId) return;
+    if (!visibleItems.some((r) => r.id === restoredId)) return;
+    restoredSelectionRef.current = restoredId;
+    setSelectedId(restoredId);
+  }, [route.params.selectedJobMatchId, visibleItems]);
 
   const applySaved = useCallback((id: string, savedNext: boolean) => {
     setSavedOverrides((prev) => {
@@ -295,12 +357,19 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
   }, [searchTabActive]);
 
   const requestAuthForSearchAction = useCallback(
-    (action: JdMatchAction, label: string) => {
+    (
+      action: SearchJdMatchAction,
+      label: string,
+      payload:
+        | { action: "run_search"; query: string }
+        | { action: "create_saved_search"; query: string; label: string },
+    ) => {
+      const pendingJdMatchActionId = storePendingJdMatchAction(payload);
       requestAuth({
         type: "jd_match_action",
         label,
         route: "jd_match",
-        params: { tab: "search", action },
+        params: { tab: "search", action, pendingJdMatchActionId },
       });
     },
     [requestAuth],
@@ -312,6 +381,7 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
       requestAuthForSearchAction(
         "run_search",
         t("jdMatch.search.runButton"),
+        { action: "run_search", query },
       );
       return;
     }
@@ -330,6 +400,11 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
       requestAuthForSearchAction(
         "create_saved_search",
         t("jdMatch.search.savedSearchSaveCurrent"),
+        {
+          action: "create_saved_search",
+          query,
+          label: query.trim(),
+        },
       );
       return;
     }
@@ -388,6 +463,79 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
     [visibleItems, t],
   );
 
+  const autoResumeRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (runtime?.auth.status !== "authenticated") return;
+    const action = route.params.action;
+    if (!isRecommendedAction(action)) return;
+    const restoredId = route.params.selectedJobMatchId ?? selectedId;
+    if (!restoredId) return;
+    const rec = visibleItems.find((item) => item.id === restoredId);
+    if (!rec) return;
+    const key = `recommended:${action}:${restoredId}`;
+    if (autoResumeRef.current.has(key)) return;
+    autoResumeRef.current.add(key);
+    setTab("recommended");
+    setSelectedId(restoredId);
+
+    if (action === "confirm_interview") {
+      navigate({
+        name: "parse",
+        params: { source: "jd_match", sourceJobMatchId: rec.id },
+      });
+      return;
+    }
+    if (action === "dismiss") {
+      void dismissCtl.dismiss(rec);
+      return;
+    }
+    if (action === "save" && !rec.saved) {
+      void toggle.toggleSave(rec);
+      return;
+    }
+    if (action === "unsave" && rec.saved) {
+      void toggle.toggleSave(rec);
+    }
+  }, [
+    dismissCtl,
+    navigate,
+    route.params.action,
+    route.params.selectedJobMatchId,
+    runtime?.auth.status,
+    selectedId,
+    toggle,
+    visibleItems,
+  ]);
+
+  useEffect(() => {
+    if (runtime?.auth.status !== "authenticated") return;
+    const action = route.params.action;
+    if (!isSearchAction(action)) return;
+    const pendingId = route.params.pendingJdMatchActionId;
+    if (!pendingId) return;
+    const key = `search:${action}:${pendingId}`;
+    if (autoResumeRef.current.has(key)) return;
+    autoResumeRef.current.add(key);
+    const pending = consumePendingJdMatchAction(pendingId);
+    if (!pending || pending.action !== action) return;
+    setTab("search");
+    setQuery(pending.query);
+    if (pending.action === "run_search") {
+      void searchJobs.run(pending.query);
+      return;
+    }
+    void createSavedSearchCtl.create({
+      label: pending.label,
+      query: pending.query,
+    });
+  }, [
+    createSavedSearchCtl,
+    route.params.action,
+    route.params.pendingJdMatchActionId,
+    runtime?.auth.status,
+    searchJobs,
+  ]);
+
   const initials = computeInitials(profile?.displayName);
   const summaryParts: string[] = [];
   if (profile) {
@@ -404,7 +552,7 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
     : t("jdMatch.profile.searchingAsLoading");
 
   const recommendedCount = visibleItems.length;
-  const tabs: Array<{ k: string; label: string; count: number | null }> = [
+  const tabs: Array<{ k: JdMatchTab; label: string; count: number | null }> = [
     {
       k: "recommended",
       label: t("jdMatch.tabRecommended"),
@@ -711,6 +859,7 @@ export const JDMatchScreen: FC<{ route: Route }> = ({ route }) => {
       {tab === "recommended" ? (
         <RecommendedTab
           recommendations={visibleItems}
+          detailRecommendation={detailRecommendation}
           loading={recsQuery.loading}
           error={recsQuery.error}
           selectedId={selectedId}

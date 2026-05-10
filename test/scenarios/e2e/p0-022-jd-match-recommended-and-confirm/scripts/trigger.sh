@@ -16,6 +16,9 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/jd_match/RecommendedOpenSource.test.tsx \
     src/app/screens/jd_match/RecommendedPrivacy.test.tsx \
     src/app/screens/jd_match/JDMatchAuthGate.test.tsx \
+    src/app/screens/jd_match/JDMatchAutoResume.test.tsx \
+    src/app/screens/jd_match/JDMatchDetailFetch.test.tsx \
+    src/app/screens/jd_match/useJobRecommendation.test.tsx \
     src/app/screens/jd_match/useJobMatchRecommendations.test.tsx \
     src/app/screens/jd_match/useToggleWatchlist.test.tsx \
     src/app/screens/jd_match/useDismissRecommendation.test.tsx

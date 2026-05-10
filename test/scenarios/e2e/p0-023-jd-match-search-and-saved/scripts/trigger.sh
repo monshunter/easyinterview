@@ -14,6 +14,7 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/jd_match/SearchTabFailure.test.tsx \
     src/app/screens/jd_match/SearchTabPrivacy.test.tsx \
     src/app/screens/jd_match/SearchTabAuthGate.test.tsx \
+    src/app/screens/jd_match/JDMatchAutoResume.test.tsx \
     src/app/screens/jd_match/useSearchJobs.test.tsx \
     src/app/screens/jd_match/useSavedSearches.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"

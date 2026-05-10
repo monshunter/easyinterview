@@ -85,6 +85,7 @@ describe("SearchTabAuthGate (item 4.5 + 4.8)", () => {
     expect(params.pendingRoute).toBe("jd_match");
     expect(params.tab).toBe("search");
     expect(params.action).toBe("run_search");
+    expect(params.pendingJdMatchActionId).toMatch(/^pending-jd-match-/);
     // pendingAction must NOT carry private fields
     expect(params.query).toBeUndefined();
     expect(params.label).toBeUndefined();
@@ -102,6 +103,7 @@ describe("SearchTabAuthGate (item 4.5 + 4.8)", () => {
     await waitFor(() => expect(navigate).toHaveBeenCalled());
     const params = navigate.mock.calls[0]![0].params as Record<string, string>;
     expect(params.action).toBe("create_saved_search");
+    expect(params.pendingJdMatchActionId).toMatch(/^pending-jd-match-/);
     expect(JSON.stringify(params)).not.toContain("secret-search-label");
   });
 });

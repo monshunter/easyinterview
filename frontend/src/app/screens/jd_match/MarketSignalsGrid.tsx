@@ -67,6 +67,8 @@ export const MarketSignalsGrid: FC<MarketSignalsGridProps> = ({
         </div>
       ) : (
         <div
+          data-testid="jdmatch-market-signals-inner"
+          className="jdmatch-market-signals-inner"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",

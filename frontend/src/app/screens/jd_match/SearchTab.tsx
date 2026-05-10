@@ -252,6 +252,7 @@ export const SearchTab: FC<SearchTabProps> = ({
         ) : (
           <div
             data-testid="jdmatch-search-saved-grid"
+            className="jdmatch-search-saved-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(3, 1fr)",
@@ -423,6 +424,7 @@ export const SearchTab: FC<SearchTabProps> = ({
       ) : (
         <div
           data-testid="jdmatch-search-results"
+          className="jdmatch-search-results-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",

@@ -1,13 +1,15 @@
 # Frontend Home / Job Picks / Parse History
 
-> **版本**: 1.4
-> **状态**: active
+> **版本**: 1.6
+> **状态**: completed
 > **更新日期**: 2026-05-10
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-10 | 1.6 | plan `002-jd-match-recommendations` L2 remediation 完成并恢复 completed：新增 `getJobRecommendation` 详情 fetch 与详情优先渲染、`jd_match_action` 登录后 auto-resume、Search opaque `pendingJdMatchActionId` payload、pixel parity 响应式/主题/focused screenshot gate，以及 P0.022/P0.023/P0.025/P0.026 scenario verify 强化；补跑 P0.024 与 P0.017，docs/index 回到 zero drift | 002-jd-match-recommendations |
+| 2026-05-10 | 1.5 | plan `002-jd-match-recommendations` L2 code review 后原地重开 remediation：补 `getJobRecommendation` 详情必调、`jd_match_action` 登录后 auto-resume、BDD/scenario 证据与 pixel parity gate；Search pending action 采用 `pendingJdMatchActionId` opaque payload id，query/label 仅存 SPA 会话内存，保持隐私红线 | 002-jd-match-recommendations |
 | 2026-05-10 | 1.4 | plan `002-jd-match-recommendations` 完成交付：Phase 0-6 全部 47 checklist items / ≥125 测试 / 6 jd_match scenario 闭环 PASS（P0.022/023/024/025/026 五个新场景 + P0.017 升级到三 tab 数据驱动 smoke）；JDMatchScreen 容器从 P1 placeholder shell 升级为完整三 tab 业务屏（Recommended + Search + Watchlist）+ Profile chip 数据驱动 + AGENT scan status badge + 4 button 闭环（Save/Unsave/Mark not relevant/Confirm interview）+ Open source new tab + Auth pending action 跨 4 action surface + 自然语言搜索 + Saved searches + 4 chip filter + 5 步 AGENT panel + Watchlist + Market signals + chevron handoff + 全维度隐私反查；plan 002 lifecycle 从 active → completed | 002-jd-match-recommendations |
 | 2026-05-09 | 1.3 | plan `002-jd-match-recommendations` 实施前用户决策修订：D-12 由「简化为单一动态加载文案 + 若 ui-design 仍是 5 步 panel 则 STOP」改为「以 ui-design 当前 5 步 AGENT panel 形态为真理源 + 前端 i18n 5 step key 源级复刻 + 动态 JD 数字（`248`/`87`/`unique postings`）替换为不含数字的静态文案 + 保留 opacity 渐变作为唯一动画效果」；C-14 验收场景同步从「单一加载文案」改为「5 步 AGENT panel + opacity + accent label + 动态数字 0 命中负向断言」；plan 002 不修改 ui-design 静态文件，未来 ui-design owner 任何 SearchTab `searching` 形态修订由后续 plan 接力 | 002-jd-match-recommendations |
 | 2026-05-09 | 1.2 | 启动 plan `002-jd-match-recommendations`：§2.1 In Scope 中 jd_match 屏从「P1 placeholder shell」升级为「plan 001 placeholder + plan 002 完整三 tab 业务」；§2.2 Out of Scope 改写为剥离真实 backend handler / agent scan / 真实联网搜索 / 候选池抓取 / market signals 计算，明确 `backend-jobs-recommendations` 为后续承接 subspec；§3 D-1 改写为「契约先行 + frontend fixture 消费」模式；§3 新增 D-8（jd_match → parse 反向数据流仅锁定出口）/ D-9（Watchlist + Saved Searches 服务端持久化）/ D-10（Agent scan 状态来源 polling）/ D-11（jd_match 隐私红线扩展）/ D-12（Search loading 单一加载文案）；§5 模块边界拆为 frontend 三 tab + 未来 backend；§6 新增 C-12（Recommended + Profile chip + AGENT 状态完整渲染）/ C-13（JobMatchCard 详情 + Save/Mark not relevant/Confirm/Open source 闭环）/ C-14（Search tab 自然语言搜索 + savedSearches + filter + 单一加载文案 + failure）/ C-15（jd_match Auth pending action）/ C-16（Watchlist + Market signals + chevron handoff）；§7 关联计划 002 状态 `保留编号` → `active starting 2026-05-09` | 002-jd-match-recommendations |

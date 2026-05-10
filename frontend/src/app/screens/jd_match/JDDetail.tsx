@@ -62,6 +62,7 @@ export const JDDetail: FC<JDDetailProps> = ({
   return (
     <div
       data-testid="jdmatch-detail"
+      className="jdmatch-detail-panel"
       style={{ position: "sticky", top: 20, alignSelf: "start" }}
     >
       <div

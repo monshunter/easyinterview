@@ -8,6 +8,7 @@ import { JDDetail } from "./JDDetail";
 
 export interface RecommendedTabProps {
   recommendations: JobMatchRecommendation[];
+  detailRecommendation?: JobMatchRecommendation | null;
   loading: boolean;
   error: Error | null;
   selectedId: string | null;
@@ -21,6 +22,7 @@ export interface RecommendedTabProps {
 
 export const RecommendedTab: FC<RecommendedTabProps> = ({
   recommendations,
+  detailRecommendation,
   loading,
   error,
   selectedId,
@@ -37,10 +39,15 @@ export const RecommendedTab: FC<RecommendedTabProps> = ({
     recommendations.find((r) => r.id === selectedId) ??
     recommendations[0] ??
     null;
+  const detail =
+    detailRecommendation && detailRecommendation.id === selected?.id
+      ? detailRecommendation
+      : selected;
 
   return (
     <div
       data-testid="jdmatch-recommended-tab"
+      className="jdmatch-recommended-grid"
       style={{
         display: "grid",
         gridTemplateColumns: "1.1fr 1.4fr",
@@ -141,11 +148,11 @@ export const RecommendedTab: FC<RecommendedTabProps> = ({
           : null}
       </div>
       <JDDetail
-        recommendation={selected}
-        onConfirmInterview={() => selected && onConfirmInterview(selected)}
-        onToggleSave={() => selected && onToggleSave(selected)}
-        onOpenSource={() => selected && onOpenSource(selected)}
-        onMarkNotRelevant={() => selected && onMarkNotRelevant(selected)}
+        recommendation={detail}
+        onConfirmInterview={() => detail && onConfirmInterview(detail)}
+        onToggleSave={() => detail && onToggleSave(detail)}
+        onOpenSource={() => detail && onOpenSource(detail)}
+        onMarkNotRelevant={() => detail && onMarkNotRelevant(detail)}
       />
     </div>
   );

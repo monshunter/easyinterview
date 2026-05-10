@@ -13,5 +13,10 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/jd_match/JDMatchScreen.placeholderRemoved.test.tsx \
     src/app/screens/jd_match/useJobMatchProfile.test.tsx \
     src/app/screens/jd_match/useAgentScanStatus.test.tsx \
-    src/app/screens/jd_match/JDMatchAuthGate.test.tsx
+    src/app/screens/jd_match/JDMatchAuthGate.test.tsx \
+    src/app/screens/jd_match/JDMatchAutoResume.test.tsx
+  pnpm --filter @easyinterview/frontend build
+  pnpm --filter @easyinterview/frontend exec playwright test \
+    tests/pixel-parity/jd_match.spec.ts \
+    -g "Responsive geometry|dark mode"
 ) | tee "$OUTPUT_DIR/trigger.log"

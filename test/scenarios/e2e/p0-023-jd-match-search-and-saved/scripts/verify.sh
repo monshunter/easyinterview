@@ -16,6 +16,7 @@ required_specs=(
   'SearchTabFailure.test.tsx'
   'SearchTabPrivacy.test.tsx'
   'SearchTabAuthGate.test.tsx'
+  'JDMatchAutoResume.test.tsx'
 )
 for spec in "${required_specs[@]}"; do
   if ! grep -Fq "$spec" "$LOG_FILE"; then
@@ -23,6 +24,22 @@ for spec in "${required_specs[@]}"; do
     exit 1
   fi
 done
+
+PENDING_STATE_FILE="$REPO_ROOT/frontend/src/app/screens/jd_match/pendingJdMatchActionState.ts"
+SCREEN_FILE="$REPO_ROOT/frontend/src/app/screens/jd_match/JDMatchScreen.tsx"
+AUTO_RESUME_TEST="$REPO_ROOT/frontend/src/app/screens/jd_match/JDMatchAutoResume.test.tsx"
+test -s "$PENDING_STATE_FILE"
+test -s "$SCREEN_FILE"
+test -s "$AUTO_RESUME_TEST"
+grep -Fq 'pending-jd-match-' "$PENDING_STATE_FILE"
+grep -Fq 'pendingJdMatchActionId' "$SCREEN_FILE"
+grep -Fq 'consumePendingJdMatchAction' "$SCREEN_FILE"
+grep -Fq 'secret frontend remote' "$AUTO_RESUME_TEST"
+grep -Fq 'not.toContain(secretQuery)' "$AUTO_RESUME_TEST"
+if grep -Eq 'params: *\{[^}]*query|params: *\{[^}]*label' "$SCREEN_FILE"; then
+  echo 'Search pendingAction params must not carry query or label directly' >&2
+  exit 1
+fi
 
 # Source-level negative gate: dynamic JD numbers and prototype-only step
 # index advancement must not appear in the implementation files. Use git
@@ -35,7 +52,8 @@ forbidden_dynamic_data=(
   '"248"'
   '"87"'
   'unique postings'
-  'setInterval.*step'
+  'setInterval\('
+  'setTimeout\('
 )
 for pattern in "${forbidden_dynamic_data[@]}"; do
   if [[ -n "$SCAN_SRC" ]]; then

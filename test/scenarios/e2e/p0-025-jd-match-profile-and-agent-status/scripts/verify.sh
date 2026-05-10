@@ -16,6 +16,7 @@ required_specs=(
   'useJobMatchProfile.test.tsx'
   'useAgentScanStatus.test.tsx'
   'JDMatchAuthGate.test.tsx'
+  'JDMatchAutoResume.test.tsx'
 )
 for spec in "${required_specs[@]}"; do
   if ! grep -Fq "$spec" "$LOG_FILE"; then
@@ -23,6 +24,14 @@ for spec in "${required_specs[@]}"; do
     exit 1
   fi
 done
+
+grep -Fq 'Responsive geometry matches jd_match layout contracts' "$LOG_FILE"
+grep -Fq 'dark mode and customAccent visibly affect jd_match computed colors' "$LOG_FILE"
+grep -Eq '[0-9]+ passed' "$LOG_FILE"
+PIXEL_SPEC="$REPO_ROOT/frontend/tests/pixel-parity/jd_match.spec.ts"
+test -s "$PIXEL_SPEC"
+grep -Fq 'jdmatch-market-signals-inner' "$PIXEL_SPEC"
+grep -Fq 'toHaveScreenshot' "$PIXEL_SPEC"
 
 # Source-level negative gate: D-10 forbids polling/streaming for AGENT
 # status. Use git ls-files + filter for portable BSD / GNU / ugrep behaviour.
