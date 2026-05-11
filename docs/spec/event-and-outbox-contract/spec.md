@@ -1,8 +1,8 @@
 # Event and Outbox Contract Spec
 
-> **版本**: 2.3
+> **版本**: 2.4
 > **状态**: active
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-12
 
 ## 1 背景与目标
 
@@ -67,7 +67,7 @@
 | D-11 | canonical job_type ↔ dotted task name 映射 | 见 §3.1.1；新增 canonical `job_type` 必须先改本 spec，再同步 B4 check constraint 与 backend runner registry | 防止 runner 私自加 dotted task name |
 | D-12 | `email_dispatch` payload 红线 | `email_dispatch` 为 internal-only low-priority job；payload 只允许 `authChallengeId` / `userId` / `templateKey` / `locale` / `deliverySecretRef` / `dedupeKey` 等可审计字段，不得把 raw magic-link token、完整 magic-link URL、邮箱明文或邮件正文写入 `async_jobs.payload` / outbox / log；C1 owns `deliverySecretRef` 的一次性解析语义 | 支撑 ADR-Q1 magic link，同时避免 token / 邮件内容落库 |
 | D-13 | `target.import.requested.sourceType` 语义 | `sourceType` 是异步导入请求的粗粒度输入来源，固定为 `url` / `text` / `file`；B2 `manual_text` 在事件中映射为 `text`；B2 `manual_form` 是同步 ready 兜底路径，不发 `target.import.requested`，不创建 runner 待处理事件 | 避免把 API source variant 与 async runner payload enum 混为一谈；如未来 analytics 需要 exact variant，只能新增 optional 字段或新事件版本，不能复用当前字段塞 `manual_form` |
-| D-14 | `ResumeTailorMode` 漂移修复（声明阶段） | 当前 `shared/events.yaml` 中 `eventLocalEnums.ResumeTailorMode` 字面量为 `[inline, rewrite, mirror]`，与 [B2 `RequestResumeTailorRequest.mode`](../openapi-v1-contract/spec.md#42-schema-inventory-约束)（`gap_review / bullet_suggestions`）和 [B4 `resume_tailor_runs.mode`](../db-migrations-baseline/spec.md) check constraint 不同步；本次修订声明对齐方向：将 event-local `ResumeTailorMode` 字面量改为 `[gap_review, bullet_suggestions]`，作为已有契约漂移修复（属 schema 字面量集合变更，但因 baseline 期 `resume.tailor.completed` 无真实 producer/consumer，不按 breaking 处理，遵循本 history 写作规则 §1 fixture/docs-only 路径 + codegen drift 验证）；具体 yaml 修订 + codegen drift + grep negative search（全仓库 `inline\|rewrite\|mirror` 在 event/jobs 域）+ baseline manifest 同步由 [event-and-outbox-contract/002-resume-tailor-mode-drift-fix](./plans/002-resume-tailor-mode-drift-fix/plan.md) 落地 | `shared/events.yaml` `eventLocalEnums.ResumeTailorMode` 字面量集；`shared/events/baseline/events.v1.json` baseline manifest；`backend/internal/shared/events/` Go 生成类型；`frontend/src/lib/events/` TS 生成类型；§3.1.4 `resume.tailor.completed.mode` 列 enum 值描述同步；与 B2 D-18 / B4 002 / B1 D-10 一并审查 |
+| D-14 | `ResumeTailorMode` 漂移修复（已落地） | `shared/events.yaml` 中 `eventLocalEnums.ResumeTailorMode` 字面量已对齐为 `[gap_review, bullet_suggestions]`，与 [B2 `RequestResumeTailorRequest.mode`](../openapi-v1-contract/spec.md#42-schema-inventory-约束) 和 [B4 `resume_tailor_runs.mode`](../db-migrations-baseline/spec.md) check constraint 同步；本次修订属于已有契约漂移修复，baseline 期 `resume.tailor.completed` 无真实 producer/consumer，不按 breaking 处理；[event-and-outbox-contract/002-resume-tailor-mode-drift-fix](./plans/002-resume-tailor-mode-drift-fix/plan.md) 已同步 yaml、baseline manifest、Go/TS 生成类型、JSON Schema refs 与旧字面量精准负向搜索 | `shared/events.yaml` `eventLocalEnums.ResumeTailorMode` 字面量集；`shared/events/baseline/events.v1.json` baseline manifest；`backend/internal/shared/events/` Go 生成类型；`frontend/src/lib/events/` TS 生成类型；§3.1.4 `resume.tailor.completed.mode` 列 enum 值描述同步；与 B2 D-18 / B4 002 / B1 D-10 一并审查 |
 
 #### 3.1.1 DB/backend runner canonical job_type ↔ Asynq dotted task name 映射
 
@@ -126,7 +126,7 @@ B2 OpenAPI v1.0.0 的 `JobType` enum 只允许以下 7 项：`target_import` / `
 | `report.generated` | `reportId:uuidv7`, `sessionId:uuidv7`, `targetJobId:uuidv7`, `preparednessLevel:ReadinessTier`, `questionIssueCount:int`, `promptVersion:string`, `rubricVersion:string`, `modelId:string` | – | B1 `ReadinessTier`; F3 prompt/rubric version ids; A3 model profile id | No report body, answer snippets, raw model response, or prompt body |
 | `report.generation.failed` | `reportId:uuidv7`, `sessionId:uuidv7`, `errorCode:string`, `retryable:bool` | – | `errorCode` UPPER_SNAKE_CASE producer-owned code | No raw provider response / prompt / answer text |
 | `resume.parse.completed` | `resumeAssetId:uuidv7`, `userId:uuidv7`, `parseStatus:TargetJobParseStatus` | – | B1 `TargetJobParseStatus` reused for queued/processing/ready/failed parse lifecycle | No resume raw text or parsed summary |
-| `resume.tailor.completed` | `tailorRunId:uuidv7`, `resumeAssetId:uuidv7`, `targetJobId:uuidv7`, `mode:string`, `status:ReportStatus` | – | `mode` event-local `ResumeTailorMode`（当前字面量 `[inline, rewrite, mirror]`；D-14 声明阶段 → 002 plan 落地阶段对齐为 `[gap_review, bullet_suggestions]`，与 B2 OpenAPI / B4 DB 同步）; B1 `ReportStatus` (`ready`/`failed` subset when emitted) | No tailored bullet text |
+| `resume.tailor.completed` | `tailorRunId:uuidv7`, `resumeAssetId:uuidv7`, `targetJobId:uuidv7`, `mode:string`, `status:ReportStatus` | – | `mode` event-local `ResumeTailorMode`（`[gap_review, bullet_suggestions]`，与 B2 OpenAPI `RequestResumeTailorRequest.mode` / B4 `resume_tailor_runs.mode` 同步）; B1 `ReportStatus` (`ready`/`failed` subset when emitted) | No tailored bullet text |
 | `debrief.created` | `debriefId:uuidv7`, `targetJobId:uuidv7`, `roundType:InterviewerRole`, `questionCount:int` | – | B1 `InterviewerRole` | No debrief notes / transcript text |
 | `debrief.completed` | `debriefId:uuidv7`, `targetJobId:uuidv7`, `riskItemCount:int`, `practiceFocusCount:int` | – | – | Counts only; no risk item prose |
 | `source.refreshed` | `sourceRecordId:uuidv7`, `ownerType:string`, `ownerId:uuidv7`, `freshnessStatus:string` | – | `ownerType` event-local resource enum compatible with B2 `ResourceType` where API-facing; `freshnessStatus` event-local `SourceFreshnessStatus` | No source snapshot content or URL secret |
@@ -210,6 +210,6 @@ B3 由以下 plan 承接：
   - 提供 `make lint-events` 检查业务包是否使用裸字面量。
   - 落地 `make codegen-events` 与本地 drift check。
 
-- [002-resume-tailor-mode-drift-fix](./plans/002-resume-tailor-mode-drift-fix/plan.md)：D-14 `ResumeTailorMode` 漂移修复落地。修订 `shared/events.yaml` `eventLocalEnums.ResumeTailorMode` 从 `[inline, rewrite, mirror]` 改为 `[gap_review, bullet_suggestions]`，对齐 B2 OpenAPI / B4 DB；同步 `shared/events/baseline/events.v1.json` baseline manifest；codegen drift + grep negative search 验证。
+- [002-resume-tailor-mode-drift-fix](./plans/002-resume-tailor-mode-drift-fix/plan.md)：D-14 `ResumeTailorMode` 漂移修复落地。`shared/events.yaml` `eventLocalEnums.ResumeTailorMode` 已对齐为 `[gap_review, bullet_suggestions]`，与 B2 OpenAPI / B4 DB 同步；同步 `shared/events/baseline/events.v1.json` baseline manifest；codegen drift + grep negative search 验证。
 
 本 spec v1.6 确认当前 event contract 不包含独立 `mistake` domain 事件，原错题本价值只保留在报告题目回顾 / 本轮复练字段中。后续如需新增事件 / 升级 eventVersion / 新增 canonical job_type / 调整 B2 API-facing subset：递增 spec 版本 + history；映射表 §3.1.1 / §3.1.2 与 payload schema §3.1.4 全文同步更新。

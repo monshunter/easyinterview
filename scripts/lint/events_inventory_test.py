@@ -52,7 +52,7 @@ def valid_events_data() -> dict:
             {
                 "name": "ResumeTailorMode",
                 "description": "Event-local enum; does not enter B1 or B2 public enums.",
-                "values": ["inline", "rewrite", "mirror"],
+                "values": ["gap_review", "bullet_suggestions"],
             },
             {
                 "name": "SourceFreshnessStatus",

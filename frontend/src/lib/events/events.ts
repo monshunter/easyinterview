@@ -5,7 +5,7 @@ import type { InterviewerRole, PracticeGoal, PracticeMode, PrivacyRequestStatus,
 
 export type TargetImportSourceType = "url" | "text" | "file";
 
-export type ResumeTailorMode = "inline" | "rewrite" | "mirror";
+export type ResumeTailorMode = "gap_review" | "bullet_suggestions";
 
 export type SourceFreshnessStatus = "fresh" | "stale" | "failed";
 

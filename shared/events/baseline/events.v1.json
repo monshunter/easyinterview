@@ -13,9 +13,8 @@
       "description": "Event-local enum; does not enter B1 / B2 public enums.",
       "name": "ResumeTailorMode",
       "values": [
-        "inline",
-        "rewrite",
-        "mirror"
+        "gap_review",
+        "bullet_suggestions"
       ]
     },
     {

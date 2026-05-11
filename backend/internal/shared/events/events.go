@@ -16,9 +16,8 @@ const (
 type ResumeTailorMode string
 
 const (
-	ResumeTailorModeInline  ResumeTailorMode = "inline"
-	ResumeTailorModeRewrite ResumeTailorMode = "rewrite"
-	ResumeTailorModeMirror  ResumeTailorMode = "mirror"
+	ResumeTailorModeGapReview         ResumeTailorMode = "gap_review"
+	ResumeTailorModeBulletSuggestions ResumeTailorMode = "bullet_suggestions"
 )
 
 type SourceFreshnessStatus string

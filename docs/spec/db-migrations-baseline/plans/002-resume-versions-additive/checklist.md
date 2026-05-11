@@ -6,6 +6,10 @@
 
 **关联计划**: [plan](./plan.md)
 
+## Cross-plan prerequisite signals
+
+- [x] B3 D-14 `ResumeTailorMode` 漂移修复已由 [event-and-outbox-contract/002](../../../event-and-outbox-contract/plans/002-resume-tailor-mode-drift-fix/plan.md) 落地；events contract 与 B2/B4 `gap_review` / `bullet_suggestions` 口径一致。
+
 ## Phase 1: Migration up - 新表与字段补充
 
 - [ ] 1.1 修订前跑 `make migrate-up && make migrate-down && make migrate-status` 确认 baseline PASS（验证：exit 0）

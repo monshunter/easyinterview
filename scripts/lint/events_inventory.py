@@ -48,7 +48,7 @@ EXPECTED_ENVELOPE_FIELDS = {
 EXPECTED_PRODUCERS = ["api", "backend_async", "dispatcher", "review"]
 EXPECTED_EVENT_LOCAL_ENUMS = {
     "TargetImportSourceType": ["url", "text", "file"],
-    "ResumeTailorMode": ["inline", "rewrite", "mirror"],
+    "ResumeTailorMode": ["gap_review", "bullet_suggestions"],
     "SourceFreshnessStatus": ["fresh", "stale", "failed"],
 }
 EXPECTED_EVENTS = {

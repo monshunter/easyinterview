@@ -6,6 +6,10 @@
 
 **关联计划**: [plan](./plan.md)
 
+## Cross-plan prerequisite signals
+
+- [x] B3 D-14 `ResumeTailorMode` 漂移修复已由 [event-and-outbox-contract/002](../../../event-and-outbox-contract/plans/002-resume-tailor-mode-drift-fix/plan.md) 落地；`shared/events.yaml` / baseline manifest / Go/TS generated events 均对齐 `[gap_review, bullet_suggestions]`。
+
 ## Phase 1: B1 D-10 vocabulary 真理源同步
 
 - [ ] 1.1 在 `shared/conventions.yaml` 添加 `ResumeVersionType` / `ResumeSeedStrategy` / `ResumeTailorSuggestionStatus` 3 个枚举与 `RESUME_EXPORT_NOT_AVAILABLE` 错误码常量（验证：YAML lint + B1 generator idempotent）
