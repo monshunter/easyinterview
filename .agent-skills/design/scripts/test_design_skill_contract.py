@@ -77,6 +77,17 @@ def test_design_skill_requires_explicit_coverage_matrix_for_plan_and_tests():
     assert "BDD scenario selection must cover the primary user journey plus the highest-risk alternate or failure/recovery journey" in text
 
 
+def test_design_skill_requires_branch_guard_before_doc_mutation():
+    text = _read(SKILL_PATH)
+
+    assert "Step 2.5: Branch Guard Before Document Mutation" in text
+    assert "before invoking `/create-doc`" in text
+    assert "fast-forward-only semantics" in text
+    assert "Do not generate documents from a stale parent branch." in text
+    assert "Never invoke `/create-doc`, create spec / plan directories, revise completed owner docs" in text
+    assert "the Step 2.5 branch guard succeeds" in text
+
+
 def test_spec_templates_include_quality_gate_classification():
     plan_template = _read(SPEC_TEMPLATE_PATH)
     init_template = _read(INIT_SPEC_TEMPLATE_PATH)

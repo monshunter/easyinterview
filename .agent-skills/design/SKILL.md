@@ -67,6 +67,35 @@ Present the Brief to the user in a structured format:
 Wait for explicit user confirmation before proceeding. If the user cancels, stop without
 generating any files.
 
+### Step 2.5: Branch Guard Before Document Mutation
+
+`/design` may extract, summarize, and ask for confirmation on any branch, but it must not
+create or revise `docs/` files on the default parent branch. Run this guard after the user
+confirms the Brief and before Step 4, before invoking `/create-doc`, before updating any
+INDEX, and before writing spec / plan / checklist / test / BDD / context files:
+
+1. Check the current branch and worktree with `git status --short --branch`.
+2. If the current branch already matches the session feature branch, treat the run as a
+   retry/resume and continue.
+3. If the current branch is the default parent branch and the worktree is clean, update
+   the parent branch with fast-forward-only semantics, then create or switch to a feature
+   branch before editing files. Use the repository branch prefix convention, for example
+   `codex/design-{subject}` or another concise `codex/` branch name tied to the design
+   subject.
+4. If the fast-forward-only parent update fails, stop before file edits and report the
+   blocker. Do not generate documents from a stale parent branch.
+5. If dirty changes already came from the current session while still on the default
+   parent branch, create the feature branch immediately while preserving those changes,
+   report the recovery, and continue only after the branch switch.
+6. If the default parent branch is dirty for unclear or user-owned reasons, stop and ask
+   the user before creating or switching branches.
+7. If a non-parent branch has unrelated dirty changes and does not match the session
+   feature branch, stop and ask the user before mutating anything.
+
+Never invoke `/create-doc`, create spec / plan directories, revise completed owner docs
+back to `active`, or update INDEX files on the default parent branch. For pure proposal
+or backlog guidance with no file edits, no branch switch is required.
+
 ### Step 3: Infer Minimal Sufficient Output Scope
 
 Based on the Brief content, determine the smallest document set that fully serves the need.
@@ -266,6 +295,8 @@ Run validation and present a summary:
 - Generating BDD-Gate checklist items with `AC-*` references for new documents
 - Inventing BDD scenario IDs without first consulting the relevant `test/scenarios/<layer>/README.md` and `INDEX.md` when such conventions exist
 - Creating or updating files under `docs/` without invoking `/create-doc`
+- Invoking `/create-doc`, creating spec / plan directories, or updating INDEX files before
+  the Step 2.5 branch guard succeeds
 - Generating test plan acceptance criteria or checklist items that use raw code coverage percentages as hard gates
 - Generating plan/checklist/test-plan/BDD artifacts that only verify the primary path while omitting obvious failure, boundary, security/privacy, UX, contract, or regression/legacy-negative risks
 - Marking edge coverage as "later" without assigning a concrete owner phase and explaining why the current phase is still independently deployable

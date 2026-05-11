@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-11](2026-05-11.md) | `fix(design): require branch guard before document mutation` | #fix #docs #test |
 | [2026-05-11](2026-05-11.md) | `fix(frontend-shell): close auth menu browser parity gap` | #fix #ui #test #docs |
 | [2026-05-11](2026-05-11.md) | `fix(frontend-shell): harden workspace pixel parity gate` | #fix #ui #test #docs |
 | [2026-05-11](2026-05-11.md) | `fix(frontend-shell): restore auth state and user menu parity` | #fix #ui #test #docs |
