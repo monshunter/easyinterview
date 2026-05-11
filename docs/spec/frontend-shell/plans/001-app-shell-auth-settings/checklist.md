@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: completed
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-11
 
 **关联计划**: [plan](./plan.md)
 
@@ -60,3 +60,7 @@
   <!-- verified: 2026-05-10 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/api/devMockClient.test.ts src/app/AppAuthDispatch.test.tsx src/app/runtime/AppRuntimeProvider.test.tsx PASS (3 files / 13 tests)" -->
 - [x] 6.3 BDD-Gate: 验证 E2E.P0.032 通过
   <!-- verified: 2026-05-10 method=scenario evidence="./test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/scripts/setup.sh && ./test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/scripts/trigger.sh && ./test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/scripts/verify.sh && ./test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/scripts/cleanup.sh PASS" -->
+- [x] 6.4 L2 remediation: 浏览器级 authenticated user menu parity gate；验证: `frontend/tests/pixel-parity/topbar.spec.ts` 在 desktop + mobile 两个 chromium project 下通过 mocked Auth API 完成 login → avatar chip → dropdown → logout，断言 dropdown 源码字面量、desktop right alignment、mobile viewport containment 与 logout 后非登录态
+  <!-- verified: 2026-05-11 method=playwright evidence="Red: mobile authenticated user menu left=-64.984375 overflow；Green: pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/topbar.spec.ts PASS (22 tests)；pnpm --filter @easyinterview/frontend test:pixel-parity PASS (112 passed)" -->
+- [x] 6.5 Phase 6 operation matrix；验证: plan.md 固化 `getRuntimeConfig` / `getMe` / `startAuthEmailChallenge` / `verifyAuthEmailChallenge` / `logout` 的 operationId、fixture、frontend consumer、backend handler、persistence、AI dependency、scenario coverage；context validator 与 docs-check 通过
+  <!-- verified: 2026-05-11 method=docs evidence="plan.md Phase 6 operation matrix updated; validate_context.py frontend target PASS; make docs-check PASS" -->

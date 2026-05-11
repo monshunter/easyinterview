@@ -146,7 +146,7 @@ D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
    # 1. 构建 frontend dist（serve-pixel-parity.mjs 依赖）
    pnpm --filter @easyinterview/frontend build
 
-   # 2. 跑 8 个 spec × 2 viewport = 110 项 Playwright gate
+   # 2. 跑 8 个 spec × 2 viewport = 112 项 Playwright gate
    pnpm --filter @easyinterview/frontend test:pixel-parity
 
    # 3. 完整 scenario 入口（包含 pre-check / verify / cleanup）
@@ -157,7 +157,7 @@ D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
 
    - Playwright config：[`frontend/playwright.config.ts`](./playwright.config.ts) 声明 desktop / mobile 两个 chromium project + `webServer` 指向 `serve-pixel-parity.mjs`。
    - 静态 server fixture：[`frontend/scripts/serve-pixel-parity.mjs`](./scripts/serve-pixel-parity.mjs) 同时挂载 `frontend/dist`（`/`）与 `ui-design/`（`/ui-design/`），并暴露 `/health` 探活。
-   - 8 个 spec：[`tests/pixel-parity/topbar.spec.ts`](./tests/pixel-parity/topbar.spec.ts)、[`screens.spec.ts`](./tests/pixel-parity/screens.spec.ts)、[`layout.spec.ts`](./tests/pixel-parity/layout.spec.ts)、[`screenshot.spec.ts`](./tests/pixel-parity/screenshot.spec.ts)、[`home.spec.ts`](./tests/pixel-parity/home.spec.ts)、[`parse.spec.ts`](./tests/pixel-parity/parse.spec.ts)、[`jd_match.spec.ts`](./tests/pixel-parity/jd_match.spec.ts)、[`workspace.spec.ts`](./tests/pixel-parity/workspace.spec.ts)。
+   - 8 个 spec：[`tests/pixel-parity/topbar.spec.ts`](./tests/pixel-parity/topbar.spec.ts)（含 authenticated 头像菜单 dropdown + logout flow）、[`screens.spec.ts`](./tests/pixel-parity/screens.spec.ts)、[`layout.spec.ts`](./tests/pixel-parity/layout.spec.ts)、[`screenshot.spec.ts`](./tests/pixel-parity/screenshot.spec.ts)、[`home.spec.ts`](./tests/pixel-parity/home.spec.ts)、[`parse.spec.ts`](./tests/pixel-parity/parse.spec.ts)、[`jd_match.spec.ts`](./tests/pixel-parity/jd_match.spec.ts)、[`workspace.spec.ts`](./tests/pixel-parity/workspace.spec.ts)。
 
    截图基线维护：
 

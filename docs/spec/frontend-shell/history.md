@@ -1,13 +1,14 @@
 # Frontend Shell History
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: active
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-11
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-11 | 1.14 | 修订 Phase 6 登录态与真实浏览器 parity：authenticated user menu 进入 `test:pixel-parity`，完整 gate 扩展为 8 spec / 112 tests；desktop dropdown 与头像 chip 右对齐，mobile dropdown 必须保持在 viewport 内，logout flow 回到非登录态；001 计划补齐 Phase 6 operation matrix。 | 001-app-shell-auth-settings / 003-ui-design-pixel-parity-gate |
 | 2026-05-10 | 1.13 | 修订真实浏览器 pixel parity gate：完整 `test:pixel-parity` 扩展为 8 spec / 110 tests，常规 clean checkout gate 不得依赖 ignored screenshot baseline；workspace full-state pixel tests 必须通过 server-bound route params 进入完整规划态，不依赖 Home recent card 的 `resume-unbound` synthetic path。 | 003-ui-design-pixel-parity-gate |
 | 2026-05-10 | 1.12 | 修订 dev mock session 与用户菜单验收：默认 dev mock 必须从非登录态开始，mock verify/logout 必须驱动 `/me` authenticated/unauthenticated 状态切换；TopBar 已登录态必须源级复刻 `ui-design/src/app.jsx` 的头像 chip + dropdown 菜单，并新增 C-10 退出闭环验收。 | 001-app-shell-auth-settings |
 | 2026-05-08 | 1.11 | 修订 TopBar brand 文案：品牌区只保留 `E` mark + `EasyInterview`，不再常驻 `面试训练器` 或版本号；`v1.0` 作为产品元数据迁入 settings 的 `产品信息 / Product info` 区，标签走 i18n。 | 002-app-shell-visual-system / 003-ui-design-pixel-parity-gate |

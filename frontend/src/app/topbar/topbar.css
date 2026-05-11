@@ -568,6 +568,11 @@
     flex: 0 0 auto;
   }
 
+  .ei-topbar-user-menu {
+    left: 0;
+    right: auto;
+  }
+
   .ei-topbar-nav {
     order: 10;
     width: 100%;

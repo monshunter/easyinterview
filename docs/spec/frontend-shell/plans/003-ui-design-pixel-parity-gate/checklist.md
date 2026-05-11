@@ -1,8 +1,8 @@
 # UI-Design Pixel Parity Gate Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-11
 
 **关联计划**: [plan](./plan.md)
 
@@ -60,5 +60,7 @@
   <!-- verified: 2026-05-10 method=playwright evidence="Red focused run: screenshot.spec.ts + workspace.spec.ts → 12 failed / 24 passed，baseline missing + hydrated workspace timeout；Green focused run after screenshot smoke change → 36 passed" -->
 - [x] 7.2 修复 hydrated workspace pixel path；验证: Red 复现 Home recent card 点击后 route params 带 `resume-unbound`，`workspace-header-title` 不出现；Green 后 Playwright 通过显式 server-bound initial route bootstrap 进入 full workspace，仍保留 `resume-unbound` synthetic id 过滤与 Home recent card 业务语义
   <!-- verified: 2026-05-10 method=playwright evidence="frontend/src/main.tsx 读取 __EASYINTERVIEW_INITIAL_ROUTE__；workspace.spec.ts 注入 server-bound target/resume/plan UUID；focused workspace+screenshot run 36 passed；未修改 interviewContextFromTargetJob resume-unbound" -->
-- [x] 7.3 刷新 E2E.P0.006 与 README handoff；验证: `frontend/README.md`、P0.006 README / verify.sh 记录当前 8 spec / 110 tests、workspace spec marker 与 clean-checkout screenshot smoke 口径；`pnpm --filter @easyinterview/frontend test:pixel-parity`、P0.006 setup→trigger→verify→cleanup、`make docs-check` 全部通过
+- [x] 7.3 刷新 E2E.P0.006 与 README handoff；验证: `frontend/README.md`、P0.006 README / verify.sh 记录 2026-05-10 当时的 8 spec / 110 tests、workspace spec marker 与 clean-checkout screenshot smoke 口径；`pnpm --filter @easyinterview/frontend test:pixel-parity`、P0.006 setup→trigger→verify→cleanup、`make docs-check` 全部通过
   <!-- verified: 2026-05-10 method=playwright+scenario evidence="pnpm --filter @easyinterview/frontend test:pixel-parity → 110 passed；P0.006 setup→trigger→verify→cleanup PASS，verify.sh 断言 110 passed + workspace spec marker；make docs-check zero drift" -->
+- [x] 7.4 Authenticated user-menu browser parity hardening；验证: `topbar.spec.ts` 新增 authenticated user menu 用例并让完整 gate 更新为 8 spec / 112 tests；ui-design golden preview 等待改为可见 nav button，避免 CDN/字体 timing 造成旧 hydrated workspace 前提之外的误判
+  <!-- verified: 2026-05-11 method=playwright+scenario evidence="pnpm --filter @easyinterview/frontend test:pixel-parity → 112 passed；P0.006 setup→trigger→verify→cleanup PASS，verify.sh 断言 112 passed + topbar/screens/layout/screenshot/home/parse/jd_match/workspace spec markers" -->

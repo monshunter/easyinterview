@@ -46,6 +46,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0041](./BUG-0041.md) | auth user menu browser parity missed mobile overflow | medium | resolved | 2026-05-11 | `fix(frontend-shell): close auth menu browser parity gap` |
 | [BUG-0040](./BUG-0040.md) | workspace pixel gate depended on stale hydration and ignored baselines | medium | resolved | 2026-05-10 | `fix(frontend-shell): harden workspace pixel parity gate` |
 | [BUG-0039](./BUG-0039.md) | frontend shell auth state and user menu parity drift | medium | resolved | 2026-05-10 | `fix(frontend-shell): restore auth state and user menu parity` |
 | [BUG-0036](./BUG-0036.md) | Vite dev preview hit frontend port instead of fixture-backed API | high | resolved | 2026-05-10 | `fix(frontend-dev): default vite preview to fixture-backed API` |

@@ -1,8 +1,8 @@
 # UI-Design Pixel Parity Gate
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-11
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -25,6 +25,8 @@ D2 plan 002 已在 vitest+jsdom 范围内验证 DOM/className/CSS variable resol
 `ui-design/index.html` 是单文件静态原型（含 `<script src="...react...">` CDN 引用 + 内嵌 `src/*.jsx` Babel 转译），不需要构建。`frontend/dist/index.html` 由 vite build 产物。两者通过同一个 Playwright server fixture 提供，互不耦合。
 
 2026-05-10 remediation：完整 `test:pixel-parity` 已扩展到 home / parse / jd_match / workspace 等业务屏，不能继续依赖过期的本地 hydrated workspace 前提或 `.gitignore` 排除的 screenshot baseline。常规 clean checkout gate 必须只依赖可重建的 DOM anchor、computed style、bounding box、responsive geometry 与 screenshot smoke；`toHaveScreenshot` 只能在 baseline 可由 checkout / CI artifact 稳定取得或显式 `--update-snapshots` 维护时使用。Workspace full-state pixel tests 必须从 server-bound route params 进入完整规划态，不能通过 Home recent card 的 `resume-unbound` 路径绕到 missing-resume 状态。
+
+2026-05-11 remediation：Phase 6 登录态菜单 parity 不能只停留在 jsdom/component test。`topbar.spec.ts` 必须覆盖 authenticated user menu 的真实浏览器几何：登录后头像 chip、dropdown header / profile / settings / logout 项、desktop 右对齐、mobile viewport containment、logout 后回到非登录态。完整 `test:pixel-parity` 当前为 8 spec / 112 tests。
 
 ## 3 质量门禁分类
 
@@ -134,13 +136,17 @@ D2 plan 002 已在 vitest+jsdom 范围内验证 DOM/className/CSS variable resol
 
 #### 7.3 E2E.P0.006 contract refresh
 
-更新 E2E.P0.006 README / verify 脚本与 frontend README：当前完整 pixel gate 为 8 个 spec × desktop/mobile = 110 tests；verify 必须确认 workspace spec 被执行、0 failed、retired entry 未回流，并且文档明确 clean checkout gate 不依赖 ignored screenshot baseline。
+更新 E2E.P0.006 README / verify 脚本与 frontend README：当前完整 pixel gate 为 8 个 spec × desktop/mobile = 112 tests；verify 必须确认 workspace spec 被执行、0 failed、retired entry 未回流，并且文档明确 clean checkout gate 不依赖 ignored screenshot baseline。
+
+#### 7.4 Authenticated user-menu browser parity hardening
+
+把 Phase 6 authenticated user menu 纳入 `topbar.spec.ts`，通过 mocked Auth API 在 desktop / mobile 下执行 login → avatar chip → dropdown → logout。断言 dropdown 的源码字面量、bounding box、desktop right alignment、mobile viewport containment 和 logout 回到非登录态；ui-design golden preview 加载等待必须以可见 `nav button` 为准，避免只等 `load` 时受 CDN/字体时序影响而误判。
 
 ## 5 验收标准
 
 - spec.md C-9 验证通路全部可执行；C-8 jsdom 范围继续有效，retrospective 列出的 high-priority follow-up 闭环。
 - `frontend/playwright.config.ts` 声明 desktop + mobile 两个 project，`webServer` 指向 `serve-pixel-parity.mjs`。
-- `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 chromium 已安装环境下全部 PASS（当前 8 个 spec × desktop/mobile = 110 tests），并且不依赖 `.gitignore` 排除的本地 screenshot baseline。
+- `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 chromium 已安装环境下全部 PASS（当前 8 个 spec × desktop/mobile = 112 tests），并且不依赖 `.gitignore` 排除的本地 screenshot baseline。
 - `frontend/scripts/serve-pixel-parity.mjs` 在 dist / ui-design 缺失时 fail loudly。
 - `E2E.P0.006` scenario `setup → trigger → verify → cleanup` 通过。
 - D1 + D2 jsdom 全量测试不退化；`E2E.P0.001 / 002 / 004 / 005` 仍通过。

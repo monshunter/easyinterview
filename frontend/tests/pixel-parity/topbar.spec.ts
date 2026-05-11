@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * Phase 2.1 — TopBar DOM + computed style parity.
@@ -23,6 +25,7 @@ import { expect, test } from "@playwright/test";
 
 const FRONTEND_PATH = "/";
 const UI_DESIGN_PATH = "/ui-design/";
+const REPO_ROOT = resolve(process.cwd(), "..");
 
 const PRIMARY_NAV_LABELS_EN = [
   "Home",
@@ -31,6 +34,97 @@ const PRIMARY_NAV_LABELS_EN = [
   "Resume",
   "Debrief",
 ] as const;
+
+interface OperationFixture {
+  scenarios: Record<
+    string,
+    {
+      response: {
+        status: number;
+        headers?: Record<string, string>;
+        body?: unknown;
+      };
+    }
+  >;
+}
+
+function fixtureResponse(relativePath: string, scenario = "default") {
+  const absolutePath = resolve(REPO_ROOT, relativePath);
+  const fixture = JSON.parse(readFileSync(absolutePath, "utf8")) as OperationFixture;
+  const response = fixture.scenarios[scenario]?.response;
+  if (!response) throw new Error(`missing fixture scenario ${relativePath}#${scenario}`);
+  return response;
+}
+
+async function fulfillFixture(
+  route: import("@playwright/test").Route,
+  relativePath: string,
+  scenario = "default",
+) {
+  const response = fixtureResponse(relativePath, scenario);
+  await route.fulfill({
+    status: response.status,
+    headers: {
+      ...(response.body === undefined ? {} : { "content-type": "application/json; charset=utf-8" }),
+      ...(response.headers ?? {}),
+    },
+    body: response.body === undefined ? undefined : JSON.stringify(response.body),
+  });
+}
+
+async function mockStatefulAuthApis(page: import("@playwright/test").Page) {
+  let signedIn = false;
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    const path = url.pathname.replace(/^\/api\/v1/, "");
+    if (path === "/runtime-config") {
+      await fulfillFixture(route, "openapi/fixtures/Auth/getRuntimeConfig.json");
+      return;
+    }
+    if (path === "/me") {
+      await fulfillFixture(
+        route,
+        "openapi/fixtures/Auth/getMe.json",
+        signedIn ? "authenticated" : "unauthenticated",
+      );
+      return;
+    }
+    if (path === "/auth/email/start") {
+      await fulfillFixture(route, "openapi/fixtures/Auth/startAuthEmailChallenge.json");
+      return;
+    }
+    if (path === "/auth/email/verify") {
+      signedIn = true;
+      await fulfillFixture(route, "openapi/fixtures/Auth/verifyAuthEmailChallenge.json");
+      return;
+    }
+    if (path === "/auth/logout") {
+      signedIn = false;
+      await fulfillFixture(route, "openapi/fixtures/Auth/logout.json");
+      return;
+    }
+    await route.fulfill({
+      status: 404,
+      headers: { "content-type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ error: { code: "NOT_FOUND", message: `No fixture for ${path}` } }),
+    });
+  });
+}
+
+async function gotoUiDesign(page: import("@playwright/test").Page) {
+  await page.goto(UI_DESIGN_PATH, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("nav button").first()).toBeVisible({ timeout: 30_000 });
+}
+
+function assertUiDesignUserMenuSourceLiterals() {
+  const source = readFileSync(resolve(REPO_ROOT, "ui-design/src/app.jsx"), "utf8");
+  expect(source).toContain("minWidth: 220");
+  expect(source).toContain('top: "calc(100% + 6px)"');
+  expect(source).toContain('padding: "3px 10px 3px 3px"');
+  expect(source).toContain('labelZh: "用户画像"');
+  expect(source).toContain('labelZh: "设置与隐私"');
+  expect(source).toContain('name="logout"');
+}
 
 test.describe("TopBar DOM + computed style parity", () => {
   test("frontend dist renders five primary nav testids with the documented English labels", async ({
@@ -116,16 +210,143 @@ test.describe("TopBar DOM + computed style parity", () => {
     await expect(page.locator("[data-testid='topbar-custom-accent-clear']")).toHaveCount(1);
   });
 
+  test("frontend authenticated user menu matches ui-design dropdown geometry and logout flow", async ({
+    page,
+  }, testInfo) => {
+    assertUiDesignUserMenuSourceLiterals();
+    await mockStatefulAuthApis(page);
+    await page.goto(FRONTEND_PATH);
+    await expect(page.locator("[data-testid='topbar-user-area']")).toHaveAttribute(
+      "data-signed-in",
+      "false",
+    );
+    await expect(page.locator("[data-testid='topbar-login']")).toBeVisible();
+    await expect(page.locator("[data-testid='topbar-register']")).toBeVisible();
+
+    await page.click("[data-testid='topbar-login']");
+    await page.fill("[data-testid='auth-login-email']", "alice@example.com");
+    await page.click("[data-testid='auth-login-submit-email']");
+    await expect(page.locator("[data-testid='route-auth_verify']")).toBeVisible();
+    await page.fill("[data-testid='auth-verify-code']", "654321");
+    await page.click("[data-testid='auth-verify-submit']");
+
+    await expect(page.locator("[data-testid='topbar-user-area']")).toHaveAttribute(
+      "data-signed-in",
+      "true",
+    );
+    const chip = page.locator("[data-testid='topbar-user-chip']");
+    await expect(chip).toBeVisible();
+    await expect(chip).toHaveText(/Alice Example/);
+    await expect(page.locator("[data-testid='topbar-user-avatar']")).toHaveText("AE");
+    await expect(page.locator("[data-testid='topbar-user-menu']")).toHaveCount(0);
+
+    await chip.click();
+    const menu = page.locator("[data-testid='topbar-user-menu']");
+    await expect(menu).toBeVisible();
+    await expect(page.locator("[data-testid='topbar-user-menu-header']")).toContainText("Alice Example");
+    await expect(page.locator("[data-testid='topbar-user-email']")).toHaveText("ali***@example.com");
+    await expect(page.locator("[data-testid='topbar-user-profile']")).toHaveText(/User profile/);
+    await expect(page.locator("[data-testid='topbar-user-settings']")).toHaveText(/Settings & privacy/);
+    await expect(page.locator("[data-testid='topbar-user-logout']")).toHaveText(/Sign out/);
+
+    const styles = await menu.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return {
+        position: cs.position,
+        minWidth: cs.minWidth,
+        padding: cs.padding,
+        borderRadius: cs.borderRadius,
+        zIndex: cs.zIndex,
+        boxShadow: cs.boxShadow,
+      };
+    });
+    expect(styles).toEqual({
+      position: "absolute",
+      minWidth: "220px",
+      padding: "6px",
+      borderRadius: "3px",
+      zIndex: "40",
+      boxShadow: "rgba(20, 15, 10, 0.16) 0px 12px 36px 0px",
+    });
+
+    const geometry = await page.evaluate(() => {
+      const chipEl = document.querySelector("[data-testid='topbar-user-chip']") as HTMLElement | null;
+      const menuEl = document.querySelector("[data-testid='topbar-user-menu']") as HTMLElement | null;
+      const controlsEl = document.querySelector("[data-testid='topbar-display-controls']") as HTMLElement | null;
+      if (!chipEl || !menuEl || !controlsEl) throw new Error("missing authenticated TopBar geometry anchor");
+      const chipRect = chipEl.getBoundingClientRect();
+      const menuRect = menuEl.getBoundingClientRect();
+      const controlsRect = controlsEl.getBoundingClientRect();
+      return {
+        chip: {
+          left: chipRect.left,
+          right: chipRect.right,
+          bottom: chipRect.bottom,
+          height: chipRect.height,
+        },
+        menu: {
+          left: menuRect.left,
+          top: menuRect.top,
+          right: menuRect.right,
+          bottom: menuRect.bottom,
+          width: menuRect.width,
+          height: menuRect.height,
+        },
+        controls: {
+          left: controlsRect.left,
+          right: controlsRect.right,
+          top: controlsRect.top,
+          bottom: controlsRect.bottom,
+        },
+        viewport: {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        },
+      };
+    });
+    expect(Math.abs(geometry.chip.height - 34)).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.menu.top - geometry.chip.bottom - 6)).toBeLessThanOrEqual(2);
+    if (testInfo.project.name === "desktop") {
+      expect(Math.abs(geometry.menu.right - geometry.chip.right)).toBeLessThanOrEqual(2);
+    } else {
+      expect(Math.abs(geometry.menu.left - geometry.chip.left)).toBeLessThanOrEqual(2);
+    }
+    expect(geometry.menu.width).toBeGreaterThanOrEqual(220);
+    expect(geometry.menu.left).toBeGreaterThanOrEqual(-1);
+    expect(geometry.menu.right).toBeLessThanOrEqual(geometry.viewport.width + 1);
+    expect(geometry.menu.bottom).toBeLessThanOrEqual(geometry.viewport.height + 1);
+    if (testInfo.project.name === "desktop") {
+      expect(geometry.controls.right).toBeLessThanOrEqual(geometry.chip.left + 1);
+    }
+
+    const menuPng = await menu.screenshot();
+    expect(menuPng.length).toBeGreaterThan(1000);
+    await testInfo.attach(`authenticated-user-menu-${testInfo.project.name}`, {
+      body: menuPng,
+      contentType: "image/png",
+    });
+
+    await page.keyboard.press("Escape");
+    await expect(page.locator("[data-testid='topbar-user-menu']")).toHaveCount(0);
+
+    await chip.click();
+    await page.click("[data-testid='topbar-user-logout']");
+    await expect(page.locator("[data-testid='topbar-user-menu']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='route-auth_logout']")).toBeVisible();
+    await page.click("[data-testid='auth-logout-confirm']");
+    await expect(page.locator("[data-testid='topbar-user-area']")).toHaveAttribute(
+      "data-signed-in",
+      "false",
+    );
+    await expect(page.locator("[data-testid='topbar-login']")).toBeVisible();
+    await expect(page.locator("[data-testid='topbar-register']")).toBeVisible();
+  });
+
   test("ui-design golden preview renders five primary nav buttons with browser-default English labels", async ({
     page,
   }) => {
-    await page.goto(UI_DESIGN_PATH);
-    // Wait for Babel-transpiled scripts to mount the React tree.
-    await page.waitForFunction(
-      () => document.querySelector("nav button") !== null,
-      undefined,
-      { timeout: 15_000 },
-    );
+    test.setTimeout(45_000);
+    await gotoUiDesign(page);
     const navTexts = await page.$$eval(
       "nav button",
       (els) => els.map((el) => (el.textContent ?? "").replace(/\s+/g, " ").trim()),
@@ -151,12 +372,8 @@ test.describe("TopBar DOM + computed style parity", () => {
       return el.getBoundingClientRect().height;
     });
 
-    await page.goto(UI_DESIGN_PATH);
-    await page.waitForFunction(
-      () => document.querySelector("nav button") !== null,
-      undefined,
-      { timeout: 15_000 },
-    );
+    test.setTimeout(45_000);
+    await gotoUiDesign(page);
     const uiDesignHeight = await page.evaluate(() => {
       // ui-design TopBar is the first `<div>` whose direct child is a
       // sticky-positioned header with the brand mark. Use the parent of the

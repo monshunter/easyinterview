@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: completed
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-11
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`；修订 v1.9 补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
+落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`，并补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程；browser-level parity 还必须覆盖 desktop / mobile dropdown geometry 与 logout flow。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
 
 ## 2 背景
 
@@ -138,6 +138,20 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 
 新增并执行 `E2E.P0.032`，覆盖 dev mock 默认非登录态、mock 登录后头像 dropdown 菜单、profile/settings 分流、logout 后回到非登录态，以及旧 inline 用户菜单 / 静态 authenticated default 回流负向断言。
 
+#### 6.4 L2 remediation: 浏览器级 authenticated user menu parity gate
+
+`frontend/tests/pixel-parity/topbar.spec.ts` 必须在 desktop / mobile 两个 chromium project 下通过 mocked Auth API 完成 login → avatar chip → dropdown → logout flow。断言范围包括：头像 chip text / initials / caret、dropdown header、masked email、`用户画像` / `设置与隐私` / `退出登录` 三项、`ui-design/src/app.jsx` 中的 `minWidth: 220` / `top: calc(100% + 6px)` / padding / shadow 等源码字面量、desktop 菜单右边与 chip 右边对齐、mobile 菜单保持在 viewport 内、logout confirm 后回到登录 / 注册入口。
+
+#### 6.5 Phase 6 operation matrix
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `getRuntimeConfig` | `openapi/fixtures/Auth/getRuntimeConfig.json#default` | `AppRuntimeProvider`、`topbar.spec.ts` mocked bootstrap | backend-auth runtime config handler | 无 | 无 | focused runtime tests、E2E.P0.032、E2E.P0.006 topbar |
+| `getMe` | `openapi/fixtures/Auth/getMe.json#authenticated|unauthenticated` | `AppRuntimeProvider`、`TopBar` user area、`createDevMockClient` | backend-auth current-user handler | backend session cookie lookup；frontend 不持久化 session | 无 | devMockClient tests、E2E.P0.032、E2E.P0.006 topbar |
+| `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json#default` | Auth login / register screens | backend-auth challenge issue handler | backend auth challenge/session storage；frontend 无持久化 | 无 | AppAuthDispatch tests、E2E.P0.032、E2E.P0.006 topbar |
+| `verifyAuthEmailChallenge` | `openapi/fixtures/Auth/verifyAuthEmailChallenge.json#default` | Auth verify screen、`createDevMockClient` state transition | backend-auth verify handler | backend mints first-party session cookie；frontend mock client 仅有实例内状态 | 无 | devMockClient tests、E2E.P0.032、E2E.P0.006 topbar |
+| `logout` | `openapi/fixtures/Auth/logout.json#default` | Auth logout screen、TopBar logout route、`createDevMockClient` reset | backend-auth logout handler | backend clears session cookie/session；frontend mock client 仅重置实例内状态 | 无 | devMockClient tests、E2E.P0.032、E2E.P0.006 topbar |
+
 ## 5 验收标准
 
 - 默认打开 App 渲染 Home、五入口 TopBar、登录 / 注册、显示控制，不出现 welcome。
@@ -146,6 +160,7 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 - `parse` route 作为 shell route 可达，但 JD 解析业务细节留给后续 owner。
 - Runtime config、`/me` 和 auth generated operations 均通过 fixture-backed client 测试，不直接读取 prototype data。
 - Vite dev 默认 mock App 首屏展示非登录态；passwordless mock verify 后展示源级复刻的头像 dropdown 用户菜单；logout 后 `/me` 回到 unauthenticated，TopBar 重新展示登录 / 注册。
+- Authenticated user menu 的 browser-level parity 覆盖 desktop / mobile 两个 viewport；mobile 下 dropdown 不得从 viewport 左右溢出。
 - TopBar 语言切换通过 `ui-design/src/app.jsx` 一致的 icon dropdown 驱动 `zh` / `en` 静态文案；按钮显示当前语言标签，locale 优先级为用户显式选择（`localStorage["ei-lang"]`）> 浏览器 locale > English fallback；runtime `defaultUiLanguage` / `/me.uiLanguage` 不参与 UI 语言决策；D1 generated client 请求带当前 locale 的 `Accept-Language` display hint。
 - `zh` / `en` message map 分别位于独立 locale 文件，i18n helper 只聚合导入并提供类型安全 API，不在单文件内糅合多语言文案。
 - 旧 route negative search 确认正式前端不保留独立 old route screen。
@@ -167,3 +182,5 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 | i18n 资源糅合导致后续语言扩展困难 | Phase 2.7 增加 locale 文件结构测试，要求每个语言独立文件，聚合层只做 helper |
 | operation-level fixture 被误当用户状态流 | Phase 6.2 使用 stateful dev mock client 测试默认非登录、verify 后 authenticated、logout 后 unauthenticated，防止静态 `getMe.default` 掩盖真实流程缺口 |
 | 用户菜单结构测试只断言文本存在 | Phase 6.1 / 6.3 反查 `ui-design/src/app.jsx` 的头像 chip、dropdown header、分隔线和关闭路径，禁止 inline 三按钮再次回流 |
+| 浏览器 viewport 下菜单几何与 jsdom 断言脱节 | Phase 6.4 通过 Playwright desktop / mobile 直接断言 dropdown 与 chip 的几何关系和 viewport containment |
+| Phase 6 前后端契约只停留在 fixture 名称 | Phase 6.5 固化 operation matrix，把 operationId、fixture、frontend consumer、backend handler、persistence、AI dependency 和 scenario coverage 放进同一 owner plan |
