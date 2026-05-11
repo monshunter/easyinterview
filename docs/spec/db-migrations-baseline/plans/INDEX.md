@@ -8,6 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [002-resume-versions-additive](./002-resume-versions-additive/plan.md) | [plan](./002-resume-versions-additive/plan.md) / [checklist](./002-resume-versions-additive/checklist.md) / [context](./002-resume-versions-additive/context.yaml) | 1.0 | active | 2026-05-11 |
 
 ## 2 已完成（Completed）
 

@@ -1,0 +1,67 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: frontend-resume-workshop
+  name: 001-listing-routing-and-detail-readonly
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: frontend
+  discovery:
+    aliases:
+      - frontend-resume-workshop
+      - 001-listing-routing-and-detail-readonly
+      - ResumeWorkshopScreen
+      - ResumeListView
+      - ResumeTreeView
+      - ResumeFlatView
+      - ResumeDetailView
+      - ResumeVersionRow
+      - resume-workshop-route-takeover
+      - D-X
+    keywords:
+      - resume workshop route takeover
+      - placeholder screen replacement
+      - resume list view tree flat
+      - resume detail preview readonly
+      - 查看原件 modal focus trap
+      - resume version row indent tag match
+      - adapter resume asset to source
+      - generated client mock first
+      - ui parity gate desktop mobile
+      - bounding box screenshot regression
+      - resume workshop i18n en zh
+      - resume workshop a11y focus
+      - retired modules grep negative
+      - data.jsx runtime import forbidden
+      - resumeDefaultTab MASTER preview TARGETED rewrites
+  targets:
+    frontend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      discovery:
+        packages:
+          - frontend/src/app
+          - frontend/src/app/screens
+          - frontend/src/app/screens/resume-workshop
+          - frontend/src/app/screens/resume-workshop/components
+          - frontend/src/app/screens/resume-workshop/adapters
+          - frontend/src/app/i18n
+          - frontend/src/api/generated
+          - frontend/src/lib/conventions
+          - frontend/tests/visual-baseline
+          - ui-design/src
+          - docs/ui-design
+          - test/scenarios/e2e
+        uiRoutes:
+          - resume_versions
+        apiNames:
+          - listResumes
+          - listResumeVersions
+          - getResumeVersion

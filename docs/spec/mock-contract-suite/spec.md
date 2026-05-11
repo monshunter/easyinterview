@@ -1,8 +1,8 @@
 # Mock Contract Suite Spec
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-11
 
 ## 1 背景与目标
 
@@ -20,7 +20,7 @@
 
 ### 2.1 In Scope
 
-- 读取 `openapi/fixtures/` 当前 13 tag / 46 operation fixtures（B2 spec D-17 additive 升级，JobMatch tag 12 operation 由 `frontend-home-job-picks-and-parse/002-jd-match-recommendations` 落地 fixture）。
+- 读取 `openapi/fixtures/` 当前 13 tag / 46 operation fixtures（B2 spec D-17 additive 升级，JobMatch tag 12 operation 由 `frontend-home-job-picks-and-parse/002-jd-match-recommendations` 落地 fixture）；**B2 spec D-18 Resume Workshop additive 升级声明阶段**（B2 spec 1.16）已声明扩到 13 tag / 55 operation（保留 `Resumes` tag 扩容，新增 9 operationId + 多 variant fixtures），落地路径由 [openapi-v1-contract/004-resume-additive-coverage](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) 承接；本 spec §2.1 / §6 C-1 / `openapi/fixtures/README.md` 中的 46 数字在 B2 plan 004 落地后由本 spec 同步 1.5 → 1.6 升级到 55。
 - 基于 generated OpenAPI types 为前端提供 fixture-backed API client 或 mock transport。
 - 为本地后端或开发服务器提供同源 mock handler / router。
 - 校验 fixtures 与 `openapi/openapi.yaml`、generated packages 和 `openapi/fixtures/PROTOTYPE_MAPPING.md` 的一致性。
@@ -72,7 +72,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | Fixture coverage | B2 已有 46 operation fixtures（含 JobMatch tag 12 operation） | 运行 mock coverage gate | 每个 operationId 都能被 registry 解析且 schema 校验通过 | 001-fixture-backed-mock-runtime |
+| C-1 | Fixture coverage | B2 已有 46 operation fixtures（含 JobMatch tag 12 operation；B2 D-18 声明阶段扩到 55 operation，由 openapi-v1-contract/004-resume-additive-coverage 落地） | 运行 mock coverage gate | 每个 operationId 都能被 registry 解析且 schema 校验通过；B2 D-18 落地后本 C-1 数字由 46 同步升 55 | 001-fixture-backed-mock-runtime（C-1 数字升级跟随 openapi-v1-contract/004） |
 | C-2 | 前端 mock 同源 | 前端请求 generated client | 切到 mock transport | response shape 来自 B2 fixtures，组件不 import prototype data | 001-fixture-backed-mock-runtime |
 | C-3 | 后端 mock 同源 | 本地 API smoke 请求 mock handler | 命中任一 P0 operation | handler 返回同一 fixture registry 的 typed response | 001-fixture-backed-mock-runtime |
 | C-4 | 旧口径拦截 | mock runtime / fixtures / generated artifacts 已生成 | 运行 scoped negative search | 不含旧 route / tag / operationId / schema key / config path 等 retired token；不误杀普通业务文案 | 001-fixture-backed-mock-runtime |

@@ -1,0 +1,67 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-resume
+  name: 001-asset-register-parse-and-listing
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-resume
+      - 001-asset-register-parse-and-listing
+      - registerResume
+      - getResume
+      - listResumes
+      - resume.parse
+      - resume.parse.completed
+      - resume_assets
+      - guided_answers
+      - sourceType
+      - C7
+    keywords:
+      - resume register handler
+      - resume get handler
+      - resume list handler cursor pagination
+      - resume parse async job
+      - resume parse completed event
+      - sourceType upload paste guided
+      - guided answers jsonb
+      - aiclient resume parse feature key
+      - ai_task_runs typed columns
+      - cross user isolation 404
+      - parse_status state machine
+      - workspace 001 listResumes unblock
+      - idempotency key replay
+      - mock first byte parity
+      - PII boundary no raw text
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      discovery:
+        packages:
+          - backend/internal/resume
+          - backend/internal/resume/handler
+          - backend/internal/resume/store
+          - backend/internal/resume/jobs
+          - backend/internal/api/generated
+          - backend/internal/upload
+          - backend/internal/shared/events
+          - openapi/fixtures/Resumes
+          - shared
+          - migrations
+          - config
+          - test/scenarios/e2e
+        uiRoutes: []
+        apiNames:
+          - registerResume
+          - getResume
+          - listResumes

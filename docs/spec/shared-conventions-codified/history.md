@@ -1,13 +1,14 @@
 # Shared Conventions Codified History
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: active
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-05-11
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-11 | 1.16 | D-10 Resume Workshop additive vocabulary 声明阶段：新增 3 个生成枚举（`ResumeVersionType` / `ResumeSeedStrategy` / `ResumeTailorSuggestionStatus`）+ 1 个错误码 `RESUME_EXPORT_NOT_AVAILABLE` + 术语映射决策 UI `ResumeSource` ≡ OpenAPI `ResumeAsset`；具体 `shared/conventions.yaml` 字面量 + Go/TS generated 类型由 openapi-v1-contract/004-resume-additive-coverage 落地后再回填 14 → 17 枚举类型。 | openapi-v1-contract/004-resume-additive-coverage（声明阶段，docs-only） |
 | 2026-05-09 | 1.15 | 授权 backend-practice Phase 0 共享契约修订：`PracticeMode` 收敛为 `assisted` / `strict`，新增 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND` 错误码，并同步 `shared/conventions.yaml`、Go/TS generated errors 与 B2 OpenAPI error enum。 | backend-practice/001 Phase 0 |
 | 2026-05-08 | 1.14 | 授权 C4 TargetJob 场景错误码：`TARGET_JOB_NOT_FOUND`、`TARGET_IMPORT_SOURCE_INVALID`、`TARGET_IMPORT_SOURCE_UNAVAILABLE`、`TARGET_INVALID_STATE_TRANSITION`；后续 Phase 0 必须同步 `shared/conventions.yaml` 与 Go/TS/OpenAPI generated artifacts。 | backend-targetjob/001 Phase 0 |
 | 2026-05-08 | 1.13 | 对齐 A3 003 Phase 6：AI capability vocabulary 删除向量化 / 重排当前能力，只保留 `chat/stt/realtime/judge`。 | ai-provider-and-model-routing/003 Phase 6 |

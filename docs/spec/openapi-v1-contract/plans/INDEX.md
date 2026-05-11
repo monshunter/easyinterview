@@ -8,6 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [004-resume-additive-coverage](./004-resume-additive-coverage/plan.md) | [plan](./004-resume-additive-coverage/plan.md) / [checklist](./004-resume-additive-coverage/checklist.md) / [context](./004-resume-additive-coverage/context.yaml) | 1.0 | active | 2026-05-11 |
 
 ## 2 已完成（Completed）
 

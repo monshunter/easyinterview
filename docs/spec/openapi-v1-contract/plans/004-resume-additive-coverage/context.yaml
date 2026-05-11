@@ -1,0 +1,81 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: openapi-v1-contract
+  name: 004-resume-additive-coverage
+  sequence: 4
+  supersedes: []
+  specVersion:
+    from: 1.16
+    to: 1.17
+spec:
+  defaultTarget: contract
+  discovery:
+    aliases:
+      - openapi-v1-contract
+      - 004-resume-additive-coverage
+      - resume-additive
+      - resume-workshop
+      - D-18
+      - listResumes
+      - branchResumeVersion
+      - resume-versions
+      - resume-tailor
+      - RESUME_EXPORT_NOT_AVAILABLE
+      - ResumeVersionType
+      - ResumeSeedStrategy
+      - ResumeTailorSuggestionStatus
+    keywords:
+      - resume workshop additive
+      - resume versions
+      - resume tailor suggestion
+      - branch resume version
+      - register resume sourceType
+      - resume export not available
+      - additive operation matrix
+      - openapi 55 endpoint
+      - workspace listResumes unblock
+      - resume picker active list
+      - resume vocabulary D-10
+      - resume provenance schema
+      - resume idempotency-key
+      - resume archive endpoint
+  targets:
+    contract:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      references:
+        - ../../../shared-conventions-codified/spec.md
+        - ../../../shared-conventions-codified/history.md
+        - ../../../mock-contract-suite/spec.md
+        - ../../../mock-contract-suite/history.md
+        - ../../../engineering-roadmap/spec.md
+        - ../../../engineering-roadmap/history.md
+        - ../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md
+        - ../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/checklist.md
+      discovery:
+        packages:
+          - openapi
+          - openapi/fixtures/Resumes
+          - openapi/baseline
+          - scripts/lint
+          - shared
+          - backend/internal/shared/types
+          - backend/internal/shared/errors
+          - frontend/src/lib/conventions
+          - docs/spec/openapi-v1-contract
+          - docs/spec/shared-conventions-codified
+          - docs/spec/mock-contract-suite
+          - docs/spec/engineering-roadmap
+        uiRoutes: []
+        apiNames:
+          - listResumes
+          - listResumeVersions
+          - getResumeVersion
+          - branchResumeVersion
+          - updateResumeVersion
+          - acceptResumeTailorSuggestion
+          - rejectResumeTailorSuggestion
+          - archiveResumeAsset
+          - exportResumeVersion

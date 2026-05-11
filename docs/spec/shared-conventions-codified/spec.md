@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: active
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-05-11
 
 ## 1 背景与目标
 
@@ -60,6 +60,7 @@
 | D-7 | `ApiError` inner object 归属 | `shared/conventions.yaml#structures.ApiError` 表示错误响应 envelope 内部的 `error` 对象（`code` / `message` / `requestId` / `retryable` / `details`），不表示外层 `{error: ...}` envelope；Go 侧 canonical 类型是手写 `backend/internal/shared/errors.APIError` + generated `errors.AllCodes`，TS 侧 canonical 类型是 generated `frontend/src/lib/conventions.ApiError` | B2 OpenAPI 必须把 wire response body 建模为 `ApiErrorResponse` envelope，并在 envelope 内 `$ref` B1 `ApiError` inner object；不得把 Go 侧误写为 `sharedtypes.ApiError` |
 | D-8 | AI shared vocabulary 归属 | B1 提供 `AI_*` 错误码、AI capability、Provider Registry 字段名、Model Profile 字段名、AI meta 字段名常量或生成类型；A3 提供 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 填充与 OpenAI-compatible provider adapter；A4 校验 `AI_PROVIDER_*` 连接参数 | 避免 B1/A3/B4/F1 对同一 AI 字段私造名称；同时避免把运行时或连接配置误下沉到 shared conventions |
 | D-9 | 当前 UI 产品范围下的练习 / 报告枚举 | `PracticeMode = assisted / strict`；`PracticeGoal = baseline / retry_current_round / next_round / debrief`；原 `MistakeStatus` 改为 `QuestionReviewStatus = open / queued_for_retry / resolved` | 对齐 product-scope 当前范围与 `docs/ui-design`：mode 只表达辅助度，复盘面试来源由 `goal='debrief'` 表达；移除热身、单题深钻、反问专练、独立错题本和独立成长中心；报告内部题目回顾与本轮复练仍保留 |
+| D-10 | Resume Workshop additive vocabulary 升级（声明阶段） | 新增 3 个生成枚举与 1 个错误码常量：`ResumeVersionType = structured_master / targeted`；`ResumeSeedStrategy = copy_master / blank / ai_select`；`ResumeTailorSuggestionStatus = pending / accepted / rejected`；`RESUME_EXPORT_NOT_AVAILABLE` 错误码常量（前缀 `RESUME_*`，类比 D-12 `PRIVACY_EXPORT_NOT_AVAILABLE`，用于 B2 D-18 `exportResumeVersion` P0 `501` 响应）；术语映射决策：UI 真理源 `docs/ui-design/resume-module.md` 中的 `ResumeSource` ≡ OpenAPI `ResumeAsset`（后端真理源不重命名），UI `ResumeVersion` ≡ OpenAPI 新 schema `ResumeVersion`（B2 D-18 新增），前端通过 adapter 层 wrap UI 命名；具体 `shared/conventions.yaml` 字面量 + Go/TS generated 类型由 [openapi-v1-contract/004-resume-additive-coverage](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) Phase 同步生成，B1 spec 1.16 完成声明阶段 | 业务代码 (`backend-resume` / `frontend-resume-workshop`) 不得绕过 B1 私造同义字符串；B2 D-18 schema 必须通过 `$ref` 引用本 spec 锁定的枚举字面量；shared-conventions-codified 14 个枚举类型 → 17 个（D-10 落地后）|
 
 ### 3.2 待确认事项
 

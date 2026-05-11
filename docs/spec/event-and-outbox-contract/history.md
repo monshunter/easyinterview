@@ -1,13 +1,14 @@
 # Event and Outbox Contract History
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: active
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-05-11
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-11 | 2.3 | D-14 `ResumeTailorMode` 漂移修复声明阶段：`eventLocalEnums.ResumeTailorMode` 当前 `[inline, rewrite, mirror]`，与 B2 OpenAPI `RequestResumeTailorRequest.mode`（`gap_review / bullet_suggestions`）+ B4 `resume_tailor_runs.mode` 不同步；本次声明对齐为 `[gap_review, bullet_suggestions]`；具体 yaml 修订与 baseline manifest 同步由 002 plan 落地。 | event-and-outbox-contract/002-resume-tailor-mode-drift-fix（声明阶段，docs-only） |
 | 2026-05-09 | 2.2 | 对齐 backend-practice Phase 0：B3 generated event refs 中引用 B1 `PracticeMode` 的 surface 跟随二值化，`practice.session.started.mode` 继续只引用 B1 `PracticeMode`，不保留来源语义别名。 | backend-practice/001 Phase 0 |
 | 2026-05-08 | 2.1 | 明确 `target.import.requested.sourceType` 是异步导入粗粒度来源：`manual_text` 映射为 `text`，`manual_form` 同步 ready 路径不发该事件；exact API source variant 不进入当前 v1 payload。 | backend-targetjob/001 Phase 0 |
 | 2026-05-08 | 2.0 | 对齐 A3 003 Phase 6：删除 C11 当前内部任务占位，canonical job_type 从 10 项收敛为 9 项。 | ai-provider-and-model-routing/003 Phase 6 |

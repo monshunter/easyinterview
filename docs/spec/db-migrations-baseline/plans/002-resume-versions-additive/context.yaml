@@ -1,0 +1,63 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: db-migrations-baseline
+  name: 002-resume-versions-additive
+  sequence: 2
+  supersedes: []
+  specVersion:
+    from: 1.14
+    to: 1.15
+spec:
+  defaultTarget: contract
+  discovery:
+    aliases:
+      - db-migrations-baseline
+      - 002-resume-versions-additive
+      - resume_versions
+      - resume_version_suggestions
+      - resume-versions-additive
+      - D-17
+      - resume_assets source_type
+      - resume_assets guided_answers
+      - ResumeVersionType
+      - ResumeSeedStrategy
+      - ResumeTailorSuggestionStatus
+    keywords:
+      - resume workshop migration
+      - resume versions table
+      - resume version suggestions table
+      - resume assets additive columns
+      - source_type upload paste guided
+      - guided_answers jsonb
+      - parent_version_id self FK
+      - cascade delete suggestions
+      - check constraint enum
+      - enum-sources yaml sync
+      - privacy deletion matrix resume
+      - structured master targeted
+      - copy_master blank ai_select
+      - pending accepted rejected suggestion
+      - additive migration golang-migrate
+      - migrate up down idempotent
+      - baseline 26 to 28 tables
+      - resume_version_edits P1 defer
+  targets:
+    contract:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - migrations
+          - migrations/backfill
+          - backend/cmd/migrate
+          - backend/internal/migrations
+          - backend/internal/store
+          - shared
+          - docs/spec/db-migrations-baseline
+          - docs/spec/shared-conventions-codified
+          - docs/spec/openapi-v1-contract
+          - docs/spec/event-and-outbox-contract
+        uiRoutes: []
+        apiNames: []

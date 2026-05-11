@@ -1,0 +1,62 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: event-and-outbox-contract
+  name: 002-resume-tailor-mode-drift-fix
+  sequence: 2
+  supersedes: []
+  specVersion:
+    from: 2.3
+    to: 2.4
+spec:
+  defaultTarget: contract
+  discovery:
+    aliases:
+      - event-and-outbox-contract
+      - 002-resume-tailor-mode-drift-fix
+      - resume-tailor-mode
+      - ResumeTailorMode
+      - drift-fix
+      - D-14
+      - resume.tailor.completed
+      - gap_review
+      - bullet_suggestions
+    keywords:
+      - shared events yaml
+      - event local enum
+      - resume tailor mode drift
+      - codegen drift
+      - baseline manifest
+      - lint-events
+      - codegen-events
+      - inline rewrite mirror retired
+      - cross-spec enum alignment
+      - b2 d-18 sync
+      - b4 002 sync
+      - additive whitelist
+      - resume workshop stage 0
+  targets:
+    contract:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      references:
+        - ../../../openapi-v1-contract/spec.md
+        - ../../../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md
+        - ../../../openapi-v1-contract/plans/004-resume-additive-coverage/checklist.md
+        - ../../../db-migrations-baseline/spec.md
+        - ../../../db-migrations-baseline/plans/002-resume-versions-additive/plan.md
+        - ../../../db-migrations-baseline/plans/002-resume-versions-additive/checklist.md
+      discovery:
+        packages:
+          - shared
+          - shared/events
+          - shared/events/baseline
+          - backend/internal/shared/events
+          - frontend/src/lib/events
+          - docs/spec/event-and-outbox-contract
+          - docs/spec/openapi-v1-contract
+          - docs/spec/db-migrations-baseline
+        uiRoutes: []
+        apiNames:
+          - resume.tailor.completed

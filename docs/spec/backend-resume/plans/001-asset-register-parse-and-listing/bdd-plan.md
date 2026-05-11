@@ -1,0 +1,28 @@
+# 001 BDD Plan
+
+> **版本**: 1.0
+> **状态**: active
+> **更新日期**: 2026-05-11
+
+**关联 Plan**: [plan](./plan.md)
+
+## 1 场景矩阵
+
+| 场景 ID | 类别 | 关联 Phase | 关联 Spec C-* | 关联 BDD-Gate（主 checklist） |
+|---------|------|-----------|--------------|----------------------------|
+| E2E.P0.034 | primary + alternate · register 三 sourceType + getResume + listResumes pagination + cross-user 隔离 | Phase 1 + 2 + 4 | C-1, C-2, C-5, C-6, C-7, C-8 | Phase 5.4 |
+| E2E.P0.035 | primary + failure / recovery · resume.parse async job lifecycle + outbox event + AI failure retryable | Phase 3 + 5 | C-3, C-4, C-13 | Phase 5.5 |
+
+---
+
+## Phase 1 + 2 + 4: register / get / list 主路径 + 三 sourceType
+
+| 场景 ID | 场景 | Given | When | Then | 验证入口 |
+|---------|------|-------|------|------|----------|
+| E2E.P0.034 | resume register + get + list 全链路 + 三 sourceType + IK replay + cross-user | A2 dev stack 拉起；`backend-upload/001` 已落地；用户 A 已登录（有效 session cookie）；用户 A 通过 `createUploadPresign` 使用 `purpose=resume` 上传 1 个 PDF 取得 fileObjectId；用户 A 调 paste 路径以 5KB rawText 创建；用户 A 调 guided 路径以 guidedAnswers 创建；继续创建 25 个 resume_asset 用于 pagination；用户 B 已登录但无 resume_asset | 用户 A 分别调：（A1）`POST /api/v1/resumes` upload + IK / paste / guided 各 1 次；（A2）同 IK replay upload；（A3）`GET /api/v1/resumes/{A1.upload}`；（B1）用户 B 调 `GET /api/v1/resumes/{A1.upload}`；（C1）用户 A 调 `GET /api/v1/resumes?pageSize=20`；（C2）用户 A 调 `GET /api/v1/resumes?pageSize=20&cursor={C1.nextCursor}`；（D1）参数非法 sourceType=unknown | （A1）3 次返回 202 + `ResumeAssetWithJob{resumeAssetId, job(jobType=resume_parse, status=queued)}`；DB `resume_assets` 行 `parse_status='queued'`；upload 路径通过 backend-upload `RegisterFileObject(fileObjectId, resume, userId)` 校验并建立 `file_object_id` 引用 + `source_type='upload'`；paste 路径 `original_text` 写入 + `source_type='paste'` + `file_object_id` NULL；guided 路径 `guided_answers` jsonb 写入 + `source_type='guided'`，不序列化进 `original_text`；（A2）IK replay 返回首次 resumeAssetId + 不创建新 DB 行；（A3）返回 200 + `ResumeAsset` 字段集；（B1）返回 404，不暴露存在；audit_events 不写敏感字段；（C1）返回 20 行 + `pageInfo.nextCursor` 非空 + `pageSize=20` + 按 `updated_at DESC` 排序；（C2）返回 5 行 + `hasMore=false`；（D1）返回 422 + `error.code="VALIDATION_FAILED"`；（E 字节比对）3 个 handler 响应与 B2 fixture `default` scenario 字节一致；（F 隐私）raw text / guided answers / parsed_summary 不出现在 console / URL / localStorage / log / outbox payload；（G 旧口径）grep `mistake|growth|drill` 在 `backend/internal/resume/` 0 命中 | `test/scenarios/e2e/p0-034-resume-register-and-list/` |
+
+## Phase 3 + 5: resume.parse async job lifecycle
+
+| 场景 ID | 场景 | Given | When | Then | 验证入口 |
+|---------|------|-------|------|------|----------|
+| E2E.P0.035 | resume.parse async job + outbox event + AI failure / retryable | A2 dev stack 拉起；backend internal runner 启动并注册 resume.parse job handler；[A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 注入 stub provider，配置 3 个 response variant：（M1）success JSON / （M2）output_invalid / （M3）provider timeout；用户 A 完成 register upload 后 resume_asset 行 `parse_status='queued'`；F3 `resume.parse` feature_key 已 ready | 分子场景：（A）队列消费成功；（B）队列消费 AI output_invalid；（C）AI timeout retryable 重试 | （A1）runner 拉取 queued 行，调用 [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) profile=`resume.parse.default`；（A2）解析 JSON 成功 → DB `parse_status='ready'` + `parsed_summary` jsonb 写入；（A3）`ai_task_runs` 新行写入 typed columns：`model_profile_name='resume.parse.default'` + `model_profile_version=1.1.0` + `prompt_version` / `rubric_version` / `validation_status='ok'` / `feature_key='resume.parse'`；（A4）`outbox_events` 新行：`event_name='resume.parse.completed'` + `aggregate_type='resume_asset'` + `aggregate_id=resumeAssetId` + payload 含 `resumeAssetId / userId / parseStatus='ready'`；不含 `parsedSummary` / `rawText` / promptText（PII 红线）；（A5）outbox dispatcher 在 5s 内拉取并 publish（`publish_status='published'`）；（B1）AI 返回非法 JSON → DB `parse_status='failed'` + `error_code='AI_OUTPUT_INVALID'`；retryable=false；（B2）outbox 不发 `resume.parse.completed`（只在 ready 发；failed 只写 audit/ai_task_runs，不发 completed event）；（B3）`audit_events` 写 ai_call_failed tombstone（无 prompt 内容）；（C1）AI timeout → DB `parse_status='failed'` + `error_code='AI_PROVIDER_TIMEOUT'`，retryable=true 写入 `async_jobs` attempt metadata；（C2）runner 重试（指数退避）时将同一 asset 重新置为 `processing`，第二次成功 → `parse_status='ready'`；（C3）`ai_task_runs` 写 2 行（首次 fail / 第二次 ok）；（C4）outbox 仅在最终 ready 时发一次 `resume.parse.completed`；（D 旧口径负向）grep `inline|rewrite|mirror` in events / outbox 内容 0 命中（B3 D-14 同步）；（E 隐私）prompt input / model raw output 不出现在 log / outbox payload / audit_events.last_error_message | `test/scenarios/e2e/p0-035-resume-parse-async-job-lifecycle/` |

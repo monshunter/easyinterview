@@ -8,6 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [002-resume-tailor-mode-drift-fix](./002-resume-tailor-mode-drift-fix/plan.md) | [plan](./002-resume-tailor-mode-drift-fix/plan.md) / [checklist](./002-resume-tailor-mode-drift-fix/checklist.md) / [context](./002-resume-tailor-mode-drift-fix/context.yaml) | 1.0 | active | 2026-05-11 |
 
 ## 2 已完成（Completed）
 
