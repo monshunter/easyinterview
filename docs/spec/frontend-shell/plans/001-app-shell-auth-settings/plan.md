@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.8
-> **状态**: active
-> **更新日期**: 2026-05-08
+> **版本**: 1.9
+> **状态**: completed
+> **更新日期**: 2026-05-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
+落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`；修订 v1.9 补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
 
 ## 2 背景
 
@@ -20,8 +20,8 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `frontend`。
-- **TDD 策略**: 通过 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 执行；每个 checklist item 先写 focused Vitest / component test / route-state test，再实现最小前端代码；测试断言写在 checklist 的 `验证:` 后。Runtime / API bootstrap 测试必须覆盖 `getRuntimeConfig`、`getMe` authenticated / unauthenticated、auth generated operations 与 mock scenario fail-loud。当前 plan 一旦把 frontend package `build` script 从占位切换为真实 bundler gate，必须在同一验证面运行 `pnpm --filter @easyinterview/frontend build` 与根 `make build`。
-- **BDD 策略**: 需要 BDD。本 plan 引入用户可见 App shell、TopBar、认证页面和 pending action 行为，必须维护 `bdd-plan.md`、`bdd-checklist.md`，并在主 checklist 中使用 `BDD-Gate:` 引用 `E2E.P0.001`、`E2E.P0.002`。
+- **TDD 策略**: 通过 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 执行；每个 checklist item 先写 focused Vitest / component test / route-state test，再实现最小前端代码；测试断言写在 checklist 的 `验证:` 后。Runtime / API bootstrap 测试必须覆盖 `getRuntimeConfig`、`getMe` authenticated / unauthenticated、auth generated operations、mock scenario fail-loud，以及 dev mock session 状态从默认 unauthenticated -> verify authenticated -> logout unauthenticated 的连续变化。当前 plan 一旦把 frontend package `build` script 从占位切换为真实 bundler gate，必须在同一验证面运行 `pnpm --filter @easyinterview/frontend build` 与根 `make build`。
+- **BDD 策略**: 需要 BDD。本 plan 引入用户可见 App shell、TopBar、认证页面和 pending action 行为，必须维护 `bdd-plan.md`、`bdd-checklist.md`，并在主 checklist 中使用 `BDD-Gate:` 引用 `E2E.P0.001`、`E2E.P0.002`、`E2E.P0.032`。
 - **替代验证 gate**: 不适用；BDD gate 是本 plan 的用户行为验证入口。补充 gate 包括 frontend unit tests、typecheck、mock-contract-suite handoff、route negative search、`make docs-check`。
 
 ## 4 实施步骤
@@ -124,6 +124,20 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 
 把 [Frontend Shell Review Remediation Hardening 交付复盘](../../../../reports/2026-05-07-frontend-shell-review-remediation-hardening-assessment.md) 的最高优先级建议固化为 owner gate：当 D1 / 后续 frontend owner 将 package `build` 从占位切换为真实 Vite bundler 时，必须同时具备 HTML / runtime entry，并通过 `pnpm --filter @easyinterview/frontend build` 与根 `make build`。
 
+### Phase 6: Auth state and user menu parity remediation
+
+#### 6.1 源级复刻已登录用户菜单
+
+按 `ui-design/src/app.jsx::TopBar` 把已登录用户区从 inline 三按钮修正为头像 chip + dropdown menu。按钮必须显示头像 initials、display name 和 caret；菜单打开后必须显示用户姓名 / masked email header、`用户画像`、`设置与隐私` 和 `退出登录` 三项，带图标、分隔线、关闭 backdrop、Escape 关闭，并在点击 profile/settings/logout 后关闭菜单。
+
+#### 6.2 修复 fixture-backed dev mock session 状态
+
+Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAuthEmailChallenge` 成功后同一 mock client 的后续 `/me` 返回 authenticated；`logout` 成功后后续 `/me` 返回 unauthenticated。该状态只存在于 dev mock client 实例中，不影响通用 `createFixtureBackedFetch` 的显式 scenario 选择语义。
+
+#### 6.3 BDD-Gate: 验证 E2E.P0.032 通过
+
+新增并执行 `E2E.P0.032`，覆盖 dev mock 默认非登录态、mock 登录后头像 dropdown 菜单、profile/settings 分流、logout 后回到非登录态，以及旧 inline 用户菜单 / 静态 authenticated default 回流负向断言。
+
 ## 5 验收标准
 
 - 默认打开 App 渲染 Home、五入口 TopBar、登录 / 注册、显示控制，不出现 welcome。
@@ -131,11 +145,12 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 - 用户菜单的 `用户画像` 与 `设置与隐私` 分别进入 `profile` 和 `settings`。
 - `parse` route 作为 shell route 可达，但 JD 解析业务细节留给后续 owner。
 - Runtime config、`/me` 和 auth generated operations 均通过 fixture-backed client 测试，不直接读取 prototype data。
+- Vite dev 默认 mock App 首屏展示非登录态；passwordless mock verify 后展示源级复刻的头像 dropdown 用户菜单；logout 后 `/me` 回到 unauthenticated，TopBar 重新展示登录 / 注册。
 - TopBar 语言切换通过 `ui-design/src/app.jsx` 一致的 icon dropdown 驱动 `zh` / `en` 静态文案；按钮显示当前语言标签，locale 优先级为用户显式选择（`localStorage["ei-lang"]`）> 浏览器 locale > English fallback；runtime `defaultUiLanguage` / `/me.uiLanguage` 不参与 UI 语言决策；D1 generated client 请求带当前 locale 的 `Accept-Language` display hint。
 - `zh` / `en` message map 分别位于独立 locale 文件，i18n helper 只聚合导入并提供类型安全 API，不在单文件内糅合多语言文案。
 - 旧 route negative search 确认正式前端不保留独立 old route screen。
 - UI 真理源边界写入 handoff：正式前端视觉只以 `ui-design/` 与 `docs/ui-design/` 为准。
-- BDD-Gate `E2E.P0.001`、`E2E.P0.002` 通过。
+- BDD-Gate `E2E.P0.001`、`E2E.P0.002`、`E2E.P0.032` 通过。
 - Frontend package 真实 build gate 与根 build 聚合 gate 通过，避免 `frontend/package.json` 脚本升级后缺 entry 破坏 `make build`。
 
 ## 6 风险与应对
@@ -150,3 +165,5 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 | 外部品牌参考或 AI 自由发挥被误当正式视觉依据 | Phase 5.4 明确 `ui-design/` 与 `docs/ui-design/` 是唯一 UI truth source |
 | 语言切换退化为状态占位 | Phase 2.4 / 2.6 增加文案切换测试与 BDD gate，禁止只断言控件状态；控件结构必须继续对齐 `ui-design/src/app.jsx` icon dropdown |
 | i18n 资源糅合导致后续语言扩展困难 | Phase 2.7 增加 locale 文件结构测试，要求每个语言独立文件，聚合层只做 helper |
+| operation-level fixture 被误当用户状态流 | Phase 6.2 使用 stateful dev mock client 测试默认非登录、verify 后 authenticated、logout 后 unauthenticated，防止静态 `getMe.default` 掩盖真实流程缺口 |
+| 用户菜单结构测试只断言文本存在 | Phase 6.1 / 6.3 反查 `ui-design/src/app.jsx` 的头像 chip、dropdown header、分隔线和关闭路径，禁止 inline 三按钮再次回流 |

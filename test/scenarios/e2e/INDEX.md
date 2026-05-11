@@ -36,3 +36,4 @@
 | E2E.P0.029 | frontend-home-job-picks-and-parse C-16 | `p0-029-jd-match-watchlist-and-signals/` | jd_match Watchlist tab + Market signals + chevron handoff + boundary + privacy | automated | Ready |
 | E2E.P0.030 | frontend-home-job-picks-and-parse C-12, C-15 | `p0-030-jd-match-profile-and-agent-status/` | jd_match Profile chip + AGENT scan status + Auth pending action 跨 tab 综合 | automated | Ready |
 | E2E.P0.031 | frontend-home-job-picks-and-parse C-13 | `p0-031-jd-match-confirm-interview-handoff/` | Confirm interview from jd_match → parse 出口 params 完整性 + parse 屏不破坏 | automated | Ready |
+| E2E.P0.032 | frontend-shell C-10 | `p0-032-dev-mock-auth-state-and-user-menu/` | Dev mock 默认非登录、登录后头像 dropdown、profile/settings 分流与 logout 后非登录闭环 | automated | Ready |

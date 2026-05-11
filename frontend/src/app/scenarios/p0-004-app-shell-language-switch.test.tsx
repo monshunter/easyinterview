@@ -127,6 +127,7 @@ describe("E2E.P0.004 app shell language switch", () => {
     );
     await user.click(screen.getByTestId("topbar-lang-toggle"));
     await user.click(screen.getByTestId("topbar-lang-option-en"));
+    await user.click(screen.getByTestId("topbar-user-chip"));
     expect(screen.getByTestId("topbar-user-profile")).toHaveTextContent(
       "User profile",
     );
@@ -140,6 +141,7 @@ describe("E2E.P0.004 app shell language switch", () => {
     expect(screen.getByTestId("route-profile")).toHaveTextContent(
       "User profile",
     );
+    await user.click(screen.getByTestId("topbar-user-chip"));
     await user.click(screen.getByTestId("topbar-user-settings"));
     expect(screen.getByTestId("route-settings")).toHaveTextContent(
       "Settings & privacy",

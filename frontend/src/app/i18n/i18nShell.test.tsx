@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { AuthLoginScreen } from "../auth/AuthLoginScreen";
 import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
@@ -10,7 +11,7 @@ import { SettingsScreen } from "../screens/SettingsScreen";
 import { TopBar } from "../topbar/TopBar";
 
 describe("D1 shell i18n", () => {
-  it("renders TopBar, auth, profile/settings, and placeholder shell copy in English without localizing route keys", () => {
+  it("renders TopBar, auth, profile/settings, and placeholder shell copy in English without localizing route keys", async () => {
     render(
       <DisplayPreferencesProvider initial={{ lang: "en" }}>
         <TopBar activeRoute="home" onNavigate={() => {}} signedIn={false} />
@@ -44,6 +45,8 @@ describe("D1 shell i18n", () => {
       expect(languageControl.tagName).toBe("BUTTON");
       expect(languageControl).toHaveTextContent("English");
     }
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("topbar-user-chip"));
     expect(screen.getByTestId("topbar-user-profile")).toHaveTextContent(
       "User profile",
     );

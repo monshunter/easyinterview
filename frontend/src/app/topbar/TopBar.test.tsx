@@ -80,22 +80,48 @@ describe("TopBar user menu", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders 用户画像 / 设置与隐私 / 退出登录 menu when signed-in and dispatches the right routes", async () => {
+  it("renders the signed-in avatar chip, opens the ui-design user dropdown, and dispatches the right routes", async () => {
     const onNavigate = vi.fn();
     renderInProvider(
       <TopBar
         activeRoute="home"
         onNavigate={onNavigate}
         signedIn={true}
+        user={{
+          displayName: "Alice Example",
+          emailMasked: "ali***@example.com",
+        }}
       />,
     );
-    expect(screen.getByTestId("topbar-user-menu")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-user-chip")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-user-avatar")).toHaveTextContent("AE");
+    expect(screen.getByTestId("topbar-user-name")).toHaveTextContent(
+      "Alice Example",
+    );
+    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("topbar-user-profile"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId("topbar-login")).not.toBeInTheDocument();
     expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
 
     const user = userEvent.setup();
+    await user.click(screen.getByTestId("topbar-user-chip"));
+    expect(screen.getByTestId("topbar-user-menu")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-user-menu-header")).toHaveTextContent(
+      "Alice Example",
+    );
+    expect(screen.getByTestId("topbar-user-email")).toHaveTextContent(
+      "ali***@example.com",
+    );
+    expect(screen.getByTestId("topbar-user-backdrop")).toBeInTheDocument();
+
     await user.click(screen.getByTestId("topbar-user-profile"));
+    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("topbar-user-chip"));
     await user.click(screen.getByTestId("topbar-user-settings"));
+    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("topbar-user-chip"));
     await user.click(screen.getByTestId("topbar-user-logout"));
     expect(onNavigate).toHaveBeenNthCalledWith(1, {
       name: "profile",

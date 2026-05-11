@@ -9,6 +9,7 @@ import logoutFixture from "../../../openapi/fixtures/Auth/logout.json";
 import startAuthEmailChallengeFixture from "../../../openapi/fixtures/Auth/startAuthEmailChallenge.json";
 import verifyAuthEmailChallengeFixture from "../../../openapi/fixtures/Auth/verifyAuthEmailChallenge.json";
 import { EasyInterviewClient } from "../api/generated/client";
+import { createDevMockClient } from "../api/devMockClient";
 import {
   createFixtureBackedFetch,
   createFixtureRegistry,
@@ -163,5 +164,43 @@ describe("App auth route dispatch", () => {
     // the email form testid.
     expect(screen.getByTestId("route-auth_login")).toBeInTheDocument();
     expect(screen.queryByTestId("auth-login-email")).not.toBeInTheDocument();
+  });
+
+  it("uses the dev mock session state for sign in and logout in the mounted App", async () => {
+    render(<App client={createDevMockClient()} />);
+    await waitFor(() =>
+      expect(screen.getByTestId("topbar-user-area")).toHaveAttribute(
+        "data-signed-in",
+        "false",
+      ),
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("topbar-login"));
+    await user.type(screen.getByTestId("auth-login-email"), "alice@example.com");
+    await user.click(screen.getByTestId("auth-login-submit-email"));
+    await screen.findByTestId("route-auth_verify");
+    await user.type(screen.getByTestId("auth-verify-code"), "654321");
+    await user.click(screen.getByTestId("auth-verify-submit"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("topbar-user-area")).toHaveAttribute(
+        "data-signed-in",
+        "true",
+      ),
+    );
+    await user.click(screen.getByTestId("topbar-user-chip"));
+    await user.click(screen.getByTestId("topbar-user-logout"));
+    await screen.findByTestId("route-auth_logout");
+    await user.click(screen.getByTestId("auth-logout-confirm"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("topbar-user-area")).toHaveAttribute(
+        "data-signed-in",
+        "false",
+      ),
+    );
+    expect(screen.getByTestId("topbar-login")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-register")).toBeInTheDocument();
   });
 });

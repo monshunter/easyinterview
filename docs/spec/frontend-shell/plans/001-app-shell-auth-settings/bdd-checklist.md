@@ -1,8 +1,8 @@
 # Frontend Shell BDD Checklist
 
-> **版本**: 1.5
-> **状态**: active
-> **更新日期**: 2026-05-08
+> **版本**: 1.6
+> **状态**: completed
+> **更新日期**: 2026-05-10
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -33,3 +33,12 @@
 - [x] 执行并通过场景验证
 - [x] 记录验证证据
 <!-- evidence: .test-output/e2e/p0-002-auth-pending-action-resume/trigger.log (1 vitest test passed; verify.sh: legacy testid + ui-design/src/data leak gates clean) -->
+
+## E2E.P0.032 Dev mock 登录态菜单与退出闭环
+
+- [x] 创建场景目录 `test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/`
+- [x] 准备测试数据：默认 dev mock 非登录态、passwordless verify 成功、logout 成功、`getMe` authenticated / unauthenticated 状态切换
+- [x] 实现 setup / trigger / verify / cleanup；verify 必须断言默认非登录态、登录后头像 chip + dropdown、profile/settings/logout 分流、logout 后非登录态、旧 inline 用户菜单和静态 authenticated default 负向约束
+- [x] 执行并通过场景验证
+- [x] 记录验证证据
+<!-- evidence: .test-output/e2e/p0-032-dev-mock-auth-state-and-user-menu/trigger.log (1 vitest test passed; verify.sh: dev mock auth state + avatar dropdown + logout evidence present; legacy/prototype leak gates clean) -->

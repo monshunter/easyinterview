@@ -1,8 +1,8 @@
 # Frontend Shell BDD Plan
 
-> **版本**: 1.5
-> **状态**: active
-> **更新日期**: 2026-05-08
+> **版本**: 1.6
+> **状态**: completed
+> **更新日期**: 2026-05-10
 
 ## Phase 2: TopBar and display controls
 
@@ -16,3 +16,9 @@
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
 | E2E.P0.002 | 登录打断后恢复原业务动作 | 用户未登录且在当前面试规划点击 `立即面试` | 通过 passwordless mock auth 登录成功 | App 恢复到 `practice`，并保留 planId / targetJobId / jdId / resumeVersionId / roundId | `test/scenarios/e2e/p0-002-auth-pending-action-resume/` |
+
+## Phase 6: Auth state and user menu parity remediation
+
+| 场景 ID | 场景 | Given | When | Then | 验证入口 |
+|---------|------|-------|------|------|----------|
+| E2E.P0.032 | Dev mock 登录态菜单与退出闭环 | 用户在 Vite dev 默认 fixture-backed mock App 中打开首页，初始没有 session | 用户完成 passwordless mock 登录，打开头像菜单，进入 profile/settings，再执行退出登录 | 默认首屏是非登录态；登录后 TopBar 显示与 `ui-design/src/app.jsx` 一致的头像 chip + dropdown；profile/settings/logout 均可从 dropdown 分流；logout 后 `/me` 回到 unauthenticated，TopBar 回到登录 / 注册，旧 inline 三按钮结构不回流 | `test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/` |

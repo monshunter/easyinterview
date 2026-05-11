@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.8
-> **状态**: active
-> **更新日期**: 2026-05-08
+> **版本**: 1.9
+> **状态**: completed
+> **更新日期**: 2026-05-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -51,3 +51,12 @@
 - [x] 5.3 记录 UI 真理源 handoff；验证: frontend README 或 package docs 说明正式前端视觉只以 `docs/ui-design/` 与 `ui-design/` 为准，新页面必须先有静态原型，后续实现做原生迁移并通过 parity gate，禁止 AI 自由重设计或引入外部品牌设计系统作为替代参考
 - [x] 5.4 Review hardening: 固化真实 build smoke gate；验证: `pnpm --filter @easyinterview/frontend build` 与根 `make build` 均通过，确保 package `build` script 真实化时 HTML/runtime entry 与聚合构建同步可用
   <!-- verified: 2026-05-07 method=build-smoke evidence="pnpm --filter @easyinterview/frontend build PASS; make build PASS" -->
+
+## Phase 6: Auth state and user menu parity remediation
+
+- [x] 6.1 源级复刻已登录用户菜单；验证: `pnpm --filter @easyinterview/frontend test src/app/topbar/TopBar.test.tsx src/app/i18n/i18nShell.test.tsx` 断言已登录用户区先显示头像 chip（initials / displayName / caret），点击后才出现 dropdown，dropdown 含姓名 / masked email header、profile/settings/logout 三项、图标、分隔线、backdrop / Escape 关闭，点击菜单项关闭并派发 `profile` / `settings` / `auth_logout`；负向断言旧 inline 三按钮结构不存在
+  <!-- verified: 2026-05-10 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/app/topbar/TopBar.test.tsx src/app/i18n/i18nShell.test.tsx PASS (2 files / 9 tests)" -->
+- [x] 6.2 修复 fixture-backed dev mock session 状态；验证: `pnpm --filter @easyinterview/frontend test src/api/devMockClient.test.ts src/app/AppAuthDispatch.test.tsx src/app/runtime/AppRuntimeProvider.test.tsx` 断言 `createDevMockClient()` 默认 `/me` 为 401 unauthenticated，`verifyAuthEmailChallenge` 后 `/me` 变 authenticated，`logout` 后 `/me` 变 unauthenticated，显式 `Prefer: example=authenticated|unauthenticated` 仍按 fixture scenario 生效且 unknown scenario fail loudly
+  <!-- verified: 2026-05-10 method=focused-tests evidence="pnpm --filter @easyinterview/frontend test src/api/devMockClient.test.ts src/app/AppAuthDispatch.test.tsx src/app/runtime/AppRuntimeProvider.test.tsx PASS (3 files / 13 tests)" -->
+- [x] 6.3 BDD-Gate: 验证 E2E.P0.032 通过
+  <!-- verified: 2026-05-10 method=scenario evidence="./test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/scripts/setup.sh && ./test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/scripts/trigger.sh && ./test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/scripts/verify.sh && ./test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/scripts/cleanup.sh PASS" -->

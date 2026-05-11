@@ -1,8 +1,8 @@
 # Frontend Shell Spec
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-10
 
 ## 1 背景与目标
 
@@ -42,6 +42,7 @@
 | D-6 | Auth API 边界 | D1 前端只消费 `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`logout` 和 first-party session cookie | 密码、OAuth、reset 只能作为当前 UI 壳或 stub 展示；新增真实 API 前必须修订 C1 / B2 |
 | D-7 | UI i18n | 正式前端至少支持 `zh` / `en` 两种 UI locale；每种语言必须有独立 locale 文件，语言元数据统一从 locale catalog 暴露，聚合层只负责导入、类型约束和 helper；UI 语言优先级为用户显式选择 > 浏览器 locale > `en` fallback，显式选择写入 `localStorage["ei-lang"]`；语言下拉只关联前端显示偏好，不依赖 runtime config 或登录态 | 语言选择必须按 `ui-design/src/app.jsx` 源码复刻为 TopBar icon dropdown：`topbar-lang-toggle` 显示 globe icon + 当前语言标签并打开 `topbar-lang-menu`，选项使用 `topbar-lang-option-{locale}`，改变用户可见文案，并通过 `Accept-Language` 影响后续 API display hint；后续新增语言只扩展 locale 文件、catalog 元数据和测试，不改变 TopBar 控件结构 |
 | D-8 | Brand / version placement | TopBar 品牌区只展示 `E` mark + `EasyInterview`，品牌名不本地化，不放解释性副标题或版本号 | App 版本属于产品元数据，通过设置页 `产品信息 / Product info` 低频展示；版本值 `v1.0` 不进入翻译，周边标签必须走 i18n |
+| D-9 | Dev mock session state | Vite dev 默认 fixture-backed mock 必须能表达未登录、登录成功和退出登录后的 session 状态变化 | operation-level fixture 存在不等于用户流程闭环；mock runtime 必须让 `verifyAuthEmailChallenge` 后的 `/me` 变为 authenticated，让 `logout` 后的 `/me` 变为 unauthenticated，且默认打开 App 必须可见非登录态 |
 
 ## 4 设计约束
 
@@ -58,6 +59,7 @@
 - 正式前端语言菜单不得在 TopBar 内维护私有二语言数组；必须从 `src/app/i18n/localeCatalog.ts` 的 `SUPPORTED_LOCALES` 渲染选项。`ui-design/src/app.jsx` 使用同等的 `LANGUAGE_OPTIONS` 原型元数据，二者在新增语言时同步。
 - Locale 优先级为：用户显式选择 > 浏览器 locale > `en` fallback。用户显式选择必须保存到 `localStorage["ei-lang"]` 并优先于下一次打开时的浏览器 locale；`zh-CN` / `zh` 归一为 `zh`，`en-US` / `en` 归一为 `en`；未知、缺失或不支持的 BCP 47 tag fallback `en`。语言选择不依赖登录态，`/me.uiLanguage` 与 runtime `defaultUiLanguage` 不得覆盖前端显示偏好。
 - Auth bootstrap 必须使用 B2 generated client 和 C1 passwordless session cookie 契约；不得在前端私造 Bearer token、密码登录 API、OAuth API 或自定义 session storage contract。
+- Fixture-backed dev mock 不得只返回静态 `getMe.default` authenticated 响应。默认 dev preview 必须从非登录态开始；登录验证成功后仅在同一 mock session 中切换为 authenticated；退出登录成功后必须清除 mock session 并在 TopBar 回到登录 / 注册入口。该状态只用于 dev / test mock runtime，不写入 production session storage，不替代真实 first-party cookie。
 - `getRuntimeConfig` 必须先经过 A4 allowlist / generated type 解析，再影响 feature flag 或公开配置；缺失或错误响应必须有可测试 fallback。UI 语言不由 runtime config 决定。
 - Generated API client 默认请求头或 App runtime request options 必须带当前 UI locale 的 `Accept-Language` display hint；该 header 不得覆盖业务字段（如 `targetLanguage` / practice language）。
 - 新增 App shell / TopBar / auth / settings 组件时必须以 `docs/ui-design/` 与 `ui-design/` 源码为唯一 UI 真理源；正式前端目标是 100% 源级复刻静态原型中的 DOM 构图、布局、间距、字号、字体层级、控件密度、颜色、阴影、边框、圆角、状态、响应式行为和交互节奏。不得引入外部品牌设计系统作为参考替代，不得由 AI 自由重设计、重新解释或重新组合视觉。主题系统必须承接 `ui-design/` 的 warm / forest / ocean / plum 与 `customAccent`，自定义 accent 不是降级项。
@@ -85,6 +87,7 @@
 | C-7 | 中英 UI 切换 | 用户打开默认 App shell | 通过 TopBar language dropdown 选择 English / 中文 | TopBar、auth 入口和 D1 shell 静态文案即时切换；语言优先级为用户显式选择（`localStorage["ei-lang"]`）> 浏览器 locale > English fallback；登录态和 runtime locale 不覆盖前端语言设置；后续 API 请求带 `Accept-Language`；`zh` / `en` 文案分别来自独立 locale 文件；语言控件 DOM / 图标 / 当前语言标签 / 菜单项 / 文案节奏与 `ui-design/src/app.jsx` 一致 | 001-app-shell-auth-settings |
 | C-8 | 视觉接入 100% 复刻 ui-design 真理源 | D1 已交付的 App 壳 / TopBar / 五入口 / 显示控制 / 认证页 / 用户菜单 / settings & profile placeholder | D2 视觉系统接入 | 正式前端 100% 源级复刻 `ui-design/` 静态原型：DOM 构图、布局、间距、字号、字体层级、控件密度、颜色、阴影、边框、圆角、状态、响应式行为和交互节奏必须以对应 `ui-design/src/*.jsx` 与 `docs/ui-design/` 文档为准；4 基础主题（warm 完整对齐，其余主题至少色板正确）+ `customAccent` 在 light / dark 下均通过根级 `data-theme` / `data-mode` / `data-custom-accent` 或等价 CSS variable 切换生效；字体、token、className 与组件样式从 `ui-design/src/primitives.jsx`、`ui-design/src/app.jsx` 和对应 screen 原型抽取；`E2E.P0.005` visual smoke 工具必须对关键 viewport 完成非空渲染、无核心控件重叠、主题/暗色/custom accent 可见变化检查，并包含与 `ui-design` golden preview 的 DOM 锚点、computed style、bounding box 和必要截图差异 gate；任何可见偏差不得以”风格接近”收口，必须修到与原型一致或先修改 `ui-design/` 真理源；D1 testid 与 `E2E.P0.001` / `E2E.P0.002` / `E2E.P0.004` regression 全部通过 | 002-app-shell-visual-system |
 | C-9 | 真实浏览器 pixel parity gate | D2 视觉系统已落地（`ei-shell-topbar` / `ei-screen-shell` / `ei-auth-shell` / fontsource / customAccent 全部接入），但 vitest+jsdom 不能验证 desktop / mobile viewport 下的 CSS 布局、bounding box 与截图差异 | 003 接入 Playwright + chromium 的 pixel parity gate | Playwright 在 desktop (1440×900) 与 mobile (390×844) 两个 viewport 下并行加载 `frontend/dist/index.html` 与 `ui-design/index.html` golden preview，断言：D2 testid / className / 文本内容在两边一致；warm/light 默认状态下 TopBar、auth、profile、settings、placeholder 五类 shell 的 `getBoundingClientRect()` 不重叠且 stays in viewport；切换 dark / customAccent 后核心元素的 computed background / color 出现可见变化；`E2E.P0.006` Playwright scenario `setup→trigger→verify→cleanup` 通过；`pnpm --filter @easyinterview/frontend test:pixel-parity` 默认在 CI / 本地都可运行（前提是 chromium 二进制已安装）；任何 pixel parity 失败必须修正到与 `ui-design/` 一致或先修订 `ui-design/` 真理源，不得以”差异在阈值内”收口；E2E.P0.005（jsdom 范围）保留作为 fast smoke gate | 003-ui-design-pixel-parity-gate |
+| C-10 | 登录态菜单与退出闭环 | 用户打开 dev mock App | 默认看到登录 / 注册；完成 passwordless mock 登录后打开头像菜单；点击退出登录并确认 | 用户菜单源级复刻 `ui-design/src/app.jsx` 的头像 chip、姓名/email header、profile/settings/logout dropdown；退出后 `/me` 为 unauthenticated，TopBar 回到登录 / 注册，页面可继续浏览 | 001-app-shell-auth-settings |
 
 ## 7 关联计划
 

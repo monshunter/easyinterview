@@ -122,7 +122,65 @@ export function createDevMockFixtureRegistry(): FixtureRegistry {
 export function createDevMockClient(
 	options: FixtureBackedFetchOptions = {},
 ): EasyInterviewClient {
+	const registry = createDevMockFixtureRegistry();
+	const fixtureFetch = createFixtureBackedFetch(registry, options);
+	let signedIn = false;
+	const fetch: typeof globalThis.fetch = async (input, init) => {
+		const request = readRequest(input, init);
+		const nextInit = withStatefulAuthScenario(init, request, signedIn);
+		const response = await fixtureFetch(input, nextInit);
+		if (response.ok && request.method === "GET" && request.path === "/auth/email/verify") {
+			signedIn = true;
+		}
+		if (response.ok && request.method === "POST" && request.path === "/auth/logout") {
+			signedIn = false;
+		}
+		return response;
+	};
 	return new EasyInterviewClient({
-		fetch: createFixtureBackedFetch(createDevMockFixtureRegistry(), options),
+		fetch,
 	});
+}
+
+function readRequest(
+	input: RequestInfo | URL,
+	init?: RequestInit,
+): { method: string; path: string; headers: Headers } {
+	const method =
+		init?.method ??
+		(input instanceof Request ? input.method : "GET");
+	const rawUrl =
+		typeof input === "string"
+			? input
+			: input instanceof URL
+				? input.href
+				: input.url;
+	const headers = new Headers(input instanceof Request ? input.headers : undefined);
+	new Headers(init?.headers).forEach((value, key) => headers.set(key, value));
+	return {
+		method: method.toUpperCase(),
+		path: stripApiBase(new URL(rawUrl, "http://fixture.local").pathname),
+		headers,
+	};
+}
+
+function withStatefulAuthScenario(
+	init: RequestInit | undefined,
+	request: { method: string; path: string; headers: Headers },
+	signedIn: boolean,
+): RequestInit | undefined {
+	if (
+		request.method !== "GET" ||
+		request.path !== "/me" ||
+		request.headers.has("Prefer")
+	) {
+		return init;
+	}
+	const headers = new Headers(init?.headers);
+	headers.set("Prefer", `example=${signedIn ? "authenticated" : "unauthenticated"}`);
+	return { ...init, headers };
+}
+
+function stripApiBase(path: string): string {
+	return path.startsWith("/api/v1/") ? path.slice("/api/v1".length) : path;
 }

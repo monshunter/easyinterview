@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-10](./2026-05-10-frontend-shell-auth-state-parity-assessment.md) | Frontend Shell Auth State Parity 交付复盘 | #assessment |
 | [2026-05-10](./2026-05-10-frontend-jd-match-search-parity-pixel-gate-assessment.md) | Frontend JD Match Search Parity Pixel Gate 交付复盘 | #assessment |
 | [2026-05-10](./2026-05-10-frontend-home-job-picks-and-parse-002-jd-match-recommendations-assessment.md) | frontend-home-job-picks-and-parse/002-jd-match-recommendations 交付复盘 | #assessment |
 | [2026-05-10](./2026-05-10-frontend-jd-match-l2-remediation-assessment.md) | Frontend JD Match L2 Remediation 交付复盘 | #assessment |

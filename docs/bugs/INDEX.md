@@ -46,6 +46,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0039](./BUG-0039.md) | frontend shell auth state and user menu parity drift | medium | resolved | 2026-05-10 | `fix(frontend-shell): restore auth state and user menu parity` |
 | [BUG-0036](./BUG-0036.md) | Vite dev preview hit frontend port instead of fixture-backed API | high | resolved | 2026-05-10 | `fix(frontend-dev): default vite preview to fixture-backed API` |
 | [BUG-0038](./BUG-0038.md) | jd_match search parity and pixel gate drift escaped L2 review | medium | resolved | 2026-05-10 | `fix(frontend-jd-match): restore search parity and clean pixel gate` |
 | [BUG-0037](./BUG-0037.md) | jd_match L2 review exposed detail fetch and auth resume drift | medium | resolved | 2026-05-10 | `fix(frontend-jd-match): remediate jd match L2 findings` |
