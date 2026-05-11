@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-11](2026-05-11.md) | `fix(frontend-shell): harden workspace pixel parity gate` | #fix #ui #test #docs |
 | [2026-05-11](2026-05-11.md) | `fix(frontend-shell): restore auth state and user menu parity` | #fix #ui #test #docs |
 | [2026-05-10](2026-05-10.md) | `fix(frontend-jd-match): harden search abort and source safety` | #fix #ui #test #docs |
 | [2026-05-10](2026-05-10.md) | `fix(frontend-jd-match): restore search parity and clean pixel gate` | #fix #ui #test #docs |

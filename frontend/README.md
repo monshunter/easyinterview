@@ -137,7 +137,7 @@ D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
    ./test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/scripts/{setup,trigger,verify,cleanup}.sh
    ```
 
-2. **Playwright + chromium pixel parity gate（E2E.P0.006，秒级）**：在 desktop (1440×900) 与 mobile (390×844) 两个 chromium project 下加载 `frontend/dist/index.html` 与 `ui-design/index.html` golden preview，断言 DOM 锚点 + computed style + bounding box + 截图差异。CI / 主线合并前必跑。
+2. **Playwright + chromium pixel parity gate（E2E.P0.006，秒级）**：在 desktop (1440×900) 与 mobile (390×844) 两个 chromium project 下加载 `frontend/dist/index.html` 与 `ui-design/index.html` golden preview，断言 DOM 锚点 + computed style + bounding box + screenshot smoke / 必要截图差异。CI / 主线合并前必跑。
 
    ```bash
    # 0. 一次性预装 chromium 二进制（首次或新机器）
@@ -146,7 +146,7 @@ D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
    # 1. 构建 frontend dist（serve-pixel-parity.mjs 依赖）
    pnpm --filter @easyinterview/frontend build
 
-   # 2. 跑 4 个 spec × 2 viewport = 48 项 Playwright gate
+   # 2. 跑 8 个 spec × 2 viewport = 110 项 Playwright gate
    pnpm --filter @easyinterview/frontend test:pixel-parity
 
    # 3. 完整 scenario 入口（包含 pre-check / verify / cleanup）
@@ -157,7 +157,7 @@ D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
 
    - Playwright config：[`frontend/playwright.config.ts`](./playwright.config.ts) 声明 desktop / mobile 两个 chromium project + `webServer` 指向 `serve-pixel-parity.mjs`。
    - 静态 server fixture：[`frontend/scripts/serve-pixel-parity.mjs`](./scripts/serve-pixel-parity.mjs) 同时挂载 `frontend/dist`（`/`）与 `ui-design/`（`/ui-design/`），并暴露 `/health` 探活。
-   - 4 个 spec：[`tests/pixel-parity/topbar.spec.ts`](./tests/pixel-parity/topbar.spec.ts)、[`screens.spec.ts`](./tests/pixel-parity/screens.spec.ts)、[`layout.spec.ts`](./tests/pixel-parity/layout.spec.ts)、[`screenshot.spec.ts`](./tests/pixel-parity/screenshot.spec.ts)。
+   - 8 个 spec：[`tests/pixel-parity/topbar.spec.ts`](./tests/pixel-parity/topbar.spec.ts)、[`screens.spec.ts`](./tests/pixel-parity/screens.spec.ts)、[`layout.spec.ts`](./tests/pixel-parity/layout.spec.ts)、[`screenshot.spec.ts`](./tests/pixel-parity/screenshot.spec.ts)、[`home.spec.ts`](./tests/pixel-parity/home.spec.ts)、[`parse.spec.ts`](./tests/pixel-parity/parse.spec.ts)、[`jd_match.spec.ts`](./tests/pixel-parity/jd_match.spec.ts)、[`workspace.spec.ts`](./tests/pixel-parity/workspace.spec.ts)。
 
    截图基线维护：
 
@@ -165,9 +165,11 @@ D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
    pnpm exec playwright test tests/pixel-parity/screenshot.spec.ts --update-snapshots
    ```
 
-   baseline 文件位于 `frontend/tests/pixel-parity/screenshot.spec.ts-snapshots/`，默认通过 `frontend/.gitignore` 排除入 git；CI / 本地各自维护。
+   baseline 文件位于 `frontend/tests/pixel-parity/*-snapshots/`，默认通过 `frontend/.gitignore` 排除入 git；CI / 本地各自维护。
 
    Clean checkout gate 不能依赖被 `.gitignore` 排除的本地 snapshot baseline：常规 PASS 证据必须来自 DOM anchor、computed style、bounding box、responsive geometry 或 screenshot smoke（例如非空截图 buffer）。只有在 baseline 可由 CI / checkout 稳定取得或本次显式 `--update-snapshots` 维护时，才能把 `toHaveScreenshot` diff 作为完成 gate。
+
+   `workspace.spec.ts` 的 full-state pixel path 通过测试注入的 initial route 使用 server-bound `targetJobId` / `resumeVersionId` / `planId` 进入完整规划态；不要把它改回 Home recent card 路径，后者按产品语义会携带 `resume-unbound` 并触发 missing-resume 状态。
 
    修改 frontend bundle 后重跑 Playwright parity 时，先确认 4173 端口没有复用旧 `dist` 的 server；若存在 stale server，停止后重新运行 gate，避免 `reuseExistingServer` 读取旧构建产物。
 

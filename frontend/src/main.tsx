@@ -8,6 +8,13 @@ import "./app/theme/global.css";
 
 import { createAppClient } from "./api/clientFactory";
 import { App } from "./app/App";
+import type { LooseRoute } from "./app/normalizeRoute";
+
+declare global {
+  interface Window {
+    __EASYINTERVIEW_INITIAL_ROUTE__?: LooseRoute;
+  }
+}
 
 const root = document.getElementById("root");
 
@@ -17,6 +24,9 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <App client={createAppClient()} />
+    <App
+      client={createAppClient()}
+      initialRoute={window.__EASYINTERVIEW_INITIAL_ROUTE__}
+    />
   </StrictMode>,
 );

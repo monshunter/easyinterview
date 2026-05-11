@@ -11,17 +11,19 @@
   - `layout.spec.ts` 4 个用例：TopBar fits viewport、五入口不重叠、display
     controls + user area 不重叠、auth_login 两栏在 desktop 双列 / mobile
     单列堆叠。
-  - `screenshot.spec.ts` 4 个用例：home warm/light baseline 比对、dark
+  - `screenshot.spec.ts` 4 个用例：home warm/light screenshot smoke、dark
     toggle 翻转 token + body bg、customAccent 内联仅覆盖 accent / accent-
     soft、retired entries 0 命中。
   - `home.spec.ts` 4 个用例：Home hero / textarea / aux cards DOM 锚点、
     viewport 内布局与 dark mode token 变化。
   - `parse.spec.ts` 3 个用例：Home 到 parse 入口、textarea submit enable、
     upload modal DOM 锚点。
-  - `jd_match.spec.ts` 3 个用例：jd_match placeholder 入口、viewport 内布局、
-    旧业务 testid 0 命中。
+  - `jd_match.spec.ts` 10 个用例：三 tab DOM anchor、responsive geometry、
+    dark/customAccent、screenshot smoke 与旧业务 testid 0 命中。
+  - `workspace.spec.ts` 14 个用例：empty state、server-bound full-state、
+    modal、bounding box、theme、screenshot smoke 与 retired entry negative。
 - trigger.log 必须出现：
-  - `68 passed`
+  - `110 passed`
   - `0 failed`
   - 不含 `topbar-nav-welcome` / `topbar-nav-mistakes` / `topbar-nav-growth` /
     `topbar-nav-drill` / `topbar-nav-voice` / `route-welcome` 任何一个 token。

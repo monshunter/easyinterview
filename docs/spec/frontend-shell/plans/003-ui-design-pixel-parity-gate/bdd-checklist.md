@@ -1,8 +1,8 @@
 # UI-Design Pixel Parity Gate BDD Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-10
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -17,6 +17,8 @@
   <!-- verified: 2026-05-08 method=scenario evidence=".test-output/e2e/p0-006-ui-design-pixel-parity-gate/trigger.log: 48 passed (4 spec × desktop+mobile chromium project)；setup→trigger→verify→cleanup 全 PASS" -->
 - [x] 记录验证证据
   <!-- verified: 2026-05-08 method=scenario evidence="trigger.log + verify.sh；test/scenarios/e2e/INDEX.md 已添加 P0.006 行 (Ready)" -->
+- [x] 2026-05-10 remediation：完整 pixel gate 刷新为 8 spec / 110 tests，workspace full-state 不再依赖 Home recent card 的 `resume-unbound` 前提，常规 screenshot gate 不再依赖 ignored local baseline；setup→trigger→verify→cleanup 重新通过并记录证据
+  <!-- verified: 2026-05-10 method=scenario evidence="P0.006 setup→trigger→verify→cleanup PASS；trigger.log 含 110 passed，verify.sh 检查 topbar/screens/layout/screenshot/home/parse/jd_match/workspace spec markers" -->
 
 ## Regression 场景重跑
 

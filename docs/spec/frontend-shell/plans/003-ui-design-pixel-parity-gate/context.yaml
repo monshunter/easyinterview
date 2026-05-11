@@ -25,6 +25,10 @@ spec:
       - computed style
       - screenshot diff
       - toHaveScreenshot
+      - clean checkout
+      - screenshot smoke
+      - workspace initial route bootstrap
+      - hydrated workspace
       - golden preview
       - ui-design parity
       - real browser visual smoke
@@ -50,6 +54,7 @@ spec:
       discovery:
         packages:
           - frontend/playwright.config.ts
+          - frontend/src/main.tsx
           - frontend/scripts
           - frontend/tests/pixel-parity
           - frontend/dist

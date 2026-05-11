@@ -38,22 +38,26 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
   ui-design hash route `#route=auth_login` 对照 + retired-module 负向断言。
 - `tests/pixel-parity/layout.spec.ts` — TopBar 与 auth shell 在两个 viewport
   下的 bounding box 不重叠 / 不溢出。
-- `tests/pixel-parity/screenshot.spec.ts` — 默认 warm/light 截图基线
-  regression（`toHaveScreenshot`）+ dark / customAccent 状态变更的可见 token
-  diff（不依赖跨 ui-design 像素 diff，避免字体源差异引入 false positive）。
+- `tests/pixel-parity/screenshot.spec.ts` — 默认 warm/light screenshot smoke
+  （非空截图 buffer，不依赖 ignored local baseline）+ dark / customAccent 状态变更
+  的可见 token diff（不依赖跨 ui-design 像素 diff，避免字体源差异引入 false
+  positive）。
 - `tests/pixel-parity/home.spec.ts` — Home hero / textarea / aux cards DOM 锚点、
   bounding box 与 dark/customAccent token 变化。
 - `tests/pixel-parity/parse.spec.ts` — Home 到 parse 入口、textarea submit enable、
   upload modal DOM 锚点。
 - `tests/pixel-parity/jd_match.spec.ts` — jd_match placeholder 从 home aux card 进入、
   viewport 内布局与旧业务 testid 负向断言。
+- `tests/pixel-parity/workspace.spec.ts` — workspace empty + full-state DOM anchor、
+  bounding box、modal、theme 与 screenshot smoke；full-state 通过 server-bound
+  initial route bootstrap 进入，不依赖 Home recent card 的 `resume-unbound`。
 
 `webServer` 由 `frontend/scripts/serve-pixel-parity.mjs` 提供（Node 内置
 模块；同时挂载 `frontend/dist` 与 `ui-design/`，并暴露 `/health` 探活）。
 
 ## 3 Then
 
-- 全部 68 个 Playwright 用例（7 个 spec × 2 project）PASS、0 failed。
+- 全部 110 个 Playwright 用例（8 个 spec × 2 project）PASS、0 failed。
 - TopBar 五入口 testid 在两个 project 下都存在；TopBar shell 高 58 / padding
   0 32 / border-bottom 1px solid `rgb(231, 226, 214)`。
 - 默认 home 渲染 `topbar-nav-home[aria-current=page]`、`topbar-dark-toggle`
@@ -67,8 +71,8 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
   19, 14)`。
 - 激活 customAccent 后 `<html data-custom-accent="active"`、内联
   `--ei-color-accent` 为 `oklch(58% ...)`、base palette token 不被覆盖。
-- 截图 baseline（`tests/pixel-parity/screenshot.spec.ts-snapshots/`）与本次
-  渲染像素差异在配置阈值内（`maxDiffPixels: 2000`，desktop / mobile 各自 baseline）。
+- screenshot smoke 生成非空 browser screenshot buffer；常规 gate 不要求
+  `tests/pixel-parity/*-snapshots/` 下存在 ignored local baseline。
 
 ## 4 执行
 
@@ -86,9 +90,9 @@ pnpm --filter @easyinterview/frontend test:pixel-parity:install
 `setup.sh` 检查 chromium 缓存 + `frontend/dist/index.html` 存在；缺失任一
 都 exit ≠ 0 并给出可读提示。`trigger.sh` 跑 Playwright 后把日志写到
 `.test-output/e2e/p0-006-ui-design-pixel-parity-gate/trigger.log`。
-`verify.sh` 断言日志包含 `68 passed` 与 `0 failed`，并 grep retired-module
-testid 不在 trigger 输出里出现，同时确认 home / parse / jd_match 新增 parity spec
-已实际执行。
+`verify.sh` 断言日志包含 `110 passed` 与 `0 failed`，并 grep retired-module
+testid 不在 trigger 输出里出现，同时确认 home / parse / jd_match / workspace
+parity spec 已实际执行。
 
 ## 5 污染控制
 
@@ -98,20 +102,22 @@ testid 不在 trigger 输出里出现，同时确认 home / parse / jd_match 新
   !CI` 模式下复用本地实例；CI 上每次重启。
 - `setup.sh` 仅写一个 marker；`cleanup.sh` 移除 marker，保留 trigger.log
   与 Playwright report 作为证据。
-- 截图 baseline 默认通过 `frontend/.gitignore` 排除入 git；CI / 本地各自维护。
+- 截图 baseline 默认通过 `frontend/.gitignore` 排除入 git；常规 gate 使用
+  screenshot smoke，不依赖 ignored baseline。
 
 ## 6 截图基线维护
 
-baseline 文件位于 `frontend/tests/pixel-parity/screenshot.spec.ts-snapshots/`
-（`<test name>-<project>-<platform>.png`），不入 git。重生成：
+baseline 文件位于 `frontend/tests/pixel-parity/*-snapshots/`
+（`<test name>-<project>-<platform>.png`），不入 git。显式重生成：
 
 ```bash
 cd frontend
 pnpm exec playwright test tests/pixel-parity/screenshot.spec.ts --update-snapshots
 ```
 
-`--update-snapshots` 会覆盖现有 baseline；CI 环境如果首次运行没有 baseline，
-会按 actual 写出并通过；后续运行才作为 hard gate。
+`--update-snapshots` 会覆盖现有 baseline。默认 P0.006 gate 不把这些
+`.gitignore` 文件作为 PASS 前提；只有在 CI / checkout 能稳定提供 baseline
+artifact 时，才把 screenshot diff 升级为 hard gate。
 
 ## 7 不依赖外网时的局限
 

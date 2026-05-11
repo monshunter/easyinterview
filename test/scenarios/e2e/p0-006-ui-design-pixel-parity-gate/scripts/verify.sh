@@ -7,7 +7,7 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-006-ui-design-pixel-parity-gate"
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
-grep -Eq '68 passed' "$LOG_FILE"
+grep -Eq '110 passed' "$LOG_FILE"
 if grep -Eq '[0-9]+ failed' "$LOG_FILE"; then
   echo "[verify] trigger.log reports failed tests" >&2
   exit 1
@@ -23,6 +23,7 @@ grep -Fq "tests/pixel-parity/screenshot.spec.ts" "$LOG_FILE"
 grep -Fq "tests/pixel-parity/home.spec.ts" "$LOG_FILE"
 grep -Fq "tests/pixel-parity/parse.spec.ts" "$LOG_FILE"
 grep -Fq "tests/pixel-parity/jd_match.spec.ts" "$LOG_FILE"
+grep -Fq "tests/pixel-parity/workspace.spec.ts" "$LOG_FILE"
 
 # Negative: trigger.log must not mention retired entries.
 for forbidden in \
