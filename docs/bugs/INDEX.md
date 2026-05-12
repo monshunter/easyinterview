@@ -46,6 +46,8 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0046](./BUG-0046.md) | resume workshop hid failed loads and original-source pending state | medium | resolved | 2026-05-12 | `fix(frontend-resume-workshop): harden resume workshop error states` |
+| [BUG-0045](./BUG-0045.md) | resume workshop L2 review exposed original modal and CSS parity drift | medium | resolved | 2026-05-12 | `fix(frontend-resume-workshop): remediate listing detail L2 gaps` |
 | [BUG-0041](./BUG-0041.md) | auth user menu browser parity missed mobile overflow | medium | resolved | 2026-05-11 | `fix(frontend-shell): close auth menu browser parity gap` |
 | [BUG-0040](./BUG-0040.md) | workspace pixel gate depended on stale hydration and ignored baselines | medium | resolved | 2026-05-10 | `fix(frontend-shell): harden workspace pixel parity gate` |
 | [BUG-0039](./BUG-0039.md) | frontend shell auth state and user menu parity drift | medium | resolved | 2026-05-10 | `fix(frontend-shell): restore auth state and user menu parity` |
@@ -64,8 +66,8 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
-| [BUG-0046](./BUG-0046.md) | backend upload L2 review exposed size privacy and live gate gaps | high | resolved | 2026-05-12 | `fix(backend-upload): harden upload privacy and live gates` |
-| [BUG-0045](./BUG-0045.md) | upload presign runtime path was only partially wired | high | resolved | 2026-05-12 | `fix(backend-upload): wire presign runtime contracts` |
+| [BUG-0048](./BUG-0048.md) | backend upload L2 review exposed size privacy and live gate gaps | high | resolved | 2026-05-12 | `fix(backend-upload): harden upload privacy and live gates` |
+| [BUG-0047](./BUG-0047.md) | upload presign runtime path was only partially wired | high | resolved | 2026-05-12 | `fix(backend-upload): wire presign runtime contracts` |
 | [BUG-0035](./BUG-0035.md) | change-intake mutated main before branch guard | high | resolved | 2026-05-10 | `fix(change-intake): require branch guard before mutation` |
 | [BUG-0022](./BUG-0022.md) | speech adapters ignored profile timeouts | medium | resolved | 2026-05-08 | `fix(ai-provider): enforce speech adapter timeouts` |
 | [BUG-0017](./BUG-0017.md) | runtime topology lint missed structured producer and owner handoff forms | medium | resolved | 2026-05-07 | `fix(runtime): harden worker topology structured gate` |

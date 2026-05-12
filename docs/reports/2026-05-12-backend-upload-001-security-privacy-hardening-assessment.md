@@ -6,7 +6,7 @@
 ## 1 复盘范围与成功证据
 
 - 范围：`backend-upload/001-file-objects-and-presign-baseline` review follow-up hardening，覆盖真实 upload size enforcement、presign idempotency TTL、runtime `privacy_delete` upload deleter wiring、DB hard delete + audit tombstone atomicity，以及 E2E.P0.033 live gate skip fail-fast。
-- Bug 记录：新增 [BUG-0046](../bugs/BUG-0046.md)，记录 size limit bypass、privacy delete runtime gap、expired presign replay、audit tombstone loss 和 BDD skip false pass。
+- Bug 记录：新增 [BUG-0048](../bugs/BUG-0048.md)，记录 size limit bypass、privacy delete runtime gap、expired presign replay、audit tombstone loss 和 BDD skip false pass。
 - Spec/plan 证据：`backend-upload` spec/history 升到 1.2；原 plan/checklist/BDD files 原地修订并在 verification 后恢复 `completed`，Phase 6 记录每项 focused gate。
 - 通过证据：`go test ./backend/internal/upload/... ./backend/internal/privacy/runner ./backend/cmd/api -count=1`、`cd backend && go test ./...`、`python3 test/scenarios/e2e/p0-033-file-presign-register-roundtrip/scripts/script_contract_test.py`、`make docs-check`、`git diff --check`、`make test`、`make lint`、`make build` 均 PASS。
 - 环境说明：本次没有伪造 live E2E.P0.033 PASS；脚本已改为缺少 `DATABASE_URL` / `OBJECT_STORAGE_*` 或出现 integration skip 时失败，真实 DB + MinIO evidence 需要在环境就绪后补跑。
@@ -63,5 +63,5 @@
 ## 5 建议优先级与后续动作
 
 - 最高优先级：在具备 live Postgres + MinIO env 后，按 `/scenario-run` 或手动 `setup -> trigger -> verify -> cleanup` 补跑 E2E.P0.033，产出真实 `DATABASE_URL` / `OBJECT_STORAGE_*` evidence。
-- 下一步交付：执行 `/work-journal` 时使用 commit title `fix(backend-upload): harden upload privacy and live gates`，并在日志中引用 [BUG-0046](../bugs/BUG-0046.md)。
+- 下一步交付：执行 `/work-journal` 时使用 commit title `fix(backend-upload): harden upload privacy and live gates`，并在日志中引用 [BUG-0048](../bugs/BUG-0048.md)。
 - 可延后：把 “fail on skip for live evidence” 提炼进 `test/scenarios/README.md` 或 scenario template，避免后续 live 场景重复实现脚本级 grep。

@@ -6,7 +6,7 @@
 ## 1 复盘范围与成功证据
 
 - 范围：`backend-upload/001-file-objects-and-presign-baseline` L2 code review remediation，覆盖 `createUploadPresign` runtime route、real service implementation、`file_objects` register 事务边界、MinIO smoke 和 E2E.P0.033 scenario gate hardening。
-- Bug 记录：新增 [BUG-0045](../bugs/BUG-0045.md)，记录 upload presign runtime path 只被 fake/wrapper gate 覆盖的问题。
+- Bug 记录：新增 [BUG-0047](../bugs/BUG-0047.md)，记录 upload presign runtime path 只被 fake/wrapper gate 覆盖的问题。
 - 红测证据：`TestCreateUploadPresignCreatesPendingFileObjectAndPresignsObject`、`TestRepositoryRegisterUploadedChecksObjectWhileRowLocked`、`TestBuildAPIHandlerMountsUploadPresignBehindSessionMiddleware` 在修复前分别暴露 service missing、store missing 与 route 404。
 - 通过证据：上述 focused tests 均 PASS；`go test ./backend/internal/upload/... ./backend/internal/privacy/runner ./backend/cmd/api -count=1`、`cd backend && go test ./...`、`make validate-fixtures`、`make docs-check`、`git diff --check`、`make test`、`make lint`、`make build` 均 PASS。
 - BDD 证据：E2E.P0.033 `setup -> trigger -> verify -> cleanup` PASS，trigger/verify 已纳入 real service、transactional register 和 API route focused tests。
@@ -64,5 +64,5 @@
 ## 5 建议优先级与后续动作
 
 - 最高优先级：在 `backend-resume/001-asset-register-parse-and-listing` 启动前，把 upload dependency 明确为已通过的 offline/runtime contract，并把 live DB + MinIO dev-stack smoke 单独列为环境就绪后的 BDD gate。
-- 下一步修复：执行 `/work-journal` 时使用 commit title `fix(backend-upload): wire presign runtime contracts`，并在日志中引用 [BUG-0045](../bugs/BUG-0045.md)。
+- 下一步修复：执行 `/work-journal` 时使用 commit title `fix(backend-upload): wire presign runtime contracts`，并在日志中引用 [BUG-0047](../bugs/BUG-0047.md)。
 - 可延后：将 “route mounting + real service side effect + transaction boundary” 抽成 backend API plan 的通用 L2 checklist 模板，降低后续 plan 重复漏项风险。

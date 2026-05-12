@@ -9,13 +9,20 @@
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
 | [2026-05-13](2026-05-13.md) | `fix(backend-upload): harden presign size enforcement, atomic privacy delete, and runtime wiring` | #fix #test #docs |
+| [2026-05-12](2026-05-12.md) | `fix(frontend-resume-workshop): harden resume workshop error states` | #fix #ui #test #docs |
+| [2026-05-12](2026-05-12.md) | `fix(frontend-resume-workshop): remediate listing detail L2 gaps` | #fix #ui #test #docs |
 | [2026-05-12](2026-05-12.md) | `fix(backend-upload): wire presign runtime contracts` | #fix #test #docs |
 | [2026-05-12](2026-05-12.md) | `docs(retrospective): assess backend-upload baseline delivery` | #docs |
 | [2026-05-12](2026-05-12.md) | `test(backend-upload): add presign register bdd scenario` | #test #docs |
+| [2026-05-12](2026-05-12.md) | `feat(frontend-resume-workshop): add pixel parity and bdd scenarios` | #feat #ui #test |
 | [2026-05-12](2026-05-12.md) | `feat(backend-upload): add privacy file deletion` | #feat #test #docs |
+| [2026-05-12](2026-05-12.md) | `feat(frontend-resume-workshop): add accept-language and privacy gates` | #feat #i18n #test |
+| [2026-05-12](2026-05-12.md) | `feat(frontend-resume-workshop): add resume detail view and export fallback` | #feat #ui #i18n |
 | [2026-05-12](2026-05-12.md) | `feat(backend-upload): add object store register service` | #feat #test #docs |
 | [2026-05-12](2026-05-12.md) | `feat(backend-upload): add file object store` | #feat #test #docs |
+| [2026-05-12](2026-05-12.md) | `feat(frontend-resume-workshop): wire resume list and tree views` | #feat #ui #i18n |
 | [2026-05-12](2026-05-12.md) | `feat(backend-upload): add presign handler validation` | #feat #test #docs |
+| [2026-05-12](2026-05-12.md) | `feat(frontend-resume-workshop): add resume workshop route container` | #feat #ui #i18n |
 | [2026-05-12](2026-05-12.md) | `feat(backend-upload): complete config contract preflight` | #feat #test #docs |
 | [2026-05-12](2026-05-12.md) | `docs(backend-resume): fix plan-review preview confirm and parse contract` | #docs |
 | [2026-05-12](2026-05-12.md) | `docs(backend-upload): fix plan-review presign status and privacy ordering` | #docs |

@@ -93,6 +93,15 @@ describe("App shell", () => {
     );
   });
 
+  it("renders ResumeWorkshopScreen on resume_versions route instead of PlaceholderScreen", () => {
+    render(
+      <App initialRoute={{ name: "resume_versions", params: {} }} />,
+    );
+    expect(screen.getByTestId("resume-workshop-screen")).toBeInTheDocument();
+    expect(screen.queryByTestId("route-resume_versions")).not.toBeInTheDocument();
+    expect(screen.queryByText("D2-D6")).not.toBeInTheDocument();
+  });
+
   it("renders WorkspaceScreen on workspace route instead of PlaceholderScreen", () => {
     render(
       <App

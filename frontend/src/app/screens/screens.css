@@ -122,3 +122,596 @@
 .ei-screen-card--placeholder {
   gap: var(--ei-space-4);
 }
+
+/*
+ * Resume Workshop P0 list/detail visual parity. Values are transcribed from
+ * the static resume workshop prototype so production DOM anchors keep the
+ * same density, card geometry, and read-only preview frame.
+ */
+
+.ei-screen-shell[data-testid="resume-workshop-screen"] {
+  max-width: 1320px;
+  padding: 40px 48px 96px;
+  gap: 0;
+}
+
+.ei-resume-workshop-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ei-resume-workshop-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.ei-resume-workshop-list-header .ei-text-label {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--ei-color-fg-tertiary);
+}
+
+.ei-resume-workshop-list-header .ei-text-display {
+  margin: 0;
+  max-width: 860px;
+  color: var(--ei-color-fg-primary);
+  font-size: 38px;
+  line-height: 1.15;
+  letter-spacing: -0.022em;
+}
+
+.ei-resume-workshop-list-header .ei-text-body {
+  margin: 10px 0 0;
+  max-width: 720px;
+  color: var(--ei-color-fg-tertiary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ei-resume-workshop-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+}
+
+.ei-resume-workshop-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 14px 16px;
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 2px;
+}
+
+.ei-resume-workshop-stat .ei-text-title {
+  color: var(--ei-color-fg-primary);
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.ei-resume-workshop-stat .ei-text-label {
+  color: var(--ei-color-fg-tertiary);
+}
+
+.ei-resume-workshop-view-switcher {
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  margin-bottom: 16px;
+  overflow: hidden;
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 2px;
+}
+
+.ei-resume-workshop-view-switcher button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  color: var(--ei-color-fg-tertiary);
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--ei-color-rule-strong);
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+}
+
+.ei-resume-workshop-view-switcher button:last-child {
+  border-right: 0;
+}
+
+.ei-resume-workshop-view-switcher button[data-active="true"] {
+  color: var(--ei-color-fg-primary);
+  background: var(--ei-color-bg-soft);
+}
+
+.ei-resume-workshop-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ei-resume-workshop-tree-row {
+  overflow: hidden;
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 3px;
+}
+
+.ei-resume-workshop-tree-row[data-source-status="archived"] {
+  opacity: 0.7;
+}
+
+.ei-resume-workshop-tree-row-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--ei-color-rule-strong);
+}
+
+.ei-resume-workshop-tree-row[data-collapsed="true"]
+  .ei-resume-workshop-tree-row-header {
+  border-bottom: 0;
+}
+
+.ei-resume-workshop-tree-toggle {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+  padding: 0;
+  color: var(--ei-color-fg-secondary);
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
+
+.ei-resume-workshop-tree-toggle .ei-text-title,
+.ei-resume-workshop-tree-toggle .ei-text-body {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ei-resume-workshop-tree-toggle .ei-text-title {
+  color: var(--ei-color-fg-primary);
+  font-family: var(--ei-font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.ei-resume-workshop-tree-toggle .ei-text-label {
+  padding: 1px 6px;
+  color: var(--ei-color-fg-tertiary);
+  background: var(--ei-color-bg-soft);
+  border-radius: 2px;
+  font-size: 9px;
+}
+
+.ei-resume-workshop-tree-toggle .ei-text-body {
+  color: var(--ei-color-fg-tertiary);
+  font-family: var(--ei-font-mono);
+  font-size: 12px;
+}
+
+.ei-resume-workshop-tree-row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ei-resume-workshop-tree-row-actions button,
+.ei-resume-workshop-version-row button,
+.ei-resume-workshop-flat-row button,
+.ei-resume-detail-back,
+.ei-resume-detail-preview-actions button,
+.ei-resume-detail-modal button {
+  padding: 5px 12px;
+  color: var(--ei-color-fg-secondary);
+  background: transparent;
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 2px;
+  font-family: var(--ei-font-sans);
+  font-size: 12px;
+}
+
+.ei-resume-workshop-tree-versions {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+
+.ei-resume-workshop-version-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 18px 11px 18px;
+  border-bottom: 1px dotted var(--ei-color-rule-strong);
+}
+
+.ei-resume-workshop-version-row:last-child {
+  border-bottom: 0;
+}
+
+.ei-resume-workshop-version-row .ei-text-body {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ei-color-fg-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ei-resume-workshop-version-row .ei-text-label {
+  color: var(--ei-color-fg-tertiary);
+}
+
+.ei-resume-workshop-version-row[data-tag="TARGETED"] .ei-text-label:first-of-type {
+  color: var(--ei-color-accent);
+}
+
+.ei-resume-workshop-flat {
+  overflow: hidden;
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 3px;
+}
+
+.ei-resume-workshop-flat-header,
+.ei-resume-workshop-flat-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1.4fr 1fr 0.8fr 1fr 100px;
+  gap: 14px;
+  align-items: center;
+}
+
+.ei-resume-workshop-flat-header {
+  padding: 11px 18px;
+  color: var(--ei-color-fg-tertiary);
+  background: var(--ei-color-bg-soft);
+  border-bottom: 1px solid var(--ei-color-rule-strong);
+  font-family: var(--ei-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ei-resume-workshop-flat-row {
+  padding: 13px 18px;
+  color: var(--ei-color-fg-secondary);
+  border-bottom: 1px dotted var(--ei-color-rule-strong);
+  font-size: 12.5px;
+}
+
+.ei-resume-workshop-flat-row:last-child {
+  border-bottom: 0;
+}
+
+.ei-resume-workshop-flat-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ei-resume-detail {
+  width: 100%;
+}
+
+.ei-resume-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 14px;
+  padding: 0;
+  color: var(--ei-color-fg-tertiary);
+  background: transparent;
+  border: 0;
+  font-size: 13px;
+}
+
+.ei-resume-detail-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: var(--ei-color-fg-tertiary);
+}
+
+.ei-resume-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.ei-resume-detail-header .ei-text-display {
+  margin: 0;
+  color: var(--ei-color-fg-primary);
+  font-size: 32px;
+  line-height: 1.2;
+  letter-spacing: -0.022em;
+}
+
+.ei-resume-detail-header > .ei-text-label {
+  padding: 3px 8px;
+  color: var(--ei-color-accent);
+  background: var(--ei-color-accent-soft);
+  border-radius: 2px;
+  font-size: 10px;
+}
+
+.ei-resume-detail-branch-graph {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.ei-resume-detail-branch-node {
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 2px;
+}
+
+.ei-resume-detail-branch-node .ei-text-body {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--ei-color-fg-secondary);
+  font-family: var(--ei-font-mono);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ei-resume-detail-branch-node--current {
+  border-color: var(--ei-color-accent);
+  background: var(--ei-color-accent-soft);
+}
+
+.ei-resume-detail-tabs {
+  display: flex;
+  gap: 0;
+  margin-top: 24px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--ei-color-rule-strong);
+}
+
+.ei-resume-detail-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: -1px;
+  padding: 13px 20px;
+  color: var(--ei-color-fg-tertiary);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font-family: var(--ei-font-sans);
+  font-size: 14px;
+}
+
+.ei-resume-detail-tabs button[aria-selected="true"] {
+  color: var(--ei-color-fg-primary);
+  border-bottom-color: var(--ei-color-accent);
+}
+
+.ei-resume-detail-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 22px;
+  align-items: start;
+}
+
+.ei-resume-detail-preview-card {
+  min-height: 720px;
+  padding: 44px 56px;
+  color: #222222;
+  background: #ffffff;
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 3px;
+  box-shadow: 0 18px 50px rgba(30, 22, 15, 0.10);
+  font-family: Georgia, serif;
+}
+
+.ei-resume-detail-preview-card .ei-text-title {
+  margin: 0 0 4px;
+  color: #222222;
+  font-family: Georgia, serif;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.ei-resume-detail-preview-card .ei-text-body {
+  color: #333333;
+  font-family: Georgia, serif;
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+
+.ei-resume-detail-preview-section {
+  margin-top: 18px;
+}
+
+.ei-resume-detail-preview-section .ei-text-label {
+  margin: 0 0 10px;
+  color: #888888;
+  font-family: var(--ei-font-mono);
+  letter-spacing: 0.14em;
+}
+
+.ei-resume-detail-preview-section ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.ei-resume-detail-preview-skills {
+  margin-top: 22px;
+}
+
+.ei-resume-detail-preview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ei-resume-detail-preview-actions button {
+  width: 100%;
+  padding: 8px 14px;
+  text-align: left;
+}
+
+.ei-resume-detail-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(28, 25, 23, 0.34);
+}
+
+.ei-resume-detail-modal {
+  width: min(760px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  overflow: auto;
+  padding: 22px;
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 3px;
+  box-shadow: var(--ei-shadow-elev2);
+}
+
+.ei-resume-detail-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.ei-resume-detail-modal-header .ei-text-title {
+  margin: 0;
+  color: var(--ei-color-fg-primary);
+  font-size: 22px;
+}
+
+.ei-resume-detail-modal-header button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--ei-color-fg-secondary);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.ei-resume-detail-modal-desc {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px dotted var(--ei-color-rule-strong);
+}
+
+.ei-resume-detail-modal-desc .ei-text-body {
+  margin: 0 0 6px;
+  color: var(--ei-color-fg-secondary);
+}
+
+.ei-resume-detail-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  background: var(--ei-color-bg-soft);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 2px;
+}
+
+.ei-resume-detail-modal-content .ei-text-body {
+  margin: 0;
+  color: var(--ei-color-fg-secondary);
+  line-height: 1.65;
+}
+
+@media (max-width: 900px) {
+  .ei-screen-shell[data-testid="resume-workshop-screen"] {
+    padding: 32px 24px 80px;
+  }
+
+  .ei-resume-workshop-stats,
+  .ei-resume-detail-branch-graph {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ei-resume-detail-preview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ei-resume-workshop-flat {
+    overflow-x: auto;
+  }
+
+  .ei-resume-workshop-flat-header,
+  .ei-resume-workshop-flat-row {
+    min-width: 860px;
+  }
+}
+
+@media (max-width: 700px) {
+  .ei-screen-shell[data-testid="resume-workshop-screen"] {
+    padding: 28px 18px 72px;
+  }
+
+  .ei-resume-workshop-list-header .ei-text-display,
+  .ei-resume-detail-header .ei-text-display {
+    font-size: 30px;
+  }
+
+  .ei-resume-workshop-stats,
+  .ei-resume-detail-branch-graph {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ei-resume-workshop-tree-row-header,
+  .ei-resume-workshop-version-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ei-resume-workshop-tree-row-actions,
+  .ei-resume-detail-tabs {
+    overflow-x: auto;
+  }
+
+  .ei-resume-detail-preview-card {
+    min-height: 520px;
+    padding: 32px 28px;
+  }
+
+  .ei-resume-detail-modal-overlay {
+    align-items: stretch;
+    padding: 16px;
+  }
+}

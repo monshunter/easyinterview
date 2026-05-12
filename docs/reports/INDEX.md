@@ -9,6 +9,7 @@
 | 日期 | 报告 | 类型 |
 |------|------|------|
 | [2026-05-12](./2026-05-12-backend-upload-001-security-privacy-hardening-assessment.md) | Backend Upload 001 Security Privacy Hardening 交付复盘 | #assessment |
+| [2026-05-12](./2026-05-12-frontend-resume-workshop-001-listing-routing-and-detail-readonly-assessment.md) | frontend-resume-workshop/001-listing-routing-and-detail-readonly 交付复盘 | #assessment |
 | [2026-05-12](./2026-05-12-backend-upload-001-l2-remediation-assessment.md) | Backend Upload 001 L2 Remediation 交付复盘 | #assessment |
 | [2026-05-12](./2026-05-12-backend-upload-001-file-objects-and-presign-baseline-assessment.md) | Backend Upload 001 File Objects And Presign Baseline 交付复盘 | #assessment |
 | [2026-05-12](./2026-05-12-resume-additive-client-cleanup-l2-remediation-assessment.md) | Resume Additive Client Cleanup L2 Remediation 交付复盘 | #assessment |
