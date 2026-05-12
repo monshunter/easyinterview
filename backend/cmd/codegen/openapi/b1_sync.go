@@ -16,10 +16,10 @@ const (
 // `# === B1-AUTO-START` and `# === B1-AUTO-END ===` with content rendered
 // from shared/conventions.yaml. The block contains:
 //
-//   - ApiErrorCode (errors[].code + PRIVACY_EXPORT_NOT_AVAILABLE)
+//   - ApiErrorCode (errors[].code + OpenAPI-local P0 export exceptions)
 //   - ApiError (B1 inner error object), ApiErrorResponse (B2 envelope), PageInfo
 //   - JobStatus (B1 jobStatuses)
-//   - 14 enums (B1 enums[])
+//   - B1 enums[]
 //
 // The function is idempotent: invoking it on an in-sync file leaves the file
 // byte-identical, so the file participates correctly in `make codegen-check`.
@@ -89,7 +89,7 @@ func renderB1AutoBlock(conv *Conventions) (string, error) {
 	sb.WriteString("    # Hand edits inside this block will be overwritten. To extend the contract,\n")
 	sb.WriteString("    # update `shared/conventions.yaml` (B1 truth source) and re-run codegen.\n")
 	sb.WriteString("    # The block tracks: ApiError inner object, ApiErrorResponse envelope,\n")
-	sb.WriteString("    # ApiErrorCode, PageInfo, JobStatus, and the 14 enums catalogued in\n")
+	sb.WriteString(fmt.Sprintf("    # ApiErrorCode, PageInfo, JobStatus, and the %d enums catalogued in\n", len(conv.Enums)))
 	sb.WriteString("    # `shared/conventions.yaml#enums`.\n")
 
 	// ApiErrorCode
@@ -98,9 +98,9 @@ func renderB1AutoBlock(conv *Conventions) (string, error) {
 	sb.WriteString("      description: |\n")
 	sb.WriteString("        Documented error codes synced from\n")
 	sb.WriteString("        `shared/conventions.yaml#errors[].code`; B1 owns the literal set.\n")
-	sb.WriteString("        `PRIVACY_EXPORT_NOT_AVAILABLE` is the P0 example required by spec D-12\n")
-	sb.WriteString("        and is included here so the OpenAPI contract is self-contained for the\n")
-	sb.WriteString("        `POST /api/v1/privacy/exports` 501 response.\n")
+	sb.WriteString("        P0 export exceptions such as `PRIVACY_EXPORT_NOT_AVAILABLE` and\n")
+	sb.WriteString("        `RESUME_EXPORT_NOT_AVAILABLE` are included here so the OpenAPI\n")
+	sb.WriteString("        contract is self-contained for 501 export responses.\n")
 	sb.WriteString("      enum:\n")
 	for _, c := range b1OrderedErrorCodes(conv) {
 		sb.WriteString("        - ")
@@ -175,7 +175,7 @@ func renderB1AutoBlock(conv *Conventions) (string, error) {
 	}
 	sb.WriteByte('\n')
 
-	// 14 enums
+	// B1 enums
 	for i, e := range conv.Enums {
 		sb.WriteString("    ")
 		sb.WriteString(e.Name)

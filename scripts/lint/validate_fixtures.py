@@ -13,7 +13,7 @@ Phase 1.3 scope (per `002-fixtures-and-mock-source` plan §3 / spec C-6 / C-11):
        phones to `+1-555-01xx`, and the employer-brand blacklist below.
     5. ids       — `format: uuid` values must match UUIDv7 layout, and any
        string with `tmp_` prefix is rejected.
-    6. coverage  — exactly the 46 operationIds frozen by spec §3.1.1 must
+    6. coverage  — exactly the 55 operationIds frozen by spec §3.1.1 must
        have a fixture file.
 """
 
@@ -75,6 +75,12 @@ AI_PROVENANCE_PATHS: dict[str, Tuple[str, ...]] = {
     "listTargetJobReports": ("items[*].provenance",),
     "getResumeTailorRun": ("provenance",),
     "getDebrief": ("provenance",),
+    "listResumeVersions": ("items[*].provenance", "items[*].structuredProfile.provenance"),
+    "getResumeVersion": ("provenance", "structuredProfile.provenance"),
+    "branchResumeVersion": ("provenance", "structuredProfile.provenance"),
+    "updateResumeVersion": ("provenance", "structuredProfile.provenance"),
+    "acceptResumeTailorSuggestion": ("provenance", "structuredProfile.provenance"),
+    "rejectResumeTailorSuggestion": ("provenance", "structuredProfile.provenance"),
 }
 PROVENANCE_REQUIRED_FIELDS = (
     "promptVersion",
@@ -84,6 +90,10 @@ PROVENANCE_REQUIRED_FIELDS = (
     "featureFlag",
     "dataSourceVersion",
 )
+P0_EXPORT_ERROR_CODES: dict[str, str] = {
+    "requestPrivacyExport": "PRIVACY_EXPORT_NOT_AVAILABLE",
+    "exportResumeVersion": "RESUME_EXPORT_NOT_AVAILABLE",
+}
 
 
 # ---------- helpers -----------------------------------------------------------
@@ -157,7 +167,7 @@ def build_operation_index(spec: dict) -> dict[str, dict]:
 def expected_fixture_operations(spec: dict) -> Tuple[Tuple[str, str], ...]:
     """Return `(tag, operationId)` rows derived from the live OpenAPI document.
 
-    `make lint-openapi` owns the frozen 46-operation inventory. The fixture
+    `make lint-openapi` owns the frozen 55-operation inventory. The fixture
     validator only checks that whatever operation inventory OpenAPI currently
     exposes has exactly one matching fixture, so this gate cannot become a
     second hand-maintained operation list.
@@ -458,23 +468,22 @@ def check_provenance(opid: str, scenario: dict, errors: List[str]) -> None:
                         )
 
 
-def check_privacy_export_error_code(opid: str, scenarios: dict, errors: List[str]) -> None:
-    """Spec D-12 / C-7: requestPrivacyExport's default scenario must return
-    501 with `error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`. The hand-written
-    example previously living in openapi.yaml moved here as part of B2 002 §3.1
-    (single source of truth). Apply only to that operation."""
-    if opid != "requestPrivacyExport":
+def check_p0_export_error_code(opid: str, scenarios: dict, errors: List[str]) -> None:
+    """Spec D-12 / D-18: P0 export stubs must return their locked 501 error
+    codes. Hand-written examples live in fixtures as the single source of truth."""
+    expected_code = P0_EXPORT_ERROR_CODES.get(opid)
+    if expected_code is None:
         return
     default = scenarios.get("default") or {}
     response = default.get("response") or {}
     if response.get("status") != 501:
-        errors.append(f"{opid}: default.response.status must be 501 (spec D-12)")
+        errors.append(f"{opid}: default.response.status must be 501 (spec D-12 / D-18)")
         return
     body = response.get("body") or {}
     code = (body.get("error") or {}).get("code")
-    if code != "PRIVACY_EXPORT_NOT_AVAILABLE":
+    if code != expected_code:
         errors.append(
-            f"{opid}: default.response.body.error.code must be 'PRIVACY_EXPORT_NOT_AVAILABLE' (spec D-12); got {code!r}"
+            f"{opid}: default.response.body.error.code must be {expected_code!r} (spec D-12 / D-18); got {code!r}"
         )
 
 
@@ -528,7 +537,7 @@ def validate(repo_root: Path) -> List[str]:
             check_status_declared(opid, op, scenario_name, scenario, errors)
             check_schema(opid, op, scenario_name, scenario, spec, errors)
         check_provenance(opid, scenarios.get("default") or {}, errors)
-        check_privacy_export_error_code(opid, scenarios, errors)
+        check_p0_export_error_code(opid, scenarios, errors)
         check_privacy_and_ids(opid, data, errors)
 
     expected = {opid for _tag, opid in expected_fixture_operations(spec)}

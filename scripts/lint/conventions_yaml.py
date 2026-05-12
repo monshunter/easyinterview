@@ -39,12 +39,15 @@ EXPECTED_TOP_LEVEL = {
 }
 
 EXPECTED_STRUCTURES = {"PageInfo", "ApiError"}
-EXPECTED_ENUM_SECTIONS = {f"5.{i}" for i in range(1, 14)}  # §5.1 .. §5.13
+EXPECTED_ENUM_SECTIONS = {f"5.{i}" for i in range(1, 17)}  # §5.1 .. §5.16
 EXPECTED_JOB_STATUSES = {"queued", "running", "succeeded", "failed", "cancelled", "dead"}
 EXPECTED_PRODUCT_ENUM_VALUES = {
     "PracticeMode": ["assisted", "strict"],
     "PracticeGoal": ["baseline", "retry_current_round", "next_round", "debrief"],
     "QuestionReviewStatus": ["open", "queued_for_retry", "resolved"],
+    "ResumeVersionType": ["structured_master", "targeted"],
+    "ResumeSeedStrategy": ["copy_master", "blank", "ai_select"],
+    "ResumeTailorSuggestionStatus": ["pending", "accepted", "rejected"],
 }
 REMOVED_ENUM_NAMES = {"MistakeStatus"}
 REQUIRED_ERROR_CODES = {
@@ -52,6 +55,7 @@ REQUIRED_ERROR_CODES = {
     "TARGET_IMPORT_FAILED",
     "PRACTICE_SESSION_CONFLICT",
     "REPORT_NOT_READY",
+    "RESUME_EXPORT_NOT_AVAILABLE",
     "VALIDATION_FAILED",
     "RATE_LIMITED",
 }
@@ -184,7 +188,7 @@ def validate(data: dict[str, Any]) -> list[str]:
 
         section = enum.get("sourceSection", "")
         if section not in EXPECTED_ENUM_SECTIONS:
-            errors.append(f"enum {name!r} sourceSection must be one of §5.1..§5.13, got {section!r}")
+            errors.append(f"enum {name!r} sourceSection must be one of §5.1..§5.16, got {section!r}")
         seen_sections.add(section)
 
         json_field = enum.get("jsonField", "")

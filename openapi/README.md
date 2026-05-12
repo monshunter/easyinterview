@@ -62,16 +62,15 @@ Two truth sources feed the contract:
 | `make codegen-check` | Local **drift gate**: `codegen-openapi` + `lint-openapi` + `git diff --exit-code` over `openapi.yaml`, `backend/internal/api/generated/`, and `frontend/src/api/generated/`. |
 | `make openapi-diff` | Compare `openapi/openapi.yaml` against the latest `openapi/baseline/openapi-vX.Y.Z.yaml`; use `BASELINE_VERSION=v1.0.0` to pin and `HISTORY_REF=<git-ref>` to override the default base-branch history comparison. |
 | `make docs-openapi` | Render the contract as a single-file HTML site at `openapi/dist/index.html` with `@redocly/cli@2.30.1 build-docs`. The output is `dist/`-gitignored — local artefact only. |
-| `make validate-fixtures` | Schema-validate every `openapi/fixtures/<tag>/<operationId>.json` against `openapi.yaml`; enforce AI-schema provenance, privacy / UUIDv7 scans, and 46-operation coverage. Owner B2 002. |
+| `make validate-fixtures` | Schema-validate every `openapi/fixtures/<tag>/<operationId>.json` against `openapi.yaml`; enforce AI-schema provenance, privacy / UUIDv7 scans, and 55-operation coverage. Owner B2 002 + 004. |
 | `make sync-fixtures-from-prototype` | Re-render every fixture's `scenarios.prototype-baseline` from `ui-design/src/data.jsx`; idempotent; owner B2 002. |
 | `make render-openapi-fixture-examples` | Project every fixture's `scenarios.default.response.body` into `openapi/.generated/openapi-with-fixtures.yaml` as named `default` examples (Prism / docs-site source). Owner B2 002. |
 
 `openapi.yaml` itself **must not** carry hand-written `examples` (B2 002 §3.1):
 fixtures are the single source of truth for example bodies, projected into the
-derived `openapi-with-fixtures.yaml`. The privacy-export 501 example used to
-live inline in `openapi.yaml`; it now lives in
-`openapi/fixtures/Privacy/requestPrivacyExport.json` (`scenarios.default`) and
-is enforced by `validate-fixtures`. See
+derived `openapi-with-fixtures.yaml`. The P0 export 501 examples live only in
+fixtures (`requestPrivacyExport` / `exportResumeVersion`) and are enforced by
+`validate-fixtures`. See
 [`openapi/fixtures/README.md`](./fixtures/README.md) for the full fixtures
 contract and the Prism smoke matrix.
 
@@ -102,12 +101,12 @@ resolves a sibling file.
 The 13 OpenAPI tags follow
 [spec §2.1](../docs/spec/openapi-v1-contract/spec.md#2-范围) in declaration
 order: Auth, Uploads, Profile, Resumes, TargetJobs, PracticePlans,
-PracticeSessions, Reports, ResumeTailor, Debriefs, Jobs, Privacy, JobMatch. The 46
+PracticeSessions, Reports, ResumeTailor, Debriefs, Jobs, Privacy, JobMatch. The 55
 operations are catalogued in
 [spec §3.1.1](../docs/spec/openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表);
 `scripts/lint/openapi_inventory.py` enforces tag order, operation enumeration,
 default `ApiErrorResponse` refs, the `Idempotency-Key` mutex (per ADR-Q1 +
-`clientEventId`), the unique `POST /privacy/exports` 501 example, and the
+`clientEventId`), the two P0 export 501 examples, and the
 `GenerationProvenance` reachability invariant for AI-generated schemas
 (spec §4.6).
 
@@ -117,7 +116,7 @@ default `ApiErrorResponse` refs, the `Idempotency-Key` mutex (per ADR-Q1 +
 shared/conventions.yaml ─► (codegen) ─► openapi.yaml's B1-AUTO block
                                        (ApiError inner object, ApiErrorResponse
                                         envelope, ApiErrorCode, PageInfo,
-                                        JobStatus, 14 enums)
+                                        JobStatus, 17 enums)
                                               │
                                               ▼
             openapi.yaml hand-authored schemas use $ref into the same block

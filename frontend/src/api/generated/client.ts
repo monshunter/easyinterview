@@ -438,6 +438,66 @@ export class EasyInterviewClient {
 		);
 	}
 
+	/** branchResumeVersion — post /resume-versions: Branch a resume version */
+	async branchResumeVersion(body: Types.BranchResumeVersionRequest, opts?: RequestOptions): Promise<Types.ResumeVersion> {
+		return this.request<Types.ResumeVersion>(
+			"POST",
+			"/resume-versions",
+			body,
+			opts,
+		);
+	}
+
+	/** getResumeVersion — get /resume-versions/{resumeVersionId}: Get a resume version */
+	async getResumeVersion(resumeVersionId: string, opts?: RequestOptions): Promise<Types.ResumeVersion> {
+		return this.request<Types.ResumeVersion>(
+			"GET",
+			buildPath("/resume-versions/{resumeVersionId}", { resumeVersionId: resumeVersionId }),
+			undefined,
+			opts,
+		);
+	}
+
+	/** updateResumeVersion — patch /resume-versions/{resumeVersionId}: Update editable resume version fields */
+	async updateResumeVersion(resumeVersionId: string, body: Types.UpdateResumeVersionRequest, opts?: RequestOptions): Promise<Types.ResumeVersion> {
+		return this.request<Types.ResumeVersion>(
+			"PATCH",
+			buildPath("/resume-versions/{resumeVersionId}", { resumeVersionId: resumeVersionId }),
+			body,
+			opts,
+		);
+	}
+
+	/** exportResumeVersion — post /resume-versions/{resumeVersionId}/exports: Export a resume version */
+	async exportResumeVersion(resumeVersionId: string, opts?: RequestOptions): Promise<Types.ApiErrorResponse> {
+		return this.request<Types.ApiErrorResponse>(
+			"POST",
+			buildPath("/resume-versions/{resumeVersionId}/exports", { resumeVersionId: resumeVersionId }),
+			undefined,
+			opts,
+		);
+	}
+
+	/** acceptResumeTailorSuggestion — post /resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept: Accept a resume-tailor suggestion */
+	async acceptResumeTailorSuggestion(resumeVersionId: string, suggestionId: string, opts?: RequestOptions): Promise<Types.ResumeVersion> {
+		return this.request<Types.ResumeVersion>(
+			"POST",
+			buildPath("/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept", { resumeVersionId: resumeVersionId, suggestionId: suggestionId }),
+			undefined,
+			opts,
+		);
+	}
+
+	/** rejectResumeTailorSuggestion — post /resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject: Reject a resume-tailor suggestion */
+	async rejectResumeTailorSuggestion(resumeVersionId: string, suggestionId: string, opts?: RequestOptions): Promise<Types.ResumeVersion> {
+		return this.request<Types.ResumeVersion>(
+			"POST",
+			buildPath("/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject", { resumeVersionId: resumeVersionId, suggestionId: suggestionId }),
+			undefined,
+			opts,
+		);
+	}
+
 	/** requestResumeTailor — post /resume/tailor: Start a resume-tailoring run for a target job */
 	async requestResumeTailor(body: Types.RequestResumeTailorRequest, opts?: RequestOptions): Promise<Types.ResumeTailorRunWithJob> {
 		return this.request<Types.ResumeTailorRunWithJob>(
@@ -458,6 +518,16 @@ export class EasyInterviewClient {
 		);
 	}
 
+	/** listResumes — get /resumes: List resume assets */
+	async listResumes(opts?: RequestOptions): Promise<Types.PaginatedResumeAsset> {
+		return this.request<Types.PaginatedResumeAsset>(
+			"GET",
+			"/resumes",
+			undefined,
+			opts,
+		);
+	}
+
 	/** registerResume — post /resumes: Register an uploaded resume file and trigger parsing */
 	async registerResume(body: Types.RegisterResumeRequest, opts?: RequestOptions): Promise<Types.ResumeAssetWithJob> {
 		return this.request<Types.ResumeAssetWithJob>(
@@ -473,6 +543,26 @@ export class EasyInterviewClient {
 		return this.request<Types.ResumeAsset>(
 			"GET",
 			buildPath("/resumes/{resumeAssetId}", { resumeAssetId: resumeAssetId }),
+			undefined,
+			opts,
+		);
+	}
+
+	/** archiveResumeAsset — post /resumes/{resumeAssetId}/archive: Archive a resume asset */
+	async archiveResumeAsset(resumeAssetId: string, opts?: RequestOptions): Promise<Types.ResumeAsset> {
+		return this.request<Types.ResumeAsset>(
+			"POST",
+			buildPath("/resumes/{resumeAssetId}/archive", { resumeAssetId: resumeAssetId }),
+			undefined,
+			opts,
+		);
+	}
+
+	/** listResumeVersions — get /resumes/{resumeAssetId}/versions: List versions for a resume asset */
+	async listResumeVersions(resumeAssetId: string, opts?: RequestOptions): Promise<Types.PaginatedResumeVersion> {
+		return this.request<Types.PaginatedResumeVersion>(
+			"GET",
+			buildPath("/resumes/{resumeAssetId}/versions", { resumeAssetId: resumeAssetId }),
 			undefined,
 			opts,
 		);
@@ -586,10 +676,19 @@ export const ALL_OPERATION_IDS = [
 	"createExperienceCard",
 	"updateExperienceCard",
 	"getFeedbackReport",
+	"branchResumeVersion",
+	"getResumeVersion",
+	"updateResumeVersion",
+	"exportResumeVersion",
+	"acceptResumeTailorSuggestion",
+	"rejectResumeTailorSuggestion",
 	"requestResumeTailor",
 	"getResumeTailorRun",
+	"listResumes",
 	"registerResume",
 	"getResume",
+	"archiveResumeAsset",
+	"listResumeVersions",
 	"getRuntimeConfig",
 	"listTargetJobs",
 	"importTargetJob",
@@ -643,10 +742,19 @@ export const ALL_ROUTES = [
 	{ operationId: "createExperienceCard", method: "POST", path: "/profiles/me/experience-cards" },
 	{ operationId: "updateExperienceCard", method: "PATCH", path: "/profiles/me/experience-cards/{cardId}" },
 	{ operationId: "getFeedbackReport", method: "GET", path: "/reports/{reportId}" },
+	{ operationId: "branchResumeVersion", method: "POST", path: "/resume-versions" },
+	{ operationId: "getResumeVersion", method: "GET", path: "/resume-versions/{resumeVersionId}" },
+	{ operationId: "updateResumeVersion", method: "PATCH", path: "/resume-versions/{resumeVersionId}" },
+	{ operationId: "exportResumeVersion", method: "POST", path: "/resume-versions/{resumeVersionId}/exports" },
+	{ operationId: "acceptResumeTailorSuggestion", method: "POST", path: "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept" },
+	{ operationId: "rejectResumeTailorSuggestion", method: "POST", path: "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject" },
 	{ operationId: "requestResumeTailor", method: "POST", path: "/resume/tailor" },
 	{ operationId: "getResumeTailorRun", method: "GET", path: "/resume/tailor-runs/{tailorRunId}" },
+	{ operationId: "listResumes", method: "GET", path: "/resumes" },
 	{ operationId: "registerResume", method: "POST", path: "/resumes" },
 	{ operationId: "getResume", method: "GET", path: "/resumes/{resumeAssetId}" },
+	{ operationId: "archiveResumeAsset", method: "POST", path: "/resumes/{resumeAssetId}/archive" },
+	{ operationId: "listResumeVersions", method: "GET", path: "/resumes/{resumeAssetId}/versions" },
 	{ operationId: "getRuntimeConfig", method: "GET", path: "/runtime-config" },
 	{ operationId: "listTargetJobs", method: "GET", path: "/targets" },
 	{ operationId: "importTargetJob", method: "POST", path: "/targets/import" },

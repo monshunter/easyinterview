@@ -12,7 +12,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 46-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// 55-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
 	// startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email magic-link challenge
@@ -120,17 +120,44 @@ type ServerInterface interface {
 	// getFeedbackReport — get /reports/{reportId}: Get a feedback report (still-generating reports return 200 with placeholder)
 	GetFeedbackReport(w http.ResponseWriter, r *http.Request, reportId string)
 
+	// branchResumeVersion — post /resume-versions: Branch a resume version
+	BranchResumeVersion(w http.ResponseWriter, r *http.Request)
+
+	// getResumeVersion — get /resume-versions/{resumeVersionId}: Get a resume version
+	GetResumeVersion(w http.ResponseWriter, r *http.Request, resumeVersionId string)
+
+	// updateResumeVersion — patch /resume-versions/{resumeVersionId}: Update editable resume version fields
+	UpdateResumeVersion(w http.ResponseWriter, r *http.Request, resumeVersionId string)
+
+	// exportResumeVersion — post /resume-versions/{resumeVersionId}/exports: Export a resume version
+	ExportResumeVersion(w http.ResponseWriter, r *http.Request, resumeVersionId string)
+
+	// acceptResumeTailorSuggestion — post /resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept: Accept a resume-tailor suggestion
+	AcceptResumeTailorSuggestion(w http.ResponseWriter, r *http.Request, resumeVersionId string, suggestionId string)
+
+	// rejectResumeTailorSuggestion — post /resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject: Reject a resume-tailor suggestion
+	RejectResumeTailorSuggestion(w http.ResponseWriter, r *http.Request, resumeVersionId string, suggestionId string)
+
 	// requestResumeTailor — post /resume/tailor: Start a resume-tailoring run for a target job
 	RequestResumeTailor(w http.ResponseWriter, r *http.Request)
 
 	// getResumeTailorRun — get /resume/tailor-runs/{tailorRunId}: Get a resume-tailor run
 	GetResumeTailorRun(w http.ResponseWriter, r *http.Request, tailorRunId string)
 
+	// listResumes — get /resumes: List resume assets
+	ListResumes(w http.ResponseWriter, r *http.Request)
+
 	// registerResume — post /resumes: Register an uploaded resume file and trigger parsing
 	RegisterResume(w http.ResponseWriter, r *http.Request)
 
 	// getResume — get /resumes/{resumeAssetId}: Get a resume asset and parse status
 	GetResume(w http.ResponseWriter, r *http.Request, resumeAssetId string)
+
+	// archiveResumeAsset — post /resumes/{resumeAssetId}/archive: Archive a resume asset
+	ArchiveResumeAsset(w http.ResponseWriter, r *http.Request, resumeAssetId string)
+
+	// listResumeVersions — get /resumes/{resumeAssetId}/versions: List versions for a resume asset
+	ListResumeVersions(w http.ResponseWriter, r *http.Request, resumeAssetId string)
 
 	// getRuntimeConfig — get /runtime-config: Get public runtime configuration
 	GetRuntimeConfig(w http.ResponseWriter, r *http.Request)
@@ -202,10 +229,19 @@ var AllRoutes = []Route{
 	{OperationID: "createExperienceCard", Method: "post", Path: "/profiles/me/experience-cards", PathParams: nil},
 	{OperationID: "updateExperienceCard", Method: "patch", Path: "/profiles/me/experience-cards/{cardId}", PathParams: []string{"cardId"}},
 	{OperationID: "getFeedbackReport", Method: "get", Path: "/reports/{reportId}", PathParams: []string{"reportId"}},
+	{OperationID: "branchResumeVersion", Method: "post", Path: "/resume-versions", PathParams: nil},
+	{OperationID: "getResumeVersion", Method: "get", Path: "/resume-versions/{resumeVersionId}", PathParams: []string{"resumeVersionId"}},
+	{OperationID: "updateResumeVersion", Method: "patch", Path: "/resume-versions/{resumeVersionId}", PathParams: []string{"resumeVersionId"}},
+	{OperationID: "exportResumeVersion", Method: "post", Path: "/resume-versions/{resumeVersionId}/exports", PathParams: []string{"resumeVersionId"}},
+	{OperationID: "acceptResumeTailorSuggestion", Method: "post", Path: "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept", PathParams: []string{"resumeVersionId", "suggestionId"}},
+	{OperationID: "rejectResumeTailorSuggestion", Method: "post", Path: "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject", PathParams: []string{"resumeVersionId", "suggestionId"}},
 	{OperationID: "requestResumeTailor", Method: "post", Path: "/resume/tailor", PathParams: nil},
 	{OperationID: "getResumeTailorRun", Method: "get", Path: "/resume/tailor-runs/{tailorRunId}", PathParams: []string{"tailorRunId"}},
+	{OperationID: "listResumes", Method: "get", Path: "/resumes", PathParams: nil},
 	{OperationID: "registerResume", Method: "post", Path: "/resumes", PathParams: nil},
 	{OperationID: "getResume", Method: "get", Path: "/resumes/{resumeAssetId}", PathParams: []string{"resumeAssetId"}},
+	{OperationID: "archiveResumeAsset", Method: "post", Path: "/resumes/{resumeAssetId}/archive", PathParams: []string{"resumeAssetId"}},
+	{OperationID: "listResumeVersions", Method: "get", Path: "/resumes/{resumeAssetId}/versions", PathParams: []string{"resumeAssetId"}},
 	{OperationID: "getRuntimeConfig", Method: "get", Path: "/runtime-config", PathParams: nil},
 	{OperationID: "listTargetJobs", Method: "get", Path: "/targets", PathParams: nil},
 	{OperationID: "importTargetJob", Method: "post", Path: "/targets/import", PathParams: nil},

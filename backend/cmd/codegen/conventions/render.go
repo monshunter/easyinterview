@@ -155,11 +155,14 @@ func upperSnakeFromPascal(name string) string {
 	return b.String()
 }
 
-// goPlural returns the English plural of a Go identifier, handling the common
-// "ends in s/x/z" case so that `Status` → `Statuses`, not `Statuss`.
+// goPlural returns the English plural of a Go identifier, handling common
+// generated enum names so `Status` -> `Statuses` and `Strategy` -> `Strategies`.
 func goPlural(name string) string {
 	if strings.HasSuffix(name, "s") || strings.HasSuffix(name, "x") || strings.HasSuffix(name, "z") {
 		return name + "es"
+	}
+	if strings.HasSuffix(name, "y") {
+		return strings.TrimSuffix(name, "y") + "ies"
 	}
 	return name + "s"
 }

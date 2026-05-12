@@ -1,0 +1,352 @@
+{
+  "operationId": "branchResumeVersion",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-branch-resume-copy-master-2026-05-12"
+        },
+        "body": {
+          "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "seedStrategy": "copy_master",
+          "displayName": "Northstar Systems frontend target",
+          "focusAngle": "Evidence for platform ownership and pragmatic delivery"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-35-00-branch-copy"
+        },
+        "body": {
+          "id": "0195f2d0-0002-7000-8000-000000000202",
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+          "versionType": "targeted",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "displayName": "Northstar Systems frontend target",
+          "seedStrategy": "copy_master",
+          "focusAngle": "Evidence for platform ownership and pragmatic delivery",
+          "structuredProfile": {
+            "headline": "Senior frontend engineer for platform-heavy product teams",
+            "summary": "Copy of the structured master prepared for targeted editing.",
+            "skills": ["React", "TypeScript", "Release quality"],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_branch.copy_master.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "fixture-model:resume-version-profile",
+              "language": "zh-CN",
+              "featureFlag": "resume-workshop-additive",
+              "dataSourceVersion": "resume_version.v1"
+            }
+          },
+          "matchScore": null,
+          "promptVersion": "resume_branch.copy_master.v1",
+          "rubricVersion": "not_applicable",
+          "modelId": "fixture-model:resume-version-profile",
+          "provider": "fixture-provider",
+          "provenance": {
+            "promptVersion": "resume_branch.copy_master.v1",
+            "rubricVersion": "not_applicable",
+            "modelId": "fixture-model:resume-version-profile",
+            "language": "zh-CN",
+            "featureFlag": "resume-workshop-additive",
+            "dataSourceVersion": "resume_version.v1"
+          },
+          "suggestions": [],
+          "createdAt": "2026-05-12T08:35:00Z",
+          "updatedAt": "2026-05-12T08:35:00Z",
+          "deletedAt": null
+        }
+      }
+    },
+    "copy-master-sync": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-branch-resume-copy-master-2026-05-12"
+        },
+        "body": {
+          "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "seedStrategy": "copy_master",
+          "displayName": "Northstar Systems frontend target",
+          "focusAngle": "Evidence for platform ownership and pragmatic delivery"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-35-00-branch-copy"
+        },
+        "body": {
+          "id": "0195f2d0-0002-7000-8000-000000000202",
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+          "versionType": "targeted",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "displayName": "Northstar Systems frontend target",
+          "seedStrategy": "copy_master",
+          "focusAngle": "Evidence for platform ownership and pragmatic delivery",
+          "structuredProfile": {
+            "headline": "Senior frontend engineer for platform-heavy product teams",
+            "summary": "Copy of the structured master prepared for targeted editing.",
+            "skills": ["React", "TypeScript", "Release quality"],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_branch.copy_master.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "fixture-model:resume-version-profile",
+              "language": "zh-CN",
+              "featureFlag": "resume-workshop-additive",
+              "dataSourceVersion": "resume_version.v1"
+            }
+          },
+          "matchScore": null,
+          "promptVersion": "resume_branch.copy_master.v1",
+          "rubricVersion": "not_applicable",
+          "modelId": "fixture-model:resume-version-profile",
+          "provider": "fixture-provider",
+          "provenance": {
+            "promptVersion": "resume_branch.copy_master.v1",
+            "rubricVersion": "not_applicable",
+            "modelId": "fixture-model:resume-version-profile",
+            "language": "zh-CN",
+            "featureFlag": "resume-workshop-additive",
+            "dataSourceVersion": "resume_version.v1"
+          },
+          "suggestions": [],
+          "createdAt": "2026-05-12T08:35:00Z",
+          "updatedAt": "2026-05-12T08:35:00Z",
+          "deletedAt": null
+        }
+      }
+    },
+    "blank-sync": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-branch-resume-blank-2026-05-12"
+        },
+        "body": {
+          "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "seedStrategy": "blank",
+          "displayName": "Blank targeted draft",
+          "focusAngle": "Rebuild around platform evidence"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-36-00-branch-blank"
+        },
+        "body": {
+          "id": "0195f2d0-0002-7000-8000-000000000203",
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+          "versionType": "targeted",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "displayName": "Blank targeted draft",
+          "seedStrategy": "blank",
+          "focusAngle": "Rebuild around platform evidence",
+          "structuredProfile": {
+            "headline": "",
+            "summary": "",
+            "skills": [],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_branch.blank.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "fixture-model:resume-version-profile",
+              "language": "zh-CN",
+              "featureFlag": "resume-workshop-additive",
+              "dataSourceVersion": "resume_version.v1"
+            }
+          },
+          "matchScore": null,
+          "promptVersion": "resume_branch.blank.v1",
+          "rubricVersion": "not_applicable",
+          "modelId": "fixture-model:resume-version-profile",
+          "provider": "fixture-provider",
+          "provenance": {
+            "promptVersion": "resume_branch.blank.v1",
+            "rubricVersion": "not_applicable",
+            "modelId": "fixture-model:resume-version-profile",
+            "language": "zh-CN",
+            "featureFlag": "resume-workshop-additive",
+            "dataSourceVersion": "resume_version.v1"
+          },
+          "suggestions": [],
+          "createdAt": "2026-05-12T08:36:00Z",
+          "updatedAt": "2026-05-12T08:36:00Z",
+          "deletedAt": null
+        }
+      }
+    },
+    "ai-select-202-with-job": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-branch-resume-ai-select-2026-05-12"
+        },
+        "body": {
+          "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "seedStrategy": "ai_select",
+          "displayName": "AI-selected targeted draft",
+          "focusAngle": "Select strongest platform evidence for this JD"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-37-00-ai-select"
+        },
+        "body": {
+          "resumeVersionId": "0195f2d0-0002-7000-8000-000000000204",
+          "version": {
+            "id": "0195f2d0-0002-7000-8000-000000000204",
+            "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+            "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+            "versionType": "targeted",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "displayName": "AI-selected targeted draft",
+            "seedStrategy": "ai_select",
+            "focusAngle": "Select strongest platform evidence for this JD",
+            "structuredProfile": {
+              "headline": "Senior frontend engineer with platform delivery evidence",
+              "summary": "AI-selected draft queued for tailor suggestion generation.",
+              "skills": ["React", "TypeScript", "Release quality"],
+              "sections": [],
+              "provenance": {
+                "promptVersion": "resume_branch.ai_select.v1",
+                "rubricVersion": "resume_targeted.rubric.v1",
+                "modelId": "fixture-model:resume-version-profile",
+                "language": "zh-CN",
+                "featureFlag": "resume-workshop-additive",
+                "dataSourceVersion": "resume_version.v1+target_job.v1"
+              }
+            },
+            "matchScore": 0.82,
+            "promptVersion": "resume_branch.ai_select.v1",
+            "rubricVersion": "resume_targeted.rubric.v1",
+            "modelId": "fixture-model:resume-version-profile",
+            "provider": "fixture-provider",
+            "provenance": {
+              "promptVersion": "resume_branch.ai_select.v1",
+              "rubricVersion": "resume_targeted.rubric.v1",
+              "modelId": "fixture-model:resume-version-profile",
+              "language": "zh-CN",
+              "featureFlag": "resume-workshop-additive",
+              "dataSourceVersion": "resume_version.v1+target_job.v1"
+            },
+            "suggestions": [],
+            "createdAt": "2026-05-12T08:37:00Z",
+            "updatedAt": "2026-05-12T08:37:00Z",
+            "deletedAt": null
+          },
+          "job": {
+            "id": "0195f2d0-0002-7000-8000-000000000501",
+            "jobType": "resume_tailor",
+            "status": "queued",
+            "resourceType": "resume_tailor_run",
+            "resourceId": "0195f2d0-0002-7000-8000-000000000401",
+            "errorCode": null,
+            "createdAt": "2026-05-12T08:37:00Z",
+            "updatedAt": "2026-05-12T08:37:00Z"
+          }
+        }
+      }
+    },
+    "validation-error-422": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-branch-resume-invalid-2026-05-12"
+        },
+        "body": {
+          "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "seedStrategy": "copy_master"
+        }
+      },
+      "response": {
+        "status": 422,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-38-00-validation"
+        },
+        "body": {
+          "error": {
+            "code": "VALIDATION_FAILED",
+            "message": "Display name is required for this branch request",
+            "requestId": "req_2026-05-12T08-38-00-validation",
+            "retryable": false,
+            "details": {
+              "field": "displayName"
+            }
+          }
+        }
+      }
+    },
+    "idempotent-replay": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-branch-resume-copy-master-2026-05-12"
+        },
+        "body": {
+          "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "seedStrategy": "copy_master",
+          "displayName": "Northstar Systems frontend target",
+          "focusAngle": "Evidence for platform ownership and pragmatic delivery"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-35-00-branch-copy-replay"
+        },
+        "body": {
+          "id": "0195f2d0-0002-7000-8000-000000000202",
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+          "versionType": "targeted",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "displayName": "Northstar Systems frontend target",
+          "seedStrategy": "copy_master",
+          "focusAngle": "Evidence for platform ownership and pragmatic delivery",
+          "structuredProfile": {
+            "headline": "Senior frontend engineer for platform-heavy product teams",
+            "summary": "Copy of the structured master prepared for targeted editing.",
+            "skills": ["React", "TypeScript", "Release quality"],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_branch.copy_master.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "fixture-model:resume-version-profile",
+              "language": "zh-CN",
+              "featureFlag": "resume-workshop-additive",
+              "dataSourceVersion": "resume_version.v1"
+            }
+          },
+          "matchScore": null,
+          "promptVersion": "resume_branch.copy_master.v1",
+          "rubricVersion": "not_applicable",
+          "modelId": "fixture-model:resume-version-profile",
+          "provider": "fixture-provider",
+          "provenance": {
+            "promptVersion": "resume_branch.copy_master.v1",
+            "rubricVersion": "not_applicable",
+            "modelId": "fixture-model:resume-version-profile",
+            "language": "zh-CN",
+            "featureFlag": "resume-workshop-additive",
+            "dataSourceVersion": "resume_version.v1"
+          },
+          "suggestions": [],
+          "createdAt": "2026-05-12T08:35:00Z",
+          "updatedAt": "2026-05-12T08:35:00Z",
+          "deletedAt": null
+        }
+      }
+    }
+  }
+}

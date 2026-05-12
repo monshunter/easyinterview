@@ -1,0 +1,55 @@
+{
+  "operationId": "exportResumeVersion",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-export-resume-version-2026-05-12"
+        }
+      },
+      "response": {
+        "status": 501,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-55-00-export-resume"
+        },
+        "body": {
+          "error": {
+            "code": "RESUME_EXPORT_NOT_AVAILABLE",
+            "message": "Resume version export is not available in P0.",
+            "requestId": "req_2026-05-12T08-55-00-export-resume",
+            "retryable": false,
+            "details": {
+              "availableAt": "P1",
+              "see": "docs/spec/openapi-v1-contract/spec.md#44-p0-显式例外"
+            }
+          }
+        }
+      }
+    },
+    "p0-501-not-available": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-export-resume-version-2026-05-12"
+        }
+      },
+      "response": {
+        "status": 501,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-55-00-export-resume"
+        },
+        "body": {
+          "error": {
+            "code": "RESUME_EXPORT_NOT_AVAILABLE",
+            "message": "Resume version export is not available in P0.",
+            "requestId": "req_2026-05-12T08-55-00-export-resume",
+            "retryable": false,
+            "details": {
+              "availableAt": "P1",
+              "see": "docs/spec/openapi-v1-contract/spec.md#44-p0-显式例外"
+            }
+          }
+        }
+      }
+    }
+  }
+}

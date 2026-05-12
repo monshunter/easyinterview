@@ -105,6 +105,11 @@ def valid_data() -> dict:
                 "retryable": True,
             },
             {
+                "code": "RESUME_EXPORT_NOT_AVAILABLE",
+                "message": "resume version export is not available in P0",
+                "retryable": False,
+            },
+            {
                 "code": "VALIDATION_FAILED",
                 "message": "validation failed",
                 "retryable": False,
@@ -200,6 +205,24 @@ def valid_data() -> dict:
                 "sourceSection": "5.13",
                 "jsonField": "privacyRequestStatus",
                 "values": ["queued"],
+            },
+            {
+                "name": "ResumeVersionType",
+                "sourceSection": "5.14",
+                "jsonField": "resumeVersionType",
+                "values": ["structured_master", "targeted"],
+            },
+            {
+                "name": "ResumeSeedStrategy",
+                "sourceSection": "5.15",
+                "jsonField": "resumeSeedStrategy",
+                "values": ["copy_master", "blank", "ai_select"],
+            },
+            {
+                "name": "ResumeTailorSuggestionStatus",
+                "sourceSection": "5.16",
+                "jsonField": "resumeTailorSuggestionStatus",
+                "values": ["pending", "accepted", "rejected"],
             },
         ],
         "structures": {

@@ -78,6 +78,15 @@ type PrivacyRequestType = sharedtypes.PrivacyRequestType
 // PrivacyRequestStatus aliases the B1-owned type.
 type PrivacyRequestStatus = sharedtypes.PrivacyRequestStatus
 
+// ResumeVersionType aliases the B1-owned type.
+type ResumeVersionType = sharedtypes.ResumeVersionType
+
+// ResumeSeedStrategy aliases the B1-owned type.
+type ResumeSeedStrategy = sharedtypes.ResumeSeedStrategy
+
+// ResumeTailorSuggestionStatus aliases the B1-owned type.
+type ResumeTailorSuggestionStatus = sharedtypes.ResumeTailorSuggestionStatus
+
 // =============================================================================
 // Domain schemas — derived from openapi.yaml (hand-authored section).
 //
@@ -100,6 +109,7 @@ const (
 	ApiErrorCodePRACTICEPLANNOTFOUND          ApiErrorCode = "PRACTICE_PLAN_NOT_FOUND"
 	ApiErrorCodePRACTICESESSIONNOTFOUND       ApiErrorCode = "PRACTICE_SESSION_NOT_FOUND"
 	ApiErrorCodeREPORTNOTREADY                ApiErrorCode = "REPORT_NOT_READY"
+	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE      ApiErrorCode = "RESUME_EXPORT_NOT_AVAILABLE"
 	ApiErrorCodeVALIDATIONFAILED              ApiErrorCode = "VALIDATION_FAILED"
 	ApiErrorCodeRATELIMITED                   ApiErrorCode = "RATE_LIMITED"
 	ApiErrorCodeAIPROVIDERTIMEOUT             ApiErrorCode = "AI_PROVIDER_TIMEOUT"
@@ -123,6 +133,7 @@ var AllApiErrorCodes = []ApiErrorCode{
 	ApiErrorCodePRACTICEPLANNOTFOUND,
 	ApiErrorCodePRACTICESESSIONNOTFOUND,
 	ApiErrorCodeREPORTNOTREADY,
+	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE,
 	ApiErrorCodeVALIDATIONFAILED,
 	ApiErrorCodeRATELIMITED,
 	ApiErrorCodeAIPROVIDERTIMEOUT,
@@ -297,25 +308,81 @@ type PaginatedExperienceCard struct {
 }
 
 type RegisterResumeRequest struct {
-	FileObjectId string `json:"fileObjectId"`
-	Language     string `json:"language"`
-	Title        string `json:"title"`
+	FileObjectId  string         `json:"fileObjectId"`
+	GuidedAnswers map[string]any `json:"guidedAnswers,omitempty"`
+	Language      string         `json:"language"`
+	RawText       *string        `json:"rawText,omitempty"`
+	SourceType    *string        `json:"sourceType,omitempty"`
+	Title         string         `json:"title"`
 }
 
 type ResumeAsset struct {
-	CreatedAt     string               `json:"createdAt"`
-	FileObjectId  string               `json:"fileObjectId"`
-	Id            string               `json:"id"`
-	Language      string               `json:"language"`
-	ParseStatus   TargetJobParseStatus `json:"parseStatus"`
-	ParsedSummary *map[string]any      `json:"parsedSummary,omitempty"`
-	Title         string               `json:"title"`
-	UpdatedAt     string               `json:"updatedAt"`
+	CreatedAt          string               `json:"createdAt"`
+	DeletedAt          *string              `json:"deletedAt,omitempty"`
+	FileObjectId       string               `json:"fileObjectId"`
+	GuidedAnswers      *map[string]any      `json:"guidedAnswers,omitempty"`
+	Id                 string               `json:"id"`
+	Language           string               `json:"language"`
+	OriginalText       *string              `json:"originalText,omitempty"`
+	ParseStatus        TargetJobParseStatus `json:"parseStatus"`
+	ParsedSummary      *map[string]any      `json:"parsedSummary,omitempty"`
+	ParsedTextSnapshot *string              `json:"parsedTextSnapshot,omitempty"`
+	SourceType         *string              `json:"sourceType,omitempty"`
+	Status             *string              `json:"status,omitempty"`
+	Title              string               `json:"title"`
+	UpdatedAt          string               `json:"updatedAt"`
 }
 
 type ResumeAssetWithJob struct {
 	Job           Job    `json:"job"`
 	ResumeAssetId string `json:"resumeAssetId"`
+}
+
+type PaginatedResumeAsset struct {
+	Items    []ResumeAsset `json:"items"`
+	PageInfo PageInfo      `json:"pageInfo"`
+}
+
+type ResumeVersion struct {
+	CreatedAt         string               `json:"createdAt"`
+	DeletedAt         *string              `json:"deletedAt,omitempty"`
+	DisplayName       string               `json:"displayName"`
+	FocusAngle        *string              `json:"focusAngle,omitempty"`
+	Id                string               `json:"id"`
+	MatchScore        *float64             `json:"matchScore,omitempty"`
+	ModelId           *string              `json:"modelId,omitempty"`
+	ParentVersionId   *string              `json:"parentVersionId,omitempty"`
+	PromptVersion     *string              `json:"promptVersion,omitempty"`
+	Provenance        GenerationProvenance `json:"provenance"`
+	Provider          *string              `json:"provider,omitempty"`
+	ResumeAssetId     string               `json:"resumeAssetId"`
+	RubricVersion     *string              `json:"rubricVersion,omitempty"`
+	SeedStrategy      *ResumeSeedStrategy  `json:"seedStrategy,omitempty"`
+	StructuredProfile any                  `json:"structuredProfile"`
+	Suggestions       []any                `json:"suggestions"`
+	TargetJobId       *string              `json:"targetJobId,omitempty"`
+	UpdatedAt         string               `json:"updatedAt"`
+	VersionType       ResumeVersionType    `json:"versionType"`
+}
+
+type PaginatedResumeVersion struct {
+	Items    []ResumeVersion `json:"items"`
+	PageInfo PageInfo        `json:"pageInfo"`
+}
+
+type BranchResumeVersionRequest struct {
+	DisplayName     *string            `json:"displayName,omitempty"`
+	FocusAngle      *string            `json:"focusAngle,omitempty"`
+	ParentVersionId string             `json:"parentVersionId"`
+	SeedStrategy    ResumeSeedStrategy `json:"seedStrategy"`
+	TargetJobId     string             `json:"targetJobId"`
+}
+
+type UpdateResumeVersionRequest struct {
+	DisplayName       *string        `json:"displayName,omitempty"`
+	FocusAngle        *string        `json:"focusAngle,omitempty"`
+	MatchScore        *float64       `json:"matchScore,omitempty"`
+	StructuredProfile map[string]any `json:"structuredProfile,omitempty"`
 }
 
 type TargetJobImportSourceURL struct {

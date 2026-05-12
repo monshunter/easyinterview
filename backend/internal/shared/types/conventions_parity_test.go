@@ -45,23 +45,26 @@ func loadParityFixture(t *testing.T) parityFixture {
 func TestConventionsParityFixture_EnumSets(t *testing.T) {
 	fixture := loadParityFixture(t)
 	got := map[string][]string{
-		"TargetJobStatus":      stringsOf(AllTargetJobStatuses),
-		"TargetJobParseStatus": stringsOf(AllTargetJobParseStatuses),
-		"PracticeMode":         stringsOf(AllPracticeModes),
-		"PracticeGoal":         stringsOf(AllPracticeGoals),
-		"InterviewerRole":      stringsOf(AllInterviewerRoles),
-		"SessionStatus":        stringsOf(AllSessionStatuses),
-		"ReportStatus":         stringsOf(AllReportStatuses),
-		"ReadinessTier":        stringsOf(AllReadinessTiers),
-		"DimensionStatus":      stringsOf(AllDimensionStatuses),
-		"Confidence":           stringsOf(AllConfidences),
-		"QuestionReviewStatus": stringsOf(AllQuestionReviewStatuses),
-		"DebriefStatus":        stringsOf(AllDebriefStatuses),
-		"PrivacyRequestType":   stringsOf(AllPrivacyRequestTypes),
-		"PrivacyRequestStatus": stringsOf(AllPrivacyRequestStatuses),
+		"TargetJobStatus":              stringsOf(AllTargetJobStatuses),
+		"TargetJobParseStatus":         stringsOf(AllTargetJobParseStatuses),
+		"PracticeMode":                 stringsOf(AllPracticeModes),
+		"PracticeGoal":                 stringsOf(AllPracticeGoals),
+		"InterviewerRole":              stringsOf(AllInterviewerRoles),
+		"SessionStatus":                stringsOf(AllSessionStatuses),
+		"ReportStatus":                 stringsOf(AllReportStatuses),
+		"ReadinessTier":                stringsOf(AllReadinessTiers),
+		"DimensionStatus":              stringsOf(AllDimensionStatuses),
+		"Confidence":                   stringsOf(AllConfidences),
+		"QuestionReviewStatus":         stringsOf(AllQuestionReviewStatuses),
+		"DebriefStatus":                stringsOf(AllDebriefStatuses),
+		"PrivacyRequestType":           stringsOf(AllPrivacyRequestTypes),
+		"PrivacyRequestStatus":         stringsOf(AllPrivacyRequestStatuses),
+		"ResumeVersionType":            stringsOf(AllResumeVersionTypes),
+		"ResumeSeedStrategy":           stringsOf(AllResumeSeedStrategies),
+		"ResumeTailorSuggestionStatus": stringsOf(AllResumeTailorSuggestionStatuses),
 	}
-	if len(got) != 14 {
-		t.Fatalf("generated enum type count = %d, want 14", len(got))
+	if len(got) != 17 {
+		t.Fatalf("generated enum type count = %d, want 17", len(got))
 	}
 	if !reflect.DeepEqual(got, fixture.Enums) {
 		t.Fatalf("Go enum sets differ from fixture\ngot:  %#v\nwant: %#v", got, fixture.Enums)
@@ -104,6 +107,21 @@ func TestPracticeNotFoundErrorCodesRegistered(t *testing.T) {
 		if !contains(sharederrors.AllCodes, code) {
 			t.Fatalf("shared error code %s is not registered in AllCodes: %#v", code, sharederrors.AllCodes)
 		}
+	}
+}
+
+func TestResumeVocabularyRegistered(t *testing.T) {
+	if got, want := stringsOf(AllResumeVersionTypes), []string{"structured_master", "targeted"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("ResumeVersionType values = %#v, want %#v", got, want)
+	}
+	if got, want := stringsOf(AllResumeSeedStrategies), []string{"copy_master", "blank", "ai_select"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("ResumeSeedStrategy values = %#v, want %#v", got, want)
+	}
+	if got, want := stringsOf(AllResumeTailorSuggestionStatuses), []string{"pending", "accepted", "rejected"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("ResumeTailorSuggestionStatus values = %#v, want %#v", got, want)
+	}
+	if !contains(sharederrors.AllCodes, sharederrors.CodeResumeExportNotAvailable) {
+		t.Fatalf("shared error code %s is not registered in AllCodes: %#v", sharederrors.CodeResumeExportNotAvailable, sharederrors.AllCodes)
 	}
 }
 

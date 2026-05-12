@@ -7,7 +7,8 @@
         "body": {
           "fileObjectId": "01918fa0-0000-7000-8000-000000001100",
           "title": "Alice Example — Senior Frontend Engineer",
-          "language": "zh-CN"
+          "language": "zh-CN",
+          "sourceType": "upload"
         }
       },
       "response": {

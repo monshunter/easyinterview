@@ -12,6 +12,10 @@ import json
 import unittest
 from pathlib import Path
 
+import yaml
+
+import scripts.lint.openapi_inventory as inventory
+
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES_ROOT = ROOT / "openapi" / "fixtures"
 OPENAPI_PATH = ROOT / "openapi" / "openapi.yaml"
@@ -27,54 +31,44 @@ def _load_validator():
     return module
 
 
+def _load_openapi() -> dict:
+    return yaml.safe_load(OPENAPI_PATH.read_text(encoding="utf-8"))
+
+
+def _preferred_default_status(operation: dict) -> int:
+    for code in ("200", "201", "202", "204", "501"):
+        if code in (operation.get("responses") or {}):
+            return int(code)
+    raise AssertionError(f"operation has no preferred default status: {operation}")
+
+
+def _expected_operations() -> list[tuple[str, str, int, bool]]:
+    spec = _load_openapi()
+    rows: list[tuple[str, str, int, bool]] = []
+    for tag, method, path, opid in inventory.EXPECTED_OPERATIONS:
+        operation = spec["paths"][path][method]
+        rows.append((tag, opid, _preferred_default_status(operation), "requestBody" in operation))
+    return rows
+
+
 # (tag, operationId, expected default status, has_request_body)
-EXPECTED_OPERATIONS = [
-    ("Auth", "getMe", 200, False),
-    ("Auth", "deleteMe", 202, False),
-    ("Auth", "startAuthEmailChallenge", 202, True),
-    ("Auth", "verifyAuthEmailChallenge", 200, False),
-    ("Auth", "logout", 204, False),
-    ("Auth", "getRuntimeConfig", 200, False),
-    ("Uploads", "createUploadPresign", 201, True),
-    ("Profile", "getMyProfile", 200, False),
-    ("Profile", "updateMyProfile", 200, True),
-    ("Profile", "listExperienceCards", 200, False),
-    ("Profile", "createExperienceCard", 201, True),
-    ("Profile", "updateExperienceCard", 200, True),
-    ("Resumes", "registerResume", 202, True),
-    ("Resumes", "getResume", 200, False),
-    ("TargetJobs", "importTargetJob", 202, True),
-    ("TargetJobs", "listTargetJobs", 200, False),
-    ("TargetJobs", "getTargetJob", 200, False),
-    ("TargetJobs", "updateTargetJob", 200, True),
-    ("PracticePlans", "createPracticePlan", 201, True),
-    ("PracticePlans", "getPracticePlan", 200, False),
-    ("PracticeSessions", "startPracticeSession", 201, True),
-    ("PracticeSessions", "getPracticeSession", 200, False),
-    ("PracticeSessions", "appendSessionEvent", 200, True),
-    ("PracticeSessions", "completePracticeSession", 202, True),
-    ("Reports", "getFeedbackReport", 200, False),
-    ("Reports", "listTargetJobReports", 200, False),
-    ("ResumeTailor", "requestResumeTailor", 202, True),
-    ("ResumeTailor", "getResumeTailorRun", 200, False),
-    ("Debriefs", "createDebrief", 202, True),
-    ("Debriefs", "getDebrief", 200, False),
-    ("Jobs", "getJob", 200, False),
-    ("Privacy", "requestPrivacyExport", 501, False),
-    ("Privacy", "requestPrivacyDelete", 202, False),
-    ("Privacy", "getPrivacyRequest", 200, False),
-]
+EXPECTED_OPERATIONS = _expected_operations()
+IK_REQUIRED_OPERATION_IDS = {
+    opid
+    for _tag, method, path, opid in inventory.EXPECTED_OPERATIONS
+    if (method, path) in inventory.IK_REQUIRED
+}
 
 
 class FixtureSkeletonTest(unittest.TestCase):
     """Phase 1.1 structural contract."""
 
-    def test_thirty_four_operations_expected(self) -> None:
-        self.assertEqual(len(EXPECTED_OPERATIONS), 34)
+    def test_fifty_five_operations_expected(self) -> None:
+        self.assertEqual(len(EXPECTED_OPERATIONS), 55)
 
-    def test_twelve_unique_tags(self) -> None:
+    def test_thirteen_unique_tags(self) -> None:
         tags = {tag for tag, *_ in EXPECTED_OPERATIONS}
-        self.assertEqual(len(tags), 12)
+        self.assertEqual(len(tags), 13)
 
     def test_each_fixture_file_exists(self) -> None:
         missing = []
@@ -127,15 +121,13 @@ class FixtureSkeletonTest(unittest.TestCase):
                 with path.open("r", encoding="utf-8") as f:
                     data = json.load(f)
                 default = data["scenarios"]["default"]
-                if opid == "deleteMe":
-                    self.assertIn("request", default, f"{path}: request headers must be present")
-                    self.assertIn("headers", default["request"], f"{path}: request.headers must be present")
-                    self.assertIn("Idempotency-Key", default["request"]["headers"])
-                    self.assertNotIn("body", default["request"], f"{path}: DELETE /me has no request body")
-                    continue
                 if has_req:
                     self.assertIn("request", default, f"{path}: request must be present")
                     self.assertIn("body", default["request"], f"{path}: request.body must be present")
+                elif opid in IK_REQUIRED_OPERATION_IDS and "request" in default:
+                    self.assertIn("headers", default["request"], f"{path}: request.headers must be present")
+                    self.assertIn("Idempotency-Key", default["request"]["headers"])
+                    self.assertNotIn("body", default["request"], f"{path}: operation has no request body")
                 else:
                     self.assertNotIn(
                         "request",
@@ -147,7 +139,7 @@ class FixtureSkeletonTest(unittest.TestCase):
 class FixtureValidatorWalkerTest(unittest.TestCase):
     """Validator helper exposes a structural walk over openapi/fixtures/."""
 
-    def test_walker_returns_34_entries(self) -> None:
+    def test_walker_returns_55_entries(self) -> None:
         validator = _load_validator()
         entries = validator.walk_fixtures(FIXTURES_ROOT)
         self.assertEqual(
@@ -181,12 +173,20 @@ PROVENANCE_OPERATIONS = {
     "getFeedbackReport": ["provenance"],
     "getResumeTailorRun": ["provenance"],
     "getDebrief": ["provenance"],
+    "listResumeVersions": ["items[*].provenance", "items[*].structuredProfile.provenance"],
+    "getResumeVersion": ["provenance", "structuredProfile.provenance"],
+    "branchResumeVersion": ["provenance", "structuredProfile.provenance"],
+    "updateResumeVersion": ["provenance", "structuredProfile.provenance"],
+    "acceptResumeTailorSuggestion": ["provenance", "structuredProfile.provenance"],
+    "rejectResumeTailorSuggestion": ["provenance", "structuredProfile.provenance"],
 }
 
 LIST_OPERATIONS = [
     "listExperienceCards",
     "listTargetJobs",
     "listTargetJobReports",
+    "listResumes",
+    "listResumeVersions",
 ]
 
 # *WithJob async operations and the JobType they must emit.
@@ -280,6 +280,16 @@ class FixtureContentTest(unittest.TestCase):
             resp["body"]["error"]["code"],
             "PRIVACY_EXPORT_NOT_AVAILABLE",
             "spec D-12 requires this exact error code on P0",
+        )
+
+    def test_resume_export_returns_501_with_correct_error_code(self) -> None:
+        data = _load_fixture("exportResumeVersion", "Resumes")
+        resp = data["scenarios"]["default"]["response"]
+        self.assertEqual(resp["status"], 501)
+        self.assertEqual(
+            resp["body"]["error"]["code"],
+            "RESUME_EXPORT_NOT_AVAILABLE",
+            "spec D-18 requires this exact error code on P0",
         )
 
     def test_privacy_delete_returns_202_with_job(self) -> None:

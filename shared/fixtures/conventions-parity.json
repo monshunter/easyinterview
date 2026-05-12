@@ -82,6 +82,20 @@
       "completed",
       "failed",
       "cancelled"
+    ],
+    "ResumeVersionType": [
+      "structured_master",
+      "targeted"
+    ],
+    "ResumeSeedStrategy": [
+      "copy_master",
+      "blank",
+      "ai_select"
+    ],
+    "ResumeTailorSuggestionStatus": [
+      "pending",
+      "accepted",
+      "rejected"
     ]
   },
   "errorCodes": [
@@ -95,6 +109,7 @@
     "PRACTICE_PLAN_NOT_FOUND",
     "PRACTICE_SESSION_NOT_FOUND",
     "REPORT_NOT_READY",
+    "RESUME_EXPORT_NOT_AVAILABLE",
     "VALIDATION_FAILED",
     "RATE_LIMITED",
     "AI_PROVIDER_TIMEOUT",

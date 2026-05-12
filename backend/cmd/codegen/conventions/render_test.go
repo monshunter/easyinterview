@@ -128,9 +128,17 @@ func TestRenderGoEnums_KnownConstants(t *testing.T) {
 		`JobStatus = "dead"`,
 		"type PrivacyRequestType string",
 		"type PrivacyRequestStatus string",
+		"type ResumeVersionType string",
+		`ResumeVersionTypeStructuredMaster ResumeVersionType = "structured_master"`,
+		"type ResumeSeedStrategy string",
+		`ResumeSeedStrategyAiSelect`,
+		`= "ai_select"`,
+		"type ResumeTailorSuggestionStatus string",
+		`ResumeTailorSuggestionStatusRejected ResumeTailorSuggestionStatus = "rejected"`,
 		"var AllPracticeModes = []PracticeMode{",
 		"var AllSessionStatuses = []SessionStatus{",
 		"var AllJobStatuses = []JobStatus{",
+		"var AllResumeSeedStrategies = []ResumeSeedStrategy{",
 	}
 	for _, want := range must {
 		if !strings.Contains(src, want) {
@@ -225,6 +233,10 @@ func TestRenderTSEnums_UnionTypes(t *testing.T) {
 		"| 'dead';",
 		"export const ALL_JOB_STATUSES: readonly JobStatus[] = [",
 		"export type PrivacyRequestStatus =",
+		"export type ResumeVersionType =",
+		"| 'structured_master'",
+		"export const ALL_RESUME_SEED_STRATEGIES: readonly ResumeSeedStrategy[] = [",
+		"export type ResumeTailorSuggestionStatus =",
 		"export const ALL_SESSION_STATUSES: readonly SessionStatus[] = [",
 	}
 	for _, want := range must {
@@ -377,13 +389,28 @@ func TestRenderAIVocabulary_IncludesOwnerBoundaryComments(t *testing.T) {
 func TestPascalSuffix(t *testing.T) {
 	cases := map[string]string{
 		"retry_current_round": "RetryCurrentRound",
-		"waiting_user_input": "WaitingUserInput",
-		"hr":                 "Hr",
-		"basically_ready":    "BasicallyReady",
+		"waiting_user_input":  "WaitingUserInput",
+		"hr":                  "Hr",
+		"basically_ready":     "BasicallyReady",
 	}
 	for in, want := range cases {
 		if got := pascalSuffix(in); got != want {
 			t.Errorf("pascalSuffix(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestGoPlural(t *testing.T) {
+	cases := map[string]string{
+		"PracticeMode":         "PracticeModes",
+		"SessionStatus":        "SessionStatuses",
+		"ResumeSeedStrategy":   "ResumeSeedStrategies",
+		"ResumeVersionType":    "ResumeVersionTypes",
+		"TargetJobParseStatus": "TargetJobParseStatuses",
+	}
+	for in, want := range cases {
+		if got := goPlural(in); got != want {
+			t.Errorf("goPlural(%q) = %q, want %q", in, got, want)
 		}
 	}
 }

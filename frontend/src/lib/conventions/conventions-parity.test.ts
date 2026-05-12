@@ -15,6 +15,9 @@ import {
   ALL_DEBRIEF_STATUSES,
   ALL_PRIVACY_REQUEST_TYPES,
   ALL_PRIVACY_REQUEST_STATUSES,
+  ALL_RESUME_VERSION_TYPES,
+  ALL_RESUME_SEED_STRATEGIES,
+  ALL_RESUME_TAILOR_SUGGESTION_STATUSES,
   ALL_ERROR_CODES,
   ERROR_CODES,
   ALL_AI_CAPABILITIES,
@@ -42,7 +45,7 @@ interface ParityFixture {
 const parity = fixture as ParityFixture;
 
 describe('cross-language conventions parity fixture', () => {
-  it('matches all 14 generated enum literal sets', () => {
+  it('matches all 17 generated enum literal sets', () => {
     const actual: Record<string, readonly string[]> = {
       TargetJobStatus: ALL_TARGET_JOB_STATUSES,
       TargetJobParseStatus: ALL_TARGET_JOB_PARSE_STATUSES,
@@ -58,9 +61,12 @@ describe('cross-language conventions parity fixture', () => {
       DebriefStatus: ALL_DEBRIEF_STATUSES,
       PrivacyRequestType: ALL_PRIVACY_REQUEST_TYPES,
       PrivacyRequestStatus: ALL_PRIVACY_REQUEST_STATUSES,
+      ResumeVersionType: ALL_RESUME_VERSION_TYPES,
+      ResumeSeedStrategy: ALL_RESUME_SEED_STRATEGIES,
+      ResumeTailorSuggestionStatus: ALL_RESUME_TAILOR_SUGGESTION_STATUSES,
     };
 
-    expect(Object.keys(actual)).toHaveLength(14);
+    expect(Object.keys(actual)).toHaveLength(17);
     expect(actual).toEqual(parity.enums);
   });
 
@@ -74,6 +80,7 @@ describe('cross-language conventions parity fixture', () => {
     expect(ERROR_CODES.AI_PROVIDER_SECRET_MISSING).toBe('AI_PROVIDER_SECRET_MISSING');
     expect(ERROR_CODES.PRACTICE_PLAN_NOT_FOUND).toBe('PRACTICE_PLAN_NOT_FOUND');
     expect(ERROR_CODES.PRACTICE_SESSION_NOT_FOUND).toBe('PRACTICE_SESSION_NOT_FOUND');
+    expect(ERROR_CODES.RESUME_EXPORT_NOT_AVAILABLE).toBe('RESUME_EXPORT_NOT_AVAILABLE');
   });
 
   it('matches AI vocabulary fields', () => {

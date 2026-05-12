@@ -1,6 +1,6 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.12
+> **版本**: 3.13
 > **状态**: active
 > **更新日期**: 2026-05-12
 
@@ -95,7 +95,7 @@
 
 ### 4.3 契约与 mock-first 约束
 
-- 前端 mock 数据来源必须是 B2 OpenAPI fixtures（当前 13 tag / 46 operation；JobMatch tag 12 operation 由 `frontend-home-job-picks-and-parse/002-jd-match-recommendations` 通过 B2 spec D-17 additive 升级纳入），禁止前端重新 hardcode product data truth source。
+- 前端 mock 数据来源必须是 B2 OpenAPI fixtures（当前 13 tag / 55 operation；JobMatch tag 12 operation 由 B2 spec D-17 additive 升级纳入，Resume Workshop 9 operation 由 B2 spec D-18 additive 升级纳入），禁止前端重新 hardcode product data truth source。
 - `ui-design/src/data.jsx` 只能作为 prototype-baseline 场景输入，不能越过 OpenAPI fixtures 直接驱动实现。
 - 后端 AI 调用必须通过 A3 `AIClient` 和 F3 prompt/rubric/model profile 契约。
 - 业务 spec 不得 hardcode prompt 正文、rubric 文本、模型名、厂商 SDK 或 feature flag 绕过 A3/A4/F3。
@@ -117,7 +117,7 @@
 | Foundation | A5 | `ci-pipeline-baseline` | 当前本地质量门禁，远端 CI deferred | 保留 |
 | Foundation | - | `backend-runtime-topology` | P0 frontend/backend 进程拓扑、worker 收敛与开发期观测依赖边界 | 保留 |
 | Contract | B1 | `shared-conventions-codified` | Go/TS 共享枚举、错误码、ID、codegen / drift gate | 保留 |
-| Contract | B2 | `openapi-v1-contract` | 当前 46 endpoint / 13 tag OpenAPI + fixtures | 保留 |
+| Contract | B2 | `openapi-v1-contract` | 当前 55 endpoint / 13 tag OpenAPI + fixtures | 保留 |
 | Contract | B3 | `event-and-outbox-contract` | 当前 16 internal event、jobType、outbox 契约 | 保留 |
 | Contract | B4 | `db-migrations-baseline` | 当前 28 应用表 + auth / migration 支撑表 | 保留 |
 | Quality | F1 | `observability-stack` | metrics/log/trace/dashboard/alerting 命名和红线 | 保留 |
@@ -161,7 +161,7 @@
 
 目标是让当前 UI 五入口和会话级页面能基于 B2 fixtures 跑通 P0 happy path：
 
-1. 创建或修订 `mock-contract-suite`，把 46 operation fixtures 提供给前端和后端 mock。
+1. 创建或修订 `mock-contract-suite`，把 55 operation fixtures 提供给前端和后端 mock。
 2. 创建或修订 `frontend-shell`，锁 TopBar、用户菜单、display controls、auth pendingAction、settings/profile 入口。
 3. 创建或修订 D2-D6 前端 workstream，严格按 `docs/ui-design/` 和 `ui-design/src/app.jsx` 目标路由实现。
 4. 在每个用户可见 workstream 的 plan 中维护 BDD gate。

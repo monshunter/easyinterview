@@ -34,7 +34,7 @@ EXPECTED_TAGS: list[str] = [
     "JobMatch",
 ]
 
-# (tag, method, path, operationId) tuples per spec §3.1.1 (46 entries).
+# (tag, method, path, operationId) tuples per spec §3.1.1 (55 entries).
 EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("Auth", "get", "/me", "getMe"),
     ("Auth", "delete", "/me", "deleteMe"),
@@ -48,7 +48,16 @@ EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("Profile", "post", "/profiles/me/experience-cards", "createExperienceCard"),
     ("Profile", "patch", "/profiles/me/experience-cards/{cardId}", "updateExperienceCard"),
     ("Resumes", "post", "/resumes", "registerResume"),
+    ("Resumes", "get", "/resumes", "listResumes"),
     ("Resumes", "get", "/resumes/{resumeAssetId}", "getResume"),
+    ("Resumes", "post", "/resumes/{resumeAssetId}/archive", "archiveResumeAsset"),
+    ("Resumes", "get", "/resumes/{resumeAssetId}/versions", "listResumeVersions"),
+    ("Resumes", "post", "/resume-versions", "branchResumeVersion"),
+    ("Resumes", "get", "/resume-versions/{resumeVersionId}", "getResumeVersion"),
+    ("Resumes", "patch", "/resume-versions/{resumeVersionId}", "updateResumeVersion"),
+    ("Resumes", "post", "/resume-versions/{resumeVersionId}/exports", "exportResumeVersion"),
+    ("Resumes", "post", "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept", "acceptResumeTailorSuggestion"),
+    ("Resumes", "post", "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject", "rejectResumeTailorSuggestion"),
     ("TargetJobs", "post", "/targets/import", "importTargetJob"),
     ("TargetJobs", "get", "/targets", "listTargetJobs"),
     ("TargetJobs", "get", "/targets/{targetJobId}", "getTargetJob"),
@@ -89,6 +98,12 @@ IK_REQUIRED: set[tuple[str, str]] = {
     ("delete", "/me"),
     ("post", "/uploads/presign"),
     ("post", "/resumes"),
+    ("post", "/resumes/{resumeAssetId}/archive"),
+    ("post", "/resume-versions"),
+    ("patch", "/resume-versions/{resumeVersionId}"),
+    ("post", "/resume-versions/{resumeVersionId}/exports"),
+    ("post", "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept"),
+    ("post", "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject"),
     ("post", "/targets/import"),
     ("patch", "/targets/{targetJobId}"),
     ("post", "/practice/plans"),
@@ -127,7 +142,14 @@ AI_PROVENANCE_SCHEMAS: list[str] = [
     "ResumeTailorRun",
     "Debrief",
     "JobMatchRecommendation",
+    "ResumeVersion",
 ]
+
+# P0 export stubs that intentionally declare 501 Not Implemented.
+P0_501_ENDPOINTS: dict[tuple[str, str], str] = {
+    ("post", "/privacy/exports"): "PRIVACY_EXPORT_NOT_AVAILABLE",
+    ("post", "/resume-versions/{resumeVersionId}/exports"): "RESUME_EXPORT_NOT_AVAILABLE",
+}
 
 FORBIDDEN_PRODUCT_SCOPE_TOKENS: tuple[str, ...] = (
     "Mistakes",
@@ -171,6 +193,9 @@ EXPECTED_PRODUCT_ENUMS: dict[str, list[str]] = {
         "debrief",
         "privacy_request",
     ],
+    "ResumeVersionType": ["structured_master", "targeted"],
+    "ResumeSeedStrategy": ["copy_master", "blank", "ai_select"],
+    "ResumeTailorSuggestionStatus": ["pending", "accepted", "rejected"],
 }
 
 DEFAULT_OPENAPI_PATH = Path("openapi/openapi.yaml")
@@ -367,8 +392,8 @@ def main(argv: list[str]) -> int:
         errors.append("missing operations: " + ", ".join(sorted(f"{m.upper()} {p} ({o})" for _, m, p, o in missing)))
     if extra:
         errors.append("unexpected operations: " + ", ".join(sorted(f"{m.upper()} {p} ({o})" for _, m, p, o in extra)))
-    if operation_count != 46:
-        errors.append(f"operation count must be 46 (spec §3.1.1); got {operation_count}")
+    if operation_count != 55:
+        errors.append(f"operation count must be 55 (spec §3.1.1); got {operation_count}")
 
     # operationId uniqueness.
     op_ids = [op for _, _, _, op in seen_ops]
@@ -411,7 +436,7 @@ def main(argv: list[str]) -> int:
         if operation.get("security") != []:
             errors.append(f"{method.upper()} {path_str}: must declare `security: []` (public per spec §4.1)")
 
-    # 501 uniqueness — only POST /privacy/exports may declare it (spec D-12).
+    # 501 uniqueness — only explicit P0 export stubs may declare it (spec D-12 / D-18).
     five_oh_one_ops: list[tuple[str, str]] = []
     for path_str, item in paths.items():
         if not isinstance(item, dict):
@@ -421,22 +446,22 @@ def main(argv: list[str]) -> int:
                 continue
             if "501" in (operation.get("responses") or {}):
                 five_oh_one_ops.append((method, path_str))
-    if five_oh_one_ops != [("post", "/privacy/exports")]:
-        errors.append(f"501 must appear only on POST /privacy/exports; got {five_oh_one_ops}")
+    expected_501 = sorted(P0_501_ENDPOINTS.keys())
+    if sorted(five_oh_one_ops) != expected_501:
+        errors.append(f"501 must appear only on P0 export stubs {expected_501}; got {five_oh_one_ops}")
 
-    # privacy export 501 must declare ApiErrorResponse on the JSON content;
-    # the actual `error.code = PRIVACY_EXPORT_NOT_AVAILABLE` example is owned
-    # by `openapi/fixtures/Privacy/requestPrivacyExport.json` and verified by
-    # `scripts/lint/validate_fixtures.py` (B2 002 §3.1: openapi.yaml carries
-    # no hand-written examples; fixtures are the single source of truth).
-    privacy_export = ((paths.get("/privacy/exports") or {}).get("post") or {})
-    response_501 = ((privacy_export.get("responses") or {}).get("501") or {})
-    content = (response_501.get("content") or {}).get("application/json") or {}
-    schema_ref = (content.get("schema") or {}).get("$ref")
-    if schema_ref != "#/components/schemas/ApiErrorResponse":
-        errors.append(
-            "POST /privacy/exports 501 content.application/json.schema must `$ref` ApiErrorResponse"
-        )
+    # P0 export 501 responses must declare ApiErrorResponse on JSON content.
+    # The operation-specific error.code examples are owned by fixtures and
+    # verified by `scripts/lint/validate_fixtures.py`.
+    for method, path_str in expected_501:
+        operation = ((paths.get(path_str) or {}).get(method) or {})
+        response_501 = ((operation.get("responses") or {}).get("501") or {})
+        content = (response_501.get("content") or {}).get("application/json") or {}
+        schema_ref = (content.get("schema") or {}).get("$ref")
+        if schema_ref != "#/components/schemas/ApiErrorResponse":
+            errors.append(
+                f"{method.upper()} {path_str} 501 content.application/json.schema must `$ref` ApiErrorResponse"
+            )
 
     # GenerationProvenance contract (spec §4.6).
     schemas = ((data.get("components") or {}).get("schemas") or {})

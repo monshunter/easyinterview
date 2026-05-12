@@ -2,7 +2,7 @@
 
 > **版本**: 1.0
 > **状态**: active
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -173,7 +173,7 @@
 
 #### 4.3 同步顶层 roadmap 表述
 
-`docs/spec/engineering-roadmap/spec.md` §4.3 / §5.1 中如出现 "46 endpoint / 46 operation" 文字描述，同步升级到 55；版本 3.10 → 3.11，`history.md` 追加 3.11 行。
+`docs/spec/engineering-roadmap/spec.md` §4.3 / §5.1 中如出现 "46 endpoint / 46 operation" 文字描述，同步升级到 55；版本 3.12 → 3.13，`history.md` 追加 3.13 行。
 
 ### Phase 5: 验收 + 解锁下游
 

@@ -16,6 +16,7 @@ const (
 	CodePracticePlanNotFound          = "PRACTICE_PLAN_NOT_FOUND"
 	CodePracticeSessionNotFound       = "PRACTICE_SESSION_NOT_FOUND"
 	CodeReportNotReady                = "REPORT_NOT_READY"
+	CodeResumeExportNotAvailable      = "RESUME_EXPORT_NOT_AVAILABLE"
 	CodeValidationFailed              = "VALIDATION_FAILED"
 	CodeRateLimited                   = "RATE_LIMITED"
 	CodeAiProviderTimeout             = "AI_PROVIDER_TIMEOUT"
@@ -38,6 +39,7 @@ var AllCodes = []string{
 	CodePracticePlanNotFound,
 	CodePracticeSessionNotFound,
 	CodeReportNotReady,
+	CodeResumeExportNotAvailable,
 	CodeValidationFailed,
 	CodeRateLimited,
 	CodeAiProviderTimeout,
@@ -66,6 +68,7 @@ var CodeRegistry = map[string]CodeMeta{
 	CodePracticePlanNotFound:          {Message: "practice plan not found", Retryable: false},
 	CodePracticeSessionNotFound:       {Message: "practice session not found", Retryable: false},
 	CodeReportNotReady:                {Message: "report is not ready yet", Retryable: true},
+	CodeResumeExportNotAvailable:      {Message: "resume version export is not available in P0", Retryable: false},
 	CodeValidationFailed:              {Message: "request validation failed", Retryable: false},
 	CodeRateLimited:                   {Message: "rate limit exceeded", Retryable: true},
 	CodeAiProviderTimeout:             {Message: "AI provider request timed out", Retryable: true},

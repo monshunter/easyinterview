@@ -1,12 +1,14 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-05-12
 
 **关联计划**: [plan](./plan.md)
 
 > L2 code review fix pass（2026-05-09）补齐 route → `InterviewContext` 自动 hydrate、Workspace modal 接线、`getPracticePlan` refresh/replacement、`autoStartPractice=1` 登录恢复、BDD 场景脚本强断言与 full workspace pixel parity。
+
+> Handoff（2026-05-12）：`openapi-v1-contract/004-resume-additive-coverage` 已落地 `listResumes` operation + fixtures + generated client；本 completed plan 的 disabled-list 模式保持历史交付状态，后续 workspace owner 应原地修订 Resume Picker 为 active-list。
 
 ## Phase 1: WorkspaceScreen 静态壳 + 路由壳 + InterviewContext store + i18n（无数据）
 

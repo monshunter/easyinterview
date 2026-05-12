@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-05-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -39,6 +39,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-12 | 1.3 | Handoff only：B2 D-18 / `openapi-v1-contract/004-resume-additive-coverage` 已落地 `listResumes` operation、fixtures 和 generated client；本 completed plan 保留当时交付的 disabled-list 行为，后续 workspace owner 应原地修订 Resume Picker 为 active-list 模式并移除 `resumePicker.disabledNote`。 |
 | 2026-05-09 | 1.2 | L2 follow-up 修复 workspace generated API server-bound id 归一化、target-job stale/error recovery、target 切换竞态与英文本地化派生标签。 |
 
 ## 3 质量门禁分类
@@ -120,7 +121,7 @@
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` scenarios: `default` / `prototype-baseline` / 计划新增 `single-plan` / `12-plus` | `PlanSwitcherModal` 通过 generated client 拉所有候选 plan；与 home plan §3.7 viewmodel mapping 一致 | implemented (`backend-targetjob/001` 已交付) | `target_jobs` + `target_job_requirements` | none in frontend | E2E.P0.018 |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` scenarios: `default` / `prototype-baseline` / 计划新增 `with-rounds` / `not-found` | workspace mount 时通过 generated client 拉当前 `targetJobId`；驱动 header / Interview Launcher / JD 拆解 / risks-strengths；缺失或 404 → `WorkspaceEmptyState` | implemented (`backend-targetjob/001` 已交付) | `target_jobs` + `target_job_requirements` + `target_job_sources` | none in frontend | E2E.P0.018 / E2E.P0.019 |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` scenarios: `default` / 计划新增 `not-found` | workspace mount 时通过 generated client 拉绑定 resume；驱动 BindingPill resume 段；缺失或 404 → `WorkspaceMissingResumeState` | `not-yet-implemented`（future `backend-resume`） | `resume_assets` | none | E2E.P0.018 / E2E.P0.019 |
-| `listResumes` | N/A（缺 OpenAPI operation） | **本 plan 不消费**：Resume Picker 仅展示当前绑定 resume + disabled 列表；`spec §3.2` 待解锁前不调用 | missing operation；`openapi-v1-contract` + future `backend-resume` 修订前不实现 | resume assets | none | 负向断言：generated client `listResumes` 不存在或调用为 0 |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` (`default`, `empty`, `paginated`) | **本 completed plan 不消费**：交付时 Resume Picker 仅展示当前绑定 resume + disabled 列表；B2 D-18 已解除 contract blocker，后续 workspace owner 应原地修订为 active-list | operation 已由 `openapi-v1-contract/004-resume-additive-coverage` 落地；真实 handler 仍由 future `backend-resume` 承接 | resume assets | none | 当前 completed plan 保留历史负向断言；后续 active-list 修订需替换为 generated client `listResumes` 正向断言 |
 | `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` scenarios: `default` / `missing-resume` / 计划新增 `validation-422` | workspace 立即面试：`InterviewContext.planId` 不存在或 `getPracticePlan` 失败时调用；body 含 `targetJobId / goal='baseline' / mode='assisted' / interviewerPersona / difficulty / language / questionBudget / timeBudgetMinutes / resumeAssetId / focusCompetencyCodes`；side-effect 调用带 `Idempotency-Key` | `not-yet-implemented`（owned by `backend-practice/001-plan-and-session-orchestration`） | `practice_plans` | none in frontend；backend-only `practice.session.first_question` 由 `startPracticeSession` 阶段触发 | E2E.P0.020 |
 | `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` scenarios: `default` / 计划新增 `archived` / `not-found` | workspace mount 时若 `InterviewContext.planId` 存在 → 拉取以确认 `status='ready'`；非 ready 视为缺 plan 走 createPracticePlan 路径 | `not-yet-implemented` | `practice_plans` | none | E2E.P0.019 |
 | `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` scenarios: `default` / 计划新增 `ai-timeout-502` | workspace 立即面试 plan 就绪后调用；body `{ planId, hintsEnabled }`；`Idempotency-Key` 与 createPracticePlan 同一 batch；成功响应携带 `currentTurn{turnIndex:1, questionText, askedAt, status:'asked'}`，前端只缓存 sessionId / planId / turnIndex 进 InterviewContext，**不在 workspace 屏渲染 questionText** | `not-yet-implemented` | `practice_sessions` + 第 1 个 turn + `session_started` event | backend-only `practice.session.first_question` (spec D-13) | E2E.P0.020 |

@@ -383,6 +383,41 @@ paths:
           $ref: '#/components/responses/ApiErrorResponse'
 
   /resumes:
+    get:
+      tags: [Resumes]
+      operationId: listResumes
+      summary: List resume assets
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Resume assets.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResumeAsset'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
     post:
       tags: [Resumes]
       operationId: registerResume
@@ -413,6 +448,225 @@ paths:
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
+  /resume-versions:
+    post:
+      tags: [Resumes]
+      operationId: branchResumeVersion
+      summary: Branch a resume version
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. `seedStrategy=ai_select` may dispatch a resume-tailor async job.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BranchResumeVersionRequest'
+      responses:
+        '201':
+          description: Resume version branch created synchronously.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeVersion'
+        '202':
+          description: Resume version branch accepted; AI seed job dispatched.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [resumeVersionId, version, job]
+                properties:
+                  resumeVersionId:
+                    type: string
+                    format: uuid
+                  version:
+                    $ref: '#/components/schemas/ResumeVersion'
+                  job:
+                    $ref: '#/components/schemas/Job'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /resume-versions/{resumeVersionId}:
+    get:
+      tags: [Resumes]
+      operationId: getResumeVersion
+      summary: Get a resume version
+      parameters:
+        - name: resumeVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Resume version.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeVersion'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+    patch:
+      tags: [Resumes]
+      operationId: updateResumeVersion
+      summary: Update editable resume version fields
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
+      parameters:
+        - name: resumeVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateResumeVersionRequest'
+      responses:
+        '200':
+          description: Resume version updated.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeVersion'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /resume-versions/{resumeVersionId}/exports:
+    post:
+      tags: [Resumes]
+      operationId: exportResumeVersion
+      summary: Export a resume version
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. P0 is intentionally unavailable and returns 501 with `RESUME_EXPORT_NOT_AVAILABLE`.
+      parameters:
+        - name: resumeVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '501':
+          description: Resume version export disabled in P0 (`RESUME_EXPORT_NOT_AVAILABLE`).
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept:
+    post:
+      tags: [Resumes]
+      operationId: acceptResumeTailorSuggestion
+      summary: Accept a resume-tailor suggestion
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
+      parameters:
+        - name: resumeVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: suggestionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Suggestion accepted and version snapshot updated.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeVersion'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject:
+    post:
+      tags: [Resumes]
+      operationId: rejectResumeTailorSuggestion
+      summary: Reject a resume-tailor suggestion
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
+      parameters:
+        - name: resumeVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: suggestionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Suggestion rejected and version snapshot updated.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeVersion'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
   /resumes/{resumeAssetId}:
     get:
       tags: [Resumes]
@@ -439,6 +693,79 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ResumeAsset'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /resumes/{resumeAssetId}/archive:
+    post:
+      tags: [Resumes]
+      operationId: archiveResumeAsset
+      summary: Archive a resume asset
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Archives are soft-hide actions, not privacy deletion jobs.
+      parameters:
+        - name: resumeAssetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '202':
+          description: Resume asset archived.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeAsset'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /resumes/{resumeAssetId}/versions:
+    get:
+      tags: [Resumes]
+      operationId: listResumeVersions
+      summary: List versions for a resume asset
+      parameters:
+        - name: resumeAssetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Resume versions.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResumeVersion'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
@@ -1560,16 +1887,16 @@ components:
     # Hand edits inside this block will be overwritten. To extend the contract,
     # update `shared/conventions.yaml` (B1 truth source) and re-run codegen.
     # The block tracks: ApiError inner object, ApiErrorResponse envelope,
-    # ApiErrorCode, PageInfo, JobStatus, and the 14 enums catalogued in
+    # ApiErrorCode, PageInfo, JobStatus, and the 17 enums catalogued in
     # `shared/conventions.yaml#enums`.
     ApiErrorCode:
       type: string
       description: |
         Documented error codes synced from
         `shared/conventions.yaml#errors[].code`; B1 owns the literal set.
-        `PRIVACY_EXPORT_NOT_AVAILABLE` is the P0 example required by spec D-12
-        and is included here so the OpenAPI contract is self-contained for the
-        `POST /api/v1/privacy/exports` 501 response.
+        P0 export exceptions such as `PRIVACY_EXPORT_NOT_AVAILABLE` and
+        `RESUME_EXPORT_NOT_AVAILABLE` are included here so the OpenAPI
+        contract is self-contained for 501 export responses.
       enum:
         - AUTH_UNAUTHORIZED
         - TARGET_IMPORT_FAILED
@@ -1581,6 +1908,7 @@ components:
         - PRACTICE_PLAN_NOT_FOUND
         - PRACTICE_SESSION_NOT_FOUND
         - REPORT_NOT_READY
+        - RESUME_EXPORT_NOT_AVAILABLE
         - VALIDATION_FAILED
         - RATE_LIMITED
         - AI_PROVIDER_TIMEOUT
@@ -1719,6 +2047,21 @@ components:
       type: string
       description: Synced from `shared/conventions.yaml#enums[PrivacyRequestStatus]` sourceSection 5.13.
       enum: [queued, processing, completed, failed, cancelled]
+
+    ResumeVersionType:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[ResumeVersionType]` sourceSection 5.14.
+      enum: [structured_master, targeted]
+
+    ResumeSeedStrategy:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[ResumeSeedStrategy]` sourceSection 5.15.
+      enum: [copy_master, blank, ai_select]
+
+    ResumeTailorSuggestionStatus:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[ResumeTailorSuggestionStatus]` sourceSection 5.16.
+      enum: [pending, accepted, rejected]
     # === B1-AUTO-END ===
 
     ResourceType:
@@ -2056,6 +2399,17 @@ components:
           type: string
         language:
           type: string
+        sourceType:
+          type: string
+          enum: [upload, paste, guided]
+          description: Optional additive source discriminator for Resume Workshop.
+        rawText:
+          type: string
+          description: Optional paste-mode source text.
+        guidedAnswers:
+          type: object
+          additionalProperties: true
+          description: Optional guided-answer JSON object persisted in `resume_assets.guided_answers`.
 
     ResumeAsset:
       type: object
@@ -2070,9 +2424,29 @@ components:
           type: string
         parseStatus:
           $ref: '#/components/schemas/TargetJobParseStatus'
+        status:
+          type: string
+          enum: [active, archived]
+          description: Additive archive projection; omitted by legacy fixtures before D-18.
+        sourceType:
+          type: string
+          enum: [upload, paste, guided]
         fileObjectId:
           type: string
           format: uuid
+        originalText:
+          oneOf:
+            - type: string
+            - type: 'null'
+        guidedAnswers:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: 'null'
+        parsedTextSnapshot:
+          oneOf:
+            - type: string
+            - type: 'null'
         parsedSummary:
           oneOf:
             - type: object
@@ -2085,6 +2459,11 @@ components:
         updatedAt:
           type: string
           format: date-time
+        deletedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
 
     ResumeAssetWithJob:
       type: object
@@ -2095,6 +2474,181 @@ components:
           format: uuid
         job:
           $ref: '#/components/schemas/Job'
+
+    PaginatedResumeAsset:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedEnvelope'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ResumeAsset'
+
+    ResumeVersion:
+      type: object
+      required: [id, resumeAssetId, versionType, displayName, structuredProfile, provenance, suggestions, createdAt, updatedAt]
+      description: Resume Workshop version snapshot. AI-generated profile and suggestion fields carry GenerationProvenance.
+      properties:
+        id:
+          type: string
+          format: uuid
+        resumeAssetId:
+          type: string
+          format: uuid
+        parentVersionId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        versionType:
+          $ref: '#/components/schemas/ResumeVersionType'
+        targetJobId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        displayName:
+          type: string
+        seedStrategy:
+          oneOf:
+            - $ref: '#/components/schemas/ResumeSeedStrategy'
+            - type: 'null'
+        focusAngle:
+          oneOf:
+            - type: string
+            - type: 'null'
+        structuredProfile:
+          type: object
+          required: [provenance]
+          additionalProperties: true
+          properties:
+            headline:
+              type: string
+            summary:
+              type: string
+            skills:
+              type: array
+              items:
+                type: string
+            sections:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            provenance:
+              $ref: '#/components/schemas/GenerationProvenance'
+        matchScore:
+          oneOf:
+            - type: number
+            - type: 'null'
+        promptVersion:
+          oneOf:
+            - type: string
+            - type: 'null'
+        rubricVersion:
+          oneOf:
+            - type: string
+            - type: 'null'
+        modelId:
+          oneOf:
+            - type: string
+            - type: 'null'
+        provider:
+          oneOf:
+            - type: string
+            - type: 'null'
+        provenance:
+          $ref: '#/components/schemas/GenerationProvenance'
+        suggestions:
+          type: array
+          items:
+            type: object
+            required: [id, status, originalBullet, suggestedBullet, provenance, createdAt]
+            properties:
+              id:
+                type: string
+                format: uuid
+              tailorRunId:
+                oneOf:
+                  - type: string
+                    format: uuid
+                  - type: 'null'
+              originalBullet:
+                type: string
+              suggestedBullet:
+                type: string
+              reason:
+                oneOf:
+                  - type: string
+                  - type: 'null'
+              status:
+                $ref: '#/components/schemas/ResumeTailorSuggestionStatus'
+              provenance:
+                $ref: '#/components/schemas/GenerationProvenance'
+              decidedAt:
+                oneOf:
+                  - type: string
+                    format: date-time
+                  - type: 'null'
+              createdAt:
+                type: string
+                format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deletedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+
+    PaginatedResumeVersion:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedEnvelope'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ResumeVersion'
+
+    BranchResumeVersionRequest:
+      type: object
+      required: [parentVersionId, targetJobId, seedStrategy]
+      properties:
+        parentVersionId:
+          type: string
+          format: uuid
+        targetJobId:
+          type: string
+          format: uuid
+        seedStrategy:
+          $ref: '#/components/schemas/ResumeSeedStrategy'
+        displayName:
+          type: string
+        focusAngle:
+          type: string
+
+    UpdateResumeVersionRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+        focusAngle:
+          oneOf:
+            - type: string
+            - type: 'null'
+        structuredProfile:
+          type: object
+          additionalProperties: true
+        matchScore:
+          oneOf:
+            - type: number
+            - type: 'null'
 
     # ----- TargetJobs -----
     TargetJobImportSourceURL:

@@ -15,6 +15,9 @@ import type {
 	QuestionReviewStatus as QuestionReviewStatusAlias,
 	ReadinessTier as ReadinessTierAlias,
 	ReportStatus as ReportStatusAlias,
+	ResumeSeedStrategy as ResumeSeedStrategyAlias,
+	ResumeTailorSuggestionStatus as ResumeTailorSuggestionStatusAlias,
+	ResumeVersionType as ResumeVersionTypeAlias,
 	SessionStatus as SessionStatusAlias,
 	TargetJobParseStatus as TargetJobParseStatusAlias,
 	TargetJobStatus as TargetJobStatusAlias,
@@ -29,7 +32,7 @@ export type ApiError = ApiErrorAlias;
 
 export type PageInfo = PageInfoAlias;
 
-export type ApiErrorCode = "AUTH_UNAUTHORIZED" | "TARGET_IMPORT_FAILED" | "TARGET_JOB_NOT_FOUND" | "TARGET_IMPORT_SOURCE_INVALID" | "TARGET_IMPORT_SOURCE_UNAVAILABLE" | "TARGET_INVALID_STATE_TRANSITION" | "PRACTICE_SESSION_CONFLICT" | "PRACTICE_PLAN_NOT_FOUND" | "PRACTICE_SESSION_NOT_FOUND" | "REPORT_NOT_READY" | "VALIDATION_FAILED" | "RATE_LIMITED" | "AI_PROVIDER_TIMEOUT" | "AI_OUTPUT_INVALID" | "AI_FALLBACK_EXHAUSTED" | "AI_UNSUPPORTED_CAPABILITY" | "AI_PROVIDER_CONFIG_INVALID" | "AI_PROVIDER_SECRET_MISSING" | "PRIVACY_EXPORT_NOT_AVAILABLE";
+export type ApiErrorCode = "AUTH_UNAUTHORIZED" | "TARGET_IMPORT_FAILED" | "TARGET_JOB_NOT_FOUND" | "TARGET_IMPORT_SOURCE_INVALID" | "TARGET_IMPORT_SOURCE_UNAVAILABLE" | "TARGET_INVALID_STATE_TRANSITION" | "PRACTICE_SESSION_CONFLICT" | "PRACTICE_PLAN_NOT_FOUND" | "PRACTICE_SESSION_NOT_FOUND" | "REPORT_NOT_READY" | "RESUME_EXPORT_NOT_AVAILABLE" | "VALIDATION_FAILED" | "RATE_LIMITED" | "AI_PROVIDER_TIMEOUT" | "AI_OUTPUT_INVALID" | "AI_FALLBACK_EXHAUSTED" | "AI_UNSUPPORTED_CAPABILITY" | "AI_PROVIDER_CONFIG_INVALID" | "AI_PROVIDER_SECRET_MISSING" | "PRIVACY_EXPORT_NOT_AVAILABLE";
 
 export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled" | "dead";
 
@@ -60,6 +63,12 @@ export type DebriefStatus = DebriefStatusAlias;
 export type PrivacyRequestType = PrivacyRequestTypeAlias;
 
 export type PrivacyRequestStatus = PrivacyRequestStatusAlias;
+
+export type ResumeVersionType = ResumeVersionTypeAlias;
+
+export type ResumeSeedStrategy = ResumeSeedStrategyAlias;
+
+export type ResumeTailorSuggestionStatus = ResumeTailorSuggestionStatusAlias;
 
 
 // =============================================================================
@@ -195,17 +204,26 @@ export interface PaginatedExperienceCard {
 
 export interface RegisterResumeRequest {
 	fileObjectId: string;
+	guidedAnswers?: Record<string, unknown>;
 	language: string;
+	rawText?: string;
+	sourceType?: "upload" | "paste" | "guided";
 	title: string;
 }
 
 export interface ResumeAsset {
 	createdAt: string;
+	deletedAt?: string | null;
 	fileObjectId: string;
+	guidedAnswers?: Record<string, unknown> | null;
 	id: string;
 	language: string;
+	originalText?: string | null;
 	parseStatus: TargetJobParseStatus;
 	parsedSummary?: Record<string, unknown> | null;
+	parsedTextSnapshot?: string | null;
+	sourceType?: "upload" | "paste" | "guided";
+	status?: "active" | "archived";
 	title: string;
 	updatedAt: string;
 }
@@ -213,6 +231,53 @@ export interface ResumeAsset {
 export interface ResumeAssetWithJob {
 	job: Job;
 	resumeAssetId: string;
+}
+
+export interface PaginatedResumeAsset {
+	items: ResumeAsset[];
+	pageInfo: PageInfo;
+}
+
+export interface ResumeVersion {
+	createdAt: string;
+	deletedAt?: string | null;
+	displayName: string;
+	focusAngle?: string | null;
+	id: string;
+	matchScore?: number | null;
+	modelId?: string | null;
+	parentVersionId?: string | null;
+	promptVersion?: string | null;
+	provenance: GenerationProvenance;
+	provider?: string | null;
+	resumeAssetId: string;
+	rubricVersion?: string | null;
+	seedStrategy?: ResumeSeedStrategy | null;
+	structuredProfile: Record<string, unknown>;
+	suggestions: Record<string, unknown>[];
+	targetJobId?: string | null;
+	updatedAt: string;
+	versionType: ResumeVersionType;
+}
+
+export interface PaginatedResumeVersion {
+	items: ResumeVersion[];
+	pageInfo: PageInfo;
+}
+
+export interface BranchResumeVersionRequest {
+	displayName?: string;
+	focusAngle?: string;
+	parentVersionId: string;
+	seedStrategy: ResumeSeedStrategy;
+	targetJobId: string;
+}
+
+export interface UpdateResumeVersionRequest {
+	displayName?: string;
+	focusAngle?: string | null;
+	matchScore?: number | null;
+	structuredProfile?: Record<string, unknown>;
 }
 
 export interface TargetJobImportSourceURL {

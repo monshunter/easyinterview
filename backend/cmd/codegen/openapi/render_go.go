@@ -115,8 +115,8 @@ type goFieldView struct {
 // b1OwnedSchemas lists the openapi schema names whose Go representation is
 // an alias to B1-owned shared packages. Each entry is (openapi schema name,
 // Go target). ApiError maps to the canonical B1 errors package; PageInfo,
-// JobStatus and the 14 enums map to B1 shared types. ApiErrorCode remains
-// rendered from OpenAPI because B2 appends PRIVACY_EXPORT_NOT_AVAILABLE.
+// JobStatus and the B1 enums map to B1 shared types. ApiErrorCode remains
+// rendered from OpenAPI because B2 carries OpenAPI-local P0 export exceptions.
 func b1OwnedSchemas(conv *Conventions) []b1AliasView {
 	out := []b1AliasView{
 		{Name: "ApiError", Target: "sharederrors.APIError"},

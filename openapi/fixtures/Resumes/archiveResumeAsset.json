@@ -1,0 +1,90 @@
+{
+  "operationId": "archiveResumeAsset",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-archive-resume-asset-2026-05-12"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-50-00-archive-resume"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000001000",
+          "title": "Alice Example - Senior Frontend Engineer",
+          "language": "zh-CN",
+          "parseStatus": "ready",
+          "status": "archived",
+          "sourceType": "upload",
+          "fileObjectId": "01918fa0-0000-7000-8000-000000001100",
+          "originalText": null,
+          "guidedAnswers": {},
+          "parsedTextSnapshot": "Senior frontend engineer with evidence across product delivery, interviews, and mentoring.",
+          "parsedSummary": {
+            "headline": "Senior frontend engineer focused on growth-stage SaaS",
+            "yearsOfExperience": 5
+          },
+          "createdAt": "2026-04-22T09:30:00Z",
+          "updatedAt": "2026-05-12T08:50:00Z",
+          "deletedAt": "2026-05-12T08:50:00Z"
+        }
+      }
+    },
+    "default-202": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-archive-resume-asset-2026-05-12"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-50-00-archive-resume"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000001000",
+          "title": "Alice Example - Senior Frontend Engineer",
+          "language": "zh-CN",
+          "parseStatus": "ready",
+          "status": "archived",
+          "sourceType": "upload",
+          "fileObjectId": "01918fa0-0000-7000-8000-000000001100",
+          "originalText": null,
+          "guidedAnswers": {},
+          "parsedTextSnapshot": "Senior frontend engineer with evidence across product delivery, interviews, and mentoring.",
+          "parsedSummary": {
+            "headline": "Senior frontend engineer focused on growth-stage SaaS",
+            "yearsOfExperience": 5
+          },
+          "createdAt": "2026-04-22T09:30:00Z",
+          "updatedAt": "2026-05-12T08:50:00Z",
+          "deletedAt": "2026-05-12T08:50:00Z"
+        }
+      }
+    },
+    "already-archived-409": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-archive-resume-asset-conflict-2026-05-12"
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-50-00-archive-conflict"
+        },
+        "body": {
+          "error": {
+            "code": "TARGET_INVALID_STATE_TRANSITION",
+            "message": "Resume asset is already archived",
+            "requestId": "req_2026-05-12T08-50-00-archive-conflict",
+            "retryable": false
+          }
+        }
+      }
+    }
+  }
+}

@@ -131,3 +131,28 @@ func TestTargetJobErrorCodes_Documented(t *testing.T) {
 	}
 	_ = wantCodes
 }
+
+func TestResumeExportErrorCode_Documented(t *testing.T) {
+	meta, ok := CodeRegistry[CodeResumeExportNotAvailable]
+	if !ok {
+		t.Fatalf("CodeRegistry missing %s", CodeResumeExportNotAvailable)
+	}
+	if meta.Retryable {
+		t.Fatalf("%s retryable = true, want false", CodeResumeExportNotAvailable)
+	}
+	if meta.Message == "" {
+		t.Fatalf("%s message must not be empty", CodeResumeExportNotAvailable)
+	}
+	if !contains(AllCodes, CodeResumeExportNotAvailable) {
+		t.Fatalf("AllCodes missing %s", CodeResumeExportNotAvailable)
+	}
+}
+
+func contains[T comparable](values []T, want T) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
+}

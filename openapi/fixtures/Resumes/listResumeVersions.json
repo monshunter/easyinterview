@@ -1,0 +1,249 @@
+{
+  "operationId": "listResumeVersions",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-25-00-list-resume-versions"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "0195f2d0-0001-7000-8000-000000000201",
+              "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+              "parentVersionId": null,
+              "versionType": "structured_master",
+              "targetJobId": null,
+              "displayName": "Structured master",
+              "seedStrategy": null,
+              "focusAngle": null,
+              "structuredProfile": {
+                "headline": "Senior frontend engineer",
+                "summary": "Owns complex product surfaces and turns interview evidence into concise resume proof.",
+                "skills": ["React", "TypeScript", "Design systems"],
+                "sections": [
+                  {
+                    "title": "Experience",
+                    "bullets": ["Led checkout reliability improvements measured through incident reduction."]
+                  }
+                ],
+                "provenance": {
+                  "promptVersion": "resume_profile.v1",
+                  "rubricVersion": "not_applicable",
+                  "modelId": "fixture-model:resume-version-profile",
+                  "language": "zh-CN",
+                  "featureFlag": "resume-workshop-additive",
+                  "dataSourceVersion": "resume_asset.v1"
+                }
+              },
+              "matchScore": null,
+              "promptVersion": "resume_profile.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "fixture-model:resume-version-profile",
+              "provider": "fixture-provider",
+              "provenance": {
+                "promptVersion": "resume_profile.v1",
+                "rubricVersion": "not_applicable",
+                "modelId": "fixture-model:resume-version-profile",
+                "language": "zh-CN",
+                "featureFlag": "resume-workshop-additive",
+                "dataSourceVersion": "resume_asset.v1"
+              },
+              "suggestions": [],
+              "createdAt": "2026-05-12T08:20:00Z",
+              "updatedAt": "2026-05-12T08:20:00Z",
+              "deletedAt": null
+            },
+            {
+              "id": "0195f2d0-0001-7000-8000-000000000202",
+              "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+              "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+              "versionType": "targeted",
+              "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+              "displayName": "Northstar Systems frontend target",
+              "seedStrategy": "copy_master",
+              "focusAngle": "Evidence for platform ownership and pragmatic delivery",
+              "structuredProfile": {
+                "headline": "Senior frontend engineer for platform-heavy product teams",
+                "summary": "Highlights reliability, cross-functional tradeoff work, and mentoring evidence.",
+                "skills": ["React", "TypeScript", "Observability"],
+                "sections": [
+                  {
+                    "title": "Selected evidence",
+                    "bullets": ["Reduced checkout incident follow-ups by tightening release guardrails."]
+                  }
+                ],
+                "provenance": {
+                  "promptVersion": "resume_targeted.v1",
+                  "rubricVersion": "resume_targeted.rubric.v1",
+                  "modelId": "fixture-model:resume-version-profile",
+                  "language": "zh-CN",
+                  "featureFlag": "resume-workshop-additive",
+                  "dataSourceVersion": "resume_asset.v1+target_job.v1"
+                }
+              },
+              "matchScore": 0.84,
+              "promptVersion": "resume_targeted.v1",
+              "rubricVersion": "resume_targeted.rubric.v1",
+              "modelId": "fixture-model:resume-version-profile",
+              "provider": "fixture-provider",
+              "provenance": {
+                "promptVersion": "resume_targeted.v1",
+                "rubricVersion": "resume_targeted.rubric.v1",
+                "modelId": "fixture-model:resume-version-profile",
+                "language": "zh-CN",
+                "featureFlag": "resume-workshop-additive",
+                "dataSourceVersion": "resume_asset.v1+target_job.v1"
+              },
+              "suggestions": [
+                {
+                  "id": "0195f2d0-0001-7000-8000-000000000301",
+                  "tailorRunId": "0195f2d0-0001-7000-8000-000000000401",
+                  "originalBullet": "Improved checkout reliability.",
+                  "suggestedBullet": "Reduced checkout incident follow-ups by tightening release guardrails and ownership handoffs.",
+                  "reason": "Adds measurable ownership evidence for the target role.",
+                  "status": "pending",
+                  "provenance": {
+                    "promptVersion": "resume_tailor_suggestion.v1",
+                    "rubricVersion": "resume_tailor.rubric.v1",
+                    "modelId": "fixture-model:resume-tailor-suggestion",
+                    "language": "zh-CN",
+                    "featureFlag": "resume-workshop-additive",
+                    "dataSourceVersion": "resume_version.v1+target_job.v1"
+                  },
+                  "decidedAt": null,
+                  "createdAt": "2026-05-12T08:24:00Z"
+                }
+              ],
+              "createdAt": "2026-05-12T08:24:00Z",
+              "updatedAt": "2026-05-12T08:24:00Z",
+              "deletedAt": null
+            }
+          ],
+          "pageInfo": {
+            "nextCursor": null,
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
+    },
+    "master-only": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-25-00-master-only"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "0195f2d0-0001-7000-8000-000000000201",
+              "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+              "parentVersionId": null,
+              "versionType": "structured_master",
+              "targetJobId": null,
+              "displayName": "Structured master",
+              "seedStrategy": null,
+              "focusAngle": null,
+              "structuredProfile": {
+                "headline": "Senior frontend engineer",
+                "summary": "Owns complex product surfaces and turns interview evidence into concise resume proof.",
+                "skills": ["React", "TypeScript", "Design systems"],
+                "sections": [],
+                "provenance": {
+                  "promptVersion": "resume_profile.v1",
+                  "rubricVersion": "not_applicable",
+                  "modelId": "fixture-model:resume-version-profile",
+                  "language": "zh-CN",
+                  "featureFlag": "resume-workshop-additive",
+                  "dataSourceVersion": "resume_asset.v1"
+                }
+              },
+              "matchScore": null,
+              "promptVersion": "resume_profile.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "fixture-model:resume-version-profile",
+              "provider": "fixture-provider",
+              "provenance": {
+                "promptVersion": "resume_profile.v1",
+                "rubricVersion": "not_applicable",
+                "modelId": "fixture-model:resume-version-profile",
+                "language": "zh-CN",
+                "featureFlag": "resume-workshop-additive",
+                "dataSourceVersion": "resume_asset.v1"
+              },
+              "suggestions": [],
+              "createdAt": "2026-05-12T08:20:00Z",
+              "updatedAt": "2026-05-12T08:20:00Z",
+              "deletedAt": null
+            }
+          ],
+          "pageInfo": {
+            "nextCursor": null,
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
+    },
+    "with-targeted-branches": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-25-00-targeted-branches"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "0195f2d0-0001-7000-8000-000000000202",
+              "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+              "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+              "versionType": "targeted",
+              "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+              "displayName": "Northstar Systems frontend target",
+              "seedStrategy": "copy_master",
+              "focusAngle": "Evidence for platform ownership and pragmatic delivery",
+              "structuredProfile": {
+                "headline": "Senior frontend engineer for platform-heavy product teams",
+                "summary": "Highlights reliability, cross-functional tradeoff work, and mentoring evidence.",
+                "skills": ["React", "TypeScript", "Observability"],
+                "sections": [],
+                "provenance": {
+                  "promptVersion": "resume_targeted.v1",
+                  "rubricVersion": "resume_targeted.rubric.v1",
+                  "modelId": "fixture-model:resume-version-profile",
+                  "language": "zh-CN",
+                  "featureFlag": "resume-workshop-additive",
+                  "dataSourceVersion": "resume_asset.v1+target_job.v1"
+                }
+              },
+              "matchScore": 0.84,
+              "promptVersion": "resume_targeted.v1",
+              "rubricVersion": "resume_targeted.rubric.v1",
+              "modelId": "fixture-model:resume-version-profile",
+              "provider": "fixture-provider",
+              "provenance": {
+                "promptVersion": "resume_targeted.v1",
+                "rubricVersion": "resume_targeted.rubric.v1",
+                "modelId": "fixture-model:resume-version-profile",
+                "language": "zh-CN",
+                "featureFlag": "resume-workshop-additive",
+                "dataSourceVersion": "resume_asset.v1+target_job.v1"
+              },
+              "suggestions": [],
+              "createdAt": "2026-05-12T08:24:00Z",
+              "updatedAt": "2026-05-12T08:24:00Z",
+              "deletedAt": null
+            }
+          ],
+          "pageInfo": {
+            "nextCursor": null,
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
+    }
+  }
+}

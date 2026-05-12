@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.16
+> **版本**: 1.17
 > **状态**: active
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-12
 
 ## 1 修订规则
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-12 | 1.17 | D-18 Resume Workshop additive 升级落地阶段：`openapi/openapi.yaml` / generated Go+TS / fixtures / inventory lint 已扩到 13 tag / 55 endpoint；§3.1.1 回填 #47-55，`listResumes` / `listResumeVersions` / `getResumeVersion` / `branchResumeVersion` / `updateResumeVersion` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` / `archiveResumeAsset` / `exportResumeVersion` 已冻结；`exportResumeVersion` P0 501 例外与 `RESUME_EXPORT_NOT_AVAILABLE` fixture 已纳入 gate。 | openapi-v1-contract/004-resume-additive-coverage |
 | 2026-05-11 | 1.16 | D-18 Resume Workshop additive 升级声明阶段：v1.0.0 freeze 拟扩到 13 tag / 55 endpoint（保留 `Resumes` tag 扩容），新增 9 operationId（`listResumes` / `listResumeVersions` / `getResumeVersion` / `branchResumeVersion` / `updateResumeVersion` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` / `archiveResumeAsset` / `exportResumeVersion`）+ 6 schema + `RegisterResumeRequest` additive 扩展（含 `guidedAnswers` JSON object）+ 6 IK_REQUIRED + `ResumeVersion` 入 `AI_PROVENANCE_SCHEMAS` + `RESUME_EXPORT_NOT_AVAILABLE` 错误码 + 3 新 enum 通过 `$ref` 引用 B1；术语映射决策 UI `ResumeSource` ≡ OpenAPI `ResumeAsset`；§3.1.1 数字仍保持 46，待 plan 004 落地 yaml + inventory + fixtures 后再回填 §3.1.1 完整行与 §2.1 endpoint 总数。 | openapi-v1-contract/004-resume-additive-coverage（声明阶段，docs-only） |
 | 2026-05-10 | 1.15 | 授权 backend-practice L2 follow-up HTTP 契约修订：`CreatePracticePlanRequest.required` 新增 `resumeAssetId`，并原地 rebase `openapi/baseline/openapi-v1.0.0.yaml`；`missing-resume` fixture 改为 schema-valid unavailable-resume 422 场景。 | backend-practice/001 remediation |
 | 2026-05-09 | 1.14 | 授权 backend-practice Phase 0 HTTP 契约修订：`PracticeMode` enum 删除旧辅助/来源混合取值，`ApiError.code` enum 新增 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND`，并原地 rebase `openapi/baseline/openapi-v1.0.0.yaml`。 | backend-practice/001 Phase 0 |
