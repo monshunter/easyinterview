@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-12](2026-05-12.md) | `feat(backend-upload): add presign handler validation` | #feat #test #docs |
 | [2026-05-12](2026-05-12.md) | `feat(backend-upload): complete config contract preflight` | #feat #test #docs |
 | [2026-05-12](2026-05-12.md) | `docs(backend-resume): fix plan-review preview confirm and parse contract` | #docs |
 | [2026-05-12](2026-05-12.md) | `docs(backend-upload): fix plan-review presign status and privacy ordering` | #docs |

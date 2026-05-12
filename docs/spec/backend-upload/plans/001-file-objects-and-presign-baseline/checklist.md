@@ -14,11 +14,11 @@
 
 ## Phase 1: handler skeleton + IK + purpose validation
 
-- [ ] 1.1 实现 `backend/internal/upload/handler/presign.go`，实现 generated server interface `CreateUploadPresign`（验证：编译 PASS + `go vet` PASS）
-- [ ] 1.2 实现 IK 校验（缺失 / 24h TTL replay / 24h 外拒绝），返回 `VALIDATION_FAILED`（验证：unit test `TestPresignIdempotency` 3 case PASS）
-- [ ] 1.3 实现 purpose enum 校验（D-1 锁定集 + 拒绝未知值）（验证：unit test `TestPresignPurposeValidation` PASS）
-- [ ] 1.4 实现 request `byteSize` 上限校验（A4 `upload.maxBytes.*` per-purpose 配置注入，不向 response 私加 `maxBytes`）（验证：unit test `TestPresignByteSizeLimit` PASS）
-- [ ] 1.5 handler 返回 201 + `UploadPresign{fileObjectId, uploadUrl, method, headers, expiresAt}` 与 B2 fixture `default` scenario 字节一致（验证：fixture parity test）
+- [x] 1.1 实现 `backend/internal/upload/handler/presign.go`，实现 generated server interface `CreateUploadPresign`（验证：编译 PASS + `go vet` PASS）
+- [x] 1.2 实现 IK 校验（缺失 / 24h TTL replay / 24h 外拒绝），返回 `VALIDATION_FAILED`（验证：unit test `TestPresignIdempotency` 3 case PASS）
+- [x] 1.3 实现 purpose enum 校验（D-1 锁定集 + 拒绝未知值）（验证：unit test `TestPresignPurposeValidation` PASS）
+- [x] 1.4 实现 request `byteSize` 上限校验（A4 `upload.maxBytes.*` per-purpose 配置注入，不向 response 私加 `maxBytes`）（验证：unit test `TestPresignByteSizeLimit` PASS）
+- [x] 1.5 handler 返回 201 + `UploadPresign{fileObjectId, uploadUrl, method, headers, expiresAt}` 与 B2 fixture `default` scenario 字节一致（验证：fixture parity test）
 
 ## Phase 2: file_objects store + state machine
 
