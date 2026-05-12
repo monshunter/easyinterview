@@ -9,6 +9,7 @@
 ## Cross-plan prerequisite signals
 
 - [x] B3 D-14 `ResumeTailorMode` 漂移修复已由 [event-and-outbox-contract/002](../../../event-and-outbox-contract/plans/002-resume-tailor-mode-drift-fix/plan.md) 落地；`shared/events.yaml` / baseline manifest / Go/TS generated events 均对齐 `[gap_review, bullet_suggestions]`。
+- [x] B4 D-17 `resume_versions` / `resume_version_suggestions` 已由 [db-migrations-baseline/002](../../../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) 落地；migration chain、enum-sources 与 privacy deletion matrix 已承接 Resume Workshop additive persistence。
 
 ## Phase 1: B1 D-10 vocabulary 真理源同步
 

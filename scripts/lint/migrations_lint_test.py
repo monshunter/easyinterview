@@ -151,8 +151,50 @@ ALTER TABLE users ADD CONSTRAINT users_status_check CHECK (status IN ('active', 
     assert any("users.status" in problem and "not registered" in problem for problem in problems)
 
 
-def test_product_scope_contract_accepts_current_baseline() -> None:
-    sql = current_baseline_sql()
+def test_create_table_if_not_exists_nullable_check_passes(tmp_path: Path) -> None:
+    repo = write_repo(
+        tmp_path,
+        sql="""
+CREATE TABLE IF NOT EXISTS resume_versions (
+  version_type text NOT NULL CHECK (version_type IN ('structured_master', 'targeted')),
+  seed_strategy text CHECK (seed_strategy IS NULL OR seed_strategy IN ('copy_master', 'blank', 'ai_select'))
+);
+""",
+        enum_sources="""
+checks:
+  - table: resume_versions
+    column: version_type
+    source: shared-conventions-codified.ResumeVersionType
+    values: [structured_master, targeted]
+    checksum: sha256:af6773b6df136007
+  - table: resume_versions
+    column: seed_strategy
+    source: shared-conventions-codified.ResumeSeedStrategy
+    values: [copy_master, blank, ai_select]
+    checksum: sha256:2c9f6e4a35c9537e
+""",
+    )
+
+    assert migrations_lint.run_checks(repo) == []
+
+
+def test_alter_table_add_column_if_not_exists_check_requires_registration(tmp_path: Path) -> None:
+    repo = write_repo(
+        tmp_path,
+        sql="""
+CREATE TABLE resume_assets (id uuid);
+ALTER TABLE resume_assets ADD COLUMN IF NOT EXISTS source_type text CHECK (source_type IS NULL OR source_type IN ('upload', 'paste', 'guided'));
+""",
+        enum_sources="checks: []\n",
+    )
+
+    problems = migrations_lint.run_checks(repo)
+
+    assert any("resume_assets.source_type" in problem and "not registered" in problem for problem in problems)
+
+
+def test_product_scope_contract_accepts_current_schema() -> None:
+    sql = current_migration_up_sql()
     enum_sources = current_enum_sources()
 
     problems = migrations_lint.validate_product_scope_sql(sql, enum_sources)

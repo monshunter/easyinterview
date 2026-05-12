@@ -17,10 +17,16 @@ import yaml
 
 
 MIGRATION_RE = re.compile(r"^([0-9]{6})_[a-z0-9]+(?:_[a-z0-9]+)*\.(up|down)\.sql$")
-CHECK_RE = re.compile(r"CHECK\s*\(\s*([a-z_]+)\s+IN\s*\((.*?)\)\s*\)", re.IGNORECASE | re.DOTALL)
-CREATE_TABLE_RE = re.compile(r"CREATE\s+TABLE\s+([a-z_]+)\s*\((.*?)\);", re.IGNORECASE | re.DOTALL)
-ALTER_TABLE_CHECK_RE = re.compile(
-    r"ALTER\s+TABLE\s+(?:ONLY\s+)?([a-z_]+)\s+ADD\s+(?:CONSTRAINT\s+[a-z0-9_]+\s+)?CHECK\s*\(\s*([a-z_]+)\s+IN\s*\((.*?)\)\s*\)",
+CHECK_RE = re.compile(
+    r"CHECK\s*\(\s*(?:([a-z_]+)\s+IS\s+NULL\s+OR\s+)?([a-z_]+)\s+IN\s*\((.*?)\)\s*\)",
+    re.IGNORECASE | re.DOTALL,
+)
+CREATE_TABLE_RE = re.compile(
+    r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-z_]+)\s*\((.*?)\);",
+    re.IGNORECASE | re.DOTALL,
+)
+ALTER_TABLE_RE = re.compile(
+    r"ALTER\s+TABLE\s+(?:ONLY\s+)?([a-z_]+)\s+(.*?);",
     re.IGNORECASE | re.DOTALL,
 )
 VALUE_RE = re.compile(r"'([^']+)'")
@@ -38,6 +44,8 @@ EXPECTED_BASELINE_TABLES = [
     "experience_cards",
     "file_objects",
     "resume_assets",
+    "resume_versions",
+    "resume_version_suggestions",
     "target_jobs",
     "target_job_requirements",
     "target_job_sources",
@@ -236,15 +244,23 @@ def extract_sql_checks(migrations_dir: Path) -> dict[str, list[str]]:
         for table_match in CREATE_TABLE_RE.finditer(sql):
             table = table_match.group(1)
             body = table_match.group(2)
-            for check_match in CHECK_RE.finditer(body):
-                column = check_match.group(1)
-                values = VALUE_RE.findall(check_match.group(2))
-                checks[f"{table}.{column}"] = values
-        for check_match in ALTER_TABLE_CHECK_RE.finditer(sql):
-            table = check_match.group(1)
-            column = check_match.group(2)
-            values = VALUE_RE.findall(check_match.group(3))
-            checks[f"{table}.{column}"] = values
+            checks.update(extract_fragment_checks(table, body))
+        for alter_match in ALTER_TABLE_RE.finditer(sql):
+            table = alter_match.group(1)
+            body = alter_match.group(2)
+            checks.update(extract_fragment_checks(table, body))
+    return checks
+
+
+def extract_fragment_checks(table: str, sql_fragment: str) -> dict[str, list[str]]:
+    checks: dict[str, list[str]] = {}
+    for check_match in CHECK_RE.finditer(sql_fragment):
+        nullable_column = check_match.group(1)
+        column = check_match.group(2)
+        if nullable_column and nullable_column.lower() != column.lower():
+            continue
+        values = VALUE_RE.findall(check_match.group(3))
+        checks[f"{table}.{column}"] = values
     return checks
 
 

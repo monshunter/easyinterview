@@ -34,3 +34,4 @@
 - [x] 4.2 在 `openapi-v1-contract/004-resume-additive-coverage` plan checklist 中追加 "B3 D-14 `ResumeTailorMode` 漂移修复已落地" 引用（验证：cross-plan 引用 commit）
 - [x] 4.3 在 `db-migrations-baseline/002-resume-versions-additive` plan checklist 中追加同步引用（验证：cross-plan 引用 commit）
 - [x] 4.4 修订 `docs/spec/INDEX.md` event-and-outbox-contract 版本与日期 2.3 → 2.4（验证：`sync-doc-index --check`）
+- [x] 4.5 B4 D-17 `resume_versions` / `resume_version_suggestions` 已由 [db-migrations-baseline/002](../../../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) 落地；events `ResumeTailorMode` 与 DB `resume_tailor_runs.mode` / suggestion persistence 口径均使用 `gap_review` / `bullet_suggestions` owner chain。

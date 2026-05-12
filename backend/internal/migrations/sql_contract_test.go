@@ -122,6 +122,51 @@ func TestPracticeIdempotencyMigrationDownDoesNotDropBaselineOwnedTable(t *testin
 	}
 }
 
+func TestResumeVersionsAdditiveMigrationContract(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000005_resume_versions.up.sql")))
+	down := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000005_resume_versions.down.sql")))
+
+	for _, required := range []string{
+		"create table if not exists resume_versions",
+		"user_id uuid not null references users(id)",
+		"resume_asset_id uuid not null references resume_assets(id)",
+		"parent_version_id uuid references resume_versions(id)",
+		"version_type text not null check (version_type in ('structured_master', 'targeted'))",
+		"seed_strategy text check (seed_strategy is null or seed_strategy in ('copy_master', 'blank', 'ai_select'))",
+		"structured_profile jsonb not null default '{}'::jsonb",
+		"create index if not exists idx_resume_versions_user_updated on resume_versions (user_id, updated_at desc)",
+		"create index if not exists idx_resume_versions_asset_type on resume_versions (resume_asset_id, version_type)",
+		"create index if not exists idx_resume_versions_parent on resume_versions (parent_version_id) where parent_version_id is not null",
+		"create table if not exists resume_version_suggestions",
+		"resume_version_id uuid not null references resume_versions(id) on delete cascade",
+		"status text not null default 'pending' check (status in ('pending', 'accepted', 'rejected'))",
+		"create index if not exists idx_resume_suggestions_version_status on resume_version_suggestions (resume_version_id, status)",
+		"create index if not exists idx_resume_suggestions_tailor_run on resume_version_suggestions (tailor_run_id)",
+		"add column if not exists source_type text check (source_type is null or source_type in ('upload', 'paste', 'guided'))",
+		"add column if not exists original_text text",
+		"add column if not exists guided_answers jsonb",
+		"add column if not exists parsed_text_snapshot text",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("resume versions up migration missing %q", required)
+		}
+	}
+
+	for _, required := range []string{
+		"drop table if exists resume_version_suggestions",
+		"drop table if exists resume_versions",
+		"drop column if exists parsed_text_snapshot",
+		"drop column if exists guided_answers",
+		"drop column if exists original_text",
+		"drop column if exists source_type",
+	} {
+		if !strings.Contains(down, required) {
+			t.Fatalf("resume versions down migration missing %q", required)
+		}
+	}
+}
+
 func TestBaselineMigrationDoesNotStoreRawAuthSecrets(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))

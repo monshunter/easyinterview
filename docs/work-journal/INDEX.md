@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-12](2026-05-12.md) | `feat(db-migrations): add resume version schema` | #feat #test #docs |
 | [2026-05-12](2026-05-12.md) | `fix(events): align resume tailor mode contract` | #fix #test #docs |
 | [2026-05-11](2026-05-11.md) | `docs(spec): add resume workstream subspecs and cross-layer additive plans` | #docs |
 | [2026-05-11](2026-05-11.md) | `fix(design): require branch guard before document mutation` | #fix #docs #test |

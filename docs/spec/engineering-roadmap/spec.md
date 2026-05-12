@@ -1,8 +1,8 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.11
+> **版本**: 3.12
 > **状态**: active
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-12
 
 ## 1 背景与目标
 
@@ -119,7 +119,7 @@
 | Contract | B1 | `shared-conventions-codified` | Go/TS 共享枚举、错误码、ID、codegen / drift gate | 保留 |
 | Contract | B2 | `openapi-v1-contract` | 当前 46 endpoint / 13 tag OpenAPI + fixtures | 保留 |
 | Contract | B3 | `event-and-outbox-contract` | 当前 16 internal event、jobType、outbox 契约 | 保留 |
-| Contract | B4 | `db-migrations-baseline` | 当前 25 应用表 + auth / migration 支撑表 | 保留 |
+| Contract | B4 | `db-migrations-baseline` | 当前 28 应用表 + auth / migration 支撑表 | 保留 |
 | Quality | F1 | `observability-stack` | metrics/log/trace/dashboard/alerting 命名和红线 | 保留 |
 | Quality | F3 | `prompt-rubric-registry` | 10 个当前 baseline feature_key、prompt/rubric/model profile 治理 | 保留 |
 

@@ -1,13 +1,14 @@
 # DB Migrations Baseline History
 
-> **版本**: 1.14
+> **版本**: 1.15
 > **状态**: active
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-12
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-12 | 1.15 | D-17 Resume Workshop additive 表与字段落地阶段：新增 `migrations/000005_resume_versions.{up,down}.sql`，实际创建 `resume_versions` / `resume_version_suggestions` 2 张表、`resume_assets` 4 个 additive 字段、4 项 enum-source 登记、privacy deletion matrix 与 baseline inventory 回填；当前 P0 应用表升至 28 张。 | db-migrations-baseline/002-resume-versions-additive |
 | 2026-05-11 | 1.14 | D-17 Resume Workshop additive 表与字段声明阶段：拟新增 `resume_versions` / `resume_version_suggestions` 2 张表 + `resume_assets` additive 字段（`source_type` / `original_text` / `guided_answers` / `parsed_text_snapshot`）；同步声明 §3.1.2 privacy deletion matrix 与 §2.1 baseline 表 inventory（26 → 28，`resume_version_edits` 归 P1 延后）；具体 migration up/down + idx + enum-sources 同步由 002 plan 落地。 | db-migrations-baseline/002-resume-versions-additive（声明阶段，docs-only） |
 | 2026-05-09 | 1.13 | 对齐 backend-practice Phase 0：PracticeMode 收敛为 `assisted` / `strict`，新增共享 `idempotency_records` 表、幂等唯一键与过期索引，并将 baseline 表范围更新为 26 应用表 + 3 auth 支撑表 + 2 迁移元数据表。 | backend-practice/001 Phase 0 |
 | 2026-05-08 | 1.12 | 对齐 A2 用户决策：B4 本地迁移验证前提升级为 Postgres 18。 | local-dev-stack/001 post-pass revision |
