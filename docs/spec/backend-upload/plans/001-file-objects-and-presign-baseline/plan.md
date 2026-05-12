@@ -1,8 +1,8 @@
 # Backend Upload File Objects and Presign Baseline
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -58,7 +58,7 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` `default` + purpose/size/error variants added by this plan only through B2 fixture rules | `frontend-resume-workshop/002-create-flow-and-onboarding` upload tab (future), `backend-targetjob` file-import consumers via generated client | `backend/internal/upload/handler/presign.go` real handler | `file_objects` (`purpose`, `upload_status`, `byte_size`, `object_key`) + object storage object | none | E2E.P0.033 + handler/store unit/integration tests |
+| `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` `default`（201 success）；purpose / size / auth / IK failure 由 handler tests 与 E2E.P0.033 直接断言，除非 B2 后续修订 fixture，否则本 plan 不私自声明 error fixture variant | `frontend-resume-workshop/002-create-flow-and-onboarding` upload tab (future), `backend-targetjob` file-import consumers via generated client | `backend/internal/upload/handler/presign.go` real handler | `file_objects` (`purpose`, `upload_status`, `byte_size`, `object_key`) + object storage object | none | E2E.P0.033 + handler/store unit/integration tests |
 
 Config dependency: existing A4 `objectStorage.endpoint` / `bucket` / `accessKey` / `secretKey` map to `OBJECT_STORAGE_*`; this plan must add config-only paths `objectStorage.provider`, `upload.presignTTLSeconds`, and `upload.maxBytes.{resume,targetJobAttachment,privacyExport}` before handler code. If an env override is required, first revise A4 env dictionary and `.env.example`; do not introduce `UPLOAD_*` or `OBJECT_STORE_*` reads locally.
 
@@ -88,7 +88,7 @@ Config dependency: existing A4 `objectStorage.endpoint` / `bucket` / `accessKey`
 - 校验 `Idempotency-Key` header 存在 + 24h TTL（B1 idempotency 工具）
 - 校验 purpose enum（D-1 锁定集）
 - 校验 request `byteSize` 不超过 A4 `upload.maxBytes.*` per-purpose limit（配置注入；不把 limit 私加到 response）
-- 返回 200 + `UploadPresign{fileObjectId, uploadUrl, method, headers, expiresAt}`，字段与当前 B2 schema 一致
+- 返回 201 + `UploadPresign{fileObjectId, uploadUrl, method, headers, expiresAt}`，字段与当前 B2 schema / fixture 一致
 
 #### 1.2 unit test
 - `presign_test.go`：IK 缺失 / IK 24h 内 replay / IK >24h 拒绝 / purpose 非法 / size 超限
@@ -138,7 +138,7 @@ Config dependency: existing A4 `objectStorage.endpoint` / `bucket` / `accessKey`
 
 #### 4.2 与 backend-runtime-topology privacy runner 集成
 - 在 `backend/internal/privacy/runner/` 中调用 `upload.DeleteFileObjectsForUser`
-- privacy_delete job 顺序：file_objects 先于 resume_assets / target_jobs（隐私 matrix 顺序）
+- privacy_delete 跨域顺序以 [B4 §3.1.2](../../../db-migrations-baseline/spec.md#312-p0-privacy-deletion-table-matrix) 与各业务 owner 删除链路为准；backend-upload 只负责 file_objects 步骤中先删对象存储、成功后再 hard delete DB 行，不单独规定 `resume_assets` / `target_jobs` 的全局先后顺序
 
 #### 4.3 unit + integration test
 - `delete_for_user_test.go`：成功路径 / 对象存储失败重试 / 部分成功幂等
@@ -150,7 +150,7 @@ Config dependency: existing A4 `objectStorage.endpoint` / `bucket` / `accessKey`
 按 §3 替代验证 gate 依序运行：
 - `make backend-test` + `go test ./internal/upload/...` PASS
 - `make lint-config` PASS
-- handler smoke：curl 真实端口验证 200 + IK replay 一致
+- handler smoke：curl 真实端口验证 201 + IK replay 一致
 - mock-first 对齐验证：本地 mock-server 与 真实 handler 同 endpoint 字节比对
 - `sync-doc-index --check` PASS
 
@@ -161,8 +161,8 @@ Config dependency: existing A4 `objectStorage.endpoint` / `bucket` / `accessKey`
 
 #### 5.3 spec / history / INDEX 同步
 
-- backend-upload spec.md 1.0 保持 active（不升级，已是首版）
-- backend-upload history.md 追加 plan 001 完成行（如完成）；本 plan 落地阶段维持 active
+- backend-upload spec.md 本次 L1 修订后保持 1.1 active；实施完成时再追加完成行
+- backend-upload history.md 已记录本次 L1 修订；plan 001 落地阶段维持 active
 - 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `backend-upload` 状态从 "未创建" 改为 "active"（roadmap spec 3.10 → 3.11）
 
 #### 5.4 通知下游 owner
