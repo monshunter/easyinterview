@@ -42,6 +42,7 @@ import { JDMatchScreen } from "./screens/jd_match/JDMatchScreen";
 import { ParseScreen } from "./screens/parse/ParseScreen";
 import { PlaceholderScreen } from "./screens/PlaceholderScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
+import { ResumeWorkshopScreen } from "./screens/resume-workshop/ResumeWorkshopScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { WorkspaceScreen } from "./screens/workspace/WorkspaceScreen";
 import {
@@ -103,6 +104,9 @@ function renderRouteScreen(
   }
   if (route.name === "workspace") {
     return <WorkspaceScreen route={route} />;
+  }
+  if (route.name === "resume_versions") {
+    return <ResumeWorkshopScreen route={route} />;
   }
   if (!runtime) {
     return <PlaceholderScreen route={route} />;

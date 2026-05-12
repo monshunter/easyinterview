@@ -377,4 +377,13 @@ export const en: LocaleMessages = {
   "workspace.errors.generic": "Something went wrong. Please retry.",
   "workspace.errors.retry": "Retry",
   "workspace.errors.backHome": "Back to Home",
+  "resumeWorkshop.notImplemented.title": "Coming soon: new resume + branch flows",
+  "resumeWorkshop.notImplemented.body":
+    "This release wires the resume list and read-only detail preview. New resume creation and branching from a version will land in a follow-up release.",
+  "resumeWorkshop.auth.eyebrow": "Resume Workshop",
+  "resumeWorkshop.auth.title": "Sign in to view your resume versions",
+  "resumeWorkshop.auth.body":
+    "Resume listing, version detail, and export require authentication. Sign-in restores this page with route params only — no resume text is carried along.",
+  "resumeWorkshop.auth.cta": "Sign in to continue",
+  "resumeWorkshop.auth.pendingLabel": "Open Resume Workshop after sign-in",
 };

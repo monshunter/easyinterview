@@ -8,11 +8,11 @@
 
 ## Phase 1: 路由替换 + 容器骨架
 
-- [ ] 1.1 修订 `frontend/src/app/App.tsx`：`resume_versions` 路由从 `PlaceholderScreen` 切到 `ResumeWorkshopScreen`（验证：路由 hook 单测 + grep verify no `PlaceholderScreen.resume_versions`）
-- [ ] 1.2 实现 `frontend/src/app/screens/resume-workshop/ResumeWorkshopScreen.tsx` 容器：解析 route param + flow 分发，TARGETED version 默认 `tab=rewrites` 且不改写为 preview（验证：Vitest 单测 ≥ 6 param case PASS）
-- [ ] 1.3 flow=create / branch P0 渲染 `<NotImplementedPlaceholder>`，不阻塞 list 主路径（验证：Vitest 单测）
-- [ ] 1.4 实现 adapter 层 `frontend/src/app/screens/resume-workshop/adapters/resume.ts`，含 `mapResumeAssetToUiSource` / `mapResumeVersionToUi` / `mapBulletSuggestionToUi`（验证：adapter unit test ≥ 8 case PASS，覆盖 null / archived / parent chain）
-- [ ] 1.5 auth boundary：未登录访问 `resume_versions` / detail / flow=create / flow=branch 时展示 auth gate，且不触发 `listResumes` / `listResumeVersions` / `getResumeVersion` / `exportResumeVersion`；登录恢复只携带 route params（验证：Vitest mock client request spy + pendingAction params negative）
+- [x] 1.1 修订 `frontend/src/app/App.tsx`：`resume_versions` 路由从 `PlaceholderScreen` 切到 `ResumeWorkshopScreen`（验证：路由 hook 单测 + grep verify no `PlaceholderScreen.resume_versions`）
+- [x] 1.2 实现 `frontend/src/app/screens/resume-workshop/ResumeWorkshopScreen.tsx` 容器：解析 route param + flow 分发，TARGETED version 默认 `tab=rewrites` 且不改写为 preview（验证：Vitest 单测 ≥ 6 param case PASS）
+- [x] 1.3 flow=create / branch P0 渲染 `<NotImplementedPlaceholder>`，不阻塞 list 主路径（验证：Vitest 单测）
+- [x] 1.4 实现 adapter 层 `frontend/src/app/screens/resume-workshop/adapters/resume.ts`，含 `mapResumeAssetToUiSource` / `mapResumeVersionToUi` / `mapBulletSuggestionToUi`（验证：adapter unit test ≥ 8 case PASS，覆盖 null / archived / parent chain）
+- [x] 1.5 auth boundary：未登录访问 `resume_versions` / detail / flow=create / flow=branch 时展示 auth gate，且不触发 `listResumes` / `listResumeVersions` / `getResumeVersion` / `exportResumeVersion`；登录恢复只携带 route params（验证：Vitest mock client request spy + pendingAction params negative）
 
 ## Phase 2: ResumeListView + TreeView + FlatView + StatsStrip
 

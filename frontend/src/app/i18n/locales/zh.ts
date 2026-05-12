@@ -366,6 +366,15 @@ export const zh = {
   "workspace.errors.generic": "出了点问题，请重试。",
   "workspace.errors.retry": "重试",
   "workspace.errors.backHome": "回到首页",
+  "resumeWorkshop.notImplemented.title": "新建 / 分叉简历版本即将开放",
+  "resumeWorkshop.notImplemented.body":
+    "本版前端先打通简历列表与详情预览，新建简历与基于版本分叉的流程将在后续版本开放。",
+  "resumeWorkshop.auth.eyebrow": "简历工坊",
+  "resumeWorkshop.auth.title": "登录后查看你的简历版本",
+  "resumeWorkshop.auth.body":
+    "简历列表、版本详情和导出能力需要先验证身份，登录后会回到当前页面，仅恢复路由参数，不带任何简历正文。",
+  "resumeWorkshop.auth.cta": "登录继续",
+  "resumeWorkshop.auth.pendingLabel": "登录后进入简历工坊",
 } as const;
 
 export type MessageKey = keyof typeof zh;

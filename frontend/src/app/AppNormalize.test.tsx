@@ -26,10 +26,13 @@ describe("App route normalization", () => {
         <App initialRoute={{ name: legacy, params: {} }} />,
       );
       // workspace now renders WorkspaceScreen; empty params → WorkspaceEmptyState
+      // resume_versions now renders ResumeWorkshopScreen
       const currentTestId =
         current === "workspace"
           ? "workspace-empty"
-          : `route-${current}`;
+          : current === "resume_versions"
+            ? "resume-workshop-screen"
+            : `route-${current}`;
       expect(screen.getByTestId(currentTestId)).toBeInTheDocument();
       expect(screen.queryByTestId(`route-${legacy}`)).not.toBeInTheDocument();
       unmount();
