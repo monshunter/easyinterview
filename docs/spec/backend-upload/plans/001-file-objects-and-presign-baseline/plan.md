@@ -1,7 +1,7 @@
 # Backend Upload File Objects and Presign Baseline
 
 > **版本**: 1.1
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-12
 
 **关联 Checklist**: [checklist](./checklist.md)

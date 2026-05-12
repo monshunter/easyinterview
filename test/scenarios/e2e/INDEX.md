@@ -37,3 +37,4 @@
 | E2E.P0.030 | frontend-home-job-picks-and-parse C-12, C-15 | `p0-030-jd-match-profile-and-agent-status/` | jd_match Profile chip + AGENT scan status + Auth pending action 跨 tab 综合 | automated | Ready |
 | E2E.P0.031 | frontend-home-job-picks-and-parse C-13 | `p0-031-jd-match-confirm-interview-handoff/` | Confirm interview from jd_match → parse 出口 params 完整性 + parse 屏不破坏 | automated | Ready |
 | E2E.P0.032 | frontend-shell C-10 | `p0-032-dev-mock-auth-state-and-user-menu/` | Dev mock 默认非登录、登录后头像 dropdown、profile/settings 分流与 logout 后非登录闭环 | automated | Ready |
+| E2E.P0.033 | backend-upload C-1, C-2, C-3, C-4, C-6, C-7, C-8 | `p0-033-file-presign-register-roundtrip/` | file presign、IK replay、register 校验、cross-user 隔离与 privacy delete tombstone | automated | Ready |

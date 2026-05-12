@@ -1,6 +1,6 @@
 # Engineering Roadmap History
 
-> **版本**: 3.13
+> **版本**: 3.14
 > **状态**: active
 > **更新日期**: 2026-05-12
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-12 | 3.14 | 对齐 backend-upload/001 落地：Resume Workshop §5.2 中 `backend-upload` 状态从首批 plan 骨架待实施更新为 file_objects + presign baseline 已落地，backend-resume 可接续。 | backend-upload/001-file-objects-and-presign-baseline |
 | 2026-05-12 | 3.13 | 对齐 B2 D-18 落地：roadmap B2 摘要与 mock-first runway 从 46 operation 升到 55 operation，承接 Resume Workshop `Resumes` tag 新增 9 operation 与 fixtures。 | openapi-v1-contract/004-resume-additive-coverage |
 | 2026-05-12 | 3.12 | 对齐 B4 D-17 落地：roadmap B4 摘要从旧应用表数量升级为 28 应用表 + auth / migration 支撑表，承接 Resume Workshop `resume_versions` / `resume_version_suggestions` migration。 | db-migrations-baseline/002-resume-versions-additive |
 | 2026-05-11 | 3.11 | Resume Workshop 阶段 1 三个新 subspec 骨架就位：`backend-upload` (C2，001-file-objects-and-presign-baseline) / `backend-resume` (C7，001-asset-register-parse-and-listing) / `frontend-resume-workshop` (001-listing-routing-and-detail-readonly) 三个 subspec 的 spec.md / history.md / plans/INDEX.md / 第一批 plan（含 BDD）全套骨架就位；§5.2 Resume Workshop 行当前状态从 "未创建" 改为各 subspec "active（首批 plan 骨架就位，待 `/implement` 执行）"。 | docs-only（Resume Workshop 阶段 1 设计结晶） |

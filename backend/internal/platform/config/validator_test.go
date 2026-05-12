@@ -35,6 +35,14 @@ featureFlag:
   posthogSelfHosted: true
   posthogHost: ""
   posthogProjectApiKey: ""
+objectStorage:
+  provider: minio
+upload:
+  presignTTLSeconds: 600
+  maxBytes:
+    resume: 10485760
+    targetJobAttachment: 10485760
+    privacyExport: 5242880
 async:
   queueWeights:
     critical: 6

@@ -1,7 +1,7 @@
 # Backend Upload File Objects and Presign Baseline Checklist
 
 > **版本**: 1.1
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-12
 
 **关联计划**: [plan](./plan.md)
@@ -46,9 +46,9 @@
 
 ## Phase 5: 收口与 BDD
 
-- [ ] 5.1 跑 `make lint-config` + `make backend-test` + `go test ./internal/upload/...` 全 PASS（验证：exit 0）
-- [ ] 5.2 mock-first 对齐：handler 真实响应与 B2 fixture `default` scenario 字节比对 PASS（验证：mock-contract-suite 测试集成）
-- [ ] 5.3 BDD-Gate: 验证 E2E.P0.033 file-presign-register-roundtrip PASS（详见 [bdd-checklist.md](./bdd-checklist.md)）
-- [ ] 5.4 在 `test/scenarios/e2e/INDEX.md` 追加 E2E.P0.033 行（关联需求 `backend-upload C-1, C-2, C-3, C-4, C-6, C-7, C-8`，状态 Ready，automated）
-- [ ] 5.5 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `backend-upload` 状态从 "未创建" 改为 "active"，spec 3.10 → 3.11，history.md 追加 3.11 行（验证：`sync-doc-index --check`）
-- [ ] 5.6 通知 backend-resume/001 owner：createUploadPresign + Register internal API 已就位（验证：cross-plan 引用 commit）
+- [x] 5.1 跑 `make lint-config` + `make backend-test` + `go test ./internal/upload/...` 全 PASS（验证：exit 0）
+- [x] 5.2 mock-first 对齐：handler 真实响应与 B2 fixture `default` scenario 字节比对 PASS（验证：mock-contract-suite 测试集成）
+- [x] 5.3 BDD-Gate: 验证 E2E.P0.033 file-presign-register-roundtrip PASS（详见 [bdd-checklist.md](./bdd-checklist.md)）
+- [x] 5.4 在 `test/scenarios/e2e/INDEX.md` 追加 E2E.P0.033 行（关联需求 `backend-upload C-1, C-2, C-3, C-4, C-6, C-7, C-8`，状态 Ready，automated）
+- [x] 5.5 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `backend-upload` 状态从 "未创建" 改为 "active"，spec 3.10 → 3.11，history.md 追加 3.11 行（验证：`sync-doc-index --check`）
+- [x] 5.6 通知 backend-resume/001 owner：createUploadPresign + Register internal API 已就位（验证：cross-plan 引用 commit）
