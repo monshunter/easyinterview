@@ -17,10 +17,10 @@
   - `ResumeListView`（统计条 StatsStrip + ViewSwitcher + 子视图调度）
   - `ResumeTreeView`（原始简历树 + 折叠 + "选为底稿" / "基于这棵树新建版本" 按钮，**P0 范围只渲染**，按钮点击 P0 toast "即将开放"，留 plan 002/003 启用）
   - `ResumeFlatView`（版本平铺 + 排序）
-  - `ResumeDetailView` 容器 + **Preview Tab 只读**（Breadcrumb + 版本分支图 + 三 tab 切换 + 默认 tab 按 `resumeDefaultTab(version)` + "查看原件" 弹层）
+  - `ResumeDetailView` 容器 + **只读详情**（Breadcrumb + 版本分支图 + 三 tab 切换 + 默认 tab 按 `resumeDefaultTab(version)`；MASTER 默认 `preview`，TARGETED 默认 `rewrites`，001 阶段 `rewrites/edit` 内容可为 ComingSoon 但 route/tab 状态不得改写为 preview；Preview Tab 含 "查看原件" 弹层）
   - `ResumeVersionRow`（版本行复用）
 - 实现 adapter 层 `frontend/src/app/screens/resume-workshop/adapters/`：把 generated client `ResumeAsset` / `ResumeVersion` 映射为 UI 真理源 `ResumeSource` / `ResumeVersion`；
-- 通过 [B2 fixtures](../../../mock-contract-suite/spec.md) `listResumes` / `listResumeVersions` / `getResumeVersion` `default` / `empty` / `paginated` / `not-found-404` 等 scenario 完成 happy path + 边界 + 错误态；
+- 通过 [B2 fixtures](../../../mock-contract-suite/spec.md) `listResumes` / `listResumeVersions` / `getResumeVersion` / `exportResumeVersion` `default` / `empty` / `paginated` / `master-only` / `with-targeted-branches` / `not-found-404` / `p0-501-not-available` 等 scenario 完成 happy path + 边界 + 错误态；断言必须从当前 fixture body 派生数量，不写死静态原型规模；
 - 落地 UI parity gate（Vitest + Playwright + pixel parity）；
 - 完成 spec §6 C-1..C-9 验收 + E2E.P0.036 / E2E.P0.037 两个 BDD 场景；
 - 不实现 Create Flow / Branch Flow / Rewrites Tab / Edit Tab（归 plan 002 / 003）；不依赖 [backend-resume](../../../backend-resume/spec.md) 真实落地（mock-first）。
@@ -48,9 +48,10 @@
 - **TDD 策略**: 适用。Red-Green-Refactor 入口：
   1. Vitest 组件单测：ResumeWorkshopScreen / ResumeListView / ResumeTreeView / ResumeFlatView / ResumeDetailView Preview Tab / ResumeVersionRow render / route param 解析 / lang 切换 / a11y attribute；
   2. adapter unit test：`ResumeAsset ↔ ResumeSource` / `ResumeVersion ↔ ResumeVersion` 映射 + 边界（null / archived / parent_version_id 链）；
-  3. fixture parity test：组件渲染从 `default` / `empty` / `paginated` / `not-found-404` fixture 时 DOM testid 覆盖 spec §6 锚点；
-  4. Playwright pixel parity：desktop + mobile viewport baseline；
-  5. negative grep test：`frontend/src/app/screens/resume-workshop/` 不出现 retired 模块名 / 不 import data.jsx。
+  3. fixture parity test：组件渲染从 `default` / `empty` / `paginated` / `master-only` / `with-targeted-branches` / `not-found-404` / `p0-501-not-available` fixture 时 DOM testid 覆盖 spec §6 锚点，数量断言从 fixture body 派生；当前 `createFixtureBackedFetch` 只按 `operationId` + `Prefer: example=<scenario>` 选 scenario，001 不把 path-param-specific version scenario selection 当作 fixture-backed happy path；
+  4. auth boundary test：未登录态不触发 protected Resume operation，登录恢复只携带 route params；
+  5. Playwright pixel parity：desktop + mobile viewport DOM / computed style / bounding box + screenshot smoke（只有存在可复现 baseline 时才使用 screenshot diff）；
+  6. negative grep test：`frontend/src/app/screens/resume-workshop/` 不出现 retired 模块名 / 不 import `ui-design/src/data.jsx` 或 `ui-design/src/screen-resume-workshop.jsx`。
   执行入口：`/implement frontend-resume-workshop/001-listing-routing-and-detail-readonly` → `/tdd`。
 - **BDD 策略**: 适用（Feature plan requires BDD）。E2E.P0.036 list-tree-flat-toggle + E2E.P0.037 detail-preview-readonly。详见 [bdd-plan.md](./bdd-plan.md) / [bdd-checklist.md](./bdd-checklist.md)。
 - **替代验证 gate**:
@@ -58,7 +59,8 @@
   - `pnpm --filter @easyinterview/frontend build` + `pnpm --filter @easyinterview/frontend test:pixel-parity` (Playwright；首次或新机器先跑 `pnpm --filter @easyinterview/frontend test:pixel-parity:install`)
   - `pnpm --filter @easyinterview/frontend lint` (ESLint + UI parity rules)
   - `pnpm --filter @easyinterview/frontend build`
-  - `git grep -E "mistake|growth|drill|onboarding-legacy|experiences-legacy" -- frontend/src/app/screens/resume-workshop/`（旧入口 negative）
+  - `git grep -E "welcome|mistake|growth|plan|drill|followup|onboarding|STAR|experiences|voice" -- frontend/src/app/screens/resume-workshop/`（旧入口 negative）
+  - `git grep -nE "ui-design/src/(data|screen-resume-workshop)" -- frontend/src/app/screens/resume-workshop/`（原型运行时 import negative）
   - `sync-doc-index --check`
 
 ### 3.1 Frontend / Backend Operation Matrix
@@ -67,9 +69,10 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` `default` / `empty` / `paginated` | `ResumeListView` + adapter `mapResumeAssetToUiSource` | `backend-resume/001` not-yet-implemented at this plan start; fixture-backed until landed | `resume_assets` | none | E2E.P0.036 |
-| `listResumeVersions` | `openapi/fixtures/Resumes/listResumeVersions.json` `default` / `master-only` / `with-targeted-branches` | `ResumeTreeView` / `ResumeFlatView` + adapter `mapResumeVersionToUi` | future `backend-resume/002-versions-and-tailor-runs`; fixture-backed in this plan | `resume_versions` | none | E2E.P0.036 |
-| `getResumeVersion` | `openapi/fixtures/Resumes/getResumeVersion.json` `master-default` / `targeted-with-suggestions` / `not-found-404` | `ResumeDetailView` Preview Tab / original modal | future `backend-resume/002-versions-and-tailor-runs`; fixture-backed in this plan | `resume_versions` / `resume_version_suggestions` | none for readonly preview; provenance is fixture-backed | E2E.P0.037 |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` `default` / `empty` / `paginated` | `ResumeListView` + adapter `mapResumeAssetToUiSource`; counts derive from `items.length` / `pageInfo` | `backend-resume/001` not-yet-implemented at this plan start; fixture-backed until landed | `resume_assets` | none | E2E.P0.036 |
+| `listResumeVersions` | `openapi/fixtures/Resumes/listResumeVersions.json` `default` / `master-only` / `with-targeted-branches` | `ResumeTreeView` / `ResumeFlatView` + adapter `mapResumeVersionToUi`; current fixture-backed transport is scenario-scoped, not request-aware, so 001 consumes the selected scenario as the available version collection and groups by `resumeAssetId`; `listResumes.default` assets without matching versions render an explicit no-versions/partial state instead of fabricated versions. Request-aware path-param scenario selection is deferred until B2 adds matching fixtures or mock transport path-param selection | future `backend-resume/002-versions-and-tailor-runs`; fixture-backed in this plan | `resume_versions` | none | E2E.P0.036 |
+| `getResumeVersion` | `openapi/fixtures/Resumes/getResumeVersion.json` `default` / `master-default` / `targeted-with-suggestions` / `not-found-404` | `ResumeDetailView` detail loader / Preview Tab / original modal; UI copy must not depend on current fixture's `error.code` spelling | future `backend-resume/002-versions-and-tailor-runs`; fixture-backed in this plan | `resume_versions` / `resume_version_suggestions` | none for readonly preview; provenance is fixture-backed | E2E.P0.037 |
+| `exportResumeVersion` | `openapi/fixtures/Resumes/exportResumeVersion.json` `p0-501-not-available`; fixture declares `request.headers.Idempotency-Key` but fixture mock does not validate it | `ResumeDetailView` Preview export button generates `generateIdempotencyKey()`, passes generated client `opts.idempotencyKey`, asserts request header `Idempotency-Key`, maps `RESUME_EXPORT_NOT_AVAILABLE` / 501 to user-visible toast, and does not persist output | P0 explicit 501 stub; future `backend-resume/003` may switch to 202 + Job with spec revision | none in P0 | none | E2E.P0.037 |
 
 ## 4 实施步骤
 
@@ -84,6 +87,7 @@
 - flow=create / branch 时 P0 渲染 `<NotImplementedPlaceholder>`（不阻塞，由 002/003 接管）
 - flow=list 时渲染 `ResumeListView`
 - versionId 存在时渲染 `ResumeDetailView` 容器
+- 未登录时不触发 Resume API 请求，渲染 auth gate 并通过 pendingAction 保留 `flow` / `versionId` / `tab` / `branchOriginalId`
 
 #### 1.3 adapter 层骨架
 - `frontend/src/app/screens/resume-workshop/adapters/resume.ts`：`mapResumeAssetToUiSource(asset)` / `mapResumeVersionToUi(version)` / `mapBulletSuggestionToUi(suggestion)`
@@ -95,7 +99,7 @@
 - 顶部 StatsStrip（4 项统计：originals / versions / top-match / recent）
 - ViewSwitcher（tree / flat 两态）
 - 子视图调度
-- 数据消费：generated client `listResumes` + `listResumeVersions`；通过 adapter 层投影到 UI 类型
+- 数据消费：generated client `listResumes` + 当前 scenario-scoped `listResumeVersions` 版本集合；通过 adapter 层投影到 UI 类型并按 `resumeAssetId` 分组；empty / paginated / 当前 `listResumes.default` 第二个 asset 无匹配版本 / version.resumeAssetId 不匹配时必须有可见 no-versions 或 partial 状态且不伪造数据
 
 #### 2.2 `ResumeTreeView.tsx`
 - 按 originalId 分组的折叠树
@@ -116,13 +120,14 @@
 - 顶部 Breadcrumb（resume_versions / 当前 master / 当前 version）
 - 中部版本分支图（仅渲染当前 version 的 parent 链 + 同级 targeted versions）
 - 三 tab 切换（preview / rewrites / edit；P0 只 preview 可点；rewrites / edit P0 渲染 `<ComingSoonTab>`）
-- 默认 tab：按 `resumeDefaultTab(version)` (MASTER → preview / TARGETED → rewrites P0 fallback preview)
+- 默认 tab：按 `resumeDefaultTab(version)` (MASTER → preview / TARGETED → rewrites)；001 阶段 `rewrites` 内容可为 `<ComingSoonTab>`，但 active tab / URL `tab` 不得改写为 preview
 - Preview Tab：渲染 `buildResumePlainText(lang, version)` 投影
 - "查看原件" 按钮 → 打开原件弹层 modal（focus trap + ESC 关闭 + 外层遮罩关闭 + X 按钮）
 
 #### 3.2 数据消费
 - 通过 generated client `getResumeVersion(versionId)` + adapter 投影
-- 错误态：404 → 渲染 `<NotFoundEmptyState>` + 返回 list CTA
+- 错误态：404/default error envelope → 渲染 `<NotFoundEmptyState>` + 返回 list CTA；UI copy 不依赖当前 fixture 的 `error.code`
+- 导出：`exportResumeVersion(versionId, { idempotencyKey: generateIdempotencyKey() })` P0 `501 + RESUME_EXPORT_NOT_AVAILABLE` → toast "PDF 导出能力即将开放" / "PDF export is not available yet"，request spy 必须断言 `Idempotency-Key` header，不生成 blob、不写 localStorage
 
 ### Phase 4: i18n + a11y + 隐私红线
 
@@ -137,7 +142,7 @@
 - 键盘导航：Tab / Enter / ESC
 
 #### 4.3 隐私红线
-- raw resume text / parsed_summary / structured_profile 内容不出现在 console.log / URL query / localStorage / telemetry
+- raw resume text / originalText / parsedTextSnapshot / parsed_summary / parsedSummary / structured_profile / structuredProfile / suggestion 改写文本不出现在 console.log / URL query / pendingAction params / localStorage / telemetry
 - Preview Tab 内容仅在 user 主动复制时通过 clipboard 流出（非持久）
 - Vitest 单测验证 `getResumeVersion` fixture 中 PII 字段在 DOM 但不在 URL / localStorage / mock-server transport log
 
@@ -145,9 +150,9 @@
 
 #### 5.1 UI parity gate
 - 复用 [frontend-shell/003-ui-design-pixel-parity-gate](../../../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md) 框架
-- 新增 baseline：desktop 1440px + mobile 390x844 viewport
+- 新增 `frontend/tests/pixel-parity/resume-workshop.spec.ts` 或同等分片；不得把 `.gitignore` 排除的本地截图 baseline 当作 clean-checkout 完成 gate
 - 关键元素 bounding box parity：StatsStrip 4 项 / ResumeTreeView 行高 / ResumeVersionRow indent / ResumeDetailView Breadcrumb
-- screenshot 容差与 frontend-shell 003 一致
+- screenshot 只作为 smoke 或稳定可复现 baseline gate；常规 PASS 证据必须来自 DOM anchor、computed style、bounding box、viewport geometry 与非空截图 buffer
 
 #### 5.2 BDD 场景验证
 - 执行 `test/scenarios/e2e/p0-036-resume-list-tree-flat-toggle/` 全 PASS
@@ -155,8 +160,8 @@
 - 在 `test/scenarios/e2e/INDEX.md` 追加 P0.036 + P0.037 行
 
 #### 5.3 旧入口负向 grep
-- `git grep -nE "mistake|growth|drill|onboarding-legacy|experiences-legacy" -- frontend/src/app/screens/resume-workshop/`：0 命中
-- `git grep -nE "import.*ui-design/src/data" -- frontend/src/app/screens/resume-workshop/`：0 命中（不允许运行时 import data.jsx）
+- `git grep -nE "welcome|mistake|growth|plan|drill|followup|onboarding|STAR|experiences|voice" -- frontend/src/app/screens/resume-workshop/`：0 命中
+- `git grep -nE "ui-design/src/(data|screen-resume-workshop)" -- frontend/src/app/screens/resume-workshop/`：0 命中（不允许运行时 import prototype data / component source）
 
 #### 5.4 spec / history / INDEX 同步
 
@@ -170,7 +175,7 @@
 - §3 替代验证 gate 全部通过
 - spec §6 C-1..C-9 全部 PASS（C-10 / C-11 留给 plan 002 / 003）
 - BDD E2E.P0.036 + E2E.P0.037 PASS
-- UI parity baseline 已保存到 `frontend/tests/visual-baseline/resume-workshop/`
+- UI parity gate 已接入 `frontend/tests/pixel-parity`，clean checkout PASS 不依赖本地未跟踪 screenshot baseline
 - engineering-roadmap §5.2 `frontend-resume-workshop` 状态已升级到 active
 
 ## 6 风险与应对

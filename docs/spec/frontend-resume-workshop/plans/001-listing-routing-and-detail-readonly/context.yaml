@@ -31,12 +31,16 @@ spec:
       - resume version row indent tag match
       - adapter resume asset to source
       - generated client mock first
+      - resume auth gate no fetch before login
+      - listResumeVersions scenario scoped aggregation
+      - fixture derived counts pagination partial failure
+      - exportResumeVersion P0 501 toast fallback Idempotency-Key
       - ui parity gate desktop mobile
-      - bounding box screenshot regression
+      - bounding box screenshot smoke optional diff
       - resume workshop i18n en zh
       - resume workshop a11y focus
       - retired modules grep negative
-      - data.jsx runtime import forbidden
+      - ui-design data screen runtime import forbidden
       - resumeDefaultTab MASTER preview TARGETED rewrites
   targets:
     frontend:
@@ -55,7 +59,7 @@ spec:
           - frontend/src/app/i18n
           - frontend/src/api/generated
           - frontend/src/lib/conventions
-          - frontend/tests/visual-baseline
+          - frontend/tests/pixel-parity
           - ui-design/src
           - docs/ui-design
           - test/scenarios/e2e
@@ -65,3 +69,4 @@ spec:
           - listResumes
           - listResumeVersions
           - getResumeVersion
+          - exportResumeVersion

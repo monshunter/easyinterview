@@ -14,7 +14,7 @@
 2. **路由接管**：`resume_versions` 路由从 [frontend-shell](../frontend-shell/spec.md) `PlaceholderScreen` 切换为本 subject 的 `ResumeWorkshopScreen`；route param 兼容 `flow=create / branch` + `versionId` + `tab=preview|rewrites|edit` + `branchOriginalId`。
 3. **mock-first 路径**：第一批 plan 不依赖 [backend-resume](../backend-resume/spec.md) 真实落地，通过 [B2 fixtures](../mock-contract-suite/spec.md) `listResumes` / `listResumeVersions` / `getResumeVersion` `default` scenario 完成 happy path。
 4. **逐步切真**：当 backend-resume 真实落地后，generated client 自动切真，前端 plan 不需要再次重构（mock-first 与 real 字节比对由 [mock-contract-suite C-9](../mock-contract-suite/spec.md#6-验收标准) enforce）。
-5. **UI parity gate 可执行**：每个 plan 必须含 DOM 锚点 + computed style + bounding box + viewport 截图对比，参照 [frontend-shell/003-ui-design-pixel-parity-gate](../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md) 模式。
+5. **UI parity gate 可执行**：每个 plan 必须含 DOM 锚点 + computed style + bounding box + viewport screenshot smoke；只有 screenshot baseline 可由 clean checkout 稳定取得或本次 gate 明确维护时，才能把 screenshot diff regression 作为完成 gate。参照 [frontend-shell/003-ui-design-pixel-parity-gate](../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md) 模式。
 
 本 subject 不实现 backend handler（[backend-resume](../backend-resume/spec.md) / [backend-upload](../backend-upload/spec.md)）；不实现 OpenAPI 契约（[openapi-v1-contract D-18](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围)）；不恢复旧 Mistakes / Growth / Drill / 独立 Voice / 旧 onboarding / 旧 STAR 等已丢弃模块（[engineering-roadmap §4.1](../engineering-roadmap/spec.md#41-产品与-ui-约束)）。
 
@@ -35,7 +35,8 @@
 - **数据形态映射**：UI 真理源中的 `ResumeSource` 通过 adapter 层映射 OpenAPI `ResumeAsset`；UI `ResumeVersion` 直接对应 OpenAPI 新 schema `ResumeVersion`（[B2 D-18](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) + [B1 D-10](../shared-conventions-codified/spec.md#31-已锁定决策)）。
 - **i18n**：中英双语，按 [frontend-shell §3](../frontend-shell/spec.md) i18n contract；UI 真理源 `buildResumeData(lang)` / `buildResumePlainText(lang)` / `buildBullets(lang)` 已含双语数据。
 - **a11y**：focus trap / aria-label / ESC 关闭 modal / 键盘导航；参照 [frontend-shell C-9 pixel parity](../frontend-shell/spec.md) baseline。
-- **UI parity gate**：每个 plan 必须含 DOM 锚点（testid / aria / class）+ computed style + bounding box + viewport 截图对比；触发回归 fail。
+- **UI parity gate**：每个 plan 必须含 DOM 锚点（testid / aria / class）+ computed style + bounding box + viewport screenshot smoke；clean checkout 不依赖 `.gitignore` 排除的本地 screenshot baseline，只有 baseline 可复现/已维护时才触发 screenshot diff regression。
+- **Auth boundary**：Resume Workshop 读取 `listResumes` / `listResumeVersions` / `getResumeVersion` 前必须确认当前 runtime auth 为 authenticated；未登录只能显示登录引导 / auth pending action，不得拉取或缓存简历 fixture / real data。
 - **隐私红线**：raw resume text / parsed_summary / 简历内容 / questionText 不出现在 console / URL / localStorage / telemetry。
 
 ### 2.2 Out of Scope
@@ -56,9 +57,9 @@
 | D-2 | 术语映射 adapter 层 | UI 层保留 `ResumeSource` / `ResumeVersion` / `Bullet` 命名；adapter 在 `frontend/src/app/screens/resume-workshop/adapters/` 把 generated client `ResumeAsset` / `ResumeVersion` / `ResumeTailorSuggestion` 映射到 UI 类型；不重命名 generated client 类型 | [B1 D-10](../shared-conventions-codified/spec.md#31-已锁定决策) + [B2 D-18](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) 已锁，前端 adapter 层是唯一映射点 |
 | D-3 | 路由参数语义 | `resume_versions` route 支持参数：`flow=create | branch | list（默认）` + `versionId`（详情打开）+ `tab=preview | rewrites | edit`（详情子标签，默认按 `resumeDefaultTab(version)`：MASTER→preview / TARGETED→rewrites）+ `branchOriginalId`（branch 流程进入时携带）；通过 [frontend-shell normalizeRoute](../frontend-shell/spec.md) 验证 | 与 UI 真理源 `ResumeWorkshopScreen` flow 参数对齐；route param 与 UI state 一一对应 |
 | D-4 | mock-first 优先 | 第一批 plan（001-listing-routing-and-detail-readonly）依赖 listResumes / listResumeVersions / getResumeVersion fixture；不依赖真实 backend；后续 002 / 003 依赖 backend-upload + backend-resume 真实落地或 fixture（B2 plan 004 落地后即可消费） | 与 [mock-contract-suite D-5 Vite dev preview 默认 fixture-backed](../mock-contract-suite/spec.md#3-用户决策--待确认事项) 对齐 |
-| D-5 | UI parity gate 强制 | 每个 plan 必须含至少 4 类断言：（a）DOM 结构 parity（testid / aria / 嵌套）；（b）computed style parity（颜色 / 字号 / 间距 / 阴影）；（c）bounding box parity（关键元素位置）；（d）desktop + mobile viewport screenshot regression；参照 [frontend-shell/003-ui-design-pixel-parity-gate](../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md) 模式 | 不允许"视觉相似""风格接近"作为完成依据 |
-| D-6 | PDF 导出按钮 P0 stub | `exportPDF` 按钮在 P0 仅显示 toast "PDF 导出能力即将开放"；`copyText` 按钮 P0 真实可用（通过 `buildResumePlainText` 投影）；P1 backend-resume 003 真实落地后前端按钮自动消费 | [B2 D-18](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) `exportResumeVersion` P0 501 + `RESUME_EXPORT_NOT_AVAILABLE` 兜底 |
-| D-7 | 旧入口负向 grep | `frontend/src/app/screens/resume-workshop/` 不出现 `mistake` / `growth` / `drill` / 旧 `onboarding` / 旧 `STAR` / 旧 `experiences` 路径或 testid（除 normalizeRoute alias map）；不 import `ui-design/src/data.jsx` 或 `ui-design/src/screen-resume-workshop.jsx` 作为运行时数据 / 组件源 | 防止 retired 模块复活；避免正式前端运行时耦合静态原型 |
+| D-5 | UI parity gate 强制 | 每个 plan 必须含至少 4 类断言：（a）DOM 结构 parity（testid / aria / 嵌套）；（b）computed style parity（颜色 / 字号 / 间距 / 阴影）；（c）bounding box parity（关键元素位置）；（d）desktop + mobile viewport screenshot smoke；参照 [frontend-shell/003-ui-design-pixel-parity-gate](../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md) 模式。Clean checkout 常规 PASS 不依赖未跟踪 screenshot baseline；只有 baseline 可由 CI / checkout 稳定取得或本次显式维护时，screenshot diff regression 才是完成 gate | 不允许"视觉相似""风格接近"作为完成依据 |
+| D-6 | PDF 导出按钮 P0 stub | `exportPDF` 按钮在 P0 将 `exportResumeVersion` 的 `501 + RESUME_EXPORT_NOT_AVAILABLE` 或等价本地不可用分支映射为 toast "PDF 导出能力即将开放"；调用必须通过 `frontend/src/lib/conventions/idempotency.ts::generateIdempotencyKey()` 传入 generated client `opts.idempotencyKey`，并由测试断言 `Idempotency-Key` header；`copyText` 按钮 P0 真实可用（通过 `buildResumePlainText` 投影）；P1 backend-resume 003 真实落地后前端按钮自动消费 | [B2 D-18](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) `exportResumeVersion` P0 501 + `RESUME_EXPORT_NOT_AVAILABLE` 兜底 |
+| D-7 | 旧入口负向 grep | `frontend/src/app/screens/resume-workshop/` 不出现 `welcome` / `mistake` / `growth` / `plan` / `drill` / `followup` / 旧 `onboarding` / 旧 `STAR` / 旧 `experiences` / `voice` 路径或 testid（除 normalizeRoute alias map）；不 import `ui-design/src/data.jsx` 或 `ui-design/src/screen-resume-workshop.jsx` 作为运行时数据 / 组件源 | 防止 retired 模块复活；避免正式前端运行时耦合静态原型 |
 
 ### 3.2 待确认事项
 
@@ -82,11 +83,12 @@
 
 - raw resume text / parsed_summary / structured_profile 内容 / suggestion 改写文本不出现在 console.log / URL query / localStorage / fixture transport 日志 / telemetry payload（仅在用户主动 copy / export 时通过 clipboard / blob 流出，且不持久到非 user-owned 存储）。
 - pendingAction.params 不携带 raw text（[frontend-shell §4](../frontend-shell/spec.md) auth pending action contract）。
+- 未登录状态不得触发 protected Resume endpoints；登录恢复只允许携带 route params（`flow` / `versionId` / `tab` / `branchOriginalId`），不得把原始文本、解析快照或结构化简历放入 pendingAction / URL。
 
 ### 4.4 BDD / TDD 约束
 
 - Vitest 单元测试：组件 render / 路由 hook / adapter 映射 / i18n / a11y。
-- Playwright E2E：DOM 结构 + computed style + bounding box + viewport screenshot 多端断言。
+- Playwright E2E：DOM 结构 + computed style + bounding box + viewport screenshot smoke 多端断言；仅在稳定 baseline 可用时启用 screenshot diff regression。
 - 每个 plan 必须维护 BDD gate；BDD 不适用的内部纯 UI 组件除外（少见）。
 
 ## 5 模块边界
@@ -108,12 +110,12 @@
 | C-1 | 路由替换 | `App.tsx` 路由表已修订 | 加载 `resume_versions` route | 渲染 `ResumeWorkshopScreen` 而非 `PlaceholderScreen`；TopBar `topbar-nav-resume_versions` 高亮 | 001-listing-routing-and-detail-readonly |
 | C-2 | ResumeListView 主路径 | 用户已登录；fixture `listResumes` / `listResumeVersions` `default` scenario | 加载 list 默认视图 | StatsStrip + ViewSwitcher + ResumeTreeView 渲染；DOM testid 含 `resume-workshop-stats-{originals,versions,top-match,recent}` + `resume-workshop-view-switcher-{tree,flat}` + `resume-tree-row-{id}` | 001 |
 | C-3 | Tree / Flat 切换 | 处于 tree 默认视图 | 点击 `resume-workshop-view-switcher-flat` | 切换到 ResumeFlatView，DOM 渲染 `resume-flat-row-{id}` 按 match / updated_at 排序 | 001 |
-| C-4 | ResumeDetailView Preview Tab | 点击某 version row | 进入详情 `/resume_versions?versionId={id}` | 渲染 Breadcrumb + 版本分支图 + 三 tab 切换 + Preview Tab 默认显示 + "查看原件" 弹层可打开 / 关闭 + ESC 关闭 + focus trap | 001 |
-| C-5 | UI parity gate | playwright pixel parity 套件已配置 | 跑 desktop + mobile viewport baseline | DOM / computed style / bounding box / screenshot baseline 与 ui-design 源 0 差异（或在容差内）；测试 fail 时输出 diff image | 001 + 后续 plan |
+| C-4 | ResumeDetailView 只读详情 | 点击某 version row | 进入详情 `/resume_versions?versionId={id}` | 渲染 Breadcrumb + 版本分支图 + 三 tab 切换；MASTER 默认 `preview`，TARGETED 默认 `rewrites`（001 阶段内容可为 P0 ComingSoon，但 route/tab 状态不得改成 preview）；Preview Tab 可手动打开并显示 "查看原件" 弹层，可关闭 + ESC 关闭 + focus trap；点击导出 PDF 时请求带 `Idempotency-Key` 并渲染 P0 501 toast | 001 |
+| C-5 | UI parity gate | playwright pixel parity 套件已配置 | 跑 desktop + mobile viewport parity | DOM / computed style / bounding box / screenshot smoke 与 ui-design 源一致；只有 baseline 可由 clean checkout 稳定取得时才使用 screenshot diff；测试 fail 时输出可定位 artifact | 001 + 后续 plan |
 | C-6 | mock-first 字节比对 | mock-contract-suite 已配置 listResumes / listResumeVersions / getResumeVersion fixture | 切换 mock transport | response 字段集 / status / shape 与 generated client 期望字节一致；组件不 import prototype data | 001 |
 | C-7 | i18n 切换 | EN / ZH lang toggle | 切换 lang | 关键文案 / `buildResumeData(lang)` 输出 / TopBar lang menu 同步；`Accept-Language` header 携带 | 001 |
 | C-8 | 隐私红线 | raw resume text / parsed_summary | 用户浏览 list / detail | console / URL / localStorage / telemetry 不出现敏感内容；仅 copyText 通过 clipboard 流出 | 001 + 后续 plan |
-| C-9 | 旧入口负向 | grep `frontend/src/app/screens/resume-workshop/` | – | 不出现 `mistake` / `growth` / `drill` / 旧 `onboarding` / 旧 `STAR` / 旧 `experiences` 路径或 testid；不 import `ui-design/src/data.jsx` / `ui-design/src/screen-resume-workshop.jsx` 作为运行时依赖 | 001 + 后续 plan |
+| C-9 | 旧入口负向 | grep `frontend/src/app/screens/resume-workshop/` | – | 不出现 `welcome` / `mistake` / `growth` / `plan` / `drill` / `followup` / 旧 `onboarding` / 旧 `STAR` / 旧 `experiences` / `voice` 路径或 testid；不 import `ui-design/src/data.jsx` / `ui-design/src/screen-resume-workshop.jsx` 作为运行时依赖 | 001 + 后续 plan |
 | C-10 | CreateFlow 三 tab + Onboarding | （002 范围）未登录或首次访问 + flow=create | 三 tab 分别完成 register | upload / paste / guided 三路径 happy path + Agent Parsing loading + Preview Confirm + 保存 → list；与 `WorkspaceMissingResumeState` CTA 串通 | 002（未创建） |
 | C-11 | BranchFlow + Rewrites Tab + Edit Tab | （003 范围）当前在某 version 详情 | 触发 branch / 切到 rewrites / 切到 edit | branch 配置 + 3 seedStrategy + accept/reject suggestion + edit 保存；exportPDF P0 toast / copyText 真实 | 003（未创建） |
 
