@@ -1,6 +1,6 @@
 # 001 BDD Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-12
 
@@ -14,3 +14,4 @@
 - [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
 - [x] 记录验证证据：`.test-output/e2e/p0-033-file-presign-register-roundtrip/trigger.log` + verify 输出 + `createUploadPresign.default` 201 fixture byte diff 0 + DB state machine 轨迹 + 对象存储 key list before/after + privacy delete audit tombstone 内容 + 隐私反查日志
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.033 行（关联需求 `backend-upload C-1, C-2, C-3, C-4, C-6, C-7, C-8`，状态 Ready，automated）
+- [x] L2 remediation：`scripts/trigger.sh` 必须在缺少 `DATABASE_URL` / `OBJECT_STORAGE_*` 时失败，`scripts/verify.sh` 必须在 trigger log 出现 live integration skip 时失败；缺 live env 不得作为 E2E.P0.033 PASS 证据（验证：`python3 test/scenarios/e2e/p0-033-file-presign-register-roundtrip/scripts/script_contract_test.py`）

@@ -1,6 +1,6 @@
 # Backend Upload Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-05-12
 
@@ -28,7 +28,7 @@ backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务
 - **store layer**：`file_objects` 表 repository（Go side `backend/internal/upload/store/`），含创建（pending）、标记上传完成（uploaded）、上传扫描失败（scan_failed）、删除标记（deleted）、row lock / state validation 与 hard delete；业务 register completion 由 `backend/internal/upload/service` 组合 repository + `ObjectStore.Exists` 完成。
 - **purpose enum**：本 spec §3.1 锁定值集；handler 拒绝未列举值（返回 `VALIDATION_FAILED`）。
 - **state machine 校验**：仅允许 `pending → uploaded`、`pending|uploaded → scan_failed`、`pending|uploaded|scan_failed → deleted`；非法转换统一返回 B1 已登记 `VALIDATION_FAILED`（cross-user / not-found 仍返回 404）。业务 `RegisterFileObject` 对 `pending` 行必须先确认 object storage 中对象存在，再在同一业务临界区标记为 `uploaded`；已是 `uploaded` 时幂等通过。
-- **隐私删除链路**：privacy_delete job 调用 backend-upload 提供的 `DeleteFileObjectsForUser(userId)` API；对象存储 hard delete 与 DB 行 hard delete 在同一事务内（或两步重试链）。
+- **隐私删除链路**：privacy_delete job 调用 backend-upload 提供的 `DeleteFileObjectsForUser(userId)` API；对象存储 hard delete 先执行，DB 行 hard delete 与 audit tombstone 必须在同一 DB 事务内提交（或整体失败保留可重试状态）。
 - **mock-first fixtures**：B2 现有 `createUploadPresign.json` fixture 已就位；本 spec 不重复 owner，但通过 P0 happy-path BDD 场景与 fixture 对齐。
 - **A4 配置依赖**：对象存储 endpoint / bucket / access key / secret key 使用 A4 现有 `objectStorage.*` / `OBJECT_STORAGE_*` 契约；presign TTL、per-purpose max bytes 与 provider selector 必须在实现前以 A4 additive config path 登记，本 spec 不 hardcode。
 
@@ -50,10 +50,10 @@ backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务
 | D-1 | public purpose enum 锁定集 | `resume`（resume_assets.file_object_id 引用）/ `target_job_attachment`（target_job_sources / target_jobs 引用）/ `privacy_export`（privacy export 输出物）；`source_snapshot` / `audio` / `video` 为 DB-local 内部值，P0 public presign 不开放；`resume_source` / `resume_export` 未登记 | 业务调用 createUploadPresign 必传 purpose；其他扩展需先修订 B2 OpenAPI 与 B4 migration/enum-sources |
 | D-2 | state machine 字面量 | `pending` / `uploaded` / `scan_failed` / `deleted`；存于 `file_objects.upload_status` text + check constraint | 与 B4 baseline `migrations/000001_create_baseline.up.sql` 对齐；本 spec 不引入 `registered` / `deleted_pending` |
 | D-3 | presign URL TTL | 默认 600s（10 分钟）；通过 A4 additive config path `upload.presignTTLSeconds` 注入；当前不新增 env key，若未来需要 env override 必须先修订 A4 env 字典 | 客户端必须在 TTL 内完成 PUT；超时后重新调用 createUploadPresign |
-| D-4 | IK 必带 | `createUploadPresign` 必带 `Idempotency-Key`（与 B2 D-6 / D-18 一致）；重复请求返回同一 fileObjectId + uploadUrl/method/headers/expiresAt（或重签 URL 但 fileObjectId 不变） | 防止网络抖动产生孤儿 `file_objects` 行 |
+| D-4 | IK 必带 | `createUploadPresign` 必带 `Idempotency-Key`（与 B2 D-6 / D-18 一致）；upload presign route 的 idempotency record TTL 必须与 `upload.presignTTLSeconds` 对齐，避免在 signed URL 过期后继续 replay 旧 `uploadUrl` / `expiresAt`；TTL 内重复请求返回同一 fileObjectId + uploadUrl/method/headers/expiresAt | 防止网络抖动产生孤儿 `file_objects` 行，同时避免过期 signed URL 被 response cache 继续 replay |
 | D-5 | register 路径 | P0 不引入独立 `POST /api/v1/file-objects/{id}/register` endpoint；register 行为由业务 handler（如 `registerResume`）调用 backend-upload internal `RegisterFileObject(fileObjectId, expectedPurpose, ownerUserId)` 完成。该 API 必须锁定同 user + purpose 行，若状态为 `pending` 则先调用 `ObjectStore.Exists(objectKey)` 确认客户端 PUT 已落对象存储，再原子标记 `uploaded`；若状态已为 `uploaded` 则幂等通过；`scan_failed` / `deleted` 返回 `VALIDATION_FAILED` | 避免独立 HTTP endpoint；business owner 持有 file 引用语义；不新增 `registered` 状态，同时补齐 presign → PUT → business register 的公开上传完成路径 |
 | D-6 | 隐私删除 | privacy_delete job 调用 `DeleteFileObjectsForUser(userId)`：先按 owner 反查 file_object 行 → 对象存储 hard delete → DB 行 hard delete；失败 retryable | 与 [B4 §3.1.2](../db-migrations-baseline/spec.md#312-p0-privacy-deletion-table-matrix) `file_objects` / `resume_assets` 行对齐 |
-| D-7 | 最大文件大小 | 默认 10 MB（resume）/ 10 MB（target_job_attachment）/ 5 MB（privacy_export）；通过 A4 additive config paths `upload.maxBytes.resume` / `upload.maxBytes.targetJobAttachment` / `upload.maxBytes.privacyExport` 注入；超限由 presign 拒绝 `VALIDATION_FAILED`，不向当前 `UploadPresign` response 私加 `maxBytes` 字段 | 简化 frontend pre-check 与对象存储 server-side enforce 双层防御 |
+| D-7 | 最大文件大小 | 默认 10 MB（resume）/ 10 MB（target_job_attachment）/ 5 MB（privacy_export）；通过 A4 additive config paths `upload.maxBytes.resume` / `upload.maxBytes.targetJobAttachment` / `upload.maxBytes.privacyExport` 注入；超限由 presign 拒绝 `VALIDATION_FAILED`，RegisterFileObject 必须读取对象存储实际大小并与 `file_objects.byte_size` 精确匹配后才允许 `pending → uploaded`，不向当前 `UploadPresign` response 私加 `maxBytes` 字段 | 简化 frontend pre-check，并用 register-time object stat 防止客户端低报 byteSize 后上传超限对象 |
 
 ### 3.2 待确认事项
 
@@ -76,7 +76,7 @@ backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务
 
 ### 4.3 隐私约束
 
-- 对象存储删除失败时，DB 行保留原状态并由 privacy job retry；不允许 DB 先 hard delete 后留下对象存储孤儿。只有对象删除成功后才能标记 `deleted` 或 hard delete DB 行。
+- 对象存储删除失败时，DB 行保留原状态并由 privacy job retry；不允许 DB 先 hard delete 后留下对象存储孤儿。只有对象删除成功后才能标记 `deleted` 或 hard delete DB 行；DB hard delete 与 audit tombstone 必须同事务提交，防止 tombstone 写入失败后永久丢失删除证据。
 - presign URL 必须由对象存储 provider 端签发 server-to-server，不允许把 secret key 透传到客户端。
 - 上传内容（raw bytes）不允许在 handler / store / runner / log 中持久或缓存；只允许 `object_key` 与 metadata。
 - 隐私删除事件不在 `audit_events` 中持久 `object_key`；只保留 audit tombstone（参考 [B4 §3.1.2](../db-migrations-baseline/spec.md#312-p0-privacy-deletion-table-matrix)）。
@@ -104,11 +104,11 @@ backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-1 | presign 主路径 | 已登录用户 + 有效 `purpose=resume` + `Idempotency-Key` | 调 `POST /api/v1/uploads/presign`，body 含 `fileName / contentType / byteSize` | 返回 201 + `UploadPresign{fileObjectId, uploadUrl, method, headers, expiresAt}`；DB 创建 `file_objects` 行 `upload_status='pending'` | 001-file-objects-and-presign-baseline |
-| C-2 | IK replay | 同 IK 重复调用 | 同 IK 第二次 | 返回首次 `fileObjectId` + 同一 uploadUrl/method/headers/expiresAt（或重发新 URL 但 fileObjectId 不变）；不创建新 DB 行 | 001 |
+| C-2 | IK replay | 同 IK 重复调用，且仍在 `upload.presignTTLSeconds` TTL 内 | 同 IK 第二次 | 返回首次 `fileObjectId` + 同一 uploadUrl/method/headers/expiresAt；不创建新 DB 行；超过 presign TTL 后不得 replay 旧 URL，而是重新执行 presign path | 001 |
 | C-3 | purpose 非法 | `purpose='unknown_purpose'` | 调 presign | 422 + `error.code = "VALIDATION_FAILED"` + `details.field = "purpose"` | 001 |
 | C-4 | 跨用户隔离 | 用户 A 创建 fileObject；用户 B 调 `getFileObject` 或 register | – | 404（不暴露存在；与 B2 D-15 envelope 对齐） | 001 |
 | C-5 | state transition 非法 | DB 行 `upload_status='deleted'` 或 `scan_failed` | business handler 调 internal RegisterFileObject | 422 + `error.code = "VALIDATION_FAILED"`；不使用未登记的状态迁移专用错误码 | 001 |
-| C-6 | privacy delete 链路 | 用户 A 有 5 个 fileObject + 1 个 privacy_export pending | privacy_delete job 触发 | 对象存储删除 5 行 → DB 5 行硬删 → audit tombstone 写入；retryable 失败时 DB 行保留原状态等待重试 | 001（含隐私章节）+ backend-runtime-topology |
+| C-6 | privacy delete 链路 | 用户 A 有 5 个 fileObject + 1 个 privacy_export pending | `DELETE /api/v1/me` 创建 `privacy_delete` async job，backend runtime drainer 执行该 job | 对象存储删除 5 行 → DB 5 行硬删 + audit tombstone 同事务写入；retryable 失败时 DB 行保留原状态等待重试；upload deleter 必须被实际挂入 `cmd/api` runtime privacy_delete path | 001（含隐私章节）+ backend-runtime-topology |
 | C-7 | 隐私 / 旧口径负向 | grep `frontend-` / `backend-` / `docs/spec/` | – | 不出现旧 `upload-route` / `pre-signed-by-frontend` / hardcode S3 SDK 路径等 retired 模式 | 001 |
 | C-8 | mock-first 对齐 | B2 fixture `createUploadPresign.json` `default` scenario | mock-server 返回该 scenario | 字段集 / status code / IK 行为与真实 handler 字节级一致 | 001 + mock-contract-suite |
 

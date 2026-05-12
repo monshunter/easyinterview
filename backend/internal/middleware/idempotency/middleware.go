@@ -137,6 +137,13 @@ func New(opts MiddlewareOptions) *Middleware {
 	}
 }
 
+func (m *Middleware) TTL() time.Duration {
+	if m == nil {
+		return 0
+	}
+	return m.ttl
+}
+
 func (m *Middleware) Handler(domain, operation string, resolveUser UserIDResolver, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if m == nil || m.store == nil {

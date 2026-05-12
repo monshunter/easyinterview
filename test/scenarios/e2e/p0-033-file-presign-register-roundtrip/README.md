@@ -28,7 +28,7 @@ Scenario evidence is written to `.test-output/e2e/p0-033-file-presign-register-r
 
 ## 5. Live Stack Contract
 
-When the A2 dev stack and MinIO credentials are available, `trigger.sh` also runs integration-tag tests. Without `DATABASE_URL` / `OBJECT_STORAGE_*`, those integration tests follow the repository contract and skip live network checks while preserving unit and fixture gates.
+`trigger.sh` requires live `DATABASE_URL` and complete `OBJECT_STORAGE_*` settings. Missing live DB / MinIO configuration is a scenario failure, not a skip, because E2E.P0.033 is used as BDD evidence for presign → PUT → register → privacy delete behavior.
 
 ## 6. Baseline
 
@@ -36,4 +36,4 @@ This baseline is intentionally backend-owned. It does not claim that `resume_ass
 
 ## 7. Offline Limits
 
-The current harness validates the upload roundtrip through unit, sqlmock, fixture parity, and integration-tag smoke gates. Full HTTP `DELETE /api/v1/me` execution requires the future backend async runner wiring and the A2 dev stack to be active in the shared test environment.
+Offline unit, sqlmock, and fixture parity gates remain useful focused checks, but they are not sufficient to mark E2E.P0.033 PASS. `verify.sh` rejects trigger logs that contain live integration skips.

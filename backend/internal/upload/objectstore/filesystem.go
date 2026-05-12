@@ -48,18 +48,29 @@ func (s *FilesystemStore) Delete(_ context.Context, objectKey string) error {
 }
 
 func (s *FilesystemStore) Exists(_ context.Context, objectKey string) (bool, error) {
-	path, err := s.pathFor(objectKey)
-	if err != nil {
-		return false, err
-	}
-	_, err = os.Stat(path)
+	_, err := s.Stat(context.Background(), objectKey)
 	if err == nil {
 		return true, nil
 	}
-	if os.IsNotExist(err) {
+	if err == ErrObjectNotFound {
 		return false, nil
 	}
-	return false, fmt.Errorf("stat filesystem object: %w", err)
+	return false, err
+}
+
+func (s *FilesystemStore) Stat(_ context.Context, objectKey string) (ObjectInfo, error) {
+	path, err := s.pathFor(objectKey)
+	if err != nil {
+		return ObjectInfo{}, err
+	}
+	info, err := os.Stat(path)
+	if err == nil {
+		return ObjectInfo{Size: info.Size()}, nil
+	}
+	if os.IsNotExist(err) {
+		return ObjectInfo{}, ErrObjectNotFound
+	}
+	return ObjectInfo{}, fmt.Errorf("stat filesystem object: %w", err)
 }
 
 func (s *FilesystemStore) pathFor(objectKey string) (string, error) {

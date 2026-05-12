@@ -67,22 +67,33 @@ func (s *MinIOStore) Delete(ctx context.Context, objectKey string) error {
 }
 
 func (s *MinIOStore) Exists(ctx context.Context, objectKey string) (bool, error) {
-	if err := s.validate(); err != nil {
-		return false, err
-	}
-	client, err := s.clientFor()
-	if err != nil {
-		return false, err
-	}
-	_, err = client.StatObject(ctx, s.cfg.Bucket, objectKey, minio.StatObjectOptions{})
+	_, err := s.Stat(ctx, objectKey)
 	if err == nil {
 		return true, nil
 	}
-	var minioErr minio.ErrorResponse
-	if errors.As(err, &minioErr) && minioErr.Code == "NoSuchKey" {
+	if errors.Is(err, ErrObjectNotFound) {
 		return false, nil
 	}
-	return false, fmt.Errorf("stat minio object: %w", err)
+	return false, err
+}
+
+func (s *MinIOStore) Stat(ctx context.Context, objectKey string) (ObjectInfo, error) {
+	if err := s.validate(); err != nil {
+		return ObjectInfo{}, err
+	}
+	client, err := s.clientFor()
+	if err != nil {
+		return ObjectInfo{}, err
+	}
+	info, err := client.StatObject(ctx, s.cfg.Bucket, objectKey, minio.StatObjectOptions{})
+	if err == nil {
+		return ObjectInfo{Size: info.Size}, nil
+	}
+	var minioErr minio.ErrorResponse
+	if errors.As(err, &minioErr) && minioErr.Code == "NoSuchKey" {
+		return ObjectInfo{}, ErrObjectNotFound
+	}
+	return ObjectInfo{}, fmt.Errorf("stat minio object: %w", err)
 }
 
 func (s *MinIOStore) validate() error {

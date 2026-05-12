@@ -36,6 +36,7 @@ var (
 	ErrFileObjectNotFound     = errors.New("file object not found")
 	ErrInvalidStateTransition = errors.New("invalid file object state transition")
 	ErrObjectMissing          = errors.New("file object payload is missing in object storage")
+	ErrObjectSizeMismatch     = errors.New("file object payload size does not match declared byte size")
 )
 
 type Repository struct {
@@ -79,6 +80,11 @@ type DeletedFileObject struct {
 	Purpose   Purpose
 }
 
+type ObjectStat struct {
+	Exists bool
+	Size   int64
+}
+
 type AuditTombstoneInput struct {
 	AuditEventID string
 	UserID       string
@@ -86,6 +92,10 @@ type AuditTombstoneInput struct {
 	Purpose      Purpose
 	DeletedAt    time.Time
 	ObjectKey    string
+}
+
+type execer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
 func (r *Repository) Create(ctx context.Context, in CreateInput) error {
@@ -197,12 +207,12 @@ for update`,
 	return rec, nil
 }
 
-func (r *Repository) RegisterUploaded(ctx context.Context, fileObjectID, ownerUserID string, expectedPurpose Purpose, now time.Time, exists func(context.Context, string) (bool, error)) (FileObject, error) {
+func (r *Repository) RegisterUploaded(ctx context.Context, fileObjectID, ownerUserID string, expectedPurpose Purpose, now time.Time, stat func(context.Context, string) (ObjectStat, error)) (FileObject, error) {
 	if err := r.checkDB(); err != nil {
 		return FileObject{}, err
 	}
-	if exists == nil {
-		return FileObject{}, fmt.Errorf("object existence checker is required")
+	if stat == nil {
+		return FileObject{}, fmt.Errorf("object stat checker is required")
 	}
 	if now.IsZero() {
 		now = time.Now().UTC()
@@ -237,12 +247,15 @@ for update`,
 		}
 		return rec, nil
 	case StatusPending:
-		ok, err := exists(ctx, rec.ObjectKey)
+		objectStat, err := stat(ctx, rec.ObjectKey)
 		if err != nil {
 			return FileObject{}, err
 		}
-		if !ok {
+		if !objectStat.Exists {
 			return FileObject{}, ErrObjectMissing
+		}
+		if objectStat.Size != rec.ByteSize {
+			return FileObject{}, ErrObjectSizeMismatch
 		}
 		res, err := tx.ExecContext(ctx, `update file_objects set upload_status = $1, updated_at = $2 where id = $3`, string(StatusUploaded), now, rec.ID)
 		if err != nil {
@@ -280,6 +293,36 @@ func (r *Repository) HardDelete(ctx context.Context, fileObjectID string) error 
 	}
 	if rows == 0 {
 		return ErrFileObjectNotFound
+	}
+	return nil
+}
+
+func (r *Repository) HardDeleteWithAuditTombstone(ctx context.Context, in AuditTombstoneInput) error {
+	if err := r.checkDB(); err != nil {
+		return err
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin file object hard delete with audit: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := insertAuditTombstone(ctx, tx, in); err != nil {
+		return err
+	}
+	res, err := tx.ExecContext(ctx, `delete from file_objects where id = $1`, in.FileObjectID)
+	if err != nil {
+		return fmt.Errorf("hard delete file object: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("hard delete file object rows affected: %w", err)
+	}
+	if rows == 0 {
+		return ErrFileObjectNotFound
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit file object hard delete with audit: %w", err)
 	}
 	return nil
 }
@@ -330,6 +373,10 @@ func (r *Repository) InsertAuditTombstone(ctx context.Context, in AuditTombstone
 	if err := r.checkDB(); err != nil {
 		return err
 	}
+	return insertAuditTombstone(ctx, r.db, in)
+}
+
+func insertAuditTombstone(ctx context.Context, exec execer, in AuditTombstoneInput) error {
 	deletedAt := in.DeletedAt
 	if deletedAt.IsZero() {
 		deletedAt = time.Now().UTC()
@@ -342,7 +389,7 @@ func (r *Repository) InsertAuditTombstone(ctx context.Context, in AuditTombstone
 	if err != nil {
 		return fmt.Errorf("marshal file object audit tombstone: %w", err)
 	}
-	_, err = r.db.ExecContext(ctx, `
+	_, err = exec.ExecContext(ctx, `
 insert into audit_events (
   id, user_id, actor_type, actor_id, action, resource_type, resource_id,
   result, ip_hash, user_agent_hash, metadata, created_at

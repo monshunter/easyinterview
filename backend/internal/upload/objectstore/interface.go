@@ -2,8 +2,15 @@ package objectstore
 
 import (
 	"context"
+	"errors"
 	"time"
 )
+
+var ErrObjectNotFound = errors.New("object not found")
+
+type ObjectInfo struct {
+	Size int64
+}
 
 type PresignResult struct {
 	URL       string
@@ -19,4 +26,5 @@ type ObjectStore interface {
 	Presign(ctx context.Context, objectKey, contentType string, byteSize int64, ttl time.Duration) (PresignResult, error)
 	Delete(ctx context.Context, objectKey string) error
 	Exists(ctx context.Context, objectKey string) (bool, error)
+	Stat(ctx context.Context, objectKey string) (ObjectInfo, error)
 }

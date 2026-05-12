@@ -26,9 +26,13 @@ func TestDeleteUploadFilesForUserDelegatesToUploadService(t *testing.T) {
 type fakeUploadFileDeleter struct {
 	userID  string
 	deleted []store.DeletedFileObject
+	err     error
 }
 
 func (d *fakeUploadFileDeleter) DeleteFileObjectsForUser(ctx context.Context, userID string) ([]store.DeletedFileObject, error) {
 	d.userID = userID
+	if d.err != nil {
+		return nil, d.err
+	}
 	return d.deleted, nil
 }

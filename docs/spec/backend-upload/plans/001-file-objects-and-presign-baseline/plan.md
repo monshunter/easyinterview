@@ -1,6 +1,6 @@
 # Backend Upload File Objects and Presign Baseline
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-12
 
@@ -171,6 +171,29 @@ Config dependency: existing A4 `objectStorage.endpoint` / `bucket` / `accessKey`
 - 通知 `frontend-resume-workshop/002-create-flow-and-onboarding`（未来 plan）：upload tab 可消费真实 backend presign；
 - 通知 `backend-targetjob` owner：现有 fixture-backed file 流可保持不变，未来切真时调用相同 handler。
 
+### Phase 6: L2 remediation hardening
+
+#### 6.1 Register-time actual size enforcement
+
+- `RegisterFileObject` 必须在 row lock 临界区内读取对象存储实际 size，并与 `file_objects.byte_size` 精确匹配；object missing 或 size mismatch 均返回 `VALIDATION_FAILED`，不得标记 `uploaded`。
+- MinIO provider 可继续通过 signed PUT URL 接收对象，但 register path 必须以 `StatObject` 结果作为最终大小裁决，防止客户端低报 `byteSize` 后上传超限对象。
+
+#### 6.2 Upload presign idempotency TTL alignment
+
+- `createUploadPresign` route 的 idempotency cache TTL 必须与 `upload.presignTTLSeconds` 对齐；超过 signed URL TTL 的 retry 不得 replay 旧 `uploadUrl` / `expiresAt`。
+
+#### 6.3 Runtime privacy delete wiring
+
+- `cmd/api` 必须把 upload deleter 接入 backend runtime `privacy_delete` job drainer；`DELETE /api/v1/me` 创建的 privacy handoff job 在运行时必须调用 `DeleteFileObjectsForUser(userId)`。
+
+#### 6.4 Atomic DB delete and audit tombstone
+
+- 对象存储删除成功后，`file_objects` DB hard delete 与 audit tombstone 必须在同一 DB transaction 内提交；audit 写入失败不得让 row 先消失。
+
+#### 6.5 Live scenario gate hardening
+
+- E2E.P0.033 必须要求 `DATABASE_URL` 与 `OBJECT_STORAGE_*` live env；integration-tag tests 出现 skip 时 scenario 必须 fail，不得作为 Ready/PASS BDD 证据。
+
 ## 5 验收标准
 
 - 本计划列出的 §4 所有 Phase task 全部完成
@@ -178,6 +201,7 @@ Config dependency: existing A4 `objectStorage.endpoint` / `bucket` / `accessKey`
 - spec §6 C-1..C-8 全部 PASS
 - BDD E2E.P0.033 PASS（含 setup → trigger → verify → cleanup 全脚本）
 - backend-resume / backend-targetjob owner 已收到 createUploadPresign 落地信号
+- Phase 6 L2 remediation hardening 全部通过；若本机 live DB / MinIO env 未就绪，只能记录 scenario gate hardening 验证，不能把 E2E.P0.033 记为 live PASS。
 
 ## 6 风险与应对
 

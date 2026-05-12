@@ -154,18 +154,45 @@ func TestRepositoryRegisterUploadedChecksObjectWhileRowLocked(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	rec, err := repo.RegisterUploaded(context.Background(), "file-1", "user-1", uploadstore.PurposeResume, now, func(_ context.Context, objectKey string) (bool, error) {
+	rec, err := repo.RegisterUploaded(context.Background(), "file-1", "user-1", uploadstore.PurposeResume, now, func(_ context.Context, objectKey string) (uploadstore.ObjectStat, error) {
 		existsCalled = true
 		if objectKey != "user-1/resume/file-1.pdf" {
 			t.Fatalf("object key = %q", objectKey)
 		}
-		return true, nil
+		return uploadstore.ObjectStat{Exists: true, Size: 1024}, nil
 	})
 	if err != nil {
 		t.Fatalf("RegisterUploaded: %v", err)
 	}
 	if !existsCalled || rec.Status != uploadstore.StatusUploaded {
 		t.Fatalf("existsCalled=%v record=%+v", existsCalled, rec)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRepositoryRegisterUploadedRejectsObjectSizeMismatchWhileRowLocked(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 5, 12, 1, 13, 0, 0, time.UTC)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`from file_objects\s+where id = \$1 and user_id = \$2 and purpose = \$3 and deleted_at is null\s+for update`).
+		WithArgs("file-1", "user-1", string(uploadstore.PurposeResume)).
+		WillReturnRows(sqlmock.NewRows(fileObjectColumns()).AddRow(
+			"file-1", "user-1", string(uploadstore.PurposeResume), "user-1/resume/file-1.pdf", "resume.pdf", "application/pdf", int64(1024), nil, string(uploadstore.RetentionUserOwned), string(uploadstore.StatusPending), now, now, nil,
+		))
+	mock.ExpectRollback()
+
+	_, err := repo.RegisterUploaded(context.Background(), "file-1", "user-1", uploadstore.PurposeResume, now, func(_ context.Context, objectKey string) (uploadstore.ObjectStat, error) {
+		if objectKey != "user-1/resume/file-1.pdf" {
+			t.Fatalf("object key = %q", objectKey)
+		}
+		return uploadstore.ObjectStat{Exists: true, Size: 2048}, nil
+	})
+	if !errors.Is(err, uploadstore.ErrObjectSizeMismatch) {
+		t.Fatalf("expected size mismatch, got %v", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
@@ -181,6 +208,61 @@ func TestRepositoryHardDeleteDeletesRow(t *testing.T) {
 
 	if err := repo.HardDelete(context.Background(), "file-1"); err != nil {
 		t.Fatalf("HardDelete: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRepositoryHardDeleteWithAuditTombstoneCommitsAtomically(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 5, 12, 1, 14, 0, 0, time.UTC)
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`insert into audit_events`).
+		WithArgs("audit-1", "file-1", sqlmock.AnyArg(), now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`delete from file_objects where id = \$1`).
+		WithArgs("file-1").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err := repo.HardDeleteWithAuditTombstone(context.Background(), uploadstore.AuditTombstoneInput{
+		AuditEventID: "audit-1",
+		UserID:       "user-1",
+		FileObjectID: "file-1",
+		Purpose:      uploadstore.PurposeResume,
+		DeletedAt:    now,
+	})
+	if err != nil {
+		t.Fatalf("HardDeleteWithAuditTombstone: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRepositoryHardDeleteWithAuditTombstoneRollsBackWhenAuditFails(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 5, 12, 1, 14, 0, 0, time.UTC)
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`insert into audit_events`).
+		WithArgs("audit-1", "file-1", sqlmock.AnyArg(), now).
+		WillReturnError(errors.New("audit unavailable"))
+	mock.ExpectRollback()
+
+	err := repo.HardDeleteWithAuditTombstone(context.Background(), uploadstore.AuditTombstoneInput{
+		AuditEventID: "audit-1",
+		UserID:       "user-1",
+		FileObjectID: "file-1",
+		Purpose:      uploadstore.PurposeResume,
+		DeletedAt:    now,
+	})
+	if err == nil {
+		t.Fatal("expected audit failure")
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)

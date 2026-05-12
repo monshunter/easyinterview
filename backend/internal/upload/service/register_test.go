@@ -70,7 +70,7 @@ func TestCreateUploadPresignCreatesPendingFileObjectAndPresignsObject(t *testing
 
 func TestRegisterFileObjectMarksPendingUploadedAfterObjectExists(t *testing.T) {
 	repo := &fakeRepository{record: fileObject("file-1", store.StatusPending)}
-	objects := &fakeObjectStore{exists: true}
+	objects := &fakeObjectStore{exists: true, statSize: 1024}
 	svc := service.New(service.Options{Repository: repo, Objects: objects, Now: fixedNow})
 
 	rec, err := svc.RegisterFileObject(context.Background(), service.RegisterFileObjectInput{
@@ -109,14 +109,16 @@ func TestRegisterFileObjectRejectsMissingObjectAndIllegalStates(t *testing.T) {
 	for name, setup := range map[string]struct {
 		status store.UploadStatus
 		exists bool
+		size   int64
 	}{
 		"missing object": {status: store.StatusPending, exists: false},
-		"scan failed":    {status: store.StatusScanFailed, exists: true},
-		"deleted":        {status: store.StatusDeleted, exists: true},
+		"size mismatch":  {status: store.StatusPending, exists: true, size: 2048},
+		"scan failed":    {status: store.StatusScanFailed, exists: true, size: 1024},
+		"deleted":        {status: store.StatusDeleted, exists: true, size: 1024},
 	} {
 		t.Run(name, func(t *testing.T) {
 			repo := &fakeRepository{record: fileObject("file-1", setup.status)}
-			svc := service.New(service.Options{Repository: repo, Objects: &fakeObjectStore{exists: setup.exists}, Now: fixedNow})
+			svc := service.New(service.Options{Repository: repo, Objects: &fakeObjectStore{exists: setup.exists, statSize: setup.size}, Now: fixedNow})
 			_, err := svc.RegisterFileObject(context.Background(), service.RegisterFileObjectInput{
 				FileObjectID:    "file-1",
 				OwnerUserID:     "user-1",
@@ -138,6 +140,7 @@ func fileObject(id string, status store.UploadStatus) store.FileObject {
 		UserID:    "user-1",
 		Purpose:   store.PurposeResume,
 		ObjectKey: "user-1/resume/file-1.pdf",
+		ByteSize:  1024,
 		Status:    status,
 	}
 }
@@ -164,7 +167,7 @@ func (r *fakeRepository) LockForRegister(_ context.Context, fileObjectID, ownerU
 	return r.record, nil
 }
 
-func (r *fakeRepository) RegisterUploaded(ctx context.Context, fileObjectID, ownerUserID string, expectedPurpose store.Purpose, now time.Time, exists func(context.Context, string) (bool, error)) (store.FileObject, error) {
+func (r *fakeRepository) RegisterUploaded(ctx context.Context, fileObjectID, ownerUserID string, expectedPurpose store.Purpose, now time.Time, stat func(context.Context, string) (store.ObjectStat, error)) (store.FileObject, error) {
 	rec, err := r.LockForRegister(ctx, fileObjectID, ownerUserID, expectedPurpose)
 	if err != nil {
 		return store.FileObject{}, err
@@ -175,12 +178,15 @@ func (r *fakeRepository) RegisterUploaded(ctx context.Context, fileObjectID, own
 	if rec.Status != store.StatusPending {
 		return store.FileObject{}, store.ErrInvalidStateTransition
 	}
-	ok, err := exists(ctx, rec.ObjectKey)
+	objectStat, err := stat(ctx, rec.ObjectKey)
 	if err != nil {
 		return store.FileObject{}, err
 	}
-	if !ok {
+	if !objectStat.Exists {
 		return store.FileObject{}, store.ErrObjectMissing
+	}
+	if objectStat.Size != rec.ByteSize {
+		return store.FileObject{}, store.ErrObjectSizeMismatch
 	}
 	if err := r.MarkUploaded(ctx, fileObjectID, now); err != nil {
 		return store.FileObject{}, err
@@ -201,6 +207,7 @@ func (r *fakeRepository) MarkUploaded(_ context.Context, fileObjectID string, _ 
 type fakeObjectStore struct {
 	exists             bool
 	existsKey          string
+	statSize           int64
 	presign            objectstore.PresignResult
 	presignObjectKey   string
 	presignContentType string
@@ -219,4 +226,12 @@ func (s *fakeObjectStore) Presign(_ context.Context, objectKey, contentType stri
 func (s *fakeObjectStore) Exists(_ context.Context, objectKey string) (bool, error) {
 	s.existsKey = objectKey
 	return s.exists, nil
+}
+
+func (s *fakeObjectStore) Stat(_ context.Context, objectKey string) (objectstore.ObjectInfo, error) {
+	s.existsKey = objectKey
+	if !s.exists {
+		return objectstore.ObjectInfo{}, objectstore.ErrObjectNotFound
+	}
+	return objectstore.ObjectInfo{Size: s.statSize}, nil
 }

@@ -9,6 +9,10 @@ mkdir -p "$OUT"
   echo "E2E.P0.033 verify"
   date -u '+timestamp=%Y-%m-%dT%H:%M:%SZ'
   test -s "$OUT/trigger.log"
+  if grep -E -- '--- SKIP:|DATABASE_URL is not set|OBJECT_STORAGE_[A-Z_]+ is not set|skipping (file_objects integration test|MinIO smoke)' "$OUT/trigger.log"; then
+    echo "ERROR: live integration skip detected; E2E.P0.033 cannot be marked PASS without live DB and MinIO evidence"
+    exit 1
+  fi
   grep -q 'TestCreateUploadPresign' "$OUT/trigger.log"
   grep -q 'TestCreateUploadPresignCreatesPendingFileObjectAndPresignsObject' "$OUT/trigger.log"
   grep -q 'TestRepositoryRegisterUploadedChecksObjectWhileRowLocked' "$OUT/trigger.log"

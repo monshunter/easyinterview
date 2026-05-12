@@ -31,6 +31,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
 	"github.com/monshunter/easyinterview/backend/internal/platform/secrets"
 	domainpractice "github.com/monshunter/easyinterview/backend/internal/practice"
+	privacyrunner "github.com/monshunter/easyinterview/backend/internal/privacy/runner"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	storepractice "github.com/monshunter/easyinterview/backend/internal/store/practice"
@@ -113,7 +114,12 @@ func main() {
 		_ = mailDispatcher.Shutdown(shutdownCtx)
 	}()
 
-	targetJobRuntime, err := buildTargetJobRuntime(loader, db, logger)
+	uploadRoutes, err := buildUploadRoutes(loader, db)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: upload runtime init: %v\n", err)
+		os.Exit(1)
+	}
+	targetJobRuntime, err := buildTargetJobRuntime(loader, db, logger, uploadRoutes.Service)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: target job runtime init: %v\n", err)
 		os.Exit(1)
@@ -128,12 +134,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: practice runtime init: %v\n", err)
 		os.Exit(1)
 	}
-	uploadRoutes, err := buildUploadRoutes(loader, db)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "api: upload runtime init: %v\n", err)
-		os.Exit(1)
-	}
-
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
 		Handler:           buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes),
@@ -200,6 +200,7 @@ type practiceRoutes struct {
 type uploadRoutes struct {
 	Handler     *uploadhandler.Handler
 	Idempotency *idempotency.Middleware
+	Service     *uploadservice.Service
 }
 
 func buildAPIHandlerWithHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes) http.Handler {
@@ -258,6 +259,7 @@ func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient fea
 }
 
 func buildUploadRoutes(loader *config.Loader, db *sql.DB) (uploadRoutes, error) {
+	presignTTL := time.Duration(loader.GetInt("upload.presignTTLSeconds")) * time.Second
 	objects, err := objectstore.NewFromConfig(objectstore.FactoryConfig{
 		Provider:       loader.GetString("objectStorage.provider"),
 		FilesystemRoot: filepath.Join(os.TempDir(), "easyinterview-upload-objects"),
@@ -280,7 +282,7 @@ func buildUploadRoutes(loader *config.Loader, db *sql.DB) (uploadRoutes, error) 
 		Handler: uploadhandler.New(uploadhandler.Options{
 			Service:    service,
 			Session:    currentUserFromContext,
-			PresignTTL: time.Duration(loader.GetInt("upload.presignTTLSeconds")) * time.Second,
+			PresignTTL: presignTTL,
 			MaxBytesByPurpose: map[string]int64{
 				string(uploadstore.PurposeResume):              int64(loader.GetInt("upload.maxBytes.resume")),
 				string(uploadstore.PurposeTargetJobAttachment): int64(loader.GetInt("upload.maxBytes.targetJobAttachment")),
@@ -290,7 +292,9 @@ func buildUploadRoutes(loader *config.Loader, db *sql.DB) (uploadRoutes, error) 
 		Idempotency: idempotency.New(idempotency.MiddlewareOptions{
 			Store:     idempotency.NewSQLStore(db),
 			KeyPepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+			TTL:       presignTTL,
 		}),
+		Service: service,
 	}, nil
 }
 
@@ -350,7 +354,7 @@ func (r *targetJobRuntime) Shutdown(ctx context.Context) error {
 	return err
 }
 
-func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger) (*targetJobRuntime, error) {
+func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, uploadFiles privacyrunner.UploadFileDeleter) (*targetJobRuntime, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -401,6 +405,10 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 		Handlers: map[string]targetjob.JobHandler{
 			string(jobs.JobTypeTargetImport):  executor,
 			string(jobs.JobTypeSourceRefresh): &targetjob.SourceRefreshHandler{Store: store},
+			string(jobs.JobTypePrivacyDelete): privacyrunner.NewPrivacyDeleteHandler(privacyrunner.PrivacyDeleteHandlerOptions{
+				Requests:    privacyrunner.NewSQLStore(db),
+				UploadFiles: uploadFiles,
+			}),
 		},
 		Logger: logger,
 	})

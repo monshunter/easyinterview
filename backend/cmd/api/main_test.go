@@ -19,7 +19,9 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
+	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
+	"github.com/monshunter/easyinterview/backend/internal/upload/store"
 )
 
 func TestBuildFlagsClientLoadsPostHogPublicAllowlist(t *testing.T) {
@@ -221,6 +223,35 @@ upload:
 	}
 }
 
+func TestBuildUploadRoutesAlignsIdempotencyTTLWithPresignTTL(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+objectStorage:
+  provider: filesystem
+upload:
+  presignTTLSeconds: 600
+  maxBytes:
+    resume: 10485760
+    targetJobAttachment: 10485760
+    privacyExport: 5242880
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	routes, err := buildUploadRoutes(loader, nil)
+	if err != nil {
+		t.Fatalf("buildUploadRoutes: %v", err)
+	}
+	if got := routes.Idempotency.TTL(); got != 10*time.Minute {
+		t.Fatalf("upload idempotency TTL = %s, want presign TTL %s", got, 10*time.Minute)
+	}
+}
+
 func TestBuildTargetJobRuntimeWiresDrainerAndAIClient(t *testing.T) {
 	dir := t.TempDir()
 	providersPath := filepath.Join(dir, "ai-providers.yaml")
@@ -265,7 +296,7 @@ ai:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
@@ -300,6 +331,59 @@ ai:
 	}
 	if len(parsed.Requirements) == 0 || parsed.Requirements[0].Kind != string(targetjob.RequirementMustHave) {
 		t.Fatalf("test runtime parse fixture returned invalid requirements: %+v", parsed.Requirements)
+	}
+}
+
+func TestBuildTargetJobRuntimeRegistersPrivacyDeleteHandler(t *testing.T) {
+	dir := t.TempDir()
+	providersPath := filepath.Join(dir, "ai-providers.yaml")
+	profilesPath := filepath.Join(dir, "ai-profiles.yaml")
+	writeAPIFile(t, providersPath, `
+providers:
+  - name: unit-test-stub
+    protocol: stub
+    capabilities: [chat]
+    version: 1.0.0
+`)
+	writeAPIFile(t, profilesPath, `
+profiles:
+  - name: target.import.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: unit-test-stub
+      model: stub-chat
+    fallback: []
+    timeout_ms: 1000
+    max_tokens: 256
+    rate_limit:
+      rps: 1
+      tpm: 1000
+    route: target.import
+    version: 1.0.0
+`)
+	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  providerRegistryPath: "`+providersPath+`"
+  modelProfilePath: "`+profilesPath+`"
+  promptsDir: "`+promptsDir+`"
+  rubricsDir: "`+rubricsDir+`"
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiUploadFileDeleter{})
+	if err != nil {
+		t.Fatalf("buildTargetJobRuntime: %v", err)
+	}
+	if !runtime.Drainer.Handles(string(jobs.JobTypePrivacyDelete)) {
+		t.Fatalf("runtime drainer does not handle %s", jobs.JobTypePrivacyDelete)
 	}
 }
 
@@ -446,6 +530,12 @@ type apiAuthStore struct {
 	session   auth.SessionRecord
 	user      auth.UserContext
 	lookupErr error
+}
+
+type apiUploadFileDeleter struct{}
+
+func (d *apiUploadFileDeleter) DeleteFileObjectsForUser(context.Context, string) ([]store.DeletedFileObject, error) {
+	return nil, nil
 }
 
 func (s *apiAuthStore) CountRecentChallenges(context.Context, string, string, time.Time) (int, error) {

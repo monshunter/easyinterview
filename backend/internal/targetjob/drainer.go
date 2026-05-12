@@ -112,6 +112,14 @@ func (d *Drainer) RunOnce(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
+func (d *Drainer) Handles(jobType string) bool {
+	if d == nil {
+		return false
+	}
+	_, ok := d.handlers[jobType]
+	return ok
+}
+
 // Shutdown cancels the worker context and waits for in-flight jobs to
 // finish (or for the supplied context to expire, whichever comes first).
 // Calling Shutdown more than once is a no-op.

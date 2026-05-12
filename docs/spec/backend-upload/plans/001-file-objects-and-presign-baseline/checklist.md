@@ -1,6 +1,6 @@
 # Backend Upload File Objects and Presign Baseline Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-12
 
@@ -52,3 +52,11 @@
 - [x] 5.4 在 `test/scenarios/e2e/INDEX.md` 追加 E2E.P0.033 行（关联需求 `backend-upload C-1, C-2, C-3, C-4, C-6, C-7, C-8`，状态 Ready，automated）
 - [x] 5.5 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `backend-upload` 状态从 "未创建" 改为 "active"，spec 3.10 → 3.11，history.md 追加 3.11 行（验证：`sync-doc-index --check`）
 - [x] 5.6 通知 backend-resume/001 owner：createUploadPresign + Register internal API 已就位（验证：cross-plan 引用 commit）
+
+## Phase 6: L2 remediation hardening
+
+- [x] 6.1 RegisterFileObject 在 row lock 内校验对象存储实际 size 与 `file_objects.byte_size` 精确匹配，object missing / size mismatch 不得标记 `uploaded`（验证：`go test ./backend/internal/upload/store -run 'TestRepositoryRegisterUploaded(ChecksObjectWhileRowLocked|RejectsObjectSizeMismatchWhileRowLocked)' -count=1`；`go test ./backend/internal/upload/service -run 'TestRegisterFileObject(MarksPendingUploadedAfterObjectExists|RejectsMissingObjectAndIllegalStates)' -count=1`；`go test ./backend/internal/upload/objectstore -run 'TestFilesystem' -count=1`）
+- [x] 6.2 `createUploadPresign` idempotency TTL 与 `upload.presignTTLSeconds` 对齐，超过 signed URL TTL 不 replay 旧 body（验证：`go test ./backend/cmd/api -run TestBuildUploadRoutesAlignsIdempotencyTTLWithPresignTTL -count=1`；`go test ./backend/internal/upload/handler -run TestCreateUploadPresignIdempotencyReplayAndTTL -count=1`）
+- [x] 6.3 `cmd/api` runtime privacy_delete drainer 挂入 upload deleter，`DELETE /api/v1/me` 创建的 job 可调用 `DeleteFileObjectsForUser(userId)`（验证：`go test ./backend/internal/privacy/runner -run TestPrivacyDeleteHandler -count=1`；`go test ./backend/cmd/api -run 'TestBuildTargetJobRuntime(RegistersPrivacyDeleteHandler|WiresDrainerAndAIClient)' -count=1`）
+- [x] 6.4 `file_objects` DB hard delete 与 audit tombstone 同事务提交，audit 失败时 row 保留可重试（验证：`go test ./backend/internal/upload/store -run 'TestRepositoryHardDeleteWithAuditTombstone|TestRepositoryInsertAuditTombstoneDoesNotPersistObjectKey' -count=1`；`go test ./backend/internal/upload/service -run 'TestDeleteFileObjectsForUser(DeletesObjectsBeforeDBAndWritesAudit|ObjectDeleteFailureIsRetryableAndKeepsDBRows|UsesAtomicDBDeleteAndAudit)' -count=1`）
+- [x] 6.5 BDD-Gate hardening: E2E.P0.033 在缺少 `DATABASE_URL` / `OBJECT_STORAGE_*` 或 live integration skip 时 fail，不能作为 PASS 证据（验证：`python3 test/scenarios/e2e/p0-033-file-presign-register-roundtrip/scripts/script_contract_test.py`）

@@ -19,18 +19,18 @@ var ErrRetryableDelete = errors.New("upload delete retryable")
 
 type Repository interface {
 	Create(ctx context.Context, in store.CreateInput) error
-	RegisterUploaded(ctx context.Context, fileObjectID, ownerUserID string, expectedPurpose store.Purpose, now time.Time, exists func(context.Context, string) (bool, error)) (store.FileObject, error)
+	RegisterUploaded(ctx context.Context, fileObjectID, ownerUserID string, expectedPurpose store.Purpose, now time.Time, stat func(context.Context, string) (store.ObjectStat, error)) (store.FileObject, error)
 }
 
 type ObjectStore interface {
 	Presign(ctx context.Context, objectKey, contentType string, byteSize int64, ttl time.Duration) (objectstore.PresignResult, error)
 	Exists(ctx context.Context, objectKey string) (bool, error)
+	Stat(ctx context.Context, objectKey string) (objectstore.ObjectInfo, error)
 }
 
 type PrivacyRepository interface {
 	ListFileObjectsForUser(ctx context.Context, userID string) ([]store.DeletedFileObject, error)
-	HardDelete(ctx context.Context, fileObjectID string) error
-	InsertAuditTombstone(ctx context.Context, in store.AuditTombstoneInput) error
+	HardDeleteWithAuditTombstone(ctx context.Context, in store.AuditTombstoneInput) error
 }
 
 type DeleteObjectStore interface {
@@ -124,11 +124,22 @@ func (s *Service) RegisterFileObject(ctx context.Context, in RegisterFileObjectI
 	if s == nil || s.repository == nil || s.objects == nil {
 		return store.FileObject{}, fmt.Errorf("upload register service is not configured")
 	}
-	rec, err := s.repository.RegisterUploaded(ctx, in.FileObjectID, in.OwnerUserID, in.ExpectedPurpose, s.now(), s.objects.Exists)
-	if errors.Is(err, store.ErrObjectMissing) || errors.Is(err, store.ErrInvalidStateTransition) {
+	rec, err := s.repository.RegisterUploaded(ctx, in.FileObjectID, in.OwnerUserID, in.ExpectedPurpose, s.now(), s.statObject)
+	if errors.Is(err, store.ErrObjectMissing) || errors.Is(err, store.ErrObjectSizeMismatch) || errors.Is(err, store.ErrInvalidStateTransition) {
 		return store.FileObject{}, ErrValidationFailed
 	}
 	return rec, err
+}
+
+func (s *Service) statObject(ctx context.Context, objectKey string) (store.ObjectStat, error) {
+	info, err := s.objects.Stat(ctx, objectKey)
+	if errors.Is(err, objectstore.ErrObjectNotFound) {
+		return store.ObjectStat{Exists: false}, nil
+	}
+	if err != nil {
+		return store.ObjectStat{}, err
+	}
+	return store.ObjectStat{Exists: true, Size: info.Size}, nil
 }
 
 func (s *Service) DeleteFileObjectsForUser(ctx context.Context, userID string) ([]store.DeletedFileObject, error) {
@@ -152,10 +163,7 @@ func (s *Service) DeleteFileObjectsForUser(ctx context.Context, userID string) (
 		if err := objects.Delete(ctx, file.ObjectKey); err != nil {
 			return nil, fmt.Errorf("%w: delete object %s: %v", ErrRetryableDelete, file.ID, err)
 		}
-		if err := repo.HardDelete(ctx, file.ID); err != nil {
-			return nil, err
-		}
-		if err := repo.InsertAuditTombstone(ctx, store.AuditTombstoneInput{
+		if err := repo.HardDeleteWithAuditTombstone(ctx, store.AuditTombstoneInput{
 			AuditEventID: s.newID(),
 			UserID:       userID,
 			FileObjectID: file.ID,
