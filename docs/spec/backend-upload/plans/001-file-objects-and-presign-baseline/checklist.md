@@ -8,9 +8,9 @@
 
 ## Phase 0: A4 config contract preflight
 
-- [ ] 0.1 登记 A4 config-only paths：`objectStorage.provider` / `upload.presignTTLSeconds` / `upload.maxBytes.resume` / `upload.maxBytes.targetJobAttachment` / `upload.maxBytes.privacyExport`，复用现有 `OBJECT_STORAGE_*` env key（验证：A4 spec/config artifacts 同步）
-- [ ] 0.2 禁止 backend-upload 直接读取未登记 `UPLOAD_*` / `OBJECT_STORE_*` env key（验证：grep negative + `make lint-config` PASS）
-- [ ] 0.3 config unit test 覆盖默认值、dev override、非法 provider、非正数 TTL / maxBytes fail-fast（验证：config tests PASS）
+- [x] 0.1 登记 A4 config-only paths：`objectStorage.provider` / `upload.presignTTLSeconds` / `upload.maxBytes.resume` / `upload.maxBytes.targetJobAttachment` / `upload.maxBytes.privacyExport`，复用现有 `OBJECT_STORAGE_*` env key（验证：A4 spec/config artifacts 同步）
+- [x] 0.2 禁止 backend-upload 直接读取未登记 `UPLOAD_*` / `OBJECT_STORE_*` env key（验证：grep negative + `make lint-config` PASS）
+- [x] 0.3 config unit test 覆盖默认值、dev override、非法 provider、非正数 TTL / maxBytes fail-fast（验证：config tests PASS）
 
 ## Phase 1: handler skeleton + IK + purpose validation
 

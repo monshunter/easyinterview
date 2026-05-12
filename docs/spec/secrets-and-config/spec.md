@@ -1,8 +1,8 @@
 # Secrets and Config Spec
 
-> **版本**: 2.4
+> **版本**: 2.5
 > **状态**: active
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-12
 
 ## 1 背景与目标
 
@@ -63,6 +63,7 @@
 | D-7 | 配置热加载 | feature flag 支持热加载（≤ 30s）；其它 config 字段在进程启动时读取，运行时不变；如需热加载，必须递增 spec | 避免业务围绕「config 变了吗」写复杂代码 |
 | D-8 | Session cookie 字面量 | `ei_session`，由 [ADR-Q1 §3](../engineering-roadmap/decisions/ADR-Q1-auth.md#3-决策) 锁定；P0 不提供 env/config override | A4 只管理 `SESSION_COOKIE_SECRET` 等 secret，不允许环境差异改 cookie name 导致 B2 OpenAPI / C1 middleware / D1 fetch 口径分裂 |
 | D-9 | 后台任务队列权重 | `async.queueWeights` 配置路径固定在 `config/config.yaml` / `config/{env}.yaml`，默认 `critical: 6` / `default: 3` / `low: 1`；P0 不额外增加 env key，backend internal runner 通过 typed config 读取 | ADR-Q2 的 queue priority 可由配置驱动，同时保持 env 字典稳定为 24 项 |
+| D-10 | 上传基础配置 | `objectStorage.provider=minio|filesystem`、`upload.presignTTLSeconds` 默认 600、`upload.maxBytes.resume=10485760`、`upload.maxBytes.targetJobAttachment=10485760`、`upload.maxBytes.privacyExport=5242880` 均为 config-only path；P0 不新增 `UPLOAD_*` / `OBJECT_STORE_*` env key | backend-upload 通过 typed config 注入 provider / TTL / per-purpose size limit，继续复用现有 `OBJECT_STORAGE_*` secret/env 字典 |
 
 #### 3.1.1 P0 必备 env key 字典（24 项）
 
@@ -108,6 +109,9 @@
 | `redis.url` | `REDIS_URL` | 是 | always | 否 | A4 |
 | `objectStorage.endpoint` / `objectStorage.bucket` | `OBJECT_STORAGE_ENDPOINT` / `OBJECT_STORAGE_BUCKET` | 否 | always | 否 | A4 |
 | `objectStorage.accessKey` / `objectStorage.secretKey` | `OBJECT_STORAGE_ACCESS_KEY` / `OBJECT_STORAGE_SECRET_KEY` | 是 | always；prod 必须来自 runtime secret / env | 否 | A4 |
+| `objectStorage.provider` | `(config.yaml only)` | 否 | always；`minio|filesystem` | 否 | A4 + backend-upload |
+| `upload.presignTTLSeconds` | `(config.yaml only)` | 否 | always；正整数，默认 600 | 否 | A4 + backend-upload |
+| `upload.maxBytes.resume` / `upload.maxBytes.targetJobAttachment` / `upload.maxBytes.privacyExport` | `(config.yaml only)` | 否 | always；正整数，默认 10MB / 10MB / 5MB | 否 | A4 + backend-upload |
 | `observability.otlpEndpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` | 否 | optional | 否 | A4 + F1 |
 | `log.level` | `LOG_LEVEL` | 否 | always | 否 | A4 |
 | `auth.sessionCookieSecret` | `SESSION_COOKIE_SECRET` | 是 | prod required；dev init generated | 否 | A4 + C1 |
@@ -181,6 +185,7 @@
 | C-7 | lint 红线 | 本地改动在 `internal/auth/` 下出现 `os.Getenv("SESSION_COOKIE_SECRET")` | `make lint` | 报错并阻止本地质量门禁通过 | A4 后续 001 |
 | C-8 | secrets 红线 | 本地改动包含一行形似真实凭证的测试样本（例如 `OPENAI_API_KEY=<redacted-test-token>`；测试文件通过临时生成内容触发正则，不在文档中写真实形态） | pre-commit / 本地 gitleaks | hook 拦截，gitleaks 拦截；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | A4 后续 001 |
 | C-12 | 后台队列权重配置 | `config/config.yaml` 声明 `async.queueWeights`，dev/staging/prod override 可调整权重 | backend internal runner 初始化读取 typed config | 读取到 `critical/default/low` 三档权重，缺失或非正数 fail-fast；不需要新增 env key | A4 后续 001 + backend-runtime-topology |
+| C-13 | 上传基础 config-only path | `config/config.yaml` 声明 `objectStorage.provider`、`upload.presignTTLSeconds`、`upload.maxBytes.*` | backend-upload handler / objectstore 初始化读取 typed config | 默认值可读取；非法 provider、非正数 TTL / maxBytes fail-fast；`.env.example` 不新增 `UPLOAD_*` / `OBJECT_STORE_*` | backend-upload/001 |
 | C-9 | env 字典覆盖 | `.env.example` 中缺 `AI_PROVIDER_REGISTRY_PATH` 或 registry 引用的 provider secret env | `make lint-config` | 报错：env key 在代码或 registry truth source 出现但 `.env.example` 缺失 | A4 后续 001 + A3 003 |
 | C-10 | AI provider 本地部署校验 | `APP_ENV=dev` 且启用了需要 AIClient 的 backend 运行路径，但 provider registry 缺失或选中 provider secret 缺失 | docker compose / Kind 启动进程 | 进程启动失败并报告缺失 provider registry / secret；`APP_ENV=test` 的单元测试仍可走 stub | A4 后续 001 + A3 003 + A2 |
 | C-11 | config schema 分类 | `SESSION_COOKIE_SECRET` 标记为 secret，`runtime.defaultUiLanguage` 标记为 public | `make lint-config` / runtime-config schema check | secret 字段缺 redaction 或出现在 runtime-config schema 时失败；public 字段缺 runtime-config schema 时失败 | A4 后续 001 |

@@ -60,6 +60,24 @@ func (l *Loader) Validate() error {
 	}
 
 	if env != "test" {
+		switch strings.ToLower(strings.TrimSpace(l.GetString("objectStorage.provider"))) {
+		case "minio", "filesystem":
+		default:
+			problems = append(problems, "objectStorage.provider must be minio or filesystem")
+		}
+		if l.GetInt("upload.presignTTLSeconds") <= 0 {
+			problems = append(problems, "upload.presignTTLSeconds must be positive")
+		}
+		for _, path := range []string{
+			"upload.maxBytes.resume",
+			"upload.maxBytes.targetJobAttachment",
+			"upload.maxBytes.privacyExport",
+		} {
+			if l.GetInt(path) <= 0 {
+				problems = append(problems, fmt.Sprintf("%s must be positive", path))
+			}
+		}
+
 		// Async queue weights must declare three positive entries.
 		if l.GetInt("async.queueWeights.critical") <= 0 ||
 			l.GetInt("async.queueWeights.default") <= 0 ||

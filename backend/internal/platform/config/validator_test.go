@@ -341,3 +341,114 @@ featureFlag:
 		t.Errorf("expected async.queueWeights validation error, got: %v", err)
 	}
 }
+
+func TestDefaultUploadConfigPaths(t *testing.T) {
+	loader, err := config.Load(config.Options{
+		AppEnv:    "dev",
+		ConfigDir: filepath.Join("..", "..", "..", "..", "config"),
+	})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	if got := loader.GetString("objectStorage.provider"); got != "minio" {
+		t.Fatalf("objectStorage.provider = %q", got)
+	}
+	if got := loader.GetInt("upload.presignTTLSeconds"); got != 600 {
+		t.Fatalf("upload.presignTTLSeconds = %d", got)
+	}
+	for path, want := range map[string]int{
+		"upload.maxBytes.resume":              10485760,
+		"upload.maxBytes.targetJobAttachment": 10485760,
+		"upload.maxBytes.privacyExport":       5242880,
+	} {
+		if got := loader.GetInt(path); got != want {
+			t.Fatalf("%s = %d, want %d", path, got, want)
+		}
+	}
+}
+
+func TestValidateUploadConfigFailsFast(t *testing.T) {
+	for name, yaml := range map[string]string{
+		"provider": `
+objectStorage:
+  provider: s3
+upload:
+  presignTTLSeconds: 600
+  maxBytes:
+    resume: 10485760
+    targetJobAttachment: 10485760
+    privacyExport: 5242880
+async:
+  queueWeights:
+    critical: 6
+    default: 3
+    low: 1
+featureFlag:
+  source: file
+  filePath: "./feature-flags.yaml"
+`,
+		"ttl": `
+objectStorage:
+  provider: minio
+upload:
+  presignTTLSeconds: 0
+  maxBytes:
+    resume: 10485760
+    targetJobAttachment: 10485760
+    privacyExport: 5242880
+async:
+  queueWeights:
+    critical: 6
+    default: 3
+    low: 1
+featureFlag:
+  source: file
+  filePath: "./feature-flags.yaml"
+`,
+		"max-bytes": `
+objectStorage:
+  provider: filesystem
+upload:
+  presignTTLSeconds: 600
+  maxBytes:
+    resume: -1
+    targetJobAttachment: 10485760
+    privacyExport: 5242880
+async:
+  queueWeights:
+    critical: 6
+    default: 3
+    low: 1
+featureFlag:
+  source: file
+  filePath: "./feature-flags.yaml"
+`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			writeYAML(t, filepath.Join(dir, "config.yaml"), yaml)
+			loader, err := config.Load(config.Options{AppEnv: "dev", ConfigDir: dir})
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+
+			err = loader.Validate()
+			if err == nil {
+				t.Fatal("expected upload config validation error")
+			}
+			if !strings.Contains(err.Error(), "upload") && !strings.Contains(err.Error(), "objectStorage.provider") {
+				t.Fatalf("error must mention upload config boundary: %v", err)
+			}
+		})
+	}
+}
+
+func TestUploadConfigDoesNotAddEnvDictionaryKeys(t *testing.T) {
+	envBindings := config.DefaultEnvBindings()
+	for key := range envBindings {
+		if strings.HasPrefix(key, "UPLOAD_") || strings.HasPrefix(key, "OBJECT_STORE_") {
+			t.Fatalf("backend-upload must not add unregistered env key %s", key)
+		}
+	}
+}
