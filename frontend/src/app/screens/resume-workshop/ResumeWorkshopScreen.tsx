@@ -3,6 +3,7 @@ import type { FC } from "react";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import type { Route } from "../../routes";
 import { NotImplementedPlaceholder } from "./components/NotImplementedPlaceholder";
+import { ResumeListView } from "./components/ResumeListView";
 import { ResumeWorkshopAuthGate } from "./components/ResumeWorkshopAuthGate";
 import { parseResumeWorkshopParams } from "./params";
 
@@ -41,7 +42,7 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
       <DetailPlaceholder versionId={params.versionId} tab={params.tab} />
     );
   } else {
-    body = <ListPlaceholder />;
+    body = <ResumeListView />;
   }
 
   return (
@@ -50,10 +51,6 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
     </section>
   );
 };
-
-const ListPlaceholder: FC = () => (
-  <div data-testid="resume-workshop-list" />
-);
 
 const DetailPlaceholder: FC<{
   versionId: string;

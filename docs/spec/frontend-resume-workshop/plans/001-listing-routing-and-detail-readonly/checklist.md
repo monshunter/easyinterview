@@ -16,12 +16,12 @@
 
 ## Phase 2: ResumeListView + TreeView + FlatView + StatsStrip
 
-- [ ] 2.1 实现 `components/ResumeListView.tsx`：StatsStrip 4 项 + ViewSwitcher + 子视图调度（验证：Vitest 渲染 default fixture 命中 ≥ 8 testid）
-- [ ] 2.2 实现 `components/ResumeTreeView.tsx`：originalId 分组 + 折叠 + 行内按钮 toast（验证：Vitest 单测 + 折叠交互 + click 按钮 toast 出现）
-- [ ] 2.3 实现 `components/ResumeFlatView.tsx`：版本平铺 + match/updated_at 排序（验证：Vitest 单测 + 排序稳定性）
-- [ ] 2.4 实现 `components/ResumeVersionRow.tsx`：indent / tag / match / date / click → detail（验证：Vitest 渲染 + nav 调用）
-- [ ] 2.5 generated client `listResumes` + scenario-scoped `listResumeVersions` 通过 mock transport 消费 [B2 fixtures](../../../mock-contract-suite/spec.md) `default` / `empty` / `paginated` / `master-only` / `with-targeted-branches` scenario；数量断言从 fixture body 派生，不写死静态原型规模；测试明确断言当前 mock transport 不按 `resumeAssetId` path 参数选择不同 version scenario（验证：fixture parity test PASS）
-- [ ] 2.6 version aggregation 边界：empty list、paginated `hasMore` 提示、`listResumes.default` 中无匹配 version 的第二个 asset、version.resumeAssetId 不匹配时显示 no-versions/partial/error 状态且不伪造版本（验证：Vitest 单测）
+- [x] 2.1 实现 `components/ResumeListView.tsx`：StatsStrip 4 项 + ViewSwitcher + 子视图调度（验证：Vitest 渲染 default fixture 命中 ≥ 8 testid）
+- [x] 2.2 实现 `components/ResumeTreeView.tsx`：originalId 分组 + 折叠 + 行内按钮 toast（验证：Vitest 单测 + 折叠交互 + click 按钮 toast 出现）
+- [x] 2.3 实现 `components/ResumeFlatView.tsx`：版本平铺 + match/updated_at 排序（验证：Vitest 单测 + 排序稳定性）
+- [x] 2.4 实现 `components/ResumeVersionRow.tsx`：indent / tag / match / date / click → detail（验证：Vitest 渲染 + nav 调用）
+- [x] 2.5 generated client `listResumes` + scenario-scoped `listResumeVersions` 通过 mock transport 消费 [B2 fixtures](../../../mock-contract-suite/spec.md) `default` / `empty` / `paginated` / `master-only` / `with-targeted-branches` scenario；数量断言从 fixture body 派生，不写死静态原型规模；测试明确断言当前 mock transport 不按 `resumeAssetId` path 参数选择不同 version scenario（验证：fixture parity test PASS）
+- [x] 2.6 version aggregation 边界：empty list、paginated `hasMore` 提示、`listResumes.default` 中无匹配 version 的第二个 asset、version.resumeAssetId 不匹配时显示 no-versions/partial/error 状态且不伪造版本（验证：Vitest 单测）
 
 ## Phase 3: ResumeDetailView Preview Tab + 原件弹层
 

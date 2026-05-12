@@ -375,6 +375,38 @@ export const zh = {
     "简历列表、版本详情和导出能力需要先验证身份，登录后会回到当前页面，仅恢复路由参数，不带任何简历正文。",
   "resumeWorkshop.auth.cta": "登录继续",
   "resumeWorkshop.auth.pendingLabel": "登录后进入简历工坊",
+  "resumeWorkshop.eyebrow": "简历工坊",
+  "resumeWorkshop.title": "你的简历 · 原始、主版本与岗位定制",
+  "resumeWorkshop.subtitle":
+    "每份原始简历是一棵独立的树：解析得到一份主版本，再为不同岗位分叉出定制版本。打开任意版本进入预览。",
+  "resumeWorkshop.stats.originals": "原始简历",
+  "resumeWorkshop.stats.versions": "全部版本",
+  "resumeWorkshop.stats.topMatch": "最高匹配",
+  "resumeWorkshop.stats.recent": "最近编辑",
+  "resumeWorkshop.stats.empty": "暂无",
+  "resumeWorkshop.viewSwitcher.tree": "按原始分组",
+  "resumeWorkshop.viewSwitcher.flat": "按版本平铺",
+  "resumeWorkshop.tree.versionsCount": "{count} 个版本",
+  "resumeWorkshop.tree.useAsBase": "选为底稿",
+  "resumeWorkshop.tree.newVersion": "基于这棵树新建版本",
+  "resumeWorkshop.tree.archived": "已归档",
+  "resumeWorkshop.tree.noVersions":
+    "尚无解析版本，新建简历可生成主版本。",
+  "resumeWorkshop.tree.partial":
+    "部分版本暂不可用，加载完成后会补齐。",
+  "resumeWorkshop.tree.toastSelect": "选为底稿即将开放",
+  "resumeWorkshop.tree.toastBranch": "新建版本即将开放",
+  "resumeWorkshop.flat.headerVersion": "版本",
+  "resumeWorkshop.flat.headerOriginal": "来源原始",
+  "resumeWorkshop.flat.headerTarget": "目标岗位",
+  "resumeWorkshop.flat.headerMatch": "匹配",
+  "resumeWorkshop.flat.headerUpdated": "最近编辑",
+  "resumeWorkshop.flat.empty": "暂无版本可平铺",
+  "resumeWorkshop.list.loading": "加载简历中…",
+  "resumeWorkshop.list.error": "加载简历失败，请重试。",
+  "resumeWorkshop.list.empty": "尚未上传任何简历。",
+  "resumeWorkshop.list.paginated": "继续加载下一页",
+  "resumeWorkshop.openVersion": "打开",
 } as const;
 
 export type MessageKey = keyof typeof zh;
