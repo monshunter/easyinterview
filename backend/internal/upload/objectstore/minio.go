@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -36,7 +37,10 @@ func (s *MinIOStore) Presign(ctx context.Context, objectKey, contentType string,
 	if err != nil {
 		return PresignResult{}, err
 	}
-	u, err := client.PresignedPutObject(ctx, s.cfg.Bucket, objectKey, ttl)
+	headers := http.Header{}
+	headers.Set("Content-Type", contentType)
+	headers.Set("x-amz-server-side-encryption", "AES256")
+	u, err := client.PresignHeader(ctx, http.MethodPut, s.cfg.Bucket, objectKey, ttl, nil, headers)
 	if err != nil {
 		return PresignResult{}, fmt.Errorf("presign minio put object: %w", err)
 	}

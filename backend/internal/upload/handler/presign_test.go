@@ -17,6 +17,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	uploadhandler "github.com/monshunter/easyinterview/backend/internal/upload/handler"
+	uploadservice "github.com/monshunter/easyinterview/backend/internal/upload/service"
 )
 
 func TestHandlerImplementsCreateUploadPresignSurface(t *testing.T) {
@@ -231,12 +232,12 @@ func assertAPIError(t *testing.T, rec *httptest.ResponseRecorder, status int, co
 }
 
 type fakePresignService struct {
-	in  uploadhandler.CreatePresignInput
+	in  uploadservice.CreatePresignInput
 	out api.UploadPresign
 	err error
 }
 
-func (s *fakePresignService) CreateUploadPresign(_ context.Context, in uploadhandler.CreatePresignInput) (api.UploadPresign, error) {
+func (s *fakePresignService) CreateUploadPresign(_ context.Context, in uploadservice.CreatePresignInput) (api.UploadPresign, error) {
 	s.in = in
 	if s.err != nil {
 		return api.UploadPresign{}, s.err

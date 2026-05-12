@@ -183,6 +183,44 @@ runtime:
 	}
 }
 
+func TestBuildAPIHandlerMountsUploadPresignBehindSessionMiddleware(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+objectStorage:
+  provider: filesystem
+upload:
+  presignTTLSeconds: 600
+  maxBytes:
+    resume: 10485760
+    targetJobAttachment: 10485760
+    privacyExport: 5242880
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               &apiAuthStore{},
+		SessionCookieSecret: "session-secret",
+	})
+	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/uploads/presign", strings.NewReader(`{"purpose":"resume","fileName":"resume.pdf","contentType":"application/pdf","byteSize":128}`))
+	req.Header.Set("Idempotency-Key", "idem-1")
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d body=%s; upload route is not mounted behind auth middleware", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"code":"AUTH_UNAUTHORIZED"`) {
+		t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())
+	}
+}
+
 func TestBuildTargetJobRuntimeWiresDrainerAndAIClient(t *testing.T) {
 	dir := t.TempDir()
 	providersPath := filepath.Join(dir, "ai-providers.yaml")

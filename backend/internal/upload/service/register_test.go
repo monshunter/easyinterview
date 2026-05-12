@@ -3,12 +3,70 @@ package service_test
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
+	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
+	"github.com/monshunter/easyinterview/backend/internal/upload/objectstore"
 	"github.com/monshunter/easyinterview/backend/internal/upload/service"
 	"github.com/monshunter/easyinterview/backend/internal/upload/store"
 )
+
+func TestCreateUploadPresignCreatesPendingFileObjectAndPresignsObject(t *testing.T) {
+	repo := &fakeRepository{}
+	objects := &fakeObjectStore{presign: objectstore.PresignResult{
+		URL:       "https://uploads.example/user-1/resume/file-1.pdf",
+		Method:    "PUT",
+		Headers:   map[string]string{"Content-Type": "application/pdf"},
+		ExpiresAt: fixedNow().Add(10 * time.Minute),
+	}}
+	svc := service.New(service.Options{
+		Repository: repo,
+		Objects:    objects,
+		Now:        fixedNow,
+		NewID:      func() string { return "file-1" },
+	})
+
+	out, err := svc.CreateUploadPresign(context.Background(), service.CreatePresignInput{
+		UserID:         "user-1",
+		IdempotencyKey: "idem-1",
+		Purpose:        string(store.PurposeResume),
+		FileName:       "resume.pdf",
+		ContentType:    "application/pdf",
+		ByteSize:       1024,
+		PresignTTL:     10 * time.Minute,
+		MaxBytes:       10485760,
+	})
+	if err != nil {
+		t.Fatalf("CreateUploadPresign: %v", err)
+	}
+	want := api.UploadPresign{
+		FileObjectId: "file-1",
+		UploadUrl:    "https://uploads.example/user-1/resume/file-1.pdf",
+		Method:       "PUT",
+		Headers:      map[string]any{"Content-Type": "application/pdf"},
+		ExpiresAt:    "2026-05-12T02:10:00Z",
+	}
+	if !reflect.DeepEqual(out, want) {
+		t.Fatalf("response = %+v", out)
+	}
+	if repo.created.ID != "file-1" ||
+		repo.created.UserID != "user-1" ||
+		repo.created.Purpose != store.PurposeResume ||
+		repo.created.ObjectKey != "user-1/resume/file-1.pdf" ||
+		repo.created.OriginalFileName != "resume.pdf" ||
+		repo.created.ContentType != "application/pdf" ||
+		repo.created.ByteSize != 1024 {
+		t.Fatalf("created input = %+v", repo.created)
+	}
+	if objects.presignObjectKey != "user-1/resume/file-1.pdf" ||
+		objects.presignContentType != "application/pdf" ||
+		objects.presignByteSize != 1024 ||
+		objects.presignTTL != 10*time.Minute {
+		t.Fatalf("presign call key=%q contentType=%q byteSize=%d ttl=%s", objects.presignObjectKey, objects.presignContentType, objects.presignByteSize, objects.presignTTL)
+	}
+}
 
 func TestRegisterFileObjectMarksPendingUploadedAfterObjectExists(t *testing.T) {
 	repo := &fakeRepository{record: fileObject("file-1", store.StatusPending)}
@@ -90,7 +148,13 @@ func fixedNow() time.Time {
 
 type fakeRepository struct {
 	record       store.FileObject
+	created      store.CreateInput
 	markUploaded bool
+}
+
+func (r *fakeRepository) Create(_ context.Context, in store.CreateInput) error {
+	r.created = in
+	return nil
 }
 
 func (r *fakeRepository) LockForRegister(_ context.Context, fileObjectID, ownerUserID string, expectedPurpose store.Purpose) (store.FileObject, error) {
@@ -98,6 +162,31 @@ func (r *fakeRepository) LockForRegister(_ context.Context, fileObjectID, ownerU
 		return store.FileObject{}, store.ErrFileObjectNotFound
 	}
 	return r.record, nil
+}
+
+func (r *fakeRepository) RegisterUploaded(ctx context.Context, fileObjectID, ownerUserID string, expectedPurpose store.Purpose, now time.Time, exists func(context.Context, string) (bool, error)) (store.FileObject, error) {
+	rec, err := r.LockForRegister(ctx, fileObjectID, ownerUserID, expectedPurpose)
+	if err != nil {
+		return store.FileObject{}, err
+	}
+	if rec.Status == store.StatusUploaded {
+		return rec, nil
+	}
+	if rec.Status != store.StatusPending {
+		return store.FileObject{}, store.ErrInvalidStateTransition
+	}
+	ok, err := exists(ctx, rec.ObjectKey)
+	if err != nil {
+		return store.FileObject{}, err
+	}
+	if !ok {
+		return store.FileObject{}, store.ErrObjectMissing
+	}
+	if err := r.MarkUploaded(ctx, fileObjectID, now); err != nil {
+		return store.FileObject{}, err
+	}
+	rec.Status = store.StatusUploaded
+	return rec, nil
 }
 
 func (r *fakeRepository) MarkUploaded(_ context.Context, fileObjectID string, _ time.Time) error {
@@ -110,8 +199,21 @@ func (r *fakeRepository) MarkUploaded(_ context.Context, fileObjectID string, _ 
 }
 
 type fakeObjectStore struct {
-	exists    bool
-	existsKey string
+	exists             bool
+	existsKey          string
+	presign            objectstore.PresignResult
+	presignObjectKey   string
+	presignContentType string
+	presignByteSize    int64
+	presignTTL         time.Duration
+}
+
+func (s *fakeObjectStore) Presign(_ context.Context, objectKey, contentType string, byteSize int64, ttl time.Duration) (objectstore.PresignResult, error) {
+	s.presignObjectKey = objectKey
+	s.presignContentType = contentType
+	s.presignByteSize = byteSize
+	s.presignTTL = ttl
+	return s.presign, nil
 }
 
 func (s *fakeObjectStore) Exists(_ context.Context, objectKey string) (bool, error) {

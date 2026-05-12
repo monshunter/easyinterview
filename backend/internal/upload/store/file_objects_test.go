@@ -137,6 +137,41 @@ func TestRepositoryLockForRegisterReturnsNotFoundForCrossUser(t *testing.T) {
 	}
 }
 
+func TestRepositoryRegisterUploadedChecksObjectWhileRowLocked(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 5, 12, 1, 12, 0, 0, time.UTC)
+	existsCalled := false
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`from file_objects\s+where id = \$1 and user_id = \$2 and purpose = \$3 and deleted_at is null\s+for update`).
+		WithArgs("file-1", "user-1", string(uploadstore.PurposeResume)).
+		WillReturnRows(sqlmock.NewRows(fileObjectColumns()).AddRow(
+			"file-1", "user-1", string(uploadstore.PurposeResume), "user-1/resume/file-1.pdf", "resume.pdf", "application/pdf", int64(1024), nil, string(uploadstore.RetentionUserOwned), string(uploadstore.StatusPending), now, now, nil,
+		))
+	mock.ExpectExec(`update file_objects set upload_status = \$1, updated_at = \$2`).
+		WithArgs(string(uploadstore.StatusUploaded), now, "file-1").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	rec, err := repo.RegisterUploaded(context.Background(), "file-1", "user-1", uploadstore.PurposeResume, now, func(_ context.Context, objectKey string) (bool, error) {
+		existsCalled = true
+		if objectKey != "user-1/resume/file-1.pdf" {
+			t.Fatalf("object key = %q", objectKey)
+		}
+		return true, nil
+	})
+	if err != nil {
+		t.Fatalf("RegisterUploaded: %v", err)
+	}
+	if !existsCalled || rec.Status != uploadstore.StatusUploaded {
+		t.Fatalf("existsCalled=%v record=%+v", existsCalled, rec)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestRepositoryHardDeleteDeletesRow(t *testing.T) {
 	repo, mock, cleanup := newMockRepository(t)
 	defer cleanup()

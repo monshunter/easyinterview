@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -10,23 +11,13 @@ import (
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
+	uploadservice "github.com/monshunter/easyinterview/backend/internal/upload/service"
 )
 
 type SessionResolver func(ctx context.Context) (userID string, ok bool)
 
 type PresignService interface {
-	CreateUploadPresign(ctx context.Context, in CreatePresignInput) (api.UploadPresign, error)
-}
-
-type CreatePresignInput struct {
-	UserID         string
-	IdempotencyKey string
-	Purpose        string
-	FileName       string
-	ContentType    string
-	ByteSize       int64
-	PresignTTL     time.Duration
-	MaxBytes       int64
+	CreateUploadPresign(ctx context.Context, in uploadservice.CreatePresignInput) (api.UploadPresign, error)
 }
 
 type Options struct {
@@ -78,21 +69,33 @@ func (h *Handler) CreateUploadPresign(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "purpose is not supported", map[string]any{"field": "purpose"})
 		return
 	}
+	if strings.TrimSpace(body.FileName) == "" {
+		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "fileName is required", map[string]any{"field": "fileName"})
+		return
+	}
+	if strings.TrimSpace(body.ContentType) == "" {
+		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "contentType is required", map[string]any{"field": "contentType"})
+		return
+	}
 	if body.ByteSize <= 0 || body.ByteSize > maxBytes {
 		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "byteSize exceeds purpose limit", map[string]any{"field": "byteSize"})
 		return
 	}
-	out, err := h.service.CreateUploadPresign(r.Context(), CreatePresignInput{
+	out, err := h.service.CreateUploadPresign(r.Context(), uploadservice.CreatePresignInput{
 		UserID:         userID,
 		IdempotencyKey: idempotencyKey,
 		Purpose:        purpose,
-		FileName:       body.FileName,
-		ContentType:    body.ContentType,
+		FileName:       strings.TrimSpace(body.FileName),
+		ContentType:    strings.TrimSpace(body.ContentType),
 		ByteSize:       body.ByteSize,
 		PresignTTL:     h.presignTTL,
 		MaxBytes:       maxBytes,
 	})
 	if err != nil {
+		if errors.Is(err, uploadservice.ErrValidationFailed) {
+			writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "upload presign validation failed", nil)
+			return
+		}
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "upload presign failed", nil)
 		return
 	}

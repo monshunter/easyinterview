@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -35,6 +36,10 @@ import (
 	storepractice "github.com/monshunter/easyinterview/backend/internal/store/practice"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
+	uploadhandler "github.com/monshunter/easyinterview/backend/internal/upload/handler"
+	"github.com/monshunter/easyinterview/backend/internal/upload/objectstore"
+	uploadservice "github.com/monshunter/easyinterview/backend/internal/upload/service"
+	uploadstore "github.com/monshunter/easyinterview/backend/internal/upload/store"
 )
 
 func main() {
@@ -123,10 +128,15 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: practice runtime init: %v\n", err)
 		os.Exit(1)
 	}
+	uploadRoutes, err := buildUploadRoutes(loader, db)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: upload runtime init: %v\n", err)
+		os.Exit(1)
+	}
 
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           buildAPIHandlerWithHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes),
+		Handler:           buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -174,7 +184,8 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessServ
 }
 
 func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, db *sql.DB) http.Handler {
-	return buildAPIHandlerWithTargetJobHandler(loader, flagsClient, authService, buildTargetJobHandler(loader, targetjob.NewSQLStore(db)))
+	upload, _ := buildUploadRoutes(loader, db)
+	return buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, buildTargetJobHandler(loader, targetjob.NewSQLStore(db)), practiceRoutes{}, upload)
 }
 
 func buildAPIHandlerWithTargetJobHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler) http.Handler {
@@ -186,7 +197,16 @@ type practiceRoutes struct {
 	Idempotency *idempotency.Middleware
 }
 
+type uploadRoutes struct {
+	Handler     *uploadhandler.Handler
+	Idempotency *idempotency.Middleware
+}
+
 func buildAPIHandlerWithHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes) http.Handler {
+	return buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, uploadRoutes{})
+}
+
+func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes) http.Handler {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(auth.HandlerOptions{
 		Passwordless: authService,
@@ -205,6 +225,13 @@ func buildAPIHandlerWithHandlers(loader *config.Loader, flagsClient featureflag.
 		},
 		SessionResolver: authService.RuntimeConfigSessionResolver(),
 	})))
+	if upload.Handler != nil {
+		createUploadPresign := http.HandlerFunc(upload.Handler.CreateUploadPresign)
+		if upload.Idempotency != nil {
+			createUploadPresign = upload.Idempotency.Handler("upload", "createUploadPresign", requestUserFromContext, createUploadPresign).ServeHTTP
+		}
+		mux.Handle("POST /api/v1/uploads/presign", auth.SessionMiddleware(authService, "createUploadPresign", createUploadPresign))
+	}
 	mux.Handle("GET /api/v1/targets", auth.SessionMiddleware(authService, "listTargetJobs", http.HandlerFunc(targetJobHandler.ListTargetJobs)))
 	mux.Handle("POST /api/v1/targets/import", auth.SessionMiddleware(authService, "importTargetJob", http.HandlerFunc(targetJobHandler.ImportTargetJob)))
 	mux.Handle("GET /api/v1/targets/{targetJobId}", auth.SessionMiddleware(authService, "getTargetJob", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -228,6 +255,43 @@ func buildAPIHandlerWithHandlers(loader *config.Loader, flagsClient featureflag.
 		})))
 	}
 	return mux
+}
+
+func buildUploadRoutes(loader *config.Loader, db *sql.DB) (uploadRoutes, error) {
+	objects, err := objectstore.NewFromConfig(objectstore.FactoryConfig{
+		Provider:       loader.GetString("objectStorage.provider"),
+		FilesystemRoot: filepath.Join(os.TempDir(), "easyinterview-upload-objects"),
+		MinIO: objectstore.MinIOConfig{
+			Endpoint:  loader.GetString("objectStorage.endpoint"),
+			Bucket:    loader.GetString("objectStorage.bucket"),
+			AccessKey: loader.GetSecret("objectStorage.accessKey").Reveal(),
+			SecretKey: loader.GetSecret("objectStorage.secretKey").Reveal(),
+		},
+	})
+	if err != nil {
+		return uploadRoutes{}, err
+	}
+	service := uploadservice.New(uploadservice.Options{
+		Repository: uploadstore.NewRepository(db),
+		Objects:    objects,
+		NewID:      idx.NewID,
+	})
+	return uploadRoutes{
+		Handler: uploadhandler.New(uploadhandler.Options{
+			Service:    service,
+			Session:    currentUserFromContext,
+			PresignTTL: time.Duration(loader.GetInt("upload.presignTTLSeconds")) * time.Second,
+			MaxBytesByPurpose: map[string]int64{
+				string(uploadstore.PurposeResume):              int64(loader.GetInt("upload.maxBytes.resume")),
+				string(uploadstore.PurposeTargetJobAttachment): int64(loader.GetInt("upload.maxBytes.targetJobAttachment")),
+				string(uploadstore.PurposePrivacyExport):       int64(loader.GetInt("upload.maxBytes.privacyExport")),
+			},
+		}),
+		Idempotency: idempotency.New(idempotency.MiddlewareOptions{
+			Store:     idempotency.NewSQLStore(db),
+			KeyPepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+		}),
+	}, nil
 }
 
 func buildPracticeRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient) (practiceRoutes, error) {

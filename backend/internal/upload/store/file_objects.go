@@ -35,6 +35,7 @@ const (
 var (
 	ErrFileObjectNotFound     = errors.New("file object not found")
 	ErrInvalidStateTransition = errors.New("invalid file object state transition")
+	ErrObjectMissing          = errors.New("file object payload is missing in object storage")
 )
 
 type Repository struct {
@@ -194,6 +195,75 @@ for update`,
 		return FileObject{}, err
 	}
 	return rec, nil
+}
+
+func (r *Repository) RegisterUploaded(ctx context.Context, fileObjectID, ownerUserID string, expectedPurpose Purpose, now time.Time, exists func(context.Context, string) (bool, error)) (FileObject, error) {
+	if err := r.checkDB(); err != nil {
+		return FileObject{}, err
+	}
+	if exists == nil {
+		return FileObject{}, fmt.Errorf("object existence checker is required")
+	}
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return FileObject{}, fmt.Errorf("begin file object register: %w", err)
+	}
+	defer tx.Rollback()
+
+	row := tx.QueryRowContext(ctx, `
+select id, user_id, purpose, object_key, original_file_name, content_type, byte_size,
+       sha256_hex, retention_policy, upload_status, created_at, updated_at, deleted_at
+from file_objects
+where id = $1 and user_id = $2 and purpose = $3 and deleted_at is null
+for update`,
+		fileObjectID,
+		ownerUserID,
+		string(expectedPurpose),
+	)
+	rec, err := scanFileObject(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return FileObject{}, ErrFileObjectNotFound
+	}
+	if err != nil {
+		return FileObject{}, err
+	}
+	switch rec.Status {
+	case StatusUploaded:
+		if err := tx.Commit(); err != nil {
+			return FileObject{}, fmt.Errorf("commit file object register idempotent: %w", err)
+		}
+		return rec, nil
+	case StatusPending:
+		ok, err := exists(ctx, rec.ObjectKey)
+		if err != nil {
+			return FileObject{}, err
+		}
+		if !ok {
+			return FileObject{}, ErrObjectMissing
+		}
+		res, err := tx.ExecContext(ctx, `update file_objects set upload_status = $1, updated_at = $2 where id = $3`, string(StatusUploaded), now, rec.ID)
+		if err != nil {
+			return FileObject{}, fmt.Errorf("update file object register status: %w", err)
+		}
+		rows, err := res.RowsAffected()
+		if err != nil {
+			return FileObject{}, fmt.Errorf("update file object register rows affected: %w", err)
+		}
+		if rows == 0 {
+			return FileObject{}, ErrFileObjectNotFound
+		}
+		if err := tx.Commit(); err != nil {
+			return FileObject{}, fmt.Errorf("commit file object register: %w", err)
+		}
+		rec.Status = StatusUploaded
+		rec.UpdatedAt = now
+		return rec, nil
+	default:
+		return FileObject{}, ErrInvalidStateTransition
+	}
 }
 
 func (r *Repository) HardDelete(ctx context.Context, fileObjectID string) error {
