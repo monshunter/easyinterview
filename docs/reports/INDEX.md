@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-12](./2026-05-12-backend-upload-001-file-objects-and-presign-baseline-assessment.md) | Backend Upload 001 File Objects And Presign Baseline 交付复盘 | #assessment |
 | [2026-05-12](./2026-05-12-resume-additive-client-cleanup-l2-remediation-assessment.md) | Resume Additive Client Cleanup L2 Remediation 交付复盘 | #assessment |
 | [2026-05-12](./2026-05-12-resume-workshop-contract-additives-l2-remediation-assessment.md) | Resume Workshop Contract Additives L2 Remediation 交付复盘 | #assessment |
 | [2026-05-12](./2026-05-12-resume-workshop-contract-additives-assessment.md) | Resume Workshop Contract Additives 交付复盘 | #assessment |

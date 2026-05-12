@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-12](2026-05-12.md) | `docs(retrospective): assess backend-upload baseline delivery` | #docs |
 | [2026-05-12](2026-05-12.md) | `test(backend-upload): add presign register bdd scenario` | #test #docs |
 | [2026-05-12](2026-05-12.md) | `feat(backend-upload): add privacy file deletion` | #feat #test #docs |
 | [2026-05-12](2026-05-12.md) | `feat(backend-upload): add object store register service` | #feat #test #docs |
