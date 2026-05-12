@@ -1,8 +1,8 @@
 # Backend Upload Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-12
 
 ## 1 背景与目标
 
@@ -103,7 +103,7 @@ backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | presign 主路径 | 已登录用户 + 有效 `purpose=resume` + `Idempotency-Key` | 调 `POST /api/v1/uploads/presign`，body 含 `fileName / contentType / byteSize` | 返回 200 + `UploadPresign{fileObjectId, uploadUrl, method, headers, expiresAt}`；DB 创建 `file_objects` 行 `upload_status='pending'` | 001-file-objects-and-presign-baseline |
+| C-1 | presign 主路径 | 已登录用户 + 有效 `purpose=resume` + `Idempotency-Key` | 调 `POST /api/v1/uploads/presign`，body 含 `fileName / contentType / byteSize` | 返回 201 + `UploadPresign{fileObjectId, uploadUrl, method, headers, expiresAt}`；DB 创建 `file_objects` 行 `upload_status='pending'` | 001-file-objects-and-presign-baseline |
 | C-2 | IK replay | 同 IK 重复调用 | 同 IK 第二次 | 返回首次 `fileObjectId` + 同一 uploadUrl/method/headers/expiresAt（或重发新 URL 但 fileObjectId 不变）；不创建新 DB 行 | 001 |
 | C-3 | purpose 非法 | `purpose='unknown_purpose'` | 调 presign | 422 + `error.code = "VALIDATION_FAILED"` + `details.field = "purpose"` | 001 |
 | C-4 | 跨用户隔离 | 用户 A 创建 fileObject；用户 B 调 `getFileObject` 或 register | – | 404（不暴露存在；与 B2 D-15 envelope 对齐） | 001 |

@@ -15,6 +15,8 @@
 | [2026-05-12](2026-05-12.md) | `feat(frontend-resume-workshop): add resume detail view and export fallback` | #feat #ui #i18n |
 | [2026-05-12](2026-05-12.md) | `feat(frontend-resume-workshop): wire resume list and tree views` | #feat #ui #i18n |
 | [2026-05-12](2026-05-12.md) | `feat(frontend-resume-workshop): add resume workshop route container` | #feat #ui #i18n |
+| [2026-05-12](2026-05-12.md) | `docs(backend-resume): fix plan-review preview confirm and parse contract` | #docs |
+| [2026-05-12](2026-05-12.md) | `docs(backend-upload): fix plan-review presign status and privacy ordering` | #docs |
 | [2026-05-12](2026-05-12.md) | `docs(frontend-resume-workshop): fix listing plan review gates` | #docs #ui |
 | [2026-05-12](2026-05-12.md) | `fix(openapi): harden resume additive client contracts` | #fix #test #docs |
 | [2026-05-12](2026-05-12.md) | `fix(openapi): allow fileless resume intake contracts` | #fix #test #docs |
