@@ -33,6 +33,11 @@ const ALLOWED_NON_AUTH_OPERATIONS = new Set<string>([
   "getPracticePlan",
   "createPracticePlan",
   "startPracticeSession",
+  // Phase 1-3 resume workshop operations (frontend-resume-workshop)
+  "listResumes",
+  "listResumeVersions",
+  "getResumeVersion",
+  "exportResumeVersion",
 ]);
 
 const ALL_CLIENT_CALL_RE = /\.client\.(\w+)\(/g;

@@ -3,6 +3,7 @@ import type { FC } from "react";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import type { Route } from "../../routes";
 import { NotImplementedPlaceholder } from "./components/NotImplementedPlaceholder";
+import { ResumeDetailView } from "./components/ResumeDetailView";
 import { ResumeListView } from "./components/ResumeListView";
 import { ResumeWorkshopAuthGate } from "./components/ResumeWorkshopAuthGate";
 import { parseResumeWorkshopParams } from "./params";
@@ -39,7 +40,7 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
     body = <NotImplementedPlaceholder flow={params.flow} />;
   } else if (params.versionId) {
     body = (
-      <DetailPlaceholder versionId={params.versionId} tab={params.tab} />
+      <DetailWrapper versionId={params.versionId} tab={params.tab} />
     );
   } else {
     body = <ResumeListView />;
@@ -52,10 +53,12 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
   );
 };
 
-const DetailPlaceholder: FC<{
+interface DetailWrapperProps {
   versionId: string;
-  tab: string | null;
-}> = ({ versionId, tab }) => {
+  tab: import("./params").ResumeDetailTab | null;
+}
+
+const DetailWrapper: FC<DetailWrapperProps> = ({ versionId, tab }) => {
   const attrs: Record<string, string> = {
     "data-testid": "resume-workshop-detail",
     "data-resume-version-id": versionId,
@@ -63,5 +66,9 @@ const DetailPlaceholder: FC<{
   if (tab) {
     attrs["data-tab"] = tab;
   }
-  return <div {...attrs} />;
+  return (
+    <div {...attrs}>
+      <ResumeDetailView versionId={versionId} initialTab={tab} />
+    </div>
+  );
 };

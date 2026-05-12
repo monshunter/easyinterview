@@ -418,4 +418,33 @@ export const en: LocaleMessages = {
   "resumeWorkshop.list.empty": "You have no resumes uploaded yet.",
   "resumeWorkshop.list.paginated": "Continue loading more",
   "resumeWorkshop.openVersion": "Open",
+  "resumeWorkshop.detail.back": "Back to Resume Workshop",
+  "resumeWorkshop.detail.crumbVersions": "Versions",
+  "resumeWorkshop.detail.tabPreview": "Preview",
+  "resumeWorkshop.detail.tabRewrites": "Rewrites",
+  "resumeWorkshop.detail.tabEdit": "Edit",
+  "resumeWorkshop.detail.copyText": "Copy plain text",
+  "resumeWorkshop.detail.exportPdf": "Export PDF",
+  "resumeWorkshop.detail.viewOriginal": "View original",
+  "resumeWorkshop.detail.exportNotAvailable":
+    "PDF export is not available yet",
+  "resumeWorkshop.detail.copySuccess": "Plain text copied",
+  "resumeWorkshop.detail.copyUnavailable":
+    "Clipboard write is unavailable in this environment",
+  "resumeWorkshop.detail.loading": "Loading version...",
+  "resumeWorkshop.detail.notFoundTitle": "Version not found",
+  "resumeWorkshop.detail.notFoundBody":
+    "This resume version may have been deleted or the link is no longer valid. Return to Resume Workshop to choose another version.",
+  "resumeWorkshop.detail.notFoundCta": "Back to list",
+  "resumeWorkshop.detail.comingSoonRewrites":
+    "The rewrites view is being prepared. For this release you can browse this version under Preview.",
+  "resumeWorkshop.detail.comingSoonEdit":
+    "The manual edit view is being prepared.",
+  "resumeWorkshop.detail.branchOriginal": "Original",
+  "resumeWorkshop.detail.branchMaster": "Master (parsed)",
+  "resumeWorkshop.detail.branchCurrent": "Current version",
+  "resumeWorkshop.detail.modalTitle": "Original resume preview",
+  "resumeWorkshop.detail.modalClose": "Close original preview",
+  "resumeWorkshop.detail.modalDescription":
+    "The original is read-only. Edits and JD-specific rewrites create versions beside it.",
 };

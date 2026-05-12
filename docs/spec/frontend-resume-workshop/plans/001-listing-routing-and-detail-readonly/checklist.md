@@ -25,13 +25,13 @@
 
 ## Phase 3: ResumeDetailView Preview Tab + 原件弹层
 
-- [ ] 3.1 实现 `components/ResumeDetailView.tsx` 容器：Breadcrumb + 版本分支图 + 三 tab（验证：Vitest 渲染所有 testid + tab 切换）
-- [ ] 3.2 默认 tab 选择：按 `resumeDefaultTab(version)` MASTER→preview / TARGETED→rewrites；001 阶段 rewrites 内容可为 `<ComingSoonTab>`，但 active tab 和 URL `tab` 保持 rewrites（验证：Vitest 单测 3 case）
-- [ ] 3.3 Preview Tab：渲染 `buildResumePlainText(lang, version)` adapter 投影（验证：Vitest 渲染 EN / ZH）
-- [ ] 3.4 "查看原件" 按钮 → 原件弹层 modal（focus trap + ESC + 外层遮罩 + X）（验证：Vitest + Playwright a11y 键盘交互）
-- [ ] 3.5 rewrites / edit Tab P0 渲染 `<ComingSoonTab>` 占位（容器 / testid / 切换逻辑保留）（验证：Vitest 渲染 + 切换不报错）
-- [ ] 3.6 generated client `getResumeVersion` 消费 `default` / `master-default` / `targeted-with-suggestions` / `not-found-404` scenario；404 UI copy 不依赖 fixture `error.code` 具体拼写（验证：fixture parity test）
-- [ ] 3.7 `exportResumeVersion` P0 fallback：导出按钮通过 `frontend/src/lib/conventions/idempotency.ts::generateIdempotencyKey()` 生成 `Idempotency-Key`，调用 generated client `exportResumeVersion(versionId, { idempotencyKey })` 并由 request spy 断言 header；消费 `p0-501-not-available` fixture 或等价 generated client error path，显示 "PDF 导出能力即将开放" toast，不生成 blob、不写 localStorage（验证：Vitest + Playwright）
+- [x] 3.1 实现 `components/ResumeDetailView.tsx` 容器：Breadcrumb + 版本分支图 + 三 tab（验证：Vitest 渲染所有 testid + tab 切换）
+- [x] 3.2 默认 tab 选择：按 `resumeDefaultTab(version)` MASTER→preview / TARGETED→rewrites；001 阶段 rewrites 内容可为 `<ComingSoonTab>`，但 active tab 和 URL `tab` 保持 rewrites（验证：Vitest 单测 3 case）
+- [x] 3.3 Preview Tab：渲染 `buildResumePlainText(lang, version)` adapter 投影（验证：Vitest 渲染 EN / ZH）
+- [x] 3.4 "查看原件" 按钮 → 原件弹层 modal（focus trap + ESC + 外层遮罩 + X）（验证：Vitest + Playwright a11y 键盘交互）
+- [x] 3.5 rewrites / edit Tab P0 渲染 `<ComingSoonTab>` 占位（容器 / testid / 切换逻辑保留）（验证：Vitest 渲染 + 切换不报错）
+- [x] 3.6 generated client `getResumeVersion` 消费 `default` / `master-default` / `targeted-with-suggestions` / `not-found-404` scenario；404 UI copy 不依赖 fixture `error.code` 具体拼写（验证：fixture parity test）
+- [x] 3.7 `exportResumeVersion` P0 fallback：导出按钮通过 `frontend/src/lib/conventions/idempotency.ts::generateIdempotencyKey()` 生成 `Idempotency-Key`，调用 generated client `exportResumeVersion(versionId, { idempotencyKey })` 并由 request spy 断言 header；消费 `p0-501-not-available` fixture 或等价 generated client error path，显示 "PDF 导出能力即将开放" toast，不生成 blob、不写 localStorage（验证：Vitest + Playwright）
 
 ## Phase 4: i18n + a11y + 隐私红线
 

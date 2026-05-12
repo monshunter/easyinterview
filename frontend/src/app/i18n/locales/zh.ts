@@ -407,6 +407,33 @@ export const zh = {
   "resumeWorkshop.list.empty": "尚未上传任何简历。",
   "resumeWorkshop.list.paginated": "继续加载下一页",
   "resumeWorkshop.openVersion": "打开",
+  "resumeWorkshop.detail.back": "返回简历工坊",
+  "resumeWorkshop.detail.crumbVersions": "版本",
+  "resumeWorkshop.detail.tabPreview": "预览",
+  "resumeWorkshop.detail.tabRewrites": "改写建议",
+  "resumeWorkshop.detail.tabEdit": "手动编辑",
+  "resumeWorkshop.detail.copyText": "复制纯文本",
+  "resumeWorkshop.detail.exportPdf": "导出 PDF",
+  "resumeWorkshop.detail.viewOriginal": "查看原件",
+  "resumeWorkshop.detail.exportNotAvailable": "PDF 导出能力即将开放",
+  "resumeWorkshop.detail.copySuccess": "已复制纯文本",
+  "resumeWorkshop.detail.copyUnavailable": "当前环境不支持剪贴板写入",
+  "resumeWorkshop.detail.loading": "加载版本中…",
+  "resumeWorkshop.detail.notFoundTitle": "未找到该版本",
+  "resumeWorkshop.detail.notFoundBody":
+    "该简历版本可能已删除，或链接已失效，请返回简历工坊重新选择。",
+  "resumeWorkshop.detail.notFoundCta": "返回列表",
+  "resumeWorkshop.detail.comingSoonRewrites":
+    "改写建议视图正在准备中，本版可在「预览」中查看版本内容。",
+  "resumeWorkshop.detail.comingSoonEdit":
+    "手动编辑视图正在准备中，敬请期待。",
+  "resumeWorkshop.detail.branchOriginal": "原始简历",
+  "resumeWorkshop.detail.branchMaster": "主版本（解析自原始）",
+  "resumeWorkshop.detail.branchCurrent": "当前版本",
+  "resumeWorkshop.detail.modalTitle": "原始简历预览",
+  "resumeWorkshop.detail.modalClose": "关闭原件预览",
+  "resumeWorkshop.detail.modalDescription":
+    "原始简历只读保存。编辑和 JD 定制改写会生成旁路版本，不覆盖原件。",
 } as const;
 
 export type MessageKey = keyof typeof zh;

@@ -202,3 +202,66 @@ export const mapBulletSuggestionToUi = (
   why: splitWhy(input.reason),
   status: normalizeBulletStatus(input.status),
 });
+
+const safeString = (value: unknown): string =>
+  typeof value === "string" ? value : "";
+
+const safeStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((s): s is string => typeof s === "string") : [];
+
+export interface ResumePreviewProjection {
+  headline: string;
+  summary: string;
+  skills: string[];
+  sections: { title: string; bullets: string[] }[];
+}
+
+export const buildResumePreview = (
+  version: ApiResumeVersion,
+): ResumePreviewProjection => {
+  const profile = (version.structuredProfile ?? {}) as Record<string, unknown>;
+  const sectionsRaw = profile.sections;
+  const sections = Array.isArray(sectionsRaw)
+    ? sectionsRaw.flatMap((entry) => {
+        if (typeof entry !== "object" || entry === null) return [];
+        const record = entry as Record<string, unknown>;
+        return [
+          {
+            title: safeString(record.title),
+            bullets: safeStringArray(record.bullets),
+          },
+        ];
+      })
+    : [];
+  return {
+    headline: safeString(profile.headline),
+    summary: safeString(profile.summary),
+    skills: safeStringArray(profile.skills),
+    sections,
+  };
+};
+
+/**
+ * Plain-text projection of the resume preview, suitable for clipboard copy.
+ * Mirrors the prototype `buildResumePlainText(lang, version)` shape but reads
+ * structuredProfile from the API response so it stays in sync with real data
+ * once backend lands.
+ */
+export const buildResumePlainText = (version: ApiResumeVersion): string => {
+  const projection = buildResumePreview(version);
+  const lines: string[] = [];
+  if (projection.headline) lines.push(projection.headline);
+  if (projection.summary) lines.push(projection.summary);
+  for (const section of projection.sections) {
+    if (lines.length > 0) lines.push("");
+    if (section.title) lines.push(section.title);
+    for (const bullet of section.bullets) {
+      lines.push(`- ${bullet}`);
+    }
+  }
+  if (projection.skills.length > 0) {
+    if (lines.length > 0) lines.push("");
+    lines.push(projection.skills.join(" · "));
+  }
+  return lines.join("\n");
+};
