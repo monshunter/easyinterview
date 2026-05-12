@@ -308,7 +308,7 @@ type PaginatedExperienceCard struct {
 }
 
 type RegisterResumeRequest struct {
-	FileObjectId  string         `json:"fileObjectId"`
+	FileObjectId  *string        `json:"fileObjectId,omitempty"`
 	GuidedAnswers map[string]any `json:"guidedAnswers,omitempty"`
 	Language      string         `json:"language"`
 	RawText       *string        `json:"rawText,omitempty"`
@@ -319,7 +319,7 @@ type RegisterResumeRequest struct {
 type ResumeAsset struct {
 	CreatedAt          string               `json:"createdAt"`
 	DeletedAt          *string              `json:"deletedAt,omitempty"`
-	FileObjectId       string               `json:"fileObjectId"`
+	FileObjectId       *string              `json:"fileObjectId,omitempty"`
 	GuidedAnswers      *map[string]any      `json:"guidedAnswers,omitempty"`
 	Id                 string               `json:"id"`
 	Language           string               `json:"language"`

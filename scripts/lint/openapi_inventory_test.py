@@ -104,6 +104,23 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertIn("GenerationProvenance", reachable)
         self.assertIn("provenance", resume_version["required"])
 
+    def test_register_resume_contract_supports_fileless_sources(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        schemas = data["components"]["schemas"]
+
+        register_resume = schemas["RegisterResumeRequest"]
+        self.assertNotIn("fileObjectId", register_resume["required"])
+        self.assertIn("sourceType", register_resume["properties"])
+        self.assertIn("rawText", register_resume["properties"])
+        self.assertIn("guidedAnswers", register_resume["properties"])
+        self.assertEqual("string", register_resume["properties"]["fileObjectId"]["type"])
+        self.assertTrue(register_resume["properties"]["fileObjectId"]["nullable"])
+
+        resume_asset = schemas["ResumeAsset"]
+        self.assertNotIn("fileObjectId", resume_asset["required"])
+        self.assertEqual("string", resume_asset["properties"]["fileObjectId"]["type"])
+        self.assertTrue(resume_asset["properties"]["fileObjectId"]["nullable"])
+
     def test_product_scope_semantic_invariants_reject_old_mistakes_scope(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         mutated = copy.deepcopy(data)

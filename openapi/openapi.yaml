@@ -2390,11 +2390,13 @@ components:
     # ----- Resumes -----
     RegisterResumeRequest:
       type: object
-      required: [fileObjectId, title, language]
+      required: [title, language]
       properties:
         fileObjectId:
           type: string
           format: uuid
+          nullable: true
+          description: Required only when `sourceType` is `upload`; omitted/null for paste and guided intake.
         title:
           type: string
         language:
@@ -2413,7 +2415,7 @@ components:
 
     ResumeAsset:
       type: object
-      required: [id, title, language, parseStatus, fileObjectId, createdAt, updatedAt]
+      required: [id, title, language, parseStatus, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -2434,6 +2436,8 @@ components:
         fileObjectId:
           type: string
           format: uuid
+          nullable: true
+          description: Upload-backed assets keep a file object; paste and guided assets are fileless.
         originalText:
           oneOf:
             - type: string

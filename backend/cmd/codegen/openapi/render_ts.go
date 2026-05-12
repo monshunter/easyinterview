@@ -257,8 +257,15 @@ func tsTypeFor(spec map[string]any) string {
 	if spec == nil {
 		return "unknown"
 	}
+	nullable, _ := spec["nullable"].(bool)
+	withNull := func(base string) string {
+		if nullable {
+			return base + " | null"
+		}
+		return base
+	}
 	if ref, ok := spec["$ref"].(string); ok {
-		return extractRefName(ref)
+		return withNull(extractRefName(ref))
 	}
 	if oneOf, ok := spec["oneOf"].([]any); ok {
 		hasNull := false
@@ -293,24 +300,24 @@ func tsTypeFor(spec map[string]any) string {
 					parts = append(parts, fmt.Sprintf("%q", s))
 				}
 			}
-			return strings.Join(parts, " | ")
+			return withNull(strings.Join(parts, " | "))
 		}
-		return "string"
+		return withNull("string")
 	case "boolean":
-		return "boolean"
+		return withNull("boolean")
 	case "integer", "number":
-		return "number"
+		return withNull("number")
 	case "array":
 		items, _ := spec["items"].(map[string]any)
-		return tsTypeFor(items) + "[]"
+		return withNull(tsTypeFor(items) + "[]")
 	case "object":
 		if _, has := spec["properties"]; !has {
-			return "Record<string, unknown>"
+			return withNull("Record<string, unknown>")
 		}
-		return "Record<string, unknown>"
+		return withNull("Record<string, unknown>")
 	}
-	if nullable, _ := spec["nullable"].(bool); nullable {
-		return "string | null"
+	if nullable {
+		return "unknown | null"
 	}
 	return "unknown"
 }

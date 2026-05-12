@@ -203,7 +203,7 @@ export interface PaginatedExperienceCard {
 }
 
 export interface RegisterResumeRequest {
-	fileObjectId: string;
+	fileObjectId?: string | null;
 	guidedAnswers?: Record<string, unknown>;
 	language: string;
 	rawText?: string;
@@ -214,7 +214,7 @@ export interface RegisterResumeRequest {
 export interface ResumeAsset {
 	createdAt: string;
 	deletedAt?: string | null;
-	fileObjectId: string;
+	fileObjectId?: string | null;
 	guidedAnswers?: Record<string, unknown> | null;
 	id: string;
 	language: string;

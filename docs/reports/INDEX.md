@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-12](./2026-05-12-resume-workshop-contract-additives-l2-remediation-assessment.md) | Resume Workshop Contract Additives L2 Remediation 交付复盘 | #assessment |
 | [2026-05-12](./2026-05-12-resume-workshop-contract-additives-assessment.md) | Resume Workshop Contract Additives 交付复盘 | #assessment |
 | [2026-05-11](./2026-05-11-frontend-shell-auth-menu-browser-parity-assessment.md) | Frontend Shell Auth Menu Browser Parity 交付复盘 | #assessment |
 | [2026-05-10](./2026-05-10-frontend-shell-workspace-pixel-gate-assessment.md) | Frontend Shell Workspace Pixel Gate 交付复盘 | #assessment |

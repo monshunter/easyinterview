@@ -437,6 +437,30 @@ class FixtureContentTest(unittest.TestCase):
                 self.assertEqual(body["job"]["jobType"], expected_job_type)
                 self.assertIn(body["job"]["status"], {"queued", "running"})
 
+    def test_register_resume_fileless_source_variants_omit_file_object_id(self) -> None:
+        scenarios = _load_fixture("registerResume", "Resumes")["scenarios"]
+
+        paste_body = scenarios["paste-text"]["request"]["body"]
+        self.assertEqual("paste", paste_body["sourceType"])
+        self.assertIn("rawText", paste_body)
+        self.assertNotIn("fileObjectId", paste_body)
+
+        guided_body = scenarios["guided-answers"]["request"]["body"]
+        self.assertEqual("guided", guided_body["sourceType"])
+        self.assertIn("guidedAnswers", guided_body)
+        self.assertNotIn("fileObjectId", guided_body)
+
+    def test_list_resumes_represents_fileless_assets_without_file_object_id(self) -> None:
+        scenarios = _load_fixture("listResumes", "Resumes")["scenarios"]
+        items = []
+        for scenario in scenarios.values():
+            items.extend(scenario["response"]["body"]["items"])
+        by_source = {item["sourceType"]: item for item in items}
+
+        self.assertIsInstance(by_source["upload"]["fileObjectId"], str)
+        self.assertIsNone(by_source["paste"]["fileObjectId"])
+        self.assertIsNone(by_source["guided"]["fileObjectId"])
+
     def test_uuid_format_ids_are_uuidv7_no_tmp_prefix(self) -> None:
         validator = _load_validator()
         for tag, opid, _path, data in validator.walk_fixtures(FIXTURES_ROOT):

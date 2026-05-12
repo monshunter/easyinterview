@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-12](2026-05-12.md) | `fix(openapi): allow fileless resume intake contracts` | #fix #test #docs |
 | [2026-05-12](2026-05-12.md) | `docs(bugs): record resume tailor mode drift` | #docs #fix |
 | [2026-05-12](2026-05-12.md) | `docs(retrospective): assess resume additive delivery` | #docs |
 | [2026-05-12](2026-05-12.md) | `docs(plans): close resume additive lifecycle` | #docs |

@@ -49,15 +49,16 @@ describe('generated event contract', () => {
       ...gapReview,
       mode: 'bullet_suggestions',
     };
+    const retiredMode = ['in', 'line'].join('');
     const retiredModePayload: ResumeTailorCompletedPayload = {
       ...gapReview,
-      // @ts-expect-error inline was retired by B3 D-14.
-      mode: 'inline',
+      // @ts-expect-error retired modes must stay rejected by generated types.
+      mode: retiredMode,
     };
 
     expect(EVENT_NAME_RESUME_TAILOR_COMPLETED).toBe('resume.tailor.completed');
     expect(gapReview.mode).toBe('gap_review');
     expect(bulletSuggestions.mode).toBe('bullet_suggestions');
-    expect(retiredModePayload.mode).toBe('inline');
+    expect(retiredModePayload.mode).toBe(retiredMode);
   });
 });

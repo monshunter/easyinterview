@@ -35,7 +35,7 @@
               "parseStatus": "ready",
               "status": "active",
               "sourceType": "paste",
-              "fileObjectId": "0195f2d0-0000-7000-8000-000000001110",
+              "fileObjectId": null,
               "originalText": "Led frontend platform work for checkout, experimentation, and developer tooling.",
               "guidedAnswers": {},
               "parsedTextSnapshot": "Led frontend platform work for checkout, experimentation, and developer tooling.",
@@ -87,7 +87,7 @@
               "parseStatus": "ready",
               "status": "active",
               "sourceType": "guided",
-              "fileObjectId": "0195f2d0-0000-7000-8000-000000001120",
+              "fileObjectId": null,
               "originalText": null,
               "guidedAnswers": {
                 "targetRole": "Senior Frontend Engineer",

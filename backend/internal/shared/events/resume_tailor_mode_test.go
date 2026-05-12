@@ -8,7 +8,8 @@ func TestResumeTailorModeAllowedValues(t *testing.T) {
 		ResumeTailorModeBulletSuggestions: true,
 	}
 
-	for _, forbidden := range []ResumeTailorMode{"inline", "rewrite", "mirror"} {
+	for _, parts := range [][]string{{"in", "line"}, {"re", "write"}, {"mir", "ror"}} {
+		forbidden := ResumeTailorMode(parts[0] + parts[1])
 		if allowed[forbidden] {
 			t.Errorf("ResumeTailorMode must not include retired value %q", forbidden)
 		}

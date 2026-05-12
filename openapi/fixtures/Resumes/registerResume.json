@@ -30,6 +30,69 @@
           }
         }
       }
+    },
+    "paste-text": {
+      "request": {
+        "headers": {},
+        "body": {
+          "title": "Alice Example - Product Platform Resume",
+          "language": "en-US",
+          "sourceType": "paste",
+          "rawText": "Led frontend platform work for checkout, experimentation, and developer tooling."
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-25-00-register-resume-paste"
+        },
+        "body": {
+          "resumeAssetId": "0195f2d0-0000-7000-8000-000000001010",
+          "job": {
+            "id": "0195f2d0-0000-7000-8000-00000000b110",
+            "jobType": "resume_parse",
+            "status": "queued",
+            "resourceType": "resume_asset",
+            "resourceId": "0195f2d0-0000-7000-8000-000000001010",
+            "errorCode": null,
+            "createdAt": "2026-05-12T08:25:00Z",
+            "updatedAt": "2026-05-12T08:25:00Z"
+          }
+        }
+      }
+    },
+    "guided-answers": {
+      "request": {
+        "headers": {},
+        "body": {
+          "title": "Alice Example - Interview Evidence Resume",
+          "language": "zh-CN",
+          "sourceType": "guided",
+          "guidedAnswers": {
+            "targetRole": "Senior Frontend Engineer",
+            "strongestEvidence": "Checkout reliability and mentoring"
+          }
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-26-00-register-resume-guided"
+        },
+        "body": {
+          "resumeAssetId": "0195f2d0-0000-7000-8000-000000001020",
+          "job": {
+            "id": "0195f2d0-0000-7000-8000-00000000b120",
+            "jobType": "resume_parse",
+            "status": "queued",
+            "resourceType": "resume_asset",
+            "resourceId": "0195f2d0-0000-7000-8000-000000001020",
+            "errorCode": null,
+            "createdAt": "2026-05-12T08:26:00Z",
+            "updatedAt": "2026-05-12T08:26:00Z"
+          }
+        }
+      }
     }
   }
 }

@@ -293,8 +293,15 @@ func goTypeFor(spec map[string]any) string {
 	if spec == nil {
 		return "any"
 	}
+	nullable, _ := spec["nullable"].(bool)
+	withNull := func(base string) string {
+		if nullable && !strings.HasPrefix(base, "*") {
+			return "*" + base
+		}
+		return base
+	}
 	if ref, ok := spec["$ref"].(string); ok {
-		return goRefName(extractRefName(ref))
+		return withNull(goRefName(extractRefName(ref)))
 	}
 	if oneOf, ok := spec["oneOf"].([]any); ok {
 		// Detect `oneOf: [X, {type: 'null'}]` → `*X`.
@@ -329,31 +336,27 @@ func goTypeFor(spec map[string]any) string {
 	t, _ := spec["type"].(string)
 	switch t {
 	case "string":
-		return "string"
+		return withNull("string")
 	case "boolean":
-		return "bool"
+		return withNull("bool")
 	case "integer":
 		switch f, _ := spec["format"].(string); f {
 		case "int64":
-			return "int64"
+			return withNull("int64")
 		default:
-			return "int32"
+			return withNull("int32")
 		}
 	case "number":
-		return "float64"
+		return withNull("float64")
 	case "array":
 		items, _ := spec["items"].(map[string]any)
-		return "[]" + goTypeFor(items)
+		return withNull("[]" + goTypeFor(items))
 	case "object":
 		// Free-form object → map[string]any unless we have a property tree.
 		if _, hasProps := spec["properties"]; !hasProps {
-			return "map[string]any"
+			return withNull("map[string]any")
 		}
-		return "any"
-	}
-	if nullable, _ := spec["nullable"].(bool); nullable {
-		// e.g., B1 PageInfo.nextCursor is type:string + nullable:true.
-		return "*string"
+		return withNull("any")
 	}
 	return "any"
 }
