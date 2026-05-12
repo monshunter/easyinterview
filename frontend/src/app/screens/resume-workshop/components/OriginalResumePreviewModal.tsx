@@ -9,6 +9,9 @@ export interface OriginalResumePreviewModalProps {
   originalText: string[];
   /** Title shown in the modal header. */
   title: string;
+  /** Loading/error state for the source asset backing the modal body. */
+  contentState?: "ready" | "loading" | "error";
+  onRetry?: () => void;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -19,6 +22,8 @@ export const OriginalResumePreviewModal: FC<OriginalResumePreviewModalProps> = (
   onClose,
   originalText,
   title,
+  contentState = "ready",
+  onRetry,
 }) => {
   const { t } = useI18n();
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -107,7 +112,34 @@ export const OriginalResumePreviewModal: FC<OriginalResumePreviewModalProps> = (
           data-testid="resume-detail-original-modal-content"
           className="ei-resume-detail-modal-content"
         >
-          {originalText.length === 0 ? (
+          {contentState === "loading" ? (
+            <p
+              className="ei-text-body"
+              data-testid="resume-detail-original-modal-loading"
+              role="status"
+            >
+              {t("resumeWorkshop.detail.modalLoading")}
+            </p>
+          ) : contentState === "error" ? (
+            <div
+              data-testid="resume-detail-original-modal-error"
+              role="alert"
+            >
+              <p className="ei-text-body">
+                {t("resumeWorkshop.detail.modalError")}
+              </p>
+              {onRetry ? (
+                <button
+                  type="button"
+                  className="ei-cta"
+                  data-testid="resume-detail-original-modal-retry"
+                  onClick={onRetry}
+                >
+                  {t("workspace.errors.retry")}
+                </button>
+              ) : null}
+            </div>
+          ) : originalText.length === 0 ? (
             <p className="ei-text-body">—</p>
           ) : (
             originalText.map((line, index) => (

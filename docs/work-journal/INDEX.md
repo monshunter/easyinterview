@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-12](2026-05-12.md) | `fix(frontend-resume-workshop): harden resume workshop error states` | #fix #ui #test #docs |
 | [2026-05-12](2026-05-12.md) | `fix(frontend-resume-workshop): remediate listing detail L2 gaps` | #fix #ui #test #docs |
 | [2026-05-12](2026-05-12.md) | `feat(frontend-resume-workshop): add pixel parity and bdd scenarios` | #feat #ui #test |
 | [2026-05-12](2026-05-12.md) | `feat(frontend-resume-workshop): add accept-language and privacy gates` | #feat #i18n #test |

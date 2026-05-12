@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 
 import { EasyInterviewClient } from "../../../../api/generated/client";
+import type { PaginatedResumeVersion } from "../../../../api/generated/types";
 import {
   createFixtureBackedFetch,
   createFixtureRegistry,
@@ -34,11 +35,15 @@ function buildClient(scenario: string): EasyInterviewClient {
 }
 
 function renderListView(scenario: string) {
+  return renderListViewWithClient(buildClient(scenario));
+}
+
+function renderListViewWithClient(client: EasyInterviewClient) {
   const route: Route = { name: "resume_versions", params: {} };
   return render(
     <DisplayPreferencesProvider>
       <AppRuntimeProvider
-        client={buildClient(scenario)}
+        client={client}
         requestOptions={{
           getMe: { headers: { Prefer: "example=authenticated" } },
         }}
@@ -90,7 +95,12 @@ describe("Resume list version aggregation boundaries", () => {
   });
 
   it("paginated scenario renders the continue-loading hint when hasMore=true", async () => {
-    renderListView("paginated");
+    const client = buildClient("paginated");
+    vi.spyOn(client, "listResumeVersions").mockResolvedValue({
+      items: [],
+      pageInfo: { nextCursor: null, pageSize: 50, hasMore: false },
+    } satisfies PaginatedResumeVersion);
+    renderListViewWithClient(client);
     await waitFor(() => {
       expect(
         screen.getByTestId("resume-workshop-list-paginated"),

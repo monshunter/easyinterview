@@ -86,6 +86,24 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
     );
   }
 
+  if (versionQuery.error) {
+    return (
+      <div data-testid="resume-detail-error" className="ei-screen-card">
+        <p className="ei-text-body" role="alert">
+          {t("resumeWorkshop.detail.error")}
+        </p>
+        <button
+          type="button"
+          className="ei-cta"
+          data-testid="resume-detail-retry"
+          onClick={versionQuery.retry}
+        >
+          {t("workspace.errors.retry")}
+        </button>
+      </div>
+    );
+  }
+
   if (versionQuery.loading || !versionQuery.data) {
     return (
       <div data-testid="resume-detail-container" className="ei-screen-card">
@@ -120,10 +138,17 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
   const originalSource = sourceQuery.data
     ? mapResumeAssetToUiSource(sourceQuery.data)
     : null;
-  const originalText =
-    originalSource && originalSource.text.length > 0
+  const originalText = sourceQuery.data
+    ? originalSource && originalSource.text.length > 0
       ? originalSource.text
-      : versionFallbackOriginalText;
+      : versionFallbackOriginalText
+    : [];
+  const originalModalState =
+    originalOpen && sourceQuery.error
+      ? "error"
+      : originalOpen && !sourceQuery.data
+        ? "loading"
+        : "ready";
 
   return (
     <div
@@ -225,6 +250,8 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
         open={originalOpen}
         onClose={() => setOriginalOpen(false)}
         originalText={originalText}
+        contentState={originalModalState}
+        onRetry={sourceQuery.retry}
         title={originalSource?.name ?? ui.name}
       />
     </div>

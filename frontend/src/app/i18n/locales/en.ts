@@ -415,6 +415,8 @@ export const en: LocaleMessages = {
   "resumeWorkshop.flat.empty": "No versions to list",
   "resumeWorkshop.list.loading": "Loading resumes...",
   "resumeWorkshop.list.error": "Failed to load resumes. Please retry.",
+  "resumeWorkshop.list.versionsError":
+    "Failed to load resume versions. Please retry.",
   "resumeWorkshop.list.empty": "You have no resumes uploaded yet.",
   "resumeWorkshop.list.paginated": "Continue loading more",
   "resumeWorkshop.openVersion": "Open",
@@ -432,6 +434,7 @@ export const en: LocaleMessages = {
   "resumeWorkshop.detail.copyUnavailable":
     "Clipboard write is unavailable in this environment",
   "resumeWorkshop.detail.loading": "Loading version...",
+  "resumeWorkshop.detail.error": "Failed to load this version. Please retry.",
   "resumeWorkshop.detail.notFoundTitle": "Version not found",
   "resumeWorkshop.detail.notFoundBody":
     "This resume version may have been deleted or the link is no longer valid. Return to Resume Workshop to choose another version.",
@@ -447,4 +450,7 @@ export const en: LocaleMessages = {
   "resumeWorkshop.detail.modalClose": "Close original preview",
   "resumeWorkshop.detail.modalDescription":
     "The original is read-only. Edits and JD-specific rewrites create versions beside it.",
+  "resumeWorkshop.detail.modalLoading": "Loading original source...",
+  "resumeWorkshop.detail.modalError":
+    "Failed to load original source. Please retry.",
 };

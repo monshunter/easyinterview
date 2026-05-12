@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { PaginatedResumeVersion } from "../../../../api/generated/types";
 import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferencesProvider";
@@ -8,6 +8,7 @@ export interface UseResumeVersionsResult {
   loading: boolean;
   data: PaginatedResumeVersion | null;
   error: Error | null;
+  retry: () => void;
 }
 
 /**
@@ -29,7 +30,12 @@ export function useResumeVersions(
   );
   const [data, setData] = useState<PaginatedResumeVersion | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [reloadSeq, setReloadSeq] = useState(0);
   const requestSeqRef = useRef(0);
+
+  const retry = useCallback(() => {
+    setReloadSeq((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     if (!client || !isAuthenticated || !primerAssetId) {
@@ -65,7 +71,7 @@ export function useResumeVersions(
     return () => {
       active = false;
     };
-  }, [client, isAuthenticated, primerAssetId, lang]);
+  }, [client, isAuthenticated, primerAssetId, reloadSeq, lang]);
 
-  return { loading, data, error };
+  return { loading, data, error, retry };
 }

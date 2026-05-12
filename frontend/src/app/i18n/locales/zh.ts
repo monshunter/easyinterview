@@ -404,6 +404,7 @@ export const zh = {
   "resumeWorkshop.flat.empty": "暂无版本可平铺",
   "resumeWorkshop.list.loading": "加载简历中…",
   "resumeWorkshop.list.error": "加载简历失败，请重试。",
+  "resumeWorkshop.list.versionsError": "加载简历版本失败，请重试。",
   "resumeWorkshop.list.empty": "尚未上传任何简历。",
   "resumeWorkshop.list.paginated": "继续加载下一页",
   "resumeWorkshop.openVersion": "打开",
@@ -419,6 +420,7 @@ export const zh = {
   "resumeWorkshop.detail.copySuccess": "已复制纯文本",
   "resumeWorkshop.detail.copyUnavailable": "当前环境不支持剪贴板写入",
   "resumeWorkshop.detail.loading": "加载版本中…",
+  "resumeWorkshop.detail.error": "加载版本失败，请重试。",
   "resumeWorkshop.detail.notFoundTitle": "未找到该版本",
   "resumeWorkshop.detail.notFoundBody":
     "该简历版本可能已删除，或链接已失效，请返回简历工坊重新选择。",
@@ -434,6 +436,8 @@ export const zh = {
   "resumeWorkshop.detail.modalClose": "关闭原件预览",
   "resumeWorkshop.detail.modalDescription":
     "原始简历只读保存。编辑和 JD 定制改写会生成旁路版本，不覆盖原件。",
+  "resumeWorkshop.detail.modalLoading": "加载原件来源中…",
+  "resumeWorkshop.detail.modalError": "加载原件来源失败，请重试。",
 } as const;
 
 export type MessageKey = keyof typeof zh;

@@ -46,6 +46,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0046](./BUG-0046.md) | resume workshop hid failed loads and original-source pending state | medium | resolved | 2026-05-12 | `fix(frontend-resume-workshop): harden resume workshop error states` |
 | [BUG-0045](./BUG-0045.md) | resume workshop L2 review exposed original modal and CSS parity drift | medium | resolved | 2026-05-12 | `fix(frontend-resume-workshop): remediate listing detail L2 gaps` |
 | [BUG-0041](./BUG-0041.md) | auth user menu browser parity missed mobile overflow | medium | resolved | 2026-05-11 | `fix(frontend-shell): close auth menu browser parity gap` |
 | [BUG-0040](./BUG-0040.md) | workspace pixel gate depended on stale hydration and ignored baselines | medium | resolved | 2026-05-10 | `fix(frontend-shell): harden workspace pixel parity gate` |

@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { EasyInterviewClient } from "../../../../api/generated/client";
+import type { PaginatedResumeVersion } from "../../../../api/generated/types";
 import {
   createFixtureBackedFetch,
   createFixtureRegistry,
@@ -36,6 +38,24 @@ function buildClient(): EasyInterviewClient {
 
 function renderListView(route: Route) {
   const client = buildClient();
+  const nav = vi.fn();
+  return render(
+    <DisplayPreferencesProvider>
+      <AppRuntimeProvider
+        client={client}
+        requestOptions={{
+          getMe: { headers: { Prefer: "example=authenticated" } },
+        }}
+      >
+        <NavigationProvider value={{ navigate: nav }}>
+          <ResumeWorkshopScreen route={route} />
+        </NavigationProvider>
+      </AppRuntimeProvider>
+    </DisplayPreferencesProvider>,
+  );
+}
+
+function renderListViewWithClient(client: EasyInterviewClient, route: Route) {
   const nav = vi.fn();
   return render(
     <DisplayPreferencesProvider>
@@ -122,6 +142,42 @@ describe("ResumeListView default fixture rendering", () => {
       const versions = screen.getByTestId("resume-workshop-stats-versions");
       expect(originals).toHaveTextContent(String(expectedOriginalCount));
       expect(versions).toHaveTextContent(String(expectedVersionCount));
+    });
+  });
+
+  it("surfaces listResumeVersions failures as a retryable error instead of zero-version stats", async () => {
+    const client = buildClient();
+    const versionsSpy = vi
+      .spyOn(client, "listResumeVersions")
+      .mockRejectedValueOnce(new Error("versions fixture unavailable"))
+      .mockResolvedValueOnce(
+        listResumeVersionsFixture.scenarios.default.response
+          .body as PaginatedResumeVersion,
+      );
+    renderListViewWithClient(client, LIST_ROUTE);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("resume-workshop-versions-error"),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId("resume-workshop-stats-versions"),
+    ).not.toBeInTheDocument();
+
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("resume-workshop-versions-retry"));
+
+    await waitFor(() => {
+      expect(versionsSpy).toHaveBeenCalledTimes(2);
+      expect(
+        screen.getByTestId("resume-workshop-stats-versions"),
+      ).toHaveTextContent(
+        String(
+          listResumeVersionsFixture.scenarios.default.response.body.items.length,
+        ),
+      );
     });
   });
 });

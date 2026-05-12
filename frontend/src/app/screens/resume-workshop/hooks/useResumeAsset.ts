@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ResumeAsset } from "../../../../api/generated/types";
 import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferencesProvider";
@@ -8,6 +8,7 @@ export interface UseResumeAssetResult {
   loading: boolean;
   data: ResumeAsset | null;
   error: Error | null;
+  retry: () => void;
 }
 
 export function useResumeAsset(resumeAssetId: string | null): UseResumeAssetResult {
@@ -21,7 +22,12 @@ export function useResumeAsset(resumeAssetId: string | null): UseResumeAssetResu
   );
   const [data, setData] = useState<ResumeAsset | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [reloadSeq, setReloadSeq] = useState(0);
   const requestSeqRef = useRef(0);
+
+  const retry = useCallback(() => {
+    setReloadSeq((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     if (!client || !isAuthenticated || !resumeAssetId) {
@@ -55,7 +61,7 @@ export function useResumeAsset(resumeAssetId: string | null): UseResumeAssetResu
     return () => {
       active = false;
     };
-  }, [client, isAuthenticated, resumeAssetId, lang]);
+  }, [client, isAuthenticated, resumeAssetId, reloadSeq, lang]);
 
-  return { loading, data, error };
+  return { loading, data, error, retry };
 }

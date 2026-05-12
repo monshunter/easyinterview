@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ResumeVersion } from "../../../../api/generated/types";
 import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferencesProvider";
@@ -9,6 +9,7 @@ export interface UseResumeVersionResult {
   data: ResumeVersion | null;
   error: Error | null;
   notFound: boolean;
+  retry: () => void;
 }
 
 export function useResumeVersion(versionId: string | null): UseResumeVersionResult {
@@ -22,7 +23,12 @@ export function useResumeVersion(versionId: string | null): UseResumeVersionResu
   );
   const [data, setData] = useState<ResumeVersion | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [reloadSeq, setReloadSeq] = useState(0);
   const requestSeqRef = useRef(0);
+
+  const retry = useCallback(() => {
+    setReloadSeq((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     if (!client || !isAuthenticated || !versionId) {
@@ -56,12 +62,12 @@ export function useResumeVersion(versionId: string | null): UseResumeVersionResu
     return () => {
       active = false;
     };
-  }, [client, isAuthenticated, versionId, lang]);
+  }, [client, isAuthenticated, versionId, reloadSeq, lang]);
 
   const notFound = error
     ? error.message.startsWith("HTTP 404 ") ||
       error.message.includes("404")
     : false;
 
-  return { loading, data, error, notFound };
+  return { loading, data, error, notFound, retry };
 }

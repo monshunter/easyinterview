@@ -101,6 +101,43 @@ export const ResumeListView: FC = () => {
     );
   }
 
+  const versionsPending =
+    sources.length > 0 &&
+    primerAssetId !== null &&
+    !versionsQuery.data &&
+    !versionsQuery.error;
+
+  if (versionsPending || (versionsQuery.loading && sources.length > 0)) {
+    return (
+      <div data-testid="resume-workshop-list" className="ei-screen-card">
+        <span className="ei-text-body" role="status">
+          {t("resumeWorkshop.list.loading")}
+        </span>
+      </div>
+    );
+  }
+
+  if (versionsQuery.error) {
+    return (
+      <div
+        data-testid="resume-workshop-versions-error"
+        className="ei-screen-card"
+      >
+        <p className="ei-text-body" role="alert">
+          {t("resumeWorkshop.list.versionsError")}
+        </p>
+        <button
+          type="button"
+          className="ei-cta"
+          data-testid="resume-workshop-versions-retry"
+          onClick={versionsQuery.retry}
+        >
+          {t("workspace.errors.retry")}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
       data-testid="resume-workshop-list"
