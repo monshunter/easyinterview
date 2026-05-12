@@ -22,10 +22,10 @@
 
 ## Phase 2: file_objects store + state machine
 
-- [ ] 2.1 实现 `backend/internal/upload/store/file_objects.go` Repository，方法签名：`Create / MarkUploaded / MarkScanFailed / MarkDeleted / HardDelete / DeleteFileObjectsForUser / LockForRegister`（或等价 row-lock 查询）（验证：编译 PASS）
-- [ ] 2.2 在 store 层实现 state transition validation：`pending → uploaded`、`pending|uploaded → scan_failed`、`pending|uploaded|scan_failed → deleted`；非法转换返回 `VALIDATION_FAILED`（验证：unit test `TestStateTransition` 含所有合法 + 非法转换 case PASS）
-- [ ] 2.3 实现 register row-lock 校验：同 user + purpose 匹配；cross-user / not-found 返回 404；`scan_failed` / `deleted` 返回 `VALIDATION_FAILED`；不写 `registered` 状态（验证：integration test）
-- [ ] 2.4 integration test：CRUD + state transition + cross-user isolation + FK 约束验证（验证：`go test ./internal/upload/store/... -tags=integration` PASS）
+- [x] 2.1 实现 `backend/internal/upload/store/file_objects.go` Repository，方法签名：`Create / MarkUploaded / MarkScanFailed / MarkDeleted / HardDelete / DeleteFileObjectsForUser / LockForRegister`（或等价 row-lock 查询）（验证：编译 PASS）
+- [x] 2.2 在 store 层实现 state transition validation：`pending → uploaded`、`pending|uploaded → scan_failed`、`pending|uploaded|scan_failed → deleted`；非法转换返回 `VALIDATION_FAILED`（验证：unit test `TestStateTransition` 含所有合法 + 非法转换 case PASS）
+- [x] 2.3 实现 register row-lock 校验：同 user + purpose 匹配；cross-user / not-found 返回 404；`scan_failed` / `deleted` 返回 `VALIDATION_FAILED`；不写 `registered` 状态（验证：integration test）
+- [x] 2.4 integration test：CRUD + state transition + cross-user isolation + FK 约束验证（验证：`go test ./internal/upload/store/... -tags=integration` PASS）
 
 ## Phase 3: ObjectStore interface + dev provider
 
