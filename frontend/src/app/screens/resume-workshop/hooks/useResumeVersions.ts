@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { PaginatedResumeVersion } from "../../../../api/generated/types";
+import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferencesProvider";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 
 export interface UseResumeVersionsResult {
@@ -21,6 +22,7 @@ export function useResumeVersions(
   const runtime = useAppRuntimeOptional();
   const client = runtime?.client;
   const isAuthenticated = runtime?.auth.status === "authenticated";
+  const lang = useDisplayPreferencesOptional()?.lang ?? "zh";
 
   const [loading, setLoading] = useState<boolean>(
     !!client && isAuthenticated && !!primerAssetId,
@@ -44,7 +46,9 @@ export function useResumeVersions(
     setError(null);
 
     client
-      .listResumeVersions(primerAssetId)
+      .listResumeVersions(primerAssetId, {
+        headers: { "Accept-Language": lang },
+      })
       .then((paginated) => {
         if (!active || requestSeqRef.current !== requestSeq) return;
         setData(paginated);
@@ -61,7 +65,7 @@ export function useResumeVersions(
     return () => {
       active = false;
     };
-  }, [client, isAuthenticated, primerAssetId]);
+  }, [client, isAuthenticated, primerAssetId, lang]);
 
   return { loading, data, error };
 }

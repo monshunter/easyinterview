@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { ResumeVersion } from "../../../../api/generated/types";
+import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferencesProvider";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 
 export interface UseResumeVersionResult {
@@ -14,6 +15,7 @@ export function useResumeVersion(versionId: string | null): UseResumeVersionResu
   const runtime = useAppRuntimeOptional();
   const client = runtime?.client;
   const isAuthenticated = runtime?.auth.status === "authenticated";
+  const lang = useDisplayPreferencesOptional()?.lang ?? "zh";
 
   const [loading, setLoading] = useState<boolean>(
     !!client && isAuthenticated && !!versionId,
@@ -37,7 +39,7 @@ export function useResumeVersion(versionId: string | null): UseResumeVersionResu
     setError(null);
 
     client
-      .getResumeVersion(versionId)
+      .getResumeVersion(versionId, { headers: { "Accept-Language": lang } })
       .then((version) => {
         if (!active || requestSeqRef.current !== requestSeq) return;
         setData(version);
@@ -54,7 +56,7 @@ export function useResumeVersion(versionId: string | null): UseResumeVersionResu
     return () => {
       active = false;
     };
-  }, [client, isAuthenticated, versionId]);
+  }, [client, isAuthenticated, versionId, lang]);
 
   const notFound = error
     ? error.message.startsWith("HTTP 404 ") ||

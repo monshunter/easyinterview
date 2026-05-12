@@ -35,10 +35,10 @@
 
 ## Phase 4: i18n + a11y + 隐私红线
 
-- [ ] 4.1 复用 [frontend-shell i18n](../../../frontend-shell/spec.md) en/zh 配置，新增 `resumeWorkshop.*` key（验证：Vitest 切换 EN/ZH 关键文案）
-- [ ] 4.2 a11y：focus 管理 / aria-label / 键盘导航完整（验证：Playwright a11y 键盘 + screen reader role 断言）
-- [ ] 4.3 Accept-Language header 携带：lang 切换时 generated client 请求 header 携带 BCP47（验证：integration test 验证 header）
-- [ ] 4.4 隐私红线 grep：raw resume text / originalText / parsedTextSnapshot / parsed_summary / parsedSummary / structured_profile / structuredProfile / suggestion 改写文本不出现在 console.log / URL / pendingAction params / localStorage / telemetry / mock transport log（验证：Vitest + Playwright grep negative）
+- [x] 4.1 复用 [frontend-shell i18n](../../../frontend-shell/spec.md) en/zh 配置，新增 `resumeWorkshop.*` key（验证：Vitest 切换 EN/ZH 关键文案）
+- [x] 4.2 a11y：focus 管理 / aria-label / 键盘导航完整（验证：Playwright a11y 键盘 + screen reader role 断言）
+- [x] 4.3 Accept-Language header 携带：lang 切换时 generated client 请求 header 携带 BCP47（验证：integration test 验证 header）
+- [x] 4.4 隐私红线 grep：raw resume text / originalText / parsedTextSnapshot / parsed_summary / parsedSummary / structured_profile / structuredProfile / suggestion 改写文本不出现在 console.log / URL / pendingAction params / localStorage / telemetry / mock transport log（验证：Vitest + Playwright grep negative）
 
 ## Phase 5: UI parity gate + BDD + 旧入口负向 grep
 

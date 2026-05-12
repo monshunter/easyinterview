@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FC } from "react";
 
 import type { ResumeVersion } from "../../../../api/generated/types";
 import { generateIdempotencyKey } from "../../../../lib/conventions/idempotency";
+import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferencesProvider";
 import { useI18n } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
@@ -29,6 +30,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
   const { t } = useI18n();
   const { navigate } = useNavigation();
   const runtime = useAppRuntimeOptional();
+  const lang = useDisplayPreferencesOptional()?.lang ?? "zh";
   const versionQuery = useResumeVersion(versionId);
   const [activeTab, setActiveTab] = useState<ResumeDetailTab | null>(initialTab);
   const [originalOpen, setOriginalOpen] = useState(false);
@@ -55,6 +57,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
       const idempotencyKey = generateIdempotencyKey();
       await runtime.client.exportResumeVersion(versionQuery.data.id, {
         idempotencyKey,
+        headers: { "Accept-Language": lang },
       });
       // P0 always returns 501 RESUME_EXPORT_NOT_AVAILABLE through generated
       // client (typed as ApiErrorResponse). Surface the friendly toast
