@@ -1,8 +1,8 @@
 # Backend Resume Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-12
 
 ## 1 背景与目标
 
@@ -55,6 +55,7 @@
 | D-6 | RESUME_EXPORT_NOT_AVAILABLE 行为 | `exportResumeVersion` P0 默认返回 `501` + `error.code = "RESUME_EXPORT_NOT_AVAILABLE"`；P1 切到 `202 + Job(jobType=resume_export)` 属 additive 行为变化 | 类比 [B2 D-12 privacy export 例外](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围)；frontend toast 兜底 + copyText 真实可用 |
 | D-7 | listResumes / listResumeVersions pagination | 默认 pageSize=20，cursor 分页；返回 `PaginatedResumeAsset` / `PaginatedResumeVersion`（B2 D-18 schema） | 与 [B2 D-5](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) 分页规则一致 |
 | D-8 | branch / update / accept / reject / archive / export 必带 IK | 6 个 side-effect operation 必带 `Idempotency-Key`（与 [B2 D-18](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) 一致） | 防止网络抖动产生重复 version / 重复 accept |
+| D-9 | 首次创建保存边界 | `registerResume` 只登记 `ResumeAsset` source 并触发 `resume.parse`；parse job 只产出解析草稿（`parsed_summary` / `parsed_text_snapshot`）和 parse 状态，不在用户 Preview Confirm 前创建正式 `structured_master` `ResumeVersion`。确认保存 v1 由后续 backend-resume/002 + frontend-resume-workshop/002 承接。 | 对齐 `docs/ui-design/resume-onboarding.md` 的 `输入 -> Agent 解析 -> 预览确认 -> 保存 v1`；防止未确认草稿成为正式简历版本 |
 
 ### 3.2 待确认事项
 
@@ -82,7 +83,7 @@
 
 - `resume_versions.user_id` / `resume_version_suggestions` 通过 FK 与 `resume_versions` 关联（[B4 002 资源版本 migration](../db-migrations-baseline/plans/002-resume-versions-additive/plan.md)）；不绕过 store 层直接 SQL。
 - 跨用户隔离：所有 read endpoint 必须以 `user_id = current_user_id` 过滤；cross-user 访问返回 404（不暴露存在）。
-- 隐私删除调用 `DeleteResumeAssetsForUser(userId)`：先 suggestions → tailor_runs → versions → assets → 调 backend-upload `DeleteFileObjectsForUser` 删 file binary。
+- 隐私删除调用 `DeleteResumeAssetsForUser(userId)`：先 `resume_version_suggestions` → `resume_versions` → `resume_tailor_runs` → `resume_assets`；file binary 与 `file_objects` 删除由 backend-upload `DeleteFileObjectsForUser` 在同一 privacy request 中按 B4 matrix 协调（对象存储删除成功后再 hard delete DB 行）。
 - raw resume text 与 guided answers（`resume_assets.original_text` / `resume_assets.guided_answers` / `raw_text` / `parsed_text_snapshot`）不出现在 audit_events / outbox / log 中（[B3 §3.1.4 PII 边界](../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory)）。
 
 ### 4.4 BDD / TDD 约束
@@ -109,13 +110,13 @@
 |----|------|-------|------|------|-----------|
 | C-1 | registerResume (upload) 主路径 | 已登录 + 有效 file_object (purpose=resume) + IK | 调 `POST /api/v1/resumes` `{sourceType: upload, fileObjectId, title, language}` | 返回 202 + `ResumeAssetWithJob{resumeAssetId, job(jobType=resume_parse, status=queued)}`；DB `resume_assets` 行 `parse_status='queued'`；触发 `resume.parse` async job | 001-asset-register-parse-and-listing |
 | C-2 | registerResume (paste / guided) | sourceType=paste with rawText OR guided with guidedAnswers | 调 register | 同 C-1 行为，但 `resume_assets.file_object_id` 为 NULL；paste 写 `source_type='paste'` + `original_text`；guided 写 `source_type='guided'` + `guided_answers` jsonb；`parsed_text_snapshot` 仅由 parse job 后续写入 | 001 |
-| C-3 | resume.parse async 完成 | resume.parse job consumer 处理 queued 行 | 通过 [A3 AIClient](../ai-provider-and-model-routing/spec.md) 调 model + parse JSON | DB `resume_assets.parse_status='ready'` + `parsed_summary` 写入；触发 outbox `resume.parse.completed`（envelope 字段集 [B3 §3.1.4](../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory) 一致）；ai_task_runs 行写入 typed columns | 001 |
+| C-3 | resume.parse async 完成 | resume.parse job consumer 处理 queued 行 | 通过 [A3 AIClient](../ai-provider-and-model-routing/spec.md) 调 model + parse JSON | DB `resume_assets.parse_status='ready'` + `parsed_summary` / `parsed_text_snapshot` 写入；触发 outbox `resume.parse.completed`（envelope 字段集 [B3 §3.1.4](../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory) 一致）；ai_task_runs 行写入 typed columns；用户 Preview Confirm 前不得创建正式 `structured_master` `ResumeVersion` | 001 |
 | C-4 | resume.parse 失败 retryable | AI provider 返回 timeout / output_invalid | resume.parse 失败 | DB `resume_assets.parse_status='failed'` + `error_code='AI_PROVIDER_TIMEOUT'`；retryable 重试上限到达后停止；privacy 红线：error 不含 prompt / response 摘要 | 001 |
 | C-5 | listResumes pagination | 用户 A 有 25 个 resume_asset | 调 `GET /api/v1/resumes?pageSize=20` 然后 cursor | 第一页返回 20 行 + `pageInfo.nextCursor`；第二页返回 5 行 + `hasMore=false`；按 `updated_at DESC` 排序；cross-user 不可见 | 001 |
 | C-6 | cross-user 隔离 | 用户 A 有 resume；用户 B 调 `getResume(A.resumeAssetId)` | – | 404；不暴露存在；audit_events 不写入敏感字段 | 001 + 后续 plan |
 | C-7 | IK replay | register 同 IK 重复调用 | – | 返回首次 `resumeAssetId`；不创建新 DB 行 | 001 |
 | C-8 | mock-first 字节比对 | B2 fixture `registerResume.json` `default` scenario | 调真实 handler | 响应字段集 / status / header 字节一致 | 001 + mock-contract-suite |
-| C-9 | privacy 删除链路 | 用户 A 有 3 resume_asset + 5 version + 10 suggestion + 2 tailor_run | privacy_delete job 触发 | 删除顺序：suggestions → tailor_runs → versions → assets → backend-upload.DeleteFileObjectsForUser；audit tombstone（仅 ID / 删除时间，不含内容） | 后续 plan |
+| C-9 | privacy 删除链路 | 用户 A 有 3 resume_asset + 5 version + 10 suggestion + 2 tailor_run | privacy_delete job 触发 | backend-resume 删除顺序：suggestions → versions → tailor_runs → assets；backend-upload 同一 privacy request 删除 file binary / file_objects（对象存储先删，成功后 DB hard delete）；audit tombstone 仅保留 ID / 删除时间，不含内容 | 后续 plan |
 | C-10 | branchResumeVersion seedStrategy 三路 | 用户 A 有 master version | 分别调 `copy_master` / `blank` / `ai_select` branch | `copy_master` 同步返回 + structured_profile 拷贝；`blank` 同步返回 + structured_profile 空；`ai_select` 同步返回 resume_version_id + 入队 resume.tailor job | 后续 plan |
 | C-11 | suggestion accept/reject 状态机 | suggestion `pending` | 调 accept；再调 accept | 首次返回 200 + `decided_at` 写入；第二次返回 409 + `error.code = "VALIDATION_FAILED"`（或按 IK 语义幂等返回首次结果）；不私造未登记状态迁移错误码 | 后续 plan |
 | C-12 | exportResumeVersion P0 | 调 `POST /api/v1/resume-versions/{id}/exports` | – | 返回 501 + `error.code="RESUME_EXPORT_NOT_AVAILABLE"`；ai_task_runs 不写入；不消耗 model 配额 | 后续 plan |
@@ -124,5 +125,5 @@
 ## 7 关联计划
 
 - [001-asset-register-parse-and-listing](./plans/001-asset-register-parse-and-listing/plan.md)：第一批 plan，落地 `registerResume` + `getResume` + `listResumes` + `resume.parse` async job + sourceType 三路 + `resume.parse.completed` event；BDD 覆盖 register → parse → list 主路径。
-- `002-versions-and-tailor-runs`（未创建，由 001 完成后启动）：落地 `listResumeVersions` / `branchResumeVersion` / `updateResumeVersion` / `requestResumeTailor` / `getResumeTailorRun` / `acceptSuggestion` / `rejectSuggestion` + `resume.tailor.completed` event。
+- `002-versions-and-tailor-runs`（未创建，由 001 完成后启动）：落地 Preview Confirm 保存 v1 `structured_master`、`listResumeVersions` / `branchResumeVersion` / `updateResumeVersion` / `requestResumeTailor` / `getResumeTailorRun` / `acceptSuggestion` / `rejectSuggestion` + `resume.tailor.completed` event。
 - `003-export-and-archive-and-delete`（P1 延后）：落地 `exportResumeVersion` 真实 PDF 生成 + `archiveResumeAsset` + privacy delete 链路 fully integrate。
