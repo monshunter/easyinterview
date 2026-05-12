@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -45,7 +44,7 @@ function renderResumeWorkshop(
   nav: ReturnType<typeof vi.fn>,
   route: Route,
   authMode: "authenticated" | "unauthenticated",
-): ReactNode {
+) {
   return render(
     <DisplayPreferencesProvider>
       <AppRuntimeProvider

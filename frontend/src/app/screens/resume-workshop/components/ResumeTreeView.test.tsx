@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -39,7 +38,7 @@ function buildClient(): EasyInterviewClient {
   });
 }
 
-function renderTree(): ReactNode {
+function renderTree() {
   const route: Route = { name: "resume_versions", params: {} };
   return render(
     <DisplayPreferencesProvider>

@@ -67,7 +67,8 @@ const formatDateOnly = (iso: string): string => iso.slice(0, 10);
 
 const deriveLangTag = (language: string): string => {
   const primary = language.split("-")[0]?.toLowerCase() ?? "";
-  if (primary in LANG_TAG_MAP) return LANG_TAG_MAP[primary];
+  const mapped = LANG_TAG_MAP[primary];
+  if (mapped) return mapped;
   return primary.toUpperCase();
 };
 

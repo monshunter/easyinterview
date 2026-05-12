@@ -42,13 +42,13 @@
 
 ## Phase 5: UI parity gate + BDD + 旧入口负向 grep
 
-- [ ] 5.1 复用 [frontend-shell/003-ui-design-pixel-parity-gate](../../../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md) 框架，新增 `frontend/tests/pixel-parity/resume-workshop.spec.ts` 或同等分片；clean checkout gate 不依赖未跟踪 screenshot baseline（验证：Playwright spec 存在 + 非空截图 smoke）
-- [ ] 5.2 Playwright pixel parity：desktop 1440px + mobile 390x844 viewport DOM anchor + computed style + bounding box + screenshot smoke；仅在 baseline 可复现/已维护时使用 screenshot diff（验证：`pnpm --filter @easyinterview/frontend build && pnpm --filter @easyinterview/frontend test:pixel-parity` PASS；首次或新机器先跑 `pnpm --filter @easyinterview/frontend test:pixel-parity:install`）
-- [ ] 5.3 DOM parity：关键 testid 完整命中（StatsStrip 4 项 / TreeView 行 / FlatView 行 / DetailView Breadcrumb / Tab / Modal）（验证：Playwright DOM 断言）
-- [ ] 5.4 computed style parity：accent / bg / 字号 / 字号 / 间距与 ui-design 源一致（验证：Playwright computed style 断言）
-- [ ] 5.5 BDD-Gate: E2E.P0.036 resume-list-tree-flat-toggle PASS（详见 [bdd-checklist.md](./bdd-checklist.md)）
-- [ ] 5.6 BDD-Gate: E2E.P0.037 resume-detail-preview-readonly PASS
-- [ ] 5.7 旧入口 grep：`git grep -nE "welcome|mistake|growth|plan|drill|followup|onboarding|STAR|experiences|voice" -- frontend/src/app/screens/resume-workshop/` 0 命中（验证：CI lint）
-- [ ] 5.8 prototype import grep：`git grep -nE "ui-design/src/(data|screen-resume-workshop)" -- frontend/src/app/screens/resume-workshop/` 0 命中（验证：CI lint）
-- [ ] 5.9 在 `test/scenarios/e2e/INDEX.md` 追加 P0.036 + P0.037 行（关联需求 `frontend-resume-workshop C-1..C-9`，状态 Ready，automated）
-- [ ] 5.10 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `frontend-resume-workshop` 状态从 "未创建" 改为 "active"（与 backend-upload / backend-resume 同步行）（验证：`sync-doc-index --check`）
+- [x] 5.1 复用 [frontend-shell/003-ui-design-pixel-parity-gate](../../../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md) 框架，新增 `frontend/tests/pixel-parity/resume-workshop.spec.ts` 或同等分片；clean checkout gate 不依赖未跟踪 screenshot baseline（验证：Playwright spec 存在 + 非空截图 smoke）
+- [x] 5.2 Playwright pixel parity：desktop 1440px + mobile 390x844 viewport DOM anchor + computed style + bounding box + screenshot smoke；仅在 baseline 可复现/已维护时使用 screenshot diff（验证：`pnpm --filter @easyinterview/frontend build && pnpm --filter @easyinterview/frontend test:pixel-parity` PASS；首次或新机器先跑 `pnpm --filter @easyinterview/frontend test:pixel-parity:install`）
+- [x] 5.3 DOM parity：关键 testid 完整命中（StatsStrip 4 项 / TreeView 行 / FlatView 行 / DetailView Breadcrumb / Tab / Modal）（验证：Playwright DOM 断言）
+- [x] 5.4 computed style parity：accent / bg / 字号 / 字号 / 间距与 ui-design 源一致（验证：Playwright computed style 断言）
+- [x] 5.5 BDD-Gate: E2E.P0.036 resume-list-tree-flat-toggle PASS（详见 [bdd-checklist.md](./bdd-checklist.md)）<!-- verified: 2026-05-12 method=scenario bddChecklist=complete -->
+- [x] 5.6 BDD-Gate: E2E.P0.037 resume-detail-preview-readonly PASS<!-- verified: 2026-05-12 method=scenario bddChecklist=complete -->
+- [x] 5.7 旧入口 grep：`git grep -nE "welcome|mistake|growth|plan|drill|followup|onboarding|STAR|experiences|voice" -- frontend/src/app/screens/resume-workshop/` 0 命中（验证：CI lint）
+- [x] 5.8 prototype import grep：`git grep -nE "ui-design/src/(data|screen-resume-workshop)" -- frontend/src/app/screens/resume-workshop/` 0 命中（验证：CI lint）
+- [x] 5.9 在 `test/scenarios/e2e/INDEX.md` 追加 P0.036 + P0.037 行（关联需求 `frontend-resume-workshop C-1..C-9`，状态 Ready，automated）
+- [x] 5.10 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `frontend-resume-workshop` 状态从 "未创建" 改为 "active"（与 backend-upload / backend-resume 同步行）（验证：`sync-doc-index --check`）

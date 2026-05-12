@@ -60,11 +60,11 @@ describe("getResumeVersion fixture parity (Phase 3.6)", () => {
   for (const scenarioName of SCENARIOS) {
     it(`renders the detail container with breadcrumb + branch graph + tabs for the ${scenarioName} scenario`, async () => {
       const versionId = (
-        getResumeVersionFixture.scenarios as Record<
+        getResumeVersionFixture.scenarios as unknown as Record<
           string,
-          { response: { body: { id: string } } }
+          { response: { body: { id?: string } } }
         >
-      )[scenarioName]!.response.body.id;
+      )[scenarioName]!.response.body.id ?? "";
       renderDetail(scenarioName, versionId);
 
       await waitFor(() => {

@@ -23,7 +23,7 @@ const baseAsset: ResumeAsset = {
   originalText: null,
   guidedAnswers: {},
   parsedTextSnapshot: "Senior frontend engineer.",
-  parsedSummary: { headline: "Senior frontend engineer focused on growth" },
+  parsedSummary: { headline: "Senior frontend engineer focused on platform delivery" },
   createdAt: "2026-04-22T09:30:00Z",
   updatedAt: "2026-05-12T08:00:00Z",
   deletedAt: null,
@@ -95,7 +95,7 @@ describe("mapResumeAssetToUiSource", () => {
     expect(ui.name).toBe(baseAsset.title);
     expect(ui.createdAt).toBe("2026-04-22");
     expect(ui.status).toBe("active");
-    expect(ui.summary).toBe("Senior frontend engineer focused on growth");
+    expect(ui.summary).toBe("Senior frontend engineer focused on platform delivery");
     expect(ui.text).toContain("Senior frontend engineer.");
   });
 

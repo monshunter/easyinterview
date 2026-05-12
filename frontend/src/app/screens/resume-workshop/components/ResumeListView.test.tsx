@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 
@@ -35,7 +34,7 @@ function buildClient(): EasyInterviewClient {
   });
 }
 
-function renderListView(route: Route): ReactNode {
+function renderListView(route: Route) {
   const client = buildClient();
   const nav = vi.fn();
   return render(

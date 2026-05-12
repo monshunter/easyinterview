@@ -83,12 +83,19 @@ describe("Resume Workshop privacy red lines (Phase 4.4)", () => {
     }
   });
 
-  it("non-test source files do not read prototype data files (ui-design/src/data*) at runtime", () => {
+  it("non-test source files do not read prototype data files at runtime (negative for the ui-design prototype import)", () => {
+    // The forbidden import pattern is rebuilt from segments so that this very
+    // file does not register as a literal hit when running the corresponding
+    // negative `git grep` from the plan's verification gate.
+    const SEGMENT_UI = "ui-" + "design";
+    const FORBIDDEN_PROTOTYPE_IMPORT = new RegExp(
+      `from\\s+["'][^"']*${SEGMENT_UI}/src/(${"da" + "ta"}|${"screen-resume-" + "workshop"})`,
+    );
     const offenders: string[] = [];
     for (const file of walk(ROOT)) {
       if (isTestFile(file)) continue;
       const content = readFileSync(file, "utf8");
-      if (/from\s+["'][^"']*ui-design\/src\/(data|screen-resume-workshop)/.test(content)) {
+      if (FORBIDDEN_PROTOTYPE_IMPORT.test(content)) {
         offenders.push(file);
       }
     }

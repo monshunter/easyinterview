@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -74,7 +73,7 @@ function buildClientWithSpy(
   return new EasyInterviewClient({ fetch: fetchSpy });
 }
 
-function renderScreen(client: EasyInterviewClient, route: Route): ReactNode {
+function renderScreen(client: EasyInterviewClient, route: Route) {
   return render(
     <DisplayPreferencesProvider>
       <AppRuntimeProvider
