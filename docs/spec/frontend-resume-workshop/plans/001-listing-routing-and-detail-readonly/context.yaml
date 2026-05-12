@@ -34,6 +34,7 @@ spec:
       - resume auth gate no fetch before login
       - listResumeVersions scenario scoped aggregation
       - fixture derived counts pagination partial failure
+      - getResume original asset modal source text
       - exportResumeVersion P0 501 toast fallback Idempotency-Key
       - ui parity gate desktop mobile
       - bounding box screenshot smoke optional diff
@@ -68,5 +69,6 @@ spec:
         apiNames:
           - listResumes
           - listResumeVersions
+          - getResume
           - getResumeVersion
           - exportResumeVersion

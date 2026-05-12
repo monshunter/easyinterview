@@ -86,7 +86,7 @@ describe("Resume Workshop privacy red lines (Phase 4.4)", () => {
   it("non-test source files do not read prototype data files at runtime (negative for the ui-design prototype import)", () => {
     // The forbidden import pattern is rebuilt from segments so that this very
     // file does not register as a literal hit when running the corresponding
-    // negative `git grep` from the plan's verification gate.
+    // negative `git grep` from the verification gate.
     const SEGMENT_UI = "ui-" + "design";
     const FORBIDDEN_PROTOTYPE_IMPORT = new RegExp(
       `from\\s+["'][^"']*${SEGMENT_UI}/src/(${"da" + "ta"}|${"screen-resume-" + "workshop"})`,

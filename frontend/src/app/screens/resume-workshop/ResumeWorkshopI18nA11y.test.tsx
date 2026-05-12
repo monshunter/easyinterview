@@ -17,6 +17,7 @@ import { ResumeWorkshopScreen } from "./ResumeWorkshopScreen";
 import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
+import getResumeFixture from "../../../../../openapi/fixtures/Resumes/getResume.json";
 import listResumeVersionsFixture from "../../../../../openapi/fixtures/Resumes/listResumeVersions.json";
 import getResumeVersionFixture from "../../../../../openapi/fixtures/Resumes/getResumeVersion.json";
 
@@ -24,6 +25,7 @@ const FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
   listResumesFixture,
+  getResumeFixture,
   listResumeVersionsFixture,
   getResumeVersionFixture,
 ];
@@ -32,6 +34,8 @@ const FIRST_ASSET_ID =
   listResumesFixture.scenarios.default.response.body.items[0]?.id ?? "";
 const VERSION_ID =
   getResumeVersionFixture.scenarios.default.response.body.id;
+const VERSION_ASSET_ID =
+  getResumeVersionFixture.scenarios.default.response.body.resumeAssetId;
 
 interface RecordedRequest {
   url: string;
@@ -156,6 +160,31 @@ describe("ResumeWorkshop i18n + Accept-Language + a11y (Phase 4)", () => {
     );
     expect(getCall, "expected a getResumeVersion call").toBeTruthy();
     expect(getCall!.headers["Accept-Language"]).toBe("zh");
+  });
+
+  it("getResume request for the original modal carries Accept-Language", async () => {
+    const client = buildClientWithSpy("default", "zh");
+    renderScreen(client, {
+      name: "resume_versions",
+      params: { versionId: VERSION_ID, tab: "preview" },
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("resume-detail-view-original"),
+      ).toBeInTheDocument();
+    });
+    await userEvent.setup().click(
+      screen.getByTestId("resume-detail-view-original"),
+    );
+
+    await waitFor(() => {
+      const getCall = recorded.find((req) =>
+        req.url.endsWith(`/resumes/${VERSION_ASSET_ID}`),
+      );
+      expect(getCall, "expected a getResume call").toBeTruthy();
+      expect(getCall!.headers["Accept-Language"]).toBe("zh");
+    });
   });
 
   it("ViewSwitcher buttons expose role=tab and aria-selected reflecting the active group", async () => {

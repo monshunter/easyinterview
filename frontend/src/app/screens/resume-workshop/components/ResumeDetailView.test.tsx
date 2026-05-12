@@ -4,6 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { EasyInterviewClient } from "../../../../api/generated/client";
+import type { ResumeAsset } from "../../../../api/generated/types";
 import {
   createFixtureBackedFetch,
   createFixtureRegistry,
@@ -43,6 +44,27 @@ function renderDetail(
     <DisplayPreferencesProvider>
       <AppRuntimeProvider
         client={buildClient(scenario)}
+        requestOptions={{
+          getMe: { headers: { Prefer: "example=authenticated" } },
+        }}
+      >
+        <NavigationProvider value={{ navigate: nav }}>
+          <ResumeWorkshopScreen route={route} />
+        </NavigationProvider>
+      </AppRuntimeProvider>
+    </DisplayPreferencesProvider>,
+  );
+}
+
+function renderDetailWithClient(
+  client: EasyInterviewClient,
+  route: Route,
+  nav: ReturnType<typeof vi.fn> = vi.fn(),
+) {
+  return render(
+    <DisplayPreferencesProvider>
+      <AppRuntimeProvider
+        client={client}
         requestOptions={{
           getMe: { headers: { Prefer: "example=authenticated" } },
         }}
@@ -141,5 +163,53 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
     expect(
       screen.getByTestId("resume-detail-preview-content"),
     ).toBeInTheDocument();
+  });
+
+  it("loads the original resume asset for the original modal instead of reusing structuredProfile copy", async () => {
+    const client = buildClient("default");
+    const originalAsset: ResumeAsset = {
+      id: "01918fa0-0000-7000-8000-000000001000",
+      title: "Original uploaded resume",
+      language: "zh-CN",
+      parseStatus: "ready",
+      sourceType: "upload",
+      status: "active",
+      parsedSummary: { headline: "Original asset headline" },
+      parsedTextSnapshot:
+        "Original asset line A\nOriginal asset line B from parsed snapshot",
+      originalText: "Raw original asset fallback",
+      createdAt: "2026-04-22T09:30:00Z",
+      updatedAt: "2026-04-28T12:00:00Z",
+    };
+    const getResumeSpy = vi
+      .spyOn(client, "getResume")
+      .mockResolvedValue(originalAsset);
+
+    renderDetailWithClient(client, {
+      name: "resume_versions",
+      params: { versionId: TARGETED_VERSION_ID, tab: "preview" },
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("resume-detail-view-original"),
+      ).toBeInTheDocument();
+    });
+    await userEvent.setup().click(screen.getByTestId("resume-detail-view-original"));
+
+    await waitFor(() => {
+      expect(getResumeSpy).toHaveBeenCalledWith(
+        originalAsset.id,
+        expect.objectContaining({
+          headers: expect.objectContaining({ "Accept-Language": "en" }),
+        }),
+      );
+    });
+    const modal = await screen.findByTestId("resume-detail-original-modal-content");
+    expect(modal).toHaveTextContent("Original asset line A");
+    expect(modal).toHaveTextContent("Original asset line B from parsed snapshot");
+    expect(modal).not.toHaveTextContent(
+      "Highlights reliability, cross-functional tradeoff work",
+    );
   });
 });

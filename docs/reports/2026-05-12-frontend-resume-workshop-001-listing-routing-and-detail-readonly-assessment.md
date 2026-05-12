@@ -107,3 +107,51 @@
 
 - 当前 plan/checklist Header 保持 `active`，等待用户在合适时机触发 `/plan-code-review` 或合并到 main 后再 close-out。
 - 若下个 sprint 进入 `frontend-resume-workshop/002-create-flow-and-onboarding`，请先把建议 A / B / C 列入新 plan 的开题 checklist，避免重复踩坑。
+
+## 6 追加复盘：L2 code review follow-up
+
+### 6.1 追加范围与成功证据
+
+- **范围**：`/plan-code-review frontend-resume-workshop/001-listing-routing-and-detail-readonly --fix` 对已完成实现做 L2 deep reconcile，修复两类漂移：原件弹层未读取 `getResume` source asset、production CSS 与 pixel parity gate 未覆盖 resume workshop selectors/computed style。
+- **Bug 记录**：[BUG-0045](../bugs/BUG-0045.md) 已建档。
+- **验证证据**：
+  - `pnpm --filter @easyinterview/frontend test` → 127 files / 775 tests passed。
+  - `pnpm --filter @easyinterview/frontend build` → passed。
+  - `pnpm --filter @easyinterview/frontend lint` → returned 0（当前占位 lint）。
+  - `pnpm exec playwright test tests/pixel-parity/resume-workshop.spec.ts` → 10 passed。
+  - P0.036 / P0.037 scenario `setup → trigger → verify → cleanup` 全 PASS。
+  - retired-module grep + prototype import grep 均 0 命中。
+  - `validate_context.py` 解析到 `apiNames` 包含 `getResume`；`sync-doc-index --check` Zero drift detected。
+
+### 6.2 追加阻点/痛点
+
+- **历史 PASS 掩盖语义遗漏**：checklist 3.4 只说 "查看原件" modal，没有明确 `getResume(version.resumeAssetId)`，实现用 version summary 代替 source asset 原件内容仍能通过旧测试。
+- **pixel parity 名义与实际断言不匹配**：Playwright spec 名称写了 computed style，但没有读取关键 computed style；production CSS selectors 缺失仍能通过截图 smoke。
+- **scenario-scoped fixture 需要同名 operation scenario**：P0.037 用 `master-default` detail scenario 时，`getResume` fixture 也需要 `master-default`；否则 modal 会停留在 fallback 文本。
+- **negative grep 自身也要零命中**：`ResumeWorkshopPrivacy.test.ts` 注释里的 `plan` 会被 5.7 gate 命中，说明旧入口 grep 对测试注释同样严格。
+
+### 6.3 根因归类
+
+| # | 根因 | 类别 |
+|---|------|------|
+| 1 | Operation matrix 没有把原件弹层 source fetch 明确为独立 operation | spec-plan |
+| 2 | UI parity gate 没有同时覆盖 CSS source selectors 与 runtime computed style | spec-plan + skill |
+| 3 | mock scenario 命名规则没有在 plan/BDD 中说明跨 operation 同名 fixture 要求 | spec-plan |
+| 4 | negative grep pattern 包含常用英文词时，测试注释也必须规避 | no repo change needed |
+
+### 6.4 对流程资产的追加建议
+
+- **建议 F**：`/plan-review` 或 `/plan-code-review` 对 UI parity gate 增加检查：凡 checklist 声称 computed style parity，必须存在至少一个 runtime `getComputedStyle` 断言和一个 source-level selector/value 断言。
+  - **落点**：skill
+  - **优先级**：high
+- **建议 G**：在 feature plan operation matrix 中新增检查项：任何 modal/detail 子视图展示 source/original/raw object 时，必须列出 source fetch operation、fixture scenario、frontend consumer 和 fallback 行为。
+  - **落点**：spec-plan
+  - **优先级**：high
+- **建议 H**：在 BDD fixture 准备项中写明 scenario-scoped mock 的同名 scenario 约束，避免跨 operation fixture 缺场景时悄悄走 fallback/error。
+  - **落点**：spec-plan
+  - **优先级**：medium
+
+### 6.5 追加后续动作
+
+1. 优先把建议 F/G 固化到 `plan-code-review` 与 `plan-review` 的审查清单，防止后续 UI workstream 继续出现 "名义 parity，实际只 smoke"。
+2. plan 002/003 开题时，把 `getResume` source fetch 与 scenario-scoped fixture 同名约束列为 checklist starter gate。

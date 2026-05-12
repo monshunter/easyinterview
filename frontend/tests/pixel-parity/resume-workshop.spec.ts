@@ -87,6 +87,10 @@ async function mockResumeWorkshopApis(
       await fulfillFixture(route, "openapi/fixtures/Resumes/listResumes.json");
       return;
     }
+    if (/^\/resumes\/[^/]+$/.test(path)) {
+      await fulfillFixture(route, "openapi/fixtures/Resumes/getResume.json");
+      return;
+    }
     if (/^\/resumes\/[^/]+\/versions$/.test(path)) {
       await fulfillFixture(
         route,
@@ -128,6 +132,24 @@ async function rectOf(
       height: r.height,
     };
   }, { selector });
+}
+
+async function computedStyleOf(
+  page: import("@playwright/test").Page,
+  selector: string,
+  properties: string[],
+): Promise<Record<string, string>> {
+  return page.evaluate(({ selector, properties }) => {
+    const el = document.querySelector(selector) as HTMLElement | null;
+    if (!el) throw new Error(`selector not found: ${selector}`);
+    const styles = window.getComputedStyle(el);
+    return Object.fromEntries(
+      properties.map((property) => [
+        property,
+        styles.getPropertyValue(property),
+      ]),
+    );
+  }, { selector, properties });
 }
 
 async function freezeAnimations(
@@ -223,6 +245,37 @@ test.describe("Resume Workshop list DOM anchors", () => {
     expect(stats.left).toBeGreaterThanOrEqual(0);
     expect(stats.right).toBeLessThanOrEqual(viewport!.width);
 
+    const shellStyle = await computedStyleOf(
+      page,
+      "[data-testid='resume-workshop-screen']",
+      ["max-width", "padding-top", "padding-right"],
+    );
+    expect(shellStyle["max-width"]).toBe("1320px");
+    if (viewport!.width > 900) {
+      expect(shellStyle["padding-top"]).toBe("40px");
+      expect(shellStyle["padding-right"]).toBe("48px");
+    } else {
+      expect(shellStyle["padding-top"]).toBe("28px");
+      expect(shellStyle["padding-right"]).toBe("18px");
+    }
+
+    const statsStyle = await computedStyleOf(
+      page,
+      "[data-testid='resume-workshop-stats-originals']",
+      ["border-radius", "padding-top", "border-top-width"],
+    );
+    expect(statsStyle["border-radius"]).toBe("2px");
+    expect(statsStyle["padding-top"]).toBe("14px");
+    expect(statsStyle["border-top-width"]).toBe("1px");
+
+    const switcherStyle = await computedStyleOf(
+      page,
+      ".ei-resume-workshop-view-switcher",
+      ["display", "border-radius"],
+    );
+    expect(switcherStyle["display"]).toBe("flex");
+    expect(switcherStyle["border-radius"]).toBe("2px");
+
     const tree = page.locator(
       "[data-testid^='resume-tree-row-01918fa0-']",
     );
@@ -285,6 +338,33 @@ test.describe("Resume Workshop detail DOM anchors", () => {
         .locator("[data-testid='resume-detail-tab-preview']")
         .getAttribute("aria-selected"),
     ).toBe("true");
+
+    const viewport = page.viewportSize();
+    expect(viewport).not.toBeNull();
+    const previewStyle = await computedStyleOf(
+      page,
+      "[data-testid='resume-detail-preview-content']",
+      ["display", "grid-template-columns", "gap"],
+    );
+    expect(previewStyle["display"]).toBe("grid");
+    expect(previewStyle["gap"]).toBe("22px");
+    if (viewport!.width > 900) {
+      expect(previewStyle["grid-template-columns"]).toContain("320px");
+    }
+
+    const cardStyle = await computedStyleOf(
+      page,
+      ".ei-resume-detail-preview-card",
+      ["min-height", "padding-top", "box-shadow", "font-family"],
+    );
+    expect(cardStyle["padding-top"]).toBe(
+      viewport!.width > 700 ? "44px" : "32px",
+    );
+    expect(cardStyle["min-height"]).toBe(
+      viewport!.width > 700 ? "720px" : "520px",
+    );
+    expect(cardStyle["box-shadow"]).toContain("rgba(30, 22, 15, 0.1)");
+    expect(cardStyle["font-family"].toLowerCase()).toContain("georgia");
 
     const screenshot = await page.screenshot();
     expect(screenshot.length).toBeGreaterThan(0);

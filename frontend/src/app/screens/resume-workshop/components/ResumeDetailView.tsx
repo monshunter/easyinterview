@@ -6,7 +6,8 @@ import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferenc
 import { useI18n } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
-import { mapResumeVersionToUi } from "../adapters/resume";
+import { mapResumeAssetToUiSource, mapResumeVersionToUi } from "../adapters/resume";
+import { useResumeAsset } from "../hooks/useResumeAsset";
 import { useResumeVersion } from "../hooks/useResumeVersion";
 import type { ResumeDetailTab } from "../params";
 import { ComingSoonTab } from "./ComingSoonTab";
@@ -34,6 +35,9 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
   const versionQuery = useResumeVersion(versionId);
   const [activeTab, setActiveTab] = useState<ResumeDetailTab | null>(initialTab);
   const [originalOpen, setOriginalOpen] = useState(false);
+  const sourceQuery = useResumeAsset(
+    originalOpen && versionQuery.data ? versionQuery.data.resumeAssetId : null,
+  );
 
   // When the URL omits `tab` and the version loads, fall back to the
   // versionType-based default. Reset on versionId change.
@@ -104,7 +108,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
     edit: t("resumeWorkshop.detail.tabEdit"),
   };
 
-  const originalText = (() => {
+  const versionFallbackOriginalText = (() => {
     const profile = version.structuredProfile as Record<string, unknown>;
     const summary = typeof profile.summary === "string" ? profile.summary : "";
     const headline = typeof profile.headline === "string" ? profile.headline : "";
@@ -113,6 +117,13 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
     if (summary) lines.push(summary);
     return lines;
   })();
+  const originalSource = sourceQuery.data
+    ? mapResumeAssetToUiSource(sourceQuery.data)
+    : null;
+  const originalText =
+    originalSource && originalSource.text.length > 0
+      ? originalSource.text
+      : versionFallbackOriginalText;
 
   return (
     <div
@@ -214,7 +225,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
         open={originalOpen}
         onClose={() => setOriginalOpen(false)}
         originalText={originalText}
-        title={ui.name}
+        title={originalSource?.name ?? ui.name}
       />
     </div>
   );

@@ -12,12 +12,14 @@ import { App } from "../App";
 
 import getRuntimeConfigFixture from "../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../openapi/fixtures/Auth/getMe.json";
+import getResumeFixture from "../../../../openapi/fixtures/Resumes/getResume.json";
 import getResumeVersionFixture from "../../../../openapi/fixtures/Resumes/getResumeVersion.json";
 import exportResumeVersionFixture from "../../../../openapi/fixtures/Resumes/exportResumeVersion.json";
 
 const FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
+  getResumeFixture,
   getResumeVersionFixture,
   exportResumeVersionFixture,
 ];
@@ -145,6 +147,11 @@ describe("E2E.P0.037 resume detail Preview Tab + original modal + 404 fallback +
     const dialog = await screen.findByTestId("resume-detail-original-modal");
     expect(dialog).toHaveAttribute("aria-modal", "true");
     expect(dialog).toHaveAttribute("role", "dialog");
+    await waitFor(() => {
+      expect(
+        within(dialog).getByTestId("resume-detail-original-modal-content"),
+      ).toHaveTextContent("Original resume parsed text snapshot");
+    });
     const closeBtn = within(dialog).getByTestId(
       "resume-detail-original-modal-close",
     );

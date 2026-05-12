@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-12
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -18,7 +18,7 @@
 ## E2E.P0.037 resume detail Preview Tab + 原件弹层 + a11y + 404 fallback
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-037-resume-detail-preview-readonly/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
-- [x] 准备 fixture variant：`getResumeVersion.json` `default` / `master-default` / `targeted-with-suggestions` / `not-found-404`；`exportResumeVersion.json` `p0-501-not-available`（含 `request.headers.Idempotency-Key` 契约）；user 未登录 / 已登录态 + 已 cached `listResumeVersions`
+- [x] 准备 fixture variant：`getResumeVersion.json` `default` / `master-default` / `targeted-with-suggestions` / `not-found-404`；`getResume.json` `default` / `master-default` / `not-found`；`exportResumeVersion.json` `p0-501-not-available`（含 `request.headers.Idempotency-Key` 契约）；user 未登录 / 已登录态 + 已 cached `listResumeVersions`
 - [x] 实现 `scripts/setup.sh`（A2 dev stack + Vite dev preview fixture-backed + 用户未登录 + version cache 准备）/ `scripts/trigger.sh`（未登录直达 detail + 登录恢复 + 点击 MASTER version → detail + 点击 TARGETED version → detail + 触发 原件 modal + ESC / 外层 / X 三种关闭路径 + 键盘 Tab focus trap + export PDF 501 + 访问 non-existent versionId）/ `scripts/verify.sh`（断言 detail 全 testid + MASTER/TARGETED 默认 tab 选择 + Preview 内容来源 + `exportResumeVersion` request header `Idempotency-Key` + export toast + modal a11y + 404 fallback + UI parity + 隐私 grep）/ `scripts/cleanup.sh`
 - [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
 - [x] 记录验证证据：`.test-output/e2e/p0-037-resume-detail-preview-readonly/trigger.log` + verify 输出 + auth no-fetch request spy + export `Idempotency-Key` header spy + UI parity artifacts + axe a11y report + focus trap test 录制 + export 501 toast evidence + 404 fallback 截图 + 隐私 grep 0
