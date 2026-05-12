@@ -365,6 +365,12 @@ type ResumeVersion struct {
 	VersionType       ResumeVersionType    `json:"versionType"`
 }
 
+type BranchResumeVersionAccepted struct {
+	Job             Job           `json:"job"`
+	ResumeVersionId string        `json:"resumeVersionId"`
+	Version         ResumeVersion `json:"version"`
+}
+
 type PaginatedResumeVersion struct {
 	Items    []ResumeVersion `json:"items"`
 	PageInfo PageInfo        `json:"pageInfo"`

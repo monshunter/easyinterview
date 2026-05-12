@@ -23,11 +23,7 @@ func TestResumeVersionsCheckConstraints(t *testing.T) {
 	resumeVersionID := "0195f2d0-4a44-7fc2-8f77-1f9c4ce1b004"
 	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4ce1b005"
 
-	t.Cleanup(func() {
-		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cleanupCancel()
-		_, _ = db.ExecContext(cleanupCtx, `DELETE FROM users WHERE id = $1`, userID)
-	})
+	t.Cleanup(func() { cleanupUser(t, db, userID) })
 
 	mustExec(t, ctx, db, `INSERT INTO users(id, email, status) VALUES ($1, 'resume-constraint@example.com', 'active')`, userID)
 	mustExec(t, ctx, db, `INSERT INTO resume_assets(id, user_id, title, language, parse_status) VALUES ($1, $2, 'Constraint Resume', 'en', 'ready')`, resumeAssetID, userID)
@@ -49,7 +45,7 @@ func TestResumeVersionsCascadeDelete(t *testing.T) {
 	ensureResumeVersionTables(t, ctx, db)
 
 	ids := seedResumeVersionGraph(t, ctx, db, "0195f2d0-4a44-7fc2-8f77-1f9c4ce1c")
-	t.Cleanup(func() { cleanupUser(db, ids.userID) })
+	t.Cleanup(func() { cleanupUser(t, db, ids.userID) })
 
 	mustExec(t, ctx, db, `INSERT INTO resume_version_suggestions(id, resume_version_id, tailor_run_id, original_bullet, suggested_bullet) VALUES ($1, $2, $3, 'old', 'new')`, ids.suggestionID, ids.resumeVersionID, ids.tailorRunID)
 	mustExec(t, ctx, db, `DELETE FROM resume_versions WHERE id = $1`, ids.resumeVersionID)
@@ -71,7 +67,7 @@ func TestResumeAssetDeleteRequiresVersionCleanup(t *testing.T) {
 	ensureResumeVersionTables(t, ctx, db)
 
 	ids := seedResumeVersionGraph(t, ctx, db, "0195f2d0-4a44-7fc2-8f77-1f9c4ce1d")
-	t.Cleanup(func() { cleanupUser(db, ids.userID) })
+	t.Cleanup(func() { cleanupUser(t, db, ids.userID) })
 
 	_, err := db.ExecContext(ctx, `DELETE FROM resume_assets WHERE id = $1`, ids.resumeAssetID)
 	expectForeignKeyViolation(t, err)
@@ -139,10 +135,24 @@ func seedResumeVersionGraph(t *testing.T, ctx context.Context, db *sql.DB, prefi
 	return ids
 }
 
-func cleanupUser(db *sql.DB, userID string) {
+func cleanupUser(t *testing.T, db *sql.DB, userID string) {
+	t.Helper()
 	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cleanupCancel()
-	_, _ = db.ExecContext(cleanupCtx, `DELETE FROM users WHERE id = $1`, userID)
+	queries := []string{
+		`DELETE FROM resume_version_suggestions WHERE resume_version_id IN (SELECT id FROM resume_versions WHERE user_id = $1)`,
+		`UPDATE resume_versions SET parent_version_id = NULL WHERE user_id = $1 AND parent_version_id IS NOT NULL`,
+		`DELETE FROM resume_versions WHERE user_id = $1`,
+		`DELETE FROM resume_tailor_runs WHERE user_id = $1`,
+		`DELETE FROM target_jobs WHERE user_id = $1`,
+		`DELETE FROM resume_assets WHERE user_id = $1`,
+		`DELETE FROM users WHERE id = $1`,
+	}
+	for _, query := range queries {
+		if _, err := db.ExecContext(cleanupCtx, query, userID); err != nil {
+			t.Errorf("cleanup user %s with %q: %v", userID, query, err)
+		}
+	}
 }
 
 func expectExecCheckViolation(t *testing.T, ctx context.Context, db *sql.DB, query string, args ...any) {

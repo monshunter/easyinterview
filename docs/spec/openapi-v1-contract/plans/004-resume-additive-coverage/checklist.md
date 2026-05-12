@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Resume Workshop Additive Coverage Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-12
 
@@ -21,7 +21,7 @@
 
 ## Phase 2: OpenAPI schema + operation 落地
 
-- [x] 2.1 在 `openapi/openapi.yaml` `components.schemas` 新增 6 个 schema：`ResumeVersion` / `PaginatedResumeAsset` / `PaginatedResumeVersion` / `BranchResumeVersionRequest` / `UpdateResumeVersionRequest` / `ResumeTailorSuggestionStatus`（验证：`swagger-cli validate` + JSON Schema 校验）
+- [x] 2.1 在 `openapi/openapi.yaml` `components.schemas` 新增 7 个 schema：`ResumeVersion` / `BranchResumeVersionAccepted` / `PaginatedResumeAsset` / `PaginatedResumeVersion` / `BranchResumeVersionRequest` / `UpdateResumeVersionRequest` / `ResumeTailorSuggestionStatus`（验证：`swagger-cli validate` + JSON Schema 校验）
 - [x] 2.2 扩展 `RegisterResumeRequest` additive 字段（`sourceType` / `rawText` / `guidedAnswers` JSON object），保持现有 `fileObjectId` / `title` / `language` 向后兼容，并与 B4 `resume_assets.guided_answers` jsonb 持久化字段对齐（验证：`make openapi-diff` additive only）
 - [x] 2.3 添加 9 个 op 到 `Resumes` tag（listResumes / listResumeVersions / getResumeVersion / branchResumeVersion / updateResumeVersion / acceptResumeTailorSuggestion / rejectResumeTailorSuggestion / archiveResumeAsset / exportResumeVersion），每个 op 含 request/response/error schema `$ref`；不得把 accept/reject suggestion 落到 `ResumeTailor` tag（验证：inventory lint negative case 通过）
 - [x] 2.4 6 个 side-effect operation 必含 `Idempotency-Key` header schema（验证：inventory lint `IK_REQUIRED` 覆盖）
@@ -63,3 +63,9 @@
 - [x] 5.6 运行 `sync-doc-index --check` PASS（B1 / B2 / mock-contract-suite / engineering-roadmap spec/history/INDEX 同步）
 - [x] 5.7 修订 `docs/spec/INDEX.md` openapi-v1-contract / shared-conventions-codified 版本与日期（验证：`sync-doc-index --check`）
 - [x] 5.8 通知 `frontend-workspace-and-practice/001-workspace-and-interview-context` owner：`listResumes` operation + fixtures 已就位，可启动 disabled-list → active-list 原地修订（验证：在 workspace 001 plan 中追加引用本 plan 的 unblock 链接）
+
+## Phase 6: L2 remediation - generated client response shape closure
+
+- [x] 6.1 `branchResumeVersion` 202 response 使用命名 schema + generated TS union return type（验证：codegen unit test + `make codegen-openapi`）
+- [x] 6.2 generated TS client 对显式 P0 `501` response 走 typed parse path，未声明 4xx/5xx 仍 throw（验证：codegen unit test + frontend focused Vitest）
+- [x] 6.3 dev mock client 导入 9 个 Resume Workshop fixture，operationId coverage 与 `exportResumeVersion` typed fallback 通过（验证：`pnpm --filter @easyinterview/frontend test src/api/devMockClient.test.ts`）

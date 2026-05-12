@@ -60,7 +60,7 @@ export class EasyInterviewClient {
 		this.defaultHeaders = { ...(options.headers ?? {}) };
 	}
 
-	private async request<T>(method: string, path: string, body: unknown, opts?: RequestOptions): Promise<T> {
+	private async request<T>(method: string, path: string, body: unknown, opts?: RequestOptions, okStatuses: readonly number[] = []): Promise<T> {
 		const headers: Record<string, string> = {
 			"Accept": "application/json",
 			...this.defaultHeaders,
@@ -76,7 +76,7 @@ export class EasyInterviewClient {
 			credentials: "include",
 			signal: opts?.signal,
 		});
-		if (!response.ok) {
+		if (!response.ok && !okStatuses.includes(response.status)) {
 			const text = await response.text();
 			throw new Error(`HTTP ${response.status} ${response.statusText}: ${text}`);
 		}
@@ -93,7 +93,8 @@ export class EasyInterviewClient {
 			"{{.MethodUpper}}",
 			{{.TSPathExpression}},
 			{{.TSBodyArg}},
-			{{.TSOptsArg}},
+			{{.TSOptsArg}}{{if .TSNonOKStatusArg}},
+			{{.TSNonOKStatusArg}}{{end}},
 		);
 	}
 {{end}}

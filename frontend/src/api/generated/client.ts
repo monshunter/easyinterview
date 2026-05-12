@@ -61,7 +61,7 @@ export class EasyInterviewClient {
 		this.defaultHeaders = { ...(options.headers ?? {}) };
 	}
 
-	private async request<T>(method: string, path: string, body: unknown, opts?: RequestOptions): Promise<T> {
+	private async request<T>(method: string, path: string, body: unknown, opts?: RequestOptions, okStatuses: readonly number[] = []): Promise<T> {
 		const headers: Record<string, string> = {
 			"Accept": "application/json",
 			...this.defaultHeaders,
@@ -77,7 +77,7 @@ export class EasyInterviewClient {
 			credentials: "include",
 			signal: opts?.signal,
 		});
-		if (!response.ok) {
+		if (!response.ok && !okStatuses.includes(response.status)) {
 			const text = await response.text();
 			throw new Error(`HTTP ${response.status} ${response.statusText}: ${text}`);
 		}
@@ -365,6 +365,7 @@ export class EasyInterviewClient {
 			"/privacy/exports",
 			undefined,
 			opts,
+			[501],
 		);
 	}
 
@@ -439,8 +440,8 @@ export class EasyInterviewClient {
 	}
 
 	/** branchResumeVersion — post /resume-versions: Branch a resume version */
-	async branchResumeVersion(body: Types.BranchResumeVersionRequest, opts?: RequestOptions): Promise<Types.ResumeVersion> {
-		return this.request<Types.ResumeVersion>(
+	async branchResumeVersion(body: Types.BranchResumeVersionRequest, opts?: RequestOptions): Promise<Types.ResumeVersion | Types.BranchResumeVersionAccepted> {
+		return this.request<Types.ResumeVersion | Types.BranchResumeVersionAccepted>(
 			"POST",
 			"/resume-versions",
 			body,
@@ -475,6 +476,7 @@ export class EasyInterviewClient {
 			buildPath("/resume-versions/{resumeVersionId}/exports", { resumeVersionId: resumeVersionId }),
 			undefined,
 			opts,
+			[501],
 		);
 	}
 

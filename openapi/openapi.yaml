@@ -484,16 +484,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [resumeVersionId, version, job]
-                properties:
-                  resumeVersionId:
-                    type: string
-                    format: uuid
-                  version:
-                    $ref: '#/components/schemas/ResumeVersion'
-                  job:
-                    $ref: '#/components/schemas/Job'
+                $ref: '#/components/schemas/BranchResumeVersionAccepted'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
@@ -1342,7 +1333,8 @@ paths:
         `501 Not Implemented` with `error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`.
         The endpoint shape is locked at v1.0.0 so the P1 switch to
         `202 + PrivacyRequestWithJob` is treated as additive (per spec §4.4).
-        This is the **only** 501 in the v1.0.0 contract.
+        This is one of the two explicit P0 501 export exceptions in the
+        v1.0.0 contract.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/XRequestID'
@@ -2609,6 +2601,19 @@ components:
             - type: string
               format: date-time
             - type: 'null'
+
+    BranchResumeVersionAccepted:
+      type: object
+      required: [resumeVersionId, version, job]
+      description: Async branch response for `seedStrategy=ai_select`; callers poll `job` while rendering the provisional version.
+      properties:
+        resumeVersionId:
+          type: string
+          format: uuid
+        version:
+          $ref: '#/components/schemas/ResumeVersion'
+        job:
+          $ref: '#/components/schemas/Job'
 
     PaginatedResumeVersion:
       allOf:

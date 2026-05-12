@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Resume Workshop Additive Coverage
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-12
 
@@ -12,7 +12,7 @@
 把 [openapi-v1-contract spec](../../spec.md) §3.1 D-18 Resume Workshop additive 升级声明阶段落到仓库可执行 artifact：
 
 - 在 `openapi/openapi.yaml` 中扩容 `Resumes` tag（不新建 `ResumeVersions` tag），新增 9 operationId（`listResumes` / `listResumeVersions` / `getResumeVersion` / `branchResumeVersion` / `updateResumeVersion` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` / `archiveResumeAsset` / `exportResumeVersion`）；
-- 新增 6 个 schema（`ResumeVersion` / `PaginatedResumeAsset` / `PaginatedResumeVersion` / `BranchResumeVersionRequest` / `UpdateResumeVersionRequest` / `ResumeTailorSuggestionStatus` enum）+ `RegisterResumeRequest` additive 扩展（`sourceType` ∈ `upload | paste | guided`、`rawText`、`guidedAnswers` JSON object）；
+- 新增 7 个 schema（`ResumeVersion` / `BranchResumeVersionAccepted` / `PaginatedResumeAsset` / `PaginatedResumeVersion` / `BranchResumeVersionRequest` / `UpdateResumeVersionRequest` / `ResumeTailorSuggestionStatus` enum）+ `RegisterResumeRequest` additive 扩展（`sourceType` ∈ `upload | paste | guided`、`rawText`、`guidedAnswers` JSON object）；
 - 通过 `$ref` 引用 [B1 spec](../../../shared-conventions-codified/spec.md) D-10 锁定的 3 个新 enum（`ResumeVersionType` / `ResumeSeedStrategy` / `ResumeTailorSuggestionStatus`）+ 1 个新错误码（`RESUME_EXPORT_NOT_AVAILABLE`），并在 `shared/conventions.yaml` 同步落地；
 - `branchResumeVersion` / `updateResumeVersion` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` / `archiveResumeAsset` / `exportResumeVersion` 6 个 side-effect operation 必带 `Idempotency-Key`；`ResumeVersion` 列入 `AI_PROVENANCE_SCHEMAS`，`structuredProfile` 与 tailor suggestion 字段必带 `GenerationProvenance`；
 - 同步 `scripts/lint/openapi_inventory.py` EXPECTED_OPERATIONS 46 → 55、IK_REQUIRED 追加 6 项、`AI_PROVENANCE_SCHEMAS` 追加 `ResumeVersion`；同步 `scripts/lint/validate_fixtures.py` 注释；
@@ -66,7 +66,7 @@
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` `default` / `empty` / `paginated` | `frontend-resume-workshop/001` list view；`frontend-workspace-and-practice` ResumePicker unblock | `backend-resume/001` not-yet-implemented at this plan exit | `resume_assets` | none | current substitute gate: `make validate-fixtures` + mock-contract-suite 55-op inventory；downstream E2E.P0.034 / E2E.P0.036 |
 | `listResumeVersions` | `openapi/fixtures/Resumes/listResumeVersions.json` `default` / `master-only` / `with-targeted-branches` | `frontend-resume-workshop/001` Tree/Flat views | future `backend-resume/002-versions-and-tailor-runs` | `resume_versions` | none | current substitute gate: `make validate-fixtures` + fixture scenario coverage；downstream E2E.P0.036 |
 | `getResumeVersion` | `openapi/fixtures/Resumes/getResumeVersion.json` `master-default` / `targeted-with-suggestions` / `not-found-404` | `frontend-resume-workshop/001` detail preview | future `backend-resume/002-versions-and-tailor-runs` | `resume_versions` / `resume_version_suggestions` | none for read; provenance fields fixture-backed | current substitute gate: `make validate-fixtures` + `not-found-404` fixture；downstream E2E.P0.037 |
-| `branchResumeVersion` | `openapi/fixtures/Resumes/branchResumeVersion.json` `copy-master-sync` / `blank-sync` / `ai-select-202-with-job` / `validation-error-422` / `idempotent-replay` | `frontend-resume-workshop/003` BranchFlow | future `backend-resume/002-versions-and-tailor-runs` | `resume_versions` + `async_jobs` for `ai_select` | `resume.tailor.*` only for `ai_select` | current substitute gate: `Idempotency-Key` inventory lint + `make validate-fixtures` over success/422/idempotent replay |
+| `branchResumeVersion` | `openapi/fixtures/Resumes/branchResumeVersion.json` `copy-master-sync` / `blank-sync` / `ai-select-202-with-job` / `validation-error-422` / `idempotent-replay` | `frontend-resume-workshop/003` BranchFlow | future `backend-resume/002-versions-and-tailor-runs` | `resume_versions` + `async_jobs` for `ai_select` | `resume.tailor.*` only for `ai_select` | current substitute gate: `Idempotency-Key` inventory lint + `make validate-fixtures` over success/422/idempotent replay；TS client return type must union `ResumeVersion | BranchResumeVersionAccepted` |
 | `updateResumeVersion` | `openapi/fixtures/Resumes/updateResumeVersion.json` `default` / `validation-error-422` | `frontend-resume-workshop/003` Edit Tab | future `backend-resume/002-versions-and-tailor-runs` | `resume_versions` | none | current substitute gate: `Idempotency-Key` inventory lint + `make validate-fixtures` over success/422 |
 | `acceptResumeTailorSuggestion` | `openapi/fixtures/Resumes/acceptResumeTailorSuggestion.json` `default` / `conflict-409` | `frontend-resume-workshop/003` Rewrites Tab | future `backend-resume/002-versions-and-tailor-runs` | `resume_version_suggestions` | none | current substitute gate: `Idempotency-Key` inventory lint + `make validate-fixtures` over success/409 |
 | `rejectResumeTailorSuggestion` | `openapi/fixtures/Resumes/rejectResumeTailorSuggestion.json` `default` / `conflict-409` | `frontend-resume-workshop/003` Rewrites Tab | future `backend-resume/002-versions-and-tailor-runs` | `resume_version_suggestions` | none | current substitute gate: `Idempotency-Key` inventory lint + `make validate-fixtures` over success/409 |
@@ -96,7 +96,7 @@
 
 ### Phase 2: OpenAPI schema + operation 落地
 
-#### 2.1 新增 6 个 schema + `RegisterResumeRequest` 扩展
+#### 2.1 新增 7 个 schema + `RegisterResumeRequest` 扩展
 
 在 `openapi/openapi.yaml` `components.schemas` 添加：
 - `ResumeVersion`（含 `structuredProfile` 字段必带 `GenerationProvenance`）
@@ -197,6 +197,20 @@
 - workspace i18n `workspace.resumePicker.disabledNote` 移除
 
 本 plan 不直接修订 workspace 文件，只在 Phase 5.2 完成 "可解锁" 信号传递；workspace owner 在阶段 2 独立完成修订。
+
+### Phase 6: L2 remediation - generated client response shape closure
+
+#### 6.1 修复 `branchResumeVersion` 202 response type
+
+将 `seedStrategy=ai_select` 的 `202` response body 提升为命名 schema `BranchResumeVersionAccepted`，并更新 TS generator 让多成功状态码生成 union return type，避免 frontend caller 把 `{resumeVersionId, version, job}` 误读为 `ResumeVersion`。
+
+#### 6.2 修复 P0 export 501 typed response path
+
+更新 TS generated client request plumbing：显式声明在 OpenAPI 中的 P0 `501` response（`requestPrivacyExport` / `exportResumeVersion`）应按 typed response 解析，不应被 generic non-OK throw 提前截断；默认 / 未声明的 4xx/5xx 仍必须 throw。
+
+#### 6.3 补齐 dev fixture consumer 同步
+
+将 Resume Workshop 9 个新 operation fixture 接入 `frontend/src/api/devMockClient.ts`，并用 focused Vitest 覆盖 generated operationId 完整性与 `exportResumeVersion` typed 501 fallback。
 
 ## 5 验收标准
 

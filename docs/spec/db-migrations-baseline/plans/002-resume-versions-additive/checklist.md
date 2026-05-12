@@ -1,6 +1,6 @@
 # DB Migrations Baseline Resume Versions Additive Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-12
 
@@ -44,3 +44,8 @@
 - [x] 4.3 在 `openapi-v1-contract/004-resume-additive-coverage` plan checklist 中追加 "B4 D-17 resume_versions / resume_version_suggestions 已落地" 引用（验证：cross-plan 引用 commit）
 - [x] 4.4 在 `event-and-outbox-contract/002-resume-tailor-mode-drift-fix` plan checklist 中追加 B4 D-17 落地信号（验证：cross-plan 引用 commit）
 - [x] 4.5 同步 `docs/spec/engineering-roadmap/spec.md` 中 "25 应用表 / 26 应用表" 文字描述升级到 "28 应用表"（如有）；spec.md / history.md 视需求同步（验证：grep negative search）
+
+## Phase 5: L2 remediation - live test cleanup hardening
+
+- [x] 5.1 `cleanupUser` 先清理 `resume_version_suggestions` / `resume_versions` 等 child rows，再删 user，且清理错误会 fail test（验证：focused Go test）
+- [x] 5.2 focused migration test 重复运行不因固定 UUID 残留冲突；无 `DATABASE_URL` 时必须明确记录 skip 而非伪 PASS（验证：`cd backend && go test ./internal/migrations/... -run 'TestResumeVersions|TestResumeAssetDeleteRequiresVersionCleanup' -count=2 -v`；当前环境 `DATABASE_URL` 未设置，live tests 明确 skip，contract test PASS）

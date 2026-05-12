@@ -1,6 +1,6 @@
 # DB Migrations Baseline Resume Versions Additive
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-12
 
@@ -217,6 +217,16 @@ resume_assets.source_type:
 - 通知 `openapi-v1-contract/004-resume-additive-coverage` owner：B4 D-17 已落地，B2 D-18 中 `branchResumeVersion` / `updateResumeVersion` 等 schema 的 backing store 可全字段消费；
 - 通知 `event-and-outbox-contract/002-resume-tailor-mode-drift-fix` owner：B4 D-17 已落地，与 events `ResumeTailorMode` 漂移修复（B3 plan 002）并行推进；
 - 通知 `engineering-roadmap` owner：`docs/spec/engineering-roadmap/spec.md` §1 表 inventory 描述（如有 "25 应用表"）同步升级到 28。
+
+### Phase 5: L2 remediation - live test cleanup hardening
+
+#### 5.1 修复固定 UUID live test 清理顺序
+
+`backend/internal/migrations/resume_versions_integration_test.go` 使用固定 UUID seed live Postgres。清理必须先删除 `resume_version_suggestions` / `resume_versions` 等 child rows，再删除 `resume_assets` / `target_jobs` / `users`，并在清理失败时报告测试错误；不得忽略 `users` 删除被 FK 阻止导致的残留。
+
+#### 5.2 验证重复运行不泄漏
+
+Focused gate 必须证明 `TestResumeVersions*` 在当前环境可重复执行；无 `DATABASE_URL` 时记录 skip 事实，不得把 no-op 当作 live DB cleanup 证据。
 
 ## 5 验收标准
 

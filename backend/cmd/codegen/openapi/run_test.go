@@ -141,8 +141,10 @@ func TestRun_ApiErrorInnerObjectAndResponseEnvelope(t *testing.T) {
 	tsClient := readFile(t, filepath.Join(tmp, "frontend/src/api/generated/client.ts"))
 	mustContain(t, tsClient, "async requestPrivacyExport(opts?: RequestOptions): Promise<Types.ApiErrorResponse>")
 	mustContain(t, tsClient, "async listResumes(opts?: RequestOptions): Promise<Types.PaginatedResumeAsset>")
-	mustContain(t, tsClient, "async branchResumeVersion(body: Types.BranchResumeVersionRequest, opts?: RequestOptions): Promise<Types.ResumeVersion>")
+	mustContain(t, tsClient, "if (!response.ok && !okStatuses.includes(response.status))")
+	mustContain(t, tsClient, "async branchResumeVersion(body: Types.BranchResumeVersionRequest, opts?: RequestOptions): Promise<Types.ResumeVersion | Types.BranchResumeVersionAccepted>")
 	mustContain(t, tsClient, "async exportResumeVersion(resumeVersionId: string, opts?: RequestOptions): Promise<Types.ApiErrorResponse>")
+	mustContain(t, tsClient, "buildPath(\"/resume-versions/{resumeVersionId}/exports\", { resumeVersionId: resumeVersionId }),\n\t\t\tundefined,\n\t\t\topts,\n\t\t\t[501],")
 
 	goServer := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/server.gen.go"))
 	mustContain(t, goServer, "// 55-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")

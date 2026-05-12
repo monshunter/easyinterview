@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
 )
@@ -365,6 +366,7 @@ type tsClientOpView struct {
 	TSPathExpression  string
 	TSBodyArg         string
 	TSOptsArg         string
+	TSNonOKStatusArg  string
 }
 
 func buildTSClientData(doc *OpenAPI) (*tsClientData, error) {
@@ -407,6 +409,7 @@ func buildTSClientData(doc *OpenAPI) (*tsClientData, error) {
 				TSPathExpression:  buildTSPathExpression(p.Path, pathExprArgs),
 				TSBodyArg:         tsBodyArg(hasBody),
 				TSOptsArg:         "opts",
+				TSNonOKStatusArg:  tsNonOKStatusArg(rawOp),
 			}
 			ops = append(ops, view)
 		}
@@ -461,24 +464,75 @@ func tsRequestBodyType(rb map[string]any) string {
 
 func tsResponseType(op map[string]any) string {
 	resps, _ := op["responses"].(map[string]any)
-	preferred := []string{"200", "201", "202", "204", "501"}
-	for _, code := range preferred {
+	codes := sortedTypedResponseCodes(resps)
+	types := []string{}
+	seen := map[string]struct{}{}
+	for _, code := range codes {
 		r, ok := resps[code].(map[string]any)
 		if !ok {
 			continue
 		}
+		var ts string
 		if code == "204" {
-			return "void"
+			ts = "void"
+		} else {
+			content, _ := r["content"].(map[string]any)
+			app, _ := content["application/json"].(map[string]any)
+			schema, _ := app["schema"].(map[string]any)
+			if schema == nil {
+				continue
+			}
+			ts = qualifyTSTypeRef(tsTypeFor(schema))
 		}
-		content, _ := r["content"].(map[string]any)
-		app, _ := content["application/json"].(map[string]any)
-		schema, _ := app["schema"].(map[string]any)
-		if schema == nil {
+		if _, ok := seen[ts]; ok {
 			continue
 		}
-		return qualifyTSTypeRef(tsTypeFor(schema))
+		seen[ts] = struct{}{}
+		types = append(types, ts)
+	}
+	if len(types) > 0 {
+		return strings.Join(types, " | ")
 	}
 	return "unknown"
+}
+
+func tsNonOKStatusArg(op map[string]any) string {
+	resps, _ := op["responses"].(map[string]any)
+	statuses := []string{}
+	for _, code := range sortedTypedResponseCodes(resps) {
+		n, err := strconv.Atoi(code)
+		if err != nil || n >= 200 && n < 300 {
+			continue
+		}
+		statuses = append(statuses, code)
+	}
+	if len(statuses) == 0 {
+		return ""
+	}
+	return "[" + strings.Join(statuses, ", ") + "]"
+}
+
+func sortedTypedResponseCodes(resps map[string]any) []string {
+	codes := []string{}
+	for code := range resps {
+		if isTypedClientResponseStatus(code) {
+			codes = append(codes, code)
+		}
+	}
+	sort.Slice(codes, func(i, j int) bool {
+		left, _ := strconv.Atoi(codes[i])
+		right, _ := strconv.Atoi(codes[j])
+		return left < right
+	})
+	return codes
+}
+
+func isTypedClientResponseStatus(code string) bool {
+	n, err := strconv.Atoi(code)
+	if err != nil {
+		return false
+	}
+	return n >= 200 && n < 300 || n == 501
 }
 
 // qualifyTSTypeRef rewrites bare type names (e.g., `Foo`, `Foo[]`) to

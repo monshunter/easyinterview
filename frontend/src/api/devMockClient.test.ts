@@ -27,6 +27,37 @@ describe("frontend dev fixture-backed mock client", () => {
 		expect(targets.items[0]?.title).toBe("Senior Frontend Engineer");
 	});
 
+	it("parses declared non-OK export fallback responses", async () => {
+		const client = createDevMockClient();
+
+		await expect(
+			client.exportResumeVersion("0195f2d0-0002-7000-8000-000000000201"),
+		).resolves.toMatchObject({
+			error: { code: "RESUME_EXPORT_NOT_AVAILABLE" },
+		});
+		await expect(client.requestPrivacyExport()).resolves.toMatchObject({
+			error: { code: "PRIVACY_EXPORT_NOT_AVAILABLE" },
+		});
+	});
+
+	it("returns the async branch response shape for ai_select", async () => {
+		const client = createDevMockClient();
+
+		const response = await client.branchResumeVersion(
+			{
+				parentVersionId: "0195f2d0-0002-7000-8000-000000000201",
+				targetJobId: "01918fa0-0030-7a00-8a00-000000000030",
+				seedStrategy: "ai_select",
+			},
+			{ headers: { Prefer: "example=ai-select-202-with-job" } },
+		);
+
+		expect(response).toMatchObject({
+			resumeVersionId: "0195f2d0-0002-7000-8000-000000000204",
+			job: { jobType: "resume_tailor" },
+		});
+	});
+
 	it("models dev auth session state across /me, verify, and logout", async () => {
 		const client = createDevMockClient();
 

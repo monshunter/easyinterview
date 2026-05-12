@@ -260,6 +260,12 @@ export interface ResumeVersion {
 	versionType: ResumeVersionType;
 }
 
+export interface BranchResumeVersionAccepted {
+	job: Job;
+	resumeVersionId: string;
+	version: ResumeVersion;
+}
+
 export interface PaginatedResumeVersion {
 	items: ResumeVersion[];
 	pageInfo: PageInfo;
