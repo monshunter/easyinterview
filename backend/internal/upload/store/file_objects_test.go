@@ -157,16 +157,17 @@ func TestRepositoryDeleteFileObjectsForUserHardDeletesScopedRows(t *testing.T) {
 	defer cleanup()
 	now := time.Date(2026, 5, 12, 1, 15, 0, 0, time.UTC)
 
-	mock.ExpectBegin()
 	mock.ExpectQuery(`from file_objects\s+where user_id = \$1 and deleted_at is null\s+for update`).
 		WithArgs("user-1").
 		WillReturnRows(sqlmock.NewRows([]string{"id", "object_key", "purpose"}).
 			AddRow("file-1", "user-1/resume/file-1.pdf", string(uploadstore.PurposeResume)).
 			AddRow("file-2", "user-1/resume/file-2.pdf", string(uploadstore.PurposeResume)))
-	mock.ExpectExec(`delete from file_objects where user_id = \$1 and id = any\(\$2\)`).
-		WithArgs("user-1", sqlmock.AnyArg()).
-		WillReturnResult(sqlmock.NewResult(0, 2))
-	mock.ExpectCommit()
+	mock.ExpectExec(`delete from file_objects where id = \$1`).
+		WithArgs("file-1").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`delete from file_objects where id = \$1`).
+		WithArgs("file-2").
+		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	deleted, err := repo.DeleteFileObjectsForUser(context.Background(), "user-1", now)
 	if err != nil {
@@ -174,6 +175,31 @@ func TestRepositoryDeleteFileObjectsForUserHardDeletesScopedRows(t *testing.T) {
 	}
 	if len(deleted) != 2 || deleted[0].ID != "file-1" || deleted[1].ID != "file-2" {
 		t.Fatalf("deleted = %+v", deleted)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRepositoryInsertAuditTombstoneDoesNotPersistObjectKey(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 5, 12, 1, 15, 0, 0, time.UTC)
+
+	mock.ExpectExec(`insert into audit_events`).
+		WithArgs("audit-1", "file-1", sqlmock.AnyArg(), now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err := repo.InsertAuditTombstone(context.Background(), uploadstore.AuditTombstoneInput{
+		AuditEventID: "audit-1",
+		UserID:       "user-1",
+		FileObjectID: "file-1",
+		Purpose:      uploadstore.PurposeResume,
+		ObjectKey:    "user-1/resume/file-1.pdf",
+		DeletedAt:    now,
+	})
+	if err != nil {
+		t.Fatalf("InsertAuditTombstone: %v", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)

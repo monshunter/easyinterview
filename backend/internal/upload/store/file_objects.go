@@ -3,11 +3,10 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
-
-	"github.com/lib/pq"
 )
 
 type Purpose string
@@ -77,6 +76,15 @@ type DeletedFileObject struct {
 	ID        string
 	ObjectKey string
 	Purpose   Purpose
+}
+
+type AuditTombstoneInput struct {
+	AuditEventID string
+	UserID       string
+	FileObjectID string
+	Purpose      Purpose
+	DeletedAt    time.Time
+	ObjectKey    string
 }
 
 func (r *Repository) Create(ctx context.Context, in CreateInput) error {
@@ -206,52 +214,78 @@ func (r *Repository) HardDelete(ctx context.Context, fileObjectID string) error 
 	return nil
 }
 
-func (r *Repository) DeleteFileObjectsForUser(ctx context.Context, userID string, _ time.Time) ([]DeletedFileObject, error) {
+func (r *Repository) ListFileObjectsForUser(ctx context.Context, userID string) ([]DeletedFileObject, error) {
 	if err := r.checkDB(); err != nil {
 		return nil, err
 	}
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("begin file objects user delete: %w", err)
-	}
-	defer tx.Rollback()
-
-	rows, err := tx.QueryContext(ctx, `
+	rows, err := r.db.QueryContext(ctx, `
 select id, object_key, purpose
 from file_objects
 where user_id = $1 and deleted_at is null
 for update`, userID)
 	if err != nil {
-		return nil, fmt.Errorf("select file objects for user delete: %w", err)
+		return nil, fmt.Errorf("list file objects for user delete: %w", err)
 	}
+	defer rows.Close()
 	var out []DeletedFileObject
-	var ids []string
 	for rows.Next() {
 		var rec DeletedFileObject
 		var purpose string
 		if err := rows.Scan(&rec.ID, &rec.ObjectKey, &purpose); err != nil {
-			rows.Close()
-			return nil, fmt.Errorf("scan file object for user delete: %w", err)
+			return nil, fmt.Errorf("scan file object for user delete list: %w", err)
 		}
 		rec.Purpose = Purpose(purpose)
 		out = append(out, rec)
-		ids = append(ids, rec.ID)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, fmt.Errorf("close file objects for user delete: %w", err)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate file objects for user delete: %w", err)
-	}
-	if len(ids) > 0 {
-		if _, err := tx.ExecContext(ctx, `delete from file_objects where user_id = $1 and id = any($2)`, userID, pq.Array(ids)); err != nil {
-			return nil, fmt.Errorf("delete file objects for user: %w", err)
-		}
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit file objects user delete: %w", err)
+		return nil, fmt.Errorf("iterate file objects for user delete list: %w", err)
 	}
 	return out, nil
+}
+
+func (r *Repository) DeleteFileObjectsForUser(ctx context.Context, userID string, _ time.Time) ([]DeletedFileObject, error) {
+	files, err := r.ListFileObjectsForUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	for _, file := range files {
+		if err := r.HardDelete(ctx, file.ID); err != nil {
+			return nil, err
+		}
+	}
+	return files, nil
+}
+
+func (r *Repository) InsertAuditTombstone(ctx context.Context, in AuditTombstoneInput) error {
+	if err := r.checkDB(); err != nil {
+		return err
+	}
+	deletedAt := in.DeletedAt
+	if deletedAt.IsZero() {
+		deletedAt = time.Now().UTC()
+	}
+	metadata, err := json.Marshal(map[string]string{
+		"fileObjectId": in.FileObjectID,
+		"purpose":      string(in.Purpose),
+		"deletedAt":    deletedAt.Format(time.RFC3339Nano),
+	})
+	if err != nil {
+		return fmt.Errorf("marshal file object audit tombstone: %w", err)
+	}
+	_, err = r.db.ExecContext(ctx, `
+insert into audit_events (
+  id, user_id, actor_type, actor_id, action, resource_type, resource_id,
+  result, ip_hash, user_agent_hash, metadata, created_at
+) values ($1, null, 'system', null, 'privacy.file_object_deleted', 'file_object', $2, 'success', null, null, $3, $4)`,
+		in.AuditEventID,
+		in.FileObjectID,
+		metadata,
+		deletedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("insert file object audit tombstone: %w", err)
+	}
+	return nil
 }
 
 func (r *Repository) checkDB() error {

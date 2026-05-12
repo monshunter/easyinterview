@@ -38,11 +38,11 @@
 
 ## Phase 4: privacy delete 链路
 
-- [ ] 4.1 实现 `DeleteFileObjectsForUser(ctx, userId) → []fileObjectId`（验证：integration test 含 5+ fileObject 删除场景）
-- [ ] 4.2 对象存储删除失败 retryable + DB 行保留原状态等待重试；不引入 `deleted_pending` 状态（验证：unit test `TestDeleteRetryable` PASS）
-- [ ] 4.3 audit_events 写入 tombstone（含 fileObjectId / purpose / deletedAt，不含 objectKey）（验证：integration test 验证 audit 行）
-- [ ] 4.4 在 `backend/internal/privacy/runner/` 中接入 `upload.DeleteFileObjectsForUser`（验证：privacy runner integration test PASS）
-- [ ] 4.5 privacy_delete 跨域顺序以 B4 §3.1.2 与业务 owner 删除链路为准；backend-upload file_objects 步骤必须先删对象存储、成功后再 hard delete DB 行，且不得单独规定 `resume_assets` / `target_jobs` 全局先后（验证：privacy runner integration test + B4 matrix dry-run 对照）
+- [x] 4.1 实现 `DeleteFileObjectsForUser(ctx, userId) → []fileObjectId`（验证：integration test 含 5+ fileObject 删除场景）
+- [x] 4.2 对象存储删除失败 retryable + DB 行保留原状态等待重试；不引入 `deleted_pending` 状态（验证：unit test `TestDeleteRetryable` PASS）
+- [x] 4.3 audit_events 写入 tombstone（含 fileObjectId / purpose / deletedAt，不含 objectKey）（验证：integration test 验证 audit 行）
+- [x] 4.4 在 `backend/internal/privacy/runner/` 中接入 `upload.DeleteFileObjectsForUser`（验证：privacy runner integration test PASS）
+- [x] 4.5 privacy_delete 跨域顺序以 B4 §3.1.2 与业务 owner 删除链路为准；backend-upload file_objects 步骤必须先删对象存储、成功后再 hard delete DB 行，且不得单独规定 `resume_assets` / `target_jobs` 全局先后（验证：privacy runner integration test + B4 matrix dry-run 对照）
 
 ## Phase 5: 收口与 BDD
 
