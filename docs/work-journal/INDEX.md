@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-12](2026-05-12.md) | `docs(plans): close resume additive lifecycle` | #docs |
 | [2026-05-12](2026-05-12.md) | `feat(openapi): add resume workshop contract coverage` | #feat #test #docs |
 | [2026-05-12](2026-05-12.md) | `feat(db-migrations): add resume version schema` | #feat #test #docs |
 | [2026-05-12](2026-05-12.md) | `fix(events): align resume tailor mode contract` | #fix #test #docs |

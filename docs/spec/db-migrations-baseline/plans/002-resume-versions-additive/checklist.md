@@ -1,8 +1,8 @@
 # DB Migrations Baseline Resume Versions Additive Checklist
 
 > **版本**: 1.0
-> **状态**: active
-> **更新日期**: 2026-05-11
+> **状态**: completed
+> **更新日期**: 2026-05-12
 
 **关联计划**: [plan](./plan.md)
 
