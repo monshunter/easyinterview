@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-12](2026-05-12.md) | `feat(backend-upload): add object store register service` | #feat #test #docs |
 | [2026-05-12](2026-05-12.md) | `feat(backend-upload): add file object store` | #feat #test #docs |
 | [2026-05-12](2026-05-12.md) | `feat(backend-upload): add presign handler validation` | #feat #test #docs |
 | [2026-05-12](2026-05-12.md) | `feat(backend-upload): complete config contract preflight` | #feat #test #docs |

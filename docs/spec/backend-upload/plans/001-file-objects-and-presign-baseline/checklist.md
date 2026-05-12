@@ -29,12 +29,12 @@
 
 ## Phase 3: ObjectStore interface + dev provider
 
-- [ ] 3.1 实现 `backend/internal/upload/objectstore/interface.go`，方法签名：`Presign / Delete / Exists`（验证：编译 PASS）
-- [ ] 3.2 实现 `RegisterFileObject(ctx, fileObjectId, expectedPurpose, ownerUserId)` internal service：`pending` 行先 `ObjectStore.Exists(objectKey)` 再原子 `MarkUploaded`；已 `uploaded` 幂等通过；object missing / 非法状态返回 `VALIDATION_FAILED`（验证：presign → PUT → register integration test PASS）
-- [ ] 3.3 实现 MinIO provider `objectstore/minio.go`（A2 dev stack）（验证：MinIO smoke `go test ./internal/upload/objectstore/... -tags=integration -run TestMinIO` PASS）
-- [ ] 3.4 实现 filesystem fallback provider `objectstore/filesystem.go`（unit test fallback，不持久 / 内存映射）（验证：unit test PASS）
-- [ ] 3.5 A4 config selector `objectStorage.provider=minio|filesystem` 切换（验证：runtime config 测试 + dev stack 启动验证）
-- [ ] 3.6 真 MinIO smoke：presign URL 在 TTL 内 PUT 接受、超期后 PUT 拒绝（验证：手工 curl smoke 或 integration test）
+- [x] 3.1 实现 `backend/internal/upload/objectstore/interface.go`，方法签名：`Presign / Delete / Exists`（验证：编译 PASS）
+- [x] 3.2 实现 `RegisterFileObject(ctx, fileObjectId, expectedPurpose, ownerUserId)` internal service：`pending` 行先 `ObjectStore.Exists(objectKey)` 再原子 `MarkUploaded`；已 `uploaded` 幂等通过；object missing / 非法状态返回 `VALIDATION_FAILED`（验证：presign → PUT → register integration test PASS）
+- [x] 3.3 实现 MinIO provider `objectstore/minio.go`（A2 dev stack）（验证：MinIO smoke `go test ./internal/upload/objectstore/... -tags=integration -run TestMinIO` PASS）
+- [x] 3.4 实现 filesystem fallback provider `objectstore/filesystem.go`（unit test fallback，不持久 / 内存映射）（验证：unit test PASS）
+- [x] 3.5 A4 config selector `objectStorage.provider=minio|filesystem` 切换（验证：runtime config 测试 + dev stack 启动验证）
+- [x] 3.6 真 MinIO smoke：presign URL 在 TTL 内 PUT 接受、超期后 PUT 拒绝（验证：手工 curl smoke 或 integration test）
 
 ## Phase 4: privacy delete 链路
 
