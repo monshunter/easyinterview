@@ -11,6 +11,7 @@ import (
 	"time"
 
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
+	"github.com/monshunter/easyinterview/backend/internal/shared/events"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
@@ -21,6 +22,40 @@ type Repository struct {
 
 func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
+}
+
+func (r *Repository) GetForParse(ctx context.Context, assetID string) (ParseAssetRecord, error) {
+	if r == nil || r.db == nil {
+		return ParseAssetRecord{}, fmt.Errorf("resume store db is nil")
+	}
+	row := r.db.QueryRowContext(ctx, `
+select ra.id, ra.user_id, ra.language, ra.parse_status, coalesce(ra.source_type, ''),
+       coalesce(ra.original_text, ''), coalesce(ra.guided_answers, '{}'::jsonb),
+       coalesce(ra.file_object_id::text, ''), coalesce(fo.object_key, '')
+from resume_assets ra
+left join file_objects fo on fo.id = ra.file_object_id and fo.deleted_at is null
+where ra.id = $1 and ra.deleted_at is null`,
+		assetID,
+	)
+	var rec ParseAssetRecord
+	var parseStatus string
+	if err := row.Scan(
+		&rec.ID,
+		&rec.UserID,
+		&rec.Language,
+		&parseStatus,
+		&rec.SourceType,
+		&rec.OriginalText,
+		&rec.GuidedAnswers,
+		&rec.FileObjectID,
+		&rec.FileObjectKey,
+	); errors.Is(err, sql.ErrNoRows) {
+		return ParseAssetRecord{}, ErrAssetNotFound
+	} else if err != nil {
+		return ParseAssetRecord{}, err
+	}
+	rec.ParseStatus = sharedtypes.TargetJobParseStatus(parseStatus)
+	return rec, nil
 }
 
 func (r *Repository) Get(ctx context.Context, userID string, assetID string) (AssetRecord, error) {
@@ -112,6 +147,69 @@ func (r *Repository) MarkReady(ctx context.Context, in MarkReadyInput) error {
 
 func (r *Repository) MarkFailed(ctx context.Context, in MarkFailedInput) error {
 	return r.updateStatus(ctx, in.UserID, in.AssetID, "", sharedtypes.TargetJobParseStatusFailed, nil, nil, in.ErrorCode, in.Now)
+}
+
+func (r *Repository) CompleteParseSuccess(ctx context.Context, in CompleteParseSuccessInput) error {
+	if r == nil || r.db == nil {
+		return fmt.Errorf("resume store db is nil")
+	}
+	now := in.Now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	if len(in.ParsedSummary) == 0 {
+		in.ParsedSummary = []byte(`{}`)
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin resume parse success: %w", err)
+	}
+	defer tx.Rollback()
+
+	res, err := tx.ExecContext(ctx, `
+update resume_assets
+set parse_status = $1, parsed_summary = $2, parsed_text_snapshot = $3, error_code = null, updated_at = $4
+where id = $5 and user_id = $6 and parse_status = $7 and deleted_at is null`,
+		string(sharedtypes.TargetJobParseStatusReady),
+		in.ParsedSummary,
+		in.ParsedTextSnapshot,
+		now,
+		in.AssetID,
+		in.UserID,
+		string(sharedtypes.TargetJobParseStatusProcessing),
+	)
+	if err != nil {
+		return fmt.Errorf("complete resume parse success: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("complete resume parse success rows affected: %w", err)
+	}
+	if rows == 0 {
+		return ErrInvalidStateTransition
+	}
+	if _, err := tx.ExecContext(ctx, `
+insert into outbox_events (
+  id, event_name, event_version, aggregate_type, aggregate_id, payload,
+  publish_status, next_attempt_at, created_at
+) values ($1,$2,1,$3,$4,$5,'pending',$6,$6)`,
+		in.OutboxEventID,
+		string(events.EventNameResumeParseCompleted),
+		string(api.ResourceTypeResumeAsset),
+		in.AssetID,
+		in.OutboxEventPayload,
+		now,
+	); err != nil {
+		return fmt.Errorf("insert resume parse completed outbox: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit resume parse success: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) CompleteParseFailure(ctx context.Context, in CompleteParseFailureInput) error {
+	return r.MarkFailed(ctx, MarkFailedInput{UserID: in.UserID, AssetID: in.AssetID, ErrorCode: in.ErrorCode, Now: in.Now})
 }
 
 func (r *Repository) DeleteForUser(ctx context.Context, userID string, now time.Time) error {

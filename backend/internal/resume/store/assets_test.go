@@ -160,6 +160,66 @@ func TestParseStatusTransition(t *testing.T) {
 	}
 }
 
+func TestCompleteParseSuccessWritesReadyStateAndCompletedOutboxAtomically(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 5, 13, 8, 30, 0, 0, time.UTC)
+
+	mock.ExpectBegin()
+	mock.ExpectExec(regexp.QuoteMeta(`update resume_assets`)).
+		WithArgs(
+			string(sharedtypes.TargetJobParseStatusReady),
+			[]byte(`{"basics":{"name":"Ada"}}`),
+			"parsed text",
+			now,
+			"asset-1",
+			"user-1",
+			string(sharedtypes.TargetJobParseStatusProcessing),
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(regexp.QuoteMeta(`insert into outbox_events`)).
+		WithArgs("event-1", "resume.parse.completed", "resume_asset", "asset-1", []byte(`{"resumeAssetId":"asset-1","userId":"user-1","parseStatus":"ready"}`), now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	if err := repo.CompleteParseSuccess(context.Background(), resumestore.CompleteParseSuccessInput{
+		UserID:             "user-1",
+		AssetID:            "asset-1",
+		ParsedSummary:      []byte(`{"basics":{"name":"Ada"}}`),
+		ParsedTextSnapshot: "parsed text",
+		OutboxEventID:      "event-1",
+		OutboxEventPayload: []byte(`{"resumeAssetId":"asset-1","userId":"user-1","parseStatus":"ready"}`),
+		Now:                now,
+	}); err != nil {
+		t.Fatalf("CompleteParseSuccess: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestCompleteParseFailureMarksFailedWithoutCompletedOutbox(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 5, 13, 8, 45, 0, 0, time.UTC)
+
+	mock.ExpectExec(regexp.QuoteMeta(`update resume_assets`)).
+		WithArgs(string(sharedtypes.TargetJobParseStatusFailed), "AI_OUTPUT_INVALID", now, "asset-1", "user-1").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	if err := repo.CompleteParseFailure(context.Background(), resumestore.CompleteParseFailureInput{
+		UserID:    "user-1",
+		AssetID:   "asset-1",
+		ErrorCode: "AI_OUTPUT_INVALID",
+		Now:       now,
+	}); err != nil {
+		t.Fatalf("CompleteParseFailure: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
 func TestListCursorPagination(t *testing.T) {
 	repo, mock, cleanup := newMockRepository(t)
 	defer cleanup()

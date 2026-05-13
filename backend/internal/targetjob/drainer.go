@@ -23,12 +23,20 @@ func (f JobHandlerFunc) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	return f(ctx, job)
 }
 
+// AsyncJobStore is the persistence subset the in-process drainer needs.
+// Domain stores can reuse the drainer without implementing the full
+// targetjob.Store surface.
+type AsyncJobStore interface {
+	ClaimNextAsyncJob(ctx context.Context, jobTypes []string, now time.Time) (ClaimedJob, bool, error)
+	FinalizeAsyncJob(ctx context.Context, jobID string, outcome JobOutcome, now time.Time) error
+}
+
 // DrainerOptions configures a Drainer instance. Handlers maps async_jobs
 // job_type values to per-type handler implementations; only the keys
 // listed are claimed by this drainer (so unrelated job types do not get
 // stolen by a partial deployment).
 type DrainerOptions struct {
-	Store        Store
+	Store        AsyncJobStore
 	Handlers     map[string]JobHandler
 	Workers      int
 	PollInterval time.Duration
@@ -43,7 +51,7 @@ type DrainerOptions struct {
 // BackgroundMailDispatcher with an added DB-backed claim path so jobs
 // survive process restarts.
 type Drainer struct {
-	store        Store
+	store        AsyncJobStore
 	handlers     map[string]JobHandler
 	jobTypes     []string
 	workers      int

@@ -93,3 +93,32 @@ type MarkFailedInput struct {
 	ErrorCode string
 	Now       time.Time
 }
+
+type ParseAssetRecord struct {
+	ID            string
+	UserID        string
+	Language      string
+	ParseStatus   sharedtypes.TargetJobParseStatus
+	SourceType    string
+	OriginalText  string
+	GuidedAnswers json.RawMessage
+	FileObjectID  string
+	FileObjectKey string
+}
+
+type CompleteParseSuccessInput struct {
+	UserID             string
+	AssetID            string
+	ParsedSummary      json.RawMessage
+	ParsedTextSnapshot string
+	OutboxEventID      string
+	OutboxEventPayload []byte
+	Now                time.Time
+}
+
+type CompleteParseFailureInput struct {
+	UserID    string
+	AssetID   string
+	ErrorCode string
+	Now       time.Time
+}
