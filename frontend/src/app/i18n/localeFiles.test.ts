@@ -62,4 +62,20 @@ describe("D1 shell i18n locale file structure", () => {
       expect(enSource).toContain(`"${key}"`);
     }
   });
+
+  it("does not keep retired Resume Workshop per-row tree toast keys", () => {
+    const zhSource = readFileSync(
+      new URL("./locales/zh.ts", import.meta.url),
+      "utf8",
+    );
+    const enSource = readFileSync(
+      new URL("./locales/en.ts", import.meta.url),
+      "utf8",
+    );
+
+    for (const source of [zhSource, enSource]) {
+      expect(source).not.toContain("resumeWorkshop.tree.toastSelect");
+      expect(source).not.toContain("resumeWorkshop.tree.toastBranch");
+    }
+  });
 });

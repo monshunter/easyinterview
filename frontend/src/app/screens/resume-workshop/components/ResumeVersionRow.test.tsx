@@ -66,6 +66,12 @@ describe("ResumeVersionRow rendering and click", () => {
     renderRow(TARGETED_VERSION, vi.fn(), true);
     const row = screen.getByTestId(`resume-version-row-${TARGETED_VERSION.id}`);
     expect(row).toHaveAttribute("data-indent", "1");
+    expect(
+      screen.getByTestId(`resume-version-row-${TARGETED_VERSION.id}-indent`),
+    ).toHaveTextContent("└");
+    expect(
+      screen.getByTestId(`resume-version-row-${TARGETED_VERSION.id}-icon`),
+    ).toHaveAttribute("data-icon", "briefcase");
   });
 
   it("invokes onOpen with the version when the open button is clicked", async () => {

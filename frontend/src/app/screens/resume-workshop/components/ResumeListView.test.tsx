@@ -39,8 +39,8 @@ function buildClient(): EasyInterviewClient {
 function renderListView(route: Route) {
   const client = buildClient();
   const nav = vi.fn();
-  return render(
-    <DisplayPreferencesProvider>
+  const result = render(
+    <DisplayPreferencesProvider initial={{ lang: "zh" }}>
       <AppRuntimeProvider
         client={client}
         requestOptions={{
@@ -53,12 +53,13 @@ function renderListView(route: Route) {
       </AppRuntimeProvider>
     </DisplayPreferencesProvider>,
   );
+  return { ...result, nav };
 }
 
 function renderListViewWithClient(client: EasyInterviewClient, route: Route) {
   const nav = vi.fn();
   return render(
-    <DisplayPreferencesProvider>
+    <DisplayPreferencesProvider initial={{ lang: "zh" }}>
       <AppRuntimeProvider
         client={client}
         requestOptions={{
@@ -107,6 +108,12 @@ describe("ResumeListView default fixture rendering", () => {
     expect(
       screen.getByTestId("resume-workshop-view-switcher-tree"),
     ).toHaveAttribute("data-active", "true");
+    expect(
+      screen.getByTestId("resume-workshop-create"),
+    ).toHaveTextContent("新建简历");
+    expect(
+      screen.getByTestId("resume-workshop-view-context"),
+    ).toHaveTextContent("管理底稿与分叉关系");
 
     // At least one tree row (asset entry) is rendered for the default fixture
     const firstAssetId =
@@ -126,6 +133,20 @@ describe("ResumeListView default fixture rendering", () => {
       expect(
         screen.getByTestId(`resume-version-row-${matchedVersionId}`),
       ).toBeInTheDocument();
+    });
+  });
+
+  it("navigates to the create placeholder from the prototype header button", async () => {
+    const { nav } = renderListView(LIST_ROUTE);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-workshop-create")).toBeInTheDocument();
+    });
+
+    await userEvent.setup().click(screen.getByTestId("resume-workshop-create"));
+    expect(nav).toHaveBeenCalledWith({
+      name: "resume_versions",
+      params: { flow: "create" },
     });
   });
 

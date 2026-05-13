@@ -11,6 +11,7 @@ import {
 import { useResumeAssets } from "../hooks/useResumeAssets";
 import { useResumeVersions } from "../hooks/useResumeVersions";
 import { ResumeFlatView } from "./ResumeFlatView";
+import { ResumeWorkshopIcon } from "./ResumeWorkshopIcon";
 import { ResumeTreeView } from "./ResumeTreeView";
 
 type GroupBy = "tree" | "flat";
@@ -22,6 +23,7 @@ export const ResumeListView: FC = () => {
   const primerAssetId = assetsQuery.data?.items[0]?.id ?? null;
   const versionsQuery = useResumeVersions(primerAssetId);
   const [groupBy, setGroupBy] = useState<GroupBy>("tree");
+  const [selectedTreeId, setSelectedTreeId] = useState<string | null>(null);
 
   const sources = useMemo<UiResumeSource[]>(
     () => assetsQuery.data?.items.map(mapResumeAssetToUiSource) ?? [],
@@ -44,21 +46,37 @@ export const ResumeListView: FC = () => {
 
   const stats = useMemo(() => {
     const totalOriginals = sources.length;
+    const activeOriginals = sources.filter((source) => source.status === "active").length;
     const totalVersions = versions.length;
+    const targetedVersions = versions.filter((v) => v.tag === "TARGETED").length;
     const matches = versions
       .map((v) => v.match)
       .filter((value): value is number => value !== null);
     const topMatch = matches.length > 0 ? Math.max(...matches) : null;
-    const recent = versions
-      .map((v) => v.date)
-      .sort((a, b) => b.localeCompare(a))[0];
+    const topMatchVersion =
+      topMatch === null ? null : versions.find((v) => v.match === topMatch) ?? null;
+    const recentVersion = [...versions].sort((a, b) =>
+      b.date.localeCompare(a.date),
+    )[0] ?? null;
     return {
+      activeOriginals,
       totalOriginals,
       totalVersions,
+      targetedVersions,
       topMatch,
-      recent: recent ?? null,
+      topMatchLabel: topMatchVersion?.target ?? topMatchVersion?.name ?? null,
+      recent: recentVersion?.date ?? null,
+      recentLabel:
+        recentVersion === null
+          ? null
+          : `v · ${recentVersion.target ?? recentVersion.name}`,
     };
   }, [sources, versions]);
+
+  const selectedTree = useMemo(
+    () => sources.find((source) => source.id === selectedTreeId) ?? null,
+    [selectedTreeId, sources],
+  );
 
   const onOpenVersion = useCallback(
     (version: UiResumeVersion) => {
@@ -68,6 +86,22 @@ export const ResumeListView: FC = () => {
           versionId: version.id,
           tab: version.tag === "TARGETED" ? "rewrites" : "preview",
         },
+      });
+    },
+    [navigate],
+  );
+  const onCreate = useCallback(() => {
+    navigate({
+      name: "resume_versions",
+      params: { flow: "create" },
+    });
+  }, [navigate]);
+
+  const onBranch = useCallback(
+    (sourceId: string) => {
+      navigate({
+        name: "resume_versions",
+        params: { flow: "branch", branchOriginalId: sourceId },
       });
     },
     [navigate],
@@ -150,17 +184,72 @@ export const ResumeListView: FC = () => {
           <h1 className="ei-text-display">{t("resumeWorkshop.title")}</h1>
           <p className="ei-text-body">{t("resumeWorkshop.subtitle")}</p>
         </div>
+        <button
+          type="button"
+          className="ei-resume-workshop-create"
+          data-testid="resume-workshop-create"
+          onClick={onCreate}
+        >
+          <ResumeWorkshopIcon name="plus" size={14} />
+          {t("resumeWorkshop.create")}
+        </button>
       </header>
 
       <StatsStrip
+        activeOriginals={stats.activeOriginals}
         totalOriginals={stats.totalOriginals}
         totalVersions={stats.totalVersions}
+        targetedVersions={stats.targetedVersions}
         topMatch={stats.topMatch}
+        topMatchLabel={stats.topMatchLabel}
         recent={stats.recent}
+        recentLabel={stats.recentLabel}
         translate={t}
       />
 
-      <ViewSwitcher value={groupBy} onChange={setGroupBy} translate={t} />
+      <div className="ei-resume-workshop-view-row">
+        <ViewSwitcher value={groupBy} onChange={setGroupBy} translate={t} />
+        <div
+          className="ei-resume-workshop-view-context"
+          data-testid="resume-workshop-view-context"
+        >
+          {groupBy === "tree"
+            ? t("resumeWorkshop.viewContext.tree")
+            : t("resumeWorkshop.viewContext.flat")}
+        </div>
+      </div>
+
+      {groupBy === "tree" && selectedTree ? (
+        <div
+          className="ei-resume-workshop-selected-tree"
+          data-testid="resume-workshop-selected-tree-helper"
+        >
+          <div className="ei-resume-workshop-selected-tree-copy">
+            <ResumeWorkshopIcon name="check" size={12} />
+            <span>{t("resumeWorkshop.tree.selectedHelper")}</span>
+            <span className="ei-resume-workshop-selected-tree-name">
+              {selectedTree.name}
+            </span>
+          </div>
+          <div className="ei-resume-workshop-selected-tree-actions">
+            <button
+              type="button"
+              data-testid="resume-workshop-selected-tree-clear"
+              onClick={() => setSelectedTreeId(null)}
+            >
+              {t("resumeWorkshop.tree.clearSelection")}
+            </button>
+            <button
+              type="button"
+              data-testid="resume-workshop-selected-tree-branch"
+              onClick={() => onBranch(selectedTree.id)}
+            >
+              <ResumeWorkshopIcon name="plus" size={12} />
+              {t("resumeWorkshop.tree.newVersion")}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {sources.length === 0 ? (
         <div
@@ -174,6 +263,9 @@ export const ResumeListView: FC = () => {
           sources={sources}
           versionsByAsset={versionsByAsset}
           onOpenVersion={onOpenVersion}
+          selectedSourceId={selectedTreeId}
+          onSelectSource={setSelectedTreeId}
+          onCreate={onCreate}
         />
       ) : (
         <ResumeFlatView
@@ -196,18 +288,26 @@ export const ResumeListView: FC = () => {
 };
 
 interface StatsStripProps {
+  activeOriginals: number;
   totalOriginals: number;
   totalVersions: number;
+  targetedVersions: number;
   topMatch: number | null;
+  topMatchLabel: string | null;
   recent: string | null;
+  recentLabel: string | null;
   translate: (key: MessageKey) => string;
 }
 
 const StatsStrip: FC<StatsStripProps> = ({
+  activeOriginals,
   totalOriginals,
   totalVersions,
+  targetedVersions,
   topMatch,
+  topMatchLabel,
   recent,
+  recentLabel,
   translate,
 }) => (
   <ul className="ei-resume-workshop-stats">
@@ -218,7 +318,10 @@ const StatsStrip: FC<StatsStripProps> = ({
       <span className="ei-text-label">
         {translate("resumeWorkshop.stats.originals")}
       </span>
-      <span className="ei-text-title">{totalOriginals}</span>
+      <span className="ei-text-title">{`${activeOriginals} / ${totalOriginals}`}</span>
+      <span className="ei-resume-workshop-stat-sub">
+        {translate("resumeWorkshop.stats.originalsSub")}
+      </span>
     </li>
     <li
       data-testid="resume-workshop-stats-versions"
@@ -228,6 +331,12 @@ const StatsStrip: FC<StatsStripProps> = ({
         {translate("resumeWorkshop.stats.versions")}
       </span>
       <span className="ei-text-title">{totalVersions}</span>
+      <span className="ei-resume-workshop-stat-sub">
+        {translate("resumeWorkshop.stats.versionsSub").replace(
+          "{count}",
+          String(targetedVersions),
+        )}
+      </span>
     </li>
     <li
       data-testid="resume-workshop-stats-top-match"
@@ -241,6 +350,9 @@ const StatsStrip: FC<StatsStripProps> = ({
           ? `${topMatch}%`
           : translate("resumeWorkshop.stats.empty")}
       </span>
+      <span className="ei-resume-workshop-stat-sub">
+        {topMatchLabel ?? translate("resumeWorkshop.stats.empty")}
+      </span>
     </li>
     <li
       data-testid="resume-workshop-stats-recent"
@@ -251,6 +363,9 @@ const StatsStrip: FC<StatsStripProps> = ({
       </span>
       <span className="ei-text-title">
         {recent ?? translate("resumeWorkshop.stats.empty")}
+      </span>
+      <span className="ei-resume-workshop-stat-sub">
+        {recentLabel ?? translate("resumeWorkshop.stats.empty")}
       </span>
     </li>
   </ul>
@@ -276,6 +391,7 @@ const ViewSwitcher: FC<ViewSwitcherProps> = ({ value, onChange, translate }) => 
       aria-selected={value === "tree"}
       onClick={() => onChange("tree")}
     >
+      <ResumeWorkshopIcon name="file" size={12} />
       {translate("resumeWorkshop.viewSwitcher.tree")}
     </button>
     <button
@@ -286,6 +402,7 @@ const ViewSwitcher: FC<ViewSwitcherProps> = ({ value, onChange, translate }) => 
       aria-selected={value === "flat"}
       onClick={() => onChange("flat")}
     >
+      <ResumeWorkshopIcon name="layers" size={12} />
       {translate("resumeWorkshop.viewSwitcher.flat")}
     </button>
   </div>

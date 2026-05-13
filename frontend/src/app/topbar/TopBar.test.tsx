@@ -38,6 +38,17 @@ describe("TopBar primary nav", () => {
     }
   });
 
+  it("renders the resume nav label from the ui-design TopBar copy", () => {
+    render(
+      <DisplayPreferencesProvider initial={{ lang: "zh" }}>
+        <TopBar activeRoute="resume_versions" onNavigate={() => {}} />
+      </DisplayPreferencesProvider>,
+    );
+    expect(screen.getByTestId("topbar-nav-resume_versions")).toHaveTextContent(
+      "简历",
+    );
+  });
+
   it("does not render legacy / removed entries (mistakes / growth / voice / drill)", () => {
     renderInProvider(<TopBar activeRoute="home" onNavigate={() => {}} />);
     for (const legacy of ["mistakes", "growth", "voice", "drill", "welcome"]) {

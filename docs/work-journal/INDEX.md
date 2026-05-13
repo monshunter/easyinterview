@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-13](2026-05-13.md) | `fix(frontend-resume-workshop): restore ui-design list parity` | #fix #ui #test #docs #i18n |
 | [2026-05-13](2026-05-13.md) | `fix(backend-upload): close follow-up L2 gaps` | #fix #test #docs |
 | [2026-05-13](2026-05-13.md) | `fix(backend-upload): harden presign size enforcement, atomic privacy delete, and runtime wiring` | #fix #test #docs |
 | [2026-05-12](2026-05-12.md) | `fix(frontend-resume-workshop): harden resume workshop error states` | #fix #ui #test #docs |

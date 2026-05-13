@@ -41,7 +41,7 @@ function buildClient(): EasyInterviewClient {
 function renderTree() {
   const route: Route = { name: "resume_versions", params: {} };
   return render(
-    <DisplayPreferencesProvider>
+    <DisplayPreferencesProvider initial={{ lang: "zh" }}>
       <AppRuntimeProvider
         client={buildClient()}
         requestOptions={{
@@ -116,7 +116,7 @@ describe("ResumeTreeView interactions", () => {
     ).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("renders the use-as-base / new-version buttons and their click fires the coming-soon toast", async () => {
+  it("matches the prototype tree controls: select base first, then branch from the selected helper", async () => {
     renderTree();
 
     await waitFor(() => {
@@ -125,22 +125,31 @@ describe("ResumeTreeView interactions", () => {
       ).toBeInTheDocument();
     });
     expect(
-      screen.getByTestId(`resume-tree-row-${FIRST_ASSET_ID}-new-version`),
-    ).toBeInTheDocument();
+      screen.queryByTestId(`resume-tree-row-${FIRST_ASSET_ID}-new-version`),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("resume-workshop-selected-tree-helper"),
+    ).not.toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.click(
       screen.getByTestId(`resume-tree-row-${FIRST_ASSET_ID}-use-as-base`),
     );
-    await user.click(
-      screen.getByTestId(`resume-tree-row-${FIRST_ASSET_ID}-new-version`),
-    );
-
-    await waitFor(() => {
-      expect(toastCalls.length).toBeGreaterThanOrEqual(2);
-    });
     expect(
-      toastCalls.some((call) => /即将开放|coming soon/i.test(call.message)),
-    ).toBe(true);
+      screen.getByTestId("resume-workshop-selected-tree-helper"),
+    ).toHaveTextContent("已选为下一个新版本的底稿");
+    expect(
+      screen.getByTestId("resume-workshop-selected-tree-branch"),
+    ).toHaveTextContent("基于这棵树新建版本");
+
+    await user.click(screen.getByTestId("resume-workshop-selected-tree-clear"));
+    expect(
+      screen.queryByTestId("resume-workshop-selected-tree-helper"),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByTestId(`resume-tree-row-${FIRST_ASSET_ID}-use-as-base`),
+    );
+    expect(toastCalls.length).toBe(0);
   });
 });

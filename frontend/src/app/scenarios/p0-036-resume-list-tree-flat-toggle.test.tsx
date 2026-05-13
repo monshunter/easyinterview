@@ -155,16 +155,24 @@ describe("E2E.P0.036 resume-list tree/flat toggle + StatsStrip + auth boundary",
       screen.getByTestId(`resume-version-row-${FIRST_VERSION_ID}`),
     ).toBeInTheDocument();
 
-    // Use-as-base / new-version buttons render and surface coming-soon toasts on click.
+    // Prototype parity: selecting a tree surfaces the branch helper instead of
+    // rendering a second per-row action.
     const user = userEvent.setup();
+    expect(
+      screen.queryByTestId(`resume-tree-row-${FIRST_ASSET_ID}-new-version`),
+    ).not.toBeInTheDocument();
     await user.click(
       screen.getByTestId(`resume-tree-row-${FIRST_ASSET_ID}-use-as-base`),
     );
-    await waitFor(() =>
-      expect(
-        toastCalls.some((c) => /即将开放|coming soon/i.test(c.message)),
-      ).toBe(true),
-    );
+    expect(
+      screen.getByTestId("resume-workshop-selected-tree-helper"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("resume-workshop-selected-tree-branch"),
+    ).toBeInTheDocument();
+    expect(
+      toastCalls.some((c) => /即将开放|coming soon/i.test(c.message)),
+    ).toBe(false);
   });
 
   it("clicking ViewSwitcher flat renders the FlatView and clicking a flat row navigates to the version detail with the right default tab", async () => {
