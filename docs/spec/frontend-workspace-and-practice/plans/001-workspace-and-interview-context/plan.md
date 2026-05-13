@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-12
+> **更新日期**: 2026-05-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -39,6 +39,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-13 | 1.4 | Handoff only：`backend-resume/001-asset-register-parse-and-listing` 已落地 `listResumes` 真实 `cmd/api` route、fixtures parity 与 E2E.P0.034/P0.035；workspace owner 可启动原地修订 Resume Picker active-list，替换 completed plan 的 disabled-list 负向断言。 |
 | 2026-05-12 | 1.3 | Handoff only：B2 D-18 / `openapi-v1-contract/004-resume-additive-coverage` 已落地 `listResumes` operation、fixtures 和 generated client；本 completed plan 保留当时交付的 disabled-list 行为，后续 workspace owner 应原地修订 Resume Picker 为 active-list 模式并移除 `resumePicker.disabledNote`。 |
 | 2026-05-09 | 1.2 | L2 follow-up 修复 workspace generated API server-bound id 归一化、target-job stale/error recovery、target 切换竞态与英文本地化派生标签。 |
 

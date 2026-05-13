@@ -1,8 +1,8 @@
 # Backend Resume Asset Register Parse and Listing
 
-> **版本**: 1.1
-> **状态**: active
-> **更新日期**: 2026-05-12
+> **版本**: 1.2
+> **状态**: completed
+> **更新日期**: 2026-05-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)

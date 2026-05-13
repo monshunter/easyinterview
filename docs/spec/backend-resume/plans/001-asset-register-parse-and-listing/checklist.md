@@ -1,8 +1,8 @@
 # Backend Resume Asset Register Parse and Listing Checklist
 
-> **版本**: 1.1
-> **状态**: active
-> **更新日期**: 2026-05-12
+> **版本**: 1.2
+> **状态**: completed
+> **更新日期**: 2026-05-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -46,11 +46,11 @@
 
 ## Phase 5: 收口 + BDD + 解锁 workspace 001
 
-- [ ] 5.1 跑 `cd backend && go test ./...` + `cd backend && go test ./internal/resume/...` + `cd backend && go test ./cmd/api -run 'TestBuildResumeRuntime|TestResumeRegisterListHTTPScenario|TestResumeParseDrainerHTTPScenario' -count=1` 全 PASS（验证：exit 0）
-- [ ] 5.2 mock-first 对齐：`registerResume` (`default` / `paste-text` / `guided-answers`)、`getResume` (`default` / `not-found`)、`listResumes` (`default` / `empty` / `paginated`) 通过 `cmd/api` 真实 route 的响应与对应 fixture 字节比对 PASS
-- [ ] 5.3 grep `inline|rewrite|mirror` in `backend/internal/resume/` + resume drainer/outbox payload：0 命中（C-13 negative）（验证：`git grep` 输出 + payload assertion）
-- [ ] 5.4 BDD-Gate: E2E.P0.034 resume-register-and-list PASS（详见 [bdd-checklist.md](./bdd-checklist.md)）
-- [ ] 5.5 BDD-Gate: E2E.P0.035 resume-parse-async-job-lifecycle PASS（含 stub AIClient + outbox event 验证）
-- [ ] 5.6 在 `test/scenarios/e2e/INDEX.md` 追加 P0.034 + P0.035 行（关联需求 `backend-resume C-1..C-8, C-13`）
-- [ ] 5.7 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `backend-resume` 状态从 "未创建" 改为 "active"（与 backend-upload 同步行）（验证：`sync-doc-index --check`）
-- [ ] 5.8 通知 [frontend-workspace-and-practice/001](../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md) owner：`listResumes` 已就位，可启动 disabled-list → active-list 原地修订（验证：cross-plan 引用 commit + workspace 001 plan checklist 追加 unblock 引用）
+- [x] 5.1 跑 `cd backend && go test ./...` + `cd backend && go test ./internal/resume/...` + `cd backend && go test ./cmd/api -run 'TestBuildResumeRuntime|TestResumeRegisterListHTTPScenario|TestResumeParseDrainerHTTPScenario' -count=1` 全 PASS（验证：exit 0）<!-- verified: 2026-05-13 method=go-test -->
+- [x] 5.2 mock-first 对齐：`registerResume` (`default` / `paste-text` / `guided-answers`)、`getResume` (`default` / `not-found`)、`listResumes` (`default` / `empty` / `paginated`) 通过 `cmd/api` 真实 route 的响应与对应 fixture 字节比对 PASS <!-- verified: 2026-05-13 method=scenario+handler-fixture-parity -->
+- [x] 5.3 grep `inline|rewrite|mirror` in `backend/internal/resume/` + resume drainer/outbox payload：0 命中（C-13 negative）（验证：`git grep` 输出 + payload assertion）<!-- verified: 2026-05-13 method=rg+unit-test -->
+- [x] 5.4 BDD-Gate: E2E.P0.034 resume-register-and-list PASS（详见 [bdd-checklist.md](./bdd-checklist.md)）<!-- verified: 2026-05-13 method=scenario -->
+- [x] 5.5 BDD-Gate: E2E.P0.035 resume-parse-async-job-lifecycle PASS（含 stub AIClient + outbox event 验证）<!-- verified: 2026-05-13 method=scenario -->
+- [x] 5.6 在 `test/scenarios/e2e/INDEX.md` 追加 P0.034 + P0.035 行（关联需求 `backend-resume C-1..C-8, C-13`）
+- [x] 5.7 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `backend-resume` 状态从 "未创建" 改为 "active"（与 backend-upload 同步行）（验证：`sync-doc-index --check`）<!-- verified: 2026-05-13 roadmap already active -->
+- [x] 5.8 通知 [frontend-workspace-and-practice/001](../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md) owner：`listResumes` 已就位，可启动 disabled-list → active-list 原地修订（验证：cross-plan 引用 commit + workspace 001 plan checklist 追加 unblock 引用）<!-- verified: 2026-05-13 commit=1d1f69c -->

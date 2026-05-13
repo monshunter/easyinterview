@@ -38,5 +38,7 @@
 | E2E.P0.031 | frontend-home-job-picks-and-parse C-13 | `p0-031-jd-match-confirm-interview-handoff/` | Confirm interview from jd_match → parse 出口 params 完整性 + parse 屏不破坏 | automated | Ready |
 | E2E.P0.032 | frontend-shell C-10 | `p0-032-dev-mock-auth-state-and-user-menu/` | Dev mock 默认非登录、登录后头像 dropdown、profile/settings 分流与 logout 后非登录闭环 | automated | Ready |
 | E2E.P0.033 | backend-upload C-1, C-2, C-3, C-4, C-6, C-7, C-8 | `p0-033-file-presign-register-roundtrip/` | file presign、IK replay、register 校验、cross-user 隔离与 privacy delete tombstone | automated | Ready |
+| E2E.P0.034 | backend-resume C-1, C-2, C-5, C-6, C-7, C-8 | `p0-034-resume-register-and-list/` | Resume register/get/list：三 sourceType、IK replay、upload handoff、cross-user 404、cursor pagination 与 fixture parity | automated | Ready |
+| E2E.P0.035 | backend-resume C-3, C-4, C-13 | `p0-035-resume-parse-async-job-lifecycle/` | resume.parse in-process drainer：AI parse、ready/failed 状态、typed task run、ready-only outbox 与 privacy redlines | automated | Ready |
 | E2E.P0.036 | frontend-resume-workshop C-1, C-2, C-3, C-5, C-6, C-7, C-8, C-9 | `p0-036-resume-list-tree-flat-toggle/` | Resume Workshop list：路由替换、auth gate、StatsStrip 从 fixture 派生计数、ViewSwitcher tree/flat、第二个 asset 的 no-versions 占位与 retired-route negative grep | automated | Ready |
 | E2E.P0.037 | frontend-resume-workshop C-4, C-5, C-6, C-7, C-8 | `p0-037-resume-detail-preview-readonly/` | Resume Workshop detail：Preview Tab 投影、原件 modal a11y、Export PDF Idempotency-Key + P0 501 toast、404 fallback 不回显 fixture error.code | automated | Ready |

@@ -55,8 +55,8 @@
         },
         "body": {
           "error": {
-            "code": "NOT_FOUND",
-            "message": "Resume not found",
+            "code": "TARGET_JOB_NOT_FOUND",
+            "message": "resume not found",
             "requestId": "req_2026-05-09T10-00-00-not-found",
             "retryable": false
           }
