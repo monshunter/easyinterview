@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-13](2026-05-13.md) | `docs(backend-practice): align event loop review gates` | #docs |
 | [2026-05-13](2026-05-13.md) | `docs(backend-practice): harden event loop plan gates` | #docs |
 | [2026-05-13](2026-05-13.md) | `docs(backend-resume): harden register parse plan gates` | #docs |
 | [2026-05-13](2026-05-13.md) | `fix(frontend-resume-workshop): restore ui-design list parity` | #fix #ui #test #docs #i18n |

@@ -51,7 +51,7 @@
 - 不实现 JD 解析、`target_jobs` 生命周期；归 [`backend-targetjob`](./../backend-targetjob/spec.md) owner。本 spec 仅引用 `target_job_id`。
 - 不实现简历资产版本、`resume_assets` 解析、岗位定制；归 `backend-resume` (future) owner。本 spec 仅引用 `resume_asset_id`。
 - 不实现 STT / LLM / TTS 编排、committed-context 推进、barge-in 处理、TTS chunk 播放语义；归 [`practice-voice-mvp`](../practice-voice-mvp/spec.md) owner 与其 plan。
-- 不实现独立 worker / Asynq dispatcher / 生产级 outbox consumer；P0 用 backend-internal drainer 完成本地与 BDD 验证，沿用 [`backend-auth`](./../backend-auth/spec.md) 同款 in-process goroutine drainer 模式。
+- 不实现独立 worker / Asynq dispatcher / 生产级 outbox consumer；001/002 范围只负责 handler/store 同事务写 `outbox_events` 与 `async_jobs`，真实 dispatcher / runtime drainer 由 future `backend-async-runner` 或对应 owner 接管，不把不存在的 runtime 包作为 002 实施依赖。
 - 不暴露独立 cancel API（OpenAPI v1 不提供 `DELETE /practice/sessions/{id}`）；`status='cancelled'` 仅由 platform sweep（超时阈值由本 spec §6 约定，实现归 platform owner）和 DELETE /me cascade 触发。
 - 不实现 plan 自动 archival / 用户主动 dismiss；`practice_plans.status='archived'` 列保留以便后续 plan 演进，v1 不写入。
 - 不在本 spec 文档内 inline 修改 B2 OpenAPI、B3 events/jobs、B4 baseline 表结构、A3 provider 协议或 F3 baseline prompt / rubric 文本；D-21 / D-24 / D-26 / D-27 / D-28 / D-29 指向的契约修订必须由对应 owner spec / truth source / plan 先落地，再由 backend-practice implementation 消费。
@@ -143,7 +143,7 @@
 
 ### 4.4 异步 / 可观测约束
 
-- 必须复用 [backend-auth](../backend-auth/spec.md) 同款 backend-internal goroutine drainer 模式或共享其封装；drainer 必须有 graceful shutdown / drain timeout 测试。本域 P0 只创建 `report_generate` queued job、不消费该 job，但必须按 D-28 保证 job row / outbox emit 路径与 dispatcher 兼容，且 outbox 重放不会创建第二个 report/job。
+- 本域 P0 只创建 `report_generate` queued job、不消费该 job；002 不引入 runtime dispatcher / drainer 包，但必须按 D-28 保证 job row / outbox emit 路径与未来 dispatcher 兼容，且 outbox 重放不会创建第二个 report/job。未来 `backend-async-runner` plan 接管 dispatcher 时必须读取 B3 job ownership 语义并验证 graceful shutdown / drain timeout。
 - F1 metric 字典登记前置：practice-specific business metrics（如 session started / completed / duration）实施前必须先在 [F1 baseline](../observability-stack/spec.md) 字典登记，并且 label 只能使用 F1 allowed labels 与 B1 有界枚举；AI 调用 metric 复用 A3 已登记的 7 个 `ai_task_*` metric family，`feature_key` / `prompt_version` / `rubric_version` 只进入 `ai_task_runs` typed columns 或审计摘要，不进入 metric label。
 - 同步首题与 follow-up 的 P95 延迟作为观测目标登记，但不作为本 spec 验收 gate。
 
@@ -160,7 +160,7 @@
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | API contract | [B2 `openapi-v1-contract`](../openapi-v1-contract/spec.md) | 6 个 Practice operation 与 voice 扩展 operation 的 schema、fixtures、generated client / server |
-| Backend domain | `backend-practice`（本 spec） | handler / service / store / drainer hook / state machine / AssistantAction generator / outbox emit |
+| Backend domain | `backend-practice`（本 spec） | handler / service / store / async handoff row creation / state machine / AssistantAction generator / outbox emit |
 | DB schema | [B4 `db-migrations-baseline`](../db-migrations-baseline/spec.md) | `practice_plans` / `practice_sessions` / `practice_session_events` / `practice_turns` 列与索引；shared `idempotency_records` 表由 B4 承载，backend-practice 是首个 caller，必须使用 `domain` / `operation` namespace 保持 future backend domain 可复用；`source_debrief_id` 由本 spec D-14 派生的 B4 修订落地 |
 | Event / job contract | [B3 `event-and-outbox-contract`](../event-and-outbox-contract/spec.md) | `practice.session.started` / `practice.turn.completed` / `practice.session.completed` 与 `report_generate` job mapping；D-28 要求 report job row 由 `completePracticeSession` 创建，事件只作 source fact / analytics |
 | Shared enums / errors | [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md) | `PracticeMode` / `PracticeGoal` / `InterviewerRole` / `SessionStatus` / `PRACTICE_SESSION_CONFLICT` / `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND` |
@@ -176,7 +176,7 @@
 | Voice extension | [`practice-voice-mvp`](../practice-voice-mvp/spec.md) | STT / LLM / TTS profile 选择、committed-context、barge-in；本 spec 提供 voice operation 契约入口与 session event 持久化 |
 | Frontend consumer | future `frontend-workspace-and-practice` | Interview Session 与 Report Dashboard mock → real 切换；本 spec 不直接耦合前端组件 |
 | Scenario coverage | scenarios owner + 本 subject | `E2E.P0.0NN-practice-session-*` 套件 setup / trigger / verify / cleanup（具体编号在各 plan 内分配） |
-| Async runner replacement | future `backend-async-runner` | 替换 in-process drainer，必须沿用 B3 payload red-line |
+| Async runner replacement | future `backend-async-runner` | 接管 runtime dispatcher / drainer，必须沿用 B3 payload red-line 与 D-32 job ownership 语义 |
 
 ## 6 验收标准
 
@@ -238,7 +238,7 @@
 - [prompt-rubric-registry](../prompt-rubric-registry/spec.md)
 - [secrets-and-config](../secrets-and-config/spec.md)
 - [observability-stack](../observability-stack/spec.md)
-- [backend-auth](../backend-auth/spec.md)（同款 in-process drainer 与 idempotency framework 先例）
+- [backend-auth](../backend-auth/spec.md)（idempotency framework 与 auth/session middleware 先例）
 - [backend-targetjob](../backend-targetjob/spec.md)（上游 target_job_id 提供方）
 - [practice-voice-mvp](../practice-voice-mvp/spec.md)（voice 协作 owner）
 - [docs/development.md §2 Frontend / Backend Contract Workflow](../../development.md)

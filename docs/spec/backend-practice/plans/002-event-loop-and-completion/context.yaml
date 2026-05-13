@@ -50,8 +50,10 @@ spec:
           - backend/internal/practice
           - backend/internal/store/practice
           - backend/internal/middleware/idempotency
-          - backend/internal/runtime/outbox
+          - backend/cmd/codegen/events
+          - backend/internal/shared/jobs
           - shared/events
+          - shared/jobs.yaml
           - scripts/lint
         apiNames:
           - appendSessionEvent

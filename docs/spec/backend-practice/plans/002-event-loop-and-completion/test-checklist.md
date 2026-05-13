@@ -8,7 +8,7 @@
 
 ## Phase 0: 跨 spec 前置修订 + Preflight
 
-- [ ] Phase 0 本计划定义的 `triggerEventSemantic` enum + lint / generated `JobTriggerEventSemantic*` 常量 + `IsSourceEventOnly` 谓词单元测试 / OpenAPI codegen / fixtures validator / sync-doc-index 与 F3 baseline preflight 测试项全部通过（注：runtime outbox→asynq dispatcher 集成测试归 future `backend-async-runner` plan，002 阶段不在范围内）
+- [ ] Phase 0 本计划定义的 `triggerEventSemantic` enum + `make lint-events` / `make codegen-events-check` / generated `JobTriggerEventSemantic*` 常量 + `IsSourceEventOnly` 谓词单元测试 / OpenAPI codegen / fixtures validator / sync-doc-index 与 F3 baseline preflight 测试项全部通过（注：runtime outbox→asynq dispatcher 集成测试归 future `backend-async-runner` plan，002 阶段不在范围内）
 
 ## Phase 1: AppendSessionEvent state machine 与 turn-status 域
 
@@ -24,4 +24,4 @@
 
 ## Phase 4: 隐私 / 观测 / Legacy-Negative
 
-- [ ] Phase 4 本计划定义的 redaction、metric label allowlist、out-of-scope boundary、legacy-negative grep 与 `make codegen-check` / `cd backend && go test ./...` / `python3 scripts/lint/conventions_drift.py --repo-root .` 收口 gate 全部通过
+- [ ] Phase 4 本计划定义的 redaction、metric label allowlist、out-of-scope boundary、legacy-negative grep 与 `make codegen-check` / `make lint-events` / `make codegen-events-check` / `cd backend && go test ./...` / `python3 scripts/lint/conventions_drift.py --repo-root .` 收口 gate 全部通过

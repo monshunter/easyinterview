@@ -9,11 +9,11 @@
 ## Phase 0: 跨 spec 前置修订 + Preflight
 
 - [ ] 0.1 在 `shared/jobs.yaml` 引入 `triggerEventSemantic` 字段并把 `report_generate` 标注为 `source_event_only`；其它 8 个 job 显式或隐式 `trigger_creates_job`（D-32）
-- [ ] 0.2 在 `scripts/lint/events_inventory.py` 增加 `triggerEventSemantic` 取值校验、`source_event_only` 必须 `apiFacing: true` 且 `triggerEvent` 在 events.yaml 中、generated Go const 暴露语义常量（验证：`python3 scripts/lint/events_inventory.py` 通过 + 单元测试断言 const 暴露）
-- [ ] 0.3 在 `backend/internal/shared/jobs/`（扩展现有 `jobs.go` 或新增 `trigger_semantic.go`）暴露 `JobTriggerEventSemanticSourceEventOnly` / `JobTriggerEventSemanticTriggerCreatesJob` Go 常量 + `IsSourceEventOnly(jobType JobType) bool` 谓词（验证：`cd backend && go test ./internal/shared/jobs/...` 单元测试覆盖常量值、`IsSourceEventOnly("report_generate")=true`、`IsSourceEventOnly("target_import")=false` 等；002 阶段无 runtime outbox→asynq dispatcher，dispatch-time 跳过逻辑由未来 `backend-async-runner` plan 接管，本 plan 不引入 runtime 包）
+- [ ] 0.2 在 `scripts/lint/lint_events.py` / `scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml shared/conventions.yaml` 增加 `triggerEventSemantic` 取值校验、`source_event_only` 必须 `apiFacing: true` 且 `triggerEvent` 在 events.yaml 中、generated const 暴露语义常量（验证：`make lint-events` 通过 + 单元测试断言 const 暴露）
+- [ ] 0.3 扩展 `backend/cmd/codegen/events`，由 codegen 在 `backend/internal/shared/jobs/` 生成 `JobTriggerEventSemanticSourceEventOnly` / `JobTriggerEventSemanticTriggerCreatesJob` Go 常量 + `IsSourceEventOnly(jobType JobType) bool` 谓词（以及对应 TS 生成物如适用；验证：`make codegen-events-check` + `cd backend && go test ./internal/shared/jobs/...` 单元测试覆盖常量值、`IsSourceEventOnly("report_generate")=true`、`IsSourceEventOnly("target_import")=false` 等；002 阶段无 runtime outbox→asynq dispatcher，dispatch-time 跳过逻辑由未来 `backend-async-runner` plan 接管，本 plan 不引入 runtime 包；禁止手改 `DO NOT EDIT` 生成文件）
 - [ ] 0.4 同步 B3 `event-and-outbox-contract` `spec.md` Header `2.4 → 2.5` + `history.md` 2.5 行 + §相关条目，记录 "授权 backend-practice/002 Phase 0"
 - [ ] 0.5 修订 `openapi/openapi.yaml#components.schemas.PracticeTurn.status` enum 为 5 值 `[asked, answered, follow_up_requested, assessed, skipped]`（D-33）
-- [ ] 0.6 同步原地 rebase `openapi/baseline/openapi-v1.0.0.yaml` 与生成产物：`make codegen-check` / `cd openapi && make generate` / `cd backend && go build ./...` / `cd frontend && pnpm tsc --noEmit`（或当前等价 TS check 命令）全通过
+- [ ] 0.6 同步原地 rebase `openapi/baseline/openapi-v1.0.0.yaml` 与生成产物：root `make codegen-openapi` / `make codegen-check` / `cd backend && go build ./...` / `pnpm --filter @easyinterview/frontend typecheck`（或当前等价 TS check 命令）全通过；生成物路径为 `backend/internal/api/generated/` 与 `frontend/src/api/generated/`
 - [ ] 0.7 运行 `python3 scripts/lint/conventions_drift.py --repo-root .` 通过；shared/conventions Go/TS 生成物无 drift
 - [ ] 0.8 同步 B2 `openapi-v1-contract` `spec.md` Header `1.18 → 1.19` + `history.md` 1.19 行，记录 "授权 backend-practice/002 Phase 0 PracticeTurn.status pre-launch baseline rebase"
 - [ ] 0.9 扩展 `openapi/fixtures/PracticeSessions/appendSessionEvent.json` 命名场景：`default` / `follow-up` / `hint-strict-conflict` / `turn-skipped` / `pause-resume` / `replay` / `mismatch` / `completed`（验证：fixture validator + contract test）
@@ -33,7 +33,7 @@
 
 ## Phase 2: AppendSessionEvent vertical slice
 
-- [ ] 2.1 新增 `backend/internal/store/practice/append_event.go`：`AppendSessionEvent(ctx, AppendSessionEventInput) (AppendSessionEventResult, error)`，单事务内 `SELECT FOR UPDATE session` → `clientEventId` replay/mismatch 检查 → `seq_no=MAX+1` → INSERT/UPDATE event/turn/session/outbox/audit（验证：`append_event_test.go` 集成测试 + repository 单元测试）
+- [ ] 2.1 新增 `backend/internal/store/practice/append_event.go`：`AppendSessionEvent(ctx, AppendSessionEventInput) (AppendSessionEventResult, error)`，单事务内 `SELECT FOR UPDATE session` → `clientEventId` replay/mismatch 检查 → `seq_no=MAX+1` → INSERT/UPDATE event/turn/session/outbox；append 路径不写 `audit_events`（验证：`append_event_test.go` 集成测试 + repository 单元测试）
 - [ ] 2.2 扩展 `backend/internal/store/practice/outbox_emitter.go`：`BuildPracticeTurnCompletedPayload(turn, follow_up_count, answer_char_length)` + `assertNoPracticeOutboxPII` 校验（验证：`outbox_emitter_test.go` 断言 payload 与 `shared/events/practice.turn.completed.*` 一致 + PII 红线）
 - [ ] 2.3 新增 `backend/internal/practice/append_session_event_service.go`（或合并入 `session_event.go`）：组合 Phase 1 Route + 事务外 F3 `practice.session.follow_up` AI 调用（仅 `ask_follow_up` 分支）+ A3 observed AIClient + outcome 退化策略（验证：service test 用 fake F3 + fake AIClient 覆盖成功 / AI 失败退化 / 非 AI 分支）
 - [ ] 2.4 新增 `backend/internal/api/practice/append_session_event.go` handler：拒绝 `Idempotency-Key` header → 400 `VALIDATION_FAILED` + `detail.policy='use_client_event_id'`；正常路径返回 200 + B2 `SessionEventResult`（验证：`append_session_event_test.go` 端到端覆盖 5 kind + replay + mismatch + cross-user 404）
@@ -57,7 +57,7 @@
 
 ## Phase 4: 隐私 / 观测 / Legacy-Negative / Handoff
 
-- [ ] 4.1 Redaction 单元测试：断言 `practice.turn.completed` / `practice.session.completed` outbox payload、`audit_events.metadata`、log structured fields、A3 metric label 不含 `question_text` / `answer_text` / `hint_text` / AI prompt / response 明文 / provider secret（验证：`backend/internal/store/practice/redaction_test.go` 或同等 redaction test）
+- [ ] 4.1 Redaction 单元测试：断言 `practice.turn.completed` / `practice.session.completed` outbox payload、complete path `audit_events.metadata`、log structured fields、A3 metric label 不含 `question_text` / `answer_text` / `hint_text` / AI prompt / response 明文 / provider secret；同时断言 append 路径不写 `audit_events`（验证：`backend/internal/store/practice/redaction_test.go` 或同等 redaction test）
 - [ ] 4.2 Metric label allowlist 单元测试：A3 metric label 命中 F1 allowlist，不含 `feature_key` / prompt-rubric version / provider raw model id（验证：`observability_test.go` 覆盖 002 新增 endpoint）
 - [ ] 4.3 Repo-wide grep gate（在 plan 收口前由测试或 lint 执行）：
     - `report_generate` INSERT 在 backend 包中仅出现在 `backend/internal/store/practice/complete_session.go` 一处（handler-side INSERT 位点；002 阶段无 runtime dispatcher 包，未来 `backend-async-runner` plan 引入 dispatcher 时必须按 `IsSourceEventOnly` 谓词在 dispatch-time 跳过）
@@ -65,5 +65,5 @@
     - `warmup` / `single_drill` / `drill_builder` / `mistake_queue` / `growth_center` / 独立 `voice` route / `practiceModeCard` 在本 plan 输出 diff 零出现
 - [ ] 4.4 更新 `backend/internal/api/practice/README.md`（若不存在则按 backend/README.md 风格新增）：记录 002 新增 endpoint / 中间件挂法 / handoff 给 003 (mode-policies) / 004 (derived-plans) / 005 (voice) / 006 (privacy-cascade) / backend-review（report generation）的边界（验证：手工 review + grep `appendSessionEvent` / `completePracticeSession` 在 handoff 段落中均被提及）
 - [ ] 4.5 BDD-Gate: 验证 `E2E.P0.041` 通过（隐私 / 观测 / legacy-negative + D-32 dispatcher 不二次创建 + D-33 wire enum drift 反查）
-- [ ] 4.6 收口 gate：`cd backend && go test ./...` 全绿；`python3 scripts/lint/events_inventory.py` 通过；`make codegen-check` 通过；`python3 scripts/lint/conventions_drift.py --repo-root .` 通过
+- [ ] 4.6 收口 gate：`cd backend && go test ./...` 全绿；`make lint-events` 通过；`make codegen-events-check` 通过；`make codegen-check` 通过；`python3 scripts/lint/conventions_drift.py --repo-root .` 通过
 - [ ] 4.7 更新 `docs/spec/backend-practice/plans/INDEX.md` 把 002 从 active 推进到 completed；`docs/spec/backend-practice/history.md` 追加 1.6 行（"002 落地：event-loop + completion，关联 D-32/D-33/D-34/D-35 plan-level 决策"）；同步 `docs/spec/backend-practice/spec.md` Header 1.5 → 1.6 与 §7 row 2 描述（反映 002 plan-level 决策 D-32 / D-33 / D-34 / D-35：B3 `triggerEventSemantic: source_event_only`、B2 `PracticeTurn.status` wire enum 扩 5 值、hint 默认 strict 409、已完成 session 双 key replay）；D-25 末尾追加 002 落实备注
