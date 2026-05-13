@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"time"
 
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
@@ -39,4 +40,56 @@ type CreateAssetResult struct {
 	JobCreatedAt time.Time
 	JobUpdatedAt time.Time
 	Existing     bool
+}
+
+type AssetRecord struct {
+	ID                 string
+	UserID             string
+	FileObjectID       *string
+	Title              string
+	Language           string
+	ParseStatus        sharedtypes.TargetJobParseStatus
+	ParsedSummary      json.RawMessage
+	OriginalText       *string
+	GuidedAnswers      json.RawMessage
+	ParsedTextSnapshot *string
+	SourceType         *string
+	ErrorCode          *string
+	LatestParseJobID   *string
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	DeletedAt          *time.Time
+}
+
+type ListFilter struct {
+	Cursor   string
+	PageSize int
+}
+
+type ListResult struct {
+	Items      []AssetRecord
+	NextCursor string
+	HasMore    bool
+	PageSize   int
+}
+
+type StatusUpdateInput struct {
+	UserID  string
+	AssetID string
+	Now     time.Time
+}
+
+type MarkReadyInput struct {
+	UserID             string
+	AssetID            string
+	ParsedSummary      json.RawMessage
+	ParsedTextSnapshot string
+	Now                time.Time
+}
+
+type MarkFailedInput struct {
+	UserID    string
+	AssetID   string
+	ErrorCode string
+	Now       time.Time
 }

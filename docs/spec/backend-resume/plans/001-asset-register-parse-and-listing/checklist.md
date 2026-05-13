@@ -18,10 +18,10 @@
 
 ## Phase 2: resume_assets store + state machine
 
-- [ ] 2.1 实现 `backend/internal/resume/store/assets.go` Repository：`CreateWithParseJob / Get / List(cursor, pageSize) / MarkParsing / MarkReady / MarkFailed / DeleteForUser`（验证：编译 PASS）
-- [ ] 2.2 parse_status state machine：`queued → processing → ready | failed`；非法转换拒绝（验证：unit test `TestParseStatusTransition` PASS）
-- [ ] 2.3 cursor pagination 实现：按 `updated_at DESC, id DESC` 唯一稳定序（验证：integration test 25 行 + 第二页 cursor PASS）
-- [ ] 2.4 integration test：CRUD + state transition + cross-user isolation + FK 约束 + `resume_assets` / `async_jobs` 原子提交与 rollback（验证：`cd backend && go test ./internal/resume/store/... -tags=integration -count=1` PASS）
+- [x] 2.1 实现 `backend/internal/resume/store/assets.go` Repository：`CreateWithParseJob / Get / List(cursor, pageSize) / MarkParsing / MarkReady / MarkFailed / DeleteForUser`（验证：编译 PASS）
+- [x] 2.2 parse_status state machine：`queued → processing → ready | failed`；非法转换拒绝（验证：unit test `TestParseStatusTransition` PASS）
+- [x] 2.3 cursor pagination 实现：按 `updated_at DESC, id DESC` 唯一稳定序（验证：integration test 25 行 + 第二页 cursor PASS）
+- [x] 2.4 integration test：CRUD + state transition + cross-user isolation + FK 约束 + `resume_assets` / `async_jobs` 原子提交与 rollback（验证：`cd backend && go test ./internal/resume/store/... -tags=integration -count=1` PASS）
 
 ## Phase 3: resume.parse async job + AIClient 集成
 
