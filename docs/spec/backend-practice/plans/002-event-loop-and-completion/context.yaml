@@ -1,0 +1,58 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-practice
+  name: 002-event-loop-and-completion
+  sequence: 2
+  supersedes: []
+  specVersion:
+    from: 1.5
+    to: 1.6
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-practice
+      - backend-practice/002
+      - 002-event-loop-and-completion
+      - event-loop-and-completion
+    keywords:
+      - practice
+      - practicesession
+      - appendsessionevent
+      - completepracticesession
+      - sessionevent
+      - assistantaction
+      - clienteventid
+      - reportwithjob
+      - feedback_reports
+      - async_jobs
+      - report_generate
+      - triggereventsemantic
+      - source_event_only
+      - practice.turn.completed
+      - practice.session.completed
+      - idempotency
+      - state_machine
+      - turn_status
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      testPlan: ./test-plan.md
+      testChecklist: ./test-checklist.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      discovery:
+        packages:
+          - backend/internal/api/practice
+          - backend/internal/practice
+          - backend/internal/store/practice
+          - backend/internal/middleware/idempotency
+          - backend/internal/runtime/outbox
+          - shared/events
+          - scripts/lint
+        apiNames:
+          - appendSessionEvent
+          - completePracticeSession

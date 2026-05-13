@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-13
 
 ## 1 背景与目标
 
@@ -86,7 +86,7 @@
 | D-22 | `completePracticeSession` report/job 创建边界 | 本域在 complete 事务内创建 `feedback_reports` placeholder 与 `async_jobs(report_generate)`，并以 `session_id` / `report_id` / idempotency key 防重复；backend-review 只消费 queued job 生成内容 | 让 202 response 的 `ReportWithJob` 可执行，不等待 dispatcher 异步补行 |
 | D-23 | 首题失败重试边界 | `startPracticeSession` failed reservation 不视为最终 dedupe 结果；同 user + key + plan 可重试，成功后返回同一 session id 或明确迁移到成功 session，且不得产生两个 active session | 防止 provider 临时错误导致用户无法开始面试 |
 | D-24 | Derived plan source 字段前置 | `retry_current_round` / `next_round` 需要 B2 `sourceReportId` + B4 `practice_plans.source_report_id`；`debrief` 需要 B2 `sourceDebriefId` + B4 `practice_plans.source_debrief_id` + CHECK 互斥；这些字段由 `004-derived-plans-debrief` Phase 0 owner 修订，001/002 不依赖它们 | baseline start 可先实施；复练/下一轮/复盘面试不能靠隐藏字段或本地 mock |
-| D-25 | Turn status API/DB 映射 | DB `practice_turns.status` 允许内部状态 `asked/answered/follow_up_requested/assessed/skipped`；OpenAPI `PracticeTurn.status` 当前只暴露 `asked/answered/skipped`，handler 必须做映射，除非先回 B2 扩展 schema | 避免前端 SDK 与 DB internal state 漂移；不把内部评估状态强塞进 wire enum |
+| D-25 | Turn status API/DB 映射 | DB `practice_turns.status` 允许内部状态 `asked/answered/follow_up_requested/assessed/skipped`；OpenAPI `PracticeTurn.status` 当前只暴露 `asked/answered/skipped`，handler 必须做映射，除非先回 B2 扩展 schema。由 002 plan-level D-33 落实为 wire enum 扩 5 值（pre-launch baseline rebase），handler 不再做"压缩到 3 值"映射；002 落地后 D-25 的"映射"分支视为已淘汰备选 | 避免前端 SDK 与 DB internal state 漂移；不把内部评估状态强塞进 wire enum |
 | D-26 | Practice 错误码前置 | B1/B2 必须新增 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND` 并同步 generated Go/TS/OpenAPI 后，backend-practice 才能在 404 隔离路径使用这些 code；未认证统一使用既有 `AUTH_UNAUTHORIZED` | 保持错误码单一真理源；避免 spec 中出现未注册字面量 |
 | D-27 | Practice idempotency 存储与 replay 语义 | B4 / backend-practice Phase 0 必须新增 user-scoped API idempotency 表（载体已由 D-30 收敛为 shared `idempotency_records`，含 `domain` / `operation` namespace 字段），至少保存 `user_id`、`domain`、`operation`、`idempotency_key_hash`、`request_fingerprint`、`status(pending/succeeded/failed_retryable/failed_terminal)`、`resource_type`、`resource_id`、`response_body`、`error_code`、`expires_at`；副作用 endpoint 用该记录锁定单执行者、replay 成功响应、拒绝同 key 不同 fingerprint、隔离跨用户；`startPracticeSession` 首题前失败可写 `failed_retryable` 并允许同 key 重试 | 让 D-7/D-23/C-10 可落库、可测试、可并发；避免仅靠业务表猜测重复请求；shared 载体让 backend-targetjob / backend-review / 002 复用同款基建 |
 | D-28 | D-22 下 B3 job ownership 前置 | 用户已确认坚持 D-22：`completePracticeSession` 同事务创建 `feedback_reports` placeholder 与 `async_jobs(report_generate)`。因此 B3 `event-and-outbox-contract` / `shared/jobs.yaml` / generated jobs docs 必须在 Phase 0 明确 `practice.session.completed` 是 report job 的 source event 与 analytics fact，不能再由 outbox dispatcher 根据同一事件创建第二个 `report_generate` job；dispatcher / backend-review 只消费既有 queued job 或按 dedupe key 查找既有 job | 保持 `ReportWithJob` 可执行，同时避免重复 job、重复报告与 dispatcher 职责冲突 |
@@ -216,7 +216,7 @@
 `001-plan-and-session-orchestration` 已派 plan（spec v1.4 同会话），其余 plan 按 phase closability 与 owner 边界依次派生。全局前置：必须先独立派生并完成 `prompt-rubric-registry/001-baseline`（D-29），否则 backend-practice 只能推进不依赖 AI 输出的契约 / migration / store 准备工作。
 
 1. [`001-plan-and-session-orchestration`](./plans/001-plan-and-session-orchestration/plan.md)：D-12 + D-13 + D-21 + D-23 + D-26 + D-27 + D-30 主流程（createPracticePlan baseline + startPracticeSession reservation/首题/失败重试 + getPracticePlan/getPracticeSession + practice.session.started outbox + shared `idempotency_records` 表）；Phase 0 按 D-30 Q1=A integrator 模式直接修订 B1/B2/B3/B4 编码真理源，并同步追加各 owner spec history append 与 Header bump；含 PracticeMode 二值化、practice not-found 错误码、B3 PracticeMode event surface、Practice idempotency storage/replay 语义与 F3 baseline preflight 检查
-2. `002-event-loop-and-completion`：D-6 + D-7 + D-22 + D-25 + D-27 + D-28 全 5 种 event kind 状态机 + completePracticeSession 202 + placeholder report/job + practice.turn.completed / practice.session.completed outbox + 双轨 idempotency + DB/internal turn status 映射 + B3 report_generate ownership 修订
+2. `002-event-loop-and-completion`：D-6 + D-7 + D-22 + D-25 + D-27 + D-28 全 5 种 event kind 状态机 + completePracticeSession 202 + placeholder report/job + practice.turn.completed / practice.session.completed outbox + 双轨 idempotency + **B2 `PracticeTurn.status` wire enum 扩 5 值（D-33 落实 D-25，pre-launch baseline rebase）** + **B3 `shared/jobs.yaml#report_generate` `triggerEventSemantic: source_event_only`（D-32 落实 D-28，未来 dispatcher 必须按 generated `JobTriggerEventSemantic*` 常量在 dispatch-time 跳过；002 阶段无 runtime dispatcher，由 jobs.yaml lint + 常量 + handler 端 `async_jobs(job_type, dedupe_key)` UNIQUE + repo grep 兜底）** + **D-34 plan-level 决策：`hint_requested` 在 002 默认 strict 409，等待 003 接手 assisted 分支** + **D-35 plan-level 决策：已完成 session 的二次 complete 不论 `Idempotency-Key` 是否一致都返回既有 `ReportWithJob`，idempotency key 仅控制 inflight 单执行者**
 3. `003-mode-policies-and-provenance`：D-5 + D-10 mode 策略（仅 assisted/strict 两支） + AssistantAction provenance + show_hint feature_key + lightweight observe
 4. `004-derived-plans-debrief`：D-4 + D-14 retry/next_round/debrief plan 派生 + B4 修订 source_debrief_id 列；显式验证 goal='debrief' 与 mode='assisted'/'strict' 的 4 种组合
 5. `005-voice-turn-extension`：D-15 与 practice-voice-mvp 协作 + voice operation OpenAPI 修订

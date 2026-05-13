@@ -8,6 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [002-event-loop-and-completion](./002-event-loop-and-completion/plan.md) | [plan](./002-event-loop-and-completion/plan.md) / [checklist](./002-event-loop-and-completion/checklist.md) / [context](./002-event-loop-and-completion/context.yaml) / [test-plan](./002-event-loop-and-completion/test-plan.md) / [test-checklist](./002-event-loop-and-completion/test-checklist.md) / [bdd-plan](./002-event-loop-and-completion/bdd-plan.md) / [bdd-checklist](./002-event-loop-and-completion/bdd-checklist.md) | 1.0 | active | 2026-05-13 |
 
 ## 2 已完成（Completed）
 
