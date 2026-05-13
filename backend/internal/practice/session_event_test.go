@@ -165,6 +165,67 @@ func TestHandleAnswerSubmittedDecisionBranches(t *testing.T) {
 	}
 }
 
+func TestRouteRejectsClosedSessionAndTerminalTurnEvents(t *testing.T) {
+	service := SessionEventService{}
+	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
+	basePayload := map[string]any{
+		"turnId":     "turn-1",
+		"answerText": "late duplicate answer",
+	}
+
+	cases := []struct {
+		name    string
+		session SessionRecord
+		turn    TurnRecord
+	}{
+		{
+			name: "completed session rejects new answer event",
+			session: func() SessionRecord {
+				session := sessionEventTestSession(3)
+				session.Status = sharedtypes.SessionStatusCompleted
+				return session
+			}(),
+			turn: sessionEventTestTurn(3),
+		},
+		{
+			name:    "assessed turn rejects new answer event on running session",
+			session: sessionEventTestSession(1),
+			turn: func() TurnRecord {
+				turn := sessionEventTestTurn(1)
+				turn.Status = string(TurnStatusAssessed)
+				return turn
+			}(),
+		},
+		{
+			name:    "skipped turn rejects new answer event on running session",
+			session: sessionEventTestSession(1),
+			turn: func() TurnRecord {
+				turn := sessionEventTestTurn(1)
+				turn.Status = string(TurnStatusSkipped)
+				return turn
+			}(),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := service.Route(context.Background(), SessionEventInput{
+				SessionID:     tc.session.ID,
+				ClientEventID: "client-event-late",
+				Kind:          "answer_submitted",
+				OccurredAt:    now,
+				Payload:       basePayload,
+			}, tc.session, tc.turn, sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline))
+			if err != nil {
+				t.Fatalf("Route returned error: %v", err)
+			}
+			if out.Error == nil || out.Error.Code != sharederrors.CodePracticeSessionConflict {
+				t.Fatalf("Error = %+v, want PRACTICE_SESSION_CONFLICT", out.Error)
+			}
+		})
+	}
+}
+
 func TestHandleHintRequestedDefaultsToStrictConflict(t *testing.T) {
 	service := SessionEventService{}
 	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)

@@ -62,7 +62,7 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 	expectAppendContext(mock, now)
 	mock.ExpectQuery(`select payload`).
 		WithArgs(in.SessionID, in.ClientEventID).
-		WillReturnError(sql.ErrNoRows)
+		WillReturnRows(sqlmock.NewRows([]string{"payload"}).AddRow([]byte(`{"requestFingerprint":"fingerprint-1","pending":true}`)))
 	mock.ExpectExec(`update practice_turns`).
 		WithArgs(string(domain.TurnStatusAssessed), "answer", 1, now, now, now, in.SessionID, "turn-1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -72,11 +72,8 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 	mock.ExpectExec(`insert into outbox_events`).
 		WithArgs(in.OutboxEventID, string(sharedevents.EventNamePracticeTurnCompleted), "turn-1", sqlmock.AnyArg(), now).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(`select coalesce\(max\(seq_no\), 0\) \+ 1`).
-		WithArgs(in.SessionID).
-		WillReturnRows(sqlmock.NewRows([]string{"seq_no"}).AddRow(2))
-	mock.ExpectExec(`insert into practice_session_events`).
-		WithArgs(in.EventID, in.SessionID, 2, in.Kind, in.ClientEventID, sqlmock.AnyArg(), now).
+	mock.ExpectExec(`update practice_session_events`).
+		WithArgs(sqlmock.AnyArg(), in.SessionID, in.ClientEventID, in.EventID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
@@ -86,6 +83,77 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 	}
 	if !result.Acknowledged || result.Session.Status != sharedtypes.SessionStatusCompleted {
 		t.Fatalf("unexpected result: %+v", result)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestSQLRepositoryReserveSessionEventCreatesPendingReservation(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
+	in := domain.SessionEventReservationInput{
+		EventID:            "event-1",
+		UserID:             "user-1",
+		SessionID:          "session-1",
+		ClientEventID:      "client-event-1",
+		Kind:               "answer_submitted",
+		RequestFingerprint: "fingerprint-1",
+		Now:                now,
+	}
+
+	mock.ExpectBegin()
+	expectAppendContext(mock, now)
+	mock.ExpectQuery(`select payload`).
+		WithArgs(in.SessionID, in.ClientEventID).
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`select coalesce\(max\(seq_no\), 0\) \+ 1`).
+		WithArgs(in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"seq_no"}).AddRow(2))
+	mock.ExpectExec(`insert into practice_session_events`).
+		WithArgs(in.EventID, in.SessionID, 2, in.Kind, in.ClientEventID, sqlmock.AnyArg(), now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	result, err := repo.ReserveSessionEvent(context.Background(), in)
+	if err != nil {
+		t.Fatalf("ReserveSessionEvent returned error: %v", err)
+	}
+	if result.ReplayResult != nil || result.Session.ID != in.SessionID || result.LatestTurn.ID != "turn-1" {
+		t.Fatalf("unexpected reservation: %+v", result)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestSQLRepositoryReserveSessionEventRejectsPendingReservationReplay(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
+	in := domain.SessionEventReservationInput{
+		EventID:            "event-2",
+		UserID:             "user-1",
+		SessionID:          "session-1",
+		ClientEventID:      "client-event-1",
+		Kind:               "answer_submitted",
+		RequestFingerprint: "fingerprint-1",
+		Now:                now,
+	}
+
+	mock.ExpectBegin()
+	expectAppendContext(mock, now)
+	mock.ExpectQuery(`select payload`).
+		WithArgs(in.SessionID, in.ClientEventID).
+		WillReturnRows(sqlmock.NewRows([]string{"payload"}).AddRow([]byte(`{"requestFingerprint":"fingerprint-1","requestPayload":{"answerText":"answer"},"pending":true}`)))
+	mock.ExpectRollback()
+
+	_, err := repo.ReserveSessionEvent(context.Background(), in)
+	if !errors.Is(err, domain.ErrSessionConflict) {
+		t.Fatalf("error = %v, want ErrSessionConflict", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)

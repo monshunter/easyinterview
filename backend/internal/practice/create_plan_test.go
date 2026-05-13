@@ -83,30 +83,31 @@ func TestServiceCreatePracticePlanRejectsMissingResume(t *testing.T) {
 }
 
 type recordingPlanStore struct {
-	last             CreatePlanStoreInput
-	getRecord        PlanRecord
-	getErr           error
-	getUserID        string
-	getPlanID        string
-	getSessionRecord SessionRecord
-	getSessionErr    error
-	getSessionUserID string
-	getSessionID     string
-	eventReservation SessionEventReservation
-	eventReserveErr  error
-	appendEvent      AppendSessionEventStoreInput
-	appendEventErr   error
-	complete         CompleteSessionStoreInput
-	completeResult   CompleteSessionResult
-	completeErr      error
-	reservation      SessionReservation
-	reserveErr       error
-	commit           CommitSessionStartInput
-	commitErr        error
-	fail             FailSessionStartInput
-	failErr          error
-	steps            []string
-	inTx             bool
+	last                  CreatePlanStoreInput
+	getRecord             PlanRecord
+	getErr                error
+	getUserID             string
+	getPlanID             string
+	getSessionRecord      SessionRecord
+	getSessionErr         error
+	getSessionUserID      string
+	getSessionID          string
+	eventReservationInput SessionEventReservationInput
+	eventReservation      SessionEventReservation
+	eventReserveErr       error
+	appendEvent           AppendSessionEventStoreInput
+	appendEventErr        error
+	complete              CompleteSessionStoreInput
+	completeResult        CompleteSessionResult
+	completeErr           error
+	reservation           SessionReservation
+	reserveErr            error
+	commit                CommitSessionStartInput
+	commitErr             error
+	fail                  FailSessionStartInput
+	failErr               error
+	steps                 []string
+	inTx                  bool
 }
 
 func (s *recordingPlanStore) CreatePlan(ctx context.Context, in CreatePlanStoreInput) (PlanRecord, error) {
@@ -148,6 +149,7 @@ func (s *recordingPlanStore) ReserveSessionEvent(ctx context.Context, in Session
 	s.steps = append(s.steps, "reserve-event")
 	s.inTx = true
 	defer func() { s.inTx = false }()
+	s.eventReservationInput = in
 	if s.eventReserveErr != nil {
 		return SessionEventReservation{}, s.eventReserveErr
 	}

@@ -63,6 +63,9 @@ func TestAppendSessionEventFollowUpRunsAIOutsideReservationAndCommits(t *testing
 		result.AssistantAction.Provenance.PromptVersion != "followup.prompt.v1" {
 		t.Fatalf("unexpected follow-up action: %+v", result.AssistantAction)
 	}
+	if store.eventReservationInput.EventID != "event-1" {
+		t.Fatalf("reservation event id = %q, want event-1", store.eventReservationInput.EventID)
+	}
 	if store.appendEvent.EventID != "event-1" || store.appendEvent.OutboxEventID != "outbox-1" {
 		t.Fatalf("append ids not generated: %+v", store.appendEvent)
 	}
@@ -201,7 +204,7 @@ func TestAppendSessionEventRejectsMissingAnswerText(t *testing.T) {
 	if !errors.As(err, &svcErr) || svcErr.Code != sharederrors.CodeValidationFailed || svcErr.Details["field"] != "payload.answerText" {
 		t.Fatalf("expected missing answerText validation error, got %+v", err)
 	}
-	if !reflect.DeepEqual(store.steps, []string{"reserve-event"}) {
-		t.Fatalf("missing answerText should stop before append, steps=%v", store.steps)
+	if len(store.steps) != 0 {
+		t.Fatalf("missing answerText should stop before reservation, steps=%v", store.steps)
 	}
 }

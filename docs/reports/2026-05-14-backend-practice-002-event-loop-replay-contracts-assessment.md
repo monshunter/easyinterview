@@ -7,9 +7,12 @@
 
 - 修复范围：`backend-practice/002-event-loop-and-completion` L2 follow-up，覆盖 `answer_submitted` server-owned follow-up state、`occurredAt` / `clientCompletedAt` required validation、D-35 complete replay lookup，以及 P0.038 / P0.039 / P0.040 HTTP scenario 语义加固。
 - 代码证据：`SessionEventService` 改为读取 `practice_turns.follow_up_count`，忽略客户端 `payload.followUpCount`；append store 写入 outcome 计算后的 follow-up count；API handler 对缺失 timestamp 返回 422；complete replay SQL 绑定 `job_type` / `resource_type` / `dedupe_key`。
+- Follow-up 代码证据：event route 增加 closed session / closed turn guard；append service 在 reservation 前校验 `turnId` / `answerText` 并提前生成 `eventID`；SQL `ReserveSessionEvent` 在 follow-up AI 前写入 pending `practice_session_events` reservation，最终 append 只更新该 reservation。
 - 计划资产：原 002 plan / checklist / test-plan / test-checklist / bdd-plan / bdd-checklist 已原地 bump 到 v1.2，并补齐本次修复的 operation matrix、BDD 和测试 gate。
 - Bug 资产：[BUG-0055](../bugs/BUG-0055.md) 记录 client follow-up state trust、timestamp required drift 与 D-35 replay lookup drift，状态 `resolved`。
+- Follow-up Bug 资产：[BUG-0056](../bugs/BUG-0056.md) 记录 terminal duplicate event 与 AI 前 durable reservation 缺口，状态 `resolved`。
 - 验证证据：`cd backend && go test ./...`、focused backend practice/API/store/cmd tests、`python3 -m pytest scripts/lint/backend_practice_legacy_test.py -q`、`python3 scripts/lint/backend_practice_legacy.py --repo-root .`、`python3 scripts/lint/conventions_drift.py --repo-root .`、`make lint-events`、`make validate-fixtures`、`make docs-check`、`make codegen-events-check`、`make codegen-check`、`git diff --check` 均通过。
+- Follow-up 验证证据：`go test ./backend/internal/practice ./backend/internal/store/practice -run 'Test(RouteRejectsClosedSessionAndTerminalTurnEvents|AppendSessionEventFollowUpRunsAIOutsideReservationAndCommits|SQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit|SQLRepositoryReserveSessionEventCreatesPendingReservation|SQLRepositoryReserveSessionEventRejectsPendingReservationReplay)$'`、`go test ./backend/internal/practice ./backend/internal/store/practice`、`go test ./backend/...`、`make docs-check`、`git diff --check` 均通过。
 
 ## 2 会话中的主要阻点/痛点
 
@@ -22,6 +25,12 @@
 - D-35 replay 查找条件不够完整。
   - **证据**：complete replay SQL 只按 `session_id` 和 job type join，未绑定 `async_jobs.resource_type` / `dedupe_key`。
   - **影响**：同一 resource id 或异常 job 行可能污染 idempotency replay 语义。
+- Append event 的 side effect 前 reservation 语义缺失。
+  - **证据**：follow-up review 发现 `ReserveSessionEvent` 只查 replay，不写 durable reservation；same `clientEventId` 并发可在最终 event row 写入前重复触发 AI。
+  - **影响**：同一次用户事件可能重复消耗 AI 调用，并在后置 append 阶段才被 unique key / replay 发现。
+- Terminal session / turn 未作为状态机负例。
+  - **证据**：`completed` session 或 `assessed` / `skipped` turn 仍可用新的 `clientEventId` 再次提交同一 `turnId`。
+  - **影响**：可能覆盖最终答案并重复发出 `practice.turn.completed` outbox。
 
 ## 3 根因归类
 
@@ -34,6 +43,12 @@
 - Replay lookup invariant 分散在实现细节中。
   - **类别**：spec-plan
   - **根因**：D-35 只强调 replay 结果一致，没有枚举 lookup 必须同时绑定 `job_type`、`resource_type`、`dedupe_key`。
+- Side effect 前的 durable reservation 没有与 “AI 在事务外” gate 成对出现。
+  - **类别**：spec-plan
+  - **根因**：测试证明了 AI 不在 repository transaction 内运行，但没有证明 AI 调用前已经有可并发互斥的 durable event reservation。
+- Terminal 状态 guard 没有进入 route-level negative matrix。
+  - **类别**：spec-plan
+  - **根因**：历史负例覆盖 stale turn ID，但没有覆盖同一 latest turn 已处于 terminal 状态的 late duplicate。
 
 ## 4 对流程资产的改进建议
 
@@ -49,8 +64,17 @@
   - **落点**：spec-plan
   - **优先级**：medium
   - 建议：D-35 类条目直接枚举 replay 查询条件，避免只验证 happy-path replay body。
+- AI / external side effect gate 应同时证明事务边界与 durable reservation。
+  - **落点**：spec-plan
+  - **优先级**：high
+  - 建议：凡 plan 要求 “AI 在事务外”，必须配套一个 Red test 证明 side effect 前已经写入 pending reservation，same `clientEventId` 并发不会重复触发外部调用。
+- Event route matrix 应纳入 closed session / closed turn 状态。
+  - **落点**：spec-plan
+  - **优先级**：medium
+  - 建议：对 `completed` / `completing` / `failed` / `cancelled` session，以及 `answered` / `assessed` / `skipped` turn，固定 409 negative tests。
 
 ## 5 建议优先级与后续动作
 
 - 最高优先级：进入 `backend-practice/003-mode-policies-and-provenance` 前，先用 `/plan-review --fix` 检查 mode policy 中是否存在同类 client-owned payload 风险，并把 server-owned state redline 写入 BDD。
 - 次优先级：将 required request field negative gate 作为 backend API plan 的默认 checklist 项，尤其是 event append、completion、async handoff 这类会写 audit / outbox 的接口。
+- Follow-up 优先级：在后续涉及 AI / outbox / async job side effect 的 plan 中，把 “durable reservation before side effect” 作为 contract gate，避免只验证 replay result 而漏掉并发成本窗口。

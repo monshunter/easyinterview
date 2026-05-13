@@ -34,9 +34,39 @@ func (r *SQLRepository) ReserveSessionEvent(ctx context.Context, in domain.Sessi
 	if err != nil {
 		return domain.SessionEventReservation{}, err
 	}
-	replay, hit, err := selectSessionEventReplay(ctx, tx, in.SessionID, in.ClientEventID, in.RequestFingerprint)
+	replay, hit, pending, err := selectSessionEventReplay(ctx, tx, in.SessionID, in.ClientEventID, in.RequestFingerprint)
 	if err != nil {
 		return domain.SessionEventReservation{}, err
+	}
+	if hit && pending {
+		return domain.SessionEventReservation{}, domain.ErrSessionConflict
+	}
+	if !hit {
+		if err := validateSessionEventReservation(in, state); err != nil {
+			return domain.SessionEventReservation{}, err
+		}
+		payload, err := marshalPendingAppendEventPayload(in)
+		if err != nil {
+			return domain.SessionEventReservation{}, err
+		}
+		seqNo, err := nextSessionEventSeq(ctx, tx, in.SessionID)
+		if err != nil {
+			return domain.SessionEventReservation{}, err
+		}
+		if _, err := tx.ExecContext(ctx, `
+insert into practice_session_events (
+  id, session_id, seq_no, event_type, client_event_id, payload, created_at
+) values ($1,$2,$3,$4,$5,$6,$7)`,
+			in.EventID,
+			in.SessionID,
+			seqNo,
+			in.Kind,
+			in.ClientEventID,
+			payload,
+			in.Now.UTC(),
+		); err != nil {
+			return domain.SessionEventReservation{}, fmt.Errorf("insert pending practice session event: %w", err)
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return domain.SessionEventReservation{}, fmt.Errorf("commit reserve practice session event: %w", err)
@@ -64,16 +94,19 @@ func (r *SQLRepository) AppendSessionEvent(ctx context.Context, in domain.Append
 	if err != nil {
 		return domain.AppendSessionEventResult{}, err
 	}
-	replay, hit, err := selectSessionEventReplay(ctx, tx, in.SessionID, in.ClientEventID, in.RequestFingerprint)
+	replay, hit, pending, err := selectSessionEventReplay(ctx, tx, in.SessionID, in.ClientEventID, in.RequestFingerprint)
 	if err != nil {
 		return domain.AppendSessionEventResult{}, err
 	}
-	if hit {
+	if hit && !pending {
 		if err := tx.Commit(); err != nil {
 			return domain.AppendSessionEventResult{}, fmt.Errorf("commit append practice session event replay: %w", err)
 		}
 		replay.Replay = true
 		return replay, nil
+	}
+	if !hit {
+		return domain.AppendSessionEventResult{}, domain.ErrSessionConflict
 	}
 	if in.Outcome.NextTurn != nil && strings.TrimSpace(in.Outcome.NextTurn.ID) != "" && in.Outcome.NextTurn.ID != state.latestTurn.ID {
 		return domain.AppendSessionEventResult{}, domain.ErrSessionConflict
@@ -117,23 +150,8 @@ func (r *SQLRepository) AppendSessionEvent(ctx context.Context, in domain.Append
 	if err != nil {
 		return domain.AppendSessionEventResult{}, err
 	}
-	seqNo, err := nextSessionEventSeq(ctx, tx, in.SessionID)
-	if err != nil {
+	if err := updateReservedSessionEventPayload(ctx, tx, in, payload); err != nil {
 		return domain.AppendSessionEventResult{}, err
-	}
-	if _, err := tx.ExecContext(ctx, `
-insert into practice_session_events (
-  id, session_id, seq_no, event_type, client_event_id, payload, created_at
-) values ($1,$2,$3,$4,$5,$6,$7)`,
-		in.EventID,
-		in.SessionID,
-		seqNo,
-		in.Kind,
-		in.ClientEventID,
-		payload,
-		in.OccurredAt.UTC(),
-	); err != nil {
-		return domain.AppendSessionEventResult{}, fmt.Errorf("insert practice session event: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return domain.AppendSessionEventResult{}, fmt.Errorf("commit append practice session event: %w", err)
@@ -222,7 +240,7 @@ for update of s`,
 	return state, nil
 }
 
-func selectSessionEventReplay(ctx context.Context, tx *sql.Tx, sessionID, clientEventID, fingerprint string) (domain.AppendSessionEventResult, bool, error) {
+func selectSessionEventReplay(ctx context.Context, tx *sql.Tx, sessionID, clientEventID, fingerprint string) (domain.AppendSessionEventResult, bool, bool, error) {
 	var raw []byte
 	err := tx.QueryRowContext(ctx, `
 select payload
@@ -233,19 +251,19 @@ where session_id = $1
 		clientEventID,
 	).Scan(&raw)
 	if stderrs.Is(err, sql.ErrNoRows) {
-		return domain.AppendSessionEventResult{}, false, nil
+		return domain.AppendSessionEventResult{}, false, false, nil
 	}
 	if err != nil {
-		return domain.AppendSessionEventResult{}, false, fmt.Errorf("select practice session event replay: %w", err)
+		return domain.AppendSessionEventResult{}, false, false, fmt.Errorf("select practice session event replay: %w", err)
 	}
-	storedFingerprint, result, err := unmarshalAppendEventPayload(raw)
+	storedFingerprint, result, pending, err := unmarshalAppendEventPayload(raw)
 	if err != nil {
-		return domain.AppendSessionEventResult{}, false, err
+		return domain.AppendSessionEventResult{}, false, false, err
 	}
 	if storedFingerprint != fingerprint {
-		return domain.AppendSessionEventResult{}, true, domain.ErrClientEventMismatch
+		return domain.AppendSessionEventResult{}, true, pending, domain.ErrClientEventMismatch
 	}
-	return result, true, nil
+	return result, true, pending, nil
 }
 
 func replayIfHit(result domain.AppendSessionEventResult, hit bool) *domain.AppendSessionEventResult {
@@ -253,6 +271,43 @@ func replayIfHit(result domain.AppendSessionEventResult, hit bool) *domain.Appen
 		return nil
 	}
 	return &result
+}
+
+func validateSessionEventReservation(in domain.SessionEventReservationInput, state appendSessionContext) error {
+	if isClosedSessionStatus(state.session.Status) {
+		return domain.ErrSessionConflict
+	}
+	if strings.TrimSpace(in.CurrentTurnID) == "" {
+		return nil
+	}
+	if strings.TrimSpace(in.CurrentTurnID) != state.latestTurn.ID {
+		return domain.ErrSessionConflict
+	}
+	if isClosedTurnStatus(state.latestTurn.Status) {
+		return domain.ErrSessionConflict
+	}
+	return nil
+}
+
+func isClosedSessionStatus(status sharedtypes.SessionStatus) bool {
+	switch status {
+	case sharedtypes.SessionStatusCompleting,
+		sharedtypes.SessionStatusCompleted,
+		sharedtypes.SessionStatusFailed,
+		sharedtypes.SessionStatusCancelled:
+		return true
+	default:
+		return false
+	}
+}
+
+func isClosedTurnStatus(status string) bool {
+	switch domain.TurnStatus(strings.TrimSpace(status)) {
+	case domain.TurnStatusAnswered, domain.TurnStatusAssessed, domain.TurnStatusSkipped:
+		return true
+	default:
+		return false
+	}
 }
 
 func updateLatestTurn(ctx context.Context, tx *sql.Tx, in domain.AppendSessionEventStoreInput, latest domain.TurnRecord) error {
@@ -388,9 +443,35 @@ where session_id = $1`,
 	return seq, nil
 }
 
+func updateReservedSessionEventPayload(ctx context.Context, tx *sql.Tx, in domain.AppendSessionEventStoreInput, payload []byte) error {
+	res, err := tx.ExecContext(ctx, `
+update practice_session_events
+set payload = $1
+where session_id = $2
+  and client_event_id = $3
+  and id = $4`,
+		payload,
+		in.SessionID,
+		in.ClientEventID,
+		in.EventID,
+	)
+	if err != nil {
+		return fmt.Errorf("update reserved practice session event: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("update reserved practice session event rows affected: %w", err)
+	}
+	if rows == 0 {
+		return domain.ErrSessionConflict
+	}
+	return nil
+}
+
 type appendEventPayload struct {
 	RequestFingerprint string                   `json:"requestFingerprint"`
 	RequestPayload     map[string]any           `json:"requestPayload"`
+	Pending            bool                     `json:"pending,omitempty"`
 	Result             appendEventResultPayload `json:"result"`
 }
 
@@ -443,12 +524,23 @@ func marshalAppendEventPayload(in domain.AppendSessionEventStoreInput, result do
 	return raw, nil
 }
 
-func unmarshalAppendEventPayload(raw []byte) (string, domain.AppendSessionEventResult, error) {
+func marshalPendingAppendEventPayload(in domain.SessionEventReservationInput) ([]byte, error) {
+	raw, err := json.Marshal(appendEventPayload{
+		RequestFingerprint: in.RequestFingerprint,
+		Pending:            true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("marshal pending append session event payload: %w", err)
+	}
+	return raw, nil
+}
+
+func unmarshalAppendEventPayload(raw []byte) (string, domain.AppendSessionEventResult, bool, error) {
 	var decoded appendEventPayload
 	if err := json.Unmarshal(raw, &decoded); err != nil {
-		return "", domain.AppendSessionEventResult{}, fmt.Errorf("decode append session event payload: %w", err)
+		return "", domain.AppendSessionEventResult{}, false, fmt.Errorf("decode append session event payload: %w", err)
 	}
-	return decoded.RequestFingerprint, appendEventResultToDomain(decoded.Result), nil
+	return decoded.RequestFingerprint, appendEventResultToDomain(decoded.Result), decoded.Pending, nil
 }
 
 func appendEventResultFromDomain(result domain.AppendSessionEventResult) appendEventResultPayload {

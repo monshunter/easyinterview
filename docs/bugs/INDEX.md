@@ -16,6 +16,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0056](./BUG-0056.md) | backend-practice event replay allowed terminal duplicates and duplicate AI reservations | high | resolved | 2026-05-14 | `fix(backend-practice): reserve session events before AI` |
 | [BUG-0055](./BUG-0055.md) | backend-practice event loop trusted client follow-up state | high | resolved | 2026-05-14 | `fix(backend-practice): harden event loop replay contracts` |
 | [BUG-0054](./BUG-0054.md) | backend-practice event loop L2 review exposed payload, status, and BDD gate drift | high | resolved | 2026-05-13 | `fix(backend-practice): remediate event loop L2 findings` |
 | [BUG-0053](./BUG-0053.md) | appendSessionEvent accepted stale turn submissions | medium | resolved | 2026-05-13 | `feat(backend-practice): complete event loop and completion` |

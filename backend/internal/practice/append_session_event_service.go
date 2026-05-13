@@ -28,10 +28,12 @@ type AppendSessionEventRequest struct {
 }
 
 type SessionEventReservationInput struct {
+	EventID            string
 	UserID             string
 	SessionID          string
 	ClientEventID      string
 	Kind               string
+	CurrentTurnID      string
 	RequestFingerprint string
 	Now                time.Time
 }
@@ -94,11 +96,24 @@ func (s *Service) AppendSessionEvent(ctx context.Context, in AppendSessionEventR
 	if err != nil {
 		return AppendSessionEventResult{}, err
 	}
+	currentTurnID := ""
+	if requiresCurrentTurn(kind) {
+		currentTurnID = strings.TrimSpace(payloadString(payload, "turnId"))
+		if currentTurnID == "" {
+			return AppendSessionEventResult{}, validationError("turnId is required", map[string]any{"field": "payload.turnId"})
+		}
+	}
+	if kind == sessionEventKindAnswerSubmitted && strings.TrimSpace(payloadString(payload, "answerText")) == "" {
+		return AppendSessionEventResult{}, validationError("answerText is required", map[string]any{"field": "payload.answerText"})
+	}
+	eventID := s.newID()
 	reservation, err := s.store.ReserveSessionEvent(ctx, SessionEventReservationInput{
+		EventID:            eventID,
 		UserID:             userID,
 		SessionID:          sessionID,
 		ClientEventID:      clientEventID,
 		Kind:               kind,
+		CurrentTurnID:      currentTurnID,
 		RequestFingerprint: fingerprint,
 		Now:                s.now().UTC(),
 	})
@@ -119,17 +134,10 @@ func (s *Service) AppendSessionEvent(ctx context.Context, in AppendSessionEventR
 		replay.Replay = true
 		return replay, nil
 	}
-	if requiresCurrentTurn(kind) {
-		turnID := strings.TrimSpace(payloadString(payload, "turnId"))
-		if turnID == "" {
-			return AppendSessionEventResult{}, validationError("turnId is required", map[string]any{"field": "payload.turnId"})
-		}
-		if turnID != reservation.LatestTurn.ID {
+	if currentTurnID != "" {
+		if currentTurnID != reservation.LatestTurn.ID {
 			return AppendSessionEventResult{}, sessionConflictError()
 		}
-	}
-	if kind == sessionEventKindAnswerSubmitted && strings.TrimSpace(payloadString(payload, "answerText")) == "" {
-		return AppendSessionEventResult{}, validationError("answerText is required", map[string]any{"field": "payload.answerText"})
 	}
 
 	router := SessionEventService{}
@@ -151,7 +159,7 @@ func (s *Service) AppendSessionEvent(ctx context.Context, in AppendSessionEventR
 	}
 	nextQuestion := s.prepareNextQuestion(reservation, payload, &outcome)
 	result, err := s.store.AppendSessionEvent(ctx, AppendSessionEventStoreInput{
-		EventID:            s.newID(),
+		EventID:            eventID,
 		OutboxEventID:      s.newID(),
 		UserID:             userID,
 		SessionID:          sessionID,

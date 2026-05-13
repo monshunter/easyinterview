@@ -78,7 +78,19 @@ func (s SessionEventService) Route(
 	plan PlanRecord,
 ) (SessionEventOutcome, error) {
 	_ = ctx
-	switch strings.TrimSpace(input.Kind) {
+	kind := strings.TrimSpace(input.Kind)
+	if isClosedSessionStatus(session.Status) {
+		return sessionEventConflictOutcome(session.Status, "session_event_closed", map[string]any{
+			"kind": kind,
+		}), nil
+	}
+	if requiresCurrentTurn(kind) && isClosedTurnStatus(latestTurn.Status) {
+		return sessionEventConflictOutcome(session.Status, "turn_event_closed", map[string]any{
+			"kind":       kind,
+			"turnStatus": latestTurn.Status,
+		}), nil
+	}
+	switch kind {
 	case sessionEventKindAnswerSubmitted:
 		return s.handleAnswerSubmitted(input, session, latestTurn, plan), nil
 	case sessionEventKindHintRequested:
@@ -98,6 +110,44 @@ func (s SessionEventService) Route(
 				"kind":  strings.TrimSpace(input.Kind),
 			}),
 		}, nil
+	}
+}
+
+func sessionEventConflictOutcome(status sharedtypes.SessionStatus, policy string, details map[string]any) SessionEventOutcome {
+	if details == nil {
+		details = map[string]any{}
+	}
+	details["policy"] = policy
+	details["sessionStatus"] = string(status)
+	return SessionEventOutcome{
+		Acknowledged:      false,
+		NextSessionStatus: status,
+		Error: &ServiceError{
+			Code:    sharederrors.CodePracticeSessionConflict,
+			Message: "practice session event is not allowed in the current state",
+			Details: details,
+		},
+	}
+}
+
+func isClosedSessionStatus(status sharedtypes.SessionStatus) bool {
+	switch status {
+	case sharedtypes.SessionStatusCompleting,
+		sharedtypes.SessionStatusCompleted,
+		sharedtypes.SessionStatusFailed,
+		sharedtypes.SessionStatusCancelled:
+		return true
+	default:
+		return false
+	}
+}
+
+func isClosedTurnStatus(status string) bool {
+	switch TurnStatus(strings.TrimSpace(status)) {
+	case TurnStatusAnswered, TurnStatusAssessed, TurnStatusSkipped:
+		return true
+	default:
+		return false
 	}
 }
 
