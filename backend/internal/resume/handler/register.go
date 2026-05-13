@@ -61,7 +61,7 @@ func (h *Handler) RegisterResume(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := h.service.RegisterResume(r.Context(), in)
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "resume register failed", nil)
+		writeResumeServiceError(w, err, "resume register failed")
 		return
 	}
 	writeJSON(w, http.StatusAccepted, out)

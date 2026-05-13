@@ -15,6 +15,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/resume"
 	resumehandler "github.com/monshunter/easyinterview/backend/internal/resume/handler"
+	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
@@ -111,6 +112,64 @@ runtime:
 	}
 }
 
+func TestResumeRegisterListHTTPValidationScenario(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	userID := "01918fa0-0000-7000-8000-000000009001"
+	authStore := &apiAuthStore{
+		session: auth.SessionRecord{
+			ID:        "session-1",
+			UserID:    userID,
+			Status:    auth.SessionStatusActive,
+			ExpiresAt: time.Now().Add(auth.SessionTTL),
+		},
+		user: auth.UserContext{ID: userID, Email: "resume@example.com"},
+	}
+	authService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               authStore,
+		SessionCookieSecret: "session-secret",
+	})
+	handler := buildAPIHandlerWithUploadAndHandlers(
+		loader,
+		apiRuntimeFlags{},
+		authService,
+		targetjob.NewHandler(),
+		practiceRoutes{},
+		uploadRoutes{},
+		resumeRoutes{Handler: resumehandler.New(resumehandler.Options{
+			Service: &resumeValidationScenarioService{},
+			Session: currentUserFromContext,
+		})},
+	)
+
+	registerRaw := doResumeJSON(t, handler, true, http.MethodPost, "/api/v1/resumes", "resume-validation", api.RegisterResumeRequest{
+		Title:        "Scenario Resume",
+		Language:     "en",
+		SourceType:   strPtr("upload"),
+		FileObjectId: strPtr("01918fa0-0000-7000-8000-000000000301"),
+	}, http.StatusUnprocessableEntity)
+	var registerErr api.ApiErrorResponse
+	decodeJSON(t, registerRaw, &registerErr)
+	if registerErr.Error.Code != sharederrors.CodeValidationFailed {
+		t.Fatalf("register error = %+v", registerErr.Error)
+	}
+
+	listRaw := doResumeJSON(t, handler, true, http.MethodGet, "/api/v1/resumes?cursor=not-a-valid-cursor", "", nil, http.StatusUnprocessableEntity)
+	var listErr api.ApiErrorResponse
+	decodeJSON(t, listRaw, &listErr)
+	if listErr.Error.Code != sharederrors.CodeValidationFailed {
+		t.Fatalf("list error = %+v", listErr.Error)
+	}
+}
+
 func doResumeJSON(t *testing.T, handler http.Handler, authenticated bool, method, path string, idempotencyKey string, body any, wantStatus int) []byte {
 	t.Helper()
 	var reqBody *bytes.Reader
@@ -136,6 +195,18 @@ func doResumeJSON(t *testing.T, handler http.Handler, authenticated bool, method
 		t.Fatalf("%s %s status=%d want=%d body=%s", method, path, rec.Code, wantStatus, rec.Body.String())
 	}
 	return rec.Body.Bytes()
+}
+
+type resumeValidationScenarioService struct {
+	resumeScenarioService
+}
+
+func (s *resumeValidationScenarioService) RegisterResume(context.Context, resume.RegisterInput) (api.ResumeAssetWithJob, error) {
+	return api.ResumeAssetWithJob{}, resume.ErrValidationFailed
+}
+
+func (s *resumeValidationScenarioService) ListResumes(context.Context, resume.ListRequest) (api.PaginatedResumeAsset, error) {
+	return api.PaginatedResumeAsset{}, resumestore.ErrInvalidCursor
 }
 
 type resumeScenarioService struct {

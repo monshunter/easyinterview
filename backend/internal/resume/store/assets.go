@@ -138,7 +138,7 @@ where user_id = $1 and deleted_at is null`
 }
 
 func (r *Repository) MarkParsing(ctx context.Context, in StatusUpdateInput) error {
-	return r.updateStatus(ctx, in.UserID, in.AssetID, sharedtypes.TargetJobParseStatusQueued, sharedtypes.TargetJobParseStatusProcessing, nil, nil, "", in.Now)
+	return r.updateStatus(ctx, in.UserID, in.AssetID, "", sharedtypes.TargetJobParseStatusProcessing, nil, nil, "", in.Now)
 }
 
 func (r *Repository) MarkReady(ctx context.Context, in MarkReadyInput) error {
@@ -242,6 +242,13 @@ func (r *Repository) updateStatus(ctx context.Context, userID string, assetID st
 	var res sql.Result
 	var err error
 	switch {
+	case to == sharedtypes.TargetJobParseStatusProcessing:
+		res, err = r.db.ExecContext(ctx, `
+update resume_assets
+set parse_status = $1, error_code = null, updated_at = $2
+where id = $3 and user_id = $4 and parse_status in ('queued','failed') and deleted_at is null`,
+			string(to), now, assetID, userID,
+		)
 	case to == sharedtypes.TargetJobParseStatusReady:
 		if len(parsedSummary) == 0 {
 			parsedSummary = []byte(`{}`)

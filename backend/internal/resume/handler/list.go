@@ -44,7 +44,7 @@ func (h *Handler) ListResumes(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := service.ListResumes(r.Context(), in)
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "resume list failed", nil)
+		writeResumeServiceError(w, err, "resume list failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, out)

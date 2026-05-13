@@ -149,6 +149,15 @@ func TestRegisterIdempotency(t *testing.T) {
 	})
 }
 
+func TestRegisterResumeValidationErrorsReturnUnprocessableEntity(t *testing.T) {
+	h := newTestHandler(&fakeRegisterService{err: resume.ErrValidationFailed})
+	rec := httptest.NewRecorder()
+
+	h.RegisterResume(rec, newRegisterRequest(`{"sourceType":"upload","fileObjectId":"01918fa0-0000-7000-8000-000000000301","title":"Resume","language":"en"}`))
+
+	assertAPIError(t, rec, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
+}
+
 func TestRegisterResumeFixtureParity(t *testing.T) {
 	fixture := loadRegisterFixture(t)
 	for _, scenario := range []string{"default", "paste-text", "guided-answers"} {

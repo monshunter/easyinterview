@@ -1,6 +1,6 @@
 # 001 BDD Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-13
 
@@ -14,6 +14,7 @@
 - [x] 执行 `setup → trigger → verify → cleanup` 全 PASS <!-- verified: 2026-05-13 method=scenario log=.test-output/e2e/p0-034-resume-register-and-list/trigger.log -->
 - [x] 记录验证证据：`.test-output/e2e/p0-034-resume-register-and-list/trigger.log` + `cmd/api` HTTP scenario log + verify 输出 + DB state machine 轨迹 + asset/job 同事务证据 + missing object / size mismatch rejection 证据 + register/get/list fixture byte diff 0 + validation error direct assertion + 隐私 grep 0 命中 + cross-user 404 验证 + cursor 序稳定性 + `method=cmd-api-http` 或等价 live runtime evidence + no no-op / no skip 证据
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.034 行（关联需求 `backend-resume C-1, C-2, C-5, C-6, C-7, C-8`，状态 Ready，automated）
+- [x] L2 remediation：trigger/verify 检查 `TestRegisterResumeValidationErrorsReturnUnprocessableEntity`、`TestListResumesInvalidCursorReturnsUnprocessableEntity`，证明 upload validation / invalid cursor 不会被 500 掩盖 <!-- verified: 2026-05-13 method=scenario log=.test-output/e2e/p0-034-resume-register-and-list/trigger.log -->
 
 ## E2E.P0.035 resume.parse async job lifecycle
 
@@ -23,3 +24,4 @@
 - [x] 执行 `setup → trigger → verify → cleanup` 全 PASS <!-- verified: 2026-05-13 method=scenario log=.test-output/e2e/p0-035-resume-parse-async-job-lifecycle/trigger.log -->
 - [x] 记录验证证据：`.test-output/e2e/p0-035-resume-parse-async-job-lifecycle/trigger.log` + `cmd/api` drainer scenario log + verify 输出 + DB parse_status 转换轨迹 + `resume_versions` count unchanged before Preview Confirm + ai_task_runs 行 dump + outbox_events 行 dump（ready-only completed event，failure no completed event，PII grep 0 命中）+ stub provider call log + shutdown / no goroutine leak 证据 + `method=cmd-api-http` 或等价 live runtime evidence + no no-op / no skip 证据
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.035 行（关联需求 `backend-resume C-3, C-4, C-13`，状态 Ready，automated）
+- [x] L2 remediation：trigger/verify 检查 `TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox`、`TestParseHandlerRetriesFailedAssetBackToProcessing`、`TestResumeParseDrainerRetryableFailureScenario`，证明 retryable timeout 先落 failed/error_code 再重试成功 <!-- verified: 2026-05-13 method=scenario log=.test-output/e2e/p0-035-resume-parse-async-job-lifecycle/trigger.log -->

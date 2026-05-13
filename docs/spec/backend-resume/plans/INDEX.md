@@ -13,4 +13,4 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-asset-register-parse-and-listing](./001-asset-register-parse-and-listing/plan.md) | [plan](./001-asset-register-parse-and-listing/plan.md) / [checklist](./001-asset-register-parse-and-listing/checklist.md) / [context](./001-asset-register-parse-and-listing/context.yaml) / [bdd-plan](./001-asset-register-parse-and-listing/bdd-plan.md) / [bdd-checklist](./001-asset-register-parse-and-listing/bdd-checklist.md) | 1.2 | completed | 2026-05-13 |
+| [001-asset-register-parse-and-listing](./001-asset-register-parse-and-listing/plan.md) | [plan](./001-asset-register-parse-and-listing/plan.md) / [checklist](./001-asset-register-parse-and-listing/checklist.md) / [context](./001-asset-register-parse-and-listing/context.yaml) / [bdd-plan](./001-asset-register-parse-and-listing/bdd-plan.md) / [bdd-checklist](./001-asset-register-parse-and-listing/bdd-checklist.md) | 1.3 | completed | 2026-05-13 |

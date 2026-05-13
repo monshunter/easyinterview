@@ -1,6 +1,6 @@
 # Backend Resume Asset Register Parse and Listing
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-13
 
@@ -179,6 +179,23 @@
 - backend-resume spec.md 本次 L1 修订后保持 1.1 active；实施完成时再追加完成行
 - backend-resume history.md 已记录 2026-05-12 既有 L1 修订；本轮若改变 spec 版本、日期或历史语义，收尾阶段再追加 history 行；plan 001 落地后追加新行（如完成）
 - 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `backend-resume` 状态从 "未创建" 改为 "active"（roadmap spec 3.11 → 3.12 if not already）
+
+### Phase 6: L2 remediation - handler errors, parse retry state, and gate hardening
+
+#### 6.1 修复 register/list 业务校验 HTTP 映射
+- `RegisterResume` 对 service 层 `ErrValidationFailed` 返回 `422 + VALIDATION_FAILED`，覆盖 backend-upload missing object / size mismatch 不创建 asset 的真实错误面；
+- `ListResumes` 对 invalid cursor 返回 `422 + VALIDATION_FAILED`，不得把用户输入错误升级为 500；
+- 补 handler unit test，证明错误 envelope 与状态码。
+
+#### 6.2 修复 resume.parse retryable failure 状态语义
+- AI timeout / retryable failure 每次失败都写 `resume_assets.parse_status='failed' + error_code`；
+- retryable 信息只通过 `async_jobs` retry metadata 表达，不新增 `failed_retryable` parse_status；
+- 后续重试允许同一 asset 从 `failed` 重新进入 `processing`，最终 ready 后只发一次 `resume.parse.completed`。
+
+#### 6.3 加固 cmd/api 与 BDD gate
+- `cmd/api` 场景补齐 handler validation mapping、invalid cursor、retryable failure → retry success 的可执行断言；
+- E2E.P0.034 / E2E.P0.035 trigger/verify 必须检查新增测试名，拒绝只靠 happy path 或测反的 unit test 通过；
+- 收口后重新执行 focused Go tests、两个场景脚本、docs/index/diff gate。
 
 ## 5 验收标准
 

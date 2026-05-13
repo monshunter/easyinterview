@@ -163,7 +163,7 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 			job:        targetjob.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 1, MaxAttempts: 5},
 			wantCode:   sharederrors.CodeAiProviderTimeout,
 			wantRetry:  true,
-			wantFailed: false,
+			wantFailed: true,
 		},
 		{
 			name:       "retryable timeout exhausted",
@@ -212,6 +212,42 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 				t.Fatalf("outcome leaked resume body: %+v", outcome)
 			}
 		})
+	}
+}
+
+func TestParseHandlerRetriesFailedAssetBackToProcessing(t *testing.T) {
+	now := time.Date(2026, 5, 13, 7, 45, 0, 0, time.UTC)
+	store := &fakeParseStore{asset: resumestore.ParseAssetRecord{
+		ID:           "asset-1",
+		UserID:       "user-1",
+		Language:     "en",
+		ParseStatus:  sharedtypes.TargetJobParseStatusFailed,
+		SourceType:   "paste",
+		OriginalText: "resume retry body",
+	}}
+	handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
+		Store:    store,
+		Registry: fakeRegistry{resolution: parseResolution()},
+		AI:       &captureAI{resp: aiclient.CompleteResponse{Content: validResumeParseJSON}},
+		NewID:    idSeq("event-1"),
+		Now:      func() time.Time { return now },
+	})
+
+	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 2, MaxAttempts: 5,
+	})
+
+	if !outcome.Succeeded {
+		t.Fatalf("Handle outcome = %+v", outcome)
+	}
+	if len(store.markParsing) != 1 || store.markParsing[0].AssetID != "asset-1" {
+		t.Fatalf("MarkParsing calls = %+v", store.markParsing)
+	}
+	if store.success == nil {
+		t.Fatal("expected CompleteParseSuccess")
+	}
+	if strings.Contains(string(store.success.OutboxEventPayload), "resume retry body") {
+		t.Fatalf("outbox payload leaked resume content: %s", store.success.OutboxEventPayload)
 	}
 }
 

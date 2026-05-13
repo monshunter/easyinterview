@@ -114,10 +114,17 @@ func TestParseStatusTransition(t *testing.T) {
 	now := time.Date(2026, 5, 13, 4, 30, 0, 0, time.UTC)
 
 	mock.ExpectExec(regexp.QuoteMeta(`update resume_assets`)).
-		WithArgs(string(sharedtypes.TargetJobParseStatusProcessing), now, "asset-1", "user-1", string(sharedtypes.TargetJobParseStatusQueued)).
+		WithArgs(string(sharedtypes.TargetJobParseStatusProcessing), now, "asset-1", "user-1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	if err := repo.MarkParsing(context.Background(), resumestore.StatusUpdateInput{UserID: "user-1", AssetID: "asset-1", Now: now}); err != nil {
 		t.Fatalf("MarkParsing: %v", err)
+	}
+
+	mock.ExpectExec(regexp.QuoteMeta(`update resume_assets`)).
+		WithArgs(string(sharedtypes.TargetJobParseStatusProcessing), now, "asset-retry", "user-1").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	if err := repo.MarkParsing(context.Background(), resumestore.StatusUpdateInput{UserID: "user-1", AssetID: "asset-retry", Now: now}); err != nil {
+		t.Fatalf("MarkParsing failed retry: %v", err)
 	}
 
 	mock.ExpectExec(regexp.QuoteMeta(`update resume_assets`)).

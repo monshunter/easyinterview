@@ -1,6 +1,6 @@
 # Backend Resume Asset Register Parse and Listing Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-13
 
@@ -54,3 +54,10 @@
 - [x] 5.6 在 `test/scenarios/e2e/INDEX.md` 追加 P0.034 + P0.035 行（关联需求 `backend-resume C-1..C-8, C-13`）
 - [x] 5.7 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `backend-resume` 状态从 "未创建" 改为 "active"（与 backend-upload 同步行）（验证：`sync-doc-index --check`）<!-- verified: 2026-05-13 roadmap already active -->
 - [x] 5.8 通知 [frontend-workspace-and-practice/001](../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md) owner：`listResumes` 已就位，可启动 disabled-list → active-list 原地修订（验证：cross-plan 引用 commit + workspace 001 plan checklist 追加 unblock 引用）<!-- verified: 2026-05-13 commit=1d1f69c -->
+
+## Phase 6: L2 remediation - handler errors, parse retry state, and gate hardening
+
+- [x] 6.1 `RegisterResume` / `ListResumes` 将 service/store validation 错误映射为 `422 + VALIDATION_FAILED`，覆盖 upload missing object / size mismatch 与 invalid cursor（验证：handler unit test + cmd/api scenario PASS）<!-- verified: 2026-05-13 method=go-test tests=TestRegisterResumeValidationErrorsReturnUnprocessableEntity,TestListResumesInvalidCursorReturnsUnprocessableEntity,TestResumeRegisterListHTTPValidationScenario -->
+- [x] 6.2 `resume.parse` retryable failure 每次写 `parse_status='failed' + error_code`，retry metadata 仍由 `async_jobs` 表达，并允许 failed asset 重试回 processing 后 ready（验证：job/store/cmd-api retry tests PASS）<!-- verified: 2026-05-13 method=go-test tests=TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox,TestParseHandlerRetriesFailedAssetBackToProcessing,TestParseStatusTransition,TestResumeParseDrainerRetryableFailureScenario -->
+- [x] 6.3 加固 E2E.P0.034 / E2E.P0.035 trigger/verify，检查新增 validation/retry 测试名且拒绝 no-op/skip（验证：两个 scenario `setup -> trigger -> verify -> cleanup` PASS）<!-- verified: 2026-05-13 method=scenario logs=.test-output/e2e/p0-034-resume-register-and-list/trigger.log,.test-output/e2e/p0-035-resume-parse-async-job-lifecycle/trigger.log -->
+- [x] 6.4 收口验证：focused Go tests、`go test ./internal/resume/... ./cmd/api`、`make docs-check`、`sync-doc-index --check`、`git diff --check` 全 PASS <!-- verified: 2026-05-13 method=go-test+scenario+docs-check+sync-doc-index+diff-check -->

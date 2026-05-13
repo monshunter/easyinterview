@@ -14,9 +14,11 @@ mkdir -p "$OUT"
     exit 1
   fi
   grep -q 'TestResumeParseDrainerHTTPScenario' "$OUT/trigger.log"
+  grep -q 'TestResumeParseDrainerRetryableFailureScenario' "$OUT/trigger.log"
   grep -q 'TestBuildResumeRuntimeWiresRoutesDrainerAndDeterministicAI' "$OUT/trigger.log"
   grep -q 'TestParseHandlerUsesThreeSourceInputsAndWritesReadyOutbox' "$OUT/trigger.log"
   grep -q 'TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox' "$OUT/trigger.log"
+  grep -q 'TestParseHandlerRetriesFailedAssetBackToProcessing' "$OUT/trigger.log"
   grep -q 'TestParseHandlerObservedAIWritesResumeTaskRunColumns' "$OUT/trigger.log"
   grep -q 'TestParseHandlerPIIRedlineForLogsAuditTaskRunsAndOutbox' "$OUT/trigger.log"
   grep -q 'TestCompleteParseSuccessWritesReadyStateAndCompletedOutboxAtomically' "$OUT/trigger.log"

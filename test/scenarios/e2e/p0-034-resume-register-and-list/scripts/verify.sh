@@ -14,9 +14,12 @@ mkdir -p "$OUT"
     exit 1
   fi
   grep -q 'TestResumeRegisterListHTTPScenario' "$OUT/trigger.log"
+  grep -q 'TestResumeRegisterListHTTPValidationScenario' "$OUT/trigger.log"
   grep -q 'TestRegisterResumeFixtureParity' "$OUT/trigger.log"
+  grep -q 'TestRegisterResumeValidationErrorsReturnUnprocessableEntity' "$OUT/trigger.log"
   grep -q 'TestGetResumeFixtureParity' "$OUT/trigger.log"
   grep -q 'TestListResumesFixtureParity' "$OUT/trigger.log"
+  grep -q 'TestListResumesInvalidCursorReturnsUnprocessableEntity' "$OUT/trigger.log"
   grep -q 'TestRegisterFileObjectRejectsMissingObjectAndIllegalStates' "$OUT/trigger.log"
   grep -q 'TestCreateWithParseJobRollsBackWhenJobInsertFails' "$OUT/trigger.log"
   grep -q 'TestListCursorPagination' "$OUT/trigger.log"

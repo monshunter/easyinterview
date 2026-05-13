@@ -99,7 +99,7 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 		return targetjob.JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error())}
 	}
 	switch asset.ParseStatus {
-	case sharedtypes.TargetJobParseStatusQueued:
+	case sharedtypes.TargetJobParseStatusQueued, sharedtypes.TargetJobParseStatusFailed:
 		if err := h.store.MarkParsing(ctx, resumestore.StatusUpdateInput{UserID: asset.UserID, AssetID: asset.ID, Now: h.now()}); err != nil {
 			return targetjob.JobOutcome{ErrorCode: sharederrors.CodeTargetInvalidStateTransition, ErrorMessage: safeFailureMessage(sharederrors.CodeTargetInvalidStateTransition, err.Error())}
 		}
@@ -210,22 +210,16 @@ func (h *ParseHandler) resumeInput(ctx context.Context, asset resumestore.ParseA
 }
 
 func (h *ParseHandler) fail(ctx context.Context, asset resumestore.ParseAssetRecord, job targetjob.ClaimedJob, code, message string, retryable bool) targetjob.JobOutcome {
-	maxAttempts := job.MaxAttempts
-	if maxAttempts <= 0 {
-		maxAttempts = 1
-	}
-	if !retryable || job.Attempts >= maxAttempts {
-		if err := h.store.CompleteParseFailure(ctx, resumestore.CompleteParseFailureInput{
-			UserID:    asset.UserID,
-			AssetID:   asset.ID,
-			ErrorCode: code,
-			Now:       h.now(),
-		}); err != nil {
-			return targetjob.JobOutcome{
-				ErrorCode:    sharederrors.CodeTargetImportFailed,
-				ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
-				Retryable:    true,
-			}
+	if err := h.store.CompleteParseFailure(ctx, resumestore.CompleteParseFailureInput{
+		UserID:    asset.UserID,
+		AssetID:   asset.ID,
+		ErrorCode: code,
+		Now:       h.now(),
+	}); err != nil {
+		return targetjob.JobOutcome{
+			ErrorCode:    sharederrors.CodeTargetImportFailed,
+			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
+			Retryable:    true,
 		}
 	}
 	return targetjob.JobOutcome{

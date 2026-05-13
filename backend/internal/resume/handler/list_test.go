@@ -13,6 +13,8 @@ import (
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	"github.com/monshunter/easyinterview/backend/internal/resume"
 	resumehandler "github.com/monshunter/easyinterview/backend/internal/resume/handler"
+	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
@@ -78,6 +80,20 @@ func TestListResumesFixtureParity(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestListResumesInvalidCursorReturnsUnprocessableEntity(t *testing.T) {
+	svc := &fakeListService{err: resumestore.ErrInvalidCursor}
+	h := resumehandler.New(resumehandler.Options{
+		Service: svc,
+		Session: func(context.Context) (string, bool) { return "user-1", true },
+	})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/resumes?cursor=not-a-valid-cursor", nil)
+	rec := httptest.NewRecorder()
+
+	h.ListResumes(rec, req)
+
+	assertAPIError(t, rec, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
 }
 
 type fakeListService struct {
