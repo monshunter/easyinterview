@@ -12,7 +12,7 @@
 
 ## Phase 1: AppendSessionEvent state machine 与 turn-status 域
 
-- [ ] Phase 1 本计划定义的 `SessionEventService` 状态机、handleAnswerSubmitted / handleHintRequested / handleTurnSkipped / handleSessionPaused / handleSessionResumed、unknown kind、AssistantAction provenance 与 `turn_status` mapping 单元测试项全部通过
+- [x] Phase 1 本计划定义的 `SessionEventService` 状态机、handleAnswerSubmitted / handleHintRequested / handleTurnSkipped / handleSessionPaused / handleSessionResumed、unknown kind、AssistantAction provenance 与 `turn_status` mapping 单元测试项全部通过
 
 ## Phase 2: AppendSessionEvent vertical slice
 

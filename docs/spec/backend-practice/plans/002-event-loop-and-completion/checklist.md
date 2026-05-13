@@ -22,14 +22,14 @@
 
 ## Phase 1: AppendSessionEvent state machine 与 turn-status 域
 
-- [ ] 1.1 新增 `backend/internal/practice/session_event.go`：`SessionEventInput` / `SessionEventOutcome` 类型 + `SessionEventService.Route(ctx, input, session, latestTurn, plan) (SessionEventOutcome, error)`（验证：`session_event_test.go` 断言 5 种 kind 的 outcome shape）
-- [ ] 1.2 实现 `handleAnswerSubmitted`：按 `turn_count` / `question_budget` / `follow_up_count` / `plan.goal` 决定 `ask_question` / `ask_follow_up` / `session_completed`（验证：`session_event_test.go` 覆盖 3 分支 + 边界值）
-- [ ] 1.3 实现 `handleHintRequested`（D-34）：无条件返回 409 PRACTICE_SESSION_CONFLICT outcome + `detail.policy='hint_disabled_in_mode'` + `detail.mode=session.mode`；002 阶段不调 AI（验证：`session_event_test.go` 断言 outcome 形状，所有 mode/goal 输入均返回 409）
-- [ ] 1.4 实现 `handleTurnSkipped` / `handleSessionPaused` / `handleSessionResumed`（验证：单元测试覆盖 status 推进与 AssistantAction `session_wait` / `ask_question` / `session_completed`）
-- [ ] 1.5 实现 unknown kind 返回 `VALIDATION_FAILED` outcome（验证：单元测试断言无 panic / 无 500）
-- [ ] 1.6 AssistantAction `provenance` 填充 helper：non-AI 分支用 `rubricVersion='not_applicable'` / `featureFlag='none'` / `dataSourceVersion='static'` 等 B2 wire 默认；AI 分支由 Phase 2 service 在调用 F3 后填入（验证：`session_event_test.go` 断言 provenance 仅含 B2 wire 字段）
-- [ ] 1.7 新增 `backend/internal/practice/turn_status.go`：typed enum 转换（DB 5 值 ↔ wire 5 值，D-33 后完全相同）+ unknown 输入返回 error；不再做 D-25 备选的"压缩到 3 值"映射（验证：`turn_status_test.go` 覆盖 5 值正向 + unknown / 空字符串负向）
-- [ ] 1.8 Phase 1 收口：`cd backend && go test ./internal/practice/...` 全通过
+- [x] 1.1 新增 `backend/internal/practice/session_event.go`：`SessionEventInput` / `SessionEventOutcome` 类型 + `SessionEventService.Route(ctx, input, session, latestTurn, plan) (SessionEventOutcome, error)`（验证：`session_event_test.go` 断言 5 种 kind 的 outcome shape）
+- [x] 1.2 实现 `handleAnswerSubmitted`：按 `turn_count` / `question_budget` / `follow_up_count` / `plan.goal` 决定 `ask_question` / `ask_follow_up` / `session_completed`（验证：`session_event_test.go` 覆盖 3 分支 + 边界值）
+- [x] 1.3 实现 `handleHintRequested`（D-34）：无条件返回 409 PRACTICE_SESSION_CONFLICT outcome + `detail.policy='hint_disabled_in_mode'` + `detail.mode=session.mode`；002 阶段不调 AI（验证：`session_event_test.go` 断言 outcome 形状，所有 mode/goal 输入均返回 409）
+- [x] 1.4 实现 `handleTurnSkipped` / `handleSessionPaused` / `handleSessionResumed`（验证：单元测试覆盖 status 推进与 AssistantAction `session_wait` / `ask_question` / `session_completed`）
+- [x] 1.5 实现 unknown kind 返回 `VALIDATION_FAILED` outcome（验证：单元测试断言无 panic / 无 500）
+- [x] 1.6 AssistantAction `provenance` 填充 helper：non-AI 分支用 `rubricVersion='not_applicable'` / `featureFlag='none'` / `dataSourceVersion='static'` 等 B2 wire 默认；AI 分支由 Phase 2 service 在调用 F3 后填入（验证：`session_event_test.go` 断言 provenance 仅含 B2 wire 字段）
+- [x] 1.7 新增 `backend/internal/practice/turn_status.go`：typed enum 转换（DB 5 值 ↔ wire 5 值，D-33 后完全相同）+ unknown 输入返回 error；不再做 D-25 备选的"压缩到 3 值"映射（验证：`turn_status_test.go` 覆盖 5 值正向 + unknown / 空字符串负向）
+- [x] 1.8 Phase 1 收口：`cd backend && go test ./internal/practice/...` 全通过
 
 ## Phase 2: AppendSessionEvent vertical slice
 
