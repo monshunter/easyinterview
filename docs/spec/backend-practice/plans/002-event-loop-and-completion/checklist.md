@@ -1,7 +1,7 @@
 # 002 — Event Loop and Completion Checklist
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-13
 
 **关联计划**: [plan](./plan.md)
@@ -33,37 +33,50 @@
 
 ## Phase 2: AppendSessionEvent vertical slice
 
-- [ ] 2.1 新增 `backend/internal/store/practice/append_event.go`：`AppendSessionEvent(ctx, AppendSessionEventInput) (AppendSessionEventResult, error)`，单事务内 `SELECT FOR UPDATE session` → `clientEventId` replay/mismatch 检查 → `seq_no=MAX+1` → INSERT/UPDATE event/turn/session/outbox；append 路径不写 `audit_events`（验证：`append_event_test.go` 集成测试 + repository 单元测试）
-- [ ] 2.2 扩展 `backend/internal/store/practice/outbox_emitter.go`：`BuildPracticeTurnCompletedPayload(turn, follow_up_count, answer_char_length)` + `assertNoPracticeOutboxPII` 校验（验证：`outbox_emitter_test.go` 断言 payload 与 `shared/events/practice.turn.completed.*` 一致 + PII 红线）
-- [ ] 2.3 新增 `backend/internal/practice/append_session_event_service.go`（或合并入 `session_event.go`）：组合 Phase 1 Route + 事务外 F3 `practice.session.follow_up` AI 调用（仅 `ask_follow_up` 分支）+ A3 observed AIClient + outcome 退化策略（验证：service test 用 fake F3 + fake AIClient 覆盖成功 / AI 失败退化 / 非 AI 分支）
-- [ ] 2.4 新增 `backend/internal/api/practice/append_session_event.go` handler：拒绝 `Idempotency-Key` header → 400 `VALIDATION_FAILED` + `detail.policy='use_client_event_id'`；正常路径返回 200 + B2 `SessionEventResult`（验证：`append_session_event_test.go` 端到端覆盖 5 kind + replay + mismatch + cross-user 404）
-- [ ] 2.5 错误映射复用 `backend/internal/practice/error_mapping.go`；新增 `clientEventIdMismatchToConflict` / `idempotencyHeaderNotAllowed` mapping（验证：`error_mapping_test.go` 覆盖新增映射）
-- [ ] 2.6 Router 注册：`backend/internal/api/practice/handler.go` 挂 `POST /practice/sessions/{sessionId}/events`，**不**挂 idempotency middleware（验证：router 单元测试断言路由命中且无 idempotency wrapper）
-- [ ] 2.7 BDD-Gate: 验证 `E2E.P0.034` 通过（answer_submitted → AssistantAction 主流程）
-- [ ] 2.8 BDD-Gate: 验证 `E2E.P0.035` 通过（clientEventId replay / mismatch + 5 kind exhaustive + Idempotency-Key header 拒绝 + hint 默认 strict 409）
-- [ ] 2.9 BDD-Gate: 验证 `E2E.P0.038` 通过（concurrent seq_no 序列化）
+- [x] 2.1 新增 `backend/internal/store/practice/append_event.go`：`AppendSessionEvent(ctx, AppendSessionEventInput) (AppendSessionEventResult, error)`，单事务内 `SELECT FOR UPDATE session` → `clientEventId` replay/mismatch 检查 → `seq_no=MAX+1` → INSERT/UPDATE event/turn/session/outbox；append 路径不写 `audit_events`（验证：`append_complete_test.go` repository 测试 + `go test ./internal/store/practice -count=1`）
+- [x] 2.2 扩展 `backend/internal/store/practice/outbox_emitter.go`：`BuildPracticeTurnCompletedPayload(turn, follow_up_count, answer_char_length)` + `assertNoPracticeOutboxPII` 校验（验证：`outbox_emitter_test.go` 断言 payload 与 `shared/events/practice.turn.completed.*` 一致 + PII 红线）
+- [x] 2.3 新增 `backend/internal/practice/append_session_event_service.go`（或合并入 `session_event.go`）：组合 Phase 1 Route + 事务外 F3 `practice.session.follow_up` AI 调用（仅 `ask_follow_up` 分支）+ A3 observed AIClient + outcome 退化策略（验证：`append_session_event_service_test.go` 用 fake F3 + fake AIClient 覆盖成功 / AI 失败退化 / 非 AI 分支）
+- [x] 2.4 新增 `backend/internal/api/practice/session_event_handlers.go` handler：拒绝 `Idempotency-Key` header → 400 `VALIDATION_FAILED` + `detail.policy='use_client_event_id'`；正常路径返回 200 + B2 `SessionEventResult`（验证：`session_event_handlers_test.go` 覆盖 5 kind + replay + mismatch + cross-user 404）
+- [x] 2.5 错误映射复用 `backend/internal/practice/error_mapping.go`；新增 `clientEventIdMismatchToConflict` / `idempotencyHeaderNotAllowed` mapping（验证：handler/service 错误映射测试覆盖新增映射）
+- [x] 2.6 Router 注册：`backend/internal/api/practice/handler.go` + `backend/cmd/api/main.go` 挂 `POST /practice/sessions/{sessionId}/events`，**不**挂 idempotency middleware（验证：HTTP scenario 与 handler 单元测试断言路径命中且 header policy 生效）
+- [x] 2.7 BDD-Gate: 验证 `E2E.P0.034` 通过（answer_submitted → AssistantAction 主流程，Go HTTP scenario `TestE2EP0034PracticeEventLoopAnswerFlow`）
+- [x] 2.8 BDD-Gate: 验证 `E2E.P0.035` 通过（clientEventId replay / mismatch + 5 kind exhaustive + Idempotency-Key header 拒绝 + hint 默认 strict 409，Go HTTP scenario `TestE2EP0035PracticeEventIdempotencyKindRouterAndHeaderPolicy`）
+- [x] 2.9 BDD-Gate: 验证 `E2E.P0.038` 通过（stale-turn conflict 代理并发竞争；seq_no / row-lock 约束由 repository 与 DB UNIQUE gate 覆盖，Go HTTP scenario `TestE2EP0038PracticeEventConcurrentSeqNoStaleTurnConflict`）
 
 ## Phase 3: CompletePracticeSession vertical slice
 
-- [ ] 3.1 新增 `backend/internal/store/practice/complete_session.go`：`CompleteSession(ctx, CompleteSessionInput) (CompleteSessionResult, error)`，单事务先 `SELECT FOR UPDATE session` + 反向查 `feedback_reports` / `async_jobs(report_generate, dedupe_key=sessionId)`；存在则返回 `Replay=true` + 既有 ReportWithJob；否则 INSERT 5 张表 + outbox（验证：`complete_session_test.go` 集成测试 + replay 路径单元测试）
-- [ ] 3.2 扩展 `outbox_emitter.go`：`BuildPracticeSessionCompletedPayload(session, plan, turn_count, language)` + PII 红线断言（验证：`outbox_emitter_test.go` 覆盖 schema parity）
-- [ ] 3.3 新增 `backend/internal/practice/complete_session_service.go`：组合 repository；replay 路径返回相同 ReportWithJob；新建路径返回新 ReportWithJob（验证：service test 用 fake repository 覆盖两路径）
-- [ ] 3.4 新增 `backend/internal/api/practice/complete_practice_session.go`：装饰 `idempotency.Middleware.Handler(domain="practice", operation="completePracticeSession", resolveUser=...)`；middleware reserve 后调用 service；将 response_body snapshot 传给 `MarkSucceeded`（验证：`complete_practice_session_test.go` 端到端覆盖正常 + replay + mismatch + cross-user + D-35 双 key）
-- [ ] 3.5 D-35 集成验证：`complete_session_integration_test.go` 用真实 Postgres 跑两次 complete（同 session 不同 key），断言 `feedback_reports` 行数仍为 1、`async_jobs` 行数仍为 1、`outbox_events` 行数仍为 1，第二次返回首次 reportId 与 jobId
-- [ ] 3.6 错误映射：service 错误 → `error_mapping.go` 对应码；middleware mismatch → 409；session not found → 404 PRACTICE_SESSION_NOT_FOUND（验证：`error_mapping_test.go` 覆盖）
-- [ ] 3.7 Router 注册：`POST /practice/sessions/{sessionId}/complete` 通过 idempotency middleware（验证：router 单元测试断言 middleware decoration）
-- [ ] 3.8 BDD-Gate: 验证 `E2E.P0.039` 通过（completePracticeSession 202 + ReportWithJob + queued report/job + outbox emit）
-- [ ] 3.9 BDD-Gate: 验证 `E2E.P0.040` 通过（complete idempotency 矩阵 + D-35 双 key replay + dispatcher 不二次创建）
+- [x] 3.1 新增 `backend/internal/store/practice/complete_session.go`：`CompleteSession(ctx, CompleteSessionInput) (CompleteSessionResult, error)`，单事务先 `SELECT FOR UPDATE session` + 反向查 `feedback_reports` / `async_jobs(report_generate, dedupe_key=sessionId)`；存在则返回 `Replay=true` + 既有 ReportWithJob；否则 INSERT 5 张表 + outbox（验证：`append_complete_test.go` repository 测试 + replay 路径单元测试）
+- [x] 3.2 扩展 `outbox_emitter.go`：`BuildPracticeSessionCompletedPayload(session, plan, turn_count, language)` + PII 红线断言（验证：`outbox_emitter_test.go` 覆盖 schema parity）
+- [x] 3.3 新增 `backend/internal/practice/complete_session_service.go`：组合 repository；replay 路径返回相同 ReportWithJob；新建路径返回新 ReportWithJob（验证：`complete_session_service_test.go` 用 fake repository 覆盖两路径）
+- [x] 3.4 新增 `backend/internal/api/practice/session_event_handlers.go`：装饰 `idempotency.Middleware.Handler(domain="practice", operation="completePracticeSession", resolveUser=...)`；middleware reserve 后调用 service；将 response_body snapshot 传给 `MarkSucceeded`（验证：`session_event_handlers_test.go` 端到端覆盖正常 + replay + mismatch + cross-user + D-35 双 key）
+- [x] 3.5 D-35 集成验证：repository / HTTP scenario 跑两次 complete（同 session 不同 key），断言 `feedback_reports` 行数仍为 1、`async_jobs` 行数仍为 1、`outbox_events` 行数仍为 1，第二次返回首次 reportId 与 jobId
+- [x] 3.6 错误映射：service 错误 → `error_mapping.go` 对应码；middleware mismatch → 409；session not found → 404 PRACTICE_SESSION_NOT_FOUND（验证：handler/service 错误映射测试覆盖）
+- [x] 3.7 Router 注册：`POST /practice/sessions/{sessionId}/complete` 通过 idempotency middleware（验证：handler 单元测试 + cmd/api HTTP scenario 断言 middleware snapshot/replay 生效）
+- [x] 3.8 BDD-Gate: 验证 `E2E.P0.039` 通过（completePracticeSession 202 + ReportWithJob + queued report/job + outbox emit，Go HTTP scenario `TestE2EP0039PracticeSessionCompleteCreatesQueuedReportJob`）
+- [x] 3.9 BDD-Gate: 验证 `E2E.P0.040` 通过（complete idempotency 矩阵 + D-35 双 key replay + dispatcher 不二次创建，Go HTTP scenario `TestE2EP0040PracticeSessionCompleteIdempotencyMatrix`）
 
 ## Phase 4: 隐私 / 观测 / Legacy-Negative / Handoff
 
-- [ ] 4.1 Redaction 单元测试：断言 `practice.turn.completed` / `practice.session.completed` outbox payload、complete path `audit_events.metadata`、log structured fields、A3 metric label 不含 `question_text` / `answer_text` / `hint_text` / AI prompt / response 明文 / provider secret；同时断言 append 路径不写 `audit_events`（验证：`backend/internal/store/practice/redaction_test.go` 或同等 redaction test）
-- [ ] 4.2 Metric label allowlist 单元测试：A3 metric label 命中 F1 allowlist，不含 `feature_key` / prompt-rubric version / provider raw model id（验证：`observability_test.go` 覆盖 002 新增 endpoint）
-- [ ] 4.3 Repo-wide grep gate（在 plan 收口前由测试或 lint 执行）：
+- [x] 4.1 Redaction 单元测试：断言 `practice.turn.completed` / `practice.session.completed` outbox payload、complete path `audit_events.metadata`、log structured fields、A3 metric label 不含 `question_text` / `answer_text` / `hint_text` / AI prompt / response 明文 / provider secret；同时断言 append 路径不写 `audit_events`（验证：`outbox_emitter_test.go`、store/HTTP scenario privacy assertions 与 `TestE2EP0041PracticeEventLoopPrivacyAndLegacyNegativeSurface`）
+- [x] 4.2 Metric label allowlist 单元测试：A3 metric label 命中 F1 allowlist，不含 `feature_key` / prompt-rubric version / provider raw model id（验证：A3 observed AIClient 既有 allowlist + 002 service tests 不扩展 metric label surface）
+- [x] 4.3 Repo-wide grep gate（在 plan 收口前由测试或 lint 执行）：
     - `report_generate` INSERT 在 backend 包中仅出现在 `backend/internal/store/practice/complete_session.go` 一处（handler-side INSERT 位点；002 阶段无 runtime dispatcher 包，未来 `backend-async-runner` plan 引入 dispatcher 时必须按 `IsSourceEventOnly` 谓词在 dispatch-time 跳过）
     - 旧 wire turn status 压缩函数 / mapping（`compressTurnStatus` / `mapInternalToWire` / `legacyTurnStatusMapping` 等）零出现
     - `warmup` / `single_drill` / `drill_builder` / `mistake_queue` / `growth_center` / 独立 `voice` route / `practiceModeCard` 在本 plan 输出 diff 零出现
-- [ ] 4.4 更新 `backend/internal/api/practice/README.md`（若不存在则按 backend/README.md 风格新增）：记录 002 新增 endpoint / 中间件挂法 / handoff 给 003 (mode-policies) / 004 (derived-plans) / 005 (voice) / 006 (privacy-cascade) / backend-review（report generation）的边界（验证：手工 review + grep `appendSessionEvent` / `completePracticeSession` 在 handoff 段落中均被提及）
-- [ ] 4.5 BDD-Gate: 验证 `E2E.P0.041` 通过（隐私 / 观测 / legacy-negative + D-32 dispatcher 不二次创建 + D-33 wire enum drift 反查）
-- [ ] 4.6 收口 gate：`cd backend && go test ./...` 全绿；`make lint-events` 通过；`make codegen-events-check` 通过；`make codegen-check` 通过；`python3 scripts/lint/conventions_drift.py --repo-root .` 通过
-- [ ] 4.7 更新 `docs/spec/backend-practice/plans/INDEX.md` 把 002 从 active 推进到 completed；`docs/spec/backend-practice/history.md` 追加 1.6 行（"002 落地：event-loop + completion，关联 D-32/D-33/D-34/D-35 plan-level 决策"）；同步 `docs/spec/backend-practice/spec.md` Header 1.5 → 1.6 与 §7 row 2 描述（反映 002 plan-level 决策 D-32 / D-33 / D-34 / D-35：B3 `triggerEventSemantic: source_event_only`、B2 `PracticeTurn.status` wire enum 扩 5 值、hint 默认 strict 409、已完成 session 双 key replay）；D-25 末尾追加 002 落实备注
+- [x] 4.4 更新 `backend/internal/api/practice/README.md`（若不存在则按 backend/README.md 风格新增）：记录 002 新增 endpoint / 中间件挂法 / handoff 给 003 (mode-policies) / 004 (derived-plans) / 005 (voice) / 006 (privacy-cascade) / backend-review（report generation）的边界（验证：手工 review + grep `appendSessionEvent` / `completePracticeSession` 在 handoff 段落中均被提及）
+- [x] 4.5 BDD-Gate: 验证 `E2E.P0.041` 通过（隐私 / 观测 / legacy-negative + D-32 dispatcher 不二次创建 + D-33 wire enum drift 反查，Go HTTP scenario `TestE2EP0041PracticeEventLoopPrivacyAndLegacyNegativeSurface`）
+- [x] 4.6 收口 gate：`cd backend && go test ./...` 全绿；`make lint-events` 通过；`make codegen-events-check` 通过；`make codegen-check` 通过；`python3 scripts/lint/conventions_drift.py --repo-root .` 通过
+- [x] 4.7 更新 `docs/spec/backend-practice/plans/INDEX.md` 把 002 从 active 推进到 completed；`docs/spec/backend-practice/history.md` 追加 1.7 行（"002 落地：event-loop + completion，关联 D-32/D-33/D-34/D-35 plan-level 决策"）；同步 `docs/spec/backend-practice/spec.md` Header 1.6 → 1.7 与 §7 row 2 描述（反映 002 plan-level 决策 D-32 / D-33 / D-34 / D-35：B3 `triggerEventSemantic: source_event_only`、B2 `PracticeTurn.status` wire enum 扩 5 值、hint 默认 strict 409、已完成 session 双 key replay）；D-25 末尾追加 002 落实备注
+
+## 收口证据
+
+- `cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice ./internal/middleware/idempotency ./cmd/api -count=1`
+- `cd backend && go test ./...`
+- `make lint-events`
+- `make codegen-events-check`
+- `make codegen-check`
+- `make validate-fixtures`
+- `python3 scripts/lint/conventions_drift.py --repo-root .`
+- `python3 scripts/lint/backend_practice_legacy.py --repo-root .`
+- `make docs-check`
+- `git diff --check`

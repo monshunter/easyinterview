@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-13](2026-05-13.md) | `feat(backend-practice): complete event loop and completion` | #feat #test #docs #fix |
 | [2026-05-13](2026-05-13.md) | `feat(backend-practice): add session event state machine` | #feat #test #docs |
 | [2026-05-13](2026-05-13.md) | `feat(backend-practice): complete event loop phase 0 preflight` | #feat #test #docs |
 | [2026-05-13](2026-05-13.md) | `fix(backend-resume): remediate asset registration L2 findings` | #fix #test #docs |

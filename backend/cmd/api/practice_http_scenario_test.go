@@ -415,6 +415,229 @@ auth:
 	}
 }
 
+func TestE2EP0034PracticeEventLoopAnswerFlow(t *testing.T) {
+	h := newPracticeHTTPScenarioHarness(t)
+	plan := h.seedReadyScenarioPlan("practice-plan-p0-034", "target-job-p0-034-a", "resume-asset-p0-034-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-034-start-session")
+
+	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-034-event-1",
+		Kind:          "answer_submitted",
+		OccurredAt:    "2026-04-28T13:45:12Z",
+		Payload: map[string]any{
+			"turnId":           started.CurrentTurn.Id,
+			"answerText":       "我先按影响面拆分迁移风险，再逐个团队确认窗口。",
+			"followUpCount":    1,
+			"nextQuestionText": "请描述一次你在范围变化后重新排优先级的经历。",
+		},
+	}, http.StatusOK)
+	var out api.SessionEventResult
+	decodeJSON(t, raw, &out)
+	if !out.Acknowledged || out.AssistantAction.Type != "ask_question" || out.Session.CurrentTurn == nil || out.Session.CurrentTurn.Status != "asked" {
+		t.Fatalf("unexpected appendSessionEvent response: %+v", out)
+	}
+	if h.store.sessionEventCount(started.Id) != 2 {
+		t.Fatalf("session event count = %d, want 2", h.store.sessionEventCount(started.Id))
+	}
+	if h.store.outboxCount() != 2 {
+		t.Fatalf("outbox count = %d, want 2", h.store.outboxCount())
+	}
+}
+
+func TestE2EP0035PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T) {
+	h := newPracticeHTTPScenarioHarness(t)
+	plan := h.seedReadyScenarioPlan("practice-plan-p0-035", "target-job-p0-035-a", "resume-asset-p0-035-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-035-start-session")
+	path := "/api/v1/practice/sessions/" + started.Id + "/events"
+
+	body := api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-035-resume",
+		Kind:          "session_resumed",
+		OccurredAt:    "2026-04-28T13:45:12Z",
+		Payload:       map[string]any{"previousStatus": "waiting_user_input"},
+	}
+	first := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", body, http.StatusOK)
+	replay := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", body, http.StatusOK)
+	assertJSONEqualBytes(t, first, replay)
+
+	body.Payload = map[string]any{"previousStatus": "running"}
+	mismatchRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", body, http.StatusConflict)
+	var mismatch api.ApiErrorResponse
+	decodeJSON(t, mismatchRaw, &mismatch)
+	if mismatch.Error.Code != sharederrors.CodePracticeSessionConflict || strings.Contains(string(mismatchRaw), "previousStatus") {
+		t.Fatalf("mismatch should be conflict without leaking payload: %+v raw=%s", mismatch.Error, mismatchRaw)
+	}
+
+	headerRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "must-not-use", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-035-header",
+		Kind:          "turn_skipped",
+		OccurredAt:    "2026-04-28T13:46:12Z",
+		Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
+	}, http.StatusBadRequest)
+	if !strings.Contains(string(headerRaw), "use_client_event_id") {
+		t.Fatalf("header rejection missing policy: %s", headerRaw)
+	}
+
+	hintRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-035-hint",
+		Kind:          "hint_requested",
+		OccurredAt:    "2026-04-28T13:47:12Z",
+		Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
+	}, http.StatusConflict)
+	if !strings.Contains(string(hintRaw), "hint_disabled_in_mode") {
+		t.Fatalf("hint strict conflict missing policy: %s", hintRaw)
+	}
+
+	crossRaw := h.doJSON(t, practiceHTTPScenarioUserBID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-035-cross",
+		Kind:          "session_paused",
+		OccurredAt:    "2026-04-28T13:48:12Z",
+	}, http.StatusNotFound)
+	var cross api.ApiErrorResponse
+	decodeJSON(t, crossRaw, &cross)
+	if cross.Error.Code != sharederrors.CodePracticeSessionNotFound {
+		t.Fatalf("cross-user should hide session existence: %+v", cross.Error)
+	}
+}
+
+func TestE2EP0038PracticeEventConcurrentSeqNoStaleTurnConflict(t *testing.T) {
+	h := newPracticeHTTPScenarioHarness(t)
+	plan := h.seedReadyScenarioPlan("practice-plan-p0-038", "target-job-p0-038-a", "resume-asset-p0-038-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-038-start-session")
+	path := "/api/v1/practice/sessions/" + started.Id + "/events"
+
+	first := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-038-a",
+		Kind:          "answer_submitted",
+		OccurredAt:    "2026-04-28T13:45:12Z",
+		Payload: map[string]any{
+			"turnId":           started.CurrentTurn.Id,
+			"answerText":       "first accepted answer",
+			"followUpCount":    1,
+			"nextQuestionText": "Next question after the accepted answer.",
+		},
+	}, http.StatusOK)
+	var accepted api.SessionEventResult
+	decodeJSON(t, first, &accepted)
+	if accepted.Session.CurrentTurn == nil || accepted.Session.CurrentTurn.Id == started.CurrentTurn.Id {
+		t.Fatalf("first accepted event should advance to a new current turn: %+v", accepted.Session.CurrentTurn)
+	}
+
+	stale := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-038-b",
+		Kind:          "answer_submitted",
+		OccurredAt:    "2026-04-28T13:45:13Z",
+		Payload: map[string]any{
+			"turnId":     started.CurrentTurn.Id,
+			"answerText": "stale competing answer",
+		},
+	}, http.StatusConflict)
+	var conflict api.ApiErrorResponse
+	decodeJSON(t, stale, &conflict)
+	if conflict.Error.Code != sharederrors.CodePracticeSessionConflict || strings.Contains(string(stale), "stale competing answer") {
+		t.Fatalf("stale competing event should conflict without leaking payload: %+v raw=%s", conflict.Error, stale)
+	}
+	if h.store.sessionEventCount(started.Id) != 2 {
+		t.Fatalf("only the accepted append should write an event, got %d", h.store.sessionEventCount(started.Id))
+	}
+}
+
+func TestE2EP0039PracticeSessionCompleteCreatesQueuedReportJob(t *testing.T) {
+	h := newPracticeHTTPScenarioHarness(t)
+	plan := h.seedReadyScenarioPlan("practice-plan-p0-039", "target-job-p0-039-a", "resume-asset-p0-039-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-039-start-session")
+
+	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/complete", "e2e-p0-039-complete", api.CompletePracticeSessionRequest{
+		ClientCompletedAt: "2026-04-28T13:55:12Z",
+	}, http.StatusAccepted)
+	var out api.ReportWithJob
+	decodeJSON(t, raw, &out)
+	if out.ReportId == "" || out.Job.JobType != api.JobTypeReportGenerate || out.Job.Status != sharedtypes.JobStatusQueued || out.Job.ResourceType != api.ResourceTypeFeedbackReport {
+		t.Fatalf("unexpected complete response: %+v", out)
+	}
+	if h.store.sessionEventCount(started.Id) != 2 || h.store.outboxCount() != 2 {
+		t.Fatalf("complete should append one event and one outbox row, events=%d outbox=%d", h.store.sessionEventCount(started.Id), h.store.outboxCount())
+	}
+}
+
+func TestE2EP0040PracticeSessionCompleteIdempotencyMatrix(t *testing.T) {
+	h := newPracticeHTTPScenarioHarness(t)
+	plan := h.seedReadyScenarioPlan("practice-plan-p0-040", "target-job-p0-040-a", "resume-asset-p0-040-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-040-start-session")
+	path := "/api/v1/practice/sessions/" + started.Id + "/complete"
+	body := api.CompletePracticeSessionRequest{ClientCompletedAt: "2026-04-28T13:55:12Z"}
+
+	firstRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "e2e-p0-040-k1", body, http.StatusAccepted)
+	var first api.ReportWithJob
+	decodeJSON(t, firstRaw, &first)
+	replayRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "e2e-p0-040-k1", body, http.StatusAccepted)
+	assertJSONEqualBytes(t, firstRaw, replayRaw)
+
+	h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "e2e-p0-040-k1", api.CompletePracticeSessionRequest{
+		ClientCompletedAt: "2026-04-28T14:00:00Z",
+	}, http.StatusConflict)
+
+	secondKeyRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "e2e-p0-040-k2", api.CompletePracticeSessionRequest{
+		ClientCompletedAt: "2026-04-28T14:01:00Z",
+	}, http.StatusAccepted)
+	var secondKey api.ReportWithJob
+	decodeJSON(t, secondKeyRaw, &secondKey)
+	if secondKey.ReportId != first.ReportId || secondKey.Job.Id != first.Job.Id {
+		t.Fatalf("D-35 second key should replay existing report/job, first=%+v second=%+v", first, secondKey)
+	}
+
+	crossRaw := h.doJSON(t, practiceHTTPScenarioUserBID, http.MethodPost, path, "e2e-p0-040-cross", body, http.StatusNotFound)
+	var cross api.ApiErrorResponse
+	decodeJSON(t, crossRaw, &cross)
+	if cross.Error.Code != sharederrors.CodePracticeSessionNotFound {
+		t.Fatalf("cross-user complete should hide session existence: %+v", cross.Error)
+	}
+	if len(h.store.completedReports) != 1 {
+		t.Fatalf("complete should create one report, got %d", len(h.store.completedReports))
+	}
+}
+
+func TestE2EP0041PracticeEventLoopPrivacyAndLegacyNegativeSurface(t *testing.T) {
+	ai := &scenarioPracticeAIClient{responseText: "请补充你如何处理反对意见。", responseIntent: "behavioral.depth"}
+	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai, observedAI: true})
+	plan := h.seedReadyScenarioPlan("01918fa0-0000-7000-8000-000000004041", "01918fa0-0000-7000-8000-000000002041", "resume-asset-p0-041-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-041-start-session")
+	path := "/api/v1/practice/sessions/" + started.Id + "/events"
+
+	h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-041-follow-up",
+		Kind:          "answer_submitted",
+		OccurredAt:    "2026-04-28T13:45:12Z",
+		Payload: map[string]any{
+			"turnId":     started.CurrentTurn.Id,
+			"answerText": "answer_text prompt body response body provider secret sk-test",
+		},
+	}, http.StatusOK)
+	h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/complete", "e2e-p0-041-complete", api.CompletePracticeSessionRequest{
+		ClientCompletedAt: "2026-04-28T13:55:12Z",
+	}, http.StatusAccepted)
+
+	raw := mustMarshalString(t, map[string]any{
+		"outbox":      h.store.outboxPayloads(),
+		"audit":       h.store.auditPayloads(),
+		"ai_logs":     h.aiLogs.Entries(),
+		"ai_task_run": h.aiTaskRuns.rows,
+		"metric_runs": h.metrics.CounterLabelValues(observability.MetricRunsTotal),
+	})
+	for _, forbidden := range []string{"answer_text", "prompt body", "response body", "provider secret", "sk-test", "hint_text", "question_text"} {
+		if strings.Contains(raw, forbidden) {
+			t.Fatalf("privacy surface leaked forbidden evidence %q: %s", forbidden, raw)
+		}
+	}
+	for _, labels := range h.metrics.CounterLabelValues(observability.MetricRunsTotal) {
+		for _, label := range labels {
+			if strings.Contains(label, "prompt.v1") || strings.Contains(label, "rubric.v1") {
+				t.Fatalf("metric label leaked high-cardinality provenance: %v", labels)
+			}
+		}
+	}
+}
+
 func (h *practiceHTTPScenarioHarness) seedReadyScenarioPlan(planID, targetJobID, resumeAssetID, userID string) domainpractice.PlanRecord {
 	h.store.prerequisiteTargetOwner[targetJobID] = userID
 	h.store.prerequisiteResumeOwner[resumeAssetID] = userID
@@ -434,6 +657,20 @@ func (h *practiceHTTPScenarioHarness) seedReadyScenarioPlan(planID, targetJobID,
 		FocusCompetencyCodes: []string{"system-design"},
 		Now:                  fixedScenarioNow(),
 	})
+}
+
+func (h *practiceHTTPScenarioHarness) startScenarioSession(t *testing.T, planID, idempotencyKey string) api.PracticeSession {
+	t.Helper()
+	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", idempotencyKey, api.StartPracticeSessionRequest{
+		PlanId:       planID,
+		HintsEnabled: practiceBoolPtr(true),
+	}, http.StatusCreated)
+	var started api.PracticeSession
+	decodeJSON(t, raw, &started)
+	if started.Id == "" || started.CurrentTurn == nil {
+		t.Fatalf("startPracticeSession did not return a current turn: %+v", started)
+	}
+	return started
 }
 
 func (h *practiceHTTPScenarioHarness) doJSON(t *testing.T, userID, method, path string, idempotencyKey string, body any, wantStatus int) []byte {
@@ -468,14 +705,44 @@ func (h *practiceHTTPScenarioHarness) doJSON(t *testing.T, userID, method, path 
 	return rec.Body.Bytes()
 }
 
+func assertJSONEqualBytes(t *testing.T, want, got []byte) {
+	t.Helper()
+	var wantValue any
+	var gotValue any
+	if err := json.Unmarshal(want, &wantValue); err != nil {
+		t.Fatalf("decode want: %v", err)
+	}
+	if err := json.Unmarshal(got, &gotValue); err != nil {
+		t.Fatalf("decode got: %v", err)
+	}
+	wantRaw, _ := json.Marshal(wantValue)
+	gotRaw, _ := json.Marshal(gotValue)
+	if !bytes.Equal(wantRaw, gotRaw) {
+		t.Fatalf("json mismatch\nwant: %s\n got: %s", wantRaw, gotRaw)
+	}
+}
+
+func mustMarshalString(t *testing.T, value any) string {
+	t.Helper()
+	raw, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("marshal value: %v", err)
+	}
+	return string(raw)
+}
+
 type scenarioPracticeRegistry struct{}
 
 func (r *scenarioPracticeRegistry) ResolveActive(ctx context.Context, featureKey, language string) (registry.PromptResolution, error) {
+	profileName := "practice.first_question.default"
+	if featureKey == "practice.session.follow_up" {
+		profileName = "practice.follow_up.default"
+	}
 	return registry.PromptResolution{
 		FeatureKey:          featureKey,
 		PromptVersion:       "prompt.v1",
 		RubricVersion:       "rubric.v1",
-		ModelProfileName:    "practice.first_question.default",
+		ModelProfileName:    profileName,
 		DataSourceVersion:   "registry.v1",
 		FeatureFlag:         "none",
 		UserMessageTemplate: "ask the first interview question",
@@ -485,18 +752,22 @@ func (r *scenarioPracticeRegistry) ResolveActive(ctx context.Context, featureKey
 type scenarioPracticeProfileResolver struct{}
 
 func (r scenarioPracticeProfileResolver) Resolve(name string) (*aiclient.ModelProfile, error) {
-	if name != "practice.first_question.default" {
+	if name != "practice.first_question.default" && name != "practice.follow_up.default" {
 		return nil, fmt.Errorf("missing scenario profile %q", name)
 	}
+	route := "practice.session.first_question"
+	if name == "practice.follow_up.default" {
+		route = "practice.session.follow_up"
+	}
 	return &aiclient.ModelProfile{
-		Name:       "practice.first_question.default",
+		Name:       name,
 		Capability: aiclient.CapabilityChat,
 		Status:     aiclient.ProfileStatusActive,
 		Default: aiclient.ProviderConfig{
 			ProviderRef: "stub",
 			Model:       "stub-chat-1",
 		},
-		Route:     "practice.session.first_question",
+		Route:     route,
 		TimeoutMs: 5000,
 		Version:   "1.0.0",
 	}, nil
@@ -528,19 +799,23 @@ func (c *scenarioPracticeAIClient) Complete(ctx context.Context, profileName str
 		c.failures = c.failures[1:]
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
 	}
-	if profileName != "practice.first_question.default" {
+	if profileName != "practice.first_question.default" && profileName != "practice.follow_up.default" {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("unexpected profile %q", profileName)
 	}
-	if payload.Metadata.FeatureKey != "practice.session.first_question" ||
-		payload.Metadata.PromptVersion == "" ||
+	if payload.Metadata.FeatureKey != "practice.session.first_question" && payload.Metadata.FeatureKey != "practice.session.follow_up" {
+		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("unexpected AI feature key: %+v", payload.Metadata)
+	}
+	if payload.Metadata.PromptVersion == "" ||
 		payload.Metadata.RubricVersion == "" ||
 		payload.Metadata.Language == "" ||
 		payload.Metadata.FeatureFlag == "" ||
 		payload.Metadata.DataSourceVersion == "" {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete AI metadata: %+v", payload.Metadata)
 	}
-	if payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskQuestionGenerate ||
-		payload.Metadata.TaskRun.ResourceType != aiclient.AITaskRunResourceTargetJob ||
+	if payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskQuestionGenerate && payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskFollowupGenerate {
+		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete AI task run context: %+v", payload.Metadata.TaskRun)
+	}
+	if payload.Metadata.TaskRun.ResourceType != aiclient.AITaskRunResourceTargetJob ||
 		payload.Metadata.TaskRun.ResourceID == "" {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete AI task run context: %+v", payload.Metadata.TaskRun)
 	}
@@ -610,6 +885,7 @@ type scenarioPracticeStore struct {
 	turns                     map[string][]domainpractice.TurnRecord
 	sessionEvents             map[string][]scenarioPracticeSessionEvent
 	idempotencyRecords        map[string]scenarioPracticeIdempotencyRecord
+	completedReports          map[string]domainpractice.CompleteSessionResult
 	outbox                    []scenarioOutboxEvent
 	audits                    [][]byte
 	prerequisiteTargetOwner   map[string]string
@@ -631,10 +907,11 @@ type scenarioPracticeSession struct {
 }
 
 type scenarioPracticeSessionEvent struct {
-	ID        string
-	SeqNo     int
-	EventType string
-	Payload   []byte
+	ID            string
+	SeqNo         int
+	EventType     string
+	ClientEventID string
+	Payload       []byte
 }
 
 type scenarioOutboxEvent struct {
@@ -664,6 +941,7 @@ func newScenarioPracticeStore() *scenarioPracticeStore {
 		turns:                   map[string][]domainpractice.TurnRecord{},
 		sessionEvents:           map[string][]scenarioPracticeSessionEvent{},
 		idempotencyRecords:      map[string]scenarioPracticeIdempotencyRecord{},
+		completedReports:        map[string]domainpractice.CompleteSessionResult{},
 		prerequisiteTargetOwner: map[string]string{},
 		prerequisiteResumeOwner: map[string]string{},
 	}
@@ -733,6 +1011,173 @@ func (s *scenarioPracticeStore) GetSession(_ context.Context, userID, sessionID 
 		return domainpractice.SessionRecord{}, domainpractice.ErrSessionNotFound
 	}
 	return session.SessionRecord, nil
+}
+
+func (s *scenarioPracticeStore) ReserveSessionEvent(_ context.Context, in domainpractice.SessionEventReservationInput) (domainpractice.SessionEventReservation, error) {
+	session, ok := s.sessions[in.SessionID]
+	if !ok || session.UserID != in.UserID {
+		return domainpractice.SessionEventReservation{}, domainpractice.ErrSessionNotFound
+	}
+	plan, ok := s.plans[session.PlanID]
+	if !ok || plan.UserID != in.UserID {
+		return domainpractice.SessionEventReservation{}, domainpractice.ErrPlanNotFound
+	}
+	turns := s.turns[in.SessionID]
+	if len(turns) == 0 {
+		return domainpractice.SessionEventReservation{}, domainpractice.ErrSessionConflict
+	}
+	s.inTransaction = true
+	defer func() { s.inTransaction = false }()
+	if replay, hit, err := s.sessionEventReplay(in.SessionID, in.ClientEventID, in.RequestFingerprint); err != nil {
+		return domainpractice.SessionEventReservation{}, err
+	} else if hit {
+		return domainpractice.SessionEventReservation{ReplayResult: &replay}, nil
+	}
+	return domainpractice.SessionEventReservation{
+		UserID:     in.UserID,
+		Session:    session.SessionRecord,
+		Plan:       plan.PlanRecord,
+		LatestTurn: turns[len(turns)-1],
+	}, nil
+}
+
+func (s *scenarioPracticeStore) AppendSessionEvent(_ context.Context, in domainpractice.AppendSessionEventStoreInput) (domainpractice.AppendSessionEventResult, error) {
+	session, ok := s.sessions[in.SessionID]
+	if !ok || session.UserID != in.UserID {
+		return domainpractice.AppendSessionEventResult{}, domainpractice.ErrSessionNotFound
+	}
+	s.inTransaction = true
+	defer func() { s.inTransaction = false }()
+	if replay, hit, err := s.sessionEventReplay(in.SessionID, in.ClientEventID, in.RequestFingerprint); err != nil {
+		return domainpractice.AppendSessionEventResult{}, err
+	} else if hit {
+		replay.Replay = true
+		return replay, nil
+	}
+	turns := s.turns[in.SessionID]
+	if len(turns) == 0 {
+		return domainpractice.AppendSessionEventResult{}, domainpractice.ErrSessionConflict
+	}
+	latestTurn := turns[len(turns)-1]
+	if in.Outcome.NextTurn != nil {
+		turns[len(turns)-1] = *in.Outcome.NextTurn
+	}
+	if in.NextQuestion != nil {
+		turns = append(turns, *in.NextQuestion)
+		session.CurrentTurn = in.NextQuestion
+		session.TurnCount = in.NextQuestion.TurnIndex
+	} else if in.Outcome.NextTurn != nil {
+		next := *in.Outcome.NextTurn
+		session.CurrentTurn = &next
+	}
+	session.Status = in.Outcome.NextSessionStatus
+	session.UpdatedAt = in.OccurredAt
+	s.turns[in.SessionID] = turns
+	s.sessions[in.SessionID] = session
+	if in.Outcome.OutboxRecord != nil {
+		payload, err := storepractice.BuildPracticeTurnCompletedPayload(storepractice.PracticeTurnCompletedInput{
+			SessionID:        in.SessionID,
+			TurnID:           latestTurn.ID,
+			TurnIndex:        int(latestTurn.TurnIndex),
+			QuestionIntent:   latestTurn.QuestionIntent,
+			FollowUpCount:    in.Outcome.OutboxRecord.FollowUpCount,
+			AnswerCharLength: in.Outcome.OutboxRecord.AnswerCharLength,
+		})
+		if err != nil {
+			return domainpractice.AppendSessionEventResult{}, err
+		}
+		raw, err := json.Marshal(payload)
+		if err != nil {
+			return domainpractice.AppendSessionEventResult{}, err
+		}
+		s.outbox = append(s.outbox, scenarioOutboxEvent{EventName: sharedevents.EventNamePracticeTurnCompleted, Payload: raw})
+	}
+	result := domainpractice.AppendSessionEventResult{
+		Acknowledged:    in.Outcome.Acknowledged,
+		Session:         session.SessionRecord,
+		AssistantAction: in.Outcome.AssistantAction,
+	}
+	payload, err := json.Marshal(scenarioAppendEventPayload{
+		RequestFingerprint: in.RequestFingerprint,
+		Result:             result,
+	})
+	if err != nil {
+		return domainpractice.AppendSessionEventResult{}, err
+	}
+	s.sessionEvents[in.SessionID] = append(s.sessionEvents[in.SessionID], scenarioPracticeSessionEvent{
+		ID:            in.EventID,
+		SeqNo:         len(s.sessionEvents[in.SessionID]) + 1,
+		EventType:     in.Kind,
+		ClientEventID: in.ClientEventID,
+		Payload:       payload,
+	})
+	return result, nil
+}
+
+func (s *scenarioPracticeStore) CompleteSession(_ context.Context, in domainpractice.CompleteSessionStoreInput) (domainpractice.CompleteSessionResult, error) {
+	session, ok := s.sessions[in.SessionID]
+	if !ok || session.UserID != in.UserID {
+		return domainpractice.CompleteSessionResult{}, domainpractice.ErrSessionNotFound
+	}
+	s.inTransaction = true
+	defer func() { s.inTransaction = false }()
+	if existing, ok := s.completedReports[in.SessionID]; ok {
+		existing.Replay = true
+		return existing, nil
+	}
+	session.Status = sharedtypes.SessionStatusCompleting
+	session.UpdatedAt = in.Now
+	s.sessions[in.SessionID] = session
+	eventPayload, err := json.Marshal(map[string]any{"sessionId": in.SessionID, "clientCompletedAt": in.ClientCompletedAt.UTC().Format(time.RFC3339)})
+	if err != nil {
+		return domainpractice.CompleteSessionResult{}, err
+	}
+	s.sessionEvents[in.SessionID] = append(s.sessionEvents[in.SessionID], scenarioPracticeSessionEvent{
+		ID:        in.SessionEventID,
+		SeqNo:     len(s.sessionEvents[in.SessionID]) + 1,
+		EventType: "session_completed",
+		Payload:   eventPayload,
+	})
+	outboxPayload, err := storepractice.BuildPracticeSessionCompletedPayload(storepractice.PracticeSessionCompletedInput{
+		Language:    session.Language,
+		PlanID:      session.PlanID,
+		SessionID:   session.ID,
+		TargetJobID: session.TargetJobID,
+		TurnCount:   int(session.TurnCount),
+	})
+	if err != nil {
+		return domainpractice.CompleteSessionResult{}, err
+	}
+	outboxRaw, err := json.Marshal(outboxPayload)
+	if err != nil {
+		return domainpractice.CompleteSessionResult{}, err
+	}
+	s.outbox = append(s.outbox, scenarioOutboxEvent{EventName: sharedevents.EventNamePracticeSessionCompleted, Payload: outboxRaw})
+	audit, err := json.Marshal(map[string]any{
+		"session_id":    in.SessionID,
+		"report_id":     in.ReportID,
+		"job_id":        in.JobID,
+		"target_job_id": session.TargetJobID,
+		"turn_count":    session.TurnCount,
+	})
+	if err != nil {
+		return domainpractice.CompleteSessionResult{}, err
+	}
+	s.audits = append(s.audits, audit)
+	result := domainpractice.CompleteSessionResult{
+		ReportID: in.ReportID,
+		Job: domainpractice.JobRecord{
+			ID:           in.JobID,
+			JobType:      api.JobTypeReportGenerate,
+			ResourceType: api.ResourceTypeFeedbackReport,
+			ResourceID:   in.ReportID,
+			Status:       sharedtypes.JobStatusQueued,
+			CreatedAt:    in.Now,
+			UpdatedAt:    in.Now,
+		},
+	}
+	s.completedReports[in.SessionID] = result
+	return result, nil
 }
 
 func (s *scenarioPracticeStore) ReserveSessionStart(_ context.Context, in domainpractice.StartSessionReservationInput) (domainpractice.SessionReservation, error) {
@@ -960,6 +1405,32 @@ func (s *scenarioPracticeStore) FailSessionStart(_ context.Context, in domainpra
 	return idempotency.ErrReservationNotFound
 }
 
+type scenarioAppendEventPayload struct {
+	RequestFingerprint string                                  `json:"requestFingerprint"`
+	Result             domainpractice.AppendSessionEventResult `json:"result"`
+}
+
+func (s *scenarioPracticeStore) sessionEventReplay(sessionID, clientEventID, fingerprint string) (domainpractice.AppendSessionEventResult, bool, error) {
+	if strings.TrimSpace(clientEventID) == "" {
+		return domainpractice.AppendSessionEventResult{}, false, nil
+	}
+	for _, event := range s.sessionEvents[sessionID] {
+		if event.ClientEventID != clientEventID {
+			continue
+		}
+		var stored scenarioAppendEventPayload
+		if err := json.Unmarshal(event.Payload, &stored); err != nil {
+			return domainpractice.AppendSessionEventResult{}, true, err
+		}
+		if stored.RequestFingerprint != fingerprint {
+			return domainpractice.AppendSessionEventResult{}, true, domainpractice.ErrClientEventMismatch
+		}
+		stored.Result.Replay = true
+		return stored.Result, true, nil
+	}
+	return domainpractice.AppendSessionEventResult{}, false, nil
+}
+
 func (s *scenarioPracticeStore) Reserve(_ context.Context, in idempotency.ReservationInput) (idempotency.Reservation, error) {
 	key := s.idempotencyRecordKey(in.UserID, in.Domain, in.Operation, in.IdempotencyKeyHash)
 	rec, ok := s.idempotencyRecords[key]
@@ -1017,6 +1488,7 @@ func (s *scenarioPracticeStore) MarkSucceeded(_ context.Context, in idempotency.
 			rec.Status = idempotency.StatusSucceeded
 			rec.Response = append([]byte{}, in.ResponseBody...)
 			rec.HTTPStatus = in.ResponseStatus
+			rec.ResourceID = in.ResourceID
 			s.idempotencyRecords[key] = rec
 			return nil
 		}

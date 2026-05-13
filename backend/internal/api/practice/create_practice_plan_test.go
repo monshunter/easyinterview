@@ -152,6 +152,12 @@ type fakePlanService struct {
 	startHintsEnabled bool
 	startKeyHash      string
 	startFingerprint  string
+	appendResult      domain.AppendSessionEventResult
+	appendErr         error
+	appendRequest     domain.AppendSessionEventRequest
+	completeResult    domain.CompleteSessionResult
+	completeErr       error
+	completeRequest   domain.CompletePracticeSessionRequest
 }
 
 func (s *fakePlanService) CreatePracticePlan(ctx context.Context, in domain.CreatePlanRequest) (domain.PlanRecord, error) {
@@ -199,6 +205,26 @@ func (s *fakePlanService) StartPracticeSession(ctx context.Context, in domain.St
 		return domain.SessionRecord{}, s.startErr
 	}
 	return s.startRecord, nil
+}
+
+func (s *fakePlanService) AppendSessionEvent(ctx context.Context, in domain.AppendSessionEventRequest) (domain.AppendSessionEventResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.appendRequest = in
+	if s.appendErr != nil {
+		return domain.AppendSessionEventResult{}, s.appendErr
+	}
+	return s.appendResult, nil
+}
+
+func (s *fakePlanService) CompletePracticeSession(ctx context.Context, in domain.CompletePracticeSessionRequest) (domain.CompleteSessionResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.completeRequest = in
+	if s.completeErr != nil {
+		return domain.CompleteSessionResult{}, s.completeErr
+	}
+	return s.completeResult, nil
 }
 
 type testUserKey struct{}
@@ -347,6 +373,7 @@ type routeMemoryRecord struct {
 	status      idempotency.Status
 	response    []byte
 	httpStatus  int
+	resourceID  string
 	expiresAt   time.Time
 }
 
@@ -376,6 +403,7 @@ func (s *routeMemoryStore) Reserve(ctx context.Context, in idempotency.Reservati
 		rec.status = idempotency.StatusPending
 		rec.response = nil
 		rec.httpStatus = 0
+		rec.resourceID = ""
 		rec.expiresAt = in.ExpiresAt
 		s.records[key] = rec
 		return idempotency.Reservation{State: idempotency.StateExecute, RecordID: rec.recordID}, nil
@@ -402,6 +430,7 @@ func (s *routeMemoryStore) MarkSucceeded(ctx context.Context, in idempotency.Com
 			rec.status = idempotency.StatusSucceeded
 			rec.response = append([]byte(nil), in.ResponseBody...)
 			rec.httpStatus = in.ResponseStatus
+			rec.resourceID = in.ResourceID
 			s.records[key] = rec
 			return nil
 		}

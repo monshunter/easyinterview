@@ -1,6 +1,6 @@
 # Backend Practice History
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
 > **更新日期**: 2026-05-13
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-13 | 1.7 | 002 实施收口：落地 appendSessionEvent event-loop、completePracticeSession queued report/job handoff、practice.turn.completed / practice.session.completed outbox、clientEventId 与 Idempotency-Key 双轨幂等、D-32 source-event-only forward-binding、D-33 turn status 5 值 wire、D-34 hint 默认 strict 409、D-35 completed-session replay；计划文档与 checklist 推进到 completed。 | [002-event-loop-and-completion](./plans/002-event-loop-and-completion/plan.md) |
 | 2026-05-13 | 1.6 | plan-review --fix doc-only 收口：spec §7 row 2 替换为反映 002 plan-level 决策 D-32 / D-33 / D-34 / D-35（B3 `triggerEventSemantic: source_event_only` 落实 D-28；B2 `PracticeTurn.status` wire enum 扩 5 值 pre-launch baseline rebase 落实 D-25；`hint_requested` 在 002 默认 strict 409，等待 003 接手 assisted 分支；已完成 session 的二次 complete 不论 `Idempotency-Key` 是否一致都返回既有 `ReportWithJob`，idempotency key 仅控制 inflight 单执行者）；D-25 末尾追加 002 落实备注，明确 "handler 压缩映射" 分支已淘汰。spec body 其它内容不变。 | [002-event-loop-and-completion](./plans/002-event-loop-and-completion/plan.md) |
 | 2026-05-10 | 1.5 | L2 follow-up remediation：新增 D-31，明确 baseline `createPracticePlan` 必须绑定 `resumeAssetId`，并要求 B2 OpenAPI required、fixtures、generated artifacts、frontend request builder 与 backend service/store 同步；同时要求 `startPracticeSession` 自定义幂等路径与 shared idempotency middleware 使用同一 pepper 口径。 | [001-plan-and-session-orchestration](./plans/001-plan-and-session-orchestration/plan.md) |
 | 2026-05-09 | 1.4 | 派生第一个 plan `001-plan-and-session-orchestration`：通过 `/design` 与用户对齐 Q1 + Q2 trade-off，新增 D-30 固化两项决策：(a) Phase 0 跨 spec 修订采用 integrator 模式（plan 001 Phase 0 直接修订 B1 `shared/conventions.yaml` / B2 `openapi/openapi.yaml` / B3 generated event refs / B4 migrations 编码真理源，并在四个 owner spec 的 `history.md` 与 `spec.md` Header 同步追加授权记录与版本号），不再为 D-21 / D-26 / D-27 各派 sibling owner spec plan；(b) D-27 idempotency 存储载体收敛为 shared `idempotency_records` 表（含 `domain` / `operation` namespace 字段），由 plan 001 Phase 0 引入并设计为可被 backend-targetjob / backend-review / 自身 002 等未来 backend domain 复用。同步微调 D-27 wording 指向 D-30，并在 §7 把第一个 plan 链接化。 | [001-plan-and-session-orchestration](./plans/001-plan-and-session-orchestration/plan.md) |

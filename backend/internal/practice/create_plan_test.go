@@ -92,6 +92,13 @@ type recordingPlanStore struct {
 	getSessionErr    error
 	getSessionUserID string
 	getSessionID     string
+	eventReservation SessionEventReservation
+	eventReserveErr  error
+	appendEvent      AppendSessionEventStoreInput
+	appendEventErr   error
+	complete         CompleteSessionStoreInput
+	completeResult   CompleteSessionResult
+	completeErr      error
 	reservation      SessionReservation
 	reserveErr       error
 	commit           CommitSessionStartInput
@@ -135,6 +142,67 @@ func (s *recordingPlanStore) GetSession(ctx context.Context, userID, sessionID s
 		return SessionRecord{}, s.getSessionErr
 	}
 	return s.getSessionRecord, nil
+}
+
+func (s *recordingPlanStore) ReserveSessionEvent(ctx context.Context, in SessionEventReservationInput) (SessionEventReservation, error) {
+	s.steps = append(s.steps, "reserve-event")
+	s.inTx = true
+	defer func() { s.inTx = false }()
+	if s.eventReserveErr != nil {
+		return SessionEventReservation{}, s.eventReserveErr
+	}
+	s.eventReservation.UserID = in.UserID
+	return s.eventReservation, nil
+}
+
+func (s *recordingPlanStore) AppendSessionEvent(ctx context.Context, in AppendSessionEventStoreInput) (AppendSessionEventResult, error) {
+	s.steps = append(s.steps, "append-event")
+	s.inTx = true
+	defer func() { s.inTx = false }()
+	s.appendEvent = in
+	if s.appendEventErr != nil {
+		return AppendSessionEventResult{}, s.appendEventErr
+	}
+	session := s.eventReservation.Session
+	session.Status = in.Outcome.NextSessionStatus
+	session.UpdatedAt = in.OccurredAt
+	if in.NextQuestion != nil {
+		session.CurrentTurn = in.NextQuestion
+		session.TurnCount = in.NextQuestion.TurnIndex
+	} else if in.Outcome.NextTurn != nil {
+		next := *in.Outcome.NextTurn
+		session.CurrentTurn = &next
+	}
+	return AppendSessionEventResult{
+		Acknowledged:    in.Outcome.Acknowledged,
+		Session:         session,
+		AssistantAction: in.Outcome.AssistantAction,
+	}, nil
+}
+
+func (s *recordingPlanStore) CompleteSession(ctx context.Context, in CompleteSessionStoreInput) (CompleteSessionResult, error) {
+	s.steps = append(s.steps, "complete")
+	s.inTx = true
+	defer func() { s.inTx = false }()
+	s.complete = in
+	if s.completeErr != nil {
+		return CompleteSessionResult{}, s.completeErr
+	}
+	if s.completeResult.ReportID != "" {
+		return s.completeResult, nil
+	}
+	return CompleteSessionResult{
+		ReportID: in.ReportID,
+		Job: JobRecord{
+			ID:           in.JobID,
+			JobType:      "report_generate",
+			ResourceType: "feedback_report",
+			ResourceID:   in.ReportID,
+			Status:       sharedtypes.JobStatusQueued,
+			CreatedAt:    in.Now,
+			UpdatedAt:    in.Now,
+		},
+	}, nil
 }
 
 func (s *recordingPlanStore) ReserveSessionStart(ctx context.Context, in StartSessionReservationInput) (SessionReservation, error) {
