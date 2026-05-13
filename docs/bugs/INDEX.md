@@ -87,6 +87,8 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0052](./BUG-0052.md) | backend resume L2 review exposed validation and retry state drift | high | resolved | 2026-05-13 | `fix(backend-resume): remediate asset registration L2 findings` |
+| [BUG-0051](./BUG-0051.md) | getResume not-found fixture used undocumented error code | medium | resolved | 2026-05-13 | `feat(backend-resume): close resume baseline verification` |
 | [BUG-0044](./BUG-0044.md) | resume additive generated client and cleanup drift escaped contract gates | medium | resolved | 2026-05-12 | `fix(openapi): harden resume additive client contracts` |
 | [BUG-0043](./BUG-0043.md) | resume fileless intake still required upload file object | high | resolved | 2026-05-12 | `fix(openapi): allow fileless resume intake contracts` |
 | [BUG-0042](./BUG-0042.md) | resume tailor mode enum drifted across event consumers | medium | resolved | 2026-05-12 | `fix(events): align resume tailor mode contract` |

@@ -19,8 +19,11 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
+	resumehandler "github.com/monshunter/easyinterview/backend/internal/resume/handler"
+	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
+	"github.com/monshunter/easyinterview/backend/internal/upload/objectstore"
 	"github.com/monshunter/easyinterview/backend/internal/upload/store"
 )
 
@@ -223,6 +226,55 @@ upload:
 	}
 }
 
+func TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               &apiAuthStore{},
+		SessionCookieSecret: "session-secret",
+	})
+	handler := buildAPIHandlerWithUploadAndHandlers(
+		loader,
+		apiRuntimeFlags{},
+		service,
+		targetjob.NewHandler(),
+		practiceRoutes{},
+		uploadRoutes{},
+		resumeRoutes{Handler: resumehandler.New(resumehandler.Options{})},
+	)
+
+	cases := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/v1/resumes"},
+		{http.MethodPost, "/api/v1/resumes"},
+		{http.MethodGet, "/api/v1/resumes/018f2a40-0000-7000-9000-0000000000a1"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(tc.method, tc.path, strings.NewReader(`{"sourceType":"paste","rawText":"resume","title":"Resume","language":"en"}`))
+			req.Header.Set("Idempotency-Key", "idem-1")
+			handler.ServeHTTP(rec, req)
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("status = %d body=%s; resume route is not mounted behind auth middleware", rec.Code, rec.Body.String())
+			}
+			if !strings.Contains(rec.Body.String(), `"code":"AUTH_UNAUTHORIZED"`) {
+				t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())
+			}
+		})
+	}
+}
+
 func TestBuildUploadRoutesAlignsIdempotencyTTLWithPresignTTL(t *testing.T) {
 	dir := t.TempDir()
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
@@ -249,6 +301,55 @@ upload:
 	}
 	if got := routes.Idempotency.TTL(); got != 10*time.Minute {
 		t.Fatalf("upload idempotency TTL = %s, want presign TTL %s", got, 10*time.Minute)
+	}
+}
+
+func TestBuildResumeRuntimeWiresRoutesDrainerAndDeterministicAI(t *testing.T) {
+	dir := t.TempDir()
+	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  promptsDir: "`+promptsDir+`"
+  rubricsDir: "`+rubricsDir+`"
+auth:
+  challengeTokenPepper: "pepper"
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	runtime, err := buildResumeRuntime(
+		loader,
+		nil,
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		uploadRoutes{Objects: objectstore.NewFilesystemStore(t.TempDir())},
+		&apiNoopAIClient{},
+	)
+	if err != nil {
+		t.Fatalf("buildResumeRuntime: %v", err)
+	}
+	if runtime.Handler == nil || runtime.Idempotency == nil || runtime.Drainer == nil || runtime.ParseAI == nil {
+		t.Fatalf("runtime missing handler/idempotency/drainer/AI wiring: %+v", runtime)
+	}
+	if !runtime.Drainer.Handles(string(jobs.JobTypeResumeParse)) {
+		t.Fatalf("runtime drainer does not handle %s", jobs.JobTypeResumeParse)
+	}
+	resp, _, err := runtime.ParseAI.Complete(context.Background(), "resume.parse.default", aiclient.CompletePayload{
+		Messages: []aiclient.Message{{Role: "user", Content: "Resume text"}},
+		Metadata: aiclient.CallMetadata{FeatureKey: resumejobs.FeatureKeyResumeParse, Language: "en"},
+	})
+	if err != nil {
+		t.Fatalf("test runtime resume parse fixture: %v", err)
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(resp.Content), &parsed); err != nil {
+		t.Fatalf("test runtime resume parse fixture did not return JSON: %v; content=%s", err, resp.Content)
+	}
+	if _, ok := parsed["basics"]; !ok {
+		t.Fatalf("test runtime resume parse fixture missing basics: %+v", parsed)
 	}
 }
 
@@ -536,6 +637,24 @@ type apiUploadFileDeleter struct{}
 
 func (d *apiUploadFileDeleter) DeleteFileObjectsForUser(context.Context, string) ([]store.DeletedFileObject, error) {
 	return nil, nil
+}
+
+type apiNoopAIClient struct{}
+
+func (c *apiNoopAIClient) Complete(context.Context, string, aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
+	return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, errors.New("unexpected Complete call")
+}
+
+func (c *apiNoopAIClient) Transcribe(context.Context, string, aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
+	return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, errors.New("unexpected Transcribe call")
+}
+
+func (c *apiNoopAIClient) Stream(context.Context, string, aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
+	return nil, errors.New("unexpected Stream call")
+}
+
+func (c *apiNoopAIClient) Synthesize(context.Context, string, aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
+	return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, errors.New("unexpected Synthesize call")
 }
 
 func (s *apiAuthStore) CountRecentChallenges(context.Context, string, string, time.Time) (int, error) {

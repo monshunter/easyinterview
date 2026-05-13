@@ -47,6 +47,26 @@ func (s *FilesystemStore) Delete(_ context.Context, objectKey string) error {
 	return nil
 }
 
+func (s *FilesystemStore) Read(_ context.Context, objectKey string, maxBytes int64) ([]byte, error) {
+	path, err := s.pathFor(objectKey)
+	if err != nil {
+		return nil, err
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, ErrObjectNotFound
+		}
+		return nil, fmt.Errorf("read filesystem object: %w", err)
+	}
+	defer f.Close()
+	raw, err := readAllLimited(f, maxBytes)
+	if err != nil {
+		return nil, fmt.Errorf("read filesystem object: %w", err)
+	}
+	return raw, nil
+}
+
 func (s *FilesystemStore) Exists(_ context.Context, objectKey string) (bool, error) {
 	_, err := s.Stat(context.Background(), objectKey)
 	if err == nil {

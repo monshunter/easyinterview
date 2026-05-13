@@ -14,7 +14,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-workspace-and-interview-context](./001-workspace-and-interview-context/plan.md) | [plan](./001-workspace-and-interview-context/plan.md) / [checklist](./001-workspace-and-interview-context/checklist.md) / [context](./001-workspace-and-interview-context/context.yaml) / [bdd-plan](./001-workspace-and-interview-context/bdd-plan.md) / [bdd-checklist](./001-workspace-and-interview-context/bdd-checklist.md) | 1.3 | completed | 2026-05-12 |
+| [001-workspace-and-interview-context](./001-workspace-and-interview-context/plan.md) | [plan](./001-workspace-and-interview-context/plan.md) / [checklist](./001-workspace-and-interview-context/checklist.md) / [context](./001-workspace-and-interview-context/context.yaml) / [bdd-plan](./001-workspace-and-interview-context/bdd-plan.md) / [bdd-checklist](./001-workspace-and-interview-context/bdd-checklist.md) | 1.4 | completed | 2026-05-13 |
 
 <!--
 保留编号建议（启动条件由后续 plan-review 阶段确认；与 backend-practice §7 plan 序列对接见 spec.md §7）：

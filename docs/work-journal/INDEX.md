@@ -8,8 +8,14 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-13](2026-05-13.md) | `fix(backend-resume): remediate asset registration L2 findings` | #fix #test #docs |
 | [2026-05-13](2026-05-13.md) | `docs(backend-practice): align event loop review gates` | #docs |
+| [2026-05-13](2026-05-13.md) | `feat(backend-resume): close resume baseline verification` | #feat #test #docs #fix |
 | [2026-05-13](2026-05-13.md) | `docs(backend-practice): harden event loop plan gates` | #docs |
+| [2026-05-13](2026-05-13.md) | `feat(backend-resume): wire resume routes and listing` | #feat #test #docs |
+| [2026-05-13](2026-05-13.md) | `feat(backend-resume): add resume parse job handler` | #feat #test #docs |
+| [2026-05-13](2026-05-13.md) | `feat(backend-resume): add resume asset store state machine` | #feat #test #docs |
+| [2026-05-13](2026-05-13.md) | `feat(backend-resume): add resume register and get baseline` | #feat #test #docs |
 | [2026-05-13](2026-05-13.md) | `docs(backend-resume): harden register parse plan gates` | #docs |
 | [2026-05-13](2026-05-13.md) | `fix(frontend-resume-workshop): restore ui-design list parity` | #fix #ui #test #docs #i18n |
 | [2026-05-13](2026-05-13.md) | `fix(backend-upload): close follow-up L2 gaps` | #fix #test #docs |

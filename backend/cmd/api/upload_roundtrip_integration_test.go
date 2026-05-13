@@ -85,7 +85,7 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 			t.Fatalf("runtime shutdown: %v", err)
 		}
 	}()
-	handler := buildAPIHandlerWithUploadAndHandlers(loader, apiRuntimeFlags{}, authService, runtime.Handler, practiceRoutes{}, uploadRoutes)
+	handler := buildAPIHandlerWithUploadAndHandlers(loader, apiRuntimeFlags{}, authService, runtime.Handler, practiceRoutes{}, uploadRoutes, resumeRoutes{})
 
 	start := httptest.NewRecorder()
 	handler.ServeHTTP(start, httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", strings.NewReader(`{"email":"`+email+`"}`)))

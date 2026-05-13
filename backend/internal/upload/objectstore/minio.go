@@ -68,6 +68,30 @@ func (s *MinIOStore) Delete(ctx context.Context, objectKey string) error {
 	return nil
 }
 
+func (s *MinIOStore) Read(ctx context.Context, objectKey string, maxBytes int64) ([]byte, error) {
+	if err := s.validate(); err != nil {
+		return nil, err
+	}
+	client, err := s.clientFor()
+	if err != nil {
+		return nil, err
+	}
+	obj, err := client.GetObject(ctx, s.cfg.Bucket, objectKey, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("get minio object: %w", err)
+	}
+	defer obj.Close()
+	raw, err := readAllLimited(obj, maxBytes)
+	if err != nil {
+		var minioErr minio.ErrorResponse
+		if errors.As(err, &minioErr) && minioErr.Code == "NoSuchKey" {
+			return nil, ErrObjectNotFound
+		}
+		return nil, fmt.Errorf("read minio object: %w", err)
+	}
+	return raw, nil
+}
+
 func (s *MinIOStore) Exists(ctx context.Context, objectKey string) (bool, error) {
 	_, err := s.Stat(ctx, objectKey)
 	if err == nil {

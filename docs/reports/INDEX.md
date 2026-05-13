@@ -8,6 +8,8 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-13](./2026-05-13-backend-resume-asset-register-l2-assessment.md) | Backend Resume Asset Register L2 Remediation 交付复盘 | #assessment |
+| [2026-05-13](./2026-05-13-backend-resume-001-assessment.md) | Backend Resume 001 交付复盘 | #assessment |
 | [2026-05-13](./2026-05-13-frontend-resume-workshop-ui-design-list-parity-assessment.md) | Frontend Resume Workshop UI-Design List Parity 交付复盘 | #assessment |
 | [2026-05-12](./2026-05-12-backend-upload-001-security-privacy-hardening-assessment.md) | Backend Upload 001 Security Privacy Hardening 交付复盘 | #assessment |
 | [2026-05-12](./2026-05-12-frontend-resume-workshop-001-listing-routing-and-detail-readonly-assessment.md) | frontend-resume-workshop/001-listing-routing-and-detail-readonly 交付复盘 | #assessment |

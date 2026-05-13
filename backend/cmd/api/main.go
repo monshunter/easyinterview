@@ -32,8 +32,13 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/platform/secrets"
 	domainpractice "github.com/monshunter/easyinterview/backend/internal/practice"
 	privacyrunner "github.com/monshunter/easyinterview/backend/internal/privacy/runner"
+	domainresume "github.com/monshunter/easyinterview/backend/internal/resume"
+	resumehandler "github.com/monshunter/easyinterview/backend/internal/resume/handler"
+	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
+	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
+	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	storepractice "github.com/monshunter/easyinterview/backend/internal/store/practice"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
@@ -124,10 +129,20 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: target job runtime init: %v\n", err)
 		os.Exit(1)
 	}
+	resumeRuntime, err := buildResumeRuntime(loader, db, logger, uploadRoutes, targetJobRuntime.AI.Client)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: resume runtime init: %v\n", err)
+		os.Exit(1)
+	}
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = targetJobRuntime.Shutdown(shutdownCtx)
+	}()
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = resumeRuntime.Shutdown(shutdownCtx)
 	}()
 	practiceRoutes, err := buildPracticeRoutes(loader, db, targetJobRuntime.AI.Client)
 	if err != nil {
@@ -136,13 +151,14 @@ func main() {
 	}
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes),
+		Handler:           buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes()),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	targetJobRuntime.Start(ctx)
+	resumeRuntime.Start(ctx)
 
 	go func() {
 		logger.Info("api: listening", "addr", srv.Addr, "env", loader.AppEnv())
@@ -185,7 +201,7 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessServ
 
 func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, db *sql.DB) http.Handler {
 	upload, _ := buildUploadRoutes(loader, db)
-	return buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, buildTargetJobHandler(loader, targetjob.NewSQLStore(db)), practiceRoutes{}, upload)
+	return buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, buildTargetJobHandler(loader, targetjob.NewSQLStore(db)), practiceRoutes{}, upload, resumeRoutes{})
 }
 
 func buildAPIHandlerWithTargetJobHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler) http.Handler {
@@ -201,13 +217,19 @@ type uploadRoutes struct {
 	Handler     *uploadhandler.Handler
 	Idempotency *idempotency.Middleware
 	Service     *uploadservice.Service
+	Objects     objectstore.ObjectStore
+}
+
+type resumeRoutes struct {
+	Handler     *resumehandler.Handler
+	Idempotency *idempotency.Middleware
 }
 
 func buildAPIHandlerWithHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes) http.Handler {
-	return buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, uploadRoutes{})
+	return buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, uploadRoutes{}, resumeRoutes{})
 }
 
-func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes) http.Handler {
+func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes) http.Handler {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(auth.HandlerOptions{
 		Passwordless: authService,
@@ -232,6 +254,17 @@ func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient fea
 			createUploadPresign = upload.Idempotency.Handler("upload", "createUploadPresign", requestUserFromContext, createUploadPresign).ServeHTTP
 		}
 		mux.Handle("POST /api/v1/uploads/presign", auth.SessionMiddleware(authService, "createUploadPresign", createUploadPresign))
+	}
+	if resume.Handler != nil {
+		registerResume := http.HandlerFunc(resume.Handler.RegisterResume)
+		if resume.Idempotency != nil {
+			registerResume = resume.Idempotency.Handler("resume", "registerResume", requestUserFromContext, registerResume).ServeHTTP
+		}
+		mux.Handle("GET /api/v1/resumes", auth.SessionMiddleware(authService, "listResumes", http.HandlerFunc(resume.Handler.ListResumes)))
+		mux.Handle("POST /api/v1/resumes", auth.SessionMiddleware(authService, "registerResume", registerResume))
+		mux.Handle("GET /api/v1/resumes/{resumeAssetId}", auth.SessionMiddleware(authService, "getResume", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.GetResume(w, r, r.PathValue("resumeAssetId"))
+		})))
 	}
 	mux.Handle("GET /api/v1/targets", auth.SessionMiddleware(authService, "listTargetJobs", http.HandlerFunc(targetJobHandler.ListTargetJobs)))
 	mux.Handle("POST /api/v1/targets/import", auth.SessionMiddleware(authService, "importTargetJob", http.HandlerFunc(targetJobHandler.ImportTargetJob)))
@@ -295,6 +328,7 @@ func buildUploadRoutes(loader *config.Loader, db *sql.DB) (uploadRoutes, error) 
 			TTL:       presignTTL,
 		}),
 		Service: service,
+		Objects: objects,
 	}, nil
 }
 
@@ -352,6 +386,88 @@ func (r *targetJobRuntime) Shutdown(ctx context.Context) error {
 		r.AI.Close()
 	}
 	return err
+}
+
+type resumeRuntime struct {
+	Handler     *resumehandler.Handler
+	Idempotency *idempotency.Middleware
+	Drainer     *targetjob.Drainer
+	ParseAI     aiclient.AIClient
+}
+
+func (r *resumeRuntime) Routes() resumeRoutes {
+	if r == nil {
+		return resumeRoutes{}
+	}
+	return resumeRoutes{Handler: r.Handler, Idempotency: r.Idempotency}
+}
+
+func (r *resumeRuntime) Start(ctx context.Context) {
+	if r == nil || r.Drainer == nil {
+		return
+	}
+	r.Drainer.Start(ctx)
+}
+
+func (r *resumeRuntime) Shutdown(ctx context.Context) error {
+	if r == nil || r.Drainer == nil {
+		return nil
+	}
+	return r.Drainer.Shutdown(ctx)
+}
+
+func buildResumeRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, upload uploadRoutes, ai aiclient.AIClient) (*resumeRuntime, error) {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	if ai == nil {
+		return nil, fmt.Errorf("resume AI client is required")
+	}
+	store := resumestore.NewRepository(db)
+	registryClient, err := registry.NewRegistryClient(registry.RegistryOptions{
+		PromptsDir: registryDirOrDefault(loader, "ai.promptsDir", "config/prompts"),
+		RubricsDir: registryDirOrDefault(loader, "ai.rubricsDir", "config/rubrics"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("build resume prompt registry: %w", err)
+	}
+	parseAI := ai
+	if targetjob.IsTestAppEnv(loader.AppEnv()) {
+		parseAI = resumejobs.NewDeterministicParseAIClient(parseAI)
+	}
+	parseHandler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
+		Store:    store,
+		Registry: resumejobs.NewRegistryAdapter(registryClient),
+		AI:       parseAI,
+		Objects:  upload.Objects,
+		NewID:    idx.NewID,
+	})
+	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
+		Store: store,
+		Handlers: map[string]targetjob.JobHandler{
+			string(jobs.JobTypeResumeParse): parseHandler,
+		},
+		Logger: logger,
+	})
+	service := domainresume.NewService(domainresume.ServiceOptions{
+		Store:          store,
+		UploadRegister: upload.Service,
+		NewID:          idx.NewID,
+		DedupePepper:   loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+	})
+	return &resumeRuntime{
+		Handler: resumehandler.New(resumehandler.Options{
+			Service: service,
+			Session: currentUserFromContext,
+		}),
+		Idempotency: idempotency.New(idempotency.MiddlewareOptions{
+			Store:     idempotency.NewSQLStore(db),
+			KeyPepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+			TTL:       time.Duration(sharedtypes.IdempotencyKeyTTLSeconds) * time.Second,
+		}),
+		Drainer: drainer,
+		ParseAI: parseAI,
+	}, nil
 }
 
 func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, uploadFiles privacyrunner.UploadFileDeleter) (*targetJobRuntime, error) {
