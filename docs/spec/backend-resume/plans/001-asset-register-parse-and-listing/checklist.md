@@ -8,13 +8,13 @@
 
 ## Phase 1: register / get handler skeleton + sourceType 三路
 
-- [ ] 1.1 实现 `backend/internal/resume/handler/register.go`，generated server interface `RegisterResume`（验证：编译 PASS + `go vet` PASS）
-- [ ] 1.2 sourceType 三路参数校验：`upload` 必带 fileObjectId / `paste` 必带 rawText / `guided` 必带 guidedAnswers；其他组合 422（验证：unit test `TestRegisterSourceType` 3 路 + 错误组合 PASS）
-- [ ] 1.3 upload 路径：调用 [backend-upload `RegisterFileObject(fileObjectId, expectedPurpose=resume, ownerUserId)`](../../../backend-upload/spec.md) internal API，确认对象存储 object exists 且实际 size 与 `file_objects.byte_size` 一致后，写入 `resume_assets.file_object_id` FK；missing object / size mismatch 不创建 resume asset（验证：integration test verify FK 建立 + mismatch rejects）
-- [ ] 1.4 IK 校验（缺失 / 24h replay 返回首次 resumeAssetId / mismatch 422）（验证：unit test `TestRegisterIdempotency` PASS）
-- [ ] 1.5 同一事务内创建 `resume_assets` queued row + `async_jobs(job_type=resume_parse, resource_type=resume_asset)` row，返回 202 + `ResumeAssetWithJob{resumeAssetId, job(jobType=resume_parse, status=queued)}`，与 [B2 fixture `registerResume.json`](../../../mock-contract-suite/spec.md) `default` / `paste-text` / `guided-answers` 三个 scenario 字节一致（验证：fixture parity test + orphan asset rollback test）
-- [ ] 1.6 实现 `backend/internal/resume/handler/get.go`，generated server interface `GetResume`（验证：编译 PASS）
-- [ ] 1.7 getResume：cross-user 返回 404 + 不暴露存在（验证：integration test cross-user PASS）
+- [x] 1.1 实现 `backend/internal/resume/handler/register.go`，generated server interface `RegisterResume`（验证：编译 PASS + `go vet` PASS）
+- [x] 1.2 sourceType 三路参数校验：`upload` 必带 fileObjectId / `paste` 必带 rawText / `guided` 必带 guidedAnswers；其他组合 422（验证：unit test `TestRegisterSourceType` 3 路 + 错误组合 PASS）
+- [x] 1.3 upload 路径：调用 [backend-upload `RegisterFileObject(fileObjectId, expectedPurpose=resume, ownerUserId)`](../../../backend-upload/spec.md) internal API，确认对象存储 object exists 且实际 size 与 `file_objects.byte_size` 一致后，写入 `resume_assets.file_object_id` FK；missing object / size mismatch 不创建 resume asset（验证：integration test verify FK 建立 + mismatch rejects）
+- [x] 1.4 IK 校验（缺失 / 24h replay 返回首次 resumeAssetId / mismatch 422）（验证：unit test `TestRegisterIdempotency` PASS）
+- [x] 1.5 同一事务内创建 `resume_assets` queued row + `async_jobs(job_type=resume_parse, resource_type=resume_asset)` row，返回 202 + `ResumeAssetWithJob{resumeAssetId, job(jobType=resume_parse, status=queued)}`，与 [B2 fixture `registerResume.json`](../../../mock-contract-suite/spec.md) `default` / `paste-text` / `guided-answers` 三个 scenario 字节一致（验证：fixture parity test + orphan asset rollback test）
+- [x] 1.6 实现 `backend/internal/resume/handler/get.go`，generated server interface `GetResume`（验证：编译 PASS）
+- [x] 1.7 getResume：cross-user 返回 404 + 不暴露存在（验证：integration test cross-user PASS）
 
 ## Phase 2: resume_assets store + state machine
 

@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-13](2026-05-13.md) | `feat(backend-resume): add resume register and get baseline` | #feat #test #docs |
 | [2026-05-13](2026-05-13.md) | `docs(backend-resume): harden register parse plan gates` | #docs |
 | [2026-05-13](2026-05-13.md) | `fix(frontend-resume-workshop): restore ui-design list parity` | #fix #ui #test #docs #i18n |
 | [2026-05-13](2026-05-13.md) | `fix(backend-upload): close follow-up L2 gaps` | #fix #test #docs |
