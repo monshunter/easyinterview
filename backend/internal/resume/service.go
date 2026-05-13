@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -35,6 +36,11 @@ type RegisterInput struct {
 
 type RegisterStore interface {
 	CreateWithParseJob(ctx context.Context, in resumestore.CreateAssetInput) (resumestore.CreateAssetResult, error)
+}
+
+type ReadStore interface {
+	Get(ctx context.Context, userID string, assetID string) (resumestore.AssetRecord, error)
+	List(ctx context.Context, userID string, filter resumestore.ListFilter) (resumestore.ListResult, error)
 }
 
 type UploadRegistrar interface {
@@ -145,6 +151,54 @@ func (s *Service) RegisterResume(ctx context.Context, in RegisterInput) (api.Res
 	}, nil
 }
 
+func (s *Service) GetResume(ctx context.Context, userID string, resumeAssetID string) (api.ResumeAsset, error) {
+	if s == nil {
+		return api.ResumeAsset{}, fmt.Errorf("resume read store is not configured")
+	}
+	reader, ok := s.store.(ReadStore)
+	if !ok {
+		return api.ResumeAsset{}, fmt.Errorf("resume read store is not configured")
+	}
+	rec, err := reader.Get(ctx, strings.TrimSpace(userID), strings.TrimSpace(resumeAssetID))
+	if errors.Is(err, resumestore.ErrAssetNotFound) {
+		return api.ResumeAsset{}, ErrNotFound
+	}
+	if err != nil {
+		return api.ResumeAsset{}, err
+	}
+	return assetRecordToAPI(rec), nil
+}
+
+type ListRequest struct {
+	UserID   string
+	Cursor   string
+	PageSize int
+}
+
+func (s *Service) ListResumes(ctx context.Context, in ListRequest) (api.PaginatedResumeAsset, error) {
+	if s == nil {
+		return api.PaginatedResumeAsset{}, fmt.Errorf("resume read store is not configured")
+	}
+	reader, ok := s.store.(ReadStore)
+	if !ok {
+		return api.PaginatedResumeAsset{}, fmt.Errorf("resume read store is not configured")
+	}
+	res, err := reader.List(ctx, strings.TrimSpace(in.UserID), resumestore.ListFilter{Cursor: in.Cursor, PageSize: in.PageSize})
+	if err != nil {
+		return api.PaginatedResumeAsset{}, err
+	}
+	out := api.PaginatedResumeAsset{Items: make([]api.ResumeAsset, 0, len(res.Items))}
+	for _, item := range res.Items {
+		out.Items = append(out.Items, assetRecordToAPI(item))
+	}
+	out.PageInfo = api.PageInfo{
+		NextCursor: optionalString(res.NextCursor),
+		PageSize:   res.PageSize,
+		HasMore:    res.HasMore,
+	}
+	return out, nil
+}
+
 func (s *Service) dedupeKey(userID, idempotencyKey string) string {
 	h := sha256.New()
 	h.Write([]byte("resume.register.v1"))
@@ -177,4 +231,62 @@ func cloneMap(in map[string]any) map[string]any {
 		out[k] = v
 	}
 	return out
+}
+
+func assetRecordToAPI(rec resumestore.AssetRecord) api.ResumeAsset {
+	status := "active"
+	out := api.ResumeAsset{
+		Id:            rec.ID,
+		Title:         rec.Title,
+		Language:      rec.Language,
+		ParseStatus:   rec.ParseStatus,
+		Status:        &status,
+		FileObjectId:  cloneStringPtr(rec.FileObjectID),
+		OriginalText:  cloneStringPtr(rec.OriginalText),
+		SourceType:    cloneStringPtr(rec.SourceType),
+		CreatedAt:     rec.CreatedAt.UTC().Format(time.RFC3339),
+		UpdatedAt:     rec.UpdatedAt.UTC().Format(time.RFC3339),
+		DeletedAt:     timePtrToString(rec.DeletedAt),
+		ParsedSummary: rawJSONMapPtr(rec.ParsedSummary),
+		GuidedAnswers: rawJSONMapPtr(rec.GuidedAnswers),
+	}
+	if rec.ParsedTextSnapshot != nil {
+		out.ParsedTextSnapshot = cloneStringPtr(rec.ParsedTextSnapshot)
+	}
+	return out
+}
+
+func rawJSONMapPtr(raw json.RawMessage) *map[string]any {
+	if len(raw) == 0 {
+		return nil
+	}
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil || len(out) == 0 {
+		return nil
+	}
+	return &out
+}
+
+func cloneStringPtr(in *string) *string {
+	if in == nil {
+		return nil
+	}
+	v := *in
+	return &v
+}
+
+func timePtrToString(in *time.Time) *string {
+	if in == nil {
+		return nil
+	}
+	v := in.UTC().Format(time.RFC3339)
+	return &v
+}
+
+func optionalString(in string) *string {
+	if strings.TrimSpace(in) == "" {
+		return nil
+	}
+	v := in
+	return &v
 }

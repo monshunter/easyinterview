@@ -37,12 +37,12 @@
 
 ## Phase 4: listResumes handler
 
-- [ ] 4.1 实现 `backend/internal/resume/handler/list.go`，generated server interface `ListResumes`（验证：编译 PASS）
-- [ ] 4.2 cursor pagination 实现 + 返回 `PaginatedResumeAsset{items, pageInfo}`（验证：integration test 25+ 行 + 第二页 PASS）
-- [ ] 4.3 cross-user 过滤：仅返回 `user_id = current_user_id` 行（验证：integration test cross-user PASS）
-- [ ] 4.4 `cmd/api` route wiring：挂载 `POST /api/v1/resumes`（session + IK middleware）、`GET /api/v1/resumes`、`GET /api/v1/resumes/{resumeAssetId}`，并把 resume_parse drainer 纳入 `Start(ctx)` / `Shutdown(ctx)` lifecycle（验证：`cd backend && go test ./cmd/api -run TestBuildResumeRuntime -count=1`）
-- [ ] 4.5 `cmd/api` HTTP scenario：通过真实 route 验证 register/get/list、auth 404/401、IK replay、不重复创建 asset/job/outbox（验证：`cd backend && go test ./cmd/api -run TestResumeRegisterListHTTPScenario -count=1`）
-- [ ] 4.6 字节比对 [B2 fixture `listResumes.json`](../../../mock-contract-suite/spec.md) `default` / `empty` / `paginated` 三 variant（验证：fixture parity test）
+- [x] 4.1 实现 `backend/internal/resume/handler/list.go`，generated server interface `ListResumes`（验证：编译 PASS）
+- [x] 4.2 cursor pagination 实现 + 返回 `PaginatedResumeAsset{items, pageInfo}`（验证：integration test 25+ 行 + 第二页 PASS）
+- [x] 4.3 cross-user 过滤：仅返回 `user_id = current_user_id` 行（验证：integration test cross-user PASS）
+- [x] 4.4 `cmd/api` route wiring：挂载 `POST /api/v1/resumes`（session + IK middleware）、`GET /api/v1/resumes`、`GET /api/v1/resumes/{resumeAssetId}`，并把 resume_parse drainer 纳入 `Start(ctx)` / `Shutdown(ctx)` lifecycle（验证：`cd backend && go test ./cmd/api -run TestBuildResumeRuntime -count=1`）
+- [x] 4.5 `cmd/api` HTTP scenario：通过真实 route 验证 register/get/list、auth 404/401、IK replay、不重复创建 asset/job/outbox（验证：`cd backend && go test ./cmd/api -run TestResumeRegisterListHTTPScenario -count=1`）
+- [x] 4.6 字节比对 [B2 fixture `listResumes.json`](../../../mock-contract-suite/spec.md) `default` / `empty` / `paginated` 三 variant（验证：fixture parity test）
 
 ## Phase 5: 收口 + BDD + 解锁 workspace 001
 

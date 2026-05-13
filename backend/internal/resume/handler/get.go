@@ -16,8 +16,12 @@ type GetService interface {
 
 // GetResume binds GET /api/v1/resumes/{resumeAssetId}.
 func (h *Handler) GetResume(w http.ResponseWriter, r *http.Request, resumeAssetID string) {
+	if h == nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "resume service is not configured", nil)
+		return
+	}
 	service, ok := h.service.(GetService)
-	if h == nil || !ok {
+	if !ok {
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "resume service is not configured", nil)
 		return
 	}
