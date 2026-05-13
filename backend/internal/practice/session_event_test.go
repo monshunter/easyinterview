@@ -70,40 +70,51 @@ func TestHandleAnswerSubmittedDecisionBranches(t *testing.T) {
 	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
 
 	cases := []struct {
-		name           string
-		turnCount      int32
-		questionBudget int32
-		followUpCount  int
-		wantAction     string
-		wantStatus     sharedtypes.SessionStatus
-		wantTurnStatus TurnStatus
+		name                 string
+		turnCount            int32
+		questionBudget       int32
+		turnFollowUpCount    int
+		payloadFollowUpCount *int
+		wantAction           string
+		wantStatus           sharedtypes.SessionStatus
+		wantTurnStatus       TurnStatus
+		wantNextFollowUps    int
+		wantOutbox           bool
 	}{
 		{
-			name:           "ask follow up before first follow up",
-			turnCount:      1,
-			questionBudget: 3,
-			followUpCount:  0,
-			wantAction:     "ask_follow_up",
-			wantStatus:     sharedtypes.SessionStatusRunning,
-			wantTurnStatus: TurnStatusFollowUpRequested,
+			name:                 "ask follow up before first stored follow up and ignore client count",
+			turnCount:            1,
+			questionBudget:       3,
+			turnFollowUpCount:    0,
+			payloadFollowUpCount: intPtr(99),
+			wantAction:           "ask_follow_up",
+			wantStatus:           sharedtypes.SessionStatusRunning,
+			wantTurnStatus:       TurnStatusFollowUpRequested,
+			wantNextFollowUps:    1,
+			wantOutbox:           false,
 		},
 		{
-			name:           "ask next question after one follow up",
-			turnCount:      1,
-			questionBudget: 3,
-			followUpCount:  1,
-			wantAction:     "ask_question",
-			wantStatus:     sharedtypes.SessionStatusRunning,
-			wantTurnStatus: TurnStatusAnswered,
+			name:              "ask next question after stored follow up without client count",
+			turnCount:         1,
+			questionBudget:    3,
+			turnFollowUpCount: 1,
+			wantAction:        "ask_question",
+			wantStatus:        sharedtypes.SessionStatusRunning,
+			wantTurnStatus:    TurnStatusAssessed,
+			wantNextFollowUps: 1,
+			wantOutbox:        true,
 		},
 		{
-			name:           "complete at question budget",
-			turnCount:      3,
-			questionBudget: 3,
-			followUpCount:  1,
-			wantAction:     "session_completed",
-			wantStatus:     sharedtypes.SessionStatusCompleted,
-			wantTurnStatus: TurnStatusAssessed,
+			name:                 "complete at question budget from stored count",
+			turnCount:            3,
+			questionBudget:       3,
+			turnFollowUpCount:    1,
+			payloadFollowUpCount: intPtr(0),
+			wantAction:           "session_completed",
+			wantStatus:           sharedtypes.SessionStatusCompleted,
+			wantTurnStatus:       TurnStatusAssessed,
+			wantNextFollowUps:    1,
+			wantOutbox:           true,
 		},
 	}
 
@@ -111,16 +122,20 @@ func TestHandleAnswerSubmittedDecisionBranches(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			session := sessionEventTestSession(tc.turnCount)
 			turn := sessionEventTestTurn(tc.turnCount)
+			turn.FollowUpCount = tc.turnFollowUpCount
+			payload := map[string]any{
+				"turnId":     turn.ID,
+				"answerText": "answer",
+			}
+			if tc.payloadFollowUpCount != nil {
+				payload["followUpCount"] = *tc.payloadFollowUpCount
+			}
 			out, err := service.Route(context.Background(), SessionEventInput{
 				SessionID:     session.ID,
 				ClientEventID: "client-event-1",
 				Kind:          "answer_submitted",
 				OccurredAt:    now,
-				Payload: map[string]any{
-					"turnId":        turn.ID,
-					"answerText":    "answer",
-					"followUpCount": tc.followUpCount,
-				},
+				Payload:       payload,
 			}, session, turn, sessionEventTestPlan(tc.questionBudget, sharedtypes.PracticeGoalBaseline))
 			if err != nil {
 				t.Fatalf("Route returned error: %v", err)
@@ -136,6 +151,15 @@ func TestHandleAnswerSubmittedDecisionBranches(t *testing.T) {
 			}
 			if out.NextTurn == nil || TurnStatus(out.NextTurn.Status) != tc.wantTurnStatus {
 				t.Fatalf("NextTurn.Status = %+v, want %s", out.NextTurn, tc.wantTurnStatus)
+			}
+			if out.NextTurn.FollowUpCount != tc.wantNextFollowUps {
+				t.Fatalf("NextTurn.FollowUpCount = %d, want %d", out.NextTurn.FollowUpCount, tc.wantNextFollowUps)
+			}
+			if (out.OutboxRecord != nil) != tc.wantOutbox {
+				t.Fatalf("OutboxRecord present = %v, want %v", out.OutboxRecord != nil, tc.wantOutbox)
+			}
+			if out.OutboxRecord != nil && out.OutboxRecord.FollowUpCount != tc.wantNextFollowUps {
+				t.Fatalf("OutboxRecord.FollowUpCount = %d, want %d", out.OutboxRecord.FollowUpCount, tc.wantNextFollowUps)
 			}
 		})
 	}
@@ -272,6 +296,10 @@ func sessionEventTestPlan(questionBudget int32, goal sharedtypes.PracticeGoal) P
 
 func ptrTurn(turn TurnRecord) *TurnRecord {
 	return &turn
+}
+
+func intPtr(value int) *int {
+	return &value
 }
 
 func sortedKeys(values map[string]string) []string {

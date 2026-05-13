@@ -1,8 +1,8 @@
 # 002 — Event Loop and Completion BDD Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -13,13 +13,13 @@
 ## E2E.P0.038 appendSessionEvent answer_submitted 主路径 + AssistantAction 三分支
 
 - [x] 在 `TestE2EP0038PracticeEventLoopAnswerFlow` 中准备独立 user / target_job / resume_asset / plan / running session 与 fake follow-up AI。
-- [x] 连续触发 `answer_submitted`，覆盖 `ask_question` / `ask_follow_up` / `session_completed` 三分支。
-- [x] 断言 HTTP 200、`SessionEventResult` shape、seq_no 连续、turn status 5 值推进、`practice.turn.completed` outbox 与 provenance wire 字段。
+- [x] 连续触发 `answer_submitted`，覆盖 DB-owned `follow_up_count=0` → `ask_follow_up`、追问答案 → `ask_question`、budget 边界 → `session_completed` 三分支。
+- [x] 断言客户端 `payload.followUpCount` 不驱动状态机，HTTP 200、`SessionEventResult` shape、seq_no 连续、turn status 5 值推进、`practice.turn.completed` outbox 一次/turn 与 provenance wire 字段。
 - [x] 执行通过：`cd backend && go test ./cmd/api -run TestE2EP0038PracticeEventLoopAnswerFlow -count=1`（也随 `go test ./cmd/api` 与 `go test ./...` 通过）。
 
 ## E2E.P0.039 appendSessionEvent clientEventId replay / mismatch + 5 kind exhaustive + hint 默认 strict + Idempotency-Key header 拒收
 
-- [x] 在 `TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy` 中准备用户 A / 用户 B、5 kind、replay / mismatch / header reject / cross-user 矩阵。
+- [x] 在 `TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy` 中准备用户 A / 用户 B、5 kind（含 `answer_submitted` 成功分支）、replay / mismatch / header reject / cross-user 矩阵。
 - [x] 断言 replay 不重复写 event / outbox / audit，mismatch 返回 409 且不泄露首次 payload。
 - [x] 断言 hint 在 002 默认返回 409 + `detail.policy='hint_disabled_in_mode'`，5 kind 路由与 pause/resume 状态切换正确。
 - [x] 断言携带 `Idempotency-Key` 返回 400 + `detail.policy='use_client_event_id'`，跨用户访问返回 404。
@@ -27,7 +27,7 @@
 
 ## E2E.P0.040 appendSessionEvent 并发 seq_no 序列化
 
-- [x] 在 `TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict` 中准备同一 currentTurn 的双客户端竞争输入。
+- [x] 在 `TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict` 中先让 currentTurn 进入 `follow_up_requested`，再准备同一旧 turn 的双客户端竞争输入。
 - [x] 断言一个请求成功，另一个 stale-turn / conflict 返回 409，错误 envelope 不泄露另一请求 payload。
 - [x] 断言已接受事件的 seq_no 连续，turn / outbox 行数保持 1:1；row-lock / UNIQUE 约束由 store 层测试与 DB schema 兜底。
 - [x] 执行通过：`cd backend && go test ./cmd/api -run TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict -count=1`（也随 `go test ./cmd/api` 与 `go test ./...` 通过）。

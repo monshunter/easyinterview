@@ -2,7 +2,6 @@ package practice
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -108,10 +107,14 @@ func (s SessionEventService) handleAnswerSubmitted(
 	latestTurn TurnRecord,
 	plan PlanRecord,
 ) SessionEventOutcome {
-	followUpCount := payloadInt(input.Payload, "followUpCount")
+	followUpCount := latestTurn.FollowUpCount
+	if followUpCount < 0 {
+		followUpCount = 0
+	}
 	answerLength := len([]rune(payloadString(input.Payload, "answerText")))
 	nextTurn := latestTurn
-	nextTurn.Status = string(TurnStatusAnswered)
+	nextTurn.Status = string(TurnStatusAssessed)
+	nextTurn.FollowUpCount = followUpCount
 	actionType := assistantActionAskQuestion
 	nextStatus := sharedtypes.SessionStatusRunning
 	requiresAI := false
@@ -123,25 +126,30 @@ func (s SessionEventService) handleAnswerSubmitted(
 	} else if followUpCount == 0 {
 		actionType = assistantActionAskFollowUp
 		nextTurn.Status = string(TurnStatusFollowUpRequested)
+		nextTurn.FollowUpCount = 1
 		requiresAI = true
 	}
 
+	var outbox *PracticeTurnCompletedRecord
+	if nextTurn.Status == string(TurnStatusAssessed) {
+		outbox = &PracticeTurnCompletedRecord{
+			SessionID:        session.ID,
+			TurnID:           latestTurn.ID,
+			FollowUpCount:    nextTurn.FollowUpCount,
+			AnswerCharLength: answerLength,
+			CompletedAt:      input.OccurredAt.UTC(),
+		}
+	}
 	return SessionEventOutcome{
 		Acknowledged:      true,
 		NextSessionStatus: nextStatus,
 		NextTurn:          &nextTurn,
 		AssistantAction:   s.assistantAction(actionType, latestTurn.ID, "", "", nextStatus, session.Language, requiresAI),
-		OutboxRecord: &PracticeTurnCompletedRecord{
-			SessionID:        session.ID,
-			TurnID:           latestTurn.ID,
-			FollowUpCount:    followUpCount,
-			AnswerCharLength: answerLength,
-			CompletedAt:      input.OccurredAt.UTC(),
-		},
+		OutboxRecord:      outbox,
 		AuditMetadata: map[string]any{
 			"event_kind":         sessionEventKindAnswerSubmitted,
 			"answer_char_length": answerLength,
-			"follow_up_count":    followUpCount,
+			"follow_up_count":    nextTurn.FollowUpCount,
 		},
 	}
 }
@@ -264,27 +272,6 @@ func payloadString(payload map[string]any, key string) string {
 		return typed.String()
 	default:
 		return fmt.Sprint(typed)
-	}
-}
-
-func payloadInt(payload map[string]any, key string) int {
-	if payload == nil {
-		return 0
-	}
-	switch value := payload[key].(type) {
-	case int:
-		return value
-	case int32:
-		return int(value)
-	case int64:
-		return int(value)
-	case float64:
-		return int(value)
-	case json.Number:
-		n, _ := value.Int64()
-		return int(n)
-	default:
-		return 0
 	}
 }
 

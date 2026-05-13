@@ -418,29 +418,75 @@ auth:
 func TestE2EP0038PracticeEventLoopAnswerFlow(t *testing.T) {
 	h := newPracticeHTTPScenarioHarness(t)
 	plan := h.seedReadyScenarioPlan("practice-plan-p0-038", "target-job-p0-038-a", "resume-asset-p0-038-a", practiceHTTPScenarioUserAID)
+	storedPlan := h.store.plans[plan.ID]
+	storedPlan.QuestionBudget = 2
+	h.store.plans[plan.ID] = storedPlan
 	started := h.startScenarioSession(t, plan.ID, "e2e-p0-038-start-session")
 
-	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+	followUpRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
 		ClientEventId: "e2e-p0-038-event-1",
 		Kind:          "answer_submitted",
 		OccurredAt:    "2026-04-28T13:45:12Z",
 		Payload: map[string]any{
+			"turnId":        started.CurrentTurn.Id,
+			"answerText":    "我先按影响面拆分迁移风险，再逐个团队确认窗口。",
+			"followUpCount": 99,
+		},
+	}, http.StatusOK)
+	var followUp api.SessionEventResult
+	decodeJSON(t, followUpRaw, &followUp)
+	if !followUp.Acknowledged ||
+		followUp.AssistantAction.Type != "ask_follow_up" ||
+		followUp.Session.CurrentTurn == nil ||
+		followUp.Session.CurrentTurn.Id != started.CurrentTurn.Id ||
+		followUp.Session.CurrentTurn.Status != "follow_up_requested" {
+		t.Fatalf("first answer should request a same-turn follow-up from server-owned DB state: %+v", followUp)
+	}
+	if h.store.outboxCount() != 1 {
+		t.Fatalf("follow-up request should not complete the turn or emit turn.completed yet, outbox=%d", h.store.outboxCount())
+	}
+
+	nextQuestionRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-038-event-2",
+		Kind:          "answer_submitted",
+		OccurredAt:    "2026-04-28T13:46:12Z",
+		Payload: map[string]any{
 			"turnId":           started.CurrentTurn.Id,
-			"answerText":       "我先按影响面拆分迁移风险，再逐个团队确认窗口。",
-			"followUpCount":    1,
+			"answerText":       "追问里我会说明和安全团队确认风险接受标准。",
 			"nextQuestionText": "请描述一次你在范围变化后重新排优先级的经历。",
 		},
 	}, http.StatusOK)
-	var out api.SessionEventResult
-	decodeJSON(t, raw, &out)
-	if !out.Acknowledged || out.AssistantAction.Type != "ask_question" || out.Session.CurrentTurn == nil || out.Session.CurrentTurn.Status != "asked" {
-		t.Fatalf("unexpected appendSessionEvent response: %+v", out)
+	var nextQuestion api.SessionEventResult
+	decodeJSON(t, nextQuestionRaw, &nextQuestion)
+	if nextQuestion.AssistantAction.Type != "ask_question" ||
+		nextQuestion.Session.CurrentTurn == nil ||
+		nextQuestion.Session.CurrentTurn.Id == started.CurrentTurn.Id ||
+		nextQuestion.Session.CurrentTurn.Status != "asked" {
+		t.Fatalf("second answer should complete the first turn and advance to a new question: %+v", nextQuestion)
 	}
-	if h.store.sessionEventCount(started.Id) != 2 {
-		t.Fatalf("session event count = %d, want 2", h.store.sessionEventCount(started.Id))
+
+	completedRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-038-event-3",
+		Kind:          "answer_submitted",
+		OccurredAt:    "2026-04-28T13:47:12Z",
+		Payload: map[string]any{
+			"turnId":     nextQuestion.Session.CurrentTurn.Id,
+			"answerText": "第二题我会围绕影响面、用户风险和工程依赖解释取舍。",
+		},
+	}, http.StatusOK)
+	var completed api.SessionEventResult
+	decodeJSON(t, completedRaw, &completed)
+	if completed.AssistantAction.Type != "session_completed" ||
+		completed.Session.Status != sharedtypes.SessionStatusCompleted ||
+		completed.Session.CurrentTurn == nil ||
+		completed.Session.CurrentTurn.Status != "assessed" {
+		t.Fatalf("third answer should complete the session at question budget: %+v", completed)
 	}
-	if h.store.outboxCount() != 2 {
-		t.Fatalf("outbox count = %d, want 2", h.store.outboxCount())
+	if h.store.sessionEventCount(started.Id) != 4 {
+		t.Fatalf("session event count = %d, want 4", h.store.sessionEventCount(started.Id))
+	}
+	if h.store.outboxCount() != 3 {
+		t.Fatalf("outbox count = %d, want 3 (session_started + two turn.completed)", h.store.outboxCount())
 	}
 }
 
@@ -478,6 +524,62 @@ func TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T)
 		t.Fatalf("header rejection missing policy: %s", headerRaw)
 	}
 
+	pausePlan := h.seedReadyScenarioPlan("practice-plan-p0-039-pause", "target-job-p0-039-pause", "resume-asset-p0-039-pause", practiceHTTPScenarioUserAID)
+	pausedSession := h.startScenarioSession(t, pausePlan.ID, "e2e-p0-039-pause-start")
+	pausePath := "/api/v1/practice/sessions/" + pausedSession.Id + "/events"
+	pauseRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, pausePath, "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-039-pause",
+		Kind:          "session_paused",
+		OccurredAt:    "2026-04-28T13:46:30Z",
+	}, http.StatusOK)
+	var paused api.SessionEventResult
+	decodeJSON(t, pauseRaw, &paused)
+	if paused.AssistantAction.Type != "session_wait" || paused.Session.Status != sharedtypes.SessionStatusWaitingUserInput {
+		t.Fatalf("session_paused should route to session_wait + waiting_user_input: %+v", paused)
+	}
+
+	resumeRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, pausePath, "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-039-resume-success",
+		Kind:          "session_resumed",
+		OccurredAt:    "2026-04-28T13:46:45Z",
+	}, http.StatusOK)
+	var resumed api.SessionEventResult
+	decodeJSON(t, resumeRaw, &resumed)
+	if resumed.AssistantAction.Type != "session_wait" || resumed.Session.Status != sharedtypes.SessionStatusRunning {
+		t.Fatalf("session_resumed should route back to running session_wait: %+v", resumed)
+	}
+
+	skipPlan := h.seedReadyScenarioPlan("practice-plan-p0-039-skip", "target-job-p0-039-skip", "resume-asset-p0-039-skip", practiceHTTPScenarioUserAID)
+	skipSession := h.startScenarioSession(t, skipPlan.ID, "e2e-p0-039-skip-start")
+	skipRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+skipSession.Id+"/events", "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-039-skip",
+		Kind:          "turn_skipped",
+		OccurredAt:    "2026-04-28T13:46:55Z",
+		Payload:       map[string]any{"turnId": skipSession.CurrentTurn.Id, "nextQuestionText": "下一题请讲一个你推动对齐的案例。"},
+	}, http.StatusOK)
+	var skipped api.SessionEventResult
+	decodeJSON(t, skipRaw, &skipped)
+	if skipped.AssistantAction.Type != "ask_question" ||
+		skipped.Session.CurrentTurn == nil ||
+		skipped.Session.CurrentTurn.Id == skipSession.CurrentTurn.Id ||
+		skipped.Session.CurrentTurn.Status != "asked" {
+		t.Fatalf("turn_skipped should route to ask_question and advance turn: %+v", skipped)
+	}
+
+	answerPlan := h.seedReadyScenarioPlan("practice-plan-p0-039-answer", "target-job-p0-039-answer", "resume-asset-p0-039-answer", practiceHTTPScenarioUserAID)
+	answerSession := h.startScenarioSession(t, answerPlan.ID, "e2e-p0-039-answer-start")
+	answerRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+answerSession.Id+"/events", "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-039-answer",
+		Kind:          "answer_submitted",
+		OccurredAt:    "2026-04-28T13:47:00Z",
+		Payload:       map[string]any{"turnId": answerSession.CurrentTurn.Id, "answerText": "answer_submitted should route through the event state machine"},
+	}, http.StatusOK)
+	var answered api.SessionEventResult
+	decodeJSON(t, answerRaw, &answered)
+	if answered.AssistantAction.Type != "ask_follow_up" || answered.Session.CurrentTurn == nil || answered.Session.CurrentTurn.Status != "follow_up_requested" {
+		t.Fatalf("answer_submitted should route to the server-owned follow-up branch: %+v", answered)
+	}
+
 	hintRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
 		ClientEventId: "e2e-p0-039-hint",
 		Kind:          "hint_requested",
@@ -506,14 +608,28 @@ func TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict(t *testing.T) {
 	started := h.startScenarioSession(t, plan.ID, "e2e-p0-040-start-session")
 	path := "/api/v1/practice/sessions/" + started.Id + "/events"
 
+	precondition := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-040-follow-up",
+		Kind:          "answer_submitted",
+		OccurredAt:    "2026-04-28T13:45:00Z",
+		Payload: map[string]any{
+			"turnId":     started.CurrentTurn.Id,
+			"answerText": "initial answer requests a same-turn follow up",
+		},
+	}, http.StatusOK)
+	var followUp api.SessionEventResult
+	decodeJSON(t, precondition, &followUp)
+	if followUp.AssistantAction.Type != "ask_follow_up" || followUp.Session.CurrentTurn == nil || followUp.Session.CurrentTurn.Id != started.CurrentTurn.Id {
+		t.Fatalf("precondition should keep the same current turn for follow-up: %+v", followUp)
+	}
+
 	first := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
 		ClientEventId: "e2e-p0-040-a",
 		Kind:          "answer_submitted",
 		OccurredAt:    "2026-04-28T13:45:12Z",
 		Payload: map[string]any{
 			"turnId":           started.CurrentTurn.Id,
-			"answerText":       "first accepted answer",
-			"followUpCount":    1,
+			"answerText":       "first accepted follow-up answer",
 			"nextQuestionText": "Next question after the accepted answer.",
 		},
 	}, http.StatusOK)
@@ -537,8 +653,8 @@ func TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict(t *testing.T) {
 	if conflict.Error.Code != sharederrors.CodePracticeSessionConflict || strings.Contains(string(stale), "stale competing answer") {
 		t.Fatalf("stale competing event should conflict without leaking payload: %+v raw=%s", conflict.Error, stale)
 	}
-	if h.store.sessionEventCount(started.Id) != 2 {
-		t.Fatalf("only the accepted append should write an event, got %d", h.store.sessionEventCount(started.Id))
+	if h.store.sessionEventCount(started.Id) != 3 {
+		t.Fatalf("precondition and accepted append should write events only, got %d", h.store.sessionEventCount(started.Id))
 	}
 }
 

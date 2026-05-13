@@ -29,7 +29,7 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 		RequestFingerprint: "fingerprint-1",
 		RequestPayload: map[string]any{
 			"answerText":    "answer",
-			"followUpCount": 1,
+			"followUpCount": 99,
 		},
 		Outcome: domain.SessionEventOutcome{
 			Acknowledged:      true,
@@ -40,6 +40,7 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 				QuestionText:   "Question?",
 				QuestionIntent: "behavioral",
 				Status:         string(domain.TurnStatusAssessed),
+				FollowUpCount:  1,
 				AskedAt:        now.Add(-time.Minute),
 			},
 			AssistantAction: domain.AssistantActionRecord{
@@ -114,7 +115,7 @@ func TestSQLRepositoryCompleteSessionWritesReportJobOutboxAndAudit(t *testing.T)
 		WillReturnRows(sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "status", "language", "hints_enabled", "turn_count", "created_at", "updated_at"}).
 			AddRow(in.SessionID, "plan-1", "target-1", string(sharedtypes.SessionStatusRunning), "zh-CN", true, 3, now.Add(-time.Hour), now.Add(-time.Minute)))
 	mock.ExpectQuery(`select fr.id`).
-		WithArgs(in.UserID, in.SessionID, "report_generate").
+		WithArgs(in.UserID, in.SessionID, "report_generate", in.SessionID).
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectExec(`update practice_sessions`).
 		WithArgs(string(sharedtypes.SessionStatusCompleting), now, in.SessionID, in.UserID).
@@ -174,7 +175,7 @@ func TestSQLRepositoryCompleteSessionRejectsIllegalStatusWithoutReport(t *testin
 		WillReturnRows(sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "status", "language", "hints_enabled", "turn_count", "created_at", "updated_at"}).
 			AddRow(in.SessionID, "plan-1", "target-1", string(sharedtypes.SessionStatusFailed), "zh-CN", true, 3, now.Add(-time.Hour), now.Add(-time.Minute)))
 	mock.ExpectQuery(`select fr.id`).
-		WithArgs(in.UserID, in.SessionID, "report_generate").
+		WithArgs(in.UserID, in.SessionID, "report_generate", in.SessionID).
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectRollback()
 
@@ -209,8 +210,8 @@ func TestSQLRepositoryCompleteSessionReplaysExistingReportBeforeStatusGuard(t *t
 		WithArgs(in.UserID, in.SessionID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "status", "language", "hints_enabled", "turn_count", "created_at", "updated_at"}).
 			AddRow(in.SessionID, "plan-1", "target-1", string(sharedtypes.SessionStatusFailed), "zh-CN", true, 3, now.Add(-time.Hour), now.Add(-time.Minute)))
-	mock.ExpectQuery(`select fr.id`).
-		WithArgs(in.UserID, in.SessionID, "report_generate").
+	mock.ExpectQuery(`j\.dedupe_key = \$4`).
+		WithArgs(in.UserID, in.SessionID, "report_generate", in.SessionID).
 		WillReturnRows(sqlmock.NewRows([]string{"report_id", "job_id", "job_type", "resource_type", "resource_id", "status", "error_code", "created_at", "updated_at"}).
 			AddRow("report-existing", "job-existing", "report_generate", "feedback_report", "report-existing", string(sharedtypes.JobStatusQueued), nil, now.Add(-time.Minute), now.Add(-time.Minute)))
 	mock.ExpectCommit()
@@ -248,12 +249,12 @@ func expectAppendContext(mock sqlmock.Sqlmock, now time.Time) {
 			"turn_count", "created_at", "updated_at",
 			"id", "target_job_id", "goal", "mode", "interviewer_persona", "difficulty",
 			"language", "time_budget_minutes", "question_budget", "status", "created_at",
-			"id", "turn_index", "question_text", "question_intent", "status", "asked_at",
+			"id", "turn_index", "question_text", "question_intent", "status", "follow_up_count", "asked_at",
 		}).AddRow(
 			"session-1", "plan-1", "target-1", string(sharedtypes.SessionStatusRunning), "zh-CN", true,
 			1, now.Add(-time.Hour), now.Add(-time.Minute),
 			"plan-1", "target-1", string(sharedtypes.PracticeGoalBaseline), string(sharedtypes.PracticeModeAssisted), string(sharedtypes.InterviewerRoleHiringManager), "standard",
 			"zh-CN", 30, 3, "ready", now.Add(-2*time.Hour),
-			"turn-1", 1, "Question?", "behavioral", string(domain.TurnStatusAsked), now.Add(-time.Minute),
+			"turn-1", 1, "Question?", "behavioral", string(domain.TurnStatusAsked), 1, now.Add(-time.Minute),
 		))
 }

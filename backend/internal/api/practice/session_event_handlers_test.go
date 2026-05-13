@@ -55,6 +55,30 @@ func TestAppendSessionEventRejectsIdempotencyKeyHeader(t *testing.T) {
 	}
 }
 
+func TestAppendSessionEventRequiresOccurredAt(t *testing.T) {
+	service := &fakePlanService{appendResult: fixtureAppendResult("session_paused")}
+	handler := newTestHandler(service)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/practice/sessions/session-1/events", strings.NewReader(`{
+		"clientEventId": "client-event-1",
+		"kind": "session_paused"
+	}`))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithUser(req.Context(), "user-1"))
+
+	rec := httptest.NewRecorder()
+	handler.AppendSessionEvent(rec, req, "session-1")
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if service.appendRequest.ClientEventID != "" {
+		t.Fatalf("service should not be called when occurredAt is missing: %+v", service.appendRequest)
+	}
+	assertAPIError(t, rec, sharederrors.CodeValidationFailed, false)
+	if !strings.Contains(rec.Body.String(), "occurredAt") {
+		t.Fatalf("error should identify occurredAt, body=%s", rec.Body.String())
+	}
+}
+
 func TestAppendSessionEventMapsReplayMismatchAndCrossUser(t *testing.T) {
 	cases := []struct {
 		name string
@@ -132,6 +156,30 @@ func TestCompletePracticeSessionReturns202ReportWithJob(t *testing.T) {
 	}
 	if service.completeRequest.UserID != "user-1" || service.completeRequest.SessionID != "session-1" {
 		t.Fatalf("request not mapped to service: %+v", service.completeRequest)
+	}
+}
+
+func TestCompletePracticeSessionRequiresClientCompletedAt(t *testing.T) {
+	service := &fakePlanService{completeResult: domain.CompleteSessionResult{
+		ReportID: "report-1",
+		Job:      domain.JobRecord{ID: "job-1"},
+	}}
+	handler := newTestHandler(service)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/practice/sessions/session-1/complete", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithUser(req.Context(), "user-1"))
+
+	rec := httptest.NewRecorder()
+	handler.CompletePracticeSession(rec, req, "session-1")
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if service.completeRequest.SessionID != "" {
+		t.Fatalf("service should not be called when clientCompletedAt is missing: %+v", service.completeRequest)
+	}
+	assertAPIError(t, rec, sharederrors.CodeValidationFailed, false)
+	if !strings.Contains(rec.Body.String(), "clientCompletedAt") {
+		t.Fatalf("error should identify clientCompletedAt, body=%s", rec.Body.String())
 	}
 }
 

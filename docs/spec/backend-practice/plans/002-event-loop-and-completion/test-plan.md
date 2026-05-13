@@ -1,8 +1,8 @@
 # 002 — Event Loop and Completion Test Plan
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-14
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 
@@ -23,7 +23,8 @@
 | openapi fixtures extension (events / complete) | R14 / R15 | Phase 0 | contract + drift | `make validate-fixtures`（或 `python3 scripts/lint/validate_fixtures.py --repo-root .`）+ Prism / contract 测试 |
 | F3 baseline preflight | (Plan §6 风险 + R16) | Phase 0 | preflight script + 单元 | F3 baseline 状态读取断言 + `RegistryClient.Resolve` mock test |
 | SessionEventService state machine | R1 / R3 / R6 / R16 | Phase 1 + Phase 2 | 单元 | `cd backend && go test ./internal/practice/...` (`session_event_test.go`) |
-| `answer_submitted` payload contract | R1 / R3 | Phase 2 | 单元 | `cd backend && go test ./internal/practice -run 'TestAppendSessionEventRejectsMissingAnswerText|TestAppendSessionEventRejectsStaleTurnID' -count=1` |
+| `answer_submitted` payload + server-owned follow-up contract | R1 / R3 | Phase 2 | 单元 + HTTP scenario | `cd backend && go test ./internal/practice -run 'TestHandleAnswerSubmittedDecisionBranches|TestAppendSessionEventRejectsMissingAnswerText|TestAppendSessionEventRejectsStaleTurnID' -count=1` + `cd backend && go test ./cmd/api -run 'TestE2EP0038|TestE2EP0039|TestE2EP0040' -count=1` |
+| required client timestamp fields | R1 / R7 / R19 | Phase 2 + Phase 3 | handler 单元 | `cd backend && go test ./internal/api/practice -run 'TestAppendSessionEventRequiresOccurredAt|TestCompletePracticeSessionRequiresClientCompletedAt' -count=1` |
 | turn-status mapping (D-33) | R14 | Phase 1 | 单元 | `cd backend && go test ./internal/practice -run TestTurnStatus -count=1` |
 | AppendSessionEvent repository | R1 / R2 / R3 / R4 / R5 / R10 | Phase 2 | 集成 + 单元 | `cd backend && go test ./internal/store/practice -run TestAppendSessionEvent -count=1` |
 | AppendSessionEvent handler | R1 / R3 / R4 / R6 / R10 / R16 | Phase 2 | 单元 + contract | `cd backend && go test ./internal/api/practice -run TestAppendSessionEvent -count=1` + fixture parity |
@@ -60,7 +61,7 @@
 | 任务 | 测试文件 / 命令 | 预期 Red/Green 证据 |
 |------|----------------|---------------------|
 | SessionEventService skeleton + types | `backend/internal/practice/session_event_test.go` | Red: 类型 / 接口不存在；Green: 5 kind exhaustive switch、AssistantAction shape、provenance 默认值断言 PASS |
-| handleAnswerSubmitted 3 分支 | 同上（`TestHandleAnswerSubmitted_*`） | Red: 任一 `ask_question` / `ask_follow_up` / `session_completed` 决策错误；Green: budget / follow_up_count 边界值覆盖 PASS |
+| handleAnswerSubmitted 3 分支 | 同上（`TestHandleAnswerSubmitted_*`） | Red: 任一 `ask_question` / `ask_follow_up` / `session_completed` 决策错误，或客户端 `payload.followUpCount` 可影响状态机；Green: budget / DB `follow_up_count` 边界值覆盖 PASS，首次 follow-up 不发 `practice.turn.completed`，turn assessed 后一次/turn 发 outbox |
 | handleHintRequested 默认 strict 409（D-34） | 同上（`TestHandleHintRequested_DefaultsToStrictConflict`） | Red: 002 返回 200 / show_hint / 调用 AI；Green: 所有 mode / goal 输入返回 409 + `detail.policy='hint_disabled_in_mode'` |
 | handleTurnSkipped / handleSessionPaused / handleSessionResumed | 同上 | Red: status 推进错误 / AssistantAction 错；Green: turn / session status 推进与 AssistantAction shape 断言 PASS |
 | unknown kind → VALIDATION_FAILED | 同上 | Red: panic / 500；Green: outcome 形式正确，handler 层映射到 422 |
@@ -79,6 +80,8 @@
 | outbox_emitter practice.turn.completed | `backend/internal/store/practice/outbox_emitter_test.go` (`TestBuildPracticeTurnCompletedPayload`) | Red: payload 与 B3 schema 不一致 / 含明文；Green: 与 `shared/events/practice.turn.completed.*` 一致 + piiBoundary 通过 |
 | Service AppendSessionEvent（含 F3 follow_up） | `backend/internal/practice/append_session_event_service_test.go` | Red: AI 调用在事务内 / AI 失败阻塞用户；Green: AI 在事务外、失败时退化到 `ask_question` placeholder 并写 `failure_code` 到 outcome / structured log 摘要（不写 append audit） |
 | `answer_submitted` 缺失 answerText | `backend/internal/practice/append_session_event_service_test.go` (`TestAppendSessionEventRejectsMissingAnswerText`) | Red: 缺失 / 空白 `payload.answerText` 进入 Route / AI / append；Green: 返回 `VALIDATION_FAILED` + `field='payload.answerText'`，只执行 reservation，不写 event |
+| `answer_submitted` server-owned follow-up state | `backend/internal/practice/session_event_test.go` + `backend/cmd/api/practice_http_scenario_test.go` | Red: 客户端 `payload.followUpCount` 可跳过 follow-up，或首次 follow-up 提前写 `practice.turn.completed`；Green: Route 只读 latest turn 的 DB `FollowUpCount`，HTTP scenario 覆盖 `ask_follow_up` → `ask_question` → `session_completed` 当前顺序 |
+| AppendSessionEvent required `occurredAt` | `backend/internal/api/practice/session_event_handlers_test.go` (`TestAppendSessionEventRequiresOccurredAt`) | Red: 缺失 `occurredAt` 被 handler 接受并由 service 默认 server time；Green: 缺失返回 422 `VALIDATION_FAILED` + `field='occurredAt'`，service 不被调用 |
 | Handler AppendSessionEvent | `backend/internal/api/practice/session_event_handlers_test.go` | Red: 接受 `Idempotency-Key` header / 错误码映射错；Green: 拒绝 header → 400；正常返回 200 + B2 wire shape |
 | Error mapping | handler/service error mapping tests | Red: 新增映射缺失；Green: clientEvent mismatch / idempotency header policy 映射 PASS |
 | Router 注册 | router test | Red: 路径未挂接 / 错误地挂上 idempotency middleware；Green: 路径命中 + 无 idempotency wrapper |
@@ -88,7 +91,7 @@
 | 任务 | 测试文件 / 命令 | 预期 Red/Green 证据 |
 |------|----------------|---------------------|
 | Repository CompleteSession 主流程 | `backend/internal/store/practice/append_complete_test.go` | Red: 单事务漏写表 / outbox 缺失 / async_jobs 缺失；Green: 单事务写 session / event / feedback_reports / async_jobs / outbox / audit |
-| Repository D-35 replay 路径 | 同上（`TestCompleteSession_ReplayReturnsExistingReport`） | Red: 第二次创建新 feedback_reports / async_jobs；Green: 反向查到既有 report + job + outbox dedupe，返回 Replay=true |
+| Repository D-35 replay 路径 | 同上（`TestCompleteSession_ReplayReturnsExistingReport`） | Red: 第二次创建新 feedback_reports / async_jobs，或 replay 查询不绑定 `async_jobs.dedupe_key=sessionId` / `resource_type='feedback_report'`；Green: 反向查到既有 report + matching job + outbox dedupe，返回 Replay=true |
 | Repository status guard | 同上（`TestSQLRepositoryCompleteSessionRejectsIllegalStatusWithoutReport` / `TestSQLRepositoryCompleteSessionReplaysExistingReportBeforeStatusGuard` / `TestCanCompletePracticeSessionStatusAllowsRunningWaitingAndCompleted`） | Red: 无既有 report/job 时 `failed` / `queued` / `completing` / `cancelled` 也创建 queued report/job，或 D-35 既有 report/job replay 被状态 guard 阻断；Green: D-35 replay 优先，缺失 report/job 时只允许 `running` / `waiting_user_input` / `completed` |
 | Repository concurrent single-executor | 同上（`TestCompleteSession_Concurrent`） | Red: 并发产生多份 feedback_reports；Green: UNIQUE(session_id) 约束 + row lock 序列化 |
 | Repository cross-user 404 | 同上（`TestCompleteSession_CrossUser`） | Red: 用户 B 命中用户 A；Green: 404 |
@@ -96,6 +99,7 @@
 | async_jobs dedupe_key | `append_complete_test.go` + cmd/api D-35 scenario | Red: dedupe_key 为空 / 不写 INDEX；Green: dedupe_key=sessionId 写入；UNIQUE INDEX / D-35 replay 阻止二次创建 |
 | Service CompleteSession (D-35) | `backend/internal/practice/complete_session_service_test.go` | Red: replay 路径返回新 reportId；Green: replay 返回原始 reportId / jobId / response_body |
 | Handler CompletePracticeSession + idempotency middleware | `backend/internal/api/practice/session_event_handlers_test.go` | Red: middleware 未挂接 / 双 key 行为错；Green: 正常返回 202 + ReportWithJob；replay 返回首次 response；mismatch 返回 409；cross-user 返回 404；D-35 双 key 走 service replay 路径 |
+| CompletePracticeSession required `clientCompletedAt` | `backend/internal/api/practice/session_event_handlers_test.go` (`TestCompletePracticeSessionRequiresClientCompletedAt`) | Red: 缺失 `clientCompletedAt` 被 handler 接受并由 service 默认 server time；Green: 缺失返回 422 `VALIDATION_FAILED` + `field='clientCompletedAt'`，service 不被调用 |
 | Idempotency middleware复用（complete 端） | `backend/internal/middleware/idempotency/middleware_test.go`（必要时扩展） | Red: complete 操作未走 middleware；Green: domain=`practice` + operation=`completePracticeSession` 在 middleware 中存档 |
 | Error mapping | handler/service error mapping tests | Red: 缺映射；Green: session not found → 404 PRACTICE_SESSION_NOT_FOUND；middleware mismatch → 409 |
 

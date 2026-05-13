@@ -33,7 +33,11 @@ func (h *Handler) AppendSessionEvent(w http.ResponseWriter, r *http.Request, ses
 		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "request body is malformed", nil)
 		return
 	}
-	occurredAt, err := parseOptionalRFC3339(body.OccurredAt)
+	occurredAt, missing, err := parseRequiredRFC3339(body.OccurredAt)
+	if missing {
+		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "occurredAt is required", map[string]any{"field": "occurredAt"})
+		return
+	}
 	if err != nil {
 		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "occurredAt must be RFC3339", map[string]any{"field": "occurredAt"})
 		return
@@ -68,7 +72,11 @@ func (h *Handler) CompletePracticeSession(w http.ResponseWriter, r *http.Request
 		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "request body is malformed", nil)
 		return
 	}
-	completedAt, err := parseOptionalRFC3339(body.ClientCompletedAt)
+	completedAt, missing, err := parseRequiredRFC3339(body.ClientCompletedAt)
+	if missing {
+		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "clientCompletedAt is required", map[string]any{"field": "clientCompletedAt"})
+		return
+	}
 	if err != nil {
 		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "clientCompletedAt must be RFC3339", map[string]any{"field": "clientCompletedAt"})
 		return
@@ -151,14 +159,14 @@ func nilAPIErrorCode(code string) *api.ApiErrorCode {
 	return &value
 }
 
-func parseOptionalRFC3339(raw string) (time.Time, error) {
+func parseRequiredRFC3339(raw string) (time.Time, bool, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return time.Time{}, nil
+		return time.Time{}, true, nil
 	}
 	parsed, err := time.Parse(time.RFC3339, raw)
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, false, err
 	}
-	return parsed, nil
+	return parsed, false, nil
 }

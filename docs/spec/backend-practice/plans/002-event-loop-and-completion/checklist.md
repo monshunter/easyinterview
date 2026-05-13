@@ -1,8 +1,8 @@
 # 002 — Event Loop and Completion Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -43,6 +43,7 @@
 - [x] 2.8 BDD-Gate: 验证 `E2E.P0.039` 通过（clientEventId replay / mismatch + 5 kind exhaustive + Idempotency-Key header 拒绝 + hint 默认 strict 409，Go HTTP scenario `TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy`）
 - [x] 2.9 BDD-Gate: 验证 `E2E.P0.040` 通过（stale-turn conflict 代理并发竞争；seq_no / row-lock 约束由 repository 与 DB UNIQUE gate 覆盖，Go HTTP scenario `TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict`）
 - [x] 2.10 L2 remediation：`answer_submitted` 缺失 / 空白 `payload.answerText` 返回 `422 VALIDATION_FAILED` 且不触发 AI / 不写 event（验证：`TestAppendSessionEventRejectsMissingAnswerText`，`cd backend && go test ./internal/practice -run 'TestAppendSessionEventRejectsMissingAnswerText|TestAppendSessionEventRejectsStaleTurnID' -count=1`）
+- [x] 2.11 L2 remediation：`answer_submitted` follow-up 决策改用 DB `practice_turns.follow_up_count`，忽略客户端 `payload.followUpCount`；首次答题进入 `follow_up_requested` 不发 `practice.turn.completed`，turn assessed 后一次/turn 发 outbox；`occurredAt` required 缺失返回 422；`E2E.P0.038` / `E2E.P0.039` / `E2E.P0.040` 覆盖当前分支顺序与 5 kind exhaustive（验证：`TestHandleAnswerSubmittedDecisionBranches`、`TestAppendSessionEventRequiresOccurredAt`、`TestE2EP0038PracticeEventLoopAnswerFlow`、`TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy`、`TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict`）
 
 ## Phase 3: CompletePracticeSession vertical slice
 
@@ -56,6 +57,7 @@
 - [x] 3.8 BDD-Gate: 验证 `E2E.P0.041` 通过（completePracticeSession 202 + ReportWithJob + queued report/job + outbox emit，Go HTTP scenario `TestE2EP0041PracticeSessionCompleteCreatesQueuedReportJob`）
 - [x] 3.9 BDD-Gate: 验证 `E2E.P0.042` 通过（complete idempotency 矩阵 + D-35 双 key replay + dispatcher 不二次创建，Go HTTP scenario `TestE2EP0042PracticeSessionCompleteIdempotencyMatrix`）
 - [x] 3.10 L2 remediation：D-35 replay 先于状态 guard；没有既有 report/job 时仅允许 `running` / `waiting_user_input` / `completed` 创建 queued report/job，拒绝 `queued` / `completing` / `failed` / `cancelled`（验证：`TestSQLRepositoryCompleteSessionRejectsIllegalStatusWithoutReport`、`TestSQLRepositoryCompleteSessionReplaysExistingReportBeforeStatusGuard`、`TestCanCompletePracticeSessionStatusAllowsRunningWaitingAndCompleted`、`TestE2EP0042PracticeSessionCompleteIdempotencyMatrix`）
+- [x] 3.11 L2 remediation：D-35 replay 反向查找绑定 `async_jobs.job_type='report_generate'` + `resource_type='feedback_report'` + `dedupe_key=sessionId`，`clientCompletedAt` required 缺失返回 422（验证：`TestSQLRepositoryCompleteSessionReplaysExistingReportBeforeStatusGuard`、`TestCompletePracticeSessionRequiresClientCompletedAt`、`cd backend && go test ./internal/store/practice ./internal/api/practice -count=1`）
 
 ## Phase 4: 隐私 / 观测 / Legacy-Negative / Handoff
 

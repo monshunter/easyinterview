@@ -247,11 +247,14 @@ join async_jobs j on j.resource_id = fr.id
 where fr.user_id = $1
   and fr.session_id = $2
   and j.job_type = $3
+  and j.resource_type = 'feedback_report'
+  and j.dedupe_key = $4
 order by j.created_at asc
 limit 1`,
 		userID,
 		sessionID,
 		string(sharedjobs.JobTypeReportGenerate),
+		sessionID,
 	).Scan(
 		&result.ReportID,
 		&result.Job.ID,

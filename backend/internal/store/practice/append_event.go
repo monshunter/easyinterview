@@ -148,17 +148,18 @@ func selectAppendSessionContext(ctx context.Context, tx *sql.Tx, userID, session
 	var questionText sql.NullString
 	var questionIntent sql.NullString
 	var turnStatus sql.NullString
+	var followUpCount sql.NullInt64
 	var askedAt sql.NullTime
 	err := tx.QueryRowContext(ctx, `
 select s.id, s.plan_id, s.target_job_id, s.status, s.language, s.hints_enabled,
        s.turn_count, s.created_at, s.updated_at,
        p.id, p.target_job_id, p.goal, p.mode, p.interviewer_persona, p.difficulty,
        p.language, p.time_budget_minutes, p.question_budget, p.status, p.created_at,
-       t.id, t.turn_index, t.question_text, t.question_intent, t.status, t.asked_at
+       t.id, t.turn_index, t.question_text, t.question_intent, t.status, t.follow_up_count, t.asked_at
 from practice_sessions s
 join practice_plans p on p.id = s.plan_id
 left join lateral (
-  select id, turn_index, question_text, question_intent, status, asked_at
+  select id, turn_index, question_text, question_intent, status, follow_up_count, asked_at
   from practice_turns
   where session_id = s.id
   order by turn_index desc
@@ -195,6 +196,7 @@ for update of s`,
 		&questionText,
 		&questionIntent,
 		&turnStatus,
+		&followUpCount,
 		&askedAt,
 	)
 	if stderrs.Is(err, sql.ErrNoRows) {
@@ -212,6 +214,7 @@ for update of s`,
 		QuestionText:   questionText.String,
 		QuestionIntent: questionIntent.String,
 		Status:         turnStatus.String,
+		FollowUpCount:  int(followUpCount.Int64),
 		AskedAt:        askedAt.Time,
 	}
 	turn := state.latestTurn
@@ -254,7 +257,7 @@ func replayIfHit(result domain.AppendSessionEventResult, hit bool) *domain.Appen
 
 func updateLatestTurn(ctx context.Context, tx *sql.Tx, in domain.AppendSessionEventStoreInput, latest domain.TurnRecord) error {
 	answerText := payloadString(in.RequestPayload, "answerText")
-	followUpCount := payloadInt(in.RequestPayload, "followUpCount")
+	followUpCount := in.Outcome.NextTurn.FollowUpCount
 	completedAt := any(nil)
 	if in.Outcome.NextTurn.Status == string(domain.TurnStatusAssessed) || in.Outcome.NextTurn.Status == string(domain.TurnStatusSkipped) {
 		completedAt = in.OccurredAt.UTC()
@@ -556,26 +559,5 @@ func payloadString(payload map[string]any, key string) string {
 		return typed.String()
 	default:
 		return fmt.Sprint(typed)
-	}
-}
-
-func payloadInt(payload map[string]any, key string) int {
-	if payload == nil {
-		return 0
-	}
-	switch value := payload[key].(type) {
-	case int:
-		return value
-	case int32:
-		return int(value)
-	case int64:
-		return int(value)
-	case float64:
-		return int(value)
-	case json.Number:
-		n, _ := value.Int64()
-		return int(n)
-	default:
-		return 0
 	}
 }

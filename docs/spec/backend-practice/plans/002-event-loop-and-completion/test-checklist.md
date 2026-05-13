@@ -1,8 +1,8 @@
 # 002 — Event Loop and Completion Test Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-14
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -16,11 +16,11 @@
 
 ## Phase 2: AppendSessionEvent vertical slice
 
-- [x] Phase 2 本计划定义的 repository（主流程 / stale-turn conflict / replay / mismatch / cross-user）、outbox_emitter practice.turn.completed、service（含 F3 follow_up、AI 失败退化、`answer_submitted` 缺失 `payload.answerText` 校验）、handler（拒 header / 200 wire shape）、error mapping、router 单元 + 集成 + contract 测试项全部通过
+- [x] Phase 2 本计划定义的 repository（主流程 / stale-turn conflict / replay / mismatch / cross-user）、outbox_emitter practice.turn.completed、service（含 F3 follow_up、AI 失败退化、`answer_submitted` 缺失 `payload.answerText` 校验、server-owned `follow_up_count` 决策）、handler（拒 header / required `occurredAt` / 200 wire shape）、error mapping、router 单元 + 集成 + contract 测试项全部通过
 
 ## Phase 3: CompletePracticeSession vertical slice
 
-- [x] Phase 3 本计划定义的 repository（主流程 / D-35 replay / status guard / cross-user / async_jobs dedupe）、outbox_emitter practice.session.completed、service replay、handler（idempotency middleware + 双 key + cross-user + illegal completion status conflict）、idempotency middleware 复用、error mapping 单元 + 集成 + contract 测试项全部通过
+- [x] Phase 3 本计划定义的 repository（主流程 / D-35 replay + `async_jobs.dedupe_key=sessionId` lookup / status guard / cross-user / async_jobs dedupe）、outbox_emitter practice.session.completed、service replay、handler（idempotency middleware + required `clientCompletedAt` + 双 key + cross-user + illegal completion status conflict）、idempotency middleware 复用、error mapping 单元 + 集成 + contract 测试项全部通过
 
 ## Phase 4: 隐私 / 观测 / Legacy-Negative
 

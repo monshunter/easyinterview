@@ -1,8 +1,8 @@
 # 002 — Event Loop and Completion
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -46,7 +46,7 @@ frontend-workspace-and-practice 当前 `frontend/src/app/screens/workspace/` 已
 
 | `operationId` | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |---------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json`：Phase 0 补齐 `default`（answer_submitted → ask_question）、`follow-up`（answer_submitted → ask_follow_up）、`hint-strict-conflict`（hint_requested → 409）、`turn-skipped`（turn_skipped → ask_question）、`pause-resume`（session_paused / session_resumed → session_wait）、`replay`（重复 clientEventId 返回首次结果）、`mismatch`（同 clientEventId 不同 payload → 409）、`completed`（达到 question_budget → session_completed） | Plan 002 Phase 2 完成后，`frontend/src/app/screens/practice/` 与 generated TS client 通过 fixture-backed transport 接入；本 plan 不要求正式前端消费，但生成物必须无 schema drift | Plan 002 Phase 1-2：`backend/internal/api/practice.AppendSessionEvent` + `backend/internal/practice.SessionEventService`（state machine + AssistantAction decision）+ `backend/internal/store/practice.AppendSessionEvent` repository | `practice_session_events`（含 UNIQUE(session_id, client_event_id) 复用 + seq_no 单调）、`practice_turns`（DB 5 值 status 推进）、`outbox_events`（`practice.turn.completed` 行）；append 路径不写 `audit_events` | F3 `practice.session.follow_up`（answer_submitted → ask_follow_up 分支）；hint_requested 在 002 默认 strict 不调 AI；`practice.turn.lightweight_observe` 不在 002 调用（归 003） | `E2E.P0.038`, `E2E.P0.039`, `E2E.P0.040`, `E2E.P0.043` |
+| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json`：Phase 0 补齐 `default`（answer_submitted → ask_question）、`follow-up`（answer_submitted → ask_follow_up）、`hint-strict-conflict`（hint_requested → 409）、`turn-skipped`（turn_skipped → ask_question）、`pause-resume`（session_paused / session_resumed → session_wait）、`replay`（重复 clientEventId 返回首次结果）、`mismatch`（同 clientEventId 不同 payload → 409）、`completed`（达到 question_budget → session_completed） | Plan 002 Phase 2 完成后，`frontend/src/app/screens/practice/` 与 generated TS client 通过 fixture-backed transport 接入；本 plan 不要求正式前端消费，但生成物必须无 schema drift | Plan 002 Phase 1-2：`backend/internal/api/practice.AppendSessionEvent` + `backend/internal/practice.SessionEventService`（state machine + AssistantAction decision）+ `backend/internal/store/practice.AppendSessionEvent` repository | `practice_session_events`（含 UNIQUE(session_id, client_event_id) 复用 + seq_no 单调）、`practice_turns`（DB 5 值 status 推进；`follow_up_count` 为 server-owned state，不接受客户端 payload 驱动）、`outbox_events`（仅在 turn assessed / skipped 等完成态产生 `practice.turn.completed` 行）；append 路径不写 `audit_events` | F3 `practice.session.follow_up`（answer_submitted → ask_follow_up 分支）；hint_requested 在 002 默认 strict 不调 AI；`practice.turn.lightweight_observe` 不在 002 调用（归 003） | `E2E.P0.038`, `E2E.P0.039`, `E2E.P0.040`, `E2E.P0.043` |
 | `completePracticeSession` | `openapi/fixtures/PracticeSessions/completePracticeSession.json`：Phase 0 补齐 `default`（202 + ReportWithJob queued）、`replay`（同 key 同 fingerprint 返回首次 response）、`mismatch`（同 key 不同 fingerprint → 409）、`session-already-completed`（同 session 不同 key 走 D-35 replay）、`cross-user-not-found`（404 PRACTICE_SESSION_NOT_FOUND） | Plan 002 Phase 3 完成后，`frontend/src/app/screens/practice/` finish action 通过 fixture-backed transport 接入；本 plan 不要求正式前端消费 | Plan 002 Phase 3：`backend/internal/api/practice.CompletePracticeSession`（idempotency middleware decorated）+ `backend/internal/practice.SessionCompletionService` + `backend/internal/store/practice.CompleteSession` repository | `practice_sessions(status='completing')`、`practice_session_events(event_type='session_completed', seq_no=MAX+1)`、`feedback_reports(status='queued', user_id, session_id)` placeholder、`async_jobs(job_type='report_generate', status='queued', dedupe_key=sessionId)`、`outbox_events practice.session.completed`、`idempotency_records(status='succeeded', resource_type='feedback_report', resource_id=reportId, response_body snapshot)` | no AI in completion path（D-8 only applies to AI-driven AssistantAction generation；completion 同事务无 AI 调用） | `E2E.P0.041`, `E2E.P0.042`, `E2E.P0.043` |
 
 ## 3.5 Coverage Matrix
@@ -82,6 +82,9 @@ frontend-workspace-and-practice 当前 `frontend/src/app/screens/workspace/` 已
 - 2026-05-13 `plan-code-review --fix` 修订：`answer_submitted` service gate 现在要求非空 `payload.answerText`，与 spec §2.1 事件 payload contract 对齐；缺失或空白值在 append 前返回 `422 VALIDATION_FAILED`，不触发 AI / 不写 event。
 - 2026-05-13 `plan-code-review --fix` 修订：`completePracticeSession` 先保留 D-35 既有 report/job replay；没有既有 report/job 时，仅允许 `running` / `waiting_user_input` / `completed` 进入 queued report/job 创建，`queued` / `completing` / `failed` / `cancelled` 返回 `409 PRACTICE_SESSION_CONFLICT`。
 - 2026-05-13 `plan-code-review --fix` 修订：BDD 编号迁移为 `E2E.P0.038` ~ `E2E.P0.043`，因为 `E2E.P0.034` / `E2E.P0.035` 已由 backend-resume 场景占用；`scripts/lint/backend_practice_legacy.py` 增加可执行重复编号 / HTTP scenario test 入口反查。
+- 2026-05-14 `plan-code-review --fix` 修订：`answer_submitted` 的 follow-up 分支改为读取 DB `practice_turns.follow_up_count`，忽略客户端 `payload.followUpCount`；首次答案只进入 `follow_up_requested` 且不发 `practice.turn.completed`，turn 到 `assessed` 后才按一次/turn 发 outbox。
+- 2026-05-14 `plan-code-review --fix` 修订：handler 对 OpenAPI required 字段 `occurredAt` / `clientCompletedAt` 执行 422 必填校验，不再以服务端时间静默补齐缺失客户端时间。
+- 2026-05-14 `plan-code-review --fix` 修订：D-35 replay 查询精确绑定 `async_jobs(job_type='report_generate', resource_type='feedback_report', dedupe_key=sessionId)`，并补强 `E2E.P0.038` / `E2E.P0.039` / `E2E.P0.040` 的当前语义覆盖。
 
 ## 4 实施步骤
 
