@@ -10,7 +10,7 @@
 
 目标：
 
-1. **完整业务域**：所有 Resume HTTP endpoint（B2 D-18 13 个 op：register / get / list / listVersions / getVersion / branch / update / accept / reject / requestTailor / getTailorRun / archive / export）都在本 subject 落地 handler；frontend 与 mock-contract-suite 消费同一份字节级响应。
+1. **完整业务域**：所有 Resume HTTP endpoint（B2 D-18 13 个 op：register / get / list / listVersions / getVersion / branch / update / accept / reject / requestTailor / getTailorRun / archive / export）都在本 subject 落地 handler，并通过 `cmd/api` session middleware / idempotency middleware 挂到真实 `/api/v1/*` route；frontend 与 mock-contract-suite 消费同一份字节级响应。
 2. **AI 编排封装**：resume.parse 与 resume.tailor 通过 [A3 AIClient + Capability Model Profile](../ai-provider-and-model-routing/spec.md) 调用；prompt / rubric / 模型版本通过 [F3](../prompt-rubric-registry/spec.md) 注册（3 个 baseline feature_key：`resume.parse` / `resume.tailor.gap_review` / `resume.tailor.bullet_suggestions`）；业务代码不 import 厂商 SDK。
 3. **版本树语义**：`resume_versions.parent_version_id` 自引用支持版本链；branch 流程支持 3 种 `seed_strategy`（`copy_master` 同步返回 / `blank` 同步 / `ai_select` 入队 tailor job）。
 4. **改写建议状态机**：`resume_version_suggestions.status` ∈ `pending → accepted | rejected`；accept 与 reject 都是终态（不可再切；如需重做必须新建 suggestion 或 branch 新 version）。
@@ -22,15 +22,15 @@
 
 ### 2.1 In Scope
 
-- **HTTP handler**：实现 [B2 §3.1.1](../openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表) Resumes + ResumeTailor tag 全部 13 个 operationId（含 D-18 9 个新 op）。
+- **HTTP handler + runtime wiring**：实现 [B2 §3.1.1](../openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表) Resumes + ResumeTailor tag 全部 13 个 operationId（含 D-18 9 个新 op），并在 `cmd/api` 中按当前 session / IK / generated response envelope 口径挂载真实 route。
 - **store layer**：`resume_assets` / `resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` 4 张表 Repository（前 3 张由 [B4 002 resume-versions-additive](../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) 落地 schema）。
 - **AI 编排**：
-  - `resume.parse` async job（[B3 jobs.yaml](../event-and-outbox-contract/spec.md#311-dbbackend-runner-canonical-job_type--asynq-dotted-task-name-映射) C7 owner）：解析 file_object → 提取 `structuredProfile` → 写 `resume_assets.parsed_summary` → 发射 `resume.parse.completed`。
+  - `resume.parse` async job（[B3 jobs.yaml](../event-and-outbox-contract/spec.md#311-dbbackend-runner-canonical-job_type--asynq-dotted-task-name-映射) C7 owner）：解析 file_object / paste text / guided answers → 提取 parse draft → 写 `resume_assets.parsed_summary` / `parsed_text_snapshot`；只有最终 `parse_status='ready'` 时发射 `resume.parse.completed`，失败路径只写 `ai_task_runs` / audit / async retry metadata，不发 completed event。
   - `resume.tailor` async job：基于 targetJobId + 简历 master version 生成 suggestion → 写 `resume_tailor_runs` + `resume_version_suggestions` → 发射 `resume.tailor.completed`。
 - **branch 业务逻辑**：`branchResumeVersion` 支持 3 个 seed_strategy；`ai_select` 同步返回 `resume_version_id` + 入队 `resume_tailor` job（202 + Job）。
 - **suggestion 状态机**：accept → 写入 `decided_at` + 同步更新 `resume_versions.structured_profile`（可选）；reject → 仅写入 `decided_at`。
 - **隐私链路**：privacy_delete 调用 backend-resume 提供的 `DeleteResumeAssetsForUser` API；级联 versions / suggestions / tailor_runs；调 [backend-upload `DeleteFileObjectsForUser`](../backend-upload/spec.md) 删除 file binary。
-- **B3 events 发射**：`resume.parse.completed` / `resume.tailor.completed` 在 job 完成时通过 outbox 写入；payload 字段必须与 [B3 §3.1.4](../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory) 一致。
+- **B3 events 发射**：`resume.parse.completed` / `resume.tailor.completed` 在对应业务结果 ready 成功时通过 outbox 写入；失败路径写 `ai_task_runs` / audit / async retry metadata，不发 `*.completed` 事件。payload 字段必须与 [B3 §3.1.4](../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory) 一致。
 - **mock-first 对齐**：本 subject 实现的 handler 响应字段集 / status code / IK 行为与 B2 fixture 字节比对，[mock-contract-suite C-9](../mock-contract-suite/spec.md#6-验收标准) 强制 enforce。
 
 ### 2.2 Out of Scope
@@ -88,8 +88,8 @@
 
 ### 4.4 BDD / TDD 约束
 
-- 每个 endpoint 必须有 handler unit test（参数校验 + IK + 错误路径）+ store integration test（state transition + cross-user isolation）+ AI 调用 unit test（stub provider，验证 prompt/profile 路由正确）。
-- 用户可见行为（register / list / branch / accept / reject / parse 完成）必须有 BDD scenario 覆盖。
+- 每个 endpoint 必须有 handler unit test（参数校验 + IK + 错误路径）+ `cmd/api` route wiring test（session middleware / idempotency middleware / path params）+ store integration test（state transition + cross-user isolation）+ AI 调用 unit test（stub provider，验证 prompt/profile 路由正确）。
+- 用户可见行为（register / list / branch / accept / reject / parse 完成）必须有 BDD scenario 覆盖；涉及 async job 的场景必须通过 `cmd/api` in-process drainer 或等价真实 runtime harness 证明可执行，不得只验证包级 handler。
 
 ## 5 模块边界
 
@@ -98,7 +98,8 @@
 | 13 个 Resume HTTP handler | backend-resume | 真实业务逻辑 |
 | `resume_assets` / `resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` 表 schema | [B4 db-migrations-baseline](../db-migrations-baseline/spec.md) + [B4 002 plan](../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) | 字段 / 索引 / FK / check constraint |
 | file_object 引用 | [backend-upload](../backend-upload/spec.md) `Register` internal API | resume_assets 通过 backend-upload 引用 file_object |
-| `resume.parse` / `resume.tailor` async job | backend-resume + backend-runtime-topology | job handler 注册到 backend internal runner |
+| `resume.parse` / `resume.tailor` async job | backend-resume + backend-runtime-topology | job handler 注册到 `cmd/api` in-process drainer / runtime composition |
+| `cmd/api` runtime wiring | backend-resume + backend-runtime-topology | 挂载 Resume route、idempotency middleware 与 in-process drainer；不得引入独立 worker 进程 |
 | AI 调用 | [A3 AIClient](../ai-provider-and-model-routing/spec.md) + [F3 feature_key](../prompt-rubric-registry/spec.md) | backend-resume 只引用 profile，不绑定 provider |
 | 隐私删除调用 | backend internal privacy runner（[backend-runtime-topology](../backend-runtime-topology/spec.md)） | 调用 `DeleteResumeAssetsForUser` |
 | frontend Resume Workshop UI | [frontend-resume-workshop](../frontend-resume-workshop/spec.md) | 消费 generated TS client |
@@ -111,11 +112,11 @@
 | C-1 | registerResume (upload) 主路径 | 已登录 + 有效 file_object (purpose=resume) + IK | 调 `POST /api/v1/resumes` `{sourceType: upload, fileObjectId, title, language}` | 返回 202 + `ResumeAssetWithJob{resumeAssetId, job(jobType=resume_parse, status=queued)}`；DB `resume_assets` 行 `parse_status='queued'`；触发 `resume.parse` async job | 001-asset-register-parse-and-listing |
 | C-2 | registerResume (paste / guided) | sourceType=paste with rawText OR guided with guidedAnswers | 调 register | 同 C-1 行为，但 `resume_assets.file_object_id` 为 NULL；paste 写 `source_type='paste'` + `original_text`；guided 写 `source_type='guided'` + `guided_answers` jsonb；`parsed_text_snapshot` 仅由 parse job 后续写入 | 001 |
 | C-3 | resume.parse async 完成 | resume.parse job consumer 处理 queued 行 | 通过 [A3 AIClient](../ai-provider-and-model-routing/spec.md) 调 model + parse JSON | DB `resume_assets.parse_status='ready'` + `parsed_summary` / `parsed_text_snapshot` 写入；触发 outbox `resume.parse.completed`（envelope 字段集 [B3 §3.1.4](../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory) 一致）；ai_task_runs 行写入 typed columns；用户 Preview Confirm 前不得创建正式 `structured_master` `ResumeVersion` | 001 |
-| C-4 | resume.parse 失败 retryable | AI provider 返回 timeout / output_invalid | resume.parse 失败 | DB `resume_assets.parse_status='failed'` + `error_code='AI_PROVIDER_TIMEOUT'`；retryable 重试上限到达后停止；privacy 红线：error 不含 prompt / response 摘要 | 001 |
-| C-5 | listResumes pagination | 用户 A 有 25 个 resume_asset | 调 `GET /api/v1/resumes?pageSize=20` 然后 cursor | 第一页返回 20 行 + `pageInfo.nextCursor`；第二页返回 5 行 + `hasMore=false`；按 `updated_at DESC` 排序；cross-user 不可见 | 001 |
+| C-4 | resume.parse 失败 retryable | AI provider 返回 timeout / output_invalid | resume.parse 失败 | DB `resume_assets.parse_status='failed'` + 对应 `error_code`；retryable 由 `async_jobs` attempt metadata 表达；失败路径不发 `resume.parse.completed`；privacy 红线：error 不含 prompt / response 摘要 | 001 |
+| C-5 | listResumes pagination | 用户 A 有 25 个 resume_asset | 调 `GET /api/v1/resumes?pageSize=20` 然后 cursor | 第一页返回 20 行 + `pageInfo.nextCursor`；第二页返回 5 行 + `hasMore=false`；按 `updated_at DESC, id DESC` 唯一稳定序排序；cross-user 不可见 | 001 |
 | C-6 | cross-user 隔离 | 用户 A 有 resume；用户 B 调 `getResume(A.resumeAssetId)` | – | 404；不暴露存在；audit_events 不写入敏感字段 | 001 + 后续 plan |
 | C-7 | IK replay | register 同 IK 重复调用 | – | 返回首次 `resumeAssetId`；不创建新 DB 行 | 001 |
-| C-8 | mock-first 字节比对 | B2 fixture `registerResume.json` `default` scenario | 调真实 handler | 响应字段集 / status / header 字节一致 | 001 + mock-contract-suite |
+| C-8 | mock-first 字节比对 | B2 fixture `registerResume.json` `default` scenario | 通过 `cmd/api` route 调真实 handler | 响应字段集 / status / header 字节一致；session / IK middleware 不改变 generated response envelope | 001 + mock-contract-suite |
 | C-9 | privacy 删除链路 | 用户 A 有 3 resume_asset + 5 version + 10 suggestion + 2 tailor_run | privacy_delete job 触发 | backend-resume 删除顺序：suggestions → versions → tailor_runs → assets；backend-upload 同一 privacy request 删除 file binary / file_objects（对象存储先删，成功后 DB hard delete）；audit tombstone 仅保留 ID / 删除时间，不含内容 | 后续 plan |
 | C-10 | branchResumeVersion seedStrategy 三路 | 用户 A 有 master version | 分别调 `copy_master` / `blank` / `ai_select` branch | `copy_master` 同步返回 + structured_profile 拷贝；`blank` 同步返回 + structured_profile 空；`ai_select` 同步返回 resume_version_id + 入队 resume.tailor job | 后续 plan |
 | C-11 | suggestion accept/reject 状态机 | suggestion `pending` | 调 accept；再调 accept | 首次返回 200 + `decided_at` 写入；第二次返回 409 + `error.code = "VALIDATION_FAILED"`（或按 IK 语义幂等返回首次结果）；不私造未登记状态迁移错误码 | 后续 plan |

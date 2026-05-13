@@ -29,6 +29,9 @@ spec:
       - resume list handler cursor pagination
       - resume parse async job
       - resume parse completed event
+      - cmd/api resume route wiring
+      - in-process resume parse drainer
+      - RegisterFileObject object stat size mismatch
       - sourceType upload paste guided
       - guided answers jsonb
       - aiclient resume parse feature key
@@ -52,7 +55,9 @@ spec:
           - backend/internal/resume/handler
           - backend/internal/resume/store
           - backend/internal/resume/jobs
+          - backend/cmd/api
           - backend/internal/api/generated
+          - backend/internal/ai
           - backend/internal/upload
           - backend/internal/shared/events
           - openapi/fixtures/Resumes
