@@ -53,6 +53,12 @@ class ScenarioScriptContractTest(unittest.TestCase):
         self.assertIn("DATABASE_URL", result.stdout)
         self.assertIn("OBJECT_STORAGE_ENDPOINT", result.stdout)
 
+    def test_trigger_runs_live_roundtrip_gate(self) -> None:
+        trigger = (SCRIPT_DIR / "trigger.sh").read_text(encoding="utf-8")
+
+        self.assertIn("TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip", trigger)
+        self.assertIn("-tags=integration", trigger)
+
     def test_verify_rejects_skipped_live_integration_checks(self) -> None:
         self._trigger.write_text(
             "\n".join(
@@ -82,6 +88,59 @@ class ScenarioScriptContractTest(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertIn("live integration skip", result.stdout)
+
+    def test_verify_rejects_missing_live_roundtrip_test_evidence(self) -> None:
+        self._trigger.write_text(
+            "\n".join(
+                [
+                    "=== RUN   TestCreateUploadPresign",
+                    "=== RUN   TestCreateUploadPresignCreatesPendingFileObjectAndPresignsObject",
+                    "=== RUN   TestRepositoryRegisterUploadedChecksObjectWhileRowLocked",
+                    "=== RUN   TestBuildAPIHandlerMountsUploadPresignBehindSessionMiddleware",
+                    "=== RUN   TestDeleteFileObjectsForUser",
+                    "=== RUN   TestInsertAuditTombstoneIntegrationDoesNotPersistObjectKey",
+                    "PASS",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        result = subprocess.run(
+            [str(SCRIPT_DIR / "verify.sh")],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=60,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+
+    def test_verify_rejects_no_tests_to_run(self) -> None:
+        self._trigger.write_text(
+            "\n".join(
+                [
+                    "=== RUN   TestCreateUploadPresign",
+                    "testing: warning: no tests to run",
+                    "PASS",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        result = subprocess.run(
+            [str(SCRIPT_DIR / "verify.sh")],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=60,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn("matched no tests", result.stdout)
 
 
 if __name__ == "__main__":

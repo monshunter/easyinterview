@@ -66,6 +66,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0049](./BUG-0049.md) | backend upload follow-up review exposed MinIO race and no-op live gate | medium | resolved | 2026-05-13 | `fix(backend-upload): close follow-up L2 gaps` |
 | [BUG-0048](./BUG-0048.md) | backend upload L2 review exposed size privacy and live gate gaps | high | resolved | 2026-05-12 | `fix(backend-upload): harden upload privacy and live gates` |
 | [BUG-0047](./BUG-0047.md) | upload presign runtime path was only partially wired | high | resolved | 2026-05-12 | `fix(backend-upload): wire presign runtime contracts` |
 | [BUG-0035](./BUG-0035.md) | change-intake mutated main before branch guard | high | resolved | 2026-05-10 | `fix(change-intake): require branch guard before mutation` |

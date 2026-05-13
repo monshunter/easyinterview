@@ -1,8 +1,8 @@
 # Backend Upload File Objects and Presign Baseline
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-12
+> **更新日期**: 2026-05-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -192,14 +192,15 @@ Config dependency: existing A4 `objectStorage.endpoint` / `bucket` / `accessKey`
 
 #### 6.5 Live scenario gate hardening
 
-- E2E.P0.033 必须要求 `DATABASE_URL` 与 `OBJECT_STORAGE_*` live env；integration-tag tests 出现 skip 时 scenario 必须 fail，不得作为 Ready/PASS BDD 证据。
+- E2E.P0.033 必须要求 `DATABASE_URL` 与 `OBJECT_STORAGE_*` live env；integration-tag tests 出现 skip 或 focused gate no-op 时 scenario 必须 fail，不得作为 Ready/PASS BDD 证据。
+- `trigger.sh` 必须执行 `go test ./cmd/api -tags=integration -run TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip -count=1 -v`，该测试必须覆盖真实 `POST /api/v1/uploads/presign` → MinIO signed `PUT` → internal `RegisterFileObject` → `DELETE /api/v1/me` → runtime drainer 处理 `privacy_delete` → DB hard delete + audit tombstone 的 live roundtrip。
 
 ## 5 验收标准
 
 - 本计划列出的 §4 所有 Phase task 全部完成
 - §3 替代验证 gate 全部通过
 - spec §6 C-1..C-8 全部 PASS
-- BDD E2E.P0.033 PASS（含 setup → trigger → verify → cleanup 全脚本）
+- BDD E2E.P0.033 PASS（含 setup → trigger → verify → cleanup 全脚本；trigger 必须包含 `TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip` live roundtrip evidence）
 - backend-resume / backend-targetjob owner 已收到 createUploadPresign 落地信号
 - Phase 6 L2 remediation hardening 全部通过；若本机 live DB / MinIO env 未就绪，只能记录 scenario gate hardening 验证，不能把 E2E.P0.033 记为 live PASS。
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -21,8 +22,9 @@ type MinIOConfig struct {
 }
 
 type MinIOStore struct {
-	cfg    MinIOConfig
-	client *minio.Client
+	cfg      MinIOConfig
+	clientMu sync.Mutex
+	client   *minio.Client
 }
 
 func NewMinIOStore(cfg MinIOConfig) *MinIOStore {
@@ -110,6 +112,8 @@ func (s *MinIOStore) validate() error {
 }
 
 func (s *MinIOStore) clientFor() (*minio.Client, error) {
+	s.clientMu.Lock()
+	defer s.clientMu.Unlock()
 	if s.client != nil {
 		return s.client, nil
 	}

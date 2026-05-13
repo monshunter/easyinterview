@@ -24,6 +24,7 @@ mkdir -p "$OUT"
   go test ./internal/upload/store -run 'TestRepository(Create|Mark|Lock|RegisterUploaded|HardDelete|DeleteFileObjectsForUser|InsertAuditTombstone)' -count=1 -v
   go test ./internal/upload/objectstore -count=1 -v
   go test ./cmd/api -run TestBuildAPIHandlerMountsUploadPresignBehindSessionMiddleware -count=1 -v
+  go test ./cmd/api -tags=integration -run TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip -count=1 -v
   go test ./internal/upload/store -tags=integration -run 'TestInsertAuditTombstoneIntegrationDoesNotPersistObjectKey|TestFileObjectsIntegrationDatabaseAvailable' -count=1 -v
   go test ./internal/upload/objectstore -tags=integration -run TestMinIO -count=1 -v
 } | tee "$OUT/trigger.log"
