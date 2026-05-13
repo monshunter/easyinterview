@@ -1,8 +1,8 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-13
 
 ## 1 背景与目标
 
@@ -33,7 +33,7 @@
   - 文本面试 `TextSurface`：对话记录 + 输入区 + `语音转文字` 麦克风 + 提示 + 跳过 + 提交。
   - 语音面试 `VoiceSurface`：`PracticeWaveformBars` + `PracticeAnnotatedWaveform` + 实时转写；具体 STT/LLM/TTS orchestration 归 `practice-voice-mvp`。
   - Left/Right Panel：题目地图、实时观察、JD 关联、可调用经历、AI 透明度、表达层指标、现场提示与音频留存说明，按 `practiceMode` 显隐。
-  - PracticeSession 消费状态：`running / waiting_user_input / completing / completed / failed / cancelled`；前端不重复实现 backend 状态机，只消费 `PracticeSession` / `SessionEventResult` / `AssistantAction`。
+  - PracticeSession 消费状态：`queued / running / waiting_user_input / completing / completed / failed / cancelled`（以 `shared/conventions.yaml` / `openapi/openapi.yaml` 当前 `SessionStatus` 七值为准）；前端不重复实现 backend 状态机，只消费 `PracticeSession` / `SessionEventResult` / `AssistantAction`。
 - `generating` 屏（`route=generating`，chrome 隐藏）：
   - 源级复刻 `ui-design/src/screens-p0-complete.jsx::ReportGeneratingScreen` 的 4 步进度态、文案、节奏与布局。
   - 通过 `getFeedbackReport(reportId)` fixture variant `report-generating → default` 模拟轮询；`failed` variant 触发错误态。

@@ -8,7 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-*暂无进行中计划*
+| [002-practice-text-event-loop](./002-practice-text-event-loop/plan.md) | [plan](./002-practice-text-event-loop/plan.md) / [checklist](./002-practice-text-event-loop/checklist.md) / [context](./002-practice-text-event-loop/context.yaml) / [test-plan](./002-practice-text-event-loop/test-plan.md) / [test-checklist](./002-practice-text-event-loop/test-checklist.md) / [bdd-plan](./002-practice-text-event-loop/bdd-plan.md) / [bdd-checklist](./002-practice-text-event-loop/bdd-checklist.md) | 1.0 | active | 2026-05-13 |
 
 ## 2 已完成（Completed）
 
@@ -19,7 +19,6 @@
 <!--
 保留编号建议（启动条件由后续 plan-review 阶段确认；与 backend-practice §7 plan 序列对接见 spec.md §7）：
 
-- 002-practice-text-event-loop — PracticeScreen 文本 surface + appendSessionEvent kind 路由 + AssistantAction 渲染 + completePracticeSession 异步流 + assisted/strict 辅助度策略 + goal='debrief' 数据来源组合回归 + BDD
 - 003-practice-voice-surface — PracticeScreen 语音 surface + audio/playback/barge-in UI 事件上报 + BDD；full voice turn flow 等 createPracticeVoiceTurn contract landed 后启用
 - 004-generating-report-handoff — GeneratingScreen 异步轮询 getFeedbackReport(reportId) + succeeded/failed handoff 到 external report owner + BDD
 
