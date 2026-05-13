@@ -76,14 +76,15 @@ type JobsSpec struct {
 }
 
 type JobSpec struct {
-	Canonical      string                  `yaml:"canonical"`
-	AsynqTask      string                  `yaml:"asynqTask"`
-	APIFacing      bool                    `yaml:"apiFacing"`
-	TriggerEvent   string                  `yaml:"triggerEvent"`
-	OwnerDomain    string                  `yaml:"ownerDomain"`
-	Priority       string                  `yaml:"priority"`
-	PayloadSchema  map[string]PayloadField `yaml:"payloadSchema"`
-	RedactedFields []string                `yaml:"redactedFields"`
+	Canonical            string                  `yaml:"canonical"`
+	AsynqTask            string                  `yaml:"asynqTask"`
+	APIFacing            bool                    `yaml:"apiFacing"`
+	TriggerEvent         string                  `yaml:"triggerEvent"`
+	TriggerEventSemantic string                  `yaml:"triggerEventSemantic"`
+	OwnerDomain          string                  `yaml:"ownerDomain"`
+	Priority             string                  `yaml:"priority"`
+	PayloadSchema        map[string]PayloadField `yaml:"payloadSchema"`
+	RedactedFields       []string                `yaml:"redactedFields"`
 }
 
 func Run(eventsPath, jobsPath, repoRoot string, verbose bool) error {
@@ -277,7 +278,7 @@ func renderGoJobs(_ *EventsSpec, j *JobsSpec) ([]byte, error) {
 	buf.WriteString(generatedHeader)
 	buf.WriteString("package jobs\n\n")
 	buf.WriteString("import \"fmt\"\n\n")
-	buf.WriteString("type JobType string\n\ntype AsynqTask string\n\nconst (\n")
+	buf.WriteString("type JobType string\n\ntype AsynqTask string\n\ntype JobTriggerEventSemantic string\n\nconst (\n")
 	for _, job := range j.Jobs {
 		fmt.Fprintf(&buf, "\tJobType%s JobType = %q\n", jobTypeName(job.Canonical), job.Canonical)
 	}
@@ -285,7 +286,22 @@ func renderGoJobs(_ *EventsSpec, j *JobsSpec) ([]byte, error) {
 	for _, job := range j.Jobs {
 		fmt.Fprintf(&buf, "\tAsynqTask%s AsynqTask = %q\n", jobTypeName(job.Canonical), job.AsynqTask)
 	}
-	buf.WriteString(")\n\nvar APIFacingJobTypes = []JobType{\n")
+	buf.WriteString(")\n\nconst (\n")
+	buf.WriteString("\tJobTriggerEventSemanticTriggerCreatesJob JobTriggerEventSemantic = \"trigger_creates_job\"\n")
+	buf.WriteString("\tJobTriggerEventSemanticSourceEventOnly   JobTriggerEventSemantic = \"source_event_only\"\n")
+	buf.WriteString(")\n\nvar JobTriggerEventSemantics = map[JobType]JobTriggerEventSemantic{\n")
+	for _, job := range j.Jobs {
+		fmt.Fprintf(
+			&buf,
+			"\tJobType%s: JobTriggerEventSemantic%s,\n",
+			jobTypeName(job.Canonical),
+			jobTriggerEventSemanticName(jobTriggerEventSemantic(job)),
+		)
+	}
+	buf.WriteString("}\n\nfunc IsSourceEventOnly(jobType JobType) bool {\n")
+	buf.WriteString("\treturn JobTriggerEventSemantics[jobType] == JobTriggerEventSemanticSourceEventOnly\n")
+	buf.WriteString("}\n\n")
+	buf.WriteString("var APIFacingJobTypes = []JobType{\n")
 	for _, canonical := range j.APIFacingSubset {
 		fmt.Fprintf(&buf, "\tJobType%s,\n", jobTypeName(canonical))
 	}
@@ -386,6 +402,22 @@ func renderTSJobs(_ *EventsSpec, j *JobsSpec) ([]byte, error) {
 		fmt.Fprintf(&buf, " | typeof JOB_TYPE_%s", upperSnake(job.Canonical))
 	}
 	buf.WriteString(";\n")
+	buf.WriteString("export const JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB = \"trigger_creates_job\" as const;\n")
+	buf.WriteString("export const JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY = \"source_event_only\" as const;\n")
+	buf.WriteString("export type JobTriggerEventSemantic = typeof JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB | typeof JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY;\n")
+	buf.WriteString("export const JOB_TRIGGER_EVENT_SEMANTICS = {\n")
+	for _, job := range j.Jobs {
+		fmt.Fprintf(
+			&buf,
+			"  %s: JOB_TRIGGER_EVENT_SEMANTIC_%s,\n",
+			job.Canonical,
+			upperSnake(jobTriggerEventSemantic(job)),
+		)
+	}
+	buf.WriteString("} as const satisfies Record<JobType, JobTriggerEventSemantic>;\n")
+	buf.WriteString("export function isSourceEventOnly(jobType: JobType): boolean {\n")
+	buf.WriteString("  return JOB_TRIGGER_EVENT_SEMANTICS[jobType] === JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY;\n")
+	buf.WriteString("}\n")
 	if email := findJob(j, "email_dispatch"); email != nil {
 		fmt.Fprintf(&buf, "export const EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELDS = [%s] as const;\n", quotedList(sortedPayloadFields(email.PayloadSchema)))
 		fmt.Fprintf(&buf, "export const EMAIL_DISPATCH_REDACTED_FIELDS = [%s] as const;\n", quotedList(email.RedactedFields))
@@ -480,14 +512,15 @@ func renderJobsBaseline(_ *EventsSpec, j *JobsSpec) ([]byte, error) {
 	jobs := make([]map[string]any, 0, len(j.Jobs))
 	for _, job := range j.Jobs {
 		entry := map[string]any{
-			"canonical":      job.Canonical,
-			"asynqTask":      job.AsynqTask,
-			"apiFacing":      job.APIFacing,
-			"triggerEvent":   job.TriggerEvent,
-			"ownerDomain":    job.OwnerDomain,
-			"priority":       job.Priority,
-			"payloadSchema":  baselinePayload(job.PayloadSchema),
-			"redactedFields": job.RedactedFields,
+			"canonical":            job.Canonical,
+			"asynqTask":            job.AsynqTask,
+			"apiFacing":            job.APIFacing,
+			"triggerEvent":         job.TriggerEvent,
+			"triggerEventSemantic": jobTriggerEventSemantic(job),
+			"ownerDomain":          job.OwnerDomain,
+			"priority":             job.Priority,
+			"payloadSchema":        baselinePayload(job.PayloadSchema),
+			"redactedFields":       job.RedactedFields,
 		}
 		jobs = append(jobs, entry)
 	}
@@ -731,6 +764,17 @@ func eventTypeName(name string) string {
 
 func jobTypeName(canonical string) string {
 	return pascal(canonical)
+}
+
+func jobTriggerEventSemantic(job JobSpec) string {
+	if job.TriggerEventSemantic != "" {
+		return job.TriggerEventSemantic
+	}
+	return "trigger_creates_job"
+}
+
+func jobTriggerEventSemanticName(semantic string) string {
+	return pascal(semantic)
 }
 
 func goFieldName(name string) string {

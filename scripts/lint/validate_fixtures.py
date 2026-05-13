@@ -94,6 +94,29 @@ P0_EXPORT_ERROR_CODES: dict[str, str] = {
     "requestPrivacyExport": "PRIVACY_EXPORT_NOT_AVAILABLE",
     "exportResumeVersion": "RESUME_EXPORT_NOT_AVAILABLE",
 }
+REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
+    "appendSessionEvent": frozenset(
+        {
+            "default",
+            "follow-up",
+            "hint-strict-conflict",
+            "turn-skipped",
+            "pause-resume",
+            "replay",
+            "mismatch",
+            "completed",
+        }
+    ),
+    "completePracticeSession": frozenset(
+        {
+            "default",
+            "replay",
+            "mismatch",
+            "session-already-completed",
+            "cross-user-not-found",
+        }
+    ),
+}
 
 
 # ---------- helpers -----------------------------------------------------------
@@ -487,6 +510,15 @@ def check_p0_export_error_code(opid: str, scenarios: dict, errors: List[str]) ->
         )
 
 
+def check_required_named_scenarios(opid: str, scenarios: dict, errors: List[str]) -> None:
+    required = REQUIRED_NAMED_SCENARIOS.get(opid)
+    if required is None:
+        return
+    missing = required - set(scenarios)
+    if missing:
+        errors.append(f"{opid}: missing required scenarios {sorted(missing)}")
+
+
 def check_privacy_and_ids(opid: str, data: dict, errors: List[str]) -> None:
     for path, value in _walk_strings(data):
         if TEMP_ID_RE.search(value):
@@ -536,6 +568,7 @@ def validate(repo_root: Path) -> List[str]:
                 pass
             check_status_declared(opid, op, scenario_name, scenario, errors)
             check_schema(opid, op, scenario_name, scenario, spec, errors)
+        check_required_named_scenarios(opid, scenarios, errors)
         check_provenance(opid, scenarios.get("default") or {}, errors)
         check_p0_export_error_code(opid, scenarios, errors)
         check_privacy_and_ids(opid, data, errors)

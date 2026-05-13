@@ -23,6 +23,23 @@ export const ASYNQ_TASK_EMAIL_DISPATCH = "email.dispatch" as const;
 
 export const API_FACING_JOB_TYPES = ["target_import", "resume_parse", "report_generate", "resume_tailor", "debrief_generate", "privacy_export", "privacy_delete"] as const;
 export type JobType = typeof JOB_TYPE_TARGET_IMPORT | typeof JOB_TYPE_RESUME_PARSE | typeof JOB_TYPE_REPORT_GENERATE | typeof JOB_TYPE_RESUME_TAILOR | typeof JOB_TYPE_DEBRIEF_GENERATE | typeof JOB_TYPE_SOURCE_REFRESH | typeof JOB_TYPE_PRIVACY_EXPORT | typeof JOB_TYPE_PRIVACY_DELETE | typeof JOB_TYPE_EMAIL_DISPATCH;
+export const JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB = "trigger_creates_job" as const;
+export const JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY = "source_event_only" as const;
+export type JobTriggerEventSemantic = typeof JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB | typeof JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY;
+export const JOB_TRIGGER_EVENT_SEMANTICS = {
+  target_import: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
+  resume_parse: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
+  report_generate: JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY,
+  resume_tailor: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
+  debrief_generate: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
+  source_refresh: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
+  privacy_export: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
+  privacy_delete: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
+  email_dispatch: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
+} as const satisfies Record<JobType, JobTriggerEventSemantic>;
+export function isSourceEventOnly(jobType: JobType): boolean {
+  return JOB_TRIGGER_EVENT_SEMANTICS[jobType] === JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY;
+}
 export const EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELDS = ["authChallengeId", "dedupeKey", "deliverySecretRef", "locale", "templateKey", "userId"] as const;
 export const EMAIL_DISPATCH_REDACTED_FIELDS = ["rawMagicLinkToken", "magicLinkUrl", "recipientEmail", "recipientEmailHash", "emailBody", "emailSubject"] as const;
 export type EmailDispatchPayload = Partial<Record<typeof EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELDS[number], string>>;

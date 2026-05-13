@@ -2980,7 +2980,7 @@ components:
           type: string
         status:
           type: string
-          enum: [asked, answered, skipped]
+          enum: [asked, answered, follow_up_requested, assessed, skipped]
         askedAt:
           type: string
           format: date-time

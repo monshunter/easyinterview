@@ -30,8 +30,8 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.17 | active | 2026-05-12 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.18 | active | 2026-05-12 | [plans](./openapi-v1-contract/plans/) |
-| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.4 | active | 2026-05-12 | [plans](./event-and-outbox-contract/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.19 | active | 2026-05-13 | [plans](./openapi-v1-contract/plans/) |
+| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.5 | active | 2026-05-13 | [plans](./event-and-outbox-contract/plans/) |
 | [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.16 | active | 2026-05-12 | [plans](./db-migrations-baseline/plans/) |
 
 ## 4 Quality / AI Governance

@@ -201,6 +201,26 @@ WITH_JOB_OPERATIONS = {
     "requestPrivacyDelete": "privacy_delete",
 }
 
+REQUIRED_PRACTICE_SESSION_SCENARIOS = {
+    "appendSessionEvent": {
+        "default",
+        "follow-up",
+        "hint-strict-conflict",
+        "turn-skipped",
+        "pause-resume",
+        "replay",
+        "mismatch",
+        "completed",
+    },
+    "completePracticeSession": {
+        "default",
+        "replay",
+        "mismatch",
+        "session-already-completed",
+        "cross-user-not-found",
+    },
+}
+
 PROVENANCE_REQUIRED_FIELDS = [
     "promptVersion",
     "rubricVersion",
@@ -436,6 +456,15 @@ class FixtureContentTest(unittest.TestCase):
                 self.assertIn("job", body, f"{opid}: response must include job envelope")
                 self.assertEqual(body["job"]["jobType"], expected_job_type)
                 self.assertIn(body["job"]["status"], {"queued", "running"})
+
+    def test_practice_session_fixtures_declare_required_named_scenarios(self) -> None:
+        for opid, expected in REQUIRED_PRACTICE_SESSION_SCENARIOS.items():
+            scenarios = _load_fixture(opid, "PracticeSessions")["scenarios"]
+            with self.subTest(operationId=opid):
+                self.assertTrue(
+                    expected.issubset(scenarios),
+                    f"{opid}: missing required scenarios {sorted(expected - set(scenarios))}",
+                )
 
     def test_register_resume_fileless_source_variants_omit_file_object_id(self) -> None:
         scenarios = _load_fixture("registerResume", "Resumes")["scenarios"]

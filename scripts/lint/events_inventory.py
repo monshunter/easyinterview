@@ -239,6 +239,7 @@ EXPECTED_JOBS = {
         "asynqTask": "report.generate",
         "apiFacing": True,
         "triggerEvent": "practice.session.completed",
+        "triggerEventSemantic": "source_event_only",
         "ownerDomain": "C6",
         "priority": "critical",
     },
@@ -284,6 +285,10 @@ EXPECTED_JOBS = {
         "ownerDomain": "C1+C8",
         "priority": "low",
     },
+}
+ALLOWED_TRIGGER_EVENT_SEMANTICS = {
+    "trigger_creates_job",
+    "source_event_only",
 }
 EXPECTED_API_FACING_SUBSET = [
     "target_import",
@@ -539,6 +544,24 @@ def validate_jobs_yaml(data: dict[str, Any], events_data: dict[str, Any]) -> lis
         trigger = job.get("triggerEvent")
         if isinstance(trigger, str) and not trigger.startswith("api:") and trigger not in event_names:
             errors.append(f"{canonical}.triggerEvent must reference a known eventName or api: source, got {trigger!r}")
+        semantic = job.get("triggerEventSemantic", "trigger_creates_job")
+        if semantic not in ALLOWED_TRIGGER_EVENT_SEMANTICS:
+            errors.append(
+                f"{canonical}.triggerEventSemantic must be one of "
+                f"{sorted(ALLOWED_TRIGGER_EVENT_SEMANTICS)!r}, got {semantic!r}"
+            )
+            continue
+        expected_semantic = expected.get("triggerEventSemantic")
+        if expected_semantic and semantic != expected_semantic:
+            errors.append(f"{canonical}.triggerEventSemantic must be {expected_semantic!r}, got {semantic!r}")
+        if semantic == "source_event_only":
+            if job.get("apiFacing") is not True:
+                errors.append(f"{canonical}.triggerEventSemantic=source_event_only requires apiFacing=true")
+            if not isinstance(trigger, str) or trigger.startswith("api:") or trigger not in event_names:
+                errors.append(
+                    f"{canonical}.triggerEventSemantic=source_event_only requires triggerEvent "
+                    f"to reference a known eventName, got {trigger!r}"
+                )
 
     email_dispatch = by_canonical.get("email_dispatch")
     if email_dispatch:

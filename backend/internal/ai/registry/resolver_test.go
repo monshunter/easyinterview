@@ -65,6 +65,38 @@ func TestResolveFallbackToMulti(t *testing.T) {
 	}
 }
 
+func TestResolvePracticeSessionBaselineFeatures(t *testing.T) {
+	t.Parallel()
+	client := newTestClient(t)
+	ctx := context.Background()
+
+	cases := map[string]string{
+		"practice.session.first_question":   "practice.first_question.default",
+		"practice.session.follow_up":        "practice.followup.default",
+		"practice.turn.lightweight_observe": "practice.turn_observe.default",
+	}
+	for featureKey, profileName := range cases {
+		t.Run(featureKey, func(t *testing.T) {
+			res, err := client.ResolveActive(ctx, featureKey, "en")
+			if err != nil {
+				t.Fatalf("ResolveActive: %v", err)
+			}
+			if res.FeatureKey != featureKey {
+				t.Errorf("FeatureKey: want %s, got %s", featureKey, res.FeatureKey)
+			}
+			if res.PromptVersion != "v0.1.0" || res.RubricVersion != "v0.1.0" {
+				t.Errorf("versions: want prompt/rubric v0.1.0, got %s/%s", res.PromptVersion, res.RubricVersion)
+			}
+			if res.ModelProfileName != profileName {
+				t.Errorf("ModelProfileName: want %s, got %s", profileName, res.ModelProfileName)
+			}
+			if res.UserMessageTemplate == "" {
+				t.Errorf("UserMessageTemplate must be populated for plan 001 baseline")
+			}
+		})
+	}
+}
+
 func TestResolveUnknownFeatureKey(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(t)

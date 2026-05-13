@@ -412,7 +412,7 @@ export interface PracticeTurn {
 	id: string;
 	questionIntent?: string;
 	questionText: string;
-	status: "asked" | "answered" | "skipped";
+	status: "asked" | "answered" | "follow_up_requested" | "assessed" | "skipped";
 	turnIndex: number;
 }
 

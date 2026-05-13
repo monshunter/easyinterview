@@ -8,17 +8,17 @@
 
 ## Phase 0: 跨 spec 前置修订 + Preflight
 
-- [ ] 0.1 在 `shared/jobs.yaml` 引入 `triggerEventSemantic` 字段并把 `report_generate` 标注为 `source_event_only`；其它 8 个 job 显式或隐式 `trigger_creates_job`（D-32）
-- [ ] 0.2 在 `scripts/lint/lint_events.py` / `scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml shared/conventions.yaml` 增加 `triggerEventSemantic` 取值校验、`source_event_only` 必须 `apiFacing: true` 且 `triggerEvent` 在 events.yaml 中、generated const 暴露语义常量（验证：`make lint-events` 通过 + 单元测试断言 const 暴露）
-- [ ] 0.3 扩展 `backend/cmd/codegen/events`，由 codegen 在 `backend/internal/shared/jobs/` 生成 `JobTriggerEventSemanticSourceEventOnly` / `JobTriggerEventSemanticTriggerCreatesJob` Go 常量 + `IsSourceEventOnly(jobType JobType) bool` 谓词（以及对应 TS 生成物如适用；验证：`make codegen-events-check` + `cd backend && go test ./internal/shared/jobs/...` 单元测试覆盖常量值、`IsSourceEventOnly("report_generate")=true`、`IsSourceEventOnly("target_import")=false` 等；002 阶段无 runtime outbox→asynq dispatcher，dispatch-time 跳过逻辑由未来 `backend-async-runner` plan 接管，本 plan 不引入 runtime 包；禁止手改 `DO NOT EDIT` 生成文件）
-- [ ] 0.4 同步 B3 `event-and-outbox-contract` `spec.md` Header `2.4 → 2.5` + `history.md` 2.5 行 + §相关条目，记录 "授权 backend-practice/002 Phase 0"
-- [ ] 0.5 修订 `openapi/openapi.yaml#components.schemas.PracticeTurn.status` enum 为 5 值 `[asked, answered, follow_up_requested, assessed, skipped]`（D-33）
-- [ ] 0.6 同步原地 rebase `openapi/baseline/openapi-v1.0.0.yaml` 与生成产物：root `make codegen-openapi` / `make codegen-check` / `cd backend && go build ./...` / `pnpm --filter @easyinterview/frontend typecheck`（或当前等价 TS check 命令）全通过；生成物路径为 `backend/internal/api/generated/` 与 `frontend/src/api/generated/`
-- [ ] 0.7 运行 `python3 scripts/lint/conventions_drift.py --repo-root .` 通过；shared/conventions Go/TS 生成物无 drift
-- [ ] 0.8 同步 B2 `openapi-v1-contract` `spec.md` Header `1.18 → 1.19` + `history.md` 1.19 行，记录 "授权 backend-practice/002 Phase 0 PracticeTurn.status pre-launch baseline rebase"
-- [ ] 0.9 扩展 `openapi/fixtures/PracticeSessions/appendSessionEvent.json` 命名场景：`default` / `follow-up` / `hint-strict-conflict` / `turn-skipped` / `pause-resume` / `replay` / `mismatch` / `completed`（验证：fixture validator + contract test）
-- [ ] 0.10 扩展 `openapi/fixtures/PracticeSessions/completePracticeSession.json` 命名场景：`default` / `replay` / `mismatch` / `session-already-completed` / `cross-user-not-found`（验证：fixture validator + contract test）
-- [ ] 0.11 F3 preflight assert：读取 `docs/spec/prompt-rubric-registry/spec.md` v2.1 + plan `001-baseline` `completed` 与 work-journal commit "close 001-baseline lifecycle"；断言 `practice.session.first_question` / `practice.session.follow_up` / `practice.turn.lightweight_observe` baseline 行存在且 Resolve API 可用（验证：focused integration test on F3 RegistryClient）
+- [x] 0.1 在 `shared/jobs.yaml` 引入 `triggerEventSemantic` 字段并把 `report_generate` 标注为 `source_event_only`；其它 8 个 job 显式或隐式 `trigger_creates_job`（D-32）
+- [x] 0.2 在 `scripts/lint/lint_events.py` / `scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml shared/conventions.yaml` 增加 `triggerEventSemantic` 取值校验、`source_event_only` 必须 `apiFacing: true` 且 `triggerEvent` 在 events.yaml 中、generated const 暴露语义常量（验证：`make lint-events` 通过 + 单元测试断言 const 暴露）
+- [x] 0.3 扩展 `backend/cmd/codegen/events`，由 codegen 在 `backend/internal/shared/jobs/` 生成 `JobTriggerEventSemanticSourceEventOnly` / `JobTriggerEventSemanticTriggerCreatesJob` Go 常量 + `IsSourceEventOnly(jobType JobType) bool` 谓词（以及对应 TS 生成物如适用；验证：`make codegen-events-check` + `cd backend && go test ./internal/shared/jobs/...` 单元测试覆盖常量值、`IsSourceEventOnly("report_generate")=true`、`IsSourceEventOnly("target_import")=false` 等；002 阶段无 runtime outbox→asynq dispatcher，dispatch-time 跳过逻辑由未来 `backend-async-runner` plan 接管，本 plan 不引入 runtime 包；禁止手改 `DO NOT EDIT` 生成文件）
+- [x] 0.4 同步 B3 `event-and-outbox-contract` `spec.md` Header `2.4 → 2.5` + `history.md` 2.5 行 + §相关条目，记录 "授权 backend-practice/002 Phase 0"
+- [x] 0.5 修订 `openapi/openapi.yaml#components.schemas.PracticeTurn.status` enum 为 5 值 `[asked, answered, follow_up_requested, assessed, skipped]`（D-33）
+- [x] 0.6 同步原地 rebase `openapi/baseline/openapi-v1.0.0.yaml` 与生成产物：root `make codegen-openapi` / `make codegen-check` / `cd backend && go build ./...` / `pnpm --filter @easyinterview/frontend typecheck`（或当前等价 TS check 命令）全通过；生成物路径为 `backend/internal/api/generated/` 与 `frontend/src/api/generated/`
+- [x] 0.7 运行 `python3 scripts/lint/conventions_drift.py --repo-root .` 通过；shared/conventions Go/TS 生成物无 drift
+- [x] 0.8 同步 B2 `openapi-v1-contract` `spec.md` Header `1.18 → 1.19` + `history.md` 1.19 行，记录 "授权 backend-practice/002 Phase 0 PracticeTurn.status pre-launch baseline rebase"
+- [x] 0.9 扩展 `openapi/fixtures/PracticeSessions/appendSessionEvent.json` 命名场景：`default` / `follow-up` / `hint-strict-conflict` / `turn-skipped` / `pause-resume` / `replay` / `mismatch` / `completed`（验证：fixture validator + contract test）
+- [x] 0.10 扩展 `openapi/fixtures/PracticeSessions/completePracticeSession.json` 命名场景：`default` / `replay` / `mismatch` / `session-already-completed` / `cross-user-not-found`（验证：fixture validator + contract test）
+- [x] 0.11 F3 preflight assert：读取 `docs/spec/prompt-rubric-registry/spec.md` v2.1 + plan `001-baseline` `completed` 与 work-journal commit "close 001-baseline lifecycle"；断言 `practice.session.first_question` / `practice.session.follow_up` / `practice.turn.lightweight_observe` baseline 行存在且 Resolve API 可用（验证：focused integration test on F3 RegistryClient）
 
 ## Phase 1: AppendSessionEvent state machine 与 turn-status 域
 

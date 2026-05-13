@@ -9,6 +9,8 @@ type JobType string
 
 type AsynqTask string
 
+type JobTriggerEventSemantic string
+
 const (
 	JobTypeTargetImport    JobType = "target_import"
 	JobTypeResumeParse     JobType = "resume_parse"
@@ -32,6 +34,27 @@ const (
 	AsynqTaskPrivacyDelete   AsynqTask = "privacy.delete"
 	AsynqTaskEmailDispatch   AsynqTask = "email.dispatch"
 )
+
+const (
+	JobTriggerEventSemanticTriggerCreatesJob JobTriggerEventSemantic = "trigger_creates_job"
+	JobTriggerEventSemanticSourceEventOnly   JobTriggerEventSemantic = "source_event_only"
+)
+
+var JobTriggerEventSemantics = map[JobType]JobTriggerEventSemantic{
+	JobTypeTargetImport:    JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeResumeParse:     JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeReportGenerate:  JobTriggerEventSemanticSourceEventOnly,
+	JobTypeResumeTailor:    JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeDebriefGenerate: JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeSourceRefresh:   JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypePrivacyExport:   JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypePrivacyDelete:   JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeEmailDispatch:   JobTriggerEventSemanticTriggerCreatesJob,
+}
+
+func IsSourceEventOnly(jobType JobType) bool {
+	return JobTriggerEventSemantics[jobType] == JobTriggerEventSemanticSourceEventOnly
+}
 
 var APIFacingJobTypes = []JobType{
 	JobTypeTargetImport,

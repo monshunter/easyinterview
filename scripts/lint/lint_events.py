@@ -34,11 +34,19 @@ REMOVED_PAYLOAD_FIELDS = {
     ("report.generated", "mistakeCount"),
     ("debrief.completed", "generatedMistakeCount"),
 }
+ALLOWED_TRIGGER_EVENT_SEMANTICS = {
+    "trigger_creates_job",
+    "source_event_only",
+}
 EVENT_CONTRACT_DIRS = (
     Path("shared/events"),
     Path("backend/internal/shared/events"),
     Path("frontend/src/lib/events"),
 )
+NON_EVENT_JOB_LITERAL_ALLOWLIST = {
+    # Uploads owns file purpose values; this string is not an async job dispatch literal.
+    (Path("backend/internal/upload/store/file_objects.go"), "privacy_export"),
+}
 VENDOR_MODEL_TOKEN_RE = re.compile(
     r"(?:openrouter|anthropic|claude|openai|gpt-|mistral|gemini|cohere)",
     re.IGNORECASE,
@@ -153,9 +161,10 @@ def compare_jobs_baseline(current: dict[str, Any], baseline: dict[str, Any]) -> 
     return errors
 
 
-def validate_jobs_contract_shape(jobs: dict[str, Any]) -> list[str]:
+def validate_jobs_contract_shape(jobs: dict[str, Any], events: dict[str, Any] | None = None) -> list[str]:
     errors: list[str] = []
     job_by_type = _by_job_type(jobs)
+    event_names = set(_event_names(events or {}))
     subset = jobs.get("apiFacingSubset") or []
     if not isinstance(subset, list):
         return ["apiFacingSubset must be a list"]
@@ -174,6 +183,25 @@ def validate_jobs_contract_shape(jobs: dict[str, Any]) -> list[str]:
         redacted_fields = set(email_dispatch.get("redactedFields") or [])
         for field in sorted(payload_fields & redacted_fields):
             errors.append(f"email_dispatch.payloadSchema contains redacted field {field!r}")
+    for canonical, job in sorted(job_by_type.items()):
+        semantic = job.get("triggerEventSemantic", "trigger_creates_job")
+        if semantic not in ALLOWED_TRIGGER_EVENT_SEMANTICS:
+            errors.append(
+                f"{canonical}.triggerEventSemantic must be one of "
+                f"{sorted(ALLOWED_TRIGGER_EVENT_SEMANTICS)!r}, got {semantic!r}"
+            )
+            continue
+        if canonical == "report_generate" and semantic != "source_event_only":
+            errors.append(f"{canonical}.triggerEventSemantic must be 'source_event_only', got {semantic!r}")
+        if semantic == "source_event_only":
+            if job.get("apiFacing") is not True:
+                errors.append(f"{canonical}.triggerEventSemantic=source_event_only requires apiFacing=true")
+            trigger = job.get("triggerEvent")
+            if not isinstance(trigger, str) or trigger.startswith("api:") or (event_names and trigger not in event_names):
+                errors.append(
+                    f"{canonical}.triggerEventSemantic=source_event_only requires triggerEvent "
+                    f"to reference a known eventName, got {trigger!r}"
+                )
     return errors
 
 
@@ -207,6 +235,8 @@ def scan_source_literals(root: Path, events: dict[str, Any], jobs: dict[str, Any
         except UnicodeDecodeError:
             text = path.read_text(encoding="utf-8", errors="ignore")
         for value in sorted(forbidden):
+            if (rel, value) in NON_EVENT_JOB_LITERAL_ALLOWLIST:
+                continue
             if _contains_string_literal(text, value):
                 errors.append(f"{rel}: naked event/job literal {value!r}; use generated constants")
         for match in GO_EVENT_CONST_RE.finditer(text):
@@ -386,7 +416,7 @@ def main() -> int:
     errors = compare_events_baseline(current_events, baseline_events)
     errors.extend(compare_jobs_baseline(current_jobs, baseline_jobs))
     errors.extend(validate_product_scope_removals(current_events))
-    errors.extend(validate_jobs_contract_shape(current_jobs))
+    errors.extend(validate_jobs_contract_shape(current_jobs, current_events))
     errors.extend(validate_generated_contracts(root, current_events, current_jobs))
     errors.extend(scan_source_literals(root, current_events, current_jobs))
     errors.extend(scan_event_contract_model_tokens(root))

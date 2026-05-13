@@ -1,8 +1,8 @@
 # Event and Outbox Contract Spec
 
-> **版本**: 2.4
+> **版本**: 2.5
 > **状态**: active
-> **更新日期**: 2026-05-12
+> **更新日期**: 2026-05-13
 
 ## 1 背景与目标
 
@@ -34,7 +34,7 @@
 - **outbox 表 schema 引用**：`outbox_events` 表由 B4 落地；本 spec 锁定字段 `event_name` / `event_version` / `aggregate_type` / `aggregate_id` / `payload (jsonb)` / `publish_status`，并追加 dispatcher 必需的 `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message` operational columns。
 - **dispatcher 协议**：dispatcher 必须按 `next_attempt_at asc, created_at asc` + `publish_status='pending'` 拉取；至少 once 发布；成功后置 `published`，临时失败保留 `pending` 并后移 `next_attempt_at`，达到上限后置 `failed`。
 - **DB/backend runner canonical job_type 字典**：`target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `debrief_generate` / `source_refresh` / `privacy_export` / `privacy_delete` / `email_dispatch` 共 9 项。
-- **DB/backend runner canonical job_type ↔ Asynq dotted task name 映射表**：见 §3.1.1；B2 API-facing subset 见 §3.1.2。
+- **DB/backend runner canonical job_type ↔ Asynq dotted task name 映射表**：见 §3.1.1；B2 API-facing subset 见 §3.1.2；`triggerEventSemantic` 表达触发事件是否由 dispatcher 创建 job，避免 source fact 被二次消费。
 - **lint 规则**：禁止业务包 hardcode `eventName` / `jobType` 字符串；必须 `import constants from "events"` 包；当前由本地 lint gate 接入，远端 CI 仅在 A5 触发条件成立后再接入。
 - **tooling**：`make codegen-events`（B3 owner）；本地 drift 校验。
 - **breaking baseline**：提交 `shared/events/baseline/events.v1.json` 与 `shared/jobs/baseline/jobs.v1.json` 作为 v1 freeze manifest；`make lint-events` 比较当前 `shared/events.yaml` / `shared/jobs.yaml` 与 baseline，字段删除、类型变化、requiredness 变化、eventName/jobType 删除必须按 breaking 处理。
@@ -64,26 +64,28 @@
 | D-8 | 死信策略 | `publish_attempts >= 5` 后置 `publish_status='failed'`，保留 `last_error_code` / redacted `last_error_message`；触发 P2 告警；进入人工排查队列 | 告警阈值由 F1 active spec / alert rules 决定 |
 | D-9 | metric 接入 | 必产 `outbox_events_pending` Gauge / `outbox_publish_duration_seconds` Histogram / `outbox_publish_failures_total` Counter；F1 接入 dashboard | – |
 | D-10 | trace 字段 soft-required | `traceId` schema 上可选；producer 必须尽力从 W3C `traceparent` / active span 派生并写入；缺失时 dispatcher 写 warn log 并允许 publish；F1 backend runner span 只在存在 `traceId` 时重建父链路 | 对齐 F1 trace propagation |
-| D-11 | canonical job_type ↔ dotted task name 映射 | 见 §3.1.1；新增 canonical `job_type` 必须先改本 spec，再同步 B4 check constraint 与 backend runner registry | 防止 runner 私自加 dotted task name |
+| D-11 | canonical job_type ↔ dotted task name 映射 | 见 §3.1.1；新增 canonical `job_type` 必须先改本 spec，再同步 B4 check constraint、`triggerEventSemantic` 与 backend runner registry | 防止 runner 私自加 dotted task name 或错误消费 source event |
 | D-12 | `email_dispatch` payload 红线 | `email_dispatch` 为 internal-only low-priority job；payload 只允许 `authChallengeId` / `userId` / `templateKey` / `locale` / `deliverySecretRef` / `dedupeKey` 等可审计字段，不得把 raw magic-link token、完整 magic-link URL、邮箱明文或邮件正文写入 `async_jobs.payload` / outbox / log；C1 owns `deliverySecretRef` 的一次性解析语义 | 支撑 ADR-Q1 magic link，同时避免 token / 邮件内容落库 |
 | D-13 | `target.import.requested.sourceType` 语义 | `sourceType` 是异步导入请求的粗粒度输入来源，固定为 `url` / `text` / `file`；B2 `manual_text` 在事件中映射为 `text`；B2 `manual_form` 是同步 ready 兜底路径，不发 `target.import.requested`，不创建 runner 待处理事件 | 避免把 API source variant 与 async runner payload enum 混为一谈；如未来 analytics 需要 exact variant，只能新增 optional 字段或新事件版本，不能复用当前字段塞 `manual_form` |
 | D-14 | `ResumeTailorMode` 漂移修复（已落地） | `shared/events.yaml` 中 `eventLocalEnums.ResumeTailorMode` 字面量已对齐为 `[gap_review, bullet_suggestions]`，与 [B2 `RequestResumeTailorRequest.mode`](../openapi-v1-contract/spec.md#42-schema-inventory-约束) 和 [B4 `resume_tailor_runs.mode`](../db-migrations-baseline/spec.md) check constraint 同步；本次修订属于已有契约漂移修复，baseline 期 `resume.tailor.completed` 无真实 producer/consumer，不按 breaking 处理；[event-and-outbox-contract/002-resume-tailor-mode-drift-fix](./plans/002-resume-tailor-mode-drift-fix/plan.md) 已同步 yaml、baseline manifest、Go/TS 生成类型、JSON Schema refs 与旧字面量精准负向搜索 | `shared/events.yaml` `eventLocalEnums.ResumeTailorMode` 字面量集；`shared/events/baseline/events.v1.json` baseline manifest；`backend/internal/shared/events/` Go 生成类型；`frontend/src/lib/events/` TS 生成类型；§3.1.4 `resume.tailor.completed.mode` 列 enum 值描述同步；与 B2 D-18 / B4 002 / B1 D-10 一并审查 |
+| D-15 | `triggerEventSemantic` job ownership 语义 | `shared/jobs.yaml.jobs[*].triggerEventSemantic` 允许 `trigger_creates_job` / `source_event_only`；缺省为 `trigger_creates_job`。`report_generate` 必须显式为 `source_event_only`，表示 `practice.session.completed` 是 source event / analytics fact，不是 dispatcher 二次创建 report job 的指令。B3 codegen 必须生成 `JobTriggerEventSemantic*` 常量与 `IsSourceEventOnly(jobType)` 谓词；未来 backend async runner / dispatcher 必须读取该谓词并跳过 `source_event_only` 任务 | 支撑 backend-practice/002 D-32：`completePracticeSession` 同事务创建 `feedback_reports` placeholder 与 `async_jobs(report_generate)`，outbox 重放不得创建第二个 report/job |
 
 #### 3.1.1 DB/backend runner canonical job_type ↔ Asynq dotted task name 映射
 
-| canonical `job_type`（snake_case） | API-facing B2 `JobType`? | Asynq dotted task name | 触发事件 / 来源 | Owner C 域 |
-|------------------------------------|--------------------------|------------------------|----------------|-----------|
-| `target_import` | yes | `target.import` | `target.import.requested` | C4 |
-| `resume_parse` | yes | `resume.parse` | API: register resume | C7 |
-| `report_generate` | yes | `report.generate` | `practice.session.completed` | C6 |
-| `resume_tailor` | yes | `resume.tailor` | API: request tailor | C7 |
-| `debrief_generate` | yes | `debrief.generate` | `debrief.created` | C9（P0 真实面试复现；P1 增强感谢信 / 跟进建议） |
-| `source_refresh` | no（internal only） | `source.refresh` | scheduled / `target.parsed` | C13（P2） |
-| `privacy_export` | yes（P0 endpoint 501; P1 implemented） | `privacy.export` | `privacy.request.created`（P1） | C12（P1） |
-| `privacy_delete` | yes | `privacy.delete` | `privacy.request.created` | C8（P0 删除链路） |
-| `email_dispatch` | no（internal only） | `email.dispatch` | API: auth email start / notification producer | C1 + C8 |
+| canonical `job_type`（snake_case） | API-facing B2 `JobType`? | Asynq dotted task name | 触发事件 / 来源 | `triggerEventSemantic` | Owner C 域 |
+|------------------------------------|--------------------------|------------------------|----------------|------------------------|-----------|
+| `target_import` | yes | `target.import` | `target.import.requested` | `trigger_creates_job` | C4 |
+| `resume_parse` | yes | `resume.parse` | API: register resume | `trigger_creates_job` | C7 |
+| `report_generate` | yes | `report.generate` | `practice.session.completed` | `source_event_only` | C6 |
+| `resume_tailor` | yes | `resume.tailor` | API: request tailor | `trigger_creates_job` | C7 |
+| `debrief_generate` | yes | `debrief.generate` | `debrief.created` | `trigger_creates_job` | C9（P0 真实面试复现；P1 增强感谢信 / 跟进建议） |
+| `source_refresh` | no（internal only） | `source.refresh` | scheduled / `target.parsed` | `trigger_creates_job` | C13（P2） |
+| `privacy_export` | yes（P0 endpoint 501; P1 implemented） | `privacy.export` | `privacy.request.created`（P1） | `trigger_creates_job` | C12（P1） |
+| `privacy_delete` | yes | `privacy.delete` | `privacy.request.created` | `trigger_creates_job` | C8（P0 删除链路） |
+| `email_dispatch` | no（internal only） | `email.dispatch` | API: auth email start / notification producer | `trigger_creates_job` | C1 + C8 |
 
 > 备注：[engineering-roadmap §4.4](../engineering-roadmap/spec.md#63-s2--backend-domain-implementation) 已说明 P0 删除链路核心实现下沉到 C8 `privacy_delete` canonical job_type（同时属于 B2 API-facing subset，内部 Asynq handler 可映射为 `privacy.delete`）。
+> `triggerEventSemantic=source_event_only` 的 job 不由 dispatcher 根据 outbox source event 再创建 job；dispatcher / async runner 只能读取 generated `IsSourceEventOnly(jobType)` 谓词跳过该 binding，并由业务 handler 自己创建或查找既有 `async_jobs` row。
 
 #### 3.1.2 B2 API-facing JobType subset
 
@@ -98,7 +100,7 @@ B2 OpenAPI v1.0.0 的 `JobType` enum 只允许以下 7 项：`target_import` / `
 | 3 | `target.analysis.failed` | backend_async | analytics / alerting | `target_job` | – |
 | 4 | `practice.session.started` | api | analytics | `practice_session` | – |
 | 5 | `practice.turn.completed` | api | analytics / quality sampler | `practice_turn` | – |
-| 6 | `practice.session.completed` | api | report job creator / analytics | `practice_session` | `report_generate` |
+| 6 | `practice.session.completed` | api | source fact / analytics（report job row 由 `completePracticeSession` 同事务创建） | `practice_session` | `report_generate` |
 | 7 | `report.generation.requested` | api / dispatcher | backend internal runner | `feedback_report` | `report_generate` |
 | 8 | `report.generated` | backend_async | report question-review / analytics | `feedback_report` | – |
 | 9 | `report.generation.failed` | backend_async | analytics / alerting | `feedback_report` | – |

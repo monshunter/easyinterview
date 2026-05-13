@@ -17,7 +17,8 @@
       "payloadSchema": {},
       "priority": "default",
       "redactedFields": null,
-      "triggerEvent": "target.import.requested"
+      "triggerEvent": "target.import.requested",
+      "triggerEventSemantic": "trigger_creates_job"
     },
     {
       "apiFacing": true,
@@ -27,7 +28,8 @@
       "payloadSchema": {},
       "priority": "default",
       "redactedFields": null,
-      "triggerEvent": "api:register_resume"
+      "triggerEvent": "api:register_resume",
+      "triggerEventSemantic": "trigger_creates_job"
     },
     {
       "apiFacing": true,
@@ -37,7 +39,8 @@
       "payloadSchema": {},
       "priority": "critical",
       "redactedFields": null,
-      "triggerEvent": "practice.session.completed"
+      "triggerEvent": "practice.session.completed",
+      "triggerEventSemantic": "source_event_only"
     },
     {
       "apiFacing": true,
@@ -47,7 +50,8 @@
       "payloadSchema": {},
       "priority": "default",
       "redactedFields": null,
-      "triggerEvent": "api:request_tailor"
+      "triggerEvent": "api:request_tailor",
+      "triggerEventSemantic": "trigger_creates_job"
     },
     {
       "apiFacing": true,
@@ -57,7 +61,8 @@
       "payloadSchema": {},
       "priority": "default",
       "redactedFields": null,
-      "triggerEvent": "debrief.created"
+      "triggerEvent": "debrief.created",
+      "triggerEventSemantic": "trigger_creates_job"
     },
     {
       "apiFacing": false,
@@ -67,7 +72,8 @@
       "payloadSchema": {},
       "priority": "low",
       "redactedFields": null,
-      "triggerEvent": "target.parsed"
+      "triggerEvent": "target.parsed",
+      "triggerEventSemantic": "trigger_creates_job"
     },
     {
       "apiFacing": true,
@@ -77,7 +83,8 @@
       "payloadSchema": {},
       "priority": "low",
       "redactedFields": null,
-      "triggerEvent": "privacy.request.created"
+      "triggerEvent": "privacy.request.created",
+      "triggerEventSemantic": "trigger_creates_job"
     },
     {
       "apiFacing": true,
@@ -87,7 +94,8 @@
       "payloadSchema": {},
       "priority": "critical",
       "redactedFields": null,
-      "triggerEvent": "privacy.request.created"
+      "triggerEvent": "privacy.request.created",
+      "triggerEventSemantic": "trigger_creates_job"
     },
     {
       "apiFacing": false,
@@ -123,7 +131,8 @@
         "emailBody",
         "emailSubject"
       ],
-      "triggerEvent": "api:auth_email_start"
+      "triggerEvent": "api:auth_email_start",
+      "triggerEventSemantic": "trigger_creates_job"
     }
   ],
   "schemaVersion": 1,
