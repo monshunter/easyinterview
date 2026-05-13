@@ -38,6 +38,9 @@ func (r *SQLRepository) CompleteSession(ctx context.Context, in domain.CompleteS
 		existing.Replay = true
 		return existing, nil
 	}
+	if !canCompletePracticeSessionStatus(session.Status) {
+		return domain.CompleteSessionResult{}, domain.ErrSessionConflict
+	}
 
 	if _, err := tx.ExecContext(ctx, `
 update practice_sessions
@@ -221,6 +224,15 @@ for update`,
 		return domain.SessionRecord{}, fmt.Errorf("select practice session for completion: %w", err)
 	}
 	return session, nil
+}
+
+func canCompletePracticeSessionStatus(status sharedtypes.SessionStatus) bool {
+	switch status {
+	case sharedtypes.SessionStatusRunning, sharedtypes.SessionStatusWaitingUserInput, sharedtypes.SessionStatusCompleted:
+		return true
+	default:
+		return false
+	}
 }
 
 func selectExistingReportWithJob(ctx context.Context, tx *sql.Tx, userID, sessionID string) (domain.CompleteSessionResult, bool, error) {

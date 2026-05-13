@@ -128,6 +128,9 @@ func (s *Service) AppendSessionEvent(ctx context.Context, in AppendSessionEventR
 			return AppendSessionEventResult{}, sessionConflictError()
 		}
 	}
+	if kind == sessionEventKindAnswerSubmitted && strings.TrimSpace(payloadString(payload, "answerText")) == "" {
+		return AppendSessionEventResult{}, validationError("answerText is required", map[string]any{"field": "payload.answerText"})
+	}
 
 	router := SessionEventService{}
 	outcome, err := router.Route(ctx, SessionEventInput{

@@ -7,7 +7,7 @@
 
 - 交付范围：`backend-practice/plans/002-event-loop-and-completion` Phase 2-4，包括 `appendSessionEvent` event-loop、`completePracticeSession` queued report/job handoff、practice turn/session outbox、双轨 idempotency、D-32/D-33/D-34/D-35 收口与计划生命周期关闭。
 - 代码证据：新增 `append_session_event_service.go` / `complete_session_service.go` / store append+complete repository / practice HTTP handlers / idempotency resource header 支持 / `cmd/api` route wiring。
-- BDD 证据：`backend/cmd/api/practice_http_scenario_test.go` 覆盖 `TestE2EP0034...` / `0035...` / `0038...` / `0039...` / `0040...` / `0041...` 六个场景。
+- BDD 证据：`backend/cmd/api/practice_http_scenario_test.go` 覆盖 `TestE2EP0038...` / `0039...` / `0040...` / `0041...` / `0042...` / `0043...` 六个场景。
 - 验证证据：`cd backend && go test ./...`、focused backend practice/API/store/middleware/cmd tests、`make lint-events`、`make codegen-events-check`、`make codegen-check`、`make validate-fixtures`、`python3 scripts/lint/conventions_drift.py --repo-root .`、`python3 scripts/lint/backend_practice_legacy.py --repo-root .`、`make docs-check`、`git diff --check` 均通过。
 
 ## 2 会话中的主要阻点/痛点

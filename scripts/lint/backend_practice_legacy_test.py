@@ -65,3 +65,44 @@ def test_phase3_flags_standalone_voice_route_but_allows_voice_mvp_placeholder(tm
     problems = backend_practice_legacy.scan_phase3_paths([bad, allowed], tmp_path)
 
     assert problems == [f"{bad}:1: retired standalone voice route"]
+
+
+def write_backend_practice_002_bdd_inputs(repo: Path, assigned_ids: list[str], test_ids: list[str]) -> None:
+    bdd = repo / "docs/spec/backend-practice/plans/002-event-loop-and-completion/bdd-plan.md"
+    bdd.parent.mkdir(parents=True)
+    bdd.write_text("- 编号分配: " + " / ".join(f"`{scenario_id}`" for scenario_id in assigned_ids) + "\n", encoding="utf-8")
+    test_file = repo / "backend/cmd/api/practice_http_scenario_test.go"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text("\n".join(f"func TestE2EP0{scenario_id.rsplit('.', maxsplit=1)[1]}Practice(t *testing.T) {{}}" for scenario_id in test_ids), encoding="utf-8")
+    index = repo / "test/scenarios/e2e/INDEX.md"
+    index.parent.mkdir(parents=True)
+    index.write_text("| E2E.P0.034 | backend-resume register/list |\n| E2E.P0.035 | backend-resume parse lifecycle |\n", encoding="utf-8")
+
+
+def test_backend_practice_002_bdd_ids_do_not_collide_with_indexed_resume_ids(tmp_path: Path) -> None:
+    assigned = [f"E2E.P0.{number:03d}" for number in range(38, 44)]
+    write_backend_practice_002_bdd_inputs(tmp_path, assigned, assigned)
+
+    assert backend_practice_legacy.scan_backend_practice_002_bdd_ids(tmp_path) == []
+
+
+def test_backend_practice_002_bdd_ids_flag_non_practice_index_collision(tmp_path: Path) -> None:
+    assigned = ["E2E.P0.034", "E2E.P0.039", "E2E.P0.040", "E2E.P0.041", "E2E.P0.042", "E2E.P0.043"]
+    write_backend_practice_002_bdd_inputs(tmp_path, assigned, assigned)
+
+    problems = backend_practice_legacy.scan_backend_practice_002_bdd_ids(tmp_path)
+
+    assert problems == [
+        f"{tmp_path / 'test/scenarios/e2e/INDEX.md'}: backend-practice 002 id E2E.P0.034 collides with indexed scenario: | E2E.P0.034 | backend-resume register/list |"
+    ]
+
+
+def test_backend_practice_002_bdd_ids_require_matching_http_scenario_tests(tmp_path: Path) -> None:
+    assigned = [f"E2E.P0.{number:03d}" for number in range(38, 44)]
+    write_backend_practice_002_bdd_inputs(tmp_path, assigned, assigned[:-1])
+
+    problems = backend_practice_legacy.scan_backend_practice_002_bdd_ids(tmp_path)
+
+    assert problems == [
+        f"{tmp_path / 'backend/cmd/api/practice_http_scenario_test.go'}: missing Go HTTP scenario test for E2E.P0.043 (TestE2EP0043*)"
+    ]

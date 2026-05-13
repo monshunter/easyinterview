@@ -3,6 +3,7 @@ package practice
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 	"time"
 
@@ -147,6 +148,95 @@ func TestSQLRepositoryCompleteSessionWritesReportJobOutboxAndAudit(t *testing.T)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestSQLRepositoryCompleteSessionRejectsIllegalStatusWithoutReport(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 4, 28, 14, 0, 0, 0, time.UTC)
+	in := domain.CompleteSessionStoreInput{
+		UserID:            "user-1",
+		SessionID:         "session-1",
+		ReportID:          "report-1",
+		JobID:             "job-1",
+		SessionEventID:    "event-1",
+		OutboxEventID:     "outbox-1",
+		AuditEventID:      "audit-1",
+		ClientCompletedAt: now,
+		Now:               now,
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`select id, plan_id, target_job_id, status, language, hints_enabled`).
+		WithArgs(in.UserID, in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "status", "language", "hints_enabled", "turn_count", "created_at", "updated_at"}).
+			AddRow(in.SessionID, "plan-1", "target-1", string(sharedtypes.SessionStatusFailed), "zh-CN", true, 3, now.Add(-time.Hour), now.Add(-time.Minute)))
+	mock.ExpectQuery(`select fr.id`).
+		WithArgs(in.UserID, in.SessionID, "report_generate").
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectRollback()
+
+	_, err := repo.CompleteSession(context.Background(), in)
+	if !errors.Is(err, domain.ErrSessionConflict) {
+		t.Fatalf("error = %v, want ErrSessionConflict", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestSQLRepositoryCompleteSessionReplaysExistingReportBeforeStatusGuard(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 4, 28, 14, 0, 0, 0, time.UTC)
+	in := domain.CompleteSessionStoreInput{
+		UserID:            "user-1",
+		SessionID:         "session-1",
+		ReportID:          "report-new",
+		JobID:             "job-new",
+		SessionEventID:    "event-new",
+		OutboxEventID:     "outbox-new",
+		AuditEventID:      "audit-new",
+		ClientCompletedAt: now,
+		Now:               now,
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`select id, plan_id, target_job_id, status, language, hints_enabled`).
+		WithArgs(in.UserID, in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "status", "language", "hints_enabled", "turn_count", "created_at", "updated_at"}).
+			AddRow(in.SessionID, "plan-1", "target-1", string(sharedtypes.SessionStatusFailed), "zh-CN", true, 3, now.Add(-time.Hour), now.Add(-time.Minute)))
+	mock.ExpectQuery(`select fr.id`).
+		WithArgs(in.UserID, in.SessionID, "report_generate").
+		WillReturnRows(sqlmock.NewRows([]string{"report_id", "job_id", "job_type", "resource_type", "resource_id", "status", "error_code", "created_at", "updated_at"}).
+			AddRow("report-existing", "job-existing", "report_generate", "feedback_report", "report-existing", string(sharedtypes.JobStatusQueued), nil, now.Add(-time.Minute), now.Add(-time.Minute)))
+	mock.ExpectCommit()
+
+	result, err := repo.CompleteSession(context.Background(), in)
+	if err != nil {
+		t.Fatalf("CompleteSession returned error: %v", err)
+	}
+	if !result.Replay || result.ReportID != "report-existing" || result.Job.ID != "job-existing" {
+		t.Fatalf("unexpected replay result: %+v", result)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestCanCompletePracticeSessionStatusAllowsRunningWaitingAndCompleted(t *testing.T) {
+	allowed := map[sharedtypes.SessionStatus]bool{
+		sharedtypes.SessionStatusRunning:          true,
+		sharedtypes.SessionStatusWaitingUserInput: true,
+		sharedtypes.SessionStatusCompleted:        true,
+	}
+	for _, status := range sharedtypes.AllSessionStatuses {
+		if got := canCompletePracticeSessionStatus(status); got != allowed[status] {
+			t.Fatalf("canCompletePracticeSessionStatus(%q) = %v, want %v", status, got, allowed[status])
+		}
 	}
 }
 

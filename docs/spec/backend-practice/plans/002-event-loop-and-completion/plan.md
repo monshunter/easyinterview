@@ -1,6 +1,6 @@
 # 002 — Event Loop and Completion
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-13
 
@@ -30,7 +30,7 @@
 
 - **D-32（落实 spec D-28）**：`shared/jobs.yaml#report_generate` 新增 `triggerEventSemantic: source_event_only` 字段表达"`practice.session.completed` 是 source event / analytics fact，不是触发 dispatcher 二次创建 job 的指令"。真实 gate 走 root `make lint-events`（`scripts/lint/lint_events.py`）与 `make codegen-events-check`；必要时扩展 `scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml shared/conventions.yaml` 的底层校验，但不得把无参 `events_inventory.py` 当作可执行 gate。`backend/cmd/codegen/events` 必须生成 `JobTriggerEventSemanticSourceEventOnly` / `JobTriggerEventSemanticTriggerCreatesJob` Go 常量 + `IsSourceEventOnly(jobType) bool` 谓词到 `backend/internal/shared/jobs/`（以及对应 TS 生成物如适用），不得手改 `DO NOT EDIT` 生成文件。002 阶段无 runtime outbox→asynq dispatcher（现仓 `backend/internal/runtime/` 不存在；现有 outbox/async_jobs 全部由 handler/store 直接 INSERT），dispatch-time 跳过 binding 留给未来 `backend-async-runner` plan 接管，届时必须读取常量在 dispatch-time 跳过 `source_event_only` 任务。002 阶段 `report_generate` 不被二次创建的兜底来自：(a) handler 端复用 `async_jobs UNIQUE INDEX (job_type, dedupe_key) WHERE status IN ('queued','running')`，(b) D-35 反向查 `feedback_reports` 复用既有 `ReportWithJob`，(c) repo grep 断言 `report_generate` INSERT 仅出现在 `complete_session.go`。其它 8 个 job 默认 `triggerEventSemantic: trigger_creates_job`（不破坏既有行为），lint 把缺省值视为 default。
 - **D-33（落实 spec D-25）**：`openapi/openapi.yaml#components.schemas.PracticeTurn.status` 扩 wire enum 为 `[asked, answered, follow_up_requested, assessed, skipped]`，与 DB internal CHECK 完全对齐，去除 D-25 描述中的"handler 压缩映射"备选。`openapi/baseline/openapi-v1.0.0.yaml` 按 D-21 pre-launch baseline rebase 同步原地修订。Regenerate Go server / TS client；PracticeSessions fixtures `appendSessionEvent` / `completePracticeSession` 补齐新值；frontend consumer（`frontend/src/app/screens/workspace/`、`frontend/src/app/screens/practice/` 与生成的 client schema）需要在 plan 同步窗口内消化 enum 扩展（plan 通过 lint 与 type drift 反查）。
-- **D-34（落实 spec D-5 在 002 阶段的占位）**：`appendSessionEvent` router 必须接受全部 5 种 `kind`（拒绝任何 kind 返回 422 `VALIDATION_FAILED` 即视为缺陷）。`hint_requested` 在 002 阶段默认走 strict 语义：返回 `409 PRACTICE_SESSION_CONFLICT` + `detail.policy='hint_disabled_in_mode'` + `detail.mode=session.mode`，与 spec C-8 同构；003 接手后按 mode 切分 assisted（`show_hint` + F3 `practice.turn.lightweight_observe`）与 strict（继续 409）。002 BDD 场景 E2E.P0.035 直接断言 hint 默认 409 行为，并预留 003 的 mode 切分扩展点。
+- **D-34（落实 spec D-5 在 002 阶段的占位）**：`appendSessionEvent` router 必须接受全部 5 种 `kind`（拒绝任何 kind 返回 422 `VALIDATION_FAILED` 即视为缺陷）。`hint_requested` 在 002 阶段默认走 strict 语义：返回 `409 PRACTICE_SESSION_CONFLICT` + `detail.policy='hint_disabled_in_mode'` + `detail.mode=session.mode`，与 spec C-8 同构；003 接手后按 mode 切分 assisted（`show_hint` + F3 `practice.turn.lightweight_observe`）与 strict（继续 409）。002 BDD 场景 E2E.P0.039 直接断言 hint 默认 409 行为，并预留 003 的 mode 切分扩展点。
 - **D-35（落实 spec C-27）**：`completePracticeSession` handler 进入后先 user-scoped 查 `feedback_reports WHERE session_id = $1 AND user_id = $2`。若 session 已完成（存在 `feedback_reports` 且 `practice_sessions.status` ∈ `{completing, completed, failed}`），则不论 `Idempotency-Key` 是否一致，都返回该 session 的既有 `ReportWithJob`（原始 HTTP status 与 response_body）；新 `Idempotency-Key` 写 idempotency_records 时关联到既有 `resource_id=reportId`，状态写 `succeeded` 并 snapshot 同一 response。等同于"session-level 完成是 once-and-only-once，idempotency key 仅控制 inflight 单执行者"。
 
 frontend-workspace-and-practice 当前 `frontend/src/app/screens/workspace/` 已经消费 `getPracticePlan` / `createPracticePlan` / `startPracticeSession` 的 fixture-backed generated client；`PracticeScreen` 与 finish action 是未来 plan 范围，但 generated client 在本 plan 完成 Phase 0 OpenAPI rebase 后必须无 schema drift。
@@ -39,43 +39,49 @@ frontend-workspace-and-practice 当前 `frontend/src/app/screens/workspace/` 已
 
 - **Plan 类型**: feature-behavior + contract + code-internal（多类型组合）
 - **TDD 策略**: Code plan requires TDD — 每个 implementation checklist 项 Red-Green-Refactor 入口在 `backend/internal/api/practice/`、`backend/internal/practice/`、`backend/internal/store/practice/`、`backend/internal/middleware/idempotency/` 下相应包；B3 lint/codegen 入口在 root `make lint-events` / `make codegen-events-check`，底层脚本为 `scripts/lint/lint_events.py` 与 `backend/cmd/codegen/events`。trigger-semantic 常量与谓词必须由事件 codegen 生成到 `backend/internal/shared/jobs/`（以及对应 TS 生成物如适用），不得手改生成文件。002 阶段无 runtime outbox→asynq dispatcher 包，dispatch-time 跳过逻辑由未来 `backend-async-runner` plan 接管。测试命令从 Go module 根执行（例如 `cd backend && go test ./internal/api/practice/... ./internal/practice/... ./internal/store/practice/... ./internal/middleware/idempotency/... ./internal/shared/jobs/...`）；详细 phase / file / verification 映射见 [test-plan](./test-plan.md)
-- **BDD 策略**: Feature plan requires BDD — 引用 [bdd-plan](./bdd-plan.md) 与 [bdd-checklist](./bdd-checklist.md) 中的 6 个场景 `E2E.P0.034` / `E2E.P0.035` / `E2E.P0.038` / `E2E.P0.039` / `E2E.P0.040` / `E2E.P0.041`；主 [checklist](./checklist.md) 在每个 user-visible behavior phase 末尾列 `BDD-Gate:` 项
+- **BDD 策略**: Feature plan requires BDD — 引用 [bdd-plan](./bdd-plan.md) 与 [bdd-checklist](./bdd-checklist.md) 中的 6 个场景 `E2E.P0.038` / `E2E.P0.039` / `E2E.P0.040` / `E2E.P0.041` / `E2E.P0.042` / `E2E.P0.043`；主 [checklist](./checklist.md) 在每个 user-visible behavior phase 末尾列 `BDD-Gate:` 项
 - **替代验证 gate**: Phase 0 内部契约修订使用 contract test + drift check（OpenAPI / shared types / B3 jobs.yaml lint / `triggerEventSemantic` 枚举校验）+ legacy-negative grep（旧 dispatcher 二次创建 `report_generate` 模式；wire turn enum 历史压缩值）+ F3 baseline preflight assert；Phase 4 隐私 / 观测使用 metric label allowlist + repo grep + redaction assertion 作为 gate
 
 ## 3.1 Operation Matrix
 
 | `operationId` | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |---------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json`：Phase 0 补齐 `default`（answer_submitted → ask_question）、`follow-up`（answer_submitted → ask_follow_up）、`hint-strict-conflict`（hint_requested → 409）、`turn-skipped`（turn_skipped → ask_question）、`pause-resume`（session_paused / session_resumed → session_wait）、`replay`（重复 clientEventId 返回首次结果）、`mismatch`（同 clientEventId 不同 payload → 409）、`completed`（达到 question_budget → session_completed） | Plan 002 Phase 2 完成后，`frontend/src/app/screens/practice/` 与 generated TS client 通过 fixture-backed transport 接入；本 plan 不要求正式前端消费，但生成物必须无 schema drift | Plan 002 Phase 1-2：`backend/internal/api/practice.AppendSessionEvent` + `backend/internal/practice.SessionEventService`（state machine + AssistantAction decision）+ `backend/internal/store/practice.AppendSessionEvent` repository | `practice_session_events`（含 UNIQUE(session_id, client_event_id) 复用 + seq_no 单调）、`practice_turns`（DB 5 值 status 推进）、`outbox_events`（`practice.turn.completed` 行）；append 路径不写 `audit_events` | F3 `practice.session.follow_up`（answer_submitted → ask_follow_up 分支）；hint_requested 在 002 默认 strict 不调 AI；`practice.turn.lightweight_observe` 不在 002 调用（归 003） | `E2E.P0.034`, `E2E.P0.035`, `E2E.P0.038`, `E2E.P0.041` |
-| `completePracticeSession` | `openapi/fixtures/PracticeSessions/completePracticeSession.json`：Phase 0 补齐 `default`（202 + ReportWithJob queued）、`replay`（同 key 同 fingerprint 返回首次 response）、`mismatch`（同 key 不同 fingerprint → 409）、`session-already-completed`（同 session 不同 key 走 D-35 replay）、`cross-user-not-found`（404 PRACTICE_SESSION_NOT_FOUND） | Plan 002 Phase 3 完成后，`frontend/src/app/screens/practice/` finish action 通过 fixture-backed transport 接入；本 plan 不要求正式前端消费 | Plan 002 Phase 3：`backend/internal/api/practice.CompletePracticeSession`（idempotency middleware decorated）+ `backend/internal/practice.SessionCompletionService` + `backend/internal/store/practice.CompleteSession` repository | `practice_sessions(status='completing')`、`practice_session_events(event_type='session_completed', seq_no=MAX+1)`、`feedback_reports(status='queued', user_id, session_id)` placeholder、`async_jobs(job_type='report_generate', status='queued', dedupe_key=sessionId)`、`outbox_events practice.session.completed`、`idempotency_records(status='succeeded', resource_type='feedback_report', resource_id=reportId, response_body snapshot)` | no AI in completion path（D-8 only applies to AI-driven AssistantAction generation；completion 同事务无 AI 调用） | `E2E.P0.039`, `E2E.P0.040`, `E2E.P0.041` |
+| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json`：Phase 0 补齐 `default`（answer_submitted → ask_question）、`follow-up`（answer_submitted → ask_follow_up）、`hint-strict-conflict`（hint_requested → 409）、`turn-skipped`（turn_skipped → ask_question）、`pause-resume`（session_paused / session_resumed → session_wait）、`replay`（重复 clientEventId 返回首次结果）、`mismatch`（同 clientEventId 不同 payload → 409）、`completed`（达到 question_budget → session_completed） | Plan 002 Phase 2 完成后，`frontend/src/app/screens/practice/` 与 generated TS client 通过 fixture-backed transport 接入；本 plan 不要求正式前端消费，但生成物必须无 schema drift | Plan 002 Phase 1-2：`backend/internal/api/practice.AppendSessionEvent` + `backend/internal/practice.SessionEventService`（state machine + AssistantAction decision）+ `backend/internal/store/practice.AppendSessionEvent` repository | `practice_session_events`（含 UNIQUE(session_id, client_event_id) 复用 + seq_no 单调）、`practice_turns`（DB 5 值 status 推进）、`outbox_events`（`practice.turn.completed` 行）；append 路径不写 `audit_events` | F3 `practice.session.follow_up`（answer_submitted → ask_follow_up 分支）；hint_requested 在 002 默认 strict 不调 AI；`practice.turn.lightweight_observe` 不在 002 调用（归 003） | `E2E.P0.038`, `E2E.P0.039`, `E2E.P0.040`, `E2E.P0.043` |
+| `completePracticeSession` | `openapi/fixtures/PracticeSessions/completePracticeSession.json`：Phase 0 补齐 `default`（202 + ReportWithJob queued）、`replay`（同 key 同 fingerprint 返回首次 response）、`mismatch`（同 key 不同 fingerprint → 409）、`session-already-completed`（同 session 不同 key 走 D-35 replay）、`cross-user-not-found`（404 PRACTICE_SESSION_NOT_FOUND） | Plan 002 Phase 3 完成后，`frontend/src/app/screens/practice/` finish action 通过 fixture-backed transport 接入；本 plan 不要求正式前端消费 | Plan 002 Phase 3：`backend/internal/api/practice.CompletePracticeSession`（idempotency middleware decorated）+ `backend/internal/practice.SessionCompletionService` + `backend/internal/store/practice.CompleteSession` repository | `practice_sessions(status='completing')`、`practice_session_events(event_type='session_completed', seq_no=MAX+1)`、`feedback_reports(status='queued', user_id, session_id)` placeholder、`async_jobs(job_type='report_generate', status='queued', dedupe_key=sessionId)`、`outbox_events practice.session.completed`、`idempotency_records(status='succeeded', resource_type='feedback_report', resource_id=reportId, response_body snapshot)` | no AI in completion path（D-8 only applies to AI-driven AssistantAction generation；completion 同事务无 AI 调用） | `E2E.P0.041`, `E2E.P0.042`, `E2E.P0.043` |
 
 ## 3.5 Coverage Matrix
 
 | 行 | 类别 | source | plan_phase | verification | negative_scope |
 |----|------|--------|-----------|--------------|----------------|
-| R1 | Primary | spec C-6（答题循环与下一题） | Phase 2 | `SessionEventService.handleAnswerSubmitted` 单元测试覆盖 `ask_question` / `ask_follow_up` / `session_completed` 三分支 + repository 集成测试 + `E2E.P0.034` | — |
-| R2 | Primary | spec C-9（重复 clientEventId 幂等） | Phase 2 | `clientEventId` reservation 单元测试（同 payload replay 返回首次结果，不重复 AI call）+ repository UNIQUE(session_id, client_event_id) 集成测试 + `E2E.P0.035` | — |
-| R3 | Alternate | spec §2.1 5 种 kind exhaustive router | Phase 1 + Phase 2 | `routeEvent(kind)` 单元测试 5 个分支 + golden test 拒绝未知 kind → 422 + `E2E.P0.035` | unknown kind 不应映射为 500；422 + `VALIDATION_FAILED` |
-| R4 | Failure/recovery | spec C-26 mismatch（同 clientEventId 不同 payload fingerprint） | Phase 2 | `clientEventId` fingerprint 单元测试 → 409 + envelope 不泄露首次 payload + `E2E.P0.035` | 不重复触发 AI；不重复写 event |
-| R5 | Boundary | spec C-14（并发 appendSessionEvent 序列化） | Phase 2 | repository 集成测试（multi-goroutine 真实 Postgres）+ UNIQUE(session_id, seq_no) 断言 + `E2E.P0.038` | seq_no 重号 / 丢序 |
-| R6 | Failure/recovery | spec D-34（hint_requested 在 002 默认 strict） | Phase 2 | `SessionEventService.handleHintRequested` 单元测试 → 409 PRACTICE_SESSION_CONFLICT + detail.policy + `E2E.P0.035` | 002 不静默返回 200 / 不调 hint AI |
-| R7 | Primary | spec C-11（完成 session 触发异步 report） | Phase 3 | `SessionCompletionService.Complete` 单元测试 + repository 集成测试（单事务 5 张表 + outbox）+ `E2E.P0.039` | — |
-| R8 | Boundary | spec C-21 complete 分支（success replay） | Phase 3 | idempotency middleware unit test (replay returns snapshot) + repository integration + `E2E.P0.040` | — |
-| R9 | Failure/recovery | spec C-22 complete 分支（key body mismatch） | Phase 3 | conflict.go unit test + `E2E.P0.040` | envelope 不泄露首次资源 |
-| R10 | Cross-layer (auth) | spec C-13 / C-23 complete + append 分支（cross-user 隔离） | Phase 2 + Phase 3 | repository 单元测试（cross-user fixture）+ handler middleware 单元测试 + `E2E.P0.040` 含 404 跨用户断言 | 用户 B 不应通过 same idempotency_key 命中用户 A 资源 |
-| R11 | Boundary | spec C-24 complete 分支（concurrent single-executor） | Phase 3 | DB UNIQUE + row lock 集成测试 + `E2E.P0.040` | 同 user + 同 key + 同 fingerprint 并发只产生一个 feedback_reports / async_jobs row |
-| R12 | Boundary | spec C-27 + D-35（双 key complete 走 replay） | Phase 3 | `CompleteSessionService.findExistingReport` 单元测试 + repository 集成测试（已完成 session 用新 key complete 返回既有 ReportWithJob）+ `E2E.P0.040` | 不创建第二个 feedback_reports / async_jobs；不重复发 outbox |
-| R13 | Cross-layer contract | spec D-32（shared/jobs.yaml `triggerEventSemantic` 字段 + 常量 forward-binding） | Phase 0 + Phase 3 + Phase 4 | `make lint-events` 校验 enum / ownership；`make codegen-events-check` 校验 B3 生成物无 drift；generated `JobTriggerEventSemanticSourceEventOnly` / `JobTriggerEventSemanticTriggerCreatesJob` 常量 + `IsSourceEventOnly(jobType)` 谓词单元测试（`backend/internal/shared/jobs/...`）；handler-side `async_jobs(job_type, dedupe_key) WHERE status IN ('queued','running')` UNIQUE INDEX 并发集成测试；`E2E.P0.041` grep 断言 `report_generate` INSERT 仅出现在 `backend/internal/store/practice/complete_session.go` | runtime dispatcher 集成测试归 future `backend-async-runner` plan（002 阶段无 runtime dispatcher 实体）；其它 8 个 job `trigger_creates_job` 行为保留 |
+| R1 | Primary | spec C-6（答题循环与下一题） | Phase 2 | `SessionEventService.handleAnswerSubmitted` 单元测试覆盖 `ask_question` / `ask_follow_up` / `session_completed` 三分支 + repository 集成测试 + `E2E.P0.038` | — |
+| R2 | Primary | spec C-9（重复 clientEventId 幂等） | Phase 2 | `clientEventId` reservation 单元测试（同 payload replay 返回首次结果，不重复 AI call）+ repository UNIQUE(session_id, client_event_id) 集成测试 + `E2E.P0.039` | — |
+| R3 | Alternate | spec §2.1 5 种 kind exhaustive router | Phase 1 + Phase 2 | `routeEvent(kind)` 单元测试 5 个分支 + golden test 拒绝未知 kind → 422 + `E2E.P0.039` | unknown kind 不应映射为 500；422 + `VALIDATION_FAILED` |
+| R4 | Failure/recovery | spec C-26 mismatch（同 clientEventId 不同 payload fingerprint） | Phase 2 | `clientEventId` fingerprint 单元测试 → 409 + envelope 不泄露首次 payload + `E2E.P0.039` | 不重复触发 AI；不重复写 event |
+| R5 | Boundary | spec C-14（并发 appendSessionEvent 序列化） | Phase 2 | repository 集成测试（multi-goroutine 真实 Postgres）+ UNIQUE(session_id, seq_no) 断言 + `E2E.P0.040` | seq_no 重号 / 丢序 |
+| R6 | Failure/recovery | spec D-34（hint_requested 在 002 默认 strict） | Phase 2 | `SessionEventService.handleHintRequested` 单元测试 → 409 PRACTICE_SESSION_CONFLICT + detail.policy + `E2E.P0.039` | 002 不静默返回 200 / 不调 hint AI |
+| R7 | Primary | spec C-11（完成 session 触发异步 report） | Phase 3 | `SessionCompletionService.Complete` 单元测试 + repository 集成测试（单事务 5 张表 + outbox）+ `E2E.P0.041` | — |
+| R8 | Boundary | spec C-21 complete 分支（success replay） | Phase 3 | idempotency middleware unit test (replay returns snapshot) + repository integration + `E2E.P0.042` | — |
+| R9 | Failure/recovery | spec C-22 complete 分支（key body mismatch） | Phase 3 | conflict.go unit test + `E2E.P0.042` | envelope 不泄露首次资源 |
+| R10 | Cross-layer (auth) | spec C-13 / C-23 complete + append 分支（cross-user 隔离） | Phase 2 + Phase 3 | repository 单元测试（cross-user fixture）+ handler middleware 单元测试 + `E2E.P0.042` 含 404 跨用户断言 | 用户 B 不应通过 same idempotency_key 命中用户 A 资源 |
+| R11 | Boundary | spec C-24 complete 分支（concurrent single-executor） | Phase 3 | DB UNIQUE + row lock 集成测试 + `E2E.P0.042` | 同 user + 同 key + 同 fingerprint 并发只产生一个 feedback_reports / async_jobs row |
+| R12 | Boundary | spec C-27 + D-35（双 key complete 走 replay） | Phase 3 | `CompleteSessionService.findExistingReport` 单元测试 + repository 集成测试（已完成 session 用新 key complete 返回既有 ReportWithJob）+ `E2E.P0.042` | 不创建第二个 feedback_reports / async_jobs；不重复发 outbox |
+| R13 | Cross-layer contract | spec D-32（shared/jobs.yaml `triggerEventSemantic` 字段 + 常量 forward-binding） | Phase 0 + Phase 3 + Phase 4 | `make lint-events` 校验 enum / ownership；`make codegen-events-check` 校验 B3 生成物无 drift；generated `JobTriggerEventSemanticSourceEventOnly` / `JobTriggerEventSemanticTriggerCreatesJob` 常量 + `IsSourceEventOnly(jobType)` 谓词单元测试（`backend/internal/shared/jobs/...`）；handler-side `async_jobs(job_type, dedupe_key) WHERE status IN ('queued','running')` UNIQUE INDEX 并发集成测试；`E2E.P0.043` grep 断言 `report_generate` INSERT 仅出现在 `backend/internal/store/practice/complete_session.go` | runtime dispatcher 集成测试归 future `backend-async-runner` plan（002 阶段无 runtime dispatcher 实体）；其它 8 个 job `trigger_creates_job` 行为保留 |
 | R14 | Cross-layer contract | spec D-33（B2 OpenAPI `PracticeTurn.status` 扩 5 值 + baseline rebase + regenerate） | Phase 0 + Phase 1 | `make codegen-check` + `python3 scripts/lint/conventions_drift.py --repo-root .` + handler 单元测试用 generated request/response types + fixture parity test | wire enum 不应只暴露 3 值；`follow_up_requested` / `assessed` 必须出现在 `PracticeTurn.status` enum |
-| R15 | Cross-layer contract | spec D-22 + D-28（complete 同事务 placeholder + outbox 与 B3 schema 一致 + async_jobs dedupe_key 兜底） | Phase 3 + Phase 4 | `outbox_emitter` 序列化单元测试（断言与 `shared/events/practice.session.completed.json` 一致 + piiBoundary 通过；payload 字段仅含 IDs/counts）+ `async_jobs(job_type, dedupe_key=sessionId)` UNIQUE INDEX 集成测试 + `E2E.P0.039` 断言 `outbox_events WHERE event_name='practice.session.completed' AND aggregate_id=sessionId` 行数为 1（由 D-35 应用层 Replay 路径保证，DB 当前无 outbox 唯一约束） | outbox 重放不创建第二个 `report_generate` job（async_jobs UNIQUE 兜底）；outbox dedupe 限定 `async_jobs.dedupe_key` 列，`outbox_events` 表无 dedupe_key 列 |
-| R16 | Cross-layer contract | spec D-3 + D-8（`practice.turn.completed` payload 与 B3 schema + AssistantAction 仅含 B2 `GenerationProvenance` wire 字段） | Phase 2 | `outbox_emitter.PracticeTurnCompleted` 单元测试 + AssistantAction provenance 单元测试（断言仅含 `promptVersion` / `rubricVersion` / `modelId` / `language` / `featureFlag` / `dataSourceVersion`）+ `E2E.P0.034` | runtime-only 字段（`feature_key`、provider、cost、latency）不进 wire；只进 `ai_task_runs` |
-| R17 | Privacy/security | spec D-11 + C-16（log / metric / audit / outbox 不含明文） | Phase 2 + Phase 3 + Phase 4 | outbox emitter PII 单元测试 + cmd/api HTTP scenario privacy 断言 + legacy lint + `E2E.P0.041` | `question_text` / `answer_text` / `hint_text` / AI prompt / response 明文 / provider secret 在 log / metric / audit_events / outbox payload 中零出现 |
-| R18 | Observability | spec §4.4 + A3/F1 已有边界（AI metric label allowlist；`feature_key` 仅入 `ai_task_runs`） | Phase 2 + Phase 3 | observed AIClient wiring test + `ai_task_runs` 集成测试 + metric label allowlist 单元测试 + `E2E.P0.041` | metric label 不含 `feature_key` / prompt-rubric version / provider raw model id |
-| R19 | UX (API) | spec D-6（202 + ReportWithJob）+ C-11 | Phase 3 | handler 单元测试断言 HTTP 202 + ReportWithJob shape + `E2E.P0.039` | 不返回 200 / 201；ReportWithJob.job.status 必须是 `queued` |
+| R15 | Cross-layer contract | spec D-22 + D-28（complete 同事务 placeholder + outbox 与 B3 schema 一致 + async_jobs dedupe_key 兜底） | Phase 3 + Phase 4 | `outbox_emitter` 序列化单元测试（断言与 `shared/events/practice.session.completed.json` 一致 + piiBoundary 通过；payload 字段仅含 IDs/counts）+ `async_jobs(job_type, dedupe_key=sessionId)` UNIQUE INDEX 集成测试 + `E2E.P0.041` 断言 `outbox_events WHERE event_name='practice.session.completed' AND aggregate_id=sessionId` 行数为 1（由 D-35 应用层 Replay 路径保证，DB 当前无 outbox 唯一约束） | outbox 重放不创建第二个 `report_generate` job（async_jobs UNIQUE 兜底）；outbox dedupe 限定 `async_jobs.dedupe_key` 列，`outbox_events` 表无 dedupe_key 列 |
+| R16 | Cross-layer contract | spec D-3 + D-8（`practice.turn.completed` payload 与 B3 schema + AssistantAction 仅含 B2 `GenerationProvenance` wire 字段） | Phase 2 | `outbox_emitter.PracticeTurnCompleted` 单元测试 + AssistantAction provenance 单元测试（断言仅含 `promptVersion` / `rubricVersion` / `modelId` / `language` / `featureFlag` / `dataSourceVersion`）+ `E2E.P0.038` | runtime-only 字段（`feature_key`、provider、cost、latency）不进 wire；只进 `ai_task_runs` |
+| R17 | Privacy/security | spec D-11 + C-16（log / metric / audit / outbox 不含明文） | Phase 2 + Phase 3 + Phase 4 | outbox emitter PII 单元测试 + cmd/api HTTP scenario privacy 断言 + legacy lint + `E2E.P0.043` | `question_text` / `answer_text` / `hint_text` / AI prompt / response 明文 / provider secret 在 log / metric / audit_events / outbox payload 中零出现 |
+| R18 | Observability | spec §4.4 + A3/F1 已有边界（AI metric label allowlist；`feature_key` 仅入 `ai_task_runs`） | Phase 2 + Phase 3 | observed AIClient wiring test + `ai_task_runs` 集成测试 + metric label allowlist 单元测试 + `E2E.P0.043` | metric label 不含 `feature_key` / prompt-rubric version / provider raw model id |
+| R19 | UX (API) | spec D-6（202 + ReportWithJob）+ C-11 | Phase 3 | handler 单元测试断言 HTTP 202 + ReportWithJob shape + `E2E.P0.041` | 不返回 200 / 201；ReportWithJob.job.status 必须是 `queued` |
 | R20 | Regression / legacy-negative | spec D-20 + D-32 + D-34（retired 术语 / 旧 dispatcher 二次创建 / 旧 hint 处理） | Phase 4 | repo-wide grep gate | `warmup` / `single_drill` / `drill_builder` / `mistake_queue` / `growth_center` / 独立 `voice` route / `practiceModeCard` / dispatcher 旧 `report_generate` 二次创建模式 / 旧 wire turn enum 压缩（spec 历史描述的"handler 映射"备选）在 002 输出文档与代码 diff 零出现 |
 | R21 | Out-of-scope boundary | 003 / 004 / 005 / 006 owner 范围不应被 002 实现 | Phase 1 + Phase 2 | mode policy 单元测试断言 002 hint 仅返回 strict 默认 409，不分支 assisted；derived plan goal 在 002 不修改 schema；voice operation 不挂 router；CASCADE / sweep 不在 002 落地 | 002 不调用 `practice.turn.lightweight_observe`；assisted 真实 hint show_hint 不出现 |
 
 无 UI 视觉地理 parity 行（本 plan 不涉及 `ui-design/` 复刻；其消费方 frontend-workspace-and-practice / 未来 practice screen plan 分别承担 UI parity）。
+
+## 3.6 L2 修订说明
+
+- 2026-05-13 `plan-code-review --fix` 修订：`answer_submitted` service gate 现在要求非空 `payload.answerText`，与 spec §2.1 事件 payload contract 对齐；缺失或空白值在 append 前返回 `422 VALIDATION_FAILED`，不触发 AI / 不写 event。
+- 2026-05-13 `plan-code-review --fix` 修订：`completePracticeSession` 先保留 D-35 既有 report/job replay；没有既有 report/job 时，仅允许 `running` / `waiting_user_input` / `completed` 进入 queued report/job 创建，`queued` / `completing` / `failed` / `cancelled` 返回 `409 PRACTICE_SESSION_CONFLICT`。
+- 2026-05-13 `plan-code-review --fix` 修订：BDD 编号迁移为 `E2E.P0.038` ~ `E2E.P0.043`，因为 `E2E.P0.034` / `E2E.P0.035` 已由 backend-resume 场景占用；`scripts/lint/backend_practice_legacy.py` 增加可执行重复编号 / HTTP scenario test 入口反查。
 
 ## 4 实施步骤
 
@@ -177,9 +183,9 @@ frontend-workspace-and-practice 当前 `frontend/src/app/screens/workspace/` 已
 
 #### 2.5 BDD-Gate Phase 2
 
-- BDD-Gate: 验证 `E2E.P0.034` 通过
-- BDD-Gate: 验证 `E2E.P0.035` 通过
 - BDD-Gate: 验证 `E2E.P0.038` 通过
+- BDD-Gate: 验证 `E2E.P0.039` 通过
+- BDD-Gate: 验证 `E2E.P0.040` 通过
 
 ### Phase 3: CompletePracticeSession vertical slice
 
@@ -215,8 +221,8 @@ frontend-workspace-and-practice 当前 `frontend/src/app/screens/workspace/` 已
 
 #### 3.5 BDD-Gate Phase 3
 
-- BDD-Gate: 验证 `E2E.P0.039` 通过
-- BDD-Gate: 验证 `E2E.P0.040` 通过
+- BDD-Gate: 验证 `E2E.P0.041` 通过
+- BDD-Gate: 验证 `E2E.P0.042` 通过
 
 ### Phase 4: 隐私 / 观测 / Legacy-Negative / Handoff
 
@@ -240,12 +246,12 @@ repo-wide grep gate（在测试或 lint 中执行）：
 
 #### 4.4 BDD-Gate Phase 4
 
-- BDD-Gate: 验证 `E2E.P0.041` 通过
+- BDD-Gate: 验证 `E2E.P0.043` 通过
 
 ## 5 验收标准
 
 - Phase 0 ~ Phase 4 checklist 全部勾选
-- 关联 BDD 场景 `E2E.P0.034` / `E2E.P0.035` / `E2E.P0.038` / `E2E.P0.039` / `E2E.P0.040` / `E2E.P0.041` 均由 `backend/cmd/api/practice_http_scenario_test.go` 的 HTTP scenario tests 执行通过
+- 关联 BDD 场景 `E2E.P0.038` / `E2E.P0.039` / `E2E.P0.040` / `E2E.P0.041` / `E2E.P0.042` / `E2E.P0.043` 均由 `backend/cmd/api/practice_http_scenario_test.go` 的 HTTP scenario tests 执行通过
 - B2 OpenAPI `PracticeTurn.status` enum 已扩 5 值；B3 `shared/jobs.yaml#report_generate` 已带 `triggerEventSemantic: source_event_only`；两个 owner spec 已 Header bump + history append
 - `make codegen-check` / `make lint-events` / `make codegen-events-check` / `python3 scripts/lint/conventions_drift.py --repo-root .` / `cd backend && go test ./...` 全绿
 - 002 范围内代码与文档中无 §3.5 R20 列出的 legacy 术语 / 旧 dispatcher 模式 / 旧 wire turn enum 压缩

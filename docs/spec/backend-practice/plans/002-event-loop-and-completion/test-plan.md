@@ -1,6 +1,6 @@
 # 002 — Event Loop and Completion Test Plan
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-13
 
@@ -23,6 +23,7 @@
 | openapi fixtures extension (events / complete) | R14 / R15 | Phase 0 | contract + drift | `make validate-fixtures`（或 `python3 scripts/lint/validate_fixtures.py --repo-root .`）+ Prism / contract 测试 |
 | F3 baseline preflight | (Plan §6 风险 + R16) | Phase 0 | preflight script + 单元 | F3 baseline 状态读取断言 + `RegistryClient.Resolve` mock test |
 | SessionEventService state machine | R1 / R3 / R6 / R16 | Phase 1 + Phase 2 | 单元 | `cd backend && go test ./internal/practice/...` (`session_event_test.go`) |
+| `answer_submitted` payload contract | R1 / R3 | Phase 2 | 单元 | `cd backend && go test ./internal/practice -run 'TestAppendSessionEventRejectsMissingAnswerText|TestAppendSessionEventRejectsStaleTurnID' -count=1` |
 | turn-status mapping (D-33) | R14 | Phase 1 | 单元 | `cd backend && go test ./internal/practice -run TestTurnStatus -count=1` |
 | AppendSessionEvent repository | R1 / R2 / R3 / R4 / R5 / R10 | Phase 2 | 集成 + 单元 | `cd backend && go test ./internal/store/practice -run TestAppendSessionEvent -count=1` |
 | AppendSessionEvent handler | R1 / R3 / R4 / R6 / R10 / R16 | Phase 2 | 单元 + contract | `cd backend && go test ./internal/api/practice -run TestAppendSessionEvent -count=1` + fixture parity |
@@ -30,6 +31,7 @@
 | AssistantAction provenance | R16 | Phase 2 | 单元 | `session_event_test.go` 子集 |
 | F3 follow_up AI 调用与降级 | R1 / R16 / R17 | Phase 2 | 单元（fake F3 + fake AIClient） | `append_session_event_service_test.go` |
 | CompleteSession repository | R7 / R11 / R12 / R15 / R19 | Phase 3 | 集成 + 单元 | `cd backend && go test ./internal/store/practice -run TestCompleteSession -count=1` |
+| CompleteSession status guard | R7 / R12 / R19 | Phase 3 | 单元 + HTTP scenario | `cd backend && go test ./internal/store/practice -run 'TestSQLRepositoryCompleteSession|TestCanCompletePracticeSessionStatus' -count=1` + `cd backend && go test ./cmd/api -run TestE2EP0042PracticeSessionCompleteIdempotencyMatrix -count=1` |
 | CompleteSession service replay (D-35) | R12 / R7 | Phase 3 | 单元 | `complete_session_service_test.go` |
 | CompletePracticeSession handler + idempotency middleware | R8 / R9 / R11 / R19 | Phase 3 | 单元 + contract | `cd backend && go test ./internal/api/practice -run TestCompletePracticeSession -count=1` + fixture parity |
 | outbox emitter practice.session.completed | R15 / R17 | Phase 3 | 单元（序列化 + 红线断言） | `outbox_emitter_test.go` |
@@ -39,6 +41,7 @@
 | Metric label allowlist | R18 | Phase 2 + Phase 3 | 单元 | A3 observed AIClient existing allowlist + 002 service tests no new label surface |
 | Out-of-scope boundary（hint / lightweight observe / derived plan / voice / cascade） | R21 | Phase 1 + Phase 2 | 单元 + 反查 | `session_event_test.go` + repo grep |
 | Legacy-negative grep | R20 | Phase 4 | repo grep gate | `python3 scripts/lint/backend_practice_legacy.py --repo-root .` |
+| BDD scenario ID collision gate | R20 | Phase 4 | lint + 单元 | `python3 -m pytest scripts/lint/backend_practice_legacy_test.py -q` + `python3 scripts/lint/backend_practice_legacy.py --repo-root .` |
 
 ## 3 Phase 0: 跨 spec 前置修订 + Preflight
 
@@ -69,12 +72,13 @@
 | 任务 | 测试文件 / 命令 | 预期 Red/Green 证据 |
 |------|----------------|---------------------|
 | Repository AppendSessionEvent 主流程 | `backend/internal/store/practice/append_complete_test.go` | Red: tx 分裂 / outbox 缺失 / append 写入 audit；Green: 单事务写 event / turn / session / outbox，不写 `audit_events`；`SELECT FOR UPDATE` 起效 |
-| Repository stale-turn / seq_no boundary | 同上 + cmd/api `TestE2EP0038PracticeEventConcurrentSeqNoStaleTurnConflict` | Red: stale turn 被接受或 seq_no 重号 / 丢序；Green: stale-turn conflict 返回 409，已接受事件 seq_no 单调连续；UNIQUE(session_id, seq_no) 约束生效 |
+| Repository stale-turn / seq_no boundary | 同上 + cmd/api `TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict` | Red: stale turn 被接受或 seq_no 重号 / 丢序；Green: stale-turn conflict 返回 409，已接受事件 seq_no 单调连续；UNIQUE(session_id, seq_no) 约束生效 |
 | Repository replay（同 clientEventId 同 fingerprint） | 同上（`TestAppendSessionEvent_Replay`） | Red: 第二次写入新 event row；Green: 第二次返回首次结果，DB 行数不变 |
 | Repository mismatch（同 clientEventId 不同 fingerprint） | 同上（`TestAppendSessionEvent_FingerprintMismatch`） | Red: 接受第二次 payload；Green: 返回 `ErrClientEventFingerprintMismatch`，envelope 不泄露首次 payload |
 | Repository cross-user 404 | 同上（`TestAppendSessionEvent_CrossUser`） | Red: 用户 B 命中用户 A 的 session；Green: `ErrSessionNotFound` 触发 404 |
 | outbox_emitter practice.turn.completed | `backend/internal/store/practice/outbox_emitter_test.go` (`TestBuildPracticeTurnCompletedPayload`) | Red: payload 与 B3 schema 不一致 / 含明文；Green: 与 `shared/events/practice.turn.completed.*` 一致 + piiBoundary 通过 |
 | Service AppendSessionEvent（含 F3 follow_up） | `backend/internal/practice/append_session_event_service_test.go` | Red: AI 调用在事务内 / AI 失败阻塞用户；Green: AI 在事务外、失败时退化到 `ask_question` placeholder 并写 `failure_code` 到 outcome / structured log 摘要（不写 append audit） |
+| `answer_submitted` 缺失 answerText | `backend/internal/practice/append_session_event_service_test.go` (`TestAppendSessionEventRejectsMissingAnswerText`) | Red: 缺失 / 空白 `payload.answerText` 进入 Route / AI / append；Green: 返回 `VALIDATION_FAILED` + `field='payload.answerText'`，只执行 reservation，不写 event |
 | Handler AppendSessionEvent | `backend/internal/api/practice/session_event_handlers_test.go` | Red: 接受 `Idempotency-Key` header / 错误码映射错；Green: 拒绝 header → 400；正常返回 200 + B2 wire shape |
 | Error mapping | handler/service error mapping tests | Red: 新增映射缺失；Green: clientEvent mismatch / idempotency header policy 映射 PASS |
 | Router 注册 | router test | Red: 路径未挂接 / 错误地挂上 idempotency middleware；Green: 路径命中 + 无 idempotency wrapper |
@@ -85,6 +89,7 @@
 |------|----------------|---------------------|
 | Repository CompleteSession 主流程 | `backend/internal/store/practice/append_complete_test.go` | Red: 单事务漏写表 / outbox 缺失 / async_jobs 缺失；Green: 单事务写 session / event / feedback_reports / async_jobs / outbox / audit |
 | Repository D-35 replay 路径 | 同上（`TestCompleteSession_ReplayReturnsExistingReport`） | Red: 第二次创建新 feedback_reports / async_jobs；Green: 反向查到既有 report + job + outbox dedupe，返回 Replay=true |
+| Repository status guard | 同上（`TestSQLRepositoryCompleteSessionRejectsIllegalStatusWithoutReport` / `TestSQLRepositoryCompleteSessionReplaysExistingReportBeforeStatusGuard` / `TestCanCompletePracticeSessionStatusAllowsRunningWaitingAndCompleted`） | Red: 无既有 report/job 时 `failed` / `queued` / `completing` / `cancelled` 也创建 queued report/job，或 D-35 既有 report/job replay 被状态 guard 阻断；Green: D-35 replay 优先，缺失 report/job 时只允许 `running` / `waiting_user_input` / `completed` |
 | Repository concurrent single-executor | 同上（`TestCompleteSession_Concurrent`） | Red: 并发产生多份 feedback_reports；Green: UNIQUE(session_id) 约束 + row lock 序列化 |
 | Repository cross-user 404 | 同上（`TestCompleteSession_CrossUser`） | Red: 用户 B 命中用户 A；Green: 404 |
 | outbox_emitter practice.session.completed | `outbox_emitter_test.go` | Red: payload 与 B3 schema 不一致；Green: 与 `shared/events/practice.session.completed.*` 一致 |
@@ -98,7 +103,7 @@
 
 | 任务 | 测试文件 / 命令 | 预期 Red/Green 证据 |
 |------|----------------|---------------------|
-| Redaction 单元测试 | `backend/internal/store/practice/outbox_emitter_test.go` + cmd/api `TestE2EP0041PracticeEventLoopPrivacyAndLegacyNegativeSurface` | Red: outbox / complete audit / log 出现明文，或 append 写入 audit；Green: `question_text` / `answer_text` / `hint_text` / prompt / response / secret 在 fixture 输入下零出现，且 append 路径无 `audit_events` |
+| Redaction 单元测试 | `backend/internal/store/practice/outbox_emitter_test.go` + cmd/api `TestE2EP0043PracticeEventLoopPrivacyAndLegacyNegativeSurface` | Red: outbox / complete audit / log 出现明文，或 append 写入 audit；Green: `question_text` / `answer_text` / `hint_text` / prompt / response / secret 在 fixture 输入下零出现，且 append 路径无 `audit_events` |
 | Metric label allowlist | A3 observed AIClient existing allowlist + 002 service tests no new label surface | Red: metric label 含 `feature_key` / prompt-rubric version / provider raw model id；Green: 命中 F1 allowlist |
 | Repo-wide legacy-negative grep | `python3 scripts/lint/backend_practice_legacy.py --repo-root .` | Red: `report_generate` 二次创建 / 旧 wire turn enum 压缩 / `warmup` 等 retired 术语出现；Green: 全部零出现 |
 | Out-of-scope boundary 反查 | `session_event_test.go` (`TestHintNotImplementedInPhase2`) + repo grep | Red: 002 出现 `practice.turn.lightweight_observe` 调用 / assisted hint 实现 / derived plan goal 处理 / voice operation handler / CASCADE / sweep；Green: 全部零出现 |

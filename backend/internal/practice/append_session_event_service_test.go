@@ -174,3 +174,34 @@ func TestAppendSessionEventRejectsStaleTurnID(t *testing.T) {
 		t.Fatalf("stale turn should stop before append, steps=%v", store.steps)
 	}
 }
+
+func TestAppendSessionEventRejectsMissingAnswerText(t *testing.T) {
+	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
+	store := &recordingPlanStore{
+		eventReservation: SessionEventReservation{
+			UserID:     "user-1",
+			Session:    sessionEventTestSession(1),
+			Plan:       sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline),
+			LatestTurn: sessionEventTestTurn(1),
+		},
+	}
+	service := NewService(ServiceOptions{Store: store, Now: func() time.Time { return now }})
+
+	_, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
+		UserID:        "user-1",
+		SessionID:     "session-1",
+		ClientEventID: "client-event-missing-answer",
+		Kind:          "answer_submitted",
+		OccurredAt:    now,
+		Payload: map[string]any{
+			"turnId": "turn-1",
+		},
+	})
+	var svcErr *ServiceError
+	if !errors.As(err, &svcErr) || svcErr.Code != sharederrors.CodeValidationFailed || svcErr.Details["field"] != "payload.answerText" {
+		t.Fatalf("expected missing answerText validation error, got %+v", err)
+	}
+	if !reflect.DeepEqual(store.steps, []string{"reserve-event"}) {
+		t.Fatalf("missing answerText should stop before append, steps=%v", store.steps)
+	}
+}

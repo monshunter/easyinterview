@@ -415,13 +415,13 @@ auth:
 	}
 }
 
-func TestE2EP0034PracticeEventLoopAnswerFlow(t *testing.T) {
+func TestE2EP0038PracticeEventLoopAnswerFlow(t *testing.T) {
 	h := newPracticeHTTPScenarioHarness(t)
-	plan := h.seedReadyScenarioPlan("practice-plan-p0-034", "target-job-p0-034-a", "resume-asset-p0-034-a", practiceHTTPScenarioUserAID)
-	started := h.startScenarioSession(t, plan.ID, "e2e-p0-034-start-session")
+	plan := h.seedReadyScenarioPlan("practice-plan-p0-038", "target-job-p0-038-a", "resume-asset-p0-038-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-038-start-session")
 
 	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
-		ClientEventId: "e2e-p0-034-event-1",
+		ClientEventId: "e2e-p0-038-event-1",
 		Kind:          "answer_submitted",
 		OccurredAt:    "2026-04-28T13:45:12Z",
 		Payload: map[string]any{
@@ -444,14 +444,14 @@ func TestE2EP0034PracticeEventLoopAnswerFlow(t *testing.T) {
 	}
 }
 
-func TestE2EP0035PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T) {
+func TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T) {
 	h := newPracticeHTTPScenarioHarness(t)
-	plan := h.seedReadyScenarioPlan("practice-plan-p0-035", "target-job-p0-035-a", "resume-asset-p0-035-a", practiceHTTPScenarioUserAID)
-	started := h.startScenarioSession(t, plan.ID, "e2e-p0-035-start-session")
+	plan := h.seedReadyScenarioPlan("practice-plan-p0-039", "target-job-p0-039-a", "resume-asset-p0-039-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-039-start-session")
 	path := "/api/v1/practice/sessions/" + started.Id + "/events"
 
 	body := api.PracticeSessionEventRequest{
-		ClientEventId: "e2e-p0-035-resume",
+		ClientEventId: "e2e-p0-039-resume",
 		Kind:          "session_resumed",
 		OccurredAt:    "2026-04-28T13:45:12Z",
 		Payload:       map[string]any{"previousStatus": "waiting_user_input"},
@@ -469,7 +469,7 @@ func TestE2EP0035PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T)
 	}
 
 	headerRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "must-not-use", api.PracticeSessionEventRequest{
-		ClientEventId: "e2e-p0-035-header",
+		ClientEventId: "e2e-p0-039-header",
 		Kind:          "turn_skipped",
 		OccurredAt:    "2026-04-28T13:46:12Z",
 		Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
@@ -479,7 +479,7 @@ func TestE2EP0035PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T)
 	}
 
 	hintRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
-		ClientEventId: "e2e-p0-035-hint",
+		ClientEventId: "e2e-p0-039-hint",
 		Kind:          "hint_requested",
 		OccurredAt:    "2026-04-28T13:47:12Z",
 		Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
@@ -489,7 +489,7 @@ func TestE2EP0035PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T)
 	}
 
 	crossRaw := h.doJSON(t, practiceHTTPScenarioUserBID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
-		ClientEventId: "e2e-p0-035-cross",
+		ClientEventId: "e2e-p0-039-cross",
 		Kind:          "session_paused",
 		OccurredAt:    "2026-04-28T13:48:12Z",
 	}, http.StatusNotFound)
@@ -500,14 +500,14 @@ func TestE2EP0035PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T)
 	}
 }
 
-func TestE2EP0038PracticeEventConcurrentSeqNoStaleTurnConflict(t *testing.T) {
+func TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict(t *testing.T) {
 	h := newPracticeHTTPScenarioHarness(t)
-	plan := h.seedReadyScenarioPlan("practice-plan-p0-038", "target-job-p0-038-a", "resume-asset-p0-038-a", practiceHTTPScenarioUserAID)
-	started := h.startScenarioSession(t, plan.ID, "e2e-p0-038-start-session")
+	plan := h.seedReadyScenarioPlan("practice-plan-p0-040", "target-job-p0-040-a", "resume-asset-p0-040-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-040-start-session")
 	path := "/api/v1/practice/sessions/" + started.Id + "/events"
 
 	first := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
-		ClientEventId: "e2e-p0-038-a",
+		ClientEventId: "e2e-p0-040-a",
 		Kind:          "answer_submitted",
 		OccurredAt:    "2026-04-28T13:45:12Z",
 		Payload: map[string]any{
@@ -524,7 +524,7 @@ func TestE2EP0038PracticeEventConcurrentSeqNoStaleTurnConflict(t *testing.T) {
 	}
 
 	stale := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
-		ClientEventId: "e2e-p0-038-b",
+		ClientEventId: "e2e-p0-040-b",
 		Kind:          "answer_submitted",
 		OccurredAt:    "2026-04-28T13:45:13Z",
 		Payload: map[string]any{
@@ -542,12 +542,12 @@ func TestE2EP0038PracticeEventConcurrentSeqNoStaleTurnConflict(t *testing.T) {
 	}
 }
 
-func TestE2EP0039PracticeSessionCompleteCreatesQueuedReportJob(t *testing.T) {
+func TestE2EP0041PracticeSessionCompleteCreatesQueuedReportJob(t *testing.T) {
 	h := newPracticeHTTPScenarioHarness(t)
-	plan := h.seedReadyScenarioPlan("practice-plan-p0-039", "target-job-p0-039-a", "resume-asset-p0-039-a", practiceHTTPScenarioUserAID)
-	started := h.startScenarioSession(t, plan.ID, "e2e-p0-039-start-session")
+	plan := h.seedReadyScenarioPlan("practice-plan-p0-041", "target-job-p0-041-a", "resume-asset-p0-041-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-041-start-session")
 
-	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/complete", "e2e-p0-039-complete", api.CompletePracticeSessionRequest{
+	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/complete", "e2e-p0-041-complete", api.CompletePracticeSessionRequest{
 		ClientCompletedAt: "2026-04-28T13:55:12Z",
 	}, http.StatusAccepted)
 	var out api.ReportWithJob
@@ -560,24 +560,24 @@ func TestE2EP0039PracticeSessionCompleteCreatesQueuedReportJob(t *testing.T) {
 	}
 }
 
-func TestE2EP0040PracticeSessionCompleteIdempotencyMatrix(t *testing.T) {
+func TestE2EP0042PracticeSessionCompleteIdempotencyMatrix(t *testing.T) {
 	h := newPracticeHTTPScenarioHarness(t)
-	plan := h.seedReadyScenarioPlan("practice-plan-p0-040", "target-job-p0-040-a", "resume-asset-p0-040-a", practiceHTTPScenarioUserAID)
-	started := h.startScenarioSession(t, plan.ID, "e2e-p0-040-start-session")
+	plan := h.seedReadyScenarioPlan("practice-plan-p0-042", "target-job-p0-042-a", "resume-asset-p0-042-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-042-start-session")
 	path := "/api/v1/practice/sessions/" + started.Id + "/complete"
 	body := api.CompletePracticeSessionRequest{ClientCompletedAt: "2026-04-28T13:55:12Z"}
 
-	firstRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "e2e-p0-040-k1", body, http.StatusAccepted)
+	firstRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "e2e-p0-042-k1", body, http.StatusAccepted)
 	var first api.ReportWithJob
 	decodeJSON(t, firstRaw, &first)
-	replayRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "e2e-p0-040-k1", body, http.StatusAccepted)
+	replayRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "e2e-p0-042-k1", body, http.StatusAccepted)
 	assertJSONEqualBytes(t, firstRaw, replayRaw)
 
-	h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "e2e-p0-040-k1", api.CompletePracticeSessionRequest{
+	h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "e2e-p0-042-k1", api.CompletePracticeSessionRequest{
 		ClientCompletedAt: "2026-04-28T14:00:00Z",
 	}, http.StatusConflict)
 
-	secondKeyRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "e2e-p0-040-k2", api.CompletePracticeSessionRequest{
+	secondKeyRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "e2e-p0-042-k2", api.CompletePracticeSessionRequest{
 		ClientCompletedAt: "2026-04-28T14:01:00Z",
 	}, http.StatusAccepted)
 	var secondKey api.ReportWithJob
@@ -586,26 +586,35 @@ func TestE2EP0040PracticeSessionCompleteIdempotencyMatrix(t *testing.T) {
 		t.Fatalf("D-35 second key should replay existing report/job, first=%+v second=%+v", first, secondKey)
 	}
 
-	crossRaw := h.doJSON(t, practiceHTTPScenarioUserBID, http.MethodPost, path, "e2e-p0-040-cross", body, http.StatusNotFound)
+	crossRaw := h.doJSON(t, practiceHTTPScenarioUserBID, http.MethodPost, path, "e2e-p0-042-cross", body, http.StatusNotFound)
 	var cross api.ApiErrorResponse
 	decodeJSON(t, crossRaw, &cross)
 	if cross.Error.Code != sharederrors.CodePracticeSessionNotFound {
 		t.Fatalf("cross-user complete should hide session existence: %+v", cross.Error)
+	}
+	blockedPlan := h.seedReadyScenarioPlan("practice-plan-p0-042-blocked", "target-job-p0-042-blocked", "resume-asset-p0-042-blocked", practiceHTTPScenarioUserAID)
+	blocked := h.startScenarioSession(t, blockedPlan.ID, "e2e-p0-042-blocked-start")
+	h.store.forceSessionStatus(blocked.Id, sharedtypes.SessionStatusFailed)
+	blockedRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+blocked.Id+"/complete", "e2e-p0-042-blocked-complete", body, http.StatusConflict)
+	var blockedErr api.ApiErrorResponse
+	decodeJSON(t, blockedRaw, &blockedErr)
+	if blockedErr.Error.Code != sharederrors.CodePracticeSessionConflict {
+		t.Fatalf("illegal completion status should conflict: %+v", blockedErr.Error)
 	}
 	if len(h.store.completedReports) != 1 {
 		t.Fatalf("complete should create one report, got %d", len(h.store.completedReports))
 	}
 }
 
-func TestE2EP0041PracticeEventLoopPrivacyAndLegacyNegativeSurface(t *testing.T) {
+func TestE2EP0043PracticeEventLoopPrivacyAndLegacyNegativeSurface(t *testing.T) {
 	ai := &scenarioPracticeAIClient{responseText: "请补充你如何处理反对意见。", responseIntent: "behavioral.depth"}
 	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai, observedAI: true})
-	plan := h.seedReadyScenarioPlan("01918fa0-0000-7000-8000-000000004041", "01918fa0-0000-7000-8000-000000002041", "resume-asset-p0-041-a", practiceHTTPScenarioUserAID)
-	started := h.startScenarioSession(t, plan.ID, "e2e-p0-041-start-session")
+	plan := h.seedReadyScenarioPlan("01918fa0-0000-7000-8000-000000004043", "01918fa0-0000-7000-8000-000000002043", "resume-asset-p0-043-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-043-start-session")
 	path := "/api/v1/practice/sessions/" + started.Id + "/events"
 
 	h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
-		ClientEventId: "e2e-p0-041-follow-up",
+		ClientEventId: "e2e-p0-043-follow-up",
 		Kind:          "answer_submitted",
 		OccurredAt:    "2026-04-28T13:45:12Z",
 		Payload: map[string]any{
@@ -613,7 +622,7 @@ func TestE2EP0041PracticeEventLoopPrivacyAndLegacyNegativeSurface(t *testing.T) 
 			"answerText": "answer_text prompt body response body provider secret sk-test",
 		},
 	}, http.StatusOK)
-	h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/complete", "e2e-p0-041-complete", api.CompletePracticeSessionRequest{
+	h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/complete", "e2e-p0-043-complete", api.CompletePracticeSessionRequest{
 		ClientCompletedAt: "2026-04-28T13:55:12Z",
 	}, http.StatusAccepted)
 
@@ -1125,6 +1134,9 @@ func (s *scenarioPracticeStore) CompleteSession(_ context.Context, in domainprac
 		existing.Replay = true
 		return existing, nil
 	}
+	if !canCompleteScenarioSessionStatus(session.Status) {
+		return domainpractice.CompleteSessionResult{}, domainpractice.ErrSessionConflict
+	}
 	session.Status = sharedtypes.SessionStatusCompleting
 	session.UpdatedAt = in.Now
 	s.sessions[in.SessionID] = session
@@ -1178,6 +1190,15 @@ func (s *scenarioPracticeStore) CompleteSession(_ context.Context, in domainprac
 	}
 	s.completedReports[in.SessionID] = result
 	return result, nil
+}
+
+func canCompleteScenarioSessionStatus(status sharedtypes.SessionStatus) bool {
+	switch status {
+	case sharedtypes.SessionStatusRunning, sharedtypes.SessionStatusWaitingUserInput, sharedtypes.SessionStatusCompleted:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *scenarioPracticeStore) ReserveSessionStart(_ context.Context, in domainpractice.StartSessionReservationInput) (domainpractice.SessionReservation, error) {
@@ -1587,6 +1608,15 @@ func (s *scenarioPracticeStore) forceSessionReplayDrift(sessionID string) {
 		turn.QuestionText = "mutated question that must not appear in idempotency replay"
 		session.CurrentTurn = &turn
 	}
+	s.sessions[sessionID] = session
+}
+
+func (s *scenarioPracticeStore) forceSessionStatus(sessionID string, status sharedtypes.SessionStatus) {
+	session, ok := s.sessions[sessionID]
+	if !ok {
+		return
+	}
+	session.Status = status
 	s.sessions[sessionID] = session
 }
 
