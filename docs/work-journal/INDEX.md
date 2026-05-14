@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-14](2026-05-14.md) | `docs(skills): align design branch prefix with repo convention` | #docs |
 | [2026-05-14](2026-05-14.md) | `docs(backend-practice): kickoff mode policies plan and narrow assistive ai` | #docs |
 | [2026-05-14](2026-05-14.md) | `docs(frontend-workspace-and-practice): align practice text plan gates` | #docs |
 | [2026-05-14](2026-05-14.md) | `fix(backend-practice): reserve session events before AI` | #fix #test #docs |
