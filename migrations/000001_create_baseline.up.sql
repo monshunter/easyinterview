@@ -383,7 +383,7 @@ CREATE TABLE rubric_versions (
 CREATE TABLE ai_task_runs (
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES users(id) ON DELETE SET NULL,
-  task_type text NOT NULL CHECK (task_type IN ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'resume_tailor', 'debrief_generate')),
+  task_type text NOT NULL CHECK (task_type IN ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'resume_tailor', 'debrief_generate', 'hint_generate')),
   resource_type text NOT NULL,
   resource_id uuid NOT NULL,
   provider text NOT NULL,

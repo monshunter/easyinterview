@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
@@ -139,6 +141,421 @@ func TestAppendSessionEventFollowUpAIFailureFallsBackToAskQuestion(t *testing.T)
 	}
 	if result.AssistantAction.Type != assistantActionAskQuestion || result.AssistantAction.RequiresAI {
 		t.Fatalf("AI failure should degrade to non-blocking ask_question: %+v", result.AssistantAction)
+	}
+}
+
+func TestAppendSessionEventHintStrictDoesNotLeavePendingReservation(t *testing.T) {
+	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
+	store := &recordingPlanStore{
+		eventReservation: SessionEventReservation{
+			UserID:  "user-1",
+			Session: sessionEventTestSession(1),
+			Plan: func() PlanRecord {
+				plan := sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline)
+				plan.Mode = sharedtypes.PracticeModeStrict
+				return plan
+			}(),
+			LatestTurn: sessionEventTestTurn(1),
+		},
+	}
+	service := NewService(ServiceOptions{
+		Store: store,
+		Now:   func() time.Time { return now },
+		NewID: sequenceIDs("event-1", "error-event-unused"),
+	})
+
+	_, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
+		UserID:        "user-1",
+		SessionID:     "session-1",
+		ClientEventID: "client-event-1",
+		Kind:          "hint_requested",
+		OccurredAt:    now,
+		Payload:       map[string]any{"turnId": "turn-1"},
+	})
+	var svcErr *ServiceError
+	if !errors.As(err, &svcErr) || svcErr.Code != sharederrors.CodePracticeSessionConflict {
+		t.Fatalf("expected strict hint conflict, got %v", err)
+	}
+	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "finalize-event-error"}) {
+		t.Fatalf("strict hint should finalize reserved error payload, steps=%v", store.steps)
+	}
+	if store.finalizeEventError.EventID != "event-1" || store.finalizeEventError.Error.Code != sharederrors.CodePracticeSessionConflict {
+		t.Fatalf("unexpected finalize input: %+v", store.finalizeEventError)
+	}
+	if store.finalizeEventError.Error.Details["policy"] != "hint_disabled_in_mode" {
+		t.Fatalf("strict conflict policy missing: %+v", store.finalizeEventError.Error.Details)
+	}
+}
+
+func TestServiceAppliesHintAIForAssisted(t *testing.T) {
+	now := time.Date(2026, 4, 28, 13, 47, 32, 0, time.UTC)
+	store := &recordingPlanStore{
+		eventReservation: SessionEventReservation{
+			UserID:  "01918fa0-0010-7a00-8a00-000000000001",
+			Session: sessionEventTestSession(1),
+			Plan: func() PlanRecord {
+				plan := sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline)
+				plan.Mode = sharedtypes.PracticeModeAssisted
+				plan.TargetJobID = "01918fa0-0020-7a00-8a00-000000000002"
+				return plan
+			}(),
+			LatestTurn: sessionEventTestTurn(1),
+		},
+	}
+	ai := &fakeAIClient{content: `{"hint":"Use one measurable tradeoff."}`, store: store}
+	service := NewService(ServiceOptions{
+		Store: store,
+		Registry: &fakePromptResolver{resolution: registry.PromptResolution{
+			PromptVersion:       "hint.prompt.v1",
+			RubricVersion:       "hint.rubric.v1",
+			ModelProfileName:    "practice.turn_observe.default",
+			FeatureFlag:         "none",
+			DataSourceVersion:   "registry.v1",
+			UserMessageTemplate: "give a hint",
+		}},
+		AI:    ai,
+		Now:   func() time.Time { return now },
+		NewID: sequenceIDs("event-1", "outbox-1"),
+	})
+
+	result, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
+		UserID:        "01918fa0-0010-7a00-8a00-000000000001",
+		SessionID:     "session-1",
+		ClientEventID: "client-event-1",
+		Kind:          "hint_requested",
+		OccurredAt:    now,
+		Payload:       map[string]any{"turnId": "turn-1"},
+	})
+	if err != nil {
+		t.Fatalf("AppendSessionEvent returned error: %v", err)
+	}
+	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "ai", "append-event"}) {
+		t.Fatalf("steps = %v", store.steps)
+	}
+	if result.AssistantAction.Type != assistantActionShowHint || result.AssistantAction.Hint != "Use one measurable tradeoff." {
+		t.Fatalf("unexpected hint action: %+v", result.AssistantAction)
+	}
+	if result.AssistantAction.Provenance.RubricVersion != "not_applicable" ||
+		result.AssistantAction.Provenance.PromptVersion != "hint.prompt.v1" {
+		t.Fatalf("unexpected provenance: %+v", result.AssistantAction.Provenance)
+	}
+	if store.appendEvent.Outcome.OutboxRecord != nil || store.appendEvent.Outcome.NextTurn != nil {
+		t.Fatalf("hint must not advance turn lifecycle: %+v", store.appendEvent.Outcome)
+	}
+	if ai.payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskHintGenerate ||
+		ai.payload.Metadata.FeatureKey != hintFeatureKey {
+		t.Fatalf("unexpected AI metadata: %+v", ai.payload.Metadata)
+	}
+}
+
+func TestServiceSkipsHintAIForStrict(t *testing.T) {
+	now := time.Date(2026, 4, 28, 13, 47, 32, 0, time.UTC)
+	store := &recordingPlanStore{
+		eventReservation: SessionEventReservation{
+			UserID:  "01918fa0-0010-7a00-8a00-000000000001",
+			Session: sessionEventTestSession(1),
+			Plan: func() PlanRecord {
+				plan := sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline)
+				plan.Mode = sharedtypes.PracticeModeStrict
+				return plan
+			}(),
+			LatestTurn: sessionEventTestTurn(1),
+		},
+	}
+	ai := &fakeAIClient{content: `{"hint":"must not be called"}`, store: store}
+	service := NewService(ServiceOptions{
+		Store:    store,
+		Registry: &fakePromptResolver{resolution: registry.PromptResolution{ModelProfileName: "practice.turn_observe.default"}},
+		AI:       ai,
+		Now:      func() time.Time { return now },
+		NewID:    sequenceIDs("event-1", "outbox-1"),
+	})
+
+	_, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
+		UserID:        "01918fa0-0010-7a00-8a00-000000000001",
+		SessionID:     "session-1",
+		ClientEventID: "client-event-1",
+		Kind:          "hint_requested",
+		OccurredAt:    now,
+		Payload:       map[string]any{"turnId": "turn-1"},
+	})
+	var svcErr *ServiceError
+	if !errors.As(err, &svcErr) || svcErr.Code != sharederrors.CodePracticeSessionConflict {
+		t.Fatalf("expected strict hint conflict, got %v", err)
+	}
+	if ai.profileName != "" {
+		t.Fatalf("strict hint path must not invoke AI, profile=%q", ai.profileName)
+	}
+	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "finalize-event-error"}) {
+		t.Fatalf("strict hint should reserve and finalize only, steps=%v", store.steps)
+	}
+}
+
+func TestApplyHintAISuccess(t *testing.T) {
+	reservation := hintTestReservation()
+	ai := &fakeAIClient{
+		content: `{"hint":"Tie the answer to a concrete metric."}`,
+		meta: aiclient.AICallMeta{
+			ModelID:          "stub-chat-1",
+			ValidationStatus: aiclient.ValidationStatusOK,
+		},
+	}
+	service := NewService(ServiceOptions{
+		Registry: &fakePromptResolver{resolution: hintTestResolution()},
+		AI:       ai,
+	})
+	outcome := hintPendingOutcome(reservation)
+
+	service.applyHintAI(context.Background(), reservation, map[string]any{"answerText": "short answer"}, outcome)
+
+	if outcome.AssistantAction.Type != assistantActionShowHint ||
+		outcome.AssistantAction.Hint != "Tie the answer to a concrete metric." ||
+		outcome.AssistantAction.RequiresAI {
+		t.Fatalf("unexpected hint outcome: %+v", outcome.AssistantAction)
+	}
+	if outcome.AssistantAction.Provenance.PromptVersion != "hint.prompt.v1" ||
+		outcome.AssistantAction.Provenance.RubricVersion != "not_applicable" ||
+		outcome.AssistantAction.Provenance.ModelID != "stub-chat-1" ||
+		outcome.AssistantAction.Provenance.DataSourceVersion != "registry.v1" {
+		t.Fatalf("unexpected hint provenance: %+v", outcome.AssistantAction.Provenance)
+	}
+	if ai.payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskHintGenerate ||
+		ai.payload.Metadata.TaskRun.ResourceType != aiclient.AITaskRunResourceTargetJob ||
+		ai.payload.Metadata.TaskRun.ResourceID != reservation.Plan.TargetJobID ||
+		ai.payload.Metadata.FeatureKey != hintFeatureKey {
+		t.Fatalf("unexpected task metadata: %+v", ai.payload.Metadata)
+	}
+}
+
+func TestApplyHintAIBuildsPromptWithoutLeaks(t *testing.T) {
+	reservation := hintTestReservation()
+	reservation.LatestTurn.QuestionText = "QUESTION_TEXT_SECRET"
+	ai := &fakeAIClient{content: `{"hint":"Use a metric."}`}
+	service := NewService(ServiceOptions{
+		Registry: &fakePromptResolver{resolution: hintTestResolution()},
+		AI:       ai,
+	})
+	outcome := hintPendingOutcome(reservation)
+
+	service.applyHintAI(context.Background(), reservation, map[string]any{"answerText": "ANSWER_TEXT_SECRET"}, outcome)
+
+	rawPrompt := ""
+	for _, msg := range ai.payload.Messages {
+		rawPrompt += msg.Content + "\n"
+	}
+	for _, forbidden := range []string{"QUESTION_TEXT_SECRET", "ANSWER_TEXT_SECRET"} {
+		if strings.Contains(rawPrompt, forbidden) {
+			t.Fatalf("hint prompt leaked raw %q: %s", forbidden, rawPrompt)
+		}
+	}
+	for _, required := range []string{"Current question length:", "Current answer length:"} {
+		if !strings.Contains(rawPrompt, required) {
+			t.Fatalf("hint prompt missing sanitized length %q: %s", required, rawPrompt)
+		}
+	}
+}
+
+func TestApplyHintAIGracefulDegradeMatrix(t *testing.T) {
+	cases := []struct {
+		name     string
+		resolver *fakePromptResolver
+		ai       *fakeAIClient
+		wantCode string
+		wantRows int
+	}{
+		{
+			name:     "f3 prompt unsupported",
+			resolver: &fakePromptResolver{err: registry.ErrPromptUnsupported},
+			ai:       &fakeAIClient{content: `{"hint":"unused"}`},
+			wantCode: sharederrors.CodeAiProviderConfigInvalid,
+			wantRows: 1,
+		},
+		{
+			name:     "f3 language unsupported",
+			resolver: &fakePromptResolver{err: registry.ErrLanguageUnsupported},
+			ai:       &fakeAIClient{content: `{"hint":"unused"}`},
+			wantCode: sharederrors.CodeAiProviderConfigInvalid,
+			wantRows: 1,
+		},
+		{
+			name:     "a3 secret missing",
+			resolver: &fakePromptResolver{resolution: hintTestResolution()},
+			ai:       &fakeAIClient{err: sharederrors.Wrap(sharederrors.CodeAiProviderSecretMissing, "missing secret", false)},
+			wantCode: sharederrors.CodeAiProviderSecretMissing,
+		},
+		{
+			name:     "a3 timeout",
+			resolver: &fakePromptResolver{resolution: hintTestResolution()},
+			ai:       &fakeAIClient{err: context.DeadlineExceeded},
+			wantCode: sharederrors.CodeAiProviderTimeout,
+		},
+		{
+			name:     "a3 invalid output",
+			resolver: &fakePromptResolver{resolution: hintTestResolution()},
+			ai:       &fakeAIClient{err: sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "schema failed", false)},
+			wantCode: sharederrors.CodeAiOutputInvalid,
+		},
+		{
+			name:     "a3 capability mismatch",
+			resolver: &fakePromptResolver{resolution: hintTestResolution()},
+			ai:       &fakeAIClient{err: sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "capability mismatch", false)},
+			wantCode: sharederrors.CodeAiUnsupportedCapability,
+		},
+		{
+			name:     "parsed hint empty",
+			resolver: &fakePromptResolver{resolution: hintTestResolution()},
+			ai:       &fakeAIClient{content: `{"hint":"   "}`},
+			wantCode: sharederrors.CodeAiOutputInvalid,
+			wantRows: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			reservation := hintTestReservation()
+			rows := &recordingAITaskRunWriter{}
+			service := NewService(ServiceOptions{
+				Registry:   tc.resolver,
+				AI:         tc.ai,
+				AITaskRuns: rows,
+			})
+			outcome := hintPendingOutcome(reservation)
+
+			service.applyHintAI(context.Background(), reservation, map[string]any{}, outcome)
+
+			if outcome.AssistantAction.Type != assistantActionSessionWait ||
+				outcome.AssistantAction.Hint != "" ||
+				outcome.NextSessionStatus != sharedtypes.SessionStatusRunning {
+				t.Fatalf("expected graceful session_wait, got %+v", outcome)
+			}
+			if got := outcome.AuditMetadata["hint_degrade_reason"]; got != tc.wantCode {
+				t.Fatalf("hint_degrade_reason = %v, want %s", got, tc.wantCode)
+			}
+			if len(rows.rows) != tc.wantRows {
+				t.Fatalf("task run rows = %+v, want %d rows", rows.rows, tc.wantRows)
+			}
+			for _, row := range rows.rows {
+				if row.Capability != aiclient.AITaskRunTaskHintGenerate ||
+					row.ValidationStatus != aiclient.ValidationStatusInvalid ||
+					row.ErrorCode != tc.wantCode {
+					t.Fatalf("unexpected failed task run row: %+v", row)
+				}
+			}
+		})
+	}
+}
+
+func TestApplyHintAIPrivacyRedaction(t *testing.T) {
+	reservation := hintTestReservation()
+	reservation.LatestTurn.QuestionText = "question_text_secret"
+	rows := &recordingAITaskRunWriter{}
+	service := NewService(ServiceOptions{
+		Registry:   &fakePromptResolver{err: registry.ErrPromptUnsupported},
+		AI:         &fakeAIClient{content: `{"hint":"unused response body secret"}`},
+		AITaskRuns: rows,
+	})
+	outcome := hintPendingOutcome(reservation)
+
+	service.applyHintAI(context.Background(), reservation, map[string]any{"answerText": "answer_text_secret"}, outcome)
+
+	raw := mustMarshalString(t, map[string]any{
+		"action":         outcome.AssistantAction,
+		"auditMetadata":  outcome.AuditMetadata,
+		"ai_task_runs":   rows.rows,
+		"practice_event": "hint_requested",
+	})
+	for _, forbidden := range []string{"question_text_secret", "answer_text_secret", "hint_text", "response body secret", "provider secret"} {
+		if strings.Contains(raw, forbidden) {
+			t.Fatalf("hint degradation surface leaked %q: %s", forbidden, raw)
+		}
+	}
+}
+
+func TestApplyHintAIGracefulDegradeOnRegistryFailure(t *testing.T) {
+	now := time.Date(2026, 4, 28, 13, 47, 32, 0, time.UTC)
+	runs := &recordingAITaskRunWriter{}
+	store := &recordingPlanStore{
+		eventReservation: SessionEventReservation{
+			UserID:  "01918fa0-0010-7a00-8a00-000000000001",
+			Session: sessionEventTestSession(1),
+			Plan: func() PlanRecord {
+				plan := sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline)
+				plan.Mode = sharedtypes.PracticeModeAssisted
+				plan.TargetJobID = "01918fa0-0020-7a00-8a00-000000000002"
+				return plan
+			}(),
+			LatestTurn: sessionEventTestTurn(1),
+		},
+	}
+	service := NewService(ServiceOptions{
+		Store:      store,
+		Registry:   &fakePromptResolver{err: registry.ErrPromptUnsupported},
+		AI:         &fakeAIClient{content: `{"hint":"unused"}`, store: store},
+		AITaskRuns: runs,
+		Now:        func() time.Time { return now },
+		NewID:      sequenceIDs("event-1", "outbox-1"),
+	})
+
+	result, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
+		UserID:        "01918fa0-0010-7a00-8a00-000000000001",
+		SessionID:     "session-1",
+		ClientEventID: "client-event-1",
+		Kind:          "hint_requested",
+		OccurredAt:    now,
+		Payload:       map[string]any{"turnId": "turn-1"},
+	})
+	if err != nil {
+		t.Fatalf("AppendSessionEvent returned error: %v", err)
+	}
+	if result.AssistantAction.Type != assistantActionSessionWait || result.AssistantAction.Hint != "" {
+		t.Fatalf("expected session_wait degrade without hint, got %+v", result.AssistantAction)
+	}
+	if got := store.appendEvent.Outcome.AuditMetadata["hint_degrade_reason"]; got != sharederrors.CodeAiProviderConfigInvalid {
+		t.Fatalf("degrade reason = %v", got)
+	}
+	if len(runs.rows) != 1 || runs.rows[0].Capability != aiclient.AITaskRunTaskHintGenerate ||
+		runs.rows[0].ErrorCode != sharederrors.CodeAiProviderConfigInvalid {
+		t.Fatalf("unexpected task run rows: %+v", runs.rows)
+	}
+}
+
+func hintTestReservation() SessionEventReservation {
+	return SessionEventReservation{
+		UserID:  "01918fa0-0010-7a00-8a00-000000000001",
+		Session: sessionEventTestSession(1),
+		Plan: func() PlanRecord {
+			plan := sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline)
+			plan.Mode = sharedtypes.PracticeModeAssisted
+			plan.TargetJobID = "01918fa0-0020-7a00-8a00-000000000002"
+			return plan
+		}(),
+		LatestTurn: sessionEventTestTurn(1),
+	}
+}
+
+func hintTestResolution() registry.PromptResolution {
+	return registry.PromptResolution{
+		PromptVersion:       "hint.prompt.v1",
+		RubricVersion:       "hint.rubric.v1",
+		ModelProfileName:    "practice.turn_observe.default",
+		FeatureFlag:         "none",
+		DataSourceVersion:   "registry.v1",
+		UserMessageTemplate: "give a hint",
+	}
+}
+
+func hintPendingOutcome(reservation SessionEventReservation) *SessionEventOutcome {
+	return &SessionEventOutcome{
+		Acknowledged:      true,
+		NextSessionStatus: sharedtypes.SessionStatusRunning,
+		AssistantAction: AssistantActionRecord{
+			Type:          assistantActionShowHint,
+			TurnID:        reservation.LatestTurn.ID,
+			SessionStatus: sharedtypes.SessionStatusRunning,
+			RequiresAI:    true,
+			Provenance:    (SessionEventService{}).assistantAction(assistantActionShowHint, reservation.LatestTurn.ID, "", "", sharedtypes.SessionStatusRunning, reservation.Session.Language, true).Provenance,
+		},
+		AuditMetadata: map[string]any{"event_kind": sessionEventKindHintRequested, "mode": string(sharedtypes.PracticeModeAssisted)},
 	}
 }
 

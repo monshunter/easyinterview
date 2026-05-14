@@ -89,6 +89,62 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 	}
 }
 
+func TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 4, 28, 13, 47, 32, 0, time.UTC)
+	in := domain.AppendSessionEventStoreInput{
+		EventID:            "event-1",
+		OutboxEventID:      "outbox-1",
+		UserID:             "user-1",
+		SessionID:          "session-1",
+		ClientEventID:      "client-event-1",
+		Kind:               "hint_requested",
+		OccurredAt:         now,
+		RequestFingerprint: "fingerprint-1",
+		RequestPayload:     map[string]any{"turnId": "turn-1"},
+		Outcome: domain.SessionEventOutcome{
+			Acknowledged:      true,
+			NextSessionStatus: sharedtypes.SessionStatusRunning,
+			AssistantAction: domain.AssistantActionRecord{
+				Type:          "show_hint",
+				TurnID:        "turn-1",
+				Hint:          "Use one measurable tradeoff.",
+				SessionStatus: sharedtypes.SessionStatusRunning,
+				Provenance:    domain.AssistantActionProvenance{PromptVersion: "p", RubricVersion: "not_applicable", ModelID: "model-profile:practice.turn_observe.default", Language: "en", FeatureFlag: "none", DataSourceVersion: "registry.v1"},
+			},
+		},
+	}
+
+	mock.ExpectBegin()
+	expectAppendContext(mock, now)
+	mock.ExpectQuery(`select payload`).
+		WithArgs(in.SessionID, in.ClientEventID).
+		WillReturnRows(sqlmock.NewRows([]string{"payload"}).AddRow([]byte(`{"requestFingerprint":"fingerprint-1","pending":true}`)))
+	mock.ExpectExec(`update practice_turns\s+set hint_text`).
+		WithArgs("Use one measurable tradeoff.", now, in.SessionID, "turn-1").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`update practice_sessions`).
+		WithArgs(string(sharedtypes.SessionStatusRunning), int32(1), now, in.SessionID, in.UserID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`update practice_session_events`).
+		WithArgs(sqlmock.AnyArg(), in.SessionID, in.ClientEventID, in.EventID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	result, err := repo.AppendSessionEvent(context.Background(), in)
+	if err != nil {
+		t.Fatalf("AppendSessionEvent returned error: %v", err)
+	}
+	if result.AssistantAction.Hint != "Use one measurable tradeoff." || result.Session.TurnCount != 1 {
+		t.Fatalf("unexpected result: %+v", result)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
 func TestSQLRepositoryReserveSessionEventCreatesPendingReservation(t *testing.T) {
 	db, mock, cleanup := newMockDB(t)
 	defer cleanup()

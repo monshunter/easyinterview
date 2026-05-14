@@ -22,6 +22,10 @@ from pathlib import Path
 
 REMOVED_MODE = "debrief" + "_replay"
 PHASE3_RETIRED_TERMS = (
+    "hint_disabled_globally",
+    "legacy_hint_policy",
+    "legacy_mode_assisted_value",
+    "legacy debrief replay value",
     "warmup",
     "single_drill",
     "drill_builder",
@@ -149,6 +153,8 @@ def scan_phase3_paths(paths: list[Path], repo_root: Path) -> list[str]:
         for lineno, line in enumerate(lines, start=1):
             for term in PHASE3_RETIRED_TERMS:
                 if term in line:
+                    if term == "legacy debrief replay value" and path.name.endswith("_test.go"):
+                        continue
                     problems.append(f"{path}:{lineno}: retired backend-practice term {term!r}")
             if PHASE3_VOICE_ROUTE.search(line) and "practice-voice-mvp" not in line:
                 problems.append(f"{path}:{lineno}: retired standalone voice route")

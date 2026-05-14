@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-14](2026-05-14.md) | `feat(backend-practice): implement mode policies and hint provenance` | #feat #test #docs |
 | [2026-05-14](2026-05-14.md) | `fix(frontend-practice): remediate practice event loop L2 findings` | #fix #ui #test #docs |
 | [2026-05-14](2026-05-14.md) | `docs(skills): align design branch prefix with repo convention` | #docs |
 | [2026-05-14](2026-05-14.md) | `docs(backend-practice): kickoff mode policies plan and narrow assistive ai` | #docs |

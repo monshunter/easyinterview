@@ -19,6 +19,7 @@ const (
 	AITaskRunTaskResumeParse      AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeParse)
 	AITaskRunTaskQuestionGenerate AITaskRunCapability = "question_generate"
 	AITaskRunTaskFollowupGenerate AITaskRunCapability = "followup_generate"
+	AITaskRunTaskHintGenerate     AITaskRunCapability = "hint_generate"
 	AITaskRunTaskReportGenerate   AITaskRunCapability = AITaskRunCapability(jobs.JobTypeReportGenerate)
 	AITaskRunTaskResumeTailor     AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeTailor)
 	AITaskRunTaskDebriefGenerate  AITaskRunCapability = AITaskRunCapability(jobs.JobTypeDebriefGenerate)
@@ -29,6 +30,7 @@ var allowedAITaskRunCapabilities = map[AITaskRunCapability]struct{}{
 	AITaskRunTaskResumeParse:      {},
 	AITaskRunTaskQuestionGenerate: {},
 	AITaskRunTaskFollowupGenerate: {},
+	AITaskRunTaskHintGenerate:     {},
 	AITaskRunTaskReportGenerate:   {},
 	AITaskRunTaskResumeTailor:     {},
 	AITaskRunTaskDebriefGenerate:  {},

@@ -1,13 +1,14 @@
 # DB Migrations Baseline History
 
-> **版本**: 1.16
+> **版本**: 1.17
 > **状态**: active
-> **更新日期**: 2026-05-12
+> **更新日期**: 2026-05-14
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-14 | 1.17 | 授权 backend-practice/003 Phase 0 将 `ai_task_runs.task_type` CHECK 扩值 `hint_generate`（pre-launch baseline rebase）；hint 路径 AI 调用持久化到 ai_task_runs typed columns，graceful degrade 时 `validation_status='failed'` 仍写一行（A3 callErr 路径由 decorator 写，F3 resolve / parse-after-success 路径由 applyHintAI 显式写）。 | backend-practice/003-mode-policies-and-provenance Phase 0 |
 | 2026-05-12 | 1.16 | L2 remediation：`resume_versions` live integration test cleanup 改为按 FK 顺序删除 suggestions / versions / tailor runs / target jobs / assets / users，并把清理错误作为测试失败；新增 C-14 rerun-safe cleanup gate。 | db-migrations-baseline/002-resume-versions-additive Phase 5 |
 | 2026-05-12 | 1.15 | D-17 Resume Workshop additive 表与字段落地阶段：新增 `migrations/000005_resume_versions.{up,down}.sql`，实际创建 `resume_versions` / `resume_version_suggestions` 2 张表、`resume_assets` 4 个 additive 字段、4 项 enum-source 登记、privacy deletion matrix 与 baseline inventory 回填；当前 P0 应用表升至 28 张。 | db-migrations-baseline/002-resume-versions-additive |
 | 2026-05-11 | 1.14 | D-17 Resume Workshop additive 表与字段声明阶段：拟新增 `resume_versions` / `resume_version_suggestions` 2 张表 + `resume_assets` additive 字段（`source_type` / `original_text` / `guided_answers` / `parsed_text_snapshot`）；同步声明 §3.1.2 privacy deletion matrix 与 §2.1 baseline 表 inventory（26 → 28，`resume_version_edits` 归 P1 延后）；具体 migration up/down + idx + enum-sources 同步由 002 plan 落地。 | db-migrations-baseline/002-resume-versions-additive（声明阶段，docs-only） |
