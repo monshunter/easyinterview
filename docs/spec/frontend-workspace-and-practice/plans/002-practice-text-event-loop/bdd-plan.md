@@ -1,8 +1,8 @@
 # 002 BDD Plan
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-14
 
 **关联 Plan**: [plan](./plan.md)
 
@@ -15,7 +15,7 @@
 | E2E.P0.046 | failure / recovery · AI 502 timeout + session 404 sessionLost + 409 mismatch refresh + 409 strict conflict 防御 + retry 复用 clientEventId | Phase 4 | C-4, C-12 | Phase 4.10 |
 | E2E.P0.047 | primary · completePracticeSession 202 + handoff `generating?sessionId&reportId&...PracticeDisplayContext` + Idempotency-Key replay + 隐私红线（body 不含展示字段 + raw text 不泄漏） | Phase 4 | C-4, C-6（handoff 入口端）, C-12 | Phase 4.10 |
 
-> C-5（voice surface 源级复刻 + STT/TTS）属于 plan 003；C-6 内 generating 屏的 4 步进度态 / `getFeedbackReport` 轮询 / report handoff 属于 plan 004。本 plan 只覆盖到 generating 入口跳转 + 参数完整性。
+> C-5（voice surface 源级复刻 + STT/TTS）属于 plan 003；C-6 内 generating 屏的 4 步进度态 / `getFeedbackReport` 轮询 / report handoff 属于 plan 004。本 plan 只覆盖到 generating 入口跳转 + 参数完整性。当前真实 backend-practice/002 对 `hint_requested` 默认返回 `PRACTICE_SESSION_CONFLICT`，因此 assisted hint 的 `show_hint` 正向场景是 fixture-only UI 合同，真实 200 支持由 backend-practice/003 接手；本 plan 必须同时验证当前 409 防御分支。
 
 ---
 

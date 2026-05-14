@@ -1,8 +1,8 @@
 # 002 Practice Text Event Loop
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -20,11 +20,11 @@
 - 落地 spec D-3 二轴显隐：`practiceMode='strict'` 隐藏提示按钮、左侧实时观察、可调用经历；`practiceGoal='debrief'` 仅影响题目来源、不影响显隐；模式切换 segmented control 在本 plan 内保留入口（点击 `voice` 选项跳 `nav("practice", {...ctx, mode:'voice', modality:'voice'})`，voice surface 由 future 003 plan 接管，本 plan 只渲染明确标注的临时占位）。
 - 完成动作触发 `completePracticeSession(Idempotency-Key)` → 202 `ReportWithJob{reportId, job}` → nav `generating?...InterviewContext&...PracticeDisplayContext`；`PracticeDisplayContext = {mode, modality, practiceMode, practiceGoal, hintUsed, hintCount}` 仅作为 route handoff，不塞进 backend request body（D-13）。稳定 ID（`planId / targetJobId / jdId / resumeVersionId / roundId / sessionId / reportId`）允许留在 owner route context；隐私红线只禁止 raw answer / question / hint / prompt / provenance 明文泄漏。
 
-完成后用户从 workspace 点击「立即面试」可以进入完整的文本模式模拟面试，按照「答题 → 追问 / 提示 / 跳过 / 暂停 → 完成 → generating」端到端走通；后端 `backend-practice/002-event-loop-and-completion` 仍在 active，真实 handler 在该 plan 落地前必须标记为 `not-yet-implemented`，所以本 plan 在 fixture-backed transport 上完成 P0，B2 handler 真接通后只需替换 transport mode，前端契约消费不变。
+完成后用户从 workspace 点击「立即面试」可以进入完整的文本模式模拟面试，按照「答题 → 追问 / 提示 / 跳过 / 暂停 → 完成 → generating」端到端走通。当前仓库中 `backend-practice/002-event-loop-and-completion` 已完成 `getPracticeSession` / `appendSessionEvent` / `completePracticeSession` 真实 handler、service、store 与 `E2E.P0.038-043` Go HTTP scenario；本 plan 仍优先用 fixture-backed transport 做前端 TDD / UI parity，但 Phase 5 必须同时跑真实 backend-practice 002 regression，防止把 mock green 误当真实闭环。`hint_requested → show_hint` 的 assisted 正向路径仍是 backend-practice/003 前置能力，本 plan 只能以 fixture-only UI 合同开发；真实 backend 002 默认返回 `PRACTICE_SESSION_CONFLICT`，前端必须覆盖该防御分支。
 
 ## 2 背景
 
-[backend-practice spec](../../../backend-practice/spec.md) v1.6 + plan [002-event-loop-and-completion](../../../backend-practice/plans/002-event-loop-and-completion/plan.md) 已对齐 OpenAPI `PracticeSessionEventRequest` / `AssistantAction` / `SessionEventResult` / `ReportWithJob` schema，并定义后端 / mock owner 需要补齐的 canonical fixture scenario；当前 `openapi/fixtures/PracticeSessions/` 仍只有 `getPracticeSession` 的 `default / prototype-baseline / missing-session`、`appendSessionEvent.default`、`completePracticeSession.default` 等基础场景，本 plan 必须明确区分“当前已存在”和“Phase 内新增”。`shared/conventions.yaml` 锁定 `PracticeMode∈{assisted,strict}`、`PracticeGoal∈{baseline,retry_current_round,next_round,debrief}`、`SessionStatus∈{queued,running,waiting_user_input,completing,completed,failed,cancelled}` 与 `assistantAction.type` 5 值。前端 generated client `frontend/src/api/generated/{client,types}.ts` 已暴露 6 个 practice operation 方法，本 plan 不修改 generated artifacts，仅消费 + 在 owner 边界内创建 hook / component / view-model。
+[backend-practice spec](../../../backend-practice/spec.md) v1.7 + plan [002-event-loop-and-completion](../../../backend-practice/plans/002-event-loop-and-completion/plan.md) 已完成 OpenAPI `PracticeSessionEventRequest` / `AssistantAction` / `SessionEventResult` / `ReportWithJob` schema 对齐、真实 handler wiring 与 `E2E.P0.038-043` Go HTTP scenario。当前 `openapi/fixtures/PracticeSessions/` 已有 `getPracticeSession` 的 `default / prototype-baseline / missing-session`，`appendSessionEvent` 的 `default / follow-up / hint-strict-conflict / turn-skipped / pause-resume / replay / mismatch / completed`，以及 `completePracticeSession` 的 `default / replay / mismatch / session-already-completed / cross-user-not-found`；本 plan 只新增仍缺的前端 UI fixture（如 `getPracticeSession.running-with-history / queued / completing`、append `show-hint` fixture-only、必要时 `ai-timeout`），并在 operation matrix 中区分 fixture-only 与真实 backend 已落地能力。`shared/conventions.yaml` 锁定 `PracticeMode∈{assisted,strict}`、`PracticeGoal∈{baseline,retry_current_round,next_round,debrief}`、`SessionStatus∈{queued,running,waiting_user_input,completing,completed,failed,cancelled}` 与 `assistantAction.type` 5 值。前端 generated client `frontend/src/api/generated/{client,types}.ts` 已暴露 6 个 practice operation 方法，本 plan 不修改 generated artifacts，仅消费 + 在 owner 边界内创建 hook / component / view-model。
 
 UI 真理源：[`ui-design/src/screen-practice.jsx`](../../../../../ui-design/src/screen-practice.jsx)（`PracticeScreen` 主组件 + `TranscriptMsg` / `RoleDropdown` / `ExpCard` / 输入区分支，含 text input 中的 speech-to-text failure banner lines 583-590）与 [`docs/ui-design/module-practice-review.md`](../../../../ui-design/module-practice-review.md) §3-§6（生命周期、布局、辅助度规则、结束动作显隐）。**语音 session surface 组件**（`VoiceSessionSurface` / `PracticeWaveformBars` / `PracticeAnnotatedWaveform` / `VoiceExpressionPanel`）属于 future 003-practice-voice-surface 范围，本 plan 不实现也不渲染；layout 必须为 voice 切换保留入口（segmented control + activeMode prop），但点击 voice 仅触发 `nav("practice", {...ctx, mode:'voice', modality:'voice'})` 并由 PracticeScreen 渲染临时 `VoiceSurfaceComingSoon` 占位。该占位是 plan 003 前的 scoped adaptation，不作为 ui-design source parity 证明；text-mode 的语音转文字失败 banner 仍在本 plan 内实现，可命名为 `DictationFailureBanner`，但不得直接 import `ui-design` 源。
 
@@ -39,6 +39,7 @@ UI 真理源：[`ui-design/src/screen-practice.jsx`](../../../../../ui-design/sr
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-14 | 1.1 | L1 review fix：按当前 repo truth 修正 backend-practice/002 状态为 completed / real handler landed；operation matrix 标明真实 handler、fixture-only assisted hint 前置到 backend-practice/003，并把 Phase 5 backend regression 扩展为 `E2E.P0.022-026` + `E2E.P0.038-043`。 |
 | 2026-05-13 | 1.0 | 初始创建：拆分 spec C-4 文本事件循环 + C-6 generating 入口端 + C-8/9/10/12 横切，落实 §7 plan 序列 002。 |
 
 ## 3 质量门禁分类
@@ -59,7 +60,7 @@ UI 真理源：[`ui-design/src/screen-practice.jsx`](../../../../../ui-design/sr
 | Alternate path · assisted vs strict 显隐 | `practiceMode==='assisted'` 渲染：左侧 LIVE NOTES / hint button / 右侧可调用经历卡片；`practiceMode==='strict'` 隐藏全部上述 + 右侧渲染 strict-mode banner | `screen-practice.jsx` lines 170-179, 219-243, 276-300 | 3 | E2E.P0.045 + Vitest `components/RightPanel.test.tsx` + `hooks/usePracticeAssistance.test.ts` |
 | Alternate path · goal='debrief' 不改变显隐 | 任意 `practiceMode` × `goal='debrief'` 组合，显隐策略与 baseline 完全一致；debrief 仅影响题目来源（B2 拥有，前端不渲染该差异） | spec D-3 + `module-practice-review.md` §6 | 3 | Vitest `practiceGoalParity.test.tsx` 4 组合 + 负向 grep `goal === 'debrief'.*hide` 应 0 命中 |
 | Alternate path · 模式切换 segmented control（text/voice） | 顶部 segmented control 渲染 text + voice 两按钮（aria-checked、active 高亮）；点击 voice → `nav("practice", {...ctx, mode:'voice', modality:'voice'})`；voice surface 由 future 003 plan 渲染；本 plan `mode==='voice'` 时只渲染 scoped `VoiceSurfaceComingSoon` 占位（文案 + 返回 text 按钮），**不把该占位声明为 ui-design source parity**，且不引入任何 ui-design voice session surface DOM | `screen-practice.jsx` lines 91-114 (segmented); scoped adaptation replaces lines 184-194 until plan 003 | 1+3 | Vitest `components/TopBar.test.tsx` + `practiceModeSwitch.test.tsx` + 负向 grep `VoiceSessionSurface` / `PracticeWaveformBars` / `PracticeAnnotatedWaveform` / `VoiceExpressionPanel` import 应 0 命中 |
-| Alternate path · hint_requested 提示流（assisted） | 用户点击「提示」 → `appendSessionEvent({kind:'hint_requested', payload:{turnId}})` → `assistantAction.type='show_hint'` 把 `hint` 文本渲染到输入区上方 HintBanner；`hintCount++`、`hintUsed='true'` 写回 `InterviewContext`；strict 模式下 hint button 不渲染（按钮 DOM 不存在） | `screen-practice.jsx` lines 219-243 + `module-practice-review.md` §6 | 3 | E2E.P0.045 + Vitest `practiceHints.test.tsx` |
+| Alternate path · hint_requested 提示流（assisted） | 用户点击「提示」 → `appendSessionEvent({kind:'hint_requested', payload:{turnId}})`；fixture-only `show-hint` 用于前端 UI / `hintCount++` / `hintUsed='true'` 验证；当前真实 backend-practice/002 对 hint 默认返回 `PRACTICE_SESSION_CONFLICT`（D-34），assisted 200 正向由 backend-practice/003 接手，前端必须同时覆盖 409 防御分支 | `screen-practice.jsx` lines 219-243 + `module-practice-review.md` §6 + backend-practice D-34 | 3 | E2E.P0.045 + Vitest `practiceHints.test.tsx` + `practiceConflict.test.tsx` |
 | Alternate path · turn_skipped 跳过 | 用户点击「跳过」 → `appendSessionEvent({kind:'turn_skipped', payload:{turnId}})` → 渲染下一题；当前 turn `status='skipped'` 写入题目地图 | `screen-practice.jsx` lines 249 + `SessionMap` | 2+3 | E2E.P0.045 + Vitest `practiceSkip.test.tsx` |
 | Alternate path · session_paused / session_resumed | 用户点击「暂停」 → `appendSessionEvent({kind:'session_paused'})` + 本地 timer 暂停；session.status 切到 `waiting_user_input`；点「继续」 → `session_resumed` + timer 恢复；暂停期间禁用 submit / hint / skip | `screen-practice.jsx` lines 87-89 (pause button) + 17-21 (timer effect) | 3 | E2E.P0.044 / E2E.P0.045 + Vitest `practicePauseResume.test.tsx` |
 | Failure / recovery · append AI timeout / complete 5xx | `appendSessionEvent` 返回 502 `AI_PROVIDER_TIMEOUT` 或 `completePracticeSession` 返回网络 / 5xx → 输入区下方 InlineError + retry 按钮；retry 复用同一 `clientEventId`（append）或同一 `Idempotency-Key`（complete） | spec §6 C-12 + backend-practice C-5 | 4 | E2E.P0.046 + Vitest `practiceErrors.test.tsx`（502 / 5xx 子用例） |
@@ -107,7 +108,7 @@ UI 真理源：[`ui-design/src/screen-practice.jsx`](../../../../../ui-design/sr
 | UI stale-contract negative · 旧 enum / 旧文案 | 旧 `practiceMode='debrief'` value、旧 `切到语音` 文案、旧 `reportLayout` hash、旧 `featureKey` 路由口径、旧 `mistakes` / `growth` / `drill` 入口在 practice 模块 0 命中 | spec §2.2 + history.md | 全 phase | grep negative |
 | UI stale-contract negative · 不直接 import prototype | `frontend/src/app/screens/practice/` 不 import `ui-design/src/data.jsx` / `window.EI_DATA` / `getPracticeSampleTranscript` / `getPracticeSampleQuestions` 等 prototype helper | n/a | 全 phase | Vitest + tsc grep |
 | UI stale-contract negative · 不调 getFeedbackReport / createPracticeVoiceTurn | practice 模块不调 `getFeedbackReport`（归 plan 004） / `createPracticeVoiceTurn`（缺契约，plan 003 启用） | spec §5.1 operation matrix | 全 phase | Vitest spy + tsc |
-| Regression / legacy-negative · 工作区 + 后端契约 | `E2E.P0.018-021`（workspace） + `E2E.P0.022-026`（backend-practice 契约 gate） 在 D 当前 owner 真实交付前作为 fixture-backed contract regression 重跑 | n/a | 5 | scenario rerun |
+| Regression / legacy-negative · 工作区 + 后端契约 | `E2E.P0.018-021`（workspace）+ `E2E.P0.022-026`（backend-practice 001 启动 / 首题 / idempotency / 隐私 shell 场景）+ `E2E.P0.038-043`（backend-practice 002 event loop / complete Go HTTP scenario）全部作为真实 regression gate 重跑；fixture-backed PASS 只能证明前端 mock 合同，不替代真实 handler | n/a | 5 | scenario rerun + `cd backend && go test ./cmd/api -run 'TestE2EP0038|TestE2EP0039|TestE2EP0040|TestE2EP0041|TestE2EP0042|TestE2EP0043' -count=1` |
 | Regression / legacy-negative · 不直接调用 LLM | practice 模块不出现 AI provider key / provider registry / prompt registry / AIClient / LLM endpoint / bypass generated client 的 ad hoc fetch | n/a | 全 phase | Vitest + grep negative |
 | BDD 主路径 + 关键分支 + 失败恢复 + 旧口径负向 | 见 [bdd-plan.md](./bdd-plan.md) 4 场景矩阵 | n/a | 1-5 | E2E.P0.044/045/046/047 + Playwright contract |
 
@@ -119,13 +120,13 @@ UI 真理源：[`ui-design/src/screen-practice.jsx`](../../../../../ui-design/sr
 
 ## 3.6 Frontend / Backend Operation Matrix
 
-本 plan 走 `docs/development.md` §2.2 Frontend-First Path：正式前端先对齐 `ui-design/` 并通过 generated client + fixture-backed transport 完成 P0 UI/BDD；真实 handler 由 `backend-practice/002-event-loop-and-completion` 落地。fixture-backed PASS 不等于真实 backend 闭环。
+本 plan 走 `docs/development.md` §2.2 Frontend-First Path：正式前端先对齐 `ui-design/` 并通过 generated client + fixture-backed transport 完成 P0 UI/BDD；同时当前 repo 已有 backend-practice/002 真实 handler，Phase 5 必须跑对应真实 handler regression。fixture-backed PASS 不等于真实 backend 闭环；尤其 assisted hint 的 `show_hint` 正向 UI 在本 plan 内仍是 fixture-only，真实 backend 支持由 backend-practice/003 接管。
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `getPracticeSession` | 当前已有 `default` / `prototype-baseline` / `missing-session`；本 plan 计划新增 `running-with-history`（含 turn history view-model）/ `queued` / `completing` | `usePracticeSessionLoader` mount + visibility/focus refresh；missing-session → `PracticeSessionLostState` | `not-yet-implemented` until backend-practice/002 lands；expected handler `backend/internal/api/practice.GetPracticeSession` + store read path；fixture-backed transport 在真 handler 前满足前端 | `practice_sessions` + `practice_turns` | none in frontend | E2E.P0.044 / E2E.P0.046 |
-| `appendSessionEvent` | 当前已有 `default`（当前 fixture 为 `answer_submitted → ask_follow_up`）；本 plan 与 backend-practice/002 canonical names 对齐新增/消费 `follow-up` / `turn-skipped` / `pause-resume` / `replay` / `mismatch` / `completed` / `hint-strict-conflict`；如需 AI timeout UI，新增 `ai-timeout` 并在 mock-contract-suite 记录 | `usePracticeEvents` 5 个 mutation；body 不带 `Idempotency-Key`；`clientEventId` 来自 `lib/ids.ts::uuidv7()` | `not-yet-implemented` until backend-practice/002 lands；expected handler `backend/internal/api/practice.AppendSessionEvent` + `SessionEventService` + repository | `practice_session_events` + `practice_turns` + outbox | backend-only F3 follow_up / lightweight observe（frontend 不直连） | E2E.P0.044 / E2E.P0.045 / E2E.P0.046 |
-| `completePracticeSession` | 当前已有 `default`（202 + ReportWithJob queued）；本 plan 与 backend-practice/002 canonical names 对齐新增/消费 `replay` / `mismatch` / `session-already-completed` / `cross-user-not-found`；complete path 无 AI，不能要求 `ai-timeout` fixture | `useCompletePracticeSession` 由底部 CTA 触发；带 `Idempotency-Key`（同会话 finish 同一 key）；body 仅 `{clientCompletedAt}` | `not-yet-implemented` until backend-practice/002 lands；expected handler `backend/internal/api/practice.CompletePracticeSession` + idempotency middleware + service/store | session status + feedback_reports + async_jobs + outbox | none in frontend; no AI in completion path | E2E.P0.046 / E2E.P0.047 |
+| `getPracticeSession` | 当前已有 `default` / `prototype-baseline` / `missing-session`；本 plan 计划新增 `running-with-history`（含 turn history view-model）/ `queued` / `completing` 用于 UI 状态覆盖 | `usePracticeSessionLoader` mount + visibility/focus refresh；missing-session → `PracticeSessionLostState` | 已落地：`backend/internal/api/practice/handler.go::GetPracticeSession` + `backend/internal/practice.Service.GetPracticeSession` + store read path；真实 path 由 backend-practice 001/002 regression 覆盖 | `practice_sessions` + `practice_turns` | none in frontend | frontend `E2E.P0.044 / E2E.P0.046`；backend `E2E.P0.023` |
+| `appendSessionEvent` | 当前已有 `default / follow-up / hint-strict-conflict / turn-skipped / pause-resume / replay / mismatch / completed`；本 plan 只在需要时新增 `show-hint`（fixture-only until backend-practice/003）与 `ai-timeout` UI fixture，并在 mock-contract-suite 记录 | `usePracticeEvents` 5 个 mutation；body 不带 `Idempotency-Key`；`clientEventId` 来自 `lib/ids.ts::uuidv7()` | 已落地：`backend/internal/api/practice/session_event_handlers.go::AppendSessionEvent` + `backend/internal/practice.AppendSessionEvent` + `backend/internal/store/practice.AppendSessionEvent`；真实 backend 002 中 `hint_requested` 默认 409（D-34），assisted 200 归 backend-practice/003 | `practice_session_events` + `practice_turns` + outbox | backend-only F3 `practice.session.follow_up`；`show_hint` / lightweight observe real path 不在 backend 002 | frontend `E2E.P0.044 / E2E.P0.045 / E2E.P0.046`；backend `E2E.P0.038 / E2E.P0.039 / E2E.P0.040 / E2E.P0.043` |
+| `completePracticeSession` | 当前已有 `default / replay / mismatch / session-already-completed / cross-user-not-found`；complete path 无 AI，不能要求 `ai-timeout` fixture | `useCompletePracticeSession` 由底部 CTA 触发；带 `Idempotency-Key`（同会话 finish 同一 key）；body 仅 `{clientCompletedAt}` | 已落地：`backend/internal/api/practice/session_event_handlers.go::CompletePracticeSession` + idempotency middleware + `backend/internal/practice.CompletePracticeSession` + `backend/internal/store/practice.CompleteSession` | session status + feedback_reports + async_jobs + outbox + idempotency_records | none in frontend; no AI in completion path | frontend `E2E.P0.047`；backend `E2E.P0.041 / E2E.P0.042 / E2E.P0.043` |
 | `getFeedbackReport` | N/A（生成态 + 报告 owner） | 本 plan **不消费**；handoff 到 `generating?reportId` 后由 plan 004 owner 轮询 | future `backend-review` | feedback_reports | backend-review only | 负向断言 + E2E.P0.047 |
 | `createPracticeVoiceTurn` | N/A | 本 plan **不消费**；voice surface deferred 到 plan 003 | missing operation；blocked 在 `practice-voice-mvp` + `backend-practice` voice extension | voice events | STT/LLM/TTS backend-only | 负向断言（grep `createPracticeVoiceTurn` 在 practice 模块 0 命中） |
 
@@ -435,7 +436,8 @@ async function finish() {
 #### 5.4 Regression 重跑
 
 - `E2E.P0.018 / 019 / 020 / 021`（workspace fixture-backed contract gate）全部 PASS
-- `E2E.P0.022 / 023 / 024 / 025 / 026`（backend-practice 契约 gate）在 D 当前 owner 真实交付前作为 fixture-backed contract regression 重跑（依赖 mock-contract-suite parity）；如果 backend handler 已落地，跑真实 backend gate
+- `E2E.P0.022 / 023 / 024 / 025 / 026`（backend-practice 001 plan/session/start/idempotency/privacy shell scenario）全部 PASS
+- `E2E.P0.038 / 039 / 040 / 041 / 042 / 043`（backend-practice 002 event loop / complete / privacy Go HTTP scenario）全部 PASS，执行入口：`cd backend && go test ./cmd/api -run 'TestE2EP0038|TestE2EP0039|TestE2EP0040|TestE2EP0041|TestE2EP0042|TestE2EP0043' -count=1`
 - `pnpm --filter @easyinterview/frontend test`（全量 Vitest）+ `pnpm --filter @easyinterview/frontend typecheck` + `pnpm --filter @easyinterview/frontend build` + `make build` 全 PASS
 
 #### 5.5 文档与索引同步
@@ -456,13 +458,13 @@ async function finish() {
 
 #### 5.7 BDD-Gate
 
-- BDD-Gate: 验证 `E2E.P0.044 / E2E.P0.045 / E2E.P0.046 / E2E.P0.047` 全部 `setup → trigger → verify → cleanup` PASS；workspace `E2E.P0.018-021` regression 全部 PASS；backend-practice `E2E.P0.022-026` 作为 fixture-backed contract regression 全部 PASS（如真实 handler 已落地则跑真实 gate）。
+- BDD-Gate: 验证 `E2E.P0.044 / E2E.P0.045 / E2E.P0.046 / E2E.P0.047` 全部 `setup → trigger → verify → cleanup` PASS；workspace `E2E.P0.018-021` regression 全部 PASS；backend-practice `E2E.P0.022-026` 与 `E2E.P0.038-043` 真实 regression 全部 PASS。
 
 ## 5 验收标准
 
 - 本计划列出的 Phase 1-5 全部 checklist 项通过
 - spec C-4（practice 文本 happy path 主要部分）覆盖完整且通过对应测试；C-8 / C-9 / C-10 / C-12 practice 子集（含 BDD 主流程 + 关键分支）通过；C-6 仅覆盖 generating 入口跳转 + handoff 参数完整性，generating 屏渲染 + getFeedbackReport 轮询由 plan 004 承接；C-5（voice surface）由 plan 003 承接，本 plan 不验证（仅渲染 `VoiceSurfaceComingSoon` 占位）
-- 关联 BDD-Gate（`E2E.P0.044 / 045 / 046 / 047`）全部通过；workspace regression（`P0.018-021`）全部 PASS；backend-practice regression（`P0.022-026`）作为契约 gate 全部 PASS（fixture-backed 或真实，视后端 owner 当前交付状态）
+- 关联 BDD-Gate（`E2E.P0.044 / 045 / 046 / 047`）全部通过；workspace regression（`P0.018-021`）全部 PASS；backend-practice regression（`P0.022-026` + `P0.038-043`）全部 PASS，其中 `P0.038-043` 必须跑当前真实 Go HTTP scenario
 - pixel parity 在 desktop + mobile 两 viewport 下 practice 主屏 + voice-coming-soon + session-lost + completing + completed + HintBanner 新增 spec 全 PASS
 - `make docs-check` zero drift；`check-md-links` OK；`pnpm typecheck` 0 错；`pnpm build` + `make build` PASS
 - 负向搜索（ui-design prototype 直接 import / 旧 testid / 旧 route alias / voice 组件 import / `practiceMode='debrief'` / `切到语音` / `getFeedbackReport` 调用 / `createPracticeVoiceTurn` 调用 / `Idempotency-Key.*appendSessionEvent` / raw answer/question/hint/provenance 泄漏到 URL/localStorage/console）全部 0 命中
@@ -471,7 +473,7 @@ async function finish() {
 
 | 风险 | 应对措施 |
 |------|----------|
-| `backend-practice/002-event-loop-and-completion` 仍在 active；handler 真接通后响应 schema 微调可能引起 fixture / 前端反序列化错位 | 本 plan fixture-only；Phase 2.4 fixture 扩展先 PR 给 mock-contract-suite owner；在 retrospective 中提示 backend-practice/002 owner：任何对 `PracticeSessionEventRequest` / `AssistantAction` / `SessionEventResult` / `ReportWithJob` schema 的变更必须先回 OpenAPI 修订并 regen，再同步本 plan fixture 与 viewmodel mapping；`mock-contract-suite` parity test 兜底 |
+| 当前真实 backend-practice/002 已落地，但前端 plan 仍有 fixture-only UI 分支（尤其 assisted `show_hint`）可能被误读为真实 backend 闭环 | Operation matrix 必须把真实 handler 与 fixture-only 分支分开；Phase 5 同时跑 mock fixture、workspace regression、backend-practice `E2E.P0.022-026` 与 `E2E.P0.038-043`；assisted hint 200 正向在本 plan 标记为 backend-practice/003 前置，当前真实 backend 002 只要求 409 防御分支 |
 | `clientEventId` 在 retry 路径下复用策略复杂（同一 user action 失败 retry 复用，新 action 必须 fresh） | hook 内部 `inFlightRef`（per user-action token）缓存当前 batch；retry 调同一 batch；用户主动重新输入 / 切换 turn / 点新 action 时清 ref 并生成新 batch；Vitest 锁定行为 |
 | `completePracticeSession` 在 StrictMode 双触发或用户多次点击导致重复 nav | hook 内 `inFlightRef` + `Promise` 缓存当前 in-flight；StrictMode 重复调用复用 promise；nav 仅在 first response 成功后触发一次；Vitest 在 StrictMode 下断言 generated client `completePracticeSession` 调用次数 = 1，nav 调用次数 = 1 |
 | voice segmented control 用户点击 voice 进入未实现 surface 时困惑 | `VoiceSurfaceComingSoon` 渲染清晰文案 + 「返回 text」按钮 + 「voice 模式即将在 plan 003 上线」；负向断言不渲染 voice DOM；Playwright pixel parity 覆盖 voice-coming-soon 截图 |

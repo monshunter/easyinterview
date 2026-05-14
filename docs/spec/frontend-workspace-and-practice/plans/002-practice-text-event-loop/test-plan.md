@@ -1,8 +1,8 @@
 # 002 — Practice Text Event Loop Test Plan
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-14
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 
@@ -99,6 +99,6 @@
 |------|----------------|---------------------|
 | Pixel parity practice.spec.ts | `pnpm --filter @easyinterview/frontend test:pixel-parity --grep practice` | Red: bounding box 溢出 / 主题切换不可见；Green: desktop + mobile + 8 主题 × dark + customAccent + 5 状态截图基线全 PASS |
 | Scenario 资产 + INDEX 更新 | `test/scenarios/e2e/p0-044-047/` 目录 + `INDEX.md` | Red: 目录或脚本缺失；Green: 4 目录齐全 + INDEX 4 行追加 |
-| Regression rerun（workspace + backend-practice contract） | scenario rerun + 全量 Vitest + build | Red: workspace P0.018-021 任一 FAIL / backend-practice P0.022-026 任一 FAIL；Green: 9 个 regression scenario 全 PASS + Vitest 全 PASS + build PASS |
+| Regression rerun（workspace + backend-practice contract） | scenario rerun + backend Go HTTP scenario + 全量 Vitest + build | Red: workspace P0.018-021 任一 FAIL / backend-practice P0.022-026 任一 FAIL / backend-practice 002 P0.038-043 任一 FAIL；Green: 15 个 regression gate 全 PASS + Vitest 全 PASS + build PASS |
 | Negative grep | `practice/__tests__/legacyNegative.test.ts` + CI grep | Red: 任何旧口径 / voice imports / getFeedbackReport / createPracticeVoiceTurn / `Idempotency-Key.*appendSessionEvent` / raw text 泄漏命中；Green: 全部 0 命中 |
 | 文档与索引同步 | `make docs-check` + `/sync-doc-index --fix-index` + `check-md-links` | Red: drift / 链接断；Green: 0 drift + 0 broken |

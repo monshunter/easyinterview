@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-14](2026-05-14.md) | `docs(frontend-workspace-and-practice): align practice text plan gates` | #docs |
 | [2026-05-14](2026-05-14.md) | `fix(backend-practice): reserve session events before AI` | #fix #test #docs |
 | [2026-05-14](2026-05-14.md) | `docs(frontend-workspace-and-practice): kickoff practice text event loop plan and align session status` | #docs |
 | [2026-05-14](2026-05-14.md) | `fix(backend-practice): harden event loop replay contracts` | #fix #test #docs |

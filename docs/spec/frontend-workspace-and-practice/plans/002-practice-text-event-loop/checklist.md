@@ -1,8 +1,8 @@
 # 002 Practice Text Event Loop Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -59,7 +59,7 @@
 - [ ] 5.2 `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 + home plan + workspace plan 现有基础上累加 practice 新增 spec 全 PASS
 - [ ] 5.3 派生 4 个 scenario 目录 `test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path/`、`p0-045-practice-text-loop-strict-and-debrief-display/`、`p0-046-practice-text-loop-failure-and-recovery/`、`p0-047-practice-text-loop-complete-and-generating-handoff/`，各含 README.md + scripts/{setup,trigger,verify,cleanup}.sh + data/seed-input.md + data/expected-outcome.md
 - [ ] 5.4 `test/scenarios/e2e/INDEX.md` P0 表追加 4 行（P0.044-P0.047），关联需求 `frontend-workspace-and-practice C-4 / C-8 / C-9 / C-10 / C-12`，状态 Ready，automated
-- [ ] 5.5 Regression 重跑：workspace `E2E.P0.018/019/020/021` 全 PASS；backend-practice `E2E.P0.022/023/024/025/026` 作为 fixture-backed contract regression 全 PASS（如 backend handler 已落地则跑真实 gate）；`pnpm --filter @easyinterview/frontend test`（全量 Vitest）+ `pnpm --filter @easyinterview/frontend typecheck` + `pnpm --filter @easyinterview/frontend build` + `make build` 全 PASS
+- [ ] 5.5 Regression 重跑：workspace `E2E.P0.018/019/020/021` 全 PASS；backend-practice `E2E.P0.022/023/024/025/026` 全 PASS；backend-practice 002 `E2E.P0.038/039/040/041/042/043` 真实 Go HTTP scenario 全 PASS（`cd backend && go test ./cmd/api -run 'TestE2EP0038|TestE2EP0039|TestE2EP0040|TestE2EP0041|TestE2EP0042|TestE2EP0043' -count=1`）；`pnpm --filter @easyinterview/frontend test`（全量 Vitest）+ `pnpm --filter @easyinterview/frontend typecheck` + `pnpm --filter @easyinterview/frontend build` + `make build` 全 PASS
 - [ ] 5.6 文档与索引同步：本 checklist、bdd-checklist、test-checklist 与 plans INDEX 同步至最新；`make docs-check` + `/sync-doc-index --fix-index` zero drift gate；`check-md-links` OK；`docs/spec/frontend-workspace-and-practice/history.md` 追加 plan 002 启动条目
 - [ ] 5.7 负向搜索（全部 0 命中，仅注释 / 测试断言命中除外）：
   - `frontend/src/app/screens/practice/` 不 import `ui-design/src/data.jsx` / `window.EI_DATA` / `getPracticeSampleQuestions` / `getPracticeSampleTranscript` / `getPracticeWaveformSamples`

@@ -1,8 +1,8 @@
 # 002 BDD Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -18,7 +18,7 @@
 ## E2E.P0.045 strict / assisted × baseline / debrief 显隐 + hint / skip / pause-resume + 旧口径负向
 
 - [ ] 创建场景目录 `test/scenarios/e2e/p0-045-practice-text-loop-strict-and-debrief-display/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
-- [ ] 准备 fixture variant：`getPracticeSession.json` 至少 1 个 `default` variant；`appendSessionEvent.json` 至少 6 个 variant（`default` answer→ask_question / `show-hint`（hint_requested → 200 + assistantAction.type='show_hint'）/ `hint-strict-conflict`（409 PRACTICE_SESSION_CONFLICT detail.policy='hint_disabled_in_mode'）/ `turn-skipped` / `pause-resume` / `follow-up`）；4 路由组合通过 setup 切换 `practiceMode` × `practiceGoal`
+- [ ] 准备 fixture variant：`getPracticeSession.json` 至少 1 个 `default` variant；`appendSessionEvent.json` 至少 6 个 variant（`default` answer→ask_question / `show-hint`（fixture-only until backend-practice/003，hint_requested → 200 + assistantAction.type='show_hint'）/ `hint-strict-conflict`（当前真实 backend-practice/002 409 PRACTICE_SESSION_CONFLICT detail.policy='hint_disabled_in_mode'）/ `turn-skipped` / `pause-resume` / `follow-up`）；4 路由组合通过 setup 切换 `practiceMode` × `practiceGoal`
 - [ ] 实现 `scripts/setup.sh`（4 路由组合切换 + fixture 切换 + signed-in 状态）/ `scripts/trigger.sh`（运行 usePracticeAssistance + practiceHints / practiceSkip / practicePauseResume / practiceModeSwitch / practiceStrictToggleLocked / practiceGoalParity 覆盖、Vitest 显隐文件、Playwright pixel parity strict / assisted 子用例）/ `scripts/verify.sh`（断言：assisted LIVE NOTES / hint button / experience cards 渲染 + hintCount 自增；strict 三者 DOM 不存在 + strict-mode banner 渲染；assisted + debrief 与 assisted + baseline 显隐快照一致；旧口径负向 grep —— `practiceMode='debrief'` / `切到语音` / voice imports / 旧 testid / `Idempotency-Key.*appendSessionEvent` / 独立 voice route 全部 0 命中；strict toggle 点击触发 toast + 0 backend 调用）/ `scripts/cleanup.sh`
 - [ ] 执行 `setup → trigger → verify → cleanup` 全 PASS
 - [ ] 记录验证证据：`.test-output/e2e/p0-045-practice-text-loop-strict-and-debrief-display/trigger.log` + verify 输出 + 显隐快照 diff 0 + 旧口径负向 grep 日志
@@ -45,7 +45,7 @@
 ## 整体 Regression（Phase 5 收口）
 
 - [ ] workspace regression：`E2E.P0.018 / 019 / 020 / 021` 全部 `setup → trigger → verify → cleanup` PASS（确认 001 plan 交付的 workspace 行为不被 002 改动破坏）
-- [ ] backend-practice 契约 regression：`E2E.P0.022 / 023 / 024 / 025 / 026` 作为 fixture-backed contract regression 全部 PASS（如 backend handler 已落地则跑真实 gate）；本 plan 在 fixture-backed 下满足契约一致
+- [ ] backend-practice 契约 regression：`E2E.P0.022 / 023 / 024 / 025 / 026` 全部 PASS；backend-practice 002 `E2E.P0.038 / 039 / 040 / 041 / 042 / 043` 真实 Go HTTP scenario 全部 PASS（执行入口 `cd backend && go test ./cmd/api -run 'TestE2EP0038|TestE2EP0039|TestE2EP0040|TestE2EP0041|TestE2EP0042|TestE2EP0043' -count=1`）；本 plan 在 fixture-backed 和真实 handler 边界下均满足契约一致
 - [ ] `pnpm --filter @easyinterview/frontend test` 全量 Vitest PASS（含本 plan 新增测试文件）
 - [ ] `pnpm --filter @easyinterview/frontend test:pixel-parity` 累加 practice spec 全 PASS（在 D2/D3 + home plan + workspace plan 现有基础上）
 - [ ] `pnpm --filter @easyinterview/frontend build`（含 `tsc --noEmit` + `vite build`）+ `make build` PASS

@@ -1,8 +1,8 @@
 # 002 — Practice Text Event Loop Test Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-14
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -24,4 +24,4 @@
 
 ## Phase 5: Pixel parity + Scenario + Regression + Negative grep
 
-- [ ] Phase 5 本计划定义的 `practice.spec.ts` pixel parity（desktop + mobile + warm/light、dark、customAccent 主题 + 5 状态截图基线）、scenario 4 目录（p0-044/045/046/047）+ INDEX 更新、workspace P0.018-021 + backend-practice P0.022-026 regression rerun、`legacyNegative.test.ts` + CI grep（voice imports / 旧 testid / 旧 route / 旧 enum / getFeedbackReport / createPracticeVoiceTurn / `Idempotency-Key.*appendSessionEvent` / raw text 泄漏）、`make docs-check` + `/sync-doc-index --fix-index` + `check-md-links` + 全量 Vitest + typecheck + build + `make build` 收口 gate 全部通过
+- [ ] Phase 5 本计划定义的 `practice.spec.ts` pixel parity（desktop + mobile + warm/light、dark、customAccent 主题 + 5 状态截图基线）、scenario 4 目录（p0-044/045/046/047）+ INDEX 更新、workspace P0.018-021 + backend-practice P0.022-026 + backend-practice 002 P0.038-043 regression rerun、`legacyNegative.test.ts` + CI grep（voice imports / 旧 testid / 旧 route / 旧 enum / getFeedbackReport / createPracticeVoiceTurn / `Idempotency-Key.*appendSessionEvent` / raw text 泄漏）、`make docs-check` + `/sync-doc-index --fix-index` + `check-md-links` + 全量 Vitest + typecheck + build + `make build` 收口 gate 全部通过
