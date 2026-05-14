@@ -70,6 +70,80 @@
           }
         }
       }
+    },
+    "queued": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-queued"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000005000",
+          "planId": "01918fa0-0000-7000-8000-000000004000",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "status": "queued",
+          "language": "zh-CN",
+          "hintsEnabled": true,
+          "turnCount": 0,
+          "currentTurn": null,
+          "createdAt": "2026-04-28T11:55:00Z",
+          "updatedAt": "2026-04-28T11:55:00Z"
+        }
+      }
+    },
+    "running-with-history": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-history"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000005000",
+          "planId": "01918fa0-0000-7000-8000-000000004000",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "status": "running",
+          "language": "zh-CN",
+          "hintsEnabled": true,
+          "turnCount": 3,
+          "currentTurn": {
+            "id": "01918fa0-0000-7000-8000-000000006003",
+            "turnIndex": 3,
+            "questionText": "在跨组协作时，你最常碰到的反对意见是什么？说一个具体例子。",
+            "questionIntent": "behavioral.collaboration",
+            "status": "asked",
+            "askedAt": "2026-04-28T13:48:00Z"
+          },
+          "createdAt": "2026-04-28T12:00:00Z",
+          "updatedAt": "2026-04-28T13:48:00Z"
+        }
+      }
+    },
+    "completing": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-completing"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000005000",
+          "planId": "01918fa0-0000-7000-8000-000000004000",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "status": "completing",
+          "language": "zh-CN",
+          "hintsEnabled": true,
+          "turnCount": 5,
+          "currentTurn": {
+            "id": "01918fa0-0000-7000-8000-000000006005",
+            "turnIndex": 5,
+            "questionText": "最后一题：你怎么看这个岗位与你的下一个三年规划？",
+            "questionIntent": "motivation.fit",
+            "status": "answered",
+            "askedAt": "2026-04-28T14:05:00Z"
+          },
+          "createdAt": "2026-04-28T12:00:00Z",
+          "updatedAt": "2026-04-28T14:10:00Z"
+        }
+      }
     }
   }
 }

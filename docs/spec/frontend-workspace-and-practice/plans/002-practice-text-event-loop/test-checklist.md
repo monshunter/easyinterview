@@ -12,7 +12,7 @@
 
 ## Phase 2: appendSessionEvent + AssistantAction + SessionStatus 消费
 
-- [ ] Phase 2 本计划定义的 `usePracticeEvents.test.ts`（5 kind body & header + retry 复用 + fresh action）、`idempotencyContract.test.ts`（双轨边界）、`AssistantActionRenderer.test.tsx`（5 type + provenance 隔离）、`usePracticeSession.test.ts`（七个 status 分支 + completed 防抖 + `draft/archived` 负向）、`appendSessionEventBody.test.ts` + `make validate-fixtures` + `make codegen-check` 单元 + contract 测试项全部通过
+- [x] Phase 2 本计划定义的 `usePracticeEvents.test.ts`（5 kind body & header + retry 复用 + fresh action）、`idempotencyContract.test.ts`（双轨边界）、`AssistantActionRenderer.test.tsx`（5 type + provenance 隔离）、`usePracticeSession.test.ts`（七个 status 分支 + completed 防抖 + `draft/archived` 负向）、`appendSessionEventBody.test.ts` + `make validate-fixtures` + `make codegen-check` 单元 + contract 测试项全部通过
 
 ## Phase 3: assisted / strict 显隐 + RoleDropdown + 提示 / 跳过 / 暂停-恢复
 

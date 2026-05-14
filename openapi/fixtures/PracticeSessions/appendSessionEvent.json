@@ -402,6 +402,94 @@
           }
         }
       }
+    },
+    "show-hint": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientEventId": "01918fa0-0000-7000-8000-00000000e009",
+          "kind": "hint_requested",
+          "occurredAt": "2026-04-28T13:48:30Z",
+          "payload": {
+            "turnId": "01918fa0-0000-7000-8000-000000006000"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-48-30-show-hint"
+        },
+        "body": {
+          "acknowledged": true,
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005000",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "running",
+            "language": "zh-CN",
+            "hintsEnabled": true,
+            "turnCount": 1,
+            "currentTurn": {
+              "id": "01918fa0-0000-7000-8000-000000006000",
+              "turnIndex": 1,
+              "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
+              "questionIntent": "behavioral.leadership.design_system",
+              "status": "asked",
+              "askedAt": "2026-04-28T13:40:00Z"
+            },
+            "createdAt": "2026-04-28T12:00:00Z",
+            "updatedAt": "2026-04-28T13:48:30Z"
+          },
+          "assistantAction": {
+            "type": "show_hint",
+            "turnId": "01918fa0-0000-7000-8000-000000006000",
+            "questionText": null,
+            "hint": "尝试 STAR + 数字结构。开头给一个基线指标，例如 LCP = 3.2s。",
+            "sessionStatus": "running",
+            "provenance": {
+              "promptVersion": "practice.session.hint.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:contract.default",
+              "language": "zh-CN",
+              "featureFlag": "hint_fixture_only_v0",
+              "dataSourceVersion": "practice_session.v9"
+            }
+          }
+        }
+      }
+    },
+    "ai-timeout": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientEventId": "01918fa0-0000-7000-8000-00000000e00a",
+          "kind": "answer_submitted",
+          "occurredAt": "2026-04-28T13:49:30Z",
+          "payload": {
+            "turnId": "01918fa0-0000-7000-8000-000000006000",
+            "answerText": "我从 LCP 3.2s 起步，先把渲染路径拆分..."
+          }
+        }
+      },
+      "response": {
+        "status": 502,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-49-30-ai-timeout"
+        },
+        "body": {
+          "error": {
+            "code": "AI_PROVIDER_TIMEOUT",
+            "message": "AI provider call timed out while generating the next assistant action.",
+            "requestId": "req_2026-04-28T13-49-30-ai-timeout",
+            "retryable": true,
+            "details": {
+              "provider": "model-profile:contract.default",
+              "stage": "follow_up_generation"
+            }
+          }
+        }
+      }
     }
   }
 }
