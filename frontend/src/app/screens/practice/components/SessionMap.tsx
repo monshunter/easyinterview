@@ -28,21 +28,25 @@ export const SessionMap: FC<SessionMapProps> = ({ label, items, activeIndex }) =
         {label}
       </div>
       {items.map((item, idx) => {
-        const isActive = idx === activeIndex;
-        const isDone = idx < activeIndex || item.status === "done";
-        const isSkipped = item.status === "skipped";
+        const explicit =
+          item.status === "skipped" ||
+          item.status === "done" ||
+          item.status === "follow_up_requested"
+            ? item.status
+            : null;
+        const isActive = !explicit && idx === activeIndex;
+        const isDone = !explicit && !isActive && idx < activeIndex;
         return (
           <div
             key={item.id}
             data-testid={`practice-sessionmap-item-${idx}`}
             data-status={
-              isActive
+              explicit ??
+              (isActive
                 ? "active"
                 : isDone
                   ? "done"
-                  : isSkipped
-                    ? "skipped"
-                    : "pending"
+                  : "pending")
             }
             style={{
               padding: "10px 12px",
@@ -85,7 +89,7 @@ export const SessionMap: FC<SessionMapProps> = ({ label, items, activeIndex }) =
                 fontFamily: "var(--ei-mono)",
               }}
             >
-              {isDone ? "✓" : isSkipped ? "↷" : idx + 1}
+              {isDone ? "✓" : explicit === "skipped" ? "↷" : idx + 1}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div

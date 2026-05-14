@@ -45,11 +45,13 @@ interface InflightRecord {
  * same `clientEventId` via an in-flight fingerprint cache; a fresh action
  * (different payload contents) mints a new id.
  */
-export function usePracticeEvents(): UsePracticeEventsResult {
+export function usePracticeEvents(
+  explicitSessionId?: string,
+): UsePracticeEventsResult {
   const runtime = useAppRuntimeOptional();
   const client = runtime?.client;
   const { ctx } = useInterviewContext();
-  const sessionId = ctx.sessionId ?? "";
+  const sessionId = explicitSessionId ?? ctx.sessionId ?? "";
   const inflightRef = useRef<Map<EventKind, InflightRecord>>(new Map());
 
   const send = useCallback(

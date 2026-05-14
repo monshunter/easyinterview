@@ -7,6 +7,7 @@ export interface AiTransparencyMeta {
   rubricVersion: string;
   modelId: string;
   language: string;
+  personaLabel?: string;
 }
 
 export interface RightPanelProps {
@@ -173,6 +174,12 @@ export const RightPanel: FC<RightPanelProps> = ({
             model · {aiTransparencyMeta.modelId}
             <br />
             lang · {aiTransparencyMeta.language}
+            {aiTransparencyMeta.personaLabel ? (
+              <>
+                <br />
+                role · {aiTransparencyMeta.personaLabel}
+              </>
+            ) : null}
           </div>
         </div>
       </div>

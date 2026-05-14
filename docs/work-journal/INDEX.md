@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-14](2026-05-14.md) | `feat(frontend-practice): wire interactive shell with assisted controls and role switch` | #feat #ui #test |
 | [2026-05-14](2026-05-14.md) | `feat(frontend-practice): land event loop hooks and assistant action renderer` | #feat #test |
 | [2026-05-14](2026-05-14.md) | `feat(frontend-practice): land practice screen shell with route binding and i18n` | #feat #ui #i18n #test |
 | [2026-05-14](2026-05-14.md) | `docs(frontend-workspace-and-practice): align practice text plan gates` | #docs |

@@ -30,15 +30,15 @@
 
 ## Phase 3: assisted / strict 显隐 + RoleDropdown + 提示 / 跳过 / 暂停-恢复 + transcript
 
-- [ ] 3.1 新增 `frontend/src/app/screens/practice/hooks/usePracticeAssistance.ts`：派生 `{showLiveNotes, showHintButton, showExperienceCards, showStrictBanner}` 仅依赖 `practiceMode==='strict'` 二值；负向断言 `practiceGoal` 不参与计算；Vitest `hooks/usePracticeAssistance.test.ts` strict / assisted × baseline / debrief 4 组合
-- [ ] 3.2 InputBar 提示流接线：assisted + 点击「提示」 → `requestHint({turnId})` → 成功 200 后 `INCREMENT_HINT_COUNT` 写回 InterviewContext + HintBanner 渲染 `assistantAction.hint`；再点击「提示」隐藏 banner（不重复请求）；strict 模式 hint button DOM 不渲染；Vitest `__tests__/practiceHints.test.tsx` 断言 assisted 流 + hintCount 自增 + strict DOM 缺失
-- [ ] 3.3 InputBar 跳过 / 暂停-恢复接线：跳过 → `skipTurn({turnId})` → renderer 推进 + SessionMap 标记 `status='skipped'`；暂停 → `pauseSession({})` + 本地 timer 暂停 + UI 切「已暂停」；恢复 → `resumeSession({})` + timer 恢复；暂停期间 submit / hint / skip 三按钮 disabled 不发请求；Vitest `__tests__/practiceSkip.test.tsx` + `__tests__/practicePauseResume.test.tsx`
-- [ ] 3.4 RoleDropdown 接线（UI-only）：从 InterviewContext 派生当前 `interviewerPersona`；切换 dropdown 仅改本地 React state + RightPanel.AI TRANSPARENCY 卡 role label；负向断言 generated client 调用次数 = 0；Vitest `__tests__/RoleDropdown.test.tsx`
-- [ ] 3.5 SessionMap turn 历史接线：题目地图通过 `assistantAction` 推进 `qIdx` + 维护本地 turn 状态数组（client-side cache，不持久化 localStorage）；`turn.status` 渲染为 done ✓ / active 圆点 / pending 空圈 / skipped ↷ / follow_up_requested 圆点+颜色；Vitest `__tests__/SessionMap.test.tsx`
-- [ ] 3.6 模式切换 segmented control：voice 选项点击 → `nav("practice", {...ctx, mode:'voice', modality:'voice'})`；中部主区域渲染 `VoiceSurfaceComingSoon`（图标 + 文案 + 返回 text 按钮）；点击「返回 text」回到 mode='text'；Vitest `__tests__/practiceModeSwitch.test.tsx` + 负向断言不渲染 voice DOM
-- [ ] 3.7 strict toggle 运行时锁定：顶部 strict toggle 保持 ui-design 视觉 parity（role='switch' aria-checked），但 click handler 触发 toast「严格模拟需在新建规划时设定，本场已锁定」；不调 backend；Vitest 锁定 toast 文案 + generated client 调用次数 = 0
-- [ ] 3.8 新增 `practice/__tests__/practiceGoalParity.test.tsx`：4 组合（assisted+baseline / assisted+debrief / strict+baseline / strict+debrief）的显隐快照一致性；负向 grep `goal === 'debrief'` 在 practice 模块只在 `practiceGoal 不影响显隐` 注释 / 测试中出现
-- [ ] 3.9 BDD-Gate: 验证 `E2E.P0.045` 中 strict / assisted / debrief 显隐主路径 + hint / skip / pause-resume 副路径通过
+- [x] 3.1 新增 `frontend/src/app/screens/practice/hooks/usePracticeAssistance.ts`：派生 `{showLiveNotes, showHintButton, showExperienceCards, showStrictBanner}` 仅依赖 `practiceMode==='strict'` 二值；负向断言 `practiceGoal` 不参与计算；Vitest `hooks/usePracticeAssistance.test.ts` strict / assisted × baseline / debrief 4 组合
+- [x] 3.2 InputBar 提示流接线：assisted + 点击「提示」 → `requestHint({turnId})` → 成功 200 后 `INCREMENT_HINT_COUNT` 写回 InterviewContext + HintBanner 渲染 `assistantAction.hint`；再点击「提示」隐藏 banner（不重复请求）；strict 模式 hint button DOM 不渲染；Vitest `__tests__/practiceHints.test.tsx` 断言 assisted 流 + hintCount 自增 + strict DOM 缺失
+- [x] 3.3 InputBar 跳过 / 暂停-恢复接线：跳过 → `skipTurn({turnId})` → renderer 推进 + SessionMap 标记 `status='skipped'`；暂停 → `pauseSession({})` + 本地 timer 暂停 + UI 切「已暂停」；恢复 → `resumeSession({})` + timer 恢复；暂停期间 submit / hint / skip 三按钮 disabled 不发请求；Vitest `__tests__/practiceSkip.test.tsx` + `__tests__/practicePauseResume.test.tsx`
+- [x] 3.4 RoleDropdown 接线（UI-only）：从 InterviewContext 派生当前 `interviewerPersona`；切换 dropdown 仅改本地 React state + RightPanel.AI TRANSPARENCY 卡 role label；负向断言 generated client 调用次数 = 0；Vitest `__tests__/RoleDropdown.test.tsx`
+- [x] 3.5 SessionMap turn 历史接线：题目地图通过 `assistantAction` 推进 `qIdx` + 维护本地 turn 状态数组（client-side cache，不持久化 localStorage）；`turn.status` 渲染为 done ✓ / active 圆点 / pending 空圈 / skipped ↷ / follow_up_requested 圆点+颜色；Vitest `__tests__/SessionMap.test.tsx`
+- [x] 3.6 模式切换 segmented control：voice 选项点击 → `nav("practice", {...ctx, mode:'voice', modality:'voice'})`；中部主区域渲染 `VoiceSurfaceComingSoon`（图标 + 文案 + 返回 text 按钮）；点击「返回 text」回到 mode='text'；Vitest `__tests__/practiceModeSwitch.test.tsx` + 负向断言不渲染 voice DOM
+- [x] 3.7 strict toggle 运行时锁定：顶部 strict toggle 保持 ui-design 视觉 parity（role='switch' aria-checked），但 click handler 触发 toast「严格模拟需在新建规划时设定，本场已锁定」；不调 backend；Vitest 锁定 toast 文案 + generated client 调用次数 = 0
+- [x] 3.8 新增 `practice/__tests__/practiceGoalParity.test.tsx`：4 组合（assisted+baseline / assisted+debrief / strict+baseline / strict+debrief）的显隐快照一致性；负向 grep `goal === 'debrief'` 在 practice 模块只在 `practiceGoal 不影响显隐` 注释 / 测试中出现
+- [x] 3.9 BDD-Gate: 验证 `E2E.P0.045` 中 strict / assisted / debrief 显隐主路径 + hint / skip / pause-resume 副路径通过 <!-- verified: 2026-05-14 method=vitest scope=partial-assets evidence=usePracticeAssistance.test.ts+practiceHints.test.tsx+practiceSkip.test.tsx+practicePauseResume.test.tsx+RoleDropdown.test.tsx+SessionMap.test.tsx+practiceStrictToggleLocked.test.tsx+practiceGoalParity.test.tsx full bdd-checklist 待 5.8 scenario 执行 -->
 
 ## Phase 4: completePracticeSession + handoff + 错误恢复 + sessionLost / conflict 兜底
 

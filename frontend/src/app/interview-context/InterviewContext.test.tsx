@@ -153,6 +153,31 @@ describe("InterviewContext reducer", () => {
     expect(next.sessionId).toBe("sess-1");
   });
 
+  it("INCREMENT_HINT_COUNT bumps hintCount and sets hintUsed='true'", () => {
+    const state: InterviewContextState = {
+      ...DEFAULT_INTERVIEW_CONTEXT,
+      hintUsed: "false",
+      hintCount: "0",
+    };
+    const action: InterviewContextAction = { type: "INCREMENT_HINT_COUNT" };
+    const after1 = interviewContextReducer(state, action);
+    expect(after1.hintCount).toBe("1");
+    expect(after1.hintUsed).toBe("true");
+    const after2 = interviewContextReducer(after1, action);
+    expect(after2.hintCount).toBe("2");
+    expect(after2.hintUsed).toBe("true");
+  });
+
+  it("INCREMENT_HINT_COUNT recovers to '1' when hintCount is non-numeric", () => {
+    const state: InterviewContextState = {
+      ...DEFAULT_INTERVIEW_CONTEXT,
+      hintCount: "garbage",
+    };
+    const next = interviewContextReducer(state, { type: "INCREMENT_HINT_COUNT" });
+    expect(next.hintCount).toBe("1");
+    expect(next.hintUsed).toBe("true");
+  });
+
   it("CLEAR resets to DEFAULT_INTERVIEW_CONTEXT", () => {
     const state: InterviewContextState = {
       targetJobId: "tj-1",

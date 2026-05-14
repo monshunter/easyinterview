@@ -28,12 +28,18 @@ export interface UsePracticeSessionLoaderResult {
  * Spec D-12 / D-13 boundary: this hook owns the read path only; mutations
  * flow through usePracticeEvents (Phase 2) / useCompletePracticeSession
  * (Phase 4).
+ *
+ * Optional `explicitSessionId` overrides the InterviewContext read so the
+ * caller (PracticeScreen) can supply the route-param sessionId directly
+ * without depending on a separate HYDRATE_FROM_ROUTE dispatch.
  */
-export function usePracticeSessionLoader(): UsePracticeSessionLoaderResult {
+export function usePracticeSessionLoader(
+  explicitSessionId?: string,
+): UsePracticeSessionLoaderResult {
   const runtime = useAppRuntimeOptional();
   const client = runtime?.client;
   const { ctx, dispatch } = useInterviewContext();
-  const sessionId = ctx.sessionId ?? "";
+  const sessionId = explicitSessionId ?? ctx.sessionId ?? "";
 
   const initialState: PracticeSessionLoaderState = !sessionId
     ? "sessionLost"

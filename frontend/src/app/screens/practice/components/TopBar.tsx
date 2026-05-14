@@ -1,6 +1,6 @@
 import { type FC } from "react";
 
-import { RoleDropdown } from "./RoleDropdown";
+import { RoleDropdown, type InterviewerPersona } from "./RoleDropdown";
 
 export interface TopBarProps {
   company: string;
@@ -15,6 +15,8 @@ export interface TopBarProps {
   onSwitchMode: (mode: "text" | "voice") => void;
   strict: boolean;
   onToggleStrict: () => void;
+  persona: InterviewerPersona;
+  onPersonaChange: (next: InterviewerPersona) => void;
 }
 
 /**
@@ -36,6 +38,8 @@ export const TopBar: FC<TopBarProps> = ({
   onSwitchMode,
   strict,
   onToggleStrict,
+  persona,
+  onPersonaChange,
 }) => {
   return (
     <div
@@ -74,7 +78,7 @@ export const TopBar: FC<TopBarProps> = ({
       </div>
       <div style={{ flex: 1 }} />
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <RoleDropdown />
+        <RoleDropdown persona={persona} onChange={onPersonaChange} />
         <span
           data-testid="practice-topbar-question"
           className="ei-mono"

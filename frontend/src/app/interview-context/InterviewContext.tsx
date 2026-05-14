@@ -71,6 +71,7 @@ export type InterviewContextAction =
       type: "MERGE_SESSION";
       session: { id: string; [key: string]: unknown };
     }
+  | { type: "INCREMENT_HINT_COUNT" }
   | { type: "CLEAR_RESUME" }
   | { type: "CLEAR_PRACTICE_PLAN" }
   | { type: "CLEAR_AUTO_START" }
@@ -126,6 +127,15 @@ export function interviewContextReducer(
         ...state,
         sessionId: action.session.id || state.sessionId,
       };
+    case "INCREMENT_HINT_COUNT": {
+      const parsed = Number(state.hintCount);
+      const next = Number.isFinite(parsed) ? parsed + 1 : 1;
+      return {
+        ...state,
+        hintUsed: "true",
+        hintCount: String(next),
+      };
+    }
     case "CLEAR_RESUME":
       return {
         ...state,
