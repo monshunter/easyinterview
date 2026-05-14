@@ -72,10 +72,20 @@ export function isIdempotencyKeyExpired(raw: string, now: Date = new Date()): bo
   return ageSeconds > IDEMPOTENCY_KEY_TTL_SECONDS;
 }
 
-/** Stable idempotency key pair for createPracticePlan + startPracticeSession dual-step. */
+/**
+ * Stable idempotency key bundle for the practice lifecycle.
+ *
+ *  - `create`: createPracticePlan double-submit guard
+ *  - `start`:  startPracticeSession double-submit guard
+ *  - `complete`: completePracticeSession finish-button retry guard
+ *
+ * Each key is bound to its operation; reusing a key across operations
+ * is forbidden by the server-side replay envelope.
+ */
 export function newIdempotencyBatch(now: Date = new Date()) {
   return {
     create: formatIdempotencyKey(now, newId()),
     start: formatIdempotencyKey(now, newId()),
+    complete: formatIdempotencyKey(now, newId()),
   };
 }

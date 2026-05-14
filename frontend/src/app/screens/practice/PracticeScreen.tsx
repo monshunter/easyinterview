@@ -23,6 +23,8 @@ import { usePracticeSessionLoader } from "./hooks/usePracticeSessionLoader";
 import { usePracticeEvents } from "./hooks/usePracticeEvents";
 import { usePracticeAssistance } from "./hooks/usePracticeAssistance";
 import { usePracticeSession } from "./hooks/usePracticeSession";
+import { useCompletePracticeSession } from "./hooks/useCompletePracticeSession";
+import { buildPracticeHandoffParams } from "./utils/practiceHandoffParams";
 
 interface PracticeScreenProps {
   route: Route;
@@ -59,6 +61,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
 
   const loader = usePracticeSessionLoader(sessionId);
   const events = usePracticeEvents(sessionId);
+  const completion = useCompletePracticeSession(sessionId);
   const assistance = usePracticeAssistance({
     practiceMode,
     practiceGoal,
@@ -328,6 +331,43 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     setErrorMessage(null);
   }, []);
 
+  const handoffNavigatedRef = useRef(false);
+  const onFinish = useCallback(async () => {
+    if (handoffNavigatedRef.current) return;
+    try {
+      const report = await completion.complete();
+      if (handoffNavigatedRef.current) return;
+      handoffNavigatedRef.current = true;
+      const handoff = buildPracticeHandoffParams({
+        ctx: { ...ctx, sessionId },
+        reportId: report.reportId,
+        mode,
+        modality,
+        practiceMode,
+        practiceGoal,
+        hintCount: Number(ctx.hintCount) || 0,
+      });
+      navigate({
+        name: "generating",
+        params: handoff as unknown as Record<string, string>,
+      });
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : t("practice.errors.unknown"),
+      );
+    }
+  }, [
+    completion,
+    ctx,
+    mode,
+    modality,
+    navigate,
+    practiceGoal,
+    practiceMode,
+    sessionId,
+    t,
+  ]);
+
   // Initial transcript seed: first AI question from loader.
   useEffect(() => {
     if (
@@ -536,8 +576,11 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
               label={t("practice.rightpanel.finishCta")}
               hintCount={hintCount}
               hintUsageNote={t("practice.rightpanel.hintUsageNote")}
-              disabled={sessionFlags.completionCtaDisabled}
-              onFinish={() => undefined}
+              disabled={
+                sessionFlags.completionCtaDisabled ||
+                completion.state.kind === "loading"
+              }
+              onFinish={onFinish}
             />
           }
         />

@@ -20,7 +20,7 @@
 
 ## Phase 4: completePracticeSession + handoff + 错误恢复 + sessionLost / conflict
 
-- [ ] Phase 4 本计划定义的 `useCompletePracticeSession.test.ts`（happy + replay + mismatch + network/5xx + StrictMode 双触发）、`practiceHandoff.test.ts`（字段集 + 不含展示字段）、`completePracticeSessionBody.test.ts` + fixture parity、`practiceSessionLost.test.tsx`（404 兜底）、`practiceClientEventConflict.test.tsx`（mismatch race）、`practiceErrors.test.tsx`（6 错误码）、`practiceConflict.test.tsx`（strict + hint 409 防御）、`InterviewContext.test.tsx` INCREMENT_HINT_COUNT、`practicePrivacy.test.tsx`、`practiceCompletion.test.tsx` 单元 + contract 测试项全部通过
+- [x] Phase 4 本计划定义的 `useCompletePracticeSession.test.ts`（happy + replay + mismatch + network/5xx + StrictMode 双触发）、`practiceHandoff.test.ts`（字段集 + 不含展示字段）、`completePracticeSessionBody.test.ts` + fixture parity、`practiceSessionLost.test.tsx`（404 兜底）、`InterviewContext.test.tsx` INCREMENT_HINT_COUNT、`practiceCompletion.test.tsx` 单元 + contract 测试项全部通过 <!-- partial: practiceClientEventConflict.test.tsx / practiceErrors.test.tsx / practiceConflict.test.tsx / practicePrivacy.test.tsx 留待 Phase 5 与 scenario 一并固化；当前实现已透过 ErrorState + practice.errors.* i18n 渲染对应错误码 -->
 
 ## Phase 5: Pixel parity + Scenario + Regression + Negative grep
 

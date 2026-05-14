@@ -56,3 +56,15 @@ describe('isIdempotencyKeyExpired', () => {
     expect(IDEMPOTENCY_KEY_TTL_SECONDS).toBe(86400);
   });
 });
+
+describe('newIdempotencyBatch', () => {
+  it('returns three distinct keys keyed by lifecycle stage', async () => {
+    const { newIdempotencyBatch } = await import('./idempotency');
+    const batch = newIdempotencyBatch();
+    expect(batch.create).toBeDefined();
+    expect(batch.start).toBeDefined();
+    expect(batch.complete).toBeDefined();
+    const ids = new Set([batch.create, batch.start, batch.complete]);
+    expect(ids.size).toBe(3);
+  });
+});
