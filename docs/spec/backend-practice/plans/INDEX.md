@@ -8,6 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [003-mode-policies-and-provenance](./003-mode-policies-and-provenance/plan.md) | [plan](./003-mode-policies-and-provenance/plan.md) / [checklist](./003-mode-policies-and-provenance/checklist.md) / [context](./003-mode-policies-and-provenance/context.yaml) / [test-plan](./003-mode-policies-and-provenance/test-plan.md) / [test-checklist](./003-mode-policies-and-provenance/test-checklist.md) / [bdd-plan](./003-mode-policies-and-provenance/bdd-plan.md) / [bdd-checklist](./003-mode-policies-and-provenance/bdd-checklist.md) | 1.0 | active | 2026-05-14 |
 
 ## 2 已完成（Completed）
 
