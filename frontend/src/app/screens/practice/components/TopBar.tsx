@@ -46,20 +46,21 @@ export const TopBar: FC<TopBarProps> = ({
       data-testid="practice-topbar"
       style={{
         padding: "14px 28px",
-        borderBottom: "1px solid var(--ei-color-rule)",
+        borderBottom: "1px solid var(--ei-color-rule-strong)",
         display: "flex",
         alignItems: "center",
+        flexWrap: "wrap",
         gap: 16,
-        background: "var(--ei-color-bgCard)",
+        background: "var(--ei-color-bg-card)",
       }}
     >
-      <div>
+      <div style={{ minWidth: 0 }}>
         <div
           data-testid="practice-topbar-company"
           style={{
             fontSize: 12,
-            color: "var(--ei-color-ink3)",
-            fontFamily: "var(--ei-mono)",
+            color: "var(--ei-color-fg-tertiary)",
+            fontFamily: "var(--ei-font-mono)",
             textTransform: "uppercase",
           }}
         >
@@ -69,15 +70,24 @@ export const TopBar: FC<TopBarProps> = ({
           data-testid="practice-topbar-title"
           style={{
             fontSize: 14,
-            color: "var(--ei-color-ink)",
+            color: "var(--ei-color-fg-primary)",
             fontWeight: 500,
           }}
         >
           {title}
         </div>
       </div>
-      <div style={{ flex: 1 }} />
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <div style={{ flex: "1 1 80px" }} />
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          flexWrap: "wrap",
+          justifyContent: "flex-end",
+          minWidth: 0,
+        }}
+      >
         <RoleDropdown persona={persona} onChange={onPersonaChange} />
         <span
           data-testid="practice-topbar-question"
@@ -88,7 +98,7 @@ export const TopBar: FC<TopBarProps> = ({
             padding: "3px 8px",
             borderRadius: 3,
             fontSize: 11.5,
-            background: "var(--ei-color-accentSoft)",
+            background: "var(--ei-color-accent-soft)",
             color: "var(--ei-color-accent)",
           }}
         >
@@ -103,8 +113,8 @@ export const TopBar: FC<TopBarProps> = ({
             padding: "3px 8px",
             borderRadius: 3,
             fontSize: 11.5,
-            background: "var(--ei-color-bgSoft)",
-            color: "var(--ei-color-ink3)",
+            background: "var(--ei-color-bg-soft)",
+            color: "var(--ei-color-fg-tertiary)",
           }}
         >
           {elapsed} / {budget}
@@ -116,13 +126,13 @@ export const TopBar: FC<TopBarProps> = ({
           aria-pressed={paused}
           style={{
             background: "transparent",
-            border: "1px solid var(--ei-color-rule)",
+            border: "1px solid var(--ei-color-rule-strong)",
             padding: "6px 10px",
             borderRadius: 2,
             display: "flex",
             gap: 6,
             alignItems: "center",
-            color: "var(--ei-color-ink2)",
+            color: "var(--ei-color-fg-secondary)",
             fontSize: 12,
             cursor: "pointer",
           }}
@@ -133,15 +143,15 @@ export const TopBar: FC<TopBarProps> = ({
           style={{
             height: 18,
             width: 1,
-            background: "var(--ei-color-rule)",
+            background: "var(--ei-color-rule-strong)",
           }}
         />
         <div
           data-testid="practice-topbar-mode-segment"
           style={{
             display: "flex",
-            background: "var(--ei-color-bgSoft)",
-            border: "1px solid var(--ei-color-rule)",
+            background: "var(--ei-color-bg-soft)",
+            border: "1px solid var(--ei-color-rule-strong)",
             borderRadius: 3,
             padding: 2,
             gap: 2,
@@ -157,19 +167,19 @@ export const TopBar: FC<TopBarProps> = ({
                 aria-pressed={on}
                 onClick={() => onSwitchMode(k)}
                 style={{
-                  background: on ? "var(--ei-color-bgCard)" : "transparent",
+                  background: on ? "var(--ei-color-bg-card)" : "transparent",
                   border: `1px solid ${
-                    on ? "var(--ei-color-rule)" : "transparent"
+                    on ? "var(--ei-color-rule-strong)" : "transparent"
                   }`,
                   color: on
-                    ? "var(--ei-color-ink)"
-                    : "var(--ei-color-ink3)",
+                    ? "var(--ei-color-fg-primary)"
+                    : "var(--ei-color-fg-tertiary)",
                   padding: "4px 9px",
                   borderRadius: 2,
                   cursor: "pointer",
                   fontSize: 12,
                   fontWeight: on ? 500 : 400,
-                  fontFamily: "var(--ei-sans)",
+                  fontFamily: "var(--ei-font-sans)",
                 }}
               >
                 {k}
@@ -184,7 +194,7 @@ export const TopBar: FC<TopBarProps> = ({
             gap: 5,
             alignItems: "center",
             padding: "4px 8px",
-            background: "var(--ei-color-accentSoft)",
+            background: "var(--ei-color-accent-soft)",
             border: "1px solid var(--ei-color-accent)",
             borderRadius: 2,
             visibility: activeMode === "voice" ? "visible" : "hidden",
@@ -203,13 +213,13 @@ export const TopBar: FC<TopBarProps> = ({
             style={{
               fontSize: 11,
               color: "var(--ei-color-accent)",
-              fontFamily: "var(--ei-mono)",
+              fontFamily: "var(--ei-font-mono)",
             }}
           >
             live
           </span>
         </div>
-        <div style={{ height: 18, width: 1, background: "var(--ei-color-rule)" }} />
+        <div style={{ height: 18, width: 1, background: "var(--ei-color-rule-strong)" }} />
         <button
           data-testid="practice-topbar-strict"
           type="button"
@@ -218,10 +228,10 @@ export const TopBar: FC<TopBarProps> = ({
           onClick={onToggleStrict}
           style={{
             background: strict
-              ? "var(--ei-color-accentSoft)"
+              ? "var(--ei-color-accent-soft)"
               : "transparent",
             border: `1px solid ${
-              strict ? "var(--ei-color-accent)" : "var(--ei-color-rule)"
+              strict ? "var(--ei-color-accent)" : "var(--ei-color-rule-strong)"
             }`,
             padding: "5px 9px",
             borderRadius: 2,
@@ -237,8 +247,8 @@ export const TopBar: FC<TopBarProps> = ({
               fontSize: 11.5,
               color: strict
                 ? "var(--ei-color-accent)"
-                : "var(--ei-color-ink3)",
-              fontFamily: "var(--ei-mono)",
+                : "var(--ei-color-fg-tertiary)",
+              fontFamily: "var(--ei-font-mono)",
             }}
           >
             strict
@@ -251,7 +261,7 @@ export const TopBar: FC<TopBarProps> = ({
               borderRadius: 8,
               background: strict
                 ? "var(--ei-color-accent)"
-                : "var(--ei-color-rule)",
+                : "var(--ei-color-rule-strong)",
               position: "relative",
               flexShrink: 0,
             }}

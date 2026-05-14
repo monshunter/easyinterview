@@ -1,6 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FC } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type FC,
+  type SetStateAction,
+} from "react";
 
-import type { AssistantAction } from "../../../api/generated/types";
+import type {
+  AssistantAction,
+  GenerationProvenance,
+} from "../../../api/generated/types";
 import { useI18n, type MessageKey } from "../../i18n/messages";
 import { useInterviewContext } from "../../interview-context/InterviewContext";
 import { useNavigation } from "../../navigation/NavigationProvider";
@@ -29,6 +41,21 @@ import { buildPracticeHandoffParams } from "./utils/practiceHandoffParams";
 interface PracticeScreenProps {
   route: Route;
 }
+
+interface ClassifiedPracticeError {
+  messageKey: MessageKey;
+  retryable: boolean;
+  refreshSession: boolean;
+  sessionLost: boolean;
+}
+
+interface PracticeErrorState {
+  message: string;
+  retryable: boolean;
+  fallbackBackToWorkspace: boolean;
+}
+
+type RetryAction = () => Promise<void>;
 
 const PERSONA_LABEL_KEY: Record<InterviewerPersona, MessageKey> = {
   general: "practice.toolbar.role.general",
@@ -67,6 +94,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     practiceGoal,
   });
   const sessionFlags = usePracticeSession(loader.data?.status ?? null);
+  const isNarrow = useNarrowPracticeLayout();
 
   const [persona, setPersona] = useState<InterviewerPersona>("general");
   const [strictToastOpen, setStrictToastOpen] = useState(false);
@@ -78,19 +106,42 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const [hintBannerText, setHintBannerText] = useState("");
   const [activeAssistantAction, setActiveAssistantAction] =
     useState<AssistantAction | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [aiTransparency, setAiTransparency] =
+    useState<GenerationProvenance | null>(null);
+  const [errorState, setErrorState] = useState<PracticeErrorState | null>(null);
+  const retryActionRef = useRef<RetryAction | null>(null);
+  const [refreshingAfterConflict, setRefreshingAfterConflict] = useState(false);
+  const conflictRefreshStartedRef = useRef(false);
+  const [sessionLostByMutation, setSessionLostByMutation] = useState(false);
   type TurnAnnotation = "skipped" | "follow_up_requested" | "done";
   const [turnAnnotations, setTurnAnnotations] = useState<
     Map<number, TurnAnnotation>
   >(() => new Map());
+  const inputDisabled =
+    sessionFlags.inputDisabled ||
+    paused ||
+    loader.state === "loading" ||
+    refreshingAfterConflict;
 
   // Local elapsed timer (UI display only; backend owns server elapsed).
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
-    if (paused || sessionFlags.inputDisabled) return;
+    if (inputDisabled) return;
     const id = setInterval(() => setElapsed((v) => v + 1), 1000);
     return () => clearInterval(id);
-  }, [paused, sessionFlags.inputDisabled]);
+  }, [inputDisabled]);
+
+  useEffect(() => {
+    if (!refreshingAfterConflict) return;
+    if (loader.state === "loading") {
+      conflictRefreshStartedRef.current = true;
+      return;
+    }
+    if (conflictRefreshStartedRef.current) {
+      setRefreshingAfterConflict(false);
+      conflictRefreshStartedRef.current = false;
+    }
+  }, [loader.state, refreshingAfterConflict]);
 
   const handleBackToWorkspace = useCallback(() => {
     navigate({
@@ -137,6 +188,58 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     [],
   );
 
+  const applyAssistantAction = useCallback((action: AssistantAction) => {
+    setAiTransparency(action.provenance);
+    setActiveAssistantAction(action);
+  }, []);
+
+  const handleMutationError = useCallback(
+    (err: unknown, retryAction: RetryAction | null) => {
+      const classified = classifyPracticeError(err);
+      if (classified.sessionLost) {
+        setSessionLostByMutation(true);
+      }
+      if (classified.refreshSession) {
+        conflictRefreshStartedRef.current = false;
+        setRefreshingAfterConflict(true);
+        loader.refresh();
+      }
+      retryActionRef.current =
+        classified.retryable && retryAction ? retryAction : null;
+      updatePracticeErrorState(setErrorState, {
+        message: t(classified.messageKey),
+        retryable: classified.retryable && Boolean(retryAction),
+        fallbackBackToWorkspace:
+          completion.state.kind === "error"
+            ? completion.state.fallbackBackToWorkspace
+            : false,
+      });
+    },
+    [completion.state, loader, t],
+  );
+
+  const runPracticeAction = useCallback(
+    async (action: RetryAction, retryAction: RetryAction | null = action) => {
+      setErrorState(null);
+      try {
+        await action();
+        retryActionRef.current = null;
+      } catch (err) {
+        handleMutationError(err, retryAction);
+      }
+    },
+    [handleMutationError],
+  );
+
+  const handleRetry = useCallback(() => {
+    const retryAction = retryActionRef.current;
+    if (!retryAction) {
+      setErrorState(null);
+      return;
+    }
+    void runPracticeAction(retryAction, retryAction);
+  }, [runPracticeAction]);
+
   const buildSessionMapItems = useCallback((): SessionMapItem[] => {
     const data = loader.data;
     const turn = data?.currentTurn ?? null;
@@ -179,102 +282,85 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
 
   // ── handlers ──────────────────────────────────────────────────────────
   const onSend = useCallback(async () => {
-    if (sessionFlags.inputDisabled || paused || !input.trim()) return;
+    if (inputDisabled || !input.trim()) return;
     const turnId = loader.data?.currentTurn?.id ?? "";
     if (!turnId) return;
     const answerText = input.trim();
-    setTranscript((prev) => [
-      ...prev,
-      { role: "user", text: answerText, t: fmtElapsed(elapsed) },
-    ]);
-    setInput("");
-    try {
+    const sentAt = fmtElapsed(elapsed);
+    const action = async () => {
       const result = await events.submitAnswer({ turnId, answerText });
-      setActiveAssistantAction(result.assistantAction);
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : t("practice.errors.unknown"),
-      );
-    }
+      setTranscript((prev) => [
+        ...prev,
+        { role: "user", text: answerText, t: sentAt },
+      ]);
+      setInput("");
+      applyAssistantAction(result.assistantAction);
+    };
+    await runPracticeAction(action, action);
   }, [
+    applyAssistantAction,
     elapsed,
     events,
     input,
+    inputDisabled,
     loader.data,
-    paused,
-    sessionFlags.inputDisabled,
-    t,
+    runPracticeAction,
   ]);
 
   const onHint = useCallback(async () => {
-    if (sessionFlags.inputDisabled || paused) return;
+    if (inputDisabled) return;
     if (showHintBanner) {
       setShowHintBanner(false);
       return;
     }
     const turnId = loader.data?.currentTurn?.id ?? "";
     if (!turnId) return;
-    try {
+    const action = async () => {
       const result = await events.requestHint({ turnId });
-      setActiveAssistantAction(result.assistantAction);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.startsWith("HTTP 409 ")) {
-        setErrorMessage(t("practice.errors.strictHintConflict"));
-      } else {
-        setErrorMessage(t("practice.errors.unknown"));
-      }
-    }
+      applyAssistantAction(result.assistantAction);
+    };
+    await runPracticeAction(action, action);
   }, [
+    applyAssistantAction,
     events,
+    inputDisabled,
     loader.data,
-    paused,
-    sessionFlags.inputDisabled,
+    runPracticeAction,
     showHintBanner,
-    t,
   ]);
 
   const onSkip = useCallback(async () => {
-    if (sessionFlags.inputDisabled || paused) return;
+    if (inputDisabled) return;
     const turn = loader.data?.currentTurn;
     if (!turn) return;
     const turnIndex = turn.turnIndex;
-    setTurnAnnotations((prev) => {
-      const next = new Map(prev);
-      next.set(turnIndex, "skipped");
-      return next;
-    });
-    try {
+    const action = async () => {
       const result = await events.skipTurn({ turnId: turn.id });
-      setActiveAssistantAction(result.assistantAction);
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : t("practice.errors.unknown"),
-      );
-    }
-  }, [events, loader.data, paused, sessionFlags.inputDisabled, t]);
+      setTurnAnnotations((prev) => {
+        const next = new Map(prev);
+        next.set(turnIndex, "skipped");
+        return next;
+      });
+      applyAssistantAction(result.assistantAction);
+    };
+    await runPracticeAction(action, action);
+  }, [applyAssistantAction, events, inputDisabled, loader.data, runPracticeAction]);
 
   const onTogglePause = useCallback(async () => {
     if (paused) {
-      try {
+      const action = async () => {
         await events.resumeSession();
         setPaused(false);
-      } catch (err) {
-        setErrorMessage(
-          err instanceof Error ? err.message : t("practice.errors.unknown"),
-        );
-      }
+      };
+      await runPracticeAction(action, action);
     } else {
-      try {
+      const action = async () => {
         await events.pauseSession();
         setPaused(true);
-      } catch (err) {
-        setErrorMessage(
-          err instanceof Error ? err.message : t("practice.errors.unknown"),
-        );
-      }
+      };
+      await runPracticeAction(action, action);
     }
-  }, [events, paused, t]);
+  }, [events, paused, runPracticeAction]);
 
   const handleAskQuestion = useCallback(
     (turnId: string, questionText: string) => {
@@ -324,17 +410,17 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   );
 
   const handleSessionWait = useCallback(() => {
-    setErrorMessage(null);
+    setErrorState(null);
   }, []);
 
   const handleSessionCompleted = useCallback(() => {
-    setErrorMessage(null);
+    setErrorState(null);
   }, []);
 
   const handoffNavigatedRef = useRef(false);
   const onFinish = useCallback(async () => {
     if (handoffNavigatedRef.current) return;
-    try {
+    const action = async () => {
       const report = await completion.complete();
       if (handoffNavigatedRef.current) return;
       handoffNavigatedRef.current = true;
@@ -351,11 +437,8 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
         name: "generating",
         params: handoff as unknown as Record<string, string>,
       });
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : t("practice.errors.unknown"),
-      );
-    }
+    };
+    await runPracticeAction(action, action);
   }, [
     completion,
     ctx,
@@ -364,9 +447,20 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     navigate,
     practiceGoal,
     practiceMode,
+    runPracticeAction,
     sessionId,
-    t,
   ]);
+
+  useEffect(() => {
+    if (completion.state.kind !== "error") return;
+    const classified = classifyPracticeError(completion.state.message);
+    updatePracticeErrorState(setErrorState, {
+      message: t(classified.messageKey),
+      retryable:
+        completion.state.retryable && Boolean(retryActionRef.current),
+      fallbackBackToWorkspace: completion.state.fallbackBackToWorkspace,
+    });
+  }, [completion.state, t]);
 
   // Initial transcript seed: first AI question from loader.
   useEffect(() => {
@@ -386,7 +480,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loader.state, loader.data?.currentTurn?.id]);
 
-  if (!sessionId || loader.state === "sessionLost") {
+  if (!sessionId || loader.state === "sessionLost" || sessionLostByMutation) {
     return <PracticeSessionLostState onBack={handleBackToWorkspace} />;
   }
 
@@ -414,7 +508,8 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
         height: "100vh",
         display: "flex",
         flexDirection: "column",
-        background: "var(--ei-color-bg)",
+        background: "var(--ei-color-bg-canvas)",
+        overflow: "hidden",
       }}
     >
       <TopBar
@@ -444,11 +539,11 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
             right: 24,
             zIndex: 50,
             padding: "10px 14px",
-            background: "var(--ei-color-bgCard)",
-            border: "1px solid var(--ei-color-rule)",
+            background: "var(--ei-color-bg-card)",
+            border: "1px solid var(--ei-color-rule-strong)",
             borderRadius: 4,
             fontSize: 13,
-            color: "var(--ei-color-ink2)",
+            color: "var(--ei-color-fg-secondary)",
             boxShadow: "0 6px 24px rgba(0,0,0,0.08)",
           }}
         >
@@ -461,17 +556,21 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
         style={{
           flex: 1,
           display: "grid",
-          gridTemplateColumns: "260px 1fr 280px",
+          gridTemplateColumns: isNarrow
+            ? "minmax(0, 1fr)"
+            : "260px minmax(0, 1fr) 280px",
+          gridAutoRows: isNarrow ? "max-content" : undefined,
           minHeight: 0,
+          overflowY: isNarrow ? "auto" : "hidden",
         }}
       >
         <div
           data-testid="practice-sessionmap"
           style={{
-            borderRight: "1px solid var(--ei-color-rule)",
+            borderRight: "1px solid var(--ei-color-rule-strong)",
             padding: "20px 18px",
             overflowY: "auto",
-            background: "var(--ei-color-bgSoft)",
+            background: "var(--ei-color-bg-soft)",
           }}
         >
           <SessionMap
@@ -525,10 +624,31 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
                 followUpLabel={t("practice.transcript.followUp")}
               />
               <ErrorState
-                message={errorMessage}
+                message={errorState?.message ?? null}
                 retryLabel={t("practice.errors.retry")}
-                onRetry={errorMessage ? () => setErrorMessage(null) : undefined}
+                onRetry={errorState?.retryable ? handleRetry : undefined}
               />
+              {errorState?.fallbackBackToWorkspace ? (
+                <button
+                  data-testid="practice-error-back-to-workspace"
+                  type="button"
+                  onClick={handleBackToWorkspace}
+                  style={{
+                    alignSelf: "flex-start",
+                    margin: "0 40px 10px",
+                    background: "var(--ei-color-bg-card)",
+                    border: "1px solid var(--ei-color-rule-strong)",
+                    color: "var(--ei-color-fg-secondary)",
+                    padding: "7px 12px",
+                    borderRadius: 2,
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontFamily: "var(--ei-font-sans)",
+                  }}
+                >
+                  {t("practice.errors.backToWorkspace")}
+                </button>
+              ) : null}
               <InputBar
                 value={input}
                 onChange={setInput}
@@ -538,7 +658,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
                 sendLabel={t("practice.input.send")}
                 dictateLabel={t("practice.input.dictateOn")}
                 showHintButton={assistance.showHintButton}
-                disabled={sessionFlags.inputDisabled || paused}
+                disabled={inputDisabled}
                 onHint={onHint}
                 onSkip={onSkip}
                 onSend={onSend}
@@ -562,10 +682,10 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
           experienceLabel={t("practice.rightpanel.experienceLabel")}
           aiTransparencyLabel={t("practice.rightpanel.aiTransparency")}
           aiTransparencyMeta={{
-            promptVersion: "v1.0.4",
-            rubricVersion: "v0.9",
-            modelId: "haiku-4.5",
-            language: lang,
+            promptVersion: aiTransparency?.promptVersion ?? "pending",
+            rubricVersion: aiTransparency?.rubricVersion ?? "pending",
+            modelId: aiTransparency?.modelId ?? "model-profile:pending",
+            language: aiTransparency?.language ?? lang,
             personaLabel: t(PERSONA_LABEL_KEY[persona]),
           }}
           strict={isStrict}
@@ -597,3 +717,87 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     </div>
   );
 };
+
+function classifyPracticeError(err: unknown): ClassifiedPracticeError {
+  const message = err instanceof Error ? err.message : String(err);
+  if (/^HTTP 404\b/.test(message)) {
+    return {
+      messageKey: "practice.errors.sessionConflict",
+      retryable: false,
+      refreshSession: false,
+      sessionLost: true,
+    };
+  }
+  if (message.includes("AI_PROVIDER_TIMEOUT")) {
+    return {
+      messageKey: "practice.errors.aiTimeout",
+      retryable: true,
+      refreshSession: false,
+      sessionLost: false,
+    };
+  }
+  if (message.includes("hint_disabled_in_mode")) {
+    return {
+      messageKey: "practice.errors.strictHintConflict",
+      retryable: false,
+      refreshSession: false,
+      sessionLost: false,
+    };
+  }
+  if (
+    message.includes("client_event_id_mismatch") ||
+    (message.includes("PRACTICE_SESSION_CONFLICT") &&
+      /^HTTP 409\b/.test(message))
+  ) {
+    return {
+      messageKey: "practice.errors.sessionConflict",
+      retryable: false,
+      refreshSession: true,
+      sessionLost: false,
+    };
+  }
+  if (/^HTTP 5\d\d\b/.test(message) || !/^HTTP \d{3}\b/.test(message)) {
+    return {
+      messageKey: "practice.errors.network",
+      retryable: true,
+      refreshSession: false,
+      sessionLost: false,
+    };
+  }
+  return {
+    messageKey: "practice.errors.unknown",
+    retryable: false,
+    refreshSession: false,
+    sessionLost: false,
+  };
+}
+
+function updatePracticeErrorState(
+  setErrorState: Dispatch<SetStateAction<PracticeErrorState | null>>,
+  next: PracticeErrorState,
+): void {
+  setErrorState((prev) =>
+    prev &&
+      prev.message === next.message &&
+      prev.retryable === next.retryable &&
+      prev.fallbackBackToWorkspace === next.fallbackBackToWorkspace
+      ? prev
+      : next,
+  );
+}
+
+function useNarrowPracticeLayout(): boolean {
+  const [isNarrow, setIsNarrow] = useState(() => getNarrowPracticeLayout());
+
+  useEffect(() => {
+    const onResize = () => setIsNarrow(getNarrowPracticeLayout());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  return isNarrow;
+}
+
+function getNarrowPracticeLayout(): boolean {
+  return typeof window !== "undefined" && window.innerWidth <= 720;
+}

@@ -45,10 +45,10 @@ export const RightPanel: FC<RightPanelProps> = ({
     <div
       data-testid="practice-rightpanel"
       style={{
-        borderLeft: "1px solid var(--ei-color-rule)",
+        borderLeft: "1px solid var(--ei-color-rule-strong)",
         display: "flex",
         flexDirection: "column",
-        background: "var(--ei-color-bgSoft)",
+        background: "var(--ei-color-bg-soft)",
       }}
     >
       <div
@@ -62,8 +62,8 @@ export const RightPanel: FC<RightPanelProps> = ({
           data-testid="practice-rightpanel-jd"
           style={{
             padding: 12,
-            background: "var(--ei-color-bgCard)",
-            border: "1px solid var(--ei-color-rule)",
+            background: "var(--ei-color-bg-card)",
+            border: "1px solid var(--ei-color-rule-strong)",
             borderRadius: 2,
             marginBottom: 14,
           }}
@@ -71,7 +71,7 @@ export const RightPanel: FC<RightPanelProps> = ({
           <div
             className="ei-label"
             style={{
-              color: "var(--ei-color-ink3)",
+              color: "var(--ei-color-fg-tertiary)",
               marginBottom: 4,
             }}
           >
@@ -80,8 +80,8 @@ export const RightPanel: FC<RightPanelProps> = ({
           <div
             style={{
               fontSize: 11.5,
-              color: "var(--ei-color-ink3)",
-              fontFamily: "var(--ei-mono)",
+              color: "var(--ei-color-fg-tertiary)",
+              fontFamily: "var(--ei-font-mono)",
               marginBottom: 4,
             }}
           >
@@ -90,7 +90,7 @@ export const RightPanel: FC<RightPanelProps> = ({
           <div
             style={{
               fontSize: 13,
-              color: "var(--ei-color-ink)",
+              color: "var(--ei-color-fg-primary)",
               lineHeight: 1.55,
             }}
           >
@@ -103,8 +103,8 @@ export const RightPanel: FC<RightPanelProps> = ({
             data-testid="practice-rightpanel-strict-banner"
             style={{
               padding: "10px 12px",
-              background: "var(--ei-color-bgSoft)",
-              border: "1px solid var(--ei-color-rule)",
+              background: "var(--ei-color-bg-soft)",
+              border: "1px solid var(--ei-color-rule-strong)",
               borderRadius: 2,
               marginBottom: 14,
             }}
@@ -112,8 +112,8 @@ export const RightPanel: FC<RightPanelProps> = ({
             <div
               style={{
                 fontSize: 11,
-                color: "var(--ei-color-ink3)",
-                fontFamily: "var(--ei-mono)",
+                color: "var(--ei-color-fg-tertiary)",
+                fontFamily: "var(--ei-font-mono)",
                 lineHeight: 1.65,
               }}
             >
@@ -125,7 +125,7 @@ export const RightPanel: FC<RightPanelProps> = ({
             <div
               data-testid="practice-rightpanel-experience-label"
               className="ei-label"
-              style={{ color: "var(--ei-color-ink3)", marginBottom: 10 }}
+              style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 10 }}
             >
               {experienceLabel}
             </div>
@@ -148,23 +148,23 @@ export const RightPanel: FC<RightPanelProps> = ({
         <div
           data-testid="practice-rightpanel-ai-transparency"
           style={{
-            borderTop: "1px dotted var(--ei-color-rule)",
+            borderTop: "1px dotted var(--ei-color-rule-strong)",
             marginTop: 16,
             paddingTop: 14,
           }}
         >
           <div
             className="ei-label"
-            style={{ color: "var(--ei-color-ink3)", marginBottom: 8 }}
+            style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 8 }}
           >
             {aiTransparencyLabel}
           </div>
           <div
             style={{
               fontSize: 11.5,
-              color: "var(--ei-color-ink3)",
+              color: "var(--ei-color-fg-tertiary)",
               lineHeight: 1.55,
-              fontFamily: "var(--ei-mono)",
+              fontFamily: "var(--ei-font-mono)",
             }}
           >
             prompt {aiTransparencyMeta.promptVersion}

@@ -25,8 +25,8 @@ export const FinishCta: FC<FinishCtaProps> = ({
       data-testid="practice-rightpanel-cta-finish-wrap"
       style={{
         padding: "14px 18px",
-        borderTop: "1px solid var(--ei-color-rule)",
-        background: "var(--ei-color-bgCard)",
+        borderTop: "1px solid var(--ei-color-rule-strong)",
+        background: "var(--ei-color-bg-card)",
         flexShrink: 0,
       }}
     >
@@ -39,7 +39,7 @@ export const FinishCta: FC<FinishCtaProps> = ({
           width: "100%",
           padding: "11px 14px",
           background: disabled
-            ? "var(--ei-color-ink4)"
+            ? "var(--ei-color-fg-muted)"
             : "var(--ei-color-accent)",
           color: "#fff",
           border: "none",
@@ -47,7 +47,7 @@ export const FinishCta: FC<FinishCtaProps> = ({
           cursor: disabled ? "default" : "pointer",
           fontSize: 13.5,
           fontWeight: 500,
-          fontFamily: "var(--ei-sans)",
+          fontFamily: "var(--ei-font-sans)",
         }}
       >
         {label}
@@ -57,10 +57,10 @@ export const FinishCta: FC<FinishCtaProps> = ({
           data-testid="practice-rightpanel-hint-count"
           style={{
             fontSize: 11,
-            color: "var(--ei-color-ink3)",
+            color: "var(--ei-color-fg-tertiary)",
             textAlign: "center",
             marginTop: 6,
-            fontFamily: "var(--ei-mono)",
+            fontFamily: "var(--ei-font-mono)",
           }}
         >
           {hintUsageNote.replace("{count}", String(hintCount))}

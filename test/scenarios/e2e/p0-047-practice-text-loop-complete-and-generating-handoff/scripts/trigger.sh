@@ -10,5 +10,6 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx \
     src/app/screens/practice/utils/practiceHandoffParams.test.ts \
     src/app/screens/practice/__tests__/completePracticeSessionBody.test.tsx \
+    src/app/screens/practice/__tests__/practicePrivacy.test.tsx \
     src/app/screens/practice/__tests__/practiceCompletion.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"

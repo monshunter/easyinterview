@@ -165,6 +165,9 @@ For each in-scope phase:
     - Treat `testing: warning: no tests to run`, package output ending in `[no tests to run]`, or a focused `-run` pattern with zero matching tests as a gate failure and record a finding. Do not count it as PASS even if the command exits 0.
     - In `--fix` mode, map the finding to either adding the missing executable test, correcting the focused gate name, or reopening the checklist item whose evidence was no-op.
 11. For completed feature phases, verify BDD evidence exists: `bdd-plan` / `bdd-checklist` references, completed scenario asset/execution items, a passed `BDD-Gate:` verification note, and scenario coverage for the primary journey plus the highest-risk alternate or failure/recovery journey per deployable phase.
+    - Treat `completed` plan/checklist/test/BDD documents that still contain unchecked BDD items, `partial`/`pending`/`next pass` comments, or "asset readiness" language as blocking evidence drift, not as PASS.
+    - Read scenario `trigger.sh` / `verify.sh` scripts directly. Scenario directory, README, or INDEX presence does not prove coverage unless the trigger executes the dedicated tests and the verifier asserts the relevant runtime/negative conditions.
+    - In `--fix` mode, first add the missing executable test or script assertion, then update the original checklist evidence and lifecycle state only after the gate passes.
 
 Coverage rows to verify:
 

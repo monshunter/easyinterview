@@ -23,8 +23,8 @@ export const QuestionCard: FC<QuestionCardProps> = ({
       data-testid="practice-question"
       style={{
         padding: "28px 40px 20px",
-        borderBottom: "1px solid var(--ei-color-rule)",
-        background: "var(--ei-color-bgCard)",
+        borderBottom: "1px solid var(--ei-color-rule-strong)",
+        background: "var(--ei-color-bg-card)",
       }}
     >
       <div
@@ -44,7 +44,7 @@ export const QuestionCard: FC<QuestionCardProps> = ({
             padding: "3px 8px",
             borderRadius: 3,
             fontSize: 11.5,
-            background: "var(--ei-color-accentSoft)",
+            background: "var(--ei-color-accent-soft)",
             color: "var(--ei-color-accent)",
           }}
         >
@@ -59,8 +59,8 @@ export const QuestionCard: FC<QuestionCardProps> = ({
             padding: "3px 8px",
             borderRadius: 3,
             fontSize: 11.5,
-            background: "var(--ei-color-bgSoft)",
-            color: "var(--ei-color-ink3)",
+            background: "var(--ei-color-bg-soft)",
+            color: "var(--ei-color-fg-tertiary)",
           }}
         >
           {topic}
@@ -76,8 +76,8 @@ export const QuestionCard: FC<QuestionCardProps> = ({
               padding: "3px 8px",
               borderRadius: 3,
               fontSize: 11.5,
-              background: "var(--ei-color-bgSoft)",
-              color: "var(--ei-color-ink3)",
+              background: "var(--ei-color-bg-soft)",
+              color: "var(--ei-color-fg-tertiary)",
             }}
           >
             {t}
@@ -89,7 +89,7 @@ export const QuestionCard: FC<QuestionCardProps> = ({
         className="ei-serif"
         style={{
           fontSize: 22,
-          color: "var(--ei-color-ink)",
+          color: "var(--ei-color-fg-primary)",
           lineHeight: 1.35,
         }}
       >

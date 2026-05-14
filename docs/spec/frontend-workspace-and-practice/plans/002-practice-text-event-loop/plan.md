@@ -1,6 +1,6 @@
 # 002 Practice Text Event Loop
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-14
 
@@ -39,6 +39,7 @@ UI 真理源：[`ui-design/src/screen-practice.jsx`](../../../../../ui-design/sr
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-14 | 1.3 | L2 `--fix` 收口：补齐前端错误恢复、privacy / mismatch 专用测试、practice Playwright pixel parity gate、scenario trigger 覆盖，并修正 practice runtime 旧主题 token 漂移。 |
 | 2026-05-14 | 1.1 | L1 review fix：按当前 repo truth 修正 backend-practice/002 状态为 completed / real handler landed；operation matrix 标明真实 handler、fixture-only assisted hint 前置到 backend-practice/003，并把 Phase 5 backend regression 扩展为 `E2E.P0.022-026` + `E2E.P0.038-043`。 |
 | 2026-05-13 | 1.0 | 初始创建：拆分 spec C-4 文本事件循环 + C-6 generating 入口端 + C-8/9/10/12 横切，落实 §7 plan 序列 002。 |
 

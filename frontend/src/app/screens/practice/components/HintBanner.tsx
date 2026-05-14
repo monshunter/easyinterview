@@ -19,7 +19,7 @@ export const HintBanner: FC<HintBannerProps> = ({ show, prefix, text }) => {
       style={{
         marginBottom: 10,
         padding: "10px 12px",
-        background: "var(--ei-color-amberSoft)",
+        background: "var(--ei-color-amber-soft)",
         borderRadius: 2,
         fontSize: 13,
         color: "var(--ei-color-warn)",

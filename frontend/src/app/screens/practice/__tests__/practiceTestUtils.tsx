@@ -24,6 +24,7 @@ import type { Route } from "../../../routes";
 
 import getPracticeSessionFixture from "../../../../../../openapi/fixtures/PracticeSessions/getPracticeSession.json";
 import appendSessionEventFixture from "../../../../../../openapi/fixtures/PracticeSessions/appendSessionEvent.json";
+import completePracticeSessionFixture from "../../../../../../openapi/fixtures/PracticeSessions/completePracticeSession.json";
 import { PracticeScreen } from "../PracticeScreen";
 
 export const SESSION_A = "01918fa0-0000-7000-8000-000000005000";
@@ -42,7 +43,14 @@ export interface CapturedRequest {
 export interface BuildFixtureClientOptions {
   scenario?: string;
   /** Per-operationId scenario override (takes precedence over `scenario`). */
-  scenarioByOp?: Partial<Record<"getPracticeSession" | "appendSessionEvent", string>>;
+  scenarioByOp?: Partial<
+    Record<
+      "getPracticeSession" | "appendSessionEvent" | "completePracticeSession",
+      string
+    >
+  >;
+  forceAppendFailFirstN?: number;
+  forceCompleteFailFirstN?: number;
 }
 
 export function buildPracticeClient(
@@ -50,9 +58,15 @@ export function buildPracticeClient(
 ): { client: EasyInterviewClient; calls: CapturedRequest[] } {
   const calls: CapturedRequest[] = [];
   const fixtureFetch = createFixtureBackedFetch(
-    createFixtureRegistry([getPracticeSessionFixture, appendSessionEventFixture]),
+    createFixtureRegistry([
+      getPracticeSessionFixture,
+      appendSessionEventFixture,
+      completePracticeSessionFixture,
+    ]),
     { scenario: opts.scenario ?? "default" },
   );
+  let appendAttempts = 0;
+  let completeAttempts = 0;
   const wrappedFetch: typeof fetch = async (input, init) => {
     const url =
       typeof input === "string"
@@ -74,7 +88,26 @@ export function buildPracticeClient(
       /\/practice\/sessions\/[^/]+\/events$/.test(path) &&
       method === "POST"
     ) {
+      appendAttempts += 1;
+      if (
+        opts.forceAppendFailFirstN &&
+        appendAttempts <= opts.forceAppendFailFirstN
+      ) {
+        throw new Error("simulated network failure");
+      }
       scenarioOverride = opts.scenarioByOp?.appendSessionEvent;
+    } else if (
+      /\/practice\/sessions\/[^/]+\/complete$/.test(path) &&
+      method === "POST"
+    ) {
+      completeAttempts += 1;
+      if (
+        opts.forceCompleteFailFirstN &&
+        completeAttempts <= opts.forceCompleteFailFirstN
+      ) {
+        throw new Error("simulated network failure");
+      }
+      scenarioOverride = opts.scenarioByOp?.completePracticeSession;
     }
     if (scenarioOverride) {
       const merged = new Headers(init?.headers ?? {});
@@ -94,6 +127,26 @@ export function eventCalls(all: CapturedRequest[]): CapturedRequest[] {
     (c) =>
       c.method === "POST" &&
       /\/practice\/sessions\/[^/]+\/events$/.test(
+        new URL(c.url, "http://x").pathname,
+      ),
+  );
+}
+
+export function getSessionCalls(all: CapturedRequest[]): CapturedRequest[] {
+  return all.filter(
+    (c) =>
+      c.method === "GET" &&
+      /\/practice\/sessions\/[^/]+$/.test(
+        new URL(c.url, "http://x").pathname,
+      ),
+  );
+}
+
+export function completeCalls(all: CapturedRequest[]): CapturedRequest[] {
+  return all.filter(
+    (c) =>
+      c.method === "POST" &&
+      /\/practice\/sessions\/[^/]+\/complete$/.test(
         new URL(c.url, "http://x").pathname,
       ),
   );

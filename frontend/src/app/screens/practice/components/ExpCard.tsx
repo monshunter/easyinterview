@@ -25,9 +25,9 @@ export const ExpCard: FC<ExpCardProps> = ({ index, title, meta, hot }) => {
       data-testid={`practice-rightpanel-exp-${index}`}
       style={{
         padding: 10,
-        background: "var(--ei-color-bgCard)",
+        background: "var(--ei-color-bg-card)",
         border: `1px solid ${
-          hot ? "var(--ei-color-accent)" : "var(--ei-color-rule)"
+          hot ? "var(--ei-color-accent)" : "var(--ei-color-rule-strong)"
         }`,
         borderRadius: 2,
       }}
@@ -43,7 +43,7 @@ export const ExpCard: FC<ExpCardProps> = ({ index, title, meta, hot }) => {
         <div
           style={{
             fontSize: 12.5,
-            color: "var(--ei-color-ink)",
+            color: "var(--ei-color-fg-primary)",
             fontWeight: 500,
           }}
         >
@@ -53,9 +53,9 @@ export const ExpCard: FC<ExpCardProps> = ({ index, title, meta, hot }) => {
       <div
         style={{
           fontSize: 11,
-          color: "var(--ei-color-ink3)",
+          color: "var(--ei-color-fg-tertiary)",
           marginTop: 4,
-          fontFamily: "var(--ei-mono)",
+          fontFamily: "var(--ei-font-mono)",
         }}
       >
         {meta}

@@ -43,17 +43,17 @@ export const InputBar: FC<InputBarProps> = ({
       data-testid="practice-input"
       style={{
         padding: "16px 40px 24px",
-        borderTop: "1px solid var(--ei-color-rule)",
-        background: "var(--ei-color-bgCard)",
+        borderTop: "1px solid var(--ei-color-rule-strong)",
+        background: "var(--ei-color-bg-card)",
       }}
     >
       {hintBanner}
       <div
         style={{
-          border: "1px solid var(--ei-color-rule)",
+          border: "1px solid var(--ei-color-rule-strong)",
           borderRadius: 2,
           padding: 12,
-          background: "var(--ei-color-bg)",
+          background: "var(--ei-color-bg-canvas)",
         }}
       >
         <textarea
@@ -71,8 +71,8 @@ export const InputBar: FC<InputBarProps> = ({
             fontSize: 14,
             lineHeight: 1.55,
             background: "transparent",
-            color: "var(--ei-color-ink)",
-            fontFamily: "var(--ei-sans)",
+            color: "var(--ei-color-fg-primary)",
+            fontFamily: "var(--ei-font-sans)",
           }}
         />
         <div
@@ -92,11 +92,11 @@ export const InputBar: FC<InputBarProps> = ({
                 disabled={disabled}
                 style={{
                   background: "transparent",
-                  border: "1px solid var(--ei-color-rule)",
+                  border: "1px solid var(--ei-color-rule-strong)",
                   padding: "6px 10px",
                   borderRadius: 2,
                   fontSize: 12,
-                  color: "var(--ei-color-ink2)",
+                  color: "var(--ei-color-fg-secondary)",
                   cursor: disabled ? "default" : "pointer",
                 }}
               >
@@ -110,11 +110,11 @@ export const InputBar: FC<InputBarProps> = ({
               disabled={disabled}
               style={{
                 background: "transparent",
-                border: "1px solid var(--ei-color-rule)",
+                border: "1px solid var(--ei-color-rule-strong)",
                 padding: "6px 10px",
                 borderRadius: 2,
                 fontSize: 12,
-                color: "var(--ei-color-ink2)",
+                color: "var(--ei-color-fg-secondary)",
                 cursor: disabled ? "default" : "pointer",
               }}
             >
@@ -129,8 +129,8 @@ export const InputBar: FC<InputBarProps> = ({
               disabled={disabled}
               style={{
                 background: "transparent",
-                border: "1px solid var(--ei-color-rule)",
-                color: "var(--ei-color-ink2)",
+                border: "1px solid var(--ei-color-rule-strong)",
+                color: "var(--ei-color-fg-secondary)",
                 padding: "6px 12px",
                 borderRadius: 2,
                 fontSize: 12,

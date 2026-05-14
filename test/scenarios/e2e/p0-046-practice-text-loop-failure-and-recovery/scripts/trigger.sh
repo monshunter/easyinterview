@@ -8,6 +8,9 @@ mkdir -p "$OUTPUT_DIR"
   cd "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
     src/app/screens/practice/__tests__/practiceSessionLost.test.tsx \
+    src/app/screens/practice/__tests__/practiceErrors.test.tsx \
+    src/app/screens/practice/__tests__/practiceClientEventConflict.test.tsx \
+    src/app/screens/practice/__tests__/practiceConflict.test.tsx \
     src/app/screens/practice/hooks/usePracticeEvents.test.tsx \
     src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx \
     src/app/screens/practice/__tests__/idempotencyContract.test.tsx

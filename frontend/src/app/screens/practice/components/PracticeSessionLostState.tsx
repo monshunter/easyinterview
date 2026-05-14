@@ -32,13 +32,13 @@ export const PracticeSessionLostState: FC<PracticeSessionLostStateProps> = ({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "var(--ei-color-bg)",
+        background: "var(--ei-color-bg-canvas)",
       }}
     >
       <div
         style={{
-          background: "var(--ei-color-bgCard)",
-          border: "1px solid var(--ei-color-rule)",
+          background: "var(--ei-color-bg-card)",
+          border: "1px solid var(--ei-color-rule-strong)",
           borderRadius: 3,
           padding: 32,
           textAlign: "center",
@@ -50,7 +50,7 @@ export const PracticeSessionLostState: FC<PracticeSessionLostStateProps> = ({
           className="ei-serif"
           style={{
             fontSize: 18,
-            color: "var(--ei-color-ink)",
+            color: "var(--ei-color-fg-primary)",
             marginBottom: 12,
           }}
         >
@@ -60,7 +60,7 @@ export const PracticeSessionLostState: FC<PracticeSessionLostStateProps> = ({
           data-testid="practice-session-lost-desc"
           style={{
             fontSize: 13,
-            color: "var(--ei-color-ink3)",
+            color: "var(--ei-color-fg-tertiary)",
             lineHeight: 1.6,
             marginBottom: 20,
           }}

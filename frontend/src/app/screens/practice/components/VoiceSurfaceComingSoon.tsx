@@ -31,7 +31,7 @@ export const VoiceSurfaceComingSoon: FC<VoiceSurfaceComingSoonProps> = ({
         justifyContent: "center",
         gap: 12,
         padding: 32,
-        background: "var(--ei-color-bgCard)",
+        background: "var(--ei-color-bg-card)",
       }}
     >
       <div
@@ -41,7 +41,7 @@ export const VoiceSurfaceComingSoon: FC<VoiceSurfaceComingSoonProps> = ({
           width: 48,
           height: 48,
           borderRadius: 24,
-          background: "var(--ei-color-accentSoft)",
+          background: "var(--ei-color-accent-soft)",
           color: "var(--ei-color-accent)",
           display: "flex",
           alignItems: "center",
@@ -54,7 +54,7 @@ export const VoiceSurfaceComingSoon: FC<VoiceSurfaceComingSoonProps> = ({
       <div
         data-testid="practice-voice-coming-soon-title"
         className="ei-serif"
-        style={{ fontSize: 18, color: "var(--ei-color-ink)" }}
+        style={{ fontSize: 18, color: "var(--ei-color-fg-primary)" }}
       >
         {title}
       </div>
@@ -62,7 +62,7 @@ export const VoiceSurfaceComingSoon: FC<VoiceSurfaceComingSoonProps> = ({
         data-testid="practice-voice-coming-soon-desc"
         style={{
           fontSize: 13,
-          color: "var(--ei-color-ink3)",
+          color: "var(--ei-color-fg-tertiary)",
           textAlign: "center",
           maxWidth: 360,
           lineHeight: 1.6,
@@ -79,8 +79,8 @@ export const VoiceSurfaceComingSoon: FC<VoiceSurfaceComingSoonProps> = ({
           padding: "8px 14px",
           fontSize: 13,
           background: "transparent",
-          border: "1px solid var(--ei-color-rule)",
-          color: "var(--ei-color-ink2)",
+          border: "1px solid var(--ei-color-rule-strong)",
+          color: "var(--ei-color-fg-secondary)",
           borderRadius: 2,
           cursor: "pointer",
         }}

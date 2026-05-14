@@ -38,13 +38,13 @@ export const RoleDropdown: FC<RoleDropdownProps> = ({ persona, onChange }) => {
         onClick={() => setOpen((o) => !o)}
         style={{
           background: "transparent",
-          border: "1px solid var(--ei-color-rule)",
+          border: "1px solid var(--ei-color-rule-strong)",
           padding: "6px 10px",
           borderRadius: 2,
           display: "flex",
           gap: 6,
           alignItems: "center",
-          color: "var(--ei-color-ink2)",
+          color: "var(--ei-color-fg-secondary)",
           fontSize: 12,
           cursor: "pointer",
         }}
@@ -60,8 +60,8 @@ export const RoleDropdown: FC<RoleDropdownProps> = ({ persona, onChange }) => {
             top: "100%",
             right: 0,
             marginTop: 4,
-            background: "var(--ei-color-bgCard)",
-            border: "1px solid var(--ei-color-rule)",
+            background: "var(--ei-color-bg-card)",
+            border: "1px solid var(--ei-color-rule-strong)",
             borderRadius: 2,
             minWidth: 200,
             zIndex: 20,
@@ -82,12 +82,12 @@ export const RoleDropdown: FC<RoleDropdownProps> = ({ persona, onChange }) => {
                 padding: "10px 12px",
                 background:
                   persona === k
-                    ? "var(--ei-color-bgSoft)"
+                    ? "var(--ei-color-bg-soft)"
                     : "transparent",
                 border: "none",
                 cursor: "pointer",
                 fontSize: 13,
-                color: "var(--ei-color-ink)",
+                color: "var(--ei-color-fg-primary)",
                 fontWeight: persona === k ? 500 : 400,
               }}
             >

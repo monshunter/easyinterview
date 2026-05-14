@@ -23,7 +23,7 @@ export const ErrorState: FC<ErrorStateProps> = ({
       style={{
         margin: "8px 40px",
         padding: "10px 12px",
-        background: "var(--ei-color-dangerSoft)",
+        background: "var(--ei-color-danger-soft)",
         border: "1px solid var(--ei-color-danger)",
         color: "var(--ei-color-danger)",
         borderRadius: 2,

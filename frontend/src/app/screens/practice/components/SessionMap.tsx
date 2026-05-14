@@ -23,7 +23,7 @@ export const SessionMap: FC<SessionMapProps> = ({ label, items, activeIndex }) =
       <div
         data-testid="practice-sessionmap-label"
         className="ei-label"
-        style={{ color: "var(--ei-color-ink3)", marginBottom: 12 }}
+        style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 12 }}
       >
         {label}
       </div>
@@ -53,10 +53,10 @@ export const SessionMap: FC<SessionMapProps> = ({ label, items, activeIndex }) =
               marginBottom: 6,
               borderRadius: 2,
               background: isActive
-                ? "var(--ei-color-bgCard)"
+                ? "var(--ei-color-bg-card)"
                 : "transparent",
               border: `1px solid ${
-                isActive ? "var(--ei-color-rule)" : "transparent"
+                isActive ? "var(--ei-color-rule-strong)" : "transparent"
               }`,
               display: "flex",
               gap: 10,
@@ -70,23 +70,23 @@ export const SessionMap: FC<SessionMapProps> = ({ label, items, activeIndex }) =
                 borderRadius: 11,
                 flexShrink: 0,
                 border: `1px solid ${
-                  isActive ? "var(--ei-color-accent)" : "var(--ei-color-rule)"
+                  isActive ? "var(--ei-color-accent)" : "var(--ei-color-rule-strong)"
                 }`,
                 background: isDone
                   ? "var(--ei-color-ok)"
                   : isActive
-                    ? "var(--ei-color-accentSoft)"
+                    ? "var(--ei-color-accent-soft)"
                     : "transparent",
                 color: isDone
                   ? "#fff"
                   : isActive
                     ? "var(--ei-color-accent)"
-                    : "var(--ei-color-ink3)",
+                    : "var(--ei-color-fg-tertiary)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: 11,
-                fontFamily: "var(--ei-mono)",
+                fontFamily: "var(--ei-font-mono)",
               }}
             >
               {isDone ? "✓" : explicit === "skipped" ? "↷" : idx + 1}
@@ -96,8 +96,8 @@ export const SessionMap: FC<SessionMapProps> = ({ label, items, activeIndex }) =
                 style={{
                   fontSize: 12.5,
                   color: isActive
-                    ? "var(--ei-color-ink)"
-                    : "var(--ei-color-ink2)",
+                    ? "var(--ei-color-fg-primary)"
+                    : "var(--ei-color-fg-secondary)",
                   fontWeight: isActive ? 500 : 400,
                 }}
               >
@@ -106,9 +106,9 @@ export const SessionMap: FC<SessionMapProps> = ({ label, items, activeIndex }) =
               <div
                 style={{
                   fontSize: 11,
-                  color: "var(--ei-color-ink3)",
+                  color: "var(--ei-color-fg-tertiary)",
                   marginTop: 2,
-                  fontFamily: "var(--ei-mono)",
+                  fontFamily: "var(--ei-font-mono)",
                 }}
               >
                 {item.duration}

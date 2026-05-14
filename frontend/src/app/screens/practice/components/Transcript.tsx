@@ -52,16 +52,16 @@ export const Transcript: FC<TranscriptProps> = ({
                 borderRadius: 2,
                 flexShrink: 0,
                 background: isAi
-                  ? "var(--ei-color-accentSoft)"
-                  : "var(--ei-color-bgSoft)",
+                  ? "var(--ei-color-accent-soft)"
+                  : "var(--ei-color-bg-soft)",
                 color: isAi
                   ? "var(--ei-color-accent)"
-                  : "var(--ei-color-ink2)",
+                  : "var(--ei-color-fg-secondary)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: 11,
-                fontFamily: "var(--ei-mono)",
+                fontFamily: "var(--ei-font-mono)",
                 fontWeight: 500,
               }}
             >
@@ -79,7 +79,7 @@ export const Transcript: FC<TranscriptProps> = ({
                 <span
                   style={{
                     fontSize: 12,
-                    color: "var(--ei-color-ink2)",
+                    color: "var(--ei-color-fg-secondary)",
                     fontWeight: 500,
                   }}
                 >
@@ -93,7 +93,7 @@ export const Transcript: FC<TranscriptProps> = ({
                       padding: "1px 6px",
                       borderRadius: 2,
                       fontSize: 11,
-                      background: "var(--ei-color-amberSoft)",
+                      background: "var(--ei-color-amber-soft)",
                       color: "var(--ei-color-warn)",
                     }}
                   >
@@ -103,8 +103,8 @@ export const Transcript: FC<TranscriptProps> = ({
                 <span
                   style={{
                     fontSize: 11,
-                    color: "var(--ei-color-ink4)",
-                    fontFamily: "var(--ei-mono)",
+                    color: "var(--ei-color-fg-muted)",
+                    fontFamily: "var(--ei-font-mono)",
                   }}
                 >
                   {m.t}
@@ -113,7 +113,7 @@ export const Transcript: FC<TranscriptProps> = ({
               <div
                 style={{
                   fontSize: 14,
-                  color: "var(--ei-color-ink)",
+                  color: "var(--ei-color-fg-primary)",
                   lineHeight: 1.6,
                 }}
               >
@@ -129,8 +129,8 @@ export const Transcript: FC<TranscriptProps> = ({
           textAlign: "center",
           marginTop: 12,
           fontSize: 11,
-          color: "var(--ei-color-ink3)",
-          fontFamily: "var(--ei-mono)",
+          color: "var(--ei-color-fg-tertiary)",
+          fontFamily: "var(--ei-font-mono)",
         }}
       >
         {helperText}
