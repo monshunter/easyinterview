@@ -41,6 +41,7 @@ import { HomeScreen } from "./screens/home/HomeScreen";
 import { JDMatchScreen } from "./screens/jd_match/JDMatchScreen";
 import { ParseScreen } from "./screens/parse/ParseScreen";
 import { PlaceholderScreen } from "./screens/PlaceholderScreen";
+import { PracticeScreen } from "./screens/practice/PracticeScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { ResumeWorkshopScreen } from "./screens/resume-workshop/ResumeWorkshopScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
@@ -107,6 +108,9 @@ function renderRouteScreen(
   }
   if (route.name === "resume_versions") {
     return <ResumeWorkshopScreen route={route} />;
+  }
+  if (route.name === "practice") {
+    return <PracticeScreen route={route} />;
   }
   if (!runtime) {
     return <PlaceholderScreen route={route} />;

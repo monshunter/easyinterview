@@ -48,13 +48,19 @@ describe("App shell", () => {
   });
 
   it("hides chrome for immersive practice / generating routes", () => {
-    const immersiveRoutes = ["practice", "generating"] as const;
-    for (const name of immersiveRoutes) {
-      const { unmount } = render(<App initialRoute={{ name, params: {} }} />);
-      expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
-      expect(screen.getByTestId(`route-${name}`)).toBeInTheDocument();
-      unmount();
-    }
+    // practice route now mounts PracticeScreen; without sessionId it falls
+    // back to PracticeSessionLostState (still chrome-less).
+    const practiceRender = render(
+      <App initialRoute={{ name: "practice", params: {} }} />,
+    );
+    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("practice-session-lost")).toBeInTheDocument();
+    practiceRender.unmount();
+
+    // generating route still uses PlaceholderScreen (plan 002 scope).
+    render(<App initialRoute={{ name: "generating", params: {} }} />);
+    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("route-generating")).toBeInTheDocument();
   });
 
   it("renders HomeScreen on the home route instead of PlaceholderScreen", () => {
@@ -77,20 +83,21 @@ describe("App shell", () => {
     expect(screen.queryByText("D2-D6")).not.toBeInTheDocument();
   });
 
-  it("propagates route params to the rendered route view", () => {
+  it("propagates voice mode route params into PracticeScreen voice placeholder", () => {
     render(
       <App
         initialRoute={{
           name: "practice",
-          params: { mode: "voice", planId: "plan-tj-1" },
+          params: {
+            sessionId: "01918fa0-0000-7000-8000-000000005000",
+            mode: "voice",
+            modality: "voice",
+            planId: "plan-tj-1",
+          },
         }}
       />,
     );
-    const view = screen.getByTestId("route-practice");
-    expect(view).toHaveAttribute(
-      "data-route-params",
-      JSON.stringify({ mode: "voice", planId: "plan-tj-1" }),
-    );
+    expect(screen.getByTestId("practice-voice-coming-soon")).toBeInTheDocument();
   });
 
   it("renders ResumeWorkshopScreen on resume_versions route instead of PlaceholderScreen", () => {
@@ -146,19 +153,36 @@ describe("App shell", () => {
     expect(screen.queryByTestId("workspace-empty")).not.toBeInTheDocument();
   });
 
-  it("practice route still renders PlaceholderScreen", () => {
+  it("practice route renders PracticeScreen instead of PlaceholderScreen", () => {
     render(
       <App
         initialRoute={{
           name: "practice",
-          params: { sessionId: "sess-1" },
+          params: {
+            sessionId: "01918fa0-0000-7000-8000-000000005000",
+            planId: "plan-1",
+            targetJobId: "01918fa0-0000-7000-8000-000000002000",
+            jdId: "jd-1",
+            resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+            roundId: "round-tech1",
+            mode: "text",
+            modality: "text",
+            practiceMode: "assisted",
+            practiceGoal: "baseline",
+            hintUsed: "false",
+            hintCount: "0",
+          },
         }}
       />,
     );
-    expect(screen.getByTestId("route-practice")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-screen")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-topbar")).toBeInTheDocument();
+    // route-practice testid is the PlaceholderScreen marker — must NOT appear.
+    expect(screen.queryByTestId("route-practice")).not.toBeInTheDocument();
+    expect(screen.queryByText("D2-D6")).not.toBeInTheDocument();
   });
 
-  it("generating route still renders PlaceholderScreen", () => {
+  it("generating route still renders PlaceholderScreen (plan 002 scope)", () => {
     render(
       <App
         initialRoute={{
@@ -168,5 +192,14 @@ describe("App shell", () => {
       />,
     );
     expect(screen.getByTestId("route-generating")).toBeInTheDocument();
+  });
+
+  it("report and company_intel routes still render PlaceholderScreen (out of scope)", () => {
+    const stillPlaceholder = ["report", "company_intel"] as const;
+    for (const name of stillPlaceholder) {
+      const { unmount } = render(<App initialRoute={{ name, params: {} }} />);
+      expect(screen.getByTestId(`route-${name}`)).toBeInTheDocument();
+      unmount();
+    }
   });
 });

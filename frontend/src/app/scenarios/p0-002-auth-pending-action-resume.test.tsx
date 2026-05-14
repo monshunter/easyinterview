@@ -34,6 +34,7 @@ const PRACTICE_PENDING_ACTION: PendingAction = {
   label: "立即面试",
   route: "practice",
   params: {
+    sessionId: "01918fa0-0000-7000-8000-000000005000",
     planId: "plan-tj-1",
     targetJobId: "tj-1",
     jdId: "jd-tj-1",
@@ -107,17 +108,27 @@ describe("E2E.P0.002 auth pending-action resume", () => {
     await user.type(screen.getByTestId("auth-verify-code"), "654321");
     await user.click(screen.getByTestId("auth-verify-submit"));
 
-    const practice = await screen.findByTestId("route-practice");
-    const params = JSON.parse(
-      practice.getAttribute("data-route-params") ?? "{}",
-    ) as Record<string, string>;
-
-    expect(params.planId).toBe(PRACTICE_PENDING_ACTION.params.planId);
-    expect(params.targetJobId).toBe(PRACTICE_PENDING_ACTION.params.targetJobId);
-    expect(params.jdId).toBe(PRACTICE_PENDING_ACTION.params.jdId);
-    expect(params.resumeVersionId).toBe(
+    // After practice route restore, PracticeScreen mounts (sessionId in
+    // pending action). PracticeScreen exposes route param echo via data-*
+    // attrs on its root for E2E inspection.
+    const practice = await screen.findByTestId("practice-screen");
+    expect(practice.getAttribute("data-plan-id")).toBe(
+      PRACTICE_PENDING_ACTION.params.planId,
+    );
+    expect(practice.getAttribute("data-target-job-id")).toBe(
+      PRACTICE_PENDING_ACTION.params.targetJobId,
+    );
+    expect(practice.getAttribute("data-jd-id")).toBe(
+      PRACTICE_PENDING_ACTION.params.jdId,
+    );
+    expect(practice.getAttribute("data-resume-version-id")).toBe(
       PRACTICE_PENDING_ACTION.params.resumeVersionId,
     );
-    expect(params.roundId).toBe(PRACTICE_PENDING_ACTION.params.roundId);
+    expect(practice.getAttribute("data-round-id")).toBe(
+      PRACTICE_PENDING_ACTION.params.roundId,
+    );
+    expect(practice.getAttribute("data-session-id")).toBe(
+      PRACTICE_PENDING_ACTION.params.sessionId,
+    );
   });
 });

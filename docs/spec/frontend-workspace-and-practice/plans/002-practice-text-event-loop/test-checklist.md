@@ -8,7 +8,7 @@
 
 ## Phase 1: PracticeScreen 静态壳 + 路由替换 + i18n + sessionId 守卫
 
-- [ ] Phase 1 本计划定义的 `PracticeScreen.test.tsx`（DOM 锚点 + testid + 控件类型 + voice 组件 import 负向）、`usePracticeSessionLoader.test.ts`（5 态 + auto refresh）、`App.test.tsx`（practice case）、`i18n` namespace parity、`practiceModeSwitch.test.tsx`（VoiceSurfaceComingSoon 占位）测试项全部通过
+- [x] Phase 1 本计划定义的 `PracticeScreen.test.tsx`（DOM 锚点 + testid + 控件类型 + voice 组件 import 负向）、`usePracticeSessionLoader.test.ts`（5 态 + auto refresh）、`App.test.tsx`（practice case）、`i18n` namespace parity、`practiceModeSwitch.test.tsx`（VoiceSurfaceComingSoon 占位）测试项全部通过
 
 ## Phase 2: appendSessionEvent + AssistantAction + SessionStatus 消费
 

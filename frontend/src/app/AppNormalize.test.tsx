@@ -27,12 +27,15 @@ describe("App route normalization", () => {
       );
       // workspace now renders WorkspaceScreen; empty params → WorkspaceEmptyState
       // resume_versions now renders ResumeWorkshopScreen
+      // practice now renders PracticeScreen; empty params → PracticeSessionLostState
       const currentTestId =
         current === "workspace"
           ? "workspace-empty"
           : current === "resume_versions"
             ? "resume-workshop-screen"
-            : `route-${current}`;
+            : current === "practice"
+              ? "practice-session-lost"
+              : `route-${current}`;
       expect(screen.getByTestId(currentTestId)).toBeInTheDocument();
       expect(screen.queryByTestId(`route-${legacy}`)).not.toBeInTheDocument();
       unmount();
