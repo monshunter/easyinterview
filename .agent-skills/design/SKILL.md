@@ -80,7 +80,7 @@ INDEX, and before writing spec / plan / checklist / test / BDD / context files:
 3. If the current branch is the default parent branch and the worktree is clean, update
    the parent branch with fast-forward-only semantics, then create or switch to a feature
    branch before editing files. Use the repository branch prefix convention, for example
-   `codex/design-{subject}` or another concise `codex/` branch name tied to the design
+   `design/{subject}` or another concise `spec-design/` branch name tied to the design
    subject.
 4. If the fast-forward-only parent update fails, stop before file edits and report the
    blocker. Do not generate documents from a stale parent branch.

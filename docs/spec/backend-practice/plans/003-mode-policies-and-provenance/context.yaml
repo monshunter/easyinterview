@@ -1,0 +1,62 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-practice
+  name: 003-mode-policies-and-provenance
+  sequence: 3
+  supersedes: []
+  specVersion:
+    from: 1.7
+    to: 1.8
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-practice
+      - backend-practice/003
+      - 003-mode-policies-and-provenance
+      - mode-policies-and-provenance
+    keywords:
+      - practice
+      - hint
+      - hint_requested
+      - hint_text
+      - show_hint
+      - assisted
+      - strict
+      - practice_mode
+      - mode_policy
+      - assistantaction
+      - generationprovenance
+      - provenance
+      - lightweight_observe
+      - practice.turn.lightweight_observe
+      - practice.turn_observe.default
+      - hint_generate
+      - ai_task_runs
+      - graceful_degrade
+      - session_wait
+      - hint_unavailable
+      - hint_disabled_in_mode
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      testPlan: ./test-plan.md
+      testChecklist: ./test-checklist.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      discovery:
+        packages:
+          - backend/internal/api/practice
+          - backend/internal/practice
+          - backend/internal/store/practice
+          - backend/internal/ai/aiclient
+          - backend/internal/ai/registry
+          - backend/internal/middleware/idempotency
+          - migrations
+          - openapi/fixtures/PracticeSessions
+          - scripts/lint
+        apiNames:
+          - appendSessionEvent
