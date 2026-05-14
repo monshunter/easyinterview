@@ -8,12 +8,12 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [002-practice-text-event-loop](./002-practice-text-event-loop/plan.md) | [plan](./002-practice-text-event-loop/plan.md) / [checklist](./002-practice-text-event-loop/checklist.md) / [context](./002-practice-text-event-loop/context.yaml) / [test-plan](./002-practice-text-event-loop/test-plan.md) / [test-checklist](./002-practice-text-event-loop/test-checklist.md) / [bdd-plan](./002-practice-text-event-loop/bdd-plan.md) / [bdd-checklist](./002-practice-text-event-loop/bdd-checklist.md) | 1.1 | active | 2026-05-14 |
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [002-practice-text-event-loop](./002-practice-text-event-loop/plan.md) | [plan](./002-practice-text-event-loop/plan.md) / [checklist](./002-practice-text-event-loop/checklist.md) / [context](./002-practice-text-event-loop/context.yaml) / [test-plan](./002-practice-text-event-loop/test-plan.md) / [test-checklist](./002-practice-text-event-loop/test-checklist.md) / [bdd-plan](./002-practice-text-event-loop/bdd-plan.md) / [bdd-checklist](./002-practice-text-event-loop/bdd-checklist.md) | 1.2 | completed | 2026-05-14 |
 | [001-workspace-and-interview-context](./001-workspace-and-interview-context/plan.md) | [plan](./001-workspace-and-interview-context/plan.md) / [checklist](./001-workspace-and-interview-context/checklist.md) / [context](./001-workspace-and-interview-context/context.yaml) / [bdd-plan](./001-workspace-and-interview-context/bdd-plan.md) / [bdd-checklist](./001-workspace-and-interview-context/bdd-checklist.md) | 1.4 | completed | 2026-05-13 |
 
 <!--

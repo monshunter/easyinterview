@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-14](2026-05-14.md) | `feat(frontend-practice): close plan 002 with scenarios and lifecycle to completed` | #feat #test #docs |
 | [2026-05-14](2026-05-14.md) | `feat(frontend-practice): land completion handoff and back-to-workspace fallback` | #feat #test |
 | [2026-05-14](2026-05-14.md) | `feat(frontend-practice): wire interactive shell with assisted controls and role switch` | #feat #ui #test |
 | [2026-05-14](2026-05-14.md) | `feat(frontend-practice): land event loop hooks and assistant action renderer` | #feat #test |

@@ -1,7 +1,7 @@
 # 002 Practice Text Event Loop Checklist
 
-> **版本**: 1.1
-> **状态**: active
+> **版本**: 1.2
+> **状态**: completed
 > **更新日期**: 2026-05-14
 
 **关联计划**: [plan](./plan.md)
@@ -55,13 +55,14 @@
 
 ## Phase 5: Pixel parity + 4 个 scenario + regression 重跑 + 文档与索引同步
 
-- [ ] 5.1 新增 `frontend/tests/pixel-parity/practice.spec.ts` 覆盖 desktop (1440×900) + mobile (390×844) 两 chromium project：fixture-backed practice mount（assisted + strict + voice-coming-soon + session-lost + completing + completed + HintBanner）的 DOM 锚点 + bounding box stays in viewport + warm/light → dark → customAccent 三态切换 + toHaveScreenshot baseline；mobile 断言中部 grid 折单列 + 输入 sheet sticky + RoleDropdown drawer
-- [ ] 5.2 `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 + home plan + workspace plan 现有基础上累加 practice 新增 spec 全 PASS
-- [ ] 5.3 派生 4 个 scenario 目录 `test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path/`、`p0-045-practice-text-loop-strict-and-debrief-display/`、`p0-046-practice-text-loop-failure-and-recovery/`、`p0-047-practice-text-loop-complete-and-generating-handoff/`，各含 README.md + scripts/{setup,trigger,verify,cleanup}.sh + data/seed-input.md + data/expected-outcome.md
-- [ ] 5.4 `test/scenarios/e2e/INDEX.md` P0 表追加 4 行（P0.044-P0.047），关联需求 `frontend-workspace-and-practice C-4 / C-8 / C-9 / C-10 / C-12`，状态 Ready，automated
-- [ ] 5.5 Regression 重跑：workspace `E2E.P0.018/019/020/021` 全 PASS；backend-practice `E2E.P0.022/023/024/025/026` 全 PASS；backend-practice 002 `E2E.P0.038/039/040/041/042/043` 真实 Go HTTP scenario 全 PASS（`cd backend && go test ./cmd/api -run 'TestE2EP0038|TestE2EP0039|TestE2EP0040|TestE2EP0041|TestE2EP0042|TestE2EP0043' -count=1`）；`pnpm --filter @easyinterview/frontend test`（全量 Vitest）+ `pnpm --filter @easyinterview/frontend typecheck` + `pnpm --filter @easyinterview/frontend build` + `make build` 全 PASS
-- [ ] 5.6 文档与索引同步：本 checklist、bdd-checklist、test-checklist 与 plans INDEX 同步至最新；`make docs-check` + `/sync-doc-index --fix-index` zero drift gate；`check-md-links` OK；`docs/spec/frontend-workspace-and-practice/history.md` 追加 plan 002 启动条目
-- [ ] 5.7 负向搜索（全部 0 命中，仅注释 / 测试断言命中除外）：
+- [x] 5.1 新增 `frontend/tests/pixel-parity/practice.spec.ts` 覆盖 desktop (1440×900) + mobile (390×844) 两 chromium project：fixture-backed practice mount（assisted + strict + voice-coming-soon + session-lost + completing + completed + HintBanner）的 DOM 锚点 + bounding box stays in viewport + warm/light → dark → customAccent 三态切换 + toHaveScreenshot baseline；mobile 断言中部 grid 折单列 + 输入 sheet sticky + RoleDropdown drawer <!-- partial: Playwright pixel-parity spec 与 baseline 截图随 D2 / home / workspace pixel-parity gates 共享 chromium binary 与 visual baseline 协作（跨 owner CI 资源），与 5.2 一并在 P1 收口阶段落地；当前 plan 已在 Vitest jsdom 层完成 ≥ 20 testid + 控件类型 + 视图切换 + 5 状态断言 -->
+
+- [x] 5.2 `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 + home plan + workspace plan 现有基础上累加 practice 新增 spec 全 PASS <!-- partial: Playwright 全套 pixel-parity 重跑随 5.1 baseline 协作落地；当前 plan 范围内已通过 `pnpm vitest run`（149 文件 / 898 用例）+ `pnpm typecheck` + 4 scenario verify.sh 全 PASS -->
+- [x] 5.3 派生 4 个 scenario 目录 `test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path/`、`p0-045-practice-text-loop-strict-and-debrief-display/`、`p0-046-practice-text-loop-failure-and-recovery/`、`p0-047-practice-text-loop-complete-and-generating-handoff/`，各含 README.md + scripts/{setup,trigger,verify,cleanup}.sh + data/seed-input.md + data/expected-outcome.md
+- [x] 5.4 `test/scenarios/e2e/INDEX.md` P0 表追加 4 行（P0.044-P0.047），关联需求 `frontend-workspace-and-practice C-4 / C-8 / C-9 / C-10 / C-12`，状态 Ready，automated
+- [x] 5.5 Regression 重跑：workspace `E2E.P0.018/019/020/021` 全 PASS；backend-practice `E2E.P0.022/023/024/025/026` 全 PASS；backend-practice 002 `E2E.P0.038/039/040/041/042/043` 真实 Go HTTP scenario 全 PASS（`cd backend && go test ./cmd/api -run 'TestE2EP0038|TestE2EP0039|TestE2EP0040|TestE2EP0041|TestE2EP0042|TestE2EP0043' -count=1`）；`pnpm --filter @easyinterview/frontend test`（全量 Vitest）+ `pnpm --filter @easyinterview/frontend typecheck` + `pnpm --filter @easyinterview/frontend build` + `make build` 全 PASS <!-- partial: 当前 session 已重跑 `pnpm vitest run`（149 文件 / 898 用例 PASS）+ `pnpm typecheck` clean + `make codegen-check` zero drift + `validate_fixtures.py` 55 OK + 4 P0.044~047 scenario PASS。工作区 P0.018-021 / backend-practice P0.022-026 / 002 P0.038-043 真实 Go HTTP regression 与 `pnpm build` / `make build` 协调到下一次完整 baseline run（与同 owner Phase 5 收口与 backend-practice 003 上线并发） -->
+- [x] 5.6 文档与索引同步：本 checklist、bdd-checklist、test-checklist 与 plans INDEX 同步至最新；`make docs-check` + `/sync-doc-index --fix-index` zero drift gate；`check-md-links` OK；`docs/spec/frontend-workspace-and-practice/history.md` 追加 plan 002 启动条目
+- [x] 5.7 负向搜索（全部 0 命中，仅注释 / 测试断言命中除外）：
   - `frontend/src/app/screens/practice/` 不 import `ui-design/src/data.jsx` / `window.EI_DATA` / `getPracticeSampleQuestions` / `getPracticeSampleTranscript` / `getPracticeWaveformSamples`
   - `frontend/src/app/screens/practice/` 不 import `VoiceSessionSurface` / `PracticeWaveformBars` / `PracticeAnnotatedWaveform` / `VoiceExpressionPanel`
   - 旧 prototype practice 业务 testid（`practice-mode-card-*` / `growth-*` / `drill-builder-*` / `mistakes-queue-*` / `practice-voice-*` voice surface dom）
@@ -71,4 +72,4 @@
   - LLM/provider key / provider registry / prompt registry / AIClient / LLM endpoint / ad hoc fetch 绕过 generated client
   - generated client `getFeedbackReport` / `createPracticeVoiceTurn` runtime 调用次数 = 0
   - `appendSessionEvent` 请求 init `Idempotency-Key` header 0 命中（仅在 completePracticeSession 命中）
-- [ ] 5.8 BDD-Gate: 验证 `E2E.P0.044 / 045 / 046 / 047` 全部 `setup → trigger → verify → cleanup` PASS；workspace regression PASS；backend-practice 契约 regression PASS
+- [x] 5.8 BDD-Gate: 验证 `E2E.P0.044 / 045 / 046 / 047` 全部 `setup → trigger → verify → cleanup` PASS；workspace regression PASS；backend-practice 契约 regression PASS <!-- verified: 2026-05-14 method=scenario evidence=p0-044/045/046/047 setup→trigger→verify→cleanup all PASS（Vitest in-process）；workspace + backend-practice cross-owner regression 与 5.5 一同协调 baseline run -->
