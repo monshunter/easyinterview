@@ -165,6 +165,16 @@ class LintEventsSourceScanTest(unittest.TestCase):
 
         self.assertEqual([], errs)
 
+    def test_allows_upload_file_purpose_that_matches_job_type_name(self) -> None:
+        self.write(
+            "backend/internal/upload/store/file_objects.go",
+            'package store\nconst PurposePrivacyExport Purpose = "privacy_export"\n',
+        )
+
+        errs = self.linter.scan_source_literals(self.root, self.events, self.jobs)
+
+        self.assertEqual([], errs)
+
     def test_rejects_handwritten_event_name_constant(self) -> None:
         self.write("backend/internal/service/names.go", 'package service\nconst EventNameCustomCreated = "custom.event.created"\n')
 
@@ -217,6 +227,36 @@ class LintEventsSourceScanTest(unittest.TestCase):
         errs = self.linter.validate_jobs_contract_shape(jobs)
 
         self.assertTrue(any("email_dispatch" in err and "apiFacing" in err for err in errs), errs)
+
+    def test_rejects_unknown_trigger_event_semantic(self) -> None:
+        jobs = copy.deepcopy(self.jobs)
+        report_generate = next(job for job in jobs["jobs"] if job["canonical"] == "report_generate")
+        report_generate["triggerEventSemantic"] = "event_dispatches_job"
+
+        errs = self.linter.validate_jobs_contract_shape(jobs, self.events)
+
+        self.assertTrue(any("report_generate" in err and "triggerEventSemantic" in err for err in errs), errs)
+
+    def test_requires_report_generate_source_event_only_semantic(self) -> None:
+        jobs = copy.deepcopy(self.jobs)
+        report_generate = next(job for job in jobs["jobs"] if job["canonical"] == "report_generate")
+        report_generate.pop("triggerEventSemantic")
+
+        errs = self.linter.validate_jobs_contract_shape(jobs, self.events)
+
+        self.assertTrue(any("report_generate" in err and "source_event_only" in err for err in errs), errs)
+
+    def test_source_event_only_requires_api_facing_known_event_trigger(self) -> None:
+        jobs = copy.deepcopy(self.jobs)
+        source_refresh = next(job for job in jobs["jobs"] if job["canonical"] == "source_refresh")
+        source_refresh["triggerEventSemantic"] = "source_event_only"
+        resume_parse = next(job for job in jobs["jobs"] if job["canonical"] == "resume_parse")
+        resume_parse["triggerEventSemantic"] = "source_event_only"
+
+        errs = self.linter.validate_jobs_contract_shape(jobs, self.events)
+
+        self.assertTrue(any("source_refresh" in err and "apiFacing" in err for err in errs), errs)
+        self.assertTrue(any("resume_parse" in err and "known eventName" in err for err in errs), errs)
 
     def test_rejects_redacted_field_added_to_email_dispatch_payload_schema(self) -> None:
         jobs = copy.deepcopy(self.jobs)

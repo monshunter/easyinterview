@@ -34,8 +34,8 @@
               "turnIndex": 1,
               "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
               "questionIntent": "behavioral.leadership.design_system",
-              "status": "asked",
-              "askedAt": "2026-04-28T13:45:12Z"
+              "status": "follow_up_requested",
+              "askedAt": "2026-04-28T13:40:00Z"
             },
             "createdAt": "2026-04-28T12:00:00Z",
             "updatedAt": "2026-04-28T13:45:12Z"
@@ -47,11 +47,356 @@
             "hint": null,
             "sessionStatus": "running",
             "provenance": {
-              "promptVersion": "practice_session_assistant.v5",
+              "promptVersion": "practice.session.follow_up.v1",
               "rubricVersion": "not_applicable",
               "modelId": "model-profile:contract.default",
               "language": "zh-CN",
               "featureFlag": "follow_up_v3",
+              "dataSourceVersion": "practice_session.v9"
+            }
+          }
+        }
+      }
+    },
+    "follow-up": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientEventId": "01918fa0-0000-7000-8000-00000000e001",
+          "kind": "answer_submitted",
+          "occurredAt": "2026-04-28T13:46:12Z",
+          "payload": {
+            "turnId": "01918fa0-0000-7000-8000-000000006000",
+            "answerText": "我先把迁移风险按用户影响和工程成本拆分，再与每个团队确认切换窗口。"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-46-12-abcdef"
+        },
+        "body": {
+          "acknowledged": true,
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005000",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "running",
+            "language": "zh-CN",
+            "hintsEnabled": true,
+            "turnCount": 1,
+            "currentTurn": {
+              "id": "01918fa0-0000-7000-8000-000000006000",
+              "turnIndex": 1,
+              "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
+              "questionIntent": "behavioral.leadership.design_system",
+              "status": "follow_up_requested",
+              "askedAt": "2026-04-28T13:40:00Z"
+            },
+            "createdAt": "2026-04-28T12:00:00Z",
+            "updatedAt": "2026-04-28T13:46:12Z"
+          },
+          "assistantAction": {
+            "type": "ask_follow_up",
+            "turnId": "01918fa0-0000-7000-8000-000000006000",
+            "questionText": "你怎么判断哪些团队需要先迁移，哪些团队可以等待下一批？",
+            "hint": null,
+            "sessionStatus": "running",
+            "provenance": {
+              "promptVersion": "practice.session.follow_up.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:contract.default",
+              "language": "zh-CN",
+              "featureFlag": "follow_up_v3",
+              "dataSourceVersion": "practice_session.v9"
+            }
+          }
+        }
+      }
+    },
+    "hint-strict-conflict": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientEventId": "01918fa0-0000-7000-8000-00000000e002",
+          "kind": "hint_requested",
+          "occurredAt": "2026-04-28T13:47:12Z",
+          "payload": {
+            "turnId": "01918fa0-0000-7000-8000-000000006000"
+          }
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-47-12-abcdef"
+        },
+        "body": {
+          "error": {
+            "code": "PRACTICE_SESSION_CONFLICT",
+            "message": "Hints are disabled for strict practice mode.",
+            "requestId": "req_2026-04-28T13-47-12-abcdef",
+            "retryable": false,
+            "details": {
+              "policy": "hint_disabled_in_mode",
+              "mode": "strict"
+            }
+          }
+        }
+      }
+    },
+    "turn-skipped": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientEventId": "01918fa0-0000-7000-8000-00000000e003",
+          "kind": "turn_skipped",
+          "occurredAt": "2026-04-28T13:48:12Z",
+          "payload": {
+            "turnId": "01918fa0-0000-7000-8000-000000006000",
+            "reason": "candidate_requested_next"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-48-12-abcdef"
+        },
+        "body": {
+          "acknowledged": true,
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005000",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "running",
+            "language": "zh-CN",
+            "hintsEnabled": true,
+            "turnCount": 1,
+            "currentTurn": {
+              "id": "01918fa0-0000-7000-8000-000000006000",
+              "turnIndex": 1,
+              "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
+              "questionIntent": "behavioral.leadership.design_system",
+              "status": "skipped",
+              "askedAt": "2026-04-28T13:40:00Z"
+            },
+            "createdAt": "2026-04-28T12:00:00Z",
+            "updatedAt": "2026-04-28T13:48:12Z"
+          },
+          "assistantAction": {
+            "type": "ask_question",
+            "turnId": "01918fa0-0000-7000-8000-000000006001",
+            "questionText": "请描述一次你在范围变化后重新排优先级的经历。",
+            "hint": null,
+            "sessionStatus": "running",
+            "provenance": {
+              "promptVersion": "practice.session.first_question.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:contract.default",
+              "language": "zh-CN",
+              "featureFlag": "next_question_v1",
+              "dataSourceVersion": "practice_session.v9"
+            }
+          }
+        }
+      }
+    },
+    "pause-resume": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientEventId": "01918fa0-0000-7000-8000-00000000e004",
+          "kind": "session_resumed",
+          "occurredAt": "2026-04-28T13:49:12Z",
+          "payload": {
+            "previousStatus": "waiting_user_input"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-49-12-abcdef"
+        },
+        "body": {
+          "acknowledged": true,
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005000",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "running",
+            "language": "zh-CN",
+            "hintsEnabled": true,
+            "turnCount": 1,
+            "currentTurn": {
+              "id": "01918fa0-0000-7000-8000-000000006000",
+              "turnIndex": 1,
+              "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
+              "questionIntent": "behavioral.leadership.design_system",
+              "status": "asked",
+              "askedAt": "2026-04-28T13:40:00Z"
+            },
+            "createdAt": "2026-04-28T12:00:00Z",
+            "updatedAt": "2026-04-28T13:49:12Z"
+          },
+          "assistantAction": {
+            "type": "ask_question",
+            "turnId": "01918fa0-0000-7000-8000-000000006000",
+            "questionText": "我们继续刚才的问题：你如何协调 12 个团队的迁移节奏？",
+            "hint": null,
+            "sessionStatus": "running",
+            "provenance": {
+              "promptVersion": "practice.session.resume.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:contract.default",
+              "language": "zh-CN",
+              "featureFlag": "pause_resume_v1",
+              "dataSourceVersion": "practice_session.v9"
+            }
+          }
+        }
+      }
+    },
+    "replay": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientEventId": "01918fa0-0000-7000-8000-00000000e000",
+          "kind": "answer_submitted",
+          "occurredAt": "2026-04-28T13:45:12Z",
+          "payload": {
+            "turnId": "01918fa0-0000-7000-8000-000000006000",
+            "answerText": "在 Acme 我主导了三个并行的设计系统合并..."
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-replay"
+        },
+        "body": {
+          "acknowledged": true,
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005000",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "running",
+            "language": "zh-CN",
+            "hintsEnabled": true,
+            "turnCount": 1,
+            "currentTurn": {
+              "id": "01918fa0-0000-7000-8000-000000006000",
+              "turnIndex": 1,
+              "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
+              "questionIntent": "behavioral.leadership.design_system",
+              "status": "answered",
+              "askedAt": "2026-04-28T13:40:00Z"
+            },
+            "createdAt": "2026-04-28T12:00:00Z",
+            "updatedAt": "2026-04-28T13:45:12Z"
+          },
+          "assistantAction": {
+            "type": "session_wait",
+            "turnId": "01918fa0-0000-7000-8000-000000006000",
+            "questionText": null,
+            "hint": null,
+            "sessionStatus": "running",
+            "provenance": {
+              "promptVersion": "practice.session.replay.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:contract.default",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "practice_session.v9"
+            }
+          }
+        }
+      }
+    },
+    "mismatch": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientEventId": "01918fa0-0000-7000-8000-00000000e000",
+          "kind": "turn_skipped",
+          "occurredAt": "2026-04-28T13:50:12Z",
+          "payload": {
+            "turnId": "01918fa0-0000-7000-8000-000000006000"
+          }
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-50-12-abcdef"
+        },
+        "body": {
+          "error": {
+            "code": "PRACTICE_SESSION_CONFLICT",
+            "message": "clientEventId was already used with a different event payload.",
+            "requestId": "req_2026-04-28T13-50-12-abcdef",
+            "retryable": false,
+            "details": {
+              "policy": "client_event_id_mismatch"
+            }
+          }
+        }
+      }
+    },
+    "completed": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientEventId": "01918fa0-0000-7000-8000-00000000e005",
+          "kind": "answer_submitted",
+          "occurredAt": "2026-04-28T13:51:12Z",
+          "payload": {
+            "turnId": "01918fa0-0000-7000-8000-000000006002",
+            "answerText": "我会先确认验收标准，再用最小可逆方案推进。"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-51-12-abcdef"
+        },
+        "body": {
+          "acknowledged": true,
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005000",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "completed",
+            "language": "zh-CN",
+            "hintsEnabled": true,
+            "turnCount": 3,
+            "currentTurn": {
+              "id": "01918fa0-0000-7000-8000-000000006002",
+              "turnIndex": 3,
+              "questionText": "如果上线窗口突然缩短，你会如何调整迁移计划？",
+              "questionIntent": "behavioral.execution.tradeoff",
+              "status": "assessed",
+              "askedAt": "2026-04-28T13:49:00Z"
+            },
+            "createdAt": "2026-04-28T12:00:00Z",
+            "updatedAt": "2026-04-28T13:51:12Z"
+          },
+          "assistantAction": {
+            "type": "session_completed",
+            "turnId": "01918fa0-0000-7000-8000-000000006002",
+            "questionText": null,
+            "hint": null,
+            "sessionStatus": "completed",
+            "provenance": {
+              "promptVersion": "practice.session.completion.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:contract.default",
+              "language": "zh-CN",
+              "featureFlag": "completion_v1",
               "dataSourceVersion": "practice_session.v9"
             }
           }

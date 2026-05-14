@@ -8,6 +8,9 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-14](./2026-05-14-backend-practice-002-event-loop-replay-contracts-assessment.md) | Backend Practice 002 Event Loop Replay Contracts 交付复盘 | #assessment |
+| [2026-05-13](./2026-05-13-backend-practice-002-l2-remediation-assessment.md) | Backend Practice 002 L2 Remediation 交付复盘 | #assessment |
+| [2026-05-13](./2026-05-13-backend-practice-002-event-loop-and-completion-assessment.md) | Backend Practice 002 Event Loop And Completion 交付复盘 | #assessment |
 | [2026-05-13](./2026-05-13-backend-resume-asset-register-l2-assessment.md) | Backend Resume Asset Register L2 Remediation 交付复盘 | #assessment |
 | [2026-05-13](./2026-05-13-backend-resume-001-assessment.md) | Backend Resume 001 交付复盘 | #assessment |
 | [2026-05-13](./2026-05-13-frontend-resume-workshop-ui-design-list-parity-assessment.md) | Frontend Resume Workshop UI-Design List Parity 交付复盘 | #assessment |

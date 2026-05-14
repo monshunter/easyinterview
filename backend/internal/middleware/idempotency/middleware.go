@@ -23,6 +23,8 @@ const (
 	DefaultTTL   = 24 * time.Hour
 
 	defaultMaxRequestBodyBytes = 10 << 20
+	resourceTypeHeader         = "X-Idempotency-Resource-Type"
+	resourceIDHeader           = "X-Idempotency-Resource-ID"
 )
 
 var (
@@ -205,8 +207,12 @@ func (m *Middleware) Handler(domain, operation string, resolveUser UserIDResolve
 			Operation:      strings.TrimSpace(operation),
 			ResponseStatus: status,
 			ResponseBody:   buffer.body.Bytes(),
+			ResourceType:   strings.TrimSpace(buffer.header.Get(resourceTypeHeader)),
+			ResourceID:     strings.TrimSpace(buffer.header.Get(resourceIDHeader)),
 			Now:            m.now().UTC(),
 		}
+		buffer.header.Del(resourceTypeHeader)
+		buffer.header.Del(resourceIDHeader)
 		var completeErr error
 		if status >= 200 && status < 300 {
 			completeErr = m.store.MarkSucceeded(r.Context(), complete)
@@ -219,6 +225,14 @@ func (m *Middleware) Handler(domain, operation string, resolveUser UserIDResolve
 		}
 		buffer.flushTo(w)
 	})
+}
+
+func SetResponseResource(w http.ResponseWriter, resourceType, resourceID string) {
+	if w == nil {
+		return
+	}
+	w.Header().Set(resourceTypeHeader, strings.TrimSpace(resourceType))
+	w.Header().Set(resourceIDHeader, strings.TrimSpace(resourceID))
 }
 
 func readAndRestoreBody(r *http.Request, maxBytes int64) ([]byte, error) {

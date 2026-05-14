@@ -72,10 +72,10 @@ spec:
       - PRACTICE_SESSION_CONFLICT
       - PRACTICE_SESSION_NOT_FOUND
       - AI_PROVIDER_TIMEOUT
-      - E2E.P0.042
-      - E2E.P0.043
       - E2E.P0.044
       - E2E.P0.045
+      - E2E.P0.046
+      - E2E.P0.047
   targets:
     frontend:
       plan: ./plan.md
@@ -117,10 +117,10 @@ spec:
           - ui-design/src
           - openapi
           - openapi/fixtures/PracticeSessions
-          - test/scenarios/e2e/p0-042-practice-text-loop-assisted-happy-path
-          - test/scenarios/e2e/p0-043-practice-text-loop-strict-and-debrief-display
-          - test/scenarios/e2e/p0-044-practice-text-loop-failure-and-recovery
-          - test/scenarios/e2e/p0-045-practice-text-loop-complete-and-generating-handoff
+          - test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path
+          - test/scenarios/e2e/p0-045-practice-text-loop-strict-and-debrief-display
+          - test/scenarios/e2e/p0-046-practice-text-loop-failure-and-recovery
+          - test/scenarios/e2e/p0-047-practice-text-loop-complete-and-generating-handoff
         uiRoutes:
           - workspace
           - practice

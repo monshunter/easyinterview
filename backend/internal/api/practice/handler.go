@@ -21,6 +21,8 @@ type planService interface {
 	GetPracticePlan(ctx context.Context, userID, planID string) (domain.PlanRecord, error)
 	GetPracticeSession(ctx context.Context, userID, sessionID string) (domain.SessionRecord, error)
 	StartPracticeSession(ctx context.Context, in domain.StartSessionRequest) (domain.SessionRecord, error)
+	AppendSessionEvent(ctx context.Context, in domain.AppendSessionEventRequest) (domain.AppendSessionEventResult, error)
+	CompletePracticeSession(ctx context.Context, in domain.CompletePracticeSessionRequest) (domain.CompleteSessionResult, error)
 }
 
 type HandlerOptions struct {
@@ -275,6 +277,8 @@ type createPracticePlanSurface interface {
 	GetPracticePlan(w http.ResponseWriter, r *http.Request, planID string)
 	StartPracticeSession(w http.ResponseWriter, r *http.Request)
 	GetPracticeSession(w http.ResponseWriter, r *http.Request, sessionID string)
+	AppendSessionEvent(w http.ResponseWriter, r *http.Request, sessionID string)
+	CompletePracticeSession(w http.ResponseWriter, r *http.Request, sessionID string)
 }
 
 var _ createPracticePlanSurface = (*Handler)(nil)

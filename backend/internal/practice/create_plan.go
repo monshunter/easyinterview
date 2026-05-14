@@ -19,6 +19,7 @@ var (
 	ErrPlanNotFound             = stderrs.New("practice plan not found")
 	ErrSessionNotFound          = stderrs.New("practice session not found")
 	ErrSessionConflict          = stderrs.New("practice session conflict")
+	ErrClientEventMismatch      = stderrs.New("practice session client event mismatch")
 )
 
 type ServiceError struct {
@@ -38,6 +39,9 @@ type Store interface {
 	CreatePlan(ctx context.Context, in CreatePlanStoreInput) (PlanRecord, error)
 	GetPlan(ctx context.Context, userID, planID string) (PlanRecord, error)
 	GetSession(ctx context.Context, userID, sessionID string) (SessionRecord, error)
+	ReserveSessionEvent(ctx context.Context, in SessionEventReservationInput) (SessionEventReservation, error)
+	AppendSessionEvent(ctx context.Context, in AppendSessionEventStoreInput) (AppendSessionEventResult, error)
+	CompleteSession(ctx context.Context, in CompleteSessionStoreInput) (CompleteSessionResult, error)
 	ReserveSessionStart(ctx context.Context, in StartSessionReservationInput) (SessionReservation, error)
 	CommitSessionStart(ctx context.Context, in CommitSessionStartInput) (SessionRecord, error)
 	FailSessionStart(ctx context.Context, in FailSessionStartInput) error

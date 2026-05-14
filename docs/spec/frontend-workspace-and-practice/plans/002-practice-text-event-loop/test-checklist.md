@@ -24,4 +24,4 @@
 
 ## Phase 5: Pixel parity + Scenario + Regression + Negative grep
 
-- [ ] Phase 5 本计划定义的 `practice.spec.ts` pixel parity（desktop + mobile + warm/light、dark、customAccent 主题 + 5 状态截图基线）、scenario 4 目录（p0-042/043/044/045）+ INDEX 更新、workspace P0.018-021 + backend-practice P0.022-026 regression rerun、`legacyNegative.test.ts` + CI grep（voice imports / 旧 testid / 旧 route / 旧 enum / getFeedbackReport / createPracticeVoiceTurn / `Idempotency-Key.*appendSessionEvent` / raw text 泄漏）、`make docs-check` + `/sync-doc-index --fix-index` + `check-md-links` + 全量 Vitest + typecheck + build + `make build` 收口 gate 全部通过
+- [ ] Phase 5 本计划定义的 `practice.spec.ts` pixel parity（desktop + mobile + warm/light、dark、customAccent 主题 + 5 状态截图基线）、scenario 4 目录（p0-044/045/046/047）+ INDEX 更新、workspace P0.018-021 + backend-practice P0.022-026 regression rerun、`legacyNegative.test.ts` + CI grep（voice imports / 旧 testid / 旧 route / 旧 enum / getFeedbackReport / createPracticeVoiceTurn / `Idempotency-Key.*appendSessionEvent` / raw text 泄漏）、`make docs-check` + `/sync-doc-index --fix-index` + `check-md-links` + 全量 Vitest + typecheck + build + `make build` 收口 gate 全部通过

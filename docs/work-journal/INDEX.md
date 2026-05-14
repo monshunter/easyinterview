@@ -8,7 +8,13 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-14](2026-05-14.md) | `fix(backend-practice): reserve session events before AI` | #fix #test #docs |
 | [2026-05-14](2026-05-14.md) | `docs(frontend-workspace-and-practice): kickoff practice text event loop plan and align session status` | #docs |
+| [2026-05-14](2026-05-14.md) | `fix(backend-practice): harden event loop replay contracts` | #fix #test #docs |
+| [2026-05-13](2026-05-13.md) | `fix(backend-practice): remediate event loop L2 findings` | #fix #test #docs |
+| [2026-05-13](2026-05-13.md) | `feat(backend-practice): complete event loop and completion` | #feat #test #docs #fix |
+| [2026-05-13](2026-05-13.md) | `feat(backend-practice): add session event state machine` | #feat #test #docs |
+| [2026-05-13](2026-05-13.md) | `feat(backend-practice): complete event loop phase 0 preflight` | #feat #test #docs |
 | [2026-05-13](2026-05-13.md) | `fix(backend-resume): remediate asset registration L2 findings` | #fix #test #docs |
 | [2026-05-13](2026-05-13.md) | `docs(backend-practice): align event loop review gates` | #docs |
 | [2026-05-13](2026-05-13.md) | `feat(backend-resume): close resume baseline verification` | #feat #test #docs #fix |

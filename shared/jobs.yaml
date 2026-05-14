@@ -33,6 +33,7 @@ jobs:
     asynqTask: report.generate
     apiFacing: true
     triggerEvent: practice.session.completed
+    triggerEventSemantic: source_event_only
     ownerDomain: C6
     priority: critical
   - canonical: resume_tailor

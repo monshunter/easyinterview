@@ -5,7 +5,12 @@ import {
   ASYNQ_TASK_EMAIL_DISPATCH,
   ASYNQ_TASK_PRIVACY_DELETE,
   ASYNQ_TASK_TARGET_IMPORT,
+  isSourceEventOnly,
+  JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY,
+  JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
+  JOB_TRIGGER_EVENT_SEMANTICS,
   JOB_TYPE_EMAIL_DISPATCH,
+  JOB_TYPE_REPORT_GENERATE,
   JOB_TYPE_SOURCE_REFRESH,
   JOB_TYPE_TARGET_IMPORT,
   EMAIL_DISPATCH_REDACTED_FIELDS,
@@ -18,6 +23,14 @@ describe('generated job contract', () => {
     expect(ASYNQ_TASK_TARGET_IMPORT).toBe('target.import');
     expect(ASYNQ_TASK_PRIVACY_DELETE).toBe('privacy.delete');
     expect(ASYNQ_TASK_EMAIL_DISPATCH).toBe('email.dispatch');
+  });
+
+  it('exports trigger event semantics and source-event predicate', () => {
+    expect(JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY).toBe('source_event_only');
+    expect(JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB).toBe('trigger_creates_job');
+    expect(JOB_TRIGGER_EVENT_SEMANTICS[JOB_TYPE_REPORT_GENERATE]).toBe(JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY);
+    expect(isSourceEventOnly(JOB_TYPE_REPORT_GENERATE)).toBe(true);
+    expect(isSourceEventOnly(JOB_TYPE_TARGET_IMPORT)).toBe(false);
   });
 
   it('keeps internal-only jobs out of the API-facing subset', () => {

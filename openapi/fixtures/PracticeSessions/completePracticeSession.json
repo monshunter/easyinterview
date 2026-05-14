@@ -3,7 +3,9 @@
   "scenarios": {
     "default": {
       "request": {
-        "headers": {},
+        "headers": {
+          "Idempotency-Key": "idem-complete-practice-2026-04-28-default"
+        },
         "body": {
           "clientCompletedAt": "2026-04-28T13:45:12Z"
         }
@@ -24,6 +26,118 @@
             "errorCode": null,
             "createdAt": "2026-04-28T13:45:12Z",
             "updatedAt": "2026-04-28T13:45:12Z"
+          }
+        }
+      }
+    },
+    "replay": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-complete-practice-2026-04-28-default"
+        },
+        "body": {
+          "clientCompletedAt": "2026-04-28T13:45:12Z"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-replay"
+        },
+        "body": {
+          "reportId": "01918fa0-0000-7000-8000-000000007000",
+          "job": {
+            "id": "01918fa0-0000-7000-8000-00000000b200",
+            "jobType": "report_generate",
+            "status": "queued",
+            "resourceType": "feedback_report",
+            "resourceId": "01918fa0-0000-7000-8000-000000007000",
+            "errorCode": null,
+            "createdAt": "2026-04-28T13:45:12Z",
+            "updatedAt": "2026-04-28T13:45:12Z"
+          }
+        }
+      }
+    },
+    "mismatch": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-complete-practice-2026-04-28-default"
+        },
+        "body": {
+          "clientCompletedAt": "2026-04-28T13:52:12Z"
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-52-12-abcdef"
+        },
+        "body": {
+          "error": {
+            "code": "PRACTICE_SESSION_CONFLICT",
+            "message": "Idempotency-Key was already used with a different completion payload.",
+            "requestId": "req_2026-04-28T13-52-12-abcdef",
+            "retryable": false,
+            "details": {
+              "policy": "idempotency_payload_mismatch"
+            }
+          }
+        }
+      }
+    },
+    "session-already-completed": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-complete-practice-2026-04-28-second-key"
+        },
+        "body": {
+          "clientCompletedAt": "2026-04-28T13:55:12Z"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-55-12-abcdef"
+        },
+        "body": {
+          "reportId": "01918fa0-0000-7000-8000-000000007000",
+          "job": {
+            "id": "01918fa0-0000-7000-8000-00000000b200",
+            "jobType": "report_generate",
+            "status": "queued",
+            "resourceType": "feedback_report",
+            "resourceId": "01918fa0-0000-7000-8000-000000007000",
+            "errorCode": null,
+            "createdAt": "2026-04-28T13:45:12Z",
+            "updatedAt": "2026-04-28T13:45:12Z"
+          }
+        }
+      }
+    },
+    "cross-user-not-found": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-complete-practice-2026-04-28-cross-user"
+        },
+        "body": {
+          "clientCompletedAt": "2026-04-28T13:56:12Z"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-56-12-abcdef"
+        },
+        "body": {
+          "error": {
+            "code": "PRACTICE_SESSION_NOT_FOUND",
+            "message": "Practice session was not found.",
+            "requestId": "req_2026-04-28T13-56-12-abcdef",
+            "retryable": false,
+            "details": {
+              "visibility": "cross_user_hidden"
+            }
           }
         }
       }

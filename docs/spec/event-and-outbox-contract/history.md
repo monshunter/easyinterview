@@ -1,13 +1,14 @@
 # Event and Outbox Contract History
 
-> **版本**: 2.4
+> **版本**: 2.5
 > **状态**: active
-> **更新日期**: 2026-05-12
+> **更新日期**: 2026-05-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-13 | 2.5 | 授权 backend-practice/002 Phase 0 新增 `triggerEventSemantic` 字段与 generated `JobTriggerEventSemantic*` 常量 / `IsSourceEventOnly` 谓词；`report_generate` 标注为 `source_event_only`，明确 `practice.session.completed` 是 source event / analytics fact，runtime dispatcher 集成留给 future `backend-async-runner`。 | backend-practice/002-event-loop-and-completion Phase 0 |
 | 2026-05-12 | 2.4 | D-14 `ResumeTailorMode` 漂移修复落地：`eventLocalEnums.ResumeTailorMode` 从 `[inline, rewrite, mirror]` 改为 `[gap_review, bullet_suggestions]`；baseline manifest、JSON Schema refs 与 Go/TS generated events 同步；executable/generated/source truth 旧字面量零残留。 | event-and-outbox-contract/002-resume-tailor-mode-drift-fix |
 | 2026-05-11 | 2.3 | D-14 `ResumeTailorMode` 漂移修复声明阶段：`eventLocalEnums.ResumeTailorMode` 当前 `[inline, rewrite, mirror]`，与 B2 OpenAPI `RequestResumeTailorRequest.mode`（`gap_review / bullet_suggestions`）+ B4 `resume_tailor_runs.mode` 不同步；本次声明对齐为 `[gap_review, bullet_suggestions]`；具体 yaml 修订与 baseline manifest 同步由 002 plan 落地。 | event-and-outbox-contract/002-resume-tailor-mode-drift-fix（声明阶段，docs-only） |
 | 2026-05-09 | 2.2 | 对齐 backend-practice Phase 0：B3 generated event refs 中引用 B1 `PracticeMode` 的 surface 跟随二值化，`practice.session.started.mode` 继续只引用 B1 `PracticeMode`，不保留来源语义别名。 | backend-practice/001 Phase 0 |

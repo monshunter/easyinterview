@@ -43,6 +43,21 @@ func TestGeneratedJobMappings(t *testing.T) {
 	if AsynqTaskEmailDispatch != "email.dispatch" {
 		t.Fatalf("AsynqTaskEmailDispatch = %q", AsynqTaskEmailDispatch)
 	}
+	if JobTriggerEventSemanticSourceEventOnly != "source_event_only" {
+		t.Fatalf("JobTriggerEventSemanticSourceEventOnly = %q", JobTriggerEventSemanticSourceEventOnly)
+	}
+	if JobTriggerEventSemanticTriggerCreatesJob != "trigger_creates_job" {
+		t.Fatalf("JobTriggerEventSemanticTriggerCreatesJob = %q", JobTriggerEventSemanticTriggerCreatesJob)
+	}
+	if JobTriggerEventSemantics[JobTypeReportGenerate] != JobTriggerEventSemanticSourceEventOnly {
+		t.Fatalf("report_generate semantic = %q", JobTriggerEventSemantics[JobTypeReportGenerate])
+	}
+	if !IsSourceEventOnly(JobTypeReportGenerate) {
+		t.Fatalf("report_generate must be source_event_only")
+	}
+	if IsSourceEventOnly(JobTypeTargetImport) {
+		t.Fatalf("target_import must remain trigger_creates_job")
+	}
 	for _, internalOnly := range []JobType{JobTypeSourceRefresh, JobTypeEmailDispatch} {
 		if containsJobType(APIFacingJobTypes, internalOnly) {
 			t.Fatalf("%s must stay out of APIFacingJobTypes", internalOnly)

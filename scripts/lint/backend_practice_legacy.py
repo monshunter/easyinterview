@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Legacy-negative gate for backend-practice plan 001.
+"""Legacy-negative gates for backend-practice plans.
 
 The removed practice-mode literal must not remain in active code, specs,
 tests, scenario assets, generated artifacts, or contract files. Historical
@@ -46,6 +46,22 @@ PHASE3_SCAN_PREFIXES = (
 PHASE3_EXCLUDED_SUFFIXES = (
     ("scripts", "verify.sh"),
 )
+BACKEND_PRACTICE_002_BDD_PLAN = (
+    "docs",
+    "spec",
+    "backend-practice",
+    "plans",
+    "002-event-loop-and-completion",
+    "bdd-plan.md",
+)
+BACKEND_PRACTICE_002_HTTP_SCENARIOS = (
+    "backend",
+    "cmd",
+    "api",
+    "practice_http_scenario_test.go",
+)
+E2E_INDEX = ("test", "scenarios", "e2e", "INDEX.md")
+E2E_ID_RE = re.compile(r"E2E\.P0\.(\d{3})")
 EXCLUDED_PARTS = {
     ".git",
     ".test-output",
@@ -139,6 +155,69 @@ def scan_phase3_paths(paths: list[Path], repo_root: Path) -> list[str]:
     return problems
 
 
+def parse_e2e_index(index_path: Path) -> tuple[dict[str, str], list[str]]:
+    entries: dict[str, str] = {}
+    problems: list[str] = []
+    if not index_path.exists():
+        return entries, [f"{index_path}: missing e2e scenario index"]
+    for lineno, line in enumerate(index_path.read_text(encoding="utf-8").splitlines(), start=1):
+        match = E2E_ID_RE.search(line)
+        if not match:
+            continue
+        scenario_id = f"E2E.P0.{match.group(1)}"
+        if scenario_id in entries:
+            problems.append(f"{index_path}:{lineno}: duplicate scenario id {scenario_id}")
+            continue
+        entries[scenario_id] = line
+    return entries, problems
+
+
+def backend_practice_002_assigned_bdd_ids(bdd_plan_path: Path) -> tuple[list[str], list[str]]:
+    if not bdd_plan_path.exists():
+        return [], [f"{bdd_plan_path}: missing backend-practice 002 bdd-plan.md"]
+    assigned: list[str] = []
+    for line in bdd_plan_path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("- 编号分配:"):
+            assigned = [f"E2E.P0.{match}" for match in E2E_ID_RE.findall(line)]
+            break
+    if not assigned:
+        return [], [f"{bdd_plan_path}: missing backend-practice 002 BDD 编号分配 line"]
+    duplicates = sorted({scenario_id for scenario_id in assigned if assigned.count(scenario_id) > 1})
+    if duplicates:
+        return assigned, [f"{bdd_plan_path}: duplicate backend-practice 002 BDD ids {', '.join(duplicates)}"]
+    if len(assigned) != 6:
+        return assigned, [f"{bdd_plan_path}: expected 6 backend-practice 002 BDD ids, got {len(assigned)}"]
+    return assigned, []
+
+
+def scan_backend_practice_002_bdd_ids(repo_root: Path) -> list[str]:
+    problems: list[str] = []
+    assigned, assigned_problems = backend_practice_002_assigned_bdd_ids(repo_root.joinpath(*BACKEND_PRACTICE_002_BDD_PLAN))
+    problems.extend(assigned_problems)
+    index_entries, index_problems = parse_e2e_index(repo_root.joinpath(*E2E_INDEX))
+    problems.extend(index_problems)
+    for scenario_id in assigned:
+        index_line = index_entries.get(scenario_id)
+        if index_line is None:
+            continue
+        if "practice" not in index_line.lower():
+            problems.append(f"{repo_root.joinpath(*E2E_INDEX)}: backend-practice 002 id {scenario_id} collides with indexed scenario: {index_line}")
+
+    scenario_test_path = repo_root.joinpath(*BACKEND_PRACTICE_002_HTTP_SCENARIOS)
+    if not scenario_test_path.exists():
+        problems.append(f"{scenario_test_path}: missing backend-practice 002 HTTP scenario test file")
+        return problems
+    scenario_test = scenario_test_path.read_text(encoding="utf-8")
+    for scenario_id in assigned:
+        digits = scenario_id.rsplit(".", maxsplit=1)[1]
+        test_name_fragment = f"TestE2EP0{digits}"
+        if test_name_fragment not in scenario_test:
+            problems.append(f"{scenario_test_path}: missing Go HTTP scenario test for {scenario_id} ({test_name_fragment}*)")
+    if "TestE2EP00Practice" in scenario_test:
+        problems.append(f"{scenario_test_path}: malformed backend-practice E2E test name without numeric id")
+    return problems
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo-root", default=".")
@@ -150,6 +229,7 @@ def main(argv: list[str] | None = None) -> int:
     problems: list[str] = []
     if args.phase in {"phase0", "all"}:
         problems.extend(scan_paths(files, repo_root))
+        problems.extend(scan_backend_practice_002_bdd_ids(repo_root))
     if args.phase in {"phase3", "all"}:
         problems.extend(scan_phase3_paths(files, repo_root))
     if problems:

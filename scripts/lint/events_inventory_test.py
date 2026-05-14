@@ -83,6 +83,7 @@ EXPECTED_JOBS = {
         "asynqTask": "report.generate",
         "apiFacing": True,
         "triggerEvent": "practice.session.completed",
+        "triggerEventSemantic": "source_event_only",
         "ownerDomain": "C6",
         "priority": "critical",
     },
@@ -430,6 +431,13 @@ class EventsInventoryJobsTest(unittest.TestCase):
     def setUp(self) -> None:
         self.linter = load_linter()
 
+    def test_shared_jobs_marks_report_generate_as_source_event_only(self) -> None:
+        repo_root = SCRIPT.parents[2]
+        data = self.linter._load_yaml(repo_root / "shared/jobs.yaml")
+        report_generate = next(job for job in data["jobs"] if job["canonical"] == "report_generate")
+
+        self.assertEqual("source_event_only", report_generate.get("triggerEventSemantic"))
+
     def test_valid_jobs_contract_passes(self) -> None:
         self.assertEqual([], self.linter.validate_jobs_yaml(valid_jobs_data(), valid_events_data()))
 
@@ -467,6 +475,42 @@ class EventsInventoryJobsTest(unittest.TestCase):
         errs = self.linter.validate_jobs_yaml(data, valid_events_data())
 
         self.assertTrue(any("report_generate" in err and "triggerEvent" in err for err in errs), errs)
+
+    def test_rejects_unknown_trigger_event_semantic(self) -> None:
+        data = valid_jobs_data()
+        report_generate = next(job for job in data["jobs"] if job["canonical"] == "report_generate")
+        report_generate["triggerEventSemantic"] = "event_dispatches_job"
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("report_generate" in err and "triggerEventSemantic" in err for err in errs), errs)
+
+    def test_requires_report_generate_source_event_only_semantic(self) -> None:
+        data = valid_jobs_data()
+        report_generate = next(job for job in data["jobs"] if job["canonical"] == "report_generate")
+        report_generate.pop("triggerEventSemantic")
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("report_generate" in err and "source_event_only" in err for err in errs), errs)
+
+    def test_source_event_only_requires_api_facing_job(self) -> None:
+        data = valid_jobs_data()
+        source_refresh = next(job for job in data["jobs"] if job["canonical"] == "source_refresh")
+        source_refresh["triggerEventSemantic"] = "source_event_only"
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("source_refresh" in err and "apiFacing" in err for err in errs), errs)
+
+    def test_source_event_only_requires_real_event_trigger(self) -> None:
+        data = valid_jobs_data()
+        resume_parse = next(job for job in data["jobs"] if job["canonical"] == "resume_parse")
+        resume_parse["triggerEventSemantic"] = "source_event_only"
+
+        errs = self.linter.validate_jobs_yaml(data, valid_events_data())
+
+        self.assertTrue(any("resume_parse" in err and "known eventName" in err for err in errs), errs)
 
     def test_requires_fixed_api_facing_subset(self) -> None:
         data = valid_jobs_data()

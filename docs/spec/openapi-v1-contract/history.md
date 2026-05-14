@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.18
+> **版本**: 1.19
 > **状态**: active
-> **更新日期**: 2026-05-12
+> **更新日期**: 2026-05-13
 
 ## 1 修订规则
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-13 | 1.19 | 授权 backend-practice/002 Phase 0 `PracticeTurn.status` pre-launch baseline rebase：wire enum 从 3 值扩为 `asked` / `answered` / `follow_up_requested` / `assessed` / `skipped`，同步 `openapi/openapi.yaml`、baseline 与 Go/TS generated artifacts。 | backend-practice/002 Phase 0 |
 | 2026-05-12 | 1.18 | L2 remediation：`branchResumeVersion` 的 `202` response 提升为命名 schema `BranchResumeVersionAccepted`，generated TS client 返回 `ResumeVersion | BranchResumeVersionAccepted`；显式 P0 `501` response（privacy / resume export）走 typed parse path，未声明 4xx/5xx 仍 throw。 | openapi-v1-contract/004-resume-additive-coverage Phase 6 |
 | 2026-05-12 | 1.17 | D-18 Resume Workshop additive 升级落地阶段：`openapi/openapi.yaml` / generated Go+TS / fixtures / inventory lint 已扩到 13 tag / 55 endpoint；§3.1.1 回填 #47-55，`listResumes` / `listResumeVersions` / `getResumeVersion` / `branchResumeVersion` / `updateResumeVersion` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` / `archiveResumeAsset` / `exportResumeVersion` 已冻结；`exportResumeVersion` P0 501 例外与 `RESUME_EXPORT_NOT_AVAILABLE` fixture 已纳入 gate。 | openapi-v1-contract/004-resume-additive-coverage |
 | 2026-05-11 | 1.16 | D-18 Resume Workshop additive 升级声明阶段：v1.0.0 freeze 拟扩到 13 tag / 55 endpoint（保留 `Resumes` tag 扩容），新增 9 operationId（`listResumes` / `listResumeVersions` / `getResumeVersion` / `branchResumeVersion` / `updateResumeVersion` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` / `archiveResumeAsset` / `exportResumeVersion`）+ 6 schema + `RegisterResumeRequest` additive 扩展（含 `guidedAnswers` JSON object）+ 6 IK_REQUIRED + `ResumeVersion` 入 `AI_PROVENANCE_SCHEMAS` + `RESUME_EXPORT_NOT_AVAILABLE` 错误码 + 3 新 enum 通过 `$ref` 引用 B1；术语映射决策 UI `ResumeSource` ≡ OpenAPI `ResumeAsset`；§3.1.1 数字仍保持 46，待 plan 004 落地 yaml + inventory + fixtures 后再回填 §3.1.1 完整行与 §2.1 endpoint 总数。 | openapi-v1-contract/004-resume-additive-coverage（声明阶段，docs-only） |

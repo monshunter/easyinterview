@@ -90,6 +90,26 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertIn("PRACTICE_PLAN_NOT_FOUND", schemas["ApiErrorCode"]["enum"])
         self.assertIn("PRACTICE_SESSION_NOT_FOUND", schemas["ApiErrorCode"]["enum"])
 
+    def test_practice_turn_status_contract_exposes_runtime_states(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        schemas = data["components"]["schemas"]
+
+        self.assertEqual(
+            ["asked", "answered", "follow_up_requested", "assessed", "skipped"],
+            schemas["PracticeTurn"]["properties"]["status"]["enum"],
+        )
+
+    def test_practice_turn_status_generated_artifacts_are_in_sync(self) -> None:
+        generated = yaml.safe_load(Path("backend/internal/api/generated/openapi.yaml").read_text(encoding="utf-8"))
+        generated_status = generated["components"]["schemas"]["PracticeTurn"]["properties"]["status"]["enum"]
+        ts_types = Path("frontend/src/api/generated/types.ts").read_text(encoding="utf-8")
+
+        self.assertEqual(["asked", "answered", "follow_up_requested", "assessed", "skipped"], generated_status)
+        self.assertIn(
+            'status: "asked" | "answered" | "follow_up_requested" | "assessed" | "skipped";',
+            ts_types,
+        )
+
     def test_resume_workshop_contract_uses_b1_vocabulary(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         schemas = data["components"]["schemas"]

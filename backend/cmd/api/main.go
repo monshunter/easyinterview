@@ -287,6 +287,16 @@ func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient fea
 		mux.Handle("GET /api/v1/practice/sessions/{sessionId}", auth.SessionMiddleware(authService, "getPracticeSession", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			practice.Handler.GetPracticeSession(w, r, r.PathValue("sessionId"))
 		})))
+		completePracticeSession := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			practice.Handler.CompletePracticeSession(w, r, r.PathValue("sessionId"))
+		})
+		if practice.Idempotency != nil {
+			completePracticeSession = practice.Idempotency.Handler("practice", "completePracticeSession", requestUserFromContext, completePracticeSession).ServeHTTP
+		}
+		mux.Handle("POST /api/v1/practice/sessions/{sessionId}/complete", auth.SessionMiddleware(authService, "completePracticeSession", completePracticeSession))
+		mux.Handle("POST /api/v1/practice/sessions/{sessionId}/events", auth.SessionMiddleware(authService, "appendSessionEvent", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			practice.Handler.AppendSessionEvent(w, r, r.PathValue("sessionId"))
+		})))
 	}
 	return mux
 }

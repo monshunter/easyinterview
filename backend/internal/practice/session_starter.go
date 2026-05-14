@@ -93,6 +93,7 @@ type TurnRecord struct {
 	QuestionText   string
 	QuestionIntent string
 	Status         string
+	FollowUpCount  int
 	AskedAt        time.Time
 }
 
