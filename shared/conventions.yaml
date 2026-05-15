@@ -68,6 +68,9 @@ errors:
   - code: PRACTICE_SESSION_NOT_FOUND
     message: "practice session not found"
     retryable: false
+  - code: REPORT_NOT_FOUND
+    message: "feedback report not found or not accessible"
+    retryable: false
   - code: REPORT_NOT_READY
     message: "report is not ready yet"
     retryable: true

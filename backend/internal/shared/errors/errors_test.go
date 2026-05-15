@@ -148,6 +148,22 @@ func TestResumeExportErrorCode_Documented(t *testing.T) {
 	}
 }
 
+func TestReportNotFoundErrorCode_Documented(t *testing.T) {
+	meta, ok := CodeRegistry[CodeReportNotFound]
+	if !ok {
+		t.Fatalf("CodeRegistry missing %s", CodeReportNotFound)
+	}
+	if meta.Retryable {
+		t.Fatalf("%s retryable = true, want false", CodeReportNotFound)
+	}
+	if meta.Message != "feedback report not found or not accessible" {
+		t.Fatalf("%s message = %q", CodeReportNotFound, meta.Message)
+	}
+	if !contains(AllCodes, CodeReportNotFound) {
+		t.Fatalf("AllCodes missing %s", CodeReportNotFound)
+	}
+}
+
 func contains[T comparable](values []T, want T) bool {
 	for _, value := range values {
 		if value == want {

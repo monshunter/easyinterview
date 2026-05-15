@@ -4,7 +4,7 @@ language: "multi"
 dimensions:
   - name: "report_evidence"
     weight: 0.35
-    description: "Conclusions are anchored in verbatim transcript quotes or recorded artifacts."
+    description: "Conclusions are anchored in sanitized turn summaries or recorded artifacts."
     score_levels:
       - label: "weak"
         threshold: 0.0

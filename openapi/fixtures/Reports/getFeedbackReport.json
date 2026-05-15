@@ -105,6 +105,30 @@
         }
       }
     },
+    "report-failed": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-15T10-20-00-report-failed"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-0000000070f0",
+          "sessionId": "01918fa0-0000-7000-8000-0000000050f0",
+          "targetJobId": "01918fa0-0000-7000-8000-0000000020f0",
+          "status": "failed",
+          "errorCode": "AI_PROVIDER_TIMEOUT",
+          "preparednessLevel": null,
+          "highlights": [],
+          "issues": [],
+          "nextActions": [],
+          "questionAssessments": [],
+          "retryFocusTurnIds": [],
+          "provenance": null,
+          "createdAt": "2026-05-15T10:00:00Z",
+          "updatedAt": "2026-05-15T10:20:00Z"
+        }
+      }
+    },
     "prototype-baseline": {
       "response": {
         "status": 200,

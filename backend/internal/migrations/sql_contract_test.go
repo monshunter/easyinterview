@@ -122,6 +122,35 @@ func TestPracticeIdempotencyMigrationDownDoesNotDropBaselineOwnedTable(t *testin
 	}
 }
 
+func TestBaselineMigrationAcceptsReportAssessmentTaskType(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
+
+	if !strings.Contains(up, "task_type in ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'report_assessment', 'resume_tailor', 'debrief_generate', 'hint_generate')") {
+		t.Fatalf("ai_task_runs.task_type CHECK must include report_assessment next to report_generate")
+	}
+	if strings.Contains(up, "'report_assess'") {
+		t.Fatalf("ai_task_runs.task_type CHECK must not contain retired report_assess alias")
+	}
+}
+
+func TestFeedbackReportsContainsProvenancePersistenceColumns(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
+	block := tableBlock(t, up, "feedback_reports")
+
+	for _, required := range []string{
+		"language text not null default 'en'",
+		"feature_flag text not null default 'none'",
+		"data_source_version text not null default 'not_applicable'",
+		"retry_focus_turn_ids jsonb not null default '[]'::jsonb",
+	} {
+		if !strings.Contains(block, required) {
+			t.Fatalf("feedback_reports missing provenance persistence column %q", required)
+		}
+	}
+}
+
 func TestResumeVersionsAdditiveMigrationContract(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000005_resume_versions.up.sql")))
@@ -213,4 +242,19 @@ func readAllUpMigrations(t *testing.T, dir string) string {
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+func tableBlock(t *testing.T, sql, table string) string {
+	t.Helper()
+	startMarker := "create table " + table + " ("
+	start := strings.Index(sql, startMarker)
+	if start == -1 {
+		t.Fatalf("missing create table %s", table)
+	}
+	rest := sql[start:]
+	end := strings.Index(rest, ");")
+	if end == -1 {
+		t.Fatalf("missing end of create table %s", table)
+	}
+	return rest[:end]
 }

@@ -15,6 +15,7 @@ const (
 	CodePracticeSessionConflict       = "PRACTICE_SESSION_CONFLICT"
 	CodePracticePlanNotFound          = "PRACTICE_PLAN_NOT_FOUND"
 	CodePracticeSessionNotFound       = "PRACTICE_SESSION_NOT_FOUND"
+	CodeReportNotFound                = "REPORT_NOT_FOUND"
 	CodeReportNotReady                = "REPORT_NOT_READY"
 	CodeResumeExportNotAvailable      = "RESUME_EXPORT_NOT_AVAILABLE"
 	CodeValidationFailed              = "VALIDATION_FAILED"
@@ -38,6 +39,7 @@ var AllCodes = []string{
 	CodePracticeSessionConflict,
 	CodePracticePlanNotFound,
 	CodePracticeSessionNotFound,
+	CodeReportNotFound,
 	CodeReportNotReady,
 	CodeResumeExportNotAvailable,
 	CodeValidationFailed,
@@ -67,6 +69,7 @@ var CodeRegistry = map[string]CodeMeta{
 	CodePracticeSessionConflict:       {Message: "practice session is in conflicting state", Retryable: false},
 	CodePracticePlanNotFound:          {Message: "practice plan not found", Retryable: false},
 	CodePracticeSessionNotFound:       {Message: "practice session not found", Retryable: false},
+	CodeReportNotFound:                {Message: "feedback report not found or not accessible", Retryable: false},
 	CodeReportNotReady:                {Message: "report is not ready yet", Retryable: true},
 	CodeResumeExportNotAvailable:      {Message: "resume version export is not available in P0", Retryable: false},
 	CodeValidationFailed:              {Message: "request validation failed", Retryable: false},
