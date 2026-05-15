@@ -167,6 +167,7 @@ For each in-scope phase:
 11. For completed feature phases, verify BDD evidence exists: `bdd-plan` / `bdd-checklist` references, completed scenario asset/execution items, a passed `BDD-Gate:` verification note, and scenario coverage for the primary journey plus the highest-risk alternate or failure/recovery journey per deployable phase.
     - Treat `completed` plan/checklist/test/BDD documents that still contain unchecked BDD items, `partial`/`pending`/`next pass` comments, or "asset readiness" language as blocking evidence drift, not as PASS.
     - Read scenario `trigger.sh` / `verify.sh` scripts directly. Scenario directory, README, or INDEX presence does not prove coverage unless the trigger executes the dedicated tests and the verifier asserts the relevant runtime/negative conditions.
+    - Read the dedicated test bodies named by BDD scenarios and map every material BDD checklist assertion to concrete assertions in code. A focused `go test -run '^ExactScenario$'` wrapper only proves the named test executed; it does not prove that DB side effects, replay privacy, no-op absence, task-run metadata, or negative paths listed in `bdd-checklist.md` were asserted.
     - In `--fix` mode, first add the missing executable test or script assertion, then update the original checklist evidence and lifecycle state only after the gate passes.
 
 Coverage rows to verify:

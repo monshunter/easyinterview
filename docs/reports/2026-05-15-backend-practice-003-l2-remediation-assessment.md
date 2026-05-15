@@ -1,0 +1,56 @@
+# Backend Practice 003 L2 Remediation 交付复盘报告
+
+> **日期**: 2026-05-15
+> **审查人**: Codex
+
+## 1 复盘范围与成功证据
+
+- 范围：`backend-practice/003-mode-policies-and-provenance` L2 code review remediation，聚焦 P0.048-P0.051 BDD evidence drift、hint replay 隐私红线、A3 callErr task-run metadata。
+- 成功证据：
+  - `cd backend && go test ./cmd/api -run 'TestE2EP0048|TestE2EP0049|TestE2EP0050|TestE2EP0051' -count=1`
+  - `cd backend && go test ./internal/store/practice -run 'TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess|Test.*AppendSessionEvent' -count=1`
+  - `cd backend && go test ./internal/ai/aiclient/observability -count=1`
+  - `cd backend && go test ./internal/practice -run 'TestApplyHintAI|TestHandleHintRequested|TestServiceAppliesHintAI|TestServiceSkipsHintAI' -count=1`
+  - P0.048 / P0.049 / P0.050 / P0.051 scenario `setup → trigger → verify → cleanup` 全 PASS。
+- 关联 Bug：[BUG-0058](../bugs/BUG-0058.md)。
+
+## 2 会话中的主要阻点/痛点
+
+- BDD checklist 的完成状态与 executable assertions 不一致。
+  - **证据**：P0.048-P0.051 文档声明 DB hint_text、strict no-pending、5 action provenance、4 degrade paths；审查前测试只覆盖主干 response。
+  - **影响**：completed plan 隐藏隐私与观测 drift，直到 L2 反向补断言才暴露。
+- replay payload 隐私边界没有单独建模。
+  - **证据**：P0.048 补强后首次失败，`practice_session_events.payload` 中保存 `AssistantAction.Hint` 明文。
+  - **影响**：违反 backend-practice D-11 / D-36 / BDD P0.048 隐私红线，且会污染后续回放与排障数据面。
+- A3 decorator 对 callErr metadata 的 fallback 不完整。
+  - **证据**：P0.051 注入 shared `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_TIMEOUT` 后，failed `hint_generate` row 初始缺少 `error_code` 与 invalid validation status。
+  - **影响**：业务层能 degrade，但运维 typed columns 不能准确反映 B1 错误码。
+
+## 3 根因归类
+
+- BDD evidence drift。
+  - **类别**：spec/plan
+  - 003 checklist 把 scenario 名称和 wrapper 执行当成完整证明，没有要求每条 BDD assertion 映射到代码断言。
+- Replay privacy model gap。
+  - **类别**：spec/plan
+  - plan 强调 `practice_session_events.payload` 不含 hint 明文，但实现没有区分 replay payload 与业务持久化字段。
+- Observability fallback gap。
+  - **类别**：no repo change needed
+  - 修复已在 A3 decorator 中完成；后续只需保持 callErr metadata regression。
+
+## 4 对流程资产的改进建议
+
+- 在 `plan-code-review` 的 Deep Evidence 检查中，抽样读取 BDD test body，而不是只读取 scenario wrapper。
+  - **落点**：skill
+  - **优先级**：high
+- backend-practice 后续 plan 的 BDD checklist 对隐私红线使用“payload 字段 + 明文值”双轨断言。
+  - **落点**：spec-plan
+  - **优先级**：high
+- A3 observability 的 future plan 增加一条 generic callErr metadata fallback regression，覆盖 `Complete` / `Transcribe` / `Synthesize`。
+  - **落点**：spec-plan
+  - **优先级**：medium
+
+## 5 建议优先级与后续动作
+
+- 最高优先级：在下一次 backend-practice 或 AI-observability L2 review 中，把 BDD checklist 的每条 assertion 逐项映射到 test body，尤其是隐私、replay、typed columns 和 negative paths。
+- 中优先级：把 `show_hint` replay payload 脱敏 + hint_text 重建模式作为 backend-practice 后续 plan 的显式模式，避免未来 report / debrief 等派生文本重复踩同一类问题。

@@ -291,6 +291,13 @@ where session_id = $1
 	if storedFingerprint != fingerprint {
 		return domain.AppendSessionEventResult{}, nil, true, pending, domain.ErrClientEventMismatch
 	}
+	if !pending && result.AssistantAction.Type == "show_hint" && strings.TrimSpace(result.AssistantAction.Hint) == "" {
+		hint, err := selectTurnHintText(ctx, tx, sessionID, result.AssistantAction.TurnID)
+		if err != nil {
+			return domain.AppendSessionEventResult{}, nil, false, false, err
+		}
+		result.AssistantAction.Hint = hint
+	}
 	return result, resultErr, true, pending, nil
 }
 
@@ -401,6 +408,31 @@ where session_id = $3
 		return fmt.Errorf("update practice turn hint after event: %w", err)
 	}
 	return nil
+}
+
+func selectTurnHintText(ctx context.Context, tx *sql.Tx, sessionID, turnID string) (string, error) {
+	if strings.TrimSpace(turnID) == "" {
+		return "", nil
+	}
+	var hint sql.NullString
+	err := tx.QueryRowContext(ctx, `
+select hint_text
+from practice_turns
+where session_id = $1
+  and id = $2`,
+		sessionID,
+		turnID,
+	).Scan(&hint)
+	if stderrs.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("select practice turn hint replay: %w", err)
+	}
+	if !hint.Valid {
+		return "", nil
+	}
+	return hint.String, nil
 }
 
 func insertNextTurn(ctx context.Context, tx *sql.Tx, turn *domain.TurnRecord, sessionID string, persona sharedtypes.InterviewerRole) error {
@@ -555,7 +587,7 @@ type appendEventPayload struct {
 	RequestPayload     map[string]any           `json:"requestPayload"`
 	Pending            bool                     `json:"pending,omitempty"`
 	Result             appendEventResultPayload `json:"result"`
-	Error              *appendEventErrorPayload  `json:"error,omitempty"`
+	Error              *appendEventErrorPayload `json:"error,omitempty"`
 }
 
 type appendEventErrorPayload struct {
@@ -694,11 +726,15 @@ func appendEventSessionFromDomain(session domain.SessionRecord) appendEventSessi
 }
 
 func appendEventAssistantActionFromDomain(action domain.AssistantActionRecord) appendEventAssistantAction {
+	hint := action.Hint
+	if action.Type == "show_hint" {
+		hint = ""
+	}
 	return appendEventAssistantAction{
 		Type:          action.Type,
 		TurnID:        action.TurnID,
 		QuestionText:  action.QuestionText,
-		Hint:          action.Hint,
+		Hint:          hint,
 		SessionStatus: action.SessionStatus,
 		Provenance:    action.Provenance,
 	}

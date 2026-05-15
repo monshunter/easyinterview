@@ -129,6 +129,7 @@ func (w *Wrap) Complete(ctx context.Context, profileName string, payload aiclien
 			meta.ErrorCode = sharederrors.CodeAiOutputInvalid
 		}
 	}
+	meta = enrichErrorMeta(meta, err)
 
 	recordErr := w.recordCompleteCall(ctx, profileName, payload, resp.Content, meta, start, completed, err)
 	return resp, meta, joinRecordError(err, recordErr)
@@ -143,6 +144,7 @@ func (w *Wrap) Transcribe(ctx context.Context, profileName string, input aiclien
 	if meta.LatencyMs == 0 {
 		meta.LatencyMs = latencyMs
 	}
+	meta = enrichErrorMeta(meta, err)
 	recordErr := w.recordTranscribeCall(ctx, profileName, input, resp, meta, start, completed, err)
 	return resp, meta, joinRecordError(err, recordErr)
 }
@@ -182,8 +184,21 @@ func (w *Wrap) Synthesize(ctx context.Context, profileName string, input aiclien
 	if meta.LatencyMs == 0 {
 		meta.LatencyMs = latencyMs
 	}
+	meta = enrichErrorMeta(meta, err)
 	recordErr := w.recordSynthesizeCall(ctx, profileName, input, resp, meta, start, completed, err)
 	return resp, meta, joinRecordError(err, recordErr)
+}
+
+func enrichErrorMeta(meta aiclient.AICallMeta, err error) aiclient.AICallMeta {
+	if err == nil || meta.ErrorCode != "" {
+		return meta
+	}
+	var apiErr *sharederrors.APIError
+	if errors.As(err, &apiErr) && apiErr != nil {
+		meta.ErrorCode = apiErr.Code
+		meta.ValidationStatus = aiclient.ValidationStatusInvalid
+	}
+	return meta
 }
 
 func (w *Wrap) recordCompleteCall(ctx context.Context, profileName string, payload aiclient.CompletePayload, responseContent string, meta aiclient.AICallMeta, start, completed time.Time, err error) error {

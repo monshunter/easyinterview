@@ -16,6 +16,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0058](./BUG-0058.md) | backend-practice hint replay leaked hint text and BDD gates under-asserted evidence | high | resolved | 2026-05-15 | `fix(backend-practice): remediate hint provenance L2 findings` |
 | [BUG-0057](./BUG-0057.md) | frontend practice event loop L2 review exposed recovery and parity gate drift | high | resolved | 2026-05-14 | `fix(frontend-practice): remediate practice event loop L2 findings` |
 | [BUG-0056](./BUG-0056.md) | backend-practice event replay allowed terminal duplicates and duplicate AI reservations | high | resolved | 2026-05-14 | `fix(backend-practice): reserve session events before AI` |
 | [BUG-0055](./BUG-0055.md) | backend-practice event loop trusted client follow-up state | high | resolved | 2026-05-14 | `fix(backend-practice): harden event loop replay contracts` |

@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-15](./2026-05-15-backend-practice-003-l2-remediation-assessment.md) | Backend Practice 003 L2 Remediation 交付复盘 | #assessment |
 | [2026-05-14](./2026-05-14-backend-practice-003-mode-policies-and-provenance-assessment.md) | Backend Practice 003 Mode Policies And Provenance 交付复盘 | #assessment |
 | [2026-05-14](./2026-05-14-frontend-practice-002-l2-remediation-assessment.md) | Frontend Practice 002 L2 Remediation 交付复盘 | #assessment |
 | [2026-05-14](./2026-05-14-backend-practice-002-event-loop-replay-contracts-assessment.md) | Backend Practice 002 Event Loop Replay Contracts 交付复盘 | #assessment |
