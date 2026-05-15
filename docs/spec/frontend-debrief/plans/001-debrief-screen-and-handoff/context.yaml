@@ -1,0 +1,139 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: frontend-debrief
+  name: 001-debrief-screen-and-handoff
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: frontend
+  discovery:
+    aliases:
+      - frontend-debrief
+      - frontend-debrief/001
+      - 001-debrief-screen-and-handoff
+      - debrief-screen
+      - debrief-handoff
+    keywords:
+      - debrief
+      - DebriefScreen
+      - DebriefFullScreen
+      - DebriefContextStrip
+      - DebriefContextPickerModal
+      - GuidedDebriefRecord
+      - VoiceDebriefRecord
+      - DebriefReplayPlan
+      - debrief-screen
+      - debrief_full
+      - debrief.created
+      - debrief.completed
+      - createDebrief
+      - getDebrief
+      - suggestDebriefQuestions
+      - getJob
+      - listTargetJobs
+      - listPracticeSessions
+      - listResumeVersions
+      - DebriefStatus
+      - DebriefRoundType
+      - DebriefQuestionSource
+      - DebriefWithJob
+      - DebriefQuestionInput
+      - DebriefQuestion
+      - DebriefRiskItem
+      - SuggestedDebriefQuestion
+      - DebriefFailureState
+      - DebriefMissingContextState
+      - DebriefTimeoutState
+      - useSuggestDebriefQuestions
+      - useSubmitDebrief
+      - useDebriefPolling
+      - SET_DEBRIEF_CONTEXT
+      - debrief context picker
+      - voice ui shell
+      - voice not implemented
+      - exponential backoff polling
+      - source parity
+      - pixel parity
+      - debrief.*
+      - debrief.suggestions
+      - debrief.analysis
+      - debrief.interview
+      - debrief-stepper
+      - debrief-mode-toggle
+      - debrief-picker-modal
+      - debrief-suggested-question
+      - debrief-entry-card
+      - debrief-submit-btn
+      - debrief-analysis-risk-item
+      - debrief-start-interview-btn
+      - E2E.P0.065
+      - E2E.P0.066
+      - E2E.P0.067
+      - E2E.P0.068
+      - E2E.P0.069
+  targets:
+    frontend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      testPlan: ./test-plan.md
+      testChecklist: ./test-checklist.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../backend-debrief/spec.md
+        - ../../../backend-debrief/plans/001-debrief-record-and-analysis/plan.md
+        - ../../../backend-practice/spec.md
+        - ../../../frontend-shell/spec.md
+        - ../../../frontend-workspace-and-practice/spec.md
+        - ../../../frontend-report-dashboard/spec.md
+        - ../../../prompt-rubric-registry/spec.md
+        - ../../../ai-provider-and-model-routing/spec.md
+        - ../../../openapi-v1-contract/spec.md
+        - ../../../mock-contract-suite/spec.md
+        - ../../../shared-conventions-codified/spec.md
+        - ../../../practice-voice-mvp/spec.md
+        - ../../../../ui-design/review-module.md
+        - ../../../../ui-design/module-map.md
+        - ../../../../ui-design/ui-architecture.md
+        - ../../../../ui-design/user-flow.md
+        - ../../../../development.md
+      discovery:
+        packages:
+          - frontend/src/app/screens/debrief
+          - frontend/src/app/screens
+          - frontend/src/app/routes.ts
+          - frontend/src/app/App.tsx
+          - frontend/src/api/generated
+          - frontend/src/api/mockTransport.ts
+          - frontend/src/app/runtime
+          - frontend/src/app/auth
+          - frontend/src/app/i18n/locales
+          - frontend/src/app/theme
+          - frontend/src/app/interview-context
+          - frontend/tests/pixel-parity
+          - openapi/fixtures/Debriefs
+          - openapi/fixtures/Jobs
+          - openapi/fixtures/TargetJobs
+          - openapi/fixtures/Resumes
+          - openapi/fixtures/PracticeSessions
+          - scripts/lint
+          - test/scenarios/e2e
+        uiRoutes:
+          - debrief
+          - debrief_full
+        apiNames:
+          - createDebrief
+          - getDebrief
+          - suggestDebriefQuestions
+          - getJob
+          - listTargetJobs
+          - listResumeVersions
+          - listPracticeSessions
+          - getTargetJob
+          - getResumeVersion
+          - getPracticeSession
