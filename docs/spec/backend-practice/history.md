@@ -1,13 +1,14 @@
 # Backend Practice History
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-05-14
+> **更新日期**: 2026-05-15
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-15 | 1.9 | L2 follow-up：补充 C-26 的 `show_hint` replay 不变量，要求 `appendSessionEvent` 同 `clientEventId` 重试必须返回原事件 response snapshot，不得从后续可变的 `practice_turns.hint_text` 重建；对应 B4 v1.18 在 `practice_session_events.replay_payload` 中承载内部 replay snapshot，同时保持 `payload` 隐私红线。 | [003-mode-policies-and-provenance](./plans/003-mode-policies-and-provenance/plan.md) |
 | 2026-05-14 | 1.8 | 授权 backend-practice/003 Phase 0 narrowing：把 §6 C-17 / §3.1 D-19 / §4.3 / §2.1 失败语义文字按 "session-survival AI vs 辅助 AI" 拆分，明确 hint / lightweight_observe AI 失败按 D-36 graceful degrade（session 保持 running，不写 failure_code，wire 返回 200 + session_wait，运维通过 ai_task_runs + structured log 观测）；§3.1 新增 D-36（hint AI graceful degrade narrowing）/ D-38（hint turn-lifecycle 边界：不递增 turn_count / 不发 practice.turn.completed outbox / 不写 audit / 不改 turn.status）锁定行；§7 row 3 描述同步追加 D-36 / D-37 / D-38 引用并把 plan 路径链接化。D-37（B4 `ai_task_runs.task_type` CHECK 扩值 `hint_generate` + writers.go enum）由 003 Phase 0 同步落实在 db-migrations-baseline 编码真理源与 history.md 中。 | [003-mode-policies-and-provenance](./plans/003-mode-policies-and-provenance/plan.md) |
 | 2026-05-13 | 1.7 | 002 实施收口：落地 appendSessionEvent event-loop、completePracticeSession queued report/job handoff、practice.turn.completed / practice.session.completed outbox、clientEventId 与 Idempotency-Key 双轨幂等、D-32 source-event-only forward-binding、D-33 turn status 5 值 wire、D-34 hint 默认 strict 409、D-35 completed-session replay；计划文档与 checklist 推进到 completed。 | [002-event-loop-and-completion](./plans/002-event-loop-and-completion/plan.md) |
 | 2026-05-13 | 1.6 | plan-review --fix doc-only 收口：spec §7 row 2 替换为反映 002 plan-level 决策 D-32 / D-33 / D-34 / D-35（B3 `triggerEventSemantic: source_event_only` 落实 D-28；B2 `PracticeTurn.status` wire enum 扩 5 值 pre-launch baseline rebase 落实 D-25；`hint_requested` 在 002 默认 strict 409，等待 003 接手 assisted 分支；已完成 session 的二次 complete 不论 `Idempotency-Key` 是否一致都返回既有 `ReportWithJob`，idempotency key 仅控制 inflight 单执行者）；D-25 末尾追加 002 落实备注，明确 "handler 压缩映射" 分支已淘汰。spec body 其它内容不变。 | [002-event-loop-and-completion](./plans/002-event-loop-and-completion/plan.md) |

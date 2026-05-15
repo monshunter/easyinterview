@@ -1,8 +1,8 @@
 # 003 — Mode Policies and Provenance BDD Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-14
+> **更新日期**: 2026-05-15
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -11,15 +11,16 @@
 - [x] 在 `backend/cmd/api/practice_http_scenario_test.go` 新增 `TestE2EP0048PracticeHintAssistedAcrossGoals`：4 个 user/plan/session 命名空间（goal 分别为 baseline / retry_current_round / next_round / debrief，mode 全部 assisted）
 - [x] 准备 fake F3 RegistryClient + fake AIClient + fake AITaskRunWriter；fake AIClient 为 `practice.turn.lightweight_observe` 返回合法 hint JSON Content
 - [x] 实现 setup：调用 `backend/internal/store/practice` 真实 SQL fake 或 mem store 写入 4 个 ready plan + 4 个 running session；记录 currentTurn.id
-- [x] 实现 trigger：对每个 session 发起 1 次 `POST /practice/sessions/{sessionId}/events kind='hint_requested'`；断言 HTTP status=200
+- [x] 实现 trigger：对每个 session 发起第 1 次 `POST /practice/sessions/{sessionId}/events kind='hint_requested'`；再用第二个 `clientEventId` 对同一 turn 发起第 2 次 hint；最后重放第 1 个 `clientEventId`；断言 HTTP status=200
 - [x] 实现 verify：
   - response.assistantAction.type='show_hint' + hint 非空 + provenance 6 字段
   - DB practice_turns.hint_text 非空（assisted 成功路径）
   - DB practice_turns.status / turn_index / practice_sessions.turn_count 不变
   - outbox_events 行数不增（`event_name='practice.turn.completed'` 在该 session 下零行）
   - audit_events 行数不增（append 路径不写 audit）
-  - practice_session_events 写入 1 行 `kind='hint_requested'`，payload 不含 hint_text 明文
-  - ai_task_runs 写入 1 行 `task_type='hint_generate', validation_status='succeeded'`
+  - practice_session_events 写入 `kind='hint_requested'` 行，payload 不含 hint_text 明文
+  - 同一 turn 第二次 hint 覆盖 `practice_turns.hint_text` 后，第 1 个 `clientEventId` replay 仍返回第 1 次 hint
+  - ai_task_runs 为实际执行的 hint 请求写入 `task_type='hint_generate', validation_status='succeeded'` 行；replay 不写新行
 - [x] 实现 cleanup：按 [bdd-plan §6](./bdd-plan.md#6-数据隔离与污染恢复) 顺序删除自身资源
 - [x] 执行 `cd backend && go test ./cmd/api -run TestE2EP0048PracticeHintAssistedAcrossGoals -count=1`
 - [x] 记录验证证据到 plan §3.6 L2 修订说明（如经过 L2 review）或本 checklist 收口段

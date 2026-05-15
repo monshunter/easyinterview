@@ -107,6 +107,39 @@ func TestAppendSessionEventReplaySkipsAI(t *testing.T) {
 	}
 }
 
+func TestAppendSessionEventReplayReturnsStoredErrorBeforeResult(t *testing.T) {
+	replay := AppendSessionEventResult{Acknowledged: true}
+	replayErr := &ServiceError{
+		Code:    sharederrors.CodePracticeSessionConflict,
+		Message: "Hints are disabled for strict practice mode.",
+		Details: map[string]any{
+			"policy": "hint_disabled_in_mode",
+			"mode":   "strict",
+		},
+	}
+	store := &recordingPlanStore{
+		eventReservation: SessionEventReservation{
+			ReplayResult: &replay,
+			ReplayError:  replayErr,
+		},
+	}
+	service := NewService(ServiceOptions{Store: store})
+
+	_, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
+		UserID:        "user-1",
+		SessionID:     "session-1",
+		ClientEventID: "client-event-1",
+		Kind:          "session_resumed",
+	})
+	var svcErr *ServiceError
+	if !errors.As(err, &svcErr) || svcErr.Code != sharederrors.CodePracticeSessionConflict {
+		t.Fatalf("expected stored replay error, got %v", err)
+	}
+	if !reflect.DeepEqual(store.steps, []string{"reserve-event"}) {
+		t.Fatalf("error replay should not append side effects, steps=%v", store.steps)
+	}
+}
+
 func TestAppendSessionEventFollowUpAIFailureFallsBackToAskQuestion(t *testing.T) {
 	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
 	store := &recordingPlanStore{

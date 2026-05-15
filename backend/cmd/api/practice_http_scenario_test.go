@@ -799,6 +799,7 @@ func TestE2EP0048PracticeHintAssistedAcrossGoals(t *testing.T) {
 			if out.AssistantAction.Type != "show_hint" || out.AssistantAction.Hint == nil || *out.AssistantAction.Hint == "" {
 				t.Fatalf("assisted hint should return show_hint: %+v", out.AssistantAction)
 			}
+			firstHint := *out.AssistantAction.Hint
 			if out.Session.TurnCount != 1 || out.Session.Status != sharedtypes.SessionStatusRunning {
 				t.Fatalf("hint should not advance session lifecycle: %+v", out.Session)
 			}
@@ -820,6 +821,35 @@ func TestE2EP0048PracticeHintAssistedAcrossGoals(t *testing.T) {
 				h.aiTaskRuns.rows[len(h.aiTaskRuns.rows)-1].ValidationStatus != aiclient.ValidationStatusOK {
 				t.Fatalf("hint ai_task_runs row missing: %+v", h.aiTaskRuns.rows)
 			}
+
+			ai.responseText = "Second hint for " + string(goal)
+			secondBody := api.PracticeSessionEventRequest{
+				ClientEventId: "e2e-p0-048-hint-second-" + string(goal),
+				Kind:          "hint_requested",
+				OccurredAt:    "2026-04-28T13:48:32Z",
+				Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
+			}
+			secondRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", secondBody, http.StatusOK)
+			var second api.SessionEventResult
+			decodeJSON(t, secondRaw, &second)
+			if second.AssistantAction.Hint == nil || *second.AssistantAction.Hint == firstHint {
+				t.Fatalf("second hint should produce an independent response: first=%q second=%+v", firstHint, second.AssistantAction)
+			}
+			replayRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+				ClientEventId: "e2e-p0-048-hint-" + string(goal),
+				Kind:          "hint_requested",
+				OccurredAt:    "2026-04-28T13:47:32Z",
+				Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
+			}, http.StatusOK)
+			var replay api.SessionEventResult
+			decodeJSON(t, replayRaw, &replay)
+			if replay.AssistantAction.Hint == nil || *replay.AssistantAction.Hint != firstHint {
+				t.Fatalf("first clientEventId replay should return original hint, first=%q replay=%+v", firstHint, replay.AssistantAction)
+			}
+			if h.store.sessionEventCount(started.Id) != 3 {
+				t.Fatalf("replay should not append a third hint event, got %d events", h.store.sessionEventCount(started.Id))
+			}
+			assertNoEvidenceLeak(t, h.store.sessionEventPayloads(started.Id), firstHint, *second.AssistantAction.Hint, "hint_text", "prompt body", "response body", "provider secret")
 		})
 	}
 }
@@ -1343,6 +1373,7 @@ type scenarioPracticeSessionEvent struct {
 	EventType     string
 	ClientEventID string
 	Payload       []byte
+	replayPayload []byte
 }
 
 type scenarioOutboxEvent struct {
@@ -1580,12 +1611,20 @@ func (s *scenarioPracticeStore) AppendSessionEvent(_ context.Context, in domainp
 	if err != nil {
 		return domainpractice.AppendSessionEventResult{}, err
 	}
+	replayPayload, err := json.Marshal(scenarioAppendEventPayload{
+		RequestFingerprint: in.RequestFingerprint,
+		Result:             result,
+	})
+	if err != nil {
+		return domainpractice.AppendSessionEventResult{}, err
+	}
 	s.sessionEvents[in.SessionID] = append(s.sessionEvents[in.SessionID], scenarioPracticeSessionEvent{
 		ID:            in.EventID,
 		SeqNo:         len(s.sessionEvents[in.SessionID]) + 1,
 		EventType:     in.Kind,
 		ClientEventID: in.ClientEventID,
 		Payload:       payload,
+		replayPayload: replayPayload,
 	})
 	return result, nil
 }
@@ -1907,8 +1946,12 @@ func (s *scenarioPracticeStore) sessionEventReplay(sessionID, clientEventID, fin
 		if event.ClientEventID != clientEventID {
 			continue
 		}
+		raw := event.Payload
+		if len(event.replayPayload) > 0 {
+			raw = event.replayPayload
+		}
 		var stored scenarioAppendEventPayload
-		if err := json.Unmarshal(event.Payload, &stored); err != nil {
+		if err := json.Unmarshal(raw, &stored); err != nil {
 			return domainpractice.AppendSessionEventResult{}, nil, true, err
 		}
 		if stored.RequestFingerprint != fingerprint {
@@ -1916,9 +1959,6 @@ func (s *scenarioPracticeStore) sessionEventReplay(sessionID, clientEventID, fin
 		}
 		if stored.Error != nil {
 			return domainpractice.AppendSessionEventResult{}, stored.Error, true, nil
-		}
-		if stored.Result.AssistantAction.Type == "show_hint" && strings.TrimSpace(stored.Result.AssistantAction.Hint) == "" {
-			stored.Result.AssistantAction.Hint = s.hintTextForTurn(sessionID, stored.Result.AssistantAction.TurnID)
 		}
 		stored.Result.Replay = true
 		return stored.Result, nil, true, nil

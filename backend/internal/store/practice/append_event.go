@@ -117,13 +117,16 @@ func (r *SQLRepository) AppendSessionEvent(ctx context.Context, in domain.Append
 	if err != nil {
 		return domain.AppendSessionEventResult{}, err
 	}
-	replay, _, hit, pending, err := selectSessionEventReplay(ctx, tx, in.SessionID, in.ClientEventID, in.RequestFingerprint)
+	replay, replayErr, hit, pending, err := selectSessionEventReplay(ctx, tx, in.SessionID, in.ClientEventID, in.RequestFingerprint)
 	if err != nil {
 		return domain.AppendSessionEventResult{}, err
 	}
 	if hit && !pending {
 		if err := tx.Commit(); err != nil {
 			return domain.AppendSessionEventResult{}, fmt.Errorf("commit append practice session event replay: %w", err)
+		}
+		if replayErr != nil {
+			return domain.AppendSessionEventResult{}, replayErr
 		}
 		replay.Replay = true
 		return replay, nil
@@ -178,7 +181,11 @@ func (r *SQLRepository) AppendSessionEvent(ctx context.Context, in domain.Append
 	if err != nil {
 		return domain.AppendSessionEventResult{}, err
 	}
-	if err := updateReservedSessionEventPayload(ctx, tx, in, payload); err != nil {
+	replayPayload, err := marshalAppendEventReplayPayload(in.RequestFingerprint, result)
+	if err != nil {
+		return domain.AppendSessionEventResult{}, err
+	}
+	if err := updateReservedSessionEventPayload(ctx, tx, in, payload, replayPayload); err != nil {
 		return domain.AppendSessionEventResult{}, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -270,14 +277,15 @@ for update of s`,
 
 func selectSessionEventReplay(ctx context.Context, tx *sql.Tx, sessionID, clientEventID, fingerprint string) (domain.AppendSessionEventResult, *domain.ServiceError, bool, bool, error) {
 	var raw []byte
+	var replayRaw sql.NullString
 	err := tx.QueryRowContext(ctx, `
-select payload
-from practice_session_events
-where session_id = $1
-  and client_event_id = $2`,
+	select payload, replay_payload
+	from practice_session_events
+	where session_id = $1
+	  and client_event_id = $2`,
 		sessionID,
 		clientEventID,
-	).Scan(&raw)
+	).Scan(&raw, &replayRaw)
 	if stderrs.Is(err, sql.ErrNoRows) {
 		return domain.AppendSessionEventResult{}, nil, false, false, nil
 	}
@@ -291,12 +299,21 @@ where session_id = $1
 	if storedFingerprint != fingerprint {
 		return domain.AppendSessionEventResult{}, nil, true, pending, domain.ErrClientEventMismatch
 	}
-	if !pending && result.AssistantAction.Type == "show_hint" && strings.TrimSpace(result.AssistantAction.Hint) == "" {
-		hint, err := selectTurnHintText(ctx, tx, sessionID, result.AssistantAction.TurnID)
+	if !pending && resultErr == nil && strings.TrimSpace(replayRaw.String) != "" {
+		replayFingerprint, replayResult, replayResultErr, replayPending, err := unmarshalAppendEventPayload([]byte(replayRaw.String))
 		if err != nil {
 			return domain.AppendSessionEventResult{}, nil, false, false, err
 		}
-		result.AssistantAction.Hint = hint
+		if replayFingerprint != "" && replayFingerprint != fingerprint {
+			return domain.AppendSessionEventResult{}, nil, true, pending, domain.ErrClientEventMismatch
+		}
+		if replayPending {
+			return domain.AppendSessionEventResult{}, nil, true, true, nil
+		}
+		if replayResultErr != nil {
+			return domain.AppendSessionEventResult{}, replayResultErr, true, pending, nil
+		}
+		result = replayResult
 	}
 	return result, resultErr, true, pending, nil
 }
@@ -410,31 +427,6 @@ where session_id = $3
 	return nil
 }
 
-func selectTurnHintText(ctx context.Context, tx *sql.Tx, sessionID, turnID string) (string, error) {
-	if strings.TrimSpace(turnID) == "" {
-		return "", nil
-	}
-	var hint sql.NullString
-	err := tx.QueryRowContext(ctx, `
-select hint_text
-from practice_turns
-where session_id = $1
-  and id = $2`,
-		sessionID,
-		turnID,
-	).Scan(&hint)
-	if stderrs.Is(err, sql.ErrNoRows) {
-		return "", nil
-	}
-	if err != nil {
-		return "", fmt.Errorf("select practice turn hint replay: %w", err)
-	}
-	if !hint.Valid {
-		return "", nil
-	}
-	return hint.String, nil
-}
-
 func insertNextTurn(ctx context.Context, tx *sql.Tx, turn *domain.TurnRecord, sessionID string, persona sharedtypes.InterviewerRole) error {
 	if turn == nil {
 		return nil
@@ -532,14 +524,16 @@ where session_id = $1`,
 	return seq, nil
 }
 
-func updateReservedSessionEventPayload(ctx context.Context, tx *sql.Tx, in domain.AppendSessionEventStoreInput, payload []byte) error {
+func updateReservedSessionEventPayload(ctx context.Context, tx *sql.Tx, in domain.AppendSessionEventStoreInput, payload, replayPayload []byte) error {
 	res, err := tx.ExecContext(ctx, `
-update practice_session_events
-set payload = $1
-where session_id = $2
-  and client_event_id = $3
-  and id = $4`,
+	update practice_session_events
+	set payload = $1,
+	    replay_payload = $2
+	where session_id = $3
+	  and client_event_id = $4
+	  and id = $5`,
 		payload,
+		replayPayload,
 		in.SessionID,
 		in.ClientEventID,
 		in.EventID,
@@ -559,11 +553,12 @@ where session_id = $2
 
 func updateReservedSessionEventErrorPayload(ctx context.Context, tx *sql.Tx, in domain.FinalizeSessionEventErrorInput, payload []byte) error {
 	res, err := tx.ExecContext(ctx, `
-update practice_session_events
-set payload = $1
-where session_id = $2
-  and client_event_id = $3
-  and id = $4`,
+	update practice_session_events
+	set payload = $1,
+	    replay_payload = null
+	where session_id = $2
+	  and client_event_id = $3
+	  and id = $4`,
 		payload,
 		in.SessionID,
 		in.ClientEventID,
@@ -650,6 +645,17 @@ func marshalAppendEventPayload(in domain.AppendSessionEventStoreInput, result do
 	return raw, nil
 }
 
+func marshalAppendEventReplayPayload(requestFingerprint string, result domain.AppendSessionEventResult) ([]byte, error) {
+	raw, err := json.Marshal(appendEventPayload{
+		RequestFingerprint: requestFingerprint,
+		Result:             appendEventReplayResultFromDomain(result),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("marshal append session event replay payload: %w", err)
+	}
+	return raw, nil
+}
+
 func marshalPendingAppendEventPayload(in domain.SessionEventReservationInput) ([]byte, error) {
 	raw, err := json.Marshal(appendEventPayload{
 		RequestFingerprint: in.RequestFingerprint,
@@ -699,7 +705,15 @@ func appendEventResultFromDomain(result domain.AppendSessionEventResult) appendE
 	return appendEventResultPayload{
 		Acknowledged:    result.Acknowledged,
 		Session:         appendEventSessionFromDomain(result.Session),
-		AssistantAction: appendEventAssistantActionFromDomain(result.AssistantAction),
+		AssistantAction: appendEventAssistantActionFromDomain(result.AssistantAction, true),
+	}
+}
+
+func appendEventReplayResultFromDomain(result domain.AppendSessionEventResult) appendEventResultPayload {
+	return appendEventResultPayload{
+		Acknowledged:    result.Acknowledged,
+		Session:         appendEventSessionFromDomain(result.Session),
+		AssistantAction: appendEventAssistantActionFromDomain(result.AssistantAction, false),
 	}
 }
 
@@ -729,9 +743,9 @@ func appendEventSessionFromDomain(session domain.SessionRecord) appendEventSessi
 	}
 }
 
-func appendEventAssistantActionFromDomain(action domain.AssistantActionRecord) appendEventAssistantAction {
+func appendEventAssistantActionFromDomain(action domain.AssistantActionRecord, redactHint bool) appendEventAssistantAction {
 	hint := action.Hint
-	if action.Type == "show_hint" {
+	if redactHint && action.Type == "show_hint" {
 		hint = ""
 	}
 	return appendEventAssistantAction{

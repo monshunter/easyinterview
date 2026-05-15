@@ -142,13 +142,13 @@ func (s *Service) AppendSessionEvent(ctx context.Context, in AppendSessionEventR
 	if err != nil {
 		return AppendSessionEventResult{}, err
 	}
+	if reservation.ReplayError != nil {
+		return AppendSessionEventResult{}, reservation.ReplayError
+	}
 	if reservation.ReplayResult != nil {
 		replay := *reservation.ReplayResult
 		replay.Replay = true
 		return replay, nil
-	}
-	if reservation.ReplayError != nil {
-		return AppendSessionEventResult{}, reservation.ReplayError
 	}
 	if currentTurnID != "" {
 		if currentTurnID != reservation.LatestTurn.ID {

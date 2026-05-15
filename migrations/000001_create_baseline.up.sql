@@ -226,6 +226,7 @@ CREATE TABLE practice_session_events (
   event_type text NOT NULL CHECK (event_type IN ('session_started', 'question_started', 'answer_submitted', 'hint_requested', 'follow_up_generated', 'turn_skipped', 'turn_completed', 'session_paused', 'session_resumed', 'session_completed')),
   client_event_id text,
   payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+  replay_payload jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (session_id, seq_no),
   UNIQUE (session_id, client_event_id)

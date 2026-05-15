@@ -1,8 +1,8 @@
 # 003 — Mode Policies and Provenance Test Plan
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-14
+> **更新日期**: 2026-05-15
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 **关联 Test Checklist**: [test-checklist](./test-checklist.md)
@@ -13,9 +13,9 @@
 
 | 覆盖矩阵行 | 测试包 / 文件 | 测试函数 | 测试命令 |
 |------------|---------------|----------|----------|
-| R1 (primary, assisted hint 写 hint_text) | `backend/internal/practice/append_session_event_service_test.go` + `backend/internal/store/practice/append_complete_test.go` | `TestApplyHintAISuccess` / `TestServiceAppliesHintAIForAssisted` / `TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess` | `cd backend && go test ./internal/practice ./internal/store/practice -count=1` |
+| R1 (primary, assisted hint 写 hint_text + per-event replay snapshot) | `backend/internal/practice/append_session_event_service_test.go` + `backend/internal/store/practice/append_complete_test.go` + `backend/cmd/api/practice_http_scenario_test.go` | `TestApplyHintAISuccess` / `TestServiceAppliesHintAIForAssisted` / `TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess` / `TestMarshalAppendEventPayloadRedactsHintButReplayPayloadKeepsSnapshot` / `TestSQLRepositoryReserveSessionEventReplaysOriginalHintSnapshot` / `TestE2EP0048PracticeHintAssistedAcrossGoals` | `cd backend && go test ./internal/practice ./internal/store/practice ./cmd/api -count=1` |
 | R2 (provenance wire-only cross-action) | `backend/internal/practice/session_event_test.go` | `TestAssistantActionProvenanceFieldsAreWireOnly` / `TestAssistantActionProvenanceJSONShape` / `TestAssistantActionProvenanceCrossActionParity` | `cd backend && go test ./internal/practice -run 'TestAssistantActionProvenance' -count=1` |
-| R3 (strict hint 拒绝) | `backend/internal/practice/session_event_test.go` + `backend/internal/practice/append_session_event_service_test.go` | `TestHandleHintRequestedModeMatrix`（strict subset）+ `TestServiceSkipsHintAIForStrict` | `cd backend && go test ./internal/practice -run 'TestHandleHintRequested|TestServiceSkipsHintAIForStrict' -count=1` |
+| R3 (strict hint 拒绝) | `backend/internal/practice/session_event_test.go` + `backend/internal/practice/append_session_event_service_test.go` | `TestHandleHintRequestedModeMatrix`（strict subset）+ `TestServiceSkipsHintAIForStrict` + `TestAppendSessionEventReplayReturnsStoredErrorBeforeResult` | `cd backend && go test ./internal/practice -run 'TestHandleHintRequested|TestServiceSkipsHintAIForStrict|TestAppendSessionEventReplayReturnsStoredErrorBeforeResult' -count=1` |
 | R4 (mode × goal 正交) | `backend/internal/practice/session_event_test.go` | `TestHandleHintRequestedModeMatrix`（assisted × 4 goal + strict × 4 goal + unknown × 2 fallback） | 同 R3 |
 | R5 (hint AI 失败 graceful degrade 7 路径) | `backend/internal/practice/append_session_event_service_test.go` + `backend/cmd/api/practice_http_scenario_test.go` | `TestApplyHintAIGracefulDegradeMatrix`（表驱动 7 路径）+ `TestE2EP0051PracticeHintDegradeAndPrivacy` | `cd backend && go test ./internal/practice ./cmd/api -count=1` |
 | R6 (hint turn-lifecycle 边界) | `backend/internal/practice/session_event_test.go` + `backend/internal/store/practice/append_complete_test.go` | `TestHandleHintRequestedTurnLifecycle` / `TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess`（SQL expectation 固定不发 outbox / 不写 audit / 不改 turn status / turn_count 不变） | `cd backend && go test ./internal/practice ./internal/store/practice -count=1` |

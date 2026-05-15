@@ -1,8 +1,8 @@
 # 003 — Mode Policies and Provenance Test Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-14
+> **更新日期**: 2026-05-15
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -22,6 +22,7 @@
   - `TestHandleHintRequestedTurnLifecycle`（OutboxRecord nil / NextTurn 未推进 / session 状态不变 / AuditMetadata 仅含 event_kind+mode）
   - `TestServiceSkipsHintAIForStrict`（strict 409 路径不触发 fake registry / fake AIClient）
   - `TestAppendSessionEventHintStrictDoesNotLeavePendingReservation`（strict / unknown 409 后同 `(session_id, client_event_id)` 存在 finalized `kind='hint_requested'` 行，payload 仅含 sanitized conflict envelope，不存在 `payload.pending=true` stuck row；同 clientEventId 重试 replay 同一 409）
+  - `TestAppendSessionEventReplayReturnsStoredErrorBeforeResult`（SQL-backed finalized error replay 同时解码出零值 result 时，service 必须优先返回 stored `ReplayError`）
 
 ## Phase 2: assisted hint AI 接入 + practice_turns.hint_text 写入
 
@@ -31,6 +32,8 @@
   - `TestApplyHintAISuccess`（fake AIClient payload 捕获 capability=`hint_generate`、resource_type=`target_job`、resource_id=plan.target_job_id）
   - `TestServiceAppliesHintAIForAssisted` / `TestServiceSkipsHintAIForStrict`（service layer 接入；hint 与 follow_up 由 action type 分支互斥）
   - `TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess`（repository UPDATE practice_turns.hint_text；SQL expectation 同时固定 hint 路径不发 outbox、不写 audit、不执行 turn status UPDATE，返回 session turn_count 不变）
+  - `TestMarshalAppendEventPayloadRedactsHintButReplayPayloadKeepsSnapshot`（event payload 不含 hint 明文；内部 replay snapshot 保留原始 client-visible hint）
+  - `TestSQLRepositoryReserveSessionEventReplaysOriginalHintSnapshot`（同 turn 后续 hint 覆盖 `practice_turns.hint_text` 后，首个 clientEventId replay 仍返回原事件 hint snapshot）
   - `TestAssistantActionProvenanceFieldsAreWireOnly`（reflect + struct tag）
   - `TestAssistantActionProvenanceJSONShape`（json.Marshal → 6 keys 严格等于 B2 GenerationProvenance）
   - `TestAssistantActionProvenanceCrossActionParity`（5 种 action type 的 provenance 字段集严格一致）

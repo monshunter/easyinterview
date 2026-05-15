@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-15](2026-05-15.md) | `fix(backend-practice): preserve append event replay snapshots` | #fix #test #docs |
 | [2026-05-15](2026-05-15.md) | `fix(backend-practice): harden hint strict replay gates` | #fix #test #docs |
 | [2026-05-15](2026-05-15.md) | `fix(backend-practice): remediate hint provenance L2 findings` | #fix #test #docs |
 | [2026-05-14](2026-05-14.md) | `feat(backend-practice): implement mode policies and hint provenance` | #feat #test #docs |

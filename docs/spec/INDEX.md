@@ -32,7 +32,7 @@
 | [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.17 | active | 2026-05-12 | [plans](./shared-conventions-codified/plans/) |
 | [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.19 | active | 2026-05-13 | [plans](./openapi-v1-contract/plans/) |
 | [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.5 | active | 2026-05-13 | [plans](./event-and-outbox-contract/plans/) |
-| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.17 | active | 2026-05-14 | [plans](./db-migrations-baseline/plans/) |
+| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.18 | active | 2026-05-15 | [plans](./db-migrations-baseline/plans/) |
 
 ## 4 Quality / AI Governance
 
@@ -51,7 +51,7 @@
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.3 | active | 2026-05-13 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 1.2 | active | 2026-05-06 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 1.4 | active | 2026-05-08 | [plans](./backend-targetjob/plans/) |
-| [backend-practice](./backend-practice/spec.md) | 1.8 | active | 2026-05-14 | [plans](./backend-practice/plans/) |
+| [backend-practice](./backend-practice/spec.md) | 1.9 | active | 2026-05-15 | [plans](./backend-practice/plans/) |
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.0 | active | 2026-05-08 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.2 | active | 2026-05-12 | [plans](./backend-upload/plans/) |
 | [backend-resume](./backend-resume/spec.md) | 1.1 | active | 2026-05-12 | [plans](./backend-resume/plans/) |

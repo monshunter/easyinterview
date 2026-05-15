@@ -1,8 +1,8 @@
 # 003 — Mode Policies and Provenance BDD Plan
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-14
+> **更新日期**: 2026-05-15
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 **关联 BDD Checklist**: [bdd-checklist](./bdd-checklist.md)
@@ -33,7 +33,7 @@
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| `E2E.P0.048` | assisted hint 主路径 × goal 矩阵 | 用户 A 已通过 002 setup 拥有 4 个 ready plan，goal 分别为 `baseline` / `retry_current_round` / `next_round` / `debrief`，全部 `mode='assisted'`；对应 4 个 `practice_sessions(status='running', currentTurn.status='asked')`；F3 active；A3 fake AIClient 配置为 `practice.turn.lightweight_observe` 返回 hint 文本 | 用户 A 对每个 session `POST /practice/sessions/{sessionId}/events` 携带 `kind='hint_requested'` + `payload.turnId=currentTurn.id` + 各自独立 `clientEventId` | 每次返回 `200 + SessionEventResult{acknowledged: true, session: {status: 'running', ...}, assistantAction: {type: 'show_hint', hint: <non-empty>, sessionStatus: 'running', provenance: {promptVersion, rubricVersion, modelId: 'model-profile:practice.turn_observe.default', language, featureFlag, dataSourceVersion}}}`；DB `practice_turns.hint_text` 被 UPDATE 非空；DB `practice_turns.status` / `turn_index` / `practice_sessions.turn_count` 不变；`outbox_events WHERE event_name='practice.turn.completed' AND aggregate_id=sessionId` 行数不增（hint 不发 outbox）；`audit_events` 行不增（hint 不写 audit）；`practice_session_events` 写入一行 `kind='hint_requested'` 且 payload 不含 hint_text 明文；ai_task_runs 写入一行 `task_type='hint_generate', validation_status='succeeded'` | `backend/cmd/api/practice_http_scenario_test.go::TestE2EP0048PracticeHintAssistedAcrossGoals` |
+| `E2E.P0.048` | assisted hint 主路径 × goal 矩阵 | 用户 A 已通过 002 setup 拥有 4 个 ready plan，goal 分别为 `baseline` / `retry_current_round` / `next_round` / `debrief`，全部 `mode='assisted'`；对应 4 个 `practice_sessions(status='running', currentTurn.status='asked')`；F3 active；A3 fake AIClient 配置为 `practice.turn.lightweight_observe` 返回 hint 文本 | 用户 A 对每个 session `POST /practice/sessions/{sessionId}/events` 携带 `kind='hint_requested'` + `payload.turnId=currentTurn.id` + 各自独立 `clientEventId`；随后同一 turn 使用第二个 `clientEventId` 请求不同 hint，再重放第一个 `clientEventId` | 每次返回 `200 + SessionEventResult{acknowledged: true, session: {status: 'running', ...}, assistantAction: {type: 'show_hint', hint: <non-empty>, sessionStatus: 'running', provenance: {promptVersion, rubricVersion, modelId: 'model-profile:practice.turn_observe.default', language, featureFlag, dataSourceVersion}}}`；第一个 `clientEventId` replay 返回原始 hint，不受第二次 hint 覆盖影响；DB `practice_turns.hint_text` 被 UPDATE 非空；DB `practice_turns.status` / `turn_index` / `practice_sessions.turn_count` 不变；`outbox_events WHERE event_name='practice.turn.completed' AND aggregate_id=sessionId` 行数不增（hint 不发 outbox）；`audit_events` 行不增（hint 不写 audit）；`practice_session_events.payload` 不含 hint_text 明文；ai_task_runs 写入 `task_type='hint_generate', validation_status='succeeded'` | `backend/cmd/api/practice_http_scenario_test.go::TestE2EP0048PracticeHintAssistedAcrossGoals` |
 
 ## 3 Phase 1 + Phase 2 — strict hint 拒绝
 

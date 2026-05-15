@@ -1,6 +1,6 @@
 # 003 — Mode Policies and Provenance
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-15
 
@@ -353,6 +353,7 @@ scoped legacy grep gate（在测试或 lint 中执行，可复用 002 已有的 
 | D-36 graceful degrade 隐藏 AI 配置错误，运营难以发现 hint AI 长期失败 | Phase 2.1 / Phase 4.1 在 `ai_task_runs(task_type='hint_generate')` 行写 `validation_status='failed'` + sanitized B1 `error_code`；F1 可基于 ai_task_runs typed columns / 已登记 metric label 观察；wire 仍不暴露细节，保证用户隐私与 graceful UX |
 | F3 `practice.turn.lightweight_observe` baseline drift 导致 Phase 2 测试不稳定 | Phase 0.4 preflight 在每次 003 实施 commit 前断言；Phase 2 单元测试用 fake registry 隔离真实 F3 baseline；任何 baseline drift 必须由 F3 owner 先修订再继续 003；F3 baseline 已 completed 且 002 已用相同 preflight pattern 验证稳定 |
 | `practice_turns.hint_text` UPDATE 与 002 append_event 的 SELECT FOR UPDATE 并发顺序产生死锁 | Phase 2.3 在同一事务内复用 002 已 SELECT FOR UPDATE 的 `practice_sessions` 行锁；hint 路径与 answer_submitted 路径在 `practice_turns` 上写不同列（`hint_text` vs `status`/`answer_text`）；不引入额外锁；repository 集成测试用 multi-goroutine + 真实 Postgres 验证 |
+| assisted hint success 若只把 hint 存在可变的 `practice_turns.hint_text`，同一 turn 多次 hint 会破坏首个 `clientEventId` replay | L2 follow-up 将 `practice_session_events.payload`（redacted event payload）与内部 `replay_payload`（client-visible result snapshot）分离；`TestSQLRepositoryReserveSessionEventReplaysOriginalHintSnapshot` 与 `TestE2EP0048PracticeHintAssistedAcrossGoals` 覆盖先请求 hint A、再请求 hint B、再 replay A 仍返回 A |
 | `ai_task_runs.task_type` CHECK 扩值在 pre-launch baseline rebase 与已有部署冲突 | 当前 pre-launch 阶段直接修订 baseline migration（与 D-21 / D-33 同模式）；如本地 dev DB 已 applied baseline，需要重跑 migration apply test（开发者按 `test/scenarios/README.md` 执行 env-cleanup + env-setup）；launch 后扩值由 B4 future plan 与 ops owner 协作，本 plan 不为未来兼容路径设计 |
 | handleHintRequested mode-binding 重构破坏 002 现有 `TestHandleHintRequestedDefaultsToStrict409` 等测试 | Phase 1.2 单元测试矩阵显式包含 002 已有断言（strict / unknown → 409）；测试矩阵作为 mode-binding 的 superset，确保旧测试通过 |
 | AssistantAction provenance wire-only regression 测试需要 5 种 action type 反复构造 outcome，测试代码冗长 | Phase 2.4 / Phase 3.2 抽取共享 builder helper（`buildShowHintOutcome` / `buildAskQuestionOutcome` 等）；测试用表驱动方式覆盖 5 种 type；不引入新的产品代码 helper（仅测试代码） |
@@ -362,3 +363,4 @@ scoped legacy grep gate（在测试或 lint 中执行，可复用 002 已有的 
 ## 7 L2 修订记录
 
 - 2026-05-15 `plan-code-review --fix`: 修复 strict / unknown hint 409 replay payload 的 SQL 持久化边界，只保留 sanitized `requestFingerprint + error` envelope；补充 003 scenario runtime assets 的 scoped legacy grep 覆盖；加固 `E2E.P0.048`-`E2E.P0.051` shell gate，避免 `tee` 或弱 verify 造成假绿。
+- 2026-05-15 L2 follow-up: 修复 SQL-backed strict 409 replay error 优先级，以及 assisted 多 hint 同 turn 的 per-event replay 漂移；新增 B4 `practice_session_events.replay_payload` 内部 snapshot，让 `payload` 继续保持隐私红线而 `show_hint` replay 不再读取可变的 `practice_turns.hint_text`。

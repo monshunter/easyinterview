@@ -1,6 +1,6 @@
 # 003 — Mode Policies and Provenance Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-15
 
@@ -65,6 +65,8 @@
 - [x] R1 修复 SQL strict / unknown 409 finalized replay payload：`marshalAppendEventErrorPayload` 只持久化 `requestFingerprint + error` sanitized envelope，禁止保存 `requestPayload`、turn id、answer text 或空 `result`；新增 `TestMarshalAppendEventErrorPayloadSanitizesRequestPayload`
 - [x] R2 修复 003 scoped legacy grep gate：`scripts/lint/backend_practice_legacy.py --phase all` 覆盖 `E2E.P0.048`-`E2E.P0.051` scenario runtime assets；新增 pytest 证明 legacy term 会在 003 scenario asset 中被拦截
 - [x] R3 修复 BDD scenario shell gates：`E2E.P0.048`-`E2E.P0.051` `trigger.sh` 保留真实 `go test` exit code，`verify.sh` 必须断言目标 test `--- PASS` 与 `ok ./cmd/api`，并拒绝 `FAIL` / `no tests to run`
+- [x] R4 修复 strict / unknown 409 SQL-backed replay 优先级：`AppendSessionEvent` 必须先返回 repository 的 `ReplayError`，再处理 `ReplayResult`，避免 finalized error payload 解码出的零值 result 被误当作 200 replay；新增 `TestAppendSessionEventReplayReturnsStoredErrorBeforeResult`
+- [x] R5 修复 assisted 多 hint 同 turn 的 per-event replay：`practice_session_events.payload` 继续保存 redacted event payload，新增内部 `replay_payload` 保存 client-visible result snapshot；replay 不再从可变 `practice_turns.hint_text` 重建 hint；新增 `TestMarshalAppendEventPayloadRedactsHintButReplayPayloadKeepsSnapshot`、`TestSQLRepositoryReserveSessionEventReplaysOriginalHintSnapshot`，并扩展 `TestE2EP0048PracticeHintAssistedAcrossGoals`
 
 ## 收口证据
 
