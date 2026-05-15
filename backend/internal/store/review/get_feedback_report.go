@@ -35,6 +35,13 @@ func (r *Repository) ListTargetJobReports(ctx context.Context, in reviewdomain.L
 	if err := r.checkDB(); err != nil {
 		return reviewdomain.ListTargetJobReportsResult{}, err
 	}
+	owned, err := r.targetJobOwnedByUser(ctx, in.TargetJobID, in.UserID)
+	if err != nil {
+		return reviewdomain.ListTargetJobReportsResult{}, err
+	}
+	if !owned {
+		return reviewdomain.ListTargetJobReportsResult{}, reviewdomain.ErrReportNotFound
+	}
 	pageSize := reviewdomain.EffectiveReportPageSize(in.PageSize)
 	args := []any{in.UserID, in.TargetJobID}
 	query := `
@@ -100,6 +107,20 @@ limit $%d`, len(args))
 		HasMore:    hasMore,
 		PageSize:   pageSize,
 	}, nil
+}
+
+func (r *Repository) targetJobOwnedByUser(ctx context.Context, targetJobID, userID string) (bool, error) {
+	var owned bool
+	err := r.db.QueryRowContext(ctx, `
+	select exists(
+	  select 1
+	  from target_jobs
+	  where id = $1 and user_id = $2 and deleted_at is null
+	)`, targetJobID, userID).Scan(&owned)
+	if err != nil {
+		return false, fmt.Errorf("check target_jobs ownership: %w", err)
+	}
+	return owned, nil
 }
 
 func (r *Repository) getFeedbackReport(ctx context.Context, userID, reportID string) (reviewdomain.FeedbackReportRecord, error) {

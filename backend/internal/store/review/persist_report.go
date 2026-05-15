@@ -50,7 +50,7 @@ func (r *Repository) PersistReport(ctx context.Context, in PersistReportInput) e
 	}); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `
+	res, err := tx.ExecContext(ctx, `
 update feedback_reports
 set status = 'ready',
     preparedness_level = $1,
@@ -83,8 +83,12 @@ where id = $14 and status = 'generating'`,
 		retryFocus,
 		in.Now,
 		in.ReportID,
-	); err != nil {
+	)
+	if err != nil {
 		return fmt.Errorf("update feedback_reports ready: %w", err)
+	}
+	if err := requireOneRow(res, "update feedback_reports ready"); err != nil {
+		return err
 	}
 	for _, assessment := range in.Assessments {
 		if err := insertQuestionAssessment(ctx, tx, in, assessment); err != nil {
@@ -216,7 +220,7 @@ insert into audit_events (
 }
 
 func updateAsyncJobSucceededTx(ctx context.Context, tx *sql.Tx, jobID string, now time.Time) error {
-	_, err := tx.ExecContext(ctx, `
+	res, err := tx.ExecContext(ctx, `
 update async_jobs
 set status = 'succeeded',
     completed_at = $1,
@@ -227,6 +231,20 @@ set status = 'succeeded',
 where id = $2`, now, jobID)
 	if err != nil {
 		return fmt.Errorf("update async_jobs succeeded: %w", err)
+	}
+	if err := requireOneRow(res, "update async_jobs succeeded"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func requireOneRow(res sql.Result, label string) error {
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s rows affected: %w", label, err)
+	}
+	if rows != 1 {
+		return fmt.Errorf("%s: expected 1 row, got %d", label, rows)
 	}
 	return nil
 }

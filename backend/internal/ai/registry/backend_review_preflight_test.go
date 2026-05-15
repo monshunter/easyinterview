@@ -51,6 +51,7 @@ func TestF3ReportGenerateAndAssessmentPreflight(t *testing.T) {
 				t.Fatalf("ResolveActive provenance: dataSourceVersion=%s featureFlag=%s", res.DataSourceVersion, res.FeatureFlag)
 			}
 			assertReportPromptSafeInputContract(t, res.UserMessageTemplate)
+			assertReportPromptOutputContract(t, string(tc.featureKey), res.UserMessageTemplate)
 
 			rubric, err := client.GetRubric(string(tc.featureKey), "v0.1.0", "en")
 			if err != nil {
@@ -60,6 +61,41 @@ func TestF3ReportGenerateAndAssessmentPreflight(t *testing.T) {
 				assertFourScoreLevels(t, dim.ScoreLevels)
 			}
 		})
+	}
+}
+
+func assertReportPromptOutputContract(t *testing.T, featureKey string, prompt string) {
+	t.Helper()
+	lower := strings.ToLower(prompt)
+	var required []string
+	switch featureKey {
+	case string(featurekeys.ReportGenerate):
+		required = []string{
+			"summary",
+			"dimension_scores",
+			"highlights",
+			"issues",
+			"next_actions",
+			"retry_focus_turn_ids",
+		}
+	case string(featurekeys.ReportQuestionAssessment):
+		required = []string{
+			"dimension_results",
+			"overall_status",
+			"confidence",
+			"score_level",
+			"strengths",
+			"gaps",
+			"recommended_framework",
+			"review_status",
+		}
+	default:
+		t.Fatalf("unexpected report feature key %q", featureKey)
+	}
+	for _, want := range required {
+		if !strings.Contains(lower, want) {
+			t.Fatalf("%s prompt missing required output key %q: %s", featureKey, want, prompt)
+		}
 	}
 }
 

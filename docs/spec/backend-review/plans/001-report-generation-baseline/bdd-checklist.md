@@ -1,6 +1,6 @@
 # 001 — Report Generation Baseline BDD Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-16
 
@@ -38,7 +38,7 @@
 - [x] 在 `backend/cmd/api/reports_http_scenario_test.go` 新增 `TestE2EP0053ReportReadAndListing`：2 个 user (A, B) + 1 个 target_job(T owned by A) + 22 个 reports owned by A on T（含 4 个 status 状态：R1 ready 完整 / R2 queued / R3 generating / R4 failed + errorCode='AI_PROVIDER_TIMEOUT'，另 18 个 ready 用于分页）+ 1 个 target_job(T' owned by B) + 0 个 reports on T'
 - [x] 准备 fake auth middleware 让用户 A / 用户 B 分别 authenticate
 - [x] 实现 setup：写入上述资源；ensure created_at 间隔可被 cursor 区分
-- [x] 实现 trigger：作为 user A 调 ① `GET /reports/R1` ② `GET /reports/R2` ③ `GET /reports/R3` ④ `GET /reports/R4` ⑤ `GET /targets/T/reports?pageSize=20`（取 nextCursor） ⑥ `GET /targets/T/reports?cursor=<nextCursor>&pageSize=20` ⑦ `GET /targets/T/reports?pageSize=20&cursor=<篡改值>` ⑧ `GET /targets/T'/reports`（T' 属于 B，预期 backend-targetjob middleware 拦截）；作为 user B 调 ⑨ `GET /reports/R1`
+- [x] 实现 trigger：作为 user A 调 ① `GET /reports/R1` ② `GET /reports/R2` ③ `GET /reports/R3` ④ `GET /reports/R4` ⑤ `GET /targets/T/reports?pageSize=20`（取 nextCursor） ⑥ `GET /targets/T/reports?cursor=<nextCursor>&pageSize=20` ⑦ `GET /targets/T/reports?pageSize=20&cursor=<篡改值>`；作为 user B 调 ⑧ `GET /reports/R1` ⑨ `GET /targets/T/reports`
 - [x] 实现 verify：
   - ① 200 + FeedbackReport{id=R1, status='ready', preparednessLevel 非空, highlights/issues/nextActions/questionAssessments 非空, provenance={6 字段}, errorCode null/未声明}
   - ② 200 + status='queued' + 内容字段=空 + provenance=null + errorCode=null
@@ -47,8 +47,8 @@
   - ⑤ 200 + items=20（created_at DESC 排序）+ pageInfo.nextCursor 非空 + pageSize=20 + hasMore=true
   - ⑥ 200 + items=2 + hasMore=false + nextCursor=null
   - ⑦ 400 + ApiError{code='VALIDATION_FAILED'}
-  - ⑧ 404（由 backend-targetjob middleware；不在 backend-review handler 内）
-  - ⑨ 404 + ApiError{code='REPORT_NOT_FOUND'}
+  - ⑧ 404 + ApiError{code='REPORT_NOT_FOUND'}
+  - ⑨ 404 + ApiError{code='REPORT_NOT_FOUND'}；不得返回 200 空列表
   - 所有 response.provenance（若非 null）JSON keys 集合严格 = {promptVersion, rubricVersion, modelId, language, featureFlag, dataSourceVersion}
   - 任何 runtime 字段（`feature_key` / `model_profile_name` / `provider` / `cost` / `latency` / `capability`）在 wire JSON 中零出现
 - [x] 实现 cleanup：按隔离顺序删除资源
@@ -89,11 +89,12 @@
 - [x] 实现 setup：2 个 user (A, B)；用户 A 拥有 1 个 feedback_reports(status='ready') + 3 行 question_assessments + 完整 outbox + audit 行（由 happy path 简化版生成）；用户 B 存在但对 user A 资源无权限
 - [x] 实现 trigger：
   - 作为 user B 调 `GET /reports/R_A` → 404
-  - 作为 user B 调 `GET /targets/T_A/reports` → 404（由 backend-targetjob middleware）
+  - 作为 user B 调 `GET /targets/T_A/reports` → 404
   - 让 user A 跑一次完整 happy path 生成 report，收集所有持久化与运行时输出
   - 运行 `python3 scripts/lint/backend_review_legacy.py --repo-root . --phase all`
 - [x] 实现 verify：
-  - cross-user 404 + REPORT_NOT_FOUND envelope 不泄露 R_A 存在性
+  - cross-user reportId 404 + REPORT_NOT_FOUND envelope 不泄露 R_A 存在性
+  - cross-user target list 404 + REPORT_NOT_FOUND envelope，不返回 200 空列表，不泄露 target/report 存在性
   - 完整 happy path 后扫描结果：`question_text` / `answer_text` / `hint_text` / AI prompt body / response body / provider secret 在以下持久化与运行时输出中零出现：
     - log structured fields（结构化日志收集器）
     - A3 `ai_task_*` metric label（命中 F1 allowlist；不含 `feature_key` / prompt-rubric version / provider raw model id）

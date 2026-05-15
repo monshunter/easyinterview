@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-16](./2026-05-16-backend-review-001-l2-remediation-assessment.md) | Backend Review 001 L2 Remediation 交付复盘 | #assessment |
 | [2026-05-16](./2026-05-16-backend-review-001-report-generation-baseline-assessment.md) | Backend Review 001 Report Generation Baseline 交付复盘 | #assessment |
 | [2026-05-15](./2026-05-15-backend-practice-003-l2-remediation-assessment.md) | Backend Practice 003 L2 Remediation 交付复盘 | #assessment |
 | [2026-05-14](./2026-05-14-backend-practice-003-mode-policies-and-provenance-assessment.md) | Backend Practice 003 Mode Policies And Provenance 交付复盘 | #assessment |

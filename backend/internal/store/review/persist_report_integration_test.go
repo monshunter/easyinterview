@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -133,6 +134,102 @@ func TestPersistReportFailureRetryAndPermanent(t *testing.T) {
 			t.Fatalf("attempts=%d job status=%s locked_at=%v", tc.attempts, jobStatus, lockedAt)
 		}
 		assertReviewPersistCount(t, ctx, db, `select count(*) from outbox_events where aggregate_id=$1 and event_name='report.generation.failed'`, ids.reportID, 1)
+	}
+}
+
+func TestPersistReportRejectsStaleStatusAndRollsBack(t *testing.T) {
+	db := openReviewStoreTestDB(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	ids := reviewPersistIDs("070")
+	setupReviewPersistRows(t, ctx, db, ids, 1)
+	mustExecReview(t, ctx, db, `update feedback_reports set status='ready' where id=$1`, ids.reportID)
+	repo := reviewstore.NewRepository(db)
+	now := time.Date(2026, 5, 15, 19, 0, 0, 0, time.UTC)
+
+	err := repo.PersistReport(ctx, reviewstore.PersistReportInput{
+		UserID:            ids.userID,
+		ReportID:          ids.reportID,
+		SessionID:         ids.sessionID,
+		TargetJobID:       ids.targetJobID,
+		AsyncJobID:        ids.jobID,
+		OutboxEventID:     ids.outboxID,
+		AuditEventID:      ids.auditID,
+		PreparednessLevel: sharedtypes.ReadinessTierBasicallyReady,
+		PromptVersion:     "v0.1.0",
+		RubricVersion:     "v0.1.0",
+		ModelID:           "model-profile:report.generate.default",
+		Language:          "en",
+		FeatureFlag:       "none",
+		DataSourceVersion: "registry.v1",
+		Now:               now,
+		Content: reviewdomain.ReportContentDraft{
+			Summary:     "ready",
+			Highlights:  []reviewdomain.ReportEvidenceDraft{{Dimension: "depth", Evidence: "clear", Confidence: 0.8}},
+			Issues:      []reviewdomain.ReportEvidenceDraft{},
+			NextActions: []reviewdomain.ReportNextActionDraft{{Type: string(reviewdomain.NextActionNextRound), Label: "Next"}},
+		},
+		Assessments: []reviewdomain.QuestionAssessmentDraft{{
+			TurnID:        ids.turnID,
+			TurnIndex:     1,
+			OverallStatus: sharedtypes.DimensionStatusMeetsBar,
+			Confidence:    0.8,
+			ReviewStatus:  sharedtypes.QuestionReviewStatusOpen,
+			DimensionResults: map[string]reviewdomain.DimensionResultDraft{
+				"depth": {Status: sharedtypes.DimensionStatusMeetsBar, Confidence: 0.8},
+			},
+		}},
+	})
+	if err == nil || !strings.Contains(err.Error(), "feedback_reports ready") {
+		t.Fatalf("PersistReport err = %v, want stale ready update error", err)
+	}
+	assertReviewPersistCount(t, ctx, db, `select count(*) from question_assessments where report_id=$1`, ids.reportID, 0)
+	assertReviewPersistCount(t, ctx, db, `select count(*) from outbox_events where aggregate_id=$1`, ids.reportID, 0)
+	assertReviewPersistCount(t, ctx, db, `select count(*) from audit_events where resource_id=$1`, ids.reportID, 0)
+	var jobStatus string
+	if err := db.QueryRowContext(ctx, `select status from async_jobs where id=$1`, ids.jobID).Scan(&jobStatus); err != nil {
+		t.Fatalf("select async job: %v", err)
+	}
+	if jobStatus != "running" {
+		t.Fatalf("async job status = %s, want running", jobStatus)
+	}
+}
+
+func TestPersistReportFailureRejectsStaleStatusAndRollsBack(t *testing.T) {
+	db := openReviewStoreTestDB(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	ids := reviewPersistIDs("080")
+	setupReviewPersistRows(t, ctx, db, ids, 1)
+	mustExecReview(t, ctx, db, `update feedback_reports set status='ready' where id=$1`, ids.reportID)
+	repo := reviewstore.NewRepository(db)
+	now := time.Date(2026, 5, 15, 19, 30, 0, 0, time.UTC)
+
+	err := repo.PersistReportFailure(ctx, reviewstore.PersistReportFailureInput{
+		UserID:        ids.userID,
+		ReportID:      ids.reportID,
+		SessionID:     ids.sessionID,
+		AsyncJobID:    ids.jobID,
+		OutboxEventID: ids.outboxID,
+		AuditEventID:  ids.auditID,
+		ErrorCode:     "AI_PROVIDER_TIMEOUT",
+		Retryable:     true,
+		Now:           now,
+	})
+	if err == nil || !strings.Contains(err.Error(), "feedback_reports failed") {
+		t.Fatalf("PersistReportFailure err = %v, want stale failed update error", err)
+	}
+	assertReviewPersistCount(t, ctx, db, `select count(*) from outbox_events where aggregate_id=$1`, ids.reportID, 0)
+	assertReviewPersistCount(t, ctx, db, `select count(*) from audit_events where resource_id=$1`, ids.reportID, 0)
+	var reportStatus, jobStatus string
+	if err := db.QueryRowContext(ctx, `select status from feedback_reports where id=$1`, ids.reportID).Scan(&reportStatus); err != nil {
+		t.Fatalf("select feedback report: %v", err)
+	}
+	if err := db.QueryRowContext(ctx, `select status from async_jobs where id=$1`, ids.jobID).Scan(&jobStatus); err != nil {
+		t.Fatalf("select async job: %v", err)
+	}
+	if reportStatus != "ready" || jobStatus != "running" {
+		t.Fatalf("status after rollback report=%s job=%s, want ready/running", reportStatus, jobStatus)
 	}
 }
 

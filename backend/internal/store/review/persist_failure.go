@@ -22,14 +22,18 @@ func (r *Repository) PersistReportFailure(ctx context.Context, in PersistReportF
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	if _, err := tx.ExecContext(ctx, `
+	res, err := tx.ExecContext(ctx, `
 update feedback_reports
 set status = 'failed',
     error_code = $1,
     generated_at = $2,
     updated_at = $2
-where id = $3`, in.ErrorCode, in.Now, in.ReportID); err != nil {
+where id = $3 and status = 'generating'`, in.ErrorCode, in.Now, in.ReportID)
+	if err != nil {
 		return fmt.Errorf("update feedback_reports failed: %w", err)
+	}
+	if err := requireOneRow(res, "update feedback_reports failed"); err != nil {
+		return err
 	}
 	var attempts, maxAttempts int
 	if err := tx.QueryRowContext(ctx, `select attempts, max_attempts from async_jobs where id=$1 for update`, in.AsyncJobID).Scan(&attempts, &maxAttempts); err != nil {
@@ -45,7 +49,7 @@ where id = $3`, in.ErrorCode, in.Now, in.ReportID); err != nil {
 	if requeue {
 		status = "queued"
 	}
-	if _, err := tx.ExecContext(ctx, `
+	res, err = tx.ExecContext(ctx, `
 update async_jobs
 set status = $1,
     completed_at = $2,
@@ -62,8 +66,12 @@ where id = $7`,
 		in.ErrorCode,
 		nullableString(in.ErrorCode),
 		in.AsyncJobID,
-	); err != nil {
+	)
+	if err != nil {
 		return fmt.Errorf("update async_jobs failure: %w", err)
+	}
+	if err := requireOneRow(res, "update async_jobs failure"); err != nil {
+		return err
 	}
 	payload, err := BuildReportGenerationFailedPayload(ReportGenerationFailedInput{
 		ReportID:  in.ReportID,

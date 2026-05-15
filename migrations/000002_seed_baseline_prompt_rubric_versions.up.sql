@@ -105,7 +105,7 @@ Elapsed seconds: {{elapsed_seconds}}
 Return strict JSON with keys: `cue`, `severity` (one of `info`, `nudge`,
 `alert`), `dimension_hint` (string or empty).
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('52d20f6c-0d9a-57ca-93fe-5f35b5f90ea3', 'report.generate', 'v0.1.0', 'en', '0b049fd6e718df6ae7b9ddb8f3e4b92ed06b6f82e4002cab6d22b755989b9104', $body$You are an interview report writer. Produce a structured assessment from
+  ('52d20f6c-0d9a-57ca-93fe-5f35b5f90ea3', 'report.generate', 'v0.1.0', 'en', '0b7f5362054f4d553dbf638581e2494e369913c4f5cae58490d571c677054259', $body$You are an interview report writer. Produce a structured assessment from
 sanitized session metadata and turn summaries, anchored in the rubric. Respond
 in English.
 
@@ -114,11 +114,13 @@ Turn summaries: {{turn_summaries}}
 Rubric dimensions and score levels: {{rubric_dimensions}}
 
 Return strict JSON with keys summary, dimension_scores (array of objects with
-name, score, reasoning, supporting_observations), strengths, gaps,
-next_actions, retry_focus_turn_ids. Use summarized observations only; do not
-request raw interview text or direct quotes.
+name, score, reasoning, supporting_observations), highlights (array of objects
+with dimension, evidence, confidence), issues (array of objects with dimension,
+evidence, confidence), next_actions (array of objects with type, label), and
+retry_focus_turn_ids. Use summarized observations only; do not request raw
+interview text or direct quotes.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('efa7e693-993b-5e72-8da7-fde07f80bc60', 'report.generate', 'v0.1.0', 'multi', '9dd977fc3c9e83c466513f294128dae18244bd9fa70aee86a2d16983dac38e6f', $body$You are an interview report writer. Produce a structured assessment from
+  ('efa7e693-993b-5e72-8da7-fde07f80bc60', 'report.generate', 'v0.1.0', 'multi', '66cf281fe9f5aaf591c3a4658f1738710b7de2f7c804a5faa3e6d6f3eb2d7ed7', $body$You are an interview report writer. Produce a structured assessment from
 sanitized session metadata and turn summaries, anchored in the rubric. Respond
 in the language indicated by `{{language}}` (default English).
 
@@ -127,15 +129,15 @@ Turn summaries: {{turn_summaries}}
 Rubric dimensions and score levels: {{rubric_dimensions}}
 
 Return strict JSON with keys: `summary`, `dimension_scores` (array of
-`{name, score, reasoning, supporting_observations}`), `strengths` (array),
-`gaps` (array), `next_actions` (array), `retry_focus_turn_ids` (array).
-Use summarized observations only; do not request raw interview text or direct
-quotes.
+`{name, score, reasoning, supporting_observations}`), `highlights` (array of
+`{dimension, evidence, confidence}`), `issues` (array of
+`{dimension, evidence, confidence}`), `next_actions` (array of
+`{type, label}`), and `retry_focus_turn_ids` (array). Use summarized
+observations only; do not request raw interview text or direct quotes.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('bd13ab0f-b8f9-59e7-9e91-ad3955ea70d5', 'report.question_assessment', 'v0.1.0', 'en', '3a780d92ab19ded8282aa9dad87f8a2e955252dbe29d8c077c7b604542eff68a', $body$You are an interview rubric judge. Score one answered turn from sanitized
+  ('bd13ab0f-b8f9-59e7-9e91-ad3955ea70d5', 'report.question_assessment', 'v0.1.0', 'en', '9af7133465d48b2780a3479464f7a5c7665788b6a4a6dc8cecefd1be054ee480', $body$You are an interview rubric judge. Score one answered turn from sanitized
 session metadata and turn summaries; do not invent dimensions outside the
-rubric.
-Respond in English.
+rubric. Respond in English.
 
 Session metadata: {{session_metadata}}
 Turn summaries: {{turn_summaries}}
@@ -143,12 +145,14 @@ Question context: {{question_context}}
 Answer summary: {{answer_summary}}
 Rubric dimensions and score levels: {{rubric}}
 
-Return strict JSON with keys dimension_scores (array of objects with name,
-score, threshold_label, reasoning, supporting_observations), confidence (0..1),
-retry_focus_turn_ids. Use summarized observations only; do not request raw
+Return strict JSON with keys dimension_results (object keyed by rubric dimension
+name, each value containing score_level, status, confidence), overall_status,
+confidence (0..1), strengths, gaps, recommended_framework, review_status. Map
+score_level weak or developing to status needs_work, proficient to meets_bar,
+and strong to strong. Use summarized observations only; do not request raw
 interview text or direct quotes.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('4ad44434-3f9c-55d7-bea1-eacb554e10f6', 'report.question_assessment', 'v0.1.0', 'multi', '8ee4348317740a1f15f8cf9f14604eed884672e9fe87f771166e0506f7481d21', $body$You are an interview rubric judge. Score one answered turn from sanitized
+  ('4ad44434-3f9c-55d7-bea1-eacb554e10f6', 'report.question_assessment', 'v0.1.0', 'multi', '11f310127ac2eb1811476a2172458e9bd87e1dbb89f931a6a71a214bed9b0db2', $body$You are an interview rubric judge. Score one answered turn from sanitized
 session metadata and turn summaries; do not invent dimensions outside the
 rubric. Respond in the language indicated by `{{language}}` (default English).
 
@@ -158,10 +162,13 @@ Question context: {{question_context}}
 Answer summary: {{answer_summary}}
 Rubric dimensions and score levels: {{rubric}}
 
-Return strict JSON with keys: `dimension_scores` (array of
-`{name, score, threshold_label, reasoning, supporting_observations}`),
-`confidence` (0..1), `retry_focus_turn_ids` (array). Use summarized
-observations only; do not request raw interview text or direct quotes.
+Return strict JSON with keys: `dimension_results` (object keyed by rubric
+dimension name; each value contains `score_level`, `status`, `confidence`),
+`overall_status`, `confidence` (0..1), `strengths`, `gaps`,
+`recommended_framework`, and `review_status`. Map `score_level` weak or
+developing to `status` `needs_work`, proficient to `meets_bar`, and strong to
+`strong`. Use summarized observations only; do not request raw interview text or
+direct quotes.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
   ('df512597-b914-56e7-a745-7079dfd1af9c', 'resume.parse', 'v0.1.0', 'en', '922d8650ac8065aa1ab6202f0a230d5dffcbba4165d6402c489d6153ba1ee389', $body$You are a resume parser. Extract structured experience from the supplied
 resume text. Respond in English regardless of the resume's source language.

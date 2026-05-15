@@ -1,6 +1,6 @@
 # 001 — Report Generation Baseline Test Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-16
 
@@ -16,6 +16,7 @@
   - `TestGetFeedbackReportNotFoundResponseContract`
   - `TestReportsFixturesIncludeFailureAndEmptyVariants`
   - `TestF3ReportGenerateAndAssessmentPreflight`
+  - `TestAssessQuestionsMapsScoreLevelToWireStatus`
   - `TestComputeReadinessTierScoreLevelsAndDimensionStatusMapping`
   - `make codegen-check`
   - `make validate-fixtures`
@@ -61,6 +62,8 @@
 - [x] Phase 4 本计划定义的持久化 / outbox / service 编排测试项全部通过：
   - `TestPersistReportWritesQuestionAssessments`
   - `TestPersistReportFailureRetryAndPermanent`
+  - `TestPersistReportRejectsStaleStatusAndRollsBack`
+  - `TestPersistReportFailureRejectsStaleStatusAndRollsBack`
   - `TestPersistReportRedactsRawText`
   - `TestReportGeneratedPayload`
   - `TestReportGenerationFailedPayload`
@@ -80,6 +83,7 @@
   - `TestGetFeedbackReportUserScopedWithAssessments`
   - `TestGetFeedbackReportMapsNoRowsToReportNotFound`
   - `TestListTargetJobReportsCursorPagination`
+  - `TestListTargetJobReportsRequiresOwnedTarget`
   - `TestCursorEncodeDecodeRoundTrip`
   - `TestCursorRejectsTampered`
   - `TestCursorRejectsLegacyFormat`
@@ -106,6 +110,14 @@
 - [x] `TestBuildReportRuntimeRejectsMissingAIClient` 防止 report runtime 在缺少 AI client 时静默降级为只读 handler。
 - [x] `go test ./cmd/api -run 'TestBuildReportRuntime' -count=1` 通过。
 - [x] `go test ./cmd/api ./internal/review ./internal/store/review -count=1` 通过。
+
+## Report contract / persistence / privacy L2 closure
+
+- [x] `TestF3ReportGenerateAndAssessmentPreflight` 覆盖 `report.generate` / `report.question_assessment` prompt output keys 与 runtime draft struct 对齐。
+- [x] `TestAssessQuestionsMapsScoreLevelToWireStatus` 覆盖 `score_level` fallback 映射到 B2 `DimensionStatus`。
+- [x] `TestPersistReportRejectsStaleStatusAndRollsBack` / `TestPersistReportFailureRejectsStaleStatusAndRollsBack` 覆盖 stale terminal status zero-row update 回滚。
+- [x] `TestListTargetJobReportsRequiresOwnedTarget` 覆盖 target 不属于当前用户时返回 `ErrReportNotFound`。
+- [x] `TestE2EP0053ReportReadAndListing` / `TestE2EP0055ReportPrivacyAndLegacy` 覆盖 cross-user target list 404。
 
 ## 全局收口
 

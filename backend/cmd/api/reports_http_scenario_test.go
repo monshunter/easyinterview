@@ -156,6 +156,11 @@ func TestE2EP0053ReportReadAndListing(t *testing.T) {
 	if cross.Error.Code != sharederrors.CodeReportNotFound {
 		t.Fatalf("cross-user error = %+v", cross)
 	}
+	var crossList apiErrorEnvelope
+	decodeJSON(t, h.doJSON(t, reportScenarioUserBID, http.MethodGet, "/api/v1/targets/target-a/reports", http.StatusNotFound), &crossList)
+	if crossList.Error.Code != sharederrors.CodeReportNotFound {
+		t.Fatalf("cross-user target list error = %+v", crossList)
+	}
 }
 
 func TestE2EP0054ReportAIFailureAndRetry(t *testing.T) {
@@ -239,7 +244,14 @@ func TestE2EP0055ReportPrivacyAndLegacy(t *testing.T) {
 	if cross.Error.Code != sharederrors.CodeReportNotFound || strings.Contains(string(raw), privateID) {
 		t.Fatalf("cross-user response leaked report existence: %s", string(raw))
 	}
+	targetRaw := h.doJSON(t, reportScenarioUserBID, http.MethodGet, "/api/v1/targets/target-private/reports", http.StatusNotFound)
+	var crossTarget apiErrorEnvelope
+	decodeJSON(t, targetRaw, &crossTarget)
+	if crossTarget.Error.Code != sharederrors.CodeReportNotFound || strings.Contains(string(targetRaw), privateID) {
+		t.Fatalf("cross-user target list leaked report existence: %s", string(targetRaw))
+	}
 	assertNoReportScenarioLeak(t, raw, "question_text", "answer_text", "hint_text", "prompt body", "response body", "provider secret")
+	assertNoReportScenarioLeak(t, targetRaw, "question_text", "answer_text", "hint_text", "prompt body", "response body", "provider secret")
 
 	cmd := exec.Command("python3", "../../../scripts/lint/backend_review_legacy.py", "--repo-root", "../../..", "--phase", "all")
 	out, err := cmd.CombinedOutput()

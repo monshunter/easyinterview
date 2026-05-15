@@ -320,6 +320,12 @@ func (d *QuestionAssessmentDraft) normalize() {
 	if d.DimensionResults == nil {
 		d.DimensionResults = map[string]DimensionResultDraft{}
 	}
+	for key, value := range d.DimensionResults {
+		if value.Status == "" && strings.TrimSpace(value.ScoreLevel) != "" {
+			value.Status = dimensionStatusFromScoreLevel(value.ScoreLevel)
+			d.DimensionResults[key] = value
+		}
+	}
 	if d.Strengths == nil {
 		d.Strengths = []string{}
 	}

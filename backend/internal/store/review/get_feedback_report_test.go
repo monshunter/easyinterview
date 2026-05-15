@@ -152,6 +152,9 @@ func TestListTargetJobReportsCursorPagination(t *testing.T) {
 		secondCreated.Add(-time.Minute),
 		secondCreated.Add(-time.Minute),
 	)
+	mock.ExpectQuery("from target_jobs").
+		WithArgs("target-1", "user-1").
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
 	mock.ExpectQuery("from feedback_reports fr").
 		WithArgs("user-1", "target-1", firstCreated, "0197d120-0000-7000-8000-000000000501", 2).
 		WillReturnRows(rows)
@@ -168,5 +171,27 @@ func TestListTargetJobReportsCursorPagination(t *testing.T) {
 	}
 	if len(got.Items) != 1 || !got.HasMore || got.NextCursor == "" || got.PageSize != 1 {
 		t.Fatalf("list result = %+v", got)
+	}
+}
+
+func TestListTargetJobReportsRequiresOwnedTarget(t *testing.T) {
+	db, mock, cleanup := newMockReviewStore(t)
+	defer cleanup()
+	repo := reviewstore.NewRepository(db)
+
+	mock.ExpectQuery("from target_jobs").
+		WithArgs("target-cross-user", "user-1").
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+
+	_, err := repo.ListTargetJobReports(context.Background(), reviewdomain.ListTargetJobReportsInput{
+		UserID:      "user-1",
+		TargetJobID: "target-cross-user",
+		PageSize:    20,
+	})
+	if !errors.Is(err, reviewdomain.ErrReportNotFound) {
+		t.Fatalf("err = %v, want ErrReportNotFound", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
 	}
 }

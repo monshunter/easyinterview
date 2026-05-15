@@ -48,6 +48,28 @@ func TestAssessQuestionsForAllTurns(t *testing.T) {
 	}
 }
 
+func TestAssessQuestionsMapsScoreLevelToWireStatus(t *testing.T) {
+	ai := &fakeReviewAI{responses: []string{`{"dimension_results":{"depth":{"score_level":"proficient","confidence":0.75}},"overall_status":"meets_bar","confidence":0.8,"strengths":["structured"],"gaps":[],"recommended_framework":"STAR","review_status":"open"}`}}
+	svc := NewService(ServiceOptions{
+		Registry: fakePromptResolver{resolutions: map[string]registry.PromptResolution{
+			reportQuestionAssessmentFeatureKey: reportResolution(reportQuestionAssessmentFeatureKey, "report.assessment.default", "Session metadata: {{session_metadata}}\nTurn summaries: {{turn_summaries}}\nQuestion context: {{question_context}}\nAnswer summary: {{answer_summary}}\nRubric: {{rubric}}\nReturn strict JSON."),
+		}},
+		AI: ai,
+	})
+
+	got, err := svc.assessQuestionsForAllTurns(context.Background(), sampleSession(), samplePlan(), []TurnSnapshot{{
+		ID:             "turn-1",
+		TurnIndex:      1,
+		QuestionIntent: "architecture",
+	}})
+	if err != nil {
+		t.Fatalf("assessQuestionsForAllTurns: %v", err)
+	}
+	if status := got[0].DimensionResults["depth"].Status; status != sharedtypes.DimensionStatusMeetsBar {
+		t.Fatalf("score_level proficient mapped to %q, want meets_bar", status)
+	}
+}
+
 func TestAssessQuestionsBuildsPromptWithoutLeaks(t *testing.T) {
 	ai := &fakeReviewAI{responses: []string{`{"dimension_results":{"depth":{"status":"needs_work","confidence":0.5,"score":0.5}},"overall_status":"needs_work","confidence":0.5,"strengths":[],"gaps":[],"recommended_framework":"STAR","review_status":"open"}`}}
 	svc := NewService(ServiceOptions{

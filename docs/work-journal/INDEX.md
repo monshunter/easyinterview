@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-16](2026-05-16.md) | `fix(backend-review): remediate report L2 findings (BUG-0062)` | #fix #test #docs |
 | [2026-05-16](2026-05-16.md) | `fix(backend-review): wire report runner runtime (BUG-0061)` | #fix #test #docs |
 | [2026-05-16](2026-05-16.md) | `docs(retrospective): assess backend review report baseline` | #docs |
 | [2026-05-16](2026-05-16.md) | `feat(backend-review): implement report generation baseline` | #feat #test #docs |
