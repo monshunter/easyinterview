@@ -1,0 +1,145 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: frontend-report-dashboard
+  name: 001-report-screen-and-generating-handoff
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: frontend
+  discovery:
+    aliases:
+      - frontend-report-dashboard
+      - frontend-report-dashboard/001
+      - 001-report-screen-and-generating-handoff
+      - report-screen
+      - report-dashboard
+      - generating-screen
+      - generating-handoff
+      - report-generating
+    keywords:
+      - ReportScreen
+      - ReportDashboard
+      - ReportFailureState
+      - ReportMissingSessionState
+      - ReportContextStrip
+      - ReportHeader
+      - SummaryCards
+      - DetailSurface
+      - ReadinessTab
+      - DimensionsTab
+      - QuestionsTab
+      - EvidenceTab
+      - NextTab
+      - DimRow
+      - StatCard
+      - ReportStatButton
+      - GeneratingScreen
+      - HeaderHero
+      - ProgressBar
+      - PhaseList
+      - LiveEvidenceStream
+      - SlaHint
+      - GeneratingErrorState
+      - useReportGenerationPoll
+      - useFeedbackReport
+      - useReportContextData
+      - useRequestAuth
+      - goReplay
+      - goNextRound
+      - getFeedbackReport
+      - getTargetJob
+      - getResumeVersion
+      - FeedbackReport
+      - TargetJob
+      - ResumeVersion
+      - QuestionAssessment
+      - GenerationProvenance
+      - ReadinessTier
+      - DimensionStatus
+      - DimensionResult
+      - reportStatus
+      - reportId
+      - retryFocusTurnIds
+      - retry_current_round
+      - next_round
+      - review_evidence
+      - replay_practice
+      - replayItems
+      - evidenceGaps
+      - nextRoundId
+      - REPORT_NOT_FOUND
+      - REPORT_NOT_READY
+      - AI_PROVIDER_TIMEOUT
+      - AI_PROVIDER_SECRET_MISSING
+      - AI_PROVIDER_CONFIG_INVALID
+      - AI_OUTPUT_INVALID
+      - E2E.P0.056
+      - E2E.P0.057
+      - E2E.P0.058
+      - E2E.P0.059
+  targets:
+    frontend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      testPlan: ./test-plan.md
+      testChecklist: ./test-checklist.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../../ui-design/report-dashboard.md
+        - ../../../../ui-design/module-map.md
+        - ../../../../ui-design/ui-architecture.md
+        - ../../../backend-review/spec.md
+        - ../../../backend-review/plans/001-report-generation-baseline/plan.md
+        - ../../../backend-review/plans/001-report-generation-baseline/test-plan.md
+        - ../../../backend-practice/spec.md
+        - ../../../backend-practice/plans/002-event-loop-and-completion/plan.md
+        - ../../../frontend-workspace-and-practice/spec.md
+        - ../../../frontend-workspace-and-practice/plans/002-practice-text-event-loop/plan.md
+        - ../../../openapi-v1-contract/spec.md
+        - ../../../mock-contract-suite/spec.md
+        - ../../../shared-conventions-codified/spec.md
+        - ../../../frontend-shell/spec.md
+        - ../../../prompt-rubric-registry/spec.md
+        - ../../../../development.md
+      discovery:
+        packages:
+          - frontend/src/app/screens/report
+          - frontend/src/app/screens/report/hooks
+          - frontend/src/app/screens/report/components
+          - frontend/src/app/screens/report/components/tabs
+          - frontend/src/app/screens/report/__tests__
+          - frontend/src/app/screens/generating
+          - frontend/src/app/screens/generating/hooks
+          - frontend/src/app/screens/generating/components
+          - frontend/src/app/screens/generating/__tests__
+          - frontend/src/app/interview-context
+          - frontend/src/app/i18n/locales
+          - frontend/src/app/i18n/__tests__
+          - frontend/src/app/auth/pendingAction.ts
+          - frontend/src/api
+          - frontend/src/api/generated
+          - frontend/src/lib
+          - frontend/tests/pixel-parity
+          - ui-design/src
+          - openapi
+          - openapi/fixtures/Reports
+          - openapi/fixtures/TargetJobs
+          - openapi/fixtures/Resumes
+          - test/scenarios/e2e/p0-056-generating-to-report-happy-path
+          - test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b
+          - test/scenarios/e2e/p0-058-report-failure-and-missing-session
+          - test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-legacy-negative
+          - scripts/lint
+        uiRoutes:
+          - generating
+          - report
+        apiNames:
+          - getFeedbackReport
+          - getTargetJob
+          - getResumeVersion

@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: active
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-15
 
 ## 1 修订规则
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-15 | 1.20 | 授权 backend-review/001 Phase 0 pre-launch baseline rebase：(a) `getFeedbackReport` 的 404 response 显式与 `REPORT_NOT_FOUND` 关联（与 [B1 shared-conventions-codified 1.18](../shared-conventions-codified/history.md) 同 commit）；(b) `FeedbackReport` schema 新增 `errorCode: oneOf[ApiErrorCode|null]` additive 字段，用于 wire 暴露失败原因；同步 `openapi/openapi.yaml`、`openapi/baseline/openapi-v1.0.0.yaml` 与 Go/TS generated artifacts。Additive，不引入 breaking change。 | backend-review/001-report-generation-baseline Phase 0.2 / 0.4 |
 | 2026-05-13 | 1.19 | 授权 backend-practice/002 Phase 0 `PracticeTurn.status` pre-launch baseline rebase：wire enum 从 3 值扩为 `asked` / `answered` / `follow_up_requested` / `assessed` / `skipped`，同步 `openapi/openapi.yaml`、baseline 与 Go/TS generated artifacts。 | backend-practice/002 Phase 0 |
 | 2026-05-12 | 1.18 | L2 remediation：`branchResumeVersion` 的 `202` response 提升为命名 schema `BranchResumeVersionAccepted`，generated TS client 返回 `ResumeVersion | BranchResumeVersionAccepted`；显式 P0 `501` response（privacy / resume export）走 typed parse path，未声明 4xx/5xx 仍 throw。 | openapi-v1-contract/004-resume-additive-coverage Phase 6 |
 | 2026-05-12 | 1.17 | D-18 Resume Workshop additive 升级落地阶段：`openapi/openapi.yaml` / generated Go+TS / fixtures / inventory lint 已扩到 13 tag / 55 endpoint；§3.1.1 回填 #47-55，`listResumes` / `listResumeVersions` / `getResumeVersion` / `branchResumeVersion` / `updateResumeVersion` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` / `archiveResumeAsset` / `exportResumeVersion` 已冻结；`exportResumeVersion` P0 501 例外与 `RESUME_EXPORT_NOT_AVAILABLE` fixture 已纳入 gate。 | openapi-v1-contract/004-resume-additive-coverage |

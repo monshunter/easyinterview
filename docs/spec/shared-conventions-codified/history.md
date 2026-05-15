@@ -1,13 +1,14 @@
 # Shared Conventions Codified History
 
-> **版本**: 1.17
+> **版本**: 1.18
 > **状态**: active
-> **更新日期**: 2026-05-12
+> **更新日期**: 2026-05-15
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-15 | 1.18 | 授权 backend-review/001 Phase 0.1 新增 `REPORT_NOT_FOUND` 错误码（`httpStatus: 404`，`retryable: false`，`message: "feedback report not found or not accessible"`），用于 cross-user 隔离 404 响应；同步 generated Go `ErrReportNotFound` + generated TS 等价常量；与 [B2 openapi-v1-contract](../openapi-v1-contract/history.md) `FeedbackReport.errorCode` schema + `getFeedbackReport` 404 mapping 同 commit。生成错误码 +1，不引入 deprecated alias。 | backend-review/001-report-generation-baseline Phase 0.1 |
 | 2026-05-12 | 1.17 | D-10 Resume Workshop additive vocabulary 落地阶段：`shared/conventions.yaml` 新增 `ResumeVersionType` / `ResumeSeedStrategy` / `ResumeTailorSuggestionStatus` 与 `RESUME_EXPORT_NOT_AVAILABLE`；Go/TS generated conventions、parity fixture 与 lint gate 已同步，生成枚举类型 14 → 17。 | openapi-v1-contract/004-resume-additive-coverage |
 | 2026-05-11 | 1.16 | D-10 Resume Workshop additive vocabulary 声明阶段：新增 3 个生成枚举（`ResumeVersionType` / `ResumeSeedStrategy` / `ResumeTailorSuggestionStatus`）+ 1 个错误码 `RESUME_EXPORT_NOT_AVAILABLE` + 术语映射决策 UI `ResumeSource` ≡ OpenAPI `ResumeAsset`；具体 `shared/conventions.yaml` 字面量 + Go/TS generated 类型由 openapi-v1-contract/004-resume-additive-coverage 落地后再回填 14 → 17 枚举类型。 | openapi-v1-contract/004-resume-additive-coverage（声明阶段，docs-only） |
 | 2026-05-09 | 1.15 | 授权 backend-practice Phase 0 共享契约修订：`PracticeMode` 收敛为 `assisted` / `strict`，新增 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND` 错误码，并同步 `shared/conventions.yaml`、Go/TS generated errors 与 B2 OpenAPI error enum。 | backend-practice/001 Phase 0 |

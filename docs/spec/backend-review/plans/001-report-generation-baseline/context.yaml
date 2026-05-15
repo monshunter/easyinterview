@@ -1,0 +1,113 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-review
+  name: 001-report-generation-baseline
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-review
+      - backend-review/001
+      - 001-report-generation-baseline
+      - report-generation-baseline
+      - report-generation
+      - feedback-report-generation
+    keywords:
+      - report
+      - feedback_report
+      - feedback report
+      - report_generate
+      - report.generate
+      - report.question_assessment
+      - report_assessment
+      - getFeedbackReport
+      - listTargetJobReports
+      - report.generated
+      - report.generation.requested
+      - report.generation.failed
+      - report_generate job
+      - async_jobs report_generate
+      - ReadinessTier
+      - preparedness_level
+      - retry_focus_turns
+      - retry_focus_turn_ids
+      - next_action
+      - QuestionAssessment
+      - DimensionResult
+      - GenerationProvenance
+      - ai_task_runs report_generate
+      - ai_task_runs report_assessment
+      - inline review runner
+      - review.Runner
+      - review.Reaper
+      - targetjob.Drainer
+      - dual-runner
+      - locked_at
+      - attempts
+      - REPORT_NOT_FOUND
+      - REPORT_NOT_READY
+      - FeedbackReport.errorCode
+      - feedback_reports.language
+      - feedback_reports.feature_flag
+      - feedback_reports.data_source_version
+      - feedback_reports.retry_focus_turn_ids
+      - pre-launch baseline rebase
+      - graceful_degrade
+      - retry_policy
+      - exponential_backoff
+      - permanent_fail
+      - E2E.P0.052
+      - E2E.P0.053
+      - E2E.P0.054
+      - E2E.P0.055
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      testPlan: ./test-plan.md
+      testChecklist: ./test-checklist.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../backend-practice/spec.md
+        - ../../../backend-practice/plans/002-event-loop-and-completion/plan.md
+        - ../../../prompt-rubric-registry/spec.md
+        - ../../../prompt-rubric-registry/plans/001-baseline/plan.md
+        - ../../../ai-provider-and-model-routing/spec.md
+        - ../../../openapi-v1-contract/spec.md
+        - ../../../event-and-outbox-contract/spec.md
+        - ../../../db-migrations-baseline/spec.md
+        - ../../../shared-conventions-codified/spec.md
+        - ../../../observability-stack/spec.md
+        - ../../../backend-auth/spec.md
+        - ../../../frontend-report-dashboard/spec.md
+        - ../../../../ui-design/report-dashboard.md
+        - ../../../../development.md
+      discovery:
+        packages:
+          - backend/internal/review
+          - backend/internal/api/reports
+          - backend/internal/store/review
+          - backend/internal/ai/aiclient
+          - backend/internal/ai/registry
+          - backend/internal/migrations
+          - backend/internal/targetjob
+          - migrations
+          - openapi/fixtures/Reports
+          - openapi
+          - shared
+          - config/prompts/report.generate
+          - config/prompts/report.question_assessment
+          - config/rubrics/report.generate
+          - config/rubrics/report.question_assessment
+          - scripts/lint
+        apiNames:
+          - getFeedbackReport
+          - listTargetJobReports
