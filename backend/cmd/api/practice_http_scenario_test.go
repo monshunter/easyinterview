@@ -326,6 +326,7 @@ type practiceHTTPScenarioHarness struct {
 
 type practiceHTTPScenarioOptions struct {
 	ai         *scenarioPracticeAIClient
+	registry   *scenarioPracticeRegistry
 	observedAI bool
 }
 
@@ -363,6 +364,10 @@ auth:
 	if ai == nil {
 		ai = &scenarioPracticeAIClient{}
 	}
+	registryClient := opts.registry
+	if registryClient == nil {
+		registryClient = &scenarioPracticeRegistry{}
+	}
 	var aiClient aiclient.AIClient = ai.withStore(store)
 	metrics := observability.NewInMemoryRegistry()
 	aiLogs := observability.NewMemoryLogger()
@@ -383,11 +388,12 @@ auth:
 		aiClient = observed
 	}
 	service := domainpractice.NewService(domainpractice.ServiceOptions{
-		Store:    store,
-		Registry: &scenarioPracticeRegistry{},
-		AI:       aiClient,
-		Now:      fixedScenarioNow,
-		NewID:    store.nextID,
+		Store:      store,
+		Registry:   registryClient,
+		AI:         aiClient,
+		AITaskRuns: aiTaskRuns,
+		Now:        fixedScenarioNow,
+		NewID:      store.nextID,
 	})
 	practiceHandler := apipractice.NewHandler(apipractice.HandlerOptions{
 		Service:              service,
@@ -493,6 +499,8 @@ func TestE2EP0038PracticeEventLoopAnswerFlow(t *testing.T) {
 func TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T) {
 	h := newPracticeHTTPScenarioHarness(t)
 	plan := h.seedReadyScenarioPlan("practice-plan-p0-039", "target-job-p0-039-a", "resume-asset-p0-039-a", practiceHTTPScenarioUserAID)
+	plan.Mode = sharedtypes.PracticeModeStrict
+	h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeAssetID: "resume-asset-p0-039-a"}
 	started := h.startScenarioSession(t, plan.ID, "e2e-p0-039-start-session")
 	path := "/api/v1/practice/sessions/" + started.Id + "/events"
 
@@ -763,6 +771,250 @@ func TestE2EP0043PracticeEventLoopPrivacyAndLegacyNegativeSurface(t *testing.T) 
 	}
 }
 
+func TestE2EP0048PracticeHintAssistedAcrossGoals(t *testing.T) {
+	for _, goal := range []sharedtypes.PracticeGoal{sharedtypes.PracticeGoalBaseline, sharedtypes.PracticeGoalRetryCurrentRound, sharedtypes.PracticeGoalNextRound, sharedtypes.PracticeGoalDebrief} {
+		t.Run(string(goal), func(t *testing.T) {
+			ai := &scenarioPracticeAIClient{}
+			h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai, observedAI: true})
+			targetID := map[sharedtypes.PracticeGoal]string{
+				sharedtypes.PracticeGoalBaseline:          "01918fa0-0000-7000-8000-000000002048",
+				sharedtypes.PracticeGoalRetryCurrentRound: "01918fa0-0000-7000-8000-000000002148",
+				sharedtypes.PracticeGoalNextRound:         "01918fa0-0000-7000-8000-000000002248",
+				sharedtypes.PracticeGoalDebrief:           "01918fa0-0000-7000-8000-000000002348",
+			}[goal]
+			plan := h.seedReadyScenarioPlan("practice-plan-p0-048-"+string(goal), targetID, "resume-asset-p0-048-"+string(goal), practiceHTTPScenarioUserAID)
+			plan.Goal = goal
+			plan.Mode = sharedtypes.PracticeModeAssisted
+			h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeAssetID: "resume-asset-p0-048-" + string(goal)}
+			started := h.startScenarioSession(t, plan.ID, "e2e-p0-048-start-"+string(goal))
+
+			raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+				ClientEventId: "e2e-p0-048-hint-" + string(goal),
+				Kind:          "hint_requested",
+				OccurredAt:    "2026-04-28T13:47:32Z",
+				Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
+			}, http.StatusOK)
+			var out api.SessionEventResult
+			decodeJSON(t, raw, &out)
+			if out.AssistantAction.Type != "show_hint" || out.AssistantAction.Hint == nil || *out.AssistantAction.Hint == "" {
+				t.Fatalf("assisted hint should return show_hint: %+v", out.AssistantAction)
+			}
+			firstHint := *out.AssistantAction.Hint
+			if out.Session.TurnCount != 1 || out.Session.Status != sharedtypes.SessionStatusRunning {
+				t.Fatalf("hint should not advance session lifecycle: %+v", out.Session)
+			}
+			turns := h.store.turns[started.Id]
+			if len(turns) != 1 || turns[0].Status != "asked" || turns[0].TurnIndex != 1 {
+				t.Fatalf("hint should not mutate turn lifecycle: %+v", turns)
+			}
+			if got := h.store.hintTextForTurn(started.Id, started.CurrentTurn.Id); got == "" {
+				t.Fatalf("assisted hint should persist hint_text for current turn")
+			}
+			if h.store.sessionEventCount(started.Id) != 2 {
+				t.Fatalf("hint should append exactly one session event after start, got %d", h.store.sessionEventCount(started.Id))
+			}
+			if h.store.outboxCount() != 1 || h.store.auditCount() != 2 {
+				t.Fatalf("hint should not add outbox/audit rows, outbox=%d audit=%d", h.store.outboxCount(), h.store.auditCount())
+			}
+			assertNoEvidenceLeak(t, h.store.sessionEventPayloads(started.Id), *out.AssistantAction.Hint, "hint_text", "prompt body", "response body", "provider secret")
+			if len(h.aiTaskRuns.rows) == 0 || h.aiTaskRuns.rows[len(h.aiTaskRuns.rows)-1].Capability != aiclient.AITaskRunTaskHintGenerate ||
+				h.aiTaskRuns.rows[len(h.aiTaskRuns.rows)-1].ValidationStatus != aiclient.ValidationStatusOK {
+				t.Fatalf("hint ai_task_runs row missing: %+v", h.aiTaskRuns.rows)
+			}
+
+			ai.responseText = "Second hint for " + string(goal)
+			secondBody := api.PracticeSessionEventRequest{
+				ClientEventId: "e2e-p0-048-hint-second-" + string(goal),
+				Kind:          "hint_requested",
+				OccurredAt:    "2026-04-28T13:48:32Z",
+				Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
+			}
+			secondRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", secondBody, http.StatusOK)
+			var second api.SessionEventResult
+			decodeJSON(t, secondRaw, &second)
+			if second.AssistantAction.Hint == nil || *second.AssistantAction.Hint == firstHint {
+				t.Fatalf("second hint should produce an independent response: first=%q second=%+v", firstHint, second.AssistantAction)
+			}
+			replayRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+				ClientEventId: "e2e-p0-048-hint-" + string(goal),
+				Kind:          "hint_requested",
+				OccurredAt:    "2026-04-28T13:47:32Z",
+				Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
+			}, http.StatusOK)
+			var replay api.SessionEventResult
+			decodeJSON(t, replayRaw, &replay)
+			if replay.AssistantAction.Hint == nil || *replay.AssistantAction.Hint != firstHint {
+				t.Fatalf("first clientEventId replay should return original hint, first=%q replay=%+v", firstHint, replay.AssistantAction)
+			}
+			if h.store.sessionEventCount(started.Id) != 3 {
+				t.Fatalf("replay should not append a third hint event, got %d events", h.store.sessionEventCount(started.Id))
+			}
+			assertNoEvidenceLeak(t, h.store.sessionEventPayloads(started.Id), firstHint, *second.AssistantAction.Hint, "hint_text", "prompt body", "response body", "provider secret")
+		})
+	}
+}
+
+func TestE2EP0049PracticeHintStrictRefusalAcrossGoals(t *testing.T) {
+	for _, goal := range []sharedtypes.PracticeGoal{sharedtypes.PracticeGoalBaseline, sharedtypes.PracticeGoalRetryCurrentRound, sharedtypes.PracticeGoalNextRound, sharedtypes.PracticeGoalDebrief} {
+		t.Run(string(goal), func(t *testing.T) {
+			h := newPracticeHTTPScenarioHarness(t)
+			plan := h.seedReadyScenarioPlan("practice-plan-p0-049-"+string(goal), "target-job-p0-049-"+string(goal), "resume-asset-p0-049-"+string(goal), practiceHTTPScenarioUserAID)
+			plan.Goal = goal
+			plan.Mode = sharedtypes.PracticeModeStrict
+			h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeAssetID: "resume-asset-p0-049-" + string(goal)}
+			started := h.startScenarioSession(t, plan.ID, "e2e-p0-049-start-"+string(goal))
+			body := api.PracticeSessionEventRequest{
+				ClientEventId: "e2e-p0-049-hint-" + string(goal),
+				Kind:          "hint_requested",
+				OccurredAt:    "2026-04-28T13:47:32Z",
+				Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
+			}
+			raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", body, http.StatusConflict)
+			replay := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", body, http.StatusConflict)
+			if !strings.Contains(string(raw), "hint_disabled_in_mode") || !strings.Contains(string(replay), "hint_disabled_in_mode") {
+				t.Fatalf("strict hint conflict/replay missing policy: first=%s replay=%s", raw, replay)
+			}
+			if h.store.sessionEventCount(started.Id) != 2 || h.store.pendingSessionEventCount(started.Id) != 0 {
+				t.Fatalf("strict hint should finalize exactly one conflict event without pending rows: events=%d pending=%d", h.store.sessionEventCount(started.Id), h.store.pendingSessionEventCount(started.Id))
+			}
+			if got := h.store.hintTextForTurn(started.Id, started.CurrentTurn.Id); got != "" {
+				t.Fatalf("strict hint should not persist hint_text, got %q", got)
+			}
+			if h.store.sessions[started.Id].Status != sharedtypes.SessionStatusRunning || h.store.outboxCount() != 1 || h.store.auditCount() != 2 || len(h.aiTaskRuns.rows) != 0 || h.store.aiCalledInsideTransaction {
+				t.Fatalf("strict hint side effects drifted: session=%+v outbox=%d audit=%d taskRuns=%d aiInTx=%v", h.store.sessions[started.Id], h.store.outboxCount(), h.store.auditCount(), len(h.aiTaskRuns.rows), h.store.aiCalledInsideTransaction)
+			}
+		})
+	}
+}
+
+func TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns(t *testing.T) {
+	ai := &scenarioPracticeAIClient{responseText: "Use a concrete metric."}
+	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai, observedAI: true})
+	plan := h.seedReadyScenarioPlan("practice-plan-p0-050", "01918fa0-0000-7000-8000-000000002050", "resume-asset-p0-050", practiceHTTPScenarioUserAID)
+	plan.QuestionBudget = 2
+	h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeAssetID: "resume-asset-p0-050"}
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-050-start")
+	actions := make([]api.AssistantAction, 0, 5)
+	followRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-050-follow",
+		Kind:          "answer_submitted",
+		OccurredAt:    "2026-04-28T13:47:20Z",
+		Payload:       map[string]any{"turnId": started.CurrentTurn.Id, "answerText": "initial answer"},
+	}, http.StatusOK)
+	var follow api.SessionEventResult
+	decodeJSON(t, followRaw, &follow)
+	actions = append(actions, follow.AssistantAction)
+
+	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-050-hint",
+		Kind:          "hint_requested",
+		OccurredAt:    "2026-04-28T13:47:32Z",
+		Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
+	}, http.StatusOK)
+	var out api.SessionEventResult
+	decodeJSON(t, raw, &out)
+	actions = append(actions, out.AssistantAction)
+
+	skipRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-050-skip",
+		Kind:          "turn_skipped",
+		OccurredAt:    "2026-04-28T13:47:40Z",
+		Payload:       map[string]any{"turnId": started.CurrentTurn.Id, "nextQuestionText": "Next question."},
+	}, http.StatusOK)
+	var skipped api.SessionEventResult
+	decodeJSON(t, skipRaw, &skipped)
+	actions = append(actions, skipped.AssistantAction)
+
+	pauseRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-050-pause",
+		Kind:          "session_paused",
+		OccurredAt:    "2026-04-28T13:47:50Z",
+	}, http.StatusOK)
+	var paused api.SessionEventResult
+	decodeJSON(t, pauseRaw, &paused)
+	actions = append(actions, paused.AssistantAction)
+
+	completeRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+		ClientEventId: "e2e-p0-050-complete-action",
+		Kind:          "answer_submitted",
+		OccurredAt:    "2026-04-28T13:48:00Z",
+		Payload:       map[string]any{"turnId": skipped.Session.CurrentTurn.Id, "answerText": "final answer"},
+	}, http.StatusOK)
+	var completed api.SessionEventResult
+	decodeJSON(t, completeRaw, &completed)
+	actions = append(actions, completed.AssistantAction)
+
+	wantTypes := []string{"ask_follow_up", "show_hint", "ask_question", "session_wait", "session_completed"}
+	for i, action := range actions {
+		if action.Type != wantTypes[i] {
+			t.Fatalf("action[%d] type = %q, want %q", i, action.Type, wantTypes[i])
+		}
+		assertProvenanceWireOnly(t, action.Provenance)
+	}
+	rows := h.aiTaskRuns.Rows()
+	if len(rows) != 3 ||
+		rows[1].Capability != aiclient.AITaskRunTaskFollowupGenerate ||
+		rows[2].Capability != aiclient.AITaskRunTaskHintGenerate ||
+		rows[2].FeatureKey != hintFeatureKeyForScenario {
+		t.Fatalf("runtime task run should carry feature key: %+v", h.aiTaskRuns.rows)
+	}
+}
+
+func TestE2EP0051PracticeHintDegradeAndPrivacy(t *testing.T) {
+	cases := []struct {
+		name       string
+		registry   *scenarioPracticeRegistry
+		ai         *scenarioPracticeAIClient
+		wantCode   string
+		observedAI bool
+	}{
+		{name: "f3-unsupported", registry: &scenarioPracticeRegistry{errByFeature: map[string]error{hintFeatureKeyForScenario: registry.ErrPromptUnsupported}}, ai: &scenarioPracticeAIClient{}, wantCode: sharederrors.CodeAiProviderConfigInvalid},
+		{name: "secret-missing", ai: &scenarioPracticeAIClient{hintFailures: []error{sharederrors.Wrap(sharederrors.CodeAiProviderSecretMissing, "provider secret sk-test", false)}}, wantCode: sharederrors.CodeAiProviderSecretMissing, observedAI: true},
+		{name: "timeout", ai: &scenarioPracticeAIClient{hintFailures: []error{sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "timeout prompt body response body", true)}}, wantCode: sharederrors.CodeAiProviderTimeout, observedAI: true},
+		{name: "invalid-output", ai: &scenarioPracticeAIClient{rawContent: `{"hint":""}`}, wantCode: sharederrors.CodeAiOutputInvalid, observedAI: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: tc.ai, registry: tc.registry, observedAI: tc.observedAI})
+			plan := h.seedReadyScenarioPlan("practice-plan-p0-051-"+tc.name, "01918fa0-0000-7000-8000-000000002051", "resume-asset-p0-051-"+tc.name, practiceHTTPScenarioUserAID)
+			started := h.startScenarioSession(t, plan.ID, "e2e-p0-051-start-"+tc.name)
+			raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+				ClientEventId: "e2e-p0-051-hint-" + tc.name,
+				Kind:          "hint_requested",
+				OccurredAt:    "2026-04-28T13:47:32Z",
+				Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
+			}, http.StatusOK)
+			var out api.SessionEventResult
+			decodeJSON(t, raw, &out)
+			if out.AssistantAction.Type != "session_wait" || out.Session.Status != sharedtypes.SessionStatusRunning || h.store.sessions[started.Id].FailureCode != "" {
+				t.Fatalf("hint failure should gracefully degrade without failing session: out=%+v session=%+v", out, h.store.sessions[started.Id])
+			}
+			if got := h.store.hintTextForTurn(started.Id, started.CurrentTurn.Id); got != "" {
+				t.Fatalf("degrade should not persist hint_text, got %q", got)
+			}
+			rows := h.aiTaskRuns.Rows()
+			if len(rows) == 0 || rows[len(rows)-1].Capability != aiclient.AITaskRunTaskHintGenerate ||
+				rows[len(rows)-1].ValidationStatus != aiclient.ValidationStatusInvalid ||
+				rows[len(rows)-1].ErrorCode != tc.wantCode {
+				t.Fatalf("degrade should write failed hint_generate row with %s: %+v", tc.wantCode, rows)
+			}
+			evidence := mustMarshalString(t, map[string]any{
+				"session_events": h.store.sessionEvents[started.Id],
+				"ai_task_runs":   rows,
+				"audit":          h.store.auditPayloads(),
+				"outbox":         h.store.outboxPayloads(),
+				"ai_logs":        h.aiLogs.Entries(),
+				"metric_labels":  h.metrics.CounterLabelValues(observability.MetricRunsTotal),
+			})
+			for _, forbidden := range []string{"hint_text", "prompt body", "response body", "provider secret", "sk-test"} {
+				if strings.Contains(evidence, forbidden) {
+					t.Fatalf("degrade privacy surface leaked %q: %s", forbidden, evidence)
+				}
+			}
+		})
+	}
+}
+
 func (h *practiceHTTPScenarioHarness) seedReadyScenarioPlan(planID, targetJobID, resumeAssetID, userID string) domainpractice.PlanRecord {
 	h.store.prerequisiteTargetOwner[targetJobID] = userID
 	h.store.prerequisiteResumeOwner[resumeAssetID] = userID
@@ -856,12 +1108,55 @@ func mustMarshalString(t *testing.T, value any) string {
 	return string(raw)
 }
 
-type scenarioPracticeRegistry struct{}
+func assertProvenanceWireOnly(t *testing.T, provenance api.GenerationProvenance) {
+	t.Helper()
+	raw, err := json.Marshal(provenance)
+	if err != nil {
+		t.Fatalf("marshal provenance: %v", err)
+	}
+	var keys map[string]any
+	if err := json.Unmarshal(raw, &keys); err != nil {
+		t.Fatalf("unmarshal provenance: %v", err)
+	}
+	want := map[string]struct{}{
+		"promptVersion":     {},
+		"rubricVersion":     {},
+		"modelId":           {},
+		"language":          {},
+		"featureFlag":       {},
+		"dataSourceVersion": {},
+	}
+	if len(keys) != len(want) {
+		t.Fatalf("provenance key count drifted: %s", raw)
+	}
+	for key := range keys {
+		if _, ok := want[key]; !ok {
+			t.Fatalf("provenance leaked runtime key %q: %s", key, raw)
+		}
+	}
+	for _, forbidden := range []string{"featureKey", "feature_key", "modelProfileName", "model_profile_name", "provider", "cost", "latency", "capability"} {
+		if strings.Contains(string(raw), forbidden) {
+			t.Fatalf("provenance leaked runtime field %q: %s", forbidden, raw)
+		}
+	}
+}
+
+type scenarioPracticeRegistry struct {
+	errByFeature map[string]error
+}
 
 func (r *scenarioPracticeRegistry) ResolveActive(ctx context.Context, featureKey, language string) (registry.PromptResolution, error) {
+	if r != nil && r.errByFeature != nil {
+		if err := r.errByFeature[featureKey]; err != nil {
+			return registry.PromptResolution{}, err
+		}
+	}
 	profileName := "practice.first_question.default"
 	if featureKey == "practice.session.follow_up" {
 		profileName = "practice.follow_up.default"
+	}
+	if featureKey == hintFeatureKeyForScenario {
+		profileName = "practice.turn_observe.default"
 	}
 	return registry.PromptResolution{
 		FeatureKey:          featureKey,
@@ -877,12 +1172,15 @@ func (r *scenarioPracticeRegistry) ResolveActive(ctx context.Context, featureKey
 type scenarioPracticeProfileResolver struct{}
 
 func (r scenarioPracticeProfileResolver) Resolve(name string) (*aiclient.ModelProfile, error) {
-	if name != "practice.first_question.default" && name != "practice.follow_up.default" {
+	if name != "practice.first_question.default" && name != "practice.follow_up.default" && name != "practice.turn_observe.default" {
 		return nil, fmt.Errorf("missing scenario profile %q", name)
 	}
 	route := "practice.session.first_question"
 	if name == "practice.follow_up.default" {
 		route = "practice.session.follow_up"
+	}
+	if name == "practice.turn_observe.default" {
+		route = hintFeatureKeyForScenario
 	}
 	return &aiclient.ModelProfile{
 		Name:       name,
@@ -901,10 +1199,14 @@ func (r scenarioPracticeProfileResolver) Resolve(name string) (*aiclient.ModelPr
 type scenarioPracticeAIClient struct {
 	store          *scenarioPracticeStore
 	failures       []error
+	hintFailures   []error
+	rawContent     string
 	responseText   string
 	responseIntent string
 	calls          int
 }
+
+const hintFeatureKeyForScenario = "practice.turn.lightweight_observe"
 
 func (c *scenarioPracticeAIClient) withStore(store *scenarioPracticeStore) *scenarioPracticeAIClient {
 	if c == nil {
@@ -919,15 +1221,20 @@ func (c *scenarioPracticeAIClient) Complete(ctx context.Context, profileName str
 	if c.store != nil {
 		c.store.recordAIObservation()
 	}
+	if payload.Metadata.FeatureKey == hintFeatureKeyForScenario && len(c.hintFailures) > 0 {
+		err := c.hintFailures[0]
+		c.hintFailures = c.hintFailures[1:]
+		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
+	}
 	if len(c.failures) > 0 {
 		err := c.failures[0]
 		c.failures = c.failures[1:]
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
 	}
-	if profileName != "practice.first_question.default" && profileName != "practice.follow_up.default" {
+	if profileName != "practice.first_question.default" && profileName != "practice.follow_up.default" && profileName != "practice.turn_observe.default" {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("unexpected profile %q", profileName)
 	}
-	if payload.Metadata.FeatureKey != "practice.session.first_question" && payload.Metadata.FeatureKey != "practice.session.follow_up" {
+	if payload.Metadata.FeatureKey != "practice.session.first_question" && payload.Metadata.FeatureKey != "practice.session.follow_up" && payload.Metadata.FeatureKey != hintFeatureKeyForScenario {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("unexpected AI feature key: %+v", payload.Metadata)
 	}
 	if payload.Metadata.PromptVersion == "" ||
@@ -937,12 +1244,40 @@ func (c *scenarioPracticeAIClient) Complete(ctx context.Context, profileName str
 		payload.Metadata.DataSourceVersion == "" {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete AI metadata: %+v", payload.Metadata)
 	}
-	if payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskQuestionGenerate && payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskFollowupGenerate {
+	if payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskQuestionGenerate &&
+		payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskFollowupGenerate &&
+		payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskHintGenerate {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete AI task run context: %+v", payload.Metadata.TaskRun)
 	}
 	if payload.Metadata.TaskRun.ResourceType != aiclient.AITaskRunResourceTargetJob ||
 		payload.Metadata.TaskRun.ResourceID == "" {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete AI task run context: %+v", payload.Metadata.TaskRun)
+	}
+	if payload.Metadata.FeatureKey == hintFeatureKeyForScenario {
+		if c.rawContent != "" {
+			return aiclient.CompleteResponse{Content: c.rawContent}, aiclient.AICallMeta{
+				Provider:         "stub",
+				ModelFamily:      "stub",
+				ModelID:          "stub-chat-1",
+				FallbackChain:    []string{"stub/stub-chat-1"},
+				ValidationStatus: aiclient.ValidationStatusOK,
+			}, nil
+		}
+		hint := c.responseText
+		if hint == "" {
+			hint = "Anchor the answer in one measurable coordination decision."
+		}
+		content, err := json.Marshal(map[string]string{"hint": hint})
+		if err != nil {
+			return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
+		}
+		return aiclient.CompleteResponse{Content: string(content)}, aiclient.AICallMeta{
+			Provider:         "stub",
+			ModelFamily:      "stub",
+			ModelID:          "stub-chat-1",
+			FallbackChain:    []string{"stub/stub-chat-1"},
+			ValidationStatus: aiclient.ValidationStatusOK,
+		}, nil
 	}
 	questionText := c.responseText
 	if questionText == "" {
@@ -1008,6 +1343,7 @@ type scenarioPracticeStore struct {
 	plans                     map[string]scenarioPracticePlan
 	sessions                  map[string]scenarioPracticeSession
 	turns                     map[string][]domainpractice.TurnRecord
+	hintTexts                 map[string]map[string]string
 	sessionEvents             map[string][]scenarioPracticeSessionEvent
 	idempotencyRecords        map[string]scenarioPracticeIdempotencyRecord
 	completedReports          map[string]domainpractice.CompleteSessionResult
@@ -1037,6 +1373,7 @@ type scenarioPracticeSessionEvent struct {
 	EventType     string
 	ClientEventID string
 	Payload       []byte
+	replayPayload []byte
 }
 
 type scenarioOutboxEvent struct {
@@ -1064,6 +1401,7 @@ func newScenarioPracticeStore() *scenarioPracticeStore {
 		plans:                   map[string]scenarioPracticePlan{},
 		sessions:                map[string]scenarioPracticeSession{},
 		turns:                   map[string][]domainpractice.TurnRecord{},
+		hintTexts:               map[string]map[string]string{},
 		sessionEvents:           map[string][]scenarioPracticeSessionEvent{},
 		idempotencyRecords:      map[string]scenarioPracticeIdempotencyRecord{},
 		completedReports:        map[string]domainpractice.CompleteSessionResult{},
@@ -1153,9 +1491,12 @@ func (s *scenarioPracticeStore) ReserveSessionEvent(_ context.Context, in domain
 	}
 	s.inTransaction = true
 	defer func() { s.inTransaction = false }()
-	if replay, hit, err := s.sessionEventReplay(in.SessionID, in.ClientEventID, in.RequestFingerprint); err != nil {
+	if replay, replayErr, hit, err := s.sessionEventReplay(in.SessionID, in.ClientEventID, in.RequestFingerprint); err != nil {
 		return domainpractice.SessionEventReservation{}, err
 	} else if hit {
+		if replayErr != nil {
+			return domainpractice.SessionEventReservation{ReplayError: replayErr}, nil
+		}
 		return domainpractice.SessionEventReservation{ReplayResult: &replay}, nil
 	}
 	return domainpractice.SessionEventReservation{
@@ -1166,6 +1507,30 @@ func (s *scenarioPracticeStore) ReserveSessionEvent(_ context.Context, in domain
 	}, nil
 }
 
+func (s *scenarioPracticeStore) FinalizeSessionEventError(_ context.Context, in domainpractice.FinalizeSessionEventErrorInput) error {
+	session, ok := s.sessions[in.SessionID]
+	if !ok || session.UserID != in.UserID {
+		return domainpractice.ErrSessionNotFound
+	}
+	s.inTransaction = true
+	defer func() { s.inTransaction = false }()
+	payload, err := json.Marshal(scenarioAppendEventPayload{
+		RequestFingerprint: in.RequestFingerprint,
+		Error:              in.Error,
+	})
+	if err != nil {
+		return err
+	}
+	s.sessionEvents[in.SessionID] = append(s.sessionEvents[in.SessionID], scenarioPracticeSessionEvent{
+		ID:            in.EventID,
+		SeqNo:         len(s.sessionEvents[in.SessionID]) + 1,
+		EventType:     in.Kind,
+		ClientEventID: in.ClientEventID,
+		Payload:       payload,
+	})
+	return nil
+}
+
 func (s *scenarioPracticeStore) AppendSessionEvent(_ context.Context, in domainpractice.AppendSessionEventStoreInput) (domainpractice.AppendSessionEventResult, error) {
 	session, ok := s.sessions[in.SessionID]
 	if !ok || session.UserID != in.UserID {
@@ -1173,9 +1538,12 @@ func (s *scenarioPracticeStore) AppendSessionEvent(_ context.Context, in domainp
 	}
 	s.inTransaction = true
 	defer func() { s.inTransaction = false }()
-	if replay, hit, err := s.sessionEventReplay(in.SessionID, in.ClientEventID, in.RequestFingerprint); err != nil {
+	if replay, replayErr, hit, err := s.sessionEventReplay(in.SessionID, in.ClientEventID, in.RequestFingerprint); err != nil {
 		return domainpractice.AppendSessionEventResult{}, err
 	} else if hit {
+		if replayErr != nil {
+			return domainpractice.AppendSessionEventResult{}, replayErr
+		}
 		replay.Replay = true
 		return replay, nil
 	}
@@ -1186,6 +1554,16 @@ func (s *scenarioPracticeStore) AppendSessionEvent(_ context.Context, in domainp
 	latestTurn := turns[len(turns)-1]
 	if in.Outcome.NextTurn != nil {
 		turns[len(turns)-1] = *in.Outcome.NextTurn
+	}
+	if in.Outcome.AssistantAction.Type == "show_hint" && strings.TrimSpace(in.Outcome.AssistantAction.Hint) != "" {
+		turnID := strings.TrimSpace(in.Outcome.AssistantAction.TurnID)
+		if turnID == "" {
+			turnID = latestTurn.ID
+		}
+		if s.hintTexts[in.SessionID] == nil {
+			s.hintTexts[in.SessionID] = map[string]string{}
+		}
+		s.hintTexts[in.SessionID][turnID] = strings.TrimSpace(in.Outcome.AssistantAction.Hint)
 	}
 	if in.NextQuestion != nil {
 		turns = append(turns, *in.NextQuestion)
@@ -1222,7 +1600,18 @@ func (s *scenarioPracticeStore) AppendSessionEvent(_ context.Context, in domainp
 		Session:         session.SessionRecord,
 		AssistantAction: in.Outcome.AssistantAction,
 	}
+	storedResult := result
+	if storedResult.AssistantAction.Type == "show_hint" {
+		storedResult.AssistantAction.Hint = ""
+	}
 	payload, err := json.Marshal(scenarioAppendEventPayload{
+		RequestFingerprint: in.RequestFingerprint,
+		Result:             storedResult,
+	})
+	if err != nil {
+		return domainpractice.AppendSessionEventResult{}, err
+	}
+	replayPayload, err := json.Marshal(scenarioAppendEventPayload{
 		RequestFingerprint: in.RequestFingerprint,
 		Result:             result,
 	})
@@ -1235,6 +1624,7 @@ func (s *scenarioPracticeStore) AppendSessionEvent(_ context.Context, in domainp
 		EventType:     in.Kind,
 		ClientEventID: in.ClientEventID,
 		Payload:       payload,
+		replayPayload: replayPayload,
 	})
 	return result, nil
 }
@@ -1545,27 +1935,35 @@ func (s *scenarioPracticeStore) FailSessionStart(_ context.Context, in domainpra
 type scenarioAppendEventPayload struct {
 	RequestFingerprint string                                  `json:"requestFingerprint"`
 	Result             domainpractice.AppendSessionEventResult `json:"result"`
+	Error              *domainpractice.ServiceError            `json:"error,omitempty"`
 }
 
-func (s *scenarioPracticeStore) sessionEventReplay(sessionID, clientEventID, fingerprint string) (domainpractice.AppendSessionEventResult, bool, error) {
+func (s *scenarioPracticeStore) sessionEventReplay(sessionID, clientEventID, fingerprint string) (domainpractice.AppendSessionEventResult, *domainpractice.ServiceError, bool, error) {
 	if strings.TrimSpace(clientEventID) == "" {
-		return domainpractice.AppendSessionEventResult{}, false, nil
+		return domainpractice.AppendSessionEventResult{}, nil, false, nil
 	}
 	for _, event := range s.sessionEvents[sessionID] {
 		if event.ClientEventID != clientEventID {
 			continue
 		}
+		raw := event.Payload
+		if len(event.replayPayload) > 0 {
+			raw = event.replayPayload
+		}
 		var stored scenarioAppendEventPayload
-		if err := json.Unmarshal(event.Payload, &stored); err != nil {
-			return domainpractice.AppendSessionEventResult{}, true, err
+		if err := json.Unmarshal(raw, &stored); err != nil {
+			return domainpractice.AppendSessionEventResult{}, nil, true, err
 		}
 		if stored.RequestFingerprint != fingerprint {
-			return domainpractice.AppendSessionEventResult{}, true, domainpractice.ErrClientEventMismatch
+			return domainpractice.AppendSessionEventResult{}, nil, true, domainpractice.ErrClientEventMismatch
+		}
+		if stored.Error != nil {
+			return domainpractice.AppendSessionEventResult{}, stored.Error, true, nil
 		}
 		stored.Result.Replay = true
-		return stored.Result, true, nil
+		return stored.Result, nil, true, nil
 	}
-	return domainpractice.AppendSessionEventResult{}, false, nil
+	return domainpractice.AppendSessionEventResult{}, nil, false, nil
 }
 
 func (s *scenarioPracticeStore) Reserve(_ context.Context, in idempotency.ReservationInput) (idempotency.Reservation, error) {
@@ -1688,6 +2086,31 @@ func (s *scenarioPracticeStore) turnCount(sessionID string) int {
 
 func (s *scenarioPracticeStore) sessionEventCount(sessionID string) int {
 	return len(s.sessionEvents[sessionID])
+}
+
+func (s *scenarioPracticeStore) sessionEventPayloads(sessionID string) [][]byte {
+	out := make([][]byte, 0, len(s.sessionEvents[sessionID]))
+	for _, event := range s.sessionEvents[sessionID] {
+		out = append(out, append([]byte{}, event.Payload...))
+	}
+	return out
+}
+
+func (s *scenarioPracticeStore) pendingSessionEventCount(sessionID string) int {
+	count := 0
+	for _, event := range s.sessionEvents[sessionID] {
+		if strings.Contains(string(event.Payload), `"pending":true`) {
+			count++
+		}
+	}
+	return count
+}
+
+func (s *scenarioPracticeStore) hintTextForTurn(sessionID, turnID string) string {
+	if s.hintTexts[sessionID] == nil {
+		return ""
+	}
+	return s.hintTexts[sessionID][turnID]
 }
 
 func (s *scenarioPracticeStore) outboxCount() int {

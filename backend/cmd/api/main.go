@@ -23,6 +23,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/bootstrap"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	apipractice "github.com/monshunter/easyinterview/backend/internal/api/practice"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
@@ -39,6 +40,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
+	storeai "github.com/monshunter/easyinterview/backend/internal/store/ai"
 	storepractice "github.com/monshunter/easyinterview/backend/internal/store/practice"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
@@ -213,6 +215,12 @@ type practiceRoutes struct {
 	Idempotency *idempotency.Middleware
 }
 
+type discardAIAuditWriter struct{}
+
+func (discardAIAuditWriter) WriteAuditEvent(context.Context, aiclient.AuditEventRow) error {
+	return nil
+}
+
 type uploadRoutes struct {
 	Handler     *uploadhandler.Handler
 	Idempotency *idempotency.Middleware
@@ -351,12 +359,30 @@ func buildPracticeRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient
 		return practiceRoutes{}, fmt.Errorf("build practice prompt registry: %w", err)
 	}
 	store := storepractice.NewSQLRepository(db)
+	taskRuns := storeai.NewTaskRunWriter(db)
+	observedAI := ai
+	if resolverProvider, ok := ai.(interface {
+		Resolver() aiclient.ProfileResolver
+	}); ok {
+		wrapped, err := observability.New(ai,
+			observability.WithRegisterer(observability.NewInMemoryRegistry()),
+			observability.WithLogger(observability.NewMemoryLogger()),
+			observability.WithAITaskRunWriter(taskRuns),
+			observability.WithAuditEventWriter(discardAIAuditWriter{}),
+			observability.WithProfileResolver(resolverProvider.Resolver()),
+		)
+		if err != nil {
+			return practiceRoutes{}, fmt.Errorf("build practice AI observability: %w", err)
+		}
+		observedAI = wrapped
+	}
 	handler := apipractice.NewHandler(apipractice.HandlerOptions{
 		Service: domainpractice.NewService(domainpractice.ServiceOptions{
-			Store:    store,
-			Registry: registryClient,
-			AI:       ai,
-			NewID:    idx.NewID,
+			Store:      store,
+			Registry:   registryClient,
+			AI:         observedAI,
+			AITaskRuns: taskRuns,
+			NewID:      idx.NewID,
 		}),
 		Session:              currentUserFromContext,
 		IdempotencyKeyPepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),

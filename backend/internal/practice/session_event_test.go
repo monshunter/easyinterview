@@ -25,7 +25,7 @@ func TestSessionEventServiceRouteCoversAllKinds(t *testing.T) {
 		wantError  string
 	}{
 		{kind: "answer_submitted", wantAction: "ask_follow_up", wantStatus: sharedtypes.SessionStatusRunning},
-		{kind: "hint_requested", wantError: sharederrors.CodePracticeSessionConflict, wantStatus: sharedtypes.SessionStatusRunning},
+		{kind: "hint_requested", wantAction: "show_hint", wantStatus: sharedtypes.SessionStatusRunning},
 		{kind: "turn_skipped", wantAction: "ask_question", wantStatus: sharedtypes.SessionStatusRunning},
 		{kind: "session_paused", wantAction: "session_wait", wantStatus: sharedtypes.SessionStatusWaitingUserInput},
 		{kind: "session_resumed", wantAction: "session_wait", wantStatus: sharedtypes.SessionStatusRunning},
@@ -226,10 +226,9 @@ func TestRouteRejectsClosedSessionAndTerminalTurnEvents(t *testing.T) {
 	}
 }
 
-func TestHandleHintRequestedDefaultsToStrictConflict(t *testing.T) {
+func TestHandleHintRequestedModeMatrix(t *testing.T) {
 	service := SessionEventService{}
 	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
-	modes := []sharedtypes.PracticeMode{sharedtypes.PracticeModeAssisted, sharedtypes.PracticeModeStrict}
 	goals := []sharedtypes.PracticeGoal{
 		sharedtypes.PracticeGoalBaseline,
 		sharedtypes.PracticeGoalRetryCurrentRound,
@@ -237,32 +236,104 @@ func TestHandleHintRequestedDefaultsToStrictConflict(t *testing.T) {
 		sharedtypes.PracticeGoalDebrief,
 	}
 
-	for _, mode := range modes {
-		for _, goal := range goals {
-			t.Run(string(mode)+"/"+string(goal), func(t *testing.T) {
-				session := sessionEventTestSession(1)
-				plan := sessionEventTestPlan(3, goal)
-				plan.Mode = mode
-				out, err := service.Route(context.Background(), SessionEventInput{
-					SessionID:     session.ID,
-					ClientEventID: "client-event-1",
-					Kind:          "hint_requested",
-					OccurredAt:    now,
-					Payload: map[string]any{
-						"turnId": "turn-1",
-					},
-				}, session, sessionEventTestTurn(1), plan)
-				if err != nil {
-					t.Fatalf("Route returned error: %v", err)
-				}
-				if out.Error == nil || out.Error.Code != sharederrors.CodePracticeSessionConflict {
-					t.Fatalf("Error = %+v, want PRACTICE_SESSION_CONFLICT", out.Error)
-				}
-				if out.Error.Details["policy"] != "hint_disabled_in_mode" || out.Error.Details["mode"] != string(mode) {
-					t.Fatalf("unexpected details: %+v", out.Error.Details)
-				}
-			})
-		}
+	for _, goal := range goals {
+		t.Run("assisted/"+string(goal), func(t *testing.T) {
+			session := sessionEventTestSession(1)
+			plan := sessionEventTestPlan(3, goal)
+			plan.Mode = sharedtypes.PracticeModeAssisted
+			out, err := service.Route(context.Background(), SessionEventInput{
+				SessionID:     session.ID,
+				ClientEventID: "client-event-1",
+				Kind:          "hint_requested",
+				OccurredAt:    now,
+				Payload: map[string]any{
+					"turnId": "turn-1",
+				},
+			}, session, sessionEventTestTurn(1), plan)
+			if err != nil {
+				t.Fatalf("Route returned error: %v", err)
+			}
+			if out.Error != nil {
+				t.Fatalf("unexpected assisted error: %+v", out.Error)
+			}
+			if out.AssistantAction.Type != assistantActionShowHint || !out.AssistantAction.RequiresAI {
+				t.Fatalf("AssistantAction = %+v, want show_hint requiring AI", out.AssistantAction)
+			}
+			if out.NextSessionStatus != session.Status || out.OutboxRecord != nil || out.NextTurn != nil {
+				t.Fatalf("hint should preserve lifecycle: %+v", out)
+			}
+		})
+
+		t.Run("strict/"+string(goal), func(t *testing.T) {
+			session := sessionEventTestSession(1)
+			plan := sessionEventTestPlan(3, goal)
+			plan.Mode = sharedtypes.PracticeModeStrict
+			out, err := service.Route(context.Background(), SessionEventInput{
+				SessionID:     session.ID,
+				ClientEventID: "client-event-1",
+				Kind:          "hint_requested",
+				OccurredAt:    now,
+				Payload: map[string]any{
+					"turnId": "turn-1",
+				},
+			}, session, sessionEventTestTurn(1), plan)
+			if err != nil {
+				t.Fatalf("Route returned error: %v", err)
+			}
+			if out.Error == nil || out.Error.Code != sharederrors.CodePracticeSessionConflict {
+				t.Fatalf("Error = %+v, want PRACTICE_SESSION_CONFLICT", out.Error)
+			}
+			if out.Error.Details["policy"] != "hint_disabled_in_mode" || out.Error.Details["mode"] != string(sharedtypes.PracticeModeStrict) {
+				t.Fatalf("unexpected details: %+v", out.Error.Details)
+			}
+		})
+	}
+
+	for _, mode := range []sharedtypes.PracticeMode{"", "legacy debrief replay value"} {
+		t.Run("unknown/"+string(mode), func(t *testing.T) {
+			session := sessionEventTestSession(1)
+			plan := sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline)
+			plan.Mode = mode
+			out, err := service.Route(context.Background(), SessionEventInput{
+				SessionID:     session.ID,
+				ClientEventID: "client-event-1",
+				Kind:          "hint_requested",
+				OccurredAt:    now,
+				Payload: map[string]any{
+					"turnId": "turn-1",
+				},
+			}, session, sessionEventTestTurn(1), plan)
+			if err != nil {
+				t.Fatalf("Route returned error: %v", err)
+			}
+			if out.Error == nil || out.Error.Code != sharederrors.CodePracticeSessionConflict {
+				t.Fatalf("Error = %+v, want PRACTICE_SESSION_CONFLICT", out.Error)
+			}
+		})
+	}
+}
+
+func TestHandleHintRequestedTurnLifecycle(t *testing.T) {
+	service := SessionEventService{}
+	session := sessionEventTestSession(1)
+	plan := sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline)
+	plan.Mode = sharedtypes.PracticeModeAssisted
+	out, err := service.Route(context.Background(), SessionEventInput{
+		SessionID:     session.ID,
+		ClientEventID: "client-event-1",
+		Kind:          "hint_requested",
+		OccurredAt:    time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC),
+		Payload:       map[string]any{"turnId": "turn-1"},
+	}, session, sessionEventTestTurn(1), plan)
+	if err != nil {
+		t.Fatalf("Route returned error: %v", err)
+	}
+	if out.OutboxRecord != nil || out.NextTurn != nil || out.NextSessionStatus != session.Status {
+		t.Fatalf("hint should not advance turn/session lifecycle: %+v", out)
+	}
+	want := map[string]any{"event_kind": sessionEventKindHintRequested, "mode": "assisted"}
+	if !reflect.DeepEqual(out.AuditMetadata, want) {
+		t.Fatalf("AuditMetadata = %+v, want %+v", out.AuditMetadata, want)
 	}
 }
 
@@ -310,6 +381,84 @@ func TestStaticAssistantActionProvenanceUsesB2WireFields(t *testing.T) {
 		if got[key] == "" {
 			t.Fatalf("provenance field %s must be populated", key)
 		}
+	}
+}
+
+func TestAssistantActionProvenanceFieldsAreWireOnly(t *testing.T) {
+	got := reflect.TypeOf(AssistantActionProvenance{})
+	fields := make(map[string]string, got.NumField())
+	for i := 0; i < got.NumField(); i++ {
+		field := got.Field(i)
+		fields[field.Name] = field.Tag.Get("json")
+	}
+	want := map[string]string{
+		"PromptVersion":     "promptVersion",
+		"RubricVersion":     "rubricVersion",
+		"ModelID":           "modelId",
+		"Language":          "language",
+		"FeatureFlag":       "featureFlag",
+		"DataSourceVersion": "dataSourceVersion",
+	}
+	if !reflect.DeepEqual(fields, want) {
+		t.Fatalf("provenance fields = %+v, want %+v", fields, want)
+	}
+	for _, forbidden := range []string{"FeatureKey", "ModelProfileName", "Provider", "Cost", "Latency"} {
+		if _, ok := fields[forbidden]; ok {
+			t.Fatalf("runtime field %s must not be exposed on wire provenance", forbidden)
+		}
+	}
+}
+
+func TestAssistantActionProvenanceJSONShape(t *testing.T) {
+	raw, err := json.Marshal(AssistantActionProvenance{
+		PromptVersion:     "p",
+		RubricVersion:     "not_applicable",
+		ModelID:           "model-profile:practice.turn_observe.default",
+		Language:          "en",
+		FeatureFlag:       "none",
+		DataSourceVersion: "registry.v1",
+	})
+	if err != nil {
+		t.Fatalf("marshal provenance: %v", err)
+	}
+	var got map[string]string
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatalf("unmarshal provenance: %v", err)
+	}
+	wantKeys := []string{"dataSourceVersion", "featureFlag", "language", "modelId", "promptVersion", "rubricVersion"}
+	if !reflect.DeepEqual(sortedKeys(got), wantKeys) {
+		t.Fatalf("provenance keys = %v, want %v", sortedKeys(got), wantKeys)
+	}
+	if got["rubricVersion"] != "not_applicable" {
+		t.Fatalf("non-scoring action rubric version = %q", got["rubricVersion"])
+	}
+}
+
+func TestAssistantActionProvenanceCrossActionParity(t *testing.T) {
+	service := SessionEventService{}
+	actions := []string{
+		assistantActionShowHint,
+		assistantActionAskQuestion,
+		assistantActionAskFollowUp,
+		assistantActionSessionWait,
+		assistantActionSessionCompleted,
+	}
+	wantKeys := []string{"dataSourceVersion", "featureFlag", "language", "modelId", "promptVersion", "rubricVersion"}
+	for _, action := range actions {
+		t.Run(action, func(t *testing.T) {
+			record := service.assistantAction(action, "turn-1", "question", "intent", sharedtypes.SessionStatusRunning, "en", false)
+			raw, err := json.Marshal(record.Provenance)
+			if err != nil {
+				t.Fatalf("marshal provenance: %v", err)
+			}
+			var got map[string]string
+			if err := json.Unmarshal(raw, &got); err != nil {
+				t.Fatalf("unmarshal provenance: %v", err)
+			}
+			if !reflect.DeepEqual(sortedKeys(got), wantKeys) {
+				t.Fatalf("action %s provenance keys = %v, want %v", action, sortedKeys(got), wantKeys)
+			}
+		})
 	}
 }
 

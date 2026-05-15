@@ -40,6 +40,7 @@ type Store interface {
 	GetPlan(ctx context.Context, userID, planID string) (PlanRecord, error)
 	GetSession(ctx context.Context, userID, sessionID string) (SessionRecord, error)
 	ReserveSessionEvent(ctx context.Context, in SessionEventReservationInput) (SessionEventReservation, error)
+	FinalizeSessionEventError(ctx context.Context, in FinalizeSessionEventErrorInput) error
 	AppendSessionEvent(ctx context.Context, in AppendSessionEventStoreInput) (AppendSessionEventResult, error)
 	CompleteSession(ctx context.Context, in CompleteSessionStoreInput) (CompleteSessionResult, error)
 	ReserveSessionStart(ctx context.Context, in StartSessionReservationInput) (SessionReservation, error)
@@ -52,19 +53,21 @@ type PromptResolver interface {
 }
 
 type ServiceOptions struct {
-	Store    Store
-	Registry PromptResolver
-	AI       aiclient.AIClient
-	Now      func() time.Time
-	NewID    func() string
+	Store         Store
+	Registry      PromptResolver
+	AI            aiclient.AIClient
+	AITaskRuns    aiclient.AITaskRunWriter
+	Now           func() time.Time
+	NewID         func() string
 }
 
 type Service struct {
-	store    Store
-	registry PromptResolver
-	ai       aiclient.AIClient
-	now      func() time.Time
-	newID    func() string
+	store      Store
+	registry   PromptResolver
+	ai         aiclient.AIClient
+	aiTaskRuns aiclient.AITaskRunWriter
+	now        func() time.Time
+	newID      func() string
 }
 
 func NewService(opts ServiceOptions) *Service {
@@ -76,7 +79,7 @@ func NewService(opts ServiceOptions) *Service {
 	if newID == nil {
 		newID = idx.NewID
 	}
-	return &Service{store: opts.Store, registry: opts.Registry, ai: opts.AI, now: now, newID: newID}
+	return &Service{store: opts.Store, registry: opts.Registry, ai: opts.AI, aiTaskRuns: opts.AITaskRuns, now: now, newID: newID}
 }
 
 type CreatePlanRequest struct {

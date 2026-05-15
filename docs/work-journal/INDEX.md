@@ -8,7 +8,11 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-15](2026-05-15.md) | `fix(backend-practice): preserve append event replay snapshots` | #fix #test #docs |
 | [2026-05-15](2026-05-15.md) | `docs(report-dashboard): add backend and frontend baseline plans` | #docs #ui |
+| [2026-05-15](2026-05-15.md) | `fix(backend-practice): harden hint strict replay gates` | #fix #test #docs |
+| [2026-05-15](2026-05-15.md) | `fix(backend-practice): remediate hint provenance L2 findings` | #fix #test #docs |
+| [2026-05-14](2026-05-14.md) | `feat(backend-practice): implement mode policies and hint provenance` | #feat #test #docs |
 | [2026-05-14](2026-05-14.md) | `fix(frontend-practice): remediate practice event loop L2 findings` | #fix #ui #test #docs |
 | [2026-05-14](2026-05-14.md) | `docs(skills): align design branch prefix with repo convention` | #docs |
 | [2026-05-14](2026-05-14.md) | `docs(backend-practice): kickoff mode policies plan and narrow assistive ai` | #docs |

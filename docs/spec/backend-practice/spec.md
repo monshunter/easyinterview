@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-05-14
+> **更新日期**: 2026-05-15
 
 ## 1 背景与目标
 
@@ -210,7 +210,7 @@
 | C-23 | idempotency 跨用户隔离 | 用户 A 与用户 B 使用相同 `Idempotency-Key` | 两人分别调用同一副作用 endpoint | 两个用户的 idempotency records 独立；用户 B 不能拿到用户 A 的 response/resource；各自 user-scoped 副作用按权限执行 | 001 + 002 |
 | C-24 | idempotency 并发单执行者 | 同一用户两个 tab 同时提交同 endpoint + 同 key + 同 fingerprint | 并发请求进入 handler | DB 唯一约束 / row lock 保证只有一个执行者；另一个请求等待 replay 或返回 retryable pending 状态；最终只产生一份业务副作用 | 001 + 002 |
 | C-25 | startPracticeSession 同 plan 多 key 并发 | 同一 ready plan 被同一用户两个不同 `Idempotency-Key` 同时启动 | 两个 `POST /practice/sessions` 并发 | 最多一个 active/running session；另一个返回 `PRACTICE_SESSION_CONFLICT` 或复用既有 active session（由 001 plan 锁定），不得绕过 idempotency 生成双 session | 001 |
-| C-26 | appendSessionEvent clientEventId replay / mismatch | session 已处理某 `clientEventId` | 同 payload 重试，或同 `clientEventId` 换 `kind/payload` 重试 | 同 payload 返回首次 `SessionEventResult`，不重复写 event / 不重复触发 AI；payload mismatch 返回 conflict；不同 session 可独立使用相同 clientEventId；携带 `Idempotency-Key` header 被拒绝 | 002 |
+| C-26 | appendSessionEvent clientEventId replay / mismatch | session 已处理某 `clientEventId` | 同 payload 重试，或同 `clientEventId` 换 `kind/payload` 重试 | 同 payload 返回首次 `SessionEventResult`，不重复写 event / 不重复触发 AI；payload mismatch 返回 conflict；不同 session 可独立使用相同 clientEventId；携带 `Idempotency-Key` header 被拒绝；`show_hint` replay 必须绑定原事件 response snapshot，不得从后续可变的 `practice_turns.hint_text` 重建 | 002 + 003 L2 |
 | C-27 | completePracticeSession D-22 去重 | session 首次 complete 已创建 queued report/job/outbox | 同 key、不同 key、或 outbox 重放再次触发 report generation handoff | 同 key 返回同一 `ReportWithJob`；不同 key 不创建第二个 report/job（返回既有结果或 conflict，由 002 plan 锁定）；outbox 重放只查找既有 job 或被 dedupe key 拦截；事务失败不留下 session=`completing` 但无 report/job 的半状态 | 002 |
 
 ## 7 关联计划

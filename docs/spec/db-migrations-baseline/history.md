@@ -1,6 +1,6 @@
 # DB Migrations Baseline History
 
-> **版本**: 1.17
+> **版本**: 1.19
 > **状态**: active
 > **更新日期**: 2026-05-15
 
@@ -8,7 +8,9 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
-| 2026-05-15 | 1.17 | 授权 backend-review/001 Phase 0 pre-launch baseline rebase（同 commit）：(a) `migrations/000001_create_baseline.up.sql` 中 `ai_task_runs.task_type` CHECK 扩值 `report_assessment`（与 `report_generate` 并列）；(b) `feedback_reports` 表新增 4 列 `language text NOT NULL DEFAULT 'en'` / `feature_flag text NOT NULL DEFAULT 'none'` / `data_source_version text NOT NULL DEFAULT 'not_applicable'` / `retry_focus_turn_ids jsonb NOT NULL DEFAULT '[]'::jsonb`，使 wire `GenerationProvenance` 6 字段可由 `feedback_reports` 单表 round-trip。同步 `migrations/enum-sources.yaml`、`migrations/lint.sh`、`backend/internal/ai/aiclient/writers.go` 的 `AITaskRunTaskReportAssessment` 常量与 `allowedAITaskRunCapabilities` 集合。Additive 默认值不破坏既有数据；与 [B1 1.18](../shared-conventions-codified/history.md) + [B2 1.20](../openapi-v1-contract/history.md) 同 commit 闭合 plan-review --fix。 | backend-review/001-report-generation-baseline Phase 0.3 / 0.5 |
+| 2026-05-15 | 1.19 | 登记 backend-review/001 Phase 0 pre-launch baseline rebase 授权：在该 plan 实施时补齐 `ai_task_runs.task_type` 的 `report_assessment`、`feedback_reports` 的 `language` / `feature_flag` / `data_source_version` / `retry_focus_turn_ids`，并同步 `migrations/enum-sources.yaml`、`migrations/lint.sh`、`backend/internal/ai/aiclient/writers.go` 的 report assessment capability gate；该授权接在 backend-practice/003 已占用的 1.17/1.18 之后，避免 merge 后版本冲突。 | backend-review/001-report-generation-baseline Phase 0.3 / 0.5 |
+| 2026-05-15 | 1.18 | 授权 backend-practice/003 L2 follow-up 在 pre-launch baseline 的 `practice_session_events` 上新增 nullable `replay_payload jsonb`，把 redacted event payload 与 `appendSessionEvent` clientEventId replay snapshot 分离；`payload` 继续不含 hint / question / answer / prompt / response 明文，`replay_payload` 仅服务同事件结果重放并随事件级联删除。 | backend-practice/003-mode-policies-and-provenance L2 replay follow-up |
+| 2026-05-14 | 1.17 | 授权 backend-practice/003 Phase 0 将 `ai_task_runs.task_type` CHECK 扩值 `hint_generate`（pre-launch baseline rebase）；hint 路径 AI 调用持久化到 ai_task_runs typed columns，graceful degrade 时 `validation_status='failed'` 仍写一行（A3 callErr 路径由 decorator 写，F3 resolve / parse-after-success 路径由 applyHintAI 显式写）。 | backend-practice/003-mode-policies-and-provenance Phase 0 |
 | 2026-05-12 | 1.16 | L2 remediation：`resume_versions` live integration test cleanup 改为按 FK 顺序删除 suggestions / versions / tailor runs / target jobs / assets / users，并把清理错误作为测试失败；新增 C-14 rerun-safe cleanup gate。 | db-migrations-baseline/002-resume-versions-additive Phase 5 |
 | 2026-05-12 | 1.15 | D-17 Resume Workshop additive 表与字段落地阶段：新增 `migrations/000005_resume_versions.{up,down}.sql`，实际创建 `resume_versions` / `resume_version_suggestions` 2 张表、`resume_assets` 4 个 additive 字段、4 项 enum-source 登记、privacy deletion matrix 与 baseline inventory 回填；当前 P0 应用表升至 28 张。 | db-migrations-baseline/002-resume-versions-additive |
 | 2026-05-11 | 1.14 | D-17 Resume Workshop additive 表与字段声明阶段：拟新增 `resume_versions` / `resume_version_suggestions` 2 张表 + `resume_assets` additive 字段（`source_type` / `original_text` / `guided_answers` / `parsed_text_snapshot`）；同步声明 §3.1.2 privacy deletion matrix 与 §2.1 baseline 表 inventory（26 → 28，`resume_version_edits` 归 P1 延后）；具体 migration up/down + idx + enum-sources 同步由 002 plan 落地。 | db-migrations-baseline/002-resume-versions-additive（声明阶段，docs-only） |

@@ -46,6 +46,16 @@ def test_phase3_flags_retired_terms_on_practice_surfaces(tmp_path: Path) -> None
     assert problems == [f"{path}:1: retired backend-practice term 'single_drill'"]
 
 
+def test_phase3_scans_backend_practice_003_scenario_assets(tmp_path: Path) -> None:
+    path = tmp_path / "test/scenarios/e2e/p0-048-practice-hint-assisted-across-goals/data/expected-outcome.md"
+    path.parent.mkdir(parents=True)
+    path.write_text("legacy_hint_policy\n", encoding="utf-8")
+
+    problems = backend_practice_legacy.scan_phase3_paths([path], tmp_path)
+
+    assert problems == [f"{path}:1: retired backend-practice term 'legacy_hint_policy'"]
+
+
 def test_phase3_ignores_owner_plan_gate_wording(tmp_path: Path) -> None:
     path = tmp_path / "docs/spec/backend-practice/plans/001-plan-and-session-orchestration/checklist.md"
     path.parent.mkdir(parents=True)

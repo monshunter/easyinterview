@@ -49,6 +49,17 @@ class TestPlanCodeReviewSkill:
         assert "go test -list" in text
         assert "executed at least one intended test" in text
 
+    def test_reviews_scenario_wrappers_as_process_success_evidence(self):
+        text = _skill_text()
+        assert "Treat scenario wrapper scripts as evidence artifacts" in text
+        assert "Do not stop after reading the Go test body" in text
+        assert "preserves the real test process exit status" in text
+        assert "`go test | tee`" in text
+        assert "`--- PASS`" in text
+        assert "package-level `ok`" in text
+        assert "reject `--- FAIL`, package `FAIL`, and `no tests to run`" in text
+        assert "merely grepping a test name or package path" in text
+
     def test_review_reconstructs_coverage_matrix_against_current_artifacts(self):
         text = _skill_text()
         assert "Reconstruct the expected coverage matrix" in text

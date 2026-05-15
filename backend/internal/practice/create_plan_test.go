@@ -95,6 +95,8 @@ type recordingPlanStore struct {
 	eventReservationInput SessionEventReservationInput
 	eventReservation      SessionEventReservation
 	eventReserveErr       error
+	finalizeEventError    FinalizeSessionEventErrorInput
+	finalizeEventErrorErr error
 	appendEvent           AppendSessionEventStoreInput
 	appendEventErr        error
 	complete              CompleteSessionStoreInput
@@ -155,6 +157,14 @@ func (s *recordingPlanStore) ReserveSessionEvent(ctx context.Context, in Session
 	}
 	s.eventReservation.UserID = in.UserID
 	return s.eventReservation, nil
+}
+
+func (s *recordingPlanStore) FinalizeSessionEventError(ctx context.Context, in FinalizeSessionEventErrorInput) error {
+	s.steps = append(s.steps, "finalize-event-error")
+	s.inTx = true
+	defer func() { s.inTx = false }()
+	s.finalizeEventError = in
+	return s.finalizeEventErrorErr
 }
 
 func (s *recordingPlanStore) AppendSessionEvent(ctx context.Context, in AppendSessionEventStoreInput) (AppendSessionEventResult, error) {

@@ -44,6 +44,19 @@ type SessionEventReservation struct {
 	Plan         PlanRecord
 	LatestTurn   TurnRecord
 	ReplayResult *AppendSessionEventResult
+	ReplayError  *ServiceError
+}
+
+type FinalizeSessionEventErrorInput struct {
+	EventID            string
+	UserID             string
+	SessionID          string
+	ClientEventID      string
+	Kind               string
+	OccurredAt         time.Time
+	RequestFingerprint string
+	RequestPayload     map[string]any
+	Error              *ServiceError
 }
 
 type AppendSessionEventStoreInput struct {
@@ -129,6 +142,9 @@ func (s *Service) AppendSessionEvent(ctx context.Context, in AppendSessionEventR
 	if err != nil {
 		return AppendSessionEventResult{}, err
 	}
+	if reservation.ReplayError != nil {
+		return AppendSessionEventResult{}, reservation.ReplayError
+	}
 	if reservation.ReplayResult != nil {
 		replay := *reservation.ReplayResult
 		replay.Replay = true
@@ -152,9 +168,24 @@ func (s *Service) AppendSessionEvent(ctx context.Context, in AppendSessionEventR
 		return AppendSessionEventResult{}, err
 	}
 	if outcome.Error != nil {
+		if err := s.store.FinalizeSessionEventError(ctx, FinalizeSessionEventErrorInput{
+			EventID:            eventID,
+			UserID:             userID,
+			SessionID:          sessionID,
+			ClientEventID:      clientEventID,
+			Kind:               kind,
+			OccurredAt:         occurredAt,
+			RequestFingerprint: fingerprint,
+			RequestPayload:     payload,
+			Error:              outcome.Error,
+		}); err != nil {
+			return AppendSessionEventResult{}, err
+		}
 		return AppendSessionEventResult{}, outcome.Error
 	}
-	if outcome.AssistantAction.RequiresAI {
+	if outcome.AssistantAction.Type == assistantActionShowHint && outcome.AssistantAction.RequiresAI {
+		s.applyHintAI(ctx, reservation, payload, &outcome)
+	} else if outcome.AssistantAction.RequiresAI {
 		s.applyFollowUpAI(ctx, reservation, payload, &outcome)
 	}
 	nextQuestion := s.prepareNextQuestion(reservation, payload, &outcome)

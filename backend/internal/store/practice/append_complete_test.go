@@ -3,12 +3,15 @@ package practice
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	domain "github.com/monshunter/easyinterview/backend/internal/practice"
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedevents "github.com/monshunter/easyinterview/backend/internal/shared/events"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
@@ -62,7 +65,7 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 	expectAppendContext(mock, now)
 	mock.ExpectQuery(`select payload`).
 		WithArgs(in.SessionID, in.ClientEventID).
-		WillReturnRows(sqlmock.NewRows([]string{"payload"}).AddRow([]byte(`{"requestFingerprint":"fingerprint-1","pending":true}`)))
+		WillReturnRows(sqlmock.NewRows([]string{"payload", "replay_payload"}).AddRow([]byte(`{"requestFingerprint":"fingerprint-1","pending":true}`), nil))
 	mock.ExpectExec(`update practice_turns`).
 		WithArgs(string(domain.TurnStatusAssessed), "answer", 1, now, now, now, in.SessionID, "turn-1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -73,7 +76,7 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 		WithArgs(in.OutboxEventID, string(sharedevents.EventNamePracticeTurnCompleted), "turn-1", sqlmock.AnyArg(), now).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`update practice_session_events`).
-		WithArgs(sqlmock.AnyArg(), in.SessionID, in.ClientEventID, in.EventID).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), in.SessionID, in.ClientEventID, in.EventID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
@@ -83,6 +86,192 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 	}
 	if !result.Acknowledged || result.Session.Status != sharedtypes.SessionStatusCompleted {
 		t.Fatalf("unexpected result: %+v", result)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 4, 28, 13, 47, 32, 0, time.UTC)
+	in := domain.AppendSessionEventStoreInput{
+		EventID:            "event-1",
+		OutboxEventID:      "outbox-1",
+		UserID:             "user-1",
+		SessionID:          "session-1",
+		ClientEventID:      "client-event-1",
+		Kind:               "hint_requested",
+		OccurredAt:         now,
+		RequestFingerprint: "fingerprint-1",
+		RequestPayload:     map[string]any{"turnId": "turn-1"},
+		Outcome: domain.SessionEventOutcome{
+			Acknowledged:      true,
+			NextSessionStatus: sharedtypes.SessionStatusRunning,
+			AssistantAction: domain.AssistantActionRecord{
+				Type:          "show_hint",
+				TurnID:        "turn-1",
+				Hint:          "Use one measurable tradeoff.",
+				SessionStatus: sharedtypes.SessionStatusRunning,
+				Provenance:    domain.AssistantActionProvenance{PromptVersion: "p", RubricVersion: "not_applicable", ModelID: "model-profile:practice.turn_observe.default", Language: "en", FeatureFlag: "none", DataSourceVersion: "registry.v1"},
+			},
+		},
+	}
+
+	mock.ExpectBegin()
+	expectAppendContext(mock, now)
+	mock.ExpectQuery(`select payload`).
+		WithArgs(in.SessionID, in.ClientEventID).
+		WillReturnRows(sqlmock.NewRows([]string{"payload", "replay_payload"}).AddRow([]byte(`{"requestFingerprint":"fingerprint-1","pending":true}`), nil))
+	mock.ExpectExec(`update practice_turns\s+set hint_text`).
+		WithArgs("Use one measurable tradeoff.", now, in.SessionID, "turn-1").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`update practice_sessions`).
+		WithArgs(string(sharedtypes.SessionStatusRunning), int32(1), now, in.SessionID, in.UserID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`update practice_session_events`).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), in.SessionID, in.ClientEventID, in.EventID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	result, err := repo.AppendSessionEvent(context.Background(), in)
+	if err != nil {
+		t.Fatalf("AppendSessionEvent returned error: %v", err)
+	}
+	if result.AssistantAction.Hint != "Use one measurable tradeoff." || result.Session.TurnCount != 1 {
+		t.Fatalf("unexpected result: %+v", result)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestMarshalAppendEventErrorPayloadSanitizesRequestPayload(t *testing.T) {
+	raw, err := marshalAppendEventErrorPayload(domain.FinalizeSessionEventErrorInput{
+		RequestFingerprint: "fingerprint-1",
+		RequestPayload: map[string]any{
+			"turnId":     "turn-secret",
+			"answerText": "confidential answer",
+		},
+		Error: &domain.ServiceError{
+			Code:    sharederrors.CodePracticeSessionConflict,
+			Message: "hints are disabled for strict practice mode",
+			Details: map[string]any{
+				"mode":   "strict",
+				"policy": "hint_disabled_in_mode",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("marshalAppendEventErrorPayload returned error: %v", err)
+	}
+	payload := string(raw)
+	for _, forbidden := range []string{"requestPayload", "turn-secret", "confidential answer", `"result"`} {
+		if strings.Contains(payload, forbidden) {
+			t.Fatalf("payload leaked %q: %s", forbidden, payload)
+		}
+	}
+
+	var decoded appendEventPayload
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatalf("decode sanitized payload: %v", err)
+	}
+	if decoded.RequestFingerprint != "fingerprint-1" {
+		t.Fatalf("requestFingerprint = %q", decoded.RequestFingerprint)
+	}
+	if decoded.Error == nil || decoded.Error.Code != sharederrors.CodePracticeSessionConflict {
+		t.Fatalf("unexpected error envelope: %+v", decoded.Error)
+	}
+	if decoded.Error.Details["policy"] != "hint_disabled_in_mode" {
+		t.Fatalf("unexpected error details: %+v", decoded.Error.Details)
+	}
+}
+
+func TestMarshalAppendEventPayloadRedactsHintButReplayPayloadKeepsSnapshot(t *testing.T) {
+	now := time.Date(2026, 4, 28, 13, 47, 32, 0, time.UTC)
+	result := domain.AppendSessionEventResult{
+		Acknowledged: true,
+		Session: domain.SessionRecord{
+			ID:           "session-1",
+			PlanID:       "plan-1",
+			TargetJobID:  "target-1",
+			Status:       sharedtypes.SessionStatusRunning,
+			Language:     "en",
+			HintsEnabled: true,
+			TurnCount:    1,
+			CurrentTurn: &domain.TurnRecord{
+				ID:             "turn-1",
+				TurnIndex:      1,
+				QuestionText:   "Question?",
+				QuestionIntent: "behavioral",
+				Status:         string(domain.TurnStatusAsked),
+				AskedAt:        now.Add(-time.Minute),
+			},
+			CreatedAt: now.Add(-time.Hour),
+			UpdatedAt: now,
+		},
+		AssistantAction: domain.AssistantActionRecord{
+			Type:          "show_hint",
+			TurnID:        "turn-1",
+			Hint:          "Original per-event hint.",
+			SessionStatus: sharedtypes.SessionStatusRunning,
+			Provenance:    domain.AssistantActionProvenance{PromptVersion: "p", RubricVersion: "not_applicable", ModelID: "model-profile:practice.turn_observe.default", Language: "en", FeatureFlag: "none", DataSourceVersion: "registry.v1"},
+		},
+	}
+	in := domain.AppendSessionEventStoreInput{
+		RequestFingerprint: "fingerprint-1",
+		RequestPayload:     map[string]any{"turnId": "turn-1"},
+	}
+
+	eventPayload, err := marshalAppendEventPayload(in, result)
+	if err != nil {
+		t.Fatalf("marshalAppendEventPayload returned error: %v", err)
+	}
+	replayPayload, err := marshalAppendEventReplayPayload(in.RequestFingerprint, result)
+	if err != nil {
+		t.Fatalf("marshalAppendEventReplayPayload returned error: %v", err)
+	}
+	if strings.Contains(string(eventPayload), "Original per-event hint.") {
+		t.Fatalf("event payload leaked hint snapshot: %s", eventPayload)
+	}
+	if !strings.Contains(string(replayPayload), "Original per-event hint.") {
+		t.Fatalf("replay payload lost hint snapshot: %s", replayPayload)
+	}
+}
+
+func TestSQLRepositoryReserveSessionEventReplaysOriginalHintSnapshot(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 4, 28, 13, 47, 32, 0, time.UTC)
+	in := domain.SessionEventReservationInput{
+		EventID:            "event-2",
+		UserID:             "user-1",
+		SessionID:          "session-1",
+		ClientEventID:      "client-event-1",
+		Kind:               "hint_requested",
+		CurrentTurnID:      "turn-1",
+		RequestFingerprint: "fingerprint-1",
+		Now:                now,
+	}
+	eventPayload := []byte(`{"requestFingerprint":"fingerprint-1","requestPayload":{"turnId":"turn-1"},"result":{"acknowledged":true,"session":{"id":"session-1","planId":"plan-1","targetJobId":"target-1","status":"running","language":"en","hintsEnabled":true,"turnCount":1,"currentTurn":{"id":"turn-1","turnIndex":1,"questionText":"Question?","questionIntent":"behavioral","status":"asked","askedAt":"2026-04-28T13:46:32Z"},"createdAt":"2026-04-28T12:47:32Z","updatedAt":"2026-04-28T13:47:32Z"},"assistantAction":{"type":"show_hint","turnId":"turn-1","sessionStatus":"running","provenance":{"promptVersion":"p","rubricVersion":"not_applicable","modelId":"model-profile:practice.turn_observe.default","language":"en","featureFlag":"none","dataSourceVersion":"registry.v1"}}}}`)
+	replayPayload := []byte(`{"requestFingerprint":"fingerprint-1","result":{"acknowledged":true,"session":{"id":"session-1","planId":"plan-1","targetJobId":"target-1","status":"running","language":"en","hintsEnabled":true,"turnCount":1,"currentTurn":{"id":"turn-1","turnIndex":1,"questionText":"Question?","questionIntent":"behavioral","status":"asked","askedAt":"2026-04-28T13:46:32Z"},"createdAt":"2026-04-28T12:47:32Z","updatedAt":"2026-04-28T13:47:32Z"},"assistantAction":{"type":"show_hint","turnId":"turn-1","hint":"Original per-event hint.","sessionStatus":"running","provenance":{"promptVersion":"p","rubricVersion":"not_applicable","modelId":"model-profile:practice.turn_observe.default","language":"en","featureFlag":"none","dataSourceVersion":"registry.v1"}}}}`)
+
+	mock.ExpectBegin()
+	expectAppendContext(mock, now)
+	mock.ExpectQuery(`select payload, replay_payload`).
+		WithArgs(in.SessionID, in.ClientEventID).
+		WillReturnRows(sqlmock.NewRows([]string{"payload", "replay_payload"}).AddRow(eventPayload, replayPayload))
+	mock.ExpectCommit()
+
+	result, err := repo.ReserveSessionEvent(context.Background(), in)
+	if err != nil {
+		t.Fatalf("ReserveSessionEvent returned error: %v", err)
+	}
+	if result.ReplayResult == nil || result.ReplayResult.AssistantAction.Hint != "Original per-event hint." {
+		t.Fatalf("replay should use stored per-event hint snapshot, got %+v", result.ReplayResult)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
@@ -148,7 +337,7 @@ func TestSQLRepositoryReserveSessionEventRejectsPendingReservationReplay(t *test
 	expectAppendContext(mock, now)
 	mock.ExpectQuery(`select payload`).
 		WithArgs(in.SessionID, in.ClientEventID).
-		WillReturnRows(sqlmock.NewRows([]string{"payload"}).AddRow([]byte(`{"requestFingerprint":"fingerprint-1","requestPayload":{"answerText":"answer"},"pending":true}`)))
+		WillReturnRows(sqlmock.NewRows([]string{"payload", "replay_payload"}).AddRow([]byte(`{"requestFingerprint":"fingerprint-1","requestPayload":{"answerText":"answer"},"pending":true}`), nil))
 	mock.ExpectRollback()
 
 	_, err := repo.ReserveSessionEvent(context.Background(), in)

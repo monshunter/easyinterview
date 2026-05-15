@@ -19,6 +19,7 @@ const (
 
 	assistantActionAskQuestion      = "ask_question"
 	assistantActionAskFollowUp      = "ask_follow_up"
+	assistantActionShowHint         = "show_hint"
 	assistantActionSessionWait      = "session_wait"
 	assistantActionSessionCompleted = "session_completed"
 )
@@ -205,6 +206,25 @@ func (s SessionEventService) handleAnswerSubmitted(
 }
 
 func (s SessionEventService) handleHintRequested(session SessionRecord, plan PlanRecord) SessionEventOutcome {
+	if plan.Mode == sharedtypes.PracticeModeAssisted {
+		return SessionEventOutcome{
+			Acknowledged:      true,
+			NextSessionStatus: session.Status,
+			AssistantAction: AssistantActionRecord{
+				Type:          assistantActionShowHint,
+				SessionStatus: session.Status,
+				RequiresAI:    true,
+			},
+			AuditMetadata: map[string]any{
+				"event_kind": sessionEventKindHintRequested,
+				"mode":       string(sharedtypes.PracticeModeAssisted),
+			},
+		}
+	}
+	mode := string(plan.Mode)
+	if strings.TrimSpace(mode) == "" {
+		mode = "strict"
+	}
 	return SessionEventOutcome{
 		Acknowledged:      false,
 		NextSessionStatus: session.Status,
@@ -213,7 +233,7 @@ func (s SessionEventService) handleHintRequested(session SessionRecord, plan Pla
 			Message: "hints are disabled in this phase",
 			Details: map[string]any{
 				"policy": "hint_disabled_in_mode",
-				"mode":   string(plan.Mode),
+				"mode":   mode,
 			},
 		},
 	}

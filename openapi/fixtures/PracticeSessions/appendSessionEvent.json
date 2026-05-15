@@ -146,6 +146,149 @@
         }
       }
     },
+    "hint-assisted-show": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientEventId": "01918fa0-0000-7000-8000-00000000e00a",
+          "kind": "hint_requested",
+          "occurredAt": "2026-04-28T13:47:32Z",
+          "payload": {
+            "turnId": "01918fa0-0000-7000-8000-000000006000"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-47-32-abcdef"
+        },
+        "body": {
+          "acknowledged": true,
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005000",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "running",
+            "language": "en",
+            "hintsEnabled": true,
+            "turnCount": 1,
+            "currentTurn": {
+              "id": "01918fa0-0000-7000-8000-000000006000",
+              "turnIndex": 1,
+              "questionText": "Tell me about a cross-team migration you led.",
+              "questionIntent": "behavioral.leadership.design_system",
+              "status": "asked",
+              "askedAt": "2026-04-28T13:40:00Z"
+            },
+            "createdAt": "2026-04-28T12:00:00Z",
+            "updatedAt": "2026-04-28T13:47:32Z"
+          },
+          "assistantAction": {
+            "type": "show_hint",
+            "turnId": "01918fa0-0000-7000-8000-000000006000",
+            "questionText": null,
+            "hint": "Anchor the answer in one measurable coordination decision, then explain the tradeoff.",
+            "sessionStatus": "running",
+            "provenance": {
+              "promptVersion": "1.0",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:practice.turn_observe.default",
+              "language": "en",
+              "featureFlag": "none",
+              "dataSourceVersion": "1.0"
+            }
+          }
+        }
+      }
+    },
+    "hint-assisted-ai-failed-degrade": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientEventId": "01918fa0-0000-7000-8000-00000000e00b",
+          "kind": "hint_requested",
+          "occurredAt": "2026-04-28T13:47:42Z",
+          "payload": {
+            "turnId": "01918fa0-0000-7000-8000-000000006000"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-47-42-abcdef"
+        },
+        "body": {
+          "acknowledged": true,
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005000",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "running",
+            "language": "en",
+            "hintsEnabled": true,
+            "turnCount": 1,
+            "currentTurn": {
+              "id": "01918fa0-0000-7000-8000-000000006000",
+              "turnIndex": 1,
+              "questionText": "Tell me about a cross-team migration you led.",
+              "questionIntent": "behavioral.leadership.design_system",
+              "status": "asked",
+              "askedAt": "2026-04-28T13:40:00Z"
+            },
+            "createdAt": "2026-04-28T12:00:00Z",
+            "updatedAt": "2026-04-28T13:47:42Z"
+          },
+          "assistantAction": {
+            "type": "session_wait",
+            "turnId": "01918fa0-0000-7000-8000-000000006000",
+            "questionText": null,
+            "hint": null,
+            "sessionStatus": "running",
+            "provenance": {
+              "promptVersion": "not_applicable",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:static",
+              "language": "en",
+              "featureFlag": "none",
+              "dataSourceVersion": "static"
+            }
+          }
+        }
+      }
+    },
+    "hint-strict-debrief-conflict": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientEventId": "01918fa0-0000-7000-8000-00000000e00c",
+          "kind": "hint_requested",
+          "occurredAt": "2026-04-28T13:47:52Z",
+          "payload": {
+            "turnId": "01918fa0-0000-7000-8000-000000006000"
+          }
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-47-52-abcdef"
+        },
+        "body": {
+          "error": {
+            "code": "PRACTICE_SESSION_CONFLICT",
+            "message": "Hints are disabled for strict practice mode.",
+            "requestId": "req_2026-04-28T13-47-52-abcdef",
+            "retryable": false,
+            "details": {
+              "policy": "hint_disabled_in_mode",
+              "mode": "strict"
+            }
+          }
+        }
+      }
+    },
     "turn-skipped": {
       "request": {
         "headers": {},
