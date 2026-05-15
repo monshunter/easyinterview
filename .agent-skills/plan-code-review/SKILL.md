@@ -167,6 +167,7 @@ For each in-scope phase:
 11. For completed feature phases, verify BDD evidence exists: `bdd-plan` / `bdd-checklist` references, completed scenario asset/execution items, a passed `BDD-Gate:` verification note, and scenario coverage for the primary journey plus the highest-risk alternate or failure/recovery journey per deployable phase.
     - Treat `completed` plan/checklist/test/BDD documents that still contain unchecked BDD items, `partial`/`pending`/`next pass` comments, or "asset readiness" language as blocking evidence drift, not as PASS.
     - Read scenario `trigger.sh` / `verify.sh` scripts directly. Scenario directory, README, or INDEX presence does not prove coverage unless the trigger executes the dedicated tests and the verifier asserts the relevant runtime/negative conditions.
+    - Treat scenario wrapper scripts as evidence artifacts in their own right, not just launchers for the test body. Do not stop after reading the Go test body; wrapper process-success proof is separate evidence. For shell wrappers around focused Go tests, verify the trigger preserves the real test process exit status (`pipefail` where the shell supports it, or explicit status capture around `tee`) and record a D-series finding if it uses `go test | tee` without preserving the `go test` status. The verifier must require the intended test to start, require a passing marker such as `--- PASS`, require package-level `ok`, and reject `--- FAIL`, package `FAIL`, and `no tests to run`.
     - Read the dedicated test bodies named by BDD scenarios and map every material BDD checklist assertion to concrete assertions in code. A focused `go test -run '^ExactScenario$'` wrapper only proves the named test executed; it does not prove that DB side effects, replay privacy, no-op absence, task-run metadata, or negative paths listed in `bdd-checklist.md` were asserted.
     - In `--fix` mode, first add the missing executable test or script assertion, then update the original checklist evidence and lifecycle state only after the gate passes.
 
@@ -216,6 +217,9 @@ Output rules:
   searches, focused gates/tests run, and any gate gaps discovered or hardened.
   For every cited `go test -run` focused gate, state the matching test name(s)
   or explicitly record the no-op finding if zero tests ran.
+  For scenario wrapper evidence, state how `trigger.sh` preserves the real test
+  process exit status and how `verify.sh` proves pass/fail/no-op status rather
+  than merely grepping a test name or package path.
 - Include a `Coverage Matrix Evidence` section summarizing which coverage rows
   are proven by current artifacts, which are explicitly N/A, and which are gaps.
 

@@ -46,6 +46,10 @@ PHASE3_SCAN_PREFIXES = (
     ("test", "scenarios", "e2e", "p0-024-practice-session-ai-failure-retry"),
     ("test", "scenarios", "e2e", "p0-025-practice-idempotency-and-isolation-matrix"),
     ("test", "scenarios", "e2e", "p0-026-practice-observability-and-privacy-redlines"),
+    ("test", "scenarios", "e2e", "p0-048-practice-hint-assisted-across-goals"),
+    ("test", "scenarios", "e2e", "p0-049-practice-hint-strict-refusal"),
+    ("test", "scenarios", "e2e", "p0-050-practice-hint-provenance-task-runs"),
+    ("test", "scenarios", "e2e", "p0-051-practice-hint-degrade-privacy"),
 )
 PHASE3_EXCLUDED_SUFFIXES = (
     ("scripts", "verify.sh"),

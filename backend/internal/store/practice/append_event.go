@@ -590,6 +590,11 @@ type appendEventPayload struct {
 	Error              *appendEventErrorPayload `json:"error,omitempty"`
 }
 
+type appendEventFinalizedErrorPayload struct {
+	RequestFingerprint string                   `json:"requestFingerprint"`
+	Error              *appendEventErrorPayload `json:"error,omitempty"`
+}
+
 type appendEventErrorPayload struct {
 	Code    string         `json:"code"`
 	Message string         `json:"message"`
@@ -657,9 +662,8 @@ func marshalPendingAppendEventPayload(in domain.SessionEventReservationInput) ([
 }
 
 func marshalAppendEventErrorPayload(in domain.FinalizeSessionEventErrorInput) ([]byte, error) {
-	payload := appendEventPayload{
+	payload := appendEventFinalizedErrorPayload{
 		RequestFingerprint: in.RequestFingerprint,
-		RequestPayload:     in.RequestPayload,
 	}
 	if in.Error != nil {
 		payload.Error = &appendEventErrorPayload{

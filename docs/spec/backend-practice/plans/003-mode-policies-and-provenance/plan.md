@@ -1,8 +1,8 @@
 # 003 — Mode Policies and Provenance
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-14
+> **更新日期**: 2026-05-15
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -358,3 +358,7 @@ scoped legacy grep gate（在测试或 lint 中执行，可复用 002 已有的 
 | AssistantAction provenance wire-only regression 测试需要 5 种 action type 反复构造 outcome，测试代码冗长 | Phase 2.4 / Phase 3.2 抽取共享 builder helper（`buildShowHintOutcome` / `buildAskQuestionOutcome` 等）；测试用表驱动方式覆盖 5 种 type；不引入新的产品代码 helper（仅测试代码） |
 | F3 / parse-after-success 失败路径下 ai_task_runs 行可能因 A3 observability decorator 仅包装 `AIClient.Complete` 而漏写或误标成功，导致运维仪表盘看不到真实失败 | Phase 2.1 / 3.1 / 3.2 显式要求 `applyHintAI` 在 F3 resolve 失败时直接调用 `aiclient.AITaskRunWriter.WriteAITaskRun`（通过 `observability.AITaskRunRowFromMeta` 构造 row），并在 parsed hint empty 时额外显式写 failed row（`AI_OUTPUT_INVALID`）；checklist Phase 3.2 用 `TestApplyHintAIGracefulDegradeMatrix` 覆盖 F3 / A3 / parse 失败分桶，并由 `TestTaskRunWriterInsertsTypedColumns` 与 `E2E.P0.050` / `E2E.P0.051` 验证 typed-column writer 与 observed harness |
 | show_hint 的 `rubricVersion` 若沿用 `fallbackString(resolution.RubricVersion, "not_applicable")` 会从 F3 baseline 拿到 `v0.1.0`，与 spec D-10 "非评分动作 `rubricVersion='not_applicable'`" 文字冲突 | Phase 2.1 显式硬编码 show_hint 的 `RubricVersion='not_applicable'`，不沿用 resolution；002 follow_up（评分动作）保留 fallback 不变；`provenance_test.go` 增 assertion 锁定 show_hint 此字段值 |
+
+## 7 L2 修订记录
+
+- 2026-05-15 `plan-code-review --fix`: 修复 strict / unknown hint 409 replay payload 的 SQL 持久化边界，只保留 sanitized `requestFingerprint + error` envelope；补充 003 scenario runtime assets 的 scoped legacy grep 覆盖；加固 `E2E.P0.048`-`E2E.P0.051` shell gate，避免 `tee` 或弱 verify 造成假绿。

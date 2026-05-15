@@ -6,6 +6,7 @@
 ## 1 复盘范围与成功证据
 
 - 范围：`backend-practice/003-mode-policies-and-provenance` L2 code review remediation，聚焦 P0.048-P0.051 BDD evidence drift、hint replay 隐私红线、A3 callErr task-run metadata。
+- 2026-05-15 follow-up：补充覆盖 strict / unknown 409 finalized replay payload 的 sanitized envelope、003 scenario runtime assets 的 legacy-negative 扫描范围，以及 P0.048-P0.051 shell wrapper 的真实 exit code / PASS gate。
 - 成功证据：
   - `cd backend && go test ./cmd/api -run 'TestE2EP0048|TestE2EP0049|TestE2EP0050|TestE2EP0051' -count=1`
   - `cd backend && go test ./internal/store/practice -run 'TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess|Test.*AppendSessionEvent' -count=1`
@@ -25,6 +26,9 @@
 - A3 decorator 对 callErr metadata 的 fallback 不完整。
   - **证据**：P0.051 注入 shared `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_TIMEOUT` 后，failed `hint_generate` row 初始缺少 `error_code` 与 invalid validation status。
   - **影响**：业务层能 degrade，但运维 typed columns 不能准确反映 B1 错误码。
+- 2026-05-15 follow-up 暴露 scenario wrapper 本身会假绿。
+  - **证据**：P0.048-P0.051 `trigger.sh` 使用 `go test ... | tee ...`，POSIX `sh` 下返回 `tee` 的状态；`verify.sh` 只检查 test 名称、包名和 `no tests to run`，不要求 `--- PASS` / `ok`，也不拒绝 `FAIL`。
+  - **影响**：即使 Go scenario 失败，wrapper 也可能留下可通过的日志证据。
 
 ## 3 根因归类
 
@@ -37,6 +41,9 @@
 - Observability fallback gap。
   - **类别**：no repo change needed
   - 修复已在 A3 decorator 中完成；后续只需保持 callErr metadata regression。
+- Scenario wrapper evidence gap。
+  - **类别**：spec/plan
+  - BDD scenario asset 的 executable gate 没有把 test process exit code、PASS line 和 package ok 作为证据要求。
 
 ## 4 对流程资产的改进建议
 
@@ -49,8 +56,12 @@
 - A3 observability 的 future plan 增加一条 generic callErr metadata fallback regression，覆盖 `Complete` / `Transcribe` / `Synthesize`。
   - **落点**：spec-plan
   - **优先级**：medium
+- 后续 BDD wrapper 模板应默认避免 `go test | tee`，并要求 `verify.sh` 同时断言 `=== RUN`、`--- PASS`、package `ok`，显式拒绝 `FAIL` / `no tests to run`。
+  - **落点**：spec-plan
+  - **优先级**：high
 
 ## 5 建议优先级与后续动作
 
 - 最高优先级：在下一次 backend-practice 或 AI-observability L2 review 中，把 BDD checklist 的每条 assertion 逐项映射到 test body，尤其是隐私、replay、typed columns 和 negative paths。
+- 同等优先级：把 scenario wrapper 脚本也纳入 L2 evidence review，不只读取 Go test body；wrapper 必须证明真实测试进程成功。
 - 中优先级：把 `show_hint` replay payload 脱敏 + hint_text 重建模式作为 backend-practice 后续 plan 的显式模式，避免未来 report / debrief 等派生文本重复踩同一类问题。

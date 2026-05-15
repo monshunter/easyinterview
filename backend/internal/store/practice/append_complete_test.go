@@ -3,12 +3,15 @@ package practice
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	domain "github.com/monshunter/easyinterview/backend/internal/practice"
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedevents "github.com/monshunter/easyinterview/backend/internal/shared/events"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
@@ -142,6 +145,47 @@ func TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess(t *test
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestMarshalAppendEventErrorPayloadSanitizesRequestPayload(t *testing.T) {
+	raw, err := marshalAppendEventErrorPayload(domain.FinalizeSessionEventErrorInput{
+		RequestFingerprint: "fingerprint-1",
+		RequestPayload: map[string]any{
+			"turnId":     "turn-secret",
+			"answerText": "confidential answer",
+		},
+		Error: &domain.ServiceError{
+			Code:    sharederrors.CodePracticeSessionConflict,
+			Message: "hints are disabled for strict practice mode",
+			Details: map[string]any{
+				"mode":   "strict",
+				"policy": "hint_disabled_in_mode",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("marshalAppendEventErrorPayload returned error: %v", err)
+	}
+	payload := string(raw)
+	for _, forbidden := range []string{"requestPayload", "turn-secret", "confidential answer", `"result"`} {
+		if strings.Contains(payload, forbidden) {
+			t.Fatalf("payload leaked %q: %s", forbidden, payload)
+		}
+	}
+
+	var decoded appendEventPayload
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatalf("decode sanitized payload: %v", err)
+	}
+	if decoded.RequestFingerprint != "fingerprint-1" {
+		t.Fatalf("requestFingerprint = %q", decoded.RequestFingerprint)
+	}
+	if decoded.Error == nil || decoded.Error.Code != sharederrors.CodePracticeSessionConflict {
+		t.Fatalf("unexpected error envelope: %+v", decoded.Error)
+	}
+	if decoded.Error.Details["policy"] != "hint_disabled_in_mode" {
+		t.Fatalf("unexpected error details: %+v", decoded.Error.Details)
 	}
 }
 

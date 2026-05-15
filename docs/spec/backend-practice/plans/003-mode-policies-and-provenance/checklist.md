@@ -1,8 +1,8 @@
 # 003 — Mode Policies and Provenance Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-14
+> **更新日期**: 2026-05-15
 
 **关联计划**: [plan](./plan.md)
 
@@ -59,6 +59,12 @@
 - [x] 4.5 BDD-Gate: 验证 `E2E.P0.051` 子断言全部通过（含 ai_task_runs typed columns 隐私反查 + log/metric/audit 红线 + scoped legacy grep）
 - [x] 4.6 收口 gate：`cd backend && go test ./... -count=1` 全绿；`make codegen-check`、`make validate-fixtures`、`migrations/lint.sh`、`make lint-events`、`make codegen-events-check`、`python3 scripts/lint/conventions_drift.py --repo-root .` 全通过
 - [x] 4.7 更新 `docs/spec/backend-practice/plans/INDEX.md`：将 003 加到 active 表；本 plan 状态保持 `active`（后续 retrospective / closure 由 plan-review / sync-doc-index 推进到 completed，本 plan 编写阶段不自行 close）
+
+## L2 Remediation: 2026-05-15 `plan-code-review --fix`
+
+- [x] R1 修复 SQL strict / unknown 409 finalized replay payload：`marshalAppendEventErrorPayload` 只持久化 `requestFingerprint + error` sanitized envelope，禁止保存 `requestPayload`、turn id、answer text 或空 `result`；新增 `TestMarshalAppendEventErrorPayloadSanitizesRequestPayload`
+- [x] R2 修复 003 scoped legacy grep gate：`scripts/lint/backend_practice_legacy.py --phase all` 覆盖 `E2E.P0.048`-`E2E.P0.051` scenario runtime assets；新增 pytest 证明 legacy term 会在 003 scenario asset 中被拦截
+- [x] R3 修复 BDD scenario shell gates：`E2E.P0.048`-`E2E.P0.051` `trigger.sh` 保留真实 `go test` exit code，`verify.sh` 必须断言目标 test `--- PASS` 与 `ok ./cmd/api`，并拒绝 `FAIL` / `no tests to run`
 
 ## 收口证据
 
