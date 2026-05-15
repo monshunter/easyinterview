@@ -1,8 +1,8 @@
 # 001 — Report Generation Baseline BDD Checklist
 
 > **版本**: 1.0
-> **状态**: active
-> **更新日期**: 2026-05-15
+> **状态**: completed
+> **更新日期**: 2026-05-16
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 

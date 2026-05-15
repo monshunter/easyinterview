@@ -154,10 +154,19 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: practice runtime init: %v\n", err)
 		os.Exit(1)
 	}
-	reportRoutes := buildReportRoutes(db)
+	reportRuntime, err := buildReportRuntime(loader, db, logger, targetJobRuntime.AI.Client)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: report runtime init: %v\n", err)
+		os.Exit(1)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = reportRuntime.Shutdown(shutdownCtx)
+	}()
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           buildAPIHandlerWithUploadReportAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRoutes),
+		Handler:           buildAPIHandlerWithUploadReportAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes()),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -165,6 +174,7 @@ func main() {
 	defer stop()
 	targetJobRuntime.Start(ctx)
 	resumeRuntime.Start(ctx)
+	reportRuntime.Start(ctx)
 
 	go func() {
 		logger.Info("api: listening", "addr", srv.Addr, "env", loader.AppEnv())
@@ -329,17 +339,104 @@ func buildAPIHandlerWithUploadReportAndHandlers(loader *config.Loader, flagsClie
 	return mux
 }
 
-func buildReportRoutes(db *sql.DB) reportRoutes {
+type reportRuntime struct {
+	Handler *apireports.Handler
+	Runner  *domainreview.Runner
+	Reaper  *domainreview.Reaper
+	Service *domainreview.Service
+}
+
+func (r *reportRuntime) Routes() reportRoutes {
+	if r == nil {
+		return reportRoutes{}
+	}
+	return reportRoutes{Handler: r.Handler}
+}
+
+func (r *reportRuntime) Start(ctx context.Context) {
+	if r == nil {
+		return
+	}
+	if r.Runner != nil {
+		r.Runner.Start(ctx)
+	}
+	if r.Reaper != nil {
+		r.Reaper.Start(ctx)
+	}
+}
+
+func (r *reportRuntime) Shutdown(ctx context.Context) error {
+	if r == nil {
+		return nil
+	}
+	var errs []error
+	if r.Runner != nil {
+		errs = append(errs, r.Runner.Stop(ctx))
+	}
+	if r.Reaper != nil {
+		errs = append(errs, r.Reaper.Stop(ctx))
+	}
+	return errors.Join(errs...)
+}
+
+func buildReportRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, ai aiclient.AIClient) (*reportRuntime, error) {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	if ai == nil {
+		return nil, fmt.Errorf("report AI client is required")
+	}
 	repo := storereview.NewRepository(db)
-	service := domainreview.NewService(domainreview.ServiceOptions{
-		Repository: repo,
+	registryClient, err := registry.NewRegistryClient(registry.RegistryOptions{
+		PromptsDir: registryDirOrDefault(loader, "ai.promptsDir", "config/prompts"),
+		RubricsDir: registryDirOrDefault(loader, "ai.rubricsDir", "config/rubrics"),
 	})
-	return reportRoutes{
+	if err != nil {
+		return nil, fmt.Errorf("build report prompt registry: %w", err)
+	}
+	taskRuns := storeai.NewTaskRunWriter(db)
+	observedAI := ai
+	if resolverProvider, ok := ai.(interface {
+		Resolver() aiclient.ProfileResolver
+	}); ok {
+		wrapped, err := observability.New(ai,
+			observability.WithRegisterer(observability.NewInMemoryRegistry()),
+			observability.WithLogger(observability.NewMemoryLogger()),
+			observability.WithAITaskRunWriter(taskRuns),
+			observability.WithAuditEventWriter(discardAIAuditWriter{}),
+			observability.WithProfileResolver(resolverProvider.Resolver()),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("build report AI observability: %w", err)
+		}
+		observedAI = wrapped
+	}
+	service := domainreview.NewService(domainreview.ServiceOptions{
+		Registry:   registryClient,
+		AI:         observedAI,
+		AITaskRuns: taskRuns,
+		Repository: repo,
+		NewID:      idx.NewID,
+	})
+	return &reportRuntime{
 		Handler: apireports.NewHandler(apireports.HandlerOptions{
 			Service: service,
 			Session: currentUserFromContext,
 		}),
-	}
+		Runner: domainreview.NewRunner(domainreview.RunnerOptions{
+			Store:        repo,
+			Service:      service,
+			PollInterval: 5 * time.Second,
+			Logger:       logger,
+		}),
+		Reaper: domainreview.NewReaper(domainreview.ReaperOptions{
+			Store:        repo,
+			LeaseTimeout: 5 * time.Minute,
+			Interval:     150 * time.Second,
+			Logger:       logger,
+		}),
+		Service: service,
+	}, nil
 }
 
 func buildUploadRoutes(loader *config.Loader, db *sql.DB) (uploadRoutes, error) {

@@ -402,6 +402,52 @@ auth:
 	}
 }
 
+func TestBuildReportRuntimeWiresRoutesRunnerReaperAndAI(t *testing.T) {
+	dir := t.TempDir()
+	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  promptsDir: "`+promptsDir+`"
+  rubricsDir: "`+rubricsDir+`"
+auth:
+  challengeTokenPepper: "pepper"
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	runtime, err := buildReportRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiNoopAIClient{})
+	if err != nil {
+		t.Fatalf("buildReportRuntime: %v", err)
+	}
+	if runtime.Handler == nil || runtime.Runner == nil || runtime.Reaper == nil || runtime.Service == nil {
+		t.Fatalf("runtime missing handler/runner/reaper/service wiring: %+v", runtime)
+	}
+	if runtime.Routes().Handler != runtime.Handler {
+		t.Fatalf("Routes handler mismatch")
+	}
+}
+
+func TestBuildReportRuntimeRejectsMissingAIClient(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if _, err := buildReportRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil); err == nil {
+		t.Fatal("buildReportRuntime returned nil error for missing AI client")
+	}
+}
+
 func TestBuildTargetJobRuntimeWiresDrainerAndAIClient(t *testing.T) {
 	dir := t.TempDir()
 	providersPath := filepath.Join(dir, "ai-providers.yaml")
