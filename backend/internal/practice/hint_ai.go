@@ -18,6 +18,7 @@ const hintFeatureKey = "practice.turn.lightweight_observe"
 
 type hintAIResponse struct {
 	Hint string `json:"hint"`
+	Cue  string `json:"cue"`
 }
 
 func (s *Service) applyHintAI(ctx context.Context, reservation SessionEventReservation, payload map[string]any, outcome *SessionEventOutcome) {
@@ -77,24 +78,9 @@ func (s *Service) applyHintAI(ctx context.Context, reservation SessionEventReser
 }
 
 func hintPayload(resolution registry.PromptResolution, reservation SessionEventReservation, eventPayload map[string]any) aiclient.CompletePayload {
-	userContent := renderFirstQuestionTemplate(resolution.UserMessageTemplate, SessionReservation{
-		UserID:             reservation.Session.ID,
-		SessionID:          reservation.Session.ID,
-		PlanID:             reservation.Plan.ID,
-		TargetJobID:        reservation.Plan.TargetJobID,
-		Goal:               reservation.Plan.Goal,
-		Mode:               reservation.Plan.Mode,
-		InterviewerPersona: reservation.Plan.InterviewerPersona,
-		Language:           reservation.Session.Language,
-	})
+	userContent := renderHintTemplate(resolution.UserMessageTemplate, reservation, eventPayload)
 	if userContent == "" {
 		userContent = "Generate one concise interview hint for the current turn."
-	}
-	if question := strings.TrimSpace(reservation.LatestTurn.QuestionText); question != "" {
-		userContent += "\nCurrent question length: " + fmt.Sprintf("%d", len([]rune(question)))
-	}
-	if answer := payloadString(eventPayload, "answerText"); strings.TrimSpace(answer) != "" {
-		userContent += "\nCurrent answer length: " + fmt.Sprintf("%d", len([]rune(answer)))
 	}
 	messages := make([]aiclient.Message, 0, 2)
 	if strings.TrimSpace(resolution.SystemMessage) != "" {
@@ -120,12 +106,40 @@ func hintPayload(resolution registry.PromptResolution, reservation SessionEventR
 	}
 }
 
+func renderHintTemplate(template string, reservation SessionEventReservation, eventPayload map[string]any) string {
+	content := strings.TrimSpace(template)
+	if content == "" {
+		return ""
+	}
+	replacer := strings.NewReplacer(
+		"{{language}}", fallbackString(reservation.Session.Language, "en"),
+		"{{question}}", fallbackString(reservation.LatestTurn.QuestionText, "current question unavailable"),
+		"{{partial_answer}}", fallbackString(payloadString(eventPayload, "answerText"), "not provided"),
+		"{{elapsed_seconds}}", fallbackString(firstPayloadString(eventPayload, "elapsedSeconds", "elapsed_seconds"), "0"),
+		"{{practice_goal}}", fallbackString(string(reservation.Plan.Goal), string(sharedtypes.PracticeGoalBaseline)),
+		"{{practice_mode}}", fallbackString(string(reservation.Plan.Mode), string(sharedtypes.PracticeModeAssisted)),
+	)
+	return strings.TrimSpace(replacer.Replace(content))
+}
+
+func firstPayloadString(payload map[string]any, keys ...string) string {
+	for _, key := range keys {
+		if value := strings.TrimSpace(payloadString(payload, key)); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
 func parseHint(content string) (string, error) {
 	var decoded hintAIResponse
 	if err := json.Unmarshal([]byte(content), &decoded); err != nil {
 		return "", fmt.Errorf("parse hint response: %w", err)
 	}
 	hint := strings.TrimSpace(decoded.Hint)
+	if hint == "" {
+		hint = strings.TrimSpace(decoded.Cue)
+	}
 	if hint == "" {
 		return "", fmt.Errorf("parse hint response: hint is empty")
 	}

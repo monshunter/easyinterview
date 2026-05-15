@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-15](2026-05-15.md) | `fix(backend-practice): align hint prompt contract` | #fix #test #docs |
 | [2026-05-15](2026-05-15.md) | `fix(backend-practice): preserve append event replay snapshots` | #fix #test #docs |
 | [2026-05-15](2026-05-15.md) | `docs(report-dashboard): add backend and frontend baseline plans` | #docs #ui |
 | [2026-05-15](2026-05-15.md) | `fix(backend-practice): harden hint strict replay gates` | #fix #test #docs |

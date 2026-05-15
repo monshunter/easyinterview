@@ -327,7 +327,7 @@ func TestServiceSkipsHintAIForStrict(t *testing.T) {
 func TestApplyHintAISuccess(t *testing.T) {
 	reservation := hintTestReservation()
 	ai := &fakeAIClient{
-		content: `{"hint":"Tie the answer to a concrete metric."}`,
+		content: `{"cue":"Tie the answer to a concrete metric.","severity":"nudge","dimension_hint":"evidence"}`,
 		meta: aiclient.AICallMeta{
 			ModelID:          "stub-chat-1",
 			ValidationStatus: aiclient.ValidationStatusOK,
@@ -360,30 +360,52 @@ func TestApplyHintAISuccess(t *testing.T) {
 	}
 }
 
-func TestApplyHintAIBuildsPromptWithoutLeaks(t *testing.T) {
+func TestParseHintAcceptsLightweightObserveCueSchema(t *testing.T) {
+	hint, err := parseHint(`{"cue":"Anchor the answer in one measurable decision.","severity":"nudge","dimension_hint":"evidence"}`)
+	if err != nil {
+		t.Fatalf("parseHint returned error: %v", err)
+	}
+	if hint != "Anchor the answer in one measurable decision." {
+		t.Fatalf("hint = %q", hint)
+	}
+}
+
+func TestApplyHintAIBuildsPromptFromF3Template(t *testing.T) {
 	reservation := hintTestReservation()
-	reservation.LatestTurn.QuestionText = "QUESTION_TEXT_SECRET"
-	ai := &fakeAIClient{content: `{"hint":"Use a metric."}`}
+	reservation.LatestTurn.QuestionText = "Tell me about a cross-team migration."
+	ai := &fakeAIClient{content: `{"cue":"Use a metric.","severity":"nudge","dimension_hint":"evidence"}`}
 	service := NewService(ServiceOptions{
-		Registry: &fakePromptResolver{resolution: hintTestResolution()},
-		AI:       ai,
+		Registry: &fakePromptResolver{resolution: registry.PromptResolution{
+			PromptVersion:       "hint.prompt.v1",
+			RubricVersion:       "hint.rubric.v1",
+			ModelProfileName:    "practice.turn_observe.default",
+			FeatureFlag:         "none",
+			DataSourceVersion:   "registry.v1",
+			UserMessageTemplate: "Question: {{question}}\nPartial answer: {{partial_answer}}\nElapsed seconds: {{elapsed_seconds}}\nRespond in {{language}}.",
+		}},
+		AI: ai,
 	})
 	outcome := hintPendingOutcome(reservation)
 
-	service.applyHintAI(context.Background(), reservation, map[string]any{"answerText": "ANSWER_TEXT_SECRET"}, outcome)
+	service.applyHintAI(context.Background(), reservation, map[string]any{"answerText": "I aligned 12 teams.", "elapsedSeconds": float64(42)}, outcome)
 
 	rawPrompt := ""
 	for _, msg := range ai.payload.Messages {
 		rawPrompt += msg.Content + "\n"
 	}
-	for _, forbidden := range []string{"QUESTION_TEXT_SECRET", "ANSWER_TEXT_SECRET"} {
-		if strings.Contains(rawPrompt, forbidden) {
-			t.Fatalf("hint prompt leaked raw %q: %s", forbidden, rawPrompt)
+	for _, required := range []string{
+		"Question: Tell me about a cross-team migration.",
+		"Partial answer: I aligned 12 teams.",
+		"Elapsed seconds: 42",
+		"Respond in zh-CN.",
+	} {
+		if !strings.Contains(rawPrompt, required) {
+			t.Fatalf("hint prompt missing %q: %s", required, rawPrompt)
 		}
 	}
-	for _, required := range []string{"Current question length:", "Current answer length:"} {
-		if !strings.Contains(rawPrompt, required) {
-			t.Fatalf("hint prompt missing sanitized length %q: %s", required, rawPrompt)
+	for _, forbidden := range []string{"{{question}}", "{{partial_answer}}", "{{elapsed_seconds}}", "{{language}}"} {
+		if strings.Contains(rawPrompt, forbidden) {
+			t.Fatalf("hint prompt left placeholder %q: %s", forbidden, rawPrompt)
 		}
 	}
 }

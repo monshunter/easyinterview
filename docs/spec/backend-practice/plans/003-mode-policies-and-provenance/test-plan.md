@@ -63,7 +63,7 @@
 - **测试目标**：applyHintAI 成功路径用 F3 lightweight_observe + A3 Complete 生成 hint；service layer 在 assisted + RequiresAI 时调用 applyHintAI 且与 follow_up 分支互斥；store layer 在 outcome.AssistantAction.Type='show_hint' 且 Hint 非空时 UPDATE `practice_turns.hint_text`；wire provenance 严格 6 字段。
 - **测试文件**：
   - `backend/internal/practice/hint_ai.go`（新增；hint AI 接入逻辑）
-  - `backend/internal/practice/append_session_event_service_test.go`（扩展）：`TestApplyHintAISuccess` / `TestApplyHintAIBuildsPromptWithoutLeaks` / `TestServiceAppliesHintAIForAssisted` / `TestServiceSkipsHintAIForStrict`
+  - `backend/internal/practice/append_session_event_service_test.go`（扩展）：`TestApplyHintAISuccess` / `TestParseHintAcceptsLightweightObserveCueSchema` / `TestApplyHintAIBuildsPromptFromF3Template` / `TestServiceAppliesHintAIForAssisted` / `TestServiceSkipsHintAIForStrict`
   - `backend/internal/practice/append_session_event_service.go`（修改）
   - `backend/internal/store/practice/append_event.go`（修改：增加 hint_text UPDATE 分支）
   - `backend/internal/store/practice/append_complete_test.go`（扩展）：`TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess`

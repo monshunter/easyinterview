@@ -9,7 +9,7 @@
 ## E2E.P0.048 assisted hint 主路径 × goal 矩阵
 
 - [x] 在 `backend/cmd/api/practice_http_scenario_test.go` 新增 `TestE2EP0048PracticeHintAssistedAcrossGoals`：4 个 user/plan/session 命名空间（goal 分别为 baseline / retry_current_round / next_round / debrief，mode 全部 assisted）
-- [x] 准备 fake F3 RegistryClient + fake AIClient + fake AITaskRunWriter；fake AIClient 为 `practice.turn.lightweight_observe` 返回合法 hint JSON Content
+- [x] 准备 fake F3 RegistryClient + fake AIClient + fake AITaskRunWriter；fake AIClient 为 `practice.turn.lightweight_observe` 返回当前 F3 prompt 要求的合法 `cue` JSON Content
 - [x] 实现 setup：调用 `backend/internal/store/practice` 真实 SQL fake 或 mem store 写入 4 个 ready plan + 4 个 running session；记录 currentTurn.id
 - [x] 实现 trigger：对每个 session 发起第 1 次 `POST /practice/sessions/{sessionId}/events kind='hint_requested'`；再用第二个 `clientEventId` 对同一 turn 发起第 2 次 hint；最后重放第 1 个 `clientEventId`；断言 HTTP status=200
 - [x] 实现 verify：
@@ -50,7 +50,7 @@
 ## E2E.P0.050 AssistantAction provenance wire 边界 + ai_task_runs runtime 字段
 
 - [x] 在 `backend/cmd/api/practice_http_scenario_test.go` 新增 `TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns`
-- [x] 准备 fake F3 + fake AIClient（同时配置 `practice.session.follow_up` 与 `practice.turn.lightweight_observe`）+ fake AITaskRunWriter
+- [x] 准备 fake F3 + fake AIClient（同时配置 `practice.session.follow_up` 与 `practice.turn.lightweight_observe`，hint path 返回当前 F3 prompt 要求的 `cue` JSON Content）+ fake AITaskRunWriter
 - [x] 实现 setup：写入 1 个 ready plan (mode=assisted, goal=baseline) + 1 个 running session；turn_count / question_budget 配置为 2，方便触发 session_completed
 - [x] 实现 trigger 序列：① answer_submitted（→ ask_follow_up，AI 调用）；② hint_requested（→ show_hint，AI 调用）；③ turn_skipped（→ ask_question，non-AI）；④ session_paused（→ session_wait，non-AI）；⑤ answer_submitted 达 question_budget（→ session_completed，non-AI）
 - [x] 实现 verify：

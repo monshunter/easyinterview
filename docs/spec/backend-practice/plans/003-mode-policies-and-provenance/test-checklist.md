@@ -1,6 +1,6 @@
 # 003 — Mode Policies and Provenance Test Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-15
 
@@ -27,8 +27,9 @@
 ## Phase 2: assisted hint AI 接入 + practice_turns.hint_text 写入
 
 - [x] Phase 2 本计划定义的单元测试项全部通过：
-  - `TestApplyHintAISuccess`（fake F3 + fake AIClient 成功路径 → outcome.Hint 非空 + Provenance 6 wire 字段）
-  - `TestApplyHintAIBuildsPromptWithoutLeaks`（prompt user message 不拼接 question_text / answer_text 明文）
+  - `TestApplyHintAISuccess`（fake F3 + fake AIClient 按 `practice.turn.lightweight_observe` 当前 `cue` schema 成功路径 → outcome.Hint 非空 + Provenance 6 wire 字段）
+  - `TestParseHintAcceptsLightweightObserveCueSchema`（`parseHint` 接受 F3 prompt 当前要求的 `cue`，兼容历史 `hint` fixture）
+  - `TestApplyHintAIBuildsPromptFromF3Template`（prompt user message 展开 `{{question}}` / `{{partial_answer}}` / `{{elapsed_seconds}}` / `{{language}}`，且不残留未渲染占位符）
   - `TestApplyHintAISuccess`（fake AIClient payload 捕获 capability=`hint_generate`、resource_type=`target_job`、resource_id=plan.target_job_id）
   - `TestServiceAppliesHintAIForAssisted` / `TestServiceSkipsHintAIForStrict`（service layer 接入；hint 与 follow_up 由 action type 分支互斥）
   - `TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess`（repository UPDATE practice_turns.hint_text；SQL expectation 同时固定 hint 路径不发 outbox、不写 audit、不执行 turn status UPDATE，返回 session turn_count 不变）

@@ -1,6 +1,6 @@
 # 003 — Mode Policies and Provenance Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-15
 
@@ -67,6 +67,8 @@
 - [x] R3 修复 BDD scenario shell gates：`E2E.P0.048`-`E2E.P0.051` `trigger.sh` 保留真实 `go test` exit code，`verify.sh` 必须断言目标 test `--- PASS` 与 `ok ./cmd/api`，并拒绝 `FAIL` / `no tests to run`
 - [x] R4 修复 strict / unknown 409 SQL-backed replay 优先级：`AppendSessionEvent` 必须先返回 repository 的 `ReplayError`，再处理 `ReplayResult`，避免 finalized error payload 解码出的零值 result 被误当作 200 replay；新增 `TestAppendSessionEventReplayReturnsStoredErrorBeforeResult`
 - [x] R5 修复 assisted 多 hint 同 turn 的 per-event replay：`practice_session_events.payload` 继续保存 redacted event payload，新增内部 `replay_payload` 保存 client-visible result snapshot；replay 不再从可变 `practice_turns.hint_text` 重建 hint；新增 `TestMarshalAppendEventPayloadRedactsHintButReplayPayloadKeepsSnapshot`、`TestSQLRepositoryReserveSessionEventReplaysOriginalHintSnapshot`，并扩展 `TestE2EP0048PracticeHintAssistedAcrossGoals`
+- [x] R6 修复 F3 lightweight-observe response schema drift：`parseHint` 同时接受历史测试 fixture 的 `hint` 与 F3 prompt 当前要求的 `cue`，避免真实 `practice.turn.lightweight_observe` 输出被误判为空并降级；新增 `TestParseHintAcceptsLightweightObserveCueSchema`，见 [BUG-0060](../../../../bugs/BUG-0060.md)
+- [x] R7 修复 hint prompt renderer 漂移：`hintPayload` 不再复用 first-question renderer，新增 dedicated renderer 展开 `{{question}}` / `{{partial_answer}}` / `{{elapsed_seconds}}` / `{{language}}`，并断言无残留占位符；新增 `TestApplyHintAIBuildsPromptFromF3Template`，见 [BUG-0060](../../../../bugs/BUG-0060.md)
 
 ## 收口证据
 
@@ -79,5 +81,6 @@
 - `make codegen-events-check`
 - `python3 scripts/lint/conventions_drift.py --repo-root .`
 - `python3 scripts/lint/backend_practice_legacy.py --repo-root . --phase all`（含 003 scoped legacy 反查项）
+- `cd backend && go test ./internal/practice -run 'TestApplyHintAISuccess|TestParseHintAcceptsLightweightObserveCueSchema|TestApplyHintAIBuildsPromptFromF3Template' -count=1`
 - `make docs-check`
 - `git diff --check`
