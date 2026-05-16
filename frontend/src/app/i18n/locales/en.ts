@@ -692,6 +692,11 @@ export const en: LocaleMessages = {
   "report.missingSession.desc":
     "Without sessionId the dashboard returns to the workspace instead of inventing report data.",
   "report.missingSession.cta": "Back to workspace",
+  "report.missingReport.eyebrow": "REPORT NEEDS ID",
+  "report.missingReport.title": "This report cannot be located.",
+  "report.missingReport.desc":
+    "Without reportId the report API is not called. Open the dashboard from completed session history or the generating handoff.",
+  "report.missingReport.cta": "Back to workspace",
   "report.body.dimensions.eyebrow": "DIMENSIONS",
   "report.body.dimensions.open": "Open detail",
   "report.body.topPriority.eyebrow": "▸ TOP PRIORITY",

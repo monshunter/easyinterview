@@ -1,14 +1,14 @@
 # 001 — Report Screen and Generating Handoff Test Checklist
 
 > **版本**: 1.0
-> **状态**: active
-> **更新日期**: 2026-05-15
+> **状态**: completed
+> **更新日期**: 2026-05-16
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
 ## Phase 0: 跨 owner 前置 preflight
 
-- [ ] Phase 0 本计划定义的测试项全部通过：
+- [x] Phase 0 本计划定义的测试项全部通过：
   - `TestB2FeedbackReportSchemaHasErrorCode`（preflight：`openapi/openapi.yaml` 中 `FeedbackReport` schema 含 `errorCode: oneOf [ApiErrorCode, null]`；generated TS 等价字段存在）
   - `TestReportFailedFixtureVariantExists`（preflight：`openapi/fixtures/Reports/getFeedbackReport.json` `scenarios.report-failed.response.body.status === 'failed'` + `response.body.errorCode` 非 null）
   - `TestListTargetJobReportsEmptyFixtureVariantExists`（preflight：`openapi/fixtures/Reports/listTargetJobReports.json` `scenarios.empty.response.body.items=[]` + `response.body.pageInfo.hasMore=false`）
@@ -17,7 +17,7 @@
 
 ## Phase 1: GeneratingScreen 源级复刻 + useReportGenerationPoll hook + 状态分支
 
-- [ ] Phase 1 本计划定义的测试项全部通过：
+- [x] Phase 1 本计划定义的测试项全部通过：
   - `TestGeneratingScreenHappyPath`（mount → 5 阶段渲染 → 进度条 + 实时观察流；≥ 10 testid 命中）
   - `TestGeneratingScreenMissingReportIdRendersErrorState`（reportId 缺失立即渲染 ErrorState；不发请求）
   - `TestGeneratingScreenTimeoutStateShowsRetryCta`（max attempts → timeout state + retry CTA + backToWorkspace CTA）
@@ -36,7 +36,7 @@
 
 ## Phase 2: ReportScreen 静态壳源级复刻 + 三态分支 + ContextStrip + Summary Cards
 
-- [ ] Phase 2 本计划定义的测试项全部通过：
+- [x] Phase 2 本计划定义的测试项全部通过：
   - `TestReportScreenDispatchesFailureState`（params.reportStatus='failed' → ReportFailureState）
   - `TestReportScreenDispatchesMissingSession`（缺 sessionId → ReportMissingSessionState）
   - `TestReportScreenDispatchesDashboard`（正常 sessionId + 非 failed → ReportDashboard）
@@ -62,7 +62,7 @@
 
 ## Phase 3: 5 detail tab 内容源级复刻
 
-- [ ] Phase 3 本计划定义的测试项全部通过：
+- [x] Phase 3 本计划定义的测试项全部通过：
   - `TestDetailSurfaceSwitches5Tabs`（点击 tab 触发按钮 → panel 切换；testid `report-detail-tab-{key}` + `report-detail-panel-{key}` 命中）
   - `TestDetailSurfaceAriaTablist`（ARIA tablist / tab / tabpanel role 正确）
   - `TestDetailSurfaceDefaultQuestions`（mount 时默认 `questions` panel 激活）
@@ -82,7 +82,7 @@
 
 ## Phase 4: 复练 CTA 行为 + ReportFailureState 完整 + GeneratingScreen handoff 完整
 
-- [ ] Phase 4 本计划定义的测试项全部通过：
+- [x] Phase 4 本计划定义的测试项全部通过：
   - `TestPendingActionEncodeDecodeReplayPractice`（`replay_practice` PendingAction encode → decode round-trip 字段对等；params 含 sourceSessionId / replayItems / evidenceGaps / planId / targetJobId / jdId / resumeVersionId / roundId / mode / modality / practiceMode / practiceGoal / autoReplay）
   - `TestPendingActionReplayPracticeTypeAllowed`（type allowlist / discriminated union 包含 `replay_practice`；负向断言 URL params / localStorage 不含 raw text）
   - `TestReplayCtaPathA_AuthenticatedNavPractice`（已登录 → nav practice with retry_current_round payload + retryFocusTurnIds）
@@ -102,7 +102,7 @@
 
 ## Phase 5: 完整状态机集成 + Playwright pixel parity + scenario 加挂 + 旧口径负向
 
-- [ ] Phase 5 本计划定义的测试项全部通过：
+- [x] Phase 5 本计划定义的测试项全部通过：
   - `pnpm --filter @easyinterview/frontend test` 全绿（覆盖 Phase 1-4 全部测试）
   - `pnpm --filter @easyinterview/frontend typecheck` 全绿
   - 扩展 `App.test.tsx` 添加 `generating-screen` / `report-dashboard` testid 命中
@@ -128,14 +128,23 @@
 
 ## 全局收口
 
-- [ ] `pnpm --filter @easyinterview/frontend test`
-- [ ] `pnpm --filter @easyinterview/frontend typecheck`
-- [ ] `pnpm --filter @easyinterview/frontend test:pixel-parity`
-- [ ] `pnpm --filter @easyinterview/frontend build`
-- [ ] `make codegen-check`
-- [ ] `make validate-fixtures`
-- [ ] `python3 scripts/lint/frontend_report_dashboard_legacy.py --repo-root . --phase all`
-- [ ] `python3 -m pytest scripts/lint/frontend_report_dashboard_legacy_test.py -q`
-- [ ] 4 个 P0 scenario 执行通过
-- [ ] `make docs-check`
-- [ ] `git diff --check`
+- [x] `pnpm --filter @easyinterview/frontend test`
+- [x] `pnpm --filter @easyinterview/frontend typecheck`
+- [x] `pnpm --filter @easyinterview/frontend test:pixel-parity`
+- [x] `pnpm --filter @easyinterview/frontend build`
+- [x] `make codegen-check`
+- [x] `make validate-fixtures`
+- [x] `python3 scripts/lint/frontend_report_dashboard_legacy.py --repo-root . --phase all`
+- [x] `python3 -m pytest scripts/lint/frontend_report_dashboard_legacy_test.py -q`
+- [x] 4 个 P0 scenario 执行通过
+- [x] `make docs-check`
+- [x] `git diff --check`
+
+## 2026-05-16 L2 review regression evidence
+
+- `ReportScreen.test.tsx` / `ReportMissingSessionState.test.tsx`: 覆盖 `report?sessionId=S` 缺 `reportId` 不发 `getFeedbackReport` 并渲染缺 reportId 错误态。
+- `useReportGenerationPoll.test.tsx`: 覆盖 visibility/focus 恢复后沿用已调度 retry，不立即重复请求。
+- `bootstrapRoute.test.ts`: 覆盖 `#route=generating/report` hash bootstrap，保证 pixel parity 从真实 route 启动。
+- `ReportScreen.test.tsx`: 覆盖报告 header 标题包含 target job label，而非只显示 round label。
+- `tests/pixel-parity/generating.spec.ts` + `tests/pixel-parity/report.spec.ts`: 覆盖 desktop / mobile DOM anchor、computed style、bounding box、no-overflow、主题切换与三态渲染。
+- `frontend_report_dashboard_legacy.py` + pytest: 覆盖 prototype short CSS tokens 和旧口径 literal 的 scoped negative gate。

@@ -200,7 +200,7 @@ export const GeneratingScreen: FC<GeneratingScreenProps> = ({ route }) => {
       className="ei-fadein"
       style={{
         minHeight: "calc(100vh - 58px)",
-        background: "var(--ei-bg)",
+        background: "var(--ei-color-bg-canvas)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

@@ -49,10 +49,10 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
     >
       <div
         style={{
-          border: "1px solid var(--ei-rule)",
+          border: "1px solid var(--ei-color-rule-soft)",
           borderRadius: 3,
           padding: 28,
-          background: "var(--ei-bg-card, var(--ei-bg))",
+          background: "var(--ei-color-bg-card, var(--ei-color-bg-canvas))",
         }}
       >
         <div
@@ -62,7 +62,7 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
               ? "report-failure-state-not-found-eyebrow"
               : "report-failure-eyebrow"
           }
-          style={{ color: "var(--ei-danger, var(--ei-ink))", marginBottom: 10 }}
+          style={{ color: "var(--ei-color-danger, var(--ei-color-fg-primary))", marginBottom: 10 }}
         >
           {t(
             isNotFound
@@ -79,7 +79,7 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
           }
           style={{
             fontSize: 28,
-            color: "var(--ei-ink)",
+            color: "var(--ei-color-fg-primary)",
             lineHeight: 1.25,
             marginBottom: 10,
           }}
@@ -94,7 +94,7 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
           }
           style={{
             fontSize: 14,
-            color: "var(--ei-ink3)",
+            color: "var(--ei-color-fg-tertiary)",
             lineHeight: 1.6,
             marginBottom: 18,
           }}
@@ -105,8 +105,8 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
           data-testid="report-failure-error-code"
           style={{
             fontSize: 12,
-            color: "var(--ei-ink3)",
-            fontFamily: "var(--ei-mono)",
+            color: "var(--ei-color-fg-tertiary)",
+            fontFamily: "var(--ei-font-mono)",
             marginBottom: 18,
             letterSpacing: "0.04em",
           }}
@@ -121,12 +121,12 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
               onClick={onRetry}
               style={{
                 padding: "10px 16px",
-                background: "var(--ei-accent)",
+                background: "var(--ei-color-accent)",
                 color: "#fff",
-                border: "1px solid var(--ei-accent)",
+                border: "1px solid var(--ei-color-accent)",
                 borderRadius: 2,
                 cursor: "pointer",
-                fontFamily: "var(--ei-sans)",
+                fontFamily: "var(--ei-font-sans)",
                 fontSize: 13,
               }}
             >
@@ -140,11 +140,11 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
             style={{
               padding: "10px 16px",
               background: "transparent",
-              color: "var(--ei-ink2, var(--ei-ink))",
-              border: "1px solid var(--ei-rule)",
+              color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
+              border: "1px solid var(--ei-color-rule-soft)",
               borderRadius: 2,
               cursor: "pointer",
-              fontFamily: "var(--ei-sans)",
+              fontFamily: "var(--ei-font-sans)",
               fontSize: 13,
             }}
           >

@@ -31,6 +31,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0063](./BUG-0063.md) | frontend report dashboard L2 review exposed route and parity drift | high | resolved | 2026-05-16 | `fix(frontend-report): remediate report dashboard L2 findings (BUG-0063)` |
 | [BUG-0062](./BUG-0062.md) | report L2 review exposed prompt schema, persistence, and privacy drift | high | resolved | 2026-05-16 | `fix(backend-review): remediate report L2 findings (BUG-0062)` |
 | [BUG-0061](./BUG-0061.md) | report runtime only mounted read routes | high | resolved | 2026-05-16 | `fix(backend-review): wire report runner runtime (BUG-0061)` |
 | [BUG-0005](./BUG-0005.md) | report follow-up CTAs returned to setup instead of starting sessions | medium | resolved | 2026-05-02 | `fix(ui-design): start report follow-up sessions directly` |

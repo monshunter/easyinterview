@@ -18,7 +18,7 @@ export const SlaHint: FC<SlaHintProps> = ({ onNotify }) => {
       style={{
         marginTop: 28,
         paddingTop: 16,
-        borderTop: "1px solid var(--ei-rule)",
+        borderTop: "1px solid var(--ei-color-rule-soft)",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
@@ -28,8 +28,8 @@ export const SlaHint: FC<SlaHintProps> = ({ onNotify }) => {
         data-testid="generating-sla-hint-target"
         style={{
           fontSize: 11,
-          color: "var(--ei-ink3)",
-          fontFamily: "var(--ei-mono)",
+          color: "var(--ei-color-fg-tertiary)",
+          fontFamily: "var(--ei-font-mono)",
           letterSpacing: "0.04em",
         }}
       >
@@ -42,10 +42,10 @@ export const SlaHint: FC<SlaHintProps> = ({ onNotify }) => {
         style={{
           background: "transparent",
           border: "none",
-          color: "var(--ei-ink2, var(--ei-ink))",
+          color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
           fontSize: 13,
           cursor: "pointer",
-          fontFamily: "var(--ei-sans)",
+          fontFamily: "var(--ei-font-sans)",
         }}
       >
         {t("generating.sla.notifyCta")}

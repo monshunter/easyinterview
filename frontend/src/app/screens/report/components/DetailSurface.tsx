@@ -86,10 +86,11 @@ export const DetailSurface: FC<DetailSurfaceProps> = ({
     <section
       data-testid="report-detail-surface"
       style={{
-        border: "1px solid var(--ei-rule)",
+        border: "1px solid var(--ei-color-rule-soft)",
         borderRadius: 3,
-        background: "var(--ei-bg-card, var(--ei-bg))",
+        background: "var(--ei-color-bg-card, var(--ei-color-bg-canvas))",
         marginBottom: 24,
+        minWidth: 0,
       }}
     >
       <div
@@ -98,7 +99,7 @@ export const DetailSurface: FC<DetailSurfaceProps> = ({
         style={{
           display: "flex",
           gap: 0,
-          borderBottom: "1px solid var(--ei-rule)",
+          borderBottom: "1px solid var(--ei-color-rule-soft)",
           overflowX: "auto",
         }}
       >
@@ -117,12 +118,12 @@ export const DetailSurface: FC<DetailSurfaceProps> = ({
               onClick={() => onSelect(key)}
               style={{
                 padding: "14px 18px",
-                background: active ? "var(--ei-bg-soft, var(--ei-bg))" : "transparent",
+                background: active ? "var(--ei-color-bg-soft, var(--ei-color-bg-canvas))" : "transparent",
                 border: "none",
-                borderBottom: `2px solid ${active ? "var(--ei-accent)" : "transparent"}`,
-                color: active ? "var(--ei-ink)" : "var(--ei-ink3)",
+                borderBottom: `2px solid ${active ? "var(--ei-color-accent)" : "transparent"}`,
+                color: active ? "var(--ei-color-fg-primary)" : "var(--ei-color-fg-tertiary)",
                 cursor: "pointer",
-                fontFamily: "var(--ei-sans)",
+                fontFamily: "var(--ei-font-sans)",
                 whiteSpace: "nowrap",
                 marginBottom: -1,
               }}

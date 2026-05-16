@@ -79,10 +79,10 @@ export const ReportContextStrip: FC<ReportContextStripProps> = (props) => {
       data-lang={lang}
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)",
-        border: "1px solid var(--ei-rule)",
+        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+        border: "1px solid var(--ei-color-rule-soft)",
         borderRadius: 3,
-        background: "var(--ei-bg-card, var(--ei-bg))",
+        background: "var(--ei-color-bg-card, var(--ei-color-bg-canvas))",
         marginBottom: 18,
         overflow: "hidden",
       }}
@@ -93,23 +93,24 @@ export const ReportContextStrip: FC<ReportContextStripProps> = (props) => {
           data-testid={field.testId}
           style={{
             padding: "13px 16px",
+            minWidth: 0,
             borderRight:
               (i + 1) % 3 === 0
                 ? "none"
-                : "1px dotted var(--ei-rule)",
-            borderBottom: i < 3 ? "1px dotted var(--ei-rule)" : "none",
+                : "1px dotted var(--ei-color-rule-soft)",
+            borderBottom: i < 3 ? "1px dotted var(--ei-color-rule-soft)" : "none",
           }}
         >
           <div
             className="ei-label"
-            style={{ color: "var(--ei-ink3)", marginBottom: 4 }}
+            style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 4 }}
           >
             {t(field.labelKey)}
           </div>
           <div
             style={{
               fontSize: 13.5,
-              color: "var(--ei-ink)",
+              color: "var(--ei-color-fg-primary)",
               fontWeight: 500,
               whiteSpace: "nowrap",
               overflow: "hidden",

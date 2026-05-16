@@ -1,7 +1,7 @@
 # 001 — Report Screen and Generating Handoff Checklist
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-16
 
 **关联计划**: [plan](./plan.md)
@@ -82,18 +82,24 @@
 - [x] 5.10 BDD-Gate: 验证 `E2E.P0.059` 通过（Playwright pixel parity + i18n + 旧口径负向）
 - [x] 5.11 新增 `frontend/src/app/screens/report/README.md` + `frontend/src/app/screens/generating/README.md`：简明 handoff 段落，记录 001 新增 component / hook / nav 边界 / handoff 给 backend-review 与 frontend-workspace-and-practice 的边界；引用 D-1 ~ D-14 决策
 - [x] 5.12 收口 gate：`pnpm vitest run` 全绿 + `pnpm typecheck` 全绿 + `pnpm test:pixel-parity` 全绿 + `pnpm build` 全绿 + `make codegen-check` 通过 + `make validate-fixtures` 通过（依赖 backend-review/001 Phase 0 新增 fixture variants）+ `python3 scripts/lint/frontend_report_dashboard_legacy.py --repo-root . --phase all` 通过 + `python3 -m pytest scripts/lint/frontend_report_dashboard_legacy_test.py -q` 通过 + `make docs-check` 通过 + `git diff --check` 通过
-- [x] 5.13 更新 `docs/spec/frontend-report-dashboard/plans/INDEX.md`：001 状态保持 `active`（plan-review / sync-doc-index 推进到 completed 由后续动作完成）
+- [x] 5.13 更新 `docs/spec/frontend-report-dashboard/plans/INDEX.md`：001 状态推进到 `completed`，并通过 sync-doc-index / docs-check 校验 Header 与 INDEX 一致
 
 ## 收口证据
 
-- `pnpm --filter @easyinterview/frontend test`
+- 2026-05-16 merge gate: `git fetch origin main` + `git merge --no-edit main`，结果为 `Already up to date.`，无冲突、无 merge commit。
+- 2026-05-16 L2 code-review fixes: 补齐 `report?sessionId=S` 缺 `reportId` 的无请求错误态；修正 `useReportGenerationPoll` visibility/focus 恢复时重复请求；新增 hash bootstrap 使 Playwright parity route 能真实进入 `generating` / `report`；修复 report title target job 缺失；替换 prototype CSS short tokens；修复 390px mobile report overflow。
+- `pnpm --filter @easyinterview/frontend test`：171 个 test files / 985 tests passed（首次出现 `HomeRecentMocks` 异步加载抖动，单测与全量重跑均通过）。
 - `pnpm --filter @easyinterview/frontend typecheck`
-- `pnpm --filter @easyinterview/frontend test:pixel-parity`
 - `pnpm --filter @easyinterview/frontend build`
+- `pnpm --filter @easyinterview/frontend test:pixel-parity tests/pixel-parity/generating.spec.ts tests/pixel-parity/report.spec.ts`：14 passed。
 - `make codegen-check`
 - `make validate-fixtures`
 - `python3 scripts/lint/frontend_report_dashboard_legacy.py --repo-root . --phase all`
-- `python3 -m pytest scripts/lint/frontend_report_dashboard_legacy_test.py -q`
-- 4 个 P0 scenario 执行通过
+- `python3 -m pytest scripts/lint/frontend_report_dashboard_legacy_test.py -q`：3 passed。
+- `test/scenarios/e2e/p0-056-generating-to-report-happy-path/scripts/{setup,trigger,verify,cleanup}.sh`
+- `test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/scripts/{setup,trigger,verify,cleanup}.sh`
+- `test/scenarios/e2e/p0-058-report-failure-and-missing-session/scripts/{setup,trigger,verify,cleanup}.sh`
+- `test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-legacy-negative/scripts/{setup,trigger,verify,cleanup}.sh`
+- 2026-05-16 cross-owner regression: `E2E.P0.044` / `E2E.P0.045` / `E2E.P0.046` / `E2E.P0.047` setup → trigger → verify → cleanup 全部通过。
 - `make docs-check`
 - `git diff --check`

@@ -113,9 +113,11 @@ export function useReportGenerationPoll(
   // Used to invalidate scheduled timers / inflight responses when the caller
   // unmounts or retries.
   const runSeqRef = useRef(0);
+  const resumePlanRef = useRef<{ attempt: number; delay: number } | null>(null);
 
   const retry = useCallback(() => {
     if (!reportId || !client) return;
+    resumePlanRef.current = null;
     setAttemptCount(0);
     setReport(null);
     setErrorCode(null);
@@ -133,6 +135,7 @@ export function useReportGenerationPoll(
       return;
     }
     // (Re)mount: start fresh.
+    resumePlanRef.current = null;
     runSeqRef.current += 1;
     setAttemptCount(0);
     setReport(null);
@@ -151,8 +154,21 @@ export function useReportGenerationPoll(
 
     const finalize = (next: ReportGenerationPollState, code?: string | null) => {
       if (cancelled || runSeqRef.current !== seq) return;
+      resumePlanRef.current = null;
       if (code !== undefined) setErrorCode(code);
       setState(next);
+    };
+
+    const scheduleAttempt = (attempt: number, delay: number) => {
+      resumePlanRef.current = { attempt, delay };
+      cancelTimer = scheduler.schedule(delay, () => {
+        cancelTimer = null;
+        if (stateRef.current === "paused" || stateRef.current === "ready") {
+          return;
+        }
+        resumePlanRef.current = null;
+        runAttempt(attempt);
+      });
     };
 
     const runAttempt = (attempt: number) => {
@@ -183,13 +199,7 @@ export function useReportGenerationPoll(
             maxDelayMs,
             initialDelayMs * Math.pow(backoffFactor, attempt - 1),
           );
-          cancelTimer = scheduler.schedule(delay, () => {
-            cancelTimer = null;
-            if (stateRef.current === "paused" || stateRef.current === "ready") {
-              return;
-            }
-            runAttempt(attempt + 1);
-          });
+          scheduleAttempt(attempt + 1, delay);
         })
         .catch((err: unknown) => {
           if (cancelled || runSeqRef.current !== seq) return;
@@ -210,17 +220,16 @@ export function useReportGenerationPoll(
             maxDelayMs,
             initialDelayMs * Math.pow(backoffFactor, attempt - 1),
           );
-          cancelTimer = scheduler.schedule(delay, () => {
-            cancelTimer = null;
-            if (stateRef.current === "paused" || stateRef.current === "ready") {
-              return;
-            }
-            runAttempt(attempt + 1);
-          });
+          scheduleAttempt(attempt + 1, delay);
         });
     };
 
-    runAttempt(1);
+    const resumePlan = resumePlanRef.current;
+    if (resumePlan) {
+      scheduleAttempt(resumePlan.attempt, resumePlan.delay);
+    } else {
+      runAttempt(1);
+    }
 
     return () => {
       cancelled = true;

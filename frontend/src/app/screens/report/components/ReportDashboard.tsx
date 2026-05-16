@@ -92,7 +92,7 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ route }) => {
           maxWidth: 1200,
           margin: "0 auto",
           padding: "32px 48px",
-          color: "var(--ei-ink3)",
+          color: "var(--ei-color-fg-tertiary)",
         }}
       >
         {t("report.loading")}
@@ -118,14 +118,16 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ route }) => {
     (data.questionAssessments ?? []).length || 0
   }`;
   const roundLabel = route.params.roundName ?? route.params.roundId ?? null;
+  const targetTitle = extractTargetTitle(ctxData.targetLabel);
 
   const breadcrumb = lang === "en"
     ? `Mock interview / ${sessionId || "session"} / Report`
     : `模拟面试 / ${sessionId || "会话"} / 面试报告`;
-  const title = roundLabel
+  const titleSubject = [targetTitle, roundLabel].filter(Boolean).join(" · ");
+  const title = titleSubject
     ? lang === "en"
-      ? `${roundLabel} mock report`
-      : `${roundLabel} 模拟报告`
+      ? `${titleSubject} mock report`
+      : `${titleSubject} 模拟报告`
     : t("report.header.title");
   const subtitle = t("report.header.subtitle");
 
@@ -135,8 +137,11 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ route }) => {
       className="ei-fadein"
       style={{
         maxWidth: 1200,
+        width: "100%",
+        boxSizing: "border-box",
         margin: "0 auto",
-        padding: "32px 48px 96px",
+        padding: "32px clamp(16px, 5vw, 48px) 96px",
+        overflowX: "clip",
       }}
     >
       <button
@@ -148,7 +153,7 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ route }) => {
         style={{
           background: "transparent",
           border: "none",
-          color: "var(--ei-ink3)",
+          color: "var(--ei-color-fg-tertiary)",
           fontSize: 13,
           marginBottom: 20,
           cursor: "pointer",
@@ -234,7 +239,7 @@ function ReportDashboardBody({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(260px, 100%), 1fr))",
           gap: 20,
           marginBottom: 24,
         }}
@@ -248,7 +253,7 @@ function ReportDashboardBody({
               marginBottom: 14,
             }}
           >
-            <div className="ei-label" style={{ color: "var(--ei-ink3)" }}>
+            <div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)" }}>
               {t("report.body.dimensions.eyebrow")}
             </div>
             <button
@@ -258,7 +263,7 @@ function ReportDashboardBody({
               style={{
                 background: "transparent",
                 border: "none",
-                color: "var(--ei-accent)",
+                color: "var(--ei-color-accent)",
                 fontSize: 12,
                 cursor: "pointer",
               }}
@@ -267,7 +272,7 @@ function ReportDashboardBody({
             </button>
           </div>
           {dimensionAggregate.length === 0 ? (
-            <div data-testid="report-body-dimensions-empty" style={{ color: "var(--ei-ink3)" }}>
+            <div data-testid="report-body-dimensions-empty" style={{ color: "var(--ei-color-fg-tertiary)" }}>
               {t("report.dimensions.empty")}
             </div>
           ) : (
@@ -280,21 +285,23 @@ function ReportDashboardBody({
                   padding: "12px 0",
                   borderBottom:
                     i < dimensionAggregate.length - 1
-                      ? "1px dotted var(--ei-rule)"
+                      ? "1px dotted var(--ei-color-rule-soft)"
                       : "none",
                   fontSize: 13,
-                  color: "var(--ei-ink2, var(--ei-ink))",
+                  color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
                   display: "flex",
                   justifyContent: "space-between",
                   gap: 12,
+                  minWidth: 0,
                 }}
               >
-                <span>{d.name}</span>
+                <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{d.name}</span>
                 <span
                   style={{
-                    fontFamily: "var(--ei-mono)",
+                    fontFamily: "var(--ei-font-mono)",
                     fontSize: 11,
-                    color: "var(--ei-ink3)",
+                    color: "var(--ei-color-fg-tertiary)",
+                    flex: "0 0 auto",
                   }}
                 >
                   {d.status ?? "—"} · {d.score}%
@@ -307,7 +314,7 @@ function ReportDashboardBody({
           <div
             className="ei-label"
             data-testid="report-top-priority"
-            style={{ color: "var(--ei-accent)", marginBottom: 10 }}
+            style={{ color: "var(--ei-color-accent)", marginBottom: 10 }}
           >
             {t("report.body.topPriority.eyebrow")}
           </div>
@@ -315,7 +322,7 @@ function ReportDashboardBody({
             className="ei-serif"
             style={{
               fontSize: 18,
-              color: "var(--ei-ink)",
+              color: "var(--ei-color-fg-primary)",
               lineHeight: 1.45,
               marginBottom: 16,
             }}
@@ -330,7 +337,7 @@ function ReportDashboardBody({
               marginBottom: 10,
             }}
           >
-            <div className="ei-label" style={{ color: "var(--ei-ink3)" }}>
+            <div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)" }}>
               {t("report.body.nextPractice.eyebrow")}
             </div>
             <button
@@ -340,7 +347,7 @@ function ReportDashboardBody({
               style={{
                 background: "transparent",
                 border: "none",
-                color: "var(--ei-accent)",
+                color: "var(--ei-color-accent)",
                 fontSize: 12,
                 cursor: "pointer",
               }}
@@ -351,7 +358,7 @@ function ReportDashboardBody({
           {nextPractice.length === 0 ? (
             <div
               data-testid="report-body-next-practice-empty"
-              style={{ color: "var(--ei-ink3)" }}
+              style={{ color: "var(--ei-color-fg-tertiary)" }}
             >
               {t("report.next.empty")}
             </div>
@@ -365,17 +372,17 @@ function ReportDashboardBody({
                   gap: 10,
                   padding: "8px 0",
                   fontSize: 13,
-                  color: "var(--ei-ink2, var(--ei-ink))",
+                  color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
                   borderBottom:
                     i < nextPractice.length - 1
-                      ? "1px dotted var(--ei-rule)"
+                      ? "1px dotted var(--ei-color-rule-soft)"
                       : "none",
                 }}
               >
                 <span
                   style={{
-                    color: "var(--ei-accent)",
-                    fontFamily: "var(--ei-mono)",
+                    color: "var(--ei-color-accent)",
+                    fontFamily: "var(--ei-font-mono)",
                   }}
                 >
                   {String(i + 1).padStart(2, "0")}
@@ -389,7 +396,7 @@ function ReportDashboardBody({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1.2fr .8fr",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(280px, 100%), 1fr))",
           gap: 20,
           marginBottom: 24,
         }}
@@ -405,7 +412,7 @@ function ReportDashboardBody({
           >
             <div
               className="ei-label"
-              style={{ color: "var(--ei-danger, var(--ei-ink))" }}
+              style={{ color: "var(--ei-color-danger, var(--ei-color-fg-primary))" }}
             >
               {t("report.body.questions.eyebrow")}
             </div>
@@ -416,7 +423,7 @@ function ReportDashboardBody({
               style={{
                 background: "transparent",
                 border: "none",
-                color: "var(--ei-accent)",
+                color: "var(--ei-color-accent)",
                 fontSize: 12,
                 cursor: "pointer",
               }}
@@ -425,7 +432,7 @@ function ReportDashboardBody({
             </button>
           </div>
           {perQuestion.length === 0 ? (
-            <div data-testid="report-body-questions-empty" style={{ color: "var(--ei-ink3)" }}>
+            <div data-testid="report-body-questions-empty" style={{ color: "var(--ei-color-fg-tertiary)" }}>
               {t("report.questions.empty")}
             </div>
           ) : (
@@ -443,24 +450,27 @@ function ReportDashboardBody({
                   padding: "12px 0",
                   borderBottom:
                     i < perQuestion.length - 1
-                      ? "1px dotted var(--ei-rule)"
+                      ? "1px dotted var(--ei-color-rule-soft)"
                       : "none",
                   cursor: "pointer",
-                  fontFamily: "var(--ei-sans)",
+                  fontFamily: "var(--ei-font-sans)",
                 }}
               >
                 <div
                   style={{
-                    display: "flex",
-                    gap: 10,
-                    alignItems: "center",
-                  }}
-                >
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
+                  minWidth: 0,
+                }}
+              >
                   <span
                     style={{
-                      fontFamily: "var(--ei-mono)",
+                      fontFamily: "var(--ei-font-mono)",
                       fontSize: 11,
-                      color: "var(--ei-ink3)",
+                      color: "var(--ei-color-fg-tertiary)",
+                      minWidth: 0,
+                      overflowWrap: "anywhere",
                     }}
                   >
                     {q.turnId}
@@ -468,8 +478,10 @@ function ReportDashboardBody({
                   <span
                     style={{
                       fontSize: 14,
-                      color: "var(--ei-ink)",
+                      color: "var(--ei-color-fg-primary)",
                       fontWeight: 500,
+                      minWidth: 0,
+                      overflowWrap: "anywhere",
                     }}
                   >
                     {q.questionIntent}
@@ -480,7 +492,7 @@ function ReportDashboardBody({
           )}
         </section>
         <div
-          style={{ display: "flex", flexDirection: "column", gap: 20 }}
+          style={{ display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}
         >
           <section data-testid="report-body-issues-card" style={cardStyle()}>
             <div
@@ -493,7 +505,7 @@ function ReportDashboardBody({
             >
               <div
                 className="ei-label"
-                style={{ color: "var(--ei-danger, var(--ei-ink))" }}
+                style={{ color: "var(--ei-color-danger, var(--ei-color-fg-primary))" }}
               >
                 {t("report.body.issues.eyebrow")}
               </div>
@@ -504,7 +516,7 @@ function ReportDashboardBody({
                 style={{
                   background: "transparent",
                   border: "none",
-                  color: "var(--ei-accent)",
+                  color: "var(--ei-color-accent)",
                   fontSize: 12,
                   cursor: "pointer",
                 }}
@@ -513,7 +525,7 @@ function ReportDashboardBody({
               </button>
             </div>
             {issues.length === 0 ? (
-              <div data-testid="report-body-issues-empty" style={{ color: "var(--ei-ink3)" }}>
+              <div data-testid="report-body-issues-empty" style={{ color: "var(--ei-color-fg-tertiary)" }}>
                 {t("report.evidence.risks.empty")}
               </div>
             ) : (
@@ -525,14 +537,14 @@ function ReportDashboardBody({
                     padding: "10px 0",
                     borderBottom:
                       i < issues.length - 1
-                        ? "1px dotted var(--ei-rule)"
+                        ? "1px dotted var(--ei-color-rule-soft)"
                         : "none",
                   }}
                 >
                   <div
                     style={{
                       fontSize: 13.5,
-                      color: "var(--ei-ink)",
+                      color: "var(--ei-color-fg-primary)",
                       fontWeight: 500,
                     }}
                   >
@@ -541,8 +553,8 @@ function ReportDashboardBody({
                   <div
                     style={{
                       fontSize: 12,
-                      color: "var(--ei-ink3)",
-                      fontFamily: "var(--ei-mono)",
+                      color: "var(--ei-color-fg-tertiary)",
+                      fontFamily: "var(--ei-font-mono)",
                       marginTop: 2,
                     }}
                   >
@@ -555,14 +567,14 @@ function ReportDashboardBody({
           <section data-testid="report-body-highlights-card" style={cardStyle()}>
             <div
               className="ei-label"
-              style={{ color: "var(--ei-ok)", marginBottom: 12 }}
+              style={{ color: "var(--ei-color-ok)", marginBottom: 12 }}
             >
               {t("report.body.highlights.eyebrow")}
             </div>
             {highlights.length === 0 ? (
               <div
                 data-testid="report-body-highlights-empty"
-                style={{ color: "var(--ei-ink3)" }}
+                style={{ color: "var(--ei-color-fg-tertiary)" }}
               >
                 {t("report.evidence.highlights.empty")}
               </div>
@@ -575,14 +587,14 @@ function ReportDashboardBody({
                     padding: "10px 0",
                     borderBottom:
                       i < highlights.length - 1
-                        ? "1px dotted var(--ei-rule)"
+                        ? "1px dotted var(--ei-color-rule-soft)"
                         : "none",
                   }}
                 >
                   <div
                     style={{
                       fontSize: 13.5,
-                      color: "var(--ei-ink)",
+                      color: "var(--ei-color-fg-primary)",
                       fontWeight: 500,
                     }}
                   >
@@ -591,7 +603,7 @@ function ReportDashboardBody({
                   <div
                     style={{
                       fontSize: 12,
-                      color: "var(--ei-ink3)",
+                      color: "var(--ei-color-fg-tertiary)",
                       marginTop: 2,
                     }}
                   >
@@ -610,9 +622,11 @@ function ReportDashboardBody({
 function cardStyle(): React.CSSProperties {
   return {
     padding: 18,
-    border: "1px solid var(--ei-rule)",
+    border: "1px solid var(--ei-color-rule-soft)",
     borderRadius: 3,
-    background: "var(--ei-bg-card, var(--ei-bg))",
+    background: "var(--ei-color-bg-card, var(--ei-color-bg-canvas))",
+    minWidth: 0,
+    overflowWrap: "anywhere",
   };
 }
 
@@ -676,4 +690,13 @@ function countDimensions(report: FeedbackReport): number {
     }
   }
   return set.size;
+}
+
+function extractTargetTitle(targetLabel: string | null): string | null {
+  if (!targetLabel) return null;
+  const parts = targetLabel
+    .split(" · ")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1]! : targetLabel;
 }

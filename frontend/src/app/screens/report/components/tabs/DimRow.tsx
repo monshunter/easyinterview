@@ -24,10 +24,10 @@ export const DimRow: FC<DimRowProps> = ({ dim, last }) => {
   const { t } = useI18n();
   const tone =
     dim.status === "strong"
-      ? "var(--ei-ok)"
+      ? "var(--ei-color-ok)"
       : dim.status === "needs_work"
-        ? "var(--ei-warn, var(--ei-danger, var(--ei-ink)))"
-        : "var(--ei-ink2, var(--ei-ink))";
+        ? "var(--ei-color-warn, var(--ei-color-danger, var(--ei-color-fg-primary)))"
+        : "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))";
   return (
     <div
       data-testid="report-dim-row"
@@ -39,12 +39,12 @@ export const DimRow: FC<DimRowProps> = ({ dim, last }) => {
         display: "flex",
         alignItems: "center",
         gap: 16,
-        borderBottom: last ? "none" : "1px dotted var(--ei-rule)",
+        borderBottom: last ? "none" : "1px dotted var(--ei-color-rule-soft)",
       }}
     >
       <div
         data-testid="report-dim-row-name"
-        style={{ width: 110, fontSize: 13, color: "var(--ei-ink)", fontWeight: 500 }}
+        style={{ width: 110, fontSize: 13, color: "var(--ei-color-fg-primary)", fontWeight: 500 }}
       >
         {dim.name}
       </div>
@@ -53,7 +53,7 @@ export const DimRow: FC<DimRowProps> = ({ dim, last }) => {
         style={{
           flex: 1,
           height: 4,
-          background: "var(--ei-bg-soft, var(--ei-bg))",
+          background: "var(--ei-color-bg-soft, var(--ei-color-bg-canvas))",
           borderRadius: 2,
           position: "relative",
           overflow: "hidden",
@@ -85,8 +85,8 @@ export const DimRow: FC<DimRowProps> = ({ dim, last }) => {
         style={{
           width: 70,
           fontSize: 11,
-          color: "var(--ei-ink3)",
-          fontFamily: "var(--ei-mono)",
+          color: "var(--ei-color-fg-tertiary)",
+          fontFamily: "var(--ei-font-mono)",
           textAlign: "right",
         }}
       >

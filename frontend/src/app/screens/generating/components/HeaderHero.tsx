@@ -14,7 +14,7 @@ export const HeaderHero: FC = () => {
         className="ei-label"
         data-testid="generating-header-eyebrow"
         style={{
-          color: "var(--ei-ink3)",
+          color: "var(--ei-color-fg-tertiary)",
           marginBottom: 12,
           letterSpacing: "0.1em",
         }}
@@ -27,8 +27,8 @@ export const HeaderHero: FC = () => {
         style={{
           fontSize: 34,
           margin: 0,
-          color: "var(--ei-ink)",
-          letterSpacing: "-0.02em",
+          color: "var(--ei-color-fg-primary)",
+          letterSpacing: 0,
           lineHeight: 1.2,
           marginBottom: 10,
         }}
@@ -39,7 +39,7 @@ export const HeaderHero: FC = () => {
         data-testid="generating-header-subtitle"
         style={{
           fontSize: 14,
-          color: "var(--ei-ink3)",
+          color: "var(--ei-color-fg-tertiary)",
           marginBottom: 32,
           lineHeight: 1.5,
           maxWidth: 540,

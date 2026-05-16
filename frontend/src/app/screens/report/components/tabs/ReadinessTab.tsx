@@ -68,13 +68,13 @@ export const ReadinessTab: FC<ReadinessTabProps> = ({ report }) => {
             width: 112,
             height: 112,
             borderRadius: "50%",
-            border: "6px solid var(--ei-accent)",
+            border: "6px solid var(--ei-color-accent)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             fontFamily: "var(--ei-serif)",
             fontSize: 18,
-            color: "var(--ei-ink)",
+            color: "var(--ei-color-fg-primary)",
           }}
         >
           {tier ? t(readinessTierLabel(tier)) : "—"}
@@ -82,9 +82,9 @@ export const ReadinessTab: FC<ReadinessTabProps> = ({ report }) => {
         <div
           data-testid="report-readiness-dial-label"
           style={{
-            fontFamily: "var(--ei-mono)",
+            fontFamily: "var(--ei-font-mono)",
             fontSize: 11,
-            color: "var(--ei-ink3)",
+            color: "var(--ei-color-fg-tertiary)",
           }}
         >
           {tier ?? "—"}
@@ -93,7 +93,7 @@ export const ReadinessTab: FC<ReadinessTabProps> = ({ report }) => {
       <div>
         <div
           className="ei-label"
-          style={{ color: "var(--ei-accent)", marginBottom: 8 }}
+          style={{ color: "var(--ei-color-accent)", marginBottom: 8 }}
         >
           {t("report.readiness.detail.eyebrow")}
         </div>
@@ -101,7 +101,7 @@ export const ReadinessTab: FC<ReadinessTabProps> = ({ report }) => {
           className="ei-serif"
           style={{
             fontSize: 24,
-            color: "var(--ei-ink)",
+            color: "var(--ei-color-fg-primary)",
             lineHeight: 1.35,
             marginBottom: 14,
           }}
@@ -121,13 +121,13 @@ export const ReadinessTab: FC<ReadinessTabProps> = ({ report }) => {
               data-testid={row.testId}
               style={{
                 padding: 14,
-                background: "var(--ei-bg-soft, var(--ei-bg))",
+                background: "var(--ei-color-bg-soft, var(--ei-color-bg-canvas))",
                 borderRadius: 2,
               }}
             >
               <div
                 className="ei-label"
-                style={{ color: "var(--ei-ink3)", marginBottom: 6 }}
+                style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 6 }}
               >
                 {t(row.labelKey)}
               </div>
@@ -135,7 +135,7 @@ export const ReadinessTab: FC<ReadinessTabProps> = ({ report }) => {
                 className="ei-serif"
                 style={{
                   fontSize: 22,
-                  color: "var(--ei-ink)",
+                  color: "var(--ei-color-fg-primary)",
                   marginBottom: 6,
                 }}
               >
@@ -144,7 +144,7 @@ export const ReadinessTab: FC<ReadinessTabProps> = ({ report }) => {
               <div
                 style={{
                   fontSize: 12.5,
-                  color: "var(--ei-ink2, var(--ei-ink))",
+                  color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
                   lineHeight: 1.55,
                 }}
               >

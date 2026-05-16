@@ -40,6 +40,17 @@ REQUIRED_TERMS = (
     "VoiceSessionSurface",
     "PracticeWaveformBars",
     "listTargetJobReports",
+    "--ei-bg",
+    "--ei-ink",
+    "--ei-accent",
+    "--ei-rule",
+    "--ei-danger",
+    "--ei-ok",
+    "--ei-warn",
+    "--ei-cool",
+    "--ei-amber",
+    "--ei-sans",
+    "--ei-mono",
 )
 
 

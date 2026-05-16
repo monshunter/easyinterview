@@ -59,6 +59,20 @@ export const ReportScreen: FC<ReportScreenProps> = ({ route }) => {
     );
   }
 
+  if (!params.reportId) {
+    return (
+      <ReportMissingSessionState
+        kind="missingReport"
+        onBackToWorkspace={() =>
+          navigate({
+            name: "workspace",
+            params: rebuildHandoffParams(params),
+          })
+        }
+      />
+    );
+  }
+
   return <ReportDashboard route={route} />;
 };
 

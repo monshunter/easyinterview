@@ -54,7 +54,7 @@ export const SummaryCards: FC<SummaryCardsProps> = ({
       data-testid="report-summary-cards"
       style={{
         display: "grid",
-        gridTemplateColumns: "1fr 1fr 1fr 1fr",
+        gridTemplateColumns: "repeat(auto-fit, minmax(min(180px, 100%), 1fr))",
         gap: 14,
         marginBottom: 18,
       }}
@@ -71,29 +71,31 @@ export const SummaryCards: FC<SummaryCardsProps> = ({
             style={{
               padding: 0,
               border: isActive
-                ? "1px solid var(--ei-accent)"
+                ? "1px solid var(--ei-color-accent)"
                 : "1px solid transparent",
               borderRadius: 3,
               background: "transparent",
               cursor: "pointer",
               textAlign: "left",
-              fontFamily: "var(--ei-sans)",
+              fontFamily: "var(--ei-font-sans)",
+              minWidth: 0,
               boxShadow: isActive
-                ? "0 0 0 2px var(--ei-accent-soft, var(--ei-accent))"
+                ? "0 0 0 2px var(--ei-color-accent-soft, var(--ei-color-accent))"
                 : "none",
             }}
           >
             <div
               style={{
                 padding: "18px 20px",
-                border: "1px solid var(--ei-rule)",
+                border: "1px solid var(--ei-color-rule-soft)",
                 borderRadius: 2,
-                background: "var(--ei-bg-card, var(--ei-bg))",
+                background: "var(--ei-color-bg-card, var(--ei-color-bg-canvas))",
+                minWidth: 0,
               }}
             >
               <div
                 className="ei-label"
-                style={{ color: "var(--ei-ink3)", marginBottom: 10 }}
+                style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 10 }}
               >
                 {t(labelKey[key])}
               </div>
@@ -102,8 +104,9 @@ export const SummaryCards: FC<SummaryCardsProps> = ({
                 className="ei-serif"
                 style={{
                   fontSize: key === "questions" || key === "dimensions" ? 26 : 22,
-                  color: "var(--ei-ink)",
-                  letterSpacing: "-0.01em",
+                  color: "var(--ei-color-fg-primary)",
+                  letterSpacing: 0,
+                  overflowWrap: "anywhere",
                 }}
               >
                 {values[key]}

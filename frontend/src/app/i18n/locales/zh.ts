@@ -664,6 +664,11 @@ export const zh = {
   "report.missingSession.desc":
     "没有 sessionId 时不展示假报告数据，而是回到面试规划。",
   "report.missingSession.cta": "返回面试规划",
+  "report.missingReport.eyebrow": "报告缺少 reportId",
+  "report.missingReport.title": "无法定位这份面试报告。",
+  "report.missingReport.desc":
+    "没有 reportId 时不会请求报告接口；请从已完成会话历史或生成完成页进入。",
+  "report.missingReport.cta": "返回面试规划",
   "report.body.dimensions.eyebrow": "能力维度",
   "report.body.dimensions.open": "查看详情",
   "report.body.topPriority.eyebrow": "▸ 下一次最该改这个",

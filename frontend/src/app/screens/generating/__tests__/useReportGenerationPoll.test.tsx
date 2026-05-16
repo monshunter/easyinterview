@@ -326,6 +326,49 @@ describe("useReportGenerationPoll", () => {
     await waitFor(() => expect(result.current.state).toBe("polling"));
   });
 
+  it("resume reuses the scheduled next attempt instead of firing an immediate duplicate request", async () => {
+    const client = buildClientStuck();
+    const spy = vi.spyOn(client, "getFeedbackReport");
+    const sched = manualScheduler();
+    const { result } = renderHook(
+      () =>
+        useReportGenerationPoll({
+          reportId: REPORT_ID,
+          scheduler: sched,
+        }),
+      {
+        wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
+      },
+    );
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(sched.pending.length).toBeGreaterThan(0));
+
+    await act(async () => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "hidden",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await waitFor(() => expect(result.current.state).toBe("paused"));
+
+    await act(async () => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "visible",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await waitFor(() => expect(result.current.state).toBe("polling"));
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      sched.flushNext();
+    });
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
+    expect(result.current.attemptCount).toBe(2);
+  });
+
   it("getFeedbackReport requests do not carry Idempotency-Key (TestUseReportGenerationPollNoIdempotencyHeader)", async () => {
     // The hook calls the generated client method without RequestOptions
     // carrying mutation headers. This is enforced by signature: getFeedbackReport

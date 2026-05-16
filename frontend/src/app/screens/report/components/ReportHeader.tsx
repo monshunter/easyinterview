@@ -39,11 +39,11 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
         flexWrap: "wrap",
       }}
     >
-      <div>
+      <div style={{ minWidth: 0, flex: "1 1 320px" }}>
         <div
           className="ei-label"
           data-testid="report-header-breadcrumb"
-          style={{ color: "var(--ei-ink3)", marginBottom: 8 }}
+          style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 8 }}
         >
           {breadcrumb}
         </div>
@@ -52,10 +52,11 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
           data-testid="report-header-title"
           style={{
             fontSize: 38,
-            color: "var(--ei-ink)",
+            color: "var(--ei-color-fg-primary)",
             margin: 0,
             lineHeight: 1.15,
-            letterSpacing: "-0.02em",
+            letterSpacing: 0,
+            overflowWrap: "anywhere",
           }}
         >
           {title}
@@ -64,7 +65,7 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
           data-testid="report-header-subtitle"
           style={{
             fontSize: 14,
-            color: "var(--ei-ink2, var(--ei-ink))",
+            color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
             marginTop: 8,
             lineHeight: 1.65,
             maxWidth: 720,
@@ -79,6 +80,8 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
           gap: 10,
           flexWrap: "wrap",
           justifyContent: "flex-end",
+          minWidth: 0,
+          flex: "1 1 240px",
         }}
       >
         <button
@@ -89,14 +92,15 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
           aria-disabled={disableReplay}
           style={{
             padding: "10px 16px",
-            background: "var(--ei-accent)",
+            background: "var(--ei-color-accent)",
             color: "#fff",
-            border: "1px solid var(--ei-accent)",
+            border: "1px solid var(--ei-color-accent)",
             borderRadius: 2,
             cursor: disableReplay ? "not-allowed" : "pointer",
             opacity: disableReplay ? 0.5 : 1,
-            fontFamily: "var(--ei-sans)",
+            fontFamily: "var(--ei-font-sans)",
             fontSize: 13,
+            flex: "1 1 160px",
           }}
         >
           {t("report.header.cta.replay")}
@@ -110,13 +114,14 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
           style={{
             padding: "10px 16px",
             background: "transparent",
-            color: "var(--ei-ink2, var(--ei-ink))",
-            border: "1px solid var(--ei-rule)",
+            color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
+            border: "1px solid var(--ei-color-rule-soft)",
             borderRadius: 2,
             cursor: disableNextRound ? "not-allowed" : "pointer",
             opacity: disableNextRound ? 0.5 : 1,
-            fontFamily: "var(--ei-sans)",
+            fontFamily: "var(--ei-font-sans)",
             fontSize: 13,
+            flex: "1 1 160px",
           }}
         >
           {t("report.header.cta.nextRound")}

@@ -42,6 +42,20 @@ FORBIDDEN_PATTERNS: tuple[str, ...] = (
     r"window\.EI_DATA",
     r"ui-design/src/data",
     r"listTargetJobReports",
+    # Prototype-only short CSS variables are not defined by the formal D2
+    # token system. Report/generating implementation must use --ei-color-* and
+    # --ei-font-* tokens so theme / dark / customAccent changes are real gates.
+    r"--ei-bg(?:-[a-z]+)?\b",
+    r"--ei-ink[23]?\b",
+    r"--ei-accent(?:-soft)?\b",
+    r"--ei-rule\b",
+    r"--ei-danger(?:-soft)?\b",
+    r"--ei-ok(?:-soft)?\b",
+    r"--ei-warn(?:-soft)?\b",
+    r"--ei-cool(?:-soft)?\b",
+    r"--ei-amber(?:-soft)?\b",
+    r"--ei-sans\b",
+    r"--ei-mono\b",
 )
 
 # Files (relative to repo root) that legitimately mention retired terms because

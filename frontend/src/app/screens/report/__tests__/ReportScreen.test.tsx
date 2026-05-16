@@ -207,6 +207,22 @@ describe("ReportScreen dispatch", () => {
     expect(spies(client).listTargetJobReports).not.toHaveBeenCalled();
   });
 
+  it("dispatches missing-report state when reportId is missing and never fetches (TestReportScreenDispatchesMissingReportId)", async () => {
+    const client = makeClient();
+    render(
+      <Harness
+        client={client}
+        initialRoute={{
+          name: "report",
+          params: { sessionId: SESSION_ID },
+        }}
+      />,
+    );
+    expect(screen.getByTestId("report-missing-report")).toBeInTheDocument();
+    expect(spies(client).feedbackReport).not.toHaveBeenCalled();
+    expect(spies(client).listTargetJobReports).not.toHaveBeenCalled();
+  });
+
   it("renders ReportDashboard on the happy path with 10+ report-* testids (TestReportScreenDispatchesDashboard)", async () => {
     const client = makeClient({ authenticated: true });
     render(
@@ -253,6 +269,11 @@ describe("ReportScreen dispatch", () => {
     for (const id of required) {
       expect(screen.queryByTestId(id), `missing ${id}`).not.toBeNull();
     }
+    await waitFor(() =>
+      expect(screen.getByTestId("report-header-title")).toHaveTextContent(
+        "Senior Frontend Engineer",
+      ),
+    );
     expect(screen.queryByTestId("route-report")).toBeNull();
     expect(screen.queryByTestId("mistakes-queue")).toBeNull();
     expect(screen.queryByTestId("report-timeline")).toBeNull();

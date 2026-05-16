@@ -60,21 +60,25 @@ export const DimensionsTab: FC<DimensionsTabProps> = ({ report }) => {
   const { t } = useI18n();
   const dimensions = aggregateDimensions(report);
   return (
-    <div data-testid="report-dimensions-panel" style={{ padding: 24 }}>
+    <div data-testid="report-dimensions-panel" style={{ padding: 24, minWidth: 0 }}>
       <div
         className="ei-label"
-        style={{ color: "var(--ei-ink3)", marginBottom: 14 }}
+        style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 14 }}
       >
         {t("report.dimensions.detail.eyebrow")}
       </div>
       {dimensions.length === 0 ? (
-        <div data-testid="report-dimensions-empty" style={{ color: "var(--ei-ink3)" }}>
+        <div data-testid="report-dimensions-empty" style={{ color: "var(--ei-color-fg-tertiary)" }}>
           {t("report.dimensions.empty")}
         </div>
       ) : (
         <div
           data-testid="report-dimensions-grid"
-          style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(220px, 100%), 1fr))",
+            gap: 14,
+          }}
         >
           {dimensions.map((d, idx) => (
             <div
@@ -86,9 +90,10 @@ export const DimensionsTab: FC<DimensionsTabProps> = ({ report }) => {
               data-dim-confidence={d.confidence}
               style={{
                 padding: 16,
-                border: "1px solid var(--ei-rule)",
+                border: "1px solid var(--ei-color-rule-soft)",
                 borderRadius: 2,
-                background: "var(--ei-bg)",
+                background: "var(--ei-color-bg-canvas)",
+                minWidth: 0,
               }}
             >
               <div
@@ -97,22 +102,31 @@ export const DimensionsTab: FC<DimensionsTabProps> = ({ report }) => {
                   justifyContent: "space-between",
                   gap: 10,
                   marginBottom: 10,
+                  minWidth: 0,
                 }}
               >
-                <div style={{ fontSize: 15, color: "var(--ei-ink)", fontWeight: 500 }}>
+                <div
+                  style={{
+                    fontSize: 15,
+                    color: "var(--ei-color-fg-primary)",
+                    fontWeight: 500,
+                    minWidth: 0,
+                    overflowWrap: "anywhere",
+                  }}
+                >
                   {d.name}
                 </div>
                 <div
                   data-testid={`report-dim-card-${idx}-status`}
                   style={{
                     fontSize: 11,
-                    fontFamily: "var(--ei-mono)",
+                    fontFamily: "var(--ei-font-mono)",
                     color:
                       d.status === "strong"
-                        ? "var(--ei-ok)"
+                        ? "var(--ei-color-ok)"
                         : d.status === "needs_work"
-                          ? "var(--ei-danger, var(--ei-ink))"
-                          : "var(--ei-ink2, var(--ei-ink))",
+                          ? "var(--ei-color-danger, var(--ei-color-fg-primary))"
+                          : "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
                   }}
                 >
                   {d.status ? t(dimensionStatusLabel(d.status)) : "—"}

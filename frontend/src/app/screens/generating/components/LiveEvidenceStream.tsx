@@ -22,7 +22,7 @@ export const LiveEvidenceStream: FC<LiveEvidenceStreamProps> = ({
       <div
         className="ei-label"
         data-testid="generating-live-stream-label"
-        style={{ color: "var(--ei-ink3)", marginBottom: 10 }}
+        style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 10 }}
       >
         {t("generating.evidence.streamLabel")}
       </div>
@@ -30,13 +30,13 @@ export const LiveEvidenceStream: FC<LiveEvidenceStreamProps> = ({
         data-testid="generating-live-stream-body"
         style={{
           padding: "14px 16px",
-          background: "var(--ei-bg-soft, var(--ei-bg))",
-          border: "1px solid var(--ei-rule)",
+          background: "var(--ei-color-bg-soft, var(--ei-color-bg-canvas))",
+          border: "1px solid var(--ei-color-rule-soft)",
           borderRadius: 2,
-          fontFamily: "var(--ei-mono)",
+          fontFamily: "var(--ei-font-mono)",
           fontSize: 12,
           lineHeight: 1.75,
-          color: "var(--ei-ink2, var(--ei-ink))",
+          color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
           minHeight: 100,
         }}
       >
@@ -47,7 +47,7 @@ export const LiveEvidenceStream: FC<LiveEvidenceStreamProps> = ({
             className="ei-fadein"
             style={{ marginBottom: 4 }}
           >
-            <span style={{ color: "var(--ei-ink4, var(--ei-ink3))" }}>›</span>{" "}
+            <span style={{ color: "var(--ei-ink4, var(--ei-color-fg-tertiary))" }}>›</span>{" "}
             {line}
           </div>
         ))}
@@ -59,7 +59,7 @@ export const LiveEvidenceStream: FC<LiveEvidenceStreamProps> = ({
               display: "inline-block",
               width: 8,
               height: 12,
-              background: "var(--ei-accent)",
+              background: "var(--ei-color-accent)",
               verticalAlign: "text-bottom",
             }}
           />

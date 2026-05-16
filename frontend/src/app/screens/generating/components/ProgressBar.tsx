@@ -33,9 +33,9 @@ export const ProgressBar: FC<ProgressBarProps> = ({
         <div
           data-testid="generating-progress-counter"
           style={{
-            fontFamily: "var(--ei-mono)",
+            fontFamily: "var(--ei-font-mono)",
             fontSize: 11,
-            color: "var(--ei-ink3)",
+            color: "var(--ei-color-fg-tertiary)",
             letterSpacing: "0.04em",
           }}
         >
@@ -44,9 +44,9 @@ export const ProgressBar: FC<ProgressBarProps> = ({
         <div
           data-testid="generating-progress-percentage"
           style={{
-            fontFamily: "var(--ei-mono)",
+            fontFamily: "var(--ei-font-mono)",
             fontSize: 11,
-            color: "var(--ei-ink3)",
+            color: "var(--ei-color-fg-tertiary)",
           }}
         >
           {Math.round(pct)}%
@@ -54,14 +54,14 @@ export const ProgressBar: FC<ProgressBarProps> = ({
       </div>
       <div
         data-testid="generating-progress-rail"
-        style={{ height: 2, background: "var(--ei-rule)", overflow: "hidden" }}
+        style={{ height: 2, background: "var(--ei-color-rule-soft)", overflow: "hidden" }}
       >
         <div
           data-testid="generating-progress-fill"
           style={{
             height: "100%",
             width: `${pct}%`,
-            background: "var(--ei-accent)",
+            background: "var(--ei-color-accent)",
             transition: "width .5s ease",
           }}
         />

@@ -43,7 +43,7 @@ export const PhaseList: FC<PhaseListProps> = ({ phaseIndex, phases, resolve }) =
               gap: 12,
               padding: "10px 0",
               borderBottom:
-                i < phases.length - 1 ? "1px dotted var(--ei-rule)" : "none",
+                i < phases.length - 1 ? "1px dotted var(--ei-color-rule-soft)" : "none",
               alignItems: "center",
             }}
           >
@@ -55,12 +55,12 @@ export const PhaseList: FC<PhaseListProps> = ({ phaseIndex, phases, resolve }) =
                 borderRadius: 9,
                 flexShrink: 0,
                 background: done
-                  ? "var(--ei-ok)"
+                  ? "var(--ei-color-ok)"
                   : active
-                    ? "var(--ei-accent)"
+                    ? "var(--ei-color-accent)"
                     : "transparent",
                 border: `1.5px solid ${
-                  done ? "var(--ei-ok)" : active ? "var(--ei-accent)" : "var(--ei-rule)"
+                  done ? "var(--ei-color-ok)" : active ? "var(--ei-color-accent)" : "var(--ei-color-rule-soft)"
                 }`,
                 display: "flex",
                 alignItems: "center",
@@ -92,10 +92,10 @@ export const PhaseList: FC<PhaseListProps> = ({ phaseIndex, phases, resolve }) =
               style={{
                 fontSize: 13.5,
                 color: done
-                  ? "var(--ei-ink3)"
+                  ? "var(--ei-color-fg-tertiary)"
                   : active
-                    ? "var(--ei-ink)"
-                    : "var(--ei-ink4, var(--ei-ink3))",
+                    ? "var(--ei-color-fg-primary)"
+                    : "var(--ei-ink4, var(--ei-color-fg-tertiary))",
                 flex: 1,
                 textDecoration: done ? "line-through" : "none",
               }}
@@ -106,8 +106,8 @@ export const PhaseList: FC<PhaseListProps> = ({ phaseIndex, phases, resolve }) =
               data-testid={`generating-phase-${i}-hint`}
               style={{
                 fontSize: 11,
-                color: "var(--ei-ink4, var(--ei-ink3))",
-                fontFamily: "var(--ei-mono)",
+                color: "var(--ei-ink4, var(--ei-color-fg-tertiary))",
+                fontFamily: "var(--ei-font-mono)",
                 letterSpacing: "0.04em",
               }}
             >

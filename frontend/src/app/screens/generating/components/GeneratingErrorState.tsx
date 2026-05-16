@@ -42,7 +42,7 @@ export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
       className="ei-fadein"
       style={{
         minHeight: "calc(100vh - 58px)",
-        background: "var(--ei-bg)",
+        background: "var(--ei-color-bg-canvas)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -54,7 +54,7 @@ export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
           className="ei-label"
           data-testid="generating-error-eyebrow"
           style={{
-            color: "var(--ei-danger, var(--ei-ink))",
+            color: "var(--ei-color-danger, var(--ei-color-fg-primary))",
             marginBottom: 10,
             letterSpacing: "0.1em",
           }}
@@ -67,7 +67,7 @@ export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
           style={{
             fontSize: 28,
             margin: 0,
-            color: "var(--ei-ink)",
+            color: "var(--ei-color-fg-primary)",
             lineHeight: 1.25,
             marginBottom: 10,
           }}
@@ -78,7 +78,7 @@ export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
           data-testid="generating-error-desc"
           style={{
             fontSize: 14,
-            color: "var(--ei-ink3)",
+            color: "var(--ei-color-fg-tertiary)",
             lineHeight: 1.6,
             marginBottom: 22,
           }}
@@ -93,12 +93,12 @@ export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
               onClick={onRetry}
               style={{
                 padding: "10px 16px",
-                background: "var(--ei-accent)",
+                background: "var(--ei-color-accent)",
                 color: "#fff",
-                border: "1px solid var(--ei-accent)",
+                border: "1px solid var(--ei-color-accent)",
                 borderRadius: 2,
                 cursor: "pointer",
-                fontFamily: "var(--ei-sans)",
+                fontFamily: "var(--ei-font-sans)",
                 fontSize: 13,
               }}
             >
@@ -112,11 +112,11 @@ export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
             style={{
               padding: "10px 16px",
               background: "transparent",
-              color: "var(--ei-ink2, var(--ei-ink))",
-              border: "1px solid var(--ei-rule)",
+              color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
+              border: "1px solid var(--ei-color-rule-soft)",
               borderRadius: 2,
               cursor: "pointer",
-              fontFamily: "var(--ei-sans)",
+              fontFamily: "var(--ei-font-sans)",
               fontSize: 13,
             }}
           >

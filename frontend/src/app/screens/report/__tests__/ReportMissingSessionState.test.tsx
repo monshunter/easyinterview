@@ -19,4 +19,19 @@ describe("ReportMissingSessionState", () => {
     screen.getByTestId("report-missing-session-cta").click();
     expect(onBack).toHaveBeenCalledTimes(1);
   });
+
+  it("renders the missing-report variant with distinct testids", () => {
+    const onBack = vi.fn();
+    render(
+      <ReportMissingSessionState
+        kind="missingReport"
+        onBackToWorkspace={onBack}
+      />,
+    );
+    expect(screen.getByTestId("report-missing-report-eyebrow")).toBeInTheDocument();
+    expect(screen.getByTestId("report-missing-report-title")).toBeInTheDocument();
+    expect(screen.getByTestId("report-missing-report-desc")).toBeInTheDocument();
+    screen.getByTestId("report-missing-report-cta").click();
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
 });

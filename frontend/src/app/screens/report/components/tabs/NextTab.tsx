@@ -23,23 +23,24 @@ export const NextTab: FC<NextTabProps> = ({ report, onReplay, onNextRound }) => 
       style={{
         padding: 24,
         display: "grid",
-        gridTemplateColumns: "1.15fr .85fr",
+        gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))",
         gap: 18,
         alignItems: "start",
+        minWidth: 0,
       }}
     >
-      <div data-testid="report-next-path-a">
+      <div data-testid="report-next-path-a" style={{ minWidth: 0 }}>
         <div
           className="ei-label"
           data-testid="report-next-desc-a"
-          style={{ color: "var(--ei-accent)", marginBottom: 12 }}
+          style={{ color: "var(--ei-color-accent)", marginBottom: 12 }}
         >
           {t("report.next.pathA.eyebrow")}
         </div>
         <div
           style={{
             fontSize: 13,
-            color: "var(--ei-ink3)",
+            color: "var(--ei-color-fg-tertiary)",
             lineHeight: 1.65,
             marginBottom: 12,
           }}
@@ -53,7 +54,7 @@ export const NextTab: FC<NextTabProps> = ({ report, onReplay, onNextRound }) => 
           {actions.length === 0 ? (
             <li
               data-testid="report-next-actions-empty"
-              style={{ color: "var(--ei-ink3)" }}
+              style={{ color: "var(--ei-color-fg-tertiary)" }}
             >
               {t("report.next.empty")}
             </li>
@@ -64,13 +65,13 @@ export const NextTab: FC<NextTabProps> = ({ report, onReplay, onNextRound }) => 
                 data-testid={`report-next-action-${idx}`}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "30px 1fr auto",
+                  gridTemplateColumns: "30px minmax(0, 1fr) auto",
                   gap: 12,
                   alignItems: "center",
                   padding: "13px 0",
                   borderBottom:
                     idx < actions.length - 1
-                      ? "1px dotted var(--ei-rule)"
+                      ? "1px dotted var(--ei-color-rule-soft)"
                       : "none",
                 }}
               >
@@ -80,27 +81,35 @@ export const NextTab: FC<NextTabProps> = ({ report, onReplay, onNextRound }) => 
                     height: 24,
                     borderRadius: 12,
                     background:
-                      idx === 0 ? "var(--ei-accent)" : "var(--ei-bg-soft, var(--ei-bg))",
-                    color: idx === 0 ? "#fff" : "var(--ei-ink3)",
+                      idx === 0 ? "var(--ei-color-accent)" : "var(--ei-color-bg-soft, var(--ei-color-bg-canvas))",
+                    color: idx === 0 ? "#fff" : "var(--ei-color-fg-tertiary)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     fontSize: 11,
-                    fontFamily: "var(--ei-mono)",
+                    fontFamily: "var(--ei-font-mono)",
                   }}
                 >
                   {idx + 1}
                 </span>
-                <span style={{ fontSize: 14, color: "var(--ei-ink2, var(--ei-ink))" }}>
+                <span
+                  style={{
+                    fontSize: 14,
+                    color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
+                    minWidth: 0,
+                    overflowWrap: "anywhere",
+                  }}
+                >
                   {action.label}
                 </span>
                 <span
                   style={{
                     fontSize: 11,
-                    fontFamily: "var(--ei-mono)",
-                    color: "var(--ei-ink3)",
-                  }}
-                >
+                  fontFamily: "var(--ei-font-mono)",
+                  color: "var(--ei-color-fg-tertiary)",
+                  overflowWrap: "anywhere",
+                }}
+              >
                   {action.type}
                 </span>
               </li>
@@ -114,12 +123,12 @@ export const NextTab: FC<NextTabProps> = ({ report, onReplay, onNextRound }) => 
             onClick={onReplay}
             style={{
               padding: "10px 16px",
-              background: "var(--ei-accent)",
+              background: "var(--ei-color-accent)",
               color: "#fff",
-              border: "1px solid var(--ei-accent)",
+              border: "1px solid var(--ei-color-accent)",
               borderRadius: 2,
               cursor: "pointer",
-              fontFamily: "var(--ei-sans)",
+              fontFamily: "var(--ei-font-sans)",
               fontSize: 13,
             }}
           >
@@ -131,14 +140,15 @@ export const NextTab: FC<NextTabProps> = ({ report, onReplay, onNextRound }) => 
         data-testid="report-next-path-b"
         style={{
           padding: 18,
-          background: "var(--ei-bg-soft, var(--ei-bg))",
-          border: "1px solid var(--ei-rule)",
+          background: "var(--ei-color-bg-soft, var(--ei-color-bg-canvas))",
+          border: "1px solid var(--ei-color-rule-soft)",
           borderRadius: 2,
+          minWidth: 0,
         }}
       >
         <div
           className="ei-label"
-          style={{ color: "var(--ei-ink3)", marginBottom: 8 }}
+          style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 8 }}
         >
           {t("report.next.pathB.eyebrow")}
         </div>
@@ -146,7 +156,7 @@ export const NextTab: FC<NextTabProps> = ({ report, onReplay, onNextRound }) => 
           className="ei-serif"
           style={{
             fontSize: 20,
-            color: "var(--ei-ink)",
+            color: "var(--ei-color-fg-primary)",
             lineHeight: 1.35,
             marginBottom: 10,
           }}
@@ -157,7 +167,7 @@ export const NextTab: FC<NextTabProps> = ({ report, onReplay, onNextRound }) => 
           data-testid="report-next-desc-b"
           style={{
             fontSize: 13,
-            color: "var(--ei-ink2, var(--ei-ink))",
+            color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
             lineHeight: 1.65,
             marginBottom: 14,
           }}
@@ -171,11 +181,11 @@ export const NextTab: FC<NextTabProps> = ({ report, onReplay, onNextRound }) => 
           style={{
             padding: "10px 16px",
             background: "transparent",
-            color: "var(--ei-ink2, var(--ei-ink))",
-            border: "1px solid var(--ei-rule)",
+            color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
+            border: "1px solid var(--ei-color-rule-soft)",
             borderRadius: 2,
             cursor: "pointer",
-            fontFamily: "var(--ei-sans)",
+            fontFamily: "var(--ei-font-sans)",
             fontSize: 13,
           }}
         >

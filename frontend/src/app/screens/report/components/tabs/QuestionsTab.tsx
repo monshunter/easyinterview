@@ -27,7 +27,7 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
     return (
       <div
         data-testid="report-questions-empty"
-        style={{ padding: 24, color: "var(--ei-ink3)" }}
+        style={{ padding: 24, color: "var(--ei-color-fg-tertiary)" }}
       >
         {t("report.questions.empty")}
       </div>
@@ -40,17 +40,18 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
       style={{
         padding: 24,
         display: "grid",
-        gridTemplateColumns: "320px 1fr",
+        gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))",
         gap: 22,
+        minWidth: 0,
       }}
     >
       <div
         data-testid="report-questions-list"
-        style={{ display: "flex", flexDirection: "column", gap: 8 }}
+        style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}
       >
         <div
           className="ei-label"
-          style={{ color: "var(--ei-danger, var(--ei-ink))", marginBottom: 4 }}
+          style={{ color: "var(--ei-color-danger, var(--ei-color-fg-primary))", marginBottom: 4 }}
         >
           {t("report.questions.list.eyebrow")}
         </div>
@@ -67,31 +68,44 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
                 padding: "12px 14px",
                 borderRadius: 2,
                 border: `1px solid ${
-                  isActive ? "var(--ei-accent)" : "var(--ei-rule)"
+                  isActive ? "var(--ei-color-accent)" : "var(--ei-color-rule-soft)"
                 }`,
                 background: isActive
-                  ? "var(--ei-accent-soft, var(--ei-bg))"
-                  : "var(--ei-bg)",
+                  ? "var(--ei-color-accent-soft, var(--ei-color-bg-canvas))"
+                  : "var(--ei-color-bg-canvas)",
                 textAlign: "left",
                 cursor: "pointer",
-                fontFamily: "var(--ei-sans)",
+                fontFamily: "var(--ei-font-sans)",
+                minWidth: 0,
               }}
             >
               <div
                 className="ei-mono"
-                style={{ fontSize: 11, color: "var(--ei-ink3)", marginBottom: 4 }}
+                style={{
+                  fontSize: 11,
+                  color: "var(--ei-color-fg-tertiary)",
+                  marginBottom: 4,
+                  overflowWrap: "anywhere",
+                }}
               >
                 {q.turnId}
               </div>
-              <div style={{ fontSize: 13.5, color: "var(--ei-ink)", fontWeight: 500 }}>
+              <div
+                style={{
+                  fontSize: 13.5,
+                  color: "var(--ei-color-fg-primary)",
+                  fontWeight: 500,
+                  overflowWrap: "anywhere",
+                }}
+              >
                 {q.questionIntent}
               </div>
               <div
                 style={{
                   marginTop: 6,
                   fontSize: 11,
-                  fontFamily: "var(--ei-mono)",
-                  color: "var(--ei-ink3)",
+                  fontFamily: "var(--ei-font-mono)",
+                  color: "var(--ei-color-fg-tertiary)",
                 }}
               >
                 {t("report.questions.list.review")}: {q.reviewStatus}
@@ -108,19 +122,25 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
             gap: 16,
             alignItems: "flex-start",
             marginBottom: 16,
+            flexWrap: "wrap",
           }}
         >
-          <div>
+          <div style={{ minWidth: 0, flex: "1 1 220px" }}>
             <div
               className="ei-label"
-              style={{ color: "var(--ei-ink3)", marginBottom: 5 }}
+              style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 5 }}
             >
               {t("report.questions.detail.eyebrow")}
             </div>
             <div
               data-testid="report-questions-detail-topic"
               className="ei-serif"
-              style={{ fontSize: 26, color: "var(--ei-ink)", lineHeight: 1.25 }}
+              style={{
+                fontSize: 26,
+                color: "var(--ei-color-fg-primary)",
+                lineHeight: 1.25,
+                overflowWrap: "anywhere",
+              }}
             >
               {active.questionIntent}
             </div>
@@ -131,14 +151,15 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
             onClick={onAddToReplay}
             style={{
               padding: "8px 12px",
-              border: "1px solid var(--ei-rule)",
+              border: "1px solid var(--ei-color-rule-soft)",
               background: "transparent",
-              color: "var(--ei-ink2, var(--ei-ink))",
-              fontFamily: "var(--ei-sans)",
+              color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
+              fontFamily: "var(--ei-font-sans)",
               fontSize: 12,
-              cursor: "pointer",
-              borderRadius: 2,
-            }}
+            cursor: "pointer",
+            borderRadius: 2,
+            flex: "1 1 160px",
+          }}
           >
             {t("report.questions.detail.addToReplay")}
           </button>
@@ -146,7 +167,7 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(150px, 100%), 1fr))",
             gap: 12,
             marginBottom: 16,
           }}
@@ -154,21 +175,21 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
           <div
             data-testid="report-questions-detail-good"
             style={{
-              background: "var(--ei-ok-soft, var(--ei-bg-soft, var(--ei-bg)))",
+              background: "var(--ei-color-ok-soft, var(--ei-color-bg-soft, var(--ei-color-bg-canvas)))",
               padding: 14,
               borderRadius: 2,
             }}
           >
             <div
               className="ei-label"
-              style={{ color: "var(--ei-ok)", marginBottom: 6 }}
+              style={{ color: "var(--ei-color-ok)", marginBottom: 6 }}
             >
               {t("report.questions.detail.good")}
             </div>
             <div
               style={{
                 fontSize: 13,
-                color: "var(--ei-ink2, var(--ei-ink))",
+                color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
                 lineHeight: 1.6,
               }}
             >
@@ -178,21 +199,21 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
           <div
             data-testid="report-questions-detail-missing"
             style={{
-              background: "var(--ei-bg-soft, var(--ei-bg))",
+              background: "var(--ei-color-bg-soft, var(--ei-color-bg-canvas))",
               padding: 14,
               borderRadius: 2,
             }}
           >
             <div
               className="ei-label"
-              style={{ color: "var(--ei-danger, var(--ei-ink))", marginBottom: 6 }}
+              style={{ color: "var(--ei-color-danger, var(--ei-color-fg-primary))", marginBottom: 6 }}
             >
               {t("report.questions.detail.missing")}
             </div>
             <div
               style={{
                 fontSize: 13,
-                color: "var(--ei-ink2, var(--ei-ink))",
+                color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
                 lineHeight: 1.6,
               }}
             >
@@ -202,23 +223,23 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
           <div
             data-testid="report-questions-detail-frame"
             style={{
-              background: "var(--ei-bg-soft, var(--ei-bg))",
+              background: "var(--ei-color-bg-soft, var(--ei-color-bg-canvas))",
               padding: 14,
               borderRadius: 2,
             }}
           >
             <div
               className="ei-label"
-              style={{ color: "var(--ei-ink3)", marginBottom: 6 }}
+              style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 6 }}
             >
               {t("report.questions.detail.frame")}
             </div>
             <div
               style={{
                 fontSize: 12.5,
-                color: "var(--ei-ink2, var(--ei-ink))",
+                color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
                 lineHeight: 1.6,
-                fontFamily: "var(--ei-mono)",
+                fontFamily: "var(--ei-font-mono)",
               }}
             >
               {t("report.questions.detail.frame.body")}
@@ -228,7 +249,7 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(180px, 100%), 1fr))",
             gap: 14,
           }}
         >
@@ -236,21 +257,21 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
             data-testid="report-questions-detail-evidence"
             style={{
               padding: 16,
-              border: "1px solid var(--ei-rule)",
+              border: "1px solid var(--ei-color-rule-soft)",
               borderRadius: 2,
             }}
           >
             <div
               className="ei-label"
-              style={{ color: "var(--ei-ink3)", marginBottom: 8 }}
+              style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 8 }}
             >
               {t("report.questions.detail.evidence")}
             </div>
             <div
               style={{
                 fontSize: 12,
-                color: "var(--ei-ink3)",
-                fontFamily: "var(--ei-mono)",
+                color: "var(--ei-color-fg-tertiary)",
+                fontFamily: "var(--ei-font-mono)",
               }}
             >
               {active.turnId}
@@ -260,20 +281,20 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
             data-testid="report-questions-detail-follow-up"
             style={{
               padding: 16,
-              border: "1px solid var(--ei-rule)",
+              border: "1px solid var(--ei-color-rule-soft)",
               borderRadius: 2,
             }}
           >
             <div
               className="ei-label"
-              style={{ color: "var(--ei-accent)", marginBottom: 8 }}
+              style={{ color: "var(--ei-color-accent)", marginBottom: 8 }}
             >
               {t("report.questions.detail.followUp")}
             </div>
             <div
               style={{
                 fontSize: 13.5,
-                color: "var(--ei-ink2, var(--ei-ink))",
+                color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
                 lineHeight: 1.65,
               }}
             >
