@@ -2,7 +2,7 @@
 
 > **版本**: 1.0
 > **状态**: completed
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-05-17
 
 **关联计划**: [plan](./plan.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -68,7 +68,6 @@
   <!-- verified: 2026-05-16 make validate-fixtures; cd backend && go test ./internal/debrief ./internal/api/debriefs -count=1; cd backend && go test ./internal/ai/aiclient -count=1 -->
 - [x] 3.5 BDD-Gate: E2E.P0.063 覆盖 suggestDebriefQuestions 主路径 + AI failure（待 Phase 6 整体验证）
   <!-- verified: 2026-05-16 test/scenarios/e2e/p0-063-debrief-suggest-questions/scripts/setup.sh -> trigger.sh -> verify.sh -> cleanup.sh -->
-  <!-- pending: service/handler unit and fixture gates are complete; scenario execution remains blocked until Phase 6 scenario run phase by plan design. -->
 
 ## Phase 4: debrief_generate worker handler
 

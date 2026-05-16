@@ -2,7 +2,7 @@
 
 > **版本**: 1.0
 > **状态**: completed
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-05-17
 
 **关联计划**: [plan](./plan.md)
 
@@ -26,7 +26,7 @@
 - [x] 1.4 Handler/idempotency：handler 映射 source ids，fingerprint/replay 包含 source ids，response body 返回 source ids；验证：`cd backend && go test ./internal/api/practice -run 'TestCreatePracticePlan.*Derived|TestCreatePracticePlan.*Idempotency' -count=1`
   <!-- verified: 2026-05-16 `cd backend && go test ./internal/api/practice -run 'TestCreatePracticePlan.*Derived|TestCreatePracticePlan.*Idempotency|TestCreatePracticePlanReturns422ForValidationError|TestCreatePracticePlanFixtureParityDefault' -count=1` -->
 - [x] 1.5 BDD-Gate: `E2E.P0.070` 覆盖 report/debrief derived plan create/read + replay
-  <!-- verified: 2026-05-16 `cd backend && go test ./cmd/api -run TestE2EP0070PracticeDerivedPlanCreateReadReplay -count=1` -->
+  <!-- verified: 2026-05-16 test/scenarios/e2e/p0-070-practice-derived-plan-create-read-replay/scripts/setup.sh -> trigger.sh -> verify.sh -> cleanup.sh -->
 
 ## Phase 2: debrief startPracticeSession First Turn Seeding
 
@@ -37,7 +37,7 @@
 - [x] 2.3 Handler/start session envelope：`startPracticeSession` 返回 currentTurn = debrief first question，status running，idempotency replay 保持相同 currentTurn；验证：`cd backend && go test ./internal/api/practice -run 'TestStartPracticeSession.*Debrief' -count=1`
   <!-- verified: 2026-05-16 `cd backend && go test ./internal/api/practice ./internal/store/practice -run 'TestStartPracticeSession.*Debrief|TestSQLRepositoryReserveSessionStartReplaysStoredResponseBody' -count=1` -->
 - [x] 2.4 BDD-Gate: `E2E.P0.071` 覆盖 debrief plan start + no first_question AI call + first turn from raw_questions
-  <!-- verified: 2026-05-16 `cd backend && go test ./cmd/api -run TestE2EP0071PracticeDebriefStartUsesSourceQuestion -count=1` -->
+  <!-- verified: 2026-05-16 test/scenarios/e2e/p0-071-practice-debrief-start-source-question/scripts/setup.sh -> trigger.sh -> verify.sh -> cleanup.sh -->
 
 ## Phase 3: Privacy, Isolation, And Legacy-Negative
 
@@ -48,9 +48,9 @@
 - [x] 3.3 Privacy redline：audit/outbox/log/metric/idempotency response 不含 debrief question text、answer summary、interviewer reaction、notes、risk prose；验证：HTTP scenario + scoped grep
   <!-- verified: 2026-05-16 `cd backend && go test ./internal/store/practice -run TestSQLRepositoryCommitSessionStartWritesAuditMetadataWithoutQuestionText -count=1`; `rg -n "__PRIVATE_DEBRIEF_TEXT__|__DEBRIEF_FIRST_QUESTION__" backend/internal/practice backend/internal/api/practice backend/internal/store/practice openapi frontend/src/api/generated backend/internal/api/generated openapi/fixtures/PracticePlans openapi/fixtures/PracticeSessions -g '!**/*_test.go'` no matches -->
 - [x] 3.4 BDD-Gate: `E2E.P0.072` 覆盖 source validation / isolation / privacy
-  <!-- verified: 2026-05-16 `cd backend && go test ./cmd/api -run TestE2EP0072PracticeDerivedSourceValidationIsolationPrivacy -count=1` -->
+  <!-- verified: 2026-05-16 test/scenarios/e2e/p0-072-practice-derived-source-isolation-privacy/scripts/setup.sh -> trigger.sh -> verify.sh -> cleanup.sh -->
 - [x] 3.5 BDD-Gate: `E2E.P0.073` 覆盖 debrief assisted/strict regression + legacy-negative
-  <!-- verified: 2026-05-16 `cd backend && go test ./cmd/api -run TestE2EP0073PracticeDebriefAssistedStrictAndLegacyNegative -count=1` plus scoped legacy grep no runtime/generated/fixture matches -->
+  <!-- verified: 2026-05-16 test/scenarios/e2e/p0-073-practice-debrief-mode-regression/scripts/setup.sh -> trigger.sh -> verify.sh -> cleanup.sh; scoped legacy grep no runtime/generated/fixture matches -->
 
 ## Phase 4: Gates And Handoff
 
@@ -59,6 +59,6 @@
 - [x] 4.2 Contract/migration gates：`make lint-openapi` / `make validate-fixtures` / `./migrations/lint.sh` / `make migrate-check` 通过
   <!-- verified: 2026-05-16 `make lint-openapi`, `make validate-fixtures`, `./migrations/lint.sh`, `set -a; . deploy/dev-stack/.env; set +a; make migrate-check` -->
 - [x] 4.3 Repo hygiene gates：`make docs-check` / `git diff --check` / scoped legacy grep 通过
-  <!-- verified: 2026-05-16 `make docs-check`, `git diff --check`, scoped runtime/generated/fixture legacy grep no matches outside negative tests -->
+  <!-- verified: 2026-05-16 `make docs-check`, `git diff --check`, `python3 -m pytest scripts/lint/scenario_script_contract_test.py -q`, scoped runtime/generated/fixture legacy grep no matches outside negative tests -->
 - [x] 4.4 backend-debrief handoff：更新 `backend-debrief/001` checklist 0.6 / test-checklist 0.F，记录 `backend-practice/004` 验证证据与依赖 commit
   <!-- verified: 2026-05-16 updated backend-debrief/001 checklist 0.6 and test-checklist 0.F with backend-practice/004 dependency evidence -->
