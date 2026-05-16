@@ -1,6 +1,6 @@
 # 001 — Report Screen and Generating Handoff Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-16
 
@@ -54,23 +54,23 @@
 
 ## Phase 4: 复练 CTA 行为 + ReportFailureState 完整 + GeneratingScreen handoff 完整
 
-- [x] 4.0 在 `frontend/src/app/auth/pendingAction.ts` 注册新 `replay_practice` PendingAction type：加入 allowlist（如有 string union / validator）+ `encodePendingAction` / `decodePendingActionRoute` 支持 round-trip + 路由恢复 `AppPendingAction` 在 `report` 路由 mount 时自动触发 `goReplay`；新增 `frontend/src/app/auth/__tests__/pendingActionReplayPractice.test.ts` 覆盖 `TestPendingActionEncodeDecodeReplayPractice` + `TestPendingActionReplayPracticeTypeAllowed` + 负向断言 URL params / localStorage 不含 raw text
-- [x] 4.1 实现复练 CTA `goReplay()` 路径 A：在 `ReportHeader.tsx` 与 `tabs/NextTab.tsx` 的 `report-next-cta-a` 按钮上绑定 `goReplay()`；组装 payload `{ sourceSessionId, replayItems:retryFocusTurnIds, evidenceGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode:InterviewContext.practiceMode, practiceGoal:'retry_current_round' }`；未登录 → `useRequestAuth({type:'replay_practice', route:'report', params:{...sameParams, autoReplay:'1'}})`；登录后 pendingAction 回到 report 自动触发 nav practice；已登录 → 直接 `nav("practice", payload)`
-- [x] 4.2 实现复练 CTA `goNextRound()` 路径 B：同上但 payload 为 `{ nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode:InterviewContext.practiceMode, practiceGoal:'next_round' }`；nextRoundId 默认从 InterviewContext.roundId 推断
+- [x] 4.0 在 `frontend/src/app/auth/pendingAction.ts` 注册新 `replay_practice` PendingAction type：加入 allowlist（如有 string union / validator）+ `encodePendingAction` / `decodePendingActionRoute` 支持 round-trip + 路由恢复到 `workspace` 并保留 `autoStartPractice=1`；新增 `frontend/src/app/auth/__tests__/pendingActionReplayPractice.test.ts` 覆盖 `TestPendingActionEncodeDecodeReplayPractice` + `TestPendingActionReplayPracticeTypeAllowed` + 负向断言 URL params / localStorage 不含 raw text
+- [x] 4.1 实现复练 CTA `goReplay()` 路径 A：在 `ReportHeader.tsx` 与 `tabs/NextTab.tsx` 的 `report-next-cta-a` 按钮上绑定 `goReplay()`；组装 payload `{ sourceSessionId, replayItems:retryFocusTurnIds, evidenceGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode:InterviewContext.practiceMode, practiceGoal:'retry_current_round', autoStartPractice:'1' }`；未登录 → `useRequestAuth({type:'replay_practice', route:'workspace', params:{...sameParams}})`；已登录 → `nav("workspace", payload)`，由 workspace owner 创建 fresh practice session 后进入 practice
+- [x] 4.2 实现复练 CTA `goNextRound()` 路径 B：同上但 payload 为 `{ nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode:InterviewContext.practiceMode, practiceGoal:'next_round', autoStartPractice:'1' }`；nextRoundId 默认从 InterviewContext.roundId 推断；workspace owner 创建 fresh session 后进入 practice
 - [x] 4.3 完整 ReportFailureState handoff：`ReportFailureState.tsx` CTA「重新生成」点击 → `nav("generating", { sessionId, reportId, ...passThroughContext })`；CTA「返回 workspace」点击 → `nav("workspace", { targetJobId, jdId, planId, resumeVersionId })`
 - [x] 4.4 完整 GeneratingScreen handoff：`useReportGenerationPoll` 的 `onReady(report)` callback → `nav("report", { sessionId, reportId, ...passThrough })`；`onFailed(errorCode)` callback → `nav("report", { sessionId, reportId, reportStatus:'failed', errorCode, ...passThrough })`；timeout state → 不自动 nav，用户点 retry 重启轮询；nav 调用必须防抖（handoffNavigatedRef）
 - [x] 4.5 复练 CTA 数据未 ready 时禁用：report status='generating' 兜底（虽然不应进入但仍兜底）→ CTA disabled；不发 nav
-- [x] 4.6 实现 `report/__tests__/ReplayCta.test.tsx`：路径 A 已登录直接 nav practice + 未登录 useRequestAuth 后 nav；payload 字段完整；负向断言 raw text（`answerText` / `questionText` / `hint` / `promptHash` / `modelId raw`）不在 payload；负向断言 `getFeedbackReport` / `appendSessionEvent` 在 ReplayCta 上下文中不被调用
-- [x] 4.7 实现 `report/__tests__/NextRoundCta.test.tsx`：路径 B 同上；nextRoundId 推断逻辑测试
+- [x] 4.6 实现 `report/__tests__/ReplayCta.test.tsx`：路径 A 已登录经 workspace auto-start 创建 fresh session + 未登录 useRequestAuth 恢复到 workspace；payload 字段完整；负向断言 raw text（`answerText` / `questionText` / `hint` / `promptHash` / `modelId raw`）不在 payload；负向断言 `getFeedbackReport` / `appendSessionEvent` 在 ReplayCta 上下文中不被调用
+- [x] 4.7 在 `report/__tests__/ReplayCta.test.tsx` 覆盖路径 B 同上；nextRoundId 推断逻辑测试
 - [x] 4.8 实现 `report/__tests__/ReportFailureHandoff.test.tsx`：「重新生成」nav generating + 「返回 workspace」nav workspace；errorCode 不在 generating route params 中暴露 raw provider error
 - [x] 4.9 扩展 `generating/__tests__/GeneratingScreen.test.tsx`：ready / failed / timeout 三态分别 nav + 防抖（多次 ready callback 只 nav 一次；fake timer 验证 1 次 nav）
-- [x] 4.10 BDD-Gate: 验证 `E2E.P0.057` 通过（复练 CTA 路径 A + 路径 B nav practice）
+- [x] 4.10 BDD-Gate: 验证 `E2E.P0.057` 通过（复练 CTA 路径 A + 路径 B 经 workspace auto-start 进入 fresh practice session）
 - [x] 4.11 BDD-Gate: 验证 `E2E.P0.058` 通过（GeneratingScreen 轮询命中 `status='failed'` → nav failed report + ReportFailureState + ReportMissingSessionState + 跨用户 + 隐私 route params）
 - [x] 4.12 BDD-Gate: 验证 `E2E.P0.056` 整链完整通过（含 GeneratingScreen mount → 进度动画 → 轮询 ready → nav report → ReportDashboard 渲染 → 5 detail tab 切换 → CTA wire 完整；Phase 1 + Phase 3 仅作局部断言，Phase 4 复练 CTA wire 完成后整链通过）
 
 ## Phase 5: 完整状态机集成 + Playwright pixel parity + scenario 加挂 + 旧口径负向
 
-- [x] 5.1 `pnpm vitest run`（全 frontend 测试）+ `pnpm typecheck` 全绿；扩展 `App.test.tsx` 添加 `generating-screen` 与 `report-dashboard` testid 命中断言；扩展 `AppNormalize.test.tsx` 添加 `generating` / `report` route alias 处理；扩展 `AppPendingAction.test.tsx` 添加 `replay_practice` pendingAction 在 report 屏自动恢复测试；扩展 `scenarios/p0-002-auth-pending-action-resume.test.tsx` 添加 `replay_practice` resume path 验证
+- [x] 5.1 `pnpm vitest run`（全 frontend 测试）+ `pnpm typecheck` 全绿；扩展 `App.test.tsx` 添加 `generating-screen` 与 `report-dashboard` testid 命中断言；扩展 `AppNormalize.test.tsx` 添加 `generating` / `report` route alias 处理；扩展 `pendingActionReplayPractice.test.ts` 添加 `replay_practice` pendingAction 恢复到 workspace auto-start 的 round-trip；扩展 `scenarios/p0-002-auth-pending-action-resume.test.tsx` 添加 `replay_practice` resume path 验证
 - [x] 5.2 新增 `frontend/tests/pixel-parity/generating.spec.ts`：desktop 1440×900 + mobile 390×844；测 generating 主屏 + ErrorState + 5 阶段 + 8 主题 × dark 切换；clean-checkout 硬 gate 为 DOM anchor / computed style / bounding box / responsive geometry / non-empty screenshot smoke，只有稳定 baseline 已提交或本 phase 明确更新 baseline 时才追加 `toHaveScreenshot`
 - [x] 5.3 新增 `frontend/tests/pixel-parity/report.spec.ts`：desktop + mobile；测 report 主屏 + 5 detail tab + 三态（dashboard/failure/missing-session）+ 8 主题 × dark 切换；clean-checkout 硬 gate 同 5.2，且验证 `report` 默认 App chrome / TopBar 可见、不进入一级导航
 - [x] 5.4 派生 4 个 scenario 目录 `test/scenarios/e2e/p0-056-generating-to-report-happy-path/` / `p0-057-replay-cta-paths-a-and-b/` / `p0-058-report-failure-and-missing-session/` / `p0-059-report-pixel-parity-i18n-and-legacy-negative/`，每个含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md` + `scripts/{setup,trigger,verify,cleanup}.sh`（chmod +x 可执行）；trigger 跑对应 Vitest 套件 / Playwright spec；verify 反查 testid / nav payload / 负向 grep / i18n 完整性

@@ -1,6 +1,8 @@
 /**
  * Phase 4.0 — Pending action `replay_practice` round-trip and allowlist
- * coverage. The base PendingAction.type is a free-form string so the gate is
+ * coverage. Report replay resumes to the workspace owner with
+ * autoStartPractice=1 so it can create a fresh session before entering
+ * practice. The base PendingAction.type is a free-form string so the gate is
  * round-trip integrity + privacy red lines (no raw text on URL params).
  */
 
@@ -15,7 +17,7 @@ import {
 const REPLAY_ACTION: PendingAction = {
   type: "replay_practice",
   label: "复练当前轮",
-  route: "practice",
+  route: "workspace",
   params: {
     sourceSessionId: "session-prior",
     replayItems: "turn-1,turn-3",
@@ -29,7 +31,7 @@ const REPLAY_ACTION: PendingAction = {
     modality: "text",
     practiceMode: "strict",
     practiceGoal: "retry_current_round",
-    autoReplay: "1",
+    autoStartPractice: "1",
   },
 };
 
@@ -37,20 +39,20 @@ describe("PendingAction replay_practice", () => {
   it("encodes the type / label / route / params on URL-safe keys (TestPendingActionEncodeDecodeReplayPractice)", () => {
     const encoded = encodePendingAction(REPLAY_ACTION);
     expect(encoded).toMatchObject({
-      pendingRoute: "practice",
+      pendingRoute: "workspace",
       pendingType: "replay_practice",
       pendingLabel: "复练当前轮",
       sourceSessionId: "session-prior",
       replayItems: "turn-1,turn-3",
       evidenceGaps: "technical_depth|narrative",
       practiceGoal: "retry_current_round",
-      autoReplay: "1",
+      autoStartPractice: "1",
     });
   });
 
   it("decodes back to the same route + params and never spills reserved keys (TestPendingActionEncodeDecodeReplayPractice)", () => {
     const decoded = decodePendingActionRoute(encodePendingAction(REPLAY_ACTION));
-    expect(decoded?.name).toBe("practice");
+    expect(decoded?.name).toBe("workspace");
     expect(decoded?.params).toEqual(REPLAY_ACTION.params);
     // The 3 reserved keys must not bleed into restored params.
     const params = decoded?.params ?? {};

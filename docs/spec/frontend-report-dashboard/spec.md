@@ -1,8 +1,8 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-15
+> **更新日期**: 2026-05-16
 
 ## 1 背景与目标
 
@@ -11,9 +11,9 @@
 本 subspec 的终稿范围收敛为两条当前 owner 路由：
 
 - `generating`：`completePracticeSession` 后的报告生成过渡态。承接 frontend-workspace-and-practice 已经设置好的 generating route params + reportId，轮询 `getFeedbackReport(reportId)` 直到 `status='ready'`（→ nav `report`）或 `status='failed'`（→ nav `report?reportStatus=failed`）。
-- `report`：完整的证据化报告 dashboard。源级复刻 `ui-design/src/screen-report.jsx::ReportScreen` 的三态：`ReportDashboard`（正常报告：Header + ContextStrip + 4 个 Summary Cards + 5 个 Detail Tabs + 维度卡片行 + 优先级 + 复练重点 + 题目回顾概览 + 风险亮点）、`ReportFailureState`（reportStatus='failed'）、`ReportMissingSessionState`（缺 sessionId）。`复练当前轮` / `进入下一轮` CTA 触发 `nav("practice", {...})` 回到 practice owner 路由。
+- `report`：完整的证据化报告 dashboard。源级复刻 `ui-design/src/screen-report.jsx::ReportScreen` 的三态：`ReportDashboard`（正常报告：Header + ContextStrip + 4 个 Summary Cards + 5 个 Detail Tabs + 维度卡片行 + 优先级 + 复练重点 + 题目回顾概览 + 风险亮点）、`ReportFailureState`（reportStatus='failed'）、`ReportMissingSessionState`（缺 sessionId）。`复练当前轮` / `进入下一轮` CTA 触发 `nav("workspace", {..., autoStartPractice:'1'})`，由 workspace owner 创建全新 practice session 后再进入 `practice`。
 
-`workspace` / `practice` / `company_intel` / `debrief` 不在本 subspec 范围。`workspace` / `practice` 由 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) owner 承接；`company_intel` 与 `debrief` 由 external company-intel / future `frontend-debrief` owner 承接。本 subspec 只在 ReportScreen 的复练 CTA 中渲染回 `practice` 路由的导航；不实现 practice 任何 UI。
+`workspace` / `practice` / `company_intel` / `debrief` 不在本 subspec 范围。`workspace` / `practice` 由 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) owner 承接；`company_intel` 与 `debrief` 由 external company-intel / future `frontend-debrief` owner 承接。本 subspec 只在 ReportScreen 的复练 CTA 中发起 workspace auto-start handoff；不实现 practice 任何 UI，也不直接创建或复用 practice session。
 
 本 subspec 通过 generated client + fixture-backed transport 消费已经存在的 Reports OpenAPI 契约；任何新增或缺失 operation 先回到 [B2](../openapi-v1-contract/spec.md) / [backend-review](../backend-review/spec.md) 修订，不能在前端手写 ad hoc fetch 或复制 `ui-design` mock data。
 
@@ -36,11 +36,11 @@
     - `evidence`（lines 445-467）：风险证据详情 + 可复用亮点证据。
     - `next`（lines 470-514）：路径 A（复练当前轮）vs 路径 B（进入下一轮）对比展示 + 行动 CTA。
   - 复练 CTA 行为：
-    - 路径 A `goReplay()` → `nav("practice", { sourceSessionId: sessionId, replayItems: retryFocusTurnIds, evidenceGaps: focusGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode: lastPracticeMode, practiceGoal:'retry_current_round' })`；未登录走 `useRequestAuth({type:'replay_practice', route:'report', params:{...}})`。
-    - 路径 B `goNextRound()` → `nav("practice", { nextRoundId, roundName, roundId: nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode: lastPracticeMode, practiceGoal:'next_round' })`；未登录走 `useRequestAuth`。
+    - 路径 A `goReplay()` → `nav("workspace", { sourceSessionId: sessionId, replayItems: retryFocusTurnIds, evidenceGaps: focusGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode: lastPracticeMode, practiceGoal:'retry_current_round', autoStartPractice:'1' })`；workspace owner 随后调用 practice-plan/session start 契约并 `nav("practice", { sessionId:newSessionId, ...sameContext })`；未登录走 `useRequestAuth({type:'replay_practice', route:'workspace', params:{...sameParams, autoStartPractice:'1'}})`。
+    - 路径 B `goNextRound()` → `nav("workspace", { nextRoundId, roundName, roundId: nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode: lastPracticeMode, practiceGoal:'next_round', autoStartPractice:'1' })`；workspace owner 创建新 session 后进入 `practice`；未登录走 `useRequestAuth({type:'replay_practice', route:'workspace', params:{...sameParams, autoStartPractice:'1'}})`。
 - 跨路由共享：
-  - `InterviewContext` 在本 subspec owner route 内传递 `{planId, targetJobId, jdId, resumeVersionId, roundId, sessionId, reportId, mode, modality, practiceMode, practiceGoal, hintUsed, hintCount}` 与 frontend-workspace-and-practice 一致 13 字段（与 `buildPracticeHandoffParams` 输出完全一致；`roundName` 不在该 13 字段内，由 ContextStrip 在本 spec owner route 内通过 `InterviewContext.roundId` + i18n 本地推导显示）；本 spec 只 read（不 mutate session 字段），但在 generating 屏成功 nav report 时把 reportId 留在 context；在复练 CTA 触发后由 practice owner reducer 接管。
-  - 未登录用户点击复练 CTA 时通过 `useRequestAuth({type:'replay_practice', route:'report', params:{...InterviewContext}})` 触发鉴权；登录后 `pendingAction` 回到 `report`，由 ReportScreen 自动检测并执行 nav practice。
+  - `InterviewContext` 在本 subspec owner route 内传递 `{planId, targetJobId, jdId, resumeVersionId, roundId, sessionId, reportId, mode, modality, practiceMode, practiceGoal, hintUsed, hintCount}` 与 frontend-workspace-and-practice 一致 13 字段（与 `buildPracticeHandoffParams` 输出完全一致；`roundName` 不在该 13 字段内，由 ContextStrip 在本 spec owner route 内通过 `InterviewContext.roundId` + i18n 本地推导显示）；本 spec 只 read（不 mutate session 字段），但在 generating 屏成功 nav report 时把 reportId 留在 context；在复练 CTA 触发后由 workspace / practice owner reducer 接管。
+  - 未登录用户点击复练 CTA 时通过 `useRequestAuth({type:'replay_practice', route:'workspace', params:{...InterviewContext, autoStartPractice:'1'}})` 触发鉴权；登录后 pendingAction 回到 `workspace`，由 workspace auto-start 机制创建新 session 后进入 `practice`。
   - 隐私：route params 仅传 13 个 handoff params（7 个稳定 owner IDs + 6 个 display knobs，与 `buildPracticeHandoffParams` 输出一致）；不传 raw answer/question/hint/prompt/provenance；与 frontend-workspace-and-practice plan 002 隐私红线一致。
 - 契约消费形态：
   - `getFeedbackReport`：generating 轮询 + report dashboard 详情；按 OpenAPI `GET /reports/{reportId}` 仅写 path param `reportId`；不写 Idempotency-Key。
@@ -49,7 +49,7 @@
 ### 2.2 Out of Scope
 
 - `WorkspaceScreen` / Interview Launcher / Resume Picker / Plan Switcher：由 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) 承接。
-- `PracticeScreen` 任何 UI / 状态机消费 / 文本 surface / voice surface / 完成动作：由 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) 承接；本 spec 只在复练 CTA 中 nav 回 practice。
+- `PracticeScreen` 任何 UI / 状态机消费 / 文本 surface / voice surface / 完成动作：由 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) 承接；本 spec 只在复练 CTA 中交给 workspace auto-start，等待该 owner 创建新 session 后进入 practice。
 - `CompanyIntelScreen` / `getCompanyIntel`：external company-intel owner 承接。
 - `DebriefScreen` / `getDebrief`：future `frontend-debrief` owner 承接。
 - Home / Parse / JD Match shell 与 JD 导入解析：由 [frontend-home-job-picks-and-parse](../frontend-home-job-picks-and-parse/spec.md) 承接。
@@ -71,7 +71,7 @@
 | D-2 | UI 真理源 | `ui-design/src/screen-report.jsx` + `ui-design/src/screens-p0-complete.jsx::ReportGeneratingScreen` + `docs/ui-design/report-dashboard.md` + `ui-design/src/app.jsx`（route mapping / `INTERVIEW_CONTEXT_ROUTES` / `hideTopBar`）+ `ui-design/src/primitives.jsx` 为唯一真理源进行源级复刻；不得二次设计 | 与 frontend-workspace-and-practice D-2 一致；保护 ui-design parity gate |
 | D-3 | GeneratingScreen 轮询节奏 | 指数退避（初始 1.5s × 1.5 上限 8s）+ max attempts=30（约 4 分钟）+ visibility/focus 暂停-恢复 + status='ready' 自动 nav report / status='failed' nav report?reportStatus=failed + max attempts 达到显示超时态 | 与 backend-review worker P95 latency observation + B3 outbox `report.generated` 异步时延一致；P95 < 12s 时 ~7 次轮询命中 ready |
 | D-4 | 状态分支 | GeneratingScreen 渲染 status ∈ {`queued`,`generating`} 等待态 + 5 阶段进度动画；status='ready' nav report；status='failed' nav report?reportStatus=failed；ReportScreen 渲染 ReportDashboard / ReportFailureState / ReportMissingSessionState 三态；status='ready' 必须含完整 FeedbackReport 字段 | 与 B2 `FeedbackReport` schema + backend-review D-7 状态机一致 |
-| D-5 | 复练 CTA payload | 路径 A nav practice payload：{sourceSessionId, replayItems:retryFocusTurnIds, evidenceGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'retry_current_round'}；路径 B nav practice payload：{nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'next_round'}；其中 `lastPracticeMode` 来自 InterviewContext.practiceMode；未登录走 `useRequestAuth({type:'replay_practice', ...})`（**deliberate divergence from UI source**：UI 真理源 `ui-design/src/screen-report.jsx:114` 使用通用 `requestAuth({type:'create_session', ...})`，生产前端按 product-scope §4.1 "复练优先" + backend-practice D-4 plan goal 四值的要求区分 `replay_practice` 与 `start_practice`，以便 pendingAction 恢复时正确派发到 `goReplay`/`goNextRound` 不同 payload；此分叉只影响 auth/routing 契约，不影响视觉源级复刻 gate） | 与 backend-practice D-4 plan goal 四值 + frontend-workspace-and-practice D-9 立即面试契约 + product-scope §4.1 "复练优先" 一致 |
+| D-5 | 复练 CTA payload | 路径 A nav workspace auto-start payload：{sourceSessionId, replayItems:retryFocusTurnIds, evidenceGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'retry_current_round', autoStartPractice:'1'}；路径 B nav workspace auto-start payload：{nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'next_round', autoStartPractice:'1'}；其中 `lastPracticeMode` 来自 InterviewContext.practiceMode；workspace owner 必须创建 fresh session 后进入 practice，不能复用 source session；未登录走 `useRequestAuth({type:'replay_practice', route:'workspace', ...})`（**deliberate divergence from UI source**：UI 真理源 `ui-design/src/screen-report.jsx:114` 使用通用 `requestAuth({type:'create_session', ...})`，生产前端按 product-scope §4.1 "复练优先" + backend-practice D-4 plan goal 四值的要求区分 `replay_practice` 与 `start_practice`，以便 pendingAction 恢复时正确派发到 `goReplay`/`goNextRound` 不同 payload；此分叉只影响 auth/routing 契约，不影响视觉源级复刻 gate） | 与 backend-practice D-4 plan goal 四值 + frontend-workspace-and-practice D-9 立即面试契约 + product-scope §4.1 "复练优先" 一致 |
 | D-6 | 报告失败状态语义 | ReportFailureState 渲染失败卡片 + errorCode 文案映射（按 B1 `AI_*` enum 各自文案）+ CTA「重新生成」（nav `generating`）+「返回 workspace」；不在 ReportDashboard 内 inline 渲染失败态；不暴露 raw provider error 给用户 | 与 backend-review D-8 graceful failed + B1 error_code 一致；用户能感知失败但不暴露内部细节 |
 | D-7 | i18n 命名空间约定 | 新增 `report.*` 与 `generating.*` 命名空间；不复用 `workspace.*` 与 `practice.*`；外部 `workspace.reportReady` / `workspace.lastReport` / `workspace.gotoReport` 已存在的 key 保留不动（由 workspace owner 维护） | 命名空间独立避免与其他 owner 冲突 |
 | D-8 | InterviewContext reducer 扩展边界 | 在 001 plan 已有 `InterviewContext` reducer 基础上**仅 read**；不新增 `SET_REPORT_ID` 或 `MERGE_REPORT_DISPLAY` reducer action（reportId 在 frontend-workspace-and-practice plan 002 buildPracticeHandoffParams 时已通过 route params 写入并由 InterviewContext.useEffect 同步）；本 spec 通过 route params + URL search params 读取 reportId / sessionId / reportStatus / errorCode | 不破坏 frontend-workspace-and-practice reducer 边界；不在多 owner 间双重 write context |
@@ -99,7 +99,7 @@
 | `generating` | 是 | `reportId`（必填）+ `sessionId`（推荐携带 + 全套 13 字段） | 缺 `reportId` 显示 ErrorState「报告 ID 缺失，返回 workspace」 |
 | `report` | 是 | `sessionId + reportId`（必填）+ 全套 13 字段（推荐） | 缺 `sessionId` 显示 `ReportMissingSessionState`；缺 `reportId` 显示同上；`reportStatus='failed'` 显示 `ReportFailureState` |
 | `workspace` | 否 | `targetJobId` | 由 frontend-workspace-and-practice 处理 |
-| `practice` | 否 | `sessionId` 或 `planId` | 由 frontend-workspace-and-practice 处理（复练 CTA 走该 owner） |
+| `practice` | 否 | `sessionId` 或 `planId` | 由 frontend-workspace-and-practice 处理（复练 CTA 先走 workspace auto-start，再由该 owner 进入 practice） |
 | `company_intel` | 否 | `targetJobId` + `jdId` | 由 company-intel owner 处理 |
 
 - 隐私红线：raw answer / question / hint / prompt-response 明文 / JD 原文 / 简历正文不得进入 console.log / URL query / localStorage / telemetry payload；fixture transport 不得在日志中泄漏。
@@ -151,8 +151,8 @@
 | C-6 | ReportFailureState | `report?reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT&sessionId=S&reportId=R&...` | 进入 `report` | 渲染 ReportFailureState 卡片 + errorCode 文案映射 + CTA「重新生成」（nav `generating?reportId&sessionId&...`）+ 「返回 workspace」 | 001 |
 | C-7 | ReportMissingSessionState | `report?reportId=R`（缺 sessionId） | 进入 `report` | 渲染 ReportMissingSessionState 卡片 + CTA「返回 workspace」（nav workspace with targetJobId）；不调用 `getFeedbackReport` | 001 |
 | C-8 | 5 detail tab 切换 | C-5 已渲染 ReportDashboard | 用户点击 tab 切换按钮 | 5 个 tab（readiness / dimensions / questions / evidence / next）panel 切换；每个 tab 内容源级复刻；testid `report-detail-tab-{key}` + `report-detail-panel-{key}` 命中；其他 panel 不渲染（或 display:none） | 001 |
-| C-9 | 复练 CTA 路径 A | C-5 已渲染 ReportDashboard，准备度 = needs_practice，retry_focus_turn_ids 非空 | 用户点击「复练当前轮」CTA | `nav("practice", { sourceSessionId, replayItems: retryFocusTurnIds, evidenceGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'retry_current_round' })`；未登录走 useRequestAuth 之后再 nav | 001 |
-| C-10 | 复练 CTA 路径 B | C-5 已渲染 ReportDashboard，准备度 = basically_ready，next_action='next_round' | 用户点击「进入下一轮」CTA | `nav("practice", { nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'next_round' })`；未登录走 useRequestAuth | 001 |
+| C-9 | 复练 CTA 路径 A | C-5 已渲染 ReportDashboard，准备度 = needs_practice，retry_focus_turn_ids 非空 | 用户点击「复练当前轮」CTA | `nav("workspace", { sourceSessionId, replayItems: retryFocusTurnIds, evidenceGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'retry_current_round', autoStartPractice:'1' })`；workspace owner 调用 `startPracticeSession` 后 `nav("practice", { sessionId:newSessionId, ... })`；未登录走 useRequestAuth 后恢复同一 workspace auto-start payload | 001 |
+| C-10 | 复练 CTA 路径 B | C-5 已渲染 ReportDashboard，准备度 = basically_ready，next_action='next_round' | 用户点击「进入下一轮」CTA | `nav("workspace", { nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'next_round', autoStartPractice:'1' })`；workspace owner 调用 `startPracticeSession` 后进入 practice；未登录走 useRequestAuth 后恢复同一 workspace auto-start payload | 001 |
 | C-11 | UI source structure parity | C-1~C-10 通过 | Vitest+jsdom 加载 owner Screen | DOM 锚点、控件类型、icon、aria、keyboard、menu/modal 层级可追溯到 `screen-report.jsx` / `ReportGeneratingScreen` / `primitives.jsx`；testid 命名一致 | 001 |
 | C-12 | UI visual geometry parity | C-11 通过 | Playwright desktop + mobile 加载 owner 两屏 | 关键区块不重叠且 stays in viewport；theme/dark/customAccent 可见；generating mobile 居中不溢出；report mobile 三列折叠为单列 + Accordion + sticky CTA | 001 |
 | C-13 | UI stale-contract negative search | C-11 + C-12 通过 | lint/grep gate 扫描 active runtime、positive tests、README、scenario | 旧 `reportLayout` / 5 档 readiness numeric / `mistakes` route / `drill_builder` testid / `growth_center` / 报告时间线 / 多形态 report 不作为 live route / TopBar / 正向 testid / 正向 scenario / 用户入口出现；负向断言/禁止清单命中被分类允许 | 001 |

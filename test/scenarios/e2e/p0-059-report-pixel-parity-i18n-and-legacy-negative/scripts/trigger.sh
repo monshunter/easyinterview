@@ -12,4 +12,11 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/generating/__tests__/legacyNegative.test.ts
   python3 scripts/lint/frontend_report_dashboard_legacy.py --repo-root . --phase E2E.P0.059
   python3 -m pytest scripts/lint/frontend_report_dashboard_legacy_test.py -q
+  echo "E2E.P0.059: building frontend before pixel parity"
+  pnpm --filter @easyinterview/frontend build
+  echo "E2E.P0.059: running Playwright pixel parity"
+  pnpm --filter @easyinterview/frontend test:pixel-parity -- \
+    tests/pixel-parity/generating.spec.ts \
+    tests/pixel-parity/report.spec.ts
+  echo "E2E.P0.059: Playwright pixel parity complete"
 ) | tee "$OUTPUT_DIR/trigger.log"

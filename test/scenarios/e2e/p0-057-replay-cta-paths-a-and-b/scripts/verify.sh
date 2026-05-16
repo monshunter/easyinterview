@@ -9,6 +9,12 @@ test -s "$LOG_FILE"
 grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE" || { echo "E2E.P0.057: no passing test files" >&2; exit 1; }
 grep -Fq 'pendingActionReplayPractice.test.ts' "$LOG_FILE" || { echo "E2E.P0.057: pendingAction replay test did not run" >&2; exit 1; }
 grep -Fq 'ReplayCta.test.tsx' "$LOG_FILE" || { echo "E2E.P0.057: ReplayCta test did not run" >&2; exit 1; }
+grep -Fq 'TestReplayCtaPathA_AuthenticatedAutoStartPractice' \
+  "$REPO_ROOT/frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx" || { echo "E2E.P0.057: replay CTA auto-start assertion is missing" >&2; exit 1; }
+grep -Fq 'autoStartPractice: "1"' \
+  "$REPO_ROOT/frontend/src/app/screens/report/useReplayCtaHandlers.ts" || { echo "E2E.P0.057: replay CTA does not mark workspace auto-start" >&2; exit 1; }
+grep -Fq 'route: "workspace"' \
+  "$REPO_ROOT/frontend/src/app/auth/__tests__/pendingActionReplayPractice.test.ts" || { echo "E2E.P0.057: pending action does not restore to workspace" >&2; exit 1; }
 
 # Replay CTA payload must not assign raw text literals into payload keys.
 # Match key-style usages (`answerText:`, `answerText =`, `"answerText"`).

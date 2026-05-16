@@ -25,10 +25,10 @@ export interface ReplayCtaHandlers {
  * Centralizes the replay / next-round CTA flow so both `ReportHeader` (top
  * CTAs) and `NextTab` (path A/B cards) share one source of truth.
  *
- * - Signed-in users land directly on `practice` with the path's payload.
+ * - Signed-in users land on `workspace` with the path's payload so the
+ *   workspace owner can create a fresh session before entering practice.
  * - Signed-out users go through `useRequestAuth({type:'replay_practice', …})`
- *   so login auto-resumes to practice carrying the same payload + the
- *   `autoReplay=1` marker for the AppPendingAction hook.
+ *   so login auto-resumes to the same workspace auto-start payload.
  */
 export function useReplayCtaHandlers(
   input: ReplayCtaHandlersInput,
@@ -47,32 +47,40 @@ export function useReplayCtaHandlers(
     () => buildNextRoundPayload({ route, report, sessionId }),
     [report, route, sessionId],
   );
+  const replayStartParams = useMemo(
+    () => ({ ...replayParams, autoStartPractice: "1" }),
+    [replayParams],
+  );
+  const nextRoundStartParams = useMemo(
+    () => ({ ...nextRoundParams, autoStartPractice: "1" }),
+    [nextRoundParams],
+  );
 
   const goReplay = useCallback(() => {
     if (authenticated) {
-      navigate({ name: "practice", params: replayParams });
+      navigate({ name: "workspace", params: replayStartParams });
       return;
     }
     requestAuth({
       type: "replay_practice",
       label: "replay",
-      route: "practice",
-      params: { ...replayParams, autoReplay: "1" },
+      route: "workspace",
+      params: replayStartParams,
     });
-  }, [authenticated, navigate, replayParams, requestAuth]);
+  }, [authenticated, navigate, replayStartParams, requestAuth]);
 
   const goNextRound = useCallback(() => {
     if (authenticated) {
-      navigate({ name: "practice", params: nextRoundParams });
+      navigate({ name: "workspace", params: nextRoundStartParams });
       return;
     }
     requestAuth({
       type: "replay_practice",
       label: "next-round",
-      route: "practice",
-      params: { ...nextRoundParams, autoReplay: "1" },
+      route: "workspace",
+      params: nextRoundStartParams,
     });
-  }, [authenticated, navigate, nextRoundParams, requestAuth]);
+  }, [authenticated, navigate, nextRoundStartParams, requestAuth]);
 
   return { goReplay, goNextRound };
 }

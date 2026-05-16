@@ -78,6 +78,8 @@ test/scenarios/
 
 默认输出目录为 `.test-output/`。
 
+`trigger.sh` 声称执行 Vitest、Playwright、pytest、Go test、lint 或其他 runner 时，必须把 runner 输出写入场景输出目录下的日志（通常是 `trigger.log`）。`verify.sh` 必须检查日志中的实际执行证据：命令/runner marker、目标测试文件或场景路径、以及 pass marker 或退出状态证据。禁止只检查测试文件、spec 文件、脚本或目录存在来代表 runner 已执行。
+
 ## 8 环境污染与恢复
 
 当场景失败时，恢复顺序必须是：

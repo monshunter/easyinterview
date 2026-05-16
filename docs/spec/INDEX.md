@@ -57,6 +57,6 @@
 | [backend-upload](./backend-upload/spec.md) | 1.2 | active | 2026-05-12 | [plans](./backend-upload/plans/) |
 | [backend-resume](./backend-resume/spec.md) | 1.1 | active | 2026-05-12 | [plans](./backend-resume/plans/) |
 | [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 1.0 | active | 2026-05-11 | [plans](./frontend-resume-workshop/plans/) |
-| [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.0 | active | 2026-05-15 | [plans](./frontend-report-dashboard/plans/) |
+| [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.1 | active | 2026-05-16 | [plans](./frontend-report-dashboard/plans/) |
 | [backend-debrief](./backend-debrief/spec.md) | 1.0 | active | 2026-05-16 | [plans](./backend-debrief/plans/) |
 | [frontend-debrief](./frontend-debrief/spec.md) | 1.0 | active | 2026-05-16 | [plans](./frontend-debrief/plans/) |

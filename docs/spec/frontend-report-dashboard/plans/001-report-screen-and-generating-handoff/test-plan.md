@@ -1,6 +1,6 @@
 # 001 — Report Screen and Generating Handoff Test Plan
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-16
 
@@ -23,8 +23,8 @@
 | 5 Detail Tab 内容 | `frontend/src/app/screens/report/__tests__/tabs/{ReadinessTab,DimensionsTab,QuestionsTab,EvidenceTab,NextTab}.test.tsx` | `TestReadinessTabDial` / `TestDimensionsTabGrid` / `TestQuestionsTabListAndDetail` / `TestEvidenceTabRiskAndHighlight` / `TestNextTabPathAAndB` | 同上 |
 | 4 档 readiness 文案矩阵 | `frontend/src/app/screens/report/__tests__/tabs/ReadinessTab.test.tsx` | `TestReadinessTier4LevelsZhAndEn` | 同上 |
 | 维度状态三态映射 | `frontend/src/app/screens/report/__tests__/tabs/DimensionsTab.test.tsx` + `frontend/src/app/screens/report/__tests__/DimRow.test.tsx` | `TestDimensionStatus3StatesMapping` | 同上 |
-| 复练 CTA 路径 A | `frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx` | `TestReplayCtaPathA_AuthenticatedNavPractice` / `TestReplayCtaPathA_UnauthenticatedUseRequestAuth` / `TestReplayCtaPathA_PayloadIntegrity` / `TestReplayCtaPathA_NoRawText` | 同上 |
-| 复练 CTA 路径 B | `frontend/src/app/screens/report/__tests__/NextRoundCta.test.tsx` | `TestNextRoundCta_NavPractice` / `TestNextRoundCta_NextRoundIdInference` | 同上 |
+| 复练 CTA 路径 A | `frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx` | `TestReplayCtaPathA_AuthenticatedAutoStartPractice` / `TestReplayCtaPathA_UnauthenticatedUseRequestAuth` / `TestReplayCtaPathA_PayloadIntegrity` / `TestReplayCtaPathA_NoRawText` | 同上 |
+| 复练 CTA 路径 B | `frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx` | `TestNextRoundCta_AutoStartPractice` / `TestNextRoundCta_NextRoundIdInference` | 同上 |
 | ReportFailure handoff | `frontend/src/app/screens/report/__tests__/ReportFailureHandoff.test.tsx` | `TestRetryCtaNavGenerating` / `TestBackToWorkspaceNavWorkspace` | 同上 |
 | GeneratingScreen handoff 防抖 | `frontend/src/app/screens/generating/__tests__/GeneratingScreen.test.tsx` | `TestReadyCallbackDebouncesNavReport` / `TestFailedCallbackNavReportWithStatus` | `pnpm --filter @easyinterview/frontend test src/app/screens/generating` |
 | Privacy 红线 | `frontend/src/app/screens/report/__tests__/reportPrivacy.test.tsx` + `frontend/src/app/screens/generating/__tests__/generatingPrivacy.test.tsx` | `TestNoRawTextInRouteParams` / `TestNoRawTextInConsoleLog` / `TestNoRawTextInLocalStorage` | `pnpm --filter @easyinterview/frontend test` |
@@ -104,11 +104,10 @@
 
 ## Phase 4: 复练 CTA 行为 + ReportFailureState 完整 + GeneratingScreen handoff 完整
 
-- **测试目标**：复练 CTA 路径 A + B 已登录 / 未登录 nav practice；payload 字段完整 + 隐私（无 raw text）；ReportFailureState retry → nav generating；GeneratingScreen ready/failed/timeout nav 防抖；data 未 ready 时 CTA disabled。
+- **测试目标**：复练 CTA 路径 A + B 已登录 / 未登录经 workspace auto-start 创建 fresh practice session；payload 字段完整 + 隐私（无 raw text）；ReportFailureState retry → nav generating；GeneratingScreen ready/failed/timeout nav 防抖；data 未 ready 时 CTA disabled。
 - **测试文件**：
   - `frontend/src/app/auth/__tests__/pendingActionReplayPractice.test.ts`（新增）：`TestPendingActionEncodeDecodeReplayPractice` / `TestPendingActionReplayPracticeTypeAllowed` / 负向断言 URL params / localStorage 不含 raw text
-  - `frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx`（新增）：路径 A 4 子用例
-  - `frontend/src/app/screens/report/__tests__/NextRoundCta.test.tsx`（新增）：路径 B 2 子用例
+  - `frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx`（新增）：路径 A + 路径 B auto-start 子用例
   - `frontend/src/app/screens/report/__tests__/ReportFailureHandoff.test.tsx`（新增）：retry / backToWorkspace 2 子用例
   - `frontend/src/app/screens/generating/__tests__/GeneratingScreen.test.tsx`（扩展）：ready / failed / timeout 三态 nav + 防抖
 - **测试命令**：

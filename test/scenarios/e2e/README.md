@@ -20,6 +20,7 @@
 - 场景必须以真实用户目标组织，而不是按内部实现细节拆碎。
 - README 中必须明确 Given / When / Then。
 - 结果断言必须覆盖“用户得到了什么证据”与“用户接下来能做什么”。
+- 当场景依赖 Vitest / Playwright / pytest / Go test / lint 等 runner 时，`verify.sh` 必须检查 runner 日志中的执行 marker、目标测试路径和 pass marker；不能只检查测试文件或脚本存在。
 
 ## 4 编号与索引
 

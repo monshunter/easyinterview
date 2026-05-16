@@ -3,9 +3,10 @@
  *
  * Phase 4 — Replay CTA path A + path B wire. Verified through ReportHeader
  * inside the live dashboard so the test exercises the actual handoff:
- *  - authenticated → nav practice with replay payload + practiceGoal
+ *  - authenticated → nav workspace with autoStartPractice, then the workspace
+ *    owner creates a fresh practice session and lands on practice
  *  - unauthenticated → useRequestAuth (nav auth_login carrying replay_practice
- *    pending action) and no direct nav practice
+ *    pending action for workspace auto-start) and no direct nav practice
  *  - payload integrity: 9+ owner / display knob fields, no raw text
  *  - getFeedbackReport not re-invoked on click
  *  - listTargetJobReports never invoked from report scope
@@ -92,12 +93,57 @@ function makeClient(opts: ClientOpts): EasyInterviewClient {
     getFeedbackReport: feedback,
     getTargetJob: vi.fn(async () => ({
       id: TARGET_JOB_ID,
+      analysisStatus: "ready",
       title: "Senior Frontend Engineer",
       companyName: "Acme",
+      locationText: "Remote",
+      targetLanguage: "zh-CN",
+      sourceType: "manual_text",
+      sourceUrl: null,
+      requirements: [],
+      latestReportId: REPORT_ID,
+      openQuestionIssueCount: 0,
+      status: "ready",
+      createdAt: "2026-05-16T00:00:00Z",
+      updatedAt: "2026-05-16T00:00:00Z",
+    })),
+    listTargetJobs: vi.fn(async () => ({
+      items: [
+        {
+          id: TARGET_JOB_ID,
+          analysisStatus: "ready",
+          title: "Senior Frontend Engineer",
+          companyName: "Acme",
+          locationText: "Remote",
+          targetLanguage: "zh-CN",
+          sourceType: "manual_text",
+          sourceUrl: null,
+          requirements: [],
+          latestReportId: REPORT_ID,
+          openQuestionIssueCount: 0,
+          status: "ready",
+          createdAt: "2026-05-16T00:00:00Z",
+          updatedAt: "2026-05-16T00:00:00Z",
+        },
+      ],
+      pageInfo: { nextCursor: null, pageSize: 12, hasMore: false },
+    })),
+    getResume: vi.fn(async () => ({
+      id: RESUME_VERSION_ID,
+      title: "Resume v3",
+      parsedSummary: { headline: "Frontend lead" },
     })),
     getResumeVersion: vi.fn(async () => ({
       id: RESUME_VERSION_ID,
       displayName: "Resume v3",
+    })),
+    createPracticePlan: vi.fn(async () => ({
+      id: "01918fa0-0000-7000-8000-000000008000",
+      status: "ready",
+    })),
+    startPracticeSession: vi.fn(async () => ({
+      id: "01918fa0-0000-7000-8000-000000009000",
+      status: "active",
     })),
     listTargetJobReports: vi.fn(async () => {
       throw new Error("must not be called");
@@ -162,8 +208,9 @@ const Harness: FC<{
 );
 
 describe("Replay CTAs", () => {
-  it("authenticated user clicking replay CTA leaves the report and lands on practice (TestReplayCtaPathA_AuthenticatedNavPractice)", async () => {
+  it("authenticated user clicking replay CTA creates a fresh practice session through workspace auto-start (TestReplayCtaPathA_AuthenticatedAutoStartPractice)", async () => {
     const client = makeClient({ authenticated: true });
+    const startSpy = client.startPracticeSession as ReturnType<typeof vi.fn>;
     render(
       <Harness
         client={client}
@@ -178,15 +225,15 @@ describe("Replay CTAs", () => {
       screen.getByTestId("report-replay-cta").click();
     });
     await waitFor(() => {
+      expect(startSpy).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
       expect(screen.queryByTestId("report-dashboard")).toBeNull();
     });
     expect(screen.queryByTestId("auth-login-screen")).toBeNull();
-    // After nav practice, jsdom renders the practice route — depending on
-    // session state it may surface PracticeSessionLostState. Either way we are
-    // outside the report dashboard.
   });
 
-  it("unauthenticated user clicking replay routes to auth_login carrying the pending action (TestReplayCtaPathA_UnauthenticatedUseRequestAuth)", async () => {
+  it("unauthenticated user clicking replay routes to auth_login carrying a workspace auto-start pending action (TestReplayCtaPathA_UnauthenticatedUseRequestAuth)", async () => {
     const client = makeClient({ authenticated: false });
     render(
       <Harness
@@ -204,13 +251,15 @@ describe("Replay CTAs", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("report-dashboard")).toBeNull();
     });
-    // We expect to be on auth_login (AuthLoginScreen mounts a testid we can
-    // assert against). The screen may be slow to mount in jsdom; fallback to
-    // a body content sniff.
+    await waitFor(() => {
+      expect(screen.getByTestId("auth-login-email-form")).toBeInTheDocument();
+    });
+    expect(client.startPracticeSession).not.toHaveBeenCalled();
   });
 
-  it("path B (next round) CTA inherits roundId rotation and triggers nav (TestNextRoundCta_NavPractice / TestNextRoundCta_NextRoundIdInference)", async () => {
+  it("path B (next round) CTA rotates roundId and auto-starts a fresh practice session (TestNextRoundCta_AutoStartPractice / TestNextRoundCta_NextRoundIdInference)", async () => {
     const client = makeClient({ authenticated: true });
+    const startSpy = client.startPracticeSession as ReturnType<typeof vi.fn>;
     render(
       <Harness
         client={client}
@@ -223,6 +272,9 @@ describe("Replay CTAs", () => {
     await screen.findByTestId("report-dashboard");
     await act(async () => {
       screen.getByTestId("report-next-cta").click();
+    });
+    await waitFor(() => {
+      expect(startSpy).toHaveBeenCalledTimes(1);
     });
     await waitFor(() => {
       expect(screen.queryByTestId("report-dashboard")).toBeNull();
@@ -281,7 +333,7 @@ describe("Replay payload integrity", () => {
     expect(payload.practiceGoal).toBe("next_round");
   });
 
-  it("CTA click does not re-invoke getFeedbackReport or any listTargetJobReports call (TestReplayCtaPathA_NoBackendCalls)", async () => {
+  it("CTA click does not re-invoke getFeedbackReport or any listTargetJobReports call from report scope (TestReplayCtaPathA_NoReportReadCalls)", async () => {
     const client = makeClient({ authenticated: true });
     render(
       <Harness
@@ -298,6 +350,9 @@ describe("Replay payload integrity", () => {
     const callsBefore = feedbackSpy.mock.calls.length;
     await act(async () => {
       screen.getByTestId("report-replay-cta").click();
+    });
+    await waitFor(() => {
+      expect(client.startPracticeSession).toHaveBeenCalled();
     });
     expect(feedbackSpy.mock.calls.length).toBe(callsBefore);
     expect(listSpy).not.toHaveBeenCalled();

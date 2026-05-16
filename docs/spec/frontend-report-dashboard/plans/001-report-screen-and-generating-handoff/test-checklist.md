@@ -1,6 +1,6 @@
 # 001 — Report Screen and Generating Handoff Test Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-16
 
@@ -83,14 +83,14 @@
 ## Phase 4: 复练 CTA 行为 + ReportFailureState 完整 + GeneratingScreen handoff 完整
 
 - [x] Phase 4 本计划定义的测试项全部通过：
-  - `TestPendingActionEncodeDecodeReplayPractice`（`replay_practice` PendingAction encode → decode round-trip 字段对等；params 含 sourceSessionId / replayItems / evidenceGaps / planId / targetJobId / jdId / resumeVersionId / roundId / mode / modality / practiceMode / practiceGoal / autoReplay）
+  - `TestPendingActionEncodeDecodeReplayPractice`（`replay_practice` PendingAction encode → decode round-trip 字段对等；route 为 workspace；params 含 sourceSessionId / replayItems / evidenceGaps / planId / targetJobId / jdId / resumeVersionId / roundId / mode / modality / practiceMode / practiceGoal / autoStartPractice）
   - `TestPendingActionReplayPracticeTypeAllowed`（type allowlist / discriminated union 包含 `replay_practice`；负向断言 URL params / localStorage 不含 raw text）
-  - `TestReplayCtaPathA_AuthenticatedNavPractice`（已登录 → nav practice with retry_current_round payload + retryFocusTurnIds）
-  - `TestReplayCtaPathA_UnauthenticatedUseRequestAuth`（未登录 → useRequestAuth({type:'replay_practice', route:'report', params:{...}})）
+  - `TestReplayCtaPathA_AuthenticatedAutoStartPractice`（已登录 → nav workspace auto-start；workspace owner 调用 startPracticeSession 创建 fresh session）
+  - `TestReplayCtaPathA_UnauthenticatedUseRequestAuth`（未登录 → useRequestAuth({type:'replay_practice', route:'workspace', params:{..., autoStartPractice:'1'}})）
   - `TestReplayCtaPathA_PayloadIntegrity`（payload 字段完整：sourceSessionId / replayItems / evidenceGaps / planId / targetJobId / jdId / resumeVersionId / roundId / mode / modality / practiceMode / practiceGoal:'retry_current_round'）
   - `TestReplayCtaPathA_NoRawText`（负向断言 payload 不含 `answerText` / `questionText` / `hint` / `promptHash` / `modelId raw`）
-  - `TestReplayCtaPathA_NoBackendCalls`（CTA 触发不调用 `getFeedbackReport` / `appendSessionEvent`）
-  - `TestNextRoundCta_NavPractice`（路径 B → nav practice with next_round payload）
+  - `TestReplayCtaPathA_NoReportReadCalls`（CTA 触发不重复调用 `getFeedbackReport` / `appendSessionEvent`，且不调用 `listTargetJobReports`）
+  - `TestNextRoundCta_AutoStartPractice`（路径 B → nav workspace auto-start with next_round payload；workspace owner 创建 fresh session）
   - `TestNextRoundCta_NextRoundIdInference`（nextRoundId 推断逻辑测试）
   - `TestNextRoundCta_PayloadIntegrity`（payload 字段完整）
   - `TestRetryCtaNavGenerating`（ReportFailureState「重新生成」→ nav generating）
@@ -107,7 +107,7 @@
   - `pnpm --filter @easyinterview/frontend typecheck` 全绿
   - 扩展 `App.test.tsx` 添加 `generating-screen` / `report-dashboard` testid 命中
   - 扩展 `AppNormalize.test.tsx`（如有 `generating` / `report` route alias）
-  - 扩展 `AppPendingAction.test.tsx` 添加 `replay_practice` pendingAction 在 report 屏自动恢复测试
+  - 扩展 `pendingActionReplayPractice.test.ts` 添加 `replay_practice` pendingAction 恢复到 workspace auto-start 的 round-trip
   - 扩展 `scenarios/p0-002-auth-pending-action-resume.test.tsx` 添加 `replay_practice` resume path 验证
   - Playwright `tests/pixel-parity/generating.spec.ts` 全绿（desktop 1440×900 + mobile 390×844 + 8 主题 × dark；DOM anchor / computed style / bounding box / responsive geometry / non-empty screenshot smoke）
   - Playwright `tests/pixel-parity/report.spec.ts` 全绿（同上 + 5 detail tab 切换 + 三态；`report` 默认 App chrome / TopBar 可见、不进入一级导航）

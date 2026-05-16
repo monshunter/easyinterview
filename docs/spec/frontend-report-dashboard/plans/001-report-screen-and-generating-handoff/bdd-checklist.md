@@ -1,6 +1,6 @@
 # 001 — Report Screen and Generating Handoff BDD Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-16
 
@@ -45,9 +45,9 @@
 - [x] 准备 fixture：4 子场景各自的 `getFeedbackReport` variant + auth 状态切换 mock
 - [x] 实现 setup.sh / trigger.sh：分别 mount 4 子场景；点击 CTA；模拟未登录 useRequestAuth 流程
 - [x] 实现 verify.sh：
-  - （A）已登录 + 路径 A → nav practice 调用 1 次；payload = { sourceSessionId, replayItems:['turn-1','turn-3','turn-5'], evidenceGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode:'assisted', practiceGoal:'retry_current_round' }；payload 字段 grep；负向 grep `answerText` / `questionText` / `hint:` 不在 payload
-  - （B）已登录 + 路径 B → nav practice 调用 1 次；payload = { nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode:'assisted', practiceGoal:'next_round' }
-  - （C）未登录 + 路径 A → useRequestAuth 调用 1 次 + 参数验证；模拟 auth 成功后 pendingAction.resume() 触发 nav practice with same payload
+  - （A）已登录 + 路径 A → nav workspace auto-start 调用 1 次；payload = { sourceSessionId, replayItems:['turn-1','turn-3','turn-5'], evidenceGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode:'assisted', practiceGoal:'retry_current_round', autoStartPractice:'1' }；workspace owner 调用 startPracticeSession 并进入 fresh practice session；payload 字段 grep；负向 grep `answerText` / `questionText` / `hint:` 不在 payload
+  - （B）已登录 + 路径 B → nav workspace auto-start 调用 1 次；payload = { nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode:'assisted', practiceGoal:'next_round', autoStartPractice:'1' }；workspace owner 调用 startPracticeSession 并进入 fresh practice session
+  - （C）未登录 + 路径 A → useRequestAuth 调用 1 次 + 参数验证；模拟 auth 成功后 pendingAction.resume() 恢复 workspace auto-start with same payload
   - （D）数据未 ready 兜底 → CTA aria-disabled='true' + 点击不发 nav
   - 所有 nav payload + URL params + console.log + localStorage / sessionStorage / telemetry 不含 raw text
   - `getFeedbackReport` 在 CTA 触发后不重复调用
@@ -79,9 +79,12 @@
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-legacy-negative/`，含完整资产
 - [x] 准备 fixture：`getFeedbackReport=default`（ready 完整 + 准备度 basically_ready + 完整字段）；8 主题 × dark / customAccent 切换 helper；zh / en locale 切换 helper
-- [x] 实现 setup.sh：启动 frontend dev server + Playwright config
-- [x] 实现 trigger.sh：执行 Playwright 套件 `pnpm --filter @easyinterview/frontend test:pixel-parity tests/pixel-parity/generating.spec.ts tests/pixel-parity/report.spec.ts` + i18n 测试 + scoped legacy grep
+- [x] 实现 setup.sh：准备场景输出目录；Playwright webServer 由 frontend config 托管
+- [x] 实现 trigger.sh：执行 i18n 测试 + scoped legacy grep + frontend build + Playwright 套件 `pnpm --filter @easyinterview/frontend test:pixel-parity -- tests/pixel-parity/generating.spec.ts tests/pixel-parity/report.spec.ts`
 - [x] 实现 verify.sh：
+  - `trigger.log` 必须包含 frontend build 与 Playwright run marker
+  - `trigger.log` 必须包含 `tests/pixel-parity/generating.spec.ts` / `tests/pixel-parity/report.spec.ts` 两个实际执行路径
+  - `trigger.log` 必须在 Playwright run marker 之后包含 passed marker，不能只检查 spec 文件存在
   - Playwright generating.spec.ts（desktop 1440×900 + mobile 390×844 + 5 阶段进度 + ErrorState + 8 主题 × dark）全绿
   - Playwright report.spec.ts（desktop + mobile + ReportDashboard + 5 detail tab + ReportFailureState + ReportMissingSessionState + 8 主题 × dark）全绿
   - DOM anchor / computed style / bounding box / responsive geometry / non-empty screenshot smoke 全部通过；仅当稳定 baseline 已提交或本 phase 明确更新 baseline 时才追加 `toHaveScreenshot`
