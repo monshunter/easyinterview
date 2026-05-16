@@ -20,10 +20,12 @@
 `frontend-debrief` spec v1.0 在 2026-05-16 由本 plan 同时段派生；spec §7 已声明 plan 001 落地全部 D-1~D-18 决策。spec §1 已确认 UI 真理源为 `ui-design/src/screens-p1-depth.jsx::DebriefFullScreen`（lines 38-2180）+ 5 个子组件 + `primitives.jsx` + `app.jsx` + `docs/ui-design/review-module.md`。
 
 **Phase 0 跨域前置依赖**：
-- backend-debrief/001 Phase 0 必须先完成 cross-owner addendums（B1 enum / B2 operation 含 suggestDebriefQuestions / B3 events.yaml 修复 / F3 baseline），否则 generated client 中没有 `suggestDebriefQuestions` 方法可调用，fixtures 中没有 `Debriefs/*.json` variants 可消费。
+- backend-debrief/001 Phase 0 必须先完成 cross-owner addendums（B1 enum / B2 operation 含 suggestDebriefQuestions / B3 events.yaml 修复 / B4 ai_task_runs task_type / F3 baseline），否则 generated client 中没有 `suggestDebriefQuestions` 方法可调用，fixtures 中没有 `Debriefs/*.json` variants 可消费。
+- backend-practice/B2 Phase 0 addendum 必须先生成 `listPracticeSessions({targetJobId,status?})` operation + fixture + TS client；当前 OpenAPI/generated client 不含该 operation，缺失时不得进入 Phase 1。
+- backend-resume 现有契约为 `listResumes()` 列资产 + `listResumeVersions(resumeAssetId)` 列某个资产版本；本 plan 不再假设存在全局按 status 过滤的 resume-version 列表入口。
 - frontend-workspace-and-practice 已交付 `InterviewContext` reducer + `useRequestAuth` + nav practice 入口；本 plan 在此基础上增量扩展 1 个 reducer action `SET_DEBRIEF_CONTEXT`。
 - frontend-shell 已交付 TopBar 一级导航 `debrief` 入口 + route normalization + i18n / theme / pixel parity infrastructure。
-- backend-practice 现状已支持 `goal='debrief'` plan 派生 + `mode='debrief'` session start（由 backend-debrief/001 Phase 0.5 Q-3 验证保障）。
+- backend-practice 现状已支持 `goal='debrief'` plan 派生 + `mode='debrief'` session start（由 backend-debrief/001 Phase 0.6 Q-3 验证保障）。
 
 本 plan 假设上述依赖在 Phase 0 全部就绪后才进入 Phase 1。
 
@@ -31,9 +33,9 @@
 
 - **Plan 类型**: feature-behavior + code-internal（混合：用户可见 UI + 前端业务状态机 / React Hook / reducer 实现）
 - **TDD 策略**: Code plan requires TDD。所有 React 组件 / hook / reducer / fetch logic 必须先写测试（红/绿/重构）；测试文件：`frontend/src/app/screens/debrief/*.test.tsx`、`frontend/src/app/screens/debrief/hooks/*.test.ts`、`frontend/src/app/screens/debrief/reducer.test.ts`；测试命令：`pnpm --filter @easyinterview/frontend test -- src/app/screens/debrief`；Phase 1-7 每个 checklist item 命名其测试断言来源（见 test-plan.md 与 test-checklist.md）。
-- **BDD 策略**: Feature plan requires BDD。本 plan 引入用户可见 UI 全屏 + 跨页 nav handoff + 失败态 + AI 推荐 + polling；BDD scenarios `E2E.P0.065-069` 已在 [bdd-plan.md](./bdd-plan.md) 分配，主 [checklist.md](./checklist.md) 在 Phase 8 含 `BDD-Gate:` 项引用每个 scenario ID；执行命令：`bash test/scenarios/e2e/p0-065-*/run.sh` 等（Playwright + fixture-backed transport）。
+- **BDD 策略**: Feature plan requires BDD。本 plan 引入用户可见 UI 全屏 + 跨页 nav handoff + 失败态 + AI 推荐 + polling；BDD scenarios `E2E.P0.065-069` 已在 [bdd-plan.md](./bdd-plan.md) 分配，主 [checklist.md](./checklist.md) 在 Phase 8 含 `BDD-Gate:` 项引用每个 scenario ID；执行必须使用当前场景框架的 `scripts/setup.sh` → `scripts/trigger.sh` → `scripts/verify.sh` → `scripts/cleanup.sh` 四段入口（Playwright + fixture-backed transport），cleanup 在失败时也必须执行。
 - **替代验证 gate**:
-  - Phase 0 dep 验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief" frontend/src/api/generated/` 命中所有 3 个 method；`ls openapi/fixtures/Debriefs/` 含 3 个 fixture file；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND\|IDEMPOTENCY_KEY_MISMATCH" shared/ts/conventions/` 命中
+  - Phase 0 dep 验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief\|listPracticeSessions\|listResumes\|listResumeVersions" frontend/src/api/generated/` 命中；`ls openapi/fixtures/Debriefs/` 含 3 个 fixture file；`ls openapi/fixtures/PracticeSessions/listPracticeSessions.json` 存在；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND\|IDEMPOTENCY_KEY_MISMATCH" shared/ts/conventions/` 命中
   - UI source parity：Vitest `expect(screen.getByTestId('debrief-*'))` 测试 + jsdom DOM snapshot 匹配 prototype 锚点；Playwright 元素地图 vs prototype 元素地图对比
   - Pixel parity：Playwright pixel diff < 0.5% on desktop (1440×900) + mobile (390×844)
   - 隐私红线：Vitest fixture spy 不接收 raw entries / notes；URL/localStorage/sessionStorage/console.log 扫描
@@ -48,7 +50,8 @@
 - 验证 `frontend/src/api/generated/` 中存在 `createDebrief` / `getDebrief` / `suggestDebriefQuestions` method types
 - 验证 `openapi/fixtures/Debriefs/createDebrief.json` / `getDebrief.json` / `suggestDebriefQuestions.json` 存在并通过 `make validate-fixtures`
 - 验证 `shared/ts/conventions/v1/` 含 `DebriefRoundType` / `DebriefQuestionSource` / `DEBRIEF_NOT_FOUND` / `IDEMPOTENCY_KEY_MISMATCH` 字面量
-- 验证 backend-practice 现状支持 `goal='debrief'` + `mode='debrief'`（grep + test names from backend-debrief/001 Phase 0.5）
+- 验证 `frontend/src/api/generated/` 中存在 `listPracticeSessions`（backend-practice/B2 addendum）；同时验证 `listResumes` / `listResumeVersions(resumeAssetId)` 可用；验证 `openapi/fixtures/PracticeSessions/listPracticeSessions.json` 存在并通过 `make validate-fixtures`
+- 验证 backend-practice 现状支持 `goal='debrief'` + `mode='debrief'`（grep + test names from backend-debrief/001 Phase 0.6）
 - 未通过任一验证 → 暂停 plan 001，等 backend-debrief/001 Phase 0 完成
 
 #### 0.2 ui-design source map 记录
@@ -125,15 +128,15 @@
 
 #### 2.3 Mock Session picker
 
-- 调用 `listPracticeSessions({targetJobId, status:'completed'})` 拉相关 session
-- 如 `listPracticeSessions` 不支持 server-side filter `status`，client-side filter `status==='completed'`；记录 fallback decision
+- 调用 Phase 0 已生成的 `listPracticeSessions({targetJobId, status:'completed'})` 拉相关 session；若 generated client 缺失该 method，立即 BLOCK 并回 backend-practice/B2 addendum
+- 如 operation 已存在但不支持 server-side filter `status`，client-side filter `status==='completed'`；记录 fallback decision
 - 单选 + "暂不关联模拟面试" option（Mock 是 optional）
 - 用户选择后写入 `selectedContext.mockSession` + InterviewContext
 
 #### 2.4 Resume picker
 
-- 调用 `listResumeVersions({status:'ready'})`
-- 单选；用户选择后写入 `selectedContext.resume` + InterviewContext
+- 调用 `listResumes()` 拉用户简历资产列表，筛选 active/ready asset；用户选中 asset 后调用 `listResumeVersions(resumeAssetId)` 拉版本列表并筛选 ready version
+- 单选 resume version；用户选择后写入 `selectedContext.resumeAsset` + `selectedContext.resumeVersion`（InterviewContext 字段仍使用 `resumeVersionId` 传给 backend-debrief）
 
 #### 2.5 ContextStrip 三选完成后自动触发 suggestions
 
@@ -323,9 +326,9 @@ case 'SET_DEBRIEF_CONTEXT':
 #### 8.4 BDD scenarios P0.065-069
 
 - 在 `test/scenarios/e2e/` 新建：`p0-065-debrief-default-render-and-pickers/` / `p0-066-debrief-text-suggestions-and-submit/` / `p0-067-debrief-polling-happy-and-analysis/` / `p0-068-debrief-failure-and-handoff/` / `p0-069-debrief-pixel-parity-and-legacy-negative/`
-- 每个 scenario 含 setup / trigger / verify / cleanup + run.sh wrapper（按 backend-practice/003 wrapper 规范）
+- 每个 scenario 含 `scripts/setup.sh` / `scripts/trigger.sh` / `scripts/verify.sh` / `scripts/cleanup.sh` 四段脚本；不创建或引用额外 wrapper
 - 登记到 `test/scenarios/e2e/INDEX.md`
-- 执行：`bash test/scenarios/e2e/p0-065-*/run.sh` 等
+- 执行：在每个 scenario 目录内按 `scripts/setup.sh -> scripts/trigger.sh -> scripts/verify.sh -> scripts/cleanup.sh` 顺序运行
 
 #### 8.5 Plan 收口
 
@@ -352,7 +355,8 @@ case 'SET_DEBRIEF_CONTEXT':
 | 风险 | 应对措施 |
 |------|----------|
 | backend-debrief/001 Phase 0 cross-owner addendum 未及时落地，frontend-debrief Phase 0 验证失败 | Phase 0.1 验证失败时立即暂停 plan 001，与 backend-debrief team 协调 PR 优先级；不在 frontend 端 mock 任何 generated client 缺失的字面量 |
-| Mock Session picker 调用的 `listPracticeSessions` 不支持 `status='completed'` server-side filter | Phase 2.3 检测 B2 现状；如不支持，client-side filter 并记录 fallback；不阻塞主流程；plan 002 可考虑回 B2 加 filter |
+| Mock Session picker 所需 `listPracticeSessions` operation 未生成 | Phase 0.1 直接 BLOCK，回 backend-practice/B2 addendum 新增 operation + fixture + generated client；不得在 frontend 手写 ad hoc fetch 或复制 mock data |
+| `listPracticeSessions` 已生成但不支持 `status='completed'` server-side filter | Phase 2.3 client-side filter 并记录 fallback；plan 002 可考虑回 B2 加 filter |
 | AI 推荐 suggestions 的具体内容格式与 GuidedDebriefRecord prototype mock 数据结构不一致 | Phase 4.1 hook 内部 schema 标准化：将 `SuggestedQuestion{stage?, questionText, whyLikelyAsked, source}` 映射到 GuidedDebriefRecord 期待的字段；如缺 stage 默认 "通用"；如缺 source 默认 'jd' |
 | Step 1 分析渲染时 backend AI 输出的 risk_items 与 questions[*].aiAnalysis 结构不稳定（前端期待 prototype mock data 形态） | Phase 6.1 内做 defensive parsing：缺少字段时显示默认占位；不抛出错误；通过 Vitest 断言至少正常渲染 schema-minimum 输出 |
 | Voice UI shell 在 mobile 端 sticky CTA 布局冲突 | Phase 7.3 单独测试 mobile viewport；如冲突，调整 sticky 优先级（提交 CTA > 占位提示）|

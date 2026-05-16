@@ -13,7 +13,8 @@
 - [ ] 0.A Generated client 含 `createDebrief` / `getDebrief` / `suggestDebriefQuestions`
 - [ ] 0.B Fixtures `Debriefs/createDebrief.json` / `getDebrief.json` / `suggestDebriefQuestions.json` 通过 `make validate-fixtures`
 - [ ] 0.C `shared/ts/conventions/` 含 `DebriefRoundType` / `DebriefQuestionSource` / `DEBRIEF_NOT_FOUND` / `IDEMPOTENCY_KEY_MISMATCH`
-- [ ] 0.D `pnpm --filter @easyinterview/frontend typecheck` 通过
+- [ ] 0.D Generated client 含 `listPracticeSessions`（Phase 0 addendum）；`listResumes` / `listResumeVersions(resumeAssetId)` 可用；`PracticeSessions/listPracticeSessions.json` fixture 通过 `make validate-fixtures`
+- [ ] 0.E `pnpm --filter @easyinterview/frontend typecheck` 通过
 
 ## Phase 1: DebriefScreen shell + Header + ContextStrip + Stepper
 

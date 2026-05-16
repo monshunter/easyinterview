@@ -36,6 +36,7 @@ spec:
       - getJob
       - listTargetJobs
       - listPracticeSessions
+      - listResumes
       - listResumeVersions
       - DebriefStatus
       - DebriefRoundType
@@ -136,6 +137,7 @@ spec:
           - suggestDebriefQuestions
           - getJob
           - listTargetJobs
+          - listResumes
           - listResumeVersions
           - listPracticeSessions
           - getTargetJob

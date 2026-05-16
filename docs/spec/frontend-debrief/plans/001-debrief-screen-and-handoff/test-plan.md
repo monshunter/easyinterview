@@ -116,21 +116,21 @@
 - 覆盖：R5
 
 #### 2.3 TestMockSessionPicker_ListAndOptional
-- Given：fixture `listPracticeSessions` 返回 2 个 completed sessions；"暂不关联" option 渲染
+- Given：Phase 0 已生成 `listPracticeSessions`；fixture 返回 2 个 completed sessions；"暂不关联" option 渲染
 - When：用户点击 "暂不关联" 确认
 - Then：onConfirm(null) 触发；reducer dispatch SET_DEBRIEF_CONTEXT with mockSession=null
 - 覆盖：R5
 
 #### 2.4 TestMockSessionPicker_FilterFallback
-- Given：mock generated client `listPracticeSessions` not accepting `status` filter parameter
+- Given：mock generated client 已含 `listPracticeSessions`，但 operation 不接受 `status` filter parameter
 - When：Mock picker 调用
 - Then：client-side filter `session.status === 'completed'`；只渲染 completed sessions；记录 fallback warning
 - 覆盖：R5
 
 #### 2.5 TestResumePicker_ListAndConfirm
-- Given：fixture `listResumeVersions` 返回 2 个 ready versions
-- When：Resume picker 渲染 → 选 resume-v3 → 确认
-- Then：onConfirm('resume-v3')；reducer dispatch SET_DEBRIEF_CONTEXT
+- Given：fixture `listResumes` 返回 2 个 active assets；fixture `listResumeVersions(resumeAssetId)` 返回 selected asset 的 2 个 ready versions
+- When：Resume picker 渲染 → 选 resume asset → 选 resume-v3 → 确认
+- Then：onConfirm({resumeAssetId, resumeVersionId:'resume-v3'})；reducer dispatch SET_DEBRIEF_CONTEXT with `resumeVersionId`
 - 覆盖：R5
 
 #### 2.6 TestContextStrip_AutoTriggerSuggestions

@@ -34,6 +34,8 @@ spec:
       - debrief.suggest_questions
       - debrief_generate
       - async_jobs debrief_generate
+      - B4 addendum debrief_suggest_questions
+      - migrations enum-sources ai_task_runs task_type
       - targetjob.Drainer
       - debrief.GenerateHandler
       - GenerationProvenance

@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-落地 backend-debrief P0 闭环的全部 backend 实现：3 个 API operation (`createDebrief` / `getDebrief` / `suggestDebriefQuestions`) + `debrief_generate` 异步 worker handler（通过 backend-targetjob drainer 注册）+ AI 调用编排 + 单向状态机 (`draft → completed`) + outbox `debrief.created` / `debrief.completed` + cross-user 隔离 + 隐私红线 + 观测红线 + cross-owner pre-launch addendum 收口（B1/B2/B3/F3）+ legacy negative gate。
+落地 backend-debrief P0 闭环的全部 backend 实现：3 个 API operation (`createDebrief` / `getDebrief` / `suggestDebriefQuestions`) + `debrief_generate` 异步 worker handler（通过 backend-targetjob drainer 注册）+ AI 调用编排 + 单向状态机 (`draft → completed`) + outbox `debrief.created` / `debrief.completed` + cross-user 隔离 + 隐私红线 + 观测红线 + cross-owner pre-launch addendum 收口（B1/B2/B3/B4/F3）+ legacy negative gate。
 
 落地完成后，前端 `frontend-debrief/001` 可基于本 plan 暴露的 schema + fixture + scenario asset 完成 DebriefScreen 真实数据接入。
 
@@ -22,6 +22,7 @@
 - **B1 addendum**：新增 `DEBRIEF_NOT_FOUND` 错误码（D-15 前置）+ 通用 `IDEMPOTENCY_KEY_MISMATCH` 错误码 + `DebriefRoundType` enum（替代 `shared/events.yaml` 中错误的 `b1.InterviewerRole` 引用）+ `DebriefQuestionSource` enum（覆盖 `jd` / `resume` / `mock_report` / `manual`，用于 `suggestDebriefQuestions` 响应）+ 同步 generated Go/TS 字面量与 fixture parity；AI 失败映射只使用当前 B1 canonical `AI_*` code。
 - **B2 addendum**：新增 `POST /debriefs/question-suggestions` `suggestDebriefQuestions` operation + `SuggestDebriefQuestionsRequest` / `SuggestDebriefQuestionsResponse` schema + fixtures `Debriefs/suggestDebriefQuestions.json`；同步修复 `Debrief.roundType` / `CreateDebriefRequest.roundType` 字段引用（若 B1 owner 选择独立 enum `DebriefRoundType`）；扩展既有 fixtures `Debriefs/createDebrief.json` + `Debriefs/getDebrief.json`（含 `default` + `debrief-draft` + `prototype-baseline` variants）。
 - **B3 addendum**：修复 `shared/events.yaml` `debrief.created.roundType: $ref:b1.InterviewerRole` → `$ref:b1.DebriefRoundType`；同步 `shared/events/baseline/events.v1.json` + `shared/events/schemas/debrief.created.v1.json`；`make lint-events` + `make codegen-events-check` 通过。
+- **B4 addendum**：新增 `ai_task_runs.task_type='debrief_suggest_questions'` CHECK / enum-source 字面量；同步 `migrations/000001_create_baseline.up.sql`、`migrations/enum-sources.yaml`、migration lint / replay tests；不新增 B4 列。
 - **F3 addendum**：新增 `debrief.suggest_questions` feature_key + `debrief.suggest_questions.default` model profile + 基线 prompt v0.1.0；同步 `config/prompts/debrief.suggest_questions/` 目录与 `seed_baseline_prompt_rubric_versions` migration（如有）。
 - **backend-practice 验证**：Q-3 spec 已要求验证 backend-practice 现状是否支持 `goal='debrief'` plan 派生 + `mode='debrief'` session start；如未支持，需 backend-practice owner 同步 addendum，否则 frontend-debrief step 2 "复盘面试" handoff 无法闭环。
 
@@ -31,7 +32,7 @@ backend-targetjob drainer 已在 `backend/internal/targetjob/drainer.go` 注册 
 
 - **Plan 类型**: contract + code-internal + feature-behavior（混合：跨 owner 契约 addendum + backend domain 代码实现 + 用户可见 API 行为）
 - **TDD 策略**: Code plan requires TDD。所有 handler / service / store / worker handler 必须先写测试（红/绿/重构）；测试文件：`backend/internal/debrief/*_test.go` + `backend/internal/api/debriefs/*_test.go` + `backend/internal/store/debrief/*_test.go`；测试命令：`cd backend && go test ./internal/debrief ./internal/api/debriefs ./internal/store/debrief -count=1`；Phase 1-6 每个 checklist item 必须命名其测试断言来源（见 test-plan.md 与 test-checklist.md）。
-- **BDD 策略**: Feature plan requires BDD。本 plan 引入 3 个用户可见 API operation + 1 个异步 worker 触发的 outbox / DB state 变化，前端 frontend-debrief 直接消费；BDD scenarios `E2E.P0.060-064` 已在 [bdd-plan.md](./bdd-plan.md) 分配，主 [checklist.md](./checklist.md) 在 Phase 6 含 `BDD-Gate:` 项引用每个 scenario ID；执行命令：`bash test/scenarios/e2e/p0-060-*/run.sh` 等。
+- **BDD 策略**: Feature plan requires BDD。本 plan 引入 3 个用户可见 API operation + 1 个异步 worker 触发的 outbox / DB state 变化，前端 frontend-debrief 直接消费；BDD scenarios `E2E.P0.060-064` 已在 [bdd-plan.md](./bdd-plan.md) 分配，主 [checklist.md](./checklist.md) 在 Phase 6 含 `BDD-Gate:` 项引用每个 scenario ID；执行必须使用当前场景框架的 `scripts/setup.sh` → `scripts/trigger.sh` → `scripts/verify.sh` → `scripts/cleanup.sh` 四段入口，cleanup 在失败时也必须执行。
 - **替代验证 gate**:
   - Phase 0 cross-owner addendum：`make codegen-check` / `make validate-fixtures` / `make lint-events` / `make codegen-events-check` / `migrations/lint.sh` / 单元测试 `python3 -m pytest scripts/lint -q`
   - Phase 0 backend-practice 验证：`cd backend && go test ./internal/practice -run "TestPracticePlan.*Debrief|TestPracticeSession.*Debrief" -count=1`（如无，则补 backend-practice owner skill addendum）
@@ -68,7 +69,17 @@ backend-targetjob drainer 已在 `backend/internal/targetjob/drainer.go` 注册 
 
 运行 `make codegen-events-check` + `make lint-events`；同步 `shared/events/baseline/events.v1.json` + `shared/events/schemas/debrief.created.v1.json` + `shared/events/__fixtures__/envelopes.json`（如 envelope fixture 引用旧 enum）；提交 commit `fix(events): align debrief.created roundType reference`.
 
-#### 0.4 F3 addendum：新增 debrief.suggest_questions feature_key
+#### 0.4 B4 addendum：新增 ai_task_runs debrief_suggest_questions task_type
+
+在 db-migrations-baseline 真理源新增 `ai_task_runs.task_type='debrief_suggest_questions'` 字面量：
+- 修改 `migrations/000001_create_baseline.up.sql` 中 `ai_task_runs.task_type` CHECK allowlist，加入 `debrief_suggest_questions`
+- 修改 `migrations/enum-sources.yaml` 对应 enum-source，保证 lint / drift check 可追溯
+- 补 migration lint / replay 断言：`debrief_generate` 与 `debrief_suggest_questions` 均允许写入，未登记 task_type 仍被 CHECK 拒绝
+- 不新增列、不修改 `debriefs` 表结构
+
+运行 `migrations/lint.sh` + `make migrate-check`；提交 commit `fix(migrations): allow debrief suggestion ai task type`.
+
+#### 0.5 F3 addendum：新增 debrief.suggest_questions feature_key
 
 在 prompt-rubric-registry 真理源新增 feature_key `debrief.suggest_questions` + profile `debrief.suggest_questions.default` + 基线 prompt v0.1.0：
 - Prompt 输入变量：`{{targetJobTitle}}` / `{{jdHighlights}}` / `{{resumeBullets?}}` / `{{practiceSessionSummary?}}` / `{{language}}` / `{{count}}`
@@ -78,13 +89,13 @@ backend-targetjob drainer 已在 `backend/internal/targetjob/drainer.go` 注册 
 
 提交 commit `feat(prompt-rubric-registry): seed debrief.suggest_questions baseline`.
 
-#### 0.5 backend-practice 现状验证（Q-3）
+#### 0.6 backend-practice 现状验证（Q-3）
 
 运行 `grep -rn "goal.*debrief\|mode.*debrief" backend/internal/practice` 找出当前 plan 派生 / session start handler 是否分支处理 `goal='debrief'` / `mode='debrief'`：
 - 如果已支持：在 plan history 记录验证证据（grep 输出 + 关联测试名）。
 - 如果未支持：暂停 plan 001 实施，回到 backend-practice owner 同步 addendum（`practice_plans.goal='debrief'` 派生默认逻辑 + `practice_sessions.mode='debrief'` session start 默认 handler）；恢复 plan 001 后记录依赖 commit。
 
-#### 0.6 整体 Phase 0 收口
+#### 0.7 整体 Phase 0 收口
 
 运行所有 quality gates：
 - `cd backend && go test ./... -count=1`
@@ -287,12 +298,12 @@ Tests: `TestGetDebrief_DraftPartialReturn|TestGetDebrief_CompletedFullReturn|Tes
 
 #### 6.5 BDD gate 收口
 
-执行所有 P0.060-064 scenario：
-- `bash test/scenarios/e2e/p0-060-debrief-create-and-generate/run.sh`
-- `bash test/scenarios/e2e/p0-061-debrief-get-and-cross-user/run.sh`
-- `bash test/scenarios/e2e/p0-062-debrief-worker-failure-and-retry/run.sh`
-- `bash test/scenarios/e2e/p0-063-suggest-debrief-questions/run.sh`
-- `bash test/scenarios/e2e/p0-064-debrief-privacy-and-legacy-negative/run.sh`
+执行所有 P0.060-064 scenario；每个目录必须按顺序执行 `scripts/setup.sh`、`scripts/trigger.sh`、`scripts/verify.sh`，并在成功或失败后执行 `scripts/cleanup.sh`：
+- `test/scenarios/e2e/p0-060-debrief-create-and-generate/`
+- `test/scenarios/e2e/p0-061-debrief-get-and-cross-user/`
+- `test/scenarios/e2e/p0-062-debrief-worker-failure-and-retry/`
+- `test/scenarios/e2e/p0-063-suggest-debrief-questions/`
+- `test/scenarios/e2e/p0-064-debrief-privacy-and-legacy-negative/`
 
 所有 scenario 必须 `--- PASS` + `ok` + verify.sh 通过。
 
@@ -309,7 +320,7 @@ Tests: `TestGetDebrief_DraftPartialReturn|TestGetDebrief_CompletedFullReturn|Tes
 - 本 plan 列出的 Phase 0-6 实现项全部按 checklist 勾选
 - [BDD-Gate](./bdd-checklist.md) `E2E.P0.060-064` 全部通过
 - [test-checklist](./test-checklist.md) 单元测试与集成测试项全部通过
-- Phase 0 跨 owner addendum 全部在主分支落地（B1/B2/B3/F3 + backend-practice 验证）
+- Phase 0 跨 owner addendum 全部在主分支落地（B1/B2/B3/B4/F3 + backend-practice 验证）
 - legacy negative gate 通过
 
 ## 6 风险与应对
@@ -322,4 +333,4 @@ Tests: `TestGetDebrief_DraftPartialReturn|TestGetDebrief_CompletedFullReturn|Tes
 | AI 输出 JSON 解析失败率高（worker 路径触发频繁 permanent fail） | Phase 4 单元测试覆盖 5 种 parse failure pattern；如生产观测发现 parse 失败率 > 5%，触发 F3 owner 修订 prompt strict mode 或加 structured output validator |
 | suggestDebriefQuestions 被滥用（前端死循环 / 用户疯狂点击） | Q-5 默认 P0 不做 rate limit；如生产观测发现滥用，plan 002 增加 rate limit middleware（如每用户每分钟 5 次）+ Quota |
 | `Debrief.provenance` 的 `featureFlag` / `dataSourceVersion` 持久化锚点不清晰（B4 无对应列）| D-11 决策行 + Phase 5 实现明确：`featureFlag=null`（P0 无 feature flag 区分），`dataSourceVersion='debrief/<debriefId>@v1'` 字面量；如未来引入 feature flag 区分 prompt 版本，再决定走 jsonb 子键还是新增 B4 列 |
-| 跨 owner addendum 数量多（B1/B2/B3/F3 + backend-practice 验证），Phase 0 工作量超预期 | 接受 Phase 0 较重的现实；按 0.1-0.6 顺序串行执行；每个 sub-phase 独立 commit 便于回滚；如某 owner addendum 卡住，暂停 plan 001 直到 unblock |
+| 跨 owner addendum 数量多（B1/B2/B3/B4/F3 + backend-practice 验证），Phase 0 工作量超预期 | 接受 Phase 0 较重的现实；按 0.1-0.7 顺序串行执行；每个 sub-phase 独立 commit 便于回滚；如某 owner addendum 卡住，暂停 plan 001 直到 unblock |

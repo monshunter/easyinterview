@@ -13,7 +13,7 @@
 
 ## Phase 0: 依赖验证 + ui-design source map + 包结构
 
-- [ ] 0.1 backend-debrief Phase 0 完成验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief" frontend/src/api/generated/` 命中 3 个 method；`ls openapi/fixtures/Debriefs/` 含 `createDebrief.json` / `getDebrief.json` / `suggestDebriefQuestions.json` 三个 fixture；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND\|IDEMPOTENCY_KEY_MISMATCH" shared/ts/conventions/` 命中；backend-practice 现状已支持 `goal='debrief'` + `mode='debrief'`（验证证据已在 backend-debrief/001 Phase 0.5 记录）
+- [ ] 0.1 cross-owner Phase 0 完成验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief\|listPracticeSessions\|listResumes\|listResumeVersions" frontend/src/api/generated/` 命中；`ls openapi/fixtures/Debriefs/` 含 `createDebrief.json` / `getDebrief.json` / `suggestDebriefQuestions.json` 三个 fixture；`ls openapi/fixtures/PracticeSessions/listPracticeSessions.json` 存在；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND\|IDEMPOTENCY_KEY_MISMATCH" shared/ts/conventions/` 命中；backend-practice 现状已支持 `goal='debrief'` + `mode='debrief'`（验证证据已在 backend-debrief/001 Phase 0.6 记录）
 - [ ] 0.2 ui-design source map 记录到 plan history 与本 checklist 注脚（6 个组件 source anchor）
 - [ ] 0.3 创建包结构 `frontend/src/app/screens/debrief/{DebriefScreen.tsx, components/, hooks/, reducer.ts, types.ts, i18n/}`；空 stub 编译通过：`pnpm --filter @easyinterview/frontend typecheck`
 - [ ] 0.4 route 接线：`App.tsx` 的 `case "debrief"` → `<DebriefScreen>`；`normalizeRoute.ts` 把历史 alias `debrief_full` normalize 到 `debrief`；不在 `routes.ts` 正式 `RouteName` / primary nav / `INTERVIEW_CONTEXT_ROUTES` 中新增 `debrief_full`；移除原 PlaceholderScreen 对 debrief 的占位；TopBar 一级导航高亮逻辑保留；测试：`TestRoutes_DebriefAliasNormalization` 通过
@@ -29,8 +29,8 @@
 
 - [ ] 2.1 `<DebriefContextPickerModal>` 通用骨架：复刻 lines 434-518；接收 kind / options / selectedId / onClose / onConfirm；外部点击 / Esc 关闭；mobile 全屏 sheet；测试：`TestPickerModal_BaseInteraction`（[test-plan §2.1](./test-plan.md#21-testpickermodal_baseinteraction)）
 - [ ] 2.2 JD picker：调 `listTargetJobs({status:'ready'})`；单选；onConfirm 触发 `SET_DEBRIEF_CONTEXT` reducer action；测试：`TestJDPicker_ListAndConfirm`（[test-plan §2.2](./test-plan.md#22-testjdpicker_listandconfirm)）
-- [ ] 2.3 Mock Session picker：调 `listPracticeSessions({targetJobId, status:'completed'})`；如 server-side filter 不支持 client-side filter；"暂不关联" option；测试：`TestMockSessionPicker_ListAndOptional`（[test-plan §2.3](./test-plan.md#23-testmocksessionpicker_listandoptional)）+ `TestMockSessionPicker_FilterFallback`（[test-plan §2.4](./test-plan.md#24-testmocksessionpicker_filterfallback)）
-- [ ] 2.4 Resume picker：调 `listResumeVersions({status:'ready'})`；单选；测试：`TestResumePicker_ListAndConfirm`（[test-plan §2.5](./test-plan.md#25-testresumepicker_listandconfirm)）
+- [ ] 2.3 Mock Session picker：调 Phase 0 已生成的 `listPracticeSessions({targetJobId, status:'completed'})`；generated method 缺失则 BLOCK；如已生成但 server-side filter 不支持则 client-side filter；"暂不关联" option；测试：`TestMockSessionPicker_ListAndOptional`（[test-plan §2.3](./test-plan.md#23-testmocksessionpicker_listandoptional)）+ `TestMockSessionPicker_FilterFallback`（[test-plan §2.4](./test-plan.md#24-testmocksessionpicker_filterfallback)）
+- [ ] 2.4 Resume picker：调 `listResumes()` 列资产，再对选中 asset 调 `listResumeVersions(resumeAssetId)` 列 ready versions；单选 resume version；测试：`TestResumePicker_ListAndConfirm`（[test-plan §2.5](./test-plan.md#25-testresumepicker_listandconfirm)）
 - [ ] 2.5 ContextStrip 三选完成 detect + 自动触发 suggestions：useEffect debounce 500ms；当 targetJob + resume 都选定（mockSession optional）时 enable suggestions hook；测试：`TestContextStrip_AutoTriggerSuggestions`（[test-plan §2.6](./test-plan.md#26-testcontextstrip_autotriggersuggestions)）
 
 ## Phase 3: Step 0 复盘记录 + 跨模式共享 entries + Voice UI shell
@@ -77,11 +77,11 @@
 - [ ] 8.5 隐私 grep gate：`grep -rn "questionText\|myAnswerSummary\|interviewerReaction\|notes" frontend/src/app/screens/debrief/ frontend/src/app/i18n/locales/ | grep -v "_test\|generated\|.types\|// privacy reviewed"` 仅命中合理位置
 - [ ] 8.6 Legacy negative grep：`grep -rn "experience_library\|star_editor\|drill_builder\|mistakes_book\|growth_center\|report_timeline" frontend/src/app/screens/debrief/ frontend/src/app/i18n/locales/ test/scenarios/e2e/p0-06[56789]-*` 0 命中
 - [ ] 8.7 Legacy negative lint script：新增 `scripts/lint/frontend_debrief_legacy.py`；`python3 -m pytest scripts/lint -q` 通过
-- [ ] 8.8 BDD-Gate E2E.P0.065：`bash test/scenarios/e2e/p0-065-debrief-default-render-and-pickers/run.sh` 通过
-- [ ] 8.9 BDD-Gate E2E.P0.066：`bash test/scenarios/e2e/p0-066-debrief-text-suggestions-and-submit/run.sh` 通过
-- [ ] 8.10 BDD-Gate E2E.P0.067：`bash test/scenarios/e2e/p0-067-debrief-polling-happy-and-analysis/run.sh` 通过
-- [ ] 8.11 BDD-Gate E2E.P0.068：`bash test/scenarios/e2e/p0-068-debrief-failure-and-handoff/run.sh` 通过
-- [ ] 8.12 BDD-Gate E2E.P0.069：`bash test/scenarios/e2e/p0-069-debrief-pixel-parity-and-legacy-negative/run.sh` 通过
+- [ ] 8.8 BDD-Gate E2E.P0.065：四段脚本（`scripts/setup.sh` → `scripts/trigger.sh` → `scripts/verify.sh` → `scripts/cleanup.sh`）通过
+- [ ] 8.9 BDD-Gate E2E.P0.066：四段脚本通过
+- [ ] 8.10 BDD-Gate E2E.P0.067：四段脚本通过
+- [ ] 8.11 BDD-Gate E2E.P0.068：四段脚本通过
+- [ ] 8.12 BDD-Gate E2E.P0.069：四段脚本通过
 
 ## Phase 9: Plan 收口
 

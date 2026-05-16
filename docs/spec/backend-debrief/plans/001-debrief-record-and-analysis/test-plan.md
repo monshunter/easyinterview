@@ -32,7 +32,7 @@
 | R9 | spec D-4 / Empty questions array (422) | Boundary | Phase 1 | Go unit | — |
 | R10 | spec D-4 / Max question count + length | Boundary | Phase 1 | Go unit | — |
 | R11 | spec D-13 / Outbox payload schema (counts only, no raw text) | Cross-layer contract + Privacy | Phase 2 + Phase 4 | Go unit | raw_questions, notes, interviewerReaction, risk_items prose |
-| R12 | spec D-14 / Cross-owner addendums (B1/B2/B3/F3) gate | Cross-layer contract | Phase 0 | codegen-check + validate-fixtures + lint-events | — |
+| R12 | spec D-14 / Cross-owner addendums (B1/B2/B3/B4/F3) gate | Cross-layer contract | Phase 0 | codegen-check + validate-fixtures + lint-events + migration checks | — |
 | R13 | spec D-10 / ai_task_runs typed rows | Observability | Phase 3-4 | Go unit + integration | — |
 | R14 | spec D-12 / Privacy redlines (no raw text in events/metric/log/audit) | Privacy | Phase 2 + Phase 4 + Phase 6 | Go unit + grep | — |
 | R15 | spec D-11 / GenerationProvenance wire 6 fields only | Cross-layer contract + Privacy | Phase 5 | Go unit | runtime fields (feature_key, model_profile_name, provider, cost, latency) |
