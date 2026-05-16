@@ -12,17 +12,17 @@
 为 frontend-debrief/001-debrief-screen-and-handoff 定义单元测试（Vitest + jsdom）与端到端 UI 测试（Playwright）矩阵。每个测试项映射到具体测试文件与测试函数，覆盖主路径、跨模式状态、AI 推荐、轮询、失败态、UI source/visual parity、隐私、回归负向 8 类风险。
 
 测试执行入口：
-- Vitest 单元测试：`pnpm --filter frontend test -- src/app/screens/debrief --run`
-- Vitest 全量：`pnpm --filter frontend test -- --run`
-- Lint：`pnpm --filter frontend lint`
-- Playwright pixel parity：`pnpm --filter frontend run pixel-parity`
+- Vitest 单元测试：`pnpm --filter @easyinterview/frontend test -- src/app/screens/debrief --run`
+- Vitest 全量：`pnpm --filter @easyinterview/frontend test -- --run`
+- Lint：`pnpm --filter @easyinterview/frontend lint`
+- Playwright pixel parity：`pnpm --filter @easyinterview/frontend test:pixel-parity`
 - Lint script：`python3 -m pytest scripts/lint -q`
 
 ## 1 Coverage Matrix
 
 | 行 | source | category | plan phase | verification | negative_scope | ui_source_anchor |
 |----|--------|----------|------------|--------------|----------------|------------------|
-| R1 | spec D-1 / D-2 / route owner | Primary | Phase 0-1 | Vitest route + DOM render | — | screens-p1-depth.jsx:38-368 DebriefFullScreen |
+| R1 | spec D-1 / D-2 / route owner + `debrief_full` normalization | Primary | Phase 0-1 | Vitest route + DOM render | `debrief_full` must not be formal RouteName / TopBar entry | screens-p1-depth.jsx:38-368 DebriefFullScreen |
 | R2 | spec D-2 / Header source parity | UI source parity | Phase 1 | Vitest jsdom DOM | — | screens-p1-depth.jsx:122-144 |
 | R3 | spec D-2 / ContextStrip source parity | UI source parity | Phase 1-2 | Vitest jsdom DOM + interaction | — | screens-p1-depth.jsx:412-432 DebriefContextStrip |
 | R4 | spec D-3 / Stepper navigation | Primary + Boundary | Phase 1 | Vitest interaction | — | screens-p1-depth.jsx:148-156 |
@@ -31,11 +31,11 @@
 | R7 | spec D-2 / Text mode GuidedDebriefRecord parity | UI source parity + Primary | Phase 3 | Vitest jsdom + interaction | — | screens-p1-depth.jsx:519-619 |
 | R8 | spec D-6 / Voice UI shell only | Alternate + Boundary | Phase 3 | Vitest visual + negative grep | Web Audio API binding, SpeechRecognition listener, STT endpoint call | screens-p1-depth.jsx:656-870 |
 | R9 | spec D-4 / D-5 / suggestDebriefQuestions auto + manual | Primary + Failure/recovery | Phase 4 | Vitest hook + scenario | — | — |
-| R10 | spec D-9 / D-10 / createDebrief + IK + 4 response classes | Primary + Failure | Phase 5 | Vitest hook + scenario | — | — |
+| R10 | spec D-9 / D-10 / createDebrief + IK + 4 response classes | Primary + Failure | Phase 5 | Vitest hook + scenario | jobId field must not receive debrief async job id | — |
 | R11 | spec D-10 / Polling getJob + getDebrief | Primary | Phase 5 | Vitest hook + scenario | — | — |
 | R12 | spec D-12 / 3 failure states (Failure / Missing / Timeout) | Failure/recovery | Phase 5 | Vitest render + scenario | — | — |
-| R13 | spec D-14 / InterviewContext SET_DEBRIEF_CONTEXT action | Cross-layer + Boundary | Phase 5 | Vitest reducer | — | — |
-| R14 | spec D-11 / Step 2 nav practice with goal=debrief, NO createPracticePlan call | Cross-layer | Phase 6 | Vitest + scenario + negative grep | createPracticePlan, startPracticeSession (must NOT be called in debrief module) | screens-p1-depth.jsx:1388-1421 DebriefReplayPlan |
+| R13 | spec D-14 / InterviewContext SET_DEBRIEF_CONTEXT action | Cross-layer + Boundary | Phase 5 | Vitest reducer | jobId collision, pendingAction key omission | — |
+| R14 | spec D-11 / Step 2 nav practice with practiceGoal=debrief, NO createPracticePlan call | Cross-layer | Phase 6 | Vitest + scenario + negative grep | createPracticePlan, startPracticeSession (must NOT be called in debrief module) | screens-p1-depth.jsx:1388-1421 DebriefReplayPlan |
 | R15 | spec §4 / Step 1 analysis render (risk_items, dimensions, provenance, no P1 fields) | Primary | Phase 6 | Vitest + scenario | nextRoundChecklist, thankYouDraft (must remain empty in P0) | screens-p1-depth.jsx:320-362 |
 | R16 | spec D-13 / i18n debrief.* namespace | UX | Phase 7 | Vitest i18n keys | workspace.*, practice.*, report.* (must NOT cross namespace) | — |
 | R17 | spec §4 / Theme dark+customAccent | UX | Phase 7 | Vitest + Playwright | — | — |
@@ -54,6 +54,13 @@
 - Given：route='debrief'，user 已认证，InterviewContext 含 `targetJobId='tj-1'`
 - When：mount DebriefScreen
 - Then：渲染 Header + ContextStrip + Stepper(current=0) + Step 0 Record panel；DOM 含 testid `debrief-screen` / `debrief-header` / `debrief-context-strip` / `debrief-stepper-step-0`
+- 覆盖：R1
+
+#### 1.1b TestRoutes_DebriefAliasNormalization
+- 文件：`frontend/src/app/normalizeRoute.test.ts` + `frontend/src/app/App.test.tsx`
+- Given：initial route name = `debrief_full`
+- When：调用 `normalizeRouteName("debrief_full")` 并 mount App
+- Then：normalize 结果为 `debrief`；App 渲染 DebriefScreen；TopBar 高亮 `debrief`；`routes.ts` 正式 RouteName 不包含 `debrief_full`
 - 覆盖：R1
 
 #### 1.2 TestDebriefHeader_RenderWithContext
@@ -219,9 +226,9 @@
 - 覆盖：R9
 
 #### 4.5 TestSuggestions_AIFailureDegradation
-- Given：mock `suggestDebriefQuestions` 返回 502 AI_PROVIDER_FAILED
+- Given：mock `suggestDebriefQuestions` 返回 502 `AI_PROVIDER_TIMEOUT`
 - When：触发 hook
-- Then：error.code='AI_PROVIDER_FAILED'；UI 显示 inline error "推荐生成失败，可手动添加问题"；不阻塞 step 0；"重新生成推荐" 按钮启用
+- Then：error.code='AI_PROVIDER_TIMEOUT'；UI 显示 inline error "推荐生成失败，可手动添加问题"；不阻塞 step 0；"重新生成推荐" 按钮启用；parameterized 子用例覆盖 `AI_PROVIDER_CONFIG_INVALID` / `AI_PROVIDER_SECRET_MISSING` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED`
 - 覆盖：R9
 
 ### Phase 5: createDebrief + 双轨 polling + 失败态
@@ -233,10 +240,10 @@
 - Then：generated `createDebrief` 调用 with Idempotency-Key (UUIDv4)；返回 202 + DebriefWithJob；reducer dispatch SET_DEBRIEF_CONTEXT；setStep(1) 触发；polling 启动
 - 覆盖：R10
 
-#### 5.2 TestUseSubmitDebrief_400ValidationError
-- Given：mock 返回 400 VALIDATION_ERROR with details=[{field:'questions', message:'must have at least 1 question'}]
+#### 5.2 TestUseSubmitDebrief_422ValidationFailed
+- Given：mock 返回 422 VALIDATION_FAILED with details=[{field:'questions', message:'must have at least 1 question'}]
 - When：submit
-- Then：error.code='VALIDATION_ERROR'；UI inline error 显示 field 失败信息；不 setStep
+- Then：error.code='VALIDATION_FAILED'；UI inline error 显示 field 失败信息；不 setStep
 - 覆盖：R10
 
 #### 5.3 TestUseSubmitDebrief_409IKMismatchRetry
@@ -254,7 +261,7 @@
 #### 5.5 TestUseDebriefPolling_HappySuccess
 - 文件：`frontend/src/app/screens/debrief/hooks/useDebriefPolling.test.ts`
 - Given：mock `getJob` 返回 status='queued' → 'running' → 'succeeded'；mock `getDebrief` 返回 completed Debrief
-- When：启动 polling with jobId+debriefId
+- When：启动 polling with debriefJobId+debriefId
 - Then：phase A 调用 `getJob` 3 次（按指数退避）；status='succeeded' 后 phase B 调用 `getDebrief` 1 次；pollingState='succeeded'
 - 覆盖：R11
 
@@ -298,11 +305,23 @@
 #### 5.12 TestInterviewContext_SetDebriefContext
 - 文件：`frontend/src/app/interview-context/reducer.test.ts`
 - Given：existing InterviewContext state
-- When：dispatch SET_DEBRIEF_CONTEXT with {debriefId, targetJobId, sessionId, resumeVersionId, language}
-- Then：state 含新字段；其他字段保留
+- When：dispatch SET_DEBRIEF_CONTEXT with {debriefId, debriefJobId, targetJobId, sessionId, resumeVersionId, practiceGoal, language}
+- Then：state 含新字段；其他字段保留；`jobId` 不被写入
 - 覆盖：R13
 
-#### 5.13 TestInterviewContext_OtherActionsNotAffected
+#### 5.13 TestInterviewContext_DoesNotOverwriteJobId
+- Given：existing state 含 `jobId='target-job-alias'`
+- When：dispatch SET_DEBRIEF_CONTEXT with `debriefJobId='async-job-1'`
+- Then：`state.jobId` 仍为 `target-job-alias`；`state.debriefJobId='async-job-1'`
+- 覆盖：R13
+
+#### 5.14 TestPendingAction_DebriefParamsRoundTrip
+- Given：pendingAction params 含 `practiceGoal='debrief'` / `debriefId='D'` / `debriefJobId='J'`
+- When：encodePendingAction → decodePendingAction
+- Then：三项全部保留；登录恢复后 `requestAuth` 可回到 debrief 或 practice handoff
+- 覆盖：R13
+
+#### 5.15 TestInterviewContext_OtherActionsNotAffected
 - Given：existing state
 - When：dispatch 既有 SET_PRACTICE_CONTEXT
 - Then：SET_DEBRIEF_CONTEXT 字段不被覆盖
@@ -344,7 +363,7 @@
 #### 6.6 TestStartDebriefInterview_NavPayload
 - Given：用户已认证；step=2 渲染
 - When：用户点击 "开始复盘面试" CTA
-- Then：nav 调用 with payload `{goal:'debrief', mode:'text', modality:'text', sessionId:'mock-24', targetJobId:'tj-1', resumeVersionId:'resume-v3', debriefId:'D', language:'zh'}`
+- Then：nav 调用 with payload `{practiceGoal:'debrief', mode:'text', modality:'text', sessionId:'mock-24', targetJobId:'tj-1', resumeVersionId:'resume-v3', debriefId:'D', language:'zh'}`
 - 覆盖：R14
 
 #### 6.7 TestStartDebriefInterview_AuthGate

@@ -8,12 +8,12 @@
 
 `frontend-debrief` 是 [engineering-roadmap §5.2](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) `Debrief` workstream 的前端业务 subspec，承接 [frontend-shell](../frontend-shell/spec.md) 已交付的 App 壳、TopBar 一级导航 `debrief` 入口、route normalization、`requestAuth(pendingAction)`、fixture-backed generated client、UI parity gate；承接 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) 的 `createPracticePlan(goal='debrief') + startPracticeSession(mode='debrief')` cross-owner handoff（"复盘面试"启动入口）；同时作为 [backend-debrief](../backend-debrief/spec.md) `createDebrief` / `getDebrief` / `suggestDebriefQuestions` schema 的前端 consumer。
 
-本 subspec 的终稿范围收敛为两条当前 owner 路由：
+本 subspec 的终稿范围收敛为一条正式 owner 路由 + 一个历史 prototype alias：
 
 - `debrief`：复盘主流程默认入口。源级复刻 `ui-design/src/screens-p1-depth.jsx::DebriefFullScreen`（lines 38-2180）+ 5 个子组件（`DebriefContextStrip` / `DebriefContextPickerModal` / `GuidedDebriefRecord` / `VoiceDebriefRecord` / `DebriefReplayPlan`）。三步骤 stepper（`step=0` 记录 / `step=1` 分析 / `step=2` 复盘面试 launcher）+ 三个 in-page picker modal（JD / Mock Session / Resume）+ 文本模式（功能完整：AI 推荐问题 → occurred/skipped/edit/manual → 写入 entries）+ 语音模式（UI shell only，无真实 STT）+ 跨模式共享 entries 列表 + createDebrief 提交 + polling getJob + polling getDebrief + 分析渲染 + 复盘面试 nav。
-- `debrief_full`：同一 owner 的 alias route（UI 真理源 `app.jsx` lines 274/278 同时映射 `debrief` 与 `debrief_full` 到 `<DebriefFullScreen>`）；本 spec P0 等价于 `debrief`，不区分行为；保留 alias 以兼容 prototype route map 与未来可能的 placement 差异（如 deep-link "完整复盘" 入口）。
+- `debrief_full`：历史 prototype alias。UI 真理源 `app.jsx` 仍把 `debrief_full` 映射到 `<DebriefFullScreen>`，但正式前端 route catalog 只保留 `debrief`；本 spec 仅要求 `normalizeRouteName("debrief_full") -> "debrief"`，不得把 `debrief_full` 加回正式 `RouteName`、TopBar entry 或 live navigation。
 
-`workspace` / `practice` / `report` / `generating` / `company_intel` / `home` / `parse` 不在本 subspec 范围。本 subspec 只在 step 2 "开始复盘面试" CTA 中渲染回 `practice` 路由的导航，传递 `goal='debrief'` payload 给 frontend-workspace-and-practice owner 处理。
+`workspace` / `practice` / `report` / `generating` / `company_intel` / `home` / `parse` 不在本 subspec 范围。本 subspec 只在 step 2 "开始复盘面试" CTA 中渲染回 `practice` 路由的导航，传递 `practiceGoal='debrief'` route payload 给 frontend-workspace-and-practice owner 处理；由该 owner 在 practice 路由内再调用 backend `createPracticePlan(goal='debrief')`。
 
 本 subspec 通过 generated client + fixture-backed transport 消费 backend-debrief 已声明的 3 个 OpenAPI operation；任何新增或缺失 operation 先回到 [B2](../openapi-v1-contract/spec.md) / [backend-debrief](../backend-debrief/spec.md) 修订，不能在前端手写 ad hoc fetch 或复制 `ui-design` mock data。
 
@@ -21,7 +21,7 @@
 
 ### 2.1 In Scope
 
-- `debrief` / `debrief_full` 屏（`route=debrief|debrief_full`，保留默认 App chrome / TopBar；TopBar 一级导航 `debrief` 入口高亮）：
+- `debrief` 屏（正式 route=`debrief`；宽松入口 `debrief_full` 先经 route normalization 归一为 `debrief`；保留默认 App chrome / TopBar；TopBar 一级导航 `debrief` 入口高亮）：
   - 源级复刻 `ui-design/src/screens-p1-depth.jsx::DebriefFullScreen`（lines 38-2180）：
     - **Header**（lines 122-144）：返回按钮 + eyebrow label（"复盘 · 公司 · 轮次 · 4/22"）+ H1 标题 + 副文案 + 右上 meta 区（time / interviewer / modality）；公司、轮次、时间、interviewer 来自 InterviewContext / debrief 上下文派生
     - **DebriefContextStrip**（lines 412-432）：三个上下文卡片（目标岗位 / JD / 关联模拟面试 / 绑定简历）；点击触发对应 picker modal（不离开 debrief 页）
@@ -39,7 +39,7 @@
       - 底部 CTA：`<Btn iconRight="arrow_right" onClick={() => setStep(2)}>生成复盘面试</Btn>`（line 361）
     - **Step 2 复盘面试 launcher**（`<DebriefReplayPlan>` lines 1388-1421）：
       - 复盘面试 plan 预览：复现真实问题 + 薄弱处追问 + 真实顺序 + 简历证据对比
-      - CTA：`<Btn variant="accent" icon="play" onClick={...nav practice...}>开始复盘面试</Btn>`（line 1414） → nav practice with payload `{goal:'debrief', mode:'text', modality:'text', sessionId, targetJobId, resumeVersionId, debriefId}`；未登录走 `useRequestAuth({type:'start_debrief_interview', route:'debrief', params:{...}})`
+      - CTA：`<Btn variant="accent" icon="play" onClick={...nav practice...}>开始复盘面试</Btn>`（line 1414） → nav practice with payload `{practiceGoal:'debrief', mode:'text', modality:'text', sessionId, targetJobId, resumeVersionId, debriefId}`；未登录走 `useRequestAuth({type:'start_debrief_interview', route:'debrief', params:{...}})`
   - 3 个 in-page picker modal（`<DebriefContextPickerModal>` lines 434-518）：
     - JD picker：列出用户已有 `target_jobs`（generated `listTargetJobs`），单选确认；不离开 debrief 页
     - Mock Session picker：列出用户已有 `practice_sessions` filtered by selected targetJobId + status='completed'（generated `listPracticeSessions(targetJobId, status='completed')`，本 spec 假设 backend-practice 已 expose 该 operation；若 listPracticeSessions 不支持 status filter，前端 client-side filter；具体 operation 名以 B2 现状为准）；单选确认或 "暂不关联"
@@ -54,11 +54,11 @@
   - createDebrief 提交流程：
     - 入口：step 0 底部 "生成复盘分析" CTA
     - 行为：调用 generated `createDebrief({targetJobId, roundType, interviewerRole?, language, questions: entries.map(toDebriefQuestionInput), notes?})` with `Idempotency-Key` （前端生成 UUIDv4）；require auth, 未登录走 `useRequestAuth({type:'submit_debrief', route:'debrief', params:{...}})`
-    - 响应：202 + `DebriefWithJob{debriefId, job}`；前端 store `debriefId` + `jobId` in InterviewContext
-    - 失败处理：400 VALIDATION_ERROR → inline error 列出失败字段；409 IDEMPOTENCY_KEY_MISMATCH → 自动重生 IK 重试；401 → useRequestAuth；5xx → toast + retry CTA
+    - 响应：202 + `DebriefWithJob{debriefId, job}`；前端 store `debriefId` + `debriefJobId=job.id` in InterviewContext；不得写入现有 `jobId` 字段（正式前端中该字段是 target job alias/fallback）
+    - 失败处理：422 VALIDATION_FAILED → inline error 列出失败字段；409 IDEMPOTENCY_KEY_MISMATCH → 自动重生 IK 重试；401 → useRequestAuth；5xx → toast + retry CTA
   - polling 流程：
     - 提交成功后自动 setStep(1) 并启动 polling
-    - 双轨 polling：(a) `getJob(jobId)` 指数退避（初始 1.5s × 1.5 上限 8s），max attempts=30；(b) job.status='succeeded' 时停止 getJob 轮询，启动 `getDebrief(debriefId)` 一次性拉取
+    - 双轨 polling：(a) `getJob(debriefJobId)` 指数退避（初始 1.5s × 1.5 上限 8s），max attempts=30；(b) job.status='succeeded' 时停止 getJob 轮询，启动 `getDebrief(debriefId)` 一次性拉取
     - visibility/focus 暂停-恢复 polling
     - job.status='failed' → 显示 DebriefFailureState + errorCode 文案 + retry CTA / 「返回 step 0 编辑」
     - max attempts 达到 → 显示 timeout state + retry CTA
@@ -69,17 +69,17 @@
     - 不渲染 `thankYouDraft`（P0 留空）
     - `provenance` 6 字段：仅在「关于本次分析」展开区显示（与 frontend-report-dashboard 一致）
   - 复盘面试 handoff（step 2）：
-    - CTA payload：`{goal:'debrief', mode:'text', modality:'text', sessionId, targetJobId, resumeVersionId, debriefId, language}`
+    - CTA payload：`{practiceGoal:'debrief', mode:'text', modality:'text', sessionId, targetJobId, resumeVersionId, debriefId, language}`
     - nav 触发后由 frontend-workspace-and-practice owner 在 practice 路由内调用 `createPracticePlan(goal='debrief')` + `startPracticeSession(mode='debrief')`
     - 本 spec **不**实现 practice 任何 UI；不实现 createPracticePlan 调用（除非 frontend-workspace-and-practice 显式要求 frontend-debrief 主导，由 D-11 决策固定）
     - **D-11 默认决策**：frontend-debrief 在 nav 时只传 payload；createPracticePlan 调用由 frontend-workspace-and-practice plan 002 接管（与既有"立即面试"流程一致）
 - 跨路由共享：
-  - `InterviewContext` 在 debrief owner route 内传递 `{targetJobId, jdId, sessionId?, resumeVersionId, roundId?, debriefId?, mode:'text', modality:'text', practiceMode?, language}`（13 字段中本 spec 使用的子集 ~8 字段；不引入新字段名）；本 spec 在 step 0 ContextStrip 三选完成后写入 `targetJobId, sessionId?, resumeVersionId, language`；createDebrief 成功后写入 `debriefId`；step 2 nav practice 时全部 forward
+  - `InterviewContext` 在 debrief owner route 内传递 `{targetJobId, jdId, sessionId?, resumeVersionId, roundId?, debriefId?, debriefJobId?, mode:'text', modality:'text', practiceMode?, practiceGoal?, language}`；本 spec 在 step 0 ContextStrip 三选完成后写入 `targetJobId, sessionId?, resumeVersionId, language`；createDebrief 成功后写入 `debriefId` + `debriefJobId`；step 2 nav practice 时 forward stable IDs + `practiceGoal`，但不 forward raw entries / notes
   - 未登录用户点击 `submit_debrief` / `start_debrief_interview` 复盘流程 CTA 通过 `useRequestAuth({type:..., route:'debrief', params:{...InterviewContext}})` 触发鉴权；登录后 `pendingAction` 回到 `debrief`，由 DebriefScreen 自动检测并恢复
   - 隐私：route params 仅传 stable IDs + display knobs；不传 raw `entries[].q` / `entries[].a` / `entries[].follow` / `notes` / risk_items prose；console.log / localStorage / telemetry 同款约束
 - 契约消费形态：
   - `createDebrief`：step 0 → step 1 transition；按 OpenAPI POST `/debriefs` + Idempotency-Key + 完整 questions[] body；返回 `DebriefWithJob`
-  - `getJob`：step 1 polling (job lifecycle)；按 OpenAPI GET `/jobs/{jobId}`
+  - `getJob`：step 1 polling (job lifecycle)；按 OpenAPI GET `/jobs/{jobId}`，本屏使用本地变量 `debriefJobId`
   - `getDebrief`：step 1 polling (debrief enriched data)；按 OpenAPI GET `/debriefs/{debriefId}`
   - `suggestDebriefQuestions`：step 0 文本模式 "生成推荐问题"；按 OpenAPI POST `/debriefs/question-suggestions`（Phase 0 新增）
   - `listTargetJobs` / `listResumeVersions` / `listPracticeSessions`：3 个 picker modal 列表来源；按 OpenAPI 既有 operation
@@ -108,7 +108,7 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | Route owner 范围 | 本 subspec 只接管 `debrief` + `debrief_full` alias；`workspace / practice / report / generating / company_intel / home / parse / resume` 是外部 owner | 消除与 frontend-workspace-and-practice / frontend-report-dashboard / external owner 的边界冲突 |
+| D-1 | Route owner 范围 | 本 subspec 只接管正式 `debrief` route；`debrief_full` 仅作为历史 prototype alias 在 route normalization 中归一到 `debrief`，不得加入正式 `RouteName` / TopBar / live nav；`workspace / practice / report / generating / company_intel / home / parse / resume` 是外部 owner | 消除与 frontend-workspace-and-practice / frontend-report-dashboard / external owner 的边界冲突 |
 | D-2 | UI 真理源 | `ui-design/src/screens-p1-depth.jsx::DebriefFullScreen`（lines 38-2180）+ 5 个子组件 `DebriefContextStrip` / `DebriefContextPickerModal` / `GuidedDebriefRecord` / `VoiceDebriefRecord` / `DebriefReplayPlan` + `ui-design/src/primitives.jsx` + `ui-design/src/app.jsx`（route mapping / INTERVIEW_CONTEXT_ROUTES / TopBar entry "debrief"）+ `docs/ui-design/review-module.md` v2.5 + `docs/ui-design/module-map.md` 为唯一真理源进行源级复刻；不得二次设计 | 保护 ui-design parity gate；不引入外部审美 |
 | D-3 | 三步骤 stepper 状态机 | `step ∈ {0,1,2}`：step=0 复盘记录（默认）/ step=1 复盘分析 / step=2 复盘面试 launcher；step 单向递增（0→1→2 通过 CTA 推进）；step=1 时如 polling 失败可"返回 step 0 编辑"；step=2 后退回 step=1 通过浏览器 history 或显式 back CTA；step 状态不持久化到 URL（保持本地，刷新回 step 0；如未来需要 deep-link，plan 002 再加 URL param） | 与 prototype 状态机 line 39 完全一致；简化 P0 实现 |
 | D-4 | 文本模式 AI 推荐问题契约 | 调用 generated `suggestDebriefQuestions({targetJobId, sessionId?, resumeVersionId?, language, count:6})`；不在前端硬编码 prompt；不通过其他 endpoint 派生；AI 失败时 inline error + 降级到手工录入；前端不缓存 suggestions（用户主动重新生成） | 与 backend-debrief D-6 一致；P0 不引入推荐 cache 复杂度 |
@@ -117,11 +117,11 @@
 | D-7 | 跨模式共享 entries 状态 | text 与 voice 模式共享同一个 `entries` 数组（React state）；切换 mode 不清空 entries；文本模式的 occurred/edit/manual 与语音模式的 confirm/edit/delete 都写入同一份 list；每条 entry 含 `source: 'ai_confirmed' | 'ai_edited' | 'manual' | 'voice_extracted'` 来源标记；entries 在 createDebrief 提交时转换为 `DebriefQuestionInput[]` | 与 prototype line 78 + review-module.md §5.2 "shared question cards" 一致 |
 | D-8 | Context picker 范围 | 3 个 in-page modal（JD / MockSession / Resume）；所有 modal 在当前 debrief 页打开（不跳转）；JD picker 调 generated `listTargetJobs(user_id)` filtered by status='ready'；Mock Session picker 调 `listPracticeSessions(targetJobId, status='completed')`（如 B2 现状不支持 filter，前端 client-side filter）；Resume picker 调 `listResumeVersions(user_id)` filtered by status='ready'；用户可"暂不关联模拟面试"（Mock 是 optional） | 与 review-module.md §5.1 "三个上下文动作都不得跳出复盘页" 一致 |
 | D-9 | createDebrief 提交 payload | `{targetJobId(必填), roundType(必填，B1 DebriefRoundType enum), interviewerRole?(可选，B1 InterviewerRole enum), language(必填，来自 InterviewContext.language 或 i18n 当前 locale), questions: entries.map(toDebriefQuestionInput)(必填，至少 1 条), notes?(可选)}` + Idempotency-Key（前端 UUIDv4）；toDebriefQuestionInput 映射：`{questionText: entry.q, myAnswerSummary: entry.a, interviewerReaction: entry.follow + entry.reflection (concat)}`；不传 entry.tag / entry.source / entry.id（前端 only） | 与 backend-debrief D-1 + OpenAPI CreateDebriefRequest schema 一致 |
-| D-10 | polling 节奏 | 双轨 polling：(a) `getJob(jobId)` 指数退避（初始 1.5s × 1.5 上限 8s，max attempts=30 约 4 分钟）+ visibility/focus 暂停-恢复；(b) job.status='succeeded' 触发 `getDebrief(debriefId)` 一次性拉取（不持续 polling getDebrief）；job.status='failed' 触发 DebriefFailureState；max attempts 达到触发 timeout state | 与 frontend-report-dashboard D-3 一致原则；适配 debrief 双 endpoint 模型 |
-| D-11 | 复盘面试 handoff 边界 | frontend-debrief step 2 CTA 仅 `nav("practice", {goal:'debrief', mode:'text', modality:'text', sessionId?, targetJobId, resumeVersionId, debriefId, language})`；**不**调用 `createPracticePlan` / `startPracticeSession`（由 frontend-workspace-and-practice plan 002 在 practice 路由 mount 时接管，与既有"立即面试"流程一致）；本 spec 不实现 practice 任何 UI；未登录走 `useRequestAuth({type:'start_debrief_interview', route:'debrief', params:{...}})` | 保持 owner 边界清晰；不重复实现 practice plan 派生逻辑 |
+| D-10 | polling 节奏 | 双轨 polling：(a) `getJob(debriefJobId)` 指数退避（初始 1.5s × 1.5 上限 8s，max attempts=30 约 4 分钟）+ visibility/focus 暂停-恢复；(b) job.status='succeeded' 触发 `getDebrief(debriefId)` 一次性拉取（不持续 polling getDebrief）；job.status='failed' 触发 DebriefFailureState；max attempts 达到触发 timeout state；`debriefJobId` 不写入既有 `jobId` 字段 | 与 frontend-report-dashboard D-3 一致原则；适配 debrief 双 endpoint 模型，避免污染 target job context |
+| D-11 | 复盘面试 handoff 边界 | frontend-debrief step 2 CTA 仅 `nav("practice", {practiceGoal:'debrief', mode:'text', modality:'text', sessionId?, targetJobId, resumeVersionId, debriefId, language})`；**不**调用 `createPracticePlan` / `startPracticeSession`（由 frontend-workspace-and-practice plan 002 在 practice 路由 mount 时接管，并把 route-level `practiceGoal` 映射为 backend `goal='debrief'`）；本 spec 不实现 practice 任何 UI；未登录走 `useRequestAuth({type:'start_debrief_interview', route:'debrief', params:{...}})` | 保持 owner 边界清晰；不重复实现 practice plan 派生逻辑；与当前 PracticeScreen 消费 `practiceGoal` 的事实一致 |
 | D-12 | 失败状态语义 | `DebriefFailureState`（job.status='failed'）：失败卡片 + errorCode 文案映射（按 B1 `AI_*` enum 各自文案）+ CTA「返回 step 0 编辑」（保留 entries）/「重试生成」（resubmit createDebrief）；`DebriefMissingContextState`（缺 targetJobId）：卡片 + CTA「选择目标岗位」（自动 open JD picker）；`DebriefTimeoutState`（polling max attempts）：卡片 + CTA「重试」+「返回 step 0」；不暴露 raw provider error 给用户 | 与 backend-debrief D-9 graceful failed + B1 error_code 一致 |
 | D-13 | i18n 命名空间约定 | 新增 `debrief.*` 命名空间；不复用 `workspace.*` / `practice.*` / `report.*`；外部 `home.gotoDebrief` 等已存在的 key 保留不动（由相应 owner 维护） | 命名空间独立避免与其他 owner 冲突 |
-| D-14 | InterviewContext reducer 扩展边界 | 在 frontend-workspace-and-practice 已有 `InterviewContext` reducer 基础上**仅 read** + **新增 1 个 reducer action** `SET_DEBRIEF_CONTEXT`（写 `debriefId` + `targetJobId` + `sessionId?` + `resumeVersionId` + `language`）；该 action 在本 spec 内由 ContextStrip 三选完成 + createDebrief 成功后触发；不新增其他 reducer action | 不破坏 frontend-workspace-and-practice reducer 边界；只增量加 1 个 action |
+| D-14 | InterviewContext reducer 扩展边界 | 在 frontend-workspace-and-practice 已有 `InterviewContext` reducer 基础上**仅 read** + **新增 1 个 reducer action** `SET_DEBRIEF_CONTEXT`（写 `debriefId` + `debriefJobId` + `targetJobId` + `sessionId?` + `resumeVersionId` + `practiceGoal?` + `language`）；该 action 在本 spec 内由 ContextStrip 三选完成 + createDebrief 成功后触发；不得写现有 `jobId` 字段；同步扩展 `PENDING_ACTION_INTERVIEW_KEYS` 覆盖 `practiceGoal` / `debriefId` / `debriefJobId` 并补 round-trip 测试 | 不破坏 frontend-workspace-and-practice reducer 边界；只增量加 1 个 action；避免 `jobId` alias 与 debrief async job id 冲突 |
 | D-15 | DOM 锚点 / testid 命名 | `debrief-*` 前缀：`debrief-screen` / `debrief-back` / `debrief-header` / `debrief-context-strip` / `debrief-context-card-{targetJob,mockSession,resume}` / `debrief-stepper-step-{0,1,2}` / `debrief-mode-toggle-{text,voice}` / `debrief-suggested-question-{i}` / `debrief-occur-btn` / `debrief-skip-btn` / `debrief-edit-btn` / `debrief-manual-add-btn` / `debrief-entry-card-{id}` / `debrief-voice-status` / `debrief-voice-pending-card-{id}` / `debrief-submit-btn` / `debrief-loading-state` / `debrief-failure-state` / `debrief-missing-context-state` / `debrief-timeout-state` / `debrief-analysis-risk-item-{i}` / `debrief-analysis-dimension-{mock,jd,resume}` / `debrief-interview-launcher` / `debrief-start-interview-btn` / 3 个 modal `debrief-picker-modal-{type}`；workspace / practice / report 前缀归外部 owner | DOM anchor 锁定让源级 parity test 可执行 |
 | D-16 | 隐私红线 | route params / URL search params / InterviewContext / sessionStorage / localStorage / console.log / telemetry payload 不传 raw `entries[].q` / `entries[].a` / `entries[].follow` / `entries[].reflection` / `notes` / 任何 risk_items prose / AI prompt body / AI response body / model_id raw value；只允许 stable owner IDs + display knobs + 数量 / 状态 / error_code；createDebrief request body 直接发送（必要传输）但响应后不持久化到本地；fixture transport spy 不泄漏 body；getDebrief 响应数据存于 React state 不写 localStorage | 与 frontend-workspace-and-practice plan 002 / product-scope §9.3 / backend-debrief D-12 一致 |
 | D-17 | backend 契约消费 | 只通过 [B2 generated client](../openapi-v1-contract/spec.md) 消费 OpenAPI operation；字段变化先回 B2 / backend-debrief 修订；不在前端自造 endpoint 或复制 fixture JSON；本 spec 在 plan 001 Phase 0 验证 backend-debrief Phase 0 cross-owner addendum 已落地（B1 enum / B2 operation / fixtures 已 generated） | 与 frontend-workspace-and-practice D-10 / frontend-report-dashboard D-14 一致 |
@@ -142,14 +142,14 @@
 
 | Route | 本 spec owner | 最小上下文 | 缺失处理 |
 |-------|---------------|------------|----------|
-| `debrief` / `debrief_full` | 是 | 无强制必填（首次进入可触发 ContextStrip 三选）；推荐携带 `targetJobId` 跳过 JD picker | 缺 targetJobId 显示 ContextStrip 三选默认态 + 自动打开 JD picker；entries 始终从空开始 |
+| `debrief` | 是 | 无强制必填（首次进入可触发 ContextStrip 三选）；推荐携带 `targetJobId` 跳过 JD picker；宽松 `debrief_full` 输入必须先 normalize 为 `debrief` | 缺 targetJobId 显示 ContextStrip 三选默认态 + 自动打开 JD picker；entries 始终从空开始 |
 | `workspace` | 否 | `targetJobId` | 由 frontend-workspace-and-practice 处理 |
-| `practice` | 否 | `goal='debrief'` + `targetJobId` + `resumeVersionId` + `debriefId?` | 由 frontend-workspace-and-practice 处理（复盘面试 nav 入口） |
+| `practice` | 否 | `practiceGoal='debrief'` + `targetJobId` + `resumeVersionId` + `debriefId?` | 由 frontend-workspace-and-practice 处理（复盘面试 nav 入口），并在 backend 调用时映射为 `goal='debrief'` |
 | `report` | 否 | `sessionId + reportId` | 由 frontend-report-dashboard 处理 |
 | `company_intel` | 否 | `targetJobId + jdId` | 由 company-intel owner 处理 |
 
 - 隐私红线（D-16）：raw entries / notes / risk_items prose 不得进入 console.log / URL query / localStorage / sessionStorage / telemetry payload / fixture transport spy；createDebrief request body 直接发送但响应后不持久化；getDebrief 响应仅存 React state；i18n 翻译串可包含 placeholder（如 `{{questionText}}`）但 fixture 测试必须验证 placeholder 在产线不解析为 raw text 暴露。
-- 暗色 / customAccent / 主题切换必须在 owner 屏（debrief / debrief_full）通过 root `data-theme` / `data-mode` / `data-custom-accent` 生效，与 frontend-shell parity gate 一致。
+- 暗色 / customAccent / 主题切换必须在 owner 屏（正式 `debrief`，含 `debrief_full` normalize 后入口）通过 root `data-theme` / `data-mode` / `data-custom-accent` 生效，与 frontend-shell parity gate 一致。
 - I18n 必须支持 zh / en；新增 `debrief.*` 命名空间；workspace / practice / report 文案归外部 owner。
 - Pixel parity gate 必须在 desktop (1440×900) + mobile (390×844) 两个 viewport 下断言 owner 屏的 DOM 锚点 / computed style / bounding box / 截图差异。
 - Mobile 响应式：Header 紧凑布局；ContextStrip 三卡片折叠为单列；Stepper 横向滑动或缩短；Step 0 双栏（guide + entries）折叠为单列 + Tab 切换；Step 1 风险列表 + 维度卡片单列；Step 2 launcher CTA sticky bottom；Picker modal 全屏 sheet。
@@ -160,7 +160,7 @@
 
 | 边界 | Owner | 说明 |
 |------|-------|------|
-| debrief / debrief_full UI | `frontend-debrief`（本 spec） | DebriefFullScreen React 组件、5 个子组件、3 picker modal、Stepper 状态机、polling hook、状态分支（dashboard/failure/missing/timeout）、复盘面试 nav CTA、source parity、visual parity、i18n、a11y、responsive |
+| debrief UI | `frontend-debrief`（本 spec） | DebriefFullScreen React 组件、5 个子组件、3 picker modal、Stepper 状态机、polling hook、状态分支（dashboard/failure/missing/timeout）、复盘面试 nav CTA、source parity、visual parity、i18n、a11y、responsive；`debrief_full` 仅作为 normalize alias，不是独立 UI owner |
 | Workspace / Practice UI | [`frontend-workspace-and-practice`](../frontend-workspace-and-practice/spec.md) | workspace 屏、practice 屏、`createPracticePlan(goal='debrief')` / `startPracticeSession(mode='debrief')` 调用；本 spec 在复盘面试 CTA nav 回该 owner |
 | Report / Generating UI | [`frontend-report-dashboard`](../frontend-report-dashboard/spec.md) | report dashboard 与 generating handoff；本 spec 不交互 |
 | App shell / routes / auth / runtime / theme | [`frontend-shell`](../frontend-shell/spec.md) | TopBar 一级导航 debrief 入口、route normalization、requestAuth、generated client bootstrap、mock transport、display preferences |
@@ -168,7 +168,7 @@
 | Resume Workshop UI | [`frontend-resume-workshop`](../frontend-resume-workshop/spec.md) | resume 屏；本 spec 不交互 |
 | Debriefs backend | [`backend-debrief`](../backend-debrief/spec.md) | `createDebrief` / `getDebrief` / `suggestDebriefQuestions` handler / service / store / drainer-registered worker handler |
 | Practice backend | [`backend-practice`](../backend-practice/spec.md) | `createPracticePlan(goal='debrief')` + `startPracticeSession(mode='debrief')` handler；本 spec 不调用，由 frontend-workspace-and-practice 在 practice 路由调用 |
-| OpenAPI / fixtures / codegen | [`openapi-v1-contract`](../openapi-v1-contract/spec.md) + [`mock-contract-suite`](../mock-contract-suite/spec.md) | `openapi/openapi.yaml`、fixtures `Debriefs/*.json`（Phase 0 由 backend-debrief/001 新增）、generated Go/TS artifacts、fixture-backed mock transport |
+| OpenAPI / fixtures / codegen | [`openapi-v1-contract`](../openapi-v1-contract/spec.md) + [`mock-contract-suite`](../mock-contract-suite/spec.md) | `openapi/openapi.yaml`、fixtures `Debriefs/*.json`（Phase 0 由 backend-debrief/001 扩展既有 create/get fixture，并新增 suggest fixture）、generated Go/TS artifacts、fixture-backed mock transport |
 | TargetJob data | [`backend-targetjob`](../backend-targetjob/spec.md) | `target_jobs` 行；本 spec 通过 generated `listTargetJobs` 显示 JD picker |
 | Resume data | [`backend-resume`](../backend-resume/spec.md) | 简历 binding 字段；本 spec 通过 generated `listResumeVersions` 显示 Resume picker |
 | Practice session data | [`backend-practice`](../backend-practice/spec.md) | practice_sessions 行；本 spec 通过 generated `listPracticeSessions(targetJobId, status='completed')` 显示 Mock picker |
@@ -178,8 +178,8 @@
 
 | operationId | Fixture | Frontend consumer | Backend handler | Persistence | AI dependency | Scenario / status |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createDebrief` | `openapi/fixtures/Debriefs/createDebrief.json`（backend-debrief/001 Phase 0 由 backend-debrief 团队新增：`default` = 202 + DebriefWithJob） | DebriefScreen step 0 "生成复盘分析" CTA | backend-debrief 001 Phase 2 真实 handler | `debriefs` write + `async_jobs` write + outbox `debrief.created` | none in frontend；worker AI 调用由 backend-debrief 完成 | `E2E.P0.066` |
-| `getDebrief` | `openapi/fixtures/Debriefs/getDebrief.json`（backend-debrief/001 Phase 0 新增：`default` = completed 完整字段 / `debrief-draft` = draft + 空字段 / `prototype-baseline` = 中文示例） | DebriefScreen step 1 polling 拉取数据 | backend-debrief 001 Phase 5 真实 handler | `debriefs` read | none in frontend | `E2E.P0.067` |
+| `createDebrief` | `openapi/fixtures/Debriefs/createDebrief.json`（既有文件，backend-debrief/001 Phase 0 扩展：`default` = 202 + DebriefWithJob） | DebriefScreen step 0 "生成复盘分析" CTA | backend-debrief 001 Phase 2 真实 handler | `debriefs` write + `async_jobs` write + outbox `debrief.created` | none in frontend；worker AI 调用由 backend-debrief 完成 | `E2E.P0.066` |
+| `getDebrief` | `openapi/fixtures/Debriefs/getDebrief.json`（既有文件，backend-debrief/001 Phase 0 扩展：`default` = completed 完整字段 / `debrief-draft` = draft + 空字段 / `prototype-baseline` = 中文示例） | DebriefScreen step 1 polling 拉取数据 | backend-debrief 001 Phase 5 真实 handler | `debriefs` read | none in frontend | `E2E.P0.067` |
 | `suggestDebriefQuestions` | `openapi/fixtures/Debriefs/suggestDebriefQuestions.json`（backend-debrief/001 Phase 0 新增：`default` = 6 suggestions / `empty` = 0 / `prototype-baseline`） | DebriefScreen step 0 文本模式自动 / 手动触发 | backend-debrief 001 Phase 3 真实 handler | `ai_task_runs` write + `audit_events` write | F3 `debrief.suggest_questions`（backend） | `E2E.P0.066` ContextStrip 子断言 + `E2E.P0.069` AI failure 子断言 |
 | `getJob` | `openapi/fixtures/Jobs/getJob.json`（既有） | DebriefScreen step 1 polling job lifecycle | backend 既有 Jobs handler | `async_jobs` read | none | `E2E.P0.067` |
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json`（既有） | DebriefContextPickerModal JD picker | backend-targetjob 既有 handler | `target_jobs` read | none | `E2E.P0.065` |
@@ -193,19 +193,19 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | Owner route 专属 Screen 接管 | frontend-shell D1 已交付；backend-debrief Phase 0 cross-owner addendum 已落地；debrief route 当前由 PlaceholderScreen 占位 | 进入 `debrief` 或 `debrief_full` | 两条 alias route 渲染正式 DebriefScreen；保留默认 App chrome / TopBar；TopBar 一级导航 `debrief` 入口高亮；不展示 PlaceholderScreen | 001 |
+| C-1 | Owner route 专属 Screen 接管 | frontend-shell D1 已交付；backend-debrief Phase 0 cross-owner addendum 已落地；debrief route 当前由 PlaceholderScreen 占位 | 进入 `debrief` 或宽松初始 route `debrief_full` | `debrief` 渲染正式 DebriefScreen；`debrief_full` 先 normalize 为 `debrief` 后渲染同屏；保留默认 App chrome / TopBar；TopBar 一级导航 `debrief` 入口高亮；不展示 PlaceholderScreen；不新增正式 `debrief_full` RouteName | 001 |
 | C-2 | Default render + ContextStrip + Stepper | 用户已认证；InterviewContext 含 / 不含 targetJobId | 进入 `debrief` | 渲染 Header + ContextStrip (3 cards) + Stepper (3 steps, current=0) + Step 0 Record panel（mode toggle + entries 空态 + Submit CTA disabled）；如 InterviewContext 含 targetJobId 自动填充 JD 卡片，否则显示 default 提示 | 001 |
 | C-3 | 3 个 in-page picker modal | C-2 已渲染 | 点击 ContextStrip 的 targetJob / mockSession / resume 卡片 | 在当前页打开对应 modal；调 generated `listTargetJobs` / `listPracticeSessions` / `listResumeVersions`；用户选择后关闭 modal；ContextStrip 卡片更新；不离开 debrief 页 | 001 |
 | C-4 | 文本模式 AI 推荐问题 | C-3 已选完 3 个上下文；fixture `suggestDebriefQuestions=default` 返回 6 suggestions | ContextStrip 三选完成后 debounce 500ms 触发 | 自动调用 `suggestDebriefQuestions({targetJobId, sessionId?, resumeVersionId?, language, count:6})`；GuidedDebriefRecord 左侧渲染 6 条 suggestions；用户可点击 occurred/skipped/edit/manual；每次操作写入 entries 一行 with source 标记 | 001 |
-| C-5 | AI 推荐失败降级 | fixture `suggestDebriefQuestions=fail` 返回 502 AI_PROVIDER_FAILED | suggestDebriefQuestions 调用 | 显示 inline error "推荐生成失败，可手动添加问题"；不阻塞 step 0；用户可继续手工添加 entries；可点击 "重新生成推荐" 重试 | 001 |
+| C-5 | AI 推荐失败降级 | fixture `suggestDebriefQuestions=fail` 返回 canonical B1 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_PROVIDER_CONFIG_INVALID` 之一 | suggestDebriefQuestions 调用 | 显示 inline error "推荐生成失败，可手动添加问题"；不阻塞 step 0；用户可继续手工添加 entries；可点击 "重新生成推荐" 重试 | 001 |
 | C-6 | Voice 模式 UI shell | C-2 已渲染 step 0；text 模式当前激活 | 用户点击 mode toggle 切换到 voice | 渲染 VoiceDebriefRecord UI shell（toggle highlighted + idle 状态视觉 + 待确认卡片列表（空）+ 「空格暂停/继续」键盘提示 + entries 列表保留）；显示 "语音复盘集成中，敬请期待" 占位提示；切换回 text 模式 entries 仍保留；UI 视觉 100% 源级复刻 prototype VoiceDebriefRecord | 001 |
-| C-7 | createDebrief submit 主路径 | C-4 已写入 entries (≥1 条)；fixture `createDebrief=default` 返回 202 | 用户点击 "生成复盘分析" CTA | 调用 `createDebrief({targetJobId, roundType, interviewerRole, language, questions, notes}) + Idempotency-Key=UUIDv4`；响应 202 + DebriefWithJob{debriefId, job}；InterviewContext 写入 debriefId + jobId；自动 setStep(1) 并启动 polling | 001 |
-| C-8 | polling getJob + getDebrief happy | C-7 已成功；fixture `getJob` 配置为 queued→running→succeeded 三次；fixture `getDebrief=default` 完整字段 | step 1 启动 polling | 调用 `getJob(jobId)` 多次（按指数退避节奏）；status='succeeded' 时停止 getJob，调 `getDebrief(debriefId)` 一次；渲染 step 1 分析面板（risk_items + dimensions + provenance 展开区） | 001 |
+| C-7 | createDebrief submit 主路径 | C-4 已写入 entries (≥1 条)；fixture `createDebrief=default` 返回 202 | 用户点击 "生成复盘分析" CTA | 调用 `createDebrief({targetJobId, roundType, interviewerRole, language, questions, notes}) + Idempotency-Key=UUIDv4`；响应 202 + DebriefWithJob{debriefId, job}；InterviewContext 写入 debriefId + debriefJobId；不写现有 jobId；自动 setStep(1) 并启动 polling | 001 |
+| C-8 | polling getJob + getDebrief happy | C-7 已成功；fixture `getJob` 配置为 queued→running→succeeded 三次；fixture `getDebrief=default` 完整字段 | step 1 启动 polling | 调用 `getJob(debriefJobId)` 多次（按指数退避节奏）；status='succeeded' 时停止 getJob，调 `getDebrief(debriefId)` 一次；渲染 step 1 分析面板（risk_items + dimensions + provenance 展开区） | 001 |
 | C-9 | DebriefFailureState | fixture `getJob=failed` 返回 status='failed' + errorCode='AI_PROVIDER_TIMEOUT' | step 1 polling 命中 failed | 渲染 DebriefFailureState 卡片 + errorCode 文案映射 + CTA「返回 step 0 编辑」（保留 entries）+「重试生成」（resubmit createDebrief with new IK） | 001 |
 | C-10 | DebriefTimeoutState | fixture `getJob` 永久返回 status='queued'（模拟 backend 卡住） | step 1 polling 达到 max attempts=30 | 渲染 DebriefTimeoutState 卡片 + CTA「重试」（重启 polling）/「返回 step 0」 | 001 |
 | C-11 | DebriefMissingContextState | 用户直接进入 `debrief` 无任何 InterviewContext | 进入 debrief | 渲染 ContextStrip 三卡片 default 态 + 自动打开 JD picker modal；entries 空；step 0 默认；Submit CTA disabled | 001 |
 | C-12 | Step 1 分析渲染（completed） | C-8 已完成；getDebrief 返回 completed Debrief with risk_items 非空 | step=1 渲染 | 显示 风险项列表（每项 label + severity color tag）+ 与模拟面试对比维度卡 + 与目标 JD 对比维度卡 + 与绑定简历对比维度卡 + provenance 展开区 6 字段；不渲染 nextRoundChecklist / thankYouDraft（P0 留空） | 001 |
-| C-13 | Step 2 复盘面试 launcher + handoff | C-12 已渲染 | 用户点击 "生成复盘面试" CTA（先 setStep=2），再点 "开始复盘面试" CTA | step 2 渲染 DebriefReplayPlan 内容预览；点击 "开始" 调用 `nav("practice", {goal:'debrief', mode:'text', modality:'text', sessionId?, targetJobId, resumeVersionId, debriefId, language})`；未登录走 useRequestAuth；practice 路由由 frontend-workspace-and-practice 接管 | 001 |
+| C-13 | Step 2 复盘面试 launcher + handoff | C-12 已渲染 | 用户点击 "生成复盘面试" CTA（先 setStep=2），再点 "开始复盘面试" CTA | step 2 渲染 DebriefReplayPlan 内容预览；点击 "开始" 调用 `nav("practice", {practiceGoal:'debrief', mode:'text', modality:'text', sessionId?, targetJobId, resumeVersionId, debriefId, language})`；未登录走 useRequestAuth；practice 路由由 frontend-workspace-and-practice 接管 | 001 |
 | C-14 | UI source structure parity | C-1~C-13 通过 | Vitest+jsdom 加载 DebriefScreen 各 step | DOM 锚点、控件类型、icon、aria、keyboard、menu/modal 层级、5 个子组件嵌套关系可追溯到 `screens-p1-depth.jsx::DebriefFullScreen` 与 `primitives.jsx`；testid 命名按 D-15 一致 | 001 |
 | C-15 | UI visual geometry parity | C-14 通过 | Playwright desktop + mobile 加载 owner 屏 | 关键区块不重叠且 stays in viewport；theme/dark/customAccent 可见；Mobile 折叠 + sticky CTA；3 个 picker modal 在 mobile 转为全屏 sheet | 001 |
 | C-16 | UI stale-contract negative search | C-14 + C-15 通过 | lint/grep gate 扫描 active runtime、positive tests、README、scenario | 旧 `experience_library` / `star_editor` / `drill_builder` / `mistakes_book` / `growth_center` / `report_timeline` / 独立 `voice` route / 旧 "下一轮面试作为终点" 流程 不作为 live route / TopBar / 正向 testid / 正向 scenario / 用户入口出现；负向断言 / 禁止清单命中被分类允许 | 001 |

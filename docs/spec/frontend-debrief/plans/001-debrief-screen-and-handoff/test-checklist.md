@@ -12,12 +12,13 @@
 
 - [ ] 0.A Generated client 含 `createDebrief` / `getDebrief` / `suggestDebriefQuestions`
 - [ ] 0.B Fixtures `Debriefs/createDebrief.json` / `getDebrief.json` / `suggestDebriefQuestions.json` 通过 `make validate-fixtures`
-- [ ] 0.C `shared/ts/conventions/` 含 `DebriefRoundType` / `DebriefQuestionSource` / `DEBRIEF_NOT_FOUND`
-- [ ] 0.D `pnpm --filter frontend tsc -- --noEmit` 通过
+- [ ] 0.C `shared/ts/conventions/` 含 `DebriefRoundType` / `DebriefQuestionSource` / `DEBRIEF_NOT_FOUND` / `IDEMPOTENCY_KEY_MISMATCH`
+- [ ] 0.D `pnpm --filter @easyinterview/frontend typecheck` 通过
 
 ## Phase 1: DebriefScreen shell + Header + ContextStrip + Stepper
 
 - [ ] 1.A TestDebriefScreen_DefaultRender 通过（[test-plan §1.1](./test-plan.md#11-testdebriefscreen_defaultrender)）
+- [ ] 1.A2 TestRoutes_DebriefAliasNormalization 通过（[test-plan §1.1b](./test-plan.md#11b-testroutes_debriefaliasnormalization)）
 - [ ] 1.B TestDebriefHeader_RenderWithContext 通过（[test-plan §1.2](./test-plan.md#12-testdebriefheader_renderwithcontext)）
 - [ ] 1.C TestDebriefHeader_FallbackOnMissingContext 通过（[test-plan §1.3](./test-plan.md#13-testdebriefheader_fallbackonmissingcontext)）
 - [ ] 1.D TestContextStrip_OpenPicker 通过（[test-plan §1.4](./test-plan.md#14-testcontextstrip_openpicker)）
@@ -58,7 +59,7 @@
 ## Phase 5: createDebrief + 双轨 polling + 失败态
 
 - [ ] 5.A TestUseSubmitDebrief_Happy202 通过（[test-plan §5.1](./test-plan.md#51-testusesubmitdebrief_happy202)）
-- [ ] 5.B TestUseSubmitDebrief_400ValidationError 通过（[test-plan §5.2](./test-plan.md#52-testusesubmitdebrief_400validationerror)）
+- [ ] 5.B TestUseSubmitDebrief_422ValidationFailed 通过（[test-plan §5.2](./test-plan.md#52-testusesubmitdebrief_422validationfailed)）
 - [ ] 5.C TestUseSubmitDebrief_409IKMismatchRetry 通过（[test-plan §5.3](./test-plan.md#53-testusesubmitdebrief_409ikmismatchretry)）
 - [ ] 5.D TestUseSubmitDebrief_401AuthGate 通过（[test-plan §5.4](./test-plan.md#54-testusesubmitdebrief_401authgate)）
 - [ ] 5.E TestUseDebriefPolling_HappySuccess 通过（[test-plan §5.5](./test-plan.md#55-testusedebriefpolling_happysuccess)）
@@ -69,7 +70,9 @@
 - [ ] 5.J TestDebriefMissingContextState_Render 通过（[test-plan §5.10](./test-plan.md#510-testdebriefmissingcontextstate_render)）
 - [ ] 5.K TestDebriefTimeoutState_Render 通过（[test-plan §5.11](./test-plan.md#511-testdebrieftimeoutstate_render)）
 - [ ] 5.L TestInterviewContext_SetDebriefContext 通过（[test-plan §5.12](./test-plan.md#512-testinterviewcontext_setdebriefcontext)）
-- [ ] 5.M TestInterviewContext_OtherActionsNotAffected 通过（[test-plan §5.13](./test-plan.md#513-testinterviewcontext_otheractionsnotaffected)）
+- [ ] 5.M TestInterviewContext_DoesNotOverwriteJobId 通过（[test-plan §5.13](./test-plan.md#513-testinterviewcontext_doesnotoverwritejobid)）
+- [ ] 5.N TestPendingAction_DebriefParamsRoundTrip 通过（[test-plan §5.14](./test-plan.md#514-testpendingaction_debriefparamsroundtrip)）
+- [ ] 5.O TestInterviewContext_OtherActionsNotAffected 通过（[test-plan §5.15](./test-plan.md#515-testinterviewcontext_otheractionsnotaffected)）
 
 ## Phase 6: Step 1 分析渲染 + Step 2 复盘面试 launcher + handoff
 
@@ -102,10 +105,10 @@
 
 ## Phase 9: 全计划单元/集成测试全量回归
 
-- [ ] 9.A `pnpm --filter frontend test -- src/app/screens/debrief --run` 通过
-- [ ] 9.B `pnpm --filter frontend test -- --run` 通过（全 frontend 单元测试）
-- [ ] 9.C `pnpm --filter frontend lint` 通过
-- [ ] 9.D `pnpm --filter frontend run pixel-parity`（Playwright）通过
+- [ ] 9.A `pnpm --filter @easyinterview/frontend test -- src/app/screens/debrief --run` 通过
+- [ ] 9.B `pnpm --filter @easyinterview/frontend test -- --run` 通过（全 frontend 单元测试）
+- [ ] 9.C `pnpm --filter @easyinterview/frontend lint` 通过
+- [ ] 9.D `pnpm --filter @easyinterview/frontend test:pixel-parity`（Playwright）通过
 - [ ] 9.E `python3 -m pytest scripts/lint -q` 通过
 - [ ] 9.F `make docs-check` + `git diff --check` 通过
 - [ ] 9.G Phase 9 本计划定义的单元测试项全部通过

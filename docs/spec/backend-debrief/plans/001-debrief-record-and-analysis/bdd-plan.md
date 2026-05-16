@@ -35,7 +35,7 @@
 | 关联 spec AC | C-1, C-2, C-3, C-5 |
 | 执行入口 | `bash test/scenarios/e2e/p0-060-debrief-create-and-generate/run.sh` |
 | Given | 用户已认证（passwordless session cookie）；`target_jobs(user_id=A, id=T)` 已存在 ready；F3 `debrief.generate` baseline active；A3 mock 返回有效 JSON |
-| When | (1) `POST /debriefs` with `Idempotency-Key=IK1` + body `{targetJobId:T, roundType:'behavioral', interviewerRole:'manager', language:'zh', questions:[{questionText,...}, ...3 items], notes:'...'}` (2) backend drainer lease async_jobs(debrief_generate) (3) debrief.GenerateHandler 处理 |
+| When | (1) `POST /debriefs` with `Idempotency-Key=IK1` + body `{targetJobId:T, roundType:'behavioral', interviewerRole:'hiring_manager', language:'zh', questions:[{questionText,...}, ...3 items], notes:'...'}` (2) backend drainer lease async_jobs(debrief_generate) (3) debrief.GenerateHandler 处理 |
 | Then | (a) HTTP 202 + DebriefWithJob{debriefId=D, job:{jobType:'debrief_generate', status:'queued'}}；(b) DB debriefs(id=D, user_id=A, status='draft', raw_questions=[3 items])；(c) async_jobs(debrief_generate, status='queued', dedupe_key=D)；(d) outbox debrief.created{debriefId:D, targetJobId:T, roundType:'behavioral', questionCount:3}；(e) drainer 处理后 debriefs.status='completed', raw_questions[*].aiAnalysis 注入, risk_items 非空, prompt_version/rubric_version/model_id/provider 4 列填充；(f) async_jobs.status='succeeded'；(g) outbox debrief.completed{debriefId:D, targetJobId:T, riskItemCount:N, practiceFocusCount:N}；(h) ai_task_runs 写一行 task_type='debrief_generate', status='success' |
 | Cleanup | 删除 user A + cascade（debriefs / async_jobs / outbox_events / ai_task_runs / audit_events 全部 cascade）；scenario 结束后数据库归零 |
 | Privacy 反查 | verify.sh 含 `! grep -E "questionText\|myAnswerSummary\|notes" outbox_events.json metric.log audit_events.json`（不在 evidence file 中出现 raw text） |
@@ -65,7 +65,7 @@
 | 执行入口 | `bash test/scenarios/e2e/p0-062-debrief-worker-failure-and-retry/run.sh` |
 | Given | 用户 A 已认证；A3 mock 配置为：前 4 次调用 returnTimeout，第 5 次也 timeout；F3 active；用户 A 已通过 createDebrief 创建 debriefs(id=D, status='draft') |
 | When | drainer 反复 lease + handle 共 5 次 |
-| Then | (a) 前 4 次：async_jobs.attempts++, available_at=now()+backoff, status='queued', locked_at=null；debriefs.status 保持 'draft'；ai_task_runs 写 failed row × 4 with status='timeout' + B1 AI_PROVIDER_FAILED；outbox debrief.completed 不发出；(b) 第 5 次：async_jobs.status='failed'（permanent）+ locked_at=null；debriefs.status='draft'；ai_task_runs 写 failed row 第 5 行；outbox 仍未发出；(c) 前端通过 getJob 感知 status='failed' + errorCode |
+| Then | (a) 前 4 次：async_jobs.attempts++, available_at=now()+backoff, status='queued', locked_at=null；debriefs.status 保持 'draft'；ai_task_runs 写 failed row × 4 with status='timeout' + B1 `AI_PROVIDER_TIMEOUT`；outbox debrief.completed 不发出；(b) 第 5 次：async_jobs.status='failed'（permanent）+ locked_at=null；debriefs.status='draft'；ai_task_runs 写 failed row 第 5 行；outbox 仍未发出；(c) 前端通过 getJob 感知 status='failed' + errorCode |
 | Cleanup | 删除用户 A + cascade |
 | Privacy 反查 | verify.sh assert ai_task_runs error_code 字段是 B1 enum literal（不是 raw provider message） |
 
@@ -79,7 +79,7 @@
 | 执行入口 | `bash test/scenarios/e2e/p0-063-suggest-debrief-questions/run.sh` |
 | Given | 用户 A 已认证；target_jobs(user_id=A, id=T) ready；可选 practice_sessions(user_id=A, id=S, target_job_id=T) completed；可选 resume_versions(user_id=A, id=R) ready；F3 `debrief.suggest_questions` baseline active；A3 mock 配置：第一次返回有效 JSON {suggestions:[6 items]}，第二次返回 timeout，第三次返回非 JSON |
 | When | (1) `POST /debriefs/question-suggestions` with `{targetJobId:T, sessionId:S, resumeVersionId:R, language:'zh', count:6}`；(2) 再次 `POST` 同 body（A3 第二次 timeout）；(3) 再次 `POST` 同 body（A3 第三次 invalid JSON） |
-| Then | (1) HTTP 200 + SuggestDebriefQuestionsResponse{suggestions:[6 items each {questionText, whyLikelyAsked, source: enum value}]}；ai_task_runs 写 success row；audit 一行；(2) HTTP 502 + B1 `AI_PROVIDER_FAILED`；ai_task_runs 写 timeout row；audit 一行 with error_code；(3) HTTP 502 + B1 `AI_INVALID_RESPONSE`；ai_task_runs 写 invalid row |
+| Then | (1) HTTP 200 + SuggestDebriefQuestionsResponse{suggestions:[6 items each {questionText, whyLikelyAsked, source: enum value}]}；ai_task_runs 写 success row；audit 一行；(2) HTTP 502 + B1 `AI_PROVIDER_TIMEOUT`；ai_task_runs 写 timeout row；audit 一行 with error_code；(3) HTTP 502 + B1 `AI_OUTPUT_INVALID`；ai_task_runs 写 invalid row |
 | Cleanup | 删除用户 A + cascade；不应有 debriefs 行（suggestDebriefQuestions 不写 debriefs） |
 | Privacy 反查 | verify.sh assert response suggestions 不含 raw target_job description（只允许 AI 派生 questions）；ai_task_runs 不在 metric label 泄漏 |
 

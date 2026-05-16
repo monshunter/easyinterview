@@ -13,10 +13,10 @@
 
 ## Phase 0: 依赖验证 + ui-design source map + 包结构
 
-- [ ] 0.1 backend-debrief Phase 0 完成验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief" frontend/src/api/generated/` 命中 3 个 method；`ls openapi/fixtures/Debriefs/` 含 `createDebrief.json` / `getDebrief.json` / `suggestDebriefQuestions.json` 三个 fixture；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND" shared/ts/conventions/` 命中；backend-practice 现状已支持 `goal='debrief'` + `mode='debrief'`（验证证据已在 backend-debrief/001 Phase 0.5 记录）
+- [ ] 0.1 backend-debrief Phase 0 完成验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief" frontend/src/api/generated/` 命中 3 个 method；`ls openapi/fixtures/Debriefs/` 含 `createDebrief.json` / `getDebrief.json` / `suggestDebriefQuestions.json` 三个 fixture；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND\|IDEMPOTENCY_KEY_MISMATCH" shared/ts/conventions/` 命中；backend-practice 现状已支持 `goal='debrief'` + `mode='debrief'`（验证证据已在 backend-debrief/001 Phase 0.5 记录）
 - [ ] 0.2 ui-design source map 记录到 plan history 与本 checklist 注脚（6 个组件 source anchor）
-- [ ] 0.3 创建包结构 `frontend/src/app/screens/debrief/{DebriefScreen.tsx, components/, hooks/, reducer.ts, types.ts, i18n/}`；空 stub 编译通过：`pnpm --filter frontend tsc -- --noEmit`
-- [ ] 0.4 route 接线：`frontend/src/app/routes.ts` 把 `debrief` + `debrief_full` → `<DebriefScreen>`；移除原 PlaceholderScreen 对 debrief 的占位；TopBar 一级导航高亮逻辑保留；测试：`TestRoutes_DebriefAlias` 通过
+- [ ] 0.3 创建包结构 `frontend/src/app/screens/debrief/{DebriefScreen.tsx, components/, hooks/, reducer.ts, types.ts, i18n/}`；空 stub 编译通过：`pnpm --filter @easyinterview/frontend typecheck`
+- [ ] 0.4 route 接线：`App.tsx` 的 `case "debrief"` → `<DebriefScreen>`；`normalizeRoute.ts` 把历史 alias `debrief_full` normalize 到 `debrief`；不在 `routes.ts` 正式 `RouteName` / primary nav / `INTERVIEW_CONTEXT_ROUTES` 中新增 `debrief_full`；移除原 PlaceholderScreen 对 debrief 的占位；TopBar 一级导航高亮逻辑保留；测试：`TestRoutes_DebriefAliasNormalization` 通过
 
 ## Phase 1: DebriefScreen shell + Header + ContextStrip + Stepper
 
@@ -45,16 +45,16 @@
 
 - [ ] 4.1 `useSuggestDebriefQuestions` hook 实现：接收 targetJobId/sessionId?/resumeVersionId?/language/count/enabled；返回 suggestions/loading/error/refetch；自动 debounce 500ms；测试：`TestUseSuggestQuestions_AutoTrigger`（[test-plan §4.1](./test-plan.md#41-testusesuggestquestions_autotrigger)）+ `TestUseSuggestQuestions_Refetch`（[test-plan §4.2](./test-plan.md#42-testusesuggestquestions_refetch)）+ `TestUseSuggestQuestions_Debounce`（[test-plan §4.3](./test-plan.md#43-testusesuggestquestions_debounce)）
 - [ ] 4.2 DebriefScreen 整合：ContextStrip 三选完成后 enable hook；GuidedDebriefRecord 渲染 suggestions；用户可点击 "重新生成推荐" 调 refetch；测试：`TestDebriefScreen_SuggestionsIntegration`（[test-plan §4.4](./test-plan.md#44-testdebriefscreen_suggestionsintegration)）
-- [ ] 4.3 失败降级：error.code = AI_PROVIDER_FAILED / UNAVAILABLE / INVALID_RESPONSE → 显示 inline error；不阻塞 step 0；"重新生成推荐" 按钮启用；测试：`TestSuggestions_AIFailureDegradation`（[test-plan §4.5](./test-plan.md#45-testsuggestions_aifailuredegradation)）
+- [ ] 4.3 失败降级：error.code 为 B1 canonical `AI_PROVIDER_CONFIG_INVALID` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED` → 显示 inline error；不阻塞 step 0；"重新生成推荐" 按钮启用；测试：`TestSuggestions_AIFailureDegradation`（[test-plan §4.5](./test-plan.md#45-testsuggestions_aifailuredegradation)）
 
 ## Phase 5: createDebrief + 双轨 polling + 失败态
 
-- [ ] 5.1 `useSubmitDebrief` hook：接收 payload；生成 IK UUIDv4；调 generated `createDebrief`；handle 4 类响应（202 / 400 / 409 / 401 / 5xx）；测试：`TestUseSubmitDebrief_Happy202`（[test-plan §5.1](./test-plan.md#51-testusesubmitdebrief_happy202)）+ `TestUseSubmitDebrief_400ValidationError`（[test-plan §5.2](./test-plan.md#52-testusesubmitdebrief_400validationerror)）+ `TestUseSubmitDebrief_409IKMismatchRetry`（[test-plan §5.3](./test-plan.md#53-testusesubmitdebrief_409ikmismatchretry)）+ `TestUseSubmitDebrief_401AuthGate`（[test-plan §5.4](./test-plan.md#54-testusesubmitdebrief_401authgate)）
-- [ ] 5.2 `useDebriefPolling` hook：双轨 polling getJob + getDebrief；指数退避；visibility/focus 暂停-恢复；pollingState 状态机；测试：`TestUseDebriefPolling_HappySuccess`（[test-plan §5.5](./test-plan.md#55-testusedebriefpolling_happysuccess)）+ `TestUseDebriefPolling_JobFailed`（[test-plan §5.6](./test-plan.md#56-testusedebriefpolling_jobfailed)）+ `TestUseDebriefPolling_MaxAttemptsTimeout`（[test-plan §5.7](./test-plan.md#57-testusedebriefpolling_maxattemptstimeout)）+ `TestUseDebriefPolling_VisibilityPause`（[test-plan §5.8](./test-plan.md#58-testusedebriefpolling_visibilitypause)）
+- [ ] 5.1 `useSubmitDebrief` hook：接收 payload；生成 IK UUIDv4；调 generated `createDebrief`；handle 4 类响应（202 / 422 / 409 / 401 / 5xx）；202 后写 `debriefId` + `debriefJobId`，不得写现有 `jobId`；测试：`TestUseSubmitDebrief_Happy202`（[test-plan §5.1](./test-plan.md#51-testusesubmitdebrief_happy202)）+ `TestUseSubmitDebrief_422ValidationFailed`（[test-plan §5.2](./test-plan.md#52-testusesubmitdebrief_422validationfailed)）+ `TestUseSubmitDebrief_409IKMismatchRetry`（[test-plan §5.3](./test-plan.md#53-testusesubmitdebrief_409ikmismatchretry)）+ `TestUseSubmitDebrief_401AuthGate`（[test-plan §5.4](./test-plan.md#54-testusesubmitdebrief_401authgate)）
+- [ ] 5.2 `useDebriefPolling` hook：双轨 polling `getJob(debriefJobId)` + getDebrief；指数退避；visibility/focus 暂停-恢复；pollingState 状态机；测试：`TestUseDebriefPolling_HappySuccess`（[test-plan §5.5](./test-plan.md#55-testusedebriefpolling_happysuccess)）+ `TestUseDebriefPolling_JobFailed`（[test-plan §5.6](./test-plan.md#56-testusedebriefpolling_jobfailed)）+ `TestUseDebriefPolling_MaxAttemptsTimeout`（[test-plan §5.7](./test-plan.md#57-testusedebriefpolling_maxattemptstimeout)）+ `TestUseDebriefPolling_VisibilityPause`（[test-plan §5.8](./test-plan.md#58-testusedebriefpolling_visibilitypause)）
 - [ ] 5.3 `<DebriefFailureState>`：失败卡片 + errorCode 映射 + CTA 重试 / 返回；测试：`TestDebriefFailureState_Render`（[test-plan §5.9](./test-plan.md#59-testdebrieffailurestate_render)）
 - [ ] 5.4 `<DebriefMissingContextState>`：缺 targetJobId；CTA 自动开 JD picker；测试：`TestDebriefMissingContextState_Render`（[test-plan §5.10](./test-plan.md#510-testdebriefmissingcontextstate_render)）
 - [ ] 5.5 `<DebriefTimeoutState>`：polling 超时；CTA 重试 / 返回；测试：`TestDebriefTimeoutState_Render`（[test-plan §5.11](./test-plan.md#511-testdebrieftimeoutstate_render)）
-- [ ] 5.6 InterviewContext reducer 扩展 `SET_DEBRIEF_CONTEXT` action；不破坏既有 action；测试：`TestInterviewContext_SetDebriefContext`（[test-plan §5.12](./test-plan.md#512-testinterviewcontext_setdebriefcontext)）+ `TestInterviewContext_OtherActionsNotAffected`（[test-plan §5.13](./test-plan.md#513-testinterviewcontext_otheractionsnotaffected)）
+- [ ] 5.6 InterviewContext reducer 扩展 `SET_DEBRIEF_CONTEXT` action；写 `debriefId` / `debriefJobId` / `practiceGoal?`，不得写现有 `jobId`；扩展 `PENDING_ACTION_INTERVIEW_KEYS` 覆盖 `practiceGoal` / `debriefId` / `debriefJobId`；不破坏既有 action；测试：`TestInterviewContext_SetDebriefContext`（[test-plan §5.12](./test-plan.md#512-testinterviewcontext_setdebriefcontext)）+ `TestInterviewContext_DoesNotOverwriteJobId`（[test-plan §5.13](./test-plan.md#513-testinterviewcontext_doesnotoverwritejobid)）+ `TestPendingAction_DebriefParamsRoundTrip`（[test-plan §5.14](./test-plan.md#514-testpendingaction_debriefparamsroundtrip)）+ `TestInterviewContext_OtherActionsNotAffected`（[test-plan §5.15](./test-plan.md#515-testinterviewcontext_otheractionsnotaffected)）
 
 ## Phase 6: Step 1 分析渲染 + Step 2 复盘面试 launcher + handoff
 
@@ -85,7 +85,7 @@
 
 ## Phase 9: Plan 收口
 
-- [ ] 9.1 全局回归：`pnpm --filter frontend test -- --run` / `pnpm --filter frontend lint` / `pnpm --filter frontend run pixel-parity` / `python3 -m pytest scripts/lint -q` / `make docs-check` / `git diff --check` 全部通过
+- [ ] 9.1 全局回归：`pnpm --filter @easyinterview/frontend test -- --run` / `pnpm --filter @easyinterview/frontend lint` / `pnpm --filter @easyinterview/frontend test:pixel-parity` / `python3 -m pytest scripts/lint -q` / `make docs-check` / `git diff --check` 全部通过
 - [ ] 9.2 plans/INDEX.md 把 001 从 active 移到 completed，记录完成日期 2026-MM-DD
 - [ ] 9.3 frontend-debrief/history.md 增加 1.1 completion 行
 - [ ] 9.4 提交 commit `feat(frontend-debrief): close 001 debrief screen and handoff baseline`；记录工作日志 `/work-journal`

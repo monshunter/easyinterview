@@ -29,7 +29,7 @@
 | R6 | spec D-9 / retry policy + permanent fail at attempts=5 | Failure/recovery | Phase 4-6 | Go integration | — |
 | R7 | spec D-15 / Cross-user 404 isolation | Privacy / Boundary | Phase 5 | Go unit | — |
 | R8 | spec D-16 / IK replay + mismatch | Boundary | Phase 1-2 | Go unit | — |
-| R9 | spec D-4 / Empty questions array (400) | Boundary | Phase 1 | Go unit | — |
+| R9 | spec D-4 / Empty questions array (422) | Boundary | Phase 1 | Go unit | — |
 | R10 | spec D-4 / Max question count + length | Boundary | Phase 1 | Go unit | — |
 | R11 | spec D-13 / Outbox payload schema (counts only, no raw text) | Cross-layer contract + Privacy | Phase 2 + Phase 4 | Go unit | raw_questions, notes, interviewerReaction, risk_items prose |
 | R12 | spec D-14 / Cross-owner addendums (B1/B2/B3/F3) gate | Cross-layer contract | Phase 0 | codegen-check + validate-fixtures + lint-events | — |
@@ -52,13 +52,13 @@
 - 文件：`backend/internal/api/debriefs/handler_test.go`
 - Given：POST /debriefs body `{targetJobId,questions:[],...}`
 - When：handler 处理
-- Then：返回 400 + B1 `VALIDATION_ERROR`；不写 debriefs / async_jobs / outbox
+- Then：返回 422 + B1 `VALIDATION_FAILED`；不写 debriefs / async_jobs / outbox
 - 覆盖：R9
 
 #### 1.2 TestCreateDebrief_ValidationError_LongQuestionText
 - Given：单题 `questionText.length > 4000`
 - When：handler 处理
-- Then：返回 400 + B1 `VALIDATION_ERROR`
+- Then：返回 422 + B1 `VALIDATION_FAILED`
 - 覆盖：R10
 
 ### Phase 2: createDebrief 完整事务 + outbox
@@ -126,26 +126,26 @@
 #### 3.3 TestServiceSuggestQuestions_F3ResolveFailed
 - Given：F3 ResolveActive 返回 error
 - When：调 service
-- Then：返回 B1 `AI_PROVIDER_UNAVAILABLE`；写 ai_task_runs status='failed' + error_code；audit 一行 with error_code
+- Then：返回 B1 `AI_PROVIDER_CONFIG_INVALID`；写 ai_task_runs status='failed' + error_code；audit 一行 with error_code
 - 覆盖：R5, R13
 
 #### 3.4 TestServiceSuggestQuestions_A3Timeout
 - Given：A3 AIClient mock 返回 timeout
 - When：调 service
-- Then：返回 B1 `AI_PROVIDER_FAILED`；写 ai_task_runs status='timeout'
+- Then：返回 B1 `AI_PROVIDER_TIMEOUT`；写 ai_task_runs status='timeout'
 - 覆盖：R5, R13
 
 #### 3.5 TestServiceSuggestQuestions_ParseFailed
 - Given：A3 返回非 JSON 文本
 - When：调 service
-- Then：返回 B1 `AI_INVALID_RESPONSE`；写 ai_task_runs status='failed' + validation_status='invalid'
+- Then：返回 B1 `AI_OUTPUT_INVALID`；写 ai_task_runs status='failed' + validation_status='invalid'
 - 覆盖：R5, R13
 
 #### 3.6 TestSuggestDebriefQuestions_CountBoundary
 - 文件：`backend/internal/api/debriefs/handler_test.go`
 - Given：request count = 0 / 11 / 1 / 10
 - When：handler 处理
-- Then：count<1 或 count>10 → 400 VALIDATION_ERROR；count=1 / 10 → 正常处理
+- Then：count<1 或 count>10 → 422 VALIDATION_FAILED；count=1 / 10 → 正常处理
 - 覆盖：R3, R10
 
 #### 3.7 TestSuggestDebriefQuestions_Unauthenticated_401
@@ -204,7 +204,7 @@
 #### 4.8 TestGenerateHandler_F3ResolveFailed
 - Given：F3 ResolveActive 返回 error
 - When：handler.Handle
-- Then：返回 `targetjob.RetryableError`；ai_task_runs 写 failed row + B1 `AI_PROVIDER_UNAVAILABLE`；debriefs.status 保持 'draft'；不发 outbox
+- Then：返回 `targetjob.RetryableError`；ai_task_runs 写 failed row + B1 `AI_PROVIDER_CONFIG_INVALID`；debriefs.status 保持 'draft'；不发 outbox
 - 覆盖：R5
 
 #### 4.9 TestGenerateHandler_A3Timeout
@@ -216,7 +216,7 @@
 #### 4.10 TestGenerateHandler_ParseEmpty
 - Given：A3 返回 {aiAnalyses:[], riskItems:[]}
 - When：handler.Handle
-- Then：返回 RetryableError；ai_task_runs status='failed' + validation_status='invalid' + B1 `AI_INVALID_RESPONSE`
+- Then：返回 RetryableError；ai_task_runs status='failed' + validation_status='invalid' + B1 `AI_OUTPUT_INVALID`
 - 覆盖：R5
 
 #### 4.11 TestGenerateHandler_PermanentFailAt5Attempts

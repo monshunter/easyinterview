@@ -19,8 +19,8 @@
 
 `backend-debrief` spec v1.0 在 2026-05-16 由本 plan 同时段派生；spec §7 已声明 plan 001 落地全部 D-1~D-18 决策。spec §1 已确认 B2 OpenAPI 已冻结 2 个既有 operation（`createDebrief` / `getDebrief`），但需要通过 Phase 0 跨 owner pre-launch addendum 完成：
 
-- **B1 addendum**：新增 `DEBRIEF_NOT_FOUND` 错误码（D-15 前置）+ `DebriefRoundType` enum（替代 `shared/events.yaml` 中错误的 `b1.InterviewerRole` 引用）+ `DebriefQuestionSource` enum（覆盖 `jd` / `resume` / `mock_report` / `manual`，用于 `suggestDebriefQuestions` 响应）+ 同步 generated Go/TS 字面量与 fixture parity。
-- **B2 addendum**：新增 `POST /debriefs/question-suggestions` `suggestDebriefQuestions` operation + `SuggestDebriefQuestionsRequest` / `SuggestDebriefQuestionsResponse` schema + fixtures `Debriefs/suggestDebriefQuestions.json`；同步修复 `Debrief.roundType` / `CreateDebriefRequest.roundType` 字段引用（若 B1 owner 选择独立 enum `DebriefRoundType`）；新增 fixtures `Debriefs/createDebrief.json` + `Debriefs/getDebrief.json`（含 `default` + `debrief-draft` + `prototype-baseline` variants）。
+- **B1 addendum**：新增 `DEBRIEF_NOT_FOUND` 错误码（D-15 前置）+ 通用 `IDEMPOTENCY_KEY_MISMATCH` 错误码 + `DebriefRoundType` enum（替代 `shared/events.yaml` 中错误的 `b1.InterviewerRole` 引用）+ `DebriefQuestionSource` enum（覆盖 `jd` / `resume` / `mock_report` / `manual`，用于 `suggestDebriefQuestions` 响应）+ 同步 generated Go/TS 字面量与 fixture parity；AI 失败映射只使用当前 B1 canonical `AI_*` code。
+- **B2 addendum**：新增 `POST /debriefs/question-suggestions` `suggestDebriefQuestions` operation + `SuggestDebriefQuestionsRequest` / `SuggestDebriefQuestionsResponse` schema + fixtures `Debriefs/suggestDebriefQuestions.json`；同步修复 `Debrief.roundType` / `CreateDebriefRequest.roundType` 字段引用（若 B1 owner 选择独立 enum `DebriefRoundType`）；扩展既有 fixtures `Debriefs/createDebrief.json` + `Debriefs/getDebrief.json`（含 `default` + `debrief-draft` + `prototype-baseline` variants）。
 - **B3 addendum**：修复 `shared/events.yaml` `debrief.created.roundType: $ref:b1.InterviewerRole` → `$ref:b1.DebriefRoundType`；同步 `shared/events/baseline/events.v1.json` + `shared/events/schemas/debrief.created.v1.json`；`make lint-events` + `make codegen-events-check` 通过。
 - **F3 addendum**：新增 `debrief.suggest_questions` feature_key + `debrief.suggest_questions.default` model profile + 基线 prompt v0.1.0；同步 `config/prompts/debrief.suggest_questions/` 目录与 `seed_baseline_prompt_rubric_versions` migration（如有）。
 - **backend-practice 验证**：Q-3 spec 已要求验证 backend-practice 现状是否支持 `goal='debrief'` plan 派生 + `mode='debrief'` session start；如未支持，需 backend-practice owner 同步 addendum，否则 frontend-debrief step 2 "复盘面试" handoff 无法闭环。
@@ -43,7 +43,7 @@ backend-targetjob drainer 已在 `backend/internal/targetjob/drainer.go` 注册 
 
 #### 0.1 B1 addendum：新增错误码与 enum
 
-在 `shared/conventions.yaml` 新增 `DEBRIEF_NOT_FOUND` 错误码 + `DebriefRoundType` enum（values: hr_screen / hiring_manager / behavioral / technical / culture / custom）+ `DebriefQuestionSource` enum（values: jd / resume / mock_report / manual）；运行 `make codegen-check` 同步 generated Go (`shared/go/conventions/v1/`) + TS (`shared/ts/conventions/v1/`) + fixture parity (`shared/fixtures/conventions-parity.json`)；提交 commit `feat(shared-conventions): add debrief enums and error code`.
+在 `shared/conventions.yaml` 新增 `DEBRIEF_NOT_FOUND` 错误码 + 通用 `IDEMPOTENCY_KEY_MISMATCH` 错误码 + `DebriefRoundType` enum（values: hr_screen / hiring_manager / behavioral / technical / culture / custom）+ `DebriefQuestionSource` enum（values: jd / resume / mock_report / manual）；不新增任何未登记 AI 旧别名，后续失败映射必须使用当前 B1 canonical `AI_PROVIDER_CONFIG_INVALID` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED`；运行 `make codegen-check` 同步 generated Go (`shared/go/conventions/v1/`) + TS (`shared/ts/conventions/v1/`) + fixture parity (`shared/fixtures/conventions-parity.json`)；提交 commit `feat(shared-conventions): add debrief enums and error code`.
 
 #### 0.2 B2 addendum：新增 suggestDebriefQuestions operation + 修复 roundType 引用
 
@@ -51,10 +51,10 @@ backend-targetjob drainer 已在 `backend/internal/targetjob/drainer.go` 注册 
 - `POST /debriefs/question-suggestions` operation `suggestDebriefQuestions`：request body `SuggestDebriefQuestionsRequest{targetJobId(uuid required), sessionId(uuid optional), resumeVersionId(uuid optional), language(string required), count(int default 6 max 10)}`；response 200 `SuggestDebriefQuestionsResponse{suggestions: array of SuggestedDebriefQuestion{stage(optional), questionText(string required), whyLikelyAsked(string required), source($ref DebriefQuestionSource required)}}`。
 - 修复 `Debrief.roundType` / `CreateDebriefRequest.roundType` 字段引用为 `$ref: '#/components/schemas/DebriefRoundType'`（替代原 inline enum 数组），保持 wire 字面量不变（仍是 6 个 hr_screen/hiring_manager/behavioral/technical/culture/custom）。
 
-新增 fixtures：
-- `openapi/fixtures/Debriefs/createDebrief.json`（`default` = 202 + DebriefWithJob + idempotency-key example）
-- `openapi/fixtures/Debriefs/getDebrief.json`（`default` = completed full / `debrief-draft` = draft + 空字段 / `prototype-baseline` = 中文示例）
-- `openapi/fixtures/Debriefs/suggestDebriefQuestions.json`（`default` = 6 suggestions / `empty` = 0 / `prototype-baseline`）
+扩展 / 新增 fixtures：
+- 扩展既有 `openapi/fixtures/Debriefs/createDebrief.json`（`default` = 202 + DebriefWithJob + idempotency-key example）
+- 扩展既有 `openapi/fixtures/Debriefs/getDebrief.json`（`default` = completed full / `debrief-draft` = draft + 空字段 / `prototype-baseline` = 中文示例）
+- 新增 `openapi/fixtures/Debriefs/suggestDebriefQuestions.json`（`default` = 6 suggestions / `empty` = 0 / `prototype-baseline`）
 
 运行 `make codegen-check` + `make validate-fixtures`；提交 commit `feat(openapi): add suggestDebriefQuestions operation and align debrief round type`.
 
@@ -115,7 +115,7 @@ type Store interface {
 实现 `CreateDebrief` handler：
 - 注入 `user_id` from auth middleware（B7 backend-auth）
 - 解析 generated `CreateDebriefRequest` types
-- 校验 `questions.length >= 1`、单题 `questionText.length <= 4000`、`myAnswerSummary.length <= 4000`、`interviewerReaction.length <= 1000`、`notes.length <= 10000`；失败返回 `400 VALIDATION_ERROR`
+- 校验 `questions.length >= 1`、单题 `questionText.length <= 4000`、`myAnswerSummary.length <= 4000`、`interviewerReaction.length <= 1000`、`notes.length <= 10000`；失败返回 `422 VALIDATION_FAILED`
 - 调用 service 层 `CreateDebrief`（暂返回 stub）
 - 返回 generated `DebriefWithJob` 202
 
@@ -163,7 +163,7 @@ handler 调用 service，处理 IK middleware 返回，返回 generated `Debrief
 - 组装 F3 prompt 上下文：`{targetJobTitle, jdHighlights, resumeBullets?, practiceSessionSummary?, language, count}`
 - 调 `RegistryClient.Resolve("debrief.suggest_questions", language)` → A3 `AIClient.Complete`
 - 解析 AI 输出 JSON 到 `SuggestResult{suggestions: []SuggestedQuestion{questionText, whyLikelyAsked, source(B1 enum)}}`
-- AI 失败：返回 B1 `AI_PROVIDER_FAILED` / `AI_PROVIDER_UNAVAILABLE` / `AI_INVALID_RESPONSE`
+- AI 失败：F3 resolve/config 失败返回 B1 `AI_PROVIDER_CONFIG_INVALID`；A3 secret missing 返回 `AI_PROVIDER_SECRET_MISSING`；A3 timeout 返回 `AI_PROVIDER_TIMEOUT`；fallback exhausted / provider unreachable 返回 `AI_FALLBACK_EXHAUSTED`；invalid JSON / parsed empty 返回 `AI_OUTPUT_INVALID`
 - 成功：写 `ai_task_runs(task_type='debrief_suggest_questions', status='success', feature_key, model_profile_name, input_tokens, output_tokens, latency_ms)` + audit 一行
 - 失败：写 `ai_task_runs(status='failed', error_code, validation_status='invalid' 或 nil)` + audit 一行 with error_code
 

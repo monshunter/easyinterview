@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-落地 frontend-debrief P0 闭环的全部前端实现：`debrief` + `debrief_full` 两条 alias route 接管 + DebriefScreen 全屏 + 5 个子组件源级复刻 + 3 个 in-page picker modal + 3-step stepper + 文本模式 AI 推荐问题（suggestDebriefQuestions 自动 + 手动触发）+ 跨模式共享 entries + 语音模式 UI shell（D-6 P0 不实现真实 STT）+ createDebrief 提交 + 双轨 polling（getJob + getDebrief）+ 三种失败态（Failure / Missing / Timeout）+ 分析渲染 + 复盘面试 nav handoff + i18n / 主题 / 响应式 / pixel parity / 隐私红线 / 旧口径负向 / BDD `E2E.P0.065-069`。
+落地 frontend-debrief P0 闭环的全部前端实现：正式 `debrief` route 接管 + 历史 `debrief_full` 输入 normalize 到 `debrief` + DebriefScreen 全屏 + 5 个子组件源级复刻 + 3 个 in-page picker modal + 3-step stepper + 文本模式 AI 推荐问题（suggestDebriefQuestions 自动 + 手动触发）+ 跨模式共享 entries + 语音模式 UI shell（D-6 P0 不实现真实 STT）+ createDebrief 提交 + 双轨 polling（getJob + getDebrief）+ 三种失败态（Failure / Missing / Timeout）+ 分析渲染 + 复盘面试 nav handoff + i18n / 主题 / 响应式 / pixel parity / 隐私红线 / 旧口径负向 / BDD `E2E.P0.065-069`。
 
 落地完成后，DebriefScreen 可作为 P0 用户路径中"刚面完一轮 → 复盘记录 → 复盘分析 → 复盘面试"闭环的前端入口，与 backend-debrief/001 一起完成 P0 整体闭环最后一段域。
 
@@ -30,10 +30,10 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: feature-behavior + code-internal（混合：用户可见 UI + 前端业务状态机 / React Hook / reducer 实现）
-- **TDD 策略**: Code plan requires TDD。所有 React 组件 / hook / reducer / fetch logic 必须先写测试（红/绿/重构）；测试文件：`frontend/src/app/screens/debrief/*.test.tsx`、`frontend/src/app/screens/debrief/hooks/*.test.ts`、`frontend/src/app/screens/debrief/reducer.test.ts`；测试命令：`pnpm --filter frontend test -- src/app/screens/debrief`；Phase 1-7 每个 checklist item 命名其测试断言来源（见 test-plan.md 与 test-checklist.md）。
+- **TDD 策略**: Code plan requires TDD。所有 React 组件 / hook / reducer / fetch logic 必须先写测试（红/绿/重构）；测试文件：`frontend/src/app/screens/debrief/*.test.tsx`、`frontend/src/app/screens/debrief/hooks/*.test.ts`、`frontend/src/app/screens/debrief/reducer.test.ts`；测试命令：`pnpm --filter @easyinterview/frontend test -- src/app/screens/debrief`；Phase 1-7 每个 checklist item 命名其测试断言来源（见 test-plan.md 与 test-checklist.md）。
 - **BDD 策略**: Feature plan requires BDD。本 plan 引入用户可见 UI 全屏 + 跨页 nav handoff + 失败态 + AI 推荐 + polling；BDD scenarios `E2E.P0.065-069` 已在 [bdd-plan.md](./bdd-plan.md) 分配，主 [checklist.md](./checklist.md) 在 Phase 8 含 `BDD-Gate:` 项引用每个 scenario ID；执行命令：`bash test/scenarios/e2e/p0-065-*/run.sh` 等（Playwright + fixture-backed transport）。
 - **替代验证 gate**:
-  - Phase 0 dep 验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief" frontend/src/api/generated/` 命中所有 3 个 method；`ls openapi/fixtures/Debriefs/` 含 3 个 fixture file；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND" shared/ts/conventions/` 命中
+  - Phase 0 dep 验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief" frontend/src/api/generated/` 命中所有 3 个 method；`ls openapi/fixtures/Debriefs/` 含 3 个 fixture file；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND\|IDEMPOTENCY_KEY_MISMATCH" shared/ts/conventions/` 命中
   - UI source parity：Vitest `expect(screen.getByTestId('debrief-*'))` 测试 + jsdom DOM snapshot 匹配 prototype 锚点；Playwright 元素地图 vs prototype 元素地图对比
   - Pixel parity：Playwright pixel diff < 0.5% on desktop (1440×900) + mobile (390×844)
   - 隐私红线：Vitest fixture spy 不接收 raw entries / notes；URL/localStorage/sessionStorage/console.log 扫描
@@ -47,7 +47,7 @@
 
 - 验证 `frontend/src/api/generated/` 中存在 `createDebrief` / `getDebrief` / `suggestDebriefQuestions` method types
 - 验证 `openapi/fixtures/Debriefs/createDebrief.json` / `getDebrief.json` / `suggestDebriefQuestions.json` 存在并通过 `make validate-fixtures`
-- 验证 `shared/ts/conventions/v1/` 含 `DebriefRoundType` / `DebriefQuestionSource` / `DEBRIEF_NOT_FOUND` 字面量
+- 验证 `shared/ts/conventions/v1/` 含 `DebriefRoundType` / `DebriefQuestionSource` / `DEBRIEF_NOT_FOUND` / `IDEMPOTENCY_KEY_MISMATCH` 字面量
 - 验证 backend-practice 现状支持 `goal='debrief'` + `mode='debrief'`（grep + test names from backend-debrief/001 Phase 0.5）
 - 未通过任一验证 → 暂停 plan 001，等 backend-debrief/001 Phase 0 完成
 
@@ -74,10 +74,10 @@
 
 #### 0.4 route 接线（替换 PlaceholderScreen）
 
-修改 `frontend/src/app/routes.ts` 或等价 router config：
-- route key `debrief` → `<DebriefScreen>`
-- route key `debrief_full` → `<DebriefScreen>` (alias)
-- 移除原 PlaceholderScreen 对 debrief 的占位
+修改 `frontend/src/app/App.tsx` / `frontend/src/app/normalizeRoute.ts` 或等价 router config：
+- `App.tsx` 中 `case "debrief"` → `<DebriefScreen>`，移除原 PlaceholderScreen 对 debrief 的占位
+- `normalizeRoute.ts` 中加入历史 alias：`debrief_full` → `debrief`
+- 不在 `frontend/src/app/routes.ts` 的正式 `RouteName` / primary nav / `INTERVIEW_CONTEXT_ROUTES` 中新增 `debrief_full`
 - 确认 TopBar 一级导航 `debrief` 入口高亮逻辑保留
 
 ### Phase 1: DebriefScreen shell + Header + ContextStrip + Stepper
@@ -86,7 +86,7 @@
 
 实现 `<DebriefScreen>` 组件：
 - 接收 `InterviewContext`（targetJobId? + sessionId? + resumeVersionId? + language）
-- Internal state：`step` (0/1/2 default 0)、`inputMode` ('text'|'voice' default 'text')、`entries` (DebriefEntry[])、`selectedContext` ({targetJob,mockSession,resume})、`pickerType` (null|'targetJob'|'mockSession'|'resume')、`suggestions` (SuggestedQuestion[] | null)、`activeGuide` (number)、`activeCard` (string)、`pollingState` (idle|running|succeeded|failed|timeout)、`debriefId` / `jobId`
+- Internal state：`step` (0/1/2 default 0)、`inputMode` ('text'|'voice' default 'text')、`entries` (DebriefEntry[])、`selectedContext` ({targetJob,mockSession,resume})、`pickerType` (null|'targetJob'|'mockSession'|'resume')、`suggestions` (SuggestedQuestion[] | null)、`activeGuide` (number)、`activeCard` (string)、`pollingState` (idle|running|succeeded|failed|timeout)、`debriefId` / `debriefJobId`
 - Render Header + ContextStrip + Stepper + current step panel
 
 #### 1.2 DebriefHeader
@@ -202,7 +202,7 @@ function useSuggestDebriefQuestions({
 
 #### 4.3 失败降级
 
-- `error.code === 'AI_PROVIDER_FAILED'` / `AI_PROVIDER_UNAVAILABLE` / `AI_INVALID_RESPONSE` → 显示 inline error "推荐生成失败，可手动添加问题"
+- `error.code` 为 B1 canonical `AI_PROVIDER_CONFIG_INVALID` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED` → 显示 inline error "推荐生成失败，可手动添加问题"
 - 不阻塞 step 0；用户可继续手工添加 entries
 - 点击 "重新生成推荐" 重试
 
@@ -216,16 +216,16 @@ function useSuggestDebriefQuestions({
 - 生成 Idempotency-Key (UUIDv4 from `crypto.randomUUID()`)
 - 调用 generated `createDebrief(payload, {Idempotency-Key})`
 - 处理响应：
-  - 202 → 写入 InterviewContext SET_DEBRIEF_CONTEXT (debriefId, jobId)；调用 setStep(1) + 启动 polling
-  - 400 VALIDATION_ERROR → inline error 列出失败字段
+  - 202 → 写入 InterviewContext SET_DEBRIEF_CONTEXT (debriefId, debriefJobId=job.id)；不得写现有 `jobId`；调用 setStep(1) + 启动 polling
+  - 422 VALIDATION_FAILED → inline error 列出失败字段
   - 409 IDEMPOTENCY_KEY_MISMATCH → 自动重生 IK 重试一次
   - 401 → `useRequestAuth({type:'submit_debrief', route:'debrief', params:{entries,...}})`
   - 5xx → toast + retry CTA
 
 #### 5.2 双轨 polling hook
 
-实现 `useDebriefPolling({jobId, debriefId})`:
-- Phase A: 指数退避 polling `getJob(jobId)`（初始 1.5s × 1.5 上限 8s, max attempts=30）
+实现 `useDebriefPolling({debriefJobId, debriefId})`:
+- Phase A: 指数退避 polling `getJob(debriefJobId)`（初始 1.5s × 1.5 上限 8s, max attempts=30）
 - visibility/focus event listener 暂停-恢复 polling（document.visibilityState）
 - job.status='succeeded' → 停止 phase A polling，触发 phase B
 - job.status='failed' → 触发 `setPollingState('failed')` + 保存 errorCode
@@ -244,9 +244,11 @@ function useSuggestDebriefQuestions({
 在 InterviewContext reducer 新增：
 ```ts
 case 'SET_DEBRIEF_CONTEXT':
-  return { ...state, debriefId: action.payload.debriefId, jobId: action.payload.jobId, ...rest }
+  return { ...state, debriefId: action.payload.debriefId, debriefJobId: action.payload.debriefJobId, ...rest }
 ```
 - 不破坏既有 `SET_PRACTICE_CONTEXT` / `SET_REPORT_CONTEXT` 等 actions
+- 不写现有 `jobId` 字段；该字段在当前 frontend-workspace context 中是 target job alias/fallback
+- 同步扩展 `PENDING_ACTION_INTERVIEW_KEYS` 覆盖 `practiceGoal` / `debriefId` / `debriefJobId`，并补登录恢复 round-trip 测试
 - 增加单元测试覆盖
 
 ### Phase 6: Step 1 分析渲染 + Step 2 复盘面试 launcher + handoff
@@ -268,7 +270,7 @@ case 'SET_DEBRIEF_CONTEXT':
 
 #### 6.3 复盘面试 nav handoff
 
-- 调用 `nav('practice', {goal:'debrief', mode:'text', modality:'text', sessionId: selectedContext.mockSession || undefined, targetJobId: selectedContext.targetJob, resumeVersionId: selectedContext.resume, debriefId, language})`
+- 调用 `nav('practice', {practiceGoal:'debrief', mode:'text', modality:'text', sessionId: selectedContext.mockSession || undefined, targetJobId: selectedContext.targetJob, resumeVersionId: selectedContext.resume, debriefId, language})`
 - 未登录走 `useRequestAuth({type:'start_debrief_interview', route:'debrief', params:{debriefId, targetJobId, resumeVersionId}})`
 - 本 plan **不**调用 `createPracticePlan` / `startPracticeSession`；由 frontend-workspace-and-practice 在 practice 路由 mount 时接管（D-11）
 
@@ -327,10 +329,10 @@ case 'SET_DEBRIEF_CONTEXT':
 
 #### 8.5 Plan 收口
 
-- `pnpm --filter frontend test -- src/app/screens/debrief` 通过
-- `pnpm --filter frontend test -- --run` 全量通过
-- `pnpm --filter frontend lint` 通过
-- `pnpm --filter frontend run pixel-parity` (Playwright)
+- `pnpm --filter @easyinterview/frontend test -- src/app/screens/debrief` 通过
+- `pnpm --filter @easyinterview/frontend test -- --run` 全量通过
+- `pnpm --filter @easyinterview/frontend lint` 通过
+- `pnpm --filter @easyinterview/frontend test:pixel-parity` (Playwright)
 - `python3 -m pytest scripts/lint -q` 通过
 - `make docs-check` + `git diff --check` 通过
 - 更新 plans/INDEX.md 把 001 移到 completed

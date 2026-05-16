@@ -53,7 +53,7 @@
 - [ ] 063.B 编写 fixtures：用户 A + target_job + 可选 session + 可选 resume_version；A3 mock 3 种响应（valid / timeout / invalid JSON）
 - [ ] 063.C 编写 setup.sh：插入 user / target_job / session / resume_version
 - [ ] 063.D 编写 trigger.sh：3 次 POST `/debriefs/question-suggestions`
-- [ ] 063.E 编写 verify.sh：assert (1) 200 + 6 suggestions；(2) 502 AI_PROVIDER_FAILED；(3) 502 AI_INVALID_RESPONSE；ai_task_runs 3 行（success / timeout / invalid）；audit 3 行；不应有 debriefs 行写入
+- [ ] 063.E 编写 verify.sh：assert (1) 200 + 6 suggestions；(2) 502 AI_PROVIDER_TIMEOUT；(3) 502 AI_OUTPUT_INVALID；ai_task_runs 3 行（success / timeout / invalid）；audit 3 行；不应有 debriefs 行写入
 - [ ] 063.F 编写 cleanup.sh
 - [ ] 063.G 编写 run.sh wrapper
 - [ ] 063.H 登记到 INDEX

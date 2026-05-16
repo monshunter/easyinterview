@@ -34,9 +34,9 @@
 | Phase | Phase 0-2 |
 | 关联 spec AC | C-1, C-2, C-3, C-11, C-14 |
 | 执行入口 | `bash test/scenarios/e2e/p0-065-debrief-default-render-and-pickers/run.sh` |
-| Given | 用户已认证（passwordless session cookie）；fixture `listTargetJobs` 返回 3 ready jobs；fixture `listPracticeSessions` 返回 2 completed sessions；fixture `listResumeVersions` 返回 2 ready versions；fixture `getTargetJob/getResumeVersion/getPracticeSession` 返回有效数据 |
-| When | (1) nav `/debrief`；(2) 用户点击 ContextStrip JD 卡片；(3) 在 JD picker 中选 tj-2 + 确认；(4) 用户点击 Mock Session 卡片 + 选 mock-24 + 确认；(5) 用户点击 Resume 卡片 + 选 resume-v3 + 确认；(6) ContextStrip 三选完成后等 500ms |
-| Then | (a) DebriefScreen 渲染（含 Header / ContextStrip / Stepper / Step 0 Record panel）；testid `debrief-screen` / `debrief-header` / `debrief-context-strip` / `debrief-stepper-step-0` 命中；(b) 三个 picker modal 在 in-page 打开（不离开 debrief 页）；testid `debrief-picker-modal-targetJob` / `debrief-picker-modal-mockSession` / `debrief-picker-modal-resume` 各打开一次；(c) ContextStrip 三卡片更新显示 selected title；(d) 500ms 后自动触发 `suggestDebriefQuestions` 调用一次 with {targetJobId:'tj-2', sessionId:'mock-24', resumeVersionId:'resume-v3', language:'zh', count:6}；(e) TopBar 一级导航 `debrief` 高亮 |
+| Given | 用户已认证（passwordless session cookie）；fixture `listTargetJobs` 返回 3 ready jobs；fixture `listPracticeSessions` 返回 2 completed sessions；fixture `listResumeVersions` 返回 2 ready versions；fixture `getTargetJob/getResumeVersion/getPracticeSession` 返回有效数据；route normalization 已配置 `debrief_full -> debrief` |
+| When | (1) nav `/debrief_full` 并确认 URL/route normalize 到 `/debrief`；(2) 用户点击 ContextStrip JD 卡片；(3) 在 JD picker 中选 tj-2 + 确认；(4) 用户点击 Mock Session 卡片 + 选 mock-24 + 确认；(5) 用户点击 Resume 卡片 + 选 resume-v3 + 确认；(6) ContextStrip 三选完成后等 500ms |
+| Then | (a) DebriefScreen 渲染（含 Header / ContextStrip / Stepper / Step 0 Record panel）；testid `debrief-screen` / `debrief-header` / `debrief-context-strip` / `debrief-stepper-step-0` 命中；(b) 三个 picker modal 在 in-page 打开（不离开 debrief 页）；testid `debrief-picker-modal-targetJob` / `debrief-picker-modal-mockSession` / `debrief-picker-modal-resume` 各打开一次；(c) ContextStrip 三卡片更新显示 selected title；(d) 500ms 后自动触发 `suggestDebriefQuestions` 调用一次 with {targetJobId:'tj-2', sessionId:'mock-24', resumeVersionId:'resume-v3', language:'zh', count:6}；(e) TopBar 一级导航 `debrief` 高亮；(f) 正式 route catalog / TopBar 不含 `debrief_full` |
 | Cleanup | 清空 InterviewContext / sessionStorage / localStorage；登出 |
 | Privacy 反查 | verify.sh 含 `! grep "questionText\|notes" localStorage_dump.json` |
 | UI source parity 反查 | verify.sh assert DOM 锚点存在 + 控件类型 (button vs link vs menu) 与 prototype 一致 |
@@ -50,9 +50,9 @@
 | Phase | Phase 3-5 |
 | 关联 spec AC | C-4, C-5, C-7 |
 | 执行入口 | `bash test/scenarios/e2e/p0-066-debrief-text-suggestions-and-submit/run.sh` |
-| Given | 用户已认证；fixture `suggestDebriefQuestions=default` 返回 6 suggestions；fixture `createDebrief=default` 返回 202 + DebriefWithJob{debriefId:'D', jobId:'J'}；用户已通过 E2E.P0.065 完成三选 |
-| When | (1) 等待 suggestions 自动加载；(2) 用户对 suggestions[0] 点击 "遇到过，记录"；(3) 用户对 suggestions[1] 点击 "没问到，跳过"；(4) 用户对 suggestions[2] 点击 "改成真实问题" + inline edit + save；(5) 用户点击 "手动添加真实问题" + 表单 + save；(6) 用户点击 "重新生成推荐"（mock 返回 502 AI_PROVIDER_FAILED）；(7) 用户切到 voice 模式查看 UI shell；(8) 切回 text 模式；(9) 用户点击 "生成复盘分析" CTA |
-| Then | (a) suggestions 渲染 6 项；testid `debrief-suggested-question-{0..5}` 命中；(b) entries 写入 3 行（source: ai_confirmed / ai_edited / manual）；testid `debrief-entry-card-{id}` 各显示；(c) 跳过的 suggestion 不入 entries；(d) 重新生成推荐失败时显示 inline error；不阻塞 step 0；(e) Voice 模式 testid `debrief-voice-not-implemented` 占位提示出现；entries 列表保留；(f) 切回 text 模式 entries 仍为 3 行；(g) Submit CTA 点击后触发 `createDebrief` 调用 with Idempotency-Key UUIDv4 + 完整 questions[3] body；返回 202 + DebriefWithJob；(h) InterviewContext 写入 debriefId='D' + jobId='J'；(i) 自动 setStep(1) + 启动 polling |
+| Given | 用户已认证；fixture `suggestDebriefQuestions=default` 返回 6 suggestions；fixture `createDebrief=default` 返回 202 + DebriefWithJob{debriefId:'D', job:{id:'J'}}；用户已通过 E2E.P0.065 完成三选 |
+| When | (1) 等待 suggestions 自动加载；(2) 用户对 suggestions[0] 点击 "遇到过，记录"；(3) 用户对 suggestions[1] 点击 "没问到，跳过"；(4) 用户对 suggestions[2] 点击 "改成真实问题" + inline edit + save；(5) 用户点击 "手动添加真实问题" + 表单 + save；(6) 用户点击 "重新生成推荐"（mock 返回 502 AI_PROVIDER_TIMEOUT）；(7) 用户切到 voice 模式查看 UI shell；(8) 切回 text 模式；(9) 用户点击 "生成复盘分析" CTA |
+| Then | (a) suggestions 渲染 6 项；testid `debrief-suggested-question-{0..5}` 命中；(b) entries 写入 3 行（source: ai_confirmed / ai_edited / manual）；testid `debrief-entry-card-{id}` 各显示；(c) 跳过的 suggestion 不入 entries；(d) 重新生成推荐失败时显示 inline error；不阻塞 step 0；(e) Voice 模式 testid `debrief-voice-not-implemented` 占位提示出现；entries 列表保留；(f) 切回 text 模式 entries 仍为 3 行；(g) Submit CTA 点击后触发 `createDebrief` 调用 with Idempotency-Key UUIDv4 + 完整 questions[3] body；返回 202 + DebriefWithJob；(h) InterviewContext 写入 debriefId='D' + debriefJobId='J'，且不覆盖既有 jobId；(i) 自动 setStep(1) + 启动 polling |
 | Cleanup | 同 P0.065 + 清空 entries |
 | Privacy 反查 | verify.sh assert (a) URL 不含 raw text; (b) localStorage 不含 entries body; (c) console.log 不含 raw questionText |
 
@@ -79,9 +79,9 @@
 | 执行入口 | `bash test/scenarios/e2e/p0-068-debrief-failure-and-handoff/run.sh` |
 | Given | 用户已认证；scenarios 模拟 4 类失败 + 1 类成功 handoff |
 | When | (1) 用户进入 `/debrief` 无 InterviewContext → DebriefMissingContextState；(2) 用户重新进入完整流程 → submit createDebrief → fixture `getJob=failed` 返回 status='failed' + errorCode='AI_PROVIDER_TIMEOUT' → DebriefFailureState；(3) 用户点击 "重试生成"（new IK） → 这次 fixture `getJob` 永久 queued → DebriefTimeoutState；(4) 用户点击 "返回 step 0 编辑"；(5) 重新 submit → fixture 成功 polling → Step 1 → Step 2 → 用户点击 "开始复盘面试" CTA |
-| Then | (a) DebriefMissingContextState 渲染；JD picker 自动打开；testid `debrief-missing-context-state` 命中；(b) DebriefFailureState 渲染 errorCode 文案 + CTA「返回 step 0 编辑」+「重试生成」；testid `debrief-failure-state` 命中；errorCode 显示按 B1 AI_PROVIDER_TIMEOUT 文案映射，不暴露 raw provider error；(c) DebriefTimeoutState 渲染 timeout 卡片 + CTA「重试」+「返回 step 0」；testid `debrief-timeout-state` 命中；(d) "返回 step 0 编辑" 后 entries 保留；(e) Step 2 "开始复盘面试" CTA 触发 `nav("practice", {goal:'debrief', mode:'text', modality:'text', sessionId, targetJobId, resumeVersionId, debriefId, language})`；(f) **scenario 关键负向断言：spy 监控 `createPracticePlan` / `startPracticeSession` 在 frontend-debrief 模块内 0 调用**（通过 fixture transport spy + grep `createPracticePlan\|startPracticeSession` in `frontend/src/app/screens/debrief/` 0 命中验证） |
+| Then | (a) DebriefMissingContextState 渲染；JD picker 自动打开；testid `debrief-missing-context-state` 命中；(b) DebriefFailureState 渲染 errorCode 文案 + CTA「返回 step 0 编辑」+「重试生成」；testid `debrief-failure-state` 命中；errorCode 显示按 B1 AI_PROVIDER_TIMEOUT 文案映射，不暴露 raw provider error；(c) DebriefTimeoutState 渲染 timeout 卡片 + CTA「重试」+「返回 step 0」；testid `debrief-timeout-state` 命中；(d) "返回 step 0 编辑" 后 entries 保留；(e) Step 2 "开始复盘面试" CTA 触发 `nav("practice", {practiceGoal:'debrief', mode:'text', modality:'text', sessionId, targetJobId, resumeVersionId, debriefId, language})`；(f) **scenario 关键负向断言：spy 监控 `createPracticePlan` / `startPracticeSession` 在 frontend-debrief 模块内 0 调用**（通过 fixture transport spy + grep `createPracticePlan\|startPracticeSession` in `frontend/src/app/screens/debrief/` 0 命中验证） |
 | Cleanup | 清空 InterviewContext + DB |
-| Cross-owner 反查 | verify.sh assert nav 触发后 URL 切到 `/practice?...` 包含 goal=debrief；不在 debrief 模块内调用 createPracticePlan |
+| Cross-owner 反查 | verify.sh assert nav 触发后 URL 切到 `/practice?...` 包含 practiceGoal=debrief；不在 debrief 模块内调用 createPracticePlan |
 
 ### E2E.P0.069 — Pixel Parity + i18n + Privacy + Legacy Negative
 

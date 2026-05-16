@@ -52,6 +52,10 @@ spec:
       - useSubmitDebrief
       - useDebriefPolling
       - SET_DEBRIEF_CONTEXT
+      - debriefJobId
+      - practiceGoal
+      - pendingAction
+      - normalizeRouteName
       - debrief context picker
       - voice ui shell
       - voice not implemented
@@ -107,6 +111,7 @@ spec:
           - frontend/src/app/screens/debrief
           - frontend/src/app/screens
           - frontend/src/app/routes.ts
+          - frontend/src/app/normalizeRoute.ts
           - frontend/src/app/App.tsx
           - frontend/src/api/generated
           - frontend/src/api/mockTransport.ts
@@ -125,7 +130,6 @@ spec:
           - test/scenarios/e2e
         uiRoutes:
           - debrief
-          - debrief_full
         apiNames:
           - createDebrief
           - getDebrief

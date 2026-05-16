@@ -14,7 +14,7 @@
 - [ ] 065.B 编写 fixtures：用户 A；fixtures listTargetJobs/listPracticeSessions/listResumeVersions/getTargetJob/getResumeVersion/getPracticeSession 数据
 - [ ] 065.C 编写 setup.sh：登录用户 A + 加载 fixture transport
 - [ ] 065.D 编写 trigger.sh：Playwright script 触发 nav + 三次 picker 交互
-- [ ] 065.E 编写 verify.sh：DOM 锚点存在 + control type 一致 + suggestDebriefQuestions 自动调用一次 + TopBar debrief 高亮 + privacy/legacy 反查
+- [ ] 065.E 编写 verify.sh：`debrief_full` normalize 到 `debrief` + DOM 锚点存在 + control type 一致 + suggestDebriefQuestions 自动调用一次 + TopBar debrief 高亮 + 正式 route catalog 不含 `debrief_full` + privacy/legacy 反查
 - [ ] 065.F 编写 cleanup.sh：清空 InterviewContext + localStorage + 登出
 - [ ] 065.G 编写 run.sh wrapper：保留 Playwright exit code；verify.sh 含 PASS + ok + 旧口径 grep
 - [ ] 065.H 编写 scenario README 描述 isolation / setup / cleanup 协议；登记到 `test/scenarios/e2e/INDEX.md`
@@ -27,7 +27,7 @@
 - [ ] 066.B 编写 fixtures：suggestDebriefQuestions=default 6 items + createDebrief=default 202 + suggestDebriefQuestions=fail variant
 - [ ] 066.C 编写 setup.sh：登录 + 通过 P0.065 完成三选状态
 - [ ] 066.D 编写 trigger.sh：Playwright script 触发 4 个 CTA + 重新生成失败 + 切换 voice/text + Submit
-- [ ] 066.E 编写 verify.sh：entries 3 行（source ai_confirmed/ai_edited/manual）+ AI failure inline error + voice UI shell + Submit createDebrief call + IK UUID + 202 响应 + InterviewContext.debriefId/jobId 设置 + setStep(1) + polling 启动 + privacy 反查
+- [ ] 066.E 编写 verify.sh：entries 3 行（source ai_confirmed/ai_edited/manual）+ AI failure inline error + voice UI shell + Submit createDebrief call + IK UUID + 202 响应 + InterviewContext.debriefId/debriefJobId 设置 + 不覆盖 jobId + setStep(1) + polling 启动 + privacy 反查
 - [ ] 066.F 编写 cleanup.sh
 - [ ] 066.G 编写 run.sh wrapper
 - [ ] 066.H 登记到 INDEX
@@ -53,7 +53,7 @@
 - [ ] 068.B 编写 fixtures：4 类失败 + 1 类成功 handoff variants
 - [ ] 068.C 编写 setup.sh：5 个 sub-scenarios chained
 - [ ] 068.D 编写 trigger.sh：(1) MissingContext (2) Failure (3) Timeout (4) 编辑+重试 (5) handoff
-- [ ] 068.E 编写 verify.sh：3 种失败 state DOM + 文案 + CTA 行为 + nav practice 时 payload 完整 + spy `createPracticePlan/startPracticeSession` 在 debrief 模块内 0 调用
+- [ ] 068.E 编写 verify.sh：3 种失败 state DOM + 文案 + CTA 行为 + nav practice 时 payload 含 `practiceGoal='debrief'` 且完整 + spy `createPracticePlan/startPracticeSession` 在 debrief 模块内 0 调用
 - [ ] 068.F 编写 cleanup.sh
 - [ ] 068.G 编写 run.sh wrapper
 - [ ] 068.H 登记到 INDEX
