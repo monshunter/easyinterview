@@ -219,6 +219,46 @@ var AllDebriefStatuses = []DebriefStatus{
 	DebriefStatusCompleted,
 }
 
+// DebriefRoundType mirrors shared/conventions.yaml sourceSection 5.12 (jsonField: "roundType").
+type DebriefRoundType string
+
+const (
+	DebriefRoundTypeHrScreen      DebriefRoundType = "hr_screen"
+	DebriefRoundTypeHiringManager DebriefRoundType = "hiring_manager"
+	DebriefRoundTypeBehavioral    DebriefRoundType = "behavioral"
+	DebriefRoundTypeTechnical     DebriefRoundType = "technical"
+	DebriefRoundTypeCulture       DebriefRoundType = "culture"
+	DebriefRoundTypeCustom        DebriefRoundType = "custom"
+)
+
+// AllDebriefRoundTypes lists every defined value in declaration order.
+var AllDebriefRoundTypes = []DebriefRoundType{
+	DebriefRoundTypeHrScreen,
+	DebriefRoundTypeHiringManager,
+	DebriefRoundTypeBehavioral,
+	DebriefRoundTypeTechnical,
+	DebriefRoundTypeCulture,
+	DebriefRoundTypeCustom,
+}
+
+// DebriefQuestionSource mirrors shared/conventions.yaml sourceSection 5.12 (jsonField: "source").
+type DebriefQuestionSource string
+
+const (
+	DebriefQuestionSourceJd         DebriefQuestionSource = "jd"
+	DebriefQuestionSourceResume     DebriefQuestionSource = "resume"
+	DebriefQuestionSourceMockReport DebriefQuestionSource = "mock_report"
+	DebriefQuestionSourceManual     DebriefQuestionSource = "manual"
+)
+
+// AllDebriefQuestionSources lists every defined value in declaration order.
+var AllDebriefQuestionSources = []DebriefQuestionSource{
+	DebriefQuestionSourceJd,
+	DebriefQuestionSourceResume,
+	DebriefQuestionSourceMockReport,
+	DebriefQuestionSourceManual,
+}
+
 // PrivacyRequestType mirrors shared/conventions.yaml sourceSection 5.13 (jsonField: "privacyRequestType").
 type PrivacyRequestType string
 

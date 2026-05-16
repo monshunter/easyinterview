@@ -13,6 +13,8 @@ import {
   ALL_CONFIDENCES,
   ALL_QUESTION_REVIEW_STATUSES,
   ALL_DEBRIEF_STATUSES,
+  ALL_DEBRIEF_ROUND_TYPES,
+  ALL_DEBRIEF_QUESTION_SOURCES,
   ALL_PRIVACY_REQUEST_TYPES,
   ALL_PRIVACY_REQUEST_STATUSES,
   ALL_RESUME_VERSION_TYPES,
@@ -45,7 +47,7 @@ interface ParityFixture {
 const parity = fixture as ParityFixture;
 
 describe('cross-language conventions parity fixture', () => {
-  it('matches all 17 generated enum literal sets', () => {
+  it('matches all 19 generated enum literal sets', () => {
     const actual: Record<string, readonly string[]> = {
       TargetJobStatus: ALL_TARGET_JOB_STATUSES,
       TargetJobParseStatus: ALL_TARGET_JOB_PARSE_STATUSES,
@@ -59,6 +61,8 @@ describe('cross-language conventions parity fixture', () => {
       Confidence: ALL_CONFIDENCES,
       QuestionReviewStatus: ALL_QUESTION_REVIEW_STATUSES,
       DebriefStatus: ALL_DEBRIEF_STATUSES,
+      DebriefRoundType: ALL_DEBRIEF_ROUND_TYPES,
+      DebriefQuestionSource: ALL_DEBRIEF_QUESTION_SOURCES,
       PrivacyRequestType: ALL_PRIVACY_REQUEST_TYPES,
       PrivacyRequestStatus: ALL_PRIVACY_REQUEST_STATUSES,
       ResumeVersionType: ALL_RESUME_VERSION_TYPES,
@@ -66,7 +70,7 @@ describe('cross-language conventions parity fixture', () => {
       ResumeTailorSuggestionStatus: ALL_RESUME_TAILOR_SUGGESTION_STATUSES,
     };
 
-    expect(Object.keys(actual)).toHaveLength(17);
+    expect(Object.keys(actual)).toHaveLength(19);
     expect(actual).toEqual(parity.enums);
   });
 
@@ -81,6 +85,8 @@ describe('cross-language conventions parity fixture', () => {
     expect(ERROR_CODES.PRACTICE_PLAN_NOT_FOUND).toBe('PRACTICE_PLAN_NOT_FOUND');
     expect(ERROR_CODES.PRACTICE_SESSION_NOT_FOUND).toBe('PRACTICE_SESSION_NOT_FOUND');
     expect(ERROR_CODES.REPORT_NOT_FOUND).toBe('REPORT_NOT_FOUND');
+    expect(ERROR_CODES.DEBRIEF_NOT_FOUND).toBe('DEBRIEF_NOT_FOUND');
+    expect(ERROR_CODES.IDEMPOTENCY_KEY_MISMATCH).toBe('IDEMPOTENCY_KEY_MISMATCH');
     expect(ERROR_CODES.RESUME_EXPORT_NOT_AVAILABLE).toBe('RESUME_EXPORT_NOT_AVAILABLE');
   });
 

@@ -61,6 +61,8 @@ func (h *Handler) CreatePracticePlan(w http.ResponseWriter, r *http.Request) {
 		UserID:               userID,
 		TargetJobID:          body.TargetJobId,
 		ResumeAssetID:        body.ResumeAssetId,
+		SourceReportID:       stringValue(body.SourceReportId),
+		SourceDebriefID:      stringValue(body.SourceDebriefId),
 		Goal:                 body.Goal,
 		Mode:                 body.Mode,
 		InterviewerPersona:   body.InterviewerPersona,
@@ -164,8 +166,15 @@ func (h *Handler) resolveUser(r *http.Request) (string, bool) {
 	return strings.TrimSpace(userID), ok && strings.TrimSpace(userID) != ""
 }
 
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
+}
+
 func toAPIPracticePlan(plan domain.PlanRecord) api.PracticePlan {
-	return api.PracticePlan{
+	out := api.PracticePlan{
 		Id:                 plan.ID,
 		TargetJobId:        plan.TargetJobID,
 		Goal:               plan.Goal,
@@ -178,6 +187,13 @@ func toAPIPracticePlan(plan domain.PlanRecord) api.PracticePlan {
 		Status:             plan.Status,
 		CreatedAt:          plan.CreatedAt.UTC().Format(timeFormatRFC3339),
 	}
+	if strings.TrimSpace(plan.SourceReportID) != "" {
+		out.SourceReportId = &plan.SourceReportID
+	}
+	if strings.TrimSpace(plan.SourceDebriefID) != "" {
+		out.SourceDebriefId = &plan.SourceDebriefID
+	}
+	return out
 }
 
 func toAPIPracticeSession(session domain.SessionRecord) api.PracticeSession {

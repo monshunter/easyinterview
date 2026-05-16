@@ -17,8 +17,10 @@ const (
 	CodePracticeSessionNotFound       = "PRACTICE_SESSION_NOT_FOUND"
 	CodeReportNotFound                = "REPORT_NOT_FOUND"
 	CodeReportNotReady                = "REPORT_NOT_READY"
+	CodeDebriefNotFound               = "DEBRIEF_NOT_FOUND"
 	CodeResumeExportNotAvailable      = "RESUME_EXPORT_NOT_AVAILABLE"
 	CodeValidationFailed              = "VALIDATION_FAILED"
+	CodeIdempotencyKeyMismatch        = "IDEMPOTENCY_KEY_MISMATCH"
 	CodeRateLimited                   = "RATE_LIMITED"
 	CodeAiProviderTimeout             = "AI_PROVIDER_TIMEOUT"
 	CodeAiOutputInvalid               = "AI_OUTPUT_INVALID"
@@ -41,8 +43,10 @@ var AllCodes = []string{
 	CodePracticeSessionNotFound,
 	CodeReportNotFound,
 	CodeReportNotReady,
+	CodeDebriefNotFound,
 	CodeResumeExportNotAvailable,
 	CodeValidationFailed,
+	CodeIdempotencyKeyMismatch,
 	CodeRateLimited,
 	CodeAiProviderTimeout,
 	CodeAiOutputInvalid,
@@ -71,8 +75,10 @@ var CodeRegistry = map[string]CodeMeta{
 	CodePracticeSessionNotFound:       {Message: "practice session not found", Retryable: false},
 	CodeReportNotFound:                {Message: "feedback report not found or not accessible", Retryable: false},
 	CodeReportNotReady:                {Message: "report is not ready yet", Retryable: true},
+	CodeDebriefNotFound:               {Message: "debrief record not found or not accessible", Retryable: false},
 	CodeResumeExportNotAvailable:      {Message: "resume version export is not available in P0", Retryable: false},
 	CodeValidationFailed:              {Message: "request validation failed", Retryable: false},
+	CodeIdempotencyKeyMismatch:        {Message: "idempotency key was reused with a different request body", Retryable: false},
 	CodeRateLimited:                   {Message: "rate limit exceeded", Retryable: true},
 	CodeAiProviderTimeout:             {Message: "AI provider request timed out", Retryable: true},
 	CodeAiOutputInvalid:               {Message: "AI output failed schema validation", Retryable: false},

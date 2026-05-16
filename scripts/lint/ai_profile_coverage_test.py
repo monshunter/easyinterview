@@ -22,7 +22,7 @@ def make_repo(tmp_path: Path, profile_body: str) -> Path:
         repo / "docs/spec/prompt-rubric-registry/spec.md",
         textwrap.dedent(
             """
-            #### 3.1.1 10 个当前 baseline feature_key 字典
+            #### 3.1.1 11 个当前 baseline feature_key 字典
 
             | feature_key | 用途 | 关联业务域 | 关联 Model Profile（默认） |
             |-------------|------|-----------|--------------------------|

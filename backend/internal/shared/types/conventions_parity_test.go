@@ -57,14 +57,16 @@ func TestConventionsParityFixture_EnumSets(t *testing.T) {
 		"Confidence":                   stringsOf(AllConfidences),
 		"QuestionReviewStatus":         stringsOf(AllQuestionReviewStatuses),
 		"DebriefStatus":                stringsOf(AllDebriefStatuses),
+		"DebriefRoundType":             stringsOf(AllDebriefRoundTypes),
+		"DebriefQuestionSource":        stringsOf(AllDebriefQuestionSources),
 		"PrivacyRequestType":           stringsOf(AllPrivacyRequestTypes),
 		"PrivacyRequestStatus":         stringsOf(AllPrivacyRequestStatuses),
 		"ResumeVersionType":            stringsOf(AllResumeVersionTypes),
 		"ResumeSeedStrategy":           stringsOf(AllResumeSeedStrategies),
 		"ResumeTailorSuggestionStatus": stringsOf(AllResumeTailorSuggestionStatuses),
 	}
-	if len(got) != 17 {
-		t.Fatalf("generated enum type count = %d, want 17", len(got))
+	if len(got) != 19 {
+		t.Fatalf("generated enum type count = %d, want 19", len(got))
 	}
 	if !reflect.DeepEqual(got, fixture.Enums) {
 		t.Fatalf("Go enum sets differ from fixture\ngot:  %#v\nwant: %#v", got, fixture.Enums)

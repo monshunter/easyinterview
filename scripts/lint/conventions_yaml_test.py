@@ -195,6 +195,25 @@ def valid_data() -> dict:
                 "values": ["draft"],
             },
             {
+                "name": "DebriefRoundType",
+                "sourceSection": "5.12",
+                "jsonField": "roundType",
+                "values": [
+                    "hr_screen",
+                    "hiring_manager",
+                    "behavioral",
+                    "technical",
+                    "culture",
+                    "custom",
+                ],
+            },
+            {
+                "name": "DebriefQuestionSource",
+                "sourceSection": "5.12",
+                "jsonField": "source",
+                "values": ["jd", "resume", "mock_report", "manual"],
+            },
+            {
                 "name": "PrivacyRequestType",
                 "sourceSection": "5.13",
                 "jsonField": "privacyRequestType",

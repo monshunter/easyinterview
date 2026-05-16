@@ -785,6 +785,19 @@ func TestE2EP0048PracticeHintAssistedAcrossGoals(t *testing.T) {
 			plan := h.seedReadyScenarioPlan("practice-plan-p0-048-"+string(goal), targetID, "resume-asset-p0-048-"+string(goal), practiceHTTPScenarioUserAID)
 			plan.Goal = goal
 			plan.Mode = sharedtypes.PracticeModeAssisted
+			if goal == sharedtypes.PracticeGoalDebrief {
+				sourceDebriefID := "debrief-p0-048-source-" + string(goal)
+				h.store.debriefs[sourceDebriefID] = scenarioDebrief{
+					UserID:      practiceHTTPScenarioUserAID,
+					TargetJobID: targetID,
+					Status:      sharedtypes.DebriefStatusCompleted,
+					Questions: []scenarioDebriefQuestion{{
+						Text:   "Debrief source question for assisted hint policy.",
+						Intent: "debrief.source_question",
+					}},
+				}
+				plan.SourceDebriefID = sourceDebriefID
+			}
 			h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeAssetID: "resume-asset-p0-048-" + string(goal)}
 			started := h.startScenarioSession(t, plan.ID, "e2e-p0-048-start-"+string(goal))
 
@@ -861,6 +874,19 @@ func TestE2EP0049PracticeHintStrictRefusalAcrossGoals(t *testing.T) {
 			plan := h.seedReadyScenarioPlan("practice-plan-p0-049-"+string(goal), "target-job-p0-049-"+string(goal), "resume-asset-p0-049-"+string(goal), practiceHTTPScenarioUserAID)
 			plan.Goal = goal
 			plan.Mode = sharedtypes.PracticeModeStrict
+			if goal == sharedtypes.PracticeGoalDebrief {
+				sourceDebriefID := "debrief-p0-049-source-" + string(goal)
+				h.store.debriefs[sourceDebriefID] = scenarioDebrief{
+					UserID:      practiceHTTPScenarioUserAID,
+					TargetJobID: plan.TargetJobID,
+					Status:      sharedtypes.DebriefStatusCompleted,
+					Questions: []scenarioDebriefQuestion{{
+						Text:   "Debrief source question for strict hint policy.",
+						Intent: "debrief.source_question",
+					}},
+				}
+				plan.SourceDebriefID = sourceDebriefID
+			}
 			h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeAssetID: "resume-asset-p0-049-" + string(goal)}
 			started := h.startScenarioSession(t, plan.ID, "e2e-p0-049-start-"+string(goal))
 			body := api.PracticeSessionEventRequest{
@@ -1012,6 +1038,240 @@ func TestE2EP0051PracticeHintDegradeAndPrivacy(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestE2EP0070PracticeDerivedPlanCreateReadReplay(t *testing.T) {
+	h := newPracticeHTTPScenarioHarness(t)
+	targetID := "target-job-p0-070-a"
+	resumeID := "resume-asset-p0-070-a"
+	h.store.prerequisiteTargetOwner[targetID] = practiceHTTPScenarioUserAID
+	h.store.prerequisiteResumeOwner[resumeID] = practiceHTTPScenarioUserAID
+	reportID := "report-p0-070-ready"
+	debriefID := "debrief-p0-070-completed"
+	h.store.reports[reportID] = scenarioFeedbackReport{UserID: practiceHTTPScenarioUserAID, TargetJobID: targetID, Status: sharedtypes.ReportStatusReady}
+	h.store.debriefs[debriefID] = scenarioDebrief{
+		UserID:      practiceHTTPScenarioUserAID,
+		TargetJobID: targetID,
+		Status:      sharedtypes.DebriefStatusCompleted,
+		Questions:   []scenarioDebriefQuestion{{Text: "What did the interviewer ask about scope?", Intent: "debrief.scope"}},
+	}
+
+	tests := []struct {
+		name              string
+		goal              sharedtypes.PracticeGoal
+		sourceReportID    *string
+		sourceDebriefID   *string
+		wantSourceReport  string
+		wantSourceDebrief string
+		idempotencyKey    string
+	}{
+		{name: "retry", goal: sharedtypes.PracticeGoalRetryCurrentRound, sourceReportID: strPtr(reportID), wantSourceReport: reportID, idempotencyKey: "e2e-p0-070-retry"},
+		{name: "next-round", goal: sharedtypes.PracticeGoalNextRound, sourceReportID: strPtr(reportID), wantSourceReport: reportID, idempotencyKey: "e2e-p0-070-next"},
+		{name: "debrief", goal: sharedtypes.PracticeGoalDebrief, sourceDebriefID: strPtr(debriefID), wantSourceDebrief: debriefID, idempotencyKey: "e2e-p0-070-debrief"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			body := api.CreatePracticePlanRequest{
+				TargetJobId:          targetID,
+				ResumeAssetId:        resumeID,
+				SourceReportId:       tc.sourceReportID,
+				SourceDebriefId:      tc.sourceDebriefID,
+				Goal:                 tc.goal,
+				Mode:                 sharedtypes.PracticeModeAssisted,
+				InterviewerPersona:   sharedtypes.InterviewerRoleHiringManager,
+				Difficulty:           "standard",
+				Language:             "zh-CN",
+				TimeBudgetMinutes:    30,
+				QuestionBudget:       6,
+				FocusCompetencyCodes: []string{"system-design"},
+			}
+			raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/plans", tc.idempotencyKey, body, http.StatusCreated)
+			var created api.PracticePlan
+			decodeJSON(t, raw, &created)
+			if created.Goal != tc.goal || created.SourceReportId == nil != (tc.wantSourceReport == "") || created.SourceDebriefId == nil != (tc.wantSourceDebrief == "") {
+				t.Fatalf("derived plan source shape mismatch: %+v", created)
+			}
+			if tc.wantSourceReport != "" && *created.SourceReportId != tc.wantSourceReport {
+				t.Fatalf("sourceReportId = %v, want %s", created.SourceReportId, tc.wantSourceReport)
+			}
+			if tc.wantSourceDebrief != "" && *created.SourceDebriefId != tc.wantSourceDebrief {
+				t.Fatalf("sourceDebriefId = %v, want %s", created.SourceDebriefId, tc.wantSourceDebrief)
+			}
+
+			replayRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/plans", tc.idempotencyKey, body, http.StatusCreated)
+			var replay api.PracticePlan
+			decodeJSON(t, replayRaw, &replay)
+			if replay.Id != created.Id || replay.SourceReportId == nil != (created.SourceReportId == nil) || replay.SourceDebriefId == nil != (created.SourceDebriefId == nil) {
+				t.Fatalf("idempotency replay changed source response: created=%+v replay=%+v", created, replay)
+			}
+
+			detailRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodGet, "/api/v1/practice/plans/"+created.Id, "", nil, http.StatusOK)
+			var detail api.PracticePlan
+			decodeJSON(t, detailRaw, &detail)
+			if detail.Id != created.Id || detail.SourceReportId == nil != (created.SourceReportId == nil) || detail.SourceDebriefId == nil != (created.SourceDebriefId == nil) {
+				t.Fatalf("getPracticePlan lost source fields: created=%+v detail=%+v", created, detail)
+			}
+		})
+	}
+}
+
+func TestE2EP0071PracticeDebriefStartUsesSourceQuestion(t *testing.T) {
+	ai := &scenarioPracticeAIClient{}
+	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai})
+	targetID := "target-job-p0-071-a"
+	resumeID := "resume-asset-p0-071-a"
+	sourceDebriefID := "debrief-p0-071-completed"
+	h.store.prerequisiteTargetOwner[targetID] = practiceHTTPScenarioUserAID
+	h.store.prerequisiteResumeOwner[resumeID] = practiceHTTPScenarioUserAID
+	h.store.debriefs[sourceDebriefID] = scenarioDebrief{
+		UserID:      practiceHTTPScenarioUserAID,
+		TargetJobID: targetID,
+		Status:      sharedtypes.DebriefStatusCompleted,
+		Questions: []scenarioDebriefQuestion{{
+			Text:   "__DEBRIEF_FIRST_QUESTION__",
+			Intent: "debrief.source_question",
+		}},
+	}
+	planRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/plans", "e2e-p0-071-create", api.CreatePracticePlanRequest{
+		TargetJobId:        targetID,
+		ResumeAssetId:      resumeID,
+		SourceDebriefId:    strPtr(sourceDebriefID),
+		Goal:               sharedtypes.PracticeGoalDebrief,
+		Mode:               sharedtypes.PracticeModeStrict,
+		InterviewerPersona: sharedtypes.InterviewerRoleHiringManager,
+		Difficulty:         "standard",
+		Language:           "zh-CN",
+		TimeBudgetMinutes:  30,
+		QuestionBudget:     6,
+	}, http.StatusCreated)
+	var plan api.PracticePlan
+	decodeJSON(t, planRaw, &plan)
+
+	startRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-071-start", api.StartPracticeSessionRequest{PlanId: plan.Id}, http.StatusCreated)
+	var started api.PracticeSession
+	decodeJSON(t, startRaw, &started)
+	if started.Status != sharedtypes.SessionStatusRunning || started.CurrentTurn == nil || started.CurrentTurn.QuestionText != "__DEBRIEF_FIRST_QUESTION__" {
+		t.Fatalf("debrief start did not use source question: %+v", started)
+	}
+	if ai.calls != 0 {
+		t.Fatalf("debrief start must not call first_question AI, calls=%d", ai.calls)
+	}
+	replayRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-071-start", api.StartPracticeSessionRequest{PlanId: plan.Id}, http.StatusCreated)
+	var replay api.PracticeSession
+	decodeJSON(t, replayRaw, &replay)
+	if replay.Id != started.Id || replay.CurrentTurn == nil || replay.CurrentTurn.QuestionText != started.CurrentTurn.QuestionText || ai.calls != 0 {
+		t.Fatalf("debrief replay changed currentTurn or called AI: started=%+v replay=%+v calls=%d", started, replay, ai.calls)
+	}
+	assertNoEvidenceLeak(t, h.store.outboxPayloads(), "__DEBRIEF_FIRST_QUESTION__", "question_text", "answer_text", "hint_text")
+}
+
+func TestE2EP0072PracticeDerivedSourceValidationIsolationPrivacy(t *testing.T) {
+	h := newPracticeHTTPScenarioHarness(t)
+	targetID := "target-job-p0-072-a"
+	resumeID := "resume-asset-p0-072-a"
+	h.store.prerequisiteTargetOwner[targetID] = practiceHTTPScenarioUserAID
+	h.store.prerequisiteResumeOwner[resumeID] = practiceHTTPScenarioUserAID
+	h.store.reports["report-p0-072-cross-user"] = scenarioFeedbackReport{UserID: practiceHTTPScenarioUserBID, TargetJobID: targetID, Status: sharedtypes.ReportStatusReady}
+	h.store.reports["report-p0-072-wrong-target"] = scenarioFeedbackReport{UserID: practiceHTTPScenarioUserAID, TargetJobID: "target-other", Status: sharedtypes.ReportStatusReady}
+	h.store.debriefs["debrief-p0-072-draft"] = scenarioDebrief{UserID: practiceHTTPScenarioUserAID, TargetJobID: targetID, Status: sharedtypes.DebriefStatusDraft, Questions: []scenarioDebriefQuestion{{Text: "__PRIVATE_DEBRIEF_TEXT__"}}}
+	h.store.debriefs["debrief-p0-072-empty"] = scenarioDebrief{UserID: practiceHTTPScenarioUserAID, TargetJobID: targetID, Status: sharedtypes.DebriefStatusCompleted}
+
+	tests := []struct {
+		name            string
+		goal            sharedtypes.PracticeGoal
+		sourceReportID  *string
+		sourceDebriefID *string
+		sourceID        string
+	}{
+		{name: "missing report", goal: sharedtypes.PracticeGoalRetryCurrentRound, sourceReportID: strPtr("report-p0-072-missing"), sourceID: "report-p0-072-missing"},
+		{name: "cross user report", goal: sharedtypes.PracticeGoalRetryCurrentRound, sourceReportID: strPtr("report-p0-072-cross-user"), sourceID: "report-p0-072-cross-user"},
+		{name: "wrong target report", goal: sharedtypes.PracticeGoalNextRound, sourceReportID: strPtr("report-p0-072-wrong-target"), sourceID: "report-p0-072-wrong-target"},
+		{name: "draft debrief", goal: sharedtypes.PracticeGoalDebrief, sourceDebriefID: strPtr("debrief-p0-072-draft"), sourceID: "debrief-p0-072-draft"},
+		{name: "empty debrief", goal: sharedtypes.PracticeGoalDebrief, sourceDebriefID: strPtr("debrief-p0-072-empty"), sourceID: "debrief-p0-072-empty"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/plans", "e2e-p0-072-"+tc.name, api.CreatePracticePlanRequest{
+				TargetJobId:        targetID,
+				ResumeAssetId:      resumeID,
+				SourceReportId:     tc.sourceReportID,
+				SourceDebriefId:    tc.sourceDebriefID,
+				Goal:               tc.goal,
+				Mode:               sharedtypes.PracticeModeAssisted,
+				InterviewerPersona: sharedtypes.InterviewerRoleHiringManager,
+				Difficulty:         "standard",
+				Language:           "zh-CN",
+				TimeBudgetMinutes:  30,
+				QuestionBudget:     6,
+			}, http.StatusUnprocessableEntity)
+			var out api.ApiErrorResponse
+			decodeJSON(t, raw, &out)
+			if out.Error.Code != sharederrors.CodeValidationFailed || strings.Contains(string(raw), tc.sourceID) || strings.Contains(string(raw), "__PRIVATE_DEBRIEF_TEXT__") {
+				t.Fatalf("source validation leaked resource evidence: error=%+v body=%s", out.Error, string(raw))
+			}
+		})
+	}
+}
+
+func TestE2EP0073PracticeDebriefAssistedStrictAndLegacyNegative(t *testing.T) {
+	ai := &scenarioPracticeAIClient{}
+	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai})
+	targetID := "target-job-p0-073-a"
+	resumeID := "resume-asset-p0-073-a"
+	sourceDebriefID := "debrief-p0-073-completed"
+	h.store.prerequisiteTargetOwner[targetID] = practiceHTTPScenarioUserAID
+	h.store.prerequisiteResumeOwner[resumeID] = practiceHTTPScenarioUserAID
+	h.store.debriefs[sourceDebriefID] = scenarioDebrief{
+		UserID:      practiceHTTPScenarioUserAID,
+		TargetJobID: targetID,
+		Status:      sharedtypes.DebriefStatusCompleted,
+		Questions:   []scenarioDebriefQuestion{{Text: "Debrief mode regression question?", Intent: "debrief.regression"}},
+	}
+
+	for _, mode := range []sharedtypes.PracticeMode{sharedtypes.PracticeModeAssisted, sharedtypes.PracticeModeStrict} {
+		t.Run(string(mode), func(t *testing.T) {
+			planRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/plans", "e2e-p0-073-create-"+string(mode), api.CreatePracticePlanRequest{
+				TargetJobId:        targetID,
+				ResumeAssetId:      resumeID,
+				SourceDebriefId:    strPtr(sourceDebriefID),
+				Goal:               sharedtypes.PracticeGoalDebrief,
+				Mode:               mode,
+				InterviewerPersona: sharedtypes.InterviewerRoleHiringManager,
+				Difficulty:         "standard",
+				Language:           "zh-CN",
+				TimeBudgetMinutes:  30,
+				QuestionBudget:     6,
+			}, http.StatusCreated)
+			var plan api.PracticePlan
+			decodeJSON(t, planRaw, &plan)
+			startRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions", "e2e-p0-073-start-"+string(mode), api.StartPracticeSessionRequest{PlanId: plan.Id}, http.StatusCreated)
+			var started api.PracticeSession
+			decodeJSON(t, startRaw, &started)
+			if started.CurrentTurn == nil || started.CurrentTurn.QuestionText != "Debrief mode regression question?" {
+				t.Fatalf("debrief %s start mismatch: %+v", mode, started)
+			}
+		})
+	}
+	if ai.calls != 0 {
+		t.Fatalf("debrief assisted/strict start must not call first_question AI, calls=%d", ai.calls)
+	}
+	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/plans", "e2e-p0-073-legacy-mode", api.CreatePracticePlanRequest{
+		TargetJobId:        targetID,
+		ResumeAssetId:      resumeID,
+		SourceDebriefId:    strPtr(sourceDebriefID),
+		Goal:               sharedtypes.PracticeGoalDebrief,
+		Mode:               sharedtypes.PracticeMode("debrief"),
+		InterviewerPersona: sharedtypes.InterviewerRoleHiringManager,
+		Difficulty:         "standard",
+		Language:           "zh-CN",
+		TimeBudgetMinutes:  30,
+		QuestionBudget:     6,
+	}, http.StatusUnprocessableEntity)
+	var out api.ApiErrorResponse
+	decodeJSON(t, raw, &out)
+	if out.Error.Code != sharederrors.CodeValidationFailed {
+		t.Fatalf("legacy mode should be rejected with validation error: %+v", out.Error)
 	}
 }
 
@@ -1351,6 +1611,8 @@ type scenarioPracticeStore struct {
 	audits                    [][]byte
 	prerequisiteTargetOwner   map[string]string
 	prerequisiteResumeOwner   map[string]string
+	reports                   map[string]scenarioFeedbackReport
+	debriefs                  map[string]scenarioDebrief
 	inTransaction             bool
 	aiCalledInsideTransaction bool
 }
@@ -1359,6 +1621,24 @@ type scenarioPracticePlan struct {
 	domainpractice.PlanRecord
 	UserID        string
 	ResumeAssetID string
+}
+
+type scenarioFeedbackReport struct {
+	UserID      string
+	TargetJobID string
+	Status      sharedtypes.ReportStatus
+}
+
+type scenarioDebrief struct {
+	UserID      string
+	TargetJobID string
+	Status      sharedtypes.DebriefStatus
+	Questions   []scenarioDebriefQuestion
+}
+
+type scenarioDebriefQuestion struct {
+	Text   string
+	Intent string
 }
 
 type scenarioPracticeSession struct {
@@ -1407,6 +1687,8 @@ func newScenarioPracticeStore() *scenarioPracticeStore {
 		completedReports:        map[string]domainpractice.CompleteSessionResult{},
 		prerequisiteTargetOwner: map[string]string{},
 		prerequisiteResumeOwner: map[string]string{},
+		reports:                 map[string]scenarioFeedbackReport{},
+		debriefs:                map[string]scenarioDebrief{},
 	}
 	s.prerequisiteTargetOwner["target-job-p0-022-a"] = practiceHTTPScenarioUserAID
 	s.prerequisiteResumeOwner["resume-asset-p0-022-a"] = practiceHTTPScenarioUserAID
@@ -1424,9 +1706,14 @@ func (s *scenarioPracticeStore) CreatePlan(_ context.Context, in domainpractice.
 	if s.prerequisiteTargetOwner[in.TargetJobID] != in.UserID || s.prerequisiteResumeOwner[in.ResumeAssetID] != in.UserID {
 		return domainpractice.PlanRecord{}, domainpractice.ErrPlanPrerequisiteNotFound
 	}
+	if !s.sourceAvailableForPlan(in) {
+		return domainpractice.PlanRecord{}, domainpractice.ErrPlanPrerequisiteNotFound
+	}
 	plan := domainpractice.PlanRecord{
 		ID:                 in.PlanID,
 		TargetJobID:        in.TargetJobID,
+		SourceReportID:     in.SourceReportID,
+		SourceDebriefID:    in.SourceDebriefID,
 		Goal:               in.Goal,
 		Mode:               in.Mode,
 		InterviewerPersona: in.InterviewerPersona,
@@ -1438,18 +1725,50 @@ func (s *scenarioPracticeStore) CreatePlan(_ context.Context, in domainpractice.
 		CreatedAt:          in.Now,
 	}
 	s.plans[in.PlanID] = scenarioPracticePlan{PlanRecord: plan, UserID: in.UserID, ResumeAssetID: in.ResumeAssetID}
-	audit, err := json.Marshal(map[string]any{
+	auditMetadata := map[string]any{
 		"plan_id":       in.PlanID,
 		"goal":          string(in.Goal),
 		"mode":          string(in.Mode),
 		"language":      in.Language,
 		"target_job_id": in.TargetJobID,
-	})
+	}
+	if in.SourceReportID != "" {
+		auditMetadata["source_report_id"] = in.SourceReportID
+	}
+	if in.SourceDebriefID != "" {
+		auditMetadata["source_debrief_id"] = in.SourceDebriefID
+	}
+	audit, err := json.Marshal(auditMetadata)
 	if err != nil {
 		return domainpractice.PlanRecord{}, err
 	}
 	s.audits = append(s.audits, audit)
 	return plan, nil
+}
+
+func (s *scenarioPracticeStore) sourceAvailableForPlan(in domainpractice.CreatePlanStoreInput) bool {
+	switch in.Goal {
+	case sharedtypes.PracticeGoalBaseline:
+		return strings.TrimSpace(in.SourceReportID) == "" && strings.TrimSpace(in.SourceDebriefID) == ""
+	case sharedtypes.PracticeGoalRetryCurrentRound, sharedtypes.PracticeGoalNextRound:
+		report, ok := s.reports[in.SourceReportID]
+		return ok &&
+			report.UserID == in.UserID &&
+			report.TargetJobID == in.TargetJobID &&
+			report.Status == sharedtypes.ReportStatusReady &&
+			strings.TrimSpace(in.SourceDebriefID) == ""
+	case sharedtypes.PracticeGoalDebrief:
+		debrief, ok := s.debriefs[in.SourceDebriefID]
+		return ok &&
+			debrief.UserID == in.UserID &&
+			debrief.TargetJobID == in.TargetJobID &&
+			debrief.Status == sharedtypes.DebriefStatusCompleted &&
+			len(debrief.Questions) > 0 &&
+			strings.TrimSpace(debrief.Questions[0].Text) != "" &&
+			strings.TrimSpace(in.SourceReportID) == ""
+	default:
+		return false
+	}
 }
 
 func (s *scenarioPracticeStore) seedReadyPlan(in domainpractice.CreatePlanStoreInput) domainpractice.PlanRecord {
@@ -1712,6 +2031,19 @@ func (s *scenarioPracticeStore) ReserveSessionStart(_ context.Context, in domain
 	if !ok || plan.UserID != in.UserID || plan.Status != "ready" {
 		return domainpractice.SessionReservation{}, domainpractice.ErrPlanNotFound
 	}
+	var debriefFirstQuestion scenarioDebriefQuestion
+	if plan.Goal == sharedtypes.PracticeGoalDebrief {
+		debrief, ok := s.debriefs[plan.SourceDebriefID]
+		if !ok ||
+			debrief.UserID != in.UserID ||
+			debrief.TargetJobID != plan.TargetJobID ||
+			debrief.Status != sharedtypes.DebriefStatusCompleted ||
+			len(debrief.Questions) == 0 ||
+			strings.TrimSpace(debrief.Questions[0].Text) == "" {
+			return domainpractice.SessionReservation{}, domainpractice.ErrPlanNotFound
+		}
+		debriefFirstQuestion = debrief.Questions[0]
+	}
 	s.inTransaction = true
 	defer func() { s.inTransaction = false }()
 
@@ -1790,18 +2122,20 @@ func (s *scenarioPracticeStore) ReserveSessionStart(_ context.Context, in domain
 	}
 	s.sessions[in.SessionID] = scenarioPracticeSession{SessionRecord: session, UserID: in.UserID}
 	return domainpractice.SessionReservation{
-		IdempotencyRecordID: recordID,
-		SessionID:           in.SessionID,
-		UserID:              in.UserID,
-		PlanID:              in.PlanID,
-		TargetJobID:         plan.TargetJobID,
-		Goal:                plan.Goal,
-		Mode:                plan.Mode,
-		InterviewerPersona:  plan.InterviewerPersona,
-		Language:            plan.Language,
-		HintsEnabled:        in.HintsEnabled,
-		CreatedAt:           in.Now,
-		UpdatedAt:           in.Now,
+		IdempotencyRecordID:        recordID,
+		SessionID:                  in.SessionID,
+		UserID:                     in.UserID,
+		PlanID:                     in.PlanID,
+		TargetJobID:                plan.TargetJobID,
+		Goal:                       plan.Goal,
+		Mode:                       plan.Mode,
+		InterviewerPersona:         plan.InterviewerPersona,
+		Language:                   plan.Language,
+		HintsEnabled:               in.HintsEnabled,
+		DebriefFirstQuestionText:   strings.TrimSpace(debriefFirstQuestion.Text),
+		DebriefFirstQuestionIntent: strings.TrimSpace(debriefFirstQuestion.Intent),
+		CreatedAt:                  in.Now,
+		UpdatedAt:                  in.Now,
 	}, nil
 }
 

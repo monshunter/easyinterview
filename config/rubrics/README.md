@@ -20,7 +20,7 @@ config/rubrics/
     <version>.<language>.yaml               (language variant; ISO-639 lowercase)
 ```
 
-- `<feature_key>` is one of the 10 baseline keys frozen in
+- `<feature_key>` is one of the 11 baseline keys frozen in
   `docs/spec/prompt-rubric-registry/spec.md` §3.1.1 and must match the parent
   directory of the matching prompt under `config/prompts/`.
 - `<version>` is a SemVer literal of the form `vMAJOR.MINOR.PATCH`; baseline

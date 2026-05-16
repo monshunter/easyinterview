@@ -40,6 +40,121 @@
         }
       }
     },
+    "debrief-derived": {
+      "request": {
+        "headers": {},
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "goal": "debrief",
+          "mode": "assisted",
+          "interviewerPersona": "hiring_manager",
+          "difficulty": "standard",
+          "language": "zh-CN",
+          "questionBudget": 6,
+          "timeBudgetMinutes": 30,
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "sourceDebriefId": "01918fa0-0000-7000-8000-00000000d001",
+          "focusCompetencyCodes": [
+            "communication",
+            "debrief-followup"
+          ]
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "X-Request-ID": "req_2026-05-16T09-00-00-debrief-derived"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000004700",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "goal": "debrief",
+          "mode": "assisted",
+          "interviewerPersona": "hiring_manager",
+          "difficulty": "standard",
+          "language": "zh-CN",
+          "timeBudgetMinutes": 30,
+          "questionBudget": 6,
+          "sourceDebriefId": "01918fa0-0000-7000-8000-00000000d001",
+          "status": "ready",
+          "createdAt": "2026-05-16T09:00:00Z"
+        }
+      }
+    },
+    "report-derived": {
+      "request": {
+        "headers": {},
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "goal": "retry_current_round",
+          "mode": "strict",
+          "interviewerPersona": "technical_manager",
+          "difficulty": "stretch",
+          "language": "en",
+          "questionBudget": 4,
+          "timeBudgetMinutes": 20,
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "sourceReportId": "01918fa0-0000-7000-8000-00000000f001",
+          "focusCompetencyCodes": [
+            "system-design"
+          ]
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "X-Request-ID": "req_2026-05-16T09-00-00-report-derived"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000004701",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "goal": "retry_current_round",
+          "mode": "strict",
+          "interviewerPersona": "technical_manager",
+          "difficulty": "stretch",
+          "language": "en",
+          "timeBudgetMinutes": 20,
+          "questionBudget": 4,
+          "sourceReportId": "01918fa0-0000-7000-8000-00000000f001",
+          "status": "ready",
+          "createdAt": "2026-05-16T09:00:00Z"
+        }
+      }
+    },
+    "source-missing": {
+      "request": {
+        "headers": {},
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "goal": "debrief",
+          "mode": "assisted",
+          "interviewerPersona": "hiring_manager",
+          "difficulty": "standard",
+          "language": "zh-CN",
+          "questionBudget": 6,
+          "timeBudgetMinutes": 30,
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000"
+        }
+      },
+      "response": {
+        "status": 422,
+        "headers": {
+          "X-Request-ID": "req_2026-05-16T09-00-00-source-missing"
+        },
+        "body": {
+          "error": {
+            "code": "VALIDATION_FAILED",
+            "message": "sourceDebriefId is required for debrief practice plans",
+            "requestId": "req_2026-05-16T09-00-00-source-missing",
+            "retryable": false,
+            "details": {
+              "field": "sourceDebriefId",
+              "goal": "debrief"
+            }
+          }
+        }
+      }
+    },
     "missing-resume": {
       "request": {
         "headers": {},

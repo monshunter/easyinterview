@@ -40,7 +40,7 @@ checks:
   - {table: source_records, column: owner_type, source: db-local, values: [target_job, debrief, intelligence_item], checksum: "sha256:f2aa008a2f2b539e"}
   - {table: source_records, column: source_type, source: db-local, values: [jd_url, company_page, manual_text, news, upload], checksum: "sha256:273c4d80f839f6c9"}
   - {table: source_records, column: freshness_status, source: db-local, values: [fresh, stale, expired], checksum: "sha256:509736b3cb89eda5"}
-  - {table: ai_task_runs, column: task_type, source: db-local, values: [jd_parse, resume_parse, question_generate, followup_generate, report_generate, report_assessment, resume_tailor, debrief_generate, hint_generate], checksum: "sha256:0672db0258545d41"}
+  - {table: ai_task_runs, column: task_type, source: db-local, values: [jd_parse, resume_parse, question_generate, followup_generate, report_generate, report_assessment, resume_tailor, debrief_generate, debrief_suggest_questions, hint_generate], checksum: "sha256:06ab49a59d3e7dc5"}
   - {table: ai_task_runs, column: status, source: db-local, values: [success, failed, timeout, fallback], checksum: "sha256:83c3ce20bfb1ecb2"}
   - {table: async_jobs, column: job_type, source: event-and-outbox-contract, values: [target_import, resume_parse, report_generate, resume_tailor, debrief_generate, source_refresh, privacy_export, privacy_delete, email_dispatch], checksum: "sha256:9870d215751c6633"}
   - {table: async_jobs, column: status, source: shared-conventions-codified, values: [queued, running, succeeded, failed, cancelled, dead], checksum: "sha256:836f03f87ad8aa40"}

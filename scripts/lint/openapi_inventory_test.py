@@ -8,9 +8,17 @@ import scripts.lint.openapi_inventory as inventory
 
 class OpenAPIInventoryContractTest(unittest.TestCase):
     def test_product_scope_v12_inventory_includes_delete_me(self) -> None:
-        self.assertEqual(55, len(inventory.EXPECTED_OPERATIONS))
+        self.assertEqual(56, len(inventory.EXPECTED_OPERATIONS))
         self.assertIn(("Auth", "delete", "/me", "deleteMe"), inventory.EXPECTED_OPERATIONS)
         self.assertIn(("delete", "/me"), inventory.IK_REQUIRED)
+
+    def test_debrief_suggestions_operation_is_registered_without_idempotency_key(self) -> None:
+        self.assertIn(
+            ("Debriefs", "post", "/debriefs/question-suggestions", "suggestDebriefQuestions"),
+            inventory.EXPECTED_OPERATIONS,
+        )
+        self.assertIn(("post", "/debriefs/question-suggestions"), inventory.IK_FORBIDDEN)
+        self.assertNotIn(("post", "/debriefs/question-suggestions"), inventory.IK_REQUIRED)
 
     def test_resume_workshop_additive_inventory_is_resumes_tag_only(self) -> None:
         resume_ops = {

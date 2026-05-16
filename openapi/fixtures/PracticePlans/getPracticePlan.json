@@ -22,6 +22,28 @@
         }
       }
     },
+    "debrief-derived": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-16T09-00-00-debrief-derived"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000004700",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "goal": "debrief",
+          "mode": "assisted",
+          "interviewerPersona": "hiring_manager",
+          "difficulty": "standard",
+          "language": "zh-CN",
+          "timeBudgetMinutes": 30,
+          "questionBudget": 6,
+          "sourceDebriefId": "01918fa0-0000-7000-8000-00000000d001",
+          "status": "ready",
+          "createdAt": "2026-05-16T09:00:00Z"
+        }
+      }
+    },
     "archived": {
       "response": {
         "status": 200,

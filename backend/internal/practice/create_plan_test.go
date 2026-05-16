@@ -3,6 +3,7 @@ package practice
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,11 +50,132 @@ func TestServiceCreatePracticePlanCreatesBaselinePlan(t *testing.T) {
 	}
 }
 
-func TestServiceCreatePracticePlanRejectsFutureGoals(t *testing.T) {
-	service := NewService(ServiceOptions{Store: &recordingPlanStore{}, NewID: sequenceIDs("plan-1", "audit-1")})
+func TestServiceCreatePracticePlanCreatesDerivedPlans(t *testing.T) {
+	tests := []struct {
+		name            string
+		goal            sharedtypes.PracticeGoal
+		sourceReportID  string
+		sourceDebriefID string
+	}{
+		{
+			name:           "retry current round report source",
+			goal:           sharedtypes.PracticeGoalRetryCurrentRound,
+			sourceReportID: "report-1",
+		},
+		{
+			name:           "next round report source",
+			goal:           sharedtypes.PracticeGoalNextRound,
+			sourceReportID: "report-1",
+		},
+		{
+			name:            "debrief source",
+			goal:            sharedtypes.PracticeGoalDebrief,
+			sourceDebriefID: "debrief-1",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			store := &recordingPlanStore{}
+			service := NewService(ServiceOptions{Store: store, NewID: sequenceIDs("plan-1", "audit-1")})
+
+			plan, err := service.CreatePracticePlan(context.Background(), validCreatePlanRequest(func(in *CreatePlanRequest) {
+				in.Goal = tc.goal
+				in.SourceReportID = " " + tc.sourceReportID + " "
+				in.SourceDebriefID = " " + tc.sourceDebriefID + " "
+			}))
+			if err != nil {
+				t.Fatalf("CreatePracticePlan returned error: %v", err)
+			}
+			if plan.Goal != tc.goal || plan.SourceReportID != tc.sourceReportID || plan.SourceDebriefID != tc.sourceDebriefID {
+				t.Fatalf("unexpected plan source fields: %+v", plan)
+			}
+			if store.last.Goal != tc.goal || store.last.SourceReportID != tc.sourceReportID || store.last.SourceDebriefID != tc.sourceDebriefID {
+				t.Fatalf("store source fields not propagated: %+v", store.last)
+			}
+		})
+	}
+}
+
+func TestServiceCreatePracticePlanRejectsInvalidSourceRules(t *testing.T) {
+	tests := []struct {
+		name            string
+		goal            sharedtypes.PracticeGoal
+		sourceReportID  string
+		sourceDebriefID string
+		wantField       string
+	}{
+		{
+			name:           "baseline forbids report source",
+			goal:           sharedtypes.PracticeGoalBaseline,
+			sourceReportID: "report-1",
+			wantField:      "sourceReportId",
+		},
+		{
+			name:            "baseline forbids debrief source",
+			goal:            sharedtypes.PracticeGoalBaseline,
+			sourceDebriefID: "debrief-1",
+			wantField:       "sourceDebriefId",
+		},
+		{
+			name:      "retry requires report source",
+			goal:      sharedtypes.PracticeGoalRetryCurrentRound,
+			wantField: "sourceReportId",
+		},
+		{
+			name:            "retry forbids debrief source",
+			goal:            sharedtypes.PracticeGoalRetryCurrentRound,
+			sourceReportID:  "report-1",
+			sourceDebriefID: "debrief-1",
+			wantField:       "sourceDebriefId",
+		},
+		{
+			name:      "next round requires report source",
+			goal:      sharedtypes.PracticeGoalNextRound,
+			wantField: "sourceReportId",
+		},
+		{
+			name:      "debrief requires debrief source",
+			goal:      sharedtypes.PracticeGoalDebrief,
+			wantField: "sourceDebriefId",
+		},
+		{
+			name:            "debrief forbids report source",
+			goal:            sharedtypes.PracticeGoalDebrief,
+			sourceReportID:  "report-1",
+			sourceDebriefID: "debrief-1",
+			wantField:       "sourceReportId",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			service := NewService(ServiceOptions{Store: &recordingPlanStore{}, NewID: sequenceIDs("plan-1", "audit-1")})
+
+			_, err := service.CreatePracticePlan(context.Background(), validCreatePlanRequest(func(in *CreatePlanRequest) {
+				in.Goal = tc.goal
+				in.SourceReportID = tc.sourceReportID
+				in.SourceDebriefID = tc.sourceDebriefID
+			}))
+			var svcErr *ServiceError
+			if !errors.As(err, &svcErr) {
+				t.Fatalf("expected ServiceError, got %T: %v", err, err)
+			}
+			if svcErr.Code != sharederrors.CodeValidationFailed || svcErr.Details["field"] != tc.wantField {
+				t.Fatalf("unexpected error for %s: %+v", tc.name, svcErr)
+			}
+		})
+	}
+}
+
+func TestServiceCreatePracticePlanHidesUnavailableDerivedSource(t *testing.T) {
+	sourceDebriefID := "debrief-owned-by-someone-else"
+	store := &recordingPlanStore{createErr: ErrPlanPrerequisiteNotFound}
+	service := NewService(ServiceOptions{Store: store, NewID: sequenceIDs("plan-1", "audit-1")})
 
 	_, err := service.CreatePracticePlan(context.Background(), validCreatePlanRequest(func(in *CreatePlanRequest) {
-		in.Goal = sharedtypes.PracticeGoalNextRound
+		in.Goal = sharedtypes.PracticeGoalDebrief
+		in.SourceDebriefID = sourceDebriefID
 	}))
 	var svcErr *ServiceError
 	if !errors.As(err, &svcErr) {
@@ -62,7 +184,45 @@ func TestServiceCreatePracticePlanRejectsFutureGoals(t *testing.T) {
 	if svcErr.Code != sharederrors.CodeValidationFailed {
 		t.Fatalf("code = %q", svcErr.Code)
 	}
-	if svcErr.Details["goal"] != string(sharedtypes.PracticeGoalNextRound) || svcErr.Details["owner"] != "004-derived-plans-debrief" {
+	if strings.Contains(svcErr.Message, sourceDebriefID) {
+		t.Fatalf("source id leaked in message: %+v", svcErr)
+	}
+	if _, ok := svcErr.Details["sourceDebriefId"]; ok {
+		t.Fatalf("source id must not be echoed in details: %+v", svcErr.Details)
+	}
+}
+
+func TestServiceCreatePracticePlanRejectsLegacyDebriefMode(t *testing.T) {
+	service := NewService(ServiceOptions{Store: &recordingPlanStore{}, NewID: sequenceIDs("plan-1", "audit-1")})
+
+	_, err := service.CreatePracticePlan(context.Background(), validCreatePlanRequest(func(in *CreatePlanRequest) {
+		in.Goal = sharedtypes.PracticeGoalDebrief
+		in.SourceDebriefID = "debrief-1"
+		in.Mode = sharedtypes.PracticeMode("debrief")
+	}))
+	var svcErr *ServiceError
+	if !errors.As(err, &svcErr) {
+		t.Fatalf("expected ServiceError, got %T: %v", err, err)
+	}
+	if svcErr.Code != sharederrors.CodeValidationFailed || svcErr.Details["field"] != "mode" {
+		t.Fatalf("unexpected error: %+v", svcErr)
+	}
+}
+
+func TestServiceCreatePracticePlanRejectsInvalidGoal(t *testing.T) {
+	service := NewService(ServiceOptions{Store: &recordingPlanStore{}, NewID: sequenceIDs("plan-1", "audit-1")})
+
+	_, err := service.CreatePracticePlan(context.Background(), validCreatePlanRequest(func(in *CreatePlanRequest) {
+		in.Goal = sharedtypes.PracticeGoal("growth")
+	}))
+	var svcErr *ServiceError
+	if !errors.As(err, &svcErr) {
+		t.Fatalf("expected ServiceError, got %T: %v", err, err)
+	}
+	if svcErr.Code != sharederrors.CodeValidationFailed {
+		t.Fatalf("code = %q", svcErr.Code)
+	}
+	if svcErr.Details["goal"] != "growth" || svcErr.Details["field"] != "goal" {
 		t.Fatalf("unexpected details: %+v", svcErr.Details)
 	}
 }
@@ -84,6 +244,7 @@ func TestServiceCreatePracticePlanRejectsMissingResume(t *testing.T) {
 
 type recordingPlanStore struct {
 	last                  CreatePlanStoreInput
+	createErr             error
 	getRecord             PlanRecord
 	getErr                error
 	getUserID             string
@@ -114,9 +275,14 @@ type recordingPlanStore struct {
 
 func (s *recordingPlanStore) CreatePlan(ctx context.Context, in CreatePlanStoreInput) (PlanRecord, error) {
 	s.last = in
+	if s.createErr != nil {
+		return PlanRecord{}, s.createErr
+	}
 	return PlanRecord{
 		ID:                 in.PlanID,
 		TargetJobID:        in.TargetJobID,
+		SourceReportID:     in.SourceReportID,
+		SourceDebriefID:    in.SourceDebriefID,
 		Goal:               in.Goal,
 		Mode:               in.Mode,
 		InterviewerPersona: in.InterviewerPersona,

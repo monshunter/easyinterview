@@ -169,6 +169,38 @@ export const ALL_DEBRIEF_STATUSES: readonly DebriefStatus[] = [
   'completed',
 ] as const;
 
+// DebriefRoundType mirrors shared/conventions.yaml sourceSection 5.12 (jsonField: "roundType").
+export type DebriefRoundType =
+  | 'hr_screen'
+  | 'hiring_manager'
+  | 'behavioral'
+  | 'technical'
+  | 'culture'
+  | 'custom';
+
+export const ALL_DEBRIEF_ROUND_TYPES: readonly DebriefRoundType[] = [
+  'hr_screen',
+  'hiring_manager',
+  'behavioral',
+  'technical',
+  'culture',
+  'custom',
+] as const;
+
+// DebriefQuestionSource mirrors shared/conventions.yaml sourceSection 5.12 (jsonField: "source").
+export type DebriefQuestionSource =
+  | 'jd'
+  | 'resume'
+  | 'mock_report'
+  | 'manual';
+
+export const ALL_DEBRIEF_QUESTION_SOURCES: readonly DebriefQuestionSource[] = [
+  'jd',
+  'resume',
+  'mock_report',
+  'manual',
+] as const;
+
 // PrivacyRequestType mirrors shared/conventions.yaml sourceSection 5.13 (jsonField: "privacyRequestType").
 export type PrivacyRequestType =
   | 'export'

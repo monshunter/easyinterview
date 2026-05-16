@@ -33,11 +33,11 @@ func TestSeedMigrationCoversBaselineFeatureKeys(t *testing.T) {
 	}
 
 	rows := extractInsertRows(string(body))
-	if got := rows["prompt_versions"]; len(got) != 20 {
-		t.Errorf("prompt_versions seed rows: want 20, got %d", len(got))
+	if got := rows["prompt_versions"]; len(got) != 22 {
+		t.Errorf("prompt_versions seed rows: want 22, got %d", len(got))
 	}
-	if got := rows["rubric_versions"]; len(got) != 20 {
-		t.Errorf("rubric_versions seed rows: want 20, got %d", len(got))
+	if got := rows["rubric_versions"]; len(got) != 22 {
+		t.Errorf("rubric_versions seed rows: want 22, got %d", len(got))
 	}
 
 	wantFeatures := []string{
@@ -51,6 +51,7 @@ func TestSeedMigrationCoversBaselineFeatureKeys(t *testing.T) {
 		"resume.tailor.gap_review",
 		"resume.tailor.bullet_suggestions",
 		"debrief.generate",
+		"debrief.suggest_questions",
 	}
 	sort.Strings(wantFeatures)
 

@@ -34,7 +34,7 @@
           "type": "integer"
         },
         "roundType": {
-          "$ref": "../refs/InterviewerRole.json"
+          "$ref": "../refs/DebriefRoundType.json"
         },
         "targetJobId": {
           "type": "string"

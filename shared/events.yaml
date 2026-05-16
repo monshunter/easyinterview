@@ -198,7 +198,7 @@ events:
     requiredPayload:
       debriefId: { type: uuidv7, source: spec:3.1.4 }
       targetJobId: { type: uuidv7, source: spec:3.1.4 }
-      roundType: { type: $ref:b1.InterviewerRole, source: spec:3.1.4 }
+      roundType: { type: $ref:b1.DebriefRoundType, source: spec:3.1.4 }
       questionCount: { type: int, source: spec:3.1.4 }
     optionalPayload: {}
     piiBoundary: No debrief notes or transcript text.

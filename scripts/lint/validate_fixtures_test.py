@@ -63,8 +63,8 @@ IK_REQUIRED_OPERATION_IDS = {
 class FixtureSkeletonTest(unittest.TestCase):
     """Phase 1.1 structural contract."""
 
-    def test_fifty_five_operations_expected(self) -> None:
-        self.assertEqual(len(EXPECTED_OPERATIONS), 55)
+    def test_fifty_six_operations_expected(self) -> None:
+        self.assertEqual(len(EXPECTED_OPERATIONS), 56)
 
     def test_thirteen_unique_tags(self) -> None:
         tags = {tag for tag, *_ in EXPECTED_OPERATIONS}
@@ -331,10 +331,10 @@ class FixtureContentTest(unittest.TestCase):
         self.assertEqual(body["job"]["jobType"], "privacy_delete")
         self.assertEqual(body["job"]["resourceType"], "privacy_request")
 
-    def test_debrief_default_fixture_excludes_p1_followup_fields(self) -> None:
+    def test_debrief_default_fixture_keeps_p1_followup_fields_empty(self) -> None:
         body = _load_fixture("getDebrief", "Debriefs")["scenarios"]["default"]["response"]["body"]
-        self.assertNotIn("thankYouDraft", body)
-        self.assertNotIn("nextRoundChecklist", body)
+        self.assertIsNone(body.get("thankYouDraft"))
+        self.assertEqual(body.get("nextRoundChecklist"), [])
 
     def test_list_endpoints_have_pageInfo(self) -> None:
         for opid in LIST_OPERATIONS:

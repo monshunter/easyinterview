@@ -108,6 +108,34 @@ func TestPracticeIdempotencyMigrationContract(t *testing.T) {
 	}
 }
 
+func TestBaselinePracticePlansDerivedSourceContract(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
+	block := tableBlock(t, up, "practice_plans")
+
+	for _, required := range []string{
+		"source_report_id uuid",
+		"source_debrief_id uuid",
+		"goal text not null check (goal in ('baseline', 'retry_current_round', 'next_round', 'debrief'))",
+		"source_report_id is null",
+		"source_report_id is not null",
+		"source_debrief_id is null",
+		"source_debrief_id is not null",
+	} {
+		if !strings.Contains(block, required) {
+			t.Fatalf("practice_plans source contract missing %q", required)
+		}
+	}
+	for _, required := range []string{
+		"foreign key (source_report_id) references feedback_reports(id) on delete set null",
+		"foreign key (source_debrief_id) references debriefs(id) on delete set null",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("practice_plans source FK missing %q", required)
+		}
+	}
+}
+
 func TestPracticeIdempotencyMigrationDownDoesNotDropBaselineOwnedTable(t *testing.T) {
 	root := repoRoot(t)
 	down := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000003_practice_idempotency_baseline.down.sql")))
@@ -122,12 +150,12 @@ func TestPracticeIdempotencyMigrationDownDoesNotDropBaselineOwnedTable(t *testin
 	}
 }
 
-func TestBaselineMigrationAcceptsReportAssessmentTaskType(t *testing.T) {
+func TestBaselineMigrationAcceptsReportAndDebriefQuestionTaskTypes(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
 
-	if !strings.Contains(up, "task_type in ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'report_assessment', 'resume_tailor', 'debrief_generate', 'hint_generate')") {
-		t.Fatalf("ai_task_runs.task_type CHECK must include report_assessment next to report_generate")
+	if !strings.Contains(up, "task_type in ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'report_assessment', 'resume_tailor', 'debrief_generate', 'debrief_suggest_questions', 'hint_generate')") {
+		t.Fatalf("ai_task_runs.task_type CHECK must include report_assessment and debrief_suggest_questions")
 	}
 	if strings.Contains(up, "'report_assess'") {
 		t.Fatalf("ai_task_runs.task_type CHECK must not contain retired report_assess alias")

@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-05-16
 
@@ -25,7 +25,7 @@
 - backend-resume 现有契约为 `listResumes()` 列资产 + `listResumeVersions(resumeAssetId)` 列某个资产版本；本 plan 不再假设存在全局按 status 过滤的 resume-version 列表入口。
 - frontend-workspace-and-practice 已交付 `InterviewContext` reducer + `useRequestAuth` + nav practice 入口；本 plan 在此基础上增量扩展 1 个 reducer action `SET_DEBRIEF_CONTEXT`。
 - frontend-shell 已交付 TopBar 一级导航 `debrief` 入口 + route normalization + i18n / theme / pixel parity infrastructure。
-- backend-practice 现状已支持 `goal='debrief'` plan 派生 + `mode='debrief'` session start（由 backend-debrief/001 Phase 0.6 Q-3 验证保障）。
+- backend-practice 现状已支持 `goal='debrief'` plan 派生 + 合法 `mode IN ('assisted','strict')` session start（由 backend-debrief/001 Phase 0.6 Q-3 与 backend-practice/004 验证保障）。
 
 本 plan 假设上述依赖在 Phase 0 全部就绪后才进入 Phase 1。
 
@@ -51,7 +51,7 @@
 - 验证 `openapi/fixtures/Debriefs/createDebrief.json` / `getDebrief.json` / `suggestDebriefQuestions.json` 存在并通过 `make validate-fixtures`
 - 验证 `shared/ts/conventions/v1/` 含 `DebriefRoundType` / `DebriefQuestionSource` / `DEBRIEF_NOT_FOUND` / `IDEMPOTENCY_KEY_MISMATCH` 字面量
 - 验证 `frontend/src/api/generated/` 中存在 `listPracticeSessions`（backend-practice/B2 addendum）；同时验证 `listResumes` / `listResumeVersions(resumeAssetId)` 可用；验证 `openapi/fixtures/PracticeSessions/listPracticeSessions.json` 存在并通过 `make validate-fixtures`
-- 验证 backend-practice 现状支持 `goal='debrief'` + `mode='debrief'`（grep + test names from backend-debrief/001 Phase 0.6）
+- 验证 backend-practice 现状支持 `goal='debrief'` + 合法 `mode IN ('assisted','strict')`（grep + test names from backend-debrief/001 Phase 0.6 / backend-practice/004）
 - 未通过任一验证 → 暂停 plan 001，等 backend-debrief/001 Phase 0 完成
 
 #### 0.2 ui-design source map 记录

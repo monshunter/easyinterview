@@ -176,7 +176,7 @@ EXPECTED_EVENTS = {
         "requiredPayload": {
             "debriefId": "uuidv7",
             "targetJobId": "uuidv7",
-            "roundType": "$ref:b1.InterviewerRole",
+            "roundType": "$ref:b1.DebriefRoundType",
             "questionCount": "int",
         },
     },

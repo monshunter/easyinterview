@@ -47,11 +47,18 @@ def section_after(text: str, marker: str) -> str:
     return section
 
 
+def baseline_feature_key_section(text: str) -> str:
+    match = re.search(r"#### 3\.1\.1 \d+ 个当前 baseline feature_key 字典", text)
+    if not match:
+        raise ValueError("missing section marker: §3.1.1 current baseline feature_key dictionary")
+    return section_after(text, match.group(0))
+
+
 def documented_profiles(repo: Path) -> set[str]:
     f3 = read(repo / "docs/spec/prompt-rubric-registry/spec.md")
     a3 = read(repo / "docs/spec/ai-provider-and-model-routing/spec.md")
     profiles: set[str] = set()
-    profiles.update(PROFILE_RE.findall(section_after(f3, "#### 3.1.1 10 个当前 baseline feature_key 字典")))
+    profiles.update(PROFILE_RE.findall(baseline_feature_key_section(f3)))
     profiles.update(PROFILE_RE.findall(section_after(a3, "### 4.5 Product/UI AI Capability Catalog")))
     bad = [p for p in profiles if "*" in p]
     if bad:

@@ -53,12 +53,12 @@ type PromptResolver interface {
 }
 
 type ServiceOptions struct {
-	Store         Store
-	Registry      PromptResolver
-	AI            aiclient.AIClient
-	AITaskRuns    aiclient.AITaskRunWriter
-	Now           func() time.Time
-	NewID         func() string
+	Store      Store
+	Registry   PromptResolver
+	AI         aiclient.AIClient
+	AITaskRuns aiclient.AITaskRunWriter
+	Now        func() time.Time
+	NewID      func() string
 }
 
 type Service struct {
@@ -86,6 +86,8 @@ type CreatePlanRequest struct {
 	UserID               string
 	TargetJobID          string
 	ResumeAssetID        string
+	SourceReportID       string
+	SourceDebriefID      string
 	Goal                 sharedtypes.PracticeGoal
 	Mode                 sharedtypes.PracticeMode
 	InterviewerPersona   sharedtypes.InterviewerRole
@@ -102,6 +104,8 @@ type CreatePlanStoreInput struct {
 	UserID               string
 	TargetJobID          string
 	ResumeAssetID        string
+	SourceReportID       string
+	SourceDebriefID      string
 	Goal                 sharedtypes.PracticeGoal
 	Mode                 sharedtypes.PracticeMode
 	InterviewerPersona   sharedtypes.InterviewerRole
@@ -116,6 +120,8 @@ type CreatePlanStoreInput struct {
 type PlanRecord struct {
 	ID                 string
 	TargetJobID        string
+	SourceReportID     string
+	SourceDebriefID    string
 	Goal               sharedtypes.PracticeGoal
 	Mode               sharedtypes.PracticeMode
 	InterviewerPersona sharedtypes.InterviewerRole
@@ -137,14 +143,16 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 	if strings.TrimSpace(in.TargetJobID) == "" {
 		return PlanRecord{}, validationError("targetJobId is required", map[string]any{"field": "targetJobId"})
 	}
-	if in.Goal != sharedtypes.PracticeGoalBaseline {
-		return PlanRecord{}, validationError("practice goal is owned by a future plan", map[string]any{
-			"goal":  string(in.Goal),
-			"owner": "004-derived-plans-debrief",
-		})
+	if !validPracticeGoal(in.Goal) {
+		return PlanRecord{}, validationError("goal is invalid", map[string]any{"field": "goal", "goal": string(in.Goal)})
 	}
 	if strings.TrimSpace(in.ResumeAssetID) == "" {
 		return PlanRecord{}, validationError("A resume asset must be bound before creating this practice plan.", map[string]any{"field": "resumeAssetId"})
+	}
+	sourceReportID := strings.TrimSpace(in.SourceReportID)
+	sourceDebriefID := strings.TrimSpace(in.SourceDebriefID)
+	if err := validateCreatePlanSources(in.Goal, sourceReportID, sourceDebriefID); err != nil {
+		return PlanRecord{}, err
 	}
 	if !validPracticeMode(in.Mode) {
 		return PlanRecord{}, validationError("mode is invalid", map[string]any{"field": "mode"})
@@ -172,6 +180,8 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 		UserID:               strings.TrimSpace(in.UserID),
 		TargetJobID:          strings.TrimSpace(in.TargetJobID),
 		ResumeAssetID:        strings.TrimSpace(in.ResumeAssetID),
+		SourceReportID:       sourceReportID,
+		SourceDebriefID:      sourceDebriefID,
 		Goal:                 in.Goal,
 		Mode:                 in.Mode,
 		InterviewerPersona:   in.InterviewerPersona,
@@ -192,6 +202,33 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 		return PlanRecord{}, err
 	}
 	return plan, nil
+}
+
+func validateCreatePlanSources(goal sharedtypes.PracticeGoal, sourceReportID, sourceDebriefID string) error {
+	switch goal {
+	case sharedtypes.PracticeGoalBaseline:
+		if sourceReportID != "" {
+			return validationError("baseline practice plans cannot use a report source", map[string]any{"field": "sourceReportId", "goal": string(goal)})
+		}
+		if sourceDebriefID != "" {
+			return validationError("baseline practice plans cannot use a debrief source", map[string]any{"field": "sourceDebriefId", "goal": string(goal)})
+		}
+	case sharedtypes.PracticeGoalRetryCurrentRound, sharedtypes.PracticeGoalNextRound:
+		if sourceReportID == "" {
+			return validationError("sourceReportId is required for this practice goal", map[string]any{"field": "sourceReportId", "goal": string(goal)})
+		}
+		if sourceDebriefID != "" {
+			return validationError("sourceDebriefId is not allowed for this practice goal", map[string]any{"field": "sourceDebriefId", "goal": string(goal)})
+		}
+	case sharedtypes.PracticeGoalDebrief:
+		if sourceReportID != "" {
+			return validationError("sourceReportId is not allowed for debrief practice plans", map[string]any{"field": "sourceReportId", "goal": string(goal)})
+		}
+		if sourceDebriefID == "" {
+			return validationError("sourceDebriefId is required for debrief practice plans", map[string]any{"field": "sourceDebriefId", "goal": string(goal)})
+		}
+	}
+	return nil
 }
 
 func (s *Service) GetPracticePlan(ctx context.Context, userID, planID string) (PlanRecord, error) {
@@ -257,6 +294,15 @@ func sessionConflictError() *ServiceError {
 func validPracticeMode(mode sharedtypes.PracticeMode) bool {
 	for _, allowed := range sharedtypes.AllPracticeModes {
 		if mode == allowed {
+			return true
+		}
+	}
+	return false
+}
+
+func validPracticeGoal(goal sharedtypes.PracticeGoal) bool {
+	for _, allowed := range sharedtypes.AllPracticeGoals {
+		if goal == allowed {
 			return true
 		}
 	}

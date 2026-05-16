@@ -45,6 +45,35 @@ func TestStartPracticeSessionReturns201WithCurrentTurn(t *testing.T) {
 	}
 }
 
+func TestStartPracticeSessionDebriefReturnsSourceCurrentTurn(t *testing.T) {
+	service := &fakePlanService{
+		startRecord: func() domain.SessionRecord {
+			session := fixtureSessionRecord()
+			session.CurrentTurn.QuestionText = "__DEBRIEF_FIRST_QUESTION__"
+			session.CurrentTurn.QuestionIntent = "debrief.source_question"
+			return session
+		}(),
+	}
+	handler := newTestHandler(service)
+
+	rec := httptest.NewRecorder()
+	handler.StartPracticeSession(rec, newStartSessionHTTPRequest(t, api.StartPracticeSessionRequest{PlanId: "plan-debrief"}))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var out api.PracticeSession
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("decode PracticeSession: %v", err)
+	}
+	if out.Status != sharedtypes.SessionStatusRunning ||
+		out.CurrentTurn == nil ||
+		out.CurrentTurn.QuestionText != "__DEBRIEF_FIRST_QUESTION__" ||
+		out.CurrentTurn.QuestionIntent == nil ||
+		*out.CurrentTurn.QuestionIntent != "debrief.source_question" {
+		t.Fatalf("unexpected debrief response: %+v", out)
+	}
+}
+
 func TestStartPracticeSessionFixtureParityDefault(t *testing.T) {
 	fixture := loadStartSessionFixture(t)
 	scenario := fixture.Scenarios["default"]

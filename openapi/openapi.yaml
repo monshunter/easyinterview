@@ -1281,6 +1281,39 @@ paths:
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
+  /debriefs/question-suggestions:
+    post:
+      tags: [Debriefs]
+      operationId: suggestDebriefQuestions
+      summary: Suggest likely debrief questions for a real interview
+      description: |
+        Synchronous AI-assisted helper for the Debrief recording step. Does not
+        persist a debrief record, create an async job, or require
+        `Idempotency-Key`; callers can fall back to manual entry on AI errors.
+      parameters:
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuggestDebriefQuestionsRequest'
+      responses:
+        '200':
+          description: Suggested debrief questions.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuggestDebriefQuestionsResponse'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
   /debriefs/{debriefId}:
     get:
       tags: [Debriefs]
@@ -1896,7 +1929,7 @@ components:
     # Hand edits inside this block will be overwritten. To extend the contract,
     # update `shared/conventions.yaml` (B1 truth source) and re-run codegen.
     # The block tracks: ApiError inner object, ApiErrorResponse envelope,
-    # ApiErrorCode, PageInfo, JobStatus, and the 17 enums catalogued in
+    # ApiErrorCode, PageInfo, JobStatus, and the 19 enums catalogued in
     # `shared/conventions.yaml#enums`.
     ApiErrorCode:
       type: string
@@ -1918,8 +1951,10 @@ components:
         - PRACTICE_SESSION_NOT_FOUND
         - REPORT_NOT_FOUND
         - REPORT_NOT_READY
+        - DEBRIEF_NOT_FOUND
         - RESUME_EXPORT_NOT_AVAILABLE
         - VALIDATION_FAILED
+        - IDEMPOTENCY_KEY_MISMATCH
         - RATE_LIMITED
         - AI_PROVIDER_TIMEOUT
         - AI_OUTPUT_INVALID
@@ -2047,6 +2082,16 @@ components:
       type: string
       description: Synced from `shared/conventions.yaml#enums[DebriefStatus]` sourceSection 5.12.
       enum: [draft, completed]
+
+    DebriefRoundType:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[DebriefRoundType]` sourceSection 5.12.
+      enum: [hr_screen, hiring_manager, behavioral, technical, culture, custom]
+
+    DebriefQuestionSource:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[DebriefQuestionSource]` sourceSection 5.12.
+      enum: [jd, resume, mock_report, manual]
 
     PrivacyRequestType:
       type: string
@@ -2930,6 +2975,16 @@ components:
         resumeAssetId:
           type: string
           format: uuid
+        sourceReportId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Required for retry_current_round and next_round practice goals.
+        sourceDebriefId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Required for debrief practice goals.
         focusCompetencyCodes:
           type: array
           items:
@@ -2964,6 +3019,14 @@ components:
           type: integer
           format: int32
           minimum: 1
+        sourceReportId:
+          type: string
+          format: uuid
+          nullable: true
+        sourceDebriefId:
+          type: string
+          format: uuid
+          nullable: true
         status:
           type: string
           enum: [draft, ready, archived]
@@ -3360,7 +3423,9 @@ components:
         interviewerReaction:
           type: string
         aiAnalysis:
-          type: string
+          oneOf:
+            - type: string
+            - type: 'null'
 
     DebriefRiskItem:
       type: object
@@ -3389,8 +3454,7 @@ components:
           type: string
           format: uuid
         roundType:
-          type: string
-          enum: [hr_screen, hiring_manager, behavioral, technical, culture, custom]
+          $ref: '#/components/schemas/DebriefRoundType'
         interviewerRole:
           $ref: '#/components/schemas/InterviewerRole'
         language:
@@ -3421,8 +3485,7 @@ components:
         status:
           $ref: '#/components/schemas/DebriefStatus'
         roundType:
-          type: string
-          enum: [hr_screen, hiring_manager, behavioral, technical, culture, custom]
+          $ref: '#/components/schemas/DebriefRoundType'
         interviewerRole:
           oneOf:
             - $ref: '#/components/schemas/InterviewerRole'
@@ -3466,6 +3529,52 @@ components:
           format: uuid
         job:
           $ref: '#/components/schemas/Job'
+
+    SuggestedDebriefQuestion:
+      type: object
+      required: [questionText, whyLikelyAsked, source]
+      properties:
+        stage:
+          oneOf:
+            - type: string
+            - type: 'null'
+        questionText:
+          type: string
+        whyLikelyAsked:
+          type: string
+        source:
+          $ref: '#/components/schemas/DebriefQuestionSource'
+
+    SuggestDebriefQuestionsRequest:
+      type: object
+      required: [targetJobId, language]
+      properties:
+        targetJobId:
+          type: string
+          format: uuid
+        sessionId:
+          type: string
+          format: uuid
+        resumeVersionId:
+          type: string
+          format: uuid
+        language:
+          type: string
+        count:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 10
+          default: 6
+
+    SuggestDebriefQuestionsResponse:
+      type: object
+      required: [suggestions]
+      properties:
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SuggestedDebriefQuestion'
 
     # ----- Async Job -----
     Job:

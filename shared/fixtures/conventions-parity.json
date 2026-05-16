@@ -72,6 +72,20 @@
       "draft",
       "completed"
     ],
+    "DebriefRoundType": [
+      "hr_screen",
+      "hiring_manager",
+      "behavioral",
+      "technical",
+      "culture",
+      "custom"
+    ],
+    "DebriefQuestionSource": [
+      "jd",
+      "resume",
+      "mock_report",
+      "manual"
+    ],
     "PrivacyRequestType": [
       "export",
       "delete"
@@ -110,8 +124,10 @@
     "PRACTICE_SESSION_NOT_FOUND",
     "REPORT_NOT_FOUND",
     "REPORT_NOT_READY",
+    "DEBRIEF_NOT_FOUND",
     "RESUME_EXPORT_NOT_AVAILABLE",
     "VALIDATION_FAILED",
+    "IDEMPOTENCY_KEY_MISMATCH",
     "RATE_LIMITED",
     "AI_PROVIDER_TIMEOUT",
     "AI_OUTPUT_INVALID",

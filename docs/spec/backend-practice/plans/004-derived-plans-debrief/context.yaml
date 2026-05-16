@@ -1,0 +1,61 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-practice
+  name: 004-derived-plans-debrief
+  sequence: 4
+  supersedes: []
+  specVersion:
+    from: 1.9
+    to: 1.10
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-practice
+      - backend-practice/004
+      - 004-derived-plans-debrief
+      - derived-plans-debrief
+      - debrief-derived-practice
+    keywords:
+      - practice
+      - derived plan
+      - retry_current_round
+      - next_round
+      - debrief
+      - sourceReportId
+      - sourceDebriefId
+      - source_report_id
+      - source_debrief_id
+      - createPracticePlan
+      - startPracticeSession
+      - goal=debrief
+      - PracticeGoalDebrief
+      - mode assisted strict
+      - debrief.raw_questions
+      - no first_question AI for debrief
+      - 004-derived-plans-debrief
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      testPlan: ./test-plan.md
+      testChecklist: ./test-checklist.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      discovery:
+        packages:
+          - backend/internal/api/practice
+          - backend/internal/practice
+          - backend/internal/store/practice
+          - backend/cmd/api
+          - migrations
+          - openapi/fixtures/PracticePlans
+          - openapi/fixtures/PracticeSessions
+          - openapi
+          - scripts/lint
+        apiNames:
+          - createPracticePlan
+          - getPracticePlan
+          - startPracticeSession

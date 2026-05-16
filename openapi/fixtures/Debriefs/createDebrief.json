@@ -3,7 +3,9 @@
   "scenarios": {
     "default": {
       "request": {
-        "headers": {},
+        "headers": {
+          "Idempotency-Key": "01918fa0-0000-7000-8000-00000000c100"
+        },
         "body": {
           "targetJobId": "01918fa0-0000-7000-8000-000000002000",
           "roundType": "hiring_manager",
@@ -14,6 +16,11 @@
               "questionText": "你过去推动跨团队 alignment 的最难一次是什么？",
               "myAnswerSummary": "用 STAR 讲了设计系统迁移，但漏掉了财务影响的量化。",
               "interviewerReaction": "追问了财务影响 2 次。"
+            },
+            {
+              "questionText": "如果重新做这次迁移，你会先改哪一个决策？",
+              "myAnswerSummary": "会更早把 adoption 指标绑定到业务目标。",
+              "interviewerReaction": "认可方向，但要求解释为什么不是先做培训。"
             }
           ],
           "notes": "面试官非常关注 ROI 与量化叙事。"

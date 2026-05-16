@@ -54,3 +54,7 @@
 | E2E.P0.057 | frontend-report-dashboard C-3, C-6 | `p0-057-replay-cta-paths-a-and-b/` | Replay CTA paths A/B：retry_current_round + next_round payload, replay_practice pendingAction round-trip, no raw text | automated | Ready |
 | E2E.P0.058 | frontend-report-dashboard C-4, C-12 | `p0-058-report-failure-and-missing-session/` | ReportFailureState AI_* enum + ReportMissingSessionState + cross-user 404 not-found copy + Generating timeout retry | automated | Ready |
 | E2E.P0.059 | frontend-report-dashboard C-13, C-14, D-12 | `p0-059-report-pixel-parity-i18n-and-legacy-negative/` | i18n namespace sync + AI_* enum coverage + legacy vocab negative grep + Playwright pixel-parity specs staged | automated | Ready |
+| E2E.P0.070 | backend-practice C-2, C-3 | `p0-070-practice-derived-plan-create-read-replay/` | report/debrief derived createPracticePlan、getPracticePlan 与 idempotency replay source 字段 | automated | Ready |
+| E2E.P0.071 | backend-practice C-3, C-4 | `p0-071-practice-debrief-start-source-question/` | debrief startPracticeSession 使用 source raw_questions 首题且 first_question AI 零调用 | automated | Ready |
+| E2E.P0.072 | backend-practice C-2, C-3, D-11 | `p0-072-practice-derived-source-isolation-privacy/` | derived source missing/cross-user/wrong-target/draft/empty 隔离与隐私红线 | automated | Ready |
+| E2E.P0.073 | backend-practice D-5, D-14 | `p0-073-practice-debrief-mode-regression/` | goal=debrief × assisted/strict 可启动，legacy mode=debrief 负向 | automated | Ready |

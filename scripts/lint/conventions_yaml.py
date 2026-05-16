@@ -48,6 +48,15 @@ EXPECTED_PRODUCT_ENUM_VALUES = {
     "ResumeVersionType": ["structured_master", "targeted"],
     "ResumeSeedStrategy": ["copy_master", "blank", "ai_select"],
     "ResumeTailorSuggestionStatus": ["pending", "accepted", "rejected"],
+    "DebriefRoundType": [
+        "hr_screen",
+        "hiring_manager",
+        "behavioral",
+        "technical",
+        "culture",
+        "custom",
+    ],
+    "DebriefQuestionSource": ["jd", "resume", "mock_report", "manual"],
 }
 REMOVED_ENUM_NAMES = {"MistakeStatus"}
 REQUIRED_ERROR_CODES = {

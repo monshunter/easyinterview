@@ -38,23 +38,25 @@ type StartSessionReservationInput struct {
 }
 
 type SessionReservation struct {
-	IdempotencyRecordID string
-	SessionID           string
-	UserID              string
-	PlanID              string
-	TargetJobID         string
-	Goal                sharedtypes.PracticeGoal
-	Mode                sharedtypes.PracticeMode
-	InterviewerPersona  sharedtypes.InterviewerRole
-	Language            string
-	HintsEnabled        bool
-	RoleTitle           string
-	Seniority           string
-	TopSkills           []string
-	RubricDimensions    []string
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
-	ReplaySession       *SessionRecord
+	IdempotencyRecordID        string
+	SessionID                  string
+	UserID                     string
+	PlanID                     string
+	TargetJobID                string
+	Goal                       sharedtypes.PracticeGoal
+	Mode                       sharedtypes.PracticeMode
+	InterviewerPersona         sharedtypes.InterviewerRole
+	Language                   string
+	HintsEnabled               bool
+	DebriefFirstQuestionText   string
+	DebriefFirstQuestionIntent string
+	RoleTitle                  string
+	Seniority                  string
+	TopSkills                  []string
+	RubricDimensions           []string
+	CreatedAt                  time.Time
+	UpdatedAt                  time.Time
+	ReplaySession              *SessionRecord
 }
 
 type CommitSessionStartInput struct {
@@ -114,12 +116,6 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 	if s == nil || s.store == nil {
 		return SessionRecord{}, fmt.Errorf("practice service is not initialised")
 	}
-	if s.registry == nil {
-		return SessionRecord{}, fmt.Errorf("practice prompt registry is not configured")
-	}
-	if s.ai == nil {
-		return SessionRecord{}, fmt.Errorf("practice AI client is not configured")
-	}
 	userID := strings.TrimSpace(in.UserID)
 	planID := strings.TrimSpace(in.PlanID)
 	if userID == "" {
@@ -157,17 +153,9 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 		return *reservation.ReplaySession, nil
 	}
 
-	resolution, err := s.registry.ResolveActive(ctx, firstQuestionFeatureKey, reservation.Language)
+	question, err := s.firstQuestionForReservation(ctx, userID, reservation)
 	if err != nil {
-		return SessionRecord{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromRegistry(err))
-	}
-	resp, _, err := s.ai.Complete(ctx, resolution.ModelProfileName, firstQuestionPayload(resolution, reservation))
-	if err != nil {
-		return SessionRecord{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromAI(err))
-	}
-	question, err := parseFirstQuestion(resp.Content)
-	if err != nil {
-		return SessionRecord{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromAI(err))
+		return SessionRecord{}, err
 	}
 
 	return s.store.CommitSessionStart(ctx, CommitSessionStartInput{
@@ -192,12 +180,44 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 	})
 }
 
+func (s *Service) firstQuestionForReservation(ctx context.Context, userID string, reservation SessionReservation) (firstQuestion, error) {
+	if reservation.Goal == sharedtypes.PracticeGoalDebrief {
+		question, err := debriefSourceFirstQuestion(reservation)
+		if err != nil {
+			return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, err)
+		}
+		return question, nil
+	}
+	if s.registry == nil {
+		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, aiConfigError())
+	}
+	if s.ai == nil {
+		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, aiConfigError())
+	}
+	resolution, err := s.registry.ResolveActive(ctx, firstQuestionFeatureKey, reservation.Language)
+	if err != nil {
+		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromRegistry(err))
+	}
+	resp, _, err := s.ai.Complete(ctx, resolution.ModelProfileName, firstQuestionPayload(resolution, reservation))
+	if err != nil {
+		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromAI(err))
+	}
+	question, err := parseFirstQuestion(resp.Content)
+	if err != nil {
+		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromAI(err))
+	}
+	return question, nil
+}
+
 func (s *Service) failReservedSessionStart(ctx context.Context, userID string, reservation SessionReservation, err error) error {
 	var svcErr *ServiceError
-	if !stderrs.As(err, &svcErr) || !isPracticeAIErrorCode(svcErr.Code) {
+	if !stderrs.As(err, &svcErr) {
 		return err
 	}
-	meta := sharederrors.CodeRegistry[svcErr.Code]
+	meta, ok := sharederrors.CodeRegistry[svcErr.Code]
+	if !ok {
+		return err
+	}
 	if failErr := s.store.FailSessionStart(ctx, FailSessionStartInput{
 		IdempotencyRecordID: reservation.IdempotencyRecordID,
 		SessionID:           reservation.SessionID,
@@ -209,6 +229,26 @@ func (s *Service) failReservedSessionStart(ctx context.Context, userID string, r
 		return failErr
 	}
 	return svcErr
+}
+
+func debriefSourceFirstQuestion(reservation SessionReservation) (firstQuestion, error) {
+	text := strings.TrimSpace(reservation.DebriefFirstQuestionText)
+	if text == "" {
+		return firstQuestion{}, validationError("debrief source question is not available", map[string]any{
+			"field": "sourceDebriefId",
+			"goal":  string(sharedtypes.PracticeGoalDebrief),
+		})
+	}
+	intent := strings.TrimSpace(reservation.DebriefFirstQuestionIntent)
+	if intent == "" {
+		intent = "debrief.source_question"
+	}
+	return firstQuestion{Text: text, Intent: intent}, nil
+}
+
+func aiConfigError() *ServiceError {
+	meta := sharederrors.CodeRegistry[sharederrors.CodeAiProviderConfigInvalid]
+	return &ServiceError{Code: sharederrors.CodeAiProviderConfigInvalid, Message: meta.Message}
 }
 
 func firstQuestionPayload(resolution registry.PromptResolution, reservation SessionReservation) aiclient.CompletePayload {

@@ -1,6 +1,6 @@
 # Backend Debrief Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-05-16
 
@@ -71,7 +71,7 @@
 | D-14 | Cross-owner pre-launch addendum 范围 | backend-debrief/001 Phase 0 必须以同一 PR（或紧邻 PR）落地以下跨 owner addendum，否则不得进入 Phase 1：(a) B1 新增 `DEBRIEF_NOT_FOUND` 错误码 + 通用 `IDEMPOTENCY_KEY_MISMATCH` 错误码 + `DebriefRoundType` enum + `DebriefQuestionSource` enum + 同步 generated Go/TS 字面量；AI 失败只使用当前 B1 canonical `AI_*` code；(b) B2 新增 `POST /debriefs/question-suggestions` `suggestDebriefQuestions` operation + `SuggestDebriefQuestionsRequest` / `SuggestDebriefQuestionsResponse` schema + fixtures `Debriefs/suggestDebriefQuestions.json` + 扩展既有 `createDebrief` / `getDebrief` fixtures + 修复 `Debrief.roundType` / `CreateDebriefRequest.roundType` enum 引用为 `b1.DebriefRoundType`（如 B1/B2 owner 选择新建独立 enum）；(c) B3 修复 `shared/events.yaml` `debrief.created.roundType: $ref:b1.InterviewerRole` → `$ref:b1.DebriefRoundType`，同步 generated `events.v1.json` + `events_inventory.py` lint；(d) B4 把 `debrief_suggest_questions` 加入 `ai_task_runs.task_type` CHECK、`migrations/enum-sources.yaml` 与 migration lint / replay fixtures，不新增列；(e) F3 新增 `debrief.suggest_questions` feature_key + `debrief.suggest_questions.default` model profile + 基线 prompt v0.1.0 + 可选 rubric；(f) 全套 `make codegen-check` + `make validate-fixtures` + `make lint-events` + `make codegen-events-check` + `migrations/lint.sh` + `make migrate-check` 通过；(g) backend-targetjob drainer 注册 `debrief.GenerateHandler` 的位置在 cmd/api 已有锚点验证 | 避免 backend-debrief 实施时 reference 未注册字面量 / 漂移 enum；显式承认本 spec 依赖 5 个 owner 的 pre-launch addendum |
 | D-15 | Cross-user 隔离 + 错误码前置 | B1/B2 必须在 Phase 0 新增 `DEBRIEF_NOT_FOUND` 错误码并同步 generated Go/TS/OpenAPI 后，backend-debrief 才能在 404 隔离路径使用该 code；若 B1/B2 owner 选择复用既有 generic `RESOURCE_NOT_FOUND` 或类似 code，必须在 D-14 addendum 决策行更新本 spec | 与 backend-review D-15 / backend-practice 一致原则；保持错误码单一真理源 |
 | D-16 | Idempotency 边界 | `createDebrief` require `Idempotency-Key`（OpenAPI 已声明，复用既有 `idempotency_records` 表 + handler middleware）；同 IK + 相同 user_id + 相同 request body hash → 返回 cached 202 response（同 debriefId + job）；同 IK + 不同 body → 409 `IDEMPOTENCY_KEY_MISMATCH`；`suggestDebriefQuestions` **不**要求 IK（结果 ephemeral，AI 输出非确定性，IK 反而误导客户端复用错误结果）；`getDebrief` read-only 无 IK | 与 OpenAPI parameters.IdempotencyKey 现状 + product-scope §4.4 idempotency 边界一致 |
-| D-17 | 复盘面试 handoff | "复盘面试"通过既有 `createPracticePlan(goal='debrief')` + `startPracticeSession` 跨域复用；本 spec **不**实现 `startDebriefInterview` 或类似 endpoint；前端 frontend-debrief 在 step 2 只 nav 到 `practice`，route payload 含 `targetJobId` + `resumeVersionId` + `practiceGoal='debrief'` + 可选 `debriefId`，再由 frontend-workspace-and-practice 在 practice 路由内映射为 backend `createPracticePlan(goal='debrief')`；`practice_plans.goal='debrief'` 已是 B4 CHECK 现状（migration line 169）；`PracticeSessionMode` 含 `debrief` 已是 B1/B2 现状（OpenAPI line 1991）；当前 backend-practice 实现是否已支持 `goal='debrief'` 与 `mode='debrief'` 必须在 backend-debrief/001 Phase 0 验证（如未支持，需 backend-practice owner 同步 addendum） | 避免新增 endpoint；与 product-scope §6.5 "复盘面试是一场完整模拟面试" + ui-design `practice?mode=debrief` 一致 |
+| D-17 | 复盘面试 handoff | "复盘面试"通过既有 `createPracticePlan(goal='debrief')` + `startPracticeSession` 跨域复用；本 spec **不**实现 `startDebriefInterview` 或类似 endpoint；前端 frontend-debrief 在 step 2 只 nav 到 `practice`，route payload 含 `targetJobId` + `resumeVersionId` + `practiceGoal='debrief'` + 可选 `debriefId`，再由 frontend-workspace-and-practice 在 practice 路由内映射为 backend `createPracticePlan(goal='debrief')`；`practice_plans.goal='debrief'` 已是 B4 CHECK 现状（migration line 169）；`PracticeMode` 当前仅允许 `assisted` / `strict` 且与 goal 正交，debrief 不再是合法 mode；当前 backend-practice 实现是否已支持 `goal='debrief'` 派生与任一合法 `mode IN ('assisted','strict')` 的 session start 必须在 backend-debrief/001 Phase 0 验证（如未支持，需 backend-practice owner 同步 addendum） | 避免新增 endpoint；与 product-scope §6.5 "复盘面试是一场完整模拟面试" + backend-practice D-5/D-21 二值 mode 收敛一致 |
 | D-18 | DELETE /me CASCADE | `users.id` ON DELETE CASCADE 已级联 `debriefs.user_id`（B4 现状）；删除 user 时 `debriefs` + `async_jobs(job_type='debrief_generate')` 通过外键级联清理（async_jobs 由 user_id 间接关联，具体级联由 backend-targetjob owner 验证）；本 spec P0 不实现独立 delete debrief API；不引入软删 | 与 product-scope §9.3 / backend-review D-7 一致 |
 
 ### 3.2 非后端 owner 决策
@@ -80,7 +80,7 @@
 |----|------|-------|----------|
 | Q-1 | `b1.DebriefRoundType` enum 命名（`DebriefRoundType` vs 复用 `RoundType` 通用名） | B1 owner | 本 spec 默认建议 `DebriefRoundType` 与 `Debrief.roundType` 命名一致；若 B1 owner 选择 generic `RoundType` 跨域复用（practice_plans 等），同步更新 D-13 与 events.yaml；接受 owner 决议 |
 | Q-2 | F3 `debrief.suggest_questions` rubric 是否必要 | F3 owner | 本 spec 不强制要求 rubric；prompt + structured output 已足够生成 6-10 条推荐问题；若 F3 owner 决定按现有 baseline 套路加 rubric，prompt 模板需考虑 schema 校验 |
-| Q-3 | backend-practice 现状是否已支持 `goal='debrief'` plan 派生 + `PracticeSessionMode='debrief'` session 启动 | backend-practice owner | 本 spec 假设 B1/B2/B4 enum 已包含 `debrief`，但实际 plan 派生逻辑 / session start handler 是否分支处理需 backend-practice/001-002 plan 验证；如未实现，需 backend-practice 同步 addendum 或本 spec Phase 0 增加协调 |
+| Q-3 | backend-practice 现状是否已支持 `goal='debrief'` plan 派生 + `PracticeMode IN ('assisted','strict')` session 启动 | backend-practice owner | 本 spec 仅假设 B1/B2/B4 `PracticeGoal` enum 已包含 `debrief`；`PracticeMode` 不含 `debrief`。实际 plan 派生逻辑 / session start handler 是否处理 goal=debrief 需 backend-practice owner 验证；如未实现，需 backend-practice 同步 addendum 或本 spec Phase 0 增加协调 |
 | Q-4 | DELETE /me CASCADE 是否 atomic 跨表（debriefs + async_jobs + ai_task_runs + audit_events） | platform / future privacy plan | 本 spec 仅约定 `users.id` 外键 CASCADE 已落地（B4 现状），平台触发时跨表 atomic 由 future privacy plan 验证 |
 
 ### 3.3 待确认事项
@@ -148,7 +148,7 @@
 | Async runtime | [`backend-targetjob`](../backend-targetjob/spec.md) | `targetjob.Drainer` + `targetjob.JobHandler` interface；本 spec 注册 `debrief.GenerateHandler` 不新建 polling worker |
 | Upstream — TargetJob | [`backend-targetjob`](../backend-targetjob/spec.md) | 提供 `target_jobs` 行、middleware 越权拦截、`getTargetJob` API 给 suggestDebriefQuestions 使用 |
 | Upstream — Resume | [`backend-resume`](../backend-resume/spec.md) | 提供 resume version 行、middleware 越权拦截；suggestDebriefQuestions 可选消费 resume bullets 作为 prompt context |
-| Upstream — Practice | [`backend-practice`](../backend-practice/spec.md) | 提供 practice_sessions 行；suggestDebriefQuestions 可选消费 session 摘要作为 prompt context；复盘面试启动通过 `createPracticePlan(goal='debrief')` + `startPracticeSession` 跨域复用，由 backend-practice owner 处理 `goal='debrief'` plan 派生与 `mode='debrief'` session start（Q-3 验证） |
+| Upstream — Practice | [`backend-practice`](../backend-practice/spec.md) | 提供 practice_sessions 行；suggestDebriefQuestions 可选消费 session 摘要作为 prompt context；复盘面试启动通过 `createPracticePlan(goal='debrief')` + `startPracticeSession` 跨域复用，由 backend-practice owner 处理 `goal='debrief'` plan 派生与合法 `mode IN ('assisted','strict')` session start（Q-3 验证） |
 | Downstream — Debrief UI | [`frontend-debrief`](../frontend-debrief/spec.md) | `DebriefScreen` / 3 picker modal / record / analysis / interview step、polling、复盘面试 CTA；本 spec 提供 schema + data，不耦合 UI |
 | Frontend consumer | [`frontend-debrief`](../frontend-debrief/spec.md) | `createDebrief` / `getDebrief` / `suggestDebriefQuestions` 调用入口在 DebriefScreen 各 step |
 | Scenario coverage | scenarios owner + 本 subject | `E2E.P0.060-064` 套件 setup / trigger / verify / cleanup（具体编号在 plan 内分配） |
@@ -183,11 +183,11 @@
 | C-14 | 隐私红线 | C-5 已完成 | 检查 `debrief.created` / `debrief.completed` outbox payload / F1 metric label / log / audit metadata | 不含 `questionText` / `myAnswerSummary` / `interviewerReaction` / `notes` 全文 / `risk_items.label` 全文 / AI prompt body / AI response body / provider secret 的逐字回放；只含 IDs / length / count / status / profile / provider / model_id / cost micros / error code 摘要 | 001 |
 | C-15 | ai_task_runs 行 | C-5 / C-9 / C-10 / C-11 完成 | 检查 `ai_task_runs` | `debrief_generate` 调用一行 `task_type='debrief_generate'`；`suggestDebriefQuestions` 调用一行 `task_type='debrief_suggest_questions'`；行含 `feature_key` / `model_profile_name` / `input_tokens` / `output_tokens` / `latency_ms` / `validation_status` / `error_code`；失败行 `status='failed'`（B4 enum）+ B1 error_code | 001 |
 | C-16 | Cross-owner pre-launch addendum gate | Phase 0 addendums 未落地 | 进入 Phase 1 实施 | Phase 1 实施必须 BLOCK：`make codegen-check` / `make validate-fixtures` / `make lint-events` / `migrations/lint.sh` / `make migrate-check` 任一失败时拒绝继续；D-14 addendums (a)-(g) 全部通过 | 001 |
-| C-17 | 复盘面试 handoff 验证 | C-7 已完成；用户在 frontend-debrief step 2 触发"开始复盘面试" | 前端 nav practice + route payload `{practiceGoal:'debrief', targetJobId, resumeVersionId?, debriefId?}` | frontend-workspace-and-practice 把 route-level `practiceGoal` 映射为 backend-practice `createPracticePlan(goal='debrief')`；`startPracticeSession` 接受 `mode='debrief'`；本 spec 不实现这些；C-17 验证 backend-practice 现状已支持（如未支持，Q-3 升级为 D-19 强制 backend-practice addendum） | 001 |
+| C-17 | 复盘面试 handoff 验证 | C-7 已完成；用户在 frontend-debrief step 2 触发"开始复盘面试" | 前端 nav practice + route payload `{practiceGoal:'debrief', targetJobId, resumeVersionId?, debriefId?}` | frontend-workspace-and-practice 把 route-level `practiceGoal` 映射为 backend-practice `createPracticePlan(goal='debrief')`；`startPracticeSession` 接受合法 `mode IN ('assisted','strict')`；本 spec 不实现这些；C-17 验证 backend-practice 现状已支持（如未支持，Q-3 升级为 D-19 强制 backend-practice addendum） | 001 |
 
 ## 7 关联计划
 
-`001-debrief-record-and-analysis` 已派 plan（spec v1.0 同会话），其余 plan 按 phase closability 与 owner 边界依次派生。全局前置：依赖 [`prompt-rubric-registry/001-baseline`](../prompt-rubric-registry/plans/001-baseline/plan.md) 已 completed（`debrief.generate` v0.1.0 已 active）+ Phase 0 F3 owner addendum 完成 `debrief.suggest_questions` v0.1.0；依赖 backend-targetjob 既有 drainer abstraction；依赖 backend-practice plan 002+ 已支持 `goal='debrief'` 与 `mode='debrief'`（Q-3 验证）。
+`001-debrief-record-and-analysis` 已派 plan（spec v1.0 同会话），其余 plan 按 phase closability 与 owner 边界依次派生。全局前置：依赖 [`prompt-rubric-registry/001-baseline`](../prompt-rubric-registry/plans/001-baseline/plan.md) 已 completed（`debrief.generate` v0.1.0 已 active）+ Phase 0 F3 owner addendum 完成 `debrief.suggest_questions` v0.1.0；依赖 backend-targetjob 既有 drainer abstraction；依赖 backend-practice plan 004 或等价 addendum 支持 `goal='debrief'` 与合法 `mode IN ('assisted','strict')`（Q-3 验证）。
 
 1. [`001-debrief-record-and-analysis`](./plans/001-debrief-record-and-analysis/plan.md)：D-1 ~ D-18 全部决策落地；Phase 0 cross-owner pre-launch addendums (B1/B2/B3/B4/F3 + backend-practice 验证) + Phase 1 createDebrief handler + Phase 2 IK + validation + Phase 3 suggestDebriefQuestions sync handler + Phase 4 debrief_generate worker handler + AI 调用 + 持久化 + outbox + Phase 5 getDebrief read handler + 隔离 + Phase 6 失败语义 / retry / 隐私 / observability / legacy negative。
 2. 保留编号建议 `002-debrief-listing-and-update`：`listDebriefs` API（如产品决定开启复盘历史浏览）+ `updateDebrief` API（如产品决定支持原地修订记录）+ rate limit on suggestDebriefQuestions（如 Q-5 升级）。
@@ -213,7 +213,7 @@
 - [observability-stack](../observability-stack/spec.md)
 - [backend-auth](../backend-auth/spec.md)（auth/session middleware）
 - [backend-targetjob](../backend-targetjob/spec.md)（drainer + JobHandler interface 复用）
-- [backend-practice](../backend-practice/spec.md)（`goal='debrief'` plan 派生 + `mode='debrief'` session start）
+- [backend-practice](../backend-practice/spec.md)（`goal='debrief'` plan 派生 + 合法 `mode IN ('assisted','strict')` session start）
 - [practice-voice-mvp](../practice-voice-mvp/spec.md)（voice debrief 后续协调）
 - [frontend-debrief](../frontend-debrief/spec.md)（下游 UI consumer）
 - [docs/development.md §2 Frontend / Backend Contract Workflow](../../development.md)

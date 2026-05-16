@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// TestStartupBudget asserts spec §4.3: full reload of 10 feature_keys ×
+// TestStartupBudget asserts spec §4.3: full reload of 11 feature_keys ×
 // >=2 language coordinates completes within 1 second on typical hardware.
 func TestStartupBudget(t *testing.T) {
 	t.Parallel()

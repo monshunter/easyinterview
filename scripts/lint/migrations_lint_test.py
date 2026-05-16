@@ -269,6 +269,14 @@ def test_product_scope_contract_rejects_vendor_model_tokens() -> None:
     assert any("vendor/model" in problem and "openrouter" in problem for problem in problems)
 
 
+def test_ai_task_runs_task_type_tracks_debrief_question_suggestion() -> None:
+    sql = current_baseline_sql().lower()
+    enum_sources = current_enum_sources()
+
+    assert "'debrief_suggest_questions'" in sql
+    assert "debrief_suggest_questions" in enum_sources
+
+
 def write_repo(tmp_path: Path, *, sql: str, enum_sources: str) -> Path:
     repo = tmp_path / "repo"
     migrations = repo / "migrations"

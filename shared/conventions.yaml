@@ -13,8 +13,8 @@
 #   Go const naming    → <TypeName><Value>, e.g. PracticeModeAssisted
 #
 # Counting note: the enum catalogue uses 16 source sections (5.1..5.16).
-# PrivacyRequest has two parallel field domains (type + status), so the catalogue
-# below contains 17 enum entries grouped by `sourceSection`.
+# PrivacyRequest and Debrief have parallel field domains, so the catalogue
+# below contains 19 enum entries grouped by `sourceSection`.
 
 version: 1.1
 schemaVersion: 1
@@ -74,11 +74,17 @@ errors:
   - code: REPORT_NOT_READY
     message: "report is not ready yet"
     retryable: true
+  - code: DEBRIEF_NOT_FOUND
+    message: "debrief record not found or not accessible"
+    retryable: false
   - code: RESUME_EXPORT_NOT_AVAILABLE
     message: "resume version export is not available in P0"
     retryable: false
   - code: VALIDATION_FAILED
     message: "request validation failed"
+    retryable: false
+  - code: IDEMPOTENCY_KEY_MISMATCH
+    message: "idempotency key was reused with a different request body"
     retryable: false
   - code: RATE_LIMITED
     message: "rate limit exceeded"
@@ -222,6 +228,26 @@ enums:
     values:
       - draft
       - completed
+
+  - name: DebriefRoundType
+    sourceSection: "5.12"
+    jsonField: roundType
+    values:
+      - hr_screen
+      - hiring_manager
+      - behavioral
+      - technical
+      - culture
+      - custom
+
+  - name: DebriefQuestionSource
+    sourceSection: "5.12"
+    jsonField: source
+    values:
+      - jd
+      - resume
+      - mock_report
+      - manual
 
   # §5.13 covers two parallel enum domains for privacy requests; both share the
   # same source section but are distinct generated types in Go and TS.

@@ -1,13 +1,14 @@
 # AI Provider and Model Routing History
 
-> **版本**: 2.9
+> **版本**: 2.10
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-16
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-16 | 2.10 | backend-debrief 001 Phase 0.5 新增 Debrief 问题建议 AI 场景与 `debrief.suggest_questions.default` profile coverage。 | backend-debrief/001 Phase 0.5 |
 | 2026-05-08 | 2.9 | 用户批准低成本语音 MVP 设计：用 `stt -> chat -> tts` 级联替代 S2S 首发，新增 `tts` capability、provider-specific speech protocol、独立 STT/TTS profile 决策，并保持 realtime S2S fail-closed。 | 004-cascaded-speech-provider-foundation + practice-voice-mvp/001 |
 | 2026-05-08 | 2.8 | 按用户决策收敛当前开发期 AI 能力：删除向量化 / 重排当前实现与基础设施，Provider/Profile 默认切到 DeepSeek V4 Flash/Pro；相关能力未来需要时重新设计。 | 003-provider-registry-and-capability-profiles Phase 6 |
 | 2026-05-06 | 2.7 | 落地 STT Transcribe 底座：当时的 OpenAI-compatible provider ref 支持 `stt`，`practice.dictation.stt.default` 与 `debrief.voice.extract.default` 升为 active；`practice.voice.realtime.default` 继续 fail-closed。 | 002-tools-streaming-and-stt Phase 4 |

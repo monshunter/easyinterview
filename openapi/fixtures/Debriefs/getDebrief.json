@@ -27,16 +27,98 @@
               "severity": "medium"
             }
           ],
+          "nextRoundChecklist": [],
+          "thankYouDraft": null,
           "provenance": {
-            "promptVersion": "debrief_generate.v1",
+            "promptVersion": "debrief.generate.v0.1.0",
             "rubricVersion": "not_applicable",
-            "modelId": "model-profile:contract.default",
+            "modelId": "fixture-model:debrief",
             "language": "zh-CN",
             "featureFlag": "none",
-            "dataSourceVersion": "debrief.v4"
+            "dataSourceVersion": "debrief/01918fa0-0000-7000-8000-00000000a000@v1"
           },
           "createdAt": "2026-04-28T12:00:00Z",
           "updatedAt": "2026-04-28T13:45:12Z"
+        }
+      }
+    },
+    "debrief-draft": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-draft"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-00000000a001",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "status": "draft",
+          "roundType": "behavioral",
+          "interviewerRole": "hiring_manager",
+          "questions": [
+            {
+              "questionText": "讲一次你推动跨团队协作的经历。",
+              "myAnswerSummary": "讲了设计系统迁移，但还没有 AI 分析。",
+              "interviewerReaction": "追问了量化指标。",
+              "aiAnalysis": null
+            }
+          ],
+          "riskItems": [],
+          "nextRoundChecklist": [],
+          "thankYouDraft": null,
+          "provenance": null,
+          "createdAt": "2026-04-28T12:10:00Z",
+          "updatedAt": "2026-04-28T12:10:00Z"
+        }
+      }
+    },
+    "prototype-baseline": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-prototype"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-00000000a002",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "status": "completed",
+          "roundType": "technical",
+          "interviewerRole": "technical_manager",
+          "questions": [
+            {
+              "questionText": "为什么选择这个系统边界？",
+              "myAnswerSummary": "说明了可维护性和团队所有权。",
+              "interviewerReaction": "继续追问了迁移风险。",
+              "aiAnalysis": "下一轮补充风险降级方案和 rollback 指标。"
+            },
+            {
+              "questionText": "你如何判断上线成功？",
+              "myAnswerSummary": "提到了 adoption rate 和 support ticket 降低。",
+              "interviewerReaction": "认可，但希望看到更明确的 baseline。",
+              "aiAnalysis": "准备上线前后 baseline、目标阈值和复盘窗口。"
+            }
+          ],
+          "riskItems": [
+            {
+              "label": "缺少迁移前 baseline",
+              "severity": "high"
+            },
+            {
+              "label": "rollback 叙述不够具体",
+              "severity": "medium"
+            }
+          ],
+          "nextRoundChecklist": [],
+          "thankYouDraft": null,
+          "provenance": {
+            "promptVersion": "debrief.generate.v0.1.0",
+            "rubricVersion": "not_applicable",
+            "modelId": "fixture-model:debrief",
+            "language": "zh-CN",
+            "featureFlag": "none",
+            "dataSourceVersion": "debrief/01918fa0-0000-7000-8000-00000000a002@v1"
+          },
+          "createdAt": "2026-04-28T12:30:00Z",
+          "updatedAt": "2026-04-28T13:50:12Z"
         }
       }
     }

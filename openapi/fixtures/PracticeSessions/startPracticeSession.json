@@ -35,6 +35,63 @@
         }
       }
     },
+    "debrief-derived-first-question": {
+      "request": {
+        "headers": {},
+        "body": {
+          "planId": "01918fa0-0000-7000-8000-000000004700",
+          "hintsEnabled": false
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "X-Request-ID": "req_2026-05-16T09-05-00-debrief-start"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000005700",
+          "planId": "01918fa0-0000-7000-8000-000000004700",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "status": "running",
+          "language": "zh-CN",
+          "hintsEnabled": false,
+          "turnCount": 1,
+          "currentTurn": {
+            "id": "01918fa0-0000-7000-8000-000000006700",
+            "turnIndex": 1,
+            "questionText": "请复盘面试官追问系统设计取舍时，你当时的回答。",
+            "questionIntent": "debrief.source_question",
+            "status": "asked",
+            "askedAt": "2026-05-16T09:05:00Z"
+          },
+          "createdAt": "2026-05-16T09:00:00Z",
+          "updatedAt": "2026-05-16T09:05:00Z"
+        }
+      }
+    },
+    "debrief-source-empty": {
+      "request": {
+        "headers": {},
+        "body": {
+          "planId": "01918fa0-0000-7000-8000-000000004799",
+          "hintsEnabled": false
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "X-Request-ID": "req_2026-05-16T09-05-00-debrief-empty"
+        },
+        "body": {
+          "error": {
+            "code": "PRACTICE_PLAN_NOT_FOUND",
+            "message": "practice plan not found",
+            "requestId": "req_2026-05-16T09-05-00-debrief-empty",
+            "retryable": false
+          }
+        }
+      }
+    },
     "ai-timeout-502": {
       "response": {
         "status": 502,

@@ -13,6 +13,7 @@ func TestBaselineAITaskRunsTaskTypeCheckIncludesHintGenerate(t *testing.T) {
 	for _, required := range []string{
 		"'report_generate'",
 		"'report_assessment'",
+		"'debrief_suggest_questions'",
 		"'hint_generate'",
 	} {
 		if !strings.Contains(up, required) {

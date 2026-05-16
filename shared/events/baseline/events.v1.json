@@ -366,7 +366,7 @@
         },
         "roundType": {
           "source": "spec:3.1.4",
-          "type": "$ref:b1.InterviewerRole"
+          "type": "$ref:b1.DebriefRoundType"
         },
         "targetJobId": {
           "source": "spec:3.1.4",

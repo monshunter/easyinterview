@@ -13,7 +13,7 @@ Phase 1.3 scope (per `002-fixtures-and-mock-source` plan §3 / spec C-6 / C-11):
        phones to `+1-555-01xx`, and the employer-brand blacklist below.
     5. ids       — `format: uuid` values must match UUIDv7 layout, and any
        string with `tmp_` prefix is rejected.
-    6. coverage  — exactly the 55 operationIds frozen by spec §3.1.1 must
+    6. coverage  — every operationId currently exposed by openapi.yaml must
        have a fixture file.
 """
 
@@ -190,7 +190,7 @@ def build_operation_index(spec: dict) -> dict[str, dict]:
 def expected_fixture_operations(spec: dict) -> Tuple[Tuple[str, str], ...]:
     """Return `(tag, operationId)` rows derived from the live OpenAPI document.
 
-    `make lint-openapi` owns the frozen 55-operation inventory. The fixture
+    `make lint-openapi` owns the frozen/additive operation inventory. The fixture
     validator only checks that whatever operation inventory OpenAPI currently
     exposes has exactly one matching fixture, so this gate cannot become a
     second hand-maintained operation list.

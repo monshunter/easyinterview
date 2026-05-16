@@ -23,8 +23,8 @@
 - **B2 addendum**：新增 `POST /debriefs/question-suggestions` `suggestDebriefQuestions` operation + `SuggestDebriefQuestionsRequest` / `SuggestDebriefQuestionsResponse` schema + fixtures `Debriefs/suggestDebriefQuestions.json`；同步修复 `Debrief.roundType` / `CreateDebriefRequest.roundType` 字段引用（若 B1 owner 选择独立 enum `DebriefRoundType`）；扩展既有 fixtures `Debriefs/createDebrief.json` + `Debriefs/getDebrief.json`（含 `default` + `debrief-draft` + `prototype-baseline` variants）。
 - **B3 addendum**：修复 `shared/events.yaml` `debrief.created.roundType: $ref:b1.InterviewerRole` → `$ref:b1.DebriefRoundType`；同步 `shared/events/baseline/events.v1.json` + `shared/events/schemas/debrief.created.v1.json`；`make lint-events` + `make codegen-events-check` 通过。
 - **B4 addendum**：新增 `ai_task_runs.task_type='debrief_suggest_questions'` CHECK / enum-source 字面量；同步 `migrations/000001_create_baseline.up.sql`、`migrations/enum-sources.yaml`、migration lint / replay tests；不新增 B4 列。
-- **F3 addendum**：新增 `debrief.suggest_questions` feature_key + `debrief.suggest_questions.default` model profile + 基线 prompt v0.1.0；同步 `config/prompts/debrief.suggest_questions/` 目录与 `seed_baseline_prompt_rubric_versions` migration（如有）。
-- **backend-practice 验证**：Q-3 spec 已要求验证 backend-practice 现状是否支持 `goal='debrief'` plan 派生 + `mode='debrief'` session start；如未支持，需 backend-practice owner 同步 addendum，否则 frontend-debrief step 2 "复盘面试" handoff 无法闭环。
+- **F3 addendum**：新增 `debrief.suggest_questions` feature_key + `debrief.suggest_questions.default` model profile + 基线 prompt/rubric v0.1.0；同步 `config/prompts/debrief.suggest_questions/` / `config/rubrics/debrief.suggest_questions/` 目录与 `seed_baseline_prompt_rubric_versions` migration（如有）。
+- **backend-practice 验证**：Q-3 spec 已要求验证 backend-practice 现状是否支持 `goal='debrief'` plan 派生 + 合法 `mode IN ('assisted','strict')` session start；如未支持，需 backend-practice owner 同步 addendum，否则 frontend-debrief step 2 "复盘面试" handoff 无法闭环。
 
 backend-targetjob drainer 已在 `backend/internal/targetjob/drainer.go` 注册 `debrief_generate` job_type CHECK，但当前实现假设：drainer 通过 `JobHandler` interface 路由不同 job_type 到对应处理器；本 plan 在 cmd/api bootstrap 注册 `debrief.GenerateHandler` 完成 wiring。
 
@@ -84,16 +84,16 @@ backend-targetjob drainer 已在 `backend/internal/targetjob/drainer.go` 注册 
 在 prompt-rubric-registry 真理源新增 feature_key `debrief.suggest_questions` + profile `debrief.suggest_questions.default` + 基线 prompt v0.1.0：
 - Prompt 输入变量：`{{targetJobTitle}}` / `{{jdHighlights}}` / `{{resumeBullets?}}` / `{{practiceSessionSummary?}}` / `{{language}}` / `{{count}}`
 - Prompt 输出 schema：`{suggestions: [{stage?, questionText, whyLikelyAsked, source}]}`（与 B2 SuggestDebriefQuestionsResponse 对齐）
-- 路径：`config/prompts/debrief.suggest_questions/v0.1.0/` + `config/rubrics/debrief.suggest_questions/v0.1.0/`（rubric optional per Q-2）
+- 路径：`config/prompts/debrief.suggest_questions/v0.1.0*.{yaml,md}` + `config/rubrics/debrief.suggest_questions/v0.1.0*.yaml`
 - 同步 `migrations/000002_seed_baseline_prompt_rubric_versions.up.sql` 或新增独立 migration（由 F3 owner 决定）
 
 提交 commit `feat(prompt-rubric-registry): seed debrief.suggest_questions baseline`.
 
 #### 0.6 backend-practice 现状验证（Q-3）
 
-运行 `grep -rn "goal.*debrief\|mode.*debrief" backend/internal/practice` 找出当前 plan 派生 / session start handler 是否分支处理 `goal='debrief'` / `mode='debrief'`：
+运行 `grep -rn "goal.*debrief\|mode.*debrief" backend/internal/practice` 找出当前 plan 派生 / session start handler 是否分支处理 `goal='debrief'`，并确认 `mode` 仍为 backend-practice D-5 收敛后的 `assisted|strict`：
 - 如果已支持：在 plan history 记录验证证据（grep 输出 + 关联测试名）。
-- 如果未支持：暂停 plan 001 实施，回到 backend-practice owner 同步 addendum（`practice_plans.goal='debrief'` 派生默认逻辑 + `practice_sessions.mode='debrief'` session start 默认 handler）；恢复 plan 001 后记录依赖 commit。
+- 如果未支持：暂停 plan 001 实施，回到 backend-practice owner 同步 addendum（`practice_plans.goal='debrief'` 派生默认逻辑 + `PracticeMode IN ('assisted','strict')` session start 默认 handler）；恢复 plan 001 后记录依赖 commit。
 
 #### 0.7 整体 Phase 0 收口
 
@@ -327,7 +327,7 @@ Tests: `TestGetDebrief_DraftPartialReturn|TestGetDebrief_CompletedFullReturn|Tes
 
 | 风险 | 应对措施 |
 |------|----------|
-| backend-practice 现状未支持 `goal='debrief'` 与 `mode='debrief'`，导致 frontend-debrief step 2 复盘面试 handoff 闭环失败 | Phase 0 Q-3 验证发现未支持时，立即暂停 plan 001，回 backend-practice owner 同步 addendum（plan 003 或 plan 002 修订）；恢复后记录依赖 commit |
+| backend-practice 现状未支持 `goal='debrief'` 与合法 `mode IN ('assisted','strict')` session start，导致 frontend-debrief step 2 复盘面试 handoff 闭环失败 | Phase 0 Q-3 验证发现未支持时，立即暂停 plan 001，回 backend-practice owner 同步 addendum（future `004-derived-plans-debrief` 或等价原地修订）；恢复后记录依赖 commit |
 | B2 owner 对 `POST /debriefs/question-suggestions` 路径或 schema 命名持不同意见 | Phase 0 与 B2 owner co-design：默认建议是 collection-action `POST /debriefs/question-suggestions`，备选 `POST /debriefs/_suggestions`；schema 命名 `SuggestDebriefQuestionsRequest`/`Response`；最终命名以 B2 owner 决定为准，本 plan 跟随更新 |
 | F3 owner 决定 `debrief.suggest_questions` 必须含 rubric（Q-2），增加 Phase 0 工作量 | Phase 0 与 F3 owner co-design rubric schema（如 6 条 suggestion 必须覆盖 stage 多样性）；如复杂度过高，降级到 prompt-only baseline，rubric 留 plan 003+ |
 | AI 输出 JSON 解析失败率高（worker 路径触发频繁 permanent fail） | Phase 4 单元测试覆盖 5 种 parse failure pattern；如生产观测发现 parse 失败率 > 5%，触发 F3 owner 修订 prompt strict mode 或加 structured output validator |

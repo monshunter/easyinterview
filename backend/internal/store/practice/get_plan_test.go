@@ -18,15 +18,17 @@ func TestSQLRepositoryGetPlanScopesByUser(t *testing.T) {
 	repo := NewSQLRepository(db)
 	createdAt := time.Date(2026, 4, 28, 12, 0, 0, 0, time.UTC)
 
-	mock.ExpectQuery(`select id, target_job_id, goal, mode, interviewer_persona, difficulty`).
+	mock.ExpectQuery(`select id, target_job_id, source_report_id::text, source_debrief_id::text`).
 		WithArgs("user-1", "plan-1").
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "target_job_id", "goal", "mode", "interviewer_persona", "difficulty",
+			"id", "target_job_id", "source_report_id", "source_debrief_id", "goal", "mode", "interviewer_persona", "difficulty",
 			"language", "time_budget_minutes", "question_budget", "status", "created_at",
 		}).AddRow(
 			"plan-1",
 			"target-1",
-			string(sharedtypes.PracticeGoalBaseline),
+			"report-1",
+			nil,
+			string(sharedtypes.PracticeGoalRetryCurrentRound),
 			string(sharedtypes.PracticeModeAssisted),
 			string(sharedtypes.InterviewerRoleHiringManager),
 			"standard",
@@ -41,7 +43,7 @@ func TestSQLRepositoryGetPlanScopesByUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetPlan returned error: %v", err)
 	}
-	if plan.ID != "plan-1" || plan.TargetJobID != "target-1" || plan.CreatedAt != createdAt {
+	if plan.ID != "plan-1" || plan.TargetJobID != "target-1" || plan.SourceReportID != "report-1" || plan.CreatedAt != createdAt {
 		t.Fatalf("unexpected plan: %+v", plan)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -54,7 +56,7 @@ func TestSQLRepositoryGetPlanMapsNoRowsToNotFound(t *testing.T) {
 	defer cleanup()
 	repo := NewSQLRepository(db)
 
-	mock.ExpectQuery(`select id, target_job_id, goal, mode, interviewer_persona, difficulty`).
+	mock.ExpectQuery(`select id, target_job_id, source_report_id::text, source_debrief_id::text`).
 		WithArgs("user-b", "plan-owned-by-user-a").
 		WillReturnError(sql.ErrNoRows)
 

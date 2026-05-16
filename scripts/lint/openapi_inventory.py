@@ -34,7 +34,7 @@ EXPECTED_TAGS: list[str] = [
     "JobMatch",
 ]
 
-# (tag, method, path, operationId) tuples per spec §3.1.1 (55 entries).
+# (tag, method, path, operationId) tuples per spec §3.1.1 plus additive owner plans.
 EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("Auth", "get", "/me", "getMe"),
     ("Auth", "delete", "/me", "deleteMe"),
@@ -73,6 +73,7 @@ EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("ResumeTailor", "post", "/resume/tailor", "requestResumeTailor"),
     ("ResumeTailor", "get", "/resume/tailor-runs/{tailorRunId}", "getResumeTailorRun"),
     ("Debriefs", "post", "/debriefs", "createDebrief"),
+    ("Debriefs", "post", "/debriefs/question-suggestions", "suggestDebriefQuestions"),
     ("Debriefs", "get", "/debriefs/{debriefId}", "getDebrief"),
     ("Jobs", "get", "/jobs/{jobId}", "getJob"),
     ("Privacy", "post", "/privacy/exports", "requestPrivacyExport"),
@@ -124,6 +125,7 @@ IK_REQUIRED: set[tuple[str, str]] = {
 IK_FORBIDDEN: set[tuple[str, str]] = {
     ("post", "/auth/email/start"),
     ("post", "/practice/sessions/{sessionId}/events"),
+    ("post", "/debriefs/question-suggestions"),
 }
 
 # Public endpoints per spec §4.1 — must declare `security: []` to override doc-level cookie auth.
@@ -196,6 +198,8 @@ EXPECTED_PRODUCT_ENUMS: dict[str, list[str]] = {
     "ResumeVersionType": ["structured_master", "targeted"],
     "ResumeSeedStrategy": ["copy_master", "blank", "ai_select"],
     "ResumeTailorSuggestionStatus": ["pending", "accepted", "rejected"],
+    "DebriefRoundType": ["hr_screen", "hiring_manager", "behavioral", "technical", "culture", "custom"],
+    "DebriefQuestionSource": ["jd", "resume", "mock_report", "manual"],
 }
 
 DEFAULT_OPENAPI_PATH = Path("openapi/openapi.yaml")
@@ -370,7 +374,7 @@ def main(argv: list[str]) -> int:
         if sc.get("type") != "apiKey" or sc.get("in") != "cookie" or not sc.get("name"):
             errors.append(f"`sessionCookie` must be apiKey/cookie with `name`; got {sc!r}")
 
-    # Operation enumeration (spec §3.1.1 D-9).
+    # Operation enumeration (spec §3.1.1 D-9 plus additive owner plans).
     paths = data.get("paths") or {}
     seen_ops: set[tuple[str, str, str, str]] = set()
     operation_count = 0
@@ -392,8 +396,11 @@ def main(argv: list[str]) -> int:
         errors.append("missing operations: " + ", ".join(sorted(f"{m.upper()} {p} ({o})" for _, m, p, o in missing)))
     if extra:
         errors.append("unexpected operations: " + ", ".join(sorted(f"{m.upper()} {p} ({o})" for _, m, p, o in extra)))
-    if operation_count != 55:
-        errors.append(f"operation count must be 55 (spec §3.1.1); got {operation_count}")
+    expected_operation_count = len(EXPECTED_OPERATIONS)
+    if operation_count != expected_operation_count:
+        errors.append(
+            f"operation count must be {expected_operation_count} (spec §3.1.1 plus additive owner plans); got {operation_count}"
+        )
 
     # operationId uniqueness.
     op_ids = [op for _, _, _, op in seen_ops]

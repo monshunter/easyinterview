@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-05-16
 
@@ -13,7 +13,7 @@
 
 ## Phase 0: 依赖验证 + ui-design source map + 包结构
 
-- [ ] 0.1 cross-owner Phase 0 完成验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief\|listPracticeSessions\|listResumes\|listResumeVersions" frontend/src/api/generated/` 命中；`ls openapi/fixtures/Debriefs/` 含 `createDebrief.json` / `getDebrief.json` / `suggestDebriefQuestions.json` 三个 fixture；`ls openapi/fixtures/PracticeSessions/listPracticeSessions.json` 存在；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND\|IDEMPOTENCY_KEY_MISMATCH" shared/ts/conventions/` 命中；backend-practice 现状已支持 `goal='debrief'` + `mode='debrief'`（验证证据已在 backend-debrief/001 Phase 0.6 记录）
+- [ ] 0.1 cross-owner Phase 0 完成验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief\|listPracticeSessions\|listResumes\|listResumeVersions" frontend/src/api/generated/` 命中；`ls openapi/fixtures/Debriefs/` 含 `createDebrief.json` / `getDebrief.json` / `suggestDebriefQuestions.json` 三个 fixture；`ls openapi/fixtures/PracticeSessions/listPracticeSessions.json` 存在；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND\|IDEMPOTENCY_KEY_MISMATCH" shared/ts/conventions/` 命中；backend-practice 现状已支持 `goal='debrief'` + 合法 `mode IN ('assisted','strict')`（验证证据记录在 backend-debrief/001 Phase 0.6 与 backend-practice/004）
 - [ ] 0.2 ui-design source map 记录到 plan history 与本 checklist 注脚（6 个组件 source anchor）
 - [ ] 0.3 创建包结构 `frontend/src/app/screens/debrief/{DebriefScreen.tsx, components/, hooks/, reducer.ts, types.ts, i18n/}`；空 stub 编译通过：`pnpm --filter @easyinterview/frontend typecheck`
 - [ ] 0.4 route 接线：`App.tsx` 的 `case "debrief"` → `<DebriefScreen>`；`normalizeRoute.ts` 把历史 alias `debrief_full` normalize 到 `debrief`；不在 `routes.ts` 正式 `RouteName` / primary nav / `INTERVIEW_CONTEXT_ROUTES` 中新增 `debrief_full`；移除原 PlaceholderScreen 对 debrief 的占位；TopBar 一级导航高亮逻辑保留；测试：`TestRoutes_DebriefAliasNormalization` 通过

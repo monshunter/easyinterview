@@ -18,13 +18,13 @@ func TestLoadHappyPath(t *testing.T) {
 		t.Fatalf("loadFromDisk failed: %v", err)
 	}
 
-	// Spec §3.1.1 names 10 baseline feature_keys; both directories must
-	// resolve all 10 through the loader.
-	if got := len(snap.prompts); got != 10 {
-		t.Fatalf("prompts: want 10 feature_keys, got %d", got)
+	// Spec §3.1.1 names 11 baseline feature_keys; both directories must
+	// resolve all 11 through the loader.
+	if got := len(snap.prompts); got != 11 {
+		t.Fatalf("prompts: want 11 feature_keys, got %d", got)
 	}
-	if got := len(snap.rubrics); got != 10 {
-		t.Fatalf("rubrics: want 10 feature_keys, got %d", got)
+	if got := len(snap.rubrics); got != 11 {
+		t.Fatalf("rubrics: want 11 feature_keys, got %d", got)
 	}
 
 	// Each baseline ships at least the multi + en pair.

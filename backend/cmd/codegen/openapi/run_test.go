@@ -147,7 +147,7 @@ func TestRun_ApiErrorInnerObjectAndResponseEnvelope(t *testing.T) {
 	mustContain(t, tsClient, "buildPath(\"/resume-versions/{resumeVersionId}/exports\", { resumeVersionId: resumeVersionId }),\n\t\t\tundefined,\n\t\t\topts,\n\t\t\t[501],")
 
 	goServer := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/server.gen.go"))
-	mustContain(t, goServer, "// 55-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
+	mustContain(t, goServer, "// 56-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 	mustNotContain(t, goServer, "// 46-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 }
 

@@ -1,12 +1,12 @@
 # Frontend Debrief Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-05-16
 
 ## 1 背景与目标
 
-`frontend-debrief` 是 [engineering-roadmap §5.2](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) `Debrief` workstream 的前端业务 subspec，承接 [frontend-shell](../frontend-shell/spec.md) 已交付的 App 壳、TopBar 一级导航 `debrief` 入口、route normalization、`requestAuth(pendingAction)`、fixture-backed generated client、UI parity gate；承接 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) 的 `createPracticePlan(goal='debrief') + startPracticeSession(mode='debrief')` cross-owner handoff（"复盘面试"启动入口）；同时作为 [backend-debrief](../backend-debrief/spec.md) `createDebrief` / `getDebrief` / `suggestDebriefQuestions` schema 的前端 consumer。
+`frontend-debrief` 是 [engineering-roadmap §5.2](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) `Debrief` workstream 的前端业务 subspec，承接 [frontend-shell](../frontend-shell/spec.md) 已交付的 App 壳、TopBar 一级导航 `debrief` 入口、route normalization、`requestAuth(pendingAction)`、fixture-backed generated client、UI parity gate；承接 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) 的 `createPracticePlan(goal='debrief') + startPracticeSession(mode IN ('assisted','strict'))` cross-owner handoff（"复盘面试"启动入口）；同时作为 [backend-debrief](../backend-debrief/spec.md) `createDebrief` / `getDebrief` / `suggestDebriefQuestions` schema 的前端 consumer。
 
 本 subspec 的终稿范围收敛为一条正式 owner 路由 + 一个历史 prototype alias：
 
@@ -70,7 +70,7 @@
     - `provenance` 6 字段：仅在「关于本次分析」展开区显示（与 frontend-report-dashboard 一致）
   - 复盘面试 handoff（step 2）：
     - CTA payload：`{practiceGoal:'debrief', mode:'text', modality:'text', sessionId, targetJobId, resumeVersionId, debriefId, language}`
-    - nav 触发后由 frontend-workspace-and-practice owner 在 practice 路由内调用 `createPracticePlan(goal='debrief')` + `startPracticeSession(mode='debrief')`
+    - nav 触发后由 frontend-workspace-and-practice owner 在 practice 路由内调用 `createPracticePlan(goal='debrief')` + `startPracticeSession(mode IN ('assisted','strict'))`
     - 本 spec **不**实现 practice 任何 UI；不实现 createPracticePlan 调用（除非 frontend-workspace-and-practice 显式要求 frontend-debrief 主导，由 D-11 决策固定）
     - **D-11 默认决策**：frontend-debrief 在 nav 时只传 payload；createPracticePlan 调用由 frontend-workspace-and-practice plan 002 接管（与既有"立即面试"流程一致）
 - 跨路由共享：
@@ -161,13 +161,13 @@
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | debrief UI | `frontend-debrief`（本 spec） | DebriefFullScreen React 组件、5 个子组件、3 picker modal、Stepper 状态机、polling hook、状态分支（dashboard/failure/missing/timeout）、复盘面试 nav CTA、source parity、visual parity、i18n、a11y、responsive；`debrief_full` 仅作为 normalize alias，不是独立 UI owner |
-| Workspace / Practice UI | [`frontend-workspace-and-practice`](../frontend-workspace-and-practice/spec.md) | workspace 屏、practice 屏、`createPracticePlan(goal='debrief')` / `startPracticeSession(mode='debrief')` 调用；本 spec 在复盘面试 CTA nav 回该 owner |
+| Workspace / Practice UI | [`frontend-workspace-and-practice`](../frontend-workspace-and-practice/spec.md) | workspace 屏、practice 屏、`createPracticePlan(goal='debrief')` / `startPracticeSession(mode IN ('assisted','strict'))` 调用；本 spec 在复盘面试 CTA nav 回该 owner |
 | Report / Generating UI | [`frontend-report-dashboard`](../frontend-report-dashboard/spec.md) | report dashboard 与 generating handoff；本 spec 不交互 |
 | App shell / routes / auth / runtime / theme | [`frontend-shell`](../frontend-shell/spec.md) | TopBar 一级导航 debrief 入口、route normalization、requestAuth、generated client bootstrap、mock transport、display preferences |
 | Home / Parse / JD Match | [`frontend-home-job-picks-and-parse`](../frontend-home-job-picks-and-parse/spec.md) | home 屏；本 spec 不交互 |
 | Resume Workshop UI | [`frontend-resume-workshop`](../frontend-resume-workshop/spec.md) | resume 屏；本 spec 不交互 |
 | Debriefs backend | [`backend-debrief`](../backend-debrief/spec.md) | `createDebrief` / `getDebrief` / `suggestDebriefQuestions` handler / service / store / drainer-registered worker handler |
-| Practice backend | [`backend-practice`](../backend-practice/spec.md) | `createPracticePlan(goal='debrief')` + `startPracticeSession(mode='debrief')` handler；本 spec 不调用，由 frontend-workspace-and-practice 在 practice 路由调用 |
+| Practice backend | [`backend-practice`](../backend-practice/spec.md) | `createPracticePlan(goal='debrief')` + `startPracticeSession(mode IN ('assisted','strict'))` handler；本 spec 不调用，由 frontend-workspace-and-practice 在 practice 路由调用 |
 | OpenAPI / fixtures / codegen | [`openapi-v1-contract`](../openapi-v1-contract/spec.md) + [`mock-contract-suite`](../mock-contract-suite/spec.md) | `openapi/openapi.yaml`、fixtures `Debriefs/*.json`（Phase 0 由 backend-debrief/001 扩展既有 create/get fixture，并新增 suggest fixture）、generated Go/TS artifacts、fixture-backed mock transport |
 | TargetJob data | [`backend-targetjob`](../backend-targetjob/spec.md) | `target_jobs` 行；本 spec 通过 generated `listTargetJobs` 显示 JD picker |
 | Resume data | [`backend-resume`](../backend-resume/spec.md) | 简历 binding 字段；本 spec 通过 generated `listResumes` + `listResumeVersions(resumeAssetId)` 显示 Resume picker |

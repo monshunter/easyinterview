@@ -35,28 +35,49 @@ func (r *SQLRepository) CreatePlan(ctx context.Context, in domain.CreatePlanStor
 	defer tx.Rollback()
 
 	var plan domain.PlanRecord
+	var sourceReportID sql.NullString
+	var sourceDebriefID sql.NullString
 	err = tx.QueryRowContext(ctx, `
 insert into practice_plans (
-  id, user_id, target_job_id, source_report_id, goal, mode,
+  id, user_id, target_job_id, source_report_id, source_debrief_id, goal, mode,
   interviewer_persona, difficulty, language, time_budget_minutes,
   question_budget, resume_asset_id, focus_competency_codes, status,
   created_at, updated_at
 )
-select $1, $2, tj.id, null, $4, $5, $6, $7, $8, $9, $10,
-       ra.id, $12, 'ready', $13, $13
+select $1, $2, tj.id, nullif($4, '')::uuid, nullif($5, '')::uuid,
+       $6, $7, $8, $9, $10, $11, $12, ra.id, $14, 'ready', $15, $15
 from target_jobs tj
 join resume_assets ra
-  on ra.id = $11
+  on ra.id = $13
  and ra.user_id = $2
  and ra.deleted_at is null
+left join feedback_reports fr
+  on fr.id = nullif($4, '')::uuid
+ and fr.user_id = $2
+ and fr.target_job_id = tj.id
+ and fr.status = 'ready'
+left join debriefs d
+  on d.id = nullif($5, '')::uuid
+ and d.user_id = $2
+ and d.target_job_id = tj.id
+ and d.status = 'completed'
+ and jsonb_array_length(d.raw_questions) > 0
 where tj.id = $3
   and tj.user_id = $2
   and tj.deleted_at is null
-returning id, target_job_id, goal, mode, interviewer_persona, difficulty,
+  and (
+    ($6 = 'baseline' and nullif($4, '') is null and nullif($5, '') is null)
+    or ($6 in ('retry_current_round', 'next_round') and fr.id is not null and nullif($5, '') is null)
+    or ($6 = 'debrief' and d.id is not null and nullif($4, '') is null)
+  )
+returning id, target_job_id, source_report_id::text, source_debrief_id::text,
+          goal, mode, interviewer_persona, difficulty,
           language, time_budget_minutes, question_budget, status, created_at`,
 		in.PlanID,
 		in.UserID,
 		in.TargetJobID,
+		in.SourceReportID,
+		in.SourceDebriefID,
 		string(in.Goal),
 		string(in.Mode),
 		string(in.InterviewerPersona),
@@ -70,6 +91,8 @@ returning id, target_job_id, goal, mode, interviewer_persona, difficulty,
 	).Scan(
 		&plan.ID,
 		&plan.TargetJobID,
+		&sourceReportID,
+		&sourceDebriefID,
 		&plan.Goal,
 		&plan.Mode,
 		&plan.InterviewerPersona,
@@ -80,6 +103,8 @@ returning id, target_job_id, goal, mode, interviewer_persona, difficulty,
 		&plan.Status,
 		&plan.CreatedAt,
 	)
+	plan.SourceReportID = stringFromNull(sourceReportID)
+	plan.SourceDebriefID = stringFromNull(sourceDebriefID)
 	if stderrs.Is(err, sql.ErrNoRows) {
 		return domain.PlanRecord{}, domain.ErrPlanPrerequisiteNotFound
 	}
@@ -87,13 +112,20 @@ returning id, target_job_id, goal, mode, interviewer_persona, difficulty,
 		return domain.PlanRecord{}, fmt.Errorf("insert practice plan: %w", err)
 	}
 
-	metadata, err := json.Marshal(map[string]any{
+	auditMetadata := map[string]any{
 		"plan_id":       in.PlanID,
 		"goal":          string(in.Goal),
 		"mode":          string(in.Mode),
 		"language":      in.Language,
 		"target_job_id": in.TargetJobID,
-	})
+	}
+	if in.SourceReportID != "" {
+		auditMetadata["source_report_id"] = in.SourceReportID
+	}
+	if in.SourceDebriefID != "" {
+		auditMetadata["source_debrief_id"] = in.SourceDebriefID
+	}
+	metadata, err := json.Marshal(auditMetadata)
 	if err != nil {
 		return domain.PlanRecord{}, fmt.Errorf("marshal practice plan audit metadata: %w", err)
 	}
@@ -122,8 +154,11 @@ func (r *SQLRepository) GetPlan(ctx context.Context, userID, planID string) (dom
 		return domain.PlanRecord{}, fmt.Errorf("practice SQL repository is not configured")
 	}
 	var plan domain.PlanRecord
+	var sourceReportID sql.NullString
+	var sourceDebriefID sql.NullString
 	err := r.db.QueryRowContext(ctx, `
-select id, target_job_id, goal, mode, interviewer_persona, difficulty,
+select id, target_job_id, source_report_id::text, source_debrief_id::text,
+       goal, mode, interviewer_persona, difficulty,
        language, time_budget_minutes, question_budget, status, created_at
 from practice_plans
 where user_id = $1
@@ -133,6 +168,8 @@ where user_id = $1
 	).Scan(
 		&plan.ID,
 		&plan.TargetJobID,
+		&sourceReportID,
+		&sourceDebriefID,
 		&plan.Goal,
 		&plan.Mode,
 		&plan.InterviewerPersona,
@@ -143,6 +180,8 @@ where user_id = $1
 		&plan.Status,
 		&plan.CreatedAt,
 	)
+	plan.SourceReportID = stringFromNull(sourceReportID)
+	plan.SourceDebriefID = stringFromNull(sourceDebriefID)
 	if stderrs.Is(err, sql.ErrNoRows) {
 		return domain.PlanRecord{}, domain.ErrPlanNotFound
 	}
@@ -150,6 +189,13 @@ where user_id = $1
 		return domain.PlanRecord{}, fmt.Errorf("select practice plan: %w", err)
 	}
 	return plan, nil
+}
+
+func stringFromNull(value sql.NullString) string {
+	if !value.Valid {
+		return ""
+	}
+	return value.String
 }
 
 func (r *SQLRepository) GetSession(ctx context.Context, userID, sessionID string) (domain.SessionRecord, error) {
@@ -235,6 +281,8 @@ func (r *SQLRepository) ReserveSessionStart(ctx context.Context, in domain.Start
 
 	var reservation domain.SessionReservation
 	var topSkills string
+	var debriefFirstQuestionText sql.NullString
+	var debriefFirstQuestionIntent sql.NullString
 	err = tx.QueryRowContext(ctx, `
 with selected_plan as (
   select p.id, p.target_job_id, p.goal, p.mode, p.interviewer_persona, p.language,
@@ -247,15 +295,36 @@ with selected_plan as (
              and r.kind in ('must_have','interview_focus','nice_to_have')
            order by r.display_order asc, r.created_at asc
            limit 6
-         ), ', '), ''), 'target job requirements') as top_skills
+         ), ', '), ''), 'target job requirements') as top_skills,
+         case
+           when p.goal = 'debrief' then nullif(d.raw_questions->0->>'questionText', '')
+           else null
+         end as debrief_first_question_text,
+         case
+           when p.goal = 'debrief' then coalesce(nullif(d.raw_questions->0->>'questionIntent', ''), 'debrief.source_question')
+           else null
+         end as debrief_first_question_intent
   from practice_plans p
   left join target_jobs tj
     on tj.id = p.target_job_id
    and tj.user_id = p.user_id
    and tj.deleted_at is null
+  left join debriefs d
+    on d.id = p.source_debrief_id
+   and d.user_id = p.user_id
+   and d.target_job_id = p.target_job_id
+   and d.status = 'completed'
+   and jsonb_array_length(d.raw_questions) > 0
   where p.id = $3
     and p.user_id = $2
     and p.status = 'ready'
+    and (
+      p.goal <> 'debrief'
+      or (
+        d.id is not null
+        and nullif(d.raw_questions->0->>'questionText', '') is not null
+      )
+    )
 ),
 inserted as (
   insert into practice_sessions (
@@ -269,7 +338,9 @@ inserted as (
 select inserted.id, inserted.plan_id, inserted.target_job_id,
        selected_plan.goal, selected_plan.mode, selected_plan.interviewer_persona,
        inserted.language, selected_plan.role_title, selected_plan.seniority,
-       selected_plan.top_skills, inserted.hints_enabled, inserted.created_at, inserted.updated_at
+       selected_plan.top_skills, selected_plan.debrief_first_question_text,
+       selected_plan.debrief_first_question_intent, inserted.hints_enabled,
+       inserted.created_at, inserted.updated_at
 from inserted
 join selected_plan on selected_plan.id = inserted.plan_id`,
 		in.SessionID,
@@ -288,6 +359,8 @@ join selected_plan on selected_plan.id = inserted.plan_id`,
 		&reservation.RoleTitle,
 		&reservation.Seniority,
 		&topSkills,
+		&debriefFirstQuestionText,
+		&debriefFirstQuestionIntent,
 		&reservation.HintsEnabled,
 		&reservation.CreatedAt,
 		&reservation.UpdatedAt,
@@ -302,6 +375,11 @@ join selected_plan on selected_plan.id = inserted.plan_id`,
 		return domain.SessionReservation{}, fmt.Errorf("reserve practice session: %w", err)
 	}
 	reservation.TopSkills = splitCommaList(topSkills)
+	reservation.DebriefFirstQuestionText = stringFromNull(debriefFirstQuestionText)
+	reservation.DebriefFirstQuestionIntent = stringFromNull(debriefFirstQuestionIntent)
+	if reservation.Goal == sharedtypes.PracticeGoalDebrief && strings.TrimSpace(reservation.DebriefFirstQuestionIntent) == "" {
+		reservation.DebriefFirstQuestionIntent = "debrief.source_question"
+	}
 	reservation.RubricDimensions = []string{"practice_depth", "practice_dimension_coverage", "language_consistency"}
 	if err := tx.Commit(); err != nil {
 		return domain.SessionReservation{}, fmt.Errorf("commit reserve practice session: %w", err)

@@ -302,7 +302,7 @@ def payload_type(name: str) -> str:
         "preparednessLevel": "$ref:b1.ReadinessTier",
         "status": "$ref:b1.PrivacyRequestStatus",
         "parseStatus": "$ref:b1.TargetJobParseStatus",
-        "roundType": "$ref:b1.InterviewerRole",
+        "roundType": "$ref:b1.DebriefRoundType",
         "requestType": "$ref:b1.PrivacyRequestType",
     }
     if name in uuid_fields:

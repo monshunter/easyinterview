@@ -133,10 +133,10 @@ type ResumeTailorCompletedPayload struct {
 }
 
 type DebriefCreatedPayload struct {
-	DebriefID     string                      `json:"debriefId"`
-	QuestionCount int                         `json:"questionCount"`
-	RoundType     sharedtypes.InterviewerRole `json:"roundType"`
-	TargetJobID   string                      `json:"targetJobId"`
+	DebriefID     string                       `json:"debriefId"`
+	QuestionCount int                          `json:"questionCount"`
+	RoundType     sharedtypes.DebriefRoundType `json:"roundType"`
+	TargetJobID   string                       `json:"targetJobId"`
 }
 
 type DebriefCompletedPayload struct {

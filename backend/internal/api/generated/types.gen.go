@@ -72,6 +72,12 @@ type QuestionReviewStatus = sharedtypes.QuestionReviewStatus
 // DebriefStatus aliases the B1-owned type.
 type DebriefStatus = sharedtypes.DebriefStatus
 
+// DebriefRoundType aliases the B1-owned type.
+type DebriefRoundType = sharedtypes.DebriefRoundType
+
+// DebriefQuestionSource aliases the B1-owned type.
+type DebriefQuestionSource = sharedtypes.DebriefQuestionSource
+
 // PrivacyRequestType aliases the B1-owned type.
 type PrivacyRequestType = sharedtypes.PrivacyRequestType
 
@@ -110,8 +116,10 @@ const (
 	ApiErrorCodePRACTICESESSIONNOTFOUND       ApiErrorCode = "PRACTICE_SESSION_NOT_FOUND"
 	ApiErrorCodeREPORTNOTFOUND                ApiErrorCode = "REPORT_NOT_FOUND"
 	ApiErrorCodeREPORTNOTREADY                ApiErrorCode = "REPORT_NOT_READY"
+	ApiErrorCodeDEBRIEFNOTFOUND               ApiErrorCode = "DEBRIEF_NOT_FOUND"
 	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE      ApiErrorCode = "RESUME_EXPORT_NOT_AVAILABLE"
 	ApiErrorCodeVALIDATIONFAILED              ApiErrorCode = "VALIDATION_FAILED"
+	ApiErrorCodeIDEMPOTENCYKEYMISMATCH        ApiErrorCode = "IDEMPOTENCY_KEY_MISMATCH"
 	ApiErrorCodeRATELIMITED                   ApiErrorCode = "RATE_LIMITED"
 	ApiErrorCodeAIPROVIDERTIMEOUT             ApiErrorCode = "AI_PROVIDER_TIMEOUT"
 	ApiErrorCodeAIOUTPUTINVALID               ApiErrorCode = "AI_OUTPUT_INVALID"
@@ -135,8 +143,10 @@ var AllApiErrorCodes = []ApiErrorCode{
 	ApiErrorCodePRACTICESESSIONNOTFOUND,
 	ApiErrorCodeREPORTNOTFOUND,
 	ApiErrorCodeREPORTNOTREADY,
+	ApiErrorCodeDEBRIEFNOTFOUND,
 	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE,
 	ApiErrorCodeVALIDATIONFAILED,
+	ApiErrorCodeIDEMPOTENCYKEYMISMATCH,
 	ApiErrorCodeRATELIMITED,
 	ApiErrorCodeAIPROVIDERTIMEOUT,
 	ApiErrorCodeAIOUTPUTINVALID,
@@ -492,6 +502,8 @@ type CreatePracticePlanRequest struct {
 	Mode                 PracticeMode    `json:"mode"`
 	QuestionBudget       int32           `json:"questionBudget"`
 	ResumeAssetId        string          `json:"resumeAssetId"`
+	SourceDebriefId      *string         `json:"sourceDebriefId,omitempty"`
+	SourceReportId       *string         `json:"sourceReportId,omitempty"`
 	TargetJobId          string          `json:"targetJobId"`
 	TimeBudgetMinutes    int32           `json:"timeBudgetMinutes"`
 }
@@ -505,6 +517,8 @@ type PracticePlan struct {
 	Language           string          `json:"language"`
 	Mode               PracticeMode    `json:"mode"`
 	QuestionBudget     int32           `json:"questionBudget"`
+	SourceDebriefId    *string         `json:"sourceDebriefId,omitempty"`
+	SourceReportId     *string         `json:"sourceReportId,omitempty"`
 	Status             string          `json:"status"`
 	TargetJobId        string          `json:"targetJobId"`
 	TimeBudgetMinutes  int32           `json:"timeBudgetMinutes"`
@@ -682,7 +696,7 @@ type CreateDebriefRequest struct {
 	Language        string                 `json:"language"`
 	Notes           *string                `json:"notes,omitempty"`
 	Questions       []DebriefQuestionInput `json:"questions"`
-	RoundType       string                 `json:"roundType"`
+	RoundType       DebriefRoundType       `json:"roundType"`
 	TargetJobId     string                 `json:"targetJobId"`
 }
 
@@ -694,7 +708,7 @@ type Debrief struct {
 	Provenance         *GenerationProvenance           `json:"provenance,omitempty"`
 	Questions          []DebriefQuestion               `json:"questions,omitempty"`
 	RiskItems          []DebriefRiskItem               `json:"riskItems,omitempty"`
-	RoundType          string                          `json:"roundType"`
+	RoundType          DebriefRoundType                `json:"roundType"`
 	Status             DebriefStatus                   `json:"status"`
 	TargetJobId        string                          `json:"targetJobId"`
 	ThankYouDraft      *string                         `json:"thankYouDraft,omitempty"`
@@ -704,6 +718,25 @@ type Debrief struct {
 type DebriefWithJob struct {
 	DebriefId string `json:"debriefId"`
 	Job       Job    `json:"job"`
+}
+
+type SuggestedDebriefQuestion struct {
+	QuestionText   string                `json:"questionText"`
+	Source         DebriefQuestionSource `json:"source"`
+	Stage          *string               `json:"stage,omitempty"`
+	WhyLikelyAsked string                `json:"whyLikelyAsked"`
+}
+
+type SuggestDebriefQuestionsRequest struct {
+	Count           *int32  `json:"count,omitempty"`
+	Language        string  `json:"language"`
+	ResumeVersionId *string `json:"resumeVersionId,omitempty"`
+	SessionId       *string `json:"sessionId,omitempty"`
+	TargetJobId     string  `json:"targetJobId"`
+}
+
+type SuggestDebriefQuestionsResponse struct {
+	Suggestions []SuggestedDebriefQuestion `json:"suggestions"`
 }
 
 type Job struct {

@@ -128,6 +128,16 @@ export class EasyInterviewClient {
 		);
 	}
 
+	/** suggestDebriefQuestions — post /debriefs/question-suggestions: Suggest likely debrief questions for a real interview */
+	async suggestDebriefQuestions(body: Types.SuggestDebriefQuestionsRequest, opts?: RequestOptions): Promise<Types.SuggestDebriefQuestionsResponse> {
+		return this.request<Types.SuggestDebriefQuestionsResponse>(
+			"POST",
+			"/debriefs/question-suggestions",
+			body,
+			opts,
+		);
+	}
+
 	/** getDebrief — get /debriefs/{debriefId}: Get a real-interview debrief */
 	async getDebrief(debriefId: string, opts?: RequestOptions): Promise<Types.Debrief> {
 		return this.request<Types.Debrief>(
@@ -647,6 +657,7 @@ export const ALL_OPERATION_IDS = [
 	"verifyAuthEmailChallenge",
 	"logout",
 	"createDebrief",
+	"suggestDebriefQuestions",
 	"getDebrief",
 	"getAgentScanStatus",
 	"getMarketSignals",
@@ -713,6 +724,7 @@ export const ALL_ROUTES = [
 	{ operationId: "verifyAuthEmailChallenge", method: "GET", path: "/auth/email/verify" },
 	{ operationId: "logout", method: "POST", path: "/auth/logout" },
 	{ operationId: "createDebrief", method: "POST", path: "/debriefs" },
+	{ operationId: "suggestDebriefQuestions", method: "POST", path: "/debriefs/question-suggestions" },
 	{ operationId: "getDebrief", method: "GET", path: "/debriefs/{debriefId}" },
 	{ operationId: "getAgentScanStatus", method: "GET", path: "/jd-match/agent-status" },
 	{ operationId: "getMarketSignals", method: "GET", path: "/jd-match/market-signals" },

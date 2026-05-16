@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.9
+> **版本**: 2.10
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-16
 
 ## 1 背景与目标
 
@@ -138,6 +138,7 @@
 | 单题评估 | 单题回答 + rubric | `chat` rubric assessment | `report.assessment.default` |
 | 复练当前轮 / 下一轮 | report gaps + replay items | `chat` 生成 | `report.generate.default` / `report.assessment.default` / `practice.first_question.default` / `practice.followup.default` |
 | Debrief 文本引导 | JD / mock report / resume | `chat` source-grounded generation | `debrief.generate.default` |
+| Debrief 问题建议 | JD / resume / mock report | `chat` source-grounded suggestion generation | `debrief.suggest_questions.default` |
 | Debrief 语音抽取 | audio + running transcript | `stt` + `chat` 抽取；语音引导可选 `tts` | `debrief.voice.extract.default`；后续可增 `debrief.voice.tts.default` |
 | Debrief 分析 | real questions + mock/JD/resume | `chat` 长上下文分析 | `debrief.generate.default` |
 | 离线 LLM Judge / eval | prompt output + rubric | `judge` | `judge.default`（F3 eval） |

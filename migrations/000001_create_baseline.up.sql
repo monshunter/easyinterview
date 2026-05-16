@@ -166,6 +166,7 @@ CREATE TABLE practice_plans (
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   target_job_id uuid NOT NULL REFERENCES target_jobs(id) ON DELETE CASCADE,
   source_report_id uuid,
+  source_debrief_id uuid,
   goal text NOT NULL CHECK (goal IN ('baseline', 'retry_current_round', 'next_round', 'debrief')),
   mode text NOT NULL CHECK (mode IN ('assisted', 'strict')),
   interviewer_persona text NOT NULL CHECK (interviewer_persona IN ('generalist', 'hr', 'hiring_manager', 'technical_manager', 'peer')),
@@ -177,7 +178,12 @@ CREATE TABLE practice_plans (
   focus_competency_codes text[] NOT NULL DEFAULT '{}'::text[],
   status text NOT NULL DEFAULT 'ready' CHECK (status IN ('draft', 'ready', 'archived')),
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT practice_plans_source_goal_check CHECK (
+    (goal = 'baseline' AND source_report_id IS NULL AND source_debrief_id IS NULL)
+    OR (goal IN ('retry_current_round', 'next_round') AND source_report_id IS NOT NULL AND source_debrief_id IS NULL)
+    OR (goal = 'debrief' AND source_report_id IS NULL AND source_debrief_id IS NOT NULL)
+  )
 );
 CREATE INDEX idx_practice_plans_target_job_created ON practice_plans (target_job_id, created_at DESC);
 
@@ -345,6 +351,9 @@ CREATE TABLE debriefs (
 );
 CREATE INDEX idx_debriefs_target_job_created ON debriefs (target_job_id, created_at DESC);
 
+ALTER TABLE practice_plans
+  ADD CONSTRAINT fk_practice_plans_source_debrief FOREIGN KEY (source_debrief_id) REFERENCES debriefs(id) ON DELETE SET NULL;
+
 CREATE TABLE source_records (
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES users(id) ON DELETE SET NULL,
@@ -388,7 +397,7 @@ CREATE TABLE rubric_versions (
 CREATE TABLE ai_task_runs (
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES users(id) ON DELETE SET NULL,
-  task_type text NOT NULL CHECK (task_type IN ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'report_assessment', 'resume_tailor', 'debrief_generate', 'hint_generate')),
+  task_type text NOT NULL CHECK (task_type IN ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'report_assessment', 'resume_tailor', 'debrief_generate', 'debrief_suggest_questions', 'hint_generate')),
   resource_type text NOT NULL,
   resource_id uuid NOT NULL,
   provider text NOT NULL,

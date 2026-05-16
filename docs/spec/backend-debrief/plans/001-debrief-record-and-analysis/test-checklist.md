@@ -10,13 +10,20 @@
 
 ## Phase 0: Cross-owner pre-launch addendums 验证
 
-- [ ] 0.A `make codegen-check` 通过（B1 enum / B2 operation / generated types 同步）
-- [ ] 0.B `make validate-fixtures` 通过（含 createDebrief / getDebrief / suggestDebriefQuestions 三套 fixtures）
-- [ ] 0.C `make lint-events` 通过（events.yaml roundType 已修正）
-- [ ] 0.D `make codegen-events-check` 通过（events baseline JSON / schemas 同步）
-- [ ] 0.E F3 baseline test：prompt-rubric-registry baseline test 含 `debrief.suggest_questions` v0.1.0 active 断言
-- [ ] 0.F backend-practice Q-3 验证：现状已支持 `goal='debrief'` + `mode='debrief'`（grep + test names 已记录）；如不支持，依赖 PR 已合并
-- [ ] 0.G `migrations/lint.sh` + `make migrate-check`（dev-stack .env）通过
+- [x] 0.A `make codegen-check` 通过（B1 enum / B2 operation / generated types 同步）
+  <!-- verified: 2026-05-16 make codegen-check -->
+- [x] 0.B `make validate-fixtures` 通过（含 createDebrief / getDebrief / suggestDebriefQuestions 三套 fixtures）
+  <!-- verified: 2026-05-16 make validate-fixtures -> OK 56 fixtures -->
+- [x] 0.C `make lint-events` 通过（events.yaml roundType 已修正）
+  <!-- verified: 2026-05-16 make lint-events; events_inventory.py DebriefRoundType gate -->
+- [x] 0.D `make codegen-events-check` 通过（events baseline JSON / schemas 同步）
+  <!-- verified: 2026-05-16 make codegen-events-check -->
+- [x] 0.E F3 baseline test：prompt-rubric-registry baseline test 含 `debrief.suggest_questions` v0.1.0 active 断言
+  <!-- verified: 2026-05-16 go test ./internal/ai/registry focused; make lint-prompts; make lint-rubrics; make lint-ai-profile-coverage -->
+- [x] 0.F backend-practice Q-3 验证：现状已支持 `goal='debrief'` + 合法 `mode IN ('assisted','strict')`（grep + test names 已记录）；如不支持，依赖 PR 已合入
+  <!-- verified: 2026-05-16 dependency backend-practice/004-derived-plans-debrief; `cd backend && go test ./internal/practice ./internal/store/practice ./internal/api/practice ./cmd/api -run 'Derived|Debrief|Source' -count=1`; `cd backend && go test ./cmd/api -run 'TestE2EP0070|TestE2EP0071|TestE2EP0072|TestE2EP0073' -count=1`; scoped legacy grep no runtime/generated/fixture matches -->
+- [x] 0.G `migrations/lint.sh` + `make migrate-check`（dev-stack .env）通过
+  <!-- verified: 2026-05-16 ./migrations/lint.sh; set -a; . deploy/dev-stack/.env; set +a; make migrate-check -->
 
 ## Phase 1: createDebrief handler 与 store 骨架
 

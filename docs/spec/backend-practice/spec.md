@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: active
-> **更新日期**: 2026-05-15
+> **更新日期**: 2026-05-16
 
 ## 1 背景与目标
 
@@ -220,7 +220,7 @@
 1. [`001-plan-and-session-orchestration`](./plans/001-plan-and-session-orchestration/plan.md)：D-12 + D-13 + D-21 + D-23 + D-26 + D-27 + D-30 主流程（createPracticePlan baseline + startPracticeSession reservation/首题/失败重试 + getPracticePlan/getPracticeSession + practice.session.started outbox + shared `idempotency_records` 表）；Phase 0 按 D-30 Q1=A integrator 模式直接修订 B1/B2/B3/B4 编码真理源，并同步追加各 owner spec history append 与 Header bump；含 PracticeMode 二值化、practice not-found 错误码、B3 PracticeMode event surface、Practice idempotency storage/replay 语义与 F3 baseline preflight 检查
 2. [`002-event-loop-and-completion`](./plans/002-event-loop-and-completion/plan.md)（completed, 2026-05-13）：D-6 + D-7 + D-22 + D-25 + D-27 + D-28 全 5 种 event kind 状态机 + completePracticeSession 202 + placeholder report/job + practice.turn.completed / practice.session.completed outbox + 双轨 idempotency + **B2 `PracticeTurn.status` wire enum 扩 5 值（D-33 落实 D-25，pre-launch baseline rebase）** + **B3 `shared/jobs.yaml#report_generate` `triggerEventSemantic: source_event_only`（D-32 落实 D-28，未来 dispatcher 必须按 generated `JobTriggerEventSemantic*` 常量在 dispatch-time 跳过；002 阶段无 runtime dispatcher，由 jobs.yaml lint + 常量 + handler 端 `async_jobs(job_type, dedupe_key)` UNIQUE + repo grep 兜底）** + **D-34 plan-level 决策：`hint_requested` 在 002 默认 strict 409，等待 003 接手 assisted 分支** + **D-35 plan-level 决策：已完成 session 的二次 complete 不论 `Idempotency-Key` 是否一致都返回既有 `ReportWithJob`，idempotency key 仅控制 inflight 单执行者**
 3. [`003-mode-policies-and-provenance`](./plans/003-mode-policies-and-provenance/plan.md)：D-5 + D-10 mode 策略（仅 assisted/strict 两支） + AssistantAction provenance + show_hint feature_key + lightweight observe + **D-36 plan-level（hint / lightweight_observe AI 失败 graceful degrade narrowing；同步 inline-narrow C-17 / D-19 / §4.3 / §2.1 失败语义文字）** + **D-37 plan-level（B4 `ai_task_runs.task_type` CHECK 扩值 `hint_generate` pre-launch baseline rebase + `AITaskRunTaskHintGenerate` writers.go enum）** + **D-38 plan-level（hint turn-lifecycle 边界：不递增 turn_count / 不发 practice.turn.completed outbox / 不写 audit / 不改 turn.status）**
-4. `004-derived-plans-debrief`：D-4 + D-14 retry/next_round/debrief plan 派生 + B4 修订 source_debrief_id 列；显式验证 goal='debrief' 与 mode='assisted'/'strict' 的 4 种组合
+4. [`004-derived-plans-debrief`](./plans/004-derived-plans-debrief/plan.md)：D-4 + D-14 + D-24 retry/next_round/debrief plan 派生 + B2 `sourceReportId` / `sourceDebriefId` source 字段 + B4 修订 `source_debrief_id` 列；显式验证 `goal='debrief'` 与 `mode IN ('assisted','strict')` 的组合，且 debrief start 不调用 `practice.session.first_question`
 5. `005-voice-turn-extension`：D-15 与 practice-voice-mvp 协作 + voice operation OpenAPI 修订
 6. `006-privacy-cascade-and-cleanup`：D-9 + D-11 + D-18 DELETE /me CASCADE + audit_events + timeout sweep contract
 

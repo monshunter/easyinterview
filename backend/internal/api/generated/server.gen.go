@@ -12,7 +12,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 55-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// 56-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
 	// startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email magic-link challenge
@@ -26,6 +26,9 @@ type ServerInterface interface {
 
 	// createDebrief — post /debriefs: Create a real-interview debrief and trigger augmented summary
 	CreateDebrief(w http.ResponseWriter, r *http.Request)
+
+	// suggestDebriefQuestions — post /debriefs/question-suggestions: Suggest likely debrief questions for a real interview
+	SuggestDebriefQuestions(w http.ResponseWriter, r *http.Request)
 
 	// getDebrief — get /debriefs/{debriefId}: Get a real-interview debrief
 	GetDebrief(w http.ResponseWriter, r *http.Request, debriefId string)
@@ -198,6 +201,7 @@ var AllRoutes = []Route{
 	{OperationID: "verifyAuthEmailChallenge", Method: "get", Path: "/auth/email/verify", PathParams: nil},
 	{OperationID: "logout", Method: "post", Path: "/auth/logout", PathParams: nil},
 	{OperationID: "createDebrief", Method: "post", Path: "/debriefs", PathParams: nil},
+	{OperationID: "suggestDebriefQuestions", Method: "post", Path: "/debriefs/question-suggestions", PathParams: nil},
 	{OperationID: "getDebrief", Method: "get", Path: "/debriefs/{debriefId}", PathParams: []string{"debriefId"}},
 	{OperationID: "getAgentScanStatus", Method: "get", Path: "/jd-match/agent-status", PathParams: nil},
 	{OperationID: "getMarketSignals", Method: "get", Path: "/jd-match/market-signals", PathParams: nil},
