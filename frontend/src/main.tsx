@@ -8,6 +8,7 @@ import "./app/theme/global.css";
 
 import { createAppClient } from "./api/clientFactory";
 import { App } from "./app/App";
+import { parseInitialRouteHash } from "./app/bootstrapRoute";
 import type { LooseRoute } from "./app/normalizeRoute";
 
 declare global {
@@ -26,7 +27,10 @@ createRoot(root).render(
   <StrictMode>
     <App
       client={createAppClient()}
-      initialRoute={window.__EASYINTERVIEW_INITIAL_ROUTE__}
+      initialRoute={
+        window.__EASYINTERVIEW_INITIAL_ROUTE__ ??
+        parseInitialRouteHash(window.location.hash)
+      }
     />
   </StrictMode>,
 );

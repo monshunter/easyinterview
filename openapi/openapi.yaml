@@ -1128,6 +1128,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FeedbackReport'
+        '404':
+          description: Feedback report not found or not accessible (`REPORT_NOT_FOUND`).
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                reportNotFound:
+                  summary: Report not found
+                  value:
+                    error:
+                      code: REPORT_NOT_FOUND
+                      message: feedback report not found or not accessible
+                      retryable: false
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
@@ -1899,6 +1916,7 @@ components:
         - PRACTICE_SESSION_CONFLICT
         - PRACTICE_PLAN_NOT_FOUND
         - PRACTICE_SESSION_NOT_FOUND
+        - REPORT_NOT_FOUND
         - REPORT_NOT_READY
         - RESUME_EXPORT_NOT_AVAILABLE
         - VALIDATION_FAILED
@@ -3177,6 +3195,13 @@ components:
           format: uuid
         status:
           $ref: '#/components/schemas/ReportStatus'
+        errorCode:
+          oneOf:
+            - $ref: '#/components/schemas/ApiErrorCode'
+            - type: 'null'
+          description: |
+            Populated only when `status == failed`. Carries the B1 error code
+            (typically the `AI_*` family) so clients can render a failure state.
         preparednessLevel:
           oneOf:
             - $ref: '#/components/schemas/ReadinessTier'

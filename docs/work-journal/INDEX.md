@@ -8,8 +8,14 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-16](2026-05-16.md) | `fix(frontend-report): remediate report dashboard L2 findings (BUG-0063)` | #fix #ui #test #docs #i18n |
+| [2026-05-16](2026-05-16.md) | `feat(frontend-report-dashboard): land report screen and generating handoff` | #feat #ui #test #i18n #docs |
 | [2026-05-16](2026-05-16.md) | `docs(debrief): align debrief plan review contracts` | #docs #ui |
 | [2026-05-16](2026-05-16.md) | `docs(debrief): add backend and frontend baseline plans` | #docs #ui |
+| [2026-05-16](2026-05-16.md) | `fix(backend-review): remediate report L2 findings (BUG-0062)` | #fix #test #docs |
+| [2026-05-16](2026-05-16.md) | `fix(backend-review): wire report runner runtime (BUG-0061)` | #fix #test #docs |
+| [2026-05-16](2026-05-16.md) | `docs(retrospective): assess backend review report baseline` | #docs |
+| [2026-05-16](2026-05-16.md) | `feat(backend-review): implement report generation baseline` | #feat #test #docs |
 | [2026-05-15](2026-05-15.md) | `fix(backend-practice): align hint prompt contract` | #fix #test #docs |
 | [2026-05-15](2026-05-15.md) | `fix(backend-practice): preserve append event replay snapshots` | #fix #test #docs |
 | [2026-05-15](2026-05-15.md) | `docs(report-dashboard): add backend and frontend baseline plans` | #docs #ui |

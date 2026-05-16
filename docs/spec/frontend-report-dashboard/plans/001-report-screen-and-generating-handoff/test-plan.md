@@ -1,8 +1,8 @@
 # 001 — Report Screen and Generating Handoff Test Plan
 
 > **版本**: 1.0
-> **状态**: active
-> **更新日期**: 2026-05-15
+> **状态**: completed
+> **更新日期**: 2026-05-16
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 **关联 Test Checklist**: [test-checklist](./test-checklist.md)

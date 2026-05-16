@@ -26,6 +26,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	apipractice "github.com/monshunter/easyinterview/backend/internal/api/practice"
+	apireports "github.com/monshunter/easyinterview/backend/internal/api/reports"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
@@ -37,11 +38,13 @@ import (
 	resumehandler "github.com/monshunter/easyinterview/backend/internal/resume/handler"
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
+	domainreview "github.com/monshunter/easyinterview/backend/internal/review"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	storeai "github.com/monshunter/easyinterview/backend/internal/store/ai"
 	storepractice "github.com/monshunter/easyinterview/backend/internal/store/practice"
+	storereview "github.com/monshunter/easyinterview/backend/internal/store/review"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
 	uploadhandler "github.com/monshunter/easyinterview/backend/internal/upload/handler"
@@ -151,9 +154,19 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: practice runtime init: %v\n", err)
 		os.Exit(1)
 	}
+	reportRuntime, err := buildReportRuntime(loader, db, logger, targetJobRuntime.AI.Client)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: report runtime init: %v\n", err)
+		os.Exit(1)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = reportRuntime.Shutdown(shutdownCtx)
+	}()
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes()),
+		Handler:           buildAPIHandlerWithUploadReportAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes()),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -161,6 +174,7 @@ func main() {
 	defer stop()
 	targetJobRuntime.Start(ctx)
 	resumeRuntime.Start(ctx)
+	reportRuntime.Start(ctx)
 
 	go func() {
 		logger.Info("api: listening", "addr", srv.Addr, "env", loader.AppEnv())
@@ -215,6 +229,10 @@ type practiceRoutes struct {
 	Idempotency *idempotency.Middleware
 }
 
+type reportRoutes struct {
+	Handler *apireports.Handler
+}
+
 type discardAIAuditWriter struct{}
 
 func (discardAIAuditWriter) WriteAuditEvent(context.Context, aiclient.AuditEventRow) error {
@@ -238,6 +256,10 @@ func buildAPIHandlerWithHandlers(loader *config.Loader, flagsClient featureflag.
 }
 
 func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes) http.Handler {
+	return buildAPIHandlerWithUploadReportAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, upload, resume, reportRoutes{})
+}
+
+func buildAPIHandlerWithUploadReportAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes) http.Handler {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(auth.HandlerOptions{
 		Passwordless: authService,
@@ -274,6 +296,14 @@ func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient fea
 			resume.Handler.GetResume(w, r, r.PathValue("resumeAssetId"))
 		})))
 	}
+	if reports.Handler != nil {
+		mux.Handle("GET /api/v1/reports/{reportId}", auth.SessionMiddleware(authService, "getFeedbackReport", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			reports.Handler.GetFeedbackReport(w, r, r.PathValue("reportId"))
+		})))
+		mux.Handle("GET /api/v1/targets/{targetJobId}/reports", auth.SessionMiddleware(authService, "listTargetJobReports", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			reports.Handler.ListTargetJobReports(w, r, r.PathValue("targetJobId"))
+		})))
+	}
 	mux.Handle("GET /api/v1/targets", auth.SessionMiddleware(authService, "listTargetJobs", http.HandlerFunc(targetJobHandler.ListTargetJobs)))
 	mux.Handle("POST /api/v1/targets/import", auth.SessionMiddleware(authService, "importTargetJob", http.HandlerFunc(targetJobHandler.ImportTargetJob)))
 	mux.Handle("GET /api/v1/targets/{targetJobId}", auth.SessionMiddleware(authService, "getTargetJob", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -307,6 +337,106 @@ func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient fea
 		})))
 	}
 	return mux
+}
+
+type reportRuntime struct {
+	Handler *apireports.Handler
+	Runner  *domainreview.Runner
+	Reaper  *domainreview.Reaper
+	Service *domainreview.Service
+}
+
+func (r *reportRuntime) Routes() reportRoutes {
+	if r == nil {
+		return reportRoutes{}
+	}
+	return reportRoutes{Handler: r.Handler}
+}
+
+func (r *reportRuntime) Start(ctx context.Context) {
+	if r == nil {
+		return
+	}
+	if r.Runner != nil {
+		r.Runner.Start(ctx)
+	}
+	if r.Reaper != nil {
+		r.Reaper.Start(ctx)
+	}
+}
+
+func (r *reportRuntime) Shutdown(ctx context.Context) error {
+	if r == nil {
+		return nil
+	}
+	var errs []error
+	if r.Runner != nil {
+		errs = append(errs, r.Runner.Stop(ctx))
+	}
+	if r.Reaper != nil {
+		errs = append(errs, r.Reaper.Stop(ctx))
+	}
+	return errors.Join(errs...)
+}
+
+func buildReportRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, ai aiclient.AIClient) (*reportRuntime, error) {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	if ai == nil {
+		return nil, fmt.Errorf("report AI client is required")
+	}
+	repo := storereview.NewRepository(db)
+	registryClient, err := registry.NewRegistryClient(registry.RegistryOptions{
+		PromptsDir: registryDirOrDefault(loader, "ai.promptsDir", "config/prompts"),
+		RubricsDir: registryDirOrDefault(loader, "ai.rubricsDir", "config/rubrics"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("build report prompt registry: %w", err)
+	}
+	taskRuns := storeai.NewTaskRunWriter(db)
+	observedAI := ai
+	if resolverProvider, ok := ai.(interface {
+		Resolver() aiclient.ProfileResolver
+	}); ok {
+		wrapped, err := observability.New(ai,
+			observability.WithRegisterer(observability.NewInMemoryRegistry()),
+			observability.WithLogger(observability.NewMemoryLogger()),
+			observability.WithAITaskRunWriter(taskRuns),
+			observability.WithAuditEventWriter(discardAIAuditWriter{}),
+			observability.WithProfileResolver(resolverProvider.Resolver()),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("build report AI observability: %w", err)
+		}
+		observedAI = wrapped
+	}
+	service := domainreview.NewService(domainreview.ServiceOptions{
+		Registry:   registryClient,
+		AI:         observedAI,
+		AITaskRuns: taskRuns,
+		Repository: repo,
+		NewID:      idx.NewID,
+	})
+	return &reportRuntime{
+		Handler: apireports.NewHandler(apireports.HandlerOptions{
+			Service: service,
+			Session: currentUserFromContext,
+		}),
+		Runner: domainreview.NewRunner(domainreview.RunnerOptions{
+			Store:        repo,
+			Service:      service,
+			PollInterval: 5 * time.Second,
+			Logger:       logger,
+		}),
+		Reaper: domainreview.NewReaper(domainreview.ReaperOptions{
+			Store:        repo,
+			LeaseTimeout: 5 * time.Minute,
+			Interval:     150 * time.Second,
+			Logger:       logger,
+		}),
+		Service: service,
+	}, nil
 }
 
 func buildUploadRoutes(loader *config.Loader, db *sql.DB) (uploadRoutes, error) {

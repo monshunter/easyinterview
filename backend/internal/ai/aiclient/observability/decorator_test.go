@@ -117,6 +117,17 @@ func newTestStack(t *testing.T) (
 			Version:   "1.0.0",
 			Route:     "practice.voice.tts",
 		},
+		"report.generate.default": {
+			Name:       "report.generate.default",
+			Capability: aiclient.CapabilityChat,
+			Status:     aiclient.ProfileStatusActive,
+			Default: aiclient.ProviderConfig{
+				ProviderRef: stub.Name,
+				Model:       "stub-chat-1",
+			},
+			TimeoutMs: 5000,
+			Version:   "1.0.0",
+		},
 	}
 	inner, err := aiclient.New(
 		aiclient.Config{AppEnv: aiclient.AppEnvTest},
@@ -372,6 +383,38 @@ func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 	}
 	if auditRows[0].Metadata.PromptCharLength == 0 || auditRows[0].Metadata.ResponseCharLength == 0 {
 		t.Errorf("audit char lengths zero: %+v", auditRows[0].Metadata)
+	}
+}
+
+func TestDecorator_ReportMetricLabelsExcludeProvenanceAndRawModelID(t *testing.T) {
+	wrap, registry, _, runs, _ := newTestStack(t)
+	payload := samplePayload()
+	payload.Metadata.FeatureKey = "report.generate"
+	payload.Metadata.PromptVersion = "v0.1.0"
+	payload.Metadata.RubricVersion = "v0.1.0"
+	payload.Metadata.TaskRun = aiclient.AITaskRunContext{
+		Capability:   aiclient.AITaskRunTaskReportGenerate,
+		ResourceType: aiclient.AITaskRunResourceFeedbackReport,
+		ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
+	}
+
+	if _, _, err := wrap.Complete(context.Background(), "report.generate.default", payload); err != nil {
+		t.Fatalf("Complete: %v", err)
+	}
+	labels := registry.CounterLabelValues(observability.MetricRunsTotal)
+	if len(labels) != 1 {
+		t.Fatalf("metric labels = %+v", labels)
+	}
+	for _, forbidden := range []string{"report.generate", "v0.1.0", "stub-chat-1"} {
+		for _, label := range labels[0] {
+			if label == forbidden {
+				t.Fatalf("metric labels include forbidden high-cardinality value %q: %+v", forbidden, labels[0])
+			}
+		}
+	}
+	rows := runs.Rows()
+	if len(rows) != 1 || rows[0].Capability != aiclient.AITaskRunTaskReportGenerate || rows[0].Status != aiclient.AITaskRunStatusSuccess {
+		t.Fatalf("ai_task_runs row = %+v", rows)
 	}
 }
 

@@ -1,0 +1,179 @@
+// Phase 0 cross-owner preflight asserts the backend-review/001 Phase 0 contract
+// deliverables landed in the repo before Phase 1 implementation starts. If any
+// assert fails the implementation must stop and route the gap back through
+// bug-report / retrospective to backend-review/001 owner — see
+// docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/plan.md
+// Phase 0 (B1 / B2 / fixtures / generated TS client).
+
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+import { ERROR_CODES } from "../../../../lib/conventions/errors";
+import type { FeedbackReport } from "../../../../api/generated/types";
+
+// preflight.test.ts lives at frontend/src/app/screens/report/__tests__/.
+// new URL(".", import.meta.url) resolves to the __tests__ directory; six
+// parent hops land on repo root (report → screens → app → src → frontend → repo).
+const REPO_ROOT = resolve(
+  fileURLToPath(new URL(".", import.meta.url)),
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+);
+
+function readRepoFile(rel: string): string {
+  return readFileSync(resolve(REPO_ROOT, rel), "utf8");
+}
+
+function readRepoJson<T = unknown>(rel: string): T {
+  return JSON.parse(readRepoFile(rel)) as T;
+}
+
+interface FixtureScenario {
+  response: {
+    status: number;
+    body: Record<string, unknown>;
+  };
+}
+
+interface FixtureFile {
+  scenarios: Record<string, FixtureScenario>;
+}
+
+describe("frontend-report-dashboard/001 Phase 0 preflight", () => {
+  it("FeedbackReport schema in openapi.yaml declares optional nullable errorCode (TestB2FeedbackReportSchemaHasErrorCode)", () => {
+    const spec = readRepoFile("openapi/openapi.yaml");
+    const schemaIdx = spec.indexOf("    FeedbackReport:");
+    expect(
+      schemaIdx,
+      "blocked on backend-review/001 Phase 0.2 + 0.4 (errorCode field in B2 schema): FeedbackReport schema missing",
+    ).toBeGreaterThan(-1);
+
+    // Slice the schema window up to the next sibling schema and require both
+    // `errorCode` and a nullable ApiErrorCode oneOf.
+    const tail = spec.slice(schemaIdx);
+    const schemaWindow = tail.slice(0, tail.indexOf("\n    PaginatedFeedbackReport:"));
+    expect(
+      /\n        errorCode:/.test(schemaWindow),
+      "blocked on backend-review/001 Phase 0.2 + 0.4 (errorCode field in B2 schema): errorCode property absent",
+    ).toBe(true);
+    expect(
+      /errorCode:\s*\n\s+oneOf:\s*\n\s+- \$ref: '#\/components\/schemas\/ApiErrorCode'\s*\n\s+- type: 'null'/.test(
+        schemaWindow,
+      ),
+      "blocked on backend-review/001 Phase 0.2 + 0.4 (errorCode field in B2 schema): errorCode must be oneOf [ApiErrorCode, null]",
+    ).toBe(true);
+  });
+
+  it("generated TS FeedbackReport interface exposes optional errorCode (TestB2FeedbackReportSchemaHasErrorCode TS half)", () => {
+    // Type-only assertion: compile-time + runtime mirror. The runtime check
+    // grep'd from generated types defends against codegen drift.
+    const generated = readRepoFile("frontend/src/api/generated/types.ts");
+    expect(
+      /errorCode\?\s*:\s*ApiErrorCode\s*\|\s*null;/.test(generated),
+      "blocked on backend-review/001 Phase 0.2 (generated TS errorCode optional nullable)",
+    ).toBe(true);
+
+    const sample: FeedbackReport = {
+      id: "00000000-0000-0000-0000-000000000000",
+      sessionId: "00000000-0000-0000-0000-000000000000",
+      targetJobId: "00000000-0000-0000-0000-000000000000",
+      status: "ready",
+      errorCode: null,
+      createdAt: "2026-05-15T00:00:00Z",
+      updatedAt: "2026-05-15T00:00:00Z",
+    };
+    expect(sample.errorCode).toBeNull();
+  });
+
+  it("openapi/fixtures/Reports/getFeedbackReport.json has default + report-generating + report-failed scenarios (TestReportFailedFixtureVariantExists)", () => {
+    const fixture = readRepoJson<FixtureFile>(
+      "openapi/fixtures/Reports/getFeedbackReport.json",
+    );
+    const scenarios = fixture.scenarios;
+    expect(
+      scenarios.default,
+      "blocked on backend-review/001 Phase 0.4: missing default fixture variant",
+    ).toBeDefined();
+    expect(
+      scenarios["report-generating"],
+      "blocked on backend-review/001 Phase 0.4: missing report-generating fixture variant",
+    ).toBeDefined();
+    expect(
+      scenarios["report-failed"],
+      "blocked on backend-review/001 Phase 0.4: missing report-failed fixture variant",
+    ).toBeDefined();
+
+    const failedBody = scenarios["report-failed"]!.response.body as {
+      status: string;
+      errorCode: string | null;
+    };
+    expect(failedBody.status).toBe("failed");
+    expect(
+      failedBody.errorCode,
+      "blocked on backend-review/001 Phase 0.4: report-failed scenario must populate errorCode",
+    ).not.toBeNull();
+  });
+
+  it("openapi/fixtures/Reports/listTargetJobReports.json has empty scenario shape (TestListTargetJobReportsEmptyFixtureVariantExists)", () => {
+    const fixture = readRepoJson<FixtureFile>(
+      "openapi/fixtures/Reports/listTargetJobReports.json",
+    );
+    const empty = fixture.scenarios.empty;
+    expect(
+      empty,
+      "blocked on backend-review/001 Phase 0.4: listTargetJobReports.empty fixture missing",
+    ).toBeDefined();
+    const body = empty!.response.body as {
+      items: unknown[];
+      pageInfo: { hasMore: boolean; nextCursor: unknown };
+    };
+    expect(body.items).toEqual([]);
+    expect(body.pageInfo.hasMore).toBe(false);
+    expect(body.pageInfo.nextCursor).toBeNull();
+  });
+
+  it("shared/conventions.yaml registers REPORT_NOT_FOUND with 404 + retryable=false (TestReportNotFoundErrorCodeRegistered)", () => {
+    const yaml = readRepoFile("shared/conventions.yaml");
+    const idx = yaml.indexOf("  - code: REPORT_NOT_FOUND");
+    expect(
+      idx,
+      "blocked on backend-review/001 Phase 0.1 (REPORT_NOT_FOUND in B1): code entry missing",
+    ).toBeGreaterThan(-1);
+    const block = yaml.slice(idx, idx + 400);
+    expect(/retryable:\s*false/.test(block)).toBe(true);
+
+    // The B1 conventions YAML doesn't carry httpStatus inline (HTTP mapping is
+    // backend-owned), but the contract requires REPORT_NOT_FOUND to resolve to
+    // 404 via the openapi.yaml response binding. Assert the response wiring.
+    const spec = readRepoFile("openapi/openapi.yaml");
+    const opIdx = spec.indexOf("operationId: getFeedbackReport");
+    expect(opIdx, "getFeedbackReport operation missing in openapi.yaml").toBeGreaterThan(-1);
+    const window = spec.slice(opIdx, opIdx + 4000);
+    expect(/'404':/.test(window), "getFeedbackReport must declare a 404 response").toBe(true);
+    expect(
+      /REPORT_NOT_FOUND/.test(window),
+      "getFeedbackReport 404 must surface REPORT_NOT_FOUND",
+    ).toBe(true);
+  });
+
+  it("generated TS ApiErrorCode union exposes REPORT_NOT_FOUND + the AI_* family used by ReportFailureState (TestReportNotFoundErrorCodeRegistered TS half)", () => {
+    const generated = readRepoFile("frontend/src/api/generated/types.ts");
+    expect(/"REPORT_NOT_FOUND"/.test(generated)).toBe(true);
+    expect(/"AI_PROVIDER_TIMEOUT"/.test(generated)).toBe(true);
+    expect(/"AI_PROVIDER_SECRET_MISSING"/.test(generated)).toBe(true);
+    expect(/"AI_PROVIDER_CONFIG_INVALID"/.test(generated)).toBe(true);
+    expect(/"AI_OUTPUT_INVALID"/.test(generated)).toBe(true);
+
+    // The conventions registry shim mirrors B1 in TS land — ensure plan 001's
+    // failure-state mapping has a single source of truth to consume.
+    expect(ERROR_CODES.REPORT_NOT_FOUND).toBe("REPORT_NOT_FOUND");
+    expect(ERROR_CODES.AI_PROVIDER_TIMEOUT).toBe("AI_PROVIDER_TIMEOUT");
+  });
+});

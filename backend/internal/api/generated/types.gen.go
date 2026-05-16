@@ -108,6 +108,7 @@ const (
 	ApiErrorCodePRACTICESESSIONCONFLICT       ApiErrorCode = "PRACTICE_SESSION_CONFLICT"
 	ApiErrorCodePRACTICEPLANNOTFOUND          ApiErrorCode = "PRACTICE_PLAN_NOT_FOUND"
 	ApiErrorCodePRACTICESESSIONNOTFOUND       ApiErrorCode = "PRACTICE_SESSION_NOT_FOUND"
+	ApiErrorCodeREPORTNOTFOUND                ApiErrorCode = "REPORT_NOT_FOUND"
 	ApiErrorCodeREPORTNOTREADY                ApiErrorCode = "REPORT_NOT_READY"
 	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE      ApiErrorCode = "RESUME_EXPORT_NOT_AVAILABLE"
 	ApiErrorCodeVALIDATIONFAILED              ApiErrorCode = "VALIDATION_FAILED"
@@ -132,6 +133,7 @@ var AllApiErrorCodes = []ApiErrorCode{
 	ApiErrorCodePRACTICESESSIONCONFLICT,
 	ApiErrorCodePRACTICEPLANNOTFOUND,
 	ApiErrorCodePRACTICESESSIONNOTFOUND,
+	ApiErrorCodeREPORTNOTFOUND,
 	ApiErrorCodeREPORTNOTREADY,
 	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE,
 	ApiErrorCodeVALIDATIONFAILED,
@@ -598,6 +600,7 @@ type QuestionAssessment struct {
 
 type FeedbackReport struct {
 	CreatedAt           string                `json:"createdAt"`
+	ErrorCode           *ApiErrorCode         `json:"errorCode,omitempty"`
 	Highlights          []ReportHighlight     `json:"highlights,omitempty"`
 	Id                  string                `json:"id"`
 	Issues              []ReportIssue         `json:"issues,omitempty"`

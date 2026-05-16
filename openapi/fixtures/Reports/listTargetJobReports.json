@@ -83,6 +83,22 @@
           }
         }
       }
+    },
+    "empty": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-15T10-20-00-empty-reports"
+        },
+        "body": {
+          "items": [],
+          "pageInfo": {
+            "nextCursor": null,
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
     }
   }
 }

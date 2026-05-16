@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	apireports "github.com/monshunter/easyinterview/backend/internal/api/reports"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
@@ -275,6 +276,54 @@ runtime:
 	}
 }
 
+func TestBuildAPIHandlerMountsReportRoutesBehindSessionMiddleware(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               &apiAuthStore{},
+		SessionCookieSecret: "session-secret",
+	})
+	handler := buildAPIHandlerWithUploadReportAndHandlers(
+		loader,
+		apiRuntimeFlags{},
+		service,
+		targetjob.NewHandler(),
+		practiceRoutes{},
+		uploadRoutes{},
+		resumeRoutes{},
+		reportRoutes{Handler: apireports.NewHandler(apireports.HandlerOptions{})},
+	)
+
+	cases := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/v1/reports/018f2a40-0000-7000-9000-0000000000a1"},
+		{http.MethodGet, "/api/v1/targets/018f2a40-0000-7000-9000-0000000000a2/reports"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			handler.ServeHTTP(rec, req)
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("status = %d body=%s; report route is not mounted behind auth middleware", rec.Code, rec.Body.String())
+			}
+			if !strings.Contains(rec.Body.String(), `"code":"AUTH_UNAUTHORIZED"`) {
+				t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())
+			}
+		})
+	}
+}
+
 func TestBuildUploadRoutesAlignsIdempotencyTTLWithPresignTTL(t *testing.T) {
 	dir := t.TempDir()
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
@@ -350,6 +399,52 @@ auth:
 	}
 	if _, ok := parsed["basics"]; !ok {
 		t.Fatalf("test runtime resume parse fixture missing basics: %+v", parsed)
+	}
+}
+
+func TestBuildReportRuntimeWiresRoutesRunnerReaperAndAI(t *testing.T) {
+	dir := t.TempDir()
+	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  promptsDir: "`+promptsDir+`"
+  rubricsDir: "`+rubricsDir+`"
+auth:
+  challengeTokenPepper: "pepper"
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	runtime, err := buildReportRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiNoopAIClient{})
+	if err != nil {
+		t.Fatalf("buildReportRuntime: %v", err)
+	}
+	if runtime.Handler == nil || runtime.Runner == nil || runtime.Reaper == nil || runtime.Service == nil {
+		t.Fatalf("runtime missing handler/runner/reaper/service wiring: %+v", runtime)
+	}
+	if runtime.Routes().Handler != runtime.Handler {
+		t.Fatalf("Routes handler mismatch")
+	}
+}
+
+func TestBuildReportRuntimeRejectsMissingAIClient(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if _, err := buildReportRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil); err == nil {
+		t.Fatal("buildReportRuntime returned nil error for missing AI client")
 	}
 }
 
