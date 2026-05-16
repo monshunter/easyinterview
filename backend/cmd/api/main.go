@@ -25,9 +25,11 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/bootstrap"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
+	apidebriefs "github.com/monshunter/easyinterview/backend/internal/api/debriefs"
 	apipractice "github.com/monshunter/easyinterview/backend/internal/api/practice"
 	apireports "github.com/monshunter/easyinterview/backend/internal/api/reports"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
+	domaindebrief "github.com/monshunter/easyinterview/backend/internal/debrief"
 	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
@@ -43,6 +45,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	storeai "github.com/monshunter/easyinterview/backend/internal/store/ai"
+	storedebrief "github.com/monshunter/easyinterview/backend/internal/store/debrief"
 	storepractice "github.com/monshunter/easyinterview/backend/internal/store/practice"
 	storereview "github.com/monshunter/easyinterview/backend/internal/store/review"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
@@ -159,6 +162,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: report runtime init: %v\n", err)
 		os.Exit(1)
 	}
+	debriefRoutes, err := buildDebriefRoutes(loader, db, targetJobRuntime.AI.Client)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: debrief runtime init: %v\n", err)
+		os.Exit(1)
+	}
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -166,7 +174,7 @@ func main() {
 	}()
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           buildAPIHandlerWithUploadReportAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes()),
+		Handler:           buildAPIHandlerWithUploadReportDebriefAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -233,6 +241,11 @@ type reportRoutes struct {
 	Handler *apireports.Handler
 }
 
+type debriefRoutes struct {
+	Handler     *apidebriefs.Handler
+	Idempotency *idempotency.Middleware
+}
+
 type discardAIAuditWriter struct{}
 
 func (discardAIAuditWriter) WriteAuditEvent(context.Context, aiclient.AuditEventRow) error {
@@ -260,6 +273,10 @@ func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient fea
 }
 
 func buildAPIHandlerWithUploadReportAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes) http.Handler {
+	return buildAPIHandlerWithUploadReportDebriefAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, upload, resume, reports, debriefRoutes{})
+}
+
+func buildAPIHandlerWithUploadReportDebriefAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, debrief debriefRoutes) http.Handler {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(auth.HandlerOptions{
 		Passwordless: authService,
@@ -302,6 +319,17 @@ func buildAPIHandlerWithUploadReportAndHandlers(loader *config.Loader, flagsClie
 		})))
 		mux.Handle("GET /api/v1/targets/{targetJobId}/reports", auth.SessionMiddleware(authService, "listTargetJobReports", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			reports.Handler.ListTargetJobReports(w, r, r.PathValue("targetJobId"))
+		})))
+	}
+	if debrief.Handler != nil {
+		createDebrief := http.HandlerFunc(debrief.Handler.CreateDebrief)
+		if debrief.Idempotency != nil {
+			createDebrief = debrief.Idempotency.Handler("debrief", "createDebrief", requestUserFromContext, createDebrief).ServeHTTP
+		}
+		mux.Handle("POST /api/v1/debriefs", auth.SessionMiddleware(authService, "createDebrief", createDebrief))
+		mux.Handle("POST /api/v1/debriefs/question-suggestions", auth.SessionMiddleware(authService, "suggestDebriefQuestions", http.HandlerFunc(debrief.Handler.SuggestDebriefQuestions)))
+		mux.Handle("GET /api/v1/debriefs/{debriefId}", auth.SessionMiddleware(authService, "getDebrief", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			debrief.Handler.GetDebrief(w, r, r.PathValue("debriefId"))
 		})))
 	}
 	mux.Handle("GET /api/v1/targets", auth.SessionMiddleware(authService, "listTargetJobs", http.HandlerFunc(targetJobHandler.ListTargetJobs)))
@@ -436,6 +464,40 @@ func buildReportRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, 
 			Logger:       logger,
 		}),
 		Service: service,
+	}, nil
+}
+
+func buildDebriefRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient) (debriefRoutes, error) {
+	if ai == nil {
+		return debriefRoutes{}, fmt.Errorf("debrief AI client is required")
+	}
+	registryClient, err := registry.NewRegistryClient(registry.RegistryOptions{
+		PromptsDir: registryDirOrDefault(loader, "ai.promptsDir", "config/prompts"),
+		RubricsDir: registryDirOrDefault(loader, "ai.rubricsDir", "config/rubrics"),
+	})
+	if err != nil {
+		return debriefRoutes{}, fmt.Errorf("build debrief prompt registry: %w", err)
+	}
+	repo := storedebrief.NewRepository(db)
+	service := domaindebrief.NewService(domaindebrief.ServiceOptions{
+		Store:             repo,
+		SuggestionContext: repo,
+		Registry:          registryClient,
+		AI:                ai,
+		AITaskRuns:        storeai.NewTaskRunWriter(db),
+		Audit:             repo,
+		NewID:             idx.NewID,
+	})
+	return debriefRoutes{
+		Handler: apidebriefs.NewHandler(apidebriefs.HandlerOptions{
+			Service: service,
+			Session: currentUserFromContext,
+		}),
+		Idempotency: idempotency.New(idempotency.MiddlewareOptions{
+			Store:     idempotency.NewSQLStore(db),
+			KeyPepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+			TTL:       time.Duration(sharedtypes.IdempotencyKeyTTLSeconds) * time.Second,
+		}),
 	}, nil
 }
 
@@ -682,11 +744,22 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 		Fetcher:  fetcher,
 		NewID:    idx.NewID,
 	})
+	debriefStore := storedebrief.NewRepository(db)
+	taskRuns := storeai.NewTaskRunWriter(db)
+	debriefGenerateHandler := domaindebrief.NewGenerateHandler(domaindebrief.GenerateHandlerOptions{
+		Store:      debriefStore,
+		Registry:   registryClient,
+		AI:         aiRuntime.Client,
+		AITaskRuns: taskRuns,
+		Audit:      debriefStore,
+		NewID:      idx.NewID,
+	})
 	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
 		Store: store,
 		Handlers: map[string]targetjob.JobHandler{
-			string(jobs.JobTypeTargetImport):  executor,
-			string(jobs.JobTypeSourceRefresh): &targetjob.SourceRefreshHandler{Store: store},
+			string(jobs.JobTypeTargetImport):    executor,
+			string(jobs.JobTypeSourceRefresh):   &targetjob.SourceRefreshHandler{Store: store},
+			string(jobs.JobTypeDebriefGenerate): debriefGenerateHandler,
 			string(jobs.JobTypePrivacyDelete): privacyrunner.NewPrivacyDeleteHandler(privacyrunner.PrivacyDeleteHandlerOptions{
 				Requests:    privacyrunner.NewSQLStore(db),
 				UploadFiles: uploadFiles,

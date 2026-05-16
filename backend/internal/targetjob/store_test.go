@@ -1151,6 +1151,50 @@ func TestSQLStore_ImportTargetJob_RequiresMandatoryIDs(t *testing.T) {
 	}
 }
 
+func TestRetryPolicy_BackoffBelowMax(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+	now := time.Date(2026, 5, 16, 18, 0, 0, 0, time.UTC)
+
+	mock.ExpectExec(`update async_jobs\s+set status = case when attempts >= max_attempts then 'dead' else 'queued' end`).
+		WithArgs(now.Add(15*time.Second), "AI_PROVIDER_TIMEOUT", sqlmock.AnyArg(), "01918fa0-0000-7000-8000-00000000d011").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err := store.FinalizeAsyncJob(context.Background(), "01918fa0-0000-7000-8000-00000000d011", targetjob.JobOutcome{
+		ErrorCode:    "AI_PROVIDER_TIMEOUT",
+		ErrorMessage: "provider timeout",
+		Retryable:    true,
+	}, now)
+	if err != nil {
+		t.Fatalf("FinalizeAsyncJob retryable: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestRetryPolicy_PermanentFailAtMax(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+	now := time.Date(2026, 5, 16, 18, 0, 0, 0, time.UTC)
+
+	mock.ExpectExec(`update async_jobs\s+set status = 'failed'`).
+		WithArgs(now, "AI_PROVIDER_TIMEOUT", sqlmock.AnyArg(), "01918fa0-0000-7000-8000-00000000d011").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err := store.FinalizeAsyncJob(context.Background(), "01918fa0-0000-7000-8000-00000000d011", targetjob.JobOutcome{
+		ErrorCode:    "AI_PROVIDER_TIMEOUT",
+		ErrorMessage: "provider timeout",
+		Retryable:    false,
+	}, now)
+	if err != nil {
+		t.Fatalf("FinalizeAsyncJob permanent failure: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
 // TestStoreSurfaceRequiresUserScopeOnReadsAndWrites guards against accidental
 // "GetByID" / "FindByID" methods that don't take user_id, which would break
 // spec D-9 cross-user isolation.

@@ -208,7 +208,7 @@ func TestCreatePracticePlanIdempotencyRejectsDifferentSourceWithSameKey(t *testi
 	if first.Code != http.StatusCreated || second.Code != http.StatusConflict {
 		t.Fatalf("unexpected statuses: first=%d second=%d secondBody=%s", first.Code, second.Code, second.Body.String())
 	}
-	assertAPIError(t, second, sharederrors.CodePracticeSessionConflict, false)
+	assertAPIError(t, second, sharederrors.CodeIdempotencyKeyMismatch, false)
 	if service.calls != 1 {
 		t.Fatalf("fingerprint mismatch should not call service again, got %d", service.calls)
 	}

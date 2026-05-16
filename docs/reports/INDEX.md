@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-16](./2026-05-16-backend-debrief-001-debrief-record-and-analysis-assessment.md) | Backend Debrief 001 Debrief Record And Analysis 交付复盘 | #assessment |
 | [2026-05-16](./2026-05-16-frontend-report-dashboard-replay-pixel-gate-follow-up-assessment.md) | Frontend Report Dashboard Replay Pixel Gate Follow-up 交付复盘 | #assessment |
 | [2026-05-16](./2026-05-16-frontend-report-dashboard-001-l2-remediation-assessment.md) | Frontend Report Dashboard 001 L2 Remediation 交付复盘 | #assessment |
 | [2026-05-16](./2026-05-16-backend-review-001-l2-remediation-assessment.md) | Backend Review 001 L2 Remediation 交付复盘 | #assessment |

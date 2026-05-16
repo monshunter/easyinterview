@@ -256,7 +256,7 @@ func writeReservationError(w http.ResponseWriter, err error) {
 	case stderrs.Is(err, ErrPending):
 		writeAPIError(w, http.StatusConflict, sharederrors.CodePracticeSessionConflict, "request with this Idempotency-Key is still pending")
 	case stderrs.Is(err, ErrFingerprintMismatch):
-		writeAPIError(w, http.StatusConflict, sharederrors.CodePracticeSessionConflict, "Idempotency-Key was already used with a different request")
+		writeAPIError(w, http.StatusConflict, sharederrors.CodeIdempotencyKeyMismatch, "Idempotency-Key was already used with a different request")
 	case stderrs.Is(err, ErrIdempotencyKeyRequired):
 		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "Idempotency-Key header is required")
 	case stderrs.Is(err, ErrUnauthenticated):

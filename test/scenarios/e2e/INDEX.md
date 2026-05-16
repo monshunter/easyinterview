@@ -54,6 +54,11 @@
 | E2E.P0.057 | frontend-report-dashboard C-3, C-6 | `p0-057-replay-cta-paths-a-and-b/` | Replay CTA paths A/B：retry_current_round + next_round payload, replay_practice pendingAction round-trip, no raw text | automated | Ready |
 | E2E.P0.058 | frontend-report-dashboard C-4, C-12 | `p0-058-report-failure-and-missing-session/` | ReportFailureState AI_* enum + ReportMissingSessionState + cross-user 404 not-found copy + Generating timeout retry | automated | Ready |
 | E2E.P0.059 | frontend-report-dashboard C-13, C-14, D-12 | `p0-059-report-pixel-parity-i18n-and-legacy-negative/` | i18n namespace sync + AI_* enum coverage + legacy vocab negative grep + Playwright pixel-parity specs staged | automated | Ready |
+| E2E.P0.060 | backend-debrief C-1, C-2, C-3, C-5 | `p0-060-debrief-create-worker-happy/` | createDebrief draft + queued worker + worker completed happy path + outbox/task-run privacy | automated | Ready |
+| E2E.P0.061 | backend-debrief C-6, C-7, C-8 | `p0-061-debrief-get-isolation/` | getDebrief draft/completed 双态与 cross-user/not-found 404 隔离 | automated | Ready |
+| E2E.P0.062 | backend-debrief C-11, C-12 | `p0-062-debrief-worker-retry-failure/` | debrief_generate F3/A3/parse failure、retry backoff 与 max-attempt permanent failure | automated | Ready |
+| E2E.P0.063 | backend-debrief C-9, C-10 | `p0-063-debrief-suggest-questions/` | suggestDebriefQuestions 成功、count boundary、AI failure 与 task/audit 写入 | automated | Ready |
+| E2E.P0.064 | backend-debrief C-14, C-15 | `p0-064-debrief-privacy-legacy/` | debrief outbox/audit/task privacy marker 与 retired vocabulary negative lint | automated | Ready |
 | E2E.P0.070 | backend-practice C-2, C-3 | `p0-070-practice-derived-plan-create-read-replay/` | report/debrief derived createPracticePlan、getPracticePlan 与 idempotency replay source 字段 | automated | Ready |
 | E2E.P0.071 | backend-practice C-3, C-4 | `p0-071-practice-debrief-start-source-question/` | debrief startPracticeSession 使用 source raw_questions 首题且 first_question AI 零调用 | automated | Ready |
 | E2E.P0.072 | backend-practice C-2, C-3, D-11 | `p0-072-practice-derived-source-isolation-privacy/` | derived source missing/cross-user/wrong-target/draft/empty 隔离与隐私红线 | automated | Ready |

@@ -84,7 +84,7 @@ func TestCreateUploadPresignRejectsExpiredOrMismatchedIdempotencyKey(t *testing.
 
 	wrapped.ServeHTTP(rec, req)
 
-	assertAPIError(t, rec, http.StatusConflict, sharederrors.CodePracticeSessionConflict)
+	assertAPIError(t, rec, http.StatusConflict, sharederrors.CodeIdempotencyKeyMismatch)
 }
 
 func TestCreateUploadPresignPurposeValidation(t *testing.T) {

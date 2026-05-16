@@ -4,7 +4,7 @@ language: "multi"
 dimensions:
   - name: "debrief_recall_completeness"
     weight: 0.35
-    description: "Debrief covers the major beats the candidate described."
+    description: "Generated question analyses preserve the candidate's recorded interview beats."
     score_levels:
       - label: "weak"
         threshold: 0.0
@@ -20,7 +20,7 @@ dimensions:
         description: "Exceeds the dimension's expectation; an experienced reviewer would highlight the work."
   - name: "debrief_lesson_specificity"
     weight: 0.35
-    description: "Lessons name the underlying signal rather than restating the event."
+    description: "Question analyses name the underlying interview signal rather than restating the answer."
     score_levels:
       - label: "weak"
         threshold: 0.0
@@ -36,7 +36,7 @@ dimensions:
         description: "Exceeds the dimension's expectation; an experienced reviewer would highlight the work."
   - name: "debrief_action_quality"
     weight: 0.3
-    description: "Follow-up actions are concrete and feasible within the named due window."
+    description: "Risk items are concrete, severity-calibrated, and actionable for the next preparation round."
     score_levels:
       - label: "weak"
         threshold: 0.0

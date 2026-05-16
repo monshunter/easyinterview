@@ -448,6 +448,33 @@ runtime:
 	}
 }
 
+func TestBuildDebriefRoutesWiresHandlerAndIdempotency(t *testing.T) {
+	dir := t.TempDir()
+	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  promptsDir: "`+promptsDir+`"
+  rubricsDir: "`+rubricsDir+`"
+auth:
+  challengeTokenPepper: "pepper"
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	routes, err := buildDebriefRoutes(loader, nil, &apiNoopAIClient{})
+	if err != nil {
+		t.Fatalf("buildDebriefRoutes: %v", err)
+	}
+	if routes.Handler == nil || routes.Idempotency == nil {
+		t.Fatalf("debrief routes missing handler/idempotency: %+v", routes)
+	}
+}
+
 func TestBuildTargetJobRuntimeWiresDrainerAndAIClient(t *testing.T) {
 	dir := t.TempDir()
 	providersPath := filepath.Join(dir, "ai-providers.yaml")
@@ -580,6 +607,59 @@ ai:
 	}
 	if !runtime.Drainer.Handles(string(jobs.JobTypePrivacyDelete)) {
 		t.Fatalf("runtime drainer does not handle %s", jobs.JobTypePrivacyDelete)
+	}
+}
+
+func TestDrainer_DebriefGenerateRegistered(t *testing.T) {
+	dir := t.TempDir()
+	providersPath := filepath.Join(dir, "ai-providers.yaml")
+	profilesPath := filepath.Join(dir, "ai-profiles.yaml")
+	writeAPIFile(t, providersPath, `
+providers:
+  - name: unit-test-stub
+    protocol: stub
+    capabilities: [chat]
+    version: 1.0.0
+`)
+	writeAPIFile(t, profilesPath, `
+profiles:
+  - name: target.import.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: unit-test-stub
+      model: stub-chat
+    fallback: []
+    timeout_ms: 1000
+    max_tokens: 256
+    rate_limit:
+      rps: 1
+      tpm: 1000
+    route: target.import
+    version: 1.0.0
+`)
+	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  providerRegistryPath: "`+providersPath+`"
+  modelProfilePath: "`+profilesPath+`"
+  promptsDir: "`+promptsDir+`"
+  rubricsDir: "`+rubricsDir+`"
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	if err != nil {
+		t.Fatalf("buildTargetJobRuntime: %v", err)
+	}
+	if !runtime.Drainer.Handles(string(jobs.JobTypeDebriefGenerate)) {
+		t.Fatalf("runtime drainer does not handle %s", jobs.JobTypeDebriefGenerate)
 	}
 }
 

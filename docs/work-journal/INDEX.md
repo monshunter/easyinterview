@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-16](2026-05-16.md) | `feat(backend-debrief): close 001 debrief record and analysis baseline` | #feat #test #docs #fix |
 | [2026-05-16](2026-05-16.md) | `chore(backend-debrief): close phase 0 cross-owner addendums and validation` | #chore #test #docs |
 | [2026-05-16](2026-05-16.md) | `fix(frontend-report): harden replay handoff and pixel gate (BUG-0064)` | #fix #ui #test #docs |
 | [2026-05-16](2026-05-16.md) | `fix(debrief): remediate L2 contract drift` | #fix #docs #ui |

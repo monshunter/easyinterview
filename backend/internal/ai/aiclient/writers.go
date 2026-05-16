@@ -15,27 +15,29 @@ import (
 type AITaskRunCapability string
 
 const (
-	AITaskRunTaskJDParse          AITaskRunCapability = "jd_parse"
-	AITaskRunTaskResumeParse      AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeParse)
-	AITaskRunTaskQuestionGenerate AITaskRunCapability = "question_generate"
-	AITaskRunTaskFollowupGenerate AITaskRunCapability = "followup_generate"
-	AITaskRunTaskHintGenerate     AITaskRunCapability = "hint_generate"
-	AITaskRunTaskReportGenerate   AITaskRunCapability = AITaskRunCapability(jobs.JobTypeReportGenerate)
-	AITaskRunTaskReportAssessment AITaskRunCapability = "report_assessment"
-	AITaskRunTaskResumeTailor     AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeTailor)
-	AITaskRunTaskDebriefGenerate  AITaskRunCapability = AITaskRunCapability(jobs.JobTypeDebriefGenerate)
+	AITaskRunTaskJDParse                 AITaskRunCapability = "jd_parse"
+	AITaskRunTaskResumeParse             AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeParse)
+	AITaskRunTaskQuestionGenerate        AITaskRunCapability = "question_generate"
+	AITaskRunTaskFollowupGenerate        AITaskRunCapability = "followup_generate"
+	AITaskRunTaskHintGenerate            AITaskRunCapability = "hint_generate"
+	AITaskRunTaskReportGenerate          AITaskRunCapability = AITaskRunCapability(jobs.JobTypeReportGenerate)
+	AITaskRunTaskReportAssessment        AITaskRunCapability = "report_assessment"
+	AITaskRunTaskResumeTailor            AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeTailor)
+	AITaskRunTaskDebriefGenerate         AITaskRunCapability = AITaskRunCapability(jobs.JobTypeDebriefGenerate)
+	AITaskRunTaskDebriefSuggestQuestions AITaskRunCapability = "debrief_suggest_questions"
 )
 
 var allowedAITaskRunCapabilities = map[AITaskRunCapability]struct{}{
-	AITaskRunTaskJDParse:          {},
-	AITaskRunTaskResumeParse:      {},
-	AITaskRunTaskQuestionGenerate: {},
-	AITaskRunTaskFollowupGenerate: {},
-	AITaskRunTaskHintGenerate:     {},
-	AITaskRunTaskReportGenerate:   {},
-	AITaskRunTaskReportAssessment: {},
-	AITaskRunTaskResumeTailor:     {},
-	AITaskRunTaskDebriefGenerate:  {},
+	AITaskRunTaskJDParse:                 {},
+	AITaskRunTaskResumeParse:             {},
+	AITaskRunTaskQuestionGenerate:        {},
+	AITaskRunTaskFollowupGenerate:        {},
+	AITaskRunTaskHintGenerate:            {},
+	AITaskRunTaskReportGenerate:          {},
+	AITaskRunTaskReportAssessment:        {},
+	AITaskRunTaskResumeTailor:            {},
+	AITaskRunTaskDebriefGenerate:         {},
+	AITaskRunTaskDebriefSuggestQuestions: {},
 }
 
 // AITaskRunResourceType mirrors the B2 API-facing ResourceType values. B4

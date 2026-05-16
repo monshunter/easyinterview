@@ -109,6 +109,9 @@ func TestMiddlewareRejectsFingerprintMismatchWithoutSideEffect(t *testing.T) {
 	if second.Code != http.StatusConflict {
 		t.Fatalf("mismatch status: want %d, got %d body=%s", http.StatusConflict, second.Code, second.Body.String())
 	}
+	if !strings.Contains(second.Body.String(), "IDEMPOTENCY_KEY_MISMATCH") {
+		t.Fatalf("mismatch error code missing: %s", second.Body.String())
+	}
 	if strings.Contains(second.Body.String(), "session-1") {
 		t.Fatalf("mismatch response leaked first resource: %s", second.Body.String())
 	}

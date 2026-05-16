@@ -145,7 +145,7 @@ func TestRegisterIdempotency(t *testing.T) {
 
 		wrapped.ServeHTTP(rec, newRegisterRequest(`{"sourceType":"paste","rawText":"resume","title":"Resume","language":"en"}`))
 
-		assertAPIError(t, rec, http.StatusConflict, sharederrors.CodePracticeSessionConflict)
+		assertAPIError(t, rec, http.StatusConflict, sharederrors.CodeIdempotencyKeyMismatch)
 	})
 }
 
