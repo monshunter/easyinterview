@@ -37,12 +37,14 @@ import {
   type AppRuntimeProviderProps,
   type AppRuntimeValue,
 } from "./runtime/AppRuntimeProvider";
+import { GeneratingScreen } from "./screens/generating/GeneratingScreen";
 import { HomeScreen } from "./screens/home/HomeScreen";
 import { JDMatchScreen } from "./screens/jd_match/JDMatchScreen";
 import { ParseScreen } from "./screens/parse/ParseScreen";
 import { PlaceholderScreen } from "./screens/PlaceholderScreen";
 import { PracticeScreen } from "./screens/practice/PracticeScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
+import { ReportScreen } from "./screens/report/ReportScreen";
 import { ResumeWorkshopScreen } from "./screens/resume-workshop/ResumeWorkshopScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { WorkspaceScreen } from "./screens/workspace/WorkspaceScreen";
@@ -111,6 +113,12 @@ function renderRouteScreen(
   }
   if (route.name === "practice") {
     return <PracticeScreen route={route} />;
+  }
+  if (route.name === "generating") {
+    return <GeneratingScreen route={route} />;
+  }
+  if (route.name === "report") {
+    return <ReportScreen route={route} />;
   }
   if (!runtime) {
     return <PlaceholderScreen route={route} />;

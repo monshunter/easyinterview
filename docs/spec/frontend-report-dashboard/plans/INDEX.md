@@ -8,7 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-report-screen-and-generating-handoff](./001-report-screen-and-generating-handoff/plan.md) | [plan](./001-report-screen-and-generating-handoff/plan.md) / [checklist](./001-report-screen-and-generating-handoff/checklist.md) / [context](./001-report-screen-and-generating-handoff/context.yaml) / [test-plan](./001-report-screen-and-generating-handoff/test-plan.md) / [test-checklist](./001-report-screen-and-generating-handoff/test-checklist.md) / [bdd-plan](./001-report-screen-and-generating-handoff/bdd-plan.md) / [bdd-checklist](./001-report-screen-and-generating-handoff/bdd-checklist.md) | 1.0 | active | 2026-05-15 |
+| [001-report-screen-and-generating-handoff](./001-report-screen-and-generating-handoff/plan.md) | [plan](./001-report-screen-and-generating-handoff/plan.md) / [checklist](./001-report-screen-and-generating-handoff/checklist.md) / [context](./001-report-screen-and-generating-handoff/context.yaml) / [test-plan](./001-report-screen-and-generating-handoff/test-plan.md) / [test-checklist](./001-report-screen-and-generating-handoff/test-checklist.md) / [bdd-plan](./001-report-screen-and-generating-handoff/bdd-plan.md) / [bdd-checklist](./001-report-screen-and-generating-handoff/bdd-checklist.md) | 1.0 | active | 2026-05-16 |
 
 ## 2 已完成（Completed）
 
