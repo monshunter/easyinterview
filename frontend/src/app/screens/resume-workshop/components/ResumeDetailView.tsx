@@ -15,6 +15,11 @@ import { NotFoundEmptyState } from "./NotFoundEmptyState";
 import { OriginalResumePreviewModal } from "./OriginalResumePreviewModal";
 import { ResumePreviewTab } from "./ResumePreviewTab";
 import { ResumeRewritesTab } from "../tabs/ResumeRewritesTab";
+import { useResumeRewritesActions } from "../tabs/hooks/useResumeRewritesActions";
+import {
+  SuggestionDecisionError,
+} from "../tabs/hooks/useTailorSuggestionDecision";
+import { UpdateResumeVersionError } from "../tabs/hooks/useUpdateResumeVersion";
 import { fireResumeWorkshopToast } from "./toast";
 
 export interface ResumeDetailViewProps {
@@ -241,7 +246,10 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
             onViewOriginal={() => setOriginalOpen(true)}
           />
         ) : resolvedTab === "rewrites" ? (
-          <ResumeRewritesTab version={version} />
+          <ResumeRewritesTabContainer
+            version={version}
+            onVersionRefreshed={versionQuery.retry}
+          />
         ) : (
           <ComingSoonTab variant="edit" />
         )}
@@ -256,5 +264,122 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
         title={originalSource?.name ?? ui.name}
       />
     </div>
+  );
+};
+
+interface ResumeRewritesTabContainerProps {
+  version: ResumeVersion;
+  onVersionRefreshed: () => void;
+}
+
+const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
+  version,
+  onVersionRefreshed,
+}) => {
+  const { t } = useI18n();
+  const actions = useResumeRewritesActions({
+    version,
+    onVersionRefreshed,
+  });
+
+  const showError = (err: unknown) => {
+    if (err instanceof SuggestionDecisionError) {
+      if (err.kind === "already_decided") {
+        fireResumeWorkshopToast(
+          t("resumeWorkshop.rewrites.toast.alreadyDecided"),
+          "warn",
+        );
+        return;
+      }
+      if (err.kind === "cross_user") {
+        fireResumeWorkshopToast(
+          t("resumeWorkshop.rewrites.error.crossUser"),
+          "danger",
+        );
+        return;
+      }
+      if (err.kind === "validation") {
+        fireResumeWorkshopToast(
+          t("resumeWorkshop.rewrites.error.validation"),
+          "warn",
+        );
+        return;
+      }
+    }
+    if (err instanceof UpdateResumeVersionError) {
+      if (err.kind === "validation") {
+        fireResumeWorkshopToast(
+          t("resumeWorkshop.rewrites.error.validation"),
+          "warn",
+        );
+        return;
+      }
+      if (err.kind === "cross_user") {
+        fireResumeWorkshopToast(
+          t("resumeWorkshop.rewrites.error.crossUser"),
+          "danger",
+        );
+        return;
+      }
+    }
+    fireResumeWorkshopToast(
+      t("resumeWorkshop.rewrites.error.generic"),
+      "danger",
+    );
+  };
+
+  const handleAccept = async (id: string) => {
+    try {
+      await actions.onAccept(id);
+      fireResumeWorkshopToast(
+        t("resumeWorkshop.rewrites.toast.accept").replace(
+          "{versionName}",
+          version.displayName,
+        ),
+        "ok",
+      );
+    } catch (err) {
+      showError(err);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await actions.onReject(id);
+      fireResumeWorkshopToast(
+        t("resumeWorkshop.rewrites.toast.reject").replace(
+          "{versionName}",
+          version.displayName,
+        ),
+        "ok",
+      );
+    } catch (err) {
+      showError(err);
+    }
+  };
+
+  const handleManual = async (id: string, text: string) => {
+    try {
+      await actions.onSaveManualEdit(id, text);
+      fireResumeWorkshopToast(
+        t("resumeWorkshop.rewrites.toast.manualSaved").replace(
+          "{versionName}",
+          version.displayName,
+        ),
+        "ok",
+      );
+    } catch (err) {
+      showError(err);
+    }
+  };
+
+  return (
+    <ResumeRewritesTab
+      version={version}
+      onAccept={handleAccept}
+      onReject={handleReject}
+      onSaveManualEdit={handleManual}
+      manualEditPendingFor={actions.manualPendingFor}
+    />
   );
 };
