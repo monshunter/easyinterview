@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { EasyInterviewClient } from "../../../../api/generated/client";
@@ -138,6 +138,62 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
     expect(
       screen.queryByTestId("resume-detail-tab-content-coming-soon-rewrites"),
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps Export PDF and Copy Text actions available on Rewrites and Edit tabs", async () => {
+    const client = buildClient("default");
+    const exportSpy = vi.spyOn(client, "exportResumeVersion");
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const originalNavigator = Object.getOwnPropertyDescriptor(
+      window,
+      "navigator",
+    );
+    Object.defineProperty(window, "navigator", {
+      configurable: true,
+      value: {
+        ...window.navigator,
+        clipboard: { writeText },
+      },
+    });
+
+    try {
+      renderDetailWithClient(client, {
+        name: "resume_versions",
+        params: { versionId: TARGETED_VERSION_ID, tab: "rewrites" },
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("resume-rewrites-tab")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId("resume-detail-copy-text"));
+      await waitFor(() => {
+        expect(writeText).toHaveBeenCalledWith(
+          expect.stringContaining("Senior frontend engineer"),
+        );
+      });
+
+      await userEvent.setup().click(screen.getByTestId("resume-detail-export-pdf"));
+      await waitFor(() => {
+        expect(exportSpy).toHaveBeenCalledWith(
+          TARGETED_VERSION_ID,
+          expect.objectContaining({
+            idempotencyKey: expect.stringMatching(/^v1\.\d+\./),
+          }),
+        );
+      });
+
+      await userEvent.setup().click(screen.getByTestId("resume-detail-tab-edit"));
+      await waitFor(() => {
+        expect(screen.getByTestId("resume-edit-tab")).toBeInTheDocument();
+      });
+      expect(screen.getByTestId("resume-detail-copy-text")).toBeInTheDocument();
+      expect(screen.getByTestId("resume-detail-export-pdf")).toBeInTheDocument();
+    } finally {
+      if (originalNavigator) {
+        Object.defineProperty(window, "navigator", originalNavigator);
+      }
+    }
   });
 
   it("clicking a tab updates the active selection and shows that tab's content (preview from default route)", async () => {

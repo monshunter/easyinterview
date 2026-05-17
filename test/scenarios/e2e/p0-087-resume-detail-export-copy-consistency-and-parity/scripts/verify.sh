@@ -14,6 +14,13 @@ grep -Eq '^[[:space:]]*Tests[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FIL
 for spec in ResumeDetailExport.test.tsx ResumeDetailFixtureParity.test.tsx ResumeBranchFlow.test.tsx ResumeRewritesTab.test.tsx ResumeEditTab.test.tsx; do
   grep -qF "$spec" "$LOG_FILE" || { echo "$SCENARIO_ID: spec $spec not exercised" >&2; exit 1; }
 done
+grep -qF '## frontend-build' "$LOG_FILE" || { echo "$SCENARIO_ID: frontend build marker missing" >&2; exit 1; }
+grep -Eq '✓ built in|built in [0-9.]+s' "$LOG_FILE" || { echo "$SCENARIO_ID: frontend build success marker missing" >&2; exit 1; }
+grep -qF '## playwright-pixel-parity-axe' "$LOG_FILE" || { echo "$SCENARIO_ID: playwright marker missing" >&2; exit 1; }
+grep -qF 'tests/pixel-parity/resume-workshop-branch-rewrites-edit.spec.ts' "$LOG_FILE" || { echo "$SCENARIO_ID: playwright spec not exercised" >&2; exit 1; }
+grep -Eq 'Running[[:space:]]+[1-9][0-9]*[[:space:]]+tests?[[:space:]]+using' "$LOG_FILE" || { echo "$SCENARIO_ID: playwright runner marker missing" >&2; exit 1; }
+grep -Eq '^[[:space:]]*[1-9][0-9]*[[:space:]]+passed[[:space:]]+\([0-9.]+s\)' "$LOG_FILE" || { echo "$SCENARIO_ID: playwright passing summary missing" >&2; exit 1; }
+if grep -Eiq 'failed|timed out|Timeout|Error:|ERR_PNPM' "$LOG_FILE"; then echo "$SCENARIO_ID: failing build/playwright marker found" >&2; exit 1; fi
 cd "$REPO_ROOT"
 if git grep -nE "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/retired-modules-grep.log"; then
   echo "$SCENARIO_ID: retired modules grep matched" >&2; exit 1

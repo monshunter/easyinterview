@@ -91,6 +91,7 @@ export interface ResumeBranchFlowFormProps {
 }
 
 const SCREEN_WRAPPER: CSSProperties = {
+  width: "100%",
   maxWidth: 980,
   margin: "0 auto",
   padding: "40px 48px 96px",
@@ -144,7 +145,7 @@ export const ResumeBranchFlow: FC<ResumeBranchFlowProps> = ({
       data-branch-original-id={branchOriginalId ?? ""}
       data-source-status={source.status}
       data-submit-state={submitHook.submitting ? "submitting" : "idle"}
-      className="ei-fadein"
+      className="ei-fadein ei-resume-branch-flow"
       style={SCREEN_WRAPPER}
     >
       {renderBody({
@@ -432,7 +433,7 @@ export const ResumeBranchFlowForm: FC<ResumeBranchFlowFormProps> = ({
         </div>
         <div
           data-testid="resume-branch-from-card"
-          className="ei-screen-card"
+          className="ei-screen-card ei-resume-branch-from-card"
           style={{
             padding: 0,
             display: "grid",
@@ -441,6 +442,7 @@ export const ResumeBranchFlowForm: FC<ResumeBranchFlowFormProps> = ({
         >
           <div
             data-testid="resume-branch-from-original"
+            className="ei-resume-branch-from-original"
             style={{
               padding: "16px 20px",
               borderRight: "1px dotted var(--ei-color-rule)",
@@ -532,6 +534,7 @@ export const ResumeBranchFlowForm: FC<ResumeBranchFlowFormProps> = ({
 
       {/* Form: name + target */}
       <div
+        className="ei-resume-branch-fields"
         style={{
           marginTop: 22,
           display: "grid",
@@ -649,6 +652,7 @@ export const ResumeBranchFlowForm: FC<ResumeBranchFlowFormProps> = ({
             {t("resumeWorkshop.branch.seedLabel")}
           </div>
           <div
+            className="ei-resume-branch-seed-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(3, 1fr)",
@@ -712,6 +716,7 @@ export const ResumeBranchFlowForm: FC<ResumeBranchFlowFormProps> = ({
 
       {/* Actions */}
       <div
+        className="ei-resume-branch-actions"
         style={{
           marginTop: 22,
           display: "flex",

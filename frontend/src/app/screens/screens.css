@@ -90,6 +90,17 @@
   gap: var(--ei-space-3);
 }
 
+.ei-resume-branch-flow,
+.ei-resume-branch-from-card,
+.ei-resume-branch-fields,
+.ei-resume-branch-seed-grid {
+  min-width: 0;
+}
+
+.ei-resume-branch-seed-grid > button {
+  min-width: 0;
+}
+
 .ei-skeleton-stripe {
   height: 120px;
   border-radius: var(--ei-radius-sm);
@@ -684,6 +695,25 @@
   font-size: 10px;
 }
 
+.ei-resume-detail-header-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 1 1 260px;
+  flex-wrap: wrap;
+}
+
+.ei-resume-detail-header-actions button {
+  padding: 8px 14px;
+  color: var(--ei-color-fg-secondary);
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 2px;
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  text-align: left;
+}
+
 .ei-resume-detail-branch-graph {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -905,6 +935,31 @@
 }
 
 @media (max-width: 700px) {
+  .ei-resume-branch-flow {
+    padding: 28px 18px 72px !important;
+  }
+
+  .ei-resume-branch-from-card,
+  .ei-resume-branch-fields,
+  .ei-resume-branch-seed-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .ei-resume-branch-from-original {
+    border-right: none !important;
+    border-bottom: 1px dotted var(--ei-color-rule) !important;
+  }
+
+  .ei-resume-branch-actions {
+    align-items: stretch !important;
+    flex-direction: column;
+  }
+
+  .ei-resume-branch-actions > div:last-child {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
   .ei-screen-shell[data-testid="resume-workshop-screen"] {
     padding: 28px 18px 72px;
   }
@@ -927,6 +982,11 @@
   .ei-resume-workshop-tree-row-actions,
   .ei-resume-detail-tabs {
     overflow-x: auto;
+  }
+
+  .ei-resume-detail-header-actions {
+    justify-content: flex-start;
+    flex-basis: 100%;
   }
 
   .ei-resume-detail-preview-card {

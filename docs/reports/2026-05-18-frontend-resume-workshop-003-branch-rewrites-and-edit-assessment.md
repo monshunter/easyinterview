@@ -13,7 +13,8 @@
     - `E2E.P0.084` 4 文件 / 42 tests
     - `E2E.P0.085` 3 文件 / 27 tests
     - `E2E.P0.086` 4 文件 / 34 tests
-    - `E2E.P0.087` 5 文件 / 40 tests
+    - `E2E.P0.087` 5 Vitest 文件 / 40 tests + frontend build + Playwright desktop/mobile 4 tests
+  - Post-pass L2 correction: `pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/resume-workshop-branch-rewrites-edit.spec.ts` PASS（desktop + mobile，4 tests），补齐 BranchFlow / Rewrites / Edit DOM anchor、computed style、bounding box、screenshot smoke、axe-core 与 Rewrites/Edit Export PDF + Copy Text 行为。
   - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 报告 zero drift；`--fix-index` 把 plans/INDEX.md 行从 active 迁到 completed。
   - 三类 grep gate 在 `frontend/src/app/screens/resume-workshop/branch/` + `tabs/` 全 0 命中（retired modules / retired tailor mode / prototype runtime import）。
   - plan / checklist / bdd-plan / bdd-checklist Header 状态 active → completed，更新日期 2026-05-18。
@@ -62,6 +63,10 @@
   - 类别：README（`frontend/README.md` §2.7 ui-design 原生迁移规则 / 或 plan 001 spec 中的 icon 迁移约束）
   - 性质：plan 001 已奠定该 helper，但 prop 形态与命名风格未显式写明，后续 owner 易踩同样问题。
 
+- **已修正：completed checklist 曾把 Playwright/axe gate 标记完成但证据仍写 deferred**
+  - 类别：plan-code-review / scenario gate
+  - 性质：post-pass L2 review 发现 `frontend/tests/pixel-parity/resume-workshop-branch-rewrites-edit.spec.ts` 缺失，P0.087 trigger/verify 只跑 Vitest，且 Rewrites/Edit 实际未保留 Export PDF / Copy Text header actions。已补齐 Playwright spec、scenario trigger/verify、Rewrites/Edit header actions、mobile BranchFlow 响应式折叠和 ui-design font token alias。
+
 ## 4 对流程资产的改进建议
 
 - **plan 003 retrospective 中显式记录“baseline scope vs closure scope 的差异约定”**
@@ -84,10 +89,9 @@
   - 优先级：medium
   - 行动：补一句 “Resume Workshop 内部 icon helper `ResumeWorkshopIcon` 使用 camelCase name 且 stroke 颜色继承父级 color，迁移 ui-design 的 `Icon name="arrow_left" color={...}` 时需双重改写”。
 
-- **延后：Playwright pixel parity + axe-core a11y 套件接入**
-  - 落点：plan 003 retrospective 提到的 follow-up plan（`frontend-resume-workshop/004-pixel-parity-and-axe-rollup` 或类似 plan id），由 owner 决定何时建立 chromium baseline。
-  - 优先级：low（当前 Vitest DOM/style anchor 已经覆盖源级镜像；plan §3 D-5 明确允许 baseline 缺失时不阻塞 clean checkout）。
-  - 行动：当 frontend-shell pixel-parity infra 升级到长期维护期时，再启 follow-up plan，把 `resume-workshop-branch-rewrites-edit.spec.ts` 与 axe-core 套件一次性接入。
+- **已补齐：Playwright pixel parity + axe-core a11y 套件接入**
+  - 落点：`frontend/tests/pixel-parity/resume-workshop-branch-rewrites-edit.spec.ts` + P0.087 trigger/verify。
+  - 状态：completed in post-pass L2 correction；clean checkout 不依赖 screenshot baseline，使用 DOM anchor + computed style + bounding box + screenshot buffer + scoped axe-core。
 
 ## 5 建议优先级与后续动作
 
@@ -96,7 +100,6 @@
   - 在 `/plan-review` skill 的 retired-grep 章节补充“命中前请先用同义词”的 prompt，避免下一个 plan 在 closure 时再次返工同样的 false positive。
 
 - **可以延后**
-  - Playwright pixel parity + axe-core 套件接入：等 baseline 维护机制定稿后再启 follow-up plan，本期 Vitest DOM/style anchor 已经承担 UI parity 真理。
   - plan 003 history 中显式记录“baseline vs closure scope 差异”：可在下一次 `plan-review --fix` 通过时一并补，独立维护成本不高。
 
 - **不建议改动**

@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-18](2026-05-18.md) | `fix(frontend-resume-workshop): close branch rewrites L2 gates (BUG-0075)` | #fix #ui #test #docs #bdd |
 | [2026-05-18](2026-05-18.md) | `feat(frontend-resume-workshop): close branch rewrites scenarios and parity` | #feat #test #docs #bdd |
 | [2026-05-18](2026-05-18.md) | `feat(frontend-resume-workshop): land edit tab and structured save` | #feat #ui #i18n #test #docs |
 | [2026-05-18](2026-05-18.md) | `feat(frontend-resume-workshop): wire tailor run request and polling` | #feat #ui #test #docs |

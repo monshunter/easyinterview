@@ -6,7 +6,11 @@ import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferenc
 import { useI18n } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
-import { mapResumeAssetToUiSource, mapResumeVersionToUi } from "../adapters/resume";
+import {
+  buildResumePlainText,
+  mapResumeAssetToUiSource,
+  mapResumeVersionToUi,
+} from "../adapters/resume";
 import { useResumeAsset } from "../hooks/useResumeAsset";
 import { useResumeVersion } from "../hooks/useResumeVersion";
 import type { ResumeDetailTab } from "../params";
@@ -92,6 +96,21 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
         "warn",
       );
     }
+  };
+
+  const onCopy = async () => {
+    if (!versionQuery.data) return;
+    const text = buildResumePlainText(versionQuery.data);
+    if (window.navigator.clipboard?.writeText) {
+      try {
+        await window.navigator.clipboard.writeText(text);
+        fireResumeWorkshopToast(t("resumeWorkshop.detail.copySuccess"), "ok");
+        return;
+      } catch {
+        // fall through to the same unavailable toast used by Preview.
+      }
+    }
+    fireResumeWorkshopToast(t("resumeWorkshop.detail.copyUnavailable"), "warn");
   };
 
   if (versionQuery.notFound) {
@@ -200,6 +219,27 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
         <span className="ei-text-label" data-testid="resume-detail-version-tag">
           {ui.tag}
         </span>
+        {resolvedTab !== "preview" ? (
+          <div
+            className="ei-resume-detail-header-actions"
+            data-testid="resume-detail-header-actions"
+          >
+            <button
+              type="button"
+              data-testid="resume-detail-export-pdf"
+              onClick={onExport}
+            >
+              {t("resumeWorkshop.detail.exportPdf")}
+            </button>
+            <button
+              type="button"
+              data-testid="resume-detail-copy-text"
+              onClick={onCopy}
+            >
+              {t("resumeWorkshop.detail.copyText")}
+            </button>
+          </div>
+        ) : null}
       </header>
 
       <section
