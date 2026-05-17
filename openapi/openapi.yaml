@@ -967,6 +967,56 @@ paths:
           $ref: '#/components/responses/ApiErrorResponse'
 
   /practice/sessions:
+    get:
+      tags: [PracticeSessions]
+      operationId: listPracticeSessions
+      summary: List practice sessions (cursor-paginated)
+      description: |
+        List practice sessions for the authenticated user, optionally filtered
+        by `targetJobId` and `status`. Powers the frontend-debrief Mock Session
+        picker so users can attach a completed mock-interview session as
+        evidence for a real-interview debrief.
+      parameters:
+        - name: targetJobId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/SessionStatus'
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Paginated practice sessions.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPracticeSession'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
     post:
       tags: [PracticeSessions]
       operationId: startPracticeSession
@@ -3099,6 +3149,16 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    PaginatedPracticeSession:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedEnvelope'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/PracticeSession'
 
     PracticeSessionEventRequest:
       type: object

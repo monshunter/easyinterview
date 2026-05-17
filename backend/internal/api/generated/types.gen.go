@@ -551,6 +551,11 @@ type PracticeSession struct {
 	UpdatedAt    string        `json:"updatedAt"`
 }
 
+type PaginatedPracticeSession struct {
+	Items    []PracticeSession `json:"items"`
+	PageInfo PageInfo          `json:"pageInfo"`
+}
+
 type PracticeSessionEventRequest struct {
 	ClientEventId string         `json:"clientEventId"`
 	Kind          string         `json:"kind"`

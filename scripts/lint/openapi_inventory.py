@@ -64,6 +64,7 @@ EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("TargetJobs", "patch", "/targets/{targetJobId}", "updateTargetJob"),
     ("PracticePlans", "post", "/practice/plans", "createPracticePlan"),
     ("PracticePlans", "get", "/practice/plans/{planId}", "getPracticePlan"),
+    ("PracticeSessions", "get", "/practice/sessions", "listPracticeSessions"),
     ("PracticeSessions", "post", "/practice/sessions", "startPracticeSession"),
     ("PracticeSessions", "get", "/practice/sessions/{sessionId}", "getPracticeSession"),
     ("PracticeSessions", "post", "/practice/sessions/{sessionId}/events", "appendSessionEvent"),

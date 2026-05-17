@@ -30,7 +30,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.18 | active | 2026-05-15 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.21 | active | 2026-05-16 | [plans](./openapi-v1-contract/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.22 | active | 2026-05-17 | [plans](./openapi-v1-contract/plans/) |
 | [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.5 | active | 2026-05-13 | [plans](./event-and-outbox-contract/plans/) |
 | [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.19 | active | 2026-05-15 | [plans](./db-migrations-baseline/plans/) |
 

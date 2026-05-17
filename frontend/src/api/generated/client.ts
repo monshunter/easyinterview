@@ -318,6 +318,16 @@ export class EasyInterviewClient {
 		);
 	}
 
+	/** listPracticeSessions — get /practice/sessions: List practice sessions (cursor-paginated) */
+	async listPracticeSessions(opts?: RequestOptions): Promise<Types.PaginatedPracticeSession> {
+		return this.request<Types.PaginatedPracticeSession>(
+			"GET",
+			"/practice/sessions",
+			undefined,
+			opts,
+		);
+	}
+
 	/** startPracticeSession — post /practice/sessions: Start a practice session */
 	async startPracticeSession(body: Types.StartPracticeSessionRequest, opts?: RequestOptions): Promise<Types.PracticeSession> {
 		return this.request<Types.PracticeSession>(
@@ -676,6 +686,7 @@ export const ALL_OPERATION_IDS = [
 	"getMe",
 	"createPracticePlan",
 	"getPracticePlan",
+	"listPracticeSessions",
 	"startPracticeSession",
 	"getPracticeSession",
 	"completePracticeSession",
@@ -743,6 +754,7 @@ export const ALL_ROUTES = [
 	{ operationId: "getMe", method: "GET", path: "/me" },
 	{ operationId: "createPracticePlan", method: "POST", path: "/practice/plans" },
 	{ operationId: "getPracticePlan", method: "GET", path: "/practice/plans/{planId}" },
+	{ operationId: "listPracticeSessions", method: "GET", path: "/practice/sessions" },
 	{ operationId: "startPracticeSession", method: "POST", path: "/practice/sessions" },
 	{ operationId: "getPracticeSession", method: "GET", path: "/practice/sessions/{sessionId}" },
 	{ operationId: "completePracticeSession", method: "POST", path: "/practice/sessions/{sessionId}/complete" },

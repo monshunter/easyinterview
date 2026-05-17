@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.21
+> **版本**: 1.22
 > **状态**: active
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-05-17
 
 ## 1 修订规则
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-17 | 1.22 | 授权 frontend-debrief/001 Phase 0 cross-owner addendum：`PracticeSessions` tag 新增 `GET /api/v1/practice/sessions` / `listPracticeSessions`（query: `targetJobId?`, `status?`, `cursor?`, `pageSize?`），同步 `PaginatedPracticeSession` schema、fixture、inventory lint 与 Go/TS generated artifacts；§3.1.1 endpoint inventory 56→57。Additive，不引入 breaking change。 | frontend-debrief/001-debrief-screen-and-handoff Phase 0.0 |
 | 2026-05-16 | 1.21 | 授权 backend-debrief/001 Phase 0 Debrief suggestions additive 升级：`Debriefs` tag 新增 `POST /api/v1/debriefs/question-suggestions` / `suggestDebriefQuestions`，同步 request/response schema、fixtures、inventory lint、README 与 Go/TS generated artifacts；§3.1.1 endpoint inventory 55→56。 | backend-debrief/001-debrief-record-and-analysis Phase 0.2 |
 | 2026-05-15 | 1.20 | 授权 backend-review/001 Phase 0 pre-launch baseline rebase：(a) `getFeedbackReport` 的 404 response 显式与 `REPORT_NOT_FOUND` 关联（与 [B1 shared-conventions-codified 1.18](../shared-conventions-codified/history.md) 同 commit）；(b) `FeedbackReport` schema 新增 `errorCode: oneOf[ApiErrorCode|null]` additive 字段，用于 wire 暴露失败原因；同步 `openapi/openapi.yaml`、`openapi/baseline/openapi-v1.0.0.yaml` 与 Go/TS generated artifacts。Additive，不引入 breaking change。 | backend-review/001-report-generation-baseline Phase 0.2 / 0.4 |
 | 2026-05-13 | 1.19 | 授权 backend-practice/002 Phase 0 `PracticeTurn.status` pre-launch baseline rebase：wire enum 从 3 值扩为 `asked` / `answered` / `follow_up_requested` / `assessed` / `skipped`，同步 `openapi/openapi.yaml`、baseline 与 Go/TS generated artifacts。 | backend-practice/002 Phase 0 |

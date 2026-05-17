@@ -439,6 +439,11 @@ export interface PracticeSession {
 	updatedAt: string;
 }
 
+export interface PaginatedPracticeSession {
+	items: PracticeSession[];
+	pageInfo: PageInfo;
+}
+
 export interface PracticeSessionEventRequest {
 	clientEventId: string;
 	kind: "answer_submitted" | "hint_requested" | "turn_skipped" | "session_paused" | "session_resumed";

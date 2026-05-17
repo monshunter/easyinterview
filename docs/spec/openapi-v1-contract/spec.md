@@ -1,14 +1,14 @@
 # OpenAPI v1 Contract Spec
 
-> **版本**: 1.21
+> **版本**: 1.22
 > **状态**: active
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-05-17
 
 ## 1 背景与目标
 
 [engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 B2 `openapi-v1-contract` 保留为当前 active Contract spec（依赖 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)；间接依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它是当前 P0 backend / frontend workstream 的 HTTP 契约瓶颈节点：后续实现必须复用本契约的 codegen、fixtures 与 breaking-change gate；任何破坏性变更会触发跨 spec 雪球。
 
-本 spec 历史上由 `engineering-roadmap/001-decompose-subspecs` 的 contract lock 创建；当前执行口径以 roadmap active spec 的保留规则为准：`openapi/openapi.yaml` v1.0.0 freeze 范围为当前 56 endpoints / 13 tags / 字段命名 / additive-only 规则（D-17 JobMatch additive 升级 + D-18 Resume Workshop additive 升级 + D-20 Debrief suggestions additive 升级均已落地）。真实 OpenAPI 文件、codegen、fixtures 与 breaking-change linter 由 B2 `001-bootstrap` / `002-fixtures-and-mock-source` / `003-breaking-change-gate` / `004-resume-additive-coverage` 分别验证；未通过前不得启动依赖 B2 的 implementation。
+本 spec 历史上由 `engineering-roadmap/001-decompose-subspecs` 的 contract lock 创建；当前执行口径以 roadmap active spec 的保留规则为准：`openapi/openapi.yaml` v1.0.0 freeze 范围为当前 57 endpoints / 13 tags / 字段命名 / additive-only 规则（D-17 JobMatch additive 升级 + D-18 Resume Workshop additive 升级 + D-20 Debrief suggestions additive 升级 + D-21 Practice sessions listing additive 升级均已落地）。真实 OpenAPI 文件、codegen、fixtures 与 breaking-change linter 由 B2 `001-bootstrap` / `002-fixtures-and-mock-source` / `003-breaking-change-gate` / `004-resume-additive-coverage` 分别验证；未通过前不得启动依赖 B2 的 implementation。
 
 当前 HTTP 可执行契约由本 spec、`openapi/openapi.yaml`、OpenAPI fixtures / baseline 与 B1 shared-conventions-codified 决定。B2 独立承接 endpoint inventory、tag、auth 形态、header、status code、schema、fixture provenance 与 breaking-change gate；任何实现或 codegen 都不得绕过这些当前 owner truth source。
 
@@ -133,14 +133,17 @@
 | 54 | Resumes | POST | /api/v1/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject | rejectResumeTailorSuggestion | ResumeVersion（IK 必带） |
 | 55 | Resumes | POST | /api/v1/resumes/{resumeAssetId}/archive | archiveResumeAsset | ResumeAsset（IK 必带） |
 | 56 | Resumes | POST | /api/v1/resume-versions/{resumeVersionId}/exports | exportResumeVersion | ApiErrorResponse（P0 501 + `RESUME_EXPORT_NOT_AVAILABLE`；IK 必带） |
+| 57 | PracticeSessions | GET | /api/v1/practice/sessions | listPracticeSessions | PaginatedPracticeSession |
 
-总计 56 个 endpoint，覆盖 13 tag。
+总计 57 个 endpoint，覆盖 13 tag。
 
 > JobMatch (36–47) 由 `frontend-home-job-picks-and-parse/002-jd-match-recommendations` 在 D-17 additive 升级中纳入 v1.0.0 freeze；真实 backend handler / store / agent scan pipeline / 真实联网搜索 / 候选池抓取由独立未来 subspec `backend-jobs-recommendations` 承接。
 
 > Resume Workshop additive (48–56) 由 `openapi-v1-contract/004-resume-additive-coverage` 在 D-18 additive 升级中纳入 v1.0.0 freeze：Resumes tag 9 个新 operation、schema、fixtures、generated client/server artifact 与 inventory lint 已回填；真实 backend handler 由独立未来 subspec `backend-resume` / `backend-upload` 承接。
 
 > Debrief suggestions additive (#29) 由 `backend-debrief/001-debrief-record-and-analysis` Phase 0 纳入 v1.0.0 freeze：`Debriefs` tag 新增同步问题建议 operation、fixtures、generated client/server artifact 与 inventory lint 已回填；真实 backend handler 由同计划 Phase 3 承接。
+
+> Practice sessions listing additive (#57) 由 `frontend-debrief/001-debrief-screen-and-handoff` Phase 0 cross-owner addendum 纳入 v1.0.0 freeze：`PracticeSessions` tag 新增 `listPracticeSessions` operation、`PaginatedPracticeSession` schema、fixture、generated client/server artifact 与 inventory lint 已回填；真实 backend handler 由独立未来 subspec `backend-practice` 承接。
 
 #### 3.1.2 B2 专属 async enum 字面量
 
