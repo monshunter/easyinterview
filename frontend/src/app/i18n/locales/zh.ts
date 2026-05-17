@@ -763,6 +763,11 @@ export const zh = {
   "debrief.record.guide.manualPlaceholder": "写下面试中被问到的问题…",
   "debrief.record.guide.manualSave": "保存为真实问题",
   "debrief.record.guide.manualCancel": "取消",
+  "debrief.record.guide.answerLabel": "我的回答摘要",
+  "debrief.record.guide.answerPlaceholder": "概括你当时的回答要点…",
+  "debrief.record.guide.reactionLabel": "面试官反应",
+  "debrief.record.guide.reactionPlaceholder":
+    "可选：记录追问、认可或卡点…",
   "debrief.record.entries.eyebrow": "已记录问题",
   "debrief.record.entries.empty": "还没有写下任何问题。",
   "debrief.record.voice.notImplemented":
@@ -772,6 +777,8 @@ export const zh = {
   "debrief.record.submit.cta": "生成复盘分析",
   "debrief.record.submit.disabledNoEntries":
     "至少记录一条问题后才能生成分析。",
+  "debrief.record.submit.disabledMissingAnswers":
+    "每条问题都需要补充回答摘要。",
   "debrief.record.submit.disabledNoTargetJob":
     "请先选择目标岗位。",
   "debrief.failure.eyebrow": "生成失败",
@@ -821,6 +828,11 @@ export const zh = {
   "debrief.replay.body":
     "AI 会按真实顺序复述被问到的问题，并对薄弱处追问 + 对照简历证据。",
   "debrief.replay.cta": "开始复盘面试",
+  "debrief.replay.starting": "正在创建复盘面试…",
+  "debrief.replay.error": "复盘面试创建失败，请重试。",
+  "debrief.replay.authPending": "登录状态确认中，请稍后重试。",
+  "debrief.replay.missingContext":
+    "缺少复盘记录或简历资产，无法创建复盘面试。",
   "debrief.replay.back": "返回分析",
   "debrief.severity.high": "高",
   "debrief.severity.medium": "中",

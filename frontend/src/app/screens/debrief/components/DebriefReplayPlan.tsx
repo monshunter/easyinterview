@@ -6,6 +6,8 @@ import type { Debrief, DebriefEntry } from "../types";
 interface DebriefReplayPlanProps {
   debrief: Debrief | null;
   entries: DebriefEntry[];
+  errorMessage: string | null;
+  starting: boolean;
   onStart: () => void;
   onBack: () => void;
 }
@@ -19,6 +21,8 @@ interface DebriefReplayPlanProps {
 export const DebriefReplayPlan: FC<DebriefReplayPlanProps> = ({
   debrief,
   entries,
+  errorMessage,
+  starting,
   onStart,
   onBack,
 }) => {
@@ -48,6 +52,11 @@ export const DebriefReplayPlan: FC<DebriefReplayPlanProps> = ({
           ))}
         </ul>
       )}
+      {errorMessage ? (
+        <div className="ei-debrief-replay__error" data-testid="debrief-replay-error">
+          {errorMessage}
+        </div>
+      ) : null}
       <div className="ei-debrief-replay__actions">
         <button
           type="button"
@@ -61,9 +70,10 @@ export const DebriefReplayPlan: FC<DebriefReplayPlanProps> = ({
           type="button"
           className="ei-debrief-btn ei-debrief-btn--accent"
           data-testid="debrief-start-interview-btn"
+          disabled={starting}
           onClick={onStart}
         >
-          {t("debrief.replay.cta")}
+          {starting ? t("debrief.replay.starting") : t("debrief.replay.cta")}
         </button>
       </div>
     </section>

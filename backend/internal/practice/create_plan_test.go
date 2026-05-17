@@ -249,6 +249,9 @@ type recordingPlanStore struct {
 	getErr                error
 	getUserID             string
 	getPlanID             string
+	listSessionsInput     ListSessionsInput
+	listSessionsResult    ListSessionsResult
+	listSessionsErr       error
 	getSessionRecord      SessionRecord
 	getSessionErr         error
 	getSessionUserID      string
@@ -302,6 +305,14 @@ func (s *recordingPlanStore) GetPlan(ctx context.Context, userID, planID string)
 		return PlanRecord{}, s.getErr
 	}
 	return s.getRecord, nil
+}
+
+func (s *recordingPlanStore) ListSessions(ctx context.Context, in ListSessionsInput) (ListSessionsResult, error) {
+	s.listSessionsInput = in
+	if s.listSessionsErr != nil {
+		return ListSessionsResult{}, s.listSessionsErr
+	}
+	return s.listSessionsResult, nil
 }
 
 func (s *recordingPlanStore) GetSession(ctx context.Context, userID, sessionID string) (SessionRecord, error) {

@@ -12,8 +12,9 @@ interface JDPickerProps {
 }
 
 /**
- * Phase 2.2 JD picker. Loads target jobs via `listTargetJobs({status:'ready'})`
- * — only ready / interview-ready jobs are valid debrief contexts per
+ * Phase 2.2 JD picker. Loads target jobs via
+ * `listTargetJobs({analysisStatus:'ready'})` — only parsed / ready jobs are
+ * valid debrief contexts per
  * docs/spec/frontend-debrief/spec.md §3.2.
  */
 export const JDPicker: FC<JDPickerProps> = ({
@@ -25,7 +26,7 @@ export const JDPicker: FC<JDPickerProps> = ({
   const load = useCallback(async () => {
     if (!runtime) return { options: [] as PickerOption<TargetJob>[] };
     const res = await runtime.client.listTargetJobs({
-      query: { status: "ready" },
+      query: { analysisStatus: "ready" },
     });
     const options = res.items.map<PickerOption<TargetJob>>((job) => ({
       id: job.id,

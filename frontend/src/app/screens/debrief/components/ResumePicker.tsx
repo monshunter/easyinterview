@@ -30,7 +30,7 @@ export const ResumePicker: FC<ResumePickerProps> = ({
 }) => {
   const runtime = useAppRuntimeOptional();
   const { t } = useI18n();
-  const [assetId, setAssetId] = useState<string | null>(selectedAssetId);
+  const [assetId, setAssetId] = useState<string | null>(null);
   const [assetMap, setAssetMap] = useState<Record<string, ResumeAsset>>({});
 
   const loadAssets = useCallback(async () => {
@@ -97,7 +97,10 @@ export const ResumePicker: FC<ResumePickerProps> = ({
         }
         onClose={onClose}
         onConfirm={(opt) => {
-          if (opt) setAssetId(opt.id);
+          if (opt) {
+            setAssetMap((prev) => ({ ...prev, [opt.id]: opt.value }));
+            setAssetId(opt.id);
+          }
         }}
       />
     );

@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff BDD Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -34,7 +34,7 @@
 - [x] 066.B 编写 fixtures：suggestDebriefQuestions=default 6 items + createDebrief=default 202 + suggestDebriefQuestions=fail variant
 - [x] 066.C 编写 setup.sh：登录 + 通过 P0.065 完成三选状态
 - [x] 066.D 编写 trigger.sh：Vitest-backed runner 覆盖 debrief 模块、InterviewContext reducer、pendingAction 与 privacy boundary
-- [x] 066.E 编写 verify.sh：entries 3 行（source ai_confirmed/ai_edited/manual）+ AI failure inline error + voice UI shell + Submit createDebrief call + IK UUID + 202 响应 + InterviewContext.debriefId/debriefJobId 设置 + 不覆盖 jobId + setStep(1) + polling 启动 + privacy 反查
+- [x] 066.E 编写 verify.sh：entries 3 行（source ai_confirmed/ai_edited/manual）且 `myAnswerSummary` 非空 + AI failure/empty 时 manual CTA 可用 + voice UI shell + Submit createDebrief call + IK UUID + 202 响应 + InterviewContext.debriefId/debriefJobId 设置 + 不覆盖 jobId + setStep(1) + polling 启动 + privacy 反查
 - [x] 066.F 编写 cleanup.sh
 - [x] 066.G 确认四段脚本可独立执行
 - [x] 066.H 登记到 INDEX
@@ -60,7 +60,7 @@
 - [x] 068.B 编写 fixtures：4 类失败 + 1 类成功 handoff variants
 - [x] 068.C 编写 setup.sh：5 个 sub-scenarios chained
 - [x] 068.D 编写 trigger.sh：(1) MissingContext (2) Failure (3) Timeout (4) 编辑+重试 (5) handoff
-- [x] 068.E 编写 verify.sh：3 种失败 state DOM + 文案 + CTA 行为 + nav practice 时 payload 含 `practiceGoal='debrief'` 且完整 + spy `createPracticePlan/startPracticeSession` 在 debrief 模块内 0 调用
+- [x] 068.E 编写 verify.sh：3 种失败 state DOM + 文案 + CTA 行为 + Step 2 调用 `createPracticePlan(goal='debrief', sourceDebriefId)` + `startPracticeSession` 创建 fresh session + nav practice 时 payload 含 `practiceGoal='debrief'` / `planId` / fresh `sessionId` 且完整
 - [x] 068.F 编写 cleanup.sh
 - [x] 068.G 确认四段脚本可独立执行
 - [x] 068.H 登记到 INDEX

@@ -349,6 +349,7 @@ func buildAPIHandlerWithUploadReportDebriefAndHandlers(loader *config.Loader, fl
 		mux.Handle("GET /api/v1/practice/plans/{planId}", auth.SessionMiddleware(authService, "getPracticePlan", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			practice.Handler.GetPracticePlan(w, r, r.PathValue("planId"))
 		})))
+		mux.Handle("GET /api/v1/practice/sessions", auth.SessionMiddleware(authService, "listPracticeSessions", http.HandlerFunc(practice.Handler.ListPracticeSessions)))
 		mux.Handle("POST /api/v1/practice/sessions", auth.SessionMiddleware(authService, "startPracticeSession", http.HandlerFunc(practice.Handler.StartPracticeSession)))
 		mux.Handle("GET /api/v1/practice/sessions/{sessionId}", auth.SessionMiddleware(authService, "getPracticeSession", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			practice.Handler.GetPracticeSession(w, r, r.PathValue("sessionId"))

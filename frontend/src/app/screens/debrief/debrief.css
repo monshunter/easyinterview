@@ -508,6 +508,31 @@
   color: var(--ei-color-fg-secondary);
 }
 
+.ei-debrief-guided__panel button[data-testid="debrief-suggested-question-manual"],
+.ei-debrief-guided__panel button[data-testid="debrief-guided-regenerate"] {
+  background: transparent;
+  border: 1px solid var(--ei-color-rule-strong);
+  padding: 6px 12px;
+  border-radius: var(--ei-radius-sm);
+  cursor: pointer;
+  font-family: var(--ei-font-sans);
+  font-size: 12.5px;
+  color: var(--ei-color-fg-secondary);
+}
+
+.ei-debrief-guided__editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ei-debrief-guided__editor > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .ei-debrief-guided__editor textarea {
   width: 100%;
   border: 1px solid var(--ei-color-rule-strong);
@@ -639,6 +664,16 @@
 .ei-debrief-replay__actions {
   display: flex;
   justify-content: space-between;
+}
+
+.ei-debrief-replay__error {
+  border: 1px solid var(--ei-color-rule-strong);
+  border-left: 3px solid var(--ei-color-accent);
+  border-radius: var(--ei-radius-sm);
+  padding: 10px 12px;
+  color: var(--ei-color-fg-secondary);
+  background: var(--ei-color-bg-card);
+  font-size: 13px;
 }
 
 .ei-debrief-step0-panels {

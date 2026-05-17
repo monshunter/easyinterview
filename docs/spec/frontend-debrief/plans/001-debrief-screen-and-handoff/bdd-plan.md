@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff BDD Plan
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -52,7 +52,7 @@
 | 执行入口 | `bash scripts/setup.sh && bash scripts/trigger.sh && bash scripts/verify.sh; bash scripts/cleanup.sh`（在该场景目录内执行） |
 | Given | 用户已认证；fixture `suggestDebriefQuestions=default` 返回 6 suggestions；fixture `createDebrief=default` 返回 202 + DebriefWithJob{debriefId:'D', job:{id:'J'}}；用户已通过 E2E.P0.065 完成三选 |
 | When | (1) 等待 suggestions 自动加载；(2) 用户对 suggestions[0] 点击 "遇到过，记录"；(3) 用户对 suggestions[1] 点击 "没问到，跳过"；(4) 用户对 suggestions[2] 点击 "改成真实问题" + inline edit + save；(5) 用户点击 "手动添加真实问题" + 表单 + save；(6) 用户点击 "重新生成推荐"（mock 返回 502 AI_PROVIDER_TIMEOUT）；(7) 用户切到 voice 模式查看 UI shell；(8) 切回 text 模式；(9) 用户点击 "生成复盘分析" CTA |
-| Then | (a) suggestions 渲染 6 项；testid `debrief-suggested-question-{0..5}` 命中；(b) entries 写入 3 行（source: ai_confirmed / ai_edited / manual）；testid `debrief-entry-card-{id}` 各显示；(c) 跳过的 suggestion 不入 entries；(d) 重新生成推荐失败时显示 inline error；不阻塞 step 0；(e) Voice 模式 testid `debrief-voice-not-implemented` 占位提示出现；entries 列表保留；(f) 切回 text 模式 entries 仍为 3 行；(g) Submit CTA 点击后触发 `createDebrief` 调用 with Idempotency-Key UUIDv4 + 完整 questions[3] body；返回 202 + DebriefWithJob；(h) InterviewContext 写入 debriefId='D' + debriefJobId='J'，且不覆盖既有 jobId；(i) 自动 setStep(1) + 启动 polling |
+| Then | (a) suggestions 渲染 6 项；testid `debrief-suggested-question-{0..5}` 命中；(b) entries 写入 3 行（source: ai_confirmed / ai_edited / manual）且每行 `myAnswerSummary` 非空；testid `debrief-entry-card-{id}` 各显示；(c) 跳过的 suggestion 不入 entries；(d) 重新生成推荐失败时显示 inline error，manual CTA 仍可用；不阻塞 step 0；(e) Voice 模式 testid `debrief-voice-not-implemented` 占位提示出现；entries 列表保留；(f) 切回 text 模式 entries 仍为 3 行；(g) Submit CTA 点击后触发 `createDebrief` 调用 with Idempotency-Key UUIDv4 + 完整 questions[3] body（每项 `myAnswerSummary` 非空）；返回 202 + DebriefWithJob；(h) InterviewContext 写入 debriefId='D' + debriefJobId='J'，且不覆盖既有 jobId；(i) 自动 setStep(1) + 启动 polling |
 | Cleanup | 同 P0.065 + 清空 entries |
 | Privacy 反查 | verify.sh assert (a) URL 不含 raw text; (b) localStorage 不含 entries body; (c) console.log 不含 raw questionText |
 
@@ -79,9 +79,9 @@
 | 执行入口 | `bash scripts/setup.sh && bash scripts/trigger.sh && bash scripts/verify.sh; bash scripts/cleanup.sh`（在该场景目录内执行） |
 | Given | 用户已认证；scenarios 模拟 4 类失败 + 1 类成功 handoff |
 | When | (1) 用户进入 `/debrief` 无 InterviewContext → DebriefMissingContextState；(2) 用户重新进入完整流程 → submit createDebrief → fixture `getJob=failed` 返回 status='failed' + errorCode='AI_PROVIDER_TIMEOUT' → DebriefFailureState；(3) 用户点击 "重试生成"（new IK） → 这次 fixture `getJob` 永久 queued → DebriefTimeoutState；(4) 用户点击 "返回 step 0 编辑"；(5) 重新 submit → fixture 成功 polling → Step 1 → Step 2 → 用户点击 "开始复盘面试" CTA |
-| Then | (a) DebriefMissingContextState 渲染；JD picker 自动打开；testid `debrief-missing-context-state` 命中；(b) DebriefFailureState 渲染 errorCode 文案 + CTA「返回 step 0 编辑」+「重试生成」；testid `debrief-failure-state` 命中；errorCode 显示按 B1 AI_PROVIDER_TIMEOUT 文案映射，不暴露 raw provider error；(c) DebriefTimeoutState 渲染 timeout 卡片 + CTA「重试」+「返回 step 0」；testid `debrief-timeout-state` 命中；(d) "返回 step 0 编辑" 后 entries 保留；(e) Step 2 "开始复盘面试" CTA 触发 `nav("practice", {practiceGoal:'debrief', mode:'text', modality:'text', sessionId, targetJobId, resumeVersionId, debriefId, language})`；(f) **scenario 关键负向断言：spy 监控 `createPracticePlan` / `startPracticeSession` 在 frontend-debrief 模块内 0 调用**（通过 fixture transport spy + grep `createPracticePlan\|startPracticeSession` in `frontend/src/app/screens/debrief/` 0 命中验证） |
+| Then | (a) DebriefMissingContextState 渲染；JD picker 自动打开；testid `debrief-missing-context-state` 命中；(b) DebriefFailureState 渲染 errorCode 文案 + CTA「返回 step 0 编辑」+「重试生成」；testid `debrief-failure-state` 命中；errorCode 显示按 B1 AI_PROVIDER_TIMEOUT 文案映射，不暴露 raw provider error；(c) DebriefTimeoutState 渲染 timeout 卡片 + CTA「重试」+「返回 step 0」；testid `debrief-timeout-state` 命中；(d) "返回 step 0 编辑" 后 entries 保留；(e) Step 2 "开始复盘面试" CTA 触发 `createPracticePlan(goal='debrief', sourceDebriefId)` + `startPracticeSession`，然后 `nav("practice", {practiceGoal:'debrief', mode:'text', modality:'text', planId, sessionId:newSessionId, targetJobId, resumeVersionId, debriefId, language})`；(f) scenario 关键断言：fixture transport spy 确认新 session id 来自 `startPracticeSession` 响应，不复用 optional completed mock session id |
 | Cleanup | 清空 InterviewContext + DB |
-| Cross-owner 反查 | verify.sh assert nav 触发后 URL 切到 `/practice?...` 包含 practiceGoal=debrief；不在 debrief 模块内调用 createPracticePlan |
+| Cross-owner 反查 | verify.sh assert Step 2 先创建 fresh debrief practice plan/session，nav 触发后 URL 切到 `/practice?...` 且包含 practiceGoal=debrief + fresh sessionId |
 
 ### E2E.P0.069 — Pixel Parity + i18n + Privacy + Legacy Negative
 
@@ -93,7 +93,7 @@
 | 执行入口 | `bash scripts/setup.sh && bash scripts/trigger.sh && bash scripts/verify.sh; bash scripts/cleanup.sh`（在该场景目录内执行） |
 | Given | 完整 DebriefScreen + Playwright debrief parity spec 已就绪 |
 | When | (1) Vitest 跑 i18n / privacy / devMock fixture gates；(2) build frontend dist；(3) Playwright 加载 frontend `/debrief` desktop 1440×900 与 mobile 390×844；(4) 断言 `debrief_full` alias normalize、Step 0 source anchors、viewport bounding boxes、mobile overflow negative；(5) 切到 dark mode 与 customAccent；(6) 截图 smoke；(7) grep legacy terms in active runtime 与 P0.065-P0.069 scenario tree |
-| Then | (a) Vitest runner 通过；(b) Playwright desktop + mobile debrief parity gate 通过（DOM anchors / computed style / bounding box / non-empty screenshot smoke）；(c) dark / customAccent 主题应用正确（root data-theme / data-mode / data-custom-accent）；(d) privacy boundary tests 通过；(e) retired terms `experience_library` / `star_editor` / `drill_builder` / `mistakes_book` / `growth_center` / `report_timeline` 在 `frontend/src/app/screens/debrief/` / `frontend/src/app/i18n/locales/` / `test/scenarios/e2e/p0-06[56789]-*` 全部 0 命中；(f) 第三方 `createPracticePlan` / `startPracticeSession` 在 debrief 模块内 0 调用 |
+| Then | (a) Vitest runner 通过；(b) Playwright desktop + mobile debrief parity gate 通过（DOM anchors / computed style / bounding box / non-empty screenshot smoke）；(c) dark / customAccent 主题应用正确（root data-theme / data-mode / data-custom-accent）；(d) privacy boundary tests 通过；(e) retired terms `experience_library` / `star_editor` / `drill_builder` / `mistakes_book` / `growth_center` / `report_timeline` 在 `frontend/src/app/screens/debrief/` / `frontend/src/app/i18n/locales/` / `test/scenarios/e2e/p0-06[56789]-*` 全部 0 命中；(f) `getFeedbackReport` / `getCompanyIntel` 在 debrief 模块内 0 调用；Step 2 practice 创建调用仅限 handoff handler |
 | Cleanup | clean |
 
 ## 3 编号占用

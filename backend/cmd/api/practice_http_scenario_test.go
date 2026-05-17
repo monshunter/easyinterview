@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -1793,6 +1794,47 @@ func (s *scenarioPracticeStore) GetSession(_ context.Context, userID, sessionID 
 		return domainpractice.SessionRecord{}, domainpractice.ErrSessionNotFound
 	}
 	return session.SessionRecord, nil
+}
+
+func (s *scenarioPracticeStore) ListSessions(_ context.Context, in domainpractice.ListSessionsInput) (domainpractice.ListSessionsResult, error) {
+	if strings.TrimSpace(in.Cursor) != "" {
+		return domainpractice.ListSessionsResult{}, domainpractice.ErrInvalidCursor
+	}
+	pageSize := in.PageSize
+	if pageSize <= 0 {
+		pageSize = sharedtypes.DefaultPageSize
+	}
+	if pageSize > sharedtypes.MaxPageSize {
+		pageSize = sharedtypes.MaxPageSize
+	}
+	items := make([]domainpractice.SessionRecord, 0, len(s.sessions))
+	for _, session := range s.sessions {
+		if session.UserID != in.UserID {
+			continue
+		}
+		if strings.TrimSpace(in.TargetJobID) != "" && session.TargetJobID != strings.TrimSpace(in.TargetJobID) {
+			continue
+		}
+		if in.Status != "" && session.Status != in.Status {
+			continue
+		}
+		items = append(items, session.SessionRecord)
+	}
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].UpdatedAt.Equal(items[j].UpdatedAt) {
+			return items[i].ID > items[j].ID
+		}
+		return items[i].UpdatedAt.After(items[j].UpdatedAt)
+	})
+	hasMore := len(items) > pageSize
+	if hasMore {
+		items = items[:pageSize]
+	}
+	return domainpractice.ListSessionsResult{
+		Items:    items,
+		HasMore:  hasMore,
+		PageSize: pageSize,
+	}, nil
 }
 
 func (s *scenarioPracticeStore) ReserveSessionEvent(_ context.Context, in domainpractice.SessionEventReservationInput) (domainpractice.SessionEventReservation, error) {

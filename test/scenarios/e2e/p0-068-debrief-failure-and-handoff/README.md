@@ -16,10 +16,11 @@
 Run the Vitest contracts that pin the failure states + handoff path
 through `DebriefScreen.test.tsx` plus the InterviewContext reducer round
 trip + the privacy boundary scan. Additionally lint scoped grep on the
-debrief module for any direct `createPracticePlan` / `startPracticeSession`
-calls (must be zero — the handoff goes through `nav('practice', ...)`).
+debrief replay handler to require `createPracticePlan`,
+`startPracticeSession`, and `sourceDebriefId`, because the CTA must create
+a fresh debrief practice session before `nav('practice', ...)`.
 
 ## Then
 
-Vitest exits 0. Direct grep finds zero forbidden `createPracticePlan` /
-`startPracticeSession` calls in the debrief module.
+Vitest exits 0. Scoped grep confirms the debrief replay CTA creates a
+fresh practice plan/session sourced from the current debrief.

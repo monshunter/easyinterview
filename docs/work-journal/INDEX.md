@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `fix(frontend-debrief): repair real backend debrief flows (BUG-0068)` | #fix #ui #test #docs #bdd |
 | [2026-05-17](2026-05-17.md) | `fix(frontend-debrief): close debrief L2 gaps (BUG-0067)` | #fix #ui #test #docs #bdd |
 | [2026-05-17](2026-05-17.md) | `feat(frontend-debrief): close 001 debrief screen and handoff baseline` | #feat #ui #test #i18n #docs #lint #bdd |
 | [2026-05-17](2026-05-17.md) | `feat(frontend-debrief): land Phase 2-6 picker / record / submit / analysis` | #feat #ui #test #i18n #docs |

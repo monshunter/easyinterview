@@ -794,6 +794,12 @@ export const en: LocaleMessages = {
     "Write what was actually asked…",
   "debrief.record.guide.manualSave": "Save as real question",
   "debrief.record.guide.manualCancel": "Cancel",
+  "debrief.record.guide.answerLabel": "My answer summary",
+  "debrief.record.guide.answerPlaceholder":
+    "Summarize what you answered in the interview…",
+  "debrief.record.guide.reactionLabel": "Interviewer reaction",
+  "debrief.record.guide.reactionPlaceholder":
+    "Optional: capture follow-ups, approval, or hesitation…",
   "debrief.record.entries.eyebrow": "Recorded questions",
   "debrief.record.entries.empty": "Nothing recorded yet.",
   "debrief.record.voice.notImplemented":
@@ -803,6 +809,8 @@ export const en: LocaleMessages = {
   "debrief.record.submit.cta": "Generate debrief analysis",
   "debrief.record.submit.disabledNoEntries":
     "Record at least one question before generating analysis.",
+  "debrief.record.submit.disabledMissingAnswers":
+    "Add an answer summary for every recorded question.",
   "debrief.record.submit.disabledNoTargetJob":
     "Pick a target job first.",
   "debrief.failure.eyebrow": "GENERATION FAILED",
@@ -853,6 +861,11 @@ export const en: LocaleMessages = {
   "debrief.replay.body":
     "AI will replay the real questions in order, probe weak spots, and compare answers against resume evidence.",
   "debrief.replay.cta": "Start debrief interview",
+  "debrief.replay.starting": "Creating debrief interview…",
+  "debrief.replay.error": "Could not create the debrief interview. Retry.",
+  "debrief.replay.authPending": "Sign-in state is still loading. Retry shortly.",
+  "debrief.replay.missingContext":
+    "A debrief record and resume asset are required to start replay.",
   "debrief.replay.back": "Back to analysis",
   "debrief.severity.high": "High",
   "debrief.severity.medium": "Medium",

@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff Test Plan
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -35,7 +35,7 @@
 | R11 | spec D-10 / Polling getJob + getDebrief | Primary | Phase 5 | Vitest hook + scenario | — | — |
 | R12 | spec D-12 / 3 failure states (Failure / Missing / Timeout) | Failure/recovery | Phase 5 | Vitest render + scenario | — | — |
 | R13 | spec D-14 / InterviewContext SET_DEBRIEF_CONTEXT action | Cross-layer + Boundary | Phase 5 | Vitest reducer | jobId collision, pendingAction key omission | — |
-| R14 | spec D-11 / Step 2 nav practice with practiceGoal=debrief, NO createPracticePlan call | Cross-layer | Phase 6 | Vitest + scenario + negative grep | createPracticePlan, startPracticeSession (must NOT be called in debrief module) | screens-p1-depth.jsx:1388-1421 DebriefReplayPlan |
+| R14 | spec D-11 / Step 2 creates fresh debrief practice session before nav practice | Cross-layer | Phase 6 | Vitest + scenario + handler grep | completed mock session id must NOT be reused as replay session; nav must include fresh sessionId | screens-p1-depth.jsx:1388-1421 DebriefReplayPlan |
 | R15 | spec §4 / Step 1 analysis render (risk_items, dimensions, provenance, no P1 fields) | Primary | Phase 6 | Vitest + scenario | nextRoundChecklist, thankYouDraft (must remain empty in P0) | screens-p1-depth.jsx:320-362 |
 | R16 | spec D-13 / i18n debrief.* namespace | UX | Phase 7 | Vitest i18n keys | workspace.*, practice.*, report.* (must NOT cross namespace) | — |
 | R17 | spec §4 / Theme dark+customAccent | UX | Phase 7 | Vitest + Playwright | — | — |
@@ -43,7 +43,7 @@
 | R19 | spec §4 / UI visual geometry parity (desktop + mobile) | UI visual parity | Phase 8 | Playwright DOM anchors + computed style + bounding box + screenshot smoke | checked-in screenshot baseline diff | screens-p1-depth.jsx:38-2180 全屏 |
 | R20 | spec D-16 / Privacy redlines (raw text in URL/localStorage/sessionStorage/console.log/telemetry) | Privacy | Phase 8 | Vitest spy + grep | questionText, myAnswerSummary, interviewerReaction, notes (must NOT appear in browser persistence) | — |
 | R21 | spec D-18 / Legacy negative grep | Regression/Legacy-negative | Phase 8 | grep + pytest lint | experience_library, star_editor, drill_builder, mistakes_book, growth_center, report_timeline | — |
-| R22 | spec §5.1 / Operation Matrix negative scope: createPracticePlan / startPracticeSession / getFeedbackReport / getCompanyIntel zero calls in debrief module | Cross-layer + Regression | Phase 6 | Vitest spy + grep | createPracticePlan, startPracticeSession, getFeedbackReport, getCompanyIntel | — |
+| R22 | spec §5.1 / Operation Matrix: debrief module may call createPracticePlan/startPracticeSession only for Step 2 fresh debrief replay; getFeedbackReport/getCompanyIntel remain zero calls | Cross-layer + Regression | Phase 6 | Vitest spy + grep | getFeedbackReport, getCompanyIntel; completed mock session reuse | — |
 
 ## 2 测试项明细
 
@@ -112,7 +112,7 @@
 #### 2.2 TestJDPicker_ListAndConfirm
 - Given：fixture `listTargetJobs` 返回 3 个 ready jobs
 - When：JD picker 渲染 → 用户选 tj-2 → 确认
-- Then：onConfirm('tj-2') 触发；reducer dispatch SET_DEBRIEF_CONTEXT with targetJob='tj-2'
+- Then：`listTargetJobs({analysisStatus:'ready'})` 被调用；onConfirm('tj-2') 触发；reducer dispatch SET_DEBRIEF_CONTEXT with targetJob='tj-2'
 - 覆盖：R5
 
 #### 2.3 TestMockSessionPicker_ListAndOptional
@@ -155,8 +155,8 @@
 
 #### 3.3 TestGuidedRecord_OccurredCTA
 - Given：suggestions=[6 items]，activeGuide=0
-- When：用户点击 "遇到过，记录" CTA on suggestion[0]
-- Then：entries.length += 1，新 entry source='ai_confirmed'，q/a/follow 来自 suggestion；activeGuide += 1
+- When：用户点击 "遇到过，记录" CTA on suggestion[0]，填写回答摘要并保存
+- Then：entries.length += 1，新 entry source='ai_confirmed'，questionText 来自 suggestion，myAnswerSummary 来自用户填写；activeGuide += 1
 - 覆盖：R7
 
 #### 3.4 TestGuidedRecord_SkipCTA
@@ -165,13 +165,13 @@
 - 覆盖：R7
 
 #### 3.5 TestGuidedRecord_EditCTA
-- When：用户点击 "改成真实问题" → inline edit → save
-- Then：entries += 1 with source='ai_edited'，questionText 来自 user edit；activeGuide += 1
+- When：用户点击 "改成真实问题" → inline edit → 填写回答摘要 → save
+- Then：entries += 1 with source='ai_edited'，questionText 与 myAnswerSummary 来自 user edit；activeGuide += 1
 - 覆盖：R7
 
 #### 3.6 TestGuidedRecord_ManualAddCTA
-- When：用户点击 "手动添加真实问题" → 填表 → save
-- Then：entries += 1 with source='manual'
+- When：用户点击 "手动添加真实问题" → 填写真实问题 + 回答摘要 → save
+- Then：entries += 1 with source='manual' 且 `myAnswerSummary` 非空；AI failure/empty suggestions 状态下 manual CTA 仍可用
 - 覆盖：R7
 
 #### 3.7 TestVoiceRecord_UIShellOnly
@@ -187,7 +187,7 @@
 - 覆盖：R8
 
 #### 3.9 TestSubmitCTA_DisabledState
-- Given：entries=[] 或 selectedContext.targetJob=null
+- Given：entries=[] 或 selectedContext.targetJob=null 或 entries 中存在空 `myAnswerSummary`
 - When：检查 Submit CTA
 - Then：CTA disabled
 - 覆盖：R10
@@ -363,19 +363,19 @@
 #### 6.6 TestStartDebriefInterview_NavPayload
 - Given：用户已认证；step=2 渲染
 - When：用户点击 "开始复盘面试" CTA
-- Then：nav 调用 with payload `{practiceGoal:'debrief', mode:'text', modality:'text', sessionId:'mock-24', targetJobId:'tj-1', resumeVersionId:'resume-v3', debriefId:'D', language:'zh'}`
+- Then：先调用 `createPracticePlan({goal:'debrief', sourceDebriefId:'D', targetJobId:'tj-1', resumeAssetId})`，再调用 `startPracticeSession({planId})`；nav 调用 with payload `{practiceGoal:'debrief', mode:'text', modality:'text', planId:'plan-debrief-1', sessionId:'ps-debrief-new', targetJobId:'tj-1', resumeVersionId:'resume-v3', debriefId:'D', language:'zh'}`
 - 覆盖：R14
 
 #### 6.7 TestStartDebriefInterview_AuthGate
 - Given：用户未认证
 - When：用户点击 "开始复盘面试" CTA
-- Then：useRequestAuth 触发 type='start_debrief_interview'，params=full payload；登录后 pendingAction 恢复 nav practice
+- Then：useRequestAuth 触发 type='start_debrief_interview'，route='debrief'，params=恢复 CTA 所需 stable IDs；登录后 pendingAction 回到 debrief 并重新创建 fresh session
 - 覆盖：R14
 
-#### 6.8 TestStartDebriefInterview_NoCreatePracticePlanCall
+#### 6.8 TestStartDebriefInterview_CreatesFreshPracticeSession
 - Given：完整 step 2 流程
 - When：用户点击 "开始复盘面试" → spy 监控 generated client method calls
-- Then：`createPracticePlan` / `startPracticeSession` 在 frontend/src/app/screens/debrief/ 内 0 调用（spy assert）；只调 `nav`
+- Then：`createPracticePlan` / `startPracticeSession` 各调用 1 次；`sourceDebriefId` 来自当前 debrief；nav 使用新 session id，不复用 optional completed mock session id；缺 debriefId/targetJobId/resumeAssetId 时显示 inline error 且不 nav
 - 覆盖：R14, R22
 
 ### Phase 7: i18n + 主题 + 响应式

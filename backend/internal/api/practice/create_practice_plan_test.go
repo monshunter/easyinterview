@@ -256,6 +256,9 @@ type fakePlanService struct {
 	getErr            error
 	getUserID         string
 	getPlanID         string
+	listResult        domain.ListSessionsResult
+	listErr           error
+	listRequest       domain.ListSessionsRequest
 	getSessionRecord  domain.SessionRecord
 	getSessionErr     error
 	getSessionUserID  string
@@ -295,6 +298,16 @@ func (s *fakePlanService) GetPracticePlan(ctx context.Context, userID, planID st
 		return domain.PlanRecord{}, s.getErr
 	}
 	return s.getRecord, nil
+}
+
+func (s *fakePlanService) ListPracticeSessions(ctx context.Context, in domain.ListSessionsRequest) (domain.ListSessionsResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.listRequest = in
+	if s.listErr != nil {
+		return domain.ListSessionsResult{}, s.listErr
+	}
+	return s.listResult, nil
 }
 
 func (s *fakePlanService) GetPracticeSession(ctx context.Context, userID, sessionID string) (domain.SessionRecord, error) {

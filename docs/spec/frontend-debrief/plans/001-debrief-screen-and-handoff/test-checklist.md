@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff Test Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -14,6 +14,7 @@
 - Focused green evidence: `pnpm --filter @easyinterview/frontend exec vitest run src/app/screens/debrief/DebriefScreen.test.tsx` passed (6 tests) after runtime fixes.
 - BDD evidence: P0.065-P0.069 ran sequentially through `setup.sh -> trigger.sh -> verify.sh -> cleanup.sh` and passed; P0.069 includes frontend build, `tests/pixel-parity/debrief.spec.ts`, legacy lint, and scenario-tree legacy grep.
 - Gate evidence: final close-out re-runs `make validate-fixtures`, `pnpm --filter @easyinterview/frontend typecheck`, `pnpm --filter @easyinterview/frontend lint`, `python3 -m pytest scripts/lint -q`, `make docs-check`, and `git diff --check`.
+- Review-fix evidence: follow-up red tests covered invalid JD filter, resume picker asset-phase skip, missing manual fallback, missing `myAnswerSummary`, and replay CTA without a fresh session; focused green runs cover debrief Vitest regressions plus backend-practice list endpoint tests.
 
 ## Phase 0: 依赖验证
 
@@ -91,7 +92,7 @@
 - [x] 6.E TestStep2Launcher_ContentPreview 通过（[test-plan §6.5](./test-plan.md#65-teststep2launcher_contentpreview)）
 - [x] 6.F TestStartDebriefInterview_NavPayload 通过（[test-plan §6.6](./test-plan.md#66-teststartdebriefinterview_navpayload)）
 - [x] 6.G TestStartDebriefInterview_AuthGate 通过（[test-plan §6.7](./test-plan.md#67-teststartdebriefinterview_authgate)）
-- [x] 6.H TestStartDebriefInterview_NoCreatePracticePlanCall 通过（[test-plan §6.8](./test-plan.md#68-teststartdebriefinterview_nocreatepracticeplancall)）
+- [x] 6.H TestStartDebriefInterview_CreatesFreshPracticeSession 通过（[test-plan §6.8](./test-plan.md#68-teststartdebriefinterview_createsfreshpracticesession)）
 
 ## Phase 7: i18n + 主题 + 响应式
 

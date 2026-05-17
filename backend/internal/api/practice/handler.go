@@ -6,12 +6,14 @@ import (
 	stderrs "errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	domain "github.com/monshunter/easyinterview/backend/internal/practice"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
+	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
 type SessionResolver func(ctx context.Context) (userID string, ok bool)
@@ -19,6 +21,7 @@ type SessionResolver func(ctx context.Context) (userID string, ok bool)
 type planService interface {
 	CreatePracticePlan(ctx context.Context, in domain.CreatePlanRequest) (domain.PlanRecord, error)
 	GetPracticePlan(ctx context.Context, userID, planID string) (domain.PlanRecord, error)
+	ListPracticeSessions(ctx context.Context, in domain.ListSessionsRequest) (domain.ListSessionsResult, error)
 	GetPracticeSession(ctx context.Context, userID, sessionID string) (domain.SessionRecord, error)
 	StartPracticeSession(ctx context.Context, in domain.StartSessionRequest) (domain.SessionRecord, error)
 	AppendSessionEvent(ctx context.Context, in domain.AppendSessionEventRequest) (domain.AppendSessionEventResult, error)
@@ -95,6 +98,55 @@ func (h *Handler) GetPracticePlan(w http.ResponseWriter, r *http.Request, planID
 		return
 	}
 	writeJSON(w, http.StatusOK, toAPIPracticePlan(res))
+}
+
+func (h *Handler) ListPracticeSessions(w http.ResponseWriter, r *http.Request) {
+	if h == nil || h.service == nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "practice service is not configured", nil)
+		return
+	}
+	userID, ok := h.resolveUser(r)
+	if !ok {
+		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required", nil)
+		return
+	}
+	pageSize := 0
+	rawPageSize := strings.TrimSpace(r.URL.Query().Get("pageSize"))
+	if rawPageSize != "" {
+		parsed, err := strconv.Atoi(rawPageSize)
+		if err != nil || parsed < 0 {
+			writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "pageSize is invalid", map[string]any{"field": "pageSize"})
+			return
+		}
+		pageSize = parsed
+	}
+	res, err := h.service.ListPracticeSessions(r.Context(), domain.ListSessionsRequest{
+		UserID:      userID,
+		TargetJobID: r.URL.Query().Get("targetJobId"),
+		Status:      sharedtypes.SessionStatus(strings.TrimSpace(r.URL.Query().Get("status"))),
+		Cursor:      r.URL.Query().Get("cursor"),
+		PageSize:    pageSize,
+	})
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	pageInfo := api.PageInfo{
+		PageSize: res.PageSize,
+		HasMore:  res.HasMore,
+	}
+	if strings.TrimSpace(res.NextCursor) != "" {
+		nextCursor := res.NextCursor
+		pageInfo.NextCursor = &nextCursor
+	}
+	items := make([]api.PracticeSession, 0, len(res.Items))
+	for _, session := range res.Items {
+		items = append(items, toAPIPracticeSession(session))
+	}
+	writeJSON(w, http.StatusOK, api.PaginatedPracticeSession{
+		Items:    items,
+		PageInfo: pageInfo,
+	})
 }
 
 func (h *Handler) StartPracticeSession(w http.ResponseWriter, r *http.Request) {

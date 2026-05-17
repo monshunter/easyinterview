@@ -5,6 +5,7 @@ import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useInterviewContext } from "../../interview-context/InterviewContext";
 import { useI18n } from "../../i18n/messages";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
+import { newIdempotencyBatch } from "../../../lib/conventions/idempotency";
 import type { Route } from "../../routes";
 import { DebriefAnalysisStep } from "./components/DebriefAnalysisStep";
 import { DebriefContextStrip } from "./components/DebriefContextStrip";
@@ -53,7 +54,7 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
   const requestAuth = useRequestAuth();
   const { ctx, dispatch } = useInterviewContext();
   const runtime = useAppRuntimeOptional();
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
 
   const [step, setStep] = useState<DebriefStep>(0);
   const [maxVisited, setMaxVisited] = useState<DebriefStep>(0);
@@ -63,6 +64,9 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
   const [pickerKind, setPickerKind] = useState<DebriefPickerKind | null>(null);
   const [entries, setEntries] = useState<DebriefEntry[]>([]);
   const [activeGuide, setActiveGuide] = useState(0);
+  const [replayState, setReplayState] = useState<
+    { kind: "idle" } | { kind: "loading" } | { kind: "error"; message: string }
+  >({ kind: "idle" });
 
   const advanceStep = useCallback((next: DebriefStep) => {
     setStep(next);
@@ -201,31 +205,123 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
     submit,
   ]);
 
-  const handleStartReplay = useCallback(() => {
+  const handleStartReplay = useCallback(async () => {
     if (!selectedContext.targetJob || !submit.result) return;
-    const params: Record<string, string> = {
+    const debriefId = submit.result.debriefId;
+    const authParams: Record<string, string> = {
       practiceGoal: "debrief",
-      mode: "text",
-      modality: "text",
       language,
       targetJobId: selectedContext.targetJob.id,
     };
     if (selectedContext.resumeVersion?.id) {
-      params.resumeVersionId = selectedContext.resumeVersion.id;
+      authParams.resumeVersionId = selectedContext.resumeVersion.id;
     }
     if (selectedContext.mockSession?.id) {
-      params.sessionId = selectedContext.mockSession.id;
+      authParams.sessionId = selectedContext.mockSession.id;
     }
-    if (submit.result.debriefId) {
-      params.debriefId = submit.result.debriefId;
+    if (debriefId) {
+      authParams.debriefId = debriefId;
     }
-    requestAuth({
-      type: "start_debrief_interview",
-      label: "开始复盘面试",
-      route: "practice",
-      params,
-    });
-  }, [language, requestAuth, selectedContext, submit.result]);
+    if (submit.result.job?.id) {
+      authParams.debriefJobId = submit.result.job.id;
+    }
+    if (!runtime || runtime.auth.status === "unauthenticated") {
+      requestAuth({
+        type: "start_debrief_interview",
+        label: "开始复盘面试",
+        route: "debrief",
+        params: authParams,
+      });
+      return;
+    }
+    if (runtime.auth.status !== "authenticated") {
+      setReplayState({
+        kind: "error",
+        message: t("debrief.replay.authPending"),
+      });
+      return;
+    }
+    const resumeAssetId =
+      selectedContext.resumeAsset?.id ??
+      selectedContext.resumeVersion?.resumeAssetId;
+    if (!debriefId || !resumeAssetId) {
+      setReplayState({
+        kind: "error",
+        message: t("debrief.replay.missingContext"),
+      });
+      return;
+    }
+    setReplayState({ kind: "loading" });
+    try {
+      const mode = ctx.practiceMode === "strict" ? "strict" : "assisted";
+      const questionBudget = Math.max(
+        1,
+        Math.min(6, polling.debrief?.questions?.length || entries.length || 1),
+      );
+      const batch = newIdempotencyBatch();
+      const plan = await runtime.client.createPracticePlan(
+        {
+          targetJobId: selectedContext.targetJob.id,
+          goal: "debrief",
+          mode,
+          interviewerPersona: "hiring_manager",
+          difficulty: "standard",
+          language,
+          questionBudget,
+          timeBudgetMinutes: 30,
+          resumeAssetId,
+          sourceDebriefId: debriefId,
+          focusCompetencyCodes: [],
+        },
+        { idempotencyKey: batch.create },
+      );
+      dispatch({
+        type: "MERGE_PRACTICE_PLAN",
+        plan: plan as unknown as { id: string; [key: string]: unknown },
+      });
+      const session = await runtime.client.startPracticeSession(
+        { planId: plan.id, hintsEnabled: mode === "assisted" },
+        { idempotencyKey: batch.start },
+      );
+      dispatch({
+        type: "MERGE_SESSION",
+        session: session as unknown as { id: string; [key: string]: unknown },
+      });
+      setReplayState({ kind: "idle" });
+      navigate({
+        name: "practice",
+        params: {
+          practiceGoal: "debrief",
+          mode: "text",
+          modality: "text",
+          practiceMode: mode,
+          language,
+          targetJobId: selectedContext.targetJob.id,
+          resumeVersionId: selectedContext.resumeVersion?.id ?? "",
+          planId: plan.id,
+          sessionId: session.id,
+          debriefId,
+        },
+      });
+    } catch (err: unknown) {
+      setReplayState({
+        kind: "error",
+        message: err instanceof Error ? err.message : t("debrief.replay.error"),
+      });
+    }
+  }, [
+    ctx.practiceMode,
+    dispatch,
+    entries.length,
+    language,
+    navigate,
+    polling.debrief?.questions?.length,
+    requestAuth,
+    runtime,
+    selectedContext,
+    submit.result,
+    t,
+  ]);
 
   const failureCard = useMemo(() => {
     if (submit.status === "validation_failed" || submit.status === "failed") {
@@ -306,6 +402,9 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
           </div>
           <DebriefSubmitCTA
             entriesCount={entries.length}
+            entriesReady={entries.every(
+              (entry) => entry.myAnswerSummary?.trim(),
+            )}
             targetJobSelected={Boolean(selectedContext.targetJob)}
             submitting={submit.status === "submitting"}
             onSubmit={handleSubmit}
@@ -335,6 +434,8 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
       <DebriefReplayPlan
         debrief={polling.debrief}
         entries={entries}
+        errorMessage={replayState.kind === "error" ? replayState.message : null}
+        starting={replayState.kind === "loading"}
         onStart={handleStartReplay}
         onBack={() => advanceStep(1)}
       />
@@ -349,6 +450,7 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
     inputMode,
     polling.debrief,
     polling.state,
+    replayState,
     selectedContext,
     step,
     submit.status,

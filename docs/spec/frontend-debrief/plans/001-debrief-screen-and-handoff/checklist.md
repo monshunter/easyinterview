@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -20,6 +20,12 @@
 - [x] 0.3 创建包结构 `frontend/src/app/screens/debrief/{DebriefScreen.tsx, components/{DebriefHeader,DebriefContextStrip,DebriefStepper}.tsx, types.ts, debrief.css}`；空 stub 编译通过：`pnpm --filter @easyinterview/frontend typecheck`（Phase 1.x 同步落地组件实体；`hooks/` / `reducer.ts` / `i18n/` 子目录由 Phase 4+/5+ 落地时再创建以避免空目录；i18n keys 走全局 `frontend/src/app/i18n/locales/{zh,en}.ts` 的 `debrief.*` 命名空间，与现存 `report.*` / `practice.*` 约定一致）
 - [x] 0.4 route 接线：`App.tsx` 的 `case "debrief"` → `<DebriefScreen>`（与 ReportScreen 同档前置；移除 PlaceholderScreen 对 debrief 的占位）；`normalizeRoute.ts` 把历史 alias `debrief_full` normalize 到 `debrief`；不在 `routes.ts` 正式 `RouteName` / `PRIMARY_NAV_ROUTES` / `INTERVIEW_CONTEXT_ROUTES` 中新增 `debrief_full`；TopBar 一级导航 `debrief` 高亮逻辑保留；测试 `normalizeRoute.test.ts > normalizes the historical debrief_full alias to the current debrief route` 通过；route 渲染由 `DebriefScreen.test.tsx > TestDebriefScreen_DefaultRender` 覆盖（`screen.getByTestId("route-debrief")`）
 
+## 2026-05-17 Review-Fix Evidence
+
+- [x] RF.1 `createDebrief` 真实契约修复：Guided/manual entries 现在必须采集非空 `myAnswerSummary`；Submit CTA 对缺回答摘要 disabled；`useSubmitDebrief` trim 后提交，避免 backend `422 VALIDATION_FAILED`；测试覆盖 `DebriefScreen.test.tsx` + `DebriefPickerRegression.test.tsx`。
+- [x] RF.2 picker 真实 backend 契约修复：JD picker 改为 `analysisStatus='ready'`；Resume picker 重开时回到 asset list 并保留 asset object；Mock Session picker 依赖真实 `GET /api/v1/practice/sessions` handler/service/store，Go 单测覆盖 list filter / fixture parity / cursor。
+- [x] RF.3 Step 2 replay 修复：`handleStartReplay` 调 `createPracticePlan(goal='debrief', sourceDebriefId)` + `startPracticeSession` 创建 fresh session，再 nav practice with `planId/sessionId`；不再复用 completed mock session id，也不再无 sessionId 进入 PracticeScreen。
+
 ## Phase 1: DebriefScreen shell + Header + ContextStrip + Stepper
 
 - [x] 1.1 `<DebriefScreen>` container：route mount via App.tsx；internal state 初始化（step=0, maxVisited=0, inputMode='text', selectedContext=EMPTY_SELECTED_CONTEXT, pickerKind=null）；render Header + ContextStrip + Stepper + step panel；测试：`DebriefScreen.test.tsx > TestDebriefScreen_DefaultRender` 三例（shell + back nav + picker open）通过；`InterviewContext` 注入由 Phase 5.4 配合 reducer 扩展时接入（当前 container 已暴露 `data-step` / `data-input-mode` / `data-picker-kind` 数据属性供后续 hook + reducer 整合）。
@@ -30,7 +36,7 @@
 ## Phase 2: 3 个 in-page picker modal
 
 - [x] 2.1 `<DebriefContextPickerModal>` 通用骨架：复刻 lines 434-518；接收 kind / options / selectedId / loading / errorMessage / banner / emptyCopy / allowEmpty / noneOptionCopy / onClose / onConfirm；外部点击 + Esc 关闭（keydown listener）；mobile 全屏 sheet 由 debrief.css `@media (max-width: 640px)` 控制（`width:100%; height:100%`）；testid `debrief-picker-modal` / `debrief-picker-close` / `debrief-picker-cancel` / `debrief-picker-confirm` 已暴露；NONE_SENTINEL 处理 `allowEmpty` 的「暂不关联」选项。
-- [x] 2.2 JD picker：`JDPicker` 调 `client.listTargetJobs({ query: { status: 'ready' } })`；通过 `usePickerOptions` loader 拉选项；onConfirm 把 `TargetJob` 写入 DebriefScreen `selectedContext.targetJob`（reducer 的 `SET_DEBRIEF_CONTEXT` 写发生在 Phase 5.1 createDebrief 响应后，而非 picker 提交时 —— spec §3.2 把 picker 选择视为 UI 草稿，不污染全局 InterviewContext）。
+- [x] 2.2 JD picker：`JDPicker` 调 `client.listTargetJobs({ query: { analysisStatus: 'ready' } })`；通过 `usePickerOptions` loader 拉选项；onConfirm 把 `TargetJob` 写入 DebriefScreen `selectedContext.targetJob`（reducer 的 `SET_DEBRIEF_CONTEXT` 写发生在 Phase 5.1 createDebrief 响应后，而非 picker 提交时 —— spec §3.2 把 picker 选择视为 UI 草稿，不污染全局 InterviewContext）。
 - [x] 2.3 Mock Session picker：`MockSessionPicker` 调 `client.listPracticeSessions({ query: { targetJobId, status: 'completed' } })`；当 server 响应非全 `completed` 时 hook 报告 `client-side-status-filter` fallback 并在 banner 中渲染 `debrief.picker.mockSession.filterFallback`；`allowEmpty=true` + `noneOptionCopy` 提供「暂不关联模拟面试」选项；`targetJobId === null` 时显示「请先选择目标岗位」empty state。
 - [x] 2.4 Resume picker：`ResumePicker` 两段式 phase（asset → version）；第一阶段 `client.listResumes()` 拉 `parseStatus==='ready'` + `status==='active'` 资产；第二阶段 `client.listResumeVersions(assetId)` 拉版本；返回 `{ asset, version }` 到 DebriefScreen。
 - [x] 2.5 ContextStrip 三选完成 detect + 自动触发 suggestions：DebriefScreen `suggestionsEnabled = Boolean(targetJob) && Boolean(resumeVersion)`；`useSuggestDebriefQuestions` hook 内部 `useEffect` 500ms debounce，targetJob / sessionId / resumeVersionId / language 改变时 coalesce 成一次请求；mockSession 保持可选。
@@ -39,9 +45,9 @@
 
 - [x] 3.1 顶部统一汇总条：`DebriefRecordSummaryBar` 复刻 lines 162-232；entries.length + text / voice / manual 三 chip（real-recorded 暂未引入直到 Phase 4+ 真实 mock-extraction）；testid `debrief-record-summary` / `debrief-record-summary-count` / `debrief-chip-*` 暴露。
 - [x] 3.2 Mode toggle：`DebriefModeToggle` 复刻 lines 187-210；`text|voice` tab + hint 文案；切换不修改 entries（DebriefScreen 持有 entries state，toggle 只 setInputMode）；testid `debrief-mode-toggle` + `data-mode` 数据属性。
-- [x] 3.3 `<GuidedDebriefRecord>`：复刻 lines 519-619；接收 suggestions + entries + activeGuide；4 个 CTA testid `debrief-suggested-question-{occurred,skip,edit,manual}` + inline editor (`debrief-guided-editor`) + 4 种 entry source (`ai_confirmed` / `ai_edited` / `manual` / 后续 `voice_extracted` 由 Phase 8 真实集成填入)；entries 列表 testid `debrief-guided-entries`。
+- [x] 3.3 `<GuidedDebriefRecord>`：复刻 lines 519-619；接收 suggestions + entries + activeGuide；4 个 CTA testid `debrief-suggested-question-{occurred,skip,edit,manual}` + inline editor (`debrief-guided-editor`)；occurred/edit/manual 保存时均要求非空问题 + 非空回答摘要，suggestion failure/empty 时仍显示 manual CTA；4 种 entry source (`ai_confirmed` / `ai_edited` / `manual` / 后续 `voice_extracted` 由 Phase 8 真实集成填入)；entries 列表 testid `debrief-guided-entries`。
 - [x] 3.4 `<VoiceDebriefRecord>` UI shell：复刻 lines 656-870 视觉占位 + 「空格暂停/继续」hint 文案；显示固定占位 `debrief-voice-not-implemented`；**不**绑定 Web Audio API / SpeechRecognition；切换回 text 模式 entries 仍保留（DebriefScreen `hidden={inputMode !== "voice"}` 双 panel 持续 mount）。
-- [x] 3.5 Submit CTA：`DebriefSubmitCTA` 复刻 lines 314-316；disabled 条件 entries.length === 0 或 targetJob === null（reason 文案 inline）；点击调 DebriefScreen `handleSubmit` → Phase 5 `useSubmitDebrief.submit`；testid `debrief-submit-btn` / `debrief-submit-reason`。
+- [x] 3.5 Submit CTA：`DebriefSubmitCTA` 复刻 lines 314-316；disabled 条件 entries.length === 0 或 targetJob === null 或任一 entry 缺非空回答摘要（reason 文案 inline）；点击调 DebriefScreen `handleSubmit` → Phase 5 `useSubmitDebrief.submit`；testid `debrief-submit-btn` / `debrief-submit-reason`。
 
 ## Phase 4: suggestDebriefQuestions 集成
 
@@ -62,7 +68,7 @@
 
 - [x] 6.1 Step 1 分析渲染：`DebriefAnalysisStep` 渲染 `debrief.riskItems` 列表（severity 文案查 `debrief.severity.*`）+ 3 张维度对比卡片（target / mock / resume，body 从 `debrief.questions[*].aiAnalysis` 派生，缺失走 "—"）+ provenance 展开区 6 字段（promptVersion / rubricVersion / modelId / language / featureFlag / dataSourceVersion）；**不**渲染 `nextRoundChecklist` / `thankYouDraft`；testid `debrief-analysis-step` / `debrief-analysis-risk-item` / `debrief-analysis-dimension-*` / `debrief-analysis-provenance-toggle`。
 - [x] 6.2 Step 2 复盘面试 launcher：`DebriefReplayPlan` 复刻 lines 1388-1421；预览取 `debrief.questions.map(q => q.questionText).slice(0,5)` 或 fallback 到 entries；riskItems.slice(0,3) 展示薄弱项预览；testid `debrief-replay-plan` / `debrief-replay-preview-questions` / `debrief-replay-preview-risks`。
-- [x] 6.3 「开始复盘面试」CTA：`handleStartReplay` 组装 `{ practiceGoal:'debrief', mode:'text', modality:'text', targetJobId, resumeVersionId?, sessionId?, debriefId? }` 调 `useRequestAuth({ type:'start_debrief_interview', label, route:'practice', params })`；登录态 → 直接 `navigate('practice', params)`，未登录 → 自动 encode 为 pendingAction 跳 `auth_login`；本 plan **不**调 `createPracticePlan` / `startPracticeSession`；testid `debrief-start-interview-btn`。
+- [x] 6.3 「开始复盘面试」CTA：`handleStartReplay` 在未登录时 `useRequestAuth({ type:'start_debrief_interview', label, route:'debrief', params })`；登录态先调用 `createPracticePlan(goal:'debrief', sourceDebriefId, targetJobId, resumeAssetId, mode, language)`，再调用 `startPracticeSession(planId, hintsEnabled)`，成功后 `navigate('practice', { practiceGoal:'debrief', mode:'text', modality:'text', planId, sessionId:newSessionId, targetJobId, resumeVersionId, debriefId, language })`；testid `debrief-start-interview-btn`。
 
 ## Phase 7: i18n + 主题 + 响应式
 
@@ -82,12 +88,12 @@
 - [x] 8.8 BDD-Gate E2E.P0.065：`p0-065-debrief-default-render-and-pickers` 四段脚本通过（DebriefScreen / Header / ContextStrip / Stepper + route normalize 测试 + legacy lint）。
 - [x] 8.9 BDD-Gate E2E.P0.066：`p0-066-debrief-text-suggestions-and-submit` 四段脚本通过（debrief 模块全部 vitest + InterviewContext reducer + pendingAction + privacy boundary + legacy lint）。
 - [x] 8.10 BDD-Gate E2E.P0.067：`p0-067-debrief-polling-happy-and-analysis` 四段脚本通过（debrief 模块 vitest + legacy lint）。
-- [x] 8.11 BDD-Gate E2E.P0.068：`p0-068-debrief-failure-and-handoff` 四段脚本通过（debrief 模块 vitest + InterviewContext reducer + 模块内 `createPracticePlan` / `startPracticeSession` 直接调用 0 命中负向断言 + legacy lint）。
+- [x] 8.11 BDD-Gate E2E.P0.068：`p0-068-debrief-failure-and-handoff` 四段脚本通过（debrief 模块 vitest + InterviewContext reducer + fresh practice plan/session handoff gate + legacy lint）。
 - [x] 8.12 BDD-Gate E2E.P0.069：`p0-069-debrief-pixel-parity-and-legacy-negative` 四段脚本通过（i18n coverage + privacy boundary + dev-mock fixture coverage + frontend build + debrief Playwright pixel parity + legacy lint + scenario-tree legacy grep）。
 
 ## Phase 9: Plan 收口
 
 - [x] 9.1 全局回归：2026-05-17 L2 close-out 重新验证 `pnpm --filter @easyinterview/frontend exec vitest run src/app/screens/debrief/DebriefScreen.test.tsx`（6 pass）、P0.065-P0.069 顺序场景链、`pnpm --filter @easyinterview/frontend build`、`pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/debrief.spec.ts`（11 pass / 1 skip）通过；`make docs-check` / `git diff --check` 在收口 gate 重新执行。
 - [x] 9.2 plans/INDEX.md 把 001 从 active 移到 completed，记录完成日期 2026-05-17
-- [x] 9.3 frontend-debrief/history.md 增加 1.1 completion 行
+- [x] 9.3 frontend-debrief/history.md 增加 completion / review-fix 行
 - [x] 9.4 提交 commit `feat(frontend-debrief): close 001 debrief screen and handoff baseline`；记录工作日志 `/work-journal`

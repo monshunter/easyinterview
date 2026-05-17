@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-落地 frontend-debrief P0 闭环的全部前端实现：正式 `debrief` route 接管 + 历史 `debrief_full` 输入 normalize 到 `debrief` + DebriefScreen 全屏 + 5 个子组件源级复刻 + 3 个 in-page picker modal + 3-step stepper + 文本模式 AI 推荐问题（suggestDebriefQuestions 自动 + 手动触发）+ 跨模式共享 entries + 语音模式 UI shell（D-6 P0 不实现真实 STT）+ createDebrief 提交 + 双轨 polling（getJob + getDebrief）+ 三种失败态（Failure / Missing / Timeout）+ 分析渲染 + 复盘面试 nav handoff + i18n / 主题 / 响应式 / pixel parity / 隐私红线 / 旧口径负向 / BDD `E2E.P0.065-069`。
+落地 frontend-debrief P0 闭环的全部前端实现：正式 `debrief` route 接管 + 历史 `debrief_full` 输入 normalize 到 `debrief` + DebriefScreen 全屏 + 5 个子组件源级复刻 + 3 个 in-page picker modal + 3-step stepper + 文本模式 AI 推荐问题（suggestDebriefQuestions 自动 + 手动触发）+ 非空回答摘要采集 + 跨模式共享 entries + 语音模式 UI shell（D-6 P0 不实现真实 STT）+ createDebrief 提交 + 双轨 polling（getJob + getDebrief）+ 三种失败态（Failure / Missing / Timeout）+ 分析渲染 + 复盘面试 fresh practice plan/session handoff + i18n / 主题 / 响应式 / pixel parity / 隐私红线 / 旧口径负向 / BDD `E2E.P0.065-069`。
 
 落地完成后，DebriefScreen 可作为 P0 用户路径中"刚面完一轮 → 复盘记录 → 复盘分析 → 复盘面试"闭环的前端入口，与 backend-debrief/001 一起完成 P0 整体闭环最后一段域。
 
@@ -21,7 +21,7 @@
 
 **Phase 0 跨域前置依赖**：
 - backend-debrief/001 Phase 0 必须先完成 cross-owner addendums（B1 enum / B2 operation 含 suggestDebriefQuestions / B3 events.yaml 修复 / B4 ai_task_runs task_type / F3 baseline），否则 generated client 中没有 `suggestDebriefQuestions` 方法可调用，fixtures 中没有 `Debriefs/*.json` variants 可消费。
-- backend-practice/B2 Phase 0 addendum 必须先生成 `listPracticeSessions({targetJobId,status?})` operation + fixture + TS client；当前 OpenAPI/generated client 不含该 operation，缺失时不得进入 Phase 1。
+- backend-practice 必须同时具备 generated `listPracticeSessions({targetJobId,status?})` operation + fixture + TS client + 真实 `GET /practice/sessions` handler/service/store；缺失真实 backend route 时不得进入 picker 集成。
 - backend-resume 现有契约为 `listResumes()` 列资产 + `listResumeVersions(resumeAssetId)` 列某个资产版本；本 plan 不再假设存在全局按 status 过滤的 resume-version 列表入口。
 - frontend-workspace-and-practice 已交付 `InterviewContext` reducer + `useRequestAuth` + nav practice 入口；本 plan 在此基础上增量扩展 1 个 reducer action `SET_DEBRIEF_CONTEXT`。
 - frontend-shell 已交付 TopBar 一级导航 `debrief` 入口 + route normalization + i18n / theme / pixel parity infrastructure。
@@ -122,7 +122,7 @@
 
 #### 2.2 JD picker
 
-- 调用 `listTargetJobs({status:'ready'})` 拉用户岗位
+- 调用 `listTargetJobs({analysisStatus:'ready'})` 拉已解析完成的用户岗位；不得使用 TargetJob lifecycle `status='ready'`
 - 单选；用户选择后 onConfirm 写入 `selectedContext.targetJob`
 - 完成后 `SET_DEBRIEF_CONTEXT` reducer action 写入 InterviewContext
 
@@ -162,10 +162,10 @@
 - 左侧渲染 `currentGuide` (suggestions[activeGuide])：stage / questionText / whyLikelyAsked / source
 - 上/下导航按钮切换 `activeGuide`
 - 4 个 CTA：
-  - 「遇到过，记录」→ `setEntries(prev => [...prev, makeEntryFromSuggestion(currentGuide, source:'ai_confirmed')])`，然后 `setActiveGuide(activeGuide+1)`
+  - 「遇到过，记录」→ 打开 inline editor，用户填写非空回答摘要后 `setEntries(prev => [...prev, makeEntryFromSuggestion(currentGuide, source:'ai_confirmed')])`，然后 `setActiveGuide(activeGuide+1)`
   - 「没问到，跳过」→ `setActiveGuide(activeGuide+1)`，不写 entries
-  - 「改成真实问题」→ 打开 inline edit 编辑器；保存后 `setEntries(prev => [...prev, makeEntryFromEdit(...)])` source='ai_edited'，setActiveGuide(activeGuide+1)
-  - 「手动添加真实问题」→ 打开 inline manual form；保存后 source='manual'
+  - 「改成真实问题」→ 打开 inline edit 编辑器；保存真实问题 + 非空回答摘要后 `setEntries(prev => [...prev, makeEntryFromEdit(...)])` source='ai_edited'，setActiveGuide(activeGuide+1)
+  - 「手动添加真实问题」→ 打开 inline manual form；保存真实问题 + 非空回答摘要后 source='manual'
 - 右侧渲染 entries 列表：点击选中 `activeCard`；展开详情显示 stage / q / a / follow / reaction / reflection / tag
 - 隐私：entries.q / a / follow 仅在用户当前 session 显示，不写入 localStorage / telemetry
 
@@ -180,7 +180,7 @@
 #### 3.5 Submit CTA
 
 - 复刻 prototype lines 314-316：「生成复盘分析」CTA
-- disabled 条件：`entries.length === 0` 或 `selectedContext.targetJob === null` 或 `inputMode === 'voice'` 且 voice not implemented placeholder still active？（plan 决策：voice 模式不阻止 submit，因为用户可能在 text 模式录入后切到 voice 查看，再回 text submit；submit 只检查 entries + targetJob）
+- disabled 条件：`entries.length === 0` 或 `selectedContext.targetJob === null` 或任一 entry 缺少非空 `myAnswerSummary`；voice 模式不阻止 submit，因为用户可能在 text 模式录入后切到 voice 查看，再回 text submit
 - 点击触发 Phase 5 createDebrief
 
 ### Phase 4: suggestDebriefQuestions 集成（自动 + 手动）
@@ -215,7 +215,7 @@ function useSuggestDebriefQuestions({
 
 实现 hook `useSubmitDebrief`:
 - 接收 `{targetJobId, roundType, interviewerRole?, language, entries, notes?}`
-- 转换 `entries → DebriefQuestionInput[]`（map q→questionText, a→myAnswerSummary, follow+reflection→interviewerReaction）
+- 转换 `entries → DebriefQuestionInput[]`（map q→questionText, a→myAnswerSummary, follow+reflection→interviewerReaction）；提交前再次 trim 并拒绝空 `myAnswerSummary`
 - 生成 Idempotency-Key (UUIDv4 from `crypto.randomUUID()`)
 - 调用 generated `createDebrief(payload, {Idempotency-Key})`
 - 处理响应：
@@ -271,11 +271,11 @@ case 'SET_DEBRIEF_CONTEXT':
 - 内容来自 `debrief.questions` + `debrief.riskItems`（前端组装预览文本）
 - CTA「开始复盘面试」→ Phase 6.3
 
-#### 6.3 复盘面试 nav handoff
+#### 6.3 复盘面试 fresh session handoff
 
-- 调用 `nav('practice', {practiceGoal:'debrief', mode:'text', modality:'text', sessionId: selectedContext.mockSession || undefined, targetJobId: selectedContext.targetJob, resumeVersionId: selectedContext.resume, debriefId, language})`
-- 未登录走 `useRequestAuth({type:'start_debrief_interview', route:'debrief', params:{debriefId, targetJobId, resumeVersionId}})`
-- 本 plan **不**调用 `createPracticePlan` / `startPracticeSession`；由 frontend-workspace-and-practice 在 practice 路由 mount 时接管（D-11）
+- 已登录时先调用 `createPracticePlan({goal:'debrief', sourceDebriefId: debriefId, targetJobId, resumeAssetId, mode, language, ...})`，再调用 `startPracticeSession({planId, hintsEnabled})`
+- 成功后调用 `nav('practice', {practiceGoal:'debrief', mode:'text', modality:'text', planId, sessionId: newSessionId, targetJobId, resumeVersionId, debriefId, language})`
+- 未登录走 `useRequestAuth({type:'start_debrief_interview', route:'debrief', params:{debriefId, targetJobId, resumeVersionId}})`，登录恢复后回到 debrief 重新执行 CTA；不得把 optional completed mock session id 作为 replay practice session 转发
 
 ### Phase 7: i18n + 主题 + 响应式
 
@@ -339,7 +339,7 @@ case 'SET_DEBRIEF_CONTEXT':
 - `python3 -m pytest scripts/lint -q` 通过
 - `make docs-check` + `git diff --check` 通过
 - 更新 plans/INDEX.md 把 001 移到 completed
-- 更新 frontend-debrief/history.md 增加 1.1 completion 行
+- 更新 frontend-debrief/history.md 增加最新 completion / review-fix 行
 
 ## 5 验收标准
 

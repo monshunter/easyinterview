@@ -58,9 +58,13 @@ function generateIdempotencyKey(): string {
 
 function entriesToQuestionInputs(entries: DebriefEntry[]): DebriefQuestionInput[] {
   return entries.map((entry) => ({
-    questionText: entry.questionText,
-    myAnswerSummary: entry.myAnswerSummary ?? "",
-    interviewerReaction: entry.interviewerReaction ?? entry.reflection ?? "",
+    questionText: entry.questionText.trim(),
+    myAnswerSummary: (entry.myAnswerSummary ?? "").trim(),
+    interviewerReaction: (
+      entry.interviewerReaction ??
+      entry.reflection ??
+      ""
+    ).trim(),
   }));
 }
 

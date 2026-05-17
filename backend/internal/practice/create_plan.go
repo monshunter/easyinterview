@@ -20,6 +20,7 @@ var (
 	ErrSessionNotFound          = stderrs.New("practice session not found")
 	ErrSessionConflict          = stderrs.New("practice session conflict")
 	ErrClientEventMismatch      = stderrs.New("practice session client event mismatch")
+	ErrInvalidCursor            = stderrs.New("practice session invalid cursor")
 )
 
 type ServiceError struct {
@@ -38,6 +39,7 @@ func (e *ServiceError) Error() string {
 type Store interface {
 	CreatePlan(ctx context.Context, in CreatePlanStoreInput) (PlanRecord, error)
 	GetPlan(ctx context.Context, userID, planID string) (PlanRecord, error)
+	ListSessions(ctx context.Context, in ListSessionsInput) (ListSessionsResult, error)
 	GetSession(ctx context.Context, userID, sessionID string) (SessionRecord, error)
 	ReserveSessionEvent(ctx context.Context, in SessionEventReservationInput) (SessionEventReservation, error)
 	FinalizeSessionEventError(ctx context.Context, in FinalizeSessionEventErrorInput) error
@@ -131,6 +133,29 @@ type PlanRecord struct {
 	QuestionBudget     int32
 	Status             string
 	CreatedAt          time.Time
+}
+
+type ListSessionsRequest struct {
+	UserID      string
+	TargetJobID string
+	Status      sharedtypes.SessionStatus
+	Cursor      string
+	PageSize    int
+}
+
+type ListSessionsInput struct {
+	UserID      string
+	TargetJobID string
+	Status      sharedtypes.SessionStatus
+	Cursor      string
+	PageSize    int
+}
+
+type ListSessionsResult struct {
+	Items      []SessionRecord
+	NextCursor string
+	HasMore    bool
+	PageSize   int
 }
 
 func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) (PlanRecord, error) {
@@ -253,6 +278,33 @@ func (s *Service) GetPracticePlan(ctx context.Context, userID, planID string) (P
 	return plan, nil
 }
 
+func (s *Service) ListPracticeSessions(ctx context.Context, in ListSessionsRequest) (ListSessionsResult, error) {
+	if s == nil || s.store == nil {
+		return ListSessionsResult{}, fmt.Errorf("practice service is not initialised")
+	}
+	userID := strings.TrimSpace(in.UserID)
+	if userID == "" {
+		return ListSessionsResult{}, fmt.Errorf("userId is required")
+	}
+	if !validSessionStatus(in.Status) {
+		return ListSessionsResult{}, validationError("status is invalid", map[string]any{"field": "status"})
+	}
+	result, err := s.store.ListSessions(ctx, ListSessionsInput{
+		UserID:      userID,
+		TargetJobID: strings.TrimSpace(in.TargetJobID),
+		Status:      in.Status,
+		Cursor:      strings.TrimSpace(in.Cursor),
+		PageSize:    in.PageSize,
+	})
+	if stderrs.Is(err, ErrInvalidCursor) {
+		return ListSessionsResult{}, validationError("cursor is invalid", map[string]any{"field": "cursor"})
+	}
+	if err != nil {
+		return ListSessionsResult{}, err
+	}
+	return result, nil
+}
+
 func (s *Service) GetPracticeSession(ctx context.Context, userID, sessionID string) (SessionRecord, error) {
 	if s == nil || s.store == nil {
 		return SessionRecord{}, fmt.Errorf("practice service is not initialised")
@@ -312,6 +364,18 @@ func validPracticeGoal(goal sharedtypes.PracticeGoal) bool {
 func validInterviewerRole(role sharedtypes.InterviewerRole) bool {
 	for _, allowed := range sharedtypes.AllInterviewerRoles {
 		if role == allowed {
+			return true
+		}
+	}
+	return false
+}
+
+func validSessionStatus(status sharedtypes.SessionStatus) bool {
+	if status == "" {
+		return true
+	}
+	for _, allowed := range sharedtypes.AllSessionStatuses {
+		if status == allowed {
 			return true
 		}
 	}

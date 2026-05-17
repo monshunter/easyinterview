@@ -6,6 +6,7 @@ import type { EasyInterviewClient } from "../../../api/generated/client";
 import type {
   Debrief,
   Job,
+  PracticePlan,
   PracticeSession,
   ResumeVersion,
   RuntimeConfig,
@@ -108,6 +109,28 @@ const practiceSession: PracticeSession = {
   updatedAt: "2026-05-17T00:00:00Z",
 };
 
+const debriefPracticePlan: PracticePlan = {
+  createdAt: "2026-05-17T00:00:00Z",
+  difficulty: "standard",
+  goal: "debrief",
+  id: "plan-debrief-1",
+  interviewerPersona: "hiring_manager",
+  language: "en-US",
+  mode: "assisted",
+  questionBudget: 6,
+  sourceDebriefId: "deb-1",
+  status: "ready",
+  targetJobId: "tj-1",
+  timeBudgetMinutes: 30,
+};
+
+const debriefPracticeSession: PracticeSession = {
+  ...practiceSession,
+  id: "ps-debrief-new",
+  planId: "plan-debrief-1",
+  status: "running",
+};
+
 const debriefJob: Job = {
   createdAt: "2026-05-17T00:00:00Z",
   id: "job-debrief-1",
@@ -166,6 +189,8 @@ function createDebriefClient(overrides: Partial<Record<keyof EasyInterviewClient
     }),
     getJob: vi.fn().mockResolvedValue(debriefJob),
     getDebrief: vi.fn().mockResolvedValue(completedDebrief),
+    createPracticePlan: vi.fn().mockResolvedValue(debriefPracticePlan),
+    startPracticeSession: vi.fn().mockResolvedValue(debriefPracticeSession),
     ...overrides,
   };
   return client as unknown as EasyInterviewClient;
@@ -241,6 +266,10 @@ describe("DebriefScreen — TestDebriefScreen_DefaultRender", () => {
     await screen.findByText("Acme · Senior Backend Engineer");
     await screen.findByTestId("debrief-guided-current");
     fireEvent.click(screen.getByTestId("debrief-suggested-question-occurred"));
+    fireEvent.change(screen.getByTestId("debrief-guided-editor-answer"), {
+      target: { value: "I explained queue recovery and retry boundaries." },
+    });
+    fireEvent.click(screen.getByTestId("debrief-guided-editor-save"));
     fireEvent.click(screen.getByTestId("debrief-submit-btn"));
 
     await waitFor(() => {
@@ -249,6 +278,8 @@ describe("DebriefScreen — TestDebriefScreen_DefaultRender", () => {
           language: "en-US",
           questions: [
             expect.objectContaining({
+              myAnswerSummary:
+                "I explained queue recovery and retry boundaries.",
               questionText: "How would you make the queue reliable?",
             }),
           ],
@@ -281,12 +312,37 @@ describe("DebriefScreen — TestDebriefScreen_DefaultRender", () => {
 
     await screen.findByTestId("debrief-guided-current");
     fireEvent.click(screen.getByTestId("debrief-suggested-question-occurred"));
+    fireEvent.change(screen.getByTestId("debrief-guided-editor-answer"), {
+      target: { value: "I covered queue recovery." },
+    });
+    fireEvent.click(screen.getByTestId("debrief-guided-editor-save"));
     fireEvent.click(screen.getByTestId("debrief-submit-btn"));
     await screen.findByTestId("debrief-analysis-step");
     fireEvent.click(screen.getByTestId("debrief-analysis-advance"));
     fireEvent.click(screen.getByTestId("debrief-start-interview-btn"));
 
     await waitFor(() => {
+      expect(client.createPracticePlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          goal: "debrief",
+          language: "en-US",
+          resumeAssetId: "ra-1",
+          sourceDebriefId: "deb-1",
+          targetJobId: "tj-1",
+        }),
+        expect.objectContaining({
+          idempotencyKey: expect.any(String),
+        }),
+      );
+      expect(client.startPracticeSession).toHaveBeenCalledWith(
+        {
+          hintsEnabled: false,
+          planId: "plan-debrief-1",
+        },
+        expect.objectContaining({
+          idempotencyKey: expect.any(String),
+        }),
+      );
       expect(navigate).toHaveBeenCalledWith({
         name: "practice",
         params: expect.objectContaining({
@@ -294,9 +350,10 @@ describe("DebriefScreen — TestDebriefScreen_DefaultRender", () => {
           language: "en-US",
           modality: "text",
           mode: "text",
+          planId: "plan-debrief-1",
           practiceGoal: "debrief",
           resumeVersionId: "rv-3",
-          sessionId: "ps-1",
+          sessionId: "ps-debrief-new",
           targetJobId: "tj-1",
         }),
       });

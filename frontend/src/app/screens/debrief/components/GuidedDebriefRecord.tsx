@@ -27,15 +27,21 @@ function makeEntryId(): string {
 function suggestionToEntry(
   guide: SuggestedDebriefQuestion,
   source: DebriefEntrySource,
-  override?: string,
+  questionText: string,
+  myAnswerSummary: string,
+  interviewerReaction?: string,
 ): DebriefEntry {
   return {
     id: makeEntryId(),
     stage: guide.stage ?? undefined,
-    questionText: override ?? guide.questionText,
+    questionText,
+    myAnswerSummary,
+    interviewerReaction,
     source,
   };
 }
+
+type EditorMode = "occurred" | "edit" | "manual";
 
 /**
  * Source mirror of ui-design/src/screens-p1-depth.jsx::GuidedDebriefRecord
@@ -59,14 +65,23 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
     suggestions,
     activeGuide,
   ]);
-  const [editValue, setEditValue] = useState("");
-  const [editMode, setEditMode] = useState<null | "edit" | "manual">(null);
+  const [questionValue, setQuestionValue] = useState("");
+  const [answerValue, setAnswerValue] = useState("");
+  const [reactionValue, setReactionValue] = useState("");
+  const [editMode, setEditMode] = useState<EditorMode | null>(null);
 
-  const occurred = useCallback(() => {
-    if (!currentGuide) return;
-    setEntries([...entries, suggestionToEntry(currentGuide, "ai_confirmed")]);
-    setActiveGuide(activeGuide + 1);
-  }, [activeGuide, currentGuide, entries, setActiveGuide, setEntries]);
+  const openEditor = useCallback(
+    (mode: EditorMode) => {
+      if ((mode === "occurred" || mode === "edit") && !currentGuide) return;
+      setEditMode(mode);
+      setQuestionValue(
+        mode === "manual" ? "" : currentGuide?.questionText ?? "",
+      );
+      setAnswerValue("");
+      setReactionValue("");
+    },
+    [currentGuide],
+  );
 
   const skip = useCallback(() => {
     if (!currentGuide) return;
@@ -74,8 +89,10 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
   }, [activeGuide, currentGuide, setActiveGuide]);
 
   const saveEdit = useCallback(() => {
-    if (editValue.trim() === "") {
-      setEditMode(null);
+    const questionText = questionValue.trim();
+    const myAnswerSummary = answerValue.trim();
+    const interviewerReaction = reactionValue.trim();
+    if (questionText === "" || myAnswerSummary === "" || !editMode) {
       return;
     }
     if (editMode === "manual") {
@@ -83,20 +100,51 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
         ...entries,
         {
           id: makeEntryId(),
-          questionText: editValue.trim(),
+          questionText,
+          myAnswerSummary,
+          interviewerReaction: interviewerReaction || undefined,
           source: "manual",
         },
       ]);
-    } else if (editMode === "edit" && currentGuide) {
+    } else if (currentGuide) {
+      const source: DebriefEntrySource =
+        editMode === "edit" ? "ai_edited" : "ai_confirmed";
       setEntries([
         ...entries,
-        suggestionToEntry(currentGuide, "ai_edited", editValue.trim()),
+        suggestionToEntry(
+          currentGuide,
+          source,
+          questionText,
+          myAnswerSummary,
+          interviewerReaction || undefined,
+        ),
       ]);
       setActiveGuide(activeGuide + 1);
     }
-    setEditValue("");
+    setQuestionValue("");
+    setAnswerValue("");
+    setReactionValue("");
     setEditMode(null);
-  }, [activeGuide, currentGuide, editMode, editValue, entries, setActiveGuide, setEntries]);
+  }, [
+    activeGuide,
+    answerValue,
+    currentGuide,
+    editMode,
+    entries,
+    questionValue,
+    reactionValue,
+    setActiveGuide,
+    setEntries,
+  ]);
+
+  const cancelEdit = useCallback(() => {
+    setEditMode(null);
+    setQuestionValue("");
+    setAnswerValue("");
+    setReactionValue("");
+  }, []);
+
+  const saveDisabled = questionValue.trim() === "" || answerValue.trim() === "";
 
   return (
     <section
@@ -122,6 +170,13 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
             >
               {t("debrief.record.guide.regenerate")}
             </button>
+            <button
+              type="button"
+              data-testid="debrief-suggested-question-manual"
+              onClick={() => openEditor("manual")}
+            >
+              {t("debrief.record.guide.ctaManual")}
+            </button>
           </div>
         )}
         {!loading && !errorCode && currentGuide && (
@@ -142,7 +197,7 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
               <button
                 type="button"
                 data-testid="debrief-suggested-question-occurred"
-                onClick={occurred}
+                onClick={() => openEditor("occurred")}
               >
                 {t("debrief.record.guide.ctaOccurred")}
               </button>
@@ -156,70 +211,85 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
               <button
                 type="button"
                 data-testid="debrief-suggested-question-edit"
-                onClick={() => {
-                  setEditMode("edit");
-                  setEditValue(currentGuide.questionText);
-                }}
+                onClick={() => openEditor("edit")}
               >
                 {t("debrief.record.guide.ctaEdit")}
               </button>
               <button
                 type="button"
                 data-testid="debrief-suggested-question-manual"
-                onClick={() => {
-                  setEditMode("manual");
-                  setEditValue("");
-                }}
+                onClick={() => openEditor("manual")}
               >
                 {t("debrief.record.guide.ctaManual")}
               </button>
             </div>
-            {editMode && (
-              <div
-                className="ei-debrief-guided__editor"
-                data-testid="debrief-guided-editor"
-                data-mode={editMode}
-              >
-                <textarea
-                  rows={3}
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  placeholder={
-                    editMode === "manual"
-                      ? t("debrief.record.guide.manualPlaceholder")
-                      : t("debrief.record.guide.editPlaceholder")
-                  }
-                  data-testid="debrief-guided-editor-input"
-                />
-                <div>
-                  <button
-                    type="button"
-                    data-testid="debrief-guided-editor-cancel"
-                    onClick={() => {
-                      setEditMode(null);
-                      setEditValue("");
-                    }}
-                  >
-                    {t("debrief.record.guide.editCancel")}
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="debrief-guided-editor-save"
-                    onClick={saveEdit}
-                  >
-                    {editMode === "manual"
-                      ? t("debrief.record.guide.manualSave")
-                      : t("debrief.record.guide.editSave")}
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
         {!loading && !errorCode && !currentGuide && (
-          <p data-testid="debrief-guided-empty">
-            {t("debrief.record.guide.empty")}
-          </p>
+          <div data-testid="debrief-guided-empty">
+            <p>{t("debrief.record.guide.empty")}</p>
+            <button
+              type="button"
+              data-testid="debrief-suggested-question-manual"
+              onClick={() => openEditor("manual")}
+            >
+              {t("debrief.record.guide.ctaManual")}
+            </button>
+          </div>
+        )}
+        {editMode && (
+          <div
+            className="ei-debrief-guided__editor"
+            data-testid="debrief-guided-editor"
+            data-mode={editMode}
+          >
+            <textarea
+              rows={3}
+              value={questionValue}
+              onChange={(e) => setQuestionValue(e.target.value)}
+              placeholder={
+                editMode === "manual"
+                  ? t("debrief.record.guide.manualPlaceholder")
+                  : t("debrief.record.guide.editPlaceholder")
+              }
+              data-testid="debrief-guided-editor-input"
+            />
+            <textarea
+              rows={4}
+              value={answerValue}
+              onChange={(e) => setAnswerValue(e.target.value)}
+              placeholder={t("debrief.record.guide.answerPlaceholder")}
+              aria-label={t("debrief.record.guide.answerLabel")}
+              data-testid="debrief-guided-editor-answer"
+            />
+            <textarea
+              rows={2}
+              value={reactionValue}
+              onChange={(e) => setReactionValue(e.target.value)}
+              placeholder={t("debrief.record.guide.reactionPlaceholder")}
+              aria-label={t("debrief.record.guide.reactionLabel")}
+              data-testid="debrief-guided-editor-reaction"
+            />
+            <div>
+              <button
+                type="button"
+                data-testid="debrief-guided-editor-cancel"
+                onClick={cancelEdit}
+              >
+                {t("debrief.record.guide.editCancel")}
+              </button>
+              <button
+                type="button"
+                data-testid="debrief-guided-editor-save"
+                disabled={saveDisabled}
+                onClick={saveEdit}
+              >
+                {editMode === "manual"
+                  ? t("debrief.record.guide.manualSave")
+                  : t("debrief.record.guide.editSave")}
+              </button>
+            </div>
+          </div>
         )}
       </div>
       <aside
