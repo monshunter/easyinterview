@@ -1,7 +1,7 @@
 # Cascaded STT LLM TTS Voice MVP Checklist
 
 > **版本**: 1.1
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-17
 
 **关联计划**: [plan](./plan.md)
@@ -38,6 +38,6 @@
 ## Phase 5: Verification and negative gates
 
 - [x] 5.1 BDD-Gate: 创建并执行 `E2E.P0.007` 完整语音 turn 场景；证据: `test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/setup.sh && test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/trigger.sh && test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/verify.sh && test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/cleanup.sh`
-- [ ] 5.2 BDD-Gate: 创建并执行 `E2E.P0.008` 插话 / 打断 committed context 场景
-- [ ] 5.3 BDD-Gate: 创建并执行 `E2E.P0.009` provider failure / fallback 场景
-- [ ] 5.4 重跑 regression gates：OpenAPI fixture validation、codegen drift、frontend tests、backend tests、A3 profile coverage、privacy grep、旧 route negative search、scenario wrapper contract；验证: 所有命令记录实际通过证据
+- [x] 5.2 BDD-Gate: 创建并执行 `E2E.P0.008` 插话 / 打断 committed context 场景；证据: `test/scenarios/e2e/p0-008-voice-barge-in-committed-context/scripts/setup.sh && test/scenarios/e2e/p0-008-voice-barge-in-committed-context/scripts/trigger.sh && test/scenarios/e2e/p0-008-voice-barge-in-committed-context/scripts/verify.sh && test/scenarios/e2e/p0-008-voice-barge-in-committed-context/scripts/cleanup.sh`
+- [x] 5.3 BDD-Gate: 创建并执行 `E2E.P0.009` provider failure / fallback 场景；证据: `test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/setup.sh && test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/trigger.sh && test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/verify.sh && test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/cleanup.sh`
+- [x] 5.4 重跑 regression gates：OpenAPI fixture validation、codegen drift、frontend tests、backend tests、A3 profile coverage、privacy grep、旧 route negative search、scenario wrapper contract；证据: `make codegen-check`、`make validate-fixtures`、`pnpm --filter @easyinterview/frontend test src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx src/api/devMockClient.test.ts src/app/screens/practice/PracticeScreen.test.tsx src/app/screens/practice/__tests__/practiceModeSwitch.test.tsx src/app/App.test.tsx`、`cd backend && go test ./internal/practice ./internal/api/practice ./internal/store/practice ./cmd/api ./internal/ai/aiclient ./internal/ai/aiclient/profile -count=1`、`python3 scripts/lint/ai_profile_coverage.py --repo-root .`、runtime privacy grep 零命中、旧 voice route / coming-soon 负向搜索零命中、`test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/verify.sh`、`test/scenarios/e2e/p0-008-voice-barge-in-committed-context/scripts/verify.sh`、`test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/verify.sh`、`make docs-check`、`git diff --check`

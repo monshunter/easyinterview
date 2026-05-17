@@ -15,6 +15,8 @@
 | E2E.P0.005 | frontend-shell C-8 | `p0-005-app-shell-visual-system-smoke/` | D2 视觉系统 smoke：DOM/className/CSS-variable/customAccent overlay/legacy 负向 + ui-design 源追溯 | automated | Ready |
 | E2E.P0.006 | frontend-shell C-9 | `p0-006-ui-design-pixel-parity-gate/` | D2 follow-up Playwright + chromium pixel parity：desktop+mobile viewport DOM/computed style/bounding box/screenshot regression + dark/customAccent 状态 | automated | Ready |
 | E2E.P0.007 | practice-voice-mvp C-1/C-2/C-3/C-4/C-5 | `p0-007-cascaded-voice-turn/` | 完整语音 turn：前端提交 voice audio，后端级联 STT/chat/TTS，返回 transcript、TTS chunk、provider meta 与幂等 replay | automated | Ready |
+| E2E.P0.008 | practice-voice-mvp C-3/C-5 | `p0-008-voice-barge-in-committed-context/` | 语音插话：前端停止 TTS 并上报 barge-in，后端只提交已播放上下文并阻止未播放 draft 进入 prompt | automated | Ready |
+| E2E.P0.009 | practice-voice-mvp C-6/C-7/C-8/C-9 | `p0-009-voice-provider-failure-fallback/` | Provider failure fallback：STT fail-fast、chat/TTS 隔离、TTS 文本 fallback、realtime/stub 负向与 privacy gate | automated | Ready |
 | E2E.P0.010 | backend-targetjob C-1/C-3/C-6/C-7/C-12 | `p0-010-targetjob-text-import-parse-ready/` | manual_text TargetJob 导入、异步解析、列表、详情、更新与 idempotency | automated | Ready |
 | E2E.P0.011 | backend-targetjob C-2/C-3/C-9 | `p0-011-targetjob-url-import-fetch-and-parse/` | URL TargetJob 导入、SSRF 守护、抓取 snapshot、解析与 source_refresh 占位 | automated | Ready |
 | E2E.P0.012 | backend-targetjob C-4/C-5/C-10 | `p0-012-targetjob-parse-failure-retryable/` | TargetJob parse 失败 retryable / non-retryable 语义与隐私红线 | automated | Ready |

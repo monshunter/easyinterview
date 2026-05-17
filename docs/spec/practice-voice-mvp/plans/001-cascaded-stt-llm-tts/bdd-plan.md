@@ -1,7 +1,7 @@
 # Cascaded STT LLM TTS Voice MVP BDD Plan
 
 > **版本**: 1.1
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-17
 
 ## Scenario Matrix

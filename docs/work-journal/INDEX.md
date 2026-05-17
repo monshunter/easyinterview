@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `feat(practice-voice): close voice mvp scenarios and lifecycle` | #feat #test #docs |
 | [2026-05-17](2026-05-17.md) | `fix(practice-voice): wire voice turn route and E2E gate (BUG-0067)` | #fix #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(practice-voice): add tts playback events` | #feat #ui #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(practice-voice): wire voice turn controller` | #feat #ui #test #docs |

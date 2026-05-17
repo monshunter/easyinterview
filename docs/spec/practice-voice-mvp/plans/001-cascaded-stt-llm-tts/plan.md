@@ -1,7 +1,7 @@
 # Cascaded STT LLM TTS Voice MVP
 
 > **版本**: 1.1
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-17
 
 **关联 Checklist**: [checklist](./checklist.md)
