@@ -71,3 +71,4 @@
 | E2E.P0.071 | backend-practice C-3, C-4 | `p0-071-practice-debrief-start-source-question/` | debrief startPracticeSession 使用 source raw_questions 首题且 first_question AI 零调用 | automated | Ready |
 | E2E.P0.072 | backend-practice C-2, C-3, D-11 | `p0-072-practice-derived-source-isolation-privacy/` | derived source missing/cross-user/wrong-target/draft/empty 隔离与隐私红线 | automated | Ready |
 | E2E.P0.073 | backend-practice D-5, D-14 | `p0-073-practice-debrief-mode-regression/` | goal=debrief × assisted/strict 可启动，legacy mode=debrief 负向 | automated | Ready |
+| E2E.P0.074 | backend-resume C-6, C-14, C-15 | `p0-074-resume-confirm-master-and-version-reads/` | confirm structured master + get/list resume versions + unique index + pagination + cross-user 404 | automated | Ready |

@@ -48,7 +48,8 @@
 - [x] 3.5 store integration test：cursor 边界 + cross-user + 排序稳定性（验证：`cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test ./internal/resume/store/... -tags=integration -run 'TestStructuredMasterUnique|TestResumeVersionListPagination' -count=1 -v` PASS）
 - [x] 3.6 在 `cmd/api` 挂载 `GET /api/v1/resume-versions/{resumeVersionId}` + `GET /api/v1/resumes/{resumeAssetId}/versions`（验证：`cd backend && go test ./cmd/api -run 'TestResumeVersionReadHTTPScenario|TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware' -count=1` PASS）
 - [x] 3.7 字节比对 [B2 fixture](../../../mock-contract-suite/spec.md) `getResumeVersion.json` `default` / `not-found-404` + `listResumeVersions.json` `default` / `empty` / `paginated`（验证：`cd backend && go test ./internal/resume/handler/... -run TestResumeVersionReadFixtureParity -count=1` PASS；`make validate-fixtures` PASS）
-- [ ] 3.8 BDD-Gate: 验证 `E2E.P0.074` 通过（confirmStructuredMaster + getResumeVersion + listResumeVersions 综合主路径，详见 [bdd-checklist.md](./bdd-checklist.md)）
+- [x] 3.8 BDD-Gate: 验证 `E2E.P0.074` 通过（confirmStructuredMaster + getResumeVersion + listResumeVersions 综合主路径，详见 [bdd-checklist.md](./bdd-checklist.md)）
+  <!-- verified: 2026-05-17 method=scenario bddChecklist=complete -->
 
 ## Phase 4: `updateResumeVersion` handler
 
