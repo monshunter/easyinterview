@@ -12,11 +12,18 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/debrief/__tests__/privacyBoundary.test.ts \
     src/api/devMockClient.test.ts
 } | tee "$OUTPUT_DIR/trigger.log"
+{
+  echo "E2E.P0.069 RUNNER playwright debrief pixel parity"
+  cd "$REPO_ROOT"
+  pnpm --filter @easyinterview/frontend build
+  pnpm --filter @easyinterview/frontend exec playwright test \
+    tests/pixel-parity/debrief.spec.ts
+} | tee -a "$OUTPUT_DIR/trigger.log"
 echo "E2E.P0.069 LEGACY GREP" | tee -a "$OUTPUT_DIR/trigger.log"
 python3 "$REPO_ROOT/scripts/lint/frontend_debrief_legacy.py" \
     --repo-root "$REPO_ROOT" --phase 8.12 | tee -a "$OUTPUT_DIR/trigger.log"
 {
-  # Use --exclude to skip this trigger.sh file itself — it carries the
+  # Use --exclude to skip this trigger.sh file itself - it carries the
   # negative-assertion pattern that would otherwise be a false positive.
   if grep -RInE --exclude="trigger.sh" \
       "experience_library|star_editor|drill_builder|mistakes_book|growth_center|report_timeline" \

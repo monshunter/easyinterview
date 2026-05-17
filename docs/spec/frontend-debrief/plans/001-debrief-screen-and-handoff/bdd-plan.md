@@ -91,9 +91,9 @@
 | Phase | Phase 7-8 |
 | 关联 spec AC | C-15, C-16, C-17, C-18 |
 | 执行入口 | `bash scripts/setup.sh && bash scripts/trigger.sh && bash scripts/verify.sh; bash scripts/cleanup.sh`（在该场景目录内执行） |
-| Given | 完整 DebriefScreen + Playwright + ui-design 静态原型 已就绪 |
-| When | (1) Playwright 加载 ui-design 静态原型 desktop 1440×900 截图；(2) 加载 frontend `/debrief` desktop 截图；(3) pixel diff 对比；(4) Playwright mobile 390×844 同上；(5) 切到 dark mode 同上；(6) 切到 customAccent='blue' 同上；(7) i18n en 同上；(8) 注入 marker `__SECRET_RAW_TEXT__` 流程；(9) grep legacy terms in active runtime |
-| Then | (a) desktop + mobile pixel diff < 0.5%；(b) dark / customAccent 主题应用正确（root data-theme / data-mode / data-custom-accent）；(c) zh / en i18n 切换文案均显示；(d) marker 在 URL / localStorage / sessionStorage / console.log 全部 0 命中；(e) retired terms `experience_library` / `star_editor` / `drill_builder` / `mistakes_book` / `growth_center` / `report_timeline` / 独立 `voice` route 在 `frontend/src/app/screens/debrief/` / `frontend/src/app/i18n/locales/` / `test/scenarios/e2e/p0-06[56789]-*` 全部 0 命中；(f) 第三方 `createPracticePlan` / `startPracticeSession` 在 debrief 模块内 0 调用 |
+| Given | 完整 DebriefScreen + Playwright debrief parity spec 已就绪 |
+| When | (1) Vitest 跑 i18n / privacy / devMock fixture gates；(2) build frontend dist；(3) Playwright 加载 frontend `/debrief` desktop 1440×900 与 mobile 390×844；(4) 断言 `debrief_full` alias normalize、Step 0 source anchors、viewport bounding boxes、mobile overflow negative；(5) 切到 dark mode 与 customAccent；(6) 截图 smoke；(7) grep legacy terms in active runtime 与 P0.065-P0.069 scenario tree |
+| Then | (a) Vitest runner 通过；(b) Playwright desktop + mobile debrief parity gate 通过（DOM anchors / computed style / bounding box / non-empty screenshot smoke）；(c) dark / customAccent 主题应用正确（root data-theme / data-mode / data-custom-accent）；(d) privacy boundary tests 通过；(e) retired terms `experience_library` / `star_editor` / `drill_builder` / `mistakes_book` / `growth_center` / `report_timeline` 在 `frontend/src/app/screens/debrief/` / `frontend/src/app/i18n/locales/` / `test/scenarios/e2e/p0-06[56789]-*` 全部 0 命中；(f) 第三方 `createPracticePlan` / `startPracticeSession` 在 debrief 模块内 0 调用 |
 | Cleanup | clean |
 
 ## 3 编号占用

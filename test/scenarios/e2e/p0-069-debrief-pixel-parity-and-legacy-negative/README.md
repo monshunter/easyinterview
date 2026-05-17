@@ -15,20 +15,21 @@ breakpoints via tokens.
 ## When
 
 Run the Vitest assertions that exercise the parity-adjacent contracts
-(i18n coverage, debrief privacy boundary, devMock fixture registry) plus
-the legacy negative grep gate over both the implementation tree and the
-P0.065-069 scenario tree.
+(i18n coverage, debrief privacy boundary, devMock fixture registry), build
+the frontend dist, run `tests/pixel-parity/debrief.spec.ts` in Playwright
+desktop/mobile projects, then execute the legacy negative grep gate over both
+the implementation tree and the P0.065-069 scenario tree.
 
 ## Then
 
-Vitest exits 0 and the legacy negative gate reports zero offending
-matches in the scoped paths.
+Vitest exits 0, the debrief Playwright parity gate passes, and the legacy
+negative gate reports zero offending matches in the scoped paths.
 
 ## Pixel parity status
 
-Full Playwright pixel parity (`pnpm test:pixel-parity`) requires the
-Playwright chromium runtime which is **not** installed in this scenario
-runner. The frontend `test:pixel-parity` target stays available for
-on-demand visual regression — see `frontend/tests/pixel-parity/` follow
-up scoped to debrief when the install step lands. This scenario asserts
-the structural + privacy + legacy gates that do not require a browser.
+`scripts/trigger.sh` now runs the debrief-specific Playwright parity gate:
+`pnpm --filter @easyinterview/frontend build` followed by
+`pnpm --filter @easyinterview/frontend exec playwright test
+tests/pixel-parity/debrief.spec.ts`. The gate asserts DOM anchors,
+bounding boxes, responsive geometry, theme/customAccent computed values, and
+non-empty screenshot smoke without requiring checked-in screenshot baselines.

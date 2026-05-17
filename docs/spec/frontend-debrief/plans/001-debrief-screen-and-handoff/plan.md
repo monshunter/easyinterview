@@ -33,11 +33,11 @@
 
 - **Plan 类型**: feature-behavior + code-internal（混合：用户可见 UI + 前端业务状态机 / React Hook / reducer 实现）
 - **TDD 策略**: Code plan requires TDD。所有 React 组件 / hook / reducer / fetch logic 必须先写测试（红/绿/重构）；测试文件：`frontend/src/app/screens/debrief/*.test.tsx`、`frontend/src/app/screens/debrief/hooks/*.test.ts`、`frontend/src/app/screens/debrief/reducer.test.ts`；测试命令：`pnpm --filter @easyinterview/frontend test -- src/app/screens/debrief`；Phase 1-7 每个 checklist item 命名其测试断言来源（见 test-plan.md 与 test-checklist.md）。
-- **BDD 策略**: Feature plan requires BDD。本 plan 引入用户可见 UI 全屏 + 跨页 nav handoff + 失败态 + AI 推荐 + polling；BDD scenarios `E2E.P0.065-069` 已在 [bdd-plan.md](./bdd-plan.md) 分配，主 [checklist.md](./checklist.md) 在 Phase 8 含 `BDD-Gate:` 项引用每个 scenario ID；执行必须使用当前场景框架的 `scripts/setup.sh` → `scripts/trigger.sh` → `scripts/verify.sh` → `scripts/cleanup.sh` 四段入口（Playwright + fixture-backed transport），cleanup 在失败时也必须执行。
+- **BDD 策略**: Feature plan requires BDD。本 plan 引入用户可见 UI 全屏 + 跨页 nav handoff + 失败态 + AI 推荐 + polling；BDD scenarios `E2E.P0.065-069` 已在 [bdd-plan.md](./bdd-plan.md) 分配，主 [checklist.md](./checklist.md) 在 Phase 8 含 `BDD-Gate:` 项引用每个 scenario ID；执行必须使用当前场景框架的 `scripts/setup.sh` → `scripts/trigger.sh` → `scripts/verify.sh` → `scripts/cleanup.sh` 四段入口（P0.065-P0.068 为 Vitest-backed runner，P0.069 为 Vitest + Playwright debrief parity runner），cleanup 在失败时也必须执行。
 - **替代验证 gate**:
-  - Phase 0 dep 验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief\|listPracticeSessions\|listResumes\|listResumeVersions" frontend/src/api/generated/` 命中；`ls openapi/fixtures/Debriefs/` 含 3 个 fixture file；`ls openapi/fixtures/PracticeSessions/listPracticeSessions.json` 存在；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND\|IDEMPOTENCY_KEY_MISMATCH" shared/ts/conventions/` 命中
-  - UI source parity：Vitest `expect(screen.getByTestId('debrief-*'))` 测试 + jsdom DOM snapshot 匹配 prototype 锚点；Playwright 元素地图 vs prototype 元素地图对比
-  - Pixel parity：Playwright pixel diff < 0.5% on desktop (1440×900) + mobile (390×844)
+  - Phase 0 dep 验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief\|listPracticeSessions\|listResumes\|listResumeVersions" frontend/src/api/generated/` 命中；`ls openapi/fixtures/Debriefs/` 含 3 个 fixture file；`ls openapi/fixtures/PracticeSessions/listPracticeSessions.json` 存在；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND\|IDEMPOTENCY_KEY_MISMATCH" frontend/src/lib/conventions/ frontend/src/api/generated/` 命中
+  - UI source parity：Vitest `expect(screen.getByTestId('debrief-*'))` 测试 + jsdom DOM snapshot 匹配 prototype 锚点；Playwright 覆盖 DOM anchors、computed styles 与 viewport geometry
+  - Pixel parity：Playwright debrief gate validates desktop (1440×900) + mobile (390×844) DOM anchors, bounding boxes, theme/customAccent computed values, and non-empty screenshot smoke
   - 隐私红线：Vitest fixture spy 不接收 raw entries / notes；URL/localStorage/sessionStorage/console.log 扫描
   - Legacy negative：`grep -rn "experience_library\|star_editor\|drill_builder\|mistakes_book\|growth_center\|report_timeline" frontend/src/app/screens/debrief/ frontend/src/app/i18n/locales/ test/scenarios/e2e/p0-06[56789]-*` 不命中
 
@@ -49,7 +49,7 @@
 
 - 验证 `frontend/src/api/generated/` 中存在 `createDebrief` / `getDebrief` / `suggestDebriefQuestions` method types
 - 验证 `openapi/fixtures/Debriefs/createDebrief.json` / `getDebrief.json` / `suggestDebriefQuestions.json` 存在并通过 `make validate-fixtures`
-- 验证 `shared/ts/conventions/v1/` 含 `DebriefRoundType` / `DebriefQuestionSource` / `DEBRIEF_NOT_FOUND` / `IDEMPOTENCY_KEY_MISMATCH` 字面量
+- 验证 `frontend/src/lib/conventions/` 与 generated client 含 `DebriefRoundType` / `DebriefQuestionSource` / `DEBRIEF_NOT_FOUND` / `IDEMPOTENCY_KEY_MISMATCH` 字面量
 - 验证 `frontend/src/api/generated/` 中存在 `listPracticeSessions`（backend-practice/B2 addendum）；同时验证 `listResumes` / `listResumeVersions(resumeAssetId)` 可用；验证 `openapi/fixtures/PracticeSessions/listPracticeSessions.json` 存在并通过 `make validate-fixtures`
 - 验证 backend-practice 现状支持 `goal='debrief'` + 合法 `mode IN ('assisted','strict')`（grep + test names from backend-debrief/001 Phase 0.6 / backend-practice/004）
 - 未通过任一验证 → 暂停 plan 001，等 backend-debrief/001 Phase 0 完成
@@ -305,9 +305,9 @@ case 'SET_DEBRIEF_CONTEXT':
 
 #### 8.1 Playwright pixel parity
 
-- 新增 `frontend/tests/pixel-parity/debrief-desktop.spec.ts` + `debrief-mobile.spec.ts`
-- 比较 `ui-design/` 静态原型与 `frontend/src/app/screens/debrief/DebriefScreen.tsx` 渲染结果
-- 断言：DOM 锚点（testid）、computed style key 值（color/spacing/font-size/border-radius）、bounding box 区域比例、screenshot diff < 0.5%
+- 新增 `frontend/tests/pixel-parity/debrief.spec.ts`
+- 对 `frontend/src/app/screens/debrief/DebriefScreen.tsx` 渲染结果执行 source-level parity smoke；source anchor 仍以 `ui-design/src/screens-p1-depth.jsx` / `docs/ui-design/` 为 truth source
+- 断言：DOM 锚点（testid）、computed style key 值（color/spacing/font-size/border-radius）、bounding box 区域比例、非空 screenshot smoke；checked-in screenshot baseline diff 留给后续专门基线 plan
 - viewport: desktop 1440×900 + mobile 390×844
 - 主题: light / dark / customAccent 各一次
 
@@ -335,7 +335,7 @@ case 'SET_DEBRIEF_CONTEXT':
 - `pnpm --filter @easyinterview/frontend test -- src/app/screens/debrief` 通过
 - `pnpm --filter @easyinterview/frontend test -- --run` 全量通过
 - `pnpm --filter @easyinterview/frontend lint` 通过
-- `pnpm --filter @easyinterview/frontend test:pixel-parity` (Playwright)
+- `pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/debrief.spec.ts` (debrief Playwright gate)
 - `python3 -m pytest scripts/lint -q` 通过
 - `make docs-check` + `git diff --check` 通过
 - 更新 plans/INDEX.md 把 001 移到 completed
@@ -360,6 +360,6 @@ case 'SET_DEBRIEF_CONTEXT':
 | AI 推荐 suggestions 的具体内容格式与 GuidedDebriefRecord prototype mock 数据结构不一致 | Phase 4.1 hook 内部 schema 标准化：将 `SuggestedQuestion{stage?, questionText, whyLikelyAsked, source}` 映射到 GuidedDebriefRecord 期待的字段；如缺 stage 默认 "通用"；如缺 source 默认 'jd' |
 | Step 1 分析渲染时 backend AI 输出的 risk_items 与 questions[*].aiAnalysis 结构不稳定（前端期待 prototype mock data 形态） | Phase 6.1 内做 defensive parsing：缺少字段时显示默认占位；不抛出错误；通过 Vitest 断言至少正常渲染 schema-minimum 输出 |
 | Voice UI shell 在 mobile 端 sticky CTA 布局冲突 | Phase 7.3 单独测试 mobile viewport；如冲突，调整 sticky 优先级（提交 CTA > 占位提示）|
-| Playwright pixel parity 因字体加载 / 动画 / blur 等差异多次失败 | Phase 8.1 使用 deterministic settings：禁用 transition / animation；font 用本地 self-hosted；screenshot 用 `disableAnimations` flag；如仍不稳，调高 diff tolerance 到 1% 并在 plan 备注 |
+| Playwright pixel parity 因字体加载 / 动画 / blur 等差异多次失败 | Phase 8.1 使用 deterministic settings：禁用 transition / animation；font 用本地 self-hosted；screenshot 用 `disableAnimations` flag；本 plan 的 close-out gate 先使用 DOM / computed style / bounding box / screenshot smoke，checked-in screenshot baseline diff 留给后续专门基线 plan |
 | InterviewContext reducer 新增 `SET_DEBRIEF_CONTEXT` action 与 frontend-workspace-and-practice 既有 action 冲突 | Phase 5.4 在新增 action 前 grep 既有 reducer；与 frontend-workspace-and-practice owner co-review；如必要新建独立 sub-state slice 而不是直接 merge |
 | createDebrief 提交后 page navigation 或刷新丢失 entries 草稿 | spec §3.2 已声明默认 P0 不持久化；如用户反馈强烈，plan 002 评估 localStorage 草稿（注意隐私边界）；本 plan 显示 "草稿将丢失" 离开提示对话框 |

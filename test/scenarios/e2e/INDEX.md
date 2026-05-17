@@ -63,7 +63,7 @@
 | E2E.P0.066 | frontend-debrief C-4, C-5, C-7 | `p0-066-debrief-text-suggestions-and-submit/` | text-mode AI suggestions + 4 CTA entries + createDebrief 提交 + IK | automated | Ready |
 | E2E.P0.067 | frontend-debrief C-8, C-12 | `p0-067-debrief-polling-happy-and-analysis/` | dual-track polling getJob + getDebrief + Step 1 analysis 渲染 | automated | Ready |
 | E2E.P0.068 | frontend-debrief C-9, C-10, C-13 | `p0-068-debrief-failure-and-handoff/` | failure / missing / timeout 状态 + Step 2 launcher nav 复盘面试 handoff | automated | Ready |
-| E2E.P0.069 | frontend-debrief C-15, C-16, C-17, C-18 | `p0-069-debrief-pixel-parity-and-legacy-negative/` | i18n 覆盖 + 隐私边界 + legacy-negative gate（pixel parity 待 Playwright 安装后单独运行） | automated | Ready |
+| E2E.P0.069 | frontend-debrief C-15, C-16, C-17, C-18 | `p0-069-debrief-pixel-parity-and-legacy-negative/` | i18n 覆盖 + 隐私边界 + debrief Playwright pixel parity + legacy-negative gate | automated | Ready |
 | E2E.P0.070 | backend-practice C-2, C-3 | `p0-070-practice-derived-plan-create-read-replay/` | report/debrief derived createPracticePlan、getPracticePlan 与 idempotency replay source 字段 | automated | Ready |
 | E2E.P0.071 | backend-practice C-3, C-4 | `p0-071-practice-debrief-start-source-question/` | debrief startPracticeSession 使用 source raw_questions 首题且 first_question AI 零调用 | automated | Ready |
 | E2E.P0.072 | backend-practice C-2, C-3, D-11 | `p0-072-practice-derived-source-isolation-privacy/` | derived source missing/cross-user/wrong-target/draft/empty 隔离与隐私红线 | automated | Ready |

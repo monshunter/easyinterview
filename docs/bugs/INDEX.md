@@ -46,6 +46,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0067](./BUG-0067.md) | frontend debrief L2 review exposed route hydration and pixel gate drift | high | resolved | 2026-05-17 | `fix(frontend-debrief): close debrief L2 gaps (BUG-0067)` |
 | [BUG-0065](./BUG-0065.md) | debrief.generate prompt baseline used retired output schema | high | resolved | 2026-05-16 | `feat(backend-debrief): close 001 debrief record and analysis baseline` |
 
 ## Eval

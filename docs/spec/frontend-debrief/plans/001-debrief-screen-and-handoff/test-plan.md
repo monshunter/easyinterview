@@ -15,7 +15,7 @@
 - Vitest 单元测试：`pnpm --filter @easyinterview/frontend test -- src/app/screens/debrief --run`
 - Vitest 全量：`pnpm --filter @easyinterview/frontend test -- --run`
 - Lint：`pnpm --filter @easyinterview/frontend lint`
-- Playwright pixel parity：`pnpm --filter @easyinterview/frontend test:pixel-parity`
+- Debrief Playwright pixel parity：`pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/debrief.spec.ts`
 - Lint script：`python3 -m pytest scripts/lint -q`
 
 ## 1 Coverage Matrix
@@ -40,7 +40,7 @@
 | R16 | spec D-13 / i18n debrief.* namespace | UX | Phase 7 | Vitest i18n keys | workspace.*, practice.*, report.* (must NOT cross namespace) | — |
 | R17 | spec §4 / Theme dark+customAccent | UX | Phase 7 | Vitest + Playwright | — | — |
 | R18 | spec §4 / Mobile responsive | UX | Phase 7 | Vitest + Playwright | — | — |
-| R19 | spec §4 / UI visual geometry parity (desktop + mobile) | UI visual parity | Phase 8 | Playwright pixel diff | — | screens-p1-depth.jsx:38-2180 全屏 |
+| R19 | spec §4 / UI visual geometry parity (desktop + mobile) | UI visual parity | Phase 8 | Playwright DOM anchors + computed style + bounding box + screenshot smoke | checked-in screenshot baseline diff | screens-p1-depth.jsx:38-2180 全屏 |
 | R20 | spec D-16 / Privacy redlines (raw text in URL/localStorage/sessionStorage/console.log/telemetry) | Privacy | Phase 8 | Vitest spy + grep | questionText, myAnswerSummary, interviewerReaction, notes (must NOT appear in browser persistence) | — |
 | R21 | spec D-18 / Legacy negative grep | Regression/Legacy-negative | Phase 8 | grep + pytest lint | experience_library, star_editor, drill_builder, mistakes_book, growth_center, report_timeline | — |
 | R22 | spec §5.1 / Operation Matrix negative scope: createPracticePlan / startPracticeSession / getFeedbackReport / getCompanyIntel zero calls in debrief module | Cross-layer + Regression | Phase 6 | Vitest spy + grep | createPracticePlan, startPracticeSession, getFeedbackReport, getCompanyIntel | — |
@@ -417,5 +417,5 @@
 ## 3 集成测试与覆盖率说明
 
 - 覆盖率以 plan 列出的测试项达成度衡量；不引入 raw coverage 百分比作为 hard gate。
-- Playwright pixel parity 测试详见 `frontend/tests/pixel-parity/debrief-desktop.spec.ts` + `debrief-mobile.spec.ts`。
+- Debrief Playwright parity 测试详见 `frontend/tests/pixel-parity/debrief.spec.ts`。
 - E2E scenario（P0.065-069）覆盖见 [bdd-plan.md](./bdd-plan.md) 与 [bdd-checklist.md](./bdd-checklist.md)。

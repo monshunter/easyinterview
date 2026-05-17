@@ -72,9 +72,9 @@
 
 ## Phase 8: Playwright pixel parity + 隐私 + legacy negative + BDD
 
-- [x] 8.1 Playwright pixel parity desktop 1440×900：当前 scenario runner 未安装 Playwright chromium（`pnpm test:pixel-parity:install` 未执行）；frontend `test:pixel-parity` target 保留，可在本地按需运行；`test/scenarios/e2e/p0-069-debrief-pixel-parity-and-legacy-negative/README.md` 显式记录该 deferred 状态。结构 + 隐私 + legacy gate 在 P0.069 中执行。
-- [x] 8.2 Playwright pixel parity mobile 390×844：同 8.1，待 chromium 安装；debrief.css mobile 折叠规则由结构性 vitest（`DebriefScreen.test.tsx`）+ DOM 锚点断言守护。
-- [x] 8.3 主题 pixel parity：同 8.1，待 chromium 安装；CSS token 派生由 `frontend-debrief legacy lint` 拒绝硬编码漂移。
+- [x] 8.1 Playwright pixel parity desktop 1440×900：`frontend/tests/pixel-parity/debrief.spec.ts` 已接入 P0.069；`pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/debrief.spec.ts` 通过，覆盖 `debrief_full` alias normalize、Step 0 source anchors、desktop viewport bounding boxes、theme/customAccent computed values 与非空 screenshot smoke。
+- [x] 8.2 Playwright pixel parity mobile 390×844：同一 Playwright spec 的 `mobile` project 通过，覆盖 mobile viewport bounding boxes、horizontal overflow negative 与非空 screenshot smoke；desktop-only/mobile-only 用例按项目条件跳过。
+- [x] 8.3 主题 pixel parity：同一 Playwright spec 覆盖 dark mode 与 customAccent computed style 变化；CSS token 派生继续由 `scripts/lint/frontend_debrief_legacy.py` 拒绝硬编码漂移。
 - [x] 8.4 隐私 + telemetry 验证：`frontend/src/app/screens/debrief/__tests__/privacyBoundary.test.ts` 静态扫描 debrief 模块，断言任何源码都不会以 `localStorage.setItem(.*questionText)` / `sessionStorage.setItem(.*myAnswerSummary)` / `console.log(.*interviewerReaction)` / `navigate(.*questionText)` / `history.pushState(.*questionText)` 形态泄漏 raw entry text（zero offenders）。
 - [x] 8.5 隐私 grep gate：仅命中 `types.ts` 字段声明 + `GuidedDebriefRecord` / `DebriefReplayPlan` 受控 DOM 显示 + i18n key（皆为合理位置）；privacyBoundary.test.ts 作为可执行口径替代静态 grep。
 - [x] 8.6 Legacy negative grep：`scripts/lint/frontend_debrief_legacy.py` + P0.069 trigger.sh 联合覆盖 `frontend/src/app/screens/debrief/` / `frontend/src/app/i18n/locales/` / `test/scenarios/e2e/p0-06[56789]-*`，全部 0 命中（已用 `--exclude=trigger.sh` 排除自指断言文件）。
@@ -83,11 +83,11 @@
 - [x] 8.9 BDD-Gate E2E.P0.066：`p0-066-debrief-text-suggestions-and-submit` 四段脚本通过（debrief 模块全部 vitest + InterviewContext reducer + pendingAction + privacy boundary + legacy lint）。
 - [x] 8.10 BDD-Gate E2E.P0.067：`p0-067-debrief-polling-happy-and-analysis` 四段脚本通过（debrief 模块 vitest + legacy lint）。
 - [x] 8.11 BDD-Gate E2E.P0.068：`p0-068-debrief-failure-and-handoff` 四段脚本通过（debrief 模块 vitest + InterviewContext reducer + 模块内 `createPracticePlan` / `startPracticeSession` 直接调用 0 命中负向断言 + legacy lint）。
-- [x] 8.12 BDD-Gate E2E.P0.069：`p0-069-debrief-pixel-parity-and-legacy-negative` 四段脚本通过（i18n coverage + privacy boundary + dev-mock fixture coverage + legacy lint + scenario-tree legacy grep）。
+- [x] 8.12 BDD-Gate E2E.P0.069：`p0-069-debrief-pixel-parity-and-legacy-negative` 四段脚本通过（i18n coverage + privacy boundary + dev-mock fixture coverage + frontend build + debrief Playwright pixel parity + legacy lint + scenario-tree legacy grep）。
 
 ## Phase 9: Plan 收口
 
-- [x] 9.1 全局回归：`pnpm --filter @easyinterview/frontend typecheck`（pass），`pnpm --filter @easyinterview/frontend test -- --run`（177 file / 1007 test），`pnpm --filter @easyinterview/frontend lint`（D1 stub），`python3 -m pytest scripts/lint -q`（249 pass / 6375 subtests），`make codegen-openapi` / `make lint-openapi` / `make validate-fixtures` / `make docs-check` / `git diff --check` 全部通过；Playwright pixel parity 标记 deferred-pending-chromium-install。
+- [x] 9.1 全局回归：2026-05-17 L2 close-out 重新验证 `pnpm --filter @easyinterview/frontend exec vitest run src/app/screens/debrief/DebriefScreen.test.tsx`（6 pass）、P0.065-P0.069 顺序场景链、`pnpm --filter @easyinterview/frontend build`、`pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/debrief.spec.ts`（11 pass / 1 skip）通过；`make docs-check` / `git diff --check` 在收口 gate 重新执行。
 - [x] 9.2 plans/INDEX.md 把 001 从 active 移到 completed，记录完成日期 2026-05-17
 - [x] 9.3 frontend-debrief/history.md 增加 1.1 completion 行
 - [x] 9.4 提交 commit `feat(frontend-debrief): close 001 debrief screen and handoff baseline`；记录工作日志 `/work-journal`

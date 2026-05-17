@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useState, type FC } from "react";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useInterviewContext } from "../../interview-context/InterviewContext";
+import { useI18n } from "../../i18n/messages";
+import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import type { Route } from "../../routes";
 import { DebriefAnalysisStep } from "./components/DebriefAnalysisStep";
 import { DebriefContextStrip } from "./components/DebriefContextStrip";
@@ -50,6 +52,8 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
   const { navigate } = useNavigation();
   const requestAuth = useRequestAuth();
   const { ctx, dispatch } = useInterviewContext();
+  const runtime = useAppRuntimeOptional();
+  const { lang } = useI18n();
 
   const [step, setStep] = useState<DebriefStep>(0);
   const [maxVisited, setMaxVisited] = useState<DebriefStep>(0);
@@ -73,11 +77,65 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
     setPickerKind(kind);
   }, []);
 
+  const routeTargetJobId = route.params.targetJobId || route.params.jobId || ctx.targetJobId;
+  const routeSessionId = route.params.sessionId || ctx.sessionId;
+  const routeResumeVersionId =
+    route.params.resumeVersionId || ctx.resumeVersionId;
+
+  useEffect(() => {
+    if (!runtime) return;
+    let cancelled = false;
+
+    if (routeTargetJobId) {
+      runtime.client
+        .getTargetJob(routeTargetJobId)
+        .then((targetJob) => {
+          if (cancelled) return;
+          setSelectedContext((prev) =>
+            prev.targetJob?.id === targetJob.id ? prev : { ...prev, targetJob },
+          );
+        })
+        .catch(() => undefined);
+    }
+
+    if (routeSessionId) {
+      runtime.client
+        .getPracticeSession(routeSessionId)
+        .then((mockSession) => {
+          if (cancelled) return;
+          setSelectedContext((prev) =>
+            prev.mockSession?.id === mockSession.id
+              ? prev
+              : { ...prev, mockSession },
+          );
+        })
+        .catch(() => undefined);
+    }
+
+    if (routeResumeVersionId) {
+      runtime.client
+        .getResumeVersion(routeResumeVersionId)
+        .then((resumeVersion) => {
+          if (cancelled) return;
+          setSelectedContext((prev) =>
+            prev.resumeVersion?.id === resumeVersion.id
+              ? prev
+              : { ...prev, resumeVersion },
+          );
+        })
+        .catch(() => undefined);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [routeResumeVersionId, routeSessionId, routeTargetJobId, runtime]);
+
   // Phase 2.5 — auto-trigger suggestions once targetJob + resume are both set.
   const suggestionsEnabled =
     Boolean(selectedContext.targetJob) &&
     Boolean(selectedContext.resumeVersion);
-  const language = ctx.modality === "en" ? "en-US" : "zh-CN";
+  const language = lang === "en" ? "en-US" : "zh-CN";
   const suggestions = useSuggestDebriefQuestions({
     targetJobId: selectedContext.targetJob?.id,
     sessionId: selectedContext.mockSession?.id,
@@ -103,13 +161,45 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
 
   const handleSubmit = useCallback(async () => {
     if (!selectedContext.targetJob) return;
-    await submit.submit({
+    const outcome = await submit.submit({
       targetJobId: selectedContext.targetJob.id,
       roundType: "technical",
       language,
       entries,
     });
-  }, [entries, language, selectedContext.targetJob, submit]);
+    if (outcome.status === "succeeded") {
+      advanceStep(1);
+      return;
+    }
+    if (outcome.status === "auth_required") {
+      const params: Record<string, string> = {
+        targetJobId: selectedContext.targetJob.id,
+        practiceGoal: "debrief",
+        language,
+      };
+      if (selectedContext.resumeVersion?.id) {
+        params.resumeVersionId = selectedContext.resumeVersion.id;
+      }
+      if (selectedContext.mockSession?.id) {
+        params.sessionId = selectedContext.mockSession.id;
+      }
+      requestAuth({
+        type: "submit_debrief",
+        label: "生成复盘分析",
+        route: "debrief",
+        params,
+      });
+    }
+  }, [
+    advanceStep,
+    entries,
+    language,
+    requestAuth,
+    selectedContext.mockSession?.id,
+    selectedContext.resumeVersion?.id,
+    selectedContext.targetJob,
+    submit,
+  ]);
 
   const handleStartReplay = useCallback(() => {
     if (!selectedContext.targetJob || !submit.result) return;
@@ -117,6 +207,7 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
       practiceGoal: "debrief",
       mode: "text",
       modality: "text",
+      language,
       targetJobId: selectedContext.targetJob.id,
     };
     if (selectedContext.resumeVersion?.id) {
@@ -134,7 +225,7 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
       route: "practice",
       params,
     });
-  }, [requestAuth, selectedContext, submit.result]);
+  }, [language, requestAuth, selectedContext, submit.result]);
 
   const failureCard = useMemo(() => {
     if (submit.status === "validation_failed" || submit.status === "failed") {
