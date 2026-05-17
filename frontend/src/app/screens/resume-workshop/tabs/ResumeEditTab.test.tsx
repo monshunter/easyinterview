@@ -145,7 +145,7 @@ describe("ResumeEditTab save behaviour (plan 003 Phase 6.2-6.4)", () => {
     expect(save.textContent).toMatch(/Saving|保存中/);
   });
 
-  it("renders the inline error alert when errorMessage is provided", () => {
+  it("renders the in-form error alert when errorMessage is provided", () => {
     renderEdit(baseTargeted, { errorMessage: "Validation failed. Please retry." });
     const alert = screen.getByTestId("resume-edit-error");
     expect(alert).toBeInTheDocument();

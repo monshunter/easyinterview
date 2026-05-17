@@ -21,7 +21,7 @@ export interface ResumeEditTabProps {
     headline: string;
     summary: string;
   }) => Promise<void>;
-  /** Phase 6.6: optional inline alert for validation/idempotency errors. */
+  /** Phase 6.6: optional in-form alert for validation/idempotency errors. */
   errorMessage?: string | null;
   /** True while the host hook is awaiting the updateResumeVersion call. */
   saving?: boolean;

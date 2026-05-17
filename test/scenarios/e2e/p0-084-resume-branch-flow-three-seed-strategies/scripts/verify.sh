@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
+SCENARIO_ID="$(basename "$(dirname "$SCRIPT_DIR")")"
+OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/$SCENARIO_ID"
+LOG_FILE="$OUTPUT_DIR/trigger.log"
+test -s "$LOG_FILE"
+grep -Eq '^[[:space:]]*RUN[[:space:]]+v[0-9]' "$LOG_FILE" || { echo "$SCENARIO_ID: vitest runner marker missing" >&2; exit 1; }
+if grep -Eiq 'No test files found|No tests found|No test suite found|No test cases found' "$LOG_FILE"; then echo "$SCENARIO_ID: no-test marker found" >&2; exit 1; fi
+if grep -Eq '^[[:space:]]*Test Files[[:space:]].*failed|^[[:space:]]*Tests[[:space:]].*failed' "$LOG_FILE"; then echo "$SCENARIO_ID: failing vitest summary found" >&2; exit 1; fi
+grep -Eq '^[[:space:]]*Test Files[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing test files" >&2; exit 1; }
+grep -Eq '^[[:space:]]*Tests[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing tests" >&2; exit 1; }
+for spec in \
+  ResumeBranchFlow.test.tsx \
+  useResumeBranchSubmit.test.tsx \
+  mapBranchFormToRequest.test.ts \
+  ResumeWorkshopAuthGate.test.tsx \
+  ; do
+  grep -qF "$spec" "$LOG_FILE" || { echo "$SCENARIO_ID: spec $spec not exercised" >&2; exit 1; }
+done
+
+# Plan 003 §7.10-7.12 retired-grep gate (executable within the scenario)
+cd "$REPO_ROOT"
+if git grep -nE "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/retired-modules-grep.log"; then
+  echo "$SCENARIO_ID: retired modules grep matched something (see retired-modules-grep.log)" >&2
+  exit 1
+fi
+if git grep -nE "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/retired-tailor-mode-grep.log"; then
+  echo "$SCENARIO_ID: retired tailor mode grep matched something" >&2
+  exit 1
+fi
+if git grep -nE "ui-design/src/(data|screen-resume-workshop)" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/prototype-import-grep.log"; then
+  echo "$SCENARIO_ID: prototype runtime import detected" >&2
+  exit 1
+fi

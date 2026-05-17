@@ -17,7 +17,7 @@ export interface BranchSubmitContext {
  *   - `focusAngle` derivation from the chip key (we always carry the literal
  *     focus key so backend can persist either the slug or its localized label
  *     downstream; the form does not invent translation hints)
- *   - hard-stripping any extra keys that the form ever introduces by mistake
+ *   - hard-stripping any extra keys that the form ever adds by accident
  *     (so contributors cannot accidentally smuggle `versionType`,
  *     `parentVersionId`-overrides, etc. into the wire payload).
  */

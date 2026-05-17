@@ -353,7 +353,7 @@ describe("ResumeBranchFlow submit dispatch (plan 003 Phase 2)", () => {
     });
   });
 
-  it("422 validation error surfaces an inline alert and does not navigate", async () => {
+  it("422 validation error surfaces an in-form alert and does not navigate", async () => {
     const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID);
     vi.spyOn(client, "branchResumeVersion").mockRejectedValueOnce(
       new Error(
