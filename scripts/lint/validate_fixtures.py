@@ -63,6 +63,13 @@ VENDOR_MODEL_TOKEN_RE = re.compile(
     r"(?:openrouter|anthropic|claude|openai|gpt-|mistral|gemini|cohere)",
     re.IGNORECASE,
 )
+PRACTICE_VOICE_PLAYABLE_AUDIO_REF_RE = re.compile(
+    r"^data:audio/(?:mpeg|wav|ogg);base64,[A-Za-z0-9+/=]+$",
+    re.IGNORECASE,
+)
+PRACTICE_VOICE_RESOLVER_AUDIO_REF_RE = re.compile(
+    r"^/api/v1/practice/voice-turns/[^/]+/chunks/[^/]+/audio$"
+)
 
 # AI-generated schemas listed in spec §4.6. Provenance must resolve from each
 # value path, where `[*]` expands a list and yields its members.
@@ -531,6 +538,29 @@ def check_required_named_scenarios(opid: str, scenarios: dict, errors: List[str]
         errors.append(f"{opid}: missing required scenarios {sorted(missing)}")
 
 
+def check_practice_voice_playable_refs(opid: str, scenarios: dict, errors: List[str]) -> None:
+    if opid != "createPracticeVoiceTurn":
+        return
+    for scenario_name, scenario in scenarios.items():
+        body = ((scenario.get("response") or {}).get("body") or {})
+        for index, chunk in enumerate(body.get("ttsChunks") or []):
+            audio_ref = chunk.get("audioRef")
+            if not isinstance(audio_ref, str):
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body.ttsChunks[{index}].audioRef: must be string"
+                )
+                continue
+            if PRACTICE_VOICE_PLAYABLE_AUDIO_REF_RE.match(audio_ref):
+                continue
+            if PRACTICE_VOICE_RESOLVER_AUDIO_REF_RE.match(audio_ref):
+                continue
+            errors.append(
+                f"{opid}.{scenario_name}.response.body.ttsChunks[{index}].audioRef: "
+                "must be browser-playable data:audio/...;base64,... or a checked-in resolver URL; "
+                f"got {audio_ref!r}"
+            )
+
+
 def check_privacy_and_ids(opid: str, data: dict, errors: List[str]) -> None:
     for path, value in _walk_strings(data):
         if TEMP_ID_RE.search(value):
@@ -581,6 +611,7 @@ def validate(repo_root: Path) -> List[str]:
             check_status_declared(opid, op, scenario_name, scenario, errors)
             check_schema(opid, op, scenario_name, scenario, spec, errors)
         check_required_named_scenarios(opid, scenarios, errors)
+        check_practice_voice_playable_refs(opid, scenarios, errors)
         check_provenance(opid, scenarios.get("default") or {}, errors)
         check_p0_export_error_code(opid, scenarios, errors)
         check_privacy_and_ids(opid, data, errors)

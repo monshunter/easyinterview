@@ -32,11 +32,11 @@
             {
               "chunkId": "voice-chunk-001",
               "sequence": 0,
-              "contentType": "audio/mpeg",
+              "contentType": "audio/wav",
               "durationMs": 2840,
-              "byteLength": 2048,
+              "byteLength": 44,
               "textHash": "sha256:voice-default-chunk-001",
-              "audioRef": "fixture-audio://practice-voice/default/chunk-001"
+              "audioRef": "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA="
             }
           ],
           "providerMetaSummary": {

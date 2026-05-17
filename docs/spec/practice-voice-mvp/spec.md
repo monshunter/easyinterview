@@ -1,6 +1,6 @@
 # Practice Voice MVP Spec
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
 > **更新日期**: 2026-05-17
 
@@ -90,6 +90,8 @@ Voice turn 必须区分：
 `createPracticeVoiceTurn` 是会产生会话事件的 side-effect endpoint，必须携带 `Idempotency-Key`。请求体必须显式携带 `clientVoiceTurnId`、`turnId`、`audio.contentBase64`、`audio.contentType`、`audio.durationMs`、`language`、`practiceMode` 与可选 `manualTranscriptFallback`；不允许把 raw audio 写入 URL、日志、AI metadata 或 audit metadata。响应体必须区分 `userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`voiceTurnId`、`providerMetaSummary` 与可空 `ttsError`。`ttsChunks[]` 只包含 chunk id、content type、duration、byte length/hash 与 `audioRef`；`audioRef` 的播放承载与持久化边界见下段。
 
 `ttsChunks[].audioRef` 的 HTTP response 值必须是浏览器可直接播放的 `data:audio/...;base64,...` 或同计划落地的 resolver URL；持久化到 `practice_session_events` 的 voice turn summary 必须改写为不含音频数据的 opaque `voice-turn://{voiceTurnId}/chunks/{chunkId}` 引用，并由测试证明 response playback ref 与 persisted summary ref 分离。
+
+Fixture-backed mock responses must follow the same HTTP response playback semantics: `createPracticeVoiceTurn` fixtures may use `data:audio/...;base64,...` or a checked-in resolver URL, but must not use mock-only schemes such as `fixture-audio://...` because those cannot be consumed by browser playback paths.
 
 `appendSessionEvent.kind` 必须扩展为 `tts_chunk_started`、`tts_chunk_played`、`barge_in_detected`、`assistant_context_committed`。这些事件继续使用 body-level `clientEventId`，不得携带 `Idempotency-Key`。payload 必须携带 `voiceTurnId`、`chunkId`、`playedTextHash` / `playedTextLength`、`playbackOffsetMs`、`occurredAt` 等摘要字段；如需提交业务正文，只能写入 session event schema 中明确允许的 committed assistant text，不得写入 AI/audit metadata。
 

@@ -53,7 +53,7 @@
 | [backend-targetjob](./backend-targetjob/spec.md) | 1.4 | active | 2026-05-08 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.10 | active | 2026-05-16 | [plans](./backend-practice/plans/) |
 | [backend-review](./backend-review/spec.md) | 1.0 | active | 2026-05-15 | [plans](./backend-review/plans/) |
-| [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.2 | active | 2026-05-17 | [plans](./practice-voice-mvp/plans/) |
+| [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.3 | active | 2026-05-17 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.2 | active | 2026-05-12 | [plans](./backend-upload/plans/) |
 | [backend-resume](./backend-resume/spec.md) | 1.1 | active | 2026-05-12 | [plans](./backend-resume/plans/) |
 | [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 1.0 | active | 2026-05-11 | [plans](./frontend-resume-workshop/plans/) |

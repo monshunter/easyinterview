@@ -1,6 +1,6 @@
 # Cascaded STT LLM TTS Voice MVP
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -26,6 +26,7 @@ S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 
 - **BDD 策略**: 需要 BDD。用户可见语音面试流程、打断恢复和 provider failure fallback 分别由 `E2E.P0.007`、`E2E.P0.008`、`E2E.P0.009` 覆盖。
 - **替代验证 gate**: 不适用；本计划是用户行为功能计划。
 - **Review-fix runtime gate**: BUG-0070 后续要求 voice playback 证据覆盖 response `audioRef` 浏览器可播放、persisted session event 不保存 audio data、barge-in 前 partial `tts_chunk_played`、store replay committed context into next prompt；证据命令：`go test ./internal/practice ./internal/store/practice -count=1` + `pnpm --dir frontend test src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx --run`。
+- **Review-fix fixture gate**: BUG-0072 后续要求 `createPracticeVoiceTurn` HTTP fixture 与真实 service audioRef 语义一致；fixture/default response 的 `ttsChunks[].audioRef` 必须为浏览器可播放 `data:audio/...;base64,...` 或同计划 resolver URL，禁止 `fixture-audio://...` 这类 mock-only scheme 进入 generated fixture client。
 
 ## 4 Operation Matrix
 
