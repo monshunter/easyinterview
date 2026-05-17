@@ -51,7 +51,8 @@ describe("practice legacy-negative gates (Phase 5)", () => {
     );
     expect(text).not.toMatch(/practiceMode\s*[=:]\s*['"]debrief['"]/);
     expect(text).not.toMatch(/切到语音|Switch to voice/);
-    expect(text).not.toMatch(/\bgetFeedbackReport\b|\bcreatePracticeVoiceTurn\b/);
+    expect(text).not.toMatch(/\bgetFeedbackReport\b/);
+    expect(text).not.toMatch(/fetch\s*\([^)]*voice-turns|\/voice-turns\b/);
     expect(text).not.toMatch(
       /AI_PROVIDER_API_KEY|AI_PROVIDER_BASE_URL|prompt-registry|provider-registry|AIClient|LLM endpoint/,
     );

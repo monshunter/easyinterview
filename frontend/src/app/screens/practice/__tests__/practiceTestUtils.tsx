@@ -25,6 +25,7 @@ import type { Route } from "../../../routes";
 import getPracticeSessionFixture from "../../../../../../openapi/fixtures/PracticeSessions/getPracticeSession.json";
 import appendSessionEventFixture from "../../../../../../openapi/fixtures/PracticeSessions/appendSessionEvent.json";
 import completePracticeSessionFixture from "../../../../../../openapi/fixtures/PracticeSessions/completePracticeSession.json";
+import createPracticeVoiceTurnFixture from "../../../../../../openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json";
 import { PracticeScreen } from "../PracticeScreen";
 
 export const SESSION_A = "01918fa0-0000-7000-8000-000000005000";
@@ -45,7 +46,10 @@ export interface BuildFixtureClientOptions {
   /** Per-operationId scenario override (takes precedence over `scenario`). */
   scenarioByOp?: Partial<
     Record<
-      "getPracticeSession" | "appendSessionEvent" | "completePracticeSession",
+      | "getPracticeSession"
+      | "appendSessionEvent"
+      | "completePracticeSession"
+      | "createPracticeVoiceTurn",
       string
     >
   >;
@@ -62,6 +66,7 @@ export function buildPracticeClient(
       getPracticeSessionFixture,
       appendSessionEventFixture,
       completePracticeSessionFixture,
+      createPracticeVoiceTurnFixture,
     ]),
     { scenario: opts.scenario ?? "default" },
   );
@@ -108,6 +113,11 @@ export function buildPracticeClient(
         throw new Error("simulated network failure");
       }
       scenarioOverride = opts.scenarioByOp?.completePracticeSession;
+    } else if (
+      /\/practice\/sessions\/[^/]+\/voice-turns$/.test(path) &&
+      method === "POST"
+    ) {
+      scenarioOverride = opts.scenarioByOp?.createPracticeVoiceTurn;
     }
     if (scenarioOverride) {
       const merged = new Headers(init?.headers ?? {});
@@ -147,6 +157,16 @@ export function completeCalls(all: CapturedRequest[]): CapturedRequest[] {
     (c) =>
       c.method === "POST" &&
       /\/practice\/sessions\/[^/]+\/complete$/.test(
+        new URL(c.url, "http://x").pathname,
+      ),
+  );
+}
+
+export function voiceTurnCalls(all: CapturedRequest[]): CapturedRequest[] {
+  return all.filter(
+    (c) =>
+      c.method === "POST" &&
+      /\/practice\/sessions\/[^/]+\/voice-turns$/.test(
         new URL(c.url, "http://x").pathname,
       ),
   );

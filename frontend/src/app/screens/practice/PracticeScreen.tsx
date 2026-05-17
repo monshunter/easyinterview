@@ -12,6 +12,7 @@ import {
 import type {
   AssistantAction,
   GenerationProvenance,
+  PracticeMode,
 } from "../../../api/generated/types";
 import { useI18n, type MessageKey } from "../../i18n/messages";
 import { useInterviewContext } from "../../interview-context/InterviewContext";
@@ -37,6 +38,7 @@ import { usePracticeEvents } from "./hooks/usePracticeEvents";
 import { usePracticeAssistance } from "./hooks/usePracticeAssistance";
 import { usePracticeSession } from "./hooks/usePracticeSession";
 import { useCompletePracticeSession } from "./hooks/useCompletePracticeSession";
+import { usePracticeVoiceTurn } from "./hooks/usePracticeVoiceTurn";
 import { buildPracticeHandoffParams } from "./utils/practiceHandoffParams";
 
 interface PracticeScreenProps {
@@ -93,6 +95,13 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const assistance = usePracticeAssistance({
     practiceMode,
     practiceGoal,
+  });
+  const generatedPracticeMode: PracticeMode = isStrict ? "strict" : "assisted";
+  const voiceTurn = usePracticeVoiceTurn({
+    sessionId,
+    turnId: loader.data?.currentTurn?.id ?? "",
+    lang,
+    practiceMode: generatedPracticeMode,
   });
   const sessionFlags = usePracticeSession(loader.data?.status ?? null);
   const isNarrow = useNarrowPracticeLayout();
@@ -418,6 +427,36 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     setErrorState(null);
   }, []);
 
+  const handleVoiceTurnSubmit = useCallback(async () => {
+    const turnIndex = loader.data?.currentTurn?.turnIndex;
+    try {
+      const result = await voiceTurn.stopAndSubmit();
+      setTranscript((prev) => [
+        ...prev,
+        {
+          role: "user",
+          text: result.userTranscriptFinal,
+          t: fmtElapsed(elapsed),
+        },
+        {
+          role: "ai",
+          text: result.assistantTextDraft,
+          t: fmtElapsed(elapsed + 1),
+          followUp: true,
+        },
+      ]);
+      if (turnIndex) {
+        setTurnAnnotations((prev) => {
+          const next = new Map(prev);
+          next.set(turnIndex, "follow_up_requested");
+          return next;
+        });
+      }
+    } catch {
+      // usePracticeVoiceTurn owns the visible voice-specific error state.
+    }
+  }, [elapsed, loader.data?.currentTurn?.turnIndex, voiceTurn]);
+
   const handoffNavigatedRef = useRef(false);
   const onFinish = useCallback(async () => {
     if (handoffNavigatedRef.current) return;
@@ -620,8 +659,35 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
                 currentTurn?.questionText ??
                 t("practice.question.skeletonPrompt")
               }
-              recording={!paused}
+              recording={voiceTurn.state.kind === "recording"}
               messages={transcript}
+              captureState={voiceTurn.state.kind}
+              manualTranscriptFallback={voiceTurn.manualTranscriptFallback}
+              onManualTranscriptFallbackChange={
+                voiceTurn.setManualTranscriptFallback
+              }
+              onStartRecording={() => {
+                void voiceTurn.startRecording();
+              }}
+              onSubmitRecording={() => {
+                void handleVoiceTurnSubmit();
+              }}
+              controlsDisabled={inputDisabled || !voiceTurn.ready}
+              voiceError={
+                voiceTurn.state.kind === "error"
+                  ? voiceTurn.state.message
+                  : null
+              }
+              ttsError={
+                voiceTurn.state.kind === "success"
+                  ? voiceTurn.state.result.ttsError
+                  : null
+              }
+              ttsChunkCount={
+                voiceTurn.state.kind === "success"
+                  ? voiceTurn.state.result.ttsChunks.length
+                  : null
+              }
             />
           ) : (
             <>

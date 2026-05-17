@@ -1,7 +1,9 @@
-import { useMemo, type FC } from "react";
+import { useMemo, type CSSProperties, type FC } from "react";
 
+import type { PracticeVoiceTTSError } from "../../../../api/generated/types";
 import type { Lang } from "../../../i18n/messages";
 import type { TranscriptMessage } from "./Transcript";
+import type { PracticeVoiceTurnState } from "../hooks/usePracticeVoiceTurn";
 
 export interface PracticeVoiceSurfaceProps {
   lang: Lang;
@@ -10,6 +12,15 @@ export interface PracticeVoiceSurfaceProps {
   prompt: string;
   recording: boolean;
   messages: TranscriptMessage[];
+  captureState: PracticeVoiceTurnState["kind"];
+  manualTranscriptFallback: string;
+  onManualTranscriptFallbackChange: (next: string) => void;
+  onStartRecording: () => void;
+  onSubmitRecording: () => void;
+  controlsDisabled: boolean;
+  voiceError: string | null;
+  ttsError: PracticeVoiceTTSError | null;
+  ttsChunkCount: number | null;
 }
 
 type VoiceTranscriptMessage = TranscriptMessage | {
@@ -40,6 +51,15 @@ export const PracticeVoiceSurface: FC<PracticeVoiceSurfaceProps> = ({
   prompt,
   recording,
   messages,
+  captureState,
+  manualTranscriptFallback,
+  onManualTranscriptFallbackChange,
+  onStartRecording,
+  onSubmitRecording,
+  controlsDisabled,
+  voiceError,
+  ttsError,
+  ttsChunkCount,
 }) => {
   const samples = useMemo(buildAnnotatedSamples, []);
   const annotations = useMemo(() => buildAnnotations(lang), [lang]);
@@ -160,6 +180,19 @@ export const PracticeVoiceSurface: FC<PracticeVoiceSurfaceProps> = ({
           </div>
         </div>
 
+        <VoiceCaptureControls
+          lang={lang}
+          captureState={captureState}
+          manualTranscriptFallback={manualTranscriptFallback}
+          onManualTranscriptFallbackChange={onManualTranscriptFallbackChange}
+          onStartRecording={onStartRecording}
+          onSubmitRecording={onSubmitRecording}
+          disabled={controlsDisabled}
+          voiceError={voiceError}
+          ttsError={ttsError}
+          ttsChunkCount={ttsChunkCount}
+        />
+
         <div>
           <div
             style={{
@@ -249,6 +282,149 @@ export const PracticeVoiceSurface: FC<PracticeVoiceSurfaceProps> = ({
         </div>
       </div>
     </>
+  );
+};
+
+const VoiceCaptureControls: FC<{
+  lang: Lang;
+  captureState: PracticeVoiceTurnState["kind"];
+  manualTranscriptFallback: string;
+  onManualTranscriptFallbackChange: (next: string) => void;
+  onStartRecording: () => void;
+  onSubmitRecording: () => void;
+  disabled: boolean;
+  voiceError: string | null;
+  ttsError: PracticeVoiceTTSError | null;
+  ttsChunkCount: number | null;
+}> = ({
+  lang,
+  captureState,
+  manualTranscriptFallback,
+  onManualTranscriptFallbackChange,
+  onStartRecording,
+  onSubmitRecording,
+  disabled,
+  voiceError,
+  ttsError,
+  ttsChunkCount,
+}) => {
+  const copy = voiceControlCopy(lang);
+  const recording = captureState === "recording";
+  const submitting = captureState === "submitting";
+  return (
+    <div
+      data-testid="practice-voice-capture"
+      style={{
+        display: "grid",
+        gap: 10,
+        padding: "14px 16px",
+        background: "var(--ei-color-bg-card)",
+        border: "1px solid var(--ei-color-rule-strong)",
+        borderRadius: 3,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          data-testid="practice-voice-capture-status"
+          data-state={captureState}
+          className="ei-mono"
+          style={{
+            fontSize: 11,
+            color: recording
+              ? "var(--ei-color-accent)"
+              : "var(--ei-color-fg-tertiary)",
+          }}
+        >
+          {copy.status[captureState]}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button
+            data-testid="practice-voice-record-toggle"
+            data-state={captureState}
+            type="button"
+            disabled={disabled || recording || submitting}
+            onClick={onStartRecording}
+            style={voiceButtonStyle("primary", disabled || recording || submitting)}
+          >
+            {copy.start}
+          </button>
+          <button
+            data-testid="practice-voice-submit"
+            type="button"
+            disabled={disabled || !recording || submitting}
+            onClick={onSubmitRecording}
+            style={voiceButtonStyle("secondary", disabled || !recording || submitting)}
+          >
+            {copy.submit}
+          </button>
+        </div>
+      </div>
+      <textarea
+        data-testid="practice-voice-manual-fallback"
+        value={manualTranscriptFallback}
+        disabled={submitting}
+        onChange={(event) => onManualTranscriptFallbackChange(event.target.value)}
+        placeholder={copy.manualPlaceholder}
+        style={{
+          width: "100%",
+          minHeight: 56,
+          resize: "vertical",
+          background: "var(--ei-color-bg-soft)",
+          border: "1px solid var(--ei-color-rule-strong)",
+          borderRadius: 2,
+          padding: "8px 10px",
+          color: "var(--ei-color-fg-primary)",
+          fontFamily: "var(--ei-font-sans)",
+          fontSize: 13,
+          lineHeight: 1.45,
+          boxSizing: "border-box",
+        }}
+      />
+      {voiceError ? (
+        <div
+          data-testid="practice-voice-error"
+          style={{
+            color: "var(--ei-color-danger)",
+            fontSize: 12,
+            fontFamily: "var(--ei-font-mono)",
+          }}
+        >
+          {voiceError}
+        </div>
+      ) : null}
+      {ttsError ? (
+        <div
+          data-testid="practice-voice-tts-error"
+          style={{
+            color: "var(--ei-color-warn)",
+            fontSize: 12,
+            fontFamily: "var(--ei-font-mono)",
+          }}
+        >
+          {ttsError.code} · {ttsError.message}
+        </div>
+      ) : null}
+      {ttsChunkCount !== null ? (
+        <div
+          data-testid="practice-voice-tts-status"
+          style={{
+            color: "var(--ei-color-fg-tertiary)",
+            fontSize: 12,
+            fontFamily: "var(--ei-font-mono)",
+          }}
+        >
+          {copy.ttsStatus.replace("{n}", String(ttsChunkCount))}
+        </div>
+      ) : null}
+    </div>
   );
 };
 
@@ -631,4 +807,62 @@ function voiceSurfaceCopy(lang: Lang): {
       pace: "语速",
       liveTranscript: "实时转写",
     };
+}
+
+function voiceControlCopy(lang: Lang): {
+  start: string;
+  submit: string;
+  manualPlaceholder: string;
+  ttsStatus: string;
+  status: Record<PracticeVoiceTurnState["kind"], string>;
+} {
+  return lang === "en"
+    ? {
+      start: "Start recording",
+      submit: "Submit turn",
+      manualPlaceholder: "Optional transcript fallback for STT recovery",
+      ttsStatus: "TTS chunks ready: {n}",
+      status: {
+        idle: "VOICE CAPTURE · idle",
+        recording: "VOICE CAPTURE · recording",
+        submitting: "VOICE CAPTURE · submitting",
+        success: "VOICE CAPTURE · submitted",
+        error: "VOICE CAPTURE · needs attention",
+      },
+    }
+    : {
+      start: "开始录音",
+      submit: "提交本轮",
+      manualPlaceholder: "可选：语音识别不准时补充文字转写",
+      ttsStatus: "TTS chunks ready: {n}",
+      status: {
+        idle: "VOICE CAPTURE · idle",
+        recording: "VOICE CAPTURE · recording",
+        submitting: "VOICE CAPTURE · submitting",
+        success: "VOICE CAPTURE · submitted",
+        error: "VOICE CAPTURE · needs attention",
+      },
+    };
+}
+
+function voiceButtonStyle(
+  tone: "primary" | "secondary",
+  disabled: boolean,
+): CSSProperties {
+  const primary = tone === "primary";
+  return {
+    background: primary
+      ? "var(--ei-color-accent)"
+      : "var(--ei-color-bg-soft)",
+    border: primary
+      ? "1px solid var(--ei-color-accent)"
+      : "1px solid var(--ei-color-rule-strong)",
+    color: primary ? "#fff" : "var(--ei-color-fg-secondary)",
+    padding: "7px 11px",
+    borderRadius: 2,
+    fontSize: 12,
+    fontFamily: "var(--ei-font-sans)",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.55 : 1,
+  };
 }
