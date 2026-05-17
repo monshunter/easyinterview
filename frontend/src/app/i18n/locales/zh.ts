@@ -366,9 +366,144 @@ export const zh = {
   "workspace.errors.generic": "出了点问题，请重试。",
   "workspace.errors.retry": "重试",
   "workspace.errors.backHome": "回到首页",
-  "resumeWorkshop.notImplemented.title": "新建 / 分叉简历版本即将开放",
+  "resumeWorkshop.notImplemented.title": "分叉简历版本即将开放",
   "resumeWorkshop.notImplemented.body":
-    "本版前端先打通简历列表与详情预览，新建简历与基于版本分叉的流程将在后续版本开放。",
+    "基于版本分叉的流程将在后续版本开放。新建简历已可用。",
+  "resumeWorkshop.create.back": "返回简历工坊",
+  "resumeWorkshop.create.eyebrow": "创建第一版简历",
+  "resumeWorkshop.create.title": "上传、粘贴，或用 5 分钟问答生成第一版。",
+  "resumeWorkshop.create.subtitle":
+    "系统会保留原始文件或原始文本，同时解析成结构化简历，并作为可回溯版本保存。",
+  "resumeWorkshop.create.tabs.upload": "上传文件",
+  "resumeWorkshop.create.tabs.paste": "粘贴内容",
+  "resumeWorkshop.create.tabs.guided": "轻量问答",
+  "resumeWorkshop.create.upload.dropzoneTitle": "拖入 PDF / DOCX / Markdown 简历",
+  "resumeWorkshop.create.upload.dropzoneBody":
+    "原始文件会作为原始版本保存，解析出的工作经历、项目、技能和教育经历会进入可编辑结构化简历。",
+  "resumeWorkshop.create.upload.choose": "选择文件",
+  "resumeWorkshop.create.upload.selectedPrefix": "已选择：",
+  "resumeWorkshop.create.upload.uploading": "正在上传…",
+  "resumeWorkshop.create.upload.titleFallback": "上传文件",
+  "resumeWorkshop.create.paste.placeholder": "把你的简历内容粘贴到这里…",
+  "resumeWorkshop.create.paste.helper": "原始文本会保留，并解析成结构化段落。",
+  "resumeWorkshop.create.paste.submit": "解析并保存 v1",
+  "resumeWorkshop.create.paste.titleFallback": "粘贴的简历",
+  "resumeWorkshop.create.guided.eyebrow": "轻量问答建档",
+  "resumeWorkshop.create.guided.helper":
+    "只回答你现在记得的部分，生成后还可以继续补充。",
+  "resumeWorkshop.create.guided.back": "上一步",
+  "resumeWorkshop.create.guided.next": "下一步",
+  "resumeWorkshop.create.guided.generate": "生成 v1",
+  "resumeWorkshop.create.guided.titleFallback": "问答简历",
+  "resumeWorkshop.create.guided.step.recentRole.label": "最近经历",
+  "resumeWorkshop.create.guided.step.recentRole.question":
+    "你最近在哪家公司、担任什么职位？",
+  "resumeWorkshop.create.guided.step.recentRole.placeholder":
+    "公司、职位、时间段…",
+  "resumeWorkshop.create.guided.step.direction.label": "主要方向",
+  "resumeWorkshop.create.guided.step.direction.question":
+    "你主要负责什么产品或技术方向？",
+  "resumeWorkshop.create.guided.step.direction.placeholder":
+    "前端平台、增长、基础设施、数据、AI 应用…",
+  "resumeWorkshop.create.guided.step.proofProject.label": "代表项目",
+  "resumeWorkshop.create.guided.step.proofProject.question":
+    "选一个最能证明你能力的项目。",
+  "resumeWorkshop.create.guided.step.proofProject.placeholder":
+    "背景、你做了什么、最后结果…",
+  "resumeWorkshop.create.guided.step.metrics.label": "量化结果",
+  "resumeWorkshop.create.guided.step.metrics.question":
+    "这个项目能补哪些数字或可验证结果？",
+  "resumeWorkshop.create.guided.step.metrics.placeholder":
+    "性能、收入、采用率、效率、成本…",
+  "resumeWorkshop.create.guided.step.target.label": "目标岗位",
+  "resumeWorkshop.create.guided.step.target.question":
+    "你现在想准备什么类型的岗位？",
+  "resumeWorkshop.create.guided.step.target.placeholder":
+    "资深前端、平台工程、AI 应用工程…",
+  "resumeWorkshop.create.sidebar.whatSavedEyebrow": "会保存什么",
+  "resumeWorkshop.create.sidebar.whatSaved.original.title": "原始版本",
+  "resumeWorkshop.create.sidebar.whatSaved.original.body":
+    "文件、粘贴文本或问答记录都会保留来源。",
+  "resumeWorkshop.create.sidebar.whatSaved.structured.title": "结构化简历",
+  "resumeWorkshop.create.sidebar.whatSaved.structured.body":
+    "工作经历、项目、技能、教育和证据点可编辑。",
+  "resumeWorkshop.create.sidebar.whatSaved.baseline.title": "版本基线",
+  "resumeWorkshop.create.sidebar.whatSaved.baseline.body":
+    "未来针对不同 JD 的版本从 v1 分叉。",
+  "resumeWorkshop.create.sidebar.whatNextEyebrow": "接下来",
+  "resumeWorkshop.create.sidebar.whatNextBody":
+    "提交之后会动态解析原始内容，然后进入预览确认页，确认后才保存为 v1。",
+  "resumeWorkshop.create.errors.validation": "字段校验失败，请检查后重试。",
+  "resumeWorkshop.create.errors.extensionInvalid":
+    "暂不支持该文件类型，仅支持 .pdf / .docx / .md / .txt。",
+  "resumeWorkshop.create.errors.sizeExceeded":
+    "文件超出大小限制 ({maxMb} MB)，请压缩后再试。",
+  "resumeWorkshop.create.errors.uploadFailed": "上传失败 · 请重试。",
+  "resumeWorkshop.create.errors.registerFailed": "提交失败，请重试。",
+  "resumeWorkshop.create.errors.parseTimeout": "解析超时，请重试或返回修改。",
+  "resumeWorkshop.create.errors.alreadyExists": "已存在主版本 · 跳转查看。",
+  "resumeWorkshop.create.errors.confirmFailed": "保存失败，请稍后重试。",
+  "resumeWorkshop.create.auth.pendingLabel": "登录后继续创建简历",
+  "resumeWorkshop.parsing.cancel": "取消并返回修改",
+  "resumeWorkshop.parsing.eyebrow": "解析原始内容",
+  "resumeWorkshop.parsing.title":
+    "正在阅读你的原始内容，生成结构化简历草稿。",
+  "resumeWorkshop.parsing.sourcePrefix": "来源 · ",
+  "resumeWorkshop.parsing.agent": "AGENT 解析中",
+  "resumeWorkshop.parsing.step.extract": "提取原始文本…",
+  "resumeWorkshop.parsing.step.identity":
+    "识别个人信息 · 姓名 · 联系方式 · 城市",
+  "resumeWorkshop.parsing.step.experience":
+    "解析工作经历 · 公司 · 时间线",
+  "resumeWorkshop.parsing.step.projects": "识别代表项目 · 候选清单",
+  "resumeWorkshop.parsing.step.skills": "聚合技能 · 技术栈 · 证据链接",
+  "resumeWorkshop.parsing.step.education": "提取教育背景 · 学位 · 认证",
+  "resumeWorkshop.parsing.step.structure":
+    "生成结构化简历 · 准备进入预览",
+  "resumeWorkshop.parsing.failed.title": "解析失败",
+  "resumeWorkshop.parsing.failed.body":
+    "可重新解析这份内容，或返回上一步修改。",
+  "resumeWorkshop.parsing.failed.retry": "重试解析",
+  "resumeWorkshop.parsing.failed.back": "返回输入",
+  "resumeWorkshop.parsing.failed.code.AI_TIMEOUT_RETRYABLE":
+    "AI 服务响应超时，请重试。",
+  "resumeWorkshop.parsing.failed.code.PARSE_TIMEOUT":
+    "解析超时，请重试或返回修改。",
+  "resumeWorkshop.parsing.failed.code.AI_PROVIDER_TIMEOUT":
+    "AI 服务超时，请重试。",
+  "resumeWorkshop.parsing.failed.code.AI_OUTPUT_INVALID":
+    "AI 输出未通过校验，请重试。",
+  "resumeWorkshop.parsing.failed.code.UNKNOWN":
+    "未知错误，请重试或返回修改。",
+  "resumeWorkshop.preview.back": "回到上一步重新解析",
+  "resumeWorkshop.preview.eyebrow": "预览 · 确认后保存为 v1",
+  "resumeWorkshop.preview.title":
+    "结构化草稿如下，确认后保存为一份新的原始简历。",
+  "resumeWorkshop.preview.sourcePrefix": "来源 · ",
+  "resumeWorkshop.preview.statusParsed": "已解析",
+  "resumeWorkshop.preview.backCta": "返回上一步",
+  "resumeWorkshop.preview.confirm": "确认并保存 v1",
+  "resumeWorkshop.preview.section.summary": "个人简介",
+  "resumeWorkshop.preview.section.experience": "工作经历",
+  "resumeWorkshop.preview.section.projects": "代表项目",
+  "resumeWorkshop.preview.section.skills": "技能",
+  "resumeWorkshop.preview.section.education": "教育",
+  "resumeWorkshop.preview.sidebar.whatSavedEyebrow": "确认后保存什么",
+  "resumeWorkshop.preview.sidebar.whatSaved.original.title": "原始版本",
+  "resumeWorkshop.preview.sidebar.whatSaved.original.body":
+    "原始内容保持不变，可追溯。",
+  "resumeWorkshop.preview.sidebar.whatSaved.structured.title": "结构化简历",
+  "resumeWorkshop.preview.sidebar.whatSaved.structured.body":
+    "上面的草稿 · 后续可编辑。",
+  "resumeWorkshop.preview.sidebar.whatSaved.master.title": "主版本（v1）",
+  "resumeWorkshop.preview.sidebar.whatSaved.master.body":
+    "未来针对岗位的版本从这里分叉。",
+  "resumeWorkshop.preview.sidebar.notesEyebrow": "解析备注",
+  "resumeWorkshop.preview.sidebar.notesBody":
+    "如有遗漏或不准确的内容，保存后可在结构化编辑器里继续调整。",
+  "resumeWorkshop.preview.success": "已保存 v1 主版本 · 进入简历工坊",
+  "resumeWorkshop.preview.alreadyExists": "已存在主版本 · 跳转查看",
+  "resumeWorkshop.create.cta": "还没有简历？1 分钟创建",
   "resumeWorkshop.auth.eyebrow": "简历工坊",
   "resumeWorkshop.auth.title": "登录后查看你的简历版本",
   "resumeWorkshop.auth.body":

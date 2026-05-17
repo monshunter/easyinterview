@@ -17,6 +17,7 @@ const buildPendingActionParams = (
   if (params.tab) restored.tab = params.tab;
   if (params.branchOriginalId)
     restored.branchOriginalId = params.branchOriginalId;
+  if (params.createMode) restored.createMode = params.createMode;
   return restored;
 };
 

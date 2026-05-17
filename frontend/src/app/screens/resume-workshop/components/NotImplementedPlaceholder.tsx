@@ -3,7 +3,7 @@ import type { FC } from "react";
 import { useI18n } from "../../../i18n/messages";
 
 interface NotImplementedPlaceholderProps {
-  flow: "create" | "branch";
+  flow: "branch";
 }
 
 export const NotImplementedPlaceholder: FC<NotImplementedPlaceholderProps> = ({

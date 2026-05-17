@@ -19,12 +19,23 @@ describe("ResumeWorkshopScreen route param parsing", () => {
     expect(screen.queryByTestId("resume-workshop-not-implemented")).not.toBeInTheDocument();
   });
 
-  it("dispatches flow=create to NotImplementedPlaceholder without blocking the screen", () => {
+  it("dispatches flow=create to ResumeCreateFlow without blocking the screen", () => {
     renderResumeWorkshop({ flow: "create" });
     const root = screen.getByTestId("resume-workshop-screen");
     expect(root).toHaveAttribute("data-flow", "create");
-    expect(screen.getByTestId("resume-workshop-not-implemented")).toBeInTheDocument();
+    expect(screen.getByTestId("resume-create-flow")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("resume-workshop-not-implemented"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId("resume-workshop-list")).not.toBeInTheDocument();
+  });
+
+  it("forwards createMode route param to ResumeCreateFlow", () => {
+    renderResumeWorkshop({ flow: "create", createMode: "paste" });
+    const root = screen.getByTestId("resume-workshop-screen");
+    expect(root).toHaveAttribute("data-create-mode", "paste");
+    const flow = screen.getByTestId("resume-create-flow");
+    expect(flow).toHaveAttribute("data-create-mode", "paste");
   });
 
   it("dispatches flow=branch and preserves branchOriginalId", () => {
@@ -72,14 +83,6 @@ describe("ResumeWorkshopScreen route param parsing", () => {
 });
 
 describe("ResumeWorkshopScreen NotImplementedPlaceholder", () => {
-  it("renders a visible coming-soon placeholder for flow=create (P0 not blocking list)", () => {
-    renderResumeWorkshop({ flow: "create" });
-    const placeholder = screen.getByTestId("resume-workshop-not-implemented");
-    expect(placeholder).toHaveAttribute("data-flow", "create");
-    expect(placeholder).toHaveTextContent(/即将开放|coming soon/i);
-    expect(screen.queryByTestId("resume-workshop-list")).not.toBeInTheDocument();
-  });
-
   it("renders the placeholder for flow=branch alongside any branchOriginalId hint", () => {
     renderResumeWorkshop({
       flow: "branch",
@@ -88,6 +91,14 @@ describe("ResumeWorkshopScreen NotImplementedPlaceholder", () => {
     const placeholder = screen.getByTestId("resume-workshop-not-implemented");
     expect(placeholder).toHaveAttribute("data-flow", "branch");
     expect(placeholder).toHaveTextContent(/即将开放|coming soon/i);
+  });
+
+  it("does not render the placeholder when flow=create is in effect (CreateFlow takes over)", () => {
+    renderResumeWorkshop({ flow: "create" });
+    expect(
+      screen.queryByTestId("resume-workshop-not-implemented"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("resume-create-flow")).toBeInTheDocument();
   });
 
   it("does not render the placeholder when flow=list is in effect (placeholder is opt-in via flow param)", () => {

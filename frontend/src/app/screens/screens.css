@@ -939,3 +939,698 @@
     padding: 16px;
   }
 }
+
+/*
+ * Resume Create Flow (frontend-resume-workshop/002).
+ * Source-level parity for ui-design/src/screen-resume-workshop.jsx
+ * ResumeCreateFlow / ResumeParseFlow / ResumePreviewConfirm components.
+ * DOM anchors, computed style, and bounding box are exercised by
+ * frontend/tests/pixel-parity/resume-workshop-create.spec.ts.
+ */
+
+.ei-resume-create-flow,
+.ei-resume-create-parse,
+.ei-resume-create-preview {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.ei-resume-create-back {
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ei-color-fg-tertiary);
+  font-size: 13px;
+  font-family: var(--ei-font-sans);
+  cursor: pointer;
+}
+
+.ei-resume-create-back:hover {
+  color: var(--ei-color-fg-secondary);
+}
+
+.ei-resume-create-header,
+.ei-resume-create-parse-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 860px;
+}
+
+.ei-resume-create-eyebrow,
+.ei-resume-create-parse-eyebrow,
+.ei-resume-create-preview-eyebrow {
+  color: var(--ei-color-accent);
+}
+
+.ei-resume-create-header .ei-text-display,
+.ei-resume-create-parse-header .ei-text-display,
+.ei-resume-create-preview-header .ei-text-display {
+  margin: 0;
+  color: var(--ei-color-fg-primary);
+  font-size: 36px;
+  line-height: 1.15;
+  letter-spacing: -0.022em;
+}
+
+.ei-resume-create-subtitle {
+  margin: 0;
+  color: var(--ei-color-fg-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 720px;
+}
+
+.ei-resume-create-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 22px;
+  align-items: start;
+}
+
+.ei-resume-create-card {
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ei-resume-create-tablist {
+  display: flex;
+  border-bottom: 1px solid var(--ei-color-rule-strong);
+  overflow-x: auto;
+}
+
+.ei-resume-create-tab {
+  padding: 15px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ei-color-fg-tertiary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+
+.ei-resume-create-tab[data-active="true"] {
+  background: var(--ei-color-bg-secondary);
+  border-bottom-color: var(--ei-color-accent);
+  color: var(--ei-color-fg-primary);
+}
+
+.ei-resume-create-tab:focus-visible {
+  outline: 2px solid var(--ei-color-accent);
+  outline-offset: -2px;
+}
+
+.ei-resume-create-tab-panel {
+  padding: 24px;
+}
+
+.ei-resume-create-upload-dropzone {
+  min-height: 260px;
+  border: 1px dashed var(--ei-color-rule-strong);
+  border-radius: 3px;
+  background: var(--ei-color-bg-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  padding: 28px;
+}
+
+.ei-resume-create-upload-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  color: var(--ei-color-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ei-resume-create-upload-title {
+  color: var(--ei-color-fg-primary);
+  font-family: var(--ei-font-serif);
+  font-size: 22px;
+}
+
+.ei-resume-create-upload-body {
+  margin: 0;
+  color: var(--ei-color-fg-tertiary);
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 460px;
+}
+
+.ei-resume-create-upload-input {
+  display: none;
+}
+
+.ei-resume-create-upload-selected {
+  font-size: 12.5px;
+  color: var(--ei-color-fg-tertiary);
+  margin-top: 4px;
+}
+
+.ei-resume-create-upload-selected-name {
+  color: var(--ei-color-fg-primary);
+  margin-left: 4px;
+}
+
+.ei-resume-create-upload-progress {
+  font-size: 12.5px;
+  color: var(--ei-color-fg-secondary);
+}
+
+.ei-resume-create-paste-textarea,
+.ei-resume-create-guided-textarea {
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 2px;
+  padding: 16px;
+  background: var(--ei-color-bg-primary);
+  color: var(--ei-color-fg-primary);
+  font-family: var(--ei-font-sans);
+  font-size: 14px;
+  line-height: 1.65;
+  outline: none;
+  resize: vertical;
+}
+
+.ei-resume-create-paste-footer,
+.ei-resume-create-guided-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.ei-resume-create-paste-helper,
+.ei-resume-create-guided-helper {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ei-color-fg-tertiary);
+}
+
+.ei-resume-create-cta-accent,
+.ei-resume-create-cta-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  height: 38px;
+  border-radius: 2px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--ei-font-sans);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.ei-resume-create-cta-accent {
+  background: var(--ei-color-accent);
+  border: 1px solid var(--ei-color-accent);
+  color: #ffffff;
+}
+
+.ei-resume-create-cta-ghost {
+  background: transparent;
+  border: 1px solid var(--ei-color-rule-strong);
+  color: var(--ei-color-fg-secondary);
+}
+
+.ei-resume-create-cta-accent:disabled,
+.ei-resume-create-cta-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ei-resume-create-guided {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 22px;
+}
+
+.ei-resume-create-guided-steps {
+  border-right: 1px solid var(--ei-color-rule-strong);
+  padding-right: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ei-resume-create-guided-step {
+  width: 100%;
+  padding: 11px 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--ei-color-fg-tertiary);
+  cursor: pointer;
+}
+
+.ei-resume-create-guided-step[data-active="true"] {
+  color: var(--ei-color-fg-primary);
+}
+
+.ei-resume-create-guided-step-index {
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--ei-color-bg-secondary);
+  color: var(--ei-color-fg-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-family: var(--ei-font-mono);
+}
+
+.ei-resume-create-guided-step[data-active="true"]
+  .ei-resume-create-guided-step-index {
+  background: var(--ei-color-accent);
+  color: #ffffff;
+}
+
+.ei-resume-create-guided-eyebrow {
+  color: var(--ei-color-accent);
+  margin-bottom: 10px;
+  display: inline-block;
+}
+
+.ei-resume-create-guided-question {
+  font-family: var(--ei-font-serif);
+  font-size: 24px;
+  color: var(--ei-color-fg-primary);
+  line-height: 1.35;
+  margin: 0 0 16px;
+}
+
+.ei-resume-create-guided-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.ei-resume-create-guided-controls .ei-resume-create-cta-ghost,
+.ei-resume-create-guided-controls .ei-resume-create-cta-accent {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.ei-resume-create-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ei-resume-create-sidebar-card {
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 3px;
+  padding: 20px;
+}
+
+.ei-resume-create-sidebar-eyebrow {
+  display: block;
+  color: var(--ei-color-fg-tertiary);
+  margin-bottom: 12px;
+}
+
+.ei-resume-create-sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ei-resume-create-sidebar-list li {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px dotted var(--ei-color-rule-strong);
+}
+
+.ei-resume-create-sidebar-list li:last-child {
+  border-bottom: none;
+}
+
+.ei-resume-create-sidebar-item-title {
+  font-size: 13.5px;
+  color: var(--ei-color-fg-primary);
+  font-weight: 500;
+}
+
+.ei-resume-create-sidebar-item-body {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--ei-color-fg-tertiary);
+  line-height: 1.5;
+}
+
+.ei-resume-create-error {
+  border: 1px solid var(--ei-color-danger);
+  background: var(--ei-color-danger-soft, var(--ei-color-bg-secondary));
+  color: var(--ei-color-danger);
+  padding: 10px 14px;
+  border-radius: 2px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ei-resume-create-parse-source,
+.ei-resume-create-preview-source {
+  margin: 0;
+  font-family: var(--ei-font-mono);
+  font-size: 13px;
+  color: var(--ei-color-fg-tertiary);
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ei-resume-create-preview-status {
+  color: var(--ei-color-ok, #5a7a4a);
+}
+
+.ei-resume-create-preview-source-divider {
+  color: var(--ei-color-fg-quaternary, var(--ei-color-fg-tertiary));
+  margin: 0 8px;
+}
+
+.ei-resume-create-parse-card {
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-accent);
+  border-left: 3px solid var(--ei-color-accent);
+  padding: 20px 26px;
+  border-radius: 2px;
+}
+
+.ei-resume-create-parse-agent {
+  color: var(--ei-color-accent);
+  margin-bottom: 14px;
+}
+
+.ei-resume-create-parse-agent-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--ei-color-accent);
+  margin-right: 8px;
+  vertical-align: middle;
+  animation: ei-resume-create-parse-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ei-resume-create-parse-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.ei-resume-create-parse-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ei-resume-create-parse-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--ei-font-mono);
+  font-size: 13px;
+  color: var(--ei-color-fg-primary);
+  transition: color 0.25s, opacity 0.25s;
+}
+
+.ei-resume-create-parse-step[data-status="pending"] {
+  color: var(--ei-color-fg-quaternary, var(--ei-color-fg-tertiary));
+  opacity: 0.5;
+}
+
+.ei-resume-create-parse-step[data-status="done"] {
+  color: var(--ei-color-fg-tertiary);
+}
+
+.ei-resume-create-parse-step-marker {
+  width: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ei-resume-create-parse-step[data-status="active"]
+  .ei-resume-create-parse-step-marker {
+  color: var(--ei-color-accent);
+}
+
+.ei-resume-create-parse-step[data-status="done"]
+  .ei-resume-create-parse-step-marker {
+  color: var(--ei-color-ok, #5a7a4a);
+}
+
+.ei-resume-create-parse-failed {
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 3px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ei-resume-create-parse-failed-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.ei-resume-create-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.ei-resume-create-preview-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.ei-resume-create-preview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 22px;
+  align-items: start;
+}
+
+.ei-resume-create-preview-draft {
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 3px;
+  padding: 22px 28px;
+}
+
+.ei-resume-create-preview-identity {
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--ei-color-rule-strong);
+}
+
+.ei-resume-create-preview-name {
+  font-family: var(--ei-font-serif);
+  font-size: 30px;
+  letter-spacing: -0.018em;
+  color: var(--ei-color-fg-primary);
+}
+
+.ei-resume-create-preview-headline {
+  font-size: 14px;
+  color: var(--ei-color-fg-secondary);
+  margin-top: 4px;
+}
+
+.ei-resume-create-preview-contact {
+  font-size: 12.5px;
+  color: var(--ei-color-fg-tertiary);
+  font-family: var(--ei-font-mono);
+  margin-top: 6px;
+}
+
+.ei-resume-preview-section {
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px dotted var(--ei-color-rule-strong);
+}
+
+.ei-resume-preview-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.ei-resume-preview-section-title {
+  color: var(--ei-color-fg-tertiary);
+  margin: 0 0 10px;
+}
+
+.ei-resume-create-preview-summary {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ei-color-fg-secondary);
+  line-height: 1.65;
+}
+
+.ei-resume-create-preview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ei-resume-create-preview-list-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.ei-resume-create-preview-list-role {
+  font-size: 14.5px;
+  color: var(--ei-color-fg-primary);
+  font-weight: 500;
+}
+
+.ei-resume-create-preview-list-co {
+  font-size: 13px;
+  color: var(--ei-color-fg-secondary);
+}
+
+.ei-resume-create-preview-list-period {
+  font-size: 12.5px;
+  color: var(--ei-color-fg-tertiary);
+  font-family: var(--ei-font-mono);
+  white-space: nowrap;
+}
+
+.ei-resume-create-preview-bullets {
+  list-style: disc;
+  padding-left: 18px;
+  margin: 6px 0 0;
+  color: var(--ei-color-fg-secondary);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+.ei-resume-create-preview-projects {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ei-resume-create-preview-projects li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px dotted var(--ei-color-rule-strong);
+}
+
+.ei-resume-create-preview-projects li:last-child {
+  border-bottom: none;
+}
+
+.ei-resume-create-preview-project-name {
+  font-size: 13.5px;
+  color: var(--ei-color-fg-primary);
+}
+
+.ei-resume-create-preview-project-note {
+  font-size: 12.5px;
+  color: var(--ei-color-fg-tertiary);
+  font-family: var(--ei-font-mono);
+}
+
+.ei-resume-create-preview-skills {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ei-resume-create-preview-skills li {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  font-family: var(--ei-font-mono);
+  letter-spacing: 0.04em;
+  background: var(--ei-color-bg-secondary);
+  color: var(--ei-color-fg-secondary);
+  border: 1px solid var(--ei-color-rule-strong);
+  white-space: nowrap;
+}
+
+.ei-resume-create-preview-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (max-width: 720px) {
+  .ei-resume-create-grid,
+  .ei-resume-create-preview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ei-resume-create-guided {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ei-resume-create-guided-steps {
+    border-right: none;
+    border-bottom: 1px solid var(--ei-color-rule-strong);
+    flex-direction: row;
+    overflow-x: auto;
+    padding-right: 0;
+    padding-bottom: 12px;
+    gap: 12px;
+  }
+}

@@ -6,6 +6,7 @@ import { NotImplementedPlaceholder } from "./components/NotImplementedPlaceholde
 import { ResumeDetailView } from "./components/ResumeDetailView";
 import { ResumeListView } from "./components/ResumeListView";
 import { ResumeWorkshopAuthGate } from "./components/ResumeWorkshopAuthGate";
+import { ResumeCreateFlow } from "./create/ResumeCreateFlow";
 import { parseResumeWorkshopParams } from "./params";
 
 interface ResumeWorkshopScreenProps {
@@ -32,11 +33,16 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
   if (params.branchOriginalId) {
     rootDataAttributes["data-branch-original-id"] = params.branchOriginalId;
   }
+  if (params.createMode) {
+    rootDataAttributes["data-create-mode"] = params.createMode;
+  }
 
   let body;
   if (isAuthGated) {
     body = <ResumeWorkshopAuthGate params={params} />;
-  } else if (params.flow === "create" || params.flow === "branch") {
+  } else if (params.flow === "create") {
+    body = <ResumeCreateFlow initialMode={params.createMode ?? undefined} />;
+  } else if (params.flow === "branch") {
     body = <NotImplementedPlaceholder flow={params.flow} />;
   } else if (params.versionId) {
     body = (

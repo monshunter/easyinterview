@@ -377,9 +377,159 @@ export const en: LocaleMessages = {
   "workspace.errors.generic": "Something went wrong. Please retry.",
   "workspace.errors.retry": "Retry",
   "workspace.errors.backHome": "Back to Home",
-  "resumeWorkshop.notImplemented.title": "Coming soon: new resume + branch flows",
+  "resumeWorkshop.notImplemented.title": "Coming soon: resume version branching",
   "resumeWorkshop.notImplemented.body":
-    "This release wires the resume list and read-only detail preview. New resume creation and branching from a version will land in a follow-up release.",
+    "Branching from an existing version will land in a follow-up release. Resume creation is already available.",
+  "resumeWorkshop.create.back": "Back to resume workshop",
+  "resumeWorkshop.create.eyebrow": "FIRST RESUME VERSION",
+  "resumeWorkshop.create.title":
+    "Start from a file, pasted text, or a five-minute guided draft.",
+  "resumeWorkshop.create.subtitle":
+    "We keep the original source, parse it into a structured resume, and save both as a version you can revise later.",
+  "resumeWorkshop.create.tabs.upload": "Upload",
+  "resumeWorkshop.create.tabs.paste": "Paste",
+  "resumeWorkshop.create.tabs.guided": "Guided",
+  "resumeWorkshop.create.upload.dropzoneTitle":
+    "Drop a PDF / DOCX / Markdown resume",
+  "resumeWorkshop.create.upload.dropzoneBody":
+    "The source file is stored as the original version. Parsed sections become your editable structured resume.",
+  "resumeWorkshop.create.upload.choose": "Choose file",
+  "resumeWorkshop.create.upload.selectedPrefix": "Selected: ",
+  "resumeWorkshop.create.upload.uploading": "Uploading…",
+  "resumeWorkshop.create.upload.titleFallback": "Uploaded resume",
+  "resumeWorkshop.create.paste.placeholder": "Paste your resume text here…",
+  "resumeWorkshop.create.paste.helper":
+    "Raw text is retained, then parsed into structured sections.",
+  "resumeWorkshop.create.paste.submit": "Parse and save v1",
+  "resumeWorkshop.create.paste.titleFallback": "Pasted resume",
+  "resumeWorkshop.create.guided.eyebrow": "GUIDED DRAFT",
+  "resumeWorkshop.create.guided.helper":
+    "Answer only the parts you know. The draft can be refined later.",
+  "resumeWorkshop.create.guided.back": "Back",
+  "resumeWorkshop.create.guided.next": "Next",
+  "resumeWorkshop.create.guided.generate": "Generate v1",
+  "resumeWorkshop.create.guided.titleFallback": "Guided resume",
+  "resumeWorkshop.create.guided.step.recentRole.label": "Last role",
+  "resumeWorkshop.create.guided.step.recentRole.question":
+    "Where did you work most recently, and what was your title?",
+  "resumeWorkshop.create.guided.step.recentRole.placeholder":
+    "Company, title, dates…",
+  "resumeWorkshop.create.guided.step.direction.label": "Direction",
+  "resumeWorkshop.create.guided.step.direction.question":
+    "What product or engineering direction did you mainly own?",
+  "resumeWorkshop.create.guided.step.direction.placeholder":
+    "Frontend platform, growth, infra, data…",
+  "resumeWorkshop.create.guided.step.proofProject.label": "Proof project",
+  "resumeWorkshop.create.guided.step.proofProject.question":
+    "Pick one project that proves your level.",
+  "resumeWorkshop.create.guided.step.proofProject.placeholder":
+    "Problem, action, result…",
+  "resumeWorkshop.create.guided.step.metrics.label": "Numbers",
+  "resumeWorkshop.create.guided.step.metrics.question":
+    "What measurable result can we attach to that project?",
+  "resumeWorkshop.create.guided.step.metrics.placeholder":
+    "Performance, revenue, adoption, efficiency…",
+  "resumeWorkshop.create.guided.step.target.label": "Target",
+  "resumeWorkshop.create.guided.step.target.question":
+    "What roles are you preparing for now?",
+  "resumeWorkshop.create.guided.step.target.placeholder":
+    "Senior frontend, staff platform, AI infra…",
+  "resumeWorkshop.create.sidebar.whatSavedEyebrow": "WHAT GETS SAVED",
+  "resumeWorkshop.create.sidebar.whatSaved.original.title": "Original source",
+  "resumeWorkshop.create.sidebar.whatSaved.original.body":
+    "File, pasted text, or guided answers stay traceable.",
+  "resumeWorkshop.create.sidebar.whatSaved.structured.title":
+    "Structured resume",
+  "resumeWorkshop.create.sidebar.whatSaved.structured.body":
+    "Work, projects, skills, education, and evidence are editable.",
+  "resumeWorkshop.create.sidebar.whatSaved.baseline.title": "Version baseline",
+  "resumeWorkshop.create.sidebar.whatSaved.baseline.body":
+    "Future JD-specific resumes branch from this v1.",
+  "resumeWorkshop.create.sidebar.whatNextEyebrow": "WHAT HAPPENS NEXT",
+  "resumeWorkshop.create.sidebar.whatNextBody":
+    "After you submit, we'll parse the source live, then show you a preview to confirm before saving as v1.",
+  "resumeWorkshop.create.errors.validation":
+    "Validation failed — review the fields and retry.",
+  "resumeWorkshop.create.errors.extensionInvalid":
+    "Unsupported file type — only .pdf / .docx / .md / .txt are allowed.",
+  "resumeWorkshop.create.errors.sizeExceeded":
+    "File exceeds {maxMb} MB. Compress or trim before retrying.",
+  "resumeWorkshop.create.errors.uploadFailed": "Upload failed · please retry.",
+  "resumeWorkshop.create.errors.registerFailed":
+    "Submission failed · please retry.",
+  "resumeWorkshop.create.errors.parseTimeout":
+    "Parse timed out · retry or return to edit input.",
+  "resumeWorkshop.create.errors.alreadyExists":
+    "Master version already exists · opening it.",
+  "resumeWorkshop.create.errors.confirmFailed":
+    "Save failed · please retry shortly.",
+  "resumeWorkshop.create.auth.pendingLabel":
+    "Continue creating a resume after sign-in",
+  "resumeWorkshop.parsing.cancel": "Cancel and edit input",
+  "resumeWorkshop.parsing.eyebrow": "PARSING SOURCE",
+  "resumeWorkshop.parsing.title":
+    "Reading your source and drafting a structured resume.",
+  "resumeWorkshop.parsing.sourcePrefix": "source · ",
+  "resumeWorkshop.parsing.agent": "AGENT PARSING",
+  "resumeWorkshop.parsing.step.extract": "Extracting raw text from source…",
+  "resumeWorkshop.parsing.step.identity":
+    "Detecting personal info · name · contact · location",
+  "resumeWorkshop.parsing.step.experience":
+    "Parsing work experience · employers · timeline",
+  "resumeWorkshop.parsing.step.projects":
+    "Identifying flagship projects · candidate list",
+  "resumeWorkshop.parsing.step.skills":
+    "Aggregating skills · stack · evidence links",
+  "resumeWorkshop.parsing.step.education":
+    "Extracting education · degrees · certifications",
+  "resumeWorkshop.parsing.step.structure":
+    "Drafting structured resume · ready to confirm",
+  "resumeWorkshop.parsing.failed.title": "Parsing failed",
+  "resumeWorkshop.parsing.failed.body":
+    "Retry the parse or head back to revise your input.",
+  "resumeWorkshop.parsing.failed.retry": "Retry parse",
+  "resumeWorkshop.parsing.failed.back": "Back to input",
+  "resumeWorkshop.parsing.failed.code.AI_TIMEOUT_RETRYABLE":
+    "AI service timed out — retry shortly.",
+  "resumeWorkshop.parsing.failed.code.PARSE_TIMEOUT":
+    "Parse timed out — retry or return to edit input.",
+  "resumeWorkshop.parsing.failed.code.AI_PROVIDER_TIMEOUT":
+    "AI provider timed out — please retry.",
+  "resumeWorkshop.parsing.failed.code.AI_OUTPUT_INVALID":
+    "AI output failed validation — please retry.",
+  "resumeWorkshop.parsing.failed.code.UNKNOWN":
+    "Unknown error — retry or return to edit input.",
+  "resumeWorkshop.preview.back": "Re-parse from input",
+  "resumeWorkshop.preview.eyebrow": "PREVIEW · CONFIRM TO SAVE AS V1",
+  "resumeWorkshop.preview.title":
+    "Here's the structured draft. Confirm to save it as a new original.",
+  "resumeWorkshop.preview.sourcePrefix": "source · ",
+  "resumeWorkshop.preview.statusParsed": "parsed",
+  "resumeWorkshop.preview.backCta": "Back",
+  "resumeWorkshop.preview.confirm": "Confirm and save v1",
+  "resumeWorkshop.preview.section.summary": "SUMMARY",
+  "resumeWorkshop.preview.section.experience": "EXPERIENCE",
+  "resumeWorkshop.preview.section.projects": "FLAGSHIP PROJECTS",
+  "resumeWorkshop.preview.section.skills": "SKILLS",
+  "resumeWorkshop.preview.section.education": "EDUCATION",
+  "resumeWorkshop.preview.sidebar.whatSavedEyebrow": "WHAT WILL BE SAVED",
+  "resumeWorkshop.preview.sidebar.whatSaved.original.title": "Original source",
+  "resumeWorkshop.preview.sidebar.whatSaved.original.body":
+    "Kept untouched · always traceable.",
+  "resumeWorkshop.preview.sidebar.whatSaved.structured.title":
+    "Structured resume",
+  "resumeWorkshop.preview.sidebar.whatSaved.structured.body":
+    "The draft above · editable later.",
+  "resumeWorkshop.preview.sidebar.whatSaved.master.title": "Master version (v1)",
+  "resumeWorkshop.preview.sidebar.whatSaved.master.body":
+    "Future targeted versions branch from here.",
+  "resumeWorkshop.preview.sidebar.notesEyebrow": "PARSE NOTES",
+  "resumeWorkshop.preview.sidebar.notesBody":
+    "Anything missing or wrong can be fixed in the structured editor after you save.",
+  "resumeWorkshop.preview.success": "Saved v1 master · back to workshop",
+  "resumeWorkshop.preview.alreadyExists":
+    "Master already exists · opening it",
+  "resumeWorkshop.create.cta": "No resume yet — create one in 1 minute",
   "resumeWorkshop.auth.eyebrow": "Resume Workshop",
   "resumeWorkshop.auth.title": "Sign in to view your resume versions",
   "resumeWorkshop.auth.body":

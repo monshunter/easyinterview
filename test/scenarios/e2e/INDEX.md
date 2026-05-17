@@ -78,3 +78,6 @@
 | E2E.P0.078 | backend-resume C-16 | `p0-078-resume-tailor-failure-and-retry/` | resume_tailor timeout retryable, output_invalid terminal, retry-to-ready, and ready-only outbox | automated | Ready |
 | E2E.P0.079 | backend-resume C-16 | `p0-079-resume-suggestion-accept-reject-terminal/` | resume suggestion accept/reject terminal decision + idempotency + cross-user isolation + profile stability | automated | Ready |
 | E2E.P0.080 | backend-resume C-13 | `p0-080-resume-versions-privacy-legacy/` | resume versions/tailor privacy payload and retired vocabulary negative regression | automated | Ready |
+| E2E.P0.081 | frontend-resume-workshop C-10, C-7, C-8, C-9 | `p0-081-resume-create-flow-upload-paste-guided-happy/` | ResumeCreateFlow 三 sourceType happy + presign + register + parse polling + IK + privacy + legacy negative | automated | Ready |
+| E2E.P0.082 | frontend-resume-workshop C-10, C-8 | `p0-082-resume-create-flow-parsing-failure-and-retry/` | Agent Parsing failure / PARSE_TIMEOUT / cancel-and-return + retry-from-input | automated | Ready |
+| E2E.P0.083 | frontend-resume-workshop C-10, C-8, C-9 | `p0-083-resume-create-flow-preview-confirm-and-cta-handoff/` | PreviewConfirm save v1 + 409 fallback + 422 inline + Home/Workspace CTA pendingAction handoff | automated | Ready |

@@ -1,0 +1,185 @@
+// @vitest-environment jsdom
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+
+import { EasyInterviewClient } from "../../../../api/generated/client";
+import {
+  createFixtureBackedFetch,
+  createFixtureRegistry,
+} from "../../../../api/mockTransport";
+import { AppRuntimeProvider } from "../../../runtime/AppRuntimeProvider";
+import { DisplayPreferencesProvider } from "../../../display/DisplayPreferencesProvider";
+import { NavigationProvider } from "../../../navigation/NavigationProvider";
+import { ResumeCreateFlow } from "./ResumeCreateFlow";
+
+import getRuntimeConfigFixture from "../../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
+import getMeFixture from "../../../../../../openapi/fixtures/Auth/getMe.json";
+import createUploadPresignFixture from "../../../../../../openapi/fixtures/Uploads/createUploadPresign.json";
+import registerResumeFixture from "../../../../../../openapi/fixtures/Resumes/registerResume.json";
+import getResumeFixture from "../../../../../../openapi/fixtures/Resumes/getResume.json";
+
+const FIXTURES = [
+  getRuntimeConfigFixture,
+  getMeFixture,
+  // Use a future-dated presign so TTL guard doesn't re-fire in tests.
+  {
+    ...createUploadPresignFixture,
+    scenarios: {
+      default: {
+        ...createUploadPresignFixture.scenarios.default,
+        response: {
+          ...createUploadPresignFixture.scenarios.default.response,
+          body: {
+            ...createUploadPresignFixture.scenarios.default.response.body,
+            expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+          },
+        },
+      },
+    },
+  },
+  registerResumeFixture,
+  getResumeFixture,
+];
+
+function buildClient(): EasyInterviewClient {
+  return new EasyInterviewClient({
+    fetch: createFixtureBackedFetch(createFixtureRegistry(FIXTURES), {
+      scenario: "default",
+    }),
+  });
+}
+
+function renderUploadTab(client: EasyInterviewClient) {
+  return render(
+    <DisplayPreferencesProvider>
+      <AppRuntimeProvider
+        client={client}
+        requestOptions={{
+          getMe: { headers: { Prefer: "example=authenticated" } },
+        }}
+      >
+        <NavigationProvider value={{ navigate: vi.fn() }}>
+          <ResumeCreateFlow />
+        </NavigationProvider>
+      </AppRuntimeProvider>
+    </DisplayPreferencesProvider>,
+  );
+}
+
+function makeFile(name: string, size: number, type: string): File {
+  const blob = new Blob([new Uint8Array(size)], { type });
+  return new File([blob], name, { type, lastModified: 1700000000000 });
+}
+
+describe("UploadTab pre-check + presign + register", () => {
+  let originalFetch: typeof fetch | undefined;
+  let putSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+    putSpy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url =
+        input instanceof URL
+          ? input.href
+          : input instanceof Request
+            ? input.url
+            : String(input);
+      if (url.includes("uploads.acme.example")) {
+        // Echo the body length to assert binary handoff.
+        const body = init?.body as File;
+        return new Response(JSON.stringify({ byteSize: body.size }), {
+          status: 200,
+        });
+      }
+      throw new Error(`unexpected fetch url: ${url}`);
+    });
+    globalThis.fetch = putSpy as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    if (originalFetch) globalThis.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it("rejects an unsupported file extension inline (no presign / register fired)", async () => {
+    const client = buildClient();
+    const presignSpy = vi.spyOn(client, "createUploadPresign");
+    const registerSpy = vi.spyOn(client, "registerResume");
+
+    renderUploadTab(client);
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-create-upload-input")).toBeInTheDocument(),
+    );
+    const input = screen.getByTestId(
+      "resume-create-upload-input",
+    ) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [makeFile("photo.jpeg", 1024, "image/jpeg")] },
+    });
+    expect(
+      screen.getByTestId("resume-create-upload-error"),
+    ).toHaveTextContent(/不支持|Unsupported/);
+    expect(presignSpy).not.toHaveBeenCalled();
+    expect(registerSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized file inline using the 10 MB ceiling from backend-upload D-7", async () => {
+    const client = buildClient();
+    const presignSpy = vi.spyOn(client, "createUploadPresign");
+
+    renderUploadTab(client);
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-create-upload-input")).toBeInTheDocument(),
+    );
+    const input = screen.getByTestId(
+      "resume-create-upload-input",
+    ) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: {
+        files: [makeFile("huge.pdf", 11 * 1024 * 1024, "application/pdf")],
+      },
+    });
+    expect(
+      screen.getByTestId("resume-create-upload-error"),
+    ).toHaveTextContent(/10 MB|超出|exceeds/i);
+    expect(presignSpy).not.toHaveBeenCalled();
+  });
+
+  it("completes presign + browser PUT + registerResume + advances stage to parsing", async () => {
+    const client = buildClient();
+    const presignSpy = vi.spyOn(client, "createUploadPresign");
+    const registerSpy = vi.spyOn(client, "registerResume");
+
+    renderUploadTab(client);
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-create-upload-input")).toBeInTheDocument(),
+    );
+    const input = screen.getByTestId(
+      "resume-create-upload-input",
+    ) as HTMLInputElement;
+    const file = makeFile("alice.pdf", 2048, "application/pdf");
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-parse-flow")).toBeInTheDocument();
+    });
+    expect(presignSpy).toHaveBeenCalledTimes(1);
+    expect(presignSpy.mock.calls[0]![1]?.idempotencyKey).toMatch(
+      /^v1\.\d+\.[0-9a-f-]{36}$/,
+    );
+    expect(registerSpy).toHaveBeenCalledTimes(1);
+    const registerCall = registerSpy.mock.calls[0]!;
+    expect(registerCall[0]).toMatchObject({
+      sourceType: "upload",
+      fileObjectId: "01918fa0-0000-7000-8000-000000001100",
+      title: "alice.pdf",
+    });
+    expect(registerCall[1]?.idempotencyKey).toMatch(/^v1\.\d+\.[0-9a-f-]{36}$/);
+    expect(putSpy).toHaveBeenCalledTimes(1);
+    // The DOM transitions to ParseFlow; the original file blob is NOT rendered
+    // anywhere in the document body text.
+    const bodyText = document.body.textContent ?? "";
+    expect(bodyText).not.toContain("application/pdf");
+    expect(bodyText).not.toContain(file.name + ".binary");
+  });
+});
