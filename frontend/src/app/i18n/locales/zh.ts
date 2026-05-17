@@ -694,6 +694,27 @@ export const zh = {
     "字段校验失败，请重试。",
   "resumeWorkshop.rewrites.error.manualPendingRetry":
     "人工改写已保存，但状态写入失败，请重试。",
+  // ── Edit tab (plan 003) ──
+  "resumeWorkshop.edit.scope.master":
+    "正在编辑主版本。已分叉的定制版本会保留已采纳的句子，未改的字段跟随主版本。",
+  "resumeWorkshop.edit.scope.targeted":
+    "正在编辑「{versionName}」。改动不会影响主版本或其它定制版本。",
+  "resumeWorkshop.edit.headlineLabel": "一句话标题",
+  "resumeWorkshop.edit.summaryLabel": "简介",
+  "resumeWorkshop.edit.save": "保存改动",
+  "resumeWorkshop.edit.saving": "保存中…",
+  "resumeWorkshop.edit.section.experience": "工作经历",
+  "resumeWorkshop.edit.section.skills": "技能",
+  "resumeWorkshop.edit.section.add": "新增",
+  "resumeWorkshop.edit.section.comingSoon":
+    "Experience / Skills 列表编辑即将开放",
+  "resumeWorkshop.edit.toast.saved": "已保存改动 · {versionName}",
+  "resumeWorkshop.edit.error.validation": "字段校验失败，请重试。",
+  "resumeWorkshop.edit.error.idempotency":
+    "上一次保存还在处理 · 请稍后重试",
+  "resumeWorkshop.edit.error.crossUser":
+    "未找到该版本，可能已被删除。",
+  "resumeWorkshop.edit.error.generic": "保存失败，请重试。",
   // ── Practice screen (plan 002) ──
   "practice.toolbar.companySkeleton": "目标公司",
   "practice.toolbar.titleSkeleton": "目标岗位",

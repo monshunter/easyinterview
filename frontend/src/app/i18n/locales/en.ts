@@ -736,6 +736,28 @@ export const en: LocaleMessages = {
     "Validation failed. Please retry.",
   "resumeWorkshop.rewrites.error.manualPendingRetry":
     "Manual edit saved but status write failed - please retry.",
+  // ── Edit tab (plan 003) ──
+  "resumeWorkshop.edit.scope.master":
+    "Editing the master. Targeted versions branched from this master keep their accepted bullets but unedited fields follow.",
+  "resumeWorkshop.edit.scope.targeted":
+    "Editing {versionName}. Changes here do not affect the master or other versions.",
+  "resumeWorkshop.edit.headlineLabel": "HEADLINE",
+  "resumeWorkshop.edit.summaryLabel": "SUMMARY",
+  "resumeWorkshop.edit.save": "Save changes",
+  "resumeWorkshop.edit.saving": "Saving...",
+  "resumeWorkshop.edit.section.experience": "EXPERIENCE",
+  "resumeWorkshop.edit.section.skills": "SKILLS",
+  "resumeWorkshop.edit.section.add": "Add",
+  "resumeWorkshop.edit.section.comingSoon":
+    "Experience / Skills list editing is coming soon",
+  "resumeWorkshop.edit.toast.saved": "Changes saved for {versionName}",
+  "resumeWorkshop.edit.error.validation":
+    "Validation failed. Please retry.",
+  "resumeWorkshop.edit.error.idempotency":
+    "Previous save is still processing - please retry shortly",
+  "resumeWorkshop.edit.error.crossUser":
+    "Version not found - it may have been deleted.",
+  "resumeWorkshop.edit.error.generic": "Save failed. Please retry.",
   // ── Practice screen (plan 002) ──
   "practice.toolbar.companySkeleton": "Target company",
   "practice.toolbar.titleSkeleton": "Target role",

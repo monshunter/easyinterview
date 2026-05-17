@@ -104,12 +104,19 @@
 
 ## Phase 6: Edit Tab + updateResumeVersion 保存
 
-- [ ] 6.1 实现 `frontend/src/app/screens/resume-workshop/tabs/ResumeEditTab.tsx`：源级复刻 UI 真理源 top banner + headline input + summary textarea + experience section placeholder + skills section placeholder + 保存改动按钮（验证：Vitest DOM ≥ 10 testid + master vs targeted scope banner i18n）
-- [ ] 6.2 实现 `tabs/hooks/useUpdateResumeVersion.ts`：`generateIdempotencyKey()` + generated client `updateResumeVersion` + 错误映射；mapper 过滤不可编辑字段（验证：Vitest mapper + happy / 422 / 409 至少 ≥ 8 case PASS）
-- [ ] 6.3 P0 实际可编辑字段：headline + summary；experience / skills section 仅 placeholder 渲染，Add 按钮 toast `敬请期待`（验证：Vitest Add click + toast 断言）
-- [ ] 6.4 保存后行为：toast + 触发 `getResumeVersion(versionId)` refetch；不刷新整页路由（验证：Vitest）
-- [ ] 6.5 fixture parity test：`updateResumeVersion.json` `default / idempotency-replay / validation-error-422` 与 hook 字节匹配（验证：fixture parity test PASS）
-- [ ] 6.6 隐私：DOM 渲染 structuredProfile fields 但 URL / pendingAction / localStorage / mock transport log 不含字段内容（验证：Vitest spy grep）
+- [x] 6.1 实现 `frontend/src/app/screens/resume-workshop/tabs/ResumeEditTab.tsx`：源级复刻 UI 真理源 top banner + headline input + summary textarea + experience section placeholder + skills section placeholder + 保存改动按钮（验证：Vitest DOM ≥ 10 testid + master vs targeted scope banner i18n）
+  <!-- verified: 2026-05-18 method=vitest evidence=tabs/ResumeEditTab.tsx mirrors ui-design L943-1012 scope banner + headline input + summary textarea + Experience/Skills placeholder sections + save button; ResumeEditTab.test.tsx asserts 12 testids (resume-edit-{tab, scope-banner, scope-banner-message, headline-input, summary-textarea, section-experience, -experience-add, -experience-placeholder, section-skills, -skills-add, -skills-placeholder, save-button}) plus data-scope=master|targeted attribute on the scope banner -->
+- [x] 6.2 实现 `tabs/hooks/useUpdateResumeVersion.ts`：`generateIdempotencyKey()` + generated client `updateResumeVersion` + 错误映射；mapper 过滤不可编辑字段（验证：Vitest mapper + happy / 422 / 409 至少 ≥ 8 case PASS）
+  <!-- verified: 2026-05-18 method=vitest evidence=tabs/hooks/useUpdateResumeVersion.ts (landed in Phase 4 for manual-edit composition, reused by Edit Tab in Phase 6); filterUpdateResumeVersionPayload throws on {versionType, resumeAssetId, parentVersionId, targetJobId, seedStrategy}; per-payload-fingerprint IK cache replays on retry, clears on 422; UpdateResumeVersionError envelope maps {validation, idempotency_conflict, cross_user, generic}; useUpdateResumeVersion.test.tsx 8 cases PASS -->
+- [x] 6.3 P0 实际可编辑字段：headline + summary；experience / skills section 仅 placeholder 渲染，Add 按钮 toast `敬请期待`（验证：Vitest Add click + toast 断言）
+  <!-- verified: 2026-05-18 method=vitest evidence=ResumeEditTab.tsx only persists {headline, summary} via onSave; Experience/Skills sections render as SectionPlaceholder; Add buttons call window.eiToast with the comingSoon copy and do NOT invoke onSave; ResumeEditTab.test.tsx "Experience / Skills Add buttons fire a 'coming soon' toast and do not call onSave" PASS -->
+- [x] 6.4 保存后行为：toast + 触发 `getResumeVersion(versionId)` refetch；不刷新整页路由（验证：Vitest）
+  <!-- verified: 2026-05-18 method=vitest evidence=ResumeDetailView ResumeEditTabContainer.onSave: after useUpdateResumeVersion.update resolves, fireResumeWorkshopToast(resumeWorkshop.edit.toast.saved with {versionName}) + onVersionRefreshed() (passed in from ResumeDetailView versionQuery.retry); no nav() call on success path, route stays on resume_versions detail; ResumeEditTab.test.tsx asserts data-edit-saving toggle and that disabled save state mirrors saving prop -->
+- [x] 6.5 fixture parity test：`updateResumeVersion.json` `default / idempotency-replay / validation-error-422` 与 hook 字节匹配（验证：fixture parity test PASS）
+  <!-- verified: 2026-05-18 method=vitest evidence=useUpdateResumeVersion.test.tsx "captures the canonical updateResumeVersion fixture scenario keys" asserts Object.keys(updateFixture.scenarios).sort() === [default, idempotency-replay, validation-error-422]; happy-path test consumes scenarios.default body bytes directly without synthetic schema -->
+- [x] 6.6 隐私：DOM 渲染 structuredProfile fields 但 URL / pendingAction / localStorage / mock transport log 不含字段内容（验证：Vitest spy grep）
+  <!-- verified: 2026-05-18 method=vitest evidence=ResumeEditTab.test.tsx "does not append headline / summary text to URL or localStorage on render or typing" spies window.localStorage.setItem + window.history.replaceState and asserts confidential headline/summary strings do not appear on either surface, also checks window.location.href stays clean -->
+
 
 ## Phase 7: i18n + a11y + 隐私 + UI parity + BDD + 旧入口负向
 

@@ -14,8 +14,10 @@ import { ComingSoonTab } from "./ComingSoonTab";
 import { NotFoundEmptyState } from "./NotFoundEmptyState";
 import { OriginalResumePreviewModal } from "./OriginalResumePreviewModal";
 import { ResumePreviewTab } from "./ResumePreviewTab";
+import { ResumeEditTab } from "../tabs/ResumeEditTab";
 import { ResumeRewritesTab } from "../tabs/ResumeRewritesTab";
 import { useResumeRewritesActions } from "../tabs/hooks/useResumeRewritesActions";
+import { useUpdateResumeVersion } from "../tabs/hooks/useUpdateResumeVersion";
 import {
   SuggestionDecisionError,
 } from "../tabs/hooks/useTailorSuggestionDecision";
@@ -260,7 +262,10 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
             onVersionRefreshed={versionQuery.retry}
           />
         ) : (
-          <ComingSoonTab variant="edit" />
+          <ResumeEditTabContainer
+            version={version}
+            onVersionRefreshed={versionQuery.retry}
+          />
         )}
       </div>
 
@@ -472,6 +477,76 @@ const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
       onRequestRerun={handleRerun}
       manualEditPendingFor={actions.manualPendingFor}
       pollingBanner={pollingBanner}
+    />
+  );
+};
+
+interface ResumeEditTabContainerProps {
+  version: ResumeVersion;
+  onVersionRefreshed: () => void;
+}
+
+const ResumeEditTabContainer: FC<ResumeEditTabContainerProps> = ({
+  version,
+  onVersionRefreshed,
+}) => {
+  const { t } = useI18n();
+  const updater = useUpdateResumeVersion();
+  const saving = !!updater.pendingFor[version.id];
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const onSave = async ({
+    headline,
+    summary,
+  }: {
+    headline: string;
+    summary: string;
+  }) => {
+    setErrorMessage(null);
+    const existing = (version.structuredProfile ?? {}) as Record<string, unknown>;
+    const nextProfile = {
+      ...existing,
+      headline,
+      summary,
+    };
+    try {
+      await updater.update({
+        versionId: version.id,
+        payload: { structuredProfile: nextProfile },
+      });
+      fireResumeWorkshopToast(
+        t("resumeWorkshop.edit.toast.saved").replace(
+          "{versionName}",
+          version.displayName,
+        ),
+        "ok",
+      );
+      onVersionRefreshed();
+    } catch (err) {
+      if (err instanceof UpdateResumeVersionError) {
+        if (err.kind === "validation") {
+          setErrorMessage(t("resumeWorkshop.edit.error.validation"));
+          return;
+        }
+        if (err.kind === "idempotency_conflict") {
+          setErrorMessage(t("resumeWorkshop.edit.error.idempotency"));
+          return;
+        }
+        if (err.kind === "cross_user") {
+          setErrorMessage(t("resumeWorkshop.edit.error.crossUser"));
+          return;
+        }
+      }
+      setErrorMessage(t("resumeWorkshop.edit.error.generic"));
+    }
+  };
+
+  return (
+    <ResumeEditTab
+      version={version}
+      onSave={onSave}
+      saving={saving}
+      errorMessage={errorMessage}
     />
   );
 };
