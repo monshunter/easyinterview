@@ -23,6 +23,6 @@ Handlers wrapped by `idempotency.Middleware` must call `idempotency.SetResponseR
 
 - `003-mode-policies-and-provenance` delivered assisted-mode hint behavior, `practice.turn.lightweight_observe` wiring, `hint_generate` task-run provenance, and strict-mode hint conflict replay.
 - `004-derived-plans-debrief` owns retry, next-round, and debrief-derived plan behavior.
-- `005-voice-turn-extension` owns voice/audio routes. 002 does not mount independent voice endpoints.
+- `practice-voice-mvp/001-cascaded-stt-llm-tts` owns voice/audio routes and the `createPracticeVoiceTurn` handoff. 002 does not mount independent voice endpoints.
 - `006-privacy-cascade-and-cleanup` owns account deletion cascade and timeout sweeps.
 - backend-review/report generation owns report content, scoring, and readiness computation. 002 only creates the queued `feedback_report`, `report_generate` job, and `practice.session.completed` source event.

@@ -1,8 +1,8 @@
 # Practice Voice MVP Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-17
 
 ## 1 背景与目标
 
@@ -78,14 +78,18 @@ Voice turn 必须区分：
 
 ### 4.3 API / Contract 约束
 
-新增或修订 API 必须遵守 `docs/development.md` §2 的 Frontend / Backend Contract Workflow。推荐新增：
+新增或修订 API 必须遵守 `docs/development.md` §2 的 Frontend / Backend Contract Workflow。本计划锁定以下 P0 HTTP 边界：
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` | `PracticeScreen` voice turn controller | `backend/internal/practice` voice turn handler/service | session events + optional transient audio metadata | `practice.voice.stt.default` + `practice.followup.default` + `practice.voice.tts.default` | `E2E.P0.007` / `E2E.P0.008` / `E2E.P0.009` |
-| `appendSessionEvent` | existing / extended fixture | voice player progress reporter | existing or extended session event handler | session events | none, records playback/interrupt events | `E2E.P0.008` |
+| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` scenarios `default` / `stt-config-missing` / `chat-failed` / `tts-failed` | `PracticeScreen` voice turn controller | `backend/internal/practice` voice turn handler/service mounted by `backend/internal/api/practice` | session events + transient in-memory audio metadata only; no long-term audio retention by default | `practice.voice.stt.default` + `practice.followup.default` + `practice.voice.tts.default` | `E2E.P0.007` / `E2E.P0.009` |
+| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` extended with `voice-tts-started` / `voice-tts-played` / `voice-barge-in` / `voice-context-committed` | voice player progress reporter | existing `appendSessionEvent` handler/service extended with voice event kinds | session events | none, records playback/interrupt events | `E2E.P0.008` |
 
 前端不得直连豆包或 MiniMax provider，也不得持有 provider key。
+
+`createPracticeVoiceTurn` 是会产生会话事件的 side-effect endpoint，必须携带 `Idempotency-Key`。请求体必须显式携带 `clientVoiceTurnId`、`turnId`、`audio.contentBase64`、`audio.contentType`、`audio.durationMs`、`language`、`practiceMode` 与可选 `manualTranscriptFallback`；不允许把 raw audio 写入 URL、日志、AI metadata 或 audit metadata。响应体必须区分 `userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`voiceTurnId`、`providerMetaSummary` 与可空 `ttsError`。`ttsChunks[]` 只包含 chunk id、content type、duration、byte length/hash、playback URL 或 inline test fixture handle，不包含音频明文。
+
+`appendSessionEvent.kind` 必须扩展为 `tts_chunk_started`、`tts_chunk_played`、`barge_in_detected`、`assistant_context_committed`。这些事件继续使用 body-level `clientEventId`，不得携带 `Idempotency-Key`。payload 必须携带 `voiceTurnId`、`chunkId`、`playedTextHash` / `playedTextLength`、`playbackOffsetMs`、`occurredAt` 等摘要字段；如需提交业务正文，只能写入 session event schema 中明确允许的 committed assistant text，不得写入 AI/audit metadata。
 
 ### 4.4 隐私 / 安全 / 观测约束
 
