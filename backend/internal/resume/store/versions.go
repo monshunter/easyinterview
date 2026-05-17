@@ -1,0 +1,167 @@
+package store
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/lib/pq"
+	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
+)
+
+// CreateStructuredMasterFromAsset creates the first active structured master
+// version for a ready resume asset. The asset row lock serializes competing
+// confirmations for the same resume asset; the partial unique index remains the
+// final concurrency backstop.
+func (r *Repository) CreateStructuredMasterFromAsset(ctx context.Context, in CreateStructuredMasterInput) (VersionRecord, error) {
+	if r == nil || r.db == nil {
+		return VersionRecord{}, fmt.Errorf("resume store db is nil")
+	}
+	now := in.Now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	profile := in.StructuredProfile
+	if len(profile) == 0 {
+		profile = json.RawMessage(`{}`)
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return VersionRecord{}, fmt.Errorf("begin structured master create: %w", err)
+	}
+	defer tx.Rollback()
+
+	var parseStatus string
+	err = tx.QueryRowContext(ctx, `
+select parse_status
+from resume_assets
+where id = $1 and user_id = $2 and deleted_at is null
+for update`,
+		in.ResumeAssetID,
+		in.UserID,
+	).Scan(&parseStatus)
+	if errors.Is(err, sql.ErrNoRows) {
+		return VersionRecord{}, ErrAssetNotFound
+	}
+	if err != nil {
+		return VersionRecord{}, fmt.Errorf("lock resume asset for structured master: %w", err)
+	}
+	if sharedtypes.TargetJobParseStatus(parseStatus) != sharedtypes.TargetJobParseStatusReady {
+		return VersionRecord{}, ErrAssetParseNotReady
+	}
+
+	rec, err := scanVersion(tx.QueryRowContext(ctx, `
+insert into resume_versions (
+  id, user_id, resume_asset_id, parent_version_id, version_type, target_job_id,
+  display_name, seed_strategy, focus_angle, structured_profile, match_score,
+  prompt_version, rubric_version, model_id, provider, created_at, updated_at
+) values ($1,$2,$3,null,$4,null,$5,null,null,$6,null,$7,$8,$9,$10,$11,$11)
+returning id, user_id, resume_asset_id, parent_version_id, version_type, target_job_id,
+          display_name, seed_strategy, focus_angle, structured_profile, match_score,
+          prompt_version, rubric_version, model_id, provider, created_at, updated_at, deleted_at`,
+		in.VersionID,
+		in.UserID,
+		in.ResumeAssetID,
+		string(sharedtypes.ResumeVersionTypeStructuredMaster),
+		in.DisplayName,
+		profile,
+		nullableString(in.Provenance.PromptVersion),
+		nullableString(in.Provenance.RubricVersion),
+		nullableString(in.Provenance.ModelID),
+		nullableString(in.Provenance.Provider),
+		now,
+	))
+	if isStructuredMasterUniqueViolation(err) {
+		return VersionRecord{}, ErrStructuredMasterAlreadyExists
+	}
+	if err != nil {
+		return VersionRecord{}, fmt.Errorf("insert structured master resume version: %w", err)
+	}
+	rec.Provenance = in.Provenance
+	if err := tx.Commit(); err != nil {
+		return VersionRecord{}, fmt.Errorf("commit structured master create: %w", err)
+	}
+	return rec, nil
+}
+
+func scanVersion(row rowScanner) (VersionRecord, error) {
+	var rec VersionRecord
+	var parentVersionID, targetJobID, seedStrategy, focusAngle sql.NullString
+	var matchScore sql.NullFloat64
+	var promptVersion, rubricVersion, modelID, provider sql.NullString
+	var structuredProfile []byte
+	var versionType string
+	var deletedAt sql.NullTime
+	if err := row.Scan(
+		&rec.ID,
+		&rec.UserID,
+		&rec.ResumeAssetID,
+		&parentVersionID,
+		&versionType,
+		&targetJobID,
+		&rec.DisplayName,
+		&seedStrategy,
+		&focusAngle,
+		&structuredProfile,
+		&matchScore,
+		&promptVersion,
+		&rubricVersion,
+		&modelID,
+		&provider,
+		&rec.CreatedAt,
+		&rec.UpdatedAt,
+		&deletedAt,
+	); err != nil {
+		return VersionRecord{}, err
+	}
+	rec.ParentVersionID = stringPtrFromNull(parentVersionID)
+	rec.VersionType = sharedtypes.ResumeVersionType(versionType)
+	rec.TargetJobID = stringPtrFromNull(targetJobID)
+	if seedStrategy.Valid {
+		v := sharedtypes.ResumeSeedStrategy(seedStrategy.String)
+		rec.SeedStrategy = &v
+	}
+	rec.FocusAngle = stringPtrFromNull(focusAngle)
+	if len(structuredProfile) == 0 {
+		structuredProfile = []byte(`{}`)
+	}
+	rec.StructuredProfile = append(json.RawMessage(nil), structuredProfile...)
+	if matchScore.Valid {
+		rec.MatchScore = &matchScore.Float64
+	}
+	rec.PromptVersion = stringPtrFromNull(promptVersion)
+	rec.RubricVersion = stringPtrFromNull(rubricVersion)
+	rec.ModelID = stringPtrFromNull(modelID)
+	rec.Provider = stringPtrFromNull(provider)
+	if rec.PromptVersion != nil {
+		rec.Provenance.PromptVersion = *rec.PromptVersion
+	}
+	if rec.RubricVersion != nil {
+		rec.Provenance.RubricVersion = *rec.RubricVersion
+	}
+	if rec.ModelID != nil {
+		rec.Provenance.ModelID = *rec.ModelID
+	}
+	if rec.Provider != nil {
+		rec.Provenance.Provider = *rec.Provider
+	}
+	if deletedAt.Valid {
+		rec.DeletedAt = &deletedAt.Time
+	}
+	return rec, nil
+}
+
+func isStructuredMasterUniqueViolation(err error) bool {
+	if err == nil {
+		return false
+	}
+	var pqErr *pq.Error
+	if errors.As(err, &pqErr) {
+		return string(pqErr.Code) == "23505" && pqErr.Constraint == "uq_resume_versions_structured_master_per_asset"
+	}
+	return false
+}

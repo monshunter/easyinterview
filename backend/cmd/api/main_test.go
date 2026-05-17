@@ -16,14 +16,19 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	apijobs "github.com/monshunter/easyinterview/backend/internal/api/jobs"
 	apireports "github.com/monshunter/easyinterview/backend/internal/api/reports"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
+	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
+	domainresume "github.com/monshunter/easyinterview/backend/internal/resume"
 	resumehandler "github.com/monshunter/easyinterview/backend/internal/resume/handler"
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
+	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 	"github.com/monshunter/easyinterview/backend/internal/upload/objectstore"
 	"github.com/monshunter/easyinterview/backend/internal/upload/store"
@@ -260,6 +265,7 @@ runtime:
 		{http.MethodGet, "/api/v1/resumes"},
 		{http.MethodPost, "/api/v1/resumes"},
 		{http.MethodGet, "/api/v1/resumes/018f2a40-0000-7000-9000-0000000000a1"},
+		{http.MethodPost, "/api/v1/resumes/018f2a40-0000-7000-9000-0000000000a1/structured-master"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
@@ -275,6 +281,165 @@ runtime:
 			}
 		})
 	}
+}
+
+func TestResumeConfirmStructuredMasterHTTPScenario(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	sessionTime := time.Date(2026, 5, 17, 17, 30, 0, 0, time.UTC)
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store: &apiAuthStore{
+			session: auth.SessionRecord{
+				ID:        "session-1",
+				UserID:    "user-1",
+				Status:    auth.SessionStatusActive,
+				ExpiresAt: sessionTime.Add(time.Hour),
+			},
+			user: auth.UserContext{ID: "user-1", Email: "candidate@example.com"},
+		},
+		SessionCookieSecret: "session-secret",
+		Now:                 func() time.Time { return sessionTime },
+	})
+	version := api.ResumeVersion{
+		Id:            "version-1",
+		ResumeAssetId: "asset-1",
+		VersionType:   sharedtypes.ResumeVersionTypeStructuredMaster,
+		DisplayName:   "Structured master",
+		StructuredProfile: map[string]any{"headline": "Senior engineer", "provenance": map[string]any{
+			"promptVersion": "resume_profile.v1", "rubricVersion": "not_applicable", "modelId": "model-1", "language": "en", "featureFlag": "none", "dataSourceVersion": "asset.v1",
+		}},
+		Provenance: api.GenerationProvenance{
+			PromptVersion: "resume_profile.v1", RubricVersion: "not_applicable", ModelId: "model-1", Language: "en", FeatureFlag: "none", DataSourceVersion: "asset.v1",
+		},
+		Suggestions: []any{},
+		CreatedAt:   sessionTime.Format(time.RFC3339),
+		UpdatedAt:   sessionTime.Format(time.RFC3339),
+	}
+	idemStore := &apiIdempotencyStore{}
+	resumeSvc := &apiConfirmResumeService{out: version}
+	handler := buildAPIHandlerWithUploadAndHandlers(
+		loader,
+		apiRuntimeFlags{},
+		service,
+		targetjob.NewHandler(),
+		practiceRoutes{},
+		uploadRoutes{},
+		resumeRoutes{
+			Handler: resumehandler.New(resumehandler.Options{Service: resumeSvc, Session: currentUserFromContext}),
+			Idempotency: idempotency.New(idempotency.MiddlewareOptions{
+				Store: idemStore,
+				Now:   func() time.Time { return sessionTime },
+				NewID: func() string { return "idem-rec-1" },
+			}),
+		},
+	)
+
+	t.Run("missing session", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/resumes/asset-1/structured-master", strings.NewReader(validAPIConfirmBody()))
+		req.Header.Set(idempotency.HeaderName, "idem-confirm")
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+		if !strings.Contains(rec.Body.String(), `"code":"AUTH_UNAUTHORIZED"`) {
+			t.Fatalf("expected auth envelope, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("missing idempotency key", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPost, "/api/v1/resumes/asset-1/structured-master", validAPIConfirmBody(), "")
+
+		handler.ServeHTTP(rec, req)
+
+		assertAPIStatusCode(t, rec, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
+	})
+
+	t.Run("happy path persists idempotency resource", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPost, "/api/v1/resumes/asset-1/structured-master", validAPIConfirmBody(), "idem-confirm")
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+		if resumeSvc.calls != 1 || resumeSvc.in.UserID != "user-1" || resumeSvc.in.ResumeAssetID != "asset-1" {
+			t.Fatalf("service calls=%d input=%+v", resumeSvc.calls, resumeSvc.in)
+		}
+		if idemStore.completeIn.Operation != "confirmResumeStructuredMaster" || idemStore.completeIn.ResourceType != "resume_version" || idemStore.completeIn.ResourceID != "version-1" {
+			t.Fatalf("idempotency completion = %+v", idemStore.completeIn)
+		}
+		if rec.Header().Get("X-Idempotency-Resource-Type") != "" || rec.Header().Get("X-Idempotency-Resource-ID") != "" {
+			t.Fatalf("internal idempotency headers leaked: %v", rec.Header())
+		}
+	})
+
+	t.Run("idempotency replay bypasses service", func(t *testing.T) {
+		replayStore := &apiIdempotencyStore{reservation: idempotency.Reservation{
+			State:          idempotency.StateReplay,
+			RecordID:       "idem-rec-replay",
+			ResponseStatus: http.StatusCreated,
+			ResponseBody:   []byte(`{"id":"version-replay","resumeAssetId":"asset-1","versionType":"structured_master","displayName":"Structured master","structuredProfile":{},"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"},"suggestions":[],"createdAt":"2026-05-17T17:30:00Z","updatedAt":"2026-05-17T17:30:00Z"}`),
+		}}
+		replaySvc := &apiConfirmResumeService{out: version}
+		replayHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{
+				Handler:     resumehandler.New(resumehandler.Options{Service: replaySvc, Session: currentUserFromContext}),
+				Idempotency: idempotency.New(idempotency.MiddlewareOptions{Store: replayStore, Now: func() time.Time { return sessionTime }}),
+			},
+		)
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPost, "/api/v1/resumes/asset-1/structured-master", validAPIConfirmBody(), "idem-confirm")
+
+		replayHandler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusCreated || rec.Header().Get(idempotency.ReplayHeader) != "true" {
+			t.Fatalf("replay status=%d header=%q body=%s", rec.Code, rec.Header().Get(idempotency.ReplayHeader), rec.Body.String())
+		}
+		if replaySvc.calls != 0 {
+			t.Fatalf("service calls on replay = %d, want 0", replaySvc.calls)
+		}
+	})
+
+	t.Run("concurrent unique conflict maps to 409", func(t *testing.T) {
+		conflictSvc := &apiConfirmResumeService{err: domainresume.ErrStructuredMasterAlreadyExists}
+		conflictHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{
+				Handler:     resumehandler.New(resumehandler.Options{Service: conflictSvc, Session: currentUserFromContext}),
+				Idempotency: idempotency.New(idempotency.MiddlewareOptions{Store: &apiIdempotencyStore{}, Now: func() time.Time { return sessionTime }}),
+			},
+		)
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPost, "/api/v1/resumes/asset-1/structured-master", validAPIConfirmBody(), "idem-conflict")
+
+		conflictHandler.ServeHTTP(rec, req)
+
+		assertAPIStatusCode(t, rec, http.StatusConflict, sharederrors.CodeResumeStructuredMasterAlreadyExists)
+	})
 }
 
 func TestBuildAPIHandlerMountsReportRoutesBehindSessionMiddleware(t *testing.T) {
@@ -838,6 +1003,78 @@ func apiFixedIDs(ids ...string) func() string {
 		id := ids[index]
 		index++
 		return id
+	}
+}
+
+type apiConfirmResumeService struct {
+	calls int
+	in    domainresume.ConfirmStructuredMasterInput
+	out   api.ResumeVersion
+	err   error
+}
+
+func (s *apiConfirmResumeService) RegisterResume(context.Context, domainresume.RegisterInput) (api.ResumeAssetWithJob, error) {
+	return api.ResumeAssetWithJob{}, errors.New("not implemented")
+}
+
+func (s *apiConfirmResumeService) ConfirmStructuredMaster(_ context.Context, in domainresume.ConfirmStructuredMasterInput) (api.ResumeVersion, error) {
+	s.calls++
+	s.in = in
+	return s.out, s.err
+}
+
+type apiIdempotencyStore struct {
+	reserveIn   idempotency.ReservationInput
+	completeIn  idempotency.CompletionInput
+	reservation idempotency.Reservation
+	err         error
+}
+
+func (s *apiIdempotencyStore) Reserve(_ context.Context, in idempotency.ReservationInput) (idempotency.Reservation, error) {
+	s.reserveIn = in
+	if s.err != nil {
+		return idempotency.Reservation{}, s.err
+	}
+	if s.reservation.State == "" {
+		return idempotency.Reservation{State: idempotency.StateExecute, RecordID: "idem-rec-1"}, nil
+	}
+	return s.reservation, nil
+}
+
+func (s *apiIdempotencyStore) MarkSucceeded(_ context.Context, in idempotency.CompletionInput) error {
+	s.completeIn = in
+	return nil
+}
+
+func (s *apiIdempotencyStore) MarkFailed(_ context.Context, in idempotency.CompletionInput) error {
+	s.completeIn = in
+	return nil
+}
+
+func authenticatedAPIRequest(method, path, body, idempotencyKey string) *http.Request {
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: "raw-session-token"})
+	if idempotencyKey != "" {
+		req.Header.Set(idempotency.HeaderName, idempotencyKey)
+	}
+	return req
+}
+
+func validAPIConfirmBody() string {
+	return `{"displayName":"Structured master","language":"en","structuredProfile":{"headline":"Senior engineer","provenance":{"promptVersion":"resume_profile.v1","rubricVersion":"not_applicable","modelId":"model-1","language":"en","featureFlag":"none","dataSourceVersion":"asset.v1"}}}`
+}
+
+func assertAPIStatusCode(t *testing.T, rec *httptest.ResponseRecorder, status int, code string) {
+	t.Helper()
+	if rec.Code != status {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	var payload api.ApiErrorResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode error response: %v", err)
+	}
+	if payload.Error.Code != code {
+		t.Fatalf("error code = %q, want %q", payload.Error.Code, code)
 	}
 }
 

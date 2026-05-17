@@ -1,13 +1,14 @@
 # DB Migrations Baseline History
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: active
-> **更新日期**: 2026-05-15
+> **更新日期**: 2026-05-17
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-17 | 1.20 | 登记 backend-resume/002 cross-owner addendum：新增 `migrations/000007_resume_versions_structured_master_unique.{up,down}.sql`，为 `resume_versions(resume_asset_id)` 建立 `version_type='structured_master' AND deleted_at IS NULL` partial UNIQUE INDEX，兜底 Preview Confirm 保存 v1 时同一 resume_asset 只能存在一条 active structured_master。 | backend-resume/002-versions-tailor-runs-and-save-v1 Phase 2 |
 | 2026-05-15 | 1.19 | 登记 backend-review/001 Phase 0 pre-launch baseline rebase 授权：在该 plan 实施时补齐 `ai_task_runs.task_type` 的 `report_assessment`、`feedback_reports` 的 `language` / `feature_flag` / `data_source_version` / `retry_focus_turn_ids`，并同步 `migrations/enum-sources.yaml`、`migrations/lint.sh`、`backend/internal/ai/aiclient/writers.go` 的 report assessment capability gate；该授权接在 backend-practice/003 已占用的 1.17/1.18 之后，避免 merge 后版本冲突。 | backend-review/001-report-generation-baseline Phase 0.3 / 0.5 |
 | 2026-05-15 | 1.18 | 授权 backend-practice/003 L2 follow-up 在 pre-launch baseline 的 `practice_session_events` 上新增 nullable `replay_payload jsonb`，把 redacted event payload 与 `appendSessionEvent` clientEventId replay snapshot 分离；`payload` 继续不含 hint / question / answer / prompt / response 明文，`replay_payload` 仅服务同事件结果重放并随事件级联删除。 | backend-practice/003-mode-policies-and-provenance L2 replay follow-up |
 | 2026-05-14 | 1.17 | 授权 backend-practice/003 Phase 0 将 `ai_task_runs.task_type` CHECK 扩值 `hint_generate`（pre-launch baseline rebase）；hint 路径 AI 调用持久化到 ai_task_runs typed columns，graceful degrade 时 `validation_status='failed'` 仍写一行（A3 callErr 路径由 decorator 写，F3 resolve / parse-after-success 路径由 applyHintAI 显式写）。 | backend-practice/003-mode-policies-and-provenance Phase 0 |

@@ -493,9 +493,11 @@ func stringPtrFromNull(in sql.NullString) *string {
 }
 
 var (
-	ErrAssetNotFound          = errors.New("resume asset not found")
-	ErrInvalidStateTransition = errors.New("invalid resume parse status transition")
-	ErrInvalidCursor          = errors.New("invalid resume list cursor")
+	ErrAssetNotFound                 = errors.New("resume asset not found")
+	ErrAssetParseNotReady            = errors.New("resume asset parse is not ready")
+	ErrStructuredMasterAlreadyExists = errors.New("structured master resume version already exists")
+	ErrInvalidStateTransition        = errors.New("invalid resume parse status transition")
+	ErrInvalidCursor                 = errors.New("invalid resume list cursor")
 )
 
 func encodeCursor(updatedAt time.Time, id string) string {

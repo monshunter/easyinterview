@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/lib/pq"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
@@ -104,8 +105,111 @@ func TestRepositoryExposesResumeAssetMethods(t *testing.T) {
 		MarkParsing(context.Context, resumestore.StatusUpdateInput) error
 		MarkReady(context.Context, resumestore.MarkReadyInput) error
 		MarkFailed(context.Context, resumestore.MarkFailedInput) error
+		CreateStructuredMasterFromAsset(context.Context, resumestore.CreateStructuredMasterInput) (resumestore.VersionRecord, error)
 		DeleteForUser(context.Context, string, time.Time) error
 	} = (*resumestore.Repository)(nil)
+}
+
+func TestCreateStructuredMasterFromAssetInsertsReadyAssetMaster(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 5, 17, 16, 30, 0, 0, time.UTC)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`select parse_status`)).
+		WithArgs("asset-1", "user-1").
+		WillReturnRows(sqlmock.NewRows([]string{"parse_status"}).AddRow(string(sharedtypes.TargetJobParseStatusReady)))
+	mock.ExpectQuery(regexp.QuoteMeta(`insert into resume_versions`)).
+		WithArgs(
+			"version-1",
+			"user-1",
+			"asset-1",
+			string(sharedtypes.ResumeVersionTypeStructuredMaster),
+			"Structured master",
+			[]byte(`{"headline":"Senior engineer"}`),
+			"resume_profile.v1",
+			"not_applicable",
+			"model-1",
+			nil,
+			now,
+		).
+		WillReturnRows(versionRows().AddRow(
+			"version-1", "user-1", "asset-1", nil, string(sharedtypes.ResumeVersionTypeStructuredMaster), nil,
+			"Structured master", nil, nil, []byte(`{"headline":"Senior engineer"}`), nil,
+			"resume_profile.v1", "not_applicable", "model-1", nil, now, now, nil,
+		))
+	mock.ExpectCommit()
+
+	got, err := repo.CreateStructuredMasterFromAsset(context.Background(), resumestore.CreateStructuredMasterInput{
+		VersionID:         "version-1",
+		UserID:            "user-1",
+		ResumeAssetID:     "asset-1",
+		DisplayName:       "Structured master",
+		StructuredProfile: []byte(`{"headline":"Senior engineer"}`),
+		Provenance: resumestore.VersionProvenance{
+			PromptVersion: "resume_profile.v1",
+			RubricVersion: "not_applicable",
+			ModelID:       "model-1",
+		},
+		Now: now,
+	})
+	if err != nil {
+		t.Fatalf("CreateStructuredMasterFromAsset: %v", err)
+	}
+	if got.ID != "version-1" || got.VersionType != sharedtypes.ResumeVersionTypeStructuredMaster || got.ParentVersionID != nil || got.TargetJobID != nil || got.SeedStrategy != nil {
+		t.Fatalf("version = %+v", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestCreateStructuredMasterFromAssetValidatesOwnershipReadinessAndUniqueIndex(t *testing.T) {
+	tests := []struct {
+		name      string
+		selectErr error
+		status    sharedtypes.TargetJobParseStatus
+		insertErr error
+		want      error
+	}{
+		{name: "cross user not found", selectErr: sql.ErrNoRows, want: resumestore.ErrAssetNotFound},
+		{name: "parse not ready", status: sharedtypes.TargetJobParseStatusProcessing, want: resumestore.ErrAssetParseNotReady},
+		{name: "structured master already exists", status: sharedtypes.TargetJobParseStatusReady, insertErr: &pq.Error{Code: "23505", Constraint: "uq_resume_versions_structured_master_per_asset"}, want: resumestore.ErrStructuredMasterAlreadyExists},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, mock, cleanup := newMockRepository(t)
+			defer cleanup()
+			mock.ExpectBegin()
+			selectQuery := mock.ExpectQuery(regexp.QuoteMeta(`select parse_status`)).
+				WithArgs("asset-1", "user-1")
+			if tc.selectErr != nil {
+				selectQuery.WillReturnError(tc.selectErr)
+			} else {
+				selectQuery.WillReturnRows(sqlmock.NewRows([]string{"parse_status"}).AddRow(string(tc.status)))
+			}
+			if tc.insertErr != nil {
+				mock.ExpectQuery(regexp.QuoteMeta(`insert into resume_versions`)).
+					WillReturnError(tc.insertErr)
+			}
+			mock.ExpectRollback()
+
+			_, err := repo.CreateStructuredMasterFromAsset(context.Background(), resumestore.CreateStructuredMasterInput{
+				VersionID:         "version-1",
+				UserID:            "user-1",
+				ResumeAssetID:     "asset-1",
+				DisplayName:       "Structured master",
+				StructuredProfile: []byte(`{"headline":"Senior engineer"}`),
+			})
+
+			if !errors.Is(err, tc.want) {
+				t.Fatalf("err = %v, want %v", err, tc.want)
+			}
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Fatalf("sql expectations: %v", err)
+			}
+		})
+	}
 }
 
 func TestParseStatusTransition(t *testing.T) {
@@ -303,6 +407,29 @@ func assetRows() *sqlmock.Rows {
 		"source_type",
 		"error_code",
 		"latest_parse_job_id",
+		"created_at",
+		"updated_at",
+		"deleted_at",
+	})
+}
+
+func versionRows() *sqlmock.Rows {
+	return sqlmock.NewRows([]string{
+		"id",
+		"user_id",
+		"resume_asset_id",
+		"parent_version_id",
+		"version_type",
+		"target_job_id",
+		"display_name",
+		"seed_strategy",
+		"focus_angle",
+		"structured_profile",
+		"match_score",
+		"prompt_version",
+		"rubric_version",
+		"model_id",
+		"provider",
 		"created_at",
 		"updated_at",
 		"deleted_at",

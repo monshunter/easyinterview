@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS uq_resume_versions_structured_master_per_asset;

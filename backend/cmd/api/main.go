@@ -26,6 +26,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	apidebriefs "github.com/monshunter/easyinterview/backend/internal/api/debriefs"
+	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	apijobs "github.com/monshunter/easyinterview/backend/internal/api/jobs"
 	apipractice "github.com/monshunter/easyinterview/backend/internal/api/practice"
 	apireports "github.com/monshunter/easyinterview/backend/internal/api/reports"
@@ -43,6 +44,7 @@ import (
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	domainreview "github.com/monshunter/easyinterview/backend/internal/review"
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
@@ -319,11 +321,18 @@ func buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader *config.Loader
 		if resume.Idempotency != nil {
 			registerResume = resume.Idempotency.Handler("resume", "registerResume", requestUserFromContext, registerResume).ServeHTTP
 		}
+		confirmStructuredMaster := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.ConfirmResumeStructuredMaster(w, r, r.PathValue("resumeAssetId"))
+		})
+		if resume.Idempotency != nil {
+			confirmStructuredMaster = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "confirmResumeStructuredMaster", requestUserFromContext, confirmStructuredMaster)).ServeHTTP
+		}
 		mux.Handle("GET /api/v1/resumes", auth.SessionMiddleware(authService, "listResumes", http.HandlerFunc(resume.Handler.ListResumes)))
 		mux.Handle("POST /api/v1/resumes", auth.SessionMiddleware(authService, "registerResume", registerResume))
 		mux.Handle("GET /api/v1/resumes/{resumeAssetId}", auth.SessionMiddleware(authService, "getResume", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resume.Handler.GetResume(w, r, r.PathValue("resumeAssetId"))
 		})))
+		mux.Handle("POST /api/v1/resumes/{resumeAssetId}/structured-master", auth.SessionMiddleware(authService, "confirmResumeStructuredMaster", confirmStructuredMaster))
 	}
 	if reports.Handler != nil {
 		mux.Handle("GET /api/v1/reports/{reportId}", auth.SessionMiddleware(authService, "getFeedbackReport", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -832,6 +841,29 @@ func currentUserFromContext(ctx context.Context) (string, bool) {
 
 func requestUserFromContext(r *http.Request) (string, bool) {
 	return currentUserFromContext(r.Context())
+}
+
+func requireIdempotencyKey(status int, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.TrimSpace(r.Header.Get(idempotency.HeaderName)) == "" {
+			writeRouteAPIError(w, status, sharederrors.CodeValidationFailed, "Idempotency-Key header is required")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func writeRouteAPIError(w http.ResponseWriter, status int, code string, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	meta := sharederrors.CodeRegistry[code]
+	raw, _ := json.Marshal(api.ApiErrorResponse{Error: api.ApiError{
+		Code:      code,
+		Message:   message,
+		RequestID: "",
+		Retryable: meta.Retryable,
+	}})
+	_, _ = w.Write(raw)
 }
 
 // registryDirOrDefault returns the configured F3 truth-source path or

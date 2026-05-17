@@ -61,6 +61,48 @@ type AssetRecord struct {
 	DeletedAt          *time.Time
 }
 
+type VersionProvenance struct {
+	PromptVersion     string
+	RubricVersion     string
+	ModelID           string
+	Provider          string
+	Language          string
+	FeatureFlag       string
+	DataSourceVersion string
+}
+
+type CreateStructuredMasterInput struct {
+	VersionID         string
+	UserID            string
+	ResumeAssetID     string
+	DisplayName       string
+	StructuredProfile json.RawMessage
+	Provenance        VersionProvenance
+	Now               time.Time
+}
+
+type VersionRecord struct {
+	ID                string
+	UserID            string
+	ResumeAssetID     string
+	ParentVersionID   *string
+	VersionType       sharedtypes.ResumeVersionType
+	TargetJobID       *string
+	DisplayName       string
+	SeedStrategy      *sharedtypes.ResumeSeedStrategy
+	FocusAngle        *string
+	StructuredProfile json.RawMessage
+	MatchScore        *float64
+	PromptVersion     *string
+	RubricVersion     *string
+	ModelID           *string
+	Provider          *string
+	Provenance        VersionProvenance
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	DeletedAt         *time.Time
+}
+
 type ListFilter struct {
 	Cursor   string
 	PageSize int

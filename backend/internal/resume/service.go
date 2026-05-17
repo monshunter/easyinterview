@@ -19,8 +19,10 @@ import (
 )
 
 var (
-	ErrValidationFailed = errors.New("resume validation failed")
-	ErrNotFound         = errors.New("resume asset not found")
+	ErrValidationFailed              = errors.New("resume validation failed")
+	ErrNotFound                      = errors.New("resume asset not found")
+	ErrAssetParseNotReady            = errors.New("resume asset parse is not ready")
+	ErrStructuredMasterAlreadyExists = errors.New("structured master resume version already exists")
 )
 
 type RegisterInput struct {
@@ -41,6 +43,10 @@ type RegisterStore interface {
 type ReadStore interface {
 	Get(ctx context.Context, userID string, assetID string) (resumestore.AssetRecord, error)
 	List(ctx context.Context, userID string, filter resumestore.ListFilter) (resumestore.ListResult, error)
+}
+
+type StructuredMasterStore interface {
+	CreateStructuredMasterFromAsset(ctx context.Context, in resumestore.CreateStructuredMasterInput) (resumestore.VersionRecord, error)
 }
 
 type UploadRegistrar interface {
@@ -199,6 +205,64 @@ func (s *Service) ListResumes(ctx context.Context, in ListRequest) (api.Paginate
 	return out, nil
 }
 
+type ConfirmStructuredMasterInput struct {
+	UserID            string
+	ResumeAssetID     string
+	DisplayName       string
+	Language          string
+	StructuredProfile map[string]any
+}
+
+func (s *Service) ConfirmStructuredMaster(ctx context.Context, in ConfirmStructuredMasterInput) (api.ResumeVersion, error) {
+	if s == nil {
+		return api.ResumeVersion{}, fmt.Errorf("resume structured master store is not configured")
+	}
+	store, ok := s.store.(StructuredMasterStore)
+	if !ok {
+		return api.ResumeVersion{}, fmt.Errorf("resume structured master store is not configured")
+	}
+	userID := strings.TrimSpace(in.UserID)
+	assetID := strings.TrimSpace(in.ResumeAssetID)
+	displayName := strings.TrimSpace(in.DisplayName)
+	if userID == "" || assetID == "" || displayName == "" || len(in.StructuredProfile) == 0 {
+		return api.ResumeVersion{}, ErrValidationFailed
+	}
+	provenance, err := extractVersionProvenance(in.StructuredProfile)
+	if err != nil {
+		return api.ResumeVersion{}, ErrValidationFailed
+	}
+	if provenance.Language == "" {
+		provenance.Language = strings.TrimSpace(in.Language)
+	}
+	if provenance.Language == "" {
+		return api.ResumeVersion{}, ErrValidationFailed
+	}
+	profile, err := json.Marshal(in.StructuredProfile)
+	if err != nil {
+		return api.ResumeVersion{}, ErrValidationFailed
+	}
+	rec, err := store.CreateStructuredMasterFromAsset(ctx, resumestore.CreateStructuredMasterInput{
+		VersionID:         s.newID(),
+		UserID:            userID,
+		ResumeAssetID:     assetID,
+		DisplayName:       displayName,
+		StructuredProfile: profile,
+		Provenance:        provenance,
+		Now:               s.now(),
+	})
+	switch {
+	case errors.Is(err, resumestore.ErrAssetNotFound):
+		return api.ResumeVersion{}, ErrNotFound
+	case errors.Is(err, resumestore.ErrAssetParseNotReady):
+		return api.ResumeVersion{}, ErrAssetParseNotReady
+	case errors.Is(err, resumestore.ErrStructuredMasterAlreadyExists):
+		return api.ResumeVersion{}, ErrStructuredMasterAlreadyExists
+	case err != nil:
+		return api.ResumeVersion{}, err
+	}
+	return versionRecordToAPI(rec), nil
+}
+
 func (s *Service) dedupeKey(userID, idempotencyKey string) string {
 	h := sha256.New()
 	h.Write([]byte("resume.register.v1"))
@@ -254,6 +318,154 @@ func assetRecordToAPI(rec resumestore.AssetRecord) api.ResumeAsset {
 		out.ParsedTextSnapshot = cloneStringPtr(rec.ParsedTextSnapshot)
 	}
 	return out
+}
+
+func extractVersionProvenance(profile map[string]any) (resumestore.VersionProvenance, error) {
+	raw, ok := profile["provenance"].(map[string]any)
+	if !ok || len(raw) == 0 {
+		return resumestore.VersionProvenance{}, fmt.Errorf("structured profile provenance is required")
+	}
+	out := resumestore.VersionProvenance{
+		PromptVersion:     stringValue(raw["promptVersion"]),
+		RubricVersion:     stringValue(raw["rubricVersion"]),
+		ModelID:           stringValue(raw["modelId"]),
+		Provider:          stringValue(raw["provider"]),
+		Language:          stringValue(raw["language"]),
+		FeatureFlag:       stringValue(raw["featureFlag"]),
+		DataSourceVersion: stringValue(raw["dataSourceVersion"]),
+	}
+	if out.PromptVersion == "" || out.RubricVersion == "" || out.ModelID == "" || out.FeatureFlag == "" || out.DataSourceVersion == "" {
+		return resumestore.VersionProvenance{}, fmt.Errorf("structured profile provenance is incomplete")
+	}
+	return out, nil
+}
+
+func stringValue(v any) string {
+	s, _ := v.(string)
+	return strings.TrimSpace(s)
+}
+
+func versionRecordToAPI(rec resumestore.VersionRecord) api.ResumeVersion {
+	profile := rawJSONAny(rec.StructuredProfile)
+	provenance := rec.Provenance
+	if profileMap, ok := profile.(map[string]any); ok {
+		if profileProvenance, err := extractVersionProvenance(profileMap); err == nil {
+			fillProvenance(&provenance, profileProvenance)
+		}
+	}
+	if provenance.PromptVersion == "" && rec.PromptVersion != nil {
+		provenance.PromptVersion = *rec.PromptVersion
+	}
+	if provenance.RubricVersion == "" && rec.RubricVersion != nil {
+		provenance.RubricVersion = *rec.RubricVersion
+	}
+	if provenance.ModelID == "" && rec.ModelID != nil {
+		provenance.ModelID = *rec.ModelID
+	}
+	if provenance.Provider == "" && rec.Provider != nil {
+		provenance.Provider = *rec.Provider
+	}
+	promptVersion := cloneStringPtr(rec.PromptVersion)
+	if promptVersion == nil && provenance.PromptVersion != "" {
+		promptVersion = pointerString(provenance.PromptVersion)
+	}
+	rubricVersion := cloneStringPtr(rec.RubricVersion)
+	if rubricVersion == nil && provenance.RubricVersion != "" {
+		rubricVersion = pointerString(provenance.RubricVersion)
+	}
+	modelID := cloneStringPtr(rec.ModelID)
+	if modelID == nil && provenance.ModelID != "" {
+		modelID = pointerString(provenance.ModelID)
+	}
+	provider := cloneStringPtr(rec.Provider)
+	if provider == nil && provenance.Provider != "" {
+		provider = pointerString(provenance.Provider)
+	}
+	out := api.ResumeVersion{
+		Id:                rec.ID,
+		ResumeAssetId:     rec.ResumeAssetID,
+		ParentVersionId:   cloneStringPtr(rec.ParentVersionID),
+		VersionType:       rec.VersionType,
+		TargetJobId:       cloneStringPtr(rec.TargetJobID),
+		DisplayName:       rec.DisplayName,
+		SeedStrategy:      cloneSeedStrategyPtr(rec.SeedStrategy),
+		FocusAngle:        cloneStringPtr(rec.FocusAngle),
+		StructuredProfile: profile,
+		MatchScore:        cloneFloatPtr(rec.MatchScore),
+		PromptVersion:     promptVersion,
+		RubricVersion:     rubricVersion,
+		ModelId:           modelID,
+		Provider:          provider,
+		Provenance: api.GenerationProvenance{
+			PromptVersion:     provenance.PromptVersion,
+			RubricVersion:     provenance.RubricVersion,
+			ModelId:           provenance.ModelID,
+			Language:          provenance.Language,
+			FeatureFlag:       provenance.FeatureFlag,
+			DataSourceVersion: provenance.DataSourceVersion,
+		},
+		Suggestions: []any{},
+		CreatedAt:   rec.CreatedAt.UTC().Format(time.RFC3339),
+		UpdatedAt:   rec.UpdatedAt.UTC().Format(time.RFC3339),
+		DeletedAt:   timePtrToString(rec.DeletedAt),
+	}
+	return out
+}
+
+func fillProvenance(target *resumestore.VersionProvenance, fallback resumestore.VersionProvenance) {
+	if target.PromptVersion == "" {
+		target.PromptVersion = fallback.PromptVersion
+	}
+	if target.RubricVersion == "" {
+		target.RubricVersion = fallback.RubricVersion
+	}
+	if target.ModelID == "" {
+		target.ModelID = fallback.ModelID
+	}
+	if target.Provider == "" {
+		target.Provider = fallback.Provider
+	}
+	if target.Language == "" {
+		target.Language = fallback.Language
+	}
+	if target.FeatureFlag == "" {
+		target.FeatureFlag = fallback.FeatureFlag
+	}
+	if target.DataSourceVersion == "" {
+		target.DataSourceVersion = fallback.DataSourceVersion
+	}
+}
+
+func pointerString(in string) *string {
+	v := in
+	return &v
+}
+
+func rawJSONAny(raw json.RawMessage) any {
+	if len(raw) == 0 {
+		return map[string]any{}
+	}
+	var out any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return map[string]any{}
+	}
+	return out
+}
+
+func cloneSeedStrategyPtr(in *sharedtypes.ResumeSeedStrategy) *sharedtypes.ResumeSeedStrategy {
+	if in == nil {
+		return nil
+	}
+	v := *in
+	return &v
+}
+
+func cloneFloatPtr(in *float64) *float64 {
+	if in == nil {
+		return nil
+	}
+	v := *in
+	return &v
 }
 
 func rawJSONMapPtr(raw json.RawMessage) *map[string]any {

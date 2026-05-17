@@ -156,6 +156,82 @@ func TestGetResumeMapsStoreNotFound(t *testing.T) {
 	}
 }
 
+func TestConfirmStructuredMasterCreatesStructuredMasterVersion(t *testing.T) {
+	now := time.Date(2026, 5, 17, 16, 0, 0, 0, time.UTC)
+	store := &fakeRegisterStore{structuredOut: resumestore.VersionRecord{
+		ID:              "version-1",
+		UserID:          "user-1",
+		ResumeAssetID:   "asset-1",
+		VersionType:     "structured_master",
+		DisplayName:     "Structured master",
+		StructuredProfile: json.RawMessage(`{"headline":"Senior engineer","provenance":{"promptVersion":"resume_profile.v1","rubricVersion":"not_applicable","modelId":"model-1","language":"en","featureFlag":"none","dataSourceVersion":"asset.v1"}}`),
+		Provenance: resumestore.VersionProvenance{
+			PromptVersion: "resume_profile.v1", RubricVersion: "not_applicable", ModelID: "model-1", Language: "en", FeatureFlag: "none", DataSourceVersion: "asset.v1",
+		},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}}
+	svc := resume.NewService(resume.ServiceOptions{
+		Store: store,
+		Now:   func() time.Time { return now },
+		NewID: sequenceIDs("version-1"),
+	})
+
+	got, err := svc.ConfirmStructuredMaster(context.Background(), resume.ConfirmStructuredMasterInput{
+		UserID:        "user-1",
+		ResumeAssetID: "asset-1",
+		DisplayName:   " Structured master ",
+		Language:      "en",
+		StructuredProfile: map[string]any{
+			"headline": "Senior engineer",
+			"provenance": map[string]any{
+				"promptVersion": "resume_profile.v1", "rubricVersion": "not_applicable", "modelId": "model-1", "language": "en", "featureFlag": "none", "dataSourceVersion": "asset.v1",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ConfirmStructuredMaster: %v", err)
+	}
+	if store.structuredIn.VersionID != "version-1" || store.structuredIn.UserID != "user-1" || store.structuredIn.ResumeAssetID != "asset-1" || store.structuredIn.DisplayName != "Structured master" {
+		t.Fatalf("store input = %+v", store.structuredIn)
+	}
+	if store.structuredIn.Provenance.PromptVersion != "resume_profile.v1" || store.structuredIn.Provenance.ModelID != "model-1" {
+		t.Fatalf("store provenance = %+v", store.structuredIn.Provenance)
+	}
+	if got.Id != "version-1" || got.VersionType != "structured_master" || got.ParentVersionId != nil || got.SeedStrategy != nil || len(got.Suggestions) != 0 {
+		t.Fatalf("response = %+v", got)
+	}
+	if got.Provenance.PromptVersion != "resume_profile.v1" || got.PromptVersion == nil || *got.PromptVersion != "resume_profile.v1" {
+		t.Fatalf("response provenance = %+v prompt=%v", got.Provenance, got.PromptVersion)
+	}
+}
+
+func TestConfirmStructuredMasterValidationAndStoreErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		in   resume.ConfirmStructuredMasterInput
+		err  error
+		want error
+	}{
+		{name: "missing display name", in: resume.ConfirmStructuredMasterInput{UserID: "user-1", ResumeAssetID: "asset-1", StructuredProfile: validStructuredProfile()}, want: resume.ErrValidationFailed},
+		{name: "missing provenance", in: resume.ConfirmStructuredMasterInput{UserID: "user-1", ResumeAssetID: "asset-1", DisplayName: "Master", StructuredProfile: map[string]any{"headline": "Senior engineer"}}, want: resume.ErrValidationFailed},
+		{name: "not found", in: validConfirmInput(), err: resumestore.ErrAssetNotFound, want: resume.ErrNotFound},
+		{name: "parse not ready", in: validConfirmInput(), err: resumestore.ErrAssetParseNotReady, want: resume.ErrAssetParseNotReady},
+		{name: "already exists", in: validConfirmInput(), err: resumestore.ErrStructuredMasterAlreadyExists, want: resume.ErrStructuredMasterAlreadyExists},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := resume.NewService(resume.ServiceOptions{Store: &fakeRegisterStore{structuredErr: tc.err}, NewID: sequenceIDs("version-1")})
+
+			_, err := svc.ConfirmStructuredMaster(context.Background(), tc.in)
+
+			if !errors.Is(err, tc.want) {
+				t.Fatalf("err = %v, want %v", err, tc.want)
+			}
+		})
+	}
+}
+
 type fakeUploadRegistrar struct {
 	in  uploadservice.RegisterFileObjectInput
 	out uploadstore.FileObject
@@ -182,6 +258,10 @@ type fakeRegisterStore struct {
 	listFilter resumestore.ListFilter
 	listOut    resumestore.ListResult
 	listErr    error
+
+	structuredIn  resumestore.CreateStructuredMasterInput
+	structuredOut resumestore.VersionRecord
+	structuredErr error
 }
 
 func (s *fakeRegisterStore) CreateWithParseJob(_ context.Context, in resumestore.CreateAssetInput) (resumestore.CreateAssetResult, error) {
@@ -202,6 +282,11 @@ func (s *fakeRegisterStore) List(_ context.Context, userID string, filter resume
 	return s.listOut, s.listErr
 }
 
+func (s *fakeRegisterStore) CreateStructuredMasterFromAsset(_ context.Context, in resumestore.CreateStructuredMasterInput) (resumestore.VersionRecord, error) {
+	s.structuredIn = in
+	return s.structuredOut, s.structuredErr
+}
+
 func sequenceIDs(ids ...string) func() string {
 	i := 0
 	return func() string {
@@ -211,5 +296,28 @@ func sequenceIDs(ids ...string) func() string {
 		id := ids[i]
 		i++
 		return id
+	}
+}
+
+func validConfirmInput() resume.ConfirmStructuredMasterInput {
+	return resume.ConfirmStructuredMasterInput{
+		UserID:            "user-1",
+		ResumeAssetID:     "asset-1",
+		DisplayName:       "Structured master",
+		StructuredProfile: validStructuredProfile(),
+	}
+}
+
+func validStructuredProfile() map[string]any {
+	return map[string]any{
+		"headline": "Senior engineer",
+		"provenance": map[string]any{
+			"promptVersion":     "resume_profile.v1",
+			"rubricVersion":     "not_applicable",
+			"modelId":           "model-1",
+			"language":          "en",
+			"featureFlag":       "none",
+			"dataSourceVersion": "asset.v1",
+		},
 	}
 }
