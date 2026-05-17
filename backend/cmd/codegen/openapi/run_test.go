@@ -148,7 +148,7 @@ func TestRun_ApiErrorInnerObjectAndResponseEnvelope(t *testing.T) {
 	mustContain(t, tsClient, "async createPracticeVoiceTurn(sessionId: string, body: Types.CreatePracticeVoiceTurnRequest, opts?: RequestOptions): Promise<Types.PracticeVoiceTurnResult>")
 
 	goServer := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/server.gen.go"))
-	mustContain(t, goServer, "// 58-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
+	mustContain(t, goServer, "// 59-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 	mustNotContain(t, goServer, "// 46-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 }
 

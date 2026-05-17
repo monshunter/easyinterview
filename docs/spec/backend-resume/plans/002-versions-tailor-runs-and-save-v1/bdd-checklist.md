@@ -1,7 +1,7 @@
 # 002 BDD Checklist
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-17
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -65,9 +65,9 @@
 
 ## E2E.P0.080 resume versions privacy and legacy negative
 
-- [ ] 创建场景目录 `test/scenarios/e2e/p0-080-resume-versions-privacy-legacy/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
-- [ ] 准备前置：E2E.P0.074-079 均已 PASS（依次写入 resume_versions / resume_tailor_runs / resume_version_suggestions / ai_task_runs / outbox_events / audit_events 行）；本场景只做 regression / privacy negative 反查
-- [ ] 实现 `scripts/setup.sh`（dev stack 拉起 + 重放前序场景数据 fixture 或共享 DB state）/ `scripts/trigger.sh`（grep 检查：A `git grep -nE 'inline|rewrite|mirror' backend/internal/resume/` + B `git grep -nE 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume/` + C `cd backend && go test ./internal/resume/... -run 'TestOutboxPrivacy|TestAuditPrivacy|TestAiTaskRunsPrivacy' -count=1 -v` + D outbox payload assertion unit test 重跑；当前 plan / BDD prose 与历史 out-of-scope 文档不纳入 zero-reference gate，避免说明文字自匹配）/ `scripts/verify.sh`（断言 grep 0 命中 + outbox payload 字段集严格匹配 + ai_task_runs 不含 raw text / suggested bullet + audit_events 不含 prompt body + `method=cmd-api-http`）/ `scripts/cleanup.sh`
-- [ ] 执行 `setup → trigger → verify → cleanup` 全 PASS
-- [ ] 记录验证证据：`.test-output/e2e/p0-080-resume-versions-privacy-legacy/trigger.log` + grep 输出 0 命中 + outbox payload 字段集合断言 + ai_task_runs / audit_events PII grep 输出 + live runtime evidence
-- [ ] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.080 行（关联需求 `backend-resume C-13`，状态 Ready，automated）
+- [x] 创建场景目录 `test/scenarios/e2e/p0-080-resume-versions-privacy-legacy/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
+- [x] 准备前置：E2E.P0.074-079 均已 PASS（依次写入 resume_versions / resume_tailor_runs / resume_version_suggestions / ai_task_runs / outbox_events / audit_events 行）；本场景只做 regression / privacy negative 反查
+- [x] 实现 `scripts/setup.sh`（准备 `.test-output` 与 seed/expected evidence）/ `scripts/trigger.sh`（grep 检查：A `rg -n 'inline|rewrite|mirror' backend/internal/resume --glob '!**/verify.sh'` + B `rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/verify.sh'` + C `cd backend && go test ./internal/resume/jobs -run 'TestOutboxPrivacy|TestAuditPrivacy|TestAiTaskRunsPrivacy' -count=1 -v` + D tailor ready/outbox/live store/cmd-api drainer gates；当前 plan / BDD prose 与历史 out-of-scope 文档不纳入 zero-reference gate，避免说明文字自匹配）/ `scripts/verify.sh`（断言 grep 0 命中 + outbox payload 字段集严格匹配 + ai_task_runs 不含 raw text / suggested bullet + audit metadata 不含 prompt body + `method=cmd-api-http`）/ `scripts/cleanup.sh`
+- [x] 执行 `setup → trigger → verify → cleanup` 全 PASS（shell `LC_ALL=C.UTF-8` locale warning 非阻塞）
+- [x] 记录验证证据：`.test-output/e2e/p0-080-resume-versions-privacy-legacy/trigger.log` + grep 输出 0 命中 + outbox payload 字段集合断言 + ai_task_runs / audit metadata PII grep 输出 + live runtime evidence
+- [x] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.080 行（关联需求 `backend-resume C-13`，状态 Ready，automated）

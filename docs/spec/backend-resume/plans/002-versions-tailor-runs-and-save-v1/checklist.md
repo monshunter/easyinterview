@@ -1,7 +1,7 @@
 # Backend Resume Versions, Tailor Runs and Save v1 Checklist
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-17
 
 **关联计划**: [plan](./plan.md)
@@ -118,18 +118,18 @@
 
 ## Phase 9: 收口 + BDD + 解锁前端 002
 
-- [ ] 9.1 跑 `cd backend && go test ./...` + `cd backend && go test ./internal/resume/...` + `cd backend && go test ./cmd/api -run 'TestBuildResumeRuntime|TestResume.*HTTPScenario|TestResumeTailorDrainer.*' -count=1` 全 PASS（验证：exit 0）
-- [ ] 9.2 mock-first 对齐：9 个新 op 真实响应与 fixture 字节比对 PASS（含 `confirmResumeStructuredMaster.json` 全 4 scenario / `branchResumeVersion.json` 4 scenario / `requestResumeTailor.json` + `getResumeTailorRun.json` status 四态 / `acceptResumeTailorSuggestion.json` + `rejectResumeTailorSuggestion.json` 3 scenario）
-- [ ] 9.3 grep `inline|rewrite|mirror` in `backend/internal/resume/` + resume_tailor drainer/outbox payload：0 命中（C-13 negative）（验证：`git grep -nE 'inline|rewrite|mirror' backend/internal/resume/` 0 命中 + payload assertion）
-- [ ] 9.4 grep `mistakes|growth|drill|inline-debrief-record` in `backend/internal/resume/`：0 命中（验证：`git grep -nE 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume/` 0 命中；当前 plan / BDD gate prose 与历史 out-of-scope 文档不纳入 raw zero-hit 扫描）
-- [ ] 9.5 BDD-Gate: E2E.P0.074 resume-confirm-master-and-version-reads PASS（详见 [bdd-checklist.md](./bdd-checklist.md)）
-- [ ] 9.6 BDD-Gate: E2E.P0.075 resume-update-version-merge-and-ik PASS
-- [ ] 9.7 BDD-Gate: E2E.P0.076 resume-branch-version-sync-paths PASS
-- [ ] 9.8 BDD-Gate: E2E.P0.077 resume-tailor-async-dispatch-and-ready PASS
-- [ ] 9.9 BDD-Gate: E2E.P0.078 resume-tailor-failure-and-retry PASS
-- [ ] 9.10 BDD-Gate: E2E.P0.079 resume-suggestion-accept-reject-terminal PASS
-- [ ] 9.11 BDD-Gate: E2E.P0.080 resume-versions-privacy-and-legacy-negative PASS
-- [ ] 9.12 在 `test/scenarios/e2e/INDEX.md` 追加 P0.074 – P0.080 七行（关联需求 `backend-resume C-9, C-10, C-11, C-13, C-14, C-15, C-16`）
-- [ ] 9.13 通知 [frontend-resume-workshop](../../../frontend-resume-workshop/) owner：9 个 op 已就位，可启动 mock-first → real backend 切真原地修订（验证：cross-plan 信号 commit + frontend-resume-workshop spec / plan 修订入口准备）
-- [ ] 9.14 同步 `docs/spec/INDEX.md` backend-resume 行（1.1 → 1.2）；同步 `docs/spec/backend-resume/plans/INDEX.md`，将 002 行从 Active → Completed（验证：`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` PASS）
-- [ ] 9.15 spec / history 收口：再次 `make docs-check` PASS + `git diff --check` 0 残留 trailing whitespace
+- [x] 9.1 跑 `cd backend && go test ./...` + `cd backend && go test ./internal/resume/...` + `cd backend && go test ./cmd/api -run 'TestBuildResumeRuntime|TestResume.*HTTPScenario|TestResumeTailorDrainer.*' -count=1` 全 PASS（验证：`cd backend && go test ./...` PASS；root `go test ./...` 不适用于当前 `go.work use ./backend`）
+- [x] 9.2 mock-first 对齐：9 个新 op 真实响应与 fixture 字节比对 PASS（含 `confirmResumeStructuredMaster.json` 全 4 scenario / `branchResumeVersion.json` 4 scenario / `requestResumeTailor.json` + `getResumeTailorRun.json` status 四态 / `acceptResumeTailorSuggestion.json` + `rejectResumeTailorSuggestion.json` 3 scenario）（验证：P0.074-P0.079 scenario trigger 内 `make validate-fixtures` 与 handler fixture parity 全 PASS）
+- [x] 9.3 grep `inline|rewrite|mirror` in `backend/internal/resume/` + resume_tailor drainer/outbox payload：0 命中（C-13 negative）（验证：`test/scenarios/e2e/p0-080-resume-versions-privacy-legacy/scripts/trigger.sh` + `verify.sh` PASS，含 `retired_inline_rewrite_mirror=0` 与 outbox payload allowlist）
+- [x] 9.4 grep `mistakes|growth|drill|inline-debrief-record` in `backend/internal/resume/`：0 命中（验证：P0.080 trigger/verify PASS，含 `retired_mistakes_growth_drill=0`；当前 plan / BDD gate prose 与历史 out-of-scope 文档不纳入 raw zero-hit 扫描）
+- [x] 9.5 BDD-Gate: E2E.P0.074 resume-confirm-master-and-version-reads PASS（详见 [bdd-checklist.md](./bdd-checklist.md)；Phase 9 串行重跑 `setup → trigger → verify → cleanup` PASS）
+- [x] 9.6 BDD-Gate: E2E.P0.075 resume-update-version-merge-and-ik PASS（Phase 9 串行重跑 PASS）
+- [x] 9.7 BDD-Gate: E2E.P0.076 resume-branch-version-sync-paths PASS（Phase 9 串行重跑 PASS）
+- [x] 9.8 BDD-Gate: E2E.P0.077 resume-tailor-async-dispatch-and-ready PASS（Phase 9 串行重跑 PASS）
+- [x] 9.9 BDD-Gate: E2E.P0.078 resume-tailor-failure-and-retry PASS（Phase 9 串行重跑 PASS）
+- [x] 9.10 BDD-Gate: E2E.P0.079 resume-suggestion-accept-reject-terminal PASS（Phase 9 串行重跑 PASS）
+- [x] 9.11 BDD-Gate: E2E.P0.080 resume-versions-privacy-and-legacy-negative PASS（验证：`test/scenarios/e2e/p0-080-resume-versions-privacy-legacy/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS；shell `LC_ALL=C.UTF-8` locale warning 非阻塞）
+- [x] 9.12 在 `test/scenarios/e2e/INDEX.md` 追加 P0.074 – P0.080 七行（关联需求 `backend-resume C-9, C-10, C-11, C-13, C-14, C-15, C-16`）（验证：P0.074-P0.079 已存在，新增 P0.080 行，状态 Ready）
+- [x] 9.13 通知 [frontend-resume-workshop](../../../frontend-resume-workshop/) owner：9 个 op 已就位，可启动 mock-first → real backend 切真原地修订（验证：cross-plan 信号写入 `docs/spec/frontend-resume-workshop/spec.md` 1.1 + `history.md` 1.1，标记 backend-resume/002 handoff ready，002/003 可创建/启动）
+- [x] 9.14 同步 `docs/spec/INDEX.md` backend-resume 行（1.1 → 1.2）；同步 `docs/spec/backend-resume/plans/INDEX.md`，将 002 行从 Active → Completed（验证：backend-resume spec index 已为 1.2；plans index 002 移至 Completed；最终 `sync-doc-index --check` PASS）
+- [x] 9.15 spec / history 收口：再次 `make docs-check` PASS + `git diff --check` 0 残留 trailing whitespace（验证：Phase 9 final gates PASS）

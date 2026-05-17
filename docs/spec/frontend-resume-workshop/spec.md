@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-17
 
 ## 1 背景与目标
 
@@ -13,7 +13,7 @@
 1. **100% UI 源级复刻**：DOM 构图 / 布局 / 间距 / 字号 / 字体层级 / 控件密度 / 颜色 / 阴影 / 边框 / 圆角 / 状态 / 响应式行为 / 交互节奏必须从 [`ui-design/src/screen-resume-workshop.jsx`](../../../ui-design/src/screen-resume-workshop.jsx) + [`ui-design/src/primitives.jsx`](../../../ui-design/src/primitives.jsx) + [`ui-design/src/app.jsx`](../../../ui-design/src/app.jsx) 直接复刻；不允许重新设计 / 重新解释 / 重新组合视觉。
 2. **路由接管**：`resume_versions` 路由从 [frontend-shell](../frontend-shell/spec.md) `PlaceholderScreen` 切换为本 subject 的 `ResumeWorkshopScreen`；route param 兼容 `flow=create / branch` + `versionId` + `tab=preview|rewrites|edit` + `branchOriginalId`。
 3. **mock-first 路径**：第一批 plan 不依赖 [backend-resume](../backend-resume/spec.md) 真实落地，通过 [B2 fixtures](../mock-contract-suite/spec.md) `listResumes` / `listResumeVersions` / `getResumeVersion` `default` scenario 完成 happy path。
-4. **逐步切真**：当 backend-resume 真实落地后，generated client 自动切真，前端 plan 不需要再次重构（mock-first 与 real 字节比对由 [mock-contract-suite C-9](../mock-contract-suite/spec.md#6-验收标准) enforce）。
+4. **逐步切真**：backend-resume/002 已于 2026-05-17 完成 resume versions / tailor runs / suggestion decision 真实 handler、fixture parity 与 E2E.P0.074-P0.080 gates；后续 002 / 003 前端 plan 默认消费 generated client 真实后端路径，并保留 fixture-backed mock-first 作为 dev/test fallback（mock-first 与 real 字节比对由 [mock-contract-suite C-9](../mock-contract-suite/spec.md#6-验收标准) enforce）。
 5. **UI parity gate 可执行**：每个 plan 必须含 DOM 锚点 + computed style + bounding box + viewport screenshot smoke；只有 screenshot baseline 可由 clean checkout 稳定取得或本次 gate 明确维护时，才能把 screenshot diff regression 作为完成 gate。参照 [frontend-shell/003-ui-design-pixel-parity-gate](../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md) 模式。
 
 本 subject 不实现 backend handler（[backend-resume](../backend-resume/spec.md) / [backend-upload](../backend-upload/spec.md)）；不实现 OpenAPI 契约（[openapi-v1-contract D-18](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围)）；不恢复旧 Mistakes / Growth / Drill / 独立 Voice / 旧 onboarding / 旧 STAR 等已丢弃模块（[engineering-roadmap §4.1](../engineering-roadmap/spec.md#41-产品与-ui-约束)）。
@@ -56,14 +56,14 @@
 | D-1 | UI 真理源唯一性 | [`ui-design/src/screen-resume-workshop.jsx`](../../../ui-design/src/screen-resume-workshop.jsx) + [`ui-design/src/primitives.jsx`](../../../ui-design/src/primitives.jsx) + [`ui-design/src/app.jsx`](../../../ui-design/src/app.jsx) + [`docs/ui-design/resume-module.md`](../../../docs/ui-design/resume-module.md) v1.7 + [`docs/ui-design/resume-onboarding.md`](../../../docs/ui-design/resume-onboarding.md) v1.5 + [`docs/ui-design/jd-resume-management.md`](../../../docs/ui-design/jd-resume-management.md) v1.5 | 不允许从外部品牌设计系统 / AI 审美生成视觉；UI 更新由用户先改 ui-design 再 Agent 迁移 |
 | D-2 | 术语映射 adapter 层 | UI 层保留 `ResumeSource` / `ResumeVersion` / `Bullet` 命名；adapter 在 `frontend/src/app/screens/resume-workshop/adapters/` 把 generated client `ResumeAsset` / `ResumeVersion` / `ResumeTailorSuggestion` 映射到 UI 类型；不重命名 generated client 类型 | [B1 D-10](../shared-conventions-codified/spec.md#31-已锁定决策) + [B2 D-18](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) 已锁，前端 adapter 层是唯一映射点 |
 | D-3 | 路由参数语义 | `resume_versions` route 支持参数：`flow=create | branch | list（默认）` + `versionId`（详情打开）+ `tab=preview | rewrites | edit`（详情子标签，默认按 `resumeDefaultTab(version)`：MASTER→preview / TARGETED→rewrites）+ `branchOriginalId`（branch 流程进入时携带）；通过 [frontend-shell normalizeRoute](../frontend-shell/spec.md) 验证 | 与 UI 真理源 `ResumeWorkshopScreen` flow 参数对齐；route param 与 UI state 一一对应 |
-| D-4 | mock-first 优先 | 第一批 plan（001-listing-routing-and-detail-readonly）依赖 listResumes / listResumeVersions / getResumeVersion fixture；不依赖真实 backend；后续 002 / 003 依赖 backend-upload + backend-resume 真实落地或 fixture（B2 plan 004 落地后即可消费） | 与 [mock-contract-suite D-5 Vite dev preview 默认 fixture-backed](../mock-contract-suite/spec.md#3-用户决策--待确认事项) 对齐 |
+| D-4 | mock-first + real-backend handoff | 第一批 plan（001-listing-routing-and-detail-readonly）依赖 listResumes / listResumeVersions / getResumeVersion fixture；不依赖真实 backend；backend-resume/002 已完成 9 个 versions/tailor/suggestion op 的真实 handler、fixture parity 与 E2E.P0.074-P0.080 gates，后续 002 / 003 默认以 generated client real backend 为目标，fixture-backed dev preview 继续作为本地 fallback | 与 [mock-contract-suite D-5 Vite dev preview 默认 fixture-backed](../mock-contract-suite/spec.md#3-用户决策--待确认事项) 对齐；解除 frontend-resume-workshop 002/003 的 backend 等待条件 |
 | D-5 | UI parity gate 强制 | 每个 plan 必须含至少 4 类断言：（a）DOM 结构 parity（testid / aria / 嵌套）；（b）computed style parity（颜色 / 字号 / 间距 / 阴影）；（c）bounding box parity（关键元素位置）；（d）desktop + mobile viewport screenshot smoke；参照 [frontend-shell/003-ui-design-pixel-parity-gate](../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md) 模式。Clean checkout 常规 PASS 不依赖未跟踪 screenshot baseline；只有 baseline 可由 CI / checkout 稳定取得或本次显式维护时，screenshot diff regression 才是完成 gate | 不允许"视觉相似""风格接近"作为完成依据 |
 | D-6 | PDF 导出按钮 P0 stub | `exportPDF` 按钮在 P0 将 `exportResumeVersion` 的 `501 + RESUME_EXPORT_NOT_AVAILABLE` 或等价本地不可用分支映射为 toast "PDF 导出能力即将开放"；调用必须通过 `frontend/src/lib/conventions/idempotency.ts::generateIdempotencyKey()` 传入 generated client `opts.idempotencyKey`，并由测试断言 `Idempotency-Key` header；`copyText` 按钮 P0 真实可用（通过 `buildResumePlainText` 投影）；P1 backend-resume 003 真实落地后前端按钮自动消费 | [B2 D-18](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) `exportResumeVersion` P0 501 + `RESUME_EXPORT_NOT_AVAILABLE` 兜底 |
 | D-7 | 旧入口负向 grep | `frontend/src/app/screens/resume-workshop/` 不出现 `welcome` / `mistake` / `growth` / `plan` / `drill` / `followup` / 旧 `onboarding` / 旧 `STAR` / 旧 `experiences` / `voice` 路径或 testid（除 normalizeRoute alias map）；不 import `ui-design/src/data.jsx` 或 `ui-design/src/screen-resume-workshop.jsx` 作为运行时数据 / 组件源 | 防止 retired 模块复活；避免正式前端运行时耦合静态原型 |
 
 ### 3.2 待确认事项
 
-- `ResumeCreateFlow` 的"轻量问答 guided"模式是否在 P0 实现：默认 P0 实现（plan 002 范围）；UI 真理源 [`resume-onboarding.md`](../../../docs/ui-design/resume-onboarding.md) v1.5 已设计完成；如 backend-resume 第二批 plan 推迟，前端按 mock fixture 实现并预留切真。
+- `ResumeCreateFlow` 的"轻量问答 guided"模式是否在 P0 实现：默认 P0 实现（plan 002 范围）；UI 真理源 [`resume-onboarding.md`](../../../docs/ui-design/resume-onboarding.md) v1.5 已设计完成；backend-resume/002 已解除 versions/tailor/suggestion 后端等待条件，frontend 002 仍需在创建时核对 backend-upload createUploadPresign / register handoff 的当前真实状态。
 - accept/reject suggestion 的 confirm dialog 是否需要独立设计：默认按 UI 真理源现有 ConfirmDialog 模式（plan 003 范围）；如需扩展由本 spec 修订。
 - 首页 "1 分钟创建简历" 链接的 deep link 形式：默认 `nav("resume_versions", { flow: "create" })`；如未来需要额外携带初始 sourceType 由 plan 002 决定。
 
@@ -101,7 +101,7 @@
 | generated TS client | [B2 openapi-v1-contract](../openapi-v1-contract/spec.md) + frontend-resume-workshop adapter | adapter 层做术语映射 |
 | 上传 UI 触发 createUploadPresign | [frontend-shell](../frontend-shell/spec.md) + frontend-resume-workshop/002 | 消费 [backend-upload](../backend-upload/spec.md) fixture 或 real |
 | Resume Picker Modal（workspace 中） | [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) | 独立 owner，本 subject 不重复实现 |
-| backend handler / store / AI | [backend-resume](../backend-resume/spec.md) / [backend-upload](../backend-upload/spec.md) | mock-first 阶段不依赖；切真时 generated client 自动同步 |
+| backend handler / store / AI | [backend-resume](../backend-resume/spec.md) / [backend-upload](../backend-upload/spec.md) | backend-resume/002 versions/tailor/suggestion real paths 已就位；frontend 002/003 切真时继续通过 generated client 和 fixture parity 同步 |
 
 ## 6 验收标准
 
@@ -116,11 +116,11 @@
 | C-7 | i18n 切换 | EN / ZH lang toggle | 切换 lang | 关键文案 / `buildResumeData(lang)` 输出 / TopBar lang menu 同步；`Accept-Language` header 携带 | 001 |
 | C-8 | 隐私红线 | raw resume text / parsed_summary | 用户浏览 list / detail | console / URL / localStorage / telemetry 不出现敏感内容；仅 copyText 通过 clipboard 流出 | 001 + 后续 plan |
 | C-9 | 旧入口负向 | grep `frontend/src/app/screens/resume-workshop/` | – | 不出现 `welcome` / `mistake` / `growth` / `plan` / `drill` / `followup` / 旧 `onboarding` / 旧 `STAR` / 旧 `experiences` / `voice` 路径或 testid；不 import `ui-design/src/data.jsx` / `ui-design/src/screen-resume-workshop.jsx` 作为运行时依赖 | 001 + 后续 plan |
-| C-10 | CreateFlow 三 tab + Onboarding | （002 范围）未登录或首次访问 + flow=create | 三 tab 分别完成 register | upload / paste / guided 三路径 happy path + Agent Parsing loading + Preview Confirm + 保存 → list；与 `WorkspaceMissingResumeState` CTA 串通 | 002（未创建） |
-| C-11 | BranchFlow + Rewrites Tab + Edit Tab | （003 范围）当前在某 version 详情 | 触发 branch / 切到 rewrites / 切到 edit | branch 配置 + 3 seedStrategy + accept/reject suggestion + edit 保存；exportPDF P0 toast / copyText 真实 | 003（未创建） |
+| C-10 | CreateFlow 三 tab + Onboarding | （002 范围）未登录或首次访问 + flow=create | 三 tab 分别完成 register | upload / paste / guided 三路径 happy path + Agent Parsing loading + Preview Confirm + 保存 → list；与 `WorkspaceMissingResumeState` CTA 串通 | 002（待创建；backend-resume/002 handoff ready） |
+| C-11 | BranchFlow + Rewrites Tab + Edit Tab | （003 范围）当前在某 version 详情 | 触发 branch / 切到 rewrites / 切到 edit | branch 配置 + 3 seedStrategy + accept/reject suggestion + edit 保存；exportPDF P0 toast / copyText 真实 | 003（待创建；backend-resume/002 handoff ready） |
 
 ## 7 关联计划
 
 - [001-listing-routing-and-detail-readonly](./plans/001-listing-routing-and-detail-readonly/plan.md)：第一批 plan，路由接管 + ResumeListView（TreeView + FlatView + StatsStrip + ViewSwitcher）+ ResumeDetailView Preview Tab 只读 + 原件弹层 + Breadcrumb + 版本分支图 + i18n + a11y + UI parity gate；BDD 覆盖列表 / 树/平铺切换 / 详情预览主路径。
-- `002-create-flow-and-onboarding`（未创建，由 001 完成后启动）：ResumeCreateFlow 三 tab + 双步上传（消费 backend-upload）+ Agent Parsing 进度态 + Preview Confirm + 首页 "1 分钟创建" 路由对接 + WorkspaceMissingResumeState CTA 串通。
-- `003-branch-rewrites-and-edit`（未创建，由 002 完成后启动）：ResumeBranchFlow（3 seedStrategy + ai_select 触发 tailor）+ Rewrites Tab + Edit Tab + exportPDF / copyText 按钮。
+- `002-create-flow-and-onboarding`（待创建，backend-resume/002 handoff ready；启动前核对 backend-upload real handoff）：ResumeCreateFlow 三 tab + 双步上传（消费 backend-upload）+ Agent Parsing 进度态 + Preview Confirm + 首页 "1 分钟创建" 路由对接 + WorkspaceMissingResumeState CTA 串通。
+- `003-branch-rewrites-and-edit`（待创建，backend-resume/002 handoff ready；由 002 完成后启动）：ResumeBranchFlow（3 seedStrategy + ai_select 触发 tailor）+ Rewrites Tab + Edit Tab + accept/reject suggestion + exportPDF / copyText 按钮。

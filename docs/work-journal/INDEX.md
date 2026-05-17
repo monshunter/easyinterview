@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `chore(backend-resume): close versions tailor plan` | #feat #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(backend-resume): add resume suggestion decisions` | #feat #api #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(backend-resume): add resume tailor drainer` | #feat #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(backend-resume): add resume tailor endpoints` | #feat #api #test #docs |

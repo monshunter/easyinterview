@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-17](./2026-05-17-backend-resume-002-versions-tailor-runs-and-save-v1-assessment.md) | Backend Resume 002 Versions Tailor Runs And Save v1 交付复盘 | #assessment |
 | [2026-05-17](./2026-05-17-practice-voice-fixture-audio-ref-assessment.md) | Practice Voice Fixture Audio Ref 交付复盘 | #assessment |
 | [2026-05-17](./2026-05-17-frontend-debrief-record-mode-ui-parity-assessment.md) | Frontend Debrief Record Mode UI Parity 交付复盘 | #assessment |
 | [2026-05-17](./2026-05-17-checkpoint-015-runtime-review-fix-assessment.md) | Checkpoint 015 Runtime Review Fix 交付复盘 | #assessment |

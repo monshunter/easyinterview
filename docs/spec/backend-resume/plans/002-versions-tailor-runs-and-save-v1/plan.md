@@ -1,7 +1,7 @@
 # Backend Resume Versions, Tailor Runs and Save v1
 
 > **版本**: 1.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-17
 
 **关联 Checklist**: [checklist](./checklist.md)

@@ -126,6 +126,65 @@ func TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox(t *
 	}
 }
 
+func TestOutboxPrivacyForTailorCompletedEvent(t *testing.T) {
+	fixture := runTailorPrivacyFixture(t)
+	if fixture.store.success == nil {
+		t.Fatal("expected completed tailor run")
+	}
+	raw := string(fixture.store.success.OutboxEventPayload)
+	assertNoTailorPrivacyLeak(t, "outbox payload", raw)
+
+	var payload map[string]any
+	if err := json.Unmarshal(fixture.store.success.OutboxEventPayload, &payload); err != nil {
+		t.Fatalf("decode outbox payload: %v", err)
+	}
+	wantKeys := map[string]bool{"tailorRunId": true, "resumeAssetId": true, "targetJobId": true, "mode": true, "status": true}
+	if len(payload) != len(wantKeys) {
+		t.Fatalf("outbox payload fields drifted: %+v", payload)
+	}
+	for key := range wantKeys {
+		if _, ok := payload[key]; !ok {
+			t.Fatalf("outbox payload missing %s: %+v", key, payload)
+		}
+	}
+}
+
+func TestAiTaskRunsPrivacyForTailorDrainer(t *testing.T) {
+	fixture := runTailorPrivacyFixture(t)
+	rows := fixture.taskRuns.Rows()
+	if len(rows) != 1 {
+		t.Fatalf("ai_task_runs rows = %+v, want one row", rows)
+	}
+	raw, err := json.Marshal(rows[0])
+	if err != nil {
+		t.Fatalf("marshal ai_task_runs row: %v", err)
+	}
+	assertNoTailorPrivacyLeak(t, "ai_task_runs row", string(raw))
+	if rows[0].RawResponseObjectKey != "" {
+		t.Fatalf("tailor task run must not point to raw model response object: %+v", rows[0])
+	}
+}
+
+func TestAuditPrivacyForTailorDrainer(t *testing.T) {
+	fixture := runTailorPrivacyFixture(t)
+	rows := fixture.taskRuns.Rows()
+	if len(rows) != 1 {
+		t.Fatalf("ai_task_runs rows = %+v, want one row", rows)
+	}
+	raw, err := json.Marshal(rows[0].Metadata)
+	if err != nil {
+		t.Fatalf("marshal audit metadata: %v", err)
+	}
+	assertNoTailorPrivacyLeak(t, "audit metadata", string(raw))
+	if rows[0].Metadata.PromptHash != "" ||
+		rows[0].Metadata.ResponseHash != "" ||
+		rows[0].Metadata.PromptCharLength != 0 ||
+		rows[0].Metadata.ResponseCharLength != 0 ||
+		rows[0].Metadata.ProfileName != "" {
+		t.Fatalf("tailor drainer should not persist prompt/response audit metadata directly: %+v", rows[0].Metadata)
+	}
+}
+
 func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
 	now := time.Date(2026, 5, 18, 12, 30, 0, 0, time.UTC)
 	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a001"
@@ -408,4 +467,85 @@ func (c *captureTailorAI) Stream(context.Context, string, aiclient.CompletePaylo
 
 func (c *captureTailorAI) Synthesize(context.Context, string, aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
 	return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, errors.New("not implemented")
+}
+
+type tailorPrivacyFixture struct {
+	store    *fakeTailorStore
+	taskRuns *memTaskRunWriter
+}
+
+func runTailorPrivacyFixture(t *testing.T) tailorPrivacyFixture {
+	t.Helper()
+	now := time.Date(2026, 5, 18, 14, 0, 0, 0, time.UTC)
+	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa001"
+	userID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa002"
+	versionID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa003"
+	store := &fakeTailorStore{ctx: resumestore.TailorJobContext{
+		TailorRunID:       tailorRunID,
+		UserID:            userID,
+		ResumeVersionID:   versionID,
+		ResumeAssetID:     "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa004",
+		TargetJobID:       "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa005",
+		Mode:              "gap_review",
+		Language:          "en",
+		ResumeSummary:     json.RawMessage(`{"headline":"PRIVATE_RESUME_SUMMARY"}`),
+		StructuredProfile: json.RawMessage(`{"sections":[{"bullets":["PRIVATE_STRUCTURED_PROFILE"]}]}`),
+		TargetSummary:     json.RawMessage(`{"requirements":["PRIVATE_JD_CONTEXT"]}`),
+		TargetTitle:       "PRIVATE_TARGET_TITLE",
+		RawJDText:         "PRIVATE_PROMPT_BODY",
+		OriginalBullet:    "PRIVATE_ORIGINAL_BULLET",
+	}}
+	taskRuns := &memTaskRunWriter{}
+	handler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
+		Store:    store,
+		Registry: tailorRegistry{},
+		AI: &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{
+		  "matchSummary": {"strengths":["PRIVATE_MATCH_SUMMARY"],"gaps":["PRIVATE_MODEL_RAW_RESPONSE"]},
+		  "suggestions": [{"originalBullet":"PRIVATE_ORIGINAL_BULLET","suggestedBullet":"PRIVATE_SUGGESTED_BULLET","reason":"PRIVATE_SUGGESTION_REASON"}]
+		}`}},
+		AITaskRuns: taskRuns,
+		NewID: idSeq(
+			"0195f2d0-4a44-7fc2-8f77-1f9cfaa0b001",
+			"0195f2d0-4a44-7fc2-8f77-1f9cfaa0b002",
+			"0195f2d0-4a44-7fc2-8f77-1f9cfaa0b003",
+		),
+		Now: func() time.Time { return now },
+	})
+	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID:        "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa006",
+		JobType:      string(jobs.JobTypeResumeTailor),
+		ResourceType: "resume_tailor_run",
+		ResourceID:   tailorRunID,
+		Payload:      []byte(`{"tailorRunId":"` + tailorRunID + `","resumeVersionId":"` + versionID + `"}`),
+		Attempts:     1,
+		MaxAttempts:  5,
+	})
+	if !outcome.Succeeded {
+		t.Fatalf("Handle outcome = %+v", outcome)
+	}
+	return tailorPrivacyFixture{store: store, taskRuns: taskRuns}
+}
+
+func assertNoTailorPrivacyLeak(t *testing.T, label string, raw string) {
+	t.Helper()
+	for _, forbidden := range []string{
+		"PRIVATE_RESUME_SUMMARY",
+		"PRIVATE_STRUCTURED_PROFILE",
+		"PRIVATE_JD_CONTEXT",
+		"PRIVATE_TARGET_TITLE",
+		"PRIVATE_PROMPT_BODY",
+		"PRIVATE_ORIGINAL_BULLET",
+		"PRIVATE_MATCH_SUMMARY",
+		"PRIVATE_MODEL_RAW_RESPONSE",
+		"PRIVATE_SUGGESTED_BULLET",
+		"PRIVATE_SUGGESTION_REASON",
+		"match_summary",
+		"prompt body",
+		"model raw response",
+		"suggested bullet",
+	} {
+		if strings.Contains(raw, forbidden) {
+			t.Fatalf("%s leaked %q: %s", label, forbidden, raw)
+		}
+	}
 }
