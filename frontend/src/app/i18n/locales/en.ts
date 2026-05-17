@@ -682,6 +682,60 @@ export const en: LocaleMessages = {
     "Previous submission is still pending - please retry shortly",
   "resumeWorkshop.branch.error.generic":
     "Could not create the version. Please retry.",
+  // ── Rewrites tab (plan 003) ──
+  "resumeWorkshop.rewrites.scopeBanner.body":
+    "Reject / Edit / Accept apply to this version only: {versionName}. The master and original file are not changed.",
+  "resumeWorkshop.rewrites.scopeBanner.counts":
+    "{accepted} accepted - {pending} pending - {rejected} rejected",
+  "resumeWorkshop.rewrites.listEyebrow": "SUGGESTED REWRITES",
+  "resumeWorkshop.rewrites.empty.title": "No AI suggestions yet",
+  "resumeWorkshop.rewrites.empty.body":
+    "No bullet rewrites have been generated. Use the action on the right to rerun the tailor.",
+  "resumeWorkshop.rewrites.status.accepted": "ACCEPTED",
+  "resumeWorkshop.rewrites.status.pending": "PENDING",
+  "resumeWorkshop.rewrites.status.rejected": "REJECTED",
+  "resumeWorkshop.rewrites.diff.sectionFallback": "Rewrite suggestion",
+  "resumeWorkshop.rewrites.diff.original": "ORIGINAL",
+  "resumeWorkshop.rewrites.diff.originalFrom": "from master",
+  "resumeWorkshop.rewrites.diff.rewritten": "REWRITTEN",
+  "resumeWorkshop.rewrites.diff.manualEdit": "MANUAL EDIT",
+  "resumeWorkshop.rewrites.diff.confidence": "confidence - high",
+  "resumeWorkshop.rewrites.diff.manualHint": "will save into {versionName}",
+  "resumeWorkshop.rewrites.diff.whyEyebrow": "WHY THIS CHANGE",
+  "resumeWorkshop.rewrites.action.reject": "Reject",
+  "resumeWorkshop.rewrites.action.edit": "Edit",
+  "resumeWorkshop.rewrites.action.accept": "Accept",
+  "resumeWorkshop.rewrites.action.accepted": "Accepted",
+  "resumeWorkshop.rewrites.action.cancelEdit": "Cancel",
+  "resumeWorkshop.rewrites.action.saveManual": "Save manual edit",
+  "resumeWorkshop.rewrites.rerun.cta": "Rerun rewrites",
+  "resumeWorkshop.rewrites.rerun.modeBulletSuggestions": "Bullet suggestions",
+  "resumeWorkshop.rewrites.rerun.modeGapReview": "Gap review",
+  "resumeWorkshop.rewrites.polling.banner":
+    "AI is generating bullets - expected within 30s",
+  "resumeWorkshop.rewrites.polling.failed":
+    "AI generation failed - please retry",
+  "resumeWorkshop.rewrites.polling.timeout":
+    "AI generation timed out - please retry",
+  "resumeWorkshop.rewrites.polling.retry": "Retry",
+  "resumeWorkshop.rewrites.toast.accept":
+    "Accepted into {versionName}",
+  "resumeWorkshop.rewrites.toast.reject":
+    "Rejected - original kept for {versionName}",
+  "resumeWorkshop.rewrites.toast.manualSaved":
+    "Manual edit saved for {versionName}",
+  "resumeWorkshop.rewrites.toast.rerunRequested":
+    "Tailor rerun requested",
+  "resumeWorkshop.rewrites.toast.alreadyDecided":
+    "This bullet has already been decided - create a new suggestion or branch",
+  "resumeWorkshop.rewrites.error.generic":
+    "The operation failed. Please retry.",
+  "resumeWorkshop.rewrites.error.crossUser":
+    "Version not found - it may have been deleted.",
+  "resumeWorkshop.rewrites.error.validation":
+    "Validation failed. Please retry.",
+  "resumeWorkshop.rewrites.error.manualPendingRetry":
+    "Manual edit saved but status write failed - please retry.",
   // ── Practice screen (plan 002) ──
   "practice.toolbar.companySkeleton": "Target company",
   "practice.toolbar.titleSkeleton": "Target role",

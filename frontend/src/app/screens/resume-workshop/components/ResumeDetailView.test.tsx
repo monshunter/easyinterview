@@ -119,7 +119,7 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
     ).toBeInTheDocument();
   });
 
-  it("TARGETED version with explicit tab=rewrites in the URL keeps rewrites active and renders the ComingSoonTab placeholder", async () => {
+  it("TARGETED version with explicit tab=rewrites in the URL keeps rewrites active and renders ResumeRewritesTab (plan 003 replaces ComingSoonTab)", async () => {
     renderDetail("default", {
       name: "resume_versions",
       params: { versionId: TARGETED_VERSION_ID, tab: "rewrites" },
@@ -134,9 +134,10 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
       "aria-selected",
       "true",
     );
+    expect(screen.getByTestId("resume-rewrites-tab")).toBeInTheDocument();
     expect(
-      screen.getByTestId("resume-detail-tab-content-coming-soon-rewrites"),
-    ).toBeInTheDocument();
+      screen.queryByTestId("resume-detail-tab-content-coming-soon-rewrites"),
+    ).not.toBeInTheDocument();
   });
 
   it("clicking a tab updates the active selection and shows that tab's content (preview from default route)", async () => {

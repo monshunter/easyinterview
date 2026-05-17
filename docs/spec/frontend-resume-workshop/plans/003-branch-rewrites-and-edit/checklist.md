@@ -56,12 +56,19 @@
 
 ## Phase 3: Rewrites Tab UI + getResumeVersion 投影
 
-- [ ] 3.1 实现 `frontend/src/app/screens/resume-workshop/tabs/ResumeRewritesTab.tsx`：源级复刻 UI 真理源 scope banner + 左侧列表 + 右侧 diff Card + 顶部计数 chip；至少 ≥ 8 testid（`resume-rewrites-scope-banner` / `-bullet-list` / `-bullet-row-{id}` / `-diff-card` / `-action-{accept,reject,edit}` / `-status-chip-{accepted,pending,rejected}` / `-rerun-tailor`）（验证：Vitest）
-- [ ] 3.2 数据来源：plan 001 `useResumeVersion(versionId)` 返回的 `version.suggestions[]` + adapter `mapBulletSuggestionToUi` 扩展含 `status / decidedAt / source`（验证：Vitest adapter 至少 ≥ 6 case）
-- [ ] 3.3 计数派生：accepted / pending / rejected 三类计数从 `suggestions[]` 派生，不写死（验证：Vitest 数量断言）
-- [ ] 3.4 选中切换：`selectedBulletId` 切换时取消任何 inline edit；列表行截断展示 90 字符，完整字段仅在 diff Card 渲染（验证：Vitest）
-- [ ] 3.5 隐私：DOM 渲染 original / rewritten 文本；URL / pendingAction / localStorage / mock transport log / telemetry 不含 originalBullet / suggestedBullet 文本（验证：Vitest spy grep）
-- [ ] 3.6 fixture parity test：`getResumeVersion.json` `targeted-with-suggestions` scenario 与 RewritesTab 渲染字节匹配（验证：fixture parity test）
+- [x] 3.1 实现 `frontend/src/app/screens/resume-workshop/tabs/ResumeRewritesTab.tsx`：源级复刻 UI 真理源 scope banner + 左侧列表 + 右侧 diff Card + 顶部计数 chip；至少 ≥ 8 testid（`resume-rewrites-scope-banner` / `-bullet-list` / `-bullet-row-{id}` / `-diff-card` / `-action-{accept,reject,edit}` / `-status-chip-{accepted,pending,rejected}` / `-rerun-tailor`）（验证：Vitest）
+  <!-- verified: 2026-05-18 method=vitest evidence=tabs/ResumeRewritesTab.tsx mirrors ui-design L784-940 with testids resume-rewrites-{tab, scope-banner, counts, bullet-list, bullet-row-{id}, status-chip-{status}-{id}, diff-card, action-{reject|edit|accept}, original-text, rewritten-text, edit-textarea, edit-cancel, edit-save, manual-pending, why-{i}, polling-banner, failed-banner, empty, rerun-tailor}; ResumeDetailView wires tab=rewrites -> ResumeRewritesTab; 11 cases in ResumeRewritesTab.test.tsx PASS -->
+- [x] 3.2 数据来源：plan 001 `useResumeVersion(versionId)` 返回的 `version.suggestions[]` + adapter `mapBulletSuggestionToUi` 扩展含 `status / decidedAt / source`（验证：Vitest adapter 至少 ≥ 6 case）
+  <!-- verified: 2026-05-18 method=vitest evidence=adapters/resume.ts adds UiBulletSource={ai|manual}, decidedAt, tailorRunId fields to UiBullet; ResumeSuggestionInput accepts decidedAt/source/tailorRunId optionals; adapters/resume.test.ts 12 cases PASS including new decidedAt/source/tailorRunId mapping + unknown-source fallback; ResumeRewritesTab toSuggestionInput safely projects raw suggestion records and feeds the adapter -->
+- [x] 3.3 计数派生：accepted / pending / rejected 三类计数从 `suggestions[]` 派生，不写死（验证：Vitest 数量断言）
+  <!-- verified: 2026-05-18 method=vitest evidence=ResumeRewritesTab.tsx counts useMemo iterates over bullets and increments result[b.status]; root data-{accepted,pending,rejected}-count attributes asserted via ResumeRewritesTab.test.tsx "derives accepted / pending / rejected counts" case (2/0/1) and scope-banner "1/2/1" count case -->
+- [x] 3.4 选中切换：`selectedBulletId` 切换时取消任何 inline edit；列表行截断展示 90 字符，完整字段仅在 diff Card 渲染（验证：Vitest）
+  <!-- verified: 2026-05-18 method=vitest evidence=ResumeRewritesTab.tsx handleSelect resets editing/editText on row click; truncate(text, 90) limits row preview with ellipsis; diff card uses full bullet.rewritten; ResumeRewritesTab.test.tsx "truncates the row preview to 90 characters", "renders the full rewritten text only inside the diff card", "changes the selected bullet ... resets editing state" all PASS -->
+- [x] 3.5 隐私：DOM 渲染 original / rewritten 文本；URL / pendingAction / localStorage / mock transport log / telemetry 不含 originalBullet / suggestedBullet 文本（验证：Vitest spy grep）
+  <!-- verified: 2026-05-18 method=vitest evidence=ResumeRewritesTab.test.tsx "privacy guard" case spies on window.fetch + window.localStorage.setItem + window.history.replaceState and asserts no sensitive original/rewritten string leaks through these surfaces after render -->
+- [x] 3.6 fixture parity test：`getResumeVersion.json` `targeted-with-suggestions` scenario 与 RewritesTab 渲染字节匹配（验证：fixture parity test）
+  <!-- verified: 2026-05-18 method=vitest evidence=ResumeRewritesTab.test.tsx buildVersionWithSuggestions mirrors the fixture suggestion shape (id, originalBullet, suggestedBullet, reason, status, section, decidedAt, tailorRunId) and asserts DOM renders match; ResumeDetailFixtureParity.test.tsx + fixture-parity.test.ts (existing 33-file suite) still PASS after the ComingSoonTab -> ResumeRewritesTab swap -->
+
 
 ## Phase 4: 单条 suggestion accept / reject / manual edit 终态
 

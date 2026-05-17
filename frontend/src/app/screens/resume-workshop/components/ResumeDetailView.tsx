@@ -14,6 +14,7 @@ import { ComingSoonTab } from "./ComingSoonTab";
 import { NotFoundEmptyState } from "./NotFoundEmptyState";
 import { OriginalResumePreviewModal } from "./OriginalResumePreviewModal";
 import { ResumePreviewTab } from "./ResumePreviewTab";
+import { ResumeRewritesTab } from "../tabs/ResumeRewritesTab";
 import { fireResumeWorkshopToast } from "./toast";
 
 export interface ResumeDetailViewProps {
@@ -240,7 +241,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
             onViewOriginal={() => setOriginalOpen(true)}
           />
         ) : resolvedTab === "rewrites" ? (
-          <ComingSoonTab variant="rewrites" />
+          <ResumeRewritesTab version={version} />
         ) : (
           <ComingSoonTab variant="edit" />
         )}

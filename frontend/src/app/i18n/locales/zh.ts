@@ -643,6 +643,57 @@ export const zh = {
   "resumeWorkshop.branch.error.idempotencyConflict":
     "上一次提交还在处理 · 请稍后重试",
   "resumeWorkshop.branch.error.generic": "创建版本失败，请重试。",
+  // ── Rewrites tab (plan 003) ──
+  "resumeWorkshop.rewrites.scopeBanner.body":
+    "「拒绝 / 编辑 / 采纳」只作用于当前版本：{versionName}。主版本与原始文件保持不变。",
+  "resumeWorkshop.rewrites.scopeBanner.counts":
+    "{accepted} 已采纳 · {pending} 待决定 · {rejected} 已拒绝",
+  "resumeWorkshop.rewrites.listEyebrow": "建议改写",
+  "resumeWorkshop.rewrites.empty.title": "暂无 AI 改写建议",
+  "resumeWorkshop.rewrites.empty.body":
+    "尚未生成 bullet 改写建议。可在右侧重新触发 AI 改写。",
+  "resumeWorkshop.rewrites.status.accepted": "已采纳",
+  "resumeWorkshop.rewrites.status.pending": "待决定",
+  "resumeWorkshop.rewrites.status.rejected": "已拒绝",
+  "resumeWorkshop.rewrites.diff.sectionFallback": "改写建议",
+  "resumeWorkshop.rewrites.diff.original": "原句",
+  "resumeWorkshop.rewrites.diff.originalFrom": "来自主版本",
+  "resumeWorkshop.rewrites.diff.rewritten": "AI 改写",
+  "resumeWorkshop.rewrites.diff.manualEdit": "人工改写",
+  "resumeWorkshop.rewrites.diff.confidence": "置信度 · 高",
+  "resumeWorkshop.rewrites.diff.manualHint": "将保存到「{versionName}」",
+  "resumeWorkshop.rewrites.diff.whyEyebrow": "为什么这么改",
+  "resumeWorkshop.rewrites.action.reject": "拒绝",
+  "resumeWorkshop.rewrites.action.edit": "编辑",
+  "resumeWorkshop.rewrites.action.accept": "采纳",
+  "resumeWorkshop.rewrites.action.accepted": "已采纳",
+  "resumeWorkshop.rewrites.action.cancelEdit": "取消",
+  "resumeWorkshop.rewrites.action.saveManual": "保存人工改写",
+  "resumeWorkshop.rewrites.rerun.cta": "重新运行改写",
+  "resumeWorkshop.rewrites.rerun.modeBulletSuggestions": "Bullet 建议",
+  "resumeWorkshop.rewrites.rerun.modeGapReview": "差距审查",
+  "resumeWorkshop.rewrites.polling.banner":
+    "AI 正在生成 bullet · 预计 30s 内完成",
+  "resumeWorkshop.rewrites.polling.failed":
+    "AI 生成失败 · 请重试",
+  "resumeWorkshop.rewrites.polling.timeout":
+    "AI 生成超时 · 请重试",
+  "resumeWorkshop.rewrites.polling.retry": "重试",
+  "resumeWorkshop.rewrites.toast.accept": "已采纳建议 · {versionName}",
+  "resumeWorkshop.rewrites.toast.reject": "已拒绝建议 · {versionName}",
+  "resumeWorkshop.rewrites.toast.manualSaved":
+    "人工改写已保存 · {versionName}",
+  "resumeWorkshop.rewrites.toast.rerunRequested":
+    "已重新触发 AI 改写",
+  "resumeWorkshop.rewrites.toast.alreadyDecided":
+    "该 bullet 已决定 · 如需重做请新建 suggestion 或 branch",
+  "resumeWorkshop.rewrites.error.generic": "处理失败，请重试。",
+  "resumeWorkshop.rewrites.error.crossUser":
+    "未找到该版本，可能已被删除。",
+  "resumeWorkshop.rewrites.error.validation":
+    "字段校验失败，请重试。",
+  "resumeWorkshop.rewrites.error.manualPendingRetry":
+    "人工改写已保存，但状态写入失败，请重试。",
   // ── Practice screen (plan 002) ──
   "practice.toolbar.companySkeleton": "目标公司",
   "practice.toolbar.titleSkeleton": "目标岗位",

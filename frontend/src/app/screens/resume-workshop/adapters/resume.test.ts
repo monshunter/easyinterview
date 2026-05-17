@@ -209,5 +209,36 @@ describe("mapBulletSuggestionToUi", () => {
     expect(bullet.rewritten).toBe(input.suggestedBullet);
     expect(bullet.why.length).toBeGreaterThanOrEqual(1);
     expect(bullet.status).toBe("pending");
+    expect(bullet.decidedAt).toBeNull();
+    expect(bullet.source).toBe("ai");
+    expect(bullet.tailorRunId).toBeNull();
+  });
+
+  it("preserves decidedAt + tailorRunId when present and maps manual source", () => {
+    const bullet = mapBulletSuggestionToUi({
+      id: "sug-2",
+      originalBullet: "o",
+      suggestedBullet: "s",
+      reason: "r",
+      status: "accepted",
+      decidedAt: "2026-05-12T10:00:00Z",
+      source: "manual",
+      tailorRunId: "01918fa0-0000-7000-8000-000000009000",
+    });
+    expect(bullet.status).toBe("accepted");
+    expect(bullet.decidedAt).toBe("2026-05-12T10:00:00Z");
+    expect(bullet.source).toBe("manual");
+    expect(bullet.tailorRunId).toBe("01918fa0-0000-7000-8000-000000009000");
+  });
+
+  it("defaults source to ai when input source is unrecognised", () => {
+    const bullet = mapBulletSuggestionToUi({
+      id: "sug-3",
+      originalBullet: "o",
+      suggestedBullet: "s",
+      reason: "r",
+      source: "unknown",
+    });
+    expect(bullet.source).toBe("ai");
   });
 });

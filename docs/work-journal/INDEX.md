@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-18](2026-05-18.md) | `feat(frontend-resume-workshop): land rewrites tab presentation layer` | #feat #ui #i18n #test #docs |
 | [2026-05-18](2026-05-18.md) | `feat(frontend-resume-workshop): wire branch submit hook and seed nav` | #feat #ui #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(frontend-resume-workshop): add resume branch flow container` | #feat #ui #i18n #test #docs |
 | [2026-05-17](2026-05-17.md) | `docs(frontend-resume-workshop): complete branch rewrites phase 0 preflight` | #docs |

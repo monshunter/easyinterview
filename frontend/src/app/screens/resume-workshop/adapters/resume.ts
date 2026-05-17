@@ -33,6 +33,7 @@ export interface UiResumeVersion {
 }
 
 export type UiBulletStatus = "pending" | "accepted" | "rejected";
+export type UiBulletSource = "ai" | "manual";
 
 export interface UiBullet {
   id: string;
@@ -41,6 +42,9 @@ export interface UiBullet {
   rewritten: string;
   why: string[];
   status: UiBulletStatus;
+  decidedAt: string | null;
+  source: UiBulletSource;
+  tailorRunId: string | null;
 }
 
 export interface ResumeSuggestionInput {
@@ -50,6 +54,9 @@ export interface ResumeSuggestionInput {
   reason: string;
   status?: string;
   section?: string;
+  decidedAt?: string | null;
+  source?: string;
+  tailorRunId?: string | null;
 }
 
 const LANG_TAG_MAP: Record<string, string> = {
@@ -193,6 +200,9 @@ const normalizeBulletStatus = (status?: string): UiBulletStatus => {
   return "pending";
 };
 
+const normalizeBulletSource = (source?: string): UiBulletSource =>
+  source === "manual" ? "manual" : "ai";
+
 export const mapBulletSuggestionToUi = (
   input: ResumeSuggestionInput,
 ): UiBullet => ({
@@ -202,6 +212,9 @@ export const mapBulletSuggestionToUi = (
   rewritten: input.suggestedBullet,
   why: splitWhy(input.reason),
   status: normalizeBulletStatus(input.status),
+  decidedAt: input.decidedAt ?? null,
+  source: normalizeBulletSource(input.source),
+  tailorRunId: input.tailorRunId ?? null,
 });
 
 const safeString = (value: unknown): string =>
