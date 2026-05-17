@@ -1,6 +1,6 @@
 # Backend Resume Versions, Tailor Runs and Save v1 Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -104,6 +104,7 @@
 - [x] 7.10 BDD-Gate: 验证 `E2E.P0.077` 通过（resume.tailor async happy + outbox event）（验证：`test/scenarios/e2e/p0-077-resume-tailor-async-dispatch-and-ready/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS；verify 输出 `method=cmd-api-http`、ready suggestions、typed task run、ready-only outbox、privacy grep；shell `LC_ALL=C.UTF-8` locale warning 非阻塞）
 - [x] 7.11 BDD-Gate: 验证 `E2E.P0.078` 通过（resume.tailor failure retryable / non-retryable + ready-only outbox）（验证：`test/scenarios/e2e/p0-078-resume-tailor-failure-and-retry/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS；verify 输出 timeout retryable、output_invalid terminal、retry to ready、ready-only outbox、privacy grep；shell `LC_ALL=C.UTF-8` locale warning 非阻塞）
 - [x] 7.12 Remediation: `CompleteTailorRunSuccess` 后通过 `GetTailorRun` 重新读取 ready run 时，`GenerationProvenance` 六个 OpenAPI required 字段（`promptVersion / rubricVersion / modelId / language / featureFlag / dataSourceVersion`）必须完整，避免 fixture/fake-store gate 漏掉 DB roundtrip（验证：RED `cd backend && DATABASE_URL=... go test ./internal/resume/store -tags=integration -run TestCompleteTailorRunSuccessWritesSuggestionsAndReadyOnlyOutbox -count=1 -v` 失败于 `tailor run provenance after DB roundtrip`；GREEN 同命令 PASS；`DATABASE_URL=... go test ./internal/resume/store -tags=integration -run 'TestCompleteTailorRunSuccessWritesSuggestionsAndReadyOnlyOutbox|TestResumeSuggestionDecisionCASIsolationAndProfileStability|TestResumeTailorRunStore' -count=1 -v` PASS；`cd backend && go test ./internal/resume/... -count=1` PASS；`DATABASE_URL=... make migrate-check` PASS）
+- [x] 7.13 Review remediation: `CompleteTailorRunSuccess` 返回错误时必须先把 `resume_tailor_runs.status` 标记为 `failed`，再返回 retryable `TARGET_IMPORT_FAILED`，确保 drainer requeue 后下一次 `MarkTailorRunGenerating` 可从 `failed` 恢复，避免 run 停在 `generating` 后无法重试（验证：RED `go test ./backend/internal/resume/jobs -run TestTailorHandlerSuccessPersistenceFailureMarksFailedRetryable -count=1 -v` 失败于 `got <nil>`；GREEN 同命令 PASS；`go test ./backend/internal/resume/jobs -count=1` PASS；`go test ./backend/internal/resume/... -count=1` PASS；`go test ./backend/cmd/api -run 'TestResumeTailorDrainerHTTPScenario|TestResumeTailorDrainerFailureScenario' -count=1 -v` PASS；`git diff --check` PASS）
 
 ## Phase 8: accept / reject suggestion 终态状态机
 

@@ -1,6 +1,6 @@
 # Backend Resume Versions, Tailor Runs and Save v1
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -48,7 +48,7 @@
   2. migration check：`python3 scripts/lint/migrations_lint.py --repo-root .` + `make migrate-check`（partial UNIQUE INDEX + rollback DOWN）；
   3. handler unit test（共 9 op）：参数校验 + IK + 422 / 404 / 409 / cross-user 隔离 + idempotency middleware replay；
   4. store integration test：CRUD + state machine + cross-user + partial UNIQUE INDEX 并发兜底 + cursor pagination 边界；
-  5. resume.tailor job unit test（stub AIClient）：成功路径 / 解析 JSON 失败 / AI provider timeout retryable / output_invalid / retry 复用；
+  5. resume.tailor job unit test（stub AIClient）：成功路径 / 解析 JSON 失败 / AI provider timeout retryable / output_invalid / 成功结果持久化失败 retryable / retry 复用；
   6. outbox event unit test：envelope 字段集 + ready-only + PII 红线（不含 suggested bullet text）；
   7. `cmd/api` route/runtime test：session middleware、IK middleware、9 个 route path params、resume_tailor in-process drainer wiring 与 shutdown；
   8. legacy / privacy / events drift negative：`grep inline|rewrite|mirror` + `grep mistakes|growth|drill` + outbox payload privacy assertion。

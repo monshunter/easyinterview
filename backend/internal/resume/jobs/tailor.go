@@ -161,11 +161,7 @@ func (h *TailorHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) ta
 		OutboxEventPayload: outboxPayload,
 		Now:                h.now(),
 	}); err != nil {
-		return targetjob.JobOutcome{
-			ErrorCode:    sharederrors.CodeTargetImportFailed,
-			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
-			Retryable:    true,
-		}
+		return h.fail(ctx, payload.TailorRunID, sharederrors.CodeTargetImportFailed, err.Error(), true)
 	}
 	return targetjob.JobOutcome{Succeeded: true}
 }

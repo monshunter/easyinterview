@@ -282,6 +282,59 @@ func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
 	}
 }
 
+func TestTailorHandlerSuccessPersistenceFailureMarksFailedRetryable(t *testing.T) {
+	now := time.Date(2026, 5, 18, 12, 45, 0, 0, time.UTC)
+	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d001"
+	versionID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d002"
+	store := &fakeTailorStore{
+		ctx: resumestore.TailorJobContext{
+			TailorRunID:       tailorRunID,
+			UserID:            "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d003",
+			ResumeVersionID:   versionID,
+			ResumeAssetID:     "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d004",
+			TargetJobID:       "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d005",
+			Mode:              "gap_review",
+			Language:          "en",
+			ResumeSummary:     json.RawMessage(`{"headline":"Engineer"}`),
+			StructuredProfile: json.RawMessage(`{"sections":[{"bullets":["Built services."]}]}`),
+			TargetSummary:     json.RawMessage(`{"requirements":["latency"]}`),
+			OriginalBullet:    "Built services.",
+		},
+		completeSuccessErr: errors.New("outbox unavailable"),
+	}
+	handler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
+		Store:    store,
+		Registry: tailorRegistry{},
+		AI: &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{
+		  "matchSummary": {"strengths":["Has backend depth"],"gaps":[]},
+		  "suggestions": [{"originalBullet":"Built services.","suggestedBullet":"Built reliable services.","reason":"Adds outcome."}]
+		}`}},
+		AITaskRuns: &memTaskRunWriter{},
+		NewID:      idSeq("0195f2d0-4a44-7fc2-8f77-1f9c4cf8e001", "0195f2d0-4a44-7fc2-8f77-1f9c4cf8e002", "0195f2d0-4a44-7fc2-8f77-1f9c4cf8e003"),
+		Now:        func() time.Time { return now },
+	})
+
+	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID:        "0195f2d0-4a44-7fc2-8f77-1f9c4cf8f001",
+		JobType:      string(jobs.JobTypeResumeTailor),
+		ResourceType: "resume_tailor_run",
+		ResourceID:   tailorRunID,
+		Payload:      []byte(`{"tailorRunId":"` + tailorRunID + `","resumeVersionId":"` + versionID + `"}`),
+		Attempts:     1,
+		MaxAttempts:  5,
+	})
+
+	if outcome.Succeeded || outcome.ErrorCode != sharederrors.CodeTargetImportFailed || !outcome.Retryable {
+		t.Fatalf("completion persistence failure outcome = %+v", outcome)
+	}
+	if store.success == nil {
+		t.Fatal("expected success transaction attempt before failure")
+	}
+	if store.failure == nil || store.failure.ErrorCode != sharederrors.CodeTargetImportFailed {
+		t.Fatalf("retryable completion failure must mark run failed for the next claim, got %+v", store.failure)
+	}
+}
+
 func TestTailorDrainerHandlesOnlyResumeTailor(t *testing.T) {
 	now := time.Date(2026, 5, 18, 13, 0, 0, 0, time.UTC)
 	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a001"
@@ -343,6 +396,7 @@ type fakeTailorStore struct {
 	loadedResumeVersionID string
 	generating            []resumestore.TailorRunStatusInput
 	success               *resumestore.CompleteTailorRunSuccessInput
+	completeSuccessErr    error
 	failure               *resumestore.TailorRunFailureInput
 }
 
@@ -392,7 +446,7 @@ func (s *fakeTailorStore) GetForTailor(_ context.Context, tailorRunID string, re
 func (s *fakeTailorStore) CompleteTailorRunSuccess(_ context.Context, in resumestore.CompleteTailorRunSuccessInput) error {
 	cp := in
 	s.success = &cp
-	return nil
+	return s.completeSuccessErr
 }
 
 func (s *fakeTailorStore) MarkTailorRunFailed(_ context.Context, in resumestore.TailorRunFailureInput) (resumestore.TailorRunRecord, error) {
