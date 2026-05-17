@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `feat(backend-resume): complete versions tailor preflight` | #feat #docs #test |
 | [2026-05-17](2026-05-17.md) | `docs(backend-resume): harden versions tailor plan` | #docs |
 | [2026-05-17](2026-05-17.md) | `fix(practice-voice): align fixture audio refs (BUG-0072)` | #fix #api #test |
 | [2026-05-17](2026-05-17.md) | `fix(frontend-debrief): restore record mode ui parity (BUG-0071)` | #fix #ui |
