@@ -8,6 +8,8 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `feat(frontend-debrief): close 001 debrief screen and handoff baseline` | #feat #ui #test #i18n #docs #lint #bdd |
+| [2026-05-17](2026-05-17.md) | `feat(frontend-debrief): land Phase 2-6 picker / record / submit / analysis` | #feat #ui #test #i18n #docs |
 | [2026-05-17](2026-05-17.md) | `feat(frontend-debrief): land 001 debrief screen Phase 0+1 shell` | #feat #ui #test #i18n #docs |
 | [2026-05-17](2026-05-17.md) | `feat(openapi): add listPracticeSessions operation` | #feat #api #test #docs |
 | [2026-05-17](2026-05-17.md) | `fix(test): close debrief scenario wrapper evidence (BUG-0066)` | #fix #test #docs |
