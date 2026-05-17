@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-17
 
 ## 1 背景与目标
 
@@ -63,9 +63,9 @@
 
 ### 3.2 待确认事项
 
-- `ResumeCreateFlow` 的"轻量问答 guided"模式是否在 P0 实现：默认 P0 实现（plan 002 范围）；UI 真理源 [`resume-onboarding.md`](../../../docs/ui-design/resume-onboarding.md) v1.5 已设计完成；如 backend-resume 第二批 plan 推迟，前端按 mock fixture 实现并预留切真。
-- accept/reject suggestion 的 confirm dialog 是否需要独立设计：默认按 UI 真理源现有 ConfirmDialog 模式（plan 003 范围）；如需扩展由本 spec 修订。
-- 首页 "1 分钟创建简历" 链接的 deep link 形式：默认 `nav("resume_versions", { flow: "create" })`；如未来需要额外携带初始 sourceType 由 plan 002 决定。
+- `ResumeCreateFlow` 的"轻量问答 guided"模式是否在 P0 实现：已锁定 P0 实现，由 [plan 002](./plans/002-create-flow-and-onboarding/plan.md) 落地；UI 真理源 [`resume-onboarding.md`](../../../docs/ui-design/resume-onboarding.md) v1.5 已设计完成；如 [backend-resume/002](../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md) Phase 1 (`confirmResumeStructuredMaster`) 推迟，前端 Preview Confirm 阶段渲染 `<ComingSoonPreviewConfirm>` 占位，不私造客户端协议。
+- accept/reject suggestion 是否需要独立确认弹窗：已锁定 **不新增独立 ConfirmDialog**；按 UI 真理源 [`ResumeRewritesTab`](../../../ui-design/src/screen-resume-workshop.jsx) 的 inline `拒绝 / 编辑 / 采纳` 操作落地，并通过 terminal-state toast / aria-live 反馈结果。manual edit 提交路径按 backend-resume/002 当前 fixture 形态决定 accept w/ manualEditText vs updateResumeVersion fallback，已在 plan 003 Phase 4.3 显式声明；如需扩展确认弹窗，由用户先更新 `ui-design/` 后再修订本 spec。
+- 首页 "1 分钟创建简历" 链接的 deep link 形式：已锁定 `nav("resume_versions", { flow: "create" })`，由 plan 002 Phase 6.1 集成验证；不携带初始 sourceType（用户在 CreateFlow 内选择 tab）；如未来需要额外携带 createMode hint 由 spec 修订。
 
 ## 4 设计约束
 
@@ -116,11 +116,11 @@
 | C-7 | i18n 切换 | EN / ZH lang toggle | 切换 lang | 关键文案 / `buildResumeData(lang)` 输出 / TopBar lang menu 同步；`Accept-Language` header 携带 | 001 |
 | C-8 | 隐私红线 | raw resume text / parsed_summary | 用户浏览 list / detail | console / URL / localStorage / telemetry 不出现敏感内容；仅 copyText 通过 clipboard 流出 | 001 + 后续 plan |
 | C-9 | 旧入口负向 | grep `frontend/src/app/screens/resume-workshop/` | – | 不出现 `welcome` / `mistake` / `growth` / `plan` / `drill` / `followup` / 旧 `onboarding` / 旧 `STAR` / 旧 `experiences` / `voice` 路径或 testid；不 import `ui-design/src/data.jsx` / `ui-design/src/screen-resume-workshop.jsx` 作为运行时依赖 | 001 + 后续 plan |
-| C-10 | CreateFlow 三 tab + Onboarding | （002 范围）未登录或首次访问 + flow=create | 三 tab 分别完成 register | upload / paste / guided 三路径 happy path + Agent Parsing loading + Preview Confirm + 保存 → list；与 `WorkspaceMissingResumeState` CTA 串通 | 002（未创建） |
-| C-11 | BranchFlow + Rewrites Tab + Edit Tab | （003 范围）当前在某 version 详情 | 触发 branch / 切到 rewrites / 切到 edit | branch 配置 + 3 seedStrategy + accept/reject suggestion + edit 保存；exportPDF P0 toast / copyText 真实 | 003（未创建） |
+| C-10 | CreateFlow 三 tab + Onboarding | 未登录或首次访问 + flow=create | 三 tab 分别完成 register | upload / paste / guided 三路径 happy path + Agent Parsing loading + Preview Confirm `confirmResumeStructuredMaster` 保存 v1 → list；与 `WorkspaceMissingResumeState` / 首页 "1 分钟创建" CTA 串通；隐私红线 raw text / file binary / guidedAnswers / parsedSummary 不出现在 console / URL / pendingAction / localStorage / mock transport log | [002-create-flow-and-onboarding](./plans/002-create-flow-and-onboarding/plan.md) |
+| C-11 | BranchFlow + Rewrites Tab + Edit Tab | 当前在某 version 详情 | 触发 branch / 切到 rewrites / 切到 edit | branch 配置 + 3 seedStrategy + accept/reject/manual edit 终态 + tailor run polling + Edit Tab `updateResumeVersion`；exportPDF P0 toast / copyText 真实可用一致性；retired tailor mode (`inline\|rewrite\|mirror`) 0 命中（与 [B3 D-14](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表) 同步） | [003-branch-rewrites-and-edit](./plans/003-branch-rewrites-and-edit/plan.md) |
 
 ## 7 关联计划
 
-- [001-listing-routing-and-detail-readonly](./plans/001-listing-routing-and-detail-readonly/plan.md)：第一批 plan，路由接管 + ResumeListView（TreeView + FlatView + StatsStrip + ViewSwitcher）+ ResumeDetailView Preview Tab 只读 + 原件弹层 + Breadcrumb + 版本分支图 + i18n + a11y + UI parity gate；BDD 覆盖列表 / 树/平铺切换 / 详情预览主路径。
-- `002-create-flow-and-onboarding`（未创建，由 001 完成后启动）：ResumeCreateFlow 三 tab + 双步上传（消费 backend-upload）+ Agent Parsing 进度态 + Preview Confirm + 首页 "1 分钟创建" 路由对接 + WorkspaceMissingResumeState CTA 串通。
-- `003-branch-rewrites-and-edit`（未创建，由 002 完成后启动）：ResumeBranchFlow（3 seedStrategy + ai_select 触发 tailor）+ Rewrites Tab + Edit Tab + exportPDF / copyText 按钮。
+- [001-listing-routing-and-detail-readonly](./plans/001-listing-routing-and-detail-readonly/plan.md)：第一批 plan，路由接管 + ResumeListView（TreeView + FlatView + StatsStrip + ViewSwitcher）+ ResumeDetailView Preview Tab 只读 + 原件弹层 + Breadcrumb + 版本分支图 + i18n + a11y + UI parity gate；BDD 覆盖列表 / 树/平铺切换 / 详情预览主路径（E2E.P0.036 + E2E.P0.037）。
+- [002-create-flow-and-onboarding](./plans/002-create-flow-and-onboarding/plan.md)：替换 `flow=create` placeholder，源级复刻 `ResumeCreateFlow` 三 tab（upload / paste / guided）+ `ResumeParseFlow` 7 step 动画 + `getResume` 轮询 + `ResumePreviewConfirm` 保存 v1（调 [backend-resume/002 D-10 `confirmResumeStructuredMaster`](../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md#phase-1-b2-d-18-additive-confirmresumestructuredmaster--b1-错误码增补)）+ 双步上传（[backend-upload `createUploadPresign`](../backend-upload/plans/001-file-objects-and-presign-baseline/plan.md) + 浏览器 PUT + `registerResume`）+ 首页 "1 分钟创建" / `WorkspaceMissingResumeState` CTA 串通 + auth pending action 隐私（不携带 form draft / raw text）；BDD 覆盖 `E2E.P0.081 / P0.082 / P0.083` 三场景。
+- [003-branch-rewrites-and-edit](./plans/003-branch-rewrites-and-edit/plan.md)：替换 `flow=branch` placeholder + 替换 plan 001 阶段 Rewrites / Edit Tab `<ComingSoonTab>` 占位，源级复刻 `ResumeBranchFlow`（3 seedStrategy 同步 + ai_select 触发 tailor）+ `ResumeRewritesTab`（suggestions 列表 + accept/reject/manual edit 终态状态机 + tailor run polling + 重新运行改写 mode 切换）+ `ResumeEditTab`（headline + summary 提交 `updateResumeVersion`）+ exportPDF / copyText 一致性；BDD 覆盖 `E2E.P0.084 / P0.085 / P0.086 / P0.087` 四场景。
