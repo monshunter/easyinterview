@@ -8,6 +8,8 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `feat(frontend-debrief): land 001 debrief screen Phase 0+1 shell` | #feat #ui #test #i18n #docs |
+| [2026-05-17](2026-05-17.md) | `feat(openapi): add listPracticeSessions operation` | #feat #api #test #docs |
 | [2026-05-17](2026-05-17.md) | `fix(test): close debrief scenario wrapper evidence (BUG-0066)` | #fix #test #docs |
 | [2026-05-16](2026-05-16.md) | `feat(backend-debrief): close 001 debrief record and analysis baseline` | #feat #test #docs #fix |
 | [2026-05-16](2026-05-16.md) | `chore(backend-debrief): close phase 0 cross-owner addendums and validation` | #chore #test #docs |
