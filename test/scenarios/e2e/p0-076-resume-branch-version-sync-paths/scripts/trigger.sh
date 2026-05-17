@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd)"
+OUT="$ROOT/.test-output/e2e/p0-076-resume-branch-version-sync-paths"
+mkdir -p "$OUT"
+
+{
+  echo "E2E.P0.076 trigger"
+  date -u '+timestamp=%Y-%m-%dT%H:%M:%SZ'
+  echo "RUNNER make validate-fixtures"
+  cd "$ROOT"
+  make validate-fixtures
+  echo "RUNNER go test cmd/api branch version HTTP scenario"
+  cd "$ROOT/backend"
+  go test ./cmd/api -run 'TestResumeBranchVersionHTTPScenario|TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware' -count=1 -v
+  echo "RUNNER go test resume handler branch and fixture parity"
+  go test ./internal/resume/handler -run 'TestBranchResumeVersion|TestBranchResumeVersionFixtureParity' -count=1 -v
+  echo "RUNNER go test resume service branch"
+  go test ./internal/resume -run 'TestBranchResumeVersion' -count=1 -v
+  echo "RUNNER go test resume store unit branch"
+  go test ./internal/resume/store -run 'TestRepositoryExposesResumeAssetMethods|TestBranchVersion' -count=1 -v
+  echo "RUNNER go test resume store live branch integration"
+  DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run TestBranchVersion -count=1 -v
+} | tee "$OUT/trigger.log"

@@ -131,6 +131,30 @@ type VersionUpdateInput struct {
 	Now                    time.Time
 }
 
+type BranchVersionInput struct {
+	VersionID       string
+	UserID          string
+	ParentVersionID string
+	TargetJobID     string
+	SeedStrategy    sharedtypes.ResumeSeedStrategy
+	DisplayName     string
+	FocusAngle      *string
+	Provenance      VersionProvenance
+	TailorRunID     string
+	JobID           string
+	DedupeKey       string
+	Now             time.Time
+}
+
+type BranchVersionResult struct {
+	Version      VersionRecord
+	TailorRunID  string
+	JobID        string
+	JobStatus    sharedtypes.JobStatus
+	JobCreatedAt time.Time
+	JobUpdatedAt time.Time
+}
+
 type ListFilter struct {
 	Cursor   string
 	PageSize int

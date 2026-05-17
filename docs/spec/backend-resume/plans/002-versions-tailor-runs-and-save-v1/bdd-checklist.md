@@ -26,21 +26,24 @@
 
 ## E2E.P0.076 resume branch version sync paths
 
-- [ ] 创建场景目录 `test/scenarios/e2e/p0-076-resume-branch-version-sync-paths/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
-- [ ] 准备 B2 fixture + 测试数据：`branchResumeVersion.json` `copy-master-sync` + `blank-sync`（本 plan Phase 5.7 补齐 fixture）；用户 A 拥有 ready structured_master version vmaster + ready targetJob tj1；用户 B 已登录有自己的 vmaster_b
-- [ ] 实现 `scripts/setup.sh`（dev stack + register + confirm + targetJob 准备）/ `scripts/trigger.sh`（A1 copy_master + A2 IK replay + A3 blank + A4 parent 404 + A5 targetJob 404 + A6 422 invalid seed_strategy + B1/B2 cross-user，运行 `cd backend && go test ./cmd/api -run TestResumeBranchVersionHTTPScenario -count=1 -v`）/ `scripts/verify.sh`（DB structured_profile 拷贝断言 + blank 空字段 + 不入队 async_jobs 断言 + 字节比对 fixture + cross-user 404 + `method=cmd-api-http`）/ `scripts/cleanup.sh`
-- [ ] 执行 `setup → trigger → verify → cleanup` 全 PASS
-- [ ] 记录验证证据：`.test-output/e2e/p0-076-resume-branch-version-sync-paths/trigger.log` + DB resume_versions / async_jobs 行断言 + fixture byte diff 0 + 隐私 grep + live runtime evidence
-- [ ] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.076 行（关联需求 `backend-resume C-10`，状态 Ready，automated）
+- [x] 创建场景目录 `test/scenarios/e2e/p0-076-resume-branch-version-sync-paths/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
+- [x] 准备 B2 fixture + 测试数据：`branchResumeVersion.json` `copy-master-sync` + `blank-sync` + `default` / `idempotent-replay` / `validation-error-422` / `ai-select-202-with-job`；`cmd/api` focused HTTP scenario 覆盖 session / IK / copy_master / ai_select accepted / replay / mismatch / invalid seed / not found；handler / service / store tests 覆盖用户 A / B、copy provenance reset、blank profile、cross-user parent 404、foreign target 404、ai_select rollback
+- [x] 实现 `scripts/setup.sh`（准备 `.test-output` 与 seed/expected evidence）/ `scripts/trigger.sh`（运行 `make validate-fixtures`、`cd backend && go test ./cmd/api -run 'TestResumeBranchVersionHTTPScenario|TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware' -count=1 -v`、handler fixture parity、service/store focused tests、`DATABASE_URL=... go test ./internal/resume/store -tags=integration -run TestBranchVersion -count=1 -v`）/ `scripts/verify.sh`（DB structured_profile 拷贝断言 + blank 空字段 + 不入队 async_jobs 断言 + 字节比对 fixture + cross-user 404 + `method=cmd-api-http` + 隐私 grep + 旧口径 grep）/ `scripts/cleanup.sh`
+- [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
+- [x] 记录验证证据：`.test-output/e2e/p0-076-resume-branch-version-sync-paths/trigger.log` + verify 输出 + DB resume_versions / async_jobs 行断言 + fixture byte diff 0 + 隐私 grep 0 命中 + `method=cmd-api-http` live runtime evidence + no no-op / no skip 证据
+- [x] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.076 行（关联需求 `backend-resume C-10`，状态 Ready，automated）
 
 ## E2E.P0.077 resume tailor async dispatch and ready
 
-- [ ] 创建场景目录 `test/scenarios/e2e/p0-077-resume-tailor-async-dispatch-and-ready/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
-- [ ] 准备 fixture + stub provider + 测试数据：`branchResumeVersion.json` `ai-select-202-with-job`（本 plan Phase 5.7 补齐 fixture）+ `requestResumeTailor.json` `default`（Phase 6.8 补齐 `Idempotency-Key` 请求头）/ `idempotency-replay` + `getResumeTailorRun.json` `default` / `queued` / `generating` / `failed`；A3 AIClient stub 返回 success JSON（matchSummary + suggestions[3]）；F3 `resume.tailor.gap_review` + `resume.tailor.bullet_suggestions` feature_key ready；用户 A 拥有 ready resume_asset + structured_master + targetJob
-- [ ] 实现 `scripts/setup.sh`（dev stack + `cmd/api` in-process resume_tailor drainer 启动 + stub provider 注入 + 用户登录 + register + confirm + targetJob 准备）/ `scripts/trigger.sh`（A1 ai_select branch + A2 requestTailor + A3 drainer `RunOnce(resume_tailor)` + A4 getTailorRun ready + A5 getTailorRun mid-state + A6 IK replay，运行 `cd backend && go test ./cmd/api -run 'TestResumeBranchVersionHTTPScenario|TestResumeTailorEndpointsHTTPScenario|TestResumeTailorDrainerHTTPScenario' -count=1 -v`）/ `scripts/verify.sh`（DB resume_tailor_runs / resume_version_suggestions / ai_task_runs / outbox_events 行断言 + outbox payload PII 边界（不含 suggested bullet / match_summary 文本）+ ready-only outbox + 字节比对 fixture + `method=cmd-api-http`）/ `scripts/cleanup.sh`
-- [ ] 执行 `setup → trigger → verify → cleanup` 全 PASS
-- [ ] 记录验证证据：`.test-output/e2e/p0-077-resume-tailor-async-dispatch-and-ready/trigger.log` + drainer scenario log + DB 4 张表轨迹 + outbox payload dump（仅 `tailorRunId/resumeAssetId/targetJobId/mode/status`）+ stub provider call log + live runtime evidence + no no-op / no skip
-- [ ] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.077 行（关联需求 `backend-resume C-10, C-16`，状态 Ready，automated）
+- [x] 创建场景目录 `test/scenarios/e2e/p0-077-resume-tailor-async-dispatch-and-ready/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
+- [x] Phase 5 dispatch fixture + 测试数据：`branchResumeVersion.json` `ai-select-202-with-job`；`cmd/api` focused HTTP scenario 覆盖 `seedStrategy=ai_select` 202 accepted + queued job；handler / service / store tests 覆盖 provisional version、queued `resume_tailor_runs`、queued `async_jobs(resume_tailor)`、rollback、cross-user target isolation
+- [x] Phase 5 dispatch scripts：`scripts/setup.sh`（准备 `.test-output` 与 seed/expected evidence）/ `scripts/trigger.sh`（运行 `make validate-fixtures`、`cd backend && go test ./cmd/api -run TestResumeBranchVersionHTTPScenario -count=1 -v`、handler fixture parity、service branch gate、live DB integration）/ `scripts/verify.sh`（skip/no-op negative、fixture parity、privacy grep、retired-vocabulary grep、`method=cmd-api-http`）/ `scripts/cleanup.sh`
+- [x] Phase 5 dispatch subset 执行 `setup → trigger → verify → cleanup` 全 PASS
+- [x] 记录 Phase 5 dispatch 验证证据：`.test-output/e2e/p0-077-resume-tailor-async-dispatch-and-ready/trigger.log` + verify 输出 + `branchResumeVersion` `ai-select-202-with-job` fixture parity + DB provisional version / queued run / queued async job / rollback 断言 + privacy grep 0 命中 + live runtime evidence + no no-op / no skip
+- [x] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.077 行（关联需求 `backend-resume C-10, C-16`，状态 Ready，automated；描述明确为 Phase 5 dispatch slice，ready/drainer extension pending Phase 7）
+- [ ] Phase 6 扩展 requestTailor / getResumeTailorRun：补齐 `requestResumeTailor.json` `default`（含 `Idempotency-Key` 请求头）/ `idempotency-replay` + `getResumeTailorRun.json` `default` / `queued` / `generating` / `failed`，并扩展脚本覆盖 requestTailor + getTailorRun 部分
+- [ ] Phase 7 扩展 drainer ready path：注入 A3 AIClient stub success JSON（matchSummary + suggestions[3]），覆盖 `RunOnce(resume_tailor)`、`resume_version_suggestions`、`ai_task_runs`、ready-only outbox 与 outbox payload PII 边界
+- [ ] 完整 `E2E.P0.077` 执行 `setup → trigger → verify → cleanup` 全 PASS（branch ai_select + requestTailor + getTailorRun queued/ready + drainer + outbox）
 
 ## E2E.P0.078 resume tailor failure and retry
 

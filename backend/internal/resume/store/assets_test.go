@@ -109,6 +109,7 @@ func TestRepositoryExposesResumeAssetMethods(t *testing.T) {
 		GetVersionByID(context.Context, string, string) (resumestore.VersionRecord, error)
 		ListVersionsByAsset(context.Context, string, string, resumestore.VersionListFilter) (resumestore.VersionListResult, error)
 		UpdateVersionPatch(context.Context, resumestore.VersionUpdateInput) (resumestore.VersionRecord, error)
+		BranchFromParent(context.Context, resumestore.BranchVersionInput) (resumestore.BranchVersionResult, error)
 		DeleteForUser(context.Context, string, time.Time) error
 	} = (*resumestore.Repository)(nil)
 }

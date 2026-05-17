@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
@@ -413,6 +414,114 @@ func TestUpdateResumeVersionValidationAndStoreErrors(t *testing.T) {
 	}
 }
 
+func TestBranchResumeVersionRoutesSeedStrategies(t *testing.T) {
+	now := time.Date(2026, 5, 17, 20, 15, 0, 0, time.UTC)
+	focusAngle := "Platform evidence"
+	tests := []struct {
+		name      string
+		strategy  sharedtypes.ResumeSeedStrategy
+		ids       []string
+		storeOut  resumestore.BranchVersionResult
+		wantAsync bool
+		wantStatus int
+	}{
+		{
+			name:       "copy master",
+			strategy:   sharedtypes.ResumeSeedStrategyCopyMaster,
+			ids:        []string{"version-copy"},
+			storeOut:   branchStoreResult("version-copy", sharedtypes.ResumeSeedStrategyCopyMaster, now, false),
+			wantStatus: http.StatusCreated,
+		},
+		{
+			name:       "blank",
+			strategy:   sharedtypes.ResumeSeedStrategyBlank,
+			ids:        []string{"version-blank"},
+			storeOut:   branchStoreResult("version-blank", sharedtypes.ResumeSeedStrategyBlank, now, false),
+			wantStatus: http.StatusCreated,
+		},
+		{
+			name:       "ai select",
+			strategy:   sharedtypes.ResumeSeedStrategyAiSelect,
+			ids:        []string{"version-ai", "tailor-run-1", "job-1"},
+			storeOut:   branchStoreResult("version-ai", sharedtypes.ResumeSeedStrategyAiSelect, now, true),
+			wantAsync:  true,
+			wantStatus: http.StatusAccepted,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			store := &fakeRegisterStore{branchOut: tc.storeOut}
+			svc := resume.NewService(resume.ServiceOptions{
+				Store: store,
+				Now:   func() time.Time { return now },
+				NewID: sequenceIDs(tc.ids...),
+			})
+
+			got, err := svc.BranchResumeVersion(context.Background(), resume.BranchVersionRequest{
+				UserID:          " user-1 ",
+				ParentVersionID: " parent-1 ",
+				TargetJobID:     " target-1 ",
+				SeedStrategy:    tc.strategy,
+				DisplayName:     " Targeted ",
+				FocusAngle:      &focusAngle,
+				IdempotencyKey:  " idem-branch ",
+			})
+			if err != nil {
+				t.Fatalf("BranchResumeVersion: %v", err)
+			}
+			if store.branchIn.UserID != "user-1" || store.branchIn.ParentVersionID != "parent-1" || store.branchIn.TargetJobID != "target-1" || store.branchIn.DisplayName != "Targeted" {
+				t.Fatalf("branch input = %+v", store.branchIn)
+			}
+			if store.branchIn.VersionID != tc.ids[0] || store.branchIn.SeedStrategy != tc.strategy || store.branchIn.Now != now {
+				t.Fatalf("branch id/strategy/time = %+v", store.branchIn)
+			}
+			if store.branchIn.FocusAngle == nil || *store.branchIn.FocusAngle != focusAngle {
+				t.Fatalf("focusAngle = %#v", store.branchIn.FocusAngle)
+			}
+			if store.branchIn.Provenance.PromptVersion == "" || store.branchIn.Provenance.DataSourceVersion == "" {
+				t.Fatalf("provenance = %+v", store.branchIn.Provenance)
+			}
+			if got.Status != tc.wantStatus {
+				t.Fatalf("status = %d, want %d", got.Status, tc.wantStatus)
+			}
+			if tc.wantAsync {
+				if store.branchIn.TailorRunID != "tailor-run-1" || store.branchIn.JobID != "job-1" {
+					t.Fatalf("async ids = %+v", store.branchIn)
+				}
+				if got.Accepted == nil || got.Accepted.Job.JobType != "resume_tailor" || got.Accepted.Job.ResourceType != "resume_tailor_run" || got.Accepted.Job.Status != "queued" {
+					t.Fatalf("accepted = %+v", got.Accepted)
+				}
+			} else if got.Accepted != nil || got.Version.Id != tc.ids[0] {
+				t.Fatalf("sync result = %+v", got)
+			}
+		})
+	}
+}
+
+func TestBranchResumeVersionValidationAndStoreErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		in   resume.BranchVersionRequest
+		err  error
+		want error
+	}{
+		{name: "missing display name", in: resume.BranchVersionRequest{UserID: "user-1", ParentVersionID: "parent-1", TargetJobID: "target-1", SeedStrategy: sharedtypes.ResumeSeedStrategyCopyMaster}, want: resume.ErrValidationFailed},
+		{name: "invalid seed", in: validBranchInput("invalid"), want: resume.ErrValidationFailed},
+		{name: "not found", in: validBranchInput(sharedtypes.ResumeSeedStrategyCopyMaster), err: resumestore.ErrVersionNotFound, want: resume.ErrNotFound},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := resume.NewService(resume.ServiceOptions{Store: &fakeRegisterStore{branchErr: tc.err}, NewID: sequenceIDs("version-1", "tailor-run-1", "job-1")})
+
+			_, err := svc.BranchResumeVersion(context.Background(), tc.in)
+
+			if !errors.Is(err, tc.want) {
+				t.Fatalf("err = %v, want %v", err, tc.want)
+			}
+		})
+	}
+}
+
 type fakeUploadRegistrar struct {
 	in  uploadservice.RegisterFileObjectInput
 	out uploadstore.FileObject
@@ -458,6 +567,10 @@ type fakeRegisterStore struct {
 	updateVersionIn  resumestore.VersionUpdateInput
 	updateVersionOut resumestore.VersionRecord
 	updateVersionErr error
+
+	branchIn  resumestore.BranchVersionInput
+	branchOut resumestore.BranchVersionResult
+	branchErr error
 }
 
 func (s *fakeRegisterStore) CreateWithParseJob(_ context.Context, in resumestore.CreateAssetInput) (resumestore.CreateAssetResult, error) {
@@ -501,6 +614,11 @@ func (s *fakeRegisterStore) UpdateVersionPatch(_ context.Context, in resumestore
 	return s.updateVersionOut, s.updateVersionErr
 }
 
+func (s *fakeRegisterStore) BranchFromParent(_ context.Context, in resumestore.BranchVersionInput) (resumestore.BranchVersionResult, error) {
+	s.branchIn = in
+	return s.branchOut, s.branchErr
+}
+
 func sequenceIDs(ids ...string) func() string {
 	i := 0
 	return func() string {
@@ -534,4 +652,48 @@ func validStructuredProfile() map[string]any {
 			"dataSourceVersion": "asset.v1",
 		},
 	}
+}
+
+func validBranchInput(strategy sharedtypes.ResumeSeedStrategy) resume.BranchVersionRequest {
+	return resume.BranchVersionRequest{
+		UserID:          "user-1",
+		ParentVersionID: "parent-1",
+		TargetJobID:     "target-1",
+		SeedStrategy:    strategy,
+		DisplayName:     "Targeted",
+		IdempotencyKey:  "idem-branch",
+	}
+}
+
+func branchStoreResult(versionID string, strategy sharedtypes.ResumeSeedStrategy, now time.Time, async bool) resumestore.BranchVersionResult {
+	parentID := "parent-1"
+	targetID := "target-1"
+	focusAngle := "Platform evidence"
+	result := resumestore.BranchVersionResult{
+		Version: resumestore.VersionRecord{
+			ID:              versionID,
+			UserID:          "user-1",
+			ResumeAssetID:   "asset-1",
+			ParentVersionID: &parentID,
+			VersionType:     sharedtypes.ResumeVersionTypeTargeted,
+			TargetJobID:     &targetID,
+			DisplayName:     "Targeted",
+			SeedStrategy:    &strategy,
+			FocusAngle:      &focusAngle,
+			StructuredProfile: json.RawMessage(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`),
+			Provenance: resumestore.VersionProvenance{
+				PromptVersion: "p", RubricVersion: "r", ModelID: "m", Language: "en", FeatureFlag: "f", DataSourceVersion: "d",
+			},
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+	}
+	if async {
+		result.TailorRunID = "tailor-run-1"
+		result.JobID = "job-1"
+		result.JobStatus = sharedtypes.JobStatusQueued
+		result.JobCreatedAt = now
+		result.JobUpdatedAt = now
+	}
+	return result
 }

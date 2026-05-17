@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
@@ -260,6 +261,137 @@ returning id, user_id, resume_asset_id, parent_version_id, version_type, target_
 	return updated, nil
 }
 
+func (r *Repository) BranchFromParent(ctx context.Context, in BranchVersionInput) (BranchVersionResult, error) {
+	if r == nil || r.db == nil {
+		return BranchVersionResult{}, fmt.Errorf("resume store db is nil")
+	}
+	now := in.Now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return BranchVersionResult{}, fmt.Errorf("begin resume version branch: %w", err)
+	}
+	defer tx.Rollback()
+
+	parent, err := scanVersion(tx.QueryRowContext(ctx, `
+select id, user_id, resume_asset_id, parent_version_id, version_type, target_job_id,
+       display_name, seed_strategy, focus_angle, structured_profile, match_score,
+       prompt_version, rubric_version, model_id, provider, created_at, updated_at, deleted_at
+from resume_versions
+where id = $1 and user_id = $2 and deleted_at is null
+for update`,
+		in.ParentVersionID,
+		in.UserID,
+	))
+	if errors.Is(err, sql.ErrNoRows) {
+		return BranchVersionResult{}, ErrVersionNotFound
+	}
+	if err != nil {
+		return BranchVersionResult{}, fmt.Errorf("lock parent resume version: %w", err)
+	}
+
+	var targetExists int
+	if err := tx.QueryRowContext(ctx, `
+select 1 from target_jobs
+where id = $1 and user_id = $2 and deleted_at is null`,
+		in.TargetJobID,
+		in.UserID,
+	).Scan(&targetExists); errors.Is(err, sql.ErrNoRows) {
+		return BranchVersionResult{}, ErrVersionNotFound
+	} else if err != nil {
+		return BranchVersionResult{}, fmt.Errorf("check branch target job ownership: %w", err)
+	}
+
+	profile, err := branchStructuredProfile(parent.StructuredProfile, in.SeedStrategy, in.Provenance)
+	if err != nil {
+		return BranchVersionResult{}, err
+	}
+	version, err := scanVersion(tx.QueryRowContext(ctx, `
+insert into resume_versions (
+  id, user_id, resume_asset_id, parent_version_id, version_type, target_job_id,
+  display_name, seed_strategy, focus_angle, structured_profile, match_score,
+  prompt_version, rubric_version, model_id, provider, created_at, updated_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,null,$11,$12,$13,$14,$15,$15)
+returning id, user_id, resume_asset_id, parent_version_id, version_type, target_job_id,
+          display_name, seed_strategy, focus_angle, structured_profile, match_score,
+          prompt_version, rubric_version, model_id, provider, created_at, updated_at, deleted_at`,
+		in.VersionID,
+		in.UserID,
+		parent.ResumeAssetID,
+		in.ParentVersionID,
+		string(sharedtypes.ResumeVersionTypeTargeted),
+		in.TargetJobID,
+		in.DisplayName,
+		string(in.SeedStrategy),
+		nullableStringPtr(in.FocusAngle),
+		profile,
+		nullableString(in.Provenance.PromptVersion),
+		nullableString(in.Provenance.RubricVersion),
+		nullableString(in.Provenance.ModelID),
+		nullableString(in.Provenance.Provider),
+		now,
+	))
+	if err != nil {
+		return BranchVersionResult{}, fmt.Errorf("insert branched resume version: %w", err)
+	}
+	version.Provenance = in.Provenance
+	result := BranchVersionResult{Version: version}
+
+	if in.SeedStrategy == sharedtypes.ResumeSeedStrategyAiSelect {
+		if _, err := tx.ExecContext(ctx, `
+insert into resume_tailor_runs (
+  id, user_id, target_job_id, resume_asset_id, mode, status,
+  created_at, updated_at
+) values ($1,$2,$3,$4,'gap_review','queued',$5,$5)`,
+			in.TailorRunID,
+			in.UserID,
+			in.TargetJobID,
+			parent.ResumeAssetID,
+			now,
+		); err != nil {
+			return BranchVersionResult{}, fmt.Errorf("insert resume tailor run for branch: %w", err)
+		}
+		payload, err := json.Marshal(map[string]any{
+			"resumeVersionId": in.VersionID,
+			"tailorRunId":     in.TailorRunID,
+			"resumeAssetId":   parent.ResumeAssetID,
+			"targetJobId":     in.TargetJobID,
+			"mode":            "gap_review",
+			"seedStrategy":    string(in.SeedStrategy),
+		})
+		if err != nil {
+			return BranchVersionResult{}, fmt.Errorf("encode branch resume tailor payload: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+insert into async_jobs (
+  id, job_type, resource_type, resource_id, dedupe_key, status,
+  payload, available_at, created_at, updated_at
+) values ($1,$2,'resume_tailor_run',$3,$4,$5,$6,$7,$7,$7)`,
+			in.JobID,
+			string(jobs.JobTypeResumeTailor),
+			in.TailorRunID,
+			nullableString(in.DedupeKey),
+			string(sharedtypes.JobStatusQueued),
+			payload,
+			now,
+		); err != nil {
+			return BranchVersionResult{}, fmt.Errorf("insert resume tailor async job for branch: %w", err)
+		}
+		result.TailorRunID = in.TailorRunID
+		result.JobID = in.JobID
+		result.JobStatus = sharedtypes.JobStatusQueued
+		result.JobCreatedAt = now
+		result.JobUpdatedAt = now
+	}
+
+	if err := tx.Commit(); err != nil {
+		return BranchVersionResult{}, fmt.Errorf("commit resume version branch: %w", err)
+	}
+	return result, nil
+}
+
 func mergeStructuredProfile(existing json.RawMessage, patch map[string]any, patchRaw json.RawMessage) (json.RawMessage, error) {
 	base := map[string]any{}
 	if len(existing) > 0 {
@@ -280,6 +412,41 @@ func mergeStructuredProfile(existing json.RawMessage, patch map[string]any, patc
 		return nil, fmt.Errorf("encode merged structured profile: %w", err)
 	}
 	return raw, nil
+}
+
+func branchStructuredProfile(parent json.RawMessage, strategy sharedtypes.ResumeSeedStrategy, provenance VersionProvenance) (json.RawMessage, error) {
+	switch strategy {
+	case sharedtypes.ResumeSeedStrategyBlank:
+		return json.Marshal(map[string]any{
+			"headline":   "",
+			"summary":    "",
+			"skills":     []any{},
+			"sections":   []any{},
+			"provenance": versionProvenanceMap(provenance),
+		})
+	default:
+		profile := map[string]any{}
+		if len(parent) > 0 {
+			if err := json.Unmarshal(parent, &profile); err != nil {
+				return nil, fmt.Errorf("decode parent structured profile: %w", err)
+			}
+		}
+		profile = cloneAnyMap(profile)
+		profile["provenance"] = versionProvenanceMap(provenance)
+		return json.Marshal(profile)
+	}
+}
+
+func versionProvenanceMap(in VersionProvenance) map[string]any {
+	return map[string]any{
+		"promptVersion":     in.PromptVersion,
+		"rubricVersion":     in.RubricVersion,
+		"modelId":           in.ModelID,
+		"provider":          in.Provider,
+		"language":          in.Language,
+		"featureFlag":       in.FeatureFlag,
+		"dataSourceVersion": in.DataSourceVersion,
+	}
 }
 
 func deepMergeMap(dst map[string]any, src map[string]any) {

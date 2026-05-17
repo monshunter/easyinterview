@@ -193,6 +193,114 @@ func TestResumeVersionUpdatePatchMergeCrossUserAndDeleted(t *testing.T) {
 	}
 }
 
+func TestBranchVersionInsertStrategiesCrossUserAndRollback(t *testing.T) {
+	db := openResumeStoreTestDB(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	ensureStructuredMasterUniqueIndex(t, ctx, db)
+
+	repo := resumestore.NewRepository(db)
+	base := time.Date(2026, 5, 17, 20, 30, 0, 0, time.UTC)
+	userA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf5a001"
+	userB := "0195f2d0-4a44-7fc2-8f77-1f9c4cf5a002"
+	assetID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf5a003"
+	targetA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf5a004"
+	targetB := "0195f2d0-4a44-7fc2-8f77-1f9c4cf5a005"
+	parentID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf5b001"
+	dummyJobID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf5d777"
+	t.Cleanup(func() {
+		_, _ = db.Exec(`delete from async_jobs where id = $1`, dummyJobID)
+		cleanupResumeStoreUsers(t, db, userA, userB)
+	})
+
+	mustExec(t, ctx, db, `insert into users(id, email, status) values ($1, 'resume-branch-a@example.com', 'active'), ($2, 'resume-branch-b@example.com', 'active')`, userA, userB)
+	mustExec(t, ctx, db, `insert into resume_assets(id, user_id, title, language, parse_status) values ($1, $2, 'Ready Resume', 'en', 'ready')`, assetID, userA)
+	mustExec(t, ctx, db, `insert into target_jobs(id, user_id, source_type, analysis_status) values ($1, $2, 'manual_text', 'ready'), ($3, $4, 'manual_text', 'ready')`, targetA, userA, targetB, userB)
+	mustExec(t, ctx, db, `insert into resume_versions(id, user_id, resume_asset_id, version_type, display_name, structured_profile, created_at, updated_at, prompt_version, rubric_version, model_id, provider) values ($1,$2,$3,'structured_master','Structured master',$4,$5,$5,'resume_profile.v1','not_applicable','model-1','provider')`,
+		parentID,
+		userA,
+		assetID,
+		[]byte(`{"headline":"Senior engineer","summary":"master","skills":["Go"],"sections":[{"id":"s1"}],"provenance":{"promptVersion":"resume_profile.v1","rubricVersion":"not_applicable","modelId":"model-1","language":"en","featureFlag":"resume-workshop-additive","dataSourceVersion":"resume_asset.v1"}}`),
+		base,
+	)
+
+	copyOut, err := repo.BranchFromParent(ctx, branchInput("0195f2d0-4a44-7fc2-8f77-1f9c4cf5b002", userA, parentID, targetA, sharedtypes.ResumeSeedStrategyCopyMaster, base.Add(time.Minute)))
+	if err != nil {
+		t.Fatalf("BranchFromParent copy_master: %v", err)
+	}
+	if copyOut.Version.VersionType != sharedtypes.ResumeVersionTypeTargeted || copyOut.Version.ParentVersionID == nil || *copyOut.Version.ParentVersionID != parentID || copyOut.Version.TargetJobID == nil || *copyOut.Version.TargetJobID != targetA {
+		t.Fatalf("copy version = %+v", copyOut.Version)
+	}
+	var copyProfile map[string]any
+	if err := json.Unmarshal(copyOut.Version.StructuredProfile, &copyProfile); err != nil {
+		t.Fatalf("decode copy profile: %v", err)
+	}
+	if copyProfile["summary"] != "master" {
+		t.Fatalf("copy profile did not preserve parent summary: %+v", copyProfile)
+	}
+	copyProvenance, _ := copyProfile["provenance"].(map[string]any)
+	if copyProvenance["promptVersion"] != "resume_branch.copy_master.v1" {
+		t.Fatalf("copy provenance = %+v", copyProvenance)
+	}
+
+	blankOut, err := repo.BranchFromParent(ctx, branchInput("0195f2d0-4a44-7fc2-8f77-1f9c4cf5b003", userA, parentID, targetA, sharedtypes.ResumeSeedStrategyBlank, base.Add(2*time.Minute)))
+	if err != nil {
+		t.Fatalf("BranchFromParent blank: %v", err)
+	}
+	var blankProfile map[string]any
+	if err := json.Unmarshal(blankOut.Version.StructuredProfile, &blankProfile); err != nil {
+		t.Fatalf("decode blank profile: %v", err)
+	}
+	if blankProfile["headline"] != "" || len(blankProfile["skills"].([]any)) != 0 {
+		t.Fatalf("blank profile = %+v", blankProfile)
+	}
+
+	aiIn := branchInput("0195f2d0-4a44-7fc2-8f77-1f9c4cf5b004", userA, parentID, targetA, sharedtypes.ResumeSeedStrategyAiSelect, base.Add(3*time.Minute))
+	aiIn.TailorRunID = "0195f2d0-4a44-7fc2-8f77-1f9c4cf5c001"
+	aiIn.JobID = "0195f2d0-4a44-7fc2-8f77-1f9c4cf5d001"
+	aiIn.DedupeKey = "dedupe-ai"
+	aiOut, err := repo.BranchFromParent(ctx, aiIn)
+	if err != nil {
+		t.Fatalf("BranchFromParent ai_select: %v", err)
+	}
+	if aiOut.TailorRunID != aiIn.TailorRunID || aiOut.JobID != aiIn.JobID || aiOut.JobStatus != sharedtypes.JobStatusQueued {
+		t.Fatalf("ai result = %+v", aiOut)
+	}
+	var runStatus, jobType, resourceType, jobStatus string
+	if err := db.QueryRowContext(ctx, `select rr.status, j.job_type, j.resource_type, j.status from resume_tailor_runs rr join async_jobs j on j.resource_id = rr.id where rr.id = $1`, aiIn.TailorRunID).Scan(&runStatus, &jobType, &resourceType, &jobStatus); err != nil {
+		t.Fatalf("query ai_select run/job: %v", err)
+	}
+	if runStatus != "queued" || jobType != "resume_tailor" || resourceType != "resume_tailor_run" || jobStatus != "queued" {
+		t.Fatalf("run/job status = %s %s %s %s", runStatus, jobType, resourceType, jobStatus)
+	}
+
+	if _, err := repo.BranchFromParent(ctx, branchInput("0195f2d0-4a44-7fc2-8f77-1f9c4cf5b005", userB, parentID, targetA, sharedtypes.ResumeSeedStrategyCopyMaster, base.Add(4*time.Minute))); !errors.Is(err, resumestore.ErrVersionNotFound) {
+		t.Fatalf("cross-user parent err = %v, want ErrVersionNotFound", err)
+	}
+	if _, err := repo.BranchFromParent(ctx, branchInput("0195f2d0-4a44-7fc2-8f77-1f9c4cf5b006", userA, parentID, targetB, sharedtypes.ResumeSeedStrategyCopyMaster, base.Add(5*time.Minute))); !errors.Is(err, resumestore.ErrVersionNotFound) {
+		t.Fatalf("cross-user target err = %v, want ErrVersionNotFound", err)
+	}
+
+	mustExec(t, ctx, db, `insert into async_jobs(id, job_type, resource_type, resource_id, status) values ($1, 'resume_tailor', 'resume_tailor_run', $2, 'queued') on conflict (id) do nothing`, dummyJobID, "0195f2d0-4a44-7fc2-8f77-1f9c4cf5c777")
+	rollbackIn := branchInput("0195f2d0-4a44-7fc2-8f77-1f9c4cf5b007", userA, parentID, targetA, sharedtypes.ResumeSeedStrategyAiSelect, base.Add(6*time.Minute))
+	rollbackIn.TailorRunID = "0195f2d0-4a44-7fc2-8f77-1f9c4cf5c007"
+	rollbackIn.JobID = dummyJobID
+	rollbackIn.DedupeKey = "dedupe-rollback"
+	if _, err := repo.BranchFromParent(ctx, rollbackIn); err == nil {
+		t.Fatal("expected duplicate async job id to fail")
+	}
+	var versionCount, runCount int
+	if err := db.QueryRowContext(ctx, `select count(*) from resume_versions where id = $1`, rollbackIn.VersionID).Scan(&versionCount); err != nil {
+		t.Fatalf("count rollback version: %v", err)
+	}
+	if err := db.QueryRowContext(ctx, `select count(*) from resume_tailor_runs where id = $1`, rollbackIn.TailorRunID).Scan(&runCount); err != nil {
+		t.Fatalf("count rollback run: %v", err)
+	}
+	if versionCount != 0 || runCount != 0 {
+		t.Fatalf("rollback left rows: version=%d run=%d", versionCount, runCount)
+	}
+}
+
 func structuredMasterInput(versionID, userID, assetID string, now time.Time) resumestore.CreateStructuredMasterInput {
 	return resumestore.CreateStructuredMasterInput{
 		VersionID:         versionID,
@@ -208,6 +316,29 @@ func structuredMasterInput(versionID, userID, assetID string, now time.Time) res
 			Language:          "en",
 			FeatureFlag:       "resume-workshop-additive",
 			DataSourceVersion: "resume_asset.v1",
+		},
+		Now: now,
+	}
+}
+
+func branchInput(versionID, userID, parentID, targetID string, strategy sharedtypes.ResumeSeedStrategy, now time.Time) resumestore.BranchVersionInput {
+	focusAngle := "Platform evidence"
+	return resumestore.BranchVersionInput{
+		VersionID:       versionID,
+		UserID:          userID,
+		ParentVersionID: parentID,
+		TargetJobID:     targetID,
+		SeedStrategy:    strategy,
+		DisplayName:     "Targeted",
+		FocusAngle:      &focusAngle,
+		Provenance: resumestore.VersionProvenance{
+			PromptVersion:     "resume_branch." + string(strategy) + ".v1",
+			RubricVersion:     "not_applicable",
+			ModelID:           "not_applicable",
+			Provider:          "system",
+			Language:          "en",
+			FeatureFlag:       "resume-workshop-additive",
+			DataSourceVersion: "resume_version.v1",
 		},
 		Now: now,
 	}

@@ -73,3 +73,5 @@
 | E2E.P0.073 | backend-practice D-5, D-14 | `p0-073-practice-debrief-mode-regression/` | goal=debrief × assisted/strict 可启动，legacy mode=debrief 负向 | automated | Ready |
 | E2E.P0.074 | backend-resume C-6, C-14, C-15 | `p0-074-resume-confirm-master-and-version-reads/` | confirm structured master + get/list resume versions + unique index + pagination + cross-user 404 | automated | Ready |
 | E2E.P0.075 | backend-resume C-14 | `p0-075-resume-update-version-merge-and-ik/` | update resume version partial merge + idempotency replay/mismatch + cross-user/deleted 404 | automated | Ready |
+| E2E.P0.076 | backend-resume C-10 | `p0-076-resume-branch-version-sync-paths/` | branch resume version copy_master/blank sync paths + idempotency + cross-user target isolation | automated | Ready |
+| E2E.P0.077 | backend-resume C-10, C-16 | `p0-077-resume-tailor-async-dispatch-and-ready/` | resume tailor ai_select dispatch slice; ready/drainer extension pending Phase 7 | automated | Ready |

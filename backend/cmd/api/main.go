@@ -333,8 +333,13 @@ func buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader *config.Loader
 		if resume.Idempotency != nil {
 			updateResumeVersion = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "updateResumeVersion", requestUserFromContext, updateResumeVersion)).ServeHTTP
 		}
+		branchResumeVersion := http.HandlerFunc(resume.Handler.BranchResumeVersion)
+		if resume.Idempotency != nil {
+			branchResumeVersion = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "branchResumeVersion", requestUserFromContext, branchResumeVersion)).ServeHTTP
+		}
 		mux.Handle("GET /api/v1/resumes", auth.SessionMiddleware(authService, "listResumes", http.HandlerFunc(resume.Handler.ListResumes)))
 		mux.Handle("POST /api/v1/resumes", auth.SessionMiddleware(authService, "registerResume", registerResume))
+		mux.Handle("POST /api/v1/resume-versions", auth.SessionMiddleware(authService, "branchResumeVersion", branchResumeVersion))
 		mux.Handle("GET /api/v1/resumes/{resumeAssetId}", auth.SessionMiddleware(authService, "getResume", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resume.Handler.GetResume(w, r, r.PathValue("resumeAssetId"))
 		})))

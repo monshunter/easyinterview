@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -57,6 +58,10 @@ type VersionReadStore interface {
 
 type VersionUpdateStore interface {
 	UpdateVersionPatch(ctx context.Context, in resumestore.VersionUpdateInput) (resumestore.VersionRecord, error)
+}
+
+type BranchVersionStore interface {
+	BranchFromParent(ctx context.Context, in resumestore.BranchVersionInput) (resumestore.BranchVersionResult, error)
 }
 
 type UploadRegistrar interface {
@@ -311,6 +316,22 @@ type UpdateVersionRequest struct {
 	StructuredProfileSet bool
 }
 
+type BranchVersionRequest struct {
+	UserID          string
+	ParentVersionID string
+	TargetJobID     string
+	SeedStrategy    sharedtypes.ResumeSeedStrategy
+	DisplayName     string
+	FocusAngle      *string
+	IdempotencyKey  string
+}
+
+type BranchVersionResult struct {
+	Status   int
+	Version  api.ResumeVersion
+	Accepted *api.BranchResumeVersionAccepted
+}
+
 func (s *Service) ListResumeVersions(ctx context.Context, in ListVersionRequest) (api.PaginatedResumeVersion, error) {
 	if s == nil {
 		return api.PaginatedResumeVersion{}, fmt.Errorf("resume version read store is not configured")
@@ -407,6 +428,77 @@ func (s *Service) UpdateResumeVersion(ctx context.Context, in UpdateVersionReque
 	return versionRecordToAPI(rec), nil
 }
 
+func (s *Service) BranchResumeVersion(ctx context.Context, in BranchVersionRequest) (BranchVersionResult, error) {
+	if s == nil {
+		return BranchVersionResult{}, fmt.Errorf("resume version branch store is not configured")
+	}
+	store, ok := s.store.(BranchVersionStore)
+	if !ok {
+		return BranchVersionResult{}, fmt.Errorf("resume version branch store is not configured")
+	}
+	userID := strings.TrimSpace(in.UserID)
+	parentVersionID := strings.TrimSpace(in.ParentVersionID)
+	targetJobID := strings.TrimSpace(in.TargetJobID)
+	displayName := strings.TrimSpace(in.DisplayName)
+	idempotencyKey := strings.TrimSpace(in.IdempotencyKey)
+	if userID == "" || parentVersionID == "" || targetJobID == "" || displayName == "" || idempotencyKey == "" {
+		return BranchVersionResult{}, ErrValidationFailed
+	}
+	switch in.SeedStrategy {
+	case sharedtypes.ResumeSeedStrategyCopyMaster, sharedtypes.ResumeSeedStrategyBlank, sharedtypes.ResumeSeedStrategyAiSelect:
+	default:
+		return BranchVersionResult{}, ErrValidationFailed
+	}
+	now := s.now()
+	storeIn := resumestore.BranchVersionInput{
+		VersionID:       s.newID(),
+		UserID:          userID,
+		ParentVersionID: parentVersionID,
+		TargetJobID:     targetJobID,
+		SeedStrategy:    in.SeedStrategy,
+		DisplayName:     displayName,
+		FocusAngle:      trimOptionalString(in.FocusAngle),
+		Provenance:      branchVersionProvenance(in.SeedStrategy),
+		Now:             now,
+	}
+	if in.SeedStrategy == sharedtypes.ResumeSeedStrategyAiSelect {
+		storeIn.TailorRunID = s.newID()
+		storeIn.JobID = s.newID()
+		storeIn.DedupeKey = s.branchDedupeKey(userID, idempotencyKey)
+	}
+	res, err := store.BranchFromParent(ctx, storeIn)
+	switch {
+	case errors.Is(err, resumestore.ErrVersionNotFound):
+		return BranchVersionResult{}, ErrNotFound
+	case err != nil:
+		return BranchVersionResult{}, err
+	}
+	version := versionRecordToAPI(res.Version)
+	if in.SeedStrategy == sharedtypes.ResumeSeedStrategyAiSelect {
+		jobStatus := res.JobStatus
+		if jobStatus == "" {
+			jobStatus = sharedtypes.JobStatusQueued
+		}
+		return BranchVersionResult{
+			Status: http.StatusAccepted,
+			Accepted: &api.BranchResumeVersionAccepted{
+				ResumeVersionId: version.Id,
+				Version:         version,
+				Job: api.Job{
+					Id:           res.JobID,
+					JobType:      api.JobTypeResumeTailor,
+					ResourceType: api.ResourceTypeResumeTailorRun,
+					ResourceId:   res.TailorRunID,
+					Status:       jobStatus,
+					CreatedAt:    res.JobCreatedAt.UTC().Format(time.RFC3339),
+					UpdatedAt:    res.JobUpdatedAt.UTC().Format(time.RFC3339),
+				},
+			},
+		}, nil
+	}
+	return BranchVersionResult{Status: http.StatusCreated, Version: version}, nil
+}
+
 func (s *Service) dedupeKey(userID, idempotencyKey string) string {
 	h := sha256.New()
 	h.Write([]byte("resume.register.v1"))
@@ -419,6 +511,53 @@ func (s *Service) dedupeKey(userID, idempotencyKey string) string {
 	h.Write([]byte("|"))
 	h.Write([]byte(strings.TrimSpace(idempotencyKey)))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+func (s *Service) branchDedupeKey(userID, idempotencyKey string) string {
+	h := sha256.New()
+	h.Write([]byte("resume.branch.v1"))
+	if s.dedupePepper != "" {
+		h.Write([]byte("|"))
+		h.Write([]byte(s.dedupePepper))
+	}
+	h.Write([]byte("|"))
+	h.Write([]byte(strings.TrimSpace(userID)))
+	h.Write([]byte("|"))
+	h.Write([]byte(strings.TrimSpace(idempotencyKey)))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func branchVersionProvenance(strategy sharedtypes.ResumeSeedStrategy) resumestore.VersionProvenance {
+	out := resumestore.VersionProvenance{
+		RubricVersion:     "not_applicable",
+		ModelID:           "not_applicable",
+		Provider:          "system",
+		Language:          "en",
+		FeatureFlag:       "resume-workshop-additive",
+		DataSourceVersion: "resume_version.v1",
+	}
+	switch strategy {
+	case sharedtypes.ResumeSeedStrategyBlank:
+		out.PromptVersion = "resume_branch.blank.v1"
+	case sharedtypes.ResumeSeedStrategyAiSelect:
+		out.PromptVersion = "resume_branch.ai_select.v1"
+		out.RubricVersion = "resume_targeted.rubric.v1"
+		out.DataSourceVersion = "resume_version.v1+target_job.v1"
+	default:
+		out.PromptVersion = "resume_branch.copy_master.v1"
+	}
+	return out
+}
+
+func trimOptionalString(in *string) *string {
+	if in == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*in)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }
 
 func contentHash(in string) string {
