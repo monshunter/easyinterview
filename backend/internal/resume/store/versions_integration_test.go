@@ -5,6 +5,7 @@ package store_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -122,6 +123,76 @@ func TestResumeVersionListPaginationCrossUserAndCursor(t *testing.T) {
 	}
 }
 
+func TestResumeVersionUpdatePatchMergeCrossUserAndDeleted(t *testing.T) {
+	db := openResumeStoreTestDB(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	ensureStructuredMasterUniqueIndex(t, ctx, db)
+
+	repo := resumestore.NewRepository(db)
+	base := time.Date(2026, 5, 17, 19, 30, 0, 0, time.UTC)
+	userA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf4a001"
+	userB := "0195f2d0-4a44-7fc2-8f77-1f9c4cf4a002"
+	assetID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf4a003"
+	versionID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf4b001"
+	t.Cleanup(func() { cleanupResumeStoreUsers(t, db, userA, userB) })
+
+	mustExec(t, ctx, db, `insert into users(id, email, status) values ($1, 'resume-version-update-a@example.com', 'active'), ($2, 'resume-version-update-b@example.com', 'active')`, userA, userB)
+	mustExec(t, ctx, db, `insert into resume_assets(id, user_id, title, language, parse_status) values ($1, $2, 'Ready Resume', 'en', 'ready')`, assetID, userA)
+	mustExec(t, ctx, db, `insert into resume_versions(id, user_id, resume_asset_id, version_type, display_name, structured_profile, created_at, updated_at, prompt_version, rubric_version, model_id, provider) values ($1,$2,$3,'structured_master','Structured master',$4,$5,$5,'p','r','m','provider')`,
+		versionID,
+		userA,
+		assetID,
+		[]byte(`{"headline":"Senior engineer","summary":"old","skills":["Go"],"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`),
+		base,
+	)
+
+	focusAngle := "Reliability"
+	matchScore := 0.91
+	updated, err := repo.UpdateVersionPatch(ctx, resumestore.VersionUpdateInput{
+		UserID:               userA,
+		VersionID:            versionID,
+		DisplayName:          stringPointer("Updated master"),
+		DisplayNameSet:       true,
+		FocusAngle:           &focusAngle,
+		FocusAngleSet:        true,
+		MatchScore:           &matchScore,
+		MatchScoreSet:        true,
+		StructuredProfileSet: true,
+		StructuredProfilePatch: map[string]any{
+			"summary": "new",
+			"provenance": map[string]any{
+				"promptVersion": "client-controlled",
+			},
+		},
+		Now: base.Add(time.Minute),
+	})
+	if err != nil {
+		t.Fatalf("UpdateVersionPatch: %v", err)
+	}
+	var profile map[string]any
+	if err := json.Unmarshal(updated.StructuredProfile, &profile); err != nil {
+		t.Fatalf("decode updated profile: %v", err)
+	}
+	if updated.DisplayName != "Updated master" || updated.FocusAngle == nil || *updated.FocusAngle != focusAngle || updated.MatchScore == nil || *updated.MatchScore != matchScore {
+		t.Fatalf("updated record = %+v", updated)
+	}
+	if profile["summary"] != "new" || profile["headline"] != "Senior engineer" {
+		t.Fatalf("merged profile = %+v", profile)
+	}
+	provenance, _ := profile["provenance"].(map[string]any)
+	if provenance["promptVersion"] != "p" {
+		t.Fatalf("provenance was not preserved: %+v", provenance)
+	}
+	if _, err := repo.UpdateVersionPatch(ctx, resumestore.VersionUpdateInput{UserID: userB, VersionID: versionID, DisplayName: stringPointer("bad"), DisplayNameSet: true, Now: base.Add(2 * time.Minute)}); !errors.Is(err, resumestore.ErrVersionNotFound) {
+		t.Fatalf("cross-user update err = %v, want ErrVersionNotFound", err)
+	}
+	mustExec(t, ctx, db, `update resume_versions set deleted_at = $2 where id = $1`, versionID, base.Add(3*time.Minute))
+	if _, err := repo.UpdateVersionPatch(ctx, resumestore.VersionUpdateInput{UserID: userA, VersionID: versionID, DisplayName: stringPointer("bad"), DisplayNameSet: true, Now: base.Add(4 * time.Minute)}); !errors.Is(err, resumestore.ErrVersionNotFound) {
+		t.Fatalf("deleted update err = %v, want ErrVersionNotFound", err)
+	}
+}
+
 func structuredMasterInput(versionID, userID, assetID string, now time.Time) resumestore.CreateStructuredMasterInput {
 	return resumestore.CreateStructuredMasterInput{
 		VersionID:         versionID,
@@ -144,6 +215,10 @@ func structuredMasterInput(versionID, userID, assetID string, now time.Time) res
 
 func resumeVersionIntegrationID(i int) string {
 	return fmt.Sprintf("0195f2d0-4a44-7fc2-8f77-1f9c4cf3b%03d", i)
+}
+
+func stringPointer(in string) *string {
+	return &in
 }
 
 func ensureStructuredMasterUniqueIndex(t *testing.T, ctx context.Context, db *sql.DB) {

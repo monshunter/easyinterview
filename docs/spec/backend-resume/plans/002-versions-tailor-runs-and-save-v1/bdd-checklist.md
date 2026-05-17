@@ -17,12 +17,12 @@
 
 ## E2E.P0.075 resume update version merge and IK
 
-- [ ] 创建场景目录 `test/scenarios/e2e/p0-075-resume-update-version-merge-and-ik/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
-- [ ] 准备 B2 fixture + 测试数据：`updateResumeVersion.json` `default` / `validation-error-422`，并由本 plan Phase 4.7 补齐 `idempotency-replay` fixture；用户 A 拥有 1 行 ready structured_master version；用户 B 已登录无版本；准备额外被 soft-delete 的 version 用于 deleted 404 case
-- [ ] 实现 `scripts/setup.sh`（dev stack + 推进 confirm v1 + 用户登录）/ `scripts/trigger.sh`（A1 partial merge + A2 IK replay + A3 IK conflict + A4 422 不可编辑 + A5 focusAngle/matchScore + A6 cross-user + A7 deleted_at，并运行 `cd backend && go test ./cmd/api -run TestResumeUpdateVersionHTTPScenario -count=1 -v`）/ `scripts/verify.sh`（DB merge semantic 断言 + server-reset provenance 断言 + 字节比对 + 隐私 grep + `method=cmd-api-http`）/ `scripts/cleanup.sh`
-- [ ] 执行 `setup → trigger → verify → cleanup` 全 PASS
-- [ ] 记录验证证据：`.test-output/e2e/p0-075-resume-update-version-merge-and-ik/trigger.log` + DB merge 轨迹 + fixture byte diff 0 + cross-user 404 + deleted 404 + 隐私 grep 0 命中 + live runtime evidence
-- [ ] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.075 行（关联需求 `backend-resume C-14`，状态 Ready，automated）
+- [x] 创建场景目录 `test/scenarios/e2e/p0-075-resume-update-version-merge-and-ik/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
+- [x] 准备 B2 fixture + 测试数据：`updateResumeVersion.json` `default` / `validation-error-422`，并由本 plan Phase 4.7 补齐 `idempotency-replay` fixture；`cmd/api` focused HTTP scenario 覆盖 session / IK / update route / replay / mismatch / server-owned 422 / not-found；handler / service / store tests 覆盖用户 A / B、partial merge、client provenance 剥离、cross-user 404、deleted row 404；store integration 直接 seed ready asset、active version 与 soft-deleted version
+- [x] 实现 `scripts/setup.sh`（准备 `.test-output` 与 seed/expected evidence）/ `scripts/trigger.sh`（运行 `make validate-fixtures`、`cd backend && go test ./cmd/api -run 'TestResumeUpdateVersionHTTPScenario|TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware' -count=1 -v`、handler fixture parity、service/store focused tests、`DATABASE_URL=... go test ./internal/resume/store -tags=integration -run 'TestResumeVersionUpdatePatch|TestStructuredMasterUnique|TestResumeVersionListPagination' -count=1 -v`）/ `scripts/verify.sh`（断言 `method=cmd-api-http` + no-op / skip 不可 PASS + DB merge semantic + server-reset provenance + 字节比对 fixture + cross-user / deleted 404 + 隐私 grep + 旧口径 grep）/ `scripts/cleanup.sh`
+- [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
+- [x] 记录验证证据：`.test-output/e2e/p0-075-resume-update-version-merge-and-ik/trigger.log` + verify 输出 + DB merge 轨迹 + fixture byte diff 0 + cross-user 404 + deleted 404 + 隐私 grep 0 命中 + `method=cmd-api-http` live runtime evidence + no no-op / no skip 证据
+- [x] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.075 行（关联需求 `backend-resume C-14`，状态 Ready，automated）
 
 ## E2E.P0.076 resume branch version sync paths
 

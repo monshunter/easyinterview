@@ -316,6 +316,103 @@ func TestResumeVersionReadMapsStoreErrors(t *testing.T) {
 	}
 }
 
+func TestUpdateResumeVersionSanitizesPatchAndMapsResponse(t *testing.T) {
+	now := time.Date(2026, 5, 17, 19, 15, 0, 0, time.UTC)
+	focusAngle := "Reliability leadership"
+	matchScore := 0.82
+	store := &fakeRegisterStore{updateVersionOut: resumestore.VersionRecord{
+		ID:            "version-1",
+		UserID:        "user-1",
+		ResumeAssetID: "asset-1",
+		VersionType:   sharedtypes.ResumeVersionTypeStructuredMaster,
+		DisplayName:   "Updated master",
+		FocusAngle:    &focusAngle,
+		MatchScore:    &matchScore,
+		StructuredProfile: json.RawMessage(`{
+			"headline":"Senior engineer",
+			"summary":"new summary",
+			"skills":["Go","Postgres"],
+			"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}
+		}`),
+		Provenance: resumestore.VersionProvenance{
+			PromptVersion: "p", RubricVersion: "r", ModelID: "m", Language: "en", FeatureFlag: "f", DataSourceVersion: "d",
+		},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}}
+	svc := resume.NewService(resume.ServiceOptions{Store: store, Now: func() time.Time { return now }})
+	displayName := " Updated master "
+	inFocusAngle := " Reliability leadership "
+
+	got, err := svc.UpdateResumeVersion(context.Background(), resume.UpdateVersionRequest{
+		UserID:         " user-1 ",
+		VersionID:      " version-1 ",
+		DisplayName:    &displayName,
+		DisplayNameSet: true,
+		FocusAngle:     &inFocusAngle,
+		FocusAngleSet:  true,
+		MatchScore:     &matchScore,
+		MatchScoreSet:  true,
+		StructuredProfile: map[string]any{
+			"summary": "new summary",
+			"provenance": map[string]any{
+				"promptVersion": "client-controlled",
+			},
+		},
+		StructuredProfileSet: true,
+	})
+	if err != nil {
+		t.Fatalf("UpdateResumeVersion: %v", err)
+	}
+	if store.updateVersionIn.UserID != "user-1" || store.updateVersionIn.VersionID != "version-1" {
+		t.Fatalf("update scope = %+v", store.updateVersionIn)
+	}
+	if store.updateVersionIn.DisplayName == nil || *store.updateVersionIn.DisplayName != "Updated master" {
+		t.Fatalf("displayName input = %#v", store.updateVersionIn.DisplayName)
+	}
+	if store.updateVersionIn.FocusAngle == nil || *store.updateVersionIn.FocusAngle != "Reliability leadership" {
+		t.Fatalf("focusAngle input = %#v", store.updateVersionIn.FocusAngle)
+	}
+	if _, ok := store.updateVersionIn.StructuredProfilePatch["provenance"]; ok {
+		t.Fatalf("client provenance leaked into store patch: %#v", store.updateVersionIn.StructuredProfilePatch)
+	}
+	if got.DisplayName != "Updated master" || got.FocusAngle == nil || *got.FocusAngle != focusAngle || got.MatchScore == nil || *got.MatchScore != matchScore {
+		t.Fatalf("response = %+v", got)
+	}
+	profile, ok := got.StructuredProfile.(map[string]any)
+	if !ok || profile["summary"] != "new summary" {
+		t.Fatalf("structured profile response = %#v", got.StructuredProfile)
+	}
+	if got.Provenance.PromptVersion != "p" {
+		t.Fatalf("provenance = %+v", got.Provenance)
+	}
+}
+
+func TestUpdateResumeVersionValidationAndStoreErrors(t *testing.T) {
+	displayName := "Updated"
+	tests := []struct {
+		name string
+		in   resume.UpdateVersionRequest
+		err  error
+		want error
+	}{
+		{name: "empty patch", in: resume.UpdateVersionRequest{UserID: "user-1", VersionID: "version-1"}, want: resume.ErrValidationFailed},
+		{name: "missing version", in: resume.UpdateVersionRequest{UserID: "user-1", DisplayName: &displayName, DisplayNameSet: true}, want: resume.ErrValidationFailed},
+		{name: "not found", in: resume.UpdateVersionRequest{UserID: "user-1", VersionID: "version-1", DisplayName: &displayName, DisplayNameSet: true}, err: resumestore.ErrVersionNotFound, want: resume.ErrNotFound},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := resume.NewService(resume.ServiceOptions{Store: &fakeRegisterStore{updateVersionErr: tc.err}})
+
+			_, err := svc.UpdateResumeVersion(context.Background(), tc.in)
+
+			if !errors.Is(err, tc.want) {
+				t.Fatalf("err = %v, want %v", err, tc.want)
+			}
+		})
+	}
+}
+
 type fakeUploadRegistrar struct {
 	in  uploadservice.RegisterFileObjectInput
 	out uploadstore.FileObject
@@ -357,6 +454,10 @@ type fakeRegisterStore struct {
 	versionListFilter  resumestore.VersionListFilter
 	versionListOut     resumestore.VersionListResult
 	versionListErr     error
+
+	updateVersionIn  resumestore.VersionUpdateInput
+	updateVersionOut resumestore.VersionRecord
+	updateVersionErr error
 }
 
 func (s *fakeRegisterStore) CreateWithParseJob(_ context.Context, in resumestore.CreateAssetInput) (resumestore.CreateAssetResult, error) {
@@ -393,6 +494,11 @@ func (s *fakeRegisterStore) ListVersionsByAsset(_ context.Context, userID string
 	s.versionListAssetID = assetID
 	s.versionListFilter = filter
 	return s.versionListOut, s.versionListErr
+}
+
+func (s *fakeRegisterStore) UpdateVersionPatch(_ context.Context, in resumestore.VersionUpdateInput) (resumestore.VersionRecord, error) {
+	s.updateVersionIn = in
+	return s.updateVersionOut, s.updateVersionErr
 }
 
 func sequenceIDs(ids ...string) func() string {

@@ -55,6 +55,10 @@ type VersionReadStore interface {
 	ListVersionsByAsset(ctx context.Context, userID string, assetID string, filter resumestore.VersionListFilter) (resumestore.VersionListResult, error)
 }
 
+type VersionUpdateStore interface {
+	UpdateVersionPatch(ctx context.Context, in resumestore.VersionUpdateInput) (resumestore.VersionRecord, error)
+}
+
 type UploadRegistrar interface {
 	RegisterFileObject(ctx context.Context, in uploadservice.RegisterFileObjectInput) (uploadstore.FileObject, error)
 }
@@ -294,6 +298,19 @@ type ListVersionRequest struct {
 	PageSize      int
 }
 
+type UpdateVersionRequest struct {
+	UserID               string
+	VersionID            string
+	DisplayName          *string
+	DisplayNameSet       bool
+	FocusAngle           *string
+	FocusAngleSet        bool
+	MatchScore           *float64
+	MatchScoreSet        bool
+	StructuredProfile    map[string]any
+	StructuredProfileSet bool
+}
+
 func (s *Service) ListResumeVersions(ctx context.Context, in ListVersionRequest) (api.PaginatedResumeVersion, error) {
 	if s == nil {
 		return api.PaginatedResumeVersion{}, fmt.Errorf("resume version read store is not configured")
@@ -321,6 +338,73 @@ func (s *Service) ListResumeVersions(ctx context.Context, in ListVersionRequest)
 		HasMore:    res.HasMore,
 	}
 	return out, nil
+}
+
+func (s *Service) UpdateResumeVersion(ctx context.Context, in UpdateVersionRequest) (api.ResumeVersion, error) {
+	if s == nil {
+		return api.ResumeVersion{}, fmt.Errorf("resume version update store is not configured")
+	}
+	store, ok := s.store.(VersionUpdateStore)
+	if !ok {
+		return api.ResumeVersion{}, fmt.Errorf("resume version update store is not configured")
+	}
+	userID := strings.TrimSpace(in.UserID)
+	versionID := strings.TrimSpace(in.VersionID)
+	if userID == "" || versionID == "" {
+		return api.ResumeVersion{}, ErrValidationFailed
+	}
+	if !in.DisplayNameSet && !in.FocusAngleSet && !in.MatchScoreSet && !in.StructuredProfileSet {
+		return api.ResumeVersion{}, ErrValidationFailed
+	}
+	update := resumestore.VersionUpdateInput{
+		UserID:               userID,
+		VersionID:            versionID,
+		DisplayNameSet:       in.DisplayNameSet,
+		FocusAngleSet:        in.FocusAngleSet,
+		MatchScoreSet:        in.MatchScoreSet,
+		StructuredProfileSet: in.StructuredProfileSet,
+		Now:                  s.now(),
+	}
+	if in.DisplayNameSet {
+		if in.DisplayName == nil {
+			return api.ResumeVersion{}, ErrValidationFailed
+		}
+		displayName := strings.TrimSpace(*in.DisplayName)
+		if displayName == "" {
+			return api.ResumeVersion{}, ErrValidationFailed
+		}
+		update.DisplayName = &displayName
+	}
+	if in.FocusAngleSet && in.FocusAngle != nil {
+		focusAngle := strings.TrimSpace(*in.FocusAngle)
+		update.FocusAngle = &focusAngle
+	}
+	if in.MatchScoreSet {
+		update.MatchScore = cloneFloatPtr(in.MatchScore)
+	}
+	if in.StructuredProfileSet {
+		profile := cloneMap(in.StructuredProfile)
+		delete(profile, "provenance")
+		if len(profile) == 0 && !in.DisplayNameSet && !in.FocusAngleSet && !in.MatchScoreSet {
+			return api.ResumeVersion{}, ErrValidationFailed
+		}
+		profileRaw, err := json.Marshal(profile)
+		if err != nil {
+			return api.ResumeVersion{}, ErrValidationFailed
+		}
+		update.StructuredProfilePatch = profile
+		update.StructuredProfile = profileRaw
+	}
+	rec, err := store.UpdateVersionPatch(ctx, update)
+	switch {
+	case errors.Is(err, resumestore.ErrVersionNotFound):
+		return api.ResumeVersion{}, ErrNotFound
+	case errors.Is(err, resumestore.ErrInvalidCursor):
+		return api.ResumeVersion{}, ErrInvalidCursor
+	case err != nil:
+		return api.ResumeVersion{}, err
+	}
+	return versionRecordToAPI(rec), nil
 }
 
 func (s *Service) dedupeKey(userID, idempotencyKey string) string {

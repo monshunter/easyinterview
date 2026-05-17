@@ -60,6 +60,65 @@
         }
       }
     },
+    "idempotency-replay": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-update-resume-version-2026-05-12"
+        },
+        "body": {
+          "displayName": "Northstar Systems frontend target - edited",
+          "focusAngle": "Lead with release quality and cross-functional ownership",
+          "matchScore": 0.86
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-40-00-update-resume-version"
+        },
+        "body": {
+          "id": "0195f2d0-0001-7000-8000-000000000202",
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+          "versionType": "targeted",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "displayName": "Northstar Systems frontend target - edited",
+          "seedStrategy": "copy_master",
+          "focusAngle": "Lead with release quality and cross-functional ownership",
+          "structuredProfile": {
+            "headline": "Senior frontend engineer for platform-heavy product teams",
+            "summary": "Highlights reliability, release quality, and ownership evidence.",
+            "skills": ["React", "TypeScript", "Observability"],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_targeted.v1",
+              "rubricVersion": "resume_targeted.rubric.v1",
+              "modelId": "fixture-model:resume-version-profile",
+              "language": "zh-CN",
+              "featureFlag": "resume-workshop-additive",
+              "dataSourceVersion": "resume_asset.v1+target_job.v1"
+            }
+          },
+          "matchScore": 0.86,
+          "promptVersion": "resume_targeted.v1",
+          "rubricVersion": "resume_targeted.rubric.v1",
+          "modelId": "fixture-model:resume-version-profile",
+          "provider": "fixture-provider",
+          "provenance": {
+            "promptVersion": "resume_targeted.v1",
+            "rubricVersion": "resume_targeted.rubric.v1",
+            "modelId": "fixture-model:resume-version-profile",
+            "language": "zh-CN",
+            "featureFlag": "resume-workshop-additive",
+            "dataSourceVersion": "resume_asset.v1+target_job.v1"
+          },
+          "suggestions": [],
+          "createdAt": "2026-05-12T08:24:00Z",
+          "updatedAt": "2026-05-12T08:40:00Z",
+          "deletedAt": null
+        }
+      }
+    },
     "validation-error-422": {
       "request": {
         "headers": {

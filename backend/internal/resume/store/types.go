@@ -116,6 +116,21 @@ type VersionListResult struct {
 	PageSize   int
 }
 
+type VersionUpdateInput struct {
+	UserID                 string
+	VersionID              string
+	DisplayName            *string
+	DisplayNameSet         bool
+	FocusAngle             *string
+	FocusAngleSet          bool
+	MatchScore             *float64
+	MatchScoreSet          bool
+	StructuredProfile      json.RawMessage
+	StructuredProfileSet   bool
+	StructuredProfilePatch map[string]any
+	Now                    time.Time
+}
+
 type ListFilter struct {
 	Cursor   string
 	PageSize int

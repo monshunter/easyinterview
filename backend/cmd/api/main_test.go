@@ -267,6 +267,7 @@ runtime:
 		{http.MethodGet, "/api/v1/resumes/018f2a40-0000-7000-9000-0000000000a1"},
 		{http.MethodGet, "/api/v1/resumes/018f2a40-0000-7000-9000-0000000000a1/versions"},
 		{http.MethodGet, "/api/v1/resume-versions/018f2a40-0000-7000-9000-0000000000b1"},
+		{http.MethodPatch, "/api/v1/resume-versions/018f2a40-0000-7000-9000-0000000000b1"},
 		{http.MethodPost, "/api/v1/resumes/018f2a40-0000-7000-9000-0000000000a1/structured-master"},
 	}
 	for _, tc := range cases {
@@ -441,6 +442,205 @@ runtime:
 		conflictHandler.ServeHTTP(rec, req)
 
 		assertAPIStatusCode(t, rec, http.StatusConflict, sharederrors.CodeResumeStructuredMasterAlreadyExists)
+	})
+}
+
+func TestResumeUpdateVersionHTTPScenario(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	sessionTime := time.Date(2026, 5, 17, 19, 30, 0, 0, time.UTC)
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store: &apiAuthStore{
+			session: auth.SessionRecord{
+				ID:        "session-1",
+				UserID:    "user-1",
+				Status:    auth.SessionStatusActive,
+				ExpiresAt: sessionTime.Add(time.Hour),
+			},
+			user: auth.UserContext{ID: "user-1", Email: "candidate@example.com"},
+		},
+		SessionCookieSecret: "session-secret",
+		Now:                 func() time.Time { return sessionTime },
+	})
+	version := apiVersion("version-1", "asset-1", sessionTime)
+	idemStore := &apiIdempotencyStore{}
+	resumeSvc := &apiUpdateVersionService{out: version}
+	handler := buildAPIHandlerWithUploadAndHandlers(
+		loader,
+		apiRuntimeFlags{},
+		service,
+		targetjob.NewHandler(),
+		practiceRoutes{},
+		uploadRoutes{},
+		resumeRoutes{
+			Handler: resumehandler.New(resumehandler.Options{Service: resumeSvc, Session: currentUserFromContext}),
+			Idempotency: idempotency.New(idempotency.MiddlewareOptions{
+				Store: idemStore,
+				Now:   func() time.Time { return sessionTime },
+				NewID: func() string { return "idem-rec-update" },
+			}),
+		},
+	)
+
+	t.Run("missing session", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPatch, "/api/v1/resume-versions/version-1", strings.NewReader(validAPIUpdateBody()))
+		req.Header.Set(idempotency.HeaderName, "idem-update")
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+		if !strings.Contains(rec.Body.String(), `"code":"AUTH_UNAUTHORIZED"`) {
+			t.Fatalf("expected auth envelope, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("missing idempotency key", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPatch, "/api/v1/resume-versions/version-1", validAPIUpdateBody(), "")
+
+		handler.ServeHTTP(rec, req)
+
+		assertAPIStatusCode(t, rec, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
+	})
+
+	t.Run("happy path persists idempotency resource", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPatch, "/api/v1/resume-versions/version-1", validAPIUpdateBody(), "idem-update")
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+		if resumeSvc.calls != 1 || resumeSvc.in.UserID != "user-1" || resumeSvc.in.VersionID != "version-1" {
+			t.Fatalf("service calls=%d input=%+v", resumeSvc.calls, resumeSvc.in)
+		}
+		if resumeSvc.in.DisplayName == nil || *resumeSvc.in.DisplayName != "Updated version" {
+			t.Fatalf("displayName = %#v", resumeSvc.in.DisplayName)
+		}
+		if !resumeSvc.in.FocusAngleSet || resumeSvc.in.FocusAngle != nil {
+			t.Fatalf("focusAngle patch = set:%v value:%#v", resumeSvc.in.FocusAngleSet, resumeSvc.in.FocusAngle)
+		}
+		if idemStore.reserveIn.Operation != "updateResumeVersion" || idemStore.completeIn.Operation != "updateResumeVersion" {
+			t.Fatalf("idempotency operation reserve=%+v complete=%+v", idemStore.reserveIn, idemStore.completeIn)
+		}
+		if idemStore.completeIn.ResourceType != "resume_version" || idemStore.completeIn.ResourceID != "version-1" {
+			t.Fatalf("idempotency completion = %+v", idemStore.completeIn)
+		}
+		if rec.Header().Get("X-Idempotency-Resource-Type") != "" || rec.Header().Get("X-Idempotency-Resource-ID") != "" {
+			t.Fatalf("internal idempotency headers leaked: %v", rec.Header())
+		}
+	})
+
+	t.Run("idempotency replay bypasses service", func(t *testing.T) {
+		replayStore := &apiIdempotencyStore{reservation: idempotency.Reservation{
+			State:          idempotency.StateReplay,
+			RecordID:       "idem-rec-replay",
+			ResponseStatus: http.StatusOK,
+			ResponseBody:   []byte(`{"id":"version-replay","resumeAssetId":"asset-1","versionType":"structured_master","displayName":"Updated version","structuredProfile":{},"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"},"suggestions":[],"createdAt":"2026-05-17T19:30:00Z","updatedAt":"2026-05-17T19:30:00Z"}`),
+		}}
+		replaySvc := &apiUpdateVersionService{out: version}
+		replayHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{
+				Handler:     resumehandler.New(resumehandler.Options{Service: replaySvc, Session: currentUserFromContext}),
+				Idempotency: idempotency.New(idempotency.MiddlewareOptions{Store: replayStore, Now: func() time.Time { return sessionTime }}),
+			},
+		)
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPatch, "/api/v1/resume-versions/version-1", validAPIUpdateBody(), "idem-update")
+
+		replayHandler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK || rec.Header().Get(idempotency.ReplayHeader) != "true" {
+			t.Fatalf("replay status=%d header=%q body=%s", rec.Code, rec.Header().Get(idempotency.ReplayHeader), rec.Body.String())
+		}
+		if replaySvc.calls != 0 {
+			t.Fatalf("service calls on replay = %d, want 0", replaySvc.calls)
+		}
+	})
+
+	t.Run("idempotency mismatch maps to 409", func(t *testing.T) {
+		mismatchHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{
+				Handler:     resumehandler.New(resumehandler.Options{Service: &apiUpdateVersionService{out: version}, Session: currentUserFromContext}),
+				Idempotency: idempotency.New(idempotency.MiddlewareOptions{Store: &apiIdempotencyStore{err: idempotency.ErrFingerprintMismatch}, Now: func() time.Time { return sessionTime }}),
+			},
+		)
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPatch, "/api/v1/resume-versions/version-1", validAPIUpdateBody(), "idem-update")
+
+		mismatchHandler.ServeHTTP(rec, req)
+
+		assertAPIStatusCode(t, rec, http.StatusConflict, sharederrors.CodeIdempotencyKeyMismatch)
+	})
+
+	t.Run("server-owned field rejected", func(t *testing.T) {
+		rejectSvc := &apiUpdateVersionService{out: version}
+		rejectHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{
+				Handler:     resumehandler.New(resumehandler.Options{Service: rejectSvc, Session: currentUserFromContext}),
+				Idempotency: idempotency.New(idempotency.MiddlewareOptions{Store: &apiIdempotencyStore{}, Now: func() time.Time { return sessionTime }}),
+			},
+		)
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPatch, "/api/v1/resume-versions/version-1", `{"versionType":"targeted"}`, "idem-update")
+
+		rejectHandler.ServeHTTP(rec, req)
+
+		assertAPIStatusCode(t, rec, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
+		if rejectSvc.calls != 0 {
+			t.Fatalf("service calls = %d, want 0", rejectSvc.calls)
+		}
+	})
+
+	t.Run("not found envelope", func(t *testing.T) {
+		notFoundHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{
+				Handler:     resumehandler.New(resumehandler.Options{Service: &apiUpdateVersionService{out: version, err: domainresume.ErrNotFound}, Session: currentUserFromContext}),
+				Idempotency: idempotency.New(idempotency.MiddlewareOptions{Store: &apiIdempotencyStore{}, Now: func() time.Time { return sessionTime }}),
+			},
+		)
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPatch, "/api/v1/resume-versions/missing", validAPIUpdateBody(), "idem-update")
+
+		notFoundHandler.ServeHTTP(rec, req)
+
+		assertAPIStatusCode(t, rec, http.StatusNotFound, sharederrors.CodeTargetJobNotFound)
 	})
 }
 
@@ -1131,6 +1331,23 @@ func (s *apiConfirmResumeService) ConfirmStructuredMaster(_ context.Context, in 
 	return s.out, s.err
 }
 
+type apiUpdateVersionService struct {
+	calls int
+	in    domainresume.UpdateVersionRequest
+	out   api.ResumeVersion
+	err   error
+}
+
+func (s *apiUpdateVersionService) RegisterResume(context.Context, domainresume.RegisterInput) (api.ResumeAssetWithJob, error) {
+	return api.ResumeAssetWithJob{}, errors.New("not implemented")
+}
+
+func (s *apiUpdateVersionService) UpdateResumeVersion(_ context.Context, in domainresume.UpdateVersionRequest) (api.ResumeVersion, error) {
+	s.calls++
+	s.in = in
+	return s.out, s.err
+}
+
 type apiVersionReadService struct {
 	getUserID    string
 	getVersionID string
@@ -1214,6 +1431,10 @@ func authenticatedAPIRequest(method, path, body, idempotencyKey string) *http.Re
 
 func validAPIConfirmBody() string {
 	return `{"displayName":"Structured master","language":"en","structuredProfile":{"headline":"Senior engineer","provenance":{"promptVersion":"resume_profile.v1","rubricVersion":"not_applicable","modelId":"model-1","language":"en","featureFlag":"none","dataSourceVersion":"asset.v1"}}}`
+}
+
+func validAPIUpdateBody() string {
+	return `{"displayName":" Updated version ","focusAngle":null,"matchScore":0.82,"structuredProfile":{"summary":"updated"}}`
 }
 
 func assertAPIStatusCode(t *testing.T, rec *httptest.ResponseRecorder, status int, code string) {

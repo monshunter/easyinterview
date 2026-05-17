@@ -327,6 +327,12 @@ func buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader *config.Loader
 		if resume.Idempotency != nil {
 			confirmStructuredMaster = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "confirmResumeStructuredMaster", requestUserFromContext, confirmStructuredMaster)).ServeHTTP
 		}
+		updateResumeVersion := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.UpdateResumeVersion(w, r, r.PathValue("resumeVersionId"))
+		})
+		if resume.Idempotency != nil {
+			updateResumeVersion = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "updateResumeVersion", requestUserFromContext, updateResumeVersion)).ServeHTTP
+		}
 		mux.Handle("GET /api/v1/resumes", auth.SessionMiddleware(authService, "listResumes", http.HandlerFunc(resume.Handler.ListResumes)))
 		mux.Handle("POST /api/v1/resumes", auth.SessionMiddleware(authService, "registerResume", registerResume))
 		mux.Handle("GET /api/v1/resumes/{resumeAssetId}", auth.SessionMiddleware(authService, "getResume", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -335,6 +341,7 @@ func buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader *config.Loader
 		mux.Handle("GET /api/v1/resume-versions/{resumeVersionId}", auth.SessionMiddleware(authService, "getResumeVersion", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resume.Handler.GetResumeVersion(w, r, r.PathValue("resumeVersionId"))
 		})))
+		mux.Handle("PATCH /api/v1/resume-versions/{resumeVersionId}", auth.SessionMiddleware(authService, "updateResumeVersion", updateResumeVersion))
 		mux.Handle("GET /api/v1/resumes/{resumeAssetId}/versions", auth.SessionMiddleware(authService, "listResumeVersions", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resume.Handler.ListResumeVersions(w, r, r.PathValue("resumeAssetId"))
 		})))

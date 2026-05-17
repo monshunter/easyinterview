@@ -108,6 +108,7 @@ func TestRepositoryExposesResumeAssetMethods(t *testing.T) {
 		CreateStructuredMasterFromAsset(context.Context, resumestore.CreateStructuredMasterInput) (resumestore.VersionRecord, error)
 		GetVersionByID(context.Context, string, string) (resumestore.VersionRecord, error)
 		ListVersionsByAsset(context.Context, string, string, resumestore.VersionListFilter) (resumestore.VersionListResult, error)
+		UpdateVersionPatch(context.Context, resumestore.VersionUpdateInput) (resumestore.VersionRecord, error)
 		DeleteForUser(context.Context, string, time.Time) error
 	} = (*resumestore.Repository)(nil)
 }
@@ -269,6 +270,93 @@ func TestCreateStructuredMasterFromAssetValidatesOwnershipReadinessAndUniqueInde
 				t.Fatalf("sql expectations: %v", err)
 			}
 		})
+	}
+}
+
+func TestUpdateVersionPatchMergesProfileAndScopesUser(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	createdAt := time.Date(2026, 5, 17, 19, 0, 0, 0, time.UTC)
+	updatedAt := time.Date(2026, 5, 17, 19, 30, 0, 0, time.UTC)
+	focusAngle := "Reliability"
+	matchScore := 0.82
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, resume_asset_id`)).
+		WithArgs("version-1", "user-1").
+		WillReturnRows(versionRows().AddRow(
+			"version-1", "user-1", "asset-1", nil, string(sharedtypes.ResumeVersionTypeStructuredMaster), nil,
+			"Structured master", nil, nil,
+			[]byte(`{"headline":"Senior engineer","summary":"old","skills":["Go"],"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`),
+			nil, "p", "r", "m", "provider", createdAt, createdAt, nil,
+		))
+	mock.ExpectQuery(regexp.QuoteMeta(`update resume_versions`)).
+		WithArgs(
+			"Updated master",
+			focusAngle,
+			matchScore,
+			[]byte(`{"headline":"Senior engineer","provenance":{"dataSourceVersion":"d","featureFlag":"f","language":"en","modelId":"m","promptVersion":"p","rubricVersion":"r"},"skills":["Go"],"summary":"new"}`),
+			updatedAt,
+			"version-1",
+			"user-1",
+		).
+		WillReturnRows(versionRows().AddRow(
+			"version-1", "user-1", "asset-1", nil, string(sharedtypes.ResumeVersionTypeStructuredMaster), nil,
+			"Updated master", nil, focusAngle,
+			[]byte(`{"headline":"Senior engineer","summary":"new","skills":["Go"],"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`),
+			matchScore, "p", "r", "m", "provider", createdAt, updatedAt, nil,
+		))
+	mock.ExpectCommit()
+
+	got, err := repo.UpdateVersionPatch(context.Background(), resumestore.VersionUpdateInput{
+		UserID:               "user-1",
+		VersionID:            "version-1",
+		DisplayName:          ptr("Updated master"),
+		DisplayNameSet:       true,
+		FocusAngle:           &focusAngle,
+		FocusAngleSet:        true,
+		MatchScore:           &matchScore,
+		MatchScoreSet:        true,
+		StructuredProfileSet: true,
+		StructuredProfilePatch: map[string]any{
+			"summary": "new",
+		},
+		Now: updatedAt,
+	})
+	if err != nil {
+		t.Fatalf("UpdateVersionPatch: %v", err)
+	}
+	if got.DisplayName != "Updated master" || got.FocusAngle == nil || *got.FocusAngle != focusAngle || got.MatchScore == nil || *got.MatchScore != matchScore {
+		t.Fatalf("version = %+v", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestUpdateVersionPatchNotFoundRollsBack(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, resume_asset_id`)).
+		WithArgs("version-1", "user-1").
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectRollback()
+
+	_, err := repo.UpdateVersionPatch(context.Background(), resumestore.VersionUpdateInput{
+		UserID:         "user-1",
+		VersionID:      "version-1",
+		DisplayName:    ptr("Updated"),
+		DisplayNameSet: true,
+		Now:            time.Now(),
+	})
+
+	if !errors.Is(err, resumestore.ErrVersionNotFound) {
+		t.Fatalf("err = %v, want ErrVersionNotFound", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
 	}
 }
 
@@ -498,4 +586,8 @@ func versionRows() *sqlmock.Rows {
 
 func assetID(i int) string {
 	return "01918fa0-0000-7000-8000-00000000a" + string(rune('a'+i/10)) + string(rune('0'+i%10))
+}
+
+func ptr(in string) *string {
+	return &in
 }
