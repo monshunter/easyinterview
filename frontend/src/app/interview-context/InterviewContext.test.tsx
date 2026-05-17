@@ -236,6 +236,69 @@ describe("InterviewContextProvider + useInterviewContext", () => {
     });
     expect(result.current.ctx.targetJobId).toBe("");
   });
+
+  // ---- Phase 5.4 SET_DEBRIEF_CONTEXT contract ----
+
+  it("TestInterviewContext_SetDebriefContext writes debriefId / debriefJobId / practiceGoal", () => {
+    const next = interviewContextReducer(DEFAULT_INTERVIEW_CONTEXT, {
+      type: "SET_DEBRIEF_CONTEXT",
+      payload: {
+        debriefId: "deb-1",
+        debriefJobId: "job-deb-1",
+        practiceGoal: "debrief",
+      },
+    });
+    expect(next.debriefId).toBe("deb-1");
+    expect(next.debriefJobId).toBe("job-deb-1");
+    expect(next.practiceGoal).toBe("debrief");
+  });
+
+  it("TestInterviewContext_DoesNotOverwriteJobId leaves jobId / targetJobId untouched", () => {
+    const seeded: InterviewContextState = {
+      ...DEFAULT_INTERVIEW_CONTEXT,
+      jobId: "tj-keep",
+      targetJobId: "tj-keep",
+    };
+    const next = interviewContextReducer(seeded, {
+      type: "SET_DEBRIEF_CONTEXT",
+      payload: { debriefId: "deb-2", debriefJobId: "job-deb-2" },
+    });
+    expect(next.jobId).toBe("tj-keep");
+    expect(next.targetJobId).toBe("tj-keep");
+    expect(next.debriefId).toBe("deb-2");
+    expect(next.debriefJobId).toBe("job-deb-2");
+  });
+
+  it("TestPendingAction_DebriefParamsRoundTrip hydrates debriefId/debriefJobId/practiceGoal/sessionId via route params", () => {
+    const next = interviewContextReducer(DEFAULT_INTERVIEW_CONTEXT, {
+      type: "HYDRATE_FROM_ROUTE",
+      params: {
+        targetJobId: "tj-1",
+        debriefId: "deb-rt",
+        debriefJobId: "job-deb-rt",
+        practiceGoal: "debrief",
+        sessionId: "sess-1",
+      },
+    });
+    expect(next.debriefId).toBe("deb-rt");
+    expect(next.debriefJobId).toBe("job-deb-rt");
+    expect(next.practiceGoal).toBe("debrief");
+    expect(next.sessionId).toBe("sess-1");
+  });
+
+  it("TestInterviewContext_OtherActionsNotAffected leaves debrief fields when handling unrelated actions", () => {
+    const seeded: InterviewContextState = {
+      ...DEFAULT_INTERVIEW_CONTEXT,
+      debriefId: "deb-keep",
+      debriefJobId: "job-keep",
+    };
+    const next = interviewContextReducer(seeded, {
+      type: "INCREMENT_HINT_COUNT",
+    });
+    expect(next.debriefId).toBe("deb-keep");
+    expect(next.debriefJobId).toBe("job-keep");
+    expect(next.hintCount).toBe("1");
+  });
 });
 
 describe("INTERVIEW_CONTEXT_ROUTES parity with ui-design/src/app.jsx", () => {

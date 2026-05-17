@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
 import { DisplayPreferencesProvider } from "../../display/DisplayPreferencesProvider";
+import { InterviewContextProvider } from "../../interview-context/InterviewContext";
 import { NavigationProvider } from "../../navigation/NavigationProvider";
 import { DebriefScreen } from "./DebriefScreen";
 
@@ -10,10 +11,12 @@ function renderDebriefScreen(navigate = vi.fn()) {
   return {
     navigate,
     ...render(
-      <DisplayPreferencesProvider>
-        <NavigationProvider value={{ navigate }}>
-          <DebriefScreen route={{ name: "debrief", params: {} }} />
-        </NavigationProvider>
+      <DisplayPreferencesProvider initial={{ lang: "zh" }}>
+        <InterviewContextProvider>
+          <NavigationProvider value={{ navigate }}>
+            <DebriefScreen route={{ name: "debrief", params: {} }} />
+          </NavigationProvider>
+        </InterviewContextProvider>
       </DisplayPreferencesProvider>,
     ),
   };

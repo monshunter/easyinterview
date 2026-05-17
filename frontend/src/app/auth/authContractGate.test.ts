@@ -38,6 +38,14 @@ const ALLOWED_NON_AUTH_OPERATIONS = new Set<string>([
   "listResumeVersions",
   "getResumeVersion",
   "exportResumeVersion",
+  // Phase 2-6 frontend-debrief operations
+  // (docs/spec/frontend-debrief/plans/001-debrief-screen-and-handoff)
+  "listPracticeSessions",
+  "getPracticeSession",
+  "suggestDebriefQuestions",
+  "createDebrief",
+  "getDebrief",
+  "getJob",
 ]);
 
 const ALL_CLIENT_CALL_RE = /\.client\.(\w+)\(/g;
