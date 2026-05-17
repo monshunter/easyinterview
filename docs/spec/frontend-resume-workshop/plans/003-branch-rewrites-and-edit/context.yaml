@@ -58,8 +58,8 @@ spec:
       - resume workshop branch rewrites edit i18n en zh
       - resume workshop branch rewrites edit a11y
       - resume workshop branch rewrites edit ui parity desktop mobile
-      - mock-first fixture parity
-      - upstream gate backend-resume-002 phase-4-8
+      - fixture-backed frontend real-backend preflight
+      - upstream gate current backend route fixture parity
   targets:
     frontend:
       plan: ./plan.md

@@ -64,7 +64,7 @@
 ### 3.2 待确认事项
 
 - `ResumeCreateFlow` 的"轻量问答 guided"模式是否在 P0 实现：已锁定 P0 实现，由 [plan 002](./plans/002-create-flow-and-onboarding/plan.md) 落地；UI 真理源 [`resume-onboarding.md`](../../../docs/ui-design/resume-onboarding.md) v1.5 已设计完成；backend-resume/002 已解除 versions/tailor/suggestion 后端等待条件，frontend 002 启动前仍需核对 backend-upload `createUploadPresign` / `registerResume` handoff 的当前真实状态，不私造客户端协议。
-- accept/reject suggestion 是否需要独立确认弹窗：已锁定 **不新增独立 ConfirmDialog**；按 UI 真理源 [`ResumeRewritesTab`](../../../ui-design/src/screen-resume-workshop.jsx) 的 inline `拒绝 / 编辑 / 采纳` 操作落地，并通过 terminal-state toast / aria-live 反馈结果。manual edit 提交路径按 backend-resume/002 当前 fixture 形态决定 accept w/ manualEditText vs updateResumeVersion fallback，已在 plan 003 Phase 4.3 显式声明；如需扩展确认弹窗，由用户先更新 `ui-design/` 后再修订本 spec。
+- accept/reject suggestion 是否需要独立确认弹窗：已锁定 **不新增独立 ConfirmDialog**；按 UI 真理源 [`ResumeRewritesTab`](../../../ui-design/src/screen-resume-workshop.jsx) 的 inline `拒绝 / 编辑 / 采纳` 操作落地，并通过 terminal-state toast / aria-live 反馈结果。当前 generated client 的 `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` 为 bodyless operation，不支持 `manualEditText` request body；manual edit 由 plan 003 Phase 4.3 先显式调用 `updateResumeVersion` patch `structuredProfile.manualEdits[]`，再用 bodyless accept 将 suggestion 标为终态。如需扩展 accept body，由用户先更新 OpenAPI / backend / `ui-design/` 后再修订本 spec。
 - 首页 "1 分钟创建简历" 链接的 deep link 形式：已锁定 `nav("resume_versions", { flow: "create" })`，由 plan 002 Phase 6.1 集成验证；不携带初始 sourceType（用户在 CreateFlow 内选择 tab）；如未来需要额外携带 createMode hint 由 spec 修订。
 
 ## 4 设计约束

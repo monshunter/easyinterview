@@ -24,7 +24,7 @@
   - 单条 bullet 操作：
     - Accept → `acceptResumeTailorSuggestion(versionId, suggestionId)` + IK → 写入 suggestion.status='accepted' + decided_at；UI 行 status 变 accepted；不自动 patch `version.structured_profile`（与 [backend-resume D-12](../../../backend-resume/spec.md#31-已锁定决策) 对齐）；
     - Reject → `rejectResumeTailorSuggestion(versionId, suggestionId)` + IK → 写入 status='rejected'；UI 行 status 变 rejected（line-through）；
-    - Manual edit → 用户在 inline textarea 修改 → "保存人工改写" → 触发同 suggestion 的 `acceptResumeTailorSuggestion` + `manualEditText` 参数（如 fixture / backend 支持），否则降级为 `updateResumeVersion` patch 当前 version 内 `manual_edits` 字段（兜底路径；本 plan Phase 0 显式标注 backend op 支持范围）；
+    - Manual edit → 用户在 inline textarea 修改 → "保存人工改写" → 当前 generated client 的 `acceptResumeTailorSuggestion` 为 bodyless operation，因此先调用 `updateResumeVersion` patch 当前 version 的 `structuredProfile.manualEdits[]`（含 `suggestionId` + edited text），成功后再调用 bodyless `acceptResumeTailorSuggestion(versionId, suggestionId)` 将该 suggestion 标为 terminal accepted；若 update 成功但 accept 失败，UI 保留 saved-manual-pending retry 状态，不私造 `manualEditText` 协议；
   - "重新运行改写"：`requestResumeTailor({ resumeAssetId, targetJobId, mode })` + IK → 启动 polling → ready 后 suggestions[] 刷新；mode 选项按 UI 真理源默认 `bullet_suggestions`，可由 UI 切到 `gap_review`（与 [backend-resume D-5](../../../backend-resume/spec.md#31-已锁定决策) 对齐）；
 - 实现 Edit Tab 结构化编辑 + 保存：
   - 显示 plan 001 占位的 `<ComingSoonTab>` 替换为 `ResumeEditTab` 实体；
@@ -33,7 +33,7 @@
   - MASTER 与 TARGETED 都可编辑，但 Master scope banner 显式提示 "正在编辑主版本"；
 - Export PDF 按钮在 TARGETED detail 与 Rewrites / Edit Tab 切换时保持 [plan 001 Phase 3.7](../001-listing-routing-and-detail-readonly/plan.md#phase-3-resumedetailview-preview-tab--原件弹层) P0 行为不退化：`exportResumeVersion(versionId, { idempotencyKey })` + `Idempotency-Key` header + 501 `RESUME_EXPORT_NOT_AVAILABLE` → toast `PDF 导出能力即将开放`；copyText 真实可用（`buildResumePlainText` 投影 → clipboard）；本 plan 在 Rewrites / Edit Tab 入口处复用 plan 001 的 `useResumeExport` 与 `useResumePlainTextCopy` hook，不重复实现；
 - i18n（`resumeWorkshop.branch.* / .rewrites.* / .edit.*` namespace）+ a11y（focus / aria / keyboard / scope banner aria-live）+ 隐私红线（originalBullet / suggestedBullet / match_summary / structuredProfile / manualEdit 文本不出现在 console / URL / pendingAction / localStorage / mock transport log / telemetry / toast 内容）+ UI parity gate（Vitest + Playwright pixel parity 对 `ResumeBranchFlow` / `ResumeRewritesTab` / `ResumeEditTab` 三屏 desktop + mobile 断言）；
-- 不实现 backend handler / 异步 job / outbox event / AI 调用（归 [backend-resume/002 Phase 5..8](../../../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md)）；不实现 exportResumeVersion 真实 PDF（仍 P0 stub）；不实现 archiveResumeAsset / 完整 privacy delete（P1）。
+- 不修改 backend handler / 异步 job / outbox event / AI 调用（这些已由 [backend-resume/002 Phase 4..8](../../../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md) 落地，本 plan 只消费 generated client）；不实现 exportResumeVersion 真实 PDF（仍 P0 stub）；不实现 archiveResumeAsset / 完整 privacy delete（P1）。
 
 ## 2 背景
 
@@ -42,15 +42,15 @@
 - BranchFlow 是用户在已有简历树上派生岗位定制版本的唯一入口；本 plan 完成前 `nav('resume_versions', { flow: 'branch', branchOriginalId })` 仍命中 `<NotImplementedPlaceholder>`。
 - Rewrites Tab 是 TARGETED 版本的默认 tab（`resumeDefaultTab(version)` 返回 `'rewrites'`）；plan 001 阶段 TARGETED 默认 tab 不变，但内容为 `<ComingSoonTab>`；本 plan 切实把 AI 改写决策面接通。
 - Edit Tab 是 MASTER 与 TARGETED 通用的结构化编辑面板；plan 001 阶段同为 `<ComingSoonTab>`；本 plan 接通真实 `updateResumeVersion` 写入路径。
-- 与 [backend-resume/002 Phase 5..8](../../../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md) 协作：本 plan mock-first 阶段可直接消费 `branchResumeVersion.json` 六 scenario / `requestResumeTailor.json default` / `getResumeTailorRun.json default` / `acceptResumeTailorSuggestion.json` / `rejectResumeTailorSuggestion.json` / `updateResumeVersion.json`；real backend 切真后 generated client 自动同源。
-- 注意 [backend-resume/002 plan §3.1 Operation Matrix](../../../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md#31-frontend--backend-operation-matrix) 描述将把 `acceptResumeTailorSuggestion.conflict-409` / `rejectResumeTailorSuggestion.conflict-409` 漂移收敛为 `already-decided-409` + `error.code='VALIDATION_FAILED'` + `detail.reason='SUGGESTION_ALREADY_DECIDED'`。本 plan Phase 0 显式 gate：fixture scenario 名称与 error envelope 形态必须以 backend-resume/002 Phase 8 落地后的最新形态为准。
+- 与 [backend-resume/002 Phase 4..8](../../../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md) 协作：当前分支已具备真实 handler / `cmd/api` route / generated client / fixture parity。Frontend 003 仍可用 fixture-backed dev/test 先行，但 Phase 0 必须把这些 real-backend facts 作为回归 gate。
+- 已验证的 fixture 形态：`branchResumeVersion.json` 六 scenario；`requestResumeTailor.json default / idempotency-replay`；`getResumeTailorRun.json default(ready) / queued / generating / failed`；`acceptResumeTailorSuggestion.json default / idempotency-replay / already-decided-409`；`rejectResumeTailorSuggestion.json default / idempotency-replay / already-decided-409`；`updateResumeVersion.json default / idempotency-replay / validation-error-422`。`already-decided-409` 已收敛为 `error.code='VALIDATION_FAILED'` + `details.reason='SUGGESTION_ALREADY_DECIDED'`。
 
 每个 phase 是可独立验证的纵向切片：Phase 1 起来就有 ResumeBranchFlow 容器 + 路由 + auth gate；Phase 2 起来就有 branchResumeVersion 三 seedStrategy 提交链路；Phase 3 起来就有 Rewrites Tab UI 与 getResumeVersion 投影；Phase 4 起来就有 accept / reject / manual edit 终态状态机；Phase 5 起来就有 requestResumeTailor + getResumeTailorRun 轮询；Phase 6 起来就有 Edit Tab + updateResumeVersion；Phase 7 起来就有 i18n + a11y + 隐私 + UI parity + BDD + 旧入口负向。
 
 执行本 plan 前必须确认：
 
 - [frontend-resume-workshop/001-listing-routing-and-detail-readonly](../001-listing-routing-and-detail-readonly/plan.md) completed；ResumeDetailView 三 tab 容器已就位（Preview tab 真实、Rewrites / Edit `<ComingSoonTab>` 占位、tab 切换 / URL `tab` param 行为已稳定）。
-- [frontend-resume-workshop/002-create-flow-and-onboarding](../002-create-flow-and-onboarding/plan.md) completed；CreateFlow 在 home / workspace CTA handoff 已可走通；user 已有可分叉的 master version 数据假设成立。
+- [frontend-resume-workshop/002-create-flow-and-onboarding](../002-create-flow-and-onboarding/plan.md) 当前分支实现已落地；`flow=create` 渲染 `ResumeCreateFlow`，Home / Workspace CTA handoff 已可走通。003 Phase 0 只需反查当前代码事实与 plan 002 lifecycle 状态，避免把旧 placeholder 当作仍存在的 create 主路径。
 - [backend-resume/002](../../../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md) Phase 4..8 已完成（updateResumeVersion / branchResumeVersion 三路 / requestResumeTailor / getResumeTailorRun / acceptResumeTailorSuggestion / rejectResumeTailorSuggestion handler + cmd/api wiring + fixture 全 ready；本 plan 直接消费）。
 - [openapi-v1-contract/004-resume-additive-coverage](../../../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) Phase 1-5 已完成（generated client 含 8 个 Resume / ResumeTailor op）。
 - UI 真理源 [`ui-design/src/screen-resume-workshop.jsx`](../../../../../ui-design/src/screen-resume-workshop.jsx) 的 `ResumeBranchFlow / ResumeRewritesTab / ResumeEditTab` 三组件 + [`docs/ui-design/resume-module.md`](../../../../ui-design/resume-module.md) v1.7 + [`docs/ui-design/jd-resume-management.md`](../../../../ui-design/jd-resume-management.md) v1.5 active。
@@ -66,9 +66,9 @@
      - `mapEditTabFieldsToUpdateResumeVersionRequest`：Headline / Summary / Experience / Skills → `UpdateResumeVersionRequest`；过滤不可编辑字段（versionType / resumeAssetId / parentVersionId / targetJobId / seedStrategy）；
   3. fixture parity test：
      - `Resumes/branchResumeVersion.json` 六 scenario（`default / copy-master-sync / blank-sync / ai-select-202-with-job / idempotent-replay / validation-error-422`）；
-     - `ResumeTailor/requestResumeTailor.json default` + `getResumeTailorRun.json default`；
-     - `Resumes/acceptResumeTailorSuggestion.json default / already-decided-409` + `rejectResumeTailorSuggestion.json default / already-decided-409`（fixture 名称以 backend-resume/002 Phase 8 落地后的最新形态为准）；
-     - `Resumes/updateResumeVersion.json default / validation-error-422`；
+     - `ResumeTailor/requestResumeTailor.json default / idempotency-replay` + `getResumeTailorRun.json default / queued / generating / failed`；
+     - `Resumes/acceptResumeTailorSuggestion.json default / idempotency-replay / already-decided-409` + `rejectResumeTailorSuggestion.json default / idempotency-replay / already-decided-409`；
+     - `Resumes/updateResumeVersion.json default / idempotency-replay / validation-error-422`；
      - `Resumes/exportResumeVersion.json p0-501-not-available`（plan 001 已消费，本 plan 不退化）；
   4. Idempotency-Key contract test：`branchResumeVersion / requestResumeTailor / acceptResumeTailorSuggestion / rejectResumeTailorSuggestion / updateResumeVersion / exportResumeVersion` 六个 op 通过 `generateIdempotencyKey()` 生成 IK，request spy 断言 `Idempotency-Key` header 出现；replay 行为通过 fixture 验证；
   5. tailor run polling test：`useResumeTailorRunPolling` 在 ai_select branch + 用户 re-run tailor 两条路径下 deterministic stepping `queued → generating → ready` / `→ failed`；mock harness 显式标注；
@@ -93,26 +93,27 @@
 
 ### 3.1 Frontend / Backend Operation Matrix
 
-本 plan 走 mock-first 与切真混合 frontend path：分支创建 / 改写运行 / 改写决策 / 结构化编辑 / 导出与复制共五类操作。这里的 `mock-first allowed` 只表示 Phase 0 gate 通过后可用 fixture-backed frontend dev/test 先行，不表示可以绕过 backend-resume/002 对 operation / fixture / generated artifact 的收敛要求。
+本 plan 走 fixture-backed frontend + real-backend preflight path：分支创建 / 改写运行 / 改写决策 / 结构化编辑 / 导出与复制共五类操作。这里的 fixture-backed dev/test 只表示 Phase 0 gate 通过后可用当前 OpenAPI fixture 做前端确定性验证，不表示可以绕过 backend-resume/002 对 operation / fixture / generated artifact 的收敛要求。
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `branchResumeVersion` | `openapi/fixtures/Resumes/branchResumeVersion.json` `default` / `copy-master-sync` / `blank-sync` / `ai-select-202-with-job` / `idempotent-replay` / `validation-error-422` | `useResumeBranchSubmit` hook（Phase 2）：传入表单数据 + IK；按 seedStrategy 三态映射 nav target | `backend-resume/002 Phase 5` in-flight；mock-first allowed | `resume_versions` + 可选 `resume_tailor_runs(queued)` + `async_jobs(resume_tailor)`（ai_select 路径） | `resume.tailor` async downstream (ai_select；frontend 不调 AI) | E2E.P0.084 |
-| `requestResumeTailor` | `openapi/fixtures/ResumeTailor/requestResumeTailor.json` `default`；本 plan 不在 fixture 层新增 `idempotency-replay`（backend-resume/002 Phase 6 owner 范围），但前端通过 generated client error path 单测覆盖 replay 行为 | `useRequestResumeTailor` hook（Phase 5）：从 Rewrites Tab "重新运行改写" 触发 + IK | `backend-resume/002 Phase 6` in-flight；mock-first allowed | `resume_tailor_runs(queued)` + `async_jobs(resume_tailor)` | downstream `resume.tailor` | E2E.P0.085 |
-| `getResumeTailorRun` | `openapi/fixtures/ResumeTailor/getResumeTailorRun.json` `default` (status=ready)；本 plan **不依赖** 缺失的 `queued / generating / failed` status scenario：轮询 hook 通过 mock client deterministic stepping 模拟终态转移；retrospective 中提议 backend-resume/002 followup 补 status variant fixture | `useResumeTailorRunPolling` hook（Phase 5）：指数退避轮询 + 终态退出；ready 后触发 getResumeVersion 刷新 suggestions[] | `backend-resume/002 Phase 6 + 7` in-flight；mock-first allowed | `resume_tailor_runs` read | none in read path | E2E.P0.085 |
-| `acceptResumeTailorSuggestion` | `openapi/fixtures/Resumes/acceptResumeTailorSuggestion.json` `default` / 由 backend-resume/002 Phase 8 收敛后的 `already-decided-409`（fixture 名称以最新形态为准）；本 plan 不私自创建新 fixture | `useAcceptResumeTailorSuggestion` hook（Phase 4）：accept CTA + IK；replay / 409 / cross-user error mapping | `backend-resume/002 Phase 8` in-flight；mock-first allowed | `resume_version_suggestions.status='accepted' + decided_at`（不自动 patch structured_profile） | none | E2E.P0.086 |
-| `rejectResumeTailorSuggestion` | `openapi/fixtures/Resumes/rejectResumeTailorSuggestion.json` `default` / 由 backend-resume/002 Phase 8 收敛后的 `already-decided-409` | `useRejectResumeTailorSuggestion` hook（Phase 4）：reject CTA + IK | `backend-resume/002 Phase 8` in-flight；mock-first allowed | `resume_version_suggestions.status='rejected' + decided_at` | none | E2E.P0.086 |
-| `updateResumeVersion` | `openapi/fixtures/Resumes/updateResumeVersion.json` `default` / `validation-error-422`；本 plan 不新增 `idempotency-replay` scenario（backend-resume/002 Phase 4 owner 范围），前端通过 generated client error path 单测覆盖 replay 行为 | `useUpdateResumeVersion` hook（Phase 6）：Edit Tab Save + Rewrites Tab manual edit fallback；filter 不可编辑字段 | `backend-resume/002 Phase 4` in-flight；mock-first allowed | `resume_versions` UPDATE | none | E2E.P0.086 |
+| `branchResumeVersion` | `openapi/fixtures/Resumes/branchResumeVersion.json` `default` / `copy-master-sync` / `blank-sync` / `ai-select-202-with-job` / `idempotent-replay` / `validation-error-422` | `useResumeBranchSubmit` hook（Phase 2）：传入表单数据 + IK；按 seedStrategy 三态映射 nav target | `backend/internal/resume/handler/branch_version.go` + `cmd/api` `POST /api/v1/resume-versions` real route ready | `resume_versions` + 可选 `resume_tailor_runs(queued)` + `async_jobs(resume_tailor)`（ai_select 路径） | `resume.tailor` async downstream (ai_select；frontend 不调 AI) | E2E.P0.084 |
+| `requestResumeTailor` | `openapi/fixtures/ResumeTailor/requestResumeTailor.json` `default` / `idempotency-replay` | `useRequestResumeTailor` hook（Phase 5）：从 Rewrites Tab "重新运行改写" 触发 + IK | `backend/internal/resume/handler/request_tailor.go` + `cmd/api` `POST /api/v1/resume/tailor` real route ready | `resume_tailor_runs(queued)` + `async_jobs(resume_tailor)` | downstream `resume.tailor` | E2E.P0.085 |
+| `getResumeTailorRun` | `openapi/fixtures/ResumeTailor/getResumeTailorRun.json` `default` (ready) / `queued` / `generating` / `failed` | `useResumeTailorRunPolling` hook（Phase 5）：指数退避轮询 + 终态退出；ready 后触发 getResumeVersion 刷新 suggestions[] | `backend/internal/resume/handler/get_tailor_run.go` + `cmd/api` `GET /api/v1/resume/tailor-runs/{tailorRunId}` real route ready | `resume_tailor_runs` read | none in read path | E2E.P0.085 |
+| `acceptResumeTailorSuggestion` | `openapi/fixtures/Resumes/acceptResumeTailorSuggestion.json` `default` / `idempotency-replay` / `already-decided-409` | `useAcceptResumeTailorSuggestion` hook（Phase 4）：bodyless accept CTA + IK；replay / 409 / cross-user error mapping | `backend/internal/resume/handler/accept_suggestion.go` + `cmd/api` accept route ready | `resume_version_suggestions.status='accepted' + decided_at`（不自动 patch structured_profile） | none | E2E.P0.086 |
+| `rejectResumeTailorSuggestion` | `openapi/fixtures/Resumes/rejectResumeTailorSuggestion.json` `default` / `idempotency-replay` / `already-decided-409` | `useRejectResumeTailorSuggestion` hook（Phase 4）：bodyless reject CTA + IK | `backend/internal/resume/handler/reject_suggestion.go` + `cmd/api` reject route ready | `resume_version_suggestions.status='rejected' + decided_at` | none | E2E.P0.086 |
+| `updateResumeVersion` | `openapi/fixtures/Resumes/updateResumeVersion.json` `default` / `idempotency-replay` / `validation-error-422` | `useUpdateResumeVersion` hook（Phase 6）：Edit Tab Save + Rewrites Tab manual edit explicit patch；filter 不可编辑字段 | `backend/internal/resume/handler/update_version.go` + `cmd/api` `PATCH /api/v1/resume-versions/{resumeVersionId}` real route ready | `resume_versions` UPDATE | none | E2E.P0.086 |
 | `exportResumeVersion` | `openapi/fixtures/Resumes/exportResumeVersion.json` `p0-501-not-available`（plan 001 已消费） | 复用 plan 001 `useResumeExport` hook；本 plan 在 Rewrites / Edit Tab 切换上下文不退化行为 | P0 explicit 501 stub；P1 由 backend-resume/003 切真 | none in P0 | none | E2E.P0.087 |
-| `getResumeVersion` | `openapi/fixtures/Resumes/getResumeVersion.json` `default` / `master-default` / `targeted-with-suggestions` / `not-found-404`（plan 001 已消费） | `useResumeVersion` hook（plan 001 已实现）：本 plan 在 branch 完成后强制 refetch；在 Rewrites Tab + Edit Tab 切换时复用 | `backend-resume/002 Phase 3` in-flight；mock-first allowed | `resume_versions` read | none | E2E.P0.084 + P0.085 + P0.086 |
+| `getResumeVersion` | `openapi/fixtures/Resumes/getResumeVersion.json` `default` / `master-default` / `targeted-with-suggestions` / `not-found-404`（plan 001 已消费） | `useResumeVersion` hook（plan 001 已实现）：本 plan 在 branch 完成后强制 refetch；在 Rewrites Tab + Edit Tab 切换时复用 | `backend/internal/resume/handler/version_read.go` + `cmd/api` `GET /api/v1/resume-versions/{resumeVersionId}` real route ready | `resume_versions` read | none | E2E.P0.084 + P0.085 + P0.086 |
 
 ### 3.2 上游依赖 gate（必须在本 plan 落地前确认）
 
-- 等待 [backend-resume/002 Phase 4..8](../../../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md) 与 cross-owner fixture 收敛已完成；
-  - 必须确认 `acceptResumeTailorSuggestion.json` / `rejectResumeTailorSuggestion.json` 已收敛为 `already-decided-409` + `error.code='VALIDATION_FAILED'` + `detail.reason='SUGGESTION_ALREADY_DECIDED'`（消除 plan 001 阶段遗留的 `conflict-409` + `TARGET_INVALID_STATE_TRANSITION` 漂移）；
-  - 必须确认 `requestResumeTailor.json default` 请求 header 已包含 `Idempotency-Key`（backend-resume/002 Phase 6 owner 范围）；
-  - 缺失则停止 Phase 4 / 5 实施并升级 blocker；不私造客户端协议；
-- 验证 plan 001 + plan 002 已 completed，且 `<NotImplementedPlaceholder>` 在 `flow=branch` 路径上仍可识别（plan 003 替换边界清晰）；
+- 反查 [backend-resume/002 Phase 4..8](../../../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md) 与 cross-owner fixture 当前事实：
+  - `branchResumeVersion / requestResumeTailor / getResumeTailorRun / acceptResumeTailorSuggestion / rejectResumeTailorSuggestion / updateResumeVersion` generated client + real handler + `cmd/api` route 均存在；
+  - `acceptResumeTailorSuggestion.json` / `rejectResumeTailorSuggestion.json` 已包含 `default / idempotency-replay / already-decided-409`，409 body 为 `error.code='VALIDATION_FAILED'` + `error.details.reason='SUGGESTION_ALREADY_DECIDED'`；
+  - `requestResumeTailor.json default / idempotency-replay` 均带 `Idempotency-Key`，`getResumeTailorRun.json` 已包含 `queued / generating / default(ready) / failed`；
+  - 若上述事实在实施前缺失，按回归 blocker 停止相关 Phase，不私造客户端协议；
+- 验证 plan 001 + plan 002 当前实现状态：`flow=create` 已渲染 `ResumeCreateFlow`，`flow=branch` 路径仍渲染 `<NotImplementedPlaceholder>`，Rewrites / Edit tab 仍为 `<ComingSoonTab>`（plan 003 替换边界清晰）；
 - 验证 plan 001 阶段三 tab 容器的 `<ComingSoonTab>` 占位渲染契约：本 plan Phase 3 / 6 替换 Rewrites / Edit tab content 时不破坏 tab 容器 / testid / `tab` URL param 状态机。
 
 ## 4 实施步骤
@@ -120,8 +121,8 @@
 ### Phase 0: 上游依赖 gate + retired drift baseline
 
 #### 0.1 上游 fixture / handler 状态确认
-- 确认 backend-resume/002 Phase 4..8 已完成；查 `git grep ConfirmResumeStructuredMaster -- backend/internal/resume/handler/`（Phase 2）+ `BranchResumeVersion` / `RequestResumeTailor` / `AcceptResumeTailorSuggestion` 等 generated server interface 已实现；
-- 确认 fixture 名称与 error envelope 形态：`acceptResumeTailorSuggestion.json` / `rejectResumeTailorSuggestion.json` 必须升级为 `default` / `already-decided-409`，且 409 body 为 `error.code='VALIDATION_FAILED'` + `detail.reason='SUGGESTION_ALREADY_DECIDED'`。若仍为 `conflict-409` + `TARGET_INVALID_STATE_TRANSITION`，Phase 4 / E2E.P0.086 暂停并转回 backend-resume/002 Phase 8 修复，不允许 frontend plan 以旧 envelope 收口。
+- 确认 backend-resume/002 Phase 4..8 当前事实仍成立：`branchResumeVersion / requestResumeTailor / getResumeTailorRun / acceptResumeTailorSuggestion / rejectResumeTailorSuggestion / updateResumeVersion` generated server interface、real handler 与 `cmd/api` route 均存在；
+- 确认 fixture 名称与 error envelope 形态：accept / reject fixture 必须包含 `default / idempotency-replay / already-decided-409`，且 409 body 为 `error.code='VALIDATION_FAILED'` + `error.details.reason='SUGGESTION_ALREADY_DECIDED'`；requestTailor 必须含 `default / idempotency-replay` 且 request header 带 `Idempotency-Key`；getTailorRun 必须含 `queued / generating / default(ready) / failed`。若任一事实缺失，Phase 4 / 5 / E2E.P0.085-P0.086 暂停并转回 backend owner 修复，不允许 frontend plan 以旧 envelope 或 synthetic schema 收口。
 
 #### 0.2 retired drift baseline
 - `git grep -nE "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" -- frontend/src/app/screens/resume-workshop/`：0 命中前置；
@@ -197,9 +198,9 @@
 ### Phase 4: 单条 suggestion accept / reject / manual edit 终态
 
 #### 4.1 实现 `tabs/hooks/useAcceptResumeTailorSuggestion.ts`
-- 入参：`{ versionId, suggestionId, manualEditText? }`；
-- 行为：`generateIdempotencyKey()` → generated client `acceptResumeTailorSuggestion(versionId, suggestionId, payload, { idempotencyKey })`；如 backend op 支持 `manualEditText` 字段则原值传入，否则在 mapper 内忽略（hook 抛出"manual edit not supported by backend"+ 降级 Phase 6 updateResumeVersion fallback）；
-- 成功：返回更新后的 `ResumeVersion` 或 suggestion；UI 行 status 变 accepted；
+- 入参：`{ versionId, suggestionId }`；
+- 行为：`generateIdempotencyKey()` → generated client `acceptResumeTailorSuggestion(versionId, suggestionId, { idempotencyKey })`；request body 必须为 `undefined`，不得发送 `manualEditText`；
+- 成功：返回更新后的 `ResumeVersion`；UI 行 status 变 accepted；
 - 失败：
   - 409 `VALIDATION_FAILED` + `detail.reason='SUGGESTION_ALREADY_DECIDED'` → toast `该 bullet 已决定 · 如需重做请新建 suggestion 或 branch`；
   - cross-user 404 → toast generic；
@@ -212,10 +213,10 @@
 #### 4.3 inline manual edit
 - 在 Rewrites Tab diff Card 中点击 "编辑" → 切换到 textarea + Cancel / Save manual edit 两 button；
 - "保存人工改写" 触发：
-  - 优先路径：`useAcceptResumeTailorSuggestion({ versionId, suggestionId, manualEditText })`；
-  - 兜底路径（backend op 不支持 manualEditText）：Phase 6 `useUpdateResumeVersion`：把 manual edit 文本 patch 到 `version.structured_profile.manual_edits[]` 字段（schema 详定由 backend-resume D-12 follow-up；本 plan Phase 0 显式声明此 fallback 仅在 backend-resume/002 当前 fixture 形态不支持 manual edit 时启用）；
+  - 当前唯一路径：Phase 6 `useUpdateResumeVersion` 先把 manual edit 文本 patch 到 `version.structuredProfile.manualEdits[]`（建议 shape：`{ suggestionId, text, savedAt }`，存放在 OpenAPI `structuredProfile` additionalProperties 内），成功后再调用 bodyless `useAcceptResumeTailorSuggestion({ versionId, suggestionId })` 标记终态；
+  - 若 update 成功但 accept 失败：保留 inline manual edit 文本 + saved-manual-pending retry CTA，只重试 bodyless accept，不重复写 manual edit；
 - UI 上仍按 UI 真理源行为：保存后 status 设为 accepted（manual 标记），不再 pending；
-- Vitest 测试覆盖两条路径。
+- Vitest 测试覆盖 update→accept 成功、update 成功但 accept 409 / 404 / network failure 的 retry 状态，以及 update 422 不触发 accept。
 
 #### 4.4 状态机契约
 - terminal：accepted / rejected 都是终态；再次点击 accept / reject 走 IK replay；不同 fingerprint 同 key 409；
@@ -225,7 +226,7 @@
 #### 4.5 Vitest 单测
 - accept happy / replay / 409 already-decided / 422；
 - reject happy / replay / 409；
-- manual edit save → accept 路径 vs updateResumeVersion fallback；
+- manual edit save → `updateResumeVersion` explicit patch + bodyless accept 两步路径；
 - accept 不自动改 structured_profile DOM 断言；
 - IK header on 三类 op；至少 ≥ 12 case PASS。
 
@@ -240,7 +241,7 @@
 - 入参：`tailorRunId`；
 - 行为：指数退避轮询 `getResumeTailorRun(tailorRunId)`（初始 1500ms / backoff 1.4x / max 12 attempt / ~60s 上限）；
 - 退出：`status='ready'` → 触发 `getResumeVersion(versionId)` 刷新 suggestions[]；`status='failed'` → 渲染失败 banner + 重试 CTA（再次调 requestResumeTailor）；timeout → 同 failed；
-- mock harness：当前 fixture 仅 `default` (status=ready)，hook 内置 mock attempt-aware stepping `queued → generating → ready` / `failed`；retrospective 记录补 fixture 提议。
+- fixture-backed harness：当前 fixture 已包含 `queued / generating / default(ready) / failed`；hook test 通过 deterministic scenario sequence 验证 `queued → generating → ready` / `failed`，不再把 status variant 缺失作为 backend follow-up。
 
 #### 5.3 Rewrites Tab UI 集成
 - 启动 ai_select branch 后 Rewrites Tab 渲染 polling 进度 banner（"AI 正在生成 bullet · 估计 30s 内完成"）；
@@ -341,12 +342,12 @@
 
 | 风险 | 应对 |
 |------|------|
-| R1: backend-resume/002 Phase 4..8 中任意 op 真实落地或 fixture 收敛延期，导致本 plan 多个 hook 缺 fixture / generated client method | Phase 0 / Phase 4 / Phase 5 / Phase 6 显式 gate：缺失则相关 Tab 渲染 `<ComingSoonTab>` / `<NotImplementedPlaceholder>`，升级 blocker；不私造客户端协议 |
-| R2: `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` 的 `conflict-409` / `already-decided-409` fixture 漂移导致 hook error mapping 与 backend 不一致 | Phase 0.1 / Phase 4 显式以 backend-resume/002 Phase 8 落地形态为准；fixture parity test 在 backend-resume 切真后必须重跑 |
-| R3: `requestResumeTailor.json default` 当前缺 `Idempotency-Key` header，hook 强制传入 IK 可能与 fixture spy 行为不一致 | Phase 0.1 / Phase 5.1 显式要求 backend-resume/002 Phase 6 在 fixture default 中补齐 IK header；本 plan 不私自修改 fixture（cross-owner）；如 backend 未补齐，hook 仍发送 IK，但 fixture parity test 需要 backend 修订后再切真 |
-| R4: `getResumeTailorRun` 仅 default (status=ready)，没有 queued / generating / failed status scenario；polling 测试只能依靠 mock client deterministic stepping | Phase 5.2 hook 显式 mock harness；retrospective 提议 backend-resume/002 followup 补 status variant fixture |
-| R5: Rewrites Tab manual edit 需要把 `manualEditText` 写入 accept 路径，但当前 `acceptResumeTailorSuggestion` schema / fixture 是否含此字段不确定 | Phase 0.1 / Phase 4.3 显式 fallback：优先 accept w/ manualEditText；不支持时降级到 `updateResumeVersion` patch `structured_profile.manual_edits[]`；fallback 路径需在 spec follow-up 中确认 schema |
-| R6: `ai_select` branch 同事务返回 ResumeVersion + Job 时前端拿到 tailorRunId 的字段路径假设可能错位 | Phase 2.1 / 2.2 显式以 `BranchResumeVersionAccepted{resumeVersionId, version, job}` 形态消费；fixture parity test PASS 后才允许 Phase 5 启动 polling；如 backend-resume/002 Phase 5 落地后 fixture 字段差异，由 fixture parity test 第一时间捕获 |
+| R1: backend-resume/002 已完成但未来 fixture / generated client / cmd/api route 回归，导致 frontend hook 与真实后端不一致 | Phase 0 把当前 real-backend facts 固化为回归 gate；缺失则停止相关 Phase 并回到 backend owner 修复，不私造客户端协议 |
+| R2: `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` 的 `already-decided-409` fixture 或 error details path 漂移导致 hook error mapping 与 backend 不一致 | Phase 0.1 / Phase 4 fixture parity 直接读取 `error.details.reason='SUGGESTION_ALREADY_DECIDED'`；若回到旧 `conflict-409` / `TARGET_INVALID_STATE_TRANSITION`，按 regression blocker 处理 |
+| R3: IK header fixture 与 generated client `opts.idempotencyKey` 行为漂移 | Phase 0.1 / Phase 5.1 / Phase 6.2 用 fixture `default / idempotency-replay` + request spy 同时断言；fixture 缺 header 时按 regression blocker 处理 |
+| R4: `getResumeTailorRun` status sequence 只在单 fixture scenario 中表达，polling 测试若继续使用 synthetic mock 可能绕过真实 schema | Phase 5.2 使用 `queued / generating / default(ready) / failed` fixture variants 组成 deterministic sequence；只允许 mock 调度顺序，不 mock response schema |
+| R5: Rewrites Tab manual edit 若误用不存在的 `manualEditText` accept body，会与当前 generated client 签名冲突 | Phase 4.3 锁定 `updateResumeVersion` explicit patch + bodyless accept 两步；新增 type-level / spy test 断言 accept/reject request body 为 `undefined` |
+| R6: `ai_select` branch 同事务返回 ResumeVersion + Job 时前端拿到 tailorRunId 的字段路径假设可能错位 | Phase 2.1 / 2.2 显式以 `BranchResumeVersionAccepted{resumeVersionId, version, job}` 形态消费；fixture parity test PASS 后才允许 Phase 5 启动 polling；未来 fixture 字段差异由 fixture parity test 第一时间捕获 |
 | R7: Edit Tab P0 仅打通 headline + summary，Experience / Skills 列表的 add / edit / remove 未实现可能让用户期待落空 | Phase 6.1 显式声明 Experience / Skills section P0 仅 placeholder 渲染（不可编辑 individual items）；UI 真理源 Add button 仅 toast `敬请期待`；retrospective 列入 follow-up plan |
 | R8: branchFlow + Rewrites Tab + Edit Tab 三屏 pixel parity baseline 数量翻倍，可能引起 CI 时间膨胀 | Phase 7.4 复用 frontend-shell/003 pipeline；screenshot 仅 smoke + DOM/style/bounding box 优先；新机器先跑 `test:pixel-parity:install` 缓存浏览器；retrospective 监控 CI 时长 |
 | R9: 用户在 ai_select branch 后离开 Rewrites Tab（切到 Edit Tab 或返回 list），polling hook 资源泄漏 | Phase 5.2 hook 内置 cleanup（component unmount cancel polling）；切换 tab 时 polling 状态保留在父 detail container 或在 unmount 时取消 |

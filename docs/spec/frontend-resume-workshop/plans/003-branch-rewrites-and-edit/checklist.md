@@ -8,10 +8,10 @@
 
 ## Phase 0: 上游依赖 gate + retired drift baseline
 
-- [ ] 0.1 确认 [backend-resume/002 Phase 4..8](../../../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md) 已完成；`branchResumeVersion / requestResumeTailor / getResumeTailorRun / acceptResumeTailorSuggestion / rejectResumeTailorSuggestion / updateResumeVersion` 6 个 handler + cmd/api wiring 真实可用（验证：`git grep BranchResumeVersion -- backend/internal/resume/handler/` 等 6 个 grep PASS）
-- [ ] 0.2 确认 `acceptResumeTailorSuggestion.json` / `rejectResumeTailorSuggestion.json` 已收敛为 `default` / `already-decided-409` + `error.code='VALIDATION_FAILED'` + `detail.reason='SUGGESTION_ALREADY_DECIDED'`（消除 plan 001 阶段 `conflict-409` + `TARGET_INVALID_STATE_TRANSITION` 漂移）；如未收敛，本 plan Phase 4 暂停并升级 blocker（验证：`jq` 读 fixture scenario keys）
-- [ ] 0.3 确认 `requestResumeTailor.json default` 请求 header 已包含 `Idempotency-Key`（backend-resume/002 Phase 6 owner 范围）；如未补齐，本 plan Phase 5 / E2E.P0.085 暂停并转回 backend-resume/002 Phase 6 修复，不能以 fixture parity 不一致状态收口（验证：`jq` 读 fixture default.request.headers）
-- [ ] 0.4 确认 [frontend-resume-workshop/001](../001-listing-routing-and-detail-readonly/plan.md) 与 [002](../002-create-flow-and-onboarding/plan.md) 均已 completed；ResumeDetailView 三 tab 容器 + ResumeCreateFlow 在 list / detail / branch placeholder 路径上的 `<NotImplementedPlaceholder>` 与 `<ComingSoonTab>` 行为可识别（验证：grep + Vitest）
+- [ ] 0.1 确认 [backend-resume/002 Phase 4..8](../../../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md) 当前事实仍成立；`branchResumeVersion / requestResumeTailor / getResumeTailorRun / acceptResumeTailorSuggestion / rejectResumeTailorSuggestion / updateResumeVersion` 6 个 generated client/server surface + handler + `cmd/api` route 真实可用（验证：`rg` 读 `frontend/src/api/generated/client.ts`、`backend/internal/api/generated/server.gen.go`、`backend/internal/resume/handler/`、`backend/cmd/api/main.go`）
+- [ ] 0.2 确认 `acceptResumeTailorSuggestion.json` / `rejectResumeTailorSuggestion.json` 为 `default / idempotency-replay / already-decided-409`，且 409 body 为 `error.code='VALIDATION_FAILED'` + `error.details.reason='SUGGESTION_ALREADY_DECIDED'`；如回到旧 `conflict-409` / `TARGET_INVALID_STATE_TRANSITION`，本 plan Phase 4 暂停并升级 regression blocker（验证：`jq` 读 fixture scenario keys + body）
+- [ ] 0.3 确认 `requestResumeTailor.json default / idempotency-replay` 请求 header 均包含 `Idempotency-Key`，`getResumeTailorRun.json` 含 `queued / generating / default(ready) / failed` 四态；如缺失，本 plan Phase 5 / E2E.P0.085 暂停并转回 backend-resume/002 修复，不能以 synthetic schema 收口（验证：`jq` 读 fixture scenario keys + request headers）
+- [ ] 0.4 确认 [frontend-resume-workshop/001](../001-listing-routing-and-detail-readonly/plan.md) 容器已就位，当前分支 [002](../002-create-flow-and-onboarding/plan.md) 实现已把 `flow=create` 替换为 `ResumeCreateFlow`，而 `flow=branch` 与 Rewrites / Edit tab 仍分别是 `<NotImplementedPlaceholder>` / `<ComingSoonTab>`（验证：grep + Vitest）
 - [ ] 0.5 retired drift baseline：`git grep -nE "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" -- frontend/src/app/screens/resume-workshop/` 0 命中；`git grep -nE "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true" -- frontend/src/app/screens/resume-workshop/` 0 命中
 
 ## Phase 1: ResumeBranchFlow 容器 + 路由 + auth gate
@@ -44,16 +44,16 @@
 
 - [ ] 4.1 实现 `tabs/hooks/useAcceptResumeTailorSuggestion.ts`：`generateIdempotencyKey()` + generated client `acceptResumeTailorSuggestion` + 三态错误映射；至少 ≥ 8 case Vitest PASS
 - [ ] 4.2 实现 `tabs/hooks/useRejectResumeTailorSuggestion.ts`：同形态调 `rejectResumeTailorSuggestion`；至少 ≥ 8 case Vitest PASS
-- [ ] 4.3 inline manual edit：UI 真理源 Edit / Cancel / Save manual edit 三按钮 + textarea；保存触发 accept w/ manualEditText 或降级 updateResumeVersion fallback（验证：Vitest 两路径）
-- [ ] 4.4 状态机断言：terminal 状态 accept / reject 都是终态；再次 accept / reject 走 IK replay 或返回 409 already-decided；不同 fingerprint 同 key 409 generic IK conflict；不自动 patch `version.structured_profile`（D-12 同步）（验证：Vitest 终态 + IK replay/conflict + structured_profile DOM 不变）
-- [ ] 4.5 fixture parity test：`acceptResumeTailorSuggestion.json` `default` / `already-decided-409`、`rejectResumeTailorSuggestion.json` 同形态 scenario 与 hook 字节匹配（验证：fixture parity test PASS；如 backend-resume/002 仍未收敛到 already-decided-409 形态，本步骤保持 blocked，转回 backend-resume/002 Phase 8 修复，不以 `conflict-409` 旧 envelope 收口）
+- [ ] 4.3 inline manual edit：UI 真理源 Edit / Cancel / Save manual edit 三按钮 + textarea；保存触发 `updateResumeVersion` patch `structuredProfile.manualEdits[]`，成功后再调用 bodyless `acceptResumeTailorSuggestion` 标记终态；update 成功但 accept 失败时显示 saved-manual-pending retry（验证：Vitest update→accept、update 422 不触发 accept、accept failure retry 三路径）
+- [ ] 4.4 状态机断言：terminal 状态 accept / reject 都是终态；accept / reject request body 为 `undefined`；再次 accept / reject 走 IK replay 或返回 409 already-decided；不同 fingerprint 同 key 409 generic IK conflict；不自动 patch `version.structured_profile`（D-12 同步）（验证：Vitest 终态 + IK replay/conflict + structured_profile DOM 不变 + request body spy）
+- [ ] 4.5 fixture parity test：`acceptResumeTailorSuggestion.json` `default / idempotency-replay / already-decided-409`、`rejectResumeTailorSuggestion.json` 同形态 scenario 与 hook 字节匹配（验证：fixture parity test PASS；如 fixture 回到旧 envelope，本步骤保持 blocked，转回 backend-resume/002 修复）
 - [ ] 4.6 cross-user / 404 / 422：toast generic + inline error；不暴露原 envelope（验证：Vitest）
 
 ## Phase 5: requestResumeTailor + tailor run polling
 
 - [ ] 5.1 实现 `tabs/hooks/useRequestResumeTailor.ts`：`generateIdempotencyKey()` + generated client `requestResumeTailor`；mode ∈ `{gap_review, bullet_suggestions}` 与 backend D-5 对齐（验证：Vitest IK + 错误映射）
 - [ ] 5.2 实现 `tabs/hooks/useResumeTailorRunPolling.ts`：指数退避轮询 `getResumeTailorRun(tailorRunId)`（初始 1500ms / backoff 1.4x / max 12 attempt / ~60s 上限）；终态 ready → refetch getResumeVersion；failed / timeout → 失败 banner（验证：Vitest happy / failed / timeout / cancel 至少 ≥ 6 case PASS）
-- [ ] 5.3 mock harness：fixture 仅 default (ready)；hook 内置 mock attempt-aware stepping；测试断言显式标注 deterministic stepping；retrospective 提议补 fixture（验证：Vitest harness 切换断言）
+- [ ] 5.3 fixture-backed polling harness：使用 `getResumeTailorRun.json queued / generating / default(ready) / failed` 组成 deterministic sequence；只允许 mock 调度顺序，不 mock response schema（验证：Vitest harness 切换断言）
 - [ ] 5.4 Rewrites Tab UI 集成：ai_select branch 完成后渲染 polling banner；用户 "重新运行改写" 触发同 banner；ready 后消失 + 列表刷新；failed 后红 banner + 重试 CTA（验证：Vitest 状态切换 + 断言）
 - [ ] 5.5 IK 行为：requestResumeTailor 携带 IK；getResumeTailorRun 不携带 IK（验证：Vitest spy 双向断言）
 - [ ] 5.6 cleanup：组件 unmount 时取消 polling；切换 tab 时 polling 在父 detail container 维持或在 unmount 取消，避免泄漏（验证：Vitest cleanup + Playwright network sniff）
@@ -64,14 +64,14 @@
 - [ ] 6.2 实现 `tabs/hooks/useUpdateResumeVersion.ts`：`generateIdempotencyKey()` + generated client `updateResumeVersion` + 错误映射；mapper 过滤不可编辑字段（验证：Vitest mapper + happy / 422 / 409 至少 ≥ 8 case PASS）
 - [ ] 6.3 P0 实际可编辑字段：headline + summary；experience / skills section 仅 placeholder 渲染，Add 按钮 toast `敬请期待`（验证：Vitest Add click + toast 断言）
 - [ ] 6.4 保存后行为：toast + 触发 `getResumeVersion(versionId)` refetch；不刷新整页路由（验证：Vitest）
-- [ ] 6.5 fixture parity test：`updateResumeVersion.json` `default` / `validation-error-422` 与 hook 字节匹配（验证：fixture parity test PASS）
+- [ ] 6.5 fixture parity test：`updateResumeVersion.json` `default / idempotency-replay / validation-error-422` 与 hook 字节匹配（验证：fixture parity test PASS）
 - [ ] 6.6 隐私：DOM 渲染 structuredProfile fields 但 URL / pendingAction / localStorage / mock transport log 不含字段内容（验证：Vitest spy grep）
 
 ## Phase 7: i18n + a11y + 隐私 + UI parity + BDD + 旧入口负向
 
 - [ ] 7.1 i18n key 空间完整：`resumeWorkshop.branch.*` / `.rewrites.*` / `.edit.*` / `.tailor.*` namespace 在 en/zh 落齐；EN / ZH 切换关键文案 + Accept-Language header 携带 7 个 op 请求（验证：Vitest + integration test）
 - [ ] 7.2 a11y：BranchFlow form a11y + Rewrites Tab listbox/option + Edit Tab labels + scope banner aria-live；Playwright axe-core check PASS（验证：Playwright a11y spec）
-- [ ] 7.3 隐私红线 grep：originalBullet / suggestedBullet / matchSummary / structuredProfile / manualEditText / form draft 不出现在 console / URL / pendingAction / localStorage / mock transport log / telemetry / toast；pendingAction 仅 route + 必要 params（验证：Vitest spy grep + Playwright DOM/network sniff）
+- [ ] 7.3 隐私红线 grep：originalBullet / suggestedBullet / matchSummary / structuredProfile / manual edit text / form draft 不出现在 console / URL / pendingAction / localStorage / mock transport log / telemetry / toast；pendingAction 仅 route + 必要 params（验证：Vitest spy grep + Playwright DOM/network sniff）
 - [ ] 7.4 UI parity gate：新增 `frontend/tests/pixel-parity/resume-workshop-branch-rewrites-edit.spec.ts` 覆盖 BranchFlow / Rewrites Tab / Edit Tab desktop 1440px + mobile 390x844 DOM anchor + computed style + bounding box + 非空截图 buffer；clean checkout PASS 不依赖未跟踪 baseline（验证：`pnpm --filter @easyinterview/frontend build && pnpm --filter @easyinterview/frontend test:pixel-parity` PASS）
 - [ ] 7.5 Export PDF / copyText 一致性：在 Rewrites / Edit Tab 顶 header 保留 plan 001 Export PDF / 复制纯文本按钮；切换 tab 不影响 IK header / 501 toast / clipboard 行为（验证：Vitest + Playwright 重跑 P0.037 关键断言）
 - [ ] 7.6 BDD-Gate: E2E.P0.084 resume-branch-flow-three-seed-strategies PASS（详见 [bdd-checklist.md](./bdd-checklist.md)）

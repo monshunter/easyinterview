@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `docs(frontend-resume-workshop): align branch rewrite plan contracts` | #docs #ui |
 | [2026-05-17](2026-05-17.md) | `fix(frontend-resume-workshop): close create flow L2 gaps (BUG-0074)` | #fix #ui #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(frontend-resume-workshop): add resume create flow` | #feat #ui #test #docs |
 | [2026-05-17](2026-05-17.md) | `fix(backend-resume): mark tailor run failed on success persist error` | #fix #test #docs |
