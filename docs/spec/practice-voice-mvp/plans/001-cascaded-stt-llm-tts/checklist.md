@@ -1,6 +1,6 @@
 # Cascaded STT LLM TTS Voice MVP Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -16,6 +16,7 @@
 - [x] RF.1 BUG-0070 playback `audioRef` gate：`createPracticeVoiceTurn` HTTP response 的 `ttsChunks[].audioRef` 返回浏览器可播放 `data:audio/...;base64,...`；持久化 voice turn summary 改写为 opaque `voice-turn://...`，不保存 audio bytes；验证: `go test ./internal/practice -run TestCreatePracticeVoiceTurnReturnsPlayableAudioRefWithoutPersistingAudioData -count=1`。
 - [x] RF.2 BUG-0070 committed context replay gate：production service 在请求未携带 context 时从 store 加载 latest `follow_up_generated` + 后续 playback events，并注入下一轮 chat payload；验证: `go test ./internal/practice ./internal/store/practice -run 'TestCreatePracticeVoiceTurnLoadsCommittedContext|TestSQLRepositoryLoadCommittedVoiceContext' -count=1`。
 - [x] RF.3 BUG-0070 barge-in partial playback gate：frontend `bargeIn()` 先上报 partial `tts_chunk_played`（含 playedTextLength/hash/offset），再上报 `barge_in_detected`；验证: `pnpm --dir frontend test src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx --run`。
+- [x] RF.4 BUG-0072 fixture playback ref gate：`createPracticeVoiceTurn` default fixture 的 `ttsChunks[].audioRef` 与真实 HTTP response 语义一致，必须是浏览器可播放 `data:audio/...;base64,...` 或同计划 resolver URL；验证: `pnpm --dir frontend test src/api/devMockClient.test.ts --run` + `python3 scripts/lint/validate_fixtures.py --repo-root .`。
 
 ## Phase 1: Contract and fixture
 

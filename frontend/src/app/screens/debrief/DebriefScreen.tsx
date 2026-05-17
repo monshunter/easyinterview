@@ -18,6 +18,7 @@ import { DebriefReplayPlan } from "./components/DebriefReplayPlan";
 import { DebriefStepper } from "./components/DebriefStepper";
 import { DebriefSubmitCTA } from "./components/DebriefSubmitCTA";
 import { DebriefTimeoutState } from "./components/DebriefTimeoutState";
+import { DebriefVibeCheck } from "./components/DebriefVibeCheck";
 import { GuidedDebriefRecord } from "./components/GuidedDebriefRecord";
 import { JDPicker } from "./components/JDPicker";
 import { MockSessionPicker } from "./components/MockSessionPicker";
@@ -383,22 +384,29 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
         <>
           <DebriefRecordSummaryBar entries={entries} />
           <DebriefModeToggle inputMode={inputMode} onChange={setInputMode} />
-          <div data-mode={inputMode} className="ei-debrief-step0-panels">
-            <div hidden={inputMode !== "text"}>
-              <GuidedDebriefRecord
-                suggestions={suggestions.suggestions}
-                loading={suggestions.loading}
-                errorCode={suggestions.error?.code ?? null}
-                entries={entries}
-                setEntries={setEntries}
-                activeGuide={activeGuide}
-                setActiveGuide={setActiveGuide}
-                onRegenerate={suggestions.refetch}
-              />
+          <div
+            data-mode={inputMode}
+            className="ei-debrief-record-workspace"
+            data-testid="debrief-record-workspace"
+          >
+            <div className="ei-debrief-record-workspace__main">
+              <div hidden={inputMode !== "text"}>
+                <GuidedDebriefRecord
+                  suggestions={suggestions.suggestions}
+                  loading={suggestions.loading}
+                  errorCode={suggestions.error?.code ?? null}
+                  entries={entries}
+                  setEntries={setEntries}
+                  activeGuide={activeGuide}
+                  setActiveGuide={setActiveGuide}
+                  onRegenerate={suggestions.refetch}
+                />
+              </div>
+              <div hidden={inputMode !== "voice"}>
+                <VoiceDebriefRecord entries={entries} setEntries={setEntries} />
+              </div>
             </div>
-            <div hidden={inputMode !== "voice"}>
-              <VoiceDebriefRecord entries={entries} />
-            </div>
+            <DebriefVibeCheck />
           </div>
           <DebriefSubmitCTA
             entriesCount={entries.length}

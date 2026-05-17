@@ -41,13 +41,13 @@ describe("frontend dev fixture-backed mock client", () => {
 			practiceMode: "assisted" as const,
 		};
 
-		await expect(
-			client.createPracticeVoiceTurn(
-				"01918fa0-0000-7000-8000-000000005000",
-				body,
-				{ idempotencyKey: "01918fa0-0000-7000-8000-00000000f001" },
-			),
-		).resolves.toMatchObject({
+		const voiceTurn = await client.createPracticeVoiceTurn(
+			"01918fa0-0000-7000-8000-000000005000",
+			body,
+			{ idempotencyKey: "01918fa0-0000-7000-8000-00000000f001" },
+		);
+
+		expect(voiceTurn).toMatchObject({
 			voiceTurnId: "01918fa0-0000-7000-8000-00000000f201",
 			providerMetaSummary: {
 				sttProfile: "practice.voice.stt.default",
@@ -55,6 +55,9 @@ describe("frontend dev fixture-backed mock client", () => {
 				ttsProfile: "practice.voice.tts.default",
 			},
 		});
+		expect(voiceTurn.ttsChunks[0]?.audioRef).toMatch(
+			/^data:audio\/[a-z0-9.+-]+;base64,/i,
+		);
 
 		await expect(
 			client.createPracticeVoiceTurn(

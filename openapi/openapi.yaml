@@ -3280,9 +3280,10 @@ components:
       type: object
       required: [chunkId, sequence, contentType, durationMs, byteLength, textHash, audioRef]
       description: |
-        TTS playback metadata. `audioRef` is an opaque temporary playback
-        reference or fixture handle; this schema does not expose raw audio
-        bytes or provider secrets.
+        TTS playback metadata. HTTP responses must return a browser-playable
+        `data:audio/...;base64,...` value or a checked-in resolver URL. Persisted
+        session event summaries must rewrite it to an opaque `voice-turn://...`
+        reference and must not store audio bytes or provider secrets.
       properties:
         chunkId:
           type: string
@@ -3306,7 +3307,7 @@ components:
           description: Hash of synthesized text, never the text itself.
         audioRef:
           type: string
-          description: Opaque playback reference or fixture handle for the frontend player.
+          description: Browser-playable data URL or resolver URL for the frontend player.
 
     PracticeVoiceProviderMetaSummary:
       type: object

@@ -30,7 +30,7 @@ export const DebriefModeToggle: FC<DebriefModeToggleProps> = ({
           data-active={inputMode === "text"}
           onClick={() => onChange("text")}
         >
-          {t("debrief.record.mode.text")}
+          <span aria-hidden="true">✏️</span> {t("debrief.record.mode.text")}
         </button>
         <button
           type="button"
@@ -41,7 +41,7 @@ export const DebriefModeToggle: FC<DebriefModeToggleProps> = ({
           data-active={inputMode === "voice"}
           onClick={() => onChange("voice")}
         >
-          {t("debrief.record.mode.voice")}
+          <span aria-hidden="true">🎙</span> {t("debrief.record.mode.voice")}
         </button>
       </div>
       <span className="ei-debrief-mode-toggle__hint">

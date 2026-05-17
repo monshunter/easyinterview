@@ -47,6 +47,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0071](./BUG-0071.md) | frontend debrief record modes drifted from ui-design parity | medium | resolved | 2026-05-17 | `fix(frontend-debrief): restore record mode ui parity (BUG-0071)` |
 | [BUG-0069](./BUG-0069.md) | debrief real backend flows were blocked by mock-only contract drift | high | resolved | 2026-05-17 | `fix(frontend-debrief): repair real backend debrief flows (BUG-0068)` |
 | [BUG-0068](./BUG-0068.md) | frontend debrief L2 review exposed route hydration and pixel gate drift | high | resolved | 2026-05-17 | `fix(frontend-debrief): close debrief L2 gaps (BUG-0067)` |
 | [BUG-0065](./BUG-0065.md) | debrief.generate prompt baseline used retired output schema | high | resolved | 2026-05-16 | `feat(backend-debrief): close 001 debrief record and analysis baseline` |
@@ -104,6 +105,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0072](./BUG-0072.md) | practice voice fixture audio refs used mock-only scheme | medium | resolved | 2026-05-17 | `fix(practice-voice): align fixture audio refs (BUG-0072)` |
 | [BUG-0052](./BUG-0052.md) | backend resume L2 review exposed validation and retry state drift | high | resolved | 2026-05-13 | `fix(backend-resume): remediate asset registration L2 findings` |
 | [BUG-0051](./BUG-0051.md) | getResume not-found fixture used undocumented error code | medium | resolved | 2026-05-13 | `feat(backend-resume): close resume baseline verification` |
 | [BUG-0044](./BUG-0044.md) | resume additive generated client and cleanup drift escaped contract gates | medium | resolved | 2026-05-12 | `fix(openapi): harden resume additive client contracts` |

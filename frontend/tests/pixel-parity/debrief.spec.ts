@@ -219,13 +219,85 @@ test.describe("debrief screen DOM and geometry parity", () => {
       "debrief-step-panel-0",
       "debrief-record-summary",
       "debrief-mode-toggle",
+      "debrief-record-workspace",
+      "debrief-vibe-check",
       "debrief-guided-record",
       "debrief-guided-current",
+      "debrief-guided-card-list",
+      "debrief-guided-active-card",
       "debrief-guided-entries",
       "debrief-submit-btn",
     ]) {
       await expect(page.locator(`[data-testid='${id}']`), id).toHaveCount(1);
     }
+  });
+
+  test("text mode mirrors the prototype record workspace hierarchy", async ({
+    page,
+  }, testInfo) => {
+    await goToDebrief(page);
+    const workspace = await rectOf(page, "[data-testid='debrief-record-workspace']");
+    const guided = await rectOf(page, "[data-testid='debrief-guided-record']");
+    const vibe = await rectOf(page, "[data-testid='debrief-vibe-check']");
+    expect(guided.left).toBeGreaterThanOrEqual(workspace.left - 1);
+    if (testInfo.project.name === "mobile") {
+      expect(vibe.top).toBeGreaterThan(guided.bottom - 4);
+    } else {
+      expect(vibe.left).toBeGreaterThan(guided.right - 4);
+    }
+    expect(vibe.right).toBeLessThanOrEqual(workspace.right + 1);
+    if (testInfo.project.name !== "mobile") {
+      await expect(page.locator("[data-testid='debrief-guided-current-icon']")).toBeVisible();
+    }
+    await expect(page.locator("[data-testid='debrief-guided-card-list']")).toBeVisible();
+    await expect(page.locator("[data-testid='debrief-guided-active-card']")).toBeVisible();
+    await expect(page.locator("[data-testid='debrief-vibe-mood']")).toBeVisible();
+  });
+
+  test("voice mode shows the source prototype intro card instead of a flat placeholder", async ({
+    page,
+  }, testInfo) => {
+    await goToDebrief(page);
+    await page.locator("[data-testid='debrief-mode-toggle-voice']").click();
+    await expect(page.locator("[data-testid='debrief-voice-intro-card']")).toBeVisible();
+    await expect(page.locator("[data-testid='debrief-voice-topic-list']")).toBeVisible();
+    await expect(page.locator("[data-testid='debrief-voice-start']")).toBeVisible();
+    const card = await rectOf(page, "[data-testid='debrief-voice-intro-card']");
+    const workspace = await rectOf(page, "[data-testid='debrief-record-workspace']");
+    expect(card.width).toBeLessThanOrEqual(540);
+    if (testInfo.project.name === "mobile") {
+      expect(card.left).toBeGreaterThanOrEqual(workspace.left - 1);
+      expect(card.right).toBeLessThanOrEqual(workspace.right + 1);
+    } else {
+      expect(card.left).toBeGreaterThan(workspace.left + 80);
+    }
+  });
+
+  test("voice start opens the prototype continuous conversation state", async ({
+    page,
+  }, testInfo) => {
+    await goToDebrief(page);
+    await page.locator("[data-testid='debrief-mode-toggle-voice']").click();
+    await page.locator("[data-testid='debrief-voice-start']").click();
+    await expect(page.locator("[data-testid='debrief-voice-chat']")).toBeVisible();
+    await expect(page.locator("[data-testid='debrief-voice-intro-card']")).toBeHidden();
+    await expect(page.locator("[data-testid='debrief-voice-status']")).toBeVisible();
+    await expect(page.locator("[data-testid='debrief-voice-live-extract']")).toBeVisible();
+    await expect(page.locator("[data-testid='debrief-voice-extracted-card']")).toHaveCount(3);
+    await expect(page.locator("[data-testid='debrief-voice-end-review']")).toBeVisible();
+    const thread = await rectOf(page, "[data-testid='debrief-voice-thread']");
+    const extract = await rectOf(page, "[data-testid='debrief-voice-live-extract']");
+    if (testInfo.project.name === "mobile") {
+      expect(extract.top).toBeGreaterThan(thread.bottom - 4);
+    } else {
+      expect(extract.left).toBeGreaterThan(thread.right - 4);
+    }
+    await page.locator("[data-testid='debrief-voice-end-review']").click();
+    await expect(page.locator("[data-testid='debrief-voice-review']")).toBeVisible();
+    await page.locator("[data-testid='debrief-voice-save']").click();
+    await expect(page.locator("[data-testid='debrief-voice-committed']")).toBeVisible();
+    await expect(page.locator("[data-testid='debrief-record-summary-count']")).toHaveText("3");
+    await expect(page.locator("[data-testid='debrief-chip-voice']")).toContainText("3");
   });
 
   test("primary debrief regions stay inside the viewport", async ({ page }) => {
