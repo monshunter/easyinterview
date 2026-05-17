@@ -24,6 +24,11 @@ const ROUTE_ALIASES: Record<string, RouteName> = {
   star: "resume_versions",
   resume: "resume_versions",
   onboarding: "resume_versions",
+  // Historical full-screen debrief route. The current product collapses both
+  // entry points into a single `debrief` route per
+  // docs/spec/frontend-debrief/spec.md §2.2; the alias prevents legacy
+  // bookmarks / saved state from materializing a standalone screen.
+  debrief_full: "debrief",
 };
 
 export function normalizeRouteName(raw: string): RouteName {

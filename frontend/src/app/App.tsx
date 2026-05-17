@@ -37,6 +37,7 @@ import {
   type AppRuntimeProviderProps,
   type AppRuntimeValue,
 } from "./runtime/AppRuntimeProvider";
+import { DebriefScreen } from "./screens/debrief/DebriefScreen";
 import { GeneratingScreen } from "./screens/generating/GeneratingScreen";
 import { HomeScreen } from "./screens/home/HomeScreen";
 import { JDMatchScreen } from "./screens/jd_match/JDMatchScreen";
@@ -119,6 +120,9 @@ function renderRouteScreen(
   }
   if (route.name === "report") {
     return <ReportScreen route={route} />;
+  }
+  if (route.name === "debrief") {
+    return <DebriefScreen route={route} />;
   }
   if (!runtime) {
     return <PlaceholderScreen route={route} />;

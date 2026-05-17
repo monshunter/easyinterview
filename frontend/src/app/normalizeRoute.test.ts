@@ -23,6 +23,13 @@ describe("normalizeRouteName", () => {
     expect(normalizeRouteName("voice")).toBe("home");
   });
 
+  it("normalizes the historical debrief_full alias to the current debrief route", () => {
+    // docs/spec/frontend-debrief/spec.md §2.2 — `debrief_full` is the legacy
+    // standalone-screen route and must not materialize a second debrief
+    // surface. Both entries collapse into `debrief`.
+    expect(normalizeRouteName("debrief_full")).toBe("debrief");
+  });
+
   it("preserves valid current route names", () => {
     expect(normalizeRouteName("home")).toBe("home");
     expect(normalizeRouteName("workspace")).toBe("workspace");

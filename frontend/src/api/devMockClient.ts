@@ -6,6 +6,7 @@ import startAuthEmailChallengeFixture from "../../../openapi/fixtures/Auth/start
 import verifyAuthEmailChallengeFixture from "../../../openapi/fixtures/Auth/verifyAuthEmailChallenge.json";
 import createDebriefFixture from "../../../openapi/fixtures/Debriefs/createDebrief.json";
 import getDebriefFixture from "../../../openapi/fixtures/Debriefs/getDebrief.json";
+import suggestDebriefQuestionsFixture from "../../../openapi/fixtures/Debriefs/suggestDebriefQuestions.json";
 import getJobFixture from "../../../openapi/fixtures/Jobs/getJob.json";
 import addToWatchlistFixture from "../../../openapi/fixtures/JobMatch/addToWatchlist.json";
 import createSavedSearchFixture from "../../../openapi/fixtures/JobMatch/createSavedSearch.json";
@@ -24,6 +25,7 @@ import getPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/getP
 import appendSessionEventFixture from "../../../openapi/fixtures/PracticeSessions/appendSessionEvent.json";
 import completePracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/completePracticeSession.json";
 import getPracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/getPracticeSession.json";
+import listPracticeSessionsFixture from "../../../openapi/fixtures/PracticeSessions/listPracticeSessions.json";
 import startPracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
 import getPrivacyRequestFixture from "../../../openapi/fixtures/Privacy/getPrivacyRequest.json";
 import requestPrivacyDeleteFixture from "../../../openapi/fixtures/Privacy/requestPrivacyDelete.json";
@@ -72,6 +74,7 @@ const DEV_MOCK_FIXTURES = [
 	logoutFixture,
 	createDebriefFixture,
 	getDebriefFixture,
+	suggestDebriefQuestionsFixture,
 	getJobFixture,
 	getJobMatchProfileFixture,
 	getAgentScanStatusFixture,
@@ -91,6 +94,7 @@ const DEV_MOCK_FIXTURES = [
 	getPracticePlanFixture,
 	startPracticeSessionFixture,
 	getPracticeSessionFixture,
+	listPracticeSessionsFixture,
 	completePracticeSessionFixture,
 	appendSessionEventFixture,
 	requestPrivacyDeleteFixture,

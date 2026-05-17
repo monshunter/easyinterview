@@ -1,0 +1,249 @@
+/*
+ * DebriefScreen styles. Source mirror of
+ * ui-design/src/screens-p1-depth.jsx::DebriefFullScreen + DebriefContextStrip
+ * + the stepper block. The prototype encodes geometry via inline styles
+ * driven by the T theme tokens; here we map every value to the formal
+ * `var(--ei-color-*)`/`var(--ei-space-*)` design tokens so dark mode and
+ * customAccent themes can override colors without touching this stylesheet.
+ *
+ * Anchors (prototype line numbers):
+ *   - header / back / eyebrow / title / subcopy / meta : lines 122-144
+ *   - context strip cards                              : lines 412-432
+ *   - stepper                                          : lines 148-156
+ */
+
+.ei-debrief-screen {
+  /* Override ei-screen-shell vertical rhythm to match the prototype's
+     `padding: 32px 48px 96px` and `gap: 32` between header → strip →
+     stepper → panel. */
+  max-width: 1200px;
+  padding: 32px 48px 96px;
+  gap: 28px;
+}
+
+.ei-debrief-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ei-debrief-header__back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--ei-color-fg-tertiary);
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ei-debrief-header__back:hover {
+  color: var(--ei-color-fg-secondary);
+}
+
+.ei-debrief-header__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 32px;
+}
+
+.ei-debrief-header__primary {
+  min-width: 0;
+  max-width: 780px;
+}
+
+.ei-debrief-header__eyebrow {
+  color: var(--ei-color-fg-tertiary);
+  margin-bottom: 8px;
+}
+
+.ei-debrief-header__title {
+  margin: 0;
+  font-size: 38px;
+  color: var(--ei-color-fg-primary);
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+}
+
+.ei-debrief-header__subcopy {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--ei-color-fg-tertiary);
+  line-height: 1.5;
+  max-width: 640px;
+}
+
+.ei-debrief-header__meta {
+  margin: 0;
+  font-family: var(--ei-font-mono);
+  font-size: 11px;
+  color: var(--ei-color-fg-tertiary);
+  text-align: right;
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ei-debrief-header__meta dt {
+  display: none;
+}
+
+.ei-debrief-header__meta dd {
+  margin: 0;
+}
+
+.ei-debrief-header__meta > div::before {
+  /* Render `key · value` row with the key inline (DOM uses real <dt> for
+     a11y; visual layout uses pseudo-content sourced from the dt). */
+  content: attr(data-key);
+}
+
+.ei-debrief-context-strip {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 12px;
+}
+
+.ei-debrief-context-strip__card {
+  padding: 14px 16px;
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: var(--ei-radius-sm);
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.ei-debrief-context-strip__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  background: var(--ei-color-bg-soft);
+  color: var(--ei-color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.ei-debrief-context-strip__body {
+  min-width: 0;
+}
+
+.ei-debrief-context-strip__label {
+  color: var(--ei-color-fg-tertiary);
+  margin-bottom: 3px;
+}
+
+.ei-debrief-context-strip__title {
+  font-size: 13.5px;
+  color: var(--ei-color-fg-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ei-debrief-context-strip__meta {
+  font-size: 12px;
+  color: var(--ei-color-fg-tertiary);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ei-debrief-context-strip__action {
+  background: transparent;
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: var(--ei-radius-sm);
+  color: var(--ei-color-fg-secondary);
+  font-size: 12px;
+  padding: 5px 9px;
+  cursor: pointer;
+  font-family: var(--ei-font-sans);
+}
+
+.ei-debrief-context-strip__action:hover {
+  background: var(--ei-color-bg-soft);
+}
+
+.ei-debrief-stepper {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--ei-color-rule-strong);
+  margin-bottom: -1px;
+}
+
+.ei-debrief-stepper__item {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ei-color-fg-tertiary);
+  cursor: pointer;
+  font-family: var(--ei-font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: -1px;
+}
+
+.ei-debrief-stepper__item[data-active="true"] {
+  border-bottom-color: var(--ei-color-accent);
+  color: var(--ei-color-fg-primary);
+  font-weight: 500;
+}
+
+.ei-debrief-stepper__item[data-reachable="false"] {
+  cursor: not-allowed;
+  color: var(--ei-color-fg-muted);
+}
+
+.ei-debrief-stepper__num {
+  font-family: var(--ei-font-mono);
+  font-size: 11px;
+  color: var(--ei-color-fg-muted);
+}
+
+.ei-debrief-step-panel {
+  min-height: 240px;
+}
+
+@media (max-width: 640px) {
+  /* Phase 7.3 owns the full mobile rhythm; this baseline keeps the shell
+     usable on narrow viewports without locking the prototype layout in. */
+  .ei-debrief-screen {
+    padding: 20px 16px 64px;
+    gap: 20px;
+  }
+  .ei-debrief-header__row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .ei-debrief-header__title {
+    font-size: 26px;
+  }
+  .ei-debrief-header__meta {
+    text-align: left;
+  }
+  .ei-debrief-context-strip {
+    grid-template-columns: 1fr;
+  }
+  .ei-debrief-stepper {
+    overflow-x: auto;
+  }
+  .ei-debrief-stepper__item {
+    padding: 12px 14px;
+  }
+}
