@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.18
+> **版本**: 1.19
 > **状态**: active
-> **更新日期**: 2026-05-15
+> **更新日期**: 2026-05-17
 
 ## 1 背景与目标
 
@@ -14,7 +14,7 @@
 
 目标是：
 
-1. **真理源即代码**：把 product-scope / UI scope 确认的 17 个生成枚举类型、6 个 baseline 错误码、A3 授权追加的 6 个 `AI_*` 错误码、C4 授权追加的 4 个 `TARGET_*` TargetJob 场景错误码、Resume Workshop 授权追加的 `RESUME_EXPORT_NOT_AVAILABLE` 错误码、ADR-Q6 授权的 AI capability / provider registry / Model Profile / AI meta 字段名共享 vocabulary、ID 规则、时间规则、金额规则同时落到 Go（`backend/internal/shared/types/`）与 TypeScript（`frontend/src/lib/conventions/`）。
+1. **真理源即代码**：把 product-scope / UI scope 确认的 17 个生成枚举类型、6 个 baseline 错误码、A3 授权追加的 6 个 `AI_*` 错误码、C4 授权追加的 4 个 `TARGET_*` TargetJob 场景错误码、Resume Workshop / Backend Resume 授权追加的 `RESUME_EXPORT_NOT_AVAILABLE` 与 `RESUME_STRUCTURED_MASTER_ALREADY_EXISTS` 错误码、ADR-Q6 授权的 AI capability / provider registry / Model Profile / AI meta 字段名共享 vocabulary、ID 规则、时间规则、金额规则同时落到 Go（`backend/internal/shared/types/`）与 TypeScript（`frontend/src/lib/conventions/`）。
 2. **跨语言对齐**：Go 与 TS 类型必须共用同一份枚举 / 错误码源（YAML 或 JSON），由本 spec 唯一的 generator 在两侧吐出代码。
 3. **lint 强约束**：`UPPER_SNAKE_CASE` 错误码、`lower_snake_case` 枚举值、`camelCase` JSON tag 通过本地 lint 门禁拦截，而不是依赖代码 review。
 4. **monorepo 名称锁定**：在落地任何业务代码前，先把 `go.mod` 名称、`package.json` 名称、pnpm workspace（如启用）拓扑、共享 lib 目录定下来，避免后续多个 subject 各自重命名雪球。
@@ -60,7 +60,7 @@
 | D-7 | `ApiError` inner object 归属 | `shared/conventions.yaml#structures.ApiError` 表示错误响应 envelope 内部的 `error` 对象（`code` / `message` / `requestId` / `retryable` / `details`），不表示外层 `{error: ...}` envelope；Go 侧 canonical 类型是手写 `backend/internal/shared/errors.APIError` + generated `errors.AllCodes`，TS 侧 canonical 类型是 generated `frontend/src/lib/conventions.ApiError` | B2 OpenAPI 必须把 wire response body 建模为 `ApiErrorResponse` envelope，并在 envelope 内 `$ref` B1 `ApiError` inner object；不得把 Go 侧误写为 `sharedtypes.ApiError` |
 | D-8 | AI shared vocabulary 归属 | B1 提供 `AI_*` 错误码、AI capability、Provider Registry 字段名、Model Profile 字段名、AI meta 字段名常量或生成类型；A3 提供 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 填充与 OpenAI-compatible provider adapter；A4 校验 `AI_PROVIDER_*` 连接参数 | 避免 B1/A3/B4/F1 对同一 AI 字段私造名称；同时避免把运行时或连接配置误下沉到 shared conventions |
 | D-9 | 当前 UI 产品范围下的练习 / 报告枚举 | `PracticeMode = assisted / strict`；`PracticeGoal = baseline / retry_current_round / next_round / debrief`；原 `MistakeStatus` 改为 `QuestionReviewStatus = open / queued_for_retry / resolved` | 对齐 product-scope 当前范围与 `docs/ui-design`：mode 只表达辅助度，复盘面试来源由 `goal='debrief'` 表达；移除热身、单题深钻、反问专练、独立错题本和独立成长中心；报告内部题目回顾与本轮复练仍保留 |
-| D-10 | Resume Workshop additive vocabulary 升级（已落地） | 新增 3 个生成枚举与 1 个错误码常量：`ResumeVersionType = structured_master / targeted`；`ResumeSeedStrategy = copy_master / blank / ai_select`；`ResumeTailorSuggestionStatus = pending / accepted / rejected`；`RESUME_EXPORT_NOT_AVAILABLE` 错误码常量（前缀 `RESUME_*`，类比 D-12 `PRIVACY_EXPORT_NOT_AVAILABLE`，用于 B2 D-18 `exportResumeVersion` P0 `501` 响应）；术语映射决策：UI 真理源 `docs/ui-design/resume-module.md` 中的 `ResumeSource` ≡ OpenAPI `ResumeAsset`（后端真理源不重命名），UI `ResumeVersion` ≡ OpenAPI 新 schema `ResumeVersion`（B2 D-18 新增），前端通过 adapter 层 wrap UI 命名；`shared/conventions.yaml` 字面量、Go/TS generated 类型、parity fixture 与 B1 lint 已由 [openapi-v1-contract/004-resume-additive-coverage](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) Phase 1 落地 | 业务代码 (`backend-resume` / `frontend-resume-workshop`) 不得绕过 B1 私造同义字符串；B2 D-18 schema 必须通过 `$ref` 引用本 spec 锁定的枚举字面量；shared-conventions-codified 当前 17 个枚举类型 |
+| D-10 | Resume Workshop additive vocabulary 升级（已落地） | 新增 3 个生成枚举与 2 个错误码常量：`ResumeVersionType = structured_master / targeted`；`ResumeSeedStrategy = copy_master / blank / ai_select`；`ResumeTailorSuggestionStatus = pending / accepted / rejected`；`RESUME_EXPORT_NOT_AVAILABLE` 错误码常量（前缀 `RESUME_*`，类比 D-12 `PRIVACY_EXPORT_NOT_AVAILABLE`，用于 B2 D-18 `exportResumeVersion` P0 `501` 响应）；`RESUME_STRUCTURED_MASTER_ALREADY_EXISTS` 错误码常量（前缀 `RESUME_*`，用于 `backend-resume/002` 的 `confirmResumeStructuredMaster` 409 响应）；术语映射决策：UI 真理源 `docs/ui-design/resume-module.md` 中的 `ResumeSource` ≡ OpenAPI `ResumeAsset`（后端真理源不重命名），UI `ResumeVersion` ≡ OpenAPI 新 schema `ResumeVersion`（B2 D-18 新增），前端通过 adapter 层 wrap UI 命名；`shared/conventions.yaml` 字面量、Go/TS generated 类型、parity fixture 与 B1 lint 已由 [openapi-v1-contract/004-resume-additive-coverage](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) Phase 1 与 [backend-resume/002](../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md) Phase 1 落地 | 业务代码 (`backend-resume` / `frontend-resume-workshop`) 不得绕过 B1 私造同义字符串；B2 D-18/D-23 schema 必须通过 `$ref` 引用本 spec 锁定的枚举 / 错误码字面量；shared-conventions-codified 当前 17 个枚举类型 |
 
 ### 3.2 待确认事项
 
@@ -103,8 +103,8 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 真理源生成 Go 类型 | `shared/conventions.yaml` 已落地 | 执行 `make codegen-conventions`（B1 持有） | `backend/internal/shared/types/*.go` 中 17 个枚举类型常量、`PageInfo` 结构与共享常量按 D-5 / D-6 命名生成；Go `APIError` 结构在 `backend/internal/shared/errors/` 手写，generator 补齐全部错误码常量（含 A3 `AI_*` baseline 与 `RESUME_EXPORT_NOT_AVAILABLE`）；`go vet ./backend/...` 通过 | 001-bootstrap + A3 spec remediation + openapi-v1-contract/004 |
-| C-2 | 真理源生成 TS 类型 | 同 C-1 | 同 C-1 | `frontend/src/lib/conventions/*.ts` 中 17 个 union string literal 类型、`ApiError` / `PageInfo` interface 与全部错误码常量（含 A3 `AI_*` baseline 与 `RESUME_EXPORT_NOT_AVAILABLE`）按 D-5 / D-6 生成；`pnpm tsc --noEmit` 通过 | 001-bootstrap + A3 spec remediation + openapi-v1-contract/004 |
+| C-1 | 真理源生成 Go 类型 | `shared/conventions.yaml` 已落地 | 执行 `make codegen-conventions`（B1 持有） | `backend/internal/shared/types/*.go` 中 17 个枚举类型常量、`PageInfo` 结构与共享常量按 D-5 / D-6 命名生成；Go `APIError` 结构在 `backend/internal/shared/errors/` 手写，generator 补齐全部错误码常量（含 A3 `AI_*` baseline、`RESUME_EXPORT_NOT_AVAILABLE` 与 `RESUME_STRUCTURED_MASTER_ALREADY_EXISTS`）；`go vet ./backend/...` 通过 | 001-bootstrap + A3 spec remediation + openapi-v1-contract/004 + backend-resume/002 |
+| C-2 | 真理源生成 TS 类型 | 同 C-1 | 同 C-1 | `frontend/src/lib/conventions/*.ts` 中 17 个 union string literal 类型、`ApiError` / `PageInfo` interface 与全部错误码常量（含 A3 `AI_*` baseline、`RESUME_EXPORT_NOT_AVAILABLE` 与 `RESUME_STRUCTURED_MASTER_ALREADY_EXISTS`）按 D-5 / D-6 生成；`pnpm tsc --noEmit` 通过 | 001-bootstrap + A3 spec remediation + openapi-v1-contract/004 + backend-resume/002 |
 | C-3 | UUIDv7 工具可用 | A1 已落地仓库根 | 在 Go test 与 TS test 中调用 idx 工具 | Go `idx.NewID()` / TS `newId()` 返回 UUIDv7 字符串；输入 `tmp_xxx` 时 `idx.RequireServerID()` / `requireServerId()` 抛错 | 001-bootstrap |
 | C-4 | Idempotency-Key 工具 | A1 已落地仓库根 | 生成 + 校验 idempotency key（24h TTL） | Go 与 TS 双端工具产出格式一致的 key；TTL 过期后校验返回 false | 001-bootstrap |
 | C-5 | Lint 拦截违规命名 | 本地提交前引入一个 `auth_unauthorized`（小写）错误码常量 | 跑 `make lint` | B1 本地 lint/config 能报错：错误码必须 `UPPER_SNAKE_CASE`；A5 只约束本地质量门禁与远端 CI 延后边界，不改变规则语义 | 001-bootstrap |
@@ -124,6 +124,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-17 | 1.19 | 授权 backend-resume/002 Phase 1 新增 `RESUME_STRUCTURED_MASTER_ALREADY_EXISTS` 错误码（`httpStatus: 409`，`retryable: false`，`message: "structured master resume version already exists for this resume asset"`），用于 `confirmResumeStructuredMaster` 重复确认冲突；同步 `shared/conventions.yaml`、Go/TS generated errors 与 B2 OpenAPI `ApiErrorCode` enum。 | backend-resume/002-versions-tailor-runs-and-save-v1 Phase 1 |
 | 2026-05-09 | 1.15 | 对齐 backend-practice Phase 0：`PracticeMode` 收敛为 `assisted` / `strict`，新增 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND` 错误码，并要求 `shared/conventions.yaml` 与 Go/TS/OpenAPI generated artifacts 同步。 | backend-practice/001 Phase 0 |
 | 2026-05-08 | 1.14 | 按 backend-targetjob 场景授权 4 个 C4-owned TargetJob 错误码，要求 Phase 0 同步 `shared/conventions.yaml`、Go/TS generated errors 与 B2 OpenAPI error enum，禁止业务 plan 使用未登记的 legacy bare aliases。 | backend-targetjob/001 Phase 0 |
 | 2026-05-05 | 1.11 | 扩展 AI shared vocabulary：新增 AI capability、provider registry/profile 字段名、fallback meta 字段，以及 `AI_UNSUPPORTED_CAPABILITY` / provider config / provider secret 三类 routing 错误码，Go/TS/OpenAPI 生成物同步消费。 | ai-provider-and-model-routing/003 Phase 4 |

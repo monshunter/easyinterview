@@ -590,6 +590,16 @@ export class EasyInterviewClient {
 		);
 	}
 
+	/** confirmResumeStructuredMaster — post /resumes/{resumeAssetId}/structured-master: Confirm a parsed resume asset as the structured master version */
+	async confirmResumeStructuredMaster(resumeAssetId: string, body: Types.ConfirmResumeStructuredMasterRequest, opts?: RequestOptions): Promise<Types.ResumeVersion> {
+		return this.request<Types.ResumeVersion>(
+			"POST",
+			buildPath("/resumes/{resumeAssetId}/structured-master", { resumeAssetId: resumeAssetId }),
+			body,
+			opts,
+		);
+	}
+
 	/** listResumeVersions — get /resumes/{resumeAssetId}/versions: List versions for a resume asset */
 	async listResumeVersions(resumeAssetId: string, opts?: RequestOptions): Promise<Types.PaginatedResumeVersion> {
 		return this.request<Types.PaginatedResumeVersion>(
@@ -723,6 +733,7 @@ export const ALL_OPERATION_IDS = [
 	"registerResume",
 	"getResume",
 	"archiveResumeAsset",
+	"confirmResumeStructuredMaster",
 	"listResumeVersions",
 	"getRuntimeConfig",
 	"listTargetJobs",
@@ -792,6 +803,7 @@ export const ALL_ROUTES = [
 	{ operationId: "registerResume", method: "POST", path: "/resumes" },
 	{ operationId: "getResume", method: "GET", path: "/resumes/{resumeAssetId}" },
 	{ operationId: "archiveResumeAsset", method: "POST", path: "/resumes/{resumeAssetId}/archive" },
+	{ operationId: "confirmResumeStructuredMaster", method: "POST", path: "/resumes/{resumeAssetId}/structured-master" },
 	{ operationId: "listResumeVersions", method: "GET", path: "/resumes/{resumeAssetId}/versions" },
 	{ operationId: "getRuntimeConfig", method: "GET", path: "/runtime-config" },
 	{ operationId: "listTargetJobs", method: "GET", path: "/targets" },

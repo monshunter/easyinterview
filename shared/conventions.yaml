@@ -80,6 +80,9 @@ errors:
   - code: RESUME_EXPORT_NOT_AVAILABLE
     message: "resume version export is not available in P0"
     retryable: false
+  - code: RESUME_STRUCTURED_MASTER_ALREADY_EXISTS
+    message: "structured master resume version already exists for this resume asset"
+    retryable: false
   - code: VALIDATION_FAILED
     message: "request validation failed"
     retryable: false

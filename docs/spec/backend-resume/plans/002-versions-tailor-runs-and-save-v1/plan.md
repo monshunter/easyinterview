@@ -106,7 +106,7 @@
 - 新增 `ConfirmResumeStructuredMasterRequest` schema：`required: [structuredProfile, displayName]`；`structuredProfile.provenance` `$ref: GenerationProvenance`；可选 `language`。
 
 #### 1.2 fixtures
-- 新增 `openapi/fixtures/Resumes/confirmResumeStructuredMaster.json` 四个 scenario：`default`（201 + ResumeVersion structured_master）/ `idempotency-replay`（同 IK 返回首次结果）/ `already-exists-409`（已存在 master → 409 `RESUME_STRUCTURED_MASTER_ALREADY_EXISTS`）/ `validation-422`（缺 structuredProfile → 422 `VALIDATION_FAILED`）。
+- 新增 `openapi/fixtures/Resumes/confirmResumeStructuredMaster.json` 四个 scenario：`default`（201 + ResumeVersion structured_master）/ `idempotency-replay`（同 IK 返回首次结果）/ `already-exists-409`（已存在 master → 409 `RESUME_STRUCTURED_MASTER_ALREADY_EXISTS`）/ `validation-422`（schema-valid blank displayName → 422 `VALIDATION_FAILED`；fixture request 必须保持 schema-valid）。
 
 #### 1.3 inventory / lint / codegen
 - 在 `scripts/lint/openapi_inventory.py` baseline 注册新 operation，并把 IK_REQUIRED 增补 `POST /resumes/{resumeAssetId}/structured-master`。

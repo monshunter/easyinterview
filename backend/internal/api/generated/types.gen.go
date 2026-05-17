@@ -105,29 +105,30 @@ type ResumeTailorSuggestionStatus = sharedtypes.ResumeTailorSuggestionStatus
 type ApiErrorCode string
 
 const (
-	ApiErrorCodeAUTHUNAUTHORIZED              ApiErrorCode = "AUTH_UNAUTHORIZED"
-	ApiErrorCodeTARGETIMPORTFAILED            ApiErrorCode = "TARGET_IMPORT_FAILED"
-	ApiErrorCodeTARGETJOBNOTFOUND             ApiErrorCode = "TARGET_JOB_NOT_FOUND"
-	ApiErrorCodeTARGETIMPORTSOURCEINVALID     ApiErrorCode = "TARGET_IMPORT_SOURCE_INVALID"
-	ApiErrorCodeTARGETIMPORTSOURCEUNAVAILABLE ApiErrorCode = "TARGET_IMPORT_SOURCE_UNAVAILABLE"
-	ApiErrorCodeTARGETINVALIDSTATETRANSITION  ApiErrorCode = "TARGET_INVALID_STATE_TRANSITION"
-	ApiErrorCodePRACTICESESSIONCONFLICT       ApiErrorCode = "PRACTICE_SESSION_CONFLICT"
-	ApiErrorCodePRACTICEPLANNOTFOUND          ApiErrorCode = "PRACTICE_PLAN_NOT_FOUND"
-	ApiErrorCodePRACTICESESSIONNOTFOUND       ApiErrorCode = "PRACTICE_SESSION_NOT_FOUND"
-	ApiErrorCodeREPORTNOTFOUND                ApiErrorCode = "REPORT_NOT_FOUND"
-	ApiErrorCodeREPORTNOTREADY                ApiErrorCode = "REPORT_NOT_READY"
-	ApiErrorCodeDEBRIEFNOTFOUND               ApiErrorCode = "DEBRIEF_NOT_FOUND"
-	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE      ApiErrorCode = "RESUME_EXPORT_NOT_AVAILABLE"
-	ApiErrorCodeVALIDATIONFAILED              ApiErrorCode = "VALIDATION_FAILED"
-	ApiErrorCodeIDEMPOTENCYKEYMISMATCH        ApiErrorCode = "IDEMPOTENCY_KEY_MISMATCH"
-	ApiErrorCodeRATELIMITED                   ApiErrorCode = "RATE_LIMITED"
-	ApiErrorCodeAIPROVIDERTIMEOUT             ApiErrorCode = "AI_PROVIDER_TIMEOUT"
-	ApiErrorCodeAIOUTPUTINVALID               ApiErrorCode = "AI_OUTPUT_INVALID"
-	ApiErrorCodeAIFALLBACKEXHAUSTED           ApiErrorCode = "AI_FALLBACK_EXHAUSTED"
-	ApiErrorCodeAIUNSUPPORTEDCAPABILITY       ApiErrorCode = "AI_UNSUPPORTED_CAPABILITY"
-	ApiErrorCodeAIPROVIDERCONFIGINVALID       ApiErrorCode = "AI_PROVIDER_CONFIG_INVALID"
-	ApiErrorCodeAIPROVIDERSECRETMISSING       ApiErrorCode = "AI_PROVIDER_SECRET_MISSING"
-	ApiErrorCodePRIVACYEXPORTNOTAVAILABLE     ApiErrorCode = "PRIVACY_EXPORT_NOT_AVAILABLE"
+	ApiErrorCodeAUTHUNAUTHORIZED                    ApiErrorCode = "AUTH_UNAUTHORIZED"
+	ApiErrorCodeTARGETIMPORTFAILED                  ApiErrorCode = "TARGET_IMPORT_FAILED"
+	ApiErrorCodeTARGETJOBNOTFOUND                   ApiErrorCode = "TARGET_JOB_NOT_FOUND"
+	ApiErrorCodeTARGETIMPORTSOURCEINVALID           ApiErrorCode = "TARGET_IMPORT_SOURCE_INVALID"
+	ApiErrorCodeTARGETIMPORTSOURCEUNAVAILABLE       ApiErrorCode = "TARGET_IMPORT_SOURCE_UNAVAILABLE"
+	ApiErrorCodeTARGETINVALIDSTATETRANSITION        ApiErrorCode = "TARGET_INVALID_STATE_TRANSITION"
+	ApiErrorCodePRACTICESESSIONCONFLICT             ApiErrorCode = "PRACTICE_SESSION_CONFLICT"
+	ApiErrorCodePRACTICEPLANNOTFOUND                ApiErrorCode = "PRACTICE_PLAN_NOT_FOUND"
+	ApiErrorCodePRACTICESESSIONNOTFOUND             ApiErrorCode = "PRACTICE_SESSION_NOT_FOUND"
+	ApiErrorCodeREPORTNOTFOUND                      ApiErrorCode = "REPORT_NOT_FOUND"
+	ApiErrorCodeREPORTNOTREADY                      ApiErrorCode = "REPORT_NOT_READY"
+	ApiErrorCodeDEBRIEFNOTFOUND                     ApiErrorCode = "DEBRIEF_NOT_FOUND"
+	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE            ApiErrorCode = "RESUME_EXPORT_NOT_AVAILABLE"
+	ApiErrorCodeRESUMESTRUCTUREDMASTERALREADYEXISTS ApiErrorCode = "RESUME_STRUCTURED_MASTER_ALREADY_EXISTS"
+	ApiErrorCodeVALIDATIONFAILED                    ApiErrorCode = "VALIDATION_FAILED"
+	ApiErrorCodeIDEMPOTENCYKEYMISMATCH              ApiErrorCode = "IDEMPOTENCY_KEY_MISMATCH"
+	ApiErrorCodeRATELIMITED                         ApiErrorCode = "RATE_LIMITED"
+	ApiErrorCodeAIPROVIDERTIMEOUT                   ApiErrorCode = "AI_PROVIDER_TIMEOUT"
+	ApiErrorCodeAIOUTPUTINVALID                     ApiErrorCode = "AI_OUTPUT_INVALID"
+	ApiErrorCodeAIFALLBACKEXHAUSTED                 ApiErrorCode = "AI_FALLBACK_EXHAUSTED"
+	ApiErrorCodeAIUNSUPPORTEDCAPABILITY             ApiErrorCode = "AI_UNSUPPORTED_CAPABILITY"
+	ApiErrorCodeAIPROVIDERCONFIGINVALID             ApiErrorCode = "AI_PROVIDER_CONFIG_INVALID"
+	ApiErrorCodeAIPROVIDERSECRETMISSING             ApiErrorCode = "AI_PROVIDER_SECRET_MISSING"
+	ApiErrorCodePRIVACYEXPORTNOTAVAILABLE           ApiErrorCode = "PRIVACY_EXPORT_NOT_AVAILABLE"
 )
 
 // AllApiErrorCodes lists every defined value in declaration order.
@@ -145,6 +146,7 @@ var AllApiErrorCodes = []ApiErrorCode{
 	ApiErrorCodeREPORTNOTREADY,
 	ApiErrorCodeDEBRIEFNOTFOUND,
 	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE,
+	ApiErrorCodeRESUMESTRUCTUREDMASTERALREADYEXISTS,
 	ApiErrorCodeVALIDATIONFAILED,
 	ApiErrorCodeIDEMPOTENCYKEYMISMATCH,
 	ApiErrorCodeRATELIMITED,
@@ -386,6 +388,12 @@ type BranchResumeVersionAccepted struct {
 type PaginatedResumeVersion struct {
 	Items    []ResumeVersion `json:"items"`
 	PageInfo PageInfo        `json:"pageInfo"`
+}
+
+type ConfirmResumeStructuredMasterRequest struct {
+	DisplayName       string  `json:"displayName"`
+	Language          *string `json:"language,omitempty"`
+	StructuredProfile any     `json:"structuredProfile"`
 }
 
 type BranchResumeVersionRequest struct {

@@ -43,6 +43,7 @@ import requestResumeTailorFixture from "../../../openapi/fixtures/ResumeTailor/r
 import acceptResumeTailorSuggestionFixture from "../../../openapi/fixtures/Resumes/acceptResumeTailorSuggestion.json";
 import archiveResumeAssetFixture from "../../../openapi/fixtures/Resumes/archiveResumeAsset.json";
 import branchResumeVersionFixture from "../../../openapi/fixtures/Resumes/branchResumeVersion.json";
+import confirmResumeStructuredMasterFixture from "../../../openapi/fixtures/Resumes/confirmResumeStructuredMaster.json";
 import exportResumeVersionFixture from "../../../openapi/fixtures/Resumes/exportResumeVersion.json";
 import getResumeFixture from "../../../openapi/fixtures/Resumes/getResume.json";
 import getResumeVersionFixture from "../../../openapi/fixtures/Resumes/getResumeVersion.json";
@@ -113,6 +114,7 @@ const DEV_MOCK_FIXTURES = [
 	acceptResumeTailorSuggestionFixture,
 	archiveResumeAssetFixture,
 	branchResumeVersionFixture,
+	confirmResumeStructuredMasterFixture,
 	exportResumeVersionFixture,
 	getResumeVersionFixture,
 	listResumesFixture,

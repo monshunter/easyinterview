@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.23
+> **版本**: 1.24
 > **状态**: active
 > **更新日期**: 2026-05-17
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-17 | 1.24 | 授权 backend-resume/002 Phase 1 structured master additive：`Resumes` tag 新增 `POST /api/v1/resumes/{resumeAssetId}/structured-master` / `confirmResumeStructuredMaster`，同步 `ConfirmResumeStructuredMasterRequest` schema、`RESUME_STRUCTURED_MASTER_ALREADY_EXISTS` 409 error enum、fixture、inventory lint、README、Go/TS generated artifacts 与 frontend dev mock fixture client test；§3.1.1 endpoint inventory 58→59。Additive，不引入 breaking change。 | backend-resume/002-versions-tailor-runs-and-save-v1 Phase 1 |
 | 2026-05-17 | 1.23 | 授权 practice-voice-mvp/001 voice turn additive：`PracticeSessions` tag 新增 `POST /api/v1/practice/sessions/{sessionId}/voice-turns` / `createPracticeVoiceTurn`，同步 `CreatePracticeVoiceTurnRequest` / `PracticeVoiceTurnResult` / voice TTS schema、fixture、inventory lint、fixture validator、Go/TS generated artifacts 与 codegen golden；`PracticeSessionEventRequest.kind` additive 扩展 voice playback / barge-in / committed context event。§3.1.1 endpoint inventory 57→58。Additive，不引入 breaking change。 | practice-voice-mvp/001-cascaded-stt-llm-tts |
 | 2026-05-17 | 1.22 | 授权 frontend-debrief/001 Phase 0 cross-owner addendum：`PracticeSessions` tag 新增 `GET /api/v1/practice/sessions` / `listPracticeSessions`（query: `targetJobId?`, `status?`, `cursor?`, `pageSize?`），同步 `PaginatedPracticeSession` schema、fixture、inventory lint 与 Go/TS generated artifacts；§3.1.1 endpoint inventory 56→57。Additive，不引入 breaking change。 | frontend-debrief/001-debrief-screen-and-handoff Phase 0.0 |
 | 2026-05-16 | 1.21 | 授权 backend-debrief/001 Phase 0 Debrief suggestions additive 升级：`Debriefs` tag 新增 `POST /api/v1/debriefs/question-suggestions` / `suggestDebriefQuestions`，同步 request/response schema、fixtures、inventory lint、README 与 Go/TS generated artifacts；§3.1.1 endpoint inventory 55→56。 | backend-debrief/001-debrief-record-and-analysis Phase 0.2 |

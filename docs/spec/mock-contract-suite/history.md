@@ -1,13 +1,14 @@
 # Mock Contract Suite History
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-05-12
+> **更新日期**: 2026-05-17
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-17 | 1.7 | B2 D-20/D-21/D-22 与 backend-resume D-23 additive 落地同步：mock contract fixture coverage 从 55 operation 升到 59 operation，承接 `suggestDebriefQuestions`、`listPracticeSessions`、`createPracticeVoiceTurn` 与 `confirmResumeStructuredMaster` fixtures；§2.1 / §6 C-1 与 `openapi/fixtures/README.md` 计数已同步。 | backend-resume/002-versions-tailor-runs-and-save-v1 Phase 1 |
 | 2026-05-12 | 1.6 | B2 D-18 Resume Workshop additive 落地同步：mock contract fixture coverage 从 46 operation 升到 55 operation，承接 `Resumes` tag 新增 9 operation + 多 variant fixtures；§2.1 / §6 C-1 与 `openapi/fixtures/README.md` 计数已同步。 | openapi-v1-contract/004-resume-additive-coverage |
 | 2026-05-11 | 1.5 | B2 D-18 Resume Workshop additive 升级声明阶段同步占位：§2.1 / §6 C-1 保留 46 operation 现状，追加 D-18 声明扩到 55 operation 的预告与落地路径引用（openapi-v1-contract/004-resume-additive-coverage）；本 spec 实际 inventory 数字升级跟随 B2 plan 004 落地后同步 1.5 → 1.6。 | openapi-v1-contract/004-resume-additive-coverage（声明阶段，docs-only） |
 | 2026-05-10 | 1.4 | 合并 named scenario truth-source remediation 与 frontend Vite dev preview mock wiring 要求，固化后端 mockruntime 与前端 dev preview 两类 gate。 | 001-fixture-backed-mock-runtime |

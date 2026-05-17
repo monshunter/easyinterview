@@ -687,6 +687,52 @@ paths:
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
+  /resumes/{resumeAssetId}/structured-master:
+    post:
+      tags: [Resumes]
+      operationId: confirmResumeStructuredMaster
+      summary: Confirm a parsed resume asset as the structured master version
+      description: Side-effect endpoint per backend-resume D-10 — requires `Idempotency-Key`. Saves the user-confirmed parse draft as the v1 structured master version.
+      parameters:
+        - name: resumeAssetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmResumeStructuredMasterRequest'
+      responses:
+        '201':
+          description: Structured master resume version created.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeVersion'
+        '409':
+          description: Structured master already exists for this resume asset.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
   /resumes/{resumeAssetId}/archive:
     post:
       tags: [Resumes]
@@ -2046,6 +2092,7 @@ components:
         - REPORT_NOT_READY
         - DEBRIEF_NOT_FOUND
         - RESUME_EXPORT_NOT_AVAILABLE
+        - RESUME_STRUCTURED_MASTER_ALREADY_EXISTS
         - VALIDATION_FAILED
         - IDEMPOTENCY_KEY_MISMATCH
         - RATE_LIMITED
@@ -2780,6 +2827,36 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/ResumeVersion'
+
+    ConfirmResumeStructuredMasterRequest:
+      type: object
+      required: [structuredProfile, displayName]
+      description: User-confirmed structured profile saved as the v1 structured master version for a parsed resume asset.
+      properties:
+        structuredProfile:
+          type: object
+          required: [provenance]
+          additionalProperties: true
+          properties:
+            headline:
+              type: string
+            summary:
+              type: string
+            skills:
+              type: array
+              items:
+                type: string
+            sections:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            provenance:
+              $ref: '#/components/schemas/GenerationProvenance'
+        displayName:
+          type: string
+        language:
+          type: string
 
     BranchResumeVersionRequest:
       type: object

@@ -11,7 +11,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [product-scope](./product-scope/spec.md) | 1.8 | active | 2026-05-05 | [plans](./product-scope/plans/) |
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.14 | active | 2026-05-12 | [plans](./engineering-roadmap/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.15 | active | 2026-05-17 | [plans](./engineering-roadmap/plans/) |
 | [historical-spec-implementation-review](./historical-spec-implementation-review/spec.md) | 1.0 | active | 2026-05-04 | [plans](./historical-spec-implementation-review/plans/) |
 
 ## 2 Foundation
@@ -29,8 +29,8 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.18 | active | 2026-05-15 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.23 | active | 2026-05-17 | [plans](./openapi-v1-contract/plans/) |
+| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.19 | active | 2026-05-17 | [plans](./shared-conventions-codified/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.24 | active | 2026-05-17 | [plans](./openapi-v1-contract/plans/) |
 | [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.5 | active | 2026-05-13 | [plans](./event-and-outbox-contract/plans/) |
 | [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.19 | active | 2026-05-15 | [plans](./db-migrations-baseline/plans/) |
 
@@ -45,7 +45,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [mock-contract-suite](./mock-contract-suite/spec.md) | 1.6 | active | 2026-05-12 | [plans](./mock-contract-suite/plans/) |
+| [mock-contract-suite](./mock-contract-suite/spec.md) | 1.7 | active | 2026-05-17 | [plans](./mock-contract-suite/plans/) |
 | [frontend-shell](./frontend-shell/spec.md) | 1.14 | active | 2026-05-11 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 1.7 | completed | 2026-05-10 | [plans](./frontend-home-job-picks-and-parse/plans/) |
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.3 | active | 2026-05-13 | [plans](./frontend-workspace-and-practice/plans/) |

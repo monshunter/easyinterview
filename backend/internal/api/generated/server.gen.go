@@ -12,7 +12,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 58-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// 59-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
 	// startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email magic-link challenge
@@ -165,6 +165,9 @@ type ServerInterface interface {
 	// archiveResumeAsset — post /resumes/{resumeAssetId}/archive: Archive a resume asset
 	ArchiveResumeAsset(w http.ResponseWriter, r *http.Request, resumeAssetId string)
 
+	// confirmResumeStructuredMaster — post /resumes/{resumeAssetId}/structured-master: Confirm a parsed resume asset as the structured master version
+	ConfirmResumeStructuredMaster(w http.ResponseWriter, r *http.Request, resumeAssetId string)
+
 	// listResumeVersions — get /resumes/{resumeAssetId}/versions: List versions for a resume asset
 	ListResumeVersions(w http.ResponseWriter, r *http.Request, resumeAssetId string)
 
@@ -253,6 +256,7 @@ var AllRoutes = []Route{
 	{OperationID: "registerResume", Method: "post", Path: "/resumes", PathParams: nil},
 	{OperationID: "getResume", Method: "get", Path: "/resumes/{resumeAssetId}", PathParams: []string{"resumeAssetId"}},
 	{OperationID: "archiveResumeAsset", Method: "post", Path: "/resumes/{resumeAssetId}/archive", PathParams: []string{"resumeAssetId"}},
+	{OperationID: "confirmResumeStructuredMaster", Method: "post", Path: "/resumes/{resumeAssetId}/structured-master", PathParams: []string{"resumeAssetId"}},
 	{OperationID: "listResumeVersions", Method: "get", Path: "/resumes/{resumeAssetId}/versions", PathParams: []string{"resumeAssetId"}},
 	{OperationID: "getRuntimeConfig", Method: "get", Path: "/runtime-config", PathParams: nil},
 	{OperationID: "listTargetJobs", Method: "get", Path: "/targets", PathParams: nil},

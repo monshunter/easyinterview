@@ -104,6 +104,43 @@ describe("frontend dev fixture-backed mock client", () => {
 		});
 	});
 
+	it("serves confirmResumeStructuredMaster through the generated fixture client", async () => {
+		const client = createDevMockClient();
+
+		const response = await client.confirmResumeStructuredMaster(
+			"01918fa0-0000-7000-8000-000000001000",
+			{
+				displayName: "Structured master",
+				language: "zh-CN",
+				structuredProfile: {
+					headline: "Senior frontend engineer",
+					summary:
+						"Owns complex product surfaces and turns interview evidence into concise resume proof.",
+					skills: ["React", "TypeScript", "Design systems"],
+					sections: [],
+					provenance: {
+						promptVersion: "resume_profile.v1",
+						rubricVersion: "not_applicable",
+						modelId: "fixture-model:resume-version-profile",
+						language: "zh-CN",
+						featureFlag: "resume-workshop-additive",
+						dataSourceVersion: "resume_asset.v1",
+					},
+				},
+			},
+			{ idempotencyKey: "idem-confirm-structured-master-2026-05-17" },
+		);
+
+		expect(response).toMatchObject({
+			versionType: "structured_master",
+			parentVersionId: null,
+			seedStrategy: null,
+			structuredProfile: {
+				provenance: { promptVersion: "resume_profile.v1" },
+			},
+		});
+	});
+
 	it("models dev auth session state across /me, verify, and logout", async () => {
 		const client = createDevMockClient();
 
