@@ -98,9 +98,22 @@ type VersionRecord struct {
 	ModelID           *string
 	Provider          *string
 	Provenance        VersionProvenance
+	Suggestions       []any
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 	DeletedAt         *time.Time
+}
+
+type VersionListFilter struct {
+	Cursor   string
+	PageSize int
+}
+
+type VersionListResult struct {
+	Items      []VersionRecord
+	NextCursor string
+	HasMore    bool
+	PageSize   int
 }
 
 type ListFilter struct {

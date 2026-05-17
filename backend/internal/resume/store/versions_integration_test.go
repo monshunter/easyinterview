@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -65,6 +66,62 @@ func TestStructuredMasterUniqueCrossUserReadinessAndSoftDelete(t *testing.T) {
 	}
 }
 
+func TestResumeVersionListPaginationCrossUserAndCursor(t *testing.T) {
+	db := openResumeStoreTestDB(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	ensureStructuredMasterUniqueIndex(t, ctx, db)
+
+	repo := resumestore.NewRepository(db)
+	base := time.Date(2026, 5, 17, 18, 45, 0, 0, time.UTC)
+	userA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf3a001"
+	userB := "0195f2d0-4a44-7fc2-8f77-1f9c4cf3a002"
+	assetID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf3a003"
+	t.Cleanup(func() { cleanupResumeStoreUsers(t, db, userA, userB) })
+
+	mustExec(t, ctx, db, `insert into users(id, email, status) values ($1, 'resume-version-list-a@example.com', 'active'), ($2, 'resume-version-list-b@example.com', 'active')`, userA, userB)
+	mustExec(t, ctx, db, `insert into resume_assets(id, user_id, title, language, parse_status) values ($1, $2, 'Ready Resume', 'en', 'ready')`, assetID, userA)
+	for i := 0; i < 25; i++ {
+		versionID := resumeVersionIntegrationID(i)
+		updatedAt := base.Add(-time.Duration(i) * time.Minute)
+		versionType := "targeted"
+		seedStrategy := "blank"
+		if i == 0 {
+			versionType = "structured_master"
+			seedStrategy = ""
+		}
+		if seedStrategy == "" {
+			mustExec(t, ctx, db, `insert into resume_versions(id, user_id, resume_asset_id, version_type, display_name, structured_profile, created_at, updated_at) values ($1,$2,$3,$4,$5,$6,$7,$7)`, versionID, userA, assetID, versionType, "Version", []byte(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`), updatedAt)
+			continue
+		}
+		mustExec(t, ctx, db, `insert into resume_versions(id, user_id, resume_asset_id, version_type, display_name, seed_strategy, structured_profile, created_at, updated_at) values ($1,$2,$3,$4,$5,$6,$7,$8,$8)`, versionID, userA, assetID, versionType, "Version", seedStrategy, []byte(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`), updatedAt)
+	}
+
+	first, err := repo.ListVersionsByAsset(ctx, userA, assetID, resumestore.VersionListFilter{PageSize: 20})
+	if err != nil {
+		t.Fatalf("ListVersionsByAsset first page: %v", err)
+	}
+	if len(first.Items) != 20 || !first.HasMore || first.NextCursor == "" || first.Items[0].ID != resumeVersionIntegrationID(0) || first.Items[19].ID != resumeVersionIntegrationID(19) {
+		t.Fatalf("first page = %+v", first)
+	}
+	second, err := repo.ListVersionsByAsset(ctx, userA, assetID, resumestore.VersionListFilter{PageSize: 20, Cursor: first.NextCursor})
+	if err != nil {
+		t.Fatalf("ListVersionsByAsset second page: %v", err)
+	}
+	if len(second.Items) != 5 || second.HasMore || second.Items[0].ID != resumeVersionIntegrationID(20) {
+		t.Fatalf("second page = %+v", second)
+	}
+	if _, err := repo.ListVersionsByAsset(ctx, userB, assetID, resumestore.VersionListFilter{}); !errors.Is(err, resumestore.ErrAssetNotFound) {
+		t.Fatalf("cross-user list err = %v, want ErrAssetNotFound", err)
+	}
+	if _, err := repo.GetVersionByID(ctx, userB, resumeVersionIntegrationID(0)); !errors.Is(err, resumestore.ErrVersionNotFound) {
+		t.Fatalf("cross-user get err = %v, want ErrVersionNotFound", err)
+	}
+	if _, err := repo.ListVersionsByAsset(ctx, userA, assetID, resumestore.VersionListFilter{Cursor: "not-a-cursor"}); !errors.Is(err, resumestore.ErrInvalidCursor) {
+		t.Fatalf("invalid cursor err = %v, want ErrInvalidCursor", err)
+	}
+}
+
 func structuredMasterInput(versionID, userID, assetID string, now time.Time) resumestore.CreateStructuredMasterInput {
 	return resumestore.CreateStructuredMasterInput{
 		VersionID:         versionID,
@@ -83,6 +140,10 @@ func structuredMasterInput(versionID, userID, assetID string, now time.Time) res
 		},
 		Now: now,
 	}
+}
+
+func resumeVersionIntegrationID(i int) string {
+	return fmt.Sprintf("0195f2d0-4a44-7fc2-8f77-1f9c4cf3b%03d", i)
 }
 
 func ensureStructuredMasterUniqueIndex(t *testing.T, ctx context.Context, db *sql.DB) {

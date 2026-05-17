@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `feat(backend-resume): add resume version reads` | #feat #api #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(backend-resume): implement structured master confirm` | #feat #api #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(backend-resume): add structured master contract` | #feat #api #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(backend-resume): complete versions tailor preflight` | #feat #docs #test |

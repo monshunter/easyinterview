@@ -10,7 +10,7 @@ import (
 )
 
 func writeResumeServiceError(w http.ResponseWriter, err error, fallbackMessage string) {
-	if errors.Is(err, resume.ErrValidationFailed) || errors.Is(err, resumestore.ErrInvalidCursor) {
+	if errors.Is(err, resume.ErrValidationFailed) || errors.Is(err, resume.ErrInvalidCursor) || errors.Is(err, resumestore.ErrInvalidCursor) {
 		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "resume validation failed", nil)
 		return
 	}

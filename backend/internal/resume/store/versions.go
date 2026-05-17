@@ -88,6 +88,95 @@ returning id, user_id, resume_asset_id, parent_version_id, version_type, target_
 	return rec, nil
 }
 
+func (r *Repository) GetVersionByID(ctx context.Context, userID string, versionID string) (VersionRecord, error) {
+	if r == nil || r.db == nil {
+		return VersionRecord{}, fmt.Errorf("resume store db is nil")
+	}
+	rec, err := scanVersion(r.db.QueryRowContext(ctx, `
+select id, user_id, resume_asset_id, parent_version_id, version_type, target_job_id,
+       display_name, seed_strategy, focus_angle, structured_profile, match_score,
+       prompt_version, rubric_version, model_id, provider, created_at, updated_at, deleted_at
+from resume_versions
+where id = $1 and user_id = $2 and deleted_at is null`,
+		versionID,
+		userID,
+	))
+	if errors.Is(err, sql.ErrNoRows) {
+		return VersionRecord{}, ErrVersionNotFound
+	}
+	if err != nil {
+		return VersionRecord{}, err
+	}
+	return rec, nil
+}
+
+func (r *Repository) ListVersionsByAsset(ctx context.Context, userID string, assetID string, filter VersionListFilter) (VersionListResult, error) {
+	if r == nil || r.db == nil {
+		return VersionListResult{}, fmt.Errorf("resume store db is nil")
+	}
+	var exists int
+	if err := r.db.QueryRowContext(ctx, `
+select 1 from resume_assets
+where id = $1 and user_id = $2 and deleted_at is null`,
+		assetID,
+		userID,
+	).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+		return VersionListResult{}, ErrAssetNotFound
+	} else if err != nil {
+		return VersionListResult{}, err
+	}
+	pageSize := filter.PageSize
+	if pageSize <= 0 {
+		pageSize = sharedtypes.DefaultPageSize
+	}
+	if pageSize > sharedtypes.MaxPageSize {
+		pageSize = sharedtypes.MaxPageSize
+	}
+	limit := pageSize + 1
+	args := []any{userID, assetID, limit}
+	query := `
+select id, user_id, resume_asset_id, parent_version_id, version_type, target_job_id,
+       display_name, seed_strategy, focus_angle, structured_profile, match_score,
+       prompt_version, rubric_version, model_id, provider, created_at, updated_at, deleted_at
+from resume_versions
+where user_id = $1 and resume_asset_id = $2 and deleted_at is null`
+	if filter.Cursor != "" {
+		updatedAt, id, err := decodeCursor(filter.Cursor)
+		if err != nil {
+			return VersionListResult{}, ErrInvalidCursor
+		}
+		args = []any{userID, assetID, updatedAt, id, limit}
+		query += ` and (updated_at, id) < ($3, $4)`
+	}
+	query += ` order by updated_at desc, id desc limit $` + fmt.Sprint(len(args))
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return VersionListResult{}, err
+	}
+	defer rows.Close()
+	items := make([]VersionRecord, 0, pageSize)
+	for rows.Next() {
+		rec, err := scanVersion(rows)
+		if err != nil {
+			return VersionListResult{}, err
+		}
+		items = append(items, rec)
+	}
+	if err := rows.Err(); err != nil {
+		return VersionListResult{}, err
+	}
+	hasMore := len(items) > pageSize
+	if hasMore {
+		items = items[:pageSize]
+	}
+	nextCursor := ""
+	if hasMore && len(items) > 0 {
+		last := items[len(items)-1]
+		nextCursor = encodeCursor(last.UpdatedAt, last.ID)
+	}
+	return VersionListResult{Items: items, NextCursor: nextCursor, HasMore: hasMore, PageSize: pageSize}, nil
+}
+
 func scanVersion(row rowScanner) (VersionRecord, error) {
 	var rec VersionRecord
 	var parentVersionID, targetJobID, seedStrategy, focusAngle sql.NullString

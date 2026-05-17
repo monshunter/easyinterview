@@ -265,6 +265,8 @@ runtime:
 		{http.MethodGet, "/api/v1/resumes"},
 		{http.MethodPost, "/api/v1/resumes"},
 		{http.MethodGet, "/api/v1/resumes/018f2a40-0000-7000-9000-0000000000a1"},
+		{http.MethodGet, "/api/v1/resumes/018f2a40-0000-7000-9000-0000000000a1/versions"},
+		{http.MethodGet, "/api/v1/resume-versions/018f2a40-0000-7000-9000-0000000000b1"},
 		{http.MethodPost, "/api/v1/resumes/018f2a40-0000-7000-9000-0000000000a1/structured-master"},
 	}
 	for _, tc := range cases {
@@ -439,6 +441,112 @@ runtime:
 		conflictHandler.ServeHTTP(rec, req)
 
 		assertAPIStatusCode(t, rec, http.StatusConflict, sharederrors.CodeResumeStructuredMasterAlreadyExists)
+	})
+}
+
+func TestResumeVersionReadHTTPScenario(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	sessionTime := time.Date(2026, 5, 17, 18, 30, 0, 0, time.UTC)
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store: &apiAuthStore{
+			session: auth.SessionRecord{
+				ID:        "session-1",
+				UserID:    "user-1",
+				Status:    auth.SessionStatusActive,
+				ExpiresAt: sessionTime.Add(time.Hour),
+			},
+			user: auth.UserContext{ID: "user-1", Email: "candidate@example.com"},
+		},
+		SessionCookieSecret: "session-secret",
+		Now:                 func() time.Time { return sessionTime },
+	})
+	version := apiVersion("version-1", "asset-1", sessionTime)
+	resumeSvc := &apiVersionReadService{
+		getOut: version,
+		listOut: api.PaginatedResumeVersion{
+			Items:    []api.ResumeVersion{version},
+			PageInfo: api.PageInfo{PageSize: 20, HasMore: false},
+		},
+	}
+	handler := buildAPIHandlerWithUploadAndHandlers(
+		loader,
+		apiRuntimeFlags{},
+		service,
+		targetjob.NewHandler(),
+		practiceRoutes{},
+		uploadRoutes{},
+		resumeRoutes{Handler: resumehandler.New(resumehandler.Options{Service: resumeSvc, Session: currentUserFromContext})},
+	)
+
+	t.Run("missing session protects version routes", func(t *testing.T) {
+		for _, path := range []string{"/api/v1/resume-versions/version-1", "/api/v1/resumes/asset-1/versions"} {
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("%s status = %d body=%s", path, rec.Code, rec.Body.String())
+			}
+		}
+	})
+
+	t.Run("get version passes path param", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, authenticatedAPIRequest(http.MethodGet, "/api/v1/resume-versions/version-1", "", ""))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+		if resumeSvc.getUserID != "user-1" || resumeSvc.getVersionID != "version-1" {
+			t.Fatalf("get scope user=%q version=%q", resumeSvc.getUserID, resumeSvc.getVersionID)
+		}
+	})
+
+	t.Run("list versions passes asset and pagination", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, authenticatedAPIRequest(http.MethodGet, "/api/v1/resumes/asset-1/versions?pageSize=20&cursor=cursor-1", "", ""))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+		if resumeSvc.listIn.UserID != "user-1" || resumeSvc.listIn.ResumeAssetID != "asset-1" || resumeSvc.listIn.PageSize != 20 || resumeSvc.listIn.Cursor != "cursor-1" {
+			t.Fatalf("list input = %+v", resumeSvc.listIn)
+		}
+	})
+
+	t.Run("not found and invalid cursor envelopes", func(t *testing.T) {
+		notFoundSvc := &apiVersionReadService{getErr: domainresume.ErrNotFound, listErr: domainresume.ErrNotFound}
+		notFoundHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{Handler: resumehandler.New(resumehandler.Options{Service: notFoundSvc, Session: currentUserFromContext})},
+		)
+		rec := httptest.NewRecorder()
+		notFoundHandler.ServeHTTP(rec, authenticatedAPIRequest(http.MethodGet, "/api/v1/resume-versions/missing", "", ""))
+		assertAPIStatusCode(t, rec, http.StatusNotFound, sharederrors.CodeTargetJobNotFound)
+
+		invalidSvc := &apiVersionReadService{listErr: domainresume.ErrInvalidCursor}
+		invalidHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{Handler: resumehandler.New(resumehandler.Options{Service: invalidSvc, Session: currentUserFromContext})},
+		)
+		rec = httptest.NewRecorder()
+		invalidHandler.ServeHTTP(rec, authenticatedAPIRequest(http.MethodGet, "/api/v1/resumes/asset-1/versions?cursor=bad", "", ""))
+		assertAPIStatusCode(t, rec, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
 	})
 }
 
@@ -1021,6 +1129,50 @@ func (s *apiConfirmResumeService) ConfirmStructuredMaster(_ context.Context, in 
 	s.calls++
 	s.in = in
 	return s.out, s.err
+}
+
+type apiVersionReadService struct {
+	getUserID    string
+	getVersionID string
+	getOut       api.ResumeVersion
+	getErr       error
+
+	listIn  domainresume.ListVersionRequest
+	listOut api.PaginatedResumeVersion
+	listErr error
+}
+
+func (s *apiVersionReadService) RegisterResume(context.Context, domainresume.RegisterInput) (api.ResumeAssetWithJob, error) {
+	return api.ResumeAssetWithJob{}, errors.New("not implemented")
+}
+
+func (s *apiVersionReadService) GetResumeVersion(_ context.Context, userID string, versionID string) (api.ResumeVersion, error) {
+	s.getUserID = userID
+	s.getVersionID = versionID
+	return s.getOut, s.getErr
+}
+
+func (s *apiVersionReadService) ListResumeVersions(_ context.Context, in domainresume.ListVersionRequest) (api.PaginatedResumeVersion, error) {
+	s.listIn = in
+	return s.listOut, s.listErr
+}
+
+func apiVersion(id, assetID string, now time.Time) api.ResumeVersion {
+	return api.ResumeVersion{
+		Id:            id,
+		ResumeAssetId: assetID,
+		VersionType:   sharedtypes.ResumeVersionTypeStructuredMaster,
+		DisplayName:   "Structured master",
+		StructuredProfile: map[string]any{"headline": "Senior engineer", "provenance": map[string]any{
+			"promptVersion": "resume_profile.v1", "rubricVersion": "not_applicable", "modelId": "model-1", "language": "en", "featureFlag": "none", "dataSourceVersion": "asset.v1",
+		}},
+		Provenance: api.GenerationProvenance{
+			PromptVersion: "resume_profile.v1", RubricVersion: "not_applicable", ModelId: "model-1", Language: "en", FeatureFlag: "none", DataSourceVersion: "asset.v1",
+		},
+		Suggestions: []any{},
+		CreatedAt:   now.Format(time.RFC3339),
+		UpdatedAt:   now.Format(time.RFC3339),
+	}
 }
 
 type apiIdempotencyStore struct {

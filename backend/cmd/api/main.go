@@ -332,6 +332,12 @@ func buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader *config.Loader
 		mux.Handle("GET /api/v1/resumes/{resumeAssetId}", auth.SessionMiddleware(authService, "getResume", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resume.Handler.GetResume(w, r, r.PathValue("resumeAssetId"))
 		})))
+		mux.Handle("GET /api/v1/resume-versions/{resumeVersionId}", auth.SessionMiddleware(authService, "getResumeVersion", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.GetResumeVersion(w, r, r.PathValue("resumeVersionId"))
+		})))
+		mux.Handle("GET /api/v1/resumes/{resumeAssetId}/versions", auth.SessionMiddleware(authService, "listResumeVersions", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.ListResumeVersions(w, r, r.PathValue("resumeAssetId"))
+		})))
 		mux.Handle("POST /api/v1/resumes/{resumeAssetId}/structured-master", auth.SessionMiddleware(authService, "confirmResumeStructuredMaster", confirmStructuredMaster))
 	}
 	if reports.Handler != nil {

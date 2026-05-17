@@ -106,8 +106,68 @@ func TestRepositoryExposesResumeAssetMethods(t *testing.T) {
 		MarkReady(context.Context, resumestore.MarkReadyInput) error
 		MarkFailed(context.Context, resumestore.MarkFailedInput) error
 		CreateStructuredMasterFromAsset(context.Context, resumestore.CreateStructuredMasterInput) (resumestore.VersionRecord, error)
+		GetVersionByID(context.Context, string, string) (resumestore.VersionRecord, error)
+		ListVersionsByAsset(context.Context, string, string, resumestore.VersionListFilter) (resumestore.VersionListResult, error)
 		DeleteForUser(context.Context, string, time.Time) error
 	} = (*resumestore.Repository)(nil)
+}
+
+func TestGetVersionByIDScopesUser(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 5, 17, 18, 0, 0, 0, time.UTC)
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, resume_asset_id`)).
+		WithArgs("version-1", "user-1").
+		WillReturnRows(versionRows().AddRow(
+			"version-1", "user-1", "asset-1", nil, string(sharedtypes.ResumeVersionTypeStructuredMaster), nil,
+			"Structured master", nil, nil, []byte(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`), nil,
+			"p", "r", "m", nil, now, now, nil,
+		))
+
+	got, err := repo.GetVersionByID(context.Background(), "user-1", "version-1")
+	if err != nil {
+		t.Fatalf("GetVersionByID: %v", err)
+	}
+	if got.ID != "version-1" || got.ResumeAssetID != "asset-1" || got.VersionType != sharedtypes.ResumeVersionTypeStructuredMaster {
+		t.Fatalf("version = %+v", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestListVersionsByAssetScopesAssetAndPaginates(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 5, 17, 18, 0, 0, 0, time.UTC)
+	mock.ExpectQuery(regexp.QuoteMeta(`select 1 from resume_assets`)).
+		WithArgs("asset-1", "user-1").
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(1))
+	rows := versionRows()
+	for i := 0; i < 3; i++ {
+		rows.AddRow(
+			assetID(i), "user-1", "asset-1", nil, string(sharedtypes.ResumeVersionTypeStructuredMaster), nil,
+			"Structured master", nil, nil, []byte(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`), nil,
+			"p", "r", "m", nil, now.Add(-time.Duration(i)*time.Minute), now.Add(-time.Duration(i)*time.Minute), nil,
+		)
+	}
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, resume_asset_id`)).
+		WithArgs("user-1", "asset-1", 3).
+		WillReturnRows(rows)
+
+	got, err := repo.ListVersionsByAsset(context.Background(), "user-1", "asset-1", resumestore.VersionListFilter{PageSize: 2})
+	if err != nil {
+		t.Fatalf("ListVersionsByAsset: %v", err)
+	}
+	if len(got.Items) != 2 || !got.HasMore || got.NextCursor == "" || got.PageSize != 2 {
+		t.Fatalf("list = %+v", got)
+	}
+	if got.Items[0].ID != assetID(0) || got.Items[1].ID != assetID(1) {
+		t.Fatalf("order = %+v", got.Items)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
 }
 
 func TestCreateStructuredMasterFromAssetInsertsReadyAssetMaster(t *testing.T) {

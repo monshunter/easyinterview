@@ -9,6 +9,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/resume"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
+	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	uploadservice "github.com/monshunter/easyinterview/backend/internal/upload/service"
 	uploadstore "github.com/monshunter/easyinterview/backend/internal/upload/store"
 )
@@ -159,11 +160,11 @@ func TestGetResumeMapsStoreNotFound(t *testing.T) {
 func TestConfirmStructuredMasterCreatesStructuredMasterVersion(t *testing.T) {
 	now := time.Date(2026, 5, 17, 16, 0, 0, 0, time.UTC)
 	store := &fakeRegisterStore{structuredOut: resumestore.VersionRecord{
-		ID:              "version-1",
-		UserID:          "user-1",
-		ResumeAssetID:   "asset-1",
-		VersionType:     "structured_master",
-		DisplayName:     "Structured master",
+		ID:                "version-1",
+		UserID:            "user-1",
+		ResumeAssetID:     "asset-1",
+		VersionType:       "structured_master",
+		DisplayName:       "Structured master",
 		StructuredProfile: json.RawMessage(`{"headline":"Senior engineer","provenance":{"promptVersion":"resume_profile.v1","rubricVersion":"not_applicable","modelId":"model-1","language":"en","featureFlag":"none","dataSourceVersion":"asset.v1"}}`),
 		Provenance: resumestore.VersionProvenance{
 			PromptVersion: "resume_profile.v1", RubricVersion: "not_applicable", ModelID: "model-1", Language: "en", FeatureFlag: "none", DataSourceVersion: "asset.v1",
@@ -232,6 +233,89 @@ func TestConfirmStructuredMasterValidationAndStoreErrors(t *testing.T) {
 	}
 }
 
+func TestGetAndListResumeVersions(t *testing.T) {
+	now := time.Date(2026, 5, 17, 18, 0, 0, 0, time.UTC)
+	store := &fakeRegisterStore{
+		versionOut: resumestore.VersionRecord{
+			ID:                "version-1",
+			UserID:            "user-1",
+			ResumeAssetID:     "asset-1",
+			VersionType:       sharedtypes.ResumeVersionTypeStructuredMaster,
+			DisplayName:       "Structured master",
+			StructuredProfile: json.RawMessage(`{"headline":"Senior engineer","provenance":{"promptVersion":"resume_profile.v1","rubricVersion":"not_applicable","modelId":"model-1","language":"en","featureFlag":"none","dataSourceVersion":"asset.v1"}}`),
+			Provenance: resumestore.VersionProvenance{
+				PromptVersion: "resume_profile.v1", RubricVersion: "not_applicable", ModelID: "model-1", Language: "en", FeatureFlag: "none", DataSourceVersion: "asset.v1",
+			},
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		versionListOut: resumestore.VersionListResult{
+			Items: []resumestore.VersionRecord{
+				{ID: "version-2", UserID: "user-1", ResumeAssetID: "asset-1", VersionType: sharedtypes.ResumeVersionTypeTargeted, DisplayName: "Targeted", StructuredProfile: json.RawMessage(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`), CreatedAt: now.Add(time.Minute), UpdatedAt: now.Add(time.Minute)},
+				{ID: "version-1", UserID: "user-1", ResumeAssetID: "asset-1", VersionType: sharedtypes.ResumeVersionTypeStructuredMaster, DisplayName: "Structured master", StructuredProfile: json.RawMessage(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`), CreatedAt: now, UpdatedAt: now},
+			},
+			NextCursor: "cursor-2",
+			HasMore:    true,
+			PageSize:   2,
+		},
+	}
+	svc := resume.NewService(resume.ServiceOptions{Store: store})
+
+	got, err := svc.GetResumeVersion(context.Background(), "user-1", "version-1")
+	if err != nil {
+		t.Fatalf("GetResumeVersion: %v", err)
+	}
+	if store.versionUserID != "user-1" || store.versionID != "version-1" {
+		t.Fatalf("version get scope user=%q id=%q", store.versionUserID, store.versionID)
+	}
+	if got.Id != "version-1" || got.Provenance.PromptVersion != "resume_profile.v1" {
+		t.Fatalf("version response = %+v", got)
+	}
+
+	list, err := svc.ListResumeVersions(context.Background(), resume.ListVersionRequest{UserID: "user-1", ResumeAssetID: "asset-1", Cursor: "cursor-1", PageSize: 2})
+	if err != nil {
+		t.Fatalf("ListResumeVersions: %v", err)
+	}
+	if store.versionListUserID != "user-1" || store.versionListAssetID != "asset-1" || store.versionListFilter.Cursor != "cursor-1" || store.versionListFilter.PageSize != 2 {
+		t.Fatalf("version list scope user=%q asset=%q filter=%+v", store.versionListUserID, store.versionListAssetID, store.versionListFilter)
+	}
+	if len(list.Items) != 2 || list.PageInfo.NextCursor == nil || *list.PageInfo.NextCursor != "cursor-2" || !list.PageInfo.HasMore || list.PageInfo.PageSize != 2 {
+		t.Fatalf("version list response = %+v", list)
+	}
+}
+
+func TestResumeVersionReadMapsStoreErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		call func(*resume.Service) error
+		err  error
+		want error
+	}{
+		{name: "get not found", err: resumestore.ErrVersionNotFound, want: resume.ErrNotFound, call: func(s *resume.Service) error {
+			_, err := s.GetResumeVersion(context.Background(), "user-1", "missing")
+			return err
+		}},
+		{name: "list asset not found", err: resumestore.ErrAssetNotFound, want: resume.ErrNotFound, call: func(s *resume.Service) error {
+			_, err := s.ListResumeVersions(context.Background(), resume.ListVersionRequest{UserID: "user-1", ResumeAssetID: "missing"})
+			return err
+		}},
+		{name: "list invalid cursor", err: resumestore.ErrInvalidCursor, want: resume.ErrInvalidCursor, call: func(s *resume.Service) error {
+			_, err := s.ListResumeVersions(context.Background(), resume.ListVersionRequest{UserID: "user-1", ResumeAssetID: "asset-1", Cursor: "bad"})
+			return err
+		}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			store := &fakeRegisterStore{versionErr: tc.err, versionListErr: tc.err}
+			svc := resume.NewService(resume.ServiceOptions{Store: store})
+			err := tc.call(svc)
+			if !errors.Is(err, tc.want) {
+				t.Fatalf("err = %v, want %v", err, tc.want)
+			}
+		})
+	}
+}
+
 type fakeUploadRegistrar struct {
 	in  uploadservice.RegisterFileObjectInput
 	out uploadstore.FileObject
@@ -262,6 +346,17 @@ type fakeRegisterStore struct {
 	structuredIn  resumestore.CreateStructuredMasterInput
 	structuredOut resumestore.VersionRecord
 	structuredErr error
+
+	versionUserID string
+	versionID     string
+	versionOut    resumestore.VersionRecord
+	versionErr    error
+
+	versionListUserID  string
+	versionListAssetID string
+	versionListFilter  resumestore.VersionListFilter
+	versionListOut     resumestore.VersionListResult
+	versionListErr     error
 }
 
 func (s *fakeRegisterStore) CreateWithParseJob(_ context.Context, in resumestore.CreateAssetInput) (resumestore.CreateAssetResult, error) {
@@ -285,6 +380,19 @@ func (s *fakeRegisterStore) List(_ context.Context, userID string, filter resume
 func (s *fakeRegisterStore) CreateStructuredMasterFromAsset(_ context.Context, in resumestore.CreateStructuredMasterInput) (resumestore.VersionRecord, error) {
 	s.structuredIn = in
 	return s.structuredOut, s.structuredErr
+}
+
+func (s *fakeRegisterStore) GetVersionByID(_ context.Context, userID string, versionID string) (resumestore.VersionRecord, error) {
+	s.versionUserID = userID
+	s.versionID = versionID
+	return s.versionOut, s.versionErr
+}
+
+func (s *fakeRegisterStore) ListVersionsByAsset(_ context.Context, userID string, assetID string, filter resumestore.VersionListFilter) (resumestore.VersionListResult, error) {
+	s.versionListUserID = userID
+	s.versionListAssetID = assetID
+	s.versionListFilter = filter
+	return s.versionListOut, s.versionListErr
 }
 
 func sequenceIDs(ids ...string) func() string {

@@ -244,6 +244,78 @@
           }
         }
       }
+    },
+    "empty": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-25-00-empty"
+        },
+        "body": {
+          "items": [],
+          "pageInfo": {
+            "nextCursor": null,
+            "pageSize": 20,
+            "hasMore": false
+          }
+        }
+      }
+    },
+    "paginated": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-25-00-paginated"
+        },
+        "body": {
+          "items": [
+            {
+              "id": "0195f2d0-0001-7000-8000-000000000220",
+              "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+              "parentVersionId": "0195f2d0-0001-7000-8000-000000000201",
+              "versionType": "targeted",
+              "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+              "displayName": "Paginated target version",
+              "seedStrategy": "blank",
+              "focusAngle": "Evidence for ownership",
+              "structuredProfile": {
+                "headline": "Senior frontend engineer",
+                "sections": [],
+                "provenance": {
+                  "promptVersion": "resume_targeted.v1",
+                  "rubricVersion": "resume_targeted.rubric.v1",
+                  "modelId": "fixture-model:resume-version-profile",
+                  "language": "zh-CN",
+                  "featureFlag": "resume-workshop-additive",
+                  "dataSourceVersion": "resume_asset.v1+target_job.v1"
+                }
+              },
+              "matchScore": null,
+              "promptVersion": "resume_targeted.v1",
+              "rubricVersion": "resume_targeted.rubric.v1",
+              "modelId": "fixture-model:resume-version-profile",
+              "provider": "fixture-provider",
+              "provenance": {
+                "promptVersion": "resume_targeted.v1",
+                "rubricVersion": "resume_targeted.rubric.v1",
+                "modelId": "fixture-model:resume-version-profile",
+                "language": "zh-CN",
+                "featureFlag": "resume-workshop-additive",
+                "dataSourceVersion": "resume_asset.v1+target_job.v1"
+              },
+              "suggestions": [],
+              "createdAt": "2026-05-12T08:40:00Z",
+              "updatedAt": "2026-05-12T08:40:00Z",
+              "deletedAt": null
+            }
+          ],
+          "pageInfo": {
+            "nextCursor": "eyJ1cGRhdGVkQXQiOiIyMDI2LTA1LTEyVDA4OjQwOjAwWiIsImlkIjoiMDE5NWYyZDAtMDAwMS03MDAwLTgwMDAtMDAwMDAwMDAwMjIwIn0",
+            "pageSize": 20,
+            "hasMore": true
+          }
+        }
+      }
     }
   }
 }

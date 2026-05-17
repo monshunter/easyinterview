@@ -496,6 +496,7 @@ var (
 	ErrAssetNotFound                 = errors.New("resume asset not found")
 	ErrAssetParseNotReady            = errors.New("resume asset parse is not ready")
 	ErrStructuredMasterAlreadyExists = errors.New("structured master resume version already exists")
+	ErrVersionNotFound               = errors.New("resume version not found")
 	ErrInvalidStateTransition        = errors.New("invalid resume parse status transition")
 	ErrInvalidCursor                 = errors.New("invalid resume list cursor")
 )

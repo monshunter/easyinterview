@@ -21,6 +21,7 @@ import (
 var (
 	ErrValidationFailed              = errors.New("resume validation failed")
 	ErrNotFound                      = errors.New("resume asset not found")
+	ErrInvalidCursor                 = errors.New("invalid resume cursor")
 	ErrAssetParseNotReady            = errors.New("resume asset parse is not ready")
 	ErrStructuredMasterAlreadyExists = errors.New("structured master resume version already exists")
 )
@@ -47,6 +48,11 @@ type ReadStore interface {
 
 type StructuredMasterStore interface {
 	CreateStructuredMasterFromAsset(ctx context.Context, in resumestore.CreateStructuredMasterInput) (resumestore.VersionRecord, error)
+}
+
+type VersionReadStore interface {
+	GetVersionByID(ctx context.Context, userID string, versionID string) (resumestore.VersionRecord, error)
+	ListVersionsByAsset(ctx context.Context, userID string, assetID string, filter resumestore.VersionListFilter) (resumestore.VersionListResult, error)
 }
 
 type UploadRegistrar interface {
@@ -263,6 +269,60 @@ func (s *Service) ConfirmStructuredMaster(ctx context.Context, in ConfirmStructu
 	return versionRecordToAPI(rec), nil
 }
 
+func (s *Service) GetResumeVersion(ctx context.Context, userID string, versionID string) (api.ResumeVersion, error) {
+	if s == nil {
+		return api.ResumeVersion{}, fmt.Errorf("resume version read store is not configured")
+	}
+	reader, ok := s.store.(VersionReadStore)
+	if !ok {
+		return api.ResumeVersion{}, fmt.Errorf("resume version read store is not configured")
+	}
+	rec, err := reader.GetVersionByID(ctx, strings.TrimSpace(userID), strings.TrimSpace(versionID))
+	if errors.Is(err, resumestore.ErrVersionNotFound) {
+		return api.ResumeVersion{}, ErrNotFound
+	}
+	if err != nil {
+		return api.ResumeVersion{}, err
+	}
+	return versionRecordToAPI(rec), nil
+}
+
+type ListVersionRequest struct {
+	UserID        string
+	ResumeAssetID string
+	Cursor        string
+	PageSize      int
+}
+
+func (s *Service) ListResumeVersions(ctx context.Context, in ListVersionRequest) (api.PaginatedResumeVersion, error) {
+	if s == nil {
+		return api.PaginatedResumeVersion{}, fmt.Errorf("resume version read store is not configured")
+	}
+	reader, ok := s.store.(VersionReadStore)
+	if !ok {
+		return api.PaginatedResumeVersion{}, fmt.Errorf("resume version read store is not configured")
+	}
+	res, err := reader.ListVersionsByAsset(ctx, strings.TrimSpace(in.UserID), strings.TrimSpace(in.ResumeAssetID), resumestore.VersionListFilter{Cursor: in.Cursor, PageSize: in.PageSize})
+	switch {
+	case errors.Is(err, resumestore.ErrAssetNotFound):
+		return api.PaginatedResumeVersion{}, ErrNotFound
+	case errors.Is(err, resumestore.ErrInvalidCursor):
+		return api.PaginatedResumeVersion{}, ErrInvalidCursor
+	case err != nil:
+		return api.PaginatedResumeVersion{}, err
+	}
+	out := api.PaginatedResumeVersion{Items: make([]api.ResumeVersion, 0, len(res.Items))}
+	for _, item := range res.Items {
+		out.Items = append(out.Items, versionRecordToAPI(item))
+	}
+	out.PageInfo = api.PageInfo{
+		NextCursor: optionalString(res.NextCursor),
+		PageSize:   res.PageSize,
+		HasMore:    res.HasMore,
+	}
+	return out, nil
+}
+
 func (s *Service) dedupeKey(userID, idempotencyKey string) string {
 	h := sha256.New()
 	h.Write([]byte("resume.register.v1"))
@@ -404,11 +464,20 @@ func versionRecordToAPI(rec resumestore.VersionRecord) api.ResumeVersion {
 			FeatureFlag:       provenance.FeatureFlag,
 			DataSourceVersion: provenance.DataSourceVersion,
 		},
-		Suggestions: []any{},
+		Suggestions: cloneAnySlice(rec.Suggestions),
 		CreatedAt:   rec.CreatedAt.UTC().Format(time.RFC3339),
 		UpdatedAt:   rec.UpdatedAt.UTC().Format(time.RFC3339),
 		DeletedAt:   timePtrToString(rec.DeletedAt),
 	}
+	return out
+}
+
+func cloneAnySlice(in []any) []any {
+	if in == nil {
+		return []any{}
+	}
+	out := make([]any, len(in))
+	copy(out, in)
 	return out
 }
 
