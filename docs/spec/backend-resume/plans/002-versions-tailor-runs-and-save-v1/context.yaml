@@ -1,0 +1,89 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-resume
+  name: 002-versions-tailor-runs-and-save-v1
+  sequence: 2
+  supersedes: []
+  specVersion:
+    from: 1.1
+    to: 1.2
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-resume
+      - 002-versions-tailor-runs-and-save-v1
+      - confirmResumeStructuredMaster
+      - getResumeVersion
+      - listResumeVersions
+      - updateResumeVersion
+      - branchResumeVersion
+      - requestResumeTailor
+      - getResumeTailorRun
+      - acceptResumeTailorSuggestion
+      - rejectResumeTailorSuggestion
+      - resume.tailor
+      - resume.tailor.completed
+      - resume_versions
+      - resume_version_suggestions
+      - resume_tailor_runs
+      - structured_master
+      - RESUME_STRUCTURED_MASTER_ALREADY_EXISTS
+      - C7
+    keywords:
+      - confirm resume structured master save v1
+      - preview confirm resume version
+      - structured master uniqueness partial index
+      - resume version cursor pagination
+      - update resume version partial merge
+      - branch resume version copy master blank ai select
+      - request resume tailor async job
+      - get resume tailor run status machine
+      - resume tailor in-process drainer
+      - resume tailor completed outbox event
+      - accept reject resume suggestion terminal state
+      - idempotency key replay
+      - cross user isolation 404
+      - PII boundary no suggested bullet
+      - retired module mistakes growth drill negative
+      - events drift inline rewrite mirror negative
+      - B2 D-18 additive confirm structured master
+      - B4 cross-owner migration 000007
+      - shared conventions RESUME_STRUCTURED_MASTER_ALREADY_EXISTS
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      discovery:
+        packages:
+          - backend/internal/resume
+          - backend/internal/resume/handler
+          - backend/internal/resume/store
+          - backend/internal/resume/jobs
+          - backend/cmd/api
+          - backend/internal/api/generated
+          - backend/internal/ai
+          - backend/internal/shared/events
+          - openapi
+          - openapi/fixtures/Resumes
+          - openapi/fixtures/ResumeTailor
+          - shared
+          - migrations
+          - config
+          - test/scenarios/e2e
+          - frontend/src/api
+        uiRoutes: []
+        apiNames:
+          - confirmResumeStructuredMaster
+          - getResumeVersion
+          - listResumeVersions
+          - updateResumeVersion
+          - branchResumeVersion
+          - requestResumeTailor
+          - getResumeTailorRun
+          - acceptResumeTailorSuggestion
+          - rejectResumeTailorSuggestion

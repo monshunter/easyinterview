@@ -55,7 +55,7 @@
 | [backend-review](./backend-review/spec.md) | 1.0 | active | 2026-05-15 | [plans](./backend-review/plans/) |
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.2 | active | 2026-05-17 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.2 | active | 2026-05-12 | [plans](./backend-upload/plans/) |
-| [backend-resume](./backend-resume/spec.md) | 1.1 | active | 2026-05-12 | [plans](./backend-resume/plans/) |
+| [backend-resume](./backend-resume/spec.md) | 1.2 | active | 2026-05-17 | [plans](./backend-resume/plans/) |
 | [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 1.0 | active | 2026-05-11 | [plans](./frontend-resume-workshop/plans/) |
 | [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.1 | active | 2026-05-16 | [plans](./frontend-report-dashboard/plans/) |
 | [backend-debrief](./backend-debrief/spec.md) | 1.1 | active | 2026-05-16 | [plans](./backend-debrief/plans/) |

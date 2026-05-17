@@ -1,8 +1,8 @@
 # Backend Resume Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
-> **更新日期**: 2026-05-12
+> **更新日期**: 2026-05-17
 
 ## 1 背景与目标
 
@@ -10,11 +10,11 @@
 
 目标：
 
-1. **完整业务域**：所有 Resume HTTP endpoint（B2 D-18 13 个 op：register / get / list / listVersions / getVersion / branch / update / accept / reject / requestTailor / getTailorRun / archive / export）都在本 subject 落地 handler，并通过 `cmd/api` session middleware / idempotency middleware 挂到真实 `/api/v1/*` route；frontend 与 mock-contract-suite 消费同一份字节级响应。
+1. **完整业务域**：所有 Resume HTTP endpoint（B2 D-18 + D-10 additive 共 14 个 op：register / get / list / confirmStructuredMaster / listVersions / getVersion / branch / update / accept / reject / requestTailor / getTailorRun / archive / export）都在本 subject 落地 handler，并通过 `cmd/api` session middleware / idempotency middleware 挂到真实 `/api/v1/*` route；frontend 与 mock-contract-suite 消费同一份字节级响应。
 2. **AI 编排封装**：resume.parse 与 resume.tailor 通过 [A3 AIClient + Capability Model Profile](../ai-provider-and-model-routing/spec.md) 调用；prompt / rubric / 模型版本通过 [F3](../prompt-rubric-registry/spec.md) 注册（3 个 baseline feature_key：`resume.parse` / `resume.tailor.gap_review` / `resume.tailor.bullet_suggestions`）；业务代码不 import 厂商 SDK。
 3. **版本树语义**：`resume_versions.parent_version_id` 自引用支持版本链；branch 流程支持 3 种 `seed_strategy`（`copy_master` 同步返回 / `blank` 同步 / `ai_select` 入队 tailor job）。
 4. **改写建议状态机**：`resume_version_suggestions.status` ∈ `pending → accepted | rejected`；accept 与 reject 都是终态（不可再切；如需重做必须新建 suggestion 或 branch 新 version）。
-5. **mock-first 切真**：本 subject 落地的 13 个 endpoint 必须与 [B2 D-18 fixtures](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) 字节级一致，frontend-resume-workshop 在切真时无需修订；frontend mock-first 路径不阻塞本 subject 进度。
+5. **mock-first 切真**：本 subject 落地的 14 个 endpoint（含 D-10 `confirmResumeStructuredMaster`）必须与 [B2 D-18 fixtures](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) 及本 plan 新增 fixture 字节级一致，frontend-resume-workshop 在切真时无需修订；frontend mock-first 路径不阻塞本 subject 进度。
 
 本 subject 不实现 frontend UI（归 [frontend-resume-workshop](../frontend-resume-workshop/spec.md)）；不实现 file 上传（归 [backend-upload](../backend-upload/spec.md)）；不实现 mistakes / growth / drill 等已丢弃模块（[roadmap D-6](../engineering-roadmap/spec.md#31-已锁定决策) 禁止恢复）。
 
@@ -22,8 +22,8 @@
 
 ### 2.1 In Scope
 
-- **HTTP handler + runtime wiring**：实现 [B2 §3.1.1](../openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表) Resumes + ResumeTailor tag 全部 13 个 operationId（含 D-18 9 个新 op），并在 `cmd/api` 中按当前 session / IK / generated response envelope 口径挂载真实 route。
-- **store layer**：`resume_assets` / `resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` 4 张表 Repository（前 3 张由 [B4 002 resume-versions-additive](../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) 落地 schema）。
+- **HTTP handler + runtime wiring**：实现 [B2 §3.1.1](../openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表) Resumes + ResumeTailor tag 全部 14 个 operationId（D-18 9 个新 op + D-10 1 个 additive `confirmResumeStructuredMaster`），并在 `cmd/api` 中按当前 session / IK / generated response envelope 口径挂载真实 route。
+- **store layer**：`resume_assets` / `resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` 4 张表 Repository（前 3 张由 [B4 002 resume-versions-additive](../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) 落地 schema；`resume_versions(resume_asset_id) WHERE version_type='structured_master' AND deleted_at IS NULL` partial UNIQUE INDEX 由 backend-resume/002 携带 B4 cross-owner addendum migration 落地）。
 - **AI 编排**：
   - `resume.parse` async job（[B3 jobs.yaml](../event-and-outbox-contract/spec.md#311-dbbackend-runner-canonical-job_type--asynq-dotted-task-name-映射) C7 owner）：解析 file_object / paste text / guided answers → 提取 parse draft → 写 `resume_assets.parsed_summary` / `parsed_text_snapshot`；只有最终 `parse_status='ready'` 时发射 `resume.parse.completed`，失败路径只写 `ai_task_runs` / audit / async retry metadata，不发 completed event。
   - `resume.tailor` async job：基于 targetJobId + 简历 master version 生成 suggestion → 写 `resume_tailor_runs` + `resume_version_suggestions` → 发射 `resume.tailor.completed`。
@@ -54,14 +54,17 @@
 | D-5 | tailor 模式 | `RequestResumeTailorRequest.mode` ∈ `gap_review | bullet_suggestions`（与 [B3 D-14](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表) 对齐）；不复活旧 `inline | rewrite | mirror` | events / API / DB 三层 mode enum 同源 |
 | D-6 | RESUME_EXPORT_NOT_AVAILABLE 行为 | `exportResumeVersion` P0 默认返回 `501` + `error.code = "RESUME_EXPORT_NOT_AVAILABLE"`；P1 切到 `202 + Job(jobType=resume_export)` 属 additive 行为变化 | 类比 [B2 D-12 privacy export 例外](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围)；frontend toast 兜底 + copyText 真实可用 |
 | D-7 | listResumes / listResumeVersions pagination | 默认 pageSize=20，cursor 分页；返回 `PaginatedResumeAsset` / `PaginatedResumeVersion`（B2 D-18 schema） | 与 [B2 D-5](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) 分页规则一致 |
-| D-8 | branch / update / accept / reject / archive / export 必带 IK | 6 个 side-effect operation 必带 `Idempotency-Key`（与 [B2 D-18](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) 一致） | 防止网络抖动产生重复 version / 重复 accept |
+| D-8 | Resume side-effect operation 必带 IK | `registerResume` / `confirmResumeStructuredMaster` / `branchResumeVersion` / `updateResumeVersion` / `requestResumeTailor` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` / `archiveResumeAsset` / `exportResumeVersion` 共 9 个 side-effect operation 必带 `Idempotency-Key`（与 [B2 D-18](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) 及本 spec D-10 additive 一致） | 防止网络抖动产生重复 asset / version / tailor run / accept-reject 决策 |
 | D-9 | 首次创建保存边界 | `registerResume` 只登记 `ResumeAsset` source 并触发 `resume.parse`；parse job 只产出解析草稿（`parsed_summary` / `parsed_text_snapshot`）和 parse 状态，不在用户 Preview Confirm 前创建正式 `structured_master` `ResumeVersion`。确认保存 v1 由后续 backend-resume/002 + frontend-resume-workshop/002 承接。 | 对齐 `docs/ui-design/resume-onboarding.md` 的 `输入 -> Agent 解析 -> 预览确认 -> 保存 v1`；防止未确认草稿成为正式简历版本 |
+| D-10 | Preview Confirm 保存 v1 op | 新增第 14 个 Resume operationId `confirmResumeStructuredMaster`：`POST /api/v1/resumes/{resumeAssetId}/structured-master`，IK 必带（沿用 D-8 side-effect 集合），Request `ConfirmResumeStructuredMasterRequest{ structuredProfile, displayName, language? }`，Response `201 + ResumeVersion`（`version_type='structured_master'`, `parent_version_id=null`, `target_job_id=null`）。同 IK 重复调用走 idempotency middleware 返回首次结果；不同 fingerprint 同 key 走 409 generic IK conflict；同 asset 已存在未删除 structured_master 时返回 `409 + RESUME_STRUCTURED_MASTER_ALREADY_EXISTS`（B1 cross-owner 新增错误码）。本 op 是 B2 D-18 additive 增补，落地由 [backend-resume/002](./plans/002-versions-tailor-runs-and-save-v1/plan.md) Phase 1 携带 openapi-v1-contract spec / fixtures / inventory / generated artifacts 同步修订完成。 | 对齐 `docs/ui-design/resume-onboarding.md` Preview Confirm 行为；与 D-9 边界配套，使 ResumeAsset 解析草稿能在用户确认后落地为正式 `structured_master`，frontend-resume-workshop/002 切真不需要私造协议 |
+| D-11 | structured_master 唯一性 | `resume_versions` 表新增 partial UNIQUE INDEX：`UNIQUE (resume_asset_id) WHERE version_type = 'structured_master' AND deleted_at IS NULL`；handler 层在事务内 `SELECT ... FOR UPDATE` 检查后插入。重复调用：若同 IK 走 idempotency replay；若不同 IK / fingerprint 命中已存在 structured_master，返回 `409 + RESUME_STRUCTURED_MASTER_ALREADY_EXISTS`；DB UNIQUE 兜底防止并发双客户端各自插入。 | 防止双客户端 / 双 tab 并发 Preview Confirm 创建两条主版本；DB 与 handler 双层保证；与 backend-practice D-22 idempotency 双层兜底同构 |
+| D-12 | accept suggestion 不自动改 structured_profile | `acceptResumeTailorSuggestion` P0 仅写 `resume_version_suggestions.status='accepted'` + `decided_at`；不自动 patch `resume_versions.structured_profile`。如需将 suggestion 内容应用到版本，用户后续显式调用 `updateResumeVersion` 完成；reject 同样只写 `status='rejected'` + `decided_at`。 | 保留终态语义清晰；防止 accept 引入隐式 jsonb merge 风险与字段冲突；将"应用建议到版本"显式化为用户操作；与 §3.2 既有待确认事项中默认值一致 |
 
 ### 3.2 待确认事项
 
-- accept suggestion 时是否自动更新 `resume_versions.structured_profile`：默认 P0 不更新 structured_profile（仅写 suggestion.status = accepted）；P1 评估，由 frontend 与 backend 联合决定字段同步语义。
+- accept suggestion 时是否自动更新 `resume_versions.structured_profile`：已由 D-12 锁定 P0 不更新（仅写 suggestion.status = accepted）；P1 评估，由 frontend 与 backend 联合决定字段同步语义。
 - branchResumeVersion seedStrategy=ai_select 入队的 tailor job 是否必须立即同步返回 suggestion 列表：默认 P0 异步（202 + Job + frontend 轮询）；如 frontend UX 需要同步响应，由本 spec 修订评估。
-- `RESUME_*` 错误码扩展（如 `RESUME_VERSION_BRANCH_FROM_INVALID_PARENT`）：默认走 [B1 D-5](../shared-conventions-codified/spec.md#31-已锁定决策) 通用 `VALIDATION_FAILED`；如业务需要更细分类再修订 B1。
+- `RESUME_*` 错误码扩展：D-10 / D-11 已新增 `RESUME_STRUCTURED_MASTER_ALREADY_EXISTS`；其余错误码（如 `RESUME_VERSION_BRANCH_FROM_INVALID_PARENT`）默认仍走 [B1 D-5](../shared-conventions-codified/spec.md#31-已锁定决策) 通用 `VALIDATION_FAILED`；如业务需要更细分类再修订 B1。
 
 ## 4 设计约束
 
@@ -95,7 +98,7 @@
 
 | 边界 | Owner | 说明 |
 |------|-------|------|
-| 13 个 Resume HTTP handler | backend-resume | 真实业务逻辑 |
+| 14 个 Resume / ResumeTailor HTTP handler | backend-resume | 真实业务逻辑 |
 | `resume_assets` / `resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` 表 schema | [B4 db-migrations-baseline](../db-migrations-baseline/spec.md) + [B4 002 plan](../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) | 字段 / 索引 / FK / check constraint |
 | file_object 引用 | [backend-upload](../backend-upload/spec.md) `Register` internal API | resume_assets 通过 backend-upload 引用 file_object |
 | `resume.parse` / `resume.tailor` async job | backend-resume + backend-runtime-topology | job handler 注册到 `cmd/api` in-process drainer / runtime composition |
@@ -118,13 +121,16 @@
 | C-7 | IK replay | register 同 IK 重复调用 | – | 返回首次 `resumeAssetId`；不创建新 DB 行 | 001 |
 | C-8 | mock-first 字节比对 | B2 fixture `registerResume.json` `default` scenario | 通过 `cmd/api` route 调真实 handler | 响应字段集 / status / header 字节一致；session / IK middleware 不改变 generated response envelope | 001 + mock-contract-suite |
 | C-9 | privacy 删除链路 | 用户 A 有 3 resume_asset + 5 version + 10 suggestion + 2 tailor_run | privacy_delete job 触发 | backend-resume 删除顺序：suggestions → versions → tailor_runs → assets；backend-upload 同一 privacy request 删除 file binary / file_objects（对象存储先删，成功后 DB hard delete）；audit tombstone 仅保留 ID / 删除时间，不含内容 | 后续 plan |
-| C-10 | branchResumeVersion seedStrategy 三路 | 用户 A 有 master version | 分别调 `copy_master` / `blank` / `ai_select` branch | `copy_master` 同步返回 + structured_profile 拷贝；`blank` 同步返回 + structured_profile 空；`ai_select` 同步返回 resume_version_id + 入队 resume.tailor job | 后续 plan |
-| C-11 | suggestion accept/reject 状态机 | suggestion `pending` | 调 accept；再调 accept | 首次返回 200 + `decided_at` 写入；第二次返回 409 + `error.code = "VALIDATION_FAILED"`（或按 IK 语义幂等返回首次结果）；不私造未登记状态迁移错误码 | 后续 plan |
+| C-10 | branchResumeVersion seedStrategy 三路 | 用户 A 有 master version | 分别调 `copy_master` / `blank` / `ai_select` branch | `copy_master` 同步返回 + structured_profile 拷贝；`blank` 同步返回 + structured_profile 空；`ai_select` 同步返回 resume_version_id + 入队 resume.tailor job | 002-versions-tailor-runs-and-save-v1 |
+| C-11 | suggestion accept/reject 状态机 | suggestion `pending` | 调 accept；再调 accept | 首次返回 200 + `decided_at` 写入；第二次返回 409 + `error.code = "VALIDATION_FAILED"`（或按 IK 语义幂等返回首次结果）；不私造未登记状态迁移错误码 | 002-versions-tailor-runs-and-save-v1 |
 | C-12 | exportResumeVersion P0 | 调 `POST /api/v1/resume-versions/{id}/exports` | – | 返回 501 + `error.code="RESUME_EXPORT_NOT_AVAILABLE"`；ai_task_runs 不写入；不消耗 model 配额 | 后续 plan |
-| C-13 | events 漂移负向 | grep `inline\|rewrite\|mirror` 在 events / job / dispatcher 上下文 | – | 0 命中（与 [B3 D-14](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表) 同步） | 001 |
+| C-13 | events 漂移负向 | grep `inline\|rewrite\|mirror` 在 events / job / dispatcher 上下文 | – | 0 命中（与 [B3 D-14](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表) 同步） | 001 + 002-versions-tailor-runs-and-save-v1 |
+| C-14 | confirmResumeStructuredMaster 主路径 | 已登录 + 用户 A 拥有 `resume_assets` 行（`parse_status='ready'`，已含 `parsed_summary` / `parsed_text_snapshot`）+ 暂无 structured_master version + IK | 调 `POST /api/v1/resumes/{resumeAssetId}/structured-master` body `{ structuredProfile, displayName, language? }` | 返回 201 + `ResumeVersion`（`versionType='structured_master'`, `parentVersionId=null`, `targetJobId=null`，`structuredProfile.provenance` 含 `promptVersion='resume_profile.v1'` 或调用方提供值）；DB 新增 `resume_versions` 行；resume_asset `parse_status` 不变（确认动作不修改解析草稿状态）；IK 二次重放返回首次 ResumeVersion，不创建新行 | 002-versions-tailor-runs-and-save-v1 |
+| C-15 | structured_master 唯一性 | 用户 A 已有 1 行 `resume_versions(version_type='structured_master', deleted_at IS NULL)` 关联到 resume_asset X | 用户 A 用新 IK 再次 `POST /api/v1/resumes/{X}/structured-master` | 返回 `409 + error.code='RESUME_STRUCTURED_MASTER_ALREADY_EXISTS'`，不创建第二条 structured_master；DB partial UNIQUE INDEX 在并发场景下兜底（并发 INSERT 之一返回 409，不出现两条 master） | 002-versions-tailor-runs-and-save-v1 |
+| C-16 | resume.tailor.completed envelope | resume.tailor async job 处理 queued `resume_tailor_runs` 行成功结束 | 通过 [A3 AIClient](../ai-provider-and-model-routing/spec.md) 调 F3 `resume.tailor.gap_review` 或 `resume.tailor.bullet_suggestions` feature_key | DB `resume_tailor_runs.status='ready'` + `resume_version_suggestions` N 行 `status='pending'`；outbox `resume.tailor.completed` 唯一新增（envelope `tailorRunId / resumeAssetId / targetJobId / mode / status` 与 [B3 §3.1.4](../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory) 一致；不含 suggested bullet 内容）；失败路径（AI timeout / output_invalid / retry exhausted）不发 `resume.tailor.completed`，只写 `ai_task_runs` + `async_jobs` retry metadata | 002-versions-tailor-runs-and-save-v1 |
 
 ## 7 关联计划
 
 - [001-asset-register-parse-and-listing](./plans/001-asset-register-parse-and-listing/plan.md)：第一批 plan，落地 `registerResume` + `getResume` + `listResumes` + `resume.parse` async job + sourceType 三路 + `resume.parse.completed` event；BDD 覆盖 register → parse → list 主路径。
-- `002-versions-and-tailor-runs`（未创建，由 001 完成后启动）：落地 Preview Confirm 保存 v1 `structured_master`、`listResumeVersions` / `branchResumeVersion` / `updateResumeVersion` / `requestResumeTailor` / `getResumeTailorRun` / `acceptSuggestion` / `rejectSuggestion` + `resume.tailor.completed` event。
+- [002-versions-tailor-runs-and-save-v1](./plans/002-versions-tailor-runs-and-save-v1/plan.md)：落地 D-10 `confirmResumeStructuredMaster`（B2 D-18 additive 同步修订）+ Preview Confirm 保存 v1 `structured_master` + `listResumeVersions` / `getResumeVersion` / `updateResumeVersion` / `branchResumeVersion` 三路 seed_strategy + `requestResumeTailor` / `getResumeTailorRun` + accept/reject suggestion 终态状态机 + resume.tailor async job + `resume.tailor.completed` event；同步携带 B4 cross-owner addendum migration `000007_resume_versions_structured_master_unique`；BDD 覆盖 `E2E.P0.074 – E2E.P0.080` 七个场景。
 - `003-export-and-archive-and-delete`（P1 延后）：落地 `exportResumeVersion` 真实 PDF 生成 + `archiveResumeAsset` + privacy delete 链路 fully integrate。
