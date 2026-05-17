@@ -36,6 +36,10 @@ interface OperationFixture {
   >;
 }
 
+interface MockCreateFlowOptions {
+  getResumeParseStatus?: "processing" | "ready";
+}
+
 function fixtureResponse(relativePath: string, scenario = "default") {
   const absolutePath = resolve(process.cwd(), "..", relativePath);
   const fixture = JSON.parse(readFileSync(absolutePath, "utf8")) as OperationFixture;
@@ -46,24 +50,34 @@ function fixtureResponse(relativePath: string, scenario = "default") {
   return response;
 }
 
+async function fulfillJson(
+  route: import("@playwright/test").Route,
+  status: number,
+  body: unknown,
+  headers: Record<string, string> = {},
+) {
+  await route.fulfill({
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      ...headers,
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 async function fulfillFixture(
   route: import("@playwright/test").Route,
   relativePath: string,
   scenario = "default",
 ) {
   const response = fixtureResponse(relativePath, scenario);
-  await route.fulfill({
-    status: response.status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      ...(response.headers ?? {}),
-    },
-    body: JSON.stringify(response.body),
-  });
+  await fulfillJson(route, response.status, response.body, response.headers);
 }
 
 async function mockCreateFlowApis(
   page: import("@playwright/test").Page,
+  options: MockCreateFlowOptions = {},
 ): Promise<void> {
   await page.route("**/api/v1/**", async (route) => {
     const url = new URL(route.request().url());
@@ -92,7 +106,15 @@ async function mockCreateFlowApis(
       return;
     }
     if (/^\/resumes\/[^/]+$/.test(path)) {
-      await fulfillFixture(route, "openapi/fixtures/Resumes/getResume.json");
+      const response = fixtureResponse("openapi/fixtures/Resumes/getResume.json");
+      const body =
+        typeof response.body === "object" && response.body !== null
+          ? {
+              ...(response.body as Record<string, unknown>),
+              parseStatus: options.getResumeParseStatus ?? "ready",
+            }
+          : response.body;
+      await fulfillJson(route, response.status, body, response.headers);
       return;
     }
     if (/^\/resumes\/[^/]+\/structured-master$/.test(path)) {
@@ -154,8 +176,9 @@ async function rectOf(
 async function gotoCreateFlow(
   page: import("@playwright/test").Page,
   params: Record<string, string> = {},
+  options: MockCreateFlowOptions = {},
 ): Promise<void> {
-  await mockCreateFlowApis(page);
+  await mockCreateFlowApis(page, options);
   const search = new URLSearchParams({
     route: "resume_versions",
     ...{ flow: "create", ...params },
@@ -163,6 +186,18 @@ async function gotoCreateFlow(
   await page.goto(`/#${search}`);
   await page.waitForSelector("[data-testid='resume-create-flow']");
   await freezeAnimations(page);
+}
+
+async function submitPasteResume(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  await page.getByTestId("resume-create-tab-paste").click();
+  await page
+    .getByTestId("resume-create-paste-textarea")
+    .fill(
+      "Senior frontend engineer focused on React, TypeScript, design systems, and interview-ready delivery evidence.",
+    );
+  await page.getByTestId("resume-create-paste-submit").click();
 }
 
 test.describe("ResumeCreateFlow pixel parity — input stages", () => {
@@ -210,6 +245,54 @@ test.describe("ResumeCreateFlow pixel parity — input stages", () => {
       ).toBeVisible();
     }
     const buf = await page.locator("[data-testid='resume-create-flow']").screenshot();
+    expect(buf.byteLength).toBeGreaterThan(0);
+  });
+});
+
+test.describe("ResumeCreateFlow pixel parity — parse and preview stages", () => {
+  test("Parse Flow — seven step ticker and cancel action", async ({ page }) => {
+    await gotoCreateFlow(page, {}, { getResumeParseStatus: "processing" });
+    await submitPasteResume(page);
+    await expect(page.getByTestId("resume-parse-flow")).toBeVisible();
+    await expect(page.getByTestId("resume-parse-flow-source")).toBeVisible();
+    await expect(page.getByTestId("resume-parse-flow-cancel")).toBeVisible();
+    for (let i = 0; i < 7; i++) {
+      await expect(page.getByTestId(`resume-parse-step-${i}`)).toBeVisible();
+    }
+    const parseCard = await rectOf(
+      page,
+      "[data-testid='resume-parse-flow']",
+    );
+    expect(parseCard.width).toBeGreaterThan(320);
+    expect(parseCard.height).toBeGreaterThan(320);
+    const buf = await page.locator("[data-testid='resume-parse-flow']").screenshot();
+    expect(buf.byteLength).toBeGreaterThan(0);
+  });
+
+  test("Preview Confirm — draft, action buttons, and side rail", async ({
+    page,
+  }) => {
+    await gotoCreateFlow(page);
+    await submitPasteResume(page);
+    await expect(page.getByTestId("resume-preview-confirm")).toBeVisible();
+    await expect(page.getByTestId("resume-preview-confirm-content")).toBeVisible();
+    await expect(page.getByTestId("resume-preview-confirm-save-button")).toBeVisible();
+    await expect(page.getByTestId("resume-preview-confirm-back-button")).toBeVisible();
+    await expect(
+      page.getByTestId("resume-preview-confirm-sidebar-what-saved"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("resume-preview-confirm-sidebar-parse-notes"),
+    ).toBeVisible();
+    const preview = await rectOf(
+      page,
+      "[data-testid='resume-preview-confirm']",
+    );
+    expect(preview.width).toBeGreaterThan(320);
+    expect(preview.height).toBeGreaterThan(360);
+    const buf = await page
+      .locator("[data-testid='resume-preview-confirm']")
+      .screenshot();
     expect(buf.byteLength).toBeGreaterThan(0);
   });
 });

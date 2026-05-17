@@ -47,6 +47,7 @@ export function useResumeParsingPolling(
     asset: null,
     errorCode: null,
   });
+  const [retryEpoch, setRetryEpoch] = useState(0);
   const cancelRef = useRef(false);
   const sessionRef = useRef(0);
 
@@ -133,23 +134,19 @@ export function useResumeParsingPolling(
     maxAttempts,
     maxTotalMs,
     resumeAssetId,
+    retryEpoch,
   ]);
 
   const retry = useCallback(() => {
     if (!resumeAssetId) return;
-    // Bump session to force the effect to restart.
-    sessionRef.current = sessionRef.current + 1;
-    cancelRef.current = false;
+    cancelRef.current = true;
     setSnapshot({
       status: "polling",
       attempts: 0,
       asset: null,
       errorCode: null,
     });
-    // The useEffect dep change won't trigger re-run because deps didn't change;
-    // consumers should toggle resumeAssetId or re-mount to force restart. To
-    // simplify in tests, we expose retry as a state reset and rely on the
-    // current effect's loop re-entry via session bump.
+    setRetryEpoch((value) => value + 1);
   }, [resumeAssetId]);
 
   const cancel = useCallback(() => {

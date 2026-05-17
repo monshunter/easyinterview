@@ -144,6 +144,49 @@ describe("useResumeParsingPolling", () => {
     expect(result.current.snapshot.errorCode).toBe("PARSE_TIMEOUT");
   });
 
+  it("retry() restarts polling after a failed terminal state and resolves ready without re-registering", async () => {
+    const client = buildClient();
+    const spy = vi
+      .spyOn(client, "getResume")
+      .mockResolvedValueOnce({
+        ...ASSET_BASE,
+        parseStatus: "failed",
+      })
+      .mockResolvedValueOnce({
+        ...ASSET_BASE,
+        parseStatus: "processing",
+      })
+      .mockResolvedValueOnce(ASSET_BASE);
+
+    const { result } = renderHook(
+      () =>
+        useResumeParsingPolling("01918fa0-0000-7000-8000-000000001100", {
+          initialDelayMs: 5,
+          backoffFactor: 1,
+          maxAttempts: 5,
+          maxTotalMs: 1000,
+        }),
+      { wrapper: buildWrapper(client) },
+    );
+
+    await waitFor(() => {
+      expect(result.current.snapshot.status).toBe("failed");
+    });
+    expect(result.current.snapshot.errorCode).toBe("AI_TIMEOUT_RETRYABLE");
+
+    act(() => {
+      result.current.retry();
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.snapshot.status).toBe("ready");
+      },
+      { timeout: 2000 },
+    );
+    expect(spy).toHaveBeenCalledTimes(3);
+  });
+
   it("cancel() reverts to idle and stops further polling", async () => {
     const client = buildClient();
     const spy = vi.spyOn(client, "getResume").mockResolvedValue({
