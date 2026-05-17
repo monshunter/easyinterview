@@ -3,6 +3,7 @@ package practice
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	stderrs "errors"
 	"fmt"
@@ -172,7 +173,15 @@ func (s *Service) CreatePracticeVoiceTurn(ctx context.Context, in CreatePractice
 	if err != nil {
 		return PracticeVoiceTurnResult{}, serviceErrorFromRegistry(err)
 	}
-	chatResp, chatMeta, err := s.ai.Complete(ctx, chatRes.ModelProfileName, voiceFollowUpPayload(chatRes, userID, session, language, in.PracticeMode, transcript, in.CommittedContext))
+	committedContext := in.CommittedContext
+	if !committedContext.HasCommittedContext && strings.TrimSpace(committedContext.InterruptionNote) == "" {
+		loaded, err := s.store.LoadCommittedVoiceContext(ctx, userID, sessionID)
+		if err != nil {
+			return PracticeVoiceTurnResult{}, err
+		}
+		committedContext = loaded
+	}
+	chatResp, chatMeta, err := s.ai.Complete(ctx, chatRes.ModelProfileName, voiceFollowUpPayload(chatRes, userID, session, language, in.PracticeMode, transcript, committedContext))
 	if err != nil {
 		return PracticeVoiceTurnResult{}, serviceErrorFromAI(err)
 	}
@@ -243,7 +252,7 @@ func (s *Service) recordPracticeVoiceTurn(ctx context.Context, in CreatePractice
 		AssistantTextDraft:  result.AssistantTextDraft,
 		AudioByteLength:     voiceAudioByteLength(in.Audio),
 		AudioDurationMs:     in.Audio.DurationMs,
-		TTSChunks:           append([]PracticeVoiceTTSChunk(nil), result.TTSChunks...),
+		TTSChunks:           practiceVoiceTTSChunksForStore(result.VoiceTurnID, result.TTSChunks),
 		TTSError:            clonePracticeVoiceTTSError(result.TTSError),
 		ProviderMetaSummary: result.ProviderMetaSummary,
 		Session:             result.Session,
@@ -351,8 +360,28 @@ func voiceTTSChunk(voiceTurnID, chunkID, assistantText string, resp aiclient.Syn
 		DurationMs:  int32(resp.DurationMs),
 		ByteLength:  int32(len(resp.Audio)),
 		TextHash:    textSHA256(assistantText),
-		AudioRef:    "voice-turn://" + voiceTurnID + "/chunks/" + chunkID,
+		AudioRef:    voiceAudioDataURL(contentType, resp.Audio),
 	}
+}
+
+func voiceAudioDataURL(contentType string, audio []byte) string {
+	if strings.TrimSpace(contentType) == "" {
+		contentType = "audio/mpeg"
+	}
+	if len(audio) == 0 {
+		return ""
+	}
+	return "data:" + strings.TrimSpace(contentType) + ";base64," + base64.StdEncoding.EncodeToString(audio)
+}
+
+func practiceVoiceTTSChunksForStore(voiceTurnID string, chunks []PracticeVoiceTTSChunk) []PracticeVoiceTTSChunk {
+	out := make([]PracticeVoiceTTSChunk, 0, len(chunks))
+	for _, chunk := range chunks {
+		next := chunk
+		next.AudioRef = "voice-turn://" + strings.TrimSpace(voiceTurnID) + "/chunks/" + strings.TrimSpace(chunk.ChunkID)
+		out = append(out, next)
+	}
+	return out
 }
 
 func voiceProfileName(meta aiclient.AICallMeta, resolution registry.PromptResolution) string {

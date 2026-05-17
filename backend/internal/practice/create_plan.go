@@ -45,6 +45,7 @@ type Store interface {
 	FinalizeSessionEventError(ctx context.Context, in FinalizeSessionEventErrorInput) error
 	AppendSessionEvent(ctx context.Context, in AppendSessionEventStoreInput) (AppendSessionEventResult, error)
 	RecordPracticeVoiceTurn(ctx context.Context, in PracticeVoiceTurnStoreInput) (SessionRecord, error)
+	LoadCommittedVoiceContext(ctx context.Context, userID, sessionID string) (CommittedVoiceContext, error)
 	CompleteSession(ctx context.Context, in CompleteSessionStoreInput) (CompleteSessionResult, error)
 	ReserveSessionStart(ctx context.Context, in StartSessionReservationInput) (SessionReservation, error)
 	CommitSessionStart(ctx context.Context, in CommitSessionStartInput) (SessionRecord, error)

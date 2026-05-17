@@ -166,6 +166,20 @@ export function usePracticeVoicePlayback({
     );
     setState({ kind: "interrupted", chunkId: active.chunk.chunkId });
     try {
+      const playedTextLength = estimatePlayedTextLength(
+        active.assistantText,
+        active.chunk.durationMs,
+        playbackOffsetMs,
+      );
+      if (playedTextLength > 0) {
+        await sendEvent("tts_chunk_played", {
+          voiceTurnId: active.voiceTurnId,
+          chunkId: active.chunk.chunkId,
+          playbackOffsetMs,
+          playedTextHash: active.chunk.textHash,
+          playedTextLength,
+        });
+      }
       await sendEvent("barge_in_detected", {
         voiceTurnId: active.voiceTurnId,
         chunkId: active.chunk.chunkId,
@@ -209,4 +223,15 @@ export function usePracticeVoicePlayback({
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+function estimatePlayedTextLength(
+  assistantText: string,
+  durationMs: number,
+  playbackOffsetMs: number,
+): number {
+  const totalLength = Array.from(assistantText).length;
+  if (totalLength === 0 || durationMs <= 0 || playbackOffsetMs <= 0) return 0;
+  const ratio = Math.min(1, playbackOffsetMs / durationMs);
+  return Math.max(1, Math.min(totalLength, Math.round(totalLength * ratio)));
 }

@@ -236,6 +236,60 @@ func TestCreatePracticeVoiceTurnPersistsBusinessTextOutsideAIMetadata(t *testing
 	}
 }
 
+func TestCreatePracticeVoiceTurnReturnsPlayableAudioRefWithoutPersistingAudioData(t *testing.T) {
+	ai := defaultVoiceTurnAIClient(t)
+	ai.synthesis = []byte("tts-audio")
+	store := &recordingPlanStore{getSessionRecord: voiceTurnSession()}
+	service := newVoiceTurnTestServiceWithStore(t, store, ai)
+
+	result, err := service.CreatePracticeVoiceTurn(context.Background(), validVoiceTurnRequest())
+	if err != nil {
+		t.Fatalf("CreatePracticeVoiceTurn: %v", err)
+	}
+	if len(result.TTSChunks) != 1 {
+		t.Fatalf("expected a playable TTS chunk, got %+v", result.TTSChunks)
+	}
+	if got := result.TTSChunks[0].AudioRef; !strings.HasPrefix(got, "data:audio/mpeg;base64,") {
+		t.Fatalf("response audioRef must be browser-playable, got %q", got)
+	}
+	if len(store.voiceTurn.TTSChunks) != 1 {
+		t.Fatalf("expected persisted chunk summary, got %+v", store.voiceTurn.TTSChunks)
+	}
+	if got := store.voiceTurn.TTSChunks[0].AudioRef; !strings.HasPrefix(got, "voice-turn://voice-turn-1/chunks/tts-chunk-1") {
+		t.Fatalf("stored audioRef must remain opaque and non-audio-bearing, got %q", got)
+	}
+}
+
+func TestCreatePracticeVoiceTurnLoadsCommittedContextFromStoredPlaybackEvents(t *testing.T) {
+	ai := defaultVoiceTurnAIClient(t)
+	store := &recordingPlanStore{
+		getSessionRecord: voiceTurnSession(),
+		committedContext: CommittedVoiceContext{
+			VoiceTurnID:            "voice-turn-previous",
+			HasCommittedContext:    true,
+			CommittedAssistantText: "previous assistant words heard by user",
+			CommittedTextLength:    38,
+			Interrupted:            true,
+			InterruptionNote:       "Assistant playback was interrupted at 1480ms.",
+		},
+	}
+	service := newVoiceTurnTestServiceWithStore(t, store, ai)
+
+	_, err := service.CreatePracticeVoiceTurn(context.Background(), validVoiceTurnRequest())
+	if err != nil {
+		t.Fatalf("CreatePracticeVoiceTurn: %v", err)
+	}
+
+	userMessage := ai.completePayload.Messages[len(ai.completePayload.Messages)-1].Content
+	if !store.loadCommittedContextCalled {
+		t.Fatalf("service did not load committed context from stored playback events")
+	}
+	if !strings.Contains(userMessage, "previous assistant words heard by user") ||
+		!strings.Contains(userMessage, "Assistant playback was interrupted at 1480ms.") {
+		t.Fatalf("stored committed context missing from prompt: %s", userMessage)
+	}
+}
+
 func TestVoiceFollowUpPayloadInjectsCommittedContextWithoutUnplayedDraft(t *testing.T) {
 	resolution := registry.PromptResolution{
 		FeatureKey:          followUpFeatureKey,

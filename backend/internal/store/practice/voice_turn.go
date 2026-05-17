@@ -60,6 +60,81 @@ func (r *SQLRepository) RecordPracticeVoiceTurn(ctx context.Context, in domain.P
 	return session, nil
 }
 
+func (r *SQLRepository) LoadCommittedVoiceContext(ctx context.Context, userID, sessionID string) (domain.CommittedVoiceContext, error) {
+	if r == nil || r.db == nil {
+		return domain.CommittedVoiceContext{}, fmt.Errorf("practice SQL repository is not configured")
+	}
+	var seqNo int
+	var raw []byte
+	err := r.db.QueryRowContext(ctx, `
+select e.seq_no, e.payload
+from practice_session_events e
+join practice_sessions s on s.id = e.session_id
+where s.user_id = $1
+  and e.session_id = $2
+  and e.event_type = 'follow_up_generated'
+  and e.payload ? 'voiceTurnId'
+order by e.seq_no desc
+limit 1`,
+		userID,
+		sessionID,
+	).Scan(&seqNo, &raw)
+	if err == sql.ErrNoRows {
+		return domain.CommittedVoiceContext{}, nil
+	}
+	if err != nil {
+		return domain.CommittedVoiceContext{}, fmt.Errorf("load latest practice voice turn event: %w", err)
+	}
+	var sourcePayload practiceVoiceTurnEventPayload
+	if err := json.Unmarshal(raw, &sourcePayload); err != nil {
+		return domain.CommittedVoiceContext{}, fmt.Errorf("decode latest practice voice turn event: %w", err)
+	}
+	source := domain.PracticeVoiceTurnContextSource{
+		VoiceTurnID:         strings.TrimSpace(sourcePayload.VoiceTurnID),
+		AssistantTextDraft:  strings.TrimSpace(sourcePayload.AssistantTextDraft),
+		AssistantTextLength: int32(len([]rune(strings.TrimSpace(sourcePayload.AssistantTextDraft)))),
+	}
+	if len(sourcePayload.TTSChunks) > 0 {
+		source.AssistantTextHash = strings.TrimSpace(sourcePayload.TTSChunks[0].TextHash)
+	}
+	rows, err := r.db.QueryContext(ctx, `
+select event_type, payload, created_at
+from practice_session_events
+where session_id = $1
+  and seq_no > $2
+  and event_type in ('tts_chunk_played', 'barge_in_detected', 'assistant_context_committed')
+order by seq_no asc`,
+		sessionID,
+		seqNo,
+	)
+	if err != nil {
+		return domain.CommittedVoiceContext{}, fmt.Errorf("load practice voice playback events: %w", err)
+	}
+	defer rows.Close()
+	events := make([]domain.VoicePlaybackEventRecord, 0)
+	for rows.Next() {
+		var kind string
+		var eventRaw []byte
+		var createdAt sql.NullTime
+		if err := rows.Scan(&kind, &eventRaw, &createdAt); err != nil {
+			return domain.CommittedVoiceContext{}, fmt.Errorf("scan practice voice playback event: %w", err)
+		}
+		var payload storedAppendEventPayload
+		if err := json.Unmarshal(eventRaw, &payload); err != nil {
+			return domain.CommittedVoiceContext{}, fmt.Errorf("decode practice voice playback event: %w", err)
+		}
+		events = append(events, domain.VoicePlaybackEventRecord{
+			Kind:       strings.TrimSpace(kind),
+			OccurredAt: createdAt.Time,
+			Payload:    payload.RequestPayload,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return domain.CommittedVoiceContext{}, fmt.Errorf("iterate practice voice playback events: %w", err)
+	}
+	return domain.BuildCommittedVoiceContext(source, events), nil
+}
+
 func validatePracticeVoiceTurnRecord(in domain.PracticeVoiceTurnStoreInput, state appendSessionContext) error {
 	if isClosedSessionStatus(state.session.Status) {
 		return domain.ErrSessionConflict
@@ -168,6 +243,10 @@ type practiceVoiceTTSErrorPayload struct {
 	Code      string `json:"code"`
 	Message   string `json:"message"`
 	Retryable bool   `json:"retryable"`
+}
+
+type storedAppendEventPayload struct {
+	RequestPayload map[string]any `json:"requestPayload"`
 }
 
 func marshalPracticeVoiceTurnEventPayload(in domain.PracticeVoiceTurnStoreInput) ([]byte, error) {

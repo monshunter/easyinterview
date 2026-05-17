@@ -192,6 +192,7 @@ describe("practice voice turn controller (item 4.2)", () => {
       expect(eventBodies(calls).some((body) => body.kind === "tts_chunk_started"))
         .toBe(true),
     );
+    FakeAudioElement.instances[0]!.currentTime = 1.42;
 
     await user.click(screen.getByTestId("practice-voice-record-toggle"));
 
@@ -199,6 +200,18 @@ describe("practice voice turn controller (item 4.2)", () => {
       expect(eventBodies(calls).some((body) => body.kind === "barge_in_detected"))
         .toBe(true);
     });
+    const played = eventBodies(calls).find(
+      (body) => body.kind === "tts_chunk_played",
+    )!;
+    expect(played.payload).toEqual(
+      expect.objectContaining({
+        voiceTurnId: "01918fa0-0000-7000-8000-00000000f201",
+        chunkId: "voice-chunk-001",
+        playedTextHash: "sha256:voice-default-chunk-001",
+      }),
+    );
+    expect((played.payload as { playedTextLength?: number }).playedTextLength)
+      .toBeGreaterThan(0);
     const bargeIn = eventBodies(calls).find(
       (body) => body.kind === "barge_in_detected",
     )!;

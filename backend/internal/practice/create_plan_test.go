@@ -243,39 +243,41 @@ func TestServiceCreatePracticePlanRejectsMissingResume(t *testing.T) {
 }
 
 type recordingPlanStore struct {
-	last                  CreatePlanStoreInput
-	createErr             error
-	getRecord             PlanRecord
-	getErr                error
-	getUserID             string
-	getPlanID             string
-	listSessionsInput     ListSessionsInput
-	listSessionsResult    ListSessionsResult
-	listSessionsErr       error
-	getSessionRecord      SessionRecord
-	getSessionErr         error
-	getSessionUserID      string
-	getSessionID          string
-	eventReservationInput SessionEventReservationInput
-	eventReservation      SessionEventReservation
-	eventReserveErr       error
-	finalizeEventError    FinalizeSessionEventErrorInput
-	finalizeEventErrorErr error
-	appendEvent           AppendSessionEventStoreInput
-	appendEventErr        error
-	complete              CompleteSessionStoreInput
-	completeResult        CompleteSessionResult
-	completeErr           error
-	reservation           SessionReservation
-	reserveErr            error
-	commit                CommitSessionStartInput
-	commitErr             error
-	fail                  FailSessionStartInput
-	failErr               error
-	voiceTurn             PracticeVoiceTurnStoreInput
-	voiceTurnErr          error
-	steps                 []string
-	inTx                  bool
+	last                       CreatePlanStoreInput
+	createErr                  error
+	getRecord                  PlanRecord
+	getErr                     error
+	getUserID                  string
+	getPlanID                  string
+	listSessionsInput          ListSessionsInput
+	listSessionsResult         ListSessionsResult
+	listSessionsErr            error
+	getSessionRecord           SessionRecord
+	getSessionErr              error
+	getSessionUserID           string
+	getSessionID               string
+	eventReservationInput      SessionEventReservationInput
+	eventReservation           SessionEventReservation
+	eventReserveErr            error
+	finalizeEventError         FinalizeSessionEventErrorInput
+	finalizeEventErrorErr      error
+	appendEvent                AppendSessionEventStoreInput
+	appendEventErr             error
+	complete                   CompleteSessionStoreInput
+	completeResult             CompleteSessionResult
+	completeErr                error
+	reservation                SessionReservation
+	reserveErr                 error
+	commit                     CommitSessionStartInput
+	commitErr                  error
+	fail                       FailSessionStartInput
+	failErr                    error
+	voiceTurn                  PracticeVoiceTurnStoreInput
+	voiceTurnErr               error
+	committedContext           CommittedVoiceContext
+	loadCommittedContextCalled bool
+	steps                      []string
+	inTx                       bool
 }
 
 func (s *recordingPlanStore) CreatePlan(ctx context.Context, in CreatePlanStoreInput) (PlanRecord, error) {
@@ -470,6 +472,11 @@ func (s *recordingPlanStore) RecordPracticeVoiceTurn(ctx context.Context, in Pra
 		session.CurrentTurn = &turn
 	}
 	return session, nil
+}
+
+func (s *recordingPlanStore) LoadCommittedVoiceContext(ctx context.Context, userID, sessionID string) (CommittedVoiceContext, error) {
+	s.loadCommittedContextCalled = true
+	return s.committedContext, nil
 }
 
 func validCreatePlanRequest(mutators ...func(*CreatePlanRequest)) CreatePlanRequest {

@@ -2201,6 +2201,14 @@ func (s *scenarioPracticeStore) RecordPracticeVoiceTurn(_ context.Context, in do
 	return session.SessionRecord, nil
 }
 
+func (s *scenarioPracticeStore) LoadCommittedVoiceContext(_ context.Context, userID, sessionID string) (domainpractice.CommittedVoiceContext, error) {
+	session, ok := s.sessions[sessionID]
+	if !ok || session.UserID != userID {
+		return domainpractice.CommittedVoiceContext{}, domainpractice.ErrSessionNotFound
+	}
+	return domainpractice.CommittedVoiceContext{}, nil
+}
+
 func (s *scenarioPracticeStore) CompleteSession(_ context.Context, in domainpractice.CompleteSessionStoreInput) (domainpractice.CompleteSessionResult, error) {
 	session, ok := s.sessions[in.SessionID]
 	if !ok || session.UserID != in.UserID {
