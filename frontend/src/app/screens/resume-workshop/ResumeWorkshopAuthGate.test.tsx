@@ -178,6 +178,18 @@ describe("ResumeWorkshopScreen auth boundary", () => {
     expect(params.structuredProfile).toBeUndefined();
     expect(params.originalText).toBeUndefined();
     expect(params.suggestion).toBeUndefined();
+    // Plan 003 Phase 1.3: branch form draft must NEVER ride along on the
+    // pendingAction. After sign-in we restore route params only and re-render
+    // ResumeBranchFlow with empty form state, so the draft surface is never
+    // serialized into URL params, localStorage, or cookies.
+    expect(params.name).toBeUndefined();
+    expect(params.target).toBeUndefined();
+    expect(params.focus).toBeUndefined();
+    expect(params.seed).toBeUndefined();
+    expect(params.parentVersionId).toBeUndefined();
+    expect(params.displayName).toBeUndefined();
+    expect(params.focusAngle).toBeUndefined();
+    expect(params.seedStrategy).toBeUndefined();
   });
 
   it("renders the placeholder list (instead of the auth gate) when the runtime reports authenticated", async () => {

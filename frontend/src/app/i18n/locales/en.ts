@@ -614,6 +614,74 @@ export const en: LocaleMessages = {
   "resumeWorkshop.detail.modalLoading": "Loading original source...",
   "resumeWorkshop.detail.modalError":
     "Failed to load original source. Please retry.",
+  // ── Branch flow (plan 003) ──
+  "resumeWorkshop.branch.eyebrow": "NEW TARGETED VERSION",
+  "resumeWorkshop.branch.title":
+    "Branch a targeted version from this tree.",
+  "resumeWorkshop.branch.subtitle":
+    "The original file and the master stay untouched. Only this new version receives accepted rewrites.",
+  "resumeWorkshop.branch.back": "Back to resume workshop",
+  "resumeWorkshop.branch.fromLabel": "BRANCHING FROM",
+  "resumeWorkshop.branch.fromOriginalLabel": "Original",
+  "resumeWorkshop.branch.fromMasterLabel": "Master (parsed)",
+  "resumeWorkshop.branch.fromMasterHint":
+    "Stays pristine. Read-only source for the branch.",
+  "resumeWorkshop.branch.fromEmpty": "—",
+  "resumeWorkshop.branch.nameLabel": "VERSION NAME",
+  "resumeWorkshop.branch.namePlaceholder":
+    "e.g. v3 ByteDance - FE Platform",
+  "resumeWorkshop.branch.nameHint":
+    "Shown in the version list and on JD-match results.",
+  "resumeWorkshop.branch.targetLabel": "TARGET JOB / COMPANY",
+  "resumeWorkshop.branch.targetPlaceholder":
+    "e.g. ByteDance - Frontend Platform",
+  "resumeWorkshop.branch.targetHint":
+    "Anchors the JD-match score and the rewrite suggestions.",
+  "resumeWorkshop.branch.focusLabel": "FOCUS / ANGLE",
+  "resumeWorkshop.branch.focusHint":
+    "Used to bias rewrite suggestions for this version.",
+  "resumeWorkshop.branch.focus.platform": "Platform / infra angle",
+  "resumeWorkshop.branch.focus.collaboration": "Collaboration & impact",
+  "resumeWorkshop.branch.focus.fullstack": "Full-stack breadth",
+  "resumeWorkshop.branch.focus.leadership": "Tech leadership",
+  "resumeWorkshop.branch.focus.custom": "Custom — I'll write it",
+  "resumeWorkshop.branch.seedLabel": "HOW TO SEED BULLETS",
+  "resumeWorkshop.branch.seed.copy_master.label": "Start from master",
+  "resumeWorkshop.branch.seed.copy_master.desc":
+    "All bullets copied from the master. AI rewrites suggested per JD.",
+  "resumeWorkshop.branch.seed.blank.label": "Start blank",
+  "resumeWorkshop.branch.seed.blank.desc":
+    "Empty version. You write or accept rewrites bullet by bullet.",
+  "resumeWorkshop.branch.seed.ai_select.label": "AI picks bullets",
+  "resumeWorkshop.branch.seed.ai_select.desc":
+    "Match the JD against the master, keep top-N most relevant.",
+  "resumeWorkshop.branch.readyHint": "Ready to branch.",
+  "resumeWorkshop.branch.canSubmitHint":
+    "Fill in version name and target to continue.",
+  "resumeWorkshop.branch.cancel": "Cancel",
+  "resumeWorkshop.branch.submit": "Create version",
+  "resumeWorkshop.branch.submitting": "Creating...",
+  "resumeWorkshop.branch.loading": "Loading branching source...",
+  "resumeWorkshop.branch.notFound.title": "Source resume not found",
+  "resumeWorkshop.branch.notFound.body":
+    "This original resume may have been deleted or the link is no longer valid. Return to Resume Workshop to choose another source.",
+  "resumeWorkshop.branch.notFound.cta": "Back to list",
+  "resumeWorkshop.branch.missingId.title": "Missing source parameter",
+  "resumeWorkshop.branch.missingId.body":
+    "Branching needs an original resume selection. Return to Resume Workshop to pick one.",
+  "resumeWorkshop.branch.pendingLabel": "Resume branching after sign-in",
+  "resumeWorkshop.branch.toast.copyMaster": "Targeted version created",
+  "resumeWorkshop.branch.toast.blank": "Blank starter version created",
+  "resumeWorkshop.branch.toast.aiSelect":
+    "Targeted version created - AI is generating bullets",
+  "resumeWorkshop.branch.error.parentMissing":
+    "Source or target is unavailable - return and pick again",
+  "resumeWorkshop.branch.error.validation":
+    "Please review the form fields and retry.",
+  "resumeWorkshop.branch.error.idempotencyConflict":
+    "Previous submission is still pending - please retry shortly",
+  "resumeWorkshop.branch.error.generic":
+    "Could not create the version. Please retry.",
   // ── Practice screen (plan 002) ──
   "practice.toolbar.companySkeleton": "Target company",
   "practice.toolbar.titleSkeleton": "Target role",

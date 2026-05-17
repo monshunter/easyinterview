@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `feat(frontend-resume-workshop): add resume branch flow container` | #feat #ui #i18n #test #docs |
 | [2026-05-17](2026-05-17.md) | `docs(frontend-resume-workshop): complete branch rewrites phase 0 preflight` | #docs |
 | [2026-05-17](2026-05-17.md) | `docs(frontend-resume-workshop): align branch rewrite plan contracts` | #docs #ui |
 | [2026-05-17](2026-05-17.md) | `fix(frontend-resume-workshop): close create flow L2 gaps (BUG-0074)` | #fix #ui #test #docs |

@@ -38,7 +38,7 @@ describe("ResumeWorkshopScreen route param parsing", () => {
     expect(flow).toHaveAttribute("data-create-mode", "paste");
   });
 
-  it("dispatches flow=branch and preserves branchOriginalId", () => {
+  it("dispatches flow=branch to ResumeBranchFlow and preserves branchOriginalId", () => {
     renderResumeWorkshop({
       flow: "branch",
       branchOriginalId: "01918fa0-0000-7000-8000-000000001000",
@@ -49,7 +49,16 @@ describe("ResumeWorkshopScreen route param parsing", () => {
       "data-branch-original-id",
       "01918fa0-0000-7000-8000-000000001000",
     );
-    expect(screen.getByTestId("resume-workshop-not-implemented")).toBeInTheDocument();
+    const branchRoot = screen.getByTestId("resume-branch-flow");
+    expect(branchRoot).toBeInTheDocument();
+    expect(branchRoot).toHaveAttribute(
+      "data-branch-original-id",
+      "01918fa0-0000-7000-8000-000000001000",
+    );
+    // Phase 1: NotImplementedPlaceholder no longer participates in flow=branch.
+    expect(
+      screen.queryByTestId("resume-workshop-not-implemented"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders the detail container when versionId is set without an explicit tab", () => {
@@ -82,30 +91,33 @@ describe("ResumeWorkshopScreen route param parsing", () => {
   });
 });
 
-describe("ResumeWorkshopScreen NotImplementedPlaceholder", () => {
-  it("renders the placeholder for flow=branch alongside any branchOriginalId hint", () => {
+describe("ResumeWorkshopScreen flow=branch dispatch (plan 003)", () => {
+  it("renders ResumeBranchFlow for flow=branch and never falls back to NotImplementedPlaceholder", () => {
     renderResumeWorkshop({
       flow: "branch",
       branchOriginalId: "01918fa0-0000-7000-8000-000000001000",
     });
-    const placeholder = screen.getByTestId("resume-workshop-not-implemented");
-    expect(placeholder).toHaveAttribute("data-flow", "branch");
-    expect(placeholder).toHaveTextContent(/即将开放|coming soon/i);
-  });
-
-  it("does not render the placeholder when flow=create is in effect (CreateFlow takes over)", () => {
-    renderResumeWorkshop({ flow: "create" });
+    expect(screen.getByTestId("resume-branch-flow")).toBeInTheDocument();
     expect(
       screen.queryByTestId("resume-workshop-not-implemented"),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the missing-id fallback panel when flow=branch is opened without a branchOriginalId", () => {
+    renderResumeWorkshop({ flow: "branch" });
+    expect(screen.getByTestId("resume-branch-flow")).toBeInTheDocument();
+    expect(screen.getByTestId("resume-branch-missing-id")).toBeInTheDocument();
+  });
+
+  it("does not render ResumeBranchFlow when flow=create is in effect (CreateFlow takes over)", () => {
+    renderResumeWorkshop({ flow: "create" });
+    expect(screen.queryByTestId("resume-branch-flow")).not.toBeInTheDocument();
     expect(screen.getByTestId("resume-create-flow")).toBeInTheDocument();
   });
 
-  it("does not render the placeholder when flow=list is in effect (placeholder is opt-in via flow param)", () => {
+  it("does not render ResumeBranchFlow when flow=list is in effect", () => {
     renderResumeWorkshop({});
-    expect(
-      screen.queryByTestId("resume-workshop-not-implemented"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("resume-branch-flow")).not.toBeInTheDocument();
     expect(screen.getByTestId("resume-workshop-list")).toBeInTheDocument();
   });
 });

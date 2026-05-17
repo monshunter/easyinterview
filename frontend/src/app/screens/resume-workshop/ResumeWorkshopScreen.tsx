@@ -2,6 +2,7 @@ import type { FC } from "react";
 
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import type { Route } from "../../routes";
+import { ResumeBranchFlow } from "./branch/ResumeBranchFlow";
 import { NotImplementedPlaceholder } from "./components/NotImplementedPlaceholder";
 import { ResumeDetailView } from "./components/ResumeDetailView";
 import { ResumeListView } from "./components/ResumeListView";
@@ -43,7 +44,7 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
   } else if (params.flow === "create") {
     body = <ResumeCreateFlow initialMode={params.createMode ?? undefined} />;
   } else if (params.flow === "branch") {
-    body = <NotImplementedPlaceholder flow={params.flow} />;
+    body = <ResumeBranchFlow branchOriginalId={params.branchOriginalId} />;
   } else if (params.versionId) {
     body = (
       <DetailWrapper versionId={params.versionId} tab={params.tab} />

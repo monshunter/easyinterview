@@ -584,6 +584,65 @@ export const zh = {
     "原始简历只读保存。编辑和 JD 定制改写会生成旁路版本，不覆盖原件。",
   "resumeWorkshop.detail.modalLoading": "加载原件来源中…",
   "resumeWorkshop.detail.modalError": "加载原件来源失败，请重试。",
+  // ── Branch flow (plan 003) ──
+  "resumeWorkshop.branch.eyebrow": "新建定制版本",
+  "resumeWorkshop.branch.title": "从这棵树分叉一个面向岗位的定制版本。",
+  "resumeWorkshop.branch.subtitle":
+    "原始文件与主版本保持不变；后续采纳的改写只写入这个新版本。",
+  "resumeWorkshop.branch.back": "返回简历工坊",
+  "resumeWorkshop.branch.fromLabel": "底稿来源",
+  "resumeWorkshop.branch.fromOriginalLabel": "原始简历",
+  "resumeWorkshop.branch.fromMasterLabel": "主版本（解析自原始）",
+  "resumeWorkshop.branch.fromMasterHint": "保持干净，作为分叉的只读来源。",
+  "resumeWorkshop.branch.fromEmpty": "—",
+  "resumeWorkshop.branch.nameLabel": "版本名称",
+  "resumeWorkshop.branch.namePlaceholder": "例如：v3 字节-前端平台",
+  "resumeWorkshop.branch.nameHint": "会显示在版本列表和岗位匹配结果中。",
+  "resumeWorkshop.branch.targetLabel": "目标岗位 / 公司",
+  "resumeWorkshop.branch.targetPlaceholder": "例如：字节跳动 · 前端平台",
+  "resumeWorkshop.branch.targetHint": "用于锚定 JD 匹配分数与后续改写建议。",
+  "resumeWorkshop.branch.focusLabel": "侧重方向",
+  "resumeWorkshop.branch.focusHint": "用于影响这个版本的改写建议倾向。",
+  "resumeWorkshop.branch.focus.platform": "前端平台 / 基建方向",
+  "resumeWorkshop.branch.focus.collaboration": "协作影响力",
+  "resumeWorkshop.branch.focus.fullstack": "全栈广度",
+  "resumeWorkshop.branch.focus.leadership": "技术 Lead 视角",
+  "resumeWorkshop.branch.focus.custom": "自定义",
+  "resumeWorkshop.branch.seedLabel": "Bullet 初始化方式",
+  "resumeWorkshop.branch.seed.copy_master.label": "从主版本复制",
+  "resumeWorkshop.branch.seed.copy_master.desc":
+    "全量复制主版本 bullet，按岗位生成改写建议。",
+  "resumeWorkshop.branch.seed.blank.label": "空白起步",
+  "resumeWorkshop.branch.seed.blank.desc":
+    "空白版本，逐条人工撰写或采纳建议。",
+  "resumeWorkshop.branch.seed.ai_select.label": "AI 选 bullet",
+  "resumeWorkshop.branch.seed.ai_select.desc":
+    "用 JD 对齐主版本，保留最相关的 N 条。",
+  "resumeWorkshop.branch.readyHint": "准备就绪，可以分叉。",
+  "resumeWorkshop.branch.canSubmitHint": "填写版本名称与目标岗位后继续。",
+  "resumeWorkshop.branch.cancel": "取消",
+  "resumeWorkshop.branch.submit": "创建版本",
+  "resumeWorkshop.branch.submitting": "创建中…",
+  "resumeWorkshop.branch.loading": "加载底稿来源中…",
+  "resumeWorkshop.branch.notFound.title": "未找到该简历来源",
+  "resumeWorkshop.branch.notFound.body":
+    "该原始简历可能已删除，或链接已失效，请返回简历工坊重新选择。",
+  "resumeWorkshop.branch.notFound.cta": "返回列表",
+  "resumeWorkshop.branch.missingId.title": "缺少底稿参数",
+  "resumeWorkshop.branch.missingId.body":
+    "进入分叉流程需要选择一份原始简历，请回到简历工坊重新选择。",
+  "resumeWorkshop.branch.pendingLabel": "登录后继续分叉简历",
+  "resumeWorkshop.branch.toast.copyMaster": "已创建定制版本",
+  "resumeWorkshop.branch.toast.blank": "已创建空白起步版本",
+  "resumeWorkshop.branch.toast.aiSelect":
+    "已创建定制版本 · AI 正在生成 bullet",
+  "resumeWorkshop.branch.error.parentMissing":
+    "底稿来源或目标岗位不可用 · 请返回上一步",
+  "resumeWorkshop.branch.error.validation":
+    "请检查表单字段并重试。",
+  "resumeWorkshop.branch.error.idempotencyConflict":
+    "上一次提交还在处理 · 请稍后重试",
+  "resumeWorkshop.branch.error.generic": "创建版本失败，请重试。",
   // ── Practice screen (plan 002) ──
   "practice.toolbar.companySkeleton": "目标公司",
   "practice.toolbar.titleSkeleton": "目标岗位",

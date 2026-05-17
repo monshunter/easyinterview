@@ -26,11 +26,17 @@
 
 ## Phase 1: ResumeBranchFlow 容器 + 路由 + auth gate
 
-- [ ] 1.1 修订 `frontend/src/app/screens/resume-workshop/ResumeWorkshopScreen.tsx`：`flow === 'branch'` 时渲染 `ResumeBranchFlow`，传入 `original` + `master` 上下文（验证：Vitest + grep `flow.*branch.*ResumeBranchFlow`）
-- [ ] 1.2 实现 `frontend/src/app/screens/resume-workshop/branch/ResumeBranchFlow.tsx`：源级复刻 UI 真理源 Header + BRANCHING FROM 卡 + form fields + actions；表单 state + 校验 + canSubmit；至少 ≥ 8 case Vitest PASS
-- [ ] 1.3 auth gate：未登录访问 `resume_versions?flow=branch&branchOriginalId={id}` 渲染 auth gate；pendingAction 仅携带 `{ flow: 'branch', branchOriginalId }`，不含 form draft（验证：Vitest mock client 0 个 protected API + pendingAction 字段集合断言）
-- [ ] 1.4 originalId 解析：复用 plan 001 `listResumes` + `listResumeVersions` 拿到 `original` 与 MASTER `version`；cross-user / not-found → NotFound CTA（验证：Vitest）
-- [ ] 1.5 i18n key 空间脚手架 `resumeWorkshop.branch.*` 初始化在 en/zh（验证：切换不报错）
+- [x] 1.1 修订 `frontend/src/app/screens/resume-workshop/ResumeWorkshopScreen.tsx`：`flow === 'branch'` 时渲染 `ResumeBranchFlow`，传入 `original` + `master` 上下文（验证：Vitest + grep `flow.*branch.*ResumeBranchFlow`）
+  <!-- verified: 2026-05-17 method=vitest evidence=ResumeWorkshopScreen.tsx dispatches flow=branch -> <ResumeBranchFlow branchOriginalId={params.branchOriginalId} /> + ResumeWorkshopScreen.test.tsx asserts resume-branch-flow testid replaces resume-workshop-not-implemented for branch flow (11 tests PASS) -->
+- [x] 1.2 实现 `frontend/src/app/screens/resume-workshop/branch/ResumeBranchFlow.tsx`：源级复刻 UI 真理源 Header + BRANCHING FROM 卡 + form fields + actions；表单 state + 校验 + canSubmit；至少 ≥ 8 case Vitest PASS
+  <!-- verified: 2026-05-17 method=vitest evidence=branch/ResumeBranchFlow.tsx mirrors ui-design/src/screen-resume-workshop.jsx L1018-1195 with back button + eyebrow + h1 + subtitle + BRANCHING FROM 2-col card + name/target inputs + 5 focus chips + 3 seed cards + submit hint + cancel/create actions; ResumeBranchFlow.test.tsx 11 cases PASS (missing-id, not-found, ready, back nav, defaults, canSubmit, whitespace trim, focus toggle, seed toggle, onSubmitDraft payload, no-protected-call missing-id) -->
+- [x] 1.3 auth gate：未登录访问 `resume_versions?flow=branch&branchOriginalId={id}` 渲染 auth gate；pendingAction 仅携带 `{ flow: 'branch', branchOriginalId }`，不含 form draft（验证：Vitest mock client 0 个 protected API + pendingAction 字段集合断言）
+  <!-- verified: 2026-05-17 method=vitest evidence=ResumeWorkshopAuthGate.test.tsx asserts protected API spies (listResumes/listResumeVersions/getResumeVersion/exportResumeVersion) not called when unauth + flow=branch; pendingAction.params contains only {pendingRoute, pendingType, pendingLabel, flow, branchOriginalId, versionId, tab} and explicitly negative-asserts {rawText, parsedTextSnapshot, parsedSummary, structuredProfile, originalText, suggestion, name, target, focus, seed, parentVersionId, displayName, focusAngle, seedStrategy} are undefined -->
+- [x] 1.4 originalId 解析：复用 plan 001 `listResumes` + `listResumeVersions` 拿到 `original` 与 MASTER `version`；cross-user / not-found → NotFound CTA（验证：Vitest）
+  <!-- verified: 2026-05-17 method=vitest evidence=branch/useResumeBranchSource.ts composes useResumeAssets + useResumeVersions(branchOriginalId) and findMaster filters versionType==='structured_master' (per shared conventions §5.14); ResumeBranchFlow.test.tsx asserts missing-id panel + not-found panel for unknown asset id + ready state for fixture default asset 01918fa0-0000-7000-8000-000000001000 -->
+- [x] 1.5 i18n key 空间脚手架 `resumeWorkshop.branch.*` 初始化在 en/zh（验证：切换不报错）
+  <!-- verified: 2026-05-17 method=vitest evidence=zh.ts + en.ts add 37 keys under resumeWorkshop.branch.* (eyebrow/title/subtitle/back/from*/name*/target*/focus*/seed*/cta*/loading/notFound/missingId/pendingLabel/toast*/error*); pnpm typecheck PASS validates LocaleMessages key parity between zh/en -->
+
 
 ## Phase 2: branchResumeVersion 三 seedStrategy 提交 + IK + nav 行为
 
