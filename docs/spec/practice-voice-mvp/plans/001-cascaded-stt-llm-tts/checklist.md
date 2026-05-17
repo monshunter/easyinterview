@@ -31,7 +31,7 @@
 
 ## Phase 4: Frontend voice controller
 
-- [ ] 4.1 在 `PracticeScreen` 内复刻 ui-design 语音 Surface，并删除 / 反转 `VoiceSurfaceComingSoon` placeholder 语义；验证: source-structure parity tests + visual geometry / existing pixel parity gate 覆盖 `practice-voice-waveform`、`practice-voice-annotated-waveform`、`practice-voice-expression-panel`，且不新增 `voice` route
+- [x] 4.1 在 `PracticeScreen` 内复刻 ui-design 语音 Surface，并删除 / 反转 `VoiceSurfaceComingSoon` placeholder 语义；验证: source-structure parity tests + visual geometry / existing pixel parity gate 覆盖 `practice-voice-waveform`、`practice-voice-annotated-waveform`、`practice-voice-expression-panel`，且不新增 `voice` route；证据: `pnpm --dir frontend test src/app/screens/practice/PracticeScreen.test.tsx src/app/screens/practice/__tests__/practiceModeSwitch.test.tsx src/app/App.test.tsx src/app/screens/practice/__tests__/legacyNegative.test.ts`、`pnpm --dir frontend typecheck`、`pnpm --dir frontend build`、`pnpm --dir frontend test:pixel-parity tests/pixel-parity/practice.spec.ts --grep "voice mode"`
 - [ ] 4.2 实现音频采集、voice turn 提交、transcript 展示和文本 fallback；验证: frontend component/controller tests 使用 fixtures/stub
 - [ ] 4.3 实现 TTS 播放、播放完成回报、barge-in 停止播放；验证: frontend tests 覆盖 played chunk 上报、用户插话、TTS error fallback
 

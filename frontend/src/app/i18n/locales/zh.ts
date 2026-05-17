@@ -497,10 +497,6 @@ export const zh = {
   "practice.rightpanel.aiTransparency": "AI 透明度",
   "practice.rightpanel.finishCta": "结束并生成报告",
   "practice.rightpanel.hintUsageNote": "使用过 {count} 次提示 · 将在报告中标记",
-  "practice.voiceComingSoon.title": "语音 surface 即将上线",
-  "practice.voiceComingSoon.desc":
-    "语音模式正在打磨，先用文本模式开始面试；语音上线后可在顶部切换。",
-  "practice.voiceComingSoon.backToText": "切回文本模式",
   "practice.sessionLost.title": "会话已结束或不存在",
   "practice.sessionLost.desc":
     "这场模拟面试已经结束、被取消，或者从未启动过。回到面试规划重新开始。",

@@ -203,10 +203,31 @@ test.describe("practice screen DOM and geometry parity", () => {
     expect(right.right).toBeLessThanOrEqual(viewport!.width + 1);
   });
 
-  test("voice mode uses scoped placeholder and does not render voice surface DOM", async ({ page }) => {
+  test("voice mode renders ui-design voice surface anchors and keeps them in the viewport", async ({ page }) => {
     await goToPractice(page, { mode: "voice", modality: "voice" });
-    await expect(page.locator("[data-testid='practice-voice-coming-soon']")).toHaveCount(1);
-    await expect(page.locator("[data-testid*='waveform']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='practice-voice-coming-soon']")).toHaveCount(0);
+    for (const id of [
+      "practice-voice-surface",
+      "practice-voice-waveform",
+      "practice-voice-annotated-waveform",
+      "practice-voice-live-transcript",
+      "practice-voice-expression-panel",
+    ]) {
+      await expect(page.locator(`[data-testid='${id}']`), id).toHaveCount(1);
+    }
+
+    const viewport = page.viewportSize();
+    expect(viewport).toBeTruthy();
+    for (const selector of [
+      "[data-testid='practice-voice-waveform']",
+      "[data-testid='practice-voice-annotated-waveform']",
+      "[data-testid='practice-voice-expression-panel']",
+    ]) {
+      const rect = await rectOf(page, selector);
+      expect(rect.left, selector).toBeGreaterThanOrEqual(-1);
+      expect(rect.right, selector).toBeLessThanOrEqual(viewport!.width + 1);
+      expect(rect.height, selector).toBeGreaterThan(24);
+    }
   });
 
   test("dark mode and custom accent visibly change computed values", async ({ page }) => {

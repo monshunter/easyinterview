@@ -160,18 +160,21 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     expect(screen.queryByTestId("mistakes-queue-list")).toBeNull();
   });
 
-  it("renders VoiceSurfaceComingSoon placeholder when mode='voice'", () => {
+  it("renders the ui-design voice surface anchors when mode='voice'", () => {
     const voiceRoute: Route = {
       ...PRACTICE_ROUTE,
       params: { ...PRACTICE_ROUTE.params, mode: "voice", modality: "voice" },
     };
     withProviders(<PracticeScreen route={voiceRoute} />);
-    expect(screen.getByTestId("practice-voice-coming-soon")).toBeDefined();
-    expect(screen.getByTestId("practice-voice-coming-soon-back-to-text")).toBeDefined();
-    // Even in voice mode, voice surface DOM must not leak in.
-    expect(screen.queryByTestId("practice-voice-waveform")).toBeNull();
-    expect(screen.queryByTestId("practice-voice-annotated-waveform")).toBeNull();
-    expect(screen.queryByTestId("practice-voice-expression-panel")).toBeNull();
+    expect(screen.queryByTestId("practice-voice-coming-soon")).toBeNull();
+    expect(screen.getByTestId("practice-voice-surface")).toBeDefined();
+    expect(screen.getByTestId("practice-voice-waveform")).toBeDefined();
+    expect(screen.getByTestId("practice-voice-annotated-waveform")).toBeDefined();
+    expect(screen.getByTestId("practice-voice-live-transcript")).toBeDefined();
+    expect(screen.getByTestId("practice-voice-expression-panel")).toBeDefined();
+    expect(screen.getByTestId("practice-topbar-live").style.visibility).toBe(
+      "visible",
+    );
   });
 
   it("renders PracticeSessionLostState when sessionId is missing", () => {

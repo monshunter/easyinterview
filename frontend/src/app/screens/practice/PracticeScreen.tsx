@@ -26,7 +26,8 @@ import { InputBar } from "./components/InputBar";
 import { HintBanner } from "./components/HintBanner";
 import { RightPanel } from "./components/RightPanel";
 import { FinishCta } from "./components/FinishCta";
-import { VoiceSurfaceComingSoon } from "./components/VoiceSurfaceComingSoon";
+import { PracticeVoiceSurface } from "./components/PracticeVoiceSurface";
+import { PracticeVoiceRightPanel } from "./components/PracticeVoiceRightPanel";
 import { PracticeSessionLostState } from "./components/PracticeSessionLostState";
 import { ErrorState } from "./components/ErrorState";
 import { AssistantActionRenderer } from "./components/AssistantActionRenderer";
@@ -487,6 +488,18 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const turnTotal = loader.data?.turnCount ?? sessionMapItems.length;
   const currentTurn = loader.data?.currentTurn;
   const hintCount = Number(ctx.hintCount) || 0;
+  const finishCta = (
+    <FinishCta
+      label={t("practice.rightpanel.finishCta")}
+      hintCount={hintCount}
+      hintUsageNote={t("practice.rightpanel.hintUsageNote")}
+      disabled={
+        sessionFlags.completionCtaDisabled ||
+        completion.state.kind === "loading"
+      }
+      onFinish={onFinish}
+    />
+  );
 
   return (
     <div
@@ -593,11 +606,22 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
           style={{ display: "flex", flexDirection: "column", minHeight: 0 }}
         >
           {activeMode === "voice" ? (
-            <VoiceSurfaceComingSoon
-              title={t("practice.voiceComingSoon.title")}
-              desc={t("practice.voiceComingSoon.desc")}
-              backLabel={t("practice.voiceComingSoon.backToText")}
-              onBackToText={() => handleSwitchMode("text")}
+            <PracticeVoiceSurface
+              lang={lang}
+              questionBadge={t("practice.question.tagPrefix").replace(
+                "{n}",
+                String(currentTurn?.turnIndex ?? 1),
+              )}
+              topic={
+                currentTurn?.questionIntent ??
+                t("practice.sessionMap.itemTopicSkeleton")
+              }
+              prompt={
+                currentTurn?.questionText ??
+                t("practice.question.skeletonPrompt")
+              }
+              recording={!paused}
+              messages={transcript}
             />
           ) : (
             <>
@@ -675,35 +699,40 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
           )}
         </div>
 
-        <RightPanel
-          jdLinkLabel={t("practice.rightpanel.jdLink")}
-          jdProbesLabel={t("practice.rightpanel.jdProbes")}
-          jdProbesText={t("practice.rightpanel.jdProbesSkeleton")}
-          experienceLabel={t("practice.rightpanel.experienceLabel")}
-          aiTransparencyLabel={t("practice.rightpanel.aiTransparency")}
-          aiTransparencyMeta={{
-            promptVersion: aiTransparency?.promptVersion ?? "pending",
-            rubricVersion: aiTransparency?.rubricVersion ?? "pending",
-            modelId: aiTransparency?.modelId ?? "model-profile:pending",
-            language: aiTransparency?.language ?? lang,
-            personaLabel: t(PERSONA_LABEL_KEY[persona]),
-          }}
-          strict={isStrict}
-          strictBannerText={t("practice.rightpanel.strictBanner")}
-          experiences={[]}
-          finishCta={
-            <FinishCta
-              label={t("practice.rightpanel.finishCta")}
-              hintCount={hintCount}
-              hintUsageNote={t("practice.rightpanel.hintUsageNote")}
-              disabled={
-                sessionFlags.completionCtaDisabled ||
-                completion.state.kind === "loading"
-              }
-              onFinish={onFinish}
-            />
-          }
-        />
+        {activeMode === "voice" ? (
+          <PracticeVoiceRightPanel
+            lang={lang}
+            strict={isStrict}
+            aiTransparencyLabel={t("practice.rightpanel.aiTransparency")}
+            aiTransparencyMeta={{
+              promptVersion: aiTransparency?.promptVersion ?? "pending",
+              rubricVersion: aiTransparency?.rubricVersion ?? "pending",
+              modelId: aiTransparency?.modelId ?? "model-profile:pending",
+              language: aiTransparency?.language ?? lang,
+              personaLabel: t(PERSONA_LABEL_KEY[persona]),
+            }}
+            finishCta={finishCta}
+          />
+        ) : (
+          <RightPanel
+            jdLinkLabel={t("practice.rightpanel.jdLink")}
+            jdProbesLabel={t("practice.rightpanel.jdProbes")}
+            jdProbesText={t("practice.rightpanel.jdProbesSkeleton")}
+            experienceLabel={t("practice.rightpanel.experienceLabel")}
+            aiTransparencyLabel={t("practice.rightpanel.aiTransparency")}
+            aiTransparencyMeta={{
+              promptVersion: aiTransparency?.promptVersion ?? "pending",
+              rubricVersion: aiTransparency?.rubricVersion ?? "pending",
+              modelId: aiTransparency?.modelId ?? "model-profile:pending",
+              language: aiTransparency?.language ?? lang,
+              personaLabel: t(PERSONA_LABEL_KEY[persona]),
+            }}
+            strict={isStrict}
+            strictBannerText={t("practice.rightpanel.strictBanner")}
+            experiences={[]}
+            finishCta={finishCta}
+          />
+        )}
       </div>
 
       <AssistantActionRenderer

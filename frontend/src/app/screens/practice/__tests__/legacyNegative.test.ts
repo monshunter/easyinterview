@@ -39,17 +39,15 @@ describe("practice legacy-negative gates (Phase 5)", () => {
     );
   });
 
-  it("keeps retired prototype data, voice surface, and route/testid names out of runtime code", () => {
+  it("keeps retired prototype data, placeholder semantics, and route names out of runtime code", () => {
     const text = runtimeText();
     expect(text).not.toMatch(/ui-design\/src\/data|window\.EI_DATA/);
     expect(text).not.toMatch(
       /VoiceSessionSurface|PracticeWaveformBars|PracticeAnnotatedWaveform|VoiceExpressionPanel/,
     );
+    expect(text).not.toMatch(/VoiceSurfaceComingSoon|practice-voice-coming-soon/);
     expect(text).not.toMatch(
       /practice-mode-card-|growth-summary|drill-builder-|mistakes-queue-/,
-    );
-    expect(text).not.toMatch(
-      /data-testid="practice-voice-(?!coming-soon)/,
     );
     expect(text).not.toMatch(/practiceMode\s*[=:]\s*['"]debrief['"]/);
     expect(text).not.toMatch(/切到语音|Switch to voice/);
