@@ -155,6 +155,59 @@ type BranchVersionResult struct {
 	JobUpdatedAt time.Time
 }
 
+type CreateTailorRunInput struct {
+	TailorRunID   string
+	JobID         string
+	UserID        string
+	TargetJobID   string
+	ResumeAssetID string
+	Mode          string
+	DedupeKey     string
+	Now           time.Time
+}
+
+type CreateTailorRunResult struct {
+	TailorRunID  string
+	JobID        string
+	JobStatus    sharedtypes.JobStatus
+	JobCreatedAt time.Time
+	JobUpdatedAt time.Time
+}
+
+type TailorRunRecord struct {
+	ID            string
+	UserID        string
+	TargetJobID   string
+	ResumeAssetID string
+	Mode          string
+	Status        string
+	MatchSummary  json.RawMessage
+	Suggestions   json.RawMessage
+	Provenance    VersionProvenance
+	ErrorCode     *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type TailorRunStatusInput struct {
+	TailorRunID string
+	Now         time.Time
+}
+
+type TailorRunReadyInput struct {
+	TailorRunID  string
+	MatchSummary json.RawMessage
+	Suggestions  json.RawMessage
+	Provenance   VersionProvenance
+	Now          time.Time
+}
+
+type TailorRunFailureInput struct {
+	TailorRunID string
+	ErrorCode   string
+	Now         time.Time
+}
+
 type ListFilter struct {
 	Cursor   string
 	PageSize int

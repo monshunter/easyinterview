@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -298,6 +299,131 @@ func TestBranchVersionInsertStrategiesCrossUserAndRollback(t *testing.T) {
 	}
 	if versionCount != 0 || runCount != 0 {
 		t.Fatalf("rollback left rows: version=%d run=%d", versionCount, runCount)
+	}
+}
+
+func TestResumeTailorRunStoreStateTransitionsIsolationAndClaim(t *testing.T) {
+	db := openResumeStoreTestDB(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	repo := resumestore.NewRepository(db)
+	base := time.Date(2026, 5, 18, 10, 30, 0, 0, time.UTC)
+	userA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf6a001"
+	userB := "0195f2d0-4a44-7fc2-8f77-1f9c4cf6a002"
+	assetA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf6a003"
+	targetA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf6a004"
+	targetB := "0195f2d0-4a44-7fc2-8f77-1f9c4cf6a005"
+	t.Cleanup(func() { cleanupResumeStoreUsers(t, db, userA, userB) })
+
+	mustExec(t, ctx, db, `insert into users(id, email, status) values ($1, 'resume-tailor-a@example.com', 'active'), ($2, 'resume-tailor-b@example.com', 'active')`, userA, userB)
+	mustExec(t, ctx, db, `insert into resume_assets(id, user_id, title, language, parse_status) values ($1, $2, 'Ready Resume', 'en', 'ready')`, assetA, userA)
+	mustExec(t, ctx, db, `insert into target_jobs(id, user_id, source_type, analysis_status) values ($1, $2, 'manual_text', 'ready'), ($3, $4, 'manual_text', 'ready')`, targetA, userA, targetB, userB)
+
+	created, err := repo.CreateTailorRun(ctx, resumestore.CreateTailorRunInput{
+		TailorRunID:   "0195f2d0-4a44-7fc2-8f77-1f9c4cf6b001",
+		JobID:         "0195f2d0-4a44-7fc2-8f77-1f9c4cf6c001",
+		UserID:        userA,
+		TargetJobID:   targetA,
+		ResumeAssetID: assetA,
+		Mode:          "gap_review",
+		DedupeKey:     "dedupe-tailor-1",
+		Now:           base,
+	})
+	if err != nil {
+		t.Fatalf("CreateTailorRun: %v", err)
+	}
+	if created.TailorRunID == "" || created.JobID == "" || created.JobStatus != sharedtypes.JobStatusQueued {
+		t.Fatalf("create result = %+v", created)
+	}
+	got, err := repo.GetTailorRun(ctx, userA, created.TailorRunID)
+	if err != nil {
+		t.Fatalf("GetTailorRun: %v", err)
+	}
+	if got.Status != "queued" || got.Mode != "gap_review" || got.TargetJobID != targetA || got.ResumeAssetID != assetA {
+		t.Fatalf("queued run = %+v", got)
+	}
+	if _, err := repo.GetTailorRun(ctx, userB, created.TailorRunID); !errors.Is(err, resumestore.ErrTailorRunNotFound) {
+		t.Fatalf("cross-user get err = %v, want ErrTailorRunNotFound", err)
+	}
+	if _, err := repo.CreateTailorRun(ctx, resumestore.CreateTailorRunInput{TailorRunID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6b002", JobID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6c002", UserID: userB, TargetJobID: targetA, ResumeAssetID: assetA, Mode: "gap_review", Now: base}); !errors.Is(err, resumestore.ErrAssetNotFound) {
+		t.Fatalf("cross-user asset/target err = %v, want ErrAssetNotFound", err)
+	}
+	if _, err := repo.CreateTailorRun(ctx, resumestore.CreateTailorRunInput{TailorRunID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6b003", JobID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6c003", UserID: userA, TargetJobID: targetB, ResumeAssetID: assetA, Mode: "gap_review", Now: base}); !errors.Is(err, resumestore.ErrAssetNotFound) {
+		t.Fatalf("foreign target err = %v, want ErrAssetNotFound", err)
+	}
+
+	generating, err := repo.MarkTailorRunGenerating(ctx, resumestore.TailorRunStatusInput{TailorRunID: created.TailorRunID, Now: base.Add(time.Minute)})
+	if err != nil {
+		t.Fatalf("MarkTailorRunGenerating: %v", err)
+	}
+	if generating.Status != "generating" {
+		t.Fatalf("generating status = %+v", generating)
+	}
+	if _, err := repo.MarkTailorRunGenerating(ctx, resumestore.TailorRunStatusInput{TailorRunID: created.TailorRunID, Now: base.Add(2 * time.Minute)}); !errors.Is(err, resumestore.ErrInvalidStateTransition) {
+		t.Fatalf("second generating err = %v, want ErrInvalidStateTransition", err)
+	}
+
+	ready, err := repo.MarkTailorRunReady(ctx, resumestore.TailorRunReadyInput{
+		TailorRunID:  created.TailorRunID,
+		MatchSummary: json.RawMessage(`{"strengths":["Strong systems evidence"],"gaps":["Add edge runtime detail"]}`),
+		Suggestions:  json.RawMessage(`[{"originalBullet":"Led migration.","suggestedBullet":"Led migration across 12 teams.","reason":"Adds scope."}]`),
+		Provenance: resumestore.VersionProvenance{
+			PromptVersion: "resume_tailor.v2", RubricVersion: "not_applicable", ModelID: "model-profile:contract.default", Provider: "stub", Language: "zh-CN", FeatureFlag: "none", DataSourceVersion: "target_job.v17",
+		},
+		Now: base.Add(3 * time.Minute),
+	})
+	if err != nil {
+		t.Fatalf("MarkTailorRunReady: %v", err)
+	}
+	if ready.Status != "ready" || string(ready.MatchSummary) == "{}" || string(ready.Suggestions) == "[]" || ready.Provenance.PromptVersion != "resume_tailor.v2" {
+		t.Fatalf("ready run = %+v", ready)
+	}
+
+	failedIn := resumestore.CreateTailorRunInput{TailorRunID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6b004", JobID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6c004", UserID: userA, TargetJobID: targetA, ResumeAssetID: assetA, Mode: "bullet_suggestions", Now: base.Add(4 * time.Minute)}
+	failedCreated, err := repo.CreateTailorRun(ctx, failedIn)
+	if err != nil {
+		t.Fatalf("CreateTailorRun failed path: %v", err)
+	}
+	if _, err := repo.MarkTailorRunGenerating(ctx, resumestore.TailorRunStatusInput{TailorRunID: failedCreated.TailorRunID, Now: base.Add(5 * time.Minute)}); err != nil {
+		t.Fatalf("MarkTailorRunGenerating failed path: %v", err)
+	}
+	failed, err := repo.MarkTailorRunFailed(ctx, resumestore.TailorRunFailureInput{TailorRunID: failedCreated.TailorRunID, ErrorCode: "AI_OUTPUT_INVALID", Now: base.Add(6 * time.Minute)})
+	if err != nil {
+		t.Fatalf("MarkTailorRunFailed: %v", err)
+	}
+	if failed.Status != "failed" || failed.ErrorCode == nil || *failed.ErrorCode != "AI_OUTPUT_INVALID" {
+		t.Fatalf("failed run = %+v", failed)
+	}
+
+	concurrent, err := repo.CreateTailorRun(ctx, resumestore.CreateTailorRunInput{TailorRunID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6b005", JobID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6c005", UserID: userA, TargetJobID: targetA, ResumeAssetID: assetA, Mode: "gap_review", Now: base.Add(7 * time.Minute)})
+	if err != nil {
+		t.Fatalf("CreateTailorRun concurrent path: %v", err)
+	}
+	var wg sync.WaitGroup
+	errs := make(chan error, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func(offset int) {
+			defer wg.Done()
+			_, err := repo.MarkTailorRunGenerating(ctx, resumestore.TailorRunStatusInput{TailorRunID: concurrent.TailorRunID, Now: base.Add(time.Duration(8+offset) * time.Minute)})
+			errs <- err
+		}(i)
+	}
+	wg.Wait()
+	close(errs)
+	successes := 0
+	for err := range errs {
+		if err == nil {
+			successes++
+			continue
+		}
+		if !errors.Is(err, resumestore.ErrInvalidStateTransition) {
+			t.Fatalf("concurrent claim err = %v, want ErrInvalidStateTransition", err)
+		}
+	}
+	if successes != 1 {
+		t.Fatalf("concurrent successful claims = %d, want 1", successes)
 	}
 }
 

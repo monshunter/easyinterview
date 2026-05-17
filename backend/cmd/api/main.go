@@ -337,9 +337,17 @@ func buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader *config.Loader
 		if resume.Idempotency != nil {
 			branchResumeVersion = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "branchResumeVersion", requestUserFromContext, branchResumeVersion)).ServeHTTP
 		}
+		requestResumeTailor := http.HandlerFunc(resume.Handler.RequestResumeTailor)
+		if resume.Idempotency != nil {
+			requestResumeTailor = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "requestResumeTailor", requestUserFromContext, requestResumeTailor)).ServeHTTP
+		}
 		mux.Handle("GET /api/v1/resumes", auth.SessionMiddleware(authService, "listResumes", http.HandlerFunc(resume.Handler.ListResumes)))
 		mux.Handle("POST /api/v1/resumes", auth.SessionMiddleware(authService, "registerResume", registerResume))
 		mux.Handle("POST /api/v1/resume-versions", auth.SessionMiddleware(authService, "branchResumeVersion", branchResumeVersion))
+		mux.Handle("POST /api/v1/resume/tailor", auth.SessionMiddleware(authService, "requestResumeTailor", requestResumeTailor))
+		mux.Handle("GET /api/v1/resume/tailor-runs/{tailorRunId}", auth.SessionMiddleware(authService, "getResumeTailorRun", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.GetResumeTailorRun(w, r, r.PathValue("tailorRunId"))
+		})))
 		mux.Handle("GET /api/v1/resumes/{resumeAssetId}", auth.SessionMiddleware(authService, "getResume", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resume.Handler.GetResume(w, r, r.PathValue("resumeAssetId"))
 		})))

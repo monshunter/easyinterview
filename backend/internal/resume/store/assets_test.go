@@ -110,6 +110,11 @@ func TestRepositoryExposesResumeAssetMethods(t *testing.T) {
 		ListVersionsByAsset(context.Context, string, string, resumestore.VersionListFilter) (resumestore.VersionListResult, error)
 		UpdateVersionPatch(context.Context, resumestore.VersionUpdateInput) (resumestore.VersionRecord, error)
 		BranchFromParent(context.Context, resumestore.BranchVersionInput) (resumestore.BranchVersionResult, error)
+		CreateTailorRun(context.Context, resumestore.CreateTailorRunInput) (resumestore.CreateTailorRunResult, error)
+		GetTailorRun(context.Context, string, string) (resumestore.TailorRunRecord, error)
+		MarkTailorRunGenerating(context.Context, resumestore.TailorRunStatusInput) (resumestore.TailorRunRecord, error)
+		MarkTailorRunReady(context.Context, resumestore.TailorRunReadyInput) (resumestore.TailorRunRecord, error)
+		MarkTailorRunFailed(context.Context, resumestore.TailorRunFailureInput) (resumestore.TailorRunRecord, error)
 		DeleteForUser(context.Context, string, time.Time) error
 	} = (*resumestore.Repository)(nil)
 }

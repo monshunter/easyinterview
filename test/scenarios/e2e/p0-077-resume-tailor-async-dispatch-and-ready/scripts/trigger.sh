@@ -20,4 +20,12 @@ mkdir -p "$OUT"
   go test ./internal/resume -run TestBranchResumeVersionRoutesSeedStrategies -count=1 -v
   echo "RUNNER go test resume store live branch dispatch integration"
   DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run TestBranchVersion -count=1 -v
+  echo "RUNNER go test cmd/api resume tailor endpoints"
+  go test ./cmd/api -run TestResumeTailorEndpointsHTTPScenario -count=1 -v
+  echo "RUNNER go test resume handler tailor fixture parity"
+  go test ./internal/resume/handler -run TestResumeTailorFixtureParity -count=1 -v
+  echo "RUNNER go test resume service request get tailor"
+  go test ./internal/resume -run 'TestRequestResumeTailor|TestGetResumeTailorRun' -count=1 -v
+  echo "RUNNER go test resume store live tailor run integration"
+  DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run TestResumeTailorRunStore -count=1 -v
 } | tee "$OUT/trigger.log"

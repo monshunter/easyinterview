@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `feat(backend-resume): add resume tailor endpoints` | #feat #api #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(backend-resume): add resume version branching` | #feat #api #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(backend-resume): implement resume version update` | #feat #api #test #docs |
 | [2026-05-17](2026-05-17.md) | `test(backend-resume): add version read bdd scenario` | #test #docs |

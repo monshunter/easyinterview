@@ -265,6 +265,8 @@ runtime:
 		{http.MethodGet, "/api/v1/resumes"},
 		{http.MethodPost, "/api/v1/resumes"},
 		{http.MethodPost, "/api/v1/resume-versions"},
+		{http.MethodPost, "/api/v1/resume/tailor"},
+		{http.MethodGet, "/api/v1/resume/tailor-runs/018f2a40-0000-7000-9000-0000000000c1"},
 		{http.MethodGet, "/api/v1/resumes/018f2a40-0000-7000-9000-0000000000a1"},
 		{http.MethodGet, "/api/v1/resumes/018f2a40-0000-7000-9000-0000000000a1/versions"},
 		{http.MethodGet, "/api/v1/resume-versions/018f2a40-0000-7000-9000-0000000000b1"},
@@ -959,6 +961,178 @@ runtime:
 	})
 }
 
+func TestResumeTailorEndpointsHTTPScenario(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	sessionTime := time.Date(2026, 5, 18, 10, 45, 0, 0, time.UTC)
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store: &apiAuthStore{
+			session: auth.SessionRecord{
+				ID:        "session-1",
+				UserID:    "user-1",
+				Status:    auth.SessionStatusActive,
+				ExpiresAt: sessionTime.Add(time.Hour),
+			},
+			user: auth.UserContext{ID: "user-1", Email: "candidate@example.com"},
+		},
+		SessionCookieSecret: "session-secret",
+		Now:                 func() time.Time { return sessionTime },
+	})
+	idemStore := &apiIdempotencyStore{}
+	resumeSvc := &apiTailorRunService{
+		requestOut: api.ResumeTailorRunWithJob{
+			TailorRunId: "tailor-run-1",
+			Job: api.Job{
+				Id:           "job-1",
+				JobType:      api.JobTypeResumeTailor,
+				ResourceType: api.ResourceTypeResumeTailorRun,
+				ResourceId:   "tailor-run-1",
+				Status:       sharedtypes.JobStatusQueued,
+				CreatedAt:    sessionTime.Format(time.RFC3339),
+				UpdatedAt:    sessionTime.Format(time.RFC3339),
+			},
+		},
+		getOut: api.ResumeTailorRun{
+			Id:            "tailor-run-1",
+			Status:        "queued",
+			TargetJobId:   "target-1",
+			ResumeAssetId: "asset-1",
+			Suggestions:   []api.ResumeTailorBulletSuggestion{},
+			CreatedAt:     sessionTime.Format(time.RFC3339),
+			UpdatedAt:     sessionTime.Format(time.RFC3339),
+		},
+	}
+	handler := buildAPIHandlerWithUploadAndHandlers(
+		loader,
+		apiRuntimeFlags{},
+		service,
+		targetjob.NewHandler(),
+		practiceRoutes{},
+		uploadRoutes{},
+		resumeRoutes{
+			Handler: resumehandler.New(resumehandler.Options{Service: resumeSvc, Session: currentUserFromContext}),
+			Idempotency: idempotency.New(idempotency.MiddlewareOptions{
+				Store: idemStore,
+				Now:   func() time.Time { return sessionTime },
+				NewID: func() string { return "idem-rec-tailor" },
+			}),
+		},
+	)
+
+	t.Run("missing session", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/resume/tailor", strings.NewReader(validAPIRequestTailorBody("gap_review")))
+		req.Header.Set(idempotency.HeaderName, "idem-tailor")
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("missing idempotency key", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPost, "/api/v1/resume/tailor", validAPIRequestTailorBody("gap_review"), "")
+
+		handler.ServeHTTP(rec, req)
+
+		assertAPIStatusCode(t, rec, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
+	})
+
+	t.Run("request tailor persists idempotency resource", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPost, "/api/v1/resume/tailor", validAPIRequestTailorBody("gap_review"), "idem-tailor")
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusAccepted {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+		if resumeSvc.requestCalls != 1 || resumeSvc.requestIn.UserID != "user-1" || resumeSvc.requestIn.ResumeAssetID != "asset-1" || resumeSvc.requestIn.TargetJobID != "target-1" || resumeSvc.requestIn.Mode != "gap_review" {
+			t.Fatalf("service calls=%d input=%+v", resumeSvc.requestCalls, resumeSvc.requestIn)
+		}
+		if idemStore.completeIn.Operation != "requestResumeTailor" || idemStore.completeIn.ResourceType != "resume_tailor_run" || idemStore.completeIn.ResourceID != "tailor-run-1" {
+			t.Fatalf("idempotency completion = %+v", idemStore.completeIn)
+		}
+	})
+
+	t.Run("get tailor run", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodGet, "/api/v1/resume/tailor-runs/tailor-run-1", "", "")
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+		if resumeSvc.getUserID != "user-1" || resumeSvc.getTailorRunID != "tailor-run-1" {
+			t.Fatalf("get scope user=%q run=%q", resumeSvc.getUserID, resumeSvc.getTailorRunID)
+		}
+	})
+
+	t.Run("idempotency replay bypasses service", func(t *testing.T) {
+		replayStore := &apiIdempotencyStore{reservation: idempotency.Reservation{
+			State:          idempotency.StateReplay,
+			RecordID:       "idem-rec-tailor-replay",
+			ResponseStatus: http.StatusAccepted,
+			ResponseBody:   []byte(`{"tailorRunId":"tailor-run-replay","job":{"id":"job-replay","jobType":"resume_tailor","status":"queued","resourceType":"resume_tailor_run","resourceId":"tailor-run-replay","errorCode":null,"createdAt":"2026-05-18T10:45:00Z","updatedAt":"2026-05-18T10:45:00Z"}}`),
+		}}
+		replaySvc := &apiTailorRunService{requestOut: resumeSvc.requestOut}
+		replayHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{
+				Handler:     resumehandler.New(resumehandler.Options{Service: replaySvc, Session: currentUserFromContext}),
+				Idempotency: idempotency.New(idempotency.MiddlewareOptions{Store: replayStore, Now: func() time.Time { return sessionTime }}),
+			},
+		)
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPost, "/api/v1/resume/tailor", validAPIRequestTailorBody("gap_review"), "idem-tailor")
+
+		replayHandler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusAccepted || rec.Header().Get(idempotency.ReplayHeader) != "true" {
+			t.Fatalf("replay status=%d header=%q body=%s", rec.Code, rec.Header().Get(idempotency.ReplayHeader), rec.Body.String())
+		}
+		if replaySvc.requestCalls != 0 {
+			t.Fatalf("service calls on replay = %d, want 0", replaySvc.requestCalls)
+		}
+	})
+
+	t.Run("validation and not found envelopes", func(t *testing.T) {
+		invalid := httptest.NewRecorder()
+		handler.ServeHTTP(invalid, authenticatedAPIRequest(http.MethodPost, "/api/v1/resume/tailor", validAPIRequestTailorBody("unsupported"), "idem-tailor-invalid"))
+		assertAPIStatusCode(t, invalid, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
+
+		notFoundSvc := &apiTailorRunService{requestErr: domainresume.ErrNotFound, getErr: domainresume.ErrNotFound}
+		notFoundHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{Handler: resumehandler.New(resumehandler.Options{Service: notFoundSvc, Session: currentUserFromContext})},
+		)
+		rec := httptest.NewRecorder()
+		notFoundHandler.ServeHTTP(rec, authenticatedAPIRequest(http.MethodGet, "/api/v1/resume/tailor-runs/missing", "", ""))
+		assertAPIStatusCode(t, rec, http.StatusNotFound, sharederrors.CodeTargetJobNotFound)
+	})
+}
+
 func TestBuildAPIHandlerMountsReportRoutesBehindSessionMiddleware(t *testing.T) {
 	dir := t.TempDir()
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
@@ -1574,6 +1748,34 @@ func (s *apiBranchVersionService) BranchResumeVersion(_ context.Context, in doma
 	return s.result, s.err
 }
 
+type apiTailorRunService struct {
+	requestCalls int
+	requestIn    domainresume.RequestTailorRunInput
+	requestOut   api.ResumeTailorRunWithJob
+	requestErr   error
+
+	getUserID      string
+	getTailorRunID string
+	getOut         api.ResumeTailorRun
+	getErr         error
+}
+
+func (s *apiTailorRunService) RegisterResume(context.Context, domainresume.RegisterInput) (api.ResumeAssetWithJob, error) {
+	return api.ResumeAssetWithJob{}, errors.New("not implemented")
+}
+
+func (s *apiTailorRunService) RequestResumeTailor(_ context.Context, in domainresume.RequestTailorRunInput) (api.ResumeTailorRunWithJob, error) {
+	s.requestCalls++
+	s.requestIn = in
+	return s.requestOut, s.requestErr
+}
+
+func (s *apiTailorRunService) GetResumeTailorRun(_ context.Context, userID string, tailorRunID string) (api.ResumeTailorRun, error) {
+	s.getUserID = userID
+	s.getTailorRunID = tailorRunID
+	return s.getOut, s.getErr
+}
+
 type apiVersionReadService struct {
 	getUserID    string
 	getVersionID string
@@ -1688,6 +1890,10 @@ func validAPIUpdateBody() string {
 
 func validAPIBranchBody(strategy string) string {
 	return `{"parentVersionId":"parent-1","targetJobId":"target-1","seedStrategy":"` + strategy + `","displayName":" Targeted ","focusAngle":" Platform evidence "}`
+}
+
+func validAPIRequestTailorBody(mode string) string {
+	return `{"targetJobId":"target-1","resumeAssetId":"asset-1","mode":"` + mode + `"}`
 }
 
 func assertAPIStatusCode(t *testing.T, rec *httptest.ResponseRecorder, status int, code string) {

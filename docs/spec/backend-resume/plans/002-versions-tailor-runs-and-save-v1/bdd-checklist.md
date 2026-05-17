@@ -41,7 +41,7 @@
 - [x] Phase 5 dispatch subset 执行 `setup → trigger → verify → cleanup` 全 PASS
 - [x] 记录 Phase 5 dispatch 验证证据：`.test-output/e2e/p0-077-resume-tailor-async-dispatch-and-ready/trigger.log` + verify 输出 + `branchResumeVersion` `ai-select-202-with-job` fixture parity + DB provisional version / queued run / queued async job / rollback 断言 + privacy grep 0 命中 + live runtime evidence + no no-op / no skip
 - [x] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.077 行（关联需求 `backend-resume C-10, C-16`，状态 Ready，automated；描述明确为 Phase 5 dispatch slice，ready/drainer extension pending Phase 7）
-- [ ] Phase 6 扩展 requestTailor / getResumeTailorRun：补齐 `requestResumeTailor.json` `default`（含 `Idempotency-Key` 请求头）/ `idempotency-replay` + `getResumeTailorRun.json` `default` / `queued` / `generating` / `failed`，并扩展脚本覆盖 requestTailor + getTailorRun 部分
+- [x] Phase 6 扩展 requestTailor / getResumeTailorRun：补齐 `requestResumeTailor.json` `default`（含 `Idempotency-Key` 请求头）/ `idempotency-replay` + `getResumeTailorRun.json` `default` / `queued` / `generating` / `failed`，并扩展脚本覆盖 requestTailor + getTailorRun 部分；执行 `setup → trigger → verify → cleanup` PASS，证据位于 `.test-output/e2e/p0-077-resume-tailor-async-dispatch-and-ready/trigger.log` / `verify.log`
 - [ ] Phase 7 扩展 drainer ready path：注入 A3 AIClient stub success JSON（matchSummary + suggestions[3]），覆盖 `RunOnce(resume_tailor)`、`resume_version_suggestions`、`ai_task_runs`、ready-only outbox 与 outbox payload PII 边界
 - [ ] 完整 `E2E.P0.077` 执行 `setup → trigger → verify → cleanup` 全 PASS（branch ai_select + requestTailor + getTailorRun queued/ready + drainer + outbox）
 

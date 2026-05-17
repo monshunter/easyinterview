@@ -39,6 +39,54 @@
           "updatedAt": "2026-04-28T13:45:12Z"
         }
       }
+    },
+    "queued": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000009001",
+          "status": "queued",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "createdAt": "2026-04-28T13:45:10Z",
+          "updatedAt": "2026-04-28T13:45:10Z"
+        }
+      }
+    },
+    "generating": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000009002",
+          "status": "generating",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "createdAt": "2026-04-28T13:45:10Z",
+          "updatedAt": "2026-04-28T13:45:11Z"
+        }
+      }
+    },
+    "failed": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000009003",
+          "status": "failed",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "createdAt": "2026-04-28T13:45:10Z",
+          "updatedAt": "2026-04-28T13:45:12Z"
+        }
+      }
     }
   }
 }

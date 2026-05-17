@@ -64,6 +64,14 @@ type BranchVersionStore interface {
 	BranchFromParent(ctx context.Context, in resumestore.BranchVersionInput) (resumestore.BranchVersionResult, error)
 }
 
+type TailorRunStore interface {
+	CreateTailorRun(ctx context.Context, in resumestore.CreateTailorRunInput) (resumestore.CreateTailorRunResult, error)
+	GetTailorRun(ctx context.Context, userID string, tailorRunID string) (resumestore.TailorRunRecord, error)
+	MarkTailorRunGenerating(ctx context.Context, in resumestore.TailorRunStatusInput) (resumestore.TailorRunRecord, error)
+	MarkTailorRunReady(ctx context.Context, in resumestore.TailorRunReadyInput) (resumestore.TailorRunRecord, error)
+	MarkTailorRunFailed(ctx context.Context, in resumestore.TailorRunFailureInput) (resumestore.TailorRunRecord, error)
+}
+
 type UploadRegistrar interface {
 	RegisterFileObject(ctx context.Context, in uploadservice.RegisterFileObjectInput) (uploadstore.FileObject, error)
 }
@@ -332,6 +340,14 @@ type BranchVersionResult struct {
 	Accepted *api.BranchResumeVersionAccepted
 }
 
+type RequestTailorRunInput struct {
+	UserID         string
+	TargetJobID    string
+	ResumeAssetID  string
+	Mode           string
+	IdempotencyKey string
+}
+
 func (s *Service) ListResumeVersions(ctx context.Context, in ListVersionRequest) (api.PaginatedResumeVersion, error) {
 	if s == nil {
 		return api.PaginatedResumeVersion{}, fmt.Errorf("resume version read store is not configured")
@@ -499,6 +515,81 @@ func (s *Service) BranchResumeVersion(ctx context.Context, in BranchVersionReque
 	return BranchVersionResult{Status: http.StatusCreated, Version: version}, nil
 }
 
+func (s *Service) RequestResumeTailor(ctx context.Context, in RequestTailorRunInput) (api.ResumeTailorRunWithJob, error) {
+	if s == nil {
+		return api.ResumeTailorRunWithJob{}, fmt.Errorf("resume tailor store is not configured")
+	}
+	store, ok := s.store.(TailorRunStore)
+	if !ok {
+		return api.ResumeTailorRunWithJob{}, fmt.Errorf("resume tailor store is not configured")
+	}
+	userID := strings.TrimSpace(in.UserID)
+	targetJobID := strings.TrimSpace(in.TargetJobID)
+	resumeAssetID := strings.TrimSpace(in.ResumeAssetID)
+	mode := strings.TrimSpace(in.Mode)
+	idempotencyKey := strings.TrimSpace(in.IdempotencyKey)
+	if userID == "" || targetJobID == "" || resumeAssetID == "" || idempotencyKey == "" {
+		return api.ResumeTailorRunWithJob{}, ErrValidationFailed
+	}
+	switch mode {
+	case "gap_review", "bullet_suggestions":
+	default:
+		return api.ResumeTailorRunWithJob{}, ErrValidationFailed
+	}
+	now := s.now()
+	storeIn := resumestore.CreateTailorRunInput{
+		TailorRunID:   s.newID(),
+		JobID:         s.newID(),
+		UserID:        userID,
+		TargetJobID:   targetJobID,
+		ResumeAssetID: resumeAssetID,
+		Mode:          mode,
+		DedupeKey:     s.tailorDedupeKey(userID, idempotencyKey),
+		Now:           now,
+	}
+	res, err := store.CreateTailorRun(ctx, storeIn)
+	switch {
+	case errors.Is(err, resumestore.ErrAssetNotFound), errors.Is(err, resumestore.ErrTailorRunNotFound):
+		return api.ResumeTailorRunWithJob{}, ErrNotFound
+	case err != nil:
+		return api.ResumeTailorRunWithJob{}, err
+	}
+	jobStatus := res.JobStatus
+	if jobStatus == "" {
+		jobStatus = sharedtypes.JobStatusQueued
+	}
+	return api.ResumeTailorRunWithJob{
+		TailorRunId: res.TailorRunID,
+		Job: api.Job{
+			Id:           res.JobID,
+			JobType:      api.JobTypeResumeTailor,
+			ResourceType: api.ResourceTypeResumeTailorRun,
+			ResourceId:   res.TailorRunID,
+			Status:       jobStatus,
+			CreatedAt:    res.JobCreatedAt.UTC().Format(time.RFC3339),
+			UpdatedAt:    res.JobUpdatedAt.UTC().Format(time.RFC3339),
+		},
+	}, nil
+}
+
+func (s *Service) GetResumeTailorRun(ctx context.Context, userID string, tailorRunID string) (api.ResumeTailorRun, error) {
+	if s == nil {
+		return api.ResumeTailorRun{}, fmt.Errorf("resume tailor store is not configured")
+	}
+	store, ok := s.store.(TailorRunStore)
+	if !ok {
+		return api.ResumeTailorRun{}, fmt.Errorf("resume tailor store is not configured")
+	}
+	rec, err := store.GetTailorRun(ctx, strings.TrimSpace(userID), strings.TrimSpace(tailorRunID))
+	switch {
+	case errors.Is(err, resumestore.ErrTailorRunNotFound):
+		return api.ResumeTailorRun{}, ErrNotFound
+	case err != nil:
+		return api.ResumeTailorRun{}, err
+	}
+	return tailorRunRecordToAPI(rec), nil
+}
+
 func (s *Service) dedupeKey(userID, idempotencyKey string) string {
 	h := sha256.New()
 	h.Write([]byte("resume.register.v1"))
@@ -516,6 +607,20 @@ func (s *Service) dedupeKey(userID, idempotencyKey string) string {
 func (s *Service) branchDedupeKey(userID, idempotencyKey string) string {
 	h := sha256.New()
 	h.Write([]byte("resume.branch.v1"))
+	if s.dedupePepper != "" {
+		h.Write([]byte("|"))
+		h.Write([]byte(s.dedupePepper))
+	}
+	h.Write([]byte("|"))
+	h.Write([]byte(strings.TrimSpace(userID)))
+	h.Write([]byte("|"))
+	h.Write([]byte(strings.TrimSpace(idempotencyKey)))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func (s *Service) tailorDedupeKey(userID, idempotencyKey string) string {
+	h := sha256.New()
+	h.Write([]byte("resume.tailor.v1"))
 	if s.dedupePepper != "" {
 		h.Write([]byte("|"))
 		h.Write([]byte(s.dedupePepper))
@@ -691,6 +796,65 @@ func versionRecordToAPI(rec resumestore.VersionRecord) api.ResumeVersion {
 		CreatedAt:   rec.CreatedAt.UTC().Format(time.RFC3339),
 		UpdatedAt:   rec.UpdatedAt.UTC().Format(time.RFC3339),
 		DeletedAt:   timePtrToString(rec.DeletedAt),
+	}
+	return out
+}
+
+func tailorRunRecordToAPI(rec resumestore.TailorRunRecord) api.ResumeTailorRun {
+	out := api.ResumeTailorRun{
+		Id:            rec.ID,
+		Status:        rec.Status,
+		TargetJobId:   rec.TargetJobID,
+		ResumeAssetId: rec.ResumeAssetID,
+		Suggestions:   decodeTailorSuggestions(rec.Suggestions),
+		CreatedAt:     rec.CreatedAt.UTC().Format(time.RFC3339),
+		UpdatedAt:     rec.UpdatedAt.UTC().Format(time.RFC3339),
+	}
+	if rec.Status == "ready" {
+		if matchSummary := decodeTailorMatchSummary(rec.MatchSummary); matchSummary != nil {
+			out.MatchSummary = matchSummary
+		}
+		if rec.Provenance.PromptVersion != "" || rec.Provenance.ModelID != "" {
+			out.Provenance = &api.GenerationProvenance{
+				PromptVersion:     rec.Provenance.PromptVersion,
+				RubricVersion:     rec.Provenance.RubricVersion,
+				ModelId:           rec.Provenance.ModelID,
+				Language:          rec.Provenance.Language,
+				FeatureFlag:       rec.Provenance.FeatureFlag,
+				DataSourceVersion: rec.Provenance.DataSourceVersion,
+			}
+		}
+	}
+	if out.Suggestions == nil {
+		out.Suggestions = []api.ResumeTailorBulletSuggestion{}
+	}
+	return out
+}
+
+func decodeTailorMatchSummary(raw json.RawMessage) *api.ResumeTailorMatchSummary {
+	if len(raw) == 0 || string(raw) == "{}" {
+		return nil
+	}
+	var out api.ResumeTailorMatchSummary
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil
+	}
+	if len(out.Strengths) == 0 && len(out.Gaps) == 0 {
+		return nil
+	}
+	return &out
+}
+
+func decodeTailorSuggestions(raw json.RawMessage) []api.ResumeTailorBulletSuggestion {
+	if len(raw) == 0 {
+		return []api.ResumeTailorBulletSuggestion{}
+	}
+	var out []api.ResumeTailorBulletSuggestion
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return []api.ResumeTailorBulletSuggestion{}
+	}
+	if out == nil {
+		return []api.ResumeTailorBulletSuggestion{}
 	}
 	return out
 }
