@@ -39,6 +39,7 @@ import { usePracticeAssistance } from "./hooks/usePracticeAssistance";
 import { usePracticeSession } from "./hooks/usePracticeSession";
 import { useCompletePracticeSession } from "./hooks/useCompletePracticeSession";
 import { usePracticeVoiceTurn } from "./hooks/usePracticeVoiceTurn";
+import { usePracticeVoicePlayback } from "./hooks/usePracticeVoicePlayback";
 import { buildPracticeHandoffParams } from "./utils/practiceHandoffParams";
 
 interface PracticeScreenProps {
@@ -102,6 +103,12 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     turnId: loader.data?.currentTurn?.id ?? "",
     lang,
     practiceMode: generatedPracticeMode,
+  });
+  const voicePlayback = usePracticeVoicePlayback({
+    sessionId,
+    result: voiceTurn.state.kind === "success"
+      ? voiceTurn.state.result
+      : null,
   });
   const sessionFlags = usePracticeSession(loader.data?.status ?? null);
   const isNarrow = useNarrowPracticeLayout();
@@ -457,6 +464,11 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     }
   }, [elapsed, loader.data?.currentTurn?.turnIndex, voiceTurn]);
 
+  const handleVoiceRecordingStart = useCallback(async () => {
+    await voicePlayback.bargeIn();
+    await voiceTurn.startRecording();
+  }, [voicePlayback, voiceTurn]);
+
   const handoffNavigatedRef = useRef(false);
   const onFinish = useCallback(async () => {
     if (handoffNavigatedRef.current) return;
@@ -667,7 +679,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
                 voiceTurn.setManualTranscriptFallback
               }
               onStartRecording={() => {
-                void voiceTurn.startRecording();
+                void handleVoiceRecordingStart();
               }}
               onSubmitRecording={() => {
                 void handleVoiceTurnSubmit();
@@ -686,6 +698,19 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
               ttsChunkCount={
                 voiceTurn.state.kind === "success"
                   ? voiceTurn.state.result.ttsChunks.length
+                  : null
+              }
+              playbackState={voicePlayback.state.kind}
+              activePlaybackChunkId={
+                voicePlayback.state.kind === "playing" ||
+                voicePlayback.state.kind === "completed" ||
+                voicePlayback.state.kind === "interrupted"
+                  ? voicePlayback.state.chunkId
+                  : null
+              }
+              playbackError={
+                voicePlayback.state.kind === "error"
+                  ? voicePlayback.state.message
                   : null
               }
             />

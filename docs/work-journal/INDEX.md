@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `feat(practice-voice): add tts playback events` | #feat #ui #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(practice-voice): wire voice turn controller` | #feat #ui #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(practice-voice): land voice practice surface` | #feat #ui #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(practice-voice): add playback committed context` | #feat #test #docs |

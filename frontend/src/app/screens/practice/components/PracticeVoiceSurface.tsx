@@ -4,6 +4,7 @@ import type { PracticeVoiceTTSError } from "../../../../api/generated/types";
 import type { Lang } from "../../../i18n/messages";
 import type { TranscriptMessage } from "./Transcript";
 import type { PracticeVoiceTurnState } from "../hooks/usePracticeVoiceTurn";
+import type { PracticeVoicePlaybackState } from "../hooks/usePracticeVoicePlayback";
 
 export interface PracticeVoiceSurfaceProps {
   lang: Lang;
@@ -21,6 +22,9 @@ export interface PracticeVoiceSurfaceProps {
   voiceError: string | null;
   ttsError: PracticeVoiceTTSError | null;
   ttsChunkCount: number | null;
+  playbackState: PracticeVoicePlaybackState["kind"];
+  activePlaybackChunkId: string | null;
+  playbackError: string | null;
 }
 
 type VoiceTranscriptMessage = TranscriptMessage | {
@@ -60,6 +64,9 @@ export const PracticeVoiceSurface: FC<PracticeVoiceSurfaceProps> = ({
   voiceError,
   ttsError,
   ttsChunkCount,
+  playbackState,
+  activePlaybackChunkId,
+  playbackError,
 }) => {
   const samples = useMemo(buildAnnotatedSamples, []);
   const annotations = useMemo(() => buildAnnotations(lang), [lang]);
@@ -191,6 +198,9 @@ export const PracticeVoiceSurface: FC<PracticeVoiceSurfaceProps> = ({
           voiceError={voiceError}
           ttsError={ttsError}
           ttsChunkCount={ttsChunkCount}
+          playbackState={playbackState}
+          activePlaybackChunkId={activePlaybackChunkId}
+          playbackError={playbackError}
         />
 
         <div>
@@ -296,6 +306,9 @@ const VoiceCaptureControls: FC<{
   voiceError: string | null;
   ttsError: PracticeVoiceTTSError | null;
   ttsChunkCount: number | null;
+  playbackState: PracticeVoicePlaybackState["kind"];
+  activePlaybackChunkId: string | null;
+  playbackError: string | null;
 }> = ({
   lang,
   captureState,
@@ -307,6 +320,9 @@ const VoiceCaptureControls: FC<{
   voiceError,
   ttsError,
   ttsChunkCount,
+  playbackState,
+  activePlaybackChunkId,
+  playbackError,
 }) => {
   const copy = voiceControlCopy(lang);
   const recording = captureState === "recording";
@@ -424,6 +440,22 @@ const VoiceCaptureControls: FC<{
           {copy.ttsStatus.replace("{n}", String(ttsChunkCount))}
         </div>
       ) : null}
+      <div
+        data-testid="practice-voice-playback-status"
+        data-state={playbackState}
+        style={{
+          color:
+            playbackState === "error"
+              ? "var(--ei-color-danger)"
+              : "var(--ei-color-fg-tertiary)",
+          fontSize: 12,
+          fontFamily: "var(--ei-font-mono)",
+        }}
+      >
+        {copy.playbackStatus[playbackState]}
+        {activePlaybackChunkId ? ` · ${activePlaybackChunkId}` : ""}
+        {playbackError ? ` · ${playbackError}` : ""}
+      </div>
     </div>
   );
 };
@@ -815,6 +847,7 @@ function voiceControlCopy(lang: Lang): {
   manualPlaceholder: string;
   ttsStatus: string;
   status: Record<PracticeVoiceTurnState["kind"], string>;
+  playbackStatus: Record<PracticeVoicePlaybackState["kind"], string>;
 } {
   return lang === "en"
     ? {
@@ -829,6 +862,13 @@ function voiceControlCopy(lang: Lang): {
         success: "VOICE CAPTURE · submitted",
         error: "VOICE CAPTURE · needs attention",
       },
+      playbackStatus: {
+        idle: "VOICE PLAYBACK · idle",
+        playing: "VOICE PLAYBACK · playing",
+        completed: "VOICE PLAYBACK · played",
+        interrupted: "VOICE PLAYBACK · interrupted",
+        error: "VOICE PLAYBACK · needs attention",
+      },
     }
     : {
       start: "开始录音",
@@ -841,6 +881,13 @@ function voiceControlCopy(lang: Lang): {
         submitting: "VOICE CAPTURE · submitting",
         success: "VOICE CAPTURE · submitted",
         error: "VOICE CAPTURE · needs attention",
+      },
+      playbackStatus: {
+        idle: "VOICE PLAYBACK · idle",
+        playing: "VOICE PLAYBACK · playing",
+        completed: "VOICE PLAYBACK · played",
+        interrupted: "VOICE PLAYBACK · interrupted",
+        error: "VOICE PLAYBACK · needs attention",
       },
     };
 }

@@ -16,6 +16,7 @@ import { UUID_V7_REGEX } from "../../../../lib/ids";
 import {
   TURN_A,
   buildPracticeClient,
+  eventCalls,
   mountPracticeScreen,
   readBody,
   voiceTurnCalls,
@@ -27,6 +28,7 @@ describe("practice voice turn controller (item 4.2)", () => {
   beforeEach(() => {
     localStorage.setItem("ei-lang", "zh");
     installFakeAudioCapture();
+    installFakeAudioPlayback();
   });
 
   afterEach(() => {
@@ -118,7 +120,125 @@ describe("practice voice turn controller (item 4.2)", () => {
       "TTS_PROVIDER_FAILED",
     );
   });
+
+  it("autoplays the returned TTS chunk and reports started, played, and committed context", async () => {
+    const { client, calls } = buildPracticeClient();
+    mountPracticeScreen({
+      client,
+      routeParams: { mode: "voice", modality: "voice", practiceMode: "assisted" },
+    });
+
+    const user = userEvent.setup();
+    await submitDefaultVoiceTurn(user);
+
+    await waitFor(() => {
+      expect(eventBodies(calls).some((body) => body.kind === "tts_chunk_started"))
+        .toBe(true);
+    });
+    expect(FakeAudioElement.instances[0]?.src).toBe(
+      "fixture-audio://practice-voice/default/chunk-001",
+    );
+    expect(screen.getByTestId("practice-voice-playback-status")).toHaveAttribute(
+      "data-state",
+      "playing",
+    );
+
+    FakeAudioElement.instances[0]!.finish();
+
+    await waitFor(() => {
+      const bodies = eventBodies(calls);
+      expect(bodies.some((body) => body.kind === "tts_chunk_played")).toBe(true);
+      expect(bodies.some((body) => body.kind === "assistant_context_committed"))
+        .toBe(true);
+    });
+    const played = eventBodies(calls).find(
+      (body) => body.kind === "tts_chunk_played",
+    )!;
+    const committed = eventBodies(calls).find(
+      (body) => body.kind === "assistant_context_committed",
+    )!;
+    expect(played.payload).toEqual(
+      expect.objectContaining({
+        voiceTurnId: "01918fa0-0000-7000-8000-00000000f201",
+        chunkId: "voice-chunk-001",
+        playedTextHash: "sha256:voice-default-chunk-001",
+        playbackOffsetMs: 2840,
+      }),
+    );
+    expect(committed.payload).toEqual(
+      expect.objectContaining({
+        voiceTurnId: "01918fa0-0000-7000-8000-00000000f201",
+        chunkId: "voice-chunk-001",
+        committedTextHash: "sha256:voice-default-chunk-001",
+        playbackOffsetMs: 2840,
+      }),
+    );
+    const playedCall = eventCalls(calls).find((call) =>
+      call.bodyText?.includes('"tts_chunk_played"'),
+    )!;
+    expect(playedCall.headers.get("Idempotency-Key")).toBeNull();
+  });
+
+  it("stops active TTS playback and reports barge_in_detected before recording the next user speech", async () => {
+    const { client, calls } = buildPracticeClient();
+    mountPracticeScreen({
+      client,
+      routeParams: { mode: "voice", modality: "voice", practiceMode: "assisted" },
+    });
+
+    const user = userEvent.setup();
+    await submitDefaultVoiceTurn(user);
+    await waitFor(() =>
+      expect(eventBodies(calls).some((body) => body.kind === "tts_chunk_started"))
+        .toBe(true),
+    );
+
+    await user.click(screen.getByTestId("practice-voice-record-toggle"));
+
+    await waitFor(() => {
+      expect(eventBodies(calls).some((body) => body.kind === "barge_in_detected"))
+        .toBe(true);
+    });
+    const bargeIn = eventBodies(calls).find(
+      (body) => body.kind === "barge_in_detected",
+    )!;
+    expect(bargeIn.payload).toEqual(
+      expect.objectContaining({
+        voiceTurnId: "01918fa0-0000-7000-8000-00000000f201",
+        chunkId: "voice-chunk-001",
+      }),
+    );
+    expect((bargeIn.payload as { playbackOffsetMs?: number }).playbackOffsetMs)
+      .toBeGreaterThanOrEqual(0);
+    const bargeInCall = eventCalls(calls).find((call) =>
+      call.bodyText?.includes('"barge_in_detected"'),
+    )!;
+    expect(bargeInCall.headers.get("Idempotency-Key")).toBeNull();
+    expect(FakeAudioElement.instances[0]!.paused).toBe(true);
+    expect(screen.getByTestId("practice-voice-capture-status")).toHaveAttribute(
+      "data-state",
+      "recording",
+    );
+  });
 });
+
+async function submitDefaultVoiceTurn(
+  user: ReturnType<typeof userEvent.setup>,
+): Promise<void> {
+  await user.click(await screen.findByTestId("practice-voice-record-toggle"));
+  await waitFor(() =>
+    expect(screen.getByTestId("practice-voice-capture-status")).toHaveAttribute(
+      "data-state",
+      "recording",
+    ),
+  );
+  await user.click(screen.getByTestId("practice-voice-submit"));
+  await screen.findByText("我主导了设计系统迁移，先把 12 个团队按风险分组。");
+}
+
+function eventBodies(calls: ReturnType<typeof eventCalls>): Record<string, unknown>[] {
+  return eventCalls(calls).map(readBody);
+}
 
 function installFakeAudioCapture(): void {
   const tracks = [{ stop: vi.fn() }];
@@ -154,4 +274,38 @@ function installFakeAudioCapture(): void {
   }
 
   vi.stubGlobal("MediaRecorder", FakeMediaRecorder);
+}
+
+class FakeAudioElement {
+  static instances: FakeAudioElement[] = [];
+
+  src = "";
+  paused = true;
+  currentTime = 0;
+  onended: (() => void) | null = null;
+
+  constructor(src?: string) {
+    this.src = src ?? "";
+    FakeAudioElement.instances.push(this);
+  }
+
+  play() {
+    this.paused = false;
+    return Promise.resolve();
+  }
+
+  pause() {
+    this.paused = true;
+  }
+
+  finish() {
+    this.paused = true;
+    this.currentTime = 2.84;
+    this.onended?.();
+  }
+}
+
+function installFakeAudioPlayback(): void {
+  FakeAudioElement.instances = [];
+  vi.stubGlobal("Audio", FakeAudioElement);
 }
