@@ -29,6 +29,7 @@ type CreatePracticeVoiceTurnRequest struct {
 	PracticeMode             sharedtypes.PracticeMode
 	Audio                    PracticeVoiceAudioInput
 	ManualTranscriptFallback string
+	CommittedContext         CommittedVoiceContext
 }
 
 type PracticeVoiceAudioInput struct {
@@ -171,7 +172,7 @@ func (s *Service) CreatePracticeVoiceTurn(ctx context.Context, in CreatePractice
 	if err != nil {
 		return PracticeVoiceTurnResult{}, serviceErrorFromRegistry(err)
 	}
-	chatResp, chatMeta, err := s.ai.Complete(ctx, chatRes.ModelProfileName, voiceFollowUpPayload(chatRes, userID, session, language, in.PracticeMode, transcript))
+	chatResp, chatMeta, err := s.ai.Complete(ctx, chatRes.ModelProfileName, voiceFollowUpPayload(chatRes, userID, session, language, in.PracticeMode, transcript, in.CommittedContext))
 	if err != nil {
 		return PracticeVoiceTurnResult{}, serviceErrorFromAI(err)
 	}
@@ -272,7 +273,7 @@ func voiceTranscriptionInput(resolution registry.PromptResolution, userID string
 	}
 }
 
-func voiceFollowUpPayload(resolution registry.PromptResolution, userID string, session SessionRecord, language string, mode sharedtypes.PracticeMode, transcript string) aiclient.CompletePayload {
+func voiceFollowUpPayload(resolution registry.PromptResolution, userID string, session SessionRecord, language string, mode sharedtypes.PracticeMode, transcript string, committedContext CommittedVoiceContext) aiclient.CompletePayload {
 	userContent := strings.TrimSpace(resolution.UserMessageTemplate)
 	if userContent == "" {
 		userContent = "Generate a concise follow-up question for the candidate's latest spoken answer."
@@ -287,6 +288,9 @@ func voiceFollowUpPayload(resolution registry.PromptResolution, userID string, s
 	if !strings.Contains(userContent, transcript) {
 		userContent += "\nCandidate transcript:\n" + transcript
 	}
+	if committed := renderCommittedVoiceContext(committedContext); committed != "" {
+		userContent += "\nCommitted assistant context:\n" + committed
+	}
 	messages := make([]aiclient.Message, 0, 2)
 	if strings.TrimSpace(resolution.SystemMessage) != "" {
 		messages = append(messages, aiclient.Message{Role: "system", Content: resolution.SystemMessage})
@@ -296,6 +300,17 @@ func voiceFollowUpPayload(resolution registry.PromptResolution, userID string, s
 		Messages: messages,
 		Metadata: voiceCallMetadata(resolution, userID, session, language, followUpFeatureKey),
 	}
+}
+
+func renderCommittedVoiceContext(ctx CommittedVoiceContext) string {
+	parts := make([]string, 0, 2)
+	if ctx.HasCommittedContext && strings.TrimSpace(ctx.CommittedAssistantText) != "" {
+		parts = append(parts, "Previously heard assistant content: "+strings.TrimSpace(ctx.CommittedAssistantText))
+	}
+	if strings.TrimSpace(ctx.InterruptionNote) != "" {
+		parts = append(parts, "Interruption note: "+strings.TrimSpace(ctx.InterruptionNote))
+	}
+	return strings.Join(parts, "\n")
 }
 
 func voiceSynthesisInput(resolution registry.PromptResolution, userID string, session SessionRecord, language string, assistantText string) aiclient.SynthesisInput {

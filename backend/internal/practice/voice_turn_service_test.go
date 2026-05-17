@@ -236,6 +236,42 @@ func TestCreatePracticeVoiceTurnPersistsBusinessTextOutsideAIMetadata(t *testing
 	}
 }
 
+func TestVoiceFollowUpPayloadInjectsCommittedContextWithoutUnplayedDraft(t *testing.T) {
+	resolution := registry.PromptResolution{
+		FeatureKey:          followUpFeatureKey,
+		PromptVersion:       "chat-prompt-v1",
+		RubricVersion:       "rubric-v1",
+		ModelProfileName:    "practice.followup.default",
+		FeatureFlag:         "none",
+		DataSourceVersion:   "registry.v1",
+		UserMessageTemplate: "Generate a concise follow-up for {{transcript}}.",
+	}
+	payload := voiceFollowUpPayload(
+		resolution,
+		"user-1",
+		voiceTurnSession(),
+		"zh-CN",
+		sharedtypes.PracticeModeAssisted,
+		"new user answer",
+		CommittedVoiceContext{
+			VoiceTurnID:            "voice-turn-previous",
+			HasCommittedContext:    true,
+			CommittedAssistantText: "played assistant content",
+			CommittedTextLength:    24,
+			Interrupted:            true,
+			InterruptionNote:       "Assistant playback was interrupted at 1480ms.",
+		},
+	)
+	userMessage := payload.Messages[len(payload.Messages)-1].Content
+	if !strings.Contains(userMessage, "played assistant content") ||
+		!strings.Contains(userMessage, "Assistant playback was interrupted at 1480ms.") {
+		t.Fatalf("committed context/interruption note missing from prompt: %s", userMessage)
+	}
+	if strings.Contains(userMessage, "unplayed assistant draft") {
+		t.Fatalf("unplayed assistant draft leaked into prompt: %s", userMessage)
+	}
+}
+
 func validVoiceTurnRequest() CreatePracticeVoiceTurnRequest {
 	return CreatePracticeVoiceTurnRequest{
 		UserID:            "user-1",

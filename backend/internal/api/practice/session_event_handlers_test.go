@@ -17,7 +17,17 @@ import (
 )
 
 func TestAppendSessionEventReturns200ForSupportedKinds(t *testing.T) {
-	kinds := []string{"answer_submitted", "hint_requested", "turn_skipped", "session_paused", "session_resumed"}
+	kinds := []string{
+		"answer_submitted",
+		"hint_requested",
+		"turn_skipped",
+		"session_paused",
+		"session_resumed",
+		"tts_chunk_started",
+		"tts_chunk_played",
+		"barge_in_detected",
+		"assistant_context_committed",
+	}
 	for _, kind := range kinds {
 		t.Run(kind, func(t *testing.T) {
 			service := &fakePlanService{appendResult: fixtureAppendResult(kind)}
@@ -230,14 +240,32 @@ func TestCompletePracticeSessionMiddlewarePersistsResourceAndReplay(t *testing.T
 
 func newAppendEventHTTPRequest(t *testing.T, kind string, withIdempotency bool) *http.Request {
 	t.Helper()
+	payload := map[string]any{
+		"turnId":     "turn-1",
+		"answerText": "answer",
+	}
+	if isVoiceAppendKind(kind) {
+		payload = map[string]any{
+			"voiceTurnId":      "voice-turn-1",
+			"chunkId":          "chunk-1",
+			"playbackOffsetMs": 2840,
+		}
+		switch kind {
+		case "tts_chunk_played":
+			payload["playedTextHash"] = "sha256:chunk-1"
+			payload["playedTextLength"] = 36
+		case "barge_in_detected":
+			payload["userSpeechStartedAt"] = "2026-05-17T08:51:05Z"
+		case "assistant_context_committed":
+			payload["committedTextHash"] = "sha256:chunk-1"
+			payload["committedTextLength"] = 36
+		}
+	}
 	raw, err := json.Marshal(api.PracticeSessionEventRequest{
 		ClientEventId: "client-event-1",
 		Kind:          kind,
 		OccurredAt:    "2026-04-28T13:45:12Z",
-		Payload: map[string]any{
-			"turnId":     "turn-1",
-			"answerText": "answer",
-		},
+		Payload:       payload,
 	})
 	if err != nil {
 		t.Fatalf("marshal request: %v", err)
@@ -248,6 +276,15 @@ func newAppendEventHTTPRequest(t *testing.T, kind string, withIdempotency bool) 
 		req.Header.Set(idempotency.HeaderName, "wrong-key")
 	}
 	return req.WithContext(contextWithUser(req.Context(), "user-1"))
+}
+
+func isVoiceAppendKind(kind string) bool {
+	switch kind {
+	case "tts_chunk_started", "tts_chunk_played", "barge_in_detected", "assistant_context_committed":
+		return true
+	default:
+		return false
+	}
 }
 
 func newCompleteHTTPRequest(t *testing.T, idemKey string) *http.Request {

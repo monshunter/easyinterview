@@ -229,7 +229,7 @@ CREATE TABLE practice_session_events (
   id uuid PRIMARY KEY,
   session_id uuid NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
   seq_no integer NOT NULL,
-  event_type text NOT NULL CHECK (event_type IN ('session_started', 'question_started', 'answer_submitted', 'hint_requested', 'follow_up_generated', 'turn_skipped', 'turn_completed', 'session_paused', 'session_resumed', 'session_completed')),
+  event_type text NOT NULL CHECK (event_type IN ('session_started', 'question_started', 'answer_submitted', 'hint_requested', 'follow_up_generated', 'turn_skipped', 'turn_completed', 'session_paused', 'session_resumed', 'session_completed', 'tts_chunk_started', 'tts_chunk_played', 'barge_in_detected', 'assistant_context_committed')),
   client_event_id text,
   payload jsonb NOT NULL DEFAULT '{}'::jsonb,
   replay_payload jsonb,

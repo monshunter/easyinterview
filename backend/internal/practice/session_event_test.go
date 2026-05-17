@@ -65,6 +65,114 @@ func TestSessionEventServiceRouteCoversAllKinds(t *testing.T) {
 	}
 }
 
+func TestSessionEventServiceRoutesVoicePlaybackEvents(t *testing.T) {
+	service := SessionEventService{}
+	session := sessionEventTestSession(1)
+	turn := sessionEventTestTurn(1)
+	turn.Status = string(TurnStatusFollowUpRequested)
+	plan := sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline)
+	now := time.Date(2026, 5, 17, 8, 51, 0, 0, time.UTC)
+
+	cases := []struct {
+		kind    string
+		payload map[string]any
+	}{
+		{
+			kind: "tts_chunk_started",
+			payload: map[string]any{
+				"voiceTurnId":      "voice-turn-1",
+				"chunkId":          "chunk-1",
+				"playbackOffsetMs": 0,
+			},
+		},
+		{
+			kind: "tts_chunk_played",
+			payload: map[string]any{
+				"voiceTurnId":      "voice-turn-1",
+				"chunkId":          "chunk-1",
+				"playedTextHash":   "sha256:chunk-1",
+				"playedTextLength": 36,
+				"playbackOffsetMs": 2840,
+			},
+		},
+		{
+			kind: "barge_in_detected",
+			payload: map[string]any{
+				"voiceTurnId":         "voice-turn-1",
+				"chunkId":             "chunk-1",
+				"playbackOffsetMs":    1480,
+				"userSpeechStartedAt": "2026-05-17T08:51:05Z",
+			},
+		},
+		{
+			kind: "assistant_context_committed",
+			payload: map[string]any{
+				"voiceTurnId":         "voice-turn-1",
+				"chunkId":             "chunk-1",
+				"committedTextHash":   "sha256:chunk-1",
+				"committedTextLength": 36,
+				"playbackOffsetMs":    2840,
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.kind, func(t *testing.T) {
+			out, err := service.Route(context.Background(), SessionEventInput{
+				SessionID:     session.ID,
+				ClientEventID: "client-event-voice",
+				Kind:          tc.kind,
+				OccurredAt:    now,
+				Payload:       tc.payload,
+			}, session, turn, plan)
+			if err != nil {
+				t.Fatalf("Route returned error: %v", err)
+			}
+			if out.Error != nil {
+				t.Fatalf("unexpected outcome error: %+v", out.Error)
+			}
+			if !out.Acknowledged || out.AssistantAction.Type != assistantActionSessionWait || out.AssistantAction.TurnID != turn.ID {
+				t.Fatalf("unexpected voice playback outcome: %+v", out)
+			}
+			if out.NextSessionStatus != sharedtypes.SessionStatusRunning {
+				t.Fatalf("NextSessionStatus = %s", out.NextSessionStatus)
+			}
+			if out.AuditMetadata["event_kind"] != tc.kind ||
+				out.AuditMetadata["voice_turn_id"] != "voice-turn-1" ||
+				out.AuditMetadata["chunk_id"] != "chunk-1" {
+				t.Fatalf("voice audit metadata missing event summary: %+v", out.AuditMetadata)
+			}
+			if _, leaked := out.AuditMetadata["assistantTextDraft"]; leaked {
+				t.Fatalf("voice audit metadata must not store assistant text: %+v", out.AuditMetadata)
+			}
+		})
+	}
+}
+
+func TestSessionEventServiceRejectsMalformedVoicePlaybackEvent(t *testing.T) {
+	service := SessionEventService{}
+	session := sessionEventTestSession(1)
+	turn := sessionEventTestTurn(1)
+	turn.Status = string(TurnStatusFollowUpRequested)
+	out, err := service.Route(context.Background(), SessionEventInput{
+		SessionID:     session.ID,
+		ClientEventID: "client-event-voice",
+		Kind:          "tts_chunk_played",
+		OccurredAt:    time.Date(2026, 5, 17, 8, 51, 0, 0, time.UTC),
+		Payload: map[string]any{
+			"chunkId":          "chunk-1",
+			"playedTextHash":   "sha256:chunk-1",
+			"playedTextLength": 36,
+			"playbackOffsetMs": 2840,
+		},
+	}, session, turn, sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline))
+	if err != nil {
+		t.Fatalf("Route returned error: %v", err)
+	}
+	if out.Error == nil || out.Error.Code != sharederrors.CodeValidationFailed || out.Error.Details["field"] != "payload.voiceTurnId" {
+		t.Fatalf("expected payload.voiceTurnId validation error, got %+v", out.Error)
+	}
+}
+
 func TestHandleAnswerSubmittedDecisionBranches(t *testing.T) {
 	service := SessionEventService{}
 	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)

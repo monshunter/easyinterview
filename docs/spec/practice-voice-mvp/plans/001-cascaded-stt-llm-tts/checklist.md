@@ -25,9 +25,9 @@
 
 ## Phase 3: Playback progress and barge-in context
 
-- [ ] 3.1 扩展或复用 `appendSessionEvent` 记录 `tts_chunk_started` / `tts_chunk_played` / `barge_in_detected` / `assistant_context_committed`；验证: API/handler tests 覆盖 event ordering、body-level `clientEventId` replay、禁止 `Idempotency-Key`
-- [ ] 3.2 实现 committed context builder；验证: unit tests 覆盖完整 chunk、部分 chunk、无播放、重复事件、乱序事件
-- [ ] 3.3 下一轮 prompt 注入 interruption note；验证: backend tests 断言未播放 draft 不进入 prompt，已播放内容和用户插话进入 prompt
+- [x] 3.1 扩展或复用 `appendSessionEvent` 记录 `tts_chunk_started` / `tts_chunk_played` / `barge_in_detected` / `assistant_context_committed`；验证: API/handler tests 覆盖 event ordering、body-level `clientEventId` replay、禁止 `Idempotency-Key`
+- [x] 3.2 实现 committed context builder；验证: unit tests 覆盖完整 chunk、部分 chunk、无播放、重复事件、乱序事件
+- [x] 3.3 下一轮 prompt 注入 interruption note；验证: backend tests 断言未播放 draft 不进入 prompt，已播放内容和用户插话进入 prompt
 
 ## Phase 4: Frontend voice controller
 

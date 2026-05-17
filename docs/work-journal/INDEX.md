@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `feat(practice-voice): add playback committed context` | #feat #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(practice-voice): land backend voice turn orchestration` | #feat #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(practice-voice): add voice turn contract fixtures` | #feat #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(practice-voice): complete phase 0 contract preflight` | #feat #test #docs |
