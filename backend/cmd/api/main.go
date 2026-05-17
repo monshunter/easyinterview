@@ -341,6 +341,18 @@ func buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader *config.Loader
 		if resume.Idempotency != nil {
 			requestResumeTailor = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "requestResumeTailor", requestUserFromContext, requestResumeTailor)).ServeHTTP
 		}
+		acceptResumeTailorSuggestion := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.AcceptResumeTailorSuggestion(w, r, r.PathValue("resumeVersionId"), r.PathValue("suggestionId"))
+		})
+		if resume.Idempotency != nil {
+			acceptResumeTailorSuggestion = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "acceptResumeTailorSuggestion", requestUserFromContext, acceptResumeTailorSuggestion)).ServeHTTP
+		}
+		rejectResumeTailorSuggestion := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.RejectResumeTailorSuggestion(w, r, r.PathValue("resumeVersionId"), r.PathValue("suggestionId"))
+		})
+		if resume.Idempotency != nil {
+			rejectResumeTailorSuggestion = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "rejectResumeTailorSuggestion", requestUserFromContext, rejectResumeTailorSuggestion)).ServeHTTP
+		}
 		mux.Handle("GET /api/v1/resumes", auth.SessionMiddleware(authService, "listResumes", http.HandlerFunc(resume.Handler.ListResumes)))
 		mux.Handle("POST /api/v1/resumes", auth.SessionMiddleware(authService, "registerResume", registerResume))
 		mux.Handle("POST /api/v1/resume-versions", auth.SessionMiddleware(authService, "branchResumeVersion", branchResumeVersion))
@@ -355,6 +367,8 @@ func buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader *config.Loader
 			resume.Handler.GetResumeVersion(w, r, r.PathValue("resumeVersionId"))
 		})))
 		mux.Handle("PATCH /api/v1/resume-versions/{resumeVersionId}", auth.SessionMiddleware(authService, "updateResumeVersion", updateResumeVersion))
+		mux.Handle("POST /api/v1/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept", auth.SessionMiddleware(authService, "acceptResumeTailorSuggestion", acceptResumeTailorSuggestion))
+		mux.Handle("POST /api/v1/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject", auth.SessionMiddleware(authService, "rejectResumeTailorSuggestion", rejectResumeTailorSuggestion))
 		mux.Handle("GET /api/v1/resumes/{resumeAssetId}/versions", auth.SessionMiddleware(authService, "listResumeVersions", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resume.Handler.ListResumeVersions(w, r, r.PathValue("resumeAssetId"))
 		})))

@@ -244,6 +244,14 @@ type CompleteTailorRunSuccessInput struct {
 	Now                time.Time
 }
 
+type DecideSuggestionInput struct {
+	UserID          string
+	ResumeVersionID string
+	SuggestionID    string
+	Decision        sharedtypes.ResumeTailorSuggestionStatus
+	Now             time.Time
+}
+
 type ListFilter struct {
 	Cursor   string
 	PageSize int

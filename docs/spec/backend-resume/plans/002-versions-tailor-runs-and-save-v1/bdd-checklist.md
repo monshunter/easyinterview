@@ -56,12 +56,12 @@
 
 ## E2E.P0.079 resume suggestion accept reject terminal
 
-- [ ] 创建场景目录 `test/scenarios/e2e/p0-079-resume-suggestion-accept-reject-terminal/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
-- [ ] 准备 fixture + 测试数据：`acceptResumeTailorSuggestion.json` / `rejectResumeTailorSuggestion.json` `default` / `idempotency-replay` / `already-decided-409`（缺 variant 由本 plan Phase 8.7 补齐 fixture，并将当前 `conflict-409` + `TARGET_INVALID_STATE_TRANSITION` 漂移替换为 `VALIDATION_FAILED` + `detail.reason='SUGGESTION_ALREADY_DECIDED'`）；用户 A 拥有 1 行 ready targeted version + 5 个 pending suggestions（带初始 structured_profile 状态供 D-12 断言）；用户 B 已登录有自己 suggestion
-- [ ] 实现 `scripts/setup.sh`（dev stack + 推进 ai_select tailor 流程产生 suggestion 或直接 seed 5 个 pending suggestion + 用户登录）/ `scripts/trigger.sh`（A1 accept s1 + A2 IK replay + A3 already-decided 409 + A4 reject s2 + A5 already-decided 409 + A6 not found 404 + B1/B2 cross-user，运行 `cd backend && go test ./cmd/api -run TestResumeSuggestionAcceptRejectHTTPScenario -count=1 -v`）/ `scripts/verify.sh`（DB suggestions status 状态机 + decided_at + **`resume_versions.structured_profile` 不被改动**（D-12）+ IK middleware replay + 字节比对 fixture + cross-user 404 + 隐私 grep + `method=cmd-api-http`）/ `scripts/cleanup.sh`
-- [ ] 执行 `setup → trigger → verify → cleanup` 全 PASS
-- [ ] 记录验证证据：`.test-output/e2e/p0-079-resume-suggestion-accept-reject-terminal/trigger.log` + DB suggestion 状态机轨迹 + `resume_versions.structured_profile` 不变断言 + IK replay 证据 + cross-user 404 + 隐私 grep 0 命中 + live runtime evidence
-- [ ] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.079 行（关联需求 `backend-resume C-11`，状态 Ready，automated）
+- [x] 创建场景目录 `test/scenarios/e2e/p0-079-resume-suggestion-accept-reject-terminal/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
+- [x] 准备 fixture + 测试数据：`acceptResumeTailorSuggestion.json` / `rejectResumeTailorSuggestion.json` `default` / `idempotency-replay` / `already-decided-409`（缺 variant 由本 plan Phase 8.7 补齐 fixture，并将当前 `conflict-409` + `TARGET_INVALID_STATE_TRANSITION` 漂移替换为 `VALIDATION_FAILED` + `detail.reason='SUGGESTION_ALREADY_DECIDED'`）；用户 A 拥有 ready targeted version + pending suggestions（带初始 structured_profile 状态供 D-12 断言）；用户 B 拥有自己 suggestion（验证：`make validate-fixtures` PASS；`TestResumeSuggestionDecisionCASIsolationAndProfileStability` live integration PASS）
+- [x] 实现 `scripts/setup.sh`（准备 `.test-output` 与 seed/expected evidence）/ `scripts/trigger.sh`（运行 `make validate-fixtures`、`cd backend && go test ./cmd/api -run TestResumeSuggestionAcceptRejectHTTPScenario -count=1 -v`、handler fixture parity、service decision tests、live store CAS integration）/ `scripts/verify.sh`（suggestions status 状态机 + decided_at + **`resume_versions.structured_profile` 不被改动**（D-12）+ IK middleware replay + 字节比对 fixture + cross-user 404 + 隐私 grep + `method=cmd-api-http`）/ `scripts/cleanup.sh`
+- [x] 执行 `setup → trigger → verify → cleanup` 全 PASS（shell `LC_ALL=C.UTF-8` locale warning 非阻塞）
+- [x] 记录验证证据：`.test-output/e2e/p0-079-resume-suggestion-accept-reject-terminal/trigger.log` + DB suggestion 状态机轨迹 + `resume_versions.structured_profile` 不变断言 + IK replay 证据 + cross-user 404 + 隐私 grep 0 命中 + live runtime evidence
+- [x] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.079 行（关联需求 `backend-resume C-16`，状态 Ready，automated）
 
 ## E2E.P0.080 resume versions privacy and legacy negative
 

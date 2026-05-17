@@ -617,6 +617,76 @@ func TestGetResumeTailorRunMapsStatusesAndErrors(t *testing.T) {
 	}
 }
 
+func TestResumeSuggestionDecisionRoutesAcceptRejectToStore(t *testing.T) {
+	now := time.Date(2026, 5, 18, 11, 30, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		name         string
+		call         func(*resume.Service) (string, error)
+		wantDecision sharedtypes.ResumeTailorSuggestionStatus
+	}{
+		{
+			name: "accept",
+			call: func(s *resume.Service) (string, error) {
+				got, err := s.AcceptResumeTailorSuggestion(context.Background(), validSuggestionDecisionInput())
+				return suggestionStatusFromVersion(t, got.Suggestions), err
+			},
+			wantDecision: sharedtypes.ResumeTailorSuggestionStatusAccepted,
+		},
+		{
+			name: "reject",
+			call: func(s *resume.Service) (string, error) {
+				got, err := s.RejectResumeTailorSuggestion(context.Background(), validSuggestionDecisionInput())
+				return suggestionStatusFromVersion(t, got.Suggestions), err
+			},
+			wantDecision: sharedtypes.ResumeTailorSuggestionStatusRejected,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			store := &fakeRegisterStore{decideSuggestionOut: suggestionDecisionStoreVersion("version-1", "suggestion-1", string(tc.wantDecision), now)}
+			svc := resume.NewService(resume.ServiceOptions{Store: store, Now: func() time.Time { return now }})
+
+			status, err := tc.call(svc)
+			if err != nil {
+				t.Fatalf("%s suggestion: %v", tc.name, err)
+			}
+			if store.decideSuggestionIn.UserID != "user-1" || store.decideSuggestionIn.ResumeVersionID != "version-1" || store.decideSuggestionIn.SuggestionID != "suggestion-1" {
+				t.Fatalf("store scope = %+v", store.decideSuggestionIn)
+			}
+			if store.decideSuggestionIn.Decision != tc.wantDecision || store.decideSuggestionIn.Now != now {
+				t.Fatalf("store decision = %+v", store.decideSuggestionIn)
+			}
+			if status != string(tc.wantDecision) {
+				t.Fatalf("response suggestion status = %q, want %q", status, tc.wantDecision)
+			}
+		})
+	}
+}
+
+func TestResumeSuggestionDecisionValidationAndStoreErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		in   resume.SuggestionDecisionRequest
+		err  error
+		want error
+	}{
+		{name: "missing version", in: resume.SuggestionDecisionRequest{UserID: "user-1", SuggestionID: "suggestion-1", IdempotencyKey: "idem"}, want: resume.ErrValidationFailed},
+		{name: "missing idempotency key", in: resume.SuggestionDecisionRequest{UserID: "user-1", ResumeVersionID: "version-1", SuggestionID: "suggestion-1"}, want: resume.ErrValidationFailed},
+		{name: "not found", in: validSuggestionDecisionInput(), err: resumestore.ErrSuggestionNotFound, want: resume.ErrNotFound},
+		{name: "already decided", in: validSuggestionDecisionInput(), err: resumestore.ErrSuggestionAlreadyDecided, want: resume.ErrSuggestionAlreadyDecided},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := resume.NewService(resume.ServiceOptions{Store: &fakeRegisterStore{decideSuggestionErr: tc.err}})
+
+			_, err := svc.AcceptResumeTailorSuggestion(context.Background(), tc.in)
+
+			if !errors.Is(err, tc.want) {
+				t.Fatalf("err = %v, want %v", err, tc.want)
+			}
+		})
+	}
+}
+
 type fakeUploadRegistrar struct {
 	in  uploadservice.RegisterFileObjectInput
 	out uploadstore.FileObject
@@ -675,6 +745,10 @@ type fakeRegisterStore struct {
 	tailorGetID     string
 	tailorGetOut    resumestore.TailorRunRecord
 	tailorGetErr    error
+
+	decideSuggestionIn  resumestore.DecideSuggestionInput
+	decideSuggestionOut resumestore.VersionRecord
+	decideSuggestionErr error
 }
 
 func (s *fakeRegisterStore) CreateWithParseJob(_ context.Context, in resumestore.CreateAssetInput) (resumestore.CreateAssetResult, error) {
@@ -746,6 +820,11 @@ func (s *fakeRegisterStore) MarkTailorRunFailed(context.Context, resumestore.Tai
 	return resumestore.TailorRunRecord{}, errors.New("not implemented")
 }
 
+func (s *fakeRegisterStore) DecideResumeSuggestion(_ context.Context, in resumestore.DecideSuggestionInput) (resumestore.VersionRecord, error) {
+	s.decideSuggestionIn = in
+	return s.decideSuggestionOut, s.decideSuggestionErr
+}
+
 func sequenceIDs(ids ...string) func() string {
 	i := 0
 	return func() string {
@@ -777,6 +856,15 @@ func validTailorInput() resume.RequestTailorRunInput {
 	}
 }
 
+func validSuggestionDecisionInput() resume.SuggestionDecisionRequest {
+	return resume.SuggestionDecisionRequest{
+		UserID:          " user-1 ",
+		ResumeVersionID: " version-1 ",
+		SuggestionID:    " suggestion-1 ",
+		IdempotencyKey:  " idem-suggestion ",
+	}
+}
+
 func validStructuredProfile() map[string]any {
 	return map[string]any{
 		"headline": "Senior engineer",
@@ -789,6 +877,49 @@ func validStructuredProfile() map[string]any {
 			"dataSourceVersion": "asset.v1",
 		},
 	}
+}
+
+func suggestionDecisionStoreVersion(versionID, suggestionID, status string, now time.Time) resumestore.VersionRecord {
+	return resumestore.VersionRecord{
+		ID:                versionID,
+		UserID:            "user-1",
+		ResumeAssetID:     "asset-1",
+		VersionType:       sharedtypes.ResumeVersionTypeTargeted,
+		DisplayName:       "Targeted",
+		StructuredProfile: json.RawMessage(`{"headline":"Senior engineer","provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`),
+		Provenance: resumestore.VersionProvenance{
+			PromptVersion: "p", RubricVersion: "r", ModelID: "m", Language: "en", FeatureFlag: "f", DataSourceVersion: "d",
+		},
+		Suggestions: []any{map[string]any{
+			"id":              suggestionID,
+			"originalBullet":  "Improved reliability.",
+			"suggestedBullet": "Improved reliability with release guardrails.",
+			"status":          status,
+			"provenance": map[string]any{
+				"promptVersion": "p", "rubricVersion": "r", "modelId": "m", "language": "en", "featureFlag": "f", "dataSourceVersion": "d",
+			},
+			"createdAt": now.Format(time.RFC3339),
+			"decidedAt": now.Format(time.RFC3339),
+		}},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+}
+
+func suggestionStatusFromVersion(t *testing.T, suggestions []any) string {
+	t.Helper()
+	if len(suggestions) != 1 {
+		t.Fatalf("suggestions = %#v", suggestions)
+	}
+	first, ok := suggestions[0].(map[string]any)
+	if !ok {
+		t.Fatalf("suggestion type = %T", suggestions[0])
+	}
+	status, _ := first["status"].(string)
+	if status == "" {
+		t.Fatalf("suggestion missing status: %+v", first)
+	}
+	return status
 }
 
 func validBranchInput(strategy sharedtypes.ResumeSeedStrategy) resume.BranchVersionRequest {

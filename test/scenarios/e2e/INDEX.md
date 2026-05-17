@@ -76,3 +76,4 @@
 | E2E.P0.076 | backend-resume C-10 | `p0-076-resume-branch-version-sync-paths/` | branch resume version copy_master/blank sync paths + idempotency + cross-user target isolation | automated | Ready |
 | E2E.P0.077 | backend-resume C-10, C-16 | `p0-077-resume-tailor-async-dispatch-and-ready/` | resume tailor ai_select dispatch + request/read + drainer ready path with suggestions/task-run/outbox | automated | Ready |
 | E2E.P0.078 | backend-resume C-16 | `p0-078-resume-tailor-failure-and-retry/` | resume_tailor timeout retryable, output_invalid terminal, retry-to-ready, and ready-only outbox | automated | Ready |
+| E2E.P0.079 | backend-resume C-16 | `p0-079-resume-suggestion-accept-reject-terminal/` | resume suggestion accept/reject terminal decision + idempotency + cross-user isolation + profile stability | automated | Ready |

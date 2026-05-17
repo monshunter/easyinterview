@@ -1133,6 +1133,185 @@ runtime:
 	})
 }
 
+func TestResumeSuggestionAcceptRejectHTTPScenario(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	sessionTime := time.Date(2026, 5, 18, 11, 45, 0, 0, time.UTC)
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store: &apiAuthStore{
+			session: auth.SessionRecord{
+				ID:        "session-1",
+				UserID:    "user-1",
+				Status:    auth.SessionStatusActive,
+				ExpiresAt: sessionTime.Add(time.Hour),
+			},
+			user: auth.UserContext{ID: "user-1", Email: "candidate@example.com"},
+		},
+		SessionCookieSecret: "session-secret",
+		Now:                 func() time.Time { return sessionTime },
+	})
+	idemStore := &apiIdempotencyStore{}
+	resumeSvc := &apiTailorRunService{
+		acceptOut: apiTargetedVersion("version-1", "asset-1", "parent-1", "target-1", sharedtypes.ResumeSeedStrategyCopyMaster, sessionTime),
+		rejectOut: apiTargetedVersion("version-1", "asset-1", "parent-1", "target-1", sharedtypes.ResumeSeedStrategyCopyMaster, sessionTime),
+	}
+	handler := buildAPIHandlerWithUploadAndHandlers(
+		loader,
+		apiRuntimeFlags{},
+		service,
+		targetjob.NewHandler(),
+		practiceRoutes{},
+		uploadRoutes{},
+		resumeRoutes{
+			Handler: resumehandler.New(resumehandler.Options{Service: resumeSvc, Session: currentUserFromContext}),
+			Idempotency: idempotency.New(idempotency.MiddlewareOptions{
+				Store: idemStore,
+				Now:   func() time.Time { return sessionTime },
+				NewID: func() string { return "idem-rec-suggestion" },
+			}),
+		},
+	)
+
+	t.Run("missing session", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/resume-versions/version-1/suggestions/suggestion-1/accept", nil)
+		req.Header.Set(idempotency.HeaderName, "idem-accept")
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("missing idempotency key", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPost, "/api/v1/resume-versions/version-1/suggestions/suggestion-1/accept", "", "")
+
+		handler.ServeHTTP(rec, req)
+
+		assertAPIStatusCode(t, rec, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
+	})
+
+	t.Run("accept persists idempotency resource", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPost, "/api/v1/resume-versions/version-1/suggestions/suggestion-1/accept", "", "idem-accept")
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+		if resumeSvc.acceptCalls != 1 || resumeSvc.acceptIn.UserID != "user-1" || resumeSvc.acceptIn.ResumeVersionID != "version-1" || resumeSvc.acceptIn.SuggestionID != "suggestion-1" {
+			t.Fatalf("accept calls=%d input=%+v", resumeSvc.acceptCalls, resumeSvc.acceptIn)
+		}
+		if idemStore.completeIn.Operation != "acceptResumeTailorSuggestion" || idemStore.completeIn.ResourceType != "resume_version" || idemStore.completeIn.ResourceID != "version-1" {
+			t.Fatalf("idempotency completion = %+v", idemStore.completeIn)
+		}
+	})
+
+	t.Run("reject route", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPost, "/api/v1/resume-versions/version-1/suggestions/suggestion-2/reject", "", "idem-reject")
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+		}
+		if resumeSvc.rejectCalls != 1 || resumeSvc.rejectIn.SuggestionID != "suggestion-2" {
+			t.Fatalf("reject calls=%d input=%+v", resumeSvc.rejectCalls, resumeSvc.rejectIn)
+		}
+	})
+
+	t.Run("idempotency replay bypasses service", func(t *testing.T) {
+		replayStore := &apiIdempotencyStore{reservation: idempotency.Reservation{
+			State:          idempotency.StateReplay,
+			RecordID:       "idem-rec-suggestion-replay",
+			ResponseStatus: http.StatusOK,
+			ResponseBody:   []byte(`{"id":"version-replay","resumeAssetId":"asset-1","versionType":"targeted","displayName":"Targeted","structuredProfile":{},"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"},"suggestions":[],"createdAt":"2026-05-18T11:45:00Z","updatedAt":"2026-05-18T11:45:00Z"}`),
+		}}
+		replaySvc := &apiTailorRunService{acceptOut: resumeSvc.acceptOut}
+		replayHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{
+				Handler:     resumehandler.New(resumehandler.Options{Service: replaySvc, Session: currentUserFromContext}),
+				Idempotency: idempotency.New(idempotency.MiddlewareOptions{Store: replayStore, Now: func() time.Time { return sessionTime }}),
+			},
+		)
+		rec := httptest.NewRecorder()
+		req := authenticatedAPIRequest(http.MethodPost, "/api/v1/resume-versions/version-1/suggestions/suggestion-1/accept", "", "idem-accept")
+
+		replayHandler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK || rec.Header().Get(idempotency.ReplayHeader) != "true" {
+			t.Fatalf("replay status=%d header=%q body=%s", rec.Code, rec.Header().Get(idempotency.ReplayHeader), rec.Body.String())
+		}
+		if replaySvc.acceptCalls != 0 {
+			t.Fatalf("service calls on replay = %d, want 0", replaySvc.acceptCalls)
+		}
+	})
+
+	t.Run("mismatch already decided and not found envelopes", func(t *testing.T) {
+		mismatchHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{
+				Handler:     resumehandler.New(resumehandler.Options{Service: resumeSvc, Session: currentUserFromContext}),
+				Idempotency: idempotency.New(idempotency.MiddlewareOptions{Store: &apiIdempotencyStore{err: idempotency.ErrFingerprintMismatch}, Now: func() time.Time { return sessionTime }}),
+			},
+		)
+		rec := httptest.NewRecorder()
+		mismatchHandler.ServeHTTP(rec, authenticatedAPIRequest(http.MethodPost, "/api/v1/resume-versions/version-1/suggestions/suggestion-1/accept", "", "idem-accept"))
+		assertAPIStatusCode(t, rec, http.StatusConflict, sharederrors.CodeIdempotencyKeyMismatch)
+
+		alreadySvc := &apiTailorRunService{acceptErr: domainresume.ErrSuggestionAlreadyDecided}
+		alreadyHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{Handler: resumehandler.New(resumehandler.Options{Service: alreadySvc, Session: currentUserFromContext})},
+		)
+		rec = httptest.NewRecorder()
+		alreadyHandler.ServeHTTP(rec, authenticatedAPIRequest(http.MethodPost, "/api/v1/resume-versions/version-1/suggestions/suggestion-1/accept", "", "idem-accept-already"))
+		assertAPIStatusCode(t, rec, http.StatusConflict, sharederrors.CodeValidationFailed)
+
+		notFoundSvc := &apiTailorRunService{acceptErr: domainresume.ErrNotFound}
+		notFoundHandler := buildAPIHandlerWithUploadAndHandlers(
+			loader,
+			apiRuntimeFlags{},
+			service,
+			targetjob.NewHandler(),
+			practiceRoutes{},
+			uploadRoutes{},
+			resumeRoutes{Handler: resumehandler.New(resumehandler.Options{Service: notFoundSvc, Session: currentUserFromContext})},
+		)
+		rec = httptest.NewRecorder()
+		notFoundHandler.ServeHTTP(rec, authenticatedAPIRequest(http.MethodPost, "/api/v1/resume-versions/version-1/suggestions/foreign/accept", "", "idem-accept-missing"))
+		assertAPIStatusCode(t, rec, http.StatusNotFound, sharederrors.CodeTargetJobNotFound)
+	})
+}
+
 func TestBuildAPIHandlerMountsReportRoutesBehindSessionMiddleware(t *testing.T) {
 	dir := t.TempDir()
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
@@ -1761,6 +1940,16 @@ type apiTailorRunService struct {
 	getTailorRunID string
 	getOut         api.ResumeTailorRun
 	getErr         error
+
+	acceptCalls int
+	acceptIn    domainresume.SuggestionDecisionRequest
+	acceptOut   api.ResumeVersion
+	acceptErr   error
+
+	rejectCalls int
+	rejectIn    domainresume.SuggestionDecisionRequest
+	rejectOut   api.ResumeVersion
+	rejectErr   error
 }
 
 func (s *apiTailorRunService) RegisterResume(context.Context, domainresume.RegisterInput) (api.ResumeAssetWithJob, error) {
@@ -1777,6 +1966,18 @@ func (s *apiTailorRunService) GetResumeTailorRun(_ context.Context, userID strin
 	s.getUserID = userID
 	s.getTailorRunID = tailorRunID
 	return s.getOut, s.getErr
+}
+
+func (s *apiTailorRunService) AcceptResumeTailorSuggestion(_ context.Context, in domainresume.SuggestionDecisionRequest) (api.ResumeVersion, error) {
+	s.acceptCalls++
+	s.acceptIn = in
+	return s.acceptOut, s.acceptErr
+}
+
+func (s *apiTailorRunService) RejectResumeTailorSuggestion(_ context.Context, in domainresume.SuggestionDecisionRequest) (api.ResumeVersion, error) {
+	s.rejectCalls++
+	s.rejectIn = in
+	return s.rejectOut, s.rejectErr
 }
 
 type apiVersionReadService struct {

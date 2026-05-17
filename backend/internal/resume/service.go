@@ -25,6 +25,7 @@ var (
 	ErrInvalidCursor                 = errors.New("invalid resume cursor")
 	ErrAssetParseNotReady            = errors.New("resume asset parse is not ready")
 	ErrStructuredMasterAlreadyExists = errors.New("structured master resume version already exists")
+	ErrSuggestionAlreadyDecided      = errors.New("resume tailor suggestion already decided")
 )
 
 type RegisterInput struct {
@@ -70,6 +71,10 @@ type TailorRunStore interface {
 	MarkTailorRunGenerating(ctx context.Context, in resumestore.TailorRunStatusInput) (resumestore.TailorRunRecord, error)
 	MarkTailorRunReady(ctx context.Context, in resumestore.TailorRunReadyInput) (resumestore.TailorRunRecord, error)
 	MarkTailorRunFailed(ctx context.Context, in resumestore.TailorRunFailureInput) (resumestore.TailorRunRecord, error)
+}
+
+type SuggestionDecisionStore interface {
+	DecideResumeSuggestion(ctx context.Context, in resumestore.DecideSuggestionInput) (resumestore.VersionRecord, error)
 }
 
 type UploadRegistrar interface {
@@ -348,6 +353,13 @@ type RequestTailorRunInput struct {
 	IdempotencyKey string
 }
 
+type SuggestionDecisionRequest struct {
+	UserID          string
+	ResumeVersionID string
+	SuggestionID    string
+	IdempotencyKey  string
+}
+
 func (s *Service) ListResumeVersions(ctx context.Context, in ListVersionRequest) (api.PaginatedResumeVersion, error) {
 	if s == nil {
 		return api.PaginatedResumeVersion{}, fmt.Errorf("resume version read store is not configured")
@@ -588,6 +600,52 @@ func (s *Service) GetResumeTailorRun(ctx context.Context, userID string, tailorR
 		return api.ResumeTailorRun{}, err
 	}
 	return tailorRunRecordToAPI(rec), nil
+}
+
+func (s *Service) AcceptResumeTailorSuggestion(ctx context.Context, in SuggestionDecisionRequest) (api.ResumeVersion, error) {
+	return s.decideResumeTailorSuggestion(ctx, in, sharedtypes.ResumeTailorSuggestionStatusAccepted)
+}
+
+func (s *Service) RejectResumeTailorSuggestion(ctx context.Context, in SuggestionDecisionRequest) (api.ResumeVersion, error) {
+	return s.decideResumeTailorSuggestion(ctx, in, sharedtypes.ResumeTailorSuggestionStatusRejected)
+}
+
+func (s *Service) decideResumeTailorSuggestion(ctx context.Context, in SuggestionDecisionRequest, decision sharedtypes.ResumeTailorSuggestionStatus) (api.ResumeVersion, error) {
+	if s == nil {
+		return api.ResumeVersion{}, fmt.Errorf("resume suggestion decision store is not configured")
+	}
+	store, ok := s.store.(SuggestionDecisionStore)
+	if !ok {
+		return api.ResumeVersion{}, fmt.Errorf("resume suggestion decision store is not configured")
+	}
+	userID := strings.TrimSpace(in.UserID)
+	versionID := strings.TrimSpace(in.ResumeVersionID)
+	suggestionID := strings.TrimSpace(in.SuggestionID)
+	idempotencyKey := strings.TrimSpace(in.IdempotencyKey)
+	if userID == "" || versionID == "" || suggestionID == "" || idempotencyKey == "" {
+		return api.ResumeVersion{}, ErrValidationFailed
+	}
+	switch decision {
+	case sharedtypes.ResumeTailorSuggestionStatusAccepted, sharedtypes.ResumeTailorSuggestionStatusRejected:
+	default:
+		return api.ResumeVersion{}, ErrValidationFailed
+	}
+	rec, err := store.DecideResumeSuggestion(ctx, resumestore.DecideSuggestionInput{
+		UserID:          userID,
+		ResumeVersionID: versionID,
+		SuggestionID:    suggestionID,
+		Decision:        decision,
+		Now:             s.now(),
+	})
+	switch {
+	case errors.Is(err, resumestore.ErrSuggestionNotFound), errors.Is(err, resumestore.ErrVersionNotFound):
+		return api.ResumeVersion{}, ErrNotFound
+	case errors.Is(err, resumestore.ErrSuggestionAlreadyDecided):
+		return api.ResumeVersion{}, ErrSuggestionAlreadyDecided
+	case err != nil:
+		return api.ResumeVersion{}, err
+	}
+	return versionRecordToAPI(rec), nil
 }
 
 func (s *Service) dedupeKey(userID, idempotencyKey string) string {

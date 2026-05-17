@@ -392,6 +392,95 @@ insert into async_jobs (
 	return result, nil
 }
 
+func (r *Repository) DecideResumeSuggestion(ctx context.Context, in DecideSuggestionInput) (VersionRecord, error) {
+	if r == nil || r.db == nil {
+		return VersionRecord{}, fmt.Errorf("resume store db is nil")
+	}
+	switch in.Decision {
+	case sharedtypes.ResumeTailorSuggestionStatusAccepted, sharedtypes.ResumeTailorSuggestionStatusRejected:
+	default:
+		return VersionRecord{}, ErrInvalidStateTransition
+	}
+	now := in.Now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return VersionRecord{}, fmt.Errorf("begin resume suggestion decision: %w", err)
+	}
+	defer tx.Rollback()
+
+	var status string
+	if err := tx.QueryRowContext(ctx, `
+select s.status
+from resume_version_suggestions s
+join resume_versions v on v.id = s.resume_version_id
+where s.id = $1
+  and s.resume_version_id = $2
+  and v.user_id = $3
+  and v.deleted_at is null
+for update of s`,
+		in.SuggestionID,
+		in.ResumeVersionID,
+		in.UserID,
+	).Scan(&status); errors.Is(err, sql.ErrNoRows) {
+		return VersionRecord{}, ErrSuggestionNotFound
+	} else if err != nil {
+		return VersionRecord{}, fmt.Errorf("lock resume suggestion: %w", err)
+	}
+	if sharedtypes.ResumeTailorSuggestionStatus(status) != sharedtypes.ResumeTailorSuggestionStatusPending {
+		return VersionRecord{}, ErrSuggestionAlreadyDecided
+	}
+	res, err := tx.ExecContext(ctx, `
+update resume_version_suggestions
+set status = $1,
+    decided_at = $2
+where id = $3
+  and resume_version_id = $4
+  and status = 'pending'`,
+		string(in.Decision),
+		now,
+		in.SuggestionID,
+		in.ResumeVersionID,
+	)
+	if err != nil {
+		return VersionRecord{}, fmt.Errorf("update resume suggestion decision: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return VersionRecord{}, fmt.Errorf("update resume suggestion decision rows affected: %w", err)
+	}
+	if rows == 0 {
+		return VersionRecord{}, ErrSuggestionAlreadyDecided
+	}
+	rec, err := scanVersion(tx.QueryRowContext(ctx, `
+update resume_versions
+set updated_at = $1
+where id = $2 and user_id = $3 and deleted_at is null
+returning id, user_id, resume_asset_id, parent_version_id, version_type, target_job_id,
+          display_name, seed_strategy, focus_angle, structured_profile, match_score,
+          prompt_version, rubric_version, model_id, provider, created_at, updated_at, deleted_at`,
+		now,
+		in.ResumeVersionID,
+		in.UserID,
+	))
+	if errors.Is(err, sql.ErrNoRows) {
+		return VersionRecord{}, ErrSuggestionNotFound
+	}
+	if err != nil {
+		return VersionRecord{}, fmt.Errorf("touch resume version after suggestion decision: %w", err)
+	}
+	rec.Suggestions, err = loadVersionSuggestions(ctx, tx, rec)
+	if err != nil {
+		return VersionRecord{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return VersionRecord{}, fmt.Errorf("commit resume suggestion decision: %w", err)
+	}
+	return rec, nil
+}
+
 func mergeStructuredProfile(existing json.RawMessage, patch map[string]any, patchRaw json.RawMessage) (json.RawMessage, error) {
 	base := map[string]any{}
 	if len(existing) > 0 {
@@ -559,6 +648,140 @@ func scanVersion(row rowScanner) (VersionRecord, error) {
 		rec.DeletedAt = &deletedAt.Time
 	}
 	return rec, nil
+}
+
+type versionSuggestionQueryer interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+}
+
+func loadVersionSuggestions(ctx context.Context, q versionSuggestionQueryer, version VersionRecord) ([]any, error) {
+	rows, err := q.QueryContext(ctx, `
+select s.id, s.tailor_run_id, s.original_bullet, s.suggested_bullet, s.reason,
+       s.status, s.decided_at, s.created_at,
+       r.prompt_version, r.rubric_version, r.model_id, r.provider
+from resume_version_suggestions s
+left join resume_tailor_runs r on r.id = s.tailor_run_id
+where s.resume_version_id = $1
+order by s.created_at asc, s.id asc`,
+		version.ID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("load resume version suggestions: %w", err)
+	}
+	defer rows.Close()
+	baseProvenance := suggestionBaseProvenance(version)
+	out := []any{}
+	for rows.Next() {
+		var id, originalBullet, suggestedBullet, status string
+		var tailorRunID, reason, promptVersion, rubricVersion, modelID, provider sql.NullString
+		var decidedAt sql.NullTime
+		var createdAt time.Time
+		if err := rows.Scan(
+			&id,
+			&tailorRunID,
+			&originalBullet,
+			&suggestedBullet,
+			&reason,
+			&status,
+			&decidedAt,
+			&createdAt,
+			&promptVersion,
+			&rubricVersion,
+			&modelID,
+			&provider,
+		); err != nil {
+			return nil, fmt.Errorf("scan resume version suggestion: %w", err)
+		}
+		provenance := baseProvenance
+		if promptVersion.Valid {
+			provenance.PromptVersion = promptVersion.String
+		}
+		if rubricVersion.Valid {
+			provenance.RubricVersion = rubricVersion.String
+		}
+		if modelID.Valid {
+			provenance.ModelID = modelID.String
+		}
+		if provider.Valid {
+			provenance.Provider = provider.String
+		}
+		item := map[string]any{
+			"id":              id,
+			"tailorRunId":     nil,
+			"originalBullet":  originalBullet,
+			"suggestedBullet": suggestedBullet,
+			"reason":          nil,
+			"status":          status,
+			"provenance":      generationProvenanceMap(provenance),
+			"decidedAt":       nil,
+			"createdAt":       createdAt.UTC().Format(time.RFC3339),
+		}
+		if tailorRunID.Valid {
+			item["tailorRunId"] = tailorRunID.String
+		}
+		if reason.Valid {
+			item["reason"] = reason.String
+		}
+		if decidedAt.Valid {
+			item["decidedAt"] = decidedAt.Time.UTC().Format(time.RFC3339)
+		}
+		out = append(out, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate resume version suggestions: %w", err)
+	}
+	return out, nil
+}
+
+func suggestionBaseProvenance(version VersionRecord) VersionProvenance {
+	out := version.Provenance
+	var profile map[string]any
+	if err := json.Unmarshal(version.StructuredProfile, &profile); err == nil {
+		if raw, ok := profile["provenance"].(map[string]any); ok {
+			fillVersionProvenanceFromMap(&out, raw)
+		}
+	}
+	return out
+}
+
+func fillVersionProvenanceFromMap(target *VersionProvenance, raw map[string]any) {
+	if target.PromptVersion == "" {
+		target.PromptVersion = stringMapValue(raw, "promptVersion")
+	}
+	if target.RubricVersion == "" {
+		target.RubricVersion = stringMapValue(raw, "rubricVersion")
+	}
+	if target.ModelID == "" {
+		target.ModelID = stringMapValue(raw, "modelId")
+	}
+	if target.Provider == "" {
+		target.Provider = stringMapValue(raw, "provider")
+	}
+	if target.Language == "" {
+		target.Language = stringMapValue(raw, "language")
+	}
+	if target.FeatureFlag == "" {
+		target.FeatureFlag = stringMapValue(raw, "featureFlag")
+	}
+	if target.DataSourceVersion == "" {
+		target.DataSourceVersion = stringMapValue(raw, "dataSourceVersion")
+	}
+}
+
+func stringMapValue(raw map[string]any, key string) string {
+	value, _ := raw[key].(string)
+	return value
+}
+
+func generationProvenanceMap(in VersionProvenance) map[string]any {
+	return map[string]any{
+		"promptVersion":     in.PromptVersion,
+		"rubricVersion":     in.RubricVersion,
+		"modelId":           in.ModelID,
+		"language":          in.Language,
+		"featureFlag":       in.FeatureFlag,
+		"dataSourceVersion": in.DataSourceVersion,
+	}
 }
 
 func isStructuredMasterUniqueViolation(err error) bool {

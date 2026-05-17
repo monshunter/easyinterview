@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -555,6 +556,127 @@ func TestCompleteTailorRunSuccessWritesSuggestionsAndReadyOnlyOutbox(t *testing.
 	}
 }
 
+func TestResumeSuggestionDecisionCASIsolationAndProfileStability(t *testing.T) {
+	db := openResumeStoreTestDB(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	repo := resumestore.NewRepository(db)
+	base := time.Date(2026, 5, 18, 14, 30, 0, 0, time.UTC)
+	userA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a001"
+	userB := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a002"
+	assetA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a003"
+	assetB := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a004"
+	targetA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a005"
+	targetB := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a006"
+	versionA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8b001"
+	versionB := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8b002"
+	runA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8c001"
+	runB := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8c002"
+	acceptID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d001"
+	rejectID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d002"
+	concurrentID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d003"
+	foreignID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d004"
+	profile := []byte(`{"headline":"Senior engineer","sections":[{"bullets":["Improved reliability."]}],"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`)
+	t.Cleanup(func() { cleanupResumeStoreUsers(t, db, userA, userB) })
+
+	mustExec(t, ctx, db, `insert into users(id, email, status) values ($1, 'resume-suggestion-a@example.com', 'active'), ($2, 'resume-suggestion-b@example.com', 'active')`, userA, userB)
+	mustExec(t, ctx, db, `insert into resume_assets(id, user_id, title, language, parse_status) values ($1, $2, 'Ready A', 'en', 'ready'), ($3, $4, 'Ready B', 'en', 'ready')`, assetA, userA, assetB, userB)
+	mustExec(t, ctx, db, `insert into target_jobs(id, user_id, source_type, analysis_status) values ($1, $2, 'manual_text', 'ready'), ($3, $4, 'manual_text', 'ready')`, targetA, userA, targetB, userB)
+	mustExec(t, ctx, db, `insert into resume_versions(id, user_id, resume_asset_id, version_type, target_job_id, display_name, structured_profile, created_at, updated_at, prompt_version, rubric_version, model_id, provider) values ($1,$2,$3,'targeted',$4,'Targeted A',$5,$6,$6,'p','r','m','fixture'), ($7,$8,$9,'targeted',$10,'Targeted B',$5,$6,$6,'p','r','m','fixture')`,
+		versionA, userA, assetA, targetA, profile, base,
+		versionB, userB, assetB, targetB,
+	)
+	mustExec(t, ctx, db, `insert into resume_tailor_runs(id, user_id, target_job_id, resume_asset_id, mode, status, prompt_version, rubric_version, model_id, provider, created_at, updated_at) values ($1,$2,$3,$4,'gap_review','ready','resume_tailor_suggestion.v1','resume_tailor.rubric.v1','fixture-model:resume-tailor-suggestion','fixture-provider',$5,$5), ($6,$7,$8,$9,'gap_review','ready','resume_tailor_suggestion.v1','resume_tailor.rubric.v1','fixture-model:resume-tailor-suggestion','fixture-provider',$5,$5)`,
+		runA, userA, targetA, assetA, base,
+		runB, userB, targetB, assetB,
+	)
+	for _, row := range []struct {
+		id      string
+		version string
+		run     string
+	}{
+		{id: acceptID, version: versionA, run: runA},
+		{id: rejectID, version: versionA, run: runA},
+		{id: concurrentID, version: versionA, run: runA},
+		{id: foreignID, version: versionB, run: runB},
+	} {
+		mustExec(t, ctx, db, `insert into resume_version_suggestions(id, resume_version_id, tailor_run_id, original_bullet, suggested_bullet, reason, status, created_at) values ($1,$2,$3,'Improved reliability.','Improved reliability with release guardrails.','Adds evidence.','pending',$4)`, row.id, row.version, row.run, base)
+	}
+
+	accepted, err := repo.DecideResumeSuggestion(ctx, resumestore.DecideSuggestionInput{
+		UserID:          userA,
+		ResumeVersionID: versionA,
+		SuggestionID:    acceptID,
+		Decision:        sharedtypes.ResumeTailorSuggestionStatusAccepted,
+		Now:             base.Add(time.Minute),
+	})
+	if err != nil {
+		t.Fatalf("DecideResumeSuggestion accept: %v", err)
+	}
+	if !jsonBytesEqual(accepted.StructuredProfile, profile) || !accepted.UpdatedAt.Equal(base.Add(time.Minute)) {
+		t.Fatalf("accepted version mutated profile or timestamp incorrectly: %+v profile=%s", accepted, accepted.StructuredProfile)
+	}
+	assertSuggestionState(t, accepted.Suggestions, acceptID, "accepted", true)
+	if _, err := repo.DecideResumeSuggestion(ctx, resumestore.DecideSuggestionInput{UserID: userA, ResumeVersionID: versionA, SuggestionID: acceptID, Decision: sharedtypes.ResumeTailorSuggestionStatusRejected, Now: base.Add(2 * time.Minute)}); !errors.Is(err, resumestore.ErrSuggestionAlreadyDecided) {
+		t.Fatalf("already decided err = %v, want ErrSuggestionAlreadyDecided", err)
+	}
+	if _, err := repo.DecideResumeSuggestion(ctx, resumestore.DecideSuggestionInput{UserID: userB, ResumeVersionID: versionA, SuggestionID: acceptID, Decision: sharedtypes.ResumeTailorSuggestionStatusRejected, Now: base.Add(2 * time.Minute)}); !errors.Is(err, resumestore.ErrSuggestionNotFound) {
+		t.Fatalf("cross-user err = %v, want ErrSuggestionNotFound", err)
+	}
+
+	rejected, err := repo.DecideResumeSuggestion(ctx, resumestore.DecideSuggestionInput{
+		UserID:          userA,
+		ResumeVersionID: versionA,
+		SuggestionID:    rejectID,
+		Decision:        sharedtypes.ResumeTailorSuggestionStatusRejected,
+		Now:             base.Add(3 * time.Minute),
+	})
+	if err != nil {
+		t.Fatalf("DecideResumeSuggestion reject: %v", err)
+	}
+	assertSuggestionState(t, rejected.Suggestions, rejectID, "rejected", true)
+
+	errs := make(chan error, 2)
+	var wg sync.WaitGroup
+	for _, decision := range []sharedtypes.ResumeTailorSuggestionStatus{sharedtypes.ResumeTailorSuggestionStatusAccepted, sharedtypes.ResumeTailorSuggestionStatusRejected} {
+		wg.Add(1)
+		go func(decision sharedtypes.ResumeTailorSuggestionStatus) {
+			defer wg.Done()
+			_, err := repo.DecideResumeSuggestion(ctx, resumestore.DecideSuggestionInput{
+				UserID:          userA,
+				ResumeVersionID: versionA,
+				SuggestionID:    concurrentID,
+				Decision:        decision,
+				Now:             base.Add(4 * time.Minute),
+			})
+			errs <- err
+		}(decision)
+	}
+	wg.Wait()
+	close(errs)
+	successes := 0
+	for err := range errs {
+		if err == nil {
+			successes++
+			continue
+		}
+		if !errors.Is(err, resumestore.ErrSuggestionAlreadyDecided) {
+			t.Fatalf("concurrent decision err = %v, want ErrSuggestionAlreadyDecided", err)
+		}
+	}
+	if successes != 1 {
+		t.Fatalf("concurrent successful decisions = %d, want 1", successes)
+	}
+	var profileAfter []byte
+	if err := db.QueryRowContext(ctx, `select structured_profile from resume_versions where id = $1`, versionA).Scan(&profileAfter); err != nil {
+		t.Fatalf("query profile after decisions: %v", err)
+	}
+	if !jsonBytesEqual(profileAfter, profile) {
+		t.Fatalf("structured_profile changed after decisions: %s", profileAfter)
+	}
+}
+
 func structuredMasterInput(versionID, userID, assetID string, now time.Time) resumestore.CreateStructuredMasterInput {
 	return resumestore.CreateStructuredMasterInput{
 		VersionID:         versionID,
@@ -615,4 +737,41 @@ func ensureStructuredMasterUniqueIndex(t *testing.T, ctx context.Context, db *sq
 	if !exists {
 		t.Skip("structured master unique index is not migrated; run make migrate-up before live resume version test")
 	}
+}
+
+func assertSuggestionState(t *testing.T, suggestions []any, suggestionID string, wantStatus string, wantDecided bool) {
+	t.Helper()
+	for _, item := range suggestions {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		if m["id"] != suggestionID {
+			continue
+		}
+		if m["status"] != wantStatus {
+			t.Fatalf("suggestion %s status = %v, want %s", suggestionID, m["status"], wantStatus)
+		}
+		_, hasDecidedAt := m["decidedAt"].(string)
+		if hasDecidedAt != wantDecided {
+			t.Fatalf("suggestion %s decidedAt presence = %v, want %v (%+v)", suggestionID, hasDecidedAt, wantDecided, m)
+		}
+		if _, ok := m["provenance"].(map[string]any); !ok {
+			t.Fatalf("suggestion %s missing provenance: %+v", suggestionID, m)
+		}
+		return
+	}
+	t.Fatalf("suggestion %s not found in %+v", suggestionID, suggestions)
+}
+
+func jsonBytesEqual(left, right []byte) bool {
+	var leftValue any
+	var rightValue any
+	if err := json.Unmarshal(left, &leftValue); err != nil {
+		return false
+	}
+	if err := json.Unmarshal(right, &rightValue); err != nil {
+		return false
+	}
+	return reflect.DeepEqual(leftValue, rightValue)
 }
