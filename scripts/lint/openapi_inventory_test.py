@@ -8,9 +8,56 @@ import scripts.lint.openapi_inventory as inventory
 
 class OpenAPIInventoryContractTest(unittest.TestCase):
     def test_product_scope_v12_inventory_includes_delete_me(self) -> None:
-        self.assertEqual(56, len(inventory.EXPECTED_OPERATIONS))
+        self.assertEqual(57, len(inventory.EXPECTED_OPERATIONS))
         self.assertIn(("Auth", "delete", "/me", "deleteMe"), inventory.EXPECTED_OPERATIONS)
         self.assertIn(("delete", "/me"), inventory.IK_REQUIRED)
+
+    def test_practice_voice_turn_operation_is_registered_as_session_side_effect(self) -> None:
+        path = "/practice/sessions/{sessionId}/voice-turns"
+
+        self.assertIn(("PracticeSessions", "post", path, "createPracticeVoiceTurn"), inventory.EXPECTED_OPERATIONS)
+        self.assertIn(("post", path), inventory.IK_REQUIRED)
+        self.assertNotIn(("post", path), inventory.IK_FORBIDDEN)
+
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        operation = data["paths"][path]["post"]
+        self.assertEqual("createPracticeVoiceTurn", operation["operationId"])
+        self.assertIn({"$ref": inventory.IDEMPOTENCY_REF}, operation["parameters"])
+
+        request_ref = operation["requestBody"]["content"]["application/json"]["schema"]["$ref"]
+        response_ref = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+        self.assertEqual("#/components/schemas/CreatePracticeVoiceTurnRequest", request_ref)
+        self.assertEqual("#/components/schemas/PracticeVoiceTurnResult", response_ref)
+
+        schemas = data["components"]["schemas"]
+        request = schemas["CreatePracticeVoiceTurnRequest"]
+        self.assertEqual(
+            ["clientVoiceTurnId", "turnId", "audio", "language", "practiceMode"],
+            request["required"],
+        )
+        self.assertEqual(
+            ["contentBase64", "contentType", "durationMs"],
+            schemas["PracticeVoiceAudioInput"]["required"],
+        )
+
+        result = schemas["PracticeVoiceTurnResult"]
+        self.assertEqual(
+            [
+                "voiceTurnId",
+                "userTranscriptFinal",
+                "assistantTextDraft",
+                "ttsChunks",
+                "providerMetaSummary",
+                "session",
+                "ttsError",
+            ],
+            result["required"],
+        )
+        self.assertEqual("#/components/schemas/PracticeVoiceTTSChunk", result["properties"]["ttsChunks"]["items"]["$ref"])
+        self.assertEqual(
+            [{"$ref": "#/components/schemas/PracticeVoiceTTSError"}, {"type": "null"}],
+            result["properties"]["ttsError"]["oneOf"],
+        )
 
     def test_debrief_suggestions_operation_is_registered_without_idempotency_key(self) -> None:
         self.assertIn(
@@ -107,6 +154,18 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
             schemas["PracticeTurn"]["properties"]["status"]["enum"],
         )
 
+    def test_practice_voice_event_kinds_extend_append_session_event_schema(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        kinds = data["components"]["schemas"]["PracticeSessionEventRequest"]["properties"]["kind"]["enum"]
+
+        for kind in (
+            "tts_chunk_started",
+            "tts_chunk_played",
+            "barge_in_detected",
+            "assistant_context_committed",
+        ):
+            self.assertIn(kind, kinds)
+
     def test_practice_turn_status_generated_artifacts_are_in_sync(self) -> None:
         generated = yaml.safe_load(Path("backend/internal/api/generated/openapi.yaml").read_text(encoding="utf-8"))
         generated_status = generated["components"]["schemas"]["PracticeTurn"]["properties"]["status"]["enum"]
@@ -168,6 +227,24 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertTrue(any("Mistakes" in err for err in errors), errors)
         self.assertTrue(any("/mistakes" in err for err in errors), errors)
         self.assertTrue(any("openMistakeCount" in err for err in errors), errors)
+
+    def test_product_scope_semantic_invariants_reject_standalone_voice_scope(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        mutated = copy.deepcopy(data)
+        mutated["tags"].append({"name": "Voice"})
+        mutated["paths"]["/voice/sessions"] = {
+            "post": {
+                "tags": ["Voice"],
+                "operationId": "startVoiceSession",
+                "responses": {"default": {"$ref": inventory.APIERROR_REF}},
+            }
+        }
+        errors: list[str] = []
+
+        inventory.validate_product_scope_contract(mutated, errors)
+
+        self.assertTrue(any("Voice" in err for err in errors), errors)
+        self.assertTrue(any("/voice" in err for err in errors), errors)
 
     def test_product_scope_semantic_invariants_reject_legacy_practice_values(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))

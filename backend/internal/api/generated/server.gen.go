@@ -12,7 +12,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 56-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// 57-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
 	// startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email magic-link challenge
@@ -95,6 +95,9 @@ type ServerInterface interface {
 
 	// appendSessionEvent — post /practice/sessions/{sessionId}/events: Append a session event and get the next assistant action
 	AppendSessionEvent(w http.ResponseWriter, r *http.Request, sessionId string)
+
+	// createPracticeVoiceTurn — post /practice/sessions/{sessionId}/voice-turns: Create a cascaded practice voice turn
+	CreatePracticeVoiceTurn(w http.ResponseWriter, r *http.Request, sessionId string)
 
 	// requestPrivacyDelete — post /privacy/deletions: Request a privacy data deletion
 	RequestPrivacyDelete(w http.ResponseWriter, r *http.Request)
@@ -224,6 +227,7 @@ var AllRoutes = []Route{
 	{OperationID: "getPracticeSession", Method: "get", Path: "/practice/sessions/{sessionId}", PathParams: []string{"sessionId"}},
 	{OperationID: "completePracticeSession", Method: "post", Path: "/practice/sessions/{sessionId}/complete", PathParams: []string{"sessionId"}},
 	{OperationID: "appendSessionEvent", Method: "post", Path: "/practice/sessions/{sessionId}/events", PathParams: []string{"sessionId"}},
+	{OperationID: "createPracticeVoiceTurn", Method: "post", Path: "/practice/sessions/{sessionId}/voice-turns", PathParams: []string{"sessionId"}},
 	{OperationID: "requestPrivacyDelete", Method: "post", Path: "/privacy/deletions", PathParams: nil},
 	{OperationID: "requestPrivacyExport", Method: "post", Path: "/privacy/exports", PathParams: nil},
 	{OperationID: "getPrivacyRequest", Method: "get", Path: "/privacy/requests/{privacyRequestId}", PathParams: []string{"privacyRequestId"}},

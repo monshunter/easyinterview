@@ -13,9 +13,9 @@
 
 ## Phase 1: Contract and fixture
 
-- [ ] 1.1 新增 `createPracticeVoiceTurn` OpenAPI operation 与 schema，锁定 `POST /practice/sessions/{sessionId}/voice-turns`、`Idempotency-Key`、`clientVoiceTurnId`、small audio payload、`userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`providerMetaSummary` 与 `ttsError`；验证: `make lint-openapi` + operation matrix 字段完整
-- [ ] 1.2 新增 / 扩展 PracticeSessions fixtures：`createPracticeVoiceTurn` scenarios `default` / `stt-config-missing` / `chat-failed` / `tts-failed`，`appendSessionEvent` scenarios `voice-tts-started` / `voice-tts-played` / `voice-barge-in` / `voice-context-committed`；验证: `make validate-fixtures && make codegen-check`
-- [ ] 1.3 扩展 generated client allowlist / mock transport 消费路径；验证: frontend contract tests 不允许 ad hoc fetch shape，且未知 `Prefer: example=` voice scenario fail loudly
+- [x] 1.1 新增 `createPracticeVoiceTurn` OpenAPI operation 与 schema，锁定 `POST /practice/sessions/{sessionId}/voice-turns`、`Idempotency-Key`、`clientVoiceTurnId`、small audio payload、`userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`providerMetaSummary` 与 `ttsError`；验证: `make lint-openapi` + operation matrix 字段完整
+- [x] 1.2 新增 / 扩展 PracticeSessions fixtures：`createPracticeVoiceTurn` scenarios `default` / `stt-config-missing` / `chat-failed` / `tts-failed`，`appendSessionEvent` scenarios `voice-tts-started` / `voice-tts-played` / `voice-barge-in` / `voice-context-committed`；验证: `make validate-fixtures && make codegen-check`
+- [x] 1.3 扩展 generated client allowlist / mock transport 消费路径；验证: frontend contract tests 不允许 ad hoc fetch shape，且未知 `Prefer: example=` voice scenario fail loudly
 
 ## Phase 2: Backend orchestration
 

@@ -145,9 +145,10 @@ func TestRun_ApiErrorInnerObjectAndResponseEnvelope(t *testing.T) {
 	mustContain(t, tsClient, "async branchResumeVersion(body: Types.BranchResumeVersionRequest, opts?: RequestOptions): Promise<Types.ResumeVersion | Types.BranchResumeVersionAccepted>")
 	mustContain(t, tsClient, "async exportResumeVersion(resumeVersionId: string, opts?: RequestOptions): Promise<Types.ApiErrorResponse>")
 	mustContain(t, tsClient, "buildPath(\"/resume-versions/{resumeVersionId}/exports\", { resumeVersionId: resumeVersionId }),\n\t\t\tundefined,\n\t\t\topts,\n\t\t\t[501],")
+	mustContain(t, tsClient, "async createPracticeVoiceTurn(sessionId: string, body: Types.CreatePracticeVoiceTurnRequest, opts?: RequestOptions): Promise<Types.PracticeVoiceTurnResult>")
 
 	goServer := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/server.gen.go"))
-	mustContain(t, goServer, "// 56-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
+	mustContain(t, goServer, "// 57-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 	mustNotContain(t, goServer, "// 46-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 }
 

@@ -439,9 +439,63 @@ export interface PracticeSession {
 	updatedAt: string;
 }
 
+export interface CreatePracticeVoiceTurnRequest {
+	audio: PracticeVoiceAudioInput;
+	clientVoiceTurnId: string;
+	language: string;
+	manualTranscriptFallback?: string;
+	practiceMode: PracticeMode;
+	turnId: string;
+}
+
+export interface PracticeVoiceAudioInput {
+	byteLength?: number;
+	contentBase64: string;
+	contentType: "audio/webm" | "audio/wav" | "audio/mpeg";
+	durationMs: number;
+}
+
+export interface PracticeVoiceTurnResult {
+	assistantTextDraft: string;
+	providerMetaSummary: PracticeVoiceProviderMetaSummary;
+	session: PracticeSession;
+	ttsChunks: PracticeVoiceTTSChunk[];
+	ttsError: PracticeVoiceTTSError | null;
+	userTranscriptFinal: string;
+	voiceTurnId: string;
+}
+
+export interface PracticeVoiceTTSChunk {
+	audioRef: string;
+	byteLength: number;
+	chunkId: string;
+	contentType: "audio/mpeg" | "audio/wav" | "audio/ogg";
+	durationMs: number;
+	sequence: number;
+	textHash: string;
+}
+
+export interface PracticeVoiceProviderMetaSummary {
+	chatLatencyMs?: number;
+	chatProfile: string;
+	chatProvider: string;
+	sttLatencyMs?: number;
+	sttProfile: string;
+	sttProvider: string;
+	ttsLatencyMs?: number;
+	ttsProfile: string;
+	ttsProvider: string;
+}
+
+export interface PracticeVoiceTTSError {
+	code: "TTS_CONFIG_MISSING" | "TTS_PROVIDER_FAILED" | "TTS_SYNTHESIS_FAILED";
+	message: string;
+	retryable: boolean;
+}
+
 export interface PracticeSessionEventRequest {
 	clientEventId: string;
-	kind: "answer_submitted" | "hint_requested" | "turn_skipped" | "session_paused" | "session_resumed";
+	kind: "answer_submitted" | "hint_requested" | "turn_skipped" | "session_paused" | "session_resumed" | "tts_chunk_started" | "tts_chunk_played" | "barge_in_detected" | "assistant_context_committed";
 	occurredAt: string;
 	payload?: Record<string, unknown>;
 }

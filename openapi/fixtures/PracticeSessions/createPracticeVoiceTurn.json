@@ -1,0 +1,215 @@
+{
+  "operationId": "createPracticeVoiceTurn",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "01918fa0-0000-7000-8000-00000000f001"
+        },
+        "body": {
+          "clientVoiceTurnId": "01918fa0-0000-7000-8000-00000000f101",
+          "turnId": "01918fa0-0000-7000-8000-000000006000",
+          "audio": {
+            "contentBase64": "T2dnUw==",
+            "contentType": "audio/webm",
+            "durationMs": 4320,
+            "byteLength": 128
+          },
+          "language": "zh-CN",
+          "practiceMode": "assisted"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-17T08-50-00-voice-default"
+        },
+        "body": {
+          "voiceTurnId": "01918fa0-0000-7000-8000-00000000f201",
+          "userTranscriptFinal": "我主导了设计系统迁移，先把 12 个团队按风险分组。",
+          "assistantTextDraft": "你提到按风险分组。请具体说明你如何处理最高风险团队的迁移窗口。",
+          "ttsChunks": [
+            {
+              "chunkId": "voice-chunk-001",
+              "sequence": 0,
+              "contentType": "audio/mpeg",
+              "durationMs": 2840,
+              "byteLength": 2048,
+              "textHash": "sha256:voice-default-chunk-001",
+              "audioRef": "fixture-audio://practice-voice/default/chunk-001"
+            }
+          ],
+          "providerMetaSummary": {
+            "sttProfile": "practice.voice.stt.default",
+            "chatProfile": "practice.followup.default",
+            "ttsProfile": "practice.voice.tts.default",
+            "sttProvider": "fixture-stt",
+            "chatProvider": "fixture-chat",
+            "ttsProvider": "fixture-tts",
+            "sttLatencyMs": 120,
+            "chatLatencyMs": 240,
+            "ttsLatencyMs": 180
+          },
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005000",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "running",
+            "language": "zh-CN",
+            "hintsEnabled": true,
+            "turnCount": 1,
+            "currentTurn": {
+              "id": "01918fa0-0000-7000-8000-000000006000",
+              "turnIndex": 1,
+              "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
+              "questionIntent": "behavioral.leadership.design_system",
+              "status": "follow_up_requested",
+              "askedAt": "2026-04-28T13:40:00Z"
+            },
+            "createdAt": "2026-04-28T12:00:00Z",
+            "updatedAt": "2026-05-17T08:50:00Z"
+          },
+          "ttsError": null
+        }
+      }
+    },
+    "stt-config-missing": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "01918fa0-0000-7000-8000-00000000f002"
+        },
+        "body": {
+          "clientVoiceTurnId": "01918fa0-0000-7000-8000-00000000f102",
+          "turnId": "01918fa0-0000-7000-8000-000000006000",
+          "audio": {
+            "contentBase64": "T2dnUw==",
+            "contentType": "audio/webm",
+            "durationMs": 3200
+          },
+          "language": "zh-CN",
+          "practiceMode": "strict"
+        }
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "X-Request-ID": "req_2026-05-17T08-50-00-stt-config"
+        },
+        "body": {
+          "error": {
+            "code": "AI_PROVIDER_CONFIG_INVALID",
+            "message": "STT profile practice.voice.stt.default is not configured.",
+            "requestId": "req_2026-05-17T08-50-00-stt-config",
+            "retryable": false,
+            "details": {
+              "profile": "practice.voice.stt.default",
+              "stage": "stt"
+            }
+          }
+        }
+      }
+    },
+    "chat-failed": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "01918fa0-0000-7000-8000-00000000f003"
+        },
+        "body": {
+          "clientVoiceTurnId": "01918fa0-0000-7000-8000-00000000f103",
+          "turnId": "01918fa0-0000-7000-8000-000000006000",
+          "audio": {
+            "contentBase64": "T2dnUw==",
+            "contentType": "audio/webm",
+            "durationMs": 3550
+          },
+          "language": "en",
+          "practiceMode": "assisted",
+          "manualTranscriptFallback": "I led the migration by grouping teams by rollout risk."
+        }
+      },
+      "response": {
+        "status": 502,
+        "headers": {
+          "X-Request-ID": "req_2026-05-17T08-50-00-chat-failed"
+        },
+        "body": {
+          "error": {
+            "code": "AI_PROVIDER_TIMEOUT",
+            "message": "Chat profile timed out while generating the next question.",
+            "requestId": "req_2026-05-17T08-50-00-chat-failed",
+            "retryable": true,
+            "details": {
+              "profile": "practice.followup.default",
+              "stage": "chat"
+            }
+          }
+        }
+      }
+    },
+    "tts-failed": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "01918fa0-0000-7000-8000-00000000f004"
+        },
+        "body": {
+          "clientVoiceTurnId": "01918fa0-0000-7000-8000-00000000f104",
+          "turnId": "01918fa0-0000-7000-8000-000000006000",
+          "audio": {
+            "contentBase64": "T2dnUw==",
+            "contentType": "audio/webm",
+            "durationMs": 4010
+          },
+          "language": "zh-CN",
+          "practiceMode": "assisted"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-17T08-50-00-tts-failed"
+        },
+        "body": {
+          "voiceTurnId": "01918fa0-0000-7000-8000-00000000f204",
+          "userTranscriptFinal": "我先做风险分组，再让高风险团队先跑试点。",
+          "assistantTextDraft": "高风险团队试点时，你如何证明迁移没有影响线上体验？",
+          "ttsChunks": [],
+          "providerMetaSummary": {
+            "sttProfile": "practice.voice.stt.default",
+            "chatProfile": "practice.followup.default",
+            "ttsProfile": "practice.voice.tts.default",
+            "sttProvider": "fixture-stt",
+            "chatProvider": "fixture-chat",
+            "ttsProvider": "fixture-tts",
+            "sttLatencyMs": 130,
+            "chatLatencyMs": 210,
+            "ttsLatencyMs": 0
+          },
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005000",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "running",
+            "language": "zh-CN",
+            "hintsEnabled": true,
+            "turnCount": 1,
+            "currentTurn": {
+              "id": "01918fa0-0000-7000-8000-000000006000",
+              "turnIndex": 1,
+              "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
+              "questionIntent": "behavioral.leadership.design_system",
+              "status": "follow_up_requested",
+              "askedAt": "2026-04-28T13:40:00Z"
+            },
+            "createdAt": "2026-04-28T12:00:00Z",
+            "updatedAt": "2026-05-17T08:50:00Z"
+          },
+          "ttsError": {
+            "code": "TTS_PROVIDER_FAILED",
+            "message": "TTS profile failed after assistant text was generated.",
+            "retryable": true
+          }
+        }
+      }
+    }
+  }
+}

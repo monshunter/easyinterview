@@ -1026,6 +1026,49 @@ paths:
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
+  /practice/sessions/{sessionId}/voice-turns:
+    post:
+      tags: [PracticeSessions]
+      operationId: createPracticeVoiceTurn
+      summary: Create a cascaded practice voice turn
+      description: |
+        Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
+        Accepts a small client audio payload, runs the configured STT, chat,
+        and TTS profiles independently, and returns transcript, assistant
+        draft text, TTS playback metadata, and provider-neutral summary
+        metadata. Raw audio and generated TTS bytes are not persisted by this
+        contract.
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePracticeVoiceTurnRequest'
+      responses:
+        '200':
+          description: Voice turn accepted and cascaded STT / chat / TTS result returned.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeVoiceTurnResult'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
   /practice/sessions/{sessionId}/events:
     post:
       tags: [PracticeSessions]
@@ -3100,6 +3143,154 @@ components:
           type: string
           format: date-time
 
+    CreatePracticeVoiceTurnRequest:
+      type: object
+      required: [clientVoiceTurnId, turnId, audio, language, practiceMode]
+      description: |
+        Client-submitted audio turn for the cascaded STT -> chat -> TTS practice
+        voice MVP. Audio is a small request payload for immediate processing,
+        not a persisted file object.
+      properties:
+        clientVoiceTurnId:
+          type: string
+          format: uuid
+          description: Client-generated voice turn id used with Idempotency-Key replay.
+        turnId:
+          type: string
+          format: uuid
+          description: Current practice turn receiving the voice answer.
+        audio:
+          $ref: '#/components/schemas/PracticeVoiceAudioInput'
+        language:
+          type: string
+          description: BCP 47 language hint for STT and TTS profiles.
+        practiceMode:
+          $ref: '#/components/schemas/PracticeMode'
+        manualTranscriptFallback:
+          type: string
+          description: Optional user-entered transcript when capture is unavailable.
+
+    PracticeVoiceAudioInput:
+      type: object
+      required: [contentBase64, contentType, durationMs]
+      properties:
+        contentBase64:
+          type: string
+          format: byte
+          description: Base64 encoded short audio payload for immediate STT processing.
+        contentType:
+          type: string
+          enum: [audio/webm, audio/wav, audio/mpeg]
+        durationMs:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 60000
+        byteLength:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Optional decoded byte length for request sanity checks.
+
+    PracticeVoiceTurnResult:
+      type: object
+      required: [voiceTurnId, userTranscriptFinal, assistantTextDraft, ttsChunks, providerMetaSummary, session, ttsError]
+      properties:
+        voiceTurnId:
+          type: string
+          format: uuid
+        userTranscriptFinal:
+          type: string
+        assistantTextDraft:
+          type: string
+        ttsChunks:
+          type: array
+          items:
+            $ref: '#/components/schemas/PracticeVoiceTTSChunk'
+        providerMetaSummary:
+          $ref: '#/components/schemas/PracticeVoiceProviderMetaSummary'
+        session:
+          $ref: '#/components/schemas/PracticeSession'
+        ttsError:
+          oneOf:
+            - $ref: '#/components/schemas/PracticeVoiceTTSError'
+            - type: 'null'
+
+    PracticeVoiceTTSChunk:
+      type: object
+      required: [chunkId, sequence, contentType, durationMs, byteLength, textHash, audioRef]
+      description: |
+        TTS playback metadata. `audioRef` is an opaque temporary playback
+        reference or fixture handle; this schema does not expose raw audio
+        bytes or provider secrets.
+      properties:
+        chunkId:
+          type: string
+        sequence:
+          type: integer
+          format: int32
+          minimum: 0
+        contentType:
+          type: string
+          enum: [audio/mpeg, audio/wav, audio/ogg]
+        durationMs:
+          type: integer
+          format: int32
+          minimum: 0
+        byteLength:
+          type: integer
+          format: int32
+          minimum: 0
+        textHash:
+          type: string
+          description: Hash of synthesized text, never the text itself.
+        audioRef:
+          type: string
+          description: Opaque playback reference or fixture handle for the frontend player.
+
+    PracticeVoiceProviderMetaSummary:
+      type: object
+      required: [sttProfile, chatProfile, ttsProfile, sttProvider, chatProvider, ttsProvider]
+      description: Provider-neutral profile summary for UI/debug display; no secrets or raw prompts.
+      properties:
+        sttProfile:
+          type: string
+        chatProfile:
+          type: string
+        ttsProfile:
+          type: string
+        sttProvider:
+          type: string
+        chatProvider:
+          type: string
+        ttsProvider:
+          type: string
+        sttLatencyMs:
+          type: integer
+          format: int32
+          minimum: 0
+        chatLatencyMs:
+          type: integer
+          format: int32
+          minimum: 0
+        ttsLatencyMs:
+          type: integer
+          format: int32
+          minimum: 0
+
+    PracticeVoiceTTSError:
+      type: object
+      required: [code, message, retryable]
+      description: Non-fatal TTS failure. Transcript and assistant text remain usable.
+      properties:
+        code:
+          type: string
+          enum: [TTS_CONFIG_MISSING, TTS_PROVIDER_FAILED, TTS_SYNTHESIS_FAILED]
+        message:
+          type: string
+        retryable:
+          type: boolean
+
     PracticeSessionEventRequest:
       type: object
       required: [clientEventId, kind, occurredAt]
@@ -3113,7 +3304,7 @@ components:
           description: Client-generated event id; unique per session.
         kind:
           type: string
-          enum: [answer_submitted, hint_requested, turn_skipped, session_paused, session_resumed]
+          enum: [answer_submitted, hint_requested, turn_skipped, session_paused, session_resumed, tts_chunk_started, tts_chunk_played, barge_in_detected, assistant_context_committed]
         occurredAt:
           type: string
           format: date-time

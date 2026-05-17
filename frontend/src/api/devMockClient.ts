@@ -6,6 +6,7 @@ import startAuthEmailChallengeFixture from "../../../openapi/fixtures/Auth/start
 import verifyAuthEmailChallengeFixture from "../../../openapi/fixtures/Auth/verifyAuthEmailChallenge.json";
 import createDebriefFixture from "../../../openapi/fixtures/Debriefs/createDebrief.json";
 import getDebriefFixture from "../../../openapi/fixtures/Debriefs/getDebrief.json";
+import suggestDebriefQuestionsFixture from "../../../openapi/fixtures/Debriefs/suggestDebriefQuestions.json";
 import getJobFixture from "../../../openapi/fixtures/Jobs/getJob.json";
 import addToWatchlistFixture from "../../../openapi/fixtures/JobMatch/addToWatchlist.json";
 import createSavedSearchFixture from "../../../openapi/fixtures/JobMatch/createSavedSearch.json";
@@ -23,6 +24,7 @@ import createPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/c
 import getPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
 import appendSessionEventFixture from "../../../openapi/fixtures/PracticeSessions/appendSessionEvent.json";
 import completePracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/completePracticeSession.json";
+import createPracticeVoiceTurnFixture from "../../../openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json";
 import getPracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/getPracticeSession.json";
 import startPracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
 import getPrivacyRequestFixture from "../../../openapi/fixtures/Privacy/getPrivacyRequest.json";
@@ -72,6 +74,7 @@ const DEV_MOCK_FIXTURES = [
 	logoutFixture,
 	createDebriefFixture,
 	getDebriefFixture,
+	suggestDebriefQuestionsFixture,
 	getJobFixture,
 	getJobMatchProfileFixture,
 	getAgentScanStatusFixture,
@@ -93,6 +96,7 @@ const DEV_MOCK_FIXTURES = [
 	getPracticeSessionFixture,
 	completePracticeSessionFixture,
 	appendSessionEventFixture,
+	createPracticeVoiceTurnFixture,
 	requestPrivacyDeleteFixture,
 	requestPrivacyExportFixture,
 	getPrivacyRequestFixture,
