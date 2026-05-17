@@ -353,6 +353,13 @@ func buildAPIHandlerWithUploadReportDebriefAndHandlers(loader *config.Loader, fl
 		mux.Handle("GET /api/v1/practice/sessions/{sessionId}", auth.SessionMiddleware(authService, "getPracticeSession", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			practice.Handler.GetPracticeSession(w, r, r.PathValue("sessionId"))
 		})))
+		createPracticeVoiceTurn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			practice.Handler.CreatePracticeVoiceTurn(w, r, r.PathValue("sessionId"))
+		})
+		if practice.Idempotency != nil {
+			createPracticeVoiceTurn = practice.Idempotency.Handler("practice", "createPracticeVoiceTurn", requestUserFromContext, createPracticeVoiceTurn).ServeHTTP
+		}
+		mux.Handle("POST /api/v1/practice/sessions/{sessionId}/voice-turns", auth.SessionMiddleware(authService, "createPracticeVoiceTurn", createPracticeVoiceTurn))
 		completePracticeSession := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			practice.Handler.CompletePracticeSession(w, r, r.PathValue("sessionId"))
 		})

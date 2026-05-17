@@ -37,6 +37,61 @@ const (
 	scenarioIdempotencyPepper   = "scenario-challenge-pepper"
 )
 
+func TestE2EP0007PracticeVoiceTurnHTTPRoute(t *testing.T) {
+	ai := &scenarioPracticeAIClient{
+		transcription:   "我主导了设计系统迁移，先把 12 个团队按风险分组。",
+		responseText:    "你如何处理最高风险团队的迁移窗口？",
+		responseIntent:  "voice.follow_up",
+		synthesisAudio:  []byte("voice-tts-audio"),
+		synthesisMillis: 1640,
+	}
+	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai})
+	plan := h.seedReadyScenarioPlan("practice-plan-p0-007", "target-job-p0-007-a", "resume-asset-p0-007-a", practiceHTTPScenarioUserAID)
+	started := h.startScenarioSession(t, plan.ID, "e2e-p0-007-start-session")
+	body := api.CreatePracticeVoiceTurnRequest{
+		ClientVoiceTurnId: "client-voice-turn-p0-007",
+		TurnId:            started.CurrentTurn.Id,
+		Audio: api.PracticeVoiceAudioInput{
+			ContentBase64: "T2dnUw==",
+			ContentType:   "audio/webm",
+			DurationMs:    4320,
+		},
+		Language:     "zh-CN",
+		PracticeMode: sharedtypes.PracticeModeAssisted,
+	}
+
+	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/voice-turns", "e2e-p0-007-voice-turn", body, http.StatusOK)
+	var out api.PracticeVoiceTurnResult
+	decodeJSON(t, raw, &out)
+	if out.VoiceTurnId == "" ||
+		out.UserTranscriptFinal != ai.transcription ||
+		out.AssistantTextDraft != ai.responseText ||
+		len(out.TtsChunks) != 1 ||
+		out.TtsChunks[0].ContentType != "audio/mpeg" ||
+		out.TtsChunks[0].ByteLength != int32(len(ai.synthesisAudio)) ||
+		out.ProviderMetaSummary.SttProfile != "practice.voice.stt.default" ||
+		out.ProviderMetaSummary.ChatProfile != "practice.followup.default" ||
+		out.ProviderMetaSummary.TtsProfile != "practice.voice.tts.default" ||
+		out.Session.Id != started.Id ||
+		out.Session.CurrentTurn == nil ||
+		out.Session.CurrentTurn.Status != string(domainpractice.TurnStatusFollowUpRequested) {
+		t.Fatalf("voice turn HTTP response drift: %+v", out)
+	}
+	replayRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/voice-turns", "e2e-p0-007-voice-turn", body, http.StatusOK)
+	var replay api.PracticeVoiceTurnResult
+	decodeJSON(t, replayRaw, &replay)
+	if replay.VoiceTurnId != out.VoiceTurnId || h.store.sessionEventCount(started.Id) != 2 {
+		t.Fatalf("voice turn replay should preserve payload and avoid duplicate events: first=%+v replay=%+v events=%d", out, replay, h.store.sessionEventCount(started.Id))
+	}
+	keyHash := idempotency.HashKey("e2e-p0-007-voice-turn", scenarioIdempotencyPepper)
+	rec := h.store.idempotencyRecords[h.store.idempotencyRecordKey(practiceHTTPScenarioUserAID, "practice", "createPracticeVoiceTurn", keyHash)]
+	if rec.Status != idempotency.StatusSucceeded || rec.ResourceType != "practice_voice_turn" || rec.ResourceID != out.VoiceTurnId {
+		t.Fatalf("voice turn idempotency resource drift: %+v", rec)
+	}
+	payloads := append(h.store.sessionEventPayloads(started.Id), raw)
+	assertNoEvidenceLeak(t, payloads, "T2dnUw==", string(ai.synthesisAudio), "audio/webm;")
+}
+
 func TestE2EP0022PracticePlanBaselineCreateAndRead(t *testing.T) {
 	h := newPracticeHTTPScenarioHarness(t)
 	body := api.CreatePracticePlanRequest{
@@ -1413,10 +1468,16 @@ func (r *scenarioPracticeRegistry) ResolveActive(ctx context.Context, featureKey
 	}
 	profileName := "practice.first_question.default"
 	if featureKey == "practice.session.follow_up" {
-		profileName = "practice.follow_up.default"
+		profileName = "practice.followup.default"
 	}
 	if featureKey == hintFeatureKeyForScenario {
 		profileName = "practice.turn_observe.default"
+	}
+	if featureKey == "practice.voice.stt" {
+		profileName = "practice.voice.stt.default"
+	}
+	if featureKey == "practice.voice.tts" {
+		profileName = "practice.voice.tts.default"
 	}
 	return registry.PromptResolution{
 		FeatureKey:          featureKey,
@@ -1432,19 +1493,32 @@ func (r *scenarioPracticeRegistry) ResolveActive(ctx context.Context, featureKey
 type scenarioPracticeProfileResolver struct{}
 
 func (r scenarioPracticeProfileResolver) Resolve(name string) (*aiclient.ModelProfile, error) {
-	if name != "practice.first_question.default" && name != "practice.follow_up.default" && name != "practice.turn_observe.default" {
+	if name != "practice.first_question.default" &&
+		name != "practice.followup.default" &&
+		name != "practice.turn_observe.default" &&
+		name != "practice.voice.stt.default" &&
+		name != "practice.voice.tts.default" {
 		return nil, fmt.Errorf("missing scenario profile %q", name)
 	}
 	route := "practice.session.first_question"
-	if name == "practice.follow_up.default" {
+	capability := aiclient.CapabilityChat
+	if name == "practice.followup.default" {
 		route = "practice.session.follow_up"
 	}
 	if name == "practice.turn_observe.default" {
 		route = hintFeatureKeyForScenario
 	}
+	if name == "practice.voice.stt.default" {
+		route = "practice.voice.stt"
+		capability = aiclient.CapabilitySTT
+	}
+	if name == "practice.voice.tts.default" {
+		route = "practice.voice.tts"
+		capability = aiclient.CapabilityTts
+	}
 	return &aiclient.ModelProfile{
 		Name:       name,
-		Capability: aiclient.CapabilityChat,
+		Capability: capability,
 		Status:     aiclient.ProfileStatusActive,
 		Default: aiclient.ProviderConfig{
 			ProviderRef: "stub",
@@ -1457,13 +1531,18 @@ func (r scenarioPracticeProfileResolver) Resolve(name string) (*aiclient.ModelPr
 }
 
 type scenarioPracticeAIClient struct {
-	store          *scenarioPracticeStore
-	failures       []error
-	hintFailures   []error
-	rawContent     string
-	responseText   string
-	responseIntent string
-	calls          int
+	store           *scenarioPracticeStore
+	failures        []error
+	hintFailures    []error
+	rawContent      string
+	responseText    string
+	responseIntent  string
+	transcription   string
+	synthesisAudio  []byte
+	synthesisMillis int
+	sttFailures     []error
+	ttsFailures     []error
+	calls           int
 }
 
 const hintFeatureKeyForScenario = "practice.turn.lightweight_observe"
@@ -1491,7 +1570,7 @@ func (c *scenarioPracticeAIClient) Complete(ctx context.Context, profileName str
 		c.failures = c.failures[1:]
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
 	}
-	if profileName != "practice.first_question.default" && profileName != "practice.follow_up.default" && profileName != "practice.turn_observe.default" {
+	if profileName != "practice.first_question.default" && profileName != "practice.followup.default" && profileName != "practice.turn_observe.default" {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, fmt.Errorf("unexpected profile %q", profileName)
 	}
 	if payload.Metadata.FeatureKey != "practice.session.first_question" && payload.Metadata.FeatureKey != "practice.session.follow_up" && payload.Metadata.FeatureKey != hintFeatureKeyForScenario {
@@ -1561,7 +1640,46 @@ func (c *scenarioPracticeAIClient) Complete(ctx context.Context, profileName str
 }
 
 func (c *scenarioPracticeAIClient) Transcribe(ctx context.Context, profileName string, input aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
-	return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, nil
+	if c.store != nil {
+		c.store.recordAIObservation()
+	}
+	if len(c.sttFailures) > 0 {
+		err := c.sttFailures[0]
+		c.sttFailures = c.sttFailures[1:]
+		return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, err
+	}
+	if profileName != "practice.voice.stt.default" {
+		return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, fmt.Errorf("unexpected STT profile %q", profileName)
+	}
+	if input.Metadata.FeatureKey != "practice.voice.stt" ||
+		input.Metadata.PromptVersion == "" ||
+		input.Metadata.RubricVersion == "" ||
+		input.Metadata.Language == "" ||
+		input.Metadata.FeatureFlag == "" ||
+		input.Metadata.DataSourceVersion == "" {
+		return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete STT metadata: %+v", input.Metadata)
+	}
+	if input.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskFollowupGenerate ||
+		input.Metadata.TaskRun.ResourceType != aiclient.AITaskRunResourceTargetJob ||
+		input.Metadata.TaskRun.ResourceID == "" {
+		return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete STT task run context: %+v", input.Metadata.TaskRun)
+	}
+	if len(input.Audio) == 0 || input.ContentType == "" {
+		return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete STT audio input")
+	}
+	transcription := c.transcription
+	if transcription == "" {
+		transcription = "我先按风险分组，再为关键团队安排试点迁移。"
+	}
+	return aiclient.TranscriptionResponse{Text: transcription}, aiclient.AICallMeta{
+		Provider:         "fixture-stt",
+		ModelFamily:      "fixture-stt",
+		ModelID:          "fixture-stt-1",
+		ModelProfileName: profileName,
+		FallbackChain:    []string{"fixture-stt/fixture-stt-1"},
+		ValidationStatus: aiclient.ValidationStatusOK,
+		LatencyMs:        120,
+	}, nil
 }
 
 func (c *scenarioPracticeAIClient) Stream(ctx context.Context, profileName string, payload aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
@@ -1569,7 +1687,55 @@ func (c *scenarioPracticeAIClient) Stream(ctx context.Context, profileName strin
 }
 
 func (c *scenarioPracticeAIClient) Synthesize(ctx context.Context, profileName string, input aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
-	return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, nil
+	if c.store != nil {
+		c.store.recordAIObservation()
+	}
+	if len(c.ttsFailures) > 0 {
+		err := c.ttsFailures[0]
+		c.ttsFailures = c.ttsFailures[1:]
+		return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, err
+	}
+	if profileName != "practice.voice.tts.default" {
+		return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, fmt.Errorf("unexpected TTS profile %q", profileName)
+	}
+	if input.Metadata.FeatureKey != "practice.voice.tts" ||
+		input.Metadata.PromptVersion == "" ||
+		input.Metadata.RubricVersion == "" ||
+		input.Metadata.Language == "" ||
+		input.Metadata.FeatureFlag == "" ||
+		input.Metadata.DataSourceVersion == "" {
+		return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete TTS metadata: %+v", input.Metadata)
+	}
+	if input.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskFollowupGenerate ||
+		input.Metadata.TaskRun.ResourceType != aiclient.AITaskRunResourceTargetJob ||
+		input.Metadata.TaskRun.ResourceID == "" {
+		return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, fmt.Errorf("incomplete TTS task run context: %+v", input.Metadata.TaskRun)
+	}
+	if strings.TrimSpace(input.Text) == "" {
+		return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, fmt.Errorf("empty TTS text")
+	}
+	audio := c.synthesisAudio
+	if len(audio) == 0 {
+		audio = []byte("scenario-tts-audio")
+	}
+	duration := c.synthesisMillis
+	if duration == 0 {
+		duration = 1600
+	}
+	return aiclient.SynthesisResponse{
+			Audio:       append([]byte{}, audio...),
+			ContentType: "audio/mpeg",
+			DurationMs:  duration,
+			CharCount:   len([]rune(input.Text)),
+		}, aiclient.AICallMeta{
+			Provider:         "fixture-tts",
+			ModelFamily:      "fixture-tts",
+			ModelID:          "fixture-tts-1",
+			ModelProfileName: profileName,
+			FallbackChain:    []string{"fixture-tts/fixture-tts-1"},
+			ValidationStatus: aiclient.ValidationStatusOK,
+			LatencyMs:        180,
+		}, nil
 }
 
 type scenarioAITaskRunWriter struct {
@@ -1662,18 +1828,19 @@ type scenarioOutboxEvent struct {
 }
 
 type scenarioPracticeIdempotencyRecord struct {
-	RecordID    string
-	UserID      string
-	Domain      string
-	Operation   string
-	KeyHash     string
-	Fingerprint string
-	Status      idempotency.Status
-	ExpiresAt   time.Time
-	Response    []byte
-	HTTPStatus  int
-	ResourceID  string
-	ErrorCode   string
+	RecordID     string
+	UserID       string
+	Domain       string
+	Operation    string
+	KeyHash      string
+	Fingerprint  string
+	Status       idempotency.Status
+	ExpiresAt    time.Time
+	Response     []byte
+	HTTPStatus   int
+	ResourceType string
+	ResourceID   string
+	ErrorCode    string
 }
 
 func newScenarioPracticeStore() *scenarioPracticeStore {
@@ -2366,6 +2533,7 @@ func (s *scenarioPracticeStore) Reserve(_ context.Context, in idempotency.Reserv
 		rec.Fingerprint = in.RequestFingerprint
 		rec.Response = nil
 		rec.HTTPStatus = 0
+		rec.ResourceType = ""
 		rec.ResourceID = ""
 		rec.ErrorCode = ""
 		s.idempotencyRecords[key] = rec
@@ -2401,6 +2569,7 @@ func (s *scenarioPracticeStore) MarkSucceeded(_ context.Context, in idempotency.
 			rec.Status = idempotency.StatusSucceeded
 			rec.Response = append([]byte{}, in.ResponseBody...)
 			rec.HTTPStatus = in.ResponseStatus
+			rec.ResourceType = in.ResourceType
 			rec.ResourceID = in.ResourceID
 			s.idempotencyRecords[key] = rec
 			return nil
@@ -2415,6 +2584,7 @@ func (s *scenarioPracticeStore) MarkFailed(_ context.Context, in idempotency.Com
 			rec.Status = idempotency.StatusFailedTerminal
 			rec.Response = append([]byte{}, in.ResponseBody...)
 			rec.HTTPStatus = in.ResponseStatus
+			rec.ResourceType = ""
 			rec.ResourceID = ""
 			rec.ErrorCode = scenarioErrorCodeFromResponseBody(in.ResponseBody)
 			s.idempotencyRecords[key] = rec

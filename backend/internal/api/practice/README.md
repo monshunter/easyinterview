@@ -6,6 +6,7 @@ This package owns the HTTP adapter for the backend-practice operations. It maps 
 
 - `POST /practice/sessions/{sessionId}/events` (`appendSessionEvent`) is not wrapped by the shared idempotency middleware. The request-level replay key is `clientEventId`; requests carrying `Idempotency-Key` are rejected with `400 VALIDATION_FAILED` and `details.policy=use_client_event_id`.
 - `POST /practice/sessions/{sessionId}/complete` (`completePracticeSession`) is wrapped by `idempotency.Middleware` with `domain=practice` and `operation=completePracticeSession`. The handler returns `202 ReportWithJob` and marks the middleware resource as `feedback_report/{reportId}`.
+- `POST /practice/sessions/{sessionId}/voice-turns` (`createPracticeVoiceTurn`) is wrapped by `idempotency.Middleware` with `domain=practice` and `operation=createPracticeVoiceTurn`. The handler decodes the small base64 audio payload, delegates the cascaded STT / chat / TTS orchestration to `backend/internal/practice`, returns `200 PracticeVoiceTurnResult`, and marks the middleware resource as `practice_voice_turn/{voiceTurnId}`.
 
 ## 003 Mode Policies and Provenance
 

@@ -37,7 +37,7 @@
 
 ## Phase 5: Verification and negative gates
 
-- [ ] 5.1 BDD-Gate: 创建并执行 `E2E.P0.007` 完整语音 turn 场景
+- [x] 5.1 BDD-Gate: 创建并执行 `E2E.P0.007` 完整语音 turn 场景；证据: `test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/setup.sh && test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/trigger.sh && test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/verify.sh && test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/cleanup.sh`
 - [ ] 5.2 BDD-Gate: 创建并执行 `E2E.P0.008` 插话 / 打断 committed context 场景
 - [ ] 5.3 BDD-Gate: 创建并执行 `E2E.P0.009` provider failure / fallback 场景
 - [ ] 5.4 重跑 regression gates：OpenAPI fixture validation、codegen drift、frontend tests、backend tests、A3 profile coverage、privacy grep、旧 route negative search、scenario wrapper contract；验证: 所有命令记录实际通过证据
