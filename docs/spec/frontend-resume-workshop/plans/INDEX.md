@@ -9,6 +9,8 @@
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
 | [001-listing-routing-and-detail-readonly](./001-listing-routing-and-detail-readonly/plan.md) | [plan](./001-listing-routing-and-detail-readonly/plan.md) / [checklist](./001-listing-routing-and-detail-readonly/checklist.md) / [context](./001-listing-routing-and-detail-readonly/context.yaml) / [bdd-plan](./001-listing-routing-and-detail-readonly/bdd-plan.md) / [bdd-checklist](./001-listing-routing-and-detail-readonly/bdd-checklist.md) | 1.1 | active | 2026-05-12 |
+| [002-create-flow-and-onboarding](./002-create-flow-and-onboarding/plan.md) | [plan](./002-create-flow-and-onboarding/plan.md) / [checklist](./002-create-flow-and-onboarding/checklist.md) / [context](./002-create-flow-and-onboarding/context.yaml) / [bdd-plan](./002-create-flow-and-onboarding/bdd-plan.md) / [bdd-checklist](./002-create-flow-and-onboarding/bdd-checklist.md) | 1.0 | active | 2026-05-17 |
+| [003-branch-rewrites-and-edit](./003-branch-rewrites-and-edit/plan.md) | [plan](./003-branch-rewrites-and-edit/plan.md) / [checklist](./003-branch-rewrites-and-edit/checklist.md) / [context](./003-branch-rewrites-and-edit/context.yaml) / [bdd-plan](./003-branch-rewrites-and-edit/bdd-plan.md) / [bdd-checklist](./003-branch-rewrites-and-edit/bdd-checklist.md) | 1.0 | active | 2026-05-17 |
 
 ## 2 已完成（Completed）
 
