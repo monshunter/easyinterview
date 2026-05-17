@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff BDD Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -48,6 +48,7 @@
 - [x] 067.C 编写 setup.sh：经过 P0.066 完成 submit + step 1 启动
 - [x] 067.D 编写 trigger.sh：等待 polling 完成 + 切到 step 1 + 展开 provenance
 - [x] 067.E 编写 verify.sh：getJob 调用 4 次 + getDebrief 调用 1 次 + risk_items 渲染 3 项 + 维度卡 3 张 + provenance 6 字段 + 不渲染 P1 fields + Step 1 testid 命中
+- [x] 067.E2 BUG-0070 runtime route gate：真实 `GET /api/v1/jobs/{jobId}` route、Jobs handler/store owner scope 与 focused Go tests 通过；证据: `go test ./internal/jobs ./internal/api/jobs ./internal/store/jobs ./cmd/api -count=1`
 - [x] 067.F 编写 cleanup.sh
 - [x] 067.G 确认四段脚本可独立执行
 - [x] 067.H 登记到 INDEX

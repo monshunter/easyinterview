@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff BDD Plan
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -64,9 +64,9 @@
 | Phase | Phase 5-6 |
 | 关联 spec AC | C-8, C-12 |
 | 执行入口 | `bash scripts/setup.sh && bash scripts/trigger.sh && bash scripts/verify.sh; bash scripts/cleanup.sh`（在该场景目录内执行） |
-| Given | 用户已通过 P0.066 完成 createDebrief submit + setStep(1)；fixture `getJob` 配置为前 3 次返回 status='running'，第 4 次返回 status='succeeded'；fixture `getDebrief=default` 返回 completed Debrief with riskItems=[3 items] + provenance 6 字段 |
+| Given | 用户已通过 P0.066 完成 createDebrief submit + setStep(1)；fixture `getJob` 配置为前 3 次返回 status='running'，第 4 次返回 status='succeeded'；fixture `getDebrief=default` 返回 completed Debrief with riskItems=[3 items] + provenance 6 字段；runtime gate 已证明真实 `GET /api/v1/jobs/{jobId}` route 挂载并按 owner scope 查询 |
 | When | (1) Polling 自动启动；(2) 用户等待 polling 完成；(3) Step 1 渲染；(4) 用户点击 "关于本次分析" 展开 provenance |
-| Then | (a) `getJob('J')` 调用 4 次（按指数退避节奏）；(b) status='succeeded' 后 `getDebrief('D')` 调用 1 次；(c) Step 1 panel 渲染：风险项列表 3 项 + 维度卡 3 张 + provenance 展开区；testid `debrief-analysis-risk-item-{0,1,2}` / `debrief-analysis-dimension-{mock,jd,resume}` 命中；(d) 不渲染 nextRoundChecklist / thankYouDraft；grep `data-testid="debrief-next-round-checklist"` 0 命中；(e) Provenance 展开显示 6 字段（promptVersion / rubricVersion / modelId / language / featureFlag / dataSourceVersion）；不显示 feature_key / cost 等运行时字段 |
+| Then | (a) `getJob('J')` 调用 4 次（按指数退避节奏）；(b) status='succeeded' 后 `getDebrief('D')` 调用 1 次；(c) Step 1 panel 渲染：风险项列表 3 项 + 维度卡 3 张 + provenance 展开区；testid `debrief-analysis-risk-item-{0,1,2}` / `debrief-analysis-dimension-{mock,jd,resume}` 命中；(d) 不渲染 nextRoundChecklist / thankYouDraft；grep `data-testid="debrief-next-round-checklist"` 0 命中；(e) Provenance 展开显示 6 字段（promptVersion / rubricVersion / modelId / language / featureFlag / dataSourceVersion）；不显示 feature_key / cost 等运行时字段；(f) 后端 route/store gate 覆盖 `getJob` owner scope，避免 mock-only polling false-green |
 | Cleanup | 清空 InterviewContext + DB |
 
 ### E2E.P0.068 — Failure States + Cross-Owner Handoff

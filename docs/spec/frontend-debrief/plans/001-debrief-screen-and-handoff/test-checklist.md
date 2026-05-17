@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff Test Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -121,3 +121,4 @@
 - [x] 9.E `python3 -m pytest scripts/lint -q` 通过
 - [x] 9.F `make docs-check` + `git diff --check` 通过
 - [x] 9.G Phase 9 本计划定义的单元测试项全部通过
+- [x] 9.H BUG-0070 `getJob` runtime route gate 通过：`go test ./internal/jobs ./internal/api/jobs ./internal/store/jobs ./cmd/api -count=1`

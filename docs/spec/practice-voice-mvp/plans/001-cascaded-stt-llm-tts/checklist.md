@@ -1,6 +1,6 @@
 # Cascaded STT LLM TTS Voice MVP Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -10,6 +10,12 @@
 
 - [x] 0.1 验证 A3 004 handoff 已在代码中可消费：`tts` capability、`AIClient.Transcribe` / `AIClient.Synthesize`、`practice.voice.stt.default` / `practice.voice.tts.default`、speech adapters、profile coverage 与 privacy tests；验证: focused grep + `cd backend && go test ./internal/ai/aiclient/... -count=1`
 - [x] 0.2 固化当前 owner handoff 与待反转负向实现：记录并更新 `backend/internal/api/practice/README.md` 的 voice/audio route owner、`VoiceSurfaceComingSoon` placeholder 测试边界和 `voice` route fallback 负向测试；验证: grep 证明不再存在 legacy voice placeholder owner 口径，且独立 `voice` route 仍 fallback `home`
+
+## 2026-05-17 Review-Fix Evidence
+
+- [x] RF.1 BUG-0070 playback `audioRef` gate：`createPracticeVoiceTurn` HTTP response 的 `ttsChunks[].audioRef` 返回浏览器可播放 `data:audio/...;base64,...`；持久化 voice turn summary 改写为 opaque `voice-turn://...`，不保存 audio bytes；验证: `go test ./internal/practice -run TestCreatePracticeVoiceTurnReturnsPlayableAudioRefWithoutPersistingAudioData -count=1`。
+- [x] RF.2 BUG-0070 committed context replay gate：production service 在请求未携带 context 时从 store 加载 latest `follow_up_generated` + 后续 playback events，并注入下一轮 chat payload；验证: `go test ./internal/practice ./internal/store/practice -run 'TestCreatePracticeVoiceTurnLoadsCommittedContext|TestSQLRepositoryLoadCommittedVoiceContext' -count=1`。
+- [x] RF.3 BUG-0070 barge-in partial playback gate：frontend `bargeIn()` 先上报 partial `tts_chunk_played`（含 playedTextLength/hash/offset），再上报 `barge_in_detected`；验证: `pnpm --dir frontend test src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx --run`。
 
 ## Phase 1: Contract and fixture
 

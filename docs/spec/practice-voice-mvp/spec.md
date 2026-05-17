@@ -1,6 +1,6 @@
 # Practice Voice MVP Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-05-17
 
@@ -25,7 +25,7 @@
 - 后端 voice turn 编排：`stt profile -> chat profile -> tts profile`。
 - STT / chat / TTS 三类 profile 独立选择：默认建议 STT 豆包、chat DeepSeek、TTS 豆包，MiniMax `speech-02-turbo` 作为 TTS 备选或 fallback。
 - AI assistant 回复 draft 与 committed context 分离：未播放内容不得进入下一轮 prompt。
-- 用户插话 / 打断：停止播放、取消未完成 TTS、提交已完整播放 chunk、丢弃未播放 draft。
+- 用户插话 / 打断：停止播放、取消未完成 TTS、提交已播放且有 `playedTextLength` 证据的 assistant 文本范围、丢弃未播放 draft。
 - API / fixture / generated client / backend handler / frontend consumer / scenario coverage operation matrix。
 - 隐私与观测：raw audio、TTS audio、transcript 明文、provider secret 不进入 log / DB metadata / metric label。
 
@@ -46,7 +46,7 @@
 | D-1 | 语音形态 | P0 语音面试采用 `stt -> chat -> tts` 级联方案，不采用 S2S 首发 | 成本可控，工程可拆分 |
 | D-2 | Provider 配置 | STT、chat、TTS 三者独立 profile，不绑定同一家 provider | 可用豆包 STT + DeepSeek chat + 豆包或 MiniMax TTS |
 | D-3 | Realtime 边界 | `realtime` 只表示 S2S / realtime multimodal voice，MVP 不打开 | 防止语义混淆和成本误判 |
-| D-4 | 打断提交 | 只有已完整播放的 assistant chunk 才进入 committed context | 未播放内容不会污染下一轮 prompt |
+| D-4 | 打断提交 | 完整播放 chunk 或 barge-in 前已上报 `playedTextLength` 的部分播放文本可进入 committed context；未播放 draft 不得进入下一轮 prompt | 用户已听到的内容可延续上下文，未播放内容不会污染下一轮 prompt |
 | D-5 | 路由边界 | 语音面试只能通过 `practice` 显式参数进入，不恢复 `voice` route | 保持 UI 真理源一致 |
 | D-6 | TTS 失败语义 | TTS 失败只影响语音播放，已生成文本仍展示并可继续文本面试 | 防止语音 provider 故障导致会话丢失 |
 
@@ -71,10 +71,10 @@ Voice turn 必须区分：
 - `user_transcript_final`：STT 完成后的用户回答文本。
 - `assistant_text_draft`：LLM 完整或增量生成的文本回复，尚未全部播放。
 - `tts_chunk_started` / `tts_chunk_played`：TTS chunk 播放状态。
-- `assistant_context_committed`：已完整播放并允许进入下一轮 prompt 的 assistant 文本。
+- `assistant_context_committed`：已播放并允许进入下一轮 prompt 的 assistant 文本；partial playback 只能按 `playedTextLength` 截断提交。
 - `barge_in_detected`：用户插话 / 打断事件，记录打断时刻和已播放 chunk。
 
-下一轮 prompt 只能读取 committed user messages、committed assistant messages 与当前用户输入，不得读取未播放的 `assistant_text_draft`。
+下一轮 prompt 只能读取 committed user messages、committed assistant messages 与当前用户输入；service 必须从已持久化的 `follow_up_generated` 与后续 playback events 回放 committed context，不得读取未播放的 `assistant_text_draft`。
 
 ### 4.3 API / Contract 约束
 
@@ -87,7 +87,9 @@ Voice turn 必须区分：
 
 前端不得直连豆包或 MiniMax provider，也不得持有 provider key。
 
-`createPracticeVoiceTurn` 是会产生会话事件的 side-effect endpoint，必须携带 `Idempotency-Key`。请求体必须显式携带 `clientVoiceTurnId`、`turnId`、`audio.contentBase64`、`audio.contentType`、`audio.durationMs`、`language`、`practiceMode` 与可选 `manualTranscriptFallback`；不允许把 raw audio 写入 URL、日志、AI metadata 或 audit metadata。响应体必须区分 `userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`voiceTurnId`、`providerMetaSummary` 与可空 `ttsError`。`ttsChunks[]` 只包含 chunk id、content type、duration、byte length/hash、playback URL 或 inline test fixture handle，不包含音频明文。
+`createPracticeVoiceTurn` 是会产生会话事件的 side-effect endpoint，必须携带 `Idempotency-Key`。请求体必须显式携带 `clientVoiceTurnId`、`turnId`、`audio.contentBase64`、`audio.contentType`、`audio.durationMs`、`language`、`practiceMode` 与可选 `manualTranscriptFallback`；不允许把 raw audio 写入 URL、日志、AI metadata 或 audit metadata。响应体必须区分 `userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`voiceTurnId`、`providerMetaSummary` 与可空 `ttsError`。`ttsChunks[]` 只包含 chunk id、content type、duration、byte length/hash 与 `audioRef`；`audioRef` 的播放承载与持久化边界见下段。
+
+`ttsChunks[].audioRef` 的 HTTP response 值必须是浏览器可直接播放的 `data:audio/...;base64,...` 或同计划落地的 resolver URL；持久化到 `practice_session_events` 的 voice turn summary 必须改写为不含音频数据的 opaque `voice-turn://{voiceTurnId}/chunks/{chunkId}` 引用，并由测试证明 response playback ref 与 persisted summary ref 分离。
 
 `appendSessionEvent.kind` 必须扩展为 `tts_chunk_started`、`tts_chunk_played`、`barge_in_detected`、`assistant_context_committed`。这些事件继续使用 body-level `clientEventId`，不得携带 `Idempotency-Key`。payload 必须携带 `voiceTurnId`、`chunkId`、`playedTextHash` / `playedTextLength`、`playbackOffsetMs`、`occurredAt` 等摘要字段；如需提交业务正文，只能写入 session event schema 中明确允许的 committed assistant text，不得写入 AI/audit metadata。
 
@@ -103,7 +105,7 @@ Voice turn 必须区分：
 - STT 失败：保留已录入 / 已输入文本，提示用户重试或继续手动输入；不得调用 chat/TTS。
 - Chat 失败：保留用户 transcript，允许重试或结束并生成部分报告；不得调用 TTS。
 - TTS 失败：展示 assistant 文本，允许继续文本面试或重试语音播放；不得丢失会话。
-- Barge-in：停止播放，取消未完成 TTS，只提交已完整播放 chunk，未播放 draft 丢弃。
+- Barge-in：停止播放，取消未完成 TTS；前端必须先上报 partial `tts_chunk_played`（含 `playedTextLength` / `playedTextHash` / `playbackOffsetMs`）再上报 `barge_in_detected`；后端只提交已播放文本范围，未播放 draft 丢弃。
 
 ## 5 模块边界
 
@@ -121,7 +123,7 @@ Voice turn 必须区分：
 |----|------|-------|------|------|-----------|
 | C-1 | 完整语音 turn | 用户在 `practice?mode=voice&modality=voice` 进入语音面试，STT/chat/TTS profile 均 active | 用户说出回答并等待 AI 回复 | 页面展示用户 transcript、assistant 文本并播放 TTS；session event 记录 voice turn；可继续下一题 | 001 |
 | C-2 | STT/TTS 独立 provider | STT profile 指向豆包，TTS profile 指向豆包或 MiniMax，chat profile 指向 DeepSeek | 后端执行 voice turn | 三个 profile 分别解析，任何一步不要求与另一能力同 provider；meta 可区分 provider/model/cost | 001 + A3 004 |
-| C-3 | 打断不污染上下文 | AI TTS 播放中，前端已报告前 1 个 chunk 完整播放 | 用户插话 | 后端只提交已播放 chunk；未播放 assistant draft 不进入下一轮 prompt；下一轮 prompt 明确上一条回复被打断 | 001 |
+| C-3 | 打断不污染上下文 | AI TTS 播放中，前端已报告完整 chunk 或 partial `playedTextLength` | 用户插话 | 后端只提交已播放文本范围；未播放 assistant draft 不进入下一轮 prompt；下一轮 prompt 明确上一条回复被打断 | 001 |
 | C-4 | TTS 失败降级 | STT 与 chat 成功，TTS provider 失败 | 用户等待回复 | 前端展示 assistant 文本与错误提示；用户可继续文本面试或重试播放；session 不失败 | 001 |
 | C-5 | Secret fail-fast | dev/Kind/staging/prod 选中 active speech profile 但缺 provider secret | 启动或调用 voice turn | 返回配置错误或启动失败；不得静默回退 stub | 001 + A3 004 |
 | C-6 | UI route negative | 用户访问旧 `voice` route 或文档/代码出现独立 voice page 口径 | 路由归一或 scope test 执行 | 不进入独立 voice 页面；语音面试只能从 `practice` 显式参数进入 | 001 |
@@ -129,7 +131,7 @@ Voice turn 必须区分：
 
 ## 7 关联计划
 
-- [001-cascaded-stt-llm-tts](./plans/001-cascaded-stt-llm-tts/plan.md)（active）：落地用户可见语音面试 MVP 的 API、backend orchestration、frontend voice controller、barge-in committed context 与 BDD 场景。
+- [001-cascaded-stt-llm-tts](./plans/001-cascaded-stt-llm-tts/plan.md)（completed）：落地用户可见语音面试 MVP 的 API、backend orchestration、frontend voice controller、barge-in committed context 与 BDD 场景。
 
 ## 8 相关文档
 

@@ -13,7 +13,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-debrief-screen-and-handoff](./001-debrief-screen-and-handoff/plan.md) | [plan](./001-debrief-screen-and-handoff/plan.md) / [checklist](./001-debrief-screen-and-handoff/checklist.md) / [context](./001-debrief-screen-and-handoff/context.yaml) / [test-plan](./001-debrief-screen-and-handoff/test-plan.md) / [test-checklist](./001-debrief-screen-and-handoff/test-checklist.md) / [bdd-plan](./001-debrief-screen-and-handoff/bdd-plan.md) / [bdd-checklist](./001-debrief-screen-and-handoff/bdd-checklist.md) | 1.3 | completed | 2026-05-17 |
+| [001-debrief-screen-and-handoff](./001-debrief-screen-and-handoff/plan.md) | [plan](./001-debrief-screen-and-handoff/plan.md) / [checklist](./001-debrief-screen-and-handoff/checklist.md) / [context](./001-debrief-screen-and-handoff/context.yaml) / [test-plan](./001-debrief-screen-and-handoff/test-plan.md) / [test-checklist](./001-debrief-screen-and-handoff/test-checklist.md) / [bdd-plan](./001-debrief-screen-and-handoff/bdd-plan.md) / [bdd-checklist](./001-debrief-screen-and-handoff/bdd-checklist.md) | 1.4 | completed | 2026-05-17 |
 
 ## 3 草案 / 阻塞（Draft / Blocked）
 

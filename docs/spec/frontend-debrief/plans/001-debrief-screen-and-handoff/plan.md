@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -38,6 +38,7 @@
   - Phase 0 dep 验证：`grep -rn "suggestDebriefQuestions\|createDebrief\|getDebrief\|listPracticeSessions\|listResumes\|listResumeVersions" frontend/src/api/generated/` 命中；`ls openapi/fixtures/Debriefs/` 含 3 个 fixture file；`ls openapi/fixtures/PracticeSessions/listPracticeSessions.json` 存在；`grep -rn "DebriefRoundType\|DebriefQuestionSource\|DEBRIEF_NOT_FOUND\|IDEMPOTENCY_KEY_MISMATCH" frontend/src/lib/conventions/ frontend/src/api/generated/` 命中
   - UI source parity：Vitest `expect(screen.getByTestId('debrief-*'))` 测试 + jsdom DOM snapshot 匹配 prototype 锚点；Playwright 覆盖 DOM anchors、computed styles 与 viewport geometry
   - Pixel parity：Playwright debrief gate validates desktop (1440×900) + mobile (390×844) DOM anchors, bounding boxes, theme/customAccent computed values, and non-empty screenshot smoke
+  - Runtime route / async polling drift gate：`getJob` 或任何 frontend-consumed polling operation 的完成证据必须同时覆盖 generated client + fixture + real `backend/cmd/api` route mount + handler/store owner scope + focused Go tests；BUG-0070 证据为 `go test ./internal/jobs ./internal/api/jobs ./internal/store/jobs ./cmd/api -count=1`
   - 隐私红线：Vitest fixture spy 不接收 raw entries / notes；URL/localStorage/sessionStorage/console.log 扫描
   - Legacy negative：`grep -rn "experience_library\|star_editor\|drill_builder\|mistakes_book\|growth_center\|report_timeline" frontend/src/app/screens/debrief/ frontend/src/app/i18n/locales/ test/scenarios/e2e/p0-06[56789]-*` 不命中
 

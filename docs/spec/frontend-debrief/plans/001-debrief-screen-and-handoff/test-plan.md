@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff Test Plan
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -44,6 +44,7 @@
 | R20 | spec D-16 / Privacy redlines (raw text in URL/localStorage/sessionStorage/console.log/telemetry) | Privacy | Phase 8 | Vitest spy + grep | questionText, myAnswerSummary, interviewerReaction, notes (must NOT appear in browser persistence) | — |
 | R21 | spec D-18 / Legacy negative grep | Regression/Legacy-negative | Phase 8 | grep + pytest lint | experience_library, star_editor, drill_builder, mistakes_book, growth_center, report_timeline | — |
 | R22 | spec §5.1 / Operation Matrix: debrief module may call createPracticePlan/startPracticeSession only for Step 2 fresh debrief replay; getFeedbackReport/getCompanyIntel remain zero calls | Cross-layer + Regression | Phase 6 | Vitest spy + grep | getFeedbackReport, getCompanyIntel; completed mock session reuse | — |
+| R23 | spec D-17 / `getJob` runtime route gate: fixture + generated client evidence must be paired with real `cmd/api` route, owner-scoped handler/store, and focused Go tests | Cross-layer + Runtime | Review-fix | `go test ./internal/jobs ./internal/api/jobs ./internal/store/jobs ./cmd/api -count=1` | fixture-backed `getJob` pass without backend route mount | — |
 
 ## 2 测试项明细
 

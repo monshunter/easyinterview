@@ -1,6 +1,6 @@
 # 001 Debrief Screen and Handoff Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -25,6 +25,7 @@
 - [x] RF.1 `createDebrief` 真实契约修复：Guided/manual entries 现在必须采集非空 `myAnswerSummary`；Submit CTA 对缺回答摘要 disabled；`useSubmitDebrief` trim 后提交，避免 backend `422 VALIDATION_FAILED`；测试覆盖 `DebriefScreen.test.tsx` + `DebriefPickerRegression.test.tsx`。
 - [x] RF.2 picker 真实 backend 契约修复：JD picker 改为 `analysisStatus='ready'`；Resume picker 重开时回到 asset list 并保留 asset object；Mock Session picker 依赖真实 `GET /api/v1/practice/sessions` handler/service/store，Go 单测覆盖 list filter / fixture parity / cursor。
 - [x] RF.3 Step 2 replay 修复：`handleStartReplay` 调 `createPracticePlan(goal='debrief', sourceDebriefId)` + `startPracticeSession` 创建 fresh session，再 nav practice with `planId/sessionId`；不再复用 completed mock session id，也不再无 sessionId 进入 PracticeScreen。
+- [x] RF.4 BUG-0070 async polling runtime gate：`getJob` 不再只依赖 fixture / generated client；真实后端新增 `GET /api/v1/jobs/{jobId}` route、Jobs handler/domain/store，并按 `async_jobs.resource_type` 回查 owner resource（含 `debriefs.user_id`）限制访问；验证: `go test ./internal/jobs ./internal/api/jobs ./internal/store/jobs ./cmd/api -count=1`。
 
 ## Phase 1: DebriefScreen shell + Header + ContextStrip + Stepper
 

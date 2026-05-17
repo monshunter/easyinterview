@@ -1,6 +1,6 @@
 # Cascaded STT LLM TTS Voice MVP
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -25,13 +25,14 @@ S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 
 - **TDD 策略**: 通过 `/implement` -> `/tdd` 顺序执行。每个实现项必须有 OpenAPI/fixture/codegen gate、backend service/handler tests、frontend component/controller tests、privacy/negative tests 或 BDD-Gate 作为断言来源。
 - **BDD 策略**: 需要 BDD。用户可见语音面试流程、打断恢复和 provider failure fallback 分别由 `E2E.P0.007`、`E2E.P0.008`、`E2E.P0.009` 覆盖。
 - **替代验证 gate**: 不适用；本计划是用户行为功能计划。
+- **Review-fix runtime gate**: BUG-0070 后续要求 voice playback 证据覆盖 response `audioRef` 浏览器可播放、persisted session event 不保存 audio data、barge-in 前 partial `tts_chunk_played`、store replay committed context into next prompt；证据命令：`go test ./internal/practice ./internal/store/practice -count=1` + `pnpm --dir frontend test src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx --run`。
 
 ## 4 Operation Matrix
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` scenarios `default` / `stt-config-missing` / `chat-failed` / `tts-failed` | `PracticeScreen` voice turn controller / audio capture hook | `backend/internal/practice` voice turn handler/service mounted by `backend/internal/api/practice` | session events；transient in-memory audio metadata only；no long-term audio retention by default | `practice.voice.stt.default` + `practice.followup.default` + `practice.voice.tts.default` | `E2E.P0.007` / `E2E.P0.009` |
-| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` scenarios `voice-tts-started` / `voice-tts-played` / `voice-barge-in` / `voice-context-committed` | voice player progress reporter | existing `appendSessionEvent` handler/service extended with voice event kinds | session events | none; records playback, barge-in, and committed context events | `E2E.P0.008` |
+| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` scenarios `default` / `stt-config-missing` / `chat-failed` / `tts-failed` | `PracticeScreen` voice turn controller / audio capture hook | `backend/internal/practice` voice turn handler/service mounted by `backend/internal/api/practice` | session events store only metadata and opaque `voice-turn://...` refs；HTTP response `ttsChunks[].audioRef` must be browser-playable data URL or documented resolver；no long-term audio retention by default | `practice.voice.stt.default` + `practice.followup.default` + `practice.voice.tts.default` | `E2E.P0.007` / `E2E.P0.009` + BUG-0070 audioRef gate |
+| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` scenarios `voice-tts-started` / `voice-tts-played` / `voice-barge-in` / `voice-context-committed` | voice player progress reporter | existing `appendSessionEvent` handler/service extended with voice event kinds | session events；store replay loads latest voice turn + subsequent playback events into next prompt | none; records playback, barge-in, and committed context events | `E2E.P0.008` + BUG-0070 store replay gate |
 
 ## 5 Coverage Matrix
 
@@ -41,8 +42,8 @@ S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 
 | PV-MVP-C2 | Cross-layer contract | docs/development §2 | Phase 1 | OpenAPI fixture validation + `make codegen-check` | ad hoc fetch shape |
 | PV-MVP-C3 | Alternate path | spec C-2 | Phase 2 | A3 profile resolver tests + backend orchestration tests | STT/TTS bound to same provider |
 | PV-MVP-C4 | Failure/recovery | spec C-4/C-5 | Phase 2-4 | service tests + `E2E.P0.009` | TTS failure drops text |
-| PV-MVP-C5 | Boundary condition | spec C-3 | Phase 3 | committed context unit tests + `E2E.P0.008` | unplayed draft in prompt |
-| PV-MVP-C6 | Privacy/security/observability | spec C-7 | Phase 2/5 | privacy grep + backend tests | raw audio/transcript/TTS text in log/DB/metric |
+| PV-MVP-C5 | Boundary condition | spec C-3 | Phase 3 | committed context unit tests + store replay tests + frontend partial playback event test + `E2E.P0.008` | unplayed draft in prompt |
+| PV-MVP-C6 | Privacy/security/observability | spec C-7 | Phase 2/5 | privacy grep + backend tests + persisted audioRef summary gate | raw audio/transcript/TTS text in log/DB/metric/session event summary |
 | PV-MVP-C7 | UX quality | docs/ui-design/module-practice-review | Phase 4 | frontend tests + visual parity gates | independent voice route/page |
 | PV-MVP-C8 | Regression/legacy-negative | product-scope D-6 | Phase 5 | scope tests + negative search | `voice` route alias, S2S marked active |
 | PV-MVP-C9 | Current drift preflight | current code truth source | Phase 0 | source grep + focused smoke tests | `VoiceSurfaceComingSoon` remains active after voice MVP; backend README points to a legacy placeholder owner |
@@ -63,7 +64,7 @@ Record the current implementation gaps that must change during this plan: `front
 
 #### 1.1 OpenAPI voice turn contract
 
-新增 `POST /practice/sessions/{sessionId}/voice-turns` / `createPracticeVoiceTurn` operation。该 endpoint 是 side-effect endpoint，必须携带 `Idempotency-Key`；请求体必须包含 `clientVoiceTurnId`、`turnId`、`audio.contentBase64`、`audio.contentType`、`audio.durationMs`、`language`、`practiceMode` 与可选 `manualTranscriptFallback`。输出必须包含 `voiceTurnId`、`userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`providerMetaSummary`、`session` 与可空 `ttsError`。`ttsChunks[]` 只保存 chunk id、content type、duration、byte length/hash 和播放引用或测试 fixture handle，不保存音频明文。
+新增 `POST /practice/sessions/{sessionId}/voice-turns` / `createPracticeVoiceTurn` operation。该 endpoint 是 side-effect endpoint，必须携带 `Idempotency-Key`；请求体必须包含 `clientVoiceTurnId`、`turnId`、`audio.contentBase64`、`audio.contentType`、`audio.durationMs`、`language`、`practiceMode` 与可选 `manualTranscriptFallback`。输出必须包含 `voiceTurnId`、`userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`providerMetaSummary`、`session` 与可空 `ttsError`。HTTP response 的 `ttsChunks[].audioRef` 必须是浏览器可播放 data URL 或已落地 resolver URL；持久化 session event summary 只保存 chunk id、content type、duration、byte length/hash 和 opaque `voice-turn://...` ref，不保存音频数据。
 
 #### 1.2 Fixtures and generated clients
 
@@ -91,7 +92,7 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 
 #### 3.2 Committed context builder
 
-实现 committed context builder：只有完整播放的 chunk 可提交；部分播放 chunk 默认不提交；未播放 draft 永不进入下一轮 prompt。
+实现 committed context builder：完整播放 chunk 可提交；barge-in 前已上报 `playedTextLength` 的部分播放文本只能按长度截断提交；无 `tts_chunk_played` 证据的 partial chunk 默认不提交；未播放 draft 永不进入下一轮 prompt。生产 service 必须从已持久化的最新 voice turn 与后续 playback events 加载 committed context，而不是只依赖请求体。
 
 #### 3.3 Prompt interruption note
 
@@ -111,7 +112,7 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 
 #### 4.3 TTS playback and barge-in
 
-实现 TTS chunk 播放、播放完成回报、VAD/用户输入触发 barge-in、停止播放和下一轮输入。误触发阈值和 echo 处理在 MVP 中以可配置策略实现。
+实现 TTS chunk 播放、播放完成回报、VAD/用户输入触发 barge-in、停止播放和下一轮输入。barge-in 必须先发送 partial `tts_chunk_played`（含 `playedTextLength` / `playedTextHash` / `playbackOffsetMs`），再发送 `barge_in_detected`。误触发阈值和 echo 处理在 MVP 中以可配置策略实现。
 
 ### Phase 5: Verification and negative gates
 
@@ -123,14 +124,15 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 
 #### 5.2 Regression gates
 
-重跑 app shell / practice 相关 frontend tests、OpenAPI fixture validation、codegen drift、A3 profile coverage、privacy grep、旧 route negative search。
+重跑 app shell / practice 相关 frontend tests、OpenAPI fixture validation、codegen drift、A3 profile coverage、privacy grep、旧 route negative search。BUG-0070 后续 gate 必须额外验证 response `audioRef` 可播放、stored TTS summary 不含 audio data、store replay committed context、barge-in partial playback event。
 
 ## 7 验收标准
 
 - `createPracticeVoiceTurn` contract、fixtures、generated client/server artifacts 完成并无 drift。
 - 后端 voice turn service 覆盖 STT/chat/TTS happy path 与独立失败路径。
 - 前端 voice controller 可展示 transcript、播放 TTS、处理 barge-in，并保留文本 fallback。
-- Committed context builder 证明未播放 assistant draft 不进入下一轮 prompt。
+- HTTP response 的 TTS `audioRef` 可被浏览器播放，持久化 session event summary 不保存 audio bytes。
+- Committed context builder + store replay 证明已播放文本进入下一轮 prompt，未播放 assistant draft 不进入下一轮 prompt。
 - `E2E.P0.007` / `E2E.P0.008` / `E2E.P0.009` BDD-Gate 通过。
 
 ## 8 风险与应对

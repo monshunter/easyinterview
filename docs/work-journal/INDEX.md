@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-17](2026-05-17.md) | `docs(review): harden runtime gate evidence for BUG-0070` | #docs #fix |
 | [2026-05-17](2026-05-17.md) | `fix(runtime): wire job polling and voice playback context (BUG-0070)` | #fix #test #docs #ui |
 | [2026-05-17](2026-05-17.md) | `fix(frontend-debrief): repair real backend debrief flows (BUG-0068)` | #fix #ui #test #docs #bdd |
 | [2026-05-17](2026-05-17.md) | `feat(practice-voice): close voice mvp scenarios and lifecycle` | #feat #test #docs |

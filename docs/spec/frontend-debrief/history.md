@@ -1,6 +1,6 @@
 # Frontend Debrief History
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-05-17
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-17 | 1.4 | BUG-0070 follow-up：将 `getJob` polling 的 runtime route gate 写回 owner 文档，明确 frontend-consumed async operation 的完成证据必须覆盖 OpenAPI / fixture / generated client / real `cmd/api` route mount / handler-store owner scope / focused route-store tests，避免 fixture-backed mock 通过被误判为真实 backend 闭环。 | [001-debrief-screen-and-handoff](./plans/001-debrief-screen-and-handoff/plan.md) |
 | 2026-05-17 | 1.3 | L2 review fix 后修正真实后端契约：Step 0 entries 必须采集非空 `myAnswerSummary`；JD picker 使用 `analysisStatus='ready'`；Mock Session picker 依赖真实 `GET /practice/sessions` backend handler；Step 2 "开始复盘面试" 在 debrief CTA 内调用 `createPracticePlan(goal='debrief', sourceDebriefId)` + `startPracticeSession` 创建 fresh session，再将 `planId/sessionId/practiceGoal='debrief'` nav 到 practice，不再把 optional completed mock session id 复用为 replay session。 | [001-debrief-screen-and-handoff](./plans/001-debrief-screen-and-handoff/plan.md) |
 | 2026-05-17 | 1.2 | 完成 plan 001 Phase 0-9 全部落地：route 接线（含 `debrief_full → debrief` alias）+ DebriefScreen 容器 + Header / ContextStrip / Stepper + 3 picker modal（JD / MockSession / Resume，含 listPracticeSessions cross-owner addendum + client-side status-filter fallback）+ Step 0 record（summary bar / mode toggle / GuidedDebriefRecord 4 CTA / VoiceDebriefRecord UI shell / submit CTA）+ useSuggestDebriefQuestions hook（500ms debounce + AI 错误降级）+ useSubmitDebrief（IK + 409 自动 retry + 4xx/5xx 处理 + SET_DEBRIEF_CONTEXT reducer）+ useDebriefPolling（双轨 getJob + getDebrief + 指数退避 + visibility 暂停 + idle/running/succeeded/failed/timeout 状态机）+ DebriefFailureState / DebriefMissingContextState / DebriefTimeoutState + Step 1 分析（risk items / 维度卡 / provenance 6 字段）+ Step 2 DebriefReplayPlan launcher + useRequestAuth 复盘面试 handoff + InterviewContext 扩展（debriefId / debriefJobId 字段 + SET_DEBRIEF_CONTEXT action + PENDING_ACTION_INTERVIEW_KEYS 增加 practiceGoal / debriefId / debriefJobId / sessionId）+ i18n debrief.* zh + en 80+ keys + debrief.css token-driven 主题 + 响应式 + privacy boundary 静态扫描 + scripts/lint/frontend_debrief_legacy.py + 5 个 BDD-Gate scenario（E2E.P0.065-069；Playwright pixel parity 因 scenario runner 未安装 chromium 留作 deferred）；plan 状态从 active 移到 completed。 | [001-debrief-screen-and-handoff](./plans/001-debrief-screen-and-handoff/plan.md) |
 | 2026-05-16 | 1.1 | 修正 frontend-debrief 的复盘面试 handoff 口径：`debrief` 是 `PracticeGoal`，不是 `PracticeMode`；frontend nav 仍只传 `practiceGoal='debrief'`，后续由 frontend-workspace-and-practice / backend-practice 使用合法 `mode IN ('assisted','strict')` 启动 session。同步修订 plan 001 Phase 0 依赖验证，避免 `mode='debrief'` 旧口径回流。 | [001-debrief-screen-and-handoff](./plans/001-debrief-screen-and-handoff/plan.md) |
