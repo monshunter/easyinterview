@@ -518,10 +518,6 @@ export const en: LocaleMessages = {
   "practice.rightpanel.finishCta": "Finish & generate report",
   "practice.rightpanel.hintUsageNote":
     "{count} hint(s) used · will appear in report",
-  "practice.voiceComingSoon.title": "Voice surface coming soon",
-  "practice.voiceComingSoon.desc":
-    "Voice mode is being polished. Use text mode for now; you can switch back from the top bar once voice ships.",
-  "practice.voiceComingSoon.backToText": "Back to text",
   "practice.sessionLost.title": "Session is over or missing",
   "practice.sessionLost.desc":
     "This mock interview has ended, was cancelled, or never started. Return to the workspace to start over.",

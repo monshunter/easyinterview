@@ -556,6 +556,60 @@ type PaginatedPracticeSession struct {
 	PageInfo PageInfo          `json:"pageInfo"`
 }
 
+type CreatePracticeVoiceTurnRequest struct {
+	Audio                    PracticeVoiceAudioInput `json:"audio"`
+	ClientVoiceTurnId        string                  `json:"clientVoiceTurnId"`
+	Language                 string                  `json:"language"`
+	ManualTranscriptFallback *string                 `json:"manualTranscriptFallback,omitempty"`
+	PracticeMode             PracticeMode            `json:"practiceMode"`
+	TurnId                   string                  `json:"turnId"`
+}
+
+type PracticeVoiceAudioInput struct {
+	ByteLength    *int32 `json:"byteLength,omitempty"`
+	ContentBase64 string `json:"contentBase64"`
+	ContentType   string `json:"contentType"`
+	DurationMs    int32  `json:"durationMs"`
+}
+
+type PracticeVoiceTurnResult struct {
+	AssistantTextDraft  string                           `json:"assistantTextDraft"`
+	ProviderMetaSummary PracticeVoiceProviderMetaSummary `json:"providerMetaSummary"`
+	Session             PracticeSession                  `json:"session"`
+	TtsChunks           []PracticeVoiceTTSChunk          `json:"ttsChunks"`
+	TtsError            *PracticeVoiceTTSError           `json:"ttsError"`
+	UserTranscriptFinal string                           `json:"userTranscriptFinal"`
+	VoiceTurnId         string                           `json:"voiceTurnId"`
+}
+
+type PracticeVoiceTTSChunk struct {
+	AudioRef    string `json:"audioRef"`
+	ByteLength  int32  `json:"byteLength"`
+	ChunkId     string `json:"chunkId"`
+	ContentType string `json:"contentType"`
+	DurationMs  int32  `json:"durationMs"`
+	Sequence    int32  `json:"sequence"`
+	TextHash    string `json:"textHash"`
+}
+
+type PracticeVoiceProviderMetaSummary struct {
+	ChatLatencyMs *int32 `json:"chatLatencyMs,omitempty"`
+	ChatProfile   string `json:"chatProfile"`
+	ChatProvider  string `json:"chatProvider"`
+	SttLatencyMs  *int32 `json:"sttLatencyMs,omitempty"`
+	SttProfile    string `json:"sttProfile"`
+	SttProvider   string `json:"sttProvider"`
+	TtsLatencyMs  *int32 `json:"ttsLatencyMs,omitempty"`
+	TtsProfile    string `json:"ttsProfile"`
+	TtsProvider   string `json:"ttsProvider"`
+}
+
+type PracticeVoiceTTSError struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Retryable bool   `json:"retryable"`
+}
+
 type PracticeSessionEventRequest struct {
 	ClientEventId string         `json:"clientEventId"`
 	Kind          string         `json:"kind"`

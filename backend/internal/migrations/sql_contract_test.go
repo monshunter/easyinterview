@@ -162,6 +162,22 @@ func TestBaselineMigrationAcceptsReportAndDebriefQuestionTaskTypes(t *testing.T)
 	}
 }
 
+func TestBaselinePracticeSessionEventsAcceptVoicePlaybackKinds(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
+
+	for _, required := range []string{
+		"'tts_chunk_started'",
+		"'tts_chunk_played'",
+		"'barge_in_detected'",
+		"'assistant_context_committed'",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("practice_session_events.event_type check must include %s", required)
+		}
+	}
+}
+
 func TestFeedbackReportsContainsProvenancePersistenceColumns(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))

@@ -9,6 +9,7 @@
 | 日期 | 报告 | 类型 |
 |------|------|------|
 | [2026-05-17](./2026-05-17-frontend-debrief-real-backend-flow-fix-assessment.md) | Frontend Debrief Real Backend Flow Fix 交付复盘 | #assessment |
+| [2026-05-17](./2026-05-17-practice-voice-mvp-001-cascaded-stt-llm-tts-assessment.md) | Practice Voice MVP 001 Cascaded STT LLM TTS 交付复盘 | #assessment |
 | [2026-05-17](./2026-05-17-frontend-debrief-001-l2-remediation-assessment.md) | Frontend Debrief 001 L2 Remediation 交付复盘 | #assessment |
 | [2026-05-17](./2026-05-17-debrief-scenario-wrapper-evidence-assessment.md) | Debrief Scenario Wrapper Evidence 交付复盘 | #assessment |
 | [2026-05-16](./2026-05-16-backend-debrief-001-debrief-record-and-analysis-assessment.md) | Backend Debrief 001 Debrief Record And Analysis 交付复盘 | #assessment |

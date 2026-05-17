@@ -12,6 +12,7 @@ import {
 import type {
   AssistantAction,
   GenerationProvenance,
+  PracticeMode,
 } from "../../../api/generated/types";
 import { useI18n, type MessageKey } from "../../i18n/messages";
 import { useInterviewContext } from "../../interview-context/InterviewContext";
@@ -26,7 +27,8 @@ import { InputBar } from "./components/InputBar";
 import { HintBanner } from "./components/HintBanner";
 import { RightPanel } from "./components/RightPanel";
 import { FinishCta } from "./components/FinishCta";
-import { VoiceSurfaceComingSoon } from "./components/VoiceSurfaceComingSoon";
+import { PracticeVoiceSurface } from "./components/PracticeVoiceSurface";
+import { PracticeVoiceRightPanel } from "./components/PracticeVoiceRightPanel";
 import { PracticeSessionLostState } from "./components/PracticeSessionLostState";
 import { ErrorState } from "./components/ErrorState";
 import { AssistantActionRenderer } from "./components/AssistantActionRenderer";
@@ -36,6 +38,8 @@ import { usePracticeEvents } from "./hooks/usePracticeEvents";
 import { usePracticeAssistance } from "./hooks/usePracticeAssistance";
 import { usePracticeSession } from "./hooks/usePracticeSession";
 import { useCompletePracticeSession } from "./hooks/useCompletePracticeSession";
+import { usePracticeVoiceTurn } from "./hooks/usePracticeVoiceTurn";
+import { usePracticeVoicePlayback } from "./hooks/usePracticeVoicePlayback";
 import { buildPracticeHandoffParams } from "./utils/practiceHandoffParams";
 
 interface PracticeScreenProps {
@@ -92,6 +96,19 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const assistance = usePracticeAssistance({
     practiceMode,
     practiceGoal,
+  });
+  const generatedPracticeMode: PracticeMode = isStrict ? "strict" : "assisted";
+  const voiceTurn = usePracticeVoiceTurn({
+    sessionId,
+    turnId: loader.data?.currentTurn?.id ?? "",
+    lang,
+    practiceMode: generatedPracticeMode,
+  });
+  const voicePlayback = usePracticeVoicePlayback({
+    sessionId,
+    result: voiceTurn.state.kind === "success"
+      ? voiceTurn.state.result
+      : null,
   });
   const sessionFlags = usePracticeSession(loader.data?.status ?? null);
   const isNarrow = useNarrowPracticeLayout();
@@ -417,6 +434,41 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     setErrorState(null);
   }, []);
 
+  const handleVoiceTurnSubmit = useCallback(async () => {
+    const turnIndex = loader.data?.currentTurn?.turnIndex;
+    try {
+      const result = await voiceTurn.stopAndSubmit();
+      setTranscript((prev) => [
+        ...prev,
+        {
+          role: "user",
+          text: result.userTranscriptFinal,
+          t: fmtElapsed(elapsed),
+        },
+        {
+          role: "ai",
+          text: result.assistantTextDraft,
+          t: fmtElapsed(elapsed + 1),
+          followUp: true,
+        },
+      ]);
+      if (turnIndex) {
+        setTurnAnnotations((prev) => {
+          const next = new Map(prev);
+          next.set(turnIndex, "follow_up_requested");
+          return next;
+        });
+      }
+    } catch {
+      // usePracticeVoiceTurn owns the visible voice-specific error state.
+    }
+  }, [elapsed, loader.data?.currentTurn?.turnIndex, voiceTurn]);
+
+  const handleVoiceRecordingStart = useCallback(async () => {
+    await voicePlayback.bargeIn();
+    await voiceTurn.startRecording();
+  }, [voicePlayback, voiceTurn]);
+
   const handoffNavigatedRef = useRef(false);
   const onFinish = useCallback(async () => {
     if (handoffNavigatedRef.current) return;
@@ -487,6 +539,18 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const turnTotal = loader.data?.turnCount ?? sessionMapItems.length;
   const currentTurn = loader.data?.currentTurn;
   const hintCount = Number(ctx.hintCount) || 0;
+  const finishCta = (
+    <FinishCta
+      label={t("practice.rightpanel.finishCta")}
+      hintCount={hintCount}
+      hintUsageNote={t("practice.rightpanel.hintUsageNote")}
+      disabled={
+        sessionFlags.completionCtaDisabled ||
+        completion.state.kind === "loading"
+      }
+      onFinish={onFinish}
+    />
+  );
 
   return (
     <div
@@ -593,11 +657,62 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
           style={{ display: "flex", flexDirection: "column", minHeight: 0 }}
         >
           {activeMode === "voice" ? (
-            <VoiceSurfaceComingSoon
-              title={t("practice.voiceComingSoon.title")}
-              desc={t("practice.voiceComingSoon.desc")}
-              backLabel={t("practice.voiceComingSoon.backToText")}
-              onBackToText={() => handleSwitchMode("text")}
+            <PracticeVoiceSurface
+              lang={lang}
+              questionBadge={t("practice.question.tagPrefix").replace(
+                "{n}",
+                String(currentTurn?.turnIndex ?? 1),
+              )}
+              topic={
+                currentTurn?.questionIntent ??
+                t("practice.sessionMap.itemTopicSkeleton")
+              }
+              prompt={
+                currentTurn?.questionText ??
+                t("practice.question.skeletonPrompt")
+              }
+              recording={voiceTurn.state.kind === "recording"}
+              messages={transcript}
+              captureState={voiceTurn.state.kind}
+              manualTranscriptFallback={voiceTurn.manualTranscriptFallback}
+              onManualTranscriptFallbackChange={
+                voiceTurn.setManualTranscriptFallback
+              }
+              onStartRecording={() => {
+                void handleVoiceRecordingStart();
+              }}
+              onSubmitRecording={() => {
+                void handleVoiceTurnSubmit();
+              }}
+              controlsDisabled={inputDisabled || !voiceTurn.ready}
+              voiceError={
+                voiceTurn.state.kind === "error"
+                  ? voiceTurn.state.message
+                  : null
+              }
+              ttsError={
+                voiceTurn.state.kind === "success"
+                  ? voiceTurn.state.result.ttsError
+                  : null
+              }
+              ttsChunkCount={
+                voiceTurn.state.kind === "success"
+                  ? voiceTurn.state.result.ttsChunks.length
+                  : null
+              }
+              playbackState={voicePlayback.state.kind}
+              activePlaybackChunkId={
+                voicePlayback.state.kind === "playing" ||
+                voicePlayback.state.kind === "completed" ||
+                voicePlayback.state.kind === "interrupted"
+                  ? voicePlayback.state.chunkId
+                  : null
+              }
+              playbackError={
+                voicePlayback.state.kind === "error"
+                  ? voicePlayback.state.message
+                  : null
+              }
             />
           ) : (
             <>
@@ -675,35 +790,40 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
           )}
         </div>
 
-        <RightPanel
-          jdLinkLabel={t("practice.rightpanel.jdLink")}
-          jdProbesLabel={t("practice.rightpanel.jdProbes")}
-          jdProbesText={t("practice.rightpanel.jdProbesSkeleton")}
-          experienceLabel={t("practice.rightpanel.experienceLabel")}
-          aiTransparencyLabel={t("practice.rightpanel.aiTransparency")}
-          aiTransparencyMeta={{
-            promptVersion: aiTransparency?.promptVersion ?? "pending",
-            rubricVersion: aiTransparency?.rubricVersion ?? "pending",
-            modelId: aiTransparency?.modelId ?? "model-profile:pending",
-            language: aiTransparency?.language ?? lang,
-            personaLabel: t(PERSONA_LABEL_KEY[persona]),
-          }}
-          strict={isStrict}
-          strictBannerText={t("practice.rightpanel.strictBanner")}
-          experiences={[]}
-          finishCta={
-            <FinishCta
-              label={t("practice.rightpanel.finishCta")}
-              hintCount={hintCount}
-              hintUsageNote={t("practice.rightpanel.hintUsageNote")}
-              disabled={
-                sessionFlags.completionCtaDisabled ||
-                completion.state.kind === "loading"
-              }
-              onFinish={onFinish}
-            />
-          }
-        />
+        {activeMode === "voice" ? (
+          <PracticeVoiceRightPanel
+            lang={lang}
+            strict={isStrict}
+            aiTransparencyLabel={t("practice.rightpanel.aiTransparency")}
+            aiTransparencyMeta={{
+              promptVersion: aiTransparency?.promptVersion ?? "pending",
+              rubricVersion: aiTransparency?.rubricVersion ?? "pending",
+              modelId: aiTransparency?.modelId ?? "model-profile:pending",
+              language: aiTransparency?.language ?? lang,
+              personaLabel: t(PERSONA_LABEL_KEY[persona]),
+            }}
+            finishCta={finishCta}
+          />
+        ) : (
+          <RightPanel
+            jdLinkLabel={t("practice.rightpanel.jdLink")}
+            jdProbesLabel={t("practice.rightpanel.jdProbes")}
+            jdProbesText={t("practice.rightpanel.jdProbesSkeleton")}
+            experienceLabel={t("practice.rightpanel.experienceLabel")}
+            aiTransparencyLabel={t("practice.rightpanel.aiTransparency")}
+            aiTransparencyMeta={{
+              promptVersion: aiTransparency?.promptVersion ?? "pending",
+              rubricVersion: aiTransparency?.rubricVersion ?? "pending",
+              modelId: aiTransparency?.modelId ?? "model-profile:pending",
+              language: aiTransparency?.language ?? lang,
+              personaLabel: t(PERSONA_LABEL_KEY[persona]),
+            }}
+            strict={isStrict}
+            strictBannerText={t("practice.rightpanel.strictBanner")}
+            experiences={[]}
+            finishCta={finishCta}
+          />
+        )}
       </div>
 
       <AssistantActionRenderer

@@ -26,6 +26,7 @@ type planService interface {
 	StartPracticeSession(ctx context.Context, in domain.StartSessionRequest) (domain.SessionRecord, error)
 	AppendSessionEvent(ctx context.Context, in domain.AppendSessionEventRequest) (domain.AppendSessionEventResult, error)
 	CompletePracticeSession(ctx context.Context, in domain.CompletePracticeSessionRequest) (domain.CompleteSessionResult, error)
+	CreatePracticeVoiceTurn(ctx context.Context, in domain.CreatePracticeVoiceTurnRequest) (domain.PracticeVoiceTurnResult, error)
 }
 
 type HandlerOptions struct {

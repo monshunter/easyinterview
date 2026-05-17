@@ -2,6 +2,7 @@ package practice
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -11,11 +12,15 @@ import (
 )
 
 const (
-	sessionEventKindAnswerSubmitted = "answer_submitted"
-	sessionEventKindHintRequested   = "hint_requested"
-	sessionEventKindTurnSkipped     = "turn_skipped"
-	sessionEventKindSessionPaused   = "session_paused"
-	sessionEventKindSessionResumed  = "session_resumed"
+	sessionEventKindAnswerSubmitted  = "answer_submitted"
+	sessionEventKindHintRequested    = "hint_requested"
+	sessionEventKindTurnSkipped      = "turn_skipped"
+	sessionEventKindSessionPaused    = "session_paused"
+	sessionEventKindSessionResumed   = "session_resumed"
+	sessionEventKindTTSChunkStarted  = "tts_chunk_started"
+	sessionEventKindTTSChunkPlayed   = "tts_chunk_played"
+	sessionEventKindBargeInDetected  = "barge_in_detected"
+	sessionEventKindContextCommitted = "assistant_context_committed"
 
 	assistantActionAskQuestion      = "ask_question"
 	assistantActionAskFollowUp      = "ask_follow_up"
@@ -102,6 +107,11 @@ func (s SessionEventService) Route(
 		return s.handleSessionPaused(session), nil
 	case sessionEventKindSessionResumed:
 		return s.handleSessionResumed(session), nil
+	case sessionEventKindTTSChunkStarted,
+		sessionEventKindTTSChunkPlayed,
+		sessionEventKindBargeInDetected,
+		sessionEventKindContextCommitted:
+		return s.handleVoicePlaybackEvent(input, session, latestTurn), nil
 	default:
 		return SessionEventOutcome{
 			Acknowledged:      false,
@@ -300,6 +310,79 @@ func (s SessionEventService) handleSessionResumed(session SessionRecord) Session
 	}
 }
 
+func (s SessionEventService) handleVoicePlaybackEvent(input SessionEventInput, session SessionRecord, latestTurn TurnRecord) SessionEventOutcome {
+	kind := strings.TrimSpace(input.Kind)
+	if err := validateVoicePlaybackPayload(kind, input.Payload); err != nil {
+		return SessionEventOutcome{
+			Acknowledged:      false,
+			NextSessionStatus: session.Status,
+			Error:             err,
+		}
+	}
+	audit := map[string]any{
+		"event_kind":         kind,
+		"voice_turn_id":      strings.TrimSpace(payloadString(input.Payload, "voiceTurnId")),
+		"chunk_id":           strings.TrimSpace(payloadString(input.Payload, "chunkId")),
+		"playback_offset_ms": payloadInt(input.Payload, "playbackOffsetMs"),
+	}
+	switch kind {
+	case sessionEventKindTTSChunkPlayed:
+		audit["played_text_hash"] = strings.TrimSpace(payloadString(input.Payload, "playedTextHash"))
+		audit["played_text_length"] = payloadInt(input.Payload, "playedTextLength")
+	case sessionEventKindBargeInDetected:
+		audit["user_speech_started_at"] = strings.TrimSpace(payloadString(input.Payload, "userSpeechStartedAt"))
+	case sessionEventKindContextCommitted:
+		audit["committed_text_hash"] = strings.TrimSpace(payloadString(input.Payload, "committedTextHash"))
+		audit["committed_text_length"] = payloadInt(input.Payload, "committedTextLength")
+	}
+	return SessionEventOutcome{
+		Acknowledged:      true,
+		NextSessionStatus: session.Status,
+		AssistantAction: s.assistantAction(
+			assistantActionSessionWait,
+			latestTurn.ID,
+			"",
+			"",
+			session.Status,
+			session.Language,
+			false,
+		),
+		AuditMetadata: audit,
+	}
+}
+
+func validateVoicePlaybackPayload(kind string, payload map[string]any) *ServiceError {
+	for _, field := range []string{"voiceTurnId", "chunkId"} {
+		if strings.TrimSpace(payloadString(payload, field)) == "" {
+			return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload." + field})
+		}
+	}
+	if _, ok := payloadIntOK(payload, "playbackOffsetMs"); !ok {
+		return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload.playbackOffsetMs"})
+	}
+	switch kind {
+	case sessionEventKindTTSChunkPlayed:
+		if strings.TrimSpace(payloadString(payload, "playedTextHash")) == "" {
+			return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload.playedTextHash"})
+		}
+		if value, ok := payloadIntOK(payload, "playedTextLength"); !ok || value < 1 {
+			return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload.playedTextLength"})
+		}
+	case sessionEventKindBargeInDetected:
+		if strings.TrimSpace(payloadString(payload, "userSpeechStartedAt")) == "" {
+			return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload.userSpeechStartedAt"})
+		}
+	case sessionEventKindContextCommitted:
+		if strings.TrimSpace(payloadString(payload, "committedTextHash")) == "" {
+			return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload.committedTextHash"})
+		}
+		if value, ok := payloadIntOK(payload, "committedTextLength"); !ok || value < 1 {
+			return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload.committedTextLength"})
+		}
+	}
+	return nil
+}
+
 func (s SessionEventService) assistantAction(
 	actionType string,
 	turnID string,
@@ -342,6 +425,36 @@ func payloadString(payload map[string]any, key string) string {
 		return typed.String()
 	default:
 		return fmt.Sprint(typed)
+	}
+}
+
+func payloadInt(payload map[string]any, key string) int64 {
+	value, _ := payloadIntOK(payload, key)
+	return value
+}
+
+func payloadIntOK(payload map[string]any, key string) (int64, bool) {
+	if payload == nil {
+		return 0, false
+	}
+	value, ok := payload[key]
+	if !ok || value == nil {
+		return 0, false
+	}
+	switch typed := value.(type) {
+	case int:
+		return int64(typed), true
+	case int32:
+		return int64(typed), true
+	case int64:
+		return typed, true
+	case float64:
+		return int64(typed), typed == float64(int64(typed))
+	case json.Number:
+		parsed, err := typed.Int64()
+		return parsed, err == nil
+	default:
+		return 0, false
 	}
 }
 

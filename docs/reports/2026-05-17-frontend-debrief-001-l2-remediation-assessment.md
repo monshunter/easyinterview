@@ -11,7 +11,7 @@
   - `pnpm --filter @easyinterview/frontend build` 通过。
   - `pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/debrief.spec.ts` 通过（11 passed / 1 skipped）。
   - `E2E.P0.065-P0.069` 按 `setup.sh -> trigger.sh -> verify.sh -> cleanup.sh` 顺序串行通过。
-  - `BUG-0067` 已记录，`docs/bugs/PATTERNS.md` 新增 completed checklist / runner false-green 复发模式。
+  - `BUG-0068` 已记录，`docs/bugs/PATTERNS.md` 新增 completed checklist / runner false-green 复发模式。
   - `make validate-fixtures`、`pnpm --filter @easyinterview/frontend typecheck`、`pnpm --filter @easyinterview/frontend lint`、`python3 -m pytest scripts/lint -q`、`make docs-check`、`git diff --check` 作为最终 gate 重新执行。
 
 ## 2 会话中的主要阻点/痛点

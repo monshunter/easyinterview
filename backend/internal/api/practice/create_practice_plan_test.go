@@ -276,6 +276,10 @@ type fakePlanService struct {
 	completeResult    domain.CompleteSessionResult
 	completeErr       error
 	completeRequest   domain.CompletePracticeSessionRequest
+	voiceResult       domain.PracticeVoiceTurnResult
+	voiceErr          error
+	voiceRequest      domain.CreatePracticeVoiceTurnRequest
+	voiceCalls        int
 }
 
 func (s *fakePlanService) CreatePracticePlan(ctx context.Context, in domain.CreatePlanRequest) (domain.PlanRecord, error) {
@@ -353,6 +357,17 @@ func (s *fakePlanService) CompletePracticeSession(ctx context.Context, in domain
 		return domain.CompleteSessionResult{}, s.completeErr
 	}
 	return s.completeResult, nil
+}
+
+func (s *fakePlanService) CreatePracticeVoiceTurn(ctx context.Context, in domain.CreatePracticeVoiceTurnRequest) (domain.PracticeVoiceTurnResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.voiceCalls++
+	s.voiceRequest = in
+	if s.voiceErr != nil {
+		return domain.PracticeVoiceTurnResult{}, s.voiceErr
+	}
+	return s.voiceResult, nil
 }
 
 type testUserKey struct{}
@@ -498,13 +513,14 @@ type routeMemoryStore struct {
 }
 
 type routeMemoryRecord struct {
-	recordID    string
-	fingerprint string
-	status      idempotency.Status
-	response    []byte
-	httpStatus  int
-	resourceID  string
-	expiresAt   time.Time
+	recordID     string
+	fingerprint  string
+	status       idempotency.Status
+	response     []byte
+	httpStatus   int
+	resourceType string
+	resourceID   string
+	expiresAt    time.Time
 }
 
 func newRouteMemoryStore() *routeMemoryStore {
@@ -533,6 +549,7 @@ func (s *routeMemoryStore) Reserve(ctx context.Context, in idempotency.Reservati
 		rec.status = idempotency.StatusPending
 		rec.response = nil
 		rec.httpStatus = 0
+		rec.resourceType = ""
 		rec.resourceID = ""
 		rec.expiresAt = in.ExpiresAt
 		s.records[key] = rec
@@ -560,6 +577,7 @@ func (s *routeMemoryStore) MarkSucceeded(ctx context.Context, in idempotency.Com
 			rec.status = idempotency.StatusSucceeded
 			rec.response = append([]byte(nil), in.ResponseBody...)
 			rec.httpStatus = in.ResponseStatus
+			rec.resourceType = in.ResourceType
 			rec.resourceID = in.ResourceID
 			s.records[key] = rec
 			return nil

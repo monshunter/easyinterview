@@ -24,6 +24,7 @@ import createPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/c
 import getPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
 import appendSessionEventFixture from "../../../openapi/fixtures/PracticeSessions/appendSessionEvent.json";
 import completePracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/completePracticeSession.json";
+import createPracticeVoiceTurnFixture from "../../../openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json";
 import getPracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/getPracticeSession.json";
 import listPracticeSessionsFixture from "../../../openapi/fixtures/PracticeSessions/listPracticeSessions.json";
 import startPracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
@@ -97,6 +98,7 @@ const DEV_MOCK_FIXTURES = [
 	listPracticeSessionsFixture,
 	completePracticeSessionFixture,
 	appendSessionEventFixture,
+	createPracticeVoiceTurnFixture,
 	requestPrivacyDeleteFixture,
 	requestPrivacyExportFixture,
 	getPrivacyRequestFixture,

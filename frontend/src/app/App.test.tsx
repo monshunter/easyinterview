@@ -97,7 +97,7 @@ describe("App shell", () => {
     expect(screen.queryByText("D2-D6")).not.toBeInTheDocument();
   });
 
-  it("propagates voice mode route params into PracticeScreen voice placeholder", () => {
+  it("propagates voice mode route params into PracticeScreen voice surface", () => {
     render(
       <App
         initialRoute={{
@@ -111,7 +111,8 @@ describe("App shell", () => {
         }}
       />,
     );
-    expect(screen.getByTestId("practice-voice-coming-soon")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-voice-waveform")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-voice-expression-panel")).toBeInTheDocument();
   });
 
   it("renders ResumeWorkshopScreen on resume_versions route instead of PlaceholderScreen", () => {

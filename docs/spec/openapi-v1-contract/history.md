@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.22
+> **版本**: 1.23
 > **状态**: active
 > **更新日期**: 2026-05-17
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-17 | 1.23 | 授权 practice-voice-mvp/001 voice turn additive：`PracticeSessions` tag 新增 `POST /api/v1/practice/sessions/{sessionId}/voice-turns` / `createPracticeVoiceTurn`，同步 `CreatePracticeVoiceTurnRequest` / `PracticeVoiceTurnResult` / voice TTS schema、fixture、inventory lint、fixture validator、Go/TS generated artifacts 与 codegen golden；`PracticeSessionEventRequest.kind` additive 扩展 voice playback / barge-in / committed context event。§3.1.1 endpoint inventory 57→58。Additive，不引入 breaking change。 | practice-voice-mvp/001-cascaded-stt-llm-tts |
 | 2026-05-17 | 1.22 | 授权 frontend-debrief/001 Phase 0 cross-owner addendum：`PracticeSessions` tag 新增 `GET /api/v1/practice/sessions` / `listPracticeSessions`（query: `targetJobId?`, `status?`, `cursor?`, `pageSize?`），同步 `PaginatedPracticeSession` schema、fixture、inventory lint 与 Go/TS generated artifacts；§3.1.1 endpoint inventory 56→57。Additive，不引入 breaking change。 | frontend-debrief/001-debrief-screen-and-handoff Phase 0.0 |
 | 2026-05-16 | 1.21 | 授权 backend-debrief/001 Phase 0 Debrief suggestions additive 升级：`Debriefs` tag 新增 `POST /api/v1/debriefs/question-suggestions` / `suggestDebriefQuestions`，同步 request/response schema、fixtures、inventory lint、README 与 Go/TS generated artifacts；§3.1.1 endpoint inventory 55→56。 | backend-debrief/001-debrief-record-and-analysis Phase 0.2 |
 | 2026-05-15 | 1.20 | 授权 backend-review/001 Phase 0 pre-launch baseline rebase：(a) `getFeedbackReport` 的 404 response 显式与 `REPORT_NOT_FOUND` 关联（与 [B1 shared-conventions-codified 1.18](../shared-conventions-codified/history.md) 同 commit）；(b) `FeedbackReport` schema 新增 `errorCode: oneOf[ApiErrorCode|null]` additive 字段，用于 wire 暴露失败原因；同步 `openapi/openapi.yaml`、`openapi/baseline/openapi-v1.0.0.yaml` 与 Go/TS generated artifacts。Additive，不引入 breaking change。 | backend-review/001-report-generation-baseline Phase 0.2 / 0.4 |

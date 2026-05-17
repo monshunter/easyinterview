@@ -14,7 +14,7 @@
   - `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-debrief/plans/001-debrief-screen-and-handoff/context.yaml --docs-root docs --target frontend`
   - `make docs-check`
   - `git diff --check`
-- Bug KB 已记录为 [BUG-0068](../bugs/BUG-0068.md)。
+- Bug KB 已记录为 [BUG-0069](../bugs/BUG-0069.md)。
 
 ## 2 会话中的主要阻点/痛点
 
@@ -51,5 +51,5 @@
 
 ## 5 建议优先级与后续动作
 
-- Highest value next step: push the repair branch or open PR review after the BUG-0068 commit lands.
+- Highest value next step: push the repair branch or open PR review after the real-backend-flow commit lands.
 - Lower priority: consider extracting a shared frontend helper for direct practice-session start CTAs once report replay and debrief replay stabilize around the same lifecycle contract.

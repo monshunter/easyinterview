@@ -63,10 +63,9 @@ IK_REQUIRED_OPERATION_IDS = {
 class FixtureSkeletonTest(unittest.TestCase):
     """Phase 1.1 structural contract."""
 
-    def test_fifty_seven_operations_expected(self) -> None:
-        # 56 + 1 for the frontend-debrief/001 Phase 0 cross-owner addendum
-        # that adds `listPracticeSessions` to the inventory.
-        self.assertEqual(len(EXPECTED_OPERATIONS), 57)
+    def test_fifty_eight_operations_expected(self) -> None:
+        # 56 baseline + listPracticeSessions + createPracticeVoiceTurn.
+        self.assertEqual(len(EXPECTED_OPERATIONS), 58)
 
     def test_thirteen_unique_tags(self) -> None:
         tags = {tag for tag, *_ in EXPECTED_OPERATIONS}
@@ -213,6 +212,10 @@ REQUIRED_PRACTICE_SESSION_SCENARIOS = {
         "replay",
         "mismatch",
         "completed",
+        "voice-tts-started",
+        "voice-tts-played",
+        "voice-barge-in",
+        "voice-context-committed",
     },
     "completePracticeSession": {
         "default",
@@ -220,6 +223,12 @@ REQUIRED_PRACTICE_SESSION_SCENARIOS = {
         "mismatch",
         "session-already-completed",
         "cross-user-not-found",
+    },
+    "createPracticeVoiceTurn": {
+        "default",
+        "stt-config-missing",
+        "chat-failed",
+        "tts-failed",
     },
 }
 

@@ -105,6 +105,10 @@ REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
             "replay",
             "mismatch",
             "completed",
+            "voice-tts-started",
+            "voice-tts-played",
+            "voice-barge-in",
+            "voice-context-committed",
         }
     ),
     "completePracticeSession": frozenset(
@@ -114,6 +118,14 @@ REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
             "mismatch",
             "session-already-completed",
             "cross-user-not-found",
+        }
+    ),
+    "createPracticeVoiceTurn": frozenset(
+        {
+            "default",
+            "stt-config-missing",
+            "chat-failed",
+            "tts-failed",
         }
     ),
 }

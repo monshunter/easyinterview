@@ -101,7 +101,7 @@ resolves a sibling file.
 The 13 OpenAPI tags follow
 [spec §2.1](../docs/spec/openapi-v1-contract/spec.md#2-范围) in declaration
 order: Auth, Uploads, Profile, Resumes, TargetJobs, PracticePlans,
-PracticeSessions, Reports, ResumeTailor, Debriefs, Jobs, Privacy, JobMatch. The 56
+PracticeSessions, Reports, ResumeTailor, Debriefs, Jobs, Privacy, JobMatch. The 58
 operations are catalogued in
 [spec §3.1.1](../docs/spec/openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表);
 `scripts/lint/openapi_inventory.py` enforces tag order, operation enumeration,

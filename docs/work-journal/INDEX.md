@@ -9,11 +9,20 @@
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
 | [2026-05-17](2026-05-17.md) | `fix(frontend-debrief): repair real backend debrief flows (BUG-0068)` | #fix #ui #test #docs #bdd |
+| [2026-05-17](2026-05-17.md) | `feat(practice-voice): close voice mvp scenarios and lifecycle` | #feat #test #docs |
 | [2026-05-17](2026-05-17.md) | `fix(frontend-debrief): close debrief L2 gaps (BUG-0067)` | #fix #ui #test #docs #bdd |
+| [2026-05-17](2026-05-17.md) | `fix(practice-voice): wire voice turn route and E2E gate (BUG-0067)` | #fix #test #docs |
+| [2026-05-17](2026-05-17.md) | `feat(practice-voice): add tts playback events` | #feat #ui #test #docs |
+| [2026-05-17](2026-05-17.md) | `feat(practice-voice): wire voice turn controller` | #feat #ui #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(frontend-debrief): close 001 debrief screen and handoff baseline` | #feat #ui #test #i18n #docs #lint #bdd |
+| [2026-05-17](2026-05-17.md) | `feat(practice-voice): land voice practice surface` | #feat #ui #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(frontend-debrief): land Phase 2-6 picker / record / submit / analysis` | #feat #ui #test #i18n #docs |
+| [2026-05-17](2026-05-17.md) | `feat(practice-voice): add playback committed context` | #feat #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(frontend-debrief): land 001 debrief screen Phase 0+1 shell` | #feat #ui #test #i18n #docs |
+| [2026-05-17](2026-05-17.md) | `feat(practice-voice): land backend voice turn orchestration` | #feat #test #docs |
 | [2026-05-17](2026-05-17.md) | `feat(openapi): add listPracticeSessions operation` | #feat #api #test #docs |
+| [2026-05-17](2026-05-17.md) | `feat(practice-voice): add voice turn contract fixtures` | #feat #test #docs |
+| [2026-05-17](2026-05-17.md) | `feat(practice-voice): complete phase 0 contract preflight` | #feat #test #docs |
 | [2026-05-17](2026-05-17.md) | `fix(test): close debrief scenario wrapper evidence (BUG-0066)` | #fix #test #docs |
 | [2026-05-16](2026-05-16.md) | `feat(backend-debrief): close 001 debrief record and analysis baseline` | #feat #test #docs #fix |
 | [2026-05-16](2026-05-16.md) | `chore(backend-debrief): close phase 0 cross-owner addendums and validation` | #chore #test #docs |

@@ -67,6 +67,7 @@ EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("PracticeSessions", "get", "/practice/sessions", "listPracticeSessions"),
     ("PracticeSessions", "post", "/practice/sessions", "startPracticeSession"),
     ("PracticeSessions", "get", "/practice/sessions/{sessionId}", "getPracticeSession"),
+    ("PracticeSessions", "post", "/practice/sessions/{sessionId}/voice-turns", "createPracticeVoiceTurn"),
     ("PracticeSessions", "post", "/practice/sessions/{sessionId}/events", "appendSessionEvent"),
     ("PracticeSessions", "post", "/practice/sessions/{sessionId}/complete", "completePracticeSession"),
     ("Reports", "get", "/reports/{reportId}", "getFeedbackReport"),
@@ -110,6 +111,7 @@ IK_REQUIRED: set[tuple[str, str]] = {
     ("patch", "/targets/{targetJobId}"),
     ("post", "/practice/plans"),
     ("post", "/practice/sessions"),
+    ("post", "/practice/sessions/{sessionId}/voice-turns"),
     ("post", "/practice/sessions/{sessionId}/complete"),
     ("post", "/resume/tailor"),
     ("post", "/debriefs"),
@@ -157,7 +159,6 @@ P0_501_ENDPOINTS: dict[tuple[str, str], str] = {
 FORBIDDEN_PRODUCT_SCOPE_TOKENS: tuple[str, ...] = (
     "Mistakes",
     "Growth",
-    "Voice",
     "MistakeEntry",
     "GrowthOverview",
     "MistakeStatus",

@@ -1,0 +1,16 @@
+# E2E.P0.007 Seed Input
+
+- Authenticated user: `01918fa0-0000-7000-8000-0000000000a1`
+- Plan: `practice-plan-p0-007`, `goal=baseline`, `mode=assisted`, `language=zh-CN`
+- Started session: created through `startPracticeSession` in the Go HTTP scenario harness
+- Current turn: first active question returned by `startPracticeSession`
+- Voice request:
+  - `clientVoiceTurnId=client-voice-turn-p0-007`
+  - `contentBase64=T2dnUw==`
+  - `contentType=audio/webm`
+  - `durationMs=4320`
+  - `practiceMode=assisted`
+- AI fixture:
+  - STT transcript: `我主导了设计系统迁移，先把 12 个团队按风险分组。`
+  - Chat answer: `你如何处理最高风险团队的迁移窗口？`
+  - TTS bytes: in-memory fixture only, never persisted or returned

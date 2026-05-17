@@ -16,6 +16,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0067](./BUG-0067.md) | practice voice turn contract was not mounted as HTTP route | high | resolved | 2026-05-17 | `fix(practice-voice): wire voice turn route and E2E gate (BUG-0067)` |
 | [BUG-0060](./BUG-0060.md) | backend-practice hint AI drifted from lightweight observe prompt contract | high | resolved | 2026-05-15 | `fix(backend-practice): align hint prompt contract` |
 | [BUG-0059](./BUG-0059.md) | appendSessionEvent hint replay returned stored errors and hint snapshots incorrectly | high | resolved | 2026-05-15 | `fix(backend-practice): preserve append event replay snapshots` |
 | [BUG-0058](./BUG-0058.md) | backend-practice hint replay leaked hint text and BDD gates under-asserted evidence | high | resolved | 2026-05-15 | `fix(backend-practice): remediate hint provenance L2 findings` |
@@ -46,8 +47,8 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
-| [BUG-0068](./BUG-0068.md) | debrief real backend flows were blocked by mock-only contract drift | high | resolved | 2026-05-17 | `fix(frontend-debrief): repair real backend debrief flows (BUG-0068)` |
-| [BUG-0067](./BUG-0067.md) | frontend debrief L2 review exposed route hydration and pixel gate drift | high | resolved | 2026-05-17 | `fix(frontend-debrief): close debrief L2 gaps (BUG-0067)` |
+| [BUG-0069](./BUG-0069.md) | debrief real backend flows were blocked by mock-only contract drift | high | resolved | 2026-05-17 | `fix(frontend-debrief): repair real backend debrief flows (BUG-0068)` |
+| [BUG-0068](./BUG-0068.md) | frontend debrief L2 review exposed route hydration and pixel gate drift | high | resolved | 2026-05-17 | `fix(frontend-debrief): close debrief L2 gaps (BUG-0067)` |
 | [BUG-0065](./BUG-0065.md) | debrief.generate prompt baseline used retired output schema | high | resolved | 2026-05-16 | `feat(backend-debrief): close 001 debrief record and analysis baseline` |
 
 ## Eval

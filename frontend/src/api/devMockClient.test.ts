@@ -27,6 +27,49 @@ describe("frontend dev fixture-backed mock client", () => {
 		expect(targets.items[0]?.title).toBe("Senior Frontend Engineer");
 	});
 
+	it("serves createPracticeVoiceTurn through the generated fixture client", async () => {
+		const client = createDevMockClient();
+		const body = {
+			clientVoiceTurnId: "01918fa0-0000-7000-8000-00000000f101",
+			turnId: "01918fa0-0000-7000-8000-000000006000",
+			audio: {
+				contentBase64: "T2dnUw==",
+				contentType: "audio/webm" as const,
+				durationMs: 4320,
+			},
+			language: "zh-CN",
+			practiceMode: "assisted" as const,
+		};
+
+		await expect(
+			client.createPracticeVoiceTurn(
+				"01918fa0-0000-7000-8000-000000005000",
+				body,
+				{ idempotencyKey: "01918fa0-0000-7000-8000-00000000f001" },
+			),
+		).resolves.toMatchObject({
+			voiceTurnId: "01918fa0-0000-7000-8000-00000000f201",
+			providerMetaSummary: {
+				sttProfile: "practice.voice.stt.default",
+				chatProfile: "practice.followup.default",
+				ttsProfile: "practice.voice.tts.default",
+			},
+		});
+
+		await expect(
+			client.createPracticeVoiceTurn(
+				"01918fa0-0000-7000-8000-000000005000",
+				body,
+				{
+					idempotencyKey: "01918fa0-0000-7000-8000-00000000f002",
+					headers: { Prefer: "example=does-not-exist" },
+				},
+			),
+		).rejects.toThrow(
+			"unknown fixture scenario does-not-exist for operationId: createPracticeVoiceTurn",
+		);
+	});
+
 	it("parses declared non-OK export fallback responses", async () => {
 		const client = createDevMockClient();
 

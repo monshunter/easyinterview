@@ -46,7 +46,7 @@
 
 ## 模式 4：Completed checklist 掩盖未执行的 runner gate
 
-- **相关 Bug**：BUG-0064, BUG-0066, BUG-0067
+- **相关 Bug**：BUG-0064, BUG-0066, BUG-0068
 - **典型症状**：plan/checklist 标记 `completed`，但 test checklist / BDD checklist 仍有未勾选项；scenario `verify.sh` 只检查 spec 文件存在、历史说明或宽泛 `PASS` 字样；pixel parity / scenario wrapper 被写成 deferred 或外部运行，仍被计入完成证据。
 - **检查清单**：
   1. 对 completed plan 先 `rg "\\[ \\]|deferred|pending|no tests|Playwright.*待|pixel parity 待"`，把空勾选、延期口径和 no-op 风险当作 blocking drift。

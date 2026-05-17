@@ -1,10 +1,9 @@
 /**
  * @vitest-environment jsdom
  *
- * Phase 1 test-checklist mapping — VoiceSurfaceComingSoon placeholder + back
- * to text. Phase 3.6 extends this file with the segmented control click
- * handler (nav with mode='voice' / mode='text') and negative voice DOM
- * assertions.
+ * Phase 1/3.6 covered the segmented control. practice-voice-mvp Phase 4.1
+ * reverses the former VoiceSurfaceComingSoon placeholder: voice mode now
+ * renders the real ui-design voice surface inside PracticeScreen.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -51,28 +50,27 @@ function withProviders(ui: ReactNode) {
 }
 
 describe("PracticeScreen mode switch (Phase 1 + 3.6 contract)", () => {
-  it("voice mode renders the scoped VoiceSurfaceComingSoon placeholder", () => {
+  it("voice mode renders the formal voice surface instead of the placeholder", () => {
     const voiceRoute: Route = {
       ...ROUTE_BASE,
       params: { ...ROUTE_BASE.params, mode: "voice", modality: "voice" },
     };
     withProviders(<PracticeScreen route={voiceRoute} />);
-    expect(screen.getByTestId("practice-voice-coming-soon")).toBeDefined();
-    expect(screen.getByTestId("practice-voice-coming-soon-icon")).toBeDefined();
-    expect(screen.getByTestId("practice-voice-coming-soon-title")).toBeDefined();
-    expect(screen.getByTestId("practice-voice-coming-soon-desc")).toBeDefined();
-    expect(screen.getByTestId("practice-voice-coming-soon-back-to-text"))
-      .toBeDefined();
+    expect(screen.queryByTestId("practice-voice-coming-soon")).toBeNull();
+    expect(screen.getByTestId("practice-voice-surface")).toBeDefined();
+    expect(screen.getByTestId("practice-voice-waveform")).toBeDefined();
+    expect(screen.getByTestId("practice-voice-annotated-waveform")).toBeDefined();
+    expect(screen.getByTestId("practice-voice-expression-panel")).toBeDefined();
   });
 
-  it("clicking VoiceSurfaceComingSoon back-to-text navigates back to mode='text'", async () => {
+  it("clicking the text segmented control from voice mode navigates back to mode='text'", async () => {
     const voiceRoute: Route = {
       ...ROUTE_BASE,
       params: { ...ROUTE_BASE.params, mode: "voice", modality: "voice" },
     };
     const { nav } = withProviders(<PracticeScreen route={voiceRoute} />);
-    const back = screen.getByTestId("practice-voice-coming-soon-back-to-text");
-    await userEvent.click(back);
+    const textButton = screen.getByTestId("practice-topbar-mode-text");
+    await userEvent.click(textButton);
     expect(nav).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "practice",
@@ -93,10 +91,10 @@ describe("PracticeScreen mode switch (Phase 1 + 3.6 contract)", () => {
     );
   });
 
-  it("voice mode does not leak voice surface DOM (waveform / annotated / expression)", () => {
+  it("text mode keeps voice surface DOM out of the text surface", () => {
     const voiceRoute: Route = {
       ...ROUTE_BASE,
-      params: { ...ROUTE_BASE.params, mode: "voice", modality: "voice" },
+      params: { ...ROUTE_BASE.params, mode: "text", modality: "text" },
     };
     withProviders(<PracticeScreen route={voiceRoute} />);
     expect(screen.queryByTestId("practice-voice-waveform")).toBeNull();

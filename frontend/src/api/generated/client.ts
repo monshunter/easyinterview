@@ -368,6 +368,16 @@ export class EasyInterviewClient {
 		);
 	}
 
+	/** createPracticeVoiceTurn — post /practice/sessions/{sessionId}/voice-turns: Create a cascaded practice voice turn */
+	async createPracticeVoiceTurn(sessionId: string, body: Types.CreatePracticeVoiceTurnRequest, opts?: RequestOptions): Promise<Types.PracticeVoiceTurnResult> {
+		return this.request<Types.PracticeVoiceTurnResult>(
+			"POST",
+			buildPath("/practice/sessions/{sessionId}/voice-turns", { sessionId: sessionId }),
+			body,
+			opts,
+		);
+	}
+
 	/** requestPrivacyDelete — post /privacy/deletions: Request a privacy data deletion */
 	async requestPrivacyDelete(opts?: RequestOptions): Promise<Types.PrivacyRequestWithJob> {
 		return this.request<Types.PrivacyRequestWithJob>(
@@ -691,6 +701,7 @@ export const ALL_OPERATION_IDS = [
 	"getPracticeSession",
 	"completePracticeSession",
 	"appendSessionEvent",
+	"createPracticeVoiceTurn",
 	"requestPrivacyDelete",
 	"requestPrivacyExport",
 	"getPrivacyRequest",
@@ -759,6 +770,7 @@ export const ALL_ROUTES = [
 	{ operationId: "getPracticeSession", method: "GET", path: "/practice/sessions/{sessionId}" },
 	{ operationId: "completePracticeSession", method: "POST", path: "/practice/sessions/{sessionId}/complete" },
 	{ operationId: "appendSessionEvent", method: "POST", path: "/practice/sessions/{sessionId}/events" },
+	{ operationId: "createPracticeVoiceTurn", method: "POST", path: "/practice/sessions/{sessionId}/voice-turns" },
 	{ operationId: "requestPrivacyDelete", method: "POST", path: "/privacy/deletions" },
 	{ operationId: "requestPrivacyExport", method: "POST", path: "/privacy/exports" },
 	{ operationId: "getPrivacyRequest", method: "GET", path: "/privacy/requests/{privacyRequestId}" },

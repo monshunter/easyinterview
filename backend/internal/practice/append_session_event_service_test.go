@@ -73,6 +73,65 @@ func TestAppendSessionEventFollowUpRunsAIOutsideReservationAndCommits(t *testing
 	}
 }
 
+func TestAppendSessionEventVoicePlaybackCommitsWithoutAI(t *testing.T) {
+	now := time.Date(2026, 5, 17, 8, 51, 4, 0, time.UTC)
+	store := &recordingPlanStore{
+		eventReservation: SessionEventReservation{
+			UserID:  "user-1",
+			Session: sessionEventTestSession(1),
+			Plan:    sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline),
+			LatestTurn: TurnRecord{
+				ID:             "turn-1",
+				TurnIndex:      1,
+				QuestionText:   "Question?",
+				QuestionIntent: "behavioral.depth",
+				Status:         string(TurnStatusFollowUpRequested),
+				FollowUpCount:  1,
+				AskedAt:        now.Add(-time.Minute),
+			},
+		},
+	}
+	ai := &fakeAIClient{content: firstQuestionJSON(t, "should not be used", "unused"), store: store}
+	service := NewService(ServiceOptions{
+		Store: store,
+		AI:    ai,
+		Now:   func() time.Time { return now },
+		NewID: sequenceIDs("event-voice-1", "outbox-voice-1"),
+	})
+
+	result, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
+		UserID:        "user-1",
+		SessionID:     "session-1",
+		ClientEventID: "client-event-voice-1",
+		Kind:          sessionEventKindTTSChunkPlayed,
+		OccurredAt:    now,
+		Payload: map[string]any{
+			"voiceTurnId":      "voice-turn-1",
+			"chunkId":          "chunk-1",
+			"playedTextHash":   "sha256:chunk-1",
+			"playedTextLength": 36,
+			"playbackOffsetMs": 2840,
+		},
+	})
+	if err != nil {
+		t.Fatalf("AppendSessionEvent returned error: %v", err)
+	}
+	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "append-event"}) {
+		t.Fatalf("voice playback should not call AI, steps=%v", store.steps)
+	}
+	if result.AssistantAction.Type != assistantActionSessionWait || result.AssistantAction.TurnID != "turn-1" {
+		t.Fatalf("unexpected assistant action: %+v", result.AssistantAction)
+	}
+	if store.appendEvent.Kind != sessionEventKindTTSChunkPlayed ||
+		store.appendEvent.ClientEventID != "client-event-voice-1" ||
+		store.appendEvent.RequestPayload["voiceTurnId"] != "voice-turn-1" {
+		t.Fatalf("voice event append input drift: %+v", store.appendEvent)
+	}
+	if store.appendEvent.Outcome.AuditMetadata["played_text_hash"] != "sha256:chunk-1" {
+		t.Fatalf("voice playback audit summary missing: %+v", store.appendEvent.Outcome.AuditMetadata)
+	}
+}
+
 func TestAppendSessionEventReplaySkipsAI(t *testing.T) {
 	replay := AppendSessionEventResult{
 		Acknowledged: true,
