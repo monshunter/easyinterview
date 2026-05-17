@@ -269,6 +269,8 @@ type recordingPlanStore struct {
 	commitErr             error
 	fail                  FailSessionStartInput
 	failErr               error
+	voiceTurn             PracticeVoiceTurnStoreInput
+	voiceTurnErr          error
 	steps                 []string
 	inTx                  bool
 }
@@ -434,6 +436,29 @@ func (s *recordingPlanStore) FailSessionStart(ctx context.Context, in FailSessio
 	defer func() { s.inTx = false }()
 	s.fail = in
 	return s.failErr
+}
+
+func (s *recordingPlanStore) RecordPracticeVoiceTurn(ctx context.Context, in PracticeVoiceTurnStoreInput) (SessionRecord, error) {
+	s.steps = append(s.steps, "record-voice-turn")
+	s.inTx = true
+	defer func() { s.inTx = false }()
+	s.voiceTurn = in
+	if s.voiceTurnErr != nil {
+		return SessionRecord{}, s.voiceTurnErr
+	}
+	session := s.getSessionRecord
+	if in.Session.ID != "" {
+		session = in.Session
+	}
+	session.Status = sharedtypes.SessionStatusRunning
+	session.UpdatedAt = in.OccurredAt
+	if session.CurrentTurn != nil {
+		turn := *session.CurrentTurn
+		turn.Status = string(TurnStatusFollowUpRequested)
+		turn.FollowUpCount = 1
+		session.CurrentTurn = &turn
+	}
+	return session, nil
 }
 
 func validCreatePlanRequest(mutators ...func(*CreatePlanRequest)) CreatePlanRequest {

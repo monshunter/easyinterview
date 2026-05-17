@@ -19,9 +19,9 @@
 
 ## Phase 2: Backend orchestration
 
-- [ ] 2.1 实现 voice turn service 串联独立 `stt`、`chat`、`tts` profiles；验证: backend service tests 断言三类 profile 可指向不同 provider
-- [ ] 2.2 实现 STT / chat / TTS 独立失败路径；验证: backend tests 断言 STT 失败不调用 chat/TTS，TTS 失败不丢 transcript/chat text
-- [ ] 2.3 实现 session event / AI metadata privacy 边界；验证: privacy tests + grep gate 不含 raw audio、TTS audio、provider secret、AI metadata transcript 明文，session event 业务正文与 AI/audit metadata 摘要字段分离
+- [x] 2.1 实现 voice turn service 串联独立 `stt`、`chat`、`tts` profiles；验证: backend service tests 断言三类 profile 可指向不同 provider
+- [x] 2.2 实现 STT / chat / TTS 独立失败路径；验证: backend tests 断言 STT 失败不调用 chat/TTS，TTS 失败不丢 transcript/chat text
+- [x] 2.3 实现 session event / AI metadata privacy 边界；验证: privacy tests + grep gate 不含 raw audio、TTS audio、provider secret、AI metadata transcript 明文，session event 业务正文与 AI/audit metadata 摘要字段分离
 
 ## Phase 3: Playback progress and barge-in context
 

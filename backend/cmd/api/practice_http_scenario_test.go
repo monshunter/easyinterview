@@ -1948,6 +1948,50 @@ func (s *scenarioPracticeStore) AppendSessionEvent(_ context.Context, in domainp
 	return result, nil
 }
 
+func (s *scenarioPracticeStore) RecordPracticeVoiceTurn(_ context.Context, in domainpractice.PracticeVoiceTurnStoreInput) (domainpractice.SessionRecord, error) {
+	session, ok := s.sessions[in.SessionID]
+	if !ok || session.UserID != in.UserID {
+		return domainpractice.SessionRecord{}, domainpractice.ErrSessionNotFound
+	}
+	s.inTransaction = true
+	defer func() { s.inTransaction = false }()
+	turns := s.turns[in.SessionID]
+	if len(turns) == 0 || strings.TrimSpace(in.TurnID) != turns[len(turns)-1].ID {
+		return domainpractice.SessionRecord{}, domainpractice.ErrSessionConflict
+	}
+	latest := turns[len(turns)-1]
+	latest.Status = string(domainpractice.TurnStatusFollowUpRequested)
+	latest.FollowUpCount = 1
+	turns[len(turns)-1] = latest
+	session.Status = sharedtypes.SessionStatusRunning
+	session.UpdatedAt = in.OccurredAt
+	session.CurrentTurn = &latest
+	s.turns[in.SessionID] = turns
+	s.sessions[in.SessionID] = session
+	payload, err := json.Marshal(map[string]any{
+		"voiceTurnId":         in.VoiceTurnID,
+		"turnId":              in.TurnID,
+		"userTranscriptFinal": in.UserTranscriptFinal,
+		"assistantTextDraft":  in.AssistantTextDraft,
+		"audioByteLength":     in.AudioByteLength,
+		"audioDurationMs":     in.AudioDurationMs,
+		"ttsChunks":           in.TTSChunks,
+		"ttsError":            in.TTSError,
+		"providerMetaSummary": in.ProviderMetaSummary,
+	})
+	if err != nil {
+		return domainpractice.SessionRecord{}, err
+	}
+	s.sessionEvents[in.SessionID] = append(s.sessionEvents[in.SessionID], scenarioPracticeSessionEvent{
+		ID:            in.EventID,
+		SeqNo:         len(s.sessionEvents[in.SessionID]) + 1,
+		EventType:     "follow_up_generated",
+		ClientEventID: in.ClientVoiceTurnID,
+		Payload:       payload,
+	})
+	return session.SessionRecord, nil
+}
+
 func (s *scenarioPracticeStore) CompleteSession(_ context.Context, in domainpractice.CompleteSessionStoreInput) (domainpractice.CompleteSessionResult, error) {
 	session, ok := s.sessions[in.SessionID]
 	if !ok || session.UserID != in.UserID {

@@ -148,6 +148,87 @@ func TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess(t *test
 	}
 }
 
+func TestSQLRepositoryRecordPracticeVoiceTurnWritesBusinessEventWithoutAudioBytes(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 5, 17, 9, 12, 0, 0, time.UTC)
+	in := domain.PracticeVoiceTurnStoreInput{
+		EventID:             "event-voice-1",
+		UserID:              "user-1",
+		SessionID:           "session-1",
+		ClientVoiceTurnID:   "client-voice-turn-1",
+		TurnID:              "turn-1",
+		VoiceTurnID:         "voice-turn-1",
+		UserTranscriptFinal: "candidate transcript persisted as business text",
+		AssistantTextDraft:  "assistant text persisted as business text",
+		AudioByteLength:     23,
+		AudioDurationMs:     900,
+		TTSChunks: []domain.PracticeVoiceTTSChunk{{
+			ChunkID:     "chunk-1",
+			Sequence:    1,
+			ContentType: "audio/mpeg",
+			DurationMs:  880,
+			ByteLength:  9,
+			TextHash:    "sha256:text",
+			AudioRef:    "voice-turn://voice-turn-1/chunks/chunk-1",
+		}},
+		ProviderMetaSummary: domain.PracticeVoiceProviderMetaSummary{
+			STTProfile:   "practice.voice.stt.default",
+			STTProvider:  "fixture-stt",
+			ChatProfile:  "practice.followup.default",
+			ChatProvider: "fixture-chat",
+			TTSProfile:   "practice.voice.tts.default",
+			TTSProvider:  "fixture-tts",
+		},
+		Session:    domain.SessionRecord{ID: "session-1", Status: sharedtypes.SessionStatusRunning},
+		OccurredAt: now,
+	}
+
+	mock.ExpectBegin()
+	expectAppendContext(mock, now)
+	mock.ExpectQuery(`select coalesce\(max\(seq_no\), 0\) \+ 1`).
+		WithArgs(in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"next_seq"}).AddRow(4))
+	mock.ExpectExec(`update practice_turns`).
+		WithArgs(string(domain.TurnStatusFollowUpRequested), in.UserTranscriptFinal, 1, now, now, in.SessionID, in.TurnID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`update practice_sessions`).
+		WithArgs(string(sharedtypes.SessionStatusRunning), int32(1), now, in.SessionID, in.UserID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into practice_session_events`).
+		WithArgs(in.EventID, in.SessionID, 4, "follow_up_generated", in.ClientVoiceTurnID, sqlmock.AnyArg(), now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	session, err := repo.RecordPracticeVoiceTurn(context.Background(), in)
+	if err != nil {
+		t.Fatalf("RecordPracticeVoiceTurn returned error: %v", err)
+	}
+	if session.CurrentTurn == nil || session.CurrentTurn.Status != string(domain.TurnStatusFollowUpRequested) {
+		t.Fatalf("voice turn should mark latest turn as follow-up requested: %+v", session)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+
+	payload, err := marshalPracticeVoiceTurnEventPayload(in)
+	if err != nil {
+		t.Fatalf("marshalPracticeVoiceTurnEventPayload: %v", err)
+	}
+	payloadText := string(payload)
+	for _, want := range []string{in.UserTranscriptFinal, in.AssistantTextDraft, `"audioByteLength":23`, `"textHash":"sha256:text"`} {
+		if !strings.Contains(payloadText, want) {
+			t.Fatalf("voice event payload missing %q: %s", want, payloadText)
+		}
+	}
+	for _, forbidden := range []string{"raw-audio-privacy-token", "tts-audio-privacy-token"} {
+		if strings.Contains(payloadText, forbidden) {
+			t.Fatalf("voice event payload leaked forbidden bytes %q: %s", forbidden, payloadText)
+		}
+	}
+}
+
 func TestMarshalAppendEventErrorPayloadSanitizesRequestPayload(t *testing.T) {
 	raw, err := marshalAppendEventErrorPayload(domain.FinalizeSessionEventErrorInput{
 		RequestFingerprint: "fingerprint-1",
