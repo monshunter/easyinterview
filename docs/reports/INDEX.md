@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-18](./2026-05-18-frontend-resume-workshop-003-branch-rewrites-and-edit-assessment.md) | Frontend Resume Workshop 003 Branch Rewrites And Edit 交付复盘 | #assessment |
 | [2026-05-17](./2026-05-17-frontend-resume-workshop-002-l2-remediation-assessment.md) | Frontend Resume Workshop 002 L2 Remediation 交付复盘 | #assessment |
 | [2026-05-17](./2026-05-17-backend-resume-002-tailor-provenance-remediation-assessment.md) | Backend Resume 002 Tailor Provenance Remediation 交付复盘 | #assessment |
 | [2026-05-17](./2026-05-17-backend-resume-002-versions-tailor-runs-and-save-v1-assessment.md) | Backend Resume 002 Versions Tailor Runs And Save v1 交付复盘 | #assessment |
