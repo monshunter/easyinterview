@@ -486,6 +486,18 @@ func TestCompleteTailorRunSuccessWritesSuggestionsAndReadyOnlyOutbox(t *testing.
 	if runStatus != "ready" {
 		t.Fatalf("run status = %s, want ready", runStatus)
 	}
+	roundtrip, err := repo.GetTailorRun(ctx, userID, tailorRunID)
+	if err != nil {
+		t.Fatalf("GetTailorRun after success: %v", err)
+	}
+	if roundtrip.Provenance.PromptVersion != "v0.1.0" ||
+		roundtrip.Provenance.RubricVersion != "v0.1.0" ||
+		roundtrip.Provenance.ModelID != "fixture-model:resume-tailor" ||
+		roundtrip.Provenance.Language != "en" ||
+		roundtrip.Provenance.FeatureFlag != "none" ||
+		roundtrip.Provenance.DataSourceVersion != "target_job.v1" {
+		t.Fatalf("tailor run provenance after DB roundtrip = %+v", roundtrip.Provenance)
+	}
 	if err := db.QueryRowContext(ctx, `select count(*) from resume_version_suggestions where tailor_run_id = $1 and resume_version_id = $2 and status = 'pending'`, tailorRunID, versionID).Scan(&suggestionCount); err != nil {
 		t.Fatalf("count suggestions: %v", err)
 	}
@@ -587,7 +599,7 @@ func TestResumeSuggestionDecisionCASIsolationAndProfileStability(t *testing.T) {
 		versionA, userA, assetA, targetA, profile, base,
 		versionB, userB, assetB, targetB,
 	)
-	mustExec(t, ctx, db, `insert into resume_tailor_runs(id, user_id, target_job_id, resume_asset_id, mode, status, prompt_version, rubric_version, model_id, provider, created_at, updated_at) values ($1,$2,$3,$4,'gap_review','ready','resume_tailor_suggestion.v1','resume_tailor.rubric.v1','fixture-model:resume-tailor-suggestion','fixture-provider',$5,$5), ($6,$7,$8,$9,'gap_review','ready','resume_tailor_suggestion.v1','resume_tailor.rubric.v1','fixture-model:resume-tailor-suggestion','fixture-provider',$5,$5)`,
+	mustExec(t, ctx, db, `insert into resume_tailor_runs(id, user_id, target_job_id, resume_asset_id, mode, status, prompt_version, rubric_version, model_id, provider, language, feature_flag, data_source_version, created_at, updated_at) values ($1,$2,$3,$4,'gap_review','ready','resume_tailor_suggestion.v1','resume_tailor.rubric.v1','fixture-model:resume-tailor-suggestion','fixture-provider','zh-CN','tailor-flag','target_job.v17',$5,$5), ($6,$7,$8,$9,'gap_review','ready','resume_tailor_suggestion.v1','resume_tailor.rubric.v1','fixture-model:resume-tailor-suggestion','fixture-provider','zh-CN','tailor-flag','target_job.v17',$5,$5)`,
 		runA, userA, targetA, assetA, base,
 		runB, userB, targetB, assetB,
 	)
@@ -756,8 +768,17 @@ func assertSuggestionState(t *testing.T, suggestions []any, suggestionID string,
 		if hasDecidedAt != wantDecided {
 			t.Fatalf("suggestion %s decidedAt presence = %v, want %v (%+v)", suggestionID, hasDecidedAt, wantDecided, m)
 		}
-		if _, ok := m["provenance"].(map[string]any); !ok {
+		provenance, ok := m["provenance"].(map[string]any)
+		if !ok {
 			t.Fatalf("suggestion %s missing provenance: %+v", suggestionID, m)
+		}
+		if provenance["promptVersion"] != "resume_tailor_suggestion.v1" ||
+			provenance["rubricVersion"] != "resume_tailor.rubric.v1" ||
+			provenance["modelId"] != "fixture-model:resume-tailor-suggestion" ||
+			provenance["language"] != "zh-CN" ||
+			provenance["featureFlag"] != "tailor-flag" ||
+			provenance["dataSourceVersion"] != "target_job.v17" {
+			t.Fatalf("suggestion %s provenance = %+v", suggestionID, provenance)
 		}
 		return
 	}

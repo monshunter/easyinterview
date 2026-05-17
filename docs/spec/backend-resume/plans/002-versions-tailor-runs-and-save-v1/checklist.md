@@ -1,6 +1,6 @@
 # Backend Resume Versions, Tailor Runs and Save v1 Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -103,6 +103,7 @@
 - [x] 7.9 `cmd/api` 把 resume_tailor drainer 纳入 `Start(ctx)` / `Shutdown(ctx)` lifecycle（验证：`cd backend && go test ./cmd/api -run 'TestBuildResumeRuntimeWiresRoutesDrainerAndDeterministicAI|TestResumeTailorDrainerHTTPScenario|TestResumeTailorDrainerFailureScenario' -count=1` PASS）
 - [x] 7.10 BDD-Gate: 验证 `E2E.P0.077` 通过（resume.tailor async happy + outbox event）（验证：`test/scenarios/e2e/p0-077-resume-tailor-async-dispatch-and-ready/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS；verify 输出 `method=cmd-api-http`、ready suggestions、typed task run、ready-only outbox、privacy grep；shell `LC_ALL=C.UTF-8` locale warning 非阻塞）
 - [x] 7.11 BDD-Gate: 验证 `E2E.P0.078` 通过（resume.tailor failure retryable / non-retryable + ready-only outbox）（验证：`test/scenarios/e2e/p0-078-resume-tailor-failure-and-retry/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS；verify 输出 timeout retryable、output_invalid terminal、retry to ready、ready-only outbox、privacy grep；shell `LC_ALL=C.UTF-8` locale warning 非阻塞）
+- [x] 7.12 Remediation: `CompleteTailorRunSuccess` 后通过 `GetTailorRun` 重新读取 ready run 时，`GenerationProvenance` 六个 OpenAPI required 字段（`promptVersion / rubricVersion / modelId / language / featureFlag / dataSourceVersion`）必须完整，避免 fixture/fake-store gate 漏掉 DB roundtrip（验证：RED `cd backend && DATABASE_URL=... go test ./internal/resume/store -tags=integration -run TestCompleteTailorRunSuccessWritesSuggestionsAndReadyOnlyOutbox -count=1 -v` 失败于 `tailor run provenance after DB roundtrip`；GREEN 同命令 PASS；`DATABASE_URL=... go test ./internal/resume/store -tags=integration -run 'TestCompleteTailorRunSuccessWritesSuggestionsAndReadyOnlyOutbox|TestResumeSuggestionDecisionCASIsolationAndProfileStability|TestResumeTailorRunStore' -count=1 -v` PASS；`cd backend && go test ./internal/resume/... -count=1` PASS；`DATABASE_URL=... make migrate-check` PASS）
 
 ## Phase 8: accept / reject suggestion 终态状态机
 

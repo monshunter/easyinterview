@@ -204,7 +204,8 @@ set status = 'generating',
 where id = $2 and status in ('queued','failed')
 returning id, user_id, target_job_id, resume_asset_id, mode, status,
           match_summary, suggestions, prompt_version, rubric_version, model_id,
-          provider, error_code, created_at, updated_at`,
+          provider, language, feature_flag, data_source_version,
+          error_code, created_at, updated_at`,
 		now,
 		in.TailorRunID,
 	))
@@ -236,19 +237,26 @@ set status = 'ready',
     rubric_version = $4,
     model_id = $5,
     provider = $6,
+    language = $7,
+    feature_flag = $8,
+    data_source_version = $9,
     error_code = null,
-    generated_at = $7,
-    updated_at = $7
-where id = $8 and status = 'generating'
+    generated_at = $10,
+    updated_at = $10
+where id = $11 and status = 'generating'
 returning id, user_id, target_job_id, resume_asset_id, mode, status,
           match_summary, suggestions, prompt_version, rubric_version, model_id,
-          provider, error_code, created_at, updated_at`,
+          provider, language, feature_flag, data_source_version,
+          error_code, created_at, updated_at`,
 		matchSummary,
 		suggestions,
 		nullableString(in.Provenance.PromptVersion),
 		nullableString(in.Provenance.RubricVersion),
 		nullableString(in.Provenance.ModelID),
 		nullableString(in.Provenance.Provider),
+		provenanceDefault(in.Provenance.Language, "en"),
+		provenanceDefault(in.Provenance.FeatureFlag, "none"),
+		provenanceDefault(in.Provenance.DataSourceVersion, "not_applicable"),
 		now,
 		in.TailorRunID,
 	))
@@ -289,16 +297,22 @@ set status = 'ready',
     rubric_version = $4,
     model_id = $5,
     provider = $6,
+    language = $7,
+    feature_flag = $8,
+    data_source_version = $9,
     error_code = null,
-    generated_at = $7,
-    updated_at = $7
-where id = $8 and status = 'generating'`,
+    generated_at = $10,
+    updated_at = $10
+where id = $11 and status = 'generating'`,
 		matchSummary,
 		suggestionsJSON,
 		nullableString(in.Provenance.PromptVersion),
 		nullableString(in.Provenance.RubricVersion),
 		nullableString(in.Provenance.ModelID),
 		nullableString(in.Provenance.Provider),
+		provenanceDefault(in.Provenance.Language, "en"),
+		provenanceDefault(in.Provenance.FeatureFlag, "none"),
+		provenanceDefault(in.Provenance.DataSourceVersion, "not_applicable"),
 		now,
 		in.TailorRunID,
 	)
@@ -371,7 +385,8 @@ set status = 'failed',
 where id = $3 and status = 'generating'
 returning id, user_id, target_job_id, resume_asset_id, mode, status,
           match_summary, suggestions, prompt_version, rubric_version, model_id,
-          provider, error_code, created_at, updated_at`,
+          provider, language, feature_flag, data_source_version,
+          error_code, created_at, updated_at`,
 		nullableString(in.ErrorCode),
 		now,
 		in.TailorRunID,
@@ -439,7 +454,8 @@ func firstBulletValue(value any) string {
 func tailorRunSelectSQL() string {
 	return `select id, user_id, target_job_id, resume_asset_id, mode, status,
        match_summary, suggestions, prompt_version, rubric_version, model_id,
-       provider, error_code, created_at, updated_at
+       provider, language, feature_flag, data_source_version,
+       error_code, created_at, updated_at
 from resume_tailor_runs
 `
 }
@@ -448,7 +464,7 @@ func scanTailorRun(row interface{ Scan(dest ...any) error }) (TailorRunRecord, e
 	var rec TailorRunRecord
 	var matchSummary []byte
 	var suggestions []byte
-	var promptVersion, rubricVersion, modelID, provider, errorCode sql.NullString
+	var promptVersion, rubricVersion, modelID, provider, language, featureFlag, dataSourceVersion, errorCode sql.NullString
 	if err := row.Scan(
 		&rec.ID,
 		&rec.UserID,
@@ -462,6 +478,9 @@ func scanTailorRun(row interface{ Scan(dest ...any) error }) (TailorRunRecord, e
 		&rubricVersion,
 		&modelID,
 		&provider,
+		&language,
+		&featureFlag,
+		&dataSourceVersion,
 		&errorCode,
 		&rec.CreatedAt,
 		&rec.UpdatedAt,
@@ -471,15 +490,26 @@ func scanTailorRun(row interface{ Scan(dest ...any) error }) (TailorRunRecord, e
 	rec.MatchSummary = append(json.RawMessage(nil), matchSummary...)
 	rec.Suggestions = append(json.RawMessage(nil), suggestions...)
 	rec.Provenance = VersionProvenance{
-		PromptVersion: stringFromNull(promptVersion),
-		RubricVersion: stringFromNull(rubricVersion),
-		ModelID:       stringFromNull(modelID),
-		Provider:      stringFromNull(provider),
+		PromptVersion:     stringFromNull(promptVersion),
+		RubricVersion:     stringFromNull(rubricVersion),
+		ModelID:           stringFromNull(modelID),
+		Provider:          stringFromNull(provider),
+		Language:          stringFromNull(language),
+		FeatureFlag:       stringFromNull(featureFlag),
+		DataSourceVersion: stringFromNull(dataSourceVersion),
 	}
 	if errorCode.Valid {
 		rec.ErrorCode = &errorCode.String
 	}
 	return rec, nil
+}
+
+func provenanceDefault(value string, fallback string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return fallback
+	}
+	return value
 }
 
 func fillTailorRunProvenance(rec *TailorRunRecord, provenance VersionProvenance) {

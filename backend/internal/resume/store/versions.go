@@ -658,7 +658,8 @@ func loadVersionSuggestions(ctx context.Context, q versionSuggestionQueryer, ver
 	rows, err := q.QueryContext(ctx, `
 select s.id, s.tailor_run_id, s.original_bullet, s.suggested_bullet, s.reason,
        s.status, s.decided_at, s.created_at,
-       r.prompt_version, r.rubric_version, r.model_id, r.provider
+       r.prompt_version, r.rubric_version, r.model_id, r.provider,
+       r.language, r.feature_flag, r.data_source_version
 from resume_version_suggestions s
 left join resume_tailor_runs r on r.id = s.tailor_run_id
 where s.resume_version_id = $1
@@ -673,7 +674,7 @@ order by s.created_at asc, s.id asc`,
 	out := []any{}
 	for rows.Next() {
 		var id, originalBullet, suggestedBullet, status string
-		var tailorRunID, reason, promptVersion, rubricVersion, modelID, provider sql.NullString
+		var tailorRunID, reason, promptVersion, rubricVersion, modelID, provider, language, featureFlag, dataSourceVersion sql.NullString
 		var decidedAt sql.NullTime
 		var createdAt time.Time
 		if err := rows.Scan(
@@ -689,6 +690,9 @@ order by s.created_at asc, s.id asc`,
 			&rubricVersion,
 			&modelID,
 			&provider,
+			&language,
+			&featureFlag,
+			&dataSourceVersion,
 		); err != nil {
 			return nil, fmt.Errorf("scan resume version suggestion: %w", err)
 		}
@@ -704,6 +708,15 @@ order by s.created_at asc, s.id asc`,
 		}
 		if provider.Valid {
 			provenance.Provider = provider.String
+		}
+		if language.Valid {
+			provenance.Language = language.String
+		}
+		if featureFlag.Valid {
+			provenance.FeatureFlag = featureFlag.String
+		}
+		if dataSourceVersion.Valid {
+			provenance.DataSourceVersion = dataSourceVersion.String
 		}
 		item := map[string]any{
 			"id":              id,

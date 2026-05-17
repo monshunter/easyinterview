@@ -1,6 +1,6 @@
 # Backend Resume Versions, Tailor Runs and Save v1
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-05-17
 
@@ -279,6 +279,11 @@ BDD-Gate: 验证 `E2E.P0.077` 通过
 - `tailor_test.go`（stub AIClient）：成功 / parse JSON 失败 / AI timeout retryable / output_invalid。
 - `drainer_test.go`：`Handles(resume_tailor)`、`RunOnce` 成功处理、shutdown 不泄漏 goroutine、未知 job type 不被本 drainer claim。
 - outbox unit test：envelope 字段集 + ready-only + PII 红线。
+
+#### 7.5 Remediation: persisted ready provenance completeness
+- `resume_tailor_runs` 必须持久化并可重新读取完整 `GenerationProvenance`：`promptVersion / rubricVersion / modelId / language / featureFlag / dataSourceVersion`。
+- `CompleteTailorRunSuccess` 后通过 `GetTailorRun` 读取 ready run 时，`getResumeTailorRun` 返回的 `provenance` 不得只保留 `prompt_version / rubric_version / model_id / provider` typed columns；`language / feature_flag / data_source_version` 也必须来自同一 run 持久化状态。
+- store integration 必须覆盖 write-after-read 断言，避免 fixture-only 或 fake store 测试漏掉 DB roundtrip。
 
 BDD-Gate: 验证 `E2E.P0.077` 通过（happy path）
 BDD-Gate: 验证 `E2E.P0.078` 通过（failure retryable / non-retryable）
