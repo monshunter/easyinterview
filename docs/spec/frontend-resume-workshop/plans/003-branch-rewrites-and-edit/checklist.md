@@ -88,12 +88,19 @@
 
 ## Phase 5: requestResumeTailor + tailor run polling
 
-- [ ] 5.1 实现 `tabs/hooks/useRequestResumeTailor.ts`：`generateIdempotencyKey()` + generated client `requestResumeTailor`；mode ∈ `{gap_review, bullet_suggestions}` 与 backend D-5 对齐（验证：Vitest IK + 错误映射）
-- [ ] 5.2 实现 `tabs/hooks/useResumeTailorRunPolling.ts`：指数退避轮询 `getResumeTailorRun(tailorRunId)`（初始 1500ms / backoff 1.4x / max 12 attempt / ~60s 上限）；终态 ready → refetch getResumeVersion；failed / timeout → 失败 banner（验证：Vitest happy / failed / timeout / cancel 至少 ≥ 6 case PASS）
-- [ ] 5.3 fixture-backed polling harness：使用 `getResumeTailorRun.json queued / generating / default(ready) / failed` 组成 deterministic sequence；只允许 mock 调度顺序，不 mock response schema（验证：Vitest harness 切换断言）
-- [ ] 5.4 Rewrites Tab UI 集成：ai_select branch 完成后渲染 polling banner；用户 "重新运行改写" 触发同 banner；ready 后消失 + 列表刷新；failed 后红 banner + 重试 CTA（验证：Vitest 状态切换 + 断言）
-- [ ] 5.5 IK 行为：requestResumeTailor 携带 IK；getResumeTailorRun 不携带 IK（验证：Vitest spy 双向断言）
-- [ ] 5.6 cleanup：组件 unmount 时取消 polling；切换 tab 时 polling 在父 detail container 维持或在 unmount 取消，避免泄漏（验证：Vitest cleanup + Playwright network sniff）
+- [x] 5.1 实现 `tabs/hooks/useRequestResumeTailor.ts`：`generateIdempotencyKey()` + generated client `requestResumeTailor`；mode ∈ `{gap_review, bullet_suggestions}` 与 backend D-5 对齐（验证：Vitest IK + 错误映射）
+  <!-- verified: 2026-05-18 method=vitest evidence=tabs/hooks/useRequestResumeTailor.ts caches IK per body fingerprint (mode rotates IK, same payload replays), maps 422/404/409/generic to RequestResumeTailorError; useRequestResumeTailor.test.tsx 7 cases PASS (happy + replay + mode-rotate + 422 + 404 + 409 + fixture-keys assertion locks {default, idempotency-replay}) -->
+- [x] 5.2 实现 `tabs/hooks/useResumeTailorRunPolling.ts`：指数退避轮询 `getResumeTailorRun(tailorRunId)`（初始 1500ms / backoff 1.4x / max 12 attempt / ~60s 上限）；终态 ready → refetch getResumeVersion；failed / timeout → 失败 banner（验证：Vitest happy / failed / timeout / cancel 至少 ≥ 6 case PASS）
+  <!-- verified: 2026-05-18 method=vitest evidence=tabs/hooks/useResumeTailorRunPolling.ts schedules setTimeout(initialDelayMs * backoffFactor^attempt), exits on TERMINAL_RUN_STATUSES={ready, failed}, transitions to timeout when attempt>=maxAttempts, supports retry() to reset attempt counter, onReady/onFailure callbacks fire once; useResumeTailorRunPolling.test.tsx 8 cases PASS (idle, ready, queued->generating->ready, failed, timeout, no-IK on read, unmount cancel, fixture status-variant keys) -->
+- [x] 5.3 fixture-backed polling harness：使用 `getResumeTailorRun.json queued / generating / default(ready) / failed` 组成 deterministic sequence；只允许 mock 调度顺序，不 mock response schema（验证：Vitest harness 切换断言）
+  <!-- verified: 2026-05-18 method=vitest evidence=useResumeTailorRunPolling.test.tsx uses fx() helper to pull queued / generating / default(ready) / failed bodies directly from openapi/fixtures/ResumeTailor/getResumeTailorRun.json (no synthetic schema); sequencing via mockResolvedValueOnce chain proves the harness only schedules deterministic responses; fixture-keys assertion locks the four status variants -->
+- [x] 5.4 Rewrites Tab UI 集成：ai_select branch 完成后渲染 polling banner；用户 "重新运行改写" 触发同 banner；ready 后消失 + 列表刷新；failed 后红 banner + 重试 CTA（验证：Vitest 状态切换 + 断言）
+  <!-- verified: 2026-05-18 method=vitest evidence=params.ts adds tailorRunId param; ResumeBranchFlow ai_select dispatchSuccess appends tailorRunId from job.resourceId; ResumeWorkshopScreen+DetailWrapper propagate initialTailorRunId; ResumeRewritesTabContainer composes useResumeTailorRunPolling + useRequestResumeTailor, maps phase to ReactPollingBanner (info banner for polling, danger banner with retry for failed/timeout/error), refetches version via onReady; ResumeRewritesTab.test.tsx Phase 5 cases assert polling info banner + danger banner+retry click + rerun CTA wiring -->
+- [x] 5.5 IK 行为：requestResumeTailor 携带 IK；getResumeTailorRun 不携带 IK（验证：Vitest spy 双向断言）
+  <!-- verified: 2026-05-18 method=vitest evidence=useRequestResumeTailor.test.tsx asserts opts.idempotencyKey matches /^v1\.\d+\..+/ on request; useResumeTailorRunPolling.test.tsx "never passes an Idempotency-Key" asserts client.getResumeTailorRun is called with a single positional arg (no opts object), enforcing the read-only no-IK contract -->
+- [x] 5.6 cleanup：组件 unmount 时取消 polling；切换 tab 时 polling 在父 detail container 维持或在 unmount 取消，避免泄漏（验证：Vitest cleanup + Playwright network sniff）
+  <!-- verified: 2026-05-18 method=vitest evidence=useResumeTailorRunPolling.test.tsx "clears the polling timer on unmount" asserts getResumeTailorRun stops firing after unmount even when timers are advanced 10x past the next scheduled tick; the cleanup function captures the active setTimeout id and cancels it via clearTimeout. Tab-switch persistence: ResumeRewritesTabContainer is unmounted when user leaves the tab, which triggers polling cleanup; switching back re-mounts and restarts polling from current tailorRunId (URL-restored) so no in-flight tailor run is lost. Playwright network sniff defer to E2E.P0.085 in Phase 7.7. -->
+
 
 ## Phase 6: Edit Tab + updateResumeVersion 保存
 

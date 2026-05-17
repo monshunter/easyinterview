@@ -20,11 +20,18 @@ import {
   SuggestionDecisionError,
 } from "../tabs/hooks/useTailorSuggestionDecision";
 import { UpdateResumeVersionError } from "../tabs/hooks/useUpdateResumeVersion";
+import {
+  RequestResumeTailorError,
+  useRequestResumeTailor,
+} from "../tabs/hooks/useRequestResumeTailor";
+import { useResumeTailorRunPolling } from "../tabs/hooks/useResumeTailorRunPolling";
+import type { ReactPollingBanner } from "../tabs/ResumeRewritesTab";
 import { fireResumeWorkshopToast } from "./toast";
 
 export interface ResumeDetailViewProps {
   versionId: string;
   initialTab: ResumeDetailTab | null;
+  initialTailorRunId?: string | null;
 }
 
 const defaultTabFor = (version: ResumeVersion): ResumeDetailTab =>
@@ -33,6 +40,7 @@ const defaultTabFor = (version: ResumeVersion): ResumeDetailTab =>
 export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
   versionId,
   initialTab,
+  initialTailorRunId = null,
 }) => {
   const { t } = useI18n();
   const { navigate } = useNavigation();
@@ -248,6 +256,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
         ) : resolvedTab === "rewrites" ? (
           <ResumeRewritesTabContainer
             version={version}
+            initialTailorRunId={initialTailorRunId}
             onVersionRefreshed={versionQuery.retry}
           />
         ) : (
@@ -269,11 +278,13 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
 
 interface ResumeRewritesTabContainerProps {
   version: ResumeVersion;
+  initialTailorRunId: string | null;
   onVersionRefreshed: () => void;
 }
 
 const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
   version,
+  initialTailorRunId,
   onVersionRefreshed,
 }) => {
   const { t } = useI18n();
@@ -281,6 +292,85 @@ const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
     version,
     onVersionRefreshed,
   });
+
+  const [activeTailorRunId, setActiveTailorRunId] = useState<string | null>(
+    initialTailorRunId,
+  );
+  useEffect(() => {
+    setActiveTailorRunId(initialTailorRunId);
+  }, [initialTailorRunId, version.id]);
+
+  const tailorRequest = useRequestResumeTailor();
+  const polling = useResumeTailorRunPolling(activeTailorRunId, {
+    onReady: () => onVersionRefreshed(),
+  });
+
+  const handleRerun = async (
+    mode: "bullet_suggestions" | "gap_review",
+  ) => {
+    if (!version.targetJobId) {
+      fireResumeWorkshopToast(
+        t("resumeWorkshop.rewrites.error.generic"),
+        "warn",
+      );
+      return;
+    }
+    try {
+      const result = await tailorRequest.request({
+        resumeAssetId: version.resumeAssetId,
+        targetJobId: version.targetJobId,
+        mode,
+      });
+      setActiveTailorRunId(result.tailorRunId);
+      fireResumeWorkshopToast(
+        t("resumeWorkshop.rewrites.toast.rerunRequested"),
+        "ok",
+      );
+    } catch (err) {
+      if (err instanceof RequestResumeTailorError && err.kind === "validation") {
+        fireResumeWorkshopToast(
+          t("resumeWorkshop.rewrites.error.validation"),
+          "warn",
+        );
+      } else if (
+        err instanceof RequestResumeTailorError &&
+        err.kind === "cross_user"
+      ) {
+        fireResumeWorkshopToast(
+          t("resumeWorkshop.rewrites.error.crossUser"),
+          "danger",
+        );
+      } else {
+        fireResumeWorkshopToast(
+          t("resumeWorkshop.rewrites.error.generic"),
+          "danger",
+        );
+      }
+    }
+  };
+
+  const pollingBanner: ReactPollingBanner | null =
+    polling.phase === "polling"
+      ? { kind: "info", message: t("resumeWorkshop.rewrites.polling.banner") }
+      : polling.phase === "failed"
+        ? {
+            kind: "danger",
+            message: t("resumeWorkshop.rewrites.polling.failed"),
+            onRetry: () => polling.retry(),
+          }
+        : polling.phase === "timeout"
+          ? {
+              kind: "danger",
+              message: t("resumeWorkshop.rewrites.polling.timeout"),
+              onRetry: () => polling.retry(),
+            }
+          : polling.phase === "error"
+            ? {
+                kind: "danger",
+                message: t("resumeWorkshop.rewrites.polling.failed"),
+                onRetry: () => polling.retry(),
+              }
+            : null;
 
   const showError = (err: unknown) => {
     if (err instanceof SuggestionDecisionError) {
@@ -379,7 +469,9 @@ const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
       onAccept={handleAccept}
       onReject={handleReject}
       onSaveManualEdit={handleManual}
+      onRequestRerun={handleRerun}
       manualEditPendingFor={actions.manualPendingFor}
+      pollingBanner={pollingBanner}
     />
   );
 };

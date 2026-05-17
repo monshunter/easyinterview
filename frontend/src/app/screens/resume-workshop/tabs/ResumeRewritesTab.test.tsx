@@ -212,6 +212,42 @@ describe("ResumeRewritesTab action callbacks (Phase 3 wiring)", () => {
   });
 });
 
+describe("ResumeRewritesTab polling banner (plan 003 Phase 5)", () => {
+  it("renders the info polling banner above the bullet list when polling is active", () => {
+    renderRewrites(
+      buildVersionWithSuggestions([{ id: "b1", status: "pending" }]),
+      {
+        pollingBanner: {
+          kind: "info",
+          message: "AI is generating bullets",
+        },
+      },
+    );
+    const banner = screen.getByTestId("resume-rewrites-polling-banner");
+    expect(banner).toBeInTheDocument();
+    expect(banner.textContent).toBe("AI is generating bullets");
+    expect(banner).toHaveAttribute("role", "status");
+  });
+
+  it("renders the danger banner with a retry button when polling fails", async () => {
+    const onRetry = vi.fn();
+    renderRewrites(buildVersionWithSuggestions([]), {
+      pollingBanner: {
+        kind: "danger",
+        message: "AI generation failed",
+        onRetry,
+      },
+    });
+    const banner = screen.getByTestId("resume-rewrites-failed-banner");
+    expect(banner).toBeInTheDocument();
+    expect(banner).toHaveAttribute("role", "alert");
+    await userEvent.setup().click(
+      screen.getByTestId("resume-rewrites-polling-retry"),
+    );
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("ResumeRewritesTab privacy guard", () => {
   it("does not append originalBullet / rewritten text to URL, localStorage, or fetch transport log", () => {
     const original = "Sensitive original bullet body";

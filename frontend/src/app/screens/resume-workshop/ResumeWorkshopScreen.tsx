@@ -47,7 +47,11 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
     body = <ResumeBranchFlow branchOriginalId={params.branchOriginalId} />;
   } else if (params.versionId) {
     body = (
-      <DetailWrapper versionId={params.versionId} tab={params.tab} />
+      <DetailWrapper
+        versionId={params.versionId}
+        tab={params.tab}
+        tailorRunId={params.tailorRunId}
+      />
     );
   } else {
     body = <ResumeListView />;
@@ -63,9 +67,14 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
 interface DetailWrapperProps {
   versionId: string;
   tab: import("./params").ResumeDetailTab | null;
+  tailorRunId: string | null;
 }
 
-const DetailWrapper: FC<DetailWrapperProps> = ({ versionId, tab }) => {
+const DetailWrapper: FC<DetailWrapperProps> = ({
+  versionId,
+  tab,
+  tailorRunId,
+}) => {
   const attrs: Record<string, string> = {
     "data-testid": "resume-workshop-detail",
     "data-resume-version-id": versionId,
@@ -73,9 +82,16 @@ const DetailWrapper: FC<DetailWrapperProps> = ({ versionId, tab }) => {
   if (tab) {
     attrs["data-tab"] = tab;
   }
+  if (tailorRunId) {
+    attrs["data-tailor-run-id"] = tailorRunId;
+  }
   return (
     <div {...attrs}>
-      <ResumeDetailView versionId={versionId} initialTab={tab} />
+      <ResumeDetailView
+        versionId={versionId}
+        initialTab={tab}
+        initialTailorRunId={tailorRunId}
+      />
     </div>
   );
 };

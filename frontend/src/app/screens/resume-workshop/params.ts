@@ -8,6 +8,12 @@ export interface ResumeWorkshopParams {
   tab: ResumeDetailTab | null;
   branchOriginalId: string | null;
   createMode: ResumeCreateMode | null;
+  /**
+   * Optional tailor run id carried from the ai_select branch nav so the
+   * Rewrites Tab picks up an in-flight tailor run on first paint and starts
+   * polling without a manual rerun. Plan 003 Phase 5.
+   */
+  tailorRunId: string | null;
 }
 
 const DETAIL_TABS: readonly ResumeDetailTab[] = [
@@ -48,11 +54,15 @@ export const parseResumeWorkshopParams = (
   const createMode = isCreateMode(routeParams.createMode)
     ? routeParams.createMode
     : null;
+  const tailorRunId = routeParams.tailorRunId
+    ? routeParams.tailorRunId
+    : null;
   return {
     flow: parseFlow(routeParams.flow),
     versionId,
     tab,
     branchOriginalId,
     createMode,
+    tailorRunId,
   };
 };

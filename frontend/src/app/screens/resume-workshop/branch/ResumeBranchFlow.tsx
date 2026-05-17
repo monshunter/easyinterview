@@ -183,15 +183,26 @@ const dispatchSuccess = (
     });
     return;
   }
-  // ai_select 202 → versionId from accepted envelope; tailorRunId is consumed
-  // by Phase 5 polling hook via getResumeVersion / route-restored detail tab.
+  // ai_select 202 → versionId from accepted envelope; tailorRunId rides along
+  // so the Rewrites Tab can resume polling on first paint without a manual
+  // rerun (plan 003 Phase 5).
   fireResumeWorkshopToast(t("resumeWorkshop.branch.toast.aiSelect"), "ok");
+  const navParams: Record<string, string> = {
+    versionId: outcome.accepted.resumeVersionId,
+    tab: "rewrites",
+  };
+  const job = outcome.accepted.job;
+  if (
+    job &&
+    job.resourceType === "resume_tailor_run" &&
+    typeof job.resourceId === "string" &&
+    job.resourceId
+  ) {
+    navParams.tailorRunId = job.resourceId;
+  }
   navigate({
     name: "resume_versions",
-    params: {
-      versionId: outcome.accepted.resumeVersionId,
-      tab: "rewrites",
-    },
+    params: navParams,
   });
 };
 
