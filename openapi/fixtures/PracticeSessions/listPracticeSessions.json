@@ -2,12 +2,6 @@
   "operationId": "listPracticeSessions",
   "scenarios": {
     "default": {
-      "request": {
-        "query": {
-          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-          "status": "completed"
-        }
-      },
       "response": {
         "status": 200,
         "headers": {
@@ -49,12 +43,6 @@
       }
     },
     "empty": {
-      "request": {
-        "query": {
-          "targetJobId": "01918fa0-0000-7000-8000-000000002999",
-          "status": "completed"
-        }
-      },
       "response": {
         "status": 200,
         "headers": {

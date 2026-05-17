@@ -8,9 +8,22 @@ import scripts.lint.openapi_inventory as inventory
 
 class OpenAPIInventoryContractTest(unittest.TestCase):
     def test_product_scope_v12_inventory_includes_delete_me(self) -> None:
-        self.assertEqual(56, len(inventory.EXPECTED_OPERATIONS))
+        # 56 + 1 for the frontend-debrief/001 Phase 0 cross-owner addendum
+        # that adds `listPracticeSessions` to the inventory.
+        self.assertEqual(57, len(inventory.EXPECTED_OPERATIONS))
         self.assertIn(("Auth", "delete", "/me", "deleteMe"), inventory.EXPECTED_OPERATIONS)
         self.assertIn(("delete", "/me"), inventory.IK_REQUIRED)
+
+    def test_list_practice_sessions_operation_is_registered_without_idempotency_key(self) -> None:
+        # frontend-debrief/001 Phase 0 cross-owner addendum: GET
+        # /practice/sessions surfaces the Mock Session picker dataset.
+        # As a read-only operation it must not require Idempotency-Key.
+        self.assertIn(
+            ("PracticeSessions", "get", "/practice/sessions", "listPracticeSessions"),
+            inventory.EXPECTED_OPERATIONS,
+        )
+        self.assertNotIn(("get", "/practice/sessions"), inventory.IK_REQUIRED)
+        self.assertNotIn(("get", "/practice/sessions"), inventory.IK_FORBIDDEN)
 
     def test_debrief_suggestions_operation_is_registered_without_idempotency_key(self) -> None:
         self.assertIn(

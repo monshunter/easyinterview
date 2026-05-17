@@ -63,8 +63,10 @@ IK_REQUIRED_OPERATION_IDS = {
 class FixtureSkeletonTest(unittest.TestCase):
     """Phase 1.1 structural contract."""
 
-    def test_fifty_six_operations_expected(self) -> None:
-        self.assertEqual(len(EXPECTED_OPERATIONS), 56)
+    def test_fifty_seven_operations_expected(self) -> None:
+        # 56 + 1 for the frontend-debrief/001 Phase 0 cross-owner addendum
+        # that adds `listPracticeSessions` to the inventory.
+        self.assertEqual(len(EXPECTED_OPERATIONS), 57)
 
     def test_thirteen_unique_tags(self) -> None:
         tags = {tag for tag, *_ in EXPECTED_OPERATIONS}

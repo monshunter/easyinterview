@@ -1,8 +1,8 @@
 # 001 Debrief Screen and Handoff Test Checklist
 
-> **版本**: 1.0
-> **状态**: active
-> **更新日期**: 2026-05-16
+> **版本**: 1.2
+> **状态**: completed
+> **更新日期**: 2026-05-17
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 **关联计划**: [plan](./plan.md)

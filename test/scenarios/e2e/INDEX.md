@@ -59,6 +59,11 @@
 | E2E.P0.062 | backend-debrief C-11, C-12 | `p0-062-debrief-worker-retry-failure/` | debrief_generate F3/A3/parse failure、retry backoff 与 max-attempt permanent failure | automated | Ready |
 | E2E.P0.063 | backend-debrief C-9, C-10 | `p0-063-debrief-suggest-questions/` | suggestDebriefQuestions 成功、count boundary、AI failure 与 task/audit 写入 | automated | Ready |
 | E2E.P0.064 | backend-debrief C-14, C-15 | `p0-064-debrief-privacy-legacy/` | debrief outbox/audit/task privacy marker 与 retired vocabulary negative lint | automated | Ready |
+| E2E.P0.065 | frontend-debrief C-1, C-2, C-3, C-11, C-14 | `p0-065-debrief-default-render-and-pickers/` | DebriefScreen 默认渲染 + 3 picker modal + route normalize debrief_full | automated | Ready |
+| E2E.P0.066 | frontend-debrief C-4, C-5, C-7 | `p0-066-debrief-text-suggestions-and-submit/` | text-mode AI suggestions + 4 CTA entries + createDebrief 提交 + IK | automated | Ready |
+| E2E.P0.067 | frontend-debrief C-8, C-12 | `p0-067-debrief-polling-happy-and-analysis/` | dual-track polling getJob + getDebrief + Step 1 analysis 渲染 | automated | Ready |
+| E2E.P0.068 | frontend-debrief C-9, C-10, C-13 | `p0-068-debrief-failure-and-handoff/` | failure / missing / timeout 状态 + Step 2 launcher nav 复盘面试 handoff | automated | Ready |
+| E2E.P0.069 | frontend-debrief C-15, C-16, C-17, C-18 | `p0-069-debrief-pixel-parity-and-legacy-negative/` | i18n 覆盖 + 隐私边界 + legacy-negative gate（pixel parity 待 Playwright 安装后单独运行） | automated | Ready |
 | E2E.P0.070 | backend-practice C-2, C-3 | `p0-070-practice-derived-plan-create-read-replay/` | report/debrief derived createPracticePlan、getPracticePlan 与 idempotency replay source 字段 | automated | Ready |
 | E2E.P0.071 | backend-practice C-3, C-4 | `p0-071-practice-debrief-start-source-question/` | debrief startPracticeSession 使用 source raw_questions 首题且 first_question AI 零调用 | automated | Ready |
 | E2E.P0.072 | backend-practice C-2, C-3, D-11 | `p0-072-practice-derived-source-isolation-privacy/` | derived source missing/cross-user/wrong-target/draft/empty 隔离与隐私红线 | automated | Ready |
