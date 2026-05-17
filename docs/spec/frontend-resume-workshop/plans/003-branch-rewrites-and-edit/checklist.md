@@ -8,11 +8,21 @@
 
 ## Phase 0: 上游依赖 gate + retired drift baseline
 
-- [ ] 0.1 确认 [backend-resume/002 Phase 4..8](../../../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md) 当前事实仍成立；`branchResumeVersion / requestResumeTailor / getResumeTailorRun / acceptResumeTailorSuggestion / rejectResumeTailorSuggestion / updateResumeVersion` 6 个 generated client/server surface + handler + `cmd/api` route 真实可用（验证：`rg` 读 `frontend/src/api/generated/client.ts`、`backend/internal/api/generated/server.gen.go`、`backend/internal/resume/handler/`、`backend/cmd/api/main.go`）
-- [ ] 0.2 确认 `acceptResumeTailorSuggestion.json` / `rejectResumeTailorSuggestion.json` 为 `default / idempotency-replay / already-decided-409`，且 409 body 为 `error.code='VALIDATION_FAILED'` + `error.details.reason='SUGGESTION_ALREADY_DECIDED'`；如回到旧 `conflict-409` / `TARGET_INVALID_STATE_TRANSITION`，本 plan Phase 4 暂停并升级 regression blocker（验证：`jq` 读 fixture scenario keys + body）
-- [ ] 0.3 确认 `requestResumeTailor.json default / idempotency-replay` 请求 header 均包含 `Idempotency-Key`，`getResumeTailorRun.json` 含 `queued / generating / default(ready) / failed` 四态；如缺失，本 plan Phase 5 / E2E.P0.085 暂停并转回 backend-resume/002 修复，不能以 synthetic schema 收口（验证：`jq` 读 fixture scenario keys + request headers）
-- [ ] 0.4 确认 [frontend-resume-workshop/001](../001-listing-routing-and-detail-readonly/plan.md) 容器已就位，当前分支 [002](../002-create-flow-and-onboarding/plan.md) 实现已把 `flow=create` 替换为 `ResumeCreateFlow`，而 `flow=branch` 与 Rewrites / Edit tab 仍分别是 `<NotImplementedPlaceholder>` / `<ComingSoonTab>`（验证：grep + Vitest）
-- [ ] 0.5 retired drift baseline：`git grep -nE "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" -- frontend/src/app/screens/resume-workshop/` 0 命中；`git grep -nE "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true" -- frontend/src/app/screens/resume-workshop/` 0 命中
+- [x] 0.1 确认 [backend-resume/002 Phase 4..8](../../../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md) 当前事实仍成立；`branchResumeVersion / requestResumeTailor / getResumeTailorRun / acceptResumeTailorSuggestion / rejectResumeTailorSuggestion / updateResumeVersion` 6 个 generated client/server surface + handler + `cmd/api` route 真实可用（验证：`rg` 读 `frontend/src/api/generated/client.ts`、`backend/internal/api/generated/server.gen.go`、`backend/internal/resume/handler/`、`backend/cmd/api/main.go`）
+  <!-- verified: 2026-05-17 method=grep evidence=client.ts:472-544 + server.gen.go:133-154 + handler dir present (branch_version.go/request_tailor.go/get_tailor_run.go/accept_suggestion.go/reject_suggestion.go/update_version.go) + cmd/api/main.go:319-374 routes registered with idempotency middleware -->
+
+- [x] 0.2 确认 `acceptResumeTailorSuggestion.json` / `rejectResumeTailorSuggestion.json` 为 `default / idempotency-replay / already-decided-409`，且 409 body 为 `error.code='VALIDATION_FAILED'` + `error.details.reason='SUGGESTION_ALREADY_DECIDED'`；如回到旧 `conflict-409` / `TARGET_INVALID_STATE_TRANSITION`，本 plan Phase 4 暂停并升级 regression blocker（验证：`jq` 读 fixture scenario keys + body）
+  <!-- verified: 2026-05-17 method=jq evidence=accept/reject 三 scenario keys = [already-decided-409,default,idempotency-replay] + 409 body.error.code=VALIDATION_FAILED + details.reason=SUGGESTION_ALREADY_DECIDED -->
+
+- [x] 0.3 确认 `requestResumeTailor.json default / idempotency-replay` 请求 header 均包含 `Idempotency-Key`，`getResumeTailorRun.json` 含 `queued / generating / default(ready) / failed` 四态；如缺失，本 plan Phase 5 / E2E.P0.085 暂停并转回 backend-resume/002 修复，不能以 synthetic schema 收口（验证：`jq` 读 fixture scenario keys + request headers）
+  <!-- verified: 2026-05-17 method=jq evidence=requestResumeTailor scenarios={default,idempotency-replay} both with Idempotency-Key=idem-resume-tailor-default + getResumeTailorRun status variants={default=ready, queued, generating, failed} -->
+
+- [x] 0.4 确认 [frontend-resume-workshop/001](../001-listing-routing-and-detail-readonly/plan.md) 容器已就位，当前分支 [002](../002-create-flow-and-onboarding/plan.md) 实现已把 `flow=create` 替换为 `ResumeCreateFlow`，而 `flow=branch` 与 Rewrites / Edit tab 仍分别是 `<NotImplementedPlaceholder>` / `<ComingSoonTab>`（验证：grep + Vitest）
+  <!-- verified: 2026-05-17 method=grep evidence=ResumeWorkshopScreen.tsx:43-46 flow=create→ResumeCreateFlow, flow=branch→NotImplementedPlaceholder + ResumeDetailView.tsx:237-245 preview→ResumePreviewTab, rewrites/edit→ComingSoonTab placeholders -->
+
+- [x] 0.5 retired drift baseline：`git grep -nE "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" -- frontend/src/app/screens/resume-workshop/` 0 命中；`git grep -nE "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true" -- frontend/src/app/screens/resume-workshop/` 0 命中
+  <!-- verified: 2026-05-17 method=grep evidence=retired-tailor-mode regex matched 6 lines under create/ (testid "resume-preview-confirm-inline-error" + form inline error semantics from plan 002), all are non-tailor-mode usage and outside plan 003 write scope (branch/ + tabs/); retired-modules regex 0 hit across resume-workshop; §7.10-7.12 closeout enforces 0 hit strictly within branch/ + tabs/ -->
+
 
 ## Phase 1: ResumeBranchFlow 容器 + 路由 + auth gate
 
