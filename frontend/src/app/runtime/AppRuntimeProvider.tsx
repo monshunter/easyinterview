@@ -47,7 +47,15 @@ export interface AppRuntimeProviderProps {
   children: ReactNode;
 }
 
-const AppRuntimeContext = createContext<AppRuntimeValue | null>(null);
+/**
+ * React context that carries the runtime/auth/client tuple. Exported so that
+ * focused hook tests can mount the context directly with a stubbed client
+ * (avoiding the network roundtrips that `<AppRuntimeProvider>` would issue
+ * for getRuntimeConfig / getMe). Application code should keep using
+ * {@link useAppRuntime} / {@link useAppRuntimeOptional} instead of reading
+ * this context directly.
+ */
+export const AppRuntimeContext = createContext<AppRuntimeValue | null>(null);
 
 function wrapError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));

@@ -40,12 +40,19 @@
 
 ## Phase 2: branchResumeVersion 三 seedStrategy 提交 + IK + nav 行为
 
-- [ ] 2.1 实现 `branch/hooks/useResumeBranchSubmit.ts`：`generateIdempotencyKey()` + generated client `branchResumeVersion` + 三态响应处理 + 错误映射；至少 ≥ 8 case Vitest PASS
-- [ ] 2.2 BranchFlow "创建版本" 触发 hook；nav target 按 seedStrategy 三态分发：copy_master → rewrites tab；blank → edit tab；ai_select → rewrites tab + polling 启动（验证：Vitest nav target 断言）
-- [ ] 2.3 mapper `mapBranchFormToBranchResumeVersionRequest`：表单字段 → `BranchResumeVersionRequest`；focus enum 字面量映射（验证：Vitest mapper 至少 ≥ 6 case）
-- [ ] 2.4 fixture parity test：`branchResumeVersion.json` `default` / `copy-master-sync` / `blank-sync` / `ai-select-202-with-job` / `idempotent-replay` / `validation-error-422` 与 hook 字节匹配（验证：fixture parity test PASS）
-- [ ] 2.5 IK request spy：`Idempotency-Key` header 出现且同一表单 retry 复用至成功或 422 inline（验证：Vitest spy）
-- [ ] 2.6 失败路径：422 inline / 404 parent / 404 targetJob / IK conflict 409 toast（验证：Vitest）
+- [x] 2.1 实现 `branch/hooks/useResumeBranchSubmit.ts`：`generateIdempotencyKey()` + generated client `branchResumeVersion` + 三态响应处理 + 错误映射；至少 ≥ 8 case Vitest PASS
+  <!-- verified: 2026-05-18 method=vitest evidence=branch/hooks/useResumeBranchSubmit.ts caches IK per draft+context fingerprint (rotates on field change, replays on retry, resets on 422); kind=version vs accepted discriminator from job-presence guard; BranchSubmitError envelope maps {validation, parent_missing, target_missing, idempotency_conflict, cross_user, generic}; useResumeBranchSubmit.test.tsx 11 cases PASS covering happy 3-seed + IK replay/rotate + 422 cache reset + 404 reasons + 409 + missing-client + fixture coverage matrix -->
+- [x] 2.2 BranchFlow "创建版本" 触发 hook；nav target 按 seedStrategy 三态分发：copy_master → rewrites tab；blank → edit tab；ai_select → rewrites tab + polling 启动（验证：Vitest nav target 断言）
+  <!-- verified: 2026-05-18 method=vitest evidence=ResumeBranchFlow.tsx wires useResumeBranchSubmit -> dispatchSuccess: copy_master/version -> tab=rewrites; blank/version -> tab=edit; ai_select/accepted -> tab=rewrites with versionId=accepted.resumeVersionId; ResumeBranchFlow.test.tsx 5 new "Phase 2" cases PASS asserting branchResumeVersion called + nav target per seed + 422/404 inline error without nav -->
+- [x] 2.3 mapper `mapBranchFormToBranchResumeVersionRequest`：表单字段 → `BranchResumeVersionRequest`；focus enum 字面量映射（验证：Vitest mapper 至少 ≥ 6 case）
+  <!-- verified: 2026-05-18 method=vitest evidence=branch/adapters/mapBranchFormToRequest.ts strips disallowed keys (versionType/parentVersionId override/etc.), trims displayName, throws on empty displayName/parentVersionId/targetJobId, maps custom focus to `custom:{target}` literal fallback; mapBranchFormToRequest.test.ts 10 cases PASS covering 3 seed strategies + 5 focus values + custom fallback + trim + throw paths + keys-set check -->
+- [x] 2.4 fixture parity test：`branchResumeVersion.json` `default` / `copy-master-sync` / `blank-sync` / `ai-select-202-with-job` / `idempotent-replay` / `validation-error-422` 与 hook 字节匹配（验证：fixture parity test PASS）
+  <!-- verified: 2026-05-18 method=vitest evidence=useResumeBranchSubmit.test.tsx "fixture parity" case asserts Object.keys(branchFixture.scenarios) === [default, copy-master-sync, blank-sync, ai-select-202-with-job, idempotent-replay, validation-error-422]; default+idempotent-replay share canonical resumeVersionId; ai-select scenario .job.jobType=resume_tailor + .status=queued exercised by hook test -->
+- [x] 2.5 IK request spy：`Idempotency-Key` header 出现且同一表单 retry 复用至成功或 422 inline（验证：Vitest spy）
+  <!-- verified: 2026-05-18 method=vitest evidence=useResumeBranchSubmit.test.tsx asserts opts.idempotencyKey matches /^v1\.\d+\..+/ pattern (shared-conventions §3.4 wire format); replay case asserts first/second calls share IK when fingerprint unchanged; rotation case asserts IK changes when focus chip flips; ResumeBranchFlow.test.tsx Phase 2 copy_master case asserts IK on real client spy -->
+- [x] 2.6 失败路径：422 inline / 404 parent / 404 targetJob / IK conflict 409 toast（验证：Vitest）
+  <!-- verified: 2026-05-18 method=vitest evidence=useResumeBranchSubmit.test.tsx maps 422->validation (resets IK cache), 404+PARENT_NOT_FOUND->parent_missing, generic 404->cross_user, 409->idempotency_conflict (keeps IK cache); ResumeBranchFlow.test.tsx Phase 2 surfaces 422 + 404 envelope errors as resume-branch-error alert localized via resumeWorkshop.branch.error.* without navigating -->
+
 
 ## Phase 3: Rewrites Tab UI + getResumeVersion 投影
 

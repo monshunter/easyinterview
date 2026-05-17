@@ -215,52 +215,6 @@ describe("ResumeBranchFlow form behaviour", () => {
     }
   });
 
-  it("invokes onSubmitDraft with trimmed name/target plus selected focus and seed", async () => {
-    const onSubmitDraft = vi.fn().mockResolvedValue({
-      kind: "version",
-      version: {} as never,
-    });
-    const client = buildClient();
-    const nav = vi.fn();
-    render(
-      <DisplayPreferencesProvider>
-        <AppRuntimeProvider
-          client={client}
-          requestOptions={{
-            getMe: { headers: { Prefer: "example=authenticated" } },
-          }}
-        >
-          <NavigationProvider value={{ navigate: nav }}>
-            <ResumeBranchFlow
-              branchOriginalId={FIXTURE_MASTER_ASSET_ID}
-              onSubmitDraft={onSubmitDraft}
-            />
-          </NavigationProvider>
-        </AppRuntimeProvider>
-      </DisplayPreferencesProvider>,
-    );
-
-    const user = userEvent.setup();
-    const nameInput = await screen.findByTestId("resume-branch-field-name");
-    const targetInput = screen.getByTestId("resume-branch-field-target");
-    await user.type(nameInput, "  v3 ByteDance  ");
-    await user.type(targetInput, " ByteDance Frontend Platform ");
-    await user.click(screen.getByTestId("resume-branch-focus-chip-fullstack"));
-    await user.click(screen.getByTestId("resume-branch-seed-card-ai_select"));
-
-    await user.click(screen.getByTestId("resume-branch-submit"));
-
-    await waitFor(() => {
-      expect(onSubmitDraft).toHaveBeenCalledTimes(1);
-    });
-    expect(onSubmitDraft).toHaveBeenCalledWith({
-      name: "v3 ByteDance",
-      target: "ByteDance Frontend Platform",
-      focus: "fullstack",
-      seed: "ai_select",
-    });
-  });
-
   it("does not trigger network calls to protected resume APIs in the missing-id state", async () => {
     const client = buildClient();
     const listSpy = vi.spyOn(client, "listResumes");
@@ -288,5 +242,162 @@ describe("ResumeBranchFlow form behaviour", () => {
     await waitFor(() => {
       expect(listSpy).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe("ResumeBranchFlow submit dispatch (plan 003 Phase 2)", () => {
+  it("copy_master submit calls branchResumeVersion with IK header and navigates to rewrites tab", async () => {
+    const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID);
+    const branchSpy = vi
+      .spyOn(client, "branchResumeVersion")
+      .mockResolvedValueOnce({
+        id: "0195f2d0-0002-7000-8000-000000000202",
+        versionType: "targeted",
+        seedStrategy: "copy_master",
+      } as never);
+    const user = userEvent.setup();
+    const nameInput = await screen.findByTestId("resume-branch-field-name");
+    await user.type(nameInput, "v3 ByteDance");
+    await user.type(
+      screen.getByTestId("resume-branch-field-target"),
+      "ByteDance Frontend Platform",
+    );
+
+    await user.click(screen.getByTestId("resume-branch-submit"));
+
+    await waitFor(() => {
+      expect(branchSpy).toHaveBeenCalledTimes(1);
+    });
+    const [bodyArg, optsArg] = branchSpy.mock.calls[0]!;
+    expect(bodyArg).toMatchObject({
+      seedStrategy: "copy_master",
+      displayName: "v3 ByteDance",
+      targetJobId: "ByteDance Frontend Platform",
+      focusAngle: "platform",
+    });
+    expect(optsArg?.idempotencyKey).toMatch(/^v1\.\d+\..+/);
+    await waitFor(() => {
+      expect(nav).toHaveBeenCalledWith({
+        name: "resume_versions",
+        params: {
+          versionId: "0195f2d0-0002-7000-8000-000000000202",
+          tab: "rewrites",
+        },
+      });
+    });
+  });
+
+  it("blank seedStrategy navigates to edit tab", async () => {
+    const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID);
+    vi.spyOn(client, "branchResumeVersion").mockResolvedValueOnce({
+      id: "0195f2d0-0002-7000-8000-000000000203",
+      versionType: "targeted",
+      seedStrategy: "blank",
+    } as never);
+    const user = userEvent.setup();
+    await screen.findByTestId("resume-branch-flow-form");
+    await user.type(
+      screen.getByTestId("resume-branch-field-name"),
+      "Blank starter",
+    );
+    await user.type(
+      screen.getByTestId("resume-branch-field-target"),
+      "tj-uuid-foo",
+    );
+    await user.click(screen.getByTestId("resume-branch-seed-card-blank"));
+    await user.click(screen.getByTestId("resume-branch-submit"));
+
+    await waitFor(() => {
+      expect(nav).toHaveBeenCalledWith({
+        name: "resume_versions",
+        params: {
+          versionId: "0195f2d0-0002-7000-8000-000000000203",
+          tab: "edit",
+        },
+      });
+    });
+  });
+
+  it("ai_select 202 navigates to rewrites tab using BranchResumeVersionAccepted.resumeVersionId", async () => {
+    const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID);
+    vi.spyOn(client, "branchResumeVersion").mockResolvedValueOnce({
+      resumeVersionId: "0195f2d0-0002-7000-8000-000000000204",
+      version: { id: "0195f2d0-0002-7000-8000-000000000204" },
+      job: {
+        id: "0195f2d0-0002-7000-8000-000000000501",
+        jobType: "resume_tailor",
+        status: "queued",
+      },
+    } as never);
+    const user = userEvent.setup();
+    await screen.findByTestId("resume-branch-flow-form");
+    await user.type(
+      screen.getByTestId("resume-branch-field-name"),
+      "v3 AI select",
+    );
+    await user.type(
+      screen.getByTestId("resume-branch-field-target"),
+      "tj-uuid-bar",
+    );
+    await user.click(screen.getByTestId("resume-branch-seed-card-ai_select"));
+    await user.click(screen.getByTestId("resume-branch-submit"));
+
+    await waitFor(() => {
+      expect(nav).toHaveBeenCalledWith({
+        name: "resume_versions",
+        params: {
+          versionId: "0195f2d0-0002-7000-8000-000000000204",
+          tab: "rewrites",
+        },
+      });
+    });
+  });
+
+  it("422 validation error surfaces an inline alert and does not navigate", async () => {
+    const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID);
+    vi.spyOn(client, "branchResumeVersion").mockRejectedValueOnce(
+      new Error(
+        'HTTP 422 Unprocessable: {"error":{"code":"VALIDATION_FAILED","details":{"field":"displayName"}}}',
+      ),
+    );
+    const user = userEvent.setup();
+    await screen.findByTestId("resume-branch-flow-form");
+    await user.type(
+      screen.getByTestId("resume-branch-field-name"),
+      "v3 invalid",
+    );
+    await user.type(
+      screen.getByTestId("resume-branch-field-target"),
+      "tj",
+    );
+    await user.click(screen.getByTestId("resume-branch-submit"));
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-branch-error")).toBeInTheDocument();
+    });
+    expect(nav).not.toHaveBeenCalled();
+  });
+
+  it("404 parent error maps to localized parent-missing copy", async () => {
+    const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID);
+    vi.spyOn(client, "branchResumeVersion").mockRejectedValueOnce(
+      new Error(
+        'HTTP 404 Not Found: {"error":{"code":"NOT_FOUND","details":{"reason":"PARENT_NOT_FOUND"}}}',
+      ),
+    );
+    const user = userEvent.setup();
+    await screen.findByTestId("resume-branch-flow-form");
+    await user.type(
+      screen.getByTestId("resume-branch-field-name"),
+      "v3 missing parent",
+    );
+    await user.type(
+      screen.getByTestId("resume-branch-field-target"),
+      "tj-missing",
+    );
+    await user.click(screen.getByTestId("resume-branch-submit"));
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-branch-error")).toBeInTheDocument();
+    });
+    expect(nav).not.toHaveBeenCalled();
   });
 });

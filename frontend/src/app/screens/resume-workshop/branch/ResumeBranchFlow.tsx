@@ -7,18 +7,23 @@ import {
 } from "react";
 
 import type {
-  BranchResumeVersionAccepted,
   ResumeAsset,
   ResumeSeedStrategy,
   ResumeVersion,
 } from "../../../../api/generated/types";
 import { useI18n, type MessageKey } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
+import { fireResumeWorkshopToast } from "../components/toast";
 import { ResumeWorkshopIcon } from "../components/ResumeWorkshopIcon";
 import {
   useResumeBranchSource,
   type ResumeBranchSourceStatus,
 } from "./useResumeBranchSource";
+import {
+  useResumeBranchSubmit,
+  BranchSubmitError,
+} from "./hooks/useResumeBranchSubmit";
+import type { BranchSubmitOutcome } from "./hooks/useResumeBranchSubmit";
 
 const FOCUS_OPTIONS: ReadonlyArray<{
   k: BranchFocus;
@@ -71,20 +76,8 @@ export interface ResumeBranchFormDraft {
   seed: ResumeSeedStrategy;
 }
 
-export type BranchSubmitOutcome =
-  | { kind: "version"; version: ResumeVersion }
-  | { kind: "accepted"; accepted: BranchResumeVersionAccepted };
-
 export interface ResumeBranchFlowProps {
   branchOriginalId: string | null;
-  /**
-   * Optional submit handler. Phase 1 mounts a no-op stub via the screen
-   * container; Phase 2 injects `useResumeBranchSubmit`. Returning a resolved
-   * outcome lets the form clear / preserve state per success path; rejecting
-   * keeps the form mounted with the error mapped from
-   * `resumeWorkshop.branch.error.*` keys.
-   */
-  onSubmitDraft?: (draft: ResumeBranchFormDraft) => Promise<BranchSubmitOutcome>;
 }
 
 export interface ResumeBranchFlowFormProps {
@@ -105,37 +98,44 @@ const SCREEN_WRAPPER: CSSProperties = {
 
 export const ResumeBranchFlow: FC<ResumeBranchFlowProps> = ({
   branchOriginalId,
-  onSubmitDraft,
 }) => {
   const { t } = useI18n();
   const { navigate } = useNavigation();
   const source = useResumeBranchSource(branchOriginalId);
+  const submitHook = useResumeBranchSubmit();
 
   const onBack = useCallback(() => {
     navigate({ name: "resume_versions", params: {} });
   }, [navigate]);
 
-  const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = useCallback(
     async (draft: ResumeBranchFormDraft) => {
+      if (source.status !== "ready" || !source.master || !branchOriginalId) {
+        setErrorMessage(t("resumeWorkshop.branch.error.parentMissing"));
+        return;
+      }
       setErrorMessage(null);
-      if (!onSubmitDraft) return;
-      setSubmitting(true);
       try {
-        await onSubmitDraft(draft);
-      } catch (err) {
-        setErrorMessage(
-          err instanceof Error && err.message
-            ? err.message
-            : t("resumeWorkshop.branch.error.generic"),
-        );
-      } finally {
-        setSubmitting(false);
+        const outcome = await submitHook.submit(draft, {
+          parentVersionId: source.master.id,
+          targetJobId: draft.target.trim(),
+        });
+        dispatchSuccess(outcome, draft.seed, navigate, t);
+      } catch (rawErr) {
+        const friendly = mapBranchErrorToMessage(rawErr, t);
+        setErrorMessage(friendly);
       }
     },
-    [onSubmitDraft, t],
+    [
+      branchOriginalId,
+      navigate,
+      source.master,
+      source.status,
+      submitHook,
+      t,
+    ],
   );
 
   return (
@@ -143,6 +143,7 @@ export const ResumeBranchFlow: FC<ResumeBranchFlowProps> = ({
       data-testid="resume-branch-flow"
       data-branch-original-id={branchOriginalId ?? ""}
       data-source-status={source.status}
+      data-submit-state={submitHook.submitting ? "submitting" : "idle"}
       className="ei-fadein"
       style={SCREEN_WRAPPER}
     >
@@ -153,12 +154,66 @@ export const ResumeBranchFlow: FC<ResumeBranchFlowProps> = ({
         branchOriginalId,
         onBack,
         onSubmit: handleSubmit,
-        submitting,
+        submitting: submitHook.submitting,
         errorMessage,
         t,
       })}
     </div>
   );
+};
+
+type Navigate = ReturnType<typeof useNavigation>["navigate"];
+
+const dispatchSuccess = (
+  outcome: BranchSubmitOutcome,
+  seed: ResumeSeedStrategy,
+  navigate: Navigate,
+  t: (key: MessageKey) => string,
+) => {
+  if (outcome.kind === "version") {
+    const tab = seed === "blank" ? "edit" : "rewrites";
+    const toastKey: MessageKey =
+      seed === "blank"
+        ? "resumeWorkshop.branch.toast.blank"
+        : "resumeWorkshop.branch.toast.copyMaster";
+    fireResumeWorkshopToast(t(toastKey), "ok");
+    navigate({
+      name: "resume_versions",
+      params: { versionId: outcome.version.id, tab },
+    });
+    return;
+  }
+  // ai_select 202 → versionId from accepted envelope; tailorRunId is consumed
+  // by Phase 5 polling hook via getResumeVersion / route-restored detail tab.
+  fireResumeWorkshopToast(t("resumeWorkshop.branch.toast.aiSelect"), "ok");
+  navigate({
+    name: "resume_versions",
+    params: {
+      versionId: outcome.accepted.resumeVersionId,
+      tab: "rewrites",
+    },
+  });
+};
+
+const mapBranchErrorToMessage = (
+  err: unknown,
+  t: (key: MessageKey) => string,
+): string => {
+  if (err instanceof BranchSubmitError) {
+    switch (err.kind) {
+      case "validation":
+        return t("resumeWorkshop.branch.error.validation");
+      case "parent_missing":
+      case "target_missing":
+      case "cross_user":
+        return t("resumeWorkshop.branch.error.parentMissing");
+      case "idempotency_conflict":
+        return t("resumeWorkshop.branch.error.idempotencyConflict");
+      default:
+        return t("resumeWorkshop.branch.error.generic");
+    }
+  }
+  return t("resumeWorkshop.branch.error.generic");
 };
 
 interface BodyArgs {
