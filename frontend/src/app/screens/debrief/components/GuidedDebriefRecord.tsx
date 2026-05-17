@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type FC } from "react";
 
+import type { MessageKey } from "../../../i18n/locales/zh";
 import { useI18n } from "../../../i18n/messages";
 import type {
   DebriefEntry,
@@ -42,6 +43,24 @@ function suggestionToEntry(
 }
 
 type EditorMode = "occurred" | "edit" | "manual";
+type ReactionKey = NonNullable<DebriefEntry["reaction"]>;
+
+const REACTION_KEYS: ReactionKey[] = [
+  "positive",
+  "neutral",
+  "probed",
+  "skeptical",
+];
+
+function sourceBadgeMessage(source: DebriefEntrySource): MessageKey {
+  if (source === "manual") return "debrief.record.entries.source.manual";
+  if (source === "voice_extracted") return "debrief.record.entries.source.voice";
+  return "debrief.record.entries.source.recorded";
+}
+
+function reactionMessage(reaction: ReactionKey): MessageKey {
+  return `debrief.record.entries.reaction.${reaction}` as MessageKey;
+}
 
 /**
  * Source mirror of ui-design/src/screens-p1-depth.jsx::GuidedDebriefRecord
@@ -69,6 +88,11 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
   const [answerValue, setAnswerValue] = useState("");
   const [reactionValue, setReactionValue] = useState("");
   const [editMode, setEditMode] = useState<EditorMode | null>(null);
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
+  const activeEntry = useMemo(
+    () => entries.find((entry) => entry.id === activeEntryId) ?? entries[0] ?? null,
+    [activeEntryId, entries],
+  );
 
   const openEditor = useCallback(
     (mode: EditorMode) => {
@@ -96,29 +120,27 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
       return;
     }
     if (editMode === "manual") {
-      setEntries([
-        ...entries,
-        {
-          id: makeEntryId(),
-          questionText,
-          myAnswerSummary,
-          interviewerReaction: interviewerReaction || undefined,
-          source: "manual",
-        },
-      ]);
+      const nextEntry: DebriefEntry = {
+        id: makeEntryId(),
+        questionText,
+        myAnswerSummary,
+        interviewerReaction: interviewerReaction || undefined,
+        source: "manual",
+      };
+      setEntries([...entries, nextEntry]);
+      setActiveEntryId(nextEntry.id);
     } else if (currentGuide) {
       const source: DebriefEntrySource =
         editMode === "edit" ? "ai_edited" : "ai_confirmed";
-      setEntries([
-        ...entries,
-        suggestionToEntry(
-          currentGuide,
-          source,
-          questionText,
-          myAnswerSummary,
-          interviewerReaction || undefined,
-        ),
-      ]);
+      const nextEntry = suggestionToEntry(
+        currentGuide,
+        source,
+        questionText,
+        myAnswerSummary,
+        interviewerReaction || undefined,
+      );
+      setEntries([...entries, nextEntry]);
+      setActiveEntryId(nextEntry.id);
       setActiveGuide(activeGuide + 1);
     }
     setQuestionValue("");
@@ -145,6 +167,12 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
   }, []);
 
   const saveDisabled = questionValue.trim() === "" || answerValue.trim() === "";
+  const setEntryField = useCallback(
+    (id: string, patch: Partial<DebriefEntry>) => {
+      setEntries(entries.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)));
+    },
+    [entries, setEntries],
+  );
 
   return (
     <section
@@ -180,26 +208,50 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
           </div>
         )}
         {!loading && !errorCode && currentGuide && (
-          <div
+          <article
             className="ei-debrief-guided__current"
             data-testid="debrief-guided-current"
           >
-            <div className="ei-debrief-guided__progress" data-testid="debrief-guided-progress">
-              {t("debrief.record.guide.progress")
-                .replace("{current}", String(activeGuide + 1))
-                .replace("{total}", String(total))}
+            <div className="ei-debrief-guided__current-copy">
+              <div className="ei-debrief-guided__progress" data-testid="debrief-guided-progress">
+                {t("debrief.record.guide.progress")
+                  .replace("{current}", String(activeGuide + 1).padStart(2, "0"))
+                  .replace("{total}", String(total).padStart(2, "0"))}
+              </div>
+              <div className="ei-debrief-guided__stage">{currentGuide.stage}</div>
+              <h3 className="ei-serif">{currentGuide.questionText}</h3>
             </div>
-            <div className="ei-debrief-guided__stage">{currentGuide.stage}</div>
-            <h3 className="ei-serif">{currentGuide.questionText}</h3>
-            <p>{currentGuide.whyLikelyAsked}</p>
-            <div className="ei-debrief-guided__source">{currentGuide.source}</div>
+            <div
+              className="ei-debrief-guided__current-icon"
+              data-testid="debrief-guided-current-icon"
+              aria-hidden="true"
+            >
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+              </svg>
+            </div>
+            <div className="ei-debrief-guided__why">
+              <p>{currentGuide.whyLikelyAsked}</p>
+              <div className="ei-debrief-guided__source">
+                {t("debrief.record.guide.sourceLabel")} · {currentGuide.source}
+              </div>
+            </div>
             <div className="ei-debrief-guided__actions">
               <button
                 type="button"
                 data-testid="debrief-suggested-question-occurred"
                 onClick={() => openEditor("occurred")}
               >
-                {t("debrief.record.guide.ctaOccurred")}
+                ✓ {t("debrief.record.guide.ctaOccurred")}
               </button>
               <button
                 type="button"
@@ -213,7 +265,7 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
                 data-testid="debrief-suggested-question-edit"
                 onClick={() => openEditor("edit")}
               >
-                {t("debrief.record.guide.ctaEdit")}
+                ✎ {t("debrief.record.guide.ctaEdit")}
               </button>
               <button
                 type="button"
@@ -223,7 +275,7 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
                 {t("debrief.record.guide.ctaManual")}
               </button>
             </div>
-          </div>
+          </article>
         )}
         {!loading && !errorCode && !currentGuide && (
           <div data-testid="debrief-guided-empty">
@@ -291,27 +343,112 @@ export const GuidedDebriefRecord: FC<GuidedDebriefRecordProps> = ({
             </div>
           </div>
         )}
+        <div className="ei-debrief-guided__detail-grid">
+          <aside
+            className="ei-debrief-guided__entries"
+            data-testid="debrief-guided-entries"
+          >
+            <div className="ei-label">{t("debrief.record.entries.eyebrow")}</div>
+            <div
+              className="ei-debrief-guided__card-list"
+              data-testid="debrief-guided-card-list"
+            >
+              {entries.length === 0 ? (
+                <p data-testid="debrief-guided-entries-empty">
+                  {t("debrief.record.entries.empty")}
+                </p>
+              ) : (
+                entries.map((entry, index) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    data-testid={`debrief-entry-${entry.id}`}
+                    data-active={activeEntry?.id === entry.id}
+                    onClick={() => setActiveEntryId(entry.id)}
+                  >
+                    <span className="ei-debrief-guided__entry-head">
+                      <span className="ei-mono">Q{index + 1}</span>
+                      <span>
+                        {t(sourceBadgeMessage(entry.source))}
+                      </span>
+                    </span>
+                    <span>{entry.stage || entry.tag || entry.questionText}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </aside>
+
+          <article
+            className="ei-debrief-guided__active-card"
+            data-testid="debrief-guided-active-card"
+          >
+            {activeEntry ? (
+              <>
+                <div className="ei-debrief-guided__active-head">
+                  <div>
+                    <div className="ei-label">
+                      {(activeEntry.stage || t("debrief.record.entries.stageFallback"))}
+                      {activeEntry.tag ? ` · ${activeEntry.tag}` : ""}
+                    </div>
+                    <h4 className="ei-serif">{activeEntry.questionText}</h4>
+                  </div>
+                  <div className="ei-debrief-guided__reactions">
+                    {REACTION_KEYS.map((reaction) => (
+                      <button
+                        key={reaction}
+                        type="button"
+                        data-active={(activeEntry.reaction ?? "neutral") === reaction}
+                        onClick={() => setEntryField(activeEntry.id, { reaction })}
+                      >
+                        {t(reactionMessage(reaction))}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <label className="ei-debrief-guided__field">
+                  <span className="ei-label">{t("debrief.record.guide.answerLabel")}</span>
+                  <textarea
+                    rows={3}
+                    value={activeEntry.myAnswerSummary ?? ""}
+                    onChange={(event) =>
+                      setEntryField(activeEntry.id, {
+                        myAnswerSummary: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="ei-debrief-guided__field">
+                  <span className="ei-label">{t("debrief.record.guide.followLabel")}</span>
+                  <textarea
+                    rows={2}
+                    value={activeEntry.interviewerReaction ?? ""}
+                    onChange={(event) =>
+                      setEntryField(activeEntry.id, {
+                        interviewerReaction: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="ei-debrief-guided__field">
+                  <span className="ei-label">{t("debrief.record.guide.reflectionLabel")}</span>
+                  <textarea
+                    rows={2}
+                    value={activeEntry.reflection ?? ""}
+                    onChange={(event) =>
+                      setEntryField(activeEntry.id, {
+                        reflection: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+              </>
+            ) : (
+              <p>{t("debrief.record.entries.empty")}</p>
+            )}
+          </article>
+        </div>
       </div>
-      <aside
-        className="ei-debrief-guided__entries"
-        data-testid="debrief-guided-entries"
-      >
-        <div className="ei-label">{t("debrief.record.entries.eyebrow")}</div>
-        {entries.length === 0 ? (
-          <p data-testid="debrief-guided-entries-empty">
-            {t("debrief.record.entries.empty")}
-          </p>
-        ) : (
-          <ul>
-            {entries.map((entry) => (
-              <li key={entry.id} data-testid={`debrief-entry-${entry.id}`}>
-                <div>{entry.questionText}</div>
-                <small>{entry.source}</small>
-              </li>
-            ))}
-          </ul>
-        )}
-      </aside>
     </section>
   );
 };

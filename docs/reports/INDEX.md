@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-17](./2026-05-17-frontend-debrief-record-mode-ui-parity-assessment.md) | Frontend Debrief Record Mode UI Parity 交付复盘 | #assessment |
 | [2026-05-17](./2026-05-17-checkpoint-015-runtime-review-fix-assessment.md) | Checkpoint 015 Runtime Review Fix 交付复盘 | #assessment |
 | [2026-05-17](./2026-05-17-frontend-debrief-real-backend-flow-fix-assessment.md) | Frontend Debrief Real Backend Flow Fix 交付复盘 | #assessment |
 | [2026-05-17](./2026-05-17-practice-voice-mvp-001-cascaded-stt-llm-tts-assessment.md) | Practice Voice MVP 001 Cascaded STT LLM TTS 交付复盘 | #assessment |

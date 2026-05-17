@@ -768,7 +768,14 @@ export const en: LocaleMessages = {
   "debrief.record.mode.hintText":
     "AI walks you through likely questions",
   "debrief.record.mode.hintVoice":
-    "Voice debrief integration coming soon",
+    "Speak naturally · AI extracts cards in real time",
+  "debrief.record.vibe.eyebrow": "VIBE CHECK",
+  "debrief.record.vibe.overall": "Overall feeling",
+  "debrief.record.vibe.moodAria": "Choose the overall feeling for this interview",
+  "debrief.record.vibe.liked": "What they seemed to like",
+  "debrief.record.vibe.likedDefault": "concrete metrics, trade-off framing",
+  "debrief.record.vibe.stumbled": "Where I stumbled",
+  "debrief.record.vibe.stumbledDefault": "ownership attribution, reverse-Q",
   "debrief.record.guide.eyebrow": "AI guided questions",
   "debrief.record.guide.empty":
     "Pick a target job and resume to see AI suggestions.",
@@ -796,12 +803,83 @@ export const en: LocaleMessages = {
   "debrief.record.guide.reactionLabel": "Interviewer reaction",
   "debrief.record.guide.reactionPlaceholder":
     "Optional: capture follow-ups, approval, or hesitation…",
+  "debrief.record.guide.sourceLabel": "source",
+  "debrief.record.guide.followLabel": "Follow-up / interviewer reaction",
+  "debrief.record.guide.reflectionLabel": "What I missed or want to preserve",
   "debrief.record.entries.eyebrow": "Recorded questions",
   "debrief.record.entries.empty": "Nothing recorded yet.",
-  "debrief.record.voice.notImplemented":
-    "Voice debrief integration coming soon",
+  "debrief.record.entries.stageFallback": "Debrief record",
+  "debrief.record.entries.source.recorded": "✓ recorded",
+  "debrief.record.entries.source.manual": "✏️ manual",
+  "debrief.record.entries.source.voice": "🎙 voice",
+  "debrief.record.entries.reaction.positive": "visibly engaged",
+  "debrief.record.entries.reaction.neutral": "polite",
+  "debrief.record.entries.reaction.probed": "pushed back / probed",
+  "debrief.record.entries.reaction.skeptical": "skeptical",
   "debrief.record.voice.idle": "Press space to start/pause",
   "debrief.record.voice.shared": "shared with text mode",
+  "debrief.record.voice.title": "AI Debrief — voice conversation",
+  "debrief.record.voice.description":
+    "Talk naturally — like a friend asking you to walk through the interview. I'll listen, follow up, and extract question cards as we go. No tap-to-talk; pause anytime with [space].",
+  "debrief.record.voice.topicsLabel": "TOPICS WE'LL COVER",
+  "debrief.record.voice.topicOverall": "Overall feel + stuck moments",
+  "debrief.record.voice.topicOpening": "Interview opening",
+  "debrief.record.voice.topicMissed": "Questions you didn't handle well",
+  "debrief.record.voice.topicClose": "Reverse-Q and close",
+  "debrief.record.voice.start": "Start voice conversation",
+  "debrief.record.voice.tip": "tip · press [space] anytime to pause",
+  "debrief.record.voice.statusWrapping": "Wrapping up",
+  "debrief.record.voice.statusPaused": "Paused",
+  "debrief.record.voice.speakerAi": "AI debrief guide",
+  "debrief.record.voice.speakerUser": "You · live transcript",
+  "debrief.record.voice.controlListening": "Listening continuously",
+  "debrief.record.voice.controlPaused": "Conversation paused",
+  "debrief.record.voice.controlHint": "[space] · pause · no need to tap",
+  "debrief.record.voice.controlResumeHint": "tap ▶ or [space] to resume",
+  "debrief.record.voice.endReview": "End & review",
+  "debrief.record.voice.extracting": "EXTRACTING",
+  "debrief.record.voice.addManual": "Add one manually",
+  "debrief.record.voice.confirmLater": "You'll confirm these cards at the end",
+  "debrief.record.voice.reviewTitle": "Pending cards · confirm before saving",
+  "debrief.record.voice.reviewStats": "{count} pending · 0 confirmed · 0 deleted",
+  "debrief.record.voice.backToChat": "Back to conversation",
+  "debrief.record.voice.saveCards": "Save {count}",
+  "debrief.record.voice.committedTitle": "Voice cards saved",
+  "debrief.record.voice.committedBody":
+    "These voice-extracted questions have been added to the debrief record. You can keep adding details or generate the analysis.",
+  "debrief.record.voice.entryStage": "Voice debrief",
+  "debrief.record.voice.entryTag": "voice",
+  "debrief.record.voice.confidence.high": "high confidence",
+  "debrief.record.voice.confidence.medium": "medium",
+  "debrief.record.voice.chat.aiMissed":
+    "Any other questions you felt under-prepared for, or where you got pushed back?",
+  "debrief.record.voice.chat.userDesignSystem":
+    "The Design System question went well — they nodded and moved on. That was mainly the ownership gap.",
+  "debrief.record.voice.chat.aiClose":
+    "Last one — how did the reverse-Q and close go? What did you ask, and how did they react?",
+  "debrief.record.voice.chat.userReverse":
+    "Only asked about engineering culture. Pretty generic — should have asked about team priorities or their biggest pain point.",
+  "debrief.record.voice.chat.aiWrap":
+    "Good, I have the shape now. I pulled out a few cards for us to review.",
+  "debrief.record.voice.card1.question":
+    "Walk me through the checkout perf work — what exactly did YOU drive?",
+  "debrief.record.voice.card1.summary":
+    "Explained RSC migration, but ownership attribution was unclear under pressure.",
+  "debrief.record.voice.card1.followup":
+    "They pushed: who made the final architecture call?",
+  "debrief.record.voice.card1.reflection": "Ownership wording was vague.",
+  "debrief.record.voice.card2.question":
+    "Tell me about yourself / walk me through your background.",
+  "debrief.record.voice.card2.summary":
+    "Self-intro as opening, then moved directly into the checkout project.",
+  "debrief.record.voice.card2.followup": "No follow-up noted on intro itself.",
+  "debrief.record.voice.card2.reflection":
+    "Opening context was complete, but could tie tighter to the target role.",
+  "debrief.record.voice.card3.question": "Any questions for me?",
+  "debrief.record.voice.card3.summary":
+    "Only asked about engineering culture — too generic.",
+  "debrief.record.voice.card3.followup": "They answered politely and wrapped up.",
+  "debrief.record.voice.card3.reflection": "Reverse-Q ending was too generic.",
   "debrief.record.submit.cta": "Generate debrief analysis",
   "debrief.record.submit.disabledNoEntries":
     "Record at least one question before generating analysis.",
