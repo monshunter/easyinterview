@@ -4,7 +4,7 @@
 
 Validate the resume tailor async path. In Phase 5 this scenario covered the `branchResumeVersion` `seedStrategy=ai_select` dispatch slice: provisional targeted version creation, queued `resume_tailor_runs`, queued `async_jobs(resume_tailor)`, route idempotency, fixture parity, and privacy / retired-vocabulary redlines. In Phase 6 it also covers the `requestResumeTailor` and `getResumeTailorRun` endpoint slice: request idempotency, mode validation, queued run/job creation, run status reads, state transitions, concurrent claim, fixture parity, and cross-user isolation.
 
-Later phases extend this same scenario in place for drainer `RunOnce(resume_tailor)`, ready suggestions, `ai_task_runs`, and ready-only outbox.
+In Phase 7 the same scenario also covers drainer `RunOnce(resume_tailor)`, ready suggestions, typed `ai_task_runs`, and ready-only `resume.tailor.completed` outbox payload privacy.
 
 ## 2. Requirements
 
@@ -17,12 +17,12 @@ Given a ready resume asset, one active structured master version owned by user A
 
 When user A branches with `seedStrategy=ai_select`, requests an explicit tailor run, and polls the run by ID.
 
-Then the API returns 202 with `BranchResumeVersionAccepted` for branching and 202 with `ResumeTailorRunWithJob` for requestTailor; the provisional version is persisted; queued `resume_tailor_runs` and queued `async_jobs` rows are created atomically; getTailorRun returns queued / generating / ready / failed variants; state transitions reject double-claim; and no raw profile / suggestion text leaks into async job payload or scenario evidence.
+Then the API returns 202 with `BranchResumeVersionAccepted` for branching and 202 with `ResumeTailorRunWithJob` for requestTailor; the provisional version is persisted; queued `resume_tailor_runs` and queued `async_jobs` rows are created atomically; getTailorRun returns queued / generating / ready / failed variants; state transitions reject double-claim; the drainer marks a run ready, writes three pending suggestions, writes a typed `ai_task_runs` row, and emits one ready-only completed outbox event whose payload contains only IDs, mode, and status.
 
 ## 4. Scripts
 
 - `scripts/setup.sh`: prepares output directories and copies seed / expected outcome notes into `.test-output`.
-- `scripts/trigger.sh`: runs fixture validation, focused `cmd/api` branch and tailor HTTP scenarios, handler fixture parity, service tests, store unit tests, and live DB integration gates for the dispatch/request/read slices.
+- `scripts/trigger.sh`: runs fixture validation, focused `cmd/api` branch and tailor HTTP scenarios, handler fixture parity, service tests, store unit tests, live DB integration gates, and drainer ready-path gates.
 - `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, reruns fixture parity, and performs privacy / retired-vocabulary negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 
@@ -45,4 +45,4 @@ Scenario evidence is written to `.test-output/e2e/p0-077-resume-tailor-async-dis
 
 ## 7. Offline Limits
 
-Phase 6 evidence is intentionally limited to dispatch plus request/read endpoint slices. Full tailor run execution is not claimed until Phase 7 extends this scenario with drainer and ready-state outbox assertions.
+This scenario is still local and deterministic: it verifies the in-process drainer through focused `cmd/api`, job handler, and live store gates rather than a long-running external worker.

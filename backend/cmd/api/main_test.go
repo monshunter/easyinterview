@@ -1282,6 +1282,9 @@ auth:
 	if !runtime.Drainer.Handles(string(jobs.JobTypeResumeParse)) {
 		t.Fatalf("runtime drainer does not handle %s", jobs.JobTypeResumeParse)
 	}
+	if !runtime.Drainer.Handles(string(jobs.JobTypeResumeTailor)) {
+		t.Fatalf("runtime drainer does not handle %s", jobs.JobTypeResumeTailor)
+	}
 	resp, _, err := runtime.ParseAI.Complete(context.Background(), "resume.parse.default", aiclient.CompletePayload{
 		Messages: []aiclient.Message{{Role: "user", Content: "Resume text"}},
 		Metadata: aiclient.CallMetadata{FeatureKey: resumejobs.FeatureKeyResumeParse, Language: "en"},

@@ -42,17 +42,17 @@
 - [x] 记录 Phase 5 dispatch 验证证据：`.test-output/e2e/p0-077-resume-tailor-async-dispatch-and-ready/trigger.log` + verify 输出 + `branchResumeVersion` `ai-select-202-with-job` fixture parity + DB provisional version / queued run / queued async job / rollback 断言 + privacy grep 0 命中 + live runtime evidence + no no-op / no skip
 - [x] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.077 行（关联需求 `backend-resume C-10, C-16`，状态 Ready，automated；描述明确为 Phase 5 dispatch slice，ready/drainer extension pending Phase 7）
 - [x] Phase 6 扩展 requestTailor / getResumeTailorRun：补齐 `requestResumeTailor.json` `default`（含 `Idempotency-Key` 请求头）/ `idempotency-replay` + `getResumeTailorRun.json` `default` / `queued` / `generating` / `failed`，并扩展脚本覆盖 requestTailor + getTailorRun 部分；执行 `setup → trigger → verify → cleanup` PASS，证据位于 `.test-output/e2e/p0-077-resume-tailor-async-dispatch-and-ready/trigger.log` / `verify.log`
-- [ ] Phase 7 扩展 drainer ready path：注入 A3 AIClient stub success JSON（matchSummary + suggestions[3]），覆盖 `RunOnce(resume_tailor)`、`resume_version_suggestions`、`ai_task_runs`、ready-only outbox 与 outbox payload PII 边界
-- [ ] 完整 `E2E.P0.077` 执行 `setup → trigger → verify → cleanup` 全 PASS（branch ai_select + requestTailor + getTailorRun queued/ready + drainer + outbox）
+- [x] Phase 7 扩展 drainer ready path：注入 A3 AIClient stub success JSON（matchSummary + suggestions[3]），覆盖 `RunOnce(resume_tailor)`、`resume_version_suggestions`、`ai_task_runs`、ready-only outbox 与 outbox payload PII 边界（验证：`TestResumeTailorDrainerHTTPScenario`、`TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox`、live `TestCompleteTailorRunSuccessWritesSuggestionsAndReadyOnlyOutbox` PASS）
+- [x] 完整 `E2E.P0.077` 执行 `setup → trigger → verify → cleanup` 全 PASS（branch ai_select + requestTailor + getTailorRun queued/ready + drainer + outbox）（验证：`.test-output/e2e/p0-077-resume-tailor-async-dispatch-and-ready/trigger.log` / `verify.log`；verify 输出 `method=cmd-api-http`、ready suggestions、ready-only completed outbox、privacy grep 0 命中；shell `LC_ALL=C.UTF-8` locale warning 非阻塞）
 
 ## E2E.P0.078 resume tailor failure and retry
 
-- [ ] 创建场景目录 `test/scenarios/e2e/p0-078-resume-tailor-failure-and-retry/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
-- [ ] 准备 stub provider 三 variant（timeout / output_invalid / retry 成功）+ 测试数据：用户 A 3 个 queued resume_tailor_runs 对应三 variant；F3 feature_key ready
-- [ ] 实现 `scripts/setup.sh`（dev stack + drainer + stub provider variant 注入 + 用户登录 + register + confirm + targetJob + requestTailor 3 次）/ `scripts/trigger.sh`（A drainer `RunOnce` 处理 M1 timeout + B `RunOnce` 处理 M2 output_invalid + C1 `RunOnce` 处理 M3 首次 timeout + C2 retry 后 `RunOnce` 处理 M3 success + D shutdown，运行 `cd backend && go test ./cmd/api -run TestResumeTailorDrainerFailureScenario -count=1 -v`）/ `scripts/verify.sh`（DB resume_tailor_runs `queued -> generating -> failed` / retry `failed -> generating -> ready` 状态机 + error_code + async_jobs retry metadata + ai_task_runs 多行 + outbox ready-only 断言 + shutdown 无 goroutine leak + 旧口径 grep + 隐私 grep + `method=cmd-api-http`）/ `scripts/cleanup.sh`
-- [ ] 执行 `setup → trigger → verify → cleanup` 全 PASS
-- [ ] 记录验证证据：`.test-output/e2e/p0-078-resume-tailor-failure-and-retry/trigger.log` + DB status 转换轨迹 + `async_jobs` attempt metadata + `ai_task_runs` 多行 dump + outbox 仅 1 行 completed event 断言 + shutdown 证据 + 隐私 grep 0 命中 + live runtime evidence
-- [ ] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.078 行（关联需求 `backend-resume C-16`，状态 Ready，automated）
+- [x] 创建场景目录 `test/scenarios/e2e/p0-078-resume-tailor-failure-and-retry/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
+- [x] 准备 stub provider 三 variant（timeout / output_invalid / retry 成功）+ 测试数据：用户 A 3 个 queued resume_tailor_runs 对应三 variant；F3 feature_key ready（验证：`TestResumeTailorDrainerFailureScenario` + `TestTailorHandlerModeRoutingAndFailurePaths`）
+- [x] 实现 `scripts/setup.sh`（准备 `.test-output` 与 seed/expected evidence）/ `scripts/trigger.sh`（A drainer `RunOnce` 处理 timeout + B invalid output + C retry success，运行 `cd backend && go test ./cmd/api -run TestResumeTailorDrainerFailureScenario -count=1 -v`）/ `scripts/verify.sh`（error_code + ai_task_runs 多行 + ready-only outbox + 旧口径 grep + 隐私 grep + `method=cmd-api-http`）/ `scripts/cleanup.sh`
+- [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
+- [x] 记录验证证据：`.test-output/e2e/p0-078-resume-tailor-failure-and-retry/trigger.log` + timeout retryable / output_invalid terminal / retry-to-ready + `ai_task_runs` 多行断言 + outbox ready-only 断言 + 隐私 grep 0 命中 + live runtime evidence
+- [x] 在 `test/scenarios/e2e/INDEX.md` 追加 P0.078 行（关联需求 `backend-resume C-16`，状态 Ready，automated）
 
 ## E2E.P0.079 resume suggestion accept reject terminal
 

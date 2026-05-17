@@ -194,6 +194,8 @@ func cleanupResumeStoreUsers(t *testing.T, db *sql.DB, userIDs ...string) {
 	defer cancel()
 	for _, userID := range userIDs {
 		_, _ = db.ExecContext(ctx, `delete from outbox_events where aggregate_id in (select id from resume_assets where user_id = $1)`, userID)
+		_, _ = db.ExecContext(ctx, `delete from outbox_events where aggregate_id in (select id from resume_tailor_runs where user_id = $1)`, userID)
+		_, _ = db.ExecContext(ctx, `delete from ai_task_runs where user_id = $1`, userID)
 		_, _ = db.ExecContext(ctx, `delete from async_jobs where resource_id in (select id from resume_assets where user_id = $1)`, userID)
 		_, _ = db.ExecContext(ctx, `delete from async_jobs where resource_id in (select id from resume_tailor_runs where user_id = $1)`, userID)
 		_, _ = db.ExecContext(ctx, `delete from resume_version_suggestions where resume_version_id in (select id from resume_versions where user_id = $1)`, userID)

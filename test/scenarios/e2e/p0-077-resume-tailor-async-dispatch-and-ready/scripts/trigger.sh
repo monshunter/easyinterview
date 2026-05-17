@@ -28,4 +28,10 @@ mkdir -p "$OUT"
   go test ./internal/resume -run 'TestRequestResumeTailor|TestGetResumeTailorRun' -count=1 -v
   echo "RUNNER go test resume store live tailor run integration"
   DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run TestResumeTailorRunStore -count=1 -v
+  echo "RUNNER go test cmd/api resume tailor drainer ready"
+  go test ./cmd/api -run TestResumeTailorDrainerHTTPScenario -count=1 -v
+  echo "RUNNER go test resume jobs tailor ready"
+  go test ./internal/resume/jobs -run TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox -count=1 -v
+  echo "RUNNER go test resume store live tailor ready outbox integration"
+  DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run TestCompleteTailorRunSuccessWritesSuggestionsAndReadyOnlyOutbox -count=1 -v
 } | tee "$OUT/trigger.log"

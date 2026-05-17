@@ -741,10 +741,18 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, 
 		Objects:  upload.Objects,
 		NewID:    idx.NewID,
 	})
+	tailorHandler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
+		Store:      store,
+		Registry:   resumejobs.NewRegistryAdapter(registryClient),
+		AI:         ai,
+		AITaskRuns: storeai.NewTaskRunWriter(db),
+		NewID:      idx.NewID,
+	})
 	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
 		Store: store,
 		Handlers: map[string]targetjob.JobHandler{
-			string(jobs.JobTypeResumeParse): parseHandler,
+			string(jobs.JobTypeResumeParse):  parseHandler,
+			string(jobs.JobTypeResumeTailor): tailorHandler,
 		},
 		Logger: logger,
 	})

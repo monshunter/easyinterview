@@ -208,6 +208,42 @@ type TailorRunFailureInput struct {
 	Now         time.Time
 }
 
+type TailorJobContext struct {
+	TailorRunID       string
+	UserID            string
+	ResumeVersionID   string
+	ResumeAssetID     string
+	TargetJobID       string
+	Mode              string
+	Language          string
+	ResumeSummary     json.RawMessage
+	StructuredProfile json.RawMessage
+	TargetSummary     json.RawMessage
+	TargetTitle       string
+	TargetCompany     string
+	TargetSeniority   string
+	RawJDText         string
+	OriginalBullet    string
+}
+
+type TailorSuggestionInput struct {
+	ID              string
+	OriginalBullet  string
+	SuggestedBullet string
+	Reason          string
+}
+
+type CompleteTailorRunSuccessInput struct {
+	TailorRunID        string
+	ResumeVersionID    string
+	MatchSummary       json.RawMessage
+	Suggestions        []TailorSuggestionInput
+	Provenance         VersionProvenance
+	OutboxEventID      string
+	OutboxEventPayload []byte
+	Now                time.Time
+}
+
 type ListFilter struct {
 	Cursor   string
 	PageSize int

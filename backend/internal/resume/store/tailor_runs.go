@@ -6,8 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
+	"github.com/monshunter/easyinterview/backend/internal/shared/events"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
@@ -117,6 +120,74 @@ where id = $1 and user_id = $2`,
 	return rec, nil
 }
 
+func (r *Repository) GetForTailor(ctx context.Context, tailorRunID string, resumeVersionID string) (TailorJobContext, error) {
+	if r == nil || r.db == nil {
+		return TailorJobContext{}, fmt.Errorf("resume store db is nil")
+	}
+	resumeVersionID = strings.TrimSpace(resumeVersionID)
+	row := r.db.QueryRowContext(ctx, `
+select r.id, r.user_id, r.target_job_id, r.resume_asset_id, r.mode,
+       coalesce(ra.language, 'en'), coalesce(ra.parsed_summary, '{}'::jsonb),
+       rv.id, rv.structured_profile,
+       coalesce(tj.summary, '{}'::jsonb), coalesce(tj.title, ''),
+       coalesce(tj.company_name, ''), coalesce(tj.seniority_level, ''),
+       coalesce(tj.raw_jd_text, '')
+from resume_tailor_runs r
+join resume_assets ra on ra.id = r.resume_asset_id and ra.user_id = r.user_id and ra.deleted_at is null
+join target_jobs tj on tj.id = r.target_job_id and tj.user_id = r.user_id and tj.deleted_at is null
+join lateral (
+  select id, structured_profile, updated_at
+  from resume_versions rv
+  where rv.user_id = r.user_id
+    and rv.resume_asset_id = r.resume_asset_id
+    and rv.deleted_at is null
+    and (
+      ($2 <> '' and rv.id = nullif($2, '')::uuid)
+      or ($2 = '' and (rv.target_job_id = r.target_job_id or rv.target_job_id is null))
+    )
+  order by case when $2 <> '' then 0 when rv.target_job_id = r.target_job_id then 0 else 1 end,
+           rv.updated_at desc, rv.id desc
+  limit 1
+) rv on true
+where r.id = $1`,
+		tailorRunID,
+		resumeVersionID,
+	)
+	var rec TailorJobContext
+	var resumeSummary, structuredProfile, targetSummary []byte
+	if err := row.Scan(
+		&rec.TailorRunID,
+		&rec.UserID,
+		&rec.TargetJobID,
+		&rec.ResumeAssetID,
+		&rec.Mode,
+		&rec.Language,
+		&resumeSummary,
+		&rec.ResumeVersionID,
+		&structuredProfile,
+		&targetSummary,
+		&rec.TargetTitle,
+		&rec.TargetCompany,
+		&rec.TargetSeniority,
+		&rec.RawJDText,
+	); errors.Is(err, sql.ErrNoRows) {
+		var exists int
+		if checkErr := r.db.QueryRowContext(ctx, `select 1 from resume_tailor_runs where id = $1`, tailorRunID).Scan(&exists); errors.Is(checkErr, sql.ErrNoRows) {
+			return TailorJobContext{}, ErrTailorRunNotFound
+		} else if checkErr != nil {
+			return TailorJobContext{}, checkErr
+		}
+		return TailorJobContext{}, ErrVersionNotFound
+	} else if err != nil {
+		return TailorJobContext{}, err
+	}
+	rec.ResumeSummary = append(json.RawMessage(nil), resumeSummary...)
+	rec.StructuredProfile = append(json.RawMessage(nil), structuredProfile...)
+	rec.TargetSummary = append(json.RawMessage(nil), targetSummary...)
+	rec.OriginalBullet = firstStructuredProfileBullet(rec.StructuredProfile)
+	return rec, nil
+}
+
 func (r *Repository) MarkTailorRunGenerating(ctx context.Context, in TailorRunStatusInput) (TailorRunRecord, error) {
 	if r == nil || r.db == nil {
 		return TailorRunRecord{}, fmt.Errorf("resume store db is nil")
@@ -187,6 +258,103 @@ returning id, user_id, target_job_id, resume_asset_id, mode, status,
 	return mapTailorRunMutationError(ctx, r.db, in.TailorRunID, rec, err)
 }
 
+func (r *Repository) CompleteTailorRunSuccess(ctx context.Context, in CompleteTailorRunSuccessInput) error {
+	if r == nil || r.db == nil {
+		return fmt.Errorf("resume store db is nil")
+	}
+	now := in.Now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	matchSummary := in.MatchSummary
+	if len(matchSummary) == 0 {
+		matchSummary = json.RawMessage(`{}`)
+	}
+	suggestionsJSON, err := marshalTailorSuggestions(in.Suggestions)
+	if err != nil {
+		return err
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin resume tailor success: %w", err)
+	}
+	defer tx.Rollback()
+
+	res, err := tx.ExecContext(ctx, `
+update resume_tailor_runs
+set status = 'ready',
+    match_summary = $1,
+    suggestions = $2,
+    prompt_version = $3,
+    rubric_version = $4,
+    model_id = $5,
+    provider = $6,
+    error_code = null,
+    generated_at = $7,
+    updated_at = $7
+where id = $8 and status = 'generating'`,
+		matchSummary,
+		suggestionsJSON,
+		nullableString(in.Provenance.PromptVersion),
+		nullableString(in.Provenance.RubricVersion),
+		nullableString(in.Provenance.ModelID),
+		nullableString(in.Provenance.Provider),
+		now,
+		in.TailorRunID,
+	)
+	if err != nil {
+		return fmt.Errorf("complete resume tailor success: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("complete resume tailor success rows affected: %w", err)
+	}
+	if rows == 0 {
+		return ErrInvalidStateTransition
+	}
+	if _, err := tx.ExecContext(ctx, `delete from resume_version_suggestions where tailor_run_id = $1`, in.TailorRunID); err != nil {
+		return fmt.Errorf("clear existing resume tailor suggestions: %w", err)
+	}
+	for _, suggestion := range in.Suggestions {
+		if strings.TrimSpace(suggestion.ID) == "" {
+			return fmt.Errorf("resume tailor suggestion id is required")
+		}
+		if _, err := tx.ExecContext(ctx, `
+insert into resume_version_suggestions (
+  id, resume_version_id, tailor_run_id, original_bullet, suggested_bullet,
+  reason, status, created_at
+) values ($1,$2,$3,$4,$5,$6,'pending',$7)`,
+			suggestion.ID,
+			in.ResumeVersionID,
+			in.TailorRunID,
+			suggestion.OriginalBullet,
+			suggestion.SuggestedBullet,
+			nullableString(suggestion.Reason),
+			now,
+		); err != nil {
+			return fmt.Errorf("insert resume tailor suggestion: %w", err)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `
+insert into outbox_events (
+  id, event_name, event_version, aggregate_type, aggregate_id, payload,
+  publish_status, next_attempt_at, created_at
+) values ($1,$2,1,$3,$4,$5,'pending',$6,$6)`,
+		in.OutboxEventID,
+		string(events.EventNameResumeTailorCompleted),
+		string(api.ResourceTypeResumeTailorRun),
+		in.TailorRunID,
+		in.OutboxEventPayload,
+		now,
+	); err != nil {
+		return fmt.Errorf("insert resume tailor completed outbox: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit resume tailor success: %w", err)
+	}
+	return nil
+}
+
 func (r *Repository) MarkTailorRunFailed(ctx context.Context, in TailorRunFailureInput) (TailorRunRecord, error) {
 	if r == nil || r.db == nil {
 		return TailorRunRecord{}, fmt.Errorf("resume store db is nil")
@@ -209,6 +377,63 @@ returning id, user_id, target_job_id, resume_asset_id, mode, status,
 		in.TailorRunID,
 	))
 	return mapTailorRunMutationError(ctx, r.db, in.TailorRunID, rec, err)
+}
+
+func marshalTailorSuggestions(in []TailorSuggestionInput) (json.RawMessage, error) {
+	out := make([]map[string]string, 0, len(in))
+	for _, suggestion := range in {
+		out = append(out, map[string]string{
+			"originalBullet":  suggestion.OriginalBullet,
+			"suggestedBullet": suggestion.SuggestedBullet,
+			"reason":          suggestion.Reason,
+		})
+	}
+	raw, err := json.Marshal(out)
+	if err != nil {
+		return nil, fmt.Errorf("marshal resume tailor suggestions: %w", err)
+	}
+	return raw, nil
+}
+
+func firstStructuredProfileBullet(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	var value any
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return ""
+	}
+	return firstBulletValue(value)
+}
+
+func firstBulletValue(value any) string {
+	switch typed := value.(type) {
+	case map[string]any:
+		for _, key := range []string{"bullets", "items"} {
+			if bullet := firstBulletValue(typed[key]); bullet != "" {
+				return bullet
+			}
+		}
+		for _, key := range []string{"bullet", "text", "description"} {
+			if text, ok := typed[key].(string); ok && strings.TrimSpace(text) != "" {
+				return strings.TrimSpace(text)
+			}
+		}
+		for _, nested := range typed {
+			if bullet := firstBulletValue(nested); bullet != "" {
+				return bullet
+			}
+		}
+	case []any:
+		for _, item := range typed {
+			if bullet := firstBulletValue(item); bullet != "" {
+				return bullet
+			}
+		}
+	case string:
+		return strings.TrimSpace(typed)
+	}
+	return ""
 }
 
 func tailorRunSelectSQL() string {

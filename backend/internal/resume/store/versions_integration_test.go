@@ -8,12 +8,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
+	storeai "github.com/monshunter/easyinterview/backend/internal/store/ai"
 )
 
 func TestStructuredMasterUniqueCrossUserReadinessAndSoftDelete(t *testing.T) {
@@ -424,6 +427,131 @@ func TestResumeTailorRunStoreStateTransitionsIsolationAndClaim(t *testing.T) {
 	}
 	if successes != 1 {
 		t.Fatalf("concurrent successful claims = %d, want 1", successes)
+	}
+}
+
+func TestCompleteTailorRunSuccessWritesSuggestionsAndReadyOnlyOutbox(t *testing.T) {
+	db := openResumeStoreTestDB(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	repo := resumestore.NewRepository(db)
+	base := time.Date(2026, 5, 18, 13, 30, 0, 0, time.UTC)
+	userID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7d001"
+	assetID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7d002"
+	targetID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7d003"
+	versionID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7d004"
+	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7d005"
+	failedRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7d006"
+	t.Cleanup(func() { cleanupResumeStoreUsers(t, db, userID) })
+
+	mustExec(t, ctx, db, `insert into users(id, email, status) values ($1, 'resume-tailor-complete@example.com', 'active')`, userID)
+	mustExec(t, ctx, db, `insert into resume_assets(id, user_id, title, language, parse_status, parsed_summary) values ($1, $2, 'Ready Resume', 'en', 'ready', '{"headline":"Senior engineer"}')`, assetID, userID)
+	mustExec(t, ctx, db, `insert into target_jobs(id, user_id, source_type, analysis_status, title, seniority_level, summary) values ($1, $2, 'manual_text', 'ready', 'Staff Backend Engineer', 'staff', '{"requirements":["distributed systems"]}')`, targetID, userID)
+	mustExec(t, ctx, db, `insert into resume_versions(id, user_id, resume_asset_id, version_type, target_job_id, display_name, structured_profile, created_at, updated_at) values ($1,$2,$3,'targeted',$4,'Targeted','{"sections":[{"bullets":["Led migration."]}]}',$5,$5)`, versionID, userID, assetID, targetID, base)
+	mustExec(t, ctx, db, `insert into resume_tailor_runs(id, user_id, target_job_id, resume_asset_id, mode, status, created_at, updated_at) values ($1,$2,$3,$4,'gap_review','generating',$5,$5), ($6,$2,$3,$4,'gap_review','generating',$5,$5)`, tailorRunID, userID, targetID, assetID, base, failedRunID)
+
+	loaded, err := repo.GetForTailor(ctx, tailorRunID, versionID)
+	if err != nil {
+		t.Fatalf("GetForTailor: %v", err)
+	}
+	if loaded.ResumeVersionID != versionID || loaded.UserID != userID || loaded.TargetTitle != "Staff Backend Engineer" || loaded.TargetSeniority != "staff" {
+		t.Fatalf("loaded context = %+v", loaded)
+	}
+
+	privateText := "PRIVATE_SUGGESTED_BULLET"
+	if err := repo.CompleteTailorRunSuccess(ctx, resumestore.CompleteTailorRunSuccessInput{
+		TailorRunID:     tailorRunID,
+		ResumeVersionID: versionID,
+		MatchSummary:    json.RawMessage(`{"strengths":["Strong systems evidence"],"gaps":["Add scale metrics"]}`),
+		Suggestions: []resumestore.TailorSuggestionInput{
+			{ID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf7e001", OriginalBullet: "Led migration.", SuggestedBullet: privateText, Reason: "Adds scope."},
+			{ID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf7e002", OriginalBullet: "Built services.", SuggestedBullet: "Built reliable services.", Reason: "Adds outcome."},
+		},
+		Provenance: resumestore.VersionProvenance{
+			PromptVersion: "v0.1.0", RubricVersion: "v0.1.0", ModelID: "fixture-model:resume-tailor", Provider: "stub", Language: "en", FeatureFlag: "none", DataSourceVersion: "target_job.v1",
+		},
+		OutboxEventID:      "0195f2d0-4a44-7fc2-8f77-1f9c4cf7e003",
+		OutboxEventPayload: []byte(`{"tailorRunId":"` + tailorRunID + `","resumeAssetId":"` + assetID + `","targetJobId":"` + targetID + `","mode":"gap_review","status":"ready"}`),
+		Now:                base.Add(time.Minute),
+	}); err != nil {
+		t.Fatalf("CompleteTailorRunSuccess: %v", err)
+	}
+	var runStatus string
+	var suggestionCount int
+	if err := db.QueryRowContext(ctx, `select status from resume_tailor_runs where id = $1`, tailorRunID).Scan(&runStatus); err != nil {
+		t.Fatalf("query run status: %v", err)
+	}
+	if runStatus != "ready" {
+		t.Fatalf("run status = %s, want ready", runStatus)
+	}
+	if err := db.QueryRowContext(ctx, `select count(*) from resume_version_suggestions where tailor_run_id = $1 and resume_version_id = $2 and status = 'pending'`, tailorRunID, versionID).Scan(&suggestionCount); err != nil {
+		t.Fatalf("count suggestions: %v", err)
+	}
+	if suggestionCount != 2 {
+		t.Fatalf("suggestion count = %d, want 2", suggestionCount)
+	}
+	var payload []byte
+	if err := db.QueryRowContext(ctx, `select payload from outbox_events where aggregate_id = $1 and event_name = 'resume.tailor.completed'`, tailorRunID).Scan(&payload); err != nil {
+		t.Fatalf("query outbox: %v", err)
+	}
+	var outbox map[string]any
+	if err := json.Unmarshal(payload, &outbox); err != nil {
+		t.Fatalf("decode outbox: %v", err)
+	}
+	if len(outbox) != 5 || outbox["tailorRunId"] != tailorRunID || outbox["status"] != "ready" {
+		t.Fatalf("outbox payload = %+v", outbox)
+	}
+	if strings.Contains(string(payload), privateText) || strings.Contains(string(payload), "Strong systems evidence") {
+		t.Fatalf("outbox payload leaked private content: %s", payload)
+	}
+	taskRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7e004"
+	if err := storeai.NewTaskRunWriter(db).WriteAITaskRun(ctx, aiclient.AITaskRunRow{
+		ID:                  taskRunID,
+		UserID:              userID,
+		Capability:          aiclient.AITaskRunTaskResumeTailor,
+		ResourceType:        aiclient.AITaskRunResourceResumeTailorRun,
+		ResourceID:          tailorRunID,
+		Provider:            "stub",
+		ModelFamily:         "stub",
+		ModelID:             "fixture-model:resume-tailor",
+		PromptVersion:       "v0.1.0",
+		RubricVersion:       "v0.1.0",
+		ModelProfileName:    "resume.tailor.default",
+		ModelProfileVersion: "1.1.0",
+		FeatureKey:          "resume.tailor.gap_review",
+		FeatureFlag:         "none",
+		DataSourceVersion:   "target_job.v1",
+		Language:            "en",
+		InputTokens:         12,
+		OutputTokens:        7,
+		LatencyMs:           20,
+		Status:              aiclient.AITaskRunStatusSuccess,
+		ValidationStatus:    aiclient.ValidationStatusOK,
+		OutputSchemaVersion: "resume.tailor.v1",
+		FallbackChain:       []string{"stub/fixture-model:resume-tailor"},
+		StartedAt:           base,
+		CompletedAt:         base.Add(20 * time.Millisecond),
+	}); err != nil {
+		t.Fatalf("WriteAITaskRun: %v", err)
+	}
+	var taskType, resourceType, featureKey, outputSchemaVersion, validationStatus string
+	if err := db.QueryRowContext(ctx, `select task_type, resource_type, feature_key, output_schema_version, validation_status from ai_task_runs where id = $1`, taskRunID).Scan(&taskType, &resourceType, &featureKey, &outputSchemaVersion, &validationStatus); err != nil {
+		t.Fatalf("query ai_task_runs: %v", err)
+	}
+	if taskType != "resume_tailor" || resourceType != "resume_tailor_run" || featureKey != "resume.tailor.gap_review" || outputSchemaVersion != "resume.tailor.v1" || validationStatus != "ok" {
+		t.Fatalf("ai_task_runs typed columns drift: task=%s resource=%s feature=%s schema=%s validation=%s", taskType, resourceType, featureKey, outputSchemaVersion, validationStatus)
+	}
+
+	if _, err := repo.MarkTailorRunFailed(ctx, resumestore.TailorRunFailureInput{TailorRunID: failedRunID, ErrorCode: "AI_OUTPUT_INVALID", Now: base.Add(2 * time.Minute)}); err != nil {
+		t.Fatalf("MarkTailorRunFailed: %v", err)
+	}
+	var failedOutboxes int
+	if err := db.QueryRowContext(ctx, `select count(*) from outbox_events where aggregate_id = $1 and event_name = 'resume.tailor.completed'`, failedRunID).Scan(&failedOutboxes); err != nil {
+		t.Fatalf("count failed outbox: %v", err)
+	}
+	if failedOutboxes != 0 {
+		t.Fatalf("failed run completed outboxes = %d, want 0", failedOutboxes)
 	}
 }
 
