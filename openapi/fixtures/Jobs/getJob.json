@@ -18,6 +18,24 @@
           "updatedAt": "2026-04-28T13:45:12Z"
         }
       }
+    },
+    "debrief-succeeded": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-20-debrief"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-00000000b400",
+          "jobType": "debrief_generate",
+          "status": "succeeded",
+          "resourceType": "debrief",
+          "resourceId": "01918fa0-0000-7000-8000-00000000a000",
+          "errorCode": null,
+          "createdAt": "2026-04-28T13:45:12Z",
+          "updatedAt": "2026-04-28T13:45:20Z"
+        }
+      }
     }
   }
 }

@@ -151,15 +151,29 @@ export function createDevMockClient(
 	const registry = createDevMockFixtureRegistry();
 	const fixtureFetch = createFixtureBackedFetch(registry, options);
 	let signedIn = false;
+	const debriefJobIds = new Set<string>();
+	const debriefPracticePlanIds = new Set<string>();
 	const fetch: typeof globalThis.fetch = async (input, init) => {
 		const request = readRequest(input, init);
-		const nextInit = withStatefulAuthScenario(init, request, signedIn);
-		const response = await fixtureFetch(input, nextInit);
+		const authInit = withStatefulAuthScenario(init, request, signedIn);
+		const scenarioInit = withStatefulDebriefScenario(
+			authInit,
+			request,
+			debriefJobIds,
+			debriefPracticePlanIds,
+		);
+		const response = await fixtureFetch(input, scenarioInit);
 		if (response.ok && request.method === "GET" && request.path === "/auth/email/verify") {
 			signedIn = true;
 		}
 		if (response.ok && request.method === "POST" && request.path === "/auth/logout") {
 			signedIn = false;
+		}
+		if (response.ok && request.method === "POST" && request.path === "/debriefs") {
+			await rememberDebriefJob(response, debriefJobIds);
+		}
+		if (response.ok && request.method === "POST" && request.path === "/practice/plans") {
+			await rememberDebriefPracticePlan(response, debriefPracticePlanIds);
 		}
 		return response;
 	};
@@ -171,7 +185,7 @@ export function createDevMockClient(
 function readRequest(
 	input: RequestInfo | URL,
 	init?: RequestInit,
-): { method: string; path: string; headers: Headers } {
+): { method: string; path: string; headers: Headers; bodyText?: string } {
 	const method =
 		init?.method ??
 		(input instanceof Request ? input.method : "GET");
@@ -187,6 +201,7 @@ function readRequest(
 		method: method.toUpperCase(),
 		path: stripApiBase(new URL(rawUrl, "http://fixture.local").pathname),
 		headers,
+		bodyText: typeof init?.body === "string" ? init.body : undefined,
 	};
 }
 
@@ -202,9 +217,117 @@ function withStatefulAuthScenario(
 	) {
 		return init;
 	}
-	const headers = new Headers(init?.headers);
+	const headers = new Headers(request.headers);
 	headers.set("Prefer", `example=${signedIn ? "authenticated" : "unauthenticated"}`);
 	return { ...init, headers };
+}
+
+function withStatefulDebriefScenario(
+	init: RequestInit | undefined,
+	request: {
+		method: string;
+		path: string;
+		headers: Headers;
+		bodyText?: string;
+	},
+	debriefJobIds: ReadonlySet<string>,
+	debriefPracticePlanIds: ReadonlySet<string>,
+): RequestInit | undefined {
+	if (request.headers.has("Prefer")) return init;
+	if (request.method === "GET") {
+		const jobId = readPathId(request.path, "/jobs/");
+		if (jobId && debriefJobIds.has(jobId)) {
+			return withPreferScenario(init, request, "debrief-succeeded");
+		}
+	}
+	if (
+		request.method === "POST" &&
+		request.path === "/practice/plans" &&
+		isDebriefPracticePlanRequest(request.bodyText)
+	) {
+		return withPreferScenario(init, request, "debrief-derived");
+	}
+	if (request.method === "POST" && request.path === "/practice/sessions") {
+		const planId = readPracticeSessionPlanId(request.bodyText);
+		if (planId && debriefPracticePlanIds.has(planId)) {
+			return withPreferScenario(init, request, "debrief-derived-first-question");
+		}
+	}
+	return init;
+}
+
+function withPreferScenario(
+	init: RequestInit | undefined,
+	request: { headers: Headers },
+	scenario: string,
+): RequestInit {
+	const headers = new Headers(request.headers);
+	headers.set("Prefer", `example=${scenario}`);
+	return { ...init, headers };
+}
+
+async function rememberDebriefJob(
+	response: Response,
+	debriefJobIds: Set<string>,
+): Promise<void> {
+	const body = await readJsonObject(response);
+	const job = isObject(body?.job) ? body.job : null;
+	if (
+		typeof job?.id === "string" &&
+		job.jobType === "debrief_generate" &&
+		job.resourceType === "debrief"
+	) {
+		debriefJobIds.add(job.id);
+	}
+}
+
+async function rememberDebriefPracticePlan(
+	response: Response,
+	debriefPracticePlanIds: Set<string>,
+): Promise<void> {
+	const body = await readJsonObject(response);
+	if (typeof body?.id === "string" && body.goal === "debrief") {
+		debriefPracticePlanIds.add(body.id);
+	}
+}
+
+async function readJsonObject(response: Response): Promise<Record<string, unknown> | null> {
+	try {
+		const body: unknown = await response.clone().json();
+		return isObject(body) ? body : null;
+	} catch {
+		return null;
+	}
+}
+
+function isDebriefPracticePlanRequest(bodyText: string | undefined): boolean {
+	const body = parseJsonObject(bodyText);
+	return body?.goal === "debrief";
+}
+
+function readPracticeSessionPlanId(bodyText: string | undefined): string | null {
+	const body = parseJsonObject(bodyText);
+	return typeof body?.planId === "string" ? body.planId : null;
+}
+
+function parseJsonObject(bodyText: string | undefined): Record<string, unknown> | null {
+	if (!bodyText) return null;
+	try {
+		const parsed: unknown = JSON.parse(bodyText);
+		return isObject(parsed) ? parsed : null;
+	} catch {
+		return null;
+	}
+}
+
+function readPathId(path: string, prefix: string): string | null {
+	if (!path.startsWith(prefix)) return null;
+	const rest = path.slice(prefix.length);
+	return rest && !rest.includes("/") ? decodeURIComponent(rest) : null;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
 }
 
 function stripApiBase(path: string): string {

@@ -1,8 +1,8 @@
 # 001 Debrief Screen and Handoff Test Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-17
+> **更新日期**: 2026-05-18
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 **关联计划**: [plan](./plan.md)
@@ -15,6 +15,12 @@
 - BDD evidence: P0.065-P0.069 ran sequentially through `setup.sh -> trigger.sh -> verify.sh -> cleanup.sh` and passed; P0.069 includes frontend build, `tests/pixel-parity/debrief.spec.ts`, legacy lint, and scenario-tree legacy grep.
 - Gate evidence: final close-out re-runs `make validate-fixtures`, `pnpm --filter @easyinterview/frontend typecheck`, `pnpm --filter @easyinterview/frontend lint`, `python3 -m pytest scripts/lint -q`, `make docs-check`, and `git diff --check`.
 - Review-fix evidence: follow-up red tests covered invalid JD filter, resume picker asset-phase skip, missing manual fallback, missing `myAnswerSummary`, and replay CTA without a fresh session; focused green runs cover debrief Vitest regressions plus backend-practice list endpoint tests.
+
+## 2026-05-18 Mock Flow Remediation Evidence
+
+- [x] Red: focused frontend tests proved default `createDevMockClient()` left `createDebrief -> getJob` stuck before the remediation: `pnpm --filter @easyinterview/frontend exec vitest run src/api/devMockClient.test.ts -t "advances the created debrief job"` failed with `report_generate/running`; `pnpm --filter @easyinterview/frontend exec vitest run src/app/screens/debrief/DebriefScreen.test.tsx -t "default fixture-backed dev mock"` failed with `debrief-analysis-pending`.
+- [x] Green: focused frontend tests prove default `createDevMockClient()` returns succeeded `debrief_generate` job for the created debrief job id and debrief-derived practice fixtures for replay: `pnpm --filter @easyinterview/frontend exec vitest run src/api/devMockClient.test.ts -t "debrief"` passed.
+- [x] Green: `DebriefScreen` fixture-backed dev mock test proves Step 0 submit renders `debrief-analysis-step`, Step 1 advance renders `debrief-replay-plan`, and Step 2 CTA navigates to `practice` with fresh `planId/sessionId/practiceGoal='debrief'`: `pnpm --filter @easyinterview/frontend exec vitest run src/app/screens/debrief/DebriefScreen.test.tsx` and `pnpm --filter @easyinterview/frontend exec vitest run src/app/screens/debrief` passed.
 
 ## Phase 0: 依赖验证
 

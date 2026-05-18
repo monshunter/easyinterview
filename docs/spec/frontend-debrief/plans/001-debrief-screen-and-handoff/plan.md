@@ -1,8 +1,8 @@
 # 001 Debrief Screen and Handoff
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-17
+> **更新日期**: 2026-05-18
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -41,6 +41,14 @@
   - Runtime route / async polling drift gate：`getJob` 或任何 frontend-consumed polling operation 的完成证据必须同时覆盖 generated client + fixture + real `backend/cmd/api` route mount + handler/store owner scope + focused Go tests；BUG-0070 证据为 `go test ./internal/jobs ./internal/api/jobs ./internal/store/jobs ./cmd/api -count=1`
   - 隐私红线：Vitest fixture spy 不接收 raw entries / notes；URL/localStorage/sessionStorage/console.log 扫描
   - Legacy negative：`grep -rn "experience_library\|star_editor\|drill_builder\|mistakes_book\|growth_center\|report_timeline" frontend/src/app/screens/debrief/ frontend/src/app/i18n/locales/ test/scenarios/e2e/p0-06[56789]-*` 不命中
+
+## 2026-05-18 Mock Flow Remediation
+
+用户在默认 Vite dev fixture-backed mock 中无法看到 Step 1 `复盘分析` 与 Step 2 `复盘面试`：`createDebrief` 返回的 `debrief_generate` job id 继续被 `getJob` 的 generic `default` fixture 解析为 `report_generate/running`，导致 Step 1 永久显示 `AI 分析中...`，Step 2 无法访问。本次修复维持现有 UI 与 OpenAPI 语义不变，只补齐 dev mock 的异步 job 场景推进：
+
+- `openapi/fixtures/Jobs/getJob.json` 增加 `debrief-succeeded` 场景，匹配 `createDebrief` default 返回的 debrief job。
+- `frontend/src/api/devMockClient.ts` 记录 dev mock 中 `POST /debriefs` 返回的 debrief job id，并在后续无显式 `Prefer` 的 `GET /jobs/{jobId}` 请求上自动选择 `Prefer: example=debrief-succeeded`；同时把 `goal='debrief'` 的 replay plan/session 请求自动映射到 debrief-derived practice fixtures。
+- 回归测试覆盖 generated dev mock client 的 `createDebrief -> getJob` 状态推进、debrief-derived practice fixture 选择，以及 `DebriefScreen` 在真实 fixture-backed dev mock client 下从 Step 0 提交进入 Step 1 分析，再进入 Step 2 并触发 fresh practice handoff。
 
 ## 4 实施步骤
 
