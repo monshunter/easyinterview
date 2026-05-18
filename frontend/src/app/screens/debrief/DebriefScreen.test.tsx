@@ -2,7 +2,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
-import type { EasyInterviewClient } from "../../../api/generated/client";
+import { createDevMockClient } from "../../../api/devMockClient";
+import type {
+  EasyInterviewClient,
+  RequestOptions,
+} from "../../../api/generated/client";
 import type {
   Debrief,
   Job,
@@ -25,6 +29,10 @@ function renderDebriefScreen(
     client?: EasyInterviewClient;
     lang?: "zh" | "en";
     params?: Record<string, string>;
+    requestOptions?: {
+      runtimeConfig?: RequestOptions;
+      getMe?: RequestOptions;
+    };
   } = {},
 ) {
   const screen = (
@@ -33,7 +41,12 @@ function renderDebriefScreen(
     />
   );
   const wrapped = options.client ? (
-    <AppRuntimeProvider client={options.client}>{screen}</AppRuntimeProvider>
+    <AppRuntimeProvider
+      client={options.client}
+      requestOptions={options.requestOptions}
+    >
+      {screen}
+    </AppRuntimeProvider>
   ) : (
     screen
   );
@@ -355,6 +368,51 @@ describe("DebriefScreen — TestDebriefScreen_DefaultRender", () => {
           resumeVersionId: "rv-3",
           sessionId: "ps-debrief-new",
           targetJobId: "tj-1",
+        }),
+      });
+    });
+  });
+
+  it("runs the default fixture-backed dev mock flow through analysis and replay handoff", async () => {
+    const navigate = vi.fn();
+    const client = createDevMockClient();
+    renderDebriefScreen(navigate, {
+      client,
+      lang: "zh",
+      requestOptions: {
+        getMe: { headers: { Prefer: "example=authenticated" } },
+      },
+      params: {
+        targetJobId: "01918fa0-0000-7000-8000-000000002000",
+        sessionId: "01918fa0-0000-7000-8000-000000005000",
+        resumeVersionId: "0195f2d0-0001-7000-8000-000000000202",
+      },
+    });
+
+    await screen.findByTestId("debrief-guided-current");
+    fireEvent.click(screen.getByTestId("debrief-suggested-question-occurred"));
+    fireEvent.change(screen.getByTestId("debrief-guided-editor-answer"), {
+      target: { value: "我补充了 owner 决策、迁移节奏和量化指标。" },
+    });
+    fireEvent.click(screen.getByTestId("debrief-guided-editor-save"));
+    fireEvent.click(screen.getByTestId("debrief-submit-btn"));
+
+    expect(await screen.findByTestId("debrief-analysis-step")).toBeInTheDocument();
+    expect(screen.queryByTestId("debrief-analysis-pending")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("debrief-analysis-advance"));
+    expect(await screen.findByTestId("debrief-replay-plan")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("debrief-start-interview-btn"));
+
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith({
+        name: "practice",
+        params: expect.objectContaining({
+          debriefId: "01918fa0-0000-7000-8000-00000000a000",
+          planId: "01918fa0-0000-7000-8000-000000004700",
+          practiceGoal: "debrief",
+          sessionId: "01918fa0-0000-7000-8000-000000005700",
+          targetJobId: "01918fa0-0000-7000-8000-000000002000",
         }),
       });
     });

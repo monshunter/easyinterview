@@ -1,8 +1,8 @@
 # 001 Debrief Screen and Handoff Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-17
+> **更新日期**: 2026-05-18
 
 **关联计划**: [plan](./plan.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -26,6 +26,7 @@
 - [x] RF.2 picker 真实 backend 契约修复：JD picker 改为 `analysisStatus='ready'`；Resume picker 重开时回到 asset list 并保留 asset object；Mock Session picker 依赖真实 `GET /api/v1/practice/sessions` handler/service/store，Go 单测覆盖 list filter / fixture parity / cursor。
 - [x] RF.3 Step 2 replay 修复：`handleStartReplay` 调 `createPracticePlan(goal='debrief', sourceDebriefId)` + `startPracticeSession` 创建 fresh session，再 nav practice with `planId/sessionId`；不再复用 completed mock session id，也不再无 sessionId 进入 PracticeScreen。
 - [x] RF.4 BUG-0070 async polling runtime gate：`getJob` 不再只依赖 fixture / generated client；真实后端新增 `GET /api/v1/jobs/{jobId}` route、Jobs handler/domain/store，并按 `async_jobs.resource_type` 回查 owner resource（含 `debriefs.user_id`）限制访问；验证: `go test ./internal/jobs ./internal/api/jobs ./internal/store/jobs ./cmd/api -count=1`。
+- [x] RF.5 默认 dev mock 复盘全流程修复：`createDevMockClient()` 必须把 `POST /debriefs` 返回的 debrief job id 映射到 `getJob` 的 succeeded debrief 场景，并把 `goal='debrief'` replay plan/session 请求映射到 debrief-derived fixtures，确保无真实 backend 时 `DebriefScreen` 不会永久停在 `AI 分析中...`，并可进入 Step 2 复盘面试 handoff；验证：`pnpm --filter @easyinterview/frontend exec vitest run src/api/devMockClient.test.ts`、`pnpm --filter @easyinterview/frontend exec vitest run src/app/screens/debrief/DebriefScreen.test.tsx`、`pnpm --filter @easyinterview/frontend exec vitest run src/app/screens/debrief`、`pnpm --filter @easyinterview/frontend typecheck`、`make validate-fixtures`。
 
 ## Phase 1: DebriefScreen shell + Header + ContextStrip + Stepper
 

@@ -34,15 +34,16 @@
   3. 若已经在默认父分支产生当前会话改动，先确认父分支与远端同步，再 `git switch -c <feature-branch>` 保留改动并报告恢复动作。
   4. 若 dirty 内容来源不明或可能属于用户，停止并询问用户；禁止擅自 `stash`、`reset`、`checkout` 或把不明改动提交进当前任务。
 
-## 模式 3：Vite dev 中相对 API base URL 误打前端端口
+## 模式 3：Vite dev 默认 mock 路径没有覆盖真实预览语义
 
-- **相关 Bug**：BUG-0036
-- **典型症状**：前端 dev server 运行在 `5173`，页面请求 `/api/v1/...` 时 Network 面板显示目标也是 `localhost:5173`；后端未启动时大量真实 API 报错，已开发页面因 bootstrap data 失败而无法查看；组件测试能过，但真实 `main.tsx` 启动路径失败。
+- **相关 Bug**：BUG-0036, BUG-0078
+- **典型症状**：前端 dev server 运行在 `5173`，页面请求 `/api/v1/...` 时 Network 面板显示目标也是 `localhost:5173`；后端未启动时大量真实 API 报错，已开发页面因 bootstrap data 失败而无法查看；组件测试能过，但真实 `main.tsx` 启动路径失败。另一类症状是页面确实走了 fixture-backed mock，但跨 operation 的 async job / derived handoff 没有状态推进，用户在默认 dev mock 下卡在 loading 或进入错误的 baseline fixture。
 - **检查清单**：
   1. 检查 generated client 是否默认使用相对 `/api/v1`，以及 Vite config 是否有显式 `/api` proxy；没有 proxy 时相对 URL 会落到前端 origin。
   2. 检查 `main.tsx` 是否直接 `new EasyInterviewClient()`；正式 app bootstrap 必须通过可测试 factory 选择 dev mock / real backend 模式。
   3. Vite dev 默认应能在 backend absent 时展示 fixture-backed 页面；真实 backend 模式必须显式 opt-in，并指向 backend port 或 `VITE_EI_API_BASE_URL`。
-  4. Playwright smoke 不应只靠 route mock；至少有一条 dev-preview smoke 断言真实页面加载期间没有意外 `/api/v1` network request。
+  4. 对包含 `create* -> getJob -> get*` 或 `create* -> start*` 的流程，必须用默认 `createDevMockClient()` 写一条跨 operation regression，证明无显式 `Prefer` 时 fixture state 能推进到用户可见下一步。
+  5. Playwright smoke 不应只靠 route mock；至少有一条 dev-preview smoke 断言真实页面加载期间没有意外 `/api/v1` network request，或有等价的 fixture-backed full-flow 测试覆盖正式 bootstrap mock 语义。
 
 ## 模式 4：Completed checklist 掩盖未执行的 runner gate
 
