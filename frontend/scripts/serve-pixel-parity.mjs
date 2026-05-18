@@ -3,10 +3,19 @@
  * Static fixture server for the pixel-parity Playwright suite.
  *
  * Truth source: docs/spec/frontend-shell/plans/003-ui-design-pixel-parity-
- * gate/plan.md §4 Phase 1.3. Mounts:
+ * gate/plan.md §4 Phase 1.3 + docs/spec/frontend-shell/plans/004-url-
+ * addressable-routing/plan.md §6 Phase 4.1. Mounts:
  *   - `frontend/dist/`        at `/`             (production frontend bundle)
  *   - `ui-design/`            at `/ui-design/`   (golden preview prototype)
  *   - `/health`               -> 200 "ok"        (Playwright webServer probe)
+ *   - SPA fallback            -> serves `frontend/dist/index.html` for any
+ *                                canonical frontend path (see {@link
+ *                                FRONTEND_FALLBACK_PATH_PREFIXES}) so reload
+ *                                / direct-open of `/workspace`,
+ *                                `/auth/login`, etc. lands on the App shell
+ *                                instead of 404.
+ *   - `/api/*`, `/openapi/*`, `/ui-design/*`, `/health` and file requests
+ *     with an extension are NEVER swallowed by the SPA fallback.
  *
  * Hard requirements:
  *   - Node built-ins only (no third-party deps).
@@ -18,6 +27,8 @@ import { createServer } from "node:http";
 import { createReadStream, statSync, existsSync } from "node:fs";
 import { extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { resolveSpaFallback } from "./spaFallback.mjs";
 
 const HOST = "127.0.0.1";
 const PORT = Number(process.env.PIXEL_PARITY_PORT ?? 4173);
@@ -105,7 +116,26 @@ const server = createServer((req, res) => {
       absolute = join(absolute, "index.html");
     }
   } catch {
-    // not found
+    // SPA fallback (plan 004 Phase 4.1) — serve `index.html` when the path
+    // is a canonical frontend route so reload / direct-open of
+    // `/workspace?targetJobId=...` lands on the App shell.
+    const fallback = resolveSpaFallback(req.url ?? "/", FRONTEND_DIST);
+    if (fallback) {
+      const html = fallback.absolute;
+      res.writeHead(200, {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "no-store",
+      });
+      createReadStream(html)
+        .on("error", () => {
+          res.writeHead(500);
+          res.end("read error");
+        })
+        .pipe(res);
+      return;
+    }
+    // not found — never swallow `/api/*`, `/openapi/*`, scenario script
+    // paths or asset 404s with the SPA fallback.
     res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
     res.end(`not found: ${req.url}`);
     return;

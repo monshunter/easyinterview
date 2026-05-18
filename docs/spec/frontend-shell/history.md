@@ -1,6 +1,6 @@
 # Frontend Shell History
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: active
 > **更新日期**: 2026-05-18
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-18 | 1.16 | 关闭 URL-addressable routing 004 计划：落地 `frontend/src/app/routeUrl.ts` 类型化 codec + safe-param allowlist、`frontend/src/app/routeStore.ts` Browser History store（push/replace/popstate）、`pendingAction` canonical 过滤、`scripts/spaFallback.mjs` SPA host fallback 与 `vite.config.ts` `appType: "spa"`；新增 E2E.P0.088 / 089 / 090 三场景（in-process vitest jsdom）覆盖 C-11/C-12/C-13；retired aliases 与独立 voice 路由通过负向 grep 阻断。 | 004-url-addressable-routing |
 | 2026-05-18 | 1.15 | 锁定 URL-addressable routing 方向：保持 SPA，但正式导航升级为 Browser History canonical path + query，内部继续使用 `Route` / `LooseRoute` 合约；`#route=` 保留为 static preview / pixel parity adapter；新增 D-10 与 C-11 / C-12 / C-13，固化 deep-link / reload / back-forward、auth pendingAction 隐私红线、hash compatibility 与旧 route / 独立 `voice` 负向回归。 | 004-url-addressable-routing |
 | 2026-05-11 | 1.14 | 修订 Phase 6 登录态与真实浏览器 parity：authenticated user menu 进入 `test:pixel-parity`，完整 gate 扩展为 8 spec / 112 tests；desktop dropdown 与头像 chip 右对齐，mobile dropdown 必须保持在 viewport 内，logout flow 回到非登录态；001 计划补齐 Phase 6 operation matrix。 | 001-app-shell-auth-settings / 003-ui-design-pixel-parity-gate |
 | 2026-05-10 | 1.13 | 修订真实浏览器 pixel parity gate：完整 `test:pixel-parity` 扩展为 8 spec / 110 tests，常规 clean checkout gate 不得依赖 ignored screenshot baseline；workspace full-state pixel tests 必须通过 server-bound route params 进入完整规划态，不依赖 Home recent card 的 `resume-unbound` synthetic path。 | 003-ui-design-pixel-parity-gate |

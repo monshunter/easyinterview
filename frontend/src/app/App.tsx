@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type FC,
-  type ReactNode,
-} from "react";
+import { useEffect, useMemo, type FC, type ReactNode } from "react";
 
 import type {
   EasyInterviewClient,
@@ -24,13 +17,13 @@ import {
   type Lang,
 } from "./display/DisplayPreferencesProvider";
 import { NavigationProvider } from "./navigation/NavigationProvider";
-import { normalizeRoute, type LooseRoute } from "./normalizeRoute";
+import { type LooseRoute } from "./normalizeRoute";
 import {
-  DEFAULT_ROUTE,
   isChromeHidden,
   shouldCarryInterviewContext,
   type Route,
 } from "./routes";
+import { useBrowserRoute } from "./routeStore";
 import {
   AppRuntimeProvider,
   useAppRuntimeOptional,
@@ -209,12 +202,7 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
   initialRoute,
   children,
 }) => {
-  const [route, setRoute] = useState<Route>(() =>
-    initialRoute ? normalizeRoute(initialRoute) : DEFAULT_ROUTE,
-  );
-  const navigate = useCallback((next: LooseRoute) => {
-    setRoute(normalizeRoute(next));
-  }, []);
+  const { route, navigate } = useBrowserRoute({ initialRoute });
   const navigationValue = useMemo(() => ({ navigate }), [navigate]);
   const hideChrome = isChromeHidden(route.name);
   const runtime = useAppRuntimeOptional();

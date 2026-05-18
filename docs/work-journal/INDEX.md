@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-18](2026-05-18.md) | `feat(frontend-shell): land url-addressable browser history routing` | #feat #ui #test #docs #bdd |
 | [2026-05-18](2026-05-18.md) | `docs(frontend-shell): add url-addressable routing plan 004` | #docs |
 | [2026-05-18](2026-05-18.md) | `fix(frontend-debrief): repair dev mock debrief flow (BUG-0078)` | #fix #ui #test #docs |
 | [2026-05-18](2026-05-18.md) | `fix(resume-workshop): close real backend gaps (BUG-0076, BUG-0077)` | #fix #api #ui #test #docs #i18n |

@@ -59,8 +59,12 @@ describe("pixel parity scaffold (Phase 1.1 + 1.2 + 1.3)", () => {
   it("ships the serve-pixel-parity.mjs static server fixture", () => {
     expect(existsSync(SERVE_SCRIPT)).toBe(true);
     const src = readFileSync(SERVE_SCRIPT, "utf8");
-    // Must use only Node built-in `http` module — no third-party deps.
-    expect(src).not.toMatch(/from\s+["'](?!node:|http$|fs$|path$|url$)/);
+    // Must use only Node built-ins or local sibling `.mjs` files — no
+    // third-party deps. Allowed: `node:*`, bare http/fs/path/url, or any
+    // relative path starting with `./` or `../`.
+    expect(src).not.toMatch(
+      /from\s+["'](?!node:|http$|fs$|path$|url$|\.\/|\.\.\/)/,
+    );
     expect(src).toMatch(/createServer/);
     // Health probe path expected by playwright.config.ts.
     expect(src).toMatch(/['"]\/health['"]/);

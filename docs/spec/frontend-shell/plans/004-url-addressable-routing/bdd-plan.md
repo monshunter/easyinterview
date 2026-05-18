@@ -1,7 +1,7 @@
 # URL-Addressable Routing BDD Plan
 
-> **版本**: 1.0
-> **状态**: active
+> **版本**: 1.1
+> **状态**: completed
 > **更新日期**: 2026-05-18
 
 ## 1 Scenario Map

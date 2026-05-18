@@ -1,0 +1,258 @@
+// @vitest-environment jsdom
+/**
+ * E2E.P0.088 — Canonical path deep-link / reload / browser history.
+ *
+ * Truth source: docs/spec/frontend-shell/plans/004-url-addressable-routing/
+ * bdd-plan.md §2 (E2E.P0.088) + bdd-checklist.md.
+ *
+ * Given the App is built with the Browser History router and the Plan 004
+ * route store, this scenario asserts that:
+ *   - Direct-open of canonical workspace / practice / generating / report /
+ *     resume-versions / debrief deep links lands on the correct route +
+ *     params.
+ *   - InterviewContext hydrates from URL safe params.
+ *   - TopBar active state + chrome-hidden behaviour match the route
+ *     catalog.
+ *   - Reload preserves resource context (verified by re-mount).
+ *   - Back / forward updates state without double-push or lost params.
+ *   - Current cross-owner handoff keys survive allowlist filtering.
+ *   - Unknown / malformed query falls back without crashing.
+ */
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import type { FC } from "react";
+
+import { App } from "../App";
+import { useNavigation } from "../navigation/NavigationProvider";
+
+const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
+const REPORT_ID = "01918fa0-0000-7000-8000-00000000a000";
+const TAILOR_RUN_ID = "01918fa0-0000-7000-8000-00000000b000";
+const DEBRIEF_ID = "01918fa0-0000-7000-8000-00000000c000";
+const DEBRIEF_JOB_ID = "01918fa0-0000-7000-8000-00000000d000";
+// Non-UUID id intentionally: WorkspaceScreen falls through to
+// `workspace-empty` placeholder (no network fetch) without a runtime
+// client, keeping the scenario URL-only and contract-light.
+const TARGET_JOB_ID = "tj-canonical";
+const RESUME_VERSION_ID = "01918fa0-0000-7000-8000-000000001000";
+const PLAN_ID = "01918fa0-0000-7000-8000-000000004000";
+
+function resetWindow(): void {
+  delete (window as { __EASYINTERVIEW_INITIAL_ROUTE__?: unknown })
+    .__EASYINTERVIEW_INITIAL_ROUTE__;
+  window.history.replaceState(null, "", "/");
+}
+
+beforeEach(resetWindow);
+afterEach(resetWindow);
+
+const NavBatch: FC = () => {
+  const { navigate } = useNavigation();
+  return (
+    <>
+      <button
+        type="button"
+        data-testid="go-workspace-replay"
+        onClick={() =>
+          navigate({
+            name: "workspace",
+            params: {
+              targetJobId: TARGET_JOB_ID,
+              resumeVersionId: RESUME_VERSION_ID,
+              planId: PLAN_ID,
+              autoStartPractice: "1",
+            },
+          })
+        }
+      >
+        workspace
+      </button>
+      <button
+        type="button"
+        data-testid="go-practice-voice"
+        onClick={() =>
+          navigate({
+            name: "practice",
+            params: {
+              sessionId: SESSION_ID,
+              mode: "voice",
+              modality: "voice",
+              planId: PLAN_ID,
+            },
+          })
+        }
+      >
+        practice voice
+      </button>
+      <button
+        type="button"
+        data-testid="go-report-failed"
+        onClick={() =>
+          navigate({
+            name: "report",
+            params: {
+              sessionId: SESSION_ID,
+              reportId: REPORT_ID,
+              reportStatus: "failed",
+              errorCode: "AI_PROVIDER_TIMEOUT",
+            },
+          })
+        }
+      >
+        report
+      </button>
+    </>
+  );
+};
+
+describe("E2E.P0.088 canonical path deep-link / reload / browser history", () => {
+  it("direct-open /workspace?targetJobId=...&autoStartPractice=1 keeps URL canonical and TopBar active", () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/workspace?targetJobId=${TARGET_JOB_ID}&resumeVersionId=${RESUME_VERSION_ID}&planId=${PLAN_ID}&autoStartPractice=1`,
+    );
+    render(<App />);
+    expect(screen.getByTestId("workspace-empty")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/workspace");
+    const search = new URLSearchParams(window.location.search);
+    expect(search.get("targetJobId")).toBe(TARGET_JOB_ID);
+    expect(search.get("resumeVersionId")).toBe(RESUME_VERSION_ID);
+    expect(search.get("planId")).toBe(PLAN_ID);
+    expect(search.get("autoStartPractice")).toBe("1");
+    expect(screen.getByTestId("topbar-nav-workspace")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
+  it("direct-open /practice?mode=voice&modality=voice hides chrome and mounts voice surface", () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/practice?sessionId=${SESSION_ID}&mode=voice&modality=voice&planId=${PLAN_ID}`,
+    );
+    render(<App />);
+    expect(screen.getByTestId("practice-voice-waveform")).toBeInTheDocument();
+    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(window.location.pathname).toBe("/practice");
+  });
+
+  it("direct-open /generating?reportId=... mounts GeneratingScreen with chrome hidden", () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/generating?sessionId=${SESSION_ID}&reportId=${REPORT_ID}`,
+    );
+    render(<App />);
+    expect(screen.getByTestId("generating-screen")).toBeInTheDocument();
+    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+  });
+
+  it("direct-open /report?reportStatus=failed dispatches ReportFailureState", () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/report?sessionId=${SESSION_ID}&reportId=${REPORT_ID}&reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT`,
+    );
+    render(<App />);
+    expect(screen.getByTestId("report-failure-state")).toBeInTheDocument();
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+  });
+
+  it("direct-open /resume-versions?tab=rewrites&tailorRunId=... preserves resume workshop deep-link keys", () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/resume-versions?tab=rewrites&tailorRunId=${TAILOR_RUN_ID}`,
+    );
+    render(<App />);
+    expect(screen.getByTestId("resume-workshop-screen")).toBeInTheDocument();
+    const search = new URLSearchParams(window.location.search);
+    expect(search.get("tab")).toBe("rewrites");
+    expect(search.get("tailorRunId")).toBe(TAILOR_RUN_ID);
+  });
+
+  it("direct-open /debrief?debriefId=...&debriefJobId=... preserves debrief context", () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/debrief?targetJobId=${TARGET_JOB_ID}&debriefId=${DEBRIEF_ID}&debriefJobId=${DEBRIEF_JOB_ID}`,
+    );
+    render(<App />);
+    const search = new URLSearchParams(window.location.search);
+    expect(search.get("debriefId")).toBe(DEBRIEF_ID);
+    expect(search.get("debriefJobId")).toBe(DEBRIEF_JOB_ID);
+    expect(search.get("targetJobId")).toBe(TARGET_JOB_ID);
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+  });
+
+  it("App navigation pushes 3 history entries and back/forward restores chrome state", async () => {
+    render(
+      <App>
+        <NavBatch />
+      </App>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("go-workspace-replay"));
+    await waitFor(() => screen.getByTestId("workspace-empty"));
+    await user.click(screen.getByTestId("go-practice-voice"));
+    await waitFor(() => screen.getByTestId("practice-voice-waveform"));
+    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("go-report-failed"));
+    await waitFor(() => screen.getByTestId("report-failure-state"));
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+
+    // BACK twice: report → practice → workspace
+    act(() => {
+      window.history.back();
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await waitFor(() => screen.getByTestId("practice-voice-waveform"));
+    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+
+    act(() => {
+      window.history.back();
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await waitFor(() => screen.getByTestId("workspace-empty"));
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+
+    // FORWARD twice: workspace → practice → report
+    act(() => {
+      window.history.forward();
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await waitFor(() => screen.getByTestId("practice-voice-waveform"));
+    act(() => {
+      window.history.forward();
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await waitFor(() => screen.getByTestId("report-failure-state"));
+  });
+
+  it("malformed query (unknown keys) falls back without crashing", () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/workspace?bogusKey=42&targetJobId=tj-ok&another=zz",
+    );
+    render(<App />);
+    expect(screen.getByTestId("workspace-empty")).toBeInTheDocument();
+    expect(window.location.search).toBe("?targetJobId=tj-ok");
+  });
+
+  it("hash `#route=workspace&targetJobId=...` boot rewrites URL to canonical /workspace", () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/#route=workspace&targetJobId=${TARGET_JOB_ID}`,
+    );
+    render(<App />);
+    expect(window.location.pathname).toBe("/workspace");
+    expect(window.location.hash).toBe("");
+    expect(window.location.search).toBe(`?targetJobId=${TARGET_JOB_ID}`);
+    expect(screen.getByTestId("workspace-empty")).toBeInTheDocument();
+  });
+});

@@ -72,4 +72,52 @@ describe("pendingAction encode/decode", () => {
       targetJobId: "tj-1",
     });
   });
+
+  it("drops raw payload / AI prompt / auth secret keys at encode (plan 004 §3.1)", () => {
+    const encoded = encodePendingAction({
+      type: "start_practice",
+      label: "立即面试",
+      route: "practice",
+      params: {
+        planId: "plan-1",
+        rawText: "raw JD body",
+        guidedAnswers: "user answer text",
+        prompt: "ai prompt",
+        token: "secret-token",
+        password: "hunter2",
+      },
+    });
+    expect(encoded).toMatchObject({
+      pendingRoute: "practice",
+      pendingType: "start_practice",
+      pendingLabel: "立即面试",
+      planId: "plan-1",
+    });
+    expect(encoded.rawText).toBeUndefined();
+    expect(encoded.guidedAnswers).toBeUndefined();
+    expect(encoded.prompt).toBeUndefined();
+    expect(encoded.token).toBeUndefined();
+    expect(encoded.password).toBeUndefined();
+  });
+
+  it("drops raw payload / AI prompt / auth secret keys at decode (plan 004 §3.1)", () => {
+    const decoded = decodePendingActionRoute({
+      pendingRoute: "workspace",
+      pendingType: "replay_practice",
+      pendingLabel: "复练当前轮",
+      planId: "plan-1",
+      targetJobId: "tj-1",
+      rawText: "raw JD body",
+      guidedAnswers: "answers",
+      prompt: "ai prompt",
+      token: "secret-token",
+      password: "hunter2",
+    });
+    expect(decoded).not.toBeNull();
+    expect(decoded?.name).toBe("workspace");
+    expect(decoded?.params).toEqual({
+      planId: "plan-1",
+      targetJobId: "tj-1",
+    });
+  });
 });
