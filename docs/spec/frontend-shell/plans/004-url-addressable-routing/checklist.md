@@ -1,6 +1,6 @@
 # URL-Addressable Routing Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-18
 
@@ -16,13 +16,13 @@
 
 - [x] 2.1 Move initial route bootstrap to browser-aware route store; verification: jsdom tests cover priority `__EASYINTERVIEW_INITIAL_ROUTE__` > canonical path > hash adapter > default home. Evidence: `frontend/src/app/routeStore.ts` `resolveInitialRoute` + `routeStore.test.ts` (9 tests).
 - [x] 2.2 Keep `NavigationProvider.navigate(next)` API while routing through `pushState` / `replaceState`; verification: App navigation updates URL and route state once, does not double-push identical route, and keeps TopBar active state. Evidence: `AppRoutingHistory.test.tsx` (Phase 2.2 cluster: navigate via pushState, no double-push, aria-current preserved).
-- [x] 2.3 Implement `popstate` handling; verification: back/forward restore route params, InterviewContext hydration and chrome-hidden behavior for `practice` / `generating`. Evidence: `AppRoutingHistory.test.tsx` (Phase 2.3 cluster: popstate restores route + chrome state for practice/generating).
+- [x] 2.3 Implement `popstate` handling; verification: back/forward restore route params, InterviewContext hydration, chrome-hidden behavior for `practice` / `generating`, and hostile history entries are immediately replaced with canonical safe URLs. Evidence: `AppRoutingHistory.test.tsx` (Phase 2.3 cluster: popstate restores route + chrome state for practice/generating) + `AppRoutingPrivacy.test.tsx` hostile popstate canonicalization.
 
 ## Phase 3: Auth and privacy
 
 - [x] 3.1 Restore auth pendingAction through canonical route; verification: login success returns to the original path and safe params, including workspace/practice/report replay, resume create/branch, home import, jd_match Recommended/Search pending action and debrief contexts. Evidence: `frontend/src/app/auth/pendingAction.ts` now filters params through `isSafeRouteParam`; `AppPendingAction.test.tsx` + `pendingActionReplayPractice.test.ts` round-trip green.
-- [x] 3.2 Add URL/privacy redline tests; verification: raw JD, source URL, jd_match query/label, resume text, guided answers, parsed summary, structured profile, suggestion text, question/answer text, debrief notes, AI prompt / response and auth/session secrets have zero hits in URL, history state, pendingAction, localStorage, sessionStorage, console and mock transport logs. Evidence: `AppRoutingPrivacy.test.tsx` + `pendingAction.test.ts` 19 raw-marker drop assertions.
-- [x] 3.3 BDD-Gate: E2E.P0.089 auth pendingAction + URL privacy redline PASS. Evidence: `test/scenarios/e2e/p0-089-url-routing-auth-privacy/` setup+trigger+verify (3 tests pass, raw markers grep blocked).
+- [x] 3.2 Add URL/privacy redline tests; verification: raw JD, source URL, jd_match query/label, resume text, guided answers, parsed summary, structured profile, suggestion text, question/answer text, debrief notes, AI prompt / response and auth/session secrets have zero hits in URL, history state, pendingAction, localStorage, sessionStorage, console and mock transport logs, including hostile `popstate` restoration from pre-existing raw URL/hash/history.state entries. Evidence: `AppRoutingPrivacy.test.tsx` (6 tests) + `pendingAction.test.ts` 19 raw-marker drop assertions.
+- [x] 3.3 BDD-Gate: E2E.P0.089 auth pendingAction + URL privacy redline PASS. Evidence: `test/scenarios/e2e/p0-089-url-routing-auth-privacy/` setup+trigger+verify (4 tests pass, raw markers grep blocked, hostile popstate scrubbed).
 
 ## Phase 4: Host fallback and regression
 

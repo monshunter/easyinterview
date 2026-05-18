@@ -1,6 +1,6 @@
 # URL-Addressable Routing
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-18
 
@@ -101,7 +101,7 @@ Browser back / forward must update route state, TopBar active route, chrome hidd
 
 #### 3.2 URL privacy negative tests
 
-Add automated negative checks for URL, `window.history.state`, `pendingAction`, `localStorage`, `sessionStorage`, console/log capture and mock transport logs. The checks must use representative raw JD, resume text, guided answers, parsed summary, suggestion text and AI prompt tokens, and assert zero leakage.
+Add automated negative checks for URL, `window.history.state`, `pendingAction`, `localStorage`, `sessionStorage`, console/log capture and mock transport logs. The checks must use representative raw JD, resume text, guided answers, parsed summary, suggestion text and AI prompt tokens, and assert zero leakage during navigation, auth restore, direct-open and browser `popstate` recovery from hostile history entries.
 
 ### Phase 4: Host fallback and regression
 

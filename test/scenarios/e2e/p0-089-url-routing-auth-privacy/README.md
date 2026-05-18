@@ -30,6 +30,8 @@ session。
   pendingAction 还原。
 - 用 hostile URL 直接打开 `/auth/login?...rawText=...&token=...`，验证
   parseUrlToRoute / decodePendingActionRoute 的 allowlist 拦截。
+- 从浏览器历史栈恢复 hostile `/workspace?...rawText=...#prompt` entry，验证
+  popstate restore 会立即改写为 canonical URL 并清空 raw `history.state`。
 
 ## 3 Then
 
@@ -41,6 +43,8 @@ session。
   `pendingJdMatchActionId`。
 - 任意 hostile 输入下，URL、`window.history.state`、`localStorage`、
   `sessionStorage`、console capture 都 ZERO 命中 raw 标记。
+- hostile popstate 后地址栏只保留 `/workspace?targetJobId=...`，hash 与
+  raw `history.state` 均被 scrub。
 - `token` / `password` / `prompt` / `response` 等敏感字段在所有 surface
   都缺失。
 

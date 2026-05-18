@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-18](./2026-05-18-frontend-shell-url-routing-popstate-privacy-assessment.md) | Frontend Shell URL Routing Popstate Privacy 交付复盘 | #assessment |
 | [2026-05-18](./2026-05-18-frontend-debrief-dev-mock-flow-assessment.md) | Frontend Debrief Dev Mock Flow 交付复盘 | #assessment |
 | [2026-05-18](./2026-05-18-resume-workshop-real-backend-contract-fix-assessment.md) | Resume Workshop Real Backend Contract Fix 交付复盘 | #assessment |
 | [2026-05-18](./2026-05-18-frontend-resume-workshop-003-branch-rewrites-and-edit-assessment.md) | Frontend Resume Workshop 003 Branch Rewrites And Edit 交付复盘 | #assessment |

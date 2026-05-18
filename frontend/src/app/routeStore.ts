@@ -152,7 +152,12 @@ export function useBrowserRoute(
       const next = parseUrlToRoute(
         `${windowRef.location?.pathname || "/"}${windowRef.location?.search || ""}`,
       );
-      lastUrlRef.current = formatRouteUrl(next);
+      const canonicalUrl = formatRouteUrl(next);
+      const currentUrl = `${windowRef.location?.pathname || ""}${windowRef.location?.search || ""}${windowRef.location?.hash || ""}`;
+      if (windowRef.history && currentUrl !== canonicalUrl) {
+        windowRef.history.replaceState(null, "", canonicalUrl);
+      }
+      lastUrlRef.current = canonicalUrl;
       setRoute(next);
     };
     windowRef.addEventListener("popstate", handler);

@@ -1,6 +1,6 @@
 # URL-Addressable Routing BDD Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-18
 
@@ -18,9 +18,9 @@
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-089-url-routing-auth-privacy/`
 - [x] 准备隐私标记数据：raw JD、source URL、jd_match search query/label、resume text、guided answers、parsed summary、structured profile、suggestion text、question/answer text、debrief notes、AI prompt / response marker、auth secret marker（19 keys with unique hex suffixes for verify-side grep）。
-- [x] 实现 auth-gated workflow：未登录打开 canonical workflow URL、触发 workspace auto-start / report replay / home import / jd_match Recommended/Search pending action / resume workshop / debrief login、完成 mock passwordless、恢复原 route。Evidence: `frontend/src/app/scenarios/p0-089-url-routing-auth-privacy.test.tsx` 涵盖 redirect → verify → restore 流程 + jd_match restore + hostile direct-open。
-- [x] 捕获 URL、history.state、pendingAction、localStorage、sessionStorage、console、mock transport logs，并对隐私标记做 zero-hit 断言，同时证明合法 handoff keys（含 `selectedJobMatchId` / `pendingJdMatchActionId`）未被 allowlist 误删。
-- [x] 执行并通过场景验证，记录 restored route、safe params、合法 handoff keys 和 zero-hit grep evidence。Evidence: 3 tests pass; verify.sh 对 5 个代表 raw marker 反向 grep，trigger.log 中均不出现。
+- [x] 实现 auth-gated workflow：未登录打开 canonical workflow URL、触发 workspace auto-start / report replay / home import / jd_match Recommended/Search pending action / resume workshop / debrief login、完成 mock passwordless、恢复原 route。Evidence: `frontend/src/app/scenarios/p0-089-url-routing-auth-privacy.test.tsx` 涵盖 redirect → verify → restore 流程 + jd_match restore + hostile direct-open + hostile popstate restore。
+- [x] 捕获 URL、history.state、pendingAction、localStorage、sessionStorage、console、mock transport logs，并对隐私标记做 zero-hit 断言，同时证明合法 handoff keys（含 `selectedJobMatchId` / `pendingJdMatchActionId`）未被 allowlist 误删；hostile popstate 后 URL/hash/history.state 必须被 scrub 到 canonical safe state。
+- [x] 执行并通过场景验证，记录 restored route、safe params、合法 handoff keys 和 zero-hit grep evidence。Evidence: 4 tests pass; verify.sh 对 5 个代表 raw marker 反向 grep，trigger.log 中均不出现。
 
 ## E2E.P0.090 hash compatibility + legacy route negative regression
 

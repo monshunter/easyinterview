@@ -15,7 +15,7 @@
  * pendingAction params to prove the allowlist actually drops them.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { FC } from "react";
 
@@ -24,7 +24,7 @@ import { useNavigation } from "./navigation/NavigationProvider";
 import { encodePendingAction } from "./auth/pendingAction";
 
 /** Representative raw markers — must never appear in URL / history / storage. */
-const RAW_MARKERS: Record<string, string> = {
+const RAW_MARKERS = {
   rawText: "RAW_JD_TEXT_2c1a",
   rawDescription: "RAW_DESCRIPTION_3d2b",
   sourceUrl: "https://leaked.example.com/jd/4e3c",
@@ -44,7 +44,7 @@ const RAW_MARKERS: Record<string, string> = {
   file: "RAW_BINARY_BLOB_2634",
   token: "AUTH_SECRET_TOKEN_3745",
   password: "AUTH_PASSWORD_4856",
-};
+} satisfies Record<string, string>;
 
 function resetWindow(): void {
   delete (window as { __EASYINTERVIEW_INITIAL_ROUTE__?: unknown })
@@ -255,5 +255,28 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
     expect(window.location.search).toContain("pendingRoute=practice");
     expect(window.location.search).toContain("pendingType=start_practice");
     expect(window.location.search).toContain("planId=plan-1");
+  });
+
+  it("popstate from hostile history entry canonicalizes URL and clears raw history.state markers", async () => {
+    render(<App />);
+
+    act(() => {
+      window.history.pushState(
+        { rawText: RAW_MARKERS.rawText },
+        "",
+        `/workspace?targetJobId=tj-popstate&rawText=${encodeURIComponent(
+          RAW_MARKERS.rawText,
+        )}#${encodeURIComponent(RAW_MARKERS.prompt)}`,
+      );
+      window.dispatchEvent(
+        new PopStateEvent("popstate", { state: window.history.state }),
+      );
+    });
+
+    await waitFor(() => screen.getByTestId("workspace-empty"));
+    expect(
+      window.location.pathname + window.location.search + window.location.hash,
+    ).toBe("/workspace?targetJobId=tj-popstate");
+    expectNoRawMarkerLeak();
   });
 });

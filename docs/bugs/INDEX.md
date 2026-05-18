@@ -65,6 +65,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0079](./BUG-0079.md) | frontend shell popstate left unsafe URL markers visible | medium | resolved | 2026-05-18 | `fix(frontend-shell): scrub hostile popstate route privacy (BUG-0079)` |
 | [BUG-0075](./BUG-0075.md) | resume branch rewrites L2 gates were false-green | medium | resolved | 2026-05-18 | `fix(frontend-resume-workshop): close branch rewrites L2 gates (BUG-0075)` |
 | [BUG-0074](./BUG-0074.md) | resume create flow retry and L2 gates were false-green | medium | resolved | 2026-05-17 | `fix(frontend-resume-workshop): close create flow L2 gaps (BUG-0074)` |
 | [BUG-0050](./BUG-0050.md) | resume workshop list drifted from ui-design tree controls | medium | resolved | 2026-05-13 | `fix(frontend-resume-workshop): restore ui-design list parity` |
