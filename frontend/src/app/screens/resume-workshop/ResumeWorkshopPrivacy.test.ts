@@ -70,7 +70,7 @@ describe("Resume Workshop privacy red lines (Phase 4.4)", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("pendingAction params built by the auth gate only carry route params (flow / versionId / tab / branchOriginalId), never PII", () => {
+  it("pendingAction params built by the auth gate only carry route params (flow / versionId / tab / branchOriginalId / targetJobId), never PII", () => {
     const file = resolve(
       ROOT,
       "components/ResumeWorkshopAuthGate.tsx",

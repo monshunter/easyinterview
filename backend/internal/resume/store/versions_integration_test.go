@@ -318,21 +318,24 @@ func TestResumeTailorRunStoreStateTransitionsIsolationAndClaim(t *testing.T) {
 	assetA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf6a003"
 	targetA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf6a004"
 	targetB := "0195f2d0-4a44-7fc2-8f77-1f9c4cf6a005"
+	versionA := "0195f2d0-4a44-7fc2-8f77-1f9c4cf6a006"
 	t.Cleanup(func() { cleanupResumeStoreUsers(t, db, userA, userB) })
 
 	mustExec(t, ctx, db, `insert into users(id, email, status) values ($1, 'resume-tailor-a@example.com', 'active'), ($2, 'resume-tailor-b@example.com', 'active')`, userA, userB)
 	mustExec(t, ctx, db, `insert into resume_assets(id, user_id, title, language, parse_status) values ($1, $2, 'Ready Resume', 'en', 'ready')`, assetA, userA)
 	mustExec(t, ctx, db, `insert into target_jobs(id, user_id, source_type, analysis_status) values ($1, $2, 'manual_text', 'ready'), ($3, $4, 'manual_text', 'ready')`, targetA, userA, targetB, userB)
+	mustExec(t, ctx, db, `insert into resume_versions(id, user_id, resume_asset_id, version_type, target_job_id, display_name, structured_profile, created_at, updated_at) values ($1,$2,$3,'targeted',$4,'Targeted A','{"sections":[{"bullets":["Led migration."]}],"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}',$5,$5)`, versionA, userA, assetA, targetA, base)
 
 	created, err := repo.CreateTailorRun(ctx, resumestore.CreateTailorRunInput{
-		TailorRunID:   "0195f2d0-4a44-7fc2-8f77-1f9c4cf6b001",
-		JobID:         "0195f2d0-4a44-7fc2-8f77-1f9c4cf6c001",
-		UserID:        userA,
-		TargetJobID:   targetA,
-		ResumeAssetID: assetA,
-		Mode:          "gap_review",
-		DedupeKey:     "dedupe-tailor-1",
-		Now:           base,
+		TailorRunID:     "0195f2d0-4a44-7fc2-8f77-1f9c4cf6b001",
+		JobID:           "0195f2d0-4a44-7fc2-8f77-1f9c4cf6c001",
+		UserID:          userA,
+		TargetJobID:     targetA,
+		ResumeAssetID:   assetA,
+		ResumeVersionID: versionA,
+		Mode:            "gap_review",
+		DedupeKey:       "dedupe-tailor-1",
+		Now:             base,
 	})
 	if err != nil {
 		t.Fatalf("CreateTailorRun: %v", err)
@@ -347,6 +350,17 @@ func TestResumeTailorRunStoreStateTransitionsIsolationAndClaim(t *testing.T) {
 	if got.Status != "queued" || got.Mode != "gap_review" || got.TargetJobID != targetA || got.ResumeAssetID != assetA {
 		t.Fatalf("queued run = %+v", got)
 	}
+	var rawPayload []byte
+	if err := db.QueryRowContext(ctx, `select payload from async_jobs where id = $1`, created.JobID).Scan(&rawPayload); err != nil {
+		t.Fatalf("query tailor async payload: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(rawPayload, &payload); err != nil {
+		t.Fatalf("decode tailor async payload: %v", err)
+	}
+	if payload["resumeVersionId"] != versionA {
+		t.Fatalf("tailor async payload resumeVersionId = %v, want %s; payload=%s", payload["resumeVersionId"], versionA, rawPayload)
+	}
 	if _, err := repo.GetTailorRun(ctx, userB, created.TailorRunID); !errors.Is(err, resumestore.ErrTailorRunNotFound) {
 		t.Fatalf("cross-user get err = %v, want ErrTailorRunNotFound", err)
 	}
@@ -355,6 +369,9 @@ func TestResumeTailorRunStoreStateTransitionsIsolationAndClaim(t *testing.T) {
 	}
 	if _, err := repo.CreateTailorRun(ctx, resumestore.CreateTailorRunInput{TailorRunID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6b003", JobID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6c003", UserID: userA, TargetJobID: targetB, ResumeAssetID: assetA, Mode: "gap_review", Now: base}); !errors.Is(err, resumestore.ErrAssetNotFound) {
 		t.Fatalf("foreign target err = %v, want ErrAssetNotFound", err)
+	}
+	if _, err := repo.CreateTailorRun(ctx, resumestore.CreateTailorRunInput{TailorRunID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6b006", JobID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6c006", UserID: userA, TargetJobID: targetA, ResumeAssetID: assetA, ResumeVersionID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf6a999", Mode: "gap_review", Now: base}); !errors.Is(err, resumestore.ErrVersionNotFound) {
+		t.Fatalf("missing explicit version err = %v, want ErrVersionNotFound", err)
 	}
 
 	generating, err := repo.MarkTailorRunGenerating(ctx, resumestore.TailorRunStatusInput{TailorRunID: created.TailorRunID, Now: base.Add(time.Minute)})
@@ -503,6 +520,27 @@ func TestCompleteTailorRunSuccessWritesSuggestionsAndReadyOnlyOutbox(t *testing.
 	}
 	if suggestionCount != 2 {
 		t.Fatalf("suggestion count = %d, want 2", suggestionCount)
+	}
+	loadedVersion, err := repo.GetVersionByID(ctx, userID, versionID)
+	if err != nil {
+		t.Fatalf("GetVersionByID after suggestions: %v", err)
+	}
+	if len(loadedVersion.Suggestions) != 2 {
+		t.Fatalf("GetVersionByID suggestions = %d, want 2", len(loadedVersion.Suggestions))
+	}
+	listedVersions, err := repo.ListVersionsByAsset(ctx, userID, assetID, resumestore.VersionListFilter{PageSize: 20})
+	if err != nil {
+		t.Fatalf("ListVersionsByAsset after suggestions: %v", err)
+	}
+	var listedSuggestionCount int
+	for _, item := range listedVersions.Items {
+		if item.ID == versionID {
+			listedSuggestionCount = len(item.Suggestions)
+			break
+		}
+	}
+	if listedSuggestionCount != 2 {
+		t.Fatalf("ListVersionsByAsset suggestions = %d, want 2", listedSuggestionCount)
 	}
 	var payload []byte
 	if err := db.QueryRowContext(ctx, `select payload from outbox_events where aggregate_id = $1 and event_name = 'resume.tailor.completed'`, tailorRunID).Scan(&payload); err != nil {

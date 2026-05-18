@@ -640,6 +640,8 @@ export const zh = {
     "底稿来源或目标岗位不可用 · 请返回上一步",
   "resumeWorkshop.branch.error.validation":
     "请检查表单字段并重试。",
+  "resumeWorkshop.branch.error.targetInvalid":
+    "目标必须能对应已保存岗位；请从岗位工作台进入，或填写有效的目标岗位 ID。",
   "resumeWorkshop.branch.error.idempotencyConflict":
     "上一次提交还在处理 · 请稍后重试",
   "resumeWorkshop.branch.error.generic": "创建版本失败，请重试。",

@@ -90,6 +90,7 @@ export function buildStructuredProfilePayload(
   asset: ResumeAsset,
 ): Record<string, unknown> {
   const draft = mapParsedSummaryToStructuredProfileDraft(asset);
+  const language = asset.language?.trim() || "en";
   return {
     headline: draft.title ?? draft.name,
     summary: draft.summary ?? "",
@@ -104,5 +105,13 @@ export function buildStructuredProfilePayload(
     skills: draft.skills,
     education: draft.education,
     sections: [],
+    provenance: {
+      promptVersion: "resume_profile.v1",
+      rubricVersion: "not_applicable",
+      modelId: "resume-profile.confirmed.v1",
+      language,
+      featureFlag: "resume-workshop-additive",
+      dataSourceVersion: "resume_asset.v1",
+    },
   };
 }

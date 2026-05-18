@@ -42,6 +42,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0076](./BUG-0076.md) | resume workshop real backend requests drifted from version contracts | high | resolved | 2026-05-18 | `fix(resume-workshop): close real backend gaps (BUG-0076, BUG-0077)` |
 
 ## Debrief
 
@@ -107,6 +108,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0077](./BUG-0077.md) | OpenAPI diff baseline lag hid the current additive contract change | medium | resolved | 2026-05-18 | `fix(resume-workshop): close real backend gaps (BUG-0076, BUG-0077)` |
 | [BUG-0073](./BUG-0073.md) | resume tailor ready provenance was incomplete after DB roundtrip | medium | resolved | 2026-05-17 | `fix(backend-resume): persist tailor run provenance (BUG-0073)` |
 | [BUG-0072](./BUG-0072.md) | practice voice fixture audio refs used mock-only scheme | medium | resolved | 2026-05-17 | `fix(practice-voice): align fixture audio refs (BUG-0072)` |
 | [BUG-0052](./BUG-0052.md) | backend resume L2 review exposed validation and retry state drift | high | resolved | 2026-05-13 | `fix(backend-resume): remediate asset registration L2 findings` |

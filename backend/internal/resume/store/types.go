@@ -156,14 +156,15 @@ type BranchVersionResult struct {
 }
 
 type CreateTailorRunInput struct {
-	TailorRunID   string
-	JobID         string
-	UserID        string
-	TargetJobID   string
-	ResumeAssetID string
-	Mode          string
-	DedupeKey     string
-	Now           time.Time
+	TailorRunID     string
+	JobID           string
+	UserID          string
+	TargetJobID     string
+	ResumeAssetID   string
+	ResumeVersionID string
+	Mode            string
+	DedupeKey       string
+	Now             time.Time
 }
 
 type CreateTailorRunResult struct {

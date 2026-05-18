@@ -74,10 +74,11 @@ export function filterUpdateResumeVersionPayload(
     typeof partial.structuredProfile === "object" &&
     partial.structuredProfile !== null
   ) {
-    next.structuredProfile = partial.structuredProfile as Record<
-      string,
-      unknown
-    >;
+    const profile = {
+      ...(partial.structuredProfile as Record<string, unknown>),
+    };
+    delete profile.provenance;
+    next.structuredProfile = profile;
   }
   return next;
 }

@@ -3652,6 +3652,10 @@ components:
         resumeAssetId:
           type: string
           format: uuid
+        resumeVersionId:
+          type: string
+          format: uuid
+          description: Optional targeted resume version that should receive the generated suggestions. When omitted, the server falls back to the latest matching version for legacy queued jobs.
         mode:
           type: string
           enum: [gap_review, bullet_suggestions]

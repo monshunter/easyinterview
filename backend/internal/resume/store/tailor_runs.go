@@ -51,6 +51,26 @@ where id = $1 and user_id = $2 and deleted_at is null`,
 	} else if err != nil {
 		return CreateTailorRunResult{}, fmt.Errorf("check target job ownership for tailor run: %w", err)
 	}
+	resumeVersionID := strings.TrimSpace(in.ResumeVersionID)
+	if resumeVersionID != "" {
+		var versionExists int
+		if err := tx.QueryRowContext(ctx, `
+select 1 from resume_versions
+where id = $1
+  and user_id = $2
+  and resume_asset_id = $3
+  and target_job_id = $4
+  and deleted_at is null`,
+			resumeVersionID,
+			in.UserID,
+			in.ResumeAssetID,
+			in.TargetJobID,
+		).Scan(&versionExists); errors.Is(err, sql.ErrNoRows) {
+			return CreateTailorRunResult{}, ErrVersionNotFound
+		} else if err != nil {
+			return CreateTailorRunResult{}, fmt.Errorf("check resume version ownership for tailor run: %w", err)
+		}
+	}
 
 	if _, err := tx.ExecContext(ctx, `
 insert into resume_tailor_runs (
@@ -66,12 +86,16 @@ insert into resume_tailor_runs (
 	); err != nil {
 		return CreateTailorRunResult{}, fmt.Errorf("insert resume tailor run: %w", err)
 	}
-	payload, err := json.Marshal(map[string]any{
+	payloadMap := map[string]any{
 		"tailorRunId":   in.TailorRunID,
 		"resumeAssetId": in.ResumeAssetID,
 		"targetJobId":   in.TargetJobID,
 		"mode":          in.Mode,
-	})
+	}
+	if resumeVersionID != "" {
+		payloadMap["resumeVersionId"] = resumeVersionID
+	}
+	payload, err := json.Marshal(payloadMap)
 	if err != nil {
 		return CreateTailorRunResult{}, fmt.Errorf("encode resume tailor payload: %w", err)
 	}

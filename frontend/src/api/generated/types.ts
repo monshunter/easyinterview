@@ -590,6 +590,7 @@ export interface PaginatedFeedbackReport {
 export interface RequestResumeTailorRequest {
 	mode: "gap_review" | "bullet_suggestions";
 	resumeAssetId: string;
+	resumeVersionId?: string;
 	targetJobId: string;
 }
 

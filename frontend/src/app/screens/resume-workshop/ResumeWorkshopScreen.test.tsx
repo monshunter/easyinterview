@@ -42,12 +42,17 @@ describe("ResumeWorkshopScreen route param parsing", () => {
     renderResumeWorkshop({
       flow: "branch",
       branchOriginalId: "01918fa0-0000-7000-8000-000000001000",
+      targetJobId: "01918fa0-0000-7000-8000-000000002000",
     });
     const root = screen.getByTestId("resume-workshop-screen");
     expect(root).toHaveAttribute("data-flow", "branch");
     expect(root).toHaveAttribute(
       "data-branch-original-id",
       "01918fa0-0000-7000-8000-000000001000",
+    );
+    expect(root).toHaveAttribute(
+      "data-target-job-id",
+      "01918fa0-0000-7000-8000-000000002000",
     );
     const branchRoot = screen.getByTestId("resume-branch-flow");
     expect(branchRoot).toBeInTheDocument();

@@ -108,6 +108,10 @@ where id = $1 and user_id = $2 and deleted_at is null`,
 	if err != nil {
 		return VersionRecord{}, err
 	}
+	rec.Suggestions, err = loadVersionSuggestions(ctx, r.db, rec)
+	if err != nil {
+		return VersionRecord{}, err
+	}
 	return rec, nil
 }
 
@@ -174,6 +178,13 @@ where user_id = $1 and resume_asset_id = $2 and deleted_at is null`
 	if hasMore && len(items) > 0 {
 		last := items[len(items)-1]
 		nextCursor = encodeCursor(last.UpdatedAt, last.ID)
+	}
+	for i := range items {
+		suggestions, err := loadVersionSuggestions(ctx, r.db, items[i])
+		if err != nil {
+			return VersionListResult{}, err
+		}
+		items[i].Suggestions = suggestions
 	}
 	return VersionListResult{Items: items, NextCursor: nextCursor, HasMore: hasMore, PageSize: pageSize}, nil
 }

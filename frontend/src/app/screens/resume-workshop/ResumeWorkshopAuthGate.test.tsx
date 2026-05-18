@@ -134,7 +134,7 @@ describe("ResumeWorkshopScreen auth boundary", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("clicking the auth gate CTA navigates to auth_login with a pendingAction that only carries route params (flow, versionId, tab, branchOriginalId) — never raw text", async () => {
+  it("clicking the auth gate CTA navigates to auth_login with a pendingAction that only carries route params (flow, versionId, tab, branchOriginalId, targetJobId) — never raw text", async () => {
     const client = buildClient();
     const nav = vi.fn();
 
@@ -146,6 +146,7 @@ describe("ResumeWorkshopScreen auth boundary", () => {
         params: {
           flow: "branch",
           branchOriginalId: "01918fa0-0000-7000-8000-000000001000",
+          targetJobId: "01918fa0-0000-7000-8000-000000002000",
           versionId: VERSION_ID,
           tab: "rewrites",
         },
@@ -169,6 +170,7 @@ describe("ResumeWorkshopScreen auth boundary", () => {
     expect(params.pendingLabel).toBeTruthy();
     expect(params.flow).toBe("branch");
     expect(params.branchOriginalId).toBe("01918fa0-0000-7000-8000-000000001000");
+    expect(params.targetJobId).toBe("01918fa0-0000-7000-8000-000000002000");
     expect(params.versionId).toBe(VERSION_ID);
     expect(params.tab).toBe("rewrites");
 

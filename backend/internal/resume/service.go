@@ -346,11 +346,12 @@ type BranchVersionResult struct {
 }
 
 type RequestTailorRunInput struct {
-	UserID         string
-	TargetJobID    string
-	ResumeAssetID  string
-	Mode           string
-	IdempotencyKey string
+	UserID          string
+	TargetJobID     string
+	ResumeAssetID   string
+	ResumeVersionID string
+	Mode            string
+	IdempotencyKey  string
 }
 
 type SuggestionDecisionRequest struct {
@@ -538,6 +539,7 @@ func (s *Service) RequestResumeTailor(ctx context.Context, in RequestTailorRunIn
 	userID := strings.TrimSpace(in.UserID)
 	targetJobID := strings.TrimSpace(in.TargetJobID)
 	resumeAssetID := strings.TrimSpace(in.ResumeAssetID)
+	resumeVersionID := strings.TrimSpace(in.ResumeVersionID)
 	mode := strings.TrimSpace(in.Mode)
 	idempotencyKey := strings.TrimSpace(in.IdempotencyKey)
 	if userID == "" || targetJobID == "" || resumeAssetID == "" || idempotencyKey == "" {
@@ -550,18 +552,19 @@ func (s *Service) RequestResumeTailor(ctx context.Context, in RequestTailorRunIn
 	}
 	now := s.now()
 	storeIn := resumestore.CreateTailorRunInput{
-		TailorRunID:   s.newID(),
-		JobID:         s.newID(),
-		UserID:        userID,
-		TargetJobID:   targetJobID,
-		ResumeAssetID: resumeAssetID,
-		Mode:          mode,
-		DedupeKey:     s.tailorDedupeKey(userID, idempotencyKey),
-		Now:           now,
+		TailorRunID:     s.newID(),
+		JobID:           s.newID(),
+		UserID:          userID,
+		TargetJobID:     targetJobID,
+		ResumeAssetID:   resumeAssetID,
+		ResumeVersionID: resumeVersionID,
+		Mode:            mode,
+		DedupeKey:       s.tailorDedupeKey(userID, idempotencyKey),
+		Now:             now,
 	}
 	res, err := store.CreateTailorRun(ctx, storeIn)
 	switch {
-	case errors.Is(err, resumestore.ErrAssetNotFound), errors.Is(err, resumestore.ErrTailorRunNotFound):
+	case errors.Is(err, resumestore.ErrAssetNotFound), errors.Is(err, resumestore.ErrTailorRunNotFound), errors.Is(err, resumestore.ErrVersionNotFound):
 		return api.ResumeTailorRunWithJob{}, ErrNotFound
 	case err != nil:
 		return api.ResumeTailorRunWithJob{}, err

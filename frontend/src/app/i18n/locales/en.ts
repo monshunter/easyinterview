@@ -678,6 +678,8 @@ export const en: LocaleMessages = {
     "Source or target is unavailable - return and pick again",
   "resumeWorkshop.branch.error.validation":
     "Please review the form fields and retry.",
+  "resumeWorkshop.branch.error.targetInvalid":
+    "Target must resolve to a saved job. Return from a workspace target or paste a valid target job id.",
   "resumeWorkshop.branch.error.idempotencyConflict":
     "Previous submission is still pending - please retry shortly",
   "resumeWorkshop.branch.error.generic":

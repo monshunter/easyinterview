@@ -7,6 +7,7 @@ export interface ResumeWorkshopParams {
   versionId: string | null;
   tab: ResumeDetailTab | null;
   branchOriginalId: string | null;
+  targetJobId: string | null;
   createMode: ResumeCreateMode | null;
   /**
    * Optional tailor run id carried from the ai_select branch nav so the
@@ -50,6 +51,7 @@ export const parseResumeWorkshopParams = (
   const branchOriginalId = routeParams.branchOriginalId
     ? routeParams.branchOriginalId
     : null;
+  const targetJobId = routeParams.targetJobId ? routeParams.targetJobId : null;
   const tab = isDetailTab(routeParams.tab) ? routeParams.tab : null;
   const createMode = isCreateMode(routeParams.createMode)
     ? routeParams.createMode
@@ -62,6 +64,7 @@ export const parseResumeWorkshopParams = (
     versionId,
     tab,
     branchOriginalId,
+    targetJobId,
     createMode,
     tailorRunId,
   };

@@ -11,6 +11,7 @@ import type {
   ResumeSeedStrategy,
   ResumeVersion,
 } from "../../../../api/generated/types";
+import { normalizeServerBoundId } from "../../../interview-context/apiIds";
 import { useI18n, type MessageKey } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
 import { fireResumeWorkshopToast } from "../components/toast";
@@ -78,6 +79,7 @@ export interface ResumeBranchFormDraft {
 
 export interface ResumeBranchFlowProps {
   branchOriginalId: string | null;
+  targetJobId?: string | null;
 }
 
 export interface ResumeBranchFlowFormProps {
@@ -99,6 +101,7 @@ const SCREEN_WRAPPER: CSSProperties = {
 
 export const ResumeBranchFlow: FC<ResumeBranchFlowProps> = ({
   branchOriginalId,
+  targetJobId,
 }) => {
   const { t } = useI18n();
   const { navigate } = useNavigation();
@@ -117,11 +120,18 @@ export const ResumeBranchFlow: FC<ResumeBranchFlowProps> = ({
         setErrorMessage(t("resumeWorkshop.branch.error.parentMissing"));
         return;
       }
+      const resolvedTargetJobId =
+        normalizeServerBoundId(targetJobId) ??
+        normalizeServerBoundId(draft.target);
+      if (!resolvedTargetJobId) {
+        setErrorMessage(t("resumeWorkshop.branch.error.targetInvalid"));
+        return;
+      }
       setErrorMessage(null);
       try {
         const outcome = await submitHook.submit(draft, {
           parentVersionId: source.master.id,
-          targetJobId: draft.target.trim(),
+          targetJobId: resolvedTargetJobId,
         });
         dispatchSuccess(outcome, draft.seed, navigate, t);
       } catch (rawErr) {
@@ -135,6 +145,7 @@ export const ResumeBranchFlow: FC<ResumeBranchFlowProps> = ({
       source.master,
       source.status,
       submitHook,
+      targetJobId,
       t,
     ],
   );

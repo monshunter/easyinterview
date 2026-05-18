@@ -41,7 +41,7 @@ func TestRequestResumeTailor(t *testing.T) {
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if svc.requestIn.UserID != "user-1" || svc.requestIn.ResumeAssetID != "asset-1" || svc.requestIn.TargetJobID != "target-1" || svc.requestIn.Mode != "gap_review" || svc.requestIn.IdempotencyKey != "idem-tailor" {
+	if svc.requestIn.UserID != "user-1" || svc.requestIn.ResumeAssetID != "asset-1" || svc.requestIn.ResumeVersionID != "version-1" || svc.requestIn.TargetJobID != "target-1" || svc.requestIn.Mode != "gap_review" || svc.requestIn.IdempotencyKey != "idem-tailor" {
 		t.Fatalf("service input = %+v", svc.requestIn)
 	}
 	var got api.ResumeTailorRunWithJob
@@ -267,7 +267,7 @@ func newRequestTailorRequest(body string) *http.Request {
 }
 
 func validRequestTailorBody(mode string) string {
-	return `{"targetJobId":"target-1","resumeAssetId":"asset-1","mode":"` + mode + `"}`
+	return `{"targetJobId":"target-1","resumeAssetId":"asset-1","resumeVersionId":"version-1","mode":"` + mode + `"}`
 }
 
 func tailorRunWithJobResponse(tailorRunID, jobID string, now time.Time) api.ResumeTailorRunWithJob {

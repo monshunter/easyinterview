@@ -38,6 +38,7 @@ const renderBranchFlow = (
   options?: {
     authMode?: "authenticated" | "unauthenticated";
     nav?: ReturnType<typeof vi.fn>;
+    targetJobId?: string | null;
   },
 ) => {
   const client = buildClient();
@@ -58,7 +59,10 @@ const renderBranchFlow = (
           }}
         >
           <NavigationProvider value={{ navigate: nav }}>
-            <ResumeBranchFlow branchOriginalId={branchOriginalId} />
+            <ResumeBranchFlow
+              branchOriginalId={branchOriginalId}
+              targetJobId={options?.targetJobId}
+            />
           </NavigationProvider>
         </AppRuntimeProvider>
       </DisplayPreferencesProvider>,
@@ -68,6 +72,7 @@ const renderBranchFlow = (
 
 const FIXTURE_MASTER_ASSET_ID = listResumesFixture.scenarios.default.response
   .body.items[0]!.id as string;
+const TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
 
 describe("ResumeBranchFlow source resolution", () => {
   it("shows the missing-id fallback panel when branchOriginalId is null", () => {
@@ -247,7 +252,9 @@ describe("ResumeBranchFlow form behaviour", () => {
 
 describe("ResumeBranchFlow submit dispatch (plan 003 Phase 2)", () => {
   it("copy_master submit calls branchResumeVersion with IK header and navigates to rewrites tab", async () => {
-    const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID);
+    const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID, {
+      targetJobId: TARGET_JOB_ID,
+    });
     const branchSpy = vi
       .spyOn(client, "branchResumeVersion")
       .mockResolvedValueOnce({
@@ -272,7 +279,7 @@ describe("ResumeBranchFlow submit dispatch (plan 003 Phase 2)", () => {
     expect(bodyArg).toMatchObject({
       seedStrategy: "copy_master",
       displayName: "v3 ByteDance",
-      targetJobId: "ByteDance Frontend Platform",
+      targetJobId: TARGET_JOB_ID,
       focusAngle: "platform",
     });
     expect(optsArg?.idempotencyKey).toMatch(/^v1\.\d+\..+/);
@@ -285,6 +292,29 @@ describe("ResumeBranchFlow submit dispatch (plan 003 Phase 2)", () => {
         },
       });
     });
+  });
+
+  it("blocks free-form target text when no server targetJobId is available", async () => {
+    const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID);
+    const branchSpy = vi.spyOn(client, "branchResumeVersion");
+    const user = userEvent.setup();
+    await screen.findByTestId("resume-branch-flow-form");
+    await user.type(
+      screen.getByTestId("resume-branch-field-name"),
+      "v3 ByteDance",
+    );
+    await user.type(
+      screen.getByTestId("resume-branch-field-target"),
+      "ByteDance Frontend Platform",
+    );
+
+    await user.click(screen.getByTestId("resume-branch-submit"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-branch-error")).toBeInTheDocument();
+    });
+    expect(branchSpy).not.toHaveBeenCalled();
+    expect(nav).not.toHaveBeenCalled();
   });
 
   it("blank seedStrategy navigates to edit tab", async () => {
@@ -302,7 +332,7 @@ describe("ResumeBranchFlow submit dispatch (plan 003 Phase 2)", () => {
     );
     await user.type(
       screen.getByTestId("resume-branch-field-target"),
-      "tj-uuid-foo",
+      TARGET_JOB_ID,
     );
     await user.click(screen.getByTestId("resume-branch-seed-card-blank"));
     await user.click(screen.getByTestId("resume-branch-submit"));
@@ -337,7 +367,7 @@ describe("ResumeBranchFlow submit dispatch (plan 003 Phase 2)", () => {
     );
     await user.type(
       screen.getByTestId("resume-branch-field-target"),
-      "tj-uuid-bar",
+      TARGET_JOB_ID,
     );
     await user.click(screen.getByTestId("resume-branch-seed-card-ai_select"));
     await user.click(screen.getByTestId("resume-branch-submit"));
@@ -354,7 +384,9 @@ describe("ResumeBranchFlow submit dispatch (plan 003 Phase 2)", () => {
   });
 
   it("422 validation error surfaces an in-form alert and does not navigate", async () => {
-    const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID);
+    const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID, {
+      targetJobId: TARGET_JOB_ID,
+    });
     vi.spyOn(client, "branchResumeVersion").mockRejectedValueOnce(
       new Error(
         'HTTP 422 Unprocessable: {"error":{"code":"VALIDATION_FAILED","details":{"field":"displayName"}}}',
@@ -378,7 +410,9 @@ describe("ResumeBranchFlow submit dispatch (plan 003 Phase 2)", () => {
   });
 
   it("404 parent error maps to localized parent-missing copy", async () => {
-    const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID);
+    const { client, nav } = renderBranchFlow(FIXTURE_MASTER_ASSET_ID, {
+      targetJobId: TARGET_JOB_ID,
+    });
     vi.spyOn(client, "branchResumeVersion").mockRejectedValueOnce(
       new Error(
         'HTTP 404 Not Found: {"error":{"code":"NOT_FOUND","details":{"reason":"PARENT_NOT_FOUND"}}}',

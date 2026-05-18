@@ -19,12 +19,16 @@ import getRuntimeConfigFixture from "../../../../../../openapi/fixtures/Auth/get
 import getMeFixture from "../../../../../../openapi/fixtures/Auth/getMe.json";
 import getResumeVersionFixture from "../../../../../../openapi/fixtures/Resumes/getResumeVersion.json";
 import exportResumeVersionFixture from "../../../../../../openapi/fixtures/Resumes/exportResumeVersion.json";
+import requestResumeTailorFixture from "../../../../../../openapi/fixtures/ResumeTailor/requestResumeTailor.json";
+import getResumeTailorRunFixture from "../../../../../../openapi/fixtures/ResumeTailor/getResumeTailorRun.json";
 
 const FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
   getResumeVersionFixture,
   exportResumeVersionFixture,
+  requestResumeTailorFixture,
+  getResumeTailorRunFixture,
 ];
 
 function buildClient(scenario: string): EasyInterviewClient {
@@ -138,6 +142,39 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
     expect(
       screen.queryByTestId("resume-detail-tab-content-coming-soon-rewrites"),
     ).not.toBeInTheDocument();
+  });
+
+  it("rerun requests are pinned to the currently viewed resumeVersionId", async () => {
+    const client = buildClient("default");
+    const requestSpy = vi
+      .spyOn(client, "requestResumeTailor")
+      .mockResolvedValueOnce(
+        requestResumeTailorFixture.scenarios.default.response.body as never,
+      );
+
+    renderDetailWithClient(client, {
+      name: "resume_versions",
+      params: { versionId: TARGETED_VERSION_ID, tab: "rewrites" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-rewrites-tab")).toBeInTheDocument();
+    });
+    await userEvent.setup().click(
+      screen.getByTestId("resume-rewrites-rerun-tailor"),
+    );
+
+    await waitFor(() => {
+      expect(requestSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(requestSpy.mock.calls[0]![0]).toMatchObject({
+      resumeAssetId:
+        getResumeVersionFixture.scenarios.default.response.body.resumeAssetId,
+      resumeVersionId: TARGETED_VERSION_ID,
+      targetJobId:
+        getResumeVersionFixture.scenarios.default.response.body.targetJobId,
+      mode: "bullet_suggestions",
+    });
   });
 
   it("keeps Export PDF and Copy Text actions available on Rewrites and Edit tabs", async () => {

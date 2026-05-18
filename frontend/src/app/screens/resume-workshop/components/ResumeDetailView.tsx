@@ -363,6 +363,7 @@ const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
     try {
       const result = await tailorRequest.request({
         resumeAssetId: version.resumeAssetId,
+        resumeVersionId: version.id,
         targetJobId: version.targetJobId,
         mode,
       });

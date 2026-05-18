@@ -34,6 +34,9 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
   if (params.branchOriginalId) {
     rootDataAttributes["data-branch-original-id"] = params.branchOriginalId;
   }
+  if (params.targetJobId) {
+    rootDataAttributes["data-target-job-id"] = params.targetJobId;
+  }
   if (params.createMode) {
     rootDataAttributes["data-create-mode"] = params.createMode;
   }
@@ -44,7 +47,12 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
   } else if (params.flow === "create") {
     body = <ResumeCreateFlow initialMode={params.createMode ?? undefined} />;
   } else if (params.flow === "branch") {
-    body = <ResumeBranchFlow branchOriginalId={params.branchOriginalId} />;
+    body = (
+      <ResumeBranchFlow
+        branchOriginalId={params.branchOriginalId}
+        targetJobId={params.targetJobId}
+      />
+    );
   } else if (params.versionId) {
     body = (
       <DetailWrapper

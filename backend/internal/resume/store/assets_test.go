@@ -130,6 +130,9 @@ func TestGetVersionByIDScopesUser(t *testing.T) {
 			"Structured master", nil, nil, []byte(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`), nil,
 			"p", "r", "m", nil, now, now, nil,
 		))
+	mock.ExpectQuery(regexp.QuoteMeta(`select s.id, s.tailor_run_id`)).
+		WithArgs("version-1").
+		WillReturnRows(suggestionRows())
 
 	got, err := repo.GetVersionByID(context.Background(), "user-1", "version-1")
 	if err != nil {
@@ -161,6 +164,12 @@ func TestListVersionsByAssetScopesAssetAndPaginates(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, resume_asset_id`)).
 		WithArgs("user-1", "asset-1", 3).
 		WillReturnRows(rows)
+	mock.ExpectQuery(regexp.QuoteMeta(`select s.id, s.tailor_run_id`)).
+		WithArgs(assetID(0)).
+		WillReturnRows(suggestionRows())
+	mock.ExpectQuery(regexp.QuoteMeta(`select s.id, s.tailor_run_id`)).
+		WithArgs(assetID(1)).
+		WillReturnRows(suggestionRows())
 
 	got, err := repo.ListVersionsByAsset(context.Background(), "user-1", "asset-1", resumestore.VersionListFilter{PageSize: 2})
 	if err != nil {
@@ -587,6 +596,26 @@ func versionRows() *sqlmock.Rows {
 		"created_at",
 		"updated_at",
 		"deleted_at",
+	})
+}
+
+func suggestionRows() *sqlmock.Rows {
+	return sqlmock.NewRows([]string{
+		"id",
+		"tailor_run_id",
+		"original_bullet",
+		"suggested_bullet",
+		"reason",
+		"status",
+		"decided_at",
+		"created_at",
+		"prompt_version",
+		"rubric_version",
+		"model_id",
+		"provider",
+		"language",
+		"feature_flag",
+		"data_source_version",
 	})
 }
 

@@ -702,9 +702,10 @@ type PaginatedFeedbackReport struct {
 }
 
 type RequestResumeTailorRequest struct {
-	Mode          string `json:"mode"`
-	ResumeAssetId string `json:"resumeAssetId"`
-	TargetJobId   string `json:"targetJobId"`
+	Mode            string  `json:"mode"`
+	ResumeAssetId   string  `json:"resumeAssetId"`
+	ResumeVersionId *string `json:"resumeVersionId,omitempty"`
+	TargetJobId     string  `json:"targetJobId"`
 }
 
 type ResumeTailorBulletSuggestion struct {

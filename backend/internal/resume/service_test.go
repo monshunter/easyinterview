@@ -538,16 +538,17 @@ func TestRequestResumeTailorCreatesQueuedRunAndJob(t *testing.T) {
 	})
 
 	got, err := svc.RequestResumeTailor(context.Background(), resume.RequestTailorRunInput{
-		UserID:         " user-1 ",
-		TargetJobID:    " target-1 ",
-		ResumeAssetID:  " asset-1 ",
-		Mode:           " gap_review ",
-		IdempotencyKey: " idem-tailor ",
+		UserID:          " user-1 ",
+		TargetJobID:     " target-1 ",
+		ResumeAssetID:   " asset-1 ",
+		ResumeVersionID: " version-1 ",
+		Mode:            " gap_review ",
+		IdempotencyKey:  " idem-tailor ",
 	})
 	if err != nil {
 		t.Fatalf("RequestResumeTailor: %v", err)
 	}
-	if store.tailorCreateIn.UserID != "user-1" || store.tailorCreateIn.TargetJobID != "target-1" || store.tailorCreateIn.ResumeAssetID != "asset-1" || store.tailorCreateIn.Mode != "gap_review" {
+	if store.tailorCreateIn.UserID != "user-1" || store.tailorCreateIn.TargetJobID != "target-1" || store.tailorCreateIn.ResumeAssetID != "asset-1" || store.tailorCreateIn.ResumeVersionID != "version-1" || store.tailorCreateIn.Mode != "gap_review" {
 		t.Fatalf("tailor create input = %+v", store.tailorCreateIn)
 	}
 	if store.tailorCreateIn.TailorRunID != "tailor-run-1" || store.tailorCreateIn.JobID != "job-1" || store.tailorCreateIn.DedupeKey == "" || store.tailorCreateIn.Now != now {
@@ -848,11 +849,12 @@ func validConfirmInput() resume.ConfirmStructuredMasterInput {
 
 func validTailorInput() resume.RequestTailorRunInput {
 	return resume.RequestTailorRunInput{
-		UserID:         "user-1",
-		TargetJobID:    "target-1",
-		ResumeAssetID:  "asset-1",
-		Mode:           "gap_review",
-		IdempotencyKey: "idem-tailor",
+		UserID:          "user-1",
+		TargetJobID:     "target-1",
+		ResumeAssetID:   "asset-1",
+		ResumeVersionID: "version-1",
+		Mode:            "gap_review",
+		IdempotencyKey:  "idem-tailor",
 	}
 }
 

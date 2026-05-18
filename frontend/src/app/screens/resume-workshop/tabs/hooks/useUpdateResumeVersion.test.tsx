@@ -56,6 +56,25 @@ describe("filterUpdateResumeVersionPayload", () => {
     });
   });
 
+  it("strips read-only structuredProfile provenance before PATCH", () => {
+    const result = filterUpdateResumeVersionPayload({
+      structuredProfile: {
+        headline: "Updated",
+        provenance: {
+          promptVersion: "resume_profile.v1",
+          rubricVersion: "not_applicable",
+          modelId: "resume-profile.confirmed.v1",
+          language: "en",
+          featureFlag: "resume-workshop-additive",
+          dataSourceVersion: "resume_asset.v1",
+        },
+      },
+    });
+    expect(result).toEqual({
+      structuredProfile: { headline: "Updated" },
+    });
+  });
+
   it("throws on disallowed fields", () => {
     for (const key of [
       "versionType",

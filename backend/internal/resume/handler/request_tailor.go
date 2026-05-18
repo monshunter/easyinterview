@@ -60,6 +60,10 @@ func (h *Handler) RequestResumeTailor(w http.ResponseWriter, r *http.Request) {
 func validateRequestTailorInput(userID string, idempotencyKey string, body api.RequestResumeTailorRequest) (resume.RequestTailorRunInput, error) {
 	targetJobID := strings.TrimSpace(body.TargetJobId)
 	resumeAssetID := strings.TrimSpace(body.ResumeAssetId)
+	resumeVersionID := ""
+	if body.ResumeVersionId != nil {
+		resumeVersionID = strings.TrimSpace(*body.ResumeVersionId)
+	}
 	mode := strings.TrimSpace(body.Mode)
 	if targetJobID == "" {
 		return resume.RequestTailorRunInput{}, validationError("targetJobId is required")
@@ -73,11 +77,12 @@ func validateRequestTailorInput(userID string, idempotencyKey string, body api.R
 		return resume.RequestTailorRunInput{}, validationError("mode is invalid")
 	}
 	return resume.RequestTailorRunInput{
-		UserID:         strings.TrimSpace(userID),
-		TargetJobID:    targetJobID,
-		ResumeAssetID:  resumeAssetID,
-		Mode:           mode,
-		IdempotencyKey: strings.TrimSpace(idempotencyKey),
+		UserID:          strings.TrimSpace(userID),
+		TargetJobID:     targetJobID,
+		ResumeAssetID:   resumeAssetID,
+		ResumeVersionID: resumeVersionID,
+		Mode:            mode,
+		IdempotencyKey:  strings.TrimSpace(idempotencyKey),
 	}, nil
 }
 
