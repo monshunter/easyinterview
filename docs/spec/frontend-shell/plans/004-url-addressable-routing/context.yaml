@@ -1,0 +1,85 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: frontend-shell
+  name: 004-url-addressable-routing
+  sequence: 4
+  supersedes: []
+  specVersion:
+    from: 1.14
+    to: 1.15
+spec:
+  defaultTarget: frontend
+  discovery:
+    aliases:
+      - frontend-shell
+      - url-addressable-routing
+      - browser history routing
+      - canonical frontend URL
+      - SPA deep link routing
+    keywords:
+      - Browser History
+      - pushState
+      - replaceState
+      - popstate
+      - deep link
+      - canonical path
+      - hash adapter
+      - parseInitialRouteHash
+      - pendingAction
+      - selectedJobMatchId
+      - pendingJdMatchActionId
+      - safe route params
+      - autoStartPractice
+      - reportId
+      - reportStatus
+      - pendingImportId
+      - tailorRunId
+      - debriefId
+      - URL privacy
+      - standalone voice negative
+      - E2E.P0.088
+      - E2E.P0.089
+      - E2E.P0.090
+  targets:
+    frontend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../../development.md
+        - ../../../../ui-design/auth-and-entry.md
+        - ../../../../ui-design/module-map.md
+        - ../001-app-shell-auth-settings/plan.md
+        - ../003-ui-design-pixel-parity-gate/plan.md
+      discovery:
+        packages:
+          - frontend/src/app/routes.ts
+          - frontend/src/app/normalizeRoute.ts
+          - frontend/src/app/bootstrapRoute.ts
+          - frontend/src/app/App.tsx
+          - frontend/src/app/navigation/NavigationProvider.tsx
+          - frontend/src/main.tsx
+          - frontend/tests/pixel-parity
+          - test/scenarios/e2e
+        uiRoutes:
+          - home
+          - jd_match
+          - workspace
+          - resume_versions
+          - debrief
+          - parse
+          - practice
+          - generating
+          - report
+          - company_intel
+          - profile
+          - settings
+          - auth_login
+          - auth_register
+          - auth_verify
+          - auth_reset
+          - auth_logout
+        apiNames: []

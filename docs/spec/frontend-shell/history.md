@@ -1,13 +1,14 @@
 # Frontend Shell History
 
-> **版本**: 1.14
+> **版本**: 1.15
 > **状态**: active
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-18
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-18 | 1.15 | 锁定 URL-addressable routing 方向：保持 SPA，但正式导航升级为 Browser History canonical path + query，内部继续使用 `Route` / `LooseRoute` 合约；`#route=` 保留为 static preview / pixel parity adapter；新增 D-10 与 C-11 / C-12 / C-13，固化 deep-link / reload / back-forward、auth pendingAction 隐私红线、hash compatibility 与旧 route / 独立 `voice` 负向回归。 | 004-url-addressable-routing |
 | 2026-05-11 | 1.14 | 修订 Phase 6 登录态与真实浏览器 parity：authenticated user menu 进入 `test:pixel-parity`，完整 gate 扩展为 8 spec / 112 tests；desktop dropdown 与头像 chip 右对齐，mobile dropdown 必须保持在 viewport 内，logout flow 回到非登录态；001 计划补齐 Phase 6 operation matrix。 | 001-app-shell-auth-settings / 003-ui-design-pixel-parity-gate |
 | 2026-05-10 | 1.13 | 修订真实浏览器 pixel parity gate：完整 `test:pixel-parity` 扩展为 8 spec / 110 tests，常规 clean checkout gate 不得依赖 ignored screenshot baseline；workspace full-state pixel tests 必须通过 server-bound route params 进入完整规划态，不依赖 Home recent card 的 `resume-unbound` synthetic path。 | 003-ui-design-pixel-parity-gate |
 | 2026-05-10 | 1.12 | 修订 dev mock session 与用户菜单验收：默认 dev mock 必须从非登录态开始，mock verify/logout 必须驱动 `/me` authenticated/unauthenticated 状态切换；TopBar 已登录态必须源级复刻 `ui-design/src/app.jsx` 的头像 chip + dropdown 菜单，并新增 C-10 退出闭环验收。 | 001-app-shell-auth-settings |

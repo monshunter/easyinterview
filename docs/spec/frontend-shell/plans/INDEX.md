@@ -8,6 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [004-url-addressable-routing](./004-url-addressable-routing/plan.md) | [plan](./004-url-addressable-routing/plan.md) / [checklist](./004-url-addressable-routing/checklist.md) / [context](./004-url-addressable-routing/context.yaml) / [bdd-plan](./004-url-addressable-routing/bdd-plan.md) / [bdd-checklist](./004-url-addressable-routing/bdd-checklist.md) | 1.0 | active | 2026-05-18 |
 
 ## 2 已完成（Completed）
 
