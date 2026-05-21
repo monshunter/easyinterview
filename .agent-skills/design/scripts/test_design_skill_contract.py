@@ -88,6 +88,16 @@ def test_design_skill_requires_branch_guard_before_doc_mutation():
     assert "the Step 2.5 branch guard succeeds" in text
 
 
+def test_design_skill_rejects_tool_name_branch_prefixes():
+    text = _read(SKILL_PATH)
+
+    assert "`design/{subject}`" in text
+    assert "`spec-design/`" in text
+    assert "never create new" in text
+    assert "`codex/`, `claude/`, `gemini/`, `agent/`" in text
+    assert "rename it to the semantic repository prefix before editing files" in text
+
+
 def test_spec_templates_include_quality_gate_classification():
     plan_template = _read(SPEC_TEMPLATE_PATH)
     init_template = _read(INIT_SPEC_TEMPLATE_PATH)

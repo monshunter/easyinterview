@@ -237,8 +237,12 @@ Output rules:
 1. Generate fix proposals with diff-style previews.
 2. Explicitly degrade target-level-only findings to preview-only when no checklist section can be mapped automatically.
 3. Wait for user confirmation.
-4. For each accepted finding, map it to a checklist section.
-5. Execute remediation only through `/tdd --section`.
+4. Run the `AGENTS.md` §7 branch guard before the first remediation file edit.
+   The branch prefix must express the work type or domain, such as `fix/`,
+   `docs/`, or `feat/`; never create `codex/`, `claude/`, `gemini/`,
+   `agent/`, or other tool-name branches.
+5. For each accepted finding, map it to a checklist section.
+6. Execute remediation only through `/tdd --section`.
 
 ### Step 6: Fix via `/tdd --section`
 

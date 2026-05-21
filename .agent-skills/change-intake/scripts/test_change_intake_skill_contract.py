@@ -27,3 +27,12 @@ def test_skill_requires_branch_guard_before_mutation():
         "If dirty changes already came from the current session while still on the"
         in text
     )
+
+
+def test_skill_rejects_tool_name_branch_prefixes():
+    text = SKILL_PATH.read_text(encoding="utf-8")
+    assert "The branch prefix must" in text
+    assert "`fix/`, `docs/`, `design/`, or" in text
+    assert "`spec-design/`" in text
+    assert "`codex/`, `claude/`, `gemini/`, `agent/`" in text
+    assert "rename it to the semantic repository prefix before" in text

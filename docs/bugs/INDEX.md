@@ -89,6 +89,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0080](./BUG-0080.md) | tool-name branch prefixes bypassed branch naming governance | medium | resolved | 2026-05-21 | `fix(governance): reject tool-name branch prefixes (BUG-0080)` |
 | [BUG-0070](./BUG-0070.md) | async job polling and voice playback context were contract-only at runtime | high | resolved | 2026-05-17 | `fix(runtime): wire job polling and voice playback context (BUG-0070)` |
 | [BUG-0049](./BUG-0049.md) | backend upload follow-up review exposed MinIO race and no-op live gate | medium | resolved | 2026-05-13 | `fix(backend-upload): close follow-up L2 gaps` |
 | [BUG-0048](./BUG-0048.md) | backend upload L2 review exposed size privacy and live gate gaps | high | resolved | 2026-05-12 | `fix(backend-upload): harden upload privacy and live gates` |

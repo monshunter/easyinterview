@@ -136,6 +136,10 @@ Read the validated files for the current target:
    `spec`/`plan`/`checklist`/`context.yaml` documents.
 2. Display the preview grouped by document type and wait for user confirmation.
 3. On confirmation:
+   - run the `AGENTS.md` §7 branch guard before the first file edit
+   - use a semantic work/domain branch prefix such as `fix/`, `docs/`,
+     `design/`, or `spec-design/`; never create `codex/`, `claude/`,
+     `gemini/`, `agent/`, or other tool-name branches
    - write only the fixes explicitly confirmed by the user
    - if both spec and downstream docs need updates, write spec first, then
      update plan/checklist/context consumers

@@ -62,13 +62,20 @@ write files:
    run as a retry/resume and continue.
 3. If the current branch is the default parent branch and the worktree is clean,
    update the parent branch with fast-forward-only semantics, then create or
-   switch to a feature branch before editing files.
+   switch to a feature branch before editing files. The branch prefix must
+   express the work type or domain, such as `fix/`, `docs/`, `design/`, or
+   `spec-design/`; do not create `codex/`, `claude/`, `gemini/`, `agent/`, or
+   other tool-name branches.
 4. If dirty changes already came from the current session while still on the
    default parent branch, create the feature branch immediately while preserving
    those changes, report the recovery, and continue only after the branch switch.
 5. If the default parent branch is dirty for unclear or user-owned reasons, stop
    and ask the user before creating or switching branches.
-6. If a non-parent branch has unrelated dirty changes and does not match the
+6. If the current session is on a freshly created tool-name branch that has not
+   been pushed or shared, rename it to the semantic repository prefix before
+   mutating files. If it may already be externally referenced, stop and ask the
+   user.
+7. If a non-parent branch has unrelated dirty changes and does not match the
    session feature branch, stop and ask the user before mutating anything.
 
 Never revise spec / plan / checklist on the default parent branch. For completed

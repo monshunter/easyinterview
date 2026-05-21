@@ -23,6 +23,9 @@ def test_agents_declares_git_branch_strategy_section():
 
     assert "## 7 Git 分支策略" in text
     assert "- 默认父分支: main" in text
+    assert "分支名前缀必须表达工作类型或业务域，而不是 Agent / CLI 工具身份" in text
+    assert "禁止使用 `codex/`、`claude/`、`gemini/`、`agent/` 等工具名前缀" in text
+    assert "docs/spec 设计派生或新 subject bootstrap 默认使用 `design/{subject}` 或 `spec-design/{subject}`" in text
     assert "- `/implement` 自动从父分支创建 feature branch" in text
     assert "- 创建 feature branch 前必须先更新父分支到最新远端状态；更新必须采用 fast-forward-only 语义，失败时停止并报告，不得从过期父分支派生新分支" in text
     assert "- phase commit 只在当前 feature branch 上提交并记录工作日志，默认不自动 merge / ff-merge 回父分支" in text

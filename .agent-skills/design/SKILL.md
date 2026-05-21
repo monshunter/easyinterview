@@ -81,7 +81,8 @@ INDEX, and before writing spec / plan / checklist / test / BDD / context files:
    the parent branch with fast-forward-only semantics, then create or switch to a feature
    branch before editing files. Use the repository branch prefix convention, for example
    `design/{subject}` or another concise `spec-design/` branch name tied to the design
-   subject.
+   subject. The prefix must describe the work type or domain; never create new
+   `codex/`, `claude/`, `gemini/`, `agent/`, or other tool-name branches.
 4. If the fast-forward-only parent update fails, stop before file edits and report the
    blocker. Do not generate documents from a stale parent branch.
 5. If dirty changes already came from the current session while still on the default
@@ -89,7 +90,10 @@ INDEX, and before writing spec / plan / checklist / test / BDD / context files:
    report the recovery, and continue only after the branch switch.
 6. If the default parent branch is dirty for unclear or user-owned reasons, stop and ask
    the user before creating or switching branches.
-7. If a non-parent branch has unrelated dirty changes and does not match the session
+7. If the current session is on a freshly created tool-name branch that has not been
+   pushed or shared, rename it to the semantic repository prefix before editing files.
+   If it may already be externally referenced, stop and ask the user.
+8. If a non-parent branch has unrelated dirty changes and does not match the session
    feature branch, stop and ask the user before mutating anything.
 
 Never invoke `/create-doc`, create spec / plan directories, revise completed owner docs

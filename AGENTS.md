@@ -248,6 +248,9 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 ## 7 Git 分支策略
 
 - 默认父分支: main（优先自动探测；若未配置则使用当前主开发分支）
+- 分支名前缀必须表达工作类型或业务域，而不是 Agent / CLI 工具身份。允许的常用前缀包括 `feat/`、`fix/`、`docs/`、`opt/`、`design/`、`spec-design/`；禁止使用 `codex/`、`claude/`、`gemini/`、`agent/` 等工具名前缀作为新分支命名。
+- docs/spec 设计派生或新 subject bootstrap 默认使用 `design/{subject}` 或 `spec-design/{subject}`；代码实施计划默认由 `/implement` 生成 `feat|fix|opt|docs/{subspec}-{plan}-{MMDD}` 形式的 feature branch。
+- 若发现当前会话新建了工具名前缀分支且尚未推送 / 未被外部引用，必须在首次文件编辑前将其重命名为语义前缀分支并保留提交；若已推送或外部协作者可能依赖该分支，停止并询问用户。
 - `/implement` 自动从父分支创建 feature branch
 - 任何会写入文件的入口 skill（包括 `/design` 生成 spec/plan 文档、`/change-intake` 的原地 spec/plan/checklist 修订、`/plan-review --fix`、`/plan-code-review --fix`、`/bug-report`、`/retrospective`、`/create-doc`）都必须在首次文件编辑前执行分支前置门禁；不得在默认父分支上修改代码、文档、计划、报告或日志
 - 创建 feature branch 前必须先更新父分支到最新远端状态；更新必须采用 fast-forward-only 语义，失败时停止并报告，不得从过期父分支派生新分支
