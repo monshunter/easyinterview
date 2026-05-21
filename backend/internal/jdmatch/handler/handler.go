@@ -46,6 +46,8 @@ type Handler struct {
 	session        SessionResolver
 	agentScans     AgentScanReader
 	profileBuilder ProfileBuilder
+	recReader      RecommendationsReader
+	recMutator     RecommendationsMutator
 }
 
 // New constructs a Handler with the supplied options.
