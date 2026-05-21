@@ -1,6 +1,6 @@
 # Engineering Roadmap History
 
-> **版本**: 3.17
+> **版本**: 3.18
 > **状态**: active
 > **更新日期**: 2026-05-21
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-21 | 3.18 | §5.2 "App shell + auth + settings" 行 `backend-profile` 状态调整为 active（001 candidate profile + experience cards baseline completed）：5 个 Profile endpoint 真实 backend + cmd/api wiring + B2 cross-owner IK + nullable additive + B1 RESOURCE_NOT_FOUND additive + privacy delete / source counts / cross-owner profile reader internal API + 3 BDD scenarios（E2E.P0.091-093）已交付，下游 `backend-jobs-recommendations/001` aggregation 与 backend internal privacy runner 可消费 cross-owner internal API。 | backend-profile/001-candidate-profile-and-experience-cards |
 | 2026-05-21 | 3.17 | §5.2 派生 2 个 P0 workstream subject：在 "App shell + auth + settings" 行追加 `backend-profile` active（001-candidate-profile-and-experience-cards baseline，承接 5 个 Profile endpoint 真实 backend + cross-owner B2 IK additive + privacy delete + source counts internal API）；在 "Home / Job Picks / Parse" 行追加 `backend-jobs-recommendations` active（001-jd-match-real-backend-baseline，承接 JobMatch 12 个 endpoint 真实 backend + cross-owner B4 + F3 + A3 + B3 additive + 4 个 cross-owner counter integration），同时移除 "JobMatch real backend subject not yet created" 旧口径。 | backend-profile/001-candidate-profile-and-experience-cards + backend-jobs-recommendations/001-jd-match-real-backend-baseline |
 | 2026-05-21 | 3.16 | 对齐当前 `docs/spec/INDEX.md` 与 plan checklist 事实：刷新 §5.2 P0 workstream 状态，移除已创建 subject 的"未创建"旧口径，并保留 backend-async-runner / e2e-scenarios-p0 / analytics-funnel / release-gate-and-rollout 为未创建候选。 | roadmap/spec lifecycle rebaseline |
 | 2026-05-17 | 3.15 | 对齐 B2 D-23 与 recent additive contract 落地：roadmap B2 摘要与 mock-first runway 从 55 operation 升到 59 operation，承接 Debrief suggestions、PracticeSessions listing、Practice voice turn 与 backend-resume `confirmResumeStructuredMaster` fixtures。 | backend-resume/002-versions-tailor-runs-and-save-v1 Phase 1 |

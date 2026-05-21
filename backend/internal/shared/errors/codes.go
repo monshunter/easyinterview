@@ -21,6 +21,7 @@ const (
 	CodeResumeExportNotAvailable            = "RESUME_EXPORT_NOT_AVAILABLE"
 	CodeResumeStructuredMasterAlreadyExists = "RESUME_STRUCTURED_MASTER_ALREADY_EXISTS"
 	CodeValidationFailed                    = "VALIDATION_FAILED"
+	CodeResourceNotFound                    = "RESOURCE_NOT_FOUND"
 	CodeIdempotencyKeyMismatch              = "IDEMPOTENCY_KEY_MISMATCH"
 	CodeRateLimited                         = "RATE_LIMITED"
 	CodeAiProviderTimeout                   = "AI_PROVIDER_TIMEOUT"
@@ -48,6 +49,7 @@ var AllCodes = []string{
 	CodeResumeExportNotAvailable,
 	CodeResumeStructuredMasterAlreadyExists,
 	CodeValidationFailed,
+	CodeResourceNotFound,
 	CodeIdempotencyKeyMismatch,
 	CodeRateLimited,
 	CodeAiProviderTimeout,
@@ -81,6 +83,7 @@ var CodeRegistry = map[string]CodeMeta{
 	CodeResumeExportNotAvailable:            {Message: "resume version export is not available in P0", Retryable: false},
 	CodeResumeStructuredMasterAlreadyExists: {Message: "structured master resume version already exists for this resume asset", Retryable: false},
 	CodeValidationFailed:                    {Message: "request validation failed", Retryable: false},
+	CodeResourceNotFound:                    {Message: "requested resource not found or not accessible", Retryable: false},
 	CodeIdempotencyKeyMismatch:              {Message: "idempotency key was reused with a different request body", Retryable: false},
 	CodeRateLimited:                         {Message: "rate limit exceeded", Retryable: true},
 	CodeAiProviderTimeout:                   {Message: "AI provider request timed out", Retryable: true},

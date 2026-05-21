@@ -173,6 +173,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: debrief runtime init: %v\n", err)
 		os.Exit(1)
 	}
+	profileRoutes := buildProfileRoutes(loader, db)
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -180,7 +181,7 @@ func main() {
 	}()
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes),
+		Handler:           buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes, profileRoutes),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -291,6 +292,10 @@ func buildAPIHandlerWithUploadReportDebriefAndHandlers(loader *config.Loader, fl
 }
 
 func buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, debrief debriefRoutes, jobs jobsRoutes) http.Handler {
+	return buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, upload, resume, reports, debrief, jobs, profileRoutes{})
+}
+
+func buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, debrief debriefRoutes, jobs jobsRoutes, prof profileRoutes) http.Handler {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(auth.HandlerOptions{
 		Passwordless: authService,
@@ -437,6 +442,23 @@ func buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader *config.Loader
 		mux.Handle("POST /api/v1/practice/sessions/{sessionId}/events", auth.SessionMiddleware(authService, "appendSessionEvent", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			practice.Handler.AppendSessionEvent(w, r, r.PathValue("sessionId"))
 		})))
+	}
+	if prof.Handler != nil {
+		createExperienceCard := http.HandlerFunc(prof.Handler.CreateExperienceCard)
+		if prof.Idempotency != nil {
+			createExperienceCard = requireIdempotencyKey(http.StatusUnprocessableEntity, prof.Idempotency.Handler("profile", "createExperienceCard", requestUserFromContext, createExperienceCard)).ServeHTTP
+		}
+		updateExperienceCard := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			prof.Handler.UpdateExperienceCard(w, r, r.PathValue("cardId"))
+		})
+		if prof.Idempotency != nil {
+			updateExperienceCard = requireIdempotencyKey(http.StatusUnprocessableEntity, prof.Idempotency.Handler("profile", "updateExperienceCard", requestUserFromContext, updateExperienceCard)).ServeHTTP
+		}
+		mux.Handle("GET /api/v1/profiles/me", auth.SessionMiddleware(authService, "getMyProfile", http.HandlerFunc(prof.Handler.GetMyProfile)))
+		mux.Handle("PATCH /api/v1/profiles/me", auth.SessionMiddleware(authService, "updateMyProfile", http.HandlerFunc(prof.Handler.UpdateMyProfile)))
+		mux.Handle("GET /api/v1/profiles/me/experience-cards", auth.SessionMiddleware(authService, "listExperienceCards", http.HandlerFunc(prof.Handler.ListExperienceCards)))
+		mux.Handle("POST /api/v1/profiles/me/experience-cards", auth.SessionMiddleware(authService, "createExperienceCard", createExperienceCard))
+		mux.Handle("PATCH /api/v1/profiles/me/experience-cards/{cardId}", auth.SessionMiddleware(authService, "updateExperienceCard", updateExperienceCard))
 	}
 	return mux
 }

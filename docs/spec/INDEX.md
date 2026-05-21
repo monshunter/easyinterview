@@ -11,7 +11,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [product-scope](./product-scope/spec.md) | 1.8 | active | 2026-05-05 | [plans](./product-scope/plans/) |
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.17 | active | 2026-05-21 | [plans](./engineering-roadmap/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.18 | active | 2026-05-21 | [plans](./engineering-roadmap/plans/) |
 | [historical-spec-implementation-review](./historical-spec-implementation-review/spec.md) | 1.0 | active | 2026-05-04 | [plans](./historical-spec-implementation-review/plans/) |
 
 ## 2 Foundation
@@ -29,8 +29,8 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.19 | active | 2026-05-17 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.25 | active | 2026-05-18 | [plans](./openapi-v1-contract/plans/) |
+| [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.20 | active | 2026-05-21 | [plans](./shared-conventions-codified/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.26 | active | 2026-05-21 | [plans](./openapi-v1-contract/plans/) |
 | [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.5 | active | 2026-05-13 | [plans](./event-and-outbox-contract/plans/) |
 | [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.19 | active | 2026-05-15 | [plans](./db-migrations-baseline/plans/) |
 
@@ -60,5 +60,5 @@
 | [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.1 | active | 2026-05-16 | [plans](./frontend-report-dashboard/plans/) |
 | [backend-debrief](./backend-debrief/spec.md) | 1.1 | active | 2026-05-16 | [plans](./backend-debrief/plans/) |
 | [frontend-debrief](./frontend-debrief/spec.md) | 1.5 | active | 2026-05-18 | [plans](./frontend-debrief/plans/) |
-| [backend-profile](./backend-profile/spec.md) | 1.1 | active | 2026-05-21 | [plans](./backend-profile/plans/) |
+| [backend-profile](./backend-profile/spec.md) | 1.2 | active | 2026-05-21 | [plans](./backend-profile/plans/) |
 | [backend-jobs-recommendations](./backend-jobs-recommendations/spec.md) | 1.1 | active | 2026-05-21 | [plans](./backend-jobs-recommendations/plans/) |

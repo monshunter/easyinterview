@@ -3,7 +3,9 @@
   "scenarios": {
     "default": {
       "request": {
-        "headers": {},
+        "headers": {
+          "Idempotency-Key": "018f9c00-0000-7000-8000-000000003002"
+        },
         "body": {
           "result": "Reduced UI defect rate by 38%; 12/12 teams shipped on the unified system."
         }

@@ -1,7 +1,7 @@
 # Backend Profile Candidate Profile and Experience Cards Baseline
 
-> **版本**: 1.0
-> **状态**: active
+> **版本**: 1.1
+> **状态**: completed
 > **更新日期**: 2026-05-21
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -20,7 +20,7 @@
 - 在 `cmd/api` 挂载 5 个 route + session middleware + IK middleware（仅 experience card CUD），并验证真实 HTTP runtime；
 - 携带 [B2 cross-owner additive](../../../openapi-v1-contract/spec.md) 修订（在 `createExperienceCard` / `updateExperienceCard` 添加 `IdempotencyKey` parameter $ref + fixtures 增补 IK header 示例 + inventory 重算 + spec D-X 锁定），与本 plan Phase 1 同步落地；
 - 暴露 `DeleteCandidateProfileForUser(userId)` internal API + `CountExperienceCardsBySource(userId)` internal API + `GetCandidateProfileForUser(userId)` internal API（[spec D-13](../../spec.md#31-已锁定决策)，read-only / 不触发 seed 副作用 / 缺失返回 nil），供 backend internal privacy runner + [backend-jobs-recommendations](../../../backend-jobs-recommendations/spec.md) `getJobMatchProfile` aggregation 消费；
-- 通过 spec §6 C-1..C-15 验收 + 新增 E2E.P0.081 + E2E.P0.082 + E2E.P0.083 三个 BDD 场景；
+- 通过 spec §6 C-1..C-15 验收 + 新增 E2E.P0.091 + E2E.P0.092 + E2E.P0.093 三个 BDD 场景；
 - 不实现 AI 调用 / Insight Cards / 修正覆盖层 / 独立经历库 UI / cross-owner `AppendExperienceCardEvidence` write path（归 [spec §2.2](../../spec.md#22-out-of-scope) 与 plan 002 P1）。
 
 ## 2 背景
@@ -51,7 +51,7 @@
   6. candidate profile read internal API test（D-13）：已 seed 用户返回 `*CandidateProfile` 与 `getMyProfile` 字段集一致；未 seed 用户返回 nil（不写 audit_events / 不 bump profile_version / DB `candidate_profiles` 仍 0 行）；后续 `getMyProfile` 仍能按 D-1 seed；
   7. `cmd/api` route/runtime test：session middleware、IK middleware（experience CUD only）、route path params、5 个 route 真实可达 + cross-user 404 + IK replay。
   执行入口：`/implement backend-profile/001-candidate-profile-and-experience-cards` → `/tdd`。
-- **BDD 策略**: 适用（Feature plan requires BDD）。E2E.P0.081 candidate-profile-seed-and-patch + E2E.P0.082 experience-cards-crud-with-ik + E2E.P0.083 profile-privacy-delete-lifecycle。详见 [bdd-plan.md](./bdd-plan.md) / [bdd-checklist.md](./bdd-checklist.md)。
+- **BDD 策略**: 适用（Feature plan requires BDD）。E2E.P0.091 candidate-profile-seed-and-patch + E2E.P0.092 experience-cards-crud-with-ik + E2E.P0.093 profile-privacy-delete-lifecycle。详见 [bdd-plan.md](./bdd-plan.md) / [bdd-checklist.md](./bdd-checklist.md)。
 - **替代验证 gate**:
   - `cd backend && go test ./...`
   - `cd backend && go test ./internal/profile/handler/... -count=1`
@@ -70,11 +70,11 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `getMyProfile` | `openapi/fixtures/Profile/getMyProfile.json` `default` | 未来 `frontend-profile-and-settings` subspec；当前未被 frontend 消费（contract 就绪等待 UI 接入） | `backend/internal/profile/handler/get.go` real handler + `cmd/api` `GET /api/v1/profiles/me` route with session middleware | `candidate_profiles` (UPSERT by user_id) + 读取 `user_settings` 作为 seed 默认值 | none | E2E.P0.081 |
-| `updateMyProfile` | `openapi/fixtures/Profile/updateMyProfile.json` `default` | 未来 `frontend-profile-and-settings` subspec；当前未被 frontend 消费 | `backend/internal/profile/handler/update.go` real handler + `cmd/api` `PATCH /api/v1/profiles/me` route with session middleware（无 IK，patch 幂等） | `candidate_profiles` UPDATE supplied fields + `profile_version += 1` | none | E2E.P0.081 |
-| `listExperienceCards` | `openapi/fixtures/Profile/listExperienceCards.json` `default` | 未来 `frontend-profile-and-settings` subspec；当前未被 frontend 消费 | `backend/internal/profile/handler/list_cards.go` real handler + `cmd/api` `GET /api/v1/profiles/me/experience-cards` route with session middleware | `experience_cards` cursor pagination | none | E2E.P0.082 |
-| `createExperienceCard` | `openapi/fixtures/Profile/createExperienceCard.json` `default` + new IK fixture variant via B2 additive | 未来 `frontend-profile-and-settings` subspec；当前未被 frontend 消费 | `backend/internal/profile/handler/create_card.go` real handler + `cmd/api` `POST /api/v1/profiles/me/experience-cards` route with session + IK middleware | `experience_cards` INSERT with `source_type='manual'` forced + `confidence='medium'` default | none | E2E.P0.082 |
-| `updateExperienceCard` | `openapi/fixtures/Profile/updateExperienceCard.json` `default` + new IK fixture variant via B2 additive | 未来 `frontend-profile-and-settings` subspec；当前未被 frontend 消费 | `backend/internal/profile/handler/update_card.go` real handler + `cmd/api` `PATCH /api/v1/profiles/me/experience-cards/{cardId}` route with session + IK middleware + cross-user 404 | `experience_cards` UPDATE supplied fields | none | E2E.P0.082 |
+| `getMyProfile` | `openapi/fixtures/Profile/getMyProfile.json` `default` | 未来 `frontend-profile-and-settings` subspec；当前未被 frontend 消费（contract 就绪等待 UI 接入） | `backend/internal/profile/handler/get.go` real handler + `cmd/api` `GET /api/v1/profiles/me` route with session middleware | `candidate_profiles` (UPSERT by user_id) + 读取 `user_settings` 作为 seed 默认值 | none | E2E.P0.091 |
+| `updateMyProfile` | `openapi/fixtures/Profile/updateMyProfile.json` `default` | 未来 `frontend-profile-and-settings` subspec；当前未被 frontend 消费 | `backend/internal/profile/handler/update.go` real handler + `cmd/api` `PATCH /api/v1/profiles/me` route with session middleware（无 IK，patch 幂等） | `candidate_profiles` UPDATE supplied fields + `profile_version += 1` | none | E2E.P0.091 |
+| `listExperienceCards` | `openapi/fixtures/Profile/listExperienceCards.json` `default` | 未来 `frontend-profile-and-settings` subspec；当前未被 frontend 消费 | `backend/internal/profile/handler/list_cards.go` real handler + `cmd/api` `GET /api/v1/profiles/me/experience-cards` route with session middleware | `experience_cards` cursor pagination | none | E2E.P0.092 |
+| `createExperienceCard` | `openapi/fixtures/Profile/createExperienceCard.json` `default` + new IK fixture variant via B2 additive | 未来 `frontend-profile-and-settings` subspec；当前未被 frontend 消费 | `backend/internal/profile/handler/create_card.go` real handler + `cmd/api` `POST /api/v1/profiles/me/experience-cards` route with session + IK middleware | `experience_cards` INSERT with `source_type='manual'` forced + `confidence='medium'` default | none | E2E.P0.092 |
+| `updateExperienceCard` | `openapi/fixtures/Profile/updateExperienceCard.json` `default` + new IK fixture variant via B2 additive | 未来 `frontend-profile-and-settings` subspec；当前未被 frontend 消费 | `backend/internal/profile/handler/update_card.go` real handler + `cmd/api` `PATCH /api/v1/profiles/me/experience-cards/{cardId}` route with session + IK middleware + cross-user 404 | `experience_cards` UPDATE supplied fields | none | E2E.P0.092 |
 
 ### 3.2 B2 Cross-owner Additive
 
@@ -211,10 +211,10 @@ Phase 1 必须同时携带 [openapi-v1-contract](../../../openapi-v1-contract/sp
 
 #### 5.2 BDD 场景验证
 
-- 执行 `test/scenarios/e2e/p0-081-candidate-profile-seed-and-patch/` 全 PASS
-- 执行 `test/scenarios/e2e/p0-082-experience-cards-crud-with-ik/` 全 PASS
-- 执行 `test/scenarios/e2e/p0-083-profile-privacy-delete-lifecycle/` 全 PASS
-- 在 `test/scenarios/e2e/INDEX.md` 追加 P0.081 / P0.082 / P0.083 行
+- 执行 `test/scenarios/e2e/p0-091-candidate-profile-seed-and-patch/` 全 PASS
+- 执行 `test/scenarios/e2e/p0-092-experience-cards-crud-with-ik/` 全 PASS
+- 执行 `test/scenarios/e2e/p0-093-profile-privacy-delete-lifecycle/` 全 PASS
+- 在 `test/scenarios/e2e/INDEX.md` 追加 P0.091 / P0.092 / P0.093 行
 
 #### 5.3 cross-owner handoff 信号
 
@@ -239,7 +239,7 @@ Phase 1 必须同时携带 [openapi-v1-contract](../../../openapi-v1-contract/sp
 - spec §6 C-1..C-15 全部 PASS（含 C-15 cross-owner candidate profile internal API 验证）
 - `cmd/api` route/runtime gate PASS：session middleware、IK middleware（experience CUD only）、5 个 route 真实可达、cross-user 404、IK replay 均有测试证据
 - B2 cross-owner additive 修订 PASS：`createExperienceCard` / `updateExperienceCard` 已含 IK parameter；fixture / generated artifacts / inventory / breaking-change gate / B2 spec.md + history.md + plans/INDEX.md 同步 PASS
-- BDD E2E.P0.081 + E2E.P0.082 + E2E.P0.083 全 PASS（E2E.P0.082 含 `GetCandidateProfileForUser` cross-owner internal API 验证）
+- BDD E2E.P0.091 + E2E.P0.092 + E2E.P0.093 全 PASS（E2E.P0.092 含 `GetCandidateProfileForUser` cross-owner internal API 验证）
 - 下游 owner 已收到 `GetCandidateProfileForUser` + `CountExperienceCardsBySource` + `DeleteCandidateProfileForUser` 三个 internal API 可用信号
 - `docs/spec/INDEX.md` + engineering-roadmap §5.2 + engineering-roadmap history.md 已同步本 subject `plan 001 完成` 状态描述 + roadmap 3.17 → 3.18 bump
 

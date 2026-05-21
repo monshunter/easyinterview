@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: active
-> **更新日期**: 2026-05-17
+> **更新日期**: 2026-05-21
 
 ## 1 背景与目标
 
@@ -55,7 +55,7 @@
 | D-2 | Go module 名称 | `github.com/monshunter/easyinterview/backend`（落点 `backend/go.mod`） | 后续所有 Go 包必须以此为根；不允许另起 module |
 | D-3 | TS 包管理 | pnpm workspace（启用 `pnpm-workspace.yaml`），前端 package 名 `@easyinterview/frontend` | A2 `local-dev-stack` 与 B2 `openapi-v1-contract` 默认沿用 |
 | D-4 | UUID 算法 | UUIDv7（含时序）；前端临时 id 使用 `tmp_<uuidv4>` | 所有业务主键由 idx 工具生成；不允许 NewV4 直接用作 DB id |
-| D-5 | 错误码命名 | `UPPER_SNAKE_CASE`，前缀按 domain：`AUTH_*` / `TARGET_*` / `PRACTICE_*` / `REPORT_*` / `RESUME_*` / `PRIVACY_*` / `AI_*` / `RATE_LIMITED` / `VALIDATION_FAILED` | 任何非前缀错误码必须由本 spec 修订决定；business code 直接 import 常量；A3 已授权 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_CONFIG_INVALID` / `AI_PROVIDER_SECRET_MISSING`；C4 已授权 `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` / `TARGET_INVALID_STATE_TRANSITION`；backend-practice/001 Phase 0 已授权 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND` |
+| D-5 | 错误码命名 | `UPPER_SNAKE_CASE`，前缀按 domain：`AUTH_*` / `TARGET_*` / `PRACTICE_*` / `REPORT_*` / `RESUME_*` / `PRIVACY_*` / `AI_*` / `RATE_LIMITED` / `VALIDATION_FAILED` / `RESOURCE_NOT_FOUND` | 任何非前缀错误码必须由本 spec 修订决定；business code 直接 import 常量；A3 已授权 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_CONFIG_INVALID` / `AI_PROVIDER_SECRET_MISSING`；C4 已授权 `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` / `TARGET_INVALID_STATE_TRANSITION`；backend-practice/001 Phase 0 已授权 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND`；backend-profile/001 已授权 `RESOURCE_NOT_FOUND`（cross-resource generic 404，[backend-profile D-8](../backend-profile/spec.md#31-已锁定决策)） |
 | D-6 | 枚举值书写 | `lower_snake_case`；TS 用 union string literal，Go 用 named string + 常量集 | 覆盖 `shared/conventions.yaml` 当前 17 个生成枚举类型；新增或恢复任何枚举都必须先修订当前 owner spec |
 | D-7 | `ApiError` inner object 归属 | `shared/conventions.yaml#structures.ApiError` 表示错误响应 envelope 内部的 `error` 对象（`code` / `message` / `requestId` / `retryable` / `details`），不表示外层 `{error: ...}` envelope；Go 侧 canonical 类型是手写 `backend/internal/shared/errors.APIError` + generated `errors.AllCodes`，TS 侧 canonical 类型是 generated `frontend/src/lib/conventions.ApiError` | B2 OpenAPI 必须把 wire response body 建模为 `ApiErrorResponse` envelope，并在 envelope 内 `$ref` B1 `ApiError` inner object；不得把 Go 侧误写为 `sharedtypes.ApiError` |
 | D-8 | AI shared vocabulary 归属 | B1 提供 `AI_*` 错误码、AI capability、Provider Registry 字段名、Model Profile 字段名、AI meta 字段名常量或生成类型；A3 提供 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 填充与 OpenAI-compatible provider adapter；A4 校验 `AI_PROVIDER_*` 连接参数 | 避免 B1/A3/B4/F1 对同一 AI 字段私造名称；同时避免把运行时或连接配置误下沉到 shared conventions |

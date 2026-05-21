@@ -1,6 +1,6 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.17
+> **版本**: 3.18
 > **状态**: active
 > **更新日期**: 2026-05-21
 
@@ -131,7 +131,7 @@
 
 | Workstream | 建议 subject | 当前状态 | 当前产品 / UI 范围 | 主要依赖 |
 |------------|--------------|----------|-------------------|----------|
-| App shell + auth + settings | `frontend-shell`、`backend-auth`、`backend-profile` | `frontend-shell` active；`backend-auth` active（001 auth bootstrap completed）；`backend-profile` active（001 candidate profile + experience cards baseline） | TopBar、用户菜单、登录 / 注册 / 验证 / 退出、pendingAction、用户画像入口、设置与隐私 | A4、B1、B2、B4、ADR-Q1 |
+| App shell + auth + settings | `frontend-shell`、`backend-auth`、`backend-profile` | `frontend-shell` active；`backend-auth` active（001 auth bootstrap completed）；`backend-profile` active（001 candidate profile + experience cards baseline completed） | TopBar、用户菜单、登录 / 注册 / 验证 / 退出、pendingAction、用户画像入口、设置与隐私 | A4、B1、B2、B4、ADR-Q1 |
 | Home / Job Picks / Parse | `frontend-home-job-picks-and-parse`、`backend-targetjob`、`backend-jobs-recommendations` | `frontend-home-job-picks-and-parse` completed；`backend-targetjob` active（001 import / parse completed）；`backend-jobs-recommendations` active（001 real backend baseline 承接 JobMatch 12 个 endpoint） | 首页 JD 导入、岗位推荐、解析确认、目标岗位 / JD / 轮次假设 | B2、B3、B4、A3、F3、D1 |
 | Mock Interview + Practice | `frontend-workspace-and-practice`、`backend-practice`、`practice-voice-mvp` | `frontend-workspace-and-practice` active；`backend-practice` active；`practice-voice-mvp` active（001 voice MVP completed） | 当前面试规划、简历绑定、公司轻情报卡片、完整文本 / 语音 session、带提示 / 严格模拟 | B2、B3、B4、A3、C4 |
 | Report Dashboard | `frontend-report-dashboard`、`backend-review` | `frontend-report-dashboard` active；`backend-review` active | 报告生成、上下文条、准备度、维度、题目回顾、复练当前轮 / 进入下一轮 | B2、B3、B4、A3、C5、F3 |

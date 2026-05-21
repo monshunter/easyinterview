@@ -86,6 +86,9 @@ errors:
   - code: VALIDATION_FAILED
     message: "request validation failed"
     retryable: false
+  - code: RESOURCE_NOT_FOUND
+    message: "requested resource not found or not accessible"
+    retryable: false
   - code: IDEMPOTENCY_KEY_MISMATCH
     message: "idempotency key was reused with a different request body"
     retryable: false
