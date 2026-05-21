@@ -42,7 +42,7 @@ checks:
   - {table: source_records, column: freshness_status, source: db-local, values: [fresh, stale, expired], checksum: "sha256:509736b3cb89eda5"}
   - {table: ai_task_runs, column: task_type, source: db-local, values: [jd_parse, resume_parse, question_generate, followup_generate, report_generate, report_assessment, resume_tailor, debrief_generate, debrief_suggest_questions, hint_generate], checksum: "sha256:06ab49a59d3e7dc5"}
   - {table: ai_task_runs, column: status, source: db-local, values: [success, failed, timeout, fallback], checksum: "sha256:83c3ce20bfb1ecb2"}
-  - {table: async_jobs, column: job_type, source: event-and-outbox-contract, values: [target_import, resume_parse, report_generate, resume_tailor, debrief_generate, source_refresh, privacy_export, privacy_delete, email_dispatch], checksum: "sha256:9870d215751c6633"}
+  - {table: async_jobs, column: job_type, source: event-and-outbox-contract, values: [target_import, resume_parse, report_generate, resume_tailor, debrief_generate, source_refresh, privacy_export, privacy_delete, email_dispatch, jd_match_agent_scan, jd_match_search], checksum: "sha256:2f94bfa004816faa"}
   - {table: async_jobs, column: status, source: shared-conventions-codified, values: [queued, running, succeeded, failed, cancelled, dead], checksum: "sha256:836f03f87ad8aa40"}
   - {table: outbox_events, column: publish_status, source: event-and-outbox-contract, values: [pending, published, failed], checksum: "sha256:768c489322aa2d05"}
   - {table: privacy_requests, column: request_type, source: shared-conventions-codified, values: [export, delete], checksum: "sha256:306a4b49061254ed"}
@@ -52,3 +52,5 @@ checks:
   - {table: auth_challenges, column: purpose, source: adr-q1-auth, values: [login, signup], checksum: "sha256:be2c339e444e576b"}
   - {table: auth_challenges, column: status, source: adr-q1-auth, values: [pending, consumed, expired, revoked], checksum: "sha256:38cf23b2215b354b"}
   - {table: sessions, column: status, source: adr-q1-auth, values: [active, revoked, expired], checksum: "sha256:ea957045a9f9613f"}
+  - {table: agent_scans, column: status, source: backend-jobs-recommendations.AgentScanStatus, values: [idle, scanning, error], checksum: "sha256:043138d8c35d3689"}
+  - {table: watchlist_items, column: tone, source: backend-jobs-recommendations.WatchlistTone, values: [ok, warn, muted], checksum: "sha256:6ef0974a7c579b0c"}

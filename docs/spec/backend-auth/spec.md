@@ -1,8 +1,8 @@
 # Backend Auth Spec
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-21
 
 ## 1 背景与目标
 
@@ -63,6 +63,7 @@
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | API contract | B2 `openapi-v1-contract` | Auth endpoints、response schema、cookie 描述 |
+| `GetUserIdentityForUser(ctx, db, userID) (UserIdentity, error)` cross-owner internal API | backend-auth | backend-jobs-recommendations/001 BuildJobMatchProfile aggregation (D-17 / D-18 displayName + emailMasked + avatarUrl 来源)；read-only `SELECT email, display_name FROM users WHERE id = $1 AND deleted_at IS NULL`；不返回 raw email（只返回 first + *** + last char + domain 的 emailMasked）；不写 audit_events；不存在 userId 返回 `ErrUserNotFound`；caller 在 BuildJobMatchProfile 中 fallback 到非 PII anonymous display name `Candidate`。实现：`backend/internal/auth/identity.go` + 复用既有 `maskEmail` |
 | backend auth | `backend-auth` | handlers、service、store、session、C1 backend-internal mail dispatcher / dev sink、challenge delivery |
 | event/outbox job contract | B3 `event-and-outbox-contract` + backend internal runner future subject | `email_dispatch` payload redaction helper 与未来 backend runner/outbox 替换边界；不是本 plan 运行前置 |
 | config/secrets | A4 `secrets-and-config` | session secret、challenge pepper、email provider secret、固定 `ei_session` cookie name；TTL / dev mail sink 默认值归 C1 代码常量，新增配置前先修订 A4 |

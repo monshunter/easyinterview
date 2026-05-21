@@ -1,13 +1,14 @@
 # Prompt Rubric Registry History
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: active
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-05-21
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-21 | 2.3 | 登记 backend-jobs-recommendations/001 cross-owner additive：§3.1.1 字典从 11 升至 13，新增 `jd_match.recommendation`（默认 profile `jd_match.recommendation.default`）与 `jd_match.search`（默认 profile `jd_match.search.default`）2 个 feature_key；落地 baseline prompt / rubric `config/prompts/jd_match.{recommendation,search}/v0.1.0.{yaml,md,en.yaml,en.md}` + `config/rubrics/jd_match.{recommendation,search}/v0.1.0.{yaml,en.yaml}`；新 D-12 决策行锁定 cross-owner additive 范围；`make lint-ai-profile-coverage` 通过，registry 加载 13 feature_keys × 2 languages = 26 coordinates。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.5 + 0.6 |
 | 2026-05-16 | 2.2 | backend-debrief 001 Phase 0.5 新增 `debrief.suggest_questions` baseline feature_key、默认 model profile 与 prompt/rubric/seed truth source。 | backend-debrief/001 Phase 0.5 |
 | 2026-05-09 | 2.1 | 派生并修订 `001-baseline` impl plan：把 spec C-1~C-11 与 D-1~D-12 端到端落到 5-phase plan（truth source + lint + Go registry + targetjob retire + DB seed + A3 coverage handoff）。用户决策：A3 profile coverage 仅校验 entry 存在 + status 合法（不动 catalog），DB seed 纳入本 plan，prompt body 写真实可用文案，LLM Judge 落 interface + NotImplementedJudge stub；同时确认 `ai_task_runs` 必须 typed 承载 `feature_key` / `feature_flag` / `data_source_version`，由本 plan 先修 B1/B4/A3 契约再实施。spec.md Header 升至 v2.1。 | prompt-rubric-registry/001-baseline |
 | 2026-05-08 | 2.0 | 对齐 A3 003 Phase 6：当前 baseline feature_key 从 12 项收敛为 10 项，删除 C11 资料检索类占位；未来如需要再重新设计。 | ai-provider-and-model-routing/003 Phase 6 |

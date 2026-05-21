@@ -10,6 +10,8 @@ export const JOB_TYPE_SOURCE_REFRESH = "source_refresh" as const;
 export const JOB_TYPE_PRIVACY_EXPORT = "privacy_export" as const;
 export const JOB_TYPE_PRIVACY_DELETE = "privacy_delete" as const;
 export const JOB_TYPE_EMAIL_DISPATCH = "email_dispatch" as const;
+export const JOB_TYPE_JD_MATCH_AGENT_SCAN = "jd_match_agent_scan" as const;
+export const JOB_TYPE_JD_MATCH_SEARCH = "jd_match_search" as const;
 
 export const ASYNQ_TASK_TARGET_IMPORT = "target.import" as const;
 export const ASYNQ_TASK_RESUME_PARSE = "resume.parse" as const;
@@ -20,9 +22,11 @@ export const ASYNQ_TASK_SOURCE_REFRESH = "source.refresh" as const;
 export const ASYNQ_TASK_PRIVACY_EXPORT = "privacy.export" as const;
 export const ASYNQ_TASK_PRIVACY_DELETE = "privacy.delete" as const;
 export const ASYNQ_TASK_EMAIL_DISPATCH = "email.dispatch" as const;
+export const ASYNQ_TASK_JD_MATCH_AGENT_SCAN = "jd_match.agent_scan" as const;
+export const ASYNQ_TASK_JD_MATCH_SEARCH = "jd_match.search" as const;
 
 export const API_FACING_JOB_TYPES = ["target_import", "resume_parse", "report_generate", "resume_tailor", "debrief_generate", "privacy_export", "privacy_delete"] as const;
-export type JobType = typeof JOB_TYPE_TARGET_IMPORT | typeof JOB_TYPE_RESUME_PARSE | typeof JOB_TYPE_REPORT_GENERATE | typeof JOB_TYPE_RESUME_TAILOR | typeof JOB_TYPE_DEBRIEF_GENERATE | typeof JOB_TYPE_SOURCE_REFRESH | typeof JOB_TYPE_PRIVACY_EXPORT | typeof JOB_TYPE_PRIVACY_DELETE | typeof JOB_TYPE_EMAIL_DISPATCH;
+export type JobType = typeof JOB_TYPE_TARGET_IMPORT | typeof JOB_TYPE_RESUME_PARSE | typeof JOB_TYPE_REPORT_GENERATE | typeof JOB_TYPE_RESUME_TAILOR | typeof JOB_TYPE_DEBRIEF_GENERATE | typeof JOB_TYPE_SOURCE_REFRESH | typeof JOB_TYPE_PRIVACY_EXPORT | typeof JOB_TYPE_PRIVACY_DELETE | typeof JOB_TYPE_EMAIL_DISPATCH | typeof JOB_TYPE_JD_MATCH_AGENT_SCAN | typeof JOB_TYPE_JD_MATCH_SEARCH;
 export const JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB = "trigger_creates_job" as const;
 export const JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY = "source_event_only" as const;
 export type JobTriggerEventSemantic = typeof JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB | typeof JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY;
@@ -36,6 +40,8 @@ export const JOB_TRIGGER_EVENT_SEMANTICS = {
   privacy_export: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
   privacy_delete: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
   email_dispatch: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
+  jd_match_agent_scan: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
+  jd_match_search: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
 } as const satisfies Record<JobType, JobTriggerEventSemantic>;
 export function isSourceEventOnly(jobType: JobType): boolean {
   return JOB_TRIGGER_EVENT_SEMANTICS[jobType] === JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY;

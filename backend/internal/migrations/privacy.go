@@ -27,6 +27,7 @@ var PrivacyMatrix = []PrivacyMatrixEntry{
 	{Tables: "privacy_requests", Disposition: "audit_tombstone"},
 	{Tables: "audit_events", Disposition: "audit_tombstone_and_user_event_hard_delete"},
 	{Tables: "auth_challenges,sessions,external_identities", Disposition: "hard_delete"},
+	{Tables: "watchlist_items,saved_searches,jd_match_search_runs,jd_match_recommendations,agent_scans", Disposition: "cascade_or_hard_delete"},
 	{Tables: "prompt_versions,rubric_versions", Disposition: "retain"},
 	{Tables: "schema_migrations,schema_backfills", Disposition: "retain"},
 }

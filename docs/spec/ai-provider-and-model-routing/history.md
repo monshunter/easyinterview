@@ -1,13 +1,14 @@
 # AI Provider and Model Routing History
 
-> **版本**: 2.10
+> **版本**: 2.11
 > **状态**: active
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-05-21
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-21 | 2.11 | 登记 backend-jobs-recommendations/001 cross-owner additive：`config/ai-profiles.yaml` 新增 `jd_match.recommendation.default` (capability=chat, provider_ref=deepseek, model=deepseek-v4-pro, timeout 20s, temperature 0.3) + `jd_match.search.default` (capability=chat, provider_ref=deepseek, model=deepseek-v4-flash, timeout 25s, temperature 0.2)；§4.5 Product/UI AI Capability Catalog 新增 JD-Match 推荐解释 + JD-Match 自然语言搜索两行，并把既有 "Job Picks 匹配解释" 改为 legacy frontend home picks 标识，不再代理 JD-Match P0 baseline。`make lint-ai-profile-coverage` 通过，覆盖 13 个 F3 feature_key 默认 profile。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.7 |
 | 2026-05-16 | 2.10 | backend-debrief 001 Phase 0.5 新增 Debrief 问题建议 AI 场景与 `debrief.suggest_questions.default` profile coverage。 | backend-debrief/001 Phase 0.5 |
 | 2026-05-08 | 2.9 | 用户批准低成本语音 MVP 设计：用 `stt -> chat -> tts` 级联替代 S2S 首发，新增 `tts` capability、provider-specific speech protocol、独立 STT/TTS profile 决策，并保持 realtime S2S fail-closed。 | 004-cascaded-speech-provider-foundation + practice-voice-mvp/001 |
 | 2026-05-08 | 2.8 | 按用户决策收敛当前开发期 AI 能力：删除向量化 / 重排当前实现与基础设施，Provider/Profile 默认切到 DeepSeek V4 Flash/Pro；相关能力未来需要时重新设计。 | 003-provider-registry-and-capability-profiles Phase 6 |

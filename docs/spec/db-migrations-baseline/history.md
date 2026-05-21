@@ -1,13 +1,14 @@
 # DB Migrations Baseline History
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: active
-> **更新日期**: 2026-05-17
+> **更新日期**: 2026-05-21
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-21 | 1.21 | 登记 backend-jobs-recommendations/001 cross-owner additive：新增 `migrations/000009_jd_match_baseline.{up,down}.sql` 创建 5 张 JD-Match 表（`jd_match_recommendations` / `watchlist_items` / `saved_searches` / `agent_scans` / `jd_match_search_runs`）+ index + FK + CHECK constraints；`migrations/enum-sources.yaml` 追加 2 个新 enum source（`agent_scans.status` ∈ {idle, scanning, error} / `watchlist_items.tone` ∈ {ok, warn, muted}）；baseline 应用表数 28 → 33（含 ADR-Q1 支撑表 + 元数据表共 38 张）；§3.1.2 privacy deletion matrix 新增 5 表删除顺序 `watchlist_items → saved_searches → jd_match_search_runs → jd_match_recommendations → agent_scans`；新 D-20 决策行锁定 cross-owner additive 范围与禁止外部招聘平台接入（LinkedIn / Boss / 脉脉 / 拉勾 baseline 不连）。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0 |
 | 2026-05-17 | 1.20 | 登记 backend-resume/002 cross-owner addendum：新增 `migrations/000007_resume_versions_structured_master_unique.{up,down}.sql`，为 `resume_versions(resume_asset_id)` 建立 `version_type='structured_master' AND deleted_at IS NULL` partial UNIQUE INDEX，兜底 Preview Confirm 保存 v1 时同一 resume_asset 只能存在一条 active structured_master。 | backend-resume/002-versions-tailor-runs-and-save-v1 Phase 2 |
 | 2026-05-15 | 1.19 | 登记 backend-review/001 Phase 0 pre-launch baseline rebase 授权：在该 plan 实施时补齐 `ai_task_runs.task_type` 的 `report_assessment`、`feedback_reports` 的 `language` / `feature_flag` / `data_source_version` / `retry_focus_turn_ids`，并同步 `migrations/enum-sources.yaml`、`migrations/lint.sh`、`backend/internal/ai/aiclient/writers.go` 的 report assessment capability gate；该授权接在 backend-practice/003 已占用的 1.17/1.18 之后，避免 merge 后版本冲突。 | backend-review/001-report-generation-baseline Phase 0.3 / 0.5 |
 | 2026-05-15 | 1.18 | 授权 backend-practice/003 L2 follow-up 在 pre-launch baseline 的 `practice_session_events` 上新增 nullable `replay_payload jsonb`，把 redacted event payload 与 `appendSessionEvent` clientEventId replay snapshot 分离；`payload` 继续不含 hint / question / answer / prompt / response 明文，`replay_payload` 仅服务同事件结果重放并随事件级联删除。 | backend-practice/003-mode-policies-and-provenance L2 replay follow-up |

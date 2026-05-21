@@ -29,22 +29,24 @@ const (
 )
 
 const (
-	EventNameTargetImportRequested     EventName = "target.import.requested"
-	EventNameTargetParsed              EventName = "target.parsed"
-	EventNameTargetAnalysisFailed      EventName = "target.analysis.failed"
-	EventNamePracticeSessionStarted    EventName = "practice.session.started"
-	EventNamePracticeTurnCompleted     EventName = "practice.turn.completed"
-	EventNamePracticeSessionCompleted  EventName = "practice.session.completed"
-	EventNameReportGenerationRequested EventName = "report.generation.requested"
-	EventNameReportGenerated           EventName = "report.generated"
-	EventNameReportGenerationFailed    EventName = "report.generation.failed"
-	EventNameResumeParseCompleted      EventName = "resume.parse.completed"
-	EventNameResumeTailorCompleted     EventName = "resume.tailor.completed"
-	EventNameDebriefCreated            EventName = "debrief.created"
-	EventNameDebriefCompleted          EventName = "debrief.completed"
-	EventNameSourceRefreshed           EventName = "source.refreshed"
-	EventNamePrivacyRequestCreated     EventName = "privacy.request.created"
-	EventNamePrivacyRequestCompleted   EventName = "privacy.request.completed"
+	EventNameTargetImportRequested          EventName = "target.import.requested"
+	EventNameTargetParsed                   EventName = "target.parsed"
+	EventNameTargetAnalysisFailed           EventName = "target.analysis.failed"
+	EventNamePracticeSessionStarted         EventName = "practice.session.started"
+	EventNamePracticeTurnCompleted          EventName = "practice.turn.completed"
+	EventNamePracticeSessionCompleted       EventName = "practice.session.completed"
+	EventNameReportGenerationRequested      EventName = "report.generation.requested"
+	EventNameReportGenerated                EventName = "report.generated"
+	EventNameReportGenerationFailed         EventName = "report.generation.failed"
+	EventNameResumeParseCompleted           EventName = "resume.parse.completed"
+	EventNameResumeTailorCompleted          EventName = "resume.tailor.completed"
+	EventNameDebriefCreated                 EventName = "debrief.created"
+	EventNameDebriefCompleted               EventName = "debrief.completed"
+	EventNameSourceRefreshed                EventName = "source.refreshed"
+	EventNamePrivacyRequestCreated          EventName = "privacy.request.created"
+	EventNamePrivacyRequestCompleted        EventName = "privacy.request.completed"
+	EventNameJdMatchRecommendationCompleted EventName = "jd_match.recommendation.completed"
+	EventNameJdMatchSearchCompleted         EventName = "jd_match.search.completed"
 )
 
 type TargetImportRequestedPayload struct {
@@ -164,4 +166,18 @@ type PrivacyRequestCompletedPayload struct {
 	RequestType      sharedtypes.PrivacyRequestType   `json:"requestType"`
 	Status           sharedtypes.PrivacyRequestStatus `json:"status"`
 	UserID           string                           `json:"userId"`
+}
+
+type JdMatchRecommendationCompletedPayload struct {
+	AgentScanID         string `json:"agentScanId"`
+	CompletedAt         string `json:"completedAt"`
+	RecommendationCount int    `json:"recommendationCount"`
+	UserID              string `json:"userId"`
+}
+
+type JdMatchSearchCompletedPayload struct {
+	CompletedAt string `json:"completedAt"`
+	ResultCount int    `json:"resultCount"`
+	SearchRunID string `json:"searchRunId"`
+	UserID      string `json:"userId"`
 }

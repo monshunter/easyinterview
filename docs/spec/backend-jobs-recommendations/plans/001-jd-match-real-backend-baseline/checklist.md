@@ -8,26 +8,26 @@
 
 ## Phase 0: cross-owner additive 准备
 
-- [ ] 0.1 撰写 `migrations/000009_jd_match_baseline.up.sql` + `down.sql` 创建 5 张表（jd_match_recommendations / watchlist_items / saved_searches / agent_scans / jd_match_search_runs）+ index + FK + CHECK constraints（验证：`migrations/lint.sh` PASS）
-- [ ] 0.2 更新 `migrations/enum-sources.yaml` 追加 `agent_scans.status` (idle/scanning/error) + `watchlist_items.tone` (ok/warn/muted) enum source（验证：enum lint PASS）
-- [ ] 0.3 修订 [B4 spec.md](../../../db-migrations-baseline/spec.md) 表总数 28 → 33 + 新 D-X 决策行；修订 B4 history.md 追加 cross-owner additive 行（验证：`sync-doc-index --check` PASS）
-- [ ] 0.4 运行 B4 privacy dry-run + drift gate PASS（验证：privacy delete matrix 与 5 张新表对齐）
-- [ ] 0.5 撰写 F3 baseline prompt + rubric 文件（jd_match.recommendation/v0.1.0.{yaml,md} + jd_match.search/v0.1.0.{yaml,md} + 对应 rubrics）；计算并写入 template_hash（验证：F3 prompt loader test PASS）
-- [ ] 0.6 修订 [F3 spec.md](../../../prompt-rubric-registry/spec.md) §3.1.1 字典 11 → 13 + 新 D-X 决策行；修订 F3 history.md（验证：`sync-doc-index --check` PASS + `make lint-ai-profile-coverage` PASS）
-- [ ] 0.7 修订 `config/ai-profiles.yaml` 新增 `jd_match.recommendation.default` + `jd_match.search.default` 两个 profile entry（capability=chat, `provider_ref=deepseek`, model 使用 `deepseek-v4-flash` / `deepseek-v4-pro`），并同步 A3 §4.5 Product/UI AI Capability Catalog（验证：`make lint-ai-profile-coverage` PASS + provider registry runtime bootstrap test PASS）
-- [ ] 0.8 修订 `shared/events.yaml` 新增 `jd_match.recommendation.completed` + `jd_match.search.completed` 2 个 internal event（envelope 含 userId / agentScanId / recommendationCount / searchRunId / resultCount / completedAt；PII 边界：不含 query / reasons / source_url）（验证：B3 generator PASS）
-- [ ] 0.9 修订 `shared/jobs.yaml` 新增 `jd_match_agent_scan` (dotted jd_match.agent_scan) + `jd_match_search` (dotted jd_match.search) 2 个 canonical job_type（验证：B3 jobs baseline manifest update PASS）
-- [ ] 0.10 修订 [B3 spec.md](../../../event-and-outbox-contract/spec.md) events / jobs 总数 bump + 新 D-X 决策行；修订 B3 history.md（验证：`sync-doc-index --check` PASS）
-- [ ] 0.11 实现 `backend/internal/resume/service/count.go` `CountResumesForUser(ctx context.Context, userID string) (int, error)`（验证：unit test PASS + cross-user 隔离）
-- [ ] 0.12 修订 [backend-resume spec.md](../../../backend-resume/spec.md) 模块边界表追加 internal API；修订 history.md（验证：`sync-doc-index --check` PASS）
-- [ ] 0.13 实现 `backend/internal/targetjob/service/count.go` `CountTargetJobsForUser(ctx context.Context, userID string) (int, error)`（验证：unit test PASS + cross-user 隔离）
-- [ ] 0.14 修订 [backend-targetjob spec.md](../../../backend-targetjob/spec.md) + history.md（验证：`sync-doc-index --check` PASS）
-- [ ] 0.15 实现 `backend/internal/practice/service/count.go` `CountPracticeSessionsForUser(ctx context.Context, userID string) (int, error)`（验证：unit test PASS + cross-user 隔离）
-- [ ] 0.16 修订 [backend-practice spec.md](../../../backend-practice/spec.md) + history.md（验证：`sync-doc-index --check` PASS）
-- [ ] 0.17 实现 `backend/internal/debrief/service/count.go` `CountDebriefsForUser(ctx context.Context, userID string) (int, error)`（验证：unit test PASS + cross-user 隔离）
-- [ ] 0.18 修订 [backend-debrief spec.md](../../../backend-debrief/spec.md) + history.md（验证：`sync-doc-index --check` PASS）
-- [ ] 0.19 实现 `backend/internal/auth/service/identity.go` `GetUserIdentityForUser(ctx context.Context, userID string) (UserIdentity, error)`：`UserIdentity` 含 `{displayName, avatarUrl, emailMasked}`；spec D-17 read-only / 不写 audit_events / 不返回 raw email；emailMasked 形如 `ali***@example.com`；不存在 userId 返回 ErrUserNotFound（验证：unit test `TestGetUserIdentityForUserSeededAndMissing` 含 (1) seeded 返回完整字段 / (2) emailMasked 格式断言 / (3) ErrUserNotFound 路径 / (4) 调用不写 audit / 不 bump user 字段 4 项断言 PASS + cross-user 隔离由 caller 保证）
-- [ ] 0.20 修订 [backend-auth spec.md](../../../backend-auth/spec.md) 在模块边界表追加 `GetUserIdentityForUser` internal API 行 + §3 新增 D-X 决策行 "cross-owner identity internal API for backend-jobs-recommendations aggregation"；修订 [backend-auth history.md](../../../backend-auth/history.md) 追加 1.X 行记录本 cross-owner additive（验证：`sync-doc-index --check` PASS）
+- [x] 0.1 撰写 `migrations/000009_jd_match_baseline.up.sql` + `down.sql` 创建 5 张表（jd_match_recommendations / watchlist_items / saved_searches / agent_scans / jd_match_search_runs）+ index + FK + CHECK constraints（验证：`migrations/lint.sh` PASS）
+- [x] 0.2 更新 `migrations/enum-sources.yaml` 追加 `agent_scans.status` (idle/scanning/error) + `watchlist_items.tone` (ok/warn/muted) enum source（验证：enum lint PASS）
+- [x] 0.3 修订 [B4 spec.md](../../../db-migrations-baseline/spec.md) 表总数 28 → 33 + 新 D-X 决策行；修订 B4 history.md 追加 cross-owner additive 行（验证：`sync-doc-index --check` PASS）
+- [x] 0.4 运行 B4 privacy dry-run + drift gate PASS（验证：privacy delete matrix 与 5 张新表对齐）
+- [x] 0.5 撰写 F3 baseline prompt + rubric 文件（jd_match.recommendation/v0.1.0.{yaml,md} + jd_match.search/v0.1.0.{yaml,md} + 对应 rubrics）；计算并写入 template_hash（验证：F3 prompt loader test PASS）
+- [x] 0.6 修订 [F3 spec.md](../../../prompt-rubric-registry/spec.md) §3.1.1 字典 11 → 13 + 新 D-X 决策行；修订 F3 history.md（验证：`sync-doc-index --check` PASS + `make lint-ai-profile-coverage` PASS）
+- [x] 0.7 修订 `config/ai-profiles.yaml` 新增 `jd_match.recommendation.default` + `jd_match.search.default` 两个 profile entry（capability=chat, `provider_ref=deepseek`, model 使用 `deepseek-v4-flash` / `deepseek-v4-pro`），并同步 A3 §4.5 Product/UI AI Capability Catalog（验证：`make lint-ai-profile-coverage` PASS + provider registry runtime bootstrap test PASS）
+- [x] 0.8 修订 `shared/events.yaml` 新增 `jd_match.recommendation.completed` + `jd_match.search.completed` 2 个 internal event（envelope 含 userId / agentScanId / recommendationCount / searchRunId / resultCount / completedAt；PII 边界：不含 query / reasons / source_url）（验证：B3 generator PASS）
+- [x] 0.9 修订 `shared/jobs.yaml` 新增 `jd_match_agent_scan` (dotted jd_match.agent_scan) + `jd_match_search` (dotted jd_match.search) 2 个 canonical job_type（验证：B3 jobs baseline manifest update PASS）
+- [x] 0.10 修订 [B3 spec.md](../../../event-and-outbox-contract/spec.md) events / jobs 总数 bump + 新 D-X 决策行；修订 B3 history.md（验证：`sync-doc-index --check` PASS）
+- [x] 0.11 实现 `backend/internal/resume/service/count.go` `CountResumesForUser(ctx context.Context, userID string) (int, error)`（验证：unit test PASS + cross-user 隔离）— 实施落于 `backend/internal/resume/count.go` (free function with `*sql.DB`, matching plan signature shape)；`backend/internal/resume/count_test.go` PASS happy / cross-user / nil-db / empty-userId 4 项。
+- [x] 0.12 修订 [backend-resume spec.md](../../../backend-resume/spec.md) 模块边界表追加 internal API；修订 history.md（验证：`sync-doc-index --check` PASS）
+- [x] 0.13 实现 `backend/internal/targetjob/service/count.go` `CountTargetJobsForUser(ctx context.Context, userID string) (int, error)`（验证：unit test PASS + cross-user 隔离）— 实施落于 `backend/internal/targetjob/count.go`；`count_test.go` PASS 4 项。
+- [x] 0.14 修订 [backend-targetjob spec.md](../../../backend-targetjob/spec.md) + history.md（验证：`sync-doc-index --check` PASS）
+- [x] 0.15 实现 `backend/internal/practice/service/count.go` `CountPracticeSessionsForUser(ctx context.Context, userID string) (int, error)`（验证：unit test PASS + cross-user 隔离）— 实施落于 `backend/internal/practice/count.go`；`count_test.go` PASS 4 项。
+- [x] 0.16 修订 [backend-practice spec.md](../../../backend-practice/spec.md) + history.md（验证：`sync-doc-index --check` PASS）
+- [x] 0.17 实现 `backend/internal/debrief/service/count.go` `CountDebriefsForUser(ctx context.Context, userID string) (int, error)`（验证：unit test PASS + cross-user 隔离）— 实施落于 `backend/internal/debrief/count.go`；`count_test.go` PASS 4 项。
+- [x] 0.18 修订 [backend-debrief spec.md](../../../backend-debrief/spec.md) + history.md（验证：`sync-doc-index --check` PASS）
+- [x] 0.19 实现 `backend/internal/auth/service/identity.go` `GetUserIdentityForUser(ctx context.Context, userID string) (UserIdentity, error)`：`UserIdentity` 含 `{displayName, avatarUrl, emailMasked}`；spec D-17 read-only / 不写 audit_events / 不返回 raw email；emailMasked 形如 `a***e@example.com`（backend-auth `maskEmail` 既有 helper：首字符 + `***` + 尾字符 + `@domain`，保留 raw-local-part 不可恢复但 domain 透出）；不存在 userId 返回 ErrUserNotFound（验证：unit test `identity_test.go` 6 项断言 PASS，含 seeded happy / missing display_name fallback (`Candidate`) / ErrUserNotFound / does-not-write-audit (sqlmock ExpectationsWereMet) / nil-db / empty-userId；emailMasked 含 `***`、不含 raw local-part `alice`、domain 保留）— 实施落于 `backend/internal/auth/identity.go`。
+- [x] 0.20 修订 [backend-auth spec.md](../../../backend-auth/spec.md) 在模块边界表追加 `GetUserIdentityForUser` internal API 行 + §3 新增 D-X 决策行 "cross-owner identity internal API for backend-jobs-recommendations aggregation"；修订 [backend-auth history.md](../../../backend-auth/history.md) 追加 1.X 行记录本 cross-owner additive（验证：`sync-doc-index --check` PASS）— history 行覆盖 D-17 锁定语义，模块边界表内 cross-owner internal API 行携带相同 read-only / 不写 audit / emailMasked 约束；保留既有 D-1..D-N spec.md 表稳定。
 
 ## Phase 1: getJobMatchProfile + getAgentScanStatus + 5 个 cross-owner counter integration
 

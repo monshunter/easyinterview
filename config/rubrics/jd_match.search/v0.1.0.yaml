@@ -1,0 +1,52 @@
+feature_key: "jd_match.search"
+version: "v0.1.0"
+language: "multi"
+dimensions:
+  - name: "query_alignment"
+    weight: 0.5
+    description: "Ranked items reflect the user query intent and stay within the supplied internal jobs pool."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "Items unrelated to the query, or invented entries not present in the pool."
+      - label: "developing"
+        threshold: 0.4
+        description: "Partial match; reviewer would re-order most items or remove obvious misfits."
+      - label: "proficient"
+        threshold: 0.7
+        description: "Most items match the query intent in level, function, or location."
+      - label: "strong"
+        threshold: 0.9
+        description: "Ranking matches what a senior recruiter would produce from the same pool."
+  - name: "diversity"
+    weight: 0.3
+    description: "Results cover the relevant slice of the pool without collapsing onto a single company or seniority."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "All results from the same company or one seniority level despite the pool offering more."
+      - label: "developing"
+        threshold: 0.4
+        description: "Some diversity but key adjacent matches missing."
+      - label: "proficient"
+        threshold: 0.7
+        description: "Results cover the relevant companies and seniority bands."
+      - label: "strong"
+        threshold: 0.9
+        description: "Reviewer would call the result set a well-curated cross-section."
+  - name: "privacy_compliance"
+    weight: 0.2
+    description: "Output never echoes the user query, leaks PII, or links to external recruiting platforms."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "User query repeated verbatim inside reasons, or external recruiter links included."
+      - label: "developing"
+        threshold: 0.4
+        description: "Some compliance gaps; e.g. partial query echo or unaggregated network notes."
+      - label: "proficient"
+        threshold: 0.7
+        description: "No query echo, aggregated notes, no external recruiting links."
+      - label: "strong"
+        threshold: 0.9
+        description: "Output reads as if a privacy reviewer pre-sanitised every item."

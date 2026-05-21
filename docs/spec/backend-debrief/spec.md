@@ -1,8 +1,8 @@
 # Backend Debrief Spec
 
-> **版本**: 1.1
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-05-21
 
 ## 1 背景与目标
 
@@ -136,6 +136,7 @@
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | API contract | [B2 `openapi-v1-contract`](../openapi-v1-contract/spec.md) | `createDebrief` / `getDebrief` / `suggestDebriefQuestions`（Phase 0 新增）operation 与 `Debrief` / `DebriefWithJob` / `CreateDebriefRequest` / `DebriefQuestionInput` / `DebriefQuestion` / `DebriefRiskItem` / `DebriefStatus` / `SuggestDebriefQuestionsRequest` / `SuggestDebriefQuestionsResponse`（Phase 0 新增）/ `GenerationProvenance` schema、fixtures、generated client / server |
+| `CountDebriefsForUser(ctx, db, userID) (int, error)` cross-owner internal API | backend-debrief | backend-jobs-recommendations/001 BuildJobMatchProfile aggregation (D-18 sources.debriefs)；read-only；cross-user 隔离；不写 audit。实现：`backend/internal/debrief/count.go` |
 | Backend domain | `backend-debrief`（本 spec） | 3 个 handler + service + store + drainer-registered worker handler + AI 调用编排 + AI 推荐问题 + status 状态机 + outbox emit |
 | DB schema | [B4 `db-migrations-baseline`](../db-migrations-baseline/spec.md) | `debriefs` / `async_jobs` / `ai_task_runs` / `audit_events` / `outbox_events` / `idempotency_records` 列与索引；shared `idempotency_records` 表（createDebrief 使用）；Phase 0 仅扩展 `ai_task_runs.task_type` 字面量 `debrief_suggest_questions` |
 | Event / job contract | [B3 `event-and-outbox-contract`](../event-and-outbox-contract/spec.md) | `debrief.created` / `debrief.completed` 事件；`debrief_generate` job mapping 与 `triggerEvent: debrief.created`；Phase 0 修订 `debrief.created.roundType` 引用 |

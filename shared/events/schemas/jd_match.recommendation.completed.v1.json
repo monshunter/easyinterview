@@ -1,0 +1,72 @@
+{
+  "$id": "shared/events/schemas/jd_match.recommendation.completed.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregateId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "aggregateType": {
+      "const": "agent_scan"
+    },
+    "eventId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "eventName": {
+      "const": "jd_match.recommendation.completed"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "agentScanId": {
+          "type": "string"
+        },
+        "completedAt": {
+          "type": "string"
+        },
+        "recommendationCount": {
+          "type": "integer"
+        },
+        "userId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "agentScanId",
+        "completedAt",
+        "recommendationCount",
+        "userId"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "enum": [
+        "backend_async"
+      ]
+    },
+    "traceId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "eventId",
+    "eventName",
+    "eventVersion",
+    "aggregateType",
+    "aggregateId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "title": "jd_match.recommendation.completed v1",
+  "type": "object"
+}
