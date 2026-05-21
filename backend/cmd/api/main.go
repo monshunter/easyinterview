@@ -174,6 +174,7 @@ func main() {
 		os.Exit(1)
 	}
 	profileRoutes := buildProfileRoutes(loader, db)
+	jdmatchRoutes := buildJDMatchRoutes(loader, db, stubJDMatchAI{})
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -181,7 +182,7 @@ func main() {
 	}()
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes, profileRoutes),
+		Handler:           buildAPIHandlerWithJDMatchAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes, profileRoutes, jdmatchRoutes),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -461,6 +462,46 @@ func buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader *config
 		mux.Handle("PATCH /api/v1/profiles/me/experience-cards/{cardId}", auth.SessionMiddleware(authService, "updateExperienceCard", updateExperienceCard))
 	}
 	return mux
+}
+
+// buildAPIHandlerWithJDMatchAndHandlers extends the profile variant
+// with the 12 JD-Match routes from backend-jobs-recommendations/001.
+// IK middleware wraps the 5 side-effect ops per spec D-5.
+func buildAPIHandlerWithJDMatchAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, debrief debriefRoutes, jobs jobsRoutes, prof profileRoutes, jdmatch jdmatchRoutes) http.Handler {
+	base := buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, upload, resume, reports, debrief, jobs, prof)
+	mux, ok := base.(*http.ServeMux)
+	if !ok || jdmatch.Handler == nil {
+		return base
+	}
+	addJDMatchRoutes(mux, authService, jdmatch)
+	return mux
+}
+
+func addJDMatchRoutes(mux *http.ServeMux, authService *auth.PasswordlessService, jdmatch jdmatchRoutes) {
+	h := jdmatch.Handler
+	ik := jdmatch.Idempotency
+	withSession := func(op string, fn http.HandlerFunc) http.Handler {
+		return auth.SessionMiddleware(authService, op, http.Handler(fn))
+	}
+	withSessionAndIK := func(op string, fn http.HandlerFunc) http.Handler {
+		var handler http.Handler = fn
+		if ik != nil {
+			handler = ik.Handler("jdmatch", op, requestUserFromContext, handler)
+		}
+		return auth.SessionMiddleware(authService, op, handler)
+	}
+	mux.Handle("GET /api/v1/jd-match/profile", withSession("getJobMatchProfile", h.GetJobMatchProfile))
+	mux.Handle("GET /api/v1/jd-match/agent-status", withSession("getAgentScanStatus", h.GetAgentScanStatus))
+	mux.Handle("GET /api/v1/jd-match/recommendations", withSession("listJobRecommendations", h.ListJobRecommendations))
+	mux.Handle("GET /api/v1/jd-match/recommendations/{jobMatchId}", withSession("getJobRecommendation", h.GetJobRecommendation))
+	mux.Handle("POST /api/v1/jd-match/recommendations/{jobMatchId}/dismiss", withSessionAndIK("markJobNotRelevant", h.MarkJobNotRelevant))
+	mux.Handle("GET /api/v1/jd-match/watchlist", withSession("listWatchlist", h.ListWatchlist))
+	mux.Handle("POST /api/v1/jd-match/watchlist", withSessionAndIK("addToWatchlist", h.AddToWatchlist))
+	mux.Handle("DELETE /api/v1/jd-match/watchlist/{jobMatchId}", withSessionAndIK("removeFromWatchlist", h.RemoveFromWatchlist))
+	mux.Handle("POST /api/v1/jd-match/search", withSessionAndIK("searchJobs", h.SearchJobs))
+	mux.Handle("GET /api/v1/jd-match/saved-searches", withSession("listSavedSearches", h.ListSavedSearches))
+	mux.Handle("POST /api/v1/jd-match/saved-searches", withSessionAndIK("createSavedSearch", h.CreateSavedSearch))
+	mux.Handle("GET /api/v1/jd-match/market-signals", withSession("getMarketSignals", h.GetMarketSignals))
 }
 
 type reportRuntime struct {
