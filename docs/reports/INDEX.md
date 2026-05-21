@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-21](./2026-05-21-branch-prefix-governance-fix-assessment.md) | Branch Prefix Governance Fix 交付复盘 | #assessment |
 | [2026-05-21](./2026-05-21-frontend-baseline-roadmap-rebaseline-assessment.md) | Frontend Baseline and Roadmap Rebaseline 交付复盘 | #assessment |
 | [2026-05-18](./2026-05-18-frontend-shell-url-routing-popstate-privacy-assessment.md) | Frontend Shell URL Routing Popstate Privacy 交付复盘 | #assessment |
 | [2026-05-18](./2026-05-18-frontend-debrief-dev-mock-flow-assessment.md) | Frontend Debrief Dev Mock Flow 交付复盘 | #assessment |
