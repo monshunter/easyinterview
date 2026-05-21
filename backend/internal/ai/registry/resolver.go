@@ -108,6 +108,10 @@ func defaultModelProfile(featureKey string) string {
 		return "debrief.generate.default"
 	case featurekeys.DebriefSuggestQuestions:
 		return "debrief.suggest_questions.default"
+	case featurekeys.JdMatchRecommendation:
+		return "jd_match.recommendation.default"
+	case featurekeys.JdMatchSearch:
+		return "jd_match.search.default"
 	default:
 		return ""
 	}

@@ -1,10 +1,12 @@
 # Backend Resume History
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-05-17
+> **更新日期**: 2026-05-21
 
 ## 1 修订记录
+
+| 2026-05-21 | 1.3 | 登记 backend-jobs-recommendations/001 cross-owner additive：新增 `CountResumesForUser(ctx, db, userID) (int, error)` 内部 API（`backend/internal/resume/count.go`），read-only `SELECT COUNT(*) FROM resume_assets WHERE user_id = $1 AND deleted_at IS NULL`；cross-user 隔离由 caller userId 保证；不写 audit_events，不改 store state。单元测试 `count_test.go` 覆盖 happy / cross-user / nil-db / empty-userId 4 项。模块边界表追加 cross-owner internal API 行。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.11 |
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|

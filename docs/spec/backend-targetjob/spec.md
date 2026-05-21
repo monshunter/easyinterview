@@ -1,8 +1,8 @@
 # Backend TargetJob Spec
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-21
 
 ## 1 背景与目标
 
@@ -119,6 +119,7 @@
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | API contract | [B2 `openapi-v1-contract`](../openapi-v1-contract/spec.md) | 4 个 TargetJob operation 的 schema、fixtures、generated client / server |
+| `CountTargetJobsForUser(ctx, db, userID) (int, error)` cross-owner internal API | backend-targetjob | backend-jobs-recommendations/001 BuildJobMatchProfile aggregation (D-18 sources.jds)；read-only；cross-user 隔离；不写 audit。实现：`backend/internal/targetjob/count.go` |
 | Backend domain | `backend-targetjob` | handler / service / store / drainer / parse executor / outbox emit |
 | DB schema | [B4 `db-migrations-baseline`](../db-migrations-baseline/spec.md) | `target_jobs` / `target_job_requirements` / `target_job_sources` 列与索引；删除矩阵 dry-run |
 | Event / job contract | [B3 `event-and-outbox-contract`](../event-and-outbox-contract/spec.md) | `target.import.requested` / `target.parsed` / `target.analysis.failed` 与 `target_import` job |

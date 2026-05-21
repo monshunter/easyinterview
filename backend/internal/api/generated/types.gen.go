@@ -120,6 +120,7 @@ const (
 	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE            ApiErrorCode = "RESUME_EXPORT_NOT_AVAILABLE"
 	ApiErrorCodeRESUMESTRUCTUREDMASTERALREADYEXISTS ApiErrorCode = "RESUME_STRUCTURED_MASTER_ALREADY_EXISTS"
 	ApiErrorCodeVALIDATIONFAILED                    ApiErrorCode = "VALIDATION_FAILED"
+	ApiErrorCodeRESOURCENOTFOUND                    ApiErrorCode = "RESOURCE_NOT_FOUND"
 	ApiErrorCodeIDEMPOTENCYKEYMISMATCH              ApiErrorCode = "IDEMPOTENCY_KEY_MISMATCH"
 	ApiErrorCodeRATELIMITED                         ApiErrorCode = "RATE_LIMITED"
 	ApiErrorCodeAIPROVIDERTIMEOUT                   ApiErrorCode = "AI_PROVIDER_TIMEOUT"
@@ -148,6 +149,7 @@ var AllApiErrorCodes = []ApiErrorCode{
 	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE,
 	ApiErrorCodeRESUMESTRUCTUREDMASTERALREADYEXISTS,
 	ApiErrorCodeVALIDATIONFAILED,
+	ApiErrorCodeRESOURCENOTFOUND,
 	ApiErrorCodeIDEMPOTENCYKEYMISMATCH,
 	ApiErrorCodeRATELIMITED,
 	ApiErrorCodeAIPROVIDERTIMEOUT,
@@ -263,12 +265,12 @@ type UploadPresign struct {
 }
 
 type CandidateProfile struct {
-	CurrentRole               string `json:"currentRole"`
-	Headline                  string `json:"headline"`
-	PreferredPracticeLanguage string `json:"preferredPracticeLanguage"`
-	Region                    string `json:"region"`
-	UiLanguage                string `json:"uiLanguage"`
-	YearsOfExperience         int32  `json:"yearsOfExperience"`
+	CurrentRole               *string `json:"currentRole"`
+	Headline                  *string `json:"headline"`
+	PreferredPracticeLanguage string  `json:"preferredPracticeLanguage"`
+	Region                    *string `json:"region"`
+	UiLanguage                string  `json:"uiLanguage"`
+	YearsOfExperience         *int32  `json:"yearsOfExperience"`
 }
 
 type UpdateProfileRequest struct {

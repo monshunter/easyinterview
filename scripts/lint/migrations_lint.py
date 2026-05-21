@@ -69,6 +69,11 @@ EXPECTED_BASELINE_TABLES = [
     "auth_challenges",
     "sessions",
     "external_identities",
+    "jd_match_recommendations",
+    "watchlist_items",
+    "saved_searches",
+    "agent_scans",
+    "jd_match_search_runs",
 ]
 REMOVED_PRODUCT_SCOPE_TOKENS = [
     "mistake_entries",

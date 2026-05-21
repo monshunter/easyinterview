@@ -173,14 +173,31 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: debrief runtime init: %v\n", err)
 		os.Exit(1)
 	}
+	profileRoutes := buildProfileRoutes(loader, db)
+	jdmatchSearchAI, jdmatchGeneratorAI, err := buildJDMatchAIAdapters(loader, db, targetJobRuntime.AI.Client)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: jdmatch AI runtime init: %v\n", err)
+		os.Exit(1)
+	}
+	jdmatchRuntime, err := buildJDMatchRuntime(loader, db, logger, jdmatchSearchAI, jdmatchGeneratorAI)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: jdmatch runtime init: %v\n", err)
+		os.Exit(1)
+	}
+	jdmatchRoutes := jdmatchRuntime.Routes
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = reportRuntime.Shutdown(shutdownCtx)
 	}()
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = jdmatchRuntime.Shutdown(shutdownCtx)
+	}()
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes),
+		Handler:           buildAPIHandlerWithJDMatchAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes, profileRoutes, jdmatchRoutes),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -189,6 +206,7 @@ func main() {
 	targetJobRuntime.Start(ctx)
 	resumeRuntime.Start(ctx)
 	reportRuntime.Start(ctx)
+	jdmatchRuntime.Start(ctx)
 
 	go func() {
 		logger.Info("api: listening", "addr", srv.Addr, "env", loader.AppEnv())
@@ -291,6 +309,10 @@ func buildAPIHandlerWithUploadReportDebriefAndHandlers(loader *config.Loader, fl
 }
 
 func buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, debrief debriefRoutes, jobs jobsRoutes) http.Handler {
+	return buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, upload, resume, reports, debrief, jobs, profileRoutes{})
+}
+
+func buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, debrief debriefRoutes, jobs jobsRoutes, prof profileRoutes) http.Handler {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(auth.HandlerOptions{
 		Passwordless: authService,
@@ -438,7 +460,72 @@ func buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(loader *config.Loader
 			practice.Handler.AppendSessionEvent(w, r, r.PathValue("sessionId"))
 		})))
 	}
+	if prof.Handler != nil {
+		createExperienceCard := http.HandlerFunc(prof.Handler.CreateExperienceCard)
+		if prof.Idempotency != nil {
+			createExperienceCard = requireIdempotencyKey(http.StatusUnprocessableEntity, prof.Idempotency.Handler("profile", "createExperienceCard", requestUserFromContext, createExperienceCard)).ServeHTTP
+		}
+		updateExperienceCard := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			prof.Handler.UpdateExperienceCard(w, r, r.PathValue("cardId"))
+		})
+		if prof.Idempotency != nil {
+			updateExperienceCard = requireIdempotencyKey(http.StatusUnprocessableEntity, prof.Idempotency.Handler("profile", "updateExperienceCard", requestUserFromContext, updateExperienceCard)).ServeHTTP
+		}
+		mux.Handle("GET /api/v1/profiles/me", auth.SessionMiddleware(authService, "getMyProfile", http.HandlerFunc(prof.Handler.GetMyProfile)))
+		mux.Handle("PATCH /api/v1/profiles/me", auth.SessionMiddleware(authService, "updateMyProfile", http.HandlerFunc(prof.Handler.UpdateMyProfile)))
+		mux.Handle("GET /api/v1/profiles/me/experience-cards", auth.SessionMiddleware(authService, "listExperienceCards", http.HandlerFunc(prof.Handler.ListExperienceCards)))
+		mux.Handle("POST /api/v1/profiles/me/experience-cards", auth.SessionMiddleware(authService, "createExperienceCard", createExperienceCard))
+		mux.Handle("PATCH /api/v1/profiles/me/experience-cards/{cardId}", auth.SessionMiddleware(authService, "updateExperienceCard", updateExperienceCard))
+	}
 	return mux
+}
+
+// buildAPIHandlerWithJDMatchAndHandlers extends the profile variant
+// with the 12 JD-Match routes from backend-jobs-recommendations/001.
+// IK middleware wraps the 5 side-effect ops per spec D-5.
+func buildAPIHandlerWithJDMatchAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, debrief debriefRoutes, jobs jobsRoutes, prof profileRoutes, jdmatch jdmatchRoutes) http.Handler {
+	base := buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, upload, resume, reports, debrief, jobs, prof)
+	mux, ok := base.(*http.ServeMux)
+	if !ok || jdmatch.Handler == nil {
+		return base
+	}
+	addJDMatchRoutes(mux, authService, jdmatch)
+	return mux
+}
+
+func addJDMatchRoutes(mux *http.ServeMux, authService *auth.PasswordlessService, jdmatch jdmatchRoutes) {
+	h := jdmatch.Handler
+	ik := jdmatch.Idempotency
+	withRequestID := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if requestID := r.Header.Get("X-Request-ID"); requestID != "" {
+				w.Header().Set("X-Request-ID", requestID)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+	withSession := func(op string, fn http.HandlerFunc) http.Handler {
+		return withRequestID(auth.SessionMiddleware(authService, op, http.Handler(fn)))
+	}
+	withSessionAndIK := func(op string, fn http.HandlerFunc) http.Handler {
+		var handler http.Handler = fn
+		if ik != nil {
+			handler = ik.Handler("jdmatch", op, requestUserFromContext, handler)
+		}
+		return withRequestID(auth.SessionMiddleware(authService, op, handler))
+	}
+	mux.Handle("GET /api/v1/jd-match/profile", withSession("getJobMatchProfile", h.GetJobMatchProfile))
+	mux.Handle("GET /api/v1/jd-match/agent-status", withSession("getAgentScanStatus", h.GetAgentScanStatus))
+	mux.Handle("GET /api/v1/jd-match/recommendations", withSession("listJobRecommendations", h.ListJobRecommendations))
+	mux.Handle("GET /api/v1/jd-match/recommendations/{jobMatchId}", withSession("getJobRecommendation", h.GetJobRecommendation))
+	mux.Handle("POST /api/v1/jd-match/recommendations/{jobMatchId}/dismiss", withSessionAndIK("markJobNotRelevant", h.MarkJobNotRelevant))
+	mux.Handle("GET /api/v1/jd-match/watchlist", withSession("listWatchlist", h.ListWatchlist))
+	mux.Handle("POST /api/v1/jd-match/watchlist", withSessionAndIK("addToWatchlist", h.AddToWatchlist))
+	mux.Handle("DELETE /api/v1/jd-match/watchlist/{jobMatchId}", withSessionAndIK("removeFromWatchlist", h.RemoveFromWatchlist))
+	mux.Handle("POST /api/v1/jd-match/search", withSessionAndIK("searchJobs", h.SearchJobs))
+	mux.Handle("GET /api/v1/jd-match/saved-searches", withSession("listSavedSearches", h.ListSavedSearches))
+	mux.Handle("POST /api/v1/jd-match/saved-searches", withSessionAndIK("createSavedSearch", h.CreateSavedSearch))
+	mux.Handle("GET /api/v1/jd-match/market-signals", withSession("getMarketSignals", h.GetMarketSignals))
 }
 
 type reportRuntime struct {

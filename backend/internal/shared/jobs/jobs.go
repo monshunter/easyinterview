@@ -12,27 +12,31 @@ type AsynqTask string
 type JobTriggerEventSemantic string
 
 const (
-	JobTypeTargetImport    JobType = "target_import"
-	JobTypeResumeParse     JobType = "resume_parse"
-	JobTypeReportGenerate  JobType = "report_generate"
-	JobTypeResumeTailor    JobType = "resume_tailor"
-	JobTypeDebriefGenerate JobType = "debrief_generate"
-	JobTypeSourceRefresh   JobType = "source_refresh"
-	JobTypePrivacyExport   JobType = "privacy_export"
-	JobTypePrivacyDelete   JobType = "privacy_delete"
-	JobTypeEmailDispatch   JobType = "email_dispatch"
+	JobTypeTargetImport     JobType = "target_import"
+	JobTypeResumeParse      JobType = "resume_parse"
+	JobTypeReportGenerate   JobType = "report_generate"
+	JobTypeResumeTailor     JobType = "resume_tailor"
+	JobTypeDebriefGenerate  JobType = "debrief_generate"
+	JobTypeSourceRefresh    JobType = "source_refresh"
+	JobTypePrivacyExport    JobType = "privacy_export"
+	JobTypePrivacyDelete    JobType = "privacy_delete"
+	JobTypeEmailDispatch    JobType = "email_dispatch"
+	JobTypeJdMatchAgentScan JobType = "jd_match_agent_scan"
+	JobTypeJdMatchSearch    JobType = "jd_match_search"
 )
 
 const (
-	AsynqTaskTargetImport    AsynqTask = "target.import"
-	AsynqTaskResumeParse     AsynqTask = "resume.parse"
-	AsynqTaskReportGenerate  AsynqTask = "report.generate"
-	AsynqTaskResumeTailor    AsynqTask = "resume.tailor"
-	AsynqTaskDebriefGenerate AsynqTask = "debrief.generate"
-	AsynqTaskSourceRefresh   AsynqTask = "source.refresh"
-	AsynqTaskPrivacyExport   AsynqTask = "privacy.export"
-	AsynqTaskPrivacyDelete   AsynqTask = "privacy.delete"
-	AsynqTaskEmailDispatch   AsynqTask = "email.dispatch"
+	AsynqTaskTargetImport     AsynqTask = "target.import"
+	AsynqTaskResumeParse      AsynqTask = "resume.parse"
+	AsynqTaskReportGenerate   AsynqTask = "report.generate"
+	AsynqTaskResumeTailor     AsynqTask = "resume.tailor"
+	AsynqTaskDebriefGenerate  AsynqTask = "debrief.generate"
+	AsynqTaskSourceRefresh    AsynqTask = "source.refresh"
+	AsynqTaskPrivacyExport    AsynqTask = "privacy.export"
+	AsynqTaskPrivacyDelete    AsynqTask = "privacy.delete"
+	AsynqTaskEmailDispatch    AsynqTask = "email.dispatch"
+	AsynqTaskJdMatchAgentScan AsynqTask = "jd_match.agent_scan"
+	AsynqTaskJdMatchSearch    AsynqTask = "jd_match.search"
 )
 
 const (
@@ -41,15 +45,17 @@ const (
 )
 
 var JobTriggerEventSemantics = map[JobType]JobTriggerEventSemantic{
-	JobTypeTargetImport:    JobTriggerEventSemanticTriggerCreatesJob,
-	JobTypeResumeParse:     JobTriggerEventSemanticTriggerCreatesJob,
-	JobTypeReportGenerate:  JobTriggerEventSemanticSourceEventOnly,
-	JobTypeResumeTailor:    JobTriggerEventSemanticTriggerCreatesJob,
-	JobTypeDebriefGenerate: JobTriggerEventSemanticTriggerCreatesJob,
-	JobTypeSourceRefresh:   JobTriggerEventSemanticTriggerCreatesJob,
-	JobTypePrivacyExport:   JobTriggerEventSemanticTriggerCreatesJob,
-	JobTypePrivacyDelete:   JobTriggerEventSemanticTriggerCreatesJob,
-	JobTypeEmailDispatch:   JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeTargetImport:     JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeResumeParse:      JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeReportGenerate:   JobTriggerEventSemanticSourceEventOnly,
+	JobTypeResumeTailor:     JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeDebriefGenerate:  JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeSourceRefresh:    JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypePrivacyExport:    JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypePrivacyDelete:    JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeEmailDispatch:    JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeJdMatchAgentScan: JobTriggerEventSemanticTriggerCreatesJob,
+	JobTypeJdMatchSearch:    JobTriggerEventSemanticTriggerCreatesJob,
 }
 
 func IsSourceEventOnly(jobType JobType) bool {

@@ -13,7 +13,7 @@ from typing import Any
 import yaml
 
 
-EVENT_NAME_RE = re.compile(r"^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*){1,2}$")
+EVENT_NAME_RE = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,2}$")
 ALLOWED_EVENT_DOMAINS = {
     "target",
     "practice",
@@ -22,6 +22,7 @@ ALLOWED_EVENT_DOMAINS = {
     "debrief",
     "source",
     "privacy",
+    "jd_match",
 }
 ALLOWED_PAST_TENSE_VERBS = {
     "requested",
@@ -219,6 +220,26 @@ EXPECTED_EVENTS = {
             "status": "$ref:b1.PrivacyRequestStatus",
         },
     },
+    "jd_match.recommendation.completed": {
+        "producer": "backend_async",
+        "aggregateType": "agent_scan",
+        "requiredPayload": {
+            "userId": "uuidv7",
+            "agentScanId": "uuidv7",
+            "recommendationCount": "int",
+            "completedAt": "timestamptz",
+        },
+    },
+    "jd_match.search.completed": {
+        "producer": "api",
+        "aggregateType": "search_run",
+        "requiredPayload": {
+            "userId": "uuidv7",
+            "searchRunId": "uuidv7",
+            "resultCount": "int",
+            "completedAt": "timestamptz",
+        },
+    },
 }
 EXPECTED_JOBS = {
     "target_import": {
@@ -284,6 +305,20 @@ EXPECTED_JOBS = {
         "triggerEvent": "api:auth_email_start",
         "ownerDomain": "C1+C8",
         "priority": "low",
+    },
+    "jd_match_agent_scan": {
+        "asynqTask": "jd_match.agent_scan",
+        "apiFacing": False,
+        "triggerEvent": "api:internal_jd_match_agent_scan",
+        "ownerDomain": "backend-jobs-recommendations",
+        "priority": "low",
+    },
+    "jd_match_search": {
+        "asynqTask": "jd_match.search",
+        "apiFacing": False,
+        "triggerEvent": "api:reserved_future_jd_match_search",
+        "ownerDomain": "backend-jobs-recommendations",
+        "priority": "medium",
     },
 }
 ALLOWED_TRIGGER_EVENT_SEMANTICS = {

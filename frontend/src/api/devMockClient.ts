@@ -69,6 +69,7 @@ import {
 	type FixtureRegistry,
 	type OperationFixture,
 } from "./mockTransport";
+import { JOB_TYPE_DEBRIEF_GENERATE } from "../lib/jobs/jobs";
 
 const DEV_MOCK_FIXTURES = [
 	startAuthEmailChallengeFixture,
@@ -274,7 +275,7 @@ async function rememberDebriefJob(
 	const job = isObject(body?.job) ? body.job : null;
 	if (
 		typeof job?.id === "string" &&
-		job.jobType === "debrief_generate" &&
+		job.jobType === JOB_TYPE_DEBRIEF_GENERATE &&
 		job.resourceType === "debrief"
 	) {
 		debriefJobIds.add(job.id);

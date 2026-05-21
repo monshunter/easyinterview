@@ -9,6 +9,15 @@
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
 | [2026-05-22](2026-05-22.md) | `docs(spec): seed backend-async-runner subject` | #docs |
+| [2026-05-22](2026-05-22.md) | `fix(backend-jobs): close jd-match L2 hardening (BUG-0082, BUG-0083)` | #fix #test #docs |
+| [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match search and saved searches` | #feat #test #docs |
+| [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match watchlist store and handlers` | #feat #test #docs |
+| [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match recommendations store and generator` | #feat #test #docs |
+| [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match profile orchestrator and agent scan baseline` | #feat #test #docs |
+| [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match cross-owner additive (b4 / f3 / a3 / b3 + counters + identity)` | #feat #test #docs |
+| [2026-05-21](2026-05-21.md) | `docs(backend-jobs): align jd match plan review gates` | #docs #fix |
+| [2026-05-21](2026-05-21.md) | `fix(backend-profile): close profile L2 evidence drift (BUG-0081)` | #fix #test #docs |
+| [2026-05-21](2026-05-21.md) | `feat(backend-profile): land candidate profile and experience cards baseline` | #feat #test #docs |
 | [2026-05-21](2026-05-21.md) | `docs(retrospective): assess branch prefix governance fix` | #docs |
 | [2026-05-21](2026-05-21.md) | `fix(governance): reject tool-name branch prefixes (BUG-0080)` | #fix #docs #test |
 | [2026-05-21](2026-05-21.md) | `docs(spec): seed backend-profile and jobs-recommendations subjects` | #docs #feat |

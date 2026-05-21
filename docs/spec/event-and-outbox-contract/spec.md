@@ -1,12 +1,12 @@
 # Event and Outbox Contract Spec
 
-> **版本**: 2.5
+> **版本**: 2.6
 > **状态**: active
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-21
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 B3 `event-and-outbox-contract` 定义为当前 active Contract spec（依赖 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)）。它把当前产品范围内的 16 个内部事件落到代码契约层，决定了：
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 B3 `event-and-outbox-contract` 定义为当前 active Contract spec（依赖 [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md)）。它把当前产品范围内的 21 个内部事件（含 backend-jobs-recommendations/001 cross-owner additive 的 `jd_match.recommendation.completed` / `jd_match.search.completed`）落到代码契约层，决定了：
 
 - 业务跨模块通信（API → backend internal runner / runner → 下游 handler / runner → analytics）的统一 envelope；
 - `outbox_events` 表与 dispatcher 协议（当前字段与索引以本 spec + B4 为准）；
@@ -56,7 +56,7 @@
 |----|------|--------|------|
 | D-1 | envelope 字段 | `eventId`（UUIDv7） / `eventName`（dot.case） / `eventVersion`（int，从 1 起）/ `aggregateType` / `aggregateId` / `occurredAt`（RFC3339）/ `producer`（`api`/`backend_async`/`dispatcher`/`review`）/ `traceId`（optional field, soft-required）/ `payload` | 当前 schema 以本 spec 与 `shared/events.yaml` 为准，允许无 `traceId`，producer 必须尽力从 F1 trace context 透传；`backend_async` 表示 backend 内部后台执行方，不是独立进程 |
 | D-2 | 命名规则 | `<domain>[.<aggregate>].<verb_past_tense>`；允许 2 段或 3 段 dot.case；最后一段必须是过去式（已发生事实），如 `target.parsed` / `report.generated` / `practice.session.completed`；禁止 `something.updated` / `entity.changed` 等模糊命名 | – |
-| D-3 | 16 个事件全集（当前产品范围） | 见 §3.1.3；任一新增由本 spec 修订；旧 `mistake.created` / `mistake.status.changed` 已随独立错题本删除 | – |
+| D-3 | 21 个事件全集（当前产品范围） | 见 §3.1.3；任一新增由本 spec 修订；当前 21 events 含 backend-jobs-recommendations/001 cross-owner additive 的 `jd_match.recommendation.completed` / `jd_match.search.completed` 2 个；旧 `mistake.created` / `mistake.status.changed` 已随独立错题本删除 | – |
 | D-4 | 版本化 | additive：新增 optional payload 字段 / 新增消费者；breaking：`eventVersion + 1` 且新旧并存一段时间，consumer 显式分支 | – |
 | D-5 | 幂等去重 key | 消费方至少基于 `eventId` 或 `aggregateType + aggregateId + eventName + eventVersion` 去重；Asynq job 基于 `job_type + dedupe_key` | 防重复执行 |
 | D-6 | outbox 投递语义 | At-least-once；消费方必须幂等；同一事件可能重复投递 | – |
@@ -69,6 +69,7 @@
 | D-13 | `target.import.requested.sourceType` 语义 | `sourceType` 是异步导入请求的粗粒度输入来源，固定为 `url` / `text` / `file`；B2 `manual_text` 在事件中映射为 `text`；B2 `manual_form` 是同步 ready 兜底路径，不发 `target.import.requested`，不创建 runner 待处理事件 | 避免把 API source variant 与 async runner payload enum 混为一谈；如未来 analytics 需要 exact variant，只能新增 optional 字段或新事件版本，不能复用当前字段塞 `manual_form` |
 | D-14 | `ResumeTailorMode` 漂移修复（已落地） | `shared/events.yaml` 中 `eventLocalEnums.ResumeTailorMode` 字面量已对齐为 `[gap_review, bullet_suggestions]`，与 [B2 `RequestResumeTailorRequest.mode`](../openapi-v1-contract/spec.md#42-schema-inventory-约束) 和 [B4 `resume_tailor_runs.mode`](../db-migrations-baseline/spec.md) check constraint 同步；本次修订属于已有契约漂移修复，baseline 期 `resume.tailor.completed` 无真实 producer/consumer，不按 breaking 处理；[event-and-outbox-contract/002-resume-tailor-mode-drift-fix](./plans/002-resume-tailor-mode-drift-fix/plan.md) 已同步 yaml、baseline manifest、Go/TS 生成类型、JSON Schema refs 与旧字面量精准负向搜索 | `shared/events.yaml` `eventLocalEnums.ResumeTailorMode` 字面量集；`shared/events/baseline/events.v1.json` baseline manifest；`backend/internal/shared/events/` Go 生成类型；`frontend/src/lib/events/` TS 生成类型；§3.1.4 `resume.tailor.completed.mode` 列 enum 值描述同步；与 B2 D-18 / B4 002 / B1 D-10 一并审查 |
 | D-15 | `triggerEventSemantic` job ownership 语义 | `shared/jobs.yaml.jobs[*].triggerEventSemantic` 允许 `trigger_creates_job` / `source_event_only`；缺省为 `trigger_creates_job`。`report_generate` 必须显式为 `source_event_only`，表示 `practice.session.completed` 是 source event / analytics fact，不是 dispatcher 二次创建 report job 的指令。B3 codegen 必须生成 `JobTriggerEventSemantic*` 常量与 `IsSourceEventOnly(jobType)` 谓词；未来 backend async runner / dispatcher 必须读取该谓词并跳过 `source_event_only` 任务 | 支撑 backend-practice/002 D-32：`completePracticeSession` 同事务创建 `feedback_reports` placeholder 与 `async_jobs(report_generate)`，outbox 重放不得创建第二个 report/job |
+| D-16 | JD-Match events + jobs cross-owner additive | backend-jobs-recommendations/001 携带 B3 spec/yaml additive：(1) `shared/events.yaml` 新增 `jd_match.recommendation.completed` (producer=backend_async, aggregateType=agent_scan, payload `userId / agentScanId / recommendationCount / completedAt`，PII 边界：不含 reasons / risks / highlights / sourceUrl / networkNote / interviewHypotheses 文本) + `jd_match.search.completed` (producer=api, aggregateType=search_run, payload `userId / searchRunId / resultCount / completedAt`，PII 边界：不含 query / filters / label 文本)；events 全集从 19 升至 21。(2) `shared/jobs.yaml` 新增 canonical `jd_match_agent_scan` (dotted `jd_match.agent_scan`, apiFacing=false, internal-only periodic+incremental+lazy trigger) + `jd_match_search` (dotted `jd_match.search`, apiFacing=false, future-async reserved；P0 走 sync HTTP handler，不在 drainer 注册)；jobs 全集从 9 升至 11；apiFacingSubset 不变。(3) `migrations/000009_jd_match_baseline.up.sql` 同步 ALTER `async_jobs.job_type` CHECK 扩展 11 个 canonical values。(4) `scripts/lint/events_inventory.py` 同步注册新 events/jobs + 新 event domain `jd_match`；EVENT_NAME_RE 同步允许下划线段。(5) `shared/events/baseline/events.v1.json` 与 `shared/jobs/baseline/jobs.v1.json` 由 `make codegen-events` 重新渲染；Go + TS 生成类型同步更新。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.8 + 0.9 + 0.10 |
 
 #### 3.1.1 DB/backend runner canonical job_type ↔ Asynq dotted task name 映射
 
@@ -167,7 +168,7 @@ B2 OpenAPI v1.0.0 的 `JobType` enum 只允许以下 7 项：`target_import` / `
 ### 4.4 lint 与 codegen 约束
 
 - 业务包不允许出现裸字面量 `"target.parsed"` / `"report_generate"`；必须 import `events` / `jobs` 包常量。
-- generator 输入：`shared/events.yaml`（envelope schema + 16 事件清单 + §3.1.4 payload schema）+ `shared/jobs.yaml`（9 个 canonical job_type ↔ dotted name 映射 + API-facing subset 标记 + `email_dispatch` payload redaction policy）；B3 owns `backend/cmd/codegen/events`，只 import B1 已生成类型，不复用 B1 generator 进程。
+- generator 输入：`shared/events.yaml`（envelope schema + 21 事件清单 + §3.1.4 payload schema）+ `shared/jobs.yaml`（11 个 canonical job_type ↔ dotted name 映射 + API-facing subset 标记 + `email_dispatch` payload redaction policy + `jd_match.*` internal-only payload redaction policy）；B3 owns `backend/cmd/codegen/events`，只 import B1 已生成类型，不复用 B1 generator 进程。
 - 本地 drift gate：`make codegen-events && make lint-events && git diff --exit-code -- shared/events.yaml shared/jobs.yaml backend/internal/shared/events/{envelope.go,events.go} backend/internal/shared/jobs/jobs.go frontend/src/lib/events/{envelope.ts,events.ts} frontend/src/lib/jobs/jobs.ts shared/events/{schemas,refs,baseline} shared/jobs/baseline`；手写 `*_test.*` 与 fixtures 由 `make lint-events` / Go / TS 单测覆盖，不作为 generated drift 路径；远端 CI 仅在 A5 触发条件成立后再接入。
 
 ## 5 模块边界
@@ -189,7 +190,7 @@ B2 OpenAPI v1.0.0 的 `JobType` enum 只允许以下 7 项：`target_import` / `
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-1 | envelope schema 生成 | `shared/events.yaml` 落地 | `make codegen-events` + 本地 drift check | Go + TS envelope 类型 + 16 个事件 payload 类型 + JSON Schema 生成；本地 drift 通过；生成类型逐字段覆盖 §3.1.4 | B3 后续 001 |
-| C-2 | jobType 常量生成 | `shared/jobs.yaml` 落地 | `make codegen-events` | Go `jobs.JobTypeTargetImport` 等 9 个 canonical 常量 + dotted task name 常量生成；TS 同步；`source_refresh` / `email_dispatch` 标记为 internal-only，不进入 B2 API-facing `JobType` | B3 后续 001 |
+| C-2 | jobType 常量生成 | `shared/jobs.yaml` 落地 | `make codegen-events` | Go `jobs.JobTypeTargetImport` 等 11 个 canonical 常量 + dotted task name 常量生成；TS 同步；`source_refresh` / `email_dispatch` / `jd_match_agent_scan` / `jd_match_search` 标记为 internal-only，不进入 B2 API-facing `JobType` | B3 后续 001 + backend-jobs-recommendations/001 |
 | C-3 | outbox 双写 | 业务事务写 `target_jobs` + 写 `outbox_events('target.import.requested')` | 事务提交 / 回滚 | 提交后两行并存；回滚后两行均不存在；不可能出现 `target_jobs` 提交但 outbox 缺失 | B3 后续 001 + B4 + C4 |
 | C-4 | dispatcher at-least-once | dispatcher 多次拉取同一行 | dispatcher | 查询使用 `publish_status='pending' and next_attempt_at <= now()` + `FOR UPDATE SKIP LOCKED`；同一行只被一个 dispatcher 实例处理；网络抖动可能重复投递；consumer 必须幂等 | B3 后续 001 + C8 |
 | C-5 | consumer 幂等 | 同一 `eventId` 投递两次 | consumer | 业务表只更新一次；db unique 约束阻止重复 report / debrief / privacy 行 | B3 后续 001 + 各 C 域 |

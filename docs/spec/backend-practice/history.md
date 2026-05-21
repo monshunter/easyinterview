@@ -1,13 +1,14 @@
 # Backend Practice History
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: active
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-05-21
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-21 | 1.11 | 登记 backend-jobs-recommendations/001 cross-owner additive：新增 `CountPracticeSessionsForUser(ctx, db, userID) (int, error)` 内部 API（`backend/internal/practice/count.go`），read-only `SELECT COUNT(*) FROM practice_sessions WHERE user_id = $1`；cross-user 隔离由 caller userId 保证；不写 audit_events。单元测试 `count_test.go` 覆盖 happy / cross-user / nil-db / empty-userId。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.15 |
 | 2026-05-16 | 1.10 | 派生 `004-derived-plans-debrief` active plan：承接 D-4 / D-14 / D-24 与 C-2 / C-3，补齐 `sourceReportId` / `sourceDebriefId` OpenAPI 字段、B4 `practice_plans.source_debrief_id` 与 source CHECK、`createPracticePlan` derived source validation、`startPracticeSession(goal='debrief')` 从 debrief confirmed question 预填首 turn 且不调用 `practice.session.first_question`；占用 BDD `E2E.P0.070-073`，用于解除 backend-debrief/001 Phase 0.6 阻塞。 | [004-derived-plans-debrief](./plans/004-derived-plans-debrief/plan.md) |
 | 2026-05-15 | 1.9 | L2 follow-up：补充 C-26 的 `show_hint` replay 不变量，要求 `appendSessionEvent` 同 `clientEventId` 重试必须返回原事件 response snapshot，不得从后续可变的 `practice_turns.hint_text` 重建；对应 B4 v1.18 在 `practice_session_events.replay_payload` 中承载内部 replay snapshot，同时保持 `payload` 隐私红线。 | [003-mode-policies-and-provenance](./plans/003-mode-policies-and-provenance/plan.md) |
 | 2026-05-14 | 1.8 | 授权 backend-practice/003 Phase 0 narrowing：把 §6 C-17 / §3.1 D-19 / §4.3 / §2.1 失败语义文字按 "session-survival AI vs 辅助 AI" 拆分，明确 hint / lightweight_observe AI 失败按 D-36 graceful degrade（session 保持 running，不写 failure_code，wire 返回 200 + session_wait，运维通过 ai_task_runs + structured log 观测）；§3.1 新增 D-36（hint AI graceful degrade narrowing）/ D-38（hint turn-lifecycle 边界：不递增 turn_count / 不发 practice.turn.completed outbox / 不写 audit / 不改 turn.status）锁定行；§7 row 3 描述同步追加 D-36 / D-37 / D-38 引用并把 plan 路径链接化。D-37（B4 `ai_task_runs.task_type` CHECK 扩值 `hint_generate` + writers.go enum）由 003 Phase 0 同步落实在 db-migrations-baseline 编码真理源与 history.md 中。 | [003-mode-policies-and-provenance](./plans/003-mode-policies-and-provenance/plan.md) |

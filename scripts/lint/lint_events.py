@@ -46,6 +46,8 @@ EVENT_CONTRACT_DIRS = (
 NON_EVENT_JOB_LITERAL_ALLOWLIST = {
     # Uploads owns file purpose values; this string is not an async job dispatch literal.
     (Path("backend/internal/upload/store/file_objects.go"), "privacy_export"),
+    # Profile owns experience_cards.source_type values; this string is not an async job dispatch literal.
+    (Path("backend/internal/profile/profile.go"), "resume_parse"),
 }
 VENDOR_MODEL_TOKEN_RE = re.compile(
     r"(?:openrouter|anthropic|claude|openai|gpt-|mistral|gemini|cohere)",

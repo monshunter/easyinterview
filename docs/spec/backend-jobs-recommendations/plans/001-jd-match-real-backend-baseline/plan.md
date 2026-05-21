@@ -1,11 +1,15 @@
 # JD-Match Real Backend Baseline
 
-> **版本**: 1.0
-> **状态**: active
-> **更新日期**: 2026-05-21
+> **版本**: 1.2
+> **状态**: completed
+> **更新日期**: 2026-05-22
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
+
+## 0 Post-Reopen Completion Note
+
+2026-05-22 `/plan-code-review --fix` 曾将 Phase 5.5-5.8 与 Phase 6.1-6.8 / 6.12-6.13 退回 active：当时 `TestJDMatchHTTPScenario` 仅是 live smoke，`bdd-checklist.md` 与 `test/scenarios/e2e/INDEX.md` 仍无完成证据。后续补齐 `buildJDMatchRuntime` lifecycle gate、12-route session/IK/cross-user/live scenario、`TestJDMatchAgentScanDrainerScenario`、`TestJDMatchFixtureParity` 与 E2E.P0.094-097 wrapper `setup -> trigger -> verify` PASS 证据；本 plan lifecycle 恢复 completed。
 
 ## 1 目标
 
@@ -20,9 +24,9 @@
 - 实现 store layer：5 张表 Repository + cursor pagination + cross-user 隔离 + privacy delete；
 - 实现 AI 编排：`jd_match.recommendation` generator/service（由 `jd_match_agent_scan` 内联调用，不注册独立 job_type）+ `jd_match.search` 同步调用 + `jd_match.agent_scan` 后台周期 job；通过 [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) + [F3 registered feature_key](../../../prompt-rubric-registry/spec.md)；
 - 在 `cmd/api` 挂载 12 个 route + session middleware + IK middleware（5 个 side-effect op）+ in-process drainer（P0 只注册 `jd_match_agent_scan` 1 个后台 handler；`jd_match_search` 仅作为 future async 预占，recommendation generator 不注册独立 job_type）；
-- 实现 `BuildJobMatchProfile(userId)` internal service：通过 7 个 cross-owner internal API 聚合画像数据；P0 baseline 按 spec D-18 字段映射返回稀疏 JobMatchProfile（`displayName` 必填非 null；`avatarUrl/locationText/compensationText=null`；`headline/yearsOfExperience` 来自 backend-profile；`skills=[]`；`sources` 真实计数）；
+- 实现 `BuildJobMatchProfile(ctx context.Context, userID string)` internal service：通过 7 个 cross-owner internal API 聚合画像数据；P0 baseline 按 spec D-18 字段映射返回稀疏 JobMatchProfile（`displayName` 必填非 null；`avatarUrl/locationText/compensationText=null`；`headline/yearsOfExperience` 来自 backend-profile；`skills=[]`；`sources` 真实计数）；
 - 实现 `DeleteJobMatchDataForUser(userId)` internal API + audit tombstone；
-- 通过 spec §6 C-1..C-19 验收 + 新增 E2E.P0.084 + E2E.P0.085 + E2E.P0.086 + E2E.P0.087 4 个 BDD 场景；
+- 通过 spec §6 C-1..C-19 验收 + 新增 E2E.P0.094 + E2E.P0.095 + E2E.P0.096 + E2E.P0.097 4 个 BDD 场景；
 - 不接入外部招聘平台（LinkedIn / Boss / 脉脉 / 拉勾 / 公司官网 等）；不实现 vector search / pgvector；不实现深度 company intel（归 plan 002 / 003 / future P2）。
 
 ## 2 背景
@@ -76,14 +80,14 @@ JD-Match 业务域当前 backend zero state：
   7. BuildJobMatchProfile aggregation test：7 个 cross-owner internal API 调用（D-17 / D-18 字段映射 + cross-owner failure fallback）+ sources 计数正确 + skills baseline=[] + locationText/compensationText/avatarUrl baseline=null + displayName 必填非 null；
   8. `cmd/api` route/runtime test：session middleware、IK middleware（5 个 op）、12 个 route 真实可达、`jd_match_agent_scan` 1 个后台 handler 注册 / shutdown。
   执行入口：`/implement backend-jobs-recommendations/001-jd-match-real-backend-baseline` → `/tdd`。
-- **BDD 策略**: 适用（Feature plan requires BDD）。E2E.P0.084 jd-match-profile-and-recommendations-list + E2E.P0.085 jd-match-watchlist-and-saved-search-lifecycle + E2E.P0.086 jd-match-search-and-market-signals + E2E.P0.087 jd-match-agent-scan-and-privacy-delete。详见 [bdd-plan.md](./bdd-plan.md) / [bdd-checklist.md](./bdd-checklist.md)。
+- **BDD 策略**: 适用（Feature plan requires BDD）。E2E.P0.094 jd-match-profile-and-recommendations-list + E2E.P0.095 jd-match-watchlist-and-saved-search-lifecycle + E2E.P0.096 jd-match-search-and-market-signals + E2E.P0.097 jd-match-agent-scan-and-privacy-delete。详见 [bdd-plan.md](./bdd-plan.md) / [bdd-checklist.md](./bdd-checklist.md)。
 - **替代验证 gate**:
   - `cd backend && go test ./...`
   - `cd backend && go test ./internal/jdmatch/handler/... -count=1`
   - `cd backend && go test ./internal/jdmatch/store/... -tags=integration -count=1`
   - `cd backend && go test ./internal/jdmatch/jobs/... -count=1`（stub AIClient）
   - `cd backend && go test ./internal/jdmatch/service/... -count=1`（BuildJobMatchProfile + privacy delete）
-  - `cd backend && go test ./cmd/api -run 'TestBuildJDMatchRuntime|TestJDMatchHTTPScenario|TestJDMatchAgentScanDrainerScenario' -count=1`
+  - `cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test ./cmd/api -run '^(TestBuildJDMatchRuntimeWiresRoutesDrainerAndLifecycle|TestJDMatchRoutesRequireSessionOnAllRoutes|TestJDMatchHTTPScenario|TestJDMatchAgentScanDrainerScenario|TestJDMatchFixtureParity)$' -count=1 -v`
   - migration gate：`migrations/lint.sh` + `make migrate-check` + `make privacy-delete-dry-run` PASS（本地若缺 `DATABASE_URL`，必须至少记录 `python3 scripts/lint/migrations_lint.py --repo-root .` PASS 与 live DB 子步骤 blocker，不得冒充 migrate-check 全绿）
   - F3 gate：`make lint-ai-profile-coverage` + F3 prompt loader test PASS
   - B3 gate：events / jobs generator PASS + baseline manifest update
@@ -96,18 +100,18 @@ JD-Match 业务域当前 backend zero state：
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `getJobMatchProfile` | `openapi/fixtures/JobMatch/getJobMatchProfile.json` `default` (design preview) / `partial-profile` (零计数 reference) — **byte parity 例外**: P0 baseline 走 spec D-19 structural parity (required 字段 + optional null oneOf + sources 真实计数 + status + X-Request-ID) | `frontend-home-job-picks-and-parse/002-jd-match-recommendations` (currently fixture-backed; switches real after this plan) | `backend/internal/jdmatch/handler/get_profile.go` + `cmd/api` GET `/api/v1/jd-match/profile` route with session middleware | 7 cross-owner internal API aggregation (`backend-auth.GetUserIdentityForUser` + `backend-profile.GetCandidateProfileForUser` + `backend-profile.CountExperienceCardsBySource` + 4 个 counter — D-17 / D-18 / D-19 锁定); no own table | none | E2E.P0.084 |
-| `getAgentScanStatus` | `openapi/fixtures/JobMatch/getAgentScanStatus.json` `default` / `scanning` / `error` | plan 002 (real switch) | `backend/internal/jdmatch/handler/get_agent_status.go` + `cmd/api` GET `/api/v1/jd-match/agent-status` | `agent_scans` latest row read | none | E2E.P0.084 + E2E.P0.087 |
-| `listJobRecommendations` | `openapi/fixtures/JobMatch/listJobRecommendations.json` `default` / `empty` / `one` / `many` / `failed` | plan 002 (real switch) | `backend/internal/jdmatch/handler/list_recommendations.go` + `cmd/api` GET `/api/v1/jd-match/recommendations` | `jd_match_recommendations` cursor pagination (dismissed filtered) | none (read-only; AI generation in agent_scan job) | E2E.P0.084 |
-| `getJobRecommendation` | `openapi/fixtures/JobMatch/getJobRecommendation.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/get_recommendation.go` + `cmd/api` GET `/api/v1/jd-match/recommendations/{jobMatchId}` | `jd_match_recommendations` row read with cross-user | none | E2E.P0.084 |
-| `markJobNotRelevant` | `openapi/fixtures/JobMatch/markJobNotRelevant.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/mark_not_relevant.go` + `cmd/api` POST `/api/v1/jd-match/recommendations/{jobMatchId}/dismiss` with session + IK | `jd_match_recommendations.dismissed_at` UPDATE | none | E2E.P0.084 |
-| `listWatchlist` | `openapi/fixtures/JobMatch/listWatchlist.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/list_watchlist.go` + `cmd/api` GET `/api/v1/jd-match/watchlist` | `watchlist_items` cursor + JOIN to `jd_match_recommendations` for tone derivation | none | E2E.P0.085 |
-| `addToWatchlist` | `openapi/fixtures/JobMatch/addToWatchlist.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/add_watchlist.go` + `cmd/api` POST `/api/v1/jd-match/watchlist` with session + IK | `watchlist_items` INSERT + UNIQUE constraint | none | E2E.P0.085 |
-| `removeFromWatchlist` | `openapi/fixtures/JobMatch/removeFromWatchlist.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/remove_watchlist.go` + `cmd/api` DELETE `/api/v1/jd-match/watchlist/{jobMatchId}` with session + IK | `watchlist_items` DELETE | none | E2E.P0.085 |
-| `searchJobs` | `openapi/fixtures/JobMatch/searchJobs.json` `default` / `failed` | plan 002 (real switch) | `backend/internal/jdmatch/handler/search.go` + `cmd/api` POST `/api/v1/jd-match/search` with session + IK | `jd_match_search_runs` INSERT + `jd_match_recommendations` JOIN (no ephemeral insert) | `jd_match.search` via A3/F3 (sync 30s timeout) | E2E.P0.086 |
-| `listSavedSearches` | `openapi/fixtures/JobMatch/listSavedSearches.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/list_saved.go` + `cmd/api` GET `/api/v1/jd-match/saved-searches` | `saved_searches` cursor | none | E2E.P0.086 |
-| `createSavedSearch` | `openapi/fixtures/JobMatch/createSavedSearch.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/create_saved.go` + `cmd/api` POST `/api/v1/jd-match/saved-searches` with session + IK | `saved_searches` INSERT | none | E2E.P0.086 |
-| `getMarketSignals` | `openapi/fixtures/JobMatch/getMarketSignals.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/get_market_signals.go` + `cmd/api` GET `/api/v1/jd-match/market-signals` | aggregation from `watchlist_items` + `jd_match_recommendations` + internal pool stats | none | E2E.P0.086 |
+| `getJobMatchProfile` | `openapi/fixtures/JobMatch/getJobMatchProfile.json` `default` (design preview) / `partial-profile` (零计数 reference) — **byte parity 例外**: P0 baseline 走 spec D-19 structural parity (required 字段 + optional null oneOf + sources 真实计数 + status + X-Request-ID) | `frontend-home-job-picks-and-parse/002-jd-match-recommendations` (currently fixture-backed; switches real after this plan) | `backend/internal/jdmatch/handler/get_profile.go` + `cmd/api` GET `/api/v1/jd-match/profile` route with session middleware | 7 cross-owner internal API aggregation (`backend-auth.GetUserIdentityForUser` + `backend-profile.GetCandidateProfileForUser` + `backend-profile.CountExperienceCardsBySource` + 4 个 counter — D-17 / D-18 / D-19 锁定); no own table | none | E2E.P0.094 |
+| `getAgentScanStatus` | `openapi/fixtures/JobMatch/getAgentScanStatus.json` `default` / `scanning` / `error` | plan 002 (real switch) | `backend/internal/jdmatch/handler/get_agent_status.go` + `cmd/api` GET `/api/v1/jd-match/agent-status` | `agent_scans` latest row read | none | E2E.P0.094 + E2E.P0.097 |
+| `listJobRecommendations` | `openapi/fixtures/JobMatch/listJobRecommendations.json` `default` / `empty` / `one` / `many` / `failed` | plan 002 (real switch) | `backend/internal/jdmatch/handler/list_recommendations.go` + `cmd/api` GET `/api/v1/jd-match/recommendations` | `jd_match_recommendations` cursor pagination (dismissed filtered) | none (read-only; AI generation in agent_scan job) | E2E.P0.094 |
+| `getJobRecommendation` | `openapi/fixtures/JobMatch/getJobRecommendation.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/get_recommendation.go` + `cmd/api` GET `/api/v1/jd-match/recommendations/{jobMatchId}` | `jd_match_recommendations` row read with cross-user | none | E2E.P0.094 |
+| `markJobNotRelevant` | `openapi/fixtures/JobMatch/markJobNotRelevant.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/mark_not_relevant.go` + `cmd/api` POST `/api/v1/jd-match/recommendations/{jobMatchId}/dismiss` with session + IK | `jd_match_recommendations.dismissed_at` UPDATE | none | E2E.P0.094 |
+| `listWatchlist` | `openapi/fixtures/JobMatch/listWatchlist.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/list_watchlist.go` + `cmd/api` GET `/api/v1/jd-match/watchlist` | `watchlist_items` cursor + JOIN to `jd_match_recommendations` for tone derivation | none | E2E.P0.095 |
+| `addToWatchlist` | `openapi/fixtures/JobMatch/addToWatchlist.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/add_watchlist.go` + `cmd/api` POST `/api/v1/jd-match/watchlist` with session + IK | `watchlist_items` INSERT + UNIQUE constraint | none | E2E.P0.095 |
+| `removeFromWatchlist` | `openapi/fixtures/JobMatch/removeFromWatchlist.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/remove_watchlist.go` + `cmd/api` DELETE `/api/v1/jd-match/watchlist/{jobMatchId}` with session + IK | `watchlist_items` DELETE | none | E2E.P0.095 |
+| `searchJobs` | `openapi/fixtures/JobMatch/searchJobs.json` `default` / `failed` | plan 002 (real switch) | `backend/internal/jdmatch/handler/search.go` + `cmd/api` POST `/api/v1/jd-match/search` with session + IK | `jd_match_search_runs` INSERT + `jd_match_recommendations` JOIN (no ephemeral insert) | `jd_match.search` via A3/F3 (sync 30s timeout) | E2E.P0.096 |
+| `listSavedSearches` | `openapi/fixtures/JobMatch/listSavedSearches.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/list_saved.go` + `cmd/api` GET `/api/v1/jd-match/saved-searches` | `saved_searches` cursor | none | E2E.P0.095 |
+| `createSavedSearch` | `openapi/fixtures/JobMatch/createSavedSearch.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/create_saved.go` + `cmd/api` POST `/api/v1/jd-match/saved-searches` with session + IK | `saved_searches` INSERT | none | E2E.P0.095 |
+| `getMarketSignals` | `openapi/fixtures/JobMatch/getMarketSignals.json` `default` | plan 002 (real switch) | `backend/internal/jdmatch/handler/get_market_signals.go` + `cmd/api` GET `/api/v1/jd-match/market-signals` | aggregation from `watchlist_items` + `jd_match_recommendations` + internal pool stats | none | E2E.P0.096 |
 
 ### 3.2 Cross-owner Additive Summary
 
@@ -119,11 +123,11 @@ Phase 0 必须同时携带多个 cross-owner spec / artifact additive 修订：
 | [prompt-rubric-registry (F3)](../../../prompt-rubric-registry/spec.md) | `config/prompts/jd_match.recommendation/v0.1.0.{yaml,md}` + `config/prompts/jd_match.search/v0.1.0.{yaml,md}`；`config/rubrics/jd_match.recommendation/v0.1.0.yaml` + `config/rubrics/jd_match.search/v0.1.0.yaml`；F3 spec.md §3.1.1 字典 11 → 13 + D-X 决策行；F3 history.md 追加 cross-owner additive 行 | F3 prompt loader test PASS + `make lint-ai-profile-coverage` PASS |
 | [ai-provider-and-model-routing (A3)](../../../ai-provider-and-model-routing/spec.md) | `config/ai-profiles.yaml` 新增 `jd_match.recommendation.default` + `jd_match.search.default` 两个 capability=chat profile entry（`provider_ref=deepseek`，model 只能使用 `deepseek-v4-flash` / `deepseek-v4-pro`）；同步 A3 §4.5 Product/UI AI Capability Catalog，把 JD-Match 推荐解释 / 搜索指向新 profile，不再复用 `target.import.default` | `make lint-ai-profile-coverage` PASS + provider registry runtime bootstrap test PASS |
 | [event-and-outbox-contract (B3)](../../../event-and-outbox-contract/spec.md) | `shared/events.yaml` 新增 `jd_match.recommendation.completed` + `jd_match.search.completed` 2 个 internal event；`shared/jobs.yaml` 新增 `jd_match_agent_scan` (dotted `jd_match.agent_scan`) + `jd_match_search` (dotted `jd_match.search`) 2 个 canonical job_type；B3 spec.md §3.1 events / jobs total bump + D-X 决策行；B3 history.md 追加 cross-owner additive 行 | B3 generator PASS + baseline manifest update PASS |
-| [backend-resume](../../../backend-resume/spec.md) | `backend/internal/resume/service/count.go` 新增 `CountResumesForUser(userId) -> int` internal service；backend-resume spec.md cross-owner exposed internal API 行追加；backend-resume history.md 追加 backend-jobs-recommendations/001 cross-owner additive 行 | backend-resume unit test PASS |
-| [backend-targetjob](../../../backend-targetjob/spec.md) | `backend/internal/targetjob/service/count.go` 新增 `CountTargetJobsForUser(userId) -> int`；同上 spec / history 修订 | backend-targetjob unit test PASS |
-| [backend-practice](../../../backend-practice/spec.md) | `backend/internal/practice/service/count.go` 新增 `CountPracticeSessionsForUser(userId) -> int`；同上 spec / history 修订 | backend-practice unit test PASS |
-| [backend-debrief](../../../backend-debrief/spec.md) | `backend/internal/debrief/service/count.go` 新增 `CountDebriefsForUser(userId) -> int`；同上 spec / history 修订 | backend-debrief unit test PASS |
-| [backend-auth](../../../backend-auth/spec.md) | `backend/internal/auth/service/identity.go` 新增 `GetUserIdentityForUser(userId) -> {displayName, avatarUrl, emailMasked}` internal service (D-17 read-only / 不写 audit / 不返回 raw email；emailMasked 形如 `ali***@example.com`)；backend-auth spec.md 模块边界表追加 internal API 行；history.md 追加 backend-jobs-recommendations/001 cross-owner additive 行 | backend-auth unit test PASS (cross-user 由 caller userId 保证；emailMasked 字段 redact; 不写 audit_events 断言) |
+| [backend-resume](../../../backend-resume/spec.md) | `backend/internal/resume/service/count.go` 新增 `CountResumesForUser(ctx context.Context, userID string) (int, error)` internal service；backend-resume spec.md cross-owner exposed internal API 行追加；backend-resume history.md 追加 backend-jobs-recommendations/001 cross-owner additive 行 | backend-resume unit test PASS |
+| [backend-targetjob](../../../backend-targetjob/spec.md) | `backend/internal/targetjob/service/count.go` 新增 `CountTargetJobsForUser(ctx context.Context, userID string) (int, error)`；同上 spec / history 修订 | backend-targetjob unit test PASS |
+| [backend-practice](../../../backend-practice/spec.md) | `backend/internal/practice/service/count.go` 新增 `CountPracticeSessionsForUser(ctx context.Context, userID string) (int, error)`；同上 spec / history 修订 | backend-practice unit test PASS |
+| [backend-debrief](../../../backend-debrief/spec.md) | `backend/internal/debrief/service/count.go` 新增 `CountDebriefsForUser(ctx context.Context, userID string) (int, error)`；同上 spec / history 修订 | backend-debrief unit test PASS |
+| [backend-auth](../../../backend-auth/spec.md) | `backend/internal/auth/service/identity.go` 新增 `GetUserIdentityForUser(ctx context.Context, userID string) (UserIdentity, error)` internal service，`UserIdentity` 含 `{displayName, avatarUrl, emailMasked}` (D-17 read-only / 不写 audit / 不返回 raw email；emailMasked 形如 `ali***@example.com`)；backend-auth spec.md 模块边界表追加 internal API 行；history.md 追加 backend-jobs-recommendations/001 cross-owner additive 行 | backend-auth unit test PASS (cross-user 由 caller userId 保证；emailMasked 字段 redact; 不写 audit_events 断言) |
 
 ## 4 实施步骤
 
@@ -184,13 +188,13 @@ Phase 0 必须同时携带多个 cross-owner spec / artifact additive 修订：
 - 运行 B3 generator PASS + baseline manifest update PASS
 
 #### 0.5 4 个 cross-owner counter internal API additive
-- 在 [backend-resume](../../../backend-resume/spec.md) / [backend-targetjob](../../../backend-targetjob/spec.md) / [backend-practice](../../../backend-practice/spec.md) / [backend-debrief](../../../backend-debrief/spec.md) 各自 `internal/<domain>/service/count.go` 新增 `Count*ForUser(userId) -> int` internal service
+- 在 [backend-resume](../../../backend-resume/spec.md) / [backend-targetjob](../../../backend-targetjob/spec.md) / [backend-practice](../../../backend-practice/spec.md) / [backend-debrief](../../../backend-debrief/spec.md) 各自 `internal/<domain>/service/count.go` 新增 `Count*ForUser(ctx context.Context, userID string) (int, error)` internal service
 - 每个 counter 必须 cross-user 隔离（仅返回 `user_id = current_user_id` 行计数）
 - 修订各 owner spec.md 在模块边界表追加新 internal API 行；history.md 追加 cross-owner additive 行
 - 各 owner 单元测试 PASS
 
 #### 0.6 backend-auth identity cross-owner internal API additive（spec D-17）
-- 在 [backend-auth](../../../backend-auth/spec.md) `internal/auth/service/identity.go` 新增 `GetUserIdentityForUser(userId) -> (UserIdentity, error)` internal service
+- 在 [backend-auth](../../../backend-auth/spec.md) `internal/auth/service/identity.go` 新增 `GetUserIdentityForUser(ctx context.Context, userID string) (UserIdentity, error)` internal service
 - `UserIdentity` 字段：`{displayName string, avatarUrl *string, emailMasked string}`
 - read-only / 不写 `audit_events` / 不更新 `users` 表 / 不触发 session 副作用
 - 返回 `emailMasked`（形如 `ali***@example.com`）；**禁止返回 raw email**；不返回 `password_hash` / `email_verified_at` / `created_at` 等非 identity 字段
@@ -203,21 +207,21 @@ Phase 0 必须同时携带多个 cross-owner spec / artifact additive 修订：
 
 #### 1.1 实现 `backend/internal/jdmatch/handler/get_profile.go`
 - 实现 generated server interface `GetJobMatchProfile`
-- 调 `service.BuildJobMatchProfile(userId)` 聚合并返回 `JobMatchProfile`（spec D-18 锁定字段来源映射）
+- 调 `service.BuildJobMatchProfile(ctx, userID)` 聚合并返回 `JobMatchProfile`（spec D-18 锁定字段来源映射）
 - 字段映射 (P0 baseline)：
-  - `displayName` ← `backend-auth.GetUserIdentityForUser(userId).displayName`（必填非 null）
+  - `displayName` ← `backend-auth.GetUserIdentityForUser(ctx, userID).displayName`（必填非 null；失败时 fallback 到非 PII anonymous display name）
   - `avatarUrl` ← P0 baseline `null`（D-18；P1 由 user 头像 / Gravatar 派生）
-  - `headline` ← `backend-profile.GetCandidateProfileForUser(userId).headline`（缺失 null）
-  - `yearsOfExperience` ← `backend-profile.GetCandidateProfileForUser(userId).yearsOfExperience`（缺失 null）
+  - `headline` ← `backend-profile.GetCandidateProfileForUser(ctx, userID).headline`（缺失 null）
+  - `yearsOfExperience` ← `backend-profile.GetCandidateProfileForUser(ctx, userID).yearsOfExperience`（缺失 null）
   - `locationText` ← P0 baseline `null`（D-18；P1 由 candidate_profile.region + remote 偏好格式化）
   - `compensationText` ← P0 baseline `null`（D-18；P1 由 target_jobs 期望薪资聚合）
   - `skills` ← P0 baseline `[]`（D-18；P1 由 candidate_profile + resume_versions.structured_profile 聚合去重，需要后续 plan 的新 cross-owner additive）
   - `sources` ← 4 个 counter API 真实计数（resumes / jds / mocks / debriefs）
 
 #### 1.2 实现 `backend/internal/jdmatch/service/build_profile.go`
-- `BuildJobMatchProfile(userId, deps)` orchestrator：调用 7 个 cross-owner internal API（backend-auth identity + 2 个 backend-profile read + 4 个 counter），聚合并返回 `JobMatchProfile` value object
+- `BuildJobMatchProfile(ctx context.Context, userID string, deps)` orchestrator：调用 7 个 cross-owner internal API（backend-auth identity + 2 个 backend-profile read + 4 个 counter），聚合并返回 `JobMatchProfile` value object
 - 字段映射严格按 spec D-18；不引入 `region` / `preferredPracticeLanguage` 等 JobMatchProfile schema 不存在的字段
-- 错误处理：任一 cross-owner API 失败回退到 default（如 `backend-auth.GetUserIdentityForUser` 失败返回 displayName=`""`（不破坏 required 但触发 client-side fallback）；sources.resumes=0 而非整个 endpoint 失败）；记录 audit warn（不含 PII）
+- 错误处理：任一 cross-owner API 失败回退到 default（如 `backend-auth.GetUserIdentityForUser(ctx, userID)` 失败返回非 PII anonymous display name，例如 `Candidate`，不得返回空字符串或 raw email；sources.resumes=0 而非整个 endpoint 失败）；记录 audit warn（不含 PII）
 
 #### 1.3 实现 `backend/internal/jdmatch/handler/get_agent_status.go`
 - 实现 generated server interface `GetAgentScanStatus`
@@ -407,11 +411,11 @@ Phase 0 必须同时携带多个 cross-owner spec / artifact additive 修订：
 
 #### 6.2 BDD 场景验证
 
-- 执行 `test/scenarios/e2e/p0-084-jd-match-profile-and-recommendations-list/` 全 PASS
-- 执行 `test/scenarios/e2e/p0-085-jd-match-watchlist-and-saved-search-lifecycle/` 全 PASS
-- 执行 `test/scenarios/e2e/p0-086-jd-match-search-and-market-signals/` 全 PASS
-- 执行 `test/scenarios/e2e/p0-087-jd-match-agent-scan-and-privacy-delete/` 全 PASS
-- 在 `test/scenarios/e2e/INDEX.md` 追加 P0.084 / P0.085 / P0.086 / P0.087 行
+- 执行 `test/scenarios/e2e/p0-094-jd-match-profile-and-recommendations-list/` 全 PASS
+- 执行 `test/scenarios/e2e/p0-095-jd-match-watchlist-and-saved-search-lifecycle/` 全 PASS
+- 执行 `test/scenarios/e2e/p0-096-jd-match-search-and-market-signals/` 全 PASS
+- 执行 `test/scenarios/e2e/p0-097-jd-match-agent-scan-and-privacy-delete/` 全 PASS
+- 在 `test/scenarios/e2e/INDEX.md` 追加 P0.094 / P0.095 / P0.096 / P0.097 行
 
 #### 6.3 cross-owner handoff 信号
 
@@ -424,10 +428,10 @@ Phase 0 必须同时携带多个 cross-owner spec / artifact additive 修订：
 
 #### 6.4 spec / history / INDEX 同步
 
-- backend-jobs-recommendations spec.md 维持 1.1 active（L1 plan-review 已在 spec 创建当天新增 D-17/D-18/D-19；plan 完成时若无新决策则保持 1.1，否则同步 bump）
-- backend-jobs-recommendations history.md 在 plan 完成当天追加一行"plan 001 完成 + 12 个 endpoint real backend + 7 个 cross-owner internal API 全可用"
-- `docs/spec/INDEX.md` §5 P0 Implementation 表中 `backend-jobs-recommendations` 行已在 spec 创建期写入（1.0 active 2026-05-21）；plan 完成时只需把 INDEX 行更新日期同步到 plan 落地日（如有变动）；如本 plan-review 已把 spec bump 至 1.1，需同步 INDEX 行版本字段；不新增行
-- [engineering-roadmap §5.2](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) "Home / Job Picks / Parse" workstream 行已在 spec 创建期改为 `backend-jobs-recommendations active（001 real backend baseline 承接 JobMatch 12 个 endpoint）`，roadmap 已 bump 至 3.17（与 backend-profile spec 同次 bump）；plan 完成时把状态描述从 "active（001 real backend baseline 承接 JobMatch 12 个 endpoint）" 调整为 "active（001 real backend baseline completed）" 或在启动 002 时改写 002 descriptor；roadmap 版本号 bump：若 backend-profile/001 plan 已先完成则当前 roadmap 在 3.18，本 plan 完成 bump 至 3.19；若 backend-jobs-recommendations/001 先完成则 3.17 → 3.18，后由 backend-profile/001 完成 bump 至 3.19；更新日期改为 plan 落地日；engineering-roadmap history.md 同步追加对应 3.X 行
+- backend-jobs-recommendations spec.md 维持 1.2 active；本 completion 不新增 D-20，只同步更新日期与 INDEX 投影。
+- backend-jobs-recommendations history.md 追加 v1.5 "post-reopen completion" 行：记录 12 个 endpoint real backend、drainer、fixture parity、E2E.P0.094-097 Ready/automated 与 cross-owner handoff。
+- `docs/spec/INDEX.md` §5 P0 Implementation 表中 `backend-jobs-recommendations` 行同步到 spec Header：1.2 active 2026-05-22。
+- [engineering-roadmap §5.2](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) "Home / Job Picks / Parse" workstream 行从 deferred implementation wording 调整为 `backend-jobs-recommendations active（001 real backend baseline completed）`；roadmap 从 3.18 bump 到 3.19 并在 engineering-roadmap history.md 追加对应 completion 行。
 
 ## 5 验收标准
 
@@ -437,7 +441,7 @@ Phase 0 必须同时携带多个 cross-owner spec / artifact additive 修订：
 - `cmd/api` route/runtime gate PASS：session middleware、IK middleware（5 op）、12 个 route 真实可达、in-process drainer 注册 1 个后台 job handler `jd_match_agent_scan` + 启停 / shutdown 不泄漏 goroutine、均有测试证据
 - 4 个 cross-owner additive 全部 PASS：B4 migration + F3 prompt + A3 profile + B3 events
 - 5 个 cross-owner internal API additive（backend-auth identity + backend-resume / backend-targetjob / backend-practice / backend-debrief counter）unit test PASS
-- BDD E2E.P0.084 + E2E.P0.085 + E2E.P0.086 + E2E.P0.087 全 PASS（含 E2E.P0.084 7 个 cross-owner API trace + D-19 structural parity 断言）
+- BDD E2E.P0.094 + E2E.P0.095 + E2E.P0.096 + E2E.P0.097 全 PASS（含 E2E.P0.094 7 个 cross-owner API trace + D-19 structural parity 断言）
 - 下游 frontend owner / backend internal privacy runner owner / 5 个 cross-owner additive owner 已收到 real backend / privacy API / internal API 可用信号
 - `docs/spec/INDEX.md` + engineering-roadmap §5.2 + engineering-roadmap history.md 已同步本 subject `plan 001 完成` 状态描述 + roadmap 版本 bump（与 backend-profile/001 完成顺序协同，见 §6.4）
 
@@ -455,8 +459,8 @@ Phase 0 必须同时携带多个 cross-owner spec / artifact additive 修订：
 | R8: F3 prompt 文本 baseline 质量影响推荐 | F3 baseline prompt 包含可用文案（不写 TBD 占位）；future plan 通过离线评估集 ≥ 50 题逐步优化 |
 | R9: 多 worker 并发触发 agent_scan 重复 | agent_scans 表使用 SELECT FOR UPDATE 锁 + status='scanning' 唯一性；同用户同时只有 1 个 scanning 行 |
 | R10: 外部 watcher 误以为 baseline 接入外部平台 | spec §2.2 + plan §1 明确 baseline 不接 LinkedIn/Boss/脉脉/拉勾 等；C-16 negative grep 强制；外部平台扩展归独立 P2 plan |
-| R11: frontend 切真时发现字段缺失 / 字节漂移 | 11 个非 profile endpoint 严格按 fixture default scenario 字节比对，`getJobMatchProfile` 按 D-19 structural parity 验证；frontend 002 plan 通过 generated client + same fixture 自动验证；本 plan 6.3 主动信号 |
-| R12: counter cross-owner API 形态不一致 | spec §4.4 锁定签名 `Count*ForUser(userId) -> int`；各 owner 实现必须匹配；Phase 0.5 检查所有 owner 一致 |
+| R11: frontend 切真时发现字段缺失 / 字节漂移 | 11 个非 profile endpoint 严格按 fixture default scenario 语义等价验证（字段集、显式 null、status、`X-Request-ID`），`getJobMatchProfile` 按 D-19 structural parity 验证；frontend 002 plan 通过 generated client + same fixture 自动验证；本 plan 6.3 主动信号 |
+| R12: counter cross-owner API 形态不一致 | spec §4.4 锁定签名 `Count*ForUser(ctx context.Context, userID string) (int, error)`；各 owner 实现必须匹配；Phase 0.5 检查所有 owner 一致 |
 | R13: backend-auth identity additive 泄漏 raw email 或越权 | spec D-17 锁定 `UserIdentity` 字段集（仅 displayName / avatarUrl / emailMasked）；Phase 0.6 backend-auth unit test 强制 `emailMasked` 格式断言（含 `***` / 不含 raw local-part 字符）；调用不写 audit_events（防止跨域读取被审计放大）；cross-user 隔离由 caller userId 保证，调用方（jdmatch）必须先通过 session middleware 解析得到 current_user_id 再传入 |
 | R14: P0 baseline JobMatchProfile 稀疏字段引起 frontend 切真"看起来缺字段"误判 | spec D-18 / D-19 锁定稀疏 baseline；[B2 fixture `partial-profile` scenario](../../../openapi-v1-contract/spec.md) 已展示稀疏形态作为 design preview；frontend `frontend-home-job-picks-and-parse/002-jd-match-recommendations` 切真后应该按 partial-profile shape 处理（[docs/ui-design/module-job-workspace.md](../../../../ui-design/module-job-workspace.md) graceful render null）；handoff 信号 §6.3 主动告知 frontend owner P0 baseline 字段稀疏度 |
 | R15: drainer 注册 job_type 数量与 spec D-12 不一致 | spec D-12 锁定 2 个 canonical job_type（agent_scan + search）；§5.5 显式说明 drainer P0 只注册 1 个后台 job handler（agent_scan），search 走 sync HTTP handler，recommendation 不是独立 job_type；route wiring test 验证 drainer registry 实际只含 1 个后台 entry，避免 §5.5 / Phase 2.5 描述漂移 |

@@ -8,6 +8,10 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-22](./2026-05-22-backend-jobs-recommendations-001-l2-hardening-retrospective-assessment.md) | Backend Jobs Recommendations 001 L2 Hardening 交付复盘 | #assessment |
+| [2026-05-22](./2026-05-22-backend-jobs-recommendations-001-jd-match-real-backend-baseline-assessment.md) | Backend Jobs Recommendations 001 JD-Match L2 Assessment And Fix | #assessment |
+| [2026-05-21](./2026-05-21-backend-profile-001-l2-remediation-assessment.md) | Backend Profile 001 L2 Remediation 交付复盘 | #assessment |
+| [2026-05-21](./2026-05-21-backend-profile-candidate-profile-and-experience-cards-assessment.md) | Backend Profile Candidate Profile and Experience Cards 交付复盘 | #assessment |
 | [2026-05-21](./2026-05-21-branch-prefix-governance-fix-assessment.md) | Branch Prefix Governance Fix 交付复盘 | #assessment |
 | [2026-05-21](./2026-05-21-frontend-baseline-roadmap-rebaseline-assessment.md) | Frontend Baseline and Roadmap Rebaseline 交付复盘 | #assessment |
 | [2026-05-18](./2026-05-18-frontend-shell-url-routing-popstate-privacy-assessment.md) | Frontend Shell URL Routing Popstate Privacy 交付复盘 | #assessment |

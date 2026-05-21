@@ -323,7 +323,9 @@ paths:
       tags: [Profile]
       operationId: createExperienceCard
       summary: Create an experience card
+      description: Side-effect endpoint per backend-profile spec D-5 — requires `Idempotency-Key`. Server forces `source_type='manual'` regardless of body.
       parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
         - $ref: '#/components/parameters/AcceptLanguage'
@@ -352,6 +354,7 @@ paths:
       tags: [Profile]
       operationId: updateExperienceCard
       summary: Update an experience card
+      description: Side-effect endpoint per backend-profile spec D-5 — requires `Idempotency-Key`. Cross-user access returns 404 `RESOURCE_NOT_FOUND`.
       parameters:
         - name: cardId
           in: path
@@ -359,6 +362,7 @@ paths:
           schema:
             type: string
             format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
         - $ref: '#/components/parameters/AcceptLanguage'
@@ -2094,6 +2098,7 @@ components:
         - RESUME_EXPORT_NOT_AVAILABLE
         - RESUME_STRUCTURED_MASTER_ALREADY_EXISTS
         - VALIDATION_FAILED
+        - RESOURCE_NOT_FOUND
         - IDEMPOTENCY_KEY_MISMATCH
         - RATE_LIMITED
         - AI_PROVIDER_TIMEOUT
@@ -2463,18 +2468,22 @@ components:
       properties:
         headline:
           type: string
+          nullable: true
         yearsOfExperience:
           type: integer
           format: int32
           minimum: 0
+          nullable: true
         currentRole:
           type: string
+          nullable: true
         preferredPracticeLanguage:
           type: string
         uiLanguage:
           type: string
         region:
           type: string
+          nullable: true
 
     UpdateProfileRequest:
       type: object

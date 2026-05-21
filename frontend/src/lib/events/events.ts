@@ -9,7 +9,7 @@ export type ResumeTailorMode = "gap_review" | "bullet_suggestions";
 
 export type SourceFreshnessStatus = "fresh" | "stale" | "failed";
 
-export type EventName = "target.import.requested" | "target.parsed" | "target.analysis.failed" | "practice.session.started" | "practice.turn.completed" | "practice.session.completed" | "report.generation.requested" | "report.generated" | "report.generation.failed" | "resume.parse.completed" | "resume.tailor.completed" | "debrief.created" | "debrief.completed" | "source.refreshed" | "privacy.request.created" | "privacy.request.completed";
+export type EventName = "target.import.requested" | "target.parsed" | "target.analysis.failed" | "practice.session.started" | "practice.turn.completed" | "practice.session.completed" | "report.generation.requested" | "report.generated" | "report.generation.failed" | "resume.parse.completed" | "resume.tailor.completed" | "debrief.created" | "debrief.completed" | "source.refreshed" | "privacy.request.created" | "privacy.request.completed" | "jd_match.recommendation.completed" | "jd_match.search.completed";
 
 export const EVENT_NAME_TARGET_IMPORT_REQUESTED = "target.import.requested" as const;
 export const EVENT_NAME_TARGET_PARSED = "target.parsed" as const;
@@ -27,6 +27,8 @@ export const EVENT_NAME_DEBRIEF_COMPLETED = "debrief.completed" as const;
 export const EVENT_NAME_SOURCE_REFRESHED = "source.refreshed" as const;
 export const EVENT_NAME_PRIVACY_REQUEST_CREATED = "privacy.request.created" as const;
 export const EVENT_NAME_PRIVACY_REQUEST_COMPLETED = "privacy.request.completed" as const;
+export const EVENT_NAME_JD_MATCH_RECOMMENDATION_COMPLETED = "jd_match.recommendation.completed" as const;
+export const EVENT_NAME_JD_MATCH_SEARCH_COMPLETED = "jd_match.search.completed" as const;
 
 export interface TargetImportRequestedPayload {
   sourceType: TargetImportSourceType;
@@ -147,6 +149,20 @@ export interface PrivacyRequestCompletedPayload {
   userId: string;
 }
 
+export interface JdMatchRecommendationCompletedPayload {
+  agentScanId: string;
+  completedAt: unknown;
+  recommendationCount: number;
+  userId: string;
+}
+
+export interface JdMatchSearchCompletedPayload {
+  completedAt: unknown;
+  resultCount: number;
+  searchRunId: string;
+  userId: string;
+}
+
 export interface EventNameToPayload {
   "target.import.requested": TargetImportRequestedPayload;
   "target.parsed": TargetParsedPayload;
@@ -164,4 +180,6 @@ export interface EventNameToPayload {
   "source.refreshed": SourceRefreshedPayload;
   "privacy.request.created": PrivacyRequestCreatedPayload;
   "privacy.request.completed": PrivacyRequestCompletedPayload;
+  "jd_match.recommendation.completed": JdMatchRecommendationCompletedPayload;
+  "jd_match.search.completed": JdMatchSearchCompletedPayload;
 }
