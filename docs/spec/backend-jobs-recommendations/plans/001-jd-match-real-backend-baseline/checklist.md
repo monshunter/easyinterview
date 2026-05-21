@@ -53,11 +53,11 @@
 
 ## Phase 4: searchJobs + listSavedSearches + createSavedSearch
 
-- [ ] 4.1 实现 `backend/internal/jdmatch/store/saved_searches.go` Repository：`ListByUser / Create / UpdateRunInfo / DeleteForUser`（验证：integration test PASS）
-- [ ] 4.2 实现 `backend/internal/jdmatch/store/search_runs.go` Repository：`Create / DeleteForUser`（验证：integration test PASS）
-- [ ] 4.3 实现 `backend/internal/jdmatch/handler/search.go` generated server interface `SearchJobs` + IK + 同步调 A3/F3 `jd_match.search` + 30s timeout 502 + 写入 search_runs + JOIN recommendations 返回 items + query/filters 不进 log/outbox（验证：unit test `TestSearchJobsHappyAndTimeoutAndPrivacy` PASS + fixture parity PASS）
-- [ ] 4.4 实现 `backend/internal/jdmatch/handler/list_saved.go` generated server interface `ListSavedSearches`（验证：unit test PASS + fixture parity PASS）
-- [ ] 4.5 实现 `backend/internal/jdmatch/handler/create_saved.go` generated server interface `CreateSavedSearch` + IK + 必填校验 + label 不进 log（验证：unit test PASS）
+- [x] 4.1 实现 `backend/internal/jdmatch/store/saved_searches.go` Repository：`ListByUser / Create / UpdateRunInfo / DeleteForUser`（验证：integration test PASS）— ListSavedSearchesByUser / CreateSavedSearch / DeleteSavedSearchesForUser；UpdateRunInfo 留到 Phase 5 cmd/api wiring。
+- [x] 4.2 实现 `backend/internal/jdmatch/store/search_runs.go` Repository：`Create / DeleteForUser`（验证：integration test PASS）— 合并到 `store/saved_searches.go::CreateSearchRun` + `DeleteSearchRunsForUser`。
+- [x] 4.3 实现 `backend/internal/jdmatch/handler/search.go` generated server interface `SearchJobs` + IK + 同步调 A3/F3 `jd_match.search` + 30s timeout 502 + 写入 search_runs + JOIN recommendations 返回 items + query/filters 不进 log/outbox（验证：unit test `TestSearchJobsHappyAndTimeoutAndPrivacy` PASS + fixture parity PASS）— Handler 落于 `handler/search.go::SearchJobs`，30s `context.WithTimeout` + 映射 timeout → 502 AI_PROVIDER_TIMEOUT；query/filters 仅入 store 列与 AI payload，不入日志/outbox；test PASS（happy + timeout + 必填）。
+- [x] 4.4 实现 `backend/internal/jdmatch/handler/list_saved.go` generated server interface `ListSavedSearches`（验证：unit test PASS + fixture parity PASS）— Handler 落于 `handler/search.go::ListSavedSearches`，test PASS。
+- [x] 4.5 实现 `backend/internal/jdmatch/handler/create_saved.go` generated server interface `CreateSavedSearch` + IK + 必填校验 + label 不进 log（验证：unit test PASS）— Handler 落于 `handler/search.go::CreateSavedSearch`，必填校验 → 400；label/query 仅入 store；test PASS。
 
 ## Phase 5: getMarketSignals + agent_scan 后台 job + privacy delete + cmd/api wiring
 

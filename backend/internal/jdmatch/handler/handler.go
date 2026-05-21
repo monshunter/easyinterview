@@ -50,6 +50,9 @@ type Handler struct {
 	recMutator     RecommendationsMutator
 	watchlist      WatchlistStore
 	newID          NewID
+	savedSearches  SavedSearchStore
+	searchRuns     SearchRunStore
+	searchAI       SearchAI
 }
 
 // New constructs a Handler with the supplied options.

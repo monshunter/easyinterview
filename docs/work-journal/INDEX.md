@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match search and saved searches` | #feat #test #docs |
 | [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match watchlist store and handlers` | #feat #test #docs |
 | [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match recommendations store and generator` | #feat #test #docs |
 | [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match profile orchestrator and agent scan baseline` | #feat #test #docs |

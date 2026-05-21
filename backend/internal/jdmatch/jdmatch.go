@@ -62,4 +62,7 @@ var (
 	// ErrUserIDRequired is returned when a repository / service is
 	// called with an empty userID.
 	ErrUserIDRequired = stderrs.New("jdmatch: userID is required")
+	// ErrValidationFailed maps to a 400 VALIDATION_FAILED response and
+	// is reused by createSavedSearch / searchJobs validators.
+	ErrValidationFailed = stderrs.New("jdmatch: validation failed")
 )
