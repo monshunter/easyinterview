@@ -43,17 +43,18 @@ type Options struct {
 // Handler implements every JD-Match HTTP endpoint method on the
 // generated server interface.
 type Handler struct {
-	session        SessionResolver
-	agentScans     AgentScanReader
-	profileBuilder ProfileBuilder
-	recReader      RecommendationsReader
-	recMutator     RecommendationsMutator
-	watchlist      WatchlistStore
-	newID          NewID
-	savedSearches  SavedSearchStore
-	searchRuns     SearchRunStore
-	searchAI       SearchAI
-	marketSignals  MarketSignalsBuilder
+	session         SessionResolver
+	agentScans      AgentScanReader
+	profileBuilder  ProfileBuilder
+	recReader       RecommendationsReader
+	recMutator      RecommendationsMutator
+	watchlist       WatchlistStore
+	newID           NewID
+	savedSearches   SavedSearchStore
+	searchRuns      SearchRunStore
+	searchAI        SearchAI
+	searchCompleted SearchCompletedEmitter
+	marketSignals   MarketSignalsBuilder
 }
 
 // New constructs a Handler with the supplied options.

@@ -49,10 +49,11 @@
 
 ## 模式 4：Completed checklist 掩盖未执行的 runner gate
 
-- **相关 Bug**：BUG-0064, BUG-0066, BUG-0068, BUG-0075
+- **相关 Bug**：BUG-0064, BUG-0066, BUG-0068, BUG-0075, BUG-0082
 - **典型症状**：plan/checklist 标记 `completed`，但 test checklist / BDD checklist 仍有未勾选项；scenario `verify.sh` 只检查 spec 文件存在、历史说明或宽泛 `PASS` 字样；pixel parity / scenario wrapper 被写成 deferred 或外部运行，仍被计入完成证据。
 - **检查清单**：
   1. 对 completed plan 先 `rg "\\[ \\]|deferred|pending|no tests|Playwright.*待|pixel parity 待"`，把空勾选、延期口径和 no-op 风险当作 blocking drift。
   2. 直接读取每个 scenario 的 `trigger.sh` / `verify.sh`，确认 `trigger.sh` 真正调用 runner，`verify.sh` 检查 runner marker、目标测试名或 spec path、pass marker，并显式拒绝 failed / no tests。
-  3. Pixel parity gate 必须证明浏览器 runner 执行过；不能只检查 Playwright spec 文件存在或在 README 中写“可手动运行”。
-  4. 文档收口时把证据 artifact 名称写成当前脚本真实产物，例如 `.test-output/e2e/<scenario>/trigger.log`，避免 checklist 引用不存在的 `*.evidence.log`。
+  3. 对 `go test -run` 证据必须加 `go test -list` 或源码反查，确认 focused test 名真实存在；如果测试可以 skip，verify 必须显式拒绝 `--- SKIP` / `testing: warning: no tests to run` / `[no tests to run]`。
+  4. Pixel parity gate 必须证明浏览器 runner 执行过；不能只检查 Playwright spec 文件存在或在 README 中写“可手动运行”。
+  5. 文档收口时把证据 artifact 名称写成当前脚本真实产物，例如 `.test-output/e2e/<scenario>/trigger.log`，避免 checklist 引用不存在的 `*.evidence.log`。

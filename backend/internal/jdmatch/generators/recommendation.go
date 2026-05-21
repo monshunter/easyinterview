@@ -14,6 +14,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch"
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch/store"
+	"github.com/monshunter/easyinterview/backend/internal/shared/featurekeys"
 )
 
 // AIClient is the slice of the A3 AIClient surface this generator
@@ -50,10 +51,10 @@ type RecommendationUpserter interface {
 // LLM; they never leak through to logs because the AIClient owns
 // redaction (spec D-9 / F3 D-10).
 type RunRecommendationGeneratorInput struct {
-	UserID                string
-	AgentScanID           string
-	CandidateProfileJSON  json.RawMessage
-	JobsPoolJSON          json.RawMessage
+	UserID               string
+	AgentScanID          string
+	CandidateProfileJSON json.RawMessage
+	JobsPoolJSON         json.RawMessage
 }
 
 // RunRecommendationGeneratorResult bundles the upserted recommendations
@@ -128,7 +129,7 @@ func RunRecommendationGenerator(
 		"candidateProfile": in.CandidateProfileJSON,
 		"jobsPool":         in.JobsPoolJSON,
 	}
-	res, err := ai.Complete(ctx, "jd_match.recommendation", payload)
+	res, err := ai.Complete(ctx, featurekeys.JdMatchRecommendation.String(), payload)
 	if err != nil {
 		return RunRecommendationGeneratorResult{}, fmt.Errorf("generators: ai call failed: %w", err)
 	}

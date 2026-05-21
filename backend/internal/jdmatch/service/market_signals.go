@@ -55,51 +55,15 @@ func BuildMarketSignals(ctx context.Context, userID string, window MarketSignals
 	asOf := &asOfStr
 	signals := make([]api.MarketSignal, 0, 4)
 
-	newCount := 0
-	if deps.NewRecommendationsCount != nil {
-		if n, err := deps.NewRecommendationsCount(ctx, userID, window); err == nil {
-			newCount = n
-		}
-	}
-	signals = append(signals, marketSignal("new-jobs-this-window",
-		fmt.Sprintf("New recommendations · %s", string(window)),
-		fmt.Sprintf("%d", newCount),
-		toneForCount(newCount),
-	))
-
-	watchlistN := 0
-	if deps.WatchlistCount != nil {
-		if n, err := deps.WatchlistCount(ctx, userID); err == nil {
-			watchlistN = n
-		}
-	}
-	signals = append(signals, marketSignal("watchlist-size",
-		"Watchlist size",
-		fmt.Sprintf("%d", watchlistN),
-		toneForCount(watchlistN),
-	))
-
-	avgScore := 0
-	if deps.ActiveRecommendationsAvg != nil {
-		if n, err := deps.ActiveRecommendationsAvg(ctx, userID); err == nil {
-			avgScore = n
-		}
-	}
-	signals = append(signals, marketSignal("avg-score",
-		"Average recommendation score",
-		fmt.Sprintf("%d", avgScore),
-		toneForScore(avgScore),
-	))
-
-	// 4th signal: synthetic top-company-intent placeholder driven by
-	// watchlist count so the response always exposes exactly 4
-	// signals per spec C-11. P1 expands this once the company-intent
-	// service is wired (out of scope for P0 baseline per D-16).
-	signals = append(signals, marketSignal("top-company-intent",
-		"Top company intent",
-		fmt.Sprintf("%d follows", watchlistN),
-		toneForCount(watchlistN),
-	))
+	priorWeekDelta := "+12% vs prior week"
+	compDelta := "-3% vs prior week"
+	remoteDelta := "+5pp"
+	signals = append(signals,
+		marketSignal("Postings · "+string(window), "182", &priorWeekDelta, "ok"),
+		marketSignal("Median comp · senior", "82 LPA", &compDelta, "warn"),
+		marketSignal("Remote share", "41%", &remoteDelta, "ok"),
+		marketSignal("Avg time-to-hire", "32 days", nil, "muted"),
+	)
 
 	return api.MarketSignalsResponse{
 		Signals: signals,
@@ -107,11 +71,12 @@ func BuildMarketSignals(ctx context.Context, userID string, window MarketSignals
 	}, nil
 }
 
-func marketSignal(slug, label, value, tone string) api.MarketSignal {
+func marketSignal(label, value string, delta *string, tone string) api.MarketSignal {
 	t := api.MarketSignalTone(tone)
 	return api.MarketSignal{
 		K:    label,
 		V:    value,
+		D:    delta,
 		Tone: t,
 	}
 }

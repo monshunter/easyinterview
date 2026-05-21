@@ -8,11 +8,31 @@ if [ ! -s "$LOG" ]; then
   echo "verify: missing trigger.log" >&2
   exit 1
 fi
-if ! grep -q "^--- PASS: TestJDMatchHTTPScenario" "$LOG"; then
-  echo "verify: TestJDMatchHTTPScenario did not pass" >&2
+if grep -Eq -- "--- SKIP:|skipping live|\\[no tests to run\\]|no tests to run" "$LOG"; then
+  echo "verify: scenario log contains skip/no-test marker" >&2
   exit 1
 fi
-if grep -Eq "alice@example\\.com|bob@example\\.com" "$LOG"; then
+if grep -Eq -- "--- FAIL:|^FAIL$|^FAIL[[:space:]]" "$LOG"; then
+  echo "verify: scenario log contains fail marker" >&2
+  exit 1
+fi
+for marker in \
+  "--- PASS: TestJDMatchHTTPScenario" \
+  "--- PASS: TestJDMatchFixtureParity/profile_structural_parity" \
+  "--- PASS: TestJDMatchFixtureParity/agent_status" \
+  "--- PASS: TestJDMatchFixtureParity/recommendations_list" \
+  "--- PASS: TestJDMatchFixtureParity/recommendation_detail" \
+  "--- PASS: TestJDMatchFixtureParity/dismiss"; do
+  if ! grep -q -- "$marker" "$LOG"; then
+    echo "verify: missing pass marker $marker" >&2
+    exit 1
+  fi
+done
+if ! grep -Eq -- "^ok[[:space:]]+github.com/monshunter/easyinterview/backend/cmd/api[[:space:]]" "$LOG"; then
+  echo "verify: missing package-level ok marker" >&2
+  exit 1
+fi
+if grep -Eq "alice@example\\.com|bob@example\\.com|jdmatch-fixture@example\\.com" "$LOG"; then
   echo "verify: raw email leaked into trigger log" >&2
   exit 1
 fi

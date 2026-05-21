@@ -112,6 +112,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0083](./BUG-0083.md) | jd-match runtime bypassed A3/F3 and missed search/privacy contracts | high | resolved | 2026-05-22 | `fix(backend-jobs): harden jd-match runtime contracts (BUG-0083)` |
 | [BUG-0077](./BUG-0077.md) | OpenAPI diff baseline lag hid the current additive contract change | medium | resolved | 2026-05-18 | `fix(resume-workshop): close real backend gaps (BUG-0076, BUG-0077)` |
 | [BUG-0073](./BUG-0073.md) | resume tailor ready provenance was incomplete after DB roundtrip | medium | resolved | 2026-05-17 | `fix(backend-resume): persist tailor run provenance (BUG-0073)` |
 | [BUG-0072](./BUG-0072.md) | practice voice fixture audio refs used mock-only scheme | medium | resolved | 2026-05-17 | `fix(practice-voice): align fixture audio refs (BUG-0072)` |
@@ -127,6 +128,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0082](./BUG-0082.md) | jd-match BDD closure treated smoke wrappers as completed gates | high | resolved | 2026-05-22 | `fix(backend-jobs): harden jd-match runtime contracts (BUG-0082, BUG-0083)` |
 | [BUG-0066](./BUG-0066.md) | debrief scenario wrappers were missing or under-asserted | high | resolved | 2026-05-17 | `fix(test): close debrief scenario wrapper evidence (BUG-0066)` |
 | [BUG-0034](./BUG-0034.md) | mockruntime named scenario test copied stale fixture expectation | medium | resolved | 2026-05-10 | `fix(mock-contract): align mockruntime named scenarios` |
 | [BUG-0011](./BUG-0011.md) | mock contract gate ignored empty retired fixture tag directories | medium | resolved | 2026-05-06 | `fix(mock-contract): reject retired fixture tag dirs` |

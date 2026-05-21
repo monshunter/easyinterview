@@ -26,6 +26,7 @@ type RecommendationRecord struct {
 	Reasons             []string
 	Risks               []string
 	Highlights          []string
+	Saved               bool
 	Seen                bool
 	DismissedAt         *time.Time
 	DismissReason       *string

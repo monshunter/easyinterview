@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch"
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch/store"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
@@ -60,12 +59,12 @@ func (h *Handler) ListJobRecommendations(w http.ResponseWriter, r *http.Request)
 		writeServiceError(w, err, "jdmatch recommendations list failed")
 		return
 	}
-	items := make([]api.JobMatchRecommendation, 0, len(res.Items))
+	items := make([]jobMatchRecommendationResponse, 0, len(res.Items))
 	for _, rec := range res.Items {
 		items = append(items, recordToDTO(rec))
 	}
 	body := struct {
-		Items    []api.JobMatchRecommendation `json:"items"`
+		Items    []jobMatchRecommendationResponse `json:"items"`
 		PageInfo struct {
 			PageSize   int    `json:"pageSize"`
 			HasMore    bool   `json:"hasMore"`
@@ -155,42 +154,89 @@ func (h *Handler) MarkJobNotRelevant(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func recordToDTO(rec jdmatch.RecommendationRecord) api.JobMatchRecommendation {
-	dto := api.JobMatchRecommendation{
-		Id:       rec.ID,
-		Title:    rec.Title,
-		Company:  rec.Company,
-		Location: rec.Location,
-		Score:    int32(rec.Score),
-		Fit: api.JobMatchFitFooter{
+type jobMatchFitResponse struct {
+	Must      int32 `json:"must"`
+	Total     int32 `json:"total"`
+	Plus      int32 `json:"plus"`
+	TotalPlus int32 `json:"totalPlus"`
+}
+
+type generationProvenanceResponse struct {
+	PromptVersion     string `json:"promptVersion"`
+	RubricVersion     string `json:"rubricVersion"`
+	ModelID           string `json:"modelId"`
+	Language          string `json:"language"`
+	FeatureFlag       string `json:"featureFlag"`
+	DataSourceVersion string `json:"dataSourceVersion"`
+}
+
+type jobMatchRecommendationResponse struct {
+	ID                  string                       `json:"id"`
+	Title               string                       `json:"title"`
+	Company             string                       `json:"company"`
+	CompanyTag          *string                      `json:"companyTag"`
+	Level               *string                      `json:"level"`
+	Location            string                       `json:"location"`
+	Comp                *string                      `json:"comp"`
+	Posted              string                       `json:"posted"`
+	Score               int32                        `json:"score"`
+	Fit                 jobMatchFitResponse          `json:"fit"`
+	Reasons             []string                     `json:"reasons"`
+	Risks               []string                     `json:"risks"`
+	Highlights          []string                     `json:"highlights"`
+	Seen                bool                         `json:"seen"`
+	Saved               bool                         `json:"saved"`
+	SourceURL           *string                      `json:"sourceUrl"`
+	SourceLabel         *string                      `json:"sourceLabel"`
+	NetworkNote         *string                      `json:"networkNote"`
+	SimilarInterviewers *int32                       `json:"similarInterviewers"`
+	InterviewHypotheses []string                     `json:"interviewHypotheses"`
+	Provenance          generationProvenanceResponse `json:"provenance"`
+}
+
+func recordToDTO(rec jdmatch.RecommendationRecord) jobMatchRecommendationResponse {
+	return recordToDTOWithProvenance(rec, provenanceFromRecommendation(rec))
+}
+
+func recordToDTOWithProvenance(rec jdmatch.RecommendationRecord, provenance generationProvenanceResponse) jobMatchRecommendationResponse {
+	dto := jobMatchRecommendationResponse{
+		ID:         rec.ID,
+		Title:      rec.Title,
+		Company:    rec.Company,
+		CompanyTag: rec.CompanyTag,
+		Level:      rec.Level,
+		Location:   rec.Location,
+		Comp:       rec.Comp,
+		Score:      int32(rec.Score),
+		Fit: jobMatchFitResponse{
 			Must:      int32(rec.FitMust),
 			Total:     int32(rec.FitTotal),
 			Plus:      int32(rec.FitPlus),
 			TotalPlus: int32(rec.FitTotalPlus),
 		},
-		Reasons:    rec.Reasons,
-		Risks:      rec.Risks,
-		Highlights: rec.Highlights,
+		Reasons:             nonNilStrings(rec.Reasons),
+		Risks:               nonNilStrings(rec.Risks),
+		Highlights:          nonNilStrings(rec.Highlights),
+		Seen:                rec.Seen,
+		Saved:               rec.Saved,
+		SourceURL:           rec.SourceURL,
+		SourceLabel:         rec.SourceLabel,
+		NetworkNote:         rec.NetworkNote,
+		InterviewHypotheses: nonNilStrings(rec.InterviewHypotheses),
+		Provenance:          provenance,
 	}
-	dto.CompanyTag = rec.CompanyTag
-	dto.Level = rec.Level
-	dto.Comp = rec.Comp
 	if rec.PostedLabel != nil {
 		dto.Posted = *rec.PostedLabel
 	}
-	dto.Seen = rec.Seen
-	dto.Saved = false
-	dto.SourceUrl = rec.SourceURL
-	dto.SourceLabel = rec.SourceLabel
-	dto.NetworkNote = rec.NetworkNote
 	if rec.SimilarInterviewers != nil {
 		v := int32(*rec.SimilarInterviewers)
 		dto.SimilarInterviewers = &v
 	}
-	if rec.InterviewHypotheses != nil {
-		dto.InterviewHypotheses = rec.InterviewHypotheses
-	}
-	provenance := api.GenerationProvenance{}
+	return dto
+}
+
+func provenanceFromRecommendation(rec jdmatch.RecommendationRecord) generationProvenanceResponse {
+	provenance := generationProvenanceResponse{}
 	if rec.PromptVersion != nil {
 		provenance.PromptVersion = *rec.PromptVersion
 	}
@@ -198,13 +244,19 @@ func recordToDTO(rec jdmatch.RecommendationRecord) api.JobMatchRecommendation {
 		provenance.RubricVersion = *rec.RubricVersion
 	}
 	if rec.ModelID != nil {
-		provenance.ModelId = *rec.ModelID
+		provenance.ModelID = *rec.ModelID
 	}
 	provenance.Language = rec.Language
 	provenance.FeatureFlag = rec.FeatureFlag
 	provenance.DataSourceVersion = rec.DataSourceVersion
-	dto.Provenance = provenance
-	return dto
+	return provenance
+}
+
+func nonNilStrings(in []string) []string {
+	if in == nil {
+		return []string{}
+	}
+	return in
 }
 
 func parsePageSize(raw string, def, max int) int {

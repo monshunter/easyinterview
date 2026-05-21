@@ -28,7 +28,7 @@ func (h *Handler) GetAgentScanStatus(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err, "jdmatch agent-scan read failed")
 		return
 	}
-	resp := api.AgentScanStatus{
+	resp := agentScanStatusResponse{
 		Status: api.JobMatchAgentStatusIdle,
 	}
 	if !errors.Is(err, jdmatch.ErrNotFound) {
@@ -47,4 +47,11 @@ func (h *Handler) GetAgentScanStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+type agentScanStatusResponse struct {
+	Status     api.JobMatchAgentStatus `json:"status"`
+	LastScanAt *string                 `json:"lastScanAt"`
+	NextScanAt *string                 `json:"nextScanAt"`
+	Message    *string                 `json:"message"`
 }

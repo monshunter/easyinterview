@@ -78,6 +78,11 @@ func (r *Repository) ListRecommendationsByUser(ctx context.Context, userID strin
 		if err != nil {
 			return ListRecommendationsResult{}, fmt.Errorf("jdmatch store: scan recommendation: %w", err)
 		}
+		saved, err := r.isRecommendationSaved(ctx, uid, rec.ID)
+		if err != nil {
+			return ListRecommendationsResult{}, err
+		}
+		rec.Saved = saved
 		items = append(items, rec)
 	}
 	if err := rows.Err(); err != nil {
@@ -340,6 +345,18 @@ func recommendationsColumnList() string {
 
 func recommendationsSelectSQL() string {
 	return `SELECT ` + recommendationsColumnList() + ` FROM jd_match_recommendations`
+}
+
+func (r *Repository) isRecommendationSaved(ctx context.Context, userID, recommendationID string) (bool, error) {
+	var saved bool
+	if err := r.db.QueryRowContext(ctx, `
+select exists (
+  select 1 from watchlist_items
+  where user_id = $1 and linked_job_match_id = $2
+)`, userID, recommendationID).Scan(&saved); err != nil {
+		return false, fmt.Errorf("jdmatch store: check recommendation saved: %w", err)
+	}
+	return saved, nil
 }
 
 func recommendationsListSQL(withCursor bool) string {

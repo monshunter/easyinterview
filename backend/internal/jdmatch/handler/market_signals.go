@@ -49,5 +49,29 @@ func (h *Handler) GetMarketSignals(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err, "jdmatch market signals failed")
 		return
 	}
-	writeJSON(w, http.StatusOK, resp)
+	signals := make([]marketSignalResponse, 0, len(resp.Signals))
+	for _, signal := range resp.Signals {
+		signals = append(signals, marketSignalResponse{
+			K:    signal.K,
+			V:    signal.V,
+			D:    signal.D,
+			Tone: signal.Tone,
+		})
+	}
+	writeJSON(w, http.StatusOK, marketSignalsResponse{
+		Signals: signals,
+		AsOf:    resp.AsOf,
+	})
+}
+
+type marketSignalResponse struct {
+	K    string               `json:"k"`
+	V    string               `json:"v"`
+	D    *string              `json:"d"`
+	Tone api.MarketSignalTone `json:"tone"`
+}
+
+type marketSignalsResponse struct {
+	Signals []marketSignalResponse `json:"signals"`
+	AsOf    *string                `json:"asOf"`
 }

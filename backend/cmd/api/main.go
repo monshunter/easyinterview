@@ -174,11 +174,26 @@ func main() {
 		os.Exit(1)
 	}
 	profileRoutes := buildProfileRoutes(loader, db)
-	jdmatchRoutes := buildJDMatchRoutes(loader, db, stubJDMatchAI{})
+	jdmatchSearchAI, jdmatchGeneratorAI, err := buildJDMatchAIAdapters(loader, db, targetJobRuntime.AI.Client)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: jdmatch AI runtime init: %v\n", err)
+		os.Exit(1)
+	}
+	jdmatchRuntime, err := buildJDMatchRuntime(loader, db, logger, jdmatchSearchAI, jdmatchGeneratorAI)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: jdmatch runtime init: %v\n", err)
+		os.Exit(1)
+	}
+	jdmatchRoutes := jdmatchRuntime.Routes
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = reportRuntime.Shutdown(shutdownCtx)
+	}()
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = jdmatchRuntime.Shutdown(shutdownCtx)
 	}()
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
@@ -191,6 +206,7 @@ func main() {
 	targetJobRuntime.Start(ctx)
 	resumeRuntime.Start(ctx)
 	reportRuntime.Start(ctx)
+	jdmatchRuntime.Start(ctx)
 
 	go func() {
 		logger.Info("api: listening", "addr", srv.Addr, "env", loader.AppEnv())
@@ -480,15 +496,23 @@ func buildAPIHandlerWithJDMatchAndHandlers(loader *config.Loader, flagsClient fe
 func addJDMatchRoutes(mux *http.ServeMux, authService *auth.PasswordlessService, jdmatch jdmatchRoutes) {
 	h := jdmatch.Handler
 	ik := jdmatch.Idempotency
+	withRequestID := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if requestID := r.Header.Get("X-Request-ID"); requestID != "" {
+				w.Header().Set("X-Request-ID", requestID)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 	withSession := func(op string, fn http.HandlerFunc) http.Handler {
-		return auth.SessionMiddleware(authService, op, http.Handler(fn))
+		return withRequestID(auth.SessionMiddleware(authService, op, http.Handler(fn)))
 	}
 	withSessionAndIK := func(op string, fn http.HandlerFunc) http.Handler {
 		var handler http.Handler = fn
 		if ik != nil {
 			handler = ik.Handler("jdmatch", op, requestUserFromContext, handler)
 		}
-		return auth.SessionMiddleware(authService, op, handler)
+		return withRequestID(auth.SessionMiddleware(authService, op, handler))
 	}
 	mux.Handle("GET /api/v1/jd-match/profile", withSession("getJobMatchProfile", h.GetJobMatchProfile))
 	mux.Handle("GET /api/v1/jd-match/agent-status", withSession("getAgentScanStatus", h.GetAgentScanStatus))

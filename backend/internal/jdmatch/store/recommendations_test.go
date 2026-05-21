@@ -41,6 +41,14 @@ func recRow(id string, score int, recommendedAt time.Time) []driver.Value {
 
 var _ = regexp.MustCompile // keep import alive across test edits
 
+func expectRecommendationSavedChecks(mock sqlmock.Sqlmock, userID string, ids ...string) {
+	for _, id := range ids {
+		mock.ExpectQuery(`select exists \(\s+select 1 from watchlist_items`).
+			WithArgs(userID, id).
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+	}
+}
+
 func TestListRecommendationsByUserCursor(t *testing.T) {
 	repo, mock, cleanup := newAgentScanRepo(t)
 	defer cleanup()
@@ -52,6 +60,7 @@ func TestListRecommendationsByUserCursor(t *testing.T) {
 	mock.ExpectQuery(`SELECT .* FROM jd_match_recommendations.*WHERE user_id = \$1 AND dismissed_at IS NULL`).
 		WithArgs("user-A", 3).
 		WillReturnRows(rows)
+	expectRecommendationSavedChecks(mock, "user-A", "rec-1", "rec-2", "rec-3")
 	res, err := repo.ListRecommendationsByUser(context.Background(), "user-A", store.ListRecommendationsFilter{PageSize: 2})
 	if err != nil {
 		t.Fatalf("ListRecommendationsByUser: %v", err)

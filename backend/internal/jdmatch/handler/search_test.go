@@ -13,12 +13,13 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch"
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch/handler"
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch/store"
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
 type fakeSavedStore struct {
-	list   []store.SavedSearchRecord
-	listErr error
-	create  store.SavedSearchRecord
+	list      []store.SavedSearchRecord
+	listErr   error
+	create    store.SavedSearchRecord
 	createErr error
 }
 
@@ -32,9 +33,11 @@ func (f *fakeSavedStore) CreateSavedSearch(ctx context.Context, in store.CreateS
 type fakeRunStore struct {
 	out store.SearchRunRecord
 	err error
+	in  store.CreateSearchRunInput
 }
 
 func (f *fakeRunStore) CreateSearchRun(ctx context.Context, in store.CreateSearchRunInput) (store.SearchRunRecord, error) {
+	f.in = in
 	return f.out, f.err
 }
 
@@ -45,6 +48,22 @@ type fakeSearchAI struct {
 
 func (f *fakeSearchAI) Search(ctx context.Context, userID, query string, filters json.RawMessage) (handler.SearchAIResult, error) {
 	return f.res, f.err
+}
+
+type fakeSearchCompletedEmitter struct {
+	userID      string
+	searchRunID string
+	resultCount int
+	called      bool
+	err         error
+}
+
+func (f *fakeSearchCompletedEmitter) EmitSearchCompleted(ctx context.Context, event handler.SearchCompletedEvent) error {
+	f.called = true
+	f.userID = event.UserID
+	f.searchRunID = event.SearchRunID
+	f.resultCount = event.ResultCount
+	return f.err
 }
 
 func TestListSavedSearchesHappyPath(t *testing.T) {
@@ -93,8 +112,10 @@ func TestSearchJobsHappyPath(t *testing.T) {
 	runs := &fakeRunStore{}
 	ai := &fakeSearchAI{res: handler.SearchAIResult{MatchedJobMatchIDs: []string{"rec-1"}, PromptVersion: "p1", ModelProfileName: "jd_match.search.default", DataSourceVersion: "jd_match.v1"}}
 	rec := &fakeRecStore{get: jdmatch.RecommendationRecord{ID: "rec-1", Title: "T", Company: "Acme", Location: "Shanghai", Score: 92, FitMust: 4, FitTotal: 5}}
+	events := &fakeSearchCompletedEmitter{}
 	h := handler.New(handler.Options{Session: stubSession("user-A", true)})
 	h.SetSearch(saved, runs, ai)
+	h.SetSearchCompleted(events)
 	h.SetRecommendations(rec, rec)
 	h.SetWatchlist(&fakeWatchlistStore{}, func() string { return "sr-new" })
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/jd-match/search", strings.NewReader(`{"query":"frontend platform"}`))
@@ -115,6 +136,12 @@ func TestSearchJobsHappyPath(t *testing.T) {
 	if body.SearchRunID == "" || len(body.Items) != 1 || body.Items[0].ID != "rec-1" {
 		t.Fatalf("body = %+v", body)
 	}
+	if !events.called || events.userID != "user-A" || events.searchRunID != body.SearchRunID || events.resultCount != 1 {
+		t.Fatalf("search completed event = called:%v user:%q run:%q count:%d body:%+v", events.called, events.userID, events.searchRunID, events.resultCount, body)
+	}
+	if strings.Contains(events.searchRunID, "frontend") || strings.Contains(runs.in.SearchRunID, "frontend") {
+		t.Fatal("search completed/search run identifiers must not contain query text")
+	}
 }
 
 func TestSearchJobsTimeout(t *testing.T) {
@@ -129,6 +156,30 @@ func TestSearchJobsTimeout(t *testing.T) {
 	h.SearchJobs(w, req)
 	if w.Code != http.StatusBadGateway {
 		t.Fatalf("status = %d, want 502", w.Code)
+	}
+}
+
+func TestSearchJobsInvalidOutput(t *testing.T) {
+	ai := &fakeSearchAI{err: handler.SearchInvalidOutputErr}
+	rec := &fakeRecStore{}
+	h := handler.New(handler.Options{Session: stubSession("user-A", true)})
+	h.SetSearch(&fakeSavedStore{}, &fakeRunStore{}, ai)
+	h.SetRecommendations(rec, rec)
+	h.SetWatchlist(&fakeWatchlistStore{}, func() string { return "sr-new" })
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/jd-match/search", strings.NewReader(`{"query":"frontend"}`))
+	w := httptest.NewRecorder()
+	h.SearchJobs(w, req)
+	if w.Code != http.StatusBadGateway {
+		t.Fatalf("status = %d, want 502", w.Code)
+	}
+	var body struct {
+		Code string `json:"code"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("decode error body: %v", err)
+	}
+	if body.Code != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("error code = %q, want %q", body.Code, sharederrors.CodeAiOutputInvalid)
 	}
 }
 

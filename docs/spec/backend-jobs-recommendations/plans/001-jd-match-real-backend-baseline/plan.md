@@ -1,11 +1,15 @@
 # JD-Match Real Backend Baseline
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-22
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
+
+## 0 Post-Reopen Completion Note
+
+2026-05-22 `/plan-code-review --fix` 曾将 Phase 5.5-5.8 与 Phase 6.1-6.8 / 6.12-6.13 退回 active：当时 `TestJDMatchHTTPScenario` 仅是 live smoke，`bdd-checklist.md` 与 `test/scenarios/e2e/INDEX.md` 仍无完成证据。后续补齐 `buildJDMatchRuntime` lifecycle gate、12-route session/IK/cross-user/live scenario、`TestJDMatchAgentScanDrainerScenario`、`TestJDMatchFixtureParity` 与 E2E.P0.094-097 wrapper `setup -> trigger -> verify` PASS 证据；本 plan lifecycle 恢复 completed。
 
 ## 1 目标
 
@@ -83,7 +87,7 @@ JD-Match 业务域当前 backend zero state：
   - `cd backend && go test ./internal/jdmatch/store/... -tags=integration -count=1`
   - `cd backend && go test ./internal/jdmatch/jobs/... -count=1`（stub AIClient）
   - `cd backend && go test ./internal/jdmatch/service/... -count=1`（BuildJobMatchProfile + privacy delete）
-  - `cd backend && go test ./cmd/api -run 'TestBuildJDMatchRuntime|TestJDMatchHTTPScenario|TestJDMatchAgentScanDrainerScenario' -count=1`
+  - `cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test ./cmd/api -run '^(TestBuildJDMatchRuntimeWiresRoutesDrainerAndLifecycle|TestJDMatchRoutesRequireSessionOnAllRoutes|TestJDMatchHTTPScenario|TestJDMatchAgentScanDrainerScenario|TestJDMatchFixtureParity)$' -count=1 -v`
   - migration gate：`migrations/lint.sh` + `make migrate-check` + `make privacy-delete-dry-run` PASS（本地若缺 `DATABASE_URL`，必须至少记录 `python3 scripts/lint/migrations_lint.py --repo-root .` PASS 与 live DB 子步骤 blocker，不得冒充 migrate-check 全绿）
   - F3 gate：`make lint-ai-profile-coverage` + F3 prompt loader test PASS
   - B3 gate：events / jobs generator PASS + baseline manifest update
@@ -424,10 +428,10 @@ Phase 0 必须同时携带多个 cross-owner spec / artifact additive 修订：
 
 #### 6.4 spec / history / INDEX 同步
 
-- backend-jobs-recommendations spec.md 维持 1.1 active（L1 plan-review 已在 spec 创建当天新增 D-17/D-18/D-19；plan 完成时若无新决策则保持 1.1，否则同步 bump）
-- backend-jobs-recommendations history.md 在 plan 完成当天追加一行"plan 001 完成 + 12 个 endpoint real backend + 7 个 cross-owner internal API 全可用"
-- `docs/spec/INDEX.md` §5 P0 Implementation 表中 `backend-jobs-recommendations` 行已在 spec 创建期写入（1.0 active 2026-05-21）；plan 完成时只需把 INDEX 行更新日期同步到 plan 落地日（如有变动）；如本 plan-review 已把 spec bump 至 1.1，需同步 INDEX 行版本字段；不新增行
-- [engineering-roadmap §5.2](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) "Home / Job Picks / Parse" workstream 行已在 spec 创建期改为 `backend-jobs-recommendations active（001 real backend baseline 承接 JobMatch 12 个 endpoint）`，roadmap 已 bump 至 3.17（与 backend-profile spec 同次 bump）；plan 完成时把状态描述从 "active（001 real backend baseline 承接 JobMatch 12 个 endpoint）" 调整为 "active（001 real backend baseline completed）" 或在启动 002 时改写 002 descriptor；roadmap 版本号 bump：若 backend-profile/001 plan 已先完成则当前 roadmap 在 3.18，本 plan 完成 bump 至 3.19；若 backend-jobs-recommendations/001 先完成则 3.17 → 3.18，后由 backend-profile/001 完成 bump 至 3.19；更新日期改为 plan 落地日；engineering-roadmap history.md 同步追加对应 3.X 行
+- backend-jobs-recommendations spec.md 维持 1.2 active；本 completion 不新增 D-20，只同步更新日期与 INDEX 投影。
+- backend-jobs-recommendations history.md 追加 v1.5 "post-reopen completion" 行：记录 12 个 endpoint real backend、drainer、fixture parity、E2E.P0.094-097 Ready/automated 与 cross-owner handoff。
+- `docs/spec/INDEX.md` §5 P0 Implementation 表中 `backend-jobs-recommendations` 行同步到 spec Header：1.2 active 2026-05-22。
+- [engineering-roadmap §5.2](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) "Home / Job Picks / Parse" workstream 行从 deferred implementation wording 调整为 `backend-jobs-recommendations active（001 real backend baseline completed）`；roadmap 从 3.18 bump 到 3.19 并在 engineering-roadmap history.md 追加对应 completion 行。
 
 ## 5 验收标准
 
@@ -455,7 +459,7 @@ Phase 0 必须同时携带多个 cross-owner spec / artifact additive 修订：
 | R8: F3 prompt 文本 baseline 质量影响推荐 | F3 baseline prompt 包含可用文案（不写 TBD 占位）；future plan 通过离线评估集 ≥ 50 题逐步优化 |
 | R9: 多 worker 并发触发 agent_scan 重复 | agent_scans 表使用 SELECT FOR UPDATE 锁 + status='scanning' 唯一性；同用户同时只有 1 个 scanning 行 |
 | R10: 外部 watcher 误以为 baseline 接入外部平台 | spec §2.2 + plan §1 明确 baseline 不接 LinkedIn/Boss/脉脉/拉勾 等；C-16 negative grep 强制；外部平台扩展归独立 P2 plan |
-| R11: frontend 切真时发现字段缺失 / 字节漂移 | 11 个非 profile endpoint 严格按 fixture default scenario 字节比对，`getJobMatchProfile` 按 D-19 structural parity 验证；frontend 002 plan 通过 generated client + same fixture 自动验证；本 plan 6.3 主动信号 |
+| R11: frontend 切真时发现字段缺失 / 字节漂移 | 11 个非 profile endpoint 严格按 fixture default scenario 语义等价验证（字段集、显式 null、status、`X-Request-ID`），`getJobMatchProfile` 按 D-19 structural parity 验证；frontend 002 plan 通过 generated client + same fixture 自动验证；本 plan 6.3 主动信号 |
 | R12: counter cross-owner API 形态不一致 | spec §4.4 锁定签名 `Count*ForUser(ctx context.Context, userID string) (int, error)`；各 owner 实现必须匹配；Phase 0.5 检查所有 owner 一致 |
 | R13: backend-auth identity additive 泄漏 raw email 或越权 | spec D-17 锁定 `UserIdentity` 字段集（仅 displayName / avatarUrl / emailMasked）；Phase 0.6 backend-auth unit test 强制 `emailMasked` 格式断言（含 `***` / 不含 raw local-part 字符）；调用不写 audit_events（防止跨域读取被审计放大）；cross-user 隔离由 caller userId 保证，调用方（jdmatch）必须先通过 session middleware 解析得到 current_user_id 再传入 |
 | R14: P0 baseline JobMatchProfile 稀疏字段引起 frontend 切真"看起来缺字段"误判 | spec D-18 / D-19 锁定稀疏 baseline；[B2 fixture `partial-profile` scenario](../../../openapi-v1-contract/spec.md) 已展示稀疏形态作为 design preview；frontend `frontend-home-job-picks-and-parse/002-jd-match-recommendations` 切真后应该按 partial-profile shape 处理（[docs/ui-design/module-job-workspace.md](../../../../ui-design/module-job-workspace.md) graceful render null）；handoff 信号 §6.3 主动告知 frontend owner P0 baseline 字段稀疏度 |

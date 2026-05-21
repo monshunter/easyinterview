@@ -50,12 +50,12 @@ func (h *Handler) ListWatchlist(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err, "jdmatch watchlist list failed")
 		return
 	}
-	items := make([]api.WatchlistItem, 0, len(rows))
+	items := make([]watchlistItemResponse, 0, len(rows))
 	for _, rec := range rows {
 		items = append(items, watchlistRecordToDTO(rec))
 	}
 	writeJSON(w, http.StatusOK, struct {
-		Items []api.WatchlistItem `json:"items"`
+		Items []watchlistItemResponse `json:"items"`
 	}{Items: items})
 }
 
@@ -127,23 +127,29 @@ func (h *Handler) RemoveFromWatchlist(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func watchlistRecordToDTO(rec store.WatchlistRecord) api.WatchlistItem {
+type watchlistItemResponse struct {
+	ID               string                `json:"id"`
+	LinkedJobMatchID string                `json:"linkedJobMatchId"`
+	Label            *string               `json:"label"`
+	Title            string                `json:"title"`
+	Company          string                `json:"company"`
+	Tone             api.WatchlistItemTone `json:"tone"`
+	AddedAt          string                `json:"addedAt"`
+	Change           *string               `json:"change"`
+}
+
+func watchlistRecordToDTO(rec store.WatchlistRecord) watchlistItemResponse {
 	addedAt := rec.AddedAt.Format("2006-01-02T15:04:05Z")
-	dto := api.WatchlistItem{
-		Id:               rec.ID,
-		LinkedJobMatchId: rec.LinkedJobMatchID,
+	return watchlistItemResponse{
+		ID:               rec.ID,
+		LinkedJobMatchID: rec.LinkedJobMatchID,
+		Label:            rec.Label,
 		Title:            rec.LinkedTitle,
 		Company:          rec.LinkedCompany,
 		Tone:             api.WatchlistItemTone(deriveTone(rec.LinkedScore)),
 		AddedAt:          addedAt,
+		Change:           rec.ChangeNote,
 	}
-	if rec.Label != nil {
-		dto.Label = rec.Label
-	}
-	if rec.ChangeNote != nil {
-		dto.Change = rec.ChangeNote
-	}
-	return dto
 }
 
 // deriveTone implements spec Q-4: score >= 80 -> ok / 50-79 -> warn

@@ -11,7 +11,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [product-scope](./product-scope/spec.md) | 1.8 | active | 2026-05-05 | [plans](./product-scope/plans/) |
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.18 | active | 2026-05-21 | [plans](./engineering-roadmap/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.19 | active | 2026-05-22 | [plans](./engineering-roadmap/plans/) |
 | [historical-spec-implementation-review](./historical-spec-implementation-review/spec.md) | 1.0 | active | 2026-05-04 | [plans](./historical-spec-implementation-review/plans/) |
 
 ## 2 Foundation
@@ -39,7 +39,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [observability-stack](./observability-stack/spec.md) | 1.9 | active | 2026-05-08 | [plans](./observability-stack/plans/) |
-| [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 2.3 | active | 2026-05-21 | [plans](./prompt-rubric-registry/plans/) |
+| [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 2.4 | active | 2026-05-22 | [plans](./prompt-rubric-registry/plans/) |
 
 ## 5 P0 Implementation
 
@@ -61,4 +61,4 @@
 | [backend-debrief](./backend-debrief/spec.md) | 1.3 | active | 2026-05-21 | [plans](./backend-debrief/plans/) |
 | [frontend-debrief](./frontend-debrief/spec.md) | 1.5 | active | 2026-05-18 | [plans](./frontend-debrief/plans/) |
 | [backend-profile](./backend-profile/spec.md) | 1.2 | active | 2026-05-21 | [plans](./backend-profile/plans/) |
-| [backend-jobs-recommendations](./backend-jobs-recommendations/spec.md) | 1.2 | active | 2026-05-21 | [plans](./backend-jobs-recommendations/plans/) |
+| [backend-jobs-recommendations](./backend-jobs-recommendations/spec.md) | 1.2 | active | 2026-05-22 | [plans](./backend-jobs-recommendations/plans/) |

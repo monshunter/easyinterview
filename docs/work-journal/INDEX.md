@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-22](2026-05-22.md) | `fix(backend-jobs): close jd-match L2 hardening (BUG-0082, BUG-0083)` | #fix #test #docs |
 | [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match search and saved searches` | #feat #test #docs |
 | [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match watchlist store and handlers` | #feat #test #docs |
 | [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match recommendations store and generator` | #feat #test #docs |

@@ -14,15 +14,15 @@ import (
 
 // SavedSearchRecord is the saved_searches row projection.
 type SavedSearchRecord struct {
-	ID            string
-	UserID        string
-	Label         string
-	Query         string
-	Filters       json.RawMessage
-	NewJobsCount  *int
-	LastRunAt     *time.Time
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID           string
+	UserID       string
+	Label        string
+	Query        string
+	Filters      json.RawMessage
+	NewJobsCount *int
+	LastRunAt    *time.Time
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 // SearchRunRecord is the jd_match_search_runs row projection. Used by
@@ -53,7 +53,7 @@ func (r *Repository) ListSavedSearchesByUser(ctx context.Context, userID string)
 	}
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT id, user_id, label, query, filters, new_jobs_count, last_run_at, created_at, updated_at
-		FROM saved_searches WHERE user_id = $1 ORDER BY created_at DESC, id DESC`,
+		FROM saved_searches WHERE user_id = $1 ORDER BY created_at ASC, id ASC`,
 		uid,
 	)
 	if err != nil {
@@ -95,8 +95,8 @@ func (r *Repository) CreateSavedSearch(ctx context.Context, in CreateSavedSearch
 		filters = json.RawMessage(`{}`)
 	}
 	row := r.db.QueryRowContext(ctx,
-		`INSERT INTO saved_searches (id, user_id, label, query, filters, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $6)
+		`INSERT INTO saved_searches (id, user_id, label, query, filters, new_jobs_count, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, 0, $6, $6)
 		RETURNING id, user_id, label, query, filters, new_jobs_count, last_run_at, created_at, updated_at`,
 		in.ID, in.UserID, in.Label, in.Query, filters, now,
 	)
@@ -160,10 +160,10 @@ func (r *Repository) CreateSearchRun(ctx context.Context, in CreateSearchRunInpu
 		nullableString(in.PromptVersion), nullableString(in.RubricVersion), nullableString(in.ModelID), in.DataSourceVersion, now,
 	)
 	var (
-		rec           SearchRunRecord
-		promptVer     sql.NullString
-		rubricVer     sql.NullString
-		modelID       sql.NullString
+		rec       SearchRunRecord
+		promptVer sql.NullString
+		rubricVer sql.NullString
+		modelID   sql.NullString
 	)
 	if err := row.Scan(&rec.ID, &rec.UserID, &rec.SearchRunID, &rec.Query, &rec.Filters, &rec.ResultCount,
 		&promptVer, &rubricVer, &modelID, &rec.DataSourceVersion, &rec.CreatedAt); err != nil {
