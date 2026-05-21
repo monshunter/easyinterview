@@ -48,6 +48,8 @@ type Handler struct {
 	profileBuilder ProfileBuilder
 	recReader      RecommendationsReader
 	recMutator     RecommendationsMutator
+	watchlist      WatchlistStore
+	newID          NewID
 }
 
 // New constructs a Handler with the supplied options.

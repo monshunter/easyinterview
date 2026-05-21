@@ -46,10 +46,10 @@
 
 ## Phase 3: listWatchlist + addToWatchlist + removeFromWatchlist + tone derivation
 
-- [ ] 3.1 实现 `backend/internal/jdmatch/store/watchlist.go` Repository：`ListByUser / Add / Remove / DeleteForUser`；UNIQUE (user_id, linked_job_match_id) 约束；ListByUser JOIN jd_match_recommendations 取 title/company/score（验证：integration test + UNIQUE 重复 add PASS）
-- [ ] 3.2 实现 `backend/internal/jdmatch/handler/list_watchlist.go` generated server interface `ListWatchlist` + tone 派生（score≥80→ok / 50-79→warn / <50→muted）（验证：unit test `TestWatchlistToneDerivation` PASS + fixture parity PASS）
-- [ ] 3.3 实现 `backend/internal/jdmatch/handler/add_watchlist.go` generated server interface `AddToWatchlist` + IK + UNIQUE 处理（重复 add 返回首次 item） + cross-user 404（验证：unit test `TestAddWatchlistIKAndUnique` PASS）
-- [ ] 3.4 实现 `backend/internal/jdmatch/handler/remove_watchlist.go` generated server interface `RemoveFromWatchlist` + IK + 204 + cross-user 404（验证：unit test PASS）
+- [x] 3.1 实现 `backend/internal/jdmatch/store/watchlist.go` Repository：`ListByUser / Add / Remove / DeleteForUser`；UNIQUE (user_id, linked_job_match_id) 约束；ListByUser JOIN jd_match_recommendations 取 title/company/score（验证：integration test + UNIQUE 重复 add PASS）— Repository 实现 `ListWatchlistByUser` JOIN recommendations / `AddWatchlistItem`（含 cross-owner ownership probe + ON CONFLICT DO NOTHING + re-read joined row 保证 first-item 语义）/ `RemoveWatchlistItem` / `DeleteWatchlistForUser`；migration 000009 已在 Phase 0.1 创建 UNIQUE (user_id, linked_job_match_id) 约束。
+- [x] 3.2 实现 `backend/internal/jdmatch/handler/list_watchlist.go` generated server interface `ListWatchlist` + tone 派生（score≥80→ok / 50-79→warn / <50→muted）（验证：unit test `TestWatchlistToneDerivation` PASS + fixture parity PASS）— Handler 落于 `handler/watchlist.go::ListWatchlist`，`deriveTone` 实现 Q-4 规则；test PASS（92→ok / 78→warn / 45→muted）；fixture parity 留到 Phase 5.8 / 6 cmd/api scenario 验证。
+- [x] 3.3 实现 `backend/internal/jdmatch/handler/add_watchlist.go` generated server interface `AddToWatchlist` + IK + UNIQUE 处理（重复 add 返回首次 item） + cross-user 404（验证：unit test `TestAddWatchlistIKAndUnique` PASS）— Handler 落于 `handler/watchlist.go::AddToWatchlist`；store `AddWatchlistItem` ON CONFLICT DO NOTHING + re-read 保证重复 add 返回首次 item；cross-user 通过 ownership probe 返回 ErrNotFound→404；IK middleware 集成留到 Phase 5.5 cmd/api wiring；handler test PASS（happy + cross-user 404）。
+- [x] 3.4 实现 `backend/internal/jdmatch/handler/remove_watchlist.go` generated server interface `RemoveFromWatchlist` + IK + 204 + cross-user 404（验证：unit test PASS）— Handler 落于 `handler/watchlist.go::RemoveFromWatchlist`，DELETE 以 (user_id, linked_job_match_id) 限定，cross-user 自然 0 rows → 404 RESOURCE_NOT_FOUND；IK middleware 集成留到 Phase 5.5；test PASS（happy 204 + 不存在 404）。
 
 ## Phase 4: searchJobs + listSavedSearches + createSavedSearch
 
