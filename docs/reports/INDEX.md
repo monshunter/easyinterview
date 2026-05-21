@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-21](./2026-05-21-backend-profile-candidate-profile-and-experience-cards-assessment.md) | Backend Profile Candidate Profile and Experience Cards 交付复盘 | #assessment |
 | [2026-05-21](./2026-05-21-branch-prefix-governance-fix-assessment.md) | Branch Prefix Governance Fix 交付复盘 | #assessment |
 | [2026-05-21](./2026-05-21-frontend-baseline-roadmap-rebaseline-assessment.md) | Frontend Baseline and Roadmap Rebaseline 交付复盘 | #assessment |
 | [2026-05-18](./2026-05-18-frontend-shell-url-routing-popstate-privacy-assessment.md) | Frontend Shell URL Routing Popstate Privacy 交付复盘 | #assessment |
