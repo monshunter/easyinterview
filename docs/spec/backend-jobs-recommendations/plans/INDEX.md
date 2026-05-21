@@ -8,9 +8,9 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-jd-match-real-backend-baseline](./001-jd-match-real-backend-baseline/plan.md) | [plan](./001-jd-match-real-backend-baseline/plan.md) / [checklist](./001-jd-match-real-backend-baseline/checklist.md) / [context](./001-jd-match-real-backend-baseline/context.yaml) / [bdd-plan](./001-jd-match-real-backend-baseline/bdd-plan.md) / [bdd-checklist](./001-jd-match-real-backend-baseline/bdd-checklist.md) | 1.0 | active | 2026-05-21 |
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
+| [001-jd-match-real-backend-baseline](./001-jd-match-real-backend-baseline/plan.md) | [plan](./001-jd-match-real-backend-baseline/plan.md) / [checklist](./001-jd-match-real-backend-baseline/checklist.md) / [context](./001-jd-match-real-backend-baseline/context.yaml) / [bdd-plan](./001-jd-match-real-backend-baseline/bdd-plan.md) / [bdd-checklist](./001-jd-match-real-backend-baseline/bdd-checklist.md) | 1.1 | completed | 2026-05-22 |

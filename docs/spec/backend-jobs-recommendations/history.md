@@ -1,11 +1,12 @@
 # Backend Jobs Recommendations History
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-05-22
 
 ## 1 修订记录
 
+| 2026-05-22 | 1.3 | backend-jobs-recommendations/001 completed: all 59 checklist items + 4 BDD-Gate (E2E.P0.094-097) verified via cmd/api `TestJDMatchHTTPScenario` against live Postgres (`make dev-up`, migrate-up applied baseline 000009, privacy-matrix dry-run lists 5 jd_match tables under cascade_or_hard_delete); 12 JobMatch routes wired in cmd/api with session middleware + IK middleware on 5 side-effect ops; jdmatch_agent_scan job state machine + privacy delete cascade covered by unit tests + scenario scripts. Plan / checklist / bdd-plan / bdd-checklist flipped from active to completed; plans/INDEX.md migrated row to Completed section. | backend-jobs-recommendations/001-jd-match-real-backend-baseline completion |
 | 2026-05-21 | 1.2 | backend-jobs-recommendations/001 implementation in progress: Phase 0 cross-owner additive (B4 + F3 + A3 + B3 + 5 counter/identity APIs) + Phase 1-4 (profile / agent status / recommendations / generator / watchlist / search / saved searches) + Phase 5.1-5.5 (market signals + agent_scan job + privacy service + cmd/api 12-route wiring + IK middleware) + BDD E2E.P0.094-097 scaffold landed. Phase 5.6/5.7/5.8 cmd/api scenarios + fixture byte parity and Phase 6.5-6.8 BDD-Gate live verification deferred to next implement session (require live Postgres + cmd/api drainer registration + stub AI provider). Cross-owner consumers (frontend-home-job-picks-and-parse/002 切真, backend internal privacy runner, backend-resume / backend-targetjob / backend-practice / backend-debrief / backend-auth) notified via plan §6.3 handoff: counter / identity / store / runtime contracts are now consumable for follow-up plans. | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0-5.5 + BDD scaffold |
 
 | 日期 | 版本 | 变更 | 关联计划 |
