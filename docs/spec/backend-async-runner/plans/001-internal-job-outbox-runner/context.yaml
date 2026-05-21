@@ -1,0 +1,105 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-async-runner
+  name: 001-internal-job-outbox-runner
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+  baseBranch: main
+  branch: spec-design/backend-async-runner
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-async-runner
+      - internal-job-outbox-runner
+      - runner kernel
+      - backend internal runner
+      - outbox dispatcher
+    keywords:
+      - backend/internal/runner
+      - runner.Runtime
+      - runner.Handler
+      - runner.OutboxDispatcher
+      - runner.BackoffPolicy
+      - LeaseAsyncJob
+      - FinalizeAsyncJob
+      - ReclaimExpiredLeases
+      - FOR UPDATE SKIP LOCKED
+      - source_event_only
+      - email_dispatch
+      - email.dispatch
+      - target_import
+      - source_refresh
+      - privacy_delete
+      - debrief_generate
+      - report_generate
+      - resume_parse
+      - resume_tailor
+      - async.queueWeights
+      - async.leaseTimeoutSeconds
+      - async.shutdownGraceSeconds
+      - async.reaperIntervalSeconds
+      - async.scanIntervalSeconds
+      - privacy_export
+      - requestPrivacyExport
+      - lint-runner-legacy
+      - publish_status
+      - next_attempt_at
+      - publish_attempts
+      - outbox_events_pending
+      - outbox_publish_duration_seconds
+      - outbox_publish_failures_total
+      - async_job_duration_seconds
+      - async_jobs_processed_total
+      - async_job_queue_depth
+      - async_job_lag_seconds
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      testPlan: ./test-plan.md
+      testChecklist: ./test-checklist.md
+      spec: ../../spec.md
+      references:
+        - ../../../engineering-roadmap/spec.md
+        - ../../../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md
+        - ../../../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md
+        - ../../../backend-runtime-topology/spec.md
+        - ../../../event-and-outbox-contract/spec.md
+        - ../../../db-migrations-baseline/spec.md
+        - ../../../secrets-and-config/spec.md
+        - ../../../observability-stack/spec.md
+        - ../../../shared-conventions-codified/spec.md
+        - ../../../backend-auth/spec.md
+        - ../../../backend-targetjob/spec.md
+        - ../../../backend-practice/spec.md
+        - ../../../backend-review/spec.md
+        - ../../../backend-debrief/spec.md
+        - ../../../backend-resume/spec.md
+      discovery:
+        packages:
+          - backend/internal/runner
+          - backend/internal/targetjob
+          - backend/internal/review
+          - backend/internal/debrief
+          - backend/internal/resume/jobs
+          - backend/internal/resume/store
+          - backend/internal/privacy/runner
+          - backend/internal/auth
+          - backend/internal/jobs
+          - backend/internal/store/practice
+          - backend/internal/store/review
+          - backend/internal/store/debrief
+          - backend/internal/shared/events
+          - backend/internal/shared/jobs
+          - backend/internal/platform/config
+          - backend/cmd/api
+          - scripts/lint
+          - config
+          - docs/spec/backend-async-runner
+        uiRoutes: []
+        apiNames: []

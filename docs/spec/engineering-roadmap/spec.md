@@ -1,6 +1,6 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.17
+> **版本**: 3.18
 > **状态**: active
 > **更新日期**: 2026-05-21
 
@@ -137,7 +137,7 @@
 | Report Dashboard | `frontend-report-dashboard`、`backend-review` | `frontend-report-dashboard` active；`backend-review` active | 报告生成、上下文条、准备度、维度、题目回顾、复练当前轮 / 进入下一轮 | B2、B3、B4、A3、C5、F3 |
 | Resume Workshop | `frontend-resume-workshop`、`backend-resume`、`backend-upload` | `frontend-resume-workshop` active（001 / 002 / 003 completed）；`backend-resume` active；`backend-upload` active（001 file_objects + presign baseline completed） | 原始简历树、结构化主版本、岗位定制版本、创建/解析/确认、版本详情 | B2、B3、B4、A3、C2 `backend-upload` |
 | Debrief | `frontend-debrief`、`backend-debrief` | `frontend-debrief` active；`backend-debrief` active | 真实面试上下文选择、文本 / 语音共享记录、复盘分析、复盘面试 | B2、B3、B4、A3、C4、C6 |
-| Backend async runner | `backend-async-runner` | 未创建；进入设计或实现时创建 | backend 内部 job/outbox runner、retry、删除链路执行；不创建独立 worker 进程 | B3、B4、A2、ADR-Q2/Q5、backend-runtime-topology |
+| Backend async runner | `backend-async-runner` | active（001 internal job + outbox runner baseline，承接单一 backend in-process runtime kernel、outbox dispatcher、retry/reaper/shutdown、`email_dispatch` 收口） | backend 内部 job/outbox runner、retry、删除链路执行；不创建独立 worker 进程 | B3、B4、A2、ADR-Q2/Q5、backend-runtime-topology |
 | Mock + E2E + release | `mock-contract-suite`、`e2e-scenarios-p0`、`analytics-funnel`、`release-gate-and-rollout` | `mock-contract-suite` active；`test/scenarios/e2e` framework 已创建；其余未创建 | fixture-backed mock、P0 主漏斗 BDD、产品漏斗、staging / rollback / SLO gate | B2、D1-D6、C4-C9、F1-F3 |
 
 ### 5.3 Future candidates（不自动 spawn）
