@@ -1,8 +1,8 @@
 # Cascaded Speech Provider Foundation Checklist
 
 > **版本**: 1.0
-> **状态**: active
-> **更新日期**: 2026-05-08
+> **状态**: completed
+> **更新日期**: 2026-05-21
 
 **关联计划**: [plan](./plan.md)
 

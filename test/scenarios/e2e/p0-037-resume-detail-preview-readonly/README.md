@@ -9,7 +9,7 @@
 
 验证 Resume Workshop 详情页面 P0 路径：
 
-- MASTER 版本默认 active tab=preview，TARGETED 版本带 `?tab=rewrites` 时不被改写为 preview。
+- MASTER 版本默认 active tab=preview，TARGETED 版本带 `?tab=rewrites` 时不被改写为 preview，并在 plan 003 完成后渲染当前 `ResumeRewritesTab` 而不是旧 ComingSoon 占位。
 - Preview Tab 渲染 `buildResumePreview` 投影并暴露 Export PDF / Copy text / View original 三个按钮。
 - View original 弹出 `role=dialog` + `aria-modal=true` modal，焦点落在关闭按钮，ESC 关闭。
 - Export PDF 调用 `exportResumeVersion(versionId, { idempotencyKey })`，请求 header 携带 `Idempotency-Key` 且匹配 `v1.<unix>.<uuid>`，触发 P0 "PDF 导出能力即将开放" toast，不写 localStorage。

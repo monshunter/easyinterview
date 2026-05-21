@@ -105,7 +105,7 @@ describe("E2E.P0.037 resume detail Preview Tab + original modal + 404 fallback +
     ).toBeInTheDocument();
   });
 
-  it("TARGETED version with explicit ?tab=rewrites preserves the rewrites tab and renders ComingSoon placeholder", async () => {
+  it("TARGETED version with explicit ?tab=rewrites preserves the rewrites tab and renders the current Rewrites surface", async () => {
     render(
       <App
         client={buildClient("default")}
@@ -128,9 +128,10 @@ describe("E2E.P0.037 resume detail Preview Tab + original modal + 404 fallback +
       "aria-selected",
       "true",
     );
+    expect(screen.getByTestId("resume-rewrites-tab")).toBeInTheDocument();
     expect(
-      screen.getByTestId("resume-detail-tab-content-coming-soon-rewrites"),
-    ).toBeInTheDocument();
+      screen.queryByTestId("resume-detail-tab-content-coming-soon-rewrites"),
+    ).not.toBeInTheDocument();
   });
 
   it("View original opens modal with focus trap and closes on ESC / outer overlay / X button", async () => {

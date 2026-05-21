@@ -9,7 +9,6 @@
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
 | [002-tools-streaming-and-stt](./002-tools-streaming-and-stt/plan.md) | [plan](./002-tools-streaming-and-stt/plan.md) / [checklist](./002-tools-streaming-and-stt/checklist.md) / [context](./002-tools-streaming-and-stt/context.yaml) | 1.1 | active | 2026-05-06 |
-| [004-cascaded-speech-provider-foundation](./004-cascaded-speech-provider-foundation/plan.md) | [plan](./004-cascaded-speech-provider-foundation/plan.md) / [checklist](./004-cascaded-speech-provider-foundation/checklist.md) / [context](./004-cascaded-speech-provider-foundation/context.yaml) | 1.0 | active | 2026-05-08 |
 
 ## 2 已完成（Completed）
 
@@ -17,6 +16,7 @@
 |------|------|------|------|----------|
 | [001-aiclient-and-profile-bootstrap](./001-aiclient-and-profile-bootstrap/plan.md) | [plan](./001-aiclient-and-profile-bootstrap/plan.md) / [checklist](./001-aiclient-and-profile-bootstrap/checklist.md) / [context](./001-aiclient-and-profile-bootstrap/context.yaml) | 1.5 | completed | 2026-05-05 |
 | [003-provider-registry-and-capability-profiles](./003-provider-registry-and-capability-profiles/plan.md) | [plan](./003-provider-registry-and-capability-profiles/plan.md) / [checklist](./003-provider-registry-and-capability-profiles/checklist.md) / [context](./003-provider-registry-and-capability-profiles/context.yaml) | 1.5 | completed | 2026-05-08 |
+| [004-cascaded-speech-provider-foundation](./004-cascaded-speech-provider-foundation/plan.md) | [plan](./004-cascaded-speech-provider-foundation/plan.md) / [checklist](./004-cascaded-speech-provider-foundation/checklist.md) / [context](./004-cascaded-speech-provider-foundation/context.yaml) | 1.0 | completed | 2026-05-21 |
 
 ## 3 草案 / 阻塞（Draft / Blocked）
 

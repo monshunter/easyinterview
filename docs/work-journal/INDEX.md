@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-21](2026-05-21.md) | `fix(frontend-baseline): repair stale assertions and spec lifecycle` | #fix #test #docs |
 | [2026-05-18](2026-05-18.md) | `docs(frontend-shell): align url routing context version` | #docs #fix |
 | [2026-05-18](2026-05-18.md) | `fix(frontend-shell): scrub hostile popstate route privacy (BUG-0079)` | #fix #ui #test #docs #bdd |
 | [2026-05-18](2026-05-18.md) | `feat(frontend-shell): land url-addressable browser history routing` | #feat #ui #test #docs #bdd |

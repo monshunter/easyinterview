@@ -1,13 +1,14 @@
 # Engineering Roadmap History
 
-> **版本**: 3.15
+> **版本**: 3.16
 > **状态**: active
-> **更新日期**: 2026-05-17
+> **更新日期**: 2026-05-21
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-21 | 3.16 | 对齐当前 `docs/spec/INDEX.md` 与 plan checklist 事实：刷新 §5.2 P0 workstream 状态，移除已创建 subject 的“未创建”旧口径，并保留 backend-async-runner / e2e-scenarios-p0 / analytics-funnel / release-gate-and-rollout 为未创建候选。 | roadmap/spec lifecycle rebaseline |
 | 2026-05-17 | 3.15 | 对齐 B2 D-23 与 recent additive contract 落地：roadmap B2 摘要与 mock-first runway 从 55 operation 升到 59 operation，承接 Debrief suggestions、PracticeSessions listing、Practice voice turn 与 backend-resume `confirmResumeStructuredMaster` fixtures。 | backend-resume/002-versions-tailor-runs-and-save-v1 Phase 1 |
 | 2026-05-12 | 3.14 | 对齐 backend-upload/001 落地：Resume Workshop §5.2 中 `backend-upload` 状态从首批 plan 骨架待实施更新为 file_objects + presign baseline 已落地，backend-resume 可接续。 | backend-upload/001-file-objects-and-presign-baseline |
 | 2026-05-12 | 3.13 | 对齐 B2 D-18 落地：roadmap B2 摘要与 mock-first runway 从 46 operation 升到 55 operation，承接 Resume Workshop `Resumes` tag 新增 9 operation 与 fixtures。 | openapi-v1-contract/004-resume-additive-coverage |

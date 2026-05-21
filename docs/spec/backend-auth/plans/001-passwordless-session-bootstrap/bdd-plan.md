@@ -1,8 +1,8 @@
 # Backend Auth BDD Plan
 
 > **版本**: 1.1
-> **状态**: active
-> **更新日期**: 2026-05-06
+> **状态**: completed
+> **更新日期**: 2026-05-21
 
 ## Phase 5: Passwordless session API behavior
 

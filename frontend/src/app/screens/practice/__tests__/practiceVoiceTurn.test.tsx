@@ -23,6 +23,7 @@ import {
 } from "./practiceTestUtils";
 
 const IDEMPOTENCY_KEY_REGEX = /^v1\.\d+\.[0-9a-f-]{36}$/;
+const DATA_AUDIO_REF_REGEX = /^data:audio\/[a-z0-9.+-]+;base64,/i;
 
 describe("practice voice turn controller (item 4.2)", () => {
   beforeEach(() => {
@@ -135,8 +136,9 @@ describe("practice voice turn controller (item 4.2)", () => {
       expect(eventBodies(calls).some((body) => body.kind === "tts_chunk_started"))
         .toBe(true);
     });
-    expect(FakeAudioElement.instances[0]?.src).toBe(
-      "fixture-audio://practice-voice/default/chunk-001",
+    expect(FakeAudioElement.instances[0]?.src).toMatch(DATA_AUDIO_REF_REGEX);
+    expect(FakeAudioElement.instances[0]?.src).not.toMatch(
+      /^fixture-audio:\/\//,
     );
     expect(screen.getByTestId("practice-voice-playback-status")).toHaveAttribute(
       "data-state",

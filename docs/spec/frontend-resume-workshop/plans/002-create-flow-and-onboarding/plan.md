@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow and Onboarding
 
 > **版本**: 1.0
-> **状态**: active
-> **更新日期**: 2026-05-17
+> **状态**: completed
+> **更新日期**: 2026-05-21
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
