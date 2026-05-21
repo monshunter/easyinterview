@@ -61,4 +61,4 @@
 | [backend-debrief](./backend-debrief/spec.md) | 1.3 | active | 2026-05-21 | [plans](./backend-debrief/plans/) |
 | [frontend-debrief](./frontend-debrief/spec.md) | 1.5 | active | 2026-05-18 | [plans](./frontend-debrief/plans/) |
 | [backend-profile](./backend-profile/spec.md) | 1.2 | active | 2026-05-21 | [plans](./backend-profile/plans/) |
-| [backend-jobs-recommendations](./backend-jobs-recommendations/spec.md) | 1.1 | active | 2026-05-21 | [plans](./backend-jobs-recommendations/plans/) |
+| [backend-jobs-recommendations](./backend-jobs-recommendations/spec.md) | 1.2 | active | 2026-05-21 | [plans](./backend-jobs-recommendations/plans/) |

@@ -1,6 +1,6 @@
 # Backend Jobs Recommendations Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-05-21
 
