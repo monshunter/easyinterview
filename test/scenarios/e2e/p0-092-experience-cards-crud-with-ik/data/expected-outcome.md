@@ -1,4 +1,4 @@
-# Expected Outcome — E2E.P0.082
+# Expected Outcome — E2E.P0.092
 
 - `POST /experience-cards` (IK present, valid body) → `201 Created` + `ExperienceCard` JSON
 - DB row `source_type='manual'` (regardless of body), `confidence='medium'`, `profile_id` resolves from user A's candidate_profile

@@ -20,7 +20,7 @@ func TestUpdateMyProfilePatchAndValidation(t *testing.T) {
 	seedReq := contextWithUser(httptest.NewRequest(http.MethodGet, "/api/v1/profiles/me", nil), "user-a")
 	h.GetMyProfile(seedRec, seedReq)
 
-	headline := "Senior frontend engineer focused on growth-stage SaaS"
+	headline := "Senior frontend engineer focused on scale-stage SaaS"
 	years := int32(5)
 	body, _ := json.Marshal(api.UpdateProfileRequest{
 		Headline:          &headline,

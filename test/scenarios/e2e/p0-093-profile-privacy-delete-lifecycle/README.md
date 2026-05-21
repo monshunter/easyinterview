@@ -1,6 +1,6 @@
-# E2E.P0.083 Profile Privacy Delete Lifecycle
+# E2E.P0.093 Profile Privacy Delete Lifecycle
 
-> **场景 ID**: E2E.P0.083
+> **场景 ID**: E2E.P0.093
 > **执行方式**: automated
 > **隔离级别**: shared-cluster
 > **parallel-safe**: No
@@ -15,9 +15,11 @@ A2 dev stack 已拉起；`cmd/api` 真实路由 + `backend/internal/profile` run
 `scripts/trigger.sh` 执行：
 - `TestProfileHTTPScenario` 完整跑一遍（在末段调用 internal `DeleteCandidateProfileForUser(userA, "scenario-job")`）
 - `TestPrivacyDeleteOrderAndAudit` 单元测试覆盖 fake-store 上的删除链路 + audit tombstone 写入 + 无敏感字段
+- `TestPrivacyDeleteWithAuditRollsBackAndWritesFailureAudit` integration 测试覆盖 SQL repository 事务失败回滚 + failure audit
 
 底层入口：
 - `cd backend && go test ./internal/profile/service -run TestPrivacyDeleteOrderAndAudit -count=1 -v`
+- `cd backend && go test -tags=integration ./internal/profile/store -run TestPrivacyDeleteWithAuditRollsBackAndWritesFailureAudit -count=1 -v`
 - `cd backend && go test ./cmd/api -run TestProfileHTTPScenario -count=1 -v`
 
 ## 3 Then
@@ -29,4 +31,4 @@ A2 dev stack 已拉起；`cmd/api` 真实路由 + `backend/internal/profile` run
 - `CountExperienceCardsBySource(userA)` 在删除后返回 `{ manual:0, resume_parse:0, practice_report:0, debrief:0 }`
 - 旧模块负向 grep 0 命中；trigger.log 中不出现 raw card title / situation / result 字符串
 
-证据：`.test-output/e2e/p0-083-profile-privacy-delete-lifecycle/trigger.log` 包含两个 `PASS` 行以及 `ok  github.com/monshunter/easyinterview/backend/...`；`verify.sh` 检查 audit metadata 与 negative grep。
+证据：`.test-output/e2e/p0-093-profile-privacy-delete-lifecycle/trigger.log` 包含三个 `PASS` 行以及 `ok  github.com/monshunter/easyinterview/backend/...`；`verify.sh` 检查 audit metadata、failure rollback gate 与 negative grep。

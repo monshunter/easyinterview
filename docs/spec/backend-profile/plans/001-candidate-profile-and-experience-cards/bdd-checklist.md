@@ -1,6 +1,6 @@
 # 001 BDD Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-21
 
@@ -28,7 +28,7 @@
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-093-profile-privacy-delete-lifecycle/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
 - [x] 准备测试数据：用户 A 已登录 + candidate_profile 行（headline / currentRole 非空 真实内容）+ 5 experience_card 行（含 title / situation / task / action / result / metrics / skills 真实内容）；其他用户 B / C 不受影响；privacy_delete job 模拟入口已就位；缺少 live env、no-op、skip 时本场景必须 fail
-- [x] 实现 `scripts/setup.sh`（A2 dev stack + `cmd/api` runtime + profile service + 用户登录 + 写入 user_A 真实内容）/ `scripts/trigger.sh`（调用 internal `DeleteCandidateProfileForUser(user_A)` + 触发完整删除链路 + 运行 `cd backend && go test ./internal/profile/service -run TestPrivacyDeleteOrderAndAudit -count=1 -v` + `cd backend && go test ./cmd/api -run TestProfileHTTPScenario -count=1 -v`）/ `scripts/verify.sh`（断言 `method=internal-api+cmd-api-http` 或等价 live runtime evidence + no-op / skip 不可 PASS + 删除顺序 experience_cards → candidate_profiles + audit tombstone 完整无敏感字段 + DB 状态 user_A 0 行 + 其他用户不受影响 + 后续 getMyProfile re-seed + CountBySource 全 0 + 失败回滚 + 隐私 grep + 旧口径 grep）/ `scripts/cleanup.sh`
+- [x] 实现 `scripts/setup.sh`（A2 dev stack + `cmd/api` runtime + profile service + 用户登录 + 写入 user_A 真实内容）/ `scripts/trigger.sh`（调用 internal `DeleteCandidateProfileForUser(user_A)` + 触发完整删除链路 + 运行 `cd backend && go test ./internal/profile/service -run TestPrivacyDeleteOrderAndAudit -count=1 -v` + `cd backend && go test -tags=integration ./internal/profile/store -run TestPrivacyDeleteWithAuditRollsBackAndWritesFailureAudit -count=1 -v` + `cd backend && go test ./cmd/api -run TestProfileHTTPScenario -count=1 -v`）/ `scripts/verify.sh`（断言 `method=internal-api+cmd-api-http` 或等价 live runtime evidence + no-op / skip 不可 PASS + 删除顺序 experience_cards → candidate_profiles + audit tombstone 完整无敏感字段 + DB 状态 user_A 0 行 + 其他用户不受影响 + 后续 getMyProfile re-seed + CountBySource 全 0 + 失败回滚 + 隐私 grep + 旧口径 grep）/ `scripts/cleanup.sh`
 - [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
 - [x] 记录验证证据：`.test-output/e2e/p0-093-profile-privacy-delete-lifecycle/trigger.log` + 删除链路调用 log + audit tombstone payload dump（验证无敏感字段）+ DB state 删除前后对比 + cross-user 不影响验证 + 失败回滚证据 + `method=internal-api+cmd-api-http` 或等价 live runtime evidence + no no-op / no skip 证据
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.093 行（关联需求 `backend-profile C-10, C-14`，状态 Ready，automated）

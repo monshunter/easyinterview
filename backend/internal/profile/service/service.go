@@ -28,6 +28,10 @@ type Service struct {
 	now   func() time.Time
 }
 
+type transactionalPrivacyDeleteStore interface {
+	DeleteCandidateProfileForUserWithAudit(ctx context.Context, userID string, jobID string, deletedAt time.Time) error
+}
+
 // New constructs a Service. Required: Store. Audit defaults to a no-op when
 // nil. Now defaults to time.Now().UTC().
 func New(opts Options) *Service {
@@ -50,6 +54,9 @@ func New(opts Options) *Service {
 func (s *Service) DeleteCandidateProfileForUser(ctx context.Context, userID, jobID string) error {
 	if s == nil || s.store == nil {
 		return fmt.Errorf("profile service is not configured")
+	}
+	if txStore, ok := s.store.(transactionalPrivacyDeleteStore); ok {
+		return txStore.DeleteCandidateProfileForUserWithAudit(ctx, userID, jobID, s.now().UTC())
 	}
 	counts, err := s.store.CountExperienceCardsBySource(ctx, userID)
 	if err != nil {

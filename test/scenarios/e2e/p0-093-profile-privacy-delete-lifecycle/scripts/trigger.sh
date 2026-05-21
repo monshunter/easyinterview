@@ -3,12 +3,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
-OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-083-profile-privacy-delete-lifecycle"
+OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-093-profile-privacy-delete-lifecycle"
 
 mkdir -p "$OUTPUT_DIR"
 export DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}"
 (
   cd "$REPO_ROOT/backend"
   go test ./internal/profile/service -run TestPrivacyDeleteOrderAndAudit -count=1 -v
+  go test -tags=integration ./internal/profile/store -run TestPrivacyDeleteWithAuditRollsBackAndWritesFailureAudit -count=1 -v
   go test ./cmd/api -run TestProfileHTTPScenario -count=1 -v
 ) | tee "$OUTPUT_DIR/trigger.log"

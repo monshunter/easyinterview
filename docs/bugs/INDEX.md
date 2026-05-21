@@ -42,6 +42,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0081](./BUG-0081.md) | backend profile L2 review exposed privacy rollback and scenario evidence drift | high | resolved | 2026-05-21 | `fix(backend-profile): close profile L2 evidence drift (BUG-0081)` |
 | [BUG-0076](./BUG-0076.md) | resume workshop real backend requests drifted from version contracts | high | resolved | 2026-05-18 | `fix(resume-workshop): close real backend gaps (BUG-0076, BUG-0077)` |
 
 ## Debrief

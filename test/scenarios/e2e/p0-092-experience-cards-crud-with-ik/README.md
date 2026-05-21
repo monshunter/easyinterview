@@ -1,6 +1,6 @@
-# E2E.P0.082 Experience Cards CRUD with IK
+# E2E.P0.092 Experience Cards CRUD with IK
 
-> **场景 ID**: E2E.P0.082
+> **场景 ID**: E2E.P0.092
 > **执行方式**: automated
 > **隔离级别**: shared-cluster
 > **parallel-safe**: No

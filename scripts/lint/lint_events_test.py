@@ -175,6 +175,16 @@ class LintEventsSourceScanTest(unittest.TestCase):
 
         self.assertEqual([], errs)
 
+    def test_allows_profile_source_type_that_matches_job_type_name(self) -> None:
+        self.write(
+            "backend/internal/profile/profile.go",
+            'package profile\nconst SourceTypeResumeParse = "resume_parse"\n',
+        )
+
+        errs = self.linter.scan_source_literals(self.root, self.events, self.jobs)
+
+        self.assertEqual([], errs)
+
     def test_rejects_handwritten_event_name_constant(self) -> None:
         self.write("backend/internal/service/names.go", 'package service\nconst EventNameCustomCreated = "custom.event.created"\n')
 

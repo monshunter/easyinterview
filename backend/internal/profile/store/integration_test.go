@@ -5,7 +5,9 @@ package store_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -309,6 +311,128 @@ func TestExperienceCardsCursorPaginationAndCrossUser(t *testing.T) {
 	if removed != 25 {
 		t.Fatalf("delete A removed = %d, want 25", removed)
 	}
+}
+
+func TestPrivacyDeleteWithAuditRollsBackAndWritesFailureAudit(t *testing.T) {
+	db := openProfileDB(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	fx := newProfileFixture(t, ctx, db)
+
+	repo := profilestore.NewRepositoryWith(db, profilestore.NewRepositoryOptions{
+		NewID: deterministicIDFactory(),
+	})
+	region := "CN-SH"
+	defaults := profile.UserSettings{
+		PreferredPracticeLanguage: "en",
+		UiLanguage:                "zh-CN",
+		Region:                    &region,
+	}
+	if _, err := repo.SeedCandidateProfile(ctx, fx.UserA, defaults); err != nil {
+		t.Fatalf("seed A: %v", err)
+	}
+	for i, id := range makeCardIDs(2) {
+		if _, err := repo.CreateExperienceCard(ctx, id, fx.UserA, profile.ExperienceCardAttrs{
+			Title:       "privacy rollback card",
+			CompanyName: "Acme",
+			Situation:   "sensitive situation",
+			Task:        "sensitive task",
+			Action:      "sensitive action",
+			Result:      "sensitive result",
+			Skills:      []string{"go"},
+			Language:    "en",
+		}, profile.ExperienceCardSource{
+			SourceType: profile.SourceTypeManual,
+			Confidence: profile.ConfidenceDefaultMedium,
+		}); err != nil {
+			t.Fatalf("create card %d: %v", i, err)
+		}
+	}
+
+	installCandidateProfileDeleteFailureTrigger(t, ctx, db, fx.UserA)
+
+	err := repo.DeleteCandidateProfileForUserWithAudit(
+		ctx,
+		fx.UserA,
+		"job-rollback",
+		time.Date(2026, 5, 21, 11, 0, 0, 0, time.UTC),
+	)
+	if err == nil || !strings.Contains(err.Error(), "delete_candidate_profile") {
+		t.Fatalf("privacy delete error = %v, want delete_candidate_profile", err)
+	}
+
+	var remainingProfiles, remainingCards int
+	if err := db.QueryRowContext(ctx, `select count(*) from candidate_profiles where user_id = $1`, fx.UserA).Scan(&remainingProfiles); err != nil {
+		t.Fatalf("count profiles: %v", err)
+	}
+	if err := db.QueryRowContext(ctx, `select count(*) from experience_cards where user_id = $1`, fx.UserA).Scan(&remainingCards); err != nil {
+		t.Fatalf("count cards: %v", err)
+	}
+	if remainingProfiles != 1 || remainingCards != 2 {
+		t.Fatalf("rollback left profiles=%d cards=%d, want 1/2", remainingProfiles, remainingCards)
+	}
+
+	var result string
+	var metadataRaw []byte
+	if err := db.QueryRowContext(ctx, `
+select result, metadata::text
+  from audit_events
+ where user_id = $1 and action = 'profile.privacy_delete'
+ order by created_at desc limit 1`, fx.UserA).Scan(&result, &metadataRaw); err != nil {
+		t.Fatalf("failure audit lookup: %v", err)
+	}
+	if result != "failure" {
+		t.Fatalf("audit result = %q, want failure", result)
+	}
+	var metadata map[string]any
+	if err := json.Unmarshal(metadataRaw, &metadata); err != nil {
+		t.Fatalf("unmarshal metadata: %v", err)
+	}
+	if metadata["errorStage"] != "delete_candidate_profile" || metadata["jobId"] != "job-rollback" {
+		t.Fatalf("failure audit metadata = %#v", metadata)
+	}
+	for _, forbidden := range []string{"privacy rollback card", "sensitive situation", "sensitive task", "sensitive action", "sensitive result", "Acme"} {
+		if strings.Contains(string(metadataRaw), forbidden) {
+			t.Fatalf("failure audit leaked raw content %q in %s", forbidden, metadataRaw)
+		}
+	}
+}
+
+func installCandidateProfileDeleteFailureTrigger(t *testing.T, ctx context.Context, db *sql.DB, userID string) {
+	t.Helper()
+	if _, err := db.ExecContext(ctx, `drop trigger if exists profile_delete_fail_rollback_test on candidate_profiles`); err != nil {
+		t.Fatalf("drop old trigger: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `drop function if exists profile_delete_fail_rollback_test()`); err != nil {
+		t.Fatalf("drop old function: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `
+create function profile_delete_fail_rollback_test()
+returns trigger
+language plpgsql
+as $$
+begin
+  if old.user_id = '`+userID+`'::uuid then
+    raise exception 'profile delete failure injected';
+  end if;
+  return old;
+end;
+$$`); err != nil {
+		t.Fatalf("create failure function: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `
+create trigger profile_delete_fail_rollback_test
+before delete on candidate_profiles
+for each row
+execute function profile_delete_fail_rollback_test()`); err != nil {
+		t.Fatalf("create failure trigger: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_, _ = db.ExecContext(cleanupCtx, `drop trigger if exists profile_delete_fail_rollback_test on candidate_profiles`)
+		_, _ = db.ExecContext(cleanupCtx, `drop function if exists profile_delete_fail_rollback_test()`)
+	})
 }
 
 func makeCardIDs(n int) []string {

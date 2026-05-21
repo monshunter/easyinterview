@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-21](2026-05-21.md) | `fix(backend-profile): close profile L2 evidence drift (BUG-0081)` | #fix #test #docs |
 | [2026-05-21](2026-05-21.md) | `feat(backend-profile): land candidate profile and experience cards baseline` | #feat #test #docs |
 | [2026-05-21](2026-05-21.md) | `docs(retrospective): assess branch prefix governance fix` | #docs |
 | [2026-05-21](2026-05-21.md) | `fix(governance): reject tool-name branch prefixes (BUG-0080)` | #fix #docs #test |

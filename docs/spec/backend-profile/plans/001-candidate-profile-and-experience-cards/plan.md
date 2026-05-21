@@ -1,6 +1,6 @@
 # Backend Profile Candidate Profile and Experience Cards Baseline
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-21
 
@@ -231,6 +231,24 @@ Phase 1 必须同时携带 [openapi-v1-contract](../../../openapi-v1-contract/sp
 - backend-profile history.md 在 plan 完成当天追加一行"plan 001 完成 + cross-owner GetCandidateProfileForUser / CountExperienceCardsBySource / DeleteCandidateProfileForUser internal API 全可用"
 - `docs/spec/INDEX.md` §5 P0 Implementation 表中 `backend-profile` 行已在 spec 创建期写入（1.0 active 2026-05-21）；plan 完成时只需把 INDEX 行更新日期同步到 plan 完成日（如需），不再新增行
 - [engineering-roadmap §5.2](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 行已在 spec 创建期改为 `backend-profile active（001 candidate profile + experience cards baseline）`，roadmap 已 bump 至 3.17；plan 完成时把状态描述从 "active（001 ... baseline）" 调整为 "active（001 ... baseline completed）"（或同时启动 002 时改写 002 descriptor），roadmap 版本号 bump 3.17 → 3.18，更新日期改为 plan 落地日；roadmap history.md 同步追加 3.18 行
+
+### Phase 6: L2 scenario ID evidence remediation
+
+#### 6.1 修复 P0.091-P0.093 场景资产旧编号残留
+- 修订 `test/scenarios/e2e/p0-091-*` / `p0-092-*` / `p0-093-*` 的 README、data 与 scripts，确保场景 ID、`.test-output/e2e/...` 输出路径、`setup.env` 记录与目录名全部使用 P0.091 / P0.092 / P0.093。
+- 修订 `backend/cmd/api/profile_http_scenario_test.go` 场景注释为 P0.091 / P0.092 / P0.093。
+- 增加负向 gate：`rg -n 'P0\.08[123]|p0-08[123]' test/scenarios/e2e/p0-091-* test/scenarios/e2e/p0-092-* test/scenarios/e2e/p0-093-* backend/cmd/api/profile_http_scenario_test.go` 必须 0 命中。
+- 重新执行 P0.091 / P0.092 / P0.093 的 `setup → trigger → verify → cleanup`，证明 wrapper 写入并验证当前编号输出目录。（2026-05-21 已完成）
+
+#### 6.2 修复 B3 event/job literal gate 对 profile source_type 的误判
+- `backend/internal/profile/profile.go` 中 `SourceTypeResumeParse = "resume_parse"` 是 `experience_cards.source_type` taxonomy，不是 async job dispatch literal；`scripts/lint/lint_events.py` 必须显式允许该 owner source_type，并有 contract test 证明 allowlist 不放开其他 naked event/job literal。
+- `frontend/src/api/devMockClient.ts` 不得硬编码 `debrief_generate`；改用 generated `JOB_TYPE_DEBRIEF_GENERATE`。
+- `make codegen-check` 必须 PASS。（2026-05-21 已完成）
+
+#### 6.3 修复 privacy delete 失败回滚与失败 audit 证据
+- `DeleteCandidateProfileForUser` 在 SQL repository 路径必须通过单个事务执行 count → delete experience_cards → delete candidate_profiles → success audit；任一步骤失败时数据删除回滚。
+- 失败路径必须写入不含 PII 的 failure audit tombstone（userId / jobId / failedAt / errorStage），并保留原数据。
+- 新增 integration test 模拟 `candidate_profiles.DeleteForUser` 失败，证明 experience_cards / candidate_profiles 未删除且 failure audit 已写入；P0.093 wrapper 必须覆盖该 focused gate。（2026-05-21 已完成）
 
 ## 5 验收标准
 

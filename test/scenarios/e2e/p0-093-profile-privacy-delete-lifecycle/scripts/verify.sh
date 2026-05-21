@@ -3,13 +3,15 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
-OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-083-profile-privacy-delete-lifecycle"
+OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-093-profile-privacy-delete-lifecycle"
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
 grep -Eq 'ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/profile/service' "$LOG_FILE"
+grep -Eq 'ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/profile/store' "$LOG_FILE"
 grep -Eq 'ok[[:space:]]+github.com/monshunter/easyinterview/backend/cmd/api' "$LOG_FILE"
 grep -Fq 'PASS: TestPrivacyDeleteOrderAndAudit' "$LOG_FILE"
+grep -Fq 'PASS: TestPrivacyDeleteWithAuditRollsBackAndWritesFailureAudit' "$LOG_FILE"
 grep -Fq 'PASS: TestProfileHTTPScenario' "$LOG_FILE"
 
 if grep -Eqi 'SKIP|no-op' "$LOG_FILE"; then

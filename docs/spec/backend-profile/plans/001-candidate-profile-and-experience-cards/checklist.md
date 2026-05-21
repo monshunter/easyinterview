@@ -1,6 +1,6 @@
 # Backend Profile Candidate Profile and Experience Cards Baseline Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-21
 
@@ -56,3 +56,12 @@
 - [x] 5.9 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `backend-profile` 状态描述调整为 "active（001 candidate profile + experience cards baseline completed）"；roadmap 版本号 bump 3.17 → 3.18；更新日期保持 2026-05-21；engineering-roadmap history.md 已追加 3.18 行（验证：`sync-doc-index --check` PASS）
 - [x] 5.10 cross-owner handoff 信号：在 backend-profile history.md 1.2 行 + engineering-roadmap 3.18 行已宣告 `GetCandidateProfileForUser` + `CountExperienceCardsBySource` + `DeleteCandidateProfileForUser` 三个 internal API 可用；下游 [backend-jobs-recommendations/001](../../../backend-jobs-recommendations/plans/001-jd-match-real-backend-baseline/plan.md) 与 backend internal privacy runner 可消费（不直接编辑下游 plan 文件，按 spec §7 handoff 信号语义传递）
 - [x] 5.11 收尾 spec/history 同步：plan / checklist / bdd-plan / bdd-checklist 状态从 active → completed；backend-profile spec.md / history.md 同步 bump 至 1.2；backend-profile/plans/INDEX.md 001 行将由 `sync-doc-index --fix-index` 移动到 "已完成（Completed）" 表，完成日期 2026-05-21（验证：`sync-doc-index --check` PASS）
+
+## Phase 6: L2 scenario ID evidence remediation
+
+- [x] 6.1 修复 P0.091-P0.093 场景资产旧编号残留：README / data / scripts / `.test-output` 路径 / `setup.env` / `profile_http_scenario_test.go` 注释全部使用 P0.091 / P0.092 / P0.093；`rg -n 'P0\\.08[123]|p0-08[123]' test/scenarios/e2e/p0-091-* test/scenarios/e2e/p0-092-* test/scenarios/e2e/p0-093-* backend/cmd/api/profile_http_scenario_test.go` 0 命中；三个场景 `setup → trigger → verify → cleanup` PASS
+  <!-- verified: 2026-05-21 method=scenario bddChecklist=complete -->
+- [x] 6.2 修复 B3 event/job literal gate 对 profile `source_type='resume_parse'` 的误判，并把 `frontend/src/api/devMockClient.ts` 的 `debrief_generate` 改为 generated constant（验证：`PYTHONPATH=scripts/lint python3 -m unittest scripts.lint.lint_events_test` + `pnpm --filter @easyinterview/frontend typecheck` + `pnpm --filter @easyinterview/frontend test src/api/devMockClient.test.ts` + `make codegen-check` PASS）
+  <!-- verified: 2026-05-21 method=codegen-and-frontend-focused -->
+- [x] 6.3 修复 privacy delete SQL repository 失败回滚与 failure audit：事务内 success path 原子删除 + success audit；失败时回滚数据删除并写不含 PII 的 failure audit（验证：新增 integration test `TestPrivacyDeleteWithAuditRollsBackAndWritesFailureAudit` PASS；P0.093 wrapper 覆盖该 focused gate）
+  <!-- verified: 2026-05-21 method=integration-and-scenario -->

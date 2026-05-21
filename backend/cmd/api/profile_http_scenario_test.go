@@ -87,15 +87,15 @@ on conflict (user_id) do update set
 }
 
 type profileScenarioFixture struct {
-	handler  http.Handler
-	routes   profileRoutes
-	authA    *apiAuthStore
-	authB    *apiAuthStore
-	authC    *apiAuthStore
-	userA    string
-	userB    string
-	userC    string
-	cleanup  func()
+	handler http.Handler
+	routes  profileRoutes
+	authA   *apiAuthStore
+	authB   *apiAuthStore
+	authC   *apiAuthStore
+	userA   string
+	userB   string
+	userC   string
+	cleanup func()
 }
 
 func buildProfileScenarioFixture(t *testing.T, db *sql.DB) profileScenarioFixture {
@@ -129,7 +129,7 @@ runtime:
 	storeC := mkAuth(profileScenarioUserC, "user-c@profile-scenario.local")
 
 	authService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
-		Store:               &multiUserAuthStore{users: map[string]*apiAuthStore{
+		Store: &multiUserAuthStore{users: map[string]*apiAuthStore{
 			"raw-session-user-a": storeA,
 			"raw-session-user-b": storeB,
 			"raw-session-user-c": storeC,
@@ -266,7 +266,7 @@ func TestProfileHTTPScenario(t *testing.T) {
 	setupProfileScenarioUsers(t, ctx, db)
 	fx := buildProfileScenarioFixture(t, db)
 
-	// --- E2E.P0.081 candidate profile seed + patch ----------------------------
+	// --- E2E.P0.091 candidate profile seed + patch ----------------------------
 	rawA1 := doProfileRequest(t, fx.handler, http.MethodGet, "/api/v1/profiles/me", fx.userA, "", nil, http.StatusOK)
 	var seed api.CandidateProfile
 	if err := json.Unmarshal(rawA1, &seed); err != nil {
@@ -318,7 +318,7 @@ func TestProfileHTTPScenario(t *testing.T) {
 		t.Fatalf("user B seed leaked: %+v", bSeed)
 	}
 
-	// --- E2E.P0.082 experience cards CRUD + IK --------------------------------
+	// --- E2E.P0.092 experience cards CRUD + IK --------------------------------
 	createBody := api.CreateExperienceCardRequest{
 		Title:       "Drove design-system migration",
 		CompanyName: "Acme",
@@ -413,7 +413,7 @@ func TestProfileHTTPScenario(t *testing.T) {
 		t.Fatal("internal read userC post-seed returned nil")
 	}
 
-	// --- E2E.P0.083 privacy delete lifecycle ---------------------------------
+	// --- E2E.P0.093 privacy delete lifecycle ---------------------------------
 	if err := fx.routes.Service.DeleteCandidateProfileForUser(ctx, fx.userA, "scenario-job"); err != nil {
 		t.Fatalf("privacy delete: %v", err)
 	}

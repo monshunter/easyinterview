@@ -1,6 +1,6 @@
-# E2E.P0.081 Candidate Profile Seed and Patch
+# E2E.P0.091 Candidate Profile Seed and Patch
 
-> **场景 ID**: E2E.P0.081
+> **场景 ID**: E2E.P0.091
 > **执行方式**: automated
 > **隔离级别**: shared-cluster
 > **parallel-safe**: No
@@ -32,4 +32,4 @@ A2 dev stack 已拉起；`cmd/api` 真实路由 + `auth.SessionMiddleware` + 真
 - audit_events 不写敏感字段；`grep mistake|growth|drill|experiences|star backend/internal/profile/` 0 命中。
 - backend log / outbox payload / URL / cookie 不携带 raw profile 字段值。
 
-证据：`.test-output/e2e/p0-081-candidate-profile-seed-and-patch/trigger.log` 必须包含 `ok  github.com/monshunter/easyinterview/backend/cmd/api`；`verify.sh` 强校验 method 与 no-op 排除。
+证据：`.test-output/e2e/p0-091-candidate-profile-seed-and-patch/trigger.log` 必须包含 `ok  github.com/monshunter/easyinterview/backend/cmd/api`；`verify.sh` 强校验 method 与 no-op 排除。
