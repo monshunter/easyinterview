@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match watchlist store and handlers` | #feat #test #docs |
 | [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match recommendations store and generator` | #feat #test #docs |
 | [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match profile orchestrator and agent scan baseline` | #feat #test #docs |
 | [2026-05-21](2026-05-21.md) | `feat(backend-jobs): land jd-match cross-owner additive (b4 / f3 / a3 / b3 + counters + identity)` | #feat #test #docs |
