@@ -11,6 +11,14 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch"
 )
 
+// AgentScanRepository is the slice of *Repository methods that the
+// agent_scan job consumes. Exposed as an interface so the job package
+// can mock it without dragging the rest of the store layer in.
+type AgentScanRepository interface {
+	CreateAgentScan(ctx context.Context, in CreateAgentScanInput) (jdmatch.AgentScanRecord, error)
+	UpdateAgentScanStatus(ctx context.Context, in UpdateAgentScanStatusInput) (jdmatch.AgentScanRecord, error)
+}
+
 // Repository exposes the agent_scans / jd_match_recommendations /
 // watchlist_items / saved_searches / jd_match_search_runs repositories.
 // Construct via NewRepository.

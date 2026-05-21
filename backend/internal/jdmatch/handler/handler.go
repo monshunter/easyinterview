@@ -53,6 +53,7 @@ type Handler struct {
 	savedSearches  SavedSearchStore
 	searchRuns     SearchRunStore
 	searchAI       SearchAI
+	marketSignals  MarketSignalsBuilder
 }
 
 // New constructs a Handler with the supplied options.
