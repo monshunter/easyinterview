@@ -1,0 +1,12 @@
+# Backend Jobs Recommendations History
+
+> **版本**: 1.1
+> **状态**: active
+> **更新日期**: 2026-05-21
+
+## 1 修订记录
+
+| 日期 | 版本 | 变更 | 关联计划 |
+|------|------|------|----------|
+| 2026-05-21 | 1.0 | 初始创建：从 [engineering-roadmap 3.16 §5.2](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) Home / Job Picks / Parse workstream 中 "JobMatch real backend subject not yet created" 派生 `backend-jobs-recommendations` subject，作为 JobMatch 业务域后端 owner；锁定 D-1..D-16 决策（baseline 数据源边界 - 不接外部平台 / sources schema 边界 / recommendation 触发 / search runtime / IK 必带 / privacy 红线 / watchlist UNIQUE / AI provenance 强制 / F3 + B4 + B3 cross-owner additive / agent scan 调度 / searchJobs vs jd_match_search_runs / listJobRecommendations 排序 / market_signals baseline 数据源等）；首批 plan `001-jd-match-real-backend-baseline` 覆盖 12 个 JobMatch endpoint 真实 backend 实现 + 5 张新表 B4 additive + 2 个 feature_key F3 additive + 2 个 event + 2 个 job_type B3 additive + 6 个 cross-owner counter internal API 整合（backend-profile / backend-resume / backend-targetjob / backend-practice / backend-debrief）；后续 plan 002 / 003 列入关联计划但 P1/P2 后启动。 | 001-jd-match-real-backend-baseline |
+| 2026-05-21 | 1.1 | L1 plan-review 收口：（1）新增 D-17 锁定 `backend-auth.GetUserIdentityForUser(userId) -> {displayName, avatarUrl, emailMasked}` cross-owner internal API，用于补 `JobMatchProfile.displayName` required 字段来源（OpenAPI schema 已约束）；（2）新增 D-18 锁定 P0 JobMatchProfile 字段来源映射 + 稀疏 baseline（`avatarUrl/locationText/compensationText=null`, `skills=[]`），防止与 [B2 schema](../openapi-v1-contract/spec.md) 漂移；（3）新增 D-19 锁定 `getJobMatchProfile` fixture parity 例外（structural parity 而非 byte parity with `default`），其他 11 个 endpoint 仍 byte parity；（4）修订 §1 §2.1 §2.2 §4.4 §5 §6 C-1 / C-13 + 新增 C-19；（5）同步更新 backend-profile cross-owner internal API 引用从 D-11 升至 D-11 / D-13（与 backend-profile/001 L1 plan-review 修订同步）。修复 plan §1.1 / Operation Matrix / Phase 0 cross-owner additive list 与 OpenAPI `JobMatchProfile` schema 的字段来源漂移。 | 001-jd-match-real-backend-baseline |

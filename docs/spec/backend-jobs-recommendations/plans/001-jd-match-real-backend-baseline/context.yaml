@@ -1,0 +1,129 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-jobs-recommendations
+  name: 001-jd-match-real-backend-baseline
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-jobs-recommendations
+      - 001-jd-match-real-backend-baseline
+      - JobMatch
+      - jd_match
+      - jdmatch
+      - getJobMatchProfile
+      - getAgentScanStatus
+      - listJobRecommendations
+      - getJobRecommendation
+      - markJobNotRelevant
+      - listWatchlist
+      - addToWatchlist
+      - removeFromWatchlist
+      - searchJobs
+      - listSavedSearches
+      - createSavedSearch
+      - getMarketSignals
+      - jd_match_recommendations
+      - watchlist_items
+      - saved_searches
+      - agent_scans
+      - jd_match_search_runs
+      - jd_match.recommendation
+      - jd_match.search
+      - jd_match.agent_scan
+      - jd_match.recommendation.completed
+      - jd_match.search.completed
+      - BuildJobMatchProfile
+      - DeleteJobMatchDataForUser
+      - CountResumesForUser
+      - CountTargetJobsForUser
+      - CountPracticeSessionsForUser
+      - CountDebriefsForUser
+      - GetUserIdentityForUser
+      - UserIdentity
+      - displayName
+      - emailMasked
+      - structural-parity-getJobMatchProfile
+    keywords:
+      - jd-match real backend baseline
+      - jobmatch handler implementation
+      - cross-owner additive b4 f3 a3 b3 backend-auth
+      - candidate profile aggregation
+      - agent scan periodic job
+      - recommendation generator inline
+      - natural language search sync runtime
+      - watchlist unique constraint
+      - saved searches persistence
+      - market signals baseline
+      - privacy delete five table cascade
+      - cursor pagination jd_match_recommendations
+      - cross user 404 jdmatch
+      - idempotency key side effect
+      - ai provenance required
+      - F3 jd_match feature key
+      - internal jobs pool baseline
+      - no external job platform LinkedIn Boss
+      - mock first byte parity 11 endpoint
+      - structural parity getJobMatchProfile
+      - JobMatchProfile sparse baseline
+      - displayName from backend-auth
+      - emailMasked never raw email
+      - PII boundary no query reasons source_url
+      - cmd/api jdmatch route wiring
+      - 12 endpoint baseline
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      discovery:
+        packages:
+          - backend/internal/jdmatch
+          - backend/internal/jdmatch/handler
+          - backend/internal/jdmatch/store
+          - backend/internal/jdmatch/service
+          - backend/internal/jdmatch/jobs
+          - backend/cmd/api
+          - backend/internal/api/generated
+          - backend/internal/ai
+          - backend/internal/profile
+          - backend/internal/resume
+          - backend/internal/targetjob
+          - backend/internal/practice
+          - backend/internal/debrief
+          - backend/internal/shared/events
+          - openapi/fixtures/JobMatch
+          - openapi/openapi.yaml
+          - shared
+          - shared/events.yaml
+          - shared/jobs.yaml
+          - config
+          - config/prompts/jd_match.recommendation
+          - config/prompts/jd_match.search
+          - config/rubrics/jd_match.recommendation
+          - config/rubrics/jd_match.search
+          - config/ai-profiles.yaml
+          - migrations
+          - test/scenarios/e2e
+        uiRoutes: []
+        apiNames:
+          - getJobMatchProfile
+          - getAgentScanStatus
+          - listJobRecommendations
+          - getJobRecommendation
+          - markJobNotRelevant
+          - listWatchlist
+          - addToWatchlist
+          - removeFromWatchlist
+          - searchJobs
+          - listSavedSearches
+          - createSavedSearch
+          - getMarketSignals
