@@ -11,6 +11,10 @@ coverage.out
 coverage.txt
 *.cover
 .test-output/
+# Compiled Go binaries left in cmd/* dirs by `go build .`
+backend/api
+backend/cmd/*/api
+backend/cmd/*/migrate
 
 # ── Go ───────────────────────────────────────────────────────────
 *.exe~
