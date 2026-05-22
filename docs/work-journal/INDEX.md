@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-22](2026-05-22.md) | `docs(backend-async-runner): clarify completed runner spec baseline` | #docs |
 | [2026-05-22](2026-05-22.md) | `fix(backend-async-runner): wire outbox startup and live gates (BUG-0085)` | #fix #test #docs #bdd |
 | [2026-05-22](2026-05-22.md) | `feat(backend-async-runner): close internal job and outbox runner plan` | #feat #test #docs |
 | [2026-05-22](2026-05-22.md) | `feat(backend-async-runner): land outbox dispatcher and email_dispatch` | #feat #test #docs |

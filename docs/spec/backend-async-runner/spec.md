@@ -1,12 +1,14 @@
 # Backend Async Runner Spec
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
 > **更新日期**: 2026-05-22
 
 ## 1 背景与目标
 
-[engineering-roadmap §6.3 S2](../engineering-roadmap/spec.md#63-s2--backend-domain-implementation) 把 `backend-async-runner` 列为「backend 内部 job、outbox、retry 和删除链路执行；P0 不拆独立 worker 进程」的 owner subject；[backend-runtime-topology](../backend-runtime-topology/spec.md) D-1~D-4 已锁定 P0 拓扑为 `frontend` + `backend` 两个应用进程，后台任务由 backend internal runner 承接。当前仓库已经在不同业务域生长出多套局部 runner / drainer：
+[engineering-roadmap §6.3 S2](../engineering-roadmap/spec.md#63-s2--backend-domain-implementation) 把 `backend-async-runner` 列为「backend 内部 job、outbox、retry 和删除链路执行；P0 不拆独立 worker 进程」的 owner subject；[backend-runtime-topology](../backend-runtime-topology/spec.md) D-1~D-4 已锁定 P0 拓扑为 `frontend` + `backend` 两个应用进程，后台任务由 backend internal runner 承接。
+
+本 subject 创建时的实施前基线是：仓库已经在不同业务域生长出多套局部 runner / drainer：
 
 - `backend/internal/targetjob/drainer.go`：通用 `Drainer` 抽象 + `JobHandler` 接口，当前被 targetjob / debrief / resume / jdmatch 多个 runtime 复用，注册 `target_import` / `source_refresh` / `privacy_delete` / `debrief_generate` / `resume_parse` / `resume_tailor` / `jd_match_agent_scan` 等 job_type；无 reaper。
 - `backend/internal/review/{runner,reaper,lease}.go`：[backend-review D-13 / D-16](../backend-review/spec.md) 显式承认为 P0 临时形态的独立 polling worker，仅服务 `report_generate`；spec 文本明确写明「未来 `backend-async-runner` plan 接管时统一抽象 review.Runner + drainer」。
@@ -18,7 +20,7 @@
 - retry/backoff 不一致：`review.ComputeReportFailureBackoff` 用 `2^attempts * 30s`，resume `async.go` 用固定 15s，与 [ADR-Q2 §3.4](../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md) 锁定的 `30s/2m/10m/1h/6h, max 5` 不符。
 - lease 回收 reaper 仅覆盖 `report_generate`；其它当前可执行 job_type 若 backend 中途崩溃将 stuck 在 `running`/`locked_at` 状态。
 
-本 subject 的目标是把上述局部形态收敛为单一 backend in-process runtime kernel，统一 lease / retry / dead-letter / reaper / shutdown 协议，落地 B3 dispatcher 缺口，并保留「不建独立 worker 进程」语义；未来如需拆运行单元、切 Asynq server 或引入新调度器，新 ADR 即可在不动业务 producer / handler 的前提下替换底层实现。
+`001-internal-job-outbox-runner` 完成后，当前事实是：`backend/internal/runner/` 已承接单一 backend in-process runtime kernel；`cmd/api` 通过 `buildRunnerKernel` 创建 `runner.Runtime` 并用 `Runtime.SetOutboxDispatcher` 挂接 `runner.OutboxDispatcher`；`target_import` / `source_refresh` / `privacy_delete` / `debrief_generate` / `resume_parse` / `resume_tailor` / `report_generate` / `email_dispatch` / `jd_match_agent_scan` 已注册到 kernel；`privacy_export` 与 `jd_match_search` 仍不注册 handler。本 subject 的目标状态是持续保持上述收敛形态、统一 lease / retry / dead-letter / reaper / shutdown 协议、执行 B3 dispatcher 契约，并保留「不建独立 worker 进程」语义；未来如需拆运行单元、切 Asynq server 或引入新调度器，新 ADR 即可在不动业务 producer / handler 的前提下替换底层实现。
 
 ## 2 范围
 
@@ -154,6 +156,6 @@
 
 ## 7 关联计划
 
-- [001-internal-job-outbox-runner](./plans/001-internal-job-outbox-runner/plan.md)：本 spec 的唯一 active 实施计划，覆盖 D-1~D-14 全部决策。Phase 1 落地 kernel；Phase 2 迁移 8 个既有业务 handler 族（含 `jd_match_agent_scan`）；Phase 3 落地 outbox dispatcher + email_dispatch；Phase 4 收口 cmd/api shutdown + lint negative gate + 旧 owner spec D-* 边界条款同步。
+- [001-internal-job-outbox-runner](./plans/001-internal-job-outbox-runner/plan.md)：本 spec 的 completed 实施计划，覆盖 D-1~D-14 全部决策。Phase 1 落地 kernel；Phase 2 迁移 9 个当前可执行 job_type（含 `jd_match_agent_scan`）；Phase 3 落地 outbox dispatcher + email_dispatch；Phase 4 收口 cmd/api shutdown + lint negative gate + 旧 owner spec D-* 边界条款同步；v1.2 L2 remediation 补齐 `cmd/api` production bootstrap 挂接 `OutboxDispatcher` 与 live gate 证据。
 
 未来如需新增独立 Asynq server / 拆运行单元 / 引入新调度器，必须先 supersede ADR-Q2 + 新 plan 显式承接本 spec D-* 决策。

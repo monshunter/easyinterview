@@ -1,6 +1,6 @@
 # Internal Job and Outbox Runner
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-22
 
@@ -15,7 +15,7 @@
 
 ## 2 背景
 
-[backend-async-runner spec](../../spec.md) §1 / §3 已锁定决策与现状证据。当前实现层证据摘要：
+[backend-async-runner spec](../../spec.md) §1 / §3 已锁定决策与现状证据。本计划启动时的实施前实现层证据摘要：
 
 - `cmd/api/main.go` 持有 5 个独立 lifecycle（auth dispatcher / targetJobRuntime / resumeRuntime / reportRuntime / jdmatchRuntime）；
 - `review.Runner+Reaper` 是 backend-review spec D-13 / D-16 标注的「等 backend-async-runner 接管」临时形态；
@@ -25,7 +25,7 @@
 - retry backoff 在 review / resume / targetjob 三处不一致；
 - `email_dispatch` 还在 `auth.BackgroundMailDispatcher` 进程内 channel，未走 `async_jobs`。
 
-本计划不修改任何业务 handler 的对外行为，只迁移生命周期边界与运行形态。
+本计划不修改任何业务 handler 的对外行为，只迁移生命周期边界与运行形态。计划完成后的当前事实以 [spec v1.3](../../spec.md) 的完成态描述、[checklist](./checklist.md) 4.17 L2 remediation 证据和 [test-checklist](./test-checklist.md) gate 记录为准。
 
 ## 3 质量门禁分类
 
