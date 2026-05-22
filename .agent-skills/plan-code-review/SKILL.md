@@ -1,6 +1,6 @@
 ---
 name: plan-code-review
-description: "Review or fix code against spec/plan/checklist context. Use when the user wants L2 code review or remediation for already-implemented checklist phases, especially after product/UI spec changes, historical implementation drift, or requests to ignore old checklist/PASS state. Reuses implement-owned shared context validator, then performs artifact-level semantic review against validated markdown, current truth sources, generated artifacts, tests, fixtures, scripts, coverage-matrix expectations, and negative legacy-scope searches. Supports /plan-code-review <subspec/plan> [target] [--base-rev <git-rev>] [--fix]."
+description: "Review or fix code against spec/plan/checklist context. Use when the user wants L2 code review or remediation for already-implemented checklist phases, especially after product/UI spec changes, historical implementation drift, or requests to ignore old checklist/PASS state. Reuses implement-owned shared context validator, then performs artifact-level semantic review against validated markdown, current truth sources, generated artifacts, tests, fixtures, scripts, coverage-matrix expectations, and negative legacy-scope searches. Supports /plan-code-review SUBSPEC/PLAN [target] [--base-rev REV] [--fix]."
 ---
 
 # Plan Code Review Skill
@@ -133,6 +133,18 @@ For each in-scope phase:
 6. Build an artifact map that connects each completed checklist item to concrete
    source code, generated output, fixtures, baselines, DDL/config, scripts,
    README entries, and tests.
+   - For lifecycle / runtime capabilities, reverse-audit the production
+     entrypoint instead of stopping at package-level behavior. If a spec, plan,
+     checklist, or discovered artifact declares a worker, dispatcher, outbox
+     loop, scheduler, bootstrap hook, shutdown/drain path, background runner, or
+     runtime kernel, inspect the real startup path such as `cmd/api`, `main`,
+     server boot, worker launch, Docker Compose service, or Kind deployment
+     entrypoint. Verify a production-wiring test, smoke, or scenario proves the
+     startup path constructs, attaches/registers, starts, and shuts down the
+     runtime capability. Treat internal package tests alone as insufficient
+     evidence for production lifecycle closure; in `--fix` mode, add the
+     missing production-wiring test or reopen the mapped checklist item before
+     accepting the phase as complete.
 7. Reconstruct the expected coverage matrix from the validated spec/plan/checklist,
    test-plan/test-checklist, bdd-plan/bdd-checklist, quality-gate classification,
    non-goals, risks, and active product/UI truth sources. For each completed
@@ -220,6 +232,9 @@ Output rules:
   For scenario wrapper evidence, state how `trigger.sh` preserves the real test
   process exit status and how `verify.sh` proves pass/fail/no-op status rather
   than merely grepping a test name or package path.
+  For lifecycle / runtime capabilities, state the production entrypoint audited
+  and the production-wiring test, smoke, or scenario that proves startup and
+  shutdown/drain behavior.
 - Include a `Coverage Matrix Evidence` section summarizing which coverage rows
   are proven by current artifacts, which are explicitly N/A, and which are gaps.
 

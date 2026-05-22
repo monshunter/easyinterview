@@ -72,3 +72,13 @@ class TestPlanCodeReviewSkill:
         assert "Regression / legacy-negative" in text
         assert "`C-series`: coverage matrix proof" in text
         assert "`Coverage Matrix Evidence` section" in text
+
+    def test_runtime_lifecycle_reviews_reverse_audit_production_entrypoint(self):
+        text = _skill_text()
+        assert "reverse-audit the production" in text
+        assert "worker, dispatcher, outbox" in text
+        assert "`cmd/api`, `main`" in text
+        assert "production-wiring test" in text
+        assert "constructs, attaches/registers, starts, and shuts down" in text
+        assert "internal package tests alone as insufficient" in text
+        assert "state the production entrypoint audited" in text
