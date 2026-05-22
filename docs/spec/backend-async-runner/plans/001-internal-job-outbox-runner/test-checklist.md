@@ -1,6 +1,6 @@
 # Internal Job and Outbox Runner Test Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-22
 
@@ -33,7 +33,7 @@
 - [x] Phase 3 `email_dispatch` handler 通过：`backend/internal/runner/email_dispatch_integration_test.go::TestEmailDispatchHandler_*` + `TestEmailDispatchHandler_PayloadRedaction`
 - [x] Phase 3 end-to-end auth email 通过：`backend/cmd/api/main_test.go::TestAuthEmailEndToEnd`（magic link 在 1 个 scan 周期内可见）
 
-- [x] Phase 4 cmd/api 单点 shutdown 通过：`backend/cmd/api/main_test.go::TestMain_SingleRuntimeShutdown`
+- [x] Phase 4 cmd/api 单点 shutdown + outbox startup wiring 通过：`cd backend && go test ./cmd/api -run '^(TestMainRunnerKernelDrivesOutboxDispatcher|TestMain_SingleRuntimeShutdown)$' -count=1 -v`
 - [x] Phase 4 旧形态文件删除断言：`backend/internal/review/structure_test.go::TestNoLegacyRunnerFiles`（或等价 grep）
 - [x] Phase 4 `BackgroundMailDispatcher` 引用 0 命中：`backend/internal/auth/mail_test.go::TestNoBackgroundDispatcher`
 - [x] Phase 4 `make lint-runner-legacy` PASS（spec D-12 zero-reference；脚本路径 `scripts/lint/runner_legacy.py` + `runner_legacy_test.py`；覆盖 `jdmatchRuntime.Drainer` / `JobTypeJdMatchAgentScan` 旧注册路径）
@@ -41,5 +41,6 @@
 - [x] Phase 4 `validate_context.py` PASS（target=backend）
 - [x] Phase 4 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` PASS
 - [x] Phase 4 doc reconcile：`backend-runtime-topology` / `backend-review` / `backend-debrief` / `backend-targetjob` / `backend-resume` / `backend-auth` / `backend-jobs-recommendations` / `event-and-outbox-contract` / `secrets-and-config` / `engineering-roadmap` D-* 边界条款已同步且 0 旧口径回流；owner spec 负向 grep `grep -n "未来 .backend-async-runner" docs/spec/{backend-runtime-topology,backend-review,backend-debrief,backend-targetjob,backend-resume,backend-auth,event-and-outbox-contract}/spec.md` 期望 0 命中；roadmap 负向 grep `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner" docs/spec/engineering-roadmap/spec.md` 期望 0 命中；backend-jobs 负向 grep `grep -n "jd_match_search.*注册.*runner\|jd_match_search.*kernel" docs/spec/backend-jobs-recommendations/spec.md` 期望 0 命中
-- [x] Phase 4 BDD-Gate owner rerun 全 PASS（auth email + privacy_delete `E2E.P0.003` / `033`；target_import `E2E.P0.010` / `012` / `013`；report_generate `E2E.P0.041` / `052` / `054` / `055`；debrief_generate `E2E.P0.060` / `062`；resume_parse `E2E.P0.034` / `035`；resume_tailor `E2E.P0.077` / `078` / `080`；jd_match_agent_scan / JD Match privacy `E2E.P0.094` / `095` / `096` / `097`）
+- [x] Phase 4 BDD-Gate owner rerun 全 PASS（script run `async-runner-l2-20260522145606`: `E2E.P0.003` / `010` / `011` / `012` / `013` / `034` / `035` / `060` / `062` / `077` / `078` / `080` / `093` / `094` / `095` / `096` / `097` PASS；`E2E.P0.033` 在修复 live repeatability 后单独 rerun PASS；Go HTTP BDD `E2E.P0.041` / `052` / `053` / `054` / `055` PASS via `cmd/api/reports_http_scenario_test.go`）
+- [x] Phase 4 p0-033 live repeatability regression 通过：dev-stack `make dev-doctor` OK；`DATABASE_URL` + `OBJECT_STORAGE_*` live env 下 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` PASS，覆盖真实 MinIO PUT、`RegisterFileObject`、`DELETE /api/v1/me`、privacy runner succeeded、audit tombstone integration 且重复运行不撞固定 audit id
 - [x] Phase 4 `git diff --check` PASS

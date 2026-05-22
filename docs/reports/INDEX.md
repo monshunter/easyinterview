@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-22](./2026-05-22-backend-async-runner-001-l2-remediation-assessment.md) | Backend Async Runner 001 L2 Remediation 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-async-runner-001-assessment.md) | Backend Async Runner 001 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-jobs-recommendations-001-l2-followup-assessment.md) | Backend Jobs Recommendations 001 L2 Follow-up 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-jobs-recommendations-001-l2-hardening-retrospective-assessment.md) | Backend Jobs Recommendations 001 L2 Hardening 交付复盘 | #assessment |

@@ -39,9 +39,7 @@ func (s *MinIOStore) Presign(ctx context.Context, objectKey, contentType string,
 	if err != nil {
 		return PresignResult{}, err
 	}
-	headers := http.Header{}
-	headers.Set("Content-Type", contentType)
-	headers.Set("x-amz-server-side-encryption", "AES256")
+	headers, responseHeaders := minioPutHeaders(contentType)
 	u, err := client.PresignHeader(ctx, http.MethodPut, s.cfg.Bucket, objectKey, ttl, nil, headers)
 	if err != nil {
 		return PresignResult{}, fmt.Errorf("presign minio put object: %w", err)
@@ -49,9 +47,15 @@ func (s *MinIOStore) Presign(ctx context.Context, objectKey, contentType string,
 	return PresignResult{
 		URL:       u.String(),
 		Method:    "PUT",
-		Headers:   map[string]string{"Content-Type": contentType, "x-amz-server-side-encryption": "AES256"},
+		Headers:   responseHeaders,
 		ExpiresAt: time.Now().UTC().Add(ttl),
 	}, nil
+}
+
+func minioPutHeaders(contentType string) (http.Header, map[string]string) {
+	headers := http.Header{}
+	headers.Set("Content-Type", contentType)
+	return headers, map[string]string{"Content-Type": contentType}
 }
 
 func (s *MinIOStore) Delete(ctx context.Context, objectKey string) error {

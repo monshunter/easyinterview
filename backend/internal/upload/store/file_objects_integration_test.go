@@ -45,9 +45,11 @@ func TestInsertAuditTombstoneIntegrationDoesNotPersistObjectKey(t *testing.T) {
 	auditID := "018f2a40-0000-7000-9000-000000000401"
 	fileID := "018f2a40-0000-7000-9000-000000000402"
 	objectKey := "user-1/resume/file-1.pdf"
-	t.Cleanup(func() {
+	cleanup := func() {
 		_, _ = db.Exec(`delete from audit_events where id = $1`, auditID)
-	})
+	}
+	cleanup()
+	t.Cleanup(cleanup)
 
 	err = repo.InsertAuditTombstone(contextWithTimeout(t), uploadstore.AuditTombstoneInput{
 		AuditEventID: auditID,

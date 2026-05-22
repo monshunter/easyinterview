@@ -90,6 +90,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0085](./BUG-0085.md) | async runner L2 review exposed outbox startup and live gate drift | high | resolved | 2026-05-22 | `fix(backend-async-runner): wire outbox startup and live gates (BUG-0085)` |
 | [BUG-0080](./BUG-0080.md) | tool-name branch prefixes bypassed branch naming governance | medium | resolved | 2026-05-21 | `fix(governance): reject tool-name branch prefixes (BUG-0080)` |
 | [BUG-0070](./BUG-0070.md) | async job polling and voice playback context were contract-only at runtime | high | resolved | 2026-05-17 | `fix(runtime): wire job polling and voice playback context (BUG-0070)` |
 | [BUG-0049](./BUG-0049.md) | backend upload follow-up review exposed MinIO race and no-op live gate | medium | resolved | 2026-05-13 | `fix(backend-upload): close follow-up L2 gaps` |

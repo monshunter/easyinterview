@@ -187,21 +187,15 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: async config: %v\n", err)
 		os.Exit(1)
 	}
-	kernel := runner.New(runner.Options{
-		Store: runner.NewSQLStore(db),
-		Config: runner.ConfigFromSeconds(
-			asyncCfg.ScanIntervalSeconds,
-			asyncCfg.LeaseTimeoutSeconds,
-			asyncCfg.ReaperIntervalSeconds,
-			asyncCfg.ShutdownGraceSeconds,
-			runner.QueueWeights{
-				Critical: asyncCfg.QueueWeights.Critical,
-				Default:  asyncCfg.QueueWeights.Default,
-				Low:      asyncCfg.QueueWeights.Low,
-			},
-		),
+	kernel, err := buildRunnerKernel(runnerKernelOptions{
+		DB:     db,
+		Async:  asyncCfg,
 		Logger: logger,
 	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: runner kernel: %v\n", err)
+		os.Exit(1)
+	}
 	registerRunnerHandlers(kernel, targetJobRuntime.Handlers)
 	registerRunnerHandlers(kernel, resumeRuntime.Handlers)
 	registerRunnerHandlers(kernel, reportRuntime.Handlers)
@@ -240,6 +234,63 @@ func registerRunnerHandlers(rt *runner.Runtime, handlers map[string]runner.Handl
 	for jobType, handler := range handlers {
 		rt.Register(jobType, handler)
 	}
+}
+
+type runnerKernelOptions struct {
+	DB          *sql.DB
+	Async       config.AsyncConfig
+	Logger      *slog.Logger
+	Metrics     runner.Metrics
+	OutboxStore runner.OutboxStore
+	Now         func() time.Time
+}
+
+func buildRunnerKernel(opts runnerKernelOptions) (*runner.Runtime, error) {
+	cfg := runner.ConfigFromSeconds(
+		opts.Async.ScanIntervalSeconds,
+		opts.Async.LeaseTimeoutSeconds,
+		opts.Async.ReaperIntervalSeconds,
+		opts.Async.ShutdownGraceSeconds,
+		runner.QueueWeights{
+			Critical: opts.Async.QueueWeights.Critical,
+			Default:  opts.Async.QueueWeights.Default,
+			Low:      opts.Async.QueueWeights.Low,
+		},
+	)
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	logger := opts.Logger
+	if logger == nil {
+		logger = slog.Default()
+	}
+	metrics := opts.Metrics
+	if metrics == nil {
+		metrics = runner.NewKernelMetrics(runner.NewInMemoryMetricsRegistry())
+	}
+	now := opts.Now
+	if now == nil {
+		now = func() time.Time { return time.Now().UTC() }
+	}
+	kernel := runner.New(runner.Options{
+		Store:   runner.NewSQLStore(opts.DB),
+		Config:  cfg,
+		Logger:  logger,
+		Metrics: metrics,
+		Now:     now,
+	})
+	outboxStore := opts.OutboxStore
+	if outboxStore == nil {
+		outboxStore = runner.NewSQLOutboxStore(opts.DB)
+	}
+	kernel.SetOutboxDispatcher(runner.NewOutboxDispatcher(runner.OutboxDispatcherOptions{
+		Store:        outboxStore,
+		ScanInterval: cfg.ScanInterval,
+		Logger:       logger,
+		Metrics:      metrics,
+		Now:          now,
+	}))
+	return kernel, nil
 }
 
 func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessService, *auth.DevMailSink, error) {

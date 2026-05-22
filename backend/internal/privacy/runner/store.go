@@ -56,7 +56,7 @@ update privacy_requests
 set status = 'completed',
     completed_at = $2,
     error_code = null,
-    metadata = metadata || jsonb_build_object('deletedFileCount', $3)
+    metadata = metadata || jsonb_build_object('deletedFileCount', $3::int)
 where id = $1 and request_type = 'delete'`, privacyRequestID, now, deletedFileCount)
 }
 

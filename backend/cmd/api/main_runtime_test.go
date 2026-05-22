@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"io"
+	"log/slog"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/runner"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 )
@@ -56,4 +60,59 @@ func TestMain_SingleRuntimeShutdown(t *testing.T) {
 	if err := kernel.Shutdown(shutdownCtx); err != nil {
 		t.Fatalf("single runtime Shutdown: %v", err)
 	}
+}
+
+func TestMainRunnerKernelDrivesOutboxDispatcher(t *testing.T) {
+	store := &recordingOutboxStore{processed: make(chan struct{})}
+	kernel, err := buildRunnerKernel(runnerKernelOptions{
+		Async:       testAsyncConfig(),
+		Logger:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+		OutboxStore: store,
+	})
+	if err != nil {
+		t.Fatalf("buildRunnerKernel: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	kernel.Start(ctx)
+	select {
+	case <-store.processed:
+	case <-time.After(time.Second):
+		t.Fatal("runner kernel did not start the attached outbox dispatcher")
+	}
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer shutdownCancel()
+	if err := kernel.Shutdown(shutdownCtx); err != nil {
+		t.Fatalf("kernel shutdown: %v", err)
+	}
+}
+
+func testAsyncConfig() config.AsyncConfig {
+	return config.AsyncConfig{
+		QueueWeights: config.AsyncQueueWeights{
+			Critical: 6,
+			Default:  3,
+			Low:      1,
+		},
+		LeaseTimeoutSeconds:   300,
+		ShutdownGraceSeconds:  2,
+		ReaperIntervalSeconds: 60,
+		ScanIntervalSeconds:   1,
+	}
+}
+
+type recordingOutboxStore struct {
+	once      sync.Once
+	processed chan struct{}
+}
+
+func (s *recordingOutboxStore) ProcessPendingBatch(context.Context, time.Time, int, runner.BackoffPolicy, func(runner.OutboxRow) runner.OutboxResult) (runner.OutboxBatchOutcome, error) {
+	s.once.Do(func() { close(s.processed) })
+	return runner.OutboxBatchOutcome{}, nil
+}
+
+func (s *recordingOutboxStore) CountPending(context.Context) (int64, error) {
+	return 0, nil
 }

@@ -1,6 +1,6 @@
 # Internal Job and Outbox Runner Test Plan
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-05-22
 
@@ -90,7 +90,7 @@
 | 行 | 决策 | Phase | 入口 | 类型 |
 |----|------|-------|------|------|
 | R-1 | spec D-12 zero-reference grep | 4 | `make lint-runner-legacy`（`scripts/lint/runner_legacy.py`，与既有 `backend_review_legacy.py` 同风格） | lint |
-| R-2 | spec C-18 owner BDD 场景 rerun | 4 | `E2E.P0.003` / `010` / `012` / `013` / `033` / `034` / `035` / `041` / `052` / `054` / `055` / `060` / `062` / `077` / `078` / `080` / `094` / `095` / `096` / `097` 重跑 | BDD regression |
+| R-2 | spec C-18 owner BDD 场景 rerun | 4 | Script BDD: `E2E.P0.003` / `010` / `011` / `012` / `013` / `033` / `034` / `035` / `060` / `062` / `077` / `078` / `080` / `093` / `094` / `095` / `096` / `097`；Go HTTP BDD: `E2E.P0.041` / `052` / `053` / `054` / `055` | BDD regression |
 | R-3 | `git ls-files backend/internal/review` 不含 `runner.go` / `reaper.go` / `lease.go` | 4 | `backend/internal/review/structure_test.go::TestNoLegacyRunnerFiles` 或 lint | structure test |
 | R-4 | `git ls-files backend/internal/auth` 不含 `BackgroundMailDispatcher` 引用 | 4 | `backend/internal/auth/mail_test.go::TestNoBackgroundDispatcher` | unit |
 

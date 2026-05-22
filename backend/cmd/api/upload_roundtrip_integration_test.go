@@ -393,7 +393,14 @@ func assertUploadRoundtripPrivacyDelete(t *testing.T, db *sql.DB, fileObjectID s
 		t.Fatalf("select privacy request: %v", err)
 	}
 	if requestStatus != "completed" {
-		t.Fatalf("privacy request status = %q", requestStatus)
+		var jobStatus, errorCode, errorMessage sql.NullString
+		_ = db.QueryRow(`
+select status, error_code, error_message
+from async_jobs
+where resource_id = $1 and job_type = 'privacy_delete'
+order by updated_at desc
+limit 1`, privacyRequestID).Scan(&jobStatus, &errorCode, &errorMessage)
+		t.Fatalf("privacy request status = %q; privacy job status=%q error_code=%q error_message=%q", requestStatus, jobStatus.String, errorCode.String, errorMessage.String)
 	}
 	var auditMetadata string
 	if err := db.QueryRow(`select metadata::text from audit_events where resource_id = $1 and action = 'privacy.file_object_deleted'`, fileObjectID).Scan(&auditMetadata); err != nil {
