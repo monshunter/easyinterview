@@ -1,13 +1,15 @@
 # Frontend Home / Job Picks / Parse History
 
-> **版本**: 1.6
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-22
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-22 | 1.8 | plan `001-home-jd-import-and-parse` L2 remediation 原地关闭 TargetJobs/import/parse fixture-first wording 与真实 backend owner 状态漂移：补 `VITE_EI_API_MODE=real` generated-client gate，P0.014-P0.016 每个 trigger 均先证明 `listTargetJobs` / `createUploadPresign` / `importTargetJob` / `getTargetJob` / `updateTargetJob` 指向真实 backend base URL、cookie credentials、side-effect IK 与 TargetJob provenance roundtrip；同步 operation matrix、BDD plan/checklist 与 scenario docs；配对 backend E2E.P0.010-P0.013 live HTTP TargetJob scenarios + backend-upload focused route/handler tests PASS | 001-home-jd-import-and-parse |
+| 2026-05-22 | 1.7 | plan `002-jd-match-recommendations` L2 remediation 原地关闭 fixture-backed 与真实 backend 状态漂移：补 `VITE_EI_API_MODE=real` generated-client gate，P0.027-P0.031 每个 trigger 均先证明 12 个 JobMatch operation 指向真实 backend base URL、cookie credentials、5 个 IK side effect 与 provenance roundtrip；同步 OpenAPI/generated spec 描述、operation matrix、scenario docs 与 BDD checklist；配对 backend E2E.P0.094-P0.097 live route/persistence/auth/IK/privacy/AI provenance PASS | 002-jd-match-recommendations |
 | 2026-05-10 | 1.6 | plan `002-jd-match-recommendations` L2 remediation 完成并恢复 completed：新增 `getJobRecommendation` 详情 fetch 与详情优先渲染、`jd_match_action` 登录后 auto-resume、Search opaque `pendingJdMatchActionId` payload、pixel parity 响应式/主题/focused screenshot gate，以及 P0.027/P0.028/P0.030/P0.031 scenario verify 强化；补跑 P0.029 与 P0.017，docs/index 回到 zero drift | 002-jd-match-recommendations |
 | 2026-05-10 | 1.5 | plan `002-jd-match-recommendations` L2 code review 后原地重开 remediation：补 `getJobRecommendation` 详情必调、`jd_match_action` 登录后 auto-resume、BDD/scenario 证据与 pixel parity gate；Search pending action 采用 `pendingJdMatchActionId` opaque payload id，query/label 仅存 SPA 会话内存，保持隐私红线 | 002-jd-match-recommendations |
 | 2026-05-10 | 1.4 | plan `002-jd-match-recommendations` 完成交付：Phase 0-6 全部 47 checklist items / ≥125 测试 / 6 jd_match scenario 闭环 PASS（P0.027/023/024/025/026 五个新场景 + P0.017 升级到三 tab 数据驱动 smoke）；JDMatchScreen 容器从 P1 placeholder shell 升级为完整三 tab 业务屏（Recommended + Search + Watchlist）+ Profile chip 数据驱动 + AGENT scan status badge + 4 button 闭环（Save/Unsave/Mark not relevant/Confirm interview）+ Open source new tab + Auth pending action 跨 4 action surface + 自然语言搜索 + Saved searches + 4 chip filter + 5 步 AGENT panel + Watchlist + Market signals + chevron handoff + 全维度隐私反查；plan 002 lifecycle 从 active → completed | 002-jd-match-recommendations |

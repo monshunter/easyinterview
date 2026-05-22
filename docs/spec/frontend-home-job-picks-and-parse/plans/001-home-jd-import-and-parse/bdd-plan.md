@@ -1,8 +1,8 @@
 # 001 BDD Plan
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-22
 
 **关联 Plan**: [plan](./plan.md)
 
@@ -16,6 +16,10 @@
 | E2E.P0.017 | regression / legacy-negative · jd_match P1 placeholder smoke + 旧 prototype 业务 testid 反向 grep | Phase 5 | C-8 | Phase 5.5 |
 
 ---
+
+## 1.1 Real Backend Overlay
+
+E2E.P0.014-P0.016 的 UI 子用例继续使用 fixture-backed component transports，原因是这些场景要稳定覆盖 DOM、source variants、auth pending action、4xx/failed variants、privacy negative grep 与 responsive parity。2026-05-22 L2 remediation 在每个 trigger 前置运行 `src/api/targetJob.realApiMode.test.ts`，并显式设置 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`：该 gate 证明 production bootstrap/generated client 对 `listTargetJobs`、`createUploadPresign`、`importTargetJob`、`getTargetJob`、`updateTargetJob` 使用真实 backend base URL、cookie credentials、side-effect `Idempotency-Key` 与 TargetJob provenance roundtrip。真实 backend route/persistence/auth/IK/parse semantics 由 `backend-targetjob/001-targetjob-import-and-parse-bootstrap` 的 E2E.P0.010-P0.013 live scenarios 配对证明；upload presign route/handler 由 `backend-upload/001-file-objects-and-presign-baseline` focused tests 配对证明。E2E.P0.017 是 jd_match UI-only smoke，不属于 TargetJobs/import/parse real backend overlay。
 
 ## Phase 1 + 2: Home 默认渲染（含 Recent mocks 三态）
 

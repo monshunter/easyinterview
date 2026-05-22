@@ -41,10 +41,19 @@ Verifies the cross-tab data-driven shell landed in plan 002 Phase 2 + 3:
 ## Scripts
 
 - `scripts/setup.sh` — record setup timestamp and output dir
-- `scripts/trigger.sh` — run the data-driven Profile / AGENT Vitest specs
+- `scripts/trigger.sh` — run the real-mode JobMatch generated-client gate,
+  then the data-driven Profile / AGENT Vitest specs
 - `scripts/verify.sh` — assert pass markers and required spec presence
 - `scripts/cleanup.sh` — clear setup.env
 
-## Offline Limitations
+## Real Backend Overlay
 
-- All data flows through fixture-backed mock transport (no network)
+- UI behavior sub-cases still use fixture-backed component transports for
+  deterministic DOM, auth, profile, agent-status, and theme variants.
+- The trigger also runs `src/api/jdMatch.realApiMode.test.ts` with
+  `VITE_EI_API_MODE=real` and
+  `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`, proving the production
+  bootstrap/generated client reaches the real backend base URL for all 12
+  JobMatch operations, including profile and agent-status endpoints.
+- Live profile aggregation, agent scan, auth, IK, privacy, and AI provenance
+  semantics are paired with backend E2E.P0.094-P0.097.

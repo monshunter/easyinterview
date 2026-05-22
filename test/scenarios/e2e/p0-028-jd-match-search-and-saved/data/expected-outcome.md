@@ -1,6 +1,9 @@
 # Expected Outcome
 
 - Search tab renders natural-language input, Run button, source chips, saved searches, and result filters.
+- The trigger log includes `VITE_EI_API_MODE=real` and
+  `jdMatch.realApiMode.test.ts`, proving all 12 JobMatch generated-client
+  operations use the real backend base URL with `credentials: "include"`.
 - `searchJobs` receives the typed query and an Idempotency-Key.
 - Slow-response fixture keeps the five-step AGENT scanning panel visible until the request settles or is aborted.
 - Leaving the Search tab clears query and filter state, aborts in-flight search, and prevents late responses from repopulating results.
@@ -8,3 +11,5 @@
 - Result filters are client-side only and do not dispatch another `searchJobs` request.
 - Run search and Save current pending actions omit query and label from route params.
 - Search-tab Vitest specs all pass and privacy red-line assertions remain green.
+- Backend E2E.P0.094-P0.097 remain the live API proof for auth, IK,
+  persistence, privacy, and AI provenance semantics.

@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-22
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -41,6 +41,14 @@
 - [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
 - [x] 记录验证证据：retired-testid grep 0 命中日志 + generated client spy + mobile 截图
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.017 行（关联需求 C-8，状态 Ready，automated）
+
+## Real Backend Overlay（2026-05-22）
+
+- [x] P0.014-P0.016 trigger scripts export/default `VITE_EI_API_MODE=real` and `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`, then run `src/api/targetJob.realApiMode.test.ts` before fixture-backed UI sub-cases. <!-- evidence: 2026-05-22 P0.014/P0.015/P0.016 trigger logs each include VITE_EI_API_MODE=real, VITE_EI_API_BASE_URL=http://localhost:8080/api/v1, and targetJob.realApiMode.test.ts PASS -->
+- [x] P0.014-P0.016 verify scripts reject missing real-mode markers, so fixture-backed UI PASS alone cannot satisfy TargetJobs/import/parse completion. <!-- evidence: 2026-05-22 verify scripts require VITE_EI_API_MODE=real, VITE_EI_API_BASE_URL=http://localhost:8080/api/v1, and targetJob.realApiMode.test.ts markers -->
+- [x] Backend TargetJob owner evidence paired: E2E.P0.010 / P0.011 / P0.012 / P0.013 setup→trigger→verify→cleanup PASS through `backend/cmd/api` live HTTP harness. <!-- evidence: 2026-05-22 backend scenarios P0.010-P0.013 all PASS; verify scripts accepted generated result artifacts -->
+- [x] Backend upload support evidence paired: `POST /api/v1/uploads/presign` route and handler focused tests PASS, covering the plan001 `createUploadPresign` supporting operation. <!-- evidence: 2026-05-22 `go test ./cmd/api -run TestBuildUploadRoutesAlignsIdempotencyTTLWithPresignTTL -count=1` PASS; `go test ./internal/upload/handler -run 'TestCreateUploadPresignReturnsCreatedResponse|TestCreateUploadPresignIdempotencyReplayAndTTL' -count=1` PASS -->
+- [x] E2E.P0.017 remains jd_match UI-only smoke and intentionally has no TargetJobs real-mode overlay. <!-- evidence: plan001 P0.017 does not consume TargetJobs/import/parse operations -->
 
 ## 整体 Regression（Phase 6 收口）
 

@@ -28,6 +28,7 @@ Verifies the parse preview editing and confirm flow:
 - Hit toggle state NOT in request body
 - Level/language NOT in request body
 - Idempotency-Key header present
+- Real backend mode generated-client gate for TargetJobs read/update and import path operations
 - Nav to workspace with 7 interviewContext fields
 - Auth pending action triggers correctly
 - 4xx error inline, edit state preserved
@@ -43,3 +44,17 @@ Verifies the parse preview editing and confirm flow:
 
 - Requires getMe fixture variant for auth state selection
 - Requires updateTargetJob fixture for success/error paths
+
+## Real Backend Overlay
+
+- The trigger first runs `src/api/targetJob.realApiMode.test.ts` with
+  `VITE_EI_API_MODE=real` and
+  `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`, proving the production
+  generated client routes `listTargetJobs`, `createUploadPresign`,
+  `importTargetJob`, `getTargetJob`, and `updateTargetJob` to the real backend
+  base URL with cookie credentials, Idempotency-Key side effects, and
+  provenance roundtrip.
+- The parse edit/auth UI subcases remain fixture-backed for deterministic
+  request-body, auth pending action, 4xx, and workspace navigation assertions.
+  Backend E2E.P0.010-P0.013 pair this frontend routing proof with live
+  TargetJob route/persistence/auth/IK/privacy/provenance semantics.

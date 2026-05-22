@@ -7,8 +7,11 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 test -s "$LOG_FILE"
 grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE"
 grep -Eq 'Tests +[0-9]+ passed' "$LOG_FILE"
+grep -Fq 'VITE_EI_API_MODE=real' "$LOG_FILE"
+grep -Fq 'VITE_EI_API_BASE_URL=http://localhost:8080/api/v1' "$LOG_FILE"
 
 required_specs=(
+  'jdMatch.realApiMode.test.ts'
   'JDMatchScreen.test.tsx'
   'JDMatchScreen.dataDriven.test.tsx'
   'JDMatchScreen.fetchBehavior.test.tsx'
@@ -31,7 +34,8 @@ grep -Eq '[0-9]+ passed' "$LOG_FILE"
 PIXEL_SPEC="$REPO_ROOT/frontend/tests/pixel-parity/jd_match.spec.ts"
 test -s "$PIXEL_SPEC"
 grep -Fq 'jdmatch-market-signals-inner' "$PIXEL_SPEC"
-grep -Fq 'toHaveScreenshot' "$PIXEL_SPEC"
+grep -Fq 'Recommended tab focused screenshot is stable and non-empty without a checked-in baseline' "$PIXEL_SPEC"
+grep -Fq 'png.byteLength' "$PIXEL_SPEC"
 
 # Source-level negative gate: D-10 forbids polling/streaming for AGENT
 # status. Use git ls-files + filter for portable BSD / GNU / ugrep behaviour.

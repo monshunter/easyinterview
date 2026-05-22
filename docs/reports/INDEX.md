@@ -10,6 +10,8 @@
 |------|------|------|
 | [2026-05-22](./2026-05-22-backend-async-runner-001-l2-remediation-assessment.md) | Backend Async Runner 001 L2 Remediation 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-async-runner-001-assessment.md) | Backend Async Runner 001 交付复盘 | #assessment |
+| [2026-05-22](./2026-05-22-frontend-home-targetjob-real-backend-gate-assessment.md) | Frontend Home TargetJob Real Backend Gate 交付复盘 | #assessment |
+| [2026-05-22](./2026-05-22-frontend-jd-match-real-backend-gate-assessment.md) | Frontend JD Match Real Backend Gate 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-jobs-recommendations-001-l2-followup-assessment.md) | Backend Jobs Recommendations 001 L2 Follow-up 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-jobs-recommendations-001-l2-hardening-retrospective-assessment.md) | Backend Jobs Recommendations 001 L2 Hardening 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-jobs-recommendations-001-jd-match-real-backend-baseline-assessment.md) | Backend Jobs Recommendations 001 JD-Match L2 Assessment And Fix | #assessment |

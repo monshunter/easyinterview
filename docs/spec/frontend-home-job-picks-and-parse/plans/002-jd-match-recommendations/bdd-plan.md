@@ -1,8 +1,8 @@
 # 002 BDD Plan
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-22
 
 **关联 Plan**: [plan](./plan.md)
 
@@ -17,6 +17,10 @@
 | E2E.P0.031 | primary path · Confirm interview from jd_match → parse 出口 params 完整性 + regression（parse 屏不破坏 + 不写额外 storage） | Phase 3 | C-13 | Phase 3.10 |
 
 ---
+
+## 1.1 Real Backend Overlay
+
+E2E.P0.027-P0.031 的 UI 子用例继续使用 fixture-backed component transports，原因是这些场景要稳定覆盖 DOM、auth pending action、4xx/slow-response/empty/partial-data 与隐私 variants。2026-05-22 L2 remediation 在每个 trigger 前置运行 `src/api/jdMatch.realApiMode.test.ts`，并显式设置 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`：该 gate 证明 production bootstrap/generated client 对 12 个 JobMatch operation 使用真实 backend base URL、cookie credentials、5 个 Idempotency-Key side effect 与 GenerationProvenance roundtrip。真实 backend route/persistence/auth/IK/privacy/AI provenance 由 `backend-jobs-recommendations/001-jd-match-real-backend-baseline` 的 E2E.P0.094-P0.097 live scenarios 配对证明。
 
 ## Phase 2 + 3: Recommended tab 主路径 + 4 button 闭环 + auth gate
 

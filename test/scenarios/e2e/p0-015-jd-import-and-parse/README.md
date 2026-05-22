@@ -24,6 +24,7 @@ Verifies the full JD import flow with three source variants:
 
 - importTargetJob discriminator (type + required fields)
 - Idempotency-Key header on all side-effect calls
+- Real backend mode generated-client gate for upload presign, import, parse read, and update
 - polling节奏 ≥600ms, progress step advances
 - Preview渲染: title/company/location/requirements/hidden signals/rounds
 - JD raw text not in console/URL/localStorage/telemetry
@@ -40,3 +41,17 @@ Verifies the full JD import flow with three source variants:
 
 - Requires mock transport fixture variant selection
 - Upload path tests placeholder file metadata only (no real binary upload)
+
+## Real Backend Overlay
+
+- The trigger first runs `src/api/targetJob.realApiMode.test.ts` with
+  `VITE_EI_API_MODE=real` and
+  `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`, proving the production
+  generated client routes `listTargetJobs`, `createUploadPresign`,
+  `importTargetJob`, `getTargetJob`, and `updateTargetJob` to the real backend
+  base URL with cookie credentials, Idempotency-Key side effects, and
+  provenance roundtrip.
+- Fixture-backed UI variants remain the deterministic source for paste/upload/URL
+  DOM, 4xx, failed parse, polling, and privacy UI assertions. Real backend
+  route/persistence/auth/IK/privacy/provenance semantics are paired with
+  backend E2E.P0.010-P0.013.

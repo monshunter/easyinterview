@@ -44,12 +44,19 @@ Verifies the Search tab end-to-end loop landed in plan 002 Phase 4:
 ## Scripts
 
 - `scripts/setup.sh` — record setup timestamp and output dir
-- `scripts/trigger.sh` — run the Search-tab Vitest specs, tee log
+- `scripts/trigger.sh` — run the real-mode JobMatch generated-client gate,
+  then the Search-tab Vitest specs, tee log
 - `scripts/verify.sh` — assert pass markers and required spec presence
 - `scripts/cleanup.sh` — clear setup.env
 
-## Offline Limitations
+## Real Backend Overlay
 
-- All data flows through fixture-backed mock transport (no network)
-- Real backend search pipeline (`searchJobs` + LLM recall + ranking)
-  remains out of scope for plan 002
+- UI behavior sub-cases still use fixture-backed component transports for
+  deterministic DOM, auth, privacy, slow-response, empty, and failure variants.
+- The trigger also runs `src/api/jdMatch.realApiMode.test.ts` with
+  `VITE_EI_API_MODE=real` and
+  `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`, proving the production
+  bootstrap/generated client reaches the real backend base URL for all 12
+  JobMatch operations, including `searchJobs` and `createSavedSearch`.
+- Live search runtime, persistence, AI provenance, auth, IK, and privacy
+  semantics are paired with backend E2E.P0.094-P0.097.

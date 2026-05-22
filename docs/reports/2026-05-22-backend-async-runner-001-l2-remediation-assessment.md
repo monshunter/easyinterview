@@ -5,7 +5,7 @@
 
 ## 1 复盘范围与成功证据
 
-- 本次交付覆盖 `backend-async-runner/001-internal-job-outbox-runner` 的 L2 code review 修复：`cmd/api` 生产启动链路接入 `OutboxDispatcher`，上传 presign 不再强制 MinIO 不支持的 SSE header，privacy 删除 runner 修复 Postgres JSON 参数类型，固定 audit ID 的 integration test 支持重复运行，并同步 owner spec / plan / checklist / BDD gate 与 BUG-0085。
+- 本次交付覆盖 `backend-async-runner/001-internal-job-outbox-runner` 的 L2 code review 修复：`cmd/api` 生产启动链路接入 `OutboxDispatcher`，上传 presign 不再强制 MinIO 不支持的 SSE header，privacy 删除 runner 修复 Postgres JSON 参数类型，固定 audit ID 的 integration test 支持重复运行，并同步 owner spec / plan / checklist / BDD gate 与 BUG-0087。
 - 已通过后端 focused gate：`go test ./cmd/api -run '^(TestMainRunnerKernelDrivesOutboxDispatcher|TestMain_SingleRuntimeShutdown)$' -count=1 -v`、`go test ./internal/runner/... ./internal/privacy/runner ./internal/upload/objectstore -count=1`、report HTTP BDD focused tests P0.041/P0.052/P0.053/P0.054/P0.055。
 - 已通过 live / scenario gate：`make dev-doctor`，`p0-033-file-presign-register-roundtrip` rerun PASS，`async-runner-l2-20260522145606` 覆盖 P0.003/P0.010/P0.011/P0.012/P0.013/P0.034/P0.035/P0.060/P0.062/P0.077/P0.078/P0.080/P0.093/P0.094/P0.095/P0.096/P0.097。
 - 已通过全量本地质量门禁：`go build ./...`、`go vet ./...`、`go test ./...`、`make lint-runner-legacy`、`validate_context.py --target backend`、`sync-doc-index.py --check`、`make docs-check`、`git diff --check`。
