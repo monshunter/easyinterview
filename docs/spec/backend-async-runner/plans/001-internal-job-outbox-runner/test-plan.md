@@ -1,7 +1,7 @@
 # Internal Job and Outbox Runner Test Plan
 
 > **版本**: 1.1
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-22
 
 **关联计划**: [plan](./plan.md)

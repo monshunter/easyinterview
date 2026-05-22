@@ -52,9 +52,10 @@
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | Runtime topology | `backend-runtime-topology` | P0 进程拓扑、worker 收敛、开发期观测依赖边界 |
+| Backend internal runner 实现 | active [`backend-async-runner`](../backend-async-runner/spec.md) | 单一 `runner.Runtime` kernel 承接后台 job lease / retry / reaper / shutdown 与 outbox dispatcher；不拆独立 worker 进程 |
 | Config / secrets | A4 `secrets-and-config` | 删除 worker env/config，并保持 env dictionary / validator / lint 同步 |
 | Events / jobs | B3 `event-and-outbox-contract` | producer enum、event schemas、baseline、Go/TS generated artifacts |
-| Backend auth | C1 `backend-auth` | 继续使用 backend-internal mail dispatcher，不等待独立 worker |
+| Backend auth | C1 `backend-auth` | `email_dispatch` 经 `async_jobs` 由 backend-async-runner kernel 处理，不等待独立 worker |
 | Observability | F1 `observability-stack` | metric/log/trace 命名与红线；消费端只在生产或可选 profile |
 | Local dev stack | A2 `local-dev-stack` | 默认依赖仍为 Postgres / Redis / MinIO，不新增 worker 或观测消费端 |
 

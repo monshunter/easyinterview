@@ -41,7 +41,7 @@
 - 不实现独立 worker / Asynq dispatcher / 生产级 outbox consumer；P0 用 backend-internal drainer 完成本地与 BDD 验证。
 - 不修改 B2 OpenAPI、B3 events.yaml / jobs.yaml、B4 baseline 表结构、A3 provider 协议、F3 `target.import.parse` baseline prompt / rubric 文本；任何修改先回到 owner spec。
 - 不实现报告生成、证据回收、错题回顾或复盘；这些归 `backend-review` / `backend-debrief` owner。
-- 不实现完整 privacy export；`target_jobs` 软删 + 删除矩阵 dry-run 由 [B4](../db-migrations-baseline/spec.md) 与未来 `backend-async-runner` 承接，本 spec 只保证 `deleted_at` 软删字段与 cascade 关系不被违反。
+- 不实现完整 privacy export；`target_jobs` 软删 + 删除矩阵 dry-run schema 由 [B4](../db-migrations-baseline/spec.md) 承接，`privacy_delete` 运行链路已由 [`backend-async-runner/001`](../backend-async-runner/spec.md) kernel 接管（`privacy_export` 仍为 reserved，不由本 plan 注册）；本 spec 只保证 `deleted_at` 软删字段与 cascade 关系不被违反。
 
 ## 3 用户决策 / 待确认事项
 
@@ -53,7 +53,7 @@
 | D-2 | DB 真理源 | 复用 [B4 baseline](../db-migrations-baseline/spec.md) 的 `target_jobs` / `target_job_requirements` / `target_job_sources` 与现有索引、CHECK 约束、软删字段 | 不在本 plan 添加 migration；如需新列必须先修订 B4 |
 | D-3 | 事件契约 | 复用 [B3](../event-and-outbox-contract/spec.md) 已冻结的 `target.import.requested` / `target.parsed` / `target.analysis.failed` 与 `target_import` job | 事件 payload 与 PII 边界不得扩张；新增字段先回到 B3 spec |
 | D-4 | AI 调用形态 | 业务侧调用 [F3 `RegistryClient.Resolve("target.import.parse", language)`](../prompt-rubric-registry/spec.md) → 拿三元组 → 调用 [A3 `AIClient`](../ai-provider-and-model-routing/spec.md) `Complete`；payload 必须携带 `feature_key + prompt_version + rubric_version + model_profile_name + language + data_source_version` | 业务包不得 hardcode prompt 文本，不得直接持有 provider / model 字符串 |
-| D-5 | Async runner 边界 | 沿用 [backend-auth](../backend-auth/spec.md) 同款 in-process goroutine drainer 完成 `target_import` 与下游 `source_refresh` 占位；不启动独立 worker 进程，也不引入 Asynq | 未来 `backend-async-runner` 替换时复用同一 B3 payload red-line |
+| D-5 | Async runner 边界（已收干） | `target_import` 与下游 `source_refresh` 的运行已由 [`backend-async-runner/001`](../backend-async-runner/spec.md) kernel 接管：`targetjob.ParseExecutor` / `SourceRefreshHandler` 经 `runner.FromTargetjobHandler` adapter 注册到单一 `runner.Runtime`；不启动独立 worker 进程，也不引入 Asynq | kernel 复用同一 B3 payload red-line；本 spec 保留 handler 业务实现，`targetjob.Drainer` 抽象仅遗留给 focused 测试 |
 | D-6 | Idempotency | `importTargetJob` / `updateTargetJob` 按 `(user_id, idempotency_key)` 去重；重复请求返回同一 `targetJobId` 与同一 active `target_import` job；解析失败重试由用户显式 `PATCH` 或后续 retry plan 决策 | 防止重复创建 / 重复派发 / 重复写入事件 |
 | D-7 | URL fetch 安全 | 仅允许 `https` scheme；阻止私网 / 链路本地 / 元数据服务 IP；总 body cap 1 MiB；fetch 超时 10s；不跟随 cross-origin redirect 进入私网；user agent 显式标注 EasyInterview crawler 版本；保存 snapshot 时去除 query secret | 防止 SSRF、爬虫滥用与日志泄露 |
 | D-8 | 隐私红线 | 事件 / metric label / log / audit / async payload 不得包含 `raw_jd_text`、`source_url` 完整路径、文件 object URL、AI prompt / response body、provider secret；只允许 hash、长度、language、status、profile、provider、model_id、cost micros、error code | 与 product-scope §9.3 / F1 一致 |

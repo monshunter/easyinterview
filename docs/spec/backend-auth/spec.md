@@ -65,7 +65,7 @@
 | API contract | B2 `openapi-v1-contract` | Auth endpoints、response schema、cookie 描述 |
 | `GetUserIdentityForUser(ctx, db, userID) (UserIdentity, error)` cross-owner internal API | backend-auth | backend-jobs-recommendations/001 BuildJobMatchProfile aggregation (D-17 / D-18 displayName + emailMasked + avatarUrl 来源)；read-only `SELECT email, display_name FROM users WHERE id = $1 AND deleted_at IS NULL`；不返回 raw email（只返回 first + *** + last char + domain 的 emailMasked）；不写 audit_events；不存在 userId 返回 `ErrUserNotFound`；caller 在 BuildJobMatchProfile 中 fallback 到非 PII anonymous display name `Candidate`。实现：`backend/internal/auth/identity.go` + 复用既有 `maskEmail` |
 | backend auth | `backend-auth` | handlers、service、store、session、C1 backend-internal mail dispatcher / dev sink、challenge delivery |
-| event/outbox job contract | B3 `event-and-outbox-contract` + backend internal runner future subject | `email_dispatch` payload redaction helper 与未来 backend runner/outbox 替换边界；不是本 plan 运行前置 |
+| event/outbox job contract | B3 `event-and-outbox-contract` + active [`backend-async-runner`](../backend-async-runner/spec.md) | `email_dispatch` 已收口为 `async_jobs(job_type='email_dispatch')`：producer `auth.EmailDispatchEnqueuer` 同库写入 job 行，kernel `auth.EmailDispatchHandler` 经 `runner.Runtime` lease 后通过 `DeliveryWriter` 投递；payload 仍受 `BuildEmailDispatchPayload` redaction 约束 |
 | config/secrets | A4 `secrets-and-config` | session secret、challenge pepper、email provider secret、固定 `ei_session` cookie name；TTL / dev mail sink 默认值归 C1 代码常量，新增配置前先修订 A4 |
 | frontend gate | `frontend-shell` | pendingAction、登录页面和登录后恢复 |
 | DB/session storage | B4 `db-migrations-baseline` | session/challenge 表或等价持久化边界 |
@@ -81,7 +81,7 @@
 | C-3 | 错误路径 | challenge 过期、重复验证、缺 cookie、配置缺失 | 调用对应 endpoint | 返回 B1 error envelope，日志无 secret / PII 明文 | 001-passwordless-session-bootstrap |
 | C-4 | Runtime config session resolver | 前端启动，用户可能携带有效 session | 请求 `/runtime-config` | A4 handler 仍只返回公开 allowlist 字段；C1 session resolver 只影响允许公开的用户级偏好，不泄露 secret / internal flag | 001-passwordless-session-bootstrap |
 | C-5 | Auth middleware and delete handoff | 用户携带有效或无效 `ei_session` | 访问 protected Auth operation、logout 或 `DELETE /me` | auth start / verify / runtime-config 不要求 session；logout optional-session 且总是清 cookie；protected endpoints 使用 first-party session；`DELETE /me` 支持 idempotency / active-request dedupe，返回 B2 删除响应并撤销 session，删除执行仍由 backend internal runner / B4 承接 | 001-passwordless-session-bootstrap |
-| C-6 | Email dispatch redaction | 用户请求邮箱挑战 | C1 创建派发任务并由 backend 内部后台派发器写入 dev mail sink | `email_dispatch` payload 只含 allowed fields；raw token / URL / 邮箱明文 / 邮件正文不进入 in-process queue、dev sink、future outbox、async_jobs、log 或 audit；无需独立 worker 进程即可通过本地验证 | 001-passwordless-session-bootstrap |
+| C-6 | Email dispatch redaction | 用户请求邮箱挑战 | C1 producer 写入 `async_jobs(email_dispatch)`，backend-async-runner kernel `EmailDispatchHandler` lease 后写入 dev mail sink | `email_dispatch` payload 只含 allowed fields；raw token / URL / 邮箱明文 / 邮件正文不进入 async_jobs payload、dev sink、outbox、log 或 audit；无需独立 worker 进程即可通过本地验证 | 001-passwordless-session-bootstrap |
 | C-7 | Auth observability | challenge / verify / logout / failure 发生 | 记录 metrics / audit | 指标名已在 F1 baseline 或 F1 承接 gate 中登记，label 符合 F1，audit 只含 ID / hash / 状态，不含 secret / PII 明文 | 001-passwordless-session-bootstrap |
 
 ## 7 关联计划

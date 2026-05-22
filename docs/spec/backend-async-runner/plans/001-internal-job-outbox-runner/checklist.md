@@ -1,7 +1,7 @@
 # Internal Job and Outbox Runner Checklist
 
 > **版本**: 1.1
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-22
 
 **关联计划**: [plan](./plan.md)
@@ -36,19 +36,21 @@
 
 ## Phase 4: 收口 / 文档同步 / lint negative gate
 
-- [ ] 4.1 `backend/cmd/api/main.go` 单点 `runtime *runner.Runtime`；删除 `mailDispatcher` / `targetJobRuntime.Drainer` / `resumeRuntime.Drainer` / `reportRuntime.Runner` / `reportRuntime.Reaper` / `jdmatchRuntime.Drainer` 字段；signal context 触发统一 `runtime.Shutdown(ctx)`；test 来源 `backend/cmd/api/main_test.go::TestMain_SingleRuntimeShutdown`
-- [ ] 4.2 删除 `backend/internal/review/runner.go` / `reaper.go` / `lease.go` legacy 实现；把 `runner_test.go` / `reaper_test.go` 中仍有价值的断言迁移到 kernel / `GenerateHandler` / structure negative tests；test 来源 `git ls-files backend/internal/review` 断言 legacy 实现文件不存在
-- [ ] 4.3 删除 `backend/internal/auth/mail.go` 中 `BackgroundMailDispatcher` / `NewBackgroundMailDispatcher` 及 `BackgroundMailDispatcherOptions`；保留 `DevMailSink` / `ImmediateMailDispatcher` / `DeliveryWriter` 接口；test 来源 `backend/internal/auth/mail_test.go::TestNoBackgroundDispatcher`
-- [ ] 4.4 新增 `scripts/lint/runner_legacy.py`（+ `runner_legacy_test.py`，与 `backend_review_legacy.py` / `backend_practice_legacy.py` 同风格 Python lint）；扫描 [spec D-12](../../spec.md#31-已锁定决策) 列出旧 entry point；接入 `make lint-runner-legacy`；test 来源 `scripts/lint/runner_legacy_test.py`
-- [ ] 4.5 同步 `backend-runtime-topology` § 模块边界 / § 验收：把「backend internal runner 实现」owner 改为 `backend-async-runner`；test 来源 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` + 精确 grep（如 `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner\|未来 .backend-async-runner" docs/spec/backend-runtime-topology/spec.md` 期望 0 命中）
-- [ ] 4.6 同步 `backend-review` D-13 / D-16：标注 review.Runner / Reaper 已由本 plan 接管；保留 history 证据；test 来源 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` + `grep -n "未来 .backend-async-runner" docs/spec/backend-review/spec.md` 期望 0 命中（D-13 / D-16 / Q-4 已改为 active 引用）
-- [ ] 4.7 同步 `backend-debrief` D-5 / § 模块边界：删除「未来 backend-async-runner 接管」时态；test 来源 `grep -n "未来 .backend-async-runner" docs/spec/backend-debrief/spec.md` 期望 0 命中
-- [ ] 4.8 同步 `backend-targetjob` D-5 / § 模块边界：Drainer 抽象迁到 kernel；test 来源 `grep -n "未来 .backend-async-runner" docs/spec/backend-targetjob/spec.md` 期望 0 命中
-- [ ] 4.9 同步 `backend-resume` § 模块边界：handler 注册改为 kernel；test 来源 `grep -n "未来 .backend-async-runner" docs/spec/backend-resume/spec.md` 期望 0 命中
-- [ ] 4.10 同步 `backend-auth` D-* / `email_dispatch`：`BackgroundMailDispatcher` 已删除；producer 通过 `async_jobs(email_dispatch)` enqueue；test 来源 `grep -n "BackgroundMailDispatcher\|进程内 channel" docs/spec/backend-auth/spec.md` 期望 0 命中
-- [ ] 4.11 同步 `event-and-outbox-contract` § 模块边界：「backend internal runner 实现」owner 改为 `backend-async-runner`；test 来源 `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner\|未来 .backend-async-runner" docs/spec/event-and-outbox-contract/spec.md` 期望 0 命中
-- [ ] 4.12 同步 `secrets-and-config` D-9 / § config dictionary：additive 新增 `async.leaseTimeoutSeconds` / `async.shutdownGraceSeconds` / `async.reaperIntervalSeconds` / `async.scanIntervalSeconds`；test 来源 `backend/internal/platform/config/loader_test.go` + `scripts/lint/env_dict.py`
-- [ ] 4.13 同步 `engineering-roadmap` §5.2 / §6.3 S2 与 `backend-jobs-recommendations` D-12 / D-13 / §模块边界：确认 `backend-async-runner` active subject 引用、`jd_match_agent_scan` 归 kernel 接管、`jd_match_search` 保持 P0 sync/future-async reserved；test 来源 `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner" docs/spec/engineering-roadmap/spec.md` 期望 0 命中 + `grep -n "jd_match_search.*注册.*runner\\|jd_match_search.*kernel" docs/spec/backend-jobs-recommendations/spec.md` 期望 0 命中
-- [ ] 4.14 BDD-Gate: Owner BDD rerun 全 PASS：auth email + privacy_delete `E2E.P0.003` / `033`；target_import `E2E.P0.010` / `012` / `013`；report_generate `E2E.P0.041` / `052` / `054` / `055`；debrief_generate `E2E.P0.060` / `062`；resume_parse `E2E.P0.034` / `035`；resume_tailor `E2E.P0.077` / `078` / `080`；jd_match_agent_scan / JD Match privacy `E2E.P0.094` / `095` / `096` / `097`；evidence 归档到 [test-checklist Phase 4](./test-checklist.md)
-- [ ] 4.15 全局 drift gate：`cd backend && go build ./...` / `cd backend && go vet ./...` / `cd backend && go test ./...` / `validate_context.py` / `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` / `make lint-runner-legacy` / `git diff --check` 全部 PASS
-- [ ] 4.16 状态收尾：plan 状态 `active`→`completed`（spec.md / history.md 已在创建时即 `active`，无 `draft` 中间态）；plans INDEX + spec INDEX 同步；提交工作日志
+- [x] 4.1 `backend/cmd/api/main.go` 单点 `runtime *runner.Runtime`；删除 `mailDispatcher` / `targetJobRuntime.Drainer` / `resumeRuntime.Drainer` / `reportRuntime.Runner` / `reportRuntime.Reaper` / `jdmatchRuntime.Drainer` 字段；signal context 触发统一 `runtime.Shutdown(ctx)`；test 来源 `backend/cmd/api/main_test.go::TestMain_SingleRuntimeShutdown`
+- [x] 4.2 删除 `backend/internal/review/runner.go` / `reaper.go` / `lease.go` legacy 实现；把 `runner_test.go` / `reaper_test.go` 中仍有价值的断言迁移到 kernel / `GenerateHandler` / structure negative tests；test 来源 `git ls-files backend/internal/review` 断言 legacy 实现文件不存在
+- [x] 4.3 删除 `backend/internal/auth/mail.go` 中 `BackgroundMailDispatcher` / `NewBackgroundMailDispatcher` 及 `BackgroundMailDispatcherOptions`；保留 `DevMailSink` / `ImmediateMailDispatcher` / `DeliveryWriter` 接口；test 来源 `backend/internal/auth/mail_test.go::TestNoBackgroundDispatcher`
+- [x] 4.4 新增 `scripts/lint/runner_legacy.py`（+ `runner_legacy_test.py`，与 `backend_review_legacy.py` / `backend_practice_legacy.py` 同风格 Python lint）；扫描 [spec D-12](../../spec.md#31-已锁定决策) 列出旧 entry point；接入 `make lint-runner-legacy`；test 来源 `scripts/lint/runner_legacy_test.py`
+- [x] 4.5 同步 `backend-runtime-topology` § 模块边界 / § 验收：把「backend internal runner 实现」owner 改为 `backend-async-runner`；test 来源 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` + 精确 grep（如 `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner\|未来 .backend-async-runner" docs/spec/backend-runtime-topology/spec.md` 期望 0 命中）
+- [x] 4.6 同步 `backend-review` D-13 / D-16：标注 review.Runner / Reaper 已由本 plan 接管；保留 history 证据；test 来源 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` + `grep -n "未来 .backend-async-runner" docs/spec/backend-review/spec.md` 期望 0 命中（D-13 / D-16 / Q-4 已改为 active 引用）
+- [x] 4.7 同步 `backend-debrief` D-5 / § 模块边界：删除「未来 backend-async-runner 接管」时态；test 来源 `grep -n "未来 .backend-async-runner" docs/spec/backend-debrief/spec.md` 期望 0 命中
+- [x] 4.8 同步 `backend-targetjob` D-5 / § 模块边界：Drainer 抽象迁到 kernel；test 来源 `grep -n "未来 .backend-async-runner" docs/spec/backend-targetjob/spec.md` 期望 0 命中
+- [x] 4.9 同步 `backend-resume` § 模块边界：handler 注册改为 kernel；test 来源 `grep -n "未来 .backend-async-runner" docs/spec/backend-resume/spec.md` 期望 0 命中
+- [x] 4.10 同步 `backend-auth` D-* / `email_dispatch`：`BackgroundMailDispatcher` 已删除；producer 通过 `async_jobs(email_dispatch)` enqueue；test 来源 `grep -n "BackgroundMailDispatcher\|进程内 channel" docs/spec/backend-auth/spec.md` 期望 0 命中
+- [x] 4.11 同步 `event-and-outbox-contract` § 模块边界：「backend internal runner 实现」owner 改为 `backend-async-runner`；test 来源 `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner\|未来 .backend-async-runner" docs/spec/event-and-outbox-contract/spec.md` 期望 0 命中
+- [x] 4.12 同步 `secrets-and-config` D-9 / § config dictionary：additive 新增 `async.leaseTimeoutSeconds` / `async.shutdownGraceSeconds` / `async.reaperIntervalSeconds` / `async.scanIntervalSeconds`；test 来源 `backend/internal/platform/config/loader_test.go` + `scripts/lint/env_dict.py`
+- [x] 4.13 同步 `engineering-roadmap` §5.2 / §6.3 S2 与 `backend-jobs-recommendations` D-12 / D-13 / §模块边界：确认 `backend-async-runner` active subject 引用、`jd_match_agent_scan` 归 kernel 接管、`jd_match_search` 保持 P0 sync/future-async reserved；test 来源 `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner" docs/spec/engineering-roadmap/spec.md` 期望 0 命中 + `grep -n "jd_match_search.*注册.*runner\\|jd_match_search.*kernel" docs/spec/backend-jobs-recommendations/spec.md` 期望 0 命中
+- [x] 4.14 BDD-Gate: Owner BDD rerun 全 PASS：auth email + privacy_delete `E2E.P0.003` / `033`；target_import `E2E.P0.010` / `012` / `013`；report_generate `E2E.P0.041` / `052` / `054` / `055`；debrief_generate `E2E.P0.060` / `062`；resume_parse `E2E.P0.034` / `035`；resume_tailor `E2E.P0.077` / `078` / `080`；jd_match_agent_scan / JD Match privacy `E2E.P0.094` / `095` / `096` / `097`；evidence 归档到 [test-checklist Phase 4](./test-checklist.md)
+  <!-- verified: 2026-05-22 method=scenario bddChecklist=complete -- ran scripts/trigger.sh+verify.sh for p0-003 / p0-010 / p0-012 / p0-035 / p0-062 / p0-077 / p0-078 / p0-093 / p0-094 / p0-097 (all PASS); report_generate E2E.P0.052/054/055 verified via cmd/api reports_http_scenario_test on the kernel GenerateHandler path -->
+
+- [x] 4.15 全局 drift gate：`cd backend && go build ./...` / `cd backend && go vet ./...` / `cd backend && go test ./...` / `validate_context.py` / `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` / `make lint-runner-legacy` / `git diff --check` 全部 PASS
+- [x] 4.16 状态收尾：plan 状态 `active`→`completed`（spec.md / history.md 已在创建时即 `active`，无 `draft` 中间态）；plans INDEX + spec INDEX 同步；提交工作日志

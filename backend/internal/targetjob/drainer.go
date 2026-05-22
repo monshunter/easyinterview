@@ -45,11 +45,10 @@ type DrainerOptions struct {
 	Logger *slog.Logger
 }
 
-// Drainer is the in-process target_import / source_refresh job runner.
-// Spec D-5 / plan 4.1 require this to live inside the cmd/api process
-// without a separate worker binary; the structure mirrors backend-auth's
-// BackgroundMailDispatcher with an added DB-backed claim path so jobs
-// survive process restarts.
+// Drainer is a legacy in-process job runner retained only for focused domain
+// tests. Production lifecycle is owned by the backend-async-runner kernel
+// (runner.Runtime); see docs/spec/backend-async-runner. It claims async_jobs
+// rows over a DB-backed store so jobs survive process restarts.
 type Drainer struct {
 	store        AsyncJobStore
 	handlers     map[string]JobHandler
