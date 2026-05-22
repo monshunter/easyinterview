@@ -1,6 +1,6 @@
 # JD-Match Real Backend Baseline
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-22
 
@@ -10,6 +10,10 @@
 ## 0 Post-Reopen Completion Note
 
 2026-05-22 `/plan-code-review --fix` 曾将 Phase 5.5-5.8 与 Phase 6.1-6.8 / 6.12-6.13 退回 active：当时 `TestJDMatchHTTPScenario` 仅是 live smoke，`bdd-checklist.md` 与 `test/scenarios/e2e/INDEX.md` 仍无完成证据。后续补齐 `buildJDMatchRuntime` lifecycle gate、12-route session/IK/cross-user/live scenario、`TestJDMatchAgentScanDrainerScenario`、`TestJDMatchFixtureParity` 与 E2E.P0.094-097 wrapper `setup -> trigger -> verify` PASS 证据；本 plan lifecycle 恢复 completed。
+
+## 0.1 L2 Follow-up Completion Note
+
+2026-05-22 第二轮 `/plan-code-review backend-jobs-recommendations/001-jd-match-real-backend-baseline --fix` 修复 review 遗留问题：`privacy_delete` runner 现在会调用 backend-profile `DeleteCandidateProfileForUser` 与 JD-Match `DeleteJobMatchDataForUser`；`jd_match_agent_scan` 在调用 `jd_match.recommendation` generator 前组装 runtime `JobMatchProfile` 与内部 jobs pool JSON；JDMatch handler 错误响应统一为 `ApiErrorResponse` envelope 并使用 shared error registry 的 retryable 值；本地 `.claude/scheduled_tasks.lock` 从版本控制中移除并加入 ignore。验证覆盖 focused 单测、`cmd/api` live JDMatch matrix、`cd backend && go test ./...` 与 E2E.P0.097 wrapper。
 
 ## 1 目标
 

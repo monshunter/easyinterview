@@ -57,3 +57,13 @@
   3. 对 `go test -run` 证据必须加 `go test -list` 或源码反查，确认 focused test 名真实存在；如果测试可以 skip，verify 必须显式拒绝 `--- SKIP` / `testing: warning: no tests to run` / `[no tests to run]`。
   4. Pixel parity gate 必须证明浏览器 runner 执行过；不能只检查 Playwright spec 文件存在或在 README 中写“可手动运行”。
   5. 文档收口时把证据 artifact 名称写成当前脚本真实产物，例如 `.test-output/e2e/<scenario>/trigger.log`，避免 checklist 引用不存在的 `*.evidence.log`。
+
+## 模式 5：Domain service 已实现但 runtime caller 未接入
+
+- **相关 Bug**：BUG-0083, BUG-0084
+- **典型症状**：service 层已有 deletion / generator / outbox / prompt helper，单测也通过，但 `cmd/api` startup path、background runner 或 HTTP handler 没有实际调用；AI prompt contract 有字段名，真实 payload 却是 `{}` / `[]` / 空 RawMessage；error code 常量存在，但响应 envelope 与 retryable 元数据未按 generated contract 返回。
+- **检查清单**：
+  1. 对每个 cross-owner domain service，从 production caller 反查一次：`main.go` / runtime builder / drainer handler / HTTP route 是否真实注入并调用该 service。
+  2. 对 AI generator / search adapter，不只检查 prompt body；在 focused 或 live test 中捕获 `AIClient.Complete` payload，断言业务关键 JSON 字段非空并包含 join key（如 `jobMatchId`）。
+  3. 对 privacy delete、profile delete、domain cascade delete，必须通过 runner/handler 层测试证明 async job 调用了所有 domain deleter，而不只调用单个 service helper。
+  4. 对 API error response，优先解码 generated `ApiErrorResponse`，并断言 `error.retryable` 来自 shared registry 而不是 HTTP status 推断。

@@ -1,12 +1,14 @@
 # 001 BDD Plan
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-22
 
 **关联 Plan**: [plan](./plan.md)
 
 > 2026-05-22 post-reopen completion：E2E.P0.094-097 已补齐 scenario assets、wrapper 断言、trigger logs 与 `test/scenarios/e2e/INDEX.md` Ready/automated 状态；当前验证覆盖 12-route、IK replay、fixture parity、search persistence、agent_scan drainer、outbox 与 privacy delete live path。
+
+> 2026-05-22 L2 follow-up：E2E.P0.097 额外要求 agent scan generator payload 不得为空上下文，必须含 runtime candidate profile 与内部 jobs pool `jobMatchId`；privacy delete must cover upload/profile/JDMatch data via the same async privacy job path.
 
 ## 1 场景矩阵
 

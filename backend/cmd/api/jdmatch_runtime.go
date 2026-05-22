@@ -126,6 +126,12 @@ func buildJDMatchAIAdapters(loader *config.Loader, db *sql.DB, ai aiclient.AICli
 func runJDMatchAgentScan(ctx context.Context, db *sql.DB, repo *jdmatchstore.Repository, userID string, ai generators.AIClient) error {
 	return jdmatchjobs.Run(ctx, userID, jdmatchjobs.AgentScanDeps{
 		AgentScans: repo,
+		CandidateProfile: func(ctx context.Context, userID string) (json.RawMessage, error) {
+			return buildJDMatchProfileJSON(ctx, db, userID)
+		},
+		JobsPool: func(ctx context.Context, userID string) (json.RawMessage, error) {
+			return buildJDMatchJobsPoolJSON(ctx, repo, userID)
+		},
 		Generator: func(ctx context.Context, in generators.RunRecommendationGeneratorInput) (generators.RunRecommendationGeneratorResult, error) {
 			return generators.RunRecommendationGenerator(ctx, ai, repo, in)
 		},
@@ -201,6 +207,55 @@ insert into outbox_events (
 		return fmt.Errorf("insert jdmatch recommendation completed outbox: %w", err)
 	}
 	return nil
+}
+
+func buildJDMatchProfileJSON(ctx context.Context, db *sql.DB, userID string) (json.RawMessage, error) {
+	if db == nil {
+		return nil, fmt.Errorf("jdmatch profile db is nil")
+	}
+	profileRepo := profilestore.NewRepository(db)
+	res, err := service.BuildJobMatchProfile(ctx, userID, jdMatchProfileDeps(db, profileRepo))
+	if err != nil {
+		return nil, err
+	}
+	raw, err := json.Marshal(res.Profile)
+	if err != nil {
+		return nil, err
+	}
+	return json.RawMessage(raw), nil
+}
+
+func jdMatchProfileDeps(db *sql.DB, profileRepo *profilestore.Repository) service.ProfileDeps {
+	return service.ProfileDeps{
+		GetUserIdentity: func(ctx context.Context, userID string) (auth.UserIdentity, error) {
+			return auth.GetUserIdentityForUser(ctx, db, userID)
+		},
+		GetCandidateProfile: func(ctx context.Context, userID string) (*api.CandidateProfile, error) {
+			rec, err := profileRepo.GetCandidateProfileByUser(ctx, userID)
+			if err != nil || rec == nil {
+				return nil, err
+			}
+			cp := api.CandidateProfile{}
+			cp.Headline = rec.Headline
+			cp.YearsOfExperience = rec.YearsOfExperience
+			cp.PreferredPracticeLanguage = rec.PreferredPracticeLanguage
+			cp.UiLanguage = rec.UiLanguage
+			return &cp, nil
+		},
+		CountExperienceCardsBySource: profileRepo.CountExperienceCardsBySource,
+		CountResumes: func(ctx context.Context, userID string) (int, error) {
+			return resume.CountResumesForUser(ctx, db, userID)
+		},
+		CountTargetJobs: func(ctx context.Context, userID string) (int, error) {
+			return targetjob.CountTargetJobsForUser(ctx, db, userID)
+		},
+		CountPracticeSessions: func(ctx context.Context, userID string) (int, error) {
+			return practice.CountPracticeSessionsForUser(ctx, db, userID)
+		},
+		CountDebriefs: func(ctx context.Context, userID string) (int, error) {
+			return debrief.CountDebriefsForUser(ctx, db, userID)
+		},
+	}
 }
 
 type jdMatchSearchCompletedEmitter struct {
@@ -352,36 +407,7 @@ func buildJDMatchRoutesWithOptions(loader *config.Loader, db *sql.DB, jdMatchAI 
 		Session:    currentUserFromContext,
 		AgentScans: repo,
 		ProfileBuilder: func(ctx context.Context, userID string) (service.JobMatchProfileResult, error) {
-			return service.BuildJobMatchProfile(ctx, userID, service.ProfileDeps{
-				GetUserIdentity: func(ctx context.Context, userID string) (auth.UserIdentity, error) {
-					return auth.GetUserIdentityForUser(ctx, db, userID)
-				},
-				GetCandidateProfile: func(ctx context.Context, userID string) (*api.CandidateProfile, error) {
-					rec, err := profileRepo.GetCandidateProfileByUser(ctx, userID)
-					if err != nil || rec == nil {
-						return nil, err
-					}
-					cp := api.CandidateProfile{}
-					cp.Headline = rec.Headline
-					cp.YearsOfExperience = rec.YearsOfExperience
-					cp.PreferredPracticeLanguage = rec.PreferredPracticeLanguage
-					cp.UiLanguage = rec.UiLanguage
-					return &cp, nil
-				},
-				CountExperienceCardsBySource: profileRepo.CountExperienceCardsBySource,
-				CountResumes: func(ctx context.Context, userID string) (int, error) {
-					return resume.CountResumesForUser(ctx, db, userID)
-				},
-				CountTargetJobs: func(ctx context.Context, userID string) (int, error) {
-					return targetjob.CountTargetJobsForUser(ctx, db, userID)
-				},
-				CountPracticeSessions: func(ctx context.Context, userID string) (int, error) {
-					return practice.CountPracticeSessionsForUser(ctx, db, userID)
-				},
-				CountDebriefs: func(ctx context.Context, userID string) (int, error) {
-					return debrief.CountDebriefsForUser(ctx, db, userID)
-				},
-			})
+			return service.BuildJobMatchProfile(ctx, userID, jdMatchProfileDeps(db, profileRepo))
 		},
 	})
 	h.SetRecommendations(repo, repo)
@@ -517,14 +543,26 @@ func (a jdMatchA3F3Adapter) resolve(ctx context.Context, featureKey, language st
 }
 
 func (a jdMatchA3F3Adapter) searchJobsPool(ctx context.Context, userID string) (string, error) {
-	if a.recommendations == nil {
-		return "[]", nil
-	}
-	res, err := a.recommendations.ListRecommendationsByUser(ctx, userID, jdmatchstore.ListRecommendationsFilter{PageSize: 100})
+	raw, err := buildJDMatchJobsPoolJSON(ctx, a.recommendations, userID)
 	if err != nil {
 		return "", err
 	}
-	return compactJDMatchJobsPool(res.Items)
+	return string(raw), nil
+}
+
+func buildJDMatchJobsPoolJSON(ctx context.Context, recommendations jdMatchRecommendationPool, userID string) (json.RawMessage, error) {
+	if recommendations == nil {
+		return json.RawMessage("[]"), nil
+	}
+	res, err := recommendations.ListRecommendationsByUser(ctx, userID, jdmatchstore.ListRecommendationsFilter{PageSize: 100})
+	if err != nil {
+		return nil, err
+	}
+	raw, err := compactJDMatchJobsPool(res.Items)
+	if err != nil {
+		return nil, err
+	}
+	return json.RawMessage(raw), nil
 }
 
 const jdMatchDefaultLanguage = "zh-CN"

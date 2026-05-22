@@ -137,7 +137,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: upload runtime init: %v\n", err)
 		os.Exit(1)
 	}
-	targetJobRuntime, err := buildTargetJobRuntime(loader, db, logger, uploadRoutes.Service)
+	privacyDeleteHooks := &privacyDeleteRuntimeHooks{}
+	targetJobRuntime, err := buildTargetJobRuntime(loader, db, logger, uploadRoutes.Service, privacyDeleteHooks)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: target job runtime init: %v\n", err)
 		os.Exit(1)
@@ -174,6 +175,7 @@ func main() {
 		os.Exit(1)
 	}
 	profileRoutes := buildProfileRoutes(loader, db)
+	privacyDeleteHooks.profileData = profileRoutes.Service.DeleteCandidateProfileForUser
 	jdmatchSearchAI, jdmatchGeneratorAI, err := buildJDMatchAIAdapters(loader, db, targetJobRuntime.AI.Client)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: jdmatch AI runtime init: %v\n", err)
@@ -185,6 +187,10 @@ func main() {
 		os.Exit(1)
 	}
 	jdmatchRoutes := jdmatchRuntime.Routes
+	privacyDeleteHooks.jdMatchData = func(ctx context.Context, userID string) error {
+		_, err := jdmatchRoutes.PrivacyDeleteFunc(ctx, userID)
+		return err
+	}
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -767,6 +773,25 @@ type targetJobRuntime struct {
 	ParseAI aiclient.AIClient
 }
 
+type privacyDeleteRuntimeHooks struct {
+	profileData func(ctx context.Context, userID string, jobID string) error
+	jdMatchData func(ctx context.Context, userID string) error
+}
+
+func (h *privacyDeleteRuntimeHooks) DeleteProfileData(ctx context.Context, userID string, jobID string) error {
+	if h == nil || h.profileData == nil {
+		return nil
+	}
+	return h.profileData(ctx, userID, jobID)
+}
+
+func (h *privacyDeleteRuntimeHooks) DeleteJDMatchData(ctx context.Context, userID string) error {
+	if h == nil || h.jdMatchData == nil {
+		return nil
+	}
+	return h.jdMatchData(ctx, userID)
+}
+
 func (r *targetJobRuntime) Start(ctx context.Context) {
 	if r == nil || r.Drainer == nil {
 		return
@@ -878,7 +903,7 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, 
 	}, nil
 }
 
-func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, uploadFiles privacyrunner.UploadFileDeleter) (*targetJobRuntime, error) {
+func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, uploadFiles privacyrunner.UploadFileDeleter, privacyHooks *privacyDeleteRuntimeHooks) (*targetJobRuntime, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -943,6 +968,8 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 			string(jobs.JobTypePrivacyDelete): privacyrunner.NewPrivacyDeleteHandler(privacyrunner.PrivacyDeleteHandlerOptions{
 				Requests:    privacyrunner.NewSQLStore(db),
 				UploadFiles: uploadFiles,
+				ProfileData: privacyHooks.DeleteProfileData,
+				JDMatchData: privacyHooks.DeleteJDMatchData,
 			}),
 		},
 		Logger: logger,

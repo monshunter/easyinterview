@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch"
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch/handler"
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch/store"
@@ -172,14 +173,15 @@ func TestSearchJobsInvalidOutput(t *testing.T) {
 	if w.Code != http.StatusBadGateway {
 		t.Fatalf("status = %d, want 502", w.Code)
 	}
-	var body struct {
-		Code string `json:"code"`
-	}
+	var body api.ApiErrorResponse
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatalf("decode error body: %v", err)
 	}
-	if body.Code != sharederrors.CodeAiOutputInvalid {
-		t.Fatalf("error code = %q, want %q", body.Code, sharederrors.CodeAiOutputInvalid)
+	if body.Error.Code != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("error code = %q, want %q", body.Error.Code, sharederrors.CodeAiOutputInvalid)
+	}
+	if body.Error.Retryable {
+		t.Fatalf("AI_OUTPUT_INVALID must use registry retryable=false")
 	}
 }
 

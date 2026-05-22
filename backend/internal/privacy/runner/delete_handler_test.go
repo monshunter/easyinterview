@@ -17,9 +17,13 @@ func TestPrivacyDeleteHandlerDeletesUploadFilesForRequestUser(t *testing.T) {
 	uploads := &fakeUploadFileDeleter{deleted: []store.DeletedFileObject{
 		{ID: "file-1", ObjectKey: "user-1/resume/file-1.pdf", Purpose: store.PurposeResume},
 	}}
+	profile := &fakeProfileDataDeleter{}
+	jdmatch := &fakeJDMatchDataDeleter{}
 	handler := runner.NewPrivacyDeleteHandler(runner.PrivacyDeleteHandlerOptions{
 		Requests:    requests,
 		UploadFiles: uploads,
+		ProfileData: profile.DeleteCandidateProfileForUser,
+		JDMatchData: jdmatch.DeleteJobMatchDataForUser,
 		Now:         fixedPrivacyNow,
 	})
 
@@ -36,8 +40,45 @@ func TestPrivacyDeleteHandlerDeletesUploadFilesForRequestUser(t *testing.T) {
 	if requests.lookupID != "privacy-request-1" || uploads.userID != "user-1" {
 		t.Fatalf("lookupID=%q uploadUser=%q", requests.lookupID, uploads.userID)
 	}
+	if profile.userID != "user-1" || profile.jobID != "job-1" {
+		t.Fatalf("profile delete user=%q job=%q", profile.userID, profile.jobID)
+	}
+	if jdmatch.userID != "user-1" {
+		t.Fatalf("jdmatch delete user=%q", jdmatch.userID)
+	}
 	if requests.completedID != "privacy-request-1" || requests.completedCount != 1 {
 		t.Fatalf("completedID=%q completedCount=%d", requests.completedID, requests.completedCount)
+	}
+}
+
+func TestPrivacyDeleteHandlerDomainFailureMarksRequestFailed(t *testing.T) {
+	requests := &fakePrivacyRequestStore{userID: "user-1"}
+	uploads := &fakeUploadFileDeleter{}
+	profile := &fakeProfileDataDeleter{err: errors.New("profile delete failed")}
+	jdmatch := &fakeJDMatchDataDeleter{}
+	handler := runner.NewPrivacyDeleteHandler(runner.PrivacyDeleteHandlerOptions{
+		Requests:    requests,
+		UploadFiles: uploads,
+		ProfileData: profile.DeleteCandidateProfileForUser,
+		JDMatchData: jdmatch.DeleteJobMatchDataForUser,
+		Now:         fixedPrivacyNow,
+	})
+
+	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID:        "job-1",
+		JobType:      "privacy_delete",
+		ResourceType: "privacy_request",
+		ResourceID:   "privacy-request-1",
+	})
+
+	if outcome.Succeeded || outcome.Retryable || outcome.ErrorCode != runner.ErrorCodePrivacyDeleteFailed {
+		t.Fatalf("unexpected outcome: %+v", outcome)
+	}
+	if requests.failedID != "privacy-request-1" || requests.completedID != "" {
+		t.Fatalf("failed=%q completed=%q", requests.failedID, requests.completedID)
+	}
+	if jdmatch.userID != "" {
+		t.Fatalf("jdmatch delete must not run after profile failure, got %q", jdmatch.userID)
 	}
 }
 
@@ -121,4 +162,26 @@ func (s *fakePrivacyRequestStore) MarkDeleteRequestFailed(ctx context.Context, p
 
 func fixedPrivacyNow() time.Time {
 	return time.Date(2026, 5, 12, 3, 0, 0, 0, time.UTC)
+}
+
+type fakeProfileDataDeleter struct {
+	userID string
+	jobID  string
+	err    error
+}
+
+func (d *fakeProfileDataDeleter) DeleteCandidateProfileForUser(ctx context.Context, userID string, jobID string) error {
+	d.userID = userID
+	d.jobID = jobID
+	return d.err
+}
+
+type fakeJDMatchDataDeleter struct {
+	userID string
+	err    error
+}
+
+func (d *fakeJDMatchDataDeleter) DeleteJobMatchDataForUser(ctx context.Context, userID string) error {
+	d.userID = userID
+	return d.err
 }

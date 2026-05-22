@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -295,14 +296,15 @@ limit 1`,
 	if resp.status != http.StatusBadGateway {
 		t.Fatalf("search invalid output status=%d body=%s", resp.status, resp.body)
 	}
-	var invalidErr struct {
-		Code string `json:"code"`
-	}
+	var invalidErr api.ApiErrorResponse
 	if err := json.Unmarshal(resp.body, &invalidErr); err != nil {
 		t.Fatalf("search invalid error decode: %v", err)
 	}
-	if invalidErr.Code != sharederrors.CodeAiOutputInvalid {
-		t.Fatalf("search invalid code=%q want %q", invalidErr.Code, sharederrors.CodeAiOutputInvalid)
+	if invalidErr.Error.Code != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("search invalid code=%q want %q", invalidErr.Error.Code, sharederrors.CodeAiOutputInvalid)
+	}
+	if invalidErr.Error.Retryable {
+		t.Fatalf("search invalid output must be non-retryable")
 	}
 	assertJDMatchRowCount(t, db, `select count(*) from jd_match_search_runs where user_id = $1`, userA, 1)
 
@@ -326,12 +328,13 @@ func TestJDMatchAgentScanDrainerScenario(t *testing.T) {
 	)
 	cleanupJDMatchDrainerScenario(t, db, userID, jobID, recID)
 	seedJDMatchUser(t, ctx, db, userID, "jdmatch-drainer@example.com", "JDMatch Drainer")
+	seedJDMatchRecommendation(t, ctx, db, userID, recID, 77)
 	t.Cleanup(func() {
 		cleanupJDMatchDrainerScenario(t, db, userID, jobID, recID)
 		cleanupJDMatchUsers(t, db, userID)
 	})
 
-	ai := jdmatchScenarioGeneratorAI{body: mustJDMatchScenarioJSON(t, []map[string]any{
+	ai := &jdmatchScenarioGeneratorAI{body: mustJDMatchScenarioJSON(t, []map[string]any{
 		{
 			"jobMatchId":          recID,
 			"title":               "Backend Platform Engineer",
@@ -453,6 +456,14 @@ limit 1`,
 	if payload.UserID != userID || payload.AgentScanID != scanID || payload.RecommendationCount != 1 || payload.CompletedAt == "" {
 		t.Fatalf("outbox payload drift: %+v", payload)
 	}
+	candidateProfile, _ := ai.payload["candidateProfile"].(json.RawMessage)
+	jobsPool, _ := ai.payload["jobsPool"].(json.RawMessage)
+	if !json.Valid(candidateProfile) || !strings.Contains(string(candidateProfile), "JDMatch Drainer") {
+		t.Fatalf("agent_scan candidate profile payload missing runtime context: %s", string(candidateProfile))
+	}
+	if !json.Valid(jobsPool) || !strings.Contains(string(jobsPool), recID) {
+		t.Fatalf("agent_scan jobs pool payload missing jobMatchId seed: %s", string(jobsPool))
+	}
 
 	runtime.Start(ctx)
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -557,10 +568,12 @@ func cleanupJDMatchScenarioEmails(t *testing.T, db *sql.DB, emails ...string) {
 }
 
 type jdmatchScenarioGeneratorAI struct {
-	body []byte
+	body    []byte
+	payload map[string]any
 }
 
-func (a jdmatchScenarioGeneratorAI) Complete(context.Context, string, map[string]any) (generators.CompleteResult, error) {
+func (a *jdmatchScenarioGeneratorAI) Complete(_ context.Context, _ string, payload map[string]any) (generators.CompleteResult, error) {
+	a.payload = payload
 	return generators.CompleteResult{
 		Body:              a.body,
 		PromptVersion:     "jd_match_recommendation.v1",

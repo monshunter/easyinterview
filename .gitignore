@@ -90,6 +90,7 @@ Desktop.ini
 
 # ── Local tool / agent caches ────────────────────────────────────
 .claude/cache/
+.claude/scheduled_tasks.lock
 .codex/cache/
 .gemini/cache/
 .agent/cache/

@@ -2,6 +2,7 @@ package jobs_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -40,9 +41,23 @@ func fixedNow() time.Time { return time.Date(2026, 5, 21, 5, 0, 0, 0, time.UTC) 
 func TestAgentScanRunSuccess(t *testing.T) {
 	repo := &fakeAgentRepo{}
 	emitted := false
+	var captured generators.RunRecommendationGeneratorInput
 	deps := jobs.AgentScanDeps{
 		AgentScans: repo,
-		Generator: func(ctx context.Context, _ generators.RunRecommendationGeneratorInput) (generators.RunRecommendationGeneratorResult, error) {
+		CandidateProfile: func(ctx context.Context, userID string) (json.RawMessage, error) {
+			if userID != "user-A" {
+				t.Fatalf("candidate profile user = %q", userID)
+			}
+			return json.RawMessage(`{"displayName":"Alice","skills":["Go"]}`), nil
+		},
+		JobsPool: func(ctx context.Context, userID string) (json.RawMessage, error) {
+			if userID != "user-A" {
+				t.Fatalf("jobs pool user = %q", userID)
+			}
+			return json.RawMessage(`[{"jobMatchId":"rec-1","title":"Backend"}]`), nil
+		},
+		Generator: func(ctx context.Context, in generators.RunRecommendationGeneratorInput) (generators.RunRecommendationGeneratorResult, error) {
+			captured = in
 			return generators.RunRecommendationGeneratorResult{
 				Recommendations: []jdmatch.RecommendationRecord{{ID: "rec-1"}, {ID: "rec-2"}},
 				CompletedEvent:  generators.RecommendationCompletedEvent{UserID: "user-A", RecommendationCount: 2},
@@ -74,6 +89,15 @@ func TestAgentScanRunSuccess(t *testing.T) {
 	if repo.updated.RecommendationCount == nil || *repo.updated.RecommendationCount != 2 {
 		t.Fatalf("recommendationCount = %v", repo.updated.RecommendationCount)
 	}
+	if captured.UserID != "user-A" || captured.AgentScanID != "scan-1" {
+		t.Fatalf("generator input identity = %+v", captured)
+	}
+	if got := string(captured.CandidateProfileJSON); got != `{"displayName":"Alice","skills":["Go"]}` {
+		t.Fatalf("candidate profile json = %s", got)
+	}
+	if got := string(captured.JobsPoolJSON); got != `[{"jobMatchId":"rec-1","title":"Backend"}]` {
+		t.Fatalf("jobs pool json = %s", got)
+	}
 }
 
 func TestAgentScanRunFailureMarksError(t *testing.T) {
@@ -81,6 +105,12 @@ func TestAgentScanRunFailureMarksError(t *testing.T) {
 	emitted := false
 	deps := jobs.AgentScanDeps{
 		AgentScans: repo,
+		CandidateProfile: func(ctx context.Context, userID string) (json.RawMessage, error) {
+			return json.RawMessage(`{"displayName":"Alice"}`), nil
+		},
+		JobsPool: func(ctx context.Context, userID string) (json.RawMessage, error) {
+			return json.RawMessage(`[{"jobMatchId":"rec-1"}]`), nil
+		},
 		Generator: func(ctx context.Context, _ generators.RunRecommendationGeneratorInput) (generators.RunRecommendationGeneratorResult, error) {
 			return generators.RunRecommendationGeneratorResult{}, generators.ErrInvalidLLMOutput
 		},

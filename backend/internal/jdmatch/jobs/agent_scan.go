@@ -18,10 +18,12 @@ import (
 
 // AgentScanDeps bundles the dependencies the agent_scan job consumes.
 type AgentScanDeps struct {
-	AgentScans store.AgentScanRepository
-	Generator  func(ctx context.Context, in generators.RunRecommendationGeneratorInput) (generators.RunRecommendationGeneratorResult, error)
-	NewID      func() string
-	Now        func() time.Time
+	AgentScans       store.AgentScanRepository
+	CandidateProfile func(ctx context.Context, userID string) (json.RawMessage, error)
+	JobsPool         func(ctx context.Context, userID string) (json.RawMessage, error)
+	Generator        func(ctx context.Context, in generators.RunRecommendationGeneratorInput) (generators.RunRecommendationGeneratorResult, error)
+	NewID            func() string
+	Now              func() time.Time
 	// NextScanInterval is the cadence used to compute next_scan_at on
 	// successful runs; cmd/api wiring reads this from A4 config.
 	NextScanInterval time.Duration
@@ -47,7 +49,7 @@ type AgentScanRepository = store.AgentScanRepository
 // columns are written by the AIClient observability decorator wired
 // in cmd/api, so this job does not touch ai_task_runs directly.
 func Run(ctx context.Context, userID string, deps AgentScanDeps) error {
-	if deps.AgentScans == nil || deps.Generator == nil || deps.NewID == nil {
+	if deps.AgentScans == nil || deps.CandidateProfile == nil || deps.JobsPool == nil || deps.Generator == nil || deps.NewID == nil {
 		return errors.New("jdmatch agent_scan: dependencies missing")
 	}
 	now := time.Now().UTC()
@@ -64,20 +66,29 @@ func Run(ctx context.Context, userID string, deps AgentScanDeps) error {
 	}); err != nil {
 		return fmt.Errorf("agent_scan: create row: %w", err)
 	}
+	candidateProfileJSON, err := deps.CandidateProfile(ctx, userID)
+	if err != nil {
+		if markErr := markAgentScanError(ctx, deps.AgentScans, scanID, userID, now, err); markErr != nil {
+			return markErr
+		}
+		return fmt.Errorf("agent_scan context: candidate profile: %w", err)
+	}
+	jobsPoolJSON, err := deps.JobsPool(ctx, userID)
+	if err != nil {
+		if markErr := markAgentScanError(ctx, deps.AgentScans, scanID, userID, now, err); markErr != nil {
+			return markErr
+		}
+		return fmt.Errorf("agent_scan context: jobs pool: %w", err)
+	}
 	res, genErr := deps.Generator(ctx, generators.RunRecommendationGeneratorInput{
-		UserID:      userID,
-		AgentScanID: scanID,
+		UserID:               userID,
+		AgentScanID:          scanID,
+		CandidateProfileJSON: candidateProfileJSON,
+		JobsPoolJSON:         jobsPoolJSON,
 	})
 	if genErr != nil {
-		errMsg := redactGeneratorError(genErr)
-		if _, err := deps.AgentScans.UpdateAgentScanStatus(ctx, store.UpdateAgentScanStatusInput{
-			ID:           scanID,
-			UserID:       userID,
-			Status:       jdmatch.AgentScanStatusError,
-			FinishedAt:   ptrTime(now),
-			ErrorMessage: &errMsg,
-		}); err != nil {
-			return fmt.Errorf("agent_scan: mark error: %w (original: %w)", err, genErr)
+		if err := markAgentScanError(ctx, deps.AgentScans, scanID, userID, now, genErr); err != nil {
+			return err
 		}
 		return fmt.Errorf("agent_scan generator: %w", genErr)
 	}
@@ -110,6 +121,20 @@ func Run(ctx context.Context, userID string, deps AgentScanDeps) error {
 
 func ptrTime(t time.Time) *time.Time { return &t }
 
+func markAgentScanError(ctx context.Context, repo store.AgentScanRepository, scanID string, userID string, now time.Time, cause error) error {
+	errMsg := redactGeneratorError(cause)
+	if _, err := repo.UpdateAgentScanStatus(ctx, store.UpdateAgentScanStatusInput{
+		ID:           scanID,
+		UserID:       userID,
+		Status:       jdmatch.AgentScanStatusError,
+		FinishedAt:   ptrTime(now),
+		ErrorMessage: &errMsg,
+	}); err != nil {
+		return fmt.Errorf("agent_scan: mark error: %w (original: %w)", err, cause)
+	}
+	return nil
+}
+
 // redactGeneratorError summarises the generator error without leaking
 // LLM prompt content or other PII. Known sentinels keep their short
 // label; everything else collapses to the underlying type name.
@@ -125,8 +150,3 @@ func redactGeneratorError(err error) string {
 	}
 	return fmt.Sprintf("%T", err)
 }
-
-// Ensure json is imported even if no JSON marshalling is used here —
-// kept available for future event payload work the cmd/api wiring may
-// inject.
-var _ = json.Marshal

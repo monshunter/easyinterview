@@ -26,12 +26,16 @@ type PrivacyRequestStore interface {
 type PrivacyDeleteHandlerOptions struct {
 	Requests    PrivacyRequestStore
 	UploadFiles UploadFileDeleter
+	ProfileData func(ctx context.Context, userID string, jobID string) error
+	JDMatchData func(ctx context.Context, userID string) error
 	Now         func() time.Time
 }
 
 type PrivacyDeleteHandler struct {
 	requests    PrivacyRequestStore
 	uploadFiles UploadFileDeleter
+	profileData func(ctx context.Context, userID string, jobID string) error
+	jdMatchData func(ctx context.Context, userID string) error
 	now         func() time.Time
 }
 
@@ -40,7 +44,13 @@ func NewPrivacyDeleteHandler(opts PrivacyDeleteHandlerOptions) *PrivacyDeleteHan
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	return &PrivacyDeleteHandler{requests: opts.Requests, uploadFiles: opts.UploadFiles, now: now}
+	return &PrivacyDeleteHandler{
+		requests:    opts.Requests,
+		uploadFiles: opts.UploadFiles,
+		profileData: opts.ProfileData,
+		jdMatchData: opts.JDMatchData,
+		now:         now,
+	}
 }
 
 func (h *PrivacyDeleteHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) targetjob.JobOutcome {
@@ -68,6 +78,18 @@ func (h *PrivacyDeleteHandler) Handle(ctx context.Context, job targetjob.Claimed
 		}
 		_ = h.requests.MarkDeleteRequestFailed(ctx, job.ResourceID, ErrorCodePrivacyDeleteFailed, err.Error(), now)
 		return failedOutcome(ErrorCodePrivacyDeleteFailed, err.Error(), false)
+	}
+	if h.profileData != nil {
+		if err := h.profileData(ctx, userID, job.JobID); err != nil {
+			_ = h.requests.MarkDeleteRequestFailed(ctx, job.ResourceID, ErrorCodePrivacyDeleteFailed, err.Error(), now)
+			return failedOutcome(ErrorCodePrivacyDeleteFailed, err.Error(), false)
+		}
+	}
+	if h.jdMatchData != nil {
+		if err := h.jdMatchData(ctx, userID); err != nil {
+			_ = h.requests.MarkDeleteRequestFailed(ctx, job.ResourceID, ErrorCodePrivacyDeleteFailed, err.Error(), now)
+			return failedOutcome(ErrorCodePrivacyDeleteFailed, err.Error(), false)
+		}
 	}
 	if err := h.requests.MarkDeleteRequestCompleted(ctx, job.ResourceID, len(deleted), now); err != nil {
 		return failedOutcome(ErrorCodePrivacyDeleteRetryable, fmt.Sprintf("mark privacy request completed: %v", err), true)

@@ -89,15 +89,16 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 func writeAPIError(w http.ResponseWriter, status int, code string, message string, details map[string]any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+	meta := sharederrors.CodeRegistry[code]
 	payload := api.ApiError{
 		Code:      code,
 		Message:   message,
-		Retryable: status >= 500,
+		Retryable: meta.Retryable,
 	}
 	if details != nil {
 		payload.Details = details
 	}
-	_ = json.NewEncoder(w).Encode(payload)
+	_ = json.NewEncoder(w).Encode(api.ApiErrorResponse{Error: payload})
 }
 
 func writeServiceError(w http.ResponseWriter, err error, fallback string) {

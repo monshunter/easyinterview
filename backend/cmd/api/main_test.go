@@ -1597,7 +1597,7 @@ ai:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
@@ -1679,7 +1679,7 @@ ai:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiUploadFileDeleter{})
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiUploadFileDeleter{}, nil)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
@@ -1732,7 +1732,7 @@ ai:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}

@@ -1,12 +1,22 @@
 # JD-Match Real Backend Baseline Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-22
 
 **关联计划**: [plan](./plan.md)
 
 > 2026-05-22 post-reopen completion：Phase 5.5-5.8、Phase 6.1-6.8 与 E2E.P0.094-097 已补齐真实 `cmd/api` route/runtime、fixture parity、drainer、scenario wrapper 与 INDEX Ready/automated 证据；本 checklist 恢复 completed。
+
+> 2026-05-22 L2 follow-up completion：review 遗留的 privacy runner 集成、agent_scan generator 上下文、JDMatch error envelope/retryable 与本地 lock 文件问题已修复；新增单测与 live cmd/api 断言覆盖，详见 Phase 7。
+
+## Phase 7: L2 follow-up remediation
+
+- [x] 7.1 `privacy_delete` runner 接入 profile + JDMatch domain deleter：`DELETE /api/v1/me` 触发的 privacy job 现在除 upload file objects 外，还调用 backend-profile candidate profile 删除与 `DeleteJobMatchDataForUser` 5 表级联删除；domain delete failure 标记 privacy request failed（验证：`cd backend && go test ./internal/privacy/runner -run 'TestPrivacyDeleteHandler(DeletesUploadFilesForRequestUser|DomainFailureMarksRequestFailed)$' -count=1` PASS；`cd backend && go test ./internal/privacy/runner -count=1` PASS）。
+- [x] 7.2 `jd_match_agent_scan` 在 generator 调用前构造 `CandidateProfileJSON` 与 `JobsPoolJSON`：runtime 复用 `BuildJobMatchProfile` 聚合和 `jd_match_recommendations` 内部 pool，保留 `jobMatchId` 给 F3 recommendation prompt（验证：`cd backend && go test ./internal/jdmatch/jobs -run TestAgentScanRunSuccess -count=1` PASS；live `TestJDMatchAgentScanDrainerScenario` 断言 AI payload 含 `JDMatch Drainer` 与 seeded `jobMatchId`）。
+- [x] 7.3 JDMatch handler 错误响应统一为 B2 `ApiErrorResponse` envelope，`AI_OUTPUT_INVALID` 使用 `CodeRegistry` retryable=false（验证：`cd backend && go test ./internal/jdmatch/handler -run TestSearchJobsInvalidOutput -count=1` PASS；`TestJDMatchHTTPScenario` invalid search branch PASS）。
+- [x] 7.4 删除误提交的 `.claude/scheduled_tasks.lock` 并在 `.gitignore` 中忽略，避免本地 agent 运行状态进入仓库（验证：`git ls-files .claude/scheduled_tasks.lock` 后续提交中应为空）。
+- [x] 7.5 回归 gate：`cd backend && go test ./...` PASS；`cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test ./cmd/api -run '^(TestJDMatchAgentScanDrainerScenario|TestJDMatchHTTPScenario|TestBuildTargetJobRuntimeRegistersPrivacyDeleteHandler)$' -count=1 -v` PASS；E2E.P0.097 `setup.sh -> trigger.sh -> verify.sh` PASS。
 
 ## Phase 0: cross-owner additive 准备
 

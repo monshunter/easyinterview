@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-22](2026-05-22.md) | `fix(backend-jobs): close jd-match L2 follow-up (BUG-0084)` | #fix #test #docs |
 | [2026-05-22](2026-05-22.md) | `docs(spec): sync async-runner and B3 specs after main merge` | #docs |
 | [2026-05-22](2026-05-22.md) | `docs(spec): seed backend-async-runner subject` | #docs |
 | [2026-05-22](2026-05-22.md) | `fix(backend-jobs): close jd-match L2 hardening (BUG-0082, BUG-0083)` | #fix #test #docs |
