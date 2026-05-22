@@ -16,8 +16,8 @@ const (
 	PriorityLow      Priority = "low"
 )
 
-// priorityOrder lists buckets from highest to lowest precedence. The runtime
-// tries to lease from earlier buckets first.
+// priorityOrder lists buckets from highest to lowest precedence for the
+// synchronous RunOnce driver.
 var priorityOrder = []Priority{PriorityCritical, PriorityDefault, PriorityLow}
 
 // defaultJobTypePriority is the spec D-9 fixed assignment over the 9 currently
@@ -44,8 +44,10 @@ func PriorityForJobType(jobType string) Priority {
 	return PriorityDefault
 }
 
-// QueueWeights is the A4 async.queueWeights typed config. The values seed
-// fair-scheduling weights per priority bucket; all three must be positive.
+// QueueWeights is the A4 async.queueWeights typed config. The values define
+// priority bucket ordering for RunOnce; production Start uses independent
+// per-job-type loops so lower-priority user-visible jobs are not starved by
+// long-running higher-priority handlers. All three must be positive.
 type QueueWeights struct {
 	Critical int
 	Default  int

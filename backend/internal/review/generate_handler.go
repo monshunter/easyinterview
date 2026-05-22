@@ -25,9 +25,9 @@ type GenerateHandlerOptions struct {
 
 // GenerateHandler is the report_generate runner.Handler. It replaces the
 // standalone review.Runner: the kernel leases the async_jobs row, this handler
-// flips the report to generating and runs the AI report service, and the kernel
-// finalizes the row unless the service already finalized it inside its own
-// transaction (ReportOutcome.AsyncJobFinalized).
+// flips the report to generating and runs the AI report service. Success may be
+// finalized by the report service transaction; failures are always normalized
+// back through the kernel so the shared BackoffPolicy owns retry/dead-letter.
 type GenerateHandler struct {
 	store   ReportStatusStore
 	service ReportService
@@ -77,6 +77,6 @@ func (h *GenerateHandler) Handle(ctx context.Context, job runner.ClaimedJob) run
 		Retryable:         outcome.Retryable,
 		ErrorCode:         outcome.ErrorCode,
 		ErrorMessage:      outcome.ErrorMessage,
-		AsyncJobFinalized: outcome.AsyncJobFinalized,
+		AsyncJobFinalized: outcome.Succeeded && outcome.AsyncJobFinalized,
 	}
 }

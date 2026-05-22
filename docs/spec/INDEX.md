@@ -21,7 +21,7 @@
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.3 | active | 2026-05-05 | [plans](./repo-scaffold/plans/) |
 | [local-dev-stack](./local-dev-stack/spec.md) | 1.10 | active | 2026-05-08 | [plans](./local-dev-stack/plans/) |
 | [backend-runtime-topology](./backend-runtime-topology/spec.md) | 1.4 | active | 2026-05-07 | [plans](./backend-runtime-topology/plans/) |
-| [backend-async-runner](./backend-async-runner/spec.md) | 1.3 | active | 2026-05-22 | [plans](./backend-async-runner/plans/) |
+| [backend-async-runner](./backend-async-runner/spec.md) | 1.4 | active | 2026-05-22 | [plans](./backend-async-runner/plans/) |
 | [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.11 | active | 2026-05-21 | [plans](./ai-provider-and-model-routing/plans/) |
 | [secrets-and-config](./secrets-and-config/spec.md) | 2.5 | active | 2026-05-12 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.3 | active | 2026-04-29 | [plans](./ci-pipeline-baseline/plans/) |

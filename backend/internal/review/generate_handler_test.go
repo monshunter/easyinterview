@@ -86,3 +86,22 @@ func TestGenerateHandler_PropagatesRetryableFailure(t *testing.T) {
 		t.Fatalf("handler must not claim finalize when the service did not")
 	}
 }
+
+func TestGenerateHandler_NormalizesFinalizedRetryableFailureThroughKernel(t *testing.T) {
+	store := &fakeGenStatusStore{}
+	svc := &fakeGenReportService{outcome: ReportOutcome{
+		Retryable:         true,
+		ErrorCode:         "AI_PROVIDER_TIMEOUT",
+		ErrorMessage:      "timeout",
+		AsyncJobFinalized: true,
+	}}
+	h := NewGenerateHandler(GenerateHandlerOptions{Store: store, Service: svc})
+
+	out := h.Handle(context.Background(), runner.ClaimedJob{JobID: "job-1", ResourceID: "report-1", Attempts: 3, MaxAttempts: 5})
+	if out.Succeeded || !out.Retryable || out.ErrorCode != "AI_PROVIDER_TIMEOUT" {
+		t.Fatalf("outcome = %+v, want retryable timeout", out)
+	}
+	if out.AsyncJobFinalized {
+		t.Fatalf("retryable report failures must be finalized by the runner kernel to use shared backoff")
+	}
+}

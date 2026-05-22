@@ -211,8 +211,8 @@ func TestE2EP0054ReportAIFailureAndRetry(t *testing.T) {
 			if outcome.Succeeded || outcome.ErrorCode != tc.wantCode {
 				t.Fatalf("outcome = %+v, want %s", outcome, tc.wantCode)
 			}
-			if !outcome.AsyncJobFinalized {
-				t.Fatalf("outcome.AsyncJobFinalized = false, want true")
+			if outcome.AsyncJobFinalized {
+				t.Fatalf("failure outcome must leave async job finalization to the runner kernel")
 			}
 			if repo.failed.ErrorCode != tc.wantCode {
 				t.Fatalf("persisted failure = %+v", repo.failed)

@@ -1,6 +1,6 @@
 # Internal Job and Outbox Runner
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-22
 
@@ -25,7 +25,7 @@
 - retry backoff 在 review / resume / targetjob 三处不一致；
 - `email_dispatch` 还在 `auth.BackgroundMailDispatcher` 进程内 channel，未走 `async_jobs`。
 
-本计划不修改任何业务 handler 的对外行为，只迁移生命周期边界与运行形态。计划完成后的当前事实以 [spec v1.3](../../spec.md) 的完成态描述、[checklist](./checklist.md) 4.17 L2 remediation 证据和 [test-checklist](./test-checklist.md) gate 记录为准。
+本计划不修改任何业务 handler 的对外行为，只迁移生命周期边界与运行形态。计划完成后的当前事实以 [spec v1.4](../../spec.md) 的完成态描述、[checklist](./checklist.md) 4.18 L2 scheduler/backoff remediation 证据和 [test-checklist](./test-checklist.md) gate 记录为准。
 
 ## 3 质量门禁分类
 
@@ -185,9 +185,13 @@ dispatcher 在调用 consumer 前从 outbox payload / envelope 中读取 `traceI
 
 完成全部 acceptance criteria 后，把本 plan 状态从 `active` 改为 `completed`；spec.md / history.md 已在创建时即为 `active`，本步骤不再涉及 `draft → active` 过渡；同步 spec INDEX + plans INDEX。
 
+#### 4.7 L2 scheduler/backoff remediation
+
+针对 code review 暴露的 scheduling 与 retry-finalization 缺口补齐 runtime hardening：`Runtime.Start` 的生产 lease loop 按 registered job_type 独立运行，防止 long-running `report_generate` / `resume_parse` 阻塞 low-priority `email_dispatch`；`Runtime.dispatch` 的 retry `available_at` 与 terminal `completed_at` 使用 handler 返回后的 fresh timestamp；`review.GenerateHandler` 将 failure outcome 归一化给 kernel finalize，`review.Repository.PersistReportFailure` 只维护 `feedback_reports` / outbox / audit 域状态，不再更新 `async_jobs` 或复用旧 review-store backoff。
+
 ## 5 验收标准
 
-- 本计划列出的实现 / 测试项全部通过（覆盖 [spec C-1~C-20](../../spec.md#6-验收标准)，含 C-13a missing-consumer safety）。
+- 本计划列出的实现 / 测试项全部通过（覆盖 [spec C-1~C-21](../../spec.md#6-验收标准)，含 C-13a missing-consumer safety）。
 - 替代验证 gate 全部 PASS：contract / integration / regression rerun / legacy negative lint / doc reconcile / drift gate。
 - 不存在新增的用户可见行为缺口；既有 owner spec BDD 场景 rerun 通过。
 
@@ -196,7 +200,7 @@ dispatcher 在调用 consumer 前从 outbox payload / envelope 中读取 `traceI
 | 风险 | 应对措施 |
 |------|----------|
 | review.Runner 删除后报告生成回归 | Phase 2.5 完成时 rerun `review/runner_test.go` + `cmd/api/reports_http_scenario_test.go`；任何失败必须先修复再进入下一 phase |
-| email_dispatch 切到 async_jobs 后 magic link 投递延迟 | 把 `email_dispatch` 列入 `low` priority bucket 但 lease loop 仍≤5s scan；P3 收口阶段 smoke 验证 auth email start → DevMailSink delivery 延迟 ≤ 1 个 scan 周期 |
+| email_dispatch 切到 async_jobs 后 magic link 投递延迟 | 把 `email_dispatch` 列入 `low` priority bucket，且 production `Runtime.Start` 对每个 registered job_type 启动独立 lease loop；P3/P4 收口阶段 smoke 验证 auth email start → DevMailSink delivery 延迟 ≤ 1 个 scan 周期，并用 scheduler regression 证明 long-running critical/default handler 不会阻塞 email loop |
 | Outbox dispatcher 上线后 consumer 缺失导致 outbox 行被误确认或长期积压 | runtime 缺少 consumer 时不得置 `published`；dry-run consumer 仅允许测试显式注入；缺少 consumer 的 event 走 retry/dead-letter 并暴露 `outbox_publish_failures_total`，P3 完成前与 F2 / 各 owner 明确启用边界 |
 | 合并后的 JD Match runner 被遗漏，导致 `jd_match_agent_scan` 继续走旧 drainer | P2.6 单独迁移 `jd_match_agent_scan`；P4 lint 必须覆盖 `jdmatchRuntime.Drainer` / `JobTypeJdMatchAgentScan`；P4 BDD rerun 覆盖 E2E.P0.094-P0.097 |
 | `jd_match_search` future reservation 被误注册，触发 A4 未支持的 `medium` priority | Operation Matrix 与 P2.6 显式禁止注册 `jd_match_search`；若未来启用 async search，先由 B3/A4 修订 medium priority / queue weight gate |

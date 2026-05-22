@@ -7,9 +7,9 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.3
+    to: 1.4
   baseBranch: main
-  branch: spec-design/backend-async-runner
+  branch: feat/backend-async-runner-001-internal-job-outbox-runner-0522
 spec:
   defaultTarget: backend
   discovery:

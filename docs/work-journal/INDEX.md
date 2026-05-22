@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-22](2026-05-22.md) | `fix(backend-async-runner): harden scheduler and report backoff (BUG-0088)` | #fix #test #docs |
 | [2026-05-22](2026-05-22.md) | `docs(plan-code-review): require production entrypoint audit` | #docs |
 | [2026-05-22](2026-05-22.md) | `docs(backend-async-runner): clarify completed runner spec baseline` | #docs |
 | [2026-05-22](2026-05-22.md) | `fix(backend-async-runner): wire outbox startup and live gates (BUG-0085)` | #fix #test #docs #bdd |

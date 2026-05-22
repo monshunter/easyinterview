@@ -1,6 +1,6 @@
 # Internal Job and Outbox Runner Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-22
 
@@ -55,3 +55,4 @@
 - [x] 4.15 全局 drift gate：`cd backend && go build ./...` / `cd backend && go vet ./...` / `cd backend && go test ./...` / `validate_context.py` / `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` / `make lint-runner-legacy` / `git diff --check` 全部 PASS
 - [x] 4.16 状态收尾：plan 状态 `active`→`completed`（spec.md / history.md 已在创建时即 `active`，无 `draft` 中间态）；plans INDEX + spec INDEX 同步；提交工作日志
 - [x] 4.17 L2 remediation：`cmd/api` production kernel startup 显式创建并挂接 `runner.OutboxDispatcher`，`Runtime.Start` 驱动 outbox loop；p0-033 live gate 的 MinIO presign / privacy completion / audit tombstone integration repeatability 缺口修复并回归通过（验证：`cd backend && go test ./cmd/api -run '^(TestMainRunnerKernelDrivesOutboxDispatcher|TestMain_SingleRuntimeShutdown)$' -count=1 -v`；`test/scenarios/e2e/p0-033-file-presign-register-roundtrip/scripts/{setup,trigger,verify,cleanup}.sh` PASS）
+- [x] 4.18 L2 scheduler/backoff remediation：`Runtime.dispatch` 使用 handler 返回后的 fresh timestamp 计算 retry `available_at` / terminal `completed_at`；production `Runtime.Start` 每个 registered job_type 独立 lease loop，避免 critical/default 长任务 starvation `email_dispatch`；`report_generate` failure 只持久化 report-domain failure，async job 统一由 kernel shared `BackoffPolicy` finalize（验证：`cd backend && go test ./internal/runner ./internal/review ./cmd/api -run '^(TestRuntime_FinalizeUsesTimestampAfterHandlerReturns|TestRuntime_StartDoesNotLetCriticalJobStarveEmailDispatch|TestGenerateHandler_NormalizesFinalizedRetryableFailureThroughKernel|TestE2EP0052ReportGenerationHappyPath|TestE2EP0054ReportAIFailureAndRetry)$' -count=1`；`cd backend && go test ./... -count=1`；`make lint-runner-legacy` PASS）

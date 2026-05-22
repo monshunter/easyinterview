@@ -1,6 +1,6 @@
 # Internal Job and Outbox Runner Test Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-22
 
@@ -43,4 +43,7 @@
 - [x] Phase 4 doc reconcile：`backend-runtime-topology` / `backend-review` / `backend-debrief` / `backend-targetjob` / `backend-resume` / `backend-auth` / `backend-jobs-recommendations` / `event-and-outbox-contract` / `secrets-and-config` / `engineering-roadmap` D-* 边界条款已同步且 0 旧口径回流；owner spec 负向 grep `grep -n "未来 .backend-async-runner" docs/spec/{backend-runtime-topology,backend-review,backend-debrief,backend-targetjob,backend-resume,backend-auth,event-and-outbox-contract}/spec.md` 期望 0 命中；roadmap 负向 grep `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner" docs/spec/engineering-roadmap/spec.md` 期望 0 命中；backend-jobs 负向 grep `grep -n "jd_match_search.*注册.*runner\|jd_match_search.*kernel" docs/spec/backend-jobs-recommendations/spec.md` 期望 0 命中
 - [x] Phase 4 BDD-Gate owner rerun 全 PASS（script run `async-runner-l2-20260522145606`: `E2E.P0.003` / `010` / `011` / `012` / `013` / `034` / `035` / `060` / `062` / `077` / `078` / `080` / `093` / `094` / `095` / `096` / `097` PASS；`E2E.P0.033` 在修复 live repeatability 后单独 rerun PASS；Go HTTP BDD `E2E.P0.041` / `052` / `053` / `054` / `055` PASS via `cmd/api/reports_http_scenario_test.go`）
 - [x] Phase 4 p0-033 live repeatability regression 通过：dev-stack `make dev-doctor` OK；`DATABASE_URL` + `OBJECT_STORAGE_*` live env 下 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` PASS，覆盖真实 MinIO PUT、`RegisterFileObject`、`DELETE /api/v1/me`、privacy runner succeeded、audit tombstone integration 且重复运行不撞固定 audit id
+- [x] Phase 4 scheduler/backoff L2 review regression 通过：`cd backend && go test ./internal/runner ./internal/review ./cmd/api -run '^(TestRuntime_FinalizeUsesTimestampAfterHandlerReturns|TestRuntime_StartDoesNotLetCriticalJobStarveEmailDispatch|TestGenerateHandler_NormalizesFinalizedRetryableFailureThroughKernel|TestE2EP0052ReportGenerationHappyPath|TestE2EP0054ReportAIFailureAndRetry)$' -count=1` PASS，覆盖 fresh finalize timestamp、`email_dispatch` 防饥饿、`report_generate` failure 走 kernel finalize。
+- [x] Phase 4 review store integration gate 可发现但本机跳过：`cd backend && go test -tags=integration ./internal/store/review -run '^TestPersistReportFailure' -count=1 -v` PASS with SKIP because `DATABASE_URL is not set`；非 integration 包级回归由 `cd backend && go test ./internal/store/review -count=1` 覆盖。
+- [x] Phase 4 backend all-packages regression 通过：`cd backend && go test ./... -count=1` PASS；`make lint-runner-legacy` PASS。
 - [x] Phase 4 `git diff --check` PASS
