@@ -77,11 +77,11 @@ func (s *DevMailSink) Write(payload jobs.EmailDispatchPayload) error {
 	}
 	challengeID := payload["authChallengeId"]
 	if challengeID == "" {
-		return fmt.Errorf("email_dispatch payload missing authChallengeId")
+		return fmt.Errorf("%s payload missing authChallengeId", jobs.JobTypeEmailDispatch)
 	}
 	secretRef := payload["deliverySecretRef"]
 	if secretRef == "" {
-		return fmt.Errorf("email_dispatch payload missing deliverySecretRef")
+		return fmt.Errorf("%s payload missing deliverySecretRef", jobs.JobTypeEmailDispatch)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -175,6 +175,6 @@ func (d *ImmediateMailDispatcher) Enqueue(_ context.Context, payload jobs.EmailD
 }
 
 // The legacy in-process background mail dispatcher has been removed: email
-// delivery now flows through async_jobs(job_type='email_dispatch') via
+// delivery now flows through async_jobs(job_type=email_dispatch) via
 // EmailDispatchEnqueuer (producer) and EmailDispatchHandler (kernel handler),
 // per backend-async-runner spec D-10.

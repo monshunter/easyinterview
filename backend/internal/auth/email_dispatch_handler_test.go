@@ -134,10 +134,10 @@ func TestEmailDispatchEnqueuer_InsertsEmailDispatchJob(t *testing.T) {
 	if err := enq.Enqueue(context.Background(), payload); err != nil {
 		t.Fatalf("Enqueue: %v", err)
 	}
-	if !strings.Contains(exec.lastQuery, "insert into async_jobs") || !strings.Contains(exec.lastQuery, "'email_dispatch'") {
-		t.Fatalf("query did not insert an email_dispatch async job: %s", exec.lastQuery)
+	if !strings.Contains(exec.lastQuery, "insert into async_jobs") {
+		t.Fatalf("query did not insert an async job: %s", exec.lastQuery)
 	}
-	if len(exec.lastArgs) < 2 || exec.lastArgs[1] != "challenge-1" {
+	if len(exec.lastArgs) < 3 || exec.lastArgs[1] != string(jobs.JobTypeEmailDispatch) || exec.lastArgs[2] != "challenge-1" {
 		t.Fatalf("resource_id arg = %v, want challenge-1", exec.lastArgs)
 	}
 }
@@ -163,10 +163,10 @@ func TestStartAuthEmailChallenge_EnqueuesEmailDispatchJob(t *testing.T) {
 	if !res.Accepted {
 		t.Fatalf("challenge not accepted: %+v", res)
 	}
-	if !strings.Contains(exec.lastQuery, "insert into async_jobs") || !strings.Contains(exec.lastQuery, "'email_dispatch'") {
-		t.Fatalf("StartEmailChallenge did not enqueue an email_dispatch async job: %s", exec.lastQuery)
+	if !strings.Contains(exec.lastQuery, "insert into async_jobs") {
+		t.Fatalf("StartEmailChallenge did not enqueue an async job: %s", exec.lastQuery)
 	}
-	if len(exec.lastArgs) < 2 || exec.lastArgs[1] != "challenge-x" {
+	if len(exec.lastArgs) < 3 || exec.lastArgs[1] != string(jobs.JobTypeEmailDispatch) || exec.lastArgs[2] != "challenge-x" {
 		t.Fatalf("enqueued resource_id = %v, want challenge-x", exec.lastArgs)
 	}
 }

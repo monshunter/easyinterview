@@ -146,8 +146,8 @@ func (f *fakeStore) CountExperienceCardsBySource(_ context.Context, userID strin
 }
 
 type recordedAudit struct {
-	mu          sync.Mutex
-	tombstones  []profile.CandidateProfileDeleteTombstone
+	mu            sync.Mutex
+	tombstones    []profile.CandidateProfileDeleteTombstone
 	failTombstone error
 }
 
@@ -250,7 +250,7 @@ func TestGetCandidateProfileForUserSeededAndNil(t *testing.T) {
 		YearsOfExperience:         &yoe,
 		CurrentRole:               &role,
 		PreferredPracticeLanguage: "en",
-		UiLanguage:                "zh-CN",
+		UILanguage:                "zh-CN",
 		Region:                    &region,
 		ProfileVersion:            3,
 	}

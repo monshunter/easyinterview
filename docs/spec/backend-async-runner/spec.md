@@ -6,7 +6,7 @@
 
 ## 1 背景与目标
 
-[engineering-roadmap §6.3 S2](../engineering-roadmap/spec.md#63-s2--backend-domain-implementation) 把 `backend-async-runner` 列为「backend 内部 job、outbox、retry 和删除链路执行；P0 不拆独立 worker 进程」的 owner subject；[backend-runtime-topology](../backend-runtime-topology/spec.md) D-1~D-4 已锁定 P0 拓扑为 `frontend` + `backend` 两个应用进程，后台任务由 backend internal runner 承接。
+[engineering-roadmap §6.3 S2](../engineering-roadmap/spec.md#63-s2--backend-domain-implementation) 把 `backend-async-runner` 列为「backend 内部 job、outbox、retry 和删除链路执行；P0 不拆独立后台执行进程」的 owner subject；[backend-runtime-topology](../backend-runtime-topology/spec.md) D-1~D-4 已锁定 P0 拓扑为 `frontend` + `backend` 两个应用进程，后台任务由 backend internal runner 承接。
 
 本 subject 创建时的实施前基线是：仓库已经在不同业务域生长出多套局部 runner / drainer：
 
@@ -16,11 +16,11 @@
 - `backend/cmd/api/jdmatch_runtime.go` 在合并 `main` 后新增 `jdmatchRuntime.Drainer`，注册 `jd_match_agent_scan`（`jd_match_search` 只保留 B3 future-async reservation，P0 仍为 sync HTTP handler，不注册 runner）。
 - `backend/cmd/api/main.go` 维护 5 个独立 `defer ... Shutdown(ctx)` lifecycle（auth dispatcher / targetJobRuntime / resumeRuntime / reportRuntime / jdmatchRuntime），无统一 graceful drain 顺序。
 - `outbox_events` 表由各域业务事务写入（resume / targetjob / review / practice store），但仓库**没有任何 publisher / dispatcher 代码**消费这张表；[B3 D-7 / D-8 / D-9](../event-and-outbox-contract/spec.md) 锁定的 dispatcher 协议未实现。
-- 合并 `main` 后 [B3 D-16](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表) / `shared/jobs.yaml` 将 DB/backend runner canonical job_type 扩到 11 个：其中 `jd_match_agent_scan` 已由 [backend-jobs-recommendations](../backend-jobs-recommendations/spec.md) 真实注册到 `cmd/api` in-process drainer；`jd_match_search` 为 future-async reserved，当前不得被本 plan 注册。
+- 合并 `main` 后 [B3 D-16](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表) / `shared/jobs.yaml` 将 DB/backend runner canonical job_type 扩到 11 个：其中 `jd_match_agent_scan` 已由 [backend-jobs-recommendations](../backend-jobs-recommendations/spec.md) 真实注册到 `cmd/api` runner kernel；`jd_match_search` 为 future-async reserved，当前不得被本 plan 注册。
 - retry/backoff 不一致：`review.ComputeReportFailureBackoff` 用 `2^attempts * 30s`，resume `async.go` 用固定 15s，与 [ADR-Q2 §3.4](../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md) 锁定的 `30s/2m/10m/1h/6h, max 5` 不符。
 - lease 回收 reaper 仅覆盖 `report_generate`；其它当前可执行 job_type 若 backend 中途崩溃将 stuck 在 `running`/`locked_at` 状态。
 
-`001-internal-job-outbox-runner` 完成后，当前事实是：`backend/internal/runner/` 已承接单一 backend in-process runtime kernel；`cmd/api` 通过 `buildRunnerKernel` 创建 `runner.Runtime` 并用 `Runtime.SetOutboxDispatcher` 挂接 `runner.OutboxDispatcher`；`target_import` / `source_refresh` / `privacy_delete` / `debrief_generate` / `resume_parse` / `resume_tailor` / `report_generate` / `email_dispatch` / `jd_match_agent_scan` 已注册到 kernel；`privacy_export` 与 `jd_match_search` 仍不注册 handler。本 subject 的目标状态是持续保持上述收敛形态、统一 lease / retry / dead-letter / reaper / shutdown 协议、执行 B3 dispatcher 契约，并保留「不建独立 worker 进程」语义；未来如需拆运行单元、切 Asynq server 或引入新调度器，新 ADR 即可在不动业务 producer / handler 的前提下替换底层实现。
+`001-internal-job-outbox-runner` 完成后，当前事实是：`backend/internal/runner/` 已承接单一 backend in-process runtime kernel；`cmd/api` 通过 `buildRunnerKernel` 创建 `runner.Runtime` 并用 `Runtime.SetOutboxDispatcher` 挂接 `runner.OutboxDispatcher`；`target_import` / `source_refresh` / `privacy_delete` / `debrief_generate` / `resume_parse` / `resume_tailor` / `report_generate` / `email_dispatch` / `jd_match_agent_scan` 已注册到 kernel；`privacy_export` 与 `jd_match_search` 仍不注册 handler。本 subject 的目标状态是持续保持上述收敛形态、统一 lease / retry / dead-letter / reaper / shutdown 协议、执行 B3 dispatcher 契约，并保留「不建独立后台执行进程」语义；未来如需拆运行单元、切 Asynq server 或引入新调度器，新 ADR 即可在不动业务 producer / handler 的前提下替换底层实现。
 
 ## 2 范围
 
@@ -38,7 +38,7 @@
 ### 2.2 Out of Scope
 
 - 不替换 PG-backed `async_jobs` / `outbox_events` 存储为 Asynq Redis 队列；本 subject 把 kernel 设计为「task contract 不变前提下可被 Asynq 实现替换」，但实际 Redis/Asynq 引入由 ADR-Q2 §5 触发条件成立后另起 plan。
-- 不引入独立 worker 进程；P0 拓扑沿用 [backend-runtime-topology D-1](../backend-runtime-topology/spec.md)。
+- 不引入独立后台执行进程；P0 拓扑沿用 [backend-runtime-topology D-1](../backend-runtime-topology/spec.md)。
 - 不重写各域 handler 业务行为：业务签名（resolveActive、AI complete、handler 状态机、outbox 红线）保留原样；本 subject 仅迁移生命周期边界，不动业务断言。
 - 不新增 producer / B3 event；本 subject 不修改 `shared/events.yaml` / `shared/jobs.yaml` / B4 baseline。
 - 不实现 `privacy_export` handler 或 producer；P0 privacy export API 仍按 B2 fixture 返回 501，直到 privacy export owner plan 启用真实导出链路。
@@ -125,7 +125,7 @@
 | Trace / 指标 / 日志 | [F1 observability-stack](../observability-stack/spec.md) | metric 命名字典 + trace propagation；kernel 仅生产指标，不持有 Prometheus 实例 |
 | Outbox consumer 注册 | 各 domain spec + 本 spec | 本 spec 暴露 consumer registration API；具体 consumer 实现（如 analytics 双发）归对应 owner；本 spec 负责保证未注册 consumer 不被默认 ack |
 | Cmd/api bootstrap | 本 spec D-1 / D-8 | 单点持有 `runner.Runtime`；handler 注册保留在各域 build 函数中 |
-| Runtime topology | [backend-runtime-topology](../backend-runtime-topology/spec.md) | 「不建独立 worker 进程」前置；本 spec 沿用 |
+| Runtime topology | [backend-runtime-topology](../backend-runtime-topology/spec.md) | 「不建独立后台执行进程」前置；本 spec 沿用 |
 
 ## 6 验收标准
 

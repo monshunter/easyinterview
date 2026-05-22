@@ -83,6 +83,10 @@ business-domain extensions. The lint gate accepts the following names:
 - Target family: `target_extraction_completeness`, `target_field_accuracy`
 - Debrief family: `debrief_recall_completeness`, `debrief_lesson_specificity`,
   `debrief_action_quality`
+- JD-Match family (introduced by
+  `docs/spec/prompt-rubric-registry/spec.md` D-12):
+  `relevance_to_profile`, `risk_clarity`, `actionability`,
+  `query_alignment`, `diversity`, `privacy_compliance`
 
 A dimension name not on this list fails `make lint-rubrics`. Adding a new name
 requires (a) adding it here, (b) bumping the linter's allowlist constant, and

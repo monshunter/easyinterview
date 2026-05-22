@@ -3,6 +3,8 @@ package runner
 import (
 	"fmt"
 	"time"
+
+	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 )
 
 // Priority is the lease-selection bucket a job_type belongs to (spec D-9). It
@@ -23,22 +25,22 @@ var priorityOrder = []Priority{PriorityCritical, PriorityDefault, PriorityLow}
 // defaultJobTypePriority is the spec D-9 fixed assignment over the 9 currently
 // executable job_type values. privacy_export / jd_match_search are not
 // registered by this plan and intentionally absent.
-var defaultJobTypePriority = map[string]Priority{
-	"report_generate":     PriorityCritical,
-	"privacy_delete":      PriorityCritical,
-	"target_import":       PriorityDefault,
-	"resume_parse":        PriorityDefault,
-	"resume_tailor":       PriorityDefault,
-	"debrief_generate":    PriorityDefault,
-	"source_refresh":      PriorityLow,
-	"email_dispatch":      PriorityLow,
-	"jd_match_agent_scan": PriorityLow,
+var defaultJobTypePriority = map[jobs.JobType]Priority{
+	jobs.JobTypeReportGenerate:   PriorityCritical,
+	jobs.JobTypePrivacyDelete:    PriorityCritical,
+	jobs.JobTypeTargetImport:     PriorityDefault,
+	jobs.JobTypeResumeParse:      PriorityDefault,
+	jobs.JobTypeResumeTailor:     PriorityDefault,
+	jobs.JobTypeDebriefGenerate:  PriorityDefault,
+	jobs.JobTypeSourceRefresh:    PriorityLow,
+	jobs.JobTypeEmailDispatch:    PriorityLow,
+	jobs.JobTypeJdMatchAgentScan: PriorityLow,
 }
 
 // PriorityForJobType returns the spec D-9 bucket for jobType, defaulting to
 // PriorityDefault for any job_type without an explicit assignment.
 func PriorityForJobType(jobType string) Priority {
-	if p, ok := defaultJobTypePriority[jobType]; ok {
+	if p, ok := defaultJobTypePriority[jobs.JobType(jobType)]; ok {
 		return p
 	}
 	return PriorityDefault

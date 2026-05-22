@@ -62,7 +62,7 @@ returning user_id, headline, years_of_experience, "current_role",
 		r.newID(),
 		userID,
 		defaults.PreferredPracticeLanguage,
-		defaults.UiLanguage,
+		defaults.UILanguage,
 		defaults.Region,
 	)
 	rec, err := scanCandidateProfile(row)
@@ -113,7 +113,7 @@ insert into candidate_profiles (
 			r.newID(),
 			userID,
 			defaults.PreferredPracticeLanguage,
-			defaults.UiLanguage,
+			defaults.UILanguage,
 			defaults.Region,
 		); err != nil {
 			if isUniqueViolation(err) {
@@ -144,7 +144,7 @@ returning user_id, headline, years_of_experience, "current_role",
 		patch.YearsOfExperience != nil, ptrInt32Value(patch.YearsOfExperience),
 		patch.CurrentRole != nil, ptrStringValue(patch.CurrentRole),
 		patch.PreferredPracticeLanguage != nil, ptrStringValue(patch.PreferredPracticeLanguage),
-		patch.UiLanguage != nil, ptrStringValue(patch.UiLanguage),
+		patch.UILanguage != nil, ptrStringValue(patch.UILanguage),
 		patch.Region != nil, ptrStringValue(patch.Region),
 	)
 	rec, err := scanCandidateProfile(row)
@@ -177,11 +177,11 @@ type rowScanner interface {
 
 func scanCandidateProfile(row rowScanner) (*profile.CandidateProfileRecord, error) {
 	var (
-		rec        profile.CandidateProfileRecord
-		headline   sql.NullString
-		yoe        sql.NullInt32
-		currentRl  sql.NullString
-		region     sql.NullString
+		rec       profile.CandidateProfileRecord
+		headline  sql.NullString
+		yoe       sql.NullInt32
+		currentRl sql.NullString
+		region    sql.NullString
 	)
 	if err := row.Scan(
 		&rec.UserID,
@@ -189,7 +189,7 @@ func scanCandidateProfile(row rowScanner) (*profile.CandidateProfileRecord, erro
 		&yoe,
 		&currentRl,
 		&rec.PreferredPracticeLanguage,
-		&rec.UiLanguage,
+		&rec.UILanguage,
 		&region,
 		&rec.ProfileVersion,
 		&rec.CreatedAt,

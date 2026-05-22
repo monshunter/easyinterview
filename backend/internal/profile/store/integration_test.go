@@ -116,7 +116,7 @@ func TestProfileStoreSeedPatchVersionAndDelete(t *testing.T) {
 	region := "CN-SH"
 	defaults := profile.UserSettings{
 		PreferredPracticeLanguage: "en",
-		UiLanguage:                "zh-CN",
+		UILanguage:                "zh-CN",
 		Region:                    &region,
 	}
 
@@ -205,7 +205,7 @@ func TestExperienceCardsCursorPaginationAndCrossUser(t *testing.T) {
 	region := "CN-SH"
 	defaults := profile.UserSettings{
 		PreferredPracticeLanguage: "en",
-		UiLanguage:                "zh-CN",
+		UILanguage:                "zh-CN",
 		Region:                    &region,
 	}
 	if _, err := repo.SeedCandidateProfile(ctx, fx.UserA, defaults); err != nil {
@@ -325,7 +325,7 @@ func TestPrivacyDeleteWithAuditRollsBackAndWritesFailureAudit(t *testing.T) {
 	region := "CN-SH"
 	defaults := profile.UserSettings{
 		PreferredPracticeLanguage: "en",
-		UiLanguage:                "zh-CN",
+		UILanguage:                "zh-CN",
 		Region:                    &region,
 	}
 	if _, err := repo.SeedCandidateProfile(ctx, fx.UserA, defaults); err != nil {

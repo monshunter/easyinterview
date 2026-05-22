@@ -53,6 +53,13 @@ DIMENSION_ALLOWLIST = frozenset(
         "debrief_recall_completeness",
         "debrief_lesson_specificity",
         "debrief_action_quality",
+        # JD-Match family
+        "relevance_to_profile",
+        "risk_clarity",
+        "actionability",
+        "query_alignment",
+        "diversity",
+        "privacy_compliance",
     }
 )
 

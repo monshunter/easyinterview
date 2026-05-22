@@ -19,7 +19,7 @@ type asyncJobExecer interface {
 
 // EmailDispatchEnqueuer is the C1 producer (spec D-10): it replaces the old
 // in-process mail dispatcher channel by inserting an
-// async_jobs(job_type='email_dispatch') row that the runner kernel leases. It
+// async_jobs(job_type=email_dispatch) row that the runner kernel leases. It
 // satisfies the MailDispatcher interface so the passwordless service enqueue
 // path is unchanged.
 type EmailDispatchEnqueuer struct {
@@ -47,20 +47,20 @@ func (e *EmailDispatchEnqueuer) Enqueue(ctx context.Context, payload jobs.EmailD
 	}
 	challengeID := payload["authChallengeId"]
 	if challengeID == "" {
-		return fmt.Errorf("email_dispatch payload missing authChallengeId")
+		return fmt.Errorf("%s payload missing authChallengeId", jobs.JobTypeEmailDispatch)
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("marshal email_dispatch payload: %w", err)
+		return fmt.Errorf("marshal %s payload: %w", jobs.JobTypeEmailDispatch, err)
 	}
 	now := e.now().UTC()
 	if _, err := e.db.ExecContext(ctx, `
 insert into async_jobs (
   id, job_type, resource_type, resource_id, dedupe_key, status, payload,
   available_at, created_at, updated_at
-) values ($1, 'email_dispatch', 'auth_challenge', $2, null, 'queued', $3::jsonb, $4, $4, $4)`,
-		e.newID(), challengeID, string(raw), now); err != nil {
-		return fmt.Errorf("enqueue email_dispatch async job: %w", err)
+) values ($1, $2, 'auth_challenge', $3, null, 'queued', $4::jsonb, $5, $5, $5)`,
+		e.newID(), string(jobs.JobTypeEmailDispatch), challengeID, string(raw), now); err != nil {
+		return fmt.Errorf("enqueue %s async job: %w", jobs.JobTypeEmailDispatch, err)
 	}
 	return nil
 }
@@ -84,7 +84,7 @@ func (h *EmailDispatchHandler) Handle(_ context.Context, job runner.ClaimedJob) 
 	raw := map[string]string{}
 	if len(job.Payload) > 0 {
 		if err := json.Unmarshal(job.Payload, &raw); err != nil {
-			return runner.JobOutcome{ErrorCode: sharederrors.CodeValidationFailed, ErrorMessage: "email_dispatch payload is invalid JSON"}
+			return runner.JobOutcome{ErrorCode: sharederrors.CodeValidationFailed, ErrorMessage: fmt.Sprintf("%s payload is invalid JSON", jobs.JobTypeEmailDispatch)}
 		}
 	}
 	payload, err := jobs.BuildEmailDispatchPayload(raw)

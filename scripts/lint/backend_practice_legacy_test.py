@@ -68,13 +68,28 @@ def test_phase3_flags_standalone_voice_route_but_allows_voice_mvp_placeholder(tm
     bad = tmp_path / "backend/cmd/api/routes.go"
     bad.parent.mkdir(parents=True)
     bad.write_text('router.Handle("/voice", h)\n', encoding="utf-8")
+    nested_bad = tmp_path / "backend/cmd/api/nested_routes.go"
+    nested_bad.write_text('router.Handle("/api/v1/voice/sessions", h)\n', encoding="utf-8")
     allowed = tmp_path / "backend/internal/practice/comment.go"
     allowed.parent.mkdir(parents=True)
     allowed.write_text("// practice-voice-mvp may keep voice operation placeholder\n", encoding="utf-8")
+    session_scoped = tmp_path / "backend/cmd/api/session_voice.go"
+    session_scoped.write_text(
+        'mux.Handle("POST /api/v1/practice/sessions/{sessionId}/voice-turns", h)\n',
+        encoding="utf-8",
+    )
+    feature_key = tmp_path / "backend/internal/practice/voice_feature.go"
+    feature_key.write_text('const key = "practice.voice.stt"\n', encoding="utf-8")
 
-    problems = backend_practice_legacy.scan_phase3_paths([bad, allowed], tmp_path)
+    problems = backend_practice_legacy.scan_phase3_paths(
+        [bad, nested_bad, allowed, session_scoped, feature_key],
+        tmp_path,
+    )
 
-    assert problems == [f"{bad}:1: retired standalone voice route"]
+    assert problems == [
+        f"{bad}:1: retired standalone voice route",
+        f"{nested_bad}:1: retired standalone voice route",
+    ]
 
 
 def write_backend_practice_002_bdd_inputs(repo: Path, assigned_ids: list[str], test_ids: list[str]) -> None:
