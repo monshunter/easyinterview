@@ -153,8 +153,12 @@ async function gotoHashRoute(
   params: Record<string, string>,
 ): Promise<void> {
   routeNonce += 1;
-  const search = new URLSearchParams({ route: "resume_versions", ...params });
-  await page.goto(`/?pixelRoute=${routeNonce}#${search.toString()}`);
+  const search = new URLSearchParams({
+    route: "resume_versions",
+    ...params,
+    pixelRoute: String(routeNonce),
+  });
+  await page.goto(`/#${search.toString()}`);
   await freezeAnimations(page);
 }
 

@@ -134,6 +134,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0090](./BUG-0090.md) | frontend owner scenario wrappers widened scoped gates and ignored hash routes | medium | resolved | 2026-05-23 | `fix(test): close frontend owner scenario full-run gates (BUG-0090)` |
 | [BUG-0082](./BUG-0082.md) | jd-match BDD closure treated smoke wrappers as completed gates | high | resolved | 2026-05-22 | `fix(backend-jobs): harden jd-match runtime contracts (BUG-0082, BUG-0083)` |
 | [BUG-0066](./BUG-0066.md) | debrief scenario wrappers were missing or under-asserted | high | resolved | 2026-05-17 | `fix(test): close debrief scenario wrapper evidence (BUG-0066)` |
 | [BUG-0034](./BUG-0034.md) | mockruntime named scenario test copied stale fixture expectation | medium | resolved | 2026-05-10 | `fix(mock-contract): align mockruntime named scenarios` |
