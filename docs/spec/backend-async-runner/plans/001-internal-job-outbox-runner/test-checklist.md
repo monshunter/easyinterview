@@ -22,18 +22,16 @@
 - [x] Phase 2 `jd_match_agent_scan` regression 通过：`cd backend && go test ./internal/jdmatch/... ./cmd/api -run 'TestJDMatchAgentScanDrainerScenario|TestBuildJDMatchRuntimeWiresRoutesDrainerAndLifecycle' -count=1`（迁移后 lifecycle 断言重写为 kernel handles `jd_match_agent_scan` 且不 handles `jd_match_search`）
 - [x] Phase 2 退避收口：`backend/internal/runner/backoff_integration_test.go::TestAllHandlersUseSharedBackoff` 通过；旧 `ComputeReportFailureBackoff` / 固定 15s 在非 lint/history 路径 0 命中
 
-## Phase 3: Outbox dispatcher + email_dispatch
-
-- [ ] Phase 3 outbox primary 通过：`TestOutboxDispatcher_ClaimsPendingBatch` + `TestOutboxDispatcher_BatchSizeLimit`（真 PG）
-- [ ] Phase 3 outbox failure 通过：`TestOutboxDispatcher_DeadLetterAtAttemptFive` + `TestOutboxDispatcher_RedactsLastError`
-- [ ] Phase 3 outbox idempotency 通过：`TestOutboxDispatcher_DuplicateEventIdHandledIdempotently`
-- [ ] Phase 3 `source_event_only` skip 通过：`TestOutboxDispatcher_SkipsSourceEventOnly`
-- [ ] Phase 3 missing consumer safety 通过：`TestDispatcherMissingConsumerDoesNotAck` + `TestDispatcherDryRunConsumerRequiresExplicitRegistration`
-- [ ] Phase 3 trace 透传通过：`TestOutboxDispatcher_PropagatesTraceParent` + `TestOutboxDispatcher_WarnsOnMissingTrace`
-- [ ] Phase 3 指标暴露通过：`TestKernelMetrics_FamilyAndLabels` 断言 `outbox_events_pending` / `outbox_publish_duration_seconds` / `outbox_publish_failures_total` / `async_job_duration_seconds` / `async_jobs_processed_total` / `async_job_queue_depth` / `async_job_lag_seconds`
-- [ ] Phase 3 `email_dispatch` producer 切换通过：`TestStartAuthEmailChallenge_EnqueuesEmailDispatchJob`
-- [ ] Phase 3 `email_dispatch` handler 通过：`backend/internal/runner/email_dispatch_integration_test.go::TestEmailDispatchHandler_*` + `TestEmailDispatchHandler_PayloadRedaction`
-- [ ] Phase 3 end-to-end auth email 通过：`backend/cmd/api/main_test.go::TestAuthEmailEndToEnd`（magic link 在 1 个 scan 周期内可见）
+- [x] Phase 3 outbox primary 通过：`TestOutboxDispatcher_ClaimsPendingBatch` + `TestOutboxDispatcher_BatchSizeLimit`（真 PG）
+- [x] Phase 3 outbox failure 通过：`TestOutboxDispatcher_DeadLetterAtAttemptFive` + `TestOutboxDispatcher_RedactsLastError`
+- [x] Phase 3 outbox idempotency 通过：`TestOutboxDispatcher_DuplicateEventIdHandledIdempotently`
+- [x] Phase 3 `source_event_only` skip 通过：`TestOutboxDispatcher_SkipsSourceEventOnly`
+- [x] Phase 3 missing consumer safety 通过：`TestDispatcherMissingConsumerDoesNotAck` + `TestDispatcherDryRunConsumerRequiresExplicitRegistration`
+- [x] Phase 3 trace 透传通过：`TestOutboxDispatcher_PropagatesTraceParent` + `TestOutboxDispatcher_WarnsOnMissingTrace`
+- [x] Phase 3 指标暴露通过：`TestKernelMetrics_FamilyAndLabels` 断言 `outbox_events_pending` / `outbox_publish_duration_seconds` / `outbox_publish_failures_total` / `async_job_duration_seconds` / `async_jobs_processed_total` / `async_job_queue_depth` / `async_job_lag_seconds`
+- [x] Phase 3 `email_dispatch` producer 切换通过：`TestStartAuthEmailChallenge_EnqueuesEmailDispatchJob`
+- [x] Phase 3 `email_dispatch` handler 通过：`backend/internal/runner/email_dispatch_integration_test.go::TestEmailDispatchHandler_*` + `TestEmailDispatchHandler_PayloadRedaction`
+- [x] Phase 3 end-to-end auth email 通过：`backend/cmd/api/main_test.go::TestAuthEmailEndToEnd`（magic link 在 1 个 scan 周期内可见）
 
 ## Phase 4: 收口 / 文档同步 / lint negative gate
 

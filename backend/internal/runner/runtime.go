@@ -36,6 +36,8 @@ type Runtime struct {
 	mu       sync.RWMutex
 	handlers map[string]Handler
 
+	dispatcher *OutboxDispatcher
+
 	startOnce     sync.Once
 	stopping      atomic.Bool
 	loopCancel    context.CancelFunc
@@ -76,6 +78,12 @@ func (r *Runtime) Register(jobType string, handler Handler) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.handlers[jobType] = handler
+}
+
+// SetOutboxDispatcher attaches an outbox dispatcher so the runtime drives its
+// scan loop in Start and stops it during Shutdown (spec D-8 step d).
+func (r *Runtime) SetOutboxDispatcher(d *OutboxDispatcher) {
+	r.dispatcher = d
 }
 
 // Handles reports whether a handler is registered for jobType.
@@ -255,6 +263,11 @@ func (r *Runtime) Start(ctx context.Context) {
 		if r.config.ReaperInterval > 0 {
 			r.wg.Add(1)
 			go r.reaperLoop(loopCtx)
+		}
+
+		if r.dispatcher != nil {
+			r.wg.Add(1)
+			go r.dispatcher.loop(loopCtx, &r.wg)
 		}
 	})
 }

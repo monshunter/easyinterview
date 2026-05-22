@@ -122,16 +122,11 @@ func main() {
 	}
 	defer db.Close()
 
-	authService, mailDispatcher, err := buildAuthService(loader, db)
+	authService, mailSink, err := buildAuthService(loader, db)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: auth init: %v\n", err)
 		os.Exit(1)
 	}
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = mailDispatcher.Shutdown(shutdownCtx)
-	}()
 
 	uploadRoutes, err := buildUploadRoutes(loader, db)
 	if err != nil {
@@ -211,6 +206,7 @@ func main() {
 	registerRunnerHandlers(kernel, resumeRuntime.Handlers)
 	registerRunnerHandlers(kernel, reportRuntime.Handlers)
 	registerRunnerHandlers(kernel, jdmatchRuntime.Handlers)
+	kernel.Register(string(jobs.JobTypeEmailDispatch), auth.NewEmailDispatchHandler(mailSink))
 
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
@@ -246,7 +242,7 @@ func registerRunnerHandlers(rt *runner.Runtime, handlers map[string]runner.Handl
 	}
 }
 
-func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessService, *auth.BackgroundMailDispatcher, error) {
+func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessService, *auth.DevMailSink, error) {
 	challengePepper := strings.TrimSpace(loader.GetSecret("auth.challengeTokenPepper").Reveal())
 	sessionCookieSecret := strings.TrimSpace(loader.GetSecret("auth.sessionCookieSecret").Reveal())
 	var missing []string
@@ -260,15 +256,17 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessServ
 		return nil, nil, fmt.Errorf("missing required auth secret(s): %s", strings.Join(missing, ", "))
 	}
 	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: "/api/v1/auth/email/verify"})
-	dispatcher := auth.NewBackgroundMailDispatcher(auth.BackgroundMailDispatcherOptions{Writer: sink})
+	// Producer enqueues email_dispatch async_jobs rows (spec D-10); the kernel
+	// EmailDispatchHandler delivers them through the sink.
+	enqueuer := auth.NewEmailDispatchEnqueuer(db, idx.NewID, func() time.Time { return time.Now().UTC() })
 	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
 		Store:               auth.NewSQLStore(db),
-		Dispatcher:          dispatcher,
+		Dispatcher:          enqueuer,
 		DeliverySecrets:     sink,
 		ChallengePepper:     challengePepper,
 		SessionCookieSecret: sessionCookieSecret,
 	})
-	return service, dispatcher, nil
+	return service, sink, nil
 }
 
 func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, db *sql.DB) http.Handler {
