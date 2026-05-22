@@ -64,10 +64,16 @@ featureFlag:
   posthogProjectApiKey: ""
   posthogPublicKey: ""
 
-# async.queueWeights is config-only (spec D-9). The backend internal runner reads typed config;
+# async.* is config-only (spec D-9 / D-14). The backend internal runner reads typed config;
 # do NOT add env overrides — keep the env dictionary at 24 keys.
 async:
   queueWeights:
     critical: 6
     default: 3
     low: 1
+  # Runner kernel timings (spec D-14). All must be positive; the kernel fails
+  # fast rather than falling back to code constants.
+  leaseTimeoutSeconds: 300
+  shutdownGraceSeconds: 10
+  reaperIntervalSeconds: 60
+  scanIntervalSeconds: 5

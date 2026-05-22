@@ -8,14 +8,14 @@
 
 ## Phase 1: Kernel 基础设施
 
-- [ ] 1.1 新建 `backend/internal/runner/` package 骨架（`runtime.go` / `lease.go` / `reaper.go` / `backoff.go` / `handler.go` / `adapter_targetjob.go` / `doc.go`），go build PASS；test 来源 `backend/internal/runner/runtime_test.go::TestRuntime_RegisterAndRunOnce`
-- [ ] 1.2 实现 `LeaseAsyncJob` / `FinalizeAsyncJob` / `ReclaimExpiredLeases` SQL contract（列名 `locked_at`/`attempts`/`available_at`/`status`，`FOR UPDATE SKIP LOCKED`，排序 `available_at asc, created_at asc`；retryable exhausted → `dead`，non-retryable → `failed`）；test 来源 `backend/internal/runner/lease_test.go` + `lease_integration_test.go`
-- [ ] 1.3 实现 `BackoffPolicy.Next(attempts)` 返回 `[30s,2m,10m,1h,6h]`、`MaxAttempts=5` 常量；test 来源 `backend/internal/runner/backoff_test.go` table-driven
-- [ ] 1.4 实现 `Reaper.RunOnce(ctx)` 调用 `ReclaimExpiredLeases`；attempts 不递增；test 来源 `backend/internal/runner/reaper_test.go` + 多 jobType fixture
-- [ ] 1.5 实现 `Runtime.Shutdown(ctx)` 顺序协调（stop lease → wait in-flight → stop reaper → stop outbox dispatcher）；test 来源 `backend/internal/runner/runtime_test.go::TestRuntime_GracefulShutdown` + `TestRuntime_ShutdownTimeoutPropagates`
-- [ ] 1.6 typed config 注入：A4 spec additive 新增 `async.leaseTimeoutSeconds` / `async.shutdownGraceSeconds` / `async.reaperIntervalSeconds` / `async.scanIntervalSeconds`（[spec D-14](../../spec.md#31-已锁定决策)，config-only，不新增 env key，不允许静默 fallback 为代码常量）；test 来源 `backend/internal/runner/config_test.go` + `backend/internal/platform/config/loader_test.go::TestAsyncSection`
-- [ ] 1.7 单元测试基础设施：fake `LeaseStore` + deterministic clock；test 来源 `backend/internal/runner/fakestore_test.go`
-- [ ] 1.8 Runtime handler trace 透传：从 `async_jobs.payload` / envelope 读取 W3C `traceparent` 重建 span context；slog 输出注入 `trace_id` 字段（缺失时跳过）；test 来源 `backend/internal/runner/runtime_trace_test.go::TestRuntime_HandlerInheritsTraceparent` + `TestRuntime_HandlerLogsTraceIdField`
+- [x] 1.1 新建 `backend/internal/runner/` package 骨架（`runtime.go` / `lease.go` / `reaper.go` / `backoff.go` / `handler.go` / `adapter_targetjob.go` / `doc.go`），go build PASS；test 来源 `backend/internal/runner/runtime_test.go::TestRuntime_RegisterAndRunOnce`
+- [x] 1.2 实现 `LeaseAsyncJob` / `FinalizeAsyncJob` / `ReclaimExpiredLeases` SQL contract（列名 `locked_at`/`attempts`/`available_at`/`status`，`FOR UPDATE SKIP LOCKED`，排序 `available_at asc, created_at asc`；retryable exhausted → `dead`，non-retryable → `failed`）；test 来源 `backend/internal/runner/lease_test.go` + `lease_integration_test.go`
+- [x] 1.3 实现 `BackoffPolicy.Next(attempts)` 返回 `[30s,2m,10m,1h,6h]`、`MaxAttempts=5` 常量；test 来源 `backend/internal/runner/backoff_test.go` table-driven
+- [x] 1.4 实现 `Reaper.RunOnce(ctx)` 调用 `ReclaimExpiredLeases`；attempts 不递增；test 来源 `backend/internal/runner/reaper_test.go` + 多 jobType fixture
+- [x] 1.5 实现 `Runtime.Shutdown(ctx)` 顺序协调（stop lease → wait in-flight → stop reaper → stop outbox dispatcher）；test 来源 `backend/internal/runner/runtime_test.go::TestRuntime_GracefulShutdown` + `TestRuntime_ShutdownTimeoutPropagates`
+- [x] 1.6 typed config 注入：A4 spec additive 新增 `async.leaseTimeoutSeconds` / `async.shutdownGraceSeconds` / `async.reaperIntervalSeconds` / `async.scanIntervalSeconds`（[spec D-14](../../spec.md#31-已锁定决策)，config-only，不新增 env key，不允许静默 fallback 为代码常量）；test 来源 `backend/internal/runner/config_test.go` + `backend/internal/platform/config/loader_test.go::TestAsyncSection`
+- [x] 1.7 单元测试基础设施：fake `LeaseStore` + deterministic clock；test 来源 `backend/internal/runner/fakestore_test.go`
+- [x] 1.8 Runtime handler trace 透传：从 `async_jobs.payload` / envelope 读取 W3C `traceparent` 重建 span context；slog 输出注入 `trace_id` 字段（缺失时跳过）；test 来源 `backend/internal/runner/runtime_trace_test.go::TestRuntime_HandlerInheritsTraceparent` + `TestRuntime_HandlerLogsTraceIdField`
 
 ## Phase 2: 业务 handler 迁移
 

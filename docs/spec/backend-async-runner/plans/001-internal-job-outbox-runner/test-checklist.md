@@ -7,14 +7,12 @@
 **关联 Test Plan**: [test-plan](./test-plan.md)
 **关联计划**: [plan](./plan.md)
 
-## Phase 1: Kernel 基础设施
-
-- [ ] Phase 1 本计划定义的单元测试项全部通过：`cd backend && go test ./internal/runner/...`（含 `runtime_test.go` / `lease_test.go` / `backoff_test.go` / `reaper_test.go` / `adapter_targetjob_test.go` / `config_test.go`）
-- [ ] Phase 1 integration 测试通过：`backend/internal/runner/lease_integration_test.go` 真 PG 覆盖 lease / finalize / reclaim 列名与排序
-- [ ] Phase 1 failure path 断言通过：`TestFinalizeAsyncJob_PermanentFailureAtMax` / `TestReaper_DoesNotIncrementAttempts` / `TestRuntime_ShutdownTimeoutPropagates`
-- [ ] Phase 1 boundary 断言通过：`TestBackoffPolicy_BoundaryAttempts` / `TestLeaseAsyncJob_RespectsPriorityBuckets`
-- [ ] Phase 1 typed config 注入通过：`backend/internal/platform/config/loader_test.go::TestAsyncSection` + `backend/internal/runner/config_test.go`（覆盖 `async.queueWeights` / `leaseTimeoutSeconds` / `shutdownGraceSeconds` / `reaperIntervalSeconds` / `scanIntervalSeconds`）
-- [ ] Phase 1 runtime handler trace 透传通过：`backend/internal/runner/runtime_trace_test.go::TestRuntime_HandlerInheritsTraceparent` + `TestRuntime_HandlerLogsTraceIdField`
+- [x] Phase 1 本计划定义的单元测试项全部通过：`cd backend && go test ./internal/runner/...`（含 `runtime_test.go` / `lease_test.go` / `backoff_test.go` / `reaper_test.go` / `adapter_targetjob_test.go` / `config_test.go`）
+- [x] Phase 1 integration 测试通过：`backend/internal/runner/lease_integration_test.go` 真 PG 覆盖 lease / finalize / reclaim 列名与排序
+- [x] Phase 1 failure path 断言通过：`TestFinalizeAsyncJob_PermanentFailureAtMax` / `TestReaper_DoesNotIncrementAttempts` / `TestRuntime_ShutdownTimeoutPropagates`
+- [x] Phase 1 boundary 断言通过：`TestBackoffPolicy_BoundaryAttempts` / `TestLeaseAsyncJob_RespectsPriorityBuckets`
+- [x] Phase 1 typed config 注入通过：`backend/internal/platform/config/loader_test.go::TestAsyncSection` + `backend/internal/runner/config_test.go`（覆盖 `async.queueWeights` / `leaseTimeoutSeconds` / `shutdownGraceSeconds` / `reaperIntervalSeconds` / `scanIntervalSeconds`）
+- [x] Phase 1 runtime handler trace 透传通过：`backend/internal/runner/runtime_trace_test.go::TestRuntime_HandlerInheritsTraceparent` + `TestRuntime_HandlerLogsTraceIdField`
 
 ## Phase 2: 业务 handler 迁移
 

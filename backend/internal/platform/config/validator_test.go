@@ -48,6 +48,10 @@ async:
     critical: 6
     default: 3
     low: 1
+  leaseTimeoutSeconds: 300
+  shutdownGraceSeconds: 10
+  reaperIntervalSeconds: 60
+  scanIntervalSeconds: 5
 `)
 	loader, err := config.Load(config.Options{
 		AppEnv:         "prod",
