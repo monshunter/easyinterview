@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-05-23
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -51,3 +51,4 @@
 - [x] `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 + home plan 现有基础上累加 workspace 新增 spec，总数 96/96 PASS
 - [x] `pnpm --filter @easyinterview/frontend build` PASS（包含 `tsc --noEmit` + `vite build`）
 - [x] 文档与索引收口：本 checklist、主 checklist 与 plans INDEX 已同步；`make docs-check` / `/sync-doc-index` 作为 post-fix drift gate 执行
+- [x] 2026-05-23 real-backend gate：P0.018-P0.021 trigger 前置 `frontendOwners.realApiMode.test.ts`，verify 检查 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1` / 测试文件 marker。 <!-- evidence: focused real-mode Vitest PASS; scenario scripts updated -->

@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-23](2026-05-23.md) | `fix(frontend): close real backend handoff gate drift (BUG-0089)` | #fix #test #docs |
 | [2026-05-22](2026-05-22.md) | `refactor: normalize terminology and harden naming conventions` | #refactor #docs |
 | [2026-05-22](2026-05-22.md) | `fix(backend-async-runner): harden scheduler and report backoff (BUG-0088)` | #fix #test #docs |
 | [2026-05-22](2026-05-22.md) | `docs(plan-code-review): require production entrypoint audit` | #docs |

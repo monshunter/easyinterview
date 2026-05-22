@@ -145,6 +145,21 @@ For each in-scope phase:
      evidence for production lifecycle closure; in `--fix` mode, add the
      missing production-wiring test or reopen the mapped checklist item before
      accepting the phase as complete.
+   - For schedulers, priority queues, queue weights, scan-cycle SLAs, or
+     user-visible background jobs, prove fairness under a long-running handler.
+     At least one gate should block a high/critical/default handler and verify
+     a lower-priority but user-visible job is still claimed or completed within
+     the promised scan cadence. Treat tests that only assert bucket ordering or
+     single `runOnce` behavior as insufficient for starvation closure.
+   - For migration-only escape hatches such as `AsyncJobFinalized`,
+     `AlreadyHandled`, `SkipFinalize`, `HandlerFinalized`, or equivalent
+     "do not finalize again" flags, enumerate every handler/service/store path
+     that can set or observe the hatch. Verify each path still uses the owner
+     kernel/shared retry/backoff/finalize policy, or record a mapped finding to
+     remove, narrow, or test the hatch before accepting the phase as complete.
+     When retry timestamps, `completed_at`, `locked_at`, or backoff schedules
+     are in scope, include deterministic clock evidence that distinguishes
+     pre-handler and post-handler time.
 7. Reconstruct the expected coverage matrix from the validated spec/plan/checklist,
    test-plan/test-checklist, bdd-plan/bdd-checklist, quality-gate classification,
    non-goals, risks, and active product/UI truth sources. For each completed
@@ -164,6 +179,19 @@ For each in-scope phase:
    only proves structure counts or historical expectations, record the gap and
    prefer adding lint, unit tests, negative fixtures, smoke tests, or drift checks
    before moving to the next target.
+   - For frontend-first plans that were completed while a backend owner was
+     fixture-only or future-owned, reverse-audit the adjacent backend owner
+     plans, route builders, handlers, generated clients, fixtures, and scenario
+     assets before trusting the old operation matrix. If the backend owner has
+     since landed real handlers or BDD proof, the original frontend owner plan
+     must be repaired in place: update the operation matrix, add a
+     `VITE_EI_API_MODE=real` generated-client gate that proves base URL,
+     `credentials: "include"`, absence of fixture `Prefer` headers, side-effect
+     `Idempotency-Key`, and key provenance/response fields, then keep the UI
+     variants fixture-backed as a separate deterministic UI gate. Scenario
+     `verify.sh` must check a real-mode marker and the focused test filename. If
+     one plan in a subspec shows this handoff drift, sweep sibling/completed
+     plans in the same subspec before closing the review.
    - For `ui-design` source-level parity, computed style, bounding-box, and
      screenshot checks are necessary but not sufficient. Also reverse-audit
      `ui-design/src/*.jsx`, `ui-design/src/app.jsx`, and
@@ -235,6 +263,11 @@ Output rules:
   For lifecycle / runtime capabilities, state the production entrypoint audited
   and the production-wiring test, smoke, or scenario that proves startup and
   shutdown/drain behavior.
+  For scheduler/fairness claims, state the long-running handler/starvation gate
+  and whether it proves scan-cadence behavior. For escape hatches, list the
+  audited setters/observers and the shared policy evidence. For frontend-first
+  handoff reviews, state the adjacent backend owner evidence, the real-mode
+  generated-client gate, and any sibling/completed plan sweep results.
 - Include a `Coverage Matrix Evidence` section summarizing which coverage rows
   are proven by current artifacts, which are explicitly N/A, and which are gaps.
 

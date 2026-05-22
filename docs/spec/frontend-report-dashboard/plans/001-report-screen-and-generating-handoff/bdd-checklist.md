@@ -1,8 +1,8 @@
 # 001 — Report Screen and Generating Handoff BDD Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-05-23
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -110,7 +110,7 @@
     - `window.EI_DATA` / `ui-design/src/data.jsx` import
   - 本 plan / BDD / test docs / spec §D-12 prohibition / `scripts/lint/frontend_report_dashboard_legacy.py` 自身允许枚举字面量作为禁止性断言（不属于实现 / runtime 范围）
   - `legacyNegative.test.ts`（report / generating 各一份）通过
-  - 跨 owner regression：scenario `p0-044-047`（frontend-workspace-and-practice/002）重跑通过；如 backend-review/001 Phase 5 已 implement 则 `cd backend && go test ./cmd/api -run 'TestE2EP0052|TestE2EP0053|TestE2EP0054|TestE2EP0055' -count=1` 通过
+  - 跨 owner regression：scenario `p0-044-047`（frontend-workspace-and-practice/002）重跑通过；backend-review/001 real handler regression `cd backend && go test ./cmd/api -run 'TestE2EP0052|TestE2EP0053|TestE2EP0054|TestE2EP0055' -count=1` 在真实 handler 落地后作为回归证据
 - [x] 实现 cleanup.sh
 - [x] 执行场景验证全绿
 - [x] 在 INDEX 追加 row
@@ -128,3 +128,4 @@
 
 - `E2E.P0.056` / `057` / `058` / `059` setup → trigger → verify → cleanup 均通过，覆盖 generating ready handoff、复练 CTA A/B、失败/缺参/cross-user、pixel parity + i18n + 旧口径负向。
 - `E2E.P0.044` / `045` / `046` / `047` setup → trigger → verify → cleanup 均通过，覆盖 frontend-workspace-and-practice handoff regression。
+- 2026-05-23 L2 update: P0.056-P0.059 trigger scripts now run `frontendOwners.realApiMode.test.ts` before fixture-backed report UI subcases, and verify scripts reject missing real-mode marker / default backend base URL / test-file marker; focused real-mode Vitest PASS.

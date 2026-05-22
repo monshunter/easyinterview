@@ -1,8 +1,8 @@
 # Frontend Debrief Spec
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-05-18
+> **更新日期**: 2026-05-23
 
 ## 1 背景与目标
 
@@ -15,7 +15,7 @@
 
 `workspace` / `practice` / `report` / `generating` / `company_intel` / `home` / `parse` 不在本 subspec 范围。本 subspec 在 step 2 "开始复盘面试" CTA 中先调用 backend `createPracticePlan(goal='debrief', sourceDebriefId)` 与 `startPracticeSession` 创建新的可用复盘练习 session，再把 `planId/sessionId/practiceGoal='debrief'` route payload 交给 frontend-workspace-and-practice owner 的 `PracticeScreen` 处理。
 
-本 subspec 通过 generated client + fixture-backed transport 消费 backend-debrief 已声明的 3 个 OpenAPI operation；任何新增或缺失 operation 先回到 [B2](../openapi-v1-contract/spec.md) / [backend-debrief](../backend-debrief/spec.md) 修订，不能在前端手写 ad hoc fetch 或复制 `ui-design` mock data。
+本 subspec 通过 generated client + fixture-backed transport 消费 backend-debrief 已声明的 3 个 OpenAPI operation；截至 2026-05-23，backend-debrief、backend-practice 与 backend-resume 的本流程依赖 operation 已经拥有真实 handler，completed frontend plan 001 必须在 P0.065-P0.069 trigger 前置 `frontendOwners.realApiMode.test.ts`，证明 debrief / jobs / picker / replay practice operation 使用 `VITE_EI_API_MODE=real` 的 production generated client。任何新增或缺失 operation 仍先回到 [B2](../openapi-v1-contract/spec.md) / [backend-debrief](../backend-debrief/spec.md) 修订，不能在前端手写 ad hoc fetch 或复制 `ui-design` mock data。
 
 ## 2 范围
 
@@ -81,8 +81,8 @@
   - `createDebrief`：step 0 → step 1 transition；按 OpenAPI POST `/debriefs` + Idempotency-Key + 完整 questions[] body；返回 `DebriefWithJob`
   - `getJob`：step 1 polling (job lifecycle)；按 OpenAPI GET `/jobs/{jobId}`，本屏使用本地变量 `debriefJobId`
   - `getDebrief`：step 1 polling (debrief enriched data)；按 OpenAPI GET `/debriefs/{debriefId}`
-  - `suggestDebriefQuestions`：step 0 文本模式 "生成推荐问题"；按 OpenAPI POST `/debriefs/question-suggestions`（Phase 0 新增）
-  - 3 个 picker modal 列表来源：JD picker 使用既有 `listTargetJobs`；Resume picker 使用既有 `listResumes` + `listResumeVersions(resumeAssetId)`；Mock Session picker 使用 Phase 0 backend-practice/B2 addendum 提供的 `listPracticeSessions`
+  - `suggestDebriefQuestions`：step 0 文本模式 "生成推荐问题"；按 OpenAPI POST `/debriefs/question-suggestions`，由 backend-debrief 真实 handler 承接
+  - 3 个 picker modal 列表来源：JD picker 使用既有 `listTargetJobs`；Resume picker 使用既有 `listResumes` + `listResumeVersions(resumeAssetId)`；Mock Session picker 使用 backend-practice 真实 `listPracticeSessions`
 
 ### 2.2 Out of Scope
 
@@ -168,19 +168,19 @@
 | Resume Workshop UI | [`frontend-resume-workshop`](../frontend-resume-workshop/spec.md) | resume 屏；本 spec 不交互 |
 | Debriefs backend | [`backend-debrief`](../backend-debrief/spec.md) | `createDebrief` / `getDebrief` / `suggestDebriefQuestions` handler / service / store / drainer-registered worker handler |
 | Practice backend | [`backend-practice`](../backend-practice/spec.md) | `listPracticeSessions` picker 列表；`createPracticePlan(goal='debrief')` + `startPracticeSession(mode IN ('assisted','strict'))` handler；本 spec 通过 generated client 在 Step 2 CTA 调用 |
-| OpenAPI / fixtures / codegen | [`openapi-v1-contract`](../openapi-v1-contract/spec.md) + [`mock-contract-suite`](../mock-contract-suite/spec.md) | `openapi/openapi.yaml`、fixtures `Debriefs/*.json`（Phase 0 由 backend-debrief/001 扩展既有 create/get fixture，并新增 suggest fixture）、generated Go/TS artifacts、fixture-backed mock transport |
+| OpenAPI / fixtures / codegen | [`openapi-v1-contract`](../openapi-v1-contract/spec.md) + [`mock-contract-suite`](../mock-contract-suite/spec.md) | `openapi/openapi.yaml`、fixtures `Debriefs/*.json`（create / get / suggest variants）、generated Go/TS artifacts、fixture-backed mock transport + real-mode generated-client gate |
 | TargetJob data | [`backend-targetjob`](../backend-targetjob/spec.md) | `target_jobs` 行；本 spec 通过 generated `listTargetJobs` 显示 JD picker |
 | Resume data | [`backend-resume`](../backend-resume/spec.md) | 简历 binding 字段；本 spec 通过 generated `listResumes` + `listResumeVersions(resumeAssetId)` 显示 Resume picker |
-| Practice session data | [`backend-practice`](../backend-practice/spec.md) | practice_sessions 行；本 spec 通过 Phase 0 backend-practice/B2 addendum 生成的 `listPracticeSessions({targetJobId,status:'completed'})` 显示 Mock picker |
+| Practice session data | [`backend-practice`](../backend-practice/spec.md) | practice_sessions 行；本 spec 通过 generated `listPracticeSessions({targetJobId,status:'completed'})` 显示 Mock picker |
 | Voice 真实集成 | future plan + [`practice-voice-mvp`](../practice-voice-mvp/spec.md) | STT / WebRTC / 音频留存 / 隐私链路；本 spec P0 不实现 |
 
 ### 5.1 Operation Matrix
 
 | operationId | Fixture | Frontend consumer | Backend handler | Persistence | AI dependency | Scenario / status |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createDebrief` | `openapi/fixtures/Debriefs/createDebrief.json`（既有文件，backend-debrief/001 Phase 0 扩展：`default` = 202 + DebriefWithJob） | DebriefScreen step 0 "生成复盘分析" CTA | backend-debrief 001 Phase 2 真实 handler | `debriefs` write + `async_jobs` write + outbox `debrief.created` | none in frontend；worker AI 调用由 backend-debrief 完成 | `E2E.P0.066` |
-| `getDebrief` | `openapi/fixtures/Debriefs/getDebrief.json`（既有文件，backend-debrief/001 Phase 0 扩展：`default` = completed 完整字段 / `debrief-draft` = draft + 空字段 / `prototype-baseline` = 中文示例） | DebriefScreen step 1 polling 拉取数据 | backend-debrief 001 Phase 5 真实 handler | `debriefs` read | none in frontend | `E2E.P0.067` |
-| `suggestDebriefQuestions` | `openapi/fixtures/Debriefs/suggestDebriefQuestions.json`（backend-debrief/001 Phase 0 新增：`default` = 6 suggestions / `empty` = 0 / `prototype-baseline`） | DebriefScreen step 0 文本模式自动 / 手动触发 | backend-debrief 001 Phase 3 真实 handler | `ai_task_runs` write + `audit_events` write | F3 `debrief.suggest_questions`（backend） | `E2E.P0.066` happy + AI failure |
+| `createDebrief` | `openapi/fixtures/Debriefs/createDebrief.json`（`default` = 202 + DebriefWithJob） | DebriefScreen step 0 "生成复盘分析" CTA | backend-debrief real handler | `debriefs` write + `async_jobs` write + outbox `debrief.created` | none in frontend；worker AI 调用由 backend-debrief 完成 | `E2E.P0.066` + real-mode gate |
+| `getDebrief` | `openapi/fixtures/Debriefs/getDebrief.json`（`default` = completed 完整字段 / `debrief-draft` = draft + 空字段 / `prototype-baseline` = 中文示例） | DebriefScreen step 1 polling 拉取数据 | backend-debrief real handler | `debriefs` read | none in frontend | `E2E.P0.067` + real-mode gate |
+| `suggestDebriefQuestions` | `openapi/fixtures/Debriefs/suggestDebriefQuestions.json`（`default` = 6 suggestions / `empty` = 0 / `prototype-baseline`） | DebriefScreen step 0 文本模式自动 / 手动触发 | backend-debrief real handler | `ai_task_runs` write + `audit_events` write | F3 `debrief.suggest_questions`（backend） | `E2E.P0.066` happy + AI failure + real-mode gate |
 | `getJob` | `openapi/fixtures/Jobs/getJob.json`（`default` = generic running report job；`debrief-succeeded` = dev mock debrief job completion） | DebriefScreen step 1 polling job lifecycle | `backend/internal/api/jobs` handler + `backend/internal/store/jobs` owner-scoped read；`backend/cmd/api/main.go` 必须挂载 `GET /api/v1/jobs/{jobId}` | `async_jobs` read，按 `resource_type` 回查 owner resource（含 `debriefs.user_id`） | none | `E2E.P0.067` + BUG-0070 focused route/store gate + dev mock full-flow regression |
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json`（既有） | DebriefContextPickerModal JD picker | backend-targetjob 既有 handler | `target_jobs` read | none | `E2E.P0.065` |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json`（既有） | DebriefContextPickerModal Resume picker asset list | backend-resume 既有 handler | `resume_assets` read | none | `E2E.P0.065` |
@@ -194,9 +194,9 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | Owner route 专属 Screen 接管 | frontend-shell D1 已交付；backend-debrief Phase 0 cross-owner addendum 已落地；debrief route 当前由 PlaceholderScreen 占位 | 进入 `debrief` 或宽松初始 route `debrief_full` | `debrief` 渲染正式 DebriefScreen；`debrief_full` 先 normalize 为 `debrief` 后渲染同屏；保留默认 App chrome / TopBar；TopBar 一级导航 `debrief` 入口高亮；不展示 PlaceholderScreen；不新增正式 `debrief_full` RouteName | 001 |
+| C-1 | Owner route 专属 Screen 接管 | frontend-shell D1 已交付；backend-debrief 真实契约已落地；debrief route 当前由 PlaceholderScreen 占位 | 进入 `debrief` 或宽松初始 route `debrief_full` | `debrief` 渲染正式 DebriefScreen；`debrief_full` 先 normalize 为 `debrief` 后渲染同屏；保留默认 App chrome / TopBar；TopBar 一级导航 `debrief` 入口高亮；不展示 PlaceholderScreen；不新增正式 `debrief_full` RouteName | 001 |
 | C-2 | Default render + ContextStrip + Stepper | 用户已认证；InterviewContext 含 / 不含 targetJobId | 进入 `debrief` | 渲染 Header + ContextStrip (3 cards) + Stepper (3 steps, current=0) + Step 0 Record panel（mode toggle + entries 空态 + Submit CTA disabled）；如 InterviewContext 含 targetJobId 自动填充 JD 卡片，否则显示 default 提示 | 001 |
-| C-3 | 3 个 in-page picker modal | C-2 已渲染；Phase 0 已生成 `listPracticeSessions` | 点击 ContextStrip 的 targetJob / mockSession / resume 卡片 | 在当前页打开对应 modal；调 generated `listTargetJobs` / `listPracticeSessions` / `listResumes` + `listResumeVersions(resumeAssetId)`；用户选择后关闭 modal；ContextStrip 卡片更新；不离开 debrief 页 | 001 |
+| C-3 | 3 个 in-page picker modal | C-2 已渲染；`listPracticeSessions` generated client 与真实 backend contract 已落地 | 点击 ContextStrip 的 targetJob / mockSession / resume 卡片 | 在当前页打开对应 modal；调 generated `listTargetJobs` / `listPracticeSessions` / `listResumes` + `listResumeVersions(resumeAssetId)`；用户选择后关闭 modal；ContextStrip 卡片更新；不离开 debrief 页 | 001 |
 | C-4 | 文本模式 AI 推荐问题 | C-3 已选完 3 个上下文；fixture `suggestDebriefQuestions=default` 返回 6 suggestions | ContextStrip 三选完成后 debounce 500ms 触发 | 自动调用 `suggestDebriefQuestions({targetJobId, sessionId?, resumeVersionId?, language, count:6})`；GuidedDebriefRecord 左侧渲染 6 条 suggestions；用户可点击 occurred/skipped/edit/manual；保存 entry 前必须填写非空回答摘要；每次操作写入 entries 一行 with source 标记 | 001 |
 | C-5 | AI 推荐失败降级 | fixture `suggestDebriefQuestions=fail` 返回 canonical B1 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_PROVIDER_CONFIG_INVALID` 之一 | suggestDebriefQuestions 调用 | 显示 inline error "推荐生成失败，可手动添加问题"；不阻塞 step 0；用户可继续手工添加 entries；可点击 "重新生成推荐" 重试 | 001 |
 | C-6 | Voice 模式 UI shell | C-2 已渲染 step 0；text 模式当前激活 | 用户点击 mode toggle 切换到 voice | 渲染 VoiceDebriefRecord UI shell（toggle highlighted + idle 状态视觉 + 待确认卡片列表（空）+ 「空格暂停/继续」键盘提示 + entries 列表保留）；显示 "语音复盘集成中，敬请期待" 占位提示；切换回 text 模式 entries 仍保留；UI 视觉 100% 源级复刻 prototype VoiceDebriefRecord | 001 |
@@ -226,6 +226,6 @@
 - 上游 spec：[`engineering-roadmap`](../engineering-roadmap/spec.md) §5.2、[`product-scope`](../product-scope/spec.md) §6.5（主流程 D）+ §6.11（M4 复盘）+ §4.1（产品原则）、[`frontend-shell`](../frontend-shell/spec.md)、[`frontend-workspace-and-practice`](../frontend-workspace-and-practice/spec.md)、[`backend-debrief`](../backend-debrief/spec.md)、[`backend-practice`](../backend-practice/spec.md)、[`openapi-v1-contract`](../openapi-v1-contract/spec.md)、[`mock-contract-suite`](../mock-contract-suite/spec.md)、[`shared-conventions-codified`](../shared-conventions-codified/spec.md)、[`prompt-rubric-registry`](../prompt-rubric-registry/spec.md)、[`practice-voice-mvp`](../practice-voice-mvp/spec.md)
 - UI 真理源：`ui-design/src/screens-p1-depth.jsx::DebriefFullScreen` + 5 个子组件、`ui-design/src/primitives.jsx`、`ui-design/src/app.jsx`（route mapping / INTERVIEW_CONTEXT_ROUTES / TopBar entry "debrief"）、`ui-design/src/data.jsx`、[`docs/ui-design/review-module.md`](../../ui-design/review-module.md)、[`docs/ui-design/module-map.md`](../../ui-design/module-map.md)、[`docs/ui-design/ui-architecture.md`](../../ui-design/ui-architecture.md)、[`docs/ui-design/user-flow.md`](../../ui-design/user-flow.md)
 - 当前正式前端入口：`frontend/src/app/{routes.ts,App.tsx,screens/PlaceholderScreen.tsx}`、`frontend/src/api/{generated/client.ts,mockTransport.ts}`、`frontend/src/app/runtime/AppRuntimeProvider.tsx`、`frontend/src/app/auth/pendingAction.ts`、`frontend/src/app/i18n/locales/{zh,en}.ts`、`frontend/src/app/theme/`、`frontend/src/app/interview-context/`、`frontend/tests/pixel-parity/`
-- Fixture：`openapi/fixtures/Debriefs/createDebrief.json`、`openapi/fixtures/Debriefs/getDebrief.json`、`openapi/fixtures/Debriefs/suggestDebriefQuestions.json`（均由 backend-debrief/001 Phase 0 新增）
+- Fixture：`openapi/fixtures/Debriefs/createDebrief.json`、`openapi/fixtures/Debriefs/getDebrief.json`、`openapi/fixtures/Debriefs/suggestDebriefQuestions.json`
 - 治理 / 流程：[`AGENTS.md`](../../../AGENTS.md)、[`docs/development.md`](../../development.md) §2、[`docs/spec/README.md`](../README.md)、[`docs/spec/TEMPLATES.md`](../TEMPLATES.md)、[`test/scenarios/README.md`](../../../test/scenarios/README.md)
 - 历史：[history.md](./history.md)

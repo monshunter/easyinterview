@@ -6,6 +6,7 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-045-practice-text-loop-strict-and-deb
 mkdir -p "$OUTPUT_DIR"
 (
   cd "$REPO_ROOT"
+  "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
     src/app/screens/practice/hooks/usePracticeAssistance.test.ts \
     src/app/screens/practice/__tests__/practiceGoalParity.test.tsx \

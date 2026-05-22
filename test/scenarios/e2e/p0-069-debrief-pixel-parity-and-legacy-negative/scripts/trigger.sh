@@ -7,6 +7,7 @@ mkdir -p "$OUTPUT_DIR"
 {
   echo "E2E.P0.069 RUNNER pnpm vitest"
   cd "$REPO_ROOT"
+  "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test -- --run \
     src/app/i18n/__tests__/debriefI18nCoverage.test.ts \
     src/app/screens/debrief/__tests__/privacyBoundary.test.ts \

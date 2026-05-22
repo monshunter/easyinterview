@@ -66,6 +66,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0089](./BUG-0089.md) | frontend owner plans missed real-backend handoff gates | medium | resolved | 2026-05-23 | `fix(frontend): close real backend handoff gate drift (BUG-0089)` |
 | [BUG-0086](./BUG-0086.md) | home targetjob plan stayed fixture-only after real backend landed | medium | resolved | 2026-05-22 | `fix(frontend-home): close targetjob real backend gate drift (BUG-0086)` |
 | [BUG-0085](./BUG-0085.md) | jd_match frontend plan stayed fixture-only after real backend landed | medium | resolved | 2026-05-22 | `fix(frontend-jd-match): close real backend gate drift (BUG-0085)` |
 | [BUG-0079](./BUG-0079.md) | frontend shell popstate left unsafe URL markers visible | medium | resolved | 2026-05-18 | `fix(frontend-shell): scrub hostile popstate route privacy (BUG-0079)` |

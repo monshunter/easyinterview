@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-05-23
 
 **关联计划**: [plan](./plan.md)
 
@@ -52,3 +52,4 @@
 - [x] 5.8 prototype import grep：`git grep -nE "ui-design/src/(data|screen-resume-workshop)" -- frontend/src/app/screens/resume-workshop/` 0 命中（验证：CI lint）
 - [x] 5.9 在 `test/scenarios/e2e/INDEX.md` 追加 P0.036 + P0.037 行（关联需求 `frontend-resume-workshop C-1..C-9`，状态 Ready，automated）
 - [x] 5.10 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `frontend-resume-workshop` 状态从 "未创建" 改为 "active"（与 backend-upload / backend-resume 同步行）（验证：`sync-doc-index --check`）
+- [x] 5.11 L2 real-backend generated-client gate：listing/detail 关联 scenario trigger 前置 `frontendOwners.realApiMode.test.ts`；verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker，防止 fixture UI PASS 被误判为真实 backend 闭环。 <!-- verified: 2026-05-23 method=focused-vitest evidence=frontendOwners.realApiMode.test.ts PASS; scenario scripts updated with shared real-backend gate/verify helpers -->

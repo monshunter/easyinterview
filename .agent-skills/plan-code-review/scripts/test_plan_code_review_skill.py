@@ -82,3 +82,36 @@ class TestPlanCodeReviewSkill:
         assert "constructs, attaches/registers, starts, and shuts down" in text
         assert "internal package tests alone as insufficient" in text
         assert "state the production entrypoint audited" in text
+
+    def test_scheduler_reviews_require_starvation_and_scan_cadence_evidence(self):
+        text = _skill_text()
+        assert "scheduler" in text
+        assert "queue weights" in text
+        assert "scan-cycle SLAs" in text
+        assert "long-running handler" in text
+        assert "lower-priority but user-visible job" in text
+        assert "bucket ordering" in text
+        assert "starvation closure" in text
+        assert "long-running handler/starvation gate" in text
+
+    def test_runtime_reviews_audit_migration_escape_hatches(self):
+        text = _skill_text()
+        assert "`AsyncJobFinalized`" in text
+        assert "`AlreadyHandled`" in text
+        assert "`SkipFinalize`" in text
+        assert "enumerate every handler/service/store path" in text
+        assert "owner\n     kernel/shared retry/backoff/finalize policy" in text
+        assert "deterministic clock evidence" in text
+        assert "audited setters/observers" in text
+
+    def test_frontend_first_handoff_reviews_require_real_backend_sweep(self):
+        text = _skill_text()
+        assert "frontend-first plans" in text
+        assert "reverse-audit the adjacent backend owner" in text
+        assert "`VITE_EI_API_MODE=real` generated-client gate" in text
+        assert "`credentials: \"include\"`" in text
+        assert "absence of fixture `Prefer` headers" in text
+        assert "side-effect\n     `Idempotency-Key`" in text
+        assert "verify.sh` must check a real-mode marker" in text
+        assert "sweep sibling/completed\n     plans in the same subspec" in text
+        assert "adjacent backend owner evidence" in text

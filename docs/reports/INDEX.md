@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-23](./2026-05-23-frontend-owner-real-backend-handoff-gates-assessment.md) | Frontend Owner Real Backend Handoff Gates 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-async-runner-scheduler-backoff-fix-assessment.md) | Backend Async Runner Scheduler Backoff Fix 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-async-runner-001-l2-remediation-assessment.md) | Backend Async Runner 001 L2 Remediation 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-async-runner-001-assessment.md) | Backend Async Runner 001 交付复盘 | #assessment |

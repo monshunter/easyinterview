@@ -1,8 +1,8 @@
 # 003 BDD Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-18
+> **更新日期**: 2026-05-23
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -41,3 +41,4 @@
 - [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
 - [x] 记录验证证据：`.test-output/e2e/p0-087-resume-detail-export-copy-consistency-and-parity/trigger.log` + verify 输出 + 三屏 desktop/mobile pixel parity artifacts + Export PDF IK header spy + 501 toast 截图 + copyText clipboard fallback 截图 + retired tailor mode grep 0 输出 + 旧入口 grep 0 输出 + prototype import grep 0 输出 + axe a11y report
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.087 行（关联需求 `frontend-resume-workshop C-11, C-9, C-8`，状态 Ready，automated）
+- [x] 2026-05-23 real-backend gate：P0.084-P0.087 trigger scripts now run `frontendOwners.realApiMode.test.ts`, and verify scripts reject missing real-mode marker / default backend base URL / test-file marker; focused real-mode Vitest PASS.

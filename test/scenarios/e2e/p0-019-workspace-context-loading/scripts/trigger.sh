@@ -7,6 +7,7 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/$SCENARIO_ID"
 mkdir -p "$OUTPUT_DIR"
 (
   cd "$REPO_ROOT"
+  "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
     src/app/App.test.tsx \
     src/app/screens/workspace/WorkspaceEmptyState.test.tsx \

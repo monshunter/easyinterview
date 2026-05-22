@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-23
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -31,7 +31,7 @@
 
 `frontend-home-job-picks-and-parse/001-home-jd-import-and-parse` 当前仍为 active plan（参见 [home plan §1 / §3.7](../../../frontend-home-job-picks-and-parse/plans/001-home-jd-import-and-parse/plan.md)）：它定义 home / parse / jd_match 屏、`interviewContextFromTargetJob(targetJob)` 与 parse confirm → workspace 跳转契约，但 `test/scenarios/e2e/p0-014` ~ `p0-017` 场景资产尚未出现在当前仓库。本 plan 必须接住同款 `nav("workspace", { targetJobId, jdId, planId, resumeVersionId, roundId, ... })` params；在 home plan Ready 前，P0.018 使用直接 workspace route/hash seed 验证，不把 P0.014-017 作为无条件完成 gate。
 
-`backend-practice` v1.3 spec 已锁 6 个 Practice operation 与 D-13 `startPracticeSession` 同步首题语义，并记录当前 OpenAPI/generated `PracticeMode` 仍有旧 `legacy debrief replay value` enum 漂移；`backend-targetjob` 实施 plan `001` 已交付 `listTargetJobs / getTargetJob / updateTargetJob / importTargetJob` 真实 handler。本 plan 只通过 generated client 消费已存在的 OpenAPI operation；`createPracticePlan / getPracticePlan / startPracticeSession` 真实 backend handler 由 `backend-practice/001-plan-and-session-orchestration`（待派生）承接，本 plan 阶段保持 fixture-backed `not-yet-implemented` 状态。
+`backend-practice` v1.3 spec 已锁 6 个 Practice operation 与 D-13 `startPracticeSession` 同步首题语义，并记录当前 OpenAPI/generated `PracticeMode` 仍有旧 `legacy debrief replay value` enum 漂移；`backend-targetjob` 实施 plan `001` 已交付 `listTargetJobs / getTargetJob / updateTargetJob / importTargetJob` 真实 handler。2026-05-23 L2 复查确认 `createPracticePlan / getPracticePlan / startPracticeSession` 真实 backend handler 已由 `backend-practice/001-plan-and-session-orchestration` 落地；本 completed plan 保留交付时 fixture-backed UI variants，但 P0.018-P0.021 trigger 现在必须前置 real-mode generated-client gate。
 
 `workspace / practice / generating` 三屏在 D1 仍由 `PlaceholderScreen` 占位；本 plan 是 `frontend-workspace-and-practice` 子 spec 的首个计划，承接 spec §7 预留编号 `001-workspace-and-interview-context`。`practice` 与 `generating` 屏继续保持 PlaceholderScreen，由 plan `002` / `003` / `004` 在 backend-practice handler / voice / report 契约就位后替换。
 
@@ -39,6 +39,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-23 | 1.5 | L2 real-backend gate remediation：原 plan 保留历史 disabled-list / fixture-backed UI variants，但 P0.018-P0.021 trigger 前置 `frontendOwners.realApiMode.test.ts`，verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker；spec operation matrix 已同步 backend-resume / backend-practice real handler 事实，避免 completed plan 的历史 fixture-first 口径误导后续实施。 |
 | 2026-05-13 | 1.4 | Handoff only：`backend-resume/001-asset-register-parse-and-listing` 已落地 `listResumes` 真实 `cmd/api` route、fixtures parity 与 E2E.P0.034/P0.035；workspace owner 可启动原地修订 Resume Picker active-list，替换 completed plan 的 disabled-list 负向断言。 |
 | 2026-05-12 | 1.3 | Handoff only：B2 D-18 / `openapi-v1-contract/004-resume-additive-coverage` 已落地 `listResumes` operation、fixtures 和 generated client；本 completed plan 保留当时交付的 disabled-list 行为，后续 workspace owner 应原地修订 Resume Picker 为 active-list 模式并移除 `resumePicker.disabledNote`。 |
 | 2026-05-09 | 1.2 | L2 follow-up 修复 workspace generated API server-bound id 归一化、target-job stale/error recovery、target 切换竞态与英文本地化派生标签。 |
@@ -115,17 +116,17 @@
 
 ## 3.6 Frontend / Backend Operation Matrix
 
-本 plan 走 `docs/development.md` §2.2 Frontend-First Path：正式前端先对齐 `ui-design/` 并通过 generated client + fixture-backed transport 完成 P0 UI/BDD；真实 handler、store、AI 调用由 `backend-practice/001-plan-and-session-orchestration`（待派生）独立 owner 落地前，以下 Practice 类 backend 状态保持 `not-yet-implemented`，不得把 fixture PASS 宣称为真实 backend 闭环。
+本 plan 最初走 `docs/development.md` §2.2 Frontend-First Path：正式前端先对齐 `ui-design/` 并通过 generated client + fixture-backed transport 完成 P0 UI/BDD。2026-05-23 复查时，backend-resume 与 backend-practice 相关真实 handler 已落地；本 completed plan 保留历史 disabled-list / fixture-backed UI variants，但 P0.018-P0.021 trigger 必须先跑 `frontendOwners.realApiMode.test.ts`，不得把 fixture PASS 单独宣称为真实 backend 闭环。
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` scenarios: `default` / `prototype-baseline` / 计划新增 `single-plan` / `12-plus` | `PlanSwitcherModal` 通过 generated client 拉所有候选 plan；与 home plan §3.7 viewmodel mapping 一致 | implemented (`backend-targetjob/001` 已交付) | `target_jobs` + `target_job_requirements` | none in frontend | E2E.P0.018 |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` scenarios: `default` / `prototype-baseline` / 计划新增 `with-rounds` / `not-found` | workspace mount 时通过 generated client 拉当前 `targetJobId`；驱动 header / Interview Launcher / JD 拆解 / risks-strengths；缺失或 404 → `WorkspaceEmptyState` | implemented (`backend-targetjob/001` 已交付) | `target_jobs` + `target_job_requirements` + `target_job_sources` | none in frontend | E2E.P0.018 / E2E.P0.019 |
-| `getResume` | `openapi/fixtures/Resumes/getResume.json` scenarios: `default` / 计划新增 `not-found` | workspace mount 时通过 generated client 拉绑定 resume；驱动 BindingPill resume 段；缺失或 404 → `WorkspaceMissingResumeState` | `not-yet-implemented`（future `backend-resume`） | `resume_assets` | none | E2E.P0.018 / E2E.P0.019 |
-| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` (`default`, `empty`, `paginated`) | **本 completed plan 不消费**：交付时 Resume Picker 仅展示当前绑定 resume + disabled 列表；B2 D-18 已解除 contract blocker，后续 workspace owner 应原地修订为 active-list | operation 已由 `openapi-v1-contract/004-resume-additive-coverage` 落地；真实 handler 仍由 future `backend-resume` 承接 | resume assets | none | 当前 completed plan 保留历史负向断言；后续 active-list 修订需替换为 generated client `listResumes` 正向断言 |
-| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` scenarios: `default` / `missing-resume` / 计划新增 `validation-422` | workspace 立即面试：`InterviewContext.planId` 不存在或 `getPracticePlan` 失败时调用；body 含 `targetJobId / goal='baseline' / mode='assisted' / interviewerPersona / difficulty / language / questionBudget / timeBudgetMinutes / resumeAssetId / focusCompetencyCodes`；side-effect 调用带 `Idempotency-Key` | `not-yet-implemented`（owned by `backend-practice/001-plan-and-session-orchestration`） | `practice_plans` | none in frontend；backend-only `practice.session.first_question` 由 `startPracticeSession` 阶段触发 | E2E.P0.020 |
-| `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` scenarios: `default` / 计划新增 `archived` / `not-found` | workspace mount 时若 `InterviewContext.planId` 存在 → 拉取以确认 `status='ready'`；非 ready 视为缺 plan 走 createPracticePlan 路径 | `not-yet-implemented` | `practice_plans` | none | E2E.P0.019 |
-| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` scenarios: `default` / 计划新增 `ai-timeout-502` | workspace 立即面试 plan 就绪后调用；body `{ planId, hintsEnabled }`；`Idempotency-Key` 与 createPracticePlan 同一 batch；成功响应携带 `currentTurn{turnIndex:1, questionText, askedAt, status:'asked'}`，前端只缓存 sessionId / planId / turnIndex 进 InterviewContext，**不在 workspace 屏渲染 questionText** | `not-yet-implemented` | `practice_sessions` + 第 1 个 turn + `session_started` event | backend-only `practice.session.first_question` (spec D-13) | E2E.P0.020 |
+| `getResume` | `openapi/fixtures/Resumes/getResume.json` scenarios: `default` / `not-found` | workspace mount 时通过 generated client 拉绑定 resume；驱动 BindingPill resume 段；缺失或 404 → `WorkspaceMissingResumeState` | backend-resume real handler | `resume_assets` | none | E2E.P0.018 / E2E.P0.019 + real-mode gate |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` (`default`, `empty`, `paginated`) | **本 completed plan 不消费 UI**：交付时 Resume Picker 仅展示当前绑定 resume + disabled 列表；后续 workspace owner 应原地修订为 active-list | backend-resume real handler | resume assets | none | 当前 completed plan 保留历史负向断言；real-mode gate 证明 generated client 可指向真实 backend |
+| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` scenarios: `default` / `missing-resume` / `validation-422` | workspace 立即面试：`InterviewContext.planId` 不存在或 `getPracticePlan` 失败时调用；body 含 `targetJobId / goal='baseline' / mode='assisted' / interviewerPersona / difficulty / language / questionBudget / timeBudgetMinutes / resumeAssetId / focusCompetencyCodes`；side-effect 调用带 `Idempotency-Key` | backend-practice real handler | `practice_plans` | none in frontend；backend-only `practice.session.first_question` 由 `startPracticeSession` 阶段触发 | E2E.P0.020 + real-mode gate |
+| `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` scenarios: `default` / `archived` / `not-found` | workspace mount 时若 `InterviewContext.planId` 存在 → 拉取以确认 `status='ready'`；非 ready 视为缺 plan 走 createPracticePlan 路径 | backend-practice real handler | `practice_plans` | none | E2E.P0.019 + real-mode gate |
+| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` scenarios: `default` / `ai-timeout-502` | workspace 立即面试 plan 就绪后调用；body `{ planId, hintsEnabled }`；`Idempotency-Key` 与 createPracticePlan 同一 batch；成功响应携带 `currentTurn{turnIndex:1, questionText, askedAt, status:'asked'}`，前端只缓存 sessionId / planId / turnIndex 进 InterviewContext，**不在 workspace 屏渲染 questionText** | backend-practice real handler | `practice_sessions` + 第 1 个 turn + `session_started` event | backend-only `practice.session.first_question` (spec D-13) | E2E.P0.020 + real-mode gate |
 | `getCompanyIntel` | N/A | 本 plan **不消费**；CompanyIntelEmbed 卡片仅渲染 `target_jobs.companyName / location / source / summary`，handoff 由 `nav("company_intel", { targetJobId, jdId })` 触发外部 owner | external | external | none | 负向断言 + E2E.P0.021 |
 | `getFeedbackReport` | N/A | 本 plan **不消费**；workspace session history 仅渲染 disabled placeholder，不通过 fixture extension 获取 `sessionId/reportId`；真实 history → report handoff 等 `listPracticeSessions` 或等价 typed contract 落地 | external (`frontend-report-dashboard` / future `backend-review`) | external | none | E2E.P0.021 negative |
 
@@ -419,4 +420,4 @@ CTA 在请求中 disabled + spinner；4xx / 5xx 显示 inline 错误（在 Inter
 | Modal a11y focus trap 与 Vitest jsdom 不完全兼容 | 使用 `useModalA11y` hook + `aria-modal="true"` + `data-testid="..."`；Vitest 仅断言 attributes + Tab 焦点行为通过手动 `userEvent.tab()` 验证；E2E 留 Playwright 端到端 a11y 验证 |
 | 旧 prototype data 渗透（开发者从 `screen-workspace.jsx` 复制粘贴时把 `getWorkspaceResumeOptions` / `getWorkspaceJDSample` 一并带过来） | Vitest negative grep + `eslint-rules` 反查（`no-restricted-imports` 限制 `ui-design/`）；scenario verify 阶段 grep `EI_DATA` / `getWorkspace*` literal |
 | 历史 fixture `prototype-baseline` variant 与新 D 系列 contract 漂移导致 backend-targetjob 已交付 handler 与 fixture 字段不一致 | Phase 2.6 / 6.4 在 `make validate-fixtures` 后再跑 backend `make test`（如可达），并在 PR 描述中显式列出本 plan 修改的 fixture 文件；漂移由 `mock-contract-suite` parity test 兜底 |
-| backend-practice handler 落地后真实响应 schema 微调导致 fixture / 前端反序列化错位 | 本 plan fixture-only；plan 提交时在 retrospective 中提示 backend-practice/001 owner：变更 `CreatePracticePlanRequest` / `StartPracticeSessionRequest` schema 必须先回 OpenAPI + 同步本 plan fixture 与 viewmodel mapping |
+| backend-practice handler 落地后真实响应 schema 微调导致 fixture / 前端反序列化错位 | 本 completed plan 保留历史 fixture-backed UI variants；后续变更 `CreatePracticePlanRequest` / `StartPracticeSessionRequest` schema 必须先回 OpenAPI + 同步本 plan fixture、viewmodel mapping 与 P0.018-P0.021 real-mode gate |

@@ -6,6 +6,7 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-056-generating-to-report-happy-path"
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
+"$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
 grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE" || { echo "E2E.P0.056: no passing test files in trigger log" >&2; exit 1; }
 grep -Fq 'preflight.test.ts' "$LOG_FILE" || { echo "E2E.P0.056: preflight test did not run" >&2; exit 1; }
 grep -Fq 'GeneratingScreen.test.tsx' "$LOG_FILE" || { echo "E2E.P0.056: GeneratingScreen test did not run" >&2; exit 1; }

@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Branch, Rewrites and Edit Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-18
+> **更新日期**: 2026-05-23
 
 **关联计划**: [plan](./plan.md)
 
@@ -148,3 +148,4 @@
   <!-- verified: 2026-05-18 method=docs evidence=test/scenarios/e2e/INDEX.md appended 4 rows mapping P0.084-087 to plan 003 C-11 + C-8 / C-9, all marked status=Ready execution=automated; each row points to the matching scenario directory -->
 - [x] 7.14 spec / history / INDEX 同步核对：frontend-resume-workshop spec.md / history.md / `docs/spec/INDEX.md` 已保持 1.1，§6 C-11 / §7 plan 003 行指向当前 active plan，§3.2 accept/reject 口径为 UI 真理源 inline action + terminal-state feedback；`docs/spec/frontend-resume-workshop/plans/INDEX.md` 已包含 003 active 行；不为 checklist 收口重复 bump spec，除非发现新的设计事实（验证：`sync-doc-index --check` PASS）
   <!-- verified: 2026-05-18 method=script evidence=`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` reports "All documents are in sync. Zero drift detected." (Header Violations 0, INDEX Drifts 0, Orphans 0, Warnings 0); spec.md remains v1.1 active without bump; plans/INDEX.md still lists 003 active row; no implementation-side design facts emerged that warrant a spec bump -->
+- [x] 7.15 L2 real-backend generated-client gate：P0.084-P0.087 trigger 前置 `frontendOwners.realApiMode.test.ts`；verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker，覆盖 branch / update / accept / reject / tailor / export generated client real-mode routing。 <!-- verified: 2026-05-23 method=focused-vitest evidence=frontendOwners.realApiMode.test.ts PASS; scenario scripts updated with shared real-backend gate/verify helpers -->

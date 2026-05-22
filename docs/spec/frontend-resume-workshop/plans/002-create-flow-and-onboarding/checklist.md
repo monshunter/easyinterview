@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow and Onboarding Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-05-23
 
 **关联计划**: [plan](./plan.md)
 
@@ -74,3 +74,4 @@
 - [x] 6.12 prototype import grep：`git grep -nE "ui-design/src/(data|screen-resume-workshop)" -- frontend/src/app/screens/resume-workshop/create/` 0 命中（验证：CI lint）
 - [x] 6.13 在 `test/scenarios/e2e/INDEX.md` 追加 P0.081 + P0.082 + P0.083 行（关联需求 `frontend-resume-workshop C-10`，状态 Ready，automated）
 - [x] 6.14 spec / history / INDEX 同步核对：frontend-resume-workshop spec.md / history.md / `docs/spec/INDEX.md` 已保持 1.1，§3.1 D-4 / §6 C-10 / §7 plan 002 行指向当前 active plan；`docs/spec/frontend-resume-workshop/plans/INDEX.md` 已包含 002 active 行；不为 checklist 收口重复 bump spec，除非发现新的设计事实（验证：`sync-doc-index --check` PASS）
+- [x] 6.15 L2 real-backend generated-client gate：P0.081-P0.083 trigger 前置 `frontendOwners.realApiMode.test.ts`；verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker，覆盖 upload/resume/structured-master generated client real-mode routing。 <!-- verified: 2026-05-23 method=focused-vitest evidence=frontendOwners.realApiMode.test.ts PASS; scenario scripts updated with shared real-backend gate/verify helpers -->

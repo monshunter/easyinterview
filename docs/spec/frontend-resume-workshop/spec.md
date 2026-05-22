@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
-> **更新日期**: 2026-05-17
+> **更新日期**: 2026-05-23
 
 ## 1 背景与目标
 
@@ -13,7 +13,7 @@
 1. **100% UI 源级复刻**：DOM 构图 / 布局 / 间距 / 字号 / 字体层级 / 控件密度 / 颜色 / 阴影 / 边框 / 圆角 / 状态 / 响应式行为 / 交互节奏必须从 [`ui-design/src/screen-resume-workshop.jsx`](../../../ui-design/src/screen-resume-workshop.jsx) + [`ui-design/src/primitives.jsx`](../../../ui-design/src/primitives.jsx) + [`ui-design/src/app.jsx`](../../../ui-design/src/app.jsx) 直接复刻；不允许重新设计 / 重新解释 / 重新组合视觉。
 2. **路由接管**：`resume_versions` 路由从 [frontend-shell](../frontend-shell/spec.md) `PlaceholderScreen` 切换为本 subject 的 `ResumeWorkshopScreen`；route param 兼容 `flow=create / branch` + `versionId` + `tab=preview|rewrites|edit` + `branchOriginalId`。
 3. **mock-first 路径**：第一批 plan 不依赖 [backend-resume](../backend-resume/spec.md) 真实落地，通过 [B2 fixtures](../mock-contract-suite/spec.md) `listResumes` / `listResumeVersions` / `getResumeVersion` `default` scenario 完成 happy path。
-4. **逐步切真**：backend-resume/002 已于 2026-05-17 完成 resume versions / tailor runs / suggestion decision 真实 handler、fixture parity 与 E2E.P0.074-P0.080 gates；后续 002 / 003 前端 plan 默认消费 generated client 真实后端路径，并保留 fixture-backed mock-first 作为 dev/test fallback（mock-first 与 real 字节比对由 [mock-contract-suite C-9](../mock-contract-suite/spec.md#6-验收标准) enforce）。
+4. **逐步切真**：backend-resume/002 已于 2026-05-17 完成 resume versions / tailor runs / suggestion decision 真实 handler、fixture parity 与 E2E.P0.074-P0.080 gates；2026-05-23 起，completed frontend plan 001 / 002 / 003 的 scenario trigger 均前置 `frontendOwners.realApiMode.test.ts`，证明 resume generated client 在 `VITE_EI_API_MODE=real` 下使用真实 backend base URL、cookie credentials、无 fixture `Prefer` header 与 side-effect `Idempotency-Key`；fixture-backed mock-first 继续作为 dev/test fallback。
 5. **UI parity gate 可执行**：每个 plan 必须含 DOM 锚点 + computed style + bounding box + viewport screenshot smoke；只有 screenshot baseline 可由 clean checkout 稳定取得或本次 gate 明确维护时，才能把 screenshot diff regression 作为完成 gate。参照 [frontend-shell/003-ui-design-pixel-parity-gate](../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md) 模式。
 
 本 subject 不实现 backend handler（[backend-resume](../backend-resume/spec.md) / [backend-upload](../backend-upload/spec.md)）；不实现 OpenAPI 契约（[openapi-v1-contract D-18](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围)）；不恢复旧 Mistakes / Growth / Drill / 独立 Voice / 旧 onboarding / 旧 STAR 等已丢弃模块（[engineering-roadmap §4.1](../engineering-roadmap/spec.md#41-产品与-ui-约束)）。
@@ -112,7 +112,7 @@
 | C-3 | Tree / Flat 切换 | 处于 tree 默认视图 | 点击 `resume-workshop-view-switcher-flat` | 切换到 ResumeFlatView，DOM 渲染 `resume-flat-row-{id}` 按 match / updated_at 排序 | 001 |
 | C-4 | ResumeDetailView 只读详情 | 点击某 version row | 进入详情 `/resume_versions?versionId={id}` | 渲染 Breadcrumb + 版本分支图 + 三 tab 切换；MASTER 默认 `preview`，TARGETED 默认 `rewrites`（001 阶段内容可为 P0 ComingSoon，但 route/tab 状态不得改成 preview）；Preview Tab 可手动打开并显示 "查看原件" 弹层，可关闭 + ESC 关闭 + focus trap；点击导出 PDF 时请求带 `Idempotency-Key` 并渲染 P0 501 toast | 001 |
 | C-5 | UI parity gate | playwright pixel parity 套件已配置 | 跑 desktop + mobile viewport parity | DOM / computed style / bounding box / screenshot smoke 与 ui-design 源一致；只有 baseline 可由 clean checkout 稳定取得时才使用 screenshot diff；测试 fail 时输出可定位 artifact | 001 + 后续 plan |
-| C-6 | mock-first 字节比对 | mock-contract-suite 已配置 listResumes / listResumeVersions / getResumeVersion fixture | 切换 mock transport | response 字段集 / status / shape 与 generated client 期望字节一致；组件不 import prototype data | 001 |
+| C-6 | mock-first + real-mode 字节比对 | mock-contract-suite 已配置 listResumes / listResumeVersions / getResumeVersion fixture；backend-resume real handlers 已落地 | 切换 mock transport 或 `VITE_EI_API_MODE=real` | response 字段集 / status / shape 与 generated client 期望字节一致；组件不 import prototype data；P0.081-P0.087 trigger 必须先跑 `frontendOwners.realApiMode.test.ts`，证明 resume / resume-version / tailor operation 指向真实 backend client surface | 001 / 002 / 003 |
 | C-7 | i18n 切换 | EN / ZH lang toggle | 切换 lang | 关键文案 / `buildResumeData(lang)` 输出 / TopBar lang menu 同步；`Accept-Language` header 携带 | 001 |
 | C-8 | 隐私红线 | raw resume text / parsed_summary | 用户浏览 list / detail | console / URL / localStorage / telemetry 不出现敏感内容；仅 copyText 通过 clipboard 流出 | 001 + 后续 plan |
 | C-9 | 旧入口负向 | grep `frontend/src/app/screens/resume-workshop/` | – | 不出现 `welcome` / `mistake` / `growth` / `plan` / `drill` / `followup` / 旧 `onboarding` / 旧 `STAR` / 旧 `experiences` / `voice` 路径或 testid；不 import `ui-design/src/data.jsx` / `ui-design/src/screen-resume-workshop.jsx` 作为运行时依赖 | 001 + 后续 plan |

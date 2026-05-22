@@ -1,13 +1,14 @@
 # Frontend Debrief History
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-05-18
+> **更新日期**: 2026-05-23
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-23 | 1.6 | L2 real-backend drift 修订：backend-debrief / backend-practice / backend-resume 真实 handler 已落地，spec operation matrix 去除 Phase 0/Phase 5 stale 口径；P0.065-P0.069 trigger 前置 `frontendOwners.realApiMode.test.ts`，verify 检查 real-mode marker、默认 backend base URL 与测试文件 marker，证明 debrief / jobs / picker / replay practice generated client 不停留在 fixture-only。 | 001-debrief-screen-and-handoff |
 | 2026-05-18 | 1.5 | 修复默认 Vite dev fixture-backed mock 的复盘全流程漂移：`createDebrief` 返回的 `debrief_generate` job id 现在会在 `getJob` 中自动选择 `debrief-succeeded` 场景，`goal='debrief'` 的 `createPracticePlan` / `startPracticeSession` 也会自动选择 debrief-derived fixture，确保无真实 backend 时 Step 1 不再永久停在 `AI 分析中...`，Step 2 可进入复盘面试 handoff。 | [001-debrief-screen-and-handoff](./plans/001-debrief-screen-and-handoff/plan.md) |
 | 2026-05-17 | 1.4 | BUG-0070 follow-up：将 `getJob` polling 的 runtime route gate 写回 owner 文档，明确 frontend-consumed async operation 的完成证据必须覆盖 OpenAPI / fixture / generated client / real `cmd/api` route mount / handler-store owner scope / focused route-store tests，避免 fixture-backed mock 通过被误判为真实 backend 闭环。 | [001-debrief-screen-and-handoff](./plans/001-debrief-screen-and-handoff/plan.md) |
 | 2026-05-17 | 1.3 | L2 review fix 后修正真实后端契约：Step 0 entries 必须采集非空 `myAnswerSummary`；JD picker 使用 `analysisStatus='ready'`；Mock Session picker 依赖真实 `GET /practice/sessions` backend handler；Step 2 "开始复盘面试" 在 debrief CTA 内调用 `createPracticePlan(goal='debrief', sourceDebriefId)` + `startPracticeSession` 创建 fresh session，再将 `planId/sessionId/practiceGoal='debrief'` nav 到 practice，不再把 optional completed mock session id 复用为 replay session。 | [001-debrief-screen-and-handoff](./plans/001-debrief-screen-and-handoff/plan.md) |

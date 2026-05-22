@@ -1,8 +1,8 @@
 # 002 — Practice Text Event Loop Test Plan
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-14
+> **更新日期**: 2026-05-23
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 
@@ -20,7 +20,7 @@
 | 路由壳替换 | Primary path · 文本面试 happy path（路由分支） | Phase 1 | 单元 | `pnpm --filter @easyinterview/frontend test --run app/__tests__/App.test.tsx`（既有，断言新增 practice case） |
 | usePracticeSessionLoader 5 态 + auto refresh | Cross-layer contract · getPracticeSession refresh / resume；Failure · 404 sessionLost | Phase 1 + Phase 4 | 单元 + fake timer + jsdom event | `practice/__tests__/usePracticeSessionLoader.test.ts` |
 | i18n zh/en namespace parity | UX · i18n zh/en | Phase 1 | 单元 | `pnpm --filter @easyinterview/frontend test --run i18n` |
-| VoiceSurfaceComingSoon scoped 占位 + 不 import voice session surface | Scoped temporary placeholder · VoiceSurfaceComingSoon；UI stale-contract negative · voice imports | Phase 1 + Phase 3 | 单元 + 静态 grep | `practice/__tests__/PracticeScreen.test.tsx` + `pnpm --filter @easyinterview/frontend test --run practiceModeSwitch.test.tsx` + `grep -R "VoiceSessionSurface\\|PracticeWaveformBars\\|PracticeAnnotatedWaveform\\|VoiceExpressionPanel" frontend/src/app/screens/practice` 0 命中；text dictation failure banner 使用本地组件 |
+| Voice owner co-location boundary | `practice-voice-mvp/001` 已接管 voice surface 与 `createPracticeVoiceTurn`；text-loop gate 只限制 voice operation 不散落到 text event hooks / completion handoff | Phase 1 + Phase 5 | 单元 + 静态 grep | `practice/__tests__/PracticeScreen.test.tsx` + `practiceModeSwitch.test.tsx` + P0.044/P0.047 verify |
 | usePracticeEvents 5 kind body & header | Primary · answer_submitted；Cross-layer contract · PracticeSessionEventRequest schema | Phase 2 | 单元 | `practice/__tests__/usePracticeEvents.test.ts` |
 | Idempotency 双轨边界 | Privacy · Idempotency-Key 双轨；Primary · appendSessionEvent 不带 Idempotency-Key；Primary · completePracticeSession 带 Idempotency-Key | Phase 2 + Phase 4 | 单元 + grep | `practice/__tests__/idempotencyContract.test.ts` + `grep -R "Idempotency-Key" frontend/src/app/screens/practice` 中只允许 useCompletePracticeSession 命中 |
 | AssistantActionRenderer 5 type 渲染 + provenance 隔离 | Cross-layer contract · AssistantAction 5 type | Phase 2 | 单元 | `practice/__tests__/AssistantActionRenderer.test.tsx` |
@@ -38,7 +38,7 @@
 | INCREMENT_HINT_COUNT reducer action | InterviewContext × PracticeDisplayContext mapping | Phase 4 | 单元 | `interview-context/InterviewContext.test.tsx`（在 001 测试文件追加） |
 | Privacy redaction（answerText / questionText / hint / provenance） | Privacy · raw text；Privacy · provenance | Phase 4 + Phase 5 | 单元 + scenario verify | `practice/__tests__/practicePrivacy.test.tsx` + scenario verify.sh grep |
 | Pixel parity practice.spec.ts | UI visual geometry parity · desktop / mobile / dark / customAccent | Phase 5 | Playwright | `pnpm --filter @easyinterview/frontend test:pixel-parity --grep practice` |
-| Negative grep · prototype imports / 旧 testid / 旧 route / 旧 enum / voice imports / getFeedbackReport / createPracticeVoiceTurn / Idempotency-Key appendSessionEvent | UI stale-contract negative；Regression · 不直接调用 LLM | Phase 5 | grep gate (Vitest + scenario verify.sh) | `practice/__tests__/legacyNegative.test.ts` + `test/scenarios/e2e/p0-045.../scripts/verify.sh` + CI grep |
+| Negative grep · prototype imports / 旧 testid / 旧 route / 旧 enum / getFeedbackReport / createPracticeVoiceTurn owner boundary / Idempotency-Key appendSessionEvent | UI stale-contract negative；Regression · 不直接调用 LLM | Phase 5 | grep gate (Vitest + scenario verify.sh) | `practice/__tests__/legacyNegative.test.ts` + `test/scenarios/e2e/p0-044.../scripts/verify.sh` + `test/scenarios/e2e/p0-047.../scripts/verify.sh` + CI grep |
 | Fixture parity / drift | Cross-layer contract · openapi fixture variants | Phase 2 + Phase 4 + Phase 5 | drift + contract | `make validate-fixtures` + `make codegen-check` + `python3 scripts/lint/conventions_drift.py --repo-root .` |
 | Regression rerun（workspace + backend-practice contract gate） | Regression · workspace + 后端契约 | Phase 5 | scenario + Vitest | `test/scenarios/e2e/p0-018-021` + `p0-022-026` + 全量 Vitest |
 
@@ -51,7 +51,7 @@
 | usePracticeSessionLoader auto refresh | 同上（`TestVisibilityRefresh` / `TestFocusRefresh` / `TestOnlineRefresh`） | Red: 切换 visibility 不触发 refresh；Green: 三个事件各自触发一次 `getPracticeSession` 调用 |
 | 路由壳替换 | `app/__tests__/App.test.tsx`（在 001 文件追加 case） | Red: `practice` 命中 PlaceholderScreen；Green: `practice` 命中 PracticeScreen，`generating` / `report` / `company_intel` 仍命中 PlaceholderScreen |
 | i18n practice.* namespace parity | `pnpm --filter @easyinterview/frontend test --run i18n` | Red: zh / en namespace 有缺漏；Green: ≥ 40 key 双语对齐 |
-| VoiceSurfaceComingSoon 占位 + 不 import voice 组件 | `practice/__tests__/PracticeScreen.test.tsx` + `practiceModeSwitch.test.tsx` + grep | Red: voice surface DOM 出现 / voice 组件 import 存在；Green: 占位卡渲染 + 点击「返回 text」回到 text + grep 0 命中 |
+| Voice owner co-location boundary | `practice/__tests__/PracticeScreen.test.tsx` + `practiceModeSwitch.test.tsx` + P0.044/P0.047 verify | Red: `createPracticeVoiceTurn` 散落到 text event hooks / completion handoff；Green: voice operation 只在 `usePracticeVoiceTurn.ts` 与 voice tests 中出现 |
 
 ## 4 Phase 2: appendSessionEvent + AssistantAction + SessionStatus 消费
 
@@ -100,5 +100,5 @@
 | Pixel parity practice.spec.ts | `pnpm --filter @easyinterview/frontend test:pixel-parity --grep practice` | Red: bounding box 溢出 / 主题切换不可见；Green: desktop + mobile + 8 主题 × dark + customAccent + 5 状态截图基线全 PASS |
 | Scenario 资产 + INDEX 更新 | `test/scenarios/e2e/p0-044-047/` 目录 + `INDEX.md` | Red: 目录或脚本缺失；Green: 4 目录齐全 + INDEX 4 行追加 |
 | Regression rerun（workspace + backend-practice contract） | scenario rerun + backend Go HTTP scenario + 全量 Vitest + build | Red: workspace P0.018-021 任一 FAIL / backend-practice P0.022-026 任一 FAIL / backend-practice 002 P0.038-043 任一 FAIL；Green: 15 个 regression gate 全 PASS + Vitest 全 PASS + build PASS |
-| Negative grep | `practice/__tests__/legacyNegative.test.ts` + CI grep | Red: 任何旧口径 / voice imports / getFeedbackReport / createPracticeVoiceTurn / `Idempotency-Key.*appendSessionEvent` / raw text 泄漏命中；Green: 全部 0 命中 |
+| Negative grep | `practice/__tests__/legacyNegative.test.ts` + CI grep + P0.044/P0.047 verify | Red: 任何旧口径 / getFeedbackReport / `createPracticeVoiceTurn` 非 voice-owner-hook 调用 / `Idempotency-Key.*appendSessionEvent` / raw text 泄漏命中；Green: 禁止项 0 命中且 voice owner hook 例外受控 |
 | 文档与索引同步 | `make docs-check` + `/sync-doc-index --fix-index` + `check-md-links` | Red: drift / 链接断；Green: 0 drift + 0 broken |

@@ -1,8 +1,8 @@
 # 001 Debrief Screen and Handoff BDD Checklist
 
-> **版本**: 1.4
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-05-17
+> **更新日期**: 2026-05-23
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 **关联计划**: [plan](./plan.md)
@@ -86,3 +86,4 @@
 - [x] 9.A 所有 5 个 scenario `Ready` 状态登记到 `test/scenarios/e2e/INDEX.md`
 - [x] 9.B 所有 5 个 scenario 一次性顺序执行通过：`for s in p0-065-debrief-default-render-and-pickers p0-066-debrief-text-suggestions-and-submit p0-067-debrief-polling-happy-and-analysis p0-068-debrief-failure-and-handoff p0-069-debrief-pixel-parity-and-legacy-negative; do (cd test/scenarios/e2e/$s && bash scripts/setup.sh && bash scripts/trigger.sh && bash scripts/verify.sh); rc=$?; (cd test/scenarios/e2e/$s && bash scripts/cleanup.sh); [ $rc -eq 0 ] || break; done`
 - [x] 9.C 全部 scenario 证据 `.test-output/e2e/<scenario>/trigger.log` 已记录并由对应 `verify.sh` 消费
+- [x] 9.D 2026-05-23 real-backend gate：P0.065-P0.069 trigger scripts now run `frontendOwners.realApiMode.test.ts` before fixture-backed debrief UI subcases, and verify scripts reject missing real-mode marker / default backend base URL / test-file marker; focused real-mode Vitest PASS.

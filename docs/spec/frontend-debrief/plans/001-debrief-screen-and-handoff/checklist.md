@@ -1,8 +1,8 @@
 # 001 Debrief Screen and Handoff Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-05-18
+> **更新日期**: 2026-05-23
 
 **关联计划**: [plan](./plan.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -99,3 +99,4 @@
 - [x] 9.2 plans/INDEX.md 把 001 从 active 移到 completed，记录完成日期 2026-05-17
 - [x] 9.3 frontend-debrief/history.md 增加 completion / review-fix 行
 - [x] 9.4 提交 commit `feat(frontend-debrief): close 001 debrief screen and handoff baseline`；记录工作日志 `/work-journal`
+- [x] 9.5 L2 real-backend generated-client gate：P0.065-P0.069 trigger 前置 `frontendOwners.realApiMode.test.ts`；verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker，证明 debrief / jobs / picker / replay practice generated client 不停留在 fixture-only。 <!-- verified: 2026-05-23 method=focused-vitest evidence=frontendOwners.realApiMode.test.ts PASS; scenario scripts updated with shared real-backend gate/verify helpers -->

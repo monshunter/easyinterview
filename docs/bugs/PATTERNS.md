@@ -70,7 +70,7 @@
 
 ## 模式 6：Frontend-first handoff 完成后未回填真实 backend gate
 
-- **相关 Bug**：BUG-0085, BUG-0086
+- **相关 Bug**：BUG-0085, BUG-0086, BUG-0089
 - **典型症状**：frontend plan 在 backend owner 未完成时以 fixture-backed UI variants 交付，后续 backend owner 已落地真实 handler / scenarios，但 completed frontend plan 的 operation matrix、spec Out of Scope、scenario docs 仍写 `not-yet-implemented` / future backend / fixture-first；frontend scenarios 只跑 mock/fixture UI 子用例，未证明 `VITE_EI_API_MODE=real` 下 production generated client 指向真实 backend base URL。
 - **检查清单**：
   1. 对 completed frontend-first plan 做 L2 review 时，先反查同 subspec 或相邻 backend owner plan 是否已经完成；不要把完成时的 fixture-first wording 当成当前事实。
