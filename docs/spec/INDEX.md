@@ -21,7 +21,7 @@
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.3 | active | 2026-05-05 | [plans](./repo-scaffold/plans/) |
 | [local-dev-stack](./local-dev-stack/spec.md) | 1.10 | active | 2026-05-08 | [plans](./local-dev-stack/plans/) |
 | [backend-runtime-topology](./backend-runtime-topology/spec.md) | 1.4 | active | 2026-05-07 | [plans](./backend-runtime-topology/plans/) |
-| [backend-async-runner](./backend-async-runner/spec.md) | 1.0 | active | 2026-05-21 | [plans](./backend-async-runner/plans/) |
+| [backend-async-runner](./backend-async-runner/spec.md) | 1.1 | active | 2026-05-22 | [plans](./backend-async-runner/plans/) |
 | [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.11 | active | 2026-05-21 | [plans](./ai-provider-and-model-routing/plans/) |
 | [secrets-and-config](./secrets-and-config/spec.md) | 2.5 | active | 2026-05-12 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.3 | active | 2026-04-29 | [plans](./ci-pipeline-baseline/plans/) |
@@ -32,7 +32,7 @@
 |---------|------|------|----------|-------|
 | [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.20 | active | 2026-05-21 | [plans](./shared-conventions-codified/plans/) |
 | [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.26 | active | 2026-05-21 | [plans](./openapi-v1-contract/plans/) |
-| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.6 | active | 2026-05-21 | [plans](./event-and-outbox-contract/plans/) |
+| [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.7 | active | 2026-05-22 | [plans](./event-and-outbox-contract/plans/) |
 | [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.21 | active | 2026-05-21 | [plans](./db-migrations-baseline/plans/) |
 
 ## 4 Quality / AI Governance

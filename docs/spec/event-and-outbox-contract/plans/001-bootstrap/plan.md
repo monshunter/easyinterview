@@ -38,7 +38,7 @@
 
 #### 1.2 16 个事件 payload 字段清单
 
-按 [spec §3.1.3](../../spec.md#313-16-个事件全集v1) 与 [spec §3.1.4](../../spec.md#314-v1-payload-schema-inventory) 逐行写入 16 个事件的 `events:` 列表。每个事件落地以下属性：`name`（dot.case，2 或 3 段，最后一段过去式）、`version: 1`、`producer`（来自 §3.1.3 producer 列）、`aggregateType`（snake_case）、`requiredPayload`（map，键为字段名，值为 `{type, source}`）、`optionalPayload`（v1 全部为空，留 schema slot 以便后续 additive 扩展）、`piiBoundary`（描述串，对应 §3.1.4 PII 列）。`requiredPayload` 中复用 B1 enum 的字段必须通过 `$ref`-style alias 引用，例如 `analysisStatus: { type: $ref:b1.TargetJobParseStatus }`；不得在 yaml 中复制 enum 字面量。
+按 [spec §3.1.3](../../spec.md#313-18-个事件全集v1) 与 [spec §3.1.4](../../spec.md#314-v1-payload-schema-inventory) 逐行写入 16 个事件的 `events:` 列表。每个事件落地以下属性：`name`（dot.case，2 或 3 段，最后一段过去式）、`version: 1`、`producer`（来自 §3.1.3 producer 列）、`aggregateType`（snake_case）、`requiredPayload`（map，键为字段名，值为 `{type, source}`）、`optionalPayload`（v1 全部为空，留 schema slot 以便后续 additive 扩展）、`piiBoundary`（描述串，对应 §3.1.4 PII 列）。`requiredPayload` 中复用 B1 enum 的字段必须通过 `$ref`-style alias 引用，例如 `analysisStatus: { type: $ref:b1.TargetJobParseStatus }`；不得在 yaml 中复制 enum 字面量。
 
 #### 1.3 event-local enum 与 B1 边界
 

@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.0
+    to: 1.1
   baseBranch: main
   branch: spec-design/backend-async-runner
 spec:
@@ -32,6 +32,12 @@ spec:
       - source_event_only
       - email_dispatch
       - email.dispatch
+      - jd_match_agent_scan
+      - jd_match.agent_scan
+      - jd_match_search
+      - jd_match.search
+      - jd_match.recommendation.completed
+      - jd_match.search.completed
       - target_import
       - source_refresh
       - privacy_delete
@@ -80,6 +86,7 @@ spec:
         - ../../../backend-review/spec.md
         - ../../../backend-debrief/spec.md
         - ../../../backend-resume/spec.md
+        - ../../../backend-jobs-recommendations/spec.md
       discovery:
         packages:
           - backend/internal/runner
@@ -88,6 +95,9 @@ spec:
           - backend/internal/debrief
           - backend/internal/resume/jobs
           - backend/internal/resume/store
+          - backend/internal/jdmatch
+          - backend/internal/jdmatch/jobs
+          - backend/internal/jdmatch/store
           - backend/internal/privacy/runner
           - backend/internal/auth
           - backend/internal/jobs
@@ -101,5 +111,6 @@ spec:
           - scripts/lint
           - config
           - docs/spec/backend-async-runner
+          - docs/spec/backend-jobs-recommendations
         uiRoutes: []
         apiNames: []

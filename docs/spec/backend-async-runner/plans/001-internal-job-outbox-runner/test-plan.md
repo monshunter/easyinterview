@@ -1,8 +1,8 @@
 # Internal Job and Outbox Runner Test Plan
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-05-22
 
 **关联计划**: [plan](./plan.md)
 **关联 Checklist**: [checklist](./checklist.md)
@@ -30,6 +30,7 @@
 | P2-3 | spec C-7 debrief_generate | 2 | `backend/internal/debrief/generate_handler_test.go` + `service_test.go` rerun | regression |
 | P2-4 | spec C-8 resume_parse / resume_tailor | 2 | `backend/internal/resume/jobs/*_test.go` + `backend/cmd/api/resume_parse_drainer_scenario_test.go` + `resume_tailor_drainer_scenario_test.go` rerun | regression + scenario |
 | P2-5 | spec C-9 report_generate；review.Runner/Reaper 删除 | 2 | `backend/internal/review/runner_test.go` / `reaper_test.go` 有价值断言迁移到 kernel / `GenerateHandler` tests + `backend/cmd/api/reports_http_scenario_test.go` rerun | unit + regression |
+| P2-6 | spec C-8a jd_match_agent_scan | 2 | `backend/internal/jdmatch/jobs/agent_scan_test.go` + `backend/cmd/api/jdmatch_live_scenario_test.go::TestJDMatchAgentScanDrainerScenario` + `jdmatch_http_scenario_test.go` lifecycle 断言重写 | regression + scenario |
 | P3-1 | spec C-10 outbox 5s/skip-locked/batch/sort | 3 | `backend/internal/runner/outbox_integration_test.go::TestOutboxDispatcher_ClaimsPendingBatch` | integration (PG) |
 | P3-2 | spec C-15 trace_id 透传 | 3 | `backend/internal/runner/outbox_trace_test.go::TestOutboxDispatcher_PropagatesTraceParent` | unit |
 | P3-3 | spec C-14 email_dispatch 收口 | 3 | `backend/internal/auth/passwordless_test.go::TestStartAuthEmailChallenge_EnqueuesEmailDispatchJob` + `email_dispatch_handler_test.go` | unit + integration |
@@ -62,6 +63,7 @@
 | B-3 | spec C-12 outbox at-least-once + consumer idempotency | 3 | `backend/internal/runner/outbox_integration_test.go::TestOutboxDispatcher_DuplicateEventIdHandledIdempotently` | integration |
 | B-4 | spec C-13 `source_event_only` skip | 3 | `backend/internal/runner/outbox_source_event_only_test.go::TestOutboxDispatcher_SkipsSourceEventOnly` | integration |
 | B-5 | spec C-13a 缺少 consumer 不得 ack | 3 | `backend/internal/runner/outbox_consumer_test.go::TestDispatcherMissingConsumerDoesNotAck` + `TestDispatcherDryRunConsumerRequiresExplicitRegistration` | unit + integration |
+| B-6 | spec C-8a / D-9 `jd_match_search` future reservation 不注册 | 2 / 4 | `backend/cmd/api/jdmatch_http_scenario_test.go::TestBuildJDMatchRuntimeWiresRoutesDrainerAndLifecycle` 重写后断言 kernel handles `jd_match_agent_scan` 且不 handles `jd_match_search` | unit |
 
 ### 2.5 Cross-layer contract
 
@@ -71,6 +73,7 @@
 | X-2 | spec C-17 `async.queueWeights` typed config 注入 | 1 | `backend/internal/platform/config/loader_test.go::TestAsyncSection` + `backend/internal/runner/config_test.go` | unit + integration |
 | X-3 | spec D-10 `email_dispatch` payload validator 与 B3 `shared/jobs/jobs.go` 一致 | 3 | `backend/internal/shared/jobs/jobs_test.go::TestEmailDispatchPayloadValidator` + `backend/internal/runner/email_dispatch_integration_test.go` | unit + integration |
 | X-4 | spec D-14 新增 `async.scanIntervalSeconds` / `leaseTimeoutSeconds` / `shutdownGraceSeconds` / `reaperIntervalSeconds` typed config 注入（A4 additive config-only，不新增 env key） | 1 | `backend/internal/platform/config/loader_test.go::TestAsyncSection` + `backend/internal/runner/config_test.go::TestRuntimeConfig_AsyncTimings` | unit + integration |
+| X-5 | B3 D-16 / `shared/jobs.yaml` 11 canonical job_type 当前事实 | 2 / 4 | `make codegen-events-check`（如 touched）+ `make lint-runner-legacy` + `backend/internal/shared/jobs/jobs_test.go` | generated contract + lint |
 
 ### 2.6 Privacy / security / observability
 
@@ -87,7 +90,7 @@
 | 行 | 决策 | Phase | 入口 | 类型 |
 |----|------|-------|------|------|
 | R-1 | spec D-12 zero-reference grep | 4 | `make lint-runner-legacy`（`scripts/lint/runner_legacy.py`，与既有 `backend_review_legacy.py` 同风格） | lint |
-| R-2 | spec C-18 owner BDD 场景 rerun | 4 | `E2E.P0.003` / `010` / `012` / `013` / `033` / `034` / `035` / `041` / `052` / `054` / `055` / `060` / `062` / `077` / `078` / `080` 重跑 | BDD regression |
+| R-2 | spec C-18 owner BDD 场景 rerun | 4 | `E2E.P0.003` / `010` / `012` / `013` / `033` / `034` / `035` / `041` / `052` / `054` / `055` / `060` / `062` / `077` / `078` / `080` / `094` / `095` / `096` / `097` 重跑 | BDD regression |
 | R-3 | `git ls-files backend/internal/review` 不含 `runner.go` / `reaper.go` / `lease.go` | 4 | `backend/internal/review/structure_test.go::TestNoLegacyRunnerFiles` 或 lint | structure test |
 | R-4 | `git ls-files backend/internal/auth` 不含 `BackgroundMailDispatcher` 引用 | 4 | `backend/internal/auth/mail_test.go::TestNoBackgroundDispatcher` | unit |
 
@@ -104,7 +107,7 @@
 ## 3 测试命令清单
 
 - `cd backend && go test ./internal/runner/...`
-- `cd backend && go test ./internal/targetjob/... ./internal/privacy/runner/... ./internal/debrief/... ./internal/resume/jobs/... ./internal/review/... ./internal/auth/...`
+- `cd backend && go test ./internal/targetjob/... ./internal/privacy/runner/... ./internal/debrief/... ./internal/resume/jobs/... ./internal/review/... ./internal/auth/... ./internal/jdmatch/...`
 - `cd backend && go test ./cmd/api/...`
 - `make lint-runner-legacy`
 - `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/backend-async-runner/plans/001-internal-job-outbox-runner/context.yaml --docs-root docs --target backend`

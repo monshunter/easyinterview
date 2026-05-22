@@ -1,13 +1,15 @@
 # Event and Outbox Contract History
 
-> **版本**: 2.5
+> **版本**: 2.7
 > **状态**: active
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-22
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-22 | 2.7 | plan-review backend-async-runner/001 深度校对时同步 B3 当前生成物事实：事件全集为 18、canonical job_type 为 11；将目标、scope、§3.1.1/§3.1.2/§3.1.3、payload schema、命名约束和验收标准统一到 `shared/events.yaml` / `shared/jobs.yaml` 与 generated Go/TS truth，明确 `jd_match_search` 仅 future-async reserved，不进入当前 backend async runner drainer 注册。 | backend-async-runner/001-internal-job-outbox-runner plan-review remediation |
+| 2026-05-21 | 2.6 | backend-jobs-recommendations/001 携带 B3 additive：新增 `jd_match.recommendation.completed` / `jd_match.search.completed` 两个事件与 `jd_match_agent_scan` / `jd_match_search` 两个 canonical job_type，同步 baseline、generated artifacts、migration check constraint 与 lint inventory；`jd_match_search` 保持 internal-only future-async reserved。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.8 + 0.9 + 0.10 |
 | 2026-05-13 | 2.5 | 授权 backend-practice/002 Phase 0 新增 `triggerEventSemantic` 字段与 generated `JobTriggerEventSemantic*` 常量 / `IsSourceEventOnly` 谓词；`report_generate` 标注为 `source_event_only`，明确 `practice.session.completed` 是 source event / analytics fact，runtime dispatcher 集成留给 future `backend-async-runner`。 | backend-practice/002-event-loop-and-completion Phase 0 |
 | 2026-05-12 | 2.4 | D-14 `ResumeTailorMode` 漂移修复落地：`eventLocalEnums.ResumeTailorMode` 从 `[inline, rewrite, mirror]` 改为 `[gap_review, bullet_suggestions]`；baseline manifest、JSON Schema refs 与 Go/TS generated events 同步；executable/generated/source truth 旧字面量零残留。 | event-and-outbox-contract/002-resume-tailor-mode-drift-fix |
 | 2026-05-11 | 2.3 | D-14 `ResumeTailorMode` 漂移修复声明阶段：`eventLocalEnums.ResumeTailorMode` 当前 `[inline, rewrite, mirror]`，与 B2 OpenAPI `RequestResumeTailorRequest.mode`（`gap_review / bullet_suggestions`）+ B4 `resume_tailor_runs.mode` 不同步；本次声明对齐为 `[gap_review, bullet_suggestions]`；具体 yaml 修订与 baseline manifest 同步由 002 plan 落地。 | event-and-outbox-contract/002-resume-tailor-mode-drift-fix（声明阶段，docs-only） |
