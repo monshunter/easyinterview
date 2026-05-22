@@ -1,8 +1,8 @@
 # Frontend Home / Job Picks / Parse Spec
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-22
 
 ## 1 背景与目标
 
@@ -31,13 +31,13 @@
   - 通过 `analysisStatus` 状态机（`queued` / `processing` / `ready` / `failed`）驱动 loading→preview 切换；不假装"正在调用 LLM"
 - JD Match 屏（`route=jd_match`）：
   - **plan 001**：P1 placeholder shell（保留 TopBar nav 高亮 + 路由可达；Hero + Profile snapshot chip 静态渲染；三 tab 显示 placeholder copy；不消费任何 mock 数据）
-  - **plan 002**：完整三 tab 业务（Recommended / Search / Watchlist）+ Profile snapshot chip 数据驱动 + AGENT scan status badge + Save/Mark not relevant/Confirm interview/Open source 闭环 + 自然语言 Search + Saved searches + Watchlist + Market signals；通过 generated `JobMatch` client + fixture-backed transport 消费 OpenAPI 新增 12 个 operationId（`getJobMatchProfile` / `getAgentScanStatus` / `listJobRecommendations` / `getJobRecommendation` / `addToWatchlist` / `removeFromWatchlist` / `markJobNotRelevant` / `searchJobs` / `listSavedSearches` / `createSavedSearch` / `listWatchlist` / `getMarketSignals`）；side-effect 操作均带 `Idempotency-Key`；与 D-2 模式一致，前端不直连 LLM/provider/外部招聘平台
+  - **plan 002**：完整三 tab 业务（Recommended / Search / Watchlist）+ Profile snapshot chip 数据驱动 + AGENT scan status badge + Save/Mark not relevant/Confirm interview/Open source 闭环 + 自然语言 Search + Saved searches + Watchlist + Market signals；通过 generated `JobMatch` client + fixture-backed transport 消费 OpenAPI 新增 12 个 operationId（`getJobMatchProfile` / `getAgentScanStatus` / `listJobRecommendations` / `getJobRecommendation` / `addToWatchlist` / `removeFromWatchlist` / `markJobNotRelevant` / `searchJobs` / `listSavedSearches` / `createSavedSearch` / `listWatchlist` / `getMarketSignals`）；side-effect 操作均带 `Idempotency-Key`；2026-05-22 起 `backend-jobs-recommendations/001-jd-match-real-backend-baseline` 已落地真实 handler，frontend plan 002 通过 `VITE_EI_API_MODE=real` generated-client gate 证明 12 个 operation 指向真实 backend base URL，同时保留 fixture-backed UI variants；与 D-2 模式一致，前端不直连 LLM/provider/外部招聘平台
 - 与 D1 `requestAuth(pendingAction)` 集成：未登录用户提交 import 与 confirm interview 时触发 pendingAction，登录后恢复
 - 与 D2/D3 `ui-design/` parity gate 集成：home / parse 两屏新增 Vitest+jsdom smoke 与 Playwright desktop+mobile pixel parity 测试
 
 ### 2.2 Out of Scope
 
-- `jd_match` 真实 backend handler / service / store / agent scan pipeline / 真实联网搜索 / 候选池抓取 / market signals 计算 — 由独立未来 subspec `backend-jobs-recommendations` 承接；plan 002 frontend 通过 generated `JobMatch` client + fixture-backed transport 闭环（与 D-2 模式一致），不依赖也不实现真实 backend
+- `jd_match` backend handler / service / store / agent scan pipeline / AI-backed search / 候选池抓取 / market signals 计算的代码实现 — 已由独立 subspec `backend-jobs-recommendations/001-jd-match-real-backend-baseline` 承接并完成；本 frontend subspec 不拥有 backend 代码，但 plan 002 必须通过 `VITE_EI_API_MODE=real` generated-client gate + backend E2E.P0.094-P0.097 证明真实 API 联调闭环
 - 真实联网搜索（LinkedIn / Boss / 脉脉 / 拉勾 / 公司官网 API 直连） — 由 `backend-jobs-recommendations` 承接
 - AGENT 真实定时扫描调度 — 仅前端展示 backend 返回的 `lastScanAt` / `nextScanAt`，frontend 不实现真实定时器或 SSE/WebSocket 推送
 - Watchlist 与 Saved Searches 客户端持久化 — 锁定为服务端持久化（D-9），frontend 不写 localStorage / sessionStorage
@@ -52,7 +52,7 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | jd_match 业务范围 | 采用「契约先行 + frontend fixture 消费」模式，与 D-2 一致：plan 001 落地 P1 placeholder shell；plan 002 在真实 backend handler 落地之前先扩展 OpenAPI `JobMatch` tag + 12 operationId + fixture，frontend 通过 generated client + fixture-backed transport 一次性源级复刻 ui-design 三 tab 完整业务；真实 backend handler / service / store / agent scan pipeline / 真实联网搜索 / 候选池抓取 / market signals 计算由独立未来 subspec `backend-jobs-recommendations` 承接，本 subspec 不依赖也不实现真实 backend；新增 `JobMatch` tag 前必须同步 B2 owner truth source（`openapi-v1-contract` endpoint inventory、OpenAPI/fixture README、inventory linter、fixture validator 和 mock-contract coverage 口径），把当前 12 tag / 34 endpoint gate additive 升级到 13 tag / 46 endpoint | 与 D-2 generated client + fixture-backed transport 模式对齐；frontend 永远不直连 LLM/provider/外部招聘平台；避免 fixture-backed UI 被 34-operation 冻结门禁误判；为 backend recommendations subspec 提供清晰契约 handoff |
+| D-1 | jd_match 业务范围 | 采用「契约先行 + frontend fixture 消费 + real-mode generated-client 联调 gate」模式，与 D-2 一致：plan 001 落地 P1 placeholder shell；plan 002 先扩展 OpenAPI `JobMatch` tag + 12 operationId + fixture，frontend 通过 generated client + fixture-backed transport 一次性源级复刻 ui-design 三 tab 完整业务；2026-05-22 `backend-jobs-recommendations/001-jd-match-real-backend-baseline` 已完成真实 backend handler / service / store / agent scan pipeline / AI-backed search / candidate pool / market signals，plan 002 原地补 `VITE_EI_API_MODE=real` gate 证明 12 operation 的 production generated client 指向真实 backend base URL；新增 `JobMatch` tag 时已同步 B2 owner truth source（`openapi-v1-contract` endpoint inventory、OpenAPI/fixture README、inventory linter、fixture validator 和 mock-contract coverage 口径），把 12 tag / 34 endpoint gate additive 升级到 13 tag / 46 endpoint | 与 D-2 generated client + fixture-backed transport 模式对齐，同时避免 fixture-backed UI 被误判为真实 backend 闭环；frontend 永远不直连 LLM/provider/外部招聘平台；真实 backend semantics 由 backend P0.094-P0.097 live scenarios 配对证明 |
 | D-2 | Parse loading 进度驱动 | 前端只通过 generated API client 调 `getTargetJob` 轮询 backend 返回的 `analysisStatus` 状态机：`queued` → `processing` → `ready` / `failed`；UI 4 步进度条与 footer 只源级复刻 `ui-design` 的解析节奏与版式，不代表前端直接调用 LLM | 当 fixture transport / backend 返回 `ready` 时进度条以可观察节奏快速完成；返回 `failed` 时切错误态而非伪装继续；前端不得接入 AI provider、prompt registry、LLM key 或任何 provider-specific endpoint |
 | D-3 | Hidden signals 来源 | 前端只展示 backend/API 返回的 `TargetJobSummary.interviewHypotheses`（对象级 `provenance` 必须存在）+ `TargetJobSummary.coreThemes`；`fitSummary.riskSignals` 用于 "WHERE IT'S A STRETCH" 类风险呈现；结构与 icon/置信度 tag 必须与 `ui-design` Hidden signals 卡片一致 | 不在前端凭 JD 文本推断、补写、改写或重新生成 hidden signals；所有 AI-generated 字段必须通过 OpenAPI fixture / backend response 可追溯到 `GenerationProvenance` |
 | D-4 | Confirm 跳转契约 | `nav("workspace", { targetJobId, jdId, planId, resumeVersionId, roundId })`；`planId` 由 D1 `eiCreateInterviewContext` 等价契约从 `targetJobId` 推导（`plan-${targetJobId}`） | 真实 `createPracticePlan` API 调用由 `frontend-target-job-workspace` 承接；本 subspec 不主动创建 PracticePlan |
@@ -94,7 +94,7 @@
 | TargetJob persistence / runner / event 发射 | `backend-targetjob`（未来）+ `event-and-outbox-contract` + `db-migrations-baseline` | 真实 backend handler / store / event 实现，本 subspec 不依赖真实 backend |
 | AI parsing 调用 | `ai-provider-and-model-routing` + `prompt-rubric-registry` | 真实 LLM 调用通过 backend；本 subspec 不直接消费 AI |
 | jd_match frontend 三 tab | `frontend-home-job-picks-and-parse/plans/002-jd-match-recommendations` | 三 tab React 组件、子组件、`JobMatch` OpenAPI 契约扩展（12 operationId）、fixture、i18n、源级 parity 测试、5 个 BDD 场景；通过 generated client + fixture-backed transport 闭环 |
-| jd_match `JobMatch` tag handler / store / agent scan pipeline / 真实联网搜索 / 候选池抓取 / market signals 计算 | `backend-jobs-recommendations`（未来独立 subspec） | 真实 backend；plan 002 落地时保持 `not-yet-implemented`；OpenAPI 契约 + fixture 由 plan 002 提供 contract handoff |
+| jd_match `JobMatch` tag handler / store / agent scan pipeline / AI-backed search / 候选池抓取 / market signals 计算 | `backend-jobs-recommendations/001-jd-match-real-backend-baseline` | 真实 backend 已完成；frontend plan 002 保留 OpenAPI 契约 + fixture UI variants，并通过 `VITE_EI_API_MODE=real` generated-client gate + backend E2E.P0.094-P0.097 证明真实 API 联调 |
 
 ## 6 验收标准
 
@@ -120,7 +120,7 @@
 ## 7 关联计划
 
 - [001-home-jd-import-and-parse](./plans/001-home-jd-import-and-parse/plan.md) — Home + Parse 端到端 + jd_match P1 placeholder shell（completed 2026-05-08）
-- [002-jd-match-recommendations](./plans/002-jd-match-recommendations/plan.md) — jd_match 三 tab 完整 frontend 业务 + JobMatch OpenAPI 12 operationId + fixture + 5 BDD 场景（active starting 2026-05-09）
+- [002-jd-match-recommendations](./plans/002-jd-match-recommendations/plan.md) — jd_match 三 tab 完整 frontend 业务 + JobMatch OpenAPI 12 operationId + fixture + real-mode generated-client gate + 5 BDD 场景（completed L2 remediation 2026-05-22）
 
 ## 8 关联文档
 

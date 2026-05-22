@@ -48,7 +48,7 @@
 |---------|------|------|----------|-------|
 | [mock-contract-suite](./mock-contract-suite/spec.md) | 1.7 | active | 2026-05-17 | [plans](./mock-contract-suite/plans/) |
 | [frontend-shell](./frontend-shell/spec.md) | 1.16 | active | 2026-05-18 | [plans](./frontend-shell/plans/) |
-| [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 1.7 | completed | 2026-05-10 | [plans](./frontend-home-job-picks-and-parse/plans/) |
+| [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 1.8 | completed | 2026-05-22 | [plans](./frontend-home-job-picks-and-parse/plans/) |
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.3 | active | 2026-05-13 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 1.3 | active | 2026-05-21 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 1.5 | active | 2026-05-21 | [plans](./backend-targetjob/plans/) |

@@ -1,8 +1,8 @@
 # 002 BDD Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-22
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -65,3 +65,9 @@
 - [x] `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 plan 001 已升级 baseline 上累加新增三 tab × 三主题 spec，总数全 PASS，并确认升级后 jd_match SearchTab 的 5 步 AGENT panel 与 ui-design 真理源结构一致、focused screenshot baseline PASS <!-- evidence: 2026-05-10 L2 `pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/jd_match.spec.ts` → 20 passed; responsive geometry + dark/customAccent computed style + focused screenshot covered -->
 - [x] `pnpm --filter @easyinterview/frontend typecheck` + `pnpm --filter @easyinterview/frontend build` + `make build` + `make validate-fixtures` 全 PASS <!-- evidence: 2026-05-10 L2 final: typecheck PASS; frontend build PASS; make build PASS; validate-fixtures OK 46 fixtures -->
 - [x] `make docs-check` zero drift；`/sync-doc-index --fix-index` post-fix zero drift；`check_md_links` 双 OK <!-- evidence: 2026-05-10 sync-doc-index --fix-index applied status/version/index sync; sync-doc-index --check zero drift; make docs-check zero drift + docs/spec link checks OK -->
+
+## Real Backend Overlay（2026-05-22）
+
+- [x] P0.027-P0.031 trigger scripts export or default `VITE_EI_API_MODE=real` and `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`, then run `src/api/jdMatch.realApiMode.test.ts` before fixture-backed UI sub-cases. <!-- evidence: 2026-05-22 P0.027/P0.028/P0.029/P0.030/P0.031 trigger logs each include VITE_EI_API_MODE=real, VITE_EI_API_BASE_URL=http://localhost:8080/api/v1, and jdMatch.realApiMode.test.ts PASS -->
+- [x] P0.027-P0.031 verify scripts reject logs missing `VITE_EI_API_MODE=real`, `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`, or `jdMatch.realApiMode.test.ts`, while preserving existing DOM/auth/privacy fixture gates. <!-- evidence: 2026-05-22 P0.027-P0.031 verify PASS after the new real-mode greps; P0.030 verify also updated from stale toHaveScreenshot grep to current non-empty screenshot gate -->
+- [x] Backend E2E.P0.094-P0.097 setup→trigger→verify→cleanup PASS on live Postgres, pairing frontend real-mode generated-client routing with real route/persistence/auth/IK/privacy/AI provenance semantics. <!-- evidence: 2026-05-22 P0.094/P0.095/P0.096 run TestJDMatchFixtureParity + TestJDMatchHTTPScenario PASS; P0.097 runs TestJDMatchHTTPScenario + TestJDMatchAgentScanDrainerScenario PASS; each verify rejects skip/no-test/fail markers and raw email leaks -->

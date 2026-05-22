@@ -37,10 +37,19 @@ Verifies the Confirm interview handoff landed in plan 002 Phase 3.5:
 ## Scripts
 
 - `scripts/setup.sh` — record setup timestamp and output dir
-- `scripts/trigger.sh` — run the Confirm-interview Vitest spec
+- `scripts/trigger.sh` — run the real-mode JobMatch generated-client gate,
+  then the Confirm-interview Vitest spec
 - `scripts/verify.sh` — assert pass markers and source-level params shape
 - `scripts/cleanup.sh` — clear setup.env
 
-## Offline Limitations
+## Real Backend Overlay
 
-- All data flows through fixture-backed mock transport (no network)
+- UI behavior sub-cases still use fixture-backed component transports for
+  deterministic handoff and downstream parse regression variants.
+- The trigger also runs `src/api/jdMatch.realApiMode.test.ts` with
+  `VITE_EI_API_MODE=real` and
+  `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`, proving the production
+  bootstrap/generated client reaches the real backend base URL for all 12
+  JobMatch operations before the parse handoff regression runs.
+- Live route, persistence, AI provenance, auth, IK, and privacy semantics are
+  paired with backend E2E.P0.094-P0.097.

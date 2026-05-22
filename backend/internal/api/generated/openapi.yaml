@@ -49,10 +49,11 @@ tags:
     description: |
       JD Match recommendations, natural-language web search, watchlist, saved
       searches, market signals, profile snapshot, and background agent scan
-      status. Frontend-first contract per spec D-1: real backend handlers /
-      candidate-pool fetchers / search runtime are owned by the future
-      `backend-jobs-recommendations` subspec; v1.0.0 freeze ships fixture-backed
-      operationId schemas only.
+      status. The v1.0.0 contract started frontend-first with fixtures; as of
+      2026-05-22, `backend-jobs-recommendations/001-jd-match-real-backend-baseline`
+      wires real cmd/api handlers, stores, AI-backed recommendation/search
+      runtime, agent-scan, privacy, and provenance paths. Fixtures remain the
+      mock/parity source for frontend dev and contract tests.
 
 # Document-level security: every endpoint requires a valid first-party session
 # cookie unless the operation overrides with `security: []` (public endpoints).
@@ -1634,8 +1635,8 @@ paths:
       description: |
         Returns the aggregated profile snapshot the matching agent uses to score
         recommendations. Aggregated from resumes / target jobs / mocks /
-        debriefs by the future `backend-jobs-recommendations` subspec; the v1.0.0
-        contract is fixture-backed.
+        debriefs by the backend JD-match runtime. Fixture variants remain the
+        deterministic frontend and contract-test source.
       parameters:
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
@@ -1760,7 +1761,7 @@ paths:
       summary: Mark a recommendation as not relevant
       description: |
         Hides the recommendation from the candidate view and feeds the agent
-        learning loop owned by the future backend subspec.
+        learning loop owned by the backend JD-match runtime.
       parameters:
         - name: jobMatchId
           in: path
@@ -3989,7 +3990,7 @@ components:
       required: [resumes, jds, mocks, debriefs]
       description: |
         Aggregated counts of inputs that fed the JD-match profile snapshot.
-        Driven by the future `backend-jobs-recommendations` subspec.
+        Driven by the backend JD-match runtime.
       properties:
         resumes:
           type: integer

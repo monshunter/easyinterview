@@ -6,6 +6,11 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-027-jd-match-recommended-and-confirm"
 mkdir -p "$OUTPUT_DIR"
 (
   cd "$REPO_ROOT"
+  REAL_API_MODE="${VITE_EI_API_MODE:-real}"
+  REAL_API_BASE_URL="${VITE_EI_API_BASE_URL:-http://localhost:8080/api/v1}"
+  printf 'VITE_EI_API_MODE=%s\nVITE_EI_API_BASE_URL=%s\n' "$REAL_API_MODE" "$REAL_API_BASE_URL"
+  VITE_EI_API_MODE="$REAL_API_MODE" VITE_EI_API_BASE_URL="$REAL_API_BASE_URL" pnpm --filter @easyinterview/frontend exec vitest run \
+    src/api/jdMatch.realApiMode.test.ts
   pnpm --filter @easyinterview/frontend exec vitest run \
     src/app/screens/jd_match/RecommendedTab.test.tsx \
     src/app/screens/jd_match/JobMatchCard.test.tsx \

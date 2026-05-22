@@ -7,8 +7,11 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 test -s "$LOG_FILE"
 grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE"
 grep -Eq 'Tests +[0-9]+ passed' "$LOG_FILE"
+grep -Fq 'VITE_EI_API_MODE=real' "$LOG_FILE"
+grep -Fq 'VITE_EI_API_BASE_URL=http://localhost:8080/api/v1' "$LOG_FILE"
 
 required_specs=(
+  'jdMatch.realApiMode.test.ts'
   'WatchlistTab.test.tsx'
   'WatchlistChevron.test.tsx'
   'WatchlistEmpty.test.tsx'
