@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-22](2026-05-22.md) | `feat(backend-async-runner): migrate domain handlers to runner kernel` | #feat #test #docs |
 | [2026-05-22](2026-05-22.md) | `feat(backend-async-runner): land runner kernel infrastructure` | #feat #test #docs |
 | [2026-05-22](2026-05-22.md) | `fix(backend-jobs): close jd-match L2 follow-up (BUG-0084)` | #fix #test #docs |
 | [2026-05-22](2026-05-22.md) | `docs(spec): sync async-runner and B3 specs after main merge` | #docs |

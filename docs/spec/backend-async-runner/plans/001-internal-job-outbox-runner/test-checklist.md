@@ -14,15 +14,13 @@
 - [x] Phase 1 typed config 注入通过：`backend/internal/platform/config/loader_test.go::TestAsyncSection` + `backend/internal/runner/config_test.go`（覆盖 `async.queueWeights` / `leaseTimeoutSeconds` / `shutdownGraceSeconds` / `reaperIntervalSeconds` / `scanIntervalSeconds`）
 - [x] Phase 1 runtime handler trace 透传通过：`backend/internal/runner/runtime_trace_test.go::TestRuntime_HandlerInheritsTraceparent` + `TestRuntime_HandlerLogsTraceIdField`
 
-## Phase 2: 业务 handler 迁移
-
-- [ ] Phase 2 `target_import` / `source_refresh` regression 通过：`cd backend && go test ./internal/targetjob/...`
-- [ ] Phase 2 `privacy_delete` regression 通过：`cd backend && go test ./internal/privacy/runner/...` + cmd/api smoke `DELETE /api/v1/me`
-- [ ] Phase 2 `debrief_generate` regression 通过：`cd backend && go test ./internal/debrief/...`
-- [ ] Phase 2 `resume_parse` / `resume_tailor` regression 通过：`cd backend && go test ./internal/resume/jobs/... ./cmd/api -run 'TestResume(Parse|Tailor)Drainer' -count=1`
-- [ ] Phase 2 `report_generate` regression 通过：`cd backend && go test ./internal/review/... ./cmd/api -run 'TestE2EP0052|TestE2EP0053|TestE2EP0054|TestE2EP0055' -count=1`（含 kernel 重写后的 generate_handler_test）
-- [ ] Phase 2 `jd_match_agent_scan` regression 通过：`cd backend && go test ./internal/jdmatch/... ./cmd/api -run 'TestJDMatchAgentScanDrainerScenario|TestBuildJDMatchRuntimeWiresRoutesDrainerAndLifecycle' -count=1`（迁移后 lifecycle 断言重写为 kernel handles `jd_match_agent_scan` 且不 handles `jd_match_search`）
-- [ ] Phase 2 退避收口：`backend/internal/runner/backoff_integration_test.go::TestAllHandlersUseSharedBackoff` 通过；旧 `ComputeReportFailureBackoff` / 固定 15s 在非 lint/history 路径 0 命中
+- [x] Phase 2 `target_import` / `source_refresh` regression 通过：`cd backend && go test ./internal/targetjob/...`
+- [x] Phase 2 `privacy_delete` regression 通过：`cd backend && go test ./internal/privacy/runner/...` + cmd/api smoke `DELETE /api/v1/me`
+- [x] Phase 2 `debrief_generate` regression 通过：`cd backend && go test ./internal/debrief/...`
+- [x] Phase 2 `resume_parse` / `resume_tailor` regression 通过：`cd backend && go test ./internal/resume/jobs/... ./cmd/api -run 'TestResume(Parse|Tailor)Drainer' -count=1`
+- [x] Phase 2 `report_generate` regression 通过：`cd backend && go test ./internal/review/... ./cmd/api -run 'TestE2EP0052|TestE2EP0053|TestE2EP0054|TestE2EP0055' -count=1`（含 kernel 重写后的 generate_handler_test）
+- [x] Phase 2 `jd_match_agent_scan` regression 通过：`cd backend && go test ./internal/jdmatch/... ./cmd/api -run 'TestJDMatchAgentScanDrainerScenario|TestBuildJDMatchRuntimeWiresRoutesDrainerAndLifecycle' -count=1`（迁移后 lifecycle 断言重写为 kernel handles `jd_match_agent_scan` 且不 handles `jd_match_search`）
+- [x] Phase 2 退避收口：`backend/internal/runner/backoff_integration_test.go::TestAllHandlersUseSharedBackoff` 通过；旧 `ComputeReportFailureBackoff` / 固定 15s 在非 lint/history 路径 0 命中
 
 ## Phase 3: Outbox dispatcher + email_dispatch
 

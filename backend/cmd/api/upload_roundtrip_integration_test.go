@@ -25,6 +25,7 @@ import (
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	"github.com/monshunter/easyinterview/backend/internal/upload/objectstore"
 	uploadservice "github.com/monshunter/easyinterview/backend/internal/upload/service"
 	uploadstore "github.com/monshunter/easyinterview/backend/internal/upload/store"
@@ -78,10 +79,12 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
+	defer runtime.Close()
+	kernel := newTestKernel(runner.NewSQLStore(db), runtime.Handlers)
 	defer func() {
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), time.Second)
 		defer shutdownCancel()
-		if err := runtime.Shutdown(shutdownCtx); err != nil {
+		if err := kernel.Shutdown(shutdownCtx); err != nil {
 			t.Fatalf("runtime shutdown: %v", err)
 		}
 	}()
@@ -170,7 +173,7 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 		t.Fatalf("prioritize privacy delete job: %v", err)
 	}
 
-	processed, err := runtime.Drainer.RunOnce(ctx)
+	processed, err := kernel.RunOnce(ctx)
 	if err != nil {
 		t.Fatalf("run privacy delete job: %v", err)
 	}

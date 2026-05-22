@@ -23,6 +23,7 @@ import (
 	jdmatchhandler "github.com/monshunter/easyinterview/backend/internal/jdmatch/handler"
 	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedevents "github.com/monshunter/easyinterview/backend/internal/shared/events"
 	sharedjobs "github.com/monshunter/easyinterview/backend/internal/shared/jobs"
@@ -373,7 +374,8 @@ insert into async_jobs (
 		t.Fatalf("seed async job: %v", err)
 	}
 
-	processed, err := runtime.Drainer.RunOnce(ctx)
+	kernel := newTestKernel(runner.NewSQLStore(db), runtime.Handlers)
+	processed, err := kernel.RunOnce(ctx)
 	if err != nil {
 		t.Fatalf("RunOnce: %v", err)
 	}
@@ -465,10 +467,10 @@ limit 1`,
 		t.Fatalf("agent_scan jobs pool payload missing jobMatchId seed: %s", string(jobsPool))
 	}
 
-	runtime.Start(ctx)
+	kernel.Start(ctx)
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer shutdownCancel()
-	if err := runtime.Shutdown(shutdownCtx); err != nil {
+	if err := kernel.Shutdown(shutdownCtx); err != nil {
 		t.Fatalf("Shutdown: %v", err)
 	}
 }

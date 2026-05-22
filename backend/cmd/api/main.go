@@ -44,6 +44,7 @@ import (
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	domainreview "github.com/monshunter/easyinterview/backend/internal/review"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
@@ -148,16 +149,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: resume runtime init: %v\n", err)
 		os.Exit(1)
 	}
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = targetJobRuntime.Shutdown(shutdownCtx)
-	}()
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = resumeRuntime.Shutdown(shutdownCtx)
-	}()
+	defer targetJobRuntime.Close()
 	practiceRoutes, err := buildPracticeRoutes(loader, db, targetJobRuntime.AI.Client)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: practice runtime init: %v\n", err)
@@ -191,16 +183,35 @@ func main() {
 		_, err := jdmatchRoutes.PrivacyDeleteFunc(ctx, userID)
 		return err
 	}
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = reportRuntime.Shutdown(shutdownCtx)
-	}()
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = jdmatchRuntime.Shutdown(shutdownCtx)
-	}()
+
+	// Single in-process job kernel (spec D-1 / D-8): every domain handler is
+	// registered on one runner.Runtime that owns lease / retry / reaper /
+	// graceful shutdown.
+	asyncCfg, err := loader.AsyncConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: async config: %v\n", err)
+		os.Exit(1)
+	}
+	kernel := runner.New(runner.Options{
+		Store: runner.NewSQLStore(db),
+		Config: runner.ConfigFromSeconds(
+			asyncCfg.ScanIntervalSeconds,
+			asyncCfg.LeaseTimeoutSeconds,
+			asyncCfg.ReaperIntervalSeconds,
+			asyncCfg.ShutdownGraceSeconds,
+			runner.QueueWeights{
+				Critical: asyncCfg.QueueWeights.Critical,
+				Default:  asyncCfg.QueueWeights.Default,
+				Low:      asyncCfg.QueueWeights.Low,
+			},
+		),
+		Logger: logger,
+	})
+	registerRunnerHandlers(kernel, targetJobRuntime.Handlers)
+	registerRunnerHandlers(kernel, resumeRuntime.Handlers)
+	registerRunnerHandlers(kernel, reportRuntime.Handlers)
+	registerRunnerHandlers(kernel, jdmatchRuntime.Handlers)
+
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
 		Handler:           buildAPIHandlerWithJDMatchAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes, profileRoutes, jdmatchRoutes),
@@ -209,10 +220,7 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	targetJobRuntime.Start(ctx)
-	resumeRuntime.Start(ctx)
-	reportRuntime.Start(ctx)
-	jdmatchRuntime.Start(ctx)
+	kernel.Start(ctx)
 
 	go func() {
 		logger.Info("api: listening", "addr", srv.Addr, "env", loader.AppEnv())
@@ -223,9 +231,19 @@ func main() {
 	}()
 
 	<-ctx.Done()
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(asyncCfg.ShutdownGraceSeconds)*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(shutdownCtx)
+	if err := kernel.Shutdown(shutdownCtx); err != nil {
+		logger.Warn("api: runner kernel shutdown", "error", err.Error())
+	}
+}
+
+// registerRunnerHandlers registers every handler in the map onto the kernel.
+func registerRunnerHandlers(rt *runner.Runtime, handlers map[string]runner.Handler) {
+	for jobType, handler := range handlers {
+		rt.Register(jobType, handler)
+	}
 }
 
 func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessService, *auth.BackgroundMailDispatcher, error) {
@@ -535,10 +553,9 @@ func addJDMatchRoutes(mux *http.ServeMux, authService *auth.PasswordlessService,
 }
 
 type reportRuntime struct {
-	Handler *apireports.Handler
-	Runner  *domainreview.Runner
-	Reaper  *domainreview.Reaper
-	Service *domainreview.Service
+	Handler  *apireports.Handler
+	Handlers map[string]runner.Handler
+	Service  *domainreview.Service
 }
 
 func (r *reportRuntime) Routes() reportRoutes {
@@ -548,30 +565,13 @@ func (r *reportRuntime) Routes() reportRoutes {
 	return reportRoutes{Handler: r.Handler}
 }
 
-func (r *reportRuntime) Start(ctx context.Context) {
+// Handles reports whether this runtime contributes a handler for jobType.
+func (r *reportRuntime) Handles(jobType string) bool {
 	if r == nil {
-		return
+		return false
 	}
-	if r.Runner != nil {
-		r.Runner.Start(ctx)
-	}
-	if r.Reaper != nil {
-		r.Reaper.Start(ctx)
-	}
-}
-
-func (r *reportRuntime) Shutdown(ctx context.Context) error {
-	if r == nil {
-		return nil
-	}
-	var errs []error
-	if r.Runner != nil {
-		errs = append(errs, r.Runner.Stop(ctx))
-	}
-	if r.Reaper != nil {
-		errs = append(errs, r.Reaper.Stop(ctx))
-	}
-	return errors.Join(errs...)
+	_, ok := r.Handlers[jobType]
+	return ok
 }
 
 func buildReportRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, ai aiclient.AIClient) (*reportRuntime, error) {
@@ -618,18 +618,12 @@ func buildReportRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, 
 			Service: service,
 			Session: currentUserFromContext,
 		}),
-		Runner: domainreview.NewRunner(domainreview.RunnerOptions{
-			Store:        repo,
-			Service:      service,
-			PollInterval: 5 * time.Second,
-			Logger:       logger,
-		}),
-		Reaper: domainreview.NewReaper(domainreview.ReaperOptions{
-			Store:        repo,
-			LeaseTimeout: 5 * time.Minute,
-			Interval:     150 * time.Second,
-			Logger:       logger,
-		}),
+		Handlers: map[string]runner.Handler{
+			string(jobs.JobTypeReportGenerate): domainreview.NewGenerateHandler(domainreview.GenerateHandlerOptions{
+				Store:   repo,
+				Service: service,
+			}),
+		},
 		Service: service,
 	}, nil
 }
@@ -767,10 +761,19 @@ func buildPracticeRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient
 }
 
 type targetJobRuntime struct {
-	Handler *targetjob.Handler
-	Drainer *targetjob.Drainer
-	AI      *bootstrap.Runtime
-	ParseAI aiclient.AIClient
+	Handler  *targetjob.Handler
+	Handlers map[string]runner.Handler
+	AI       *bootstrap.Runtime
+	ParseAI  aiclient.AIClient
+}
+
+// Handles reports whether this runtime contributes a handler for jobType.
+func (r *targetJobRuntime) Handles(jobType string) bool {
+	if r == nil {
+		return false
+	}
+	_, ok := r.Handlers[jobType]
+	return ok
 }
 
 type privacyDeleteRuntimeHooks struct {
@@ -792,31 +795,21 @@ func (h *privacyDeleteRuntimeHooks) DeleteJDMatchData(ctx context.Context, userI
 	return h.jdMatchData(ctx, userID)
 }
 
-func (r *targetJobRuntime) Start(ctx context.Context) {
-	if r == nil || r.Drainer == nil {
-		return
-	}
-	r.Drainer.Start(ctx)
-}
-
-func (r *targetJobRuntime) Shutdown(ctx context.Context) error {
+// Close releases the AI runtime resources owned by this runtime. Job lifecycle
+// (lease / reaper / shutdown) is owned by the shared runner.Runtime kernel.
+func (r *targetJobRuntime) Close() {
 	if r == nil {
-		return nil
-	}
-	var err error
-	if r.Drainer != nil {
-		err = r.Drainer.Shutdown(ctx)
+		return
 	}
 	if r.AI != nil {
 		r.AI.Close()
 	}
-	return err
 }
 
 type resumeRuntime struct {
 	Handler     *resumehandler.Handler
 	Idempotency *idempotency.Middleware
-	Drainer     *targetjob.Drainer
+	Handlers    map[string]runner.Handler
 	ParseAI     aiclient.AIClient
 }
 
@@ -827,18 +820,13 @@ func (r *resumeRuntime) Routes() resumeRoutes {
 	return resumeRoutes{Handler: r.Handler, Idempotency: r.Idempotency}
 }
 
-func (r *resumeRuntime) Start(ctx context.Context) {
-	if r == nil || r.Drainer == nil {
-		return
+// Handles reports whether this runtime contributes a handler for jobType.
+func (r *resumeRuntime) Handles(jobType string) bool {
+	if r == nil {
+		return false
 	}
-	r.Drainer.Start(ctx)
-}
-
-func (r *resumeRuntime) Shutdown(ctx context.Context) error {
-	if r == nil || r.Drainer == nil {
-		return nil
-	}
-	return r.Drainer.Shutdown(ctx)
+	_, ok := r.Handlers[jobType]
+	return ok
 }
 
 func buildResumeRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, upload uploadRoutes, ai aiclient.AIClient) (*resumeRuntime, error) {
@@ -874,14 +862,10 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, 
 		AITaskRuns: storeai.NewTaskRunWriter(db),
 		NewID:      idx.NewID,
 	})
-	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
-		Store: store,
-		Handlers: map[string]targetjob.JobHandler{
-			string(jobs.JobTypeResumeParse):  parseHandler,
-			string(jobs.JobTypeResumeTailor): tailorHandler,
-		},
-		Logger: logger,
-	})
+	handlers := map[string]runner.Handler{
+		string(jobs.JobTypeResumeParse):  runner.FromTargetjobHandler(parseHandler),
+		string(jobs.JobTypeResumeTailor): runner.FromTargetjobHandler(tailorHandler),
+	}
 	service := domainresume.NewService(domainresume.ServiceOptions{
 		Store:          store,
 		UploadRegister: upload.Service,
@@ -898,8 +882,8 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, 
 			KeyPepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
 			TTL:       time.Duration(sharedtypes.IdempotencyKeyTTLSeconds) * time.Second,
 		}),
-		Drainer: drainer,
-		ParseAI: parseAI,
+		Handlers: handlers,
+		ParseAI:  parseAI,
 	}, nil
 }
 
@@ -959,26 +943,23 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 		Audit:      debriefStore,
 		NewID:      idx.NewID,
 	})
-	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
-		Store: store,
-		Handlers: map[string]targetjob.JobHandler{
-			string(jobs.JobTypeTargetImport):    executor,
-			string(jobs.JobTypeSourceRefresh):   &targetjob.SourceRefreshHandler{Store: store},
-			string(jobs.JobTypeDebriefGenerate): debriefGenerateHandler,
-			string(jobs.JobTypePrivacyDelete): privacyrunner.NewPrivacyDeleteHandler(privacyrunner.PrivacyDeleteHandlerOptions{
-				Requests:    privacyrunner.NewSQLStore(db),
-				UploadFiles: uploadFiles,
-				ProfileData: privacyHooks.DeleteProfileData,
-				JDMatchData: privacyHooks.DeleteJDMatchData,
-			}),
-		},
-		Logger: logger,
+	privacyDeleteHandler := privacyrunner.NewPrivacyDeleteHandler(privacyrunner.PrivacyDeleteHandlerOptions{
+		Requests:    privacyrunner.NewSQLStore(db),
+		UploadFiles: uploadFiles,
+		ProfileData: privacyHooks.DeleteProfileData,
+		JDMatchData: privacyHooks.DeleteJDMatchData,
 	})
+	handlers := map[string]runner.Handler{
+		string(jobs.JobTypeTargetImport):    runner.FromTargetjobHandler(executor),
+		string(jobs.JobTypeSourceRefresh):   runner.FromTargetjobHandler(&targetjob.SourceRefreshHandler{Store: store}),
+		string(jobs.JobTypeDebriefGenerate): runner.FromTargetjobHandler(debriefGenerateHandler),
+		string(jobs.JobTypePrivacyDelete):   runner.FromTargetjobHandler(privacyDeleteHandler),
+	}
 	return &targetJobRuntime{
-		Handler: buildTargetJobHandler(loader, store),
-		Drainer: drainer,
-		AI:      aiRuntime,
-		ParseAI: parseAI,
+		Handler:  buildTargetJobHandler(loader, store),
+		Handlers: handlers,
+		AI:       aiRuntime,
+		ParseAI:  parseAI,
 	}, nil
 }
 

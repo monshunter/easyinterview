@@ -17,15 +17,13 @@
 - [x] 1.7 单元测试基础设施：fake `LeaseStore` + deterministic clock；test 来源 `backend/internal/runner/fakestore_test.go`
 - [x] 1.8 Runtime handler trace 透传：从 `async_jobs.payload` / envelope 读取 W3C `traceparent` 重建 span context；slog 输出注入 `trace_id` 字段（缺失时跳过）；test 来源 `backend/internal/runner/runtime_trace_test.go::TestRuntime_HandlerInheritsTraceparent` + `TestRuntime_HandlerLogsTraceIdField`
 
-## Phase 2: 业务 handler 迁移
-
-- [ ] 2.1 `target_import` + `source_refresh` 注册到 kernel；rerun `backend/internal/targetjob/pipeline_test.go::TestDrainer_RunOnceProcessesQueuedJobAndFinalizes` + `e2e_scenario_test.go`；删除 `targetJobRuntime.Drainer` 独立实例
-- [ ] 2.2 `privacy_delete` 注册到 kernel；rerun `backend/internal/privacy/runner/delete_handler_test.go::TestPrivacyDeleteHandler_DeletesUploadFilesForUser`；smoke `DELETE /api/v1/me` 触发链路 → `privacy_requests.status='completed'`
-- [ ] 2.3 `debrief_generate` 注册到 kernel；rerun `backend/internal/debrief/generate_handler_test.go` + `service_test.go::TestService_CreateDebrief_GeneratesAndCompletes`
-- [ ] 2.4 `resume_parse` + `resume_tailor` 注册到 kernel；删除 `resumeRuntime.Drainer` 独立实例；删除 `backend/internal/resume/store/async.go` 中固定 15s retry；rerun `backend/internal/resume/jobs/parse_test.go` + `tailor_test.go` + `backend/cmd/api/resume_parse_drainer_scenario_test.go` + `resume_tailor_drainer_scenario_test.go`
-- [ ] 2.5 `report_generate` 注册到 kernel；新建 `backend/internal/review/generate_handler.go` 实现 `runner.Handler`；删除 `backend/internal/review/runner.go` / `reaper.go` / `lease.go` 中 `ComputeReportFailureBackoff`+`DefaultReportFailureBackoff`；rerun `backend/internal/review/runner_test.go`（重写到 kernel）+ `reaper_test.go`（重写到 kernel reaper）+ `backend/cmd/api/reports_http_scenario_test.go`
-- [ ] 2.6 `jd_match_agent_scan` 注册到 kernel；删除 `jdmatchRuntime.Drainer` 独立实例；显式断言 `jd_match_search` 未注册 runner；rerun `backend/internal/jdmatch/jobs/agent_scan_test.go` + `backend/cmd/api/jdmatch_live_scenario_test.go::TestJDMatchAgentScanDrainerScenario` + `backend/cmd/api/jdmatch_http_scenario_test.go::TestBuildJDMatchRuntimeWiresRoutesDrainerAndLifecycle`（迁移后重写为 kernel lifecycle 断言）
-- [ ] 2.7 退避收口：focused test `backend/internal/runner/backoff_integration_test.go::TestAllHandlersUseSharedBackoff` 验证全部 handler 走 `BackoffPolicy.Next`；负向 grep 旧 hard-coded 退避（除 history / tests / lint 自身）0 命中
+- [x] 2.1 `target_import` + `source_refresh` 注册到 kernel；rerun `backend/internal/targetjob/pipeline_test.go::TestDrainer_RunOnceProcessesQueuedJobAndFinalizes` + `e2e_scenario_test.go`；删除 `targetJobRuntime.Drainer` 独立实例
+- [x] 2.2 `privacy_delete` 注册到 kernel；rerun `backend/internal/privacy/runner/delete_handler_test.go::TestPrivacyDeleteHandler_DeletesUploadFilesForUser`；smoke `DELETE /api/v1/me` 触发链路 → `privacy_requests.status='completed'`
+- [x] 2.3 `debrief_generate` 注册到 kernel；rerun `backend/internal/debrief/generate_handler_test.go` + `service_test.go::TestService_CreateDebrief_GeneratesAndCompletes`
+- [x] 2.4 `resume_parse` + `resume_tailor` 注册到 kernel；删除 `resumeRuntime.Drainer` 独立实例；删除 `backend/internal/resume/store/async.go` 中固定 15s retry；rerun `backend/internal/resume/jobs/parse_test.go` + `tailor_test.go` + `backend/cmd/api/resume_parse_drainer_scenario_test.go` + `resume_tailor_drainer_scenario_test.go`
+- [x] 2.5 `report_generate` 注册到 kernel；新建 `backend/internal/review/generate_handler.go` 实现 `runner.Handler`；删除 `backend/internal/review/runner.go` / `reaper.go` / `lease.go` 中 `ComputeReportFailureBackoff`+`DefaultReportFailureBackoff`；rerun `backend/internal/review/runner_test.go`（重写到 kernel）+ `reaper_test.go`（重写到 kernel reaper）+ `backend/cmd/api/reports_http_scenario_test.go`
+- [x] 2.6 `jd_match_agent_scan` 注册到 kernel；删除 `jdmatchRuntime.Drainer` 独立实例；显式断言 `jd_match_search` 未注册 runner；rerun `backend/internal/jdmatch/jobs/agent_scan_test.go` + `backend/cmd/api/jdmatch_live_scenario_test.go::TestJDMatchAgentScanDrainerScenario` + `backend/cmd/api/jdmatch_http_scenario_test.go::TestBuildJDMatchRuntimeWiresRoutesDrainerAndLifecycle`（迁移后重写为 kernel lifecycle 断言）
+- [x] 2.7 退避收口：focused test `backend/internal/runner/backoff_integration_test.go::TestAllHandlersUseSharedBackoff` 验证全部 handler 走 `BackoffPolicy.Next`；负向 grep 旧 hard-coded 退避（除 history / tests / lint 自身）0 命中
 
 ## Phase 3: Outbox dispatcher + email_dispatch
 

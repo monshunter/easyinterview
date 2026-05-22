@@ -27,6 +27,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/profile"
 	profilestore "github.com/monshunter/easyinterview/backend/internal/profile/store"
 	"github.com/monshunter/easyinterview/backend/internal/resume"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedevents "github.com/monshunter/easyinterview/backend/internal/shared/events"
 	"github.com/monshunter/easyinterview/backend/internal/shared/featurekeys"
@@ -48,22 +49,17 @@ type jdmatchRoutes struct {
 }
 
 type jdmatchRuntime struct {
-	Routes  jdmatchRoutes
-	Drainer *targetjob.Drainer
+	Routes   jdmatchRoutes
+	Handlers map[string]runner.Handler
 }
 
-func (r *jdmatchRuntime) Start(ctx context.Context) {
-	if r == nil || r.Drainer == nil {
-		return
+// Handles reports whether this runtime contributes a handler for jobType.
+func (r *jdmatchRuntime) Handles(jobType string) bool {
+	if r == nil {
+		return false
 	}
-	r.Drainer.Start(ctx)
-}
-
-func (r *jdmatchRuntime) Shutdown(ctx context.Context) error {
-	if r == nil || r.Drainer == nil {
-		return nil
-	}
-	return r.Drainer.Shutdown(ctx)
+	_, ok := r.Handlers[jobType]
+	return ok
 }
 
 func buildJDMatchRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, searchAI jdmatchAI, generatorAI generators.AIClient) (*jdmatchRuntime, error) {
@@ -82,26 +78,23 @@ func buildJDMatchRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger,
 		return runJDMatchAgentScan(ctx, db, repo, userID, generatorAI)
 	}
 	routes.AgentScanRunOnce = runAgentScan
-	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
-		Store: targetjob.NewSQLStore(db),
-		Handlers: map[string]targetjob.JobHandler{
-			string(sharedjobs.JobTypeJdMatchAgentScan): targetjob.JobHandlerFunc(func(ctx context.Context, job targetjob.ClaimedJob) targetjob.JobOutcome {
-				userID, err := jdMatchAgentScanUserID(job)
-				if err != nil {
-					return targetjob.JobOutcome{
-						ErrorCode:    sharederrors.CodeValidationFailed,
-						ErrorMessage: err.Error(),
-					}
-				}
-				if err := runAgentScan(ctx, userID); err != nil {
-					return jdMatchAgentScanOutcome(err)
-				}
-				return targetjob.JobOutcome{Succeeded: true}
-			}),
-		},
-		Logger: logger,
+	agentScanHandler := runner.JobHandlerFunc(func(ctx context.Context, job runner.ClaimedJob) runner.JobOutcome {
+		userID, err := jdMatchAgentScanUserID(job)
+		if err != nil {
+			return runner.JobOutcome{
+				ErrorCode:    sharederrors.CodeValidationFailed,
+				ErrorMessage: err.Error(),
+			}
+		}
+		if err := runAgentScan(ctx, userID); err != nil {
+			return jdMatchAgentScanOutcome(err)
+		}
+		return runner.JobOutcome{Succeeded: true}
 	})
-	return &jdmatchRuntime{Routes: routes, Drainer: drainer}, nil
+	handlers := map[string]runner.Handler{
+		string(sharedjobs.JobTypeJdMatchAgentScan): agentScanHandler,
+	}
+	return &jdmatchRuntime{Routes: routes, Handlers: handlers}, nil
 }
 
 func buildJDMatchAIAdapters(loader *config.Loader, db *sql.DB, ai aiclient.AIClient) (jdmatchAI, generators.AIClient, error) {
@@ -143,7 +136,7 @@ func runJDMatchAgentScan(ctx context.Context, db *sql.DB, repo *jdmatchstore.Rep
 	})
 }
 
-func jdMatchAgentScanUserID(job targetjob.ClaimedJob) (string, error) {
+func jdMatchAgentScanUserID(job runner.ClaimedJob) (string, error) {
 	var payload struct {
 		UserID string `json:"userId"`
 	}
@@ -162,8 +155,8 @@ func jdMatchAgentScanUserID(job targetjob.ClaimedJob) (string, error) {
 	return userID, nil
 }
 
-func jdMatchAgentScanOutcome(err error) targetjob.JobOutcome {
-	out := targetjob.JobOutcome{
+func jdMatchAgentScanOutcome(err error) runner.JobOutcome {
+	out := runner.JobOutcome{
 		ErrorCode:    sharederrors.CodeValidationFailed,
 		ErrorMessage: "jd_match_agent_scan failed",
 	}
