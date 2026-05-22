@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-22
 
 **关联计划**: [plan](./plan.md)
 
@@ -102,3 +102,4 @@
 <!-- verified: 2026-05-08 method=rg runtime source negative searches passed; excluded README/test negative assertions and normalizeRoute alias map where applicable -->
 - [x] 6.11 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` / `E2E.P0.017` 全部 setup→trigger→verify→cleanup PASS + D1+D2+D3 P0.001/002/004/005/006 regression PASS
 <!-- verified: 2026-05-08 method=scenario P0.014/P0.015/P0.016/P0.017 plus P0.001/P0.002/P0.004/P0.005/P0.006 all setup→trigger→verify→cleanup PASS -->
+- [x] 6.12 L2 remediation：真实 backend 联调闭环。新增 `frontend/src/api/targetJob.realApiMode.test.ts` 覆盖 `VITE_EI_API_MODE=real` 下 `listTargetJobs` / `createUploadPresign` / `importTargetJob` / `getTargetJob` / `updateTargetJob` 的真实 backend base URL、`credentials: "include"`、默认无 fixture `Prefer` header、3 个 side-effect `Idempotency-Key` 与 `GenerationProvenance` roundtrip；P0.014-P0.016 trigger/verify 必须先跑该 real-mode gate 再跑 fixture-backed UI variants；原地更新 plan/spec/BDD/scenario docs，删除 TargetJobs/import/parse 仍为 `not-yet-implemented` 的 stale 口径；重跑 P0.014-P0.016 + backend P0.010-P0.013 + upload focused route/handler tests + docs drift gates。 <!-- evidence: 2026-05-22 focused real-mode vitest PASS (1 file / 1 test); P0.014 PASS (real gate 1/1 + Home 3 files / 22 tests); P0.015 PASS (real gate 1/1 + Home/Parse import flow 7 files / 54 tests; existing React act warnings only); P0.016 PASS (real gate 1/1 + Parse confirm 2 files / 13 tests); backend P0.010/P0.011/P0.012/P0.013 all setup→trigger→verify→cleanup PASS; backend upload focused tests PASS (`go test ./cmd/api -run TestBuildUploadRoutesAlignsIdempotencyTTLWithPresignTTL -count=1`; `go test ./internal/upload/handler -run 'TestCreateUploadPresignReturnsCreatedResponse|TestCreateUploadPresignIdempotencyReplayAndTTL' -count=1`) -->

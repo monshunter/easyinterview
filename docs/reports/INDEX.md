@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-22](./2026-05-22-frontend-home-targetjob-real-backend-gate-assessment.md) | Frontend Home TargetJob Real Backend Gate 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-frontend-jd-match-real-backend-gate-assessment.md) | Frontend JD Match Real Backend Gate 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-jobs-recommendations-001-l2-followup-assessment.md) | Backend Jobs Recommendations 001 L2 Follow-up 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-jobs-recommendations-001-l2-hardening-retrospective-assessment.md) | Backend Jobs Recommendations 001 L2 Hardening 交付复盘 | #assessment |

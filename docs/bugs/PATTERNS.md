@@ -67,3 +67,14 @@
   2. 对 AI generator / search adapter，不只检查 prompt body；在 focused 或 live test 中捕获 `AIClient.Complete` payload，断言业务关键 JSON 字段非空并包含 join key（如 `jobMatchId`）。
   3. 对 privacy delete、profile delete、domain cascade delete，必须通过 runner/handler 层测试证明 async job 调用了所有 domain deleter，而不只调用单个 service helper。
   4. 对 API error response，优先解码 generated `ApiErrorResponse`，并断言 `error.retryable` 来自 shared registry 而不是 HTTP status 推断。
+
+## 模式 6：Frontend-first handoff 完成后未回填真实 backend gate
+
+- **相关 Bug**：BUG-0085, BUG-0086
+- **典型症状**：frontend plan 在 backend owner 未完成时以 fixture-backed UI variants 交付，后续 backend owner 已落地真实 handler / scenarios，但 completed frontend plan 的 operation matrix、spec Out of Scope、scenario docs 仍写 `not-yet-implemented` / future backend / fixture-first；frontend scenarios 只跑 mock/fixture UI 子用例，未证明 `VITE_EI_API_MODE=real` 下 production generated client 指向真实 backend base URL。
+- **检查清单**：
+  1. 对 completed frontend-first plan 做 L2 review 时，先反查同 subspec 或相邻 backend owner plan 是否已经完成；不要把完成时的 fixture-first wording 当成当前事实。
+  2. 对每个 operationId 建 operation matrix：fixture、frontend consumer、backend route/handler、persistence/AI owner、frontend BDD scenario、backend live/focused scenario，缺一项就不得宣称真实联调闭环。
+  3. Frontend scenario trigger 应前置一个 `VITE_EI_API_MODE=real` generated-client gate，断言 base URL、`credentials: "include"`、无 fixture `Prefer` header、side-effect `Idempotency-Key` 与关键 response provenance；然后再跑 fixture-backed UI variants。
+  4. Scenario verify 必须检查 real-mode marker 和测试文件名，防止 fixture UI PASS 单独满足完成条件。
+  5. 若同一 subspec 已出现一次 handoff drift，立即 sweep sibling/completed plans 的相同模式，避免只修首个被用户指出的 plan。

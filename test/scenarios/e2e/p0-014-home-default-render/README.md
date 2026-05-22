@@ -24,6 +24,7 @@ Verifies the home screen renders correctly in three states:
 - Hero (label/title/sub) DOM anchors
 - Textarea card + upload/URL buttons
 - Aux cards (JOB PICKS, POST-INTERVIEW)
+- Real backend mode generated-client gate for TargetJobs home/import/parse operations
 - TopBar highlights home
 - i18n zh/en switching
 - Theme switching (warm/dark/customAccent)
@@ -41,3 +42,15 @@ Verifies the home screen renders correctly in three states:
 - Requires `pnpm build` output at `frontend/dist/`
 - Playwright chromium must be installed
 - UI-design golden preview may fail offline (CDN fonts)
+
+## Real Backend Overlay
+
+- The trigger first runs `src/api/targetJob.realApiMode.test.ts` with
+  `VITE_EI_API_MODE=real` and
+  `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`, proving the production
+  generated client routes `listTargetJobs`, `createUploadPresign`,
+  `importTargetJob`, `getTargetJob`, and `updateTargetJob` to the real backend
+  base URL with cookie credentials, Idempotency-Key side effects, and
+  provenance roundtrip.
+- UI variants remain fixture-backed so this scenario can keep deterministic
+  DOM, sorting, theme, i18n, and responsive assertions.
