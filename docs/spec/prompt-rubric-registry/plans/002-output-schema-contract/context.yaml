@@ -1,0 +1,61 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: prompt-rubric-registry
+  name: 002-output-schema-contract
+  sequence: 2
+  supersedes: []
+  specVersion:
+    from: 2.4
+    to: 2.5
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - output-schema-contract
+      - output_schema
+      - prompt-output-contract
+      - 002-output-schema-contract
+    keywords:
+      - output_schema
+      - OutputSchema
+      - validateOutputSchema
+      - schema.json
+      - JSON schema subset
+      - enum validation
+      - schema drift gate
+      - ResolveActive OutputSchema
+      - structured output contract
+      - prompt body example JSON
+      - schema rendered output contract
+      - output schema description annotations
+      - AI_OUTPUT_INVALID
+      - response_format provider-neutral
+      - prompt struct alignment
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      references:
+        - ../../../ai-provider-and-model-routing/spec.md
+        - ../../../observability-stack/spec.md
+        - ../../../backend-practice/spec.md
+        - ../../../backend-targetjob/spec.md
+        - ../../../shared-conventions-codified/spec.md
+      discovery:
+        packages:
+          - config/prompts
+          - scripts/lint
+          - backend/internal/ai/registry
+          - backend/internal/ai/aiclient
+          - backend/internal/ai/aiclient/observability
+          - backend/internal/targetjob
+          - backend/internal/resume/jobs
+          - backend/internal/review
+          - backend/internal/practice
+          - backend/internal/debrief
+          - backend/internal/jdmatch
+          - backend/cmd/api
+        uiRoutes: []
+        apiNames: []

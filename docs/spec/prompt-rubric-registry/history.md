@@ -1,13 +1,14 @@
 # Prompt Rubric Registry History
 
-> **版本**: 2.4
+> **版本**: 2.5
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-23
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-23 | 2.5 | 派生 `002-output-schema-contract`：把 D-12 规划的 provider-neutral `output_schema` 从「可追加」升级为锁定契约（新增 D-13）；为 13 个 chat feature_key 各落地**语言无关** `config/prompts/<feature_key>/<version>.schema.json`，允许 `description` 作为非校验注解并把 prompt body 输出段改为 schema 渲染/校验的契约块，避免手工维护重复字段清单；`RegistryClient` 加载并接线 `ResolveActive` 的 `OutputSchema`，A3 `aiclient` `validateOutputSchema` 扩展支持 `enum`，新增 schema↔prompt↔struct 一致性 lint gate；spec §2.1 / §2.2 / §4.1 / §4.2 / §5 / §6（C-12）/ §7 同步，plan 序列原 002/003 顺延为 003/004。spec.md Header 升至 v2.5。 | prompt-rubric-registry/002-output-schema-contract |
 | 2026-05-22 | 2.4 | backend-jobs-recommendations/001 L2 hardening：`jd_match.recommendation` 与 `jd_match.search` v0.1.0 prompt 明确要求输出保留内部 jobs 池 `jobMatchId`，以匹配 runtime join `jd_match_recommendations` 的契约；同步刷新 4 个 prompt `template_hash`，新增 `TestBackendJDMatchF3Preflight` 断言 JD-Match feature_key / model profile / prompt 必填 marker。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline L2 hardening |
 | 2026-05-21 | 2.3 | 登记 backend-jobs-recommendations/001 cross-owner additive：§3.1.1 字典从 11 升至 13，新增 `jd_match.recommendation`（默认 profile `jd_match.recommendation.default`）与 `jd_match.search`（默认 profile `jd_match.search.default`）2 个 feature_key；落地 baseline prompt / rubric `config/prompts/jd_match.{recommendation,search}/v0.1.0.{yaml,md,en.yaml,en.md}` + `config/rubrics/jd_match.{recommendation,search}/v0.1.0.{yaml,en.yaml}`；新 D-12 决策行锁定 cross-owner additive 范围；`make lint-ai-profile-coverage` 通过，registry 加载 13 feature_keys × 2 languages = 26 coordinates。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.5 + 0.6 |
 | 2026-05-16 | 2.2 | backend-debrief 001 Phase 0.5 新增 `debrief.suggest_questions` baseline feature_key、默认 model profile 与 prompt/rubric/seed truth source。 | backend-debrief/001 Phase 0.5 |
