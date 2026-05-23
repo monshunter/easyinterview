@@ -1,8 +1,8 @@
 # F3 Output Schema Contract Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-23
+> **更新日期**: 2026-05-24
 
 **关联计划**: [plan](./plan.md)
 
@@ -46,6 +46,7 @@
 
 - [x] 6.1 `decorator.go` `outputSchema` 加 `Enum []any` + `validateAgainstSchema` enum 成员校验分支；`description` 不影响运行时校验。验证: 编译通过；enum 字段被解析
 - [x] 6.2 aiclient focused tests：enum 违反 → `AI_OUTPUT_INVALID`；缺 required 仍 fail；合法输出（含 array 顶层）通过。验证: `go test ./backend/internal/ai/aiclient/... -race` 全绿，enum negative test 红→绿
+- [x] 6.3 L2 remediation：`validateOutputSchema` 必须拒绝 schema-valid JSON 后追加非空 trailing token / prose 的模型输出，返回 `AI_OUTPUT_INVALID`。验证: focused negative test 红→绿；`go test ./backend/internal/ai/aiclient/observability -run 'TestDecorator_OutputSchemaRejectsTrailingTokens' -count=1` pass；`go test ./backend/internal/ai/aiclient/observability -run 'TestDecorator_OutputSchema' -count=1` pass
 
 ## Phase 7: caller 端到端透传 + 收口
 

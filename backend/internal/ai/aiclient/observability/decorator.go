@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 	"time"
@@ -550,6 +551,13 @@ func validateOutputSchema(schemaRaw json.RawMessage, content string) error {
 	dec.UseNumber()
 	if err := dec.Decode(&v); err != nil {
 		return err
+	}
+	var extra any
+	if err := dec.Decode(&extra); err != io.EOF {
+		if err != nil {
+			return err
+		}
+		return errors.New("multiple JSON values in output")
 	}
 	return validateAgainstSchema(schema, v, "$")
 }

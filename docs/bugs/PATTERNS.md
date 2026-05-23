@@ -91,3 +91,12 @@
   2. 对外部 scanner 使用临时 mirror 或等价输入文件列表，避免把整棵工作树作为 source。
   3. 修复后在带 ignored `.env` 的本机运行对应 lint，并确认 `.env` 不再被读取；同时保留未忽略文件中的 secret pattern negative gate。
   4. Bug / report / 日志中只能记录脱敏路径与变量名，禁止写入真实 secret 值或可还原片段。
+
+## 模式 8：Schema validation 只校验首个 JSON value
+
+- **相关 Bug**：BUG-0095
+- **典型症状**：AI output schema validator 对 `{"field":"valid"} trailing prose` 或两个连续 JSON value 返回通过；观测层没有产生 `AI_OUTPUT_INVALID`，但后续业务 parser 可能才报错。
+- **检查清单**：
+  1. 对所有 runtime JSON schema / contract validator，确认解析后继续读取输入流并只接受 EOF；不能只调用一次 `Decode` 后立即认为响应是 strict JSON。
+  2. focused negative tests 必须覆盖 schema-valid JSON 后追加非空 prose / token，并断言返回契约错误码、validation status、metric / log 失败信号。
+  3. 保留既有 invalid JSON、missing required、enum mismatch、array top-level valid 等测试，避免 trailing-token 修复破坏正常 schema 校验。
