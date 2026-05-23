@@ -11,19 +11,19 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [product-scope](./product-scope/spec.md) | 1.8 | active | 2026-05-05 | [plans](./product-scope/plans/) |
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.20 | active | 2026-05-22 | [plans](./engineering-roadmap/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.21 | active | 2026-05-22 | [plans](./engineering-roadmap/plans/) |
 | [historical-spec-implementation-review](./historical-spec-implementation-review/spec.md) | 1.0 | active | 2026-05-04 | [plans](./historical-spec-implementation-review/plans/) |
 
 ## 2 Foundation
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [repo-scaffold](./repo-scaffold/spec.md) | 1.3 | active | 2026-05-05 | [plans](./repo-scaffold/plans/) |
+| [repo-scaffold](./repo-scaffold/spec.md) | 1.4 | active | 2026-05-22 | [plans](./repo-scaffold/plans/) |
 | [local-dev-stack](./local-dev-stack/spec.md) | 1.10 | active | 2026-05-08 | [plans](./local-dev-stack/plans/) |
 | [backend-runtime-topology](./backend-runtime-topology/spec.md) | 1.4 | active | 2026-05-07 | [plans](./backend-runtime-topology/plans/) |
 | [backend-async-runner](./backend-async-runner/spec.md) | 1.1 | active | 2026-05-22 | [plans](./backend-async-runner/plans/) |
-| [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.11 | active | 2026-05-21 | [plans](./ai-provider-and-model-routing/plans/) |
-| [secrets-and-config](./secrets-and-config/spec.md) | 2.5 | active | 2026-05-12 | [plans](./secrets-and-config/plans/) |
+| [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.12 | active | 2026-05-22 | [plans](./ai-provider-and-model-routing/plans/) |
+| [secrets-and-config](./secrets-and-config/spec.md) | 2.6 | active | 2026-05-22 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.3 | active | 2026-04-29 | [plans](./ci-pipeline-baseline/plans/) |
 
 ## 3 Contract

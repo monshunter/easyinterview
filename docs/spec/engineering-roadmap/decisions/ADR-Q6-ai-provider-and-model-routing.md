@@ -1,8 +1,8 @@
 # ADR-Q6 · AI Provider 与模型路由
 
-> **版本**: 2.1
+> **版本**: 2.2
 > **状态**: accepted
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-22
 
 ## 1 背景
 
@@ -18,7 +18,7 @@
 
 - 没有任何业务代码 import 厂商 SDK
 - `engineering-roadmap/spec.md` §5.1 A3 已重命名为 `ai-provider-and-model-routing`，明确 P0 必须交付 `provider-neutral AIClient` + `Provider Registry` + `Capability Model Profile` + OpenAI-compatible / stub provider
-- 部署形态由 ADR-Q4 锁定为 K8s
+- 部署与测试形态由 ADR-Q4 锁定为 Docker Compose 外部依赖 + 宿主机 app runtime + repo-tracked 本地 scenario runner；K8s / Kind / Helm 不再是当前 P0 默认前提
 
 业务约束：
 
@@ -34,7 +34,7 @@
 
 - 业务代码只依赖 1 个抽象 + profile name，**零厂商 SDK 入侵**
 - 多模型 / 多 provider / fallback / token rate limit / cost cap 由 A3 provider registry、profile 与运维 secret 注入共同表达；代码不变
-- 单元测试用 `stub` provider（hash-based 确定性输出）；本地 docker-compose / Kind / staging / prod 部署必须配置真实 OpenAI-compatible provider 或 provider endpoint
+- 单元测试用 `stub` provider（hash-based 确定性输出）；非测试本地 app run、未来 staging / prod 部署必须配置真实 OpenAI-compatible provider 或 provider endpoint
 - `AI_PROVIDER_REGISTRY_PATH` + provider-specific secret env ref 是 provider 配置入口；`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只可作为默认 provider ref 引用的 env 名，不是全局唯一 contract
 - F1 metric label（`provider / capability / model_family / model_profile_version / route`）由 AIClient 根据 registry/profile/provider response 统一补全
 - 与 F3 `prompt-rubric-registry` 解耦：F3 只负责 prompt + rubric + profile name 的版本表，不涉及 provider
@@ -98,7 +98,7 @@
 4. **Stub provider**（A3 owner）
    - 仅用于单元测试、离线 contract 测试或显式 mock 场景
    - 输入 → 输出 hash-based 确定性映射；可被 OpenAPI fixtures 反向喂养（与 E1 `mock-contract-suite` 同源）
-   - 单元测试默认走 `stub`；docker compose / Kind / staging / prod 不允许默认降级到 stub，缺少 provider registry、model profile path 或选中 provider 的 secret env ref 时必须 fail-fast
+   - 单元测试默认走 `stub`；非测试本地 app run、未来 staging / prod 不允许默认降级到 stub，缺少 provider registry、model profile path 或选中 provider 的 secret env ref 时必须 fail-fast
 5. **Provider endpoint 边界**：本 ADR 不锁死供应商、托管形态或代理实现，只锁 provider registry / profile / OpenAI-compatible API 子集和应用侧 secret ref 连接参数。当前可执行 OpenAI-compatible 子集包含 Chat Completions、chat streaming SSE 与 Audio Transcriptions；realtime multimodal、judge 仍需各自 owner 后续递增 spec 后打开
 6. **F3 解耦**：`prompt-rubric-registry` 只持有 `(feature_key, prompt_version, rubric_version, model_profile_name)` 四元组；不持有 provider / model 字符串
 7. **可观测性**（F1 owner）
@@ -110,14 +110,14 @@
 ## 4 影响范围
 
 - **A3 `ai-provider-and-model-routing`** —— 落地 `AIClient` + Provider Registry + Capability Model Profile schema + stub provider + OpenAI-compatible adapter
-- **A4 `secrets-and-config`** —— `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` / provider-specific secret env ref 配置项；local deploy 与 Kind 必须能注入真实 provider 凭证
+- **A4 `secrets-and-config`** —— `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` / provider-specific secret env ref 配置项；非测试本地 app run 与未来部署必须能注入真实 provider 凭证
 - **F1 `observability-stack`** —— `ai_*` 指标与 dashboard
 - **F3 `prompt-rubric-registry`** —— 引用 `model_profile_name`；baseline prompt/rubric 与后续真实 model profile 切换
 - **C4 `backend-targetjob`** / **C5 `backend-practice`** / **C6 `backend-review`** / **C7 `backend-resume`** / **C9 `backend-debrief`** —— 全部仅依赖 `AIClient` + profile name；禁止 import 厂商 SDK
 - **C14 `backend-voice-stt`**（P2） —— STT / realtime 走同一 `AIClient` capability profile，profile 路由到 speech provider ref
 - **`release-gate-and-rollout`** —— 校验 AI provider 路由可观测性 + fallback alert + cost cap 配置
 - **B1 `shared-conventions-codified`** —— AI capability、Provider Registry / Model Profile / AI meta 字段名与 AI 错误码的共享常量或生成类型；A3 仍 owns Model Profile schema、`AIClient` runtime 与 `AICallMeta` 填充语义
-- **CLAUDE.md / `test/scenarios/`** —— Kind 场景默认使用真实 provider registry/profile/secret 组合；只有离线 contract 测试可显式切 stub / mock provider ref
+- **CLAUDE.md / `test/scenarios/`** —— 当前场景默认使用 repo-tracked 本地 runner；只有离线 contract 测试可显式切 stub / mock provider ref，需要真实 AI provider 的非测试 app run / smoke 必须显式注入 provider registry/profile/secret 组合
 
 ## 5 失效与修订条件
 
@@ -144,6 +144,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-22 | 2.2 | 对齐 ADR-Q4 v1.7：当前 P0 测试/部署不再默认 Kind / K8s / Helm；AI fail-fast 边界改写为非测试本地 app run 与未来部署必须注入真实 provider registry/profile/secret，离线 contract 测试仍可显式 stub。 |
 | 2026-05-08 | 2.1 | 对齐 A3 003 Phase 6：当前开发期删除向量化 / 重排能力与基础设施，DeepSeek V4 Flash/Pro 成为 repo-tracked chat provider 主力；未来资料检索需求需重新设计。 |
 | 2026-05-06 | 2.0 | 提前激活 A3 002：在保持 provider-neutral / 零 SDK / 隐私红线的前提下，将 Tools payload 扩展、provider-side streaming consumer 与 STT Audio Transcriptions 纳入当前 AI 底座实施范围；realtime multimodal 仍 fail-closed。 |
 | 2026-05-05 | 1.8 | 收口 active 部署与失效条件措辞：Kind / staging / prod 均以 provider registry/profile/secret 组合和 provider ref 为当前契约，不再用单一 endpoint 作为当前目标架构描述。 |

@@ -69,7 +69,7 @@ F1 metrics dictionary 必须登记 `target_job_imports_total`、`target_job_pars
 
 #### 1.2 锁定 config / secret 边界
 
-从 [A4 secrets/config](../../../secrets-and-config/spec.md) 读取 provider secret / feature flag 等已存在 app-level 配置；URL 抓取 timeout 与 UA 标记由本域代码常量提供。统一出网代理不属于 easyinterview 后端项目配置，若部署环境需要代理，由 nginx / 接入层 / 平台透明处理，本 plan 不要求 A4 提供 app-level proxy key。缺必需 secret 必须 fail-fast。`APP_ENV=test` 允许 stub provider；dev / Kind / staging / prod 选中真实 `target.import.default` profile 时 A3 / F3 缺 secret 必须 fail-closed，不得静默回退 stub（D-10 / spec C-10）。任何新增 app-level 配置 key 先停止并修订 A4。
+从 [A4 secrets/config](../../../secrets-and-config/spec.md) 读取 provider secret / feature flag 等已存在 app-level 配置；URL 抓取 timeout 与 UA 标记由本域代码常量提供。统一出网代理不属于 easyinterview 后端项目配置，若部署环境需要代理，由 nginx / 接入层 / 平台透明处理，本 plan 不要求 A4 提供 app-level proxy key。缺必需 secret 必须 fail-fast。`APP_ENV=test` 允许 stub provider；非测试本地 app run 或未来部署选中真实 `target.import.default` profile 时 A3 / F3 缺 secret 必须 fail-closed，不得静默回退 stub（D-10 / spec C-10）。任何新增 app-level 配置 key 先停止并修订 A4。
 
 #### 1.3 锁定 generated handler / outbox / job surface
 

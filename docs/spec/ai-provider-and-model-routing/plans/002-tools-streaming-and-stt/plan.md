@@ -1,8 +1,8 @@
 # AI Tools, Streaming, and STT Extension
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-22
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -143,9 +143,9 @@
 
 stub provider 增加新能力的 deterministic 路径；离线 contract 测试覆盖 OpenAI-compatible 的 tool / streaming / audio transcription 协议子集。
 
-#### 6.3 部署 smoke
+#### 6.3 非测试本地 app smoke
 
-本地部署 + Kind 场景至少跑一次端到端 smoke：tool / stream / STT 各自串通业务 → AIClient → endpoint，确认观测埋点齐全且无明文泄漏。
+非测试本地 app run 或 repo-tracked scenario runner 至少跑一次端到端 smoke：tool / stream / STT 各自串通业务 → AIClient → endpoint，确认观测埋点齐全且无明文泄漏。默认不要求 Kind / K8s / Helm；若未来 release owner 引入部署级 smoke，必须先修订对应环境契约。
 
 #### 6.4 旧口径负向搜索与 drift gate
 

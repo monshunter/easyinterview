@@ -16,7 +16,7 @@
 - 已占用编号现状（[`test/scenarios/e2e/INDEX.md`](../../../../../test/scenarios/e2e/INDEX.md)）：`001-006`, `010-047`；backend-practice/003 已通过 Go HTTP scenario 预留 `048-051`（hint 四场景）；backend-review/001 预留 `052-055`（report 四场景，已在 backend-review/001 plan 内固化）。本 plan 在空闲号段 `056-059` 中分配 4 个场景
 - 编号分配: `E2E.P0.056` / `E2E.P0.057` / `E2E.P0.058` / `E2E.P0.059`
 - 执行入口: vitest + jsdom 主套件 `pnpm --filter @easyinterview/frontend test` + Playwright `pnpm --filter @easyinterview/frontend test:pixel-parity` + 4 个 scenario 目录的 verify.sh
-- 外部 Kind / shell 场景资产: 001 派生 `test/scenarios/e2e/p0-{056,057,058,059}-*` 目录与 backend-practice/002 + frontend-workspace-and-practice/002 同模式
+- 外部 shell 场景资产: 001 派生 `test/scenarios/e2e/p0-{056,057,058,059}-*` 本地 runner 目录与 backend-practice/002 + frontend-workspace-and-practice/002 同模式
 
 每个场景的执行证据在 [bdd-checklist](./bdd-checklist.md) 跟踪；本文件只记录场景的 Given / When / Then 与覆盖范围，不出现执行 checkbox。
 

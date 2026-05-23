@@ -1,8 +1,8 @@
 # Secrets and Config Bootstrap Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-22
 
 **关联计划**: [plan](./plan.md)
 

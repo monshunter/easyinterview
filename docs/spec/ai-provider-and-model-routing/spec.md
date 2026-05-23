@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.11
+> **版本**: 2.12
 > **状态**: active
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-05-22
 
 ## 1 背景与目标
 
@@ -22,7 +22,7 @@
 1. **Provider-neutral 抽象**：业务代码 0 厂商 SDK 入侵，只依赖 `AIClient` 接口与 `model_profile_name`；切换供应商、模型、fallback、成本等级不改业务代码。
 2. **Provider Registry + Capability Profile**：应用维护 provider connection registry；Model Profile 按 `capability`（当前为 `chat` / `stt` / `tts` / `realtime` / `judge`）引用 provider ref、model、参数与 fallback。单一 provider 可作为启动配置，但不是最终架构约束。
 3. **可观测可计费**：每一次 `AIClient.*` 调用必须产出 A3-owned `AICallMeta`（provider / model_family / model_id / capability / prompt_version / rubric_version / model_profile_version / language / tokens / cost / latency / fallback_chain / route / validation_status / error_code），并由 [F1 `observability-stack`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 统一接入 metric / log / DB（`ai_task_runs`）。
-4. **可测试可灰度**：`stub` provider 提供 hash-based 确定性输出，仅用于单元测试、离线契约测试或显式 mock 场景；local deploy / Kind / staging / prod 必须通过 provider registry 解析真实 provider endpoint 与 secret，缺失即 fail-fast。
+4. **可测试可灰度**：`stub` provider 提供 hash-based 确定性输出，仅用于单元测试、离线契约测试或显式 mock 场景；非测试本地 app run、未来 staging / prod 必须通过 provider registry 解析真实 provider endpoint 与 secret，缺失即 fail-fast。
 5. **隐私守约**：AI 调用 payload 在 `audit_events` 写 hash + 长度 + profile，不写明文 prompt / response（与 [ADR-Q5](../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md) 对齐）。
 
 本 spec 不定义具体 prompt（归 [F3 `prompt-rubric-registry`](../prompt-rubric-registry/spec.md)）、不定义业务调用现场（归各 backend / frontend owner）、不部署或拥有独立 AI 代理服务。若未来使用外部模型代理 / router，它只是 provider registry 中的一个 provider ref，不成为业务语义。
@@ -48,7 +48,7 @@
 
 - 具体 prompt 内容、rubric schema、版本表：归 [F3 `prompt-rubric-registry`](../prompt-rubric-registry/spec.md)。
 - 业务调用现场（哪个 backend / frontend owner 调用哪种 profile）：归各自 spec / plan。
-- 外部 AI provider 服务部署、K8s Secret / Vault / cost cap 策略：归 A4 / E4 / 运维；本 spec 只锁应用侧 registry / profile / provider ref 契约。
+- 外部 AI provider 服务部署、platform secret / Vault / cost cap 策略：归 A4 / E4 / 运维；本 spec 只锁应用侧 registry / profile / provider ref 契约，K8s Secret 是否使用由后续 release ADR 决定。
 - Realtime voice 的完整双向协议 adapter、媒体留存与 HTTP wire：归 production voice / practice voice owner；本 spec 当前只打开 STT / TTS 级联底座，realtime profile 继续 fail-closed。
 - LLM Judge / 离线评估集实现：归 F3 后续评估 plan。
 - DB 表本身：归 B4；本 spec 只引用字段名。
@@ -65,12 +65,12 @@
 | D-3 | Model Profile 字段集 | profile 使用 `capability` + `provider_ref`；不再把 profile 绑定为全局 provider endpoint 的 route | provider profile 配置漂移可控 |
 | D-3a | Model Profile 物理落点 | repo-tracked profile catalog 使用单一 `config/ai-profiles.yaml`，`AI_MODEL_PROFILE_PATH` 表示 catalog 文件路径；不再使用一 profile 一文件目录作为 active truth source | 降低小规模 profile catalog 的文件碎片和审查成本 |
 | D-4 | 业务引用形态 | 业务只引用 `model_profile_name`（如 `practice.followup.default` / `report.generate.default`），不引用 provider / model 字符串 | 切换 provider / model = 改 registry/profile，不改业务代码 |
-| D-5 | Stub 触发条件 | 仅 `APP_ENV=test`、离线契约测试或显式 mock 场景允许走 stub；local deploy / Kind / staging / prod 必须能通过 registry 解析真实 provider secret，缺失即 fail-fast | 单测稳定、可重放，同时防止本地部署静默假数据 |
+| D-5 | Stub 触发条件 | 仅 `APP_ENV=test`、离线契约测试或显式 mock 场景允许走 stub；非测试本地 app run、未来 staging / prod 必须能通过 registry 解析真实 provider secret，缺失即 fail-fast | 单测稳定、可重放，同时防止本地运行或部署静默假数据 |
 | D-6 | Fallback 边界 | Fallback 由 AIClient 在 profile fallback chain 内集中执行，最多 2 跳；业务代码不得自行 retry-with-different-model；provider 自身返回的 fallback meta 也必须纳入同一 chain | 防止业务绕开 cost / rate limit / observability |
 | D-7 | 观测埋点强制 | A3 注册 7 个 metric family；每次调用必须产出 run / latency / token / cost 指标 + DB 行 + log；fallback / validation failure 指标只在对应事件发生时递增 | F1 dashboard 可信且 counter 语义正确 |
 | D-8 | 隐私字段红线 | log / metric / DB metadata 字段中绝不出现明文 prompt / response；只允许 hash / 长度 / profile | 与 ADR-Q5 / logging 标准对齐 |
 | D-9 | OpenAI-compatible API 协议子集 | 当前可执行协议是 Chat Completions + chat streaming SSE + Audio Transcriptions + Chat tool-call wire 子集；provider-specific speech protocol 由 `doubao_speech` / `minimax_speech` 独立实现；realtime / judge 进入后续 owner plan 前必须 fail-closed | 主流 chat provider 可即插即用，同时避免假承诺 speech / realtime / judge 都兼容同一 wire shape |
-| D-9a | 当前开发 provider / model | 当前开发主力 provider ref 为 `deepseek`；chat profile 只允许 `deepseek-v4-flash` / `deepseek-v4-pro`，不得使用兼容旧别名 | 本地开发、Kind、staging 前的 AI 调用口径稳定且可审计 |
+| D-9a | 当前开发 provider / model | 当前开发主力 provider ref 为 `deepseek`；chat profile 只允许 `deepseek-v4-flash` / `deepseek-v4-pro`，不得使用兼容旧别名 | 本地开发与未来部署前的 AI 调用口径稳定且可审计 |
 | D-10 | F3 profile 覆盖 | F3 baseline feature_key 必须全部能解析到 A3 profile catalog；P1/P2 capability 可先以 `status=disabled` / `status=unsupported` profile 占位，并写明 `unsupported_reason`，但不得缺命名空间 | 业务域开工前具备完整 AI 调用坐标 |
 | D-11 | Product/UI capability inventory | A3 spec 必须维护产品 / UI AI 场景到 capability family 的映射；新增 AI 场景必须先修订本表与 F3 feature_key / profile 字典 | 防止新业务回到单模型假设 |
 | D-12 | B1 AI vocabulary 边界 | `chat/stt/tts/realtime/judge` capability、provider registry/profile 字段名、AI meta 字段名与 provider/profile routing `AI_*` 错误码由 B1 生成；A3 只 alias / consume，不私造跨边界常量 | 防止 Go/TS/OpenAPI 与 runtime 常量漂移 |
@@ -116,7 +116,7 @@
 
 - Stub provider 的输入 → 输出映射必须 deterministic（相同 input + profile 永远产出相同 output）；不依赖时间 / 随机数。
 - 任何单元测试默认走 stub；不允许某测试在本地测试或未来远端 CI 中悄悄打到真 provider。
-- 任何 local deploy / Kind / staging / prod 部署都不得在被选中的真实 provider secret 缺失时静默回退到 stub；启动期 config validation 必须直接失败。
+- 任何非测试本地 app run、未来 staging / prod 部署都不得在被选中的真实 provider secret 缺失时静默回退到 stub；启动期 config validation 必须直接失败。
 - Registry / profile loader 必须有负向 fixture：未知 provider ref、capability 不匹配、secret env 缺失、unsupported capability 被调用、profile fallback 超 2 跳。
 
 ### 4.5 Product/UI AI Capability Catalog
@@ -154,7 +154,7 @@
 | Model Profile schema | A3 | `config/ai-profiles.yaml` catalog schema 与热加载 |
 | Profile 文件内容 | F3 + 各 AI feature owner | F3 owns feature_key -> model_profile_name；A3 owns profile schema；业务 owner 负责新增场景时补 profile |
 | Profile 文件路径 / secret 注入 | A4 | `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 与 provider-specific env secret ref |
-| 真实 provider endpoint | E4 + 运维 | 本地部署可直连真实 AI provider；staging / prod 可接运维提供的 provider endpoint；本 spec 不部署独立代理 |
+| 真实 provider endpoint | A3 + A4 + E4/运维 | 非测试本地 app run 可直连真实 AI provider；未来 staging / prod 可接运维提供的 provider endpoint；本 spec 不部署独立代理 |
 | 业务调用现场 | `backend-targetjob` / `backend-practice` / `backend-review` / `backend-resume` / `backend-debrief` / future retrieval / production voice owners | 各业务 spec / plan 引用 profile name，不引用 provider/model |
 | 共享约定 | B1 | `AI_*` 错误码、AI capability、provider registry/profile 字段名、AI meta 字段名共享常量、`ApiError` / `ApiErrorResponse` 消费约定 |
 | DB 表 | B4 | `ai_task_runs` schema |
@@ -173,7 +173,7 @@
 | C-6 | 隐私红线 | grep 全部生产代码与 log | 任意调用 | 不出现 `payload.messages[*].content` / `response.content` 明文落 log 或 DB metadata；hash / 长度 / profile 三类摘要必须出现 | 001 + 003 |
 | C-7 | 错误码合规 | provider 返回结构化输出非法 | client `validate_output` 失败 | 返回错误码 `AI_OUTPUT_INVALID`；`ai_output_validation_failures_total` +1 | 001 |
 | C-8 | active spec relation gate | 本 spec 通过 `/plan-review` | 与当前 active spec 和 future workstream 关系审查 | A3 与 F3 / B1 / A4 / F1 / release gate 引用关系自洽；A3 不重新引入已废弃的 provider-proxy 业务语义 | plan-review |
-| C-9 | Registry secret fail-fast | local deploy / Kind / staging / prod 缺失 registry 选中 provider 的 base URL 或 API key | 启动 backend runtime | 进程启动失败并报配置错误；不得自动回退到 stub provider | 003 + A4 |
+| C-9 | Registry secret fail-fast | 非测试本地 app run、未来 staging / prod 缺失 registry 选中 provider 的 base URL 或 API key | 启动 backend runtime | 进程启动失败并报配置错误；不得自动回退到 stub provider | 003 + A4 |
 | C-10 | F3 baseline profile coverage | F3 10 个 baseline feature_key 已定义默认 profile name | 运行 profile coverage lint | 每个默认 profile 在 `config/ai-profiles.yaml` catalog 中存在，且 capability / provider_ref / status 合法；允许 P1/P2 profile `disabled` / `unsupported`，但必须携带 `unsupported_reason` 且不得缺 catalog entry | 003 + F3 |
 | C-11 | Product/UI capability inventory drift | 新增 AI 场景或 UI 交互依赖 AI | `/plan-review` 或 lint 检查 | 本 spec §4.5、F3 feature_key 字典与 A3 profile catalog 同步更新；不得只在业务代码 hardcode 新 profile | 003 + F3 |
 | C-12 | Unsupported capability fail-closed | profile 使用 `realtime` / `judge`，但对应 adapter 未激活 | 运行时调用该 profile | 返回明确 unsupported capability 错误并记录 meta/log；不得降级到 chat 或 stub；对应 UI 能力必须 feature-gated | 003 + 002 |

@@ -1,8 +1,8 @@
 # Repo Scaffold Spec
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-22
 
 ## 1 背景与目标
 
@@ -34,11 +34,11 @@
 
 ### 2.2 Out of Scope
 
-- `make dev-up` 真正拉起 Postgres / Redis / MinIO / OTel 等本地依赖：归 [A2 `local-dev-stack`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)。
+- `make dev-up` 真正拉起 Postgres / Redis / MinIO 等本地外部依赖：归 [A2 `local-dev-stack`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)。
 - CI 管线（lint / test / build / codegen 工作流）：归 A5 `ci-pipeline-baseline`。
 - monorepo 包管理（pnpm workspace 配置、Go module 拓扑）：归 B1 `shared-conventions-codified` 与 A2 `local-dev-stack` 协同。
 - OpenAPI codegen 入口、fixtures 拆分：归 B2 `openapi-v1-contract`。
-- Helm chart / Kind cluster / staging 部署：归 A2、E4。
+- 本地 Docker Compose 外部依赖栈：归 A2；staging / production / Helm / K8s 等部署资产只有在 release workstream 明确需要时才由 E4 原地设计。
 - AI Gateway、secrets 管理：归 A3 / A4。
 - `test/scenarios/` 场景测试框架目录与场景资产：归 E2 `e2e-scenarios-p0` 与 `/scenario-*` 流程。
 - 业务代码与领域模块目录（`backend/internal/auth/...`、`frontend/src/features/...`）：仅锁定根级容器目录名，业务子目录由对应 child subspec 创建。

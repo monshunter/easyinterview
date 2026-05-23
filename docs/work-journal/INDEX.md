@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-23](2026-05-23.md) | `docs(local-dev-env): de-default kind/k8s/helm from p0 test and deploy targets` | #docs |
 | [2026-05-22](2026-05-22.md) | `fix(frontend-home): close targetjob real backend gate drift (BUG-0086)` | #fix #test #docs |
 | [2026-05-22](2026-05-22.md) | `fix(frontend-jd-match): close real backend gate drift (BUG-0085)` | #fix #test #docs |
 | [2026-05-22](2026-05-22.md) | `fix(backend-jobs): close jd-match L2 follow-up (BUG-0084)` | #fix #test #docs |

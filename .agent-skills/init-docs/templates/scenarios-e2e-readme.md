@@ -4,16 +4,14 @@
 
 `e2e` 是当前唯一活跃的场景套件。
 
-它在单一 Kind 本地测试环境中，覆盖关键用户闭环与高风险链路。
+它通过 repo-tracked 本地 runner，覆盖关键用户闭环与高风险链路。
 阶段差异通过场景 ID 中的 `P0` / `P1` / `P2` / `P3` 表达，而不是通过多套环境拆分。
 
 ## 2 环境契约
 
-- 环境类型：Kind
-- 环境模式：单一共享本地环境
-<!-- TODO: 配置实际 cluster name 和 kube context -->
-- 推荐 cluster name：`<project>-local`
-- 推荐 kube context：`kind-<project>-local`
+- 环境类型：本地 runner（Go / Vitest / Playwright / browser smoke 等，按具体场景 README 声明）
+- 环境模式：单一 repo-tracked 场景契约；外部依赖按需通过本地 dev stack 启动
+- 不默认创建或要求 Kind / K8s / Helm；若未来 release owner 引入部署级场景，必须先修订本 README 和对应 owner plan
 - 若提供 `test/scenarios/env-setup.sh` / `test/scenarios/env-cleanup.sh`，则它们是首选入口
 
 ## 3 场景设计要求

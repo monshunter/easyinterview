@@ -85,7 +85,7 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 2. 相关模块 README：至少包括命中目录的 `README.md`，例如 `frontend/README.md`、`backend/README.md`、`openapi/README.md`、`deploy/dev-stack/README.md`、`test/scenarios/README.md`
 3. 若涉及用户可见 UI：同时读取 `docs/ui-design/` 对应文档与 `ui-design/src/*.jsx` / `ui-design/src/primitives.jsx` / `ui-design/src/app.jsx` 的相关源码
 4. 若涉及 API / fixture / generated client / handler：读取 `openapi/openapi.yaml`、相关 `openapi/fixtures/<tag>/<operationId>.json`、generated client/server artifacts，以及计划中的 operation matrix
-5. 若涉及本地依赖或场景验证：区分 Docker Compose dev stack 与 Kind scenario target，按 `deploy/dev-stack/README.md` 和 `test/scenarios/README.md` 执行，不得凭历史印象假设环境入口
+5. 若涉及本地依赖或场景验证：区分 Docker Compose 外部依赖、宿主机前后端运行入口与 `test/scenarios/` 本地 runner 场景契约，按 `deploy/dev-stack/README.md` 和 `test/scenarios/README.md` 执行；不得凭历史印象默认引入 Kind / K8s / Helm 环境
 
 若计划或 checklist 缺少 operation matrix，或未标明 `operationId`、fixture、frontend consumer、backend handler、persistence、AI dependency、scenario coverage 的当前状态，必须先回到 `/plan-review --fix` 或请求用户批准修订，不得直接实施或宣称验证闭环。
 
@@ -209,7 +209,7 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 
 关键要点：
 - 首次使用若存在镜像缓存脚本，应先运行 `image-cache.sh pull` 预热外部依赖镜像
-- Kind 场景环境的部署、重建、验证入口以 `test/scenarios/README.md` 与对应层级 README 为准
+- 当前场景测试默认不需要 Kind / K8s / Helm；验证入口以 `test/scenarios/README.md` 与对应层级 README 中声明的 repo-tracked Go / Vitest / Playwright / browser runner 为准
 - 禁止预设 Helm Chart、组件名、命名空间或外部依赖平台，必须以仓库当前测试框架文档为真理源
 
 ---

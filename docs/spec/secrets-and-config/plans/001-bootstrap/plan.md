@@ -1,8 +1,8 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-05-22
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 把 [secrets-and-config spec](../../spec.md) §3.1 已锁定的 D-1..D-9 决策与 §3.1.1 / §3.1.2 锁定的 24 项 P0 必备 env key 字典、canonical config schema、`async.queueWeights` config-only 字段落到代码：建立 `backend/internal/platform/{config,secrets,featureflag}/` 三个 Go 包真理源、`config/*.yaml` + `.env.example` + `config/feature-flags.yaml` 默认值集合、`make lint-config` 与 `scripts/git-hooks/pre-commit-secrets.sh` 本地质量门禁、`frontend/src/lib/runtime-config/` 前端 fetcher，以及最小 `GET /api/v1/runtime-config` handler stub，并通过本 plan 的 verification phase 证明 [secrets-and-config spec §6](../../spec.md#6-验收标准) C-1..C-12 在本仓库可重复跑通（C-6 与 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 共担最终 schema 一致性，本 plan 完成 A4 侧 builder 与 stub）。
 
-本 plan 是 `secrets-and-config` 唯一的 plan；后续若需扩展（K8s Secret / Vault / SOPS provider，自动 secret rotation，分桶 feature flag），按 §7 约束递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。
+本 plan 是 `secrets-and-config` 唯一的 plan；后续若需扩展（Vault / SOPS / platform secret / K8s Secret provider，自动 secret rotation，分桶 feature flag），按 §7 约束递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。
 
 ## 2 背景
 
@@ -25,7 +25,7 @@
 
 每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来即可由 Go 代码 `config.Get*` 读取三层合并的配置；Phase 2 起来即可由业务代码通过 `SecretSource` / `FeatureFlagClient` 接口隔离 provider；Phase 3 起来即有完整的 `.env.example` 与 `config/*.yaml` 字典；Phase 4 起来即有 `make lint-config` 与 pre-commit secret 拦截；Phase 5 起来即有最小 `runtime-config` 端到端链路；Phase 6 收口验证 C-1..C-11 并完成 handoff。
 
-本 plan 不部署 PostHog（归 [F2 `analytics-funnel`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [E4 `release-gate-and-rollout`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)），不实现 K8s Secret / Vault / SOPS provider（归 P1 / E4），不冻结 `/api/v1/runtime-config` 的 OpenAPI schema（归 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md)；A4 在本 plan 中只交付 response builder + 最小 stub handler）。
+本 plan 不部署 PostHog（归 [F2 `analytics-funnel`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [E4 `release-gate-and-rollout`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)），不实现 Vault / SOPS / platform secret / K8s Secret provider（归 P1 / E4），不冻结 `/api/v1/runtime-config` 的 OpenAPI schema（归 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md)；A4 在本 plan 中只交付 response builder + 最小 stub handler）。
 
 ## 3 质量门禁分类
 
@@ -70,7 +70,7 @@ type SecretSource interface {
 }
 ```
 
-接口签名固定，P1 升级到 K8s Secret / Vault / SOPS 时只能新增 provider，不允许修改签名。`secrets/env_provider.go` 实现 `EnvSecretSource`：从 `os.Getenv` 读取（注意 `os.Getenv` 仅允许出现在 `internal/platform/config/`、`internal/platform/secrets/` 与 `cmd/{api,migrate}/main.go`，由 Phase 4.1 lint 收口）。Phase 1 loader 把 `EnvSecretSource` 作为默认运行时 secret 来源，与 D-1 第一层（`runtime secret > env var ...`）一致。
+接口签名固定，P1 升级到 Vault / SOPS / platform secret / K8s Secret 时只能新增 provider，不允许修改签名。`secrets/env_provider.go` 实现 `EnvSecretSource`：从 `os.Getenv` 读取（注意 `os.Getenv` 仅允许出现在 `internal/platform/config/`、`internal/platform/secrets/` 与 `cmd/{api,migrate}/main.go`，由 Phase 4.1 lint 收口）。Phase 1 loader 把 `EnvSecretSource` 作为默认运行时 secret 来源，与 D-1 第一层（`runtime secret > env var ...`）一致。
 
 #### 2.2 落地 `backend/internal/platform/featureflag/` 包接口
 

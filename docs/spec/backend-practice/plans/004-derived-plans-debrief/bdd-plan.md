@@ -14,7 +14,7 @@
 - 套件: `e2e`
 - 阶段: `P0`
 - 执行入口: `cd backend && go test ./cmd/api -run 'TestE2EP0070|TestE2EP0071|TestE2EP0072|TestE2EP0073' -count=1`
-- 外部 Kind / shell 场景资产: 本 plan 初始落在 `backend/cmd/api/practice_http_scenario_test.go` 的 HTTP scenario tests；未来如需提升为 `test/scenarios/e2e/p0-070-*` shell assets，保持同一 Given / When / Then，不重编号。
+- 外部 shell 场景资产: 本 plan 初始落在 `backend/cmd/api/practice_http_scenario_test.go` 的 HTTP scenario tests；未来如需提升为 `test/scenarios/e2e/p0-070-*` local runner shell assets，保持同一 Given / When / Then，不重编号。
 
 ## 1 场景矩阵
 

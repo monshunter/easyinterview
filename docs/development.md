@@ -31,8 +31,8 @@ Frontend and backend workstreams are split by contract, not by informal agreemen
 | 4. Codegen | `make codegen && make codegen-check`; generated Go/TS artifacts are not hand-edited | B1/B2/B3 owners |
 | 5. Frontend implementation | `frontend/src/api/generated/client.ts` + `frontend/src/api/mockTransport.ts`; frontend may complete user-visible UI against fixtures before backend handler completion | Frontend owner |
 | 6. Backend implementation | Real handler/store/migration/job code implements the same `operationId` and response envelope; tests prove SQL, auth, privacy, idempotency, and error paths | Backend owner |
-| 7. Local integration | `make dev-up` provides Docker Compose dependencies; backend/frontend processes may run outside compose until app services are explicitly added | Backend + frontend owner |
-| 8. Scenario verification | `test/scenarios/` scripts provide BDD/E2E gates; Kind is the target shared environment, while current Ready scenarios may invoke local Go/Vitest/Playwright gates until deployment assets land | Scenario owner + feature owner |
+| 7. Local integration | `make dev-up` provides Docker Compose external dependencies; backend/frontend default to host-managed dev processes unless a component owner explicitly adds an optional compose app service | Backend + frontend owner |
+| 8. Scenario verification | `test/scenarios/` scripts provide BDD/E2E gates through repo-tracked local runners such as Go, Vitest, Playwright, and browser smoke; Kind / K8s / Helm are not the default P0 scenario target | Scenario owner + feature owner |
 
 ### 2.1 Operation Matrix Requirement
 
@@ -73,7 +73,7 @@ Use this path when correctness depends on auth, persistence, jobs, privacy, or A
 
 ### 2.4 AI Provider Boundary
 
-Automated local quality gates do not call a real LLM. `APP_ENV=test` may use stub/fixture AI providers; Docker Compose, Kind, staging, and production must fail fast when selected active profiles need a real provider but `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` are missing. Product UI and backend orchestration may be developed with fixtures, but model quality, latency, cost, streaming, STT, and fallback behavior require an explicit real-provider smoke/eval gate before release-level acceptance.
+Automated local quality gates do not call a real LLM. `APP_ENV=test` may use stub/fixture AI providers; Docker Compose dependency-backed local app runs, staging, and production must fail fast when selected active profiles need a real provider but `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` are missing. Product UI and backend orchestration may be developed with fixtures, but model quality, latency, cost, streaming, STT, and fallback behavior require an explicit real-provider smoke/eval gate before release-level acceptance.
 
 ### 2.5 Agent Enforcement
 
@@ -118,7 +118,7 @@ Local quality gates **do not read business secrets**:
 - Analytics keys (`POSTHOG_*`)
 - Any secret listed in [`.env.example`](../config/) for production / staging contexts
 
-AI unit tests are required to use stub / fixture providers; real AI provider calls happen only via `make dev-up` local-stack invocation, never via `make test`. See [A5 spec §4.2](./spec/ci-pipeline-baseline/spec.md#42-安全与权限约束).
+AI unit tests are required to use stub / fixture providers; real AI provider calls happen only in explicit non-test app runtime or smoke/eval runs after required local dependencies are available, never via `make test`. See [A5 spec §4.2](./spec/ci-pipeline-baseline/spec.md#42-安全与权限约束).
 
 When remote CI eventually lands, any new workflow that needs a runner secret **must first revise A5 spec / history to register the secret dictionary and permission boundary** before the workflow file is created. Workflows that introduce secrets without a prior spec revision must be rejected at review.
 
@@ -140,7 +140,7 @@ When remote CI eventually lands, any new workflow that needs a runner secret **m
 - [A5 plan 001-local-quality-gates](./spec/ci-pipeline-baseline/plans/001-local-quality-gates/plan.md) — implementation detail
 - [Frontend README](../frontend/README.md) — frontend implementation boundaries, UI truth source, generated client, mock transport
 - [Backend README](../backend/README.md) — backend implementation boundaries and operation status expectations
-- [Local dev stack](../deploy/dev-stack/README.md) — Docker Compose dependency stack and Docker/Kind boundary
+- [Local dev stack](../deploy/dev-stack/README.md) — Docker Compose dependency stack, host-run app boundary, and scenario-runner boundary
 - [Scenario framework](../test/scenarios/README.md) — BDD/E2E scenario environment and script contract
 - [A1 repo-scaffold spec](./spec/repo-scaffold/spec.md) — root Makefile structure (10 phony targets)
 - [B1 shared-conventions-codified spec](./spec/shared-conventions-codified/spec.md) — `make codegen-conventions` / `make lint-conventions` owner

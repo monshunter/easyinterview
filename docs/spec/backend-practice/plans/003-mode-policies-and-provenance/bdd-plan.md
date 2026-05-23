@@ -16,7 +16,7 @@
 - 已占用编号现状（[`test/scenarios/e2e/INDEX.md`](../../../../../test/scenarios/e2e/INDEX.md)）：`001-006`, `010-037`；002 已通过 Go HTTP scenario 占用 `038-043`（未挂 e2e INDEX 目录，与 002 bdd-plan §0 描述一致）。本 plan 在空闲号段 `048-051` 中分配 4 个场景
 - 编号分配: `E2E.P0.048` / `E2E.P0.049` / `E2E.P0.050` / `E2E.P0.051`
 - 执行入口: `cd backend && go test ./cmd/api -run 'TestE2EP0048|TestE2EP0049|TestE2EP0050|TestE2EP0051' -count=1`
-- 外部 Kind / shell 场景资产: 003 不新增 `test/scenarios/e2e/p0-NNN-*` 目录；若未来需要 Kind live BDD，可由 scenarios owner 按当前编号把同一 Given / When / Then 提升为 `test/scenarios` 资产，不改变本 plan 的 API 行为语义
+- 外部 shell 场景资产: 003 不新增 `test/scenarios/e2e/p0-NNN-*` 目录；若未来需要部署级 BDD，可由 scenarios owner 按当前编号把同一 Given / When / Then 提升为 repo-tracked local runner 或 release-owned scenario 资产，不改变本 plan 的 API 行为语义
 
 每个场景的执行证据在 [bdd-checklist](./bdd-checklist.md) 跟踪；本文件只记录场景的 Given / When / Then 与覆盖范围，不出现执行 checkbox。
 

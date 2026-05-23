@@ -41,7 +41,7 @@
 
 - [x] 4.1 落地 `config.go` 配置 struct（`AppEnv` / `ProviderBaseURL` / `ProviderAPIKey` / `ModelProfilePath`）与 `New(cfg)` 启动期校验：`AppEnv != "test"` 且 provider config 任一字段空时返回 `ErrMissingProviderConfig`；`AppEnv == "test"` 路径允许 `WithStubAllowed(true)` 启用 stub
 - [x] 4.2 落地 `config_test.go`：`AppEnv=test` 缺 provider config 但启用 stub → 成功；`AppEnv=production` 缺 provider config → 错误；`AppEnv=test` 但 stub 选项未启用且无 provider config → 错误；提供 `New(cfg)` / DI 构造契约供 A4 / C 域在 backend runtime entrypoint 接入时把 cfg 错误转换为 non-zero exit，本 plan 不创建或重写 entrypoint
-- [x] 4.3 落地 `backend/internal/ai/aiclient/README.md`：写明 stub 仅 `APP_ENV=test` 启用、docker compose / Kind / staging / prod 必须真实 OpenAI-compatible endpoint、smoke 验证步骤示意（导出真实 endpoint env 后跑 `go test -tags smoke`，绝不在测试代码 / fixture 中嵌入真实 API key），fsnotify ↔ polling 兜底机制说明
+- [x] 4.3 落地 `backend/internal/ai/aiclient/README.md`：写明 stub 仅 `APP_ENV=test` 启用、非测试本地 app run / future deploy 必须真实 OpenAI-compatible endpoint、smoke 验证步骤示意（导出真实 endpoint env 后跑 `go test -tags smoke`，绝不在测试代码 / fixture 中嵌入真实 API key），fsnotify ↔ polling 兜底机制说明
 
 ## Phase 5: Verification + handoff
 

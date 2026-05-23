@@ -1,21 +1,21 @@
 # Secrets and Config Spec
 
-> **版本**: 2.5
+> **版本**: 2.6
 > **状态**: active
-> **更新日期**: 2026-05-12
+> **更新日期**: 2026-05-22
 
 ## 1 背景与目标
 
 [engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 A4 `secrets-and-config` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 [ADR-Q6](../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md) 第 4 段「运维注入」与 [ADR-Q3](../engineering-roadmap/decisions/ADR-Q3-analytics-platform.md) 自托管 PostHog 的接入凭证落点，决定了：
 
-- 后端 API / backend internal runner / 前端 dev / staging / prod（以及未来需要时的 CI）各类环境如何拿到自己需要的连接串、API key、AI provider registry、feature flag 状态；
+- 后端 API / backend internal runner / 前端 dev / 未来 staging / prod（以及未来需要时的 CI）各类环境如何拿到自己需要的连接串、API key、AI provider registry、feature flag 状态；
 - secrets / config 在仓库里如何 layered（默认值、env override、运行时 secret），不被 hardcode；
 - feature flag 如何接入 PostHog 但不让业务代码直接 import PostHog SDK。
 
 目标是：
 
 1. **三层 config**：`config.yaml`（默认值，仓库版本化）→ `.env` / 环境变量（环境差异）→ runtime secret（敏感凭证）；任何业务模块只通过 `internal/platform/config` 包读取，不直接读 `os.Getenv`。
-2. **secrets 抽象**：`SecretSource` 接口在 P0 仅实现 env-based provider；P1 以后可扩展到 K8s Secret / Vault / SOPS（ADR-Q4 已留接口）；业务代码只依赖接口，不依赖具体 provider。
+2. **secrets 抽象**：`SecretSource` 接口在 P0 仅实现 env-based provider；P1 以后可扩展到 Vault / SOPS / platform secret（是否使用 K8s Secret 由后续 release ADR 决定）；业务代码只依赖接口，不依赖具体 provider。
 3. **feature flag 抽象**：`FeatureFlagClient` 接口；本 spec 提供 `FileFlagProvider`（YAML 文件，dev / 单测默认）与 `PostHogFlagProvider`（指向自托管 PostHog 的 HTTP API）；ADR-Q3 已锁定 self-host PostHog。
 4. **lint 红线**：在本地质量门禁中拒绝 `os.Getenv(...)` 出现在 `internal/<domain>/...` 包；secrets 文件名 (`*.secret.yaml`) 一律加入 `.gitignore`；提交前 hook 拦截已知敏感前缀（`AKIA*` / `sk-*`）。
 
@@ -42,7 +42,7 @@
 ### 2.2 Out of Scope
 
 - 真正部署 PostHog：归 [F2](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) + [E4](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)；A2 默认本地栈只要求 no-op / file-backed dev mode 不阻塞启动。
-- K8s Secret / Vault / SOPS 实施：归 P1 / E4；本 spec 仅锁接口。
+- Vault / SOPS / platform secret 实施：归 P1 / E4；本 spec 仅锁接口，K8s Secret 不再作为当前 P0 默认路径。
 - Build-time 注入工具链（Vite envsubst / esbuild defines）：归 [D1 `frontend-shell`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) + [A5 `ci-pipeline-baseline`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)。
 - Auth / session 业务语义（magic link challenge 表、server-side sessions 表、cookie 生命周期、风控阈值）：归 [C1 `backend-auth`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md)；本 spec 只登记 C1 运行所需 secret/env key，并保证它们进入红线与 redaction。
 - 数据库 migration / schema：归 [B4](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)。
@@ -163,14 +163,14 @@
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | `internal/platform/config/` | A4 | loader / validator / redactor / `Get*` API |
-| `internal/platform/secrets/` | A4 | `SecretSource` 接口 + env provider；P1 以后扩展 K8s/Vault |
+| `internal/platform/secrets/` | A4 | `SecretSource` 接口 + env provider；P1 以后可扩展 Vault / SOPS / platform secret |
 | `internal/platform/featureflag/` | A4 | `FeatureFlagClient` + file / posthog provider |
 | `frontend/src/lib/runtime-config/` | A4 + D1 | `runtime-config` fetcher 与本地缓存；A4 锁字段，D1 集成 React hooks |
 | `config/*.yaml` 内容 | 各业务 owner 增量 | A4 锁文件位置与 schema，业务字段由各 child 在 spec 修订时新增 |
 | `config/feature-flags.yaml` 字段集 | F2 + 各业务 owner | A4 锁文件位置；当前 6 项 baseline flag 为 `practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`；旧 `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 已按 product-scope v1.2 删除 |
 | AI provider registry / env keys 默认值 | A3（决策） + A4（落 env 字典） | A3 决定 provider registry 与 profile schema；A4 写进 env/config 字典并负责被选中 provider secret 缺失 fail-fast |
 | Auth / Email env keys | C1 + A4 | C1 决定字段名（ADR-Q1），A4 写进字典 |
-| 部署侧 secret 注入 | E4 + 运维 | A4 提供接口，E4 提供 K8s Secret / Vault 路径 |
+| 部署侧 secret 注入 | E4 + 运维 | A4 提供接口；E4 后续按实际部署目标选择 Vault / SOPS / platform secret / K8s Secret |
 
 ## 6 验收标准
 
@@ -187,7 +187,7 @@
 | C-12 | 后台队列权重配置 | `config/config.yaml` 声明 `async.queueWeights`，dev/staging/prod override 可调整权重 | backend internal runner 初始化读取 typed config | 读取到 `critical/default/low` 三档权重，缺失或非正数 fail-fast；不需要新增 env key | A4 后续 001 + backend-runtime-topology |
 | C-13 | 上传基础 config-only path | `config/config.yaml` 声明 `objectStorage.provider`、`upload.presignTTLSeconds`、`upload.maxBytes.*` | backend-upload handler / objectstore 初始化读取 typed config | 默认值可读取；非法 provider、非正数 TTL / maxBytes fail-fast；`.env.example` 不新增 `UPLOAD_*` / `OBJECT_STORE_*` | backend-upload/001 |
 | C-9 | env 字典覆盖 | `.env.example` 中缺 `AI_PROVIDER_REGISTRY_PATH` 或 registry 引用的 provider secret env | `make lint-config` | 报错：env key 在代码或 registry truth source 出现但 `.env.example` 缺失 | A4 后续 001 + A3 003 |
-| C-10 | AI provider 本地部署校验 | `APP_ENV=dev` 且启用了需要 AIClient 的 backend 运行路径，但 provider registry 缺失或选中 provider secret 缺失 | docker compose / Kind 启动进程 | 进程启动失败并报告缺失 provider registry / secret；`APP_ENV=test` 的单元测试仍可走 stub | A4 后续 001 + A3 003 + A2 |
+| C-10 | AI provider 本地运行校验 | `APP_ENV=dev` 且启用了需要 AIClient 的 backend 运行路径，但 provider registry 缺失或选中 provider secret 缺失 | 启动宿主机 backend runtime 或已显式接入 compose 的 optional app service | 进程启动失败并报告缺失 provider registry / secret；`APP_ENV=test` 的单元测试仍可走 stub | A4 后续 001 + A3 003 + A2 |
 | C-11 | config schema 分类 | `SESSION_COOKIE_SECRET` 标记为 secret，`runtime.defaultUiLanguage` 标记为 public | `make lint-config` / runtime-config schema check | secret 字段缺 redaction 或出现在 runtime-config schema 时失败；public 字段缺 runtime-config schema 时失败 | A4 后续 001 |
 
 ## 7 关联计划
@@ -200,4 +200,4 @@ A4 当前暂无 active impl plan；后续由 A4 自身的 `001-bootstrap` 承接
 - 落地 lint 规则与 pre-commit hook（接入 A1 `scripts/git-hooks/`）。
 - 提供 `frontend/src/lib/runtime-config/` 与最小 fetcher。
 
-后续 P1 升级（K8s Secret / Vault / SOPS provider）由本 spec 修订递增版本后追加 plan，不创建 sibling spec。
+后续 P1 升级（Vault / SOPS / platform secret / K8s Secret provider）由本 spec 修订递增版本后追加 plan，不创建 sibling spec。

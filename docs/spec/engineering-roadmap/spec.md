@@ -1,6 +1,6 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.20
+> **版本**: 3.21
 > **状态**: active
 > **更新日期**: 2026-05-22
 
@@ -59,7 +59,7 @@
 | Q-1 | 认证方案 | 自建 passwordless email magic link + first-party session cookie | 认证是操作级拦截；默认入口仍为 Home，登录成功恢复 `pendingAction` |
 | Q-2 | 异步编排 | B3 job/outbox contract + backend internal runner；Redis/Asynq 仅作为后续 runner implementation option | P0 异步任务服务 JD 解析、报告生成、简历处理、复盘分析和删除链路；不生成独立错题 / Drill 队列，也不要求独立 worker 进程 |
 | Q-3 | 分析平台 | 自托管 PostHog，普通本地 dev 可 no-op / file-backed | 分析漏斗围绕导入 -> 规划 -> 练习 -> 报告 -> 复练 / 下一轮 -> 真实复盘 |
-| Q-4 | 云部署目标 | Kubernetes 作为 staging/prod 目标，本地开发走 A2 dev stack，Kind 只用于场景环境 | 部署自动化和 rollout gate 进入后续 release workstream |
+| Q-4 | 部署与测试目标 | 当前 P0 锁定 Docker Compose 外部依赖 + 宿主机 app runtime + repo-tracked 本地 scenario runner；Kubernetes / Kind / Helm 不再是默认测试或部署目标 | 部署自动化和 rollout gate 进入后续 release workstream，届时按实际规模重新评估容器编排 |
 | Q-5 | 隐私节奏 | P0 删除-only；导出延后并以 501 / UI 占位解释 | 删除链路、audit 和 redaction 是 P0 gate；完整导出归后续隐私增强 |
 | Q-6 | AI provider 与模型路由 | 应用内 `AIClient` + Provider Registry + Capability Model Profile + OpenAI-compatible / stub provider | 业务代码只依赖 profile / feature_key，不 import 厂商 SDK；provider/profile/capability drift 由 A3/B1/A4/F3 gate 拦截 |
 
@@ -138,7 +138,7 @@
 | Resume Workshop | `frontend-resume-workshop`、`backend-resume`、`backend-upload` | `frontend-resume-workshop` active（001 / 002 / 003 completed）；`backend-resume` active；`backend-upload` active（001 file_objects + presign baseline completed） | 原始简历树、结构化主版本、岗位定制版本、创建/解析/确认、版本详情 | B2、B3、B4、A3、C2 `backend-upload` |
 | Debrief | `frontend-debrief`、`backend-debrief` | `frontend-debrief` active；`backend-debrief` active | 真实面试上下文选择、文本 / 语音共享记录、复盘分析、复盘面试 | B2、B3、B4、A3、C4、C6 |
 | Backend async runner | `backend-async-runner` | active（001 internal job + outbox runner baseline，承接单一 backend in-process runtime kernel、outbox dispatcher、retry/reaper/shutdown、`email_dispatch` 收口） | backend 内部 job/outbox runner、retry、删除链路执行；不创建独立 worker 进程 | B3、B4、A2、ADR-Q2/Q5、backend-runtime-topology |
-| Mock + E2E + release | `mock-contract-suite`、`e2e-scenarios-p0`、`analytics-funnel`、`release-gate-and-rollout` | `mock-contract-suite` active；`test/scenarios/e2e` framework 已创建；其余未创建 | fixture-backed mock、P0 主漏斗 BDD、产品漏斗、staging / rollback / SLO gate | B2、D1-D6、C4-C9、F1-F3 |
+| Mock + E2E + release | `mock-contract-suite`、`e2e-scenarios-p0`、`analytics-funnel`、`release-gate-and-rollout` | `mock-contract-suite` active；`test/scenarios/e2e` framework 已创建，默认本地 runner；其余未创建 | fixture-backed mock、P0 主漏斗 BDD、产品漏斗、后续 release / rollback / SLO gate | B2、D1-D6、C4-C9、F1-F3 |
 
 ### 5.3 Future candidates（不自动 spawn）
 

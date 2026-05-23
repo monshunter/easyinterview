@@ -1,8 +1,8 @@
 # Cascaded Speech Provider Foundation
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-05-22
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -74,7 +74,7 @@
 
 #### 2.3 Stub provider deterministic TTS
 
-stub provider 为 TTS 返回 deterministic audio placeholder 与 meta 摘要，仅用于单元测试 / 离线契约测试，不允许 local deploy / Kind / staging / prod 静默回退到 stub。
+stub provider 为 TTS 返回 deterministic audio placeholder 与 meta 摘要，仅用于单元测试 / 离线契约测试，不允许非测试本地 app run 或未来 staging / prod 静默回退到 stub。
 
 ### Phase 3: 豆包与 MiniMax speech adapters
 

@@ -4,8 +4,8 @@
 
 本目录承载项目的 BDD / 端到端场景测试约定。
 
-当前仓库只维护**一个** Kind 本地测试环境；阶段差异
-通过场景编号、BDD 文档和产品阶段来表达，而不是通过多套环境拆分。
+当前仓库只维护**一套**本地场景契约；阶段差异
+通过场景编号、BDD 文档和产品阶段来表达，而不是通过多套环境拆分。默认执行依赖 repo-tracked Go / Vitest / Playwright / browser runner，外部依赖按需由项目本地 dev stack 提供。
 
 当前标准套件：
 
@@ -17,7 +17,7 @@
 
 ## 2 基本原则
 
-- 测试环境只保留一个本地 Kind 集群
+- 测试环境只保留一套本地 runner 契约；不要为普通场景默认引入 Kind / K8s / Helm
 - 场景编号必须使用行为导向 ID，例如 `E2E.P0.001`、`E2E.P1.003`
 - checklist 中的 `BDD-Gate` 只能引用场景编号，不引用 `AC-*`
 - 场景断言优先验证用户可见结果、关键证据与下一步行动建议
@@ -57,7 +57,7 @@ test/scenarios/
    ```bash
    ./test/scenarios/_shared/scripts/image-cache.sh pull
    ```
-4. 按 README 建立或验证单一 Kind 环境
+4. 按 README 建立或验证目标套件声明的本地 runner 与外部依赖；缺少明确脚本时不得自行杜撰 Kind / K8s 入口
 
 ## 5 场景编号与目录命名
 

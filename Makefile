@@ -73,7 +73,7 @@ build: ## A5 build aggregator: backend cmd binaries + frontend bundle
 	@cd "$(ROOT_DIR)/backend" && go build ./cmd/...
 	@pnpm --filter @easyinterview/frontend build
 
-dev-up: ## Start local dev dependencies (postgres+pgvector / redis / minio + project components)
+dev-up: ## Start local dev external dependencies (postgres / redis / minio; optional app services only when explicitly added)
 	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" up
 
 dev-down: ## Stop local dev dependencies; named volumes preserved

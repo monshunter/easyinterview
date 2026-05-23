@@ -1,8 +1,8 @@
 # AI Tools, Streaming, and STT Extension Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-22
 
 **关联计划**: [plan](./plan.md)
 
@@ -69,7 +69,7 @@
   <!-- verified: 2026-05-06 docs="docs/spec/ai-provider-and-model-routing/spec.md#6-验收标准 C-13/C-14/C-15" command="make docs-check" -->
 - [x] 6.2 单测 + 离线契约测试覆盖被激活的 tool / streaming / STT 协议子集；验证: `cd backend && go test ./internal/ai/aiclient/... -count=1`、新增 focused tests 与 adapter contract tests 均通过
   <!-- verified: 2026-05-06 command="cd backend && go test ./internal/ai/aiclient/... -count=1" focused="openai_compatible tool/stream/STT contract tests; aiclient Transcribe interface tests; observability privacy tests" -->
-- [ ] 6.3 本地部署 + Kind 场景端到端 smoke 通过，无明文泄漏，埋点齐全；验证: 按 `test/scenarios/README.md` 与 active suite README 执行 smoke，记录真实 provider registry/profile/secret 组合，privacy grep 无明文
-  <!-- blocked: 2026-05-06 scenario-readme="test/scenarios/README.md test/scenarios/e2e/README.md test/scenarios/e2e/INDEX.md" reason="当前 scenario framework 只有 Planned 索引；不存在 env-setup/env-verify 脚本、Kind 部署入口、Ready/Verified AI tool/stream/STT 场景目录或 consuming business flow，无法执行本地部署 + Kind e2e smoke；已用 focused contract/privacy/profile gates 作为当前内部底座替代验证，但本项保持未完成。" -->
+- [ ] 6.3 非测试本地 app run 或 repo-tracked scenario runner 端到端 smoke 通过，无明文泄漏，埋点齐全；验证: 按 `test/scenarios/README.md` 与 active suite README 执行本地 runner smoke，记录真实 provider registry/profile/secret 组合，privacy grep 无明文；默认不要求 Kind / K8s / Helm
+  <!-- blocked: 2026-05-22 scenario-readme="test/scenarios/README.md test/scenarios/e2e/README.md test/scenarios/e2e/INDEX.md" reason="当前 scenario framework 已改为本地 runner 契约；仍不存在 Ready/Verified AI tool/stream/STT consuming business flow 或非测试本地 app smoke 资产，无法执行真实 provider 端到端 smoke；已用 focused contract/privacy/profile gates 作为当前内部底座替代验证，但本项保持未完成。" -->
 - [x] 6.4 active-scope 旧口径负向搜索通过；验证: 搜索确认 A3-owned 代码、配置、deploy、generated artifacts、active docs 与被本 plan 激活并修订过的 owner docs 不再把旧任务分类 key、旧 provider key、一 profile 一目录 truth source、retired AI routing 术语、独立语音路由、独立旧模块口径作为 active runtime truth source；denylist / rejection validator / negative fixture 中的旧 literal 只作为防回归证据保留（历史 work journal / reports / bugs 只读例外；其他 referenced active spec 必须先完成 owner handoff 后再计入 pass）
   <!-- verified: 2026-05-06 commands="active-scope retired-literal rg sweeps over config/deploy/A3/F1/F3 current docs" result="no matches" allowed-exception="backend/internal/ai/aiclient/profile/loader.go keeps retired key literals only to reject them; scripts/tests keep denylist fixtures." -->

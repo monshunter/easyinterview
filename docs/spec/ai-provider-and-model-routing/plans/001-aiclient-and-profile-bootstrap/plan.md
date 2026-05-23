@@ -120,15 +120,15 @@ decorator 在 `meta.FallbackChain[]` 长度 > 1 时对 `ai_fallback_total{from_m
 
 #### 4.1 配置 struct 与启动期校验
 
-在 `backend/internal/ai/aiclient/config.go` 定义 client 启动时所需配置 struct：`AppEnv` / `ProviderBaseURL` / `ProviderAPIKey` / `ModelProfilePath`，由 [A4 secrets-and-config](../../../secrets-and-config/spec.md) 在 backend runtime wire 阶段注入。client 在 `New(cfg)` 时必须执行启动校验：当 `AppEnv != "test"` 且 `ProviderBaseURL == ""` 或 `ProviderAPIKey == ""` 时立即返回明确错误（建议常量名 `ErrMissingProviderConfig`），由 runtime main 转换为 fail-fast exit（[spec D-4 / C-9](../../spec.md#31-已锁定决策)）。`AppEnv == "test"` 路径不强制 ProviderBaseURL / API key，但允许通过 `WithStubAllowed(true)` 选项显式启用 stub；其它任何路径（dev / staging / prod / docker compose / Kind）缺凭证即失败，绝不静默回退到 stub。
+在 `backend/internal/ai/aiclient/config.go` 定义 client 启动时所需配置 struct：`AppEnv` / `ProviderBaseURL` / `ProviderAPIKey` / `ModelProfilePath`，由 [A4 secrets-and-config](../../../secrets-and-config/spec.md) 在 backend runtime wire 阶段注入。client 在 `New(cfg)` 时必须执行启动校验：当 `AppEnv != "test"` 且 `ProviderBaseURL == ""` 或 `ProviderAPIKey == ""` 时立即返回明确错误（建议常量名 `ErrMissingProviderConfig`），由 runtime main 转换为 fail-fast exit（[spec D-4 / C-9](../../spec.md#31-已锁定决策)）。`AppEnv == "test"` 路径不强制 ProviderBaseURL / API key，但允许通过 `WithStubAllowed(true)` 选项显式启用 stub；其它任何非测试本地 app run 或未来部署路径缺凭证即失败，绝不静默回退到 stub。
 
 #### 4.2 cmd 入口接入 + 单测
 
 落地 `backend/internal/ai/aiclient/config_test.go` 用例：`AppEnv=test` 且 missing provider config + 显式 stub → 成功；`AppEnv=production` 且 missing provider config → 错误；`AppEnv=test` 但 stub 选项未启用且无 provider config → 错误。本 plan 不在 runtime entrypoint 实现完整 wire，也不要求创建这些 entrypoint；只提供 `New(cfg)` / DI 构造契约，让 [A4](../../../secrets-and-config/spec.md) / 各 C 域在自身 plan 中把 cfg 错误传播为 non-zero exit。
 
-#### 4.3 docker compose / Kind smoke 校验
+#### 4.3 非测试本地 app smoke 校验
 
-在 [A2 dev-stack](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) docker compose 配置与 Kind manifest 中确认未默认设置 stub fallback；当 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 缺失时启动失败。本 plan 不修改 A2 / Kind 资产本身（由各自 owner 维护），但需要在 `backend/internal/ai/aiclient/README.md`（包级 README）中明确记录上述 fail-fast 协议和本地部署要求（接真实 OpenAI-compatible LLM 服务），并写出本 plan smoke 验证步骤示意（导出真实 endpoint env 后跑 `go test -tags smoke ./backend/internal/ai/aiclient/...`，本 plan 不开 smoke build tag 的 CI 集成）。本地 smoke 测试时绝不在测试代码或 fixture 中嵌入真实 API key（[spec §7](../../spec.md#7-关联计划)）。
+在 [A2 dev-stack](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 外部依赖与宿主机 backend runtime 口径中确认未默认设置 stub fallback；当 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 缺失时启动失败。本 plan 不修改 A2 资产本身（由 A2 owner 维护），但需要在 `backend/internal/ai/aiclient/README.md`（包级 README）中明确记录上述 fail-fast 协议和非测试本地 app run 要求（接真实 OpenAI-compatible LLM 服务），并写出本 plan smoke 验证步骤示意（导出真实 endpoint env 后跑 `go test -tags smoke ./backend/internal/ai/aiclient/...`，本 plan 不开 smoke build tag 的 CI 集成）。本地 smoke 测试时绝不在测试代码或 fixture 中嵌入真实 API key（[spec §7](../../spec.md#7-关联计划)）。
 
 ### Phase 5: Verification + handoff
 
@@ -176,7 +176,7 @@ C-5：单次成功调用后查询 in-memory metric registry，确认 7 个 famil
 - 本 plan checklist 全部勾选；Phase 5 关键命令日志（`go test` / grep / hot reload / fail-fast）贴入工作日志。
 - 业务代码零厂商 SDK 入侵：`backend/go.mod` 与 `backend/internal/ai/aiclient/` 树内不出现 `openai-go` / `anthropic-sdk-go` / `cohere-go` / `generative-ai-go` 等厂商 SDK import；调用方仅依赖 `aiclient` 包 + profile name 字符串。
 - 隐私红线：log / metric label / DB metadata / `audit_events.metadata` 中绝不出现明文 prompt / response，仅出现 hash + 长度 + profile 三类摘要；Phase 5.3 grep 与 Phase 3.4 白盒测试同步通过。
-- Stub 严格仅在 `APP_ENV=test` 触发；docker compose / Kind / staging / prod 缺 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 时进程启动失败，不静默回退到 stub。
+- Stub 严格仅在 `APP_ENV=test` 触发；非测试本地 app run 或未来部署缺 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 时进程启动失败，不静默回退到 stub。
 - A3 client 不自行执行 retry-with-different-model：fallback chain 仅消费 endpoint / provider 返回的 meta；`AI_FALLBACK_EXHAUSTED` 仅透传，不主动构造。
 - 7 个 metric family 完整注册且 counter 语义正确：每次调用 run / latency / token / cost 增长；fallback / validation failure counter 仅在事件发生时增长。
 
