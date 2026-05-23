@@ -49,7 +49,7 @@
 
 ## 模式 4：Completed checklist 掩盖未执行的 runner gate
 
-- **相关 Bug**：BUG-0064, BUG-0066, BUG-0068, BUG-0075, BUG-0082, BUG-0087, BUG-0090
+- **相关 Bug**：BUG-0064, BUG-0066, BUG-0068, BUG-0075, BUG-0082, BUG-0087, BUG-0090, BUG-0093
 - **典型症状**：plan/checklist 标记 `completed`，但 test checklist / BDD checklist 仍有未勾选项；scenario `verify.sh` 只检查 spec 文件存在、历史说明或宽泛 `PASS` 字样；pixel parity / scenario wrapper 被写成 deferred 或外部运行，仍被计入完成证据。
 - **检查清单**：
   1. 对 completed plan 先 `rg "\\[ \\]|deferred|pending|no tests|Playwright.*待|pixel parity 待"`，把空勾选、延期口径和 no-op 风险当作 blocking drift。
@@ -59,6 +59,7 @@
   5. 对 `pnpm` / package script wrapper，必须从 trigger log 反查最终 runner command：如果 package script 本身已经包含 `vitest run`，不得再用 `-- --run ...` 这类可能扩大范围或让 filter 失效的透传形式。
   6. Hash-route pixel parity harness 必须与 routeStore bootstrap 优先级一致；若 hash adapter 要生效，URL path/search 应保持 bare `/`，不能用 `?nonce=...#route=...` 让 canonical search 抢先解析。
   7. 文档收口时把证据 artifact 名称写成当前脚本真实产物，例如 `.test-output/e2e/<scenario>/trigger.log`，避免 checklist 引用不存在的 `*.evidence.log`。
+  8. 对 `Ready` / `Verified` 场景先做结构 preflight，确认 `README.md`、`scripts/setup.sh`、`scripts/trigger.sh`、`scripts/verify.sh`、`scripts/cleanup.sh`、`data/seed-input.md`、`data/expected-outcome.md` 全部存在；缺任何一个文件都不能把 runner pass 当成完整 BDD 证据。
 
 ## 模式 5：Domain service 已实现但 runtime caller 未接入
 
