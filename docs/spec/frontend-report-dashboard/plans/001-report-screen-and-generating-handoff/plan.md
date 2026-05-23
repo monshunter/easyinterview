@@ -1,8 +1,8 @@
 # 001 — Report Screen and Generating Handoff
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-05-23
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -21,7 +21,7 @@
 - i18n 双语：新增 `report.*` + `generating.*` 命名空间（≥ 60 keys）；不复用 `workspace.*` 或 `practice.*`。
 - 旧口径负向 grep + Playwright pixel parity (desktop 1440×900 + mobile 390×844) + i18n 完整性断言。
 
-完成后用户在 frontend-workspace-and-practice plan 002 已经送出 `nav("generating", ...)` 后能进入真实 GeneratingScreen 轮询 → 真实 ReportScreen 渲染 → 复练 CTA 交给 workspace auto-start → fresh practice session，完整闭环 P0 报告路径。Backend 真实数据由 [backend-review plan 001](../../../backend-review/plans/001-report-generation-baseline/plan.md) Phase 5 提供；本 plan 在 backend-review Phase 5 完成前用 fixture-backed transport 测试，Phase 5 切真 API regression。
+完成后用户在 frontend-workspace-and-practice plan 002 已经送出 `nav("generating", ...)` 后能进入真实 GeneratingScreen 轮询 → 真实 ReportScreen 渲染 → 复练 CTA 交给 workspace auto-start → fresh practice session，完整闭环 P0 报告路径。Backend 真实数据由 [backend-review plan 001](../../../backend-review/plans/001-report-generation-baseline/plan.md) 提供；2026-05-23 L2 remediation 后，P0.056-P0.059 trigger 前置 `frontendOwners.realApiMode.test.ts`，verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker。fixture-backed UI variants 继续用于 DOM / 状态分支确定性测试，但不能单独代表真实 backend 闭环。
 
 ## 2 背景
 
@@ -110,17 +110,17 @@ InterviewContext reducer 已经在 frontend-workspace-and-practice plan 001 + 00
 
 ## 3.6 Frontend / Backend Operation Matrix
 
-本 plan 走 `docs/development.md` §2.2 Frontend-First Path：正式前端先对齐 `ui-design/` 并通过 generated client + fixture-backed transport 完成 P0 UI/BDD；同时当前仓库 backend-review/001 正在并行设计，Phase 5 完成后必须跑对应真实 handler regression。fixture-backed PASS 不等于真实 backend 闭环；尤其 `getFeedbackReport` 真实 200 + status 转换 + cross-user 404 由 backend-review/001 Phase 5 接管。
+本 plan 最初走 `docs/development.md` §2.2 Frontend-First Path：正式前端先对齐 `ui-design/` 并通过 generated client + fixture-backed transport 完成 P0 UI/BDD。2026-05-23 复查时 backend-review/001 真实 handler 已落地；P0.056-P0.059 trigger 必须先跑 `frontendOwners.realApiMode.test.ts`，fixture-backed PASS 不得单独代表真实 backend 闭环。
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `getFeedbackReport` | 当前已有 `default` / `report-generating` / `prototype-baseline`；本 plan 依赖 backend-review/001 Phase 0 新增 `report-failed`（status='failed', errorCode='AI_PROVIDER_TIMEOUT' 等） | `useReportGenerationPoll` GeneratingScreen + ReportScreen 单次拉取；OpenAPI path param `reportId` only | backend-review/001 Phase 5 真实 handler；read-only；user-scoped；返回 status 决定 placeholder vs ready vs failed | `feedback_reports` + `question_assessments` read | none in frontend | frontend `E2E.P0.056 / E2E.P0.058`；backend `E2E.P0.053 / E2E.P0.055` |
+| `getFeedbackReport` | `default` / `report-generating` / `prototype-baseline` / `report-failed` | `useReportGenerationPoll` GeneratingScreen + ReportScreen 单次拉取；OpenAPI path param `reportId` only | backend-review real handler；read-only；user-scoped；返回 status 决定 placeholder vs ready vs failed | `feedback_reports` + `question_assessments` read | none in frontend | frontend `E2E.P0.056 / E2E.P0.058` + real-mode gate；backend `E2E.P0.053 / E2E.P0.055` |
 | `getTargetJob` | 当前已有 `openapi/fixtures/TargetJobs/getTargetJob.json` `default` | `useReportContextData` / `ReportContextStrip` 只读 target job title/companyName；失败时显示 targetJobId fallback，不阻塞报告正文 | backend-targetjob 既有 handler；read-only；user-scoped | `target_jobs` read | none | `E2E.P0.056` ContextStrip 子断言 + Vitest `ReportContextStrip.test.tsx` |
 | `getResumeVersion` | 当前已有 `openapi/fixtures/Resumes/getResumeVersion.json` `default` | `useReportContextData` / `ReportContextStrip` 只读 resume version displayName；失败时显示 resumeVersionId fallback；不得读取 raw resume text | backend-resume 既有 handler；read-only；user-scoped | `resume_versions` read | none | `E2E.P0.056` ContextStrip 子断言 + privacy negative |
-| `listTargetJobReports` | N/A（本 plan 不消费） | 不消费（dashboard-only D-7） | backend-review/001 Phase 5 真实 handler；read-only；user-scoped；cursor 分页 | `feedback_reports` cursor read | none | 负向断言（在 generating / report 模块零调用） |
+| `listTargetJobReports` | `openapi/fixtures/Reports/listTargetJobReports.json` (`default`, `empty`) | 不消费 UI（dashboard-only D-7）；real-mode gate 覆盖 generated client routing | backend-review real handler；read-only；user-scoped；cursor 分页 | `feedback_reports` cursor read | none | real-mode gate + 负向断言（在 generating / report 模块零调用） |
 | `completePracticeSession` | N/A（本 plan 不消费） | 由 frontend-workspace-and-practice plan 002 消费；本 plan 不调用 | backend-practice/002 已落地 | — | — | 负向断言 |
 | `appendSessionEvent` / `getPracticeSession` / 其他 Practice operation | N/A | 由 frontend-workspace-and-practice plan 002 消费；本 plan 不调用 | — | — | — | 负向断言 |
-| `createPracticeVoiceTurn` | N/A | 本 plan **不消费**；voice surface deferred | missing operation；blocked | — | — | 负向断言（grep `createPracticeVoiceTurn` 在 report / generating 模块 0 命中） |
+| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` | 本 plan **不消费**；voice surface deferred to practice-voice owner | practice-voice/backend-practice real handler | voice session events | STT/LLM/TTS backend-only | report/generating 负向断言 + real-mode gate coverage |
 | `getCompanyIntel` | N/A | 本 plan **不消费**；company-intel owner 承接 | external owner | — | — | 负向断言 |
 
 ## 3.7 InterviewContext × PracticeDisplayContext View-Model Mapping
@@ -151,37 +151,37 @@ InterviewContext reducer 已经在 frontend-workspace-and-practice plan 001 + 00
 
 ## 4 实施步骤
 
-### Phase 0: 跨 owner 前置 preflight
+### Phase 0: 跨 owner 前置 preflight（历史启动门禁，现保留为 contract guard）
 
-**目标**：阻塞性 preflight assert — 在 Phase 1 编码前必须把以下 4 个 backend-review/001 Phase 0 deliverable 落实到当前仓库；任一缺失则本 plan Phase 1 红灯进入 `blocked` 状态等待 backend-review/001 Phase 0 推进，并通知 backend-review owner。preflight 失败不属于本 plan 编码工作范围，但本 plan 必须在 Phase 1 启动前显式断言；不得在缺位状态下 silently fallback 到 frontend-only stub。
+**目标**：阻塞性 preflight assert — 本 plan 启动时用于确认 `backend-review/001` 交付的 4 个 cross-owner contract 已落实；2026-05-23 L2 复查时 backend-review 真实 handler 已落地，本节测试继续作为 contract guard 保留，任何失败都表示 OpenAPI / fixture / generated client drift，不得 silently fallback 到 frontend-only stub。
 
 #### 0.1 `FeedbackReport.errorCode` 字段存在断言
 
 新增 `frontend/src/app/screens/report/__tests__/preflight.test.ts`：
 
-- 读取 `openapi/openapi.yaml` 中 `FeedbackReport` schema；断言 `errorCode` 字段存在且类型 `oneOf: [ApiErrorCode, null]`；缺失则测试 fail + 在 message 中提示 "blocked on backend-review/001 Phase 0.2 + 0.4 (errorCode field in B2 schema)"。
+- 读取 `openapi/openapi.yaml` 中 `FeedbackReport` schema；断言 `errorCode` 字段存在且类型 `oneOf: [ApiErrorCode, null]`；缺失则测试 fail 并指向 `backend-review/001` 的 schema/error-code contract。
 - 兼容 generated TS client：断言 `frontend/src/api/generated/` 中 `FeedbackReport` interface 含可选 `errorCode` 属性。
 
 #### 0.2 `report-failed` fixture variant 存在断言
 
 在 `preflight.test.ts` 中追加：
 
-- 读取 `openapi/fixtures/Reports/getFeedbackReport.json`，断言 `scenarios.report-failed.response.body.status === 'failed'` + `scenarios.report-failed.response.body.errorCode` 非 null（建议值为 `AI_PROVIDER_TIMEOUT`）；缺失则 fail + 提示 "blocked on backend-review/001 Phase 0.4 (report-failed fixture variant)"。
+- 读取 `openapi/fixtures/Reports/getFeedbackReport.json`，断言 `scenarios.report-failed.response.body.status === 'failed'` + `scenarios.report-failed.response.body.errorCode` 非 null（建议值为 `AI_PROVIDER_TIMEOUT`）；缺失则 fail 并指向 report-failed fixture contract。
 - 同时断言 `scenarios.report-generating` 与 `scenarios.default` 已经存在（这两个已在仓库内）。
 
 #### 0.3 `listTargetJobReports.empty` fixture variant 存在断言
 
 在 `preflight.test.ts` 中追加：
 
-- 读取 `openapi/fixtures/Reports/listTargetJobReports.json`，断言 `scenarios.empty.response.body.items === []`、`scenarios.empty.response.body.pageInfo.hasMore === false`、`scenarios.empty.response.body.pageInfo.nextCursor === null`；缺失则 fail + 提示 "blocked on backend-review/001 Phase 0.4 (empty fixture variant)"。
-- 虽然本 plan 不消费 `listTargetJobReports`，empty fixture 的存在性是 backend-review/001 Phase 0 deliverable 的健康指示器；缺失提示 backend-review/001 Phase 0 整体未完成，本 plan 不应进入 Phase 1。
+- 读取 `openapi/fixtures/Reports/listTargetJobReports.json`，断言 `scenarios.empty.response.body.items === []`、`scenarios.empty.response.body.pageInfo.hasMore === false`、`scenarios.empty.response.body.pageInfo.nextCursor === null`；缺失则 fail 并指向 empty fixture contract。
+- 虽然本 plan 不消费 `listTargetJobReports`，empty fixture 的存在性仍是 backend-review/001 contract 健康指示器；缺失表示 fixture/generated-client drift。
 
 #### 0.4 `REPORT_NOT_FOUND` 错误码存在断言
 
 在 `preflight.test.ts` 中追加：
 
-- 读取 `shared/conventions.yaml#errors`，断言 `REPORT_NOT_FOUND` 行存在 + `httpStatus: 404` + `retryable: false`；缺失则 fail + 提示 "blocked on backend-review/001 Phase 0.1 (REPORT_NOT_FOUND in B1)"。
-- 同时断言 `frontend/src/api/generated/` 中存在 generated TS 等价常量（如 `ApiErrorCode.REPORT_NOT_FOUND` 或 `errors.REPORT_NOT_FOUND`）；缺失则 fail + 提示 "blocked on backend-review/001 Phase 0.1 (generated TS error constant)"。
+- 读取 `shared/conventions.yaml#errors`，断言 `REPORT_NOT_FOUND` 行存在 + `httpStatus: 404` + `retryable: false`；缺失则 fail 并指向 shared error contract。
+- 同时断言 `frontend/src/api/generated/` 中存在 generated TS 等价常量（如 `ApiErrorCode.REPORT_NOT_FOUND` 或 `errors.REPORT_NOT_FOUND`）；缺失则 fail 并指向 generated TS error constant drift。
 
 #### 0.5 Phase 0 收口 gate
 
@@ -394,7 +394,7 @@ scoped grep 在 `frontend/src/app/screens/{report,generating}/` 范围：
 - 关联 BDD 场景 `E2E.P0.056` / `E2E.P0.057` / `E2E.P0.058` / `E2E.P0.059` 均由对应 Vitest + Playwright + scenario 执行通过
 - `pnpm --filter @easyinterview/frontend test` / `pnpm --filter @easyinterview/frontend typecheck` / `pnpm --filter @easyinterview/frontend test:pixel-parity` / `pnpm --filter @easyinterview/frontend build` 全绿
 - `make codegen-check` 通过（不修改 OpenAPI / generated client，但 build 时反查 drift）
-- `make validate-fixtures` 通过（依赖 backend-review/001 Phase 0 新增 fixture variants）
+- `make validate-fixtures` 通过（覆盖 backend-review/001 已交付 fixture variants）
 - `python3 scripts/lint/frontend_report_dashboard_legacy.py --repo-root . --phase all` 通过
 - 001 范围内代码与文档中无 §3.5 / §D-12 列出的 legacy 术语 / 旧 reportLayout / 5 档 readiness / 独立 mistakes route / drill_builder / growth_center / 报告时间线 / 多形态 report 字面量出现
 - frontend-workspace-and-practice/002 BDD regression（`E2E.P0.044-047`）通过；backend-review/001 BDD regression（`E2E.P0.052-055`）如已 implement 则通过
@@ -403,8 +403,8 @@ scoped grep 在 `frontend/src/app/screens/{report,generating}/` 范围：
 
 | 风险 | 应对措施 |
 |------|----------|
-| backend-review/001 Phase 0 fixture 扩展（`report-failed` / `empty`）未及时 land 导致本 plan Phase 1 测试 fail | Phase 1 测试用本地 mock 模拟 fixture variant（不进 generated client），等 backend-review Phase 0 land 后切换；如 backend-review/001 严重 delay，本 plan Phase 1 可以独立 land + 待 backend ready 后串联 scenario |
-| backend-review/001 Phase 5 真实 handler 未 land 导致本 plan Phase 5 跨 owner regression 跑不通 | Phase 5 跨 owner regression 用 fixture-backed transport 跑 frontend BDD；backend-review Phase 5 land 后再跑真实 backend regression；retrospective 记录 mock vs real 切换证据 |
+| backend-review/001 已交付 fixture variants（`report-failed` / `empty`）与 OpenAPI/generated client 漂移，导致 preflight contract guard 失败 | 停止 report owner 变更，先回 `openapi/openapi.yaml`、`openapi/fixtures/Reports/*.json`、generated TS 与 `shared/conventions.yaml` 同步；不得用 frontend-only stub 掩盖 drift |
+| backend-review/001 真实 handler 与 fixture-backed frontend BDD 表现不一致，导致 real-backend gate 或跨 owner regression 失败 | 以真实 handler 结果为准反修 fixture / viewmodel mapping / scenario expectation；保留 fixture-backed BDD 作为 UI variant 覆盖，但不能把 mock green 宣称为真实 backend 闭环 |
 | GeneratingScreen 5 阶段动画时长（700-1200ms）与真实 backend 生成时间（P95 < 12s）节奏不匹配，导致用户感知卡顿 | Phase 1 动画仅作为视觉反馈，不阻塞 nav；status='ready' 在任何阶段都立刻 nav；最坏情况下 5 阶段 ~5s + 轮询命中 ~3s = 8s 内完成；超过 12s 进入 timeout state |
 | `useReportGenerationPoll` 在 visibility 切换时 race condition 导致重复 nav | Phase 1 nav 防抖 ref + 单次 fire-and-forget；onReady / onFailed callback 只触发一次；test fake clock 验证 |
 | ReportScreen 5 detail tab 在 mobile (390×844) viewport 折叠为 Accordion 时与 desktop 切换 keyboard a11y 不一致 | Phase 5 Playwright mobile project 单独 verify ARIA tablist → ARIA accordion 转换；Vitest 模拟 viewport 切换测试 |

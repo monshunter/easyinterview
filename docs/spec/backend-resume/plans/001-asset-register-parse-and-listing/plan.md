@@ -15,9 +15,9 @@
 - 实现 `GET /api/v1/resumes/{resumeAssetId}` (getResume) handler，cross-user 返回 404；
 - 实现 `GET /api/v1/resumes` (listResumes) handler，cursor pagination + `updated_at DESC, id DESC` 唯一稳定序；**直接解除 [frontend-workspace-and-practice/001](../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md) Phase 3.3 `listResumes` disabled-list 阻塞**；
 - 实现 `resume_assets` store layer：`CreateWithParseJob(pending + async_jobs resume_parse)` / `MarkParsing` / `MarkReady(parsedSummary, parsedTextSnapshot)` / `MarkFailed(errorCode)` / `Get` / `List(cursor, pageSize)` / `DeleteForUser`；
-- 实现 `resume.parse` async job handler（按 backend-targetjob 同款 `cmd/api` in-process drainer 注册，不引入独立 worker）：通过 [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 调 [F3 `resume.parse` feature_key](../../../prompt-rubric-registry/spec.md) → 解析 JSON parse draft → 写 `resume_assets` + outbox `resume.parse.completed`；
+- 实现 `resume.parse` async job handler（按 backend-targetjob 同款 `cmd/api` backend-internal runner 注册，不引入独立后台执行进程）：通过 [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 调 [F3 `resume.parse` feature_key](../../../prompt-rubric-registry/spec.md) → 解析 JSON parse draft → 写 `resume_assets` + outbox `resume.parse.completed`；
 - 接 [B3 events `resume.parse.completed`](../../../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory)：只有最终 ready 成功路径通过 outbox 写入 envelope 字段集（`resumeAssetId / userId / parseStatus`）+ PII 边界（不含 raw text / guided answers / parsed_summary）；失败路径不发 completed event；
-- 在 `cmd/api` 挂载 `registerResume` / `getResume` / `listResumes` route，验证 session middleware、IK middleware、path params 与 in-process `resume_parse` drainer wiring 都走真实 runtime；
+- 在 `cmd/api` 挂载 `registerResume` / `getResume` / `listResumes` route，验证 session middleware、IK middleware、path params 与 backend-internal `resume_parse` runner wiring 都走真实 runtime；
 - 明确本 plan 只落地 `ResumeAsset` source 登记、解析草稿与列表读取，不在用户 Preview Confirm 前创建正式 `structured_master` `ResumeVersion`；保存 v1 与版本读写由 backend-resume/002 承接；
 - 通过 spec §6 C-1..C-8 + C-13 验收 + 新增 E2E.P0.034 / E2E.P0.035 两个 BDD 场景；
 - 不实现 versions / suggestions / tailor / branch / export 流程（归 plan 002 / 003）；真实 PDF 导出按 spec D-6 的 P0 `501 RESUME_EXPORT_NOT_AVAILABLE` / P1 plan 003 处理，本 plan 不实现。
@@ -48,7 +48,7 @@
   3. resume.parse job unit test（stub AIClient provider）：成功路径 / 解析 JSON 失败 / AI provider timeout retryable / output_invalid;
   4. outbox event unit test：envelope 字段集 + PII 红线（不含 raw text）；
   5. listResumes integration test：≥ 25 行 + cursor 第二页 + `hasMore=false` + cross-user 不可见；
-  6. `cmd/api` route/runtime test：session middleware、IK middleware、route path params、resume_parse in-process drainer wiring 与 shutdown。
+  6. `cmd/api` route/runtime test：session middleware、IK middleware、route path params、resume_parse backend-internal runner wiring 与 shutdown。
   执行入口：`/implement backend-resume/001-asset-register-parse-and-listing` → `/tdd`。
 - **BDD 策略**: 适用（Feature plan requires BDD）。E2E.P0.034 register-and-list + E2E.P0.035 parse-async-job-lifecycle。详见 [bdd-plan.md](./bdd-plan.md) / [bdd-checklist.md](./bdd-checklist.md)。
 - **替代验证 gate**:
@@ -104,7 +104,7 @@
 ### Phase 3: resume.parse async job + AIClient 集成
 
 #### 3.1 实现 `internal/resume/jobs/parse.go`
-- 注册到 `cmd/api` in-process drainer / runtime composition（job_type=resume_parse, dotted=resume.parse）
+- 注册到 `cmd/api` backend-internal runner / runtime composition（job_type=resume_parse, dotted=resume.parse）
 - 从 resume_assets 读 `file_object_id`（upload）或 `original_text`（paste）或 `guided_answers` jsonb（guided）作为 prompt input
 - 通过 [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 调 [F3 `resume.parse` feature_key](../../../prompt-rubric-registry/spec.md)
 - 解析 LLM JSON 输出 → 写 `parsed_summary` + `parsed_text_snapshot` + `parse_status='ready'`
@@ -117,10 +117,10 @@
 - 只在最终 `parse_status='ready'` 时写入；AI output invalid / provider timeout / retryable exhausted 等失败路径不发 `resume.parse.completed`
 - PII 边界：不含 raw text / guided answers / parsed_summary
 
-#### 3.3 resume_parse in-process drainer wiring
-- 沿用 [backend-targetjob](../../../backend-targetjob/spec.md) 的 in-process drainer 口径：`cmd/api` 进程内 claim `async_jobs(job_type=resume_parse)` 并调用 `backend/internal/resume/jobs/parse.go`
+#### 3.3 resume_parse backend-internal runner wiring
+- 沿用 [backend-targetjob](../../../backend-targetjob/spec.md) 的 backend-internal runner 口径：`cmd/api` 进程内 claim `async_jobs(job_type=resume_parse)` 并调用 `backend/internal/resume/jobs/parse.go`
 - 提供 `RunOnce` 或等价 deterministic stepping，方便 BDD / `cmd/api` scenario test 在无 timer race 的情况下验证 queued → ready / failed / retry
-- `Start(ctx)` / `Shutdown(ctx)` 必须随 `cmd/api` lifecycle 管理；不得新增独立后台运行单元、旧 `WORKER` 前缀 config 或旧 async-runtime shorthand
+- `Start(ctx)` / `Shutdown(ctx)` 必须随 `cmd/api` lifecycle 管理；不得新增独立后台执行 binary、后台执行专用 config 或 `backend-async-runner` 之外的旧 shorthand
 
 #### 3.4 unit test
 - `parse_test.go`（stub AIClient）：成功 / parse JSON 失败 / AI timeout retryable / output_invalid
@@ -143,7 +143,7 @@
   - `POST /api/v1/resumes` → session middleware + IK middleware + `RegisterResume`
   - `GET /api/v1/resumes` → session middleware + `ListResumes`
   - `GET /api/v1/resumes/{resumeAssetId}` → session middleware + path param adapter + `GetResume`
-- `APP_ENV=test` 可使用 deterministic resume.parse fixture AIClient，但只能拦截 `resume.parse`；非测试本地 app run 或未来部署必须走 A3/F3 profile fail-fast 规则
+- `APP_ENV=test` 可使用 deterministic resume.parse fixture AIClient，但只能拦截 `resume.parse`；真实 dev / Kind / staging / prod 必须走 A3/F3 profile fail-fast 规则
 - `cmd/api` tests 断言 route 存在、缺 session 返回 auth error、缺 IK 返回 generated error envelope、同 IK replay 不重复创建 `resume_assets` / `async_jobs` / outbox side effect
 
 ### Phase 5: 收口 + BDD + 解锁 workspace 001

@@ -21,7 +21,7 @@
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.4 | active | 2026-05-22 | [plans](./repo-scaffold/plans/) |
 | [local-dev-stack](./local-dev-stack/spec.md) | 1.12 | active | 2026-05-22 | [plans](./local-dev-stack/plans/) |
 | [backend-runtime-topology](./backend-runtime-topology/spec.md) | 1.4 | active | 2026-05-07 | [plans](./backend-runtime-topology/plans/) |
-| [backend-async-runner](./backend-async-runner/spec.md) | 1.2 | active | 2026-05-22 | [plans](./backend-async-runner/plans/) |
+| [backend-async-runner](./backend-async-runner/spec.md) | 1.4 | active | 2026-05-22 | [plans](./backend-async-runner/plans/) |
 | [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.12 | active | 2026-05-22 | [plans](./ai-provider-and-model-routing/plans/) |
 | [secrets-and-config](./secrets-and-config/spec.md) | 2.6 | active | 2026-05-22 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.3 | active | 2026-04-29 | [plans](./ci-pipeline-baseline/plans/) |
@@ -49,7 +49,7 @@
 | [mock-contract-suite](./mock-contract-suite/spec.md) | 1.8 | active | 2026-05-22 | [plans](./mock-contract-suite/plans/) |
 | [frontend-shell](./frontend-shell/spec.md) | 1.16 | active | 2026-05-18 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 1.9 | completed | 2026-05-22 | [plans](./frontend-home-job-picks-and-parse/plans/) |
-| [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.3 | active | 2026-05-13 | [plans](./frontend-workspace-and-practice/plans/) |
+| [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.4 | active | 2026-05-23 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 1.3 | active | 2026-05-21 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 1.5 | active | 2026-05-21 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.11 | active | 2026-05-21 | [plans](./backend-practice/plans/) |
@@ -57,9 +57,9 @@
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.4 | active | 2026-05-22 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.2 | active | 2026-05-12 | [plans](./backend-upload/plans/) |
 | [backend-resume](./backend-resume/spec.md) | 1.3 | active | 2026-05-21 | [plans](./backend-resume/plans/) |
-| [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 1.1 | active | 2026-05-17 | [plans](./frontend-resume-workshop/plans/) |
-| [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.1 | active | 2026-05-16 | [plans](./frontend-report-dashboard/plans/) |
+| [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 1.2 | active | 2026-05-23 | [plans](./frontend-resume-workshop/plans/) |
+| [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.2 | active | 2026-05-23 | [plans](./frontend-report-dashboard/plans/) |
 | [backend-debrief](./backend-debrief/spec.md) | 1.3 | active | 2026-05-21 | [plans](./backend-debrief/plans/) |
-| [frontend-debrief](./frontend-debrief/spec.md) | 1.5 | active | 2026-05-18 | [plans](./frontend-debrief/plans/) |
+| [frontend-debrief](./frontend-debrief/spec.md) | 1.6 | active | 2026-05-23 | [plans](./frontend-debrief/plans/) |
 | [backend-profile](./backend-profile/spec.md) | 1.2 | active | 2026-05-21 | [plans](./backend-profile/plans/) |
 | [backend-jobs-recommendations](./backend-jobs-recommendations/spec.md) | 1.2 | active | 2026-05-22 | [plans](./backend-jobs-recommendations/plans/) |

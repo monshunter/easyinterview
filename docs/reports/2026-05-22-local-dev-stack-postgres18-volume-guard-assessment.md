@@ -6,7 +6,7 @@
 ## 1 复盘范围与成功证据
 
 - 本次交付范围：`/plan-code-review local-dev-stack/001-bootstrap repo --fix` 的 L2 runtime remediation，修复 Postgres 18 官方镜像与 `easyinterview-pg-data` 命名卷挂载布局不匹配导致的 `make dev-up` unhealthy，并为旧卷增加只读 preflight。
-- 代码与契约修复：`deploy/dev-stack/docker-compose.yaml` 将 Postgres 卷挂到 `/var/lib/postgresql`；`deploy/dev-stack/scripts/check-postgres-volume-layout.sh` 在 `make dev-up` 前检测旧根目录 `PG_VERSION`、旧 `/data/PG_VERSION` 与半初始化 `/18` 布局；local-dev-stack spec / plan / checklist / README / history / BUG-0087 已同步。
+- 代码与契约修复：`deploy/dev-stack/docker-compose.yaml` 将 Postgres 卷挂到 `/var/lib/postgresql`；`deploy/dev-stack/scripts/check-postgres-volume-layout.sh` 在 `make dev-up` 前检测旧根目录 `PG_VERSION`、旧 `/data/PG_VERSION` 与半初始化 `/18` 布局；local-dev-stack spec / plan / checklist / README / history / BUG-0091 已同步。
 - 成功证据：compose config 通过且只显示 `target: /var/lib/postgresql`；guard 临时目录断言覆盖空卷、旧根目录、旧 `/data`、半初始化 `/18`、有效 `/18/docker`；本机旧卷下 `make dev-up` 明确失败并输出 `Existing local data was preserved`。
 - 干净 runtime 证据：使用临时 Postgres 卷名冷启动，Postgres / Redis / MinIO 均 healthy；Postgres `select 1`、Redis set/get/del、MinIO bucket probe 均通过；临时容器与临时卷已清理。
 - 静态与测试证据：`validate_context.py`、`sync-doc-index --check`、`make docs-check`、`git diff --check`、`sh -n` 通过；`make test` 通过。`make lint` 失败在既有 practice voice retired-route lint，与本次 local-dev-stack 修改无关。

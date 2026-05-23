@@ -6,6 +6,7 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-058-report-failure-and-missing-sessio
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
+"$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
 grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE" || { echo "E2E.P0.058: no passing test files" >&2; exit 1; }
 grep -Fq 'ReportFailureState.test.tsx' "$LOG_FILE"
 grep -Fq 'ReportMissingSessionState.test.tsx' "$LOG_FILE"

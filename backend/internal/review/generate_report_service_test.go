@@ -106,12 +106,12 @@ func TestGenerateReportFailedMatrix(t *testing.T) {
 				NewID:      fixedIDs("run-1", "outbox-1", "audit-1"),
 			})
 
-			outcome := svc.GenerateReport(context.Background(), AsyncJob{JobID: "job-1", ResourceID: sampleSession().ReportID})
+			outcome := svc.GenerateReport(context.Background(), AsyncJob{JobID: "job-1", ResourceID: sampleSession().ReportID, Attempts: 1, MaxAttempts: 5})
 			if outcome.Succeeded || outcome.ErrorCode != tc.wantCode || outcome.Retryable != tc.wantRetryable {
 				t.Fatalf("outcome = %+v, want code=%s retryable=%v", outcome, tc.wantCode, tc.wantRetryable)
 			}
-			if !outcome.AsyncJobFinalized {
-				t.Fatalf("outcome.AsyncJobFinalized = false, want true")
+			if outcome.AsyncJobFinalized {
+				t.Fatalf("failure outcome must leave async job finalization to the runner kernel")
 			}
 			if repo.failed.ErrorCode != tc.wantCode || repo.failed.Retryable != tc.wantRetryable {
 				t.Fatalf("persisted failure = %+v", repo.failed)

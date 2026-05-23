@@ -6,6 +6,7 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-058-report-failure-and-missing-sessio
 mkdir -p "$OUTPUT_DIR"
 (
   cd "$REPO_ROOT"
+  "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
     src/app/screens/report/__tests__/ReportFailureState.test.tsx \
     src/app/screens/report/__tests__/ReportMissingSessionState.test.tsx \

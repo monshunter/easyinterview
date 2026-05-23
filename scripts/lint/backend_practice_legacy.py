@@ -33,9 +33,15 @@ PHASE3_RETIRED_TERMS = (
     "growth_center",
     "practiceModeCard",
 )
-PHASE3_VOICE_ROUTE = re.compile(
-    r"(/voice(?:[/?#\"'\s]|$)|\bvoice_route\b|\b(?:standalone|independent) voice route\b|\bvoice route alias\b)",
-    re.IGNORECASE,
+STANDALONE_VOICE_ROUTE = re.compile(
+    r"""
+    (?:
+        ["']/(?:api/v1/)?voice(?:/|["'])
+        | \bvoice_route\b
+        | \bvoice\s+route\b
+    )
+    """,
+    re.IGNORECASE | re.VERBOSE,
 )
 PHASE3_SCAN_PREFIXES = (
     ("backend", "cmd", "api"),
@@ -163,7 +169,7 @@ def scan_phase3_paths(paths: list[Path], repo_root: Path) -> list[str]:
                     if term == "legacy debrief replay value" and path.name.endswith("_test.go"):
                         continue
                     problems.append(f"{path}:{lineno}: retired backend-practice term {term!r}")
-            if PHASE3_VOICE_ROUTE.search(line) and "practice-voice-mvp" not in line:
+            if STANDALONE_VOICE_ROUTE.search(line) and "practice-voice-mvp" not in line:
                 problems.append(f"{path}:{lineno}: retired standalone voice route")
     return problems
 

@@ -21,12 +21,7 @@ func TestE2EP0003PasswordlessSessionCookie(t *testing.T) {
 	now := time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC)
 	store := newPasswordlessScenarioStore()
 	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: "http://api.test/api/v1/auth/email/verify"})
-	dispatcher := auth.NewBackgroundMailDispatcher(auth.BackgroundMailDispatcherOptions{Writer: sink})
-	t.Cleanup(func() {
-		if err := dispatcher.Shutdown(context.Background()); err != nil {
-			t.Fatalf("dispatcher shutdown: %v", err)
-		}
-	})
+	dispatcher := auth.NewImmediateMailDispatcher(sink)
 	registry := auth.NewInMemoryAuthMetricRegistry()
 	audit := &recordingAuthAudit{}
 	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
@@ -143,7 +138,6 @@ func TestE2EP0003PasswordlessSessionCookie(t *testing.T) {
 		fmt.Sprintf("%+v", registry.CounterLabelValues(auth.MetricAuthFailureTotal)),
 		fmt.Sprintf("%+v", audit.events),
 		fmt.Sprintf("%+v", sink),
-		strings.Join(dispatcher.ErrorSummaries(), "\n"),
 	}, "\n")
 	for _, forbidden := range []string{
 		"scenario-magic-token-1",

@@ -102,12 +102,12 @@ func TestPersistReportFailureRetryAndPermanent(t *testing.T) {
 	now := time.Date(2026, 5, 15, 18, 0, 0, 0, time.UTC)
 
 	for _, tc := range []struct {
-		suffix     string
-		attempts   int
-		wantStatus string
+		suffix           string
+		attempts         int
+		wantReportStatus string
 	}{
-		{suffix: "050", attempts: 1, wantStatus: "queued"},
-		{suffix: "060", attempts: 5, wantStatus: "failed"},
+		{suffix: "050", attempts: 1, wantReportStatus: "queued"},
+		{suffix: "060", attempts: 5, wantReportStatus: "failed"},
 	} {
 		ids := reviewPersistIDs(tc.suffix)
 		setupReviewPersistRows(t, ctx, db, ids, tc.attempts)
@@ -120,18 +120,26 @@ func TestPersistReportFailureRetryAndPermanent(t *testing.T) {
 			AuditEventID:  ids.auditID,
 			ErrorCode:     "AI_PROVIDER_TIMEOUT",
 			Retryable:     true,
+			Attempts:      int32(tc.attempts),
+			MaxAttempts:   5,
 			Now:           now,
 		})
 		if err != nil {
 			t.Fatalf("PersistReportFailure attempts=%d: %v", tc.attempts, err)
 		}
-		var jobStatus string
+		var reportStatus, jobStatus string
 		var lockedAt sql.NullTime
+		if err := db.QueryRowContext(ctx, `select status from feedback_reports where id=$1`, ids.reportID).Scan(&reportStatus); err != nil {
+			t.Fatalf("select feedback report: %v", err)
+		}
 		if err := db.QueryRowContext(ctx, `select status, locked_at from async_jobs where id=$1`, ids.jobID).Scan(&jobStatus, &lockedAt); err != nil {
 			t.Fatalf("select async job: %v", err)
 		}
-		if jobStatus != tc.wantStatus || lockedAt.Valid {
-			t.Fatalf("attempts=%d job status=%s locked_at=%v", tc.attempts, jobStatus, lockedAt)
+		if reportStatus != tc.wantReportStatus {
+			t.Fatalf("attempts=%d report status=%s, want %s", tc.attempts, reportStatus, tc.wantReportStatus)
+		}
+		if jobStatus != "running" || !lockedAt.Valid {
+			t.Fatalf("attempts=%d job status=%s locked_at=%v, want running with kernel-owned lock", tc.attempts, jobStatus, lockedAt)
 		}
 		assertReviewPersistCount(t, ctx, db, `select count(*) from outbox_events where aggregate_id=$1 and event_name='report.generation.failed'`, ids.reportID, 1)
 	}
@@ -214,6 +222,8 @@ func TestPersistReportFailureRejectsStaleStatusAndRollsBack(t *testing.T) {
 		AuditEventID:  ids.auditID,
 		ErrorCode:     "AI_PROVIDER_TIMEOUT",
 		Retryable:     true,
+		Attempts:      1,
+		MaxAttempts:   5,
 		Now:           now,
 	})
 	if err == nil || !strings.Contains(err.Error(), "feedback_reports failed") {

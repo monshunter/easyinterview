@@ -11,8 +11,19 @@
 | [2026-05-23](2026-05-23.md) | `fix(repo-lint): align current contract gates (BUG-0088)` | #fix #test #docs |
 | [2026-05-23](2026-05-23.md) | `fix(local-dev-stack): repair Postgres 18 dev volume guard (BUG-0087)` | #fix #docs |
 | [2026-05-23](2026-05-23.md) | `docs(local-dev-env): de-default kind/k8s/helm from p0 test and deploy targets` | #docs |
+| [2026-05-23](2026-05-23.md) | `fix(test): close frontend owner scenario full-run gates (BUG-0090)` | #fix #test #docs |
+| [2026-05-23](2026-05-23.md) | `fix(frontend): close real backend handoff gate drift (BUG-0089)` | #fix #test #docs |
+| [2026-05-22](2026-05-22.md) | `refactor: normalize terminology and harden naming conventions` | #refactor #docs |
+| [2026-05-22](2026-05-22.md) | `fix(backend-async-runner): harden scheduler and report backoff (BUG-0088)` | #fix #test #docs |
+| [2026-05-22](2026-05-22.md) | `docs(plan-code-review): require production entrypoint audit` | #docs |
+| [2026-05-22](2026-05-22.md) | `docs(backend-async-runner): clarify completed runner spec baseline` | #docs |
+| [2026-05-22](2026-05-22.md) | `fix(backend-async-runner): wire outbox startup and live gates (BUG-0085)` | #fix #test #docs #bdd |
 | [2026-05-22](2026-05-22.md) | `fix(frontend-home): close targetjob real backend gate drift (BUG-0086)` | #fix #test #docs |
+| [2026-05-22](2026-05-22.md) | `feat(backend-async-runner): close internal job and outbox runner plan` | #feat #test #docs |
+| [2026-05-22](2026-05-22.md) | `feat(backend-async-runner): land outbox dispatcher and email_dispatch` | #feat #test #docs |
 | [2026-05-22](2026-05-22.md) | `fix(frontend-jd-match): close real backend gate drift (BUG-0085)` | #fix #test #docs |
+| [2026-05-22](2026-05-22.md) | `feat(backend-async-runner): migrate domain handlers to runner kernel` | #feat #test #docs |
+| [2026-05-22](2026-05-22.md) | `feat(backend-async-runner): land runner kernel infrastructure` | #feat #test #docs |
 | [2026-05-22](2026-05-22.md) | `fix(backend-jobs): close jd-match L2 follow-up (BUG-0084)` | #fix #test #docs |
 | [2026-05-22](2026-05-22.md) | `docs(spec): sync async-runner and B3 specs after main merge` | #docs |
 | [2026-05-22](2026-05-22.md) | `docs(spec): seed backend-async-runner subject` | #docs |

@@ -1,8 +1,8 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-05-23
 
 ## 1 背景与目标
 
@@ -16,7 +16,7 @@
 
 `report` 和 `company_intel` 不并入本 subspec。`report` 的 dashboard、复练当前轮、进入下一轮与报告详情交互由 `frontend-report-dashboard` / future `backend-review` owner 承接；`company_intel` 详情页与数据源由外部 company-intel owner 承接。本 subspec 只在 `workspace` 中保留公司轻情报入口/摘要卡片和导航 handoff，不实现 `CompanyIntelScreen`。
 
-本 subspec 通过 generated client + fixture-backed transport 消费已经存在的 TargetJobs / PracticePlans / PracticeSessions / Reports OpenAPI 契约；任何新增或缺失 operation 先回到 B2 / 对应 backend owner spec 修订，不能在前端手写 ad hoc fetch 或复制 `ui-design` mock data。
+本 subspec 通过 generated client + fixture-backed transport 消费已经存在的 TargetJobs / PracticePlans / PracticeSessions / Reports OpenAPI 契约；截至 2026-05-23，backend-resume、backend-practice、practice-voice-mvp 与 backend-review 已经落地本 spec 主路径依赖的真实 handler，前端 owner 的 completed plan 必须保留 fixture-backed UI variants，同时通过 `VITE_EI_API_MODE=real` generated-client gate 证明 production bootstrap 指向真实 backend base URL。任何新增或缺失 operation 仍须先回到 B2 / 对应 backend owner spec 修订，不能在前端手写 ad hoc fetch 或复制 `ui-design` mock data。
 
 ## 2 范围
 
@@ -81,12 +81,12 @@
 | D-11 | voice 协作面 | 本 spec 拥有 voice surface React 组件、DOM/a11y/parity；`practice-voice-mvp` 拥有 `createPracticeVoiceTurn`、STT/LLM/TTS、committed context、barge-in | voice UI 与 voice orchestration 不双 owner |
 | D-12 | appendSessionEvent 单 endpoint | 提交回答 / 请求提示 / 跳过 / 暂停 / 恢复都通过 `appendSessionEvent` + `kind`；仅 `practiceMode='strict'` 不渲染提示按钮，`goal='debrief'` 是否可提示由 practiceMode 决定 | 与 backend-practice D-7/D-16/D-21 一致 |
 | D-13 | 完成是异步流 | `completePracticeSession` 返回 202 + `ReportWithJob{reportId,job}`；generating 用 `reportId` 轮询 `getFeedbackReport`，完成后 handoff 到 report owner | 前端不阻塞等待报告，不伪造 LLM 进度 |
-| D-14 | fixture-only / missing contract 红线 | 缺失 operation 或 fixture 时必须先回 B2 / mock-contract-suite / backend owner；本 spec 不用本地 mock 兜底 | 保护前后端分离契约 |
+| D-14 | fixture-backed + real-backend gate 红线 | completed frontend owner plan 可以保留 fixture-backed UI variants，但当对应 backend owner 已落地真实 handler 时，必须原地补 `VITE_EI_API_MODE=real` generated-client gate + scenario verify marker；缺失 operation 或 fixture 时仍先回 B2 / mock-contract-suite / backend owner，不用本地 mock 兜底 | 保护前后端分离契约，避免 fixture UI PASS 被误判为真实 backend 闭环 |
 
 ### 3.2 待确认事项
 
-- Resume Picker 如果需要“列出所有简历版本”，当前 OpenAPI 只有 `registerResume/getResume`，缺 `listResumes`；第一份 workspace plan 必须选择：先只展示已绑定 resume + disabled picker，或先修订 B2/backend-resume 增加列表契约。
-- `createPracticeVoiceTurn` 当前不在 `openapi/openapi.yaml`，也没有 fixture；voice surface plan 必须依赖 `practice-voice-mvp` / backend-practice voice extension 完成 B2 修订后才能落 full voice turn flow。
+- Resume Picker 的 active-list 与版本展开契约已经由 backend-resume/B2 落地；completed workspace plan 若继续保留 disabled-list UX，必须在原 plan 中标为历史交付状态，并在后续 workspace owner 修订时切到 `listResumes` + `listResumeVersions(resumeAssetId)` real-mode gate。
+- `createPracticeVoiceTurn` 已由 practice-voice-mvp / backend-practice voice extension 进入 generated client 与 fixture；voice surface 的完整 STT/LLM/TTS orchestration 仍归对应 voice owner，但正式前端不得继续把 operation 写作缺失。
 
 ## 4 设计约束
 
@@ -127,7 +127,7 @@
 | Practice backend | `backend-practice` | 6 个 Practice operation handler/service/store、state machine、AssistantAction、outbox、idempotency |
 | Voice orchestration | `practice-voice-mvp` + `backend-practice` voice extension | `createPracticeVoiceTurn` contract/handler、STT/LLM/TTS、barge-in、committed-context |
 | Report generation data | future `backend-review` | `feedback_reports`、question assessments、readiness、report job result |
-| Resume data | future `backend-resume` | Resume asset list/detail/version semantics；本 spec 只消费绑定 resume 的只读字段 |
+| Resume data | [`backend-resume`](../backend-resume/spec.md) | Resume asset list/detail/version semantics；workspace 可消费绑定 resume 只读字段，后续 active picker 消费 `listResumes` / `listResumeVersions` |
 | OpenAPI / fixtures / codegen | `openapi-v1-contract` + `mock-contract-suite` | `openapi/openapi.yaml`、fixtures、generated Go/TS artifacts、fixture-backed mock transport |
 
 ### 5.1 Operation Matrix
@@ -136,17 +136,19 @@
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` (`default`, `prototype-baseline`) | `WorkspaceScreen` plan switcher / fallback recent plans | `backend/internal/targetjob` implemented | `target_jobs` | none in frontend | `001-workspace-and-interview-context` |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` (`default`, `prototype-baseline`) | `WorkspaceScreen` JD / requirements / company meta | `backend/internal/targetjob` implemented | `target_jobs`, requirements/sources | none in frontend | `001-workspace-and-interview-context` |
-| `getResume` | `openapi/fixtures/Resumes/getResume.json` (`default`) | Bound resume summary only | future `backend-resume` / not-yet-implemented | resume assets | none | `001` may use bound resume only |
-| `listResumes` | N/A | Resume picker list | missing operation; B2/backend-resume revision required | resume assets | none | blocking choice before enabling full picker |
-| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` (`default`, `missing-resume`) | Workspace `立即面试` when no plan | `backend-practice` not-yet-implemented | `practice_plans` | backend-only first-question prep later | `001` |
-| `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` (`default`) | Workspace refresh / recovery | `backend-practice` not-yet-implemented | `practice_plans` | none | `001` |
-| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` (`default`) | Workspace start + auth resume | `backend-practice` not-yet-implemented | `practice_sessions`, first turn | backend-only `practice.session.first_question` | `001` |
-| `getPracticeSession` | `openapi/fixtures/PracticeSessions/getPracticeSession.json` (`default`, `prototype-baseline`, `missing-session`) | Practice refresh / recovery | `backend-practice` not-yet-implemented | `practice_sessions`, turns/events | none in frontend | `002` |
-| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` (`default`) | Practice answer/hint/skip/pause/resume | `backend-practice` not-yet-implemented | `practice_session_events`, `practice_turns` | backend-only follow-up/hint | `002` |
-| `completePracticeSession` | `openapi/fixtures/PracticeSessions/completePracticeSession.json` (`default`) | Practice finish CTA | `backend-practice` not-yet-implemented | session status + outbox | none in frontend | `002` / `004` |
-| `getFeedbackReport` | `openapi/fixtures/Reports/getFeedbackReport.json` (`default`, `report-generating`, `prototype-baseline`) | Generating poll by `reportId` only；plan 001 不消费 | future `backend-review` not-yet-implemented | `feedback_reports` + job result | backend-review only | `004-generating-report-handoff` |
-| `createPracticeVoiceTurn` | N/A | Voice surface turn submission | missing operation; practice-voice/backend-practice B2 revision required | voice session events | STT/LLM/TTS backend-only | `003` blocked until contract lands |
-| `getCompanyIntel` | N/A | Out of scope for this spec | missing operation; external owner | external intel store/source cache | possible backend-only summarization | external owner |
+| `getResume` | `openapi/fixtures/Resumes/getResume.json` (`default`) | Bound resume summary only | backend-resume real handler | resume assets | none | `001` bound summary + real-mode gate |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` (`default`) | Resume picker list / debrief picker / resume workshop | backend-resume real handler | resume assets | none | completed owner plans must run real-mode gate before fixture UI variants |
+| `listResumeVersions` | `openapi/fixtures/Resumes/listResumeVersions.json` (`default`) | Resume picker version expansion / debrief picker / resume workshop | backend-resume real handler | resume_versions | none | completed owner plans must run real-mode gate before fixture UI variants |
+| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` (`default`, `missing-resume`, `debrief-derived`) | Workspace `立即面试` / debrief replay when no plan | backend-practice real handler | `practice_plans` | backend-only first-question prep | `001` + `frontendOwners.realApiMode.test.ts` |
+| `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` (`default`) | Workspace refresh / recovery | backend-practice real handler | `practice_plans` | none | `001` + real-mode gate |
+| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` (`default`, `debrief-derived-first-question`) | Workspace start + auth resume + debrief replay | backend-practice real handler | `practice_sessions`, first turn | backend-only `practice.session.first_question` | `001` / debrief + real-mode gate |
+| `listPracticeSessions` | `openapi/fixtures/PracticeSessions/listPracticeSessions.json` (`default`) | Debrief mock-session picker / history handoff owner | backend-practice real handler | `practice_sessions` | none | debrief + real-mode gate |
+| `getPracticeSession` | `openapi/fixtures/PracticeSessions/getPracticeSession.json` (`default`, `prototype-baseline`, `missing-session`) | Practice refresh / recovery | backend-practice real handler | `practice_sessions`, turns/events | none in frontend | `002` + real-mode gate |
+| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` (`default`) | Practice answer/hint/skip/pause/resume | backend-practice real handler | `practice_session_events`, `practice_turns` | backend-only follow-up/hint | `002` + real-mode gate；仍不带 Idempotency-Key |
+| `completePracticeSession` | `openapi/fixtures/PracticeSessions/completePracticeSession.json` (`default`) | Practice finish CTA | backend-practice real handler | session status + outbox | none in frontend | `002` + real-mode gate |
+| `getFeedbackReport` | `openapi/fixtures/Reports/getFeedbackReport.json` (`default`, `report-generating`, `prototype-baseline`) | Generating poll by `reportId` only；report owner consumes dashboard | backend-review real handler | `feedback_reports` + job result | backend-review only | report dashboard + real-mode gate |
+| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` | Voice surface turn submission | practice-voice/backend-practice real handler | voice session events | STT/LLM/TTS backend-only | practice-voice owner + real-mode gate |
+| `getCompanyIntel` | N/A | Out of scope for this spec | external owner; no contract declared in this spec | external intel store/source cache | possible backend-only summarization | external owner |
 
 ## 6 验收标准
 
@@ -169,8 +171,8 @@
 
 本 spec v1.2 已创建首个 active plan 目录 `001-workspace-and-interview-context`；其余计划编号仍为预留，后续通过 `/design` 创建对应 plan/context 后再进入 `/implement`：
 
-- `001-workspace-and-interview-context` — workspace 接管 + InterviewContext store/hook + `listTargetJobs/getTargetJob/getResume/getPracticePlan/createPracticePlan/startPracticeSession` 消费 + auth pendingAction + workspace BDD。
-- `002-practice-text-event-loop` — PracticeScreen 文本 surface + `getPracticeSession/appendSessionEvent/completePracticeSession` 消费 + assisted/strict 辅助度策略 + `goal='debrief'` 数据来源显隐回归 + generating 入口。
+- `001-workspace-and-interview-context` — workspace 接管 + InterviewContext store/hook + `listTargetJobs/getTargetJob/getResume/getPracticePlan/createPracticePlan/startPracticeSession` 消费 + auth pendingAction + workspace BDD；2026-05-23 L2 remediation 将 P0.018-P0.021 trigger 接入 `frontendOwners.realApiMode.test.ts`。
+- `002-practice-text-event-loop` — PracticeScreen 文本 surface + `getPracticeSession/appendSessionEvent/completePracticeSession` 消费 + assisted/strict 辅助度策略 + `goal='debrief'` 数据来源显隐回归 + generating 入口；2026-05-23 L2 remediation 将 P0.044-P0.047 trigger 接入 `frontendOwners.realApiMode.test.ts`。
 - `003-practice-voice-surface` — VoiceSurface / WaveformBars / AnnotatedWaveform / SpeechToText source parity + audio capture/playback/barge-in UI event reporting；full `createPracticeVoiceTurn` 等 B2 contract landed 后启用。
 - `004-generating-report-handoff` — GeneratingScreen 轮询 `getFeedbackReport(reportId)` + succeeded/failed handoff 到 external report owner + BDD。
 

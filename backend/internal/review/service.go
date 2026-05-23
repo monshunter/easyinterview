@@ -69,15 +69,15 @@ func (s *Service) GenerateReport(ctx context.Context, job AsyncJob) ReportOutcom
 	if err != nil {
 		failure := classifyReportGenerationError(err)
 		_ = s.writeExplicitFailureTaskRun(ctx, reportCtx, aiclient.AITaskRunTaskReportGenerate, reportGenerateFeatureKey, failure)
-		asyncJobFinalized := s.persistFailure(ctx, reportCtx, job, failure.Code, failure.Retryable) == nil
-		return ReportOutcome{AsyncJobFinalized: asyncJobFinalized, ErrorCode: failure.Code, ErrorMessage: err.Error(), Retryable: failure.Retryable}
+		_ = s.persistFailure(ctx, reportCtx, job, failure.Code, failure.Retryable)
+		return ReportOutcome{ErrorCode: failure.Code, ErrorMessage: err.Error(), Retryable: failure.Retryable}
 	}
 	assessments, err := s.assessQuestionsForAllTurns(ctx, reportCtx.Session, reportCtx.Plan, reportCtx.Turns)
 	if err != nil {
 		failure := classifyReportGenerationError(err)
 		_ = s.writeExplicitFailureTaskRun(ctx, reportCtx, aiclient.AITaskRunTaskReportAssessment, reportQuestionAssessmentFeatureKey, failure)
-		asyncJobFinalized := s.persistFailure(ctx, reportCtx, job, failure.Code, failure.Retryable) == nil
-		return ReportOutcome{AsyncJobFinalized: asyncJobFinalized, ErrorCode: failure.Code, ErrorMessage: err.Error(), Retryable: failure.Retryable}
+		_ = s.persistFailure(ctx, reportCtx, job, failure.Code, failure.Retryable)
+		return ReportOutcome{ErrorCode: failure.Code, ErrorMessage: err.Error(), Retryable: failure.Retryable}
 	}
 	readiness := computeReadinessTier(assessments, reportCtx.Rubric)
 	retryFocus := selectRetryFocusTurnIDs(assessments)
@@ -123,6 +123,8 @@ func (s *Service) persistFailure(ctx context.Context, reportCtx ReportContext, j
 		AuditEventID:  s.newID(),
 		ErrorCode:     code,
 		Retryable:     retryable,
+		Attempts:      job.Attempts,
+		MaxAttempts:   job.MaxAttempts,
 		Now:           s.now(),
 	})
 }
@@ -172,6 +174,8 @@ type ReportFailurePersistence struct {
 	AuditEventID  string
 	ErrorCode     string
 	Retryable     bool
+	Attempts      int32
+	MaxAttempts   int32
 	Now           time.Time
 }
 

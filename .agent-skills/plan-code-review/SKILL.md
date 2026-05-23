@@ -1,6 +1,6 @@
 ---
 name: plan-code-review
-description: "Review or fix code against spec/plan/checklist context. Use when the user wants L2 code review or remediation for already-implemented checklist phases, especially after product/UI spec changes, historical implementation drift, or requests to ignore old checklist/PASS state. Reuses implement-owned shared context validator, then performs artifact-level semantic review against validated markdown, current truth sources, generated artifacts, tests, fixtures, scripts, coverage-matrix expectations, and negative legacy-scope searches. Supports /plan-code-review <subspec/plan> [target] [--base-rev <git-rev>] [--fix]."
+description: "Review or fix code against spec/plan/checklist context. Use when the user wants L2 code review or remediation for already-implemented checklist phases, especially after product/UI spec changes, historical implementation drift, or requests to ignore old checklist/PASS state. Reuses implement-owned shared context validator, then performs artifact-level semantic review against validated markdown, current truth sources, generated artifacts, tests, fixtures, scripts, coverage-matrix expectations, and negative legacy-scope searches. Supports /plan-code-review SUBSPEC/PLAN [target] [--base-rev REV] [--fix]."
 ---
 
 # Plan Code Review Skill
@@ -133,6 +133,33 @@ For each in-scope phase:
 6. Build an artifact map that connects each completed checklist item to concrete
    source code, generated output, fixtures, baselines, DDL/config, scripts,
    README entries, and tests.
+   - For lifecycle / runtime capabilities, reverse-audit the production
+     entrypoint instead of stopping at package-level behavior. If a spec, plan,
+     checklist, or discovered artifact declares a worker, dispatcher, outbox
+     loop, scheduler, bootstrap hook, shutdown/drain path, background runner, or
+     runtime kernel, inspect the real startup path such as `cmd/api`, `main`,
+     server boot, worker launch, Docker Compose service, or Kind deployment
+     entrypoint. Verify a production-wiring test, smoke, or scenario proves the
+     startup path constructs, attaches/registers, starts, and shuts down the
+     runtime capability. Treat internal package tests alone as insufficient
+     evidence for production lifecycle closure; in `--fix` mode, add the
+     missing production-wiring test or reopen the mapped checklist item before
+     accepting the phase as complete.
+   - For schedulers, priority queues, queue weights, scan-cycle SLAs, or
+     user-visible background jobs, prove fairness under a long-running handler.
+     At least one gate should block a high/critical/default handler and verify
+     a lower-priority but user-visible job is still claimed or completed within
+     the promised scan cadence. Treat tests that only assert bucket ordering or
+     single `runOnce` behavior as insufficient for starvation closure.
+   - For migration-only escape hatches such as `AsyncJobFinalized`,
+     `AlreadyHandled`, `SkipFinalize`, `HandlerFinalized`, or equivalent
+     "do not finalize again" flags, enumerate every handler/service/store path
+     that can set or observe the hatch. Verify each path still uses the owner
+     kernel/shared retry/backoff/finalize policy, or record a mapped finding to
+     remove, narrow, or test the hatch before accepting the phase as complete.
+     When retry timestamps, `completed_at`, `locked_at`, or backoff schedules
+     are in scope, include deterministic clock evidence that distinguishes
+     pre-handler and post-handler time.
 7. Reconstruct the expected coverage matrix from the validated spec/plan/checklist,
    test-plan/test-checklist, bdd-plan/bdd-checklist, quality-gate classification,
    non-goals, risks, and active product/UI truth sources. For each completed
@@ -161,6 +188,19 @@ For each in-scope phase:
      with an explicit reset/migration instruction or covered by a tested
      migration path; never count automatic volume deletion as an acceptable L2
      fix without user approval.
+   - For frontend-first plans that were completed while a backend owner was
+     fixture-only or future-owned, reverse-audit the adjacent backend owner
+     plans, route builders, handlers, generated clients, fixtures, and scenario
+     assets before trusting the old operation matrix. If the backend owner has
+     since landed real handlers or BDD proof, the original frontend owner plan
+     must be repaired in place: update the operation matrix, add a
+     `VITE_EI_API_MODE=real` generated-client gate that proves base URL,
+     `credentials: "include"`, absence of fixture `Prefer` headers, side-effect
+     `Idempotency-Key`, and key provenance/response fields, then keep the UI
+     variants fixture-backed as a separate deterministic UI gate. Scenario
+     `verify.sh` must check a real-mode marker and the focused test filename. If
+     one plan in a subspec shows this handoff drift, sweep sibling/completed
+     plans in the same subspec before closing the review.
    - For `ui-design` source-level parity, computed style, bounding-box, and
      screenshot checks are necessary but not sufficient. Also reverse-audit
      `ui-design/src/*.jsx`, `ui-design/src/app.jsx`, and
@@ -229,6 +269,14 @@ Output rules:
   For scenario wrapper evidence, state how `trigger.sh` preserves the real test
   process exit status and how `verify.sh` proves pass/fail/no-op status rather
   than merely grepping a test name or package path.
+  For lifecycle / runtime capabilities, state the production entrypoint audited
+  and the production-wiring test, smoke, or scenario that proves startup and
+  shutdown/drain behavior.
+  For scheduler/fairness claims, state the long-running handler/starvation gate
+  and whether it proves scan-cadence behavior. For escape hatches, list the
+  audited setters/observers and the shared policy evidence. For frontend-first
+  handoff reviews, state the adjacent backend owner evidence, the real-mode
+  generated-client gate, and any sibling/completed plan sweep results.
 - Include a `Coverage Matrix Evidence` section summarizing which coverage rows
   are proven by current artifacts, which are explicitly N/A, and which are gaps.
 

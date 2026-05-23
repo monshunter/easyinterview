@@ -1455,14 +1455,14 @@ auth:
 	if err != nil {
 		t.Fatalf("buildResumeRuntime: %v", err)
 	}
-	if runtime.Handler == nil || runtime.Idempotency == nil || runtime.Drainer == nil || runtime.ParseAI == nil {
-		t.Fatalf("runtime missing handler/idempotency/drainer/AI wiring: %+v", runtime)
+	if runtime.Handler == nil || runtime.Idempotency == nil || runtime.Handlers == nil || runtime.ParseAI == nil {
+		t.Fatalf("runtime missing handler/idempotency/handlers/AI wiring: %+v", runtime)
 	}
-	if !runtime.Drainer.Handles(string(jobs.JobTypeResumeParse)) {
-		t.Fatalf("runtime drainer does not handle %s", jobs.JobTypeResumeParse)
+	if !runtime.Handles(string(jobs.JobTypeResumeParse)) {
+		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypeResumeParse)
 	}
-	if !runtime.Drainer.Handles(string(jobs.JobTypeResumeTailor)) {
-		t.Fatalf("runtime drainer does not handle %s", jobs.JobTypeResumeTailor)
+	if !runtime.Handles(string(jobs.JobTypeResumeTailor)) {
+		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypeResumeTailor)
 	}
 	resp, _, err := runtime.ParseAI.Complete(context.Background(), "resume.parse.default", aiclient.CompletePayload{
 		Messages: []aiclient.Message{{Role: "user", Content: "Resume text"}},
@@ -1480,7 +1480,7 @@ auth:
 	}
 }
 
-func TestBuildReportRuntimeWiresRoutesRunnerReaperAndAI(t *testing.T) {
+func TestBuildReportRuntimeWiresRoutesHandlerAndAI(t *testing.T) {
 	dir := t.TempDir()
 	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
@@ -1502,8 +1502,11 @@ auth:
 	if err != nil {
 		t.Fatalf("buildReportRuntime: %v", err)
 	}
-	if runtime.Handler == nil || runtime.Runner == nil || runtime.Reaper == nil || runtime.Service == nil {
-		t.Fatalf("runtime missing handler/runner/reaper/service wiring: %+v", runtime)
+	if runtime.Handler == nil || runtime.Handlers == nil || runtime.Service == nil {
+		t.Fatalf("runtime missing handler/handlers/service wiring: %+v", runtime)
+	}
+	if !runtime.Handles(string(jobs.JobTypeReportGenerate)) {
+		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypeReportGenerate)
 	}
 	if runtime.Routes().Handler != runtime.Handler {
 		t.Fatalf("Routes handler mismatch")
@@ -1601,15 +1604,12 @@ ai:
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		if err := runtime.Shutdown(shutdownCtx); err != nil {
-			t.Fatalf("Shutdown: %v", err)
-		}
-	}()
-	if runtime.Handler == nil || runtime.Drainer == nil || runtime.AI == nil || runtime.AI.Client == nil {
-		t.Fatalf("runtime missing handler/drainer/AI wiring: %+v", runtime)
+	defer runtime.Close()
+	if runtime.Handler == nil || runtime.Handlers == nil || runtime.AI == nil || runtime.AI.Client == nil {
+		t.Fatalf("runtime missing handler/handlers/AI wiring: %+v", runtime)
+	}
+	if !runtime.Handles(string(jobs.JobTypeTargetImport)) || !runtime.Handles(string(jobs.JobTypeSourceRefresh)) {
+		t.Fatalf("runtime does not contribute target_import/source_refresh handlers: %+v", runtime.Handlers)
 	}
 	resp, _, err := runtime.ParseAI.Complete(context.Background(), "target.import.default", aiclient.CompletePayload{
 		Messages: []aiclient.Message{{Role: "user", Content: "Backend Engineer JD"}},
@@ -1683,8 +1683,8 @@ ai:
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
-	if !runtime.Drainer.Handles(string(jobs.JobTypePrivacyDelete)) {
-		t.Fatalf("runtime drainer does not handle %s", jobs.JobTypePrivacyDelete)
+	if !runtime.Handles(string(jobs.JobTypePrivacyDelete)) {
+		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypePrivacyDelete)
 	}
 }
 
@@ -1736,8 +1736,8 @@ ai:
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
-	if !runtime.Drainer.Handles(string(jobs.JobTypeDebriefGenerate)) {
-		t.Fatalf("runtime drainer does not handle %s", jobs.JobTypeDebriefGenerate)
+	if !runtime.Handles(string(jobs.JobTypeDebriefGenerate)) {
+		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypeDebriefGenerate)
 	}
 }
 

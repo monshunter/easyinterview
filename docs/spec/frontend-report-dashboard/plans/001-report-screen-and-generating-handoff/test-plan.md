@@ -38,16 +38,16 @@
 | ReportFailureState 404 / `REPORT_NOT_FOUND` 文案分支 | `frontend/src/app/screens/report/__tests__/ReportFailureStateNotFound.test.tsx` | `TestReportFailureStateRendersNotFoundCopy` / `TestUseFeedbackReportEncodesNotFoundDistinctly` | `pnpm --filter @easyinterview/frontend test src/app/screens/report` |
 | `listTargetJobReports` 0 调用反向断言 | `frontend/src/app/screens/{report,generating}/__tests__/legacyNegative.test.ts` | `TestListTargetJobReportsNotInvokedInReportOrGenerating` | `pnpm --filter @easyinterview/frontend test src/app/screens/{report,generating}` |
 
-## Phase 0: 跨 owner 前置 preflight
+## Phase 0: 跨 owner 前置 preflight（历史启动门禁，现保留为 contract guard）
 
-- **测试目标**：Phase 1 编码前阻塞性 preflight — 断言 backend-review/001 Phase 0 已交付 `FeedbackReport.errorCode` 字段、`report-failed` + `empty` fixture variants、`REPORT_NOT_FOUND` 错误码与 generated TS 常量；任一缺失则 Phase 1 不启动。
+- **测试目标**：断言 backend-review/001 已交付 `FeedbackReport.errorCode` 字段、`report-failed` + `empty` fixture variants、`REPORT_NOT_FOUND` 错误码与 generated TS 常量；2026-05-23 之后继续作为 OpenAPI / fixture / generated client drift guard。
 - **测试文件**：
   - `frontend/src/app/screens/report/__tests__/preflight.test.ts`（新增）：4 个 assertion
 - **测试命令**：
   - `pnpm --filter @easyinterview/frontend test src/app/screens/report/__tests__/preflight.test.ts`
 - **预期 Red / Green 证据**：
-  - Red：backend-review/001 Phase 0 未交付时 preflight test fail，message 指向具体缺位 deliverable
-  - Green：backend-review/001 Phase 0 完成后 preflight test 通过，本 plan Phase 1 启动条件满足
+  - Red：任一 OpenAPI / fixture / generated client contract 缺失时 preflight test fail，message 指向具体 drift source
+  - Green：backend-review/001 contract 与 generated client 一致时 preflight test 通过
 
 ## Phase 1: GeneratingScreen 源级复刻 + useReportGenerationPoll hook + 状态分支
 

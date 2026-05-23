@@ -66,6 +66,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0089](./BUG-0089.md) | frontend owner plans missed real-backend handoff gates | medium | resolved | 2026-05-23 | `fix(frontend): close real backend handoff gate drift (BUG-0089)` |
 | [BUG-0086](./BUG-0086.md) | home targetjob plan stayed fixture-only after real backend landed | medium | resolved | 2026-05-22 | `fix(frontend-home): close targetjob real backend gate drift (BUG-0086)` |
 | [BUG-0085](./BUG-0085.md) | jd_match frontend plan stayed fixture-only after real backend landed | medium | resolved | 2026-05-22 | `fix(frontend-jd-match): close real backend gate drift (BUG-0085)` |
 | [BUG-0079](./BUG-0079.md) | frontend shell popstate left unsafe URL markers visible | medium | resolved | 2026-05-18 | `fix(frontend-shell): scrub hostile popstate route privacy (BUG-0079)` |
@@ -92,7 +93,9 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
-| [BUG-0087](./BUG-0087.md) | Postgres 18 dev volume layout made local dev stack unhealthy | medium | resolved | 2026-05-22 | `fix(local-dev-stack): repair Postgres 18 dev volume guard (BUG-0087)` |
+| [BUG-0091](./BUG-0091.md) | Postgres 18 dev volume layout made local dev stack unhealthy | medium | resolved | 2026-05-22 | `fix(local-dev-stack): repair Postgres 18 dev volume guard (BUG-0087)` |
+| [BUG-0088](./BUG-0088.md) | async runner review exposed scheduler and report backoff drift | high | resolved | 2026-05-22 | `fix(backend-async-runner): harden scheduler and report backoff (BUG-0088)` |
+| [BUG-0087](./BUG-0087.md) | async runner L2 review exposed outbox startup and live gate drift | high | resolved | 2026-05-22 | `fix(backend-async-runner): wire outbox startup and live gates (BUG-0085)` |
 | [BUG-0080](./BUG-0080.md) | tool-name branch prefixes bypassed branch naming governance | medium | resolved | 2026-05-21 | `fix(governance): reject tool-name branch prefixes (BUG-0080)` |
 | [BUG-0070](./BUG-0070.md) | async job polling and voice playback context were contract-only at runtime | high | resolved | 2026-05-17 | `fix(runtime): wire job polling and voice playback context (BUG-0070)` |
 | [BUG-0049](./BUG-0049.md) | backend upload follow-up review exposed MinIO race and no-op live gate | medium | resolved | 2026-05-13 | `fix(backend-upload): close follow-up L2 gaps` |
@@ -132,7 +135,8 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
-| [BUG-0088](./BUG-0088.md) | repo lint gates rejected current practice voice and JD Match contracts | medium | resolved | 2026-05-22 | `fix(repo-lint): align current contract gates (BUG-0088)` |
+| [BUG-0090](./BUG-0090.md) | frontend owner scenario wrappers widened scoped gates and ignored hash routes | medium | resolved | 2026-05-23 | `fix(test): close frontend owner scenario full-run gates (BUG-0090)` |
+| [BUG-0092](./BUG-0092.md) | repo lint gates rejected current practice voice and JD Match contracts | medium | resolved | 2026-05-22 | `fix(repo-lint): align current contract gates (BUG-0088)` |
 | [BUG-0082](./BUG-0082.md) | jd-match BDD closure treated smoke wrappers as completed gates | high | resolved | 2026-05-22 | `fix(backend-jobs): harden jd-match runtime contracts (BUG-0082, BUG-0083)` |
 | [BUG-0066](./BUG-0066.md) | debrief scenario wrappers were missing or under-asserted | high | resolved | 2026-05-17 | `fix(test): close debrief scenario wrapper evidence (BUG-0066)` |
 | [BUG-0034](./BUG-0034.md) | mockruntime named scenario test copied stale fixture expectation | medium | resolved | 2026-05-10 | `fix(mock-contract): align mockruntime named scenarios` |

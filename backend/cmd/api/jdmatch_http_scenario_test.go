@@ -17,6 +17,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch"
 	"github.com/monshunter/easyinterview/backend/internal/jdmatch/generators"
 	jdmatchstore "github.com/monshunter/easyinterview/backend/internal/jdmatch/store"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	"github.com/monshunter/easyinterview/backend/internal/shared/featurekeys"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 )
@@ -26,14 +27,17 @@ func TestBuildJDMatchRuntimeWiresRoutesDrainerAndLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildJDMatchRuntime: %v", err)
 	}
-	if runtime == nil || runtime.Routes.Handler == nil || runtime.Routes.Idempotency == nil || runtime.Routes.PrivacyDeleteFunc == nil || runtime.Drainer == nil {
-		t.Fatalf("runtime missing handler/idempotency/privacy/drainer wiring: %+v", runtime)
+	if runtime == nil || runtime.Routes.Handler == nil || runtime.Routes.Idempotency == nil || runtime.Routes.PrivacyDeleteFunc == nil || runtime.Handlers == nil {
+		t.Fatalf("runtime missing handler/idempotency/privacy/handler wiring: %+v", runtime)
 	}
-	if !runtime.Drainer.Handles(string(jobs.JobTypeJdMatchAgentScan)) {
-		t.Fatalf("runtime drainer does not handle %s", jobs.JobTypeJdMatchAgentScan)
+	// The kernel (single runner.Runtime) takes over lease/lifecycle; the
+	// jdmatch runtime only contributes the jd_match_agent_scan handler. The
+	// reserved future job type jd_match_search must not be registered.
+	if !runtime.Handles(string(jobs.JobTypeJdMatchAgentScan)) {
+		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypeJdMatchAgentScan)
 	}
-	if runtime.Drainer.Handles(string(jobs.JobTypeJdMatchSearch)) {
-		t.Fatalf("runtime drainer must not handle reserved future job type %s", jobs.JobTypeJdMatchSearch)
+	if runtime.Handles(string(jobs.JobTypeJdMatchSearch)) {
+		t.Fatalf("runtime must not register reserved future job type %s", jobs.JobTypeJdMatchSearch)
 	}
 	if runtime.Routes.AgentScanRunOnce == nil {
 		t.Fatal("agent scan run-once hook must be wired")
@@ -42,10 +46,18 @@ func TestBuildJDMatchRuntimeWiresRoutesDrainerAndLifecycle(t *testing.T) {
 		t.Fatal("agent scan run-once must not be a nil no-op when the async store is unavailable")
 	}
 
-	runtime.Start(context.Background())
+	kernel := runner.New(runner.Options{Store: runner.NewSQLStore(nil), Config: testRunnerConfig()})
+	registerRunnerHandlers(kernel, runtime.Handlers)
+	if !kernel.Handles(string(jobs.JobTypeJdMatchAgentScan)) {
+		t.Fatalf("kernel does not handle %s after registration", jobs.JobTypeJdMatchAgentScan)
+	}
+	if kernel.Handles(string(jobs.JobTypeJdMatchSearch)) {
+		t.Fatalf("kernel must not handle reserved future job type %s", jobs.JobTypeJdMatchSearch)
+	}
+	kernel.Start(context.Background())
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	if err := runtime.Shutdown(shutdownCtx); err != nil {
+	if err := kernel.Shutdown(shutdownCtx); err != nil {
 		t.Fatalf("Shutdown: %v", err)
 	}
 }

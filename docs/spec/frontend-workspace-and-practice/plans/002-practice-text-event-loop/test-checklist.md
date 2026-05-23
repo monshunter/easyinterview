@@ -1,14 +1,14 @@
 # 002 — Practice Text Event Loop Test Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-14
+> **更新日期**: 2026-05-23
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
 ## Phase 1: PracticeScreen 静态壳 + 路由替换 + i18n + sessionId 守卫
 
-- [x] Phase 1 本计划定义的 `PracticeScreen.test.tsx`（DOM 锚点 + testid + 控件类型 + voice 组件 import 负向）、`usePracticeSessionLoader.test.ts`（5 态 + auto refresh）、`App.test.tsx`（practice case）、`i18n` namespace parity、`practiceModeSwitch.test.tsx`（VoiceSurfaceComingSoon 占位）测试项全部通过
+- [x] Phase 1 本计划定义的 `PracticeScreen.test.tsx`（DOM 锚点 + testid + 控件类型 + voice owner co-location 边界）、`usePracticeSessionLoader.test.ts`（5 态 + auto refresh）、`App.test.tsx`（practice case）、`i18n` namespace parity、`practiceModeSwitch.test.tsx` 测试项全部通过
 
 ## Phase 2: appendSessionEvent + AssistantAction + SessionStatus 消费
 
@@ -24,4 +24,4 @@
 
 ## Phase 5: Pixel parity + Scenario + Regression + Negative grep
 
-- [x] Phase 5 本计划定义的 `practice.spec.ts` pixel parity（desktop + mobile + warm/light、dark、customAccent 主题 + 5 状态截图基线）、scenario 4 目录（p0-044/045/046/047）+ INDEX 更新、workspace P0.018-021 + backend-practice P0.022-026 + backend-practice 002 P0.038-043 regression rerun、`legacyNegative.test.ts` + CI grep（voice imports / 旧 testid / 旧 route / 旧 enum / getFeedbackReport / createPracticeVoiceTurn / `Idempotency-Key.*appendSessionEvent` / raw text 泄漏）、`make docs-check` + `/sync-doc-index --fix-index` + `check-md-links` + 全量 Vitest + typecheck + build + `make build` 收口 gate 全部通过 <!-- verified: 2026-05-14 evidence=practice Playwright 11 passed / 1 skipped; p0-044..047 scenario PASS; workspace p0-018..021 PASS; backend-practice p0-022..026 PASS; Go p0-038..043 PASS; full frontend Vitest 154 files / 907 tests PASS; typecheck/build/make build PASS; sync-doc-index --fix-index PASS; make docs-check PASS -->
+- [x] Phase 5 本计划定义的 `practice.spec.ts` pixel parity（desktop + mobile + warm/light、dark、customAccent 主题 + 5 状态截图基线）、scenario 4 目录（p0-044/045/046/047）+ INDEX 更新、workspace P0.018-021 + backend-practice P0.022-026 + backend-practice 002 P0.038-043 regression rerun、`legacyNegative.test.ts` + CI grep（旧 testid / 旧 route / 旧 enum / getFeedbackReport / `createPracticeVoiceTurn` 非 voice-owner-hook 调用 / `Idempotency-Key.*appendSessionEvent` / raw text 泄漏）、`make docs-check` + `/sync-doc-index --fix-index` + `check-md-links` + 全量 Vitest + typecheck + build + `make build` 收口 gate 全部通过 <!-- verified: 2026-05-14 evidence=practice Playwright 11 passed / 1 skipped; p0-044..047 scenario PASS; workspace p0-018..021 PASS; backend-practice p0-022..026 and Go p0-038..043 PASS; full frontend Vitest 154 files / 907 tests PASS; typecheck/build/make build PASS; sync-doc-index --fix-index PASS; make docs-check PASS; revised 2026-05-23 for practice-voice-mvp owner boundary -->

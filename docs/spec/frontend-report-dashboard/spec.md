@@ -1,8 +1,8 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-05-23
 
 ## 1 背景与目标
 
@@ -15,7 +15,7 @@
 
 `workspace` / `practice` / `company_intel` / `debrief` 不在本 subspec 范围。`workspace` / `practice` 由 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) owner 承接；`company_intel` 与 `debrief` 由 external company-intel / future `frontend-debrief` owner 承接。本 subspec 只在 ReportScreen 的复练 CTA 中发起 workspace auto-start handoff；不实现 practice 任何 UI，也不直接创建或复用 practice session。
 
-本 subspec 通过 generated client + fixture-backed transport 消费已经存在的 Reports OpenAPI 契约；任何新增或缺失 operation 先回到 [B2](../openapi-v1-contract/spec.md) / [backend-review](../backend-review/spec.md) 修订，不能在前端手写 ad hoc fetch 或复制 `ui-design` mock data。
+本 subspec 通过 generated client + fixture-backed transport 消费已经存在的 Reports OpenAPI 契约；截至 2026-05-23，backend-review/001 已落地 `getFeedbackReport` / `listTargetJobReports` 真实 handler，frontend plan 001 的 completed UI variants 必须配套 `VITE_EI_API_MODE=real` generated-client gate，证明 production bootstrap 使用真实 backend base URL、cookie credentials、无 fixture `Prefer` header，并保持 dashboard-only D-7 不消费列表 UI。任何新增或缺失 operation 先回到 [B2](../openapi-v1-contract/spec.md) / [backend-review](../backend-review/spec.md) 修订，不能在前端手写 ad hoc fetch 或复制 `ui-design` mock data。
 
 ## 2 范围
 
@@ -130,10 +130,10 @@
 
 | operationId | Fixture | Frontend consumer | Backend handler | Persistence | AI dependency | Scenario / status |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `getFeedbackReport` | `openapi/fixtures/Reports/getFeedbackReport.json`（`default` = ready 完整字段 / `report-generating` = generating 占位 / `prototype-baseline` = 中文示例；plan 001 由 backend-review/001 Phase 0 计划新增 `report-failed` variant） | GeneratingScreen 轮询 + ReportScreen 拉取 | backend-review 001 Phase 5 真实 handler | `feedback_reports` + `question_assessments` read | none in frontend；report 内容生成由 backend-review 完成 | `001-report-screen-and-generating-handoff` |
+| `getFeedbackReport` | `openapi/fixtures/Reports/getFeedbackReport.json`（`default` = ready 完整字段 / `report-generating` = generating 占位 / `prototype-baseline` = 中文示例 / `report-failed` = failed） | GeneratingScreen 轮询 + ReportScreen 拉取 | backend-review real handler | `feedback_reports` + `question_assessments` read | none in frontend；report 内容生成由 backend-review 完成 | `001-report-screen-and-generating-handoff` + `frontendOwners.realApiMode.test.ts` |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json`（`default`） | ReportContextStrip 只读 target job title/companyName；失败时显示 targetJobId fallback，不阻塞报告正文 | backend-targetjob 既有 handler | `target_jobs` read | none | `E2E.P0.056` ContextStrip 子断言 |
 | `getResumeVersion` | `openapi/fixtures/Resumes/getResumeVersion.json`（`default`） | ReportContextStrip 只读 resume version displayName；失败时显示 resumeVersionId fallback，不读取 raw resume text | backend-resume 既有 handler | `resume_versions` read | none | `E2E.P0.056` ContextStrip 子断言 + privacy negative |
-| `listTargetJobReports` | `openapi/fixtures/Reports/listTargetJobReports.json`（`default` = 分页 + pageInfo；plan 001 由 backend-review/001 Phase 0 计划新增 `empty` variant） | 本 plan 001 **不消费**（dashboard-only D-7，无一级列表导航入口）；schema parity 必须保证 future plan 002+ 接入；Vitest 单元测试 + scenario verify.sh + scoped legacy grep 三层断言 `listTargetJobReports` 在 `frontend/src/app/screens/{report,generating}/` 0 调用 | backend-review 001 Phase 5 真实 handler | `feedback_reports` cursor read | none | 负向断言（plan 001 Phase 5 negative grep + Vitest spy） |
+| `listTargetJobReports` | `openapi/fixtures/Reports/listTargetJobReports.json`（`default` = 分页 + pageInfo / `empty` variant） | 本 plan 001 **不消费 UI**（dashboard-only D-7，无一级列表导航入口）；schema parity 和 `frontendOwners.realApiMode.test.ts` 证明 generated client 可指向真实 backend；Vitest 单元测试 + scenario verify.sh + scoped legacy grep 三层断言 `listTargetJobReports` 在 `frontend/src/app/screens/{report,generating}/` 0 调用 | backend-review real handler | `feedback_reports` cursor read | none | real-mode gate + 负向 UI 断言 |
 | `completePracticeSession` | 由 frontend-workspace-and-practice 002 消费；本 spec 不调用 | — | — | — | — | 负向断言（在 generating / report 模块零调用） |
 | `appendSessionEvent` | 由 frontend-workspace-and-practice 002 消费；本 spec 不调用 | — | — | — | — | 负向断言 |
 | `getPracticeSession` / `startPracticeSession` / 其他 Practice operation | 由 frontend-workspace-and-practice 消费；本 spec 不调用 | — | — | — | — | 负向断言 |
@@ -143,7 +143,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 两条 owner route 专属 Screen 接管 | frontend-shell D1 已交付；frontend-workspace-and-practice 已完成 generating handoff（fixture-only）；owner route 当前由 PlaceholderScreen 占位 | 进入 `generating` 与 `report` | 两条 route 渲染正式 Screen；`generating` 隐藏 chrome；`report` 保留默认 App chrome / TopBar 且不进入一级导航；不展示 PlaceholderScreen | 001 |
+| C-1 | 两条 owner route 专属 Screen 接管 | frontend-shell D1 已交付；frontend-workspace-and-practice 已完成 generating handoff；owner route 当前由 PlaceholderScreen 占位 | 进入 `generating` 与 `report` | 两条 route 渲染正式 Screen；`generating` 隐藏 chrome；`report` 保留默认 App chrome / TopBar 且不进入一级导航；不展示 PlaceholderScreen；P0.056-P0.059 trigger 前置 real-mode generated-client gate | 001 |
 | C-2 | GeneratingScreen 轮询 happy path | InterviewContext 携带 `reportId, sessionId, ...passThrough`；fixture `getFeedbackReport` 配置为 `report-generating` 几次轮询后切换到 `default`（ready） | 进入 `generating` | 渲染 5 阶段进度动画 + 实时观察流；轮询调用 `getFeedbackReport(reportId)` 多次（按指数退避节奏）；status='ready' 时自动 `nav("report", { sessionId, reportId, ...passThrough })`；轮询期间不重复 nav | 001 |
 | C-3 | GeneratingScreen 失败处理 | fixture `getFeedbackReport=report-failed`（status='failed' + errorCode='AI_PROVIDER_TIMEOUT'） | 进入 `generating`，轮询命中 failed | 自动 `nav("report", { sessionId, reportId, reportStatus:'failed', errorCode:'AI_PROVIDER_TIMEOUT', ...passThrough })`；不展示 ReportDashboard | 001 |
 | C-4 | GeneratingScreen 超时 | fixture 永久返回 `report-generating`（模拟 backend 卡住） | 进入 `generating`，轮询达到 max attempts | 渲染 ErrorState「报告生成超时，请重试」+ retry / 返回 workspace CTA；retry 重启轮询 | 001 |

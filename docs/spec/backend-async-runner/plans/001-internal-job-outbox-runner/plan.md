@@ -1,7 +1,7 @@
 # Internal Job and Outbox Runner
 
-> **版本**: 1.1
-> **状态**: active
+> **版本**: 1.4
+> **状态**: completed
 > **更新日期**: 2026-05-22
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -15,7 +15,7 @@
 
 ## 2 背景
 
-[backend-async-runner spec](../../spec.md) §1 / §3 已锁定决策与现状证据。当前实现层证据摘要：
+[backend-async-runner spec](../../spec.md) §1 / §3 已锁定决策与现状证据。本计划启动时的实施前实现层证据摘要：
 
 - `cmd/api/main.go` 持有 5 个独立 lifecycle（auth dispatcher / targetJobRuntime / resumeRuntime / reportRuntime / jdmatchRuntime）；
 - `review.Runner+Reaper` 是 backend-review spec D-13 / D-16 标注的「等 backend-async-runner 接管」临时形态；
@@ -25,7 +25,7 @@
 - retry backoff 在 review / resume / targetjob 三处不一致；
 - `email_dispatch` 还在 `auth.BackgroundMailDispatcher` 进程内 channel，未走 `async_jobs`。
 
-本计划不修改任何业务 handler 的对外行为，只迁移生命周期边界与运行形态。
+本计划不修改任何业务 handler 的对外行为，只迁移生命周期边界与运行形态。计划完成后的当前事实以 [spec v1.4](../../spec.md) 的完成态描述、[checklist](./checklist.md) 4.18 L2 scheduler/backoff remediation 证据和 [test-checklist](./test-checklist.md) gate 记录为准。
 
 ## 3 质量门禁分类
 
@@ -47,14 +47,14 @@
 | canonical job_type | 触发 operationId（OpenAPI） | fixture | frontend consumer | 当前 backend handler | 本 plan 迁移目标 handler | persistence | AI dependency | scenario coverage |
 |--------------------|---------------------------|---------|-------------------|----------------------|--------------------------|-------------|---------------|-------------------|
 | `email_dispatch` | `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json` | passwordless login UI（auth flow） | `backend/internal/auth/mail.go::BackgroundMailDispatcher`（进程内 channel） | `backend/internal/auth/email_dispatch_handler.go` 注册到 kernel；producer 改为 `INSERT INTO async_jobs(job_type='email_dispatch')` | `async_jobs(email_dispatch)`（新接入）+ `DeliveryWriter` sink | stub/fixture（dev `DevMailSink`） | BDD `E2E.P0.003`；smoke `TestAuthEmailEndToEnd`（1 个 scan 周期内 magic link 可见） |
-| `privacy_delete` | `deleteMe` (`DELETE /v1/me`) | `openapi/fixtures/Auth/deleteMe.json` | account / privacy 设置面 | `backend/internal/privacy/runner/delete_handler.go` 注册到 `targetJobRuntime.Drainer` | 同 handler 注册到 kernel `runner.Runtime` | `privacy_requests` + `async_jobs(privacy_delete)` + 用户级资源级联删除 | none | BDD `E2E.P0.003` + `E2E.P0.033`；smoke `DELETE /api/v1/me` → `privacy_requests.status='completed'` |
-| `report_generate` | source event：`completePracticeSession`（同事务写 `feedback_reports` placeholder + `async_jobs(report_generate)`）；查询：`getFeedbackReport` / `listTargetJobReports` | `openapi/fixtures/PracticeSessions/completePracticeSession.json` / `openapi/fixtures/Reports/getFeedbackReport.json` / `openapi/fixtures/Reports/listTargetJobReports.json` | 报告面 | `backend/internal/review/runner.go` + `reaper.go` + `lease.go`（独立 polling worker） | 新建 `backend/internal/review/generate_handler.go` 实现 `runner.Handler`；删除 `review.Runner` / `Reaper` / `ComputeReportFailureBackoff` | `feedback_reports` + `async_jobs(report_generate)` + `outbox_events('report.generated')` | A3/F3 评审 AI profile | BDD `E2E.P0.041` + `E2E.P0.052` / `054` / `055`；regression `review/runner_test.go`（重写到 kernel）+ `cmd/api/reports_http_scenario_test.go` |
-| `target_import` | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | 目标导入面 | `backend/internal/targetjob/drainer.go` 实例化在 `cmd/api/main.go::buildTargetJobRuntime` | 同 handler 通过 `runner.FromTargetjobHandler` 注册到 kernel；删除独立 drainer 实例 | `target_jobs` + `async_jobs(target_import)` + `outbox_events('target.import.requested')` | A3 解析 profile | BDD `E2E.P0.010` / `012` / `013`；regression `targetjob/pipeline_test.go` + `e2e_scenario_test.go` |
+| `privacy_delete` | `deleteMe` (`DELETE /v1/me`) | `openapi/fixtures/Auth/deleteMe.json` | account / privacy 设置面 | `backend/internal/privacy/runner/delete_handler.go` 注册到 `targetJobRuntime.Drainer` | 同 handler 注册到 kernel `runner.Runtime` | `privacy_requests` + `async_jobs(privacy_delete)` + 用户级资源级联删除 | none | BDD `E2E.P0.003` + `E2E.P0.033` + `E2E.P0.093`；smoke `DELETE /api/v1/me` → `privacy_requests.status='completed'` |
+| `report_generate` | source event：`completePracticeSession`（同事务写 `feedback_reports` placeholder + `async_jobs(report_generate)`）；查询：`getFeedbackReport` / `listTargetJobReports` | `openapi/fixtures/PracticeSessions/completePracticeSession.json` / `openapi/fixtures/Reports/getFeedbackReport.json` / `openapi/fixtures/Reports/listTargetJobReports.json` | 报告面 | `backend/internal/review/runner.go` + `reaper.go` + `lease.go`（独立 polling worker） | 新建 `backend/internal/review/generate_handler.go` 实现 `runner.Handler`；删除 `review.Runner` / `Reaper` / `ComputeReportFailureBackoff` | `feedback_reports` + `async_jobs(report_generate)` + `outbox_events('report.generated')` | A3/F3 评审 AI profile | BDD `E2E.P0.041` + `E2E.P0.052` / `053` / `054` / `055`（Go HTTP BDD tests）；regression `review/runner_test.go`（重写到 kernel）+ `cmd/api/reports_http_scenario_test.go` |
+| `target_import` | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | 目标导入面 | `backend/internal/targetjob/drainer.go` 实例化在 `cmd/api/main.go::buildTargetJobRuntime` | 同 handler 通过 `runner.FromTargetjobHandler` 注册到 kernel；删除独立 drainer 实例 | `target_jobs` + `async_jobs(target_import)` + `outbox_events('target.import.requested')` | A3 解析 profile | BDD `E2E.P0.010` / `011` / `012` / `013`；regression `targetjob/pipeline_test.go` + `e2e_scenario_test.go` |
 | `source_refresh` | N/A（internal-only，由调度或目标更新触发，无独立 API surface） | N/A | N/A（无 frontend） | `backend/internal/targetjob/drainer.go` 注册的 `SourceRefreshHandler` | 同 handler 通过 adapter 注册到 kernel | `source_records` + `async_jobs(source_refresh)` | A3 解析 profile（同 target_import） | regression `targetjob/pipeline_test.go::TestDrainer_RunOnceProcessesQueuedJob` |
 | `debrief_generate` | `createDebrief` | `openapi/fixtures/Debriefs/createDebrief.json` | 复盘面 | `domaindebrief.NewGenerateHandler(...)` 注册到 `targetJobRuntime.Drainer` | 同 handler 注册到 kernel | `debriefs` + `async_jobs(debrief_generate)` | A3 debrief profile | BDD `E2E.P0.060` / `062`；regression `debrief/generate_handler_test.go` + `service_test.go` |
 | `resume_parse` | `registerResume` / `confirmResumeStructuredMaster` | `openapi/fixtures/Resumes/registerResume.json` / `openapi/fixtures/Resumes/confirmResumeStructuredMaster.json` | 简历上传面 | `backend/internal/resume/jobs/parse.go` + `resume/store/async.go`（固定 15s retry） | `resumejobs.NewParseHandler(...)` 注册到 kernel；删除 `resumeRuntime.Drainer` 与 store-side 15s retry 副本 | `resume_assets` + `async_jobs(resume_parse)` | A3 简历解析 profile | BDD `E2E.P0.034` / `035`；regression `resume/jobs/parse_test.go` + `cmd/api/resume_parse_drainer_scenario_test.go` |
 | `resume_tailor` | `requestResumeTailor`（查询 `getResumeTailorRun` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion`） | `openapi/fixtures/ResumeTailor/requestResumeTailor.json` / `openapi/fixtures/ResumeTailor/getResumeTailorRun.json` / `openapi/fixtures/Resumes/acceptResumeTailorSuggestion.json` / `openapi/fixtures/Resumes/rejectResumeTailorSuggestion.json` | 简历适配面 | `backend/internal/resume/jobs/tailor.go` | `resumejobs.NewTailorHandler(...)` 注册到 kernel；退避走 kernel `BackoffPolicy` | `resume_tailor_runs` + `async_jobs(resume_tailor)` | A3 简历适配 profile | BDD `E2E.P0.077` / `078` / `080`；regression `resume/jobs/tailor_test.go` + `cmd/api/resume_tailor_drainer_scenario_test.go` |
-| `jd_match_agent_scan` | source trigger：internal schedule / lazy trigger / source data change；状态查询：`getAgentScanStatus` | `openapi/fixtures/JobMatch/getAgentScanStatus.json` | JD-Match tab polling agent status | `backend/cmd/api/jdmatch_runtime.go` 用 `targetjob.NewDrainer` 注册 `JobTypeJdMatchAgentScan`，调用 `backend/internal/jdmatch/jobs.Run` | `backend/internal/jdmatch/jobs.Run` 通过 `runner.Handler` 注册到 kernel；删除 `jdmatchRuntime.Drainer` 独立实例；确认 `jd_match_search` 不注册 | `agent_scans` + `jd_match_recommendations` + `async_jobs(jd_match_agent_scan)` + `outbox_events('jd_match.recommendation.completed')` | A3/F3 `jd_match.recommendation` profile | BDD `E2E.P0.094` / `097`；regression `backend/internal/jdmatch/jobs/agent_scan_test.go` + `backend/cmd/api/jdmatch_live_scenario_test.go::TestJDMatchAgentScanDrainerScenario` |
+| `jd_match_agent_scan` | source trigger：internal schedule / lazy trigger / source data change；状态查询：`getAgentScanStatus` | `openapi/fixtures/JobMatch/getAgentScanStatus.json` | JD-Match tab polling agent status | `backend/cmd/api/jdmatch_runtime.go` 用 `targetjob.NewDrainer` 注册 `JobTypeJdMatchAgentScan`，调用 `backend/internal/jdmatch/jobs.Run` | `backend/internal/jdmatch/jobs.Run` 通过 `runner.Handler` 注册到 kernel；删除 `jdmatchRuntime.Drainer` 独立实例；确认 `jd_match_search` 不注册 | `agent_scans` + `jd_match_recommendations` + `async_jobs(jd_match_agent_scan)` + `outbox_events('jd_match.recommendation.completed')` | A3/F3 `jd_match.recommendation` profile | BDD `E2E.P0.094` / `095` / `096` / `097`；regression `backend/internal/jdmatch/jobs/agent_scan_test.go` + `backend/cmd/api/jdmatch_live_scenario_test.go::TestJDMatchAgentScanDrainerScenario` |
 
 矩阵字段 `frontend consumer` 仅列出受影响入口的语义所属，无前端实现修改；本计划属于 backend-internal 重构，所有 user-facing operation 的 OpenAPI envelope / fixture / scenario 行为不变，由 P4 `BDD-Gate:` owner scenario rerun + P2 handler test rerun 提供 evidence handoff。`jd_match_search` 虽已在 `shared/jobs.yaml` 占位并声明 `priority: medium`，但 A4 当前只锁定 `critical/default/low` 三档权重且 P0 search 为 sync HTTP handler；实施期不得注册该 job_type，除非先由 B3/A4 原地修订 medium priority 与 async search owner gate。
 
@@ -185,9 +185,13 @@ dispatcher 在调用 consumer 前从 outbox payload / envelope 中读取 `traceI
 
 完成全部 acceptance criteria 后，把本 plan 状态从 `active` 改为 `completed`；spec.md / history.md 已在创建时即为 `active`，本步骤不再涉及 `draft → active` 过渡；同步 spec INDEX + plans INDEX。
 
+#### 4.7 L2 scheduler/backoff remediation
+
+针对 code review 暴露的 scheduling 与 retry-finalization 缺口补齐 runtime hardening：`Runtime.Start` 的生产 lease loop 按 registered job_type 独立运行，防止 long-running `report_generate` / `resume_parse` 阻塞 low-priority `email_dispatch`；`Runtime.dispatch` 的 retry `available_at` 与 terminal `completed_at` 使用 handler 返回后的 fresh timestamp；`review.GenerateHandler` 将 failure outcome 归一化给 kernel finalize，`review.Repository.PersistReportFailure` 只维护 `feedback_reports` / outbox / audit 域状态，不再更新 `async_jobs` 或复用旧 review-store backoff。
+
 ## 5 验收标准
 
-- 本计划列出的实现 / 测试项全部通过（覆盖 [spec C-1~C-20](../../spec.md#6-验收标准)，含 C-13a missing-consumer safety）。
+- 本计划列出的实现 / 测试项全部通过（覆盖 [spec C-1~C-21](../../spec.md#6-验收标准)，含 C-13a missing-consumer safety）。
 - 替代验证 gate 全部 PASS：contract / integration / regression rerun / legacy negative lint / doc reconcile / drift gate。
 - 不存在新增的用户可见行为缺口；既有 owner spec BDD 场景 rerun 通过。
 
@@ -196,7 +200,7 @@ dispatcher 在调用 consumer 前从 outbox payload / envelope 中读取 `traceI
 | 风险 | 应对措施 |
 |------|----------|
 | review.Runner 删除后报告生成回归 | Phase 2.5 完成时 rerun `review/runner_test.go` + `cmd/api/reports_http_scenario_test.go`；任何失败必须先修复再进入下一 phase |
-| email_dispatch 切到 async_jobs 后 magic link 投递延迟 | 把 `email_dispatch` 列入 `low` priority bucket 但 lease loop 仍≤5s scan；P3 收口阶段 smoke 验证 auth email start → DevMailSink delivery 延迟 ≤ 1 个 scan 周期 |
+| email_dispatch 切到 async_jobs 后 magic link 投递延迟 | 把 `email_dispatch` 列入 `low` priority bucket，且 production `Runtime.Start` 对每个 registered job_type 启动独立 lease loop；P3/P4 收口阶段 smoke 验证 auth email start → DevMailSink delivery 延迟 ≤ 1 个 scan 周期，并用 scheduler regression 证明 long-running critical/default handler 不会阻塞 email loop |
 | Outbox dispatcher 上线后 consumer 缺失导致 outbox 行被误确认或长期积压 | runtime 缺少 consumer 时不得置 `published`；dry-run consumer 仅允许测试显式注入；缺少 consumer 的 event 走 retry/dead-letter 并暴露 `outbox_publish_failures_total`，P3 完成前与 F2 / 各 owner 明确启用边界 |
 | 合并后的 JD Match runner 被遗漏，导致 `jd_match_agent_scan` 继续走旧 drainer | P2.6 单独迁移 `jd_match_agent_scan`；P4 lint 必须覆盖 `jdmatchRuntime.Drainer` / `JobTypeJdMatchAgentScan`；P4 BDD rerun 覆盖 E2E.P0.094-P0.097 |
 | `jd_match_search` future reservation 被误注册，触发 A4 未支持的 `medium` priority | Operation Matrix 与 P2.6 显式禁止注册 `jd_match_search`；若未来启用 async search，先由 B3/A4 修订 medium priority / queue weight gate |

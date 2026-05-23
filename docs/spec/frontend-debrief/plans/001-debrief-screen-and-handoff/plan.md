@@ -1,8 +1,8 @@
 # 001 Debrief Screen and Handoff
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-05-18
+> **更新日期**: 2026-05-23
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -14,6 +14,8 @@
 落地 frontend-debrief P0 闭环的全部前端实现：正式 `debrief` route 接管 + 历史 `debrief_full` 输入 normalize 到 `debrief` + DebriefScreen 全屏 + 5 个子组件源级复刻 + 3 个 in-page picker modal + 3-step stepper + 文本模式 AI 推荐问题（suggestDebriefQuestions 自动 + 手动触发）+ 非空回答摘要采集 + 跨模式共享 entries + 语音模式 UI shell（D-6 P0 不实现真实 STT）+ createDebrief 提交 + 双轨 polling（getJob + getDebrief）+ 三种失败态（Failure / Missing / Timeout）+ 分析渲染 + 复盘面试 fresh practice plan/session handoff + i18n / 主题 / 响应式 / pixel parity / 隐私红线 / 旧口径负向 / BDD `E2E.P0.065-069`。
 
 落地完成后，DebriefScreen 可作为 P0 用户路径中"刚面完一轮 → 复盘记录 → 复盘分析 → 复盘面试"闭环的前端入口，与 backend-debrief/001 一起完成 P0 整体闭环最后一段域。
+
+2026-05-23 L2 real-backend gate remediation：P0.065-P0.069 trigger 前置 `frontendOwners.realApiMode.test.ts`，verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker；fixture-backed UI variants 继续覆盖 DebriefScreen 状态分支，真实 debrief / jobs / picker / replay practice generated-client routing 由集中 gate 证明。
 
 ## 2 背景
 

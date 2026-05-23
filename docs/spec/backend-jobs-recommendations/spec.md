@@ -148,7 +148,7 @@
 ### 4.5 BDD / TDD 约束
 
 - 每个 endpoint 必须有 handler unit test（参数校验 + IK + cross-user + 错误路径）+ `cmd/api` route wiring test（session middleware / IK middleware / path params）+ store integration test（state transition + cross-user isolation + cursor pagination）+ AI 调用 unit test（stub provider，验证 prompt/profile 路由正确）。
-- 用户可见行为（getJobMatchProfile / list recommendations / mark not relevant / add to watchlist / search / save search）必须有 BDD scenario 覆盖；涉及 async job 的场景（agent scan）必须通过 `cmd/api` in-process drainer 或等价真实 runtime harness 证明可执行，不得只验证包级 handler。
+- 用户可见行为（getJobMatchProfile / list recommendations / mark not relevant / add to watchlist / search / save search）必须有 BDD scenario 覆盖；涉及 async job 的场景（agent scan）必须通过 backend-async-runner kernel（`runner.Runtime`）或等价真实 runtime harness 证明可执行，不得只验证包级 handler。
 
 ## 5 模块边界
 
@@ -157,8 +157,8 @@
 | 12 个 JobMatch HTTP handler | backend-jobs-recommendations | 真实业务逻辑 |
 | `jd_match_recommendations` / `watchlist_items` / `saved_searches` / `agent_scans` / `jd_match_search_runs` 5 张表 schema | [B4 db-migrations-baseline](../db-migrations-baseline/spec.md) + 本 plan 携带 cross-owner additive migration | 字段 / 索引 / FK / check constraint |
 | candidate 画像聚合 | backend-jobs-recommendations + cross-owner internal API（backend-auth / backend-profile / backend-resume / backend-targetjob / backend-practice / backend-debrief） | `BuildJobMatchProfile` 通过 7 个 internal API 聚合（D-17 / D-18 / D-19 锁定字段来源与稀疏 baseline）|
-| `jd_match.agent_scan` job / `jd_match.recommendation` generator / `jd_match.search` sync handler | backend-jobs-recommendations + [backend-runtime-topology](../backend-runtime-topology/spec.md) | `jd_match_agent_scan` job handler 注册到 `cmd/api` in-process drainer / runtime composition；recommendation 不注册独立 job_type；search P0 走同步 handler |
-| `cmd/api` runtime wiring | backend-jobs-recommendations + [backend-runtime-topology](../backend-runtime-topology/spec.md) | 挂载 12 个 JobMatch route、idempotency middleware 与 in-process drainer；不得引入独立 worker 进程 |
+| `jd_match.agent_scan` job / `jd_match.recommendation` generator / `jd_match.search` sync handler | backend-jobs-recommendations + active [`backend-async-runner`](../backend-async-runner/spec.md) | `jd_match_agent_scan` job handler 注册到 backend-async-runner kernel（单一 `runner.Runtime`）；recommendation 不注册独立 job_type；search P0 仍走同步 HTTP handler 且为 future-async reserved，不注册后台 job |
+| `cmd/api` runtime wiring | backend-jobs-recommendations + [backend-runtime-topology](../backend-runtime-topology/spec.md) | 挂载 12 个 JobMatch route 与 idempotency middleware；后台 job 生命周期统一由 backend-async-runner kernel 持有，不引入独立 worker 进程 |
 | AI 调用 | [A3 AIClient](../ai-provider-and-model-routing/spec.md) + [F3 feature_key](../prompt-rubric-registry/spec.md) | backend-jobs-recommendations 只引用 profile，不绑定 provider；F3 cross-owner additive 新增 2 个 feature_key |
 | 隐私删除调用 | backend internal privacy runner（[backend-runtime-topology](../backend-runtime-topology/spec.md)） | 调用 `DeleteJobMatchDataForUser` |
 | frontend JD-Match UI | [frontend-home-job-picks-and-parse/002-jd-match-recommendations](../frontend-home-job-picks-and-parse/plans/002-jd-match-recommendations/plan.md) | 消费 generated TS client；当前通过 fixture-backed transport 闭环，本 subject 落地后切真 |

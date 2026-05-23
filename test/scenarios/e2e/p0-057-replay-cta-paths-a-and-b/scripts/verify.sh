@@ -6,6 +6,7 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-057-replay-cta-paths-a-and-b"
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
+"$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
 grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE" || { echo "E2E.P0.057: no passing test files" >&2; exit 1; }
 grep -Fq 'pendingActionReplayPractice.test.ts' "$LOG_FILE" || { echo "E2E.P0.057: pendingAction replay test did not run" >&2; exit 1; }
 grep -Fq 'ReplayCta.test.tsx' "$LOG_FILE" || { echo "E2E.P0.057: ReplayCta test did not run" >&2; exit 1; }

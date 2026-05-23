@@ -5,6 +5,13 @@ import (
 	"testing"
 )
 
+func TestMinIOStorePresignDoesNotForceServerSideEncryptionHeader(t *testing.T) {
+	_, uploadHeaders := minioPutHeaders("application/pdf")
+	if got := uploadHeaders["x-amz-server-side-encryption"]; got != "" {
+		t.Fatalf("server-side encryption header = %q, want storage-side policy instead of client-forced SSE", got)
+	}
+}
+
 func TestMinIOStoreClientForConcurrentFirstUse(t *testing.T) {
 	store := NewMinIOStore(MinIOConfig{
 		Endpoint:  "http://localhost:9000",

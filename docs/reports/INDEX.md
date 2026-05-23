@@ -8,8 +8,13 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-23](./2026-05-23-frontend-owner-scenario-full-run-gates-assessment.md) | Frontend Owner Scenario Full-Run Gates 交付复盘 | #assessment |
+| [2026-05-23](./2026-05-23-frontend-owner-real-backend-handoff-gates-assessment.md) | Frontend Owner Real Backend Handoff Gates 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-repo-lint-contract-gate-follow-up-assessment.md) | Repo Lint Contract Gate Follow-up 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-local-dev-stack-postgres18-volume-guard-assessment.md) | Local Dev Stack Postgres 18 Volume Guard 交付复盘 | #assessment |
+| [2026-05-22](./2026-05-22-backend-async-runner-scheduler-backoff-fix-assessment.md) | Backend Async Runner Scheduler Backoff Fix 交付复盘 | #assessment |
+| [2026-05-22](./2026-05-22-backend-async-runner-001-l2-remediation-assessment.md) | Backend Async Runner 001 L2 Remediation 交付复盘 | #assessment |
+| [2026-05-22](./2026-05-22-backend-async-runner-001-assessment.md) | Backend Async Runner 001 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-frontend-home-targetjob-real-backend-gate-assessment.md) | Frontend Home TargetJob Real Backend Gate 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-frontend-jd-match-real-backend-gate-assessment.md) | Frontend JD Match Real Backend Gate 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-backend-jobs-recommendations-001-l2-followup-assessment.md) | Backend Jobs Recommendations 001 L2 Follow-up 交付复盘 | #assessment |

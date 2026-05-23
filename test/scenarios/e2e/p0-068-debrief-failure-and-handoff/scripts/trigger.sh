@@ -7,8 +7,10 @@ mkdir -p "$OUTPUT_DIR"
 {
   echo "E2E.P0.068 RUNNER pnpm vitest"
   cd "$REPO_ROOT"
-  pnpm --filter @easyinterview/frontend test -- --run \
-    src/app/screens/debrief \
+  "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
+  pnpm --filter @easyinterview/frontend exec vitest run --reporter=verbose \
+    src/app/screens/debrief/DebriefScreen.test.tsx \
+    src/app/screens/debrief/__tests__/privacyBoundary.test.ts \
     src/app/interview-context/InterviewContext.test.tsx
 } | tee "$OUTPUT_DIR/trigger.log"
 echo "E2E.P0.068 HANDOFF SESSION GATE" | tee -a "$OUTPUT_DIR/trigger.log"

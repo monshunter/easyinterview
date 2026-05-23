@@ -2,15 +2,15 @@ package auth_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/auth"
-	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 )
 
 func TestAuthPrivacyObservableSurfacesDoNotLeakSecretsOrPII(t *testing.T) {
@@ -53,10 +53,8 @@ func TestAuthPrivacyObservableSurfacesDoNotLeakSecretsOrPII(t *testing.T) {
 	handler.VerifyAuthEmailChallenge(rec, req)
 	assertNoAuthLeak(t, "verify response body", rec.Body.String())
 
-	failing := auth.NewBackgroundMailDispatcher(auth.BackgroundMailDispatcherOptions{
-		Writer: &failingDeliveryWriter{err: fmt.Errorf("failed raw-magic-token candidate@example.com http://api.test/verify?token=raw-magic-token")},
-	})
-	payload, err := jobs.BuildEmailDispatchPayload(map[string]string{
+	failingHandler := auth.NewEmailDispatchHandler(&failingDeliveryWriter{err: fmt.Errorf("failed raw-magic-token candidate@example.com http://api.test/verify?token=raw-magic-token")})
+	rawPayload, err := json.Marshal(map[string]string{
 		"authChallengeId":   "challenge-privacy",
 		"templateKey":       "auth_magic_link",
 		"locale":            "en",
@@ -66,13 +64,11 @@ func TestAuthPrivacyObservableSurfacesDoNotLeakSecretsOrPII(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := failing.Enqueue(context.Background(), payload); err != nil {
-		t.Fatal(err)
+	outcome := failingHandler.Handle(context.Background(), runner.ClaimedJob{Payload: rawPayload})
+	if outcome.Succeeded || !outcome.Retryable {
+		t.Fatalf("email dispatch handler delivery failure outcome = %+v, want retryable failure", outcome)
 	}
-	if err := failing.Shutdown(context.Background()); err != nil {
-		t.Fatal(err)
-	}
-	assertNoAuthLeak(t, "dispatcher failure summaries", strings.Join(failing.ErrorSummaries(), "\n"))
+	assertNoAuthLeak(t, "email dispatch handler outcome", outcome.ErrorCode+" "+outcome.ErrorMessage)
 }
 
 func assertNoAuthLeak(t *testing.T, surface string, text string) {

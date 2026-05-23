@@ -20,6 +20,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	reviewdomain "github.com/monshunter/easyinterview/backend/internal/review"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
@@ -56,21 +57,33 @@ func TestE2EP0052ReportGenerationHappyPath(t *testing.T) {
 		},
 		ok: true,
 	}
-	runner := reviewdomain.NewRunner(reviewdomain.RunnerOptions{
+	handler := reviewdomain.NewGenerateHandler(reviewdomain.GenerateHandlerOptions{
 		Store:   store,
 		Service: service,
 		Now:     func() time.Time { return now },
 	})
 
-	processed, err := runner.RunOnce(context.Background())
-	if err != nil || !processed {
-		t.Fatalf("RunOnce processed=%v err=%v", processed, err)
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
+		JobID:       store.job.JobID,
+		JobType:     store.job.JobType,
+		ResourceID:  store.job.ResourceID,
+		Attempts:    1,
+		MaxAttempts: 5,
+		AvailableAt: now,
+	})
+	if !outcome.Succeeded {
+		t.Fatalf("outcome = %+v, want succeeded", outcome)
+	}
+	if !outcome.AsyncJobFinalized {
+		t.Fatalf("outcome.AsyncJobFinalized = false, want true (service finalizes the row in its transaction)")
 	}
 	if store.statusUpdate.From != sharedtypes.ReportStatusQueued || store.statusUpdate.To != sharedtypes.ReportStatusGenerating {
 		t.Fatalf("status update = %+v", store.statusUpdate)
 	}
+	// The kernel owns lease/finalize; the handler must not touch the async job
+	// row directly.
 	if store.succeededJobID != "" || store.failed.JobID != "" {
-		t.Fatalf("runner updated async job after service finalization: succeeded=%q failed=%+v", store.succeededJobID, store.failed)
+		t.Fatalf("handler updated async job directly: succeeded=%q failed=%+v", store.succeededJobID, store.failed)
 	}
 	if repo.persisted.ReportID != reportID || repo.persisted.AsyncJobID != store.job.JobID || repo.persisted.PreparednessLevel == "" || len(repo.persisted.Assessments) != 3 {
 		t.Fatalf("persisted result = %+v", repo.persisted)
@@ -198,8 +211,8 @@ func TestE2EP0054ReportAIFailureAndRetry(t *testing.T) {
 			if outcome.Succeeded || outcome.ErrorCode != tc.wantCode {
 				t.Fatalf("outcome = %+v, want %s", outcome, tc.wantCode)
 			}
-			if !outcome.AsyncJobFinalized {
-				t.Fatalf("outcome.AsyncJobFinalized = false, want true")
+			if outcome.AsyncJobFinalized {
+				t.Fatalf("failure outcome must leave async job finalization to the runner kernel")
 			}
 			if repo.failed.ErrorCode != tc.wantCode {
 				t.Fatalf("persisted failure = %+v", repo.failed)
@@ -219,16 +232,32 @@ func TestE2EP0054ReportAIFailureAndRetry(t *testing.T) {
 		job: reviewdomain.AsyncJob{JobID: "job-permanent", ResourceID: "report-permanent", Attempts: 5, MaxAttempts: 5},
 		ok:  true,
 	}
-	runner := reviewdomain.NewRunner(reviewdomain.RunnerOptions{
+	handler := reviewdomain.NewGenerateHandler(reviewdomain.GenerateHandlerOptions{
 		Store:   store,
 		Service: reportScenarioOutcomeService{outcome: reviewdomain.ReportOutcome{ErrorCode: sharederrors.CodeAiProviderTimeout, ErrorMessage: "timeout", Retryable: true}},
 		Now:     func() time.Time { return now },
 	})
-	if _, err := runner.RunOnce(context.Background()); err != nil {
-		t.Fatalf("permanent RunOnce: %v", err)
+	// The handler reports a retryable failure and transitions the report to
+	// generating; the runner kernel owns the unified backoff / dead-letter
+	// terminal state (asserted in backend/internal/runner tests), so the handler
+	// itself must not finalize the async job row.
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
+		JobID:       store.job.JobID,
+		ResourceID:  store.job.ResourceID,
+		Attempts:    5,
+		MaxAttempts: 5,
+	})
+	if outcome.Succeeded || !outcome.Retryable || outcome.ErrorCode != sharederrors.CodeAiProviderTimeout {
+		t.Fatalf("permanent handle outcome = %+v, want retryable timeout", outcome)
 	}
-	if store.failed.AvailableAt.Sub(now) != 16*time.Minute || store.failed.ErrorCode != sharederrors.CodeAiProviderTimeout {
-		t.Fatalf("permanent failed update = %+v", store.failed)
+	if outcome.AsyncJobFinalized {
+		t.Fatalf("handler must not finalize the async job; kernel owns finalize")
+	}
+	if store.statusUpdate.To != sharedtypes.ReportStatusGenerating {
+		t.Fatalf("status update = %+v, want transition to generating", store.statusUpdate)
+	}
+	if store.failed.JobID != "" || store.succeededJobID != "" {
+		t.Fatalf("handler updated async job directly: %+v", store.failed)
 	}
 }
 

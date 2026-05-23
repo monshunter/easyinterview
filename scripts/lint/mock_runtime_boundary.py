@@ -44,6 +44,8 @@ RETIRED_CONTRACT_TOKEN_PATTERNS = (
     ("default.provider", re.compile(r"\bdefault\.provider\b")),
     ("task_type", re.compile(r"\btask_type\b")),
 )
+RETIRED_ROUTE_TOKENS = frozenset({"/mistakes", "/growth", "/drill", "/voice"})
+RETIRED_TAG_TOKENS = frozenset({"Mistakes", "Growth", "Drill", "Voice"})
 RETIRED_TOKEN_SCAN_ROOTS = (
     "openapi/fixtures",
     "frontend/src/api",
@@ -144,6 +146,19 @@ def _lint_retired_contract_tokens(repo_root: Path) -> list[str]:
                     f"owner spec: {OWNER_SPEC_HINT}"
                 )
     return errors
+
+
+def _has_retired_contract_token(text: str, token: str) -> bool:
+    if token in RETIRED_ROUTE_TOKENS:
+        return re.search(rf"{re.escape(token)}(?:/|[\"'\s]|$)", text) is not None
+    if token in RETIRED_TAG_TOKENS:
+        escaped = re.escape(token)
+        return (
+            re.search(rf"\bname:\s*{escaped}\b", text) is not None
+            or re.search(rf"\btags:\s*\[\s*{escaped}\s*\]", text) is not None
+            or re.search(rf'["\']{escaped}["\']', text) is not None
+        )
+    return token in text
 
 
 def _retired_scan_files(repo_root: Path) -> Iterable[Path]:

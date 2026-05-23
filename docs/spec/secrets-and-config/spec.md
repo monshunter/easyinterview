@@ -62,7 +62,8 @@
 | D-6 | secret 红线 | `*.secret.yaml` 默认 `.gitignore`；pre-commit hook 拦截 `AKIA[0-9A-Z]{16}` / `sk-[A-Za-z0-9]{20,}` / `xox[baprs]-[A-Za-z0-9-]+`；本地 gitleaks 复扫；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | 阻断仓库内敏感凭证泄漏 |
 | D-7 | 配置热加载 | feature flag 支持热加载（≤ 30s）；其它 config 字段在进程启动时读取，运行时不变；如需热加载，必须递增 spec | 避免业务围绕「config 变了吗」写复杂代码 |
 | D-8 | Session cookie 字面量 | `ei_session`，由 [ADR-Q1 §3](../engineering-roadmap/decisions/ADR-Q1-auth.md#3-决策) 锁定；P0 不提供 env/config override | A4 只管理 `SESSION_COOKIE_SECRET` 等 secret，不允许环境差异改 cookie name 导致 B2 OpenAPI / C1 middleware / D1 fetch 口径分裂 |
-| D-9 | 后台任务队列权重 | `async.queueWeights` 配置路径固定在 `config/config.yaml` / `config/{env}.yaml`，默认 `critical: 6` / `default: 3` / `low: 1`；P0 不额外增加 env key，backend internal runner 通过 typed config 读取 | ADR-Q2 的 queue priority 可由配置驱动，同时保持 env 字典稳定为 24 项 |
+| D-9 | 后台任务队列权重 | `async.queueWeights` 配置路径固定在 `config/config.yaml` / `config/{env}.yaml`，默认 `critical: 6` / `default: 3` / `low: 1`；P0 不额外增加 env key，backend-async-runner kernel 通过 typed config 读取 | ADR-Q2 的 queue priority 可由配置驱动，同时保持 env 字典稳定为 24 项 |
+| D-14 | Runner kernel 时序（additive） | additive 新增 config-only 节点 `async.leaseTimeoutSeconds`(300) / `async.shutdownGraceSeconds`(10) / `async.reaperIntervalSeconds`(60) / `async.scanIntervalSeconds`(5)；不新增 env key（env 字典保持 24 项）；缺失或非正数 fail-fast，不得静默回退为代码常量 | 由 active [`backend-async-runner/001`](../backend-async-runner/spec.md) D-5 / D-8 / D-14 消费，作为 kernel lease loop / reaper / graceful shutdown 时序源 |
 | D-10 | 上传基础配置 | `objectStorage.provider=minio|filesystem`、`upload.presignTTLSeconds` 默认 600、`upload.maxBytes.resume=10485760`、`upload.maxBytes.targetJobAttachment=10485760`、`upload.maxBytes.privacyExport=5242880` 均为 config-only path；P0 不新增 `UPLOAD_*` / `OBJECT_STORE_*` env key | backend-upload 通过 typed config 注入 provider / TTL / per-purpose size limit，继续复用现有 `OBJECT_STORAGE_*` secret/env 字典 |
 
 #### 3.1.1 P0 必备 env key 字典（24 项）
@@ -127,7 +128,8 @@
 | `featureFlag.posthogHost` / `featureFlag.posthogSelfHosted` | `POSTHOG_HOST` / `POSTHOG_SELF_HOSTED` | 否 | required when source=posthog; staging/prod must self-host | 否 | A4 + F2 |
 | `featureFlag.posthogProjectApiKey` | `POSTHOG_PROJECT_API_KEY` | 是 | required when source=posthog | 否 | A4 + F2 |
 | `featureFlag.posthogPublicKey` | `POSTHOG_PUBLIC_KEY` | 否 | optional | 是，仅当 `analyticsEnabled=true` 且已配置 | A4 + F2 + D1 |
-| `async.queueWeights` | `(config.yaml only)` | 否 | always；默认 `critical:6/default:3/low:1` | 否 | A4 + backend internal runner + ADR-Q2 |
+| `async.queueWeights` | `(config.yaml only)` | 否 | always；默认 `critical:6/default:3/low:1` | 否 | A4 + backend-async-runner + ADR-Q2 |
+| `async.leaseTimeoutSeconds` / `async.shutdownGraceSeconds` / `async.reaperIntervalSeconds` / `async.scanIntervalSeconds` | `(config.yaml only)` | 否 | always；默认 `300/10/60/5`；缺失或非正数 fail-fast | 否 | A4 + active backend-async-runner (D-14) |
 
 ### 3.2 待确认事项
 

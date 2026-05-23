@@ -7,6 +7,7 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 PRACTICE_DIR="$REPO_ROOT/frontend/src/app/screens/practice"
 LOCALES_DIR="$REPO_ROOT/frontend/src/app/i18n/locales"
 test -s "$LOG_FILE"
+"$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
 grep -Eq 'Test Files +[0-9]+ passed \([0-9]+\)' "$LOG_FILE" || { echo "E2E.P0.046: no passing test files found" >&2; exit 1; }
 grep -Fq 'practiceSessionLost.test.tsx' "$LOG_FILE" || { echo "E2E.P0.046: practiceSessionLost.test.tsx did not run" >&2; exit 1; }
 grep -Fq 'useCompletePracticeSession.test.tsx' "$LOG_FILE" || { echo "E2E.P0.046: useCompletePracticeSession.test.tsx did not run" >&2; exit 1; }

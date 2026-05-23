@@ -6,6 +6,7 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-059-report-pixel-parity-i18n-and-lega
 mkdir -p "$OUTPUT_DIR"
 (
   cd "$REPO_ROOT"
+  "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
     src/app/i18n/__tests__/reportDashboardI18nCoverage.test.ts \
     src/app/screens/report/__tests__/legacyNegative.test.ts \

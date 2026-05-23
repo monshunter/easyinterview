@@ -1,17 +1,17 @@
 # 001 — Report Screen and Generating Handoff Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-05-23
 
 **关联计划**: [plan](./plan.md)
 
 ## Phase 0: 跨 owner 前置 preflight
 
-- [x] 0.1 新增 `frontend/src/app/screens/report/__tests__/preflight.test.ts`：断言 `openapi/openapi.yaml` 中 `FeedbackReport` schema 含 `errorCode` 字段（`oneOf: [ApiErrorCode, null]`）+ generated TS `FeedbackReport` interface 含可选 `errorCode` 属性；缺失 fail message 指向 backend-review/001 Phase 0.2 + 0.4
-- [x] 0.2 在 `preflight.test.ts` 追加：断言 `openapi/fixtures/Reports/getFeedbackReport.json` 的 `scenarios.report-failed.response.body.status === 'failed'` + `scenarios.report-failed.response.body.errorCode` 非 null；同时断言 `scenarios.default` + `scenarios.report-generating` 已存在；缺失 fail message 指向 backend-review/001 Phase 0.4
-- [x] 0.3 在 `preflight.test.ts` 追加：断言 `openapi/fixtures/Reports/listTargetJobReports.json` 的 `scenarios.empty.response.body.items === []` + `scenarios.empty.response.body.pageInfo.hasMore === false` + `scenarios.empty.response.body.pageInfo.nextCursor === null`；缺失 fail message 指向 backend-review/001 Phase 0.4
-- [x] 0.4 在 `preflight.test.ts` 追加：断言 `shared/conventions.yaml#errors` 含 `REPORT_NOT_FOUND` + `httpStatus: 404` + `retryable: false` + generated TS 等价常量；缺失 fail message 指向 backend-review/001 Phase 0.1
+- [x] 0.1 新增 `frontend/src/app/screens/report/__tests__/preflight.test.ts`：断言 `openapi/openapi.yaml` 中 `FeedbackReport` schema 含 `errorCode` 字段（`oneOf: [ApiErrorCode, null]`）+ generated TS `FeedbackReport` interface 含可选 `errorCode` 属性；缺失 fail message 指向 backend-review/001 schema/error-code contract drift
+- [x] 0.2 在 `preflight.test.ts` 追加：断言 `openapi/fixtures/Reports/getFeedbackReport.json` 的 `scenarios.report-failed.response.body.status === 'failed'` + `scenarios.report-failed.response.body.errorCode` 非 null；同时断言 `scenarios.default` + `scenarios.report-generating` 已存在；缺失 fail message 指向 report-failed fixture contract drift
+- [x] 0.3 在 `preflight.test.ts` 追加：断言 `openapi/fixtures/Reports/listTargetJobReports.json` 的 `scenarios.empty.response.body.items === []` + `scenarios.empty.response.body.pageInfo.hasMore === false` + `scenarios.empty.response.body.pageInfo.nextCursor === null`；缺失 fail message 指向 empty fixture contract drift
+- [x] 0.4 在 `preflight.test.ts` 追加：断言 `shared/conventions.yaml#errors` 含 `REPORT_NOT_FOUND` + `httpStatus: 404` + `retryable: false` + generated TS 等价常量；缺失 fail message 指向 shared/generated error contract drift
 - [x] 0.5 收口 gate：`pnpm --filter @easyinterview/frontend test src/app/screens/report/__tests__/preflight.test.ts` 全绿；如任一断言 fail，Phase 1 不启动，通过 bug-report / retrospective 通知 backend-review/001 owner
 
 ## Phase 1: GeneratingScreen 源级复刻 + useReportGenerationPoll hook + 状态分支
@@ -78,10 +78,10 @@
 - [x] 5.6 新增 `scripts/lint/frontend_report_dashboard_legacy.py`：scoped grep 在 `frontend/src/app/screens/{report,generating}/`：`reportLayout` / `report_layout` / 旧 5 档 readiness（`fully_prepared` 等旧字面量） / `readinessScore` / `readiness_score` numeric / `mistakes_queue` / `mistakesQueue` / `drill_builder` / `drillBuilder` / `growth_center` / `growthCenter` / `report_timeline` / `reportTimeline` / `report_form` / `reportForm` / 旧独立 `mistakes` route entry / `createPracticeVoiceTurn` / `getCompanyIntel` / `getDebrief` / `listTargetJobReports` 在实现代码中零出现；本 plan / BDD / test docs / spec §D-12 prohibition / preflight.test.ts 不属于实现范围；新增 `scripts/lint/frontend_report_dashboard_legacy_test.py` 覆盖 `test_frontend_report_dashboard_legacy_includes_terms` / `test_frontend_report_dashboard_legacy_allows_negative_docs`
 - [x] 5.7 新增 `frontend/src/app/screens/report/__tests__/legacyNegative.test.ts` + `frontend/src/app/screens/generating/__tests__/legacyNegative.test.ts`：grep negative 同上集合 + 不 import `ui-design/src/data.jsx` / `window.EI_DATA` / prototype helper + 不 import `VoiceSessionSurface` 等 voice 组件 + 不调 Practice operation + `TestListTargetJobReportsNotInvokedInReportOrGenerating`（mockTransport spy 断言 `listTargetJobReports` 调用次数 = 0）
 - [x] 5.8 新增 `frontend/src/app/i18n/__tests__/reportDashboardI18nCoverage.test.ts`：断言 `report.*` 与 `generating.*` 命名空间 zh / en 同步无缺漏（key 集合相等）+ 新增 key ≥ 60 + 切换 locale 时所有 testid 文案重绘 + `report.failureState.errorCode.*` 覆盖 B1 `AI_*` enum 当前全部值（用 generated B1 常量做 source of truth）+ `TestReportFailureStateErrorCodeCoversReportNotFound` 显式断言 `report.failureState.errorCode.REPORT_NOT_FOUND` 与 `report.failureState.notFound.*` key 存在且 zh / en 同步
-- [x] 5.9 跨 owner regression：在 Phase 5 收口阶段重跑：frontend-workspace-and-practice/002 BDD `E2E.P0.044-047`（保证未被破坏）；如 backend-review/001 Phase 5 已实施则跑 `E2E.P0.052-055` backend BDD；backend-practice/002 BDD `E2E.P0.038-043` 必要时通过 cmd/api 重跑
+- [x] 5.9 跨 owner regression：在 Phase 5 收口阶段重跑：frontend-workspace-and-practice/002 BDD `E2E.P0.044-047`（保证未被破坏）；backend-review/001 BDD `E2E.P0.052-055` 在真实 handler 落地后作为 real-backend regression；backend-practice/002 BDD `E2E.P0.038-043` 必要时通过 cmd/api 重跑
 - [x] 5.10 BDD-Gate: 验证 `E2E.P0.059` 通过（Playwright pixel parity + i18n + 旧口径负向）
 - [x] 5.11 新增 `frontend/src/app/screens/report/README.md` + `frontend/src/app/screens/generating/README.md`：简明 handoff 段落，记录 001 新增 component / hook / nav 边界 / handoff 给 backend-review 与 frontend-workspace-and-practice 的边界；引用 D-1 ~ D-14 决策
-- [x] 5.12 收口 gate：`pnpm vitest run` 全绿 + `pnpm typecheck` 全绿 + `pnpm test:pixel-parity` 全绿 + `pnpm build` 全绿 + `make codegen-check` 通过 + `make validate-fixtures` 通过（依赖 backend-review/001 Phase 0 新增 fixture variants）+ `python3 scripts/lint/frontend_report_dashboard_legacy.py --repo-root . --phase all` 通过 + `python3 -m pytest scripts/lint/frontend_report_dashboard_legacy_test.py -q` 通过 + `make docs-check` 通过 + `git diff --check` 通过
+- [x] 5.12 收口 gate：`pnpm vitest run` 全绿 + `pnpm typecheck` 全绿 + `pnpm test:pixel-parity` 全绿 + `pnpm build` 全绿 + `make codegen-check` 通过 + `make validate-fixtures` 通过（覆盖 backend-review/001 已交付 fixture variants）+ `python3 scripts/lint/frontend_report_dashboard_legacy.py --repo-root . --phase all` 通过 + `python3 -m pytest scripts/lint/frontend_report_dashboard_legacy_test.py -q` 通过 + `make docs-check` 通过 + `git diff --check` 通过
 - [x] 5.13 更新 `docs/spec/frontend-report-dashboard/plans/INDEX.md`：001 状态推进到 `completed`，并通过 sync-doc-index / docs-check 校验 Header 与 INDEX 一致
 
 ## 收口证据
@@ -101,5 +101,6 @@
 - `test/scenarios/e2e/p0-058-report-failure-and-missing-session/scripts/{setup,trigger,verify,cleanup}.sh`
 - `test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-legacy-negative/scripts/{setup,trigger,verify,cleanup}.sh`
 - 2026-05-16 cross-owner regression: `E2E.P0.044` / `E2E.P0.045` / `E2E.P0.046` / `E2E.P0.047` setup → trigger → verify → cleanup 全部通过。
+- 2026-05-23 L2 real-backend generated-client gate: P0.056-P0.059 trigger 前置 `frontendOwners.realApiMode.test.ts`；verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker；focused Vitest `frontendOwners.realApiMode.test.ts` PASS。
 - `make docs-check`
 - `git diff --check`

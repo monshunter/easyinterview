@@ -1,11 +1,13 @@
 # Frontend Resume Workshop Create Flow and Onboarding
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-05-23
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
+
+> 2026-05-23 L2 real-backend gate remediation：P0.081-P0.083 trigger 已前置 `frontendOwners.realApiMode.test.ts`，verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker；create flow 的 fixture-backed UI variants 继续保留，但真实 upload/resume/structured-master generated-client routing 由集中 gate 证明。
 
 ## 1 目标
 

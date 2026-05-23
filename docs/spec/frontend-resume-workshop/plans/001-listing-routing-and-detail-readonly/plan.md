@@ -1,11 +1,13 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-05-23
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
+
+> 2026-05-23 L2 real-backend gate remediation：本 completed plan 的 scenario trigger 已前置 `frontendOwners.realApiMode.test.ts`，verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker；listing/detail 的 fixture-backed UI variants 继续保留，但真实 resume generated-client routing 由集中 gate 证明。
 
 ## 1 目标
 
@@ -69,10 +71,10 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` `default` / `empty` / `paginated` | `ResumeListView` + adapter `mapResumeAssetToUiSource`; counts derive from `items.length` / `pageInfo` | `backend-resume/001` not-yet-implemented at this plan start; fixture-backed until landed | `resume_assets` | none | E2E.P0.036 |
-| `listResumeVersions` | `openapi/fixtures/Resumes/listResumeVersions.json` `default` / `master-only` / `with-targeted-branches` | `ResumeTreeView` / `ResumeFlatView` + adapter `mapResumeVersionToUi`; current fixture-backed transport is scenario-scoped, not request-aware, so 001 consumes the selected scenario as the available version collection and groups by `resumeAssetId`; `listResumes.default` assets without matching versions render an explicit no-versions/partial state instead of fabricated versions. Request-aware path-param scenario selection is deferred until B2 adds matching fixtures or mock transport path-param selection | future `backend-resume/002-versions-and-tailor-runs`; fixture-backed in this plan | `resume_versions` | none | E2E.P0.036 |
-| `getResume` | `openapi/fixtures/Resumes/getResume.json` `default` / `master-default` / `not-found` | `ResumeDetailView` original modal via `useResumeAsset(version.resumeAssetId)` + adapter `mapResumeAssetToUiSource`; modal prefers `parsedTextSnapshot` / `originalText` from the source asset and only falls back to version summary when the source has no text | `backend-resume/001` not-yet-implemented at this plan start; fixture-backed until landed | `resume_assets` | none | E2E.P0.037 |
-| `getResumeVersion` | `openapi/fixtures/Resumes/getResumeVersion.json` `default` / `master-default` / `targeted-with-suggestions` / `not-found-404` | `ResumeDetailView` detail loader / Preview Tab; UI copy must not depend on current fixture's `error.code` spelling | future `backend-resume/002-versions-and-tailor-runs`; fixture-backed in this plan | `resume_versions` / `resume_version_suggestions` | none for readonly preview; provenance is fixture-backed | E2E.P0.037 |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` `default` / `empty` / `paginated` | `ResumeListView` + adapter `mapResumeAssetToUiSource`; counts derive from `items.length` / `pageInfo` | backend-resume real handler | `resume_assets` | none | E2E.P0.036 + real-mode gate |
+| `listResumeVersions` | `openapi/fixtures/Resumes/listResumeVersions.json` `default` / `master-only` / `with-targeted-branches` | `ResumeTreeView` / `ResumeFlatView` + adapter `mapResumeVersionToUi`; current fixture-backed transport is scenario-scoped, not request-aware, so 001 consumes the selected scenario as the available version collection and groups by `resumeAssetId`; `listResumes.default` assets without matching versions render an explicit no-versions/partial state instead of fabricated versions. | backend-resume real handler | `resume_versions` | none | E2E.P0.036 + real-mode gate |
+| `getResume` | `openapi/fixtures/Resumes/getResume.json` `default` / `master-default` / `not-found` | `ResumeDetailView` original modal via `useResumeAsset(version.resumeAssetId)` + adapter `mapResumeAssetToUiSource`; modal prefers `parsedTextSnapshot` / `originalText` from the source asset and only falls back to version summary when the source has no text | backend-resume real handler | `resume_assets` | none | E2E.P0.037 + real-mode gate |
+| `getResumeVersion` | `openapi/fixtures/Resumes/getResumeVersion.json` `default` / `master-default` / `targeted-with-suggestions` / `not-found-404` | `ResumeDetailView` detail loader / Preview Tab; UI copy must not depend on current fixture's `error.code` spelling | backend-resume real handler | `resume_versions` / `resume_version_suggestions` | none for readonly preview; provenance is backend-derived in real mode | E2E.P0.037 + real-mode gate |
 | `exportResumeVersion` | `openapi/fixtures/Resumes/exportResumeVersion.json` `p0-501-not-available`; fixture declares `request.headers.Idempotency-Key` but fixture mock does not validate it | `ResumeDetailView` Preview export button generates `generateIdempotencyKey()`, passes generated client `opts.idempotencyKey`, asserts request header `Idempotency-Key`, maps `RESUME_EXPORT_NOT_AVAILABLE` / 501 to user-visible toast, and does not persist output | P0 explicit 501 stub; future `backend-resume/003` may switch to 202 + Job with spec revision | none in P0 | none | E2E.P0.037 |
 
 ## 4 实施步骤

@@ -25,6 +25,7 @@ import (
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	"github.com/monshunter/easyinterview/backend/internal/upload/objectstore"
 	uploadservice "github.com/monshunter/easyinterview/backend/internal/upload/service"
 	uploadstore "github.com/monshunter/easyinterview/backend/internal/upload/store"
@@ -78,10 +79,12 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
+	defer runtime.Close()
+	kernel := newTestKernel(runner.NewSQLStore(db), runtime.Handlers)
 	defer func() {
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), time.Second)
 		defer shutdownCancel()
-		if err := runtime.Shutdown(shutdownCtx); err != nil {
+		if err := kernel.Shutdown(shutdownCtx); err != nil {
 			t.Fatalf("runtime shutdown: %v", err)
 		}
 	}()
@@ -170,7 +173,7 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 		t.Fatalf("prioritize privacy delete job: %v", err)
 	}
 
-	processed, err := runtime.Drainer.RunOnce(ctx)
+	processed, err := kernel.RunOnce(ctx)
 	if err != nil {
 		t.Fatalf("run privacy delete job: %v", err)
 	}
@@ -390,7 +393,14 @@ func assertUploadRoundtripPrivacyDelete(t *testing.T, db *sql.DB, fileObjectID s
 		t.Fatalf("select privacy request: %v", err)
 	}
 	if requestStatus != "completed" {
-		t.Fatalf("privacy request status = %q", requestStatus)
+		var jobStatus, errorCode, errorMessage sql.NullString
+		_ = db.QueryRow(`
+select status, error_code, error_message
+from async_jobs
+where resource_id = $1 and job_type = 'privacy_delete'
+order by updated_at desc
+limit 1`, privacyRequestID).Scan(&jobStatus, &errorCode, &errorMessage)
+		t.Fatalf("privacy request status = %q; privacy job status=%q error_code=%q error_message=%q", requestStatus, jobStatus.String, errorCode.String, errorMessage.String)
 	}
 	var auditMetadata string
 	if err := db.QueryRow(`select metadata::text from audit_events where resource_id = $1 and action = 'privacy.file_object_deleted'`, fileObjectID).Scan(&auditMetadata); err != nil {

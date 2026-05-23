@@ -83,6 +83,37 @@ class MockRuntimeBoundaryTest(unittest.TestCase):
         self.assertIn("ai.gateway", out.stderr + out.stdout)
         self.assertIn("docs/spec/mock-contract-suite/spec.md", out.stderr + out.stdout)
 
+    def test_session_scoped_voice_operation_is_allowed_but_standalone_voice_route_fails(self) -> None:
+        client = self.repo / "frontend/src/api/voice-session.ts"
+        client.write_text(
+            textwrap.dedent(
+                """\
+                export const path = "/practice/sessions/{sessionId}/voice-turns";
+                export interface PracticeVoiceTurnResult { voiceTurnId: string }
+                """
+            ),
+            encoding="utf-8",
+        )
+
+        out = _run_lint(self.repo)
+        self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
+
+        client.write_text('export const path = "/api/v1/voice/sessions";\n', encoding="utf-8")
+        out = _run_lint(self.repo)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("retired mock/API token '/voice'", out.stderr + out.stdout)
+
+    def test_retired_voice_tag_requires_word_boundary(self) -> None:
+        client = self.repo / "frontend/src/api/voice-types.ts"
+        client.write_text("export type PracticeVoiceTurnResult = { voiceTurnId: string };\n", encoding="utf-8")
+        out = _run_lint(self.repo)
+        self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
+
+        client.write_text('export const tag = "Voice";\n', encoding="utf-8")
+        out = _run_lint(self.repo)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("retired mock/API token 'Voice'", out.stderr + out.stdout)
+
     def test_retired_fixture_tag_directory_fails_even_when_empty(self) -> None:
         retired = self.repo / "openapi/fixtures/Growth"
         if retired.exists():

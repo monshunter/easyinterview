@@ -18,9 +18,9 @@
 - 实现 `updateResumeVersion` handler + store：IK + partial structured_profile merge + 不可编辑字段（`versionType` / `parentVersionId` / `resumeAssetId`）拒绝；
 - 实现 `branchResumeVersion` 三路 seed_strategy（D-2）：`copy_master`（同步 201 + structured_profile 拷贝）/ `blank`（同步 201 + structured_profile 空）/ `ai_select`（同步 201 resume_version 行 + 入队 `resume_tailor` job → 202 + `BranchResumeVersionAccepted`）；parent existence + cross-user + IK；
 - 实现 `requestResumeTailor` + `getResumeTailorRun` handler + store：202 + Job(queued) + queued → generating → ready/failed 状态机；mode ∈ `gap_review | bullet_suggestions`（D-5）；IK；
-- 实现 `resume.tailor` async job handler + AIClient（A3）+ F3 `resume.tailor.gap_review` / `resume.tailor.bullet_suggestions` feature_key：按 backend-resume/001 同款 `cmd/api` in-process drainer 注册（不引入独立 worker），ready 成功写 `resume_version_suggestions`（status='pending'）+ outbox `resume.tailor.completed`（ready-only，envelope `tailorRunId / resumeAssetId / targetJobId / mode / status`）；
+- 实现 `resume.tailor` async job handler + AIClient（A3）+ F3 `resume.tailor.gap_review` / `resume.tailor.bullet_suggestions` feature_key：按 backend-resume/001 同款 `cmd/api` backend-internal runner 注册（不引入独立后台执行进程），ready 成功写 `resume_version_suggestions`（status='pending'）+ outbox `resume.tailor.completed`（ready-only，envelope `tailorRunId / resumeAssetId / targetJobId / mode / status`）；
 - 实现 `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` 终态状态机：pending → accepted | rejected；accept 仅写 `decided_at` + `status='accepted'`，不自动改 `resume_versions.structured_profile`（D-12）；IK 必带；二次 accept 走 idempotency middleware replay；不同 fingerprint 同 key 409；cross-user 404；
-- 在 `cmd/api` 挂载 9 个新 route，验证 session middleware、IK middleware、in-process resume_tailor drainer wiring 都走真实 runtime；
+- 在 `cmd/api` 挂载 9 个新 route，验证 session middleware、IK middleware、backend-internal resume_tailor runner wiring 都走真实 runtime；
 - 通过 spec §6 C-9 partial / C-10 / C-11 / C-13 / C-14 / C-15 / C-16 验收 + 新增 7 个 BDD 场景 `E2E.P0.074 – E2E.P0.080`；
 - 解除 [frontend-resume-workshop/002](../../../frontend-resume-workshop/) （未来）切真路径阻塞；不实现 `exportResumeVersion` 真实 PDF / `archiveResumeAsset` / 完整 privacy delete 链路（归 plan 003 P1）。
 
@@ -32,7 +32,7 @@
 
 执行本 plan 前必须确认：
 
-- [backend-resume/001](../001-asset-register-parse-and-listing/plan.md) completed（registerResume / getResume / listResumes / resume.parse async / `resume.parse.completed` event 已挂在 `cmd/api`；in-process drainer pattern 已成熟）。
+- [backend-resume/001](../001-asset-register-parse-and-listing/plan.md) completed（registerResume / getResume / listResumes / resume.parse async / `resume.parse.completed` event 已挂在 `cmd/api`；backend-internal runner pattern 已成熟）。
 - [B2 D-18](../../../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) Phase 1-5 已完成（Resumes + ResumeTailor tag 13 个 op 的 schema、fixtures、inventory lint、generated server/client artifacts 全部就位；本 plan Phase 1 在此基础上 additive 第 14 个 op）。
 - [B3 D-14](../../../event-and-outbox-contract/plans/002-resume-tailor-mode-drift-fix/plan.md) Phase 1-4 已完成（`ResumeTailorMode` enum / baseline manifest / generated 类型 / negative grep 与 B3 spec 描述全部对齐）。
 - [B4 002 resume-versions-additive](../../../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) 已完成（`resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` schema 已落地；本 plan Phase 2 在此基础上携带 cross-owner addendum migration 增加 partial UNIQUE INDEX）。
@@ -50,7 +50,7 @@
   4. store integration test：CRUD + state machine + cross-user + partial UNIQUE INDEX 并发兜底 + cursor pagination 边界；
   5. resume.tailor job unit test（stub AIClient）：成功路径 / 解析 JSON 失败 / AI provider timeout retryable / output_invalid / 成功结果持久化失败 retryable / retry 复用；
   6. outbox event unit test：envelope 字段集 + ready-only + PII 红线（不含 suggested bullet text）；
-  7. `cmd/api` route/runtime test：session middleware、IK middleware、9 个 route path params、resume_tailor in-process drainer wiring 与 shutdown；
+  7. `cmd/api` route/runtime test：session middleware、IK middleware、9 个 route path params、resume_tailor backend-internal runner wiring 与 shutdown；
   8. legacy / privacy / events drift negative：`grep inline|rewrite|mirror` + `grep mistakes|growth|drill` + outbox payload privacy assertion。
   执行入口：`/implement backend-resume/002-versions-tailor-runs-and-save-v1` → `/tdd`。
 - **BDD 策略**: 适用（Feature plan requires BDD）。`E2E.P0.074` – `E2E.P0.080` 共 7 个场景，详见 [bdd-plan.md](./bdd-plan.md) / [bdd-checklist.md](./bdd-checklist.md)。
@@ -258,7 +258,7 @@ BDD-Gate: 验证 `E2E.P0.077` 通过
 ### Phase 7: resume.tailor async job + AIClient + outbox `resume.tailor.completed`
 
 #### 7.1 实现 `internal/resume/jobs/tailor.go`
-- 注册到 `cmd/api` in-process drainer（job_type=resume_tailor, dotted=resume.tailor），复用 backend-resume/001 已建立的 drainer pattern；不引入独立后台运行单元、旧 `WORKER` 前缀 config 或旧 async-runtime shorthand。
+- 注册到 `cmd/api` backend-internal runner（job_type=resume_tailor, dotted=resume.tailor），复用 backend-resume/001 已建立的 runner pattern；不引入独立后台执行 binary、后台执行专用 config 或 `backend-async-runner` 之外的旧 shorthand。
 - 从 `resume_tailor_runs` 读 `resume_asset_id` / `target_job_id` / `mode` → 通过 [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 调 [F3 `resume.tailor.gap_review` / `resume.tailor.bullet_suggestions` feature_key](../../../prompt-rubric-registry/spec.md) 之一（按 mode 路由）。
 - 解析 LLM JSON 输出 → 写 `resume_tailor_runs.status='ready'` + `match_summary` + `provenance`，并在 `resume_version_suggestions` 写 N 行 `status='pending'`。
 - 用户后续 accept/reject 才改 suggestion 状态；本 job 不预设 accepted/rejected。
@@ -270,9 +270,9 @@ BDD-Gate: 验证 `E2E.P0.077` 通过
 - 仅在最终 `status='ready'` 时写入；AI output invalid / provider timeout / retryable exhausted 等失败路径不发 `resume.tailor.completed`。
 - PII 边界：不含 `original_bullet` / `suggested_bullet` / `match_summary.strengths` / `match_summary.gaps` 文本；不含 prompt input 与 model raw response。
 
-#### 7.3 resume_tailor in-process drainer wiring
-- 沿用 backend-resume/001 的 in-process drainer 口径：`cmd/api` 进程内 claim `async_jobs(job_type=resume_tailor)` 并调用 `backend/internal/resume/jobs/tailor.go`。
-- 提供 `RunOnce` 或等价 deterministic stepping；与 resume_parse drainer 并发协作（不互相 claim 跨类型 job）。
+#### 7.3 resume_tailor backend-internal runner wiring
+- 沿用 backend-resume/001 的 backend-internal runner 口径：`cmd/api` 进程内 claim `async_jobs(job_type=resume_tailor)` 并调用 `backend/internal/resume/jobs/tailor.go`。
+- 提供 `RunOnce` 或等价 deterministic stepping；与 resume_parse runner 并发协作（不互相 claim 跨类型 job）。
 - `Start(ctx)` / `Shutdown(ctx)` 必须随 `cmd/api` lifecycle 管理。
 
 #### 7.4 unit test
@@ -342,7 +342,7 @@ BDD-Gate: 验证 `E2E.P0.079` 通过
 - 本计划列出的 §4 所有 Phase task 全部完成
 - §3 替代验证 gate 全部通过
 - spec §6 C-9 partial / C-10 / C-11 / C-13 / C-14 / C-15 / C-16 全部 PASS
-- `cmd/api` route/runtime gate PASS：9 个新 route 在真实 runtime 注册，session / IK middleware 行为与现有 backend-resume/001 一致；resume_tailor in-process drainer Start/Shutdown 与 deterministic `RunOnce` 均有测试证据
+- `cmd/api` route/runtime gate PASS：9 个新 route 在真实 runtime 注册，session / IK middleware 行为与现有 backend-resume/001 一致；resume_tailor backend-internal runner Start/Shutdown 与 deterministic `RunOnce` 均有测试证据
 - 7 个 BDD 场景（E2E.P0.074 – P0.080）PASS
 - [frontend-resume-workshop](../../../frontend-resume-workshop/) owner 已收到 9 个 op 切真信号
 - `docs/spec/INDEX.md` 与 `plans/INDEX.md` 同步至 1.2 / completed
@@ -354,7 +354,7 @@ BDD-Gate: 验证 `E2E.P0.079` 通过
 | R1: F3 `resume.tailor.gap_review` / `resume.tailor.bullet_suggestions` feature_key 缺失或 prompt schema 与本 plan 假设不一致 | Phase 0.2 preflight 强制校验；缺失则通知 F3 owner 修订 F3，不绕过；schema 校验通过 stub AIClient 早期 fail-fast |
 | R2: partial UNIQUE INDEX 与历史 baseline `resume_versions` 数据冲突 | Phase 2.1 migration 仅 CREATE UNIQUE INDEX；如 baseline 已存在多条 structured_master / asset，必须先 dedupe（实际 baseline 应为空，因 backend-resume/001 不创建任何 resume_versions 行） |
 | R3: confirmResumeStructuredMaster 与 branchResumeVersion 命名 / 用户预期混淆 | spec D-10 / D-11 明确语义；fixture 命名 `confirmResumeStructuredMaster.json`；frontend-resume-workshop/002 切真时 owner 协同审查 |
-| R4: resume.tailor job 与 resume.parse job 共享 in-process drainer 时并发抢占 | drainer claim 限定 `job_type`；deterministic `RunOnce(jobType)` 入口；并发集成测试覆盖 |
+| R4: resume.tailor job 与 resume.parse job 共享 backend-internal runner 时并发抢占 | runner claim 限定 `job_type`；deterministic `RunOnce(jobType)` 入口；并发集成测试覆盖 |
 | R5: accept suggestion 不写 structured_profile 引发用户体验混乱 | D-12 明确语义；frontend-resume-workshop/002 在 accept 后引导用户显式 patch；本 plan 不变更默认 |
 | R6: 9 个新 route 真实 runtime wiring 通过包测试但实际 cmd/api 未挂 | Phase N.x checklist 强制 `cmd/api` HTTP scenario test 覆盖每个新 route，且 BDD scenario verify 必须输出 `method=cmd-api-http` 或等价 live runtime evidence；no-op / skip 视为 fail |
 | R7: B2 D-18 additive 与 B1 错误码 lookup table 漂移 | Phase 1 一次性同步修订 openapi.yaml + fixtures + inventory + shared-conventions-codified + generated artifacts；codegen drift 与 `make lint-openapi` PASS 兜底 |

@@ -84,6 +84,18 @@ func (l *Loader) Validate() error {
 			l.GetInt("async.queueWeights.low") <= 0 {
 			problems = append(problems, "async.queueWeights must declare positive critical/default/low values (spec C-12)")
 		}
+
+		// Async runner timings (spec D-14) are config-only and fail-fast positive.
+		for _, path := range []string{
+			"async.leaseTimeoutSeconds",
+			"async.shutdownGraceSeconds",
+			"async.reaperIntervalSeconds",
+			"async.scanIntervalSeconds",
+		} {
+			if l.GetInt(path) <= 0 {
+				problems = append(problems, fmt.Sprintf("%s must be positive (spec D-14)", path))
+			}
+		}
 	}
 
 	if len(problems) == 0 {

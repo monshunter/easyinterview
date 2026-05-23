@@ -6,6 +6,7 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-045-practice-text-loop-strict-and-deb
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 PRACTICE_DIR="$REPO_ROOT/frontend/src/app/screens/practice"
 test -s "$LOG_FILE"
+"$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
 grep -Eq 'Test Files +[0-9]+ passed \([0-9]+\)' "$LOG_FILE" || { echo "E2E.P0.045: no passing test files found" >&2; exit 1; }
 grep -Fq 'usePracticeAssistance.test.ts' "$LOG_FILE" || { echo "E2E.P0.045: usePracticeAssistance.test.ts did not run" >&2; exit 1; }
 grep -Fq 'practiceGoalParity.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: practiceGoalParity.test.tsx did not run" >&2; exit 1; }
