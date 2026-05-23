@@ -1,0 +1,142 @@
+{
+  "type": "array",
+  "description": "Ranked JD-Match recommendations for a candidate.",
+  "items": {
+    "type": "object",
+    "description": "One JD-Match recommendation.",
+    "required": [
+      "jobMatchId",
+      "title",
+      "company",
+      "location",
+      "posted",
+      "score",
+      "fit",
+      "reasons",
+      "risks",
+      "highlights"
+    ],
+    "properties": {
+      "jobMatchId": {
+        "type": "string",
+        "description": "Stable identifier from the internal jobs pool."
+      },
+      "title": {
+        "type": "string",
+        "description": "Job title."
+      },
+      "company": {
+        "type": "string",
+        "description": "Company name."
+      },
+      "companyTag": {
+        "type": "string",
+        "description": "Optional company tag."
+      },
+      "level": {
+        "type": "string",
+        "description": "Optional seniority level.",
+        "enum": [
+          "junior",
+          "mid",
+          "senior",
+          "staff",
+          "lead",
+          "principal"
+        ]
+      },
+      "location": {
+        "type": "string",
+        "description": "Job location."
+      },
+      "comp": {
+        "type": "string",
+        "description": "Optional compensation label."
+      },
+      "posted": {
+        "type": "string",
+        "description": "Human-readable freshness label."
+      },
+      "score": {
+        "type": "integer",
+        "description": "Candidate fit score from 0 to 100."
+      },
+      "fit": {
+        "type": "object",
+        "description": "Requirement-fit counts.",
+        "required": [
+          "must",
+          "total",
+          "plus",
+          "totalPlus"
+        ],
+        "properties": {
+          "must": {
+            "type": "integer",
+            "description": "Matched must-have count."
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total must-have count."
+          },
+          "plus": {
+            "type": "integer",
+            "description": "Matched plus/nice-to-have count."
+          },
+          "totalPlus": {
+            "type": "integer",
+            "description": "Total plus/nice-to-have count."
+          }
+        }
+      },
+      "reasons": {
+        "type": "array",
+        "description": "Concise match reasons.",
+        "items": {
+          "type": "string",
+          "description": "One match reason."
+        }
+      },
+      "risks": {
+        "type": "array",
+        "description": "Concise mismatch or stretch risks.",
+        "items": {
+          "type": "string",
+          "description": "One risk."
+        }
+      },
+      "highlights": {
+        "type": "array",
+        "description": "Skill or scope highlights.",
+        "items": {
+          "type": "string",
+          "description": "One highlight."
+        }
+      },
+      "sourceUrl": {
+        "type": "string",
+        "description": "Optional internal pool source URL."
+      },
+      "sourceLabel": {
+        "type": "string",
+        "description": "Optional source label."
+      },
+      "networkNote": {
+        "type": "string",
+        "description": "Optional aggregated non-PII network signal."
+      },
+      "similarInterviewers": {
+        "type": "integer",
+        "description": "Optional count of similar interviewers."
+      },
+      "interviewHypotheses": {
+        "type": "array",
+        "description": "Short interviewer-angle hypotheses.",
+        "items": {
+          "type": "string",
+          "description": "One hypothesis."
+        }
+      }
+    }
+  }
+}

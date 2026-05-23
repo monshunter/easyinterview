@@ -52,6 +52,7 @@ func TestCreatePracticeVoiceTurnRunsIndependentSTTChatTTSProfiles(t *testing.T) 
 				FeatureFlag:         "none",
 				DataSourceVersion:   "registry.v1",
 				SystemMessage:       "Generate strict JSON follow-up questions.",
+				OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
 				UserMessageTemplate: "Generate a concise follow-up.",
 			},
 			"practice.voice.tts": {
@@ -115,6 +116,12 @@ func TestCreatePracticeVoiceTurnRunsIndependentSTTChatTTSProfiles(t *testing.T) 
 		ai.completePayload.Metadata.FeatureKey != "practice.session.follow_up" ||
 		ai.synthesisInput.Metadata.FeatureKey != "practice.voice.tts" {
 		t.Fatalf("AI metadata or payload drift: stt=%+v chat=%+v tts=%+v", ai.transcribeInput, ai.completePayload.Metadata, ai.synthesisInput)
+	}
+	if len(ai.transcribeInput.Metadata.OutputSchema) != 0 || len(ai.synthesisInput.Metadata.OutputSchema) != 0 {
+		t.Fatalf("STT/TTS metadata must not carry OutputSchema: stt=%+v tts=%+v", ai.transcribeInput.Metadata, ai.synthesisInput.Metadata)
+	}
+	if len(ai.completePayload.Metadata.OutputSchema) == 0 {
+		t.Fatalf("voice chat follow-up metadata OutputSchema must be populated")
 	}
 }
 
@@ -298,6 +305,7 @@ func TestVoiceFollowUpPayloadInjectsCommittedContextWithoutUnplayedDraft(t *test
 		ModelProfileName:    "practice.followup.default",
 		FeatureFlag:         "none",
 		DataSourceVersion:   "registry.v1",
+		OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
 		UserMessageTemplate: "Generate a concise follow-up for {{transcript}}.",
 	}
 	payload := voiceFollowUpPayload(
@@ -323,6 +331,9 @@ func TestVoiceFollowUpPayloadInjectsCommittedContextWithoutUnplayedDraft(t *test
 	}
 	if strings.Contains(userMessage, "unplayed assistant draft") {
 		t.Fatalf("unplayed assistant draft leaked into prompt: %s", userMessage)
+	}
+	if len(payload.Metadata.OutputSchema) == 0 {
+		t.Fatalf("voice follow-up payload OutputSchema must be populated")
 	}
 }
 
@@ -382,6 +393,7 @@ func newVoiceTurnTestServiceWithStore(t *testing.T, store *recordingPlanStore, a
 				FeatureFlag:         "none",
 				DataSourceVersion:   "registry.v1",
 				SystemMessage:       "Generate strict JSON follow-up questions.",
+				OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
 				UserMessageTemplate: "Generate a concise follow-up.",
 			},
 			"practice.voice.tts": {

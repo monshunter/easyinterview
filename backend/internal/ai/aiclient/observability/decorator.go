@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -533,6 +534,7 @@ type outputSchema struct {
 	Required   []string                `json:"required"`
 	Properties map[string]outputSchema `json:"properties"`
 	Items      *outputSchema           `json:"items"`
+	Enum       []any                   `json:"enum"`
 }
 
 func validateOutputSchema(schemaRaw json.RawMessage, content string) error {
@@ -555,6 +557,9 @@ func validateOutputSchema(schemaRaw json.RawMessage, content string) error {
 func validateAgainstSchema(schema outputSchema, value any, path string) error {
 	if schema.Type != "" && !matchesSchemaType(schema.Type, value) {
 		return fmt.Errorf("%s expected %s", path, schema.Type)
+	}
+	if len(schema.Enum) > 0 && !valueInEnum(value, schema.Enum) {
+		return fmt.Errorf("%s value is not in enum", path)
 	}
 
 	if len(schema.Required) > 0 || len(schema.Properties) > 0 {
@@ -591,6 +596,37 @@ func validateAgainstSchema(schema outputSchema, value any, path string) error {
 	}
 
 	return nil
+}
+
+func valueInEnum(value any, enum []any) bool {
+	for _, candidate := range enum {
+		if jsonValuesEqual(value, candidate) {
+			return true
+		}
+	}
+	return false
+}
+
+func jsonValuesEqual(a, b any) bool {
+	if an, ok := a.(json.Number); ok {
+		return jsonNumberEqual(an, b)
+	}
+	if bn, ok := b.(json.Number); ok {
+		return jsonNumberEqual(bn, a)
+	}
+	return reflect.DeepEqual(a, b)
+}
+
+func jsonNumberEqual(n json.Number, other any) bool {
+	switch v := other.(type) {
+	case json.Number:
+		return n.String() == v.String()
+	case float64:
+		nf, err := n.Float64()
+		return err == nil && nf == v
+	default:
+		return false
+	}
 }
 
 func matchesSchemaType(schemaType string, value any) bool {

@@ -204,17 +204,21 @@ func buildGenerateCompletePayload(resolution registry.PromptResolution, ctx Gene
 		messages = append(messages, aiclient.Message{Role: "system", Content: system})
 	}
 	messages = append(messages, aiclient.Message{Role: "user", Content: user})
+	metadata := aiclient.CallMetadata{
+		FeatureKey:        featurekeys.DebriefGenerate.String(),
+		PromptVersion:     resolution.PromptVersion,
+		RubricVersion:     resolution.RubricVersion,
+		Language:          language,
+		FeatureFlag:       resolution.FeatureFlag,
+		DataSourceVersion: resolution.DataSourceVersion,
+		TaskRun:           taskCtx,
+	}
+	if resolution.OutputSchema != nil {
+		metadata.OutputSchema = *resolution.OutputSchema
+	}
 	return aiclient.CompletePayload{
 		Messages: messages,
-		Metadata: aiclient.CallMetadata{
-			FeatureKey:        featurekeys.DebriefGenerate.String(),
-			PromptVersion:     resolution.PromptVersion,
-			RubricVersion:     resolution.RubricVersion,
-			Language:          language,
-			FeatureFlag:       resolution.FeatureFlag,
-			DataSourceVersion: resolution.DataSourceVersion,
-			TaskRun:           taskCtx,
-		},
+		Metadata: metadata,
 	}
 }
 

@@ -89,7 +89,7 @@ func hintPayload(resolution registry.PromptResolution, reservation SessionEventR
 	messages = append(messages, aiclient.Message{Role: "user", Content: userContent})
 	return aiclient.CompletePayload{
 		Messages: messages,
-		Metadata: aiclient.CallMetadata{
+		Metadata: attachOutputSchema(aiclient.CallMetadata{
 			FeatureKey:        hintFeatureKey,
 			PromptVersion:     resolution.PromptVersion,
 			RubricVersion:     "not_applicable",
@@ -102,7 +102,7 @@ func hintPayload(resolution registry.PromptResolution, reservation SessionEventR
 				ResourceType: aiclient.AITaskRunResourceTargetJob,
 				ResourceID:   reservation.Plan.TargetJobID,
 			},
-		},
+		}, resolution),
 	}
 }
 

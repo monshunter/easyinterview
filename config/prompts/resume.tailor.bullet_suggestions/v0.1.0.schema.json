@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "description": "Impact-driven resume bullet rewrite suggestions.",
+  "required": [
+    "suggestions"
+  ],
+  "properties": {
+    "suggestions": {
+      "type": "array",
+      "description": "Canonical bullet suggestions persisted for review.",
+      "items": {
+        "type": "object",
+        "description": "One bullet suggestion.",
+        "required": [
+          "originalBullet",
+          "suggestedBullet",
+          "reason"
+        ],
+        "properties": {
+          "originalBullet": {
+            "type": "string",
+            "description": "Original source bullet for traceability."
+          },
+          "suggestedBullet": {
+            "type": "string",
+            "description": "Truthful rewritten bullet tailored to the target JD."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the suggested bullet is stronger."
+          }
+        }
+      }
+    }
+  }
+}

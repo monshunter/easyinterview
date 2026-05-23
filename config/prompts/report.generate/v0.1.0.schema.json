@@ -1,0 +1,138 @@
+{
+  "type": "object",
+  "description": "Structured interview feedback report content.",
+  "required": [
+    "summary",
+    "dimension_scores",
+    "highlights",
+    "issues",
+    "next_actions",
+    "retry_focus_turn_ids"
+  ],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "Concise overall report summary."
+    },
+    "dimension_scores": {
+      "type": "array",
+      "description": "Per-rubric dimension scores.",
+      "items": {
+        "type": "object",
+        "description": "One dimension score.",
+        "required": [
+          "name",
+          "score",
+          "reasoning",
+          "supporting_observations"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Rubric dimension name."
+          },
+          "score": {
+            "type": "number",
+            "description": "Numeric score for the dimension."
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "Short reasoning for the score."
+          },
+          "supporting_observations": {
+            "type": "array",
+            "description": "Summarized observations supporting the score.",
+            "items": {
+              "type": "string",
+              "description": "One supporting observation."
+            }
+          }
+        }
+      }
+    },
+    "highlights": {
+      "type": "array",
+      "description": "Positive evidence items.",
+      "items": {
+        "type": "object",
+        "description": "One evidence item.",
+        "required": [
+          "dimension",
+          "evidence",
+          "confidence"
+        ],
+        "properties": {
+          "dimension": {
+            "type": "string",
+            "description": "Related rubric dimension."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Summarized evidence."
+          },
+          "confidence": {
+            "type": "number",
+            "description": "Confidence score for this evidence."
+          }
+        }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "description": "Improvement or risk evidence items.",
+      "items": {
+        "type": "object",
+        "description": "One evidence item.",
+        "required": [
+          "dimension",
+          "evidence",
+          "confidence"
+        ],
+        "properties": {
+          "dimension": {
+            "type": "string",
+            "description": "Related rubric dimension."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Summarized evidence."
+          },
+          "confidence": {
+            "type": "number",
+            "description": "Confidence score for this evidence."
+          }
+        }
+      }
+    },
+    "next_actions": {
+      "type": "array",
+      "description": "Recommended next actions for the candidate.",
+      "items": {
+        "type": "object",
+        "description": "One next action.",
+        "required": [
+          "type",
+          "label"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Action type."
+          },
+          "label": {
+            "type": "string",
+            "description": "Action label shown to the candidate."
+          }
+        }
+      }
+    },
+    "retry_focus_turn_ids": {
+      "type": "array",
+      "description": "Turn IDs recommended for retry focus.",
+      "items": {
+        "type": "string",
+        "description": "Practice turn ID."
+      }
+    }
+  }
+}

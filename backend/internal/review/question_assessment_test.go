@@ -45,6 +45,9 @@ func TestAssessQuestionsForAllTurns(t *testing.T) {
 			payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskReportAssessment {
 			t.Fatalf("metadata = %+v", payload.Metadata)
 		}
+		if len(payload.Metadata.OutputSchema) == 0 {
+			t.Fatalf("metadata OutputSchema must be populated")
+		}
 	}
 }
 

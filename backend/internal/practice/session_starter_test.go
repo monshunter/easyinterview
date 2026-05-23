@@ -42,6 +42,7 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 		ModelProfileName:    "practice.first_question.default",
 		FeatureFlag:         "none",
 		DataSourceVersion:   "registry.v1",
+		OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
 		UserMessageTemplate: "Respond in {{language}}. Role: {{role_title}} ({{seniority}}). Top required skills: {{top_skills}}. Rubric dimensions: {{rubric_dimensions}}. Practice goal: {{practice_goal}}.",
 	}}
 	ai := &fakeAIClient{content: `{"question":"请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。","intent":"behavioral.leadership.design_system","focus_dimension":"leadership","expected_signals":["scope","tradeoffs"],"time_budget_seconds":180}`, store: store}
@@ -96,6 +97,9 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 		meta.FeatureFlag != "none" ||
 		meta.DataSourceVersion != "registry.v1" {
 		t.Fatalf("AI metadata incomplete: %+v", meta)
+	}
+	if len(meta.OutputSchema) == 0 {
+		t.Fatalf("AI metadata OutputSchema must be populated")
 	}
 	if meta.TaskRun.UserID != "user-1" ||
 		meta.TaskRun.Capability != aiclient.AITaskRunTaskQuestionGenerate ||
@@ -323,4 +327,9 @@ func firstQuestionJSON(t *testing.T, text, intent string) string {
 		t.Fatalf("marshal question: %v", err)
 	}
 	return string(raw)
+}
+
+func practiceOutputSchema(s string) *json.RawMessage {
+	raw := json.RawMessage(s)
+	return &raw
 }

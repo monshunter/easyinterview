@@ -103,17 +103,21 @@ func (h *TailorHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) ta
 		OutputSchemaVersion: "resume.tailor.v1",
 	}
 	startedAt := h.now().UTC()
+	metadata := aiclient.CallMetadata{
+		FeatureKey:        featureKey,
+		PromptVersion:     resolution.PromptVersion,
+		RubricVersion:     resolution.RubricVersion,
+		Language:          tailorCtx.Language,
+		FeatureFlag:       coalesceFlag(resolution.FeatureFlag),
+		DataSourceVersion: resolution.DataSourceVersion,
+		TaskRun:           taskCtx,
+	}
+	if resolution.OutputSchema != nil {
+		metadata.OutputSchema = *resolution.OutputSchema
+	}
 	complete, meta, err := h.ai.Complete(ctx, resolution.ModelProfileName, aiclient.CompletePayload{
 		Messages: buildTailorPromptMessages(resolution, tailorCtx),
-		Metadata: aiclient.CallMetadata{
-			FeatureKey:        featureKey,
-			PromptVersion:     resolution.PromptVersion,
-			RubricVersion:     resolution.RubricVersion,
-			Language:          tailorCtx.Language,
-			FeatureFlag:       coalesceFlag(resolution.FeatureFlag),
-			DataSourceVersion: resolution.DataSourceVersion,
-			TaskRun:           taskCtx,
-		},
+		Metadata: metadata,
 	})
 	completedAt := h.now().UTC()
 	meta = enrichTailorMeta(meta, resolution, featureKey, tailorCtx.Language, "")

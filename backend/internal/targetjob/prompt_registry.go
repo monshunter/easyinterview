@@ -68,5 +68,6 @@ func (a *RegistryAdapter) Resolve(ctx context.Context, featureKey string, langua
 		FeatureFlag:         resolved.FeatureFlag,
 		SystemMessage:       resolved.SystemMessage,
 		UserMessageTemplate: resolved.UserMessageTemplate,
+		OutputSchema:        resolved.OutputSchema,
 	}, nil
 }

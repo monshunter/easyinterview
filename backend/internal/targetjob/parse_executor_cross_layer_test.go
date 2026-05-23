@@ -62,6 +62,9 @@ func TestParseExecutorRegistryAdapterCrossLayer(t *testing.T) {
 	if resolved.UserMessageTemplate == "" {
 		t.Errorf("UserMessageTemplate must be populated for plan 001 baseline")
 	}
+	if resolved.OutputSchema == nil {
+		t.Fatalf("OutputSchema must be populated for target.import.parse")
+	}
 
 	// Plan §3.4 second clause: provenance JSON written by ParseExecutor
 	// must contain promptVersion / rubricVersion / modelId / language /
@@ -228,6 +231,9 @@ func TestParseExecutorMetadataCarriesF3Triple(t *testing.T) {
 		captured.metadata.TaskRun.ResourceType != aiclient.AITaskRunResourceTargetJob ||
 		captured.metadata.TaskRun.ResourceID != "tgt-1" {
 		t.Errorf("metadata.TaskRun did not carry B4 targetjob context: %+v", captured.metadata.TaskRun)
+	}
+	if len(captured.metadata.OutputSchema) == 0 {
+		t.Fatalf("metadata.OutputSchema must be populated")
 	}
 }
 

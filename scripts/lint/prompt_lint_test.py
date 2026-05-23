@@ -87,9 +87,40 @@ def test_canonical_hash_against_readme():
     TestCanonicalHashAgainstReadme()
 
 
-def _write_baseline_pair(tmp_path: pathlib.Path, feature_key: str, body: str, hash_value: str | None = None):
+def _hint_schema() -> dict:
+    return {
+        "type": "object",
+        "description": "Lightweight real-time interview observation cue.",
+        "required": ["cue"],
+        "properties": {
+            "cue": {"type": "string", "description": "Short cue."},
+            "severity": {
+                "type": "string",
+                "description": "Optional urgency.",
+                "enum": ["info", "nudge", "alert"],
+            },
+        },
+    }
+
+
+def _body_with_contract(schema: dict) -> str:
+    module = _load_module()
+    return "Fixture prompt.\n\n" + module.render_output_contract(schema) + "\n"
+
+
+def _write_baseline_pair(
+    tmp_path: pathlib.Path,
+    feature_key: str,
+    body: str | None = None,
+    hash_value: str | None = None,
+    schema: dict | None = None,
+):
     """Create one valid prompt yaml/md pair under tmp_path."""
     module = _load_module()
+    if schema is None and feature_key not in module.OUTPUT_SCHEMA_EXEMPT_FEATURE_KEYS:
+        schema = _hint_schema()
+    if body is None:
+        body = _body_with_contract(schema) if schema is not None else "voice fixture body\n"
     meta = {
         "feature_key": feature_key,
         "version": "v0.1.0",
@@ -103,6 +134,11 @@ def _write_baseline_pair(tmp_path: pathlib.Path, feature_key: str, body: str, ha
     feature_dir = tmp_path / "config" / "prompts" / feature_key
     feature_dir.mkdir(parents=True)
     (feature_dir / "v0.1.0.md").write_text(body, encoding="utf-8")
+    if schema is not None:
+        (feature_dir / "v0.1.0.schema.json").write_text(
+            json.dumps(schema, indent=2) + "\n",
+            encoding="utf-8",
+        )
 
     yaml_text = textwrap.dedent(
         f"""\
@@ -120,10 +156,10 @@ def _write_baseline_pair(tmp_path: pathlib.Path, feature_key: str, body: str, ha
 
 def test_hash_drift_negative(tmp_path):
     """Editing the body without refreshing template_hash must fail lint."""
-    body = "original body\n"
-    feature_dir = _write_baseline_pair(tmp_path, "drift.fixture", body)
+    feature_dir = _write_baseline_pair(tmp_path, "practice.turn.lightweight_observe")
     # Mutate the body but leave the yaml hash unchanged.
-    (feature_dir / "v0.1.0.md").write_text("mutated body\n", encoding="utf-8")
+    with (feature_dir / "v0.1.0.md").open("a", encoding="utf-8") as f:
+        f.write("mutated body\n")
 
     result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
     assert result.returncode == 1
@@ -132,15 +168,17 @@ def test_hash_drift_negative(tmp_path):
 
 def test_field_order_negative(tmp_path):
     """Reordering top-level fields must fail lint."""
-    body = "ordered body\n"
-    _write_baseline_pair(tmp_path, "order.fixture", body)
+    feature_key = "practice.turn.lightweight_observe"
+    schema = _hint_schema()
+    body = _body_with_contract(schema)
+    _write_baseline_pair(tmp_path, feature_key, body, schema=schema)
 
     # Overwrite yaml with reshuffled field order (status moved before language)
     # but a hash that still matches the canonical algorithm — order check
     # must fail independently of hash drift.
     module = _load_module()
     meta = {
-        "feature_key": "order.fixture",
+        "feature_key": feature_key,
         "version": "v0.1.0",
         "language": "multi",
         "status": "active",
@@ -150,7 +188,7 @@ def test_field_order_negative(tmp_path):
 
     yaml_text = textwrap.dedent(
         f"""\
-        feature_key: "order.fixture"
+        feature_key: "{feature_key}"
         version: "v0.1.0"
         status: "active"
         language: "multi"
@@ -158,13 +196,106 @@ def test_field_order_negative(tmp_path):
         created_at: "2026-05-09T12:00:00Z"
         """
     )
-    (tmp_path / "config" / "prompts" / "order.fixture" / "v0.1.0.yaml").write_text(
+    (tmp_path / "config" / "prompts" / feature_key / "v0.1.0.yaml").write_text(
         yaml_text, encoding="utf-8"
     )
 
     result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
     assert result.returncode == 1
     assert "field order" in result.stderr
+
+
+def test_output_schema_illegal_keyword_negative(tmp_path):
+    schema = _hint_schema()
+    schema["additionalProperties"] = False
+    _write_baseline_pair(
+        tmp_path,
+        "practice.turn.lightweight_observe",
+        _body_with_contract(schema),
+        schema=schema,
+    )
+
+    result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
+    assert result.returncode == 1
+    assert "unsupported schema keys" in result.stderr
+
+
+def test_output_schema_required_not_in_prompt_negative(tmp_path):
+    schema = _hint_schema()
+    body = _body_with_contract(schema).replace("`$.cue`", "`$.hintText`")
+    _write_baseline_pair(tmp_path, "practice.turn.lightweight_observe", body, schema=schema)
+
+    result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
+    assert result.returncode == 1
+    assert "output contract block drift" in result.stderr
+
+
+def test_output_schema_struct_mismatch_negative(tmp_path):
+    schema = _hint_schema()
+    schema["required"] = ["hint"]
+    schema["properties"]["hint"] = {"type": "string", "description": "Wrong parser key."}
+    _write_baseline_pair(
+        tmp_path,
+        "practice.turn.lightweight_observe",
+        _body_with_contract(schema),
+        schema=schema,
+    )
+
+    result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
+    assert result.returncode == 1
+    assert "required paths missing" in result.stderr
+    assert "not parser/struct-owned" in result.stderr
+
+
+def test_prompt_contract_block_drift_negative(tmp_path):
+    schema = _hint_schema()
+    body = _body_with_contract(schema).replace("Short cue.", "Mutated cue text.")
+    _write_baseline_pair(tmp_path, "practice.turn.lightweight_observe", body, schema=schema)
+
+    result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
+    assert result.returncode == 1
+    assert "output contract block drift" in result.stderr
+
+
+def test_rendered_example_is_schema_valid_for_nested_array_enum():
+    module = _load_module()
+    schema = {
+        "type": "array",
+        "description": "Array root.",
+        "items": {
+            "type": "object",
+            "description": "Item.",
+            "required": ["level", "fit"],
+            "properties": {
+                "level": {
+                    "type": "string",
+                    "description": "Seniority.",
+                    "enum": ["junior", "senior"],
+                },
+                "fit": {
+                    "type": "object",
+                    "description": "Fit tuple.",
+                    "required": ["must"],
+                    "properties": {
+                        "must": {"type": "integer", "description": "Must-have count."}
+                    },
+                },
+            },
+        },
+    }
+    block = module.render_output_contract(schema)
+    assert "`$[]` (required, object)" in block
+    assert "`$[].level` (required, string enum(junior, senior))" in block
+    errors: list[str] = []
+    module.validate_value_against_schema(module.example_for_schema(schema), schema, "$", errors)
+    assert errors == []
+
+
+def test_schema_description_required_negative():
+    module = _load_module()
+    schema = {"type": "object", "required": [], "properties": {}}
+    errors = module.validate_schema_subset(pathlib.Path("fixture.schema.json"), schema)
+    assert "missing non-empty description" in "\n".join(errors)
 
 
 if __name__ == "__main__":

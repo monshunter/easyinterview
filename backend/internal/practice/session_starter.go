@@ -263,7 +263,7 @@ func firstQuestionPayload(resolution registry.PromptResolution, reservation Sess
 	messages = append(messages, aiclient.Message{Role: "user", Content: userContent})
 	return aiclient.CompletePayload{
 		Messages: messages,
-		Metadata: aiclient.CallMetadata{
+		Metadata: attachOutputSchema(aiclient.CallMetadata{
 			FeatureKey:        firstQuestionFeatureKey,
 			PromptVersion:     resolution.PromptVersion,
 			RubricVersion:     resolution.RubricVersion,
@@ -276,8 +276,15 @@ func firstQuestionPayload(resolution registry.PromptResolution, reservation Sess
 				ResourceType: aiclient.AITaskRunResourceTargetJob,
 				ResourceID:   reservation.TargetJobID,
 			},
-		},
+		}, resolution),
 	}
+}
+
+func attachOutputSchema(metadata aiclient.CallMetadata, resolution registry.PromptResolution) aiclient.CallMetadata {
+	if resolution.OutputSchema != nil {
+		metadata.OutputSchema = *resolution.OutputSchema
+	}
+	return metadata
 }
 
 func serviceErrorFromRegistry(err error) error {

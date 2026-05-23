@@ -332,7 +332,7 @@ func followUpPayload(resolution registry.PromptResolution, reservation SessionEv
 	messages = append(messages, aiclient.Message{Role: "user", Content: userContent})
 	return aiclient.CompletePayload{
 		Messages: messages,
-		Metadata: aiclient.CallMetadata{
+		Metadata: attachOutputSchema(aiclient.CallMetadata{
 			FeatureKey:        followUpFeatureKey,
 			PromptVersion:     resolution.PromptVersion,
 			RubricVersion:     resolution.RubricVersion,
@@ -345,7 +345,7 @@ func followUpPayload(resolution registry.PromptResolution, reservation SessionEv
 				ResourceType: aiclient.AITaskRunResourceTargetJob,
 				ResourceID:   reservation.Plan.TargetJobID,
 			},
-		},
+		}, resolution),
 	}
 }
 

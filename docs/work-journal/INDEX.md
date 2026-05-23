@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-23](2026-05-23.md) | `feat(prompt-rubric): close output schema contract (BUG-0094)` | #feat #fix #test #docs |
 | [2026-05-23](2026-05-23.md) | `docs(prompt-rubric): align output schema contract plan` | #docs |
 | [2026-05-23](2026-05-23.md) | `fix(test): add missing scenario data assets (BUG-0093)` | #fix #test #docs |
 | [2026-05-23](2026-05-23.md) | `fix(repo-lint): drop duplicate rubric allowlist stanza and correct evidence (BUG-0092)` | #fix #docs |

@@ -13,9 +13,9 @@ func TestTypeShape(t *testing.T) {
 	t.Parallel()
 
 	checks := []struct {
-		name  string
-		typ   reflect.Type
-		want  []string
+		name string
+		typ  reflect.Type
+		want []string
 	}{
 		{
 			name: "PromptResolution",
@@ -37,7 +37,7 @@ func TestTypeShape(t *testing.T) {
 		{
 			name: "PromptMeta",
 			typ:  reflect.TypeOf(PromptMeta{}),
-			want: []string{"FeatureKey", "Version", "Language", "TemplateHash", "Status", "CreatedAt"},
+			want: []string{"FeatureKey", "Version", "Language", "TemplateHash", "Status", "CreatedAt", "OutputSchema"},
 		},
 		{
 			name: "RubricDimension",

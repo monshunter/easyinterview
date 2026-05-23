@@ -2,6 +2,7 @@ package debrief
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -51,6 +52,9 @@ func TestGenerateHandler_HappyResolution(t *testing.T) {
 	}
 	if len(taskRuns.rows) != 1 || taskRuns.rows[0].Capability != aiclient.AITaskRunTaskDebriefGenerate || taskRuns.rows[0].Status != aiclient.AITaskRunStatusSuccess {
 		t.Fatalf("task run row drifted: %+v", taskRuns.rows)
+	}
+	if len(ai.payload.Metadata.OutputSchema) == 0 {
+		t.Fatalf("AI metadata OutputSchema must be populated")
 	}
 }
 
@@ -225,8 +229,14 @@ func validGenerateResolution() registry.PromptResolution {
 		FeatureFlag:         "none",
 		DataSourceVersion:   "debrief/01918fa0-0000-7000-8000-00000000d010@v1",
 		SystemMessage:       "Analyze a real interview debrief.",
+		OutputSchema:        testOutputSchema(`{"type":"object","required":["questions","riskItems"],"properties":{"questions":{"type":"array"},"riskItems":{"type":"array"}}}`),
 		UserMessageTemplate: "Role {{targetTitle}}\nQuestions {{questions}}\nLanguage {{language}}",
 	}
+}
+
+func testOutputSchema(s string) *json.RawMessage {
+	raw := json.RawMessage(s)
+	return &raw
 }
 
 func validGenerateMeta() aiclient.AICallMeta {

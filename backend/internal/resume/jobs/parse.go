@@ -33,6 +33,7 @@ type PromptResolution struct {
 	FeatureFlag         string
 	SystemMessage       string
 	UserMessageTemplate string
+	OutputSchema        *json.RawMessage
 }
 
 type PromptRegistryClient interface {
@@ -118,23 +119,27 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 	if err != nil {
 		return h.fail(ctx, asset, job, sharederrors.CodeAiProviderConfigInvalid, err.Error(), false)
 	}
+	metadata := aiclient.CallMetadata{
+		FeatureKey:        FeatureKeyResumeParse,
+		PromptVersion:     resolution.PromptVersion,
+		RubricVersion:     resolution.RubricVersion,
+		Language:          asset.Language,
+		FeatureFlag:       coalesceFlag(resolution.FeatureFlag),
+		DataSourceVersion: resolution.DataSourceVersion,
+		TaskRun: aiclient.AITaskRunContext{
+			UserID:              asset.UserID,
+			Capability:          aiclient.AITaskRunTaskResumeParse,
+			ResourceType:        aiclient.AITaskRunResourceResumeAsset,
+			ResourceID:          asset.ID,
+			OutputSchemaVersion: "resume.parse.v1",
+		},
+	}
+	if resolution.OutputSchema != nil {
+		metadata.OutputSchema = *resolution.OutputSchema
+	}
 	complete, _, err := h.ai.Complete(ctx, resolution.ModelProfileName, aiclient.CompletePayload{
 		Messages: buildPromptMessages(resolution, input),
-		Metadata: aiclient.CallMetadata{
-			FeatureKey:        FeatureKeyResumeParse,
-			PromptVersion:     resolution.PromptVersion,
-			RubricVersion:     resolution.RubricVersion,
-			Language:          asset.Language,
-			FeatureFlag:       coalesceFlag(resolution.FeatureFlag),
-			DataSourceVersion: resolution.DataSourceVersion,
-			TaskRun: aiclient.AITaskRunContext{
-				UserID:              asset.UserID,
-				Capability:          aiclient.AITaskRunTaskResumeParse,
-				ResourceType:        aiclient.AITaskRunResourceResumeAsset,
-				ResourceID:          asset.ID,
-				OutputSchemaVersion: "resume.parse.v1",
-			},
-		},
+		Metadata: metadata,
 	})
 	if err != nil {
 		code, retryable := translateAIClientError(err)
@@ -367,5 +372,6 @@ func (a *RegistryAdapter) Resolve(ctx context.Context, featureKey string, langua
 		FeatureFlag:         resolved.FeatureFlag,
 		SystemMessage:       resolved.SystemMessage,
 		UserMessageTemplate: resolved.UserMessageTemplate,
+		OutputSchema:        resolved.OutputSchema,
 	}, nil
 }

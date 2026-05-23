@@ -1,0 +1,94 @@
+{
+  "type": "object",
+  "description": "Structured target job model extracted from a job description.",
+  "required": [
+    "coreThemes",
+    "interviewHypotheses",
+    "strengths",
+    "gaps",
+    "riskSignals",
+    "requirements"
+  ],
+  "properties": {
+    "coreThemes": {
+      "type": "array",
+      "description": "Concise technical or domain themes from the role.",
+      "items": {
+        "type": "string",
+        "description": "One role theme."
+      }
+    },
+    "interviewHypotheses": {
+      "type": "array",
+      "description": "Likely interview focus hypotheses grounded in the JD.",
+      "items": {
+        "type": "string",
+        "description": "One interview hypothesis."
+      }
+    },
+    "strengths": {
+      "type": "array",
+      "description": "Candidate-fit strengths that the JD would reward.",
+      "items": {
+        "type": "string",
+        "description": "One strength signal."
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "description": "Preparation gaps implied by the JD.",
+      "items": {
+        "type": "string",
+        "description": "One gap or preparation area."
+      }
+    },
+    "riskSignals": {
+      "type": "array",
+      "description": "Risk or ambiguity signals in the JD.",
+      "items": {
+        "type": "string",
+        "description": "One risk signal."
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "description": "Interview-ready requirements used to build target job requirement records.",
+      "items": {
+        "type": "object",
+        "description": "One parsed requirement.",
+        "required": [
+          "kind",
+          "label"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Requirement category.",
+            "enum": [
+              "must_have",
+              "nice_to_have",
+              "hidden_signal",
+              "interview_focus"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "Short requirement phrase."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional explanation of why the requirement matters."
+          },
+          "evidenceLevel": {
+            "type": "string",
+            "description": "Whether the requirement was explicit or inferred.",
+            "enum": [
+              "explicit",
+              "inferred"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

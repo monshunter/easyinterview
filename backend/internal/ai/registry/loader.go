@@ -21,10 +21,11 @@ type snapshot struct {
 }
 
 type promptEntry struct {
-	meta     PromptMeta
-	body     string
-	yamlPath string
-	mdPath   string
+	meta         PromptMeta
+	body         string
+	yamlPath     string
+	mdPath       string
+	outputSchema *json.RawMessage
 }
 
 type rubricEntry struct {
@@ -57,6 +58,7 @@ func loadPrompts(root string, snap *snapshot) error {
 	if root == "" {
 		return fmt.Errorf("registry: prompts root is required")
 	}
+	outputSchemas := map[string]*json.RawMessage{}
 	return filepath.WalkDir(root, func(path string, d os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -68,6 +70,12 @@ func loadPrompts(root string, snap *snapshot) error {
 		if err != nil {
 			return err
 		}
+		schema, err := readOutputSchema(path, entry.meta, outputSchemas)
+		if err != nil {
+			return err
+		}
+		entry.outputSchema = schema
+		entry.meta.OutputSchema = schema
 		bucket, ok := snap.prompts[entry.meta.FeatureKey]
 		if !ok {
 			bucket = map[string]promptEntry{}
@@ -79,6 +87,38 @@ func loadPrompts(root string, snap *snapshot) error {
 		bucket[entry.meta.Language] = *entry
 		return nil
 	})
+}
+
+var outputSchemaExemptFeatureKeys = map[string]struct{}{
+	"practice.voice.stt":     {},
+	"practice.voice.tts":     {},
+	"practice.dictation.stt": {},
+	"debrief.voice.tts":      {},
+}
+
+func readOutputSchema(yamlPath string, meta PromptMeta, cache map[string]*json.RawMessage) (*json.RawMessage, error) {
+	if _, exempt := outputSchemaExemptFeatureKeys[meta.FeatureKey]; exempt {
+		return nil, nil
+	}
+	cacheKey := meta.FeatureKey + "\x00" + meta.Version
+	if schema, ok := cache[cacheKey]; ok {
+		return schema, nil
+	}
+	schemaPath := filepath.Join(filepath.Dir(yamlPath), meta.Version+".schema.json")
+	body, err := os.ReadFile(schemaPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("registry: missing output schema %s for %s/%s", schemaPath, meta.FeatureKey, meta.Version)
+		}
+		return nil, fmt.Errorf("registry: read output schema %s: %w", schemaPath, err)
+	}
+	var parsed any
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return nil, fmt.Errorf("registry: parse output schema %s: %w", schemaPath, err)
+	}
+	raw := json.RawMessage(append([]byte(nil), body...))
+	cache[cacheKey] = &raw
+	return &raw, nil
 }
 
 func loadRubrics(root string, snap *snapshot) error {
@@ -217,17 +257,17 @@ func computeTemplateHash(body []byte, meta PromptMeta) (string, error) {
 
 // rubricYAML mirrors the on-disk schema for rubrics.
 type rubricYAML struct {
-	FeatureKey string                 `yaml:"feature_key"`
-	Version    string                 `yaml:"version"`
-	Language   string                 `yaml:"language"`
-	Dimensions []rubricDimensionYAML  `yaml:"dimensions"`
+	FeatureKey string                `yaml:"feature_key"`
+	Version    string                `yaml:"version"`
+	Language   string                `yaml:"language"`
+	Dimensions []rubricDimensionYAML `yaml:"dimensions"`
 }
 
 type rubricDimensionYAML struct {
-	Name        string             `yaml:"name"`
-	Weight      float64            `yaml:"weight"`
-	Description string             `yaml:"description"`
-	ScoreLevels []scoreLevelYAML   `yaml:"score_levels"`
+	Name        string           `yaml:"name"`
+	Weight      float64          `yaml:"weight"`
+	Description string           `yaml:"description"`
+	ScoreLevels []scoreLevelYAML `yaml:"score_levels"`
 }
 
 type scoreLevelYAML struct {

@@ -1,6 +1,6 @@
 feature_key: "debrief.suggest_questions"
 version: "v0.1.0"
 language: "multi"
-template_hash: "d21480da0dd1cc76802195f0b58018f30a26e2e8240eff03869574aec956a785"
+template_hash: "54c6f98481b4d0e153f9c62683ec1db2695c463b1e5a0b803e9da121f4885216"
 status: "active"
 created_at: "2026-05-16T00:00:00Z"

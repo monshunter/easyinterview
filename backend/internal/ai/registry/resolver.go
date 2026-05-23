@@ -59,7 +59,7 @@ func resolveSnapshot(snap *snapshot, featureKey, language string, fallbackCounte
 		SystemMessage:       "",
 		UserMessageTemplate: pe.body,
 		Tools:               nil,
-		OutputSchema:        nil,
+		OutputSchema:        pe.outputSchema,
 		StreamWire:          nil,
 	}, nil
 }
@@ -141,7 +141,9 @@ func (c *Client) GetPrompt(featureKey, version, language string) (PromptMeta, st
 	if pe.meta.Version != version {
 		return PromptMeta{}, "", ErrPromptUnsupported
 	}
-	return pe.meta, pe.body, nil
+	meta := pe.meta
+	meta.OutputSchema = pe.outputSchema
+	return meta, pe.body, nil
 }
 
 // GetRubric returns a specific (featureKey, version, language) rubric entry.

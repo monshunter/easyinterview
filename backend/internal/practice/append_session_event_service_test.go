@@ -33,6 +33,7 @@ func TestAppendSessionEventFollowUpRunsAIOutsideReservationAndCommits(t *testing
 			ModelProfileName:    "practice.follow_up.default",
 			FeatureFlag:         "follow_up_v1",
 			DataSourceVersion:   "registry.v1",
+			OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
 			UserMessageTemplate: "ask a follow up",
 		}},
 		AI:    ai,
@@ -64,6 +65,9 @@ func TestAppendSessionEventFollowUpRunsAIOutsideReservationAndCommits(t *testing
 		result.AssistantAction.QuestionText != "What was the strongest objection?" ||
 		result.AssistantAction.Provenance.PromptVersion != "followup.prompt.v1" {
 		t.Fatalf("unexpected follow-up action: %+v", result.AssistantAction)
+	}
+	if len(ai.payload.Metadata.OutputSchema) == 0 {
+		t.Fatalf("follow-up metadata OutputSchema must be populated")
 	}
 	if store.eventReservationInput.EventID != "event-1" {
 		t.Fatalf("reservation event id = %q, want event-1", store.eventReservationInput.EventID)
@@ -303,6 +307,7 @@ func TestServiceAppliesHintAIForAssisted(t *testing.T) {
 			ModelProfileName:    "practice.turn_observe.default",
 			FeatureFlag:         "none",
 			DataSourceVersion:   "registry.v1",
+			OutputSchema:        practiceOutputSchema(`{"type":"object","required":["cue"],"properties":{"cue":{"type":"string"}}}`),
 			UserMessageTemplate: "give a hint",
 		}},
 		AI:    ai,
@@ -337,6 +342,9 @@ func TestServiceAppliesHintAIForAssisted(t *testing.T) {
 	if ai.payload.Metadata.TaskRun.Capability != aiclient.AITaskRunTaskHintGenerate ||
 		ai.payload.Metadata.FeatureKey != hintFeatureKey {
 		t.Fatalf("unexpected AI metadata: %+v", ai.payload.Metadata)
+	}
+	if len(ai.payload.Metadata.OutputSchema) == 0 {
+		t.Fatalf("hint metadata OutputSchema must be populated")
 	}
 }
 
@@ -416,6 +424,9 @@ func TestApplyHintAISuccess(t *testing.T) {
 		ai.payload.Metadata.TaskRun.ResourceID != reservation.Plan.TargetJobID ||
 		ai.payload.Metadata.FeatureKey != hintFeatureKey {
 		t.Fatalf("unexpected task metadata: %+v", ai.payload.Metadata)
+	}
+	if len(ai.payload.Metadata.OutputSchema) == 0 {
+		t.Fatalf("hint metadata OutputSchema must be populated")
 	}
 }
 
@@ -654,6 +665,7 @@ func hintTestResolution() registry.PromptResolution {
 		ModelProfileName:    "practice.turn_observe.default",
 		FeatureFlag:         "none",
 		DataSourceVersion:   "registry.v1",
+		OutputSchema:        practiceOutputSchema(`{"type":"object","required":["cue"],"properties":{"cue":{"type":"string"}}}`),
 		UserMessageTemplate: "give a hint",
 	}
 }

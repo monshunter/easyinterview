@@ -115,6 +115,7 @@ func TestServiceSuggestQuestions_Happy(t *testing.T) {
 		FeatureFlag:         "none",
 		DataSourceVersion:   "target_job/01918fa0-0000-7000-8000-00000000c001@v1",
 		SystemMessage:       "You generate debrief questions.",
+		OutputSchema:        testOutputSchema(`{"type":"object","required":["suggestions"],"properties":{"suggestions":{"type":"array"}}}`),
 		UserMessageTemplate: "Target: {{targetTitle}}",
 	}}
 	ai := &recordingAIClient{
@@ -171,6 +172,9 @@ func TestServiceSuggestQuestions_Happy(t *testing.T) {
 		ai.payload.Metadata.TaskRun.ResourceType != aiclient.AITaskRunResourceTargetJob ||
 		ai.payload.Metadata.TaskRun.ResourceID != targetJobID {
 		t.Fatalf("AI task metadata drifted: %+v", ai.payload.Metadata.TaskRun)
+	}
+	if len(ai.payload.Metadata.OutputSchema) == 0 {
+		t.Fatalf("AI metadata OutputSchema must be populated")
 	}
 	if len(taskRuns.rows) != 1 || taskRuns.rows[0].Capability != aiclient.AITaskRunTaskDebriefSuggestQuestions || taskRuns.rows[0].Status != aiclient.AITaskRunStatusSuccess {
 		t.Fatalf("task run row drifted: %+v", taskRuns.rows)
@@ -619,6 +623,7 @@ func validSuggestionResolution() registry.PromptResolution {
 		FeatureFlag:         "none",
 		DataSourceVersion:   "target_job/01918fa0-0000-7000-8000-00000000c001@v1",
 		SystemMessage:       "You generate debrief questions.",
+		OutputSchema:        testOutputSchema(`{"type":"object","required":["suggestions"],"properties":{"suggestions":{"type":"array"}}}`),
 		UserMessageTemplate: "Target: {{targetTitle}}",
 	}
 }

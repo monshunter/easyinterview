@@ -136,6 +136,9 @@ func TestParseHandlerUsesThreeSourceInputsAndWritesReadyOutbox(t *testing.T) {
 				ai.payload.Metadata.TaskRun.UserID != tc.asset.UserID {
 				t.Fatalf("AI metadata drift: profile=%q metadata=%+v", ai.profileName, ai.payload.Metadata)
 			}
+			if len(ai.payload.Metadata.OutputSchema) == 0 {
+				t.Fatalf("AI metadata OutputSchema must be populated")
+			}
 		})
 	}
 }
@@ -418,8 +421,14 @@ func parseResolution() resumejobs.PromptResolution {
 		ModelProfileName:    "resume.parse.default",
 		DataSourceVersion:   "registry.v1",
 		FeatureFlag:         "none",
+		OutputSchema:        rawSchema(`{"type":"object","required":["basics"],"properties":{"basics":{"type":"object"}}}`),
 		UserMessageTemplate: "Parse this resume:\n{{resume_text}}",
 	}
+}
+
+func rawSchema(s string) *json.RawMessage {
+	raw := json.RawMessage(s)
+	return &raw
 }
 
 type fakeParseStore struct {

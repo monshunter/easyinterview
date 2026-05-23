@@ -48,6 +48,9 @@ type PromptMeta struct {
 	TemplateHash string
 	Status       string
 	CreatedAt    string
+	// OutputSchema is the language-independent JSON schema attached at
+	// load time. It is not part of YAML metadata or template_hash input.
+	OutputSchema *json.RawMessage
 }
 
 // RubricSchema is the parsed YAML body of a single rubric baseline entry.

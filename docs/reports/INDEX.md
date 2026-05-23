@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-23](./2026-05-23-prompt-rubric-output-schema-contract-assessment.md) | Prompt Rubric Output Schema Contract 交付复盘 | #assessment |
 | [2026-05-23](./2026-05-23-scenario-missing-data-assets-assessment.md) | Scenario Missing Data Assets 交付复盘 | #assessment |
 | [2026-05-23](./2026-05-23-frontend-owner-scenario-full-run-gates-assessment.md) | Frontend Owner Scenario Full-Run Gates 交付复盘 | #assessment |
 | [2026-05-23](./2026-05-23-frontend-owner-real-backend-handoff-gates-assessment.md) | Frontend Owner Real Backend Handoff Gates 交付复盘 | #assessment |

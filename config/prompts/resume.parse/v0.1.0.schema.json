@@ -1,0 +1,102 @@
+{
+  "type": "object",
+  "description": "Structured resume summary parsed from supplied resume text.",
+  "required": [
+    "basics",
+    "experiences",
+    "projects",
+    "education",
+    "skills",
+    "languages"
+  ],
+  "properties": {
+    "basics": {
+      "type": "object",
+      "description": "Basic candidate identity and contact summary.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Candidate name when present."
+        },
+        "headline": {
+          "type": "string",
+          "description": "Candidate headline or target positioning."
+        },
+        "contact": {
+          "type": "string",
+          "description": "Sanitized contact summary."
+        }
+      }
+    },
+    "experiences": {
+      "type": "array",
+      "description": "Work experience entries.",
+      "items": {
+        "type": "object",
+        "description": "One work experience entry.",
+        "properties": {
+          "company": {
+            "type": "string",
+            "description": "Company name."
+          },
+          "title": {
+            "type": "string",
+            "description": "Role title."
+          },
+          "start": {
+            "type": "string",
+            "description": "Start date as stated or normalized."
+          },
+          "end": {
+            "type": "string",
+            "description": "End date as stated or normalized."
+          },
+          "summary": {
+            "type": "string",
+            "description": "Brief experience summary."
+          },
+          "bullets": {
+            "type": "array",
+            "description": "Resume bullets for this experience.",
+            "items": {
+              "type": "string",
+              "description": "One bullet."
+            }
+          }
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "description": "Project entries.",
+      "items": {
+        "type": "object",
+        "description": "One project entry."
+      }
+    },
+    "education": {
+      "type": "array",
+      "description": "Education entries.",
+      "items": {
+        "type": "object",
+        "description": "One education entry."
+      }
+    },
+    "skills": {
+      "type": "array",
+      "description": "Skill keywords.",
+      "items": {
+        "type": "string",
+        "description": "One skill."
+      }
+    },
+    "languages": {
+      "type": "array",
+      "description": "Language proficiencies.",
+      "items": {
+        "type": "string",
+        "description": "One language."
+      }
+    }
+  }
+}

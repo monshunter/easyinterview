@@ -212,7 +212,7 @@ func reportMessages(resolution registry.PromptResolution, replacements map[strin
 }
 
 func reportCallMetadata(resolution registry.PromptResolution, session SessionSnapshot, featureKey string, capability aiclient.AITaskRunCapability) aiclient.CallMetadata {
-	return aiclient.CallMetadata{
+	metadata := aiclient.CallMetadata{
 		FeatureKey:        featureKey,
 		PromptVersion:     resolution.PromptVersion,
 		RubricVersion:     resolution.RubricVersion,
@@ -226,6 +226,10 @@ func reportCallMetadata(resolution registry.PromptResolution, session SessionSna
 			ResourceID:   session.ReportID,
 		},
 	}
+	if resolution.OutputSchema != nil {
+		metadata.OutputSchema = *resolution.OutputSchema
+	}
+	return metadata
 }
 
 func sessionMetadata(session SessionSnapshot, plan PracticePlanSnapshot) map[string]any {

@@ -67,6 +67,30 @@ func TestResolveFallbackToMulti(t *testing.T) {
 	}
 }
 
+func TestResolveActiveReturnsOutputSchema(t *testing.T) {
+	t.Parallel()
+	client := newTestClient(t)
+	ctx := context.Background()
+
+	exact, err := client.ResolveActive(ctx, "target.import.parse", "en")
+	if err != nil {
+		t.Fatalf("ResolveActive exact: %v", err)
+	}
+	fallback, err := client.ResolveActive(ctx, "target.import.parse", "fr")
+	if err != nil {
+		t.Fatalf("ResolveActive fallback: %v", err)
+	}
+	if exact.OutputSchema == nil || fallback.OutputSchema == nil {
+		t.Fatalf("OutputSchema must be populated, exact=%v fallback=%v", exact.OutputSchema, fallback.OutputSchema)
+	}
+	if string(*exact.OutputSchema) != string(*fallback.OutputSchema) {
+		t.Fatalf("fallback must return same language-independent schema")
+	}
+	if got := schemaType(t, *exact.OutputSchema); got != "object" {
+		t.Fatalf("target.import.parse schema type: want object, got %s", got)
+	}
+}
+
 func TestResolvePracticeSessionBaselineFeatures(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(t)
@@ -156,6 +180,12 @@ func TestGetPromptExact(t *testing.T) {
 	}
 	if meta.Version != "v0.1.0" || body == "" {
 		t.Errorf("expected populated meta+body, got version=%q body_len=%d", meta.Version, len(body))
+	}
+	if meta.OutputSchema == nil {
+		t.Fatal("GetPrompt meta must include output schema")
+	}
+	if got := schemaType(t, *meta.OutputSchema); got != "object" {
+		t.Fatalf("GetPrompt schema type: want object, got %s", got)
 	}
 
 	if _, _, err := client.GetPrompt("", "v0.1.0", "en"); err == nil {

@@ -16,13 +16,14 @@ lint share this description as their canonical specification.
 config/prompts/
   README.md                                 (this file — algorithm description)
   <feature_key>/
+    <version>.schema.json                    (language-independent output schema)
     <version>.yaml                          (language: multi default)
     <version>.md                            (template body for multi)
     <version>.<language>.yaml               (language variant; ISO-639 lowercase)
     <version>.<language>.md                 (template body for that variant)
 ```
 
-- `<feature_key>` is one of the 11 baseline keys frozen in
+- `<feature_key>` is one of the 13 baseline keys frozen in
   `docs/spec/prompt-rubric-registry/spec.md` §3.1.1.
 - `<version>` is a SemVer string; baseline starts at `v0.1.0`.
 - `<language>` is either `multi` (omitted from the filename) or an ISO-639
@@ -31,6 +32,10 @@ config/prompts/
   exercise the D-6 fallback path (`exact language → multi`).
 - The Markdown file at the same path holds the prompt template body. Every
   YAML must have a sibling Markdown file with the matching basename.
+- `<version>.schema.json` is language-independent. There is exactly one output
+  schema per `(feature_key, version)` for JSON-producing chat feature keys.
+  It is shared by `multi` and every language variant and never has a language
+  suffix.
 
 ## 2 YAML meta schema (fixed field order)
 
@@ -101,7 +106,48 @@ Any drift — body edit without hash bump, hash bump without body edit, key
 reordering without canonicalization, or substituting an empty/old/new hash
 into the YAML before re-hashing — fails the lint gate.
 
-## 4 Markdown template body conventions
+## 4 Output schema truth source
+
+`config/prompts/<feature_key>/<version>.schema.json` is the only field-level
+truth source for the model output shape. Prompt bodies may explain task context
+and business rules, but they must not maintain an independent hand-written
+field list that can drift from the schema.
+
+Rules:
+
+1. **Language-independent**: JSON keys and structure do not vary by prompt
+   language. The same schema applies to `multi`, `en`, `zh`, and any later
+   language variant for the same `(feature_key, version)`.
+2. **Allowed validation subset**: schemas may use only `type`, `required`,
+   `properties`, `items`, and `enum`. `description` is allowed as a
+   non-validation annotation for rendered prompt text and reviewer context.
+   Do not use provider-specific structured-output keys, `$ref`, `oneOf`,
+   `anyOf`, `additionalProperties`, `format`, `minimum`, `maximum`, or SDK
+   private fields.
+3. **Top-level shape**: chat feature keys use top-level `type: object` except
+   `jd_match.recommendation` and `jd_match.search`, which use top-level
+   `type: array` with an `items` schema. Voice / STT / TTS feature keys do not
+   produce JSON content and must not have output schema files.
+4. **Required fields**: `required` contains only fields the backend parser or
+   struct actually depends on. A prompt may not require fields the backend does
+   not consume unless those fields are optional in schema and their
+   `description` states the evaluation value.
+5. **Struct / parser alignment**: schema field names must match the backend
+   consumer's json tags or explicitly documented parser-required keys. For
+   `json.RawMessage` consumers, alignment is against the keys the parser checks
+   before persisting the raw payload.
+6. **Alias policy**: parser aliases kept for historical outputs are
+   compatibility behavior, not new prompt contract fields. For example, a
+   parser may accept legacy aliases while the schema-rendered prompt block uses
+   only the canonical key.
+7. **Template hash boundary**: output schema bytes do not participate in
+   `template_hash`. Prompt body edits still require YAML hash refresh; schema
+   edits are validated by schema/prompt/struct lint gates instead.
+8. **Provider-neutral boundary**: schemas describe business output only. They
+   must not include model names, provider names, endpoints, `response_format`,
+   `json_schema`, tool-call SDK shapes, or secret material.
+
+## 5 Markdown template body conventions
 
 - Encode as UTF-8 with `\n` line endings.
 - Use `{{variable_name}}` interpolation markers. Variables share
@@ -121,7 +167,29 @@ into the YAML before re-hashing — fails the lint gate.
   the body. The Resolve output supplies the model profile name; the body is
   provider-neutral.
 
-## 5 Multi-language convention
+## 6 Prompt output contract block
+
+Every Markdown body for a JSON-producing chat feature key must contain an
+output contract block that can be rendered from the schema, or is byte-for-byte
+verified by lint against the schema renderer. Humans edit the schema and task
+context, not a second copy of the field table inside each language body.
+
+The rendered block contract is:
+
+- Field order is stable: required fields first in schema order, then optional
+  properties in schema order.
+- Field descriptions come from schema `description` values. Required fields
+  and important optional fields must have descriptions so the rendered prompt
+  remains readable.
+- Examples are generated from schema into minimal valid JSON. The example must
+  parse as JSON and pass the same schema subset validator used by lint.
+- `multi` and language variants render the same JSON keys and structure. Only
+  surrounding task prose may differ by language.
+- Manual edits that add, remove, rename, or reorder output keys in the prompt
+  contract block must make `make lint-prompts` fail until the schema or prompt
+  block is corrected.
+
+## 7 Multi-language convention
 
 - `<feature_key>/<version>.yaml` is the default (`language: multi`) and is
   paired with `<feature_key>/<version>.md`.
@@ -135,7 +203,7 @@ into the YAML before re-hashing — fails the lint gate.
   `multi`. If neither the exact language nor `multi` is present, F3
   RegistryClient returns `ErrLanguageUnsupported`.
 
-## 6 Status / lifecycle
+## 8 Status / lifecycle
 
 - `draft`: file exists in the truth source but is not seeded into the
   database; the lint gate accepts it but Phase 4 seed migration excludes it.
@@ -148,7 +216,7 @@ into the YAML before re-hashing — fails the lint gate.
 DB-level `is_active` reflects staging/prod runtime state and does not write
 back into this YAML. Edits to YAML `status` are pull-request reviewable.
 
-## 7 Forbidden values
+## 9 Forbidden values
 
 The lint gate rejects:
 
@@ -159,10 +227,11 @@ The lint gate rejects:
   belong in this directory, not in code. The hardcode lint script
   (`scripts/lint/prompt_hardcode_lint.py`) enforces this separately.
 
-## 8 References
+## 10 References
 
-- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.1
-- Plan: `docs/spec/prompt-rubric-registry/plans/001-baseline/plan.md`
+- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.5
+- Plans: `docs/spec/prompt-rubric-registry/plans/001-baseline/plan.md`,
+  `docs/spec/prompt-rubric-registry/plans/002-output-schema-contract/plan.md`
 - DB schema: `migrations/000001_create_baseline.up.sql` (`prompt_versions` table)
 - Lint: `scripts/lint/prompt_lint.py`
 - Go loader: `backend/internal/ai/registry/loader.go`

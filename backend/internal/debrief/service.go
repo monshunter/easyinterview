@@ -329,17 +329,21 @@ func buildSuggestQuestionsPayload(resolution registry.PromptResolution, ctx Sugg
 		messages = append(messages, aiclient.Message{Role: "system", Content: system})
 	}
 	messages = append(messages, aiclient.Message{Role: "user", Content: userContent})
+	metadata := aiclient.CallMetadata{
+		FeatureKey:        debriefSuggestFeatureKey,
+		PromptVersion:     resolution.PromptVersion,
+		RubricVersion:     resolution.RubricVersion,
+		Language:          in.Language,
+		FeatureFlag:       resolution.FeatureFlag,
+		DataSourceVersion: resolution.DataSourceVersion,
+		TaskRun:           taskCtx,
+	}
+	if resolution.OutputSchema != nil {
+		metadata.OutputSchema = *resolution.OutputSchema
+	}
 	return aiclient.CompletePayload{
 		Messages: messages,
-		Metadata: aiclient.CallMetadata{
-			FeatureKey:        debriefSuggestFeatureKey,
-			PromptVersion:     resolution.PromptVersion,
-			RubricVersion:     resolution.RubricVersion,
-			Language:          in.Language,
-			FeatureFlag:       resolution.FeatureFlag,
-			DataSourceVersion: resolution.DataSourceVersion,
-			TaskRun:           taskCtx,
-		},
+		Metadata: metadata,
 	}
 }
 

@@ -332,7 +332,7 @@ func voiceSynthesisInput(resolution registry.PromptResolution, userID string, se
 }
 
 func voiceCallMetadata(resolution registry.PromptResolution, userID string, session SessionRecord, language string, featureKey string) aiclient.CallMetadata {
-	return aiclient.CallMetadata{
+	metadata := aiclient.CallMetadata{
 		FeatureKey:        featureKey,
 		PromptVersion:     resolution.PromptVersion,
 		RubricVersion:     resolution.RubricVersion,
@@ -346,6 +346,10 @@ func voiceCallMetadata(resolution registry.PromptResolution, userID string, sess
 			ResourceID:   session.TargetJobID,
 		},
 	}
+	if featureKey == followUpFeatureKey {
+		metadata = attachOutputSchema(metadata, resolution)
+	}
+	return metadata
 }
 
 func voiceTTSChunk(voiceTurnID, chunkID, assistantText string, resp aiclient.SynthesisResponse) PracticeVoiceTTSChunk {

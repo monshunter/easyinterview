@@ -25,6 +25,24 @@ fi
 
 cd "$REPO_ROOT"
 # --no-banner keeps logs short for CI / Make output;
-# --redact ensures matched secrets are masked in the report;
-# --no-git scans the working tree (history scan is part of A5/CI).
-exec gitleaks detect --no-banner --no-git --redact --source "$REPO_ROOT"
+# --redact ensures matched secrets are masked in the report.
+#
+# Scan the git candidate set rather than the full working tree. Local runtime
+# files such as deploy/dev-stack/.env are intentionally ignored by .gitignore
+# and may contain real developer secrets; scanning them makes the lint target
+# non-repeatable on configured dev machines.
+SCAN_ROOT="$(mktemp -d)"
+cleanup() {
+  rm -rf "$SCAN_ROOT"
+}
+trap cleanup EXIT
+
+while IFS= read -r -d '' path; do
+  if [ ! -f "$path" ]; then
+    continue
+  fi
+  mkdir -p "$SCAN_ROOT/$(dirname "$path")"
+  cp -p "$path" "$SCAN_ROOT/$path"
+done < <(git ls-files -z --cached --others --exclude-standard)
+
+exec gitleaks detect --no-banner --no-git --redact --source "$SCAN_ROOT"

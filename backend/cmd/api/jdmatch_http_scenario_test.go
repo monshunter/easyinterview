@@ -132,6 +132,9 @@ func TestJDMatchA3F3AdapterUsesRegistryProfilesForSearchAndRecommendation(t *tes
 	if firstCall.payload.Metadata.PromptVersion == "" || firstCall.payload.Metadata.RubricVersion == "" {
 		t.Fatalf("search metadata incomplete: %+v", firstCall.payload.Metadata)
 	}
+	if len(firstCall.payload.Metadata.OutputSchema) == 0 {
+		t.Fatalf("search metadata OutputSchema must be populated")
+	}
 	if body := firstCall.payload.Messages[len(firstCall.payload.Messages)-1].Content; !containsAll(body, "frontend platform remote", `"remote":true`, "rec-1", "rec-2") || containsAll(body, "{{query}}") {
 		t.Fatalf("search prompt was not rendered with query/filters/jobs pool: %s", body)
 	}
@@ -152,6 +155,9 @@ func TestJDMatchA3F3AdapterUsesRegistryProfilesForSearchAndRecommendation(t *tes
 	}
 	if secondCall.payload.Metadata.FeatureKey != featurekeys.JdMatchRecommendation.String() {
 		t.Fatalf("recommendation feature key = %q", secondCall.payload.Metadata.FeatureKey)
+	}
+	if len(secondCall.payload.Metadata.OutputSchema) == 0 {
+		t.Fatalf("recommendation metadata OutputSchema must be populated")
 	}
 	if body := secondCall.payload.Messages[len(secondCall.payload.Messages)-1].Content; !containsAll(body, "Backend engineer", "rec-9") || containsAll(body, "{{candidate_profile}}") {
 		t.Fatalf("recommendation prompt was not rendered with candidate/jobs payload: %s", body)
@@ -212,6 +218,7 @@ func (r *recordingJDMatchRegistry) ResolveActive(_ context.Context, featureKey, 
 			ModelProfileName:    "jd_match.search.default",
 			DataSourceVersion:   "registry.v1",
 			FeatureFlag:         "none",
+			OutputSchema:        jdMatchTestSchema(`{"type":"array","items":{"type":"object","required":["jobMatchId"],"properties":{"jobMatchId":{"type":"string"}}}}`),
 			UserMessageTemplate: "query={{query}}\nfilters={{filters}}\ncandidate={{candidate_profile}}\njobs={{jobs_pool}}\nlanguage={{language}}",
 		}, nil
 	case featurekeys.JdMatchRecommendation.String():
@@ -222,11 +229,17 @@ func (r *recordingJDMatchRegistry) ResolveActive(_ context.Context, featureKey, 
 			ModelProfileName:    "jd_match.recommendation.default",
 			DataSourceVersion:   "registry.v1",
 			FeatureFlag:         "none",
+			OutputSchema:        jdMatchTestSchema(`{"type":"array","items":{"type":"object","required":["jobMatchId"],"properties":{"jobMatchId":{"type":"string"}}}}`),
 			UserMessageTemplate: "candidate={{candidate_profile}}\njobs={{jobs_pool}}\nlanguage={{language}}",
 		}, nil
 	default:
 		return registry.PromptResolution{}, errors.New("unexpected feature key")
 	}
+}
+
+func jdMatchTestSchema(s string) *json.RawMessage {
+	raw := json.RawMessage(s)
+	return &raw
 }
 
 type staticJDMatchPool struct {

@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "description": "Lightweight real-time interview observation cue.",
+  "required": [
+    "cue"
+  ],
+  "properties": {
+    "cue": {
+      "type": "string",
+      "description": "Short neutral cue that may be surfaced to the candidate."
+    },
+    "severity": {
+      "type": "string",
+      "description": "Optional cue urgency for downstream evaluation or UI treatment.",
+      "enum": [
+        "info",
+        "nudge",
+        "alert"
+      ]
+    },
+    "dimensionHint": {
+      "type": "string",
+      "description": "Optional rubric dimension hinted by the cue."
+    }
+  }
+}

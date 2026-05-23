@@ -976,6 +976,93 @@ func TestDecorator_OutputSchemaRequiredFieldMismatchEmitsAIOutputInvalid(t *test
 	}
 }
 
+func TestDecorator_OutputSchemaEnumMismatchEmitsAIOutputInvalid(t *testing.T) {
+	registry := observability.NewInMemoryRegistry()
+	logger := observability.NewMemoryLogger()
+	inner := &fallbackInner{
+		content: `{"status":"unsupported"}`,
+		meta: aiclient.AICallMeta{
+			Provider:            stub.Name,
+			ModelFamily:         "stub",
+			ModelID:             "stub-chat-1",
+			Capability:          aiclient.CapabilityChat,
+			ModelProfileName:    "practice.followup.default",
+			ModelProfileVersion: "1.0.0",
+			Language:            "en",
+			ValidationStatus:    aiclient.ValidationStatusOK,
+		},
+	}
+	wrap, err := observability.New(inner,
+		observability.WithRegisterer(registry),
+		observability.WithLogger(logger),
+		observability.WithAITaskRunWriter(&memTaskRunWriter{}),
+		observability.WithAuditEventWriter(&memAuditWriter{}),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+
+	payload := samplePayload()
+	payload.Metadata.OutputSchema = json.RawMessage(`{"type":"object","required":["status"],"properties":{"status":{"type":"string","enum":["needs_work","meets_bar","strong"],"description":"Assessment status."}}}`)
+
+	_, meta, err := wrap.Complete(context.Background(), "practice.followup.default", payload)
+	if err == nil {
+		t.Fatalf("expected enum mismatch to return error")
+	}
+	var apiErr *sharederrors.APIError
+	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("expected AI_OUTPUT_INVALID, got %v", err)
+	}
+	if meta.ValidationStatus != aiclient.ValidationStatusInvalid {
+		t.Fatalf("expected ValidationStatusInvalid, got %q", meta.ValidationStatus)
+	}
+	if len(registry.CounterLabelValues(observability.MetricOutputValidationFailures)) == 0 {
+		t.Fatalf("expected validation failure counter to increment")
+	}
+}
+
+func TestDecorator_OutputSchemaArrayEnumValidPasses(t *testing.T) {
+	registry := observability.NewInMemoryRegistry()
+	logger := observability.NewMemoryLogger()
+	inner := &fallbackInner{
+		content: `[{"jobMatchId":"jm_1","level":"senior"}]`,
+		meta: aiclient.AICallMeta{
+			Provider:            stub.Name,
+			ModelFamily:         "stub",
+			ModelID:             "stub-chat-1",
+			Capability:          aiclient.CapabilityChat,
+			ModelProfileName:    "jd_match.search.default",
+			ModelProfileVersion: "1.0.0",
+			Language:            "en",
+			ValidationStatus:    aiclient.ValidationStatusOK,
+		},
+	}
+	wrap, err := observability.New(inner,
+		observability.WithRegisterer(registry),
+		observability.WithLogger(logger),
+		observability.WithAITaskRunWriter(&memTaskRunWriter{}),
+		observability.WithAuditEventWriter(&memAuditWriter{}),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+
+	payload := samplePayload()
+	payload.Metadata.FeatureKey = "jd_match.search"
+	payload.Metadata.OutputSchema = json.RawMessage(`{"type":"array","items":{"type":"object","required":["jobMatchId","level"],"properties":{"jobMatchId":{"type":"string","description":"Canonical match id."},"level":{"type":"string","enum":["junior","mid","senior"],"description":"Seniority label."}}}}`)
+
+	_, meta, err := wrap.Complete(context.Background(), "jd_match.search.default", payload)
+	if err != nil {
+		t.Fatalf("expected array enum output to pass validation, got %v", err)
+	}
+	if meta.ValidationStatus != aiclient.ValidationStatusOK {
+		t.Fatalf("expected ValidationStatusOK, got %q", meta.ValidationStatus)
+	}
+	if len(registry.CounterLabelValues(observability.MetricOutputValidationFailures)) != 0 {
+		t.Fatalf("valid output must not increment validation failure counter")
+	}
+}
+
 func TestDecorator_ConstructorRequiresAllInjectables(t *testing.T) {
 	registry := observability.NewInMemoryRegistry()
 	logger := observability.NewMemoryLogger()

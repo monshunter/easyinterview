@@ -2,6 +2,7 @@ package review
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -42,6 +43,9 @@ func TestGenerateReportContentSuccess(t *testing.T) {
 		ai.payloads[0].Metadata.TaskRun.Capability != aiclient.AITaskRunTaskReportGenerate ||
 		ai.payloads[0].Metadata.TaskRun.ResourceType != aiclient.AITaskRunResourceFeedbackReport {
 		t.Fatalf("metadata = %+v", ai.payloads[0].Metadata)
+	}
+	if len(ai.payloads[0].Metadata.OutputSchema) == 0 {
+		t.Fatalf("metadata OutputSchema must be populated")
 	}
 }
 
@@ -96,8 +100,14 @@ func reportResolution(featureKey string, profile string, template string) regist
 		ModelProfileName:    profile,
 		FeatureFlag:         "none",
 		DataSourceVersion:   "registry.v1",
+		OutputSchema:        reviewOutputSchema(`{"type":"object","required":["summary"],"properties":{"summary":{"type":"string"}}}`),
 		UserMessageTemplate: template,
 	}
+}
+
+func reviewOutputSchema(s string) *json.RawMessage {
+	raw := json.RawMessage(s)
+	return &raw
 }
 
 func joinedMessages(messages []aiclient.Message) string {

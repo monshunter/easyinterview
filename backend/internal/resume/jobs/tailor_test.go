@@ -111,6 +111,9 @@ func TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox(t *
 		ai.payload.Metadata.TaskRun.UserID != userID {
 		t.Fatalf("AI metadata drift: profile=%q metadata=%+v", ai.profileName, ai.payload.Metadata)
 	}
+	if len(ai.payload.Metadata.OutputSchema) == 0 {
+		t.Fatalf("AI metadata OutputSchema must be populated")
+	}
 	rows := taskRuns.Rows()
 	if len(rows) != 1 {
 		t.Fatalf("expected one ai_task_runs row, got %+v", rows)
@@ -264,6 +267,9 @@ func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
 				if tc.ai.profileName != "resume.tailor.bullet_suggestions" || tc.ai.payload.Metadata.FeatureKey != resumejobs.FeatureKeyResumeTailorBulletSuggestions {
 					t.Fatalf("bullet route drift: profile=%q metadata=%+v", tc.ai.profileName, tc.ai.payload.Metadata)
 				}
+				if len(tc.ai.payload.Metadata.OutputSchema) == 0 {
+					t.Fatalf("bullet route metadata OutputSchema must be populated")
+				}
 				if len(store.success.Suggestions) != 1 || store.success.Suggestions[0].OriginalBullet != "Built services." || store.success.Suggestions[0].SuggestedBullet != "Built low-latency services." {
 					t.Fatalf("mapped suggestions = %+v", store.success.Suggestions)
 				}
@@ -279,6 +285,60 @@ func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
 				t.Fatalf("failure must not write ready outbox: %+v", store.success)
 			}
 		})
+	}
+}
+
+func TestTailorHandlerBulletSuggestionsCanonicalKeysRoundTrip(t *testing.T) {
+	now := time.Date(2026, 5, 18, 12, 40, 0, 0, time.UTC)
+	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca01"
+	versionID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca02"
+	store := &fakeTailorStore{ctx: resumestore.TailorJobContext{
+		TailorRunID:       tailorRunID,
+		UserID:            "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca03",
+		ResumeVersionID:   versionID,
+		ResumeAssetID:     "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca04",
+		TargetJobID:       "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca05",
+		Mode:              "bullet_suggestions",
+		Language:          "en",
+		ResumeSummary:     json.RawMessage(`{"headline":"Engineer"}`),
+		StructuredProfile: json.RawMessage(`{"sections":[{"bullets":["Built APIs."]}]}`),
+		TargetSummary:     json.RawMessage(`{"requirements":["platform reliability"]}`),
+		OriginalBullet:    "Built APIs.",
+	}}
+	handler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
+		Store:    store,
+		Registry: tailorRegistry{},
+		AI: &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{
+		  "suggestions": [
+		    {"originalBullet":"Built APIs.","suggestedBullet":"Built reliable APIs for onboarding.","reason":"Adds reliability and product scope."}
+		  ]
+		}`}},
+		AITaskRuns: &memTaskRunWriter{},
+		NewID:      idSeq("0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca06", "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca07"),
+		Now:        func() time.Time { return now },
+	})
+
+	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID:        "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca08",
+		JobType:      string(jobs.JobTypeResumeTailor),
+		ResourceType: "resume_tailor_run",
+		ResourceID:   tailorRunID,
+		Payload:      []byte(`{"tailorRunId":"` + tailorRunID + `","resumeVersionId":"` + versionID + `"}`),
+		Attempts:     1,
+		MaxAttempts:  5,
+	})
+
+	if !outcome.Succeeded || store.success == nil {
+		t.Fatalf("Handle outcome=%+v success=%+v", outcome, store.success)
+	}
+	if len(store.success.Suggestions) != 1 {
+		t.Fatalf("suggestions = %+v", store.success.Suggestions)
+	}
+	got := store.success.Suggestions[0]
+	if got.OriginalBullet != "Built APIs." ||
+		got.SuggestedBullet != "Built reliable APIs for onboarding." ||
+		got.Reason != "Adds reliability and product scope." {
+		t.Fatalf("canonical suggestion did not round trip: %+v", got)
 	}
 }
 
@@ -469,6 +529,7 @@ func (tailorRegistry) Resolve(_ context.Context, featureKey string, language str
 			ModelProfileName:    "resume.tailor.gap_review",
 			DataSourceVersion:   "target_job.v1",
 			FeatureFlag:         "none",
+			OutputSchema:        rawSchema(`{"type":"object","required":["matchSummary"],"properties":{"matchSummary":{"type":"object"}}}`),
 			UserMessageTemplate: "Resume summary: {{resume_summary}}\nJD summary: {{jd_summary}}\nTarget seniority: {{target_seniority}}\nLanguage: {{language}}",
 		}, nil
 	case resumejobs.FeatureKeyResumeTailorBulletSuggestions:
@@ -478,6 +539,7 @@ func (tailorRegistry) Resolve(_ context.Context, featureKey string, language str
 			ModelProfileName:    "resume.tailor.bullet_suggestions",
 			DataSourceVersion:   "target_job.v1",
 			FeatureFlag:         "none",
+			OutputSchema:        rawSchema(`{"type":"object","required":["suggestions"],"properties":{"suggestions":{"type":"array"}}}`),
 			UserMessageTemplate: "Original bullet: {{original_bullet}}\nTarget context: {{jd_context}}\nTone: {{tone}}\nLanguage: {{language}}",
 		}, nil
 	default:

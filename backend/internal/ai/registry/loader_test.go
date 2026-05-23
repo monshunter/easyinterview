@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -76,6 +77,52 @@ func TestLoadMissingMarkdownBody(t *testing.T) {
 	}
 }
 
+func TestLoadOutputSchemaLanguageIndependent(t *testing.T) {
+	t.Parallel()
+	promptsRoot, rubricsRoot := repoConfigRoots(t)
+
+	snap, err := loadFromDisk(promptsRoot, rubricsRoot)
+	if err != nil {
+		t.Fatalf("loadFromDisk failed: %v", err)
+	}
+
+	multi := snap.prompts["target.import.parse"]["multi"].outputSchema
+	en := snap.prompts["target.import.parse"]["en"].outputSchema
+	if multi == nil || en == nil {
+		t.Fatalf("output schema must be loaded for every language, multi=%v en=%v", multi, en)
+	}
+	if multi != en {
+		t.Fatalf("output schema must be language-independent shared pointer")
+	}
+	if got := schemaType(t, *multi); got != "object" {
+		t.Fatalf("target.import.parse schema type: want object, got %s", got)
+	}
+
+	recommendation := snap.prompts["jd_match.recommendation"]["en"].outputSchema
+	if recommendation == nil {
+		t.Fatal("jd_match.recommendation output schema missing")
+	}
+	if got := schemaType(t, *recommendation); got != "array" {
+		t.Fatalf("jd_match.recommendation schema type: want array, got %s", got)
+	}
+}
+
+func TestLoadMissingOutputSchemaRejected(t *testing.T) {
+	t.Parallel()
+	promptsRoot, rubricsRoot := tempBaselineCopy(t)
+
+	target := filepath.Join(promptsRoot, "target.import.parse", "v0.1.0.schema.json")
+	if err := os.Remove(target); err != nil {
+		t.Fatalf("remove schema: %v", err)
+	}
+
+	if _, err := loadFromDisk(promptsRoot, rubricsRoot); err == nil {
+		t.Fatalf("expected missing-schema error, got nil")
+	} else if !strings.Contains(err.Error(), "missing output schema") {
+		t.Fatalf("expected missing-schema message, got: %v", err)
+	}
+}
+
 func TestLoadInvalidYAML(t *testing.T) {
 	t.Parallel()
 	promptsRoot, rubricsRoot := tempBaselineCopy(t)
@@ -134,6 +181,17 @@ func tempBaselineCopy(t *testing.T) (string, string) {
 		t.Fatalf("copy rubrics: %v", err)
 	}
 	return dstPrompts, dstRubrics
+}
+
+func schemaType(t *testing.T, raw json.RawMessage) string {
+	t.Helper()
+	var schema struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(raw, &schema); err != nil {
+		t.Fatalf("parse schema: %v", err)
+	}
+	return schema.Type
 }
 
 func copyTree(src, dst string) error {

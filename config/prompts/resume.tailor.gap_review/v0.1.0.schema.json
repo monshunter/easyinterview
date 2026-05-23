@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "description": "Resume-to-target-job gap review normalized for tailor run storage.",
+  "required": [
+    "matchSummary"
+  ],
+  "properties": {
+    "matchSummary": {
+      "type": "object",
+      "description": "Canonical match summary consumed by resume tailor parsing.",
+      "required": [
+        "strengths",
+        "gaps"
+      ],
+      "properties": {
+        "strengths": {
+          "type": "array",
+          "description": "Resume strengths to amplify for the target JD.",
+          "items": {
+            "type": "string",
+            "description": "One strength."
+          }
+        },
+        "gaps": {
+          "type": "array",
+          "description": "Resume gaps to address for the target JD.",
+          "items": {
+            "type": "string",
+            "description": "One gap."
+          }
+        }
+      }
+    }
+  }
+}

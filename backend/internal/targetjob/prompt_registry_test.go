@@ -2,6 +2,7 @@ package targetjob_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -75,6 +76,18 @@ func TestRegistryAdapterMapsAllSevenFields(t *testing.T) {
 	}
 	if got.UserMessageTemplate == "" {
 		t.Errorf("UserMessageTemplate must be populated for plan 001 baseline")
+	}
+	if got.OutputSchema == nil {
+		t.Fatalf("OutputSchema must be populated")
+	}
+	var schema struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(*got.OutputSchema, &schema); err != nil {
+		t.Fatalf("parse OutputSchema: %v", err)
+	}
+	if schema.Type != "object" {
+		t.Fatalf("OutputSchema.type: want object, got %s", schema.Type)
 	}
 	// SystemMessage may legitimately be empty in plan 001 (the body lives
 	// entirely in UserMessageTemplate). Just freeze the field shape.

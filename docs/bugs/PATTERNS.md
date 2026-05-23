@@ -81,3 +81,13 @@
   3. Frontend scenario trigger 应前置一个 `VITE_EI_API_MODE=real` generated-client gate，断言 base URL、`credentials: "include"`、无 fixture `Prefer` header、side-effect `Idempotency-Key` 与关键 response provenance；然后再跑 fixture-backed UI variants。
   4. Scenario verify 必须检查 real-mode marker 和测试文件名，防止 fixture UI PASS 单独满足完成条件。
   5. 若同一 subspec 已出现一次 handoff drift，立即 sweep sibling/completed plans 的相同模式，避免只修首个被用户指出的 plan。
+
+## 模式 7：Secret lint 扫描范围误纳入 ignored runtime files
+
+- **相关 Bug**：BUG-0094
+- **典型症状**：`make lint` 或 `lint-secrets-pattern` 在带本地 `.env` 的开发机失败；失败路径位于 `.gitignore` 排除的 runtime config、缓存或临时证据目录；CI 或干净 checkout 不复现。
+- **检查清单**：
+  1. 先用 `git ls-files --cached --others --exclude-standard` 确认 secret scanner 的候选集，只允许 tracked files 与未忽略新增文件进入 repo quality gate。
+  2. 对外部 scanner 使用临时 mirror 或等价输入文件列表，避免把整棵工作树作为 source。
+  3. 修复后在带 ignored `.env` 的本机运行对应 lint，并确认 `.env` 不再被读取；同时保留未忽略文件中的 secret pattern negative gate。
+  4. Bug / report / 日志中只能记录脱敏路径与变量名，禁止写入真实 secret 值或可还原片段。

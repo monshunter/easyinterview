@@ -135,6 +135,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0094](./BUG-0094.md) | gitleaks lint scanned ignored local env secrets | medium | resolved | 2026-05-23 | `feat(prompt-rubric): close output schema contract (BUG-0094)` |
 | [BUG-0093](./BUG-0093.md) | Ready e2e scenarios were missing required data assets | medium | resolved | 2026-05-23 | `fix(test): add missing scenario data assets (BUG-0093)` |
 | [BUG-0090](./BUG-0090.md) | frontend owner scenario wrappers widened scoped gates and ignored hash routes | medium | resolved | 2026-05-23 | `fix(test): close frontend owner scenario full-run gates (BUG-0090)` |
 | [BUG-0092](./BUG-0092.md) | repo lint gates rejected current practice voice contracts and drifted follow-up evidence | medium | resolved | 2026-05-22 | `fix(repo-lint): align current contract gates (BUG-0088)` |

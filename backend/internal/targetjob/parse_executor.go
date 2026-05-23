@@ -30,6 +30,7 @@ type PromptResolution struct {
 	FeatureFlag         string
 	SystemMessage       string
 	UserMessageTemplate string
+	OutputSchema        *json.RawMessage
 }
 
 // PromptRegistryClient is the F3 boundary. The targetjob domain references
@@ -148,21 +149,25 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportSourceInvalid, "no JD text available for parse", false)
 	}
 
+	metadata := aiclient.CallMetadata{
+		FeatureKey:        FeatureKeyTargetImportParse,
+		PromptVersion:     resolution.PromptVersion,
+		RubricVersion:     resolution.RubricVersion,
+		Language:          target.TargetLanguage,
+		FeatureFlag:       coalesceFlag(resolution.FeatureFlag),
+		DataSourceVersion: resolution.DataSourceVersion,
+		TaskRun: aiclient.AITaskRunContext{
+			Capability:   aiclient.AITaskRunTaskJDParse,
+			ResourceType: aiclient.AITaskRunResourceTargetJob,
+			ResourceID:   targetJobID,
+		},
+	}
+	if resolution.OutputSchema != nil {
+		metadata.OutputSchema = *resolution.OutputSchema
+	}
 	complete, aiMeta, err := p.ai.Complete(ctx, resolution.ModelProfileName, aiclient.CompletePayload{
 		Messages: buildPromptMessages(resolution, target.TargetLanguage, jdText, sourceURLForPrompt),
-		Metadata: aiclient.CallMetadata{
-			FeatureKey:        FeatureKeyTargetImportParse,
-			PromptVersion:     resolution.PromptVersion,
-			RubricVersion:     resolution.RubricVersion,
-			Language:          target.TargetLanguage,
-			FeatureFlag:       coalesceFlag(resolution.FeatureFlag),
-			DataSourceVersion: resolution.DataSourceVersion,
-			TaskRun: aiclient.AITaskRunContext{
-				Capability:   aiclient.AITaskRunTaskJDParse,
-				ResourceType: aiclient.AITaskRunResourceTargetJob,
-				ResourceID:   targetJobID,
-			},
-		},
+		Metadata: metadata,
 	})
 	if err != nil {
 		code, retryable := translateAIClientError(err)
