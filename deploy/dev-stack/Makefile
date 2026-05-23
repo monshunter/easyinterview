@@ -10,10 +10,11 @@ COMPOSE := docker compose -f $(DEV_STACK_DIR)/docker-compose.yaml --project-dire
 DEPENDENCY_SERVICES := postgres-dev redis-dev minio-dev
 INIT_SERVICES := minio-init
 DOCTOR_SCRIPT := $(DEV_STACK_DIR)/scripts/dev-doctor.sh
+POSTGRES_VOLUME_GUARD := $(DEV_STACK_DIR)/scripts/check-postgres-volume-layout.sh
 ENV_EXAMPLE := $(DEV_STACK_DIR)/.env.example
 ENV_FILE := $(DEV_STACK_DIR)/.env
 
-.PHONY: up down doctor reset logs pull help _ensure_env _wait_init _all_healthy
+.PHONY: up down doctor reset logs pull help _ensure_env _check_postgres_volume _wait_init _all_healthy
 
 help: ## List dev-stack make targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -22,6 +23,11 @@ _ensure_env:
 	@if [ ! -f "$(ENV_FILE)" ]; then \
 		echo "[dev-stack] .env not found, copying from $(notdir $(ENV_EXAMPLE))"; \
 		cp "$(ENV_EXAMPLE)" "$(ENV_FILE)"; \
+	fi
+
+_check_postgres_volume:
+	@if [ -x "$(POSTGRES_VOLUME_GUARD)" ]; then \
+		"$(POSTGRES_VOLUME_GUARD)"; \
 	fi
 
 _all_healthy: # internal: prints "yes" iff all deps running+healthy AND init exited 0
@@ -42,7 +48,7 @@ _all_healthy: # internal: prints "yes" iff all deps running+healthy AND init exi
 	fi; \
 	echo "$$all_ok"
 
-up: _ensure_env ## Start dev stack (idempotent; skip if already healthy)
+up: _ensure_env _check_postgres_volume ## Start dev stack (idempotent; skip if already healthy)
 	@status="$$(make -s -C "$(DEV_STACK_DIR)" _all_healthy)"; \
 	if [ "$$status" = "yes" ]; then \
 		echo "[dev-stack] already healthy, skipping start"; \

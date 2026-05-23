@@ -1,10 +1,10 @@
 # Local Dev Stack
 
-> **版本**: 1.1
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-22
 
-本目录承载 [local-dev-stack/001-bootstrap](../../docs/spec/local-dev-stack/plans/001-bootstrap/plan.md) 的运行时实现。默认 `make dev-up` 只启动 P0 闭环必须的最小依赖与当前仓库已具备本地运行入口的项目组件，**默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider**。
+本目录承载 [local-dev-stack/001-bootstrap](../../docs/spec/local-dev-stack/plans/001-bootstrap/plan.md) 的运行时实现。默认 `make dev-up` 只启动 P0 闭环必须的外部依赖；backend / frontend 默认由宿主机 dev command 管理，只有组件 owner 明确接入 optional compose app service 时才进入本栈。**默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider**。
 
 ## 1 前置条件
 
@@ -25,7 +25,7 @@
 
 | name | image | host port | 默认凭据 | 命名卷 |
 |------|-------|-----------|----------|--------|
-| `postgres-dev` | `postgres:18-alpine` | `${POSTGRES_HOST_PORT:-5432}` | `easyinterview` / `dev` (DB `easyinterview`) | `easyinterview-pg-data` |
+| `postgres-dev` | `postgres:18-alpine` | `${POSTGRES_HOST_PORT:-5432}` | `easyinterview` / `dev` (DB `easyinterview`) | `easyinterview-pg-data` mounted at `/var/lib/postgresql`; official image PGDATA stays `/var/lib/postgresql/18/docker` |
 | `redis-dev` | `redis:7-alpine` | `${REDIS_HOST_PORT:-6379}` | 无密码（dev only） | `easyinterview-redis-data` |
 | `minio-dev` | `minio/minio:RELEASE.2024-12-18T13-15-44Z` | `${MINIO_API_HOST_PORT:-9000}` API + `${MINIO_CONSOLE_HOST_PORT:-9001}` Console | `dev-access-key` / `dev-secret-key` | `easyinterview-minio-data` |
 | `minio-init` | `minio/mc:RELEASE.2024-11-21T17-21-54Z` | — | 复用 minio-dev 凭据 | — (一次性 init job) |
@@ -34,7 +34,7 @@
 
 ### 2.2 项目组件
 
-当前没有具备本地运行入口的项目组件接入 compose。后续 backend / frontend 等 child 落地 Dockerfile 或 dev command 时，必须把 service 接入本 compose 文件并打 label：
+当前没有项目组件接入默认 compose。backend / frontend 本地开发优先使用宿主机 dev command 直接运行，并连接本栈提供的 Postgres / Redis / MinIO。后续只有在组件 owner 明确需要可复现容器化 app service 时，才把 service 接入本 compose 文件并打 label：
 
 | label | 含义 |
 |-------|------|
@@ -48,14 +48,14 @@
 
 | 命令 | 用途 |
 |------|------|
-| `make dev-up` | 启动依赖 + 项目组件；空仓克隆即跑（D-3 健康超时 60s）；幂等：全部 healthy 时打印 `already healthy` 并退出 0（C-3） |
+| `make dev-up` | 启动外部依赖与已显式接入的 optional app service；空仓克隆即跑（D-3 健康超时 60s）；幂等：全部 healthy 时打印 `already healthy` 并退出 0（C-3） |
 | `make dev-down` | 停止容器，**保留命名卷**（C-4），下次 `dev-up` 数据完整 |
 | `make dev-doctor` | 输出 D-6 锁定的 JSON 健康报告（services + summary）；`summary.down==0 && summary.degraded==0` 才退出 0 |
 | `make dev-reset` | 停止容器并 **删除** 三个命名卷（C-5）；交互式 `read` 确认；`DEV_RESET_FORCE=1` 跳过确认 |
 | `make dev-logs` | 汇总打印近期容器日志；`SERVICE=<name>` 限定到单个 service |
 | `make dev-pull` | 预拉锁定 tag 的依赖镜像（慢网络） |
 
-`dev-up` 启动顺序：先按 `--wait` 等 3 个依赖 healthy → 启动 `minio-init` 并轮询其退出码 (timeout 60s) → 调用 `dev-doctor.sh` 作为最终 gate；任何阶段失败时 `up` 退出非 0 并把每个 dependency / init 服务最近 50 行 `docker logs` 打到 stderr。
+`dev-up` 启动顺序：先只读检查 Postgres 18 命名卷布局是否仍是旧 `/var/lib/postgresql/data` 或半初始化状态 → 按 `--wait` 等 3 个依赖 healthy → 启动 `minio-init` 并轮询其退出码 (timeout 60s) → 调用 `dev-doctor.sh` 作为最终 gate；任何阶段失败时 `up` 退出非 0 并把每个 dependency / init 服务最近 50 行 `docker logs` 打到 stderr。
 
 ## 4 配置
 
@@ -63,7 +63,7 @@
 
 ### 4.1 AI provider 配置
 
-docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compatible endpoint；当前 repo-tracked 开发主力为 DeepSeek：
+非测试本地 app run 与后续部署都连接真实 AI provider / OpenAI-compatible endpoint；当前 repo-tracked 开发主力为 DeepSeek：
 
 - 必须保留 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml` 与 `AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml`，本地组件从单一 provider registry / profile catalog 加载 AI 路由。
 - 必须设置 `AI_PROVIDER_BASE_URL=https://api.deepseek.com`，与 `deepseek` provider ref 对齐。
@@ -73,10 +73,10 @@ docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compati
 
 ## 5 与场景测试的关系
 
-本目录是 **应用本地开发** 的 Docker Compose 路径；`test/scenarios/` 是 BDD / E2E 场景契约路径。两条路径互不替代：
+本目录是 **应用本地开发依赖** 的 Docker Compose 路径；`test/scenarios/` 是 BDD / E2E 场景契约路径。两条路径互不替代：
 
-- 应用 dev → 用 `make dev-up` 启动 Postgres / Redis / MinIO 依赖；backend/frontend 进程当前可在宿主机单独启动，直到 app service 接入 compose。
-- BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。框架目标环境是单一本地 Kind 集群；当前 Ready 场景在缺少部署资产时可通过 repo-tracked Go / Vitest / Playwright 脚本验证同一行为契约。
+- 应用 dev → 用 `make dev-up` 启动 Postgres / Redis / MinIO 依赖；backend/frontend 进程默认在宿主机单独启动并消费这些连接串。
+- BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。当前 P0 场景默认通过 repo-tracked Go / Vitest / Playwright / browser smoke 脚本验证同一行为契约，不要求 Kind / K8s / Helm 环境。
 - 需要真实 AI provider 的应用部署不得降级到单元测试 stub；`APP_ENV=test` 以外缺真实 provider config 时必须 fail-fast。
 
 ## 6 故障排查
@@ -84,7 +84,7 @@ docker compose 与 Kind 本地部署都连接真实 AI provider / OpenAI-compati
 | 现象 | 应对 |
 |------|------|
 | `make dev-up` 报 `bind: address already in use` | `make dev-doctor` 会指出占用端口的 pid 与 cmd；通过 `.env` 的 `*_HOST_PORT` 字段 override 端口，不要修改容器内端口 |
-| Postgres healthcheck 反复失败但容器在跑 | `make dev-logs SERVICE=postgres-dev`；常见原因：旧卷里 `POSTGRES_PASSWORD` / `POSTGRES_USER` 与 `.env` 不一致 → `DEV_RESET_FORCE=1 make dev-reset` 后重新 up |
+| Postgres healthcheck 反复失败但容器在跑 | `make dev-logs SERVICE=postgres-dev`；常见原因：旧卷里 `POSTGRES_PASSWORD` / `POSTGRES_USER` 与 `.env` 不一致，或历史 compose 曾把卷挂到 Postgres 18 不兼容的 `/var/lib/postgresql/data`；确认要清空本地开发数据后再执行 `DEV_RESET_FORCE=1 make dev-reset` 并重新 up |
 | MinIO 启动报 `volume not writable` | macOS Docker Desktop 偶发权限缓存问题；`docker volume rm easyinterview-minio-data` 后重新 up |
 | 镜像首次拉取超过 60s healthy 预算 | 先 `make dev-pull` 预热再 `make dev-up`；预算只针对 image 已在本地的稳态 |
 | `make dev-doctor` 对启用 AIClient 的组件报 DOWN | 检查 `.env` 中 `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 是否指向 repo 内 catalog，并确认 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 填了真实 provider；勿提交真实 key |

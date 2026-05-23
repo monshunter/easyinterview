@@ -152,6 +152,15 @@ For each in-scope phase:
    only proves structure counts or historical expectations, record the gap and
    prefer adding lint, unit tests, negative fixtures, smoke tests, or drift checks
    before moving to the next target.
+   - For Docker Compose / dev-infra targets, `docker compose config` is only a
+     structure gate. If the plan changes a dependency image major version,
+     named volume, entrypoint, default UID, mounted path, healthcheck, or
+     persistent data layout, inspect the current image metadata/entrypoint and
+     run a runtime gate with a clean volume or equivalent isolated state. Also
+     check the stale-volume path: old local data must be either safely rejected
+     with an explicit reset/migration instruction or covered by a tested
+     migration path; never count automatic volume deletion as an acceptable L2
+     fix without user approval.
    - For `ui-design` source-level parity, computed style, bounding-box, and
      screenshot checks are necessary but not sufficient. Also reverse-audit
      `ui-design/src/*.jsx`, `ui-design/src/app.jsx`, and

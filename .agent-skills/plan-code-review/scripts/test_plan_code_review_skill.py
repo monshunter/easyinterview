@@ -72,3 +72,15 @@ class TestPlanCodeReviewSkill:
         assert "Regression / legacy-negative" in text
         assert "`C-series`: coverage matrix proof" in text
         assert "`Coverage Matrix Evidence` section" in text
+
+    def test_dev_infra_reviews_image_volume_runtime_contracts(self):
+        text = _skill_text()
+        assert "Docker Compose / dev-infra targets" in text
+        assert "dependency image major version" in text
+        assert "named volume" in text
+        assert "entrypoint" in text
+        assert "default UID" in text
+        assert "persistent data layout" in text
+        assert "clean volume" in text
+        assert "stale-volume path" in text
+        assert "never count automatic volume deletion" in text

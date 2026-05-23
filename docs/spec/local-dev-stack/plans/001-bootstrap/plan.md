@@ -1,15 +1,15 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.6
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-22
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-9 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与项目组件启动约定，把 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 占位的 `make dev-up` / `make dev-down` 替换为真实实现并新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO + 当前项目可运行组件全部 healthy」可由开发者本机重复跑通；其中启用 AIClient 的组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
+把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-9 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，把 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 占位的 `make dev-up` / `make dev-down` 替换为真实实现并新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
 
 本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。
 
@@ -17,7 +17,7 @@
 
 [engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A2 保留为当前 active Foundation spec；后续 workstream 依赖本地数据库 / 缓存 / 对象存储以及统一项目启动入口。本 plan 通过 §4 的 4 个 phase 验收 spec §6 C-1..C-9，关闭 roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺。
 
-每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来就能用 `docker compose` 直连最小依赖与项目组件；Phase 2 起来就能用 `make` 管理生命周期；Phase 3 起来就能机器消费 `make dev-doctor` JSON；Phase 4 收口应用 `/metrics`、容器日志与文档。本 plan 不引入 BDD 资产（场景覆盖由后续 [e2e-scenarios-p0](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) workstream 承接），AC 验证完全由 `make dev-*` 命令驱动。
+每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来就能用 `docker compose` 直连最小外部依赖；Phase 2 起来就能用 `make` 管理生命周期；Phase 3 起来就能机器消费 `make dev-doctor` JSON；Phase 4 收口 optional 应用 `/metrics`、依赖容器日志与文档。本 plan 不引入 BDD 资产；当前 `test/scenarios/` 场景覆盖由具体 feature plan 通过 repo-tracked 本地 runner 维护，AC 验证完全由 `make dev-*` 命令驱动。
 
 ## 3 质量门禁分类
 
@@ -32,14 +32,14 @@
 
 #### 1.1 `deploy/dev-stack/docker-compose.yaml`
 
-按 spec D-1..D-4 落地默认最小依赖服务（Postgres / Redis / MinIO）以及当前仓库内所有已具备本地运行入口的项目组件。固定 D-2 镜像 tag、D-3 端口、D-7 命名卷与 D-4 `easyinterview-dev` bridge network。compose v2 schema（不写 `version:` 字段）；默认 compose 不预留也不启动 OTel Collector / Grafana / Loki / Prometheus / AI provider。
+按 spec D-1..D-4 落地默认最小依赖服务（Postgres / Redis / MinIO）以及已显式接入的 optional 项目组件。backend / frontend 默认通过宿主机 dev command 运行，不因具备本地入口就强制进入 compose。固定 D-2 镜像 tag、D-3 端口、D-7 命名卷与 D-4 `easyinterview-dev` bridge network。compose v2 schema（不写 `version:` 字段）；默认 compose 不预留也不启动 OTel Collector / Grafana / Loki / Prometheus / AI provider。
 
 每个服务必须配置容器级 `healthcheck`（间隔 ≤5s，重试 ≥3）：
 
 - Postgres：`pg_isready -U $POSTGRES_USER`
 - Redis：`redis-cli ping`
 - MinIO：`mc ready local` 或 HTTP `/minio/health/live`
-- 项目 HTTP 组件：`GET /healthz`；backend internal runner 随 backend 组件观测，不单独声明进程 probe
+- Optional 项目 HTTP 组件：`GET /healthz`；backend internal runner 随 backend 组件观测，不单独声明进程 probe
 
 #### 1.2 init 脚本与 provisioning
 
@@ -49,7 +49,7 @@
 
 #### 1.3 数据卷命名（D-7）
 
-`docker-compose.yaml` 顶层 `volumes:` 节声明 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data` 三个命名卷；不使用 bind mount。
+`docker-compose.yaml` 顶层 `volumes:` 节声明 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data` 三个命名卷；不使用 bind mount。Postgres 18 的 `easyinterview-pg-data` 必须挂到 `/var/lib/postgresql`，不挂到 `/var/lib/postgresql/data`，让官方镜像保持 `PGDATA=/var/lib/postgresql/18/docker` 并把真实数据库目录放进命名卷。`make dev-up` 在启动 Postgres 前必须只读检测旧根目录 `PG_VERSION`、旧 `/var/lib/postgresql/data/PG_VERSION` 或半初始化 `/var/lib/postgresql/18` 布局；命中时明确提示用户确认数据后用 `make dev-reset` 重建，不自动删除卷。
 
 #### 1.4 dev `.env` 与 config 默认值
 
@@ -57,7 +57,7 @@
 
 #### 1.5 Phase 1 自检
 
-- `cd deploy/dev-stack && docker compose up -d`：Postgres / Redis / MinIO 与当前已接入的项目组件全部进入 `healthy`（用 `docker compose ps --format json | jq` 校验）。
+- `cd deploy/dev-stack && docker compose up -d`：Postgres / Redis / MinIO 与已接入的 optional 项目组件全部进入 `healthy`（用 `docker compose ps --format json | jq` 校验）。
 - `docker exec` 进入 Postgres 容器执行 `psql -U $POSTGRES_USER -d $POSTGRES_DB -c "select 1"` 必须返回 1 行（关闭 spec C-6）。
 - 拆下后 `docker compose down`（不带 `--volumes`），命名卷在 `docker volume ls` 中保留。
 
@@ -65,7 +65,7 @@
 
 #### 2.1 替换 A1 占位 `make dev-up` / `make dev-down`
 
-根 `Makefile` 中 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 的两个占位 target 改为递归调用 `$(MAKE) -C deploy/dev-stack up` / `down`；`deploy/dev-stack/Makefile` 承载真实实现（`docker compose -f docker-compose.yaml --project-name easyinterview-dev up -d --wait` 等）。
+根 `Makefile` 中 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 的两个占位 target 改为递归调用 `$(MAKE) -C deploy/dev-stack up` / `down`；`deploy/dev-stack/Makefile` 承载真实实现（`docker compose -f docker-compose.yaml --project-name easyinterview-dev up -d --wait` 等），只默认管理外部依赖和已显式接入的 optional app service。
 
 新增 phony target：`dev-doctor`、`dev-reset`、`dev-logs`、`dev-pull`，并在根 `make help` 输出。
 
@@ -113,7 +113,7 @@
 - Redis：`redis-cli set __doctor__ ok EX 5` + `get` + `del`。
 - MinIO：`mc ls` 默认 bucket（不存在则报 DEGRADED + reason）。
 
-项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/metrics`，`GET /metrics` 必须返回非空文本。backend internal runner 通过 backend 组件状态、最近日志与 `/metrics` 出口观测，不单独注册本地进程 probe。对启用 AIClient 的组件，doctor 只校验 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 是否注入并报告缺失；不得在 doctor 中调用真实 LLM。
+Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/metrics`，`GET /metrics` 必须返回非空文本。宿主机运行的 backend / frontend 由对应 owner 的 dev command、unit/integration test 或 scenario runner 验证；backend internal runner 通过 backend 组件状态、最近日志与 `/metrics` 出口观测，不单独注册本地进程 probe。对启用 AIClient 的组件，doctor 只校验 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 是否注入并报告缺失；不得在 doctor 中调用真实 LLM。
 
 #### 3.3 dev-up gate 接入（C-1）
 
@@ -121,7 +121,7 @@
 
 #### 3.4 失败可观察（C-2）
 
-构造 Postgres 端口 5432 或任一已启用项目组件 host port 被本机进程占用的复现路径（例如 `nc -l 5432 &`）：
+构造 Postgres 端口 5432 或任一已接入 optional 项目组件 host port 被本机进程占用的复现路径（例如 `nc -l 5432 &`）：
 
 - `make dev-up` 退出码非 0；
 - stderr 输出冲突服务名 + 占用进程提示（用 `lsof -nP -iTCP:5432` 或等价命令）；
@@ -138,11 +138,12 @@
 
 #### 4.1 应用 `/metrics` 与容器日志验证（C-7）
 
-对每个已启用 HTTP 项目组件执行轻量验证：
+对每个已接入 compose 的 optional HTTP 项目组件执行轻量验证；当前没有 optional app service 时，本项以依赖容器日志和 README 边界说明收口：
 
 - `curl http://localhost:${PORT}/metrics` 返回非空文本指标（仅对已声明 `/metrics` 的组件强制）。
 - `make dev-logs SERVICE=<name>` 能输出对应容器最近日志。
 - `make dev-doctor` 对该组件维持 OK。
+- 宿主机运行 backend / frontend 的验证不由 A2 伪造，归对应 feature / runtime owner 的本地 dev command、单测或 scenario runner。
 
 本 plan 不创建 OTLP smoke，不安装 OTel Collector / Grafana / Loki / Prometheus。F1 后续可基于 `/metrics` 与 stdout/stderr 日志接入生产或可选观测链路。
 
@@ -151,11 +152,11 @@
 按 spec §4.4 必须包含：
 
 - 服务表（name / image / port / 默认 credentials / 命名卷）。
-- 项目组件表（component / compose service / host port / health endpoint / metrics endpoint）。
+- Optional 项目组件表（component / compose service / host port / health endpoint / metrics endpoint）与宿主机运行边界。
 - `make dev-*` 命令清单与典型用例。
 - 常见故障排查（端口占用 / 卷不可写 / 镜像拉取失败 / Postgres 连接失败）。
-- AI provider 配置说明：docker compose 本地部署使用真实 provider / OpenAI-compatible endpoint；`.env.example` 只提供 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位，真实 key 写入被 `.gitignore` 忽略的 `.env`；单元测试 stub 不适用于本地部署。
-- 与 `test/scenarios/`（Kind 路径，归 E2/E4）的双轨说明：本地 docker-compose 走应用 dev，Kind 走场景测试，互不依赖。
+- AI provider 配置说明：非测试本地 app run 使用真实 provider / OpenAI-compatible endpoint；`.env.example` 只提供 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位，真实 key 写入被 `.gitignore` 忽略的 `.env`；单元测试 stub 不适用于本地部署。
+- 与 `test/scenarios/` 的边界说明：本地 docker-compose 走外部依赖，场景验证走 repo-tracked Go / Vitest / Playwright / browser runner，默认不需要 Kind / K8s / Helm。
 - 资源占用提示（≥ 8GB RAM 推荐）+ 默认依赖镜像总下载体积估算（< 1.5GB，对 spec §4.3 兑现）。
 - 明确默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider。
 
@@ -168,10 +169,10 @@
 
 收口验证依次跑：
 
-- `make dev-up`（C-1）→ exit 0，`make dev-doctor` summary.ok==summary.total，且 3 个默认依赖均 OK。
+- `make dev-up`（C-1）→ exit 0，`make dev-doctor` summary.ok==summary.total，且 3 个默认依赖均 OK；backend/frontend 可通过宿主机 dev command 连接这些依赖。
 - AI provider 配置校验（C-9）→ 缺 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` fail-fast，补齐真实 provider endpoint / key 后恢复；全程不启动 AI provider 容器，不切 stub。
 - Postgres SQL probe（C-6）→ `select 1` 返回 1 行。
-- `/metrics` + `make dev-logs` 验证（C-7）→ 已声明 metrics 的项目组件返回非空指标，容器日志可按服务名查看。
+- `/metrics` + `make dev-logs` 验证（C-7）→ 已接入 optional app service 且声明 metrics 的项目组件返回非空指标；当前没有 optional app service 时验证依赖容器日志可按服务名查看。
 - `make dev-down` → 卷保留；`make dev-up` 数据完整（C-4 复跑一次）。
 - `DEV_RESET_FORCE=1 make dev-reset` → 卷清空（C-5 复跑一次）。
 - 端口冲突路径（C-2 复跑一次）。
@@ -200,12 +201,14 @@
 | `dev-doctor.sh` 在 POSIX sh + jq 下复杂度上升后难维护 | 单脚本 ≤ 200 行；超出阈值时升级到 Go binary（落 `scripts/dev-doctor/`），但本 plan 不预先升级 |
 | 默认端口（5432 / 6379 / 9000 / 9001 / 项目组件端口）与开发者本机已运行的服务冲突 | C-2 已覆盖端口冲突报错路径；README 提示用 `.env` override `*_HOST_PORT` 字段，不修改容器内端口；本 plan 不实现 host port 自动避让 |
 | init 脚本中 MinIO bucket 创建在 image 升级后字段格式漂移 | 镜像 tag 锁定在 spec D-2；任何 major 升级走 spec 修订流程而非本 plan 静默 bump |
-| 未来组件没有 Dockerfile 或稳定 dev command，导致无法纳入 `make dev-up` | 对应组件 plan 必须先补齐本地运行入口，再声明自己受 `make dev-up` 覆盖；A2 只接入已具备运行入口的组件 |
+| 未来组件没有 Dockerfile 或稳定 dev command，导致无法纳入 `make dev-up` | 默认不纳入 compose：对应组件先提供宿主机 dev command；只有确实需要 optional app service 时，组件 plan 才补齐 Dockerfile、健康检查与资源预算后声明受 `make dev-up` 覆盖 |
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-22 | 1.8 | L2 runtime remediation：修复 Postgres 18 命名卷挂载路径，`easyinterview-pg-data` 改挂 `/var/lib/postgresql` 以兼容官方镜像 PGDATA 布局，并增加旧卷布局 preflight。 | local-dev-stack/001 L2 code review |
 | 2026-05-04 | 1.4 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 dev stack 范围。 | historical-spec-implementation-review/001 |
 | 2026-05-08 | 1.5 | 对齐 A3/B4 当前决策：默认 dev stack 删除未使用扩展依赖与 probe，仅保留普通 Postgres；未来需要时重新设计。 | ai-provider-and-model-routing/003 Phase 6 |
 | 2026-05-08 | 1.6 | 按用户决策将默认 dev stack Postgres 镜像升级到 18，并同步迁移基线前提。 | local-dev-stack/001 post-pass revision |
+| 2026-05-22 | 1.7 | 按方案 A 对齐本地部署与测试环境：compose 默认只管理外部依赖，backend/frontend 默认宿主机运行；`test/scenarios/` 默认本地 runner 验证，不再把 Kind / K8s / Helm 当作 P0 前提。 | local-dev-stack/001 post-pass revision |

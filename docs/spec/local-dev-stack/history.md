@@ -1,13 +1,15 @@
 # Local Dev Stack History
 
-> **版本**: 1.10
+> **版本**: 1.12
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-05-22
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-22 | 1.12 | 修复 Postgres 18 官方镜像 PGDATA / volume 挂载契约：`easyinterview-pg-data` 挂到 `/var/lib/postgresql`，由镜像管理 `/18/docker` 子目录；`make dev-up` 增加只读旧卷布局 preflight，避免旧 `/var/lib/postgresql/data` 或半初始化卷表现为不明原因 unhealthy。 | local-dev-stack/001 L2 runtime remediation |
+| 2026-05-22 | 1.11 | 按用户确认的方案 A 对齐部署与测试环境：默认 `make dev-up` 只管理 Docker Compose 外部依赖，backend/frontend 由宿主机 dev command 管理；`test/scenarios/` 默认使用 repo-tracked 本地 runner，不再把 Kind / K8s / Helm 作为 P0 本地测试、smoke 或部署前提。 | local-dev-stack/001 post-pass revision |
 | 2026-05-08 | 1.10 | 按用户决策将默认本地 Postgres 镜像从 16 升级到 18，并同步 B4 迁移基线的本地 DB 前提。 | local-dev-stack/001 post-pass revision |
 | 2026-05-08 | 1.9 | 对齐 A3/B4 当前决策：默认本地依赖收敛为普通 Postgres / Redis / MinIO；删除未使用扩展 init/probe 口径，未来需要时重新设计。 | ai-provider-and-model-routing/003 Phase 6 |
 | 2026-05-06 | 1.8 | 对齐 backend-runtime-topology：默认本地栈不接入独立 worker 进程或 worker host port，backend background runner 随 backend 应用组件观测。 | backend-runtime-topology/001-worker-consolidation |

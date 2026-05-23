@@ -20,8 +20,7 @@ services:
     ports:
       - "${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
-      - easyinterview-pg-data:/var/lib/postgresql/data
-      - ./init/postgres:/docker-entrypoint-initdb.d:ro
+      - easyinterview-pg-data:/var/lib/postgresql
     networks:
       - easyinterview-dev
     labels:

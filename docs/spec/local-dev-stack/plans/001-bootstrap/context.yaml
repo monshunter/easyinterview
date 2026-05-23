@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.5
+    to: 1.12
 spec:
   defaultTarget: repo
   discovery:
@@ -23,6 +23,9 @@ spec:
       - redis
       - minio
       - application components
+      - external dependencies
+      - host-run backend
+      - host-run frontend
       - backend
       - frontend
       - worker
@@ -36,8 +39,13 @@ spec:
       - AI_PROVIDER_BASE_URL
       - AI_PROVIDER_API_KEY
       - named volumes
+      - PGDATA
+      - /var/lib/postgresql
       - health check
       - dev environment
+      - local runner
+      - no kind
+      - no k8s
   targets:
     repo:
       plan: ./plan.md
@@ -48,6 +56,7 @@ spec:
           - deploy/dev-stack
           - deploy/dev-stack/init
           - deploy/dev-stack/scripts
+          - deploy/dev-stack/scripts/check-postgres-volume-layout.sh
           - Makefile
         uiRoutes: []
         apiNames: []
