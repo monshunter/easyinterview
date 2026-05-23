@@ -85,6 +85,15 @@ class TestPlanCodeReviewSkill:
         assert "stale-volume path" in text
         assert "never count automatic volume deletion" in text
 
+    def test_local_integration_reviews_current_runner_boundaries(self):
+        text = _skill_text()
+        assert "Docker Compose external dependencies" in text
+        assert "host-run app commands" in text
+        assert "repo-tracked local scenario runner boundaries" in text
+        assert "local scenario runner entrypoint" in text
+        assert "Kind scenario target" not in text
+        assert "Docker Compose vs Kind" not in text
+
     def test_runtime_lifecycle_reviews_reverse_audit_production_entrypoint(self):
         text = _skill_text()
         assert "reverse-audit the production" in text

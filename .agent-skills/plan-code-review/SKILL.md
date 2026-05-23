@@ -93,8 +93,9 @@ If yes, read the current execution contracts and include them in `Deep Evidence`
 4. API/fixture/handler targets: `openapi/openapi.yaml`, related fixtures,
    generated artifacts, and the operation matrix.
 5. Local integration/scenario targets: `deploy/dev-stack/README.md` and
-   `test/scenarios/README.md`, with Docker Compose vs Kind boundaries checked
-   against current docs rather than historical reports.
+   `test/scenarios/README.md`, with Docker Compose external dependencies,
+   host-run app commands, and repo-tracked local scenario runner boundaries
+   checked against current docs rather than historical reports.
 
 If the reviewed plan lacks the operation matrix required by
 `docs/development.md` §2.1, record a blocking finding. In `--fix` mode, map the
@@ -138,8 +139,9 @@ For each in-scope phase:
      checklist, or discovered artifact declares a worker, dispatcher, outbox
      loop, scheduler, bootstrap hook, shutdown/drain path, background runner, or
      runtime kernel, inspect the real startup path such as `cmd/api`, `main`,
-     server boot, worker launch, Docker Compose service, or Kind deployment
-     entrypoint. Verify a production-wiring test, smoke, or scenario proves the
+     server boot, worker launch, Docker Compose service, host-run dev command,
+     or local scenario runner entrypoint. Verify a production-wiring test,
+     smoke, or scenario proves the
      startup path constructs, attaches/registers, starts, and shuts down the
      runtime capability. Treat internal package tests alone as insufficient
      evidence for production lifecycle closure; in `--fix` mode, add the

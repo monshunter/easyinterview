@@ -97,8 +97,8 @@ checklist/references and intended write scope. If the work involves `frontend/`,
 4. API/fixture/handler work: `openapi/openapi.yaml`, related fixture files,
    generated artifacts, and the operation matrix.
 5. Local integration or scenario work: `deploy/dev-stack/README.md` and
-   `test/scenarios/README.md`; distinguish Docker Compose dependencies from the
-   Kind scenario target.
+   `test/scenarios/README.md`; distinguish Docker Compose external dependencies,
+   host-run app commands, and repo-tracked local scenario runners.
 
 If the current checklist item requires a missing operation matrix or contradicts
 these contracts, stop and route back to `/plan-review --fix` or user-approved
