@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-23](2026-05-23.md) | `fix(local-dev-stack): reuse pinned postgres image for volume guard (BUG-0091)` | #fix #docs |
 | [2026-05-23](2026-05-23.md) | `docs(agent-skills): de-default kind from local integration review gates` | #docs #test |
 | [2026-05-23](2026-05-23.md) | `fix(repo-lint): align current contract gates (BUG-0088)` | #fix #test #docs |
 | [2026-05-23](2026-05-23.md) | `fix(local-dev-stack): repair Postgres 18 dev volume guard (BUG-0087)` | #fix #docs |

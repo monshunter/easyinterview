@@ -5,10 +5,11 @@
 set -eu
 
 VOLUME_NAME="${POSTGRES_VOLUME_NAME:-easyinterview-pg-data}"
+GUARD_IMAGE="${POSTGRES_VOLUME_GUARD_IMAGE:-postgres:18-alpine}"
 
 fail() {
   printf '%s\n' "$1" >&2
-  printf '%s\n' "[dev-stack] Postgres 18 expects easyinterview-pg-data mounted at /var/lib/postgresql with PGDATA=/var/lib/postgresql/18/docker." >&2
+  printf '%s\n' "[dev-stack] Postgres 18 expects ${VOLUME_NAME} mounted at /var/lib/postgresql with PGDATA=/var/lib/postgresql/18/docker." >&2
   printf '%s\n' "[dev-stack] Existing local data was preserved. Back it up if needed, then run DEV_RESET_FORCE=1 make dev-reset to recreate the dev volume." >&2
   exit 1
 }
@@ -40,5 +41,5 @@ docker run --rm \
   -e DEV_STACK_POSTGRES_VOLUME_PATH=/var/lib/postgresql \
   -e POSTGRES_VOLUME_NAME="${VOLUME_NAME}" \
   --entrypoint /bin/sh \
-  alpine:3.20 \
+  "${GUARD_IMAGE}" \
   -c "$(sed '1,5d' "$0")"
