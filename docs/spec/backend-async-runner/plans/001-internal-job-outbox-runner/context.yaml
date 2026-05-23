@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.1
+    to: 1.2
   baseBranch: main
   branch: spec-design/backend-async-runner
 spec:

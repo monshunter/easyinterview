@@ -81,6 +81,8 @@ business-domain extensions. The lint gate accepts the following names:
 - Resume family: `resume_match`, `resume_impact`, `resume_clarity`,
   `resume_truthfulness`
 - Target family: `target_extraction_completeness`, `target_field_accuracy`
+- JD Match family: `relevance_to_profile`, `risk_clarity`, `actionability`,
+  `query_alignment`, `diversity`, `privacy_compliance`
 - Debrief family: `debrief_recall_completeness`, `debrief_lesson_specificity`,
   `debrief_action_quality`
 

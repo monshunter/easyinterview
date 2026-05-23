@@ -38,7 +38,7 @@ type CandidateProfileRecord struct {
 	YearsOfExperience         *int32
 	CurrentRole               *string
 	PreferredPracticeLanguage string
-	UiLanguage                string
+	UILanguage                string
 	Region                    *string
 	ProfileVersion            int32
 	CreatedAt                 time.Time
@@ -70,7 +70,7 @@ type ExperienceCardRecord struct {
 // first GetMyProfile call (spec D-1).
 type UserSettings struct {
 	PreferredPracticeLanguage string
-	UiLanguage                string
+	UILanguage                string
 	Region                    *string
 }
 
@@ -82,7 +82,7 @@ type ProfilePatch struct {
 	YearsOfExperience         *int32
 	CurrentRole               *string
 	PreferredPracticeLanguage *string
-	UiLanguage                *string
+	UILanguage                *string
 	Region                    *string
 }
 

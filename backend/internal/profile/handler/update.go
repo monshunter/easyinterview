@@ -53,7 +53,7 @@ func validateProfilePatch(body api.UpdateProfileRequest) (profile.ProfilePatch, 
 		YearsOfExperience:         body.YearsOfExperience,
 		CurrentRole:               body.CurrentRole,
 		PreferredPracticeLanguage: body.PreferredPracticeLanguage,
-		UiLanguage:                body.UiLanguage,
+		UILanguage:                body.UiLanguage,
 		Region:                    body.Region,
 	}
 	if patch.YearsOfExperience != nil && *patch.YearsOfExperience < 0 {

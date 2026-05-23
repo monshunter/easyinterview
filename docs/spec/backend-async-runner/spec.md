@@ -1,6 +1,6 @@
 # Backend Async Runner Spec
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-05-22
 
@@ -18,7 +18,7 @@
 - retry/backoff 不一致：`review.ComputeReportFailureBackoff` 用 `2^attempts * 30s`，resume `async.go` 用固定 15s，与 [ADR-Q2 §3.4](../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md) 锁定的 `30s/2m/10m/1h/6h, max 5` 不符。
 - lease 回收 reaper 仅覆盖 `report_generate`；其它当前可执行 job_type 若 backend 中途崩溃将 stuck 在 `running`/`locked_at` 状态。
 
-本 subject 的目标是把上述局部形态收敛为单一 backend in-process runtime kernel，统一 lease / retry / dead-letter / reaper / shutdown 协议，落地 B3 dispatcher 缺口，并保留「不建独立 worker 进程」语义；未来如需拆运行单元、切 Asynq server 或引入新调度器，新 ADR 即可在不动业务 producer / handler 的前提下替换底层实现。
+本 subject 的目标是把上述局部形态收敛为单一 backend in-process runtime kernel，统一 lease / retry / dead-letter / reaper / shutdown 协议，落地 B3 dispatcher 缺口，并保留「不建独立后台执行进程」语义；未来如需拆运行单元、切 Asynq server 或引入新调度器，新 ADR 即可在不动业务 producer / handler 的前提下替换底层实现。
 
 ## 2 范围
 

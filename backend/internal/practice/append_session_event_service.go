@@ -134,7 +134,7 @@ func (s *Service) AppendSessionEvent(ctx context.Context, in AppendSessionEventR
 		return AppendSessionEventResult{}, sessionNotFoundError()
 	}
 	if stderrs.Is(err, ErrClientEventMismatch) {
-		return AppendSessionEventResult{}, clientEventIdMismatchToConflict()
+		return AppendSessionEventResult{}, clientEventIDMismatchToConflict()
 	}
 	if stderrs.Is(err, ErrSessionConflict) {
 		return AppendSessionEventResult{}, sessionConflictError()
@@ -206,7 +206,7 @@ func (s *Service) AppendSessionEvent(ctx context.Context, in AppendSessionEventR
 		return AppendSessionEventResult{}, sessionNotFoundError()
 	}
 	if stderrs.Is(err, ErrClientEventMismatch) {
-		return AppendSessionEventResult{}, clientEventIdMismatchToConflict()
+		return AppendSessionEventResult{}, clientEventIDMismatchToConflict()
 	}
 	if stderrs.Is(err, ErrSessionConflict) {
 		return AppendSessionEventResult{}, sessionConflictError()
@@ -377,7 +377,7 @@ func clonePayload(payload map[string]any) map[string]any {
 	return out
 }
 
-func clientEventIdMismatchToConflict() *ServiceError {
+func clientEventIDMismatchToConflict() *ServiceError {
 	return &ServiceError{
 		Code:    sharederrors.CodePracticeSessionConflict,
 		Message: "clientEventId was already used with a different payload",

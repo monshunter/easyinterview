@@ -1,8 +1,8 @@
 # Mock Contract Suite Spec
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-05-17
+> **更新日期**: 2026-05-22
 
 ## 1 背景与目标
 
@@ -56,7 +56,7 @@
 - 后端 mock runtime 的 named scenario 回归测试必须以 `openapi/fixtures/<tag>/<operationId>.json` 中的 scenario response 为断言真理源，不得复制一套 hard-coded status / error code / response field 期望；否则 fixture 更新后会出现测试消费者漂移。
 - 前端 dev preview mock client 必须从当前 generated operation inventory 反查 fixture 覆盖；新增 operation 后，如果 fixture 没接入 dev mock，应由测试失败暴露，而不是在浏览器里变成真实接口错误。
 - 前端 dev preview 必须保留显式真实 backend 逃生口：`VITE_EI_API_MODE=real pnpm --filter @easyinterview/frontend dev` 使用默认 generated client + real `fetch`，且 dev real 模式不得隐式使用相对 `/api/v1` 打到 frontend 5173；未设置 `VITE_EI_API_BASE_URL` 时使用 backend 默认 `http://localhost:8080/api/v1`。
-- Mock response 中不得出现旧模块口径：独立 `/mistakes`、`/growth`、`/drill`、`/voice` route，`Mistakes` / `Growth` / `Drill` / `Voice` tag，`listMistakes` / `getGrowthOverview` operationId，旧 `single_drill` practice mode，旧 `gateway_route` / `ai.gateway*` / AI gateway 运行时配置，旧 `default.provider` 或 `task_type` schema key。普通业务文案中的 `growth-stage` 等非模块含义词不属于禁止项。
+- Mock response 中不得出现旧模块口径：独立 `/mistakes`、`/growth`、`/drill`、`/voice` route，`Mistakes` / `Growth` / `Drill` / `Voice` tag，`listMistakes` / `getGrowthOverview` operationId，旧 `single_drill` practice mode，旧 `gateway_route` / `ai.gateway*` / AI gateway 运行时配置，旧 `default.provider` 或 `task_type` schema key。普通业务文案中的 `growth-stage` 等非模块含义词不属于禁止项；`practice-voice-mvp` 拥有的 `createPracticeVoiceTurn`、`/practice/sessions/{sessionId}/voice-turns`、`PracticeVoiceTurn*` generated type 和 fixture 字段不是独立 `Voice` tag / `/voice` route，不得被 retired-token gate 误杀。
 - 旧 tag 拦截必须覆盖 fixture 目录名本身，包括空目录和 Git 不跟踪的目录；`openapi/fixtures/` 下不得残留 `Growth`、`Mistakes` 等 retired tag 目录。
 
 ## 5 模块边界

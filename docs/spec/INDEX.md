@@ -21,7 +21,7 @@
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.4 | active | 2026-05-22 | [plans](./repo-scaffold/plans/) |
 | [local-dev-stack](./local-dev-stack/spec.md) | 1.12 | active | 2026-05-22 | [plans](./local-dev-stack/plans/) |
 | [backend-runtime-topology](./backend-runtime-topology/spec.md) | 1.4 | active | 2026-05-07 | [plans](./backend-runtime-topology/plans/) |
-| [backend-async-runner](./backend-async-runner/spec.md) | 1.1 | active | 2026-05-22 | [plans](./backend-async-runner/plans/) |
+| [backend-async-runner](./backend-async-runner/spec.md) | 1.2 | active | 2026-05-22 | [plans](./backend-async-runner/plans/) |
 | [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.12 | active | 2026-05-22 | [plans](./ai-provider-and-model-routing/plans/) |
 | [secrets-and-config](./secrets-and-config/spec.md) | 2.6 | active | 2026-05-22 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.3 | active | 2026-04-29 | [plans](./ci-pipeline-baseline/plans/) |
@@ -46,7 +46,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [mock-contract-suite](./mock-contract-suite/spec.md) | 1.7 | active | 2026-05-17 | [plans](./mock-contract-suite/plans/) |
+| [mock-contract-suite](./mock-contract-suite/spec.md) | 1.8 | active | 2026-05-22 | [plans](./mock-contract-suite/plans/) |
 | [frontend-shell](./frontend-shell/spec.md) | 1.16 | active | 2026-05-18 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 1.9 | completed | 2026-05-22 | [plans](./frontend-home-job-picks-and-parse/plans/) |
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.3 | active | 2026-05-13 | [plans](./frontend-workspace-and-practice/plans/) |
@@ -54,7 +54,7 @@
 | [backend-targetjob](./backend-targetjob/spec.md) | 1.5 | active | 2026-05-21 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.11 | active | 2026-05-21 | [plans](./backend-practice/plans/) |
 | [backend-review](./backend-review/spec.md) | 1.0 | active | 2026-05-15 | [plans](./backend-review/plans/) |
-| [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.3 | active | 2026-05-17 | [plans](./practice-voice-mvp/plans/) |
+| [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.4 | active | 2026-05-22 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.2 | active | 2026-05-12 | [plans](./backend-upload/plans/) |
 | [backend-resume](./backend-resume/spec.md) | 1.3 | active | 2026-05-21 | [plans](./backend-resume/plans/) |
 | [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 1.1 | active | 2026-05-17 | [plans](./frontend-resume-workshop/plans/) |

@@ -120,7 +120,7 @@
 #### 3.3 resume_parse in-process drainer wiring
 - 沿用 [backend-targetjob](../../../backend-targetjob/spec.md) 的 in-process drainer 口径：`cmd/api` 进程内 claim `async_jobs(job_type=resume_parse)` 并调用 `backend/internal/resume/jobs/parse.go`
 - 提供 `RunOnce` 或等价 deterministic stepping，方便 BDD / `cmd/api` scenario test 在无 timer race 的情况下验证 queued → ready / failed / retry
-- `Start(ctx)` / `Shutdown(ctx)` 必须随 `cmd/api` lifecycle 管理；不得新增独立 worker binary、`WORKER_*` config 或 `backend-async-runtime` 旧 shorthand
+- `Start(ctx)` / `Shutdown(ctx)` 必须随 `cmd/api` lifecycle 管理；不得新增独立后台运行单元、旧 `WORKER` 前缀 config 或旧 async-runtime shorthand
 
 #### 3.4 unit test
 - `parse_test.go`（stub AIClient）：成功 / parse JSON 失败 / AI timeout retryable / output_invalid
@@ -143,7 +143,7 @@
   - `POST /api/v1/resumes` → session middleware + IK middleware + `RegisterResume`
   - `GET /api/v1/resumes` → session middleware + `ListResumes`
   - `GET /api/v1/resumes/{resumeAssetId}` → session middleware + path param adapter + `GetResume`
-- `APP_ENV=test` 可使用 deterministic resume.parse fixture AIClient，但只能拦截 `resume.parse`；真实 dev / Kind / staging / prod 必须走 A3/F3 profile fail-fast 规则
+- `APP_ENV=test` 可使用 deterministic resume.parse fixture AIClient，但只能拦截 `resume.parse`；非测试本地 app run 或未来部署必须走 A3/F3 profile fail-fast 规则
 - `cmd/api` tests 断言 route 存在、缺 session 返回 auth error、缺 IK 返回 generated error envelope、同 IK replay 不重复创建 `resume_assets` / `async_jobs` / outbox side effect
 
 ### Phase 5: 收口 + BDD + 解锁 workspace 001

@@ -38,9 +38,9 @@ select preferred_practice_language, ui_language, region
   from user_settings
  where user_id = $1`,
 		userID,
-	).Scan(&out.PreferredPracticeLanguage, &out.UiLanguage, &region)
+	).Scan(&out.PreferredPracticeLanguage, &out.UILanguage, &region)
 	if errors.Is(err, sql.ErrNoRows) {
-		return profile.UserSettings{PreferredPracticeLanguage: "en", UiLanguage: "zh-CN"}, nil
+		return profile.UserSettings{PreferredPracticeLanguage: "en", UILanguage: "zh-CN"}, nil
 	}
 	if err != nil {
 		return profile.UserSettings{}, fmt.Errorf("read user_settings: %w", err)

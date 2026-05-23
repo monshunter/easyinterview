@@ -29,20 +29,20 @@ PROTOTYPE_ONLY_RESPONSE_FIELDS = {
     "t",
 }
 OWNER_SPEC_HINT = "docs/spec/mock-contract-suite/spec.md"
-RETIRED_CONTRACT_TOKENS = (
-    "/mistakes",
-    "/growth",
-    "/drill",
-    "/voice",
-    "Mistakes",
-    "Growth",
-    "Drill",
-    "Voice",
-    "single_drill",
-    "gateway_route",
-    "ai.gateway",
-    "default.provider",
-    "task_type",
+RETIRED_CONTRACT_TOKEN_PATTERNS = (
+    ("/mistakes", re.compile(r"/mistakes(?:[/?#\"'\s]|$)")),
+    ("/growth", re.compile(r"/growth(?:[/?#\"'\s]|$)")),
+    ("/drill", re.compile(r"/drill(?:[/?#\"'\s]|$)")),
+    ("/voice", re.compile(r"/voice(?:[/?#\"'\s]|$)")),
+    ("Mistakes", re.compile(r"(?:[\"']Mistakes[\"']|\bname:\s*Mistakes\b|\btags:\s*\[Mistakes\])")),
+    ("Growth", re.compile(r"(?:[\"']Growth[\"']|\bname:\s*Growth\b|\btags:\s*\[Growth\])")),
+    ("Drill", re.compile(r"(?:[\"']Drill[\"']|\bname:\s*Drill\b|\btags:\s*\[Drill\])")),
+    ("Voice", re.compile(r"(?:[\"']Voice[\"']|\bname:\s*Voice\b|\btags:\s*\[Voice\])")),
+    ("single_drill", re.compile(r"\bsingle_drill\b")),
+    ("gateway_route", re.compile(r"\bgateway_route\b")),
+    ("ai.gateway", re.compile(r"\bai\.gateway")),
+    ("default.provider", re.compile(r"\bdefault\.provider\b")),
+    ("task_type", re.compile(r"\btask_type\b")),
 )
 RETIRED_TOKEN_SCAN_ROOTS = (
     "openapi/fixtures",
@@ -137,8 +137,8 @@ def _lint_retired_contract_tokens(repo_root: Path) -> list[str]:
     errors: list[str] = []
     for path in _retired_scan_files(repo_root):
         text = path.read_text(encoding="utf-8")
-        for token in RETIRED_CONTRACT_TOKENS:
-            if token in text:
+        for token, pattern in RETIRED_CONTRACT_TOKEN_PATTERNS:
+            if pattern.search(text):
                 errors.append(
                     f"{path.relative_to(repo_root)}: retired mock/API token {token!r} is forbidden; "
                     f"owner spec: {OWNER_SPEC_HINT}"

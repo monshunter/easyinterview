@@ -39,7 +39,7 @@ func defaultSettings() fakeSettings {
 	region := "CN-SH"
 	return fakeSettings{defaults: profile.UserSettings{
 		PreferredPracticeLanguage: "en",
-		UiLanguage:                "zh-CN",
+		UILanguage:                "zh-CN",
 		Region:                    &region,
 	}}
 }

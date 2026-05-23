@@ -1,8 +1,8 @@
 # Cascaded STT LLM TTS Voice MVP Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-17
+> **更新日期**: 2026-05-22
 
 **关联计划**: [plan](./plan.md)
 
@@ -17,6 +17,7 @@
 - [x] RF.2 BUG-0070 committed context replay gate：production service 在请求未携带 context 时从 store 加载 latest `follow_up_generated` + 后续 playback events，并注入下一轮 chat payload；验证: `go test ./internal/practice ./internal/store/practice -run 'TestCreatePracticeVoiceTurnLoadsCommittedContext|TestSQLRepositoryLoadCommittedVoiceContext' -count=1`。
 - [x] RF.3 BUG-0070 barge-in partial playback gate：frontend `bargeIn()` 先上报 partial `tts_chunk_played`（含 playedTextLength/hash/offset），再上报 `barge_in_detected`；验证: `pnpm --dir frontend test src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx --run`。
 - [x] RF.4 BUG-0072 fixture playback ref gate：`createPracticeVoiceTurn` default fixture 的 `ttsChunks[].audioRef` 与真实 HTTP response 语义一致，必须是浏览器可播放 `data:audio/...;base64,...` 或同计划 resolver URL；验证: `pnpm --dir frontend test src/api/devMockClient.test.ts --run` + `python3 scripts/lint/validate_fixtures.py --repo-root .`。
+- [x] RF.5 backend-practice legacy lint precision gate：旧 route 负向 lint 继续拦截独立 `/voice` route / alias，但不得误伤本计划拥有的 `createPracticeVoiceTurn` endpoint、`voice-turn://` persisted summary ref、`practice.voice.*` profile / feature key；验证: `python3 -m pytest scripts/lint/backend_practice_legacy_test.py -q` PASS + `make lint-backend-practice-legacy` PASS + `make lint` PASS。
 
 ## Phase 1: Contract and fixture
 

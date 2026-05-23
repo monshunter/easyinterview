@@ -1,6 +1,6 @@
 # JD-Match Real Backend Baseline Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-22
 
@@ -9,6 +9,12 @@
 > 2026-05-22 post-reopen completion：Phase 5.5-5.8、Phase 6.1-6.8 与 E2E.P0.094-097 已补齐真实 `cmd/api` route/runtime、fixture parity、drainer、scenario wrapper 与 INDEX Ready/automated 证据；本 checklist 恢复 completed。
 
 > 2026-05-22 L2 follow-up completion：review 遗留的 privacy runner 集成、agent_scan generator 上下文、JDMatch error envelope/retryable 与本地 lock 文件问题已修复；新增单测与 live cmd/api 断言覆盖，详见 Phase 7。
+
+> 2026-05-22 repo lint follow-up：`make lint` 暴露 JD-Match rubric dimension allowlist 漂移；本轮恢复 active 并在 Phase 8 原地修复。
+
+## Phase 8: Repo lint follow-up remediation
+
+- [x] 8.1 同步 JD-Match rubric dimension allowlist：`config/rubrics/README.md` 与 `scripts/lint/rubric_lint.py` 必须允许 `relevance_to_profile` / `risk_clarity` / `actionability` / `query_alignment` / `diversity` / `privacy_compliance`，unknown dimension negative fixture 继续失败；验证: `python3 -m pytest scripts/lint/rubric_lint_test.py -q` PASS + `make lint-rubrics` PASS + `make lint` PASS。
 
 ## Phase 7: L2 follow-up remediation
 

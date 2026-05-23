@@ -46,7 +46,7 @@ def _write_baseline(tmp_path: pathlib.Path, feature_key: str, dimensions_yaml: s
 
 
 def test_baseline_passes():
-    """Linting `config/rubrics/` against the 20 baseline files must succeed."""
+    """Linting `config/rubrics/` against the baseline files must succeed."""
     result = _run(REPO_ROOT / "config/rubrics")
     assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
 

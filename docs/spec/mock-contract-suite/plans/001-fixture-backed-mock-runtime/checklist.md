@@ -1,10 +1,14 @@
 # Fixture-backed Mock Runtime Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-22
 
 **关联计划**: [plan](./plan.md)
+
+## Phase 6: Practice voice contract precision
+
+- [x] 6.1 `lint-mock-contract` retired-token gate 继续拦截独立 `/voice` route / `Voice` tag，但允许 `createPracticeVoiceTurn`、`/practice/sessions/{sessionId}/voice-turns`、`PracticeVoiceTurn*` generated artifacts 与 fixture 字段；验证: `python3 -m pytest scripts/lint/mock_runtime_boundary_test.py -q` PASS + `make lint-mock-contract` PASS + `make lint` PASS。
 
 ## Phase 1: Fixture registry 与 coverage
 

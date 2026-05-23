@@ -239,7 +239,7 @@ func jdMatchProfileDeps(db *sql.DB, profileRepo *profilestore.Repository) servic
 			cp.Headline = rec.Headline
 			cp.YearsOfExperience = rec.YearsOfExperience
 			cp.PreferredPracticeLanguage = rec.PreferredPracticeLanguage
-			cp.UiLanguage = rec.UiLanguage
+			cp.UiLanguage = rec.UILanguage
 			return &cp, nil
 		},
 		CountExperienceCardsBySource: profileRepo.CountExperienceCardsBySource,

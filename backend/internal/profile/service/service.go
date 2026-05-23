@@ -123,7 +123,7 @@ func mapCandidateProfile(rec *profile.CandidateProfileRecord) api.CandidateProfi
 		YearsOfExperience:         copyInt32Ptr(rec.YearsOfExperience),
 		CurrentRole:               copyStringPtr(rec.CurrentRole),
 		PreferredPracticeLanguage: rec.PreferredPracticeLanguage,
-		UiLanguage:                rec.UiLanguage,
+		UiLanguage:                rec.UILanguage,
 		Region:                    copyStringPtr(rec.Region),
 	}
 }

@@ -77,6 +77,35 @@ def test_phase3_flags_standalone_voice_route_but_allows_voice_mvp_placeholder(tm
     assert problems == [f"{bad}:1: retired standalone voice route"]
 
 
+def test_phase3_allows_voice_mvp_operation_profiles_and_refs(tmp_path: Path) -> None:
+    service = tmp_path / "backend/internal/practice/voice_turn_service.go"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                'const voiceSTTFeatureKey = "practice.voice.stt"',
+                'const voiceTTSFeatureKey = "practice.voice.tts"',
+                'const persistedRef = "voice-turn://voice-turn-1/chunks/chunk-1"',
+            ]
+        ),
+        encoding="utf-8",
+    )
+    route = tmp_path / "backend/cmd/api/main.go"
+    route.parent.mkdir(parents=True)
+    route.write_text(
+        'mux.Handle("POST /api/v1/practice/sessions/{sessionId}/voice-turns", createPracticeVoiceTurn)\n',
+        encoding="utf-8",
+    )
+    fixture = tmp_path / "openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json"
+    fixture.parent.mkdir(parents=True)
+    fixture.write_text(
+        '{"sttProfile":"practice.voice.stt.default","ttsProfile":"practice.voice.tts.default"}\n',
+        encoding="utf-8",
+    )
+
+    assert backend_practice_legacy.scan_phase3_paths([service, route, fixture], tmp_path) == []
+
+
 def write_backend_practice_002_bdd_inputs(repo: Path, assigned_ids: list[str], test_ids: list[str]) -> None:
     bdd = repo / "docs/spec/backend-practice/plans/002-event-loop-and-completion/bdd-plan.md"
     bdd.parent.mkdir(parents=True)

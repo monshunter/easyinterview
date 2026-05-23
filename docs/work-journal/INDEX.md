@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-23](2026-05-23.md) | `fix(repo-lint): align current contract gates (BUG-0088)` | #fix #test #docs |
 | [2026-05-23](2026-05-23.md) | `fix(local-dev-stack): repair Postgres 18 dev volume guard (BUG-0087)` | #fix #docs |
 | [2026-05-23](2026-05-23.md) | `docs(local-dev-env): de-default kind/k8s/helm from p0 test and deploy targets` | #docs |
 | [2026-05-22](2026-05-22.md) | `fix(frontend-home): close targetjob real backend gate drift (BUG-0086)` | #fix #test #docs |

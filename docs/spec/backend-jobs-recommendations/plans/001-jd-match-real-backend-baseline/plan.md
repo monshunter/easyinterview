@@ -1,6 +1,6 @@
 # JD-Match Real Backend Baseline
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-22
 
@@ -14,6 +14,10 @@
 ## 0.1 L2 Follow-up Completion Note
 
 2026-05-22 第二轮 `/plan-code-review backend-jobs-recommendations/001-jd-match-real-backend-baseline --fix` 修复 review 遗留问题：`privacy_delete` runner 现在会调用 backend-profile `DeleteCandidateProfileForUser` 与 JD-Match `DeleteJobMatchDataForUser`；`jd_match_agent_scan` 在调用 `jd_match.recommendation` generator 前组装 runtime `JobMatchProfile` 与内部 jobs pool JSON；JDMatch handler 错误响应统一为 `ApiErrorResponse` envelope 并使用 shared error registry 的 retryable 值；本地 `.claude/scheduled_tasks.lock` 从版本控制中移除并加入 ignore。验证覆盖 focused 单测、`cmd/api` live JDMatch matrix、`cd backend && go test ./...` 与 E2E.P0.097 wrapper。
+
+## 0.2 Repo Lint Follow-up
+
+2026-05-22 repo-wide `make lint` 暴露 JD-Match rubric dimension allowlist 漂移：本计划已落地 `config/rubrics/jd_match.recommendation` 与 `config/rubrics/jd_match.search` baseline files，但 F3 rubric truth source `config/rubrics/README.md` 与 `scripts/lint/rubric_lint.py` 尚未允许这些业务维度。修复必须保持 unknown dimension negative fixture 继续失败，并通过 `python3 -m pytest scripts/lint/rubric_lint_test.py -q`、`make lint-rubrics` 与 `make lint` 验证。
 
 ## 1 目标
 

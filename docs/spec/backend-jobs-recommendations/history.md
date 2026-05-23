@@ -1,6 +1,6 @@
 # Backend Jobs Recommendations History
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-05-22
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-22 | 1.8 | Repo lint follow-up：同步 JD-Match rubric dimension allowlist，`config/rubrics/README.md` 与 `scripts/lint/rubric_lint.py` 允许 recommendation/search 6 个业务维度，unknown dimension negative fixture 保持有效；`rubric_lint_test.py`、`make lint-rubrics` 与 `make lint` 通过。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 8 |
 | 2026-05-22 | 1.7 | L2 follow-up remediation after review: `privacy_delete` runner now delegates to backend-profile and JD-Match domain deleters, `jd_match_agent_scan` now forwards runtime candidate profile + internal jobs pool JSON into `jd_match.recommendation`, JDMatch errors return `ApiErrorResponse` with registry retryable metadata, and `.claude/scheduled_tasks.lock` was removed from version control. Focused unit tests, live cmd/api JDMatch matrix, backend full test suite, and E2E.P0.097 wrapper gate passed. | backend-jobs-recommendations/001-jd-match-real-backend-baseline L2 follow-up |
 | 2026-05-22 | 1.6 | L2 hardening after post-reopen completion: `main.go` now wires JD-Match production runtime through real A3/F3 adapters (`jd_match.search.default` / `jd_match.recommendation.default`) instead of stub AI; F3 prompt baselines require `jobMatchId` and hashes were refreshed; `jd_match.search.completed` outbox payload is emitted with query/filter privacy boundary; search output_invalid maps to `AI_OUTPUT_INVALID`; privacy delete is wrapped in a cmd/api transaction with rollback tests; E2E.P0.094-P0.097 verify scripts now reject `--- FAIL` / package `FAIL` and require package-level `ok`. Full `go test ./...`, focused live cmd/api matrix, registry preflight, and all four scenario `setup -> trigger -> verify` gates passed. | backend-jobs-recommendations/001-jd-match-real-backend-baseline L2 hardening |
 | 2026-05-22 | 1.5 | backend-jobs-recommendations/001 post-reopen completion: Phase 5.5-5.8 and Phase 6.1-6.8 / 6.12-6.13 evidence was repaired with real `cmd/api` runtime wiring, 12-route session/IK/cross-user live scenario, in-process `jd_match_agent_scan` drainer scenario, JobMatch fixture parity gate, and E2E.P0.094-097 scenario wrapper `setup -> trigger -> verify` PASS logs. `test/scenarios/e2e/INDEX.md` rows P0.094-P0.097 are Ready / automated; plan / checklist / bdd-plan / bdd-checklist returned to completed v1.2; downstream frontend real-backend cutover and backend privacy runner handoff are unblocked. | backend-jobs-recommendations/001-jd-match-real-backend-baseline completion |

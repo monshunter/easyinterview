@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-22](./2026-05-22-repo-lint-contract-gate-follow-up-assessment.md) | Repo Lint Contract Gate Follow-up 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-local-dev-stack-postgres18-volume-guard-assessment.md) | Local Dev Stack Postgres 18 Volume Guard 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-frontend-home-targetjob-real-backend-gate-assessment.md) | Frontend Home TargetJob Real Backend Gate 交付复盘 | #assessment |
 | [2026-05-22](./2026-05-22-frontend-jd-match-real-backend-gate-assessment.md) | Frontend JD Match Real Backend Gate 交付复盘 | #assessment |

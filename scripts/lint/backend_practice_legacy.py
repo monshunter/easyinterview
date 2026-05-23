@@ -33,7 +33,10 @@ PHASE3_RETIRED_TERMS = (
     "growth_center",
     "practiceModeCard",
 )
-PHASE3_VOICE_ROUTE = re.compile(r"(/voice\b|practice\.voice|voice_route|voice route)", re.IGNORECASE)
+PHASE3_VOICE_ROUTE = re.compile(
+    r"(/voice(?:[/?#\"'\s]|$)|\bvoice_route\b|\b(?:standalone|independent) voice route\b|\bvoice route alias\b)",
+    re.IGNORECASE,
+)
 PHASE3_SCAN_PREFIXES = (
     ("backend", "cmd", "api"),
     ("backend", "internal", "api", "practice"),

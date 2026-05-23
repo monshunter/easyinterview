@@ -1,8 +1,8 @@
 # Fixture-backed Mock Runtime
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-22
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -23,6 +23,7 @@
 |------|------|------|------|
 | 2026-05-10 | 1.4 | 合并 Phase 4.5 named scenario truth-source remediation 与 Phase 5 frontend dev preview mock wiring。 | 当前分支和 `main` 均已完成 mock-contract-suite 修订，合并后必须保留两边 gate 并消除同版本并行语义。 |
 | 2026-05-10 | 1.3 | 重新激活本 plan，新增 Phase 5 frontend dev preview mock wiring。 | 既有交付只覆盖测试/可注入 client，没有覆盖 `pnpm --filter @easyinterview/frontend dev` 的默认预览路径，导致无真实 backend 时大量 `/api/v1` 报错且页面不可见。 |
+| 2026-05-22 | 1.5 | 重新激活本 plan，新增 Phase 6 practice voice contract precision gate。 | repo-wide `make lint` 暴露 retired-token gate 误伤 `createPracticeVoiceTurn`、`/voice-turns` 与 `PracticeVoiceTurn*` generated artifacts；必须保留独立 `/voice` route / `Voice` tag 拦截，同时允许 practice-voice-mvp owner contract。 |
 
 ## 3 质量门禁分类
 
@@ -98,6 +99,12 @@
 #### 5.3 文档与本地 smoke 收口
 
 更新 frontend API handoff 文档，说明 dev mock 默认行为、真实 backend opt-out、`VITE_EI_API_BASE_URL` 与新增 fixture scenario 的维护入口；运行 focused frontend tests、typecheck/build，并用本地 dev server smoke 证明页面不再因真实接口错误不可见。
+
+### Phase 6: Practice voice contract precision
+
+#### 6.1 Retired token gate precision
+
+收窄 `lint-mock-contract` 的 retired token 匹配：继续拦截独立 `/voice` route、`Voice` tag 和旧模块 token，但允许 `practice-voice-mvp` 拥有的 `createPracticeVoiceTurn`、`/practice/sessions/{sessionId}/voice-turns`、`PracticeVoiceTurn*` generated artifacts 与 fixture 字段。验证必须覆盖 `python3 -m pytest scripts/lint/mock_runtime_boundary_test.py -q`、`make lint-mock-contract` 与 `make lint`。
 
 ## 5 验收标准
 

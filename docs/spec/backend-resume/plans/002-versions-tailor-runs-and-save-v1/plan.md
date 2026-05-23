@@ -258,7 +258,7 @@ BDD-Gate: 验证 `E2E.P0.077` 通过
 ### Phase 7: resume.tailor async job + AIClient + outbox `resume.tailor.completed`
 
 #### 7.1 实现 `internal/resume/jobs/tailor.go`
-- 注册到 `cmd/api` in-process drainer（job_type=resume_tailor, dotted=resume.tailor），复用 backend-resume/001 已建立的 drainer pattern；不引入独立 worker binary、`WORKER_*` config 或 `backend-async-runtime` 旧 shorthand。
+- 注册到 `cmd/api` in-process drainer（job_type=resume_tailor, dotted=resume.tailor），复用 backend-resume/001 已建立的 drainer pattern；不引入独立后台运行单元、旧 `WORKER` 前缀 config 或旧 async-runtime shorthand。
 - 从 `resume_tailor_runs` 读 `resume_asset_id` / `target_job_id` / `mode` → 通过 [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 调 [F3 `resume.tailor.gap_review` / `resume.tailor.bullet_suggestions` feature_key](../../../prompt-rubric-registry/spec.md) 之一（按 mode 路由）。
 - 解析 LLM JSON 输出 → 写 `resume_tailor_runs.status='ready'` + `match_summary` + `provenance`，并在 `resume_version_suggestions` 写 N 行 `status='pending'`。
 - 用户后续 accept/reject 才改 suggestion 状态；本 job 不预设 accepted/rejected。

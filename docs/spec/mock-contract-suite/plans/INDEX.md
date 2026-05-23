@@ -13,4 +13,4 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-fixture-backed-mock-runtime](./001-fixture-backed-mock-runtime/plan.md) | [plan](./001-fixture-backed-mock-runtime/plan.md) / [checklist](./001-fixture-backed-mock-runtime/checklist.md) / [context](./001-fixture-backed-mock-runtime/context.yaml) | 1.4 | completed | 2026-05-10 |
+| [001-fixture-backed-mock-runtime](./001-fixture-backed-mock-runtime/plan.md) | [plan](./001-fixture-backed-mock-runtime/plan.md) / [checklist](./001-fixture-backed-mock-runtime/checklist.md) / [context](./001-fixture-backed-mock-runtime/context.yaml) | 1.5 | completed | 2026-05-22 |

@@ -46,7 +46,7 @@ func (f *fakeStore) UpsertLite(_ context.Context, userID string, patch profile.P
 		rec = &profile.CandidateProfileRecord{
 			UserID:                    userID,
 			PreferredPracticeLanguage: defaults.PreferredPracticeLanguage,
-			UiLanguage:                defaults.UiLanguage,
+			UILanguage:                defaults.UILanguage,
 			Region:                    defaults.Region,
 			ProfileVersion:            1,
 		}
@@ -67,8 +67,8 @@ func (f *fakeStore) UpsertLite(_ context.Context, userID string, patch profile.P
 	if patch.PreferredPracticeLanguage != nil {
 		rec.PreferredPracticeLanguage = *patch.PreferredPracticeLanguage
 	}
-	if patch.UiLanguage != nil {
-		rec.UiLanguage = *patch.UiLanguage
+	if patch.UILanguage != nil {
+		rec.UILanguage = *patch.UILanguage
 	}
 	if patch.Region != nil {
 		v := *patch.Region
@@ -88,7 +88,7 @@ func (f *fakeStore) SeedCandidateProfile(_ context.Context, userID string, defau
 	rec := &profile.CandidateProfileRecord{
 		UserID:                    userID,
 		PreferredPracticeLanguage: defaults.PreferredPracticeLanguage,
-		UiLanguage:                defaults.UiLanguage,
+		UILanguage:                defaults.UILanguage,
 		Region:                    defaults.Region,
 		ProfileVersion:            1,
 	}
