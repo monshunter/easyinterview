@@ -181,8 +181,12 @@ The rendered block contract is:
 - Field descriptions come from schema `description` values. Required fields
   and important optional fields must have descriptions so the rendered prompt
   remains readable.
-- Examples are generated from schema into minimal valid JSON. The example must
-  parse as JSON and pass the same schema subset validator used by lint.
+- Examples are generated from schema into complete representative JSON output:
+  every schema-declared required and optional property is included, values are
+  business-shaped examples rather than `string` / `1` placeholders, and the
+  block explicitly says the model must return a JSON value rather than JSON
+  Schema or an OpenAPI schema. The example must parse as JSON and pass the same
+  schema subset validator used by lint.
 - `multi` and language variants render the same JSON keys and structure. Only
   surrounding task prose may differ by language.
 - Manual edits that add, remove, rename, or reorder output keys in the prompt
@@ -229,7 +233,7 @@ The lint gate rejects:
 
 ## 10 References
 
-- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.5
+- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.6
 - Plans: `docs/spec/prompt-rubric-registry/plans/001-baseline/plan.md`,
   `docs/spec/prompt-rubric-registry/plans/002-output-schema-contract/plan.md`
 - DB schema: `migrations/000001_create_baseline.up.sql` (`prompt_versions` table)

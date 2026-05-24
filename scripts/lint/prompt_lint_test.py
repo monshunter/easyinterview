@@ -291,6 +291,55 @@ def test_rendered_example_is_schema_valid_for_nested_array_enum():
     assert errors == []
 
 
+def test_rendered_example_includes_optional_properties_and_representative_values():
+    module = _load_module()
+    schema = {
+        "type": "object",
+        "description": "First mock-interview question.",
+        "required": ["questionText", "questionIntent"],
+        "properties": {
+            "questionText": {
+                "type": "string",
+                "description": "Question text shown to the candidate.",
+            },
+            "questionIntent": {
+                "type": "string",
+                "description": "Short intent label for why this question is asked.",
+            },
+            "focusDimension": {
+                "type": "string",
+                "description": "Optional rubric dimension the question is designed to probe.",
+            },
+            "expectedSignals": {
+                "type": "array",
+                "description": "Optional expected answer signals for later evaluator context.",
+                "items": {
+                    "type": "string",
+                    "description": "One expected signal.",
+                },
+            },
+            "timeBudgetSeconds": {
+                "type": "integer",
+                "description": "Optional suggested answer time budget in seconds.",
+            },
+        },
+    }
+    example = module.example_for_schema(schema)
+
+    assert set(example) == {
+        "questionText",
+        "questionIntent",
+        "focusDimension",
+        "expectedSignals",
+        "timeBudgetSeconds",
+    }
+    assert example["questionText"] != "string"
+    assert example["timeBudgetSeconds"] != 1
+    errors: list[str] = []
+    module.validate_value_against_schema(example, schema, "$", errors)
+    assert errors == []
+
+
 def test_schema_description_required_negative():
     module = _load_module()
     schema = {"type": "object", "required": [], "properties": {}}

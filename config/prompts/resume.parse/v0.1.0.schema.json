@@ -71,7 +71,33 @@
       "description": "Project entries.",
       "items": {
         "type": "object",
-        "description": "One project entry."
+        "description": "One project entry.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Project name."
+          },
+          "summary": {
+            "type": "string",
+            "description": "Brief project summary."
+          },
+          "technologies": {
+            "type": "array",
+            "description": "Technologies or methods used in the project.",
+            "items": {
+              "type": "string",
+              "description": "One technology or method."
+            }
+          },
+          "bullets": {
+            "type": "array",
+            "description": "Project bullets or impact notes.",
+            "items": {
+              "type": "string",
+              "description": "One project bullet."
+            }
+          }
+        }
       }
     },
     "education": {
@@ -79,7 +105,29 @@
       "description": "Education entries.",
       "items": {
         "type": "object",
-        "description": "One education entry."
+        "description": "One education entry.",
+        "properties": {
+          "school": {
+            "type": "string",
+            "description": "School or institution name."
+          },
+          "degree": {
+            "type": "string",
+            "description": "Degree or credential."
+          },
+          "field": {
+            "type": "string",
+            "description": "Field of study when present."
+          },
+          "start": {
+            "type": "string",
+            "description": "Start date as stated or normalized."
+          },
+          "end": {
+            "type": "string",
+            "description": "End date as stated or normalized."
+          }
+        }
       }
     },
     "skills": {

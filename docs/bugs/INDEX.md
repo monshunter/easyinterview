@@ -59,6 +59,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0096](./BUG-0096.md) | prompt examples rendered as minimal placeholder JSON | medium | resolved | 2026-05-24 | `fix(prompt-rubric): render complete prompt example outputs (BUG-0096)` |
 | [BUG-0095](./BUG-0095.md) | output schema validation accepted trailing model prose | medium | resolved | 2026-05-24 | `fix(prompt-rubric): reject trailing AI output schema content (BUG-0095)` |
 | [BUG-0030](./BUG-0030.md) | prompt registry L2 review exposed provenance and no-op gate drift | medium | resolved | 2026-05-09 | `fix(prompt-rubric-registry): remediate provenance L2 findings` |
 | [BUG-0006](./BUG-0006.md) | openai-compatible adapter assumed provider-specific model naming | medium | resolved | 2026-05-05 | `fix(historical-spec): deep reconcile existing plans` |

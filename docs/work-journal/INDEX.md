@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-24](2026-05-24.md) | `fix(prompt-rubric): render complete prompt example outputs (BUG-0096)` | #fix #test #docs |
 | [2026-05-24](2026-05-24.md) | `fix(prompt-rubric): reject trailing AI output schema content (BUG-0095)` | #fix #test #docs |
 | [2026-05-23](2026-05-23.md) | `feat(prompt-rubric): close output schema contract (BUG-0094)` | #feat #fix #test #docs |
 | [2026-05-23](2026-05-23.md) | `docs(prompt-rubric): align output schema contract plan` | #docs |

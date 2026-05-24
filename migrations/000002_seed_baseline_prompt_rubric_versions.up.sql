@@ -7,7 +7,7 @@
 BEGIN;
 
 INSERT INTO prompt_versions (id, feature_key, version, language, template_hash, template_body, is_active, created_at) VALUES
-  ('e1ce8408-4111-52b3-bc43-f3658f842a85', 'debrief.generate', 'v0.1.0', 'en', '3418f03439d6239362d1c13c78ffbdacb6ef62de0c4051b2c652de6bfcdccd2f', $body$You are a post-interview coach helping the candidate analyze a real interview.
+  ('e1ce8408-4111-52b3-bc43-f3658f842a85', 'debrief.generate', 'v0.1.0', 'en', 'bc30660089a8dff00b9c03fcfdd46c0966232540a67cb8eef353b504964e316c', $body$You are a post-interview coach helping the candidate analyze a real interview.
 Respond in English.
 
 Target role: {{targetTitle}}
@@ -16,6 +16,7 @@ Recorded interview questions: {{questions}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Completed real-interview debrief analysis.
@@ -30,20 +31,21 @@ Output shape:
 - `$.riskItems[].label` (required, string): Risk label.
 - `$.riskItems[].severity` (required, string enum(low, medium, high)): Risk severity.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
   "questions": [
     {
-      "questionText": "string",
-      "myAnswerSummary": "string",
-      "aiAnalysis": "string"
+      "questionText": "How did you handle backpressure in the migration?",
+      "myAnswerSummary": "Explained queue sizing and retry policy.",
+      "aiAnalysis": "Good direction, but add numbers and rollback detail.",
+      "interviewerReaction": "Asked for concrete failure metrics."
     }
   ],
   "riskItems": [
     {
-      "label": "string",
-      "severity": "low"
+      "label": "Thin rollback detail",
+      "severity": "medium"
     }
   ]
 }
@@ -53,7 +55,7 @@ Example JSON:
 Do not return timeline, lessons, follow_up_actions, nextRoundChecklist, or a
 thank-you draft. Do not invent events the candidate did not describe.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('9a63e69d-c434-5114-88c7-3a9060e2f06d', 'debrief.generate', 'v0.1.0', 'multi', '5c0cebc8bfd83de32ae53515a86b17a6aca44f86447b0c74e8051262e78be23f', $body$You are a post-interview coach helping the candidate analyze a real interview.
+  ('9a63e69d-c434-5114-88c7-3a9060e2f06d', 'debrief.generate', 'v0.1.0', 'multi', '031dd8e6c4095a829dac6a747b0c8618a582fc0802480ed9743c1fea82b38c22', $body$You are a post-interview coach helping the candidate analyze a real interview.
 Respond in the language indicated by `{{language}}` (default English).
 
 Target role: {{targetTitle}}
@@ -62,6 +64,7 @@ Recorded interview questions: {{questions}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Completed real-interview debrief analysis.
@@ -76,20 +79,21 @@ Output shape:
 - `$.riskItems[].label` (required, string): Risk label.
 - `$.riskItems[].severity` (required, string enum(low, medium, high)): Risk severity.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
   "questions": [
     {
-      "questionText": "string",
-      "myAnswerSummary": "string",
-      "aiAnalysis": "string"
+      "questionText": "How did you handle backpressure in the migration?",
+      "myAnswerSummary": "Explained queue sizing and retry policy.",
+      "aiAnalysis": "Good direction, but add numbers and rollback detail.",
+      "interviewerReaction": "Asked for concrete failure metrics."
     }
   ],
   "riskItems": [
     {
-      "label": "string",
-      "severity": "low"
+      "label": "Thin rollback detail",
+      "severity": "medium"
     }
   ]
 }
@@ -99,7 +103,7 @@ Example JSON:
 Do not return timeline, lessons, follow_up_actions, nextRoundChecklist, or a
 thank-you draft. Do not invent events the candidate did not describe.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('3fac0d74-abc1-5d91-983c-1439da5e1d8d', 'debrief.suggest_questions', 'v0.1.0', 'en', '140e8de90e5b2e9b61f50d62871d7a6e6a0f3382ac62399558af373d632ea53f', $body$You generate likely post-interview debrief questions from sanitized preparation context. Respond in English.
+  ('3fac0d74-abc1-5d91-983c-1439da5e1d8d', 'debrief.suggest_questions', 'v0.1.0', 'en', 'ebc107b5413c13b5276859c8e6a9b9cfe110c976431453f44cadc8546e7f50bf', $body$You generate likely post-interview debrief questions from sanitized preparation context. Respond in English.
 
 Target role: {{role_title}}
 Job summary: {{job_summary}}
@@ -109,6 +113,7 @@ Requested count: {{count}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Likely post-interview debrief questions.
@@ -119,14 +124,15 @@ Output shape:
 - `$.suggestions[].source` (required, string enum(jd, resume, mock_report, manual)): Context source that motivated the question.
 - `$.suggestions[].stage` (optional, string): Optional interview stage or topic grouping.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
   "suggestions": [
     {
-      "questionText": "string",
-      "whyLikelyAsked": "string",
-      "source": "jd"
+      "questionText": "Tell me about a time you improved reliability in a distributed system.",
+      "whyLikelyAsked": "The JD emphasizes distributed systems and ownership of reliability.",
+      "source": "jd",
+      "stage": "onsite"
     }
   ]
 }
@@ -136,7 +142,7 @@ Example JSON:
 Prefer concise questions the candidate can answer from memory. Do not include
 raw resume or report prose beyond the generated question.
 $body$, TRUE, '2026-05-16T00:00:00Z'),
-  ('c496cd93-fe74-5ebd-8c3e-b972f63729f2', 'debrief.suggest_questions', 'v0.1.0', 'multi', '54c6f98481b4d0e153f9c62683ec1db2695c463b1e5a0b803e9da121f4885216', $body$You generate likely post-interview debrief questions from sanitized preparation context. Respond in the language indicated by `{{language}}` (default English).
+  ('c496cd93-fe74-5ebd-8c3e-b972f63729f2', 'debrief.suggest_questions', 'v0.1.0', 'multi', '1418dfe290462412d642ff4ab6cf84fd9e502b0bfb593bcb0561582a0778ff5e', $body$You generate likely post-interview debrief questions from sanitized preparation context. Respond in the language indicated by `{{language}}` (default English).
 
 Target role: {{role_title}}
 Job summary: {{job_summary}}
@@ -146,6 +152,7 @@ Requested count: {{count}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Likely post-interview debrief questions.
@@ -156,14 +163,15 @@ Output shape:
 - `$.suggestions[].source` (required, string enum(jd, resume, mock_report, manual)): Context source that motivated the question.
 - `$.suggestions[].stage` (optional, string): Optional interview stage or topic grouping.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
   "suggestions": [
     {
-      "questionText": "string",
-      "whyLikelyAsked": "string",
-      "source": "jd"
+      "questionText": "Tell me about a time you improved reliability in a distributed system.",
+      "whyLikelyAsked": "The JD emphasizes distributed systems and ownership of reliability.",
+      "source": "jd",
+      "stage": "onsite"
     }
   ]
 }
@@ -173,7 +181,7 @@ Example JSON:
 Prefer concise questions the candidate can answer from memory. Do not include
 raw resume or report prose beyond the generated question.
 $body$, TRUE, '2026-05-16T00:00:00Z'),
-  ('07e46d0c-af3a-5e6f-98c6-7facc5989fd8', 'practice.session.first_question', 'v0.1.0', 'en', 'f4111d7d06d7f597ebb6560420591a816970c09814343b8f33173c881790b200', $body$You are an experienced interviewer running a mock interview based on the
+  ('07e46d0c-af3a-5e6f-98c6-7facc5989fd8', 'practice.session.first_question', 'v0.1.0', 'en', '4b8f68174ccc1d344689a2922129d8486964d58f0765afdcd15ebbd22c9250d6', $body$You are an experienced interviewer running a mock interview based on the
 candidate's target job. Generate the first question for the session, anchored
 in the role and the rubric the session will be scored against. Respond in
 English.
@@ -185,6 +193,7 @@ Practice goal: {{practice_goal}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): First mock-interview question generated from target job context.
@@ -195,16 +204,21 @@ Output shape:
 - `$.expectedSignals[]` (required, string): One expected signal.
 - `$.timeBudgetSeconds` (optional, integer): Optional suggested answer time budget in seconds.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
-  "questionText": "string",
-  "questionIntent": "string"
+  "questionText": "Tell me about a time you improved reliability in a distributed system.",
+  "questionIntent": "Probe ownership, tradeoffs, and evidence quality.",
+  "focusDimension": "System design",
+  "expectedSignals": [
+    "Names constraints, tradeoffs, measured impact, and rollback plan."
+  ],
+  "timeBudgetSeconds": 180
 }
 ```
 <!-- output-schema-contract:end -->
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('9bda6ff0-9fa2-5b18-8e98-243592fa1bf9', 'practice.session.first_question', 'v0.1.0', 'multi', '66d3f665bf082c330bd56f1b4330527aa46fe9b8629cfc9fd2b56e5c3bd3731b', $body$You are an experienced interviewer running a mock interview based on the
+  ('9bda6ff0-9fa2-5b18-8e98-243592fa1bf9', 'practice.session.first_question', 'v0.1.0', 'multi', '5275bb911bbf51ae57e04509cd64282aaed6ca75a8e4ed3e7fa660373f6565b8', $body$You are an experienced interviewer running a mock interview based on the
 candidate's target job. Generate the first question for the session, anchored
 in the role and the rubric the session will be scored against. Respond in the
 language indicated by `{{language}}` (default English).
@@ -216,6 +230,7 @@ Practice goal: {{practice_goal}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): First mock-interview question generated from target job context.
@@ -226,16 +241,21 @@ Output shape:
 - `$.expectedSignals[]` (required, string): One expected signal.
 - `$.timeBudgetSeconds` (optional, integer): Optional suggested answer time budget in seconds.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
-  "questionText": "string",
-  "questionIntent": "string"
+  "questionText": "Tell me about a time you improved reliability in a distributed system.",
+  "questionIntent": "Probe ownership, tradeoffs, and evidence quality.",
+  "focusDimension": "System design",
+  "expectedSignals": [
+    "Names constraints, tradeoffs, measured impact, and rollback plan."
+  ],
+  "timeBudgetSeconds": 180
 }
 ```
 <!-- output-schema-contract:end -->
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('76a70941-aa36-56a8-b941-e7f36ee0e853', 'practice.session.follow_up', 'v0.1.0', 'en', '083563b6204c122893243f3b2e064642c3d8525aa6ef8e6c13c6e0183c1c626c', $body$You are continuing a mock interview. Based on the candidate's most recent
+  ('76a70941-aa36-56a8-b941-e7f36ee0e853', 'practice.session.follow_up', 'v0.1.0', 'en', 'b141cf704d250ad7c83499766896ea6a97d9a18a3241cbe51a042c80d9103961', $body$You are continuing a mock interview. Based on the candidate's most recent
 answer, propose exactly one follow-up question that probes deeper, addresses a
 gap, or pivots to an uncovered rubric dimension. Respond in English.
 
@@ -246,6 +266,7 @@ Remaining rubric dimensions: {{remaining_dimensions}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Follow-up mock-interview question generated from the latest answer.
@@ -254,18 +275,20 @@ Output shape:
 - `$.branchDimension` (optional, string): Optional rubric dimension or branch reason for the follow-up.
 - `$.confidence` (optional, number): Optional confidence score for the follow-up choice.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
-  "questionText": "string",
-  "questionIntent": "string"
+  "questionText": "Tell me about a time you improved reliability in a distributed system.",
+  "questionIntent": "Probe ownership, tradeoffs, and evidence quality.",
+  "branchDimension": "System design tradeoffs",
+  "confidence": 0.82
 }
 ```
 <!-- output-schema-contract:end -->
 
 Do not return more than one question.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('ba817c2b-7771-5ab3-b44b-89881f703ed5', 'practice.session.follow_up', 'v0.1.0', 'multi', 'f393a9ee0a5f827fc4c2f129c9bc1a88a704247cd3b583db50090e3e200bc313', $body$You are continuing a mock interview. Based on the candidate's most recent
+  ('ba817c2b-7771-5ab3-b44b-89881f703ed5', 'practice.session.follow_up', 'v0.1.0', 'multi', 'a486b559a2094bef15e430b906887cf3e74582f67a3ec252e0d9a71f9069b7a0', $body$You are continuing a mock interview. Based on the candidate's most recent
 answer, propose exactly one follow-up question that probes deeper, addresses a
 gap, or pivots to an uncovered rubric dimension. Respond in the language
 indicated by `{{language}}` (default English).
@@ -277,6 +300,7 @@ Remaining rubric dimensions: {{remaining_dimensions}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Follow-up mock-interview question generated from the latest answer.
@@ -285,18 +309,20 @@ Output shape:
 - `$.branchDimension` (optional, string): Optional rubric dimension or branch reason for the follow-up.
 - `$.confidence` (optional, number): Optional confidence score for the follow-up choice.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
-  "questionText": "string",
-  "questionIntent": "string"
+  "questionText": "Tell me about a time you improved reliability in a distributed system.",
+  "questionIntent": "Probe ownership, tradeoffs, and evidence quality.",
+  "branchDimension": "System design tradeoffs",
+  "confidence": 0.82
 }
 ```
 <!-- output-schema-contract:end -->
 
 Do not return more than one question.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('05427dd7-cde4-544e-84c4-6356a514a6a2', 'practice.turn.lightweight_observe', 'v0.1.0', 'en', '10b0453b28d0402d4e82d5d499de20bd2b3cf982b4e0e5db9950f5dab1f59779', $body$You are a real-time interview observer. The candidate is partway through an
+  ('05427dd7-cde4-544e-84c4-6356a514a6a2', 'practice.turn.lightweight_observe', 'v0.1.0', 'en', 'ddad49cf46f29e3f1859f846ddf82e8dc6706b968c6d3dd463a6018c78f4518c', $body$You are a real-time interview observer. The candidate is partway through an
 answer; produce one short, neutral cue that the UI can surface without
 interrupting the flow. Be concise (under 24 words) and never lead the
 candidate to a specific answer. Respond in English.
@@ -307,6 +333,7 @@ Elapsed seconds: {{elapsed_seconds}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Lightweight real-time interview observation cue.
@@ -314,15 +341,17 @@ Output shape:
 - `$.severity` (optional, string enum(info, nudge, alert)): Optional cue urgency for downstream evaluation or UI treatment.
 - `$.dimensionHint` (optional, string): Optional rubric dimension hinted by the cue.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
-  "cue": "string"
+  "cue": "Clarify the tradeoff before moving to implementation details.",
+  "severity": "nudge",
+  "dimensionHint": "System design"
 }
 ```
 <!-- output-schema-contract:end -->
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('84078349-c25c-5fd6-84a4-09825145e468', 'practice.turn.lightweight_observe', 'v0.1.0', 'multi', '6ee6598036456841b094f2dcf223077fe11bd06eee629c140492ef8c49767c9b', $body$You are a real-time interview observer. The candidate is partway through an
+  ('84078349-c25c-5fd6-84a4-09825145e468', 'practice.turn.lightweight_observe', 'v0.1.0', 'multi', 'da6fa3ca3454370baa9310845307b64676e04530f11a43724e22ff0bcaadfd5a', $body$You are a real-time interview observer. The candidate is partway through an
 answer; produce one short, neutral cue that the UI can surface without
 interrupting the flow. Be concise (under 24 words) and never lead the
 candidate to a specific answer. Respond in `{{language}}` (default English).
@@ -333,6 +362,7 @@ Elapsed seconds: {{elapsed_seconds}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Lightweight real-time interview observation cue.
@@ -340,15 +370,17 @@ Output shape:
 - `$.severity` (optional, string enum(info, nudge, alert)): Optional cue urgency for downstream evaluation or UI treatment.
 - `$.dimensionHint` (optional, string): Optional rubric dimension hinted by the cue.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
-  "cue": "string"
+  "cue": "Clarify the tradeoff before moving to implementation details.",
+  "severity": "nudge",
+  "dimensionHint": "System design"
 }
 ```
 <!-- output-schema-contract:end -->
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('52d20f6c-0d9a-57ca-93fe-5f35b5f90ea3', 'report.generate', 'v0.1.0', 'en', '0cb4f9b4055dfa16df6f7ab1c1f172933eeffada206acfb470e7513951db77f5', $body$You are an interview report writer. Produce a structured assessment from
+  ('52d20f6c-0d9a-57ca-93fe-5f35b5f90ea3', 'report.generate', 'v0.1.0', 'en', '008dea50de0386202c0455a3849b0069356eafab2df6a6ea09e4b66990a0ed28', $body$You are an interview report writer. Produce a structured assessment from
 sanitized session metadata and turn summaries, anchored in the rubric. Respond
 in English.
 
@@ -358,6 +390,7 @@ Rubric dimensions and score levels: {{rubric_dimensions}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Structured interview feedback report content.
@@ -386,42 +419,42 @@ Output shape:
 - `$.retry_focus_turn_ids` (required, array): Turn IDs recommended for retry focus.
 - `$.retry_focus_turn_ids[]` (required, string): Practice turn ID.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
-  "summary": "string",
+  "summary": "The candidate gave a structured answer with clear tradeoffs but should quantify impact.",
   "dimension_scores": [
     {
-      "name": "string",
-      "score": 0.5,
-      "reasoning": "string",
+      "name": "System design",
+      "score": 4.2,
+      "reasoning": "Clear architecture tradeoffs, but limited quantified impact.",
       "supporting_observations": [
-        "string"
+        "Used concrete operational examples from the session."
       ]
     }
   ],
   "highlights": [
     {
-      "dimension": "string",
-      "evidence": "string",
-      "confidence": 0.5
+      "dimension": "System design",
+      "evidence": "Explained queue backpressure and deployment tradeoffs.",
+      "confidence": 0.82
     }
   ],
   "issues": [
     {
-      "dimension": "string",
-      "evidence": "string",
-      "confidence": 0.5
+      "dimension": "Risk handling",
+      "evidence": "Rollback plan was mentioned but not made concrete.",
+      "confidence": 0.82
     }
   ],
   "next_actions": [
     {
-      "type": "string",
-      "label": "string"
+      "type": "retry_round",
+      "label": "Replay the system design follow-up"
     }
   ],
   "retry_focus_turn_ids": [
-    "string"
+    "turn-3"
   ]
 }
 ```
@@ -429,7 +462,7 @@ Example JSON:
 
 Use summarized observations only; do not request raw interview text or direct quotes.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('efa7e693-993b-5e72-8da7-fde07f80bc60', 'report.generate', 'v0.1.0', 'multi', '22f7a057a30f3f14760f3a0f27d80a153d53d21c2d6d85268a50328be58965d1', $body$You are an interview report writer. Produce a structured assessment from
+  ('efa7e693-993b-5e72-8da7-fde07f80bc60', 'report.generate', 'v0.1.0', 'multi', '2e5fa63ccd84ff440d1aac65416977ca625e38615367a175beab13e90b0510eb', $body$You are an interview report writer. Produce a structured assessment from
 sanitized session metadata and turn summaries, anchored in the rubric. Respond
 in the language indicated by `{{language}}` (default English).
 
@@ -439,6 +472,7 @@ Rubric dimensions and score levels: {{rubric_dimensions}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Structured interview feedback report content.
@@ -467,42 +501,42 @@ Output shape:
 - `$.retry_focus_turn_ids` (required, array): Turn IDs recommended for retry focus.
 - `$.retry_focus_turn_ids[]` (required, string): Practice turn ID.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
-  "summary": "string",
+  "summary": "The candidate gave a structured answer with clear tradeoffs but should quantify impact.",
   "dimension_scores": [
     {
-      "name": "string",
-      "score": 0.5,
-      "reasoning": "string",
+      "name": "System design",
+      "score": 4.2,
+      "reasoning": "Clear architecture tradeoffs, but limited quantified impact.",
       "supporting_observations": [
-        "string"
+        "Used concrete operational examples from the session."
       ]
     }
   ],
   "highlights": [
     {
-      "dimension": "string",
-      "evidence": "string",
-      "confidence": 0.5
+      "dimension": "System design",
+      "evidence": "Explained queue backpressure and deployment tradeoffs.",
+      "confidence": 0.82
     }
   ],
   "issues": [
     {
-      "dimension": "string",
-      "evidence": "string",
-      "confidence": 0.5
+      "dimension": "Risk handling",
+      "evidence": "Rollback plan was mentioned but not made concrete.",
+      "confidence": 0.82
     }
   ],
   "next_actions": [
     {
-      "type": "string",
-      "label": "string"
+      "type": "retry_round",
+      "label": "Replay the system design follow-up"
     }
   ],
   "retry_focus_turn_ids": [
-    "string"
+    "turn-3"
   ]
 }
 ```
@@ -510,7 +544,7 @@ Example JSON:
 
 Use summarized observations only; do not request raw interview text or direct quotes.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('bd13ab0f-b8f9-59e7-9e91-ad3955ea70d5', 'report.question_assessment', 'v0.1.0', 'en', 'e7e944a97f5a4b036e444f152848be43f9476f2af43d1a18e913a272e11e740c', $body$You are an interview rubric judge. Score one answered turn from sanitized
+  ('bd13ab0f-b8f9-59e7-9e91-ad3955ea70d5', 'report.question_assessment', 'v0.1.0', 'en', 'cd74e1067071536e5cddef63882e52467b6ccb7ca4fa471e3dad1ff1ee2ba013', $body$You are an interview rubric judge. Score one answered turn from sanitized
 session metadata and turn summaries; do not invent dimensions outside the
 rubric. Respond in English.
 
@@ -522,6 +556,7 @@ Rubric dimensions and score levels: {{rubric}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Per-question rubric assessment.
@@ -535,20 +570,27 @@ Output shape:
 - `$.recommended_framework` (required, string): Suggested answer framework for retry.
 - `$.review_status` (required, string): Question review status.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
-  "dimension_results": {},
-  "overall_status": "needs_work",
-  "confidence": 0.5,
+  "dimension_results": {
+    "system_design": {
+      "score_level": "meets_bar",
+      "status": "meets_bar",
+      "confidence": 0.82,
+      "score": 4.2
+    }
+  },
+  "overall_status": "meets_bar",
+  "confidence": 0.82,
   "strengths": [
-    "string"
+    "Quantified backend reliability impact."
   ],
   "gaps": [
-    "string"
+    "Needs deeper rollback and failure-mode analysis."
   ],
-  "recommended_framework": "string",
-  "review_status": "string"
+  "recommended_framework": "Use STAR with explicit constraints, tradeoffs, and measured outcome.",
+  "review_status": "ready"
 }
 ```
 <!-- output-schema-contract:end -->
@@ -557,7 +599,7 @@ Map `score_level` weak or developing to `status` `needs_work`, proficient to
 `meets_bar`, and strong to `strong`. Use summarized observations only; do not
 request raw interview text or direct quotes.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('4ad44434-3f9c-55d7-bea1-eacb554e10f6', 'report.question_assessment', 'v0.1.0', 'multi', 'b445463c17a8aa51644f402e3f0e1b109f6ce264013b3649543baed94ece02cb', $body$You are an interview rubric judge. Score one answered turn from sanitized
+  ('4ad44434-3f9c-55d7-bea1-eacb554e10f6', 'report.question_assessment', 'v0.1.0', 'multi', '3da4e5d7ac4ebdab77e6ef7f6ea7f22a13308fd038b6aaaed94ea3e66c19230e', $body$You are an interview rubric judge. Score one answered turn from sanitized
 session metadata and turn summaries; do not invent dimensions outside the
 rubric. Respond in the language indicated by `{{language}}` (default English).
 
@@ -569,6 +611,7 @@ Rubric dimensions and score levels: {{rubric}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Per-question rubric assessment.
@@ -582,20 +625,27 @@ Output shape:
 - `$.recommended_framework` (required, string): Suggested answer framework for retry.
 - `$.review_status` (required, string): Question review status.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
-  "dimension_results": {},
-  "overall_status": "needs_work",
-  "confidence": 0.5,
+  "dimension_results": {
+    "system_design": {
+      "score_level": "meets_bar",
+      "status": "meets_bar",
+      "confidence": 0.82,
+      "score": 4.2
+    }
+  },
+  "overall_status": "meets_bar",
+  "confidence": 0.82,
   "strengths": [
-    "string"
+    "Quantified backend reliability impact."
   ],
   "gaps": [
-    "string"
+    "Needs deeper rollback and failure-mode analysis."
   ],
-  "recommended_framework": "string",
-  "review_status": "string"
+  "recommended_framework": "Use STAR with explicit constraints, tradeoffs, and measured outcome.",
+  "review_status": "ready"
 }
 ```
 <!-- output-schema-contract:end -->
@@ -604,7 +654,7 @@ Map `score_level` weak or developing to `status` `needs_work`, proficient to
 `meets_bar`, and strong to `strong`. Use summarized observations only; do not
 request raw interview text or direct quotes.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('df512597-b914-56e7-a745-7079dfd1af9c', 'resume.parse', 'v0.1.0', 'en', 'dc92ba565349ce27e591dd57726ec2ef210368864bee7fd16a036af9ee23c295', $body$You are a resume parser. Extract structured experience from the supplied
+  ('df512597-b914-56e7-a745-7079dfd1af9c', 'resume.parse', 'v0.1.0', 'en', '6ddb2c43d60a91ecc7228a754c7cd824a209dd9a5d484589a24c79be13d92aad', $body$You are a resume parser. Extract structured experience from the supplied
 resume text. Respond in English regardless of the resume's source language.
 
 Resume text:
@@ -613,6 +663,7 @@ Resume text:
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Structured resume summary parsed from supplied resume text.
@@ -631,31 +682,70 @@ Output shape:
 - `$.experiences[].bullets[]` (required, string): One bullet.
 - `$.projects` (required, array): Project entries.
 - `$.projects[]` (required, object): One project entry.
+- `$.projects[].name` (optional, string): Project name.
+- `$.projects[].summary` (optional, string): Brief project summary.
+- `$.projects[].technologies` (optional, array): Technologies or methods used in the project.
+- `$.projects[].technologies[]` (required, string): One technology or method.
+- `$.projects[].bullets` (optional, array): Project bullets or impact notes.
+- `$.projects[].bullets[]` (required, string): One project bullet.
 - `$.education` (required, array): Education entries.
 - `$.education[]` (required, object): One education entry.
+- `$.education[].school` (optional, string): School or institution name.
+- `$.education[].degree` (optional, string): Degree or credential.
+- `$.education[].field` (optional, string): Field of study when present.
+- `$.education[].start` (optional, string): Start date as stated or normalized.
+- `$.education[].end` (optional, string): End date as stated or normalized.
 - `$.skills` (required, array): Skill keywords.
 - `$.skills[]` (required, string): One skill.
 - `$.languages` (required, array): Language proficiencies.
 - `$.languages[]` (required, string): One language.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
-  "basics": {},
+  "basics": {
+    "name": "Candidate A",
+    "headline": "Backend engineer focused on distributed systems",
+    "contact": "email and phone redacted"
+  },
   "experiences": [
-    {}
+    {
+      "company": "Example Cloud",
+      "title": "Senior Backend Engineer",
+      "start": "2021",
+      "end": "Present",
+      "summary": "Owned high-throughput API reliability and platform migrations.",
+      "bullets": [
+        "Reduced p95 latency by 32% by redesigning cache invalidation."
+      ]
+    }
   ],
   "projects": [
-    {}
+    {
+      "name": "Interview Prep Platform",
+      "summary": "Built evidence-backed interview practice workflows.",
+      "technologies": [
+        "Go"
+      ],
+      "bullets": [
+        "Reduced p95 latency by 32% by redesigning cache invalidation."
+      ]
+    }
   ],
   "education": [
-    {}
+    {
+      "school": "Example University",
+      "degree": "B.S. Computer Science",
+      "field": "Computer Science",
+      "start": "2021",
+      "end": "Present"
+    }
   ],
   "skills": [
-    "string"
+    "Go"
   ],
   "languages": [
-    "string"
+    "English - professional"
   ]
 }
 ```
@@ -663,7 +753,7 @@ Example JSON:
 
 Use ISO-style date strings; leave a field empty when the resume does not state it.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('410f16c3-3ea9-5327-a87a-027f039368b3', 'resume.parse', 'v0.1.0', 'multi', 'd27c45e39ca38c52a31a13b60cb37438e221323f6ecbd203f2d7590ea9917452', $body$You are a resume parser. Extract structured experience from the supplied
+  ('410f16c3-3ea9-5327-a87a-027f039368b3', 'resume.parse', 'v0.1.0', 'multi', '8ee64c7dc89e0b8907c116766efeda4a20e3756fc165d92590cbe32396b362ed', $body$You are a resume parser. Extract structured experience from the supplied
 resume text. Respond in the language indicated by `{{language}}` (default
 English) regardless of the resume's source language.
 
@@ -673,6 +763,7 @@ Resume text:
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Structured resume summary parsed from supplied resume text.
@@ -691,31 +782,70 @@ Output shape:
 - `$.experiences[].bullets[]` (required, string): One bullet.
 - `$.projects` (required, array): Project entries.
 - `$.projects[]` (required, object): One project entry.
+- `$.projects[].name` (optional, string): Project name.
+- `$.projects[].summary` (optional, string): Brief project summary.
+- `$.projects[].technologies` (optional, array): Technologies or methods used in the project.
+- `$.projects[].technologies[]` (required, string): One technology or method.
+- `$.projects[].bullets` (optional, array): Project bullets or impact notes.
+- `$.projects[].bullets[]` (required, string): One project bullet.
 - `$.education` (required, array): Education entries.
 - `$.education[]` (required, object): One education entry.
+- `$.education[].school` (optional, string): School or institution name.
+- `$.education[].degree` (optional, string): Degree or credential.
+- `$.education[].field` (optional, string): Field of study when present.
+- `$.education[].start` (optional, string): Start date as stated or normalized.
+- `$.education[].end` (optional, string): End date as stated or normalized.
 - `$.skills` (required, array): Skill keywords.
 - `$.skills[]` (required, string): One skill.
 - `$.languages` (required, array): Language proficiencies.
 - `$.languages[]` (required, string): One language.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
-  "basics": {},
+  "basics": {
+    "name": "Candidate A",
+    "headline": "Backend engineer focused on distributed systems",
+    "contact": "email and phone redacted"
+  },
   "experiences": [
-    {}
+    {
+      "company": "Example Cloud",
+      "title": "Senior Backend Engineer",
+      "start": "2021",
+      "end": "Present",
+      "summary": "Owned high-throughput API reliability and platform migrations.",
+      "bullets": [
+        "Reduced p95 latency by 32% by redesigning cache invalidation."
+      ]
+    }
   ],
   "projects": [
-    {}
+    {
+      "name": "Interview Prep Platform",
+      "summary": "Built evidence-backed interview practice workflows.",
+      "technologies": [
+        "Go"
+      ],
+      "bullets": [
+        "Reduced p95 latency by 32% by redesigning cache invalidation."
+      ]
+    }
   ],
   "education": [
-    {}
+    {
+      "school": "Example University",
+      "degree": "B.S. Computer Science",
+      "field": "Computer Science",
+      "start": "2021",
+      "end": "Present"
+    }
   ],
   "skills": [
-    "string"
+    "Go"
   ],
   "languages": [
-    "string"
+    "English - professional"
   ]
 }
 ```
@@ -723,7 +853,7 @@ Example JSON:
 
 Use ISO-style date strings; leave a field empty when the resume does not state it.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('e4518389-f42f-5f88-9554-9ffacec0b7ab', 'resume.tailor.bullet_suggestions', 'v0.1.0', 'en', 'f63fefbe1edcea7ad24a0f8ed8d7495cf291972e260ee233699a2ab593156d6c', $body$You are a resume editor producing impact-driven bullet suggestions tailored to
+  ('e4518389-f42f-5f88-9554-9ffacec0b7ab', 'resume.tailor.bullet_suggestions', 'v0.1.0', 'en', '85767b1dfedf61f5b370fc5c258cd5b107cedc5ec7b106b16135baa9d95cf727', $body$You are a resume editor producing impact-driven bullet suggestions tailored to
 a target JD. Each suggestion must keep facts truthful and cite the original
 bullet for traceability. Respond in English.
 
@@ -733,6 +863,7 @@ Tone: {{tone}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Impact-driven resume bullet rewrite suggestions.
@@ -742,14 +873,14 @@ Output shape:
 - `$.suggestions[].suggestedBullet` (required, string): Truthful rewritten bullet tailored to the target JD.
 - `$.suggestions[].reason` (required, string): Why the suggested bullet is stronger.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
   "suggestions": [
     {
-      "originalBullet": "string",
-      "suggestedBullet": "string",
-      "reason": "string"
+      "originalBullet": "Worked on API reliability.",
+      "suggestedBullet": "Improved API reliability by reducing incident rate 28% through retry-safe queue processing.",
+      "reason": "Adds scope, measurable impact, and target-JD language."
     }
   ]
 }
@@ -758,7 +889,7 @@ Example JSON:
 
 Provide at least three suggestions.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('2b8a3995-f76c-555d-bb47-1b85e7146613', 'resume.tailor.bullet_suggestions', 'v0.1.0', 'multi', '95f17553d0d6b35a6f563de16afdb5fb61cc6d10c76fa02f00490d2eabe72afc', $body$You are a resume editor producing impact-driven bullet suggestions tailored to
+  ('2b8a3995-f76c-555d-bb47-1b85e7146613', 'resume.tailor.bullet_suggestions', 'v0.1.0', 'multi', '3214ba7fcaf6907fb74c4d0473dcc32ecee67a35805e751681b5b08f393a21e5', $body$You are a resume editor producing impact-driven bullet suggestions tailored to
 a target JD. Each suggestion must keep facts truthful and cite the original
 bullet for traceability. Respond in the language indicated by `{{language}}`
 (default English).
@@ -769,6 +900,7 @@ Tone: {{tone}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Impact-driven resume bullet rewrite suggestions.
@@ -778,14 +910,14 @@ Output shape:
 - `$.suggestions[].suggestedBullet` (required, string): Truthful rewritten bullet tailored to the target JD.
 - `$.suggestions[].reason` (required, string): Why the suggested bullet is stronger.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
   "suggestions": [
     {
-      "originalBullet": "string",
-      "suggestedBullet": "string",
-      "reason": "string"
+      "originalBullet": "Worked on API reliability.",
+      "suggestedBullet": "Improved API reliability by reducing incident rate 28% through retry-safe queue processing.",
+      "reason": "Adds scope, measurable impact, and target-JD language."
     }
   ]
 }
@@ -794,7 +926,7 @@ Example JSON:
 
 Provide at least three suggestions.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('c59b2fa3-bb08-5dda-8ed6-591a445df1f2', 'resume.tailor.gap_review', 'v0.1.0', 'en', 'bfa219f5349915dbec7e578bf0258e6a5f28bbe247da4fe419706698a64c462c', $body$You are a resume coach reviewing alignment between a candidate's resume and a
+  ('c59b2fa3-bb08-5dda-8ed6-591a445df1f2', 'resume.tailor.gap_review', 'v0.1.0', 'en', 'd6a91a9ca9bd36a24be94578d5300d43f74a95abddb5c6def41734871fdea7d0', $body$You are a resume coach reviewing alignment between a candidate's resume and a
 target JD. Respond in English.
 
 Resume summary: {{resume_summary}}
@@ -803,6 +935,7 @@ Target seniority: {{target_seniority}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Resume-to-target-job gap review normalized for tailor run storage.
@@ -812,22 +945,22 @@ Output shape:
 - `$.matchSummary.gaps` (required, array): Resume gaps to address for the target JD.
 - `$.matchSummary.gaps[]` (required, string): One gap.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
   "matchSummary": {
     "strengths": [
-      "string"
+      "Quantified backend reliability impact."
     ],
     "gaps": [
-      "string"
+      "Needs deeper rollback and failure-mode analysis."
     ]
   }
 }
 ```
 <!-- output-schema-contract:end -->
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('9f94eeb0-f95a-5a00-b5a0-932330b5cf63', 'resume.tailor.gap_review', 'v0.1.0', 'multi', 'e24c6ddb575f3c33a6ec57596dce97614edc8eec5c59f6c3aee8748cb9203333', $body$You are a resume coach reviewing alignment between a candidate's resume and a
+  ('9f94eeb0-f95a-5a00-b5a0-932330b5cf63', 'resume.tailor.gap_review', 'v0.1.0', 'multi', '9bd9e789fdb8447ca282b9e05834294bda4bff045d99d8b81896490ea6dea99b', $body$You are a resume coach reviewing alignment between a candidate's resume and a
 target JD. Respond in the language indicated by `{{language}}` (default
 English).
 
@@ -837,6 +970,7 @@ Target seniority: {{target_seniority}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Resume-to-target-job gap review normalized for tailor run storage.
@@ -846,22 +980,22 @@ Output shape:
 - `$.matchSummary.gaps` (required, array): Resume gaps to address for the target JD.
 - `$.matchSummary.gaps[]` (required, string): One gap.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
   "matchSummary": {
     "strengths": [
-      "string"
+      "Quantified backend reliability impact."
     ],
     "gaps": [
-      "string"
+      "Needs deeper rollback and failure-mode analysis."
     ]
   }
 }
 ```
 <!-- output-schema-contract:end -->
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('45115454-a2f6-5863-8962-2fafce569f01', 'target.import.parse', 'v0.1.0', 'en', 'e6534a387dace3083dce37a058e8d357d9720a68794f797e076956dad22f8560', $body$You are an expert technical interviewer assistant. Extract the interview-ready
+  ('45115454-a2f6-5863-8962-2fafce569f01', 'target.import.parse', 'v0.1.0', 'en', 'dc0d3ce4d5f28856acbc743e46cf85db0d9ed4082eb777ca12b633db218fb9a0', $body$You are an expert technical interviewer assistant. Extract the interview-ready
 target job model from the following job description. Respond in English.
 
 JD source URL (empty for non-URL imports): `{{jd_source_url}}`
@@ -871,6 +1005,7 @@ JD raw text:
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Structured target job model extracted from a job description.
@@ -891,28 +1026,30 @@ Output shape:
 - `$.requirements[].description` (optional, string): Optional explanation of why the requirement matters.
 - `$.requirements[].evidenceLevel` (optional, string enum(explicit, inferred)): Whether the requirement was explicit or inferred.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
   "coreThemes": [
-    "string"
+    "Distributed systems reliability"
   ],
   "interviewHypotheses": [
-    "string"
+    "Interviewer may probe cache invalidation and rollback decisions."
   ],
   "strengths": [
-    "string"
+    "Quantified backend reliability impact."
   ],
   "gaps": [
-    "string"
+    "Needs deeper rollback and failure-mode analysis."
   ],
   "riskSignals": [
-    "string"
+    "The JD asks for on-call ownership without naming team support."
   ],
   "requirements": [
     {
       "kind": "must_have",
-      "label": "string"
+      "label": "Design reliable distributed services",
+      "description": "The JD explicitly calls for owning high-availability backend systems.",
+      "evidenceLevel": "explicit"
     }
   ]
 }
@@ -921,7 +1058,7 @@ Example JSON:
 
 Do not include markdown fences in the JSON output.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('3e4dae23-7bc3-56cb-868e-72e7c8a6c331', 'target.import.parse', 'v0.1.0', 'multi', '72a6e9b17d4a59ff28c360dd71ec562822a5f0026485f07b3b10efd1613b3b8e', $body$You are an expert technical interviewer assistant. Extract the interview-ready
+  ('3e4dae23-7bc3-56cb-868e-72e7c8a6c331', 'target.import.parse', 'v0.1.0', 'multi', 'd328a40d0ae3fbd39907e484c0dc230d30c8d76eb88b85c3c2699f7d739eb091', $body$You are an expert technical interviewer assistant. Extract the interview-ready
 target job model from the following job description. Respond strictly in the
 language identified by the `{{language}}` variable; if `{{language}}` is empty
 or unknown, respond in English.
@@ -933,6 +1070,7 @@ JD raw text:
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
+Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Structured target job model extracted from a job description.
@@ -953,28 +1091,30 @@ Output shape:
 - `$.requirements[].description` (optional, string): Optional explanation of why the requirement matters.
 - `$.requirements[].evidenceLevel` (optional, string enum(explicit, inferred)): Whether the requirement was explicit or inferred.
 
-Example JSON:
+Example complete JSON output:
 ```json
 {
   "coreThemes": [
-    "string"
+    "Distributed systems reliability"
   ],
   "interviewHypotheses": [
-    "string"
+    "Interviewer may probe cache invalidation and rollback decisions."
   ],
   "strengths": [
-    "string"
+    "Quantified backend reliability impact."
   ],
   "gaps": [
-    "string"
+    "Needs deeper rollback and failure-mode analysis."
   ],
   "riskSignals": [
-    "string"
+    "The JD asks for on-call ownership without naming team support."
   ],
   "requirements": [
     {
       "kind": "must_have",
-      "label": "string"
+      "label": "Design reliable distributed services",
+      "description": "The JD explicitly calls for owning high-availability backend systems.",
+      "evidenceLevel": "explicit"
     }
   ]
 }

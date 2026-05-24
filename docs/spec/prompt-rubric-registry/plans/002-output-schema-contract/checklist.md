@@ -1,6 +1,6 @@
 # F3 Output Schema Contract Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-05-24
 
@@ -17,7 +17,7 @@
 ## Phase 1: README 契约 + prompt 输出契约渲染规则
 
 - [x] 1.1 `config/prompts/README.md` 新增 output schema 约定（文件落点、语言无关、JSON Schema 校验子集、`description` 非校验注解、不混入 `template_hash`、与 prompt body / struct 一致性）。验证: README 含 output schema 章节；`make lint-prompts` 仍绿
-- [x] 1.2 在 README 固化 prompt body 输出契约块规范：字段顺序来自 schema，字段说明来自 `description`，example JSON 由 schema 生成并可解析；人不在 26 个 `.md` 手工维护第二份字段表。验证: README 明确 schema 是唯一字段真理源，并说明 renderer/lint 的 drift 行为
+- [x] 1.2 在 README 固化 prompt body 输出契约块规范：字段顺序来自 schema，字段说明来自 `description`，complete example JSON output 由 schema 生成并可解析，覆盖 schema 声明的 required + optional 字段，使用业务形态值，并明确不是 JSON Schema / OpenAPI schema；人不在 26 个 `.md` 手工维护第二份字段表。验证: README 明确 schema 是唯一字段真理源，并说明 renderer/lint 的 drift 行为
 - [x] 1.3 在 README / handoff 规则中明确 alias / optional 字段策略：parser legacy alias 不自动进入新 prompt contract；prompt-only 可选字段必须有 `description` 说明评估价值。验证: README 或 plan §8 handoff 模板包含 alias/optional 判定项
 
 ## Phase 2: 13 份语言无关 output schema 文件
@@ -29,12 +29,12 @@
 ## Phase 3: schema lint + prompt 契约 renderer（先红后绿）
 
 - [x] 3.1 扩展 `scripts/lint/prompt_lint.py`（或新增 `schema_lint.py`）+ 单测：① schema 只含 `type`/`required`/`properties`/`items`/`enum` + `description`；② 每个 chat feature_key 有 schema（语音豁免清单）；③ schema `required` ⊆ prompt body 输出 key；④ schema 字段 ↔ 后端 struct json tag / parser required key 一致（array 顶层 `jd_match.*` 作用于 `items`；`resume.parse`/`resume.tailor.gap_review` 因停在 `json.RawMessage`，④ 降级为 schema ↔ parser required key 一致）。验证: `python3 -m pytest scripts/lint/prompt_lint_test.py` 全绿；≥4 negative fixtures（非法关键字 / required 不在 prompt / 字段与 struct 不一致 / prompt contract block 手工漂移）红→绿
-- [x] 3.2 新增 prompt output contract renderer（可内嵌于 `prompt_lint.py` 或独立 helper）：从 schema 生成稳定的输出契约块和 minimal example JSON，覆盖 object、array、enum、nested object/array、`description` 缺失报错、example JSON schema-valid。验证: renderer 单测全绿
+- [x] 3.2 新增 prompt output contract renderer（可内嵌于 `prompt_lint.py` 或独立 helper）：从 schema 生成稳定的输出契约块和 complete representative example JSON output，覆盖 object、array、enum、nested object/array、`description` 缺失报错、example JSON schema-valid、optional 字段完整示例与业务形态值。验证: renderer 单测全绿
 - [x] 3.3 `make lint-prompts` 覆盖 schema gate + rendered prompt contract gate；顶层 `make lint` 联动。验证: `make lint-prompts && make lint` 全绿
 
 ## Phase 4: 13 × 2 prompt body 输出段统一（由 schema 渲染/校验）
 
-- [x] 4.1 把 13 × 2 个 `.md` 的 “Return strict JSON …” prose 段替换为 schema 渲染/校验的「输出契约 + example JSON」块，重算 `template_hash` 写回 `.yaml`。验证: `make lint-prompts`（hash 一致 + rendered block 一致）全绿
+- [x] 4.1 把 13 × 2 个 `.md` 的 “Return strict JSON …” prose 段替换为 schema 渲染/校验的「输出契约 + complete example JSON output」块，重算 `template_hash` 写回 `.yaml`。验证: `make lint-prompts`（hash 一致 + rendered block 一致）全绿
 - [x] 4.2 prompt body drift gate 负向验证：故意改一个 prompt contract 字段名或 example key，`make lint-prompts` 失败；恢复后通过。验证: negative fixture 或测试覆盖
 
 ## Phase 5: registry 加载 + resolver 接线 OutputSchema（先红后绿）
@@ -57,13 +57,19 @@
 - [x] 7.5 grep red-line：语音 feature_key 不落 schema、不接 `OutputSchema`；业务包无 `response_format`/`json_schema` 请求字段。验证: `find config/prompts -name '*.schema.json' | grep -E 'voice|stt|tts|dictation'` 返回 0 行（语音 feature_key 无 schema）；`! grep -rnE '"response_format"|json_schema' backend/internal` provider 请求字段命中为 0
 - [x] 7.6 收口：`make lint-prompts` + `go test ./backend/internal/ai/registry/... ./backend/internal/ai/aiclient/... ./backend/internal/{targetjob,resume/jobs,review,practice,debrief,jdmatch}/... -race` + `validate_context.py` + `sync-doc-index --check`；§8 handoff 列 C-12 证据；Header 切 `completed` 同步 INDEX 与工作日志。验证: 全部命令绿；INDEX 显示 completed
 
+## Phase 8: L2 prompt example remediation（完整 JSON output）
+
+- [x] 8.1 为 renderer 增加回归测试：example JSON 必须包含 schema-declared optional properties，且不能使用 `string` / `1` 这类最小占位。验证: red `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'rendered_example_includes_optional_properties'` 失败于 optional 字段缺失；green `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'rendered_example'` → `2 passed`
+- [x] 8.2 重渲染 13 × 2 prompt body，刷新 26 个 YAML `template_hash`，同步 `migrations/000002_seed_baseline_prompt_rubric_versions.up.sql` 中已有 prompt seed row 的 body/hash，并补充 `resume.parse` project/education optional schema 字段。验证: `make lint-prompts` → `prompt_lint: 26 files clean`；`rg -n '"string"|: 1,|Example JSON:' config/prompts -g '*.md'` → 0 matches
+- [x] 8.3 同步 spec/plan/checklist/context/index 与收口验证。验证: `validate_context.py` + `sync-doc-index --check` + `git diff --check` 通过；Header 恢复 `completed`
+
 ## BDD-Gate
 
 > **BDD 不适用**: 本 plan 落地内部契约（语言无关 output schema 真理源 + `scripts/lint/` 静态 gate + registry 加载/resolver 接线 + A3 provider-neutral 校验器 enum 扩展 + caller 透传），不新增用户可见 UI、新 HTTP API 行为或端到端业务工作流。`validateOutputSchema` fail-close 复用既有 `AI_OUTPUT_INVALID` 错误路径，仅扩展生效范围与 `enum`，无新端到端用户行为。后续 P0 用户行为流由各 C 域 plan 维护 BDD/E2E gate。
 >
 > **替代验证 gate**:
 >
-> 1. `make lint-prompts`（schema 子集 + schema-rendered prompt contract + example JSON schema-valid + schema↔prompt↔struct 三向一致性 + negative fixtures）+ 顶层 `make lint`
+> 1. `make lint-prompts`（schema 子集 + schema-rendered prompt contract + complete example JSON output schema-valid + schema↔prompt↔struct 三向一致性 + negative fixtures）+ 顶层 `make lint`
 > 2. `go test ./backend/internal/ai/registry/... -race`（loader 加载 schema + `ResolveActive` OutputSchema 非空 + 语言无关单份 + fallback 一致）
 > 3. `go test ./backend/internal/ai/aiclient/... -race`（`validateOutputSchema` enum / required fail-close）
 > 4. `go test ./backend/internal/{targetjob,resume/jobs,review,practice,debrief,jdmatch}/... -race`（caller `OutputSchema` 透传 + 端到端 fail-close）

@@ -531,10 +531,18 @@ def schema_type_label(schema: dict) -> str:
     return t
 
 
+def ordered_schema_property_keys(schema: dict) -> list[str]:
+    props = schema.get("properties") or {}
+    required_keys = [k for k in schema.get("required") or [] if k in props]
+    required_set = set(required_keys)
+    return required_keys + [k for k in props if k not in required_set]
+
+
 def render_output_contract(schema: dict) -> str:
     lines = [
         OUTPUT_CONTRACT_START,
         "Return strict JSON matching this schema-derived output contract.",
+        "Produce a complete JSON value, not JSON Schema or an OpenAPI schema.",
         "",
         "Output shape:",
     ]
@@ -546,9 +554,8 @@ def render_output_contract(schema: dict) -> str:
             walk(node["items"], path + "[]", True)
             return
         props = node.get("properties") or {}
-        required_keys = list(node.get("required") or [])
-        ordered = required_keys + [k for k in props if k not in set(required_keys)]
-        for key in ordered:
+        required_keys = set(node.get("required") or [])
+        for key in ordered_schema_property_keys(node):
             child = props.get(key)
             if isinstance(child, dict):
                 walk(child, f"{path}.{key}", key in required_keys)
@@ -559,7 +566,7 @@ def render_output_contract(schema: dict) -> str:
     lines.extend(
         [
             "",
-            "Example JSON:",
+            "Example complete JSON output:",
             "```json",
             example_text,
             "```",
@@ -567,6 +574,181 @@ def render_output_contract(schema: dict) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+ENUM_EXAMPLE_BY_PATH = {
+    "$[].level": "senior",
+    "$.overall_status": "meets_bar",
+    "$.questions[].severity": "medium",
+    "$.requirements[].evidenceLevel": "explicit",
+    "$.requirements[].kind": "must_have",
+    "$.riskItems[].severity": "medium",
+    "$.severity": "nudge",
+    "$.suggestions[].source": "jd",
+}
+
+STRING_EXAMPLE_BY_PATH = {
+    "$.basics.name": "Candidate A",
+    "$.dimension_scores[].name": "System design",
+    "$.dimension_scores[].reasoning": "Clear architecture tradeoffs, but limited quantified impact.",
+    "$.dimension_results.system_design.score_level": "meets_bar",
+    "$.dimension_results.system_design.status": "meets_bar",
+    "$.experiences[].summary": "Owned high-throughput API reliability and platform migrations.",
+    "$.highlights[].dimension": "System design",
+    "$.highlights[].evidence": "Explained queue backpressure and deployment tradeoffs.",
+    "$.issues[].dimension": "Risk handling",
+    "$.issues[].evidence": "Rollback plan was mentioned but not made concrete.",
+    "$.next_actions[].label": "Replay the system design follow-up",
+    "$.projects[].name": "Interview Prep Platform",
+    "$.projects[].summary": "Built evidence-backed interview practice workflows.",
+    "$.questions[].aiAnalysis": "Good direction, but add numbers and rollback detail.",
+    "$.questions[].interviewerReaction": "Asked for concrete failure metrics.",
+    "$.questions[].myAnswerSummary": "Explained queue sizing and retry policy.",
+    "$.questions[].questionText": "How did you handle backpressure in the migration?",
+    "$.requirements[].description": "The JD explicitly calls for owning high-availability backend systems.",
+    "$.requirements[].label": "Design reliable distributed services",
+    "$.riskItems[].label": "Thin rollback detail",
+    "$.suggestions[].reason": "Adds scope, measurable impact, and target-JD language.",
+    "$.suggestions[].suggestedBullet": "Improved API reliability by reducing incident rate 28% through retry-safe queue processing.",
+}
+
+STRING_EXAMPLE_BY_KEY = {
+    "aiAnalysis": "The answer identified the main tradeoff but needs clearer evidence and metrics.",
+    "branchDimension": "System design tradeoffs",
+    "company": "Example Cloud",
+    "companyTag": "Growth-stage SaaS",
+    "comp": "$180k-$220k",
+    "contact": "email and phone redacted",
+    "cue": "Clarify the tradeoff before moving to implementation details.",
+    "description": "This requirement is explicit in the JD and likely to be tested in system design.",
+    "dimension": "System design",
+    "dimensionHint": "System design",
+    "evidence": "The candidate explained cache invalidation but did not quantify failure impact.",
+    "evidenceLevel": "explicit",
+    "focusDimension": "System design",
+    "headline": "Backend engineer focused on distributed systems",
+    "interviewerReaction": "The interviewer asked for more detail on rollback strategy.",
+    "jobMatchId": "job-123",
+    "label": "retry system design drill",
+    "level": "senior",
+    "location": "Remote US",
+    "myAnswerSummary": "Described a queue-backed service migration and the operational safeguards used.",
+    "name": "System design",
+    "networkNote": "3 prior interview reports mention similar backend platform scope.",
+    "overall_status": "meets_bar",
+    "posted": "posted 2 days ago",
+    "questionIntent": "Probe ownership, tradeoffs, and evidence quality.",
+    "questionText": "Tell me about a time you improved reliability in a distributed system.",
+    "reason": "Adds measurable impact and ties the bullet to the target JD.",
+    "recommended_framework": "Use STAR with explicit constraints, tradeoffs, and measured outcome.",
+    "review_status": "ready",
+    "score_level": "meets_bar",
+    "school": "Example University",
+    "source": "jd",
+    "sourceLabel": "internal jobs pool",
+    "sourceUrl": "https://jobs.internal.example/job-123",
+    "stage": "onsite",
+    "start": "2021",
+    "summary": "The candidate gave a structured answer with clear tradeoffs but should quantify impact.",
+    "degree": "B.S. Computer Science",
+    "end": "Present",
+    "field": "Computer Science",
+    "originalBullet": "Worked on API reliability.",
+    "title": "Senior Backend Engineer",
+    "technologies": "Go",
+    "type": "retry_round",
+    "whyLikelyAsked": "The JD emphasizes distributed systems and ownership of reliability.",
+}
+
+ARRAY_ITEM_EXAMPLE_BY_KEY = {
+    "bullets": "Reduced p95 latency by 32% by redesigning cache invalidation.",
+    "coreThemes": "Distributed systems reliability",
+    "education": {
+        "school": "Example University",
+        "degree": "B.S. Computer Science",
+        "field": "Computer Science",
+        "start": "2014",
+        "end": "2018",
+    },
+    "expectedSignals": "Names constraints, tradeoffs, measured impact, and rollback plan.",
+    "experiences": {
+        "company": "Example Cloud",
+        "title": "Senior Backend Engineer",
+        "start": "2021",
+        "end": "Present",
+        "summary": "Owned high-throughput API reliability and platform migrations.",
+        "bullets": ["Reduced incident rate by introducing replayable job processing."],
+    },
+    "gaps": "Needs deeper rollback and failure-mode analysis.",
+    "highlights": "Strong ownership of backend reliability work.",
+    "interviewHypotheses": "Interviewer may probe cache invalidation and rollback decisions.",
+    "issues": {
+        "dimension": "Risk handling",
+        "evidence": "Rollback plan was mentioned but not made concrete.",
+        "confidence": 0.73,
+    },
+    "languages": "English - professional",
+    "next_actions": {"type": "retry_round", "label": "Replay the system design follow-up"},
+    "projects": {
+        "name": "Interview Prep Platform",
+        "summary": "Built evidence-backed interview practice workflows.",
+        "technologies": ["Go", "PostgreSQL", "React"],
+        "bullets": ["Implemented structured AI output validation and retry-safe jobs."],
+    },
+    "questions": {
+        "questionText": "How did you handle backpressure in the migration?",
+        "myAnswerSummary": "Explained queue sizing and retry policy.",
+        "interviewerReaction": "Asked for concrete failure metrics.",
+        "aiAnalysis": "Good direction, but add numbers and rollback detail.",
+    },
+    "reasons": "Recent backend platform work maps directly to the JD.",
+    "requirements": {
+        "kind": "must_have",
+        "label": "Design reliable distributed services",
+        "description": "The JD explicitly calls for owning high-availability backend systems.",
+        "evidenceLevel": "explicit",
+    },
+    "retry_focus_turn_ids": "turn-3",
+    "riskItems": {"label": "Thin rollback detail", "severity": "medium"},
+    "riskSignals": "The JD asks for on-call ownership without naming team support.",
+    "risks": "Less evidence for frontend-heavy collaboration requirements.",
+    "skills": "Go",
+    "strengths": "Quantified backend reliability impact.",
+    "strengths_to_amplify": {"topic": "Reliability ownership", "evidence": "Reduced incidents."},
+    "suggestions": {
+        "originalBullet": "Worked on API reliability.",
+        "suggestedBullet": "Improved API reliability by reducing incident rate 28% through retry-safe queue processing.",
+        "reason": "Adds scope, measurable impact, and target-JD language.",
+    },
+    "supporting_observations": "Used concrete operational examples from the session.",
+}
+
+INTEGER_EXAMPLE_BY_KEY = {
+    "must": 4,
+    "plus": 2,
+    "score": 86,
+    "similarInterviewers": 3,
+    "timeBudgetSeconds": 180,
+    "total": 5,
+    "totalPlus": 3,
+}
+
+NUMBER_EXAMPLE_BY_KEY = {
+    "confidence": 0.82,
+    "score": 4.2,
+}
+
+
+def _path_key(path: str) -> str:
+    normalized = path.replace("[]", "")
+    if "." not in normalized:
+        return ""
+    return normalized.rsplit(".", 1)[-1]
+
+
+def _array_key(path: str) -> str:
+    parent = path[:-2] if path.endswith("[]") else path
+    return _path_key(parent)
 
 
 def extract_output_contract_block(body: str) -> str | None:
@@ -578,30 +760,53 @@ def extract_output_contract_block(body: str) -> str | None:
     return body[start:end]
 
 
-def example_for_schema(schema: dict) -> object:
+def example_for_schema(schema: dict, path: str = "$") -> object:
     enum = schema.get("enum")
     if isinstance(enum, list) and enum:
-        return enum[0]
+        return ENUM_EXAMPLE_BY_PATH.get(path, enum[0])
     schema_type = schema.get("type")
     if schema_type == "object":
         props = schema.get("properties") or {}
         out: dict[str, object] = {}
-        for key in schema.get("required") or []:
+        for key in ordered_schema_property_keys(schema):
             child = props.get(key)
-            out[key] = example_for_schema(child) if isinstance(child, dict) else "value"
+            if isinstance(child, dict):
+                out[key] = example_for_schema(child, f"{path}.{key}")
+        if out:
+            return out
+        dynamic = ARRAY_ITEM_EXAMPLE_BY_KEY.get(_array_key(path))
+        if isinstance(dynamic, dict):
+            return dynamic
+        if path == "$.dimension_results":
+            return {
+                "system_design": {
+                    "score_level": "meets_bar",
+                    "status": "meets_bar",
+                    "confidence": 0.82,
+                    "score": 4.2,
+                }
+            }
         return out
     if schema_type == "array":
         item = schema.get("items")
-        return [example_for_schema(item)] if isinstance(item, dict) else []
+        return [example_for_schema(item, path + "[]")] if isinstance(item, dict) else []
     if schema_type == "integer":
-        return 1
+        return INTEGER_EXAMPLE_BY_KEY.get(_path_key(path), 2)
     if schema_type == "number":
-        return 0.5
+        return NUMBER_EXAMPLE_BY_KEY.get(_path_key(path), 0.82)
     if schema_type == "boolean":
         return True
     if schema_type == "null":
         return None
-    return "string"
+    path_example = STRING_EXAMPLE_BY_PATH.get(path)
+    if path_example is not None:
+        return path_example
+    key = _path_key(path)
+    if path.endswith("[]"):
+        item_example = ARRAY_ITEM_EXAMPLE_BY_KEY.get(_array_key(path))
+        if isinstance(item_example, str):
+            return item_example
+    return STRING_EXAMPLE_BY_KEY.get(key, f"example {key or 'value'}")
 
 
 def validate_value_against_schema(value: object, schema: dict, path: str, errors: list[str]) -> None:
