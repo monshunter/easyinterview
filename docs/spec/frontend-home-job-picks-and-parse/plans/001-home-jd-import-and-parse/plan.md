@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-24
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -117,6 +117,12 @@
 | status pill text / tone | `TargetJob.status` | `draft/preparing=muted`，`applied/interviewing=amber`，`offer=neutral`，`rejected/archived=neutral`；token 来源 D2，后续若需要 success tone 先扩展 `ui-design` / D2 token |
 | MiniRoundRail | P0 default rounds + `TargetJob.status` | `draft/preparing` currentIndex=0，`applied/interviewing` currentIndex=1，`offer/rejected/archived` currentIndex=last；后续真实 round contract 落地后由 owner spec 修订 |
 | workspace params | `TargetJob.id` + deterministic defaults | `targetJobId=id`、`jobId=id`、`jdId=jd-${id}`、`planId=plan-${id}`、`resumeVersionId=resume-unbound`、`roundId=round-technical-1`、`roundName` locale fallback；不得依赖 OpenAPI 未声明字段 |
+
+## 3.8 修订记录
+
+| 日期 | 版本 | 类型 | 说明 |
+|------|------|------|------|
+| 2026-05-24 | 1.3 | regression remediation | 修复 Phase 4 ready 响应直接进入 preview 的 implementation drift：`ParseScreen` 必须先展示并完成 `ui-design/src/screens-p0-complete.jsx::ParseScreen` 4 步 loading 演示，再进入 parsed preview；`ParseFlow` 与 E2E.P0.015 gate 固化该行为。 |
 
 ## 4 实施步骤
 

@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-24
 
 **关联计划**: [plan](./plan.md)
 
@@ -64,6 +64,7 @@
 <!-- verified: 2026-05-08 method=vitest 24 tests across 5 files all PASS -->
 - [x] 4.10 BDD-Gate: 验证 `E2E.P0.015`（主路径完整 import→parse→preview）+ `E2E.P0.016`（preview 编辑 + Confirm → workspace）
 <!-- verified: 2026-05-08 method=scenario P0.015 setup→trigger→verify→cleanup PASS; P0.016 PASS -->
+- [x] 4.11 L2 regression remediation: `ParseScreen` 在首次 `getTargetJob.analysisStatus=ready` 时不得直接跳 preview；必须先渲染 `parse-loading-step-0..3` 并按 `ui-design` tick 完成 loading 演示后再显示 `parse-basics-title`。Red-Green：`ParseFlow.test.tsx` 先复现 ready 立即 preview，修复后 `pnpm --filter @easyinterview/frontend test src/app/screens/parse` PASS；BDD overlay：`E2E.P0.015` setup→trigger→verify→cleanup PASS。 <!-- evidence: 2026-05-24 focused ParseFlow ready-loading regression PASS; parse suite 27 tests PASS; P0.015 scenario trigger real-mode gate 1/1 + home/parse 54 tests PASS; verify PASS -->
 
 ## Phase 5: jd_match P1 Placeholder Shell
 

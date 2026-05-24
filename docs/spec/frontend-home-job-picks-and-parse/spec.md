@@ -1,8 +1,8 @@
 # Frontend Home / Job Picks / Parse Spec
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-24
 
 ## 1 背景与目标
 
@@ -54,7 +54,7 @@
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
 | D-1 | jd_match 业务范围 | 采用「契约先行 + frontend fixture 消费 + real-mode generated-client 联调 gate」模式，与 D-2 一致：plan 001 落地 P1 placeholder shell；plan 002 先扩展 OpenAPI `JobMatch` tag + 12 operationId + fixture，frontend 通过 generated client + fixture-backed transport 一次性源级复刻 ui-design 三 tab 完整业务；2026-05-22 `backend-jobs-recommendations/001-jd-match-real-backend-baseline` 已完成真实 backend handler / service / store / agent scan pipeline / AI-backed search / candidate pool / market signals，plan 002 原地补 `VITE_EI_API_MODE=real` gate 证明 12 operation 的 production generated client 指向真实 backend base URL；新增 `JobMatch` tag 时已同步 B2 owner truth source（`openapi-v1-contract` endpoint inventory、OpenAPI/fixture README、inventory linter、fixture validator 和 mock-contract coverage 口径），把 12 tag / 34 endpoint gate additive 升级到 13 tag / 46 endpoint | 与 D-2 generated client + fixture-backed transport 模式对齐，同时避免 fixture-backed UI 被误判为真实 backend 闭环；frontend 永远不直连 LLM/provider/外部招聘平台；真实 backend semantics 由 backend P0.094-P0.097 live scenarios 配对证明 |
-| D-2 | Parse loading 进度驱动 | 前端只通过 generated API client 调 `getTargetJob` 轮询 backend 返回的 `analysisStatus` 状态机：`queued` → `processing` → `ready` / `failed`；UI 4 步进度条与 footer 只源级复刻 `ui-design` 的解析节奏与版式，不代表前端直接调用 LLM；2026-05-22 plan 001 增加 `VITE_EI_API_MODE=real` generated-client gate，证明 production bootstrap 对 TargetJobs/import/parse operation 指向真实 backend base URL | 当 fixture transport / backend 返回 `ready` 时进度条以可观察节奏快速完成；返回 `failed` 时切错误态而非伪装继续；前端不得接入 AI provider、prompt registry、LLM key 或任何 provider-specific endpoint；真实 backend semantics 由 backend-targetjob E2E.P0.010-P0.013 配对证明 |
+| D-2 | Parse loading 进度驱动 | 前端只通过 generated API client 调 `getTargetJob` 轮询 backend 返回的 `analysisStatus` 状态机：`queued` → `processing` → `ready` / `failed`；UI 4 步进度条与 footer 只源级复刻 `ui-design` 的解析节奏与版式，不代表前端直接调用 LLM；2026-05-22 plan 001 增加 `VITE_EI_API_MODE=real` generated-client gate，证明 production bootstrap 对 TargetJobs/import/parse operation 指向真实 backend base URL；2026-05-24 regression gate 固化：即使首次 `getTargetJob` 已返回 `ready`，正式前端也必须先展示 `ui-design` 4 步 loading 演示并按 tick 完成后再进入 preview，禁止直接跳过 loading 到 parsed preview | 当 fixture transport / backend 返回 `ready` 时进度条以可观察节奏快速完成但不可被跳过；返回 `failed` 时切错误态而非伪装继续；前端不得接入 AI provider、prompt registry、LLM key 或任何 provider-specific endpoint；真实 backend semantics 由 backend-targetjob E2E.P0.010-P0.013 配对证明 |
 | D-3 | Hidden signals 来源 | 前端只展示 backend/API 返回的 `TargetJobSummary.interviewHypotheses`（对象级 `provenance` 必须存在）+ `TargetJobSummary.coreThemes`；`fitSummary.riskSignals` 用于 "WHERE IT'S A STRETCH" 类风险呈现；结构与 icon/置信度 tag 必须与 `ui-design` Hidden signals 卡片一致 | 不在前端凭 JD 文本推断、补写、改写或重新生成 hidden signals；所有 AI-generated 字段必须通过 OpenAPI fixture / backend response 可追溯到 `GenerationProvenance` |
 | D-4 | Confirm 跳转契约 | `nav("workspace", { targetJobId, jdId, planId, resumeVersionId, roundId })`；`planId` 由 D1 `eiCreateInterviewContext` 等价契约从 `targetJobId` 推导（`plan-${targetJobId}`） | 真实 `createPracticePlan` API 调用由 `frontend-target-job-workspace` 承接；本 subspec 不主动创建 PracticePlan |
 | D-5 | i18n locale 拆分 | 在 `frontend/src/app/i18n/locales/zh.ts` / `en.ts` 中新增 `home.*`、`parse.*`、`jdMatch.*` 三个命名空间；不混入 messages.ts 类型聚合层 | 与 D1 D-7 i18n 规则一致；新增命名空间需通过 D1 typed helper test |
@@ -120,7 +120,7 @@
 
 ## 7 关联计划
 
-- [001-home-jd-import-and-parse](./plans/001-home-jd-import-and-parse/plan.md) — Home + Parse 端到端 + jd_match P1 placeholder shell；2026-05-22 L2 remediation 补 TargetJobs/upload/import/parse real-mode generated-client gate + backend E2E.P0.010-P0.013 配对证据（completed 2026-05-22）
+- [001-home-jd-import-and-parse](./plans/001-home-jd-import-and-parse/plan.md) — Home + Parse 端到端 + jd_match P1 placeholder shell；2026-05-22 L2 remediation 补 TargetJobs/upload/import/parse real-mode generated-client gate + backend E2E.P0.010-P0.013 配对证据；2026-05-24 regression remediation 固化 ready 响应也必须先展示 `ui-design` loading 演示（completed 2026-05-24）
 - [002-jd-match-recommendations](./plans/002-jd-match-recommendations/plan.md) — jd_match 三 tab 完整 frontend 业务 + JobMatch OpenAPI 12 operationId + fixture + real-mode generated-client gate + 5 BDD 场景（completed L2 remediation 2026-05-22）
 
 ## 8 关联文档

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
 
 import {
   createFixtureBackedFetch,
@@ -14,6 +14,8 @@ import { ParseScreen } from "./ParseScreen";
 
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
+
+const LOADING_PREVIEW_DELAY = 3200;
 
 function createUnauthClient() {
   const body = (
@@ -62,10 +64,26 @@ function renderUnauth(client: EasyInterviewClient) {
   };
 }
 
+async function renderReadyUnauth(client: EasyInterviewClient) {
+  vi.useFakeTimers();
+  const result = renderUnauth(client);
+
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
+  });
+  vi.useRealTimers();
+
+  return result;
+}
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("ParseAuthGate — confirm", () => {
   it("redirects to auth_login when unauthenticated user clicks Confirm", async () => {
     const client = createUnauthClient();
-    const { navigate } = renderUnauth(client);
+    const { navigate } = await renderReadyUnauth(client);
     const updateSpy = vi.spyOn(client, "updateTargetJob");
 
     await screen.findByTestId("parse-action-confirm");

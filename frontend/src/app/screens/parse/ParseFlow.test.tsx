@@ -16,6 +16,7 @@ import { ParseScreen } from "./ParseScreen";
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 
 const POLL_INTERVAL = 610;
+const LOADING_PREVIEW_DELAY = 3200;
 
 function fixtureBody() {
   return (
@@ -83,14 +84,33 @@ describe("ParseFlow — analysisStatus polling", () => {
     });
   });
 
-  it("shows preview immediately when analysisStatus is ready", async () => {
+  it("keeps the ui-design loading demo before preview when analysisStatus is ready", async () => {
+    vi.useFakeTimers();
     const client = createClientFromFixtures([makeFixture("ready")]);
 
-    renderParse(client);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("parse-basics-title")).toBeInTheDocument();
+    act(() => {
+      renderParse(client);
     });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(screen.getByTestId("parse-loading-step-0")).toBeInTheDocument();
+    expect(screen.queryByTestId("parse-basics-title")).not.toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(600);
+    });
+    expect(screen.getByTestId("parse-loading-step-0")).toHaveTextContent(
+      "Extracting title, level, location",
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY - 600);
+    });
+
+    expect(screen.getByTestId("parse-basics-title")).toBeInTheDocument();
   });
 
   it("shows failed state when analysisStatus is failed", async () => {
@@ -141,13 +161,18 @@ describe("ParseFlow — analysisStatus polling", () => {
   });
 
   it("transitions from queued to preview when status returns ready", async () => {
+    vi.useFakeTimers();
     const client = createClientFromFixtures([makeFixture("ready")]);
 
-    renderParse(client);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("parse-basics-title")).toBeInTheDocument();
+    act(() => {
+      renderParse(client);
     });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
+    });
+
+    expect(screen.getByTestId("parse-basics-title")).toBeInTheDocument();
   });
 
   it("cleans up polling on unmount", async () => {

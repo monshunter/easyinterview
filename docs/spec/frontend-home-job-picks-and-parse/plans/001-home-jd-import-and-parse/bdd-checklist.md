@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-24
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -23,6 +23,7 @@
 - [x] 执行 `setup → trigger → verify → cleanup` 全 PASS（三条 source 路径 + failed variant 共 4 子用例）
 - [x] 记录验证证据：mockTransport 调用日志 spy + 隐私反查日志 + 4xx 路径截图
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.015 行（关联需求 C-2, C-3, C-6，状态 Ready，automated）
+- [x] 2026-05-24 regression gate：ready fixture 不得直接进入 preview；P0.015 trigger 通过 `ParseFlow.test.tsx` 断言 loading step DOM 先出现，完成 `ui-design` tick 后才出现 `parse-basics-title`。 <!-- evidence: `.test-output/e2e/p0-015-jd-import-and-parse/trigger.log` includes `ParseFlow.test.tsx` PASS and 54 total home/parse tests PASS; verify.sh PASS -->
 
 ## E2E.P0.016 Parse 编辑 + Confirm → workspace（含 auth pending action）
 

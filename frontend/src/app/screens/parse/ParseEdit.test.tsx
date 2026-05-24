@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import {
   createFixtureBackedFetch,
@@ -14,6 +14,8 @@ import { ParseScreen } from "./ParseScreen";
 
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 import updateTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/updateTargetJob.json";
+
+const LOADING_PREVIEW_DELAY = 3200;
 
 function makeReadyFixture() {
   const body = (
@@ -63,10 +65,26 @@ function renderParse(client: EasyInterviewClient) {
   };
 }
 
+async function renderReadyParse(client: EasyInterviewClient) {
+  vi.useFakeTimers();
+  const result = renderParse(client);
+
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
+  });
+  vi.useRealTimers();
+
+  return result;
+}
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("ParseEdit — inline editing", () => {
   it("renders editable title input with initial value from fixture", async () => {
     const client = createClient();
-    renderParse(client);
+    await renderReadyParse(client);
 
     const titleEl = await screen.findByTestId("parse-basics-title");
 
@@ -78,7 +96,7 @@ describe("ParseEdit — inline editing", () => {
 
   it("renders editable company input", async () => {
     const client = createClient();
-    renderParse(client);
+    await renderReadyParse(client);
 
     const companyEl = await screen.findByTestId("parse-basics-company");
     const input = companyEl.querySelector("input");
@@ -88,7 +106,7 @@ describe("ParseEdit — inline editing", () => {
 
   it("renders editable location input", async () => {
     const client = createClient();
-    renderParse(client);
+    await renderReadyParse(client);
 
     const locEl = await screen.findByTestId("parse-basics-location");
     const input = locEl.querySelector("input");
@@ -97,7 +115,7 @@ describe("ParseEdit — inline editing", () => {
 
   it("renders level and language as read-only (no input element)", async () => {
     const client = createClient();
-    renderParse(client);
+    await renderReadyParse(client);
 
     const levelEl = await screen.findByTestId("parse-basics-level");
     expect(levelEl.querySelector("input")).toBeFalsy();
@@ -108,7 +126,7 @@ describe("ParseEdit — inline editing", () => {
 
   it("renders requirements with toggle buttons", async () => {
     const client = createClient();
-    renderParse(client);
+    await renderReadyParse(client);
 
     const req0 = await screen.findByTestId("parse-requirement-must_have-0");
     expect(req0).toBeInTheDocument();
@@ -121,7 +139,7 @@ describe("ParseEdit — inline editing", () => {
 
   it("hit toggle cycles through false → true → partial → false", async () => {
     const client = createClient();
-    renderParse(client);
+    await renderReadyParse(client);
 
     const toggle = await screen.findByTestId(
       "parse-requirement-must_have-0-toggle",
@@ -145,7 +163,7 @@ describe("ParseEdit — inline editing", () => {
 
   it("renders hidden signals and round assumptions", async () => {
     const client = createClient();
-    renderParse(client);
+    await renderReadyParse(client);
 
     const signal0 = await screen.findByTestId("parse-hidden-signal-0");
     expect(signal0).toBeInTheDocument();
@@ -168,7 +186,7 @@ describe("ParseEdit — confirm call", () => {
   it("calls updateTargetJob on Confirm with only supplied fields", async () => {
     const client = createClient();
     const spy = vi.spyOn(client, "updateTargetJob");
-    const { navigate } = renderParse(client);
+    const { navigate } = await renderReadyParse(client);
 
     const confirmBtn = await screen.findByTestId("parse-action-confirm");
     fireEvent.click(confirmBtn);
@@ -230,7 +248,7 @@ describe("ParseEdit — confirm call", () => {
     );
     const client = new EasyInterviewClient({ fetch });
 
-    renderParse(client);
+    await renderReadyParse(client);
 
     const confirmBtn = await screen.findByTestId("parse-action-confirm");
     fireEvent.click(confirmBtn);
@@ -247,7 +265,7 @@ describe("ParseEdit — confirm call", () => {
 describe("ParseEdit — re-parse and cancel", () => {
   it("re-parse does not throw when scrollTo is unavailable", async () => {
     const client = createClient();
-    renderParse(client);
+    await renderReadyParse(client);
 
     await screen.findByTestId("parse-action-reparse");
     const scrollSpy = vi
@@ -256,16 +274,18 @@ describe("ParseEdit — re-parse and cancel", () => {
         throw new Error("scrollTo unavailable");
       });
 
-    expect(() => {
-      fireEvent.click(screen.getByTestId("parse-action-reparse"));
-    }).not.toThrow();
+    await act(async () => {
+      expect(() => {
+        fireEvent.click(screen.getByTestId("parse-action-reparse"));
+      }).not.toThrow();
+    });
 
     scrollSpy.mockRestore();
   });
 
   it("re-parse button resets to loading stage", async () => {
     const client = createClient();
-    renderParse(client);
+    await renderReadyParse(client);
 
     // Wait for preview
     await screen.findByTestId("parse-action-reparse");
@@ -281,7 +301,7 @@ describe("ParseEdit — re-parse and cancel", () => {
   it("re-parse triggers a fresh getTargetJob poll", async () => {
     const client = createClient();
     const spy = vi.spyOn(client, "getTargetJob");
-    renderParse(client);
+    await renderReadyParse(client);
 
     await screen.findByTestId("parse-action-reparse");
     const callsBeforeReparse = spy.mock.calls.length;

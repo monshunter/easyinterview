@@ -30,6 +30,10 @@ const loadingStepKeys = [
   "parse.loadingStep4",
 ] as const;
 
+const loadingStepTicks = [600, 900, 800, 700] as const;
+const loadingPreviewDelay =
+  loadingStepTicks.reduce((total, tick) => total + tick, 0) + 200;
+
 function safeScrollToTop(): void {
   if (navigator.userAgent.toLowerCase().includes("jsdom")) return;
   try {
@@ -62,10 +66,53 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [pollNonce, setPollNonce] = useState(0);
+  const [pendingReadyJob, setPendingReadyJob] = useState<TargetJob | null>(null);
+  const [loadingComplete, setLoadingComplete] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollCountRef = useRef(0);
 
   const steps = loadingStepKeys;
+
+  const hydrateReadyJob = useCallback((job: TargetJob) => {
+    setTargetJob(job);
+    setEditedTitle(job.title ?? "");
+    setEditedCompany(job.companyName ?? "");
+    setEditedLocation(job.locationText ?? "");
+  }, []);
+
+  useEffect(() => {
+    if (stage !== "loading" || _mockStage) return;
+
+    setStep(0);
+    setLoadingComplete(false);
+
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    let elapsed = 0;
+    loadingStepTicks.forEach((tick, i) => {
+      elapsed += tick;
+      timers.push(
+        setTimeout(() => {
+          setStep(i + 1);
+        }, elapsed),
+      );
+    });
+    timers.push(
+      setTimeout(() => {
+        setLoadingComplete(true);
+      }, loadingPreviewDelay),
+    );
+
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+    };
+  }, [stage, _mockStage, pollNonce]);
+
+  useEffect(() => {
+    if (stage !== "loading" || !loadingComplete || !pendingReadyJob) return;
+
+    hydrateReadyJob(pendingReadyJob);
+    setPendingReadyJob(null);
+    setStage("preview");
+  }, [stage, loadingComplete, pendingReadyJob, hydrateReadyJob]);
 
   // Poll getTargetJob when in loading stage
   useEffect(() => {
@@ -88,17 +135,11 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         if (cancelled) return;
 
         if (job.analysisStatus === "ready") {
-          setTargetJob(job);
-          setEditedTitle(job.title ?? "");
-          setEditedCompany(job.companyName ?? "");
-          setEditedLocation(job.locationText ?? "");
-          setStage("preview");
+          setPendingReadyJob(job);
         } else if (job.analysisStatus === "failed") {
           setStage("failed");
         } else {
           // queued or processing — keep polling
-          pollCountRef.current += 1;
-          setStep(Math.min(pollCountRef.current, 4));
           pollingRef.current = setTimeout(poll, 600);
         }
       } catch {
@@ -121,39 +162,16 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         clearTimeout(pollingRef.current);
         pollingRef.current = null;
       }
-      pollCountRef.current = 0;
+      setPendingReadyJob(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, route.params?.targetJobId, _mockStage, _mockTargetJob, pollNonce]);
 
-  // Simulated loading animation (mock mode only)
-  useEffect(() => {
-    if (stage !== "loading" || _mockStage || runtime) return;
-    const ticks = [600, 900, 800, 700];
-    let cancel = false;
-    let acc = 0;
-    ticks.forEach((tick, i) => {
-      acc += tick;
-      setTimeout(() => {
-        if (!cancel) setStep(i + 1);
-      }, acc);
-    });
-    setTimeout(() => {
-      if (!cancel) setStage("preview");
-    }, acc + 200);
-    return () => {
-      cancel = true;
-    };
-  }, [stage, _mockStage, runtime]);
-
   useEffect(() => {
     if (_mockTargetJob) {
-      setTargetJob(_mockTargetJob);
-      setEditedTitle(_mockTargetJob.title ?? "");
-      setEditedCompany(_mockTargetJob.companyName ?? "");
-      setEditedLocation(_mockTargetJob.locationText ?? "");
+      hydrateReadyJob(_mockTargetJob);
     }
-  }, [_mockTargetJob]);
+  }, [_mockTargetJob, hydrateReadyJob]);
 
   const toggleHit = useCallback(
     (reqId: string) => {
@@ -179,7 +197,8 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       clearTimeout(pollingRef.current);
       pollingRef.current = null;
     }
-    pollCountRef.current = 0;
+    setPendingReadyJob(null);
+    setLoadingComplete(false);
     setErrorMessage(null);
     setStep(0);
     setStage("loading");
