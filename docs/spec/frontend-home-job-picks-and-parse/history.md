@@ -1,13 +1,16 @@
 # Frontend Home / Job Picks / Parse History
 
-> **版本**: 1.8
+> **版本**: 1.11
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-24
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-24 | 1.11 | plan `001-home-jd-import-and-parse` same-route target switch remediation：修复同一 mounted `ParseScreen` 从已解析 preview 切到新的 `targetJobId` 时继续显示旧 TargetJob 的问题；新增 `ParseFlow` rerender regression，要求路由参数切换后清空旧 preview/edit state、重新展示 loading gate，并在 tick 完成后 hydrate 新 TargetJob | 001-home-jd-import-and-parse |
+| 2026-05-24 | 1.10 | plan `001-home-jd-import-and-parse` P0.016 remediation：修复 `ParseScreen` Confirm handoff 手写 workspace params 漏传 `jobId` / `roundName` 的问题；已登录 navigate 与未登录 `requestAuth(pendingAction)` 统一复用 `interviewContextFromTargetJob(targetJob)` 7 字段契约；P0.016 新增 Playwright browser gate，点击 Confirm 后验证 `/workspace` query 与 `workspace-missing-resume` screenshot marker | 001-home-jd-import-and-parse |
+| 2026-05-24 | 1.9 | plan `001-home-jd-import-and-parse` regression remediation：修复 `ParseScreen` 在首次 `getTargetJob.analysisStatus=ready` 时直接进入 preview、跳过 `ui-design/src/screens-p0-complete.jsx::ParseScreen` 4 步 loading 演示的问题；新增/调整 `ParseFlow` ready gate，要求 loading step DOM 先出现并完成 3.2s tick 后再渲染 preview；同步 P0.015 scenario 证据 | 001-home-jd-import-and-parse |
 | 2026-05-22 | 1.8 | plan `001-home-jd-import-and-parse` L2 remediation 原地关闭 TargetJobs/import/parse fixture-first wording 与真实 backend owner 状态漂移：补 `VITE_EI_API_MODE=real` generated-client gate，P0.014-P0.016 每个 trigger 均先证明 `listTargetJobs` / `createUploadPresign` / `importTargetJob` / `getTargetJob` / `updateTargetJob` 指向真实 backend base URL、cookie credentials、side-effect IK 与 TargetJob provenance roundtrip；同步 operation matrix、BDD plan/checklist 与 scenario docs；配对 backend E2E.P0.010-P0.013 live HTTP TargetJob scenarios + backend-upload focused route/handler tests PASS | 001-home-jd-import-and-parse |
 | 2026-05-22 | 1.7 | plan `002-jd-match-recommendations` L2 remediation 原地关闭 fixture-backed 与真实 backend 状态漂移：补 `VITE_EI_API_MODE=real` generated-client gate，P0.027-P0.031 每个 trigger 均先证明 12 个 JobMatch operation 指向真实 backend base URL、cookie credentials、5 个 IK side effect 与 provenance roundtrip；同步 OpenAPI/generated spec 描述、operation matrix、scenario docs 与 BDD checklist；配对 backend E2E.P0.094-P0.097 live route/persistence/auth/IK/privacy/AI provenance PASS | 002-jd-match-recommendations |
 | 2026-05-10 | 1.6 | plan `002-jd-match-recommendations` L2 remediation 完成并恢复 completed：新增 `getJobRecommendation` 详情 fetch 与详情优先渲染、`jd_match_action` 登录后 auto-resume、Search opaque `pendingJdMatchActionId` payload、pixel parity 响应式/主题/focused screenshot gate，以及 P0.027/P0.028/P0.030/P0.031 scenario verify 强化；补跑 P0.029 与 P0.017，docs/index 回到 zero drift | 002-jd-match-recommendations |

@@ -8,7 +8,11 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-24](./2026-05-24-frontend-parse-target-switch-assessment.md) | Frontend Parse Target Switch 交付复盘 | #assessment |
+| [2026-05-24](./2026-05-24-frontend-parse-confirm-context-gate-assessment.md) | Frontend Parse Confirm Context Gate 交付复盘 | #assessment |
+| [2026-05-24](./2026-05-24-frontend-parse-loading-browser-gate-assessment.md) | Frontend Parse Loading Browser Gate 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-prompt-rubric-language-coordinate-simplification-assessment.md) | Prompt Rubric Language Coordinate Simplification 交付复盘 | #assessment |
+| [2026-05-24](./2026-05-24-frontend-parse-loading-demo-regression-assessment.md) | Frontend Parse Loading Demo Regression 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-prompt-rubric-output-schema-review-follow-up-assessment.md) | Prompt Rubric Output Schema Review Follow-up 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-prompt-rubric-jd-match-seed-migration-assessment.md) | Prompt Rubric JD-Match Seed Migration 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-prompt-rubric-complete-example-output-assessment.md) | Prompt Rubric Complete Example Output 交付复盘 | #assessment |

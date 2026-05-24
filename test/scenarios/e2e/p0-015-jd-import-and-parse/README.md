@@ -26,6 +26,9 @@ Verifies the full JD import flow with three source variants:
 - Idempotency-Key header on all side-effect calls
 - Real backend mode generated-client gate for upload presign, import, parse read, and update
 - polling节奏 ≥600ms, progress step advances
+- Ready response browser gate: Playwright opens `/parse?targetJobId=...` with
+  a fixture-backed ready `getTargetJob` response, captures the loading DOM
+  screenshot, and proves preview is absent for the required loading window
 - Preview渲染: title/company/location/requirements/hidden signals/rounds
 - JD raw text not in console/URL/localStorage/telemetry
 - No AI provider/prompt registry/LLM endpoint calls
@@ -34,7 +37,7 @@ Verifies the full JD import flow with three source variants:
 
 - `scripts/setup.sh` — select fixture variant (paste/upload/url)
 - `scripts/trigger.sh` — execute import flow per variant
-- `scripts/verify.sh` — assert request body schema, polling behavior, privacy redline
+- `scripts/verify.sh` — assert request body schema, polling behavior, ready-response browser marker, privacy redline
 - `scripts/cleanup.sh` — reset mock state
 
 ## Offline Limitations

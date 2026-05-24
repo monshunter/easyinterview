@@ -30,6 +30,7 @@ Verifies the parse preview editing and confirm flow:
 - Idempotency-Key header present
 - Real backend mode generated-client gate for TargetJobs read/update and import path operations
 - Nav to workspace with 7 interviewContext fields
+- Browser-level Confirm click reaches `/workspace` with all 7 interviewContext query params and renders the `workspace-missing-resume` next-step state for the default `resume-unbound` handoff
 - Auth pending action triggers correctly
 - 4xx error inline, edit state preserved
 
@@ -58,3 +59,13 @@ Verifies the parse preview editing and confirm flow:
   request-body, auth pending action, 4xx, and workspace navigation assertions.
   Backend E2E.P0.010-P0.013 pair this frontend routing proof with live
   TargetJob route/persistence/auth/IK/privacy/provenance semantics.
+
+## Browser Route/Context Gate
+
+- The trigger builds `frontend/dist` and runs Playwright
+  `tests/pixel-parity/parse.spec.ts --grep "confirm navigates to workspace missing-resume with complete interview context"`.
+- The browser gate opens `/parse?targetJobId=...`, mocks generated API
+  responses, clicks Confirm, asserts `updateTargetJob` body/Idempotency-Key,
+  verifies `/workspace` carries `targetJobId / jobId / jdId / planId /
+  resumeVersionId / roundId / roundName`, and captures a non-empty screenshot
+  of `workspace-missing-resume`.

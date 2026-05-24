@@ -14,4 +14,8 @@ mkdir -p "$OUTPUT_DIR"
   pnpm --filter @easyinterview/frontend test \
     src/app/screens/parse/ParseEdit.test.tsx \
     src/app/screens/parse/ParseAuthGate.test.tsx
+  pnpm --filter @easyinterview/frontend build
+  pnpm --filter @easyinterview/frontend exec playwright test \
+    tests/pixel-parity/parse.spec.ts \
+    --grep "confirm navigates to workspace missing-resume with complete interview context"
 ) | tee "$OUTPUT_DIR/trigger.log"

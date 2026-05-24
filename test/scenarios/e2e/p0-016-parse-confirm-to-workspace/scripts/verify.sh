@@ -10,8 +10,12 @@ grep -Fq 'VITE_EI_API_BASE_URL=http://localhost:8080/api/v1' "$LOG_FILE"
 grep -Fq 'targetJob.realApiMode.test.ts' "$LOG_FILE"
 grep -Fq "ParseEdit.test.tsx" "$LOG_FILE"
 grep -Fq "ParseAuthGate.test.tsx" "$LOG_FILE"
+grep -Fq "tests/pixel-parity/parse.spec.ts" "$LOG_FILE"
+grep -Fq "confirm navigates to workspace missing-resume with complete interview context" "$LOG_FILE"
+grep -Fq "E2E.P0.016 parse confirm workspace browser gate contextKeys=targetJobId,jobId,jdId,planId,resumeVersionId,roundId,roundName screenshotBytes=" "$LOG_FILE"
 grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE"
 grep -Eq 'Tests +[0-9]+ passed' "$LOG_FILE"
+grep -Eq '[0-9]+ passed' "$LOG_FILE"
 # Verify: updateTargetJob body schema does NOT contain read-only fields
 for forbidden in 'parse-basics-level' 'parse-basics-language'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then

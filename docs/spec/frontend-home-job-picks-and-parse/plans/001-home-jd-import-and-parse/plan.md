@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder
 
-> **版本**: 1.2
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-24
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -62,6 +62,7 @@
 | Privacy / security · provenance redact | provenance 字段中 promptTemplate / rubric id 不在 UI 中暴露完整 hash | `screens-p0-complete.jsx::ParseScreen` lines 100-104 | 4 | Vitest |
 | Observability | 仅 fixture transport 调用次数 / latency / 4xx code 进 telemetry；不带 raw text | n/a | 3+4 | Vitest mockTransport spy |
 | UX · loading state | Parse 4 步进度条节奏；listTargetJobs 加载占位 | `screens-p0-complete.jsx::ParseScreen` lines 68-107 | 2+4 | Vitest |
+| UX · parse target switch | 同一 mounted `ParseScreen` 收到新的 `targetJobId` 时清空旧 preview/edit state，回到 loading gate，tick 完成后 hydrate 新 TargetJob | `screens-p0-complete.jsx::ParseScreen` lines 68-107 | 4 | Vitest `parse/ParseFlow.test.tsx` same-route target switch regression |
 | UX · empty state | listTargetJobs 空 → HomeEmptyState；search/watchlist tab 空 → P1 placeholder | `screen-home.jsx::HomeEmptyState` + `screen-jd-match.jsx` placeholders | 2+5 | Vitest |
 | UX · error state | importTargetJob 4xx 内联错误；getTargetJob failed 全屏错误 | n/a | 3+4 | Vitest |
 | UX · i18n zh/en | 全文案通过 typed helper；切换立即重绘；新增 home / parse / jdMatch namespaces | D1 typed locale helper | 1-5 | Vitest `i18n` namespaces test |
@@ -117,6 +118,15 @@
 | status pill text / tone | `TargetJob.status` | `draft/preparing=muted`，`applied/interviewing=amber`，`offer=neutral`，`rejected/archived=neutral`；token 来源 D2，后续若需要 success tone 先扩展 `ui-design` / D2 token |
 | MiniRoundRail | P0 default rounds + `TargetJob.status` | `draft/preparing` currentIndex=0，`applied/interviewing` currentIndex=1，`offer/rejected/archived` currentIndex=last；后续真实 round contract 落地后由 owner spec 修订 |
 | workspace params | `TargetJob.id` + deterministic defaults | `targetJobId=id`、`jobId=id`、`jdId=jd-${id}`、`planId=plan-${id}`、`resumeVersionId=resume-unbound`、`roundId=round-technical-1`、`roundName` locale fallback；不得依赖 OpenAPI 未声明字段 |
+
+## 3.8 修订记录
+
+| 日期 | 版本 | 类型 | 说明 |
+|------|------|------|------|
+| 2026-05-24 | 1.6 | route-param remediation | 修复同一 mounted `ParseScreen` 从已解析 preview 切到新的 `targetJobId` 时没有重置内部 state 的问题；新增 `ParseFlow.test.tsx` rerender regression，断言旧 TargetJob title 消失、新 loading DOM 出现、loading gate 完成后 hydrate 新 TargetJob。 |
+| 2026-05-24 | 1.5 | route/context remediation | E2E.P0.016 增加 Confirm → Workspace browser gate：`ParseScreen` Confirm 统一复用 `interviewContextFromTargetJob(targetJob)`，已登录 navigate 与未登录 pendingAction 均携带 `targetJobId` / `jobId` / `jdId` / `planId` / `resumeVersionId` / `roundId` / `roundName`；Playwright 点击 Confirm 后验证 `/workspace` query 与 `workspace-missing-resume` screenshot marker。 |
+| 2026-05-24 | 1.4 | scenario hardening | E2E.P0.015 增加 Playwright browser gate：fixture-backed ready `getTargetJob` 响应下，截图并断言 Parse loading DOM 先出现、preview 在 loading window 内缺席、tick 完成后才进入 preview。 |
+| 2026-05-24 | 1.3 | regression remediation | 修复 Phase 4 ready 响应直接进入 preview 的 implementation drift：`ParseScreen` 必须先展示并完成 `ui-design/src/screens-p0-complete.jsx::ParseScreen` 4 步 loading 演示，再进入 parsed preview；`ParseFlow` 与 E2E.P0.015 gate 固化该行为。 |
 
 ## 4 实施步骤
 
@@ -214,7 +224,7 @@ Basic fields 中 title / company / location / notes onChange 更新 React state 
 
 #### 4.4 Confirm 调用
 
-Confirm 时调 `updateTargetJob(targetJobId, body)`，body 仅包含 supplied fields（titleHint / companyNameHint / locationText / notes）。成功后 `nav("workspace", { targetJobId, jdId, planId, resumeVersionId, roundId })`，使用 D1 `eiCreateInterviewContext` 等价契约推导默认值。4xx 显示 inline 错误并保留编辑态。
+Confirm 时调 `updateTargetJob(targetJobId, body)`，body 仅包含 supplied fields（titleHint / companyNameHint / locationText / notes）。成功后 `nav("workspace", interviewContextFromTargetJob(targetJob))`，使用 D1 `eiCreateInterviewContext` 等价契约推导完整 7 字段默认值（`targetJobId` / `jobId` / `jdId` / `planId` / `resumeVersionId` / `roundId` / `roundName`）。4xx 显示 inline 错误并保留编辑态。
 
 #### 4.5 Re-parse / Cancel
 
@@ -222,7 +232,7 @@ Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；Can
 
 #### 4.6 Auth pending action
 
-未登录用户进入 parse 屏不直接挂壁；点击 Confirm 时触发 `requestAuth({ type: "confirm_interview", route: "workspace", params: { targetJobId, jdId, planId, resumeVersionId, roundId } })`；登录后回到 workspace。
+未登录用户进入 parse 屏不直接挂壁；点击 Confirm 时触发 `requestAuth({ type: "confirm_interview", route: "workspace", params: interviewContextFromTargetJob(targetJob) })`；登录后回到 workspace，并携带与已登录 navigate 相同的 7 字段 interview context。
 
 #### 4.7 i18n
 

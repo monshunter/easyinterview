@@ -4,6 +4,7 @@ import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useI18n } from "../../i18n/messages";
 import { useNavigation } from "../../navigation/NavigationProvider";
+import { interviewContextFromTargetJob } from "../../navigation/interviewContext";
 import type { Route } from "../../routes";
 import type { TargetJob } from "../../../api/generated/types";
 
@@ -29,6 +30,10 @@ const loadingStepKeys = [
   "parse.loadingStep3",
   "parse.loadingStep4",
 ] as const;
+
+const loadingStepTicks = [600, 900, 800, 700] as const;
+const loadingPreviewDelay =
+  loadingStepTicks.reduce((total, tick) => total + tick, 0) + 200;
 
 function safeScrollToTop(): void {
   if (navigator.userAgent.toLowerCase().includes("jsdom")) return;
@@ -62,17 +67,84 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [pollNonce, setPollNonce] = useState(0);
+  const [pendingReadyJob, setPendingReadyJob] = useState<TargetJob | null>(null);
+  const [loadingComplete, setLoadingComplete] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollCountRef = useRef(0);
 
   const steps = loadingStepKeys;
+  const targetJobId =
+    typeof route.params?.targetJobId === "string"
+      ? route.params.targetJobId
+      : undefined;
+
+  const hydrateReadyJob = useCallback((job: TargetJob) => {
+    setTargetJob(job);
+    setEditedTitle(job.title ?? "");
+    setEditedCompany(job.companyName ?? "");
+    setEditedLocation(job.locationText ?? "");
+  }, []);
+
+  useEffect(() => {
+    if (_mockStage || _mockTargetJob) return;
+
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current);
+      pollingRef.current = null;
+    }
+    setTargetJob(null);
+    setEditedTitle("");
+    setEditedCompany("");
+    setEditedLocation("");
+    setEditedNotes("");
+    setHitToggles({});
+    setErrorMessage(null);
+    setConfirmError(null);
+    setPendingReadyJob(null);
+    setLoadingComplete(false);
+    setStep(0);
+    setStage("loading");
+  }, [targetJobId, _mockStage, _mockTargetJob]);
+
+  useEffect(() => {
+    if (stage !== "loading" || _mockStage) return;
+
+    setStep(0);
+    setLoadingComplete(false);
+
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    let elapsed = 0;
+    loadingStepTicks.forEach((tick, i) => {
+      elapsed += tick;
+      timers.push(
+        setTimeout(() => {
+          setStep(i + 1);
+        }, elapsed),
+      );
+    });
+    timers.push(
+      setTimeout(() => {
+        setLoadingComplete(true);
+      }, loadingPreviewDelay),
+    );
+
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+    };
+  }, [stage, _mockStage, pollNonce]);
+
+  useEffect(() => {
+    if (stage !== "loading" || !loadingComplete || !pendingReadyJob) return;
+
+    hydrateReadyJob(pendingReadyJob);
+    setPendingReadyJob(null);
+    setStage("preview");
+  }, [stage, loadingComplete, pendingReadyJob, hydrateReadyJob]);
 
   // Poll getTargetJob when in loading stage
   useEffect(() => {
     if (_mockStage || _mockTargetJob) return;
     if (!runtime) return;
 
-    const targetJobId = route.params?.targetJobId as string | undefined;
     if (!targetJobId) {
       setStage("error");
       setErrorMessage(lang === "en" ? "Missing target job ID." : "缺少目标岗位 ID。");
@@ -88,17 +160,11 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         if (cancelled) return;
 
         if (job.analysisStatus === "ready") {
-          setTargetJob(job);
-          setEditedTitle(job.title ?? "");
-          setEditedCompany(job.companyName ?? "");
-          setEditedLocation(job.locationText ?? "");
-          setStage("preview");
+          setPendingReadyJob(job);
         } else if (job.analysisStatus === "failed") {
           setStage("failed");
         } else {
           // queued or processing — keep polling
-          pollCountRef.current += 1;
-          setStep(Math.min(pollCountRef.current, 4));
           pollingRef.current = setTimeout(poll, 600);
         }
       } catch {
@@ -121,39 +187,16 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         clearTimeout(pollingRef.current);
         pollingRef.current = null;
       }
-      pollCountRef.current = 0;
+      setPendingReadyJob(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runtime, route.params?.targetJobId, _mockStage, _mockTargetJob, pollNonce]);
-
-  // Simulated loading animation (mock mode only)
-  useEffect(() => {
-    if (stage !== "loading" || _mockStage || runtime) return;
-    const ticks = [600, 900, 800, 700];
-    let cancel = false;
-    let acc = 0;
-    ticks.forEach((tick, i) => {
-      acc += tick;
-      setTimeout(() => {
-        if (!cancel) setStep(i + 1);
-      }, acc);
-    });
-    setTimeout(() => {
-      if (!cancel) setStage("preview");
-    }, acc + 200);
-    return () => {
-      cancel = true;
-    };
-  }, [stage, _mockStage, runtime]);
+  }, [runtime, targetJobId, _mockStage, _mockTargetJob, pollNonce]);
 
   useEffect(() => {
     if (_mockTargetJob) {
-      setTargetJob(_mockTargetJob);
-      setEditedTitle(_mockTargetJob.title ?? "");
-      setEditedCompany(_mockTargetJob.companyName ?? "");
-      setEditedLocation(_mockTargetJob.locationText ?? "");
+      hydrateReadyJob(_mockTargetJob);
     }
-  }, [_mockTargetJob]);
+  }, [_mockTargetJob, hydrateReadyJob]);
 
   const toggleHit = useCallback(
     (reqId: string) => {
@@ -179,7 +222,8 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       clearTimeout(pollingRef.current);
       pollingRef.current = null;
     }
-    pollCountRef.current = 0;
+    setPendingReadyJob(null);
+    setLoadingComplete(false);
     setErrorMessage(null);
     setStep(0);
     setStage("loading");
@@ -189,19 +233,16 @@ export const ParseScreen: FC<ParseScreenProps> = ({
 
   const handleConfirm = useCallback(async () => {
     if (!targetJob || confirming) return;
+    const workspaceParams: Record<string, string> = {
+      ...interviewContextFromTargetJob(targetJob),
+    };
 
     if (!runtime || runtime.auth.status === "unauthenticated") {
       requestAuth({
         type: "confirm_interview",
         label: t("parse.confirm") || (lang === "en" ? "Confirm" : "确认"),
         route: "workspace",
-        params: {
-          targetJobId: targetJob.id,
-          jdId: `jd-${targetJob.id}`,
-          planId: `plan-${targetJob.id}`,
-          resumeVersionId: "resume-unbound",
-          roundId: "round-technical-1",
-        },
+        params: workspaceParams,
       });
       return;
     }
@@ -222,13 +263,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       );
       navigate({
         name: "workspace",
-        params: {
-          targetJobId: targetJob.id,
-          jdId: `jd-${targetJob.id}`,
-          planId: `plan-${targetJob.id}`,
-          resumeVersionId: "resume-unbound",
-          roundId: "round-technical-1",
-        },
+        params: workspaceParams,
       });
     } catch (err: unknown) {
       setConfirmError(

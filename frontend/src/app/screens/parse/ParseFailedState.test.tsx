@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
 
 import {
   createFixtureBackedFetch,
@@ -13,6 +13,8 @@ import { AppRuntimeProvider } from "../../runtime/AppRuntimeProvider";
 import { ParseScreen } from "./ParseScreen";
 
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
+
+const LOADING_PREVIEW_DELAY = 3200;
 
 function makeFixture(analysisStatus: "failed" | "ready") {
   const body = (
@@ -52,6 +54,22 @@ function renderParse(analysisStatus: "failed" | "ready") {
   );
 }
 
+async function renderReadyParse() {
+  vi.useFakeTimers();
+  const result = renderParse("ready");
+
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
+  });
+  vi.useRealTimers();
+
+  return result;
+}
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("ParseFailedState", () => {
   it("shows failed UI when analysisStatus is failed", async () => {
     renderParse("failed");
@@ -66,7 +84,7 @@ describe("ParseFailedState", () => {
   });
 
   it("shows preview (not failed UI) when analysisStatus is ready", async () => {
-    renderParse("ready");
+    await renderReadyParse();
 
     await waitFor(() => {
       expect(screen.getByTestId("parse-basics-title")).toBeInTheDocument();
