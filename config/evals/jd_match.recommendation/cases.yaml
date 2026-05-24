@@ -1,0 +1,88 @@
+feature_key: jd_match.recommendation
+cases:
+- id: jd_match.recommendation-strong
+  language: multi
+  input: jd_match.recommendation evaluation case at strong quality band.
+  output: &id001
+  - jobMatchId: job-123
+    title: Senior Backend Engineer
+    company: Example Cloud
+    location: Remote US
+    score: 86
+    fit:
+      must: 4
+      total: 5
+      plus: 2
+      totalPlus: 3
+    reasons:
+    - Recent backend platform work maps directly to the JD.
+    risks:
+    - Less evidence for frontend-heavy collaboration requirements.
+    highlights:
+    - Strong ownership of backend reliability work.
+    companyTag: Growth-stage SaaS
+    level: senior
+    comp: $180k-$220k
+    posted: posted 2 days ago
+    sourceUrl: https://jobs.internal.example/job-123
+    sourceLabel: internal jobs pool
+    networkNote: 3 prior interview reports mention similar backend platform scope.
+    similarInterviewers: 3
+    interviewHypotheses:
+    - Interviewer may probe cache invalidation and rollback decisions.
+  judge:
+    scores:
+    - dimension: relevance_to_profile
+      value: 0.92
+    - dimension: risk_clarity
+      value: 0.92
+    - dimension: actionability
+      value: 0.92
+    reasoning:
+      summary: Exceeds the rubric expectations across dimensions.
+      evidence_quotes: []
+- id: jd_match.recommendation-proficient
+  language: multi
+  input: jd_match.recommendation evaluation case at proficient quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: relevance_to_profile
+      value: 0.78
+    - dimension: risk_clarity
+      value: 0.78
+    - dimension: actionability
+      value: 0.78
+    reasoning:
+      summary: Meets the rubric at baseline production quality.
+      evidence_quotes: []
+- id: jd_match.recommendation-developing
+  language: multi
+  input: jd_match.recommendation evaluation case at developing quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: relevance_to_profile
+      value: 0.5
+    - dimension: risk_clarity
+      value: 0.5
+    - dimension: actionability
+      value: 0.5
+    reasoning:
+      summary: Partially satisfies the rubric with visible gaps.
+      evidence_quotes: []
+- id: jd_match.recommendation-weak
+  language: multi
+  input: jd_match.recommendation evaluation case at weak quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: relevance_to_profile
+      value: 0.2
+    - dimension: risk_clarity
+      value: 0.2
+    - dimension: actionability
+      value: 0.2
+    reasoning:
+      summary: Falls short of the rubric on most dimensions.
+      evidence_quotes: []

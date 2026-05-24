@@ -1,0 +1,24 @@
+# F3 offline evaluation runner (plan prompt-rubric-registry/004 §4.3).
+#
+# Promptfoo is the runner; the Go `evalkit` binary owns registry single-source
+# resolution and grading via the single registry.LLMJudge. The candidate output
+# comes from the custom provider (recorded fixture by default, live provider
+# when EVAL_LIVE=1) and is graded by the javascript assertion that shells to
+# `evalkit grade`. Test cases are generated from config/evals/<feature_key>/
+# cases.yaml by `evalkit prompts-tests`; the prompt text itself is never copied
+# here (single source: config/prompts via the registry).
+description: F3 offline eval (registry single-source, recorded fixtures default)
+
+prompts:
+  - '{{input}}'
+
+providers:
+  - id: file://promptfoo_provider.js
+    label: evalkit-registry-provider
+
+defaultTest:
+  assert:
+    - type: javascript
+      value: file://promptfoo_assert.js
+
+tests: file://.generated/promptfoo_tests.yaml

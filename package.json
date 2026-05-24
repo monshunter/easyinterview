@@ -5,5 +5,13 @@
   "engines": {
     "node": ">=22.14.0",
     "pnpm": ">=10.4.0"
+  },
+  "devDependencies": {
+    "promptfoo": "0.121.12"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   }
 }

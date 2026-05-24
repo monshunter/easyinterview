@@ -1,0 +1,76 @@
+feature_key: report.question_assessment
+cases:
+- id: report.question_assessment-strong
+  language: multi
+  input: report.question_assessment evaluation case at strong quality band.
+  output: &id001
+    dimension_results:
+      system_design:
+        score_level: meets_bar
+        status: meets_bar
+        confidence: 0.82
+        score: 4.2
+    overall_status: meets_bar
+    confidence: 0.82
+    strengths:
+    - Quantified backend reliability impact.
+    gaps:
+    - Needs deeper rollback and failure-mode analysis.
+    recommended_framework: Use STAR with explicit constraints, tradeoffs, and measured outcome.
+    review_status: ready
+  judge:
+    scores:
+    - dimension: report_evidence
+      value: 0.92
+    - dimension: report_calibration
+      value: 0.92
+    - dimension: score_outlier
+      value: 0.92
+    reasoning:
+      summary: Exceeds the rubric expectations across dimensions.
+      evidence_quotes: []
+- id: report.question_assessment-proficient
+  language: multi
+  input: report.question_assessment evaluation case at proficient quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: report_evidence
+      value: 0.78
+    - dimension: report_calibration
+      value: 0.78
+    - dimension: score_outlier
+      value: 0.78
+    reasoning:
+      summary: Meets the rubric at baseline production quality.
+      evidence_quotes: []
+- id: report.question_assessment-developing
+  language: multi
+  input: report.question_assessment evaluation case at developing quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: report_evidence
+      value: 0.5
+    - dimension: report_calibration
+      value: 0.5
+    - dimension: score_outlier
+      value: 0.5
+    reasoning:
+      summary: Partially satisfies the rubric with visible gaps.
+      evidence_quotes: []
+- id: report.question_assessment-weak
+  language: multi
+  input: report.question_assessment evaluation case at weak quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: report_evidence
+      value: 0.2
+    - dimension: report_calibration
+      value: 0.2
+    - dimension: score_outlier
+      value: 0.2
+    reasoning:
+      summary: Falls short of the rubric on most dimensions.
+      evidence_quotes: []

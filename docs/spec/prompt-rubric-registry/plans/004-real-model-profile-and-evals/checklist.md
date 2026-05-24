@@ -38,12 +38,12 @@
 
 ## Phase 4: ≥50 题离线评估集 + Promptfoo runner
 
-- [ ] 4.1 落地 `config/evals/<feature_key>/` 用例（覆盖 §3.1.1 chat feature_key，总量 ≥50，含 1 个 en→multi fallback 用例）— 验证：eval count≥50 断言
-- [ ] 4.2 新增 repo-owned pinned Promptfoo dependency 与 runner 落点（根 devDependency 或 workspace package；同步 lockfile；禁止未固定 `pnpm dlx`/全局安装）— 验证：`pnpm install --lockfile-only` drift clean + runner version 可由仓库脚本输出
-- [ ] 4.3 Promptfoo registry-driven 配置（custom provider 经 RegistryClient 解析 + AIClient；LLMJudge 作 grader；不复制 prompt 正文）— 验证：registry-single-source drift check
-- [ ] 4.4 录制 fixture 默认 + `EVAL_LIVE=1` opt-in；EVAL_LIVE 未设不打网络 — 验证：`make eval-offline`（fixture）+ no-network 断言
-- [ ] 4.5 新增 `make eval-offline`（.PHONY+help，不纳入 make test）+ count≥50 断言 + single-source drift gate — 验证：`make eval-offline` + drift gate exit 行为
-- [ ] 4.6 `make lint-prompts-hardcode` 仍 green（未复制第二份 prompt）— 验证：`make lint-prompts-hardcode`
+- [x] 4.1 落地 `config/evals/<feature_key>/` 用例（覆盖 §3.1.1 chat feature_key，总量 ≥50，含 1 个 en→multi fallback 用例）— 验证：eval count≥50 断言
+- [x] 4.2 新增 repo-owned pinned Promptfoo dependency 与 runner 落点（根 devDependency 或 workspace package；同步 lockfile；禁止未固定 `pnpm dlx`/全局安装）— 验证：`pnpm install --lockfile-only` drift clean + runner version 可由仓库脚本输出
+- [x] 4.3 Promptfoo registry-driven 配置（custom provider 经 RegistryClient 解析 + AIClient；LLMJudge 作 grader；不复制 prompt 正文）— 验证：registry-single-source drift check
+- [x] 4.4 录制 fixture 默认 + `EVAL_LIVE=1` opt-in；EVAL_LIVE 未设不打网络 — 验证：`make eval-offline`（fixture）+ no-network 断言
+- [x] 4.5 新增 `make eval-offline`（.PHONY+help，不纳入 make test）+ count≥50 断言 + single-source drift gate — 验证：`make eval-offline` + drift gate exit 行为
+- [x] 4.6 `make lint-prompts-hardcode` 仍 green（未复制第二份 prompt）— 验证：`make lint-prompts-hardcode`
 
 ## Phase 5: 验证、生命周期与收口
 

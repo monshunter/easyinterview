@@ -1,0 +1,90 @@
+feature_key: report.generate
+cases:
+- id: report.generate-strong
+  language: multi
+  input: report.generate evaluation case at strong quality band.
+  output: &id001
+    summary: The candidate gave a structured answer with clear tradeoffs but should quantify impact.
+    dimension_scores:
+    - name: System design
+      score: 4.2
+      reasoning: Clear architecture tradeoffs, but limited quantified impact.
+      supporting_observations:
+      - Used concrete operational examples from the session.
+    highlights:
+    - dimension: System design
+      evidence: Explained queue backpressure and deployment tradeoffs.
+      confidence: 0.82
+    issues:
+    - dimension: Risk handling
+      evidence: Rollback plan was mentioned but not made concrete.
+      confidence: 0.82
+    next_actions:
+    - type: retry_round
+      label: Replay the system design follow-up
+    retry_focus_turn_ids:
+    - turn-3
+  judge:
+    scores:
+    - dimension: report_evidence
+      value: 0.92
+    - dimension: report_specificity
+      value: 0.92
+    - dimension: report_action_quality
+      value: 0.92
+    - dimension: report_calibration
+      value: 0.92
+    reasoning:
+      summary: Exceeds the rubric expectations across dimensions.
+      evidence_quotes: []
+- id: report.generate-proficient
+  language: multi
+  input: report.generate evaluation case at proficient quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: report_evidence
+      value: 0.78
+    - dimension: report_specificity
+      value: 0.78
+    - dimension: report_action_quality
+      value: 0.78
+    - dimension: report_calibration
+      value: 0.78
+    reasoning:
+      summary: Meets the rubric at baseline production quality.
+      evidence_quotes: []
+- id: report.generate-developing
+  language: multi
+  input: report.generate evaluation case at developing quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: report_evidence
+      value: 0.5
+    - dimension: report_specificity
+      value: 0.5
+    - dimension: report_action_quality
+      value: 0.5
+    - dimension: report_calibration
+      value: 0.5
+    reasoning:
+      summary: Partially satisfies the rubric with visible gaps.
+      evidence_quotes: []
+- id: report.generate-weak
+  language: multi
+  input: report.generate evaluation case at weak quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: report_evidence
+      value: 0.2
+    - dimension: report_specificity
+      value: 0.2
+    - dimension: report_action_quality
+      value: 0.2
+    - dimension: report_calibration
+      value: 0.2
+    reasoning:
+      summary: Falls short of the rubric on most dimensions.
+      evidence_quotes: []

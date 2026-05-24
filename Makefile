@@ -6,7 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 
-.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-legacy lint-runner-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-secrets-pattern lint-observability lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-legacy lint-runner-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-secrets-pattern lint-observability lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -75,6 +75,16 @@ test: ## A5 test aggregator: backend Go + frontend pnpm; AI tests use stub/fixtu
 build: ## A5 build aggregator: backend cmd binaries + frontend bundle
 	@cd "$(ROOT_DIR)/backend" && go build ./cmd/...
 	@pnpm --filter @easyinterview/frontend build
+
+eval-offline-resolve: ## F3: regenerate the committed registry-resolved single-source export for the offline eval suite
+	@cd "$(ROOT_DIR)" && go run ./backend/cmd/evalkit resolve
+
+eval-offline: ## F3 offline eval (NOT in make test): single-source drift gate + >=50 count + Promptfoo runner over recorded fixtures; EVAL_LIVE=1 opts into real provider/judge calls
+	@cd "$(ROOT_DIR)" && go build -o backend/bin/evalkit ./backend/cmd/evalkit
+	@cd "$(ROOT_DIR)" && ./backend/bin/evalkit drift-check
+	@cd "$(ROOT_DIR)" && ./backend/bin/evalkit run
+	@cd "$(ROOT_DIR)" && ./backend/bin/evalkit prompts-tests --out config/evals/.generated/promptfoo_tests.yaml
+	@cd "$(ROOT_DIR)" && PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 EVALKIT_BIN="$(ROOT_DIR)/backend/bin/evalkit" pnpm exec promptfoo eval -c config/evals/promptfooconfig.yaml --no-cache
 
 dev-up: ## Start local dev external dependencies (postgres / redis / minio; optional app services only when explicitly added)
 	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" up

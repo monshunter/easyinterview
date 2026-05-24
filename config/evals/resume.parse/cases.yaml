@@ -1,0 +1,91 @@
+feature_key: resume.parse
+cases:
+- id: resume.parse-strong
+  language: multi
+  input: resume.parse evaluation case at strong quality band.
+  output: &id001
+    basics:
+      name: Candidate A
+      headline: Backend engineer focused on distributed systems
+      contact: email and phone redacted
+    experiences:
+    - company: Example Cloud
+      title: Senior Backend Engineer
+      start: '2021'
+      end: Present
+      summary: Owned high-throughput API reliability and platform migrations.
+      bullets:
+      - Reduced p95 latency by 32% by redesigning cache invalidation.
+    projects:
+    - name: Interview Prep Platform
+      summary: Built evidence-backed interview practice workflows.
+      technologies:
+      - Go
+      bullets:
+      - Reduced p95 latency by 32% by redesigning cache invalidation.
+    education:
+    - school: Example University
+      degree: B.S. Computer Science
+      field: Computer Science
+      start: '2021'
+      end: Present
+    skills:
+    - Go
+    languages:
+    - English - professional
+  judge:
+    scores:
+    - dimension: resume_match
+      value: 0.92
+    - dimension: resume_clarity
+      value: 0.92
+    - dimension: resume_truthfulness
+      value: 0.92
+    reasoning:
+      summary: Exceeds the rubric expectations across dimensions.
+      evidence_quotes: []
+- id: resume.parse-proficient
+  language: multi
+  input: resume.parse evaluation case at proficient quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: resume_match
+      value: 0.78
+    - dimension: resume_clarity
+      value: 0.78
+    - dimension: resume_truthfulness
+      value: 0.78
+    reasoning:
+      summary: Meets the rubric at baseline production quality.
+      evidence_quotes: []
+- id: resume.parse-developing
+  language: multi
+  input: resume.parse evaluation case at developing quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: resume_match
+      value: 0.5
+    - dimension: resume_clarity
+      value: 0.5
+    - dimension: resume_truthfulness
+      value: 0.5
+    reasoning:
+      summary: Partially satisfies the rubric with visible gaps.
+      evidence_quotes: []
+- id: resume.parse-weak
+  language: multi
+  input: resume.parse evaluation case at weak quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: resume_match
+      value: 0.2
+    - dimension: resume_clarity
+      value: 0.2
+    - dimension: resume_truthfulness
+      value: 0.2
+    reasoning:
+      summary: Falls short of the rubric on most dimensions.
+      evidence_quotes: []
