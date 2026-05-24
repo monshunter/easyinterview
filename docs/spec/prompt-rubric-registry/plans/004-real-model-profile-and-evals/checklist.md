@@ -31,10 +31,10 @@
 
 ## Phase 3: judge.default 激活 + coverage 门禁扩展
 
-- [ ] 3.1 改 `catalog_test.go`（judge.default 期望 active）+ `ai_profile_coverage` 测试期望（judge.default active + provider_ref/model 非 placeholder + 13 chat 非 placeholder + 负向 placeholder 拒绝）（先红）— 验证：`go test ./backend/internal/ai/aiclient/profile -run TestCatalog` + coverage lint 测试
-- [ ] 3.2 `config/ai-providers.yaml` 新增/替换非 placeholder `judge_compatible` provider ref；`config/ai-profiles.yaml` judge.default `unsupported→active` + 指向该 provider + 移除 unsupported_reason；不改任何 chat 业务 profile status — 验证：`git diff config/ai-providers.yaml config/ai-profiles.yaml`（judge provider/profile 范围内）
-- [ ] 3.3 扩展 `scripts/lint/ai_profile_coverage.py` placeholder 黑名单断言（provider_ref + model）和 judge provider protocol/capability 匹配断言，并接线顶层 `make lint` — 验证：`python3 scripts/lint/ai_profile_coverage.py --repo-root .`
-- [ ] 3.4 coverage 绿灯 + 负向断言（placeholder 回填到 judge/chat profile 或 provider → exit 非 0）— 验证：`make lint-ai-profile-coverage` + `go test ./backend/internal/ai/aiclient/profile -count=1`
+- [x] 3.1 改 `catalog_test.go`（judge.default 期望 active）+ `ai_profile_coverage` 测试期望（judge.default active + provider_ref/model 非 placeholder + 13 chat 非 placeholder + 负向 placeholder 拒绝）（先红）— 验证：`go test ./backend/internal/ai/aiclient/profile -run TestCatalog` + coverage lint 测试
+- [x] 3.2 `config/ai-providers.yaml` 新增/替换非 placeholder `judge_compatible` provider ref；`config/ai-profiles.yaml` judge.default `unsupported→active` + 指向该 provider + 移除 unsupported_reason；不改任何 chat 业务 profile status — 验证：`git diff config/ai-providers.yaml config/ai-profiles.yaml`（judge provider/profile 范围内）
+- [x] 3.3 扩展 `scripts/lint/ai_profile_coverage.py` placeholder 黑名单断言（provider_ref + model）和 judge provider protocol/capability 匹配断言，并接线顶层 `make lint` — 验证：`python3 scripts/lint/ai_profile_coverage.py --repo-root .`
+- [x] 3.4 coverage 绿灯 + 负向断言（placeholder 回填到 judge/chat profile 或 provider → exit 非 0）— 验证：`make lint-ai-profile-coverage` + `go test ./backend/internal/ai/aiclient/profile -count=1`
 
 ## Phase 4: ≥50 题离线评估集 + Promptfoo runner
 

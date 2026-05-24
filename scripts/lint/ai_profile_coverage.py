@@ -27,6 +27,20 @@ BACKTICK_RE = re.compile(r"`([^`]+)`")
 ENV_LINE_RE = re.compile(r"^[ \t]*([A-Z][A-Z0-9_]*)[ \t]*=[ \t]*([^#\n]*)", re.MULTILINE)
 ALLOWED_CAPABILITIES = {"chat", "stt", "tts", "realtime", "judge"}
 ALLOWED_STATUSES = {"active", "disabled", "unsupported"}
+# Provider refs / models that are explicitly non-runnable placeholders. The
+# judge.default profile and every chat-capability profile must resolve to a
+# real provider/model (spec C-14); only fail-closed stt/tts/realtime profiles
+# are allowed to keep placeholder refs.
+PLACEHOLDER_NAMES = {"judge-placeholder", "speech-placeholder", "unit-test-stub"}
+
+
+def is_placeholder(value: str) -> bool:
+    v = value.strip()
+    if not v:
+        return True
+    if v in PLACEHOLDER_NAMES:
+        return True
+    return v.endswith("-placeholder") or v.endswith("-provider-required")
 CANONICAL_DEV_STACK_ENV = {
     "AI_PROVIDER_REGISTRY_PATH": "config/ai-providers.yaml",
     "AI_MODEL_PROFILE_PATH": "config/ai-profiles.yaml",
@@ -181,6 +195,40 @@ def validate(repo: Path) -> list[str]:
             )
         if status == "active" and provider["protocol"] == "stub":
             problems.append(f"{name}: active profile must not use stub provider {provider_ref!r}")
+
+    # judge.default coverage (spec C-14): must exist, be active, resolve to a
+    # non-placeholder judge_compatible provider/model.
+    judge = profiles.get("judge.default")
+    if not judge:
+        problems.append("judge.default profile is required and must be active")
+    else:
+        if str(judge.get("status", "")) != "active":
+            problems.append("judge.default must be active")
+        jdefault = judge.get("default") or {}
+        jref = str(jdefault.get("provider_ref", ""))
+        jmodel = str(jdefault.get("model", ""))
+        if is_placeholder(jref):
+            problems.append(f"judge.default: provider_ref {jref!r} must not be a placeholder")
+        if is_placeholder(jmodel):
+            problems.append(f"judge.default: model {jmodel!r} must not be a placeholder")
+        jprovider = providers.get(jref)
+        if jprovider and jprovider["protocol"] != "judge_compatible":
+            problems.append(
+                f"judge.default: provider {jref!r} protocol must be judge_compatible, got {jprovider['protocol']!r}"
+            )
+
+    # Every chat-capability profile must resolve to a non-placeholder
+    # provider/model (the 13 §3.1.1 chat profiles, spec C-14).
+    for name, profile in sorted(profiles.items()):
+        if str(profile.get("capability", "")) != "chat":
+            continue
+        default = profile.get("default") or {}
+        pref = str(default.get("provider_ref", ""))
+        model = str(default.get("model", ""))
+        if is_placeholder(pref):
+            problems.append(f"{name}: chat profile provider_ref {pref!r} must not be a placeholder")
+        if is_placeholder(model):
+            problems.append(f"{name}: chat profile model {model!r} must not be a placeholder")
 
     for profile_name, expected_capabilities in product_ui_capability_expectations(repo):
         profile = profiles.get(profile_name)

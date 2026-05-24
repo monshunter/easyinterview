@@ -15,7 +15,24 @@ def write(path: Path, body: str) -> None:
     path.write_text(body, encoding="utf-8")
 
 
-def make_repo(tmp_path: Path, profile_body: str) -> Path:
+# DEFAULT_JUDGE is a valid active judge.default profile included by make_repo so
+# the mandatory judge-coverage assertion has a passing baseline. Negative tests
+# pass an override via the judge_body parameter.
+DEFAULT_JUDGE = textwrap.dedent(
+    """
+    name: judge.default
+    capability: judge
+    status: active
+    default:
+      provider_ref: judge-deepseek
+      model: deepseek-v4-pro
+    timeout_ms: 1000
+    version: 1.0.0
+    """
+).strip()
+
+
+def make_repo(tmp_path: Path, profile_body: str, judge_body: str = DEFAULT_JUDGE) -> Path:
     repo = tmp_path / "repo"
     repo.mkdir()
     write(
@@ -57,13 +74,25 @@ def make_repo(tmp_path: Path, profile_body: str) -> Path:
                 api_key_env: AI_PROVIDER_API_KEY
                 capabilities: [chat]
                 version: 1.0.0
+              - name: judge-deepseek
+                protocol: judge_compatible
+                base_url_env: AI_PROVIDER_BASE_URL
+                api_key_env: AI_PROVIDER_API_KEY
+                capabilities: [judge]
+                version: 1.0.0
+              - name: judge-placeholder
+                protocol: judge_compatible
+                base_url_env: AI_PROVIDER_BASE_URL
+                api_key_env: AI_PROVIDER_API_KEY
+                capabilities: [judge]
+                version: 1.0.0
             """
         ).strip(),
     )
-    write(
-        repo / "config/ai-profiles.yaml",
-        "profiles:\n  - " + textwrap.indent(profile_body, "    ").lstrip(),
-    )
+    profiles = "profiles:\n  - " + textwrap.indent(profile_body, "    ").lstrip()
+    if judge_body:
+        profiles += "\n  - " + textwrap.indent(judge_body, "    ").lstrip()
+    write(repo / "config/ai-profiles.yaml", profiles)
     write(
         repo / "deploy/dev-stack/.env.example",
         textwrap.dedent(
@@ -227,3 +256,90 @@ def test_fails_when_product_ui_capability_disagrees_with_catalog(tmp_path: Path)
     assert result.returncode == 1
     assert "Product/UI capability mismatch" in result.stderr
     assert "practice.followup.default" in result.stderr
+
+
+CHAT_FOLLOWUP = textwrap.dedent(
+    """
+    name: practice.followup.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: deepseek
+      model: deepseek-v4-flash
+    timeout_ms: 1000
+    version: 1.0.0
+    """
+).strip()
+
+
+def test_passes_when_judge_default_active_and_non_placeholder(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, CHAT_FOLLOWUP)
+    result = run(repo)
+    assert result.returncode == 0, result.stderr
+    assert "OK" in result.stdout
+
+
+def test_fails_when_judge_default_missing(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, CHAT_FOLLOWUP, judge_body="")
+    result = run(repo)
+    assert result.returncode == 1
+    assert "judge.default" in result.stderr
+
+
+def test_fails_when_judge_default_unsupported(tmp_path: Path) -> None:
+    judge = textwrap.dedent(
+        """
+        name: judge.default
+        capability: judge
+        status: unsupported
+        unsupported_reason: reserved
+        default:
+          provider_ref: judge-deepseek
+          model: deepseek-v4-pro
+        timeout_ms: 1000
+        version: 1.0.0
+        """
+    ).strip()
+    repo = make_repo(tmp_path, CHAT_FOLLOWUP, judge_body=judge)
+    result = run(repo)
+    assert result.returncode == 1
+    assert "judge.default" in result.stderr
+    assert "active" in result.stderr
+
+
+def test_fails_when_judge_default_uses_placeholder_provider(tmp_path: Path) -> None:
+    judge = textwrap.dedent(
+        """
+        name: judge.default
+        capability: judge
+        status: active
+        default:
+          provider_ref: judge-placeholder
+          model: judge-provider-required
+        timeout_ms: 1000
+        version: 1.0.0
+        """
+    ).strip()
+    repo = make_repo(tmp_path, CHAT_FOLLOWUP, judge_body=judge)
+    result = run(repo)
+    assert result.returncode == 1
+    assert "placeholder" in result.stderr
+
+
+def test_fails_when_chat_profile_uses_placeholder_model(tmp_path: Path) -> None:
+    chat = textwrap.dedent(
+        """
+        name: practice.followup.default
+        capability: chat
+        status: active
+        default:
+          provider_ref: deepseek
+          model: chat-provider-required
+        timeout_ms: 1000
+        version: 1.0.0
+        """
+    ).strip()
+    repo = make_repo(tmp_path, chat)
+    result = run(repo)
+    assert result.returncode == 1
+    assert "placeholder" in result.stderr

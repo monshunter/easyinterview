@@ -43,10 +43,10 @@ providers:
       - realtime
     version: 0.1.0
 
-  - name: judge-placeholder
+  - name: judge-deepseek
     protocol: judge_compatible
     base_url_env: AI_PROVIDER_BASE_URL
     api_key_env: AI_PROVIDER_API_KEY
     capabilities:
       - judge
-    version: 0.1.0
+    version: 1.0.0
