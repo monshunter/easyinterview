@@ -13,20 +13,20 @@
 交付 P0 完整漏斗的 **happy 主干单条 journey**，用两种 driver 同时证明跨模块真实贯通：
 
 - **API-level**（`E2E.P0.098`）：在 `backend/cmd/api` 内新增 `httptest` server + 真实 stack 的 Go scenario test，按顺序串起 `registerResume`（前置）→ `importTargetJob` → `getTargetJob`（poll ready）→ `createPracticePlan`（baseline）→ `startPracticeSession` → `appendSessionEvent` → `completePracticeSession` → `getFeedbackReport`（poll ready）→ `createPracticePlan`（`next_round` + `sourceReportId`），并把 `getJob` 作为 job 状态备选轮询 / handler presence gate，断言 handoff 链 `targetJobId → planId → sessionId → reportId → 派生 planId` 真实传递、异步 job 经真实 internal runner 完成、关键写操作幂等、隐私红线与 legacy-negative。
-- **Playwright 全栈**（`E2E.P0.099`）：起真后端进程（连 dev-stack postgres，`APP_ENV=test` stub AI）+ 前端 build/preview 以 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1` 指向真后端，Playwright 驱动真实 UI 从首页导入走到报告并点击「进入下一轮」CTA，断言跨屏 nav、真实轮询 UI、CTA handoff 与隐私 / legacy 红线。
+- **Playwright 全栈**（`E2E.P0.099`）：起真后端进程（连 dev-stack postgres，`APP_ENV=test`，场景 AI 使用确定性 stub / fixture client）+ 前端 build/preview 以 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1` 指向真后端，Playwright 驱动真实 UI 从首页导入走到报告并点击「进入下一轮」CTA，断言跨屏 nav、真实轮询 UI、CTA handoff 与隐私 / legacy 红线。
 
 交付后，本 plan 成为 P0 闭环「真实 handoff 在真后端下端到端贯通」的首个直接 gate；复练 / 下一轮另一分支、真实复盘回流、失败 / 恢复 journey 由本 subject 后续 `002+` plan 原地派生。
 
 ## 2 背景
 
-本 plan 由 `e2e-scenarios-p0` spec v1.0 同时段派生。spec §1 已确认实施前基线：87 条 slice 场景（最高编号 `E2E.P0.097`）无完整漏斗贯通；`backend/cmd/api` 已有 `*_http_scenario_test.go` / `jdmatch_live_scenario_test.go` 真后端 harness 范式（`httptest.NewServer` + 真实 router/handler/store/internal runner/events + `DATABASE_URL` + `config.LoadCanonical(AppEnv:"test")` stub AI）。
+本 plan 由 `e2e-scenarios-p0` spec v1.0 同时段派生。spec §1 已确认实施前基线：87 条 slice 场景（最高编号 `E2E.P0.097`）无完整漏斗贯通；`backend/cmd/api` 已有 `*_http_scenario_test.go` / `jdmatch_live_scenario_test.go` 真后端 harness 范式（`httptest.NewServer` + 真实 router/handler/store/internal runner/events + `DATABASE_URL` + `config.LoadCanonical(AppEnv:"test")` + harness 注入的确定性 AI client）。
 
 漏斗各步消费的 operation、handoff 字段与异步轮询机制已对 `openapi/openapi.yaml` 核实（见 §3.1 operation matrix：8 个主链必经 operation + `getJob` 备选轮询 / handler gate）。复练 / 下一轮经 `createPracticePlan` 的 `goal IN ('retry_current_round','next_round') + sourceReportId` 表达（[backend-practice/004](../../../backend-practice/plans/004-derived-plans-debrief/plan.md)），report 的 `nextActions` 只是建议项、不是派生触发器。
 
 **前置依赖**（Phase 0 验证，未就绪则暂停进入 Phase 1）：
 
 - `make dev-up` 的 postgres 可达，`make migrate-up` 已应用到最新 schema。
-- `config.LoadCanonical(AppEnv:"test")` 可加载且 `resume_parse` / `target_import` / practice / `report_generate` AI 调用落到 stub provider，不读业务 secret。
+- `config.LoadCanonical(AppEnv:"test")` 可加载，`resume_parse` / `target_import` / practice / `report_generate` 所需 AI profile/registry 在未配置 `AI_PROVIDER_*` 时可解析；实际 AI 调用由 scenario harness 注入确定性 stub / fixture client，不依赖业务 secret。
 - §3.1 的 9 行 operation matrix（8 个主链必经 operation + `getJob` 备选轮询 / handler gate）在 generated server + 真实 handler 已挂载（各 owner plan 已 completed 或 matrix 行显式标明状态）。
 - `backend/cmd/api` 现有 scenario harness 可复用（同包 helper：`testLoader` / `open*ScenarioDB` 等）。
 
@@ -34,7 +34,7 @@
 
 - **Plan 类型**: feature-behavior + contract + tooling（端到端用户旅程 + 跨层契约消费验证 + 场景脚本工具）
 - **TDD 策略**: Code plan requires TDD。
-  - API-level journey 先写 `TestE2EP0098FullFunnelImportToNextRound`（断言完整 handoff 链 + 异步 ready + 幂等 + 隐私），初始 Red（journey 未实现 / 真实 stack 未贯通），再让 orchestration 通过转 Green；测试文件 `backend/cmd/api/full_funnel_journey_scenario_test.go`，命令 `cd backend && go test ./cmd/api -run 'TestE2EP0098' -count=1`（postgres 不可达 `t.Skip`）。
+  - API-level journey 先写 `TestE2EP0098FullFunnelImportToNextRound`（断言完整 handoff 链 + 异步 ready + 幂等 + 隐私），初始 Red（journey 未实现 / 真实 stack 未贯通），再让 orchestration 通过转 Green；测试文件 `backend/cmd/api/full_funnel_journey_scenario_test.go`，命令 `cd backend && go test -v ./cmd/api -run 'TestE2EP0098' -count=1`（postgres 不可达 `t.Skip`）。
   - Playwright journey 先写 `frontend/tests/e2e/full-funnel-journey.spec.ts` 断言 UI 走完漏斗，初始 Red，再绿；同时新增或使用 `frontend/playwright.e2e.config.ts`（`testDir: "./tests/e2e"`，`outputDir` 只允许来自 `EI_PLAYWRIGHT_OUTPUT_DIR` 或默认落到 repo 根 `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright`），命令 `EI_PLAYWRIGHT_OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright" pnpm --filter @easyinterview/frontend exec playwright test --config=playwright.e2e.config.ts tests/e2e/full-funnel-journey.spec.ts`，避免默认 `frontend/playwright.config.ts` 的 `tests/pixel-parity` testDir 忽略 e2e spec，且禁止产物写入 `frontend/.playwright-output` / `frontend/test-results`。
   - Phase 1 / 2 每个 checklist item 命名其断言来源（见 checklist 各项尾注）。
 - **BDD 策略**: Feature plan requires BDD。本 plan 引入端到端业务流程；BDD scenarios `E2E.P0.098`（API-level）+ `E2E.P0.099`（Playwright 全栈）已在 [bdd-plan.md](./bdd-plan.md) 分配，主 [checklist.md](./checklist.md) Phase 3 含 `BDD-Gate:` 项引用每个 scenario ID；执行使用场景框架 `scripts/setup.sh → trigger.sh → verify.sh → cleanup.sh` 四段入口，wrapper 必须先保存 `setup`/`trigger`/`verify` 的退出码，执行 cleanup 后仍按原失败码退出（cleanup 自身失败且前置成功时按 cleanup 失败退出），禁止 cleanup 成功掩盖前置失败。
@@ -73,7 +73,7 @@
 
 #### 0.2 stub AI 与 secret 边界
 
-确认 `config.LoadCanonical(AppEnv:"test")` 加载成功且漏斗各 AI 步骤（`resume.parse.default` / `target.import.default` / `practice.first_question.default` / `practice.followup.default` / `practice.turn_observe.default` / `report.generate.default`）落到 stub provider；确认未读 `AI_PROVIDER_*` 业务 secret。
+确认 `config.LoadCanonical(AppEnv:"test")` 加载成功且漏斗各 AI 步骤（`resume.parse.default` / `target.import.default` / `practice.first_question.default` / `practice.followup.default` / `practice.turn_observe.default` / `report.generate.default`）所需 profile/registry 在未配置 `AI_PROVIDER_*` 时可解析；实际 journey AI 调用必须由 scenario harness 注入确定性 stub / fixture client，禁止依赖业务 secret。
 
 #### 0.3 operation 真实挂载验证
 
@@ -87,7 +87,7 @@
 
 #### 1.1 journey test harness
 
-在 `backend/cmd/api/full_funnel_journey_scenario_test.go` 复用现有 harness（`httptest.NewServer` + `DATABASE_URL` + `testLoader`/`LoadCanonical(AppEnv:"test")` + 真实 router/handler/store/internal runner/events）；postgres 不可达 `t.Skip`。
+在 `backend/cmd/api/full_funnel_journey_scenario_test.go` 复用现有 harness（`httptest.NewServer` + `DATABASE_URL` + `testLoader`/`LoadCanonical(AppEnv:"test")` + harness 注入的确定性 AI client + 真实 router/handler/store/internal runner/events）；postgres 不可达 `t.Skip`。
 
 #### 1.2 import → parse ready
 
@@ -99,7 +99,7 @@
 
 #### 1.4 session 事件循环
 
-`startPracticeSession(planId)` → `sessionId` + 首题（stub AI）；`appendSessionEvent` 逐题作答推进；断言 session / events 真实落库、`session_started` 等 outbox 仅一次。
+`startPracticeSession(planId)` → `sessionId` + 首题（scenario stub / fixture AI）；`appendSessionEvent` 逐题作答推进；断言 session / events 真实落库、`session_started` 等 outbox 仅一次。
 
 #### 1.5 complete → report ready
 
@@ -121,7 +121,7 @@
 
 #### 2.1 全栈环境拉起
 
-脚本拉起真后端进程（连 dev-stack postgres，`APP_ENV=test` stub AI）+ 前端 build/preview 指向真后端 base URL（`VITE_EI_API_MODE=real` + `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1`，非 fixture mock transport）；seed 已认证 user + resume asset。
+脚本拉起真后端进程（连 dev-stack postgres，`APP_ENV=test`，场景 AI 使用确定性 stub / fixture client）+ 前端 build/preview 指向真后端 base URL（`VITE_EI_API_MODE=real` + `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1`，非 fixture mock transport）；seed 已认证 user + resume asset。
 
 #### 2.2 UI 走完漏斗
 

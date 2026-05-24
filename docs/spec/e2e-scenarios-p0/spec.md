@@ -13,12 +13,12 @@
 本 subject 创建时的实施前基线是：
 
 - 各 P0 业务域（targetjob / practice / review / resume / debrief / jobs-recommendations / profile / auth / upload）的 plan checklist 已基本收口；近两周大量提交在修复「real backend gate drift」，说明各 owner 正在把 mock 切真后端。
-- `backend/cmd/api` 已有成熟的真后端场景范式：`*_http_scenario_test.go` / `jdmatch_live_scenario_test.go` 用 `httptest.NewServer` 组装真实 router/handler/store/internal runner/events，连 `DATABASE_URL`（默认 dev-stack postgres `localhost:5432`），AI 走 `config.LoadCanonical(AppEnv:"test")` 的 stub provider。
+- `backend/cmd/api` 已有成熟的真后端场景范式：`*_http_scenario_test.go` / `jdmatch_live_scenario_test.go` 用 `httptest.NewServer` 组装真实 router/handler/store/internal runner/events，连 `DATABASE_URL`（默认 dev-stack postgres `localhost:5432`）；`config.LoadCanonical(AppEnv:"test")` 负责加载 canonical config 与 AI profile/registry，场景 AI 由 harness 注入确定性 stub / fixture client。
 - `make dev-up` 提供 Docker Compose 外部依赖（postgres/redis/minio），backend/frontend 默认 host-run 进程（见 [development.md §2](../../development.md#2-frontend--backend-contract-workflow)）。
 
 目标：
 
-1. 验证 P0 完整漏斗跨模块真实贯通：handoff 链 `targetJobId → planId → sessionId → reportId → 派生 planId` 在真实 handler/store/runner/event/DB + stub AI 下端到端可用。
+1. 验证 P0 完整漏斗跨模块真实贯通：handoff 链 `targetJobId → planId → sessionId → reportId → 派生 planId` 在真实 handler/store/runner/event/DB + scenario stub / fixture AI 下端到端可用。
 2. 建立可独立收口的「happy 主干 journey」gate，为后续分支（复练 / 下一轮）、真实复盘回流、失败 / 恢复 journey 与 release gate 奠基。
 3. 用两种 driver 同时证明：API-level（后端域间贯通）与 Playwright 全栈（前端在真后端下走完漏斗）。
 
@@ -30,7 +30,7 @@
 - 两种 driver：
   - **API-level**（`E2E.P0.098`）：`backend/cmd/api` 内新增 `httptest` server + 真实 stack 覆盖 9 行 operation matrix（8 个主链必经 operation + `getJob` 备选轮询 / handler gate；`createPracticePlan` 复用 baseline + next_round 两次调用）的 Go scenario test。
   - **Playwright 全栈**（`E2E.P0.099`）：真后端进程 + 前端 build + 真 postgres，Playwright 驱动真实 UI 走完漏斗。
-- 真后端全栈 + stub AI（`APP_ENV=test`），postgres 不可达时 `t.Skip`（沿用现有范式）。
+- 真后端全栈 + scenario stub / fixture AI（`APP_ENV=test`），postgres 不可达时 `t.Skip`（沿用现有范式）。
 - handoff 链字段真实传递、异步 job（`target_import` / `report_generate`）经真实 internal runner 完成、DB 真实落库、关键写操作幂等、隐私红线、legacy-negative。
 
 ### 2.2 Out of Scope
@@ -48,8 +48,8 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | 后端形态 | 真后端全栈：复用 `backend/cmd/api` httptest + `DATABASE_URL`（dev-stack postgres）+ 真实 router/handler/store/internal runner/events + stub AI；postgres 不可达 `t.Skip` | journey 证明的是真实集成贯通，不是 mock 流转 |
-| D-2 | AI provider | stub / recorded（`config.LoadCanonical(AppEnv:"test")`），确定性、不读 secret、不调真实 LLM | journey 可重复、不依赖外网；AI 质量归 F3 eval workstream |
+| D-1 | 后端形态 | 真后端全栈：复用 `backend/cmd/api` httptest + `DATABASE_URL`（dev-stack postgres）+ 真实 router/handler/store/internal runner/events + harness 注入的确定性 AI client；postgres 不可达 `t.Skip` | journey 证明的是真实集成贯通，不是 mock 流转 |
+| D-2 | AI provider | stub / recorded scenario client；`config.LoadCanonical(AppEnv:"test")` 与 AI profile/registry 必须在未配置 `AI_PROVIDER_*` 时可加载/解析 | journey 可重复、不依赖外网；AI 质量归 F3 eval workstream |
 | D-3 | 覆盖广度 | 首个 plan = 单条 happy 主干 journey（含到 `next_round` 派生一跳）；复练 / 真实复盘回流 / 失败 journey 归后续 plan | 首个 plan 可独立收口部署，规模可控 |
 | D-4 | owner 归属 | 新建本 subject；journey 场景在 `test/scenarios/e2e/` 新建目录，与现有 slice 场景区分 | 跨模块 journey 有明确 owner，不挂靠单一域 owner |
 | D-5 | journey driver | 两种都要：API-level（`E2E.P0.098`）+ Playwright 全栈（`E2E.P0.099`） | 后端域间贯通与前端全栈体验都被覆盖 |
@@ -66,8 +66,8 @@
 ## 4 设计约束
 
 - **真后端范式**：API-level journey 必须复用 `backend/cmd/api` 现有 scenario harness（`httptest.NewServer` + 真实 router/handler/store/internal runner/events + `DATABASE_URL`），不得为 journey 另起一套 mock stack；postgres 不可达时 `t.Skip` 并输出 skip 原因。
-- **Playwright 全栈约束**：起真后端进程（连 dev-stack postgres，`APP_ENV=test` stub AI）+ 前端 build/preview 以 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1` 指向真后端 base URL，Playwright 驱动真实 UI；不得用 fixture-backed mock transport 冒充真后端。
-- **AI 边界**：journey 全程 stub / fixture provider，遵循 [development.md §2.4](../../development.md#24-ai-provider-boundary) 与 [A5 §5 secret red line](../ci-pipeline-baseline/spec.md)；不读 `AI_PROVIDER_*` 等业务 secret。
+- **Playwright 全栈约束**：起真后端进程（连 dev-stack postgres，`APP_ENV=test`，场景 AI 使用确定性 stub / fixture client）+ 前端 build/preview 以 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1` 指向真后端 base URL，Playwright 驱动真实 UI；不得用 fixture-backed mock transport 冒充真后端。
+- **AI 边界**：journey 全程使用 harness 注入的 stub / fixture AI client，遵循 [development.md §2.4](../../development.md#24-ai-provider-boundary) 与 [A5 §5 secret red line](../ci-pipeline-baseline/spec.md)；canonical test config 与 AI profile/registry 预检必须在未配置 `AI_PROVIDER_*` 等业务 secret 时通过。
 - **契约消费约束**：journey 只消费 [openapi-v1-contract](../openapi-v1-contract/spec.md) 已存在的 operation，不新增 / 修改 operation、schema、event；handoff 字段以 `openapi/openapi.yaml` 真实 schema 为准。
 - **框架契约**：遵循 [test/scenarios/README.md](../../../test/scenarios/README.md) 与 [e2e/README.md](../../../test/scenarios/e2e/README.md)：每个场景目录含 `README.md` + `data/` + `scripts/{setup,trigger,verify,cleanup}.sh`；`verify.sh` 必须检查 runner 日志中的真实执行证据（命令 / runner marker + 目标 test 路径 + pass marker），拒绝 no-op；`BDD-Gate` 只引用场景编号。
 - **隐私红线**：journey 全程响应 / event / audit / log / metric 只暴露 ID / 状态 / 计数 / 错误码摘要，不泄露 JD 原文、答案文本、报告 prose（[product-scope](../product-scope/spec.md) 隐私红线）。
@@ -86,7 +86,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | happy journey 全链贯通 | 真后端 + dev-stack postgres + stub AI + seed user/resume | 顺序调用 import → poll → createPlan → startSession → appendEvent → complete → poll report → createPlan(next_round) | 每步真实响应 envelope，handoff ID（targetJobId/planId/sessionId/reportId/派生 planId）真实传递并被下一步消费 | 001 Phase 1 / 2 |
+| C-1 | happy journey 全链贯通 | 真后端 + dev-stack postgres + scenario stub / fixture AI + seed user/resume | 顺序调用 import → poll → createPlan → startSession → appendEvent → complete → poll report → createPlan(next_round) | 每步真实响应 envelope，handoff ID（targetJobId/planId/sessionId/reportId/派生 planId）真实传递并被下一步消费 | 001 Phase 1 / 2 |
 | C-2 | 异步 job 真实完成 | `target_import` / `report_generate` 入队 | 真实 internal runner 处理 | resource status 由 queued/processing → ready，DB 真实落库；journey 轮询到 ready | 001 Phase 1 / 2 |
 | C-3 | 关键写操作幂等 | start / complete / createPlan 携带 Idempotency-Key | 同 key replay | 无重复副作用（无第二个 session / report / plan，无重复 outbox） | 001 Phase 1 |
 | C-4 | 隐私红线 | journey 全程 | 检查响应 / event / log / audit / DB 持久化的可观测面 | 不出现 JD 原文 / 答案文本 / 报告 prose；只 ID / 状态 / 计数 / 错误码 | 001 Phase 1 / 2 |
