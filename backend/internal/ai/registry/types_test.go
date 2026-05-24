@@ -78,8 +78,8 @@ func (stubJudge) Judge(
 	_ string,
 	_ []byte,
 	_ string,
-) (Score, Reasoning, error) {
-	return Score{}, Reasoning{}, nil
+) ([]Score, Reasoning, error) {
+	return nil, Reasoning{}, nil
 }
 
 // TestJudgeSignature freezes the LLM Judge interface signature against
@@ -123,15 +123,20 @@ func TestJudgeSignature(t *testing.T) {
 		t.Fatalf("Judge.Judge input 3 (output) must be []byte, got []%v", elem.Kind())
 	}
 
-	// Outputs: Score, Reasoning, error.
+	// Outputs (spec D-9 v2.8): []Score, Reasoning, error. The first return is
+	// a slice with one Score per rubric dimension; reorder/remove requires a
+	// spec revision.
 	if in.NumOut() != 3 {
 		t.Fatalf("Judge.Judge expected 3 outputs, got %d", in.NumOut())
 	}
-	wantOutNames := []string{"Score", "Reasoning"}
-	for i, want := range wantOutNames {
-		if got := in.Out(i).Name(); got != want {
-			t.Fatalf("Judge.Judge output %d name: got %q, want %q", i, got, want)
-		}
+	if in.Out(0).Kind() != reflect.Slice {
+		t.Fatalf("Judge.Judge output 0 must be a slice ([]Score), got %v", in.Out(0).Kind())
+	}
+	if got := in.Out(0).Elem().Name(); got != "Score" {
+		t.Fatalf("Judge.Judge output 0 element name: got %q, want %q", got, "Score")
+	}
+	if got := in.Out(1).Name(); got != "Reasoning" {
+		t.Fatalf("Judge.Judge output 1 name: got %q, want %q", got, "Reasoning")
 	}
 	if !in.Out(2).Implements(reflect.TypeOf((*error)(nil)).Elem()) {
 		t.Fatalf("Judge.Judge output 2 must implement error")

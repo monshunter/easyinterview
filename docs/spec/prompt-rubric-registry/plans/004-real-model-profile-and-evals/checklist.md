@@ -15,10 +15,10 @@
 
 ## Phase 1: Judge 接口演进为逐维度 []Score
 
-- [ ] 1.1 重写 `types_test.go` `TestJudgeSignature` 期望 `[]Score` 返回（先红）— 验证：`go test ./backend/internal/ai/registry -run TestJudgeSignature`
-- [ ] 1.2 `types.go` Judge 接口返回 `([]Score, Reasoning, error)`，Score 语义改为逐 rubric dimension（按 spec D-9 v2.8）— 验证：`go build ./backend/...`
-- [ ] 1.3 同步 `judge.go` `NotImplementedJudge`、`judge_test.go`、`types_test.go` stubJudge 与所有 caller — 验证：`go vet ./backend/internal/ai/registry`
-- [ ] 1.4 全包绿灯 — 验证：`go test ./backend/internal/ai/registry -count=1`（含既有 resolver/loader/cache 测试）
+- [x] 1.1 重写 `types_test.go` `TestJudgeSignature` 期望 `[]Score` 返回（先红）— 验证：`go test ./backend/internal/ai/registry -run TestJudgeSignature`
+- [x] 1.2 `types.go` Judge 接口返回 `([]Score, Reasoning, error)`，Score 语义改为逐 rubric dimension（按 spec D-9 v2.8）— 验证：`go build ./backend/...`
+- [x] 1.3 同步 `judge.go` `NotImplementedJudge`、`judge_test.go`、`types_test.go` stubJudge 与所有 caller — 验证：`go vet ./backend/internal/ai/registry`
+- [x] 1.4 全包绿灯 — 验证：`go test ./backend/internal/ai/registry -count=1`（含既有 resolver/loader/cache 测试）
 
 ## Phase 2: judge capability dispatch + 真实 LLMJudge 实现
 

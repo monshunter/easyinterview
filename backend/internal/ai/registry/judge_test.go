@@ -9,7 +9,7 @@ import (
 func TestNotImplementedJudgeAlwaysFails(t *testing.T) {
 	t.Parallel()
 	var j Judge = NotImplementedJudge{}
-	score, reasoning, err := j.Judge(
+	scores, reasoning, err := j.Judge(
 		context.Background(),
 		"practice.session.first_question",
 		"v0.1.0",
@@ -19,8 +19,8 @@ func TestNotImplementedJudgeAlwaysFails(t *testing.T) {
 	if !errors.Is(err, ErrJudgeNotImplemented) {
 		t.Fatalf("want ErrJudgeNotImplemented, got %v", err)
 	}
-	if score != (Score{}) {
-		t.Errorf("Score must be zero value, got %+v", score)
+	if scores != nil {
+		t.Errorf("Scores must be nil on fail-closed, got %+v", scores)
 	}
 	if reasoning.Summary != "" || len(reasoning.EvidenceQuotes) != 0 {
 		t.Errorf("Reasoning must be zero value, got %+v", reasoning)
