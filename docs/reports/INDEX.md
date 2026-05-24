@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-24](./2026-05-24-frontend-parse-loading-browser-gate-assessment.md) | Frontend Parse Loading Browser Gate 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-frontend-parse-loading-demo-regression-assessment.md) | Frontend Parse Loading Demo Regression 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-prompt-rubric-output-schema-review-follow-up-assessment.md) | Prompt Rubric Output Schema Review Follow-up 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-prompt-rubric-jd-match-seed-migration-assessment.md) | Prompt Rubric JD-Match Seed Migration 交付复盘 | #assessment |
