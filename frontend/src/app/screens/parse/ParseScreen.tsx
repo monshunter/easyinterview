@@ -4,6 +4,7 @@ import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useI18n } from "../../i18n/messages";
 import { useNavigation } from "../../navigation/NavigationProvider";
+import { interviewContextFromTargetJob } from "../../navigation/interviewContext";
 import type { Route } from "../../routes";
 import type { TargetJob } from "../../../api/generated/types";
 
@@ -208,19 +209,16 @@ export const ParseScreen: FC<ParseScreenProps> = ({
 
   const handleConfirm = useCallback(async () => {
     if (!targetJob || confirming) return;
+    const workspaceParams: Record<string, string> = {
+      ...interviewContextFromTargetJob(targetJob),
+    };
 
     if (!runtime || runtime.auth.status === "unauthenticated") {
       requestAuth({
         type: "confirm_interview",
         label: t("parse.confirm") || (lang === "en" ? "Confirm" : "确认"),
         route: "workspace",
-        params: {
-          targetJobId: targetJob.id,
-          jdId: `jd-${targetJob.id}`,
-          planId: `plan-${targetJob.id}`,
-          resumeVersionId: "resume-unbound",
-          roundId: "round-technical-1",
-        },
+        params: workspaceParams,
       });
       return;
     }
@@ -241,13 +239,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       );
       navigate({
         name: "workspace",
-        params: {
-          targetJobId: targetJob.id,
-          jdId: `jd-${targetJob.id}`,
-          planId: `plan-${targetJob.id}`,
-          resumeVersionId: "resume-unbound",
-          roundId: "round-technical-1",
-        },
+        params: workspaceParams,
       });
     } catch (err: unknown) {
       setConfirmError(

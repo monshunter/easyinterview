@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
 > **更新日期**: 2026-05-24
 
@@ -122,6 +122,7 @@
 
 | 日期 | 版本 | 类型 | 说明 |
 |------|------|------|------|
+| 2026-05-24 | 1.5 | route/context remediation | E2E.P0.016 增加 Confirm → Workspace browser gate：`ParseScreen` Confirm 统一复用 `interviewContextFromTargetJob(targetJob)`，已登录 navigate 与未登录 pendingAction 均携带 `targetJobId` / `jobId` / `jdId` / `planId` / `resumeVersionId` / `roundId` / `roundName`；Playwright 点击 Confirm 后验证 `/workspace` query 与 `workspace-missing-resume` screenshot marker。 |
 | 2026-05-24 | 1.4 | scenario hardening | E2E.P0.015 增加 Playwright browser gate：fixture-backed ready `getTargetJob` 响应下，截图并断言 Parse loading DOM 先出现、preview 在 loading window 内缺席、tick 完成后才进入 preview。 |
 | 2026-05-24 | 1.3 | regression remediation | 修复 Phase 4 ready 响应直接进入 preview 的 implementation drift：`ParseScreen` 必须先展示并完成 `ui-design/src/screens-p0-complete.jsx::ParseScreen` 4 步 loading 演示，再进入 parsed preview；`ParseFlow` 与 E2E.P0.015 gate 固化该行为。 |
 
@@ -221,7 +222,7 @@ Basic fields 中 title / company / location / notes onChange 更新 React state 
 
 #### 4.4 Confirm 调用
 
-Confirm 时调 `updateTargetJob(targetJobId, body)`，body 仅包含 supplied fields（titleHint / companyNameHint / locationText / notes）。成功后 `nav("workspace", { targetJobId, jdId, planId, resumeVersionId, roundId })`，使用 D1 `eiCreateInterviewContext` 等价契约推导默认值。4xx 显示 inline 错误并保留编辑态。
+Confirm 时调 `updateTargetJob(targetJobId, body)`，body 仅包含 supplied fields（titleHint / companyNameHint / locationText / notes）。成功后 `nav("workspace", interviewContextFromTargetJob(targetJob))`，使用 D1 `eiCreateInterviewContext` 等价契约推导完整 7 字段默认值（`targetJobId` / `jobId` / `jdId` / `planId` / `resumeVersionId` / `roundId` / `roundName`）。4xx 显示 inline 错误并保留编辑态。
 
 #### 4.5 Re-parse / Cancel
 
@@ -229,7 +230,7 @@ Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；Can
 
 #### 4.6 Auth pending action
 
-未登录用户进入 parse 屏不直接挂壁；点击 Confirm 时触发 `requestAuth({ type: "confirm_interview", route: "workspace", params: { targetJobId, jdId, planId, resumeVersionId, roundId } })`；登录后回到 workspace。
+未登录用户进入 parse 屏不直接挂壁；点击 Confirm 时触发 `requestAuth({ type: "confirm_interview", route: "workspace", params: interviewContextFromTargetJob(targetJob) })`；登录后回到 workspace，并携带与已登录 navigate 相同的 7 字段 interview context。
 
 #### 4.7 i18n
 

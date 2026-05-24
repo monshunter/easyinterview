@@ -81,6 +81,51 @@ async function mockParseReadyApis(page: import("@playwright/test").Page): Promis
   });
 }
 
+async function mockParseConfirmApis(
+  page: import("@playwright/test").Page,
+  onUpdateTargetJob: (request: import("@playwright/test").Request) => Promise<void>,
+): Promise<void> {
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    const path = url.pathname.replace(/^\/api\/v1/, "");
+    const method = route.request().method();
+    if (path === "/runtime-config") {
+      await fulfillFixture(route, "openapi/fixtures/Auth/getRuntimeConfig.json");
+      return;
+    }
+    if (path === "/me") {
+      await fulfillFixture(route, "openapi/fixtures/Auth/getMe.json", "authenticated");
+      return;
+    }
+    if (path === "/targets") {
+      await fulfillFixture(route, "openapi/fixtures/TargetJobs/listTargetJobs.json");
+      return;
+    }
+    if (method === "GET" && path.startsWith("/targets/")) {
+      await fulfillFixture(route, "openapi/fixtures/TargetJobs/getTargetJob.json");
+      return;
+    }
+    if (method === "PATCH" && path.startsWith("/targets/")) {
+      await onUpdateTargetJob(route.request());
+      await fulfillFixture(route, "openapi/fixtures/TargetJobs/updateTargetJob.json");
+      return;
+    }
+    if (path.startsWith("/resumes/")) {
+      await fulfillFixture(route, "openapi/fixtures/Resumes/getResume.json");
+      return;
+    }
+    if (path.startsWith("/practice/plans/")) {
+      await fulfillFixture(route, "openapi/fixtures/PracticePlans/getPracticePlan.json");
+      return;
+    }
+    await route.fulfill({
+      status: 404,
+      headers: { "content-type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ error: { code: "NOT_FOUND", message: `No fixture for ${path}` } }),
+    });
+  });
+}
+
 async function freezeVisualAnimations(page: import("@playwright/test").Page): Promise<void> {
   await page.addStyleTag({
     content: `
@@ -179,5 +224,65 @@ test.describe("parse screen DOM anchor parity", () => {
 
     await page.waitForTimeout(2_600);
     await expect(page.locator("[data-testid='parse-basics-title']")).toBeVisible();
+  });
+
+  test("confirm navigates to workspace missing-resume with complete interview context", async ({
+    page,
+  }, testInfo) => {
+    const updateCalls: Array<{
+      body: unknown;
+      idempotencyKey: string | null;
+    }> = [];
+    await mockParseConfirmApis(page, async (request) => {
+      updateCalls.push({
+        body: request.postDataJSON(),
+        idempotencyKey: request.headers()["idempotency-key"] ?? null,
+      });
+    });
+
+    await page.goto("/parse?targetJobId=01918fa0-0000-7000-8000-000000002000");
+    await page.waitForSelector("[data-testid='parse-basics-title']", { timeout: 5_000 });
+    await page.click("[data-testid='parse-action-confirm']");
+    await page.waitForURL(/\/workspace\?/);
+    await expect(page.locator("[data-testid='workspace-missing-resume']")).toBeVisible();
+    await expect(page.locator("[data-testid='workspace-missing-resume-cta']")).toBeVisible();
+
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]?.idempotencyKey).toBeTruthy();
+    expect(updateCalls[0]?.body).toMatchObject({
+      titleHint: "Senior Frontend Engineer",
+      companyNameHint: "Acme",
+      locationText: "Shanghai · Hybrid",
+    });
+    expect(updateCalls[0]?.body).not.toHaveProperty("level");
+    expect(updateCalls[0]?.body).not.toHaveProperty("language");
+
+    const url = new URL(page.url());
+    const expectedParams = {
+      targetJobId: "01918fa0-0000-7000-8000-000000002000",
+      jobId: "01918fa0-0000-7000-8000-000000002000",
+      jdId: "jd-01918fa0-0000-7000-8000-000000002000",
+      planId: "plan-01918fa0-0000-7000-8000-000000002000",
+      resumeVersionId: "resume-unbound",
+      roundId: "round-technical-1",
+      roundName: "Technical Round 1",
+    };
+    expect(url.pathname).toBe("/workspace");
+    for (const [key, value] of Object.entries(expectedParams)) {
+      expect(url.searchParams.get(key), key).toBe(value);
+    }
+    expect(url.searchParams.get("rawText")).toBeNull();
+    expect(url.searchParams.get("sourceUrl")).toBeNull();
+
+    await freezeVisualAnimations(page);
+    const screenshot = await page.locator("[data-testid='workspace-missing-resume']").screenshot();
+    await testInfo.attach("parse-confirm-workspace-context", {
+      body: screenshot,
+      contentType: "image/png",
+    });
+    expect(screenshot.length).toBeGreaterThan(10_000);
+    console.log(
+      `E2E.P0.016 parse confirm workspace browser gate contextKeys=${Object.keys(expectedParams).join(",")} screenshotBytes=${screenshot.length}`,
+    );
   });
 });

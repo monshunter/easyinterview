@@ -96,6 +96,13 @@ describe("ParseAuthGate — confirm", () => {
           params: expect.objectContaining({
             pendingRoute: "workspace",
             pendingType: "confirm_interview",
+            targetJobId: "01918fa0-0000-7000-8000-000000002000",
+            jobId: "01918fa0-0000-7000-8000-000000002000",
+            jdId: "jd-01918fa0-0000-7000-8000-000000002000",
+            planId: "plan-01918fa0-0000-7000-8000-000000002000",
+            resumeVersionId: "resume-unbound",
+            roundId: "round-technical-1",
+            roundName: "Technical Round 1",
           }),
         }),
       );

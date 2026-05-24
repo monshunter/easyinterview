@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
 > **更新日期**: 2026-05-24
 
@@ -53,7 +53,7 @@
 - [x] 4.5 Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；abort 当前 polling effect 防止 race；Cancel 跳 `home`；Vitest 断言两种行为
 <!-- verified: 2026-05-08 method=vitest ParseScreen.test.tsx + ParseEdit.test.tsx 17 tests PASS; L2 remediation confirms jsdom scrollTo unavailable path emits no stderr -->
 <!-- verified: 2026-05-08 method=vitest ParseEdit.test.tsx re-parse test + ParseScreen.test.tsx cancel nav test + ParseFlow.test.tsx unmount cleanup -->
-- [x] 4.6 接入 `requestAuth` pending action：Confirm 未登录时调 `requestAuth({ type: "confirm_interview", route: "workspace", params: { targetJobId, jdId, planId, resumeVersionId, roundId } })`；登录后回到 workspace；Vitest `parse/ParseAuthGate.test.tsx` 断言
+- [x] 4.6 接入 `requestAuth` pending action：Confirm 未登录时调 `requestAuth({ type: "confirm_interview", route: "workspace", params: interviewContextFromTargetJob(targetJob) })`；params 与已登录 `nav("workspace", interviewContextFromTargetJob(targetJob))` 一致，必须携带 `targetJobId` / `jobId` / `jdId` / `planId` / `resumeVersionId` / `roundId` / `roundName`；登录后回到 workspace；Vitest `parse/ParseAuthGate.test.tsx` 断言
 <!-- verified: 2026-05-08 method=vitest ParseAuthGate.test.tsx 1 test PASS (redirects to auth_login, does not call updateTargetJob) -->
 - [x] 4.7 扩展 `frontend/src/app/i18n/locales/zh.ts` / `en.ts` 新增 `parse.*` 命名空间（≥30 key 覆盖 4 步 loading 文案、Basic fields label、Must Have / Nice to Have、Hidden signals、Round assumptions、footer actions、failed state）；i18n test 断言 zh/en 同步
 <!-- verified: 2026-05-08 method=vitest localeFiles.test.ts + localeRuntime.test.tsx + i18nShell.test.tsx 7 tests PASS; parse.* 50 keys zh/en synced -->
@@ -66,6 +66,7 @@
 <!-- verified: 2026-05-08 method=scenario P0.015 setup→trigger→verify→cleanup PASS; P0.016 PASS -->
 - [x] 4.11 L2 regression remediation: `ParseScreen` 在首次 `getTargetJob.analysisStatus=ready` 时不得直接跳 preview；必须先渲染 `parse-loading-step-0..3` 并按 `ui-design` tick 完成 loading 演示后再显示 `parse-basics-title`。Red-Green：`ParseFlow.test.tsx` 先复现 ready 立即 preview，修复后 `pnpm --filter @easyinterview/frontend test src/app/screens/parse` PASS；BDD overlay：`E2E.P0.015` setup→trigger→verify→cleanup PASS。 <!-- evidence: 2026-05-24 focused ParseFlow ready-loading regression PASS; parse suite 27 tests PASS; P0.015 scenario trigger real-mode gate 1/1 + home/parse 54 tests PASS; verify PASS -->
 - [x] 4.12 Scenario browser gate hardening: `E2E.P0.015` trigger 必须运行 `frontend/tests/pixel-parity/parse.spec.ts` 的 ready-response Playwright gate；fixture-backed ready `getTargetJob` 响应下截图 `route-parse` loading DOM，断言 `parse-basics-title` 在 loading window 内不存在，tick 完成后才出现；verify.sh 必须 grep browser gate marker 与 screenshot bytes。 <!-- evidence: 2026-05-24 P0.015 trigger includes Playwright parse.spec ready-response browser gate + screenshotBytes marker; verify PASS -->
+- [x] 4.13 P0.016 route/context remediation: `ParseScreen` Confirm 必须复用 `interviewContextFromTargetJob(targetJob)`；已登录 navigate 与未登录 `requestAuth(pendingAction)` 均携带 `targetJobId` / `jobId` / `jdId` / `planId` / `resumeVersionId` / `roundId` / `roundName`；`E2E.P0.016` trigger 必须运行 Playwright browser gate，点击 Confirm 后验证 `/workspace` query、`workspace-missing-resume` DOM 与 screenshot bytes marker，verify.sh 必须 grep 完整 contextKeys marker。 <!-- evidence: 2026-05-24 Red: ParseEdit/AuthGate failed missing jobId/roundName; Green: focused ParseEdit/AuthGate 13 tests PASS; frontend build PASS; focused Playwright parse confirm gate desktop/mobile PASS screenshotBytes=20243/83490; P0.016 setup→trigger→verify→cleanup PASS -->
 
 ## Phase 5: jd_match P1 Placeholder Shell
 

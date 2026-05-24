@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-24](2026-05-24.md) | `fix(frontend-home): preserve parse confirm context (BUG-0100)` | #fix #ui #test #docs |
 | [2026-05-24](2026-05-24.md) | `docs(retrospective): assess parse loading browser gate` | #docs |
 | [2026-05-24](2026-05-24.md) | `test(frontend-home): add parse loading browser gate (BUG-0099)` | #test #ui #docs |
 | [2026-05-24](2026-05-24.md) | `fix(frontend-home): preserve parse loading demo (BUG-0099)` | #fix #ui #test #docs |

@@ -1,8 +1,8 @@
 # 001 BDD Plan
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-24
 
 **关联 Plan**: [plan](./plan.md)
 
@@ -37,7 +37,7 @@ E2E.P0.014-P0.016 的 UI 子用例继续使用 fixture-backed component transpor
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.016 | Parse 编辑 + Confirm → workspace + auth pending action | 用户在 parse 屏 preview 阶段；分两子场景：（A）已登录；（B）未登录 | 用户编辑 title 字段、修改 location、切换若干 hit toggle，点击 Confirm | （A 已登录）（1）调 `updateTargetJob(targetJobId, body, { idempotencyKey })` body 仅含 supplied fields（titleHint / locationText 等，至多 4 字段），不含 hit toggle 状态、summary、fitSummary 或 hidden signals，并带 `Idempotency-Key`；（2）成功后 route 跳 `workspace?targetJobId=&jdId=&planId=&resumeVersionId=&roundId=` 完整携带；（3）`updateTargetJob` 4xx 触发 inline 错误并保留编辑态；（B 未登录）（1）Confirm 触发 `requestAuth({ type: "confirm_interview", route: "workspace", params })`；（2）route 跳 `auth_login`；（3）登录成功后 route 自动跳 `workspace` 携带原 params；（C 通用）（1）Re-parse 重置 stage=loading 并重新轮询 `getTargetJob`，不直接调用 LLM；（2）Cancel 跳 `home`；（3）JD raw text / provenance 完整 hash 不出现在 URL / localStorage / telemetry | `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/` |
+| E2E.P0.016 | Parse 编辑 + Confirm → workspace + auth pending action | 用户在 parse 屏 preview 阶段；分两子场景：（A）已登录；（B）未登录 | 用户编辑 title 字段、修改 location、切换若干 hit toggle，点击 Confirm | （A 已登录）（1）调 `updateTargetJob(targetJobId, body, { idempotencyKey })` body 仅含 supplied fields（titleHint / locationText 等，至多 4 字段），不含 hit toggle 状态、summary、fitSummary 或 hidden signals，并带 `Idempotency-Key`；（2）成功后 route 跳 `workspace?targetJobId=&jobId=&jdId=&planId=&resumeVersionId=&roundId=&roundName=`，7 字段完整携带；（3）默认 `resume-unbound` handoff 渲染 `workspace-missing-resume`；（4）`updateTargetJob` 4xx 触发 inline 错误并保留编辑态；（B 未登录）（1）Confirm 触发 `requestAuth({ type: "confirm_interview", route: "workspace", params })`；（2）route 跳 `auth_login`；（3）登录成功后 route 自动跳 `workspace` 携带原 7 字段 params；（C 通用）（1）Re-parse 重置 stage=loading 并重新轮询 `getTargetJob`，不直接调用 LLM；（2）Cancel 跳 `home`；（3）JD raw text / provenance 完整 hash 不出现在 URL / localStorage / telemetry；（4）browser gate 输出完整 contextKeys + screenshotBytes marker | `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/` |
 
 ## Phase 5: jd_match P1 Placeholder Shell
 
