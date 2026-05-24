@@ -1,0 +1,80 @@
+# Offline Evaluation Suite
+
+This directory is the F3 offline evaluation harness truth source
+(`prompt-rubric-registry/004-real-model-profile-and-evals` §4). It holds the
+recorded evaluation cases and the LLM-judge scoring instruction; the business
+prompts themselves are **never** copied here — they are resolved from
+`config/prompts/` through the registry single source. `config/` is owned by
+[A4 secrets-and-config](../../docs/spec/secrets-and-config/spec.md); F3 owns the
+`config/evals/` namespace.
+
+## 1 File layout
+
+```
+config/evals/
+  README.md                          (this file)
+  judge-instruction.md               (LLM judge scoring instruction; injected, not a business prompt)
+  resolved-prompts.json              (committed registry single-source export; drift baseline)
+  <feature_key>/
+    cases.yaml                       (recorded evaluation cases for one feature_key)
+  promptfooconfig.yaml               (Promptfoo runner config; exec-bridges to evalkit)
+  promptfoo_provider.js              (custom provider: shells to `evalkit complete`)
+  promptfoo_assert.js                (javascript assertion: shells to `evalkit grade`)
+```
+
+Promptfoo runtime output is not part of `config/`. `make eval-offline`
+regenerates tests at `.test-output/evals/promptfoo_tests.yaml` and keeps
+Promptfoo state, SQLite DB, and logs under `.test-output/evals/promptfoo/`.
+Do not create or ignore `config/evals/.generated/`; if that path appears, the
+runner output path has regressed.
+
+## 2 Case schema
+
+Each `<feature_key>/cases.yaml` is:
+
+```yaml
+feature_key: <feature_key>           # must match the directory name and a §3.1.1 chat feature_key
+cases:
+  - id: <unique case id>
+    language: multi | en | ...       # request language; en exercises the multi fallback
+    input: <short description of the business input>
+    output: { ... }                  # recorded golden model output (must satisfy the output schema)
+    judge:                           # recorded judge verdict replayed in offline mode
+      scores:
+        - dimension: <rubric dimension name>   # one entry per rubric dimension, names verbatim
+          value: 0.0                            # in [0,1]
+      reasoning:
+        summary: <non-empty>
+        evidence_quotes: []
+```
+
+The committed suite has at least 50 cases covering the 13 §3.1.1 chat
+`feature_key`s, including at least one `en -> multi` fallback case.
+
+## 3 Runner and gates
+
+The Go `backend/cmd/evalkit` binary owns registry single-source resolution and
+grading via the single `registry.LLMJudge`; Promptfoo is the runner that
+orchestrates and reports.
+
+- `make eval-offline` — single-source drift gate + `>= 50` count gate + the
+  Promptfoo runner over recorded fixtures. Deterministic, zero-cost, no network.
+  **Not** part of `make test`. Runtime artifacts are confined to
+  `.test-output/evals/`.
+- `make eval-offline-resolve` — regenerate the committed `resolved-prompts.json`
+  after a deliberate registry prompt change; the drift gate fails until it is
+  regenerated.
+- `EVAL_LIVE=1 make eval-offline` — opt in to real provider/judge calls
+  (`judge.default` profile). Requires provider secrets; excluded from CI and the
+  default offline run.
+
+The drift gate proves Promptfoo consumes the same prompt the registry resolves
+(no second prompt copy); `make lint-prompts-hardcode` proves no prompt body was
+copied into business code.
+
+## 4 References
+
+- [prompt-rubric-registry spec](../../docs/spec/prompt-rubric-registry/spec.md) (D-9, D-15, §3.2, §5, C-10/C-15)
+- [004-real-model-profile-and-evals plan](../../docs/spec/prompt-rubric-registry/plans/004-real-model-profile-and-evals/plan.md)
+- [config/prompts truth source](../prompts/README.md)
+- [config/rubrics truth source](../rubrics/README.md)

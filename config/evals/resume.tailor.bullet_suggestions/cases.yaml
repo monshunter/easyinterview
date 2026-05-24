@@ -1,0 +1,67 @@
+feature_key: resume.tailor.bullet_suggestions
+cases:
+- id: resume.tailor.bullet_suggestions-strong
+  language: multi
+  input: resume.tailor.bullet_suggestions evaluation case at strong quality band.
+  output: &id001
+    suggestions:
+    - originalBullet: Worked on API reliability.
+      suggestedBullet: Improved API reliability by reducing incident rate 28% through retry-safe queue
+        processing.
+      reason: Adds scope, measurable impact, and target-JD language.
+  judge:
+    scores:
+    - dimension: resume_impact
+      value: 0.92
+    - dimension: resume_truthfulness
+      value: 0.92
+    - dimension: resume_clarity
+      value: 0.92
+    reasoning:
+      summary: Exceeds the rubric expectations across dimensions.
+      evidence_quotes: []
+- id: resume.tailor.bullet_suggestions-proficient
+  language: multi
+  input: resume.tailor.bullet_suggestions evaluation case at proficient quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: resume_impact
+      value: 0.78
+    - dimension: resume_truthfulness
+      value: 0.78
+    - dimension: resume_clarity
+      value: 0.78
+    reasoning:
+      summary: Meets the rubric at baseline production quality.
+      evidence_quotes: []
+- id: resume.tailor.bullet_suggestions-developing
+  language: multi
+  input: resume.tailor.bullet_suggestions evaluation case at developing quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: resume_impact
+      value: 0.5
+    - dimension: resume_truthfulness
+      value: 0.5
+    - dimension: resume_clarity
+      value: 0.5
+    reasoning:
+      summary: Partially satisfies the rubric with visible gaps.
+      evidence_quotes: []
+- id: resume.tailor.bullet_suggestions-weak
+  language: multi
+  input: resume.tailor.bullet_suggestions evaluation case at weak quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: resume_impact
+      value: 0.2
+    - dimension: resume_truthfulness
+      value: 0.2
+    - dimension: resume_clarity
+      value: 0.2
+    reasoning:
+      summary: Falls short of the rubric on most dimensions.
+      evidence_quotes: []

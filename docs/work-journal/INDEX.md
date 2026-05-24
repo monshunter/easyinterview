@@ -8,8 +8,18 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-24](2026-05-24.md) | `fix(prompt-rubric): keep promptfoo eval output in test output (BUG-0102)` | #fix #test #docs |
 | [2026-05-24](2026-05-24.md) | `docs(e2e-scenarios-p0): refine full funnel journey plan per L1 review` | #docs |
+| [2026-05-24](2026-05-24.md) | `fix(prompt-rubric): honor active eval versions and isolate promptfoo state` | #fix #test #docs |
 | [2026-05-24](2026-05-24.md) | `docs(e2e-scenarios-p0): derive full funnel journey plan` | #docs |
+| [2026-05-24](2026-05-24.md) | `docs(prompt-rubric): tighten 004 judge adapter test gate evidence` | #docs #test |
+| [2026-05-24](2026-05-24.md) | `docs(reports): assess real model profile and evals delivery` | #docs |
+| [2026-05-24](2026-05-24.md) | `feat(prompt-rubric): close 004 verification and route evalkit env via platform config` | #feat #test #docs |
+| [2026-05-24](2026-05-24.md) | `feat(prompt-rubric): land offline eval suite and promptfoo runner` | #feat #test #docs |
+| [2026-05-24](2026-05-24.md) | `feat(prompt-rubric): activate judge.default and guard non-placeholder coverage` | #feat #test #docs |
+| [2026-05-24](2026-05-24.md) | `feat(prompt-rubric): implement llm judge dispatch and per-dimension judge` | #feat #test #docs |
+| [2026-05-24](2026-05-24.md) | `feat(prompt-rubric): evolve judge interface to per-dimension scores` | #feat #test #docs |
+| [2026-05-24](2026-05-24.md) | `test(prompt-rubric): refresh f3 spec version preflight for evals plan` | #test #docs |
 | [2026-05-24](2026-05-24.md) | `docs(prompt-rubric): align 004 plan references with spec v2.9` | #docs |
 | [2026-05-24](2026-05-24.md) | `docs(prompt-rubric): derive real model profile and evals plan` | #docs |
 | [2026-05-24](2026-05-24.md) | `fix(frontend-home): reset parse state on target switch (BUG-0101)` | #fix #ui #test #docs |

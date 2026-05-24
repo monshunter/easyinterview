@@ -11,6 +11,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/profile"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
 	doubaospeech "github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/doubao_speech"
+	judgecompatible "github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/judge_compatible"
 	minimaxspeech "github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/minimax_speech"
 	openaicompatible "github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/openai_compatible"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/stub"
@@ -174,8 +175,16 @@ func (r *providerResolver) ResolveProvider(ref string) (aiclient.Provider, error
 			Provider:   resolved,
 			HTTPClient: r.httpClient,
 		})
-	case aiclient.ProviderProtocolRealtimeAudio,
-		aiclient.ProviderProtocolJudgeCompatible:
+	case aiclient.ProviderProtocolJudgeCompatible:
+		resolved, err := providerregistry.ResolveProviderEntry(entry, r.appEnv, r.secrets)
+		if err != nil {
+			return nil, err
+		}
+		return judgecompatible.New(judgecompatible.Options{
+			Provider:   resolved,
+			HTTPClient: r.httpClient,
+		})
+	case aiclient.ProviderProtocolRealtimeAudio:
 		return nil, sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, fmt.Sprintf("provider protocol %q is not implemented", entry.Protocol), false)
 	default:
 		return nil, fmt.Errorf("%w: unsupported provider protocol %q", providerregistry.ErrProviderConfigInvalid, entry.Protocol)

@@ -76,7 +76,10 @@ type ScoreLevel struct {
 	Description string
 }
 
-// Score is the F3 LLM Judge numeric verdict per dimension.
+// Score is the F3 LLM Judge numeric verdict for one rubric dimension. A Judge
+// call returns one Score per dimension in the resolved rubric (spec D-9 v2.8):
+// Dimension matches the rubric `dimensions[].name`, and Value ∈ [0,1] can be
+// mapped back to a label via the rubric `score_levels[].threshold` bands.
 type Score struct {
 	Dimension string
 	Value     float64
@@ -88,10 +91,13 @@ type Reasoning struct {
 	EvidenceQuotes []string
 }
 
-// Judge is the F3 LLM Judge contract. The signature mirrors spec D-9
-// `Judge(featureKey, prompt_version, output, rubric_version) → (score,
+// Judge is the F3 LLM Judge contract. The signature mirrors spec D-9 v2.8
+// `Judge(featureKey, prompt_version, output, rubric_version) → ([]score,
 // reasoning)` with the Go-idiomatic context.Context prepended and an error
-// trailing return. Plan 001 ships only NotImplementedJudge.
+// trailing return. The first return evolved from a single Score to a
+// per-dimension []Score at spec v2.8 so multi-dimension rubrics are scored
+// dimension-by-dimension. Plan 001 shipped NotImplementedJudge; plan 004 adds
+// the real LLMJudge implementation.
 type Judge interface {
 	Judge(
 		ctx context.Context,
@@ -99,7 +105,7 @@ type Judge interface {
 		promptVersion string,
 		output []byte,
 		rubricVersion string,
-	) (Score, Reasoning, error)
+	) ([]Score, Reasoning, error)
 }
 
 // ErrPromptUnsupported is returned when the requested feature_key has no

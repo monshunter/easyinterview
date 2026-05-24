@@ -59,6 +59,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0102](./BUG-0102.md) | Promptfoo eval output was written under config | medium | resolved | 2026-05-24 | `fix(prompt-rubric): keep promptfoo eval output in test output (BUG-0102)` |
 | [BUG-0098](./BUG-0098.md) | prompt output schema review exposed jd_match posted drift and lint traceback | medium | resolved | 2026-05-24 | `fix(prompt-rubric): close output schema review findings (BUG-0098)` |
 | [BUG-0097](./BUG-0097.md) | prompt registry seed migration missed jd_match feature keys | medium | resolved | 2026-05-24 | `fix(prompt-rubric): seed jd match prompt registry rows (BUG-0097)` |
 | [BUG-0096](./BUG-0096.md) | prompt examples rendered as minimal placeholder JSON | medium | resolved | 2026-05-24 | `fix(prompt-rubric): render complete prompt example outputs (BUG-0096)` |

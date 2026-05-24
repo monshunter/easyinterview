@@ -1,0 +1,77 @@
+feature_key: target.import.parse
+cases:
+- id: target.import.parse-strong
+  language: multi
+  input: target.import.parse evaluation case at strong quality band.
+  output: &id001
+    coreThemes:
+    - Distributed systems reliability
+    interviewHypotheses:
+    - Interviewer may probe cache invalidation and rollback decisions.
+    strengths:
+    - Quantified backend reliability impact.
+    gaps:
+    - Needs deeper rollback and failure-mode analysis.
+    riskSignals:
+    - The JD asks for on-call ownership without naming team support.
+    requirements:
+    - kind: must_have
+      label: Design reliable distributed services
+      description: The JD explicitly calls for owning high-availability backend systems.
+      evidenceLevel: explicit
+  judge:
+    scores:
+    - dimension: target_extraction_completeness
+      value: 0.92
+    - dimension: target_field_accuracy
+      value: 0.92
+    - dimension: language_consistency
+      value: 0.92
+    reasoning:
+      summary: Exceeds the rubric expectations across dimensions.
+      evidence_quotes: []
+- id: target.import.parse-proficient
+  language: multi
+  input: target.import.parse evaluation case at proficient quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: target_extraction_completeness
+      value: 0.78
+    - dimension: target_field_accuracy
+      value: 0.78
+    - dimension: language_consistency
+      value: 0.78
+    reasoning:
+      summary: Meets the rubric at baseline production quality.
+      evidence_quotes: []
+- id: target.import.parse-developing
+  language: multi
+  input: target.import.parse evaluation case at developing quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: target_extraction_completeness
+      value: 0.5
+    - dimension: target_field_accuracy
+      value: 0.5
+    - dimension: language_consistency
+      value: 0.5
+    reasoning:
+      summary: Partially satisfies the rubric with visible gaps.
+      evidence_quotes: []
+- id: target.import.parse-weak
+  language: multi
+  input: target.import.parse evaluation case at weak quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: target_extraction_completeness
+      value: 0.2
+    - dimension: target_field_accuracy
+      value: 0.2
+    - dimension: language_consistency
+      value: 0.2
+    reasoning:
+      summary: Falls short of the rubric on most dimensions.
+      evidence_quotes: []

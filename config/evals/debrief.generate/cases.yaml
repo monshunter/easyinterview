@@ -1,0 +1,70 @@
+feature_key: debrief.generate
+cases:
+- id: debrief.generate-strong
+  language: multi
+  input: debrief.generate evaluation case at strong quality band.
+  output: &id001
+    questions:
+    - questionText: How did you handle backpressure in the migration?
+      myAnswerSummary: Explained queue sizing and retry policy.
+      aiAnalysis: Good direction, but add numbers and rollback detail.
+      interviewerReaction: Asked for concrete failure metrics.
+    riskItems:
+    - label: Thin rollback detail
+      severity: medium
+  judge:
+    scores:
+    - dimension: debrief_recall_completeness
+      value: 0.92
+    - dimension: debrief_lesson_specificity
+      value: 0.92
+    - dimension: debrief_action_quality
+      value: 0.92
+    reasoning:
+      summary: Exceeds the rubric expectations across dimensions.
+      evidence_quotes: []
+- id: debrief.generate-proficient
+  language: multi
+  input: debrief.generate evaluation case at proficient quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: debrief_recall_completeness
+      value: 0.78
+    - dimension: debrief_lesson_specificity
+      value: 0.78
+    - dimension: debrief_action_quality
+      value: 0.78
+    reasoning:
+      summary: Meets the rubric at baseline production quality.
+      evidence_quotes: []
+- id: debrief.generate-developing
+  language: multi
+  input: debrief.generate evaluation case at developing quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: debrief_recall_completeness
+      value: 0.5
+    - dimension: debrief_lesson_specificity
+      value: 0.5
+    - dimension: debrief_action_quality
+      value: 0.5
+    reasoning:
+      summary: Partially satisfies the rubric with visible gaps.
+      evidence_quotes: []
+- id: debrief.generate-weak
+  language: multi
+  input: debrief.generate evaluation case at weak quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: debrief_recall_completeness
+      value: 0.2
+    - dimension: debrief_lesson_specificity
+      value: 0.2
+    - dimension: debrief_action_quality
+      value: 0.2
+    reasoning:
+      summary: Falls short of the rubric on most dimensions.
+      evidence_quotes: []

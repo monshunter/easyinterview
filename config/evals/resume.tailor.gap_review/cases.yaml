@@ -1,0 +1,67 @@
+feature_key: resume.tailor.gap_review
+cases:
+- id: resume.tailor.gap_review-strong
+  language: multi
+  input: resume.tailor.gap_review evaluation case at strong quality band.
+  output: &id001
+    matchSummary:
+      strengths:
+      - Quantified backend reliability impact.
+      gaps:
+      - Needs deeper rollback and failure-mode analysis.
+  judge:
+    scores:
+    - dimension: resume_match
+      value: 0.92
+    - dimension: resume_truthfulness
+      value: 0.92
+    - dimension: resume_clarity
+      value: 0.92
+    reasoning:
+      summary: Exceeds the rubric expectations across dimensions.
+      evidence_quotes: []
+- id: resume.tailor.gap_review-proficient
+  language: multi
+  input: resume.tailor.gap_review evaluation case at proficient quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: resume_match
+      value: 0.78
+    - dimension: resume_truthfulness
+      value: 0.78
+    - dimension: resume_clarity
+      value: 0.78
+    reasoning:
+      summary: Meets the rubric at baseline production quality.
+      evidence_quotes: []
+- id: resume.tailor.gap_review-developing
+  language: multi
+  input: resume.tailor.gap_review evaluation case at developing quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: resume_match
+      value: 0.5
+    - dimension: resume_truthfulness
+      value: 0.5
+    - dimension: resume_clarity
+      value: 0.5
+    reasoning:
+      summary: Partially satisfies the rubric with visible gaps.
+      evidence_quotes: []
+- id: resume.tailor.gap_review-weak
+  language: multi
+  input: resume.tailor.gap_review evaluation case at weak quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: resume_match
+      value: 0.2
+    - dimension: resume_truthfulness
+      value: 0.2
+    - dimension: resume_clarity
+      value: 0.2
+    reasoning:
+      summary: Falls short of the rubric on most dimensions.
+      evidence_quotes: []

@@ -1,0 +1,68 @@
+feature_key: practice.session.first_question
+cases:
+- id: practice.session.first_question-strong
+  language: multi
+  input: practice.session.first_question evaluation case at strong quality band.
+  output: &id001
+    questionText: Tell me about a time you improved reliability in a distributed system.
+    questionIntent: Probe ownership, tradeoffs, and evidence quality.
+    focusDimension: System design
+    expectedSignals:
+    - Names constraints, tradeoffs, measured impact, and rollback plan.
+    timeBudgetSeconds: 180
+  judge:
+    scores:
+    - dimension: practice_depth
+      value: 0.92
+    - dimension: practice_dimension_coverage
+      value: 0.92
+    - dimension: language_consistency
+      value: 0.92
+    reasoning:
+      summary: Exceeds the rubric expectations across dimensions.
+      evidence_quotes: []
+- id: practice.session.first_question-proficient
+  language: multi
+  input: practice.session.first_question evaluation case at proficient quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: practice_depth
+      value: 0.78
+    - dimension: practice_dimension_coverage
+      value: 0.78
+    - dimension: language_consistency
+      value: 0.78
+    reasoning:
+      summary: Meets the rubric at baseline production quality.
+      evidence_quotes: []
+- id: practice.session.first_question-developing
+  language: multi
+  input: practice.session.first_question evaluation case at developing quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: practice_depth
+      value: 0.5
+    - dimension: practice_dimension_coverage
+      value: 0.5
+    - dimension: language_consistency
+      value: 0.5
+    reasoning:
+      summary: Partially satisfies the rubric with visible gaps.
+      evidence_quotes: []
+- id: practice.session.first_question-weak
+  language: multi
+  input: practice.session.first_question evaluation case at weak quality band.
+  output: *id001
+  judge:
+    scores:
+    - dimension: practice_depth
+      value: 0.2
+    - dimension: practice_dimension_coverage
+      value: 0.2
+    - dimension: language_consistency
+      value: 0.2
+    reasoning:
+      summary: Falls short of the rubric on most dimensions.
+      evidence_quotes: []

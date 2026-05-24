@@ -35,7 +35,7 @@ func TestTrackedCatalogCoversF3AndProductUICapabilityProfiles(t *testing.T) {
 		"practice.dictation.stt.default":    {aiclient.CapabilitySTT, aiclient.ProfileStatusUnsupported},
 		"practice.voice.realtime.default":   {aiclient.CapabilityRealtime, aiclient.ProfileStatusUnsupported},
 		"debrief.voice.extract.default":     {aiclient.CapabilitySTT, aiclient.ProfileStatusUnsupported},
-		"judge.default":                     {aiclient.CapabilityJudge, aiclient.ProfileStatusUnsupported},
+		"judge.default":                     {aiclient.CapabilityJudge, aiclient.ProfileStatusActive},
 	}
 
 	for name, want := range required {
