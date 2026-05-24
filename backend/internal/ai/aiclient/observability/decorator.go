@@ -4,15 +4,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"reflect"
 	"strings"
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/outputschema"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 )
@@ -125,7 +123,7 @@ func (w *Wrap) Complete(ctx context.Context, profileName string, payload aiclien
 	// validates the baseline type / required / properties subset and leaves
 	// full JSON Schema support to future plans.
 	if err == nil && len(payload.Metadata.OutputSchema) > 0 {
-		if vErr := validateOutputSchema(payload.Metadata.OutputSchema, resp.Content); vErr != nil {
+		if vErr := outputschema.Validate(payload.Metadata.OutputSchema, resp.Content); vErr != nil {
 			err = sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "output failed schema validation: "+vErr.Error(), false)
 			meta.ValidationStatus = aiclient.ValidationStatusInvalid
 			meta.ErrorCode = sharederrors.CodeAiOutputInvalid
@@ -528,144 +526,6 @@ func joinMessages(messages []aiclient.Message) string {
 		parts[i] = m.Role + ":" + m.Content
 	}
 	return strings.Join(parts, "\n")
-}
-
-type outputSchema struct {
-	Type       string                  `json:"type"`
-	Required   []string                `json:"required"`
-	Properties map[string]outputSchema `json:"properties"`
-	Items      *outputSchema           `json:"items"`
-	Enum       []any                   `json:"enum"`
-}
-
-func validateOutputSchema(schemaRaw json.RawMessage, content string) error {
-	if content == "" {
-		return errors.New("empty content")
-	}
-	var schema outputSchema
-	if err := json.Unmarshal(schemaRaw, &schema); err != nil {
-		return fmt.Errorf("parse output_schema: %w", err)
-	}
-	var v any
-	dec := json.NewDecoder(strings.NewReader(content))
-	dec.UseNumber()
-	if err := dec.Decode(&v); err != nil {
-		return err
-	}
-	var extra any
-	if err := dec.Decode(&extra); err != io.EOF {
-		if err != nil {
-			return err
-		}
-		return errors.New("multiple JSON values in output")
-	}
-	return validateAgainstSchema(schema, v, "$")
-}
-
-func validateAgainstSchema(schema outputSchema, value any, path string) error {
-	if schema.Type != "" && !matchesSchemaType(schema.Type, value) {
-		return fmt.Errorf("%s expected %s", path, schema.Type)
-	}
-	if len(schema.Enum) > 0 && !valueInEnum(value, schema.Enum) {
-		return fmt.Errorf("%s value is not in enum", path)
-	}
-
-	if len(schema.Required) > 0 || len(schema.Properties) > 0 {
-		obj, ok := value.(map[string]any)
-		if !ok {
-			return fmt.Errorf("%s expected object", path)
-		}
-		for _, key := range schema.Required {
-			if _, ok := obj[key]; !ok {
-				return fmt.Errorf("%s missing required field %q", path, key)
-			}
-		}
-		for key, childSchema := range schema.Properties {
-			child, ok := obj[key]
-			if !ok {
-				continue
-			}
-			if err := validateAgainstSchema(childSchema, child, path+"."+key); err != nil {
-				return err
-			}
-		}
-	}
-
-	if schema.Items != nil {
-		items, ok := value.([]any)
-		if !ok {
-			return fmt.Errorf("%s expected array", path)
-		}
-		for i, item := range items {
-			if err := validateAgainstSchema(*schema.Items, item, fmt.Sprintf("%s[%d]", path, i)); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func valueInEnum(value any, enum []any) bool {
-	for _, candidate := range enum {
-		if jsonValuesEqual(value, candidate) {
-			return true
-		}
-	}
-	return false
-}
-
-func jsonValuesEqual(a, b any) bool {
-	if an, ok := a.(json.Number); ok {
-		return jsonNumberEqual(an, b)
-	}
-	if bn, ok := b.(json.Number); ok {
-		return jsonNumberEqual(bn, a)
-	}
-	return reflect.DeepEqual(a, b)
-}
-
-func jsonNumberEqual(n json.Number, other any) bool {
-	switch v := other.(type) {
-	case json.Number:
-		return n.String() == v.String()
-	case float64:
-		nf, err := n.Float64()
-		return err == nil && nf == v
-	default:
-		return false
-	}
-}
-
-func matchesSchemaType(schemaType string, value any) bool {
-	switch schemaType {
-	case "object":
-		_, ok := value.(map[string]any)
-		return ok
-	case "array":
-		_, ok := value.([]any)
-		return ok
-	case "string":
-		_, ok := value.(string)
-		return ok
-	case "number":
-		_, ok := value.(json.Number)
-		return ok
-	case "integer":
-		n, ok := value.(json.Number)
-		if !ok {
-			return false
-		}
-		_, err := n.Int64()
-		return err == nil
-	case "boolean":
-		_, ok := value.(bool)
-		return ok
-	case "null":
-		return value == nil
-	default:
-		return false
-	}
 }
 
 func fallbackHopLabels(hop string) (string, string) {

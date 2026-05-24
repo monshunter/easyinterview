@@ -103,6 +103,37 @@ func (c *Client) Complete(ctx context.Context, profileName string, payload Compl
 	return resp, meta, err
 }
 
+// CompleteJudge runs an LLM-judge completion against a CapabilityJudge
+// profile. It is intentionally NOT part of the business-facing AIClient
+// interface: judge calls are an offline-eval capability (spec §4.2, plan 004
+// §2.1/§2.2). The chat-only Complete keeps fail-closing on judge profiles, and
+// this entry point keeps fail-closing on chat profiles, so neither boundary
+// can be bypassed. The narrow registry.JudgeModelClient interface is satisfied
+// structurally by this method.
+func (c *Client) CompleteJudge(ctx context.Context, profileName string, payload CompletePayload) (CompleteResponse, AICallMeta, error) {
+	if len(payload.Messages) == 0 {
+		return CompleteResponse{}, AICallMeta{
+			ModelProfileName: profileName,
+			ValidationStatus: ValidationStatusInvalid,
+			ErrorCode:        sharederrors.CodeAiOutputInvalid,
+		}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "messages must be non-empty", false)
+	}
+
+	profile, provider, err := c.dispatch(profileName, CapabilityJudge)
+	if err != nil {
+		return CompleteResponse{}, failureMeta(profileName, profile, err), err
+	}
+
+	resp, partial, err := executeWithFallback(profile, provider, c.providers, c.providerResolver, func(p Provider, attempt *ModelProfile) (CompleteResponse, AICallMeta, error) {
+		return p.Complete(ctx, attempt, payload)
+	})
+	meta, mergeErr := c.builder.merge(profile, payload.Metadata, partial)
+	if mergeErr != nil && err == nil {
+		err = mergeErr
+	}
+	return resp, meta, err
+}
+
 // Transcribe implements AIClient.
 func (c *Client) Transcribe(ctx context.Context, profileName string, input TranscriptionInput) (TranscriptionResponse, AICallMeta, error) {
 	if len(input.Audio) == 0 || input.Filename == "" || input.ContentType == "" {
