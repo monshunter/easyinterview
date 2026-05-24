@@ -10,7 +10,8 @@
 成功证据：
 
 - `make eval-offline`：drift-check `52 cases / single-source clean`，offline grading `52 cases`，Promptfoo runner `52 passed (100%) / 0 failed / 0 errors`。
-- 运行产物落点：`.test-output/evals/promptfoo_tests.yaml` 与 `.test-output/evals/promptfoo/` 存在；`config/evals/.generated` 不存在。
+- 运行产物落点：`.test-output/evals/promptfoo_tests.yaml`、`.test-output/evals/promptfooconfig.yaml` 与 `.test-output/evals/promptfoo/` 存在；`config/evals/.generated` 不存在。
+- override 预检：`make -n eval-offline EVAL_OUTPUT_DIR=/private/tmp/easyinterview-evals-review` 显示 generated tests、渲染后 config、Promptfoo state/logs 均指向同一 override 目录。
 - 负向搜索：`Makefile`、`config/evals/promptfooconfig.yaml`、`.gitignore` 中不再保留 `config/evals/.generated` / `.generated/promptfoo` 路径。
 - 合并收口：`docs/work-journal/2026-05-24.md` 与 `docs/work-journal/INDEX.md` 保留两侧事实记录并恢复时间顺序。
 - 质量 gate：`validate_context.py`、focused Go tests、`make lint-ai-profile-coverage`、`make lint-prompts-hardcode`、`make docs-check`、`git diff --check`、`git diff --cached --check` 均已通过。
@@ -58,6 +59,6 @@
 
 | 优先级 | 动作 | 目标资产 |
 |--------|------|----------|
-| P1 | 保持 004 v1.3 的 `.test-output/evals/` 产物 gate，后续 eval runner 不得重新引入 config-local runtime 目录 | `docs/spec/prompt-rubric-registry/plans/004-real-model-profile-and-evals/checklist.md` |
+| P1 | 保持 004 v1.3 的 `$(EVAL_OUTPUT_DIR)` 产物 gate，后续 eval runner 不得重新引入 config-local runtime 目录，且覆盖 `EVAL_OUTPUT_DIR` 时 tests/config/state/logs 必须同源移动 | `docs/spec/prompt-rubric-registry/plans/004-real-model-profile-and-evals/checklist.md` |
 | P2 | 下一次 prompt-rubric L2 review 若涉及 eval runner，优先复跑 `make eval-offline` + 旧路径负向 grep | `/plan-code-review prompt-rubric-registry/004-real-model-profile-and-evals` |
 | P3 | e2e-scenarios-p0 的后续实施继续从 `001-full-funnel-happy-journey` owner plan 进入，不复用 Promptfoo runtime 路径作为场景产物目录 | `/implement e2e-scenarios-p0/001-full-funnel-happy-journey` |

@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-24](2026-05-24.md) | `fix(eval): align promptfoo output config with eval dir` | #fix #test #docs |
 | [2026-05-24](2026-05-24.md) | `fix(prompt-rubric): keep promptfoo eval output in test output (BUG-0102)` | #fix #test #docs |
 | [2026-05-24](2026-05-24.md) | `docs(e2e-scenarios-p0): refine full funnel journey plan per L1 review` | #docs |
 | [2026-05-24](2026-05-24.md) | `fix(prompt-rubric): honor active eval versions and isolate promptfoo state` | #fix #test #docs |

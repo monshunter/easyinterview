@@ -42,7 +42,7 @@
 - [x] 4.2 新增 repo-owned pinned Promptfoo dependency 与 runner 落点（根 devDependency 或 workspace package；同步 lockfile；禁止未固定 `pnpm dlx`/全局安装）— 验证：`pnpm install --lockfile-only` drift clean + runner version 可由仓库脚本输出
 - [x] 4.3 Promptfoo registry-driven 配置（custom provider 经 RegistryClient 解析 + AIClient；LLMJudge 作 grader；不复制 prompt 正文）— 验证：registry-single-source drift check
 - [x] 4.4 录制 fixture 默认 + `EVAL_LIVE=1` opt-in；EVAL_LIVE 未设不打网络 — 验证：`make eval-offline`（fixture）+ no-network 断言
-- [x] 4.5 新增 `make eval-offline`（.PHONY+help，不纳入 make test）+ count≥50 断言 + single-source drift gate；Promptfoo tests/state/logs 运行产物统一写入 `.test-output/evals/`，不得写入或 gitignore `config/evals/.generated/` — 验证：`make eval-offline` + drift gate exit 行为 + `rg -n 'config/evals/\\.generated|\\.generated/promptfoo' Makefile config/evals/promptfooconfig.yaml .gitignore` 0 命中
+- [x] 4.5 新增 `make eval-offline`（.PHONY+help，不纳入 make test）+ count≥50 断言 + single-source drift gate；Promptfoo tests/config/state/logs 运行产物统一写入 `$(EVAL_OUTPUT_DIR)`（默认 `.test-output/evals/`），覆盖 `EVAL_OUTPUT_DIR` 时 Promptfoo 必须读取同目录生成的 tests/config，不得写入或 gitignore `config/evals/.generated/` — 验证：`make eval-offline` + `make -n eval-offline EVAL_OUTPUT_DIR=/private/tmp/easyinterview-evals-review` 路径同源检查 + drift gate exit 行为 + `rg -n 'config/evals/\\.generated|\\.generated/promptfoo' Makefile config/evals/promptfooconfig.yaml .gitignore` 0 命中
 - [x] 4.6 `make lint-prompts-hardcode` 仍 green（未复制第二份 prompt）— 验证：`make lint-prompts-hardcode`
 
 ## Phase 5: 验证、生命周期与收口

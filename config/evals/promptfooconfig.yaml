@@ -13,12 +13,12 @@ prompts:
   - '{{input}}'
 
 providers:
-  - id: file://promptfoo_provider.js
+  - id: file://__PROMPTFOO_PROVIDER_FILE__
     label: evalkit-registry-provider
 
 defaultTest:
   assert:
     - type: javascript
-      value: file://promptfoo_assert.js
+      value: file://__PROMPTFOO_ASSERT_FILE__
 
-tests: file://../../.test-output/evals/promptfoo_tests.yaml
+tests: file://__PROMPTFOO_TESTS_FILE__

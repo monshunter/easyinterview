@@ -6,6 +6,7 @@ SHELL := /bin/bash
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 EVAL_OUTPUT_DIR ?= $(ROOT_DIR)/.test-output/evals
+EVAL_PROMPTFOO_CONFIG := $(EVAL_OUTPUT_DIR)/promptfooconfig.yaml
 
 .PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-legacy lint-runner-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-secrets-pattern lint-observability lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
@@ -86,7 +87,12 @@ eval-offline: ## F3 offline eval (NOT in make test): single-source drift gate + 
 	@cd "$(ROOT_DIR)" && ./backend/bin/evalkit run $(if $(EVAL_LIVE),--live,)
 	@mkdir -p "$(EVAL_OUTPUT_DIR)/promptfoo/logs"
 	@cd "$(ROOT_DIR)" && ./backend/bin/evalkit prompts-tests --out "$(EVAL_OUTPUT_DIR)/promptfoo_tests.yaml"
-	@cd "$(ROOT_DIR)" && PROMPTFOO_CONFIG_DIR="$(EVAL_OUTPUT_DIR)/promptfoo" PROMPTFOO_LOG_DIR="$(EVAL_OUTPUT_DIR)/promptfoo/logs" PROMPTFOO_DISABLE_WAL_MODE=true PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 EVALKIT_BIN="$(ROOT_DIR)/backend/bin/evalkit" pnpm exec promptfoo eval -c config/evals/promptfooconfig.yaml --no-cache
+	@sed \
+		-e "s#__PROMPTFOO_PROVIDER_FILE__#$(ROOT_DIR)/config/evals/promptfoo_provider.js#g" \
+		-e "s#__PROMPTFOO_ASSERT_FILE__#$(ROOT_DIR)/config/evals/promptfoo_assert.js#g" \
+		-e "s#__PROMPTFOO_TESTS_FILE__#$(EVAL_OUTPUT_DIR)/promptfoo_tests.yaml#g" \
+		"$(ROOT_DIR)/config/evals/promptfooconfig.yaml" > "$(EVAL_PROMPTFOO_CONFIG)"
+	@cd "$(ROOT_DIR)" && PROMPTFOO_CONFIG_DIR="$(EVAL_OUTPUT_DIR)/promptfoo" PROMPTFOO_LOG_DIR="$(EVAL_OUTPUT_DIR)/promptfoo/logs" PROMPTFOO_DISABLE_WAL_MODE=true PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 EVALKIT_BIN="$(ROOT_DIR)/backend/bin/evalkit" pnpm exec promptfoo eval -c "$(EVAL_PROMPTFOO_CONFIG)" --no-cache
 
 dev-up: ## Start local dev external dependencies (postgres / redis / minio; optional app services only when explicitly added)
 	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" up

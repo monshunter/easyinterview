@@ -17,16 +17,18 @@ config/evals/
   resolved-prompts.json              (committed registry single-source export; drift baseline)
   <feature_key>/
     cases.yaml                       (recorded evaluation cases for one feature_key)
-  promptfooconfig.yaml               (Promptfoo runner config; exec-bridges to evalkit)
+  promptfooconfig.yaml               (Promptfoo runner config template; exec-bridges to evalkit)
   promptfoo_provider.js              (custom provider: shells to `evalkit complete`)
   promptfoo_assert.js                (javascript assertion: shells to `evalkit grade`)
 ```
 
 Promptfoo runtime output is not part of `config/`. `make eval-offline`
-regenerates tests at `.test-output/evals/promptfoo_tests.yaml` and keeps
-Promptfoo state, SQLite DB, and logs under `.test-output/evals/promptfoo/`.
-Do not create or ignore `config/evals/.generated/`; if that path appears, the
-runner output path has regressed.
+regenerates tests at `.test-output/evals/promptfoo_tests.yaml`, renders the
+concrete Promptfoo config to `.test-output/evals/promptfooconfig.yaml`, and
+keeps Promptfoo state, SQLite DB, and logs under `.test-output/evals/promptfoo/`.
+When `EVAL_OUTPUT_DIR` is overridden, all three paths move together under that
+directory. Do not create or ignore `config/evals/.generated/`; if that path
+appears, the runner output path has regressed.
 
 ## 2 Case schema
 
@@ -60,7 +62,7 @@ orchestrates and reports.
 - `make eval-offline` — single-source drift gate + `>= 50` count gate + the
   Promptfoo runner over recorded fixtures. Deterministic, zero-cost, no network.
   **Not** part of `make test`. Runtime artifacts are confined to
-  `.test-output/evals/`.
+  `$(EVAL_OUTPUT_DIR)` (default `.test-output/evals/`).
 - `make eval-offline-resolve` — regenerate the committed `resolved-prompts.json`
   after a deliberate registry prompt change; the drift gate fails until it is
   regenerated.
