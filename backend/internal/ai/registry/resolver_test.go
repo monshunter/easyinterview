@@ -21,12 +21,12 @@ func newTestClient(t *testing.T) *Client {
 	return client
 }
 
-func TestResolveExactLanguage(t *testing.T) {
+func TestResolveCanonicalMultiLanguage(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(t)
 	ctx := context.Background()
 
-	res, err := client.ResolveActive(ctx, "target.import.parse", "en")
+	res, err := client.ResolveActive(ctx, "target.import.parse", "multi")
 	if err != nil {
 		t.Fatalf("ResolveActive: %v", err)
 	}
@@ -46,7 +46,30 @@ func TestResolveExactLanguage(t *testing.T) {
 		t.Errorf("UserMessageTemplate must be populated for plan 001 baseline")
 	}
 	if got := client.FallbackCount(); got != 0 {
-		t.Errorf("FallbackCount: exact-language hit must not increment, got %d", got)
+		t.Errorf("FallbackCount: canonical multi hit must not increment, got %d", got)
+	}
+}
+
+func TestResolveEnglishLanguageFallbackToMulti(t *testing.T) {
+	t.Parallel()
+	client := newTestClient(t)
+	ctx := context.Background()
+
+	res, err := client.ResolveActive(ctx, "target.import.parse", "en")
+	if err != nil {
+		t.Fatalf("ResolveActive: %v", err)
+	}
+	if res.PromptVersion != "v0.1.0" {
+		t.Errorf("PromptVersion: want v0.1.0, got %s", res.PromptVersion)
+	}
+	if res.RubricVersion != "v0.1.0" {
+		t.Errorf("RubricVersion: want v0.1.0, got %s", res.RubricVersion)
+	}
+	if res.UserMessageTemplate == "" {
+		t.Errorf("UserMessageTemplate must be populated for language fallback")
+	}
+	if got := client.FallbackCount(); got != 1 {
+		t.Errorf("FallbackCount: English request must fallback to multi, got %d", got)
 	}
 }
 
@@ -72,7 +95,7 @@ func TestResolveActiveReturnsOutputSchema(t *testing.T) {
 	client := newTestClient(t)
 	ctx := context.Background()
 
-	exact, err := client.ResolveActive(ctx, "target.import.parse", "en")
+	exact, err := client.ResolveActive(ctx, "target.import.parse", "multi")
 	if err != nil {
 		t.Fatalf("ResolveActive exact: %v", err)
 	}
@@ -174,7 +197,7 @@ func TestGetPromptExact(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(t)
 
-	meta, body, err := client.GetPrompt("target.import.parse", "v0.1.0", "en")
+	meta, body, err := client.GetPrompt("target.import.parse", "v0.1.0", "multi")
 	if err != nil {
 		t.Fatalf("GetPrompt: %v", err)
 	}
@@ -188,10 +211,10 @@ func TestGetPromptExact(t *testing.T) {
 		t.Fatalf("GetPrompt schema type: want object, got %s", got)
 	}
 
-	if _, _, err := client.GetPrompt("", "v0.1.0", "en"); err == nil {
+	if _, _, err := client.GetPrompt("", "v0.1.0", "multi"); err == nil {
 		t.Error("empty featureKey must error")
 	}
-	if _, _, err := client.GetPrompt("target.import.parse", "v9.9.9", "en"); !errors.Is(err, ErrPromptUnsupported) {
+	if _, _, err := client.GetPrompt("target.import.parse", "v9.9.9", "multi"); !errors.Is(err, ErrPromptUnsupported) {
 		t.Errorf("unknown version: want ErrPromptUnsupported, got %v", err)
 	}
 }
@@ -200,7 +223,7 @@ func TestGetRubricExact(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(t)
 
-	rs, err := client.GetRubric("target.import.parse", "v0.1.0", "en")
+	rs, err := client.GetRubric("target.import.parse", "v0.1.0", "multi")
 	if err != nil {
 		t.Fatalf("GetRubric: %v", err)
 	}

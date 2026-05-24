@@ -68,6 +68,9 @@ func expectedPromptRows(t *testing.T, repoRoot string) map[string]insertRow {
 		if meta.Status != "active" {
 			continue
 		}
+		if meta.Language != "multi" {
+			continue
+		}
 		row := insertRow{
 			featureKey:   meta.FeatureKey,
 			version:      meta.Version,
@@ -104,6 +107,9 @@ func expectedRubricRows(t *testing.T, repoRoot string) map[string]insertRow {
 		}
 		if err := yaml.Unmarshal(bytes, &meta); err != nil {
 			t.Fatalf("parse rubric baseline %s: %v", path, err)
+		}
+		if meta.Language != "multi" {
+			continue
 		}
 		row := insertRow{
 			featureKey: meta.FeatureKey,

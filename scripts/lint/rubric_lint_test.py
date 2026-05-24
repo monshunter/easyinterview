@@ -207,6 +207,40 @@ def test_jd_match_dimension_names_are_allowlisted(tmp_path):
     assert result.returncode == 0, result.stderr
 
 
+def test_language_override_without_allowlist_negative(tmp_path):
+    """Baseline rubrics are language-independent unless an override is explicitly allowlisted."""
+    dimensions = (
+        '  - name: "language_consistency"\n'
+        '    weight: 1.0\n'
+        '    description: "Language consistency"\n'
+        '    score_levels:\n'
+        '      - label: "weak"\n'
+        '        threshold: 0.0\n'
+        '        description: "x"\n'
+        '      - label: "ok"\n'
+        '        threshold: 0.5\n'
+        '        description: "y"\n'
+        '      - label: "strong"\n'
+        '        threshold: 0.9\n'
+        '        description: "z"\n'
+    )
+    feature_key = "practice.turn.lightweight_observe"
+    feature_dir = _write_baseline(tmp_path, feature_key, dimensions).parent
+    (feature_dir / "v0.1.0.en.yaml").write_text(
+        f'feature_key: "{feature_key}"\n'
+        'version: "v0.1.0"\n'
+        'language: "en"\n'
+        "dimensions:\n"
+        + dimensions,
+        encoding="utf-8",
+    )
+
+    result = _run(tmp_path / "config/rubrics")
+    assert result.returncode == 1
+    assert "language override" in result.stderr
+    assert "not allowlisted" in result.stderr
+
+
 def test_missing_weight_negative(tmp_path):
     """Negative fixture: dimension missing weight must fail lint."""
     bad = (

@@ -1,6 +1,6 @@
 # Prompt Rubric Registry History
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: active
 > **更新日期**: 2026-05-24
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-24 | 2.7 | 派生 `003-language-coordinate-simplification`：F3 baseline prompt/rubric truth source 从默认 `multi + en` 双坐标收敛为 canonical `multi` only；`language` 保留为 runtime output target 与 provenance 字段，`ResolveActive` 继续 exact → `multi` fallback；未来 language override 只有在有真实语义差异并有 spec/plan rationale 时才允许。 | prompt-rubric-registry/003-language-coordinate-simplification |
 | 2026-05-24 | 2.6 | 原地修订 `002-output-schema-contract`：把 prompt body 内的 example 从最小 schema-valid JSON 升级为完整代表性 JSON output，覆盖 schema 声明的 required + optional 字段，使用业务形态示例值，并在 contract block 中明确要求返回 JSON value 而不是 JSON Schema / OpenAPI schema；同步 `config/prompts/README.md`、renderer/lint gate、13 × 2 prompt body、YAML `template_hash` 与 seed migration prompt body/hash。 | prompt-rubric-registry/002-output-schema-contract L2 remediation |
 | 2026-05-23 | 2.5 | 派生 `002-output-schema-contract`：把 D-12 规划的 provider-neutral `output_schema` 从「可追加」升级为锁定契约（新增 D-13）；为 13 个 chat feature_key 各落地**语言无关** `config/prompts/<feature_key>/<version>.schema.json`，允许 `description` 作为非校验注解并把 prompt body 输出段改为 schema 渲染/校验的契约块，避免手工维护重复字段清单；`RegistryClient` 加载并接线 `ResolveActive` 的 `OutputSchema`，A3 `aiclient` `validateOutputSchema` 扩展支持 `enum`，新增 schema↔prompt↔struct 一致性 lint gate；spec §2.1 / §2.2 / §4.1 / §4.2 / §5 / §6（C-12）/ §7 同步，plan 序列原 002/003 顺延为 003/004。spec.md Header 升至 v2.5。 | prompt-rubric-registry/002-output-schema-contract |
 | 2026-05-22 | 2.4 | backend-jobs-recommendations/001 L2 hardening：`jd_match.recommendation` 与 `jd_match.search` v0.1.0 prompt 明确要求输出保留内部 jobs 池 `jobMatchId`，以匹配 runtime join `jd_match_recommendations` 的契约；同步刷新 4 个 prompt `template_hash`，新增 `TestBackendJDMatchF3Preflight` 断言 JD-Match feature_key / model profile / prompt 必填 marker。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline L2 hardening |

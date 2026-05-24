@@ -2,6 +2,7 @@ package registry
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,13 +30,15 @@ func TestLoadHappyPath(t *testing.T) {
 		t.Fatalf("rubrics: want 13 feature_keys, got %d", got)
 	}
 
-	// Each baseline ships at least the multi + en pair.
+	// Each baseline ships the canonical multi prompt.
 	for fk, langs := range snap.prompts {
 		if _, ok := langs["multi"]; !ok {
 			t.Errorf("feature_key %s missing multi prompt", fk)
 		}
-		if len(langs) < 2 {
-			t.Errorf("feature_key %s expected >=2 prompt languages, got %d", fk, len(langs))
+	}
+	for fk, langs := range snap.rubrics {
+		if _, ok := langs["multi"]; !ok {
+			t.Errorf("feature_key %s missing multi rubric", fk)
 		}
 	}
 }
@@ -86,24 +89,114 @@ func TestLoadOutputSchemaLanguageIndependent(t *testing.T) {
 		t.Fatalf("loadFromDisk failed: %v", err)
 	}
 
-	multi := snap.prompts["target.import.parse"]["multi"].outputSchema
-	en := snap.prompts["target.import.parse"]["en"].outputSchema
-	if multi == nil || en == nil {
-		t.Fatalf("output schema must be loaded for every language, multi=%v en=%v", multi, en)
+	schema := snap.prompts["target.import.parse"]["multi"].outputSchema
+	if schema == nil {
+		t.Fatal("output schema must be loaded for canonical multi prompt")
 	}
-	if multi != en {
-		t.Fatalf("output schema must be language-independent shared pointer")
-	}
-	if got := schemaType(t, *multi); got != "object" {
+	if got := schemaType(t, *schema); got != "object" {
 		t.Fatalf("target.import.parse schema type: want object, got %s", got)
 	}
 
-	recommendation := snap.prompts["jd_match.recommendation"]["en"].outputSchema
+	recommendation := snap.prompts["jd_match.recommendation"]["multi"].outputSchema
 	if recommendation == nil {
 		t.Fatal("jd_match.recommendation output schema missing")
 	}
 	if got := schemaType(t, *recommendation); got != "array" {
 		t.Fatalf("jd_match.recommendation schema type: want array, got %s", got)
+	}
+}
+
+func TestLoadMissingCanonicalMultiRejected(t *testing.T) {
+	t.Parallel()
+	promptsRoot, rubricsRoot := tempBaselineCopy(t)
+
+	writePromptLanguageOverride(t, promptsRoot, "target.import.parse", "en")
+	writeRubricLanguageOverride(t, rubricsRoot, "target.import.parse", "en")
+	for _, path := range []string{
+		filepath.Join(promptsRoot, "target.import.parse", "v0.1.0.yaml"),
+		filepath.Join(promptsRoot, "target.import.parse", "v0.1.0.md"),
+		filepath.Join(rubricsRoot, "target.import.parse", "v0.1.0.yaml"),
+	} {
+		if err := os.Remove(path); err != nil {
+			t.Fatalf("remove %s: %v", path, err)
+		}
+	}
+
+	if _, err := loadFromDisk(promptsRoot, rubricsRoot); err == nil {
+		t.Fatalf("expected missing canonical multi error, got nil")
+	} else if !strings.Contains(err.Error(), "missing canonical multi") {
+		t.Fatalf("expected missing canonical multi message, got: %v", err)
+	}
+}
+
+func TestLoadOrphanLanguageOverrideRejected(t *testing.T) {
+	t.Parallel()
+	promptsRoot, rubricsRoot := tempBaselineCopy(t)
+
+	writePromptLanguageOverride(t, promptsRoot, "target.import.parse", "en")
+	writeRubricLanguageOverride(t, rubricsRoot, "target.import.parse", "en")
+	srcRubric := filepath.Join(rubricsRoot, "target.import.parse", "v0.1.0.en.yaml")
+	if err := os.Remove(srcRubric); err != nil && !os.IsNotExist(err) {
+		t.Fatalf("remove override rubric: %v", err)
+	}
+
+	if _, err := loadFromDisk(promptsRoot, rubricsRoot); err == nil {
+		t.Fatalf("expected orphan language override error, got nil")
+	} else if !strings.Contains(err.Error(), "no matching rubric") {
+		t.Fatalf("expected matching-rubric message, got: %v", err)
+	}
+}
+
+func writePromptLanguageOverride(t *testing.T, promptsRoot, featureKey, language string) {
+	t.Helper()
+
+	featureDir := filepath.Join(promptsRoot, featureKey)
+	body, err := os.ReadFile(filepath.Join(featureDir, "v0.1.0.md"))
+	if err != nil {
+		t.Fatalf("read multi prompt body: %v", err)
+	}
+	meta := PromptMeta{
+		FeatureKey: featureKey,
+		Version:    "v0.1.0",
+		Language:   language,
+		Status:     "active",
+		CreatedAt:  "2026-05-09T12:00:00Z",
+	}
+	hash, err := computeTemplateHash(body, meta)
+	if err != nil {
+		t.Fatalf("compute override hash: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(featureDir, "v0.1.0."+language+".md"), body, 0o644); err != nil {
+		t.Fatalf("write override prompt body: %v", err)
+	}
+	yamlBody := fmt.Sprintf(
+		"feature_key: %q\nversion: %q\nlanguage: %q\ntemplate_hash: %q\nstatus: %q\ncreated_at: %q\n",
+		meta.FeatureKey,
+		meta.Version,
+		meta.Language,
+		hash,
+		meta.Status,
+		meta.CreatedAt,
+	)
+	if err := os.WriteFile(filepath.Join(featureDir, "v0.1.0."+language+".yaml"), []byte(yamlBody), 0o644); err != nil {
+		t.Fatalf("write override prompt yaml: %v", err)
+	}
+}
+
+func writeRubricLanguageOverride(t *testing.T, rubricsRoot, featureKey, language string) {
+	t.Helper()
+
+	featureDir := filepath.Join(rubricsRoot, featureKey)
+	body, err := os.ReadFile(filepath.Join(featureDir, "v0.1.0.yaml"))
+	if err != nil {
+		t.Fatalf("read multi rubric yaml: %v", err)
+	}
+	replaced := strings.Replace(string(body), `language: "multi"`, fmt.Sprintf("language: %q", language), 1)
+	if replaced == string(body) {
+		t.Fatalf("multi rubric language field not found for %s", featureKey)
+	}
+	if err := os.WriteFile(filepath.Join(featureDir, "v0.1.0."+language+".yaml"), []byte(replaced), 0o644); err != nil {
+		t.Fatalf("write override rubric yaml: %v", err)
 	}
 }
 

@@ -3,7 +3,7 @@
 
 Validates `config/prompts/<feature_key>/<version>[.<language>].{yaml,md}`
 against the schema and canonical hash algorithm fixed by
-`config/prompts/README.md` and `docs/spec/prompt-rubric-registry/spec.md` v2.1.
+`config/prompts/README.md` and `docs/spec/prompt-rubric-registry/spec.md` v2.7.
 
 The canonical algorithm is shared with the Go loader at
 `backend/internal/ai/registry/loader.go`. Both implementations must agree
@@ -36,6 +36,7 @@ REQUIRED_FIELD_ORDER = [
 STATUS_ENUM = {"draft", "active", "deprecated"}
 SEMVER_RE = re.compile(r"^v\d+\.\d+\.\d+(-[A-Za-z0-9\.-]+)?(\+[A-Za-z0-9\.-]+)?$")
 LANGUAGE_RE = re.compile(r"^multi$|^[a-z]{2,3}$")
+LANGUAGE_OVERRIDE_ALLOWLIST: set[tuple[str, str, str]] = set()
 
 # Forbidden tokens reserved for the lint gate. They live here, not in the
 # README, so `grep -rE "\bTBD\b|placeholder" config/prompts/` stays clean
@@ -299,6 +300,7 @@ def lint_prompts_directory(root: pathlib.Path) -> list[str]:
     yaml_paths = sorted(p for p in root.rglob("*.yaml") if p.is_file())
     for yp in yaml_paths:
         errors.extend(lint_prompt_yaml(yp))
+    errors.extend(lint_language_coordinates(root))
     return errors
 
 
@@ -382,6 +384,48 @@ def _collect_prompt_metas(root: pathlib.Path) -> list[tuple[pathlib.Path, dict]]
         if isinstance(parsed, dict):
             metas.append((yp, parsed))
     return metas
+
+
+def lint_language_coordinates(root: pathlib.Path) -> list[str]:
+    errors: list[str] = []
+    metas = _collect_prompt_metas(root)
+    by_feature_version: dict[tuple[str, str], list[tuple[pathlib.Path, str]]] = {}
+    for yaml_path, meta in metas:
+        feature_key = meta.get("feature_key")
+        version = meta.get("version")
+        language = meta.get("language")
+        if not all(isinstance(v, str) and v for v in (feature_key, version, language)):
+            continue
+        by_feature_version.setdefault((feature_key, version), []).append((yaml_path, language))
+
+        if language == "multi" and feature_key not in OUTPUT_SCHEMA_EXEMPT_FEATURE_KEYS:
+            body_path = yaml_path.with_suffix(".md")
+            if body_path.exists():
+                body = body_path.read_text(encoding="utf-8")
+                if "{{language}}" not in body:
+                    errors.append(
+                        f"{body_path}: multi prompt missing runtime language instruction "
+                        "('{{language}}')"
+                    )
+            continue
+
+        if language != "multi" and (
+            feature_key,
+            version,
+            language,
+        ) not in LANGUAGE_OVERRIDE_ALLOWLIST:
+            errors.append(
+                f"{yaml_path}: language override ({feature_key}, {version}, {language}) "
+                "not allowlisted; baseline storage must use canonical multi"
+            )
+
+    for (feature_key, version), entries in sorted(by_feature_version.items()):
+        languages = {language for _, language in entries}
+        if "multi" not in languages:
+            first_path = entries[0][0]
+            errors.append(f"{first_path}: feature/version {feature_key} {version} missing multi prompt")
+
+    return errors
 
 
 def lint_output_schemas(prompts_root: pathlib.Path) -> list[str]:
