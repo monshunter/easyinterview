@@ -36,6 +36,8 @@ spec:
       - analysisStatus polling
       - parse loading demo regression
       - ready response loading gate
+      - ready response browser gate
+      - parse loading screenshot gate
       - eiCreateInterviewContext
       - requestAuth import_jd
       - requestAuth confirm_interview

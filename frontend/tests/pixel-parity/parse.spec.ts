@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * Phase 6.2 — Parse screen DOM anchor and loading state parity.
@@ -16,6 +18,85 @@ import { expect, test } from "@playwright/test";
  * Full e2e with fixture-backed transport is deferred to the scenario
  * gate (E2E.P0.015 / E2E.P0.016 under test/scenarios/e2e/).
  */
+
+interface OperationFixture {
+  scenarios: Record<
+    string,
+    {
+      response: {
+        status: number;
+        headers?: Record<string, string>;
+        body: unknown;
+      };
+    }
+  >;
+}
+
+function fixtureResponse(relativePath: string, scenario = "default") {
+  const absolutePath = resolve(process.cwd(), "..", relativePath);
+  const fixture = JSON.parse(readFileSync(absolutePath, "utf8")) as OperationFixture;
+  const response = fixture.scenarios[scenario]?.response;
+  if (!response) throw new Error(`missing fixture scenario ${relativePath}#${scenario}`);
+  return response;
+}
+
+async function fulfillFixture(
+  route: import("@playwright/test").Route,
+  relativePath: string,
+  scenario = "default",
+) {
+  const response = fixtureResponse(relativePath, scenario);
+  await route.fulfill({
+    status: response.status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      ...(response.headers ?? {}),
+    },
+    body: JSON.stringify(response.body),
+  });
+}
+
+async function mockParseReadyApis(page: import("@playwright/test").Page): Promise<void> {
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    const path = url.pathname.replace(/^\/api\/v1/, "");
+    const method = route.request().method();
+    if (path === "/runtime-config") {
+      await fulfillFixture(route, "openapi/fixtures/Auth/getRuntimeConfig.json");
+      return;
+    }
+    if (path === "/me") {
+      await fulfillFixture(route, "openapi/fixtures/Auth/getMe.json", "authenticated");
+      return;
+    }
+    if (method === "GET" && path.startsWith("/targets/")) {
+      await fulfillFixture(route, "openapi/fixtures/TargetJobs/getTargetJob.json");
+      return;
+    }
+    await route.fulfill({
+      status: 404,
+      headers: { "content-type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ error: { code: "NOT_FOUND", message: `No fixture for ${path}` } }),
+    });
+  });
+}
+
+async function freezeVisualAnimations(page: import("@playwright/test").Page): Promise<void> {
+  await page.addStyleTag({
+    content: `
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+        caret-color: transparent !important;
+      }
+    `,
+  });
+  await page.evaluate(async () => {
+    if (document.fonts && typeof document.fonts.ready?.then === "function") {
+      await document.fonts.ready;
+    }
+  });
+}
 
 test.describe("parse screen DOM anchor parity", () => {
   test("home screen renders parse entry points (textarea + submit)", async ({
@@ -64,5 +145,39 @@ test.describe("parse screen DOM anchor parity", () => {
         page.locator("[data-testid='home-modal-upload-dropzone']"),
       ).toHaveCount(0);
     }
+  });
+
+  test("ready target job response keeps ui-design loading demo before preview", async ({
+    page,
+  }, testInfo) => {
+    await mockParseReadyApis(page);
+
+    await page.goto("/parse?targetJobId=01918fa0-0000-7000-8000-000000002000");
+    await page.waitForSelector("[data-testid='parse-loading-step-0']");
+    await expect(page.locator("[data-testid='route-parse']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='parse-loading-step-0']")).toBeVisible();
+    await expect(page.locator("[data-testid='parse-loading-step-1']")).toBeVisible();
+    await expect(page.locator("[data-testid='parse-loading-step-2']")).toBeVisible();
+    await expect(page.locator("[data-testid='parse-loading-step-3']")).toBeVisible();
+    await expect(page.locator("[data-testid='parse-loading-footer']")).toBeVisible();
+    await expect(page.locator("[data-testid='parse-basics-title']")).toHaveCount(0);
+
+    await freezeVisualAnimations(page);
+    const screenshot = await page.locator("[data-testid='route-parse']").screenshot();
+    await testInfo.attach("parse-ready-response-loading-demo", {
+      body: screenshot,
+      contentType: "image/png",
+    });
+    expect(screenshot.length).toBeGreaterThan(10_000);
+    console.log(
+      `E2E.P0.015 ready-response loading browser gate screenshotBytes=${screenshot.length}`,
+    );
+
+    await page.waitForTimeout(1_000);
+    await expect(page.locator("[data-testid='parse-loading-step-0']")).toBeVisible();
+    await expect(page.locator("[data-testid='parse-basics-title']")).toHaveCount(0);
+
+    await page.waitForTimeout(2_600);
+    await expect(page.locator("[data-testid='parse-basics-title']")).toBeVisible();
   });
 });

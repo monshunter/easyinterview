@@ -15,8 +15,12 @@ grep -Fq "ParseScreen.test.tsx" "$LOG_FILE"
 grep -Fq "ParseFlow.test.tsx" "$LOG_FILE"
 grep -Fq "ParseFailedState.test.tsx" "$LOG_FILE"
 grep -Fq "ParseEdit.test.tsx" "$LOG_FILE"
+grep -Fq "tests/pixel-parity/parse.spec.ts" "$LOG_FILE"
+grep -Fq "ready target job response keeps ui-design loading demo before preview" "$LOG_FILE"
+grep -Fq "E2E.P0.015 ready-response loading browser gate screenshotBytes=" "$LOG_FILE"
 grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE"
 grep -Eq 'Tests +[0-9]+ passed' "$LOG_FILE"
+grep -Eq '[0-9]+ passed' "$LOG_FILE"
 # Privacy redline: JD raw text must not appear in trigger log
 for forbidden in 'rawText:' 'raw_jd_text' 'sourceUrl:' 'console.log'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then

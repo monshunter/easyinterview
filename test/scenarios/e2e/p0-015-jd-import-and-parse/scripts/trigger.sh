@@ -19,4 +19,8 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/parse/ParseFlow.test.tsx \
     src/app/screens/parse/ParseFailedState.test.tsx \
     src/app/screens/parse/ParseEdit.test.tsx
+  pnpm --filter @easyinterview/frontend build
+  pnpm --filter @easyinterview/frontend exec playwright test \
+    tests/pixel-parity/parse.spec.ts \
+    --grep "ready target job response keeps ui-design loading demo before preview"
 ) | tee "$OUTPUT_DIR/trigger.log"

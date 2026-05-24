@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-24
 
@@ -65,6 +65,7 @@
 - [x] 4.10 BDD-Gate: 验证 `E2E.P0.015`（主路径完整 import→parse→preview）+ `E2E.P0.016`（preview 编辑 + Confirm → workspace）
 <!-- verified: 2026-05-08 method=scenario P0.015 setup→trigger→verify→cleanup PASS; P0.016 PASS -->
 - [x] 4.11 L2 regression remediation: `ParseScreen` 在首次 `getTargetJob.analysisStatus=ready` 时不得直接跳 preview；必须先渲染 `parse-loading-step-0..3` 并按 `ui-design` tick 完成 loading 演示后再显示 `parse-basics-title`。Red-Green：`ParseFlow.test.tsx` 先复现 ready 立即 preview，修复后 `pnpm --filter @easyinterview/frontend test src/app/screens/parse` PASS；BDD overlay：`E2E.P0.015` setup→trigger→verify→cleanup PASS。 <!-- evidence: 2026-05-24 focused ParseFlow ready-loading regression PASS; parse suite 27 tests PASS; P0.015 scenario trigger real-mode gate 1/1 + home/parse 54 tests PASS; verify PASS -->
+- [x] 4.12 Scenario browser gate hardening: `E2E.P0.015` trigger 必须运行 `frontend/tests/pixel-parity/parse.spec.ts` 的 ready-response Playwright gate；fixture-backed ready `getTargetJob` 响应下截图 `route-parse` loading DOM，断言 `parse-basics-title` 在 loading window 内不存在，tick 完成后才出现；verify.sh 必须 grep browser gate marker 与 screenshot bytes。 <!-- evidence: 2026-05-24 P0.015 trigger includes Playwright parse.spec ready-response browser gate + screenshotBytes marker; verify PASS -->
 
 ## Phase 5: jd_match P1 Placeholder Shell
 
