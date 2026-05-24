@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -93,6 +94,71 @@ func TestSQLRepositoryCreatePlanWritesPlanAndAuditInOneTransaction(t *testing.T)
 	}
 	if plan.SourceReportID != "" || plan.SourceDebriefID != "" {
 		t.Fatalf("baseline plan should not have source ids: %+v", plan)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestSQLRepositoryCreatePlanNormalizesEmptyFocusCompetencyCodes(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC)
+	in := validCreatePlanStoreInput(now)
+	in.FocusCompetencyCodes = nil
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`insert into practice_plans`).
+		WithArgs(
+			in.PlanID,
+			in.UserID,
+			in.TargetJobID,
+			in.SourceReportID,
+			in.SourceDebriefID,
+			string(in.Goal),
+			string(in.Mode),
+			string(in.InterviewerPersona),
+			in.Difficulty,
+			in.Language,
+			in.TimeBudgetMinutes,
+			in.QuestionBudget,
+			in.ResumeAssetID,
+			textArrayArg{want: "{}"},
+			in.Now,
+		).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "target_job_id", "source_report_id", "source_debrief_id", "goal", "mode", "interviewer_persona", "difficulty",
+			"language", "time_budget_minutes", "question_budget", "status", "created_at",
+		}).AddRow(
+			in.PlanID,
+			in.TargetJobID,
+			nil,
+			nil,
+			string(in.Goal),
+			string(in.Mode),
+			string(in.InterviewerPersona),
+			in.Difficulty,
+			in.Language,
+			in.TimeBudgetMinutes,
+			in.QuestionBudget,
+			"ready",
+			in.Now,
+		))
+	mock.ExpectExec(`insert into audit_events`).
+		WithArgs(
+			in.AuditEventID,
+			in.UserID,
+			in.UserID,
+			in.PlanID,
+			sqlmock.AnyArg(),
+			in.Now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	if _, err := repo.CreatePlan(context.Background(), in); err != nil {
+		t.Fatalf("CreatePlan returned error: %v", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
@@ -448,7 +514,7 @@ func TestSQLRepositoryReserveSessionStartReusesFailedRetryableRecord(t *testing.
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
-		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
+		WithArgs(startSessionAdvisoryLockKey(in)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
@@ -513,7 +579,7 @@ func TestSQLRepositoryReserveSessionStartDebriefCarriesSourceQuestion(t *testing
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
-		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
+		WithArgs(startSessionAdvisoryLockKey(in)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
@@ -602,7 +668,7 @@ func TestSQLRepositoryReserveSessionStartReplaysStoredResponseBody(t *testing.T)
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
-		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
+		WithArgs(startSessionAdvisoryLockKey(in)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
@@ -647,7 +713,7 @@ func TestSQLRepositoryReserveSessionStartResetsExpiredPendingRecord(t *testing.T
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
-		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
+		WithArgs(startSessionAdvisoryLockKey(in)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
@@ -727,7 +793,7 @@ func TestSQLRepositoryReserveSessionStartResetsExpiredSucceededRecord(t *testing
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
-		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
+		WithArgs(startSessionAdvisoryLockKey(in)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
@@ -791,7 +857,7 @@ func TestSQLRepositoryReserveSessionStartScopesIdempotencyByUser(t *testing.T) {
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
-		WithArgs("user-b\x00practice\x00startPracticeSession\x00shared-key-hash").
+		WithArgs(startSessionAdvisoryLockKey(in)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
@@ -854,7 +920,7 @@ func TestSQLRepositoryReserveSessionStartRejectsFingerprintMismatch(t *testing.T
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
-		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
+		WithArgs(startSessionAdvisoryLockKey(in)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
@@ -889,7 +955,7 @@ func TestSQLRepositoryReserveSessionStartRejectsConcurrentPendingRecord(t *testi
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
-		WithArgs("user-1\x00practice\x00startPracticeSession\x00key-hash").
+		WithArgs(startSessionAdvisoryLockKey(in)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
@@ -924,7 +990,7 @@ func TestSQLRepositoryReserveSessionStartMapsActivePlanUniqueViolationToConflict
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`select pg_advisory_xact_lock`).
-		WithArgs("user-1\x00practice\x00startPracticeSession\x00different-key-hash").
+		WithArgs(startSessionAdvisoryLockKey(in)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
 		WithArgs(in.UserID, in.IdempotencyKeyHash).
@@ -943,6 +1009,22 @@ func TestSQLRepositoryReserveSessionStartMapsActivePlanUniqueViolationToConflict
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestStartSessionAdvisoryLockKeyIsPostgresTextSafe(t *testing.T) {
+	in := domain.StartSessionReservationInput{
+		UserID:             "user-1",
+		IdempotencyKeyHash: "key-hash",
+	}
+	key := startSessionAdvisoryLockKey(in)
+	if strings.ContainsRune(key, rune(0)) {
+		t.Fatalf("advisory lock key contains NUL byte: %q", key)
+	}
+	for _, part := range []string{in.UserID, "practice", "startPracticeSession", in.IdempotencyKeyHash} {
+		if !strings.Contains(key, part) {
+			t.Fatalf("advisory lock key lost component %q: %q", part, key)
+		}
 	}
 }
 
@@ -1001,6 +1083,27 @@ type auditMetadataArg struct {
 	t         *testing.T
 	expected  map[string]string
 	forbidden []string
+}
+
+type textArrayArg struct {
+	want string
+}
+
+func (a textArrayArg) Match(value driver.Value) bool {
+	switch v := value.(type) {
+	case string:
+		return v == a.want
+	case []byte:
+		return string(v) == a.want
+	case driver.Valuer:
+		raw, err := v.Value()
+		if err != nil {
+			return false
+		}
+		return textArrayArg{want: a.want}.Match(raw)
+	default:
+		return false
+	}
 }
 
 func (a auditMetadataArg) Match(value driver.Value) bool {

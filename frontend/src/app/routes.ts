@@ -9,9 +9,9 @@
  * User-menu routes: profile / settings / auth_logout.
  * Auth pages: auth_login / auth_register / auth_verify / auth_reset / auth_logout.
  *
- * D1 frontend-shell does NOT add legacy welcome / growth / plan / mistakes / drill /
- * followup / experiences / star / standalone voice routes. Old route names normalize
- * to the current set in `normalizeRouteName`.
+ * D1 frontend-shell keeps the formal route catalog to current product routes.
+ * Retired aliases are handled outside this catalog and must never appear as
+ * materialized app routes.
  */
 
 export const PRIMARY_NAV_ROUTES = [

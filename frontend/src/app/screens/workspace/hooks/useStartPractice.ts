@@ -43,7 +43,15 @@ export function useStartPractice() {
     const batch = batchRef.current;
 
     try {
-      let planId = normalizeServerBoundId(ctx.planId);
+      const shouldCreateDerivedPlan =
+        ctx.practiceGoal === "retry_current_round" ||
+        ctx.practiceGoal === "next_round";
+      let planId = shouldCreateDerivedPlan
+        ? undefined
+        : normalizeServerBoundId(ctx.planId);
+      if (shouldCreateDerivedPlan) {
+        dispatch({ type: "CLEAR_PRACTICE_PLAN" });
+      }
       if (planId) {
         try {
           const existingPlan = await runtime.client.getPracticePlan(planId);

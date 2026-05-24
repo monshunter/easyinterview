@@ -56,6 +56,7 @@ const WORKSPACE_SAFE = new Set([
   "targetJobId",
   "jobId",
   "resumeVersionId",
+  "sourceReportId",
   "planId",
   "roundId",
   "roundName",
@@ -83,6 +84,7 @@ const PRACTICE_SAFE = new Set([
   "jobId",
   "jdId",
   "resumeVersionId",
+  "sourceReportId",
   "roundId",
   "roundName",
   "mode",
@@ -161,12 +163,13 @@ const DEBRIEF_SAFE = new Set([
 const PARSE_SAFE = new Set([
   "jdId",
   "targetJobId",
+  "resumeVersionId",
   "importId",
   "source",
   "sourceJobMatchId",
 ]);
 
-const HOME_SAFE = new Set(["pendingImportId", "source"]);
+const HOME_SAFE = new Set(["pendingImportId", "source", "resumeVersionId"]);
 
 const JD_MATCH_SAFE = new Set([
   "tab",

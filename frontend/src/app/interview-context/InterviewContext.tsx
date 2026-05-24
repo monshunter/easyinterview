@@ -20,6 +20,7 @@ export interface InterviewContextState {
   jobId: string;
   jdId?: string;
   resumeVersionId?: string;
+  sourceReportId?: string;
   roundId?: string;
   roundName?: string;
   mode: string;
@@ -49,6 +50,7 @@ export const DEFAULT_INTERVIEW_CONTEXT: InterviewContextState = {
   jobId: "",
   jdId: undefined,
   resumeVersionId: undefined,
+  sourceReportId: undefined,
   roundId: undefined,
   roundName: undefined,
   mode: "text",
@@ -121,6 +123,7 @@ export function interviewContextReducer(
         jdId:
           p.jdId !== undefined ? (p.jdId || undefined) : (targetJobId ? `jd-${targetJobId}` : state.jdId),
         resumeVersionId: p.resumeVersionId || state.resumeVersionId,
+        sourceReportId: p.sourceReportId || state.sourceReportId,
         roundId: p.roundId || state.roundId,
         roundName: p.roundName || state.roundName,
         mode: p.mode || state.mode,
@@ -169,6 +172,7 @@ export function interviewContextReducer(
       return {
         ...state,
         resumeVersionId: undefined,
+        sourceReportId: undefined,
       };
     case "CLEAR_PRACTICE_PLAN":
       return {

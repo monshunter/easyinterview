@@ -30,6 +30,10 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const [importError, setImportError] = useState<string | null>(null);
   const { jobs: rawJobs, loading, error } = useRecentTargetJobs();
   const targetLanguage = lang === "zh" ? "zh-CN" : "en";
+  const routeResumeVersionId =
+    typeof route.params.resumeVersionId === "string"
+      ? route.params.resumeVersionId
+      : undefined;
 
   const jobs = useMemo(() => {
     const sorted = [...rawJobs].sort(
@@ -88,7 +92,13 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
       }
       navigate({
         name: "parse",
-        params: { targetJobId, source: source.source },
+        params: {
+          targetJobId,
+          source: source.source,
+          ...(routeResumeVersionId
+            ? { resumeVersionId: routeResumeVersionId }
+            : {}),
+        },
       });
     } catch (err: unknown) {
       setImportError(
@@ -97,7 +107,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     } finally {
       setImporting(false);
     }
-  }, [navigate, runtime, targetLanguage]);
+  }, [navigate, routeResumeVersionId, runtime, targetLanguage]);
 
   useEffect(() => {
     if (!runtime || runtime.auth.status !== "authenticated") return;
@@ -121,7 +131,13 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         type: "import_jd",
         label: t("home.importBtn"),
         route: "home",
-        params: { source: "paste", pendingImportId },
+        params: {
+          source: "paste",
+          pendingImportId,
+          ...(routeResumeVersionId
+            ? { resumeVersionId: routeResumeVersionId }
+            : {}),
+        },
       });
       return;
     }
@@ -139,7 +155,13 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         type: "import_jd",
         label: t("home.importBtn"),
         route: "home",
-        params: { source: source.source, pendingImportId },
+        params: {
+          source: source.source,
+          pendingImportId,
+          ...(routeResumeVersionId
+            ? { resumeVersionId: routeResumeVersionId }
+            : {}),
+        },
       });
       return;
     }

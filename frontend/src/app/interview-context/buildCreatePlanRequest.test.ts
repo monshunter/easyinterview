@@ -5,6 +5,7 @@ import { DEFAULT_INTERVIEW_CONTEXT, type InterviewContextState } from "./Intervi
 
 const VALID_TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
 const VALID_RESUME_ID = "01918fa0-0000-7000-8000-000000001000";
+const VALID_REPORT_ID = "01918fa0-0000-7000-8000-000000003000";
 
 function context(overrides: Partial<InterviewContextState>): InterviewContextState {
   return {
@@ -24,6 +25,34 @@ describe("buildCreatePlanRequest", () => {
 
     expect(body.targetJobId).toBe(VALID_TARGET_JOB_ID);
     expect(body.resumeAssetId).toBe(VALID_RESUME_ID);
+    expect(body.goal).toBe("baseline");
+    expect(body.sourceReportId).toBeUndefined();
+  });
+
+  it("creates next_round plans from the source report id", () => {
+    const body = buildCreatePlanRequest(
+      context({
+        resumeVersionId: VALID_RESUME_ID,
+        practiceGoal: "next_round",
+        sourceReportId: VALID_REPORT_ID,
+      }),
+      "en",
+    );
+
+    expect(body.goal).toBe("next_round");
+    expect(body.sourceReportId).toBe(VALID_REPORT_ID);
+  });
+
+  it("rejects derived report plans without a valid sourceReportId", () => {
+    expect(() =>
+      buildCreatePlanRequest(
+        context({
+          resumeVersionId: VALID_RESUME_ID,
+          practiceGoal: "next_round",
+        }),
+        "en",
+      ),
+    ).toThrow("invalid sourceReportId");
   });
 
   it("rejects synthetic resume placeholders instead of sending incomplete API bodies", () => {

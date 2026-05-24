@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-24](./2026-05-24-e2e-scenarios-p0-full-funnel-happy-journey-assessment.md) | E2E Scenarios P0 Full Funnel Happy Journey 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-promptfoo-eval-output-path-assessment.md) | Promptfoo Eval Output Path 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-prompt-rubric-real-model-profile-and-evals-assessment.md) | Real Model Profile and Evals 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-frontend-parse-target-switch-assessment.md) | Frontend Parse Target Switch 交付复盘 | #assessment |

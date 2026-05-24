@@ -1,7 +1,7 @@
 # 001 Full Funnel Happy Journey BDD Plan
 
-> **版本**: 1.2
-> **状态**: active
+> **版本**: 1.3
+> **状态**: completed
 > **更新日期**: 2026-05-24
 
 **关联计划**: [plan](./plan.md)
@@ -49,10 +49,10 @@
 | Phase | Phase 2 |
 | 关联 spec AC | C-1, C-2, C-4, C-5, C-6 |
 | 执行入口 | `rc=0; bash scripts/setup.sh && bash scripts/trigger.sh && bash scripts/verify.sh || rc=$?; cleanup_rc=0; bash scripts/cleanup.sh || cleanup_rc=$?; [ "$rc" -ne 0 ] && exit "$rc"; exit "$cleanup_rc"`（在该场景目录内执行） |
-| Given | `setup.sh` 拉起真后端进程（连 dev-stack postgres，`APP_ENV=test`，场景 AI 使用确定性 stub / fixture client）+ 前端 build/preview 以 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1` 指向真后端 base URL（非 fixture mock transport）；通过 `registerResume` + `resume_parse` scenario stub/fixture AI seed 已认证 user 的 ready resume asset；health probe 确认前后端就绪 |
+| Given | `setup.sh` 确认 dev-stack postgres 可达、migrate 状态有效并清理 `.test-output/e2e/p0-099-*`；`scripts/trigger.sh` 通过 `frontend/playwright.e2e.config.ts` 的 Playwright `webServer` 拉起真后端测试进程（连 dev-stack postgres，`APP_ENV=test`，场景 AI 使用确定性 stub / fixture client）+ 前端 build/preview，并以 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1` 指向真后端 base URL（非 fixture mock transport）；后端进程通过 `registerResume` + `resume_parse` scenario stub/fixture AI seed 已认证 user 的 ready resume asset；Playwright health probe 确认前后端就绪 |
 | When | Playwright 驱动真实 UI：(1) 首页导入 JD（paste）；(2) ParseScreen 真实轮询至解析 ready 并 Confirm；(3) 进 WorkspaceScreen 选 resume + 立即面试；(4) PracticeScreen 完成 session；(5) Generating 真实轮询；(6) ReportDashboard 渲染 ready 报告；(7) 点击「进入下一轮」CTA |
 | Then | (a) 跨屏 nav 正确：home → parse → workspace → practice → generating → report；(b) 解析 loading 与 report generating 的真实轮询 UI 在异步 job 推进下过渡到 ready（非 mock 即时返回）；(c)「进入下一轮」CTA 触发 `createPracticePlan(next_round, sourceReportId)` + `startPracticeSession`，nav query 含派生 `planId` + fresh `sessionId`；(d) URL / localStorage / sessionStorage / console 不泄露 JD 原文 / 答案 / 报告 prose；(e) scenario 树旧口径 grep 0 命中；(f) `EI_PLAYWRIGHT_OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright" playwright test --config=playwright.e2e.config.ts tests/e2e/full-funnel-journey.spec.ts` 输出 `passed` 计数且无 `failed` / no-tests，trace / screenshot / video / runner artifacts 只写入 `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/` |
-| Cleanup | 删除 journey 创建的 DB 行；停真后端 / 前端进程；保留 `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/` 下的 trigger.log 与 Playwright 证据产物；失败优先检查环境污染（框架 §8） |
+| Cleanup | Playwright `webServer` 停止真后端 / 前端进程；`scripts/cleanup.sh` 保留 `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/` 下的 trigger.log、state.json 与 Playwright 证据产物；失败优先检查环境污染（框架 §8） |
 | Privacy 反查 | `verify.sh` 断言 URL / storage dump / console dump 不含 raw JD / answer / report prose |
 | Legacy 反查 | `verify.sh` 含 route-aware negative pattern，覆盖 `(^\|[[:space:]'"'/#?&=:-])(welcome\|growth\|mistakes\|drill\|followup\|experiences\|star(_editor)?\|onboarding)([[:space:]'"'/#?&=:-]\|$)\|mode=debrief\|name=['\"](plan\|resume\|voice)['\"]\|route=['\"](plan\|resume\|voice)['\"]\|#route=(plan\|resume\|voice)([[:space:]'"'/#?&=:-]\|$)`，并避免误伤合法 `startPracticeSession` / `createPracticePlan` / `resumeAssetId`；同时运行 frontend scope gate 或等价 scoped grep，证明独立 `voice` route 未回流 |
 

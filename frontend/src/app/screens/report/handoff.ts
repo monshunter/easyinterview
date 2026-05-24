@@ -46,6 +46,7 @@ export function buildReplayPayload(
 ): Record<string, string> {
   const { route, report, sessionId } = input;
   const params = route.params;
+  const sourceReportId = report?.id ?? params.reportId ?? "";
   const replayItems = (report?.retryFocusTurnIds ?? []).join(",");
   const evidenceGaps = (report?.issues ?? [])
     .map((issue) => issue.dimension)
@@ -59,6 +60,7 @@ export function buildReplayPayload(
     targetJobId: params.targetJobId ?? "",
     jdId: params.jdId ?? "",
     resumeVersionId: params.resumeVersionId ?? "",
+    sourceReportId,
     roundId: params.roundId ?? "",
     mode: "text",
     modality: "text",
@@ -74,12 +76,14 @@ export function buildReplayPayload(
 export function buildNextRoundPayload(
   input: ReplayPayloadInput,
 ): Record<string, string> {
-  const { route, sessionId } = input;
+  const { route, report, sessionId } = input;
   const params = route.params;
   const nextRoundId = inferNextRoundId(params.roundId);
   const roundName = params.roundName ?? "";
+  const sourceReportId = report?.id ?? params.reportId ?? "";
   return omitEmpty({
     sourceSessionId: sessionId,
+    sourceReportId,
     nextRoundId,
     roundName,
     roundId: nextRoundId,

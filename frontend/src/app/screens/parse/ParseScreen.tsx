@@ -234,7 +234,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const handleConfirm = useCallback(async () => {
     if (!targetJob || confirming) return;
     const workspaceParams: Record<string, string> = {
-      ...interviewContextFromTargetJob(targetJob),
+      ...interviewContextFromTargetJob(targetJob, {
+        resumeVersionId: route.params.resumeVersionId,
+      }),
     };
 
     if (!runtime || runtime.auth.status === "unauthenticated") {

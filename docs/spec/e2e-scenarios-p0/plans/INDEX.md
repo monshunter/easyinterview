@@ -8,9 +8,9 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-full-funnel-happy-journey](./001-full-funnel-happy-journey/plan.md) | [plan](./001-full-funnel-happy-journey/plan.md) / [checklist](./001-full-funnel-happy-journey/checklist.md) / [bdd-plan](./001-full-funnel-happy-journey/bdd-plan.md) / [bdd-checklist](./001-full-funnel-happy-journey/bdd-checklist.md) / [context](./001-full-funnel-happy-journey/context.yaml) | 1.4 | active | 2026-05-24 |
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
+| [001-full-funnel-happy-journey](./001-full-funnel-happy-journey/plan.md) | [plan](./001-full-funnel-happy-journey/plan.md) / [checklist](./001-full-funnel-happy-journey/checklist.md) / [bdd-plan](./001-full-funnel-happy-journey/bdd-plan.md) / [bdd-checklist](./001-full-funnel-happy-journey/bdd-checklist.md) / [context](./001-full-funnel-happy-journey/context.yaml) | 1.5 | completed | 2026-05-24 |

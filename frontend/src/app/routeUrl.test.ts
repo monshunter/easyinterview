@@ -395,6 +395,7 @@ describe("isSafeRouteParam", () => {
     );
     expect(isSafeRouteParam("workspace", "autoStartPractice", {})).toBe(true);
     expect(isSafeRouteParam("workspace", "sourceSessionId", {})).toBe(true);
+    expect(isSafeRouteParam("workspace", "sourceReportId", {})).toBe(true);
     expect(isSafeRouteParam("workspace", "replayItems", {})).toBe(true);
     expect(isSafeRouteParam("workspace", "evidenceGaps", {})).toBe(true);
     expect(isSafeRouteParam("workspace", "nextRoundId", {})).toBe(true);
@@ -403,6 +404,8 @@ describe("isSafeRouteParam", () => {
     expect(isSafeRouteParam("resume_versions", "tailorRunId", {})).toBe(true);
     expect(isSafeRouteParam("debrief", "debriefJobId", {})).toBe(true);
     expect(isSafeRouteParam("parse", "sourceJobMatchId", {})).toBe(true);
+    expect(isSafeRouteParam("parse", "resumeVersionId", {})).toBe(true);
+    expect(isSafeRouteParam("home", "resumeVersionId", {})).toBe(true);
   });
 
   it("denies raw payload / AI prompt / auth secret keys on every route", () => {

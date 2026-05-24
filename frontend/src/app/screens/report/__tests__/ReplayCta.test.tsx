@@ -259,6 +259,7 @@ describe("Replay CTAs", () => {
 
   it("path B (next round) CTA rotates roundId and auto-starts a fresh practice session (TestNextRoundCta_AutoStartPractice / TestNextRoundCta_NextRoundIdInference)", async () => {
     const client = makeClient({ authenticated: true });
+    const createSpy = client.createPracticePlan as ReturnType<typeof vi.fn>;
     const startSpy = client.startPracticeSession as ReturnType<typeof vi.fn>;
     render(
       <Harness
@@ -276,6 +277,13 @@ describe("Replay CTAs", () => {
     await waitFor(() => {
       expect(startSpy).toHaveBeenCalledTimes(1);
     });
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        goal: "next_round",
+        sourceReportId: REPORT_ID,
+      }),
+      expect.anything(),
+    );
     await waitFor(() => {
       expect(screen.queryByTestId("report-dashboard")).toBeNull();
     });
@@ -301,6 +309,7 @@ describe("Replay payload integrity", () => {
       targetJobId: TARGET_JOB_ID,
       jdId: "jd-1",
       resumeVersionId: RESUME_VERSION_ID,
+      sourceReportId: REPORT_ID,
       roundId: "round-tech-1",
       mode: "text",
       modality: "text",
@@ -331,6 +340,7 @@ describe("Replay payload integrity", () => {
     expect(payload.nextRoundId).toBe("round-tech-2");
     expect(payload.roundId).toBe("round-tech-2");
     expect(payload.practiceGoal).toBe("next_round");
+    expect(payload.sourceReportId).toBe(REPORT_ID);
   });
 
   it("CTA click does not re-invoke getFeedbackReport or any listTargetJobReports call from report scope (TestReplayCtaPathA_NoReportReadCalls)", async () => {

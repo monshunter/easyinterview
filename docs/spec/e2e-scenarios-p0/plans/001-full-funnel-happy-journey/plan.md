@@ -1,7 +1,7 @@
 # 001 Full Funnel Happy Journey
 
-> **版本**: 1.4
-> **状态**: active
+> **版本**: 1.5
+> **状态**: completed
 > **更新日期**: 2026-05-24
 
 **关联 Checklist**: [checklist](./checklist.md)

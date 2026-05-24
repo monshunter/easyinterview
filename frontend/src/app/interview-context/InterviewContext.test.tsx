@@ -32,6 +32,7 @@ describe("InterviewContext reducer", () => {
     expect(DEFAULT_INTERVIEW_CONTEXT.planId).toBeUndefined();
     expect(DEFAULT_INTERVIEW_CONTEXT.jdId).toBeUndefined();
     expect(DEFAULT_INTERVIEW_CONTEXT.resumeVersionId).toBeUndefined();
+    expect(DEFAULT_INTERVIEW_CONTEXT.sourceReportId).toBeUndefined();
     expect(DEFAULT_INTERVIEW_CONTEXT.roundId).toBeUndefined();
     expect(DEFAULT_INTERVIEW_CONTEXT.roundName).toBeUndefined();
     expect(DEFAULT_INTERVIEW_CONTEXT.mode).toBe("text");
@@ -53,6 +54,7 @@ describe("InterviewContext reducer", () => {
         jdId: "jd-1",
         planId: "plan-1",
         resumeVersionId: "rv-1",
+        sourceReportId: "report-1",
         roundId: "round-hr",
         roundName: "HR 初筛",
         practiceMode: "assisted",
@@ -65,6 +67,7 @@ describe("InterviewContext reducer", () => {
     expect(next.jdId).toBe("jd-1");
     expect(next.planId).toBe("plan-1");
     expect(next.resumeVersionId).toBe("rv-1");
+    expect(next.sourceReportId).toBe("report-1");
     expect(next.roundId).toBe("round-hr");
     expect(next.roundName).toBe("HR 初筛");
     expect(next.practiceMode).toBe("assisted");

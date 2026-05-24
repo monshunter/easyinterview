@@ -31,6 +31,7 @@ func (r *SQLRepository) CreatePlan(ctx context.Context, in domain.CreatePlanStor
 	if r == nil || r.db == nil {
 		return domain.PlanRecord{}, fmt.Errorf("practice SQL repository is not configured")
 	}
+	focusCompetencyCodes := append([]string{}, in.FocusCompetencyCodes...)
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return domain.PlanRecord{}, fmt.Errorf("begin create practice plan: %w", err)
@@ -89,7 +90,7 @@ returning id, target_job_id, source_report_id::text, source_debrief_id::text,
 		in.TimeBudgetMinutes,
 		in.QuestionBudget,
 		in.ResumeAssetID,
-		pq.Array(in.FocusCompetencyCodes),
+		pq.Array(focusCompetencyCodes),
 		in.Now,
 	).Scan(
 		&plan.ID,
@@ -304,7 +305,7 @@ func (r *SQLRepository) ReserveSessionStart(ctx context.Context, in domain.Start
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.ExecContext(ctx, `select pg_advisory_xact_lock(hashtext($1))`, strings.Join([]string{in.UserID, "practice", "startPracticeSession", in.IdempotencyKeyHash}, "\x00")); err != nil {
+	if _, err := tx.ExecContext(ctx, `select pg_advisory_xact_lock(hashtext($1))`, startSessionAdvisoryLockKey(in)); err != nil {
 		return domain.SessionReservation{}, fmt.Errorf("lock start session idempotency reservation: %w", err)
 	}
 
@@ -476,6 +477,10 @@ join selected_plan on selected_plan.id = inserted.plan_id`,
 	reservation.IdempotencyRecordID = recordID
 	reservation.UserID = in.UserID
 	return reservation, nil
+}
+
+func startSessionAdvisoryLockKey(in domain.StartSessionReservationInput) string {
+	return strings.Join([]string{in.UserID, "practice", "startPracticeSession", in.IdempotencyKeyHash}, "\x1f")
 }
 
 type selectedStartSessionIdempotency struct {

@@ -1,6 +1,13 @@
-import type { CreatePracticePlanRequest } from "../../api/generated/types";
+import type {
+  CreatePracticePlanRequest,
+  PracticeGoal,
+} from "../../api/generated/types";
 import type { InterviewContextState } from "./InterviewContext";
 import { normalizeServerBoundId } from "./apiIds";
+
+function isDerivedReportGoal(goal: string): goal is PracticeGoal {
+  return goal === "retry_current_round" || goal === "next_round";
+}
 
 /**
  * Builds a CreatePracticePlanRequest from InterviewContext per plan §4.2 mapping.
@@ -19,9 +26,12 @@ export function buildCreatePlanRequest(
     throw new Error("invalid resumeAssetId");
   }
 
-  return {
+  const goal: PracticeGoal = isDerivedReportGoal(ctx.practiceGoal)
+    ? ctx.practiceGoal
+    : "baseline";
+  const body: CreatePracticePlanRequest = {
     targetJobId,
-    goal: "baseline",
+    goal,
     mode: "assisted",
     interviewerPersona: "hiring_manager",
     difficulty: "standard",
@@ -31,4 +41,14 @@ export function buildCreatePlanRequest(
     resumeAssetId,
     focusCompetencyCodes: [],
   };
+
+  if (isDerivedReportGoal(goal)) {
+    const sourceReportId = normalizeServerBoundId(ctx.sourceReportId);
+    if (!sourceReportId) {
+      throw new Error("invalid sourceReportId");
+    }
+    body.sourceReportId = sourceReportId;
+  }
+
+  return body;
 }
