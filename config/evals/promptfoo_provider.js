@@ -19,8 +19,9 @@ class EvalkitProvider {
     if (!caseId) {
       return { error: 'evalkit provider: missing caseId var' };
     }
+    const live = process.env.EVAL_LIVE === '1' ? ['--live'] : [];
     try {
-      const out = execFileSync(evalkitBin, ['complete', '--case', caseId], {
+      const out = execFileSync(evalkitBin, ['complete', '--case', caseId, ...live], {
         cwd: repoRoot,
         encoding: 'utf8',
         env: process.env,

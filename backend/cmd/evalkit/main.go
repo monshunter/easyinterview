@@ -21,6 +21,8 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/bootstrap"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	"github.com/monshunter/easyinterview/backend/internal/eval"
+	"github.com/monshunter/easyinterview/backend/internal/platform/config"
+	"github.com/monshunter/easyinterview/backend/internal/platform/secrets"
 	"gopkg.in/yaml.v3"
 )
 
@@ -41,6 +43,7 @@ func main() {
 	cmd := os.Args[1]
 	fs := flag.NewFlagSet(cmd, flag.ExitOnError)
 	var p paths
+	var live liveOpts
 	fs.StringVar(&p.evals, "evals", "config/evals", "eval suite directory")
 	fs.StringVar(&p.prompts, "prompts", "config/prompts", "prompts truth source directory")
 	fs.StringVar(&p.rubrics, "rubrics", "config/rubrics", "rubrics truth source directory")
@@ -48,15 +51,28 @@ func main() {
 	caseID := fs.String("case", "", "case id (complete/grade)")
 	outFile := fs.String("out", "", "output file (resolve/prompts-tests); default stdout")
 	outputArg := fs.String("output", "", "candidate output JSON to grade (grade); default stdin")
+	// --live opts into real provider/judge calls. The EVAL_LIVE env opt-in is
+	// translated to this flag by the Makefile / Promptfoo bridge so this binary
+	// never reads os.Getenv directly (secrets-and-config §4.1 boundary).
+	fs.BoolVar(&live.enabled, "live", false, "opt into real provider/judge calls (EVAL_LIVE)")
+	fs.StringVar(&live.appEnv, "app-env", "dev", "APP_ENV for the live runtime")
+	fs.StringVar(&live.configDir, "config-dir", "config", "config directory for the live runtime")
 	_ = fs.Parse(os.Args[2:])
 
-	if err := run(cmd, p, *caseID, *outFile, *outputArg); err != nil {
+	if err := run(cmd, p, *caseID, *outFile, *outputArg, live); err != nil {
 		fmt.Fprintf(os.Stderr, "evalkit %s: %v\n", cmd, err)
 		os.Exit(1)
 	}
 }
 
-func run(cmd string, p paths, caseID, outFile, outputArg string) error {
+// liveOpts carries the EVAL_LIVE opt-in and the live runtime config inputs.
+type liveOpts struct {
+	enabled   bool
+	appEnv    string
+	configDir string
+}
+
+func run(cmd string, p paths, caseID, outFile, outputArg string, live liveOpts) error {
 	switch cmd {
 	case "version":
 		fmt.Println("evalkit 1.0.0")
@@ -66,11 +82,11 @@ func run(cmd string, p paths, caseID, outFile, outputArg string) error {
 	case "drift-check":
 		return cmdDriftCheck(p)
 	case "run":
-		return cmdRun(p)
+		return cmdRun(p, live)
 	case "complete":
-		return cmdComplete(p, caseID)
+		return cmdComplete(p, caseID, live)
 	case "grade":
-		return cmdGrade(p, caseID, outputArg)
+		return cmdGrade(p, caseID, outputArg, live)
 	case "prompts-tests":
 		return cmdPromptsTests(p, outFile)
 	default:
@@ -89,8 +105,6 @@ func loadSuiteAndRegistry(p paths) (*eval.Suite, *registry.Client, error) {
 	}
 	return suite, reg, nil
 }
-
-func liveEnabled() bool { return os.Getenv("EVAL_LIVE") == "1" }
 
 func cmdResolve(p paths, outFile string) error {
 	suite, reg, err := loadSuiteAndRegistry(p)
@@ -143,7 +157,7 @@ func cmdDriftCheck(p paths) error {
 	return nil
 }
 
-func cmdRun(p paths) error {
+func cmdRun(p paths, live liveOpts) error {
 	suite, reg, err := loadSuiteAndRegistry(p)
 	if err != nil {
 		return err
@@ -152,8 +166,8 @@ func cmdRun(p paths) error {
 		return fmt.Errorf("offline eval suite has %d cases, need >= %d", suite.Count(), minCases)
 	}
 	ctx := context.Background()
-	if liveEnabled() {
-		return runLive(ctx, suite, reg)
+	if live.enabled {
+		return runLive(ctx, suite, reg, live)
 	}
 	results, err := suite.RunOffline(ctx, reg)
 	if err != nil {
@@ -163,7 +177,7 @@ func cmdRun(p paths) error {
 	return nil
 }
 
-func cmdComplete(p paths, caseID string) error {
+func cmdComplete(p paths, caseID string, live liveOpts) error {
 	suite, reg, err := loadSuiteAndRegistry(p)
 	if err != nil {
 		return err
@@ -172,8 +186,8 @@ func cmdComplete(p paths, caseID string) error {
 	if !ok {
 		return fmt.Errorf("case %q not found", caseID)
 	}
-	if liveEnabled() {
-		out, err := liveComplete(context.Background(), reg, c)
+	if live.enabled {
+		out, err := liveComplete(context.Background(), reg, c, live)
 		if err != nil {
 			return err
 		}
@@ -188,7 +202,7 @@ func cmdComplete(p paths, caseID string) error {
 	return nil
 }
 
-func cmdGrade(p paths, caseID, outputArg string) error {
+func cmdGrade(p paths, caseID, outputArg string, live liveOpts) error {
 	suite, reg, err := loadSuiteAndRegistry(p)
 	if err != nil {
 		return err
@@ -206,8 +220,8 @@ func cmdGrade(p paths, caseID, outputArg string) error {
 	}
 	ctx := context.Background()
 	var model registry.JudgeModelClient
-	if liveEnabled() {
-		model, err = liveJudgeModel()
+	if live.enabled {
+		model, err = liveJudgeModel(live)
 	} else {
 		model, err = c.OfflineJudgeModel()
 	}
@@ -271,23 +285,37 @@ func cmdPromptsTests(p paths, outFile string) error {
 	return os.WriteFile(target, data, 0o644)
 }
 
-// --- live (EVAL_LIVE=1) wiring; opt-in, not exercised by make test/eval-offline ---
+// --- live (EVAL_LIVE -> --live) wiring; opt-in, not exercised by make test/eval-offline ---
+//
+// The live runtime loads provider config and secrets through the allowlisted
+// platform/config + platform/secrets composition root, so this command never
+// reads os.Getenv itself (secrets-and-config §4.1 boundary).
 
-func liveRuntime() (*bootstrap.Runtime, error) {
-	cfg := aiclient.Config{
-		AppEnv:               envOr("APP_ENV", "dev"),
-		ProviderRegistryPath: envOr("AI_PROVIDER_REGISTRY_PATH", "config/ai-providers.yaml"),
-		ModelProfilePath:     envOr("AI_MODEL_PROFILE_PATH", "config/ai-profiles.yaml"),
+func liveRuntime(live liveOpts) (*bootstrap.Runtime, error) {
+	loader, err := config.LoadCanonical(config.CanonicalOptions{
+		AppEnv:       live.appEnv,
+		ConfigDir:    live.configDir,
+		SecretSource: secrets.EnvSecretSource{},
+	})
+	if err != nil {
+		return nil, err
 	}
-	return bootstrap.NewClient(bootstrap.Options{Config: cfg, SecretSource: envSecretSource{}})
+	return bootstrap.NewClient(bootstrap.Options{
+		Config: aiclient.Config{
+			AppEnv:               loader.AppEnv(),
+			ProviderRegistryPath: loader.GetString("ai.providerRegistryPath"),
+			ModelProfilePath:     loader.GetString("ai.modelProfilePath"),
+		},
+		SecretSource: secrets.EnvSecretSource{},
+	})
 }
 
-func liveComplete(ctx context.Context, reg *registry.Client, c eval.Case) (string, error) {
+func liveComplete(ctx context.Context, reg *registry.Client, c eval.Case, live liveOpts) (string, error) {
 	res, err := reg.ResolveActive(ctx, c.FeatureKey, c.Language)
 	if err != nil {
 		return "", err
 	}
-	rt, err := liveRuntime()
+	rt, err := liveRuntime(live)
 	if err != nil {
 		return "", err
 	}
@@ -311,8 +339,8 @@ func liveComplete(ctx context.Context, reg *registry.Client, c eval.Case) (strin
 	return resp.Content, nil
 }
 
-func liveJudgeModel() (registry.JudgeModelClient, error) {
-	rt, err := liveRuntime()
+func liveJudgeModel(live liveOpts) (registry.JudgeModelClient, error) {
+	rt, err := liveRuntime(live)
 	if err != nil {
 		return nil, err
 	}
@@ -321,14 +349,14 @@ func liveJudgeModel() (registry.JudgeModelClient, error) {
 	return rt.Client, nil
 }
 
-func runLive(ctx context.Context, suite *eval.Suite, reg *registry.Client) error {
-	rt, err := liveRuntime()
+func runLive(ctx context.Context, suite *eval.Suite, reg *registry.Client, live liveOpts) error {
+	rt, err := liveRuntime(live)
 	if err != nil {
 		return err
 	}
 	defer rt.Close()
 	for _, c := range suite.Cases {
-		out, err := liveComplete(ctx, reg, c)
+		out, err := liveComplete(ctx, reg, c, live)
 		if err != nil {
 			return fmt.Errorf("case %q live complete: %w", c.ID, err)
 		}
@@ -338,21 +366,4 @@ func runLive(ctx context.Context, suite *eval.Suite, reg *registry.Client) error
 	}
 	fmt.Printf("evalkit run: OK (live, %d cases)\n", suite.Count())
 	return nil
-}
-
-func envOr(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
-}
-
-type envSecretSource struct{}
-
-func (envSecretSource) Get(name string) (string, error) {
-	v := os.Getenv(name)
-	if v == "" {
-		return "", fmt.Errorf("secret %q not set", name)
-	}
-	return v, nil
 }

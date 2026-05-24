@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-24](2026-05-24.md) | `feat(prompt-rubric): close 004 verification and route evalkit env via platform config` | #feat #test #docs |
 | [2026-05-24](2026-05-24.md) | `feat(prompt-rubric): land offline eval suite and promptfoo runner` | #feat #test #docs |
 | [2026-05-24](2026-05-24.md) | `feat(prompt-rubric): activate judge.default and guard non-placeholder coverage` | #feat #test #docs |
 | [2026-05-24](2026-05-24.md) | `feat(prompt-rubric): implement llm judge dispatch and per-dimension judge` | #feat #test #docs |

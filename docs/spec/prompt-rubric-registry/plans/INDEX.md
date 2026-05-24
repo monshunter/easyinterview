@@ -8,12 +8,12 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [004-real-model-profile-and-evals](./004-real-model-profile-and-evals/plan.md) | [plan](./004-real-model-profile-and-evals/plan.md) / [checklist](./004-real-model-profile-and-evals/checklist.md) / [context](./004-real-model-profile-and-evals/context.yaml) | 1.2 | active | 2026-05-24 |
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
+| [004-real-model-profile-and-evals](./004-real-model-profile-and-evals/plan.md) | [plan](./004-real-model-profile-and-evals/plan.md) / [checklist](./004-real-model-profile-and-evals/checklist.md) / [context](./004-real-model-profile-and-evals/context.yaml) | 1.2 | completed | 2026-05-24 |
 | [003-language-coordinate-simplification](./003-language-coordinate-simplification/plan.md) | [plan](./003-language-coordinate-simplification/plan.md) / [checklist](./003-language-coordinate-simplification/checklist.md) / [context](./003-language-coordinate-simplification/context.yaml) | 1.0 | completed | 2026-05-24 |
 | [001-baseline](./001-baseline/plan.md) | [plan](./001-baseline/plan.md) / [checklist](./001-baseline/checklist.md) / [context](./001-baseline/context.yaml) | 1.2 | completed | 2026-05-09 |
 | [002-output-schema-contract](./002-output-schema-contract/plan.md) | [plan](./002-output-schema-contract/plan.md) / [checklist](./002-output-schema-contract/checklist.md) / [context](./002-output-schema-contract/context.yaml) | 1.5 | completed | 2026-05-24 |

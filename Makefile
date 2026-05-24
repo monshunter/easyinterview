@@ -82,7 +82,7 @@ eval-offline-resolve: ## F3: regenerate the committed registry-resolved single-s
 eval-offline: ## F3 offline eval (NOT in make test): single-source drift gate + >=50 count + Promptfoo runner over recorded fixtures; EVAL_LIVE=1 opts into real provider/judge calls
 	@cd "$(ROOT_DIR)" && go build -o backend/bin/evalkit ./backend/cmd/evalkit
 	@cd "$(ROOT_DIR)" && ./backend/bin/evalkit drift-check
-	@cd "$(ROOT_DIR)" && ./backend/bin/evalkit run
+	@cd "$(ROOT_DIR)" && ./backend/bin/evalkit run $(if $(EVAL_LIVE),--live,)
 	@cd "$(ROOT_DIR)" && ./backend/bin/evalkit prompts-tests --out config/evals/.generated/promptfoo_tests.yaml
 	@cd "$(ROOT_DIR)" && PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 EVALKIT_BIN="$(ROOT_DIR)/backend/bin/evalkit" pnpm exec promptfoo eval -c config/evals/promptfooconfig.yaml --no-cache
 

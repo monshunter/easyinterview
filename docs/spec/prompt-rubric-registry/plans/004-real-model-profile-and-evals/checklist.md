@@ -1,7 +1,7 @@
 # F3 Real Model Profile and Evals Checklist
 
 > **版本**: 1.2
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-05-24
 
 **关联计划**: [plan](./plan.md)
@@ -47,7 +47,7 @@
 
 ## Phase 5: 验证、生命周期与收口
 
-- [ ] 5.1 focused + 聚合验证（registry/aiclient/profile go tests、lint-ai-profile-coverage、eval-offline、make lint、make test、make build）— 验证：`make lint` / `make test` / `make build` + 上述命令全绿
-- [ ] 5.2 active-scope zero-reference grep 门禁（完整旧编号、短写旧编号、stale spec version 在 active specs、F3 plans index、README 与代码/配置/脚本 truth source = 0，排除本 plan 自身 gate 定义目录与 completed plan/history/reports/work-journal/bugs 历史资产）— 验证：`rg -n '002-real-model|003-grayscale|F3 后续 002|prompt-rubric-registry/spec\.md.*v2\.[0-8]' docs/spec/*/spec.md docs/spec/prompt-rubric-registry/plans/INDEX.md config backend scripts --glob '!docs/spec/prompt-rubric-registry/plans/004-real-model-profile-and-evals/**'`
-- [ ] 5.3 profile status 范围负向断言（仅 judge.default 改 status，13 chat 未翻动；judge provider ref 非 placeholder）— 验证：`git diff config/ai-profiles.yaml config/ai-providers.yaml`
-- [ ] 5.4 docs/lifecycle 收口（validate_context、sync-doc-index --check、docs-check、git diff --check；004 置 completed；INDEX/work-journal/retrospective；缺陷建档）— 验证：`make docs-check` + `python3 .agent-skills/implement/shared/scripts/validate_context.py ...`
+- [x] 5.1 focused + 聚合验证（registry/aiclient/profile go tests、lint-ai-profile-coverage、eval-offline、make lint、make test、make build）— 验证：`make lint` / `make test` / `make build` + 上述命令全绿
+- [x] 5.2 active-scope zero-reference grep 门禁（完整旧编号、短写旧编号、stale spec version 在 active specs、F3 plans index、README 与代码/配置/脚本 truth source = 0，排除本 plan 自身 gate 定义目录与 completed plan/history/reports/work-journal/bugs 历史资产）— 验证：`rg -n '002-real-model|003-grayscale|F3 后续 002|prompt-rubric-registry/spec\.md.*v2\.[0-8]' docs/spec/*/spec.md docs/spec/prompt-rubric-registry/plans/INDEX.md config backend scripts --glob '!docs/spec/prompt-rubric-registry/plans/004-real-model-profile-and-evals/**'`
+- [x] 5.3 profile status 范围负向断言（仅 judge.default 改 status，13 chat 未翻动；judge provider ref 非 placeholder）— 验证：`git diff config/ai-profiles.yaml config/ai-providers.yaml`
+- [x] 5.4 docs/lifecycle 收口（validate_context、sync-doc-index --check、docs-check、git diff --check；004 置 completed；INDEX/work-journal/retrospective；缺陷建档）— 验证：`make docs-check` + `python3 .agent-skills/implement/shared/scripts/validate_context.py ...`

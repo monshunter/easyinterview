@@ -15,8 +15,9 @@ module.exports = (output, context) => {
   if (!caseId) {
     return { pass: false, score: 0, reason: 'evalkit assert: missing caseId var' };
   }
+  const live = process.env.EVAL_LIVE === '1' ? ['--live'] : [];
   try {
-    const raw = execFileSync(evalkitBin, ['grade', '--case', caseId, '--output', output], {
+    const raw = execFileSync(evalkitBin, ['grade', '--case', caseId, '--output', output, ...live], {
       cwd: repoRoot,
       encoding: 'utf8',
       env: process.env,
