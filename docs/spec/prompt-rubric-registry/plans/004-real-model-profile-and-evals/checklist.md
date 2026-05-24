@@ -22,8 +22,8 @@
 
 ## Phase 2: judge capability dispatch + 真实 LLMJudge 实现
 
-- [x] 2.1 A3 judge dispatch / adapter 红灯：`Complete` 继续拒绝 judge profile，`CompleteJudge`/等价窄接口只接受 `CapabilityJudge`，`CompleteJudge` 调 chat profile fail-close，bootstrap 不再把 `judge_compatible` 判为未实现 — 验证：`go test ./backend/internal/ai/aiclient/... -run 'Test.*Judge|Test.*judge' -count=1`
-- [x] 2.2 实现 judge capability dispatch 与 `providers/judge_compatible` adapter；延续 secret fail-fast、fallback、observability 与 privacy red-line — 验证：`go test ./backend/internal/ai/aiclient/... -run 'Test.*Judge|Test.*judge' -count=1`
+- [x] 2.1 A3 judge dispatch / adapter 红灯：`Complete` 继续拒绝 judge profile，`CompleteJudge`/等价窄接口只接受 `CapabilityJudge`，`CompleteJudge` 调 chat profile fail-close，bootstrap 不再把 `judge_compatible` 判为未实现 — 验证：`go test ./backend/internal/ai/aiclient/... -run 'Test.*Judge|Test.*judge' -count=1` + `go test ./backend/internal/ai/aiclient/providers/judge_compatible -count=1`（adapter 测试名不匹配 judge 正则，须独立包 gate 选中）
+- [x] 2.2 实现 judge capability dispatch 与 `providers/judge_compatible` adapter；延续 secret fail-fast、fallback、observability 与 privacy red-line — 验证：`go test ./backend/internal/ai/aiclient/... -run 'Test.*Judge|Test.*judge' -count=1` + `go test ./backend/internal/ai/aiclient/providers/judge_compatible -count=1`（adapter secret fail-fast / wrong-protocol / fail-close 经独立包 gate 证明）
 - [x] 2.3 新增 `judge_llm_test.go`：录制 fixture judge 响应断言逐维度 `[]Score`（len==dimensions、维度名匹配、Value∈[0,1]、Reasoning.Summary 非空、EvidenceQuotes 允许为空数组而不报错）（先红）— 验证：`go test ./backend/internal/ai/registry -run TestLLMJudge`
 - [x] 2.4 实现 `LLMJudge`（注入 RegistryClient+judge model client，经 judge.default 调用，逐维度产出 []Score+Reasoning；business prompt 经 registry 解析，judge 评分指令从 `config/evals/` 读取且不 hardcode）— 验证：`go test ./backend/internal/ai/registry -run TestLLMJudge` + `make lint-prompts-hardcode`
 - [x] 2.5 fail-close 负向单测（judge profile 不可用 / 输出不可解析 / 被评估 output schema invalid / 维度数量与 rubric 不匹配 → error，不静默补零；schema 校验复用 A3 同一子集语义）— 验证：`go test ./backend/internal/ai/registry -run TestLLMJudgeFailClose`
