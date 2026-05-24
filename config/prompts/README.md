@@ -19,23 +19,24 @@ config/prompts/
     <version>.schema.json                    (language-independent output schema)
     <version>.yaml                          (language: multi default)
     <version>.md                            (template body for multi)
-    <version>.<language>.yaml               (language variant; ISO-639 lowercase)
-    <version>.<language>.md                 (template body for that variant)
+    <version>.<language>.yaml               (optional semantic language override)
+    <version>.<language>.md                 (template body for that override)
 ```
 
 - `<feature_key>` is one of the 13 baseline keys frozen in
   `docs/spec/prompt-rubric-registry/spec.md` §3.1.1.
 - `<version>` is a SemVer string; baseline starts at `v0.1.0`.
 - `<language>` is either `multi` (omitted from the filename) or an ISO-639
-  lowercase code such as `en` or `zh`. Every feature_key ships at least two
-  language coordinates including `multi`, so the F3 RegistryClient can
-  exercise the D-6 fallback path (`exact language → multi`).
+  lowercase code such as `en` or `zh`. Baseline feature keys ship only the
+  canonical `multi` coordinate. Add a concrete language override only when
+  the task semantics genuinely differ by language or region; do not duplicate
+  `multi` just to create an English or UI-language copy.
 - The Markdown file at the same path holds the prompt template body. Every
   YAML must have a sibling Markdown file with the matching basename.
 - `<version>.schema.json` is language-independent. There is exactly one output
   schema per `(feature_key, version)` for JSON-producing chat feature keys.
-  It is shared by `multi` and every language variant and never has a language
-  suffix.
+  It is shared by `multi` and every optional language override and never has
+  a language suffix.
 
 ## 2 YAML meta schema (fixed field order)
 
@@ -116,8 +117,8 @@ field list that can drift from the schema.
 Rules:
 
 1. **Language-independent**: JSON keys and structure do not vary by prompt
-   language. The same schema applies to `multi`, `en`, `zh`, and any later
-   language variant for the same `(feature_key, version)`.
+   language. The same schema applies to `multi` and any later language
+   override for the same `(feature_key, version)`.
 2. **Allowed validation subset**: schemas may use only `type`, `required`,
    `properties`, `items`, and `enum`. `description` is allowed as a
    non-validation annotation for rendered prompt text and reviewer context.
@@ -153,10 +154,12 @@ Rules:
 - Use `{{variable_name}}` interpolation markers. Variables share
   vocabulary with the existing targetjob bridge (`{{jd_text}}`, `{{language}}`,
   `{{rubric_dimensions}}`, etc.) so no new templating syntax is introduced.
-- Keep the body in the language declared by `language`. The `multi` body
-  must be language-neutral: an English-anchored prompt is acceptable when the
-  variables themselves carry user content, but the prose surrounding the
-  variables must not assume a specific user language.
+- Keep the body aligned to the language coordinate. The `multi` body must be
+  language-neutral and must include an explicit output-language instruction
+  through `{{language}}` or an equivalent runtime variable. English-anchored
+  instruction prose is acceptable when the model is told to answer in the
+  requested language; do not create an `en` variant only to replace that
+  instruction with "Respond in English."
 - Do **not** include the literal stub markers reserved for the linter to
   reject. The exact list of marker tokens lives in
   `scripts/lint/prompt_lint.py` so the README can sit under the same grep
@@ -187,22 +190,27 @@ The rendered block contract is:
   block explicitly says the model must return a JSON value rather than JSON
   Schema or an OpenAPI schema. The example must parse as JSON and pass the same
   schema subset validator used by lint.
-- `multi` and language variants render the same JSON keys and structure. Only
-  surrounding task prose may differ by language.
+- `multi` and optional language overrides render the same JSON keys and
+  structure. Only surrounding task prose may differ, and only when that
+  difference carries real task semantics.
 - Manual edits that add, remove, rename, or reorder output keys in the prompt
   contract block must make `make lint-prompts` fail until the schema or prompt
   block is corrected.
 
-## 7 Multi-language convention
+## 7 Language coordinate convention
 
-- `<feature_key>/<version>.yaml` is the default (`language: multi`) and is
-  paired with `<feature_key>/<version>.md`.
-- Variants are `<feature_key>/<version>.<language>.yaml` paired with
+- `<feature_key>/<version>.yaml` is the canonical baseline (`language:
+  multi`) and is paired with `<feature_key>/<version>.md`.
+- Optional overrides are `<feature_key>/<version>.<language>.yaml` paired with
   `<feature_key>/<version>.<language>.md`. The filename language tag must
   match the YAML `language` field.
-- A feature_key must ship at least two language coordinates including
-  `multi`. Phase 5 verifies that every baseline directory contains both
-  the `multi` baseline and at least one language variant.
+- Baseline feature keys must ship the `multi` coordinate. They must not ship
+  duplicate `en`, `zh`, or other language copies unless a spec/plan records
+  the semantic reason for that override. Examples of valid reasons include
+  region-specific legal language, localized interview norms, or an explicit
+  English-expression training mode. UI localization and normal output-language
+  selection are not valid reasons; those are handled by `{{language}}`,
+  frontend i18n, and caller-provided runtime language.
 - Resolution at runtime prefers exact-language match, falling back to
   `multi`. If neither the exact language nor `multi` is present, F3
   RegistryClient returns `ErrLanguageUnsupported`.
@@ -233,9 +241,10 @@ The lint gate rejects:
 
 ## 10 References
 
-- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.6
+- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.7
 - Plans: `docs/spec/prompt-rubric-registry/plans/001-baseline/plan.md`,
-  `docs/spec/prompt-rubric-registry/plans/002-output-schema-contract/plan.md`
+  `docs/spec/prompt-rubric-registry/plans/002-output-schema-contract/plan.md`,
+  `docs/spec/prompt-rubric-registry/plans/003-language-coordinate-simplification/plan.md`
 - DB schema: `migrations/000001_create_baseline.up.sql` (`prompt_versions` table)
 - Lint: `scripts/lint/prompt_lint.py`
 - Go loader: `backend/internal/ai/registry/loader.go`

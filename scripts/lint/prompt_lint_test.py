@@ -105,7 +105,7 @@ def _hint_schema() -> dict:
 
 def _body_with_contract(schema: dict) -> str:
     module = _load_module()
-    return "Fixture prompt.\n\n" + module.render_output_contract(schema) + "\n"
+    return "Fixture prompt.\nRespond in {{language}}.\n\n" + module.render_output_contract(schema) + "\n"
 
 
 def _write_baseline_pair(
@@ -203,6 +203,54 @@ def test_field_order_negative(tmp_path):
     result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
     assert result.returncode == 1
     assert "field order" in result.stderr
+
+
+def test_language_override_without_allowlist_negative(tmp_path):
+    """Baseline storage is canonical multi; duplicate language variants need rationale."""
+    feature_key = "practice.turn.lightweight_observe"
+    schema = _hint_schema()
+    body = _body_with_contract(schema)
+    feature_dir = _write_baseline_pair(tmp_path, feature_key, body, schema=schema)
+
+    module = _load_module()
+    override_meta = {
+        "feature_key": feature_key,
+        "version": "v0.1.0",
+        "language": "en",
+        "status": "active",
+        "created_at": "2026-05-09T12:00:00Z",
+    }
+    override_hash = module.expected_hash(body.encode("utf-8"), override_meta)
+    (feature_dir / "v0.1.0.en.md").write_text(body, encoding="utf-8")
+    (feature_dir / "v0.1.0.en.yaml").write_text(
+        textwrap.dedent(
+            f"""\
+            feature_key: "{feature_key}"
+            version: "v0.1.0"
+            language: "en"
+            template_hash: "{override_hash}"
+            status: "active"
+            created_at: "2026-05-09T12:00:00Z"
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
+    assert result.returncode == 1
+    assert "language override" in result.stderr
+    assert "not allowlisted" in result.stderr
+
+
+def test_multi_prompt_without_runtime_language_instruction_negative(tmp_path):
+    feature_key = "practice.turn.lightweight_observe"
+    schema = _hint_schema()
+    body = _body_with_contract(schema).replace("Respond in {{language}}.\n\n", "")
+    _write_baseline_pair(tmp_path, feature_key, body, schema=schema)
+
+    result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
+    assert result.returncode == 1
+    assert "runtime language instruction" in result.stderr
 
 
 def test_output_schema_illegal_keyword_negative(tmp_path):

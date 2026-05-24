@@ -17,18 +17,20 @@ config/rubrics/
   README.md                                 (this file — schema description)
   <feature_key>/
     <version>.yaml                          (language: multi default)
-    <version>.<language>.yaml               (language variant; ISO-639 lowercase)
+    <version>.<language>.yaml               (optional semantic language override)
 ```
 
-- `<feature_key>` is one of the 11 baseline keys frozen in
+- `<feature_key>` is one of the 13 baseline keys frozen in
   `docs/spec/prompt-rubric-registry/spec.md` §3.1.1 and must match the parent
   directory of the matching prompt under `config/prompts/`.
 - `<version>` is a SemVer literal of the form `vMAJOR.MINOR.PATCH`; baseline
   starts at `v0.1.0`.
 - `<language>` is either `multi` (omitted from the filename) or an ISO-639
-  lowercase code such as `en` or `zh`. The set of language coordinates for a
-  feature_key's rubric must equal the set for its prompt — Phase 4
-  integration test asserts this parity.
+  lowercase code such as `en` or `zh`. Baseline rubrics ship only the
+  canonical `multi` coordinate. Add a concrete language override only when
+  the evaluation standard itself genuinely differs by language or region.
+  User-visible translation of rubric labels belongs in UI/i18n surfaces, not
+  duplicated rubric truth-source files.
 
 ## 2 YAML schema
 
@@ -99,18 +101,21 @@ requires (a) adding it here, (b) bumping the linter's allowlist constant, and
 - `label` is a short human-readable name such as `weak`, `developing`,
   `proficient`, `strong`. Labels are not enumerated by the linter so feature
   owners may keep a domain-specific vocabulary, but they should be stable
-  across baseline language variants of the same feature_key.
+  across optional language overrides of the same feature_key.
 - `description` is a one-sentence operational definition. It must not
   reference user-identifiable information or include model/provider strings.
 
-## 5 Multi-language convention
+## 5 Language coordinate convention
 
-- `<feature_key>/<version>.yaml` is the default (`language: multi`).
-- Variants are `<feature_key>/<version>.<language>.yaml`. The filename
-  language tag must match the YAML `language` field.
-- Phase 5 verifies that every baseline rubric directory contains both the
-  `multi` baseline and at least one language variant, and that the language
-  set equals the prompt language set for the same feature_key.
+- `<feature_key>/<version>.yaml` is the canonical baseline (`language:
+  multi`).
+- Optional overrides are `<feature_key>/<version>.<language>.yaml`. The
+  filename language tag must match the YAML `language` field.
+- Baseline feature keys must ship the `multi` coordinate. They must not ship
+  duplicate `en`, `zh`, or other language copies unless a spec/plan records
+  the semantic reason for the override. When an override exists, the prompt
+  and rubric language coordinate sets for that feature_key must match so
+  `ResolveActive` never returns a prompt without the corresponding rubric.
 
 ## 6 Weight sum tolerance
 
@@ -132,8 +137,9 @@ The lint gate rejects:
 
 ## 8 References
 
-- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.1
-- Plan: `docs/spec/prompt-rubric-registry/plans/001-baseline/plan.md`
+- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.7
+- Plans: `docs/spec/prompt-rubric-registry/plans/001-baseline/plan.md`,
+  `docs/spec/prompt-rubric-registry/plans/003-language-coordinate-simplification/plan.md`
 - DB schema: `migrations/000001_create_baseline.up.sql` (`rubric_versions` table)
 - Lint: `scripts/lint/rubric_lint.py`
 - Go loader: `backend/internal/ai/registry/loader.go`

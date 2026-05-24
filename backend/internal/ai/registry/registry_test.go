@@ -18,9 +18,9 @@ func TestNewRegistryClientLoadsAllBaselines(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRegistryClient: %v", err)
 	}
-	// 13 feature_keys * 2 languages (multi + en) == 26 coordinates.
-	if got := client.SnapshotSize(); got != 26 {
-		t.Fatalf("SnapshotSize: want 26, got %d", got)
+	// 13 feature_keys * canonical multi coordinate.
+	if got := client.SnapshotSize(); got != 13 {
+		t.Fatalf("SnapshotSize: want 13, got %d", got)
 	}
 }
 

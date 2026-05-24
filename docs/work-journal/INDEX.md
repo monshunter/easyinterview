@@ -12,6 +12,7 @@
 | [2026-05-24](2026-05-24.md) | `fix(frontend-home): preserve parse confirm context (BUG-0100)` | #fix #ui #test #docs |
 | [2026-05-24](2026-05-24.md) | `docs(retrospective): assess parse loading browser gate` | #docs |
 | [2026-05-24](2026-05-24.md) | `test(frontend-home): add parse loading browser gate (BUG-0099)` | #test #ui #docs |
+| [2026-05-24](2026-05-24.md) | `refactor(prompt-rubric): simplify language coordinate registry` | #refactor #test #docs |
 | [2026-05-24](2026-05-24.md) | `fix(frontend-home): preserve parse loading demo (BUG-0099)` | #fix #ui #test #docs |
 | [2026-05-24](2026-05-24.md) | `fix(prompt-rubric): close output schema review findings (BUG-0098)` | #fix #test #docs |
 | [2026-05-24](2026-05-24.md) | `fix(prompt-rubric): seed jd match prompt registry rows (BUG-0097)` | #fix #test #docs |

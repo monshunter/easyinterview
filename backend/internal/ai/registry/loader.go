@@ -321,15 +321,22 @@ func readRubric(yamlPath string) (*rubricEntry, error) {
 	}, nil
 }
 
-// validateLanguageParity ensures every prompt feature_key has a matching
-// rubric feature_key and the language coordinate set agrees. Mismatch is a
-// hard failure at startup so suspended baselines do not slip into staging.
+// validateLanguageParity ensures every feature_key has canonical multi
+// prompt/rubric entries and any language override is present on both sides.
+// Mismatch is a hard failure at startup so suspended baselines do not slip
+// into staging.
 func validateLanguageParity(snap *snapshot) error {
 	// Every prompt feature_key must have a rubric.
 	for fk, langs := range snap.prompts {
 		rubricLangs, ok := snap.rubrics[fk]
 		if !ok {
 			return fmt.Errorf("registry: feature_key %q has prompt(s) but no rubric", fk)
+		}
+		if _, ok := langs["multi"]; !ok {
+			return fmt.Errorf("registry: feature_key %q missing canonical multi prompt", fk)
+		}
+		if _, ok := rubricLangs["multi"]; !ok {
+			return fmt.Errorf("registry: feature_key %q missing canonical multi rubric", fk)
 		}
 		for lang := range langs {
 			if _, ok := rubricLangs[lang]; !ok {

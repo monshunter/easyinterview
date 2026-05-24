@@ -3,7 +3,7 @@
 
 Validates `config/rubrics/<feature_key>/<version>[.<language>].yaml`
 against the schema and dimension allowlist fixed by
-`config/rubrics/README.md` and `docs/spec/prompt-rubric-registry/spec.md` v2.1.
+`config/rubrics/README.md` and `docs/spec/prompt-rubric-registry/spec.md` v2.7.
 
 Run: `python3 scripts/lint/rubric_lint.py [--rubrics-dir DIR]`
 Exit: 0 on success, 1 on any violation.
@@ -19,6 +19,7 @@ import yaml
 
 SEMVER_RE = re.compile(r"^v\d+\.\d+\.\d+(-[A-Za-z0-9\.-]+)?(\+[A-Za-z0-9\.-]+)?$")
 LANGUAGE_RE = re.compile(r"^multi$|^[a-z]{2,3}$")
+LANGUAGE_OVERRIDE_ALLOWLIST: set[tuple[str, str, str]] = set()
 WEIGHT_TOLERANCE = 0.001
 MIN_SCORE_LEVELS = 3
 
@@ -163,6 +164,44 @@ def lint_rubrics_directory(root: pathlib.Path) -> list[str]:
     errors: list[str] = []
     for yp in sorted(p for p in root.rglob("*.yaml") if p.is_file()):
         errors.extend(lint_rubric_yaml(yp))
+    errors.extend(lint_language_coordinates(root))
+    return errors
+
+
+def lint_language_coordinates(root: pathlib.Path) -> list[str]:
+    errors: list[str] = []
+    by_feature_version: dict[tuple[str, str], list[tuple[pathlib.Path, str]]] = {}
+
+    for yaml_path in sorted(p for p in root.rglob("*.yaml") if p.is_file()):
+        try:
+            parsed = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+        except yaml.YAMLError:
+            continue
+        if not isinstance(parsed, dict):
+            continue
+        feature_key = parsed.get("feature_key")
+        version = parsed.get("version")
+        language = parsed.get("language")
+        if not all(isinstance(v, str) and v for v in (feature_key, version, language)):
+            continue
+        by_feature_version.setdefault((feature_key, version), []).append((yaml_path, language))
+
+        if language != "multi" and (
+            feature_key,
+            version,
+            language,
+        ) not in LANGUAGE_OVERRIDE_ALLOWLIST:
+            errors.append(
+                f"{yaml_path}: language override ({feature_key}, {version}, {language}) "
+                "not allowlisted; baseline storage must use canonical multi"
+            )
+
+    for (feature_key, version), entries in sorted(by_feature_version.items()):
+        languages = {language for _, language in entries}
+        if "multi" not in languages:
+            first_path = entries[0][0]
+            errors.append(f"{first_path}: feature/version {feature_key} {version} missing multi rubric")
+
     return errors
 
 
