@@ -8,10 +8,10 @@
 
 ## Phase 0: 当前契约预读与现状快照
 
-- [ ] 0.1 前后端契约预读（development §2 + config/backend README + A3/F1 spec），记录 operation matrix N/A 与替代 gate
-- [ ] 0.2 Judge 与 profile 现状快照（judge.default unsupported / NotImplementedJudge / types.go 单 Score / catalog_test unsupported / AIClient Complete chat-only / bootstrap judge_compatible unsupported / judge-placeholder provider / 13 chat active+deepseek / ai_profile_coverage 现状）
-- [ ] 0.3 eval 维度映射锁定：从 `config/rubrics/*/v0.1.0.yaml` 提取真实维度名，映射 spec §3.2 质量指标（含异常高分率/离群评分→`score_outlier`），禁止新造同义维度
-- [ ] 0.4 Promptfoo single-source 与执行模式不变量锁定（经 registry 解析、不复制 prompt；fixture 默认 / EVAL_LIVE opt-in / live 不进 make test）
+- [x] 0.1 前后端契约预读（development §2 + config/backend README + A3/F1 spec），记录 operation matrix N/A 与替代 gate
+- [x] 0.2 Judge 与 profile 现状快照（judge.default unsupported / NotImplementedJudge / types.go 单 Score / catalog_test unsupported / AIClient Complete chat-only / bootstrap judge_compatible unsupported / judge-placeholder provider / 13 chat active+deepseek / ai_profile_coverage 现状）
+- [x] 0.3 eval 维度映射锁定：从 `config/rubrics/*/v0.1.0.yaml` 提取真实维度名，映射 spec §3.2 质量指标（含异常高分率/离群评分→`score_outlier`），禁止新造同义维度
+- [x] 0.4 Promptfoo single-source 与执行模式不变量锁定（经 registry 解析、不复制 prompt；fixture 默认 / EVAL_LIVE opt-in / live 不进 make test）
 
 ## Phase 1: Judge 接口演进为逐维度 []Score
 
