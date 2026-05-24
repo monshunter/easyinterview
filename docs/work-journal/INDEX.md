@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-24](2026-05-24.md) | `docs(e2e-scenarios-p0): refine full funnel journey plan per L1 review` | #docs |
 | [2026-05-24](2026-05-24.md) | `docs(e2e-scenarios-p0): derive full funnel journey plan` | #docs |
 | [2026-05-24](2026-05-24.md) | `docs(prompt-rubric): align 004 plan references with spec v2.9` | #docs |
 | [2026-05-24](2026-05-24.md) | `docs(prompt-rubric): derive real model profile and evals plan` | #docs |

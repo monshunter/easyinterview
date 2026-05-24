@@ -1,6 +1,6 @@
 # E2E Scenarios P0 Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-05-24
 
@@ -8,7 +8,7 @@
 
 [engineering-roadmap §6.4 S3](../engineering-roadmap/spec.md#64-s3--true-integration-and-release-gate) 把 `e2e-scenarios-p0` 列为「覆盖导入 -> 规划 -> 练习 -> 报告 -> 复练当前轮 / 下一轮 -> 真实复盘」完整 P0 漏斗的 owner subject。
 
-当前 `test/scenarios/e2e` 已有 97 个场景（`E2E.P0.001-097`），但全部是**单一可独立收口的行为切片**（README §3）：每个场景只验证某个 owner spec 的局部 C-* 条件（如 targetjob 导入、workspace 渲染、practice loop、report 渲染、debrief 分析），彼此独立。没有任何一条场景把这些切片**串成跨模块的完整用户旅程**，因此 P0 闭环的「真实 handoff 在真后端下端到端贯通」一直没有被直接验证。
+当前 `test/scenarios/e2e` 已登记 87 条切片场景（最高编号 `E2E.P0.097`，编号有空档），但全部是**单一可独立收口的行为切片**（README §3）：每个场景只验证某个 owner spec 的局部 C-* 条件（如 targetjob 导入、workspace 渲染、practice loop、report 渲染、debrief 分析），彼此独立。没有任何一条场景把这些切片**串成跨模块的完整用户旅程**，因此 P0 闭环的「真实 handoff 在真后端下端到端贯通」一直没有被直接验证。
 
 本 subject 创建时的实施前基线是：
 
@@ -28,7 +28,7 @@
 
 - 完整漏斗 **happy 主干单条 journey**：`JD 导入 → 解析 ready → 面试规划 → 完整 session（首题 + 事件循环 + 完成）→ 报告 ready → 进入下一轮（next_round）派生`。
 - 两种 driver：
-  - **API-level**（`E2E.P0.098`）：`backend/cmd/api` 内新增 `httptest` server + 真实 stack 串 10 个 operation 的 Go scenario test。
+  - **API-level**（`E2E.P0.098`）：`backend/cmd/api` 内新增 `httptest` server + 真实 stack 覆盖 9 行 operation matrix（8 个主链必经 operation + `getJob` 备选轮询 / handler gate；`createPracticePlan` 复用 baseline + next_round 两次调用）的 Go scenario test。
   - **Playwright 全栈**（`E2E.P0.099`）：真后端进程 + 前端 build + 真 postgres，Playwright 驱动真实 UI 走完漏斗。
 - 真后端全栈 + stub AI（`APP_ENV=test`），postgres 不可达时 `t.Skip`（沿用现有范式）。
 - handoff 链字段真实传递、异步 job（`target_import` / `report_generate`）经真实 internal runner 完成、DB 真实落库、关键写操作幂等、隐私红线、legacy-negative。
@@ -54,7 +54,7 @@
 | D-4 | owner 归属 | 新建本 subject；journey 场景在 `test/scenarios/e2e/` 新建目录，与现有 slice 场景区分 | 跨模块 journey 有明确 owner，不挂靠单一域 owner |
 | D-5 | journey driver | 两种都要：API-level（`E2E.P0.098`）+ Playwright 全栈（`E2E.P0.099`） | 后端域间贯通与前端全栈体验都被覆盖 |
 | D-6 | 场景编号 | 接续 `E2E.P0.098` / `E2E.P0.099`，目录 slug 标注 `full-funnel` journey 以区分 slice | 编号与现有框架一致，语义上标识 journey |
-| D-7 | journey 前置 | seed 已认证 user + resume asset（`createPracticePlan` 必需 `resumeAssetId`），经 `registerResume` 或受控 DB seed | happy 链的前置准备，不属于核心 handoff 验证点 |
+| D-7 | journey 前置 | seed 已认证 user + resume asset（`createPracticePlan` 必需 `resumeAssetId`）；001 默认经 `registerResume` 创建，若环境 bootstrap 使用受控 DB seed，仍必须保留 `registerResume` matrix / fixture / handler gate | happy 链的前置准备，不属于核心 handoff 验证点，但不得让 `registerResume` 退化为未覆盖契约 |
 
 ### 3.2 待确认事项
 
@@ -66,12 +66,12 @@
 ## 4 设计约束
 
 - **真后端范式**：API-level journey 必须复用 `backend/cmd/api` 现有 scenario harness（`httptest.NewServer` + 真实 router/handler/store/internal runner/events + `DATABASE_URL`），不得为 journey 另起一套 mock stack；postgres 不可达时 `t.Skip` 并输出 skip 原因。
-- **Playwright 全栈约束**：起真后端进程（连 dev-stack postgres，`APP_ENV=test` stub AI）+ 前端 build/preview 指向真后端 base URL，Playwright 驱动真实 UI；不得用 fixture-backed mock transport 冒充真后端。
+- **Playwright 全栈约束**：起真后端进程（连 dev-stack postgres，`APP_ENV=test` stub AI）+ 前端 build/preview 以 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1` 指向真后端 base URL，Playwright 驱动真实 UI；不得用 fixture-backed mock transport 冒充真后端。
 - **AI 边界**：journey 全程 stub / fixture provider，遵循 [development.md §2.4](../../development.md#24-ai-provider-boundary) 与 [A5 §5 secret red line](../ci-pipeline-baseline/spec.md)；不读 `AI_PROVIDER_*` 等业务 secret。
 - **契约消费约束**：journey 只消费 [openapi-v1-contract](../openapi-v1-contract/spec.md) 已存在的 operation，不新增 / 修改 operation、schema、event；handoff 字段以 `openapi/openapi.yaml` 真实 schema 为准。
 - **框架契约**：遵循 [test/scenarios/README.md](../../../test/scenarios/README.md) 与 [e2e/README.md](../../../test/scenarios/e2e/README.md)：每个场景目录含 `README.md` + `data/` + `scripts/{setup,trigger,verify,cleanup}.sh`；`verify.sh` 必须检查 runner 日志中的真实执行证据（命令 / runner marker + 目标 test 路径 + pass marker），拒绝 no-op；`BDD-Gate` 只引用场景编号。
 - **隐私红线**：journey 全程响应 / event / audit / log / metric 只暴露 ID / 状态 / 计数 / 错误码摘要，不泄露 JD 原文、答案文本、报告 prose（[product-scope](../product-scope/spec.md) 隐私红线）。
-- **legacy-negative**：journey 树与被消费的 active runtime 不得出现旧 route / 旧模块 / 旧 `mode=debrief` / 旧 feature_key 等被当前设计丢弃的口径。
+- **legacy-negative**：journey 树与被消费的 active runtime 不得出现旧 route / 旧模块 / 旧 `mode=debrief` / 旧 feature_key 等被当前设计丢弃的口径；旧 route 反查必须覆盖 `welcome` / `growth` / `plan` / `mistakes` / `drill` / `followup` / `experiences` / `star` / `onboarding` / 独立 `voice`，并用 route-aware pattern 避免误伤合法的 `createPracticePlan`、`practice_plans`、`resumeAssetId`、`resume_assets`。
 
 ## 5 模块边界
 
@@ -90,9 +90,9 @@
 | C-2 | 异步 job 真实完成 | `target_import` / `report_generate` 入队 | 真实 internal runner 处理 | resource status 由 queued/processing → ready，DB 真实落库；journey 轮询到 ready | 001 Phase 1 / 2 |
 | C-3 | 关键写操作幂等 | start / complete / createPlan 携带 Idempotency-Key | 同 key replay | 无重复副作用（无第二个 session / report / plan，无重复 outbox） | 001 Phase 1 |
 | C-4 | 隐私红线 | journey 全程 | 检查响应 / event / log / audit / DB 持久化的可观测面 | 不出现 JD 原文 / 答案文本 / 报告 prose；只 ID / 状态 / 计数 / 错误码 | 001 Phase 1 / 2 |
-| C-5 | legacy-negative | journey 树 + 被消费 active runtime | 负向 grep | 旧 route / 旧模块 / 旧 `mode=debrief` / 旧 feature_key 0 命中 | 001 Phase 1 / 2 |
+| C-5 | legacy-negative | journey 树 + 被消费 active runtime | route-aware 负向 grep + frontend scope gate | 旧 route / 旧模块 / 旧 `mode=debrief` / 旧 feature_key 0 命中；`plan` / `resume` 仅作为独立 route key 被拒绝，不误伤合法 `createPracticePlan` / `resumeAssetId` | 001 Phase 1 / 2 |
 | C-6 | scenario gate 真实执行 | `E2E.P0.098` / `E2E.P0.099` 场景就绪 | `setup → trigger → verify → cleanup` | verify 校验 runner 日志真实执行证据（命令 marker + 目标 test 路径 + pass marker），拒绝 no-op / skip-as-pass | 001 Phase 3 |
-| C-7 | operation matrix 完整 | 跨层 journey plan | 查看 plan | 10 operationId × fixture / frontend consumer / backend handler / persistence / AI dependency / scenario coverage 全部标明真实状态 | 001 §3 operation matrix |
+| C-7 | operation matrix 完整 | 跨层 journey plan | 查看 plan | 9 行 operation matrix × fixture / frontend consumer / backend handler / persistence / AI dependency / scenario coverage 全部标明真实状态（8 个主链必经 operation + `getJob` 备选轮询 / handler gate；`createPracticePlan` 复用 baseline + next_round） | 001 §3.1 operation matrix |
 | C-8 | 文档一致性 | 文档集创建 / 修订完成 | 运行校验 | `validate_context` / `sync-doc-index --check` / `make docs-check` / `git diff --check` 通过 | 001 Phase 3 |
 
 ## 7 关联计划

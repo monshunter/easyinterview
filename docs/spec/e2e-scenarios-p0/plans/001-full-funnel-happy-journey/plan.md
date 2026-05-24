@@ -1,6 +1,6 @@
 # 001 Full Funnel Happy Journey
 
-> **版本**: 1.0
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-05-24
 
@@ -12,22 +12,22 @@
 
 交付 P0 完整漏斗的 **happy 主干单条 journey**，用两种 driver 同时证明跨模块真实贯通：
 
-- **API-level**（`E2E.P0.098`）：在 `backend/cmd/api` 内新增 `httptest` server + 真实 stack 的 Go scenario test，按顺序串起 `registerResume`（前置）→ `importTargetJob` → `getTargetJob`（poll ready）→ `createPracticePlan`（baseline）→ `startPracticeSession` → `appendSessionEvent` → `completePracticeSession` → `getFeedbackReport`（poll ready）→ `createPracticePlan`（`next_round` + `sourceReportId`），断言 handoff 链 `targetJobId → planId → sessionId → reportId → 派生 planId` 真实传递、异步 job 经真实 internal runner 完成、关键写操作幂等、隐私红线与 legacy-negative。
-- **Playwright 全栈**（`E2E.P0.099`）：起真后端进程（连 dev-stack postgres，`APP_ENV=test` stub AI）+ 前端 build/preview 指向真后端，Playwright 驱动真实 UI 从首页导入走到报告并点击「进入下一轮」CTA，断言跨屏 nav、真实轮询 UI、CTA handoff 与隐私 / legacy 红线。
+- **API-level**（`E2E.P0.098`）：在 `backend/cmd/api` 内新增 `httptest` server + 真实 stack 的 Go scenario test，按顺序串起 `registerResume`（前置）→ `importTargetJob` → `getTargetJob`（poll ready）→ `createPracticePlan`（baseline）→ `startPracticeSession` → `appendSessionEvent` → `completePracticeSession` → `getFeedbackReport`（poll ready）→ `createPracticePlan`（`next_round` + `sourceReportId`），并把 `getJob` 作为 job 状态备选轮询 / handler presence gate，断言 handoff 链 `targetJobId → planId → sessionId → reportId → 派生 planId` 真实传递、异步 job 经真实 internal runner 完成、关键写操作幂等、隐私红线与 legacy-negative。
+- **Playwright 全栈**（`E2E.P0.099`）：起真后端进程（连 dev-stack postgres，`APP_ENV=test` stub AI）+ 前端 build/preview 以 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1` 指向真后端，Playwright 驱动真实 UI 从首页导入走到报告并点击「进入下一轮」CTA，断言跨屏 nav、真实轮询 UI、CTA handoff 与隐私 / legacy 红线。
 
 交付后，本 plan 成为 P0 闭环「真实 handoff 在真后端下端到端贯通」的首个直接 gate；复练 / 下一轮另一分支、真实复盘回流、失败 / 恢复 journey 由本 subject 后续 `002+` plan 原地派生。
 
 ## 2 背景
 
-本 plan 由 `e2e-scenarios-p0` spec v1.0 同时段派生。spec §1 已确认实施前基线：97 个 slice 场景无完整漏斗贯通；`backend/cmd/api` 已有 `*_http_scenario_test.go` / `jdmatch_live_scenario_test.go` 真后端 harness 范式（`httptest.NewServer` + 真实 router/handler/store/internal runner/events + `DATABASE_URL` + `config.LoadCanonical(AppEnv:"test")` stub AI）。
+本 plan 由 `e2e-scenarios-p0` spec v1.0 同时段派生。spec §1 已确认实施前基线：87 条 slice 场景（最高编号 `E2E.P0.097`）无完整漏斗贯通；`backend/cmd/api` 已有 `*_http_scenario_test.go` / `jdmatch_live_scenario_test.go` 真后端 harness 范式（`httptest.NewServer` + 真实 router/handler/store/internal runner/events + `DATABASE_URL` + `config.LoadCanonical(AppEnv:"test")` stub AI）。
 
-漏斗各步消费的 operation、handoff 字段与异步轮询机制已对 `openapi/openapi.yaml` 核实（见 §3 operation matrix）。复练 / 下一轮经 `createPracticePlan` 的 `goal IN ('retry_current_round','next_round') + sourceReportId` 表达（[backend-practice/004](../../../backend-practice/plans/004-derived-plans-debrief/plan.md)），report 的 `nextActions` 只是建议项、不是派生触发器。
+漏斗各步消费的 operation、handoff 字段与异步轮询机制已对 `openapi/openapi.yaml` 核实（见 §3.1 operation matrix：8 个主链必经 operation + `getJob` 备选轮询 / handler gate）。复练 / 下一轮经 `createPracticePlan` 的 `goal IN ('retry_current_round','next_round') + sourceReportId` 表达（[backend-practice/004](../../../backend-practice/plans/004-derived-plans-debrief/plan.md)），report 的 `nextActions` 只是建议项、不是派生触发器。
 
 **前置依赖**（Phase 0 验证，未就绪则暂停进入 Phase 1）：
 
 - `make dev-up` 的 postgres 可达，`make migrate-up` 已应用到最新 schema。
-- `config.LoadCanonical(AppEnv:"test")` 可加载且 AI 落到 stub provider，不读业务 secret。
-- 漏斗 8 个 operationId 在 generated server + 真实 handler 已挂载（各 owner plan 已 completed）。
+- `config.LoadCanonical(AppEnv:"test")` 可加载且 `resume_parse` / `target_import` / practice / `report_generate` AI 调用落到 stub provider，不读业务 secret。
+- §3.1 的 9 行 operation matrix（8 个主链必经 operation + `getJob` 备选轮询 / handler gate）在 generated server + 真实 handler 已挂载（各 owner plan 已 completed 或 matrix 行显式标明状态）。
 - `backend/cmd/api` 现有 scenario harness 可复用（同包 helper：`testLoader` / `open*ScenarioDB` 等）。
 
 ## 3 质量门禁分类
@@ -35,13 +35,14 @@
 - **Plan 类型**: feature-behavior + contract + tooling（端到端用户旅程 + 跨层契约消费验证 + 场景脚本工具）
 - **TDD 策略**: Code plan requires TDD。
   - API-level journey 先写 `TestE2EP0098FullFunnelImportToNextRound`（断言完整 handoff 链 + 异步 ready + 幂等 + 隐私），初始 Red（journey 未实现 / 真实 stack 未贯通），再让 orchestration 通过转 Green；测试文件 `backend/cmd/api/full_funnel_journey_scenario_test.go`，命令 `cd backend && go test ./cmd/api -run 'TestE2EP0098' -count=1`（postgres 不可达 `t.Skip`）。
-  - Playwright journey 先写 `frontend/tests/e2e/full-funnel-journey.spec.ts` 断言 UI 走完漏斗，初始 Red，再绿；命令 `pnpm --filter @easyinterview/frontend exec playwright test tests/e2e/full-funnel-journey.spec.ts`。
+  - Playwright journey 先写 `frontend/tests/e2e/full-funnel-journey.spec.ts` 断言 UI 走完漏斗，初始 Red，再绿；同时新增或使用 `frontend/playwright.e2e.config.ts`（`testDir: "./tests/e2e"`，`outputDir` 只允许来自 `EI_PLAYWRIGHT_OUTPUT_DIR` 或默认落到 repo 根 `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright`），命令 `EI_PLAYWRIGHT_OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright" pnpm --filter @easyinterview/frontend exec playwright test --config=playwright.e2e.config.ts tests/e2e/full-funnel-journey.spec.ts`，避免默认 `frontend/playwright.config.ts` 的 `tests/pixel-parity` testDir 忽略 e2e spec，且禁止产物写入 `frontend/.playwright-output` / `frontend/test-results`。
   - Phase 1 / 2 每个 checklist item 命名其断言来源（见 checklist 各项尾注）。
-- **BDD 策略**: Feature plan requires BDD。本 plan 引入端到端业务流程；BDD scenarios `E2E.P0.098`（API-level）+ `E2E.P0.099`（Playwright 全栈）已在 [bdd-plan.md](./bdd-plan.md) 分配，主 [checklist.md](./checklist.md) Phase 3 含 `BDD-Gate:` 项引用每个 scenario ID；执行使用场景框架 `scripts/setup.sh → trigger.sh → verify.sh → cleanup.sh` 四段入口，cleanup 失败时也必须执行。
+- **BDD 策略**: Feature plan requires BDD。本 plan 引入端到端业务流程；BDD scenarios `E2E.P0.098`（API-level）+ `E2E.P0.099`（Playwright 全栈）已在 [bdd-plan.md](./bdd-plan.md) 分配，主 [checklist.md](./checklist.md) Phase 3 含 `BDD-Gate:` 项引用每个 scenario ID；执行使用场景框架 `scripts/setup.sh → trigger.sh → verify.sh → cleanup.sh` 四段入口，wrapper 必须先保存 `setup`/`trigger`/`verify` 的退出码，执行 cleanup 后仍按原失败码退出（cleanup 自身失败且前置成功时按 cleanup 失败退出），禁止 cleanup 成功掩盖前置失败。
 - **替代验证 gate**:
-  - operation matrix 真实性：`grep -rn "importTargetJob\|getTargetJob\|createPracticePlan\|startPracticeSession\|appendSessionEvent\|completePracticeSession\|getFeedbackReport\|registerResume" backend/internal/api/generated/` 命中真实 server 方法。
+  - operation matrix 真实性：`grep -rn "registerResume\|importTargetJob\|getTargetJob\|createPracticePlan\|startPracticeSession\|appendSessionEvent\|completePracticeSession\|getFeedbackReport\|getJob" backend/internal/api/generated/` 命中真实 server 方法，并逐行反查真实 handler / store 路径或 matrix 中的显式备选状态。
   - 隐私红线：journey test / verify.sh 断言响应 / event / audit / log / DB 可观测面不含 JD 原文、答案文本、报告 prose；Playwright 侧扫描 URL / localStorage / sessionStorage / console。
-  - legacy-negative：`grep -rn "welcome\|growth\|mistakes\|drill\|followup\|mode=debrief\|experiences" test/scenarios/e2e/p0-098-* test/scenarios/e2e/p0-099-*` 0 命中。
+  - Playwright 产物边界：P0.099 的 trace / screenshot / video / runner output / `trigger.log` 必须全部落在 `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/` 下；`verify.sh` 拒绝 `frontend/.playwright-output`、`frontend/test-results` 或 repo 根外临时目录作为完成证据。
+  - legacy-negative：`verify.sh` 使用 route-aware negative pattern 反查 `(^|[[:space:]'"'/#?&=:-])(welcome|growth|mistakes|drill|followup|experiences|star(_editor)?|onboarding)([[:space:]'"'/#?&=:-]|$)|mode=debrief|name=['\"](plan|resume|voice)['\"]|route=['\"](plan|resume|voice)['\"]|#route=(plan|resume|voice)([[:space:]'"'/#?&=:-]|$)`，并确认不会误伤合法 `startPracticeSession` / `createPracticePlan` / `practice_plans` / `resumeAssetId` / `resume_assets`；P0.099 额外跑 frontend scope gate 或等价 scoped grep，证明独立 `voice` route 未回流。
   - 文档一致性：`validate_context.py` / `sync-doc-index --check` / `make docs-check` / `git diff --check`。
 
 ### 3.1 Operation Matrix
@@ -50,13 +51,13 @@
 
 | # | operationId | method + path | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |---|-------------|---------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| 0 | `registerResume` | POST `/resumes` | `Resumes/registerResume.json` | ResumeCreateFlow（P0.099 前置 / P0.098 seed） | real（resume handler/store） | `resume_assets` | none | P0.098 / P0.099 前置 |
-| 1 | `importTargetJob` | POST `/targets/import` | `TargetJobs/importTargetJob.json` | HomeScreen 导入 | real（targetjob handler + drainer） | `target_jobs` + `jobs` | `target_import` via stub | P0.098 / P0.099 |
+| 0 | `registerResume` | POST `/resumes` | `Resumes/registerResume.json` | ResumeCreateFlow（P0.099 前置 / P0.098 seed） | real（resume handler/store + `resume_parse` runner） | `resume_assets` + `async_jobs(resume_parse)` | `resume.parse.default` via stub | P0.098 / P0.099 前置 |
+| 1 | `importTargetJob` | POST `/targets/import` | `TargetJobs/importTargetJob.json` | HomeScreen 导入 | real（targetjob handler + drainer） | `target_jobs` + `jobs` | `target.import.default` via stub | P0.098 / P0.099 |
 | 2 | `getTargetJob` | GET `/targets/{targetJobId}` | `TargetJobs/getTargetJob.json` | ParseScreen 轮询 | real | `target_jobs` | none（读 `analysisStatus`） | P0.098 / P0.099 |
 | 3 | `createPracticePlan` | POST `/practice/plans` | `PracticePlans/createPracticePlan.json` | WorkspaceScreen / Report CTA | real | `practice_plans` | none | P0.098 / P0.099（baseline + next_round） |
-| 4 | `startPracticeSession` | POST `/practice/sessions` | `PracticeSessions/startPracticeSession.json` | WorkspaceScreen 立即面试 | real + internal runner | `practice_sessions` + `session_events` + outbox | `practice.session.first_question` via stub | P0.098 / P0.099 |
-| 5 | `appendSessionEvent` | POST `/practice/sessions/{sessionId}/events` | `PracticeSessions/appendSessionEvent.json` | PracticeScreen 事件循环 | real | `session_events` | session AI via stub | P0.098 / P0.099 |
-| 6 | `completePracticeSession` | POST `/practice/sessions/{sessionId}/complete` | `PracticeSessions/completePracticeSession.json` | PracticeScreen 完成 | real + internal runner | `feedback_reports`（reserve）+ `jobs` + outbox | `report_generate` via stub | P0.098 / P0.099 |
+| 4 | `startPracticeSession` | POST `/practice/sessions` | `PracticeSessions/startPracticeSession.json` | WorkspaceScreen 立即面试 | real + internal runner | `practice_sessions` + `session_events` + outbox | `practice.first_question.default` via stub | P0.098 / P0.099 |
+| 5 | `appendSessionEvent` | POST `/practice/sessions/{sessionId}/events` | `PracticeSessions/appendSessionEvent.json` | PracticeScreen 事件循环 | real | `session_events` | `practice.followup.default` / `practice.turn_observe.default` via stub when exercised | P0.098 / P0.099 |
+| 6 | `completePracticeSession` | POST `/practice/sessions/{sessionId}/complete` | `PracticeSessions/completePracticeSession.json` | PracticeScreen 完成 | real + internal runner | `feedback_reports`（reserve）+ `jobs` + outbox | `report.generate.default` via stub | P0.098 / P0.099 |
 | 7 | `getFeedbackReport` | GET `/reports/{reportId}` | `Reports/getFeedbackReport.json` | ReportDashboard / Generating 轮询 | real | `feedback_reports` | none（读 `status`） | P0.098 / P0.099 |
 | 8 | `getJob` | GET `/jobs/{jobId}` | `Jobs/getJob.json` | 通用 job 轮询（备选） | real | `jobs` | none | P0.098（备选轮询断言） |
 
@@ -72,15 +73,15 @@
 
 #### 0.2 stub AI 与 secret 边界
 
-确认 `config.LoadCanonical(AppEnv:"test")` 加载成功且漏斗各 AI 步骤（target_import / first_question / session / report_generate）落到 stub provider；确认未读 `AI_PROVIDER_*` 业务 secret。
+确认 `config.LoadCanonical(AppEnv:"test")` 加载成功且漏斗各 AI 步骤（`resume.parse.default` / `target.import.default` / `practice.first_question.default` / `practice.followup.default` / `practice.turn_observe.default` / `report.generate.default`）落到 stub provider；确认未读 `AI_PROVIDER_*` 业务 secret。
 
 #### 0.3 operation 真实挂载验证
 
-按 §3.1 operation matrix grep generated server + 真实 handler，确认 8 个 operationId 真实可调用、handler 已挂载（不是 mock-only）。
+按 §3.1 operation matrix grep generated server + 真实 handler，确认 9 行 operation matrix 均真实可调用或具备显式备选状态（8 个主链必经 operation + `getJob` 备选轮询 / handler gate），handler 已挂载（不是 mock-only）。
 
 #### 0.4 journey 前置 seed 设计
 
-设计 journey 内前置：注册 / 受控 seed 一个已认证 user + 一个 ready resume asset（`createPracticePlan` 必需 `resumeAssetId`），并明确 cleanup 边界。
+设计 journey 内前置：通过 `registerResume` 创建已认证 user 的 resume asset，触发 `resume_parse` 并用 `resume.parse.default` stub 推进到 ready（`createPracticePlan` 必需 `resumeAssetId`）；如实现使用 helper，也必须走同一 handler/job/AI stub 路径，不得直接插入 ready asset；明确 cleanup 边界。
 
 ### Phase 1: API-level full-funnel journey（E2E.P0.098）
 
@@ -102,7 +103,7 @@
 
 #### 1.5 complete → report ready
 
-`completePracticeSession(sessionId)` → `reportId` + `report_generate` job；真实 internal runner 处理后轮询 `getFeedbackReport` 直到 `status=ready`，断言报告与 `nextActions`（含 `next_round` 类型）真实生成。
+`completePracticeSession(sessionId)` → `reportId` + `report_generate` job；真实 internal runner 处理后轮询 `getFeedbackReport` 直到 `status=ready`，若返回/记录 jobId 则以 `getJob` 作为备选轮询 / handler gate，断言报告与 `nextActions`（含 `next_round` 类型）真实生成。
 
 #### 1.6 next_round 派生（handoff 链闭合）
 
@@ -120,11 +121,11 @@
 
 #### 2.1 全栈环境拉起
 
-脚本拉起真后端进程（连 dev-stack postgres，`APP_ENV=test` stub AI）+ 前端 build/preview 指向真后端 base URL（非 fixture mock transport）；seed 已认证 user + resume asset。
+脚本拉起真后端进程（连 dev-stack postgres，`APP_ENV=test` stub AI）+ 前端 build/preview 指向真后端 base URL（`VITE_EI_API_MODE=real` + `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1`，非 fixture mock transport）；seed 已认证 user + resume asset。
 
 #### 2.2 UI 走完漏斗
 
-`frontend/tests/e2e/full-funnel-journey.spec.ts`：Playwright 从首页导入 JD → ParseScreen 解析 ready → Confirm 进 WorkspaceScreen → 立即面试 → PracticeScreen 完成 session → Generating → ReportDashboard → 点击「进入下一轮」CTA。
+`frontend/tests/e2e/full-funnel-journey.spec.ts` + `frontend/playwright.e2e.config.ts`：Playwright 从首页导入 JD → ParseScreen 解析 ready → Confirm 进 WorkspaceScreen → 立即面试 → PracticeScreen 完成 session → Generating → ReportDashboard → 点击「进入下一轮」CTA；e2e config 的 `testDir` 固定为 `./tests/e2e`，`outputDir` 由 `EI_PLAYWRIGHT_OUTPUT_DIR` 指向当前 scenario 的 `.test-output` 子目录。
 
 #### 2.3 真实轮询 UI
 
@@ -142,11 +143,11 @@
 
 #### 3.1 scenario 资产
 
-创建 `test/scenarios/e2e/p0-098-full-funnel-import-to-next-round-journey/` 与 `p0-099-full-funnel-fullstack-ui-journey/`：`README.md` + `data/` + `scripts/{setup,trigger,verify,cleanup}.sh`；`trigger.sh` 保留 runner exit code，`verify.sh` 检查 runner 日志真实执行证据（命令 marker + 目标 test 路径 + pass marker），拒绝 no-op / skip-as-pass；登记 `test/scenarios/e2e/INDEX.md`。
+创建 `test/scenarios/e2e/p0-098-full-funnel-import-to-next-round-journey/` 与 `p0-099-full-funnel-fullstack-ui-journey/`：`README.md` + `data/` + `scripts/{setup,trigger,verify,cleanup}.sh`；P0.099 同步新增/使用 `frontend/playwright.e2e.config.ts`，并由 `trigger.sh` 设置 `EI_PLAYWRIGHT_OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright"`；`trigger.sh` 保留 runner exit code，`verify.sh` 检查 runner 日志真实执行证据（命令 marker + 目标 test 路径 + pass marker），拒绝 no-op / skip-as-pass，并确认 Playwright 产物只在 `.test-output`；场景 wrapper 必须 cleanup 后保留前置失败状态；登记 `test/scenarios/e2e/INDEX.md`。
 
 #### 3.2 scenario 执行
 
-两个场景各按 `setup → trigger → verify → cleanup` 执行通过，证据写入 `.test-output/e2e/<scenario>/trigger.log` 并由 `verify.sh` 消费。
+两个场景各按 `setup → trigger → verify → cleanup` 执行通过，执行 wrapper 使用 `rc=0; bash scripts/setup.sh && bash scripts/trigger.sh && bash scripts/verify.sh || rc=$?; cleanup_rc=0; bash scripts/cleanup.sh || cleanup_rc=$?; [ "$rc" -ne 0 ] && exit "$rc"; exit "$cleanup_rc"`，证据写入 `.test-output/e2e/<scenario>/trigger.log` 并由 `verify.sh` 消费。
 
 #### 3.3 文档一致性
 
