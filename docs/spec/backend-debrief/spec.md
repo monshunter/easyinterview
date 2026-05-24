@@ -45,7 +45,7 @@
 - 不暴露独立 `POST /debriefs/{debriefId}/regenerate` 或手工 retry API；`async_jobs.status='failed'` 的 debrief 只能等待 platform 触发或下一次 backend-debrief plan 决定开放手工入口。
 - 不实现 P1 增强字段 `nextRoundChecklist` / `thankYouDraft` 的 worker 填充：B4 表中列已存在，OpenAPI 已标 P1 optional，本 spec P0 worker 留 `[]` / `null`（D-7 决策）；前端 P0 不渲染对应区块。
 - 不实现 debrief 导出 / 分享 / 时间线：归 product-scope D-7 dashboard-only 边界 + D-12 P0 隐私 export 延后。
-- 不实现 debrief 评分质量反馈、LLM judge、A/B grayscale：归 [`prompt-rubric-registry`](../prompt-rubric-registry/spec.md) future `003-grayscale-and-quality-feedback` plan。
+- 不实现 debrief 评分质量反馈、LLM judge、A/B grayscale：归 [`prompt-rubric-registry`](../prompt-rubric-registry/spec.md) future `005-grayscale-and-quality-feedback` plan。
 - 不实现 voice-specific debrief 字段：P0 不区分 text / voice modality（modality 信息仅在 `provenance.dataSourceVersion` 中体现）；voice-specific 字段等 voice MVP 上线后再设计。
 - 不在本 spec 文档内 inline 修改 B2 OpenAPI、B3 events/jobs、B4 baseline 表结构、A3 provider 协议或 F3 baseline prompt / rubric 文本；Phase 0 cross-owner pre-launch addendum 由各 owner spec / truth source / addendum plan 先落地，再由 backend-debrief implementation 消费（D-14 决策细节）。
 

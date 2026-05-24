@@ -58,7 +58,7 @@
 - AI provider / prompt registry / 模型路由：由 [ai-provider-and-model-routing](../ai-provider-and-model-routing/spec.md) / [prompt-rubric-registry](../prompt-rubric-registry/spec.md) / backend-review 承接。
 - 报告列表 UI（report timeline / multiple report dashboards 历史浏览）：product-scope D-7 dashboard-only 边界，不在本 spec 范围；plan 002 future 可考虑增加但需先修订 product-scope。
 - 报告导出 / 分享：由 future 隐私 spec / 平台 owner 承接。
-- 报告评分质量反馈（用户对报告打分）：由 future [prompt-rubric-registry/003-grayscale-and-quality-feedback](../prompt-rubric-registry/spec.md) 承接。
+- 报告评分质量反馈（用户对报告打分）：由 future [prompt-rubric-registry/005-grayscale-and-quality-feedback](../prompt-rubric-registry/spec.md) 承接。
 - 不新增或恢复弃用模块 / 路由 / 术语作为 live UI：报告时间线、刊物式报告页、独立错题本、Drill builder、Growth center、5 档 readiness、多形态 report、独立 `report` 一级导航入口、独立 `mistakes` route。
 
 ## 3 用户决策 / 待确认事项

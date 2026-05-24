@@ -1,6 +1,6 @@
 # Prompt Rubric Registry History
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: active
 > **更新日期**: 2026-05-24
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-24 | 2.8 | 派生 `004-real-model-profile-and-evals` 评估 plan 并演进 LLM Judge 契约：`Judge` 接口（D-9）从返回单个 `Score` 演进为逐 rubric dimension 的 `[]Score`，`TestJudgeSignature` 随之更新；新增 D-15 锁定评估框架选型（Promptfoo / pnpm Node，经 registry 解析消费同一份 prompt 真理源，禁止复制第二份 prompt）、执行模式（录制 fixture 默认 + `EVAL_LIVE` opt-in，不进 `make test`）、LLM Judge 走 `judge.default` profile、评估维度复用现有 rubric `dimensions[]`；§3.2 待确认项收敛到 D-15；§5 边界 LLM Judge / 离线评估集 owner 指向 `004`；§6 C-7/C-10 改写为接口演进 / `make eval-offline` 口径并新增 C-14（judge.default 激活 + 非 placeholder coverage 门禁）与 C-15（eval prompt single-source）；§7 `004` 标为当前 active plan。plan-review v1.1 修复补充 A3 judge dispatch/`judge_compatible` adapter、非 placeholder provider registry、pinned Promptfoo dependency 与 active-scope zero-reference gate。spec.md Header 升至 v2.8。 | prompt-rubric-registry/004-real-model-profile-and-evals |
 | 2026-05-24 | 2.7 | 派生 `003-language-coordinate-simplification`：F3 baseline prompt/rubric truth source 从默认 `multi + en` 双坐标收敛为 canonical `multi` only；`language` 保留为 runtime output target 与 provenance 字段，`ResolveActive` 继续 exact → `multi` fallback；未来 language override 只有在有真实语义差异并有 spec/plan rationale 时才允许。 | prompt-rubric-registry/003-language-coordinate-simplification |
 | 2026-05-24 | 2.6 | 原地修订 `002-output-schema-contract`：把 prompt body 内的 example 从最小 schema-valid JSON 升级为完整代表性 JSON output，覆盖 schema 声明的 required + optional 字段，使用业务形态示例值，并在 contract block 中明确要求返回 JSON value 而不是 JSON Schema / OpenAPI schema；同步 `config/prompts/README.md`、renderer/lint gate、13 × 2 prompt body、YAML `template_hash` 与 seed migration prompt body/hash。 | prompt-rubric-registry/002-output-schema-contract L2 remediation |
 | 2026-05-23 | 2.5 | 派生 `002-output-schema-contract`：把 D-12 规划的 provider-neutral `output_schema` 从「可追加」升级为锁定契约（新增 D-13）；为 13 个 chat feature_key 各落地**语言无关** `config/prompts/<feature_key>/<version>.schema.json`，允许 `description` 作为非校验注解并把 prompt body 输出段改为 schema 渲染/校验的契约块，避免手工维护重复字段清单；`RegistryClient` 加载并接线 `ResolveActive` 的 `OutputSchema`，A3 `aiclient` `validateOutputSchema` 扩展支持 `enum`，新增 schema↔prompt↔struct 一致性 lint gate；spec §2.1 / §2.2 / §4.1 / §4.2 / §5 / §6（C-12）/ §7 同步，plan 序列原 002/003 顺延为 003/004。spec.md Header 升至 v2.5。 | prompt-rubric-registry/002-output-schema-contract |

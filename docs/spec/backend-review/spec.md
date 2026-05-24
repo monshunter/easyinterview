@@ -48,7 +48,7 @@
 - 不暴露独立 `POST /reports/{reportId}/regenerate` 或手工 retry API；status='failed' 的 report 只能等待 platform 触发或下一次 backend-review plan 决定开放手工入口。
 - 不实现 report 高级排序 / filter（按 readiness / round / date / score 等）；P0 listTargetJobReports 仅按 `created_at DESC` 排序。
 - 不实现 report 导出 / 分享 / 时间线；归 product-scope D-7 dashboard-only 边界。
-- 不实现 report 评分质量反馈、LLM judge、A/B grayscale；归 [`prompt-rubric-registry`](../prompt-rubric-registry/spec.md) future `003-grayscale-and-quality-feedback` plan。
+- 不实现 report 评分质量反馈、LLM judge、A/B grayscale；归 [`prompt-rubric-registry`](../prompt-rubric-registry/spec.md) future `005-grayscale-and-quality-feedback` plan。
 - 不实现高级 retry-focus 算法（情感 / 难度加权 / 历史趋势比较）；P0 只按 needs_work + queued_for_retry 简单集合，留 plan 002 future。
 - 不实现 voice-specific report 维度；P0 报告内容字段不区分 text / voice modality（modality 信息仅在 `provenance.dataSourceVersion` 中体现）；voice-specific 维度等 voice MVP 上线后再设计。
 - 不在本 spec 文档内 inline 修改 B2 OpenAPI、B3 events/jobs、B4 baseline 表结构、A3 provider 协议或 F3 baseline prompt / rubric 文本；任何契约修订必须由对应 owner spec / truth source / plan 先落地，再由 backend-review implementation 消费。
@@ -81,7 +81,7 @@
 | ID | 事项 | Owner | 本域处理 |
 |----|------|-------|----------|
 | Q-1 | `practice.report.requested` 是否独立 source event（与 `practice.session.completed` 分离） | backend-practice D-28 / D-32 (已锁定 source_event_only) | 本 spec 直接消费 backend-practice 创建的 `async_jobs(report_generate)` queued row，不期待 dispatcher 二次创建 |
-| Q-2 | F3 baseline `report.generate` / `report.question_assessment` prompt body 内容与 rubric 维度具体 weight | prompt-rubric-registry future `002-real-model-profile-and-evals` | 本 spec 仅约定通过 F3 Resolve 拿三元组；rubric weight × score_level 算法在本 spec D-4 锁定 |
+| Q-2 | F3 baseline `report.generate` / `report.question_assessment` prompt body 内容与 rubric 维度具体 weight | prompt-rubric-registry future `004-real-model-profile-and-evals` | 本 spec 仅约定通过 F3 Resolve 拿三元组；rubric weight × score_level 算法在本 spec D-4 锁定 |
 | Q-3 | DELETE /me CASCADE 实现是否 atomic 跨表（feedback_reports + question_assessments + ai_task_runs） | platform / future privacy plan | 本 spec 仅约定 ON DELETE CASCADE 已落地，平台触发 atomic 删除 |
 | Q-4 | review worker 是否多实例水平扩展 | platform / future backend-async-runner | 本 spec P0 默认 max concurrency=1，多实例由未来 plan 验证 lock & lease 正确性 |
 

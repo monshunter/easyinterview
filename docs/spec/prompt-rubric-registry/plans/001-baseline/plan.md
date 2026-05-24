@@ -18,7 +18,7 @@
 - `backend/internal/targetjob/StaticPromptRegistry` 与 4 个 `defaultTargetImport*` 常量被 retire，`backend/cmd/api/` 注入新 `RegistryClient` + 本地 `RegistryAdapter`。
 - 关闭 §2.1 业务调用规约 + 全部 11 个 AC 自检；`docs/spec/backend-practice` D-29 前置依赖解锁，AI 首题 / 追问 / hint handler 实现 plan 可立即启动。
 
-本 plan 不切真实 Model Profile（推到 002-real-model-profile-and-evals）、不实现 LLM Judge 业务逻辑（推到 002）、不实现 PostHog 灰度分桶（推到 003-grayscale-and-quality-feedback）、不修改 A3 `config/ai-profiles.yaml` 中任何 profile 的 status（仅校验 entry 存在 + 状态合法 + `unsupported_reason` 完整）。本 plan 会显式修改上游 B1/B4/A3 的设计文档与实现代码，但仅限 prompt/rubric provenance 闭环所必需的 `feature_key` / `feature_flag` / `data_source_version` 承载，不借机重开模型路由或指标标签设计。
+本 plan 不切真实 Model Profile（推到 004-real-model-profile-and-evals）、不实现 LLM Judge 业务逻辑（推到 004）、不实现 PostHog 灰度分桶（推到 005-grayscale-and-quality-feedback）、不修改 A3 `config/ai-profiles.yaml` 中任何 profile 的 status（仅校验 entry 存在 + 状态合法 + `unsupported_reason` 完整）。本 plan 会显式修改上游 B1/B4/A3 的设计文档与实现代码，但仅限 prompt/rubric provenance 闭环所必需的 `feature_key` / `feature_flag` / `data_source_version` 承载，不借机重开模型路由或指标标签设计。
 
 ## 2 背景
 
@@ -492,12 +492,12 @@ Source: `shared/conventions.yaml` + `backend/internal/shared/ai/vocabulary.go` +
 | C-2 | spec §6 | Phase 1.4 + 4.6 | `make lint-prompts` (`prompt_lint: 20 files clean`); negative fixtures cover hash drift / field order; cross-file seed drift gate active | PASS |
 | C-3 | spec §6 | Phase 2.4 / 2.7 | `go test ./backend/internal/ai/registry -run TestResolve -race` (TestResolveExactLanguage / TestResolveFallbackToMulti / TestResolveUnknownFeatureKey / TestResolveEmptyArgsRejected) | PASS |
 | C-4 | spec §6 | Phase 1.6 | `make lint-prompts-hardcode`; negative fixtures (raw / long quoted / system message / test allowlist / PromptVersion short-string) | PASS |
-| C-5 | spec §6 | Phase 003 | `prompt-rubric-registry/003-grayscale-and-quality-feedback` (out of scope for 001 per spec §2.1 D-7) | DEFERRED |
+| C-5 | spec §6 | Phase 005 | `prompt-rubric-registry/005-grayscale-and-quality-feedback` (out of scope for 001 per spec §2.1 D-7) | DEFERRED |
 | C-6 | spec §6 | Phase 2.4 | `TestResolveFallbackToMulti` confirms `Resolve("report.generate", "fr")` falls back to multi and bumps `FallbackCount` warn counter | PASS |
 | C-7 | spec §6 | Phase 2.2 + 2.6 | `TestJudgeSignature` reflects spec D-9 input order; `TestNotImplementedJudgeAlwaysFails` confirms ErrJudgeNotImplemented default | PASS |
 | C-8 | spec §6 | Phase 5 closure | This plan's §8 evidence log: 10 baselines + Resolve + lint + LLM Judge stub + DB seed all green; backend-practice D-29 unblocked | PASS |
 | C-9 | spec §6 | Phase 4.2 + 4.3 + 4.8 + 6.1 | `migrations/000001_create_baseline.up.sql` + `migrations_lint.py` allowlist + decorator_test + `TestParseExecutorAITaskRuns` confirm ai_task_runs typed columns carry feature_key / prompt_version / rubric_version / feature_flag / data_source_version / model_id / model_profile_name | PASS |
-| C-10 | spec §6 | Phase 002 | `prompt-rubric-registry/002-real-model-profile-and-evals` (out of scope for 001 per spec §1 + §2.2) | DEFERRED |
+| C-10 | spec §6 | Phase 004 | `prompt-rubric-registry/004-real-model-profile-and-evals` (out of scope for 001 per spec §1 + §2.2) | DEFERRED |
 | C-11 | spec §6 | Phase 5.1 | `make lint-ai-profile-coverage` returns `ai_profile_coverage: OK`; spec §3.1.1 10 default profile names all present in `config/ai-profiles.yaml` with valid capability/provider_ref or `unsupported_reason` | PASS |
 
 ### 8.2 Owner handoff
@@ -506,7 +506,7 @@ Source: `shared/conventions.yaml` + `backend/internal/shared/ai/vocabulary.go` +
 - **B4 db-migrations-baseline**: `ai_task_runs` must typed-carry prompt/rubric provenance columns in addition to existing model routing typed columns; migration lint must allow and require this exact exception for `ai_task_runs.feature_key`.
 - **A3 ai-provider-and-model-routing**: `CallMetadata` / `AICallMeta` / `AITaskRunRow` carry `FeatureKey` / `FeatureFlag` / `DataSourceVersion`; writer rejects empty provenance or applies registered defaults only where the spec names them.
 - **C4 backend-targetjob**: `StaticPromptRegistry` is retired; targetjob keeps its local `PromptRegistryClient` interface and receives F3 registry through `RegistryAdapter`.
-- **F3 002-real-model-profile-and-evals**: receives Judge implementation, real model profile activation/eval, and prompt/rubric quality iteration after this baseline is verified.
+- **F3 004-real-model-profile-and-evals**: receives Judge implementation, real model profile activation/eval, and prompt/rubric quality iteration after this baseline is verified.
 
 ### 8.3 Retrospective candidates
 

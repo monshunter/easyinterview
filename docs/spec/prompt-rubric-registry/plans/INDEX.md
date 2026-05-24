@@ -8,6 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [004-real-model-profile-and-evals](./004-real-model-profile-and-evals/plan.md) | [plan](./004-real-model-profile-and-evals/plan.md) / [checklist](./004-real-model-profile-and-evals/checklist.md) / [context](./004-real-model-profile-and-evals/context.yaml) | 1.1 | active | 2026-05-24 |
 
 ## 2 已完成（Completed）
 
@@ -22,4 +23,4 @@
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
 
-> 后续派生：`004-real-model-profile-and-evals`（切真实 Model Profile + ≥50 题离线评估集 + LLM Judge 实现，依赖 A3 后续 catalog active 化）、`005-grayscale-and-quality-feedback`（PostHog 灰度分桶 + 报告页质量反馈），由 spec §7 关联计划在 `003-language-coordinate-simplification` 完成 handoff 后再启动。
+> 后续派生：`005-grayscale-and-quality-feedback`（PostHog 灰度分桶 + 报告页质量主观评分回流），由 spec §7 关联计划在 `004-real-model-profile-and-evals` 完成评估闭环后再启动。

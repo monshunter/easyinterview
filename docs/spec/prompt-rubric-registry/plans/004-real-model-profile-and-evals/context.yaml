@@ -1,0 +1,74 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: prompt-rubric-registry
+  name: 004-real-model-profile-and-evals
+  sequence: 4
+  supersedes: []
+  specVersion:
+    from: 2.7
+    to: 2.8
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - real-model-profile-and-evals
+      - 004-real-model-profile-and-evals
+      - llm-judge-implementation
+      - offline-eval-set
+      - judge-default-activation
+    keywords:
+      - LLM Judge implementation
+      - Judge interface per-dimension Score
+      - NotImplementedJudge replacement
+      - judge.default activation
+      - judge capability profile
+      - judge_compatible provider protocol
+      - CompleteJudge judge capability dispatch
+      - judge_compatible adapter activation
+      - judge-deepseek provider ref
+      - offline eval set >=50 questions
+      - Promptfoo registry-driven eval
+      - pinned Promptfoo pnpm dependency
+      - recorded fixture golden transcript
+      - EVAL_LIVE opt-in live provider
+      - eval-offline make target
+      - rubric dimension reuse
+      - followup_relevance report_specificity report_calibration language_consistency
+      - ai profile coverage non-placeholder gate
+      - prompt single source eval drift gate
+      - TestJudgeSignature evolution
+      - spec D-9 Judge contract
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      references:
+        - ../../../ai-provider-and-model-routing/spec.md
+        - ../../../observability-stack/spec.md
+        - ../../../backend-review/spec.md
+        - ../../../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md
+        - ../001-baseline/plan.md
+        - ../003-language-coordinate-simplification/plan.md
+      discovery:
+        packages:
+          - config/evals
+          - config/ai-profiles.yaml
+          - config/ai-providers.yaml
+          - config/rubrics
+          - config/prompts
+          - package.json
+          - pnpm-lock.yaml
+          - pnpm-workspace.yaml
+          - backend/internal/ai/registry
+          - backend/internal/ai/aiclient
+          - backend/internal/ai/aiclient/profile
+          - backend/internal/ai/aiclient/providerregistry
+          - backend/internal/ai/aiclient/bootstrap
+          - backend/internal/ai/aiclient/providers/judge_compatible
+          - backend/internal/ai/aiclient/observability
+          - scripts/lint
+          - Makefile
+        uiRoutes: []
+        apiNames: []

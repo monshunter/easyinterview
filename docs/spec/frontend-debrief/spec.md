@@ -99,7 +99,7 @@
 - 复盘历史浏览（list debriefs UI）：当前 OpenAPI 无 `listDebriefs` operation；本 spec P0 不实现；plan 002 与 backend-debrief 002 协同决定是否开启。
 - 复盘记录原地修订（update existing debrief）：当前 OpenAPI 无 `updateDebrief` operation；本 spec P0 不实现；用户如需修订，体验上引导重新创建。
 - 复盘导出 / 分享：由 future 隐私 spec / 平台 owner 承接。
-- 复盘评分质量反馈（用户对复盘分析打分）：由 future [prompt-rubric-registry/003-grayscale-and-quality-feedback](../prompt-rubric-registry/spec.md) 承接。
+- 复盘评分质量反馈（用户对复盘分析打分）：由 future [prompt-rubric-registry/005-grayscale-and-quality-feedback](../prompt-rubric-registry/spec.md) 承接。
 - 不新增或恢复弃用模块 / 路由 / 术语作为 live UI：独立 `mistakes` route / `drill_builder` / `growth_center` / `experience_library` / `star_editor` / 独立 `voice` route alias / 旧 "把复盘终点定义为下一轮面试" 流程口径 / 旧错题本回收箱口径。
 
 ## 3 用户决策 / 待确认事项
