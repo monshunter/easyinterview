@@ -164,8 +164,8 @@ Rules:
   reject. The exact list of marker tokens lives in
   `scripts/lint/prompt_lint.py` so the README can sit under the same grep
   scan as the bodies it governs. Every baseline body must be runnable text
-  that a real provider could execute, even if the 003-grayscale plan later
-  replaces the wording.
+  that a real provider could execute, even if the 005-grayscale-and-quality-feedback
+  plan later replaces the wording.
 - Do **not** embed model identifiers, provider names, or secret material in
   the body. The Resolve output supplies the model profile name; the body is
   provider-neutral.
@@ -241,10 +241,11 @@ The lint gate rejects:
 
 ## 10 References
 
-- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.7
+- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.9
 - Plans: `docs/spec/prompt-rubric-registry/plans/001-baseline/plan.md`,
   `docs/spec/prompt-rubric-registry/plans/002-output-schema-contract/plan.md`,
-  `docs/spec/prompt-rubric-registry/plans/003-language-coordinate-simplification/plan.md`
+  `docs/spec/prompt-rubric-registry/plans/003-language-coordinate-simplification/plan.md`,
+  `docs/spec/prompt-rubric-registry/plans/004-real-model-profile-and-evals/plan.md`
 - DB schema: `migrations/000001_create_baseline.up.sql` (`prompt_versions` table)
 - Lint: `scripts/lint/prompt_lint.py`
 - Go loader: `backend/internal/ai/registry/loader.go`

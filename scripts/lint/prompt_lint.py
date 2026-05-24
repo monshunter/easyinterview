@@ -3,7 +3,7 @@
 
 Validates `config/prompts/<feature_key>/<version>[.<language>].{yaml,md}`
 against the schema and canonical hash algorithm fixed by
-`config/prompts/README.md` and `docs/spec/prompt-rubric-registry/spec.md` v2.7.
+`config/prompts/README.md` and `docs/spec/prompt-rubric-registry/spec.md` v2.9.
 
 The canonical algorithm is shared with the Go loader at
 `backend/internal/ai/registry/loader.go`. Both implementations must agree

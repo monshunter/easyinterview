@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: 2.7
-    to: 2.8
+    to: 2.9
 spec:
   defaultTarget: backend
   discovery:
@@ -34,7 +34,8 @@ spec:
       - EVAL_LIVE opt-in live provider
       - eval-offline make target
       - rubric dimension reuse
-      - followup_relevance report_specificity report_calibration language_consistency
+      - followup_relevance report_specificity score_outlier language_consistency
+      - make test build final gate
       - ai profile coverage non-placeholder gate
       - prompt single source eval drift gate
       - TestJudgeSignature evolution

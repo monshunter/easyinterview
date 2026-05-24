@@ -8,7 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [004-real-model-profile-and-evals](./004-real-model-profile-and-evals/plan.md) | [plan](./004-real-model-profile-and-evals/plan.md) / [checklist](./004-real-model-profile-and-evals/checklist.md) / [context](./004-real-model-profile-and-evals/context.yaml) | 1.1 | active | 2026-05-24 |
+| [004-real-model-profile-and-evals](./004-real-model-profile-and-evals/plan.md) | [plan](./004-real-model-profile-and-evals/plan.md) / [checklist](./004-real-model-profile-and-evals/checklist.md) / [context](./004-real-model-profile-and-evals/context.yaml) | 1.2 | active | 2026-05-24 |
 
 ## 2 已完成（Completed）
 

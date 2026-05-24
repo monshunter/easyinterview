@@ -1,6 +1,6 @@
 # F3 Real Model Profile and Evals: LLM Judge, offline eval set, judge profile activation
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-05-24
 
@@ -15,7 +15,7 @@
 - `Judge` 接口按 spec **D-9 v2.8** 从返回单个 `Score` 演进为返回 `[]Score`（每个 rubric dimension 一项）；`TestJudgeSignature` 断言新签名。
 - `config/ai-profiles.yaml` 的 `judge.default` 从 `status: unsupported` 翻为 `active`，`config/ai-providers.yaml` 用非 placeholder `judge_compatible` provider ref（例如 `judge-deepseek`，不得保留 `judge-placeholder` / `judge-provider-required`）承接真实 judge 调用；`make lint-ai-profile-coverage` 新增断言 `judge.default` active 且 §3.1.1 的 13 个 chat profile 全部解析到**非 placeholder** provider。
 - 落地 ≥ 50 题离线评估集（`config/evals/<feature_key>/`，覆盖 §3.1.1 chat feature_key），并用 **Promptfoo** 承载 runner；Promptfoo 必须经 `RegistryClient.ResolveActive` 消费同一份 `config/prompts` 真理源，禁止复制第二份 prompt 文本；`make eval-offline` 默认跑录制 fixture（确定性、零成本、CI 安全），`EVAL_LIVE=1` opt-in 真实 provider 调用。
-- 评估维度复用现有 rubric `dimensions[]`（如 `followup_relevance` / `report_specificity` / `report_calibration` / `language_consistency`），对齐 spec §3.2 默认质量指标口径，不重新发明同义维度。
+- 评估维度复用现有 rubric `dimensions[]`（如 `followup_relevance` / `report_specificity` / `score_outlier` / `language_consistency`；report 业务仍可复用自身 `report_calibration` 维度），对齐 spec §3.2 默认质量指标口径，不重新发明同义维度。
 
 本计划**不**新增用户可见 UI、**不**改 live API 请求路径（LLM Judge 仅用于离线评估，不进入业务 HTTP 请求链路）、**不**重复翻动 A3 已 `active` 的 13 个 chat 业务 profile 的 `status`（尊重 A3 ownership，只做 `judge.default` 激活与 coverage 断言）、**不**引入 PostHog 灰度分桶（推到 `005-grayscale-and-quality-feedback`）。
 
@@ -50,7 +50,7 @@ spec v2.8 已在设计阶段固化本 plan 的接口与决策（D-9 演进、新
   - `make lint-ai-profile-coverage`（judge.default active + judge provider/profile 非 placeholder + 13 chat profile 非 placeholder；负向 placeholder fail）。
   - `make eval-offline`（默认录制 fixture 跑通 ≥ 50 题；count≥50 断言；`EVAL_LIVE` 未设不打网络）。
   - registry-single-source drift check（Promptfoo 消费的 prompt == registry resolved；漂移 exit 1）+ `make lint-prompts-hardcode`（仍 green，证明未复制第二份 prompt）。
-  - active-scope zero-reference grep（`002-real-model-profile-and-evals` / `003-grayscale-and-quality-feedback` 旧编号 shorthand 在 active spec/plan 与代码/配置/脚本 truth source 中 = 0；排除本 plan 自身 gate 定义目录、`docs/reports/`、`docs/work-journal/`、`docs/bugs/` 历史记录）。
+  - active-scope zero-reference grep（完整旧编号、短写旧编号与 stale spec version 引用在 active specs、F3 plans index、README、代码/配置/脚本 truth source 中 = 0；排除本 plan 自身 gate 定义目录、completed plan、history、`docs/reports/`、`docs/work-journal/`、`docs/bugs/` 历史记录）。
   - `make lint`、`validate_context.py`、`sync-doc-index --check`、`make docs-check`、`git diff --check`。
 
 ## 4 实施步骤
@@ -71,7 +71,7 @@ Operation matrix: `N/A`。本 plan 不新增或改变 HTTP operation、OpenAPI f
 
 #### 0.3 eval 维度映射锁定
 
-从现有 `config/rubrics/<feature_key>/v0.1.0.yaml` 的 `dimensions[]` 提取真实维度名，映射 spec §3.2 默认质量指标（追问相关率→`followup_relevance`、报告空泛率→`report_specificity`、异常高分率→`report_calibration`、语言混乱率→`language_consistency`），锁定 eval 只复用现有 rubric 维度、不新增同义维度。
+从现有 `config/rubrics/<feature_key>/v0.1.0.yaml` 的 `dimensions[]` 提取真实维度名，映射 spec §3.2 默认质量指标（追问相关率→`followup_relevance`、报告空泛率→`report_specificity`、异常高分率/离群评分→`score_outlier`、语言混乱率→`language_consistency`；report 业务校准仍复用自身 `report_calibration`），锁定 eval 只复用现有 rubric 维度、不新增同义维度。
 
 #### 0.4 Promptfoo single-source 与执行模式约束确认
 
@@ -169,11 +169,11 @@ Operation matrix: `N/A`。本 plan 不新增或改变 HTTP operation、OpenAPI f
 
 #### 5.1 focused + 聚合验证
 
-运行 §3 替代验证 gate 全集：registry / profile go tests、`make lint-ai-profile-coverage`、`make eval-offline`、`make lint`。
+运行 §3 替代验证 gate 全集：registry / profile go tests、`make lint-ai-profile-coverage`、`make eval-offline`、`make lint`、`make test`、`make build`。
 
 #### 5.2 active-scope zero-reference grep 门禁
 
-`rg -n '002-real-model-profile-and-evals|003-grayscale-and-quality-feedback' docs/spec backend config scripts --glob '!docs/spec/prompt-rubric-registry/plans/004-real-model-profile-and-evals/**'` 必须为 0；历史审计资产允许保留旧引用，必须显式排除 `docs/reports/`、`docs/work-journal/`、`docs/bugs/`。该 gate 只证明 active spec/plan 与代码/配置/脚本 truth source 不再传播旧编号 shorthand。
+`rg -n '002-real-model|003-grayscale|F3 后续 002|prompt-rubric-registry/spec\.md.*v2\.[0-8]' docs/spec/*/spec.md docs/spec/prompt-rubric-registry/plans/INDEX.md config backend scripts --glob '!docs/spec/prompt-rubric-registry/plans/004-real-model-profile-and-evals/**'` 必须为 0；历史审计资产允许保留旧引用，completed plan/history 不作为 active-scope gate 输入。该 gate 证明 active specs、F3 plans index、README 与代码/配置/脚本 truth source 不再传播旧编号 shorthand 或旧 spec 版本引用。
 
 #### 5.3 profile status 范围负向断言
 
@@ -191,7 +191,7 @@ Operation matrix: `N/A`。本 plan 不新增或改变 HTTP operation、OpenAPI f
 - `config/ai-profiles.yaml` `judge.default` 为 `active` + 非 placeholder provider/model；`config/ai-providers.yaml` 提供非 placeholder `judge_compatible` provider ref；`make lint-ai-profile-coverage` 断言 judge.default active 且 13 个 chat profile 解析到非 placeholder；负向 placeholder fail。
 - `config/evals/` ≥ 50 题；`make eval-offline` 默认录制 fixture 跑通；count≥50 断言通过；`EVAL_LIVE` 未设不打网络；`EVAL_LIVE=1` opt-in live 可运行。
 - Promptfoo 经 registry 解析消费同一份 prompt（single-source）；registry-single-source drift gate 与 `make lint-prompts-hardcode` 均通过；无第二份 prompt 副本。
-- active-scope zero-reference grep：`002-real-model-profile-and-evals` / `003-grayscale-and-quality-feedback` 旧编号在 active spec/plan 与代码/配置/脚本 truth source 中 = 0（排除本 plan 自身 gate 定义目录与历史 reports/work-journal/bugs）。
+- active-scope zero-reference grep：完整旧编号、短写旧编号与 stale spec version 引用在 active specs、F3 plans index、README 与代码/配置/脚本 truth source 中 = 0（排除本 plan 自身 gate 定义目录与历史 completed plan/history/reports/work-journal/bugs）。
 - 本 plan 未翻动 A3 已 active 业务 profile 的 status（`git diff` 范围断言）。
 - BDD 不适用声明与替代验证 gate 已固化；plan/checklist/context/index 生命周期闭环。
 
@@ -208,7 +208,7 @@ Operation matrix: `N/A`。本 plan 不新增或改变 HTTP operation、OpenAPI f
 | 误翻动 A3 已 active 业务 profile 越界 | Phase 3 只改 judge.default；Phase 5.3 用 `git diff` 范围断言锁定 chat profile status 未变；coverage gate 只做断言不改写业务 profile。 |
 | eval 维度自造同义指标偏离 rubric | Phase 0.3 锁定只复用现有 rubric `dimensions[]`；`LLMJudge` 维度名来自 `GetRubric`，不在 eval 配置内新造维度。 |
 | eval/judge live 调用污染 production `ai_task_runs` 业务指标 | eval/judge 经 AIClient 的 live 调用必须标记 eval 来源或排除出 production 业务 observability；默认 fixture 模式不产生 live 调用；Phase 4 实施时确认 `ai_task_runs` 埋点边界，不把 eval 流量并入业务 feature_key 统计。 |
-| 旧 plan 编号 shorthand 残留导致审计漂移 | Phase 5.2 固化 active-scope zero-reference grep（排除本 plan gate 定义目录与历史 reports/work-journal/bugs）；`/design` 修 F3-owned 残留，`/plan-review --fix` 修跨 subspec 残留。 |
+| 旧 plan 编号 shorthand / stale spec version 残留导致审计漂移 | Phase 5.2 固化 active-scope zero-reference grep（排除本 plan gate 定义目录与历史 completed plan/history/reports/work-journal/bugs）；`/design` 修 F3-owned 残留，`/plan-review --fix` 修跨 subspec 残留。 |
 
 ## 7 关联文档导航
 
@@ -234,7 +234,7 @@ Operation matrix: `N/A`。本 plan 不新增或改变 HTTP operation、OpenAPI f
 | Phase 2 | judge dispatch + 真实 LLMJudge | A3 judge dispatch/adapter red→green；`judge_llm_test.go` 逐维度 + fail-close 红→绿；`go test ./backend/internal/ai/{aiclient,registry}` focused | 待回填 |
 | Phase 3 | judge.default 激活 + coverage | `config/ai-providers.yaml` 非 placeholder judge provider；`catalog_test.go` active；`ai_profile_coverage.py` 非 placeholder 断言 + 负向；`make lint-ai-profile-coverage` | 待回填 |
 | Phase 4 | eval 集 + Promptfoo | pinned Promptfoo dependency + lockfile；`config/evals` count≥50；`make eval-offline` fixture；drift gate；`EVAL_LIVE` 无网络断言；`lint-prompts-hardcode` green | 待回填 |
-| Phase 5 | 验证与生命周期 | lint/test/eval/docs gates；active-scope zero-reference grep；profile status 范围断言；INDEX/work-journal/retrospective | 待回填 |
+| Phase 5 | 验证与生命周期 | lint/test/build/eval/docs gates；active-scope zero-reference grep；profile status 范围断言；INDEX/work-journal/retrospective | 待回填 |
 
 ### 8.2 Owner handoff
 

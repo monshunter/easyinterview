@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-24](2026-05-24.md) | `docs(prompt-rubric): align 004 plan references with spec v2.9` | #docs |
 | [2026-05-24](2026-05-24.md) | `docs(prompt-rubric): derive real model profile and evals plan` | #docs |
 | [2026-05-24](2026-05-24.md) | `fix(frontend-home): reset parse state on target switch (BUG-0101)` | #fix #ui #test #docs |
 | [2026-05-24](2026-05-24.md) | `docs(retrospective): assess parse confirm context gate` | #docs |

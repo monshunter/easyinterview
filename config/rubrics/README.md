@@ -137,9 +137,10 @@ The lint gate rejects:
 
 ## 8 References
 
-- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.7
+- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.9
 - Plans: `docs/spec/prompt-rubric-registry/plans/001-baseline/plan.md`,
-  `docs/spec/prompt-rubric-registry/plans/003-language-coordinate-simplification/plan.md`
+  `docs/spec/prompt-rubric-registry/plans/003-language-coordinate-simplification/plan.md`,
+  `docs/spec/prompt-rubric-registry/plans/004-real-model-profile-and-evals/plan.md`
 - DB schema: `migrations/000001_create_baseline.up.sql` (`rubric_versions` table)
 - Lint: `scripts/lint/rubric_lint.py`
 - Go loader: `backend/internal/ai/registry/loader.go`

@@ -1,6 +1,6 @@
 # F3 Real Model Profile and Evals Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
 > **更新日期**: 2026-05-24
 
@@ -10,7 +10,7 @@
 
 - [ ] 0.1 前后端契约预读（development §2 + config/backend README + A3/F1 spec），记录 operation matrix N/A 与替代 gate
 - [ ] 0.2 Judge 与 profile 现状快照（judge.default unsupported / NotImplementedJudge / types.go 单 Score / catalog_test unsupported / AIClient Complete chat-only / bootstrap judge_compatible unsupported / judge-placeholder provider / 13 chat active+deepseek / ai_profile_coverage 现状）
-- [ ] 0.3 eval 维度映射锁定：从 `config/rubrics/*/v0.1.0.yaml` 提取真实维度名，映射 spec §3.2 质量指标，禁止新造同义维度
+- [ ] 0.3 eval 维度映射锁定：从 `config/rubrics/*/v0.1.0.yaml` 提取真实维度名，映射 spec §3.2 质量指标（含异常高分率/离群评分→`score_outlier`），禁止新造同义维度
 - [ ] 0.4 Promptfoo single-source 与执行模式不变量锁定（经 registry 解析、不复制 prompt；fixture 默认 / EVAL_LIVE opt-in / live 不进 make test）
 
 ## Phase 1: Judge 接口演进为逐维度 []Score
@@ -47,7 +47,7 @@
 
 ## Phase 5: 验证、生命周期与收口
 
-- [ ] 5.1 focused + 聚合验证（registry/aiclient/profile go tests、lint-ai-profile-coverage、eval-offline、make lint）— 验证：`make lint` + 上述命令全绿
-- [ ] 5.2 active-scope zero-reference grep 门禁（002-real-model / 003-grayscale 旧编号在 active spec/plan 与代码/配置/脚本 truth source = 0，排除本 plan 自身 gate 定义目录与 reports/work-journal/bugs 历史资产）— 验证：`rg -n '002-real-model-profile-and-evals|003-grayscale-and-quality-feedback' docs/spec backend config scripts --glob '!docs/spec/prompt-rubric-registry/plans/004-real-model-profile-and-evals/**'`
+- [ ] 5.1 focused + 聚合验证（registry/aiclient/profile go tests、lint-ai-profile-coverage、eval-offline、make lint、make test、make build）— 验证：`make lint` / `make test` / `make build` + 上述命令全绿
+- [ ] 5.2 active-scope zero-reference grep 门禁（完整旧编号、短写旧编号、stale spec version 在 active specs、F3 plans index、README 与代码/配置/脚本 truth source = 0，排除本 plan 自身 gate 定义目录与 completed plan/history/reports/work-journal/bugs 历史资产）— 验证：`rg -n '002-real-model|003-grayscale|F3 后续 002|prompt-rubric-registry/spec\.md.*v2\.[0-8]' docs/spec/*/spec.md docs/spec/prompt-rubric-registry/plans/INDEX.md config backend scripts --glob '!docs/spec/prompt-rubric-registry/plans/004-real-model-profile-and-evals/**'`
 - [ ] 5.3 profile status 范围负向断言（仅 judge.default 改 status，13 chat 未翻动；judge provider ref 非 placeholder）— 验证：`git diff config/ai-profiles.yaml config/ai-providers.yaml`
 - [ ] 5.4 docs/lifecycle 收口（validate_context、sync-doc-index --check、docs-check、git diff --check；004 置 completed；INDEX/work-journal/retrospective；缺陷建档）— 验证：`make docs-check` + `python3 .agent-skills/implement/shared/scripts/validate_context.py ...`

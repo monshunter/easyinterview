@@ -1,6 +1,6 @@
 # Prompt Rubric Registry Spec
 
-> **版本**: 2.8
+> **版本**: 2.9
 > **状态**: active
 > **更新日期**: 2026-05-24
 
@@ -100,7 +100,7 @@
 - 是否引入 prompt versioning 的语义化命名（如 `v1.0.0-baseline` / `v1.1.0-better-followup`）：默认是；由 `004` 评估迭代时按需启用。
 - 评估工具选型：**已由 `004`（D-15）锁定为 Promptfoo**（pnpm Node），不引入 OpenAI Evals / `prompt-eng` 编辑器；Promptfoo 经 registry 解析消费同一份 prompt 真理源。
 - LLM Judge 使用哪个 model profile：**已由 `004`（D-15）锁定为 `judge.default`**（与业务 chat profile 隔离）。
-- rubric 维度名是否与 F1 / F3 AI 质量指标对齐：**已由 `004`（D-15）锁定为复用现有 rubric `dimensions[]`**（如 `followup_relevance` / `report_specificity` / `report_calibration` / `language_consistency`），不新造同义维度。
+- rubric 维度名是否与 F1 / F3 AI 质量指标对齐：**已由 `004`（D-15）锁定为复用现有 rubric `dimensions[]`**（如 `followup_relevance` / `report_specificity` / `score_outlier` / `language_consistency`；report 业务仍可复用自身 `report_calibration` 维度），不新造同义维度。
 
 ## 4 设计约束
 
@@ -149,7 +149,7 @@
 | C-2 | template_hash 一致 | 修改 prompt template body 但忘改 hash | CI | `lint-prompts` 失败；提示重新生成 hash | F3 后续 001 + A5 |
 | C-3 | Resolve 业务调用 | C5 调用 `registry.Resolve("practice.session.follow_up", "en")` | 单测 | 返回 `(prompt_version, rubric_version, model_profile_name)` 三元组 | F3 后续 001 + C5 |
 | C-4 | 业务不允许 hardcode prompt | 故意在 `internal/practice/` 中加 `prompt := "You are an interviewer..."` | CI | `lint-prompts-hardcode` 失败 | F3 后续 001 + A5 |
-| C-5 | 灰度切换 | F3 自行 plan `is_active` 字段 | DB 直接修改 | 同 `(feature_key, language)` 旧 prompt → deprecated；新 prompt → active；Resolve 输出新 version | F3 后续 002 |
+| C-5 | 灰度切换 | F3 自行 plan `is_active` 字段 | DB 直接修改 | 同 `(feature_key, language)` 旧 prompt → deprecated；新 prompt → active；Resolve 输出新 version | F3 `005` |
 | C-6 | 多 language fallback | 调 `Resolve("report.generate", "fr")`，`fr` baseline 不存在 | 加载逻辑 | 退化到 `multi` baseline；log warn | F3 后续 001 |
 | C-7 | LLM Judge 接口（v2.8 演进） | 编译期 | F3 包 export `Judge` 接口 | 接口按 spec 版本演进：返回 `([]Score, Reasoning, error)`，`[]Score` 逐 rubric dimension；`TestJudgeSignature` 断言新签名；业务代码可 import 抽象 | F3 `001`（接口）+ `004`（演进+实现） |
 | C-8 | F3 executable baseline handoff | 本 spec 的 contract lock 已完成，F3 后续 `001` 完成 baseline | active spec 关系已保留 | 13 个 baseline prompt / rubric 文件、loader 与 lint 均通过验证；依赖 F3 的后续 implementation 可启动；roadmap 只保留 active spec 关系，不单独冒充本项已通过 | F3 后续 `001` |
