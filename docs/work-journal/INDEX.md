@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-24](2026-05-24.md) | `fix(prompt-rubric): honor active eval versions and isolate promptfoo state` | #fix #test #docs |
 | [2026-05-24](2026-05-24.md) | `docs(prompt-rubric): tighten 004 judge adapter test gate evidence` | #docs #test |
 | [2026-05-24](2026-05-24.md) | `docs(reports): assess real model profile and evals delivery` | #docs |
 | [2026-05-24](2026-05-24.md) | `feat(prompt-rubric): close 004 verification and route evalkit env via platform config` | #feat #test #docs |

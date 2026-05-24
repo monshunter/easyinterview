@@ -204,6 +204,119 @@ func TestRunOfflineMakesNoNetworkCall(t *testing.T) {
 	}
 }
 
+func TestRunOfflineUsesResolveActiveVersions(t *testing.T) {
+	reg := &activeVersionRegistry{promptVersion: "v9.9.9", rubricVersion: "v8.8.8"}
+	suite := &eval.Suite{
+		Instruction: "score each dimension",
+		Cases:       []eval.Case{versionedCase()},
+	}
+
+	results, err := suite.RunOffline(context.Background(), reg)
+	if err != nil {
+		t.Fatalf("RunOffline: %v", err)
+	}
+	if len(results) != 1 || results[0].Err != nil {
+		t.Fatalf("RunOffline result = %+v", results)
+	}
+	if got := reg.promptLookups; len(got) != 1 || got[0] != "v9.9.9" {
+		t.Fatalf("prompt lookup versions: got %v, want [v9.9.9]", got)
+	}
+	if got := reg.rubricLookups; len(got) != 1 || got[0] != "v8.8.8" {
+		t.Fatalf("rubric lookup versions: got %v, want [v8.8.8]", got)
+	}
+}
+
+func TestGradeOutputUsesResolveActiveVersions(t *testing.T) {
+	reg := &activeVersionRegistry{promptVersion: "v9.9.9", rubricVersion: "v8.8.8"}
+	suite := &eval.Suite{Instruction: "score each dimension"}
+	c := versionedCase()
+	model, err := c.OfflineJudgeModel()
+	if err != nil {
+		t.Fatalf("OfflineJudgeModel: %v", err)
+	}
+	output, err := c.OutputJSON()
+	if err != nil {
+		t.Fatalf("OutputJSON: %v", err)
+	}
+
+	if _, _, err := suite.GradeOutput(context.Background(), reg, model, c, output); err != nil {
+		t.Fatalf("GradeOutput: %v", err)
+	}
+	if got := reg.promptLookups; len(got) != 1 || got[0] != "v9.9.9" {
+		t.Fatalf("prompt lookup versions: got %v, want [v9.9.9]", got)
+	}
+	if got := reg.rubricLookups; len(got) != 1 || got[0] != "v8.8.8" {
+		t.Fatalf("rubric lookup versions: got %v, want [v8.8.8]", got)
+	}
+}
+
+type activeVersionRegistry struct {
+	promptVersion string
+	rubricVersion string
+	promptLookups []string
+	rubricLookups []string
+}
+
+func (r *activeVersionRegistry) ResolveActive(_ context.Context, featureKey, _ string) (registry.PromptResolution, error) {
+	return registry.PromptResolution{
+		FeatureKey:       featureKey,
+		PromptVersion:    r.promptVersion,
+		RubricVersion:    r.rubricVersion,
+		ModelProfileName: "practice.followup.default",
+	}, nil
+}
+
+func (r *activeVersionRegistry) GetPrompt(featureKey, version, language string) (registry.PromptMeta, string, error) {
+	r.promptLookups = append(r.promptLookups, version)
+	if version != r.promptVersion {
+		return registry.PromptMeta{}, "", registry.ErrPromptUnsupported
+	}
+	return registry.PromptMeta{
+		FeatureKey: featureKey,
+		Version:    version,
+		Language:   language,
+		Status:     "active",
+	}, "", nil
+}
+
+func (r *activeVersionRegistry) GetRubric(featureKey, version, language string) (registry.RubricSchema, error) {
+	r.rubricLookups = append(r.rubricLookups, version)
+	if version != r.rubricVersion {
+		return registry.RubricSchema{}, registry.ErrPromptUnsupported
+	}
+	return registry.RubricSchema{
+		FeatureKey: featureKey,
+		Version:    version,
+		Language:   language,
+		Dimensions: []registry.RubricDimension{
+			{
+				Name:        "followup_relevance",
+				Description: "Follow-up relevance",
+				ScoreLevels: []registry.ScoreLevel{
+					{Label: "weak", Threshold: 0.0, Description: "Weak"},
+					{Label: "strong", Threshold: 0.8, Description: "Strong"},
+				},
+			},
+		},
+	}, nil
+}
+
+func versionedCase() eval.Case {
+	c := eval.Case{
+		ID:         "versioned-active-case",
+		FeatureKey: "practice.session.follow_up",
+		Language:   "multi",
+		Input:      "candidate gave a shallow answer",
+		Output: map[string]any{
+			"questionText":   "What evidence told you the rollback worked?",
+			"questionIntent": "probe-evidence",
+		},
+	}
+	c.Judge.Scores = []eval.DimensionScore{{Dimension: "followup_relevance", Value: 0.8}}
+	c.Judge.Reasoning.Summary = "Scores the active rubric version."
+	return c
+}
+
 func keys[V any](m map[string]V) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {

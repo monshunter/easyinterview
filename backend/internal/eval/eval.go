@@ -200,13 +200,19 @@ func (s *Suite) gradeOffline(ctx context.Context, reg RubricProvider, c Case) Re
 		res.Err = fmt.Errorf("marshal judge fixture: %w", err)
 		return res
 	}
+	resolution, err := reg.ResolveActive(ctx, c.FeatureKey, c.Language)
+	if err != nil {
+		res.Err = fmt.Errorf("resolve active prompt: %w", err)
+		return res
+	}
 	judge, err := registry.NewLLMJudge(reg, fixtureJudgeModel{response: string(transcript)}, s.Instruction, registry.WithJudgeRubricLanguage("multi"))
 	if err != nil {
 		res.Err = err
 		return res
 	}
-	// PromptVersion/RubricVersion follow the canonical baseline coordinate.
-	res.Scores, res.Reasoning, res.Err = judge.Judge(ctx, c.FeatureKey, "v0.1.0", outputBytes, "v0.1.0")
+	// PromptVersion/RubricVersion follow the active registry coordinate so the
+	// eval gate tracks future prompt/rubric upgrades instead of pinning v0.1.0.
+	res.Scores, res.Reasoning, res.Err = judge.Judge(ctx, c.FeatureKey, resolution.PromptVersion, outputBytes, resolution.RubricVersion)
 	return res
 }
 
@@ -238,11 +244,15 @@ func (c Case) JudgeTranscript() ([]byte, error) {
 // fixtureJudgeModel; live callers pass a real JudgeModelClient. It reuses the
 // single registry.LLMJudge implementation.
 func (s *Suite) GradeOutput(ctx context.Context, reg RubricProvider, model registry.JudgeModelClient, c Case, output []byte) ([]registry.Score, registry.Reasoning, error) {
+	resolution, err := reg.ResolveActive(ctx, c.FeatureKey, c.Language)
+	if err != nil {
+		return nil, registry.Reasoning{}, fmt.Errorf("eval: resolve %s/%s: %w", c.FeatureKey, c.Language, err)
+	}
 	judge, err := registry.NewLLMJudge(reg, model, s.Instruction, registry.WithJudgeRubricLanguage("multi"))
 	if err != nil {
 		return nil, registry.Reasoning{}, err
 	}
-	return judge.Judge(ctx, c.FeatureKey, "v0.1.0", output, "v0.1.0")
+	return judge.Judge(ctx, c.FeatureKey, resolution.PromptVersion, output, resolution.RubricVersion)
 }
 
 // OfflineJudgeModel returns the recorded-fixture JudgeModelClient for a case.
