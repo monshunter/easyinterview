@@ -347,6 +347,30 @@ def test_schema_description_required_negative():
     assert "missing non-empty description" in "\n".join(errors)
 
 
+def test_missing_schema_description_reports_lint_error_without_traceback(tmp_path):
+    schema = _hint_schema()
+    body = _body_with_contract(schema)
+    del schema["description"]
+    _write_baseline_pair(
+        tmp_path,
+        "practice.turn.lightweight_observe",
+        body=body,
+        schema=schema,
+    )
+
+    result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
+    assert result.returncode == 1
+    assert "missing non-empty description" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_jd_match_recommendation_posted_is_optional_contract():
+    schema_path = REPO_ROOT / "config/prompts/jd_match.recommendation/v0.1.0.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    assert "posted" not in schema["items"].get("required", [])
+
+
 if __name__ == "__main__":
     import unittest
 

@@ -171,7 +171,6 @@ FEATURE_CONTRACTS = {
             "$[].title",
             "$[].company",
             "$[].location",
-            "$[].posted",
             "$[].score",
             "$[].fit",
             "$[].fit.must",
@@ -417,8 +416,11 @@ def lint_output_schemas(prompts_root: pathlib.Path) -> list[str]:
         errors.extend(schema_errors)
         if schema is None:
             continue
-        errors.extend(validate_schema_subset(schema_path, schema))
-        errors.extend(validate_schema_contract(schema_path, schema, contract))
+        schema_errors = validate_schema_subset(schema_path, schema)
+        schema_errors.extend(validate_schema_contract(schema_path, schema, contract))
+        errors.extend(schema_errors)
+        if schema_errors:
+            continue
 
         expected_block = render_output_contract(schema)
         example = example_for_schema(schema)

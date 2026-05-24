@@ -1,6 +1,6 @@
 # F3 Output Schema Contract Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
 > **更新日期**: 2026-05-24
 
@@ -68,6 +68,12 @@
 - [x] 9.1 重写 seed migration 静态覆盖测试，从 `config/prompts` active YAML 与 `config/rubrics` YAML 反推出期望坐标，扫描所有 `migrations/*seed_baseline_prompt_rubric*.up.sql`，拒绝 missing / extra / duplicate row 与 prompt `template_hash` drift。验证: red `go test ./backend/internal/ai/registry -run TestSeedMigrationCoversBaselineFeatureKeys -count=1 -v` 失败于缺失 `jd_match.recommendation` / `jd_match.search` en/multi rows
 - [x] 9.2 新增 `migrations/000010_seed_baseline_prompt_rubric_versions_jd_match.{up,down}.sql`，补齐 `jd_match.recommendation` / `jd_match.search` × `en` / `multi` 的 prompt_versions 与 rubric_versions seed rows。验证: green `go test ./backend/internal/ai/registry -run TestSeedMigrationCoversBaselineFeatureKeys -count=1 -v` → pass
 - [x] 9.3 执行 migration/runtime 收口 gate。验证: `go test ./backend/internal/ai/registry -count=1` → pass；`python3 scripts/lint/prompt_lint.py` → `prompt_lint: 26 files clean`；`python3 scripts/lint/rubric_lint.py` → `rubric_lint: 26 files clean`；`python3 scripts/lint/migrations_lint.py` → `migration lint: ok`；`DATABASE_URL=postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable make migrate-check` → pass
+
+## Phase 10: L2 review follow-up（JD-Match required drift + lint diagnostic hardening）
+
+- [x] 10.1 将 `jd_match.recommendation` 的 `posted` 从 schema required 与 `FEATURE_CONTRACTS` required paths 中移除，保持 optional，并同步 multi/en prompt contract block、YAML `template_hash` 与 `000010` seed migration body/hash。验证: `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'missing_schema_description or jd_match_recommendation_posted'` → `2 passed`
+- [x] 10.2 修复 `prompt_lint.py` 在 invalid schema 已产生 subset/contract error 时仍调用 renderer 导致 traceback 的缺口。验证: `test_missing_schema_description_reports_lint_error_without_traceback` 先红后绿，断言 stderr 包含 `missing non-empty description` 且不含 `Traceback`
+- [x] 10.3 执行收口验证并同步 Bug / retrospective 文档。验证: `python3 -m pytest scripts/lint/prompt_lint_test.py -q` → `13 passed`；`python3 scripts/lint/prompt_lint.py` → `prompt_lint: 26 files clean`；`python3 scripts/lint/rubric_lint.py` → `rubric_lint: 26 files clean`；`python3 scripts/lint/migrations_lint.py` → `migration lint: ok`；`DATABASE_URL=postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable make migrate-check` → `migration lint: ok`；`go test ./backend/internal/ai/registry -count=1` → pass；`go test ./backend/cmd/api -run TestJDMatchA3F3AdapterUsesRegistryProfilesForSearchAndRecommendation -count=1` → pass；`go test ./backend/internal/ai/aiclient/observability -run TestDecorator_OutputSchema -count=1` → pass；`validate_context.py --context docs/spec/prompt-rubric-registry/plans/002-output-schema-contract/context.yaml --docs-root docs --target backend` → pass；`sync-doc-index.py --check` → zero drift；`git diff --check` → pass
 
 ## BDD-Gate
 

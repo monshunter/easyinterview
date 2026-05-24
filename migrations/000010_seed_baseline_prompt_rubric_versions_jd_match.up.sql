@@ -5,7 +5,7 @@
 BEGIN;
 
 INSERT INTO prompt_versions (id, feature_key, version, language, template_hash, template_body, is_active, created_at) VALUES
-  ('6721ff84-ae51-5bd2-9e4b-66be6412c10c', 'jd_match.recommendation', 'v0.1.0', 'en', '198dc876e70832bdc36d2dcf2c62d731eb6567198a0a192bf3903507ed84e9a1', $body$You are a career-discovery assistant. Generate JD-Match recommendations for the
+  ('6721ff84-ae51-5bd2-9e4b-66be6412c10c', 'jd_match.recommendation', 'v0.1.0', 'en', '9d25fbcb082a1e0620eb6e497953f5966f697d024575a6103d0ae49f5150798f', $body$You are a career-discovery assistant. Generate JD-Match recommendations for the
 authenticated candidate based on their structured profile and the internal jobs
 pool. Always respond in English.
 
@@ -28,7 +28,6 @@ Output shape:
 - `$[].title` (required, string): Job title.
 - `$[].company` (required, string): Company name.
 - `$[].location` (required, string): Job location.
-- `$[].posted` (required, string): Human-readable freshness label.
 - `$[].score` (required, integer): Candidate fit score from 0 to 100.
 - `$[].fit` (required, object): Requirement-fit counts.
 - `$[].fit.must` (required, integer): Matched must-have count.
@@ -44,6 +43,7 @@ Output shape:
 - `$[].companyTag` (optional, string): Optional company tag.
 - `$[].level` (optional, string enum(junior, mid, senior, staff, lead, principal)): Optional seniority level.
 - `$[].comp` (optional, string): Optional compensation label.
+- `$[].posted` (optional, string): Human-readable freshness label.
 - `$[].sourceUrl` (optional, string): Optional internal pool source URL.
 - `$[].sourceLabel` (optional, string): Optional source label.
 - `$[].networkNote` (optional, string): Optional aggregated non-PII network signal.
@@ -59,7 +59,6 @@ Example complete JSON output:
     "title": "Senior Backend Engineer",
     "company": "Example Cloud",
     "location": "Remote US",
-    "posted": "posted 2 days ago",
     "score": 86,
     "fit": {
       "must": 4,
@@ -79,6 +78,7 @@ Example complete JSON output:
     "companyTag": "Growth-stage SaaS",
     "level": "senior",
     "comp": "$180k-$220k",
+    "posted": "posted 2 days ago",
     "sourceUrl": "https://jobs.internal.example/job-123",
     "sourceLabel": "internal jobs pool",
     "networkNote": "3 prior interview reports mention similar backend platform scope.",
@@ -100,7 +100,7 @@ Hard rules:
 - Do not include free-form essays outside the JSON array.
 - Preserve the language code in `{{language}}`; the JSON keys remain ASCII.
 $body$, TRUE, '2026-05-21T00:00:00Z'),
-  ('441f6098-4e17-5dbb-ad18-22bd618a9a28', 'jd_match.recommendation', 'v0.1.0', 'multi', 'eacff80357474fb25af1c1ecb6722449f7ce5688c9100b8e33149f6f15372b88', $body$You are a career-discovery assistant. Generate JD-Match recommendations for the
+  ('441f6098-4e17-5dbb-ad18-22bd618a9a28', 'jd_match.recommendation', 'v0.1.0', 'multi', '2c774f4836c0f03ff37e1ae577b315f77bb55d4ee06f8ad26186c6785b214b35', $body$You are a career-discovery assistant. Generate JD-Match recommendations for the
 authenticated candidate based on their structured profile and the internal jobs
 pool. Respond in the language indicated by `{{language}}` (default Chinese for
 JD-Match) regardless of source language.
@@ -124,7 +124,6 @@ Output shape:
 - `$[].title` (required, string): Job title.
 - `$[].company` (required, string): Company name.
 - `$[].location` (required, string): Job location.
-- `$[].posted` (required, string): Human-readable freshness label.
 - `$[].score` (required, integer): Candidate fit score from 0 to 100.
 - `$[].fit` (required, object): Requirement-fit counts.
 - `$[].fit.must` (required, integer): Matched must-have count.
@@ -140,6 +139,7 @@ Output shape:
 - `$[].companyTag` (optional, string): Optional company tag.
 - `$[].level` (optional, string enum(junior, mid, senior, staff, lead, principal)): Optional seniority level.
 - `$[].comp` (optional, string): Optional compensation label.
+- `$[].posted` (optional, string): Human-readable freshness label.
 - `$[].sourceUrl` (optional, string): Optional internal pool source URL.
 - `$[].sourceLabel` (optional, string): Optional source label.
 - `$[].networkNote` (optional, string): Optional aggregated non-PII network signal.
@@ -155,7 +155,6 @@ Example complete JSON output:
     "title": "Senior Backend Engineer",
     "company": "Example Cloud",
     "location": "Remote US",
-    "posted": "posted 2 days ago",
     "score": 86,
     "fit": {
       "must": 4,
@@ -175,6 +174,7 @@ Example complete JSON output:
     "companyTag": "Growth-stage SaaS",
     "level": "senior",
     "comp": "$180k-$220k",
+    "posted": "posted 2 days ago",
     "sourceUrl": "https://jobs.internal.example/job-123",
     "sourceLabel": "internal jobs pool",
     "networkNote": "3 prior interview reports mention similar backend platform scope.",

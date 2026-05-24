@@ -30,6 +30,8 @@ spec:
       - complete JSON output example
       - seed migration coverage
       - jd_match prompt rubric seed
+      - jd_match recommendation posted optional
+      - prompt lint invalid schema traceback
       - prompt_versions rubric_versions baseline
       - OpenAPI schema negative prompt example
       - schema rendered output contract
