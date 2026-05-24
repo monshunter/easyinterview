@@ -1,0 +1,116 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: e2e-scenarios-p0
+  name: 001-full-funnel-happy-journey
+  sequence: 1
+  supersedes: []
+  specVersion:
+    from: null
+    to: 1.0
+spec:
+  defaultTarget: scenario
+  discovery:
+    aliases:
+      - e2e-scenarios-p0
+      - e2e-scenarios-p0/001
+      - 001-full-funnel-happy-journey
+      - full-funnel-journey
+      - p0-full-funnel
+    keywords:
+      - full funnel
+      - end-to-end journey
+      - cross-module journey
+      - handoff chain
+      - targetJobId
+      - planId
+      - sessionId
+      - reportId
+      - resumeAssetId
+      - sourceReportId
+      - next_round
+      - baseline
+      - importTargetJob
+      - getTargetJob
+      - createPracticePlan
+      - startPracticeSession
+      - appendSessionEvent
+      - completePracticeSession
+      - getFeedbackReport
+      - registerResume
+      - getJob
+      - target_import
+      - report_generate
+      - analysisStatus
+      - real backend full stack
+      - stub AI provider
+      - httptest scenario harness
+      - TestE2EP0098
+      - full-funnel-journey.spec.ts
+      - E2E.P0.098
+      - E2E.P0.099
+      - internal runner
+      - outbox
+      - idempotency replay
+      - privacy red line
+      - legacy negative
+  targets:
+    scenario:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../engineering-roadmap/spec.md
+        - ../../../product-scope/spec.md
+        - ../../../openapi-v1-contract/spec.md
+        - ../../../event-and-outbox-contract/spec.md
+        - ../../../backend-async-runner/spec.md
+        - ../../../backend-targetjob/spec.md
+        - ../../../backend-practice/spec.md
+        - ../../../backend-practice/plans/004-derived-plans-debrief/plan.md
+        - ../../../backend-review/spec.md
+        - ../../../backend-resume/spec.md
+        - ../../../frontend-home-job-picks-and-parse/spec.md
+        - ../../../frontend-workspace-and-practice/spec.md
+        - ../../../frontend-report-dashboard/spec.md
+        - ../../../ai-provider-and-model-routing/spec.md
+        - ../../../local-dev-stack/spec.md
+        - ../../../../development.md
+      discovery:
+        packages:
+          - backend/cmd/api
+          - backend/internal/targetjob
+          - backend/internal/practice
+          - backend/internal/review
+          - backend/internal/resume
+          - backend/internal/runner
+          - backend/internal/ai/aiclient
+          - frontend/tests/e2e
+          - frontend/src/app/screens
+          - openapi/fixtures/TargetJobs
+          - openapi/fixtures/PracticePlans
+          - openapi/fixtures/PracticeSessions
+          - openapi/fixtures/Reports
+          - openapi/fixtures/Resumes
+          - openapi/fixtures/Jobs
+          - test/scenarios/e2e
+          - deploy/dev-stack
+        uiRoutes:
+          - home
+          - parse
+          - workspace
+          - practice
+          - generating
+          - report
+        apiNames:
+          - importTargetJob
+          - getTargetJob
+          - createPracticePlan
+          - startPracticeSession
+          - appendSessionEvent
+          - completePracticeSession
+          - getFeedbackReport
+          - registerResume
+          - getJob

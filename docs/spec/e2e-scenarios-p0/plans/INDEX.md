@@ -1,0 +1,16 @@
+# Plans 索引
+
+> 本索引只记录当前 subspec 下的 `plans/*/plan.md`。
+
+---
+
+## 1 进行中（Active）
+
+| 计划 | 文件 | 版本 | 状态 | 更新日期 |
+|------|------|------|------|----------|
+| [001-full-funnel-happy-journey](./001-full-funnel-happy-journey/plan.md) | [plan](./001-full-funnel-happy-journey/plan.md) / [checklist](./001-full-funnel-happy-journey/checklist.md) / [bdd-plan](./001-full-funnel-happy-journey/bdd-plan.md) / [bdd-checklist](./001-full-funnel-happy-journey/bdd-checklist.md) / [context](./001-full-funnel-happy-journey/context.yaml) | 1.0 | active | 2026-05-24 |
+
+## 2 已完成（Completed）
+
+| 计划 | 文件 | 版本 | 状态 | 完成日期 |
+|------|------|------|------|----------|
