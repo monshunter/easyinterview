@@ -70,6 +70,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0101](./BUG-0101.md) | parse target switch kept stale preview | medium | resolved | 2026-05-24 | `fix(frontend-home): reset parse state on target switch (BUG-0101)` |
 | [BUG-0100](./BUG-0100.md) | parse confirm handoff dropped workspace context fields | medium | resolved | 2026-05-24 | `fix(frontend-home): preserve parse confirm context (BUG-0100)` |
 | [BUG-0099](./BUG-0099.md) | parse ready response skipped the ui-design loading demo | medium | resolved | 2026-05-24 | `fix(frontend-home): preserve parse loading demo (BUG-0099)` |
 | [BUG-0089](./BUG-0089.md) | frontend owner plans missed real-backend handoff gates | medium | resolved | 2026-05-23 | `fix(frontend): close real backend handoff gate drift (BUG-0089)` |

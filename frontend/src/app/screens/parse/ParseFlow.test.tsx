@@ -50,6 +50,45 @@ function createClientFromFixtures(fixtures: OperationFixture[]) {
   return new EasyInterviewClient({ fetch });
 }
 
+function createClientForTargetSwitch() {
+  const base = fixtureBody();
+  const fetch = vi.fn(async (input: RequestInfo | URL) => {
+    const url = new URL(String(input), "http://fixture.local");
+    if (url.pathname === "/api/v1/runtime-config") {
+      return new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.pathname === "/api/v1/me") {
+      return new Response(JSON.stringify({ id: "user-1", email: "user@example.com" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const targetId = url.pathname.replace("/api/v1/targets/", "");
+    const title =
+      targetId === "target-b"
+        ? "Backend Platform Engineer"
+        : "Senior Frontend Engineer";
+    return new Response(
+      JSON.stringify({
+        ...base,
+        id: targetId,
+        title,
+        companyName: targetId === "target-b" ? "Boreal Systems" : "Acme",
+        locationText: targetId === "target-b" ? "Remote" : "Shanghai",
+        analysisStatus: "ready",
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  });
+  return new EasyInterviewClient({ fetch });
+}
+
 function renderParse(client: EasyInterviewClient) {
   const navigate = vi.fn();
   return {
@@ -66,6 +105,20 @@ function renderParse(client: EasyInterviewClient) {
       </DisplayPreferencesProvider>,
     ),
   };
+}
+
+function renderParseWithTarget(client: EasyInterviewClient, targetJobId: string) {
+  return (
+    <DisplayPreferencesProvider>
+      <AppRuntimeProvider client={client}>
+        <NavigationProvider value={{ navigate: vi.fn() }}>
+          <ParseScreen
+            route={{ name: "parse", params: { targetJobId } }}
+          />
+        </NavigationProvider>
+      </AppRuntimeProvider>
+    </DisplayPreferencesProvider>
+  );
 }
 
 describe("ParseFlow — analysisStatus polling", () => {
@@ -173,6 +226,31 @@ describe("ParseFlow — analysisStatus polling", () => {
     });
 
     expect(screen.getByTestId("parse-basics-title")).toBeInTheDocument();
+  });
+
+  it("reloads loading and hydrates the new ready job when targetJobId changes on the same route", async () => {
+    vi.useFakeTimers();
+    const client = createClientForTargetSwitch();
+    const { rerender } = render(renderParseWithTarget(client, "target-a"));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
+    });
+    expect(screen.getByDisplayValue("Senior Frontend Engineer")).toBeInTheDocument();
+
+    rerender(renderParseWithTarget(client, "target-b"));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByTestId("parse-loading-step-0")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("Senior Frontend Engineer")).not.toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
+    });
+
+    expect(screen.getByDisplayValue("Backend Platform Engineer")).toBeInTheDocument();
   });
 
   it("cleans up polling on unmount", async () => {

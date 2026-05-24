@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-05-24
 
@@ -67,6 +67,7 @@
 - [x] 4.11 L2 regression remediation: `ParseScreen` 在首次 `getTargetJob.analysisStatus=ready` 时不得直接跳 preview；必须先渲染 `parse-loading-step-0..3` 并按 `ui-design` tick 完成 loading 演示后再显示 `parse-basics-title`。Red-Green：`ParseFlow.test.tsx` 先复现 ready 立即 preview，修复后 `pnpm --filter @easyinterview/frontend test src/app/screens/parse` PASS；BDD overlay：`E2E.P0.015` setup→trigger→verify→cleanup PASS。 <!-- evidence: 2026-05-24 focused ParseFlow ready-loading regression PASS; parse suite 27 tests PASS; P0.015 scenario trigger real-mode gate 1/1 + home/parse 54 tests PASS; verify PASS -->
 - [x] 4.12 Scenario browser gate hardening: `E2E.P0.015` trigger 必须运行 `frontend/tests/pixel-parity/parse.spec.ts` 的 ready-response Playwright gate；fixture-backed ready `getTargetJob` 响应下截图 `route-parse` loading DOM，断言 `parse-basics-title` 在 loading window 内不存在，tick 完成后才出现；verify.sh 必须 grep browser gate marker 与 screenshot bytes。 <!-- evidence: 2026-05-24 P0.015 trigger includes Playwright parse.spec ready-response browser gate + screenshotBytes marker; verify PASS -->
 - [x] 4.13 P0.016 route/context remediation: `ParseScreen` Confirm 必须复用 `interviewContextFromTargetJob(targetJob)`；已登录 navigate 与未登录 `requestAuth(pendingAction)` 均携带 `targetJobId` / `jobId` / `jdId` / `planId` / `resumeVersionId` / `roundId` / `roundName`；`E2E.P0.016` trigger 必须运行 Playwright browser gate，点击 Confirm 后验证 `/workspace` query、`workspace-missing-resume` DOM 与 screenshot bytes marker，verify.sh 必须 grep 完整 contextKeys marker。 <!-- evidence: 2026-05-24 Red: ParseEdit/AuthGate failed missing jobId/roundName; Green: focused ParseEdit/AuthGate 13 tests PASS; frontend build PASS; focused Playwright parse confirm gate desktop/mobile PASS screenshotBytes=20243/83490; P0.016 setup→trigger→verify→cleanup PASS -->
+- [x] 4.14 Same-route `targetJobId` switch remediation: 同一 mounted `ParseScreen` 从 preview 收到新的 `targetJobId` 时必须清空旧 `targetJob` / editable fields / hit toggles / error / pending ready state，回到 loading gate，并在 tick 完成后 hydrate 新 TargetJob；`ParseFlow.test.tsx` 必须用 `rerender` 覆盖旧 title 消失、新 loading DOM 出现、新 title 最终渲染。 <!-- evidence: 2026-05-24 Red: focused ParseFlow rerender regression stayed on old preview; Green: focused ParseFlow 7 tests PASS; parse suite 28 tests PASS; frontend build PASS; P0.015/P0.016 setup→trigger→verify PASS -->
 
 ## Phase 5: jd_match P1 Placeholder Shell
 

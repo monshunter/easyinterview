@@ -72,6 +72,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const steps = loadingStepKeys;
+  const targetJobId =
+    typeof route.params?.targetJobId === "string"
+      ? route.params.targetJobId
+      : undefined;
 
   const hydrateReadyJob = useCallback((job: TargetJob) => {
     setTargetJob(job);
@@ -79,6 +83,27 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     setEditedCompany(job.companyName ?? "");
     setEditedLocation(job.locationText ?? "");
   }, []);
+
+  useEffect(() => {
+    if (_mockStage || _mockTargetJob) return;
+
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current);
+      pollingRef.current = null;
+    }
+    setTargetJob(null);
+    setEditedTitle("");
+    setEditedCompany("");
+    setEditedLocation("");
+    setEditedNotes("");
+    setHitToggles({});
+    setErrorMessage(null);
+    setConfirmError(null);
+    setPendingReadyJob(null);
+    setLoadingComplete(false);
+    setStep(0);
+    setStage("loading");
+  }, [targetJobId, _mockStage, _mockTargetJob]);
 
   useEffect(() => {
     if (stage !== "loading" || _mockStage) return;
@@ -120,7 +145,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     if (_mockStage || _mockTargetJob) return;
     if (!runtime) return;
 
-    const targetJobId = route.params?.targetJobId as string | undefined;
     if (!targetJobId) {
       setStage("error");
       setErrorMessage(lang === "en" ? "Missing target job ID." : "缺少目标岗位 ID。");
@@ -166,7 +190,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       setPendingReadyJob(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runtime, route.params?.targetJobId, _mockStage, _mockTargetJob, pollNonce]);
+  }, [runtime, targetJobId, _mockStage, _mockTargetJob, pollNonce]);
 
   useEffect(() => {
     if (_mockTargetJob) {

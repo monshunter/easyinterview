@@ -112,3 +112,13 @@
   2. 对 seed row 做 missing / extra / duplicate 三类断言；hash / checksum drift 只能作为附加检查，不能替代存在性检查。
   3. 若 seed 分散在多个 migration，测试应扫描当前 owner 命名规则下的全部相关 migration 文件，而不是只读最早的 baseline migration。
   4. L2 review completed plan 时，凡看到“seed migration hash clean”或“row count clean”，必须追问缺行是否会失败，并至少用一个新 active truth-source 坐标反查 SQL 命中。
+
+## 模式 10：SPA 同路由参数切换复用旧 screen state
+
+- **相关 Bug**：BUG-0101
+- **典型症状**：初始进入某个路由、刷新或重新解析测试都通过，但 SPA 内从 `/route?id=A` 切到 `/route?id=B` 时组件没有 remount，旧 entity 的 title/form/edit state 仍显示；network 已请求新 id，却因为本地 `stage` / pending state / hydration effect 条件不满足而无法渲染新实体。
+- **检查清单**：
+  1. 对以 route param 作为 owner identity 的 screen（如 `targetJobId`、`sessionId`、`resumeVersionId`），在 component test 中用同一个 mounted instance `rerender` 新 params，不能只测 initial mount。
+  2. route-param switch regression 必须断言旧 DOM 消失、新 loading/skeleton/error boundary 出现，以及最终 hydrate 新 entity；只断言新请求发出不够。
+  3. screen 内 editable fields、temporary toggles、pending ready job、error state、polling timeout 和 in-flight UI stage 必须以 owner identity 变化作为 reset boundary。
+  4. 如果 App route table 不给 screen 加 `key`，不要假设 React 会 remount；需要生产代码显式 reset 或在 route composition 层引入明确 key，并用测试锁定。
