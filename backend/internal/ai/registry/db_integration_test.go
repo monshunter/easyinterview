@@ -11,79 +11,26 @@ import (
 )
 
 // TestSeedMigrationCoversBaselineFeatureKeys statically validates the F3
-// seed migration written by plan §4.4 against the on-disk truth source.
+// seed migrations against the on-disk prompt/rubric truth source.
 // It does not start a Postgres instance — the dockertest /
 // pgtestdb harness is not part of this repo's testing surface yet, so the
 // active gate is the static SQL parse below plus the schema check inside
 // `make migrate-check` (which exercises the actual `up -> down -> up`
 // path under DATABASE_URL when one is configured).
 //
-// Plan §4.7 verification slot. When the repo gains a Postgres-backed
+// When the repo gains a Postgres-backed
 // integration harness, this test should be promoted to a `//go:build
 // integration` runtime test that re-runs the migration chain end-to-end.
 func TestSeedMigrationCoversBaselineFeatureKeys(t *testing.T) {
 	t.Parallel()
 
 	repoRoot := walkUpToRepoRoot(t)
-	migrationPath := filepath.Join(repoRoot, "migrations",
-		"000002_seed_baseline_prompt_rubric_versions.up.sql")
-	body, err := os.ReadFile(migrationPath)
-	if err != nil {
-		t.Fatalf("read seed migration: %v", err)
-	}
+	wantPrompts := expectedPromptRows(t, repoRoot)
+	wantRubrics := expectedRubricRows(t, repoRoot)
+	rows := extractSeedMigrationRows(t, repoRoot)
 
-	rows := extractInsertRows(string(body))
-	if got := rows["prompt_versions"]; len(got) != 22 {
-		t.Errorf("prompt_versions seed rows: want 22, got %d", len(got))
-	}
-	if got := rows["rubric_versions"]; len(got) != 22 {
-		t.Errorf("rubric_versions seed rows: want 22, got %d", len(got))
-	}
-
-	wantFeatures := []string{
-		"target.import.parse",
-		"practice.session.first_question",
-		"practice.session.follow_up",
-		"practice.turn.lightweight_observe",
-		"report.generate",
-		"report.question_assessment",
-		"resume.parse",
-		"resume.tailor.gap_review",
-		"resume.tailor.bullet_suggestions",
-		"debrief.generate",
-		"debrief.suggest_questions",
-	}
-	sort.Strings(wantFeatures)
-
-	for _, table := range []string{"prompt_versions", "rubric_versions"} {
-		fk := uniqueFeatureKeys(rows[table])
-		sort.Strings(fk)
-		if got, want := fk, wantFeatures; !equalStrings(got, want) {
-			t.Errorf("%s feature_keys: want %v, got %v", table, want, got)
-		}
-	}
-
-	// Cross-file template_hash drift: each prompt INSERT row's
-	// template_hash must equal the on-disk yaml meta's template_hash.
-	for _, row := range rows["prompt_versions"] {
-		yp := filepath.Join(repoRoot, "config", "prompts", row.featureKey, yamlBasename(row))
-		bytes, err := os.ReadFile(yp)
-		if err != nil {
-			t.Errorf("missing baseline yaml %s: %v", yp, err)
-			continue
-		}
-		var meta struct {
-			TemplateHash string `yaml:"template_hash"`
-		}
-		if err := yaml.Unmarshal(bytes, &meta); err != nil {
-			t.Errorf("parse %s: %v", yp, err)
-			continue
-		}
-		if row.templateHash != meta.TemplateHash {
-			t.Errorf("%s template_hash drift: yaml=%s seed=%s",
-				yp, meta.TemplateHash, row.templateHash)
-		}
-	}
+	assertSeedRows(t, "prompt_versions", wantPrompts, rows["prompt_versions"])
+	assertSeedRows(t, "rubric_versions", wantRubrics, rows["rubric_versions"])
 }
 
 type insertRow struct {
@@ -91,6 +38,186 @@ type insertRow struct {
 	version      string
 	language     string
 	templateHash string
+}
+
+func expectedPromptRows(t *testing.T, repoRoot string) map[string]insertRow {
+	t.Helper()
+
+	paths, err := filepath.Glob(filepath.Join(repoRoot, "config", "prompts", "*", "v*.yaml"))
+	if err != nil {
+		t.Fatalf("glob prompt baselines: %v", err)
+	}
+	sort.Strings(paths)
+
+	out := map[string]insertRow{}
+	for _, path := range paths {
+		bytes, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read prompt baseline %s: %v", path, err)
+		}
+		var meta struct {
+			FeatureKey   string `yaml:"feature_key"`
+			Version      string `yaml:"version"`
+			Language     string `yaml:"language"`
+			TemplateHash string `yaml:"template_hash"`
+			Status       string `yaml:"status"`
+		}
+		if err := yaml.Unmarshal(bytes, &meta); err != nil {
+			t.Fatalf("parse prompt baseline %s: %v", path, err)
+		}
+		if meta.Status != "active" {
+			continue
+		}
+		row := insertRow{
+			featureKey:   meta.FeatureKey,
+			version:      meta.Version,
+			language:     meta.Language,
+			templateHash: meta.TemplateHash,
+		}
+		addExpectedRow(t, out, row, path)
+	}
+	if len(out) == 0 {
+		t.Fatal("no active prompt baselines found")
+	}
+	return out
+}
+
+func expectedRubricRows(t *testing.T, repoRoot string) map[string]insertRow {
+	t.Helper()
+
+	paths, err := filepath.Glob(filepath.Join(repoRoot, "config", "rubrics", "*", "v*.yaml"))
+	if err != nil {
+		t.Fatalf("glob rubric baselines: %v", err)
+	}
+	sort.Strings(paths)
+
+	out := map[string]insertRow{}
+	for _, path := range paths {
+		bytes, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read rubric baseline %s: %v", path, err)
+		}
+		var meta struct {
+			FeatureKey string `yaml:"feature_key"`
+			Version    string `yaml:"version"`
+			Language   string `yaml:"language"`
+		}
+		if err := yaml.Unmarshal(bytes, &meta); err != nil {
+			t.Fatalf("parse rubric baseline %s: %v", path, err)
+		}
+		row := insertRow{
+			featureKey: meta.FeatureKey,
+			version:    meta.Version,
+			language:   meta.Language,
+		}
+		addExpectedRow(t, out, row, path)
+	}
+	if len(out) == 0 {
+		t.Fatal("no rubric baselines found")
+	}
+	return out
+}
+
+func addExpectedRow(t *testing.T, rows map[string]insertRow, row insertRow, path string) {
+	t.Helper()
+
+	key := rowKey(row)
+	if key == "||" {
+		t.Fatalf("empty baseline coordinate in %s", path)
+	}
+	if _, ok := rows[key]; ok {
+		t.Fatalf("duplicate baseline coordinate %s in %s", key, path)
+	}
+	rows[key] = row
+}
+
+func extractSeedMigrationRows(t *testing.T, repoRoot string) map[string][]insertRow {
+	t.Helper()
+
+	paths, err := filepath.Glob(filepath.Join(repoRoot, "migrations", "*seed_baseline_prompt_rubric*.up.sql"))
+	if err != nil {
+		t.Fatalf("glob seed migrations: %v", err)
+	}
+	sort.Strings(paths)
+	if len(paths) == 0 {
+		t.Fatal("no baseline prompt/rubric seed migrations found")
+	}
+
+	out := map[string][]insertRow{
+		"prompt_versions": {},
+		"rubric_versions": {},
+	}
+	for _, path := range paths {
+		body, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read seed migration %s: %v", path, err)
+		}
+		rows := extractInsertRows(string(body))
+		out["prompt_versions"] = append(out["prompt_versions"], rows["prompt_versions"]...)
+		out["rubric_versions"] = append(out["rubric_versions"], rows["rubric_versions"]...)
+	}
+	return out
+}
+
+func assertSeedRows(t *testing.T, table string, want map[string]insertRow, gotRows []insertRow) {
+	t.Helper()
+
+	got := map[string]insertRow{}
+	for _, row := range gotRows {
+		key := rowKey(row)
+		if _, ok := got[key]; ok {
+			t.Errorf("%s duplicate seed row: %s", table, key)
+			continue
+		}
+		got[key] = row
+	}
+
+	missing, extra := diffRowKeys(want, got)
+	if len(missing) > 0 {
+		t.Errorf("%s missing seed rows: %v", table, missing)
+	}
+	if len(extra) > 0 {
+		t.Errorf("%s unexpected seed rows: %v", table, extra)
+	}
+	if len(gotRows) != len(want) {
+		t.Errorf("%s seed row count: want %d, got %d", table, len(want), len(gotRows))
+	}
+
+	if table != "prompt_versions" {
+		return
+	}
+	for key, wantRow := range want {
+		gotRow, ok := got[key]
+		if !ok {
+			continue
+		}
+		if gotRow.templateHash != wantRow.templateHash {
+			t.Errorf("%s %s template_hash drift: yaml=%s seed=%s",
+				table, key, wantRow.templateHash, gotRow.templateHash)
+		}
+	}
+}
+
+func diffRowKeys(want, got map[string]insertRow) ([]string, []string) {
+	missing := make([]string, 0)
+	extra := make([]string, 0)
+	for key := range want {
+		if _, ok := got[key]; !ok {
+			missing = append(missing, key)
+		}
+	}
+	for key := range got {
+		if _, ok := want[key]; !ok {
+			extra = append(extra, key)
+		}
+	}
+	sort.Strings(missing)
+	sort.Strings(extra)
+	return missing, extra
+}
+
+func rowKey(row insertRow) string {
+	return row.featureKey + "|" + row.version + "|" + row.language
 }
 
 // rowRe matches the leading literal columns shared by both prompt and
@@ -124,37 +251,6 @@ func extractInsertRows(sql string) map[string][]insertRow {
 		}
 	}
 	return out
-}
-
-func uniqueFeatureKeys(rows []insertRow) []string {
-	set := map[string]struct{}{}
-	for _, r := range rows {
-		set[r.featureKey] = struct{}{}
-	}
-	out := make([]string, 0, len(set))
-	for fk := range set {
-		out = append(out, fk)
-	}
-	return out
-}
-
-func yamlBasename(row insertRow) string {
-	if row.language == "multi" {
-		return row.version + ".yaml"
-	}
-	return row.version + "." + row.language + ".yaml"
-}
-
-func equalStrings(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func walkUpToRepoRoot(t *testing.T) string {

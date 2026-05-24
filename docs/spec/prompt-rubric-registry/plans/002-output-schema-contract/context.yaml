@@ -28,6 +28,9 @@ spec:
       - structured output contract
       - prompt body example JSON
       - complete JSON output example
+      - seed migration coverage
+      - jd_match prompt rubric seed
+      - prompt_versions rubric_versions baseline
       - OpenAPI schema negative prompt example
       - schema rendered output contract
       - output schema description annotations
@@ -48,6 +51,8 @@ spec:
       discovery:
         packages:
           - config/prompts
+          - config/rubrics
+          - migrations
           - scripts/lint
           - backend/internal/ai/registry
           - backend/internal/ai/aiclient

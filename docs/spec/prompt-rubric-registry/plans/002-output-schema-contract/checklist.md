@@ -1,6 +1,6 @@
 # F3 Output Schema Contract Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-05-24
 
@@ -63,6 +63,12 @@
 - [x] 8.2 重渲染 13 × 2 prompt body，刷新 26 个 YAML `template_hash`，同步 `migrations/000002_seed_baseline_prompt_rubric_versions.up.sql` 中已有 prompt seed row 的 body/hash，并补充 `resume.parse` project/education optional schema 字段。验证: `make lint-prompts` → `prompt_lint: 26 files clean`；`rg -n '"string"|: 1,|Example JSON:' config/prompts -g '*.md'` → 0 matches
 - [x] 8.3 同步 spec/plan/checklist/context/index 与收口验证。验证: `validate_context.py` + `sync-doc-index --check` + `git diff --check` 通过；Header 恢复 `completed`
 
+## Phase 9: L2 seed migration coverage remediation（active truth source 全量覆盖）
+
+- [x] 9.1 重写 seed migration 静态覆盖测试，从 `config/prompts` active YAML 与 `config/rubrics` YAML 反推出期望坐标，扫描所有 `migrations/*seed_baseline_prompt_rubric*.up.sql`，拒绝 missing / extra / duplicate row 与 prompt `template_hash` drift。验证: red `go test ./backend/internal/ai/registry -run TestSeedMigrationCoversBaselineFeatureKeys -count=1 -v` 失败于缺失 `jd_match.recommendation` / `jd_match.search` en/multi rows
+- [x] 9.2 新增 `migrations/000010_seed_baseline_prompt_rubric_versions_jd_match.{up,down}.sql`，补齐 `jd_match.recommendation` / `jd_match.search` × `en` / `multi` 的 prompt_versions 与 rubric_versions seed rows。验证: green `go test ./backend/internal/ai/registry -run TestSeedMigrationCoversBaselineFeatureKeys -count=1 -v` → pass
+- [x] 9.3 执行 migration/runtime 收口 gate。验证: `go test ./backend/internal/ai/registry -count=1` → pass；`python3 scripts/lint/prompt_lint.py` → `prompt_lint: 26 files clean`；`python3 scripts/lint/rubric_lint.py` → `rubric_lint: 26 files clean`；`python3 scripts/lint/migrations_lint.py` → `migration lint: ok`；`DATABASE_URL=postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable make migrate-check` → pass
+
 ## BDD-Gate
 
 > **BDD 不适用**: 本 plan 落地内部契约（语言无关 output schema 真理源 + `scripts/lint/` 静态 gate + registry 加载/resolver 接线 + A3 provider-neutral 校验器 enum 扩展 + caller 透传），不新增用户可见 UI、新 HTTP API 行为或端到端业务工作流。`validateOutputSchema` fail-close 复用既有 `AI_OUTPUT_INVALID` 错误路径，仅扩展生效范围与 `enum`，无新端到端用户行为。后续 P0 用户行为流由各 C 域 plan 维护 BDD/E2E gate。
@@ -70,8 +76,9 @@
 > **替代验证 gate**:
 >
 > 1. `make lint-prompts`（schema 子集 + schema-rendered prompt contract + complete example JSON output schema-valid + schema↔prompt↔struct 三向一致性 + negative fixtures）+ 顶层 `make lint`
-> 2. `go test ./backend/internal/ai/registry/... -race`（loader 加载 schema + `ResolveActive` OutputSchema 非空 + 语言无关单份 + fallback 一致）
+> 2. `go test ./backend/internal/ai/registry/... -race`（loader 加载 schema + `ResolveActive` OutputSchema 非空 + 语言无关单份 + fallback 一致 + seed migration 覆盖全部 active prompt/rubric 坐标）
 > 3. `go test ./backend/internal/ai/aiclient/... -race`（`validateOutputSchema` enum / required fail-close）
 > 4. `go test ./backend/internal/{targetjob,resume/jobs,review,practice,debrief,jdmatch}/... -race`（caller `OutputSchema` 透传 + 端到端 fail-close）
 > 5. grep red-line：语音 feature_key（STT/TTS）零 schema、零 `OutputSchema`、业务包零 `response_format`
-> 6. `python3 .agent-skills/implement/shared/scripts/validate_context.py` + `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`
+> 6. `DATABASE_URL=... make migrate-check`（migration lint + Postgres dev-stack `up -> down -> up`）
+> 7. `python3 .agent-skills/implement/shared/scripts/validate_context.py` + `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`

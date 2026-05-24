@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-24](./2026-05-24-prompt-rubric-jd-match-seed-migration-assessment.md) | Prompt Rubric JD-Match Seed Migration 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-prompt-rubric-complete-example-output-assessment.md) | Prompt Rubric Complete Example Output 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-prompt-rubric-output-schema-l2-remediation-assessment.md) | Prompt Rubric Output Schema L2 Remediation 交付复盘 | #assessment |
 | [2026-05-23](./2026-05-23-prompt-rubric-output-schema-contract-assessment.md) | Prompt Rubric Output Schema Contract 交付复盘 | #assessment |

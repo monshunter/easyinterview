@@ -100,3 +100,13 @@
   1. 对所有 runtime JSON schema / contract validator，确认解析后继续读取输入流并只接受 EOF；不能只调用一次 `Decode` 后立即认为响应是 strict JSON。
   2. focused negative tests 必须覆盖 schema-valid JSON 后追加非空 prose / token，并断言返回契约错误码、validation status、metric / log 失败信号。
   3. 保留既有 invalid JSON、missing required、enum mismatch、array top-level valid 等测试，避免 trailing-token 修复破坏正常 schema 校验。
+
+## 模式 9：Seed migration gate 只验证已存在行
+
+- **相关 Bug**：BUG-0097
+- **典型症状**：config truth source、runtime parser、lint contract 已新增 feature_key / enum / baseline asset，但 seed migration 静态测试仍写死历史 row count 或历史 allowlist；hash lint 只检查已经出现在 SQL 里的 row，完整缺失的 feature_key 不报错；DB-backed runtime 首次依赖 baseline seed 时才暴露缺行。
+- **检查清单**：
+  1. 对 prompt/rubric/config/fixture seed gate，从当前 truth source 反推完整期望集合，再与 migration / fixture / generated artifact 做 exact set compare；不要只断言历史固定数量。
+  2. 对 seed row 做 missing / extra / duplicate 三类断言；hash / checksum drift 只能作为附加检查，不能替代存在性检查。
+  3. 若 seed 分散在多个 migration，测试应扫描当前 owner 命名规则下的全部相关 migration 文件，而不是只读最早的 baseline migration。
+  4. L2 review completed plan 时，凡看到“seed migration hash clean”或“row count clean”，必须追问缺行是否会失败，并至少用一个新 active truth-source 坐标反查 SQL 命中。
