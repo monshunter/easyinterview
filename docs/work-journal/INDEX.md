@@ -22,6 +22,7 @@
 | [2026-05-24](2026-05-24.md) | `feat(prompt-rubric): implement llm judge dispatch and per-dimension judge` | #feat #test #docs |
 | [2026-05-24](2026-05-24.md) | `feat(prompt-rubric): evolve judge interface to per-dimension scores` | #feat #test #docs |
 | [2026-05-24](2026-05-24.md) | `test(prompt-rubric): refresh f3 spec version preflight for evals plan` | #test #docs |
+| [2026-05-24](2026-05-24.md) | `test(e2e): add p0 operation matrix and seed preflight gates` | #test #docs |
 | [2026-05-24](2026-05-24.md) | `docs(prompt-rubric): align 004 plan references with spec v2.9` | #docs |
 | [2026-05-24](2026-05-24.md) | `docs(prompt-rubric): derive real model profile and evals plan` | #docs |
 | [2026-05-24](2026-05-24.md) | `fix(frontend-home): reset parse state on target switch (BUG-0101)` | #fix #ui #test #docs |

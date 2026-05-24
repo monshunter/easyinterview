@@ -1,6 +1,6 @@
 # 001 Full Funnel Happy Journey Checklist
 
-> **版本**: 1.2
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-05-24
 
@@ -8,10 +8,14 @@
 
 ## Phase 0: 真后端环境与前置依赖验证
 
-- [ ] 0.1 确认 `make dev-up` postgres 可达 + `make migrate-up` 至最新；记录 `DATABASE_URL` 约定（验证来源：`make dev-doctor` / `make migrate-status` 输出）
-- [ ] 0.2 确认 `config.LoadCanonical(AppEnv:"test")` 加载成功且漏斗 AI 步骤（`resume.parse.default` / `target.import.default` / practice / `report.generate.default`）所需 profile/registry 在未配置 `AI_PROVIDER_*` 时可解析；实际 journey AI 由 scenario harness 注入确定性 stub / fixture client（验证来源：`cd backend && go test -v ./cmd/api -run 'TestE2EP0ConfigPreflight' -count=1`）
-- [ ] 0.3 按 §3.1 operation matrix grep 确认 9 行 operation matrix 真实挂载或具备显式备选状态（8 个主链必经 operation + `getJob` 备选轮询 / handler gate），非 mock-only（验证来源：`grep -rn "<operationId>" backend/internal/api/generated/` 命中 + handler 路径存在 / matrix 状态复核）
-- [ ] 0.4 设计 journey 前置 seed：通过 `registerResume` + `resume_parse` stub 产出 ready resume asset，不直接插入 ready 行；定义 cleanup 边界（验证来源：harness helper 设计评审）
+- [x] 0.1 确认 `make dev-up` postgres 可达 + `make migrate-up` 至最新；记录 `DATABASE_URL` 约定（验证来源：`make dev-doctor` / `make migrate-status` 输出）
+  <!-- verified: 2026-05-24 command="make dev-doctor && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' make migrate-up && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' make migrate-status" evidence="dev-stack postgres/redis/minio OK; migrate status version=10 dirty=false" -->
+- [x] 0.2 确认 `config.LoadCanonical(AppEnv:"test")` 加载成功且漏斗 AI 步骤（`resume.parse.default` / `target.import.default` / practice / `report.generate.default`）所需 profile/registry 在未配置 `AI_PROVIDER_*` 时可解析；实际 journey AI 由 scenario harness 注入确定性 stub / fixture client（验证来源：`cd backend && go test -v ./cmd/api -run 'TestE2EP0ConfigPreflight' -count=1`）
+  <!-- verified: 2026-05-24 command="cd backend && go test -v ./cmd/api -run 'TestE2EP0ConfigPreflight' -count=1 && cd backend && go test -list 'TestE2EP0ConfigPreflight|TestE2EP0098' ./cmd/api" evidence="preflight executes 6 active chat profiles and now fails config.LoadCanonical errors instead of inheriting live-scenario skip behavior; TestE2EP0098 not implemented yet" -->
+- [x] 0.3 按 §3.1 operation matrix grep 确认 9 行 operation matrix 真实挂载或具备显式备选状态（8 个主链必经 operation + `getJob` 备选轮询 / handler gate），非 mock-only（验证来源：`grep -rn "<operationId>" backend/internal/api/generated/` 命中 + handler 路径存在 / matrix 状态复核）
+  <!-- verified: 2026-05-24 command="cd backend && go test -v ./cmd/api -run 'TestE2EP0(OperationMatrix|ConfigPreflight)' -count=1" evidence="TestE2EP0OperationMatrixPreflight asserts 9 matrix rows against generated AllRoutes, fixture files, cmd/api route wiring, and concrete handler declarations" -->
+- [x] 0.4 设计 journey 前置 seed：通过 `registerResume` + `resume_parse` stub 产出 ready resume asset，不直接插入 ready 行；定义 cleanup 边界（验证来源：harness helper 设计评审）
+  <!-- verified: 2026-05-24 command="cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test -v ./cmd/api -run 'TestE2EP0FullFunnelReadyResumeSeedUsesRegisterResumeAndRunner' -count=1" evidence="TestE2EP0FullFunnelReadyResumeSeedUsesRegisterResumeAndRunner calls registerResume through the HTTP handler, processes resume_parse through the SQL runner with deterministic test AI, verifies ready asset/job/outbox, then deletes user/session/idempotency/resume/job/outbox seed data" -->
 
 ## Phase 1: API-level full-funnel journey（E2E.P0.098）
 

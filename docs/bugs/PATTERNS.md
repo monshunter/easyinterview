@@ -61,6 +61,7 @@
   7. 文档收口时把证据 artifact 名称写成当前脚本真实产物，例如 `.test-output/e2e/<scenario>/trigger.log`，避免 checklist 引用不存在的 `*.evidence.log`。
   8. 对 `Ready` / `Verified` 场景先做结构 preflight，确认 `README.md`、`scripts/setup.sh`、`scripts/trigger.sh`、`scripts/verify.sh`、`scripts/cleanup.sh`、`data/seed-input.md`、`data/expected-outcome.md` 全部存在；缺任何一个文件都不能把 runner pass 当成完整 BDD 证据。
   9. 用户可见 route/context handoff 场景必须检查浏览器 URL query、目标 route DOM state 与 exact context key marker；component-level navigation spy 只能作为补充，不能替代 browser gate。
+  10. 对强制 preflight / review gate，不要复用会在依赖缺失或配置加载失败时 `t.Skip` 的 live-scenario helper；必需 gate 的 loader / setup helper 应在契约失败时 `t.Fatal` / 非零退出，只有真正可选的 live integration 才允许 skip。
 
 ## 模式 5：Domain service 已实现但 runtime caller 未接入
 

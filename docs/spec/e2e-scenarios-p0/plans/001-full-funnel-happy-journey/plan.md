@@ -1,6 +1,6 @@
 # 001 Full Funnel Happy Journey
 
-> **版本**: 1.2
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-05-24
 
@@ -35,11 +35,12 @@
 - **Plan 类型**: feature-behavior + contract + tooling（端到端用户旅程 + 跨层契约消费验证 + 场景脚本工具）
 - **TDD 策略**: Code plan requires TDD。
   - API-level journey 先写 `TestE2EP0098FullFunnelImportToNextRound`（断言完整 handoff 链 + 异步 ready + 幂等 + 隐私），初始 Red（journey 未实现 / 真实 stack 未贯通），再让 orchestration 通过转 Green；测试文件 `backend/cmd/api/full_funnel_journey_scenario_test.go`，命令 `cd backend && go test -v ./cmd/api -run 'TestE2EP0098' -count=1`（postgres 不可达 `t.Skip`）。
+  - Journey 前置 seed helper 由 `TestE2EP0FullFunnelReadyResumeSeedUsesRegisterResumeAndRunner` 锁定：通过真实 `registerResume` HTTP handler 创建 paste resume asset，再用 SQL runner + deterministic `resume_parse` test AI 推进到 ready，并验证 cleanup 会删除 user / session / idempotency / resume asset / async job / outbox seed 数据。
   - Playwright journey 先写 `frontend/tests/e2e/full-funnel-journey.spec.ts` 断言 UI 走完漏斗，初始 Red，再绿；同时新增或使用 `frontend/playwright.e2e.config.ts`（`testDir: "./tests/e2e"`，`outputDir` 只允许来自 `EI_PLAYWRIGHT_OUTPUT_DIR` 或默认落到 repo 根 `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright`），命令 `EI_PLAYWRIGHT_OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright" pnpm --filter @easyinterview/frontend exec playwright test --config=playwright.e2e.config.ts tests/e2e/full-funnel-journey.spec.ts`，避免默认 `frontend/playwright.config.ts` 的 `tests/pixel-parity` testDir 忽略 e2e spec，且禁止产物写入 `frontend/.playwright-output` / `frontend/test-results`。
   - Phase 1 / 2 每个 checklist item 命名其断言来源（见 checklist 各项尾注）。
 - **BDD 策略**: Feature plan requires BDD。本 plan 引入端到端业务流程；BDD scenarios `E2E.P0.098`（API-level）+ `E2E.P0.099`（Playwright 全栈）已在 [bdd-plan.md](./bdd-plan.md) 分配，主 [checklist.md](./checklist.md) Phase 3 含 `BDD-Gate:` 项引用每个 scenario ID；执行使用场景框架 `scripts/setup.sh → trigger.sh → verify.sh → cleanup.sh` 四段入口，wrapper 必须先保存 `setup`/`trigger`/`verify` 的退出码，执行 cleanup 后仍按原失败码退出（cleanup 自身失败且前置成功时按 cleanup 失败退出），禁止 cleanup 成功掩盖前置失败。
 - **替代验证 gate**:
-  - operation matrix 真实性：`grep -rn "registerResume\|importTargetJob\|getTargetJob\|createPracticePlan\|startPracticeSession\|appendSessionEvent\|completePracticeSession\|getFeedbackReport\|getJob" backend/internal/api/generated/` 命中真实 server 方法，并逐行反查真实 handler / store 路径或 matrix 中的显式备选状态。
+  - operation matrix 真实性：`cd backend && go test -v ./cmd/api -run 'TestE2EP0OperationMatrixPreflight' -count=1` 断言 9 行 matrix 的 generated route、fixture 文件、`cmd/api` route wiring 与 handler 方法声明；必要时再用 `grep -rn "registerResume\|importTargetJob\|getTargetJob\|createPracticePlan\|startPracticeSession\|appendSessionEvent\|completePracticeSession\|getFeedbackReport\|getJob" backend/internal/api/generated/` 辅助人工反查真实 handler / store 路径或 matrix 中的显式备选状态。
   - 隐私红线：journey test / verify.sh 断言响应 / event / audit / log / DB 可观测面不含 JD 原文、答案文本、报告 prose；Playwright 侧扫描 URL / localStorage / sessionStorage / console。
   - Playwright 产物边界：P0.099 的 trace / screenshot / video / runner output / `trigger.log` 必须全部落在 `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/` 下；`verify.sh` 拒绝 `frontend/.playwright-output`、`frontend/test-results` 或 repo 根外临时目录作为完成证据。
   - legacy-negative：`verify.sh` 使用 route-aware negative pattern 反查 `(^|[[:space:]'"'/#?&=:-])(welcome|growth|mistakes|drill|followup|experiences|star(_editor)?|onboarding)([[:space:]'"'/#?&=:-]|$)|mode=debrief|name=['\"](plan|resume|voice)['\"]|route=['\"](plan|resume|voice)['\"]|#route=(plan|resume|voice)([[:space:]'"'/#?&=:-]|$)`，并确认不会误伤合法 `startPracticeSession` / `createPracticePlan` / `practice_plans` / `resumeAssetId` / `resume_assets`；P0.099 额外跑 frontend scope gate 或等价 scoped grep，证明独立 `voice` route 未回流。
@@ -77,11 +78,11 @@
 
 #### 0.3 operation 真实挂载验证
 
-按 §3.1 operation matrix grep generated server + 真实 handler，确认 9 行 operation matrix 均真实可调用或具备显式备选状态（8 个主链必经 operation + `getJob` 备选轮询 / handler gate），handler 已挂载（不是 mock-only）。
+按 §3.1 operation matrix 执行 `TestE2EP0OperationMatrixPreflight`，确认 9 行 operation matrix 的 generated route、fixture、`cmd/api` route wiring 与 handler 声明均存在；必要时补充 grep generated server + 真实 handler，确认 operation 均真实可调用或具备显式备选状态（8 个主链必经 operation + `getJob` 备选轮询 / handler gate），handler 已挂载（不是 mock-only）。
 
 #### 0.4 journey 前置 seed 设计
 
-设计 journey 内前置：通过 `registerResume` 创建已认证 user 的 resume asset，触发 `resume_parse` 并用 `resume.parse.default` stub 推进到 ready（`createPracticePlan` 必需 `resumeAssetId`）；如实现使用 helper，也必须走同一 handler/job/AI stub 路径，不得直接插入 ready asset；明确 cleanup 边界。
+设计并实现 journey 内前置 helper：通过 `registerResume` 创建已认证 user 的 resume asset，触发 `resume_parse` 并用 `resume.parse.default` deterministic test AI 通过 SQL runner 推进到 ready（`createPracticePlan` 必需 `resumeAssetId`）；helper 必须走同一 handler/job/AI stub 路径，不得直接插入 ready asset；cleanup 边界必须删除 user / session / idempotency / resume asset / async job / outbox seed 数据。
 
 ### Phase 1: API-level full-funnel journey（E2E.P0.098）
 

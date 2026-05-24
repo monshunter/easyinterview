@@ -21,7 +21,7 @@ func TestE2EP0ConfigPreflightLoadsFunnelProfilesWithoutProviderSecrets(t *testin
 	t.Setenv("AI_PROVIDER_BASE_URL", "")
 	t.Setenv("AI_PROVIDER_API_KEY", "")
 
-	loader := testLoader(t)
+	loader := loadE2EP0ConfigPreflightConfig(t)
 	if loader.AppEnv() != aiclient.AppEnvTest {
 		t.Fatalf("loader AppEnv=%q, want test", loader.AppEnv())
 	}
@@ -72,6 +72,19 @@ func TestE2EP0ConfigPreflightLoadsFunnelProfilesWithoutProviderSecrets(t *testin
 			}
 		})
 	}
+}
+
+func loadE2EP0ConfigPreflightConfig(t *testing.T) *config.Loader {
+	t.Helper()
+	root := scenarioRepoRoot(t)
+	loader, err := config.LoadCanonical(config.CanonicalOptions{
+		AppEnv:    aiclient.AppEnvTest,
+		ConfigDir: filepath.Join(root, "config"),
+	})
+	if err != nil {
+		t.Fatalf("config.LoadCanonical(AppEnv=%q): %v", aiclient.AppEnvTest, err)
+	}
+	return loader
 }
 
 func scenarioRepoRoot(t *testing.T) string {
