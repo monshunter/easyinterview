@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-24](./2026-05-24-prompt-rubric-real-model-profile-and-evals-assessment.md) | Real Model Profile and Evals 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-frontend-parse-target-switch-assessment.md) | Frontend Parse Target Switch 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-frontend-parse-confirm-context-gate-assessment.md) | Frontend Parse Confirm Context Gate 交付复盘 | #assessment |
 | [2026-05-24](./2026-05-24-frontend-parse-loading-browser-gate-assessment.md) | Frontend Parse Loading Browser Gate 交付复盘 | #assessment |
