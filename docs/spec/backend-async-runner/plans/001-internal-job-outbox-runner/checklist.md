@@ -1,8 +1,8 @@
 # Internal Job and Outbox Runner Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
 **关联计划**: [plan](./plan.md)
 
@@ -56,3 +56,5 @@
 - [x] 4.16 状态收尾：plan 状态 `active`→`completed`（spec.md / history.md 已在创建时即 `active`，无 `draft` 中间态）；plans INDEX + spec INDEX 同步；提交工作日志
 - [x] 4.17 L2 remediation：`cmd/api` production kernel startup 显式创建并挂接 `runner.OutboxDispatcher`，`Runtime.Start` 驱动 outbox loop；p0-033 live gate 的 MinIO presign / privacy completion / audit tombstone integration repeatability 缺口修复并回归通过（验证：`cd backend && go test ./cmd/api -run '^(TestMainRunnerKernelDrivesOutboxDispatcher|TestMain_SingleRuntimeShutdown)$' -count=1 -v`；`test/scenarios/e2e/p0-033-file-presign-register-roundtrip/scripts/{setup,trigger,verify,cleanup}.sh` PASS）
 - [x] 4.18 L2 scheduler/backoff remediation：`Runtime.dispatch` 使用 handler 返回后的 fresh timestamp 计算 retry `available_at` / terminal `completed_at`；production `Runtime.Start` 每个 registered job_type 独立 lease loop，避免 critical/default 长任务 starvation `email_dispatch`；`report_generate` failure 只持久化 report-domain failure，async job 统一由 kernel shared `BackoffPolicy` finalize（验证：`cd backend && go test ./internal/runner ./internal/review ./cmd/api -run '^(TestRuntime_FinalizeUsesTimestampAfterHandlerReturns|TestRuntime_StartDoesNotLetCriticalJobStarveEmailDispatch|TestGenerateHandler_NormalizesFinalizedRetryableFailureThroughKernel|TestE2EP0052ReportGenerationHappyPath|TestE2EP0054ReportAIFailureAndRetry)$' -count=1`；`cd backend && go test ./... -count=1`；`make lint-runner-legacy` PASS）
+- [x] 4.19 BUG-0106 remediation：`DELETE /api/v1/me` 受理期同步软删 `users.deleted_at` / `users.status='deleted'` 并撤销该用户所有 session；`privacy_delete` runner 在 domain cleanup 成功后最终 hard delete 用户行，失败路径不得删除用户行；验证：`go test ./backend/internal/auth ./backend/internal/privacy/runner ./backend/cmd/api -run '^(TestDeleteMeSoftDeletesUserRevokesAllSessionsAndCreatesPrivacyHandoff|TestSQLStorePrivacyDeleteHandoffSoftDeletesUserAndRevokesSessions|TestSQLStoreMarkDeleteRequestCompletedDeletesAccountIdentityAndPreservesRequestTombstone|TestPrivacyDeleteHandlerHardDeletesAccountIdentityAfterDomainCleanup|TestPrivacyDeleteHandlerDomainFailureKeepsAccountIdentityForRetry|TestPrivacyDeleteRemovesAccountIdentityAfterJobCompletion)$' -count=1`；`go test ./backend/internal/auth ./backend/internal/privacy/runner -count=1`；`DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' make migrate-check`；`make lint-runner-legacy`；`make docs-check`；`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/backend-async-runner/plans/001-internal-job-outbox-runner/context.yaml --docs-root docs --target backend`；`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`；`git diff --check`
+  <!-- verified: 2026-05-26 evidence="focused auth/privacy/cmd-api BUG-0106 tests PASS; auth/privacy package regressions PASS; migration lint/check PASS against local dev Postgres version=11 dirty=false; docs/index/context/diff gates PASS; unrelated existing cmd/api TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns still fails outside privacy scope" -->

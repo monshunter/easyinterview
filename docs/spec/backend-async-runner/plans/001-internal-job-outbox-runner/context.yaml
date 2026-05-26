@@ -41,6 +41,9 @@ spec:
       - target_import
       - source_refresh
       - privacy_delete
+      - BUG-0106
+      - users.deleted_at
+      - account identity cleanup
       - debrief_generate
       - report_generate
       - resume_parse

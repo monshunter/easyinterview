@@ -100,6 +100,10 @@ func NewSQLStore(db *sql.DB) *SQLStore {
 	return &SQLStore{db: db}
 }
 
+type sqlPrivacyDeleteExecutor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
 func (s *SQLStore) CountRecentChallenges(ctx context.Context, email string, ipHash string, since time.Time) (int, error) {
 	if s == nil || s.db == nil {
 		return 0, fmt.Errorf("auth store db is nil")
@@ -389,6 +393,9 @@ func (s *SQLStore) CreatePrivacyDeleteHandoff(ctx context.Context, userID string
 			string(jobs.JobTypePrivacyDelete),
 		).Scan(&existing.JobID, &existing.PrivacyRequestID, &existing.CreatedAt, &existing.UpdatedAt)
 		if err == nil {
+			if err := s.softDeleteUserForPrivacy(ctx, userID, now); err != nil {
+				return PrivacyDeleteHandoff{}, err
+			}
 			return existing, nil
 		}
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -400,6 +407,9 @@ func (s *SQLStore) CreatePrivacyDeleteHandoff(ctx context.Context, userID string
 		return PrivacyDeleteHandoff{}, fmt.Errorf("begin privacy delete handoff: %w", err)
 	}
 	defer tx.Rollback()
+	if err := softDeleteUserForPrivacy(ctx, tx, userID, now); err != nil {
+		return PrivacyDeleteHandoff{}, err
+	}
 	if _, err := tx.ExecContext(ctx, `
 insert into privacy_requests (id, user_id, request_type, status, requested_at)
 values ($1, $2, 'delete', 'queued', $3)`,
@@ -424,6 +434,49 @@ values ($1, $2, 'delete', 'queued', $3)`,
 		return PrivacyDeleteHandoff{}, fmt.Errorf("commit privacy delete handoff: %w", err)
 	}
 	return PrivacyDeleteHandoff{PrivacyRequestID: privacyRequestID, JobID: jobID, CreatedAt: now, UpdatedAt: now}, nil
+}
+
+func (s *SQLStore) softDeleteUserForPrivacy(ctx context.Context, userID string, now time.Time) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin privacy delete user soft-delete: %w", err)
+	}
+	defer tx.Rollback()
+	if err := softDeleteUserForPrivacy(ctx, tx, userID, now); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit privacy delete user soft-delete: %w", err)
+	}
+	return nil
+}
+
+func softDeleteUserForPrivacy(ctx context.Context, exec sqlPrivacyDeleteExecutor, userID string, now time.Time) error {
+	res, err := exec.ExecContext(ctx, `
+update users
+set status = 'deleted',
+    deleted_at = coalesce(deleted_at, $1),
+    updated_at = $1
+where id = $2`, now, userID)
+	if err != nil {
+		return fmt.Errorf("soft-delete privacy user: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("soft-delete privacy user rows affected: %w", err)
+	}
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+	if _, err := exec.ExecContext(ctx, `
+update sessions
+set status = 'revoked',
+    revoked_at = coalesce(revoked_at, $1),
+    updated_at = $1
+where user_id = $2 and status = 'active'`, now, userID); err != nil {
+		return fmt.Errorf("revoke privacy user sessions: %w", err)
+	}
+	return nil
 }
 
 func privacyDeleteDedupeKey(userID string, idempotencyKey string) string {

@@ -397,6 +397,16 @@ func (s *passwordlessScenarioStore) RevokeSession(_ context.Context, sessionID s
 }
 
 func (s *passwordlessScenarioStore) CreatePrivacyDeleteHandoff(_ context.Context, userID string, idempotencyKey string, privacyRequestID string, jobID string, now time.Time) (auth.PrivacyDeleteHandoff, error) {
+	for sessionID, hash := range s.sessionsByID {
+		rec := s.sessionsByHash[hash]
+		if rec.UserID == userID && rec.Status == auth.SessionStatusActive {
+			rec.Status = auth.SessionStatusRevoked
+			rec.RevokedAt = now
+			rec.UpdatedAt = now
+			s.sessionsByHash[hash] = rec
+			s.sessionsByID[sessionID] = hash
+		}
+	}
 	key := userID + "\x00" + idempotencyKey
 	if existing, ok := s.privacyHandoffs[key]; ok {
 		return existing, nil

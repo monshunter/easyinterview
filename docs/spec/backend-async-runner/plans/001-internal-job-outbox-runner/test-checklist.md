@@ -1,8 +1,8 @@
 # Internal Job and Outbox Runner Test Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 **关联计划**: [plan](./plan.md)
@@ -47,3 +47,4 @@
 - [x] Phase 4 review store integration gate 可发现但本机跳过：`cd backend && go test -tags=integration ./internal/store/review -run '^TestPersistReportFailure' -count=1 -v` PASS with SKIP because `DATABASE_URL is not set`；非 integration 包级回归由 `cd backend && go test ./internal/store/review -count=1` 覆盖。
 - [x] Phase 4 backend all-packages regression 通过：`cd backend && go test ./... -count=1` PASS；`make lint-runner-legacy` PASS。
 - [x] Phase 4 `git diff --check` PASS
+- [x] Phase 4 BUG-0106 privacy identity cleanup regression 通过：`go test ./backend/internal/auth ./backend/internal/privacy/runner ./backend/cmd/api -run '^(TestDeleteMeSoftDeletesUserRevokesAllSessionsAndCreatesPrivacyHandoff|TestSQLStorePrivacyDeleteHandoffSoftDeletesUserAndRevokesSessions|TestSQLStoreMarkDeleteRequestCompletedDeletesAccountIdentityAndPreservesRequestTombstone|TestPrivacyDeleteHandlerHardDeletesAccountIdentityAfterDomainCleanup|TestPrivacyDeleteHandlerDomainFailureKeepsAccountIdentityForRetry|TestPrivacyDeleteRemovesAccountIdentityAfterJobCompletion)$' -count=1` PASS；`go test ./backend/internal/auth ./backend/internal/privacy/runner -count=1` PASS；`DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' make migrate-check` PASS；`make docs-check` / `make lint-runner-legacy` / `git diff --check` PASS。

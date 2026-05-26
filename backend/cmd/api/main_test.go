@@ -27,6 +27,7 @@ import (
 	domainresume "github.com/monshunter/easyinterview/backend/internal/resume"
 	resumehandler "github.com/monshunter/easyinterview/backend/internal/resume/handler"
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
@@ -1758,6 +1759,115 @@ ai:
 	}
 	if !runtime.Handles(string(jobs.JobTypePrivacyDelete)) {
 		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypePrivacyDelete)
+	}
+}
+
+func TestPrivacyDeleteRemovesAccountIdentityAfterJobCompletion(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock.New: %v", err)
+	}
+	defer db.Close()
+
+	dir := t.TempDir()
+	providersPath := filepath.Join(dir, "ai-providers.yaml")
+	profilesPath := filepath.Join(dir, "ai-profiles.yaml")
+	writeAPIFile(t, providersPath, `
+providers:
+  - name: unit-test-stub
+    protocol: stub
+    capabilities: [chat]
+    version: 1.0.0
+`)
+	writeAPIFile(t, profilesPath, `
+profiles:
+  - name: target.import.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: unit-test-stub
+      model: stub-chat
+    fallback: []
+    timeout_ms: 1000
+    max_tokens: 256
+    rate_limit:
+      rps: 1
+      tpm: 1000
+    route: target.import
+    version: 1.0.0
+`)
+	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  providerRegistryPath: "`+providersPath+`"
+  modelProfilePath: "`+profilesPath+`"
+  promptsDir: "`+promptsDir+`"
+  rubricsDir: "`+rubricsDir+`"
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	runtime, err := buildTargetJobRuntime(loader, db, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiUploadFileDeleter{}, &privacyDeleteRuntimeHooks{})
+	if err != nil {
+		t.Fatalf("buildTargetJobRuntime: %v", err)
+	}
+	defer runtime.Close()
+	handler := runtime.Handlers[string(jobs.JobTypePrivacyDelete)]
+	if handler == nil {
+		t.Fatalf("privacy delete handler not registered: %+v", runtime.Handlers)
+	}
+
+	const (
+		requestID = "018f2a40-0000-7000-9000-000000000201"
+		userID    = "018f2a40-0000-7000-9000-000000000101"
+		email     = "manual-uat-full-funnel@example.test"
+	)
+	mock.ExpectQuery("from privacy_requests").
+		WithArgs(requestID).
+		WillReturnRows(sqlmock.NewRows([]string{"user_id"}).AddRow(userID))
+	mock.ExpectExec("update privacy_requests").
+		WithArgs(requestID, sqlmock.AnyArg()).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectBegin()
+	mock.ExpectQuery("select email from users").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"email"}).AddRow(email))
+	mock.ExpectExec("update privacy_requests").
+		WithArgs(requestID, sqlmock.AnyArg(), 0, userID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("delete from resume_version_suggestions").
+		WithArgs(userID).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("update resume_versions").
+		WithArgs(userID).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("delete from resume_versions").
+		WithArgs(userID).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("delete from auth_challenges").
+		WithArgs(userID, email).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("delete from users").
+		WithArgs(userID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
+		JobID:        "privacy-job-1",
+		JobType:      string(jobs.JobTypePrivacyDelete),
+		ResourceType: "privacy_request",
+		ResourceID:   requestID,
+	})
+	if !outcome.Succeeded || outcome.ErrorCode != "" || outcome.Retryable {
+		t.Fatalf("privacy delete outcome = %+v", outcome)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
 	}
 }
 

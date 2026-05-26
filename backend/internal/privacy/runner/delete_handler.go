@@ -19,7 +19,7 @@ const (
 type PrivacyRequestStore interface {
 	LookupDeleteRequestUser(ctx context.Context, privacyRequestID string) (string, error)
 	MarkDeleteRequestProcessing(ctx context.Context, privacyRequestID string, now time.Time) error
-	MarkDeleteRequestCompleted(ctx context.Context, privacyRequestID string, deletedFileCount int, now time.Time) error
+	MarkDeleteRequestCompleted(ctx context.Context, privacyRequestID string, userID string, deletedFileCount int, now time.Time) error
 	MarkDeleteRequestFailed(ctx context.Context, privacyRequestID string, errorCode string, errorMessage string, now time.Time) error
 }
 
@@ -91,7 +91,7 @@ func (h *PrivacyDeleteHandler) Handle(ctx context.Context, job targetjob.Claimed
 			return failedOutcome(ErrorCodePrivacyDeleteFailed, err.Error(), false)
 		}
 	}
-	if err := h.requests.MarkDeleteRequestCompleted(ctx, job.ResourceID, len(deleted), now); err != nil {
+	if err := h.requests.MarkDeleteRequestCompleted(ctx, job.ResourceID, userID, len(deleted), now); err != nil {
 		return failedOutcome(ErrorCodePrivacyDeleteRetryable, fmt.Sprintf("mark privacy request completed: %v", err), true)
 	}
 	return targetjob.JobOutcome{Succeeded: true}

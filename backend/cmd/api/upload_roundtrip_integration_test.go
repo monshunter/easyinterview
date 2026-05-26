@@ -180,7 +180,7 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 	if !processed {
 		t.Fatal("privacy_delete job was not processed")
 	}
-	assertUploadRoundtripPrivacyDelete(t, db, presign.FileObjectId, privacyRequestID)
+	assertUploadRoundtripPrivacyDelete(t, db, presign.FileObjectId, privacyRequestID, email)
 }
 
 type uploadRoundtripLiveConfig struct {
@@ -379,7 +379,7 @@ where id = $2 and job_type = 'privacy_delete' and status = 'queued'`, first, job
 	return nil
 }
 
-func assertUploadRoundtripPrivacyDelete(t *testing.T, db *sql.DB, fileObjectID string, privacyRequestID string) {
+func assertUploadRoundtripPrivacyDelete(t *testing.T, db *sql.DB, fileObjectID string, privacyRequestID string, email string) {
 	t.Helper()
 	var fileCount int
 	if err := db.QueryRow(`select count(*) from file_objects where id = $1`, fileObjectID).Scan(&fileCount); err != nil {
@@ -401,6 +401,20 @@ where resource_id = $1 and job_type = 'privacy_delete'
 order by updated_at desc
 limit 1`, privacyRequestID).Scan(&jobStatus, &errorCode, &errorMessage)
 		t.Fatalf("privacy request status = %q; privacy job status=%q error_code=%q error_message=%q", requestStatus, jobStatus.String, errorCode.String, errorMessage.String)
+	}
+	var requestUserID sql.NullString
+	if err := db.QueryRow(`select user_id from privacy_requests where id = $1`, privacyRequestID).Scan(&requestUserID); err != nil {
+		t.Fatalf("select privacy request user tombstone: %v", err)
+	}
+	if requestUserID.Valid {
+		t.Fatalf("privacy request retained raw user id after account deletion: %s", requestUserID.String)
+	}
+	var userCount int
+	if err := db.QueryRow(`select count(*) from users where email = $1`, email).Scan(&userCount); err != nil {
+		t.Fatalf("count account identity after privacy delete: %v", err)
+	}
+	if userCount != 0 {
+		t.Fatalf("users row with deleted email %q still exists after privacy delete", email)
 	}
 	var auditMetadata string
 	if err := db.QueryRow(`select metadata::text from audit_events where resource_id = $1 and action = 'privacy.file_object_deleted'`, fileObjectID).Scan(&auditMetadata); err != nil {

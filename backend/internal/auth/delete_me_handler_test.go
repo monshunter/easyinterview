@@ -11,7 +11,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 )
 
-func TestDeleteMeCreatesPrivacyDeleteHandoffRevokesSessionAndIsIdempotent(t *testing.T) {
+func TestDeleteMeSoftDeletesUserRevokesAllSessionsAndCreatesPrivacyHandoff(t *testing.T) {
 	now := time.Date(2026, 5, 6, 11, 0, 0, 0, time.UTC)
 	store := &deleteMeStore{handoff: auth.PrivacyDeleteHandoff{
 		PrivacyRequestID: "privacy-request-1",
@@ -56,8 +56,14 @@ func TestDeleteMeCreatesPrivacyDeleteHandoffRevokesSessionAndIsIdempotent(t *tes
 			t.Fatalf("deleteMe clear cookie = %#v", cookies)
 		}
 	}
-	if store.revokedSessionID != "session-1" {
-		t.Fatalf("revoked session = %q", store.revokedSessionID)
+	if store.revokedSessionID != "" {
+		t.Fatalf("DeleteMe must let the handoff store revoke all user sessions atomically, got single-session revoke %q", store.revokedSessionID)
+	}
+	if store.softDeletedUserID != "user-1" {
+		t.Fatalf("soft-deleted user = %q", store.softDeletedUserID)
+	}
+	if store.revokedAllSessionsUserID != "user-1" {
+		t.Fatalf("revoked all sessions for user = %q", store.revokedAllSessionsUserID)
 	}
 	if store.lastIdempotencyKey != "delete-key-1" {
 		t.Fatalf("idempotency key = %q", store.lastIdempotencyKey)
@@ -87,10 +93,12 @@ func TestDeleteMeWithoutSessionReturnsAuthEnvelope(t *testing.T) {
 }
 
 type deleteMeStore struct {
-	handoff            auth.PrivacyDeleteHandoff
-	revokedSessionID   string
-	lastIdempotencyKey string
-	createCalls        int
+	handoff                  auth.PrivacyDeleteHandoff
+	revokedSessionID         string
+	softDeletedUserID        string
+	revokedAllSessionsUserID string
+	lastIdempotencyKey       string
+	createCalls              int
 }
 
 func (s *deleteMeStore) CountRecentChallenges(context.Context, string, string, time.Time) (int, error) {
@@ -133,6 +141,8 @@ func (s *deleteMeStore) RevokeSession(_ context.Context, sessionID string, _ tim
 func (s *deleteMeStore) CreatePrivacyDeleteHandoff(_ context.Context, userID string, idempotencyKey string, privacyRequestID string, jobID string, now time.Time) (auth.PrivacyDeleteHandoff, error) {
 	s.createCalls++
 	s.lastIdempotencyKey = idempotencyKey
+	s.softDeletedUserID = userID
+	s.revokedAllSessionsUserID = userID
 	if s.handoff.PrivacyRequestID == "" {
 		s.handoff = auth.PrivacyDeleteHandoff{PrivacyRequestID: privacyRequestID, JobID: jobID, CreatedAt: now, UpdatedAt: now}
 	}

@@ -1,8 +1,8 @@
 # Internal Job and Outbox Runner
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Test Plan**: [test-plan](./test-plan.md)
@@ -189,9 +189,13 @@ dispatcher 在调用 consumer 前从 outbox payload / envelope 中读取 `traceI
 
 针对 code review 暴露的 scheduling 与 retry-finalization 缺口补齐 runtime hardening：`Runtime.Start` 的生产 lease loop 按 registered job_type 独立运行，防止 long-running `report_generate` / `resume_parse` 阻塞 low-priority `email_dispatch`；`Runtime.dispatch` 的 retry `available_at` 与 terminal `completed_at` 使用 handler 返回后的 fresh timestamp；`review.GenerateHandler` 将 failure outcome 归一化给 kernel finalize，`review.Repository.PersistReportFailure` 只维护 `feedback_reports` / outbox / audit 域状态，不再更新 `async_jobs` 或复用旧 review-store backoff。
 
+#### 4.8 BUG-0106 privacy identity cleanup remediation
+
+修复真实 provider manual UAT 暴露的 `privacy_delete` 完成语义缺口：`DELETE /api/v1/me` 受理时必须同步软删 `users.deleted_at` / `users.status='deleted'` 并撤销该用户所有 session；`privacy_delete` runner 在 upload/profile/JD Match 等 domain cleanup 全部成功后执行用户行最终 hard delete，确保 request/job completed 后不能再通过原邮箱查询到 UAT account identity。执行顺序必须保持失败可重试：任一 domain cleanup 失败不得 hard delete 用户行，成功路径需要 focused handler/store tests 和 cmd/api privacy integration regression 锁定。
+
 ## 5 验收标准
 
-- 本计划列出的实现 / 测试项全部通过（覆盖 [spec C-1~C-21](../../spec.md#6-验收标准)，含 C-13a missing-consumer safety）。
+- 本计划列出的实现 / 测试项全部通过（覆盖 [spec C-1~C-22](../../spec.md#6-验收标准)，含 C-13a missing-consumer safety 与 BUG-0106 privacy identity cleanup）。
 - 替代验证 gate 全部 PASS：contract / integration / regression rerun / legacy negative lint / doc reconcile / drift gate。
 - 不存在新增的用户可见行为缺口；既有 owner spec BDD 场景 rerun 通过。
 

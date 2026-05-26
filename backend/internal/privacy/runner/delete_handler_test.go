@@ -46,8 +46,32 @@ func TestPrivacyDeleteHandlerDeletesUploadFilesForRequestUser(t *testing.T) {
 	if jdmatch.userID != "user-1" {
 		t.Fatalf("jdmatch delete user=%q", jdmatch.userID)
 	}
-	if requests.completedID != "privacy-request-1" || requests.completedCount != 1 {
-		t.Fatalf("completedID=%q completedCount=%d", requests.completedID, requests.completedCount)
+	if requests.completedID != "privacy-request-1" || requests.completedUserID != "user-1" || requests.completedCount != 1 {
+		t.Fatalf("completedID=%q completedUser=%q completedCount=%d", requests.completedID, requests.completedUserID, requests.completedCount)
+	}
+}
+
+func TestPrivacyDeleteHandlerHardDeletesAccountIdentityAfterDomainCleanup(t *testing.T) {
+	requests := &fakePrivacyRequestStore{userID: "user-1"}
+	uploads := &fakeUploadFileDeleter{}
+	handler := runner.NewPrivacyDeleteHandler(runner.PrivacyDeleteHandlerOptions{
+		Requests:    requests,
+		UploadFiles: uploads,
+		Now:         fixedPrivacyNow,
+	})
+
+	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID:        "job-1",
+		JobType:      "privacy_delete",
+		ResourceType: "privacy_request",
+		ResourceID:   "privacy-request-1",
+	})
+
+	if !outcome.Succeeded {
+		t.Fatalf("unexpected outcome: %+v", outcome)
+	}
+	if requests.completedUserID != "user-1" {
+		t.Fatalf("completed user = %q", requests.completedUserID)
 	}
 }
 
@@ -77,8 +101,37 @@ func TestPrivacyDeleteHandlerDomainFailureMarksRequestFailed(t *testing.T) {
 	if requests.failedID != "privacy-request-1" || requests.completedID != "" {
 		t.Fatalf("failed=%q completed=%q", requests.failedID, requests.completedID)
 	}
+	if requests.completedUserID != "" {
+		t.Fatalf("account identity must not be deleted after domain failure, got %q", requests.completedUserID)
+	}
 	if jdmatch.userID != "" {
 		t.Fatalf("jdmatch delete must not run after profile failure, got %q", jdmatch.userID)
+	}
+}
+
+func TestPrivacyDeleteHandlerDomainFailureKeepsAccountIdentityForRetry(t *testing.T) {
+	requests := &fakePrivacyRequestStore{userID: "user-1"}
+	uploads := &fakeUploadFileDeleter{}
+	jdmatch := &fakeJDMatchDataDeleter{err: errors.New("jdmatch delete failed")}
+	handler := runner.NewPrivacyDeleteHandler(runner.PrivacyDeleteHandlerOptions{
+		Requests:    requests,
+		UploadFiles: uploads,
+		JDMatchData: jdmatch.DeleteJobMatchDataForUser,
+		Now:         fixedPrivacyNow,
+	})
+
+	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID:        "job-1",
+		JobType:      "privacy_delete",
+		ResourceType: "privacy_request",
+		ResourceID:   "privacy-request-1",
+	})
+
+	if outcome.Succeeded || outcome.ErrorCode != runner.ErrorCodePrivacyDeleteFailed {
+		t.Fatalf("unexpected outcome: %+v", outcome)
+	}
+	if requests.completedUserID != "" {
+		t.Fatalf("account identity must be kept for retry, got %q", requests.completedUserID)
 	}
 }
 
@@ -131,12 +184,13 @@ func TestPrivacyDeleteHandlerNonRetryableFailureMarksRequestFailed(t *testing.T)
 }
 
 type fakePrivacyRequestStore struct {
-	userID         string
-	lookupID       string
-	processingID   string
-	completedID    string
-	completedCount int
-	failedID       string
+	userID          string
+	lookupID        string
+	processingID    string
+	completedID     string
+	completedUserID string
+	completedCount  int
+	failedID        string
 }
 
 func (s *fakePrivacyRequestStore) LookupDeleteRequestUser(ctx context.Context, privacyRequestID string) (string, error) {
@@ -149,8 +203,9 @@ func (s *fakePrivacyRequestStore) MarkDeleteRequestProcessing(ctx context.Contex
 	return nil
 }
 
-func (s *fakePrivacyRequestStore) MarkDeleteRequestCompleted(ctx context.Context, privacyRequestID string, deletedFileCount int, now time.Time) error {
+func (s *fakePrivacyRequestStore) MarkDeleteRequestCompleted(ctx context.Context, privacyRequestID string, userID string, deletedFileCount int, now time.Time) error {
 	s.completedID = privacyRequestID
+	s.completedUserID = userID
 	s.completedCount = deletedFileCount
 	return nil
 }

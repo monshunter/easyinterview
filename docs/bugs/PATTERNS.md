@@ -71,9 +71,10 @@
   1. 对每个 cross-owner domain service，从 production caller 反查一次：`main.go` / runtime builder / drainer handler / HTTP route 是否真实注入并调用该 service。
   2. 对 AI generator / search adapter，不只检查 prompt body；在 focused 或 live test 中捕获 `AIClient.Complete` payload，断言业务关键 JSON 字段非空并包含 join key（如 `jobMatchId`）。
   3. 对 privacy delete、profile delete、domain cascade delete，必须通过 runner/handler 层测试证明 async job 调用了所有 domain deleter，并反查目标身份/域数据的关键残留字段；不能只断言 request/job terminal status。
-  4. 对 API error response，优先解码 generated `ApiErrorResponse`，并断言 `error.retryable` 来自 shared registry 而不是 HTTP status 推断。
-  5. 对 AI output schema 的 `required` 字段，反查生产 prompt input、consumer struct optionality 与 persistence optionality；若 caller 不提供该信息且 consumer 可接受缺失，就不能把字段标成 required。
-  6. 对真实 provider UAT，必须捕获 production caller 的 prompt payload 摘要或 focused test，断言关键业务上下文非空（如 rubric dimensions、target/resume/session join keys）；prompt/schema 文件存在不等于运行时 payload 正确。
+  4. 对账号删除类 cleanup，request/job completed 还必须证明 `users.email` 原值不可查询、`users.deleted_at` 受理期已设置、所有 sessions 已撤销，且 `privacy_requests` tombstone 不会被用户 hard delete 级联删除。
+  5. 对 API error response，优先解码 generated `ApiErrorResponse`，并断言 `error.retryable` 来自 shared registry 而不是 HTTP status 推断。
+  6. 对 AI output schema 的 `required` 字段，反查生产 prompt input、consumer struct optionality 与 persistence optionality；若 caller 不提供该信息且 consumer 可接受缺失，就不能把字段标成 required。
+  7. 对真实 provider UAT，必须捕获 production caller 的 prompt payload 摘要或 focused test，断言关键业务上下文非空（如 rubric dimensions、target/resume/session join keys）；prompt/schema 文件存在不等于运行时 payload 正确。
 
 ## 模式 6：Frontend-first handoff 完成后未回填真实 backend gate
 

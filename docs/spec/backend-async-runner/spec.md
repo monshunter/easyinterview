@@ -1,8 +1,8 @@
 # Backend Async Runner Spec
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
 ## 1 背景与目标
 
@@ -66,6 +66,7 @@
 | D-12 | Legacy zero-reference gate | 新增 lint script `scripts/lint/runner_legacy.py`（与既有 `backend_review_legacy.py` / `backend_practice_legacy.py` 同风格的 Python lint，配套 `runner_legacy_test.py`），Makefile target 名 `lint-runner-legacy`；扫描旧 `review.NewRunner` / `review.NewReaper` / `review.ComputeReportFailureBackoff` / `review.DefaultReportFailureBackoff` / `auth.BackgroundMailDispatcher` / `auth.NewBackgroundMailDispatcher` / 多处 `targetjob.NewDrainer(targetjob.DrainerOptions{...})` 实例化（除 kernel adapter shim、history/tests/lint 自身与本文件历史断言外）必须 0 命中；同时扫描 `jdmatchRuntime.Drainer`、`buildJDMatchRuntime` 内旧 drainer 注册和 `JobTypeJdMatchAgentScan` 旧 path | 防止旧 runner 形态回流；history/tests/lint 自身允许保留历史证据；脚本扩展名与 `scripts/lint/` 既有 Python 工具集对齐，便于复用 grep 排除规则 |
 | D-13 | `Runtime.RunOnce` 必须暴露 | kernel `Runtime` 对外暴露 `RunOnce(ctx) (processed bool, err error)`（与 §4.1 接口约束一致），供 unit test / integration test 同步驱动 lease + finalize 单条流程；与既有 `targetjob.Drainer.RunOnce` / `review.Runner.RunOnce` 习惯保持一致 | 锁定测试驱动 API，避免实施期重新讨论；与 §4.1 「`Runtime` 必须暴露」清单冗余但显式 |
 | D-14 | Runtime lease loop scan 间隔 | kernel `Runtime` 默认 lease loop scan 间隔由新增 typed config `async.scanIntervalSeconds` 提供（默认 5s，与 outbox dispatcher 5s scan 对齐）；缺失或非正数 fail-fast；生产路径每个 registered job_type 独立扫描，避免长耗时 critical/default handler 阻塞 low-priority loop | 锁定 `email_dispatch` 等 low-priority job 的可见延迟上限「≤1 个 scan 周期」；配合 plan §6 风险表对 magic link 投递延迟的承诺 |
+| D-15 | Privacy account identity cleanup | `DELETE /api/v1/me` 受理期必须同步软删 `users.deleted_at` / `users.status='deleted'` 并撤销该用户所有 session；`privacy_delete` runner 在 upload/profile/JD Match 等 domain cleanup 成功后必须执行用户行最终 hard delete，确保 completed request/job 后不能再用原邮箱查询到 UAT 用户身份 | 修复 BUG-0106；避免把 request/job terminal status 误当成账户身份 PII 已清除 |
 
 ### 3.2 待确认事项
 
@@ -154,9 +155,10 @@
 | C-19 | Legacy zero-reference gate | spec D-12 列出的旧形态 | `make lint-runner-legacy` | 旧 `review.NewRunner` / `review.NewReaper` / `ComputeReportFailureBackoff` / `auth.BackgroundMailDispatcher` / 多 `targetjob.NewDrainer` 实例化（除 kernel adapter 与 history/tests/lint 证据外）0 命中；`jdmatchRuntime.Drainer` / `JobTypeJdMatchAgentScan` 旧注册路径也 0 命中；lint 失败时输出文件 / 行号 | 001 Phase 4 |
 | C-20 | Runtime lease scan + grace + lease timeout + reaper interval typed config | 新增 `async.scanIntervalSeconds` / `leaseTimeoutSeconds` / `shutdownGraceSeconds` / `reaperIntervalSeconds` typed config 节点（A4 additive config-only） | kernel boot + reaper loop | scanIntervalSeconds 默认 5s 与 outbox dispatcher 一致；缺失或非正数 fail-fast（沿用 A4 C-12）；`email_dispatch` 等 low-priority job 可见延迟 ≤1 个 scan 周期，且不被 long-running critical/default handler 串行阻塞 | 001 Phase 1 |
 | C-21 | L2 scheduler/backoff review invariants | critical/default handler 长耗时、report_generate retryable AI failure、handler 执行时间超过 backoff 首档 | `Runtime.Start` 与 `GenerateHandler` / `Service.GenerateReport` 处理失败 | `email_dispatch` 不被正在运行的 critical job starvation；retry `available_at` 与 terminal `completed_at` 使用 handler 返回后的 fresh timestamp；report failure 走 kernel shared backoff 而不是 review store 旧 schedule | 001 Phase 4 |
+| C-22 | BUG-0106 privacy identity cleanup | 用户通过 `DELETE /api/v1/me` 创建 `privacy_delete` job | 请求受理并由 kernel runner 处理完成 | 请求受理后 `users.deleted_at` 非空且该用户所有 session revoked；runner completed 后 `users` 不再存在原邮箱用户行，避免 UAT cleanup 残留 raw email | 001 Phase 4 BUG-0106 remediation |
 
 ## 7 关联计划
 
-- [001-internal-job-outbox-runner](./plans/001-internal-job-outbox-runner/plan.md)：本 spec 的 completed 实施计划，覆盖 D-1~D-14 全部决策。Phase 1 落地 kernel；Phase 2 迁移 9 个当前可执行 job_type（含 `jd_match_agent_scan`）；Phase 3 落地 outbox dispatcher + email_dispatch；Phase 4 收口 cmd/api shutdown + lint negative gate + 旧 owner spec D-* 边界条款同步；v1.2 L2 remediation 补齐 `cmd/api` production bootstrap 挂接 `OutboxDispatcher` 与 live gate 证据；v1.4 L2 review fix 固化 scheduler 防饥饿、fresh finalize timestamp 与 report failure shared backoff gate。
+- [001-internal-job-outbox-runner](./plans/001-internal-job-outbox-runner/plan.md)：本 spec 的 completed 实施计划，覆盖 D-1~D-15 全部决策。Phase 1 落地 kernel；Phase 2 迁移 9 个当前可执行 job_type（含 `jd_match_agent_scan`）；Phase 3 落地 outbox dispatcher + email_dispatch；Phase 4 收口 cmd/api shutdown + lint negative gate + 旧 owner spec D-* 边界条款同步；v1.2 L2 remediation 补齐 `cmd/api` production bootstrap 挂接 `OutboxDispatcher` 与 live gate 证据；v1.4 L2 review fix 固化 scheduler 防饥饿、fresh finalize timestamp 与 report failure shared backoff gate；v1.5 BUG-0106 remediation 固化 privacy_delete 身份清理 gate。
 
 未来如需新增独立 Asynq server / 拆运行单元 / 引入新调度器，必须先 supersede ADR-Q2 + 新 plan 显式承接本 spec D-* 决策。

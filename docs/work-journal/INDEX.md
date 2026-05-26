@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-26](2026-05-26.md) | `fix(backend-async-runner): close privacy account identity cleanup (BUG-0106)` | #fix #test #docs |
 | [2026-05-26](2026-05-26.md) | `fix(e2e-scenarios): close real provider full funnel UAT (BUG-0105)` | #fix #test #docs #bdd |
 | [2026-05-24](2026-05-24.md) | `feat(e2e-scenarios): close full funnel journey (BUG-0103)` | #feat #fix #test #docs |
 | [2026-05-24](2026-05-24.md) | `test(e2e): add p0 config preflight gate` | #test #docs |

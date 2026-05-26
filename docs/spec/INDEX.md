@@ -21,7 +21,7 @@
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.4 | active | 2026-05-22 | [plans](./repo-scaffold/plans/) |
 | [local-dev-stack](./local-dev-stack/spec.md) | 1.13 | active | 2026-05-26 | [plans](./local-dev-stack/plans/) |
 | [backend-runtime-topology](./backend-runtime-topology/spec.md) | 1.5 | active | 2026-05-26 | [plans](./backend-runtime-topology/plans/) |
-| [backend-async-runner](./backend-async-runner/spec.md) | 1.4 | active | 2026-05-22 | [plans](./backend-async-runner/plans/) |
+| [backend-async-runner](./backend-async-runner/spec.md) | 1.5 | active | 2026-05-26 | [plans](./backend-async-runner/plans/) |
 | [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.14 | active | 2026-05-26 | [plans](./ai-provider-and-model-routing/plans/) |
 | [secrets-and-config](./secrets-and-config/spec.md) | 2.7 | active | 2026-05-26 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.3 | active | 2026-04-29 | [plans](./ci-pipeline-baseline/plans/) |
@@ -33,7 +33,7 @@
 | [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.20 | active | 2026-05-21 | [plans](./shared-conventions-codified/plans/) |
 | [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.26 | active | 2026-05-21 | [plans](./openapi-v1-contract/plans/) |
 | [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.7 | active | 2026-05-22 | [plans](./event-and-outbox-contract/plans/) |
-| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.21 | active | 2026-05-21 | [plans](./db-migrations-baseline/plans/) |
+| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.22 | active | 2026-05-26 | [plans](./db-migrations-baseline/plans/) |
 
 ## 4 Quality / AI Governance
 
@@ -50,7 +50,7 @@
 | [frontend-shell](./frontend-shell/spec.md) | 1.16 | active | 2026-05-18 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 1.12 | completed | 2026-05-24 | [plans](./frontend-home-job-picks-and-parse/plans/) |
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.4 | active | 2026-05-23 | [plans](./frontend-workspace-and-practice/plans/) |
-| [backend-auth](./backend-auth/spec.md) | 1.4 | active | 2026-05-26 | [plans](./backend-auth/plans/) |
+| [backend-auth](./backend-auth/spec.md) | 1.5 | active | 2026-05-26 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 1.5 | active | 2026-05-21 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.11 | active | 2026-05-21 | [plans](./backend-practice/plans/) |
 | [backend-review](./backend-review/spec.md) | 1.0 | active | 2026-05-15 | [plans](./backend-review/plans/) |

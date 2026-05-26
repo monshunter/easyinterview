@@ -1,6 +1,6 @@
 # Backend Auth Spec
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
 > **更新日期**: 2026-05-26
 
@@ -18,7 +18,7 @@
 - `GET /api/v1/auth/email/verify` 邮箱挑战验证并签发 first-party session cookie。
 - `GET /api/v1/me` 当前用户读取。
 - `POST /api/v1/auth/logout` 清除 session。
-- first-party session middleware / current-user resolver：保护除 B2 public endpoints 外的 P0 API；`logout` 使用 optional-session / always-clear-cookie 路径以保持幂等；`DELETE /api/v1/me` 提供认证态、session 撤销和 idempotent privacy_delete handoff。
+- first-party session middleware / current-user resolver：保护除 B2 public endpoints 外的 P0 API；`logout` 使用 optional-session / always-clear-cookie 路径以保持幂等；`DELETE /api/v1/me` 提供认证态、同步软删 `users.deleted_at` / `users.status='deleted'`、撤销该用户所有 session 和 idempotent privacy_delete handoff。
 - 为既有 `GET /api/v1/runtime-config` 注入 C1 session-aware resolver，供 A4 handler 合并用户级公开偏好。
 - 本 plan 内实现 C1 backend-internal mail dispatcher（Go goroutine / 后台线程）与 dev mail sink / test delivery retrieval；P0 不依赖也不保留独立后台执行进程。
 - 复用 B3 internal-only `email_dispatch` payload contract 与 generated `BuildEmailDispatchPayload` redaction policy 构造邮件派发输入；payload 只允许 helper 支持的脱敏字段。
@@ -29,7 +29,7 @@
 
 - 不实现 OAuth / SSO / 企业账号体系。
 - 不实现 Team / EDU、订阅或计费能力。
-- 不实现完整隐私导出；P0 隐私导出延后，删除执行按 product-scope / B4 / backend internal runner owner 另行计划，C1 只负责 `DELETE /me` 的认证、session 撤销与 privacy_delete handoff。
+- 不实现完整隐私导出；P0 隐私导出延后，逐域硬删除执行按 product-scope / B4 / backend internal runner owner 另行计划。C1 只负责 `DELETE /me` 的认证、请求受理期用户软删、全部 session 撤销与 privacy_delete handoff。
 - 不实现独立后台执行进程、Asynq dispatcher 或生产级 outbox consumer；当前无真实用户阶段允许 C1 用 backend 内部后台派发器作为默认 P0 实现，后续接入 backend internal runner 时必须复用同一 B3 payload 红线。
 - 不在日志中输出验证码、magic link token、完整邮箱、session secret 或 PII。
 - 不修改 B2 Auth operation shape；需要变更时先修订 `openapi-v1-contract`。
@@ -44,7 +44,7 @@
 | D-4 | 配置来源 | A4 secrets/config 提供 `SESSION_COOKIE_SECRET`、`AUTH_CHALLENGE_TOKEN_PEPPER`、`EMAIL_PROVIDER`、`EMAIL_PROVIDER_API_KEY`、Mailpit/SMTP dev keys（`EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL`）和固定 `ei_session` cookie name；TTL、rate-limit 与 in-memory `DevMailSink` 测试默认值由 C1 代码常量持有并在包级文档记录 | 邮件、cookie、session secret 不私造配置 key；新增 email config key 必须先修订 A4 |
 | D-5 | 错误码 | B1 shared error envelope | 认证错误必须使用共享错误 shape |
 | D-6 | P0 邮件派发 | C1 通过 `async_jobs(job_type='email_dispatch')` + backend internal runner 派发邮件；默认单测使用 in-memory `DevMailSink`，local dev `EMAIL_PROVIDER=mailpit` 时使用 SMTP `DeliveryWriter` 投递到 Mailpit。派发输入必须由 generated `BuildEmailDispatchPayload` 传 `authChallengeId` / `templateKey` / `locale` / `deliverySecretRef` / `dedupeKey`；SMTP writer 从 `auth_challenges` 查询收件人，并从 transient delivery secret store 取 magic token | 不要求独立后台执行进程；不把 raw token、完整 URL、邮箱明文、邮件正文或标题写入 in-process queue / dev sink / future outbox / async payload / 日志；本地测试不依赖真实外部邮箱服务或真实邮箱账号 |
-| D-7 | Account deletion auth handoff | `DELETE /api/v1/me` 使用 C1 session middleware 验证当前用户，支持 `Idempotency-Key` 或等价 active-request dedupe，撤销 session 并返回 B2 `202 + PrivacyRequestWithJob`；实际 privacy_delete job 执行归 backend internal runner / B4 | C1 不扩展删除 schema，不绕过 B2 contract；重复请求不得创建重复 active 删除任务 |
+| D-7 | Account deletion auth handoff | `DELETE /api/v1/me` 使用 C1 session middleware 验证当前用户，支持 `Idempotency-Key` 或等价 active-request dedupe；受理请求时同步将 `users.deleted_at` 置为当前时间、`users.status='deleted'`，撤销该用户所有 session，并返回 B2 `202 + PrivacyRequestWithJob`；逐域硬删与用户行最终 hard delete 归 backend internal runner / B4 | C1 不扩展删除 schema，不绕过 B2 contract；重复请求不得创建重复 active 删除任务；request/job success 不得早于账户身份清理 gate |
 
 ## 4 设计约束
 
@@ -69,7 +69,7 @@
 | config/secrets | A4 `secrets-and-config` | session secret、challenge pepper、email provider secret、Mailpit SMTP dev keys、固定 `ei_session` cookie name；TTL / rate-limit 默认值归 C1 代码常量，新增配置前先修订 A4 |
 | frontend gate | `frontend-shell` | pendingAction、登录页面和登录后恢复 |
 | DB/session storage | B4 `db-migrations-baseline` | session/challenge 表或等价持久化边界 |
-| privacy deletion execution | backend internal runner / B4 | `DELETE /me` 后续 privacy_delete job 与数据删除矩阵执行，C1 只做认证与 handoff |
+| privacy deletion execution | backend-auth + backend internal runner / B4 | C1 在 `DELETE /me` 请求受理时同步软删用户身份并撤销该用户所有 session；后续 `privacy_delete` job 由 backend internal runner / B4 执行逐域 hard delete 与用户行最终删除 |
 | observability registry | F1 `observability-stack` | auth metric names 与 allowed labels 登记；C1 只消费已登记指标 |
 
 ## 6 验收标准
@@ -80,7 +80,7 @@
 | C-2 | Logout 幂等 | 用户已有或没有有效 session | 调用 logout | cookie 被清除且响应不泄露账号状态 | 001-passwordless-session-bootstrap |
 | C-3 | 错误路径 | challenge 过期、重复验证、缺 cookie、配置缺失 | 调用对应 endpoint | 返回 B1 error envelope，日志无 secret / PII 明文 | 001-passwordless-session-bootstrap |
 | C-4 | Runtime config session resolver | 前端启动，用户可能携带有效 session | 请求 `/runtime-config` | A4 handler 仍只返回公开 allowlist 字段；C1 session resolver 只影响允许公开的用户级偏好，不泄露 secret / internal flag | 001-passwordless-session-bootstrap |
-| C-5 | Auth middleware and delete handoff | 用户携带有效或无效 `ei_session` | 访问 protected Auth operation、logout 或 `DELETE /me` | auth start / verify / runtime-config 不要求 session；logout optional-session 且总是清 cookie；protected endpoints 使用 first-party session；`DELETE /me` 支持 idempotency / active-request dedupe，返回 B2 删除响应并撤销 session，删除执行仍由 backend internal runner / B4 承接 | 001-passwordless-session-bootstrap |
+| C-5 | Auth middleware and delete handoff | 用户携带有效或无效 `ei_session` | 访问 protected Auth operation、logout 或 `DELETE /me` | auth start / verify / runtime-config 不要求 session；logout optional-session 且总是清 cookie；protected endpoints 使用 first-party session；`DELETE /me` 支持 idempotency / active-request dedupe，返回 B2 删除响应，同步设置 `users.deleted_at` / `users.status='deleted'` 并撤销该用户所有 session，逐域 hard delete 仍由 backend internal runner / B4 承接 | 001-passwordless-session-bootstrap |
 | C-6 | Email dispatch redaction | 用户请求邮箱挑战 | C1 auth flow 写入 `async_jobs(email_dispatch)`，backend-async-runner kernel `EmailDispatchHandler` lease 后写入 dev sink 或 Mailpit SMTP writer | `email_dispatch` payload 只含 allowed fields；raw token / URL / 邮箱明文 / 邮件正文不进入 async_jobs payload、dev sink、outbox、log 或 audit；无需独立后台执行进程即可通过本地验证 | 001-passwordless-session-bootstrap |
 | C-8 | Local Mailpit sign-in | `EMAIL_PROVIDER=mailpit`，Mailpit 由 local-dev-stack 提供，用户请求 synthetic `.example.test` 邮箱挑战 | `EmailDispatchHandler` 处理 queued job | SMTP writer 从 DB lookup 收件人、从 transient secret store 取 token 并投递 magic-link 到 Mailpit；点击链接签发 `ei_session`；不使用真实外部邮箱服务、真实邮箱账号或 `backend/cmd` 场景 helper | local-dev-stack/001 Mailpit revision |
 | C-7 | Auth observability | challenge / verify / logout / failure 发生 | 记录 metrics / audit | 指标名已在 F1 baseline 或 F1 承接 gate 中登记，label 符合 F1，audit 只含 ID / hash / 状态，不含 secret / PII 明文 | 001-passwordless-session-bootstrap |

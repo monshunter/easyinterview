@@ -124,6 +124,46 @@ func TestSQLStoreAuthTableBoundaries(t *testing.T) {
 	}
 }
 
+func TestSQLStorePrivacyDeleteHandoffSoftDeletesUserAndRevokesSessions(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	store := auth.NewSQLStore(db)
+	now := time.Date(2026, 5, 26, 9, 30, 0, 0, time.UTC)
+	userID := "018f2a40-0000-7000-9000-000000000101"
+	privacyRequestID := "018f2a40-0000-7000-9000-000000000201"
+	jobID := "018f2a40-0000-7000-9000-000000000301"
+	dedupe := &notRawDedupeKey{raw: "delete-key"}
+
+	mock.ExpectQuery("from async_jobs").
+		WithArgs(dedupe, "privacy_delete").
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectBegin()
+	mock.ExpectExec("update users").
+		WithArgs(now, userID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("update sessions").
+		WithArgs(now, userID).
+		WillReturnResult(sqlmock.NewResult(0, 2))
+	mock.ExpectExec("insert into privacy_requests").
+		WithArgs(privacyRequestID, userID, now).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("insert into async_jobs").
+		WithArgs(jobID, "privacy_delete", privacyRequestID, dedupe, now).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	if _, err := store.CreatePrivacyDeleteHandoff(context.Background(), userID, "delete-key", privacyRequestID, jobID, now); err != nil {
+		t.Fatalf("handoff: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSQLStorePrivacyDeleteDedupeKeyIsScopedByUser(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -140,6 +180,12 @@ func TestSQLStorePrivacyDeleteDedupeKeyIsScopedByUser(t *testing.T) {
 			WithArgs(dedupeMatcher, "privacy_delete").
 			WillReturnError(sql.ErrNoRows)
 		mock.ExpectBegin()
+		mock.ExpectExec("update users").
+			WithArgs(now, userID).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec("update sessions").
+			WithArgs(now, userID).
+			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectExec("insert into privacy_requests").
 			WithArgs(privacyRequestID, userID, now).
 			WillReturnResult(sqlmock.NewResult(1, 1))

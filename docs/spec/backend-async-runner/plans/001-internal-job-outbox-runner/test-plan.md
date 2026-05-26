@@ -1,8 +1,8 @@
 # Internal Job and Outbox Runner Test Plan
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
 **关联计划**: [plan](./plan.md)
 **关联 Checklist**: [checklist](./checklist.md)
@@ -35,6 +35,7 @@
 | P3-2 | spec C-15 trace_id 透传 | 3 | `backend/internal/runner/outbox_trace_test.go::TestOutboxDispatcher_PropagatesTraceParent` | unit |
 | P3-3 | spec C-14 email_dispatch 收口 | 3 | `backend/internal/auth/passwordless_test.go::TestStartAuthEmailChallenge_EnqueuesEmailDispatchJob` + `email_dispatch_handler_test.go` | unit + integration |
 | P4-1 | spec C-16 cmd/api 单点 shutdown | 4 | `backend/cmd/api/main_test.go::TestMain_SingleRuntimeShutdown` | unit + integration |
+| P4-2 | spec C-22 / BUG-0106 privacy identity cleanup | 4 | `backend/internal/auth` DeleteMe store/service tests + `backend/internal/privacy/runner/delete_handler_test.go` + `backend/cmd/api` privacy integration regression | unit + integration |
 
 ### 2.2 Alternate path
 

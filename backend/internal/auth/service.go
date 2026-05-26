@@ -302,12 +302,6 @@ func (s *PasswordlessService) DeleteMe(ctx context.Context, current CurrentSessi
 		s.recordAuthFailure(ctx, "delete_handoff", "store_error", current.UserID, "")
 		return PrivacyDeleteHandoff{}, err
 	}
-	if current.SessionID != "" {
-		if err := s.store.RevokeSession(ctx, current.SessionID, now); err != nil {
-			s.recordAuthFailure(ctx, "delete_handoff", "store_error", current.UserID, "")
-			return PrivacyDeleteHandoff{}, err
-		}
-	}
 	s.recordDeleteHandoff(ctx, current.UserID, handoff)
 	return handoff, nil
 }
