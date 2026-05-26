@@ -1829,7 +1829,7 @@ ai:
 	)
 	mock.ExpectQuery("from privacy_requests").
 		WithArgs(requestID).
-		WillReturnRows(sqlmock.NewRows([]string{"user_id"}).AddRow(userID))
+		WillReturnRows(sqlmock.NewRows([]string{"user_id", "status"}).AddRow(userID, "queued"))
 	mock.ExpectExec("update privacy_requests").
 		WithArgs(requestID, sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 1))

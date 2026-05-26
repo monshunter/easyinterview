@@ -102,6 +102,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0107](./BUG-0107.md) | review follow-up exposed provider schema, report status, and privacy retry drift | medium | resolved | 2026-05-26 | `fix(backend): close review correctness follow-ups (BUG-0107)` |
 | [BUG-0106](./BUG-0106.md) | privacy delete cleanup completed without removing UAT account identity | medium | resolved | 2026-05-26 | `fix(backend-async-runner): close privacy account identity cleanup (BUG-0106)` |
 | [BUG-0091](./BUG-0091.md) | Postgres 18 dev volume layout made local dev stack unhealthy | medium | resolved | 2026-05-22 | `fix(local-dev-stack): repair Postgres 18 dev volume guard (BUG-0087)` |
 | [BUG-0088](./BUG-0088.md) | async runner review exposed scheduler and report backoff drift | high | resolved | 2026-05-22 | `fix(backend-async-runner): harden scheduler and report backoff (BUG-0088)` |

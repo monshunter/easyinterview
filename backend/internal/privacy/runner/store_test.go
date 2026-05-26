@@ -2,6 +2,7 @@ package runner_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -49,6 +50,32 @@ func TestSQLStoreMarkDeleteRequestCompletedDeletesAccountIdentityAndPreservesReq
 
 	if err := store.MarkDeleteRequestCompleted(context.Background(), requestID, userID, 1, now); err != nil {
 		t.Fatalf("MarkDeleteRequestCompleted: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStoreLookupDeleteRequestUserTreatsCompletedTombstoneAsIdempotent(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	store := runner.NewSQLStore(db)
+	requestID := "018f2a40-0000-7000-9000-000000000201"
+
+	mock.ExpectQuery("select user_id, status from privacy_requests").
+		WithArgs(requestID).
+		WillReturnRows(sqlmock.NewRows([]string{"user_id", "status"}).AddRow(nil, "completed"))
+
+	userID, err := store.LookupDeleteRequestUser(context.Background(), requestID)
+	if !errors.Is(err, runner.ErrPrivacyDeleteAlreadyCompleted) {
+		t.Fatalf("LookupDeleteRequestUser error = %v, want ErrPrivacyDeleteAlreadyCompleted", err)
+	}
+	if userID != "" {
+		t.Fatalf("userID = %q, want empty", userID)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)

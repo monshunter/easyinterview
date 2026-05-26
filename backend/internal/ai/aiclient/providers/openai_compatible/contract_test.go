@@ -370,6 +370,26 @@ func TestComplete_RequestsJSONObjectWhenOutputSchemaIsPresent(t *testing.T) {
 	}
 }
 
+func TestComplete_LeavesResponseFormatUnsetForArrayOutputSchema(t *testing.T) {
+	srv := mockserver.New()
+	defer srv.Close()
+	a := newAdapter(t, srv)
+
+	payload := samplePayload()
+	payload.Metadata.OutputSchema = json.RawMessage(`{"type":"array","items":{"type":"object","required":["jobMatchId"],"properties":{"jobMatchId":{"type":"string"}}}}`)
+
+	if _, _, err := a.Complete(context.Background(), chatProfile(5000), payload); err != nil {
+		t.Fatalf("Complete: %v", err)
+	}
+	var wire map[string]any
+	if err := json.Unmarshal(srv.Captured()[0].Body, &wire); err != nil {
+		t.Fatalf("unmarshal captured request: %v", err)
+	}
+	if _, ok := wire["response_format"]; ok {
+		t.Fatalf("array output schema must not force object response_format: %+v", wire["response_format"])
+	}
+}
+
 func TestComplete_TimeoutMapsToAIProviderTimeout(t *testing.T) {
 	srv := mockserver.New()
 	srv.SetChatBehavior(mockserver.Behavior{SleepBeforeRespond: 200 * time.Millisecond})

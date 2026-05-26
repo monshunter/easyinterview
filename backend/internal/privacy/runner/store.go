@@ -8,7 +8,10 @@ import (
 	"time"
 )
 
-var ErrPrivacyRequestNotFound = errors.New("privacy delete request not found")
+var (
+	ErrPrivacyRequestNotFound        = errors.New("privacy delete request not found")
+	ErrPrivacyDeleteAlreadyCompleted = errors.New("privacy delete request already completed")
+)
 
 type SQLStore struct {
 	db *sql.DB
@@ -22,18 +25,25 @@ func (s *SQLStore) LookupDeleteRequestUser(ctx context.Context, privacyRequestID
 	if err := s.checkDB(); err != nil {
 		return "", err
 	}
-	var userID string
+	var userID sql.NullString
+	var status string
 	err := s.db.QueryRowContext(ctx, `
-select user_id
-from privacy_requests
-where id = $1 and request_type = 'delete'`, privacyRequestID).Scan(&userID)
+	select user_id, status
+	from privacy_requests
+	where id = $1 and request_type = 'delete'`, privacyRequestID).Scan(&userID, &status)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", ErrPrivacyRequestNotFound
 	}
 	if err != nil {
 		return "", fmt.Errorf("lookup privacy delete request user: %w", err)
 	}
-	return userID, nil
+	if !userID.Valid {
+		if status == "completed" {
+			return "", ErrPrivacyDeleteAlreadyCompleted
+		}
+		return "", nil
+	}
+	return userID.String, nil
 }
 
 func (s *SQLStore) MarkDeleteRequestProcessing(ctx context.Context, privacyRequestID string, now time.Time) error {

@@ -276,10 +276,10 @@ func rubricPromptPayload(rubric registry.RubricSchema) []map[string]any {
 			})
 		}
 		out = append(out, map[string]any{
-			"name":         sanitizePromptSegment(dim.Name),
-			"weight":       dim.Weight,
-			"description":  sanitizePromptSegment(dim.Description),
-			"scoreLevels":  levels,
+			"name":        sanitizePromptSegment(dim.Name),
+			"weight":      dim.Weight,
+			"description": sanitizePromptSegment(dim.Description),
+			"scoreLevels": levels,
 		})
 	}
 	return out
@@ -457,15 +457,23 @@ func overallStatusFromDimensionResults(results map[string]DimensionResultDraft) 
 		return ""
 	}
 	strongCount := 0
+	hasNeedsWork := false
+	hasMeetsBar := false
 	for _, result := range results {
 		switch result.Status {
 		case sharedtypes.DimensionStatusNeedsWork:
-			return sharedtypes.DimensionStatusNeedsWork
+			hasNeedsWork = true
 		case sharedtypes.DimensionStatusMeetsBar:
-			return sharedtypes.DimensionStatusMeetsBar
+			hasMeetsBar = true
 		case sharedtypes.DimensionStatusStrong:
 			strongCount++
 		}
+	}
+	if hasNeedsWork {
+		return sharedtypes.DimensionStatusNeedsWork
+	}
+	if hasMeetsBar {
+		return sharedtypes.DimensionStatusMeetsBar
 	}
 	if strongCount == len(results) {
 		return sharedtypes.DimensionStatusStrong

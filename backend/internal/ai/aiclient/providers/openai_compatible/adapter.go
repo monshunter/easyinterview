@@ -591,6 +591,15 @@ func responseFormatForPayload(payload aiclient.CompletePayload) any {
 	if len(payload.Metadata.OutputSchema) == 0 {
 		return nil
 	}
+	var schema struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(payload.Metadata.OutputSchema, &schema); err != nil {
+		return nil
+	}
+	if schema.Type != "object" {
+		return nil
+	}
 	return map[string]string{"type": "json_object"}
 }
 

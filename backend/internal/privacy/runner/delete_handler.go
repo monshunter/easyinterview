@@ -63,6 +63,9 @@ func (h *PrivacyDeleteHandler) Handle(ctx context.Context, job targetjob.Claimed
 	now := h.now().UTC()
 	userID, err := h.requests.LookupDeleteRequestUser(ctx, job.ResourceID)
 	if err != nil {
+		if errors.Is(err, ErrPrivacyDeleteAlreadyCompleted) {
+			return targetjob.JobOutcome{Succeeded: true}
+		}
 		return failedOutcome(ErrorCodePrivacyDeleteRetryable, fmt.Sprintf("lookup privacy request: %v", err), true)
 	}
 	if strings.TrimSpace(userID) == "" {

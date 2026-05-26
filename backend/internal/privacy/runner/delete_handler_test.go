@@ -75,6 +75,40 @@ func TestPrivacyDeleteHandlerHardDeletesAccountIdentityAfterDomainCleanup(t *tes
 	}
 }
 
+func TestPrivacyDeleteHandlerCompletedTombstoneRetrySucceedsIdempotently(t *testing.T) {
+	requests := &fakePrivacyRequestStore{lookupErr: runner.ErrPrivacyDeleteAlreadyCompleted}
+	uploads := &fakeUploadFileDeleter{}
+	profile := &fakeProfileDataDeleter{}
+	jdmatch := &fakeJDMatchDataDeleter{}
+	handler := runner.NewPrivacyDeleteHandler(runner.PrivacyDeleteHandlerOptions{
+		Requests:    requests,
+		UploadFiles: uploads,
+		ProfileData: profile.DeleteCandidateProfileForUser,
+		JDMatchData: jdmatch.DeleteJobMatchDataForUser,
+		Now:         fixedPrivacyNow,
+	})
+
+	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID:        "job-1",
+		JobType:      "privacy_delete",
+		ResourceType: "privacy_request",
+		ResourceID:   "privacy-request-1",
+	})
+
+	if !outcome.Succeeded || outcome.Retryable || outcome.ErrorCode != "" {
+		t.Fatalf("unexpected outcome: %+v", outcome)
+	}
+	if requests.lookupID != "privacy-request-1" {
+		t.Fatalf("lookupID=%q", requests.lookupID)
+	}
+	if requests.processingID != "" || requests.completedID != "" || requests.failedID != "" {
+		t.Fatalf("completed tombstone retry must not mutate request: processing=%q completed=%q failed=%q", requests.processingID, requests.completedID, requests.failedID)
+	}
+	if uploads.userID != "" || profile.userID != "" || jdmatch.userID != "" {
+		t.Fatalf("completed tombstone retry must not rerun cleanup: upload=%q profile=%q jdmatch=%q", uploads.userID, profile.userID, jdmatch.userID)
+	}
+}
+
 func TestPrivacyDeleteHandlerDomainFailureMarksRequestFailed(t *testing.T) {
 	requests := &fakePrivacyRequestStore{userID: "user-1"}
 	uploads := &fakeUploadFileDeleter{}
@@ -185,6 +219,7 @@ func TestPrivacyDeleteHandlerNonRetryableFailureMarksRequestFailed(t *testing.T)
 
 type fakePrivacyRequestStore struct {
 	userID          string
+	lookupErr       error
 	lookupID        string
 	processingID    string
 	completedID     string
@@ -195,6 +230,9 @@ type fakePrivacyRequestStore struct {
 
 func (s *fakePrivacyRequestStore) LookupDeleteRequestUser(ctx context.Context, privacyRequestID string) (string, error) {
 	s.lookupID = privacyRequestID
+	if s.lookupErr != nil {
+		return "", s.lookupErr
+	}
 	return s.userID, nil
 }
 

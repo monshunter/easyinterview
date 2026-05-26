@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-26](./2026-05-26-backend-review-follow-up-correctness-assessment.md) | Backend Review Follow-up Correctness Fix 交付复盘 | #assessment |
 | [2026-05-26](./2026-05-26-privacy-account-identity-cleanup-assessment.md) | Privacy Account Identity Cleanup 交付复盘 | #assessment |
 | [2026-05-26](./2026-05-26-manual-uat-real-provider-full-funnel-assessment.md) | Manual UAT Real Provider Full Funnel 交付复盘 | #assessment |
 | [2026-05-26](./2026-05-26-manual-uat-bootstrap-boundary-assessment.md) | Manual UAT Mailpit Boundary 交付复盘 | #assessment |

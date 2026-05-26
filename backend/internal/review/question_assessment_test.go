@@ -104,6 +104,19 @@ func TestAssessQuestionsNormalizesRealProviderAssessmentDrift(t *testing.T) {
 	}
 }
 
+func TestOverallStatusFromDimensionResultsNeedsWorkDominatesMixedStatuses(t *testing.T) {
+	results := map[string]DimensionResultDraft{
+		"architecture":  {Status: sharedtypes.DimensionStatusMeetsBar},
+		"evidence":      {Status: sharedtypes.DimensionStatusNeedsWork},
+		"communication": {Status: sharedtypes.DimensionStatusStrong},
+	}
+	for i := 0; i < 100; i++ {
+		if got := overallStatusFromDimensionResults(results); got != sharedtypes.DimensionStatusNeedsWork {
+			t.Fatalf("overall status = %q, want needs_work when any dimension needs work", got)
+		}
+	}
+}
+
 func TestAssessQuestionsBuildsPromptWithoutLeaks(t *testing.T) {
 	ai := &fakeReviewAI{responses: []string{`{"dimension_results":{"depth":{"status":"needs_work","confidence":0.5,"score":0.5}},"overall_status":"needs_work","confidence":0.5,"strengths":[],"gaps":[],"recommended_framework":"STAR","review_status":"open"}`}}
 	svc := NewService(ServiceOptions{
