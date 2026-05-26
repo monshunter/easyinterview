@@ -17,8 +17,15 @@ import (
 const hintFeatureKey = "practice.turn.lightweight_observe"
 
 type hintAIResponse struct {
-	Hint string `json:"hint"`
-	Cue  string `json:"cue"`
+	Hint               string `json:"hint"`
+	Cue                string `json:"cue"`
+	AnswerSummary      string `json:"answerSummary"`
+	AnswerSummarySnake string `json:"answer_summary"`
+}
+
+type turnObservation struct {
+	Hint          string
+	AnswerSummary string
 }
 
 func (s *Service) applyHintAI(ctx context.Context, reservation SessionEventReservation, payload map[string]any, outcome *SessionEventOutcome) {
@@ -77,6 +84,50 @@ func (s *Service) applyHintAI(ctx context.Context, reservation SessionEventReser
 	outcome.AssistantAction.RequiresAI = false
 }
 
+func (s *Service) applyAnswerObservationAI(ctx context.Context, reservation SessionEventReservation, payload map[string]any, outcome *SessionEventOutcome) {
+	if outcome == nil || strings.TrimSpace(payloadString(payload, "answerText")) == "" {
+		return
+	}
+	if s.registry == nil || s.ai == nil {
+		outcome.AnswerSummary = fallbackAnswerSummary(payload)
+		return
+	}
+	resolution, err := s.registry.ResolveActive(ctx, hintFeatureKey, reservation.Session.Language)
+	if err != nil {
+		code := sharederrors.CodeAiProviderConfigInvalid
+		if !(stderrs.Is(err, registry.ErrPromptUnsupported) || stderrs.Is(err, registry.ErrLanguageUnsupported)) {
+			if mapped, ok := aiErrorCode(err); ok {
+				code = mapped
+			}
+		}
+		s.writeHintTaskRun(ctx, reservation, resolution, code)
+		outcome.AnswerSummary = fallbackAnswerSummary(payload)
+		markAnswerSummaryDegrade(outcome, code)
+		return
+	}
+	resp, meta, err := s.ai.Complete(ctx, resolution.ModelProfileName, hintPayload(resolution, reservation, payload))
+	if err != nil {
+		code := sharederrors.CodeAiProviderConfigInvalid
+		if mapped, ok := aiErrorCode(err); ok {
+			code = mapped
+		}
+		if meta.ErrorCode == "" {
+			meta.ErrorCode = code
+		}
+		outcome.AnswerSummary = fallbackAnswerSummary(payload)
+		markAnswerSummaryDegrade(outcome, code)
+		return
+	}
+	observation, err := parseTurnObservation(resp.Content)
+	if err != nil || strings.TrimSpace(observation.AnswerSummary) == "" {
+		s.writeHintTaskRun(ctx, reservation, resolution, sharederrors.CodeAiOutputInvalid)
+		outcome.AnswerSummary = fallbackAnswerSummary(payload)
+		markAnswerSummaryDegrade(outcome, sharederrors.CodeAiOutputInvalid)
+		return
+	}
+	outcome.AnswerSummary = strings.TrimSpace(observation.AnswerSummary)
+}
+
 func hintPayload(resolution registry.PromptResolution, reservation SessionEventReservation, eventPayload map[string]any) aiclient.CompletePayload {
 	userContent := renderHintTemplate(resolution.UserMessageTemplate, reservation, eventPayload)
 	if userContent == "" {
@@ -132,18 +183,48 @@ func firstPayloadString(payload map[string]any, keys ...string) string {
 }
 
 func parseHint(content string) (string, error) {
+	observation, err := parseTurnObservation(content)
+	if err != nil {
+		return "", err
+	}
+	if observation.Hint == "" {
+		return "", fmt.Errorf("parse hint response: hint is empty")
+	}
+	return observation.Hint, nil
+}
+
+func parseTurnObservation(content string) (turnObservation, error) {
 	var decoded hintAIResponse
 	if err := json.Unmarshal([]byte(content), &decoded); err != nil {
-		return "", fmt.Errorf("parse hint response: %w", err)
+		return turnObservation{}, fmt.Errorf("parse turn observation response: %w", err)
 	}
 	hint := strings.TrimSpace(decoded.Hint)
 	if hint == "" {
 		hint = strings.TrimSpace(decoded.Cue)
 	}
-	if hint == "" {
-		return "", fmt.Errorf("parse hint response: hint is empty")
+	summary := strings.TrimSpace(decoded.AnswerSummary)
+	if summary == "" {
+		summary = strings.TrimSpace(decoded.AnswerSummarySnake)
 	}
-	return hint, nil
+	return turnObservation{Hint: hint, AnswerSummary: summary}, nil
+}
+
+func fallbackAnswerSummary(payload map[string]any) string {
+	answerLength := len([]rune(strings.TrimSpace(payloadString(payload, "answerText"))))
+	if answerLength == 0 {
+		return ""
+	}
+	return fmt.Sprintf("Candidate submitted an answer (%d characters); AI-generated answer summary was unavailable.", answerLength)
+}
+
+func markAnswerSummaryDegrade(outcome *SessionEventOutcome, code string) {
+	if outcome == nil {
+		return
+	}
+	if outcome.AuditMetadata == nil {
+		outcome.AuditMetadata = map[string]any{}
+	}
+	outcome.AuditMetadata["answer_summary_degrade_reason"] = code
 }
 
 func (s *Service) degradeHint(ctx context.Context, reservation SessionEventReservation, outcome *SessionEventOutcome, code string, resolution registry.PromptResolution) {

@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +14,7 @@ import (
 func TestF3ReportGenerateAndAssessmentPreflight(t *testing.T) {
 	prompts, rubrics := repoConfigRoots(t)
 	repoRoot := filepath.Dir(filepath.Dir(prompts))
-	assertFileContains(t, filepath.Join(repoRoot, "docs", "spec", "prompt-rubric-registry", "spec.md"), "Prompt Rubric Registry Spec", "> **版本**: 2.9")
+	assertFileContains(t, filepath.Join(repoRoot, "docs", "spec", "prompt-rubric-registry", "spec.md"), "Prompt Rubric Registry Spec", "> **版本**: 2.11")
 	assertCompletedDocHeader(t, filepath.Join(repoRoot, "docs", "spec", "prompt-rubric-registry", "plans", "001-baseline", "plan.md"))
 	assertCompletedDocHeader(t, filepath.Join(repoRoot, "docs", "spec", "prompt-rubric-registry", "plans", "001-baseline", "checklist.md"))
 	assertWorkJournalContains(t, filepath.Join(repoRoot, "docs", "work-journal"), "docs(prompt-rubric-registry): close 001-baseline lifecycle and record ac self-check")
@@ -52,6 +53,9 @@ func TestF3ReportGenerateAndAssessmentPreflight(t *testing.T) {
 			}
 			assertReportPromptSafeInputContract(t, res.UserMessageTemplate)
 			assertReportPromptOutputContract(t, string(tc.featureKey), res.UserMessageTemplate)
+			if tc.featureKey == featurekeys.ReportQuestionAssessment {
+				assertQuestionAssessmentReviewStatusEnum(t, res.OutputSchema)
+			}
 
 			rubric, err := client.GetRubric(string(tc.featureKey), "v0.1.0", "multi")
 			if err != nil {
@@ -88,6 +92,9 @@ func assertReportPromptOutputContract(t *testing.T, featureKey string, prompt st
 			"gaps",
 			"recommended_framework",
 			"review_status",
+			"open",
+			"queued_for_retry",
+			"resolved",
 		}
 	default:
 		t.Fatalf("unexpected report feature key %q", featureKey)
@@ -95,6 +102,34 @@ func assertReportPromptOutputContract(t *testing.T, featureKey string, prompt st
 	for _, want := range required {
 		if !strings.Contains(lower, want) {
 			t.Fatalf("%s prompt missing required output key %q: %s", featureKey, want, prompt)
+		}
+	}
+	if featureKey == string(featurekeys.ReportQuestionAssessment) && strings.Contains(lower, `"review_status": "ready"`) {
+		t.Fatalf("%s prompt must not use non-B1 review_status example %q: %s", featureKey, "ready", prompt)
+	}
+}
+
+func assertQuestionAssessmentReviewStatusEnum(t *testing.T, raw *json.RawMessage) {
+	t.Helper()
+	if raw == nil {
+		t.Fatal("report.question_assessment schema must be populated")
+	}
+	var schema struct {
+		Properties map[string]struct {
+			Enum []string `json:"enum"`
+		} `json:"properties"`
+	}
+	if err := json.Unmarshal(*raw, &schema); err != nil {
+		t.Fatalf("unmarshal report.question_assessment schema: %v", err)
+	}
+	got := schema.Properties["review_status"].Enum
+	want := []string{"open", "queued_for_retry", "resolved"}
+	if len(got) != len(want) {
+		t.Fatalf("review_status enum = %#v, want %#v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("review_status enum = %#v, want %#v", got, want)
 		}
 	}
 }

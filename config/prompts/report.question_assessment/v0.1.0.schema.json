@@ -50,7 +50,12 @@
     },
     "review_status": {
       "type": "string",
-      "description": "Question review status."
+      "description": "Question review status.",
+      "enum": [
+        "open",
+        "queued_for_retry",
+        "resolved"
+      ]
     }
   }
 }

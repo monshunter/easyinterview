@@ -91,11 +91,12 @@ func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, 
 	}
 
 	req := chatCompletionsRequest{
-		Model:      profile.Default.Model,
-		Messages:   convertMessages(payload.Messages),
-		Stream:     false,
-		Tools:      convertTools(payload.Tools),
-		ToolChoice: convertToolChoice(payload.ToolChoice),
+		Model:          profile.Default.Model,
+		Messages:       convertMessages(payload.Messages),
+		Stream:         false,
+		Tools:          convertTools(payload.Tools),
+		ToolChoice:     convertToolChoice(payload.ToolChoice),
+		ResponseFormat: responseFormatForPayload(payload),
 	}
 	if profile.MaxTokens > 0 {
 		req.MaxTokens = profile.MaxTokens
@@ -191,11 +192,12 @@ func (a *Adapter) Stream(ctx context.Context, profile *aiclient.ModelProfile, pa
 		return nil, errors.New("openai_compatible: profile is nil")
 	}
 	req := chatCompletionsRequest{
-		Model:      profile.Default.Model,
-		Messages:   convertMessages(payload.Messages),
-		Stream:     true,
-		Tools:      convertTools(payload.Tools),
-		ToolChoice: convertToolChoice(payload.ToolChoice),
+		Model:          profile.Default.Model,
+		Messages:       convertMessages(payload.Messages),
+		Stream:         true,
+		Tools:          convertTools(payload.Tools),
+		ToolChoice:     convertToolChoice(payload.ToolChoice),
+		ResponseFormat: responseFormatForPayload(payload),
 	}
 	if profile.MaxTokens > 0 {
 		req.MaxTokens = profile.MaxTokens
@@ -583,6 +585,13 @@ func convertToolChoice(choice *aiclient.ToolChoice) any {
 	default:
 		return nil
 	}
+}
+
+func responseFormatForPayload(payload aiclient.CompletePayload) any {
+	if len(payload.Metadata.OutputSchema) == 0 {
+		return nil
+	}
+	return map[string]string{"type": "json_object"}
 }
 
 func convertToolCalls(in []wireToolCall) []aiclient.ToolCall {

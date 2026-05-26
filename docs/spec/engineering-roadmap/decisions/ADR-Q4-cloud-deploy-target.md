@@ -1,8 +1,8 @@
 # ADR-Q4 · 部署与测试目标
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: accepted
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
 ## 1 背景
 
@@ -10,7 +10,7 @@
 
 2026-05-22 重新对齐后，仓库当前事实是：
 
-- A2 `local-dev-stack` 只需要 Docker Compose 管理 Postgres / Redis / MinIO 外部依赖。
+- A2 `local-dev-stack` 只需要 Docker Compose 管理 Postgres / Redis / MinIO / Mailpit 外部依赖；Mailpit 只承接本地 passwordless magic-link 收信，不表示应用进程进入 compose。
 - backend / frontend 当前可通过宿主机 dev command 直接运行并连接这些依赖；把它们强制打包进镜像或 Kind 集群会增加本地反馈成本。
 - `test/scenarios/` 当前 Ready 场景主要通过 repo-tracked Go / Vitest / Playwright / browser runner 验证行为契约，不需要部署级 Kind / K8s 环境。
 - 当前单人阶段 A5 只保留本地质量门禁，不构建远端 CI pipeline。
@@ -79,7 +79,7 @@
 
 落地约束：
 
-1. **本地依赖**：`make dev-up` 默认只启动 Postgres / Redis / MinIO 以及已显式接入的 optional app service；不得因为组件具备本地运行入口就强制放进 compose。
+1. **本地依赖**：`make dev-up` 默认只启动 Postgres / Redis / MinIO / Mailpit 以及已显式接入的 optional app service；不得因为组件具备本地运行入口就强制放进 compose。
 2. **应用运行**：backend / frontend 默认通过宿主机 dev command 管理，连接 `deploy/dev-stack/.env.example` 暴露的本地依赖端口与连接串。
 3. **场景验证**：`test/scenarios/` 维护 BDD/E2E 场景契约和脚本证据，默认执行 Go / Vitest / Playwright / browser smoke 等 repo-tracked runner；不得默认要求 Kind / K8s / Helm。
 4. **AI provider（关联 Q-6）**：非测试本地 app run、未来 staging 和 production 必须通过 provider registry / model profile / provider-specific secret env ref 注入真实 provider；`APP_ENV=test` 的 stub/fixture 只能用于单元测试、离线契约测试或显式 mock 场景。
@@ -121,6 +121,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-26 | 1.8 | 对齐 local-dev-stack Mailpit revision：默认 Docker Compose 外部依赖增加 Mailpit 本地邮箱 sink，仍保持宿主机 backend/frontend app runtime 与本地 scenario runner 口径。 |
 | 2026-05-22 | 1.7 | 按方案 A 重定部署与测试目标：P0 默认 Docker Compose 外部依赖 + 宿主机 app runtime + 本地 scenario runner；Kind / K8s / Helm 不再作为默认测试或部署前提。 |
 | 2026-05-06 | 1.6 | 对齐 backend-runtime-topology：P0 部署拓扑从 web/api/worker 三应用单元改为 web/backend 两应用单元，后台任务默认由 backend internal runner 承接。 |
 | 2026-05-05 | 1.5 | 对齐 A3 003 Provider Registry：部署注入从单一 endpoint/key 口径更新为 registry/profile/provider-specific secret 组合，`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 仅作为默认 provider ref 可引用 env。 |

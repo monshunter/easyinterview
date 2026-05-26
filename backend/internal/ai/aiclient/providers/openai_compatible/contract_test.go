@@ -346,6 +346,30 @@ func TestComplete_MapsToolsAndParsesToolCalls(t *testing.T) {
 	}
 }
 
+func TestComplete_RequestsJSONObjectWhenOutputSchemaIsPresent(t *testing.T) {
+	srv := mockserver.New()
+	defer srv.Close()
+	a := newAdapter(t, srv)
+
+	payload := samplePayload()
+	payload.Metadata.OutputSchema = json.RawMessage(`{"type":"object","required":["basics"],"properties":{"basics":{"type":"object"}}}`)
+
+	if _, _, err := a.Complete(context.Background(), chatProfile(5000), payload); err != nil {
+		t.Fatalf("Complete: %v", err)
+	}
+	var wire map[string]any
+	if err := json.Unmarshal(srv.Captured()[0].Body, &wire); err != nil {
+		t.Fatalf("unmarshal captured request: %v", err)
+	}
+	responseFormat, ok := wire["response_format"].(map[string]any)
+	if !ok {
+		t.Fatalf("response_format missing from request: %+v", wire)
+	}
+	if responseFormat["type"] != "json_object" {
+		t.Fatalf("response_format.type = %v", responseFormat["type"])
+	}
+}
+
 func TestComplete_TimeoutMapsToAIProviderTimeout(t *testing.T) {
 	srv := mockserver.New()
 	srv.SetChatBehavior(mockserver.Behavior{SleepBeforeRespond: 200 * time.Millisecond})

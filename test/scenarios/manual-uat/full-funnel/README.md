@@ -1,0 +1,169 @@
+# Full Funnel Real Provider Manual UAT Runbook
+
+> **Status**: active
+> **更新日期**: 2026-05-26
+> **Owner plan**: [`e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel`](../../../docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/plan.md)
+> **BDD scenario**: `E2E.P0.100`
+
+本 runbook 用于人工验收真实 provider 全漏斗：Home -> 导入 JD -> Parse -> Workspace -> Practice -> Generating -> Report -> 进入下一轮。
+
+## 1 当前执行状态
+
+本目录已经有 owner plan，且本地邮箱入口已由 `deploy/dev-stack` 的 Mailpit 承接。因此：
+
+- 已可用：真实联调目标、环境变量模板、Mailpit 本地 magic-link 登录、输入材料、人工 checklist 和无 mock/stub 边界。
+- 未完成：一次带真实 provider 凭证的人工 UAT 执行与脱敏证据记录。
+- 在真实 provider UAT 证据产生前，不得把本 runbook 标记为可闭环通过；人工可先审查材料与环境准备。
+
+## 2 严格边界
+
+真实 provider UAT 必须同时满足：
+
+- backend: `APP_ENV=dev` 的 `go run ./backend/cmd/api` 真进程。
+- frontend: `VITE_EI_API_MODE=real` 且 `VITE_EI_API_BASE_URL` 指向 backend。
+- storage: `make dev-up` 提供的真实 Postgres / Redis / MinIO / Mailpit。
+- AI: `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 指向真实 OpenAI-compatible provider，当前默认 DeepSeek。
+- account: 使用 synthetic 邮箱 `manual-uat-full-funnel@example.test` 触发真实 passwordless flow，并从 Mailpit `http://127.0.0.1:8025` 读取 magic link。
+
+`test/scenarios` 目录只承接 runbook、材料、shell/Python 辅助和检查脚本；不得新增 `backend/cmd` / Go helper，也不得通过直接写 `sessions` 表绕过被测 auth flow。
+
+以下都不是本 runbook 的完成证据：
+
+- `APP_ENV=test`
+- `EI_E2E_P0_099_SERVER=1`
+- deterministic / fixture AI client
+- frontend fixture-backed mock transport
+- `Prefer: example=<scenario>`
+- 只运行 `E2E.P0.098` / `E2E.P0.099`
+
+## 3 前置工具
+
+| 工具 | 用途 |
+|------|------|
+| Docker + Docker Compose v2 | 启动 Postgres / Redis / MinIO / Mailpit |
+| Go | 启动 backend |
+| Python 3 | 仅用于可选材料检查或后续 Python 辅助脚本；当前登录不需要直接 DB helper |
+| Node + pnpm | 构建/启动 frontend |
+| Chrome 或同级现代浏览器 | 人工走查和打开 Mailpit magic link |
+| 真实 AI provider key | `AI_PROVIDER_API_KEY`，不得提交 |
+
+## 4 环境变量
+
+复制模板并只在本地填写：
+
+```bash
+cp test/scenarios/manual-uat/full-funnel/env-template/dev-real.env.example .test-output/manual-uat/full-funnel/dev-real.env
+$EDITOR .test-output/manual-uat/full-funnel/dev-real.env
+```
+
+必须填写的真实值：
+
+- `SESSION_COOKIE_SECRET`
+- `AUTH_CHALLENGE_TOKEN_PEPPER`
+- `AI_PROVIDER_API_KEY`
+
+本地邮箱默认值已在模板中给出：`EMAIL_PROVIDER=mailpit`、`EMAIL_SMTP_HOST=127.0.0.1`、`EMAIL_SMTP_PORT=1025`、`EMAIL_VERIFY_BASE_URL=http://127.0.0.1:8080/api/v1/auth/email/verify`。不要填写真实个人邮箱账号或外部 SMTP 凭证。
+
+模板中的 `AI_PROVIDER_BASE_URL` 默认是 `https://api.deepseek.com`；如使用其他 OpenAI-compatible endpoint，必须同步确认 `config/ai-providers.yaml` / `config/ai-profiles.yaml` 支持。
+
+## 5 启动真实联调环境
+
+### 5.1 外部依赖与 migration
+
+```bash
+make dev-up
+make dev-doctor
+
+export DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable'
+make migrate-up
+```
+
+### 5.2 后端真实进程
+
+```bash
+set -a
+. .test-output/manual-uat/full-funnel/dev-real.env
+set +a
+
+go run ./backend/cmd/api
+```
+
+期望：
+
+- 后端监听 `:8080`。
+- 缺 `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` 时 fail-fast。
+- 缺真实 `AI_PROVIDER_API_KEY` 时 AIClient-enabled runtime fail-fast 或后续 AI 调用失败；不得自动降级到 stub。
+
+### 5.3 Mailpit magic-link 登录
+
+确认 Mailpit 已随 `make dev-up` 启动：
+
+```bash
+open http://127.0.0.1:8025
+```
+
+在前端登录页或任一操作级 auth gate 中输入 `manual-uat-full-funnel@example.test` 并提交。随后在 Mailpit Web UI 打开最新邮件，点击邮件中的 `http://127.0.0.1:8080/api/v1/auth/email/verify?token=...` magic link。浏览器收到 `ei_session` 后回到前端并刷新，TopBar 应显示已登录用户。
+
+如果不点击链接，也可以从邮件中复制 `token` query 值，到前端 `/auth/verify?email=manual-uat-full-funnel@example.test` 的验证输入框中粘贴并提交。不要把 token 写入 tracked 文件或日志。
+
+### 5.4 前端真实模式
+
+推荐 build + preview：
+
+```bash
+cd frontend
+VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1 pnpm build
+VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1 \
+  pnpm exec vite preview --host 127.0.0.1 --port 4174
+```
+
+也可在开发热更新时使用：
+
+```bash
+cd frontend
+VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1 \
+  pnpm --filter @easyinterview/frontend dev
+```
+
+## 6 登录态确认
+
+1. 打开 `http://127.0.0.1:4174`。
+2. 触发登录，输入 `manual-uat-full-funnel@example.test`。
+3. 打开 Mailpit `http://127.0.0.1:8025`，从最新邮件完成 magic-link 验证。
+4. 回到前端刷新页面，TopBar 应显示已登录用户 `manual-uat-full-funnel@example.test`。
+
+## 7 走查流程
+
+材料见 [`materials/`](./materials/)：
+
+1. Home：粘贴 `jd-backend-engineer.<lang>.md`。
+2. Parse：等待真实 `target_import` runner 与真实 AI parse 完成，确认结构化结果。
+3. Workspace：确认绑定 ready resume / target job，点击立即面试。
+4. Practice：使用 `answer-sample-backend-engineer.<lang>.md` 作答，推进至少一轮 follow-up。
+5. Complete：完成 session，进入 Generating。
+6. Report：等待真实 `report_generate` runner 和真实 AI report 完成。
+7. Next round：点击进入下一轮，确认派生 practice plan / session。
+
+## 8 真实 AI 调用证据
+
+记录到 `.test-output/manual-uat/full-funnel/evidence.md`，只写脱敏摘要：
+
+- provider ref（例如 `deepseek`）
+- model profile（例如 `target.import.default`、`practice.first_question.default`、`report.generate.default`）
+- model id
+- latency / token count（如可见）
+- `ai_task_runs` 行数或 backend log 中的脱敏 task-run marker
+
+禁止记录：
+
+- `AI_PROVIDER_API_KEY`
+- prompt 明文
+- provider response 明文
+- JD 原文、答案全文、报告 prose
+- session cookie value
+
+## 9 清理
+
+默认 cleanup 走真实产品隐私删除路径，只作用于当前 UAT 邮箱对应的用户，不清空整个 dev DB。命令见 [`materials/account.md`](./materials/account.md#cleanup)。
+
+如果用户要求“保留现场”，保留 dev DB 行和 `.test-output/manual-uat/full-funnel/` 脱敏证据；退出浏览器登录态并不要导出 session cookie。Mailpit 中的邮件只属于本地 dev 环境，可通过 Mailpit UI 清空。

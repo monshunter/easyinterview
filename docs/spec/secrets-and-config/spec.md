@@ -1,8 +1,8 @@
 # Secrets and Config Spec
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
 ## 1 背景与目标
 
@@ -62,11 +62,11 @@
 | D-6 | secret 红线 | `*.secret.yaml` 默认 `.gitignore`；pre-commit hook 拦截 `AKIA[0-9A-Z]{16}` / `sk-[A-Za-z0-9]{20,}` / `xox[baprs]-[A-Za-z0-9-]+`；本地 gitleaks 复扫；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | 阻断仓库内敏感凭证泄漏 |
 | D-7 | 配置热加载 | feature flag 支持热加载（≤ 30s）；其它 config 字段在进程启动时读取，运行时不变；如需热加载，必须递增 spec | 避免业务围绕「config 变了吗」写复杂代码 |
 | D-8 | Session cookie 字面量 | `ei_session`，由 [ADR-Q1 §3](../engineering-roadmap/decisions/ADR-Q1-auth.md#3-决策) 锁定；P0 不提供 env/config override | A4 只管理 `SESSION_COOKIE_SECRET` 等 secret，不允许环境差异改 cookie name 导致 B2 OpenAPI / C1 middleware / D1 fetch 口径分裂 |
-| D-9 | 后台任务队列权重 | `async.queueWeights` 配置路径固定在 `config/config.yaml` / `config/{env}.yaml`，默认 `critical: 6` / `default: 3` / `low: 1`；P0 不额外增加 env key，backend-async-runner kernel 通过 typed config 读取 | ADR-Q2 的 queue priority 可由配置驱动，同时保持 env 字典稳定为 24 项 |
-| D-14 | Runner kernel 时序（additive） | additive 新增 config-only 节点 `async.leaseTimeoutSeconds`(300) / `async.shutdownGraceSeconds`(10) / `async.reaperIntervalSeconds`(60) / `async.scanIntervalSeconds`(5)；不新增 env key（env 字典保持 24 项）；缺失或非正数 fail-fast，不得静默回退为代码常量 | 由 active [`backend-async-runner/001`](../backend-async-runner/spec.md) D-5 / D-8 / D-14 消费，作为 kernel lease loop / reaper / graceful shutdown 时序源 |
+| D-9 | 后台任务队列权重 | `async.queueWeights` 配置路径固定在 `config/config.yaml` / `config/{env}.yaml`，默认 `critical: 6` / `default: 3` / `low: 1`；P0 不因队列权重额外增加 env key，backend-async-runner kernel 通过 typed config 读取 | ADR-Q2 的 queue priority 可由配置驱动，同时避免把 runner tuning 扩成环境变量面 |
+| D-14 | Runner kernel 时序（additive） | additive 新增 config-only 节点 `async.leaseTimeoutSeconds`(300) / `async.shutdownGraceSeconds`(10) / `async.reaperIntervalSeconds`(60) / `async.scanIntervalSeconds`(5)；不因 runner 时序新增 env key；缺失或非正数 fail-fast，不得静默回退为代码常量 | 由 active [`backend-async-runner/001`](../backend-async-runner/spec.md) D-5 / D-8 / D-14 消费，作为 kernel lease loop / reaper / graceful shutdown 时序源 |
 | D-10 | 上传基础配置 | `objectStorage.provider=minio|filesystem`、`upload.presignTTLSeconds` 默认 600、`upload.maxBytes.resume=10485760`、`upload.maxBytes.targetJobAttachment=10485760`、`upload.maxBytes.privacyExport=5242880` 均为 config-only path；P0 不新增 `UPLOAD_*` / `OBJECT_STORE_*` env key | backend-upload 通过 typed config 注入 provider / TTL / per-purpose size limit，继续复用现有 `OBJECT_STORAGE_*` secret/env 字典 |
 
-#### 3.1.1 P0 必备 env key 字典（24 项）
+#### 3.1.1 P0 必备 env key 字典
 
 | Key | 必填 | 默认值 | 用途 | Owner subspec |
 |-----|------|--------|------|---------------|
@@ -96,7 +96,11 @@
 | `POSTHOG_SELF_HOSTED` | 条件 | `false` | staging / prod 使用 PostHog 时必须为 `true`；防止误接 PostHog Cloud | A4（F2 owner） |
 | `POSTHOG_PROJECT_API_KEY` | 条件 | `(空)` | secret | A4（F2 owner） |
 | `POSTHOG_PUBLIC_KEY` | 条件 | `(空，dev 占位)` | 暴露给前端的 public key；仅前端 analytics 初始化需要 | A4（F2 owner） |
-| `EMAIL_PROVIDER` | prod 必填 | `(空)` | passwordless magic link 发件方 | A4（C1 owner，ADR-Q1） |
+| `EMAIL_PROVIDER` | prod 必填 | `mailpit`（local dev） | passwordless magic link 发件方；local dev 默认走 Mailpit，本地测试不依赖外部邮箱服务 | A4（C1 owner，ADR-Q1） |
+| `EMAIL_SMTP_HOST` | 条件 | `127.0.0.1` | `EMAIL_PROVIDER=mailpit` 或 SMTP writer 时的 SMTP host | A4（C1 owner） |
+| `EMAIL_SMTP_PORT` | 条件 | `1025` | `EMAIL_PROVIDER=mailpit` 或 SMTP writer 时的 SMTP port | A4（C1 owner） |
+| `EMAIL_FROM_ADDRESS` | 条件 | `noreply@easyinterview.local` | magic-link 邮件 envelope/header From；不得写个人邮箱 | A4（C1 owner） |
+| `EMAIL_VERIFY_BASE_URL` | 条件 | `http://127.0.0.1:8080/api/v1/auth/email/verify` | magic-link 邮件中的 verify URL base；local dev 指向宿主机 backend | A4（C1 owner） |
 | `EMAIL_PROVIDER_API_KEY` | prod 必填 | `(空)` | secret | A4（C1 owner） |
 
 #### 3.1.2 Canonical config schema 分类
@@ -118,7 +122,8 @@
 | `auth.sessionCookieSecret` | `SESSION_COOKIE_SECRET` | 是 | prod required；dev init generated | 否 | A4 + C1 |
 | `auth.sessionCookieName` | `(无 env key；ADR-Q1 固定)` | 否 | fixed literal `ei_session` | 否 | ADR-Q1 + A4 + C1 |
 | `auth.challengeTokenPepper` | `AUTH_CHALLENGE_TOKEN_PEPPER` | 是 | prod required；dev init generated | 否 | A4 + C1 |
-| `email.provider` / `email.providerApiKey` | `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY` | provider 否；apiKey 是 | prod required | 否 | A4 + C1 |
+| `email.provider` / `email.providerApiKey` | `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY` | provider 否；apiKey 是 | prod required；dev Mailpit 可不需要 apiKey | 否 | A4 + C1 |
+| `email.smtpHost` / `email.smtpPort` / `email.fromAddress` / `email.verifyBaseURL` | `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` | 否 | required when `EMAIL_PROVIDER=mailpit` 或 SMTP writer 启用；local dev defaults point to Mailpit on `127.0.0.1:1025` and backend verify URL on `127.0.0.1:8080` | 否 | A4 + C1 + local-dev-stack |
 | `ai.providerRegistryPath` | `AI_PROVIDER_REGISTRY_PATH` | 否 | always | 否 | A4 + A3 |
 | `ai.defaultProviderBaseURL` / `ai.defaultProviderApiKey` | `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` | baseURL 否；apiKey 是 | required only when provider registry references these env names and the corresponding AIClient-enabled component starts；`APP_ENV=test` may use stub | 否 | A4 + A3 |
 | `ai.doubaoSpeechBaseURL` / `ai.doubaoSpeechApiKey` | `DOUBAO_SPEECH_BASE_URL` / `DOUBAO_SPEECH_API_KEY` | baseURL 否；apiKey 是 | required only when doubao_speech provider is selected；`APP_ENV=test` may use stub | 否 | A4 + A3 |

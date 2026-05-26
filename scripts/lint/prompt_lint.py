@@ -660,6 +660,7 @@ STRING_EXAMPLE_BY_PATH = {
 
 STRING_EXAMPLE_BY_KEY = {
     "aiAnalysis": "The answer identified the main tradeoff but needs clearer evidence and metrics.",
+    "answerSummary": "Candidate described implementation details but had not yet clarified the main tradeoff.",
     "branchDimension": "System design tradeoffs",
     "company": "Example Cloud",
     "companyTag": "Growth-stage SaaS",

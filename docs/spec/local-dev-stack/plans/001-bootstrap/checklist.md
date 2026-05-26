@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
 **关联计划**: [plan](./plan.md)
 
@@ -37,3 +37,18 @@
 - [x] 4.3 在 `deploy/dev-stack/README.md` 声明最低 docker engine（24+）与 compose plugin（v2.20+）版本；本 plan 不创建或修改 A5 远端 CI workflow，当前单人开发阶段不在 CI 拉起 dev stack
 - [x] 4.4 A2 executable gate handoff（C-8）：依次复跑 C-1 / C-2 / C-3 / C-4 / C-5 / C-6 / C-7 / C-9 八项 AC；执行证据贴入工作日志；不修改 engineering-roadmap parent checklist
 - [x] 4.5 文档收口：`deploy/dev-stack/README.md` Header 完整；plans/INDEX.md 把本 plan 切到 completed 段；`/sync-doc-index --check` 通过
+
+## Phase 5: Mailpit 本地邮件 sink revision
+
+- [x] 5.1 在 `deploy/dev-stack/docker-compose.yaml` 默认依赖中新增 `mailpit-dev`，锁定 `axllent/mailpit:v1.30.0`，暴露 8025 Web UI / 1025 SMTP，接入 dependency label 与 `/readyz` healthcheck；`DEPENDENCY_SERVICES`、端口冲突扫描、pull/logs 自动覆盖 Mailpit；验证：`docker compose config --quiet` + `make -C deploy/dev-stack -n up`
+  <!-- verified: 2026-05-26 command="docker compose -f deploy/dev-stack/docker-compose.yaml --project-directory deploy/dev-stack config --quiet && make -C deploy/dev-stack -n up" evidence="compose config valid; dry-run up targets postgres-dev redis-dev minio-dev mailpit-dev and scans MAILPIT_WEB_HOST_PORT/MAILPIT_SMTP_HOST_PORT" -->
+- [x] 5.2 扩展 `dev-doctor.sh`：Mailpit 容器状态、`GET /readyz`、可用时 SMTP host port probe 均纳入 JSON summary，默认依赖 OK 数从 3 调整为 4；验证：`bash -n deploy/dev-stack/scripts/dev-doctor.sh` + live `make dev-doctor`
+  <!-- verified: 2026-05-26 command="bash -n deploy/dev-stack/scripts/dev-doctor.sh && make dev-doctor" evidence="dev-doctor output summary ok=4 degraded=0 down=0 total=4 with mailpit-dev status OK; script remains 192 lines" -->
+- [x] 5.3 后端 auth 邮件投递接入 Mailpit：`EMAIL_PROVIDER=mailpit` 时 `cmd/api` 注册 SMTP `DeliveryWriter`，从 `auth_challenges` 查收件人、从 transient delivery secret store 取 token，`email_dispatch` payload 仍保持 redaction；验证：focused auth / cmd/api tests
+  <!-- verified: 2026-05-26 command="go test ./backend/internal/auth -run 'TestSMTPDeliveryWriter|TestSQLChallengeEmailLookup|TestEmailDispatchHandler_PayloadRedaction' -count=1 && go test ./backend/cmd/api -run 'TestBuildAuthService(UsesMailpitDeliveryWriterWhenConfigured|RejectsEmptyAuthSecrets)' -count=1 && go build ./backend/cmd/api" evidence="auth SMTP writer, SQL challenge lookup, email_dispatch redaction, cmd/api Mailpit DI, and backend entry build all pass" -->
+- [x] 5.4 A4 env/config 字典补齐 `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL`，root `.env.example` 与 dev-stack env 模板同步；验证：focused config test + `make lint-config`
+  <!-- verified: 2026-05-26 command="go test ./backend/internal/platform/config -run TestDefaultEmailDictionaryIncludesMailpitSMTPBindings -count=1 && make lint-config" evidence="A4 default env bindings include Mailpit SMTP keys; lint-config reports 32 env keys in .env.example and spec with no leaks" -->
+- [x] 5.5 manual UAT 账号入口改为 synthetic 邮箱 + Mailpit magic link，删除直接 session bootstrap helper，保留 no-backend-cmd 与 test/scenarios no-Go negative gate；验证：`test ! -d backend/cmd/devsession && test ! -d backend/internal/devsession && test -z "$(find test/scenarios -name '*.go' -type f -print -quit)"`
+  <!-- verified: 2026-05-26 command="test ! -d backend/cmd/devsession && test ! -d backend/internal/devsession && test -z \"$(find test/scenarios -name '*.go' -type f -print -quit)\" && test ! -e test/scenarios/manual-uat/full-funnel/scripts/bootstrap_account.py" evidence="no devsession backend cmd/internal package, no Go files under test/scenarios, and no direct-session bootstrap_account.py helper" -->
+- [x] 5.6 Mailpit live gate：`make dev-up && make dev-doctor` 输出 Postgres / Redis / MinIO / Mailpit 四个 dependency OK；若无法拉取镜像或本机端口占用，记录 blocker 与复现输出
+  <!-- verified: 2026-05-26 command="make dev-up; make dev-doctor" evidence="first docker pull attempt hit registry EOF; retry succeeded. make dev-up completed and standalone make dev-doctor returned postgres-dev/redis-dev/minio-dev/mailpit-dev all OK with summary ok=4 degraded=0 down=0 total=4" -->

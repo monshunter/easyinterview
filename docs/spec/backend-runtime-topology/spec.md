@@ -1,8 +1,8 @@
 # Backend Runtime Topology Spec
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-05-07
+> **更新日期**: 2026-05-26
 
 ## 1 背景与目标
 
@@ -57,7 +57,7 @@
 | Events / jobs | B3 `event-and-outbox-contract` | producer enum、event schemas、baseline、Go/TS generated artifacts |
 | Backend auth | C1 `backend-auth` | `email_dispatch` 经 `async_jobs` 由 backend-async-runner kernel 处理，不等待独立 worker |
 | Observability | F1 `observability-stack` | metric/log/trace 命名与红线；消费端只在生产或可选 profile |
-| Local dev stack | A2 `local-dev-stack` | 默认依赖仍为 Postgres / Redis / MinIO，不新增 worker 或观测消费端 |
+| Local dev stack | A2 `local-dev-stack` | 默认依赖仍限于 Postgres / Redis / MinIO / Mailpit，不新增 worker 或观测消费端 |
 
 ## 6 验收标准
 

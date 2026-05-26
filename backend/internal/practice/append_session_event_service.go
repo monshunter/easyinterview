@@ -183,6 +183,9 @@ func (s *Service) AppendSessionEvent(ctx context.Context, in AppendSessionEventR
 		}
 		return AppendSessionEventResult{}, outcome.Error
 	}
+	if kind == sessionEventKindAnswerSubmitted {
+		s.applyAnswerObservationAI(ctx, reservation, payload, &outcome)
+	}
 	if outcome.AssistantAction.Type == assistantActionShowHint && outcome.AssistantAction.RequiresAI {
 		s.applyHintAI(ctx, reservation, payload, &outcome)
 	} else if outcome.AssistantAction.RequiresAI {

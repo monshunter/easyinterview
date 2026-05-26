@@ -165,7 +165,7 @@ Example complete JSON output:
 
 Do not return more than one question.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('84078349-c25c-5fd6-84a4-09825145e468', 'practice.turn.lightweight_observe', 'v0.1.0', 'multi', 'da6fa3ca3454370baa9310845307b64676e04530f11a43724e22ff0bcaadfd5a', $body$You are a real-time interview observer. The candidate is partway through an
+  ('84078349-c25c-5fd6-84a4-09825145e468', 'practice.turn.lightweight_observe', 'v0.1.0', 'multi', '58e27c96325cfaecfa9a112864e4c8a34a799a2166e1b1df2e8979770c032059', $body$You are a real-time interview observer. The candidate is partway through an
 answer; produce one short, neutral cue that the UI can surface without
 interrupting the flow. Be concise (under 24 words) and never lead the
 candidate to a specific answer. Respond in `{{language}}` (default English).
@@ -174,6 +174,10 @@ Question: {{question}}
 Partial answer: {{partial_answer}}
 Elapsed seconds: {{elapsed_seconds}}
 
+Also produce `answerSummary`: one concise third-person summary of the
+candidate's answer for downstream report assessment. Summarize concepts and
+evidence; do not quote the answer verbatim.
+
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
 Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
@@ -181,6 +185,7 @@ Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 Output shape:
 - `$` (required, object): Lightweight real-time interview observation cue.
 - `$.cue` (required, string): Short neutral cue that may be surfaced to the candidate.
+- `$.answerSummary` (optional, string): Optional concise third-person answer summary for report assessment.
 - `$.severity` (optional, string enum(info, nudge, alert)): Optional cue urgency for downstream evaluation or UI treatment.
 - `$.dimensionHint` (optional, string): Optional rubric dimension hinted by the cue.
 
@@ -188,6 +193,7 @@ Example complete JSON output:
 ```json
 {
   "cue": "Clarify the tradeoff before moving to implementation details.",
+  "answerSummary": "Candidate described implementation details but had not yet clarified the main tradeoff.",
   "severity": "nudge",
   "dimensionHint": "System design"
 }
@@ -276,7 +282,7 @@ Example complete JSON output:
 
 Use summarized observations only; do not request raw interview text or direct quotes.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('4ad44434-3f9c-55d7-bea1-eacb554e10f6', 'report.question_assessment', 'v0.1.0', 'multi', '3da4e5d7ac4ebdab77e6ef7f6ea7f22a13308fd038b6aaaed94ea3e66c19230e', $body$You are an interview rubric judge. Score one answered turn from sanitized
+  ('4ad44434-3f9c-55d7-bea1-eacb554e10f6', 'report.question_assessment', 'v0.1.0', 'multi', 'd912a229470c84e7b8fcd46edec5b18c156913914e00632ffe8079c9ad5fb3e4', $body$You are an interview rubric judge. Score one answered turn from sanitized
 session metadata and turn summaries; do not invent dimensions outside the
 rubric. Respond in the language indicated by `{{language}}` (default English).
 
@@ -300,7 +306,7 @@ Output shape:
 - `$.gaps` (required, array): Gap observations for this answer.
 - `$.gaps[]` (required, string): One gap.
 - `$.recommended_framework` (required, string): Suggested answer framework for retry.
-- `$.review_status` (required, string): Question review status.
+- `$.review_status` (required, string enum(open, queued_for_retry, resolved)): Question review status.
 
 Example complete JSON output:
 ```json
@@ -322,14 +328,17 @@ Example complete JSON output:
     "Needs deeper rollback and failure-mode analysis."
   ],
   "recommended_framework": "Use STAR with explicit constraints, tradeoffs, and measured outcome.",
-  "review_status": "ready"
+  "review_status": "open"
 }
 ```
 <!-- output-schema-contract:end -->
 
 Map `score_level` weak or developing to `status` `needs_work`, proficient to
-`meets_bar`, and strong to `strong`. Use summarized observations only; do not
-request raw interview text or direct quotes.
+`meets_bar`, and strong to `strong`. Set `review_status` to `open` unless the
+turn clearly needs another retry, in which case use `queued_for_retry`; use
+`resolved` only when the answer already closes a prior retry gap. Use
+summarized observations only; do not request raw interview text or direct
+quotes.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
   ('410f16c3-3ea9-5327-a87a-027f039368b3', 'resume.parse', 'v0.1.0', 'multi', '8ee64c7dc89e0b8907c116766efeda4a20e3756fc165d92590cbe32396b362ed', $body$You are a resume parser. Extract structured experience from the supplied
 resume text. Respond in the language indicated by `{{language}}` (default

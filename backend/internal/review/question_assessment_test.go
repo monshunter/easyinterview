@@ -2,7 +2,7 @@ package review
 
 import (
 	"context"
-	"errors"
+	"strings"
 	"testing"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
@@ -22,7 +22,7 @@ func TestAssessQuestionsForAllTurns(t *testing.T) {
 		AI: ai,
 	})
 
-	got, err := svc.assessQuestionsForAllTurns(context.Background(), sampleSession(), samplePlan(), sampleTurns())
+	got, err := svc.assessQuestionsForAllTurns(context.Background(), sampleSession(), samplePlan(), sampleTurns(), sampleRubric())
 	if err != nil {
 		t.Fatalf("assessQuestionsForAllTurns: %v", err)
 	}
@@ -48,6 +48,9 @@ func TestAssessQuestionsForAllTurns(t *testing.T) {
 		if len(payload.Metadata.OutputSchema) == 0 {
 			t.Fatalf("metadata OutputSchema must be populated")
 		}
+		if prompt := joinedMessages(payload.Messages); !strings.Contains(prompt, `"name":"depth"`) {
+			t.Fatalf("assessment prompt must include rubric dimensions, got %s", prompt)
+		}
 	}
 }
 
@@ -64,12 +67,40 @@ func TestAssessQuestionsMapsScoreLevelToWireStatus(t *testing.T) {
 		ID:             "turn-1",
 		TurnIndex:      1,
 		QuestionIntent: "architecture",
-	}})
+	}}, sampleRubric())
 	if err != nil {
 		t.Fatalf("assessQuestionsForAllTurns: %v", err)
 	}
 	if status := got[0].DimensionResults["depth"].Status; status != sharedtypes.DimensionStatusMeetsBar {
 		t.Fatalf("score_level proficient mapped to %q, want meets_bar", status)
+	}
+}
+
+func TestAssessQuestionsNormalizesRealProviderAssessmentDrift(t *testing.T) {
+	ai := &fakeReviewAI{responses: []string{`{"dimension_results":{"depth":{"score_level":"proficient","confidence":0.75}},"confidence":0.8,"strengths":["answer_text label was present"],"gaps":[],"recommended_framework":"STAR","review_status":"ready"}`}}
+	svc := NewService(ServiceOptions{
+		Registry: fakePromptResolver{resolutions: map[string]registry.PromptResolution{
+			reportQuestionAssessmentFeatureKey: reportResolution(reportQuestionAssessmentFeatureKey, "report.assessment.default", "Session metadata: {{session_metadata}}\nTurn summaries: {{turn_summaries}}\nQuestion context: {{question_context}}\nAnswer summary: {{answer_summary}}\nRubric: {{rubric}}\nReturn strict JSON."),
+		}},
+		AI: ai,
+	})
+
+	got, err := svc.assessQuestionsForAllTurns(context.Background(), sampleSession(), samplePlan(), []TurnSnapshot{{
+		ID:             "turn-1",
+		TurnIndex:      1,
+		QuestionIntent: "architecture",
+	}}, sampleRubric())
+	if err != nil {
+		t.Fatalf("assessQuestionsForAllTurns: %v", err)
+	}
+	if got[0].OverallStatus != sharedtypes.DimensionStatusMeetsBar {
+		t.Fatalf("overall_status = %q, want meets_bar", got[0].OverallStatus)
+	}
+	if got[0].ReviewStatus != sharedtypes.QuestionReviewStatusOpen {
+		t.Fatalf("review_status = %q, want open", got[0].ReviewStatus)
+	}
+	if len(got[0].Strengths) != 1 || got[0].Strengths[0] != "answer summary label was present" {
+		t.Fatalf("strengths = %#v", got[0].Strengths)
 	}
 }
 
@@ -88,7 +119,7 @@ func TestAssessQuestionsBuildsPromptWithoutLeaks(t *testing.T) {
 		QuestionIntent:  "debugging",
 		QuestionContext: "question_text appears in source",
 		AnswerSummary:   "answer_text and hint_text appear in source",
-	}}); err != nil {
+	}}, sampleRubric()); err != nil {
 		t.Fatalf("assessQuestionsForAllTurns: %v", err)
 	}
 	assertNoPromptLeak(t, joinedMessages(ai.payloads[0].Messages))
@@ -103,12 +134,16 @@ func TestQuestionAssessmentParsesWithoutLeaks(t *testing.T) {
 		AI: ai,
 	})
 
-	if _, err := svc.assessQuestionsForAllTurns(context.Background(), sampleSession(), samplePlan(), []TurnSnapshot{{
+	got, err := svc.assessQuestionsForAllTurns(context.Background(), sampleSession(), samplePlan(), []TurnSnapshot{{
 		ID:             "turn-1",
 		TurnIndex:      1,
 		QuestionIntent: "debugging",
-	}}); !errors.Is(err, ErrReviewAIOutputInvalid) {
-		t.Fatalf("err = %v, want ErrReviewAIOutputInvalid", err)
+	}}, sampleRubric())
+	if err != nil {
+		t.Fatalf("assessQuestionsForAllTurns: %v", err)
+	}
+	if got[0].Strengths[0] != "question detail leaked" {
+		t.Fatalf("strengths = %#v", got[0].Strengths)
 	}
 }
 

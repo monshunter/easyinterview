@@ -65,14 +65,15 @@
 
 ## 模式 5：Domain service 已实现但 runtime caller 未接入
 
-- **相关 Bug**：BUG-0083, BUG-0084, BUG-0087, BUG-0098
+- **相关 Bug**：BUG-0083, BUG-0084, BUG-0087, BUG-0098, BUG-0105, BUG-0106
 - **典型症状**：service 层已有 deletion / generator / outbox / prompt helper，单测也通过，但 `cmd/api` startup path、background runner 或 HTTP handler 没有实际调用；AI prompt contract 有字段名，真实 payload 却是 `{}` / `[]` / 空 RawMessage；error code 常量存在，但响应 envelope 与 retryable 元数据未按 generated contract 返回。
 - **检查清单**：
   1. 对每个 cross-owner domain service，从 production caller 反查一次：`main.go` / runtime builder / drainer handler / HTTP route 是否真实注入并调用该 service。
   2. 对 AI generator / search adapter，不只检查 prompt body；在 focused 或 live test 中捕获 `AIClient.Complete` payload，断言业务关键 JSON 字段非空并包含 join key（如 `jobMatchId`）。
-  3. 对 privacy delete、profile delete、domain cascade delete，必须通过 runner/handler 层测试证明 async job 调用了所有 domain deleter，而不只调用单个 service helper。
+  3. 对 privacy delete、profile delete、domain cascade delete，必须通过 runner/handler 层测试证明 async job 调用了所有 domain deleter，并反查目标身份/域数据的关键残留字段；不能只断言 request/job terminal status。
   4. 对 API error response，优先解码 generated `ApiErrorResponse`，并断言 `error.retryable` 来自 shared registry 而不是 HTTP status 推断。
   5. 对 AI output schema 的 `required` 字段，反查生产 prompt input、consumer struct optionality 与 persistence optionality；若 caller 不提供该信息且 consumer 可接受缺失，就不能把字段标成 required。
+  6. 对真实 provider UAT，必须捕获 production caller 的 prompt payload 摘要或 focused test，断言关键业务上下文非空（如 rubric dimensions、target/resume/session join keys）；prompt/schema 文件存在不等于运行时 payload 正确。
 
 ## 模式 6：Frontend-first handoff 完成后未回填真实 backend gate
 

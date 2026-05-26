@@ -273,13 +273,27 @@ func TestStartPracticeSessionRejectsNonJSONFirstQuestionResponse(t *testing.T) {
 }
 
 type fakePromptResolver struct {
-	resolution registry.PromptResolution
-	err        error
+	resolution  registry.PromptResolution
+	resolutions map[string]registry.PromptResolution
+	err         error
+	errs        map[string]error
 }
 
 func (r *fakePromptResolver) ResolveActive(ctx context.Context, featureKey, language string) (registry.PromptResolution, error) {
+	if r.errs != nil {
+		if err, ok := r.errs[featureKey]; ok {
+			return registry.PromptResolution{}, err
+		}
+	}
 	if r.err != nil {
 		return registry.PromptResolution{}, r.err
+	}
+	if r.resolutions != nil {
+		if resolution, ok := r.resolutions[featureKey]; ok {
+			resolution.FeatureKey = featureKey
+			return resolution, nil
+		}
+		return registry.PromptResolution{}, registry.ErrPromptUnsupported
 	}
 	r.resolution.FeatureKey = featureKey
 	return r.resolution, nil
@@ -287,17 +301,22 @@ func (r *fakePromptResolver) ResolveActive(ctx context.Context, featureKey, lang
 
 type fakeAIClient struct {
 	content                  string
+	contents                 []string
 	err                      error
 	meta                     aiclient.AICallMeta
 	profileName              string
+	profileNames             []string
 	payload                  aiclient.CompletePayload
+	payloads                 []aiclient.CompletePayload
 	calledOutsideTransaction bool
 	store                    *recordingPlanStore
 }
 
 func (c *fakeAIClient) Complete(ctx context.Context, profileName string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
 	c.profileName = profileName
+	c.profileNames = append(c.profileNames, profileName)
 	c.payload = payload
+	c.payloads = append(c.payloads, payload)
 	c.calledOutsideTransaction = c.store == nil || !c.store.inTx
 	if c.store != nil {
 		c.store.steps = append(c.store.steps, "ai")
@@ -305,7 +324,12 @@ func (c *fakeAIClient) Complete(ctx context.Context, profileName string, payload
 	if c.err != nil {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, c.err
 	}
-	return aiclient.CompleteResponse{Content: c.content}, c.meta, nil
+	content := c.content
+	if len(c.contents) > 0 {
+		content = c.contents[0]
+		c.contents = c.contents[1:]
+	}
+	return aiclient.CompleteResponse{Content: content}, c.meta, nil
 }
 
 func (c *fakeAIClient) Transcribe(ctx context.Context, input string, payload aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {

@@ -32,7 +32,7 @@ Frontend and backend workstreams are split by contract, not by informal agreemen
 | 5. Frontend implementation | `frontend/src/api/generated/client.ts` + `frontend/src/api/mockTransport.ts`; frontend may complete user-visible UI against fixtures before backend handler completion | Frontend owner |
 | 6. Backend implementation | Real handler/store/migration/job code implements the same `operationId` and response envelope; tests prove SQL, auth, privacy, idempotency, and error paths | Backend owner |
 | 7. Local integration | `make dev-up` provides Docker Compose external dependencies; backend/frontend default to host-managed dev processes unless a component owner explicitly adds an optional compose app service | Backend + frontend owner |
-| 8. Scenario verification | `test/scenarios/` scripts provide BDD/E2E gates through repo-tracked local runners such as Go, Vitest, Playwright, and browser smoke; Kind / K8s / Helm are not the default P0 scenario target | Scenario owner + feature owner |
+| 8. Scenario verification | `test/scenarios/` scripts provide BDD/E2E gates through shell/Python orchestration around repo-tracked local runners such as existing package tests, Vitest, Playwright, and browser smoke; scenario-owned dependencies must not be implemented as new `backend/cmd` / Go helper processes. Kind / K8s / Helm are not the default P0 scenario target | Scenario owner + feature owner |
 
 ### 2.1 Operation Matrix Requirement
 

@@ -94,7 +94,7 @@ eval-offline: ## F3 offline eval (NOT in make test): single-source drift gate + 
 		"$(ROOT_DIR)/config/evals/promptfooconfig.yaml" > "$(EVAL_PROMPTFOO_CONFIG)"
 	@cd "$(ROOT_DIR)" && PROMPTFOO_CONFIG_DIR="$(EVAL_OUTPUT_DIR)/promptfoo" PROMPTFOO_LOG_DIR="$(EVAL_OUTPUT_DIR)/promptfoo/logs" PROMPTFOO_DISABLE_WAL_MODE=true PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 EVALKIT_BIN="$(ROOT_DIR)/backend/bin/evalkit" pnpm exec promptfoo eval -c "$(EVAL_PROMPTFOO_CONFIG)" --no-cache
 
-dev-up: ## Start local dev external dependencies (postgres / redis / minio; optional app services only when explicitly added)
+dev-up: ## Start local dev external dependencies (postgres / redis / minio / mailpit; optional app services only when explicitly added)
 	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" up
 
 dev-down: ## Stop local dev dependencies; named volumes preserved

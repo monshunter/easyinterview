@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.12
+    to: 1.13
 spec:
   defaultTarget: repo
   discovery:
@@ -22,6 +22,15 @@ spec:
       - postgres
       - redis
       - minio
+      - mailpit
+      - local email
+      - magic link
+      - smtp
+      - EMAIL_PROVIDER
+      - EMAIL_SMTP_HOST
+      - EMAIL_SMTP_PORT
+      - EMAIL_FROM_ADDRESS
+      - EMAIL_VERIFY_BASE_URL
       - application components
       - external dependencies
       - host-run backend
@@ -58,5 +67,10 @@ spec:
           - deploy/dev-stack/scripts
           - deploy/dev-stack/scripts/check-postgres-volume-layout.sh
           - Makefile
+          - backend/internal/auth
+          - backend/cmd/api
+          - backend/internal/platform/config
+          - config
+          - test/scenarios/manual-uat
         uiRoutes: []
         apiNames: []

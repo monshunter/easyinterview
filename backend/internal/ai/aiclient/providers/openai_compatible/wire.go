@@ -9,14 +9,15 @@ type wireMessage struct {
 }
 
 type chatCompletionsRequest struct {
-	Model       string        `json:"model"`
-	Messages    []wireMessage `json:"messages"`
-	MaxTokens   int           `json:"max_tokens,omitempty"`
-	Stream      bool          `json:"stream"`
-	Tools       []wireTool    `json:"tools,omitempty"`
-	ToolChoice  any           `json:"tool_choice,omitempty"`
-	Temperature *float64      `json:"temperature,omitempty"`
-	TopP        *float64      `json:"top_p,omitempty"`
+	Model          string        `json:"model"`
+	Messages       []wireMessage `json:"messages"`
+	MaxTokens      int           `json:"max_tokens,omitempty"`
+	Stream         bool          `json:"stream"`
+	Tools          []wireTool    `json:"tools,omitempty"`
+	ToolChoice     any           `json:"tool_choice,omitempty"`
+	ResponseFormat any           `json:"response_format,omitempty"`
+	Temperature    *float64      `json:"temperature,omitempty"`
+	TopP           *float64      `json:"top_p,omitempty"`
 }
 
 type chatCompletionsResponse struct {

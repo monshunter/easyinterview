@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	apijobs "github.com/monshunter/easyinterview/backend/internal/api/jobs"
@@ -152,6 +153,78 @@ featureFlag:
 	handler.ServeHTTP(logout, httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil))
 	if logout.Code != http.StatusNoContent {
 		t.Fatalf("logout route status = %d body=%s", logout.Code, logout.Body.String())
+	}
+}
+
+func TestLocalDevCORSAllowsFrontendRealModeOrigins(t *testing.T) {
+	called := false
+	handler := withLocalDevCORS("dev", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	preflight := httptest.NewRequest(http.MethodOptions, "/api/v1/runtime-config", nil)
+	preflight.Header.Set("Origin", "http://127.0.0.1:4174")
+	preflight.Header.Set("Access-Control-Request-Headers", "Content-Type,Idempotency-Key")
+	preflightRec := httptest.NewRecorder()
+	handler.ServeHTTP(preflightRec, preflight)
+	if preflightRec.Code != http.StatusNoContent {
+		t.Fatalf("preflight status = %d body=%s", preflightRec.Code, preflightRec.Body.String())
+	}
+	if called {
+		t.Fatalf("preflight should not call next handler")
+	}
+	if got := preflightRec.Header().Get("Access-Control-Allow-Origin"); got != "http://127.0.0.1:4174" {
+		t.Fatalf("allow origin = %q", got)
+	}
+	if got := preflightRec.Header().Get("Access-Control-Allow-Credentials"); got != "true" {
+		t.Fatalf("allow credentials = %q", got)
+	}
+	if got := preflightRec.Header().Get("Access-Control-Allow-Headers"); strings.Contains(got, "Prefer") {
+		t.Fatalf("real-mode CORS should not allow fixture Prefer header: %q", got)
+	}
+
+	get := httptest.NewRequest(http.MethodGet, "/api/v1/runtime-config", nil)
+	get.Header.Set("Origin", "http://localhost:5173")
+	getRec := httptest.NewRecorder()
+	handler.ServeHTTP(getRec, get)
+	if !called {
+		t.Fatalf("GET should call next handler")
+	}
+	if got := getRec.Header().Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+		t.Fatalf("GET allow origin = %q", got)
+	}
+}
+
+func TestLocalDevCORSRejectsUnknownPreflightAndStaysDisabledOutsideDev(t *testing.T) {
+	handler := withLocalDevCORS("dev", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("unknown preflight should not reach next handler")
+	}))
+	preflight := httptest.NewRequest(http.MethodOptions, "/api/v1/me", nil)
+	preflight.Header.Set("Origin", "https://example.invalid")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, preflight)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("unknown preflight status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Fatalf("unknown origin should not be echoed, got %q", got)
+	}
+
+	prodCalled := false
+	prod := withLocalDevCORS("prod", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		prodCalled = true
+		w.WriteHeader(http.StatusOK)
+	}))
+	get := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	get.Header.Set("Origin", "http://127.0.0.1:4174")
+	prodRec := httptest.NewRecorder()
+	prod.ServeHTTP(prodRec, get)
+	if !prodCalled {
+		t.Fatalf("non-dev handler should pass through")
+	}
+	if got := prodRec.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Fatalf("non-dev CORS header = %q", got)
 	}
 }
 
@@ -1765,6 +1838,41 @@ auth:
 		if !strings.Contains(err.Error(), want) {
 			t.Fatalf("missing %s in error: %v", want, err)
 		}
+	}
+}
+
+func TestBuildAuthServiceUsesMailpitDeliveryWriterWhenConfigured(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+auth:
+  challengeTokenPepper: "pepper"
+  sessionCookieSecret: "session-secret"
+email:
+  provider: "mailpit"
+  smtpHost: "127.0.0.1"
+  smtpPort: 1025
+  fromAddress: "noreply@easyinterview.local"
+  verifyBaseURL: "http://127.0.0.1:8080/api/v1/auth/email/verify"
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	db, _, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock.New: %v", err)
+	}
+	defer db.Close()
+
+	service, writer, err := buildAuthService(loader, db)
+	if err != nil {
+		t.Fatalf("buildAuthService: %v", err)
+	}
+	if service == nil {
+		t.Fatal("auth service was not constructed")
+	}
+	if _, ok := writer.(*auth.SMTPDeliveryWriter); !ok {
+		t.Fatalf("delivery writer type = %T, want *auth.SMTPDeliveryWriter", writer)
 	}
 }
 

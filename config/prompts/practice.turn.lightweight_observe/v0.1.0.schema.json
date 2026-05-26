@@ -9,6 +9,10 @@
       "type": "string",
       "description": "Short neutral cue that may be surfaced to the candidate."
     },
+    "answerSummary": {
+      "type": "string",
+      "description": "Optional concise third-person answer summary for report assessment."
+    },
     "severity": {
       "type": "string",
       "description": "Optional cue urgency for downstream evaluation or UI treatment.",

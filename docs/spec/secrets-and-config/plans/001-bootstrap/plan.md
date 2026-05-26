@@ -9,7 +9,7 @@
 
 ## 1 目标
 
-把 [secrets-and-config spec](../../spec.md) §3.1 已锁定的 D-1..D-9 决策与 §3.1.1 / §3.1.2 锁定的 24 项 P0 必备 env key 字典、canonical config schema、`async.queueWeights` config-only 字段落到代码：建立 `backend/internal/platform/{config,secrets,featureflag}/` 三个 Go 包真理源、`config/*.yaml` + `.env.example` + `config/feature-flags.yaml` 默认值集合、`make lint-config` 与 `scripts/git-hooks/pre-commit-secrets.sh` 本地质量门禁、`frontend/src/lib/runtime-config/` 前端 fetcher，以及最小 `GET /api/v1/runtime-config` handler stub，并通过本 plan 的 verification phase 证明 [secrets-and-config spec §6](../../spec.md#6-验收标准) C-1..C-12 在本仓库可重复跑通（C-6 与 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 共担最终 schema 一致性，本 plan 完成 A4 侧 builder 与 stub）。
+把 [secrets-and-config spec](../../spec.md) §3.1 已锁定的 D-1..D-9 决策与 §3.1.1 / §3.1.2 锁定的 P0 必备 env key 字典、canonical config schema、`async.queueWeights` config-only 字段落到代码：建立 `backend/internal/platform/{config,secrets,featureflag}/` 三个 Go 包真理源、`config/*.yaml` + `.env.example` + `config/feature-flags.yaml` 默认值集合、`make lint-config` 与 `scripts/git-hooks/pre-commit-secrets.sh` 本地质量门禁、`frontend/src/lib/runtime-config/` 前端 fetcher，以及最小 `GET /api/v1/runtime-config` handler stub，并通过本 plan 的 verification phase 证明 [secrets-and-config spec §6](../../spec.md#6-验收标准) C-1..C-12 在本仓库可重复跑通（C-6 与 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 共担最终 schema 一致性，本 plan 完成 A4 侧 builder 与 stub）。
 
 本 plan 是 `secrets-and-config` 唯一的 plan；后续若需扩展（Vault / SOPS / platform secret / K8s Secret provider，自动 secret rotation，分桶 feature flag），按 §7 约束递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。
 
@@ -109,7 +109,7 @@ type FeatureFlagClient interface {
 
 #### 3.3 落地 `.env.example` 与 env key 字典
 
-按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典24-项) 写入仓库根 `.env.example`，包含全部 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_PROVIDER_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写占位说明（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
+按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典) 写入仓库根 `.env.example`，包含全部 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_PROVIDER_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_SMTP_*` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写占位说明（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
 
 #### 3.4 落地 `config/feature-flags.yaml` baseline
 

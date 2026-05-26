@@ -29,7 +29,7 @@
 - **OTel 接入框架**：
   - Backend：`backend/internal/platform/otel/`（OTel SDK 初始化 + tracer / meter provider + propagator）。
   - Frontend：`frontend/src/lib/otel/`（轻量 client，Trace 透传 `traceparent`）。
-  - 运行时配置：可选 `OTEL_EXPORTER_OTLP_ENDPOINT`（来自 [A4 字典](../secrets-and-config/spec.md#311-p0-必备-env-key-字典24-项)）；普通本地 dev 为空时只暴露 `/metrics` 与日志，不尝试上报。
+  - 运行时配置：可选 `OTEL_EXPORTER_OTLP_ENDPOINT`（来自 [A4 字典](../secrets-and-config/spec.md#311-p0-必备-env-key-字典)）；普通本地 dev 为空时只暴露 `/metrics` 与日志，不尝试上报。
 - **Logger middleware**：`backend/internal/platform/logx/`（基于 `zerolog`，输出 JSON）；自动注入 F1 通用字段；明文红线类型 `RedactedString`（来自 A4）+ `Hashed`（基于 sha256+salt）helper。
 - **Sentry SDK 接线**：Backend / Frontend；DSN 由 A4 env 注入；`SENTRY_DSN` 字段在 §3.1.1 字典中追加（A4 待加入）。
 - **Trace 规范**：F1 span name / attribute 集合落到 backend 中间件 + [B3 dispatcher](../event-and-outbox-contract/spec.md) 中的 `traceId` 透传协议。

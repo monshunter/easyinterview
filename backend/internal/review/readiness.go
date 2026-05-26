@@ -76,9 +76,9 @@ func dimensionScoreValue(result DimensionResultDraft) float64 {
 
 func dimensionStatusFromScoreLevel(level string) sharedtypes.DimensionStatus {
 	switch strings.ToLower(strings.TrimSpace(level)) {
-	case "weak", "developing":
+	case "weak", "developing", "needs_work":
 		return sharedtypes.DimensionStatusNeedsWork
-	case "proficient":
+	case "proficient", "meets_bar":
 		return sharedtypes.DimensionStatusMeetsBar
 	case "strong":
 		return sharedtypes.DimensionStatusStrong

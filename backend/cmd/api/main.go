@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -122,7 +123,7 @@ func main() {
 	}
 	defer db.Close()
 
-	authService, mailSink, err := buildAuthService(loader, db)
+	authService, mailWriter, err := buildAuthService(loader, db)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: auth init: %v\n", err)
 		os.Exit(1)
@@ -200,11 +201,11 @@ func main() {
 	registerRunnerHandlers(kernel, resumeRuntime.Handlers)
 	registerRunnerHandlers(kernel, reportRuntime.Handlers)
 	registerRunnerHandlers(kernel, jdmatchRuntime.Handlers)
-	kernel.Register(string(jobs.JobTypeEmailDispatch), auth.NewEmailDispatchHandler(mailSink))
+	kernel.Register(string(jobs.JobTypeEmailDispatch), auth.NewEmailDispatchHandler(mailWriter))
 
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           buildAPIHandlerWithJDMatchAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes, profileRoutes, jdmatchRoutes),
+		Handler:           withLocalDevCORS(loader.AppEnv(), buildAPIHandlerWithJDMatchAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes, profileRoutes, jdmatchRoutes)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -293,7 +294,7 @@ func buildRunnerKernel(opts runnerKernelOptions) (*runner.Runtime, error) {
 	return kernel, nil
 }
 
-func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessService, *auth.DevMailSink, error) {
+func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessService, auth.DeliveryWriter, error) {
 	challengePepper := strings.TrimSpace(loader.GetSecret("auth.challengeTokenPepper").Reveal())
 	sessionCookieSecret := strings.TrimSpace(loader.GetSecret("auth.sessionCookieSecret").Reveal())
 	var missing []string
@@ -306,9 +307,35 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessServ
 	if len(missing) > 0 {
 		return nil, nil, fmt.Errorf("missing required auth secret(s): %s", strings.Join(missing, ", "))
 	}
-	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: "/api/v1/auth/email/verify"})
+	verifyBaseURL := strings.TrimSpace(loader.GetString("email.verifyBaseURL"))
+	if verifyBaseURL == "" {
+		verifyBaseURL = "/api/v1/auth/email/verify"
+	}
+	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: verifyBaseURL})
+	writer := auth.DeliveryWriter(sink)
+	if strings.EqualFold(strings.TrimSpace(loader.GetString("email.provider")), "mailpit") {
+		host := strings.TrimSpace(loader.GetString("email.smtpHost"))
+		if host == "" {
+			host = "127.0.0.1"
+		}
+		port := loader.GetInt("email.smtpPort")
+		if port <= 0 {
+			port = 1025
+		}
+		from := strings.TrimSpace(loader.GetString("email.fromAddress"))
+		if from == "" {
+			from = "noreply@easyinterview.local"
+		}
+		writer = auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
+			SMTPAddr:             net.JoinHostPort(host, fmt.Sprintf("%d", port)),
+			FromAddress:          from,
+			VerifyBaseURL:        verifyBaseURL,
+			DeliverySecrets:      sink,
+			LookupChallengeEmail: auth.SQLChallengeEmailLookup(db),
+		})
+	}
 	// Producer enqueues email_dispatch async_jobs rows (spec D-10); the kernel
-	// EmailDispatchHandler delivers them through the sink.
+	// EmailDispatchHandler delivers them through the configured writer.
 	enqueuer := auth.NewEmailDispatchEnqueuer(db, idx.NewID, func() time.Time { return time.Now().UTC() })
 	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
 		Store:               auth.NewSQLStore(db),
@@ -317,7 +344,7 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessServ
 		ChallengePepper:     challengePepper,
 		SessionCookieSecret: sessionCookieSecret,
 	})
-	return service, sink, nil
+	return service, writer, nil
 }
 
 func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, db *sql.DB) http.Handler {
@@ -1056,6 +1083,37 @@ func writeRouteAPIError(w http.ResponseWriter, status int, code string, message 
 		Retryable: meta.Retryable,
 	}})
 	_, _ = w.Write(raw)
+}
+
+func withLocalDevCORS(appEnv string, next http.Handler) http.Handler {
+	if appEnv != "dev" {
+		return next
+	}
+	allowed := map[string]struct{}{
+		"http://127.0.0.1:4174": {},
+		"http://localhost:4174": {},
+		"http://127.0.0.1:5173": {},
+		"http://localhost:5173": {},
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if _, ok := allowed[origin]; ok {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Accept,Accept-Language,Content-Type,Idempotency-Key,Traceparent,X-Client-Version,X-Request-ID")
+			w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID")
+			w.Header().Add("Vary", "Origin")
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		} else if origin != "" && r.Method == http.MethodOptions {
+			http.Error(w, "CORS origin is not allowed", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // registryDirOrDefault returns the configured F3 truth-source path or

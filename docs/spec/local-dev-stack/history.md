@@ -1,13 +1,14 @@
 # Local Dev Stack History
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-26 | 1.13 | 将 Mailpit 纳入默认本地依赖：新增 `mailpit-dev`（Web 8025 / SMTP 1025）、dev-doctor `/readyz` 与 SMTP 端口探测、`.env.example` 邮件配置；本地 magic-link 登录走真实 backend auth flow，不再依赖真实外部邮箱服务、真实邮箱账号或场景专属 backend cmd。 | local-dev-stack/001 Mailpit revision |
 | 2026-05-22 | 1.12 | 修复 Postgres 18 官方镜像 PGDATA / volume 挂载契约：`easyinterview-pg-data` 挂到 `/var/lib/postgresql`，由镜像管理 `/18/docker` 子目录；`make dev-up` 增加只读旧卷布局 preflight，避免旧 `/var/lib/postgresql/data` 或半初始化卷表现为不明原因 unhealthy。 | local-dev-stack/001 L2 runtime remediation |
 | 2026-05-22 | 1.11 | 按用户确认的方案 A 对齐部署与测试环境：默认 `make dev-up` 只管理 Docker Compose 外部依赖，backend/frontend 由宿主机 dev command 管理；`test/scenarios/` 默认使用 repo-tracked 本地 runner，不再把 Kind / K8s / Helm 作为 P0 本地测试、smoke 或部署前提。 | local-dev-stack/001 post-pass revision |
 | 2026-05-08 | 1.10 | 按用户决策将默认本地 Postgres 镜像从 16 升级到 18，并同步 B4 迁移基线的本地 DB 前提。 | local-dev-stack/001 post-pass revision |

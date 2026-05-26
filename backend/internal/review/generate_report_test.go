@@ -26,7 +26,7 @@ func TestGenerateReportContentSuccess(t *testing.T) {
 		AI: ai,
 	})
 
-	draft, err := svc.generateReportContent(context.Background(), sampleSession(), samplePlan(), sampleTurns())
+	draft, err := svc.generateReportContent(context.Background(), sampleSession(), samplePlan(), sampleTurns(), sampleRubric())
 	if err != nil {
 		t.Fatalf("generateReportContent: %v", err)
 	}
@@ -64,10 +64,13 @@ func TestGenerateReportContentBuildsPromptWithoutLeaks(t *testing.T) {
 		QuestionIntent:  "system-design",
 		QuestionContext: "question_text should be redacted",
 		AnswerSummary:   "answer_text and hint_text should be redacted",
-	}}); err != nil {
+	}}, sampleRubric()); err != nil {
 		t.Fatalf("generateReportContent: %v", err)
 	}
 	assertNoPromptLeak(t, joinedMessages(ai.payloads[0].Messages))
+	if prompt := joinedMessages(ai.payloads[0].Messages); !strings.Contains(prompt, `"name":"depth"`) {
+		t.Fatalf("report prompt must include rubric dimensions, got %s", prompt)
+	}
 }
 
 func sampleSession() SessionSnapshot {
@@ -90,6 +93,20 @@ func sampleTurns() []TurnSnapshot {
 		{ID: "turn-2", TurnIndex: 2, QuestionIntent: "tradeoff", QuestionContext: "cache invalidation", AnswerSummary: "named consistency risks"},
 		{ID: "turn-1", TurnIndex: 1, QuestionIntent: "architecture", QuestionContext: "service boundaries", AnswerSummary: "explained queue boundaries"},
 	}
+}
+
+func sampleRubric() registry.RubricSchema {
+	return registry.RubricSchema{Dimensions: []registry.RubricDimension{{
+		Name:        "depth",
+		Weight:      1,
+		Description: "Technical depth and tradeoff quality.",
+		ScoreLevels: []registry.ScoreLevel{
+			{Label: "weak", Threshold: 0, Description: "Falls short."},
+			{Label: "developing", Threshold: 0.4, Description: "Partially satisfies."},
+			{Label: "proficient", Threshold: 0.7, Description: "Meets baseline."},
+			{Label: "strong", Threshold: 0.9, Description: "Exceeds baseline."},
+		},
+	}}}
 }
 
 func reportResolution(featureKey string, profile string, template string) registry.PromptResolution {

@@ -384,14 +384,16 @@ func updateLatestTurn(ctx context.Context, tx *sql.Tx, in domain.AppendSessionEv
 update practice_turns
 set status = $1,
     answer_text = coalesce($2, answer_text),
-    follow_up_count = $3,
-    answered_at = coalesce($4, answered_at),
-    completed_at = coalesce($5, completed_at),
-    updated_at = $6
-where session_id = $7
-  and id = $8`,
+    answer_summary = coalesce($3, answer_summary),
+    follow_up_count = $4,
+    answered_at = coalesce($5, answered_at),
+    completed_at = coalesce($6, completed_at),
+    updated_at = $7
+where session_id = $8
+  and id = $9`,
 		in.Outcome.NextTurn.Status,
 		nullableString(answerText),
+		nullableString(in.Outcome.AnswerSummary),
 		followUpCount,
 		answeredAt,
 		completedAt,

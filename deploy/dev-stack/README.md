@@ -1,10 +1,10 @@
 # Local Dev Stack
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
-本目录承载 [local-dev-stack/001-bootstrap](../../docs/spec/local-dev-stack/plans/001-bootstrap/plan.md) 的运行时实现。默认 `make dev-up` 只启动 P0 闭环必须的外部依赖；backend / frontend 默认由宿主机 dev command 管理，只有组件 owner 明确接入 optional compose app service 时才进入本栈。**默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider**。
+本目录承载 [local-dev-stack/001-bootstrap](../../docs/spec/local-dev-stack/plans/001-bootstrap/plan.md) 的运行时实现。默认 `make dev-up` 只启动 P0 闭环必须的外部依赖；backend / frontend 默认由宿主机 dev command 管理，只有组件 owner 明确接入 optional compose app service 时才进入本栈。**默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider**；本地邮件通过轻量 Mailpit 依赖承接。
 
 ## 1 前置条件
 
@@ -17,7 +17,7 @@
 | `curl` | 任意 | 验证已声明 `/metrics` 的项目组件 |
 | Bash 4+ / POSIX sh | — | Makefile 与 `dev-doctor.sh` 均按 POSIX sh 编写 |
 
-资源占用：≥ 8GB RAM 推荐；默认依赖镜像（`postgres:18-alpine` + `redis:7-alpine` + `minio/minio` + `minio/mc`）首次拉取总体积 < 1.5GB。慢网络下先 `make dev-pull` 预热再 `make dev-up`。
+资源占用：≥ 8GB RAM 推荐；默认依赖镜像（`postgres:18-alpine` + `redis:7-alpine` + `minio/minio` + `minio/mc` + `axllent/mailpit`）首次拉取总体积 < 1.5GB。慢网络下先 `make dev-pull` 预热再 `make dev-up`。
 
 ## 2 默认服务
 
@@ -29,8 +29,9 @@
 | `redis-dev` | `redis:7-alpine` | `${REDIS_HOST_PORT:-6379}` | 无密码（dev only） | `easyinterview-redis-data` |
 | `minio-dev` | `minio/minio:RELEASE.2024-12-18T13-15-44Z` | `${MINIO_API_HOST_PORT:-9000}` API + `${MINIO_CONSOLE_HOST_PORT:-9001}` Console | `dev-access-key` / `dev-secret-key` | `easyinterview-minio-data` |
 | `minio-init` | `minio/mc:RELEASE.2024-11-21T17-21-54Z` | — | 复用 minio-dev 凭据 | — (一次性 init job) |
+| `mailpit-dev` | `axllent/mailpit:v1.30.0` | `${MAILPIT_WEB_HOST_PORT:-8025}` Web UI + `${MAILPIT_SMTP_HOST_PORT:-1025}` SMTP | 无账号（dev only） | — |
 
-所有服务通过 bridge network `easyinterview-dev` 互访，短名解析（`postgres-dev` / `redis-dev` / `minio-dev`）。MinIO init 幂等创建默认 bucket `easyinterview-dev`（D-1..D-9）。
+所有服务通过 bridge network `easyinterview-dev` 互访，短名解析（`postgres-dev` / `redis-dev` / `minio-dev` / `mailpit-dev`）。MinIO init 幂等创建默认 bucket `easyinterview-dev`；Mailpit 提供本地 magic-link 收信，不需要真实外部邮箱服务或真实邮箱账号。
 
 ### 2.2 项目组件
 
@@ -55,7 +56,7 @@
 | `make dev-logs` | 汇总打印近期容器日志；`SERVICE=<name>` 限定到单个 service |
 | `make dev-pull` | 预拉锁定 tag 的依赖镜像（慢网络） |
 
-`dev-up` 启动顺序：先只读检查 Postgres 18 命名卷布局是否仍是旧 `/var/lib/postgresql/data` 或半初始化状态 → 按 `--wait` 等 3 个依赖 healthy → 启动 `minio-init` 并轮询其退出码 (timeout 60s) → 调用 `dev-doctor.sh` 作为最终 gate；任何阶段失败时 `up` 退出非 0 并把每个 dependency / init 服务最近 50 行 `docker logs` 打到 stderr。
+`dev-up` 启动顺序：先只读检查 Postgres 18 命名卷布局是否仍是旧 `/var/lib/postgresql/data` 或半初始化状态 → 按 `--wait` 等 4 个依赖 healthy → 启动 `minio-init` 并轮询其退出码 (timeout 60s) → 调用 `dev-doctor.sh` 作为最终 gate；任何阶段失败时 `up` 退出非 0 并把每个 dependency / init 服务最近 50 行 `docker logs` 打到 stderr。
 
 ## 4 配置
 
@@ -71,12 +72,24 @@
 - 缺 registry/profile 路径或当前 profile 选中的 provider secret 时，启用 AIClient 的组件 fail-fast，`make dev-doctor` 对该组件报 DOWN/DEGRADED 且 reason 指向缺真实 AI provider 配置（C-9）。
 - **不允许** 把本地部署降级到单元测试 stub。stub 仅在 `APP_ENV=test`（单元测试 / 离线契约测试）下使用，由 [A3 ai-provider-and-model-routing](../../docs/spec/ai-provider-and-model-routing/spec.md) 承接。
 
+### 4.2 本地邮件配置
+
+本地 passwordless 登录默认走 Mailpit：
+
+- `EMAIL_PROVIDER=mailpit`
+- `EMAIL_SMTP_HOST=127.0.0.1`
+- `EMAIL_SMTP_PORT=1025`
+- `EMAIL_FROM_ADDRESS=noreply@easyinterview.local`
+- `EMAIL_VERIFY_BASE_URL=http://127.0.0.1:8080/api/v1/auth/email/verify`
+
+Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启动后，`startAuthEmailChallenge` 会通过 `email_dispatch` handler 向 Mailpit SMTP 投递 magic-link 邮件；人工 UAT 使用 synthetic `.example.test` 邮箱即可完成登录，不需要真实邮箱账号。
+
 ## 5 与场景测试的关系
 
 本目录是 **应用本地开发依赖** 的 Docker Compose 路径；`test/scenarios/` 是 BDD / E2E 场景契约路径。两条路径互不替代：
 
-- 应用 dev → 用 `make dev-up` 启动 Postgres / Redis / MinIO 依赖；backend/frontend 进程默认在宿主机单独启动并消费这些连接串。
-- BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。当前 P0 场景默认通过 repo-tracked Go / Vitest / Playwright / browser smoke 脚本验证同一行为契约，不要求 Kind / K8s / Helm 环境。
+- 应用 dev → 用 `make dev-up` 启动 Postgres / Redis / MinIO / Mailpit 依赖；backend/frontend 进程默认在宿主机单独启动并消费这些连接串。
+- BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。当前 P0 场景默认由 shell / Python 脚本编排既有产品 runner（例如已有包测试、Vitest、Playwright、browser smoke）验证同一行为契约；场景专属依赖不得新增正式 `backend/cmd` / Go helper 进程，不要求 Kind / K8s / Helm 环境。
 - 需要真实 AI provider 的应用部署不得降级到单元测试 stub；`APP_ENV=test` 以外缺真实 provider config 时必须 fail-fast。
 
 ## 6 故障排查
@@ -88,6 +101,7 @@
 | MinIO 启动报 `volume not writable` | macOS Docker Desktop 偶发权限缓存问题；`docker volume rm easyinterview-minio-data` 后重新 up |
 | 镜像首次拉取超过 60s healthy 预算 | 先 `make dev-pull` 预热再 `make dev-up`；预算只针对 image 已在本地的稳态 |
 | `make dev-doctor` 对启用 AIClient 的组件报 DOWN | 检查 `.env` 中 `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 是否指向 repo 内 catalog，并确认 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 填了真实 provider；勿提交真实 key |
+| Mailpit 收不到邮件 | 确认 `make dev-doctor` 中 `mailpit-dev` 为 OK；backend env 包含 `EMAIL_PROVIDER=mailpit` / `EMAIL_SMTP_HOST=127.0.0.1` / `EMAIL_SMTP_PORT=1025`；若本机 1025 或 8025 被占用，用 `.env` 调整 `MAILPIT_*_HOST_PORT` 并同步 backend email env |
 | macOS Docker Desktop 端口冲突看似没冲突 | docker-desktop 用 IPv6 监听，纯 IPv4 squatter 不冲突；用 `python3 -c "...AF_INET6 + IPV6_V6ONLY=0..."` 或绑双栈监听才会触发真实冲突 |
 
 ## 7 升级与扩展

@@ -1,7 +1,7 @@
 # easyinterview local dev stack — minimal default profile.
 #
 # Owned by docs/spec/local-dev-stack/plans/001-bootstrap.
-# Default services: Postgres, Redis, MinIO + bucket-init.
+# Default services: Postgres, Redis, MinIO + bucket-init, Mailpit.
 # OTel Collector / Grafana / Loki / Prometheus / AI provider are intentionally
 # absent (spec D-1..D-9). Project components (backend, frontend)
 # are appended here once their owning child plans land a local runtime entry.
@@ -78,6 +78,25 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+
+  mailpit-dev:
+    image: axllent/mailpit:v1.30.0
+    container_name: easyinterview-mailpit-dev
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_WEB_HOST_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_HOST_PORT:-1025}:1025"
+    networks:
+      - easyinterview-dev
+    labels:
+      easyinterview.dev-stack.role: dependency
+      easyinterview.dev-stack.service: mailpit
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8025/readyz || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   minio-init:
     image: minio/mc:RELEASE.2024-11-21T17-21-54Z

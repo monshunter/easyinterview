@@ -1,8 +1,8 @@
 # ADR-Q2 · 异步编排
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: accepted
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-05-26
 
 ## 1 背景
 
@@ -87,7 +87,7 @@ P0 已识别的异步链路：
 
 - **`backend-runtime-topology`** —— 持有 P0 无独立 worker 进程和 backend internal runner 运行形态
 - **backend async runner future subject** —— 落地 backend 内部 task registry、outbox drain、retry、metrics adapter；不默认创建独立进程
-- **A2 `local-dev-stack`** —— 默认启动 Postgres / Redis / MinIO；不包含 Asynq Web UI 或独立 worker health gate
+- **A2 `local-dev-stack`** —— 默认启动 Postgres / Redis / MinIO / Mailpit；不包含 Asynq Web UI 或独立 worker health gate
 - **B3 `event-and-outbox-contract`** —— 当前 16 个内部事件 envelope + outbox publish_status 状态机；新增事件必须走 B3 additive 更新
 - **B4 `db-migrations-baseline`** —— `async_jobs` / `outbox_events` 0001 迁移；`async_jobs.job_type` check 必须包含 internal-only `email_dispatch`
 - **C1 `backend-auth`** —— magic link 邮件派发通过 C1 backend-internal dispatcher / future `email_dispatch` job contract，handler 不同步等待 provider
@@ -118,6 +118,7 @@ P0 已识别的异步链路：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-26 | 1.6 | 对齐 local-dev-stack Mailpit revision：默认依赖增加 Mailpit 本地邮箱 sink，但仍不新增独立 worker 或 Asynq Web UI 前置。 | local-dev-stack/001 Mailpit revision |
 | 2026-05-06 | 1.5 | 按 backend-runtime-topology v1.0 取消 P0 独立 worker 进程前置：保留 B3 job/outbox/handler 命名契约，将运行形态改为 backend internal runner。 | backend-runtime-topology/001-worker-consolidation |
 | 2026-05-03 | 1.4 | 对齐 B3 当前可执行事件契约：event/outbox 当前为 16 个内部事件，不再沿用旧 18 事件口径。 | event-and-outbox-contract / product-scope v1.2 |
 | 2026-05-03 | 1.3 | 对齐 product-scope v1.1：异步 review 物化只服务报告内题目回顾与本轮复练上下文，不再承接独立 Mistake / Drill 队列。 | product-scope / engineering-roadmap v2.2 |

@@ -93,7 +93,7 @@ type QuestionAssessmentDraft struct {
 	IncludedInRetryPlan  bool                             `json:"included_in_retry_plan"`
 }
 
-func (s *Service) generateReportContent(ctx context.Context, session SessionSnapshot, plan PracticePlanSnapshot, turns []TurnSnapshot) (ReportContentDraft, error) {
+func (s *Service) generateReportContent(ctx context.Context, session SessionSnapshot, plan PracticePlanSnapshot, turns []TurnSnapshot, rubric registry.RubricSchema) (ReportContentDraft, error) {
 	if s == nil || s.registry == nil {
 		return ReportContentDraft{}, fmt.Errorf("review prompt registry is not configured")
 	}
@@ -105,7 +105,7 @@ func (s *Service) generateReportContent(ctx context.Context, session SessionSnap
 	if err != nil {
 		return ReportContentDraft{}, fmt.Errorf("resolve report.generate: %w", err)
 	}
-	payload := reportCompletePayload(resolution, session, plan, turns, reportGenerateFeatureKey, aiclient.AITaskRunTaskReportGenerate)
+	payload := reportCompletePayload(resolution, session, plan, turns, rubric, reportGenerateFeatureKey, aiclient.AITaskRunTaskReportGenerate)
 	resp, _, err := s.ai.Complete(ctx, resolution.ModelProfileName, payload)
 	if err != nil {
 		return ReportContentDraft{}, fmt.Errorf("complete report.generate: %w", err)
@@ -124,7 +124,7 @@ func (s *Service) generateReportContent(ctx context.Context, session SessionSnap
 	return draft, nil
 }
 
-func (s *Service) assessQuestionsForAllTurns(ctx context.Context, session SessionSnapshot, plan PracticePlanSnapshot, turns []TurnSnapshot) ([]QuestionAssessmentDraft, error) {
+func (s *Service) assessQuestionsForAllTurns(ctx context.Context, session SessionSnapshot, plan PracticePlanSnapshot, turns []TurnSnapshot, rubric registry.RubricSchema) ([]QuestionAssessmentDraft, error) {
 	if s == nil || s.registry == nil {
 		return nil, fmt.Errorf("review prompt registry is not configured")
 	}
@@ -142,7 +142,7 @@ func (s *Service) assessQuestionsForAllTurns(ctx context.Context, session Sessio
 		if err != nil {
 			return nil, fmt.Errorf("resolve report.question_assessment: %w", err)
 		}
-		payload := questionAssessmentPayload(resolution, session, plan, ordered, turn)
+		payload := questionAssessmentPayload(resolution, session, plan, ordered, turn, rubric)
 		resp, _, err := s.ai.Complete(ctx, resolution.ModelProfileName, payload)
 		if err != nil {
 			return nil, fmt.Errorf("complete report.question_assessment: %w", err)
@@ -166,12 +166,12 @@ func (s *Service) assessQuestionsForAllTurns(ctx context.Context, session Sessio
 	return out, nil
 }
 
-func reportCompletePayload(resolution registry.PromptResolution, session SessionSnapshot, plan PracticePlanSnapshot, turns []TurnSnapshot, featureKey string, capability aiclient.AITaskRunCapability) aiclient.CompletePayload {
+func reportCompletePayload(resolution registry.PromptResolution, session SessionSnapshot, plan PracticePlanSnapshot, turns []TurnSnapshot, rubric registry.RubricSchema, featureKey string, capability aiclient.AITaskRunCapability) aiclient.CompletePayload {
 	messages := reportMessages(resolution, map[string]string{
 		"{{language}}":          fallbackLanguage(session.Language),
 		"{{session_metadata}}":  mustJSONString(sessionMetadata(session, plan)),
 		"{{turn_summaries}}":    mustJSONString(turnSummaryPayload(turns)),
-		"{{rubric_dimensions}}": "[]",
+		"{{rubric_dimensions}}": mustJSONString(rubricPromptPayload(rubric)),
 	})
 	return aiclient.CompletePayload{
 		Messages: messages,
@@ -179,14 +179,14 @@ func reportCompletePayload(resolution registry.PromptResolution, session Session
 	}
 }
 
-func questionAssessmentPayload(resolution registry.PromptResolution, session SessionSnapshot, plan PracticePlanSnapshot, turns []TurnSnapshot, turn TurnSnapshot) aiclient.CompletePayload {
+func questionAssessmentPayload(resolution registry.PromptResolution, session SessionSnapshot, plan PracticePlanSnapshot, turns []TurnSnapshot, turn TurnSnapshot, rubric registry.RubricSchema) aiclient.CompletePayload {
 	messages := reportMessages(resolution, map[string]string{
 		"{{language}}":         fallbackLanguage(session.Language),
 		"{{session_metadata}}": mustJSONString(sessionMetadata(session, plan)),
 		"{{turn_summaries}}":   mustJSONString(turnSummaryPayload(turns)),
 		"{{question_context}}": sanitizePromptSegment(turn.QuestionContext),
 		"{{answer_summary}}":   sanitizePromptSegment(turn.AnswerSummary),
-		"{{rubric}}":           "[]",
+		"{{rubric}}":           mustJSONString(rubricPromptPayload(rubric)),
 	})
 	return aiclient.CompletePayload{
 		Messages: messages,
@@ -264,6 +264,27 @@ func turnSummaryPayload(turns []TurnSnapshot) []map[string]any {
 	return out
 }
 
+func rubricPromptPayload(rubric registry.RubricSchema) []map[string]any {
+	out := make([]map[string]any, 0, len(rubric.Dimensions))
+	for _, dim := range rubric.Dimensions {
+		levels := make([]map[string]any, 0, len(dim.ScoreLevels))
+		for _, level := range dim.ScoreLevels {
+			levels = append(levels, map[string]any{
+				"label":       sanitizePromptSegment(level.Label),
+				"threshold":   level.Threshold,
+				"description": sanitizePromptSegment(level.Description),
+			})
+		}
+		out = append(out, map[string]any{
+			"name":         sanitizePromptSegment(dim.Name),
+			"weight":       dim.Weight,
+			"description":  sanitizePromptSegment(dim.Description),
+			"scoreLevels":  levels,
+		})
+	}
+	return out
+}
+
 func fallbackLanguage(language string) string {
 	if strings.TrimSpace(language) == "" {
 		return "en"
@@ -286,26 +307,57 @@ func sanitizePromptSegment(value string) string {
 func redactPromptForbiddenLiterals(value string) string {
 	replacer := strings.NewReplacer(
 		"question_text", "question detail",
+		"questionText", "question detail",
+		"QuestionText", "question detail",
+		"questiontext", "question detail",
 		"answer_text", "answer summary",
+		"answerText", "answer summary",
+		"AnswerText", "answer summary",
+		"answertext", "answer summary",
 		"hint_text", "hint summary",
+		"hintText", "hint summary",
+		"HintText", "hint summary",
+		"hinttext", "hint summary",
 		"prompt body", "prompt metadata",
 		"response body", "response metadata",
+		"prompt_body", "prompt metadata",
+		"response_body", "response metadata",
+		"provider_secret", "provider credential",
+		"providersecret", "provider credential",
 	)
 	return replacer.Replace(value)
 }
 
 func (d *ReportContentDraft) normalize() {
+	d.Summary = sanitizeReviewOutputString(d.Summary)
 	if d.DimensionScores == nil {
 		d.DimensionScores = []DimensionScoreDraft{}
+	}
+	for i := range d.DimensionScores {
+		d.DimensionScores[i].Name = sanitizeReviewOutputString(d.DimensionScores[i].Name)
+		d.DimensionScores[i].Reasoning = sanitizeReviewOutputString(d.DimensionScores[i].Reasoning)
+		d.DimensionScores[i].SupportingObservations = sanitizeReviewOutputStrings(d.DimensionScores[i].SupportingObservations)
 	}
 	if d.Highlights == nil {
 		d.Highlights = []ReportEvidenceDraft{}
 	}
+	for i := range d.Highlights {
+		d.Highlights[i].Dimension = sanitizeReviewOutputString(d.Highlights[i].Dimension)
+		d.Highlights[i].Evidence = sanitizeReviewOutputString(d.Highlights[i].Evidence)
+	}
 	if d.Issues == nil {
 		d.Issues = []ReportEvidenceDraft{}
 	}
+	for i := range d.Issues {
+		d.Issues[i].Dimension = sanitizeReviewOutputString(d.Issues[i].Dimension)
+		d.Issues[i].Evidence = sanitizeReviewOutputString(d.Issues[i].Evidence)
+	}
 	if d.NextActions == nil {
 		d.NextActions = []ReportNextActionDraft{}
+	}
+	for i := range d.NextActions {
+		d.NextActions[i].Type = sanitizeReviewOutputString(d.NextActions[i].Type)
+		d.NextActions[i].Label = sanitizeReviewOutputString(d.NextActions[i].Label)
 	}
 	if d.RetryFocusTurnIDs == nil {
 		d.RetryFocusTurnIDs = []string{}
@@ -321,22 +373,33 @@ func (d ReportContentDraft) empty() bool {
 }
 
 func (d *QuestionAssessmentDraft) normalize() {
+	d.QuestionIntent = sanitizeReviewOutputString(d.QuestionIntent)
 	if d.DimensionResults == nil {
 		d.DimensionResults = map[string]DimensionResultDraft{}
 	}
 	for key, value := range d.DimensionResults {
+		value.ScoreLevel = sanitizeReviewOutputString(value.ScoreLevel)
 		if value.Status == "" && strings.TrimSpace(value.ScoreLevel) != "" {
 			value.Status = dimensionStatusFromScoreLevel(value.ScoreLevel)
-			d.DimensionResults[key] = value
 		}
+		if !validDimensionStatus(value.Status) {
+			value.Status = dimensionStatusFromScoreLevel(value.ScoreLevel)
+		}
+		d.DimensionResults[key] = value
+	}
+	if d.OverallStatus == "" || !validDimensionStatus(d.OverallStatus) {
+		d.OverallStatus = overallStatusFromDimensionResults(d.DimensionResults)
 	}
 	if d.Strengths == nil {
 		d.Strengths = []string{}
 	}
+	d.Strengths = sanitizeReviewOutputStrings(d.Strengths)
 	if d.Gaps == nil {
 		d.Gaps = []string{}
 	}
-	if d.ReviewStatus == "" {
+	d.Gaps = sanitizeReviewOutputStrings(d.Gaps)
+	d.RecommendedFramework = sanitizeReviewOutputString(d.RecommendedFramework)
+	if !validQuestionReviewStatus(d.ReviewStatus) {
 		d.ReviewStatus = sharedtypes.QuestionReviewStatusOpen
 	}
 }
@@ -353,4 +416,59 @@ func containsReviewForbiddenToken(value any) bool {
 		}
 	}
 	return false
+}
+
+func sanitizeReviewOutputString(value string) string {
+	return redactPromptForbiddenLiterals(strings.TrimSpace(value))
+}
+
+func sanitizeReviewOutputStrings(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, sanitizeReviewOutputString(value))
+	}
+	return out
+}
+
+func validDimensionStatus(status sharedtypes.DimensionStatus) bool {
+	switch status {
+	case sharedtypes.DimensionStatusNeedsWork,
+		sharedtypes.DimensionStatusMeetsBar,
+		sharedtypes.DimensionStatusStrong:
+		return true
+	default:
+		return false
+	}
+}
+
+func validQuestionReviewStatus(status sharedtypes.QuestionReviewStatus) bool {
+	switch status {
+	case sharedtypes.QuestionReviewStatusOpen,
+		sharedtypes.QuestionReviewStatusQueuedForRetry,
+		sharedtypes.QuestionReviewStatusResolved:
+		return true
+	default:
+		return false
+	}
+}
+
+func overallStatusFromDimensionResults(results map[string]DimensionResultDraft) sharedtypes.DimensionStatus {
+	if len(results) == 0 {
+		return ""
+	}
+	strongCount := 0
+	for _, result := range results {
+		switch result.Status {
+		case sharedtypes.DimensionStatusNeedsWork:
+			return sharedtypes.DimensionStatusNeedsWork
+		case sharedtypes.DimensionStatusMeetsBar:
+			return sharedtypes.DimensionStatusMeetsBar
+		case sharedtypes.DimensionStatusStrong:
+			strongCount++
+		}
+	}
+	if strongCount == len(results) {
+		return sharedtypes.DimensionStatusStrong
+	}
+	return sharedtypes.DimensionStatusNeedsWork
 }

@@ -1,0 +1,81 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: e2e-scenarios-p0
+  name: 002-manual-uat-real-provider-full-funnel
+  sequence: 2
+  supersedes: []
+  specVersion:
+    from: 1.1
+    to: 1.4
+spec:
+  defaultTarget: scenario
+  discovery:
+    aliases:
+      - e2e-scenarios-p0
+      - e2e-scenarios-p0/002
+      - 002-manual-uat-real-provider-full-funnel
+      - manual-uat
+      - real-provider-full-funnel
+      - real-ai-uat
+    keywords:
+      - manual UAT
+      - real provider
+      - real AI LLM
+      - DeepSeek
+      - AI_PROVIDER_API_KEY
+      - AI_PROVIDER_BASE_URL
+      - VITE_EI_API_MODE=real
+      - APP_ENV=dev
+      - no mock data
+      - mailpit
+      - magic link
+      - local mailbox
+      - shell python scenario helper
+      - no backend cmd helper
+      - no direct session bootstrap
+      - EMAIL_PROVIDER=mailpit
+      - ei_session
+      - full funnel manual acceptance
+      - E2E.P0.100
+  targets:
+    scenario:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../local-dev-stack/spec.md
+        - ../../../ai-provider-and-model-routing/spec.md
+        - ../../../backend-auth/spec.md
+        - ../../../prompt-rubric-registry/spec.md
+        - ../../../../development.md
+      discovery:
+        packages:
+          - test/scenarios/manual-uat
+          - deploy/dev-stack
+          - backend/cmd/api
+          - backend/internal/auth
+          - backend/internal/ai/aiclient
+          - frontend/src/api
+          - frontend/src/app
+        uiRoutes:
+          - home
+          - parse
+          - workspace
+          - practice
+          - generating
+          - report
+        apiNames:
+          - startAuthEmailChallenge
+          - verifyAuthEmailChallenge
+          - registerResume
+          - importTargetJob
+          - getTargetJob
+          - createPracticePlan
+          - startPracticeSession
+          - appendSessionEvent
+          - completePracticeSession
+          - getFeedbackReport
+          - getJob

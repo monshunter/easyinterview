@@ -1,0 +1,52 @@
+# 002 Manual UAT Real Provider Full Funnel Checklist
+
+> **版本**: 1.3
+> **状态**: completed
+> **更新日期**: 2026-05-26
+
+**关联计划**: [plan](./plan.md)
+
+## Phase 0: 设计归位与现状清理
+
+- [x] 0.1 创建 002 owner plan / checklist / BDD / context，并修订 `e2e-scenarios-p0` spec / history / plans INDEX；验证：`validate_context.py --target scenario`
+- [x] 0.2 将现有 `test/scenarios/manual-uat/` 归属到本计划，移除“stub AI 即真实联调完成”的口径；验证：manual-uat 文档负向 grep
+
+## Phase 1: Mailpit 账号入口与边界收口
+
+- [x] 1.1 确认 local-dev-stack / backend-auth / A4 owner gate 已提供 Mailpit 本地邮箱：`mailpit-dev`、SMTP writer、Mailpit email env 字典；验证：local-dev-stack/001 Phase 5 focused tests 与 dev-stack gate
+  <!-- verified: 2026-05-26 command="go test ./backend/internal/auth -run 'TestSMTPDeliveryWriter|TestSQLChallengeEmailLookup|TestEmailDispatchHandler_PayloadRedaction' -count=1 && go test ./backend/cmd/api -run 'TestBuildAuthService(UsesMailpitDeliveryWriterWhenConfigured|RejectsEmptyAuthSecrets)' -count=1 && go test ./backend/internal/platform/config -run TestDefaultEmailDictionaryIncludesMailpitSMTPBindings -count=1 && make dev-up && make dev-doctor" evidence="Mailpit service, SMTP writer, A4 env bindings, and live dependency health gate all pass" -->
+- [x] 1.2 将 manual UAT 登录材料改为 synthetic 邮箱 + Mailpit magic-link，不再生成 `account.json` 或直接写 `sessions`；验证：runbook/material grep `Mailpit` / `manual-uat-full-funnel@example.test` / `auth/email/verify`
+  <!-- verified: 2026-05-26 command="rg -n 'Mailpit|manual-uat-full-funnel@example.test|auth/email/verify' test/scenarios/manual-uat/full-funnel/README.md test/scenarios/manual-uat/full-funnel/materials/account.md test/scenarios/manual-uat/full-funnel/materials/README.md && test ! -e test/scenarios/manual-uat/full-funnel/scripts/bootstrap_account.py" evidence="runbook and account materials describe Mailpit magic-link login; no account.json or direct-session helper remains" -->
+- [x] 1.3 补齐针对 UAT account 的 cleanup 说明，默认只清理当前 UAT 邮箱关联数据；验证：grep `DELETE http://127.0.0.1:8080/api/v1/me` / `Never use` / `direct session table writes`
+  <!-- verified: 2026-05-26 command="rg -n 'DELETE http://127.0.0.1:8080/api/v1/me|Never use|direct session table writes' test/scenarios/manual-uat/full-funnel/materials/account.md" evidence="account cleanup uses privacy delete for the current browser session and explicitly forbids broad deletes or direct session table writes" -->
+
+## Phase 2: 真实联调环境 runbook
+
+- [x] 2.1 补齐真实 env 模板与说明，覆盖 auth secrets、DB、AI provider、frontend real mode；验证：tracked 模板不含真实 secret，`rg -n 'sk-[A-Za-z0-9_-]{16,}|ei_session=[A-Za-z0-9._~+/=-]{16,}' test/scenarios/manual-uat docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel` 0 命中
+  <!-- verified: 2026-05-26 command="if rg -n 'sk-[A-Za-z0-9_-]{16,}|ei_session=[A-Za-z0-9._~+/=-]{16,}' test/scenarios/manual-uat docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel; then exit 1; else exit 0; fi" evidence="dev-real.env.example contains placeholders only; gate regex was tightened to avoid task-run false positives" -->
+- [x] 2.2 更新 runbook 启动步骤：dev-stack -> migrate -> backend `APP_ENV=dev` + `EMAIL_PROVIDER=mailpit` -> frontend real mode -> Mailpit magic-link 登录；验证：runbook 命令块存在且路径/端口一致
+  <!-- verified: 2026-05-26 command="rg -n 'make dev-up|make migrate-up|APP_ENV=dev|EMAIL_PROVIDER=mailpit|VITE_EI_API_MODE=real|http://127.0.0.1:8025' test/scenarios/manual-uat/full-funnel/README.md test/scenarios/manual-uat/full-funnel/env-template/dev-real.env.example" evidence="runbook and env template cover dev-stack, migrate, backend dev env, frontend real mode, and Mailpit URL" -->
+- [x] 2.3 增加 mock/stub 禁用说明，拒绝 `APP_ENV=test`、`EI_E2E_P0_099_SERVER`、fixture mock transport、`Prefer: example=` 作为真实 UAT 完成证据；验证：runbook 负向/正向 grep
+  <!-- verified: 2026-05-26 command="rg -n '不是本 runbook 的完成证据|APP_ENV=test|EI_E2E_P0_099_SERVER=1|deterministic / fixture AI client|frontend fixture-backed mock transport|Prefer: example=<scenario>|无 mock/stub|no stub/mock' test/scenarios/manual-uat/full-funnel/README.md test/scenarios/manual-uat/full-funnel/checklist.md test/scenarios/manual-uat/README.md" evidence="manual UAT docs reject APP_ENV=test, P0.099 server, fixture/mock transport, Prefer examples, and deterministic stub AI as completion evidence" -->
+
+## Phase 3: 人工验收材料包
+
+- [x] 3.1 补齐双语 JD / 简历 / 作答样例 / 期望观察点，材料为合成数据且无真实 PII；验证：manual materials structure gate
+  <!-- verified: 2026-05-26 command="for f in account.md jd-backend-engineer.zh.md jd-backend-engineer.en.md resume-backend-engineer.zh.md resume-backend-engineer.en.md answer-sample-backend-engineer.zh.md answer-sample-backend-engineer.en.md expected-observations.md; do test -f \"test/scenarios/manual-uat/full-funnel/materials/$f\" || exit 1; done; rg -n '不含真实 PII|expected-observations|answer-sample|jd-backend-engineer|resume-backend-engineer' test/scenarios/manual-uat/full-funnel/materials test/scenarios/manual-uat/full-funnel/checklist.md" evidence="materials include account, bilingual JD/resume, bilingual answer samples, and expected observation prompts" -->
+- [x] 3.2 新增账号材料说明，包含 UAT 邮箱、Mailpit URL、magic-link 验证、过期、重跑与清理；验证：材料 README grep `manual-uat-full-funnel@example.test` / `Mailpit`
+  <!-- verified: 2026-05-26 command="rg -n 'manual-uat-full-funnel@example.test|Mailpit|Magic links expire|submit the email again|cleanup' test/scenarios/manual-uat/full-funnel/materials/account.md test/scenarios/manual-uat/full-funnel/materials/README.md" evidence="account material includes UAT email, Mailpit URL, expiry/rerun guidance, and cleanup section" -->
+- [x] 3.3 更新 full-funnel checklist，覆盖真实 provider 调用证据、环境、账号、全漏斗、隐私与 legacy-negative；验证：checklist 包含 provider/profile/model/task-run evidence rows
+  <!-- verified: 2026-05-26 command="rg -n 'provider/profile/model/latency/task-run|provider evidence|legacy-negative|URL/storage/console|session cookie value|\\.test-output/manual-uat/full-funnel/' test/scenarios/manual-uat/full-funnel/checklist.md test/scenarios/manual-uat/full-funnel/README.md" evidence="manual checklist covers real provider evidence, privacy, legacy-negative, evidence path, and session-cookie redline" -->
+- [x] 3.4 BDD-Gate: `E2E.P0.100` 材料结构 ready，人工执行记录模板 ready；验证：`bdd-checklist.md` 对应资产项完成
+  <!-- verified: 2026-05-26 command="rg -n '^-' docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/bdd-checklist.md" evidence="BDD checklist marks all preparation assets ready while leaving real provider execution and cleanup/scene-preservation confirmation open" -->
+
+## Phase 4: Gate 与收口
+
+- [x] 4.1 文档与索引 gate 通过；验证：`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/context.yaml --docs-root docs --target scenario && python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check && make docs-check && git diff --check`
+  <!-- verified: 2026-05-26 command="python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/context.yaml --docs-root docs --target scenario && python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check && make docs-check && git diff --check" evidence="context resolves target=scenario; sync-doc-index and docs-check report zero drift; diff check passes" -->
+- [x] 4.2 代码 gate 通过；验证：focused Mailpit/auth/config tests + no-backend-cmd/no-Go negative gate + `go build ./backend/cmd/api`
+  <!-- verified: 2026-05-26 command="go test ./backend/internal/auth -run 'TestSMTPDeliveryWriter|TestSQLChallengeEmailLookup|TestEmailDispatchHandler_PayloadRedaction' -count=1 && go test ./backend/cmd/api -run 'TestBuildAuthService(UsesMailpitDeliveryWriterWhenConfigured|RejectsEmptyAuthSecrets)' -count=1 && go test ./backend/internal/platform/config -run TestDefaultEmailDictionaryIncludesMailpitSMTPBindings -count=1 && go build ./backend/cmd/api && test ! -d backend/cmd/devsession && test ! -d backend/internal/devsession && test -z \"$(find test/scenarios -name '*.go' -type f -print -quit)\" && test ! -e test/scenarios/manual-uat/full-funnel/scripts/bootstrap_account.py" evidence="focused code gates and scenario boundary negative gates pass" -->
+- [x] 4.3 完成一次真实 provider manual UAT 并记录脱敏证据路径；验证：`test/scenarios/manual-uat/full-funnel/checklist.md` 人工执行副本或 `.test-output/manual-uat/full-funnel/` 证据摘要
+  <!-- verified: 2026-05-26 command="browser manual UAT via agent-browser + focused API/PSQL semantic rerun; see .test-output/manual-uat/full-funnel/evidence-20260526.md" evidence="Mailpit login, JD import, resume parse, workspace binding, practice first question/follow-up, report ready, next-round handoff, provider/profile/model/latency/task-run evidence, privacy-delete cleanup ids, and post-fix report 019e644f-a712-7812-a314-c677b98dac78 with answer_summary length 197 and zero 'did not answer' matches were recorded without secrets or prompt/response bodies" -->
+- [x] 4.4 计划生命周期收口：若全部 gate 通过，更新本 checklist / plan 状态、work journal、必要 bug/retrospective；验证：docs/index 无漂移
+  <!-- verified: 2026-05-26 command="go test ./backend/cmd/api -run 'TestLocalDevCORS|TestBuildAuthService(UsesMailpitDeliveryWriterWhenConfigured|RejectsEmptyAuthSecrets)' -count=1 && go test ./backend/internal/ai/aiclient/profile -count=1 && go test ./backend/internal/ai/aiclient/providers/openai_compatible -count=1 && go test ./backend/internal/ai/registry -count=1 && go test ./backend/internal/practice ./backend/internal/store/practice -run 'TestAppendSessionEvent|TestParseTurnObservation|TestApplyHintAI|TestSQLRepositoryAppendSessionEvent' -count=1 && go test ./backend/internal/review -count=1 && npm --prefix frontend test -- --run src/app/screens/practice/components/AssistantActionRenderer.test.tsx && make lint-prompts && make lint-ai-profile-coverage && make lint-config && python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/context.yaml --docs-root docs --target scenario && python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check && make docs-check && git diff --check" evidence="all focused code, prompt, config, context, docs, and diff gates pass; BUG-0105 records resolved real-provider semantic-chain defects, BUG-0106 records the remaining privacy-delete user-email cleanup gap, and docs/reports/2026-05-26-manual-uat-real-provider-full-funnel-assessment.md captures the post-pass retrospective" -->

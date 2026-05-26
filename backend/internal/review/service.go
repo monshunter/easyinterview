@@ -65,14 +65,14 @@ func (s *Service) GenerateReport(ctx context.Context, job AsyncJob) ReportOutcom
 	if err != nil {
 		return ReportOutcome{ErrorCode: sharederrors.CodeAiOutputInvalid, ErrorMessage: err.Error(), Retryable: true}
 	}
-	content, err := s.generateReportContent(ctx, reportCtx.Session, reportCtx.Plan, reportCtx.Turns)
+	content, err := s.generateReportContent(ctx, reportCtx.Session, reportCtx.Plan, reportCtx.Turns, reportCtx.Rubric)
 	if err != nil {
 		failure := classifyReportGenerationError(err)
 		_ = s.writeExplicitFailureTaskRun(ctx, reportCtx, aiclient.AITaskRunTaskReportGenerate, reportGenerateFeatureKey, failure)
 		_ = s.persistFailure(ctx, reportCtx, job, failure.Code, failure.Retryable)
 		return ReportOutcome{ErrorCode: failure.Code, ErrorMessage: err.Error(), Retryable: failure.Retryable}
 	}
-	assessments, err := s.assessQuestionsForAllTurns(ctx, reportCtx.Session, reportCtx.Plan, reportCtx.Turns)
+	assessments, err := s.assessQuestionsForAllTurns(ctx, reportCtx.Session, reportCtx.Plan, reportCtx.Turns, reportCtx.Rubric)
 	if err != nil {
 		failure := classifyReportGenerationError(err)
 		_ = s.writeExplicitFailureTaskRun(ctx, reportCtx, aiclient.AITaskRunTaskReportAssessment, reportQuestionAssessmentFeatureKey, failure)

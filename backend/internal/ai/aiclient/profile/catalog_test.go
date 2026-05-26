@@ -56,3 +56,33 @@ func TestTrackedCatalogCoversF3AndProductUICapabilityProfiles(t *testing.T) {
 		})
 	}
 }
+
+func TestTrackedCatalogKeepsManualUATFullFunnelProfilesWithRealProviderBudget(t *testing.T) {
+	path := filepath.Join("..", "..", "..", "..", "..", "config", "ai-profiles.yaml")
+	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
+	if err != nil {
+		t.Fatalf("NewLoader tracked catalog: %v", err)
+	}
+	defer loader.Close()
+
+	requiredTimeoutMs := map[string]int{
+		"resume.parse.default":            30000,
+		"target.import.default":           30000,
+		"practice.first_question.default": 30000,
+		"practice.followup.default":       30000,
+		"practice.turn_observe.default":   20000,
+		"report.assessment.default":       30000,
+		"report.generate.default":         60000,
+	}
+	for name, minTimeout := range requiredTimeoutMs {
+		t.Run(name, func(t *testing.T) {
+			got, err := loader.Resolve(name)
+			if err != nil {
+				t.Fatalf("Resolve: %v", err)
+			}
+			if got.TimeoutMs < minTimeout {
+				t.Fatalf("%s timeout_ms=%d, want at least %d for real provider manual UAT", name, got.TimeoutMs, minTimeout)
+			}
+		})
+	}
+}

@@ -1,8 +1,8 @@
 # Prompt Rubric Registry Spec
 
-> **版本**: 2.9
+> **版本**: 2.11
 > **状态**: active
-> **更新日期**: 2026-05-24
+> **更新日期**: 2026-05-26
 
 ## 1 背景与目标
 
@@ -110,6 +110,8 @@
 - rubric `dimensions[].name` 必须使用 F1 / F3 推荐质量指标中定义的命名 +（业务域专有维度 by C 域 owner）；不允许重新发明同义维度。
 - `version` 必须递增并使用 SemVer 字符串（baseline 从 `v0.1.0` 起）；同 `(feature_key, version, language)` 不允许覆盖（CI 拦截）。Baseline active 文件只要求 `language: multi`；language override 是例外路径，必须有业务 rationale。
 - output schema 文件 `config/prompts/<feature_key>/<version>.schema.json` **语言无关**（每个 `(feature_key, version)` 唯一一份，multi 与各 language 变体共用），不混入 per-language `template_hash`；允许的 JSON Schema 校验关键字限于 `type` / `required` / `properties` / `items` / `enum` 子集，允许 `description` 作为非校验注解，且必须与 A3 `aiclient` 的 `outputSchema` 校验器实现保持同一校验子集；顶层 `type` 为 `object` 或 `array`（array 仅用于 `jd_match.recommendation` / `jd_match.search`）。schema `required` key 集合必须 ⊆ 对应 prompt body 声明的输出 key，并与后端反序列化 struct 的 json tag 对齐；prompt body 输出段必须由 schema 渲染或 lint 校验，三者一致性由 `make lint-prompts` 静态校验，drift 即 exit 1；example JSON 必须是完整代表性 output 值，包含 schema 声明的 optional 字段，不得退化为 OpenAPI / JSON Schema 文档或 `string` / `1` 形式的最小占位。
+- schema enum 必须对齐 B1/shared enum、DB CHECK 与后端 consumer 的实际可接受值；prompt body 的 output contract 与 example JSON 不得使用 schema enum 外的展示词或旧值。`report.question_assessment.review_status` 当前只允许 `open` / `queued_for_retry` / `resolved`，不得使用旧示例值 `ready`。
+- `practice.turn.lightweight_observe.answerSummary` 是 report handoff 的最佳努力摘要字段：prompt 必须要求模型尽量返回，parser 必须消费 camelCase / snake_case 变体，但 JSON schema 不得把它列为 required，避免辅助观察因真实 provider 偶发漏字段而阻断答题主链路；缺失时由 practice owner 生成降级摘要并保留可观测错误码。
 
 ### 4.2 边界约束
 

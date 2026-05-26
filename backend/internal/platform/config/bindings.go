@@ -60,6 +60,10 @@ var defaultEnvBindings = map[string]string{
 	"POSTHOG_PUBLIC_KEY":          "featureFlag.posthogPublicKey",
 	"EMAIL_PROVIDER":              "email.provider",
 	"EMAIL_PROVIDER_API_KEY":      "email.providerApiKey",
+	"EMAIL_SMTP_HOST":             "email.smtpHost",
+	"EMAIL_SMTP_PORT":             "email.smtpPort",
+	"EMAIL_FROM_ADDRESS":          "email.fromAddress",
+	"EMAIL_VERIFY_BASE_URL":       "email.verifyBaseURL",
 }
 
 var defaultSecretBindings = map[string]string{

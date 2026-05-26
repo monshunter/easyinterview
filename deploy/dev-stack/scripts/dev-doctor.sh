@@ -28,6 +28,8 @@ POSTGRES_DB="${POSTGRES_DB:-easyinterview}"
 POSTGRES_HOST_PORT="${POSTGRES_HOST_PORT:-5432}"
 REDIS_HOST_PORT="${REDIS_HOST_PORT:-6379}"
 MINIO_API_HOST_PORT="${MINIO_API_HOST_PORT:-9000}"
+MAILPIT_WEB_HOST_PORT="${MAILPIT_WEB_HOST_PORT:-8025}"
+MAILPIT_SMTP_HOST_PORT="${MAILPIT_SMTP_HOST_PORT:-1025}"
 OBJECT_STORAGE_BUCKET="${OBJECT_STORAGE_BUCKET:-easyinterview-dev}"
 OBJECT_STORAGE_ACCESS_KEY="${OBJECT_STORAGE_ACCESS_KEY:-dev-access-key}"
 OBJECT_STORAGE_SECRET_KEY="${OBJECT_STORAGE_SECRET_KEY:-dev-secret-key}"
@@ -103,6 +105,21 @@ probe_minio() {
   emit minio-dev dependency OK ""
 }
 
+probe_mailpit() {
+  state=$(container_state mailpit-dev)
+  case "$state" in
+    running/healthy) ;;
+    *) down_or_conflict mailpit-dev dependency "$MAILPIT_WEB_HOST_PORT" "$state"; return ;;
+  esac
+  if ! curl -fsS --max-time 3 "http://localhost:${MAILPIT_WEB_HOST_PORT}/readyz" >/dev/null 2>&1; then
+    emit mailpit-dev dependency DEGRADED "GET /readyz on host port ${MAILPIT_WEB_HOST_PORT} failed"; return
+  fi
+  if command -v nc >/dev/null 2>&1 && ! nc -z 127.0.0.1 "$MAILPIT_SMTP_HOST_PORT" >/dev/null 2>&1; then
+    emit mailpit-dev dependency DEGRADED "SMTP host port ${MAILPIT_SMTP_HOST_PORT} not reachable"; return
+  fi
+  emit mailpit-dev dependency OK ""
+}
+
 list_app_services() {
   docker ps -a \
     --filter "label=com.docker.compose.project=${PROJECT}" \
@@ -156,6 +173,7 @@ probe_app() {
   probe_postgres
   probe_redis
   probe_minio
+  probe_mailpit
   for c in $(list_app_services); do probe_app "$c"; done
 } | jq -s '{
   services: .,

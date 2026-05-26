@@ -1,13 +1,15 @@
 # AI Provider and Model Routing History
 
-> **版本**: 2.12
+> **版本**: 2.14
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-26 | 2.14 | 真实 provider 复测发现 `report.assessment.default` 15s 预算会在 full-funnel report assessment 中误触发 `AI_PROVIDER_TIMEOUT`；C-14 与 tracked catalog gate 将该 profile 纳入不低于 30s 的 manual UAT timeout budget。 | e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel |
+| 2026-05-26 | 2.13 | 为 `e2e-scenarios-p0/002` 真实 provider manual UAT 固化 P0 full-funnel profile timeout budget：target/resume/practice 主链路 profile 最小 30s、turn observe 最小 20s、report generate 最小 60s，并新增 tracked catalog gate 防止回退；同时要求 OpenAI-compatible provider 在 `output_schema` 存在时请求 JSON object response mode，避免真实 provider 只靠 prompt 自律导致结构化输出漂移。 | e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel |
 | 2026-05-22 | 2.12 | 对齐 ADR-Q4 v1.7 / 方案 A：AI provider fail-fast 边界从 `local deploy / Kind / staging / prod` 改为非测试本地 app run 与未来部署；Kind / K8s / Helm 不再是当前 P0 AI smoke 或场景默认前提。 | local-dev-stack/001 post-pass revision |
 | 2026-05-21 | 2.11 | 登记 backend-jobs-recommendations/001 cross-owner additive：`config/ai-profiles.yaml` 新增 `jd_match.recommendation.default` (capability=chat, provider_ref=deepseek, model=deepseek-v4-pro, timeout 20s, temperature 0.3) + `jd_match.search.default` (capability=chat, provider_ref=deepseek, model=deepseek-v4-flash, timeout 25s, temperature 0.2)；§4.5 Product/UI AI Capability Catalog 新增 JD-Match 推荐解释 + JD-Match 自然语言搜索两行，并把既有 "Job Picks 匹配解释" 改为 legacy frontend home picks 标识，不再代理 JD-Match P0 baseline。`make lint-ai-profile-coverage` 通过，覆盖 13 个 F3 feature_key 默认 profile。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.7 |
 | 2026-05-16 | 2.10 | backend-debrief 001 Phase 0.5 新增 Debrief 问题建议 AI 场景与 `debrief.suggest_questions.default` profile coverage。 | backend-debrief/001 Phase 0.5 |

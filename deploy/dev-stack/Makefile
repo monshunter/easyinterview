@@ -7,7 +7,7 @@ SHELL := /bin/bash
 DEV_STACK_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 COMPOSE := docker compose -f $(DEV_STACK_DIR)/docker-compose.yaml --project-directory $(DEV_STACK_DIR)
 
-DEPENDENCY_SERVICES := postgres-dev redis-dev minio-dev
+DEPENDENCY_SERVICES := postgres-dev redis-dev minio-dev mailpit-dev
 INIT_SERVICES := minio-init
 DOCTOR_SCRIPT := $(DEV_STACK_DIR)/scripts/dev-doctor.sh
 POSTGRES_VOLUME_GUARD := $(DEV_STACK_DIR)/scripts/check-postgres-volume-layout.sh
@@ -57,7 +57,7 @@ up: _ensure_env _check_postgres_volume ## Start dev stack (idempotent; skip if a
 	echo "[dev-stack] starting dependency services"; \
 	if ! $(COMPOSE) up -d --wait --wait-timeout 60 $(DEPENDENCY_SERVICES); then \
 		echo "[dev-stack] compose up --wait failed; scanning host ports for conflicts" >&2; \
-		for port in $${POSTGRES_HOST_PORT:-5432} $${REDIS_HOST_PORT:-6379} $${MINIO_API_HOST_PORT:-9000} $${MINIO_CONSOLE_HOST_PORT:-9001}; do \
+		for port in $${POSTGRES_HOST_PORT:-5432} $${REDIS_HOST_PORT:-6379} $${MINIO_API_HOST_PORT:-9000} $${MINIO_CONSOLE_HOST_PORT:-9001} $${MAILPIT_WEB_HOST_PORT:-8025} $${MAILPIT_SMTP_HOST_PORT:-1025}; do \
 			if command -v lsof >/dev/null 2>&1; then \
 				owners="$$(lsof -nP -iTCP:$$port -sTCP:LISTEN +c 0 2>/dev/null | awk 'NR>1 && $$1 !~ /docker|com.docker|vpnkit|dockerd/ {print}')"; \
 				if [ -n "$$owners" ]; then \

@@ -37,6 +37,7 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 		Outcome: domain.SessionEventOutcome{
 			Acknowledged:      true,
 			NextSessionStatus: sharedtypes.SessionStatusCompleted,
+			AnswerSummary:     "Candidate explained the service boundary and rollback path.",
 			NextTurn: &domain.TurnRecord{
 				ID:             "turn-1",
 				TurnIndex:      1,
@@ -67,7 +68,7 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 		WithArgs(in.SessionID, in.ClientEventID).
 		WillReturnRows(sqlmock.NewRows([]string{"payload", "replay_payload"}).AddRow([]byte(`{"requestFingerprint":"fingerprint-1","pending":true}`), nil))
 	mock.ExpectExec(`update practice_turns`).
-		WithArgs(string(domain.TurnStatusAssessed), "answer", 1, now, now, now, in.SessionID, "turn-1").
+		WithArgs(string(domain.TurnStatusAssessed), "answer", "Candidate explained the service boundary and rollback path.", 1, now, now, now, in.SessionID, "turn-1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`update practice_sessions`).
 		WithArgs(string(sharedtypes.SessionStatusCompleted), int32(1), now, in.SessionID, in.UserID).

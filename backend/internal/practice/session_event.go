@@ -69,6 +69,7 @@ type SessionEventOutcome struct {
 	AssistantAction   AssistantActionRecord
 	NextSessionStatus sharedtypes.SessionStatus
 	NextTurn          *TurnRecord
+	AnswerSummary     string
 	OutboxRecord      *PracticeTurnCompletedRecord
 	AuditMetadata     map[string]any
 	Error             *ServiceError

@@ -24,17 +24,34 @@ func TestAppendSessionEventFollowUpRunsAIOutsideReservationAndCommits(t *testing
 			LatestTurn: sessionEventTestTurn(1),
 		},
 	}
-	ai := &fakeAIClient{content: firstQuestionJSON(t, "What was the strongest objection?", "behavioral.depth"), store: store}
+	ai := &fakeAIClient{
+		contents: []string{
+			`{"cue":"Good evidence cue.","answerSummary":"Candidate explained aligning 12 teams and measuring adoption."}`,
+			firstQuestionJSON(t, "What was the strongest objection?", "behavioral.depth"),
+		},
+		store: store,
+	}
 	service := NewService(ServiceOptions{
 		Store: store,
-		Registry: &fakePromptResolver{resolution: registry.PromptResolution{
-			PromptVersion:       "followup.prompt.v1",
-			RubricVersion:       "followup.rubric.v1",
-			ModelProfileName:    "practice.follow_up.default",
-			FeatureFlag:         "follow_up_v1",
-			DataSourceVersion:   "registry.v1",
-			OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
-			UserMessageTemplate: "ask a follow up",
+		Registry: &fakePromptResolver{resolutions: map[string]registry.PromptResolution{
+			hintFeatureKey: {
+				PromptVersion:       "observe.prompt.v1",
+				RubricVersion:       "observe.rubric.v1",
+				ModelProfileName:    "practice.turn_observe.default",
+				FeatureFlag:         "observe_v1",
+				DataSourceVersion:   "registry.v1",
+				OutputSchema:        practiceOutputSchema(`{"type":"object","required":["cue","answerSummary"],"properties":{"cue":{"type":"string"},"answerSummary":{"type":"string"}}}`),
+				UserMessageTemplate: "observe answer",
+			},
+			followUpFeatureKey: {
+				PromptVersion:       "followup.prompt.v1",
+				RubricVersion:       "followup.rubric.v1",
+				ModelProfileName:    "practice.follow_up.default",
+				FeatureFlag:         "follow_up_v1",
+				DataSourceVersion:   "registry.v1",
+				OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
+				UserMessageTemplate: "ask a follow up",
+			},
 		}},
 		AI:    ai,
 		Now:   func() time.Time { return now },
@@ -55,16 +72,26 @@ func TestAppendSessionEventFollowUpRunsAIOutsideReservationAndCommits(t *testing
 	if err != nil {
 		t.Fatalf("AppendSessionEvent returned error: %v", err)
 	}
-	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "ai", "append-event"}) {
+	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "ai", "ai", "append-event"}) {
 		t.Fatalf("steps = %v", store.steps)
 	}
 	if !ai.calledOutsideTransaction {
-		t.Fatalf("follow-up AI must run outside repository transaction")
+		t.Fatalf("turn observation and follow-up AI must run outside repository transaction")
 	}
 	if result.AssistantAction.Type != assistantActionAskFollowUp ||
 		result.AssistantAction.QuestionText != "What was the strongest objection?" ||
 		result.AssistantAction.Provenance.PromptVersion != "followup.prompt.v1" {
 		t.Fatalf("unexpected follow-up action: %+v", result.AssistantAction)
+	}
+	if store.appendEvent.Outcome.AnswerSummary != "Candidate explained aligning 12 teams and measuring adoption." {
+		t.Fatalf("answer summary was not carried to the store: %+v", store.appendEvent.Outcome)
+	}
+	if len(ai.payloads) != 2 ||
+		ai.payloads[0].Metadata.FeatureKey != hintFeatureKey ||
+		ai.payloads[0].Metadata.TaskRun.Capability != aiclient.AITaskRunTaskHintGenerate ||
+		ai.payloads[1].Metadata.FeatureKey != followUpFeatureKey ||
+		ai.payloads[1].Metadata.TaskRun.Capability != aiclient.AITaskRunTaskFollowupGenerate {
+		t.Fatalf("unexpected AI payloads: %+v", ai.payloads)
 	}
 	if len(ai.payload.Metadata.OutputSchema) == 0 {
 		t.Fatalf("follow-up metadata OutputSchema must be populated")
@@ -437,6 +464,68 @@ func TestParseHintAcceptsLightweightObserveCueSchema(t *testing.T) {
 	}
 	if hint != "Anchor the answer in one measurable decision." {
 		t.Fatalf("hint = %q", hint)
+	}
+}
+
+func TestParseTurnObservationExtractsAnswerSummary(t *testing.T) {
+	obs, err := parseTurnObservation(`{"cue":"Anchor the answer.","answerSummary":"Candidate covered queue sizing, rollback, and adoption metrics.","severity":"nudge"}`)
+	if err != nil {
+		t.Fatalf("parseTurnObservation returned error: %v", err)
+	}
+	if obs.Hint != "Anchor the answer." || obs.AnswerSummary != "Candidate covered queue sizing, rollback, and adoption metrics." {
+		t.Fatalf("unexpected observation: %+v", obs)
+	}
+}
+
+func TestAppendSessionEventCompletedTurnPersistsObservationSummary(t *testing.T) {
+	now := time.Date(2026, 5, 26, 19, 12, 0, 0, time.UTC)
+	store := &recordingPlanStore{
+		eventReservation: SessionEventReservation{
+			UserID:  "user-1",
+			Session: sessionEventTestSession(1),
+			Plan: func() PlanRecord {
+				plan := sessionEventTestPlan(1, sharedtypes.PracticeGoalBaseline)
+				plan.TargetJobID = "target-1"
+				return plan
+			}(),
+			LatestTurn: sessionEventTestTurn(1),
+		},
+	}
+	service := NewService(ServiceOptions{
+		Store: store,
+		Registry: &fakePromptResolver{resolution: registry.PromptResolution{
+			PromptVersion:       "observe.prompt.v1",
+			RubricVersion:       "observe.rubric.v1",
+			ModelProfileName:    "practice.turn_observe.default",
+			FeatureFlag:         "none",
+			DataSourceVersion:   "registry.v1",
+			OutputSchema:        practiceOutputSchema(`{"type":"object","required":["cue","answerSummary"],"properties":{"cue":{"type":"string"},"answerSummary":{"type":"string"}}}`),
+			UserMessageTemplate: "Question: {{question}}\nPartial answer: {{partial_answer}}\nRespond in {{language}}.",
+		}},
+		AI:    &fakeAIClient{content: `{"cue":"Metric cue.","answerSummary":"Candidate described the service boundary, tradeoffs, and rollback path."}`, store: store},
+		Now:   func() time.Time { return now },
+		NewID: sequenceIDs("event-1", "outbox-1"),
+	})
+
+	result, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
+		UserID:        "user-1",
+		SessionID:     "session-1",
+		ClientEventID: "client-event-1",
+		Kind:          sessionEventKindAnswerSubmitted,
+		OccurredAt:    now,
+		Payload: map[string]any{
+			"turnId":     "turn-1",
+			"answerText": "I would isolate writes behind a queue, define rollback gates, and track adoption metrics.",
+		},
+	})
+	if err != nil {
+		t.Fatalf("AppendSessionEvent returned error: %v", err)
+	}
+	if result.AssistantAction.Type != assistantActionSessionCompleted {
+		t.Fatalf("expected completed action, got %+v", result.AssistantAction)
+	}
+	if store.appendEvent.Outcome.AnswerSummary != "Candidate described the service boundary, tradeoffs, and rollback path." {
+		t.Fatalf("answer summary was not persisted in outcome: %+v", store.appendEvent.Outcome)
 	}
 }
 

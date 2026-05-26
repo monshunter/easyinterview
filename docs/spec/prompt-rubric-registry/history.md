@@ -1,13 +1,15 @@
 # Prompt Rubric Registry History
 
-> **版本**: 2.9
+> **版本**: 2.11
 > **状态**: active
-> **更新日期**: 2026-05-24
+> **更新日期**: 2026-05-26
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-26 | 2.11 | real-provider manual UAT 修复 `practice.turn.lightweight_observe` schema 过硬问题：`answerSummary` 作为 report handoff 摘要字段保留在 prompt/example/parser 中，但不列入 schema required，避免真实 provider 偶发漏字段导致辅助 observation fail-close；practice owner 在缺失时生成降级摘要并记录错误码。 | e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel + BUG-0105 |
+| 2026-05-26 | 2.10 | real-provider manual UAT 修复 `report.question_assessment` output schema/prompt drift：`review_status` schema enum 对齐 B1/shared/DB 的 `open` / `queued_for_retry` / `resolved`，prompt example 不再使用旧值 `ready`；同时把 schema enum 必须对齐 consumer/DB 的约束写入 §4.1，防止真实 provider 输出 schema-valid 但 persistence-invalid。 | e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel + BUG-0105 |
 | 2026-05-24 | 2.9 | 修复 `004-real-model-profile-and-evals` review findings：评估指标示例把异常高分率对齐到现有 `score_outlier` rubric dimension（同时保留 report 业务可用 `report_calibration`）；扩展旧编号 / stale spec version zero-reference gate，覆盖短写 `002-real-model`、`003-grayscale`、`F3 后续 002` 与 active README / lint script 中的旧 spec 版本引用，同时排除 completed plan/history 历史记录；把 004 最终验证 gate 扩展为 `make lint` / `make test` / `make build` / `make eval-offline` / docs gates，避免跨语言资产局部绿灯。 | prompt-rubric-registry/004-real-model-profile-and-evals |
 | 2026-05-24 | 2.8 | 派生 `004-real-model-profile-and-evals` 评估 plan 并演进 LLM Judge 契约：`Judge` 接口（D-9）从返回单个 `Score` 演进为逐 rubric dimension 的 `[]Score`，`TestJudgeSignature` 随之更新；新增 D-15 锁定评估框架选型（Promptfoo / pnpm Node，经 registry 解析消费同一份 prompt 真理源，禁止复制第二份 prompt）、执行模式（录制 fixture 默认 + `EVAL_LIVE` opt-in，不进 `make test`）、LLM Judge 走 `judge.default` profile、评估维度复用现有 rubric `dimensions[]`；§3.2 待确认项收敛到 D-15；§5 边界 LLM Judge / 离线评估集 owner 指向 `004`；§6 C-7/C-10 改写为接口演进 / `make eval-offline` 口径并新增 C-14（judge.default 激活 + 非 placeholder coverage 门禁）与 C-15（eval prompt single-source）；§7 `004` 标为当前 active plan。plan-review v1.1 修复补充 A3 judge dispatch/`judge_compatible` adapter、非 placeholder provider registry、pinned Promptfoo dependency 与 active-scope zero-reference gate。spec.md Header 升至 v2.8。 | prompt-rubric-registry/004-real-model-profile-and-evals |
 | 2026-05-24 | 2.7 | 派生 `003-language-coordinate-simplification`：F3 baseline prompt/rubric truth source 从默认 `multi + en` 双坐标收敛为 canonical `multi` only；`language` 保留为 runtime output target 与 provenance 字段，`ResolveActive` 继续 exact → `multi` fallback；未来 language override 只有在有真实语义差异并有 spec/plan rationale 时才允许。 | prompt-rubric-registry/003-language-coordinate-simplification |

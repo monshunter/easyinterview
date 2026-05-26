@@ -1,17 +1,17 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-9 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，把 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 占位的 `make dev-up` / `make dev-down` 替换为真实实现并新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
+把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-10 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，把 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 占位的 `make dev-up` / `make dev-down` 替换为真实实现并新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO / Mailpit healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
 
-本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。
+本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。本次 1.9 revision 追加 Mailpit 本地邮件 sink，修复 manual UAT 需要账号但不应引入 `backend/cmd` 场景 helper 的边界问题。
 
 ## 2 背景
 
@@ -186,6 +186,33 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - `docs/spec/local-dev-stack/plans/INDEX.md` 把本 plan 从 active 切到 completed。
 - 调用 `/sync-doc-index --check` 确认 `docs/spec/INDEX.md` 与 plans/INDEX 对 Header 无 drift。
 
+### Phase 5: Mailpit 本地邮件 sink revision
+
+#### 5.1 默认依赖接入
+
+在 `deploy/dev-stack/docker-compose.yaml` 默认依赖中新增 `mailpit-dev`，镜像锁定 `axllent/mailpit:v1.30.0`，暴露 host Web UI `${MAILPIT_WEB_HOST_PORT:-8025}` 与 SMTP `${MAILPIT_SMTP_HOST_PORT:-1025}`，加入 `easyinterview-dev` network 与 dependency label，并配置 `/readyz` healthcheck。`DEPENDENCY_SERVICES`、端口冲突扫描、`make dev-pull`、`make dev-logs` 必须自动覆盖 Mailpit。
+
+#### 5.2 dev-doctor probe
+
+`dev-doctor.sh` 增加 `probe_mailpit`：容器状态必须 `running/healthy`，HTTP `GET /readyz` 必须 2xx；若本机有 `nc`，额外检查 SMTP host port 可连接。JSON summary 中 Mailpit 与 Postgres / Redis / MinIO 同为 dependency，C-1 依赖 OK 数从 3 调整为 4。
+
+#### 5.3 backend-auth 与 A4 配置边界
+
+后端 `cmd/api` 在 `EMAIL_PROVIDER=mailpit` 时必须注册 SMTP `DeliveryWriter`，通过 `auth_challenges` 查询收件邮箱、从 C1 transient delivery secret store 取 magic token，并将 magic-link 邮件投递到 Mailpit SMTP。`email_dispatch` payload 仍不得包含 raw email、magic token、完整 URL、邮件正文或标题；默认 `DevMailSink` 保留给单元测试和非 Mailpit 配置。A4 env/config 字典新增 `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL`。
+
+#### 5.4 manual UAT 账号入口回收
+
+`test/scenarios/manual-uat` 不再通过直接 DB session bootstrap 取得账号；runbook 改为 synthetic `.example.test` 邮箱 + Mailpit magic link。场景工具仍只允许 shell / Python，且不得新增 `backend/cmd` / Go helper 作为验收依赖。
+
+#### 5.5 Phase 5 自检
+
+- Focused backend auth tests：SMTP writer 通过 fake SendMail 捕获 magic link，缺 delivery secret 不发送，lookup error 不泄露 raw email/token。
+- Focused `cmd/api` test：`EMAIL_PROVIDER=mailpit` 时 `buildAuthService` 注册 `*auth.SMTPDeliveryWriter`。
+- Focused config test：canonical env bindings 覆盖 Mailpit SMTP keys。
+- Compose/static gates：`docker compose config --quiet`、`bash -n dev-doctor.sh`、`make -C deploy/dev-stack -n up`。
+- Dev-stack live gate：`make dev-up && make dev-doctor` 输出 Postgres / Redis / MinIO / Mailpit 四个依赖 OK。
+- Negative gate：`find test/scenarios -name '*.go' -type f` 无命中，`test ! -d backend/cmd/devsession && test ! -d backend/internal/devsession`。
+
 ## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-9 全部成立，证据贴入工作日志。
@@ -207,6 +234,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-26 | 1.9 | Mailpit revision：默认 dev-stack 新增 Mailpit，backend `EMAIL_PROVIDER=mailpit` 走 SMTP writer，manual UAT 账号入口回到真实 magic-link flow；`test/scenarios` 继续禁止新增 Go / `backend/cmd` 场景 helper。 | user feedback / manual UAT boundary fix |
 | 2026-05-22 | 1.8 | L2 runtime remediation：修复 Postgres 18 命名卷挂载路径，`easyinterview-pg-data` 改挂 `/var/lib/postgresql` 以兼容官方镜像 PGDATA 布局，并增加旧卷布局 preflight。 | local-dev-stack/001 L2 code review |
 | 2026-05-04 | 1.4 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 dev stack 范围。 | historical-spec-implementation-review/001 |
 | 2026-05-08 | 1.5 | 对齐 A3/B4 当前决策：默认 dev stack 删除未使用扩展依赖与 probe，仅保留普通 Postgres；未来需要时重新设计。 | ai-provider-and-model-routing/003 Phase 6 |

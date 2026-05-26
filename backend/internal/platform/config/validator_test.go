@@ -120,6 +120,22 @@ func TestDefaultAIDictionaryUsesProviderRegistryPaths(t *testing.T) {
 	}
 }
 
+func TestDefaultEmailDictionaryIncludesMailpitSMTPBindings(t *testing.T) {
+	envBindings := config.DefaultEnvBindings()
+	for key, want := range map[string]string{
+		"EMAIL_PROVIDER":         "email.provider",
+		"EMAIL_SMTP_HOST":        "email.smtpHost",
+		"EMAIL_SMTP_PORT":        "email.smtpPort",
+		"EMAIL_FROM_ADDRESS":     "email.fromAddress",
+		"EMAIL_VERIFY_BASE_URL":  "email.verifyBaseURL",
+		"EMAIL_PROVIDER_API_KEY": "email.providerApiKey",
+	} {
+		if got := envBindings[key]; got != want {
+			t.Fatalf("%s binding = %q, want %q", key, got, want)
+		}
+	}
+}
+
 func TestValidateProdMissingSecretFailsFast(t *testing.T) {
 	loader := newProdLoader(t, mapSecret{})
 	err := loader.Validate()

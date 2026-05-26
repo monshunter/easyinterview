@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.12
+> **版本**: 2.14
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-26
 
 ## 1 背景与目标
 
@@ -89,7 +89,7 @@
 
 ### 4.1 接口约束
 
-- `AIClient.Complete` 的入参 `payload` 必须包含 `messages[]` + `metadata`（业务侧的 `feature_key` / `prompt_version` / `rubric_version` / `language`，可选 `output_schema`）；client 不直接接受裸 prompt 字符串。
+- `AIClient.Complete` 的入参 `payload` 必须包含 `messages[]` + `metadata`（业务侧的 `feature_key` / `prompt_version` / `rubric_version` / `language`，可选 `output_schema`）；client 不直接接受裸 prompt 字符串。OpenAI-compatible provider 在存在 `output_schema` 时必须请求 JSON object response mode，并继续用本地 schema validator 做二次校验。
 - `CompletePayload.tools[]` 只表达 OpenAI-compatible tool schema 的 provider-neutral 子集：`name` / `description` / JSON schema `parameters`；`tool_choice` 只允许 `auto` / `none` / 指定 tool name。`CompleteResponse.tool_calls[]` 只返回 tool name 与 arguments JSON，业务不得读取 provider 私有字段。
 - `Transcribe` 的入参 `audio` 固定为内存字节 + filename + content type + 可选 language / prompt，provider adapter 以 multipart/form-data 调 `/v1/audio/transcriptions`；原始音频、转写全文和 tool args 明文不得写入 log / DB metadata / metric label。
 - `Synthesize` 的入参固定为文本 + voice / format / speaking rate 等 provider-neutral 参数 + metadata；provider adapter 返回音频 bytes 或 chunk metadata。TTS 输入文本和输出音频不得以明文写入 log / DB metadata / metric label。
@@ -118,6 +118,7 @@
 - 任何单元测试默认走 stub；不允许某测试在本地测试或未来远端 CI 中悄悄打到真 provider。
 - 任何非测试本地 app run、未来 staging / prod 部署都不得在被选中的真实 provider secret 缺失时静默回退到 stub；启动期 config validation 必须直接失败。
 - Registry / profile loader 必须有负向 fixture：未知 provider ref、capability 不匹配、secret env 缺失、unsupported capability 被调用、profile fallback 超 2 跳。
+- P0 full-funnel 真实 provider manual UAT 依赖的 active chat profiles 必须保留真实调用预算：`resume.parse.default` / `target.import.default` / `practice.first_question.default` / `practice.followup.default` 不低于 30s，`practice.turn_observe.default` 不低于 20s，`report.assessment.default` 不低于 30s，`report.generate.default` 不低于 60s；缩短这些 timeout 必须先提供真实 provider gate 证据。
 
 ### 4.5 Product/UI AI Capability Catalog
 
@@ -178,6 +179,7 @@
 | C-11 | Product/UI capability inventory drift | 新增 AI 场景或 UI 交互依赖 AI | `/plan-review` 或 lint 检查 | 本 spec §4.5、F3 feature_key 字典与 A3 profile catalog 同步更新；不得只在业务代码 hardcode 新 profile | 003 + F3 |
 | C-12 | Unsupported capability fail-closed | profile 使用 `realtime` / `judge`，但对应 adapter 未激活 | 运行时调用该 profile | 返回明确 unsupported capability 错误并记录 meta/log；不得降级到 chat 或 stub；对应 UI 能力必须 feature-gated | 003 + 002 |
 | C-13 | Tool call provider-neutral | profile 使用 `chat` capability 且 payload 携带 `tools[]` / `tool_choice` | 调用 `Complete` | openai_compatible adapter 映射 tool wire；响应返回 `tool_calls[]` 与 `finish_reason=tool_calls`；`AICallMeta.tool_invocations[]` 只含 tool name / argument hash / argument length，不含 args 明文 | 002 |
+| C-14 | 真实 provider full-funnel timeout budget | `config/ai-profiles.yaml` 中 P0 full-funnel 真实 provider profiles 已启用 | 运行 profile catalog gate | `resume.parse.default`、`target.import.default`、`practice.first_question.default`、`practice.followup.default`、`report.assessment.default` timeout ≥ 30s；`practice.turn_observe.default` timeout ≥ 20s；`report.generate.default` timeout ≥ 60s，避免 manual UAT 默认材料在真实 provider 下被过短预算误判失败 | e2e-scenarios-p0/002 |
 | C-14 | Provider-side streaming | profile 使用 `chat` capability | 调用 `Stream` 且 provider 返回 SSE delta / done | channel 按顺序发 `delta`，最终发 `done` 并关闭；malformed chunk / provider error / context cancel 发 `error` 或带 partial meta 的 terminal event，错误码来自 B1 `AI_*` | 002 |
 | C-15 | STT transcription | profile 使用 `stt` capability 且 provider ref 支持 OpenAI-compatible Audio Transcriptions | 调用 `Transcribe` | adapter 调 `/v1/audio/transcriptions`；返回 transcript + meta；缺 secret / provider error / unsupported profile fail-fast；log / DB / audit / metric label 不含音频或转写全文明文 | 002 |
 | C-16 | TTS synthesis | profile 使用 `tts` capability 且 provider ref 支持 provider-specific synthesis wire | 调用 `Synthesize` | adapter 返回音频 bytes 或 chunk metadata + meta；缺 secret / provider error / unsupported profile fail-fast；log / DB / audit / metric label 不含待合成文本或音频明文 | 004 |

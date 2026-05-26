@@ -94,6 +94,7 @@ def _hint_schema() -> dict:
         "required": ["cue"],
         "properties": {
             "cue": {"type": "string", "description": "Short cue."},
+            "answerSummary": {"type": "string", "description": "Short answer summary."},
             "severity": {
                 "type": "string",
                 "description": "Optional urgency.",

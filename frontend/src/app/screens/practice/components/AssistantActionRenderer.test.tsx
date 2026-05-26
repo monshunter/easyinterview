@@ -174,6 +174,24 @@ describe("AssistantActionRenderer", () => {
     expect(cbs.onAskQuestion).toHaveBeenCalledTimes(1);
   });
 
+  it("callback identity changes do not re-fire the current action", () => {
+    const action = makeAction({
+      type: "ask_follow_up",
+      questionText: "Follow up?",
+    });
+    const first = makeCallbacks();
+    const second = makeCallbacks();
+    const third = makeCallbacks();
+    const { rerender } = render(
+      <AssistantActionRenderer action={action} {...first} />,
+    );
+    rerender(<AssistantActionRenderer action={action} {...second} />);
+    rerender(<AssistantActionRenderer action={action} {...third} />);
+    expect(first.onAskFollowUp).toHaveBeenCalledTimes(1);
+    expect(second.onAskFollowUp).not.toHaveBeenCalled();
+    expect(third.onAskFollowUp).not.toHaveBeenCalled();
+  });
+
   it("a new action object (different reference) re-fires the matching callback", () => {
     const cbs = makeCallbacks();
     const { rerender } = render(
