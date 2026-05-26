@@ -976,52 +976,83 @@ func TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns(t *testing.T) {
 	plan.QuestionBudget = 2
 	h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeAssetID: "resume-asset-p0-050"}
 	started := h.startScenarioSession(t, plan.ID, "e2e-p0-050-start")
+	assertScenarioTaskRunDelta(t, h.aiTaskRuns.Rows(), []scenarioExpectedTaskRun{{
+		Capability:       aiclient.AITaskRunTaskQuestionGenerate,
+		FeatureKey:       "practice.session.first_question",
+		ModelProfileName: "practice.first_question.default",
+	}})
 	actions := make([]api.AssistantAction, 0, 5)
+	followTaskRunStart := len(h.aiTaskRuns.Rows())
 	followRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
 		ClientEventId: "e2e-p0-050-follow",
 		Kind:          "answer_submitted",
 		OccurredAt:    "2026-04-28T13:47:20Z",
 		Payload:       map[string]any{"turnId": started.CurrentTurn.Id, "answerText": "initial answer"},
 	}, http.StatusOK)
+	assertScenarioTaskRunDelta(t, h.aiTaskRuns.Rows()[followTaskRunStart:], []scenarioExpectedTaskRun{{
+		Capability:       aiclient.AITaskRunTaskHintGenerate,
+		FeatureKey:       hintFeatureKeyForScenario,
+		ModelProfileName: "practice.turn_observe.default",
+	}, {
+		Capability:       aiclient.AITaskRunTaskFollowupGenerate,
+		FeatureKey:       "practice.session.follow_up",
+		ModelProfileName: "practice.followup.default",
+	}})
 	var follow api.SessionEventResult
 	decodeJSON(t, followRaw, &follow)
 	actions = append(actions, follow.AssistantAction)
 
+	hintTaskRunStart := len(h.aiTaskRuns.Rows())
 	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
 		ClientEventId: "e2e-p0-050-hint",
 		Kind:          "hint_requested",
 		OccurredAt:    "2026-04-28T13:47:32Z",
 		Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
 	}, http.StatusOK)
+	assertScenarioTaskRunDelta(t, h.aiTaskRuns.Rows()[hintTaskRunStart:], []scenarioExpectedTaskRun{{
+		Capability:       aiclient.AITaskRunTaskHintGenerate,
+		FeatureKey:       hintFeatureKeyForScenario,
+		ModelProfileName: "practice.turn_observe.default",
+	}})
 	var out api.SessionEventResult
 	decodeJSON(t, raw, &out)
 	actions = append(actions, out.AssistantAction)
 
+	skipTaskRunStart := len(h.aiTaskRuns.Rows())
 	skipRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
 		ClientEventId: "e2e-p0-050-skip",
 		Kind:          "turn_skipped",
 		OccurredAt:    "2026-04-28T13:47:40Z",
 		Payload:       map[string]any{"turnId": started.CurrentTurn.Id, "nextQuestionText": "Next question."},
 	}, http.StatusOK)
+	assertScenarioTaskRunDelta(t, h.aiTaskRuns.Rows()[skipTaskRunStart:], nil)
 	var skipped api.SessionEventResult
 	decodeJSON(t, skipRaw, &skipped)
 	actions = append(actions, skipped.AssistantAction)
 
+	pauseTaskRunStart := len(h.aiTaskRuns.Rows())
 	pauseRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
 		ClientEventId: "e2e-p0-050-pause",
 		Kind:          "session_paused",
 		OccurredAt:    "2026-04-28T13:47:50Z",
 	}, http.StatusOK)
+	assertScenarioTaskRunDelta(t, h.aiTaskRuns.Rows()[pauseTaskRunStart:], nil)
 	var paused api.SessionEventResult
 	decodeJSON(t, pauseRaw, &paused)
 	actions = append(actions, paused.AssistantAction)
 
+	completeTaskRunStart := len(h.aiTaskRuns.Rows())
 	completeRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
 		ClientEventId: "e2e-p0-050-complete-action",
 		Kind:          "answer_submitted",
 		OccurredAt:    "2026-04-28T13:48:00Z",
 		Payload:       map[string]any{"turnId": skipped.Session.CurrentTurn.Id, "answerText": "final answer"},
 	}, http.StatusOK)
+	assertScenarioTaskRunDelta(t, h.aiTaskRuns.Rows()[completeTaskRunStart:], []scenarioExpectedTaskRun{{
+		Capability:       aiclient.AITaskRunTaskHintGenerate,
+		FeatureKey:       hintFeatureKeyForScenario,
+		ModelProfileName: "practice.turn_observe.default",
+	}})
 	var completed api.SessionEventResult
 	decodeJSON(t, completeRaw, &completed)
 	actions = append(actions, completed.AssistantAction)
@@ -1033,12 +1064,33 @@ func TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns(t *testing.T) {
 		}
 		assertProvenanceWireOnly(t, action.Provenance)
 	}
-	rows := h.aiTaskRuns.Rows()
-	if len(rows) != 3 ||
-		rows[1].Capability != aiclient.AITaskRunTaskFollowupGenerate ||
-		rows[2].Capability != aiclient.AITaskRunTaskHintGenerate ||
-		rows[2].FeatureKey != hintFeatureKeyForScenario {
-		t.Fatalf("runtime task run should carry feature key: %+v", h.aiTaskRuns.rows)
+}
+
+type scenarioExpectedTaskRun struct {
+	Capability       aiclient.AITaskRunCapability
+	FeatureKey       string
+	ModelProfileName string
+}
+
+func assertScenarioTaskRunDelta(t *testing.T, rows []aiclient.AITaskRunRow, expected []scenarioExpectedTaskRun) {
+	t.Helper()
+	if len(rows) != len(expected) {
+		t.Fatalf("task run delta = %+v, want %d rows", rows, len(expected))
+	}
+	for i, want := range expected {
+		row := rows[i]
+		if row.Capability != want.Capability ||
+			row.FeatureKey != want.FeatureKey ||
+			row.ModelProfileName != want.ModelProfileName ||
+			row.Status != aiclient.AITaskRunStatusSuccess ||
+			row.ValidationStatus != aiclient.ValidationStatusOK ||
+			row.FeatureFlag != "none" ||
+			row.DataSourceVersion != "registry.v1" ||
+			row.UserID != practiceHTTPScenarioUserAID ||
+			row.ResourceType != aiclient.AITaskRunResourceTargetJob ||
+			row.ResourceID != "01918fa0-0000-7000-8000-000000002050" {
+			t.Fatalf("task run delta[%d] drifted: %+v, want %+v", i, row, want)
+		}
 	}
 }
 
@@ -1607,7 +1659,10 @@ func (c *scenarioPracticeAIClient) Complete(ctx context.Context, profileName str
 		if hint == "" {
 			hint = "Anchor the answer in one measurable coordination decision."
 		}
-		content, err := json.Marshal(map[string]string{"hint": hint})
+		content, err := json.Marshal(map[string]string{
+			"hint":          hint,
+			"answerSummary": "Candidate anchored the answer in measurable evidence.",
+		})
 		if err != nil {
 			return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
 		}

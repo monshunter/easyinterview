@@ -1,8 +1,8 @@
 # 003 — Mode Policies and Provenance BDD Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-15
+> **更新日期**: 2026-05-26
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -50,14 +50,14 @@
 ## E2E.P0.050 AssistantAction provenance wire 边界 + ai_task_runs runtime 字段
 
 - [x] 在 `backend/cmd/api/practice_http_scenario_test.go` 新增 `TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns`
-- [x] 准备 fake F3 + fake AIClient（同时配置 `practice.session.follow_up` 与 `practice.turn.lightweight_observe`，hint path 返回当前 F3 prompt 要求的 `cue` JSON Content）+ fake AITaskRunWriter
+- [x] 准备 fake F3 + fake AIClient（同时配置 `practice.session.follow_up` 与 `practice.turn.lightweight_observe`，hint path 返回当前 parser 需要的 `cue` / `hint` + `answerSummary` JSON Content）+ fake AITaskRunWriter
 - [x] 实现 setup：写入 1 个 ready plan (mode=assisted, goal=baseline) + 1 个 running session；turn_count / question_budget 配置为 2，方便触发 session_completed
 - [x] 实现 trigger 序列：① answer_submitted（→ ask_follow_up，AI 调用）；② hint_requested（→ show_hint，AI 调用）；③ turn_skipped（→ ask_question，non-AI）；④ session_paused（→ session_wait，non-AI）；⑤ answer_submitted 达 question_budget（→ session_completed，non-AI）
 - [x] 实现 verify：
   - 每次 response.assistantAction.provenance JSON keys 集合严格等于 `{promptVersion, rubricVersion, modelId, language, featureFlag, dataSourceVersion}`
   - 任何 runtime 字段（`featureKey` / `feature_key` / `modelProfileName` / `provider` / `cost` / `latency` / `capability`）在 wire JSON 中零出现
-  - fake AITaskRunWriter 捕获 2 行 ai_task_runs：① task_type='followup_generate'；② task_type='hint_generate'；两行都包含 prompt_token_count / completion_token_count / latency_ms / model_profile_name / validation_status='succeeded'
-  - 后 3 个 non-AI action 不触发新 ai_task_runs 行
+  - fake AITaskRunWriter 按 trigger 增量捕获 ai_task_runs：start-session baseline 写 1 行 `question_generate`；第 1 次 `answer_submitted` 写 1 行 `hint_generate` answer_summary observation + 1 行 `followup_generate`；`hint_requested` 写 1 行 `hint_generate`；`turn_skipped` 与 `session_paused` 写 0 行；最终 `answer_submitted` 写 1 行 `hint_generate` answer_summary observation 且不写 completion-specific task run
+  - 所有成功行包含 `model_profile_name` / `feature_key` / `feature_flag` / `data_source_version` / `validation_status='ok'` typed columns；不存在 parse-after-success `AI_OUTPUT_INVALID` failed row
 - [x] 实现 cleanup
 - [x] 执行 `cd backend && go test ./cmd/api -run TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns -count=1`
 - [x] 记录验证证据

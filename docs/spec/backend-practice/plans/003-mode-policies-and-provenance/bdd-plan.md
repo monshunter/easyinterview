@@ -1,8 +1,8 @@
 # 003 — Mode Policies and Provenance BDD Plan
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-05-15
+> **更新日期**: 2026-05-26
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 **关联 BDD Checklist**: [bdd-checklist](./bdd-checklist.md)
@@ -45,7 +45,7 @@
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| `E2E.P0.050` | AssistantAction provenance wire 边界 + ai_task_runs runtime 字段 | 用户 A 拥有 `practice_sessions(status='running', mode='assisted', currentTurn.status='asked')`；F3 active；A3 fake AIClient 同时配置 `practice.session.follow_up`（answer_submitted → ask_follow_up 分支）与 `practice.turn.lightweight_observe`（hint_requested → show_hint 分支）；fake AITaskRunWriter 捕获所有 ai_task_runs typed columns 写入 | 用户 A 依次触发：① `answer_submitted` → AssistantAction.type=`ask_follow_up`（带 AI provenance）；② `hint_requested` → AssistantAction.type=`show_hint`（带 AI provenance）；③ `turn_skipped` → AssistantAction.type=`ask_question`（non-AI provenance）；④ `session_paused` → AssistantAction.type=`session_wait`（non-AI provenance）；⑤ 达到 `question_budget` 后 `answer_submitted` → AssistantAction.type=`session_completed`（non-AI provenance） | 每次 response 的 `assistantAction.provenance` 严格只含 6 个字段 `promptVersion` / `rubricVersion` / `modelId` / `language` / `featureFlag` / `dataSourceVersion`；任何 runtime 字段（`featureKey` / `feature_key` / `modelProfileName` / `provider` / `cost` / `latency` / `capability`）在 wire JSON 中零出现；fake AITaskRunWriter 捕获的 ai_task_runs 行包含 typed columns `task_type IN ('followup_generate', 'hint_generate')`、`validation_status='succeeded'`、`prompt_token_count` / `completion_token_count` / `latency_ms` / `model_profile_name`；non-AI action（`ask_question`、`session_wait`、`session_completed`）不触发 ai_task_runs 行写入 | `backend/cmd/api/practice_http_scenario_test.go::TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns` |
+| `E2E.P0.050` | AssistantAction provenance wire 边界 + ai_task_runs runtime 字段 | 用户 A 拥有 `practice_sessions(status='running', mode='assisted', currentTurn.status='asked')`；F3 active；A3 fake AIClient 同时配置 `practice.session.follow_up`（answer_submitted → ask_follow_up 分支）与 `practice.turn.lightweight_observe`（hint_requested → show_hint + answer_summary observation 分支）；fake AITaskRunWriter 捕获所有 ai_task_runs typed columns 写入 | 用户 A 依次触发：① `answer_submitted` → AssistantAction.type=`ask_follow_up`（带 AI provenance）；② `hint_requested` → AssistantAction.type=`show_hint`（带 AI provenance）；③ `turn_skipped` → AssistantAction.type=`ask_question`（non-AI provenance）；④ `session_paused` → AssistantAction.type=`session_wait`（non-AI provenance）；⑤ 达到 `question_budget` 后 `answer_submitted` → AssistantAction.type=`session_completed`（non-AI provenance） | 每次 response 的 `assistantAction.provenance` 严格只含 6 个字段 `promptVersion` / `rubricVersion` / `modelId` / `language` / `featureFlag` / `dataSourceVersion`；任何 runtime 字段（`featureKey` / `feature_key` / `modelProfileName` / `provider` / `cost` / `latency` / `capability`）在 wire JSON 中零出现；fake AITaskRunWriter 按 trigger 增量捕获 typed columns：start-session baseline 写 1 行 `question_generate`；第 1 次 `answer_submitted` 写 1 行 `hint_generate` answer_summary observation + 1 行 `followup_generate`；`hint_requested` 写 1 行 `hint_generate`；`turn_skipped` 与 `session_paused` 写 0 行；最终 `answer_submitted` 为 answer_summary observation 写 1 行 `hint_generate` 且不写 completion-specific task run；所有成功行 `validation_status='ok'`、携带 `model_profile_name` / `feature_key` / `feature_flag` / `data_source_version`，且不存在 parse-after-success `AI_OUTPUT_INVALID` failed row | `backend/cmd/api/practice_http_scenario_test.go::TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns` |
 
 ## 5 Phase 3 + Phase 4 — graceful degrade + 隐私 + regression
 
@@ -81,3 +81,9 @@
 | D-36（spec §3.1 锁定，由 003 Phase 0 narrowing 引入：hint / lightweight_observe AI graceful degrade narrowing） | `E2E.P0.051` |
 | D-37（plan-level：B4 `ai_task_runs.task_type` 扩值 `hint_generate`） | `E2E.P0.048` + `E2E.P0.050` + `E2E.P0.051` |
 | D-38（spec §3.1 锁定，由 003 Phase 0 narrowing 引入：hint turn-lifecycle 边界） | `E2E.P0.048`（DB 不递增 turn_count / outbox 行数不增 / audit 行数不增 / hint_text 仅 assisted 成功写 子断言） |
+
+## 9 修订记录
+
+| 日期 | 变更 |
+|------|------|
+| 2026-05-26 | 对齐 BUG-0105 后 `answer_submitted` 持久化 `answer_summary` 的当前语义：`E2E.P0.050` 改为按每个 trigger 的 ai_task_runs 增量断言，不再使用固定全局行数或下标证明 provenance。 |
