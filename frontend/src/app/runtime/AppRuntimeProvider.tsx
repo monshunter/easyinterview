@@ -36,6 +36,12 @@ export interface AppRuntimeValue {
 export interface AppRuntimeProviderProps {
   client: EasyInterviewClient;
   /**
+   * Public auth entry routes should not probe `/me` on first paint: an
+   * expected signed-out 401 is harmless to state, but Chrome still reports it
+   * as a failed resource and obscures real auth-chain errors during debug.
+   */
+  skipInitialAuthProbe?: boolean;
+  /**
    * Per-operation request options. Tests use this to inject `Prefer:
    * example=<scenario>` headers; production bootstrap leaves this undefined
    * and lets the mock transport / real backend resolve scenarios on its own.
@@ -67,13 +73,18 @@ function isUnauthenticatedError(error: Error): boolean {
 
 export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
   client,
+  skipInitialAuthProbe = false,
   requestOptions,
   children,
 }) => {
   const [runtime, setRuntime] = useState<RuntimeConfigState>({
     status: "loading",
   });
-  const [auth, setAuth] = useState<AuthState>({ status: "loading" });
+  const [auth, setAuth] = useState<AuthState>(
+    skipInitialAuthProbe
+      ? { status: "unauthenticated" }
+      : { status: "loading" },
+  );
   const [authNonce, setAuthNonce] = useState(0);
 
   useEffect(() => {
@@ -96,6 +107,14 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
 
   useEffect(() => {
     let cancelled = false;
+
+    if (skipInitialAuthProbe && authNonce === 0) {
+      setAuth({ status: "unauthenticated" });
+      return () => {
+        cancelled = true;
+      };
+    }
+
     setAuth({ status: "loading" });
 
     client
@@ -118,7 +137,7 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [client, requestOptions, authNonce]);
+  }, [client, requestOptions, authNonce, skipInitialAuthProbe]);
 
   const value = useMemo<AppRuntimeValue>(
     () => ({

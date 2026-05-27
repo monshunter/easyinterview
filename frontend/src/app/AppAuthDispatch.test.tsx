@@ -123,6 +123,44 @@ describe("App auth route dispatch", () => {
     );
   });
 
+  it("does not issue the initial /me probe on public auth entry routes", async () => {
+    const cases: Array<
+      "auth_login" | "auth_register" | "auth_verify" | "auth_reset"
+    > = ["auth_login", "auth_register", "auth_verify", "auth_reset"];
+    for (const name of cases) {
+      const calls: Array<{ url: string; method: string }> = [];
+      const fixtureFetch = createFixtureBackedFetch(
+        createFixtureRegistry([getRuntimeConfigFixture, getMeFixture]),
+      );
+      const spy: typeof fetch = async (input, init) => {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.href
+              : input.url;
+        const method = init?.method ?? "GET";
+        calls.push({ url, method });
+        return fixtureFetch(input, init);
+      };
+      const client = new EasyInterviewClient({ fetch: spy });
+
+      const { unmount } = render(
+        <App client={client} initialRoute={{ name, params: {} }} />,
+      );
+
+      await waitFor(() =>
+        expect(
+          calls.some((c) => c.url.endsWith("/api/v1/runtime-config")),
+        ).toBe(true),
+      );
+      expect(calls.filter((c) => c.url.endsWith("/api/v1/me"))).toHaveLength(
+        0,
+      );
+      unmount();
+    }
+  });
+
   it("wires auth_register submit through startAuthEmailChallenge and treats empty 202 as success", async () => {
     const calls: Array<{ url: string; method: string; body: unknown }> = [];
     const fixtureFetch = createFixtureBackedFetch(
@@ -274,6 +312,11 @@ describe("App auth route dispatch", () => {
       ).toBe(true),
     );
     await waitFor(() => expect(window.location.pathname).toBe("/workspace"));
+    await waitFor(() =>
+      expect(calls.filter((c) => c.url.endsWith("/api/v1/me"))).toHaveLength(
+        1,
+      ),
+    );
     expect(window.location.search).not.toContain("token=");
     expect(window.location.search).toContain("targetJobId=tj-1");
   });

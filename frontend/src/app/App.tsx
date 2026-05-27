@@ -23,7 +23,7 @@ import {
   shouldCarryInterviewContext,
   type Route,
 } from "./routes";
-import { useBrowserRoute } from "./routeStore";
+import { resolveInitialRoute, useBrowserRoute } from "./routeStore";
 import {
   AppRuntimeProvider,
   useAppRuntimeOptional,
@@ -251,8 +251,9 @@ const InterviewContextRouteSync: FC<{ route: Route }> = ({ route }) => {
 const AppRuntimeShell: FC<{
   client: EasyInterviewClient;
   requestOptions?: AppRuntimeProviderProps["requestOptions"];
+  skipInitialAuthProbe?: boolean;
   children: ReactNode;
-}> = ({ client, requestOptions, children }) => {
+}> = ({ client, requestOptions, skipInitialAuthProbe = false, children }) => {
   const prefs = useDisplayPreferences();
   const localizedRequestOptions = useMemo(
     () => withRuntimeLocaleHeaders(prefs.lang, requestOptions),
@@ -261,6 +262,7 @@ const AppRuntimeShell: FC<{
   return (
     <AppRuntimeProvider
       client={client}
+      skipInitialAuthProbe={skipInitialAuthProbe}
       requestOptions={localizedRequestOptions}
     >
       {children}
@@ -274,13 +276,21 @@ export const App: FC<AppProps> = ({
   requestOptions,
   children,
 }) => {
+  const skipInitialAuthProbe = useMemo(
+    () => shouldSkipInitialAuthProbe(initialRoute),
+    [initialRoute],
+  );
   const inner = (
     <AppShell initialRoute={initialRoute}>{children}</AppShell>
   );
   return (
     <DisplayPreferencesProvider>
       {client ? (
-        <AppRuntimeShell client={client} requestOptions={requestOptions}>
+        <AppRuntimeShell
+          client={client}
+          requestOptions={requestOptions}
+          skipInitialAuthProbe={skipInitialAuthProbe}
+        >
           {inner}
         </AppRuntimeShell>
       ) : (
@@ -289,3 +299,13 @@ export const App: FC<AppProps> = ({
     </DisplayPreferencesProvider>
   );
 };
+
+function shouldSkipInitialAuthProbe(initialRoute?: LooseRoute): boolean {
+  const route = resolveInitialRoute({ initialRoute });
+  return (
+    route.name === "auth_login" ||
+    route.name === "auth_register" ||
+    route.name === "auth_reset" ||
+    route.name === "auth_verify"
+  );
+}
