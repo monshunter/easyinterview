@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **更新日期**: 2026-05-27
-> **Owner plan**: [`e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel`](../../../docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/plan.md)
+> **Owner plan**: [`e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel`](../../../../docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/plan.md)
 > **BDD scenario**: `E2E.P0.100`
 
 本场景用于统一管理真实 provider 全漏斗联调：AI Agent 先执行环境与材料 preflight，人工或浏览器 Agent 再补齐真实浏览器、真实 backend/frontend、真实 AI provider 的脱敏证据。流程覆盖 Home -> 导入 JD -> Parse -> Workspace -> Practice -> Generating -> Report -> 进入下一轮。
@@ -90,6 +90,8 @@ Agent 阶段会把结果写入：
 
 如果 `deploy/dev-stack/.env` 缺真实 provider / auth / frontend real-mode 配置，或浏览器证据尚未准备好，`result.json` 会标记 `MANUAL_REQUIRED`。补齐 `.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/evidence.md` 后可重跑 `trigger.sh` / `verify.sh`。
 
+`setup.sh` 会清理上一轮 `evidence.md` 并在 `setup.env` 写入本轮 `RUN_ID`。人工或浏览器 Agent 补证时，`evidence.md` 必须包含同一个 `run_id`；`trigger.sh` 只会在 evidence 属于本轮且通过脱敏红线扫描后写入 `PASS`。
+
 ## 6 启动真实联调环境
 
 ### 6.1 外部依赖与 migration
@@ -176,6 +178,7 @@ pnpm --filter @easyinterview/frontend dev
 
 记录到 `.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/evidence.md`，只写脱敏摘要：
 
+- run_id（来自同一输出目录下 `setup.env` 的 `RUN_ID`）
 - provider ref（例如 `deepseek`）
 - model profile（例如 `target.import.default`、`practice.first_question.default`、`report.generate.default`）
 - model id

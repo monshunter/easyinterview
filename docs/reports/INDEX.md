@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-27](./2026-05-27-scenario-env-review-followups-assessment.md) | Scenario Env Review Follow-ups 交付复盘 | #assessment |
 | [2026-05-27](./2026-05-27-ai-raw-output-debug-switch-assessment.md) | AI Raw Output Debug Switch 交付复盘 | #assessment |
 | [2026-05-27](./2026-05-27-real-provider-hybrid-scenario-unification-assessment.md) | Real Provider Hybrid Scenario Unification 交付复盘 | #assessment |
 | [2026-05-27](./2026-05-27-scenario-env-independent-lifecycle-assessment.md) | Scenario Env Independent Lifecycle 交付复盘 | #assessment |

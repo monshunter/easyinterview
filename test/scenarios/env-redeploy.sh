@@ -65,7 +65,19 @@ redeploy_backend() {
 }
 
 redeploy_frontend() {
-  run_root_shell "pnpm --filter @easyinterview/frontend build"
+  run_root_shell '
+set -euo pipefail
+if [ ! -s deploy/dev-stack/.env ]; then
+  echo "env-redeploy: missing deploy/dev-stack/.env; run test/scenarios/env-setup.sh or copy deploy/dev-stack/.env.example" >&2
+  exit 1
+fi
+set -a
+. deploy/dev-stack/.env
+set +a
+: "${VITE_EI_API_MODE:?env-redeploy: deploy/dev-stack/.env must set VITE_EI_API_MODE}"
+: "${VITE_EI_API_BASE_URL:?env-redeploy: deploy/dev-stack/.env must set VITE_EI_API_BASE_URL}"
+pnpm --filter @easyinterview/frontend build
+'
 }
 
 case "$TARGET" in

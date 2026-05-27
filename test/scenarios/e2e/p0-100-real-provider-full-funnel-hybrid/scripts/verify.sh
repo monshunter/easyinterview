@@ -5,7 +5,30 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-100-real-provider-full-funnel-hybrid"
 LOG="$OUTPUT_DIR/trigger.log"
+EVIDENCE_FILE="$OUTPUT_DIR/evidence.md"
 RESULT_FILE="$OUTPUT_DIR/result.json"
+
+scan_evidence_redline() {
+  local file="$1"
+  local forbidden
+  for forbidden in \
+    "AI_PROVIDER_API_KEY" \
+    "SESSION_COOKIE_SECRET" \
+    "AUTH_CHALLENGE_TOKEN_PEPPER" \
+    "ei_session=" \
+    "auth/email/verify\\?token=" \
+    "prompt body" \
+    "response body" \
+    "prompt:" \
+    "response:" \
+    "provider response" \
+    "sk-[A-Za-z0-9_-]{12,}"; do
+    if grep -Eiq -- "$forbidden" "$file"; then
+      echo "verify: sensitive marker leaked into evidence: $forbidden" >&2
+      return 1
+    fi
+  done
+}
 
 if [ ! -s "$LOG" ]; then
   echo "verify: missing trigger.log" >&2
@@ -36,7 +59,7 @@ for forbidden in \
   fi
 done
 
-python3 - "$RESULT_FILE" <<'PY'
+RESULT="$(python3 - "$RESULT_FILE" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -52,6 +75,20 @@ if payload.get("mode") != "hybrid":
     raise SystemExit("verify: wrong mode")
 if payload.get("result") not in {"PASS", "MANUAL_REQUIRED"}:
     raise SystemExit("verify: hybrid result must be PASS or MANUAL_REQUIRED")
+print(payload.get("result"))
 PY
+)"
+
+if [ "$RESULT" = "PASS" ]; then
+  if [ ! -s "$EVIDENCE_FILE" ]; then
+    echo "verify: PASS requires evidence.md" >&2
+    exit 1
+  fi
+  scan_evidence_redline "$EVIDENCE_FILE"
+  if ! grep -q -- "PASS redacted evidence present" "$LOG"; then
+    echo "verify: PASS requires trigger redacted evidence marker" >&2
+    exit 1
+  fi
+fi
 
 echo "verify: ok"

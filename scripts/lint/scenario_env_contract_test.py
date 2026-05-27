@@ -45,6 +45,7 @@ def test_top_level_scenario_env_scripts_exist_and_are_decoupled() -> None:
 def test_top_level_scenario_env_scripts_support_dry_run() -> None:
     cases = [
         (SCENARIO_ROOT / ENV_SCRIPTS["setup"], ["--dry-run"]),
+        (SCENARIO_ROOT / ENV_SCRIPTS["setup"], ["--with-migrations", "--dry-run"]),
         (SCENARIO_ROOT / ENV_SCRIPTS["status"], ["--dry-run"]),
         (SCENARIO_ROOT / ENV_SCRIPTS["verify"], ["--dry-run"]),
         (SCENARIO_ROOT / ENV_SCRIPTS["cleanup"], ["--dry-run", "--with-volumes"]),
@@ -65,10 +66,28 @@ def test_redeploy_script_documents_host_run_artifact_boundary() -> None:
 
     assert "go build ./cmd/..." in text
     assert "pnpm --filter @easyinterview/frontend build" in text
+    assert "deploy/dev-stack/.env" in text
+    assert "VITE_EI_API_MODE" in text
+    assert "VITE_EI_API_BASE_URL" in text
+    assert "set -a" in text
     assert "make dev-up" in text
     assert "make dev-doctor" in text
     assert "go run ./backend/cmd/api" not in text
     assert "pnpm --filter @easyinterview/frontend dev" not in text
+
+
+def test_setup_migrations_load_dev_stack_env_and_derive_database_url() -> None:
+    text = (SCENARIO_ROOT / ENV_SCRIPTS["setup"]).read_text(encoding="utf-8")
+
+    assert "deploy/dev-stack/.env" in text
+    assert "set -a" in text
+    assert "POSTGRES_HOST_PORT" in text
+    assert "POSTGRES_USER" in text
+    assert "POSTGRES_PASSWORD" in text
+    assert "POSTGRES_DB" in text
+    assert "urllib.parse" in text
+    assert "make migrate-up" in text
+    assert 'DATABASE_URL="${DATABASE_URL:-' not in text
 
 
 def test_root_makefile_exposes_scenario_env_targets() -> None:
@@ -147,10 +166,13 @@ def test_scenario_docs_describe_independent_env_lifecycle() -> None:
 def test_real_provider_hybrid_uat_is_registered_as_e2e_scenario() -> None:
     index = (SCENARIO_ROOT / "e2e" / "INDEX.md").read_text(encoding="utf-8")
     scenario_dir = SCENARIO_ROOT / "e2e" / "p0-100-real-provider-full-funnel-hybrid"
+    readme = (scenario_dir / "README.md").read_text(encoding="utf-8")
 
     assert "E2E.P0.100" in index
     assert "`p0-100-real-provider-full-funnel-hybrid/`" in index
     assert "| hybrid | Ready |" in index
+    assert "../../../../docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/plan.md" in readme
+    assert "](../../../docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/plan.md)" not in readme
 
     assert scenario_dir.exists()
     for rel_path in (
@@ -200,6 +222,27 @@ def test_real_provider_hybrid_uat_uses_dev_stack_env_as_single_source() -> None:
     assert "AI_DEBUG_PRINT_RAW_OUTPUT" in trigger
     assert 'AI_DEBUG_PRINT_RAW_OUTPUT:-' in trigger
     assert "LOCAL_ENV=" not in trigger
+
+
+def test_real_provider_hybrid_evidence_must_be_current_and_redacted() -> None:
+    scenario_dir = SCENARIO_ROOT / "e2e" / "p0-100-real-provider-full-funnel-hybrid"
+    setup = (scenario_dir / "scripts" / "setup.sh").read_text(encoding="utf-8")
+    trigger = (scenario_dir / "scripts" / "trigger.sh").read_text(encoding="utf-8")
+    verify = (scenario_dir / "scripts" / "verify.sh").read_text(encoding="utf-8")
+    readme = (scenario_dir / "README.md").read_text(encoding="utf-8")
+
+    assert "evidence.md" in setup
+    assert "rm -f" in setup
+    assert "RUN_ID=" in setup
+    assert "RUN_ID" in trigger
+    assert "evidence run_id does not match setup run" in trigger
+    assert "AI_PROVIDER_API_KEY" in trigger
+    assert "prompt body" in trigger
+    assert "response body" in trigger
+    assert "sk-" in trigger
+    assert "scan_evidence_redline" in trigger
+    assert "scan_evidence_redline" in verify
+    assert "run_id" in readme
 
 
 def test_scenario_run_skill_requires_env_preflight_and_hybrid_results() -> None:
