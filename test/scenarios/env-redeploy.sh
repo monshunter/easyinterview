@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# Framework-owned redeploy entrypoint for host-run local scenario environments.
+
+set -euo pipefail
+
+SCENARIO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCENARIO_DIR/../.." && pwd)"
+TARGET="all"
+DRY_RUN=0
+
+usage() {
+  cat <<'USAGE'
+Usage: test/scenarios/env-redeploy.sh [deps|backend|frontend|all] [--dry-run]
+
+Rebuild/redeploy repo components for the shared local scenario environment.
+In the current host-run topology, redeploy refreshes external dependencies and
+build artifacts. It does not start long-running backend/frontend processes.
+USAGE
+}
+
+run_root() {
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf 'dry-run: %s\n' "$*"
+    return 0
+  fi
+  (cd "$REPO_ROOT" && "$@")
+}
+
+run_root_shell() {
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf 'dry-run: %s\n' "$1"
+    return 0
+  fi
+  (cd "$REPO_ROOT" && bash -lc "$1")
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    deps|backend|frontend|all)
+      TARGET="$1"
+      ;;
+    --dry-run)
+      DRY_RUN=1
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "env-redeploy: unknown argument: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+redeploy_deps() {
+  run_root make dev-up
+  run_root make dev-doctor
+}
+
+redeploy_backend() {
+  run_root_shell "cd backend && go build ./cmd/..."
+}
+
+redeploy_frontend() {
+  run_root_shell "pnpm --filter @easyinterview/frontend build"
+}
+
+case "$TARGET" in
+  deps)
+    redeploy_deps
+    ;;
+  backend)
+    redeploy_backend
+    ;;
+  frontend)
+    redeploy_frontend
+    ;;
+  all)
+    redeploy_deps
+    redeploy_backend
+    redeploy_frontend
+    ;;
+esac

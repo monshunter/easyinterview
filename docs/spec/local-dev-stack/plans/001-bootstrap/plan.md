@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: completed
-> **更新日期**: 2026-05-26
+> **更新日期**: 2026-05-27
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-10 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，把 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 占位的 `make dev-up` / `make dev-down` 替换为真实实现并新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO / Mailpit healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
 
-本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。本次 1.9 revision 追加 Mailpit 本地邮件 sink，修复 manual UAT 需要账号但不应引入 `backend/cmd` 场景 helper 的边界问题。
+本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。本次 1.10 revision 把共享测试环境与本地前后端联调环境 lifecycle 从具体场景脚本中抽离到 framework-owned `test/scenarios/env-*.sh` 与根 `scenario-env-*` Make target，使 `/scenario-env` / `/scenario-redeploy` 能按用户意图独立 setup / status / verify / cleanup / redeploy。
 
 ## 2 背景
 
@@ -24,7 +24,7 @@
 - **Plan 类型**: `tooling + dev-infra + code-internal`。本 plan 修改本地 docker-compose dev stack、Make targets、doctor 脚本、README 与健康检查约定；不产生用户可见 UI、HTTP API 行为或业务 workflow。
 - **TDD 策略**: 历史实现以 checklist 中每个 phase 的 `自检` 命令作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，优先以 `make dev-*`、`dev-doctor` JSON schema/probe、端口冲突复现、volume idempotency 和 README smoke 作为 focused assertions。
 - **BDD 策略**: BDD 不适用。本 plan 只交付开发环境基础设施；后续 P0 用户行为场景由 `e2e-scenarios-p0` 或具体 feature plan 维护 BDD。
-- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、端口冲突复现、Postgres connectivity probe、AI provider fail-fast smoke、`sync-doc-index --check`、Markdown link check、`git diff --check`。
+- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、`make scenario-env-setup` / `status` / `verify` / `cleanup` / `redeploy` dry-run 与 focused live gate、端口冲突复现、Postgres connectivity probe、AI provider fail-fast smoke、`sync-doc-index --check`、Markdown link check、`git diff --check`。
 
 ## 4 实施步骤
 
@@ -213,6 +213,57 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - Dev-stack live gate：`make dev-up && make dev-doctor` 输出 Postgres / Redis / MinIO / Mailpit 四个依赖 OK。
 - Negative gate：`find test/scenarios -name '*.go' -type f` 无命中，`test ! -d backend/cmd/devsession && test ! -d backend/internal/devsession`。
 
+### Phase 6: 独立 scenario/local integration environment lifecycle revision
+
+#### 6.1 framework-owned env scripts
+
+在 `test/scenarios/` 新增顶层环境入口，作为 `scenario-env` / `scenario-redeploy` skill 的唯一 repo-tracked 执行层：
+
+- `env-setup.sh`：默认执行 `make dev-up` + `make dev-doctor`；`--with-migrations` 时在默认 `DATABASE_URL=postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable` 下执行 `make migrate-up`。该脚本只能准备共享本地环境，不得引用具体 `test/scenarios/e2e/p0-*` 场景目录。
+- `env-status.sh`：只读执行 `make dev-doctor`，用于 skill status 与人工巡检。
+- `env-verify.sh`：执行 `make dev-doctor` 并检查 JSON summary 全 OK；可作为 `/scenario-run` 前置环境 gate。
+- `env-cleanup.sh`：默认执行 `make dev-down` 并保留命名卷；只有显式 `--with-volumes` / `--reset` 时才执行 `DEV_RESET_FORCE=1 make dev-reset`。
+- `env-redeploy.sh [deps|backend|frontend|all]`：`deps` 重跑 `make dev-up` + `make dev-doctor`；`backend` 执行 `cd backend && go build ./cmd/...`；`frontend` 执行 `pnpm --filter @easyinterview/frontend build`；`all` 顺序覆盖 deps/backend/frontend。当前 host-run 口径下 redeploy 表示刷新本地依赖与 repo-tracked build artifacts，不启动长期 backend/frontend 进程、不调用真实 LLM。
+
+所有 env 脚本必须支持 `--dry-run`，输出将执行的 repo command，便于 skill 在不改变环境时解释下一步，也便于 unit/static gate 验证 Makefile 集成。脚本必须用 shell/Python 实现，不新增 `backend/cmd` / Go helper。
+
+#### 6.2 根 Makefile 集成
+
+根 `Makefile` 新增：
+
+- `scenario-env-setup`
+- `scenario-env-status`
+- `scenario-env-verify`
+- `scenario-env-cleanup`
+- `scenario-env-redeploy`
+
+这些 target 只委派 `test/scenarios/env-*.sh`，并透传 `ARGS` / `TARGET` 等显式参数；不得把业务场景 ID 或 `manual-uat/full-funnel` 路径写死进 Makefile。
+
+#### 6.3 skill 集成
+
+更新 `.agent-skills/scenario-env/SKILL.md`：
+
+- description 与 Usage 覆盖 setup / verify / cleanup / status / redeploy / rebuild。
+- setup / verify / cleanup / status 优先调用 `test/scenarios/env-*.sh`，再退到 README 手动引导；不得从具体场景脚本提取环境 bootstrap。
+- local integration 解释必须区分 Docker Compose 外部依赖、host-run backend/frontend command、repo-tracked scenario runner；不能承诺在无真实 secret 的上下文中自动拉起长期 backend/frontend 进程。
+
+更新 `.agent-skills/scenario-redeploy/SKILL.md`：把 `test/scenarios/env-redeploy.sh [component]` 作为当前 repo 首选入口，并声明当前 host-run redeploy 是 build artifact 刷新，不是 Kind / Helm / cluster rollout。
+
+#### 6.4 场景 README 与 dev-stack README 对齐
+
+更新 `test/scenarios/README.md`、`test/scenarios/e2e/README.md`、`deploy/dev-stack/README.md`：
+
+- 明确 `env-*.sh` 是共享环境入口，独立于具体场景用例。
+- 明确具体场景 `setup.sh` 只准备场景数据/输出目录，不能私有化共享环境 bootstrap。
+- 明确最新 manual UAT / 前后端联调可先通过 env setup + redeploy 准备基础环境，再按 runbook 启动真实 backend/frontend 进程并人工/Agent 验证目标场景。
+
+#### 6.5 Phase 6 自检
+
+- Red/green static contract：新增 `scripts/lint/scenario_env_contract_test.py`，断言 `env-*.sh` 存在、可执行、`bash -n` 通过、支持 `--dry-run`、不引用 `p0-*` 场景目录或 `backend/cmd` 场景 helper。
+- Makefile dry-run：`make scenario-env-setup ARGS=--dry-run`、`make scenario-env-status ARGS=--dry-run`、`make scenario-env-verify ARGS=--dry-run`、`make scenario-env-cleanup ARGS="--dry-run --with-volumes"`、`make scenario-env-redeploy TARGET=backend ARGS=--dry-run` 均输出对应脚本命令。
+- Skill contract：focused pytest 断言 `scenario-env` / `scenario-redeploy` skill 使用顶层 env scripts，并支持 redeploy/rebuild 意图。
+- Live gate：执行 `test/scenarios/env-setup.sh`、`test/scenarios/env-verify.sh`、`test/scenarios/env-cleanup.sh`，证明环境可独立启动/验证/清理；若 Docker/端口/镜像阻塞，记录具体 blocker，不用具体场景 runner 代替。
+
 ## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-9 全部成立，证据贴入工作日志。
@@ -234,6 +285,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-27 | 1.10 | Environment lifecycle revision：把共享测试环境与本地前后端联调环境 lifecycle 抽到 `test/scenarios/env-*.sh`、根 `scenario-env-*` Make target 与 scenario skill 入口，支持独立 setup/status/verify/cleanup/redeploy。 | user objective / scenario-env independent lifecycle |
 | 2026-05-26 | 1.9 | Mailpit revision：默认 dev-stack 新增 Mailpit，backend `EMAIL_PROVIDER=mailpit` 走 SMTP writer，manual UAT 账号入口回到真实 magic-link flow；`test/scenarios` 继续禁止新增 Go / `backend/cmd` 场景 helper。 | user feedback / manual UAT boundary fix |
 | 2026-05-22 | 1.8 | L2 runtime remediation：修复 Postgres 18 命名卷挂载路径，`easyinterview-pg-data` 改挂 `/var/lib/postgresql` 以兼容官方镜像 PGDATA 布局，并增加旧卷布局 preflight。 | local-dev-stack/001 L2 code review |
 | 2026-05-04 | 1.4 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 dev stack 范围。 | historical-spec-implementation-review/001 |

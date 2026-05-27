@@ -47,11 +47,28 @@ test/scenarios/
 - `test/scenarios/_shared/scripts/common.sh`
 - `test/scenarios/_shared/scripts/image-cache.sh`
 - `test/scenarios/env-setup.sh`
+- `test/scenarios/env-status.sh`
+- `test/scenarios/env-verify.sh`
 - `test/scenarios/env-cleanup.sh`
+- `test/scenarios/env-redeploy.sh`
 
 如果这些脚本不存在，Agent 必须退回到 README 中定义的手工或 repo-tracked 命令，不能自行杜撰。
 
 `manual-uat/` 只允许作为已登记 owner plan 的 companion 材料目录出现。新增或大幅修改人工验收材料前，必须先更新对应 spec/plan/checklist/BDD，并在 manual runbook 顶部链接 owner plan。
+
+## 3.1 共享环境生命周期
+
+共享测试环境与本地前后端联调环境的生命周期由顶层 `test/scenarios/env-*.sh` 脚本管理，独立于任何具体场景目录：
+
+| 入口 | 作用 | 根 Makefile 等价入口 |
+|------|------|----------------------|
+| `test/scenarios/env-setup.sh` | 启动 dev-stack 外部依赖并可选执行 migrations | `make scenario-env-setup` |
+| `test/scenarios/env-status.sh` | 输出当前 dev-doctor JSON 状态 | `make scenario-env-status` |
+| `test/scenarios/env-verify.sh` | 验证共享环境 readiness | `make scenario-env-verify` |
+| `test/scenarios/env-cleanup.sh` | 清理共享环境，默认保留命名卷 | `make scenario-env-cleanup` |
+| `test/scenarios/env-redeploy.sh` | 按 `deps/backend/frontend/all` 刷新依赖或 build artifacts | `make scenario-env-redeploy TARGET=<target>` |
+
+具体场景的 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` 只负责场景数据、runner 执行证据和场景自有清理，不得把共享环境 bootstrap 私有化，也不得引用另一个具体场景作为环境前提。开发者可以只执行 `/scenario-env setup` 或 `make scenario-env-setup` 构建环境，然后人工或由 Agent 运行目标场景；最新 manual UAT / 本地联调也遵循该边界，真实 backend/frontend 长驻进程仍按 runbook 在宿主机启动。
 
 ## 4 首次使用
 

@@ -11,7 +11,12 @@
 - 环境类型：本地 runner（Go / Vitest / Playwright / browser smoke 等，按具体场景 README 声明）
 - 环境模式：单一 repo-tracked 场景契约；外部依赖按需通过 `make dev-up` 启动
 - 不默认创建或要求 Kind / K8s / Helm；若未来 release owner 引入部署级场景，必须先修订本 README 和对应 owner plan
-- 若提供 `test/scenarios/env-setup.sh` / `test/scenarios/env-cleanup.sh`，则它们是首选入口。
+- 共享环境 lifecycle 首选顶层入口：`test/scenarios/env-setup.sh` / `test/scenarios/env-status.sh` / `test/scenarios/env-verify.sh` / `test/scenarios/env-cleanup.sh` / `test/scenarios/env-redeploy.sh`，或根 Makefile 等价入口 `make scenario-env-*`。这些入口独立于任何具体场景目录。
+- 具体场景 `setup.sh` 只做场景数据准备和输出目录初始化，不得私有化共享环境 bootstrap，也不得把某个具体场景作为另一个场景的环境前置。
+
+### 2.1 手动引导
+
+当顶层 env 脚本不可用时，手动引导顺序是：`make dev-up` → `make dev-doctor` → 按目标场景 README 启动 repo-tracked runner。需要本地前后端联调或 manual UAT 时，先用 `test/scenarios/env-setup.sh` 构建共享依赖环境，再按 runbook 在宿主机启动 backend/frontend；真实 secret 只放在未跟踪本地文件中。
 
 ## 3 场景设计要求
 

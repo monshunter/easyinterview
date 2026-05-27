@@ -1,8 +1,8 @@
 # Local Dev Stack
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-05-26
+> **更新日期**: 2026-05-27
 
 本目录承载 [local-dev-stack/001-bootstrap](../../docs/spec/local-dev-stack/plans/001-bootstrap/plan.md) 的运行时实现。默认 `make dev-up` 只启动 P0 闭环必须的外部依赖；backend / frontend 默认由宿主机 dev command 管理，只有组件 owner 明确接入 optional compose app service 时才进入本栈。**默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider**；本地邮件通过轻量 Mailpit 依赖承接。
 
@@ -55,6 +55,11 @@
 | `make dev-reset` | 停止容器并 **删除** 三个命名卷（C-5）；交互式 `read` 确认；`DEV_RESET_FORCE=1` 跳过确认 |
 | `make dev-logs` | 汇总打印近期容器日志；`SERVICE=<name>` 限定到单个 service |
 | `make dev-pull` | 预拉锁定 tag 的依赖镜像（慢网络） |
+| `make scenario-env-setup` | 通过 `test/scenarios/env-setup.sh` 准备共享测试 / 本地联调环境 |
+| `make scenario-env-status` | 通过 `test/scenarios/env-status.sh` 输出共享环境状态 |
+| `make scenario-env-verify` | 通过 `test/scenarios/env-verify.sh` 验证共享环境 readiness |
+| `make scenario-env-cleanup` | 通过 `test/scenarios/env-cleanup.sh` 清理共享环境，默认保留卷 |
+| `make scenario-env-redeploy` | 通过 `test/scenarios/env-redeploy.sh` 按 `TARGET=deps|backend|frontend|all` 刷新依赖或 build artifacts |
 
 `dev-up` 启动顺序：先只读检查 Postgres 18 命名卷布局是否仍是旧 `/var/lib/postgresql/data` 或半初始化状态 → 按 `--wait` 等 4 个依赖 healthy → 启动 `minio-init` 并轮询其退出码 (timeout 60s) → 调用 `dev-doctor.sh` 作为最终 gate；任何阶段失败时 `up` 退出非 0 并把每个 dependency / init 服务最近 50 行 `docker logs` 打到 stderr。
 
@@ -89,7 +94,8 @@ Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启
 本目录是 **应用本地开发依赖** 的 Docker Compose 路径；`test/scenarios/` 是 BDD / E2E 场景契约路径。两条路径互不替代：
 
 - 应用 dev → 用 `make dev-up` 启动 Postgres / Redis / MinIO / Mailpit 依赖；backend/frontend 进程默认在宿主机单独启动并消费这些连接串。
-- BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。当前 P0 场景默认由 shell / Python 脚本编排既有产品 runner（例如已有包测试、Vitest、Playwright、browser smoke）验证同一行为契约；场景专属依赖不得新增正式 `backend/cmd` / Go helper 进程，不要求 Kind / K8s / Helm 环境。
+- BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。共享环境生命周期由 `test/scenarios/env-setup.sh` / `test/scenarios/env-status.sh` / `test/scenarios/env-verify.sh` / `test/scenarios/env-cleanup.sh` / `test/scenarios/env-redeploy.sh` 管理，根 Makefile 提供 `make scenario-env-*` 等价入口；这些入口独立于具体场景目录。当前 P0 场景默认由 shell / Python 脚本编排既有产品 runner（例如已有包测试、Vitest、Playwright、browser smoke）验证同一行为契约；场景专属依赖不得新增正式 `backend/cmd` / Go helper 进程，不要求 Kind / K8s / Helm 环境。
+- 本地前后端联调 / manual UAT → 先用 `make scenario-env-setup` 准备 host-run 依赖环境，再按 runbook 在宿主机启动 backend/frontend 进程；`make scenario-env-redeploy TARGET=backend|frontend|all` 只刷新 build artifacts，不替代携带真实 secret 的长期进程启动。
 - 需要真实 AI provider 的应用部署不得降级到单元测试 stub；`APP_ENV=test` 以外缺真实 provider config 时必须 fail-fast。
 
 ## 6 故障排查

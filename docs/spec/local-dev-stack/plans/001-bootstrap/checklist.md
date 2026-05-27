@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: completed
-> **更新日期**: 2026-05-26
+> **更新日期**: 2026-05-27
 
 **关联计划**: [plan](./plan.md)
 
@@ -52,3 +52,16 @@
   <!-- verified: 2026-05-26 command="test ! -d backend/cmd/devsession && test ! -d backend/internal/devsession && test -z \"$(find test/scenarios -name '*.go' -type f -print -quit)\" && test ! -e test/scenarios/manual-uat/full-funnel/scripts/bootstrap_account.py" evidence="no devsession backend cmd/internal package, no Go files under test/scenarios, and no direct-session bootstrap_account.py helper" -->
 - [x] 5.6 Mailpit live gate：`make dev-up && make dev-doctor` 输出 Postgres / Redis / MinIO / Mailpit 四个 dependency OK；若无法拉取镜像或本机端口占用，记录 blocker 与复现输出
   <!-- verified: 2026-05-26 command="make dev-up; make dev-doctor" evidence="first docker pull attempt hit registry EOF; retry succeeded. make dev-up completed and standalone make dev-doctor returned postgres-dev/redis-dev/minio-dev/mailpit-dev all OK with summary ok=4 degraded=0 down=0 total=4" -->
+
+## Phase 6: 独立 scenario/local integration environment lifecycle revision
+
+- [x] 6.1 新增 `test/scenarios/env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-cleanup.sh` / `env-redeploy.sh` 顶层环境入口：setup/status/verify/cleanup/redeploy 独立于具体 `p0-*` 场景目录；支持 `--dry-run`；cleanup 默认保留卷、显式 `--with-volumes` 才 reset；redeploy 支持 `deps|backend|frontend|all`；验证：focused static contract red/green + `bash -n` + dry-run 输出。
+  <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="red failed before env scripts existed; green passed 3 tests covering top-level scripts, bash -n, --dry-run, no p0/manual coupling, and redeploy host-run artifact boundary" -->
+- [x] 6.2 根 `Makefile` 集成 `scenario-env-setup` / `scenario-env-status` / `scenario-env-verify` / `scenario-env-cleanup` / `scenario-env-redeploy`，只委派顶层 env scripts 并透传 `ARGS` / `TARGET`；验证：`make scenario-env-* ARGS=--dry-run` 与 `TARGET=backend` dry-run。
+  <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="4 tests passed, including root Makefile scenario-env-* target and dry-run delegation coverage" -->
+- [x] 6.3 更新 `.agent-skills/scenario-env/SKILL.md` 与 `.agent-skills/scenario-redeploy/SKILL.md`，让 skill 根据用户意图优先调用顶层 env scripts，覆盖 setup/verify/status/cleanup/rebuild/redeploy，并明确 host-run frontend/backend 边界；验证：focused skill contract pytest。
+  <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="5 tests passed, including scenario-env/scenario-redeploy top-level env script and host-run redeploy contract coverage" -->
+- [x] 6.4 更新 `test/scenarios/README.md`、`test/scenarios/e2e/README.md`、`deploy/dev-stack/README.md`，说明共享环境入口与具体场景 runner、manual UAT / 本地联调 runbook 的边界；验证：docs contract pytest + `make docs-check`。
+  <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q && make docs-check" evidence="6 scenario env contract tests passed; docs-check reported zero Header/INDEX drift and link checks OK" -->
+- [x] 6.5 Phase 6 live gate：执行 `test/scenarios/env-setup.sh`、`test/scenarios/env-verify.sh`、`test/scenarios/env-cleanup.sh`，证明环境可独立启动/验证/清理；若 Docker/端口/镜像阻塞，记录 blocker 与输出，不用具体场景 runner 代替。
+  <!-- verified: 2026-05-27 command="test/scenarios/env-setup.sh && test/scenarios/env-verify.sh && test/scenarios/env-cleanup.sh" evidence="setup reused already healthy dev-stack; verify returned postgres-dev/redis-dev/minio-dev/mailpit-dev OK with summary ok=4 degraded=0 down=0 total=4; cleanup stopped containers and removed easyinterview-dev network while preserving named volumes" -->

@@ -1,13 +1,14 @@
 ---
 name: scenario-env
-description: "IMPORTANT: Invoke this skill automatically when user asks to create, verify, cleanup, or inspect the local scenario test environment. Do NOT run environment commands without invoking this skill first. Manage the scenario environment defined by the repository's framework docs. Read `test/scenarios/README.md` and the active suite README before commands, prefer repo-tracked scripts when present, and automate setup, verification, cleanup, and status. Triggers on /scenario-env or when user asks to create, verify, cleanup, or check status of a test environment."
+description: "IMPORTANT: Invoke this skill automatically when user asks to create, start, verify, cleanup, inspect, rebuild, or redeploy the local scenario or local frontend/backend integration environment. Do NOT run environment commands without invoking this skill first. Manage the environment defined by the repository's framework docs, preferring top-level `test/scenarios/env-*.sh` scripts and root `scenario-env-*` Make targets. Read `test/scenarios/README.md` and the active suite README before commands. Triggers on /scenario-env or when user asks to setup/start/status/verify/cleanup/rebuild/redeploy a test environment."
 ---
 
 # Scenario Environment Skill
 
-Manage the local scenario environment defined by the repository's framework docs.
-Treat the framework and suite README documents as the only source of truth for
-environment topology, bootstrap, verify, and cleanup behavior.
+Manage the local scenario/local integration environment defined by the
+repository's framework docs. Treat `test/scenarios/README.md`, the active suite
+README, and the top-level env scripts as the source of truth for environment
+topology, bootstrap, verify, cleanup, rebuild, and redeploy behavior.
 
 ## Usage
 
@@ -15,8 +16,10 @@ environment topology, bootstrap, verify, and cleanup behavior.
 /scenario-env setup
 /scenario-env verify
 /scenario-env cleanup
-/scenario-env cleanup --with-helpers
+/scenario-env cleanup --with-volumes
 /scenario-env status
+/scenario-env redeploy [deps|backend|frontend|all]
+/scenario-env rebuild [backend|frontend|all]
 /scenario-env -h
 ```
 
@@ -26,133 +29,119 @@ environment topology, bootstrap, verify, and cleanup behavior.
 - Active suite source of truth: the active suite `README.md`
 - Active scenario index: the active suite `INDEX.md`
 
-Read these documents before any environment command. Do not infer cluster topology,
-component names, namespaces, helper scripts, or deploy commands from historical projects.
+Read these documents before any environment command. Do not infer cluster
+topology, component names, namespaces, helper scripts, or deploy commands from
+historical projects.
+
+In this repo the environment is host-run: Docker Compose provides external
+dependencies, backend/frontend processes are normally started by host commands,
+and repo-tracked scenario runners consume that environment. Do not promise to
+start long-running backend/frontend processes when required local secrets are
+not present; use redeploy/rebuild for build artifacts and report the runbook
+command boundary instead.
 
 ## Workflow Rules
 
 - Always read the framework README and active suite README first.
-- Prefer repo-tracked helper scripts when present; otherwise follow the README steps manually.
-- Treat shared-environment contamination separately from scenario-specific cleanup.
+- Prefer top-level repo-tracked environment scripts when present:
+  `test/scenarios/env-setup.sh`, `test/scenarios/env-status.sh`,
+  `test/scenarios/env-verify.sh`, `test/scenarios/env-cleanup.sh`, and
+  `test/scenarios/env-redeploy.sh`.
+- Use root Make aliases when a user asks for Makefile integration:
+  `make scenario-env-setup`, `make scenario-env-status`,
+  `make scenario-env-verify`, `make scenario-env-cleanup`, and
+  `make scenario-env-redeploy`.
+- Do not extract shared environment bootstrap from a specific scenario
+  directory. Specific scenario scripts may consume the environment, but they do
+  not own shared setup/status/verify/cleanup/redeploy.
+- Treat shared-environment contamination separately from scenario-specific
+  cleanup.
 - Use this recovery ladder:
   1. targeted cleanup of dirty resources
   2. targeted redeploy of the failing component or dependency
   3. full environment rebuild
-- Do not jump straight to full rebuild unless the README says the environment is unrecoverable.
+- Do not jump straight to full rebuild unless the README says the environment
+  is unrecoverable.
 
 ## Workflow: setup
 
-### Step 1: Read framework and suite README
+1. Read `test/scenarios/README.md` and the active suite `README.md`.
+2. Capture environment identity, bootstrap entrypoint, optional helper scripts,
+   and required smoke checks from the docs.
+3. Check documented local prerequisites.
+4. Run setup in this order:
+   - `test/scenarios/env-setup.sh`
+   - `make scenario-env-setup` when the user explicitly wants the Makefile entrypoint
+   - the exact bootstrap command documented in the README
+   - the 手动引导 (manual bootstrap) commands from the suite README, only when no
+     repo-tracked env script exists
+5. On success, report environment identity, primary endpoints/access commands,
+   and the next recommended smoke check.
+6. On failure, identify the failing stage, gather documented quick diagnostics,
+   and narrow recovery through the ladder above.
 
-Read:
-- `test/scenarios/README.md`
-- active suite `README.md`
-
-Capture these runtime facts from the docs before executing commands:
-- environment identity / active context
-- bootstrap entrypoint
-- optional helper scripts
-- required smoke checks
-
-### Step 2: Check local prerequisites
-
-Confirm the documented prerequisites are available.
-If helper scripts exist, only use them when the framework or suite docs explicitly document them.
-
-### Step 3: Run setup entrypoint
-
-Preferred order:
-
-1. repo-tracked helper script if the README uses it
-2. the exact bootstrap command documented in the README
-3. the 手动引导 (manual bootstrap) commands from the suite README — use this fallback only when the framework and suite docs explicitly declare that no repo-tracked env script exists
-
-If none of the above are available, report the gap and stop.
-
-Treat documented setup scripts as re-entrant unless the README explicitly says otherwise.
-
-### Step 4: Handle result
-
-**On success**:
-- report environment identity
-- report primary endpoints or access commands from the README
-- report the next recommended smoke check
-
-**On failure**:
-1. identify the failing stage from setup output
-2. gather the documented quick diagnostics
-3. narrow the follow-up using the recovery ladder
-4. only recommend full rebuild after narrower recovery steps are exhausted
+Treat documented setup scripts as re-entrant unless the README explicitly says
+otherwise.
 
 ## Workflow: verify
 
-### Step 1: Read framework and suite README
-
-Read the same two truth sources again before verification.
-
-### Step 2: Confirm environment exists
-
-Use the environment identity documented by the suite README.
-
-If the target environment does not exist, report that and suggest `/scenario-env setup`.
-
-### Step 3: Run health checks
-
-Preferred order:
-
-1. suite-specific verify script if documented
-2. component verify helpers when documented
-3. README-defined smoke checks
-
-### Step 4: Report health summary
-
-Summarize:
-- environment presence
-- core services / pods readiness
-- failing components or smoke checks
-- recommended next action (targeted cleanup, targeted redeploy, or rebuild)
+1. Read the same two truth sources again before verification.
+2. Confirm the documented environment exists; if not, suggest `/scenario-env setup`.
+3. Run health checks in this order:
+   - `test/scenarios/env-verify.sh`
+   - `make scenario-env-verify` when the user explicitly wants the Makefile entrypoint
+   - suite-specific verify script if documented
+   - component verify helpers when documented
+   - README-defined smoke checks
+4. Summarize environment presence, readiness, failing components, and the next
+   action.
 
 ## Workflow: cleanup
 
-### Step 1: Read framework and suite README
-
-Read both truth sources before cleanup.
-
-### Step 2: Run cleanup entrypoint
-
-Preferred order:
-
-1. repo-tracked cleanup helper if present and documented
-2. the exact cleanup sequence from the README
-
-### Step 3: Optionally stop helper services
-
-If `--with-helpers` is set, follow the documented helper cleanup flow when present. Otherwise, skip silently.
-
-### Step 4: Verify cleanup result
-
-Confirm:
-- the documented cluster/context is gone, or returned to the documented clean state
-- no obvious shared-resource contamination remains
+1. Read `test/scenarios/README.md` and the active suite README.
+2. Run cleanup in this order:
+   - `test/scenarios/env-cleanup.sh`
+   - `make scenario-env-cleanup` when the user explicitly wants the Makefile entrypoint
+   - the exact cleanup sequence from the README
+3. Use `--with-volumes` only when the user explicitly asks to reset/delete
+   shared volumes or the README says a full reset is required. Default cleanup
+   preserves named volumes.
+4. If the README documents helper services outside the default env scripts,
+   follow that helper cleanup flow when requested. Otherwise skip silently.
+5. Verify that the environment returned to the documented clean state and that
+   no obvious shared-resource contamination remains.
 
 ## Workflow: status
 
-### Step 1: Read framework and suite README
+1. Read `test/scenarios/README.md` and the active suite README.
+2. Collect status in this order:
+   - `test/scenarios/env-status.sh`
+   - `make scenario-env-status` when the user explicitly wants the Makefile entrypoint
+   - the documented status surfaces for the environment
+3. Report active context, readiness summary, contamination/drift signals, and
+   next recommended action.
 
-Read the two truth sources before summarizing status.
+## Workflow: redeploy / rebuild
 
-### Step 2: Collect status
+Use this workflow when the user asks to rebuild, redeploy, refresh, or recompile
+the local scenario/local integration environment.
 
-Prefer documented status helpers. Otherwise inspect:
-the documented status surfaces for the environment.
-
-### Step 3: Summarize
-
-Report:
-- active cluster/context
-- readiness summary
-- obvious contamination or drift signals
-- next recommended action
+1. Read `test/scenarios/README.md` and the active suite README.
+2. Resolve the requested target:
+   - `deps`: refresh Docker Compose external dependencies via env redeploy.
+   - `backend`: refresh backend build artifacts.
+   - `frontend`: refresh frontend build artifacts.
+   - `all`: refresh dependencies, backend, and frontend.
+3. Run in this order:
+   - `test/scenarios/env-redeploy.sh [deps|backend|frontend|all]`
+   - `make scenario-env-redeploy TARGET=<target>`
+   - suite-documented exact rebuild/redeploy command
+4. In the current host-run topology, redeploy/rebuild is not a Kind, Helm, or
+   cluster rollout. It refreshes local dependencies and build artifacts. If the
+   user needs a long-running backend/frontend process for manual UAT, point to
+   the documented runbook command and keep secrets in local ignored files.
+5. Run `/scenario-env verify` after redeploy unless the user asked for dry-run
+   or inspection-only status.
 
 ## Key Paths
 
@@ -161,7 +150,10 @@ Report:
 | `test/scenarios/README.md` | framework truth source |
 | active suite `README.md` | active suite truth source |
 | active suite `INDEX.md` | scenario index |
-| `test/scenarios/env-setup.sh` | optional setup entrypoint |
-| `test/scenarios/env-verify.sh` | optional verify entrypoint |
-| `test/scenarios/env-cleanup.sh` | optional cleanup entrypoint |
+| `test/scenarios/env-setup.sh` | shared environment setup entrypoint |
+| `test/scenarios/env-status.sh` | shared environment status entrypoint |
+| `test/scenarios/env-verify.sh` | shared environment verify entrypoint |
+| `test/scenarios/env-cleanup.sh` | shared environment cleanup entrypoint |
+| `test/scenarios/env-redeploy.sh` | shared host-run rebuild/redeploy entrypoint |
+| `make scenario-env-redeploy` | Makefile alias for rebuild/redeploy |
 | `test/scenarios/_shared/scripts/` | optional shared helpers |

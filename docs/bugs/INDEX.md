@@ -146,6 +146,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0109](./BUG-0109.md) | scenario environment lifecycle was coupled to individual scenario runners | medium | resolved | 2026-05-27 | `fix(test): decouple scenario env lifecycle (BUG-0109)` |
 | [BUG-0108](./BUG-0108.md) | P0.050 task-run gate lagged answer summary observation | medium | resolved | 2026-05-26 | `fix(backend-practice): align p0050 task-run gate (BUG-0108)` |
 | [BUG-0105](./BUG-0105.md) | manual full-funnel real-provider gate missed runtime-only blockers | high | resolved | 2026-05-26 | `fix(manual-uat): close real provider full funnel blockers (BUG-0105)` |
 | [BUG-0104](./BUG-0104.md) | manual UAT account helper crossed into backend cmd before Mailpit boundary | medium | resolved | 2026-05-26 | `fix(local-dev-stack): add mailpit for local auth testing (BUG-0104)` |

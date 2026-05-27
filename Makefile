@@ -7,8 +7,14 @@ ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 GIT_HOOKS_DIR := $(ROOT_DIR)/scripts/git-hooks
 EVAL_OUTPUT_DIR ?= $(ROOT_DIR)/.test-output/evals
 EVAL_PROMPTFOO_CONFIG := $(EVAL_OUTPUT_DIR)/promptfooconfig.yaml
+SCENARIO_ENV_SETUP := $(ROOT_DIR)/test/scenarios/env-setup.sh
+SCENARIO_ENV_STATUS := $(ROOT_DIR)/test/scenarios/env-status.sh
+SCENARIO_ENV_VERIFY := $(ROOT_DIR)/test/scenarios/env-verify.sh
+SCENARIO_ENV_CLEANUP := $(ROOT_DIR)/test/scenarios/env-cleanup.sh
+SCENARIO_ENV_REDEPLOY := $(ROOT_DIR)/test/scenarios/env-redeploy.sh
+TARGET ?= all
 
-.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-legacy lint-runner-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-secrets-pattern lint-observability lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-legacy lint-runner-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-secrets-pattern lint-observability lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull scenario-env-setup scenario-env-status scenario-env-verify scenario-env-cleanup scenario-env-redeploy codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -111,6 +117,21 @@ dev-logs: ## Tail dev-stack container logs (SERVICE=<name> to scope)
 
 dev-pull: ## Pre-pull dev-stack pinned images for slow-network bootstrap
 	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" pull
+
+scenario-env-setup: ## Setup shared scenario/local-integration environment (ARGS="--with-migrations")
+	@$(SCENARIO_ENV_SETUP) $(ARGS)
+
+scenario-env-status: ## Print shared scenario/local-integration environment status
+	@$(SCENARIO_ENV_STATUS) $(ARGS)
+
+scenario-env-verify: ## Verify shared scenario/local-integration environment readiness
+	@$(SCENARIO_ENV_VERIFY) $(ARGS)
+
+scenario-env-cleanup: ## Cleanup shared scenario/local-integration environment (ARGS="--with-volumes")
+	@$(SCENARIO_ENV_CLEANUP) $(ARGS)
+
+scenario-env-redeploy: ## Rebuild/redeploy local env components (TARGET=deps|backend|frontend|all)
+	@$(SCENARIO_ENV_REDEPLOY) $(TARGET) $(ARGS)
 
 codegen: codegen-conventions codegen-events codegen-openapi ## Run all code generators in dependency order (B1 conventions → B3 events → B2 openapi)
 
