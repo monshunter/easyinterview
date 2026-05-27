@@ -165,6 +165,38 @@ def test_real_provider_hybrid_uat_is_registered_as_e2e_scenario() -> None:
         assert (scenario_dir / rel_path).exists(), f"{rel_path} is required for E2E.P0.100"
 
     assert not (SCENARIO_ROOT / "manual-uat").exists()
+    assert not (scenario_dir / "env-template" / "dev-real.env.example").exists()
+
+
+def test_real_provider_hybrid_uat_uses_dev_stack_env_as_single_source() -> None:
+    scenario_dir = SCENARIO_ROOT / "e2e" / "p0-100-real-provider-full-funnel-hybrid"
+    dev_env_example = (REPO_ROOT / "deploy" / "dev-stack" / ".env.example").read_text(
+        encoding="utf-8"
+    )
+
+    for required in (
+        "SESSION_COOKIE_SECRET=",
+        "AUTH_CHALLENGE_TOKEN_PEPPER=",
+        "AI_PROVIDER_BASE_URL=https://api.deepseek.com",
+        "AI_PROVIDER_API_KEY=",
+        "VITE_EI_API_MODE=real",
+        "VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1",
+    ):
+        assert required in dev_env_example
+
+    for path in (
+        scenario_dir / "README.md",
+        scenario_dir / "data" / "seed-input.md",
+        scenario_dir / "scripts" / "setup.sh",
+        scenario_dir / "scripts" / "trigger.sh",
+    ):
+        text = path.read_text(encoding="utf-8")
+        assert "dev-real.env" not in text
+        assert "env-template/dev-real.env.example" not in text
+
+    trigger = (scenario_dir / "scripts" / "trigger.sh").read_text(encoding="utf-8")
+    assert 'DEV_STACK_ENV="$REPO_ROOT/deploy/dev-stack/.env"' in trigger
+    assert "LOCAL_ENV=" not in trigger
 
 
 def test_scenario_run_skill_requires_env_preflight_and_hybrid_results() -> None:

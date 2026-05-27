@@ -65,9 +65,25 @@
 
 ## 4 配置
 
-`deploy/dev-stack/.env.example` 列出所有可调字段，字段名与 [secrets-and-config §3.1.1 P0 env 字典](../../docs/spec/secrets-and-config/spec.md#311-p0-必备-env-key-字典) 对齐。`make dev-up` 第一次执行时若 `.env` 不存在会自动从 `.env.example` 复制；`.env` 由根 `.gitignore` 忽略，**真实 `AI_PROVIDER_API_KEY` 不得提交**。
+`deploy/dev-stack/.env.example` 列出所有可调字段，字段名与 [secrets-and-config §3.1.1 P0 env 字典](../../docs/spec/secrets-and-config/spec.md#311-p0-必备-env-key-字典) 对齐。`make dev-up` 第一次执行时若 `.env` 不存在会自动从 `.env.example` 复制；`.env` 由根 `.gitignore` 忽略，**真实 `AI_PROVIDER_API_KEY`、auth secret 和其它本地 secret 不得提交**。
 
-### 4.1 AI provider 配置
+`deploy/dev-stack/.env` 是本地真实联调的唯一 env 文件：共享依赖、host-run backend、frontend real mode 和真实 AI provider 适配都从这里读取。具体场景不得再维护独立 `.env`；如场景需要额外输入，应放入场景 `data/` 或 `.test-output/` 证据文件，而不是复制一份 env。
+
+### 4.1 应用运行配置
+
+host-run backend 必须从同一个 `.env` 读取：
+
+- `APP_ENV=dev`
+- `APP_LISTEN_ADDR=:8080`
+- `SESSION_COOKIE_SECRET`
+- `AUTH_CHALLENGE_TOKEN_PEPPER`
+
+frontend real mode 也必须从同一个 `.env` 读取：
+
+- `VITE_EI_API_MODE=real`
+- `VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1`
+
+### 4.2 AI provider 配置
 
 非测试本地 app run 与后续部署都连接真实 AI provider / OpenAI-compatible endpoint；当前 repo-tracked 开发主力为 DeepSeek：
 
@@ -77,7 +93,7 @@
 - 缺 registry/profile 路径或当前 profile 选中的 provider secret 时，启用 AIClient 的组件 fail-fast，`make dev-doctor` 对该组件报 DOWN/DEGRADED 且 reason 指向缺真实 AI provider 配置（C-9）。
 - **不允许** 把本地部署降级到单元测试 stub。stub 仅在 `APP_ENV=test`（单元测试 / 离线契约测试）下使用，由 [A3 ai-provider-and-model-routing](../../docs/spec/ai-provider-and-model-routing/spec.md) 承接。
 
-### 4.2 本地邮件配置
+### 4.3 本地邮件配置
 
 本地 passwordless 登录默认走 Mailpit：
 

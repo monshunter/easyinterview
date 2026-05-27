@@ -11,7 +11,7 @@
 
 本目录已经有 owner plan，且本地邮箱入口已由 `deploy/dev-stack` 的 Mailpit 承接。因此：
 
-- AI Agent 可自动执行：共享环境 setup/verify、场景材料结构检查、本地 env 文件 preflight、mock/stub 禁用检查、result artifact 写入。
+- AI Agent 可自动执行：共享环境 setup/verify、场景材料结构检查、`deploy/dev-stack/.env` preflight、mock/stub 禁用检查、result artifact 写入。
 - 需要真实本地上下文：真实 `AI_PROVIDER_API_KEY`、host-run backend/frontend 进程、Mailpit magic-link 浏览器操作和脱敏证据记录。
 - 缺少真实本地上下文时，场景结果是 `MANUAL_REQUIRED`，不是 `PASS`，也不是框架 `ERROR`。
 
@@ -49,11 +49,13 @@
 
 ## 4 环境变量
 
-复制模板并只在本地填写：
+本地真实联调只使用一个 env 文件：`deploy/dev-stack/.env`。它是 `make dev-up` / `scenario-env-setup`、host-run backend、frontend real mode 和真实 AI provider 的共同配置源，不为本场景维护独立 `.env`。
+
+首次运行时可以从 dev-stack 模板生成并只在本地填写：
 
 ```bash
-cp test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/env-template/dev-real.env.example .test-output/e2e/p0-100-real-provider-full-funnel-hybrid/dev-real.env
-$EDITOR .test-output/e2e/p0-100-real-provider-full-funnel-hybrid/dev-real.env
+cp deploy/dev-stack/.env.example deploy/dev-stack/.env
+$EDITOR deploy/dev-stack/.env
 ```
 
 必须填写的真实值：
@@ -62,9 +64,9 @@ $EDITOR .test-output/e2e/p0-100-real-provider-full-funnel-hybrid/dev-real.env
 - `AUTH_CHALLENGE_TOKEN_PEPPER`
 - `AI_PROVIDER_API_KEY`
 
-本地邮箱默认值已在模板中给出：`EMAIL_PROVIDER=mailpit`、`EMAIL_SMTP_HOST=127.0.0.1`、`EMAIL_SMTP_PORT=1025`、`EMAIL_VERIFY_BASE_URL=http://127.0.0.1:8080/api/v1/auth/email/verify`。不要填写真实个人邮箱账号或外部 SMTP 凭证。
+`deploy/dev-stack/.env.example` 已给出本地邮箱默认值：`EMAIL_PROVIDER=mailpit`、`EMAIL_SMTP_HOST=127.0.0.1`、`EMAIL_SMTP_PORT=1025`、`EMAIL_VERIFY_BASE_URL=http://127.0.0.1:8080/api/v1/auth/email/verify`。不要填写真实个人邮箱账号或外部 SMTP 凭证。
 
-模板中的 `AI_PROVIDER_BASE_URL` 默认是 `https://api.deepseek.com`；如使用其他 OpenAI-compatible endpoint，必须同步确认 `config/ai-providers.yaml` / `config/ai-profiles.yaml` 支持。
+`AI_PROVIDER_BASE_URL` 默认是 `https://api.deepseek.com`；如使用其他 OpenAI-compatible endpoint，必须同步确认 `config/ai-providers.yaml` / `config/ai-profiles.yaml` 支持。
 
 ## 5 AI Agent 入口
 
@@ -83,7 +85,7 @@ Agent 阶段会把结果写入：
 .test-output/e2e/p0-100-real-provider-full-funnel-hybrid/result.json
 ```
 
-如果本地真实 provider env 或浏览器证据尚未准备好，`result.json` 会标记 `MANUAL_REQUIRED`。补齐 `.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/evidence.md` 后可重跑 `trigger.sh` / `verify.sh`。
+如果 `deploy/dev-stack/.env` 缺真实 provider / auth / frontend real-mode 配置，或浏览器证据尚未准备好，`result.json` 会标记 `MANUAL_REQUIRED`。补齐 `.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/evidence.md` 后可重跑 `trigger.sh` / `verify.sh`。
 
 ## 6 启动真实联调环境
 
@@ -101,7 +103,7 @@ make migrate-up
 
 ```bash
 set -a
-. .test-output/e2e/p0-100-real-provider-full-funnel-hybrid/dev-real.env
+. deploy/dev-stack/.env
 set +a
 
 go run ./backend/cmd/api
@@ -131,17 +133,21 @@ open http://127.0.0.1:8025
 
 ```bash
 cd frontend
-VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1 pnpm build
-VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1 \
-  pnpm exec vite preview --host 127.0.0.1 --port 4174
+set -a
+. ../deploy/dev-stack/.env
+set +a
+pnpm build
+pnpm exec vite preview --host 127.0.0.1 --port 4174
 ```
 
 也可在开发热更新时使用：
 
 ```bash
 cd frontend
-VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1 \
-  pnpm --filter @easyinterview/frontend dev
+set -a
+. ../deploy/dev-stack/.env
+set +a
+pnpm --filter @easyinterview/frontend dev
 ```
 
 ## 7 登录态确认

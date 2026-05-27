@@ -1,6 +1,6 @@
 # 002 Real Provider Hybrid Full Funnel Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
 > **更新日期**: 2026-05-27
 
@@ -22,10 +22,10 @@
 
 ## Phase 2: 真实联调环境 runbook
 
-- [x] 2.1 补齐真实 env 模板与说明，覆盖 auth secrets、DB、AI provider、frontend real mode；验证：tracked 模板不含真实 secret，`rg -n 'sk-[A-Za-z0-9_-]{16,}|ei_session=[A-Za-z0-9._~+/=-]{16,}' test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel` 0 命中
-  <!-- verified: 2026-05-26 command="if rg -n 'sk-[A-Za-z0-9_-]{16,}|ei_session=[A-Za-z0-9._~+/=-]{16,}' test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel; then exit 1; else exit 0; fi" evidence="dev-real.env.example contains placeholders only; gate regex was tightened to avoid task-run false positives" -->
+- [x] 2.1 补齐 `deploy/dev-stack/.env.example` 与说明，覆盖 auth secrets、DB、AI provider、frontend real mode；验证：tracked 模板不含真实 secret，`rg -n 'sk-[A-Za-z0-9_-]{16,}|ei_session=[A-Za-z0-9._~+/=-]{16,}' deploy/dev-stack/.env.example test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel` 0 命中
+  <!-- verified: 2026-05-27 command="if rg -n 'sk-[A-Za-z0-9_-]{16,}|ei_session=[A-Za-z0-9._~+/=-]{16,}' deploy/dev-stack/.env.example test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel; then exit 1; else exit 0; fi" evidence="deploy/dev-stack/.env.example contains placeholders only; E2E.P0.100 no longer has a scenario-specific env template" -->
 - [x] 2.2 更新 runbook 启动步骤：dev-stack -> migrate -> backend `APP_ENV=dev` + `EMAIL_PROVIDER=mailpit` -> frontend real mode -> Mailpit magic-link 登录；验证：runbook 命令块存在且路径/端口一致
-  <!-- verified: 2026-05-26 command="rg -n 'make dev-up|make migrate-up|APP_ENV=dev|EMAIL_PROVIDER=mailpit|VITE_EI_API_MODE=real|http://127.0.0.1:8025' test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/README.md test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/env-template/dev-real.env.example" evidence="runbook and env template cover dev-stack, migrate, backend dev env, frontend real mode, and Mailpit URL" -->
+  <!-- verified: 2026-05-27 command="rg -n 'make dev-up|make migrate-up|APP_ENV=dev|EMAIL_PROVIDER=mailpit|VITE_EI_API_MODE=real|http://127.0.0.1:8025|deploy/dev-stack/.env' test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/README.md deploy/dev-stack/.env.example" evidence="runbook and dev-stack env template cover dev-stack, migrate, backend dev env, frontend real mode, Mailpit URL, and single env source" -->
 - [x] 2.3 增加 mock/stub 禁用说明，拒绝 `APP_ENV=test`、`EI_E2E_P0_099_SERVER`、fixture mock transport、`Prefer: example=` 作为真实 UAT 完成证据；验证：runbook 负向/正向 grep
   <!-- verified: 2026-05-26 command="rg -n '不是本场景的完成证据|APP_ENV=test|EI_E2E_P0_099_SERVER=1|deterministic / fixture AI client|frontend fixture-backed mock transport|Prefer: example=<scenario>|无 mock/stub|no stub/mock' test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/README.md test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/checklist.md" evidence="hybrid UAT docs reject APP_ENV=test, P0.099 server, fixture/mock transport, Prefer examples, and deterministic stub AI as completion evidence" -->
 
@@ -53,11 +53,18 @@
 
 ## Phase 5: 统一场景框架与 Agent-first 执行
 
-- [x] 5.1 将 `E2E.P0.100` 迁入 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` 标准场景目录，补齐 `README.md`、`checklist.md`、`data/seed-input.md`、`data/expected-outcome.md`、env template 与四段脚本；验证：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`
-  <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q && bash -n test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/*.sh" evidence="8 scenario-env contract tests pass; standard four-script assets parse successfully; E2E.P0.100 is registered under e2e INDEX" -->
+- [x] 5.1 将 `E2E.P0.100` 迁入 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` 标准场景目录，补齐 `README.md`、`checklist.md`、`data/seed-input.md`、`data/expected-outcome.md` 与四段脚本；验证：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`
+  <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q && bash -n test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/*.sh" evidence="9 scenario-env contract tests pass; standard four-script assets parse successfully; E2E.P0.100 is registered under e2e INDEX; scenario-specific env template is absent" -->
 - [x] 5.2 删除独立 `test/scenarios/manual-uat/` 入口，并更新 `test/scenarios/README.md` / `test/scenarios/e2e/README.md`，明确 hybrid 场景由 AI Agent 先执行、人工/浏览器 Agent 后补证；验证：`test ! -e test/scenarios/manual-uat && rg -n 'MANUAL_REQUIRED|hybrid|AI Agent' test/scenarios/README.md test/scenarios/e2e/README.md`
   <!-- verified: 2026-05-27 command="test ! -e test/scenarios/manual-uat && rg -n 'MANUAL_REQUIRED|hybrid|AI Agent' test/scenarios/README.md test/scenarios/e2e/README.md" evidence="old manual-uat entry is removed; framework READMEs describe AI Agent first-run hybrid semantics and MANUAL_REQUIRED" -->
 - [x] 5.3 更新 `.agent-skills/scenario-run/SKILL.md`，要求运行前执行环境 preflight，并汇总 `MANUAL_REQUIRED`；验证：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="scenario-run skill contract requires env setup/verify preflight and treats MANUAL_REQUIRED as a separate valid result" -->
 - [x] 5.4 BDD-Gate: `E2E.P0.100` 在统一场景框架中可由 AI Agent 运行到 `MANUAL_REQUIRED` 或 PASS；验证：`bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh`
-  <!-- verified: 2026-05-27 command="bash test/scenarios/env-verify.sh && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh && jq . .test-output/e2e/p0-100-real-provider-full-funnel-hybrid/result.json" evidence="shared dependency preflight reports 4 OK services; trigger/verify writes MANUAL_REQUIRED because local real-provider env file is intentionally untracked and absent" -->
+  <!-- verified: 2026-05-27 command="bash test/scenarios/env-verify.sh && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh && jq . .test-output/e2e/p0-100-real-provider-full-funnel-hybrid/result.json" evidence="shared dependency preflight reports 4 OK services; trigger/verify writes MANUAL_REQUIRED when deploy/dev-stack/.env is missing required real-provider/auth/frontend values" -->
+
+## Phase 6: 单一真实 env 来源修正
+
+- [x] 6.1 删除 `p0-100` 场景专属 `dev-real.env` / `env-template`，并清理 README、seed-input、setup/trigger 脚本中的独立 env 口径；验证：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`
+  <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="contract test rejects dev-real.env and env-template/dev-real.env.example in E2E.P0.100 docs/scripts; 9 tests passed" -->
+- [x] 6.2 `deploy/dev-stack/.env.example` 承接真实本地联调的 auth、AI、frontend real-mode env，`trigger.sh` 只读取 `deploy/dev-stack/.env` 并在缺 key 时输出 `MANUAL_REQUIRED`；验证：`bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh`
+  <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh && jq . .test-output/e2e/p0-100-real-provider-full-funnel-hybrid/result.json" evidence="dev-stack env template contains auth/AI/frontend real-mode keys; trigger reads deploy/dev-stack/.env and returns MANUAL_REQUIRED when required real secrets are incomplete" -->

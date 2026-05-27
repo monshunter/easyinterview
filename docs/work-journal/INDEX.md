@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-27](2026-05-27.md) | `fix(test): use dev-stack env for hybrid scenario (BUG-0110)` | #fix #test #docs #bdd |
 | [2026-05-27](2026-05-27.md) | `fix(test): unify real-provider hybrid scenario (BUG-0110)` | #fix #test #docs #bdd |
 | [2026-05-27](2026-05-27.md) | `fix(test): decouple scenario env lifecycle (BUG-0109)` | #fix #test #docs |
 | [2026-05-26](2026-05-26.md) | `fix(backend-practice): align p0050 task-run gate (BUG-0108)` | #fix #test #docs |

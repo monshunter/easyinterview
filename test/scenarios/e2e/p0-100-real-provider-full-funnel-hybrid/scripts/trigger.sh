@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 SCENARIO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-100-real-provider-full-funnel-hybrid"
-LOCAL_ENV="$OUTPUT_DIR/dev-real.env"
+DEV_STACK_ENV="$REPO_ROOT/deploy/dev-stack/.env"
 EVIDENCE_FILE="$OUTPUT_DIR/evidence.md"
 RESULT_FILE="$OUTPUT_DIR/result.json"
 
@@ -38,29 +38,38 @@ PY
   echo "EXECUTOR_ORDER=ai-agent-then-human"
   echo "SCENARIO_DIR=$SCENARIO_DIR"
   echo "OUTPUT_DIR=$OUTPUT_DIR"
-  echo "ENV_TEMPLATE=$SCENARIO_DIR/env-template/dev-real.env.example"
-  echo "LOCAL_ENV=$LOCAL_ENV"
+  echo "ENV_SOURCE=deploy/dev-stack/.env"
   echo "EVIDENCE_FILE=$EVIDENCE_FILE"
 
-  if [ ! -s "$LOCAL_ENV" ]; then
-    echo "MANUAL_REQUIRED missing local real-provider env file"
-    echo "Copy env-template/dev-real.env.example to $LOCAL_ENV and fill local secrets."
-    write_result "MANUAL_REQUIRED" "missing local real-provider env file"
+  if [ ! -s "$DEV_STACK_ENV" ]; then
+    echo "MANUAL_REQUIRED missing deploy/dev-stack/.env"
+    echo "Run test/scenarios/env-setup.sh or copy deploy/dev-stack/.env.example to deploy/dev-stack/.env and fill local secrets."
+    write_result "MANUAL_REQUIRED" "missing deploy/dev-stack/.env"
     exit 0
   fi
 
   set -a
   # shellcheck disable=SC1090
-  . "$LOCAL_ENV"
+  . "$DEV_STACK_ENV"
   set +a
 
   missing=0
-  for key in SESSION_COOKIE_SECRET AUTH_CHALLENGE_TOKEN_PEPPER AI_PROVIDER_BASE_URL AI_PROVIDER_API_KEY VITE_EI_API_MODE VITE_EI_API_BASE_URL; do
+  for key in APP_ENV DATABASE_URL SESSION_COOKIE_SECRET AUTH_CHALLENGE_TOKEN_PEPPER EMAIL_PROVIDER AI_PROVIDER_BASE_URL AI_PROVIDER_API_KEY VITE_EI_API_MODE VITE_EI_API_BASE_URL; do
     if [ -z "${!key:-}" ]; then
       echo "MANUAL_REQUIRED missing required env: $key"
       missing=1
     fi
   done
+
+  if [ "${APP_ENV:-}" != "dev" ]; then
+    echo "MANUAL_REQUIRED APP_ENV must be dev"
+    missing=1
+  fi
+
+  if [ "${EMAIL_PROVIDER:-}" != "mailpit" ]; then
+    echo "MANUAL_REQUIRED EMAIL_PROVIDER must be mailpit"
+    missing=1
+  fi
 
   if [ "${VITE_EI_API_MODE:-}" != "real" ]; then
     echo "MANUAL_REQUIRED VITE_EI_API_MODE must be real"
@@ -68,7 +77,7 @@ PY
   fi
 
   if [ "$missing" -ne 0 ]; then
-    write_result "MANUAL_REQUIRED" "local real-provider env is incomplete"
+    write_result "MANUAL_REQUIRED" "deploy/dev-stack/.env is incomplete"
     exit 0
   fi
 

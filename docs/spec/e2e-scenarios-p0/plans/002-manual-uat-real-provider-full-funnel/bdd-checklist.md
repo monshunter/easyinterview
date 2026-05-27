@@ -1,6 +1,6 @@
 # BDD Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
 > **更新日期**: 2026-05-27
 
@@ -23,4 +23,6 @@
 - [x] 登记 `E2E.P0.100` 到 `test/scenarios/e2e/INDEX.md`，执行方式为 `hybrid`
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="contract test confirms INDEX registration as hybrid Ready" -->
 - [x] Agent-first 脚本可生成 `MANUAL_REQUIRED` 或 PASS result artifact
-  <!-- verified: 2026-05-27 command="bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh && jq . .test-output/e2e/p0-100-real-provider-full-funnel-hybrid/result.json" evidence="AI Agent first-run scripts produced MANUAL_REQUIRED result artifact when local real-provider env file was absent" -->
+  <!-- verified: 2026-05-27 command="bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh && jq . .test-output/e2e/p0-100-real-provider-full-funnel-hybrid/result.json" evidence="AI Agent first-run scripts produced MANUAL_REQUIRED result artifact when deploy/dev-stack/.env was missing required real-provider/auth/frontend values or browser evidence" -->
+- [x] 统一使用 `deploy/dev-stack/.env`，不维护场景专属 `dev-real.env`
+  <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="contract test confirms E2E.P0.100 trigger reads deploy/dev-stack/.env and rejects scenario-specific dev-real.env references" -->

@@ -1,6 +1,6 @@
 # Local Dev Stack Spec
 
-> **版本**: 1.14
+> **版本**: 1.15
 > **状态**: active
 > **更新日期**: 2026-05-27
 
@@ -18,6 +18,7 @@
 4. **本地观测轻量化**：本地只要求应用自身暴露 `/metrics`（当组件已具备 HTTP runtime 时）并通过容器日志确认行为；不安装 Grafana / Loki / Prometheus / OTel Collector 作为默认依赖。
 5. **本地 AI 调用真实化**：非测试本地 app run 只通过 env 注入真实 AI provider / OpenAI-compatible endpoint，不启动 AI provider 容器，也不把应用切到单元测试 stub。
 6. **环境生命周期独立化**：测试环境与本地前后端联调环境必须能通过 scenario environment skill 和 repo-tracked env entrypoints 独立 setup / status / verify / cleanup / redeploy，不依附任一具体 `p0-*` 场景脚本；开发者可只构建环境，再人工或由 Agent 执行目标场景验证。
+7. **单一真实 env 来源**：本地真实前后端联调只使用 `deploy/dev-stack/.env` 一个文件承接共享依赖、host-run backend、frontend real mode、auth secrets 与真实 AI provider 配置；具体场景不得复制独立 `.env`。
 
 本 spec 不实现业务代码、不接入 K8s / Kind / Helm，也不部署 staging。当前 P0 本地测试与 smoke 以 Docker Compose 外部依赖 + 宿主机前后端运行 + `test/scenarios/` 本地 runner 脚本为准；[E4 `release-gate-and-rollout`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 后续如需部署级环境，必须重新评估并显式修订。
 
@@ -30,7 +31,7 @@
 - 顶层入口：`docker-compose.yaml`（落点 `deploy/dev-stack/docker-compose.yaml`）+ A1 已占位的 `make dev-up` / `make dev-down` 真实实现。
 - `make dev-doctor`：结构化健康检查，对每个依赖服务与项目组件返回 `OK / DEGRADED / DOWN` 与人类可读原因（输出 JSON + 退出码）。
 - 初始化脚本：MinIO 创建默认 bucket；Postgres 不启用未使用扩展。
-- `.env` 与 `config.yaml` 的最小 dev override（连接串、bucket 名、端口、应用组件默认 host/port、AI provider endpoint 与 key 占位）；具体 secrets 抽象与 feature flag 由 [A4 `secrets-and-config`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 承接，本 spec 只锁 dev 默认值与字段名。
+- `.env` 与 `config.yaml` 的最小 dev override（连接串、bucket 名、端口、应用组件默认 host/port、auth secrets、frontend real-mode env、AI provider endpoint 与 key 占位）；具体 secrets 抽象与 feature flag 由 [A4 `secrets-and-config`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 承接，本 spec 只锁 dev 默认值与字段名。
 - 数据卷管理：默认命名 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data`；Postgres 18 卷挂载到 `/var/lib/postgresql`，由官方镜像管理 `PGDATA=/var/lib/postgresql/18/docker`；`make dev-up` 必须只读检测旧布局或半初始化卷并给出显式 reset 指引；提供 `make dev-reset` 用于显式清空（非默认）。
 - 文档：`deploy/dev-stack/README.md` 一屏说明 + 故障排查 + 本地 Mailpit 登录边界 + 与 `test/scenarios/` 本地 runner 场景契约的 cross-link。
 - 场景环境入口：`test/scenarios/env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-cleanup.sh` / `env-redeploy.sh` 作为 framework-owned 环境生命周期入口；根 `Makefile` 提供 `scenario-env-*` target 委派这些脚本，供 `/scenario-env` 和 `/scenario-redeploy` skill 调用。
@@ -61,6 +62,7 @@
 | D-9 | 本地 AI provider 配置 | `deploy/dev-stack/.env.example` 必须列出 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml`、`AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml` 与 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位；启用 AIClient 的非测试项目组件启动时缺少 catalog path 或当前 provider endpoint / key 必须 fail-fast；A2 不启动 AI provider 容器 | 本地 app run 验证真实 LLM 服务，同时保持 A2 依赖最小化 |
 | D-10 | 本地邮件 sink | 默认依赖包含 Mailpit；`deploy/dev-stack/.env.example` 必须列出 `MAILPIT_WEB_HOST_PORT` / `MAILPIT_SMTP_HOST_PORT` 与 C1/A4 邮件 env（`EMAIL_PROVIDER=mailpit`、SMTP host/port、from、verify base URL）。host-run backend 默认通过 `127.0.0.1:1025` 投递 magic-link 到 Mailpit，人工通过 `http://127.0.0.1:8025` 收信 | 本地测试不依赖真实外部邮箱服务或真实邮箱账号；账号验收走真实 passwordless flow，不需要场景专属 backend cmd |
 | D-11 | 独立场景环境生命周期 | `test/scenarios/env-setup.sh` 调 `make dev-up` 并可选执行 migrations；`env-status.sh` / `env-verify.sh` 消费 `make dev-doctor`；`env-cleanup.sh` 默认 `make dev-down`，显式 `--with-volumes` 才走 `DEV_RESET_FORCE=1 make dev-reset`；`env-redeploy.sh` 支持 `deps` / `backend` / `frontend` / `all`，在当前 host-run 口径下等价于依赖重启与 repo-tracked build artifact 刷新，不创建场景专属 backend/cmd 或长驻 helper | 环境管理从具体 `test/scenarios/e2e/p0-*` 场景脚本中抽离；skill 可按用户意图只管理环境、只重建组件，或再交给场景 runner/人工 UAT |
+| D-12 | 单一真实 env 来源 | `deploy/dev-stack/.env.example` 必须列出真实本地联调所需的 backend auth secrets、AI provider、邮件、共享依赖、frontend real-mode env；`deploy/dev-stack/.env` 是唯一被 host-run backend/frontend 与 hybrid 场景读取的本地真实 env 文件 | 防止每个场景复制独立 `.env`，保证本地测试环境和真实联调环境通过同一配置构建 |
 
 ### 3.2 待确认事项
 
@@ -130,6 +132,7 @@
 | C-10 | 本地邮箱登录 | `make dev-up` 完成，backend 以 `EMAIL_PROVIDER=mailpit` 和真实 auth secrets 在宿主机运行 | 用户调用 `POST /api/v1/auth/email/start` 或前端登录页提交 synthetic `.example.test` 邮箱 | Mailpit Web UI 出现 magic-link 邮件；点击或复制 token 后 `GET /api/v1/auth/email/verify` 签发 first-party `ei_session` cookie；不依赖真实外部邮箱服务、真实邮箱账号或场景专属 backend cmd | 001 Mailpit revision |
 | C-11 | 独立环境 setup / verify / cleanup | 开发者或 Agent 只想准备共享本地环境，不准备立即运行具体场景 | 通过 `/scenario-env setup` / `verify` / `status` / `cleanup`，或等价根 `make scenario-env-*` target | 调用 `test/scenarios/env-*.sh` 顶层脚本；setup 启动 dev-stack，verify/status 返回 dev-doctor JSON，cleanup 默认保留命名卷；全流程不引用任何 `test/scenarios/e2e/p0-*` 目录，也不新增 `backend/cmd` / Go helper | 001 environment lifecycle revision |
 | C-12 | 独立 rebuild / redeploy | 开发者或 Agent 已有共享本地环境，希望刷新当前 backend/frontend consumer artifacts 后再人工或自动验证 | `/scenario-redeploy backend|frontend|all` 或 `make scenario-env-redeploy TARGET=backend|frontend|all` | backend target 执行 `go build ./cmd/...`，frontend target 执行 `pnpm --filter @easyinterview/frontend build`，all 同时覆盖依赖环境 verify；不会运行具体 BDD 场景，也不会启动真实 provider 付费调用 | 001 environment lifecycle revision |
+| C-13 | 单一真实 env 文件 | 开发者或 Agent 准备真实前后端联调或 `E2E.P0.100` hybrid 场景 | 编辑 `deploy/dev-stack/.env` 并运行目标 backend/frontend/scenario preflight | `deploy/dev-stack/.env.example` 覆盖 auth、AI、邮件、共享依赖、frontend real-mode keys；场景脚本不得要求场景专属 `.env`；缺真实 key 时输出可解释的 `MANUAL_REQUIRED` 或 fail-fast，不降级到 stub | 001 + e2e-scenarios-p0/002 |
 
 ## 7 关联计划
 

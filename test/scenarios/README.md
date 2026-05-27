@@ -49,7 +49,7 @@ test/scenarios/
 
 如果这些脚本不存在，Agent 必须退回到 README 中定义的手工或 repo-tracked 命令，不能自行杜撰。
 
-需要人工参与的真实 provider / 浏览器 UAT 也必须登记为标准 `e2e` 场景目录，保留 `README.md`、`data/` 和四段脚本契约。此类 `hybrid` 场景的脚本负责环境准备、材料/配置/隐私 preflight、统一 result artifact 与 `MANUAL_REQUIRED` 状态；人工或浏览器 Agent 只补齐无法无密钥自动完成的真实操作证据。
+需要人工参与的真实 provider / 浏览器 UAT 也必须登记为标准 `e2e` 场景目录，保留 `README.md`、`data/` 和四段脚本契约。此类 `hybrid` 场景的脚本负责环境准备、材料/配置/隐私 preflight、统一 result artifact 与 `MANUAL_REQUIRED` 状态；人工或浏览器 Agent 只补齐无法无密钥自动完成的真实操作证据。本地真实前后端联调只使用 `deploy/dev-stack/.env` 作为单一 env 来源，场景不得维护自己的独立 `.env` 副本。
 
 ## 3.1 共享环境生命周期
 

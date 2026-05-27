@@ -19,7 +19,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.4 | active | 2026-05-22 | [plans](./repo-scaffold/plans/) |
-| [local-dev-stack](./local-dev-stack/spec.md) | 1.14 | active | 2026-05-27 | [plans](./local-dev-stack/plans/) |
+| [local-dev-stack](./local-dev-stack/spec.md) | 1.15 | active | 2026-05-27 | [plans](./local-dev-stack/plans/) |
 | [backend-runtime-topology](./backend-runtime-topology/spec.md) | 1.5 | active | 2026-05-26 | [plans](./backend-runtime-topology/plans/) |
 | [backend-async-runner](./backend-async-runner/spec.md) | 1.5 | active | 2026-05-26 | [plans](./backend-async-runner/plans/) |
 | [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.14 | active | 2026-05-26 | [plans](./ai-provider-and-model-routing/plans/) |
@@ -63,4 +63,4 @@
 | [frontend-debrief](./frontend-debrief/spec.md) | 1.6 | active | 2026-05-23 | [plans](./frontend-debrief/plans/) |
 | [backend-profile](./backend-profile/spec.md) | 1.2 | active | 2026-05-21 | [plans](./backend-profile/plans/) |
 | [backend-jobs-recommendations](./backend-jobs-recommendations/spec.md) | 1.2 | active | 2026-05-22 | [plans](./backend-jobs-recommendations/plans/) |
-| [e2e-scenarios-p0](./e2e-scenarios-p0/spec.md) | 1.5 | active | 2026-05-27 | [plans](./e2e-scenarios-p0/plans/) |
+| [e2e-scenarios-p0](./e2e-scenarios-p0/spec.md) | 1.6 | active | 2026-05-27 | [plans](./e2e-scenarios-p0/plans/) |

@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: completed
 > **更新日期**: 2026-05-27
 
@@ -11,7 +11,7 @@
 
 把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-10 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，把 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 占位的 `make dev-up` / `make dev-down` 替换为真实实现并新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO / Mailpit healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
 
-本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。本次 1.10 revision 把共享测试环境与本地前后端联调环境 lifecycle 从具体场景脚本中抽离到 framework-owned `test/scenarios/env-*.sh` 与根 `scenario-env-*` Make target，使 `/scenario-env` / `/scenario-redeploy` 能按用户意图独立 setup / status / verify / cleanup / redeploy。
+本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。本次 1.11 revision 明确 `deploy/dev-stack/.env` 是本地真实前后端联调唯一 env 来源，并补齐 auth secrets、frontend real mode 与真实 AI provider keys；具体场景不得复制独立 `.env`。
 
 ## 2 背景
 
@@ -53,7 +53,7 @@
 
 #### 1.4 dev `.env` 与 config 默认值
 
-`deploy/dev-stack/.env.example` 落地连接串、bucket 名、端口、项目组件 host/port、AI provider / OpenAI-compatible endpoint 的本地默认占位；字段名与 [A4 secrets-and-config spec](../../../secrets-and-config/spec.md) 对齐（如 `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_ENDPOINT` / `OBJECT_STORAGE_BUCKET` / `API_HOST_PORT` / `FRONTEND_HOST_PORT` / `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`）。`.env`（无 `.example` 后缀）由根 `.gitignore` 忽略；`make dev-up` 第一次运行时若 `.env` 不存在则从 `.env.example` 复制。`AI_PROVIDER_API_KEY` 在 `.env.example` 中只能写占位说明，不能写真实 key。
+`deploy/dev-stack/.env.example` 落地连接串、bucket 名、端口、项目组件 host/port、auth secrets、frontend real-mode env、AI provider / OpenAI-compatible endpoint 的本地默认占位；字段名与 [A4 secrets-and-config spec](../../../secrets-and-config/spec.md) 对齐（如 `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_ENDPOINT` / `OBJECT_STORAGE_BUCKET` / `API_HOST_PORT` / `FRONTEND_HOST_PORT` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `VITE_EI_API_MODE` / `VITE_EI_API_BASE_URL` / `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`）。`.env`（无 `.example` 后缀）由根 `.gitignore` 忽略；`make dev-up` 第一次运行时若 `.env` 不存在则从 `.env.example` 复制。`AI_PROVIDER_API_KEY`、auth secrets 与其它本地 secret 在 `.env.example` 中只能为空占位，不能写真实值；真实本地联调和 hybrid 场景都必须读取这一个 `.env` 文件。
 
 #### 1.5 Phase 1 自检
 
@@ -285,6 +285,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-27 | 1.11 | Single env source revision：`deploy/dev-stack/.env` 成为本地真实前后端联调唯一 env 来源，`.env.example` 补齐 auth secrets、frontend real mode、AI provider 与共享依赖 keys，禁止场景复制独立 `.env`。 | user feedback / BUG-0110 follow-up |
 | 2026-05-27 | 1.10 | Environment lifecycle revision：把共享测试环境与本地前后端联调环境 lifecycle 抽到 `test/scenarios/env-*.sh`、根 `scenario-env-*` Make target 与 scenario skill 入口，支持独立 setup/status/verify/cleanup/redeploy。 | user objective / scenario-env independent lifecycle |
 | 2026-05-26 | 1.9 | Mailpit revision：默认 dev-stack 新增 Mailpit，backend `EMAIL_PROVIDER=mailpit` 走 SMTP writer，manual UAT 账号入口回到真实 magic-link flow；`test/scenarios` 继续禁止新增 Go / `backend/cmd` 场景 helper。 | user feedback / manual UAT boundary fix |
 | 2026-05-22 | 1.8 | L2 runtime remediation：修复 Postgres 18 命名卷挂载路径，`easyinterview-pg-data` 改挂 `/var/lib/postgresql` 以兼容官方镜像 PGDATA 布局，并增加旧卷布局 preflight。 | local-dev-stack/001 L2 code review |

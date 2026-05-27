@@ -16,9 +16,9 @@ This hybrid scenario uses synthetic user-entered materials, not mock responses.
 
 ## Runtime Inputs
 
-Copy `env-template/dev-real.env.example` to
-`.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/dev-real.env` and fill
-only local, ignored values there. The required real secrets are:
+Use `deploy/dev-stack/.env` as the single local real-environment file for
+shared dependencies, host-run backend, frontend real mode, and real AI provider
+adaptation. The required real secrets are:
 
 - `SESSION_COOKIE_SECRET`
 - `AUTH_CHALLENGE_TOKEN_PEPPER`

@@ -1,6 +1,6 @@
 # E2E Scenarios P0 Spec
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
 > **更新日期**: 2026-05-27
 
@@ -33,7 +33,7 @@
   - **Playwright 全栈**（`E2E.P0.099`）：真后端进程 + 前端 build + 真 postgres，Playwright 驱动真实 UI 走完漏斗。
 - 真后端全栈 + scenario stub / fixture AI（`APP_ENV=test`），postgres 不可达时 `t.Skip`（沿用现有范式）。
 - handoff 链字段真实传递、异步 job（`target_import` / `report_generate`）经真实 internal runner 完成、DB 真实落库、关键写操作幂等、隐私红线、legacy-negative。
-- 真实 provider hybrid UAT（`E2E.P0.100`）：标准 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` 场景目录 + `APP_ENV=dev` 后端 + `VITE_EI_API_MODE=real` 前端 + 真实 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` + Mailpit 本地 magic-link 登录 + synthetic JD / resume / answer materials。
+- 真实 provider hybrid UAT（`E2E.P0.100`）：标准 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` 场景目录 + 单一 `deploy/dev-stack/.env` 本地真实环境配置 + `APP_ENV=dev` 后端 + `VITE_EI_API_MODE=real` 前端 + 真实 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` + Mailpit 本地 magic-link 登录 + synthetic JD / resume / answer materials。
 
 ### 2.2 Out of Scope
 
@@ -63,6 +63,7 @@
 | D-10 | hybrid UAT AI provider | 后端必须以 `APP_ENV=dev` 连接真实 provider，默认 DeepSeek OpenAI-compatible endpoint；`APP_ENV=test`、deterministic stub、P0.099 test server 与 frontend fixture mock 都不能作为真实 UAT 完成证据 | 明确真实联调边界 |
 | D-11 | scenario helper 语言边界 | `test/scenarios/` 新增场景工具只允许 shell / Python；可编排既有产品 runner，但不得新增 `backend/cmd` / Go helper 作为场景依赖 | 防止人工 UAT / BDD 依赖越界进入正式后端进程树 |
 | D-12 | 执行者顺序 | 场景执行者首先是 AI Agent：先运行环境 preflight、四段脚本、材料/配置/隐私检查和 result artifact；人或浏览器 Agent 只在同一场景输出目录补齐真实凭证/浏览器观察证据 | 避免真实前后端联调用例脱离场景框架，保证自动执行与人工执行共享同一入口和证据路径 |
+| D-13 | 本地真实 env 来源 | `deploy/dev-stack/.env` 是本地真实联调唯一 env 文件，承接共享依赖、host-run backend、frontend real mode 与真实 AI provider；hybrid 场景不得维护独立 `.env` 副本 | 防止每个新端到端场景复制自己的 env，保证环境构建和真实联调配置一致 |
 
 ### 3.2 待确认事项
 
@@ -77,9 +78,9 @@
 - **真后端范式**：API-level journey 必须复用 `backend/cmd/api` 现有 scenario harness（`httptest.NewServer` + 真实 router/handler/store/internal runner/events + `DATABASE_URL`），不得为 journey 另起一套 mock stack；postgres 不可达时 `t.Skip` 并输出 skip 原因。
 - **Playwright 全栈约束**：起真后端进程（连 dev-stack postgres，`APP_ENV=test`，场景 AI 使用确定性 stub / fixture client）+ 前端 build/preview 以 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1` 指向真后端 base URL，Playwright 驱动真实 UI；不得用 fixture-backed mock transport 冒充真后端。
 - **AI 边界**：journey 全程使用 harness 注入的 stub / fixture AI client，遵循 [development.md §2.4](../../development.md#24-ai-provider-boundary) 与 [A5 §5 secret red line](../ci-pipeline-baseline/spec.md)；canonical test config 与 AI profile/registry 预检必须在未配置 `AI_PROVIDER_*` 等业务 secret 时通过。
-- **真实 provider UAT 边界**：hybrid UAT 必须使用 `APP_ENV=dev` 后端真实进程、真实 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`、真实 PostgreSQL、真实 frontend real mode；不得用 `APP_ENV=test`、deterministic stub、fixture-backed frontend mock transport、`Prefer: example=<scenario>` 或 `EI_E2E_P0_099_SERVER=1` 冒充。
+- **真实 provider UAT 边界**：hybrid UAT 必须使用 `deploy/dev-stack/.env` 作为单一真实本地 env 来源，并使用 `APP_ENV=dev` 后端真实进程、真实 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`、真实 PostgreSQL、真实 frontend real mode；不得用 `APP_ENV=test`、deterministic stub、fixture-backed frontend mock transport、`Prefer: example=<scenario>` 或 `EI_E2E_P0_099_SERVER=1` 冒充。
 - **账号材料边界**：hybrid UAT 必须提供可重复的 synthetic account sign-in 材料；tracked 文件只能保存邮箱、Mailpit URL、验证步骤和 cleanup 说明，不得保存真实 session cookie、auth secret、AI key 或 magic-link token。`test/scenarios` 只允许 shell/Python 辅助；不得新增 `backend/cmd` / Go helper，也不得直接写 `sessions` 表绕过 auth flow。
-- **场景统一管理边界**：真实 provider / 人工观察类用例不得作为 `test/scenarios` 下的独立 companion 套件存在；必须登记在活跃 suite `INDEX.md`，具备标准四段脚本、`data/seed-input.md`、`data/expected-outcome.md` 与统一 result artifact。缺人工证据时使用 `MANUAL_REQUIRED`，不得伪装为 PASS 或退化为 ERROR。
+- **场景统一管理边界**：真实 provider / 人工观察类用例不得作为 `test/scenarios` 下的独立 companion 套件存在；必须登记在活跃 suite `INDEX.md`，具备标准四段脚本、`data/seed-input.md`、`data/expected-outcome.md` 与统一 result artifact。缺人工证据时使用 `MANUAL_REQUIRED`，不得伪装为 PASS 或退化为 ERROR；不得为单个场景维护独立 `.env`，真实本地配置统一来自 `deploy/dev-stack/.env`。
 - **契约消费约束**：journey 只消费 [openapi-v1-contract](../openapi-v1-contract/spec.md) 已存在的 operation，不新增 / 修改 operation、schema、event；handoff 字段以 `openapi/openapi.yaml` 真实 schema 为准。
 - **框架契约**：遵循 [test/scenarios/README.md](../../../test/scenarios/README.md) 与 [e2e/README.md](../../../test/scenarios/e2e/README.md)：每个场景目录含 `README.md` + `data/` + `scripts/{setup,trigger,verify,cleanup}.sh`；`verify.sh` 必须检查 runner 日志中的真实执行证据（命令 / runner marker + 目标 test 路径 + pass marker），拒绝 no-op；`BDD-Gate` 只引用场景编号。
 - **隐私红线**：journey 全程响应 / event / audit / log / metric 只暴露 ID / 状态 / 计数 / 错误码摘要，不泄露 JD 原文、答案文本、报告 prose（[product-scope](../product-scope/spec.md) 隐私红线）。
@@ -108,12 +109,13 @@
 | C-6 | scenario gate 真实执行 | `E2E.P0.098` / `E2E.P0.099` 场景就绪 | `setup → trigger → verify → cleanup` | verify 校验 runner 日志真实执行证据（命令 marker + 目标 test 路径 + pass marker），拒绝 no-op / skip-as-pass | 001 Phase 3 |
 | C-7 | operation matrix 完整 | 跨层 journey plan | 查看 plan | 9 行 operation matrix × fixture / frontend consumer / backend handler / persistence / AI dependency / scenario coverage 全部标明真实状态（8 个主链必经 operation + `getJob` 备选轮询 / handler gate；`createPracticePlan` 复用 baseline + next_round） | 001 §3.1 operation matrix |
 | C-8 | 文档一致性 | 文档集创建 / 修订完成 | 运行校验 | `validate_context` / `sync-doc-index --check` / `make docs-check` / `git diff --check` 通过 | 001 Phase 3 |
-| C-9 | hybrid UAT 材料完整 | AI Agent / 人工准备真实 provider 验收 | 查看 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` | Mailpit magic-link 登录说明、JD、简历、作答样例、checklist、环境变量模板、证据归档与 cleanup 说明齐备；tracked 文件无真实 secret / PII，且不存在 `backend/cmd/devsession` / `backend/internal/devsession` | 002 Phase 1-3 |
+| C-9 | hybrid UAT 材料完整 | AI Agent / 人工准备真实 provider 验收 | 查看 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` | Mailpit magic-link 登录说明、JD、简历、作答样例、checklist、`deploy/dev-stack/.env` 配置说明、证据归档与 cleanup 说明齐备；tracked 文件无真实 secret / PII，且不存在 `backend/cmd/devsession` / `backend/internal/devsession` | 002 Phase 1-3 |
 | C-10 | 真实联调启动路径 | 本地机器具备 Docker / Go / Node / pnpm 与真实 AI key | 按 runbook 启动 dev-stack、migrate、backend、frontend，并通过 Mailpit 登录 | backend 为 `APP_ENV=dev` 真进程，frontend 为 `VITE_EI_API_MODE=real`，请求命中真实 backend，AI provider env 指向真实 LLM endpoint，auth flow 通过 Mailpit 本地邮箱完成 | 002 Phase 2 |
 | C-11 | 无 mock/stub 冒充 | hybrid UAT runbook / checklist | 审查完成证据 | 不接受 `APP_ENV=test`、P0.099 test server、fixture mock transport、deterministic stub AI 或 `Prefer: example=` 作为真实 UAT 完成证据 | 002 Phase 2-4 |
 | C-12 | dev-only 账号安全边界 | hybrid UAT 账号入口存在 | 运行 no-backend-cmd / no-Go scenario negative gate 与材料 secret scan | 只允许 synthetic `.example.test` 邮箱和本地 Mailpit；不输出 auth secret、AI key、session secret、magic-link token 或 cookie value；场景 helper 不进入正式 backend cmd / internal 包 | 002 Phase 1 |
 | C-13 | 真实 AI 调用脱敏证据 | 验收者走完整漏斗 | 检查 backend log / DB task-run / manual checklist | 记录 provider/profile/model/latency/task-run count 等摘要，不记录 prompt、response、JD 原文、答案或报告 prose | 002 Phase 3-4 |
 | C-14 | 统一场景框架执行 | `E2E.P0.100` 已登记为 `hybrid` Ready 场景 | AI Agent 运行标准四段脚本 | 共享环境先通过顶层 env preflight；脚本写出 `result.json`，缺真实证据时结果为 `MANUAL_REQUIRED`；`test/scenarios/manual-uat` 不再作为独立入口存在 | 002 Phase 5 |
+| C-15 | 单一真实 env 来源 | `deploy/dev-stack/.env.example` 已声明本地真实联调所需 auth、AI、frontend real-mode env | AI Agent 运行 `E2E.P0.100` preflight | `trigger.sh` 只读取 `deploy/dev-stack/.env`，场景目录不存在 `env-template/dev-real.env.example` 或其它独立 `.env` 模板；缺 key 时输出 `MANUAL_REQUIRED` | 002 Phase 6 |
 
 ## 7 关联计划
 

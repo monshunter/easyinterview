@@ -1,6 +1,6 @@
 # 002 Real Provider Hybrid Full Funnel
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
 > **更新日期**: 2026-05-27
 
@@ -16,8 +16,8 @@
 - 删除独立 `test/scenarios/manual-uat` companion 入口，避免场景发现、执行、证据和 cleanup 工作流割裂。
 - 让 AI Agent 成为第一执行者：先执行共享环境 preflight、四段脚本、材料/配置/隐私检查和统一 result artifact。
 - 人工或浏览器 Agent 作为第二执行者，在同一场景输出目录补齐真实凭证、真实浏览器、真实 AI provider 的脱敏证据。
-- 提供可执行的真实本地联调启动路径：Docker Compose 只提供 Postgres / Redis / MinIO / Mailpit 外部依赖，backend / frontend 使用宿主机真实进程，frontend 明确 `VITE_EI_API_MODE=real`，backend 明确 `APP_ENV=dev` 和真实 AI provider env。
-- 提供完整 hybrid 场景材料：Mailpit 本地 magic-link 登录、JD、简历、作答样例、验收 checklist、环境变量模板、证据归档路径与清理说明。
+- 提供可执行的真实本地联调启动路径：Docker Compose 只提供 Postgres / Redis / MinIO / Mailpit 外部依赖，backend / frontend 使用宿主机真实进程，并统一从 `deploy/dev-stack/.env` 读取 `APP_ENV=dev`、frontend real mode、auth secrets 和真实 AI provider env。
+- 提供完整 hybrid 场景材料：Mailpit 本地 magic-link 登录、JD、简历、作答样例、验收 checklist、`deploy/dev-stack/.env` 配置说明、证据归档路径与清理说明。
 - 明确禁止用 `APP_ENV=test`、deterministic stub AI、fixture-backed frontend mock transport、`Prefer: example=<scenario>` 或 P0.099 test server 冒充真实 AI 联调。
 - 将真实 AI LLM 连接作为验收边界：当前开发主力 provider ref 为 `deepseek` / `judge-deepseek`，真实调用通过 `AI_PROVIDER_BASE_URL` + `AI_PROVIDER_API_KEY` 指向 OpenAI-compatible provider；无真实 key 时本计划不得标记完成。
 
@@ -31,7 +31,7 @@
 
 - `docs/development.md` §2 规定本地集成为 `make dev-up` 外部依赖 + host-run backend/frontend + repo-tracked runner，不默认 Kind / K8s / Helm。
 - `backend/cmd/api` 在 `APP_ENV=dev` 下会通过 A3 `bootstrap.NewClient` 构建真实 AIClient；`APP_ENV=test` 才允许 stub。
-- `cmd/api` 启动 auth runtime 需要 `SESSION_COOKIE_SECRET` 与 `AUTH_CHALLENGE_TOKEN_PEPPER`；`deploy/dev-stack/.env.example` 当前只给出 AI / DB / object storage 模板，不给真实 secret。
+- `cmd/api` 启动 auth runtime 需要 `SESSION_COOKIE_SECRET` 与 `AUTH_CHALLENGE_TOKEN_PEPPER`；真实本地联调必须用 `deploy/dev-stack/.env` 承接 auth、AI、frontend real-mode 和共享依赖配置，不得再让单个场景维护独立 env。
 - passwordless local dev 登录已由 `local-dev-stack/001` Mailpit revision 承接：`make dev-up` 启动 Mailpit，`EMAIL_PROVIDER=mailpit` 的真实 `go run ./backend/cmd/api` 通过 SMTP writer 投递 magic-link。
 
 因此本计划必须明确：真实 UAT 不能复用 001 的 test server；账号入口必须走真实 passwordless flow + Mailpit 本地邮箱，不得通过 direct DB session bootstrap、新增 `backend/cmd` / Go helper 或真实外部邮箱账号完成。
@@ -39,7 +39,7 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior + tooling + docs + contract`。本计划覆盖用户可感知的 hybrid UAT 工作流、Mailpit 本地邮箱账号入口、真实 provider runtime 验证、Agent-first 场景脚本与人工验收材料。
-- **TDD 策略**: 本计划 v1.4 涉及场景脚本、lint contract 与 skill 指令逻辑，必须通过 `/tdd` 红绿重构执行。Red gate 为 `python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`，覆盖 `E2E.P0.100` e2e 注册、旧 `manual-uat` 入口删除、`scenario-run` 环境 preflight 与 `MANUAL_REQUIRED` 语义。
+- **TDD 策略**: 本计划 v1.5 涉及场景脚本、lint contract 与 skill 指令逻辑，必须通过 `/tdd` 红绿重构执行。Red gate 为 `python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`，覆盖 `E2E.P0.100` e2e 注册、旧 `manual-uat` 入口删除、`scenario-run` 环境 preflight、`MANUAL_REQUIRED` 语义，以及禁止场景专属 env、统一读取 `deploy/dev-stack/.env` 的配置契约。
 - **BDD 策略**: Feature plan requires BDD。本计划新增人工可接手的端到端业务流，BDD 场景 `E2E.P0.100` 记录在 [bdd-plan.md](./bdd-plan.md)，主 checklist 使用 `BDD-Gate:` 引用。该场景为 `hybrid`：AI Agent 自动验证环境/材料/配置/隐私和 result artifact，人工或浏览器 Agent 记录真实 UI/AI 结果。
 - **替代验证 gate**:
   - Mailpit / SMTP writer / config focused tests（由 local-dev-stack/backend-auth/A4 owner 承接）。
@@ -69,6 +69,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-27 | 1.5 | 修正 hybrid UAT env 边界：`deploy/dev-stack/.env` 是真实本地联调唯一 env 来源，删除 `p0-100` 场景专属 `dev-real.env` 模板，脚本只读取 dev-stack env。 |
 | 2026-05-27 | 1.4 | 将 `E2E.P0.100` 从独立 `manual-uat` companion 迁移为标准 `e2e` hybrid 场景；新增 AI Agent first-run preflight、`MANUAL_REQUIRED` 结果语义和统一输出目录。 |
 
 ## 4 实施步骤
@@ -105,9 +106,9 @@ cleanup 默认走真实产品隐私删除路径或本地登出；默认不清空
 
 ### Phase 2: 真实联调环境 runbook
 
-#### 2.1 环境变量模板
+#### 2.1 单一 env 来源
 
-补齐 tracked `.env.example` / runbook 说明，覆盖：
+补齐 `deploy/dev-stack/.env.example` / runbook 说明，覆盖：
 
 - `APP_ENV=dev`
 - `DATABASE_URL`
@@ -119,6 +120,8 @@ cleanup 默认走真实产品隐私删除路径或本地登出；默认不清空
 - `AI_PROVIDER_API_KEY=<真实 key，不提交>`
 - frontend `VITE_EI_API_MODE=real`
 - frontend `VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1`
+
+真实本地联调只允许读取 `deploy/dev-stack/.env`。场景目录不得维护 `dev-real.env`、`env-template/dev-real.env.example` 或其它独立 env 副本。
 
 #### 2.2 启动步骤
 
@@ -187,7 +190,7 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 
 #### 5.1 标准场景目录迁移
 
-将 `E2E.P0.100` 的 runbook、checklist、env template 和材料迁移到 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/`，补齐 `data/seed-input.md`、`data/expected-outcome.md` 和四段脚本。删除 `test/scenarios/manual-uat/` 独立入口。
+将 `E2E.P0.100` 的 runbook、checklist 和材料迁移到 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/`，补齐 `data/seed-input.md`、`data/expected-outcome.md` 和四段脚本。删除 `test/scenarios/manual-uat/` 独立入口。
 
 #### 5.2 INDEX 与框架文档
 
@@ -201,12 +204,23 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 
 新增/更新 `scripts/lint/scenario_env_contract_test.py`，覆盖 `E2E.P0.100` 标准场景资产、旧 `test/scenarios/manual-uat` 入口删除、`scenario-run` 环境 preflight 与 hybrid 结果语义。
 
+### Phase 6: 单一真实 env 来源修正
+
+#### 6.1 删除场景专属 env
+
+删除 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/env-template/dev-real.env.example`，并清理 README / seed-input / scripts 中的 `dev-real.env` 口径。场景配置只引用 `deploy/dev-stack/.env`。
+
+#### 6.2 dev-stack env 承接真实联调配置
+
+更新 `deploy/dev-stack/.env.example`，让它包含 host-run backend、auth runtime、real AI provider 和 frontend real mode 所需字段。`trigger.sh` 必须只 source `deploy/dev-stack/.env` 并检查 `APP_ENV=dev`、`EMAIL_PROVIDER=mailpit`、`VITE_EI_API_MODE=real`、auth secrets 与真实 AI key；缺失时输出 `MANUAL_REQUIRED`。
+
 ## 5 验收标准
 
 - 本计划文档集完整，`test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` 是 `E2E.P0.100` 唯一 active 场景入口。
 - `test/scenarios/manual-uat/` 不再作为独立 companion 目录存在；active 场景框架文档不再引导用户去框架外执行真实 provider UAT。
 - `scenario-run` 运行 `E2E.P0.100` 时能完成 AI Agent preflight，并在缺人工/浏览器证据时生成 `MANUAL_REQUIRED` result artifact。
 - 用户可按 runbook 启动真实前端 + 真实后端 + 真实 AI provider 联调环境，不依赖 frontend mock transport 或 backend test stub。
+- `deploy/dev-stack/.env` 是真实本地联调唯一 env 来源；`p0-100` 不再维护独立 `dev-real.env` 或 env template。
 - UAT 材料包包含 Mailpit 本地登录说明、JD、简历、作答样例、检查清单、证据归档与清理说明。
 - hybrid UAT 不新增正式 backend cmd，不直接写 session 表，且不依赖真实外部邮箱服务或真实邮箱账号。
 - BDD-Gate `E2E.P0.100` 的材料结构、Agent preflight、人工执行证据和 cleanup 边界在同一场景目录下闭环。

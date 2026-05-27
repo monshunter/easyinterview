@@ -9,10 +9,10 @@ directory.
 - Shared scenario environment is prepared through the top-level env lifecycle.
 - The scenario has the standard `setup.sh`, `trigger.sh`, `verify.sh`, and
   `cleanup.sh` contract.
-- Real-provider env template, account material, JD/resume/answer inputs, and
-  checklist are present.
+- `deploy/dev-stack/.env` is the single real local environment source; account
+  material, JD/resume/answer inputs, and checklist are present.
 - Mock/stub completion paths are rejected as evidence.
-- If local real-provider evidence is missing, `verify.sh` writes
+- If `deploy/dev-stack/.env` values or browser evidence are missing, `verify.sh` writes
   `result=MANUAL_REQUIRED` instead of passing the full journey.
 
 ## Human Or Browser-Agent Outcome

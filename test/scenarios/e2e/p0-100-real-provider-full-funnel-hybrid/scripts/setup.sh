@@ -23,7 +23,6 @@ rm -f "$OUTPUT_DIR/setup.log" "$OUTPUT_DIR/trigger.log" "$OUTPUT_DIR/result.json
 for rel_path in \
   README.md \
   checklist.md \
-  env-template/dev-real.env.example \
   data/account.md \
   data/seed-input.md \
   data/expected-outcome.md \
