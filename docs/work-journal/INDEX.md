@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-27](2026-05-27.md) | `test(e2e): add auth mail-link scenario` | #test #ui #docs #bdd |
 | [2026-05-27](2026-05-27.md) | `fix(auth): suppress public auth probe noise (BUG-0112)` | #fix #ui #test #docs |
 | [2026-05-27](2026-05-27.md) | `fix(auth): restore mail-link login and runtime redeploy (BUG-0112, BUG-0113)` | #fix #ui #test #docs #bdd |
 | [2026-05-27](2026-05-27.md) | `fix(test): backfill p0100 owner evidence gates (BUG-0111)` | #fix #test #docs #bdd |

@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-27](./2026-05-27-auth-mail-link-e2e-scenario-assessment.md) | Auth Mail-Link E2E Scenario 交付复盘 | #assessment |
 | [2026-05-27](./2026-05-27-auth-mail-link-and-redeploy-debug-handoff-assessment.md) | Auth Mail-Link And Redeploy Debug Handoff 交付复盘 | #assessment |
 | [2026-05-27](./2026-05-27-scenario-env-review-followups-assessment.md) | Scenario Env Review Follow-ups 交付复盘 | #assessment |
 | [2026-05-27](./2026-05-27-ai-raw-output-debug-switch-assessment.md) | AI Raw Output Debug Switch 交付复盘 | #assessment |
