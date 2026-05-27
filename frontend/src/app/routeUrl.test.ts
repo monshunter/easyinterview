@@ -221,6 +221,30 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/auth/login?email=alice%40example.com&next=%2Fworkspace");
   });
 
+  it("auth_verify accepts a one-shot magic-link token while auth_login still drops it", () => {
+    expect(
+      formatRouteUrl({
+        name: "auth_verify",
+        params: {
+          email: "alice@example.com",
+          token: "magic-link-token",
+          pendingRoute: "workspace",
+          pendingType: "start_practice",
+          pendingLabel: "立即面试",
+          targetJobId: "tj-1",
+        },
+      }),
+    ).toBe(
+      "/auth/verify?email=alice%40example.com&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&targetJobId=tj-1&token=magic-link-token",
+    );
+    expect(
+      formatRouteUrl({
+        name: "auth_login",
+        params: { email: "alice@example.com", token: "magic-link-token" },
+      }),
+    ).toBe("/auth/login?email=alice%40example.com");
+  });
+
   it("preserves report replay params for autoStartPractice / sourceSessionId / replayItems / evidenceGaps / nextRoundId on workspace", () => {
     expect(
       formatRouteUrl({
@@ -357,6 +381,24 @@ describe("parseUrlToRoute", () => {
     });
   });
 
+  it("parses auth_verify magic-link token only on the verify callback route", () => {
+    expect(
+      parseUrlToRoute(
+        "/auth/verify?email=alice%40example.com&token=magic-link-token",
+      ),
+    ).toEqual({
+      name: "auth_verify",
+      params: {
+        email: "alice@example.com",
+        token: "magic-link-token",
+      },
+    });
+    expect(parseUrlToRoute("/auth/login?token=magic-link-token")).toEqual({
+      name: "auth_login",
+      params: {},
+    });
+  });
+
   it("supports plain URL input without leading slash", () => {
     expect(parseUrlToRoute("workspace?targetJobId=tj-1")).toEqual({
       name: "workspace",
@@ -427,7 +469,6 @@ describe("isSafeRouteParam", () => {
       "prompt",
       "response",
       "file",
-      "token",
       "password",
     ];
     for (const key of forbidden) {
@@ -439,6 +480,9 @@ describe("isSafeRouteParam", () => {
         pendingRoute: "workspace",
       })).toBe(false);
     }
+    expect(isSafeRouteParam("auth_verify", "token", {})).toBe(true);
+    expect(isSafeRouteParam("auth_login", "token", {})).toBe(false);
+    expect(isSafeRouteParam("workspace", "token", {})).toBe(false);
   });
 
   it("expands auth_login allowlist with target route safe params when pendingRoute is present", () => {

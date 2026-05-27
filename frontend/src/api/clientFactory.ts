@@ -1,7 +1,6 @@
 import { EasyInterviewClient } from "./generated/client";
 import { createDevMockClient } from "./devMockClient";
 
-export const DEFAULT_DEV_REAL_API_BASE_URL = "http://localhost:8080/api/v1";
 const DEFAULT_PRODUCTION_API_BASE_URL = "/api/v1";
 
 export interface AppClientEnv {
@@ -37,7 +36,10 @@ function resolveRealApiBaseUrl(env: AppClientEnv): string {
 	if (configured) {
 		return configured;
 	}
-	return env.DEV ? DEFAULT_DEV_REAL_API_BASE_URL : DEFAULT_PRODUCTION_API_BASE_URL;
+	if (env.DEV) {
+		throw new Error("VITE_EI_API_BASE_URL is required when VITE_EI_API_MODE=real in dev");
+	}
+	return DEFAULT_PRODUCTION_API_BASE_URL;
 }
 
 function normalizeBaseUrl(baseUrl: string): string {

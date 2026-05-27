@@ -204,7 +204,7 @@ const AUTH_LOGIN_BASE = new Set([
   ...PENDING_ACTION_RESERVED,
 ]);
 const AUTH_REGISTER_BASE = AUTH_LOGIN_BASE;
-const AUTH_VERIFY_BASE = new Set(["email", ...PENDING_ACTION_RESERVED]);
+const AUTH_VERIFY_BASE = new Set(["email", "token", ...PENDING_ACTION_RESERVED]);
 const AUTH_RESET_BASE = new Set(["next", "email"]);
 const AUTH_LOGOUT_BASE = new Set(["next"]);
 

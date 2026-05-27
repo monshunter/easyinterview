@@ -15,8 +15,9 @@ scan_evidence_redline() {
     "AI_PROVIDER_API_KEY" \
     "SESSION_COOKIE_SECRET" \
     "AUTH_CHALLENGE_TOKEN_PEPPER" \
-    "ei_session=" \
-    "auth/email/verify\\?token=" \
+	    "ei_session=" \
+	    "auth/email/verify\\?token=" \
+	    "auth/verify\\?token=" \
     "prompt body" \
     "response body" \
     "prompt:" \
@@ -49,8 +50,9 @@ for forbidden in \
   "AI_PROVIDER_API_KEY=" \
   "SESSION_COOKIE_SECRET=" \
   "AUTH_CHALLENGE_TOKEN_PEPPER=" \
-  "ei_session=" \
-  "auth/email/verify?token=" \
+	  "ei_session=" \
+	  "auth/email/verify?token=" \
+	  "auth/verify?token=" \
   "prompt body" \
   "response body"; do
   if grep -Fq -- "$forbidden" "$LOG"; then

@@ -7,6 +7,10 @@ SCENARIO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCENARIO_DIR/../.." && pwd)"
 DRY_RUN=0
 WITH_MIGRATIONS=0
+LOCAL_DEV_RUNTIME="$SCENARIO_DIR/_shared/scripts/local-dev-runtime.sh"
+
+# shellcheck disable=SC1090
+. "$LOCAL_DEV_RUNTIME"
 
 usage() {
   cat <<'USAGE'
@@ -91,4 +95,10 @@ PY
 fi
 make migrate-up
 '
+fi
+
+if [ "$DRY_RUN" -eq 1 ]; then
+  echo "dry-run: print local dev endpoints and debug commands"
+else
+  local_dev_summary
 fi

@@ -147,7 +147,7 @@ FIXTURES[("Auth", "getMe")] = fixture("getMe", OrderedDict([
 
 FIXTURES[("Auth", "startAuthEmailChallenge")] = fixture(
     "startAuthEmailChallenge",
-    OrderedDict(),  # 202 no-content; keep body as {} so downstream tooling sees a stable shape
+    None,
     status=202,
     request_body=OrderedDict([
         ("email", "alice@example.com"),

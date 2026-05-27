@@ -556,7 +556,7 @@ const SettingsProfile = ({ T, lang, fontPreset, setFontPreset }) => {
   ];
   const securityRows = [
     { k: lang === "en" ? "Password" : "密码", v: lang === "en" ? "Last updated 18 days ago" : "18 天前更新" },
-    { k: lang === "en" ? "Login method" : "登录方式", v: lang === "en" ? "Email code + password" : "邮箱验证码 + 密码" },
+    { k: lang === "en" ? "Login method" : "登录方式", v: lang === "en" ? "Email link + password" : "邮箱链接 + 密码" },
     { k: lang === "en" ? "Two-step verification" : "两步验证", v: lang === "en" ? "Off" : "未开启" },
   ];
 

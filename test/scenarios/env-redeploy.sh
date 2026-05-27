@@ -7,14 +7,18 @@ SCENARIO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCENARIO_DIR/../.." && pwd)"
 TARGET="all"
 DRY_RUN=0
+LOCAL_DEV_RUNTIME="$SCENARIO_DIR/_shared/scripts/local-dev-runtime.sh"
+
+# shellcheck disable=SC1090
+. "$LOCAL_DEV_RUNTIME"
 
 usage() {
   cat <<'USAGE'
 Usage: test/scenarios/env-redeploy.sh [deps|backend|frontend|all] [--dry-run]
 
 Rebuild/redeploy repo components for the shared local scenario environment.
-In the current host-run topology, redeploy refreshes external dependencies and
-build artifacts. It does not start long-running backend/frontend processes.
+In the current host-run topology, backend/frontend redeploy rebuilds artifacts,
+restarts the matching host-run process, and prints debug endpoints/log paths.
 USAGE
 }
 
@@ -62,6 +66,11 @@ redeploy_deps() {
 
 redeploy_backend() {
   run_root_shell "cd backend && go build ./cmd/..."
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf 'dry-run: restart backend host-run process\n'
+    return 0
+  fi
+  restart_backend_runtime
 }
 
 redeploy_frontend() {
@@ -78,6 +87,11 @@ set +a
 : "${VITE_EI_API_BASE_URL:?env-redeploy: deploy/dev-stack/.env must set VITE_EI_API_BASE_URL}"
 pnpm --filter @easyinterview/frontend build
 '
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf 'dry-run: restart frontend host-run process\n'
+    return 0
+  fi
+  restart_frontend_runtime
 }
 
 case "$TARGET" in
@@ -96,3 +110,9 @@ case "$TARGET" in
     redeploy_frontend
     ;;
 esac
+
+if [ "$DRY_RUN" -eq 1 ]; then
+  echo "dry-run: print local dev endpoints and debug commands"
+else
+  local_dev_summary
+fi

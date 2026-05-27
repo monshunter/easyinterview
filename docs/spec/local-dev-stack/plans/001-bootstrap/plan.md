@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: completed
 > **更新日期**: 2026-05-27
 
@@ -11,7 +11,7 @@
 
 把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-10 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，把 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 占位的 `make dev-up` / `make dev-down` 替换为真实实现并新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO / Mailpit healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
 
-本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。本次 1.12 revision 明确 local dev/test 与本地真实前后端联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，用于 AI Agent 调试真实 provider 输出格式；staging/prod 仍默认关闭，raw output 不进入持久化审计。
+本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。本次 1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。
 
 ## 2 背景
 
@@ -223,7 +223,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - `env-status.sh`：只读执行 `make dev-doctor`，用于 skill status 与人工巡检。
 - `env-verify.sh`：执行 `make dev-doctor` 并检查 JSON summary 全 OK；可作为 `/scenario-run` 前置环境 gate。
 - `env-cleanup.sh`：默认执行 `make dev-down` 并保留命名卷；只有显式 `--with-volumes` / `--reset` 时才执行 `DEV_RESET_FORCE=1 make dev-reset`。
-- `env-redeploy.sh [deps|backend|frontend|all]`：`deps` 重跑 `make dev-up` + `make dev-doctor`；`backend` 执行 `cd backend && go build ./cmd/...`；`frontend` 执行 `pnpm --filter @easyinterview/frontend build`；`all` 顺序覆盖 deps/backend/frontend。当前 host-run 口径下 redeploy 表示刷新本地依赖与 repo-tracked build artifacts，不启动长期 backend/frontend 进程、不调用真实 LLM。
+- `env-redeploy.sh [deps|backend|frontend|all]`：`deps` 重跑 `make dev-up` + `make dev-doctor`；`backend` 执行 `cd backend && go build ./cmd/...` 后从 `deploy/dev-stack/.env` 重启 `go run ./backend/cmd/api`；`frontend` 执行 `pnpm --filter @easyinterview/frontend build` 后从同一 `.env` 重启 Vite dev server；`all` 顺序覆盖 deps/backend/frontend。当前 host-run 口径下 redeploy 不等于 Kind / Helm rollout，但必须让浏览器访问到当前代码和当前 env。
 
 所有 env 脚本必须支持 `--dry-run`，输出将执行的 repo command，便于 skill 在不改变环境时解释下一步，也便于 unit/static gate 验证 Makefile 集成。脚本必须用 shell/Python 实现，不新增 `backend/cmd` / Go helper。
 
@@ -245,9 +245,9 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 - description 与 Usage 覆盖 setup / verify / cleanup / status / redeploy / rebuild。
 - setup / verify / cleanup / status 优先调用 `test/scenarios/env-*.sh`，再退到 README 手动引导；不得从具体场景脚本提取环境 bootstrap。
-- local integration 解释必须区分 Docker Compose 外部依赖、host-run backend/frontend command、repo-tracked scenario runner；不能承诺在无真实 secret 的上下文中自动拉起长期 backend/frontend 进程。
+- local integration 解释必须区分 Docker Compose 外部依赖、host-run backend/frontend command、repo-tracked scenario runner；redeploy backend/frontend/all 必须重启对应 host-run 进程，并在缺真实 secret 时报告具体 blocker。
 
-更新 `.agent-skills/scenario-redeploy/SKILL.md`：把 `test/scenarios/env-redeploy.sh [component]` 作为当前 repo 首选入口，并声明当前 host-run redeploy 是 build artifact 刷新，不是 Kind / Helm / cluster rollout。
+更新 `.agent-skills/scenario-redeploy/SKILL.md`：把 `test/scenarios/env-redeploy.sh [component]` 作为当前 repo 首选入口，并声明当前 host-run redeploy 是 build + 重启 host-run 进程，不是 Kind / Helm / cluster rollout。
 
 #### 6.4 场景 README 与 dev-stack README 对齐
 
@@ -280,9 +280,41 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - Red/green scenario contract：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k real_provider_hybrid_uat_uses_dev_stack_env_as_single_source`。
 - Live hybrid gate：`scenario-run -i E2E.P0.100` 在当前本地 `.env` 下产出 PASS，并在 redacted evidence 中保留 provider/profile/model/task-run 摘要，不复制 raw response。
 
+### Phase 8: developer debug handoff revision
+
+#### 8.1 调试摘要 helper
+
+新增共享 helper `test/scenarios/_shared/scripts/local-dev-runtime.sh`，负责：
+
+- 从 `deploy/dev-stack/.env` 读取非 secret 端口配置，推导 frontend dev URL、backend API base、Mailpit URL 与 MinIO Console URL。
+- 将 backend/frontend host-run 日志固定写入 `.test-output/local-dev/backend.log` 与 `.test-output/local-dev/frontend.log`。
+- 将启动进程组 PID 写入 `.test-output/local-dev/backend.pid` 与 `.test-output/local-dev/frontend.pid`。
+- 输出 `tail -f` 与 `make dev-logs SERVICE=<name>` 调试命令；不得打印 `AI_PROVIDER_API_KEY`、auth secret、session cookie 或 magic-link token。
+
+#### 8.2 redeploy 闭环语义
+
+`test/scenarios/env-redeploy.sh backend|frontend|all` 必须在 build artifact gate 通过后：
+
+- 停止旧 PID 文件指向的进程组，并 fallback 停止对应端口 listener。
+- 使用 detached host-run process 重新启动 backend/frontend，让 Agent 启动的服务在命令结束后仍可由开发者访问。
+- 等待对应端口可连接；失败时打印对应日志尾段并非零退出。
+- 输出统一调试摘要。
+
+`deps` target 仍只负责 Docker Compose 外部依赖和 `make dev-doctor`。
+
+#### 8.3 setup/status/verify 可接管输出
+
+`env-setup.sh` / `env-status.sh` / `env-verify.sh` 必须输出同一调试摘要；其中 status/verify 的 `make dev-doctor` JSON 保持 stdout，调试摘要走 stderr，避免破坏机器消费。
+
+#### 8.4 Phase 8 自检
+
+- Static contract：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q` 覆盖 helper、redeploy restart semantics、summary 输出和 README。
+- Dry-run：`test/scenarios/env-redeploy.sh backend --dry-run`、`test/scenarios/env-setup.sh --dry-run`、`test/scenarios/env-status.sh --dry-run` 均解释即将输出调试信息。
+- Live redeploy：`test/scenarios/env-redeploy.sh all` 后 `lsof` 证明 backend/frontend 监听当前端口；`.test-output/local-dev/*.log` 与 `.pid` 存在；重新触发 Mailpit 登录邮件，最新 magic-link 指向当前 `EMAIL_VERIFY_BASE_URL` 的 frontend `/auth/verify`。
+
 ## 5 验收标准
 
-- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-14 全部成立，证据贴入工作日志或当前 `.test-output/`。
+- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-15 全部成立，证据贴入工作日志或当前 `.test-output/`。
 - 本 plan checklist 全部勾选；Phase 3 / Phase 4 的 `make dev-*` 自检命令日志贴入工作日志。
 - engineering-roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺由 Phase 4.4 关闭；不重复修改父 roadmap checklist。
 
@@ -301,6 +333,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-27 | 1.13 | Developer debug handoff revision：`env-redeploy.sh backend|frontend|all` 从 build-only 修订为 build + 重启 host-run 进程，并输出 endpoint/log/PID/container log 调试入口。 | user feedback |
 | 2026-05-27 | 1.12 | Raw debug local default revision：local dev/test 与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，P0.100 preflight 校验该开关，staging/prod 默认关闭。 | user feedback |
 | 2026-05-27 | 1.11 | Single env source revision：`deploy/dev-stack/.env` 成为本地真实前后端联调唯一 env 来源，`.env.example` 补齐 auth secrets、frontend real mode、AI provider 与共享依赖 keys，禁止场景复制独立 `.env`。 | user feedback / BUG-0110 follow-up |
 | 2026-05-27 | 1.10 | Environment lifecycle revision：把共享测试环境与本地前后端联调环境 lifecycle 抽到 `test/scenarios/env-*.sh`、根 `scenario-env-*` Make target 与 scenario skill 入口，支持独立 setup/status/verify/cleanup/redeploy。 | user objective / scenario-env independent lifecycle |

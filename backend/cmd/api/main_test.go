@@ -159,13 +159,16 @@ featureFlag:
 
 func TestLocalDevCORSAllowsFrontendRealModeOrigins(t *testing.T) {
 	called := false
-	handler := withLocalDevCORS("dev", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	allowed := map[string]struct{}{
+		"http://frontend.local:6180": {},
+	}
+	handler := withLocalDevCORS("dev", allowed, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 		w.WriteHeader(http.StatusOK)
 	}))
 
 	preflight := httptest.NewRequest(http.MethodOptions, "/api/v1/runtime-config", nil)
-	preflight.Header.Set("Origin", "http://127.0.0.1:4174")
+	preflight.Header.Set("Origin", "http://frontend.local:6180")
 	preflight.Header.Set("Access-Control-Request-Headers", "Content-Type,Idempotency-Key")
 	preflightRec := httptest.NewRecorder()
 	handler.ServeHTTP(preflightRec, preflight)
@@ -175,7 +178,7 @@ func TestLocalDevCORSAllowsFrontendRealModeOrigins(t *testing.T) {
 	if called {
 		t.Fatalf("preflight should not call next handler")
 	}
-	if got := preflightRec.Header().Get("Access-Control-Allow-Origin"); got != "http://127.0.0.1:4174" {
+	if got := preflightRec.Header().Get("Access-Control-Allow-Origin"); got != "http://frontend.local:6180" {
 		t.Fatalf("allow origin = %q", got)
 	}
 	if got := preflightRec.Header().Get("Access-Control-Allow-Credentials"); got != "true" {
@@ -186,19 +189,22 @@ func TestLocalDevCORSAllowsFrontendRealModeOrigins(t *testing.T) {
 	}
 
 	get := httptest.NewRequest(http.MethodGet, "/api/v1/runtime-config", nil)
-	get.Header.Set("Origin", "http://localhost:5173")
+	get.Header.Set("Origin", "http://frontend.local:6180")
 	getRec := httptest.NewRecorder()
 	handler.ServeHTTP(getRec, get)
 	if !called {
 		t.Fatalf("GET should call next handler")
 	}
-	if got := getRec.Header().Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+	if got := getRec.Header().Get("Access-Control-Allow-Origin"); got != "http://frontend.local:6180" {
 		t.Fatalf("GET allow origin = %q", got)
 	}
 }
 
 func TestLocalDevCORSRejectsUnknownPreflightAndStaysDisabledOutsideDev(t *testing.T) {
-	handler := withLocalDevCORS("dev", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	allowed := map[string]struct{}{
+		"http://frontend.local:6180": {},
+	}
+	handler := withLocalDevCORS("dev", allowed, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatalf("unknown preflight should not reach next handler")
 	}))
 	preflight := httptest.NewRequest(http.MethodOptions, "/api/v1/me", nil)
@@ -213,12 +219,12 @@ func TestLocalDevCORSRejectsUnknownPreflightAndStaysDisabledOutsideDev(t *testin
 	}
 
 	prodCalled := false
-	prod := withLocalDevCORS("prod", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	prod := withLocalDevCORS("prod", allowed, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		prodCalled = true
 		w.WriteHeader(http.StatusOK)
 	}))
 	get := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
-	get.Header.Set("Origin", "http://127.0.0.1:4174")
+	get.Header.Set("Origin", "http://frontend.local:6180")
 	prodRec := httptest.NewRecorder()
 	prod.ServeHTTP(prodRec, get)
 	if !prodCalled {
@@ -226,6 +232,26 @@ func TestLocalDevCORSRejectsUnknownPreflightAndStaysDisabledOutsideDev(t *testin
 	}
 	if got := prodRec.Header().Get("Access-Control-Allow-Origin"); got != "" {
 		t.Fatalf("non-dev CORS header = %q", got)
+	}
+}
+
+func TestLocalDevCORSOriginsComeFromVerifyBaseURL(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+email:
+  verifyBaseURL: "http://frontend.local:6180/auth/verify"
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	origins := localDevCORSOrigins(loader)
+	if _, ok := origins["http://frontend.local:6180"]; !ok {
+		t.Fatalf("expected frontend origin from email.verifyBaseURL, got %#v", origins)
+	}
+	if _, ok := origins["http://127.0.0.1:5173"]; ok {
+		t.Fatalf("unexpected hard-coded frontend origin leaked into CORS origins: %#v", origins)
 	}
 }
 
@@ -1962,7 +1988,7 @@ email:
   smtpHost: "127.0.0.1"
   smtpPort: 1025
   fromAddress: "noreply@easyinterview.local"
-  verifyBaseURL: "http://127.0.0.1:8080/api/v1/auth/email/verify"
+  verifyBaseURL: "http://127.0.0.1:5173/auth/verify"
 `)
 	loader, err := config.Load(config.Options{ConfigDir: dir})
 	if err != nil {

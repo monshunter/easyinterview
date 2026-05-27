@@ -6,6 +6,10 @@ set -euo pipefail
 SCENARIO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCENARIO_DIR/../.." && pwd)"
 DRY_RUN=0
+LOCAL_DEV_RUNTIME="$SCENARIO_DIR/_shared/scripts/local-dev-runtime.sh"
+
+# shellcheck disable=SC1090
+. "$LOCAL_DEV_RUNTIME"
 
 usage() {
   cat <<'USAGE'
@@ -35,7 +39,9 @@ done
 
 if [ "$DRY_RUN" -eq 1 ]; then
   echo "dry-run: make dev-doctor"
+  echo "dry-run: print local dev endpoints and debug commands" >&2
   exit 0
 fi
 
 (cd "$REPO_ROOT" && make dev-doctor)
+local_dev_summary >&2

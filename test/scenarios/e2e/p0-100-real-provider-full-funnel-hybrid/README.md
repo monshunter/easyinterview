@@ -65,7 +65,7 @@ $EDITOR deploy/dev-stack/.env
 - `AUTH_CHALLENGE_TOKEN_PEPPER`
 - `AI_PROVIDER_API_KEY`
 
-`deploy/dev-stack/.env.example` 已给出本地邮箱默认值：`EMAIL_PROVIDER=mailpit`、`EMAIL_SMTP_HOST=127.0.0.1`、`EMAIL_SMTP_PORT=1025`、`EMAIL_VERIFY_BASE_URL=http://127.0.0.1:8080/api/v1/auth/email/verify`。不要填写真实个人邮箱账号或外部 SMTP 凭证。
+`deploy/dev-stack/.env.example` 已给出本地邮箱默认值：`EMAIL_PROVIDER=mailpit`、`EMAIL_SMTP_HOST=127.0.0.1`、`EMAIL_SMTP_PORT=1025`、`EMAIL_VERIFY_BASE_URL=http://127.0.0.1:5173/auth/verify`。不要填写真实个人邮箱账号或外部 SMTP 凭证。若人工 UAT 使用 `vite preview --port 4174` 作为唯一前端入口，本地 `.env` 的 `EMAIL_VERIFY_BASE_URL` 应同步改为 `http://127.0.0.1:4174/auth/verify`。
 
 `AI_PROVIDER_BASE_URL` 默认是 `https://api.deepseek.com`；如使用其他 OpenAI-compatible endpoint，必须同步确认 `config/ai-providers.yaml` / `config/ai-profiles.yaml` 支持。
 
@@ -128,7 +128,7 @@ go run ./backend/cmd/api
 open http://127.0.0.1:8025
 ```
 
-在前端登录页或任一操作级 auth gate 中输入 `manual-uat-full-funnel@example.test` 并提交。随后在 Mailpit Web UI 打开最新邮件，点击邮件中的 `http://127.0.0.1:8080/api/v1/auth/email/verify?token=...` magic link。浏览器收到 `ei_session` 后回到前端并刷新，TopBar 应显示已登录用户。
+在前端登录页或任一操作级 auth gate 中输入 `manual-uat-full-funnel@example.test` 并提交。随后在 Mailpit Web UI 打开最新邮件，点击邮件中的 `http://127.0.0.1:5173/auth/verify?token=...` magic link。前端会自动调用 `verifyAuthEmailChallenge`，浏览器收到 `ei_session` 后 URL 不再包含 token，TopBar 应显示已登录用户。
 
 如果不点击链接，也可以从邮件中复制 `token` query 值，到前端 `/auth/verify?email=manual-uat-full-funnel@example.test` 的验证输入框中粘贴并提交。不要把 token 写入 tracked 文件或日志。
 
@@ -159,8 +159,8 @@ pnpm --filter @easyinterview/frontend dev
 
 1. 打开 `http://127.0.0.1:4174`。
 2. 触发登录，输入 `manual-uat-full-funnel@example.test`。
-3. 打开 Mailpit `http://127.0.0.1:8025`，从最新邮件完成 magic-link 验证。
-4. 回到前端刷新页面，TopBar 应显示已登录用户 `manual-uat-full-funnel@example.test`。
+3. 打开 Mailpit `http://127.0.0.1:8025`，从最新邮件点击前端 magic-link callback 完成验证。
+4. 前端自动清理 token 并刷新登录态，TopBar 应显示已登录用户 `manual-uat-full-funnel@example.test`。
 
 ## 8 走查流程
 

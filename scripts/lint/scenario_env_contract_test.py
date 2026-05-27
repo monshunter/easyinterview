@@ -27,13 +27,15 @@ def run_script(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def test_top_level_scenario_env_scripts_exist_and_are_decoupled() -> None:
-    for script_name in ENV_SCRIPTS.values():
+    helper_name = "_shared/scripts/local-dev-runtime.sh"
+    for script_name in (*ENV_SCRIPTS.values(), helper_name):
         script = SCENARIO_ROOT / script_name
         assert script.exists(), f"{script_name} must be a top-level scenario env entrypoint"
         assert os.access(script, os.X_OK), f"{script_name} must be executable for skill usage"
 
         text = script.read_text(encoding="utf-8")
-        assert "--dry-run" in text
+        if script_name != helper_name:
+            assert "--dry-run" in text
         assert "p0-" not in text
         assert "manual-uat/full-funnel" not in text
         assert "backend/cmd/devsession" not in text
@@ -63,6 +65,9 @@ def test_top_level_scenario_env_scripts_support_dry_run() -> None:
 
 def test_redeploy_script_documents_host_run_artifact_boundary() -> None:
     text = (SCENARIO_ROOT / ENV_SCRIPTS["redeploy"]).read_text(encoding="utf-8")
+    helper = (SCENARIO_ROOT / "_shared" / "scripts" / "local-dev-runtime.sh").read_text(
+        encoding="utf-8"
+    )
 
     assert "go build ./cmd/..." in text
     assert "pnpm --filter @easyinterview/frontend build" in text
@@ -72,8 +77,17 @@ def test_redeploy_script_documents_host_run_artifact_boundary() -> None:
     assert "set -a" in text
     assert "make dev-up" in text
     assert "make dev-doctor" in text
-    assert "go run ./backend/cmd/api" not in text
-    assert "pnpm --filter @easyinterview/frontend dev" not in text
+    assert "restart_backend_runtime" in text
+    assert "restart_frontend_runtime" in text
+    assert "local_dev_summary" in text
+    assert "go run ./backend/cmd/api" in helper
+    assert "pnpm --filter @easyinterview/frontend dev" in helper
+    assert "start_new_session=True" in helper
+    assert ".test-output/local-dev/backend.log" in helper
+    assert ".test-output/local-dev/frontend.log" in helper
+    assert "backend API" in helper
+    assert "frontend dev" in helper
+    assert "Mailpit" in helper
 
 
 def test_setup_migrations_load_dev_stack_env_and_derive_database_url() -> None:
@@ -88,6 +102,7 @@ def test_setup_migrations_load_dev_stack_env_and_derive_database_url() -> None:
     assert "urllib.parse" in text
     assert "make migrate-up" in text
     assert 'DATABASE_URL="${DATABASE_URL:-' not in text
+    assert "local_dev_summary" in text
 
 
 def test_root_makefile_exposes_scenario_env_targets() -> None:
@@ -161,6 +176,9 @@ def test_scenario_docs_describe_independent_env_lifecycle() -> None:
     assert "手动引导" in suite
     assert "host-run" in dev_stack
     assert "make scenario-env-setup" in dev_stack
+    assert ".test-output/local-dev/backend.log" in dev_stack
+    assert ".test-output/local-dev/frontend.log" in dev_stack
+    assert "test/scenarios/env-redeploy.sh all" in dev_stack
 
 
 def test_real_provider_hybrid_uat_is_registered_as_e2e_scenario() -> None:

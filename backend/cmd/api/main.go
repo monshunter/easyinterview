@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -205,7 +206,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           withLocalDevCORS(loader.AppEnv(), buildAPIHandlerWithJDMatchAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes, profileRoutes, jdmatchRoutes)),
+		Handler:           withLocalDevCORS(loader.AppEnv(), localDevCORSOrigins(loader), buildAPIHandlerWithJDMatchAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes, profileRoutes, jdmatchRoutes)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -1091,15 +1092,9 @@ func writeRouteAPIError(w http.ResponseWriter, status int, code string, message 
 	_, _ = w.Write(raw)
 }
 
-func withLocalDevCORS(appEnv string, next http.Handler) http.Handler {
+func withLocalDevCORS(appEnv string, allowed map[string]struct{}, next http.Handler) http.Handler {
 	if appEnv != "dev" {
 		return next
-	}
-	allowed := map[string]struct{}{
-		"http://127.0.0.1:4174": {},
-		"http://localhost:4174": {},
-		"http://127.0.0.1:5173": {},
-		"http://localhost:5173": {},
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
@@ -1120,6 +1115,24 @@ func withLocalDevCORS(appEnv string, next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func localDevCORSOrigins(loader *config.Loader) map[string]struct{} {
+	allowed := map[string]struct{}{}
+	addURLOrigin(allowed, loader.GetString("email.verifyBaseURL"))
+	return allowed
+}
+
+func addURLOrigin(out map[string]struct{}, raw string) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" || strings.HasPrefix(trimmed, "/") {
+		return
+	}
+	u, err := url.Parse(trimmed)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return
+	}
+	out[u.Scheme+"://"+u.Host] = struct{}{}
 }
 
 // registryDirOrDefault returns the configured F3 truth-source path or

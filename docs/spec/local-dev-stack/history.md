@@ -1,6 +1,6 @@
 # Local Dev Stack History
 
-> **版本**: 1.16
+> **版本**: 1.18
 > **状态**: active
 > **更新日期**: 2026-05-27
 
@@ -8,6 +8,8 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-27 | 1.18 | 将 scenario redeploy 闭环修订为 rebuild + 重启 host-run backend/frontend，并要求 env setup/status/verify/redeploy 输出服务地址、PID、日志路径和容器日志命令，便于开发者接管调试。 | local-dev-stack/001 developer debug handoff |
+| 2026-05-27 | 1.17 | 修订本地 Mailpit 登录闭环：默认邮件链接进入 frontend `/auth/verify` callback，由前端调用 backend verify API、刷新 session 并清理 URL token；手动 token 仅保留为 fallback。 | frontend-shell/001 Phase 7 |
 | 2026-05-27 | 1.16 | 本地测试与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，并要求 P0.100 hybrid preflight 校验该开关；staging/prod 默认仍关闭，raw output 不进入持久化审计。 | local-dev-stack/001 raw debug local default |
 | 2026-05-27 | 1.15 | 明确 `deploy/dev-stack/.env` 是本地真实前后端联调唯一 env 来源，`.env.example` 覆盖 auth secrets、frontend real mode、AI provider 与共享依赖配置；场景不得维护独立 `.env`。 | local-dev-stack/001 + e2e-scenarios-p0/002 |
 | 2026-05-27 | 1.14 | 将共享测试环境与本地前后端联调环境生命周期从具体场景脚本中抽离：新增 `test/scenarios/env-*.sh` 与根 `scenario-env-*` Make target 作为 setup / status / verify / cleanup / redeploy 真理源，供 `/scenario-env` 与 `/scenario-redeploy` skill 调用。 | local-dev-stack/001 environment lifecycle revision |

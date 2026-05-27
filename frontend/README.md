@@ -12,7 +12,7 @@ D1 frontend-shell 引入 React 18 + Vite 5 + Vitest 2 + jsdom + @testing-library
 
 | 命令 | 用途 |
 |------|------|
-| `pnpm --filter @easyinterview/frontend dev` | 启动 Vite dev server（端口 5173） |
+| `pnpm --filter @easyinterview/frontend dev` | 启动 Vite dev server（默认端口 5173，可用 `FRONTEND_HOST_PORT` 覆盖） |
 | `pnpm --filter @easyinterview/frontend build` | typecheck + Vite 构建 |
 | `pnpm --filter @easyinterview/frontend typecheck` | 仅运行 `tsc --noEmit` |
 | `pnpm --filter @easyinterview/frontend test` | 运行 Vitest 全量套件 |
@@ -56,7 +56,7 @@ requestAuth({
 - [`src/api/generated/client.ts`](./src/api/generated/client.ts) 是 B2 OpenAPI 生成的强类型客户端，禁止手改。
 - [`src/api/mockTransport.ts`](./src/api/mockTransport.ts) 提供 `createFixtureBackedFetch + createFixtureRegistry`，scenario 通过请求头 `Prefer: example=<scenario>` 选择 fixture。
 - [`src/api/clientFactory.ts`](./src/api/clientFactory.ts) 是正式 bootstrap 入口：Vite dev (`import.meta.env.DEV`) 默认使用 fixture-backed client，production 默认使用 same-origin `/api/v1`。
-- 需要在 dev 下打真实 backend 时显式运行 `VITE_EI_API_MODE=real pnpm --filter @easyinterview/frontend dev`；未设置 `VITE_EI_API_BASE_URL` 时默认指向 `http://localhost:8080/api/v1`，也可设置完整 API base URL（例如 `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`）。不要依赖相对 `/api/v1`，否则浏览器会打到 Vite 前端端口 5173。
+- 需要在 dev 下打真实 backend 时显式运行 `VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=<full-api-base> pnpm --filter @easyinterview/frontend dev`（例如 `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`）。前端 dev 端口可通过 `FRONTEND_HOST_PORT` 覆盖；不要依赖相对 `/api/v1`，否则浏览器会打到 Vite 前端 origin。
 - App 的 runtime + auth 状态通过 [`src/app/runtime/AppRuntimeProvider.tsx`](./src/app/runtime/AppRuntimeProvider.tsx) 暴露：`useAppRuntime()` 拿到 `client / runtime / auth / refreshAuth`；非 React 路径用 [`src/lib/runtime-config`](./src/lib/runtime-config) 直接读取 runtime config。
 - D1 only wires `getRuntimeConfig` / `getMe` / `startAuthEmailChallenge` / `verifyAuthEmailChallenge` / `logout`。**新增 client 操作必须先修订 B2 + C1 spec**，然后通过 `src/app/auth/authContractGate.test.ts` 把允许集合扩到允许列表。
 

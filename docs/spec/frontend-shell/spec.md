@@ -1,8 +1,8 @@
 # Frontend Shell Spec
 
-> **版本**: 1.16
+> **版本**: 1.17
 > **状态**: active
-> **更新日期**: 2026-05-18
+> **更新日期**: 2026-05-27
 
 ## 1 背景与目标
 
@@ -20,6 +20,7 @@
 - 用户菜单入口：`profile`、`settings`、`auth_logout`。
 - 认证页面：`auth_login`、`auth_register`、`auth_verify`、`auth_reset`、`auth_logout`。
 - `requestAuth(pendingAction)` 与登录成功后的 route / params 恢复。
+- Mailpit / magic-link 回调：`auth_verify` 可承接一次性 `token` query，调用 generated `verifyAuthEmailChallenge` 后恢复目标 route 并清理 URL token。
 - 全局显示控制：主题色、暗色、语言下拉；设置页维护字体预设。
 - Runtime config、generated API client 与 fixture-backed mock transport bootstrap 的前端接入边界。
 - URL-addressable routing：正式前端使用 Browser History canonical path 表达当前 App location，并把稳定服务端资源 ID / 任务上下文保存在 query/path 参数中，支持直开、刷新、复制链接和浏览器前进/后退。
@@ -47,6 +48,7 @@
 | D-8 | Brand / version placement | TopBar 品牌区只展示 `E` mark + `EasyInterview`，品牌名不本地化，不放解释性副标题或版本号 | App 版本属于产品元数据，通过设置页 `产品信息 / Product info` 低频展示；版本值 `v1.0` 不进入翻译，周边标签必须走 i18n |
 | D-9 | Dev mock session state | Vite dev 默认 fixture-backed mock 必须能表达未登录、登录成功和退出登录后的 session 状态变化 | operation-level fixture 存在不等于用户流程闭环；mock runtime 必须让 `verifyAuthEmailChallenge` 后的 `/me` 变为 authenticated，让 `logout` 后的 `/me` 变为 unauthenticated，且默认打开 App 必须可见非登录态 |
 | D-10 | Canonical URL routing | 保持 SPA，但把正式导航从仅内存 route / `#route=` bootstrap 升级为 Browser History path + query。URL path 是 canonical 用户地址，内部仍使用现有 `Route { name, params }` / `LooseRoute` 合约；`#route=` 只作为 static preview / pixel parity / 迁移期 adapter 输入，不作为正式 canonical URL | 用户可复制、刷新、直开当前页面；back/forward 与 App route 同步；服务端部署必须把已知 frontend path fallback 到 `index.html`。URL 不等于 REST API，不新增旧 route alias，不恢复独立 `voice` |
+| D-11 | Magic-link callback URL | `auth_verify` 是唯一允许携带一次性 `token` query 的 frontend route；该 token 只能来自邮件链接，进入页面后立即通过 generated client 兑换 session，并用 replace 导航清理 URL | Mailpit 链接回到前端上下文；token 不进入 `pendingAction`、storage、业务 route 或浏览器历史长链路 |
 
 ## 4 设计约束
 
@@ -57,6 +59,7 @@
 - `practice?mode=voice&modality=voice` 是语音面试的显式入口；不得恢复独立 `voice` route alias。
 - Browser History canonical URL 必须与现有 route catalog 对齐：primary nav、context routes、user-menu routes、auth routes 都从 `Route.name` 映射而来；未知 path / malformed params / retired aliases 只能归一到当前保留 route 或 `home`，不能 materialize 旧页面。
 - Canonical URL 只允许携带稳定、可重取的上下文标识和 display hint，例如 `targetJobId`、`resumeVersionId`、`planId`、`sessionId`、`reportId`、`roundId`、`flow`、`tab`、`mode`、`modality`、`next`；不得携带原始正文、AI 输出、表单草稿或 auth secret。
+- `auth_verify?token=...` 是上述 auth secret 红线的唯一短生命周期例外：组件必须在首次渲染后立即消费 token，成功后调用 replace 导航回 pending route 或 Home，并保证恢复后的 URL、`pendingAction` 与 storage 不再包含 token。
 - `#route=...` adapter 必须保留到 static preview / Playwright pixel parity / 场景 harness 全部迁移完成；adapter 解析出的 loose route 仍经过 `normalizeRoute`，并在正式 App 中替换为 canonical path，不新增 hash-only 分支。
 - Auth `pendingAction` 与 URL 恢复必须共用同一组 safe route params：登录前可保存目标 route、稳定 ID 与轻量 display hint；登录成功后恢复原 canonical path；任何 raw payload 必须留在受控 runtime state 或重新从 API 获取。
 - History `pushState` / `replaceState` / `popstate` 必须由 router adapter 统一管理，避免组件直接拼接 `window.location`；同一路由不同参数变化必须保持 back/forward 可预期。
@@ -98,7 +101,7 @@
 | C-9 | 真实浏览器 pixel parity gate | D2 视觉系统已落地（`ei-shell-topbar` / `ei-screen-shell` / `ei-auth-shell` / fontsource / customAccent 全部接入），但 vitest+jsdom 不能验证 desktop / mobile viewport 下的 CSS 布局、bounding box 与截图差异 | 003 接入 Playwright + chromium 的 pixel parity gate | Playwright 在 desktop (1440×900) 与 mobile (390×844) 两个 viewport 下并行加载 `frontend/dist/index.html` 与 `ui-design/index.html` golden preview，断言：D2 testid / className / 文本内容在两边一致；warm/light 默认状态下 TopBar、auth、profile、settings、placeholder、home、parse、jd_match、workspace 的 `getBoundingClientRect()` 不重叠且 stays in viewport；authenticated user menu 必须在 mocked login 后以头像 chip + dropdown 呈现，dropdown desktop 与 chip 右对齐、mobile 不溢出 viewport，且 logout 后回到非登录态；切换 dark / customAccent 后核心元素的 computed background / color 出现可见变化；workspace full-state pixel tests 必须通过 server-bound route params 进入完整规划态，不依赖 Home recent card 的 `resume-unbound` synthetic path；`E2E.P0.006` Playwright scenario `setup→trigger→verify→cleanup` 通过；`pnpm --filter @easyinterview/frontend test:pixel-parity` 默认在 CI / 本地都可运行（前提是 chromium 二进制已安装）且不得依赖 `.gitignore` 排除的本地 screenshot baseline；任何 pixel parity 失败必须修正到与 `ui-design/` 一致或先修订 `ui-design/` 真理源，不得以”差异在阈值内”收口；E2E.P0.005（jsdom 范围）保留作为 fast smoke gate | 003-ui-design-pixel-parity-gate |
 | C-10 | 登录态菜单与退出闭环 | 用户打开 dev mock App | 默认看到登录 / 注册；完成 passwordless mock 登录后打开头像菜单；点击退出登录并确认 | 用户菜单源级复刻 `ui-design/src/app.jsx` 的头像 chip、姓名/email header、profile/settings/logout dropdown；browser-level parity gate 覆盖 desktop / mobile dropdown geometry 与 viewport-safe mobile placement；退出后 `/me` 为 unauthenticated，TopBar 回到登录 / 注册，页面可继续浏览 | 001-app-shell-auth-settings |
 | C-11 | Canonical path deep link / reload / browser history | 用户拿到一个 canonical frontend URL，例如 `/workspace?targetJobId=...&resumeVersionId=...&planId=...`、`/practice?mode=voice&modality=voice&sessionId=...` 或 `/report?sessionId=...` | 直接打开、刷新页面、通过 App 导航进入下一页，再点击浏览器 back / forward | App 使用 Browser History 解析为同一个 `Route` + safe params；TopBar active / chrome hidden 行为与 route catalog 一致；InterviewContext 从 URL safe params hydrate；reload 不丢失稳定资源上下文；back/forward 不产生双重导航或旧页面 | 004-url-addressable-routing |
-| C-12 | Auth pendingAction + URL privacy redline | 未登录用户从 URL-addressable 业务页触发登录，或打开带 safe params 的深链接 | 登录前保存 pendingAction，登录成功后恢复 | pendingAction 只保存 route name、canonical URL 和 safe params；登录成功后回到原 canonical path；URL / pendingAction / localStorage / session storage / history / console 不含 JD 原文、简历原文、guided answers、parsed summary、suggestion、prompt、token 等敏感正文；auth secret 不进入 query | 004-url-addressable-routing |
+| C-12 | Auth pendingAction + URL privacy redline | 未登录用户从 URL-addressable 业务页触发登录，或打开带 safe params 的深链接 / Mailpit magic-link | 登录前保存 pendingAction，或 `auth_verify` 消费一次性 token 后登录成功 | pendingAction 只保存 route name、canonical URL 和 safe params；登录成功后回到原 canonical path；URL / pendingAction / localStorage / session storage / history / console 不含 JD 原文、简历原文、guided answers、parsed summary、suggestion、prompt 等敏感正文；`auth_verify?token=...` 仅允许作为短生命周期邮件回调入口，消费后必须 replace 清理 token，其他 route 不得保留 auth secret query | 004-url-addressable-routing + 001-app-shell-auth-settings Phase 7 |
 | C-13 | Hash compatibility + legacy route negative regression | static preview / pixel parity 仍使用 `#route=...`，或用户打开 unknown / malformed / retired route / 独立 `voice` URL | App bootstrap / normalize route | `#route=...` 被 adapter 解析后进入同一 `Route` 合约并替换/等价到 canonical path；unknown / malformed path fallback `home` 或当前保留 route；retired aliases 不 materialize standalone screens；`voice` 仍不是合法 route，只能用 `practice?mode=voice&modality=voice`；server fallback 对已知 frontend path 返回 `index.html`，API path 不被 frontend fallback 吞掉 | 004-url-addressable-routing |
 
 ## 7 关联计划

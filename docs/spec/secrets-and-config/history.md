@@ -1,6 +1,6 @@
 # Secrets and Config History
 
-> **版本**: 2.9
+> **版本**: 2.10
 > **状态**: active
 > **更新日期**: 2026-05-27
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-27 | 2.10 | 将 `EMAIL_VERIFY_BASE_URL` local dev 默认值从 backend API verify URL 改为 frontend `/auth/verify` callback；邮件链接回到前端后由 generated client 调用 backend `verifyAuthEmailChallenge` 并清理 URL token。 | frontend-shell/001 Phase 7 |
 | 2026-05-27 | 2.9 | 调整 `AI_DEBUG_PRINT_RAW_OUTPUT` 默认策略：local dev/test 与本地真实联调默认开启，以支持 AI Agent 调试真实 provider 输出格式；staging/prod 默认关闭，raw output 仍不得进入持久化审计或 runtime-config。 | local-dev-stack/001 raw debug local default |
 | 2026-05-27 | 2.8 | 新增 `AI_DEBUG_PRINT_RAW_OUTPUT` / `ai.debugPrintRawOutput` 本地调试开关：默认关闭；开启时仅将 LLM `Complete` 原始响应打印到 backend stderr，用于排查 schema/格式问题，不进入持久化审计或 runtime-config。 | AI raw output debug switch |
 | 2026-05-26 | 2.7 | 为本地 Mailpit magic-link 测试补齐 C1 邮件配置字典：新增 `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` 与对应 canonical config path；local dev 默认 `EMAIL_PROVIDER=mailpit`，不依赖真实外部邮箱服务或真实邮箱账号。 | local-dev-stack/001 Mailpit local email sink |

@@ -78,6 +78,7 @@ export interface AppProps {
 function renderRouteScreen(
   route: Route,
   navigate: (next: LooseRoute) => void,
+  replaceRoute: (next: LooseRoute) => void,
   runtime: AppRuntimeValue | null,
   lang: Lang,
 ): ReactNode {
@@ -152,6 +153,7 @@ function renderRouteScreen(
         <AuthVerifyScreen
           route={route}
           onNavigate={navigate}
+          onReplace={replaceRoute}
           onVerify={async (req) => {
             await runtime.client.verifyAuthEmailChallenge(
               withLocaleHeader(lang, { query: { token: req.token } }),
@@ -202,7 +204,7 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
   initialRoute,
   children,
 }) => {
-  const { route, navigate } = useBrowserRoute({ initialRoute });
+  const { route, navigate, replaceRoute } = useBrowserRoute({ initialRoute });
   const navigationValue = useMemo(() => ({ navigate }), [navigate]);
   const hideChrome = isChromeHidden(route.name);
   const runtime = useAppRuntimeOptional();
@@ -223,7 +225,7 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
         <main>
           <InterviewContextProvider>
             <InterviewContextRouteSync route={route} />
-            {renderRouteScreen(route, navigate, runtime, prefs.lang)}
+            {renderRouteScreen(route, navigate, replaceRoute, runtime, prefs.lang)}
           </InterviewContextProvider>
         </main>
         {children}

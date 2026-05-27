@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-27](2026-05-27.md) | `fix(auth): restore mail-link login and runtime redeploy (BUG-0112, BUG-0113)` | #fix #ui #test #docs #bdd |
 | [2026-05-27](2026-05-27.md) | `fix(test): backfill p0100 owner evidence gates (BUG-0111)` | #fix #test #docs #bdd |
 | [2026-05-27](2026-05-27.md) | `fix(test): close scenario env review follow-ups (BUG-0111)` | #fix #test #docs |
 | [2026-05-27](2026-05-27.md) | `fix(ai): enable local raw output debug` | #fix #test #docs #bdd |

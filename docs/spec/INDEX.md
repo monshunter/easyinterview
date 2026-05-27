@@ -19,11 +19,11 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.4 | active | 2026-05-22 | [plans](./repo-scaffold/plans/) |
-| [local-dev-stack](./local-dev-stack/spec.md) | 1.16 | active | 2026-05-27 | [plans](./local-dev-stack/plans/) |
+| [local-dev-stack](./local-dev-stack/spec.md) | 1.18 | active | 2026-05-27 | [plans](./local-dev-stack/plans/) |
 | [backend-runtime-topology](./backend-runtime-topology/spec.md) | 1.5 | active | 2026-05-26 | [plans](./backend-runtime-topology/plans/) |
 | [backend-async-runner](./backend-async-runner/spec.md) | 1.5 | active | 2026-05-26 | [plans](./backend-async-runner/plans/) |
 | [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.14 | active | 2026-05-26 | [plans](./ai-provider-and-model-routing/plans/) |
-| [secrets-and-config](./secrets-and-config/spec.md) | 2.9 | active | 2026-05-27 | [plans](./secrets-and-config/plans/) |
+| [secrets-and-config](./secrets-and-config/spec.md) | 2.10 | active | 2026-05-27 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.3 | active | 2026-04-29 | [plans](./ci-pipeline-baseline/plans/) |
 
 ## 3 Contract
@@ -47,10 +47,10 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [mock-contract-suite](./mock-contract-suite/spec.md) | 1.8 | active | 2026-05-22 | [plans](./mock-contract-suite/plans/) |
-| [frontend-shell](./frontend-shell/spec.md) | 1.16 | active | 2026-05-18 | [plans](./frontend-shell/plans/) |
+| [frontend-shell](./frontend-shell/spec.md) | 1.17 | active | 2026-05-27 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 1.12 | completed | 2026-05-24 | [plans](./frontend-home-job-picks-and-parse/plans/) |
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.4 | active | 2026-05-23 | [plans](./frontend-workspace-and-practice/plans/) |
-| [backend-auth](./backend-auth/spec.md) | 1.5 | active | 2026-05-26 | [plans](./backend-auth/plans/) |
+| [backend-auth](./backend-auth/spec.md) | 1.6 | active | 2026-05-27 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 1.5 | active | 2026-05-21 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.11 | active | 2026-05-21 | [plans](./backend-practice/plans/) |
 | [backend-review](./backend-review/spec.md) | 1.0 | active | 2026-05-15 | [plans](./backend-review/plans/) |

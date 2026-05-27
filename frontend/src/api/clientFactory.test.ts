@@ -3,10 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import {
-	DEFAULT_DEV_REAL_API_BASE_URL,
-	createAppClient,
-} from "./clientFactory";
+import { createAppClient } from "./clientFactory";
 
 describe("frontend API client factory", () => {
 	it("uses fixture-backed mock client by default in Vite dev", async () => {
@@ -17,14 +14,13 @@ describe("frontend API client factory", () => {
 		});
 	});
 
-	it("uses backend port 8080 by default when dev explicitly opts into real API", () => {
-		const client = createAppClient({
-			DEV: true,
-			VITE_EI_API_MODE: "real",
-		});
-
-		expect(client.baseUrl).toBe(DEFAULT_DEV_REAL_API_BASE_URL);
-		expect(client.baseUrl).not.toBe("/api/v1");
+	it("requires an explicit API base when dev opts into real API", () => {
+		expect(() =>
+			createAppClient({
+				DEV: true,
+				VITE_EI_API_MODE: "real",
+			}),
+		).toThrow(/VITE_EI_API_BASE_URL/);
 	});
 
 	it("keeps production default on same-origin API and honors explicit real API base", () => {

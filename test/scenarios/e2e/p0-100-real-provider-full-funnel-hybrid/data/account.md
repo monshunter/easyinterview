@@ -19,7 +19,7 @@ The account is created through the real passwordless auth flow. Do not create a 
 3. Submit `manual-uat-full-funnel@example.test` on the login screen or an auth gate.
 4. Open Mailpit at `http://127.0.0.1:8025`.
 5. Open the latest message to this UAT address.
-6. Click the `http://127.0.0.1:8080/api/v1/auth/email/verify?token=...` magic link, then return to the frontend and refresh.
+6. Click the `http://127.0.0.1:5173/auth/verify?token=...` magic link. The frontend consumes the token, mints the session through the backend verify API, and removes the token from the URL.
 
 The local mailbox and synthetic address remove the need for a real external email service or a real mailbox account. The flow still exercises `startAuthEmailChallenge`, `email_dispatch`, Mailpit SMTP delivery, `verifyAuthEmailChallenge`, and first-party session cookie minting.
 
@@ -32,7 +32,7 @@ The local mailbox and synthetic address remove the need for a real external emai
 
 ## Cookie Check
 
-After clicking the magic link, DevTools -> Application -> Cookies -> `http://127.0.0.1` should show:
+After clicking the magic link, the frontend URL must no longer contain `token=`. DevTools -> Application -> Cookies -> `http://127.0.0.1` should show:
 
 | Field | Value |
 |-------|-------|
@@ -41,7 +41,7 @@ After clicking the magic link, DevTools -> Application -> Cookies -> `http://127
 | Domain | `127.0.0.1` |
 | Path | `/` |
 
-Refresh the frontend. The TopBar should show the UAT account.
+The TopBar should show the UAT account without a manual refresh.
 
 ## Cleanup
 

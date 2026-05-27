@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: completed
 > **更新日期**: 2026-05-27
 
@@ -70,3 +70,16 @@
 
 - [x] 7.1 默认开启本地 raw output debug：`config/dev.yaml` / `config/test.yaml` / 根 `.env.example` / `deploy/dev-stack/.env.example` 使用 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，`config/config.yaml` 与 staging/prod 默认保持关闭；`E2E.P0.100` trigger 从 `deploy/dev-stack/.env` 校验 true；验证：focused config test、scenario env contract test、真实 `scenario-run -i E2E.P0.100` PASS。
   <!-- verified: 2026-05-27 command="go test ./backend/internal/platform/config -run TestRepoLocalConfigEnablesRawOutputDebugOnlyForLocalEnvironments -count=1; python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k real_provider_hybrid_uat_uses_dev_stack_env_as_single_source; scenario-run -i E2E.P0.100" evidence="dev/test config raw debug true and staging/prod false; P0.100 env contract requires AI_DEBUG_PRINT_RAW_OUTPUT=true; real-provider full funnel run p0-100-debug-1779866312146 passed with redacted provider/profile/model/task-run evidence" -->
+
+## Phase 8: developer debug handoff revision
+
+- [x] 8.1 新增 `test/scenarios/_shared/scripts/local-dev-runtime.sh`：从 `deploy/dev-stack/.env` 推导 frontend/backend/Mailpit/MinIO 地址，统一 `.test-output/local-dev/{backend,frontend}.log` 与 `.pid`，输出 `tail -f` 和 `make dev-logs SERVICE=<name>` 调试入口；不得打印 secret、cookie 或 magic-link token。
+  <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="contract covers local-dev-runtime helper, start_new_session detached launch, endpoint summary, backend/frontend log paths, and no p0/manual coupling" -->
+- [x] 8.2 修订 `test/scenarios/env-redeploy.sh backend|frontend|all`：build artifact gate 通过后重启对应 host-run backend/frontend 进程，等待端口可连接，失败时打印日志尾段；`deps` 仍只管理 Docker Compose 外部依赖。
+  <!-- verified: 2026-05-27 command="test/scenarios/env-redeploy.sh all" evidence="dev-stack dependencies OK, backend go build passed and backend listened on 127.0.0.1:8080, frontend build passed and Vite listened on 127.0.0.1:5173" -->
+- [x] 8.3 修订 `env-setup.sh` / `env-status.sh` / `env-verify.sh`：创建、巡检或验证共享环境后输出同一调试摘要；status/verify 保持 `dev-doctor` JSON stdout，调试摘要走 stderr。
+  <!-- verified: 2026-05-27 command="test/scenarios/env-setup.sh --dry-run; test/scenarios/env-status.sh --dry-run" evidence="setup explains dev-up/dev-doctor and debug summary; status keeps dry-run make dev-doctor on stdout and debug summary notice on stderr" -->
+- [x] 8.4 文档与 skill 对齐：更新 `deploy/dev-stack/README.md`、`test/scenarios/README.md`、`test/scenarios/e2e/README.md`、`scenario-env` / `scenario-redeploy` skill，明确 redeploy 是 build + restart，且输出可接管地址/日志/PID。
+  <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="contract requires dev-stack debug log paths, env-redeploy command, scenario README redeploy restart semantics, and skill host-run restart wording" -->
+- [x] 8.5 Phase 8 自检：scenario env contract pytest、dry-run、`env-redeploy.sh all` live restart、端口监听、日志/PID 存在、Mailpit 最新邮件 magic-link 指向 frontend `/auth/verify`。
+  <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q; test/scenarios/env-redeploy.sh backend --dry-run; test/scenarios/env-setup.sh --dry-run; test/scenarios/env-status.sh --dry-run; test/scenarios/env-redeploy.sh all; lsof -nP -iTCP:8080 -iTCP:5173 -sTCP:LISTEN; curl -X POST http://127.0.0.1:8080/api/v1/auth/email/start ..." evidence="12 contract tests passed; redeploy summary printed endpoints/logs/PIDs; backend/frontend listeners survived after command exit; latest Mailpit email contains frontend /auth/verify callback and not backend verify API" -->

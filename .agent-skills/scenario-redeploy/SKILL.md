@@ -39,10 +39,12 @@ environment used by scenario tests and local frontend/backend integration.
 
 The current local topology is host-run: Docker Compose provides external
 dependencies, backend/frontend processes are not deployed through a Kind, Helm,
-or cluster rollout, and `test/scenarios/env-redeploy.sh` refreshes dependencies
-and build artifacts. If a user needs a long-running backend/frontend process for
-a hybrid real-provider scenario, use the scenario README command boundary and
-keep secrets in ignored local files.
+or cluster rollout, and `test/scenarios/env-redeploy.sh backend|frontend|all`
+must rebuild and restart the matching host-run backend/frontend process from
+`deploy/dev-stack/.env`. After redeploy, report frontend/backend/Mailpit
+addresses plus `.test-output/local-dev/{backend,frontend}.log` and PID files so
+the developer can take over debugging. Keep secrets in ignored local files and
+never print secret values.
 
 ## Rules
 

@@ -32,14 +32,17 @@ export const en: LocaleMessages = {
   "auth.createAndVerify": "Create account and verify email",
   "auth.verifyTitle": "Email verification",
   "auth.verifySentPrefix": "Sent to",
-  "auth.code": "Verification code",
+  "auth.code": "Sign-in token",
   "auth.verifyContinue": "Verify and continue",
+  "auth.verifyLinkPending": "Completing sign-in from the email link...",
+  "auth.verifyLinkFailed":
+    "The email link could not be verified. Send a new email, or paste the token from the link to continue.",
   "auth.resend": "Resend",
   "auth.resetTitle": "Reset sign-in",
   "auth.accountEmail": "Account email",
   "auth.sendResetUnavailable": "Send reset instructions (not available yet)",
   "auth.resetHint":
-    "Reset is not available yet. Use email-code sign-in or contact support.",
+    "Reset is not available yet. Use email-link sign-in or contact support.",
   "auth.backToLogin": "Back to sign in",
   "auth.logoutHint":
     "Signing out clears the local session. Account data stays in place.",
@@ -62,11 +65,11 @@ export const en: LocaleMessages = {
   "auth.verify.eyebrow": "EMAIL VERIFICATION",
   "auth.verify.title": "Confirm this is your email.",
   "auth.verify.sub":
-    "We sent a six-digit code to your email.",
+    "We sent a sign-in link to your email. Opening it completes sign-in automatically, or you can paste the token from the link.",
   "auth.reset.eyebrow": "PASSWORD RESET",
   "auth.reset.title": "Reset access without losing your data.",
   "auth.reset.sub":
-    "We send a secure link or code to your verified email. Existing resumes, JDs, and reports remain unchanged.",
+    "We send a secure sign-in link to your verified email. Existing resumes, JDs, and reports remain unchanged.",
   "auth.logout.eyebrow": "LOGOUT",
   "auth.logout.title": "Sign out of this device?",
   "auth.logout.sub":

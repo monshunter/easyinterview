@@ -1,8 +1,8 @@
 # Frontend Shell BDD Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-05-10
+> **更新日期**: 2026-05-27
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -42,3 +42,12 @@
 - [x] 执行并通过场景验证
 - [x] 记录验证证据
 <!-- evidence: .test-output/e2e/p0-032-dev-mock-auth-state-and-user-menu/trigger.log (1 vitest test passed; verify.sh: dev mock auth state + avatar dropdown + logout evidence present; legacy/prototype leak gates clean) -->
+
+## Phase 7: Real passwordless mail-link remediation
+
+- [x] 覆盖 `startAuthEmailChallenge` 真实 `202 Accepted` 空响应：generated client 不抛 JSON parse error，登录/注册提交后进入 `auth_verify`
+  <!-- verified: 2026-05-27 method=focused-tests evidence="generatedClient.test.ts + AppAuthDispatch.test.tsx PASS; real 202 empty body no longer triggers JSON parse failure" -->
+- [x] 覆盖 `auth_verify?token=...` 邮件 callback：自动调用 `verifyAuthEmailChallenge`，成功后 replace 到 pending route 或 Home，URL 不保留 token
+  <!-- verified: 2026-05-27 method=focused-tests evidence="routeUrl.test.ts + AuthScreens.test.tsx + AppAuthDispatch.test.tsx PASS; token query is auth_verify-only and scrubbed after verify" -->
+- [x] 覆盖本地 Mailpit handoff：`EMAIL_VERIFY_BASE_URL` 指向 frontend callback，backend dev CORS origin 从该 URL 派生，frontend real mode 显式配置 `VITE_EI_API_BASE_URL`
+  <!-- verified: 2026-05-27 method=backend-config-doc-gates evidence="backend SMTP writer/cmd API tests, make lint-config, make lint-mock-contract, make docs-check, P0.100 script bash -n, and git diff --check PASS" -->

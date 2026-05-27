@@ -63,6 +63,8 @@ test/scenarios/
 | `test/scenarios/env-cleanup.sh` | 清理共享环境，默认保留命名卷 | `make scenario-env-cleanup` |
 | `test/scenarios/env-redeploy.sh` | 按 `deps/backend/frontend/all` 刷新依赖或 build artifacts | `make scenario-env-redeploy TARGET=<target>` |
 
+`env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-redeploy.sh` 必须给出开发者可接管的信息：frontend/backend/Mailpit/MinIO 地址、`.test-output/local-dev/{backend,frontend}.log`、PID 文件以及容器日志命令。当前 host-run 口径下，`env-redeploy.sh backend|frontend|all` 不是只做 build；它必须重新启动对应宿主机前后端进程，保证用户在浏览器里看到的服务已经加载当前代码和 `deploy/dev-stack/.env`。
+
 具体场景的 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` 只负责场景数据、runner 执行证据和场景自有清理，不得把共享环境 bootstrap 私有化，也不得引用另一个具体场景作为环境前提。开发者可以只执行 `/scenario-env setup` 或 `make scenario-env-setup` 构建环境，然后人工或由 Agent 运行目标场景；hybrid 场景与本地联调也遵循该边界，真实 backend/frontend 长驻进程仍按场景 README 在宿主机启动。
 
 ## 4 首次使用

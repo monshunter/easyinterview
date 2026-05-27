@@ -187,6 +187,41 @@ describe("AuthVerifyScreen", () => {
     expect(navArg).toMatchObject({ name: "practice" });
   });
 
+  it("auto-consumes a magic-link token and replaces the URL after success", async () => {
+    const onVerify = vi.fn().mockResolvedValue(undefined);
+    const onNavigate = vi.fn();
+    const onReplace = vi.fn();
+    render(
+      <AuthVerifyScreen
+        route={{
+          name: "auth_verify",
+          params: {
+            token: "magic-link-token",
+            pendingRoute: "workspace",
+            pendingType: "start_practice",
+            pendingLabel: "立即面试",
+            targetJobId: "tj-1",
+          },
+        }}
+        onNavigate={onNavigate}
+        onReplace={onReplace}
+        onVerify={onVerify}
+      />,
+    );
+
+    expect(screen.getByTestId("auth-verify-link-status")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(onVerify).toHaveBeenCalledWith({ token: "magic-link-token" }),
+    );
+    await waitFor(() =>
+      expect(onReplace).toHaveBeenCalledWith({
+        name: "workspace",
+        params: { targetJobId: "tj-1" },
+      }),
+    );
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
   it("restores interview context from raw returnTo query params", async () => {
     const onVerify = vi.fn().mockResolvedValue(undefined);
     const onNavigate = vi.fn();

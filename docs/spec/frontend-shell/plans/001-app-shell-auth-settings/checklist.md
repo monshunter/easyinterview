@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: completed
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-05-27
 
 **关联计划**: [plan](./plan.md)
 
@@ -64,3 +64,12 @@
   <!-- verified: 2026-05-11 method=playwright evidence="Red: mobile authenticated user menu left=-64.984375 overflow；Green: pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/topbar.spec.ts PASS (22 tests)；pnpm --filter @easyinterview/frontend test:pixel-parity PASS (112 passed)" -->
 - [x] 6.5 Phase 6 operation matrix；验证: plan.md 固化 `getRuntimeConfig` / `getMe` / `startAuthEmailChallenge` / `verifyAuthEmailChallenge` / `logout` 的 operationId、fixture、frontend consumer、backend handler、persistence、AI dependency、scenario coverage；context validator 与 docs-check 通过
   <!-- verified: 2026-05-11 method=docs evidence="plan.md Phase 6 operation matrix updated; validate_context.py frontend target PASS; make docs-check PASS" -->
+
+## Phase 7: Real passwordless mail-link remediation
+
+- [x] 7.1 `startAuthEmailChallenge` empty-body success；验证: generated client focused test 使用 `new Response(null, { status: 202 })` 断言 `startAuthEmailChallenge` resolve；App auth dispatch tests 断言登录和注册提交邮箱后不会抛 `Unexpected end of JSON input`，并导航到 `auth_verify`
+  <!-- verified: 2026-05-27 command="pnpm --filter @easyinterview/frontend test src/api/generatedClient.test.ts src/api/clientFactory.test.ts src/app/routeUrl.test.ts src/app/auth/AuthScreens.test.tsx src/app/AppAuthDispatch.test.tsx src/app/auth/AuthVisual.test.tsx src/app/scenarios/p0-089-url-routing-auth-privacy.test.tsx && pnpm --filter @easyinterview/frontend build" evidence="75 focused tests passed; frontend build passed; generated client accepts 202 empty body and login/register submit routes to auth_verify" -->
+- [x] 7.2 `auth_verify` magic-link callback；验证: routeUrl tests 断言 `auth_verify` 独占允许 `token` query，其他 route 仍丢弃 raw token；AuthVerify/App tests 断言进入 `/auth/verify?token=...` 会自动调用 `verifyAuthEmailChallenge`，成功后 `replace` 到恢复 route 或 Home 且 URL 不再含 token；手动输入 token fallback 继续通过
+  <!-- verified: 2026-05-27 command="pnpm --filter @easyinterview/frontend test src/api/generatedClient.test.ts src/api/clientFactory.test.ts src/app/routeUrl.test.ts src/app/auth/AuthScreens.test.tsx src/app/AppAuthDispatch.test.tsx src/app/auth/AuthVisual.test.tsx src/app/scenarios/p0-089-url-routing-auth-privacy.test.tsx" evidence="routeUrl/auth/App tests passed; auth_verify consumes token query, calls verifyAuthEmailChallenge, replaces restored URL, and keeps manual token fallback" -->
+- [x] 7.3 Local dev Mailpit handoff；验证: `EMAIL_VERIFY_BASE_URL` 默认值、dev-stack README、P0.100 场景材料、backend SMTP writer test、dev CORS origin 派生测试与 token redline 均指向前端 `/auth/verify` callback；后端 API verify endpoint 仍只由前端 generated client 调用；frontend real mode 必须显式配置 `VITE_EI_API_BASE_URL`
+  <!-- verified: 2026-05-27 command="go test ./backend/internal/auth -run 'TestSMTPDeliveryWriter|TestSQLChallengeEmailLookup|TestPasswordlessSessionBDD|TestPasswordlessService|TestAuthObservabilityDoesNotLeak' -count=1 && go test ./backend/cmd/api -run 'TestLocalDevCORS|TestBuildAuthServiceUsesMailpitDeliveryWriterWhenConfigured|TestBuildAuthServiceRejectsEmptyAuthSecrets|TestLocalDevCORSAllowsFrontendRealModeOrigins' -count=1 && go test ./backend/cmd/codegen/openapi -count=1 && make lint-config && make lint-mock-contract && make docs-check && bash -n test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh && git diff --check" evidence="backend auth/cmd/api/codegen tests passed; CORS origin derives from EMAIL_VERIFY_BASE_URL; fixtures validate; docs/index/link gates and shell syntax passed" -->

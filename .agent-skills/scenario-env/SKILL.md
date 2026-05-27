@@ -34,11 +34,14 @@ topology, component names, namespaces, helper scripts, or deploy commands from
 historical projects.
 
 In this repo the environment is host-run: Docker Compose provides external
-dependencies, backend/frontend processes are normally started by host commands,
-and repo-tracked scenario runners consume that environment. Do not promise to
-start long-running backend/frontend processes when required local secrets are
-not present; use redeploy/rebuild for build artifacts and report the runbook
-command boundary instead.
+dependencies, backend/frontend processes are managed as host-run commands, and
+repo-tracked scenario runners consume that environment. `redeploy/rebuild
+backend|frontend|all` is a closed-loop local redeploy: it rebuilds artifacts,
+restarts the matching host-run process from `deploy/dev-stack/.env`, then
+reports frontend/backend/Mailpit addresses, PID files, and
+`.test-output/local-dev/{backend,frontend}.log` paths. If required local secrets
+are missing, report that specific blocker instead of starting a partial runtime
+or printing secret values.
 
 ## Workflow Rules
 
@@ -137,10 +140,10 @@ the local scenario/local integration environment.
    - `make scenario-env-redeploy TARGET=<target>`
    - suite-documented exact rebuild/redeploy command
 4. In the current host-run topology, redeploy/rebuild is not a Kind, Helm, or
-   cluster rollout. It refreshes local dependencies and build artifacts. If the
-   user needs a long-running backend/frontend process for a hybrid real-provider
-   scenario, point to the documented scenario README command and keep secrets in
-   local ignored files.
+   cluster rollout. For `backend|frontend|all`, it refreshes local dependencies
+   and build artifacts, then restarts the matching host-run process and reports
+   the service addresses/log paths/PID files. Keep secrets in local ignored
+   files and do not print them.
 5. Run `/scenario-env verify` after redeploy unless the user asked for dry-run
    or inspection-only status.
 

@@ -1,6 +1,6 @@
 # Secrets and Config Spec
 
-> **版本**: 2.9
+> **版本**: 2.10
 > **状态**: active
 > **更新日期**: 2026-05-27
 
@@ -101,7 +101,7 @@
 | `EMAIL_SMTP_HOST` | 条件 | `127.0.0.1` | `EMAIL_PROVIDER=mailpit` 或 SMTP writer 时的 SMTP host | A4（C1 owner） |
 | `EMAIL_SMTP_PORT` | 条件 | `1025` | `EMAIL_PROVIDER=mailpit` 或 SMTP writer 时的 SMTP port | A4（C1 owner） |
 | `EMAIL_FROM_ADDRESS` | 条件 | `noreply@easyinterview.local` | magic-link 邮件 envelope/header From；不得写个人邮箱 | A4（C1 owner） |
-| `EMAIL_VERIFY_BASE_URL` | 条件 | `http://127.0.0.1:8080/api/v1/auth/email/verify` | magic-link 邮件中的 verify URL base；local dev 指向宿主机 backend | A4（C1 owner） |
+| `EMAIL_VERIFY_BASE_URL` | 条件 | `http://127.0.0.1:5173/auth/verify` | magic-link 邮件中的 verify URL base；local dev 指向宿主机 frontend callback，frontend 再调用 backend verify API | A4（C1 owner） |
 | `EMAIL_PROVIDER_API_KEY` | prod 必填 | `(空)` | secret | A4（C1 owner） |
 
 #### 3.1.2 Canonical config schema 分类
@@ -124,7 +124,7 @@
 | `auth.sessionCookieName` | `(无 env key；ADR-Q1 固定)` | 否 | fixed literal `ei_session` | 否 | ADR-Q1 + A4 + C1 |
 | `auth.challengeTokenPepper` | `AUTH_CHALLENGE_TOKEN_PEPPER` | 是 | prod required；dev init generated | 否 | A4 + C1 |
 | `email.provider` / `email.providerApiKey` | `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY` | provider 否；apiKey 是 | prod required；dev Mailpit 可不需要 apiKey | 否 | A4 + C1 |
-| `email.smtpHost` / `email.smtpPort` / `email.fromAddress` / `email.verifyBaseURL` | `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` | 否 | required when `EMAIL_PROVIDER=mailpit` 或 SMTP writer 启用；local dev defaults point to Mailpit on `127.0.0.1:1025` and backend verify URL on `127.0.0.1:8080` | 否 | A4 + C1 + local-dev-stack |
+| `email.smtpHost` / `email.smtpPort` / `email.fromAddress` / `email.verifyBaseURL` | `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` | 否 | required when `EMAIL_PROVIDER=mailpit` 或 SMTP writer 启用；local dev defaults point to Mailpit on `127.0.0.1:1025` and frontend verify callback on `127.0.0.1:5173` | 否 | A4 + C1 + local-dev-stack |
 | `ai.providerRegistryPath` | `AI_PROVIDER_REGISTRY_PATH` | 否 | always | 否 | A4 + A3 |
 | `ai.defaultProviderBaseURL` / `ai.defaultProviderApiKey` | `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` | baseURL 否；apiKey 是 | required only when provider registry references these env names and the corresponding AIClient-enabled component starts；`APP_ENV=test` may use stub | 否 | A4 + A3 |
 | `ai.doubaoSpeechBaseURL` / `ai.doubaoSpeechApiKey` | `DOUBAO_SPEECH_BASE_URL` / `DOUBAO_SPEECH_API_KEY` | baseURL 否；apiKey 是 | required only when doubao_speech provider is selected；`APP_ENV=test` may use stub | 否 | A4 + A3 |

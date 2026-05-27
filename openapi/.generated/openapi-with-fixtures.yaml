@@ -55,6 +55,22 @@ tags:
   description: Async job status polling for `202 Accepted` workflows.
 - name: Privacy
   description: Privacy export / deletion requests (P0 export returns 501 per ADR-Q5).
+- name: JobMatch
+  description: 'JD Match recommendations, natural-language web search, watchlist, saved
+
+    searches, market signals, profile snapshot, and background agent scan
+
+    status. The v1.0.0 contract started frontend-first with fixtures; as of
+
+    2026-05-22, `backend-jobs-recommendations/001-jd-match-real-backend-baseline`
+
+    wires real cmd/api handlers, stores, AI-backed recommendation/search
+
+    runtime, agent-scan, privacy, and provenance paths. Fixtures remain the
+
+    mock/parity source for frontend dev and contract tests.
+
+    '
 security:
 - sessionCookie: []
 paths:
@@ -172,7 +188,7 @@ paths:
               examples:
                 default:
                   summary: Default fixture for startAuthEmailChallenge
-                  value: {}
+                  value: null
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /auth/email/verify:
@@ -449,7 +465,10 @@ paths:
       - Profile
       operationId: createExperienceCard
       summary: Create an experience card
+      description: Side-effect endpoint per backend-profile spec D-5 — requires `Idempotency-Key`. Server forces `source_type='manual'`
+        regardless of body.
       parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
       - $ref: '#/components/parameters/XRequestID'
       - $ref: '#/components/parameters/Traceparent'
       - $ref: '#/components/parameters/AcceptLanguage'
@@ -496,6 +515,8 @@ paths:
       - Profile
       operationId: updateExperienceCard
       summary: Update an experience card
+      description: Side-effect endpoint per backend-profile spec D-5 — requires `Idempotency-Key`. Cross-user access returns
+        404 `RESOURCE_NOT_FOUND`.
       parameters:
       - name: cardId
         in: path
@@ -503,6 +524,7 @@ paths:
         schema:
           type: string
           format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
       - $ref: '#/components/parameters/XRequestID'
       - $ref: '#/components/parameters/Traceparent'
       - $ref: '#/components/parameters/AcceptLanguage'
@@ -544,6 +566,83 @@ paths:
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /resumes:
+    get:
+      tags:
+      - Resumes
+      operationId: listResumes
+      summary: List resume assets
+      parameters:
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Resume assets.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResumeAsset'
+              examples:
+                default:
+                  summary: Default fixture for listResumes
+                  value:
+                    items:
+                    - id: 01918fa0-0000-7000-8000-000000001000
+                      title: Alice Example - Senior Frontend Engineer
+                      language: zh-CN
+                      parseStatus: ready
+                      status: active
+                      sourceType: upload
+                      fileObjectId: 01918fa0-0000-7000-8000-000000001100
+                      originalText: null
+                      guidedAnswers: {}
+                      parsedTextSnapshot: Senior frontend engineer with evidence across product delivery, interviews, and
+                        mentoring.
+                      parsedSummary:
+                        headline: Senior frontend engineer focused on growth-stage SaaS
+                        yearsOfExperience: 5
+                      createdAt: '2026-04-22T09:30:00Z'
+                      updatedAt: '2026-05-12T08:00:00Z'
+                      deletedAt: null
+                    - id: 0195f2d0-0000-7000-8000-000000001010
+                      title: Alice Example - Product Platform Resume
+                      language: en-US
+                      parseStatus: ready
+                      status: active
+                      sourceType: paste
+                      fileObjectId: null
+                      originalText: Led frontend platform work for checkout, experimentation, and developer tooling.
+                      guidedAnswers: {}
+                      parsedTextSnapshot: Led frontend platform work for checkout, experimentation, and developer tooling.
+                      parsedSummary:
+                        headline: Frontend platform engineer with product systems scope
+                        yearsOfExperience: 6
+                      createdAt: '2026-05-01T10:10:00Z'
+                      updatedAt: '2026-05-11T18:30:00Z'
+                      deletedAt: null
+                    pageInfo:
+                      nextCursor: null
+                      pageSize: 20
+                      hasMore: false
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
     post:
       tags:
       - Resumes
@@ -588,6 +687,498 @@ paths:
                       updatedAt: '2026-04-28T13:45:12Z'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
+  /resume-versions:
+    post:
+      tags:
+      - Resumes
+      operationId: branchResumeVersion
+      summary: Branch a resume version
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. `seedStrategy=ai_select` may dispatch a
+        resume-tailor async job.
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BranchResumeVersionRequest'
+      responses:
+        '201':
+          description: Resume version branch created synchronously.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeVersion'
+              examples:
+                default:
+                  summary: Default fixture for branchResumeVersion
+                  value:
+                    id: 0195f2d0-0002-7000-8000-000000000202
+                    resumeAssetId: 01918fa0-0000-7000-8000-000000001000
+                    parentVersionId: 0195f2d0-0001-7000-8000-000000000201
+                    versionType: targeted
+                    targetJobId: 01918fa0-0000-7000-8000-000000002000
+                    displayName: Northstar Systems frontend target
+                    seedStrategy: copy_master
+                    focusAngle: Evidence for platform ownership and pragmatic delivery
+                    structuredProfile:
+                      headline: Senior frontend engineer for platform-heavy product teams
+                      summary: Copy of the structured master prepared for targeted editing.
+                      skills:
+                      - React
+                      - TypeScript
+                      - Release quality
+                      sections: []
+                      provenance:
+                        promptVersion: resume_branch.copy_master.v1
+                        rubricVersion: not_applicable
+                        modelId: fixture-model:resume-version-profile
+                        language: zh-CN
+                        featureFlag: resume-workshop-additive
+                        dataSourceVersion: resume_version.v1
+                    matchScore: null
+                    promptVersion: resume_branch.copy_master.v1
+                    rubricVersion: not_applicable
+                    modelId: fixture-model:resume-version-profile
+                    provider: fixture-provider
+                    provenance:
+                      promptVersion: resume_branch.copy_master.v1
+                      rubricVersion: not_applicable
+                      modelId: fixture-model:resume-version-profile
+                      language: zh-CN
+                      featureFlag: resume-workshop-additive
+                      dataSourceVersion: resume_version.v1
+                    suggestions: []
+                    createdAt: '2026-05-12T08:35:00Z'
+                    updatedAt: '2026-05-12T08:35:00Z'
+                    deletedAt: null
+        '202':
+          description: Resume version branch accepted; AI seed job dispatched.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BranchResumeVersionAccepted'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /resume-versions/{resumeVersionId}:
+    get:
+      tags:
+      - Resumes
+      operationId: getResumeVersion
+      summary: Get a resume version
+      parameters:
+      - name: resumeVersionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Resume version.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeVersion'
+              examples:
+                default:
+                  summary: Default fixture for getResumeVersion
+                  value:
+                    id: 0195f2d0-0001-7000-8000-000000000202
+                    resumeAssetId: 01918fa0-0000-7000-8000-000000001000
+                    parentVersionId: 0195f2d0-0001-7000-8000-000000000201
+                    versionType: targeted
+                    targetJobId: 01918fa0-0000-7000-8000-000000002000
+                    displayName: Northstar Systems frontend target
+                    seedStrategy: copy_master
+                    focusAngle: Evidence for platform ownership and pragmatic delivery
+                    structuredProfile:
+                      headline: Senior frontend engineer for platform-heavy product teams
+                      summary: Highlights reliability, cross-functional tradeoff work, and mentoring evidence.
+                      skills:
+                      - React
+                      - TypeScript
+                      - Observability
+                      sections:
+                      - title: Selected evidence
+                        bullets:
+                        - Reduced checkout incident follow-ups by tightening release guardrails.
+                      provenance:
+                        promptVersion: resume_targeted.v1
+                        rubricVersion: resume_targeted.rubric.v1
+                        modelId: fixture-model:resume-version-profile
+                        language: zh-CN
+                        featureFlag: resume-workshop-additive
+                        dataSourceVersion: resume_asset.v1+target_job.v1
+                    matchScore: 0.84
+                    promptVersion: resume_targeted.v1
+                    rubricVersion: resume_targeted.rubric.v1
+                    modelId: fixture-model:resume-version-profile
+                    provider: fixture-provider
+                    provenance:
+                      promptVersion: resume_targeted.v1
+                      rubricVersion: resume_targeted.rubric.v1
+                      modelId: fixture-model:resume-version-profile
+                      language: zh-CN
+                      featureFlag: resume-workshop-additive
+                      dataSourceVersion: resume_asset.v1+target_job.v1
+                    suggestions:
+                    - id: 0195f2d0-0001-7000-8000-000000000301
+                      tailorRunId: 0195f2d0-0001-7000-8000-000000000401
+                      originalBullet: Improved checkout reliability.
+                      suggestedBullet: Reduced checkout incident follow-ups by tightening release guardrails and ownership
+                        handoffs.
+                      reason: Adds measurable ownership evidence for the target role.
+                      status: pending
+                      provenance:
+                        promptVersion: resume_tailor_suggestion.v1
+                        rubricVersion: resume_tailor.rubric.v1
+                        modelId: fixture-model:resume-tailor-suggestion
+                        language: zh-CN
+                        featureFlag: resume-workshop-additive
+                        dataSourceVersion: resume_version.v1+target_job.v1
+                      decidedAt: null
+                      createdAt: '2026-05-12T08:24:00Z'
+                    createdAt: '2026-05-12T08:24:00Z'
+                    updatedAt: '2026-05-12T08:24:00Z'
+                    deletedAt: null
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+    patch:
+      tags:
+      - Resumes
+      operationId: updateResumeVersion
+      summary: Update editable resume version fields
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
+      parameters:
+      - name: resumeVersionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateResumeVersionRequest'
+      responses:
+        '200':
+          description: Resume version updated.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeVersion'
+              examples:
+                default:
+                  summary: Default fixture for updateResumeVersion
+                  value:
+                    id: 0195f2d0-0001-7000-8000-000000000202
+                    resumeAssetId: 01918fa0-0000-7000-8000-000000001000
+                    parentVersionId: 0195f2d0-0001-7000-8000-000000000201
+                    versionType: targeted
+                    targetJobId: 01918fa0-0000-7000-8000-000000002000
+                    displayName: Northstar Systems frontend target - edited
+                    seedStrategy: copy_master
+                    focusAngle: Lead with release quality and cross-functional ownership
+                    structuredProfile:
+                      headline: Senior frontend engineer for platform-heavy product teams
+                      summary: Highlights reliability, release quality, and ownership evidence.
+                      skills:
+                      - React
+                      - TypeScript
+                      - Observability
+                      sections: []
+                      provenance:
+                        promptVersion: resume_targeted.v1
+                        rubricVersion: resume_targeted.rubric.v1
+                        modelId: fixture-model:resume-version-profile
+                        language: zh-CN
+                        featureFlag: resume-workshop-additive
+                        dataSourceVersion: resume_asset.v1+target_job.v1
+                    matchScore: 0.86
+                    promptVersion: resume_targeted.v1
+                    rubricVersion: resume_targeted.rubric.v1
+                    modelId: fixture-model:resume-version-profile
+                    provider: fixture-provider
+                    provenance:
+                      promptVersion: resume_targeted.v1
+                      rubricVersion: resume_targeted.rubric.v1
+                      modelId: fixture-model:resume-version-profile
+                      language: zh-CN
+                      featureFlag: resume-workshop-additive
+                      dataSourceVersion: resume_asset.v1+target_job.v1
+                    suggestions: []
+                    createdAt: '2026-05-12T08:24:00Z'
+                    updatedAt: '2026-05-12T08:40:00Z'
+                    deletedAt: null
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /resume-versions/{resumeVersionId}/exports:
+    post:
+      tags:
+      - Resumes
+      operationId: exportResumeVersion
+      summary: Export a resume version
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. P0 is intentionally unavailable and returns
+        501 with `RESUME_EXPORT_NOT_AVAILABLE`.
+      parameters:
+      - name: resumeVersionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '501':
+          description: Resume version export disabled in P0 (`RESUME_EXPORT_NOT_AVAILABLE`).
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                default:
+                  summary: Default fixture for exportResumeVersion
+                  value:
+                    error:
+                      code: RESUME_EXPORT_NOT_AVAILABLE
+                      message: Resume version export is not available in P0.
+                      requestId: req_2026-05-12T08-55-00-export-resume
+                      retryable: false
+                      details:
+                        availableAt: P1
+                        see: docs/spec/openapi-v1-contract/spec.md#44-p0-显式例外
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept:
+    post:
+      tags:
+      - Resumes
+      operationId: acceptResumeTailorSuggestion
+      summary: Accept a resume-tailor suggestion
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
+      parameters:
+      - name: resumeVersionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: suggestionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Suggestion accepted and version snapshot updated.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeVersion'
+              examples:
+                default:
+                  summary: Default fixture for acceptResumeTailorSuggestion
+                  value:
+                    id: 0195f2d0-0001-7000-8000-000000000202
+                    resumeAssetId: 01918fa0-0000-7000-8000-000000001000
+                    parentVersionId: 0195f2d0-0001-7000-8000-000000000201
+                    versionType: targeted
+                    targetJobId: 01918fa0-0000-7000-8000-000000002000
+                    displayName: Northstar Systems frontend target
+                    seedStrategy: copy_master
+                    focusAngle: Evidence for platform ownership and pragmatic delivery
+                    structuredProfile:
+                      headline: Senior frontend engineer for platform-heavy product teams
+                      summary: Highlights release quality, ownership, and mentoring evidence.
+                      skills:
+                      - React
+                      - TypeScript
+                      - Observability
+                      sections:
+                      - title: Selected evidence
+                        bullets:
+                        - Reduced checkout incident follow-ups by tightening release guardrails and ownership handoffs.
+                      provenance:
+                        promptVersion: resume_targeted.v1
+                        rubricVersion: resume_targeted.rubric.v1
+                        modelId: fixture-model:resume-version-profile
+                        language: zh-CN
+                        featureFlag: resume-workshop-additive
+                        dataSourceVersion: resume_asset.v1+target_job.v1
+                    matchScore: 0.86
+                    promptVersion: resume_targeted.v1
+                    rubricVersion: resume_targeted.rubric.v1
+                    modelId: fixture-model:resume-version-profile
+                    provider: fixture-provider
+                    provenance:
+                      promptVersion: resume_targeted.v1
+                      rubricVersion: resume_targeted.rubric.v1
+                      modelId: fixture-model:resume-version-profile
+                      language: zh-CN
+                      featureFlag: resume-workshop-additive
+                      dataSourceVersion: resume_asset.v1+target_job.v1
+                    suggestions:
+                    - id: 0195f2d0-0001-7000-8000-000000000301
+                      tailorRunId: 0195f2d0-0001-7000-8000-000000000401
+                      originalBullet: Improved checkout reliability.
+                      suggestedBullet: Reduced checkout incident follow-ups by tightening release guardrails and ownership
+                        handoffs.
+                      reason: Adds measurable ownership evidence for the target role.
+                      status: accepted
+                      provenance:
+                        promptVersion: resume_tailor_suggestion.v1
+                        rubricVersion: resume_tailor.rubric.v1
+                        modelId: fixture-model:resume-tailor-suggestion
+                        language: zh-CN
+                        featureFlag: resume-workshop-additive
+                        dataSourceVersion: resume_version.v1+target_job.v1
+                      decidedAt: '2026-05-12T08:45:00Z'
+                      createdAt: '2026-05-12T08:24:00Z'
+                    createdAt: '2026-05-12T08:24:00Z'
+                    updatedAt: '2026-05-12T08:45:00Z'
+                    deletedAt: null
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject:
+    post:
+      tags:
+      - Resumes
+      operationId: rejectResumeTailorSuggestion
+      summary: Reject a resume-tailor suggestion
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
+      parameters:
+      - name: resumeVersionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: suggestionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Suggestion rejected and version snapshot updated.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeVersion'
+              examples:
+                default:
+                  summary: Default fixture for rejectResumeTailorSuggestion
+                  value:
+                    id: 0195f2d0-0001-7000-8000-000000000202
+                    resumeAssetId: 01918fa0-0000-7000-8000-000000001000
+                    parentVersionId: 0195f2d0-0001-7000-8000-000000000201
+                    versionType: targeted
+                    targetJobId: 01918fa0-0000-7000-8000-000000002000
+                    displayName: Northstar Systems frontend target
+                    seedStrategy: copy_master
+                    focusAngle: Evidence for platform ownership and pragmatic delivery
+                    structuredProfile:
+                      headline: Senior frontend engineer for platform-heavy product teams
+                      summary: Keeps original reliability wording after rejecting a suggestion.
+                      skills:
+                      - React
+                      - TypeScript
+                      - Observability
+                      sections: []
+                      provenance:
+                        promptVersion: resume_targeted.v1
+                        rubricVersion: resume_targeted.rubric.v1
+                        modelId: fixture-model:resume-version-profile
+                        language: zh-CN
+                        featureFlag: resume-workshop-additive
+                        dataSourceVersion: resume_asset.v1+target_job.v1
+                    matchScore: 0.83
+                    promptVersion: resume_targeted.v1
+                    rubricVersion: resume_targeted.rubric.v1
+                    modelId: fixture-model:resume-version-profile
+                    provider: fixture-provider
+                    provenance:
+                      promptVersion: resume_targeted.v1
+                      rubricVersion: resume_targeted.rubric.v1
+                      modelId: fixture-model:resume-version-profile
+                      language: zh-CN
+                      featureFlag: resume-workshop-additive
+                      dataSourceVersion: resume_asset.v1+target_job.v1
+                    suggestions:
+                    - id: 0195f2d0-0001-7000-8000-000000000302
+                      tailorRunId: 0195f2d0-0001-7000-8000-000000000401
+                      originalBullet: Mentored junior engineers.
+                      suggestedBullet: Mentored three engineers through frontend release reviews and debugging routines.
+                      reason: Makes mentoring scope concrete without adding unverifiable claims.
+                      status: rejected
+                      provenance:
+                        promptVersion: resume_tailor_suggestion.v1
+                        rubricVersion: resume_tailor.rubric.v1
+                        modelId: fixture-model:resume-tailor-suggestion
+                        language: zh-CN
+                        featureFlag: resume-workshop-additive
+                        dataSourceVersion: resume_version.v1+target_job.v1
+                      decidedAt: '2026-05-12T08:46:00Z'
+                      createdAt: '2026-05-12T08:26:00Z'
+                    createdAt: '2026-05-12T08:24:00Z'
+                    updatedAt: '2026-05-12T08:46:00Z'
+                    deletedAt: null
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
   /resumes/{resumeAssetId}:
     get:
       tags:
@@ -627,8 +1218,307 @@ paths:
                     parsedSummary:
                       headline: Senior frontend engineer focused on growth-stage SaaS
                       yearsOfExperience: 5
+                    parsedTextSnapshot: 'Original resume parsed text snapshot
+
+                      Led platform release guardrail work across frontend surfaces
+
+                      Improved incident follow-up quality with measurable owner handoff'
+                    originalText: Original uploaded resume raw text fallback
                     createdAt: '2026-04-22T09:30:00Z'
                     updatedAt: '2026-04-28T12:00:00Z'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /resumes/{resumeAssetId}/structured-master:
+    post:
+      tags:
+      - Resumes
+      operationId: confirmResumeStructuredMaster
+      summary: Confirm a parsed resume asset as the structured master version
+      description: Side-effect endpoint per backend-resume D-10 — requires `Idempotency-Key`. Saves the user-confirmed parse
+        draft as the v1 structured master version.
+      parameters:
+      - name: resumeAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmResumeStructuredMasterRequest'
+      responses:
+        '201':
+          description: Structured master resume version created.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeVersion'
+              examples:
+                default:
+                  summary: Default fixture for confirmResumeStructuredMaster
+                  value:
+                    id: 0195f2d0-0001-7000-8000-000000000201
+                    resumeAssetId: 01918fa0-0000-7000-8000-000000001000
+                    parentVersionId: null
+                    versionType: structured_master
+                    targetJobId: null
+                    displayName: Structured master
+                    seedStrategy: null
+                    focusAngle: null
+                    structuredProfile:
+                      headline: Senior frontend engineer
+                      summary: Owns complex product surfaces and turns interview evidence into concise resume proof.
+                      skills:
+                      - React
+                      - TypeScript
+                      - Design systems
+                      sections: []
+                      provenance:
+                        promptVersion: resume_profile.v1
+                        rubricVersion: not_applicable
+                        modelId: fixture-model:resume-version-profile
+                        language: zh-CN
+                        featureFlag: resume-workshop-additive
+                        dataSourceVersion: resume_asset.v1
+                    matchScore: null
+                    promptVersion: resume_profile.v1
+                    rubricVersion: not_applicable
+                    modelId: fixture-model:resume-version-profile
+                    provider: fixture-provider
+                    provenance:
+                      promptVersion: resume_profile.v1
+                      rubricVersion: not_applicable
+                      modelId: fixture-model:resume-version-profile
+                      language: zh-CN
+                      featureFlag: resume-workshop-additive
+                      dataSourceVersion: resume_asset.v1
+                    suggestions: []
+                    createdAt: '2026-05-17T15:40:00Z'
+                    updatedAt: '2026-05-17T15:40:00Z'
+                    deletedAt: null
+        '409':
+          description: Structured master already exists for this resume asset.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /resumes/{resumeAssetId}/archive:
+    post:
+      tags:
+      - Resumes
+      operationId: archiveResumeAsset
+      summary: Archive a resume asset
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Archives are soft-hide actions, not privacy
+        deletion jobs.
+      parameters:
+      - name: resumeAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '202':
+          description: Resume asset archived.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeAsset'
+              examples:
+                default:
+                  summary: Default fixture for archiveResumeAsset
+                  value:
+                    id: 01918fa0-0000-7000-8000-000000001000
+                    title: Alice Example - Senior Frontend Engineer
+                    language: zh-CN
+                    parseStatus: ready
+                    status: archived
+                    sourceType: upload
+                    fileObjectId: 01918fa0-0000-7000-8000-000000001100
+                    originalText: null
+                    guidedAnswers: {}
+                    parsedTextSnapshot: Senior frontend engineer with evidence across product delivery, interviews, and mentoring.
+                    parsedSummary:
+                      headline: Senior frontend engineer focused on growth-stage SaaS
+                      yearsOfExperience: 5
+                    createdAt: '2026-04-22T09:30:00Z'
+                    updatedAt: '2026-05-12T08:50:00Z'
+                    deletedAt: '2026-05-12T08:50:00Z'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /resumes/{resumeAssetId}/versions:
+    get:
+      tags:
+      - Resumes
+      operationId: listResumeVersions
+      summary: List versions for a resume asset
+      parameters:
+      - name: resumeAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Resume versions.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResumeVersion'
+              examples:
+                default:
+                  summary: Default fixture for listResumeVersions
+                  value:
+                    items:
+                    - id: 0195f2d0-0001-7000-8000-000000000201
+                      resumeAssetId: 01918fa0-0000-7000-8000-000000001000
+                      parentVersionId: null
+                      versionType: structured_master
+                      targetJobId: null
+                      displayName: Structured master
+                      seedStrategy: null
+                      focusAngle: null
+                      structuredProfile:
+                        headline: Senior frontend engineer
+                        summary: Owns complex product surfaces and turns interview evidence into concise resume proof.
+                        skills:
+                        - React
+                        - TypeScript
+                        - Design systems
+                        sections:
+                        - title: Experience
+                          bullets:
+                          - Led checkout reliability improvements measured through incident reduction.
+                        provenance:
+                          promptVersion: resume_profile.v1
+                          rubricVersion: not_applicable
+                          modelId: fixture-model:resume-version-profile
+                          language: zh-CN
+                          featureFlag: resume-workshop-additive
+                          dataSourceVersion: resume_asset.v1
+                      matchScore: null
+                      promptVersion: resume_profile.v1
+                      rubricVersion: not_applicable
+                      modelId: fixture-model:resume-version-profile
+                      provider: fixture-provider
+                      provenance:
+                        promptVersion: resume_profile.v1
+                        rubricVersion: not_applicable
+                        modelId: fixture-model:resume-version-profile
+                        language: zh-CN
+                        featureFlag: resume-workshop-additive
+                        dataSourceVersion: resume_asset.v1
+                      suggestions: []
+                      createdAt: '2026-05-12T08:20:00Z'
+                      updatedAt: '2026-05-12T08:20:00Z'
+                      deletedAt: null
+                    - id: 0195f2d0-0001-7000-8000-000000000202
+                      resumeAssetId: 01918fa0-0000-7000-8000-000000001000
+                      parentVersionId: 0195f2d0-0001-7000-8000-000000000201
+                      versionType: targeted
+                      targetJobId: 01918fa0-0000-7000-8000-000000002000
+                      displayName: Northstar Systems frontend target
+                      seedStrategy: copy_master
+                      focusAngle: Evidence for platform ownership and pragmatic delivery
+                      structuredProfile:
+                        headline: Senior frontend engineer for platform-heavy product teams
+                        summary: Highlights reliability, cross-functional tradeoff work, and mentoring evidence.
+                        skills:
+                        - React
+                        - TypeScript
+                        - Observability
+                        sections:
+                        - title: Selected evidence
+                          bullets:
+                          - Reduced checkout incident follow-ups by tightening release guardrails.
+                        provenance:
+                          promptVersion: resume_targeted.v1
+                          rubricVersion: resume_targeted.rubric.v1
+                          modelId: fixture-model:resume-version-profile
+                          language: zh-CN
+                          featureFlag: resume-workshop-additive
+                          dataSourceVersion: resume_asset.v1+target_job.v1
+                      matchScore: 0.84
+                      promptVersion: resume_targeted.v1
+                      rubricVersion: resume_targeted.rubric.v1
+                      modelId: fixture-model:resume-version-profile
+                      provider: fixture-provider
+                      provenance:
+                        promptVersion: resume_targeted.v1
+                        rubricVersion: resume_targeted.rubric.v1
+                        modelId: fixture-model:resume-version-profile
+                        language: zh-CN
+                        featureFlag: resume-workshop-additive
+                        dataSourceVersion: resume_asset.v1+target_job.v1
+                      suggestions:
+                      - id: 0195f2d0-0001-7000-8000-000000000301
+                        tailorRunId: 0195f2d0-0001-7000-8000-000000000401
+                        originalBullet: Improved checkout reliability.
+                        suggestedBullet: Reduced checkout incident follow-ups by tightening release guardrails and ownership
+                          handoffs.
+                        reason: Adds measurable ownership evidence for the target role.
+                        status: pending
+                        provenance:
+                          promptVersion: resume_tailor_suggestion.v1
+                          rubricVersion: resume_tailor.rubric.v1
+                          modelId: fixture-model:resume-tailor-suggestion
+                          language: zh-CN
+                          featureFlag: resume-workshop-additive
+                          dataSourceVersion: resume_version.v1+target_job.v1
+                        decidedAt: null
+                        createdAt: '2026-05-12T08:24:00Z'
+                      createdAt: '2026-05-12T08:24:00Z'
+                      updatedAt: '2026-05-12T08:24:00Z'
+                      deletedAt: null
+                    pageInfo:
+                      nextCursor: null
+                      pageSize: 20
+                      hasMore: false
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /targets/import:
@@ -1084,6 +1974,90 @@ paths:
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /practice/sessions:
+    get:
+      tags:
+      - PracticeSessions
+      operationId: listPracticeSessions
+      summary: List practice sessions (cursor-paginated)
+      description: 'List practice sessions for the authenticated user, optionally filtered
+
+        by `targetJobId` and `status`. Powers the frontend-debrief Mock Session
+
+        picker so users can attach a completed mock-interview session as
+
+        evidence for a real-interview debrief.
+
+        '
+      parameters:
+      - name: targetJobId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/SessionStatus'
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Paginated practice sessions.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPracticeSession'
+              examples:
+                default:
+                  summary: Default fixture for listPracticeSessions
+                  value:
+                    items:
+                    - id: 01918fa0-0000-7000-8000-000000005000
+                      planId: 01918fa0-0000-7000-8000-000000004000
+                      targetJobId: 01918fa0-0000-7000-8000-000000002000
+                      status: completed
+                      language: zh-CN
+                      hintsEnabled: true
+                      turnCount: 8
+                      currentTurn: null
+                      createdAt: '2026-05-15T13:00:00Z'
+                      updatedAt: '2026-05-15T14:12:00Z'
+                    - id: 01918fa0-0000-7000-8000-000000005100
+                      planId: 01918fa0-0000-7000-8000-000000004100
+                      targetJobId: 01918fa0-0000-7000-8000-000000002000
+                      status: completed
+                      language: zh-CN
+                      hintsEnabled: false
+                      turnCount: 6
+                      currentTurn: null
+                      createdAt: '2026-05-10T10:00:00Z'
+                      updatedAt: '2026-05-10T10:55:00Z'
+                    pageInfo:
+                      nextCursor: null
+                      pageSize: 20
+                      hasMore: false
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
     post:
       tags:
       - PracticeSessions
@@ -1184,6 +2158,98 @@ paths:
                     updatedAt: '2026-04-28T13:45:12Z'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
+  /practice/sessions/{sessionId}/voice-turns:
+    post:
+      tags:
+      - PracticeSessions
+      operationId: createPracticeVoiceTurn
+      summary: Create a cascaded practice voice turn
+      description: 'Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
+
+        Accepts a small client audio payload, runs the configured STT, chat,
+
+        and TTS profiles independently, and returns transcript, assistant
+
+        draft text, TTS playback metadata, and provider-neutral summary
+
+        metadata. Raw audio and generated TTS bytes are not persisted by this
+
+        contract.
+
+        '
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePracticeVoiceTurnRequest'
+      responses:
+        '200':
+          description: Voice turn accepted and cascaded STT / chat / TTS result returned.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeVoiceTurnResult'
+              examples:
+                default:
+                  summary: Default fixture for createPracticeVoiceTurn
+                  value:
+                    voiceTurnId: 01918fa0-0000-7000-8000-00000000f201
+                    userTranscriptFinal: 我主导了设计系统迁移，先把 12 个团队按风险分组。
+                    assistantTextDraft: 你提到按风险分组。请具体说明你如何处理最高风险团队的迁移窗口。
+                    ttsChunks:
+                    - chunkId: voice-chunk-001
+                      sequence: 0
+                      contentType: audio/wav
+                      durationMs: 2840
+                      byteLength: 44
+                      textHash: sha256:voice-default-chunk-001
+                      audioRef: data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=
+                    providerMetaSummary:
+                      sttProfile: practice.voice.stt.default
+                      chatProfile: practice.followup.default
+                      ttsProfile: practice.voice.tts.default
+                      sttProvider: fixture-stt
+                      chatProvider: fixture-chat
+                      ttsProvider: fixture-tts
+                      sttLatencyMs: 120
+                      chatLatencyMs: 240
+                      ttsLatencyMs: 180
+                    session:
+                      id: 01918fa0-0000-7000-8000-000000005000
+                      planId: 01918fa0-0000-7000-8000-000000004000
+                      targetJobId: 01918fa0-0000-7000-8000-000000002000
+                      status: running
+                      language: zh-CN
+                      hintsEnabled: true
+                      turnCount: 1
+                      currentTurn:
+                        id: 01918fa0-0000-7000-8000-000000006000
+                        turnIndex: 1
+                        questionText: 请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。
+                        questionIntent: behavioral.leadership.design_system
+                        status: follow_up_requested
+                        askedAt: '2026-04-28T13:40:00Z'
+                      createdAt: '2026-04-28T12:00:00Z'
+                      updatedAt: '2026-05-17T08:50:00Z'
+                    ttsError: null
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
   /practice/sessions/{sessionId}/events:
     post:
       tags:
@@ -1242,8 +2308,8 @@ paths:
                         turnIndex: 1
                         questionText: 请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。
                         questionIntent: behavioral.leadership.design_system
-                        status: asked
-                        askedAt: '2026-04-28T13:45:12Z'
+                        status: follow_up_requested
+                        askedAt: '2026-04-28T13:40:00Z'
                       createdAt: '2026-04-28T12:00:00Z'
                       updatedAt: '2026-04-28T13:45:12Z'
                     assistantAction:
@@ -1253,7 +2319,7 @@ paths:
                       hint: null
                       sessionStatus: running
                       provenance:
-                        promptVersion: practice_session_assistant.v5
+                        promptVersion: practice.session.follow_up.v1
                         rubricVersion: not_applicable
                         modelId: model-profile:contract.default
                         language: zh-CN
@@ -1387,6 +2453,23 @@ paths:
                       dataSourceVersion: practice_session.v9
                     createdAt: '2026-04-28T12:00:00Z'
                     updatedAt: '2026-04-28T13:45:12Z'
+        '404':
+          description: Feedback report not found or not accessible (`REPORT_NOT_FOUND`).
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                reportNotFound:
+                  summary: Report not found
+                  value:
+                    error:
+                      code: REPORT_NOT_FOUND
+                      message: feedback report not found or not accessible
+                      retryable: false
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /targets/{targetJobId}/reports:
@@ -1629,6 +2712,71 @@ paths:
                       updatedAt: '2026-04-28T13:45:12Z'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
+  /debriefs/question-suggestions:
+    post:
+      tags:
+      - Debriefs
+      operationId: suggestDebriefQuestions
+      summary: Suggest likely debrief questions for a real interview
+      description: 'Synchronous AI-assisted helper for the Debrief recording step. Does not
+
+        persist a debrief record, create an async job, or require
+
+        `Idempotency-Key`; callers can fall back to manual entry on AI errors.
+
+        '
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuggestDebriefQuestionsRequest'
+      responses:
+        '200':
+          description: Suggested debrief questions.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuggestDebriefQuestionsResponse'
+              examples:
+                default:
+                  summary: Default fixture for suggestDebriefQuestions
+                  value:
+                    suggestions:
+                    - stage: motivation
+                      questionText: 为什么你现在想从设计系统 owner 角色转到 Staff Product Designer？
+                      whyLikelyAsked: JD 强调跨职能影响力，面试官会验证动机和角色跨度。
+                      source: jd
+                    - stage: impact
+                      questionText: 你如何证明设计系统迁移带来了业务收益？
+                      whyLikelyAsked: 你的上一轮回答暴露了量化指标不足的问题。
+                      source: mock_report
+                    - stage: collaboration
+                      questionText: 当工程团队不同意组件 API 设计时，你如何推进决策？
+                      whyLikelyAsked: 目标岗位需要在设计与工程之间做高质量取舍。
+                      source: jd
+                    - stage: execution
+                      questionText: 讲一次你在 deadline 不变时调整 scope 的经历。
+                      whyLikelyAsked: 简历中多次出现平台迁移项目，容易被追问交付策略。
+                      source: resume
+                    - stage: reflection
+                      questionText: 如果重来一次，你会如何更早发现 adoption 风险？
+                      whyLikelyAsked: 复盘阶段通常会验证候选人的学习能力和风险意识。
+                      source: manual
+                    - stage: null
+                      questionText: 你会如何向 VP 解释这个项目的 tradeoff？
+                      whyLikelyAsked: Staff 层级面试常要求把设计决策翻译成业务语言。
+                      source: jd
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
   /debriefs/{debriefId}:
     get:
       tags:
@@ -1673,13 +2821,15 @@ paths:
                     riskItems:
                     - label: 缺少财务量化叙事
                       severity: medium
+                    nextRoundChecklist: []
+                    thankYouDraft: null
                     provenance:
-                      promptVersion: debrief_generate.v1
+                      promptVersion: debrief.generate.v0.1.0
                       rubricVersion: not_applicable
-                      modelId: model-profile:contract.default
+                      modelId: fixture-model:debrief
                       language: zh-CN
                       featureFlag: none
-                      dataSourceVersion: debrief.v4
+                      dataSourceVersion: debrief/01918fa0-0000-7000-8000-00000000a000@v1
                     createdAt: '2026-04-28T12:00:00Z'
                     updatedAt: '2026-04-28T13:45:12Z'
         default:
@@ -1741,7 +2891,9 @@ paths:
 
         `202 + PrivacyRequestWithJob` is treated as additive (per spec §4.4).
 
-        This is the **only** 501 in the v1.0.0 contract.
+        This is one of the two explicit P0 501 export exceptions in the
+
+        v1.0.0 contract.
 
         '
       parameters:
@@ -1889,6 +3041,784 @@ paths:
                     postHogPublicKey: phc_local_dev_placeholder
         default:
           $ref: '#/components/responses/ApiErrorResponse'
+  /jd-match/profile:
+    get:
+      tags:
+      - JobMatch
+      operationId: getJobMatchProfile
+      summary: Get the candidate profile snapshot used for JD matching
+      description: 'Returns the aggregated profile snapshot the matching agent uses to score
+
+        recommendations. Aggregated from resumes / target jobs / mocks /
+
+        debriefs by the backend JD-match runtime. Fixture variants remain the
+
+        deterministic frontend and contract-test source.
+
+        '
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Current profile snapshot.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobMatchProfile'
+              examples:
+                default:
+                  summary: Default fixture for getJobMatchProfile
+                  value:
+                    displayName: Alice Example
+                    avatarUrl: https://avatar.example.com/alice.png
+                    headline: Senior frontend engineer focused on growth-stage SaaS
+                    yearsOfExperience: 6
+                    locationText: Shanghai · Hybrid
+                    compensationText: 60-90 LPA · cash + equity
+                    skills:
+                    - React
+                    - TypeScript
+                    - Design Systems
+                    - SSR
+                    - Performance
+                    - Accessibility
+                    sources:
+                      resumes: 2
+                      jds: 5
+                      mocks: 4
+                      debriefs: 1
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /jd-match/agent-status:
+    get:
+      tags:
+      - JobMatch
+      operationId: getAgentScanStatus
+      summary: Get the background JD-match agent scan status
+      description: 'Returns the current agent scan status (`idle` / `scanning` / `error`)
+
+        plus last/next scan timestamps. Frontend polls only on JD-match entry
+
+        and tab returns; no SSE/WebSocket per plan D-10.
+
+        '
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Current agent scan status.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentScanStatus'
+              examples:
+                default:
+                  summary: Default fixture for getAgentScanStatus
+                  value:
+                    status: idle
+                    lastScanAt: '2026-05-10T05:00:00Z'
+                    nextScanAt: '2026-05-10T13:00:00Z'
+                    message: null
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /jd-match/recommendations:
+    get:
+      tags:
+      - JobMatch
+      operationId: listJobRecommendations
+      summary: List JD-match recommendations for the candidate
+      description: 'Returns cursor-paginated `JobMatchRecommendation` items for the current
+
+        candidate. AI-generated fields (`score`, `reasons`, `risks`,
+
+        `highlights`) carry `GenerationProvenance` per spec §4.6.
+
+        '
+      parameters:
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Page of JD-match recommendations.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedJobMatchRecommendation'
+              examples:
+                default:
+                  summary: Default fixture for listJobRecommendations
+                  value:
+                    items:
+                    - id: 01918fa0-0000-7000-8000-00000000a001
+                      title: Senior Frontend Engineer · Design Systems
+                      company: Acme
+                      companyTag: Series C SaaS
+                      level: Senior
+                      location: Shanghai · Hybrid
+                      comp: 70-95 LPA
+                      posted: 2 days ago
+                      score: 92
+                      fit:
+                        must: 4
+                        total: 5
+                        plus: 3
+                        totalPlus: 4
+                      reasons:
+                      - Drove design-system migration across 12 teams
+                      - Production SSR experience aligned with platform team focus
+                      risks:
+                      - Edge runtime experience marked as nice-to-have — light coverage
+                      highlights:
+                      - Design system migration
+                      - Performance budgets
+                      - SSR / streaming
+                      seen: false
+                      saved: false
+                      sourceUrl: https://acme.example/careers/senior-frontend
+                      sourceLabel: acme.example/careers/senior-frontend
+                      networkNote: 2 alumni from past mocks at this team
+                      similarInterviewers: 3
+                      interviewHypotheses:
+                      - Likely deep-dive on design-system rollout governance
+                      provenance:
+                        promptVersion: jd_match_recommendation.v1
+                        rubricVersion: jd_match_recommendation_rubric.v1
+                        modelId: model-profile:contract.default
+                        language: zh-CN
+                        featureFlag: none
+                        dataSourceVersion: jd_match.v1
+                    - id: 01918fa0-0000-7000-8000-00000000a002
+                      title: Staff Frontend Engineer · Platform
+                      company: Lumen Labs
+                      companyTag: Scale-stage
+                      level: Staff
+                      location: Remote · APAC
+                      comp: 85-110 LPA
+                      posted: 5 days ago
+                      score: 78
+                      fit:
+                        must: 3
+                        total: 5
+                        plus: 2
+                        totalPlus: 4
+                      reasons:
+                      - Platform-team scope matches recent leadership stories
+                      - Remote setup matches preferences
+                      risks:
+                      - Heavier backend-coordination expectation
+                      - Travel for quarterly onsite
+                      highlights:
+                      - Platform engineering
+                      - API ergonomics
+                      - Cross-team RFC ownership
+                      seen: true
+                      saved: true
+                      sourceUrl: https://lumenlabs.example/jobs/staff-frontend
+                      sourceLabel: lumenlabs.example/jobs/staff-frontend
+                      networkNote: null
+                      similarInterviewers: null
+                      interviewHypotheses:
+                      - Will probe API ergonomics and RFC review process
+                      provenance:
+                        promptVersion: jd_match_recommendation.v1
+                        rubricVersion: jd_match_recommendation_rubric.v1
+                        modelId: model-profile:contract.default
+                        language: zh-CN
+                        featureFlag: none
+                        dataSourceVersion: jd_match.v1
+                    - id: 01918fa0-0000-7000-8000-00000000a003
+                      title: Frontend Tech Lead · Web Platform
+                      company: Northwind
+                      companyTag: null
+                      level: Lead
+                      location: Singapore · Hybrid
+                      comp: null
+                      posted: 1 week ago
+                      score: 64
+                      fit:
+                        must: 2
+                        total: 5
+                        plus: 1
+                        totalPlus: 4
+                      reasons:
+                      - Stretch role exploring platform-team leadership
+                      risks:
+                      - Location requires relocation
+                      - Compensation undisclosed
+                      highlights:
+                      - Web platform engineering
+                      - Mentorship
+                      seen: false
+                      saved: false
+                      sourceUrl: null
+                      sourceLabel: null
+                      networkNote: null
+                      similarInterviewers: null
+                      interviewHypotheses: []
+                      provenance:
+                        promptVersion: jd_match_recommendation.v1
+                        rubricVersion: jd_match_recommendation_rubric.v1
+                        modelId: model-profile:contract.default
+                        language: zh-CN
+                        featureFlag: none
+                        dataSourceVersion: jd_match.v1
+                    pageInfo:
+                      pageSize: 20
+                      hasMore: false
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /jd-match/recommendations/{jobMatchId}:
+    get:
+      tags:
+      - JobMatch
+      operationId: getJobRecommendation
+      summary: Get a single JD-match recommendation detail
+      description: 'Required when the user opens a card; the list response is summary-only
+
+        and must not be reused as the detail truth source per plan §3.6.
+
+        '
+      parameters:
+      - name: jobMatchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: JD-match recommendation detail.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobMatchRecommendation'
+              examples:
+                default:
+                  summary: Default fixture for getJobRecommendation
+                  value:
+                    id: 01918fa0-0000-7000-8000-00000000a001
+                    title: Senior Frontend Engineer · Design Systems
+                    company: Acme
+                    companyTag: Series C SaaS
+                    level: Senior
+                    location: Shanghai · Hybrid
+                    comp: 70-95 LPA
+                    posted: 2 days ago
+                    score: 92
+                    fit:
+                      must: 4
+                      total: 5
+                      plus: 3
+                      totalPlus: 4
+                    reasons:
+                    - Drove design-system migration across 12 teams
+                    - Production SSR experience aligned with platform team focus
+                    - Mentorship of mid-level engineers documented
+                    risks:
+                    - Edge runtime experience marked as nice-to-have
+                    - Hiring manager prefers very deep observability stories
+                    highlights:
+                    - Design system migration
+                    - Performance budgets
+                    - SSR / streaming
+                    - Cross-team RFC ownership
+                    seen: false
+                    saved: false
+                    sourceUrl: https://acme.example/careers/senior-frontend
+                    sourceLabel: acme.example/careers/senior-frontend
+                    networkNote: 'Public interview-review signals: 2 alumni from past mocks at this team'
+                    similarInterviewers: 3
+                    interviewHypotheses:
+                    - Likely deep-dive on design-system rollout governance
+                    - STAR follow-up on performance budgets
+                    provenance:
+                      promptVersion: jd_match_recommendation.v1
+                      rubricVersion: jd_match_recommendation_rubric.v1
+                      modelId: model-profile:contract.default
+                      language: zh-CN
+                      featureFlag: none
+                      dataSourceVersion: jd_match.v1
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /jd-match/recommendations/{jobMatchId}/dismiss:
+    post:
+      tags:
+      - JobMatch
+      operationId: markJobNotRelevant
+      summary: Mark a recommendation as not relevant
+      description: 'Hides the recommendation from the candidate view and feeds the agent
+
+        learning loop owned by the backend JD-match runtime.
+
+        '
+      parameters:
+      - name: jobMatchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkNotRelevantRequest'
+      responses:
+        '200':
+          description: Dismiss accepted.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkNotRelevantResult'
+              examples:
+                default:
+                  summary: Default fixture for markJobNotRelevant
+                  value:
+                    jobMatchId: 01918fa0-0000-7000-8000-00000000a002
+                    dismissedAt: '2026-05-10T09:00:00Z'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /jd-match/watchlist:
+    get:
+      tags:
+      - JobMatch
+      operationId: listWatchlist
+      summary: List the candidate watchlist
+      description: 'Returns the candidate watchlist; each item carries `linkedJobMatchId`
+
+        for the chevron handoff back to the Recommended tab.
+
+        '
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Watchlist items.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistResponse'
+              examples:
+                default:
+                  summary: Default fixture for listWatchlist
+                  value:
+                    items:
+                    - id: 01918fa0-0000-7000-8000-00000000b001
+                      linkedJobMatchId: 01918fa0-0000-7000-8000-00000000a001
+                      label: null
+                      title: Senior Frontend Engineer · Design Systems
+                      company: Acme
+                      tone: ok
+                      addedAt: '2026-05-08T10:00:00Z'
+                      change: null
+                    - id: 01918fa0-0000-7000-8000-00000000b002
+                      linkedJobMatchId: 01918fa0-0000-7000-8000-00000000a002
+                      label: null
+                      title: Staff Frontend Engineer · Platform
+                      company: Lumen Labs
+                      tone: warn
+                      addedAt: '2026-05-06T11:30:00Z'
+                      change: JD updated · check diff
+                    - id: 01918fa0-0000-7000-8000-00000000b003
+                      linkedJobMatchId: 01918fa0-0000-7000-8000-00000000a004
+                      label: null
+                      title: Frontend Engineer · Internal Tooling
+                      company: Globex
+                      tone: muted
+                      addedAt: '2026-04-29T09:00:00Z'
+                      change: null
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+    post:
+      tags:
+      - JobMatch
+      operationId: addToWatchlist
+      summary: Save a recommendation to the watchlist
+      description: Adds the referenced recommendation to the candidate watchlist.
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddToWatchlistRequest'
+      responses:
+        '200':
+          description: Watchlist item created or refreshed.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistItem'
+              examples:
+                default:
+                  summary: Default fixture for addToWatchlist
+                  value:
+                    id: 01918fa0-0000-7000-8000-00000000b001
+                    linkedJobMatchId: 01918fa0-0000-7000-8000-00000000a001
+                    label: null
+                    title: Senior Frontend Engineer · Design Systems
+                    company: Acme
+                    tone: ok
+                    addedAt: '2026-05-10T09:00:00Z'
+                    change: null
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /jd-match/watchlist/{jobMatchId}:
+    delete:
+      tags:
+      - JobMatch
+      operationId: removeFromWatchlist
+      summary: Remove a recommendation from the watchlist
+      description: Drops the watchlist entry that links to the given recommendation id.
+      parameters:
+      - name: jobMatchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '204':
+          description: Watchlist entry removed.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              examples:
+                default:
+                  summary: Default fixture for removeFromWatchlist
+                  value: null
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /jd-match/search:
+    post:
+      tags:
+      - JobMatch
+      operationId: searchJobs
+      summary: Run a natural-language web search for JD matches
+      description: 'Triggers a backend search run; response carries the materialized result
+
+        list (no `progress` field per plan D-12). Frontend renders the static
+
+        5-step AGENT panel locally during in-flight requests.
+
+        '
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchJobsRequest'
+      responses:
+        '200':
+          description: Search run completed.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchJobsResponse'
+              examples:
+                default:
+                  summary: Default fixture for searchJobs
+                  value:
+                    searchRunId: 01918fa0-0000-7000-8000-00000000c100
+                    items:
+                    - id: 01918fa0-0000-7000-8000-00000000a001
+                      title: Senior Frontend Engineer · Design Systems
+                      company: Acme
+                      companyTag: Series C SaaS
+                      level: Senior
+                      location: Shanghai · Hybrid
+                      comp: 70-95 LPA
+                      posted: 2 days ago
+                      score: 92
+                      fit:
+                        must: 4
+                        total: 5
+                        plus: 3
+                        totalPlus: 4
+                      reasons:
+                      - Drove design-system migration across 12 teams
+                      risks:
+                      - Edge runtime experience is nice-to-have
+                      highlights:
+                      - Design system migration
+                      seen: false
+                      saved: false
+                      sourceUrl: https://acme.example/careers/senior-frontend
+                      sourceLabel: acme.example/careers/senior-frontend
+                      networkNote: null
+                      similarInterviewers: null
+                      interviewHypotheses: []
+                      provenance:
+                        promptVersion: jd_match_search.v1
+                        rubricVersion: jd_match_search_rubric.v1
+                        modelId: model-profile:contract.default
+                        language: zh-CN
+                        featureFlag: none
+                        dataSourceVersion: jd_match.v1
+                    - id: 01918fa0-0000-7000-8000-00000000a002
+                      title: Staff Frontend Engineer · Platform
+                      company: Lumen Labs
+                      companyTag: Scale-stage
+                      level: Staff
+                      location: Remote · APAC
+                      comp: 85-110 LPA
+                      posted: 5 days ago
+                      score: 78
+                      fit:
+                        must: 3
+                        total: 5
+                        plus: 2
+                        totalPlus: 4
+                      reasons:
+                      - Platform-team scope matches recent leadership stories
+                      risks:
+                      - Heavier backend-coordination expectation
+                      highlights:
+                      - Platform engineering
+                      seen: false
+                      saved: false
+                      sourceUrl: https://lumenlabs.example/jobs/staff-frontend
+                      sourceLabel: lumenlabs.example/jobs/staff-frontend
+                      networkNote: null
+                      similarInterviewers: null
+                      interviewHypotheses: []
+                      provenance:
+                        promptVersion: jd_match_search.v1
+                        rubricVersion: jd_match_search_rubric.v1
+                        modelId: model-profile:contract.default
+                        language: zh-CN
+                        featureFlag: none
+                        dataSourceVersion: jd_match.v1
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /jd-match/saved-searches:
+    get:
+      tags:
+      - JobMatch
+      operationId: listSavedSearches
+      summary: List the candidate's saved searches
+      description: Returns saved searches the candidate has previously stored.
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Saved searches collection.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedSearchesResponse'
+              examples:
+                default:
+                  summary: Default fixture for listSavedSearches
+                  value:
+                    items:
+                    - id: 01918fa0-0000-7000-8000-00000000c001
+                      label: Design-system leadership
+                      query: Senior frontend roles with strong design-system culture
+                      filters:
+                        remote: true
+                        minScore: 80
+                      newJobsCount: 3
+                      lastRunAt: '2026-05-10T05:00:00Z'
+                      createdAt: '2026-04-30T08:00:00Z'
+                    - id: 01918fa0-0000-7000-8000-00000000c002
+                      label: Platform team · APAC
+                      query: Platform engineering roles open to APAC remote
+                      filters:
+                        location: APAC
+                        remote: true
+                      newJobsCount: 0
+                      lastRunAt: '2026-05-09T05:00:00Z'
+                      createdAt: '2026-05-01T08:00:00Z'
+                    - id: 01918fa0-0000-7000-8000-00000000c003
+                      label: Frontend tech-lead stretch
+                      query: Frontend tech lead roles with mentorship scope
+                      newJobsCount: null
+                      lastRunAt: null
+                      createdAt: '2026-05-08T08:00:00Z'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+    post:
+      tags:
+      - JobMatch
+      operationId: createSavedSearch
+      summary: Save the current search query as a recurring saved search
+      description: Stores the current query / filters under a candidate label.
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSavedSearchRequest'
+      responses:
+        '200':
+          description: Saved search created.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedSearch'
+              examples:
+                default:
+                  summary: Default fixture for createSavedSearch
+                  value:
+                    id: 01918fa0-0000-7000-8000-00000000c004
+                    label: Design-system leadership
+                    query: Senior frontend roles with strong design-system culture
+                    filters:
+                      remote: true
+                      minScore: 80
+                    newJobsCount: 0
+                    lastRunAt: null
+                    createdAt: '2026-05-10T09:00:00Z'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /jd-match/market-signals:
+    get:
+      tags:
+      - JobMatch
+      operationId: getMarketSignals
+      summary: Get aggregated market signals for the watchlist tab
+      description: Returns the 4-card market signals grid for the watchlist view.
+      parameters:
+      - name: window
+        in: query
+        required: false
+        description: Look-back window for the aggregation; defaults to `7d`.
+        schema:
+          type: string
+          enum:
+          - 7d
+          - 14d
+          - 30d
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Market signals snapshot.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketSignalsResponse'
+              examples:
+                default:
+                  summary: Default fixture for getMarketSignals
+                  value:
+                    signals:
+                    - k: Postings · 7d
+                      v: '182'
+                      d: +12% vs prior week
+                      tone: ok
+                    - k: Median comp · senior
+                      v: 82 LPA
+                      d: -3% vs prior week
+                      tone: warn
+                    - k: Remote share
+                      v: 41%
+                      d: +5pp
+                      tone: ok
+                    - k: Avg time-to-hire
+                      v: 32 days
+                      d: null
+                      tone: muted
+                    asOf: '2026-05-10T05:00:00Z'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
 components:
   securitySchemes:
     sessionCookie:
@@ -1979,11 +3909,11 @@ components:
 
         `shared/conventions.yaml#errors[].code`; B1 owns the literal set.
 
-        `PRIVACY_EXPORT_NOT_AVAILABLE` is the P0 example required by spec D-12
+        P0 export exceptions such as `PRIVACY_EXPORT_NOT_AVAILABLE` and
 
-        and is included here so the OpenAPI contract is self-contained for the
+        `RESUME_EXPORT_NOT_AVAILABLE` are included here so the OpenAPI
 
-        `POST /api/v1/privacy/exports` 501 response.
+        contract is self-contained for 501 export responses.
 
         '
       enum:
@@ -1996,8 +3926,14 @@ components:
       - PRACTICE_SESSION_CONFLICT
       - PRACTICE_PLAN_NOT_FOUND
       - PRACTICE_SESSION_NOT_FOUND
+      - REPORT_NOT_FOUND
       - REPORT_NOT_READY
+      - DEBRIEF_NOT_FOUND
+      - RESUME_EXPORT_NOT_AVAILABLE
+      - RESUME_STRUCTURED_MASTER_ALREADY_EXISTS
       - VALIDATION_FAILED
+      - RESOURCE_NOT_FOUND
+      - IDEMPOTENCY_KEY_MISMATCH
       - RATE_LIMITED
       - AI_PROVIDER_TIMEOUT
       - AI_OUTPUT_INVALID
@@ -2167,6 +4103,24 @@ components:
       enum:
       - draft
       - completed
+    DebriefRoundType:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[DebriefRoundType]` sourceSection 5.12.
+      enum:
+      - hr_screen
+      - hiring_manager
+      - behavioral
+      - technical
+      - culture
+      - custom
+    DebriefQuestionSource:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[DebriefQuestionSource]` sourceSection 5.12.
+      enum:
+      - jd
+      - resume
+      - mock_report
+      - manual
     PrivacyRequestType:
       type: string
       description: Synced from `shared/conventions.yaml#enums[PrivacyRequestType]` sourceSection 5.13.
@@ -2182,6 +4136,26 @@ components:
       - completed
       - failed
       - cancelled
+    ResumeVersionType:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[ResumeVersionType]` sourceSection 5.14.
+      enum:
+      - structured_master
+      - targeted
+    ResumeSeedStrategy:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[ResumeSeedStrategy]` sourceSection 5.15.
+      enum:
+      - copy_master
+      - blank
+      - ai_select
+    ResumeTailorSuggestionStatus:
+      type: string
+      description: Synced from `shared/conventions.yaml#enums[ResumeTailorSuggestionStatus]` sourceSection 5.16.
+      enum:
+      - pending
+      - accepted
+      - rejected
     ResourceType:
       type: string
       description: 'Resource type referenced by `Job.resourceType` and outbox events.
@@ -2436,18 +4410,22 @@ components:
       properties:
         headline:
           type: string
+          nullable: true
         yearsOfExperience:
           type: integer
           format: int32
           minimum: 0
+          nullable: true
         currentRole:
           type: string
+          nullable: true
         preferredPracticeLanguage:
           type: string
         uiLanguage:
           type: string
         region:
           type: string
+          nullable: true
     UpdateProfileRequest:
       type: object
       description: All fields optional — only supplied fields are updated.
@@ -2570,17 +4548,32 @@ components:
     RegisterResumeRequest:
       type: object
       required:
-      - fileObjectId
       - title
       - language
       properties:
         fileObjectId:
           type: string
           format: uuid
+          nullable: true
+          description: Required only when `sourceType` is `upload`; omitted/null for paste and guided intake.
         title:
           type: string
         language:
           type: string
+        sourceType:
+          type: string
+          enum:
+          - upload
+          - paste
+          - guided
+          description: Optional additive source discriminator for Resume Workshop.
+        rawText:
+          type: string
+          description: Optional paste-mode source text.
+        guidedAnswers:
+          type: object
+          additionalProperties: true
+          description: Optional guided-answer JSON object persisted in `resume_assets.guided_answers`.
     ResumeAsset:
       type: object
       required:
@@ -2588,7 +4581,6 @@ components:
       - title
       - language
       - parseStatus
-      - fileObjectId
       - createdAt
       - updatedAt
       properties:
@@ -2601,9 +4593,36 @@ components:
           type: string
         parseStatus:
           $ref: '#/components/schemas/TargetJobParseStatus'
+        status:
+          type: string
+          enum:
+          - active
+          - archived
+          description: Additive archive projection; omitted by legacy fixtures before D-18.
+        sourceType:
+          type: string
+          enum:
+          - upload
+          - paste
+          - guided
         fileObjectId:
           type: string
           format: uuid
+          nullable: true
+          description: Upload-backed assets keep a file object; paste and guided assets are fileless.
+        originalText:
+          oneOf:
+          - type: string
+          - type: 'null'
+        guidedAnswers:
+          oneOf:
+          - type: object
+            additionalProperties: true
+          - type: 'null'
+        parsedTextSnapshot:
+          oneOf:
+          - type: string
+          - type: 'null'
         parsedSummary:
           oneOf:
           - type: object
@@ -2616,6 +4635,11 @@ components:
         updatedAt:
           type: string
           format: date-time
+        deletedAt:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
     ResumeAssetWithJob:
       type: object
       required:
@@ -2627,6 +4651,243 @@ components:
           format: uuid
         job:
           $ref: '#/components/schemas/Job'
+    PaginatedResumeAsset:
+      allOf:
+      - $ref: '#/components/schemas/PaginatedEnvelope'
+      - type: object
+        properties:
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/ResumeAsset'
+    ResumeVersion:
+      type: object
+      required:
+      - id
+      - resumeAssetId
+      - versionType
+      - displayName
+      - structuredProfile
+      - provenance
+      - suggestions
+      - createdAt
+      - updatedAt
+      description: Resume Workshop version snapshot. AI-generated profile and suggestion fields carry GenerationProvenance.
+      properties:
+        id:
+          type: string
+          format: uuid
+        resumeAssetId:
+          type: string
+          format: uuid
+        parentVersionId:
+          oneOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        versionType:
+          $ref: '#/components/schemas/ResumeVersionType'
+        targetJobId:
+          oneOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        displayName:
+          type: string
+        seedStrategy:
+          oneOf:
+          - $ref: '#/components/schemas/ResumeSeedStrategy'
+          - type: 'null'
+        focusAngle:
+          oneOf:
+          - type: string
+          - type: 'null'
+        structuredProfile:
+          type: object
+          required:
+          - provenance
+          additionalProperties: true
+          properties:
+            headline:
+              type: string
+            summary:
+              type: string
+            skills:
+              type: array
+              items:
+                type: string
+            sections:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            provenance:
+              $ref: '#/components/schemas/GenerationProvenance'
+        matchScore:
+          oneOf:
+          - type: number
+          - type: 'null'
+        promptVersion:
+          oneOf:
+          - type: string
+          - type: 'null'
+        rubricVersion:
+          oneOf:
+          - type: string
+          - type: 'null'
+        modelId:
+          oneOf:
+          - type: string
+          - type: 'null'
+        provider:
+          oneOf:
+          - type: string
+          - type: 'null'
+        provenance:
+          $ref: '#/components/schemas/GenerationProvenance'
+        suggestions:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - status
+            - originalBullet
+            - suggestedBullet
+            - provenance
+            - createdAt
+            properties:
+              id:
+                type: string
+                format: uuid
+              tailorRunId:
+                oneOf:
+                - type: string
+                  format: uuid
+                - type: 'null'
+              originalBullet:
+                type: string
+              suggestedBullet:
+                type: string
+              reason:
+                oneOf:
+                - type: string
+                - type: 'null'
+              status:
+                $ref: '#/components/schemas/ResumeTailorSuggestionStatus'
+              provenance:
+                $ref: '#/components/schemas/GenerationProvenance'
+              decidedAt:
+                oneOf:
+                - type: string
+                  format: date-time
+                - type: 'null'
+              createdAt:
+                type: string
+                format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deletedAt:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+    BranchResumeVersionAccepted:
+      type: object
+      required:
+      - resumeVersionId
+      - version
+      - job
+      description: Async branch response for `seedStrategy=ai_select`; callers poll `job` while rendering the provisional
+        version.
+      properties:
+        resumeVersionId:
+          type: string
+          format: uuid
+        version:
+          $ref: '#/components/schemas/ResumeVersion'
+        job:
+          $ref: '#/components/schemas/Job'
+    PaginatedResumeVersion:
+      allOf:
+      - $ref: '#/components/schemas/PaginatedEnvelope'
+      - type: object
+        properties:
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/ResumeVersion'
+    ConfirmResumeStructuredMasterRequest:
+      type: object
+      required:
+      - structuredProfile
+      - displayName
+      description: User-confirmed structured profile saved as the v1 structured master version for a parsed resume asset.
+      properties:
+        structuredProfile:
+          type: object
+          required:
+          - provenance
+          additionalProperties: true
+          properties:
+            headline:
+              type: string
+            summary:
+              type: string
+            skills:
+              type: array
+              items:
+                type: string
+            sections:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            provenance:
+              $ref: '#/components/schemas/GenerationProvenance'
+        displayName:
+          type: string
+        language:
+          type: string
+    BranchResumeVersionRequest:
+      type: object
+      required:
+      - parentVersionId
+      - targetJobId
+      - seedStrategy
+      properties:
+        parentVersionId:
+          type: string
+          format: uuid
+        targetJobId:
+          type: string
+          format: uuid
+        seedStrategy:
+          $ref: '#/components/schemas/ResumeSeedStrategy'
+        displayName:
+          type: string
+        focusAngle:
+          type: string
+    UpdateResumeVersionRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+        focusAngle:
+          oneOf:
+          - type: string
+          - type: 'null'
+        structuredProfile:
+          type: object
+          additionalProperties: true
+        matchScore:
+          oneOf:
+          - type: number
+          - type: 'null'
     TargetJobImportSourceURL:
       type: object
       required:
@@ -2891,6 +5152,7 @@ components:
       - language
       - questionBudget
       - timeBudgetMinutes
+      - resumeAssetId
       properties:
         targetJobId:
           type: string
@@ -2920,6 +5182,16 @@ components:
         resumeAssetId:
           type: string
           format: uuid
+        sourceReportId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Required for retry_current_round and next_round practice goals.
+        sourceDebriefId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Required for debrief practice goals.
         focusCompetencyCodes:
           type: array
           items:
@@ -2967,6 +5239,14 @@ components:
           type: integer
           format: int32
           minimum: 1
+        sourceReportId:
+          type: string
+          format: uuid
+          nullable: true
+        sourceDebriefId:
+          type: string
+          format: uuid
+          nullable: true
         status:
           type: string
           enum:
@@ -3010,6 +5290,8 @@ components:
           enum:
           - asked
           - answered
+          - follow_up_requested
+          - assessed
           - skipped
         askedAt:
           type: string
@@ -3056,6 +5338,205 @@ components:
         updatedAt:
           type: string
           format: date-time
+    PaginatedPracticeSession:
+      allOf:
+      - $ref: '#/components/schemas/PaginatedEnvelope'
+      - type: object
+        properties:
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/PracticeSession'
+    CreatePracticeVoiceTurnRequest:
+      type: object
+      required:
+      - clientVoiceTurnId
+      - turnId
+      - audio
+      - language
+      - practiceMode
+      description: 'Client-submitted audio turn for the cascaded STT -> chat -> TTS practice
+
+        voice MVP. Audio is a small request payload for immediate processing,
+
+        not a persisted file object.
+
+        '
+      properties:
+        clientVoiceTurnId:
+          type: string
+          format: uuid
+          description: Client-generated voice turn id used with Idempotency-Key replay.
+        turnId:
+          type: string
+          format: uuid
+          description: Current practice turn receiving the voice answer.
+        audio:
+          $ref: '#/components/schemas/PracticeVoiceAudioInput'
+        language:
+          type: string
+          description: BCP 47 language hint for STT and TTS profiles.
+        practiceMode:
+          $ref: '#/components/schemas/PracticeMode'
+        manualTranscriptFallback:
+          type: string
+          description: Optional user-entered transcript when capture is unavailable.
+    PracticeVoiceAudioInput:
+      type: object
+      required:
+      - contentBase64
+      - contentType
+      - durationMs
+      properties:
+        contentBase64:
+          type: string
+          format: byte
+          description: Base64 encoded short audio payload for immediate STT processing.
+        contentType:
+          type: string
+          enum:
+          - audio/webm
+          - audio/wav
+          - audio/mpeg
+        durationMs:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 60000
+        byteLength:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Optional decoded byte length for request sanity checks.
+    PracticeVoiceTurnResult:
+      type: object
+      required:
+      - voiceTurnId
+      - userTranscriptFinal
+      - assistantTextDraft
+      - ttsChunks
+      - providerMetaSummary
+      - session
+      - ttsError
+      properties:
+        voiceTurnId:
+          type: string
+          format: uuid
+        userTranscriptFinal:
+          type: string
+        assistantTextDraft:
+          type: string
+        ttsChunks:
+          type: array
+          items:
+            $ref: '#/components/schemas/PracticeVoiceTTSChunk'
+        providerMetaSummary:
+          $ref: '#/components/schemas/PracticeVoiceProviderMetaSummary'
+        session:
+          $ref: '#/components/schemas/PracticeSession'
+        ttsError:
+          oneOf:
+          - $ref: '#/components/schemas/PracticeVoiceTTSError'
+          - type: 'null'
+    PracticeVoiceTTSChunk:
+      type: object
+      required:
+      - chunkId
+      - sequence
+      - contentType
+      - durationMs
+      - byteLength
+      - textHash
+      - audioRef
+      description: 'TTS playback metadata. HTTP responses must return a browser-playable
+
+        `data:audio/...;base64,...` value or a checked-in resolver URL. Persisted
+
+        session event summaries must rewrite it to an opaque `voice-turn://...`
+
+        reference and must not store audio bytes or provider secrets.
+
+        '
+      properties:
+        chunkId:
+          type: string
+        sequence:
+          type: integer
+          format: int32
+          minimum: 0
+        contentType:
+          type: string
+          enum:
+          - audio/mpeg
+          - audio/wav
+          - audio/ogg
+        durationMs:
+          type: integer
+          format: int32
+          minimum: 0
+        byteLength:
+          type: integer
+          format: int32
+          minimum: 0
+        textHash:
+          type: string
+          description: Hash of synthesized text, never the text itself.
+        audioRef:
+          type: string
+          description: Browser-playable data URL or resolver URL for the frontend player.
+    PracticeVoiceProviderMetaSummary:
+      type: object
+      required:
+      - sttProfile
+      - chatProfile
+      - ttsProfile
+      - sttProvider
+      - chatProvider
+      - ttsProvider
+      description: Provider-neutral profile summary for UI/debug display; no secrets or raw prompts.
+      properties:
+        sttProfile:
+          type: string
+        chatProfile:
+          type: string
+        ttsProfile:
+          type: string
+        sttProvider:
+          type: string
+        chatProvider:
+          type: string
+        ttsProvider:
+          type: string
+        sttLatencyMs:
+          type: integer
+          format: int32
+          minimum: 0
+        chatLatencyMs:
+          type: integer
+          format: int32
+          minimum: 0
+        ttsLatencyMs:
+          type: integer
+          format: int32
+          minimum: 0
+    PracticeVoiceTTSError:
+      type: object
+      required:
+      - code
+      - message
+      - retryable
+      description: Non-fatal TTS failure. Transcript and assistant text remain usable.
+      properties:
+        code:
+          type: string
+          enum:
+          - TTS_CONFIG_MISSING
+          - TTS_PROVIDER_FAILED
+          - TTS_SYNTHESIS_FAILED
+        message:
+          type: string
+        retryable:
+          type: boolean
     PracticeSessionEventRequest:
       type: object
       required:
@@ -3081,6 +5562,10 @@ components:
           - turn_skipped
           - session_paused
           - session_resumed
+          - tts_chunk_started
+          - tts_chunk_played
+          - barge_in_detected
+          - assistant_context_committed
         occurredAt:
           type: string
           format: date-time
@@ -3257,6 +5742,15 @@ components:
           format: uuid
         status:
           $ref: '#/components/schemas/ReportStatus'
+        errorCode:
+          oneOf:
+          - $ref: '#/components/schemas/ApiErrorCode'
+          - type: 'null'
+          description: 'Populated only when `status == failed`. Carries the B1 error code
+
+            (typically the `AI_*` family) so clients can render a failure state.
+
+            '
         preparednessLevel:
           oneOf:
           - $ref: '#/components/schemas/ReadinessTier'
@@ -3315,6 +5809,11 @@ components:
         resumeAssetId:
           type: string
           format: uuid
+        resumeVersionId:
+          type: string
+          format: uuid
+          description: Optional targeted resume version that should receive the generated suggestions. When omitted, the server
+            falls back to the latest matching version for legacy queued jobs.
         mode:
           type: string
           enum:
@@ -3431,7 +5930,9 @@ components:
         interviewerReaction:
           type: string
         aiAnalysis:
-          type: string
+          oneOf:
+          - type: string
+          - type: 'null'
     DebriefRiskItem:
       type: object
       required:
@@ -3467,14 +5968,7 @@ components:
           type: string
           format: uuid
         roundType:
-          type: string
-          enum:
-          - hr_screen
-          - hiring_manager
-          - behavioral
-          - technical
-          - culture
-          - custom
+          $ref: '#/components/schemas/DebriefRoundType'
         interviewerRole:
           $ref: '#/components/schemas/InterviewerRole'
         language:
@@ -3515,14 +6009,7 @@ components:
         status:
           $ref: '#/components/schemas/DebriefStatus'
         roundType:
-          type: string
-          enum:
-          - hr_screen
-          - hiring_manager
-          - behavioral
-          - technical
-          - culture
-          - custom
+          $ref: '#/components/schemas/DebriefRoundType'
         interviewerRole:
           oneOf:
           - $ref: '#/components/schemas/InterviewerRole'
@@ -3567,6 +6054,55 @@ components:
           format: uuid
         job:
           $ref: '#/components/schemas/Job'
+    SuggestedDebriefQuestion:
+      type: object
+      required:
+      - questionText
+      - whyLikelyAsked
+      - source
+      properties:
+        stage:
+          oneOf:
+          - type: string
+          - type: 'null'
+        questionText:
+          type: string
+        whyLikelyAsked:
+          type: string
+        source:
+          $ref: '#/components/schemas/DebriefQuestionSource'
+    SuggestDebriefQuestionsRequest:
+      type: object
+      required:
+      - targetJobId
+      - language
+      properties:
+        targetJobId:
+          type: string
+          format: uuid
+        sessionId:
+          type: string
+          format: uuid
+        resumeVersionId:
+          type: string
+          format: uuid
+        language:
+          type: string
+        count:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 10
+          default: 6
+    SuggestDebriefQuestionsResponse:
+      type: object
+      required:
+      - suggestions
+      properties:
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SuggestedDebriefQuestion'
     Job:
       type: object
       required:
@@ -3640,3 +6176,518 @@ components:
           format: uuid
         job:
           $ref: '#/components/schemas/Job'
+    JobMatchProfileSourceCounts:
+      type: object
+      required:
+      - resumes
+      - jds
+      - mocks
+      - debriefs
+      description: 'Aggregated counts of inputs that fed the JD-match profile snapshot.
+
+        Driven by the backend JD-match runtime.
+
+        '
+      properties:
+        resumes:
+          type: integer
+          format: int32
+          minimum: 0
+        jds:
+          type: integer
+          format: int32
+          minimum: 0
+        mocks:
+          type: integer
+          format: int32
+          minimum: 0
+        debriefs:
+          type: integer
+          format: int32
+          minimum: 0
+    JobMatchProfile:
+      type: object
+      required:
+      - displayName
+      - skills
+      - sources
+      description: 'Candidate profile snapshot used by the JD-match agent. Returned by
+
+        `getJobMatchProfile`. Aggregated server-side; the frontend never derives
+
+        the snapshot from individual resumes.
+
+        '
+      properties:
+        displayName:
+          type: string
+          description: Candidate display name; never the raw email.
+        avatarUrl:
+          oneOf:
+          - type: string
+            format: uri
+          - type: 'null'
+        headline:
+          oneOf:
+          - type: string
+          - type: 'null'
+        yearsOfExperience:
+          oneOf:
+          - type: integer
+            format: int32
+            minimum: 0
+          - type: 'null'
+        locationText:
+          oneOf:
+          - type: string
+          - type: 'null'
+        compensationText:
+          oneOf:
+          - type: string
+          - type: 'null'
+        skills:
+          type: array
+          items:
+            type: string
+        sources:
+          $ref: '#/components/schemas/JobMatchProfileSourceCounts'
+    JobMatchAgentStatus:
+      type: string
+      description: 'Agent scan status. `idle` = no scan running; `scanning` = scan in
+
+        progress; `error` = last scan failed and operator action is needed.
+
+        '
+      enum:
+      - idle
+      - scanning
+      - error
+    AgentScanStatus:
+      type: object
+      required:
+      - status
+      description: 'Background JD-match agent status returned by `getAgentScanStatus`.
+
+        Frontend reads only on JD-match entry and tab returns; no SSE/WebSocket
+
+        per plan D-10.
+
+        '
+      properties:
+        status:
+          $ref: '#/components/schemas/JobMatchAgentStatus'
+        lastScanAt:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        nextScanAt:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        message:
+          oneOf:
+          - type: string
+          - type: 'null'
+          description: Optional human-readable hint (only used when status == error).
+    JobMatchFitFooter:
+      type: object
+      required:
+      - must
+      - total
+      - plus
+      - totalPlus
+      description: 'Mirrors `ui-design/src/screen-jd-match.jsx::JobMatchCard` fit footer:
+
+        "must X/Y · plus X/Y". Backend-only computed.
+
+        '
+      properties:
+        must:
+          type: integer
+          format: int32
+          minimum: 0
+        total:
+          type: integer
+          format: int32
+          minimum: 0
+        plus:
+          type: integer
+          format: int32
+          minimum: 0
+        totalPlus:
+          type: integer
+          format: int32
+          minimum: 0
+    JobMatchRecommendation:
+      type: object
+      required:
+      - id
+      - title
+      - company
+      - location
+      - score
+      - fit
+      - reasons
+      - risks
+      - highlights
+      - posted
+      - seen
+      - saved
+      - provenance
+      description: 'AI-generated JD-match recommendation per spec §4.6. `score`, `reasons`,
+
+        `risks`, `highlights`, `interviewHypotheses`, and `networkNote` are all
+
+        backend-derived; the frontend never computes them. `provenance` is
+
+        required and follows the GenerationProvenance contract.
+
+        '
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        company:
+          type: string
+        companyTag:
+          oneOf:
+          - type: string
+          - type: 'null'
+        level:
+          oneOf:
+          - type: string
+          - type: 'null'
+        location:
+          type: string
+        comp:
+          oneOf:
+          - type: string
+          - type: 'null'
+        posted:
+          type: string
+          description: Backend-rendered relative time (e.g., "2 days ago" / "2 天前").
+        score:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 100
+        fit:
+          $ref: '#/components/schemas/JobMatchFitFooter'
+        reasons:
+          type: array
+          items:
+            type: string
+        risks:
+          type: array
+          items:
+            type: string
+        highlights:
+          type: array
+          items:
+            type: string
+        seen:
+          type: boolean
+        saved:
+          type: boolean
+        sourceUrl:
+          oneOf:
+          - type: string
+            format: uri
+          - type: 'null'
+        sourceLabel:
+          oneOf:
+          - type: string
+          - type: 'null'
+          description: Display label for the source (e.g., "linkedin.com/jobs/123").
+        networkNote:
+          oneOf:
+          - type: string
+          - type: 'null'
+        similarInterviewers:
+          oneOf:
+          - type: integer
+            format: int32
+            minimum: 0
+          - type: 'null'
+        interviewHypotheses:
+          type: array
+          items:
+            type: string
+        provenance:
+          $ref: '#/components/schemas/GenerationProvenance'
+    PaginatedJobMatchRecommendation:
+      allOf:
+      - $ref: '#/components/schemas/PaginatedEnvelope'
+      - type: object
+        properties:
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/JobMatchRecommendation'
+    AddToWatchlistRequest:
+      type: object
+      required:
+      - jobMatchId
+      properties:
+        jobMatchId:
+          type: string
+          format: uuid
+    WatchlistItemTone:
+      type: string
+      description: Visual tone driving watchlist row colour per ui-design tone tokens.
+      enum:
+      - ok
+      - warn
+      - muted
+    WatchlistItem:
+      type: object
+      required:
+      - id
+      - linkedJobMatchId
+      - title
+      - company
+      - tone
+      - addedAt
+      description: 'A single watchlist row. `linkedJobMatchId` powers the chevron handoff to
+
+        the Recommended tab; the frontend must read it from the schema rather
+
+        than string-matching ids.
+
+        '
+      properties:
+        id:
+          type: string
+          format: uuid
+        linkedJobMatchId:
+          type: string
+          format: uuid
+        label:
+          oneOf:
+          - type: string
+          - type: 'null'
+          description: Optional candidate-supplied label; never logged.
+        title:
+          type: string
+        company:
+          type: string
+        tone:
+          $ref: '#/components/schemas/WatchlistItemTone'
+        addedAt:
+          type: string
+          format: date-time
+        change:
+          oneOf:
+          - type: string
+          - type: 'null'
+          description: Backend-rendered change signal (e.g., "JD updated · check diff").
+    WatchlistResponse:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WatchlistItem'
+    MarkNotRelevantReason:
+      type: string
+      description: 'Reason enum for `markJobNotRelevant`. ui-design does not surface a
+
+        reason picker, so the frontend transmits `not_relevant` by default and
+
+        backend mapping treats unknown values as `other` per spec §4.4
+
+        additive-only.
+
+        '
+      enum:
+      - not_relevant
+      - wrong_level
+      - wrong_location
+      - wrong_compensation
+      - other
+    MarkNotRelevantRequest:
+      type: object
+      required:
+      - reason
+      properties:
+        reason:
+          $ref: '#/components/schemas/MarkNotRelevantReason'
+        freeNote:
+          oneOf:
+          - type: string
+          - type: 'null'
+          description: Optional candidate note; never logged or surfaced in URLs.
+    MarkNotRelevantResult:
+      type: object
+      required:
+      - jobMatchId
+      - dismissedAt
+      properties:
+        jobMatchId:
+          type: string
+          format: uuid
+        dismissedAt:
+          type: string
+          format: date-time
+    SearchJobsFilters:
+      type: object
+      description: 'Optional structured search filters. Backend may ignore unknown keys per
+
+        additive-only rules; frontend currently exposes only client-side chip
+
+        filters for the result list (see plan §3.7).
+
+        '
+      properties:
+        location:
+          oneOf:
+          - type: string
+          - type: 'null'
+        remote:
+          oneOf:
+          - type: boolean
+          - type: 'null'
+        minScore:
+          oneOf:
+          - type: integer
+            format: int32
+            minimum: 0
+            maximum: 100
+          - type: 'null'
+    SearchJobsRequest:
+      type: object
+      required:
+      - query
+      properties:
+        query:
+          type: string
+          description: Natural-language candidate query; never logged or persisted in URL/localStorage.
+        filters:
+          oneOf:
+          - $ref: '#/components/schemas/SearchJobsFilters'
+          - type: 'null'
+        profileSnapshotId:
+          oneOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          description: Optional snapshot id; the actual profile is fetched server-side.
+    SearchJobsResponse:
+      type: object
+      required:
+      - searchRunId
+      - items
+      properties:
+        searchRunId:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobMatchRecommendation'
+    SavedSearch:
+      type: object
+      required:
+      - id
+      - label
+      - query
+      - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+          description: Candidate-supplied label; never logged or surfaced in URLs.
+        query:
+          type: string
+        filters:
+          oneOf:
+          - $ref: '#/components/schemas/SearchJobsFilters'
+          - type: 'null'
+        newJobsCount:
+          oneOf:
+          - type: integer
+            format: int32
+            minimum: 0
+          - type: 'null'
+        lastRunAt:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+    SavedSearchesResponse:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavedSearch'
+    CreateSavedSearchRequest:
+      type: object
+      required:
+      - label
+      - query
+      properties:
+        label:
+          type: string
+        query:
+          type: string
+        filters:
+          oneOf:
+          - $ref: '#/components/schemas/SearchJobsFilters'
+          - type: 'null'
+    MarketSignalTone:
+      type: string
+      description: Tone token driving the market-signal card colour.
+      enum:
+      - ok
+      - warn
+      - muted
+    MarketSignal:
+      type: object
+      required:
+      - k
+      - v
+      - tone
+      description: 'Single market-signal card per ui-design 4-card grid. `k` is the metric
+
+        label, `v` is the headline value, `d` is an optional delta annotation.
+
+        '
+      properties:
+        k:
+          type: string
+        v:
+          type: string
+        d:
+          oneOf:
+          - type: string
+          - type: 'null'
+        tone:
+          $ref: '#/components/schemas/MarketSignalTone'
+    MarketSignalsResponse:
+      type: object
+      required:
+      - signals
+      properties:
+        signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketSignal'
+        asOf:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'

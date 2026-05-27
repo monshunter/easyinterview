@@ -43,7 +43,7 @@ const AuthActionLink = ({ T, children, onClick }) => (
   </button>
 );
 
-// Reusable hook: countdown after sending an email/SMS code
+// Reusable hook: countdown after sending an email link
 const useResendCountdown = () => {
   const [seconds, setSeconds] = React.useState(0);
   React.useEffect(() => {
@@ -85,7 +85,7 @@ const AuthLoginScreen = ({ T, lang, nav, onSignIn, pendingAction }) => {
     if (cooldown > 0) return;
     startCooldown();
     window.eiToast && window.eiToast(
-      lang === "en" ? `Verification code sent to ${email}` : `验证码已发送到 ${email}`,
+      lang === "en" ? `Sign-in link sent to ${email}` : `登录链接已发送到 ${email}`,
       { tone: "ok" }
     );
   };
@@ -103,7 +103,7 @@ const AuthLoginScreen = ({ T, lang, nav, onSignIn, pendingAction }) => {
         <div style={{ display: "flex", gap: 8, marginBottom: 22 }}>
           {[
             { k: "password", t: lang === "en" ? "Password" : "密码登录" },
-            { k: "code", t: lang === "en" ? "Email code" : "邮箱验证码" },
+            { k: "code", t: lang === "en" ? "Email link" : "邮箱链接" },
           ].map((item) => (
             <button key={item.k} onClick={() => setMode(item.k)} style={{
               flex: 1, height: 36, border: `1px solid ${mode === item.k ? T.accent : T.rule}`,
@@ -119,11 +119,11 @@ const AuthLoginScreen = ({ T, lang, nav, onSignIn, pendingAction }) => {
             <AuthField T={T} label={lang === "en" ? "Password" : "密码"} value={password} setValue={setPassword} type="password" placeholder={lang === "en" ? "Your password" : "输入密码"} />
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "end" }}>
-              <AuthField T={T} label={lang === "en" ? "Verification code" : "验证码"} value={password} setValue={setPassword} placeholder="123456" />
+              <AuthField T={T} label={lang === "en" ? "Sign-in token" : "登录 token"} value={password} setValue={setPassword} placeholder="token" />
               <Btn T={T} variant="secondary" size="sm" onClick={sendCode} disabled={cooldown > 0}>
                 {cooldown > 0
                   ? (lang === "en" ? `Resend ${cooldown}s` : `${cooldown}s 后重发`)
-                  : (lang === "en" ? "Send code" : "发送验证码")}
+                  : (lang === "en" ? "Send link" : "发送链接")}
               </Btn>
             </div>
           )}
@@ -203,7 +203,7 @@ const AuthVerifyScreen = ({ T, lang, nav, email, onSignIn, pendingAction }) => {
     if (cooldown > 0) return;
     startCooldown();
     window.eiToast && window.eiToast(
-      lang === "en" ? `New code sent to ${email || "your email"}` : `新验证码已发送到 ${email || "你的邮箱"}`,
+      lang === "en" ? `New sign-in link sent to ${email || "your email"}` : `新的登录链接已发送到 ${email || "你的邮箱"}`,
       { tone: "ok" }
     );
   };
@@ -214,11 +214,11 @@ const AuthVerifyScreen = ({ T, lang, nav, email, onSignIn, pendingAction }) => {
       lang={lang}
       eyebrow={lang === "en" ? "EMAIL VERIFICATION" : "邮箱验证"}
       title={lang === "en" ? "Confirm this is your email." : "确认这是你的邮箱。"}
-      sub={lang === "en" ? `We sent a six-digit code to ${email || "your email"}.` : `我们已向 ${email || "你的邮箱"} 发送 6 位验证码。`}
+      sub={lang === "en" ? `We sent a sign-in link to ${email || "your email"}. Open it to finish automatically, or paste the token from the link.` : `我们已向 ${email || "你的邮箱"} 发送登录链接。打开链接会自动完成，也可以粘贴链接中的 token。`}
       side={pendingAction && <PendingActionPanel T={T} lang={lang} pendingAction={pendingAction} />}
     >
       <div style={{ padding: 28 }}>
-        <AuthField T={T} label={lang === "en" ? "Verification code" : "验证码"} value={code} setValue={setCode} placeholder="123456" />
+        <AuthField T={T} label={lang === "en" ? "Sign-in token" : "登录 token"} value={code} setValue={setCode} placeholder="token" />
         <Btn T={T} variant="accent" icon="check" style={{ width: "100%", marginTop: 22 }} onClick={onSignIn}>
           {lang === "en" ? "Verify and continue" : "验证并继续"}
         </Btn>
@@ -226,7 +226,7 @@ const AuthVerifyScreen = ({ T, lang, nav, email, onSignIn, pendingAction }) => {
           <AuthActionLink T={T} onClick={resend}>
             {cooldown > 0
               ? (lang === "en" ? `Resend in ${cooldown}s` : `${cooldown}s 后可重发`)
-              : (lang === "en" ? "Resend code" : "重新发送")}
+              : (lang === "en" ? "Resend link" : "重新发送链接")}
           </AuthActionLink>
           <AuthActionLink T={T} onClick={() => nav("auth_register", { pendingAction })}>{lang === "en" ? "Use another email" : "换一个邮箱"}</AuthActionLink>
         </div>
@@ -245,7 +245,7 @@ const AuthResetScreen = ({ T, lang, nav }) => {
       lang={lang}
       eyebrow={lang === "en" ? "PASSWORD RESET" : "找回密码"}
       title={lang === "en" ? "Reset access without losing your data." : "重置登录方式，不影响你的数据。"}
-      sub={lang === "en" ? "We send a secure link or code to your verified email. Existing resumes, JDs, and reports remain unchanged." : "系统会向已验证邮箱发送安全链接或验证码。你的简历、JD 和报告不会被改动。"}
+      sub={lang === "en" ? "We send a secure sign-in link to your verified email. Existing resumes, JDs, and reports remain unchanged." : "系统会向已验证邮箱发送安全登录链接。你的简历、JD 和报告不会被改动。"}
     >
       <div style={{ padding: 28 }}>
         {sent ? (

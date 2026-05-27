@@ -23,7 +23,7 @@ func TestSMTPDeliveryWriterSendsMagicLinkThroughSMTP(t *testing.T) {
 	writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
 		SMTPAddr:        "127.0.0.1:1025",
 		FromAddress:     "noreply@easyinterview.local",
-		VerifyBaseURL:   "http://127.0.0.1:8080/api/v1/auth/email/verify",
+		VerifyBaseURL:   "http://127.0.0.1:5173/auth/verify",
 		DeliverySecrets: secrets,
 		LookupChallengeEmail: func(challengeID string) (string, error) {
 			if challengeID != "challenge-1" {
@@ -55,9 +55,10 @@ func TestSMTPDeliveryWriterSendsMagicLinkThroughSMTP(t *testing.T) {
 		t.Fatalf("smtp recipients = %#v", captured.to)
 	}
 	for _, want := range []string{
-		"To: candidate@example.test",
-		"Subject: EasyInterview sign-in link",
-		"http://127.0.0.1:8080/api/v1/auth/email/verify?token=raw-magic-token",
+			"To: candidate@example.test",
+			"Subject: EasyInterview sign-in link",
+			"return to the app and finish sign-in",
+			"http://127.0.0.1:5173/auth/verify?token=raw-magic-token",
 	} {
 		if !strings.Contains(captured.msg, want) {
 			t.Fatalf("message missing %q:\n%s", want, captured.msg)
@@ -75,7 +76,7 @@ func TestSMTPDeliveryWriterRequiresStoredDeliverySecret(t *testing.T) {
 	writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
 		SMTPAddr:        "127.0.0.1:1025",
 		FromAddress:     "noreply@easyinterview.local",
-		VerifyBaseURL:   "http://127.0.0.1:8080/api/v1/auth/email/verify",
+			VerifyBaseURL:   "http://127.0.0.1:5173/auth/verify",
 		DeliverySecrets: auth.NewDevMailSink(auth.DevMailSinkOptions{}),
 		LookupChallengeEmail: func(string) (string, error) {
 			return "candidate@example.test", nil
@@ -101,7 +102,7 @@ func TestSMTPDeliveryWriterDoesNotExposeLookupErrorDetails(t *testing.T) {
 	writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
 		SMTPAddr:        "127.0.0.1:1025",
 		FromAddress:     "noreply@easyinterview.local",
-		VerifyBaseURL:   "http://127.0.0.1:8080/api/v1/auth/email/verify",
+		VerifyBaseURL:   "http://127.0.0.1:5173/auth/verify",
 		DeliverySecrets: secrets,
 		LookupChallengeEmail: func(string) (string, error) {
 			return "", errors.New("candidate@example.test raw-magic-token")

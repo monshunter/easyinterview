@@ -1,4 +1,11 @@
-import { useState, type FC, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FC,
+  type FormEvent,
+} from "react";
 
 import { normalizeRoute, type LooseRoute } from "../normalizeRoute";
 import { useI18n } from "../i18n/messages";
@@ -16,6 +23,7 @@ export interface AuthVerifyRequest {
 export interface AuthVerifyScreenProps {
   route: Route;
   onNavigate: (next: LooseRoute) => void;
+  onReplace?: (next: LooseRoute) => void;
   /**
    * Wires `verifyAuthEmailChallenge`. The generated client mints the session
    * cookie automatically; on success we restore the pending action route from
@@ -53,17 +61,44 @@ function buildResumeRoute(params: Record<string, string>): LooseRoute {
 export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
   route,
   onNavigate,
+  onReplace,
   onVerify,
 }) => {
   const { t } = useI18n();
   const [code, setCode] = useState("");
+  const [linkStatus, setLinkStatus] = useState<"idle" | "pending" | "failed">(
+    route.params.token ? "pending" : "idle",
+  );
+  const autoVerifyTokenRef = useRef("");
   const hasPendingAction = decodePendingActionRoute(route.params) !== null;
+  const magicLinkToken = route.params.token?.trim() ?? "";
+  const completeVerify = useCallback(
+    (mode: "push" | "replace") => {
+      const next = buildResumeRoute(route.params);
+      if (mode === "replace" && onReplace) {
+        onReplace(next);
+        return;
+      }
+      onNavigate(next);
+    },
+    [onNavigate, onReplace, route.params],
+  );
+
+  useEffect(() => {
+    if (!magicLinkToken || autoVerifyTokenRef.current === magicLinkToken) return;
+    autoVerifyTokenRef.current = magicLinkToken;
+    setLinkStatus("pending");
+    void onVerify({ token: magicLinkToken })
+      .then(() => completeVerify("replace"))
+      .catch(() => setLinkStatus("failed"));
+  }, [completeVerify, magicLinkToken, onVerify]);
+
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmed = code.trim();
     if (!trimmed) return;
     await onVerify({ token: trimmed });
-    onNavigate(buildResumeRoute(route.params));
+    completeVerify("push");
   };
 
   return (
@@ -82,6 +117,20 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
           {t("auth.verifySentPrefix")} {route.params.email}
         </p>
       ) : null}
+      {magicLinkToken ? (
+        <p
+          data-testid="auth-verify-link-status"
+          className={`ei-auth-status ${
+            linkStatus === "failed"
+              ? "ei-auth-status--warn"
+              : "ei-auth-status--neutral"
+          }`}
+        >
+          {linkStatus === "failed"
+            ? t("auth.verifyLinkFailed")
+            : t("auth.verifyLinkPending")}
+        </p>
+      ) : null}
       <form
         data-testid="auth-verify-form"
         className="ei-auth-form"
@@ -95,9 +144,9 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
             data-testid="auth-verify-code"
             className="ei-auth-field-input"
             type="text"
-            inputMode="numeric"
+            inputMode="text"
             autoComplete="one-time-code"
-            maxLength={8}
+            maxLength={256}
             value={code}
             onChange={(e) => setCode(e.target.value)}
             required

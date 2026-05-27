@@ -3,7 +3,7 @@
 
 Phase 3.1 contract per `002-fixtures-and-mock-source` plan:
 - Reads openapi.yaml + fixtures, emits `openapi/.generated/openapi-with-fixtures.yaml`.
-- 34 default named examples (one per spec §3.1.1 operation).
+- One default named example per operation fixture.
 - Each example body is byte-equal to the fixture's `scenarios.default.response.body`.
 - Re-running is idempotent.
 """
@@ -65,7 +65,7 @@ class RenderOpenapiFixtureExamplesTest(unittest.TestCase):
         self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
         self.assertTrue(self._output().is_file(), "output file must exist")
 
-    def test_34_default_examples_present(self) -> None:
+    def test_default_examples_present_for_every_fixture(self) -> None:
         _run(self.repo)
         spec = self._load_output()
         count = 0
@@ -85,7 +85,12 @@ class RenderOpenapiFixtureExamplesTest(unittest.TestCase):
                         break
                 if examples_found:
                     count += 1
-        self.assertEqual(count, 34, "expected 34 operations to carry default named examples")
+        expected = len(list((self.repo / "openapi" / "fixtures").glob("*/*.json")))
+        self.assertEqual(
+            count,
+            expected,
+            f"expected {expected} operations to carry default named examples",
+        )
 
     def test_example_byte_equal_to_fixture_body(self) -> None:
         _run(self.repo)

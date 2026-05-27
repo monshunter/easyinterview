@@ -80,8 +80,40 @@ host-run backend 必须从同一个 `.env` 读取：
 
 frontend real mode 也必须从同一个 `.env` 读取：
 
+- `FRONTEND_HOST_PORT=5173`（Vite dev server 端口；可按本机占用调整）
+- `FRONTEND_PREVIEW_PORT=4173`（Vite preview 端口；可按本机占用调整）
 - `VITE_EI_API_MODE=real`
 - `VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1`
+
+### 4.1.1 服务地址与调试入口
+
+`test/scenarios/env-setup.sh`、`env-status.sh`、`env-verify.sh` 和 `env-redeploy.sh` 会输出同一组本地调试摘要。默认地址为：
+
+- Frontend dev：`http://127.0.0.1:5173/`（由 `FRONTEND_HOST_PORT` 控制）
+- Backend API：`http://127.0.0.1:8080/api/v1`（由 `APP_LISTEN_ADDR` / `API_HOST_PORT` 控制）
+- Mailpit：`http://127.0.0.1:8025`（由 `MAILPIT_WEB_HOST_PORT` 控制）
+- MinIO Console：`http://127.0.0.1:9001`（由 `MINIO_CONSOLE_HOST_PORT` 控制）
+
+Agent 或开发者通过 `test/scenarios/env-redeploy.sh backend|frontend|all` 启动的 host-run 进程必须写入可接管的本地日志与 PID：
+
+- Backend log：`.test-output/local-dev/backend.log`
+- Frontend log：`.test-output/local-dev/frontend.log`
+- Backend PID：`.test-output/local-dev/backend.pid`
+- Frontend PID：`.test-output/local-dev/frontend.pid`
+
+调试时直接使用：
+
+```bash
+tail -f .test-output/local-dev/backend.log
+tail -f .test-output/local-dev/frontend.log
+make dev-logs SERVICE=mailpit-dev
+```
+
+重新闭环部署当前本地前后端：
+
+```bash
+test/scenarios/env-redeploy.sh all
+```
 
 ### 4.2 AI provider 配置
 
@@ -102,9 +134,9 @@ frontend real mode 也必须从同一个 `.env` 读取：
 - `EMAIL_SMTP_HOST=127.0.0.1`
 - `EMAIL_SMTP_PORT=1025`
 - `EMAIL_FROM_ADDRESS=noreply@easyinterview.local`
-- `EMAIL_VERIFY_BASE_URL=http://127.0.0.1:8080/api/v1/auth/email/verify`
+- `EMAIL_VERIFY_BASE_URL=http://127.0.0.1:5173/auth/verify`
 
-Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启动后，`startAuthEmailChallenge` 会通过 `email_dispatch` handler 向 Mailpit SMTP 投递 magic-link 邮件；人工 UAT 使用 synthetic `.example.test` 邮箱即可完成登录，不需要真实邮箱账号。
+Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启动后，`startAuthEmailChallenge` 会通过 `email_dispatch` handler 向 Mailpit SMTP 投递 magic-link 邮件；邮件链接默认回到前端 `/auth/verify` callback，由前端调用 `GET /api/v1/auth/email/verify` 兑换 session 并清理 URL token。backend dev CORS allowlist 从同一个 `EMAIL_VERIFY_BASE_URL` 解析 frontend origin，避免邮件回调端口和 CORS 端口分裂。人工 UAT 使用 synthetic `.example.test` 邮箱即可完成登录，不需要真实邮箱账号。若使用 `vite preview --port 4174` 作为唯一前端入口，本地 `.env` 的 `EMAIL_VERIFY_BASE_URL` 应同步改为 `http://127.0.0.1:4174/auth/verify`。
 
 ## 5 与场景测试的关系
 
@@ -112,7 +144,7 @@ Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启
 
 - 应用 dev → 用 `make dev-up` 启动 Postgres / Redis / MinIO / Mailpit 依赖；backend/frontend 进程默认在宿主机单独启动并消费这些连接串。
 - BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。共享环境生命周期由 `test/scenarios/env-setup.sh` / `test/scenarios/env-status.sh` / `test/scenarios/env-verify.sh` / `test/scenarios/env-cleanup.sh` / `test/scenarios/env-redeploy.sh` 管理，根 Makefile 提供 `make scenario-env-*` 等价入口；这些入口独立于具体场景目录。当前 P0 场景默认由 shell / Python 脚本编排既有产品 runner（例如已有包测试、Vitest、Playwright、browser smoke）验证同一行为契约；场景专属依赖不得新增正式 `backend/cmd` / Go helper 进程，不要求 Kind / K8s / Helm 环境。
-- 本地前后端联调 / manual UAT → 先用 `make scenario-env-setup` 准备 host-run 依赖环境，再按 runbook 在宿主机启动 backend/frontend 进程；`make scenario-env-redeploy TARGET=backend|frontend|all` 只刷新 build artifacts，不替代携带真实 secret 的长期进程启动。
+- 本地前后端联调 / manual UAT → 先用 `make scenario-env-setup` 准备 host-run 依赖环境；`make scenario-env-redeploy TARGET=backend|frontend|all` / `test/scenarios/env-redeploy.sh backend|frontend|all` 会重新构建并重启对应 host-run backend/frontend 进程，同时输出服务地址、PID 与日志路径，供开发者继续调试。
 - 需要真实 AI provider 的应用部署不得降级到单元测试 stub；`APP_ENV=test` 以外缺真实 provider config 时必须 fail-fast。
 
 ## 6 故障排查

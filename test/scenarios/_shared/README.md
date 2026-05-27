@@ -10,5 +10,6 @@
 | `scripts/image-cache.sh` | 容器镜像预热脚本 |
 | `scripts/frontend-real-backend-gate.sh` | frontend owner 场景前置 real-mode generated-client gate |
 | `scripts/frontend-real-backend-verify.sh` | frontend owner 场景日志中的 real-mode gate 证据检查 |
+| `scripts/local-dev-runtime.sh` | host-run backend/frontend 重启、PID、日志与本地调试摘要 helper |
 
 这些路径只有在文件真实存在时才是可执行入口。缺失时不得杜撰命令。

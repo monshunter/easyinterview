@@ -72,6 +72,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0112](./BUG-0112.md) | auth mail-link login stalled on empty 202 response and backend verify link | high | resolved | 2026-05-27 | `fix(auth): restore mail-link login flow (BUG-0112)` |
 | [BUG-0101](./BUG-0101.md) | parse target switch kept stale preview | medium | resolved | 2026-05-24 | `fix(frontend-home): reset parse state on target switch (BUG-0101)` |
 | [BUG-0100](./BUG-0100.md) | parse confirm handoff dropped workspace context fields | medium | resolved | 2026-05-24 | `fix(frontend-home): preserve parse confirm context (BUG-0100)` |
 | [BUG-0099](./BUG-0099.md) | parse ready response skipped the ui-design loading demo | medium | resolved | 2026-05-24 | `fix(frontend-home): preserve parse loading demo (BUG-0099)` |
@@ -102,6 +103,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0113](./BUG-0113.md) | scenario redeploy refreshed artifacts without restarting host-run services | high | resolved | 2026-05-27 | `fix(test): restart host-run services on redeploy (BUG-0113)` |
 | [BUG-0107](./BUG-0107.md) | review follow-up exposed provider schema, report status, and privacy retry drift | medium | resolved | 2026-05-26 | `fix(backend): close review correctness follow-ups (BUG-0107)` |
 | [BUG-0106](./BUG-0106.md) | privacy delete cleanup completed without removing UAT account identity | medium | resolved | 2026-05-26 | `fix(backend-async-runner): close privacy account identity cleanup (BUG-0106)` |
 | [BUG-0091](./BUG-0091.md) | Postgres 18 dev volume layout made local dev stack unhealthy | medium | resolved | 2026-05-22 | `fix(local-dev-stack): repair Postgres 18 dev volume guard (BUG-0087)` |

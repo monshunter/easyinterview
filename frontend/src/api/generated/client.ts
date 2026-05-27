@@ -81,10 +81,11 @@ export class EasyInterviewClient {
 			const text = await response.text();
 			throw new Error(`HTTP ${response.status} ${response.statusText}: ${text}`);
 		}
-		if (response.status === 204) {
+		const text = await response.text();
+		if (response.status === 204 || text.trim() === "") {
 			return undefined as T;
 		}
-		return (await response.json()) as T;
+		return JSON.parse(text) as T;
 	}
 
 

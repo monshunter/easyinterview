@@ -165,7 +165,7 @@ func buildMagicLinkMessage(from string, to string, link string) (string, error) 
 		b.WriteString("\r\n")
 	}
 	b.WriteString("\r\n")
-	b.WriteString("Open this EasyInterview sign-in link in the same browser:\r\n\r\n")
+	b.WriteString("Open this EasyInterview sign-in link in the same browser to return to the app and finish sign-in:\r\n\r\n")
 	b.WriteString(link)
 	b.WriteString("\r\n")
 	return b.String(), nil
