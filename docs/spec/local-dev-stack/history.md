@@ -1,6 +1,6 @@
 # Local Dev Stack History
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: active
 > **更新日期**: 2026-05-27
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-27 | 1.16 | 本地测试与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，并要求 P0.100 hybrid preflight 校验该开关；staging/prod 默认仍关闭，raw output 不进入持久化审计。 | local-dev-stack/001 raw debug local default |
 | 2026-05-27 | 1.15 | 明确 `deploy/dev-stack/.env` 是本地真实前后端联调唯一 env 来源，`.env.example` 覆盖 auth secrets、frontend real mode、AI provider 与共享依赖配置；场景不得维护独立 `.env`。 | local-dev-stack/001 + e2e-scenarios-p0/002 |
 | 2026-05-27 | 1.14 | 将共享测试环境与本地前后端联调环境生命周期从具体场景脚本中抽离：新增 `test/scenarios/env-*.sh` 与根 `scenario-env-*` Make target 作为 setup / status / verify / cleanup / redeploy 真理源，供 `/scenario-env` 与 `/scenario-redeploy` skill 调用。 | local-dev-stack/001 environment lifecycle revision |
 | 2026-05-26 | 1.13 | 将 Mailpit 纳入默认本地依赖：新增 `mailpit-dev`（Web 8025 / SMTP 1025）、dev-doctor `/readyz` 与 SMTP 端口探测、`.env.example` 邮件配置；本地 magic-link 登录走真实 backend auth flow，不再依赖真实外部邮箱服务、真实邮箱账号或场景专属 backend cmd。 | local-dev-stack/001 Mailpit revision |

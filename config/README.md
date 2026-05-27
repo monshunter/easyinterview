@@ -30,7 +30,8 @@ fail-fast 并打印缺失 key 名（spec C-2）。
 | 文件 | 用途 |
 |------|------|
 | `config.yaml` | canonical 默认值（spec §3.1.2）；secret 字段留空字符串占位 |
-| `dev.yaml` | dev 环境 override；`log.level=debug`、`featureFlag.source=file` |
+| `dev.yaml` | dev 环境 override；`log.level=debug`、`featureFlag.source=file`、本地 AI raw output debug 默认开启 |
+| `test.yaml` | test 环境 override；本地测试 AI raw output debug 默认开启，secret 字段仍为空 |
 | `staging.yaml` | staging 环境 override；`featureFlag.source=posthog` + `posthogSelfHosted=true` |
 | `prod.yaml` | prod 环境 override；同 staging，但生产差异在此处沉淀 |
 | `feature-flags.yaml` | `FileFlagProvider` 本地真理源；6 项 P0 baseline flag；显式标 `public: true|false` |
@@ -76,6 +77,10 @@ config-only 字段同样需要先递增 spec 版本再同步 `config.yaml`。
   `deepseek-v4-flash` / `deepseek-v4-pro` 两个模型 ID；不得使用已弃用或兼容层旧名。
 - `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只是 `deepseek` provider ref
   引用的 env 名，不是全局唯一 provider contract。
+- `AI_DEBUG_PRINT_RAW_OUTPUT` 在 local dev/test 和 `deploy/dev-stack/.env.example`
+  中默认开启，用于本地调试真实 provider 输出格式；raw output 只允许进入本机
+  backend stderr / `.test-output/` 调试日志，不得进入持久化审计、runtime-config、
+  staging 或 prod 默认配置。
 - 新增 Product/UI AI 场景或 F3 feature_key 时，必须同步
   `docs/spec/ai-provider-and-model-routing/spec.md` §4.5、
   `docs/spec/prompt-rubric-registry/spec.md` §3.1.1 和

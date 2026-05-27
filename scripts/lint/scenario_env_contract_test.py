@@ -179,6 +179,7 @@ def test_real_provider_hybrid_uat_uses_dev_stack_env_as_single_source() -> None:
         "AUTH_CHALLENGE_TOKEN_PEPPER=",
         "AI_PROVIDER_BASE_URL=https://api.deepseek.com",
         "AI_PROVIDER_API_KEY=",
+        "AI_DEBUG_PRINT_RAW_OUTPUT=true",
         "VITE_EI_API_MODE=real",
         "VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1",
     ):
@@ -196,6 +197,8 @@ def test_real_provider_hybrid_uat_uses_dev_stack_env_as_single_source() -> None:
 
     trigger = (scenario_dir / "scripts" / "trigger.sh").read_text(encoding="utf-8")
     assert 'DEV_STACK_ENV="$REPO_ROOT/deploy/dev-stack/.env"' in trigger
+    assert "AI_DEBUG_PRINT_RAW_OUTPUT" in trigger
+    assert 'AI_DEBUG_PRINT_RAW_OUTPUT:-' in trigger
     assert "LOCAL_ENV=" not in trigger
 
 

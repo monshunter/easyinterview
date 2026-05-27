@@ -1,13 +1,15 @@
 # Secrets and Config History
 
-> **版本**: 2.7
+> **版本**: 2.9
 > **状态**: active
-> **更新日期**: 2026-05-26
+> **更新日期**: 2026-05-27
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-27 | 2.9 | 调整 `AI_DEBUG_PRINT_RAW_OUTPUT` 默认策略：local dev/test 与本地真实联调默认开启，以支持 AI Agent 调试真实 provider 输出格式；staging/prod 默认关闭，raw output 仍不得进入持久化审计或 runtime-config。 | local-dev-stack/001 raw debug local default |
+| 2026-05-27 | 2.8 | 新增 `AI_DEBUG_PRINT_RAW_OUTPUT` / `ai.debugPrintRawOutput` 本地调试开关：默认关闭；开启时仅将 LLM `Complete` 原始响应打印到 backend stderr，用于排查 schema/格式问题，不进入持久化审计或 runtime-config。 | AI raw output debug switch |
 | 2026-05-26 | 2.7 | 为本地 Mailpit magic-link 测试补齐 C1 邮件配置字典：新增 `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` 与对应 canonical config path；local dev 默认 `EMAIL_PROVIDER=mailpit`，不依赖真实外部邮箱服务或真实邮箱账号。 | local-dev-stack/001 Mailpit local email sink |
 | 2026-05-22 | 2.6 | 对齐 ADR-Q4 v1.7 / 方案 A：P0 secret 路径继续使用 env provider；K8s Secret 不再作为当前默认部署/测试前提，AI provider 本地校验改为宿主机 backend runtime 或 optional compose app service fail-fast。 | local-dev-stack/001 post-pass revision |
 | 2026-05-12 | 2.5 | 为 backend-upload 登记 config-only paths：`objectStorage.provider`、`upload.presignTTLSeconds`、`upload.maxBytes.resume`、`upload.maxBytes.targetJobAttachment`、`upload.maxBytes.privacyExport`，继续复用既有 `OBJECT_STORAGE_*` env 字典且不新增 `UPLOAD_*` / `OBJECT_STORE_*`。 | backend-upload/001-file-objects-and-presign-baseline |

@@ -380,6 +380,20 @@ func (discardAIAuditWriter) WriteAuditEvent(context.Context, aiclient.AuditEvent
 	return nil
 }
 
+func aiObservabilityOptions(loader *config.Loader, taskRuns aiclient.AITaskRunWriter, resolver aiclient.ProfileResolver) []observability.Option {
+	opts := []observability.Option{
+		observability.WithRegisterer(observability.NewInMemoryRegistry()),
+		observability.WithLogger(observability.NewMemoryLogger()),
+		observability.WithAITaskRunWriter(taskRuns),
+		observability.WithAuditEventWriter(discardAIAuditWriter{}),
+		observability.WithProfileResolver(resolver),
+	}
+	if loader != nil && loader.GetBool("ai.debugPrintRawOutput") {
+		opts = append(opts, observability.WithRawOutputDebugWriter(os.Stderr))
+	}
+	return opts
+}
+
 type uploadRoutes struct {
 	Handler     *uploadhandler.Handler
 	Idempotency *idempotency.Middleware
@@ -671,11 +685,7 @@ func buildReportRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, 
 		Resolver() aiclient.ProfileResolver
 	}); ok {
 		wrapped, err := observability.New(ai,
-			observability.WithRegisterer(observability.NewInMemoryRegistry()),
-			observability.WithLogger(observability.NewMemoryLogger()),
-			observability.WithAITaskRunWriter(taskRuns),
-			observability.WithAuditEventWriter(discardAIAuditWriter{}),
-			observability.WithProfileResolver(resolverProvider.Resolver()),
+			aiObservabilityOptions(loader, taskRuns, resolverProvider.Resolver())...,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("build report AI observability: %w", err)
@@ -805,11 +815,7 @@ func buildPracticeRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient
 		Resolver() aiclient.ProfileResolver
 	}); ok {
 		wrapped, err := observability.New(ai,
-			observability.WithRegisterer(observability.NewInMemoryRegistry()),
-			observability.WithLogger(observability.NewMemoryLogger()),
-			observability.WithAITaskRunWriter(taskRuns),
-			observability.WithAuditEventWriter(discardAIAuditWriter{}),
-			observability.WithProfileResolver(resolverProvider.Resolver()),
+			aiObservabilityOptions(loader, taskRuns, resolverProvider.Resolver())...,
 		)
 		if err != nil {
 			return practiceRoutes{}, fmt.Errorf("build practice AI observability: %w", err)

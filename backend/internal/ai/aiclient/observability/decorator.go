@@ -6,7 +6,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
@@ -29,6 +31,9 @@ type Wrap struct {
 	runWriter   aiclient.AITaskRunWriter
 	auditWriter aiclient.AuditEventWriter
 	now         func() time.Time
+
+	rawOutputDebugWriter io.Writer
+	rawOutputDebugMu     sync.Mutex
 }
 
 // Options configure New.
@@ -39,6 +44,8 @@ type options struct {
 	runWriter   aiclient.AITaskRunWriter
 	auditWriter aiclient.AuditEventWriter
 	now         func() time.Time
+
+	rawOutputDebugWriter io.Writer
 }
 
 // Option mutates Wrap construction.
@@ -70,6 +77,13 @@ func WithProfileResolver(r aiclient.ProfileResolver) Option {
 
 // WithNow injects a clock for deterministic latency tests.
 func WithNow(now func() time.Time) Option { return func(o *options) { o.now = now } }
+
+// WithRawOutputDebugWriter writes raw Complete responses to w for explicit
+// local debugging. It intentionally does not alter metrics, structured logs,
+// ai_task_runs, or audit_events privacy behavior.
+func WithRawOutputDebugWriter(w io.Writer) Option {
+	return func(o *options) { o.rawOutputDebugWriter = w }
+}
 
 // New constructs a decorator. inner, registry, logger, runWriter,
 // auditWriter must all be non-nil; the decorator panics during boot
@@ -106,6 +120,8 @@ func New(inner aiclient.AIClient, opts ...Option) (*Wrap, error) {
 		runWriter:   o.runWriter,
 		auditWriter: o.auditWriter,
 		now:         o.now,
+
+		rawOutputDebugWriter: o.rawOutputDebugWriter,
 	}, nil
 }
 
@@ -203,6 +219,7 @@ func enrichErrorMeta(meta aiclient.AICallMeta, err error) aiclient.AICallMeta {
 
 func (w *Wrap) recordCompleteCall(ctx context.Context, profileName string, payload aiclient.CompletePayload, responseContent string, meta aiclient.AICallMeta, start, completed time.Time, err error) error {
 	meta = w.enrichMeta(profileName, meta, payload.Metadata)
+	w.writeRawOutputDebug(meta, responseContent)
 	w.recordMetricsAndLog(meta, err)
 	auditRow := w.buildAuditRow(profileName, joinMessages(payload.Messages), responseContent)
 	return errors.Join(
@@ -391,6 +408,28 @@ func (w *Wrap) buildLogFields(meta aiclient.AICallMeta) LogFields {
 		ValidationStatus:    string(meta.ValidationStatus),
 		ErrorCode:           meta.ErrorCode,
 	}
+}
+
+func (w *Wrap) writeRawOutputDebug(meta aiclient.AICallMeta, responseContent string) {
+	if w.rawOutputDebugWriter == nil || responseContent == "" {
+		return
+	}
+	w.rawOutputDebugMu.Lock()
+	defer w.rawOutputDebugMu.Unlock()
+
+	_, _ = fmt.Fprintf(
+		w.rawOutputDebugWriter,
+		"AI_RAW_OUTPUT_DEBUG_BEGIN provider=%s model_profile=%s model_id=%s route=%s feature_key=%s validation_status=%s error_code=%s response_chars=%d\n%s\nAI_RAW_OUTPUT_DEBUG_END\n",
+		emptyOrUnknown(meta.Provider),
+		emptyOrUnknown(meta.ModelProfileName),
+		emptyOrUnknown(meta.ModelID),
+		emptyOrUnknown(meta.Route),
+		emptyOrUnknown(strings.TrimSpace(meta.FeatureKey)),
+		emptyOrUnknown(string(meta.ValidationStatus)),
+		emptyOrUnknown(meta.ErrorCode),
+		len(responseContent),
+		responseContent,
+	)
 }
 
 // AITaskRunRowFromMeta builds the typed ai_task_runs row directly from

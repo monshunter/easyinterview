@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-27](./2026-05-27-ai-raw-output-debug-switch-assessment.md) | AI Raw Output Debug Switch 交付复盘 | #assessment |
 | [2026-05-27](./2026-05-27-real-provider-hybrid-scenario-unification-assessment.md) | Real Provider Hybrid Scenario Unification 交付复盘 | #assessment |
 | [2026-05-27](./2026-05-27-scenario-env-independent-lifecycle-assessment.md) | Scenario Env Independent Lifecycle 交付复盘 | #assessment |
 | [2026-05-26](./2026-05-26-backend-practice-p0050-task-run-gate-assessment.md) | Backend Practice P0.050 Task-run Gate 交付复盘 | #assessment |

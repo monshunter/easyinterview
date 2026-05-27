@@ -23,6 +23,7 @@
 - frontend: `VITE_EI_API_MODE=real` 且 `VITE_EI_API_BASE_URL` 指向 backend。
 - storage: `make dev-up` 提供的真实 Postgres / Redis / MinIO / Mailpit。
 - AI: `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 指向真实 OpenAI-compatible provider，当前默认 DeepSeek。
+- raw debug: `AI_DEBUG_PRINT_RAW_OUTPUT=true` 必须来自 `deploy/dev-stack/.env`，用于本地捕获真实 provider 输出格式；raw 内容只保留在本机 backend stderr / `.test-output/` 调试日志，不写入验收报告。
 - account: 使用 synthetic 邮箱 `manual-uat-full-funnel@example.test` 触发真实 passwordless flow，并从 Mailpit `http://127.0.0.1:8025` 读取 magic link。
 
 `test/scenarios` 目录只承接 runbook、材料、shell/Python 辅助和检查脚本；不得新增 `backend/cmd` / Go helper，也不得通过直接写 `sessions` 表绕过被测 auth flow。
@@ -67,6 +68,8 @@ $EDITOR deploy/dev-stack/.env
 `deploy/dev-stack/.env.example` 已给出本地邮箱默认值：`EMAIL_PROVIDER=mailpit`、`EMAIL_SMTP_HOST=127.0.0.1`、`EMAIL_SMTP_PORT=1025`、`EMAIL_VERIFY_BASE_URL=http://127.0.0.1:8080/api/v1/auth/email/verify`。不要填写真实个人邮箱账号或外部 SMTP 凭证。
 
 `AI_PROVIDER_BASE_URL` 默认是 `https://api.deepseek.com`；如使用其他 OpenAI-compatible endpoint，必须同步确认 `config/ai-providers.yaml` / `config/ai-profiles.yaml` 支持。
+
+`AI_DEBUG_PRINT_RAW_OUTPUT` 在本地测试与本地真实联调中默认是 `true`。如果本地 `.env` 缺失或被改成其它值，本场景必须保持 `MANUAL_REQUIRED`，不能用无法检查 raw output 的真实 provider run 冒充闭环。
 
 ## 5 AI Agent 入口
 
@@ -178,6 +181,7 @@ pnpm --filter @easyinterview/frontend dev
 - model id
 - latency / token count（如可见）
 - `ai_task_runs` 行数或 backend log 中的脱敏 task-run marker
+- raw debug 开关状态与 raw log 路径（不复制 raw 内容）
 
 禁止记录：
 

@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: completed
 > **更新日期**: 2026-05-27
 
@@ -11,7 +11,7 @@
 
 把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-10 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，把 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 占位的 `make dev-up` / `make dev-down` 替换为真实实现并新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO / Mailpit healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
 
-本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。本次 1.11 revision 明确 `deploy/dev-stack/.env` 是本地真实前后端联调唯一 env 来源，并补齐 auth secrets、frontend real mode 与真实 AI provider keys；具体场景不得复制独立 `.env`。
+本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。本次 1.12 revision 明确 local dev/test 与本地真实前后端联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，用于 AI Agent 调试真实 provider 输出格式；staging/prod 仍默认关闭，raw output 不进入持久化审计。
 
 ## 2 背景
 
@@ -24,7 +24,7 @@
 - **Plan 类型**: `tooling + dev-infra + code-internal`。本 plan 修改本地 docker-compose dev stack、Make targets、doctor 脚本、README 与健康检查约定；不产生用户可见 UI、HTTP API 行为或业务 workflow。
 - **TDD 策略**: 历史实现以 checklist 中每个 phase 的 `自检` 命令作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，优先以 `make dev-*`、`dev-doctor` JSON schema/probe、端口冲突复现、volume idempotency 和 README smoke 作为 focused assertions。
 - **BDD 策略**: BDD 不适用。本 plan 只交付开发环境基础设施；后续 P0 用户行为场景由 `e2e-scenarios-p0` 或具体 feature plan 维护 BDD。
-- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、`make scenario-env-setup` / `status` / `verify` / `cleanup` / `redeploy` dry-run 与 focused live gate、端口冲突复现、Postgres connectivity probe、AI provider fail-fast smoke、`sync-doc-index --check`、Markdown link check、`git diff --check`。
+- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、`make scenario-env-setup` / `status` / `verify` / `cleanup` / `redeploy` dry-run 与 focused live gate、端口冲突复现、Postgres connectivity probe、AI provider fail-fast smoke、local raw debug config tests、P0.100 preflight contract、`sync-doc-index --check`、Markdown link check、`git diff --check`。
 
 ## 4 实施步骤
 
@@ -264,9 +264,25 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - Skill contract：focused pytest 断言 `scenario-env` / `scenario-redeploy` skill 使用顶层 env scripts，并支持 redeploy/rebuild 意图。
 - Live gate：执行 `test/scenarios/env-setup.sh`、`test/scenarios/env-verify.sh`、`test/scenarios/env-cleanup.sh`，证明环境可独立启动/验证/清理；若 Docker/端口/镜像阻塞，记录具体 blocker，不用具体场景 runner 代替。
 
+### Phase 7: local raw output debug default revision
+
+#### 7.1 dev/test config defaults
+
+`config/dev.yaml` 与 `config/test.yaml` 必须默认 `ai.debugPrintRawOutput=true`；`config/config.yaml` 与 staging/prod overrides 不得把该默认扩大到非本地环境。根 `.env.example` 与 `deploy/dev-stack/.env.example` 必须将 `AI_DEBUG_PRINT_RAW_OUTPUT=true` 作为 local test/integration 默认值。
+
+#### 7.2 P0.100 hybrid preflight
+
+`E2E.P0.100` 的 `scripts/trigger.sh` 必须从 `deploy/dev-stack/.env` 校验 `AI_DEBUG_PRINT_RAW_OUTPUT=true`；缺失或非 true 时输出 `MANUAL_REQUIRED`，防止真实 provider hybrid 场景在无法调试 raw output 的状态下给出 false-green。
+
+#### 7.3 Phase 7 自检
+
+- Red/green config test：`go test ./backend/internal/platform/config -run TestRepoLocalConfigEnablesRawOutputDebugOnlyForLocalEnvironments -count=1`。
+- Red/green scenario contract：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k real_provider_hybrid_uat_uses_dev_stack_env_as_single_source`。
+- Live hybrid gate：`scenario-run -i E2E.P0.100` 在当前本地 `.env` 下产出 PASS，并在 redacted evidence 中保留 provider/profile/model/task-run 摘要，不复制 raw response。
+
 ## 5 验收标准
 
-- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-9 全部成立，证据贴入工作日志。
+- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-14 全部成立，证据贴入工作日志或当前 `.test-output/`。
 - 本 plan checklist 全部勾选；Phase 3 / Phase 4 的 `make dev-*` 自检命令日志贴入工作日志。
 - engineering-roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺由 Phase 4.4 关闭；不重复修改父 roadmap checklist。
 
@@ -285,6 +301,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-05-27 | 1.12 | Raw debug local default revision：local dev/test 与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，P0.100 preflight 校验该开关，staging/prod 默认关闭。 | user feedback |
 | 2026-05-27 | 1.11 | Single env source revision：`deploy/dev-stack/.env` 成为本地真实前后端联调唯一 env 来源，`.env.example` 补齐 auth secrets、frontend real mode、AI provider 与共享依赖 keys，禁止场景复制独立 `.env`。 | user feedback / BUG-0110 follow-up |
 | 2026-05-27 | 1.10 | Environment lifecycle revision：把共享测试环境与本地前后端联调环境 lifecycle 抽到 `test/scenarios/env-*.sh`、根 `scenario-env-*` Make target 与 scenario skill 入口，支持独立 setup/status/verify/cleanup/redeploy。 | user objective / scenario-env independent lifecycle |
 | 2026-05-26 | 1.9 | Mailpit revision：默认 dev-stack 新增 Mailpit，backend `EMAIL_PROVIDER=mailpit` 走 SMTP writer，manual UAT 账号入口回到真实 magic-link flow；`test/scenarios` 继续禁止新增 Go / `backend/cmd` 场景 helper。 | user feedback / manual UAT boundary fix |

@@ -110,6 +110,9 @@ func TestDefaultAIDictionaryUsesProviderRegistryPaths(t *testing.T) {
 	if got := envBindings["AI_MODEL_PROFILE_PATH"]; got != "ai.modelProfilePath" {
 		t.Fatalf("AI_MODEL_PROFILE_PATH binding = %q", got)
 	}
+	if got := envBindings["AI_DEBUG_PRINT_RAW_OUTPUT"]; got != "ai.debugPrintRawOutput" {
+		t.Fatalf("AI_DEBUG_PRINT_RAW_OUTPUT binding = %q", got)
+	}
 
 	secretBindings := config.DefaultSecretBindings()
 	if _, ok := secretBindings["ai.providerApiKey"]; ok {
@@ -117,6 +120,59 @@ func TestDefaultAIDictionaryUsesProviderRegistryPaths(t *testing.T) {
 	}
 	if got := secretBindings["ai.defaultProviderApiKey"]; got != "AI_PROVIDER_API_KEY" {
 		t.Fatalf("ai.defaultProviderApiKey secret binding = %q", got)
+	}
+}
+
+func TestAIDebugPrintRawOutputEnvBindingOverridesDefault(t *testing.T) {
+	dir := t.TempDir()
+	writeYAML(t, filepath.Join(dir, "config.yaml"), `
+app:
+  listenAddr: ":8080"
+ai:
+  debugPrintRawOutput: false
+`)
+	t.Setenv("AI_DEBUG_PRINT_RAW_OUTPUT", "true")
+
+	loader, err := config.Load(config.Options{
+		AppEnv:      "test",
+		ConfigDir:   dir,
+		EnvBindings: config.DefaultEnvBindings(),
+	})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if got := loader.GetBool("ai.debugPrintRawOutput"); !got {
+		t.Fatalf("AI_DEBUG_PRINT_RAW_OUTPUT env binding = %v", got)
+	}
+}
+
+func TestRepoLocalConfigEnablesRawOutputDebugOnlyForLocalEnvironments(t *testing.T) {
+	configDir := filepath.Clean("../../../../config")
+
+	for _, appEnv := range []string{"dev", "test"} {
+		loader, err := config.Load(config.Options{
+			AppEnv:    appEnv,
+			ConfigDir: configDir,
+		})
+		if err != nil {
+			t.Fatalf("Load(%s): %v", appEnv, err)
+		}
+		if got := loader.GetBool("ai.debugPrintRawOutput"); !got {
+			t.Fatalf("%s ai.debugPrintRawOutput = %v, want true", appEnv, got)
+		}
+	}
+
+	for _, appEnv := range []string{"staging", "prod"} {
+		loader, err := config.Load(config.Options{
+			AppEnv:    appEnv,
+			ConfigDir: configDir,
+		})
+		if err != nil {
+			t.Fatalf("Load(%s): %v", appEnv, err)
+		}
+		if got := loader.GetBool("ai.debugPrintRawOutput"); got {
+			t.Fatalf("%s ai.debugPrintRawOutput = %v, want false", appEnv, got)
+		}
 	}
 }
 

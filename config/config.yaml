@@ -59,6 +59,7 @@ ai:
   defaultProviderBaseURL: ""
   defaultProviderApiKey: ""
   modelProfilePath: "config/ai-profiles.yaml"
+  debugPrintRawOutput: false
 
 featureFlag:
   source: file
@@ -69,7 +70,7 @@ featureFlag:
   posthogPublicKey: ""
 
 # async.* is config-only (spec D-9 / D-14). The backend internal runner reads typed config;
-# do NOT add env overrides — keep the env dictionary at 24 keys.
+# do NOT add env overrides — keep the env dictionary limited to spec §3.1.1.
 async:
   queueWeights:
     critical: 6

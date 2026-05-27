@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: completed
 > **更新日期**: 2026-05-27
 
@@ -65,3 +65,8 @@
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q && make docs-check" evidence="6 scenario env contract tests passed; docs-check reported zero Header/INDEX drift and link checks OK" -->
 - [x] 6.5 Phase 6 live gate：执行 `test/scenarios/env-setup.sh`、`test/scenarios/env-verify.sh`、`test/scenarios/env-cleanup.sh`，证明环境可独立启动/验证/清理；若 Docker/端口/镜像阻塞，记录 blocker 与输出，不用具体场景 runner 代替。
   <!-- verified: 2026-05-27 command="test/scenarios/env-setup.sh && test/scenarios/env-verify.sh && test/scenarios/env-cleanup.sh" evidence="setup reused already healthy dev-stack; verify returned postgres-dev/redis-dev/minio-dev/mailpit-dev OK with summary ok=4 degraded=0 down=0 total=4; cleanup stopped containers and removed easyinterview-dev network while preserving named volumes" -->
+
+## Phase 7: local raw output debug default revision
+
+- [x] 7.1 默认开启本地 raw output debug：`config/dev.yaml` / `config/test.yaml` / 根 `.env.example` / `deploy/dev-stack/.env.example` 使用 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，`config/config.yaml` 与 staging/prod 默认保持关闭；`E2E.P0.100` trigger 从 `deploy/dev-stack/.env` 校验 true；验证：focused config test、scenario env contract test、真实 `scenario-run -i E2E.P0.100` PASS。
+  <!-- verified: 2026-05-27 command="go test ./backend/internal/platform/config -run TestRepoLocalConfigEnablesRawOutputDebugOnlyForLocalEnvironments -count=1; python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k real_provider_hybrid_uat_uses_dev_stack_env_as_single_source; scenario-run -i E2E.P0.100" evidence="dev/test config raw debug true and staging/prod false; P0.100 env contract requires AI_DEBUG_PRINT_RAW_OUTPUT=true; real-provider full funnel run p0-100-debug-1779866312146 passed with redacted provider/profile/model/task-run evidence" -->

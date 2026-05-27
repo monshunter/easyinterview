@@ -5,6 +5,9 @@
 log:
   level: debug
 
+ai:
+  debugPrintRawOutput: true
+
 featureFlag:
   source: file
   filePath: "config/feature-flags.yaml"

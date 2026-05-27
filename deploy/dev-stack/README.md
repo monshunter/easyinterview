@@ -90,6 +90,7 @@ frontend real mode 也必须从同一个 `.env` 读取：
 - 必须保留 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml` 与 `AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml`，本地组件从单一 provider registry / profile catalog 加载 AI 路由。
 - 必须设置 `AI_PROVIDER_BASE_URL=https://api.deepseek.com`，与 `deepseek` provider ref 对齐。
 - 必须设置 `AI_PROVIDER_API_KEY` 为对应 provider 的真实 key。
+- `AI_DEBUG_PRINT_RAW_OUTPUT=true` 是本地测试与本地真实联调默认值，会把 LLM `Complete` 原始响应打印到 backend stderr，便于确认真实 provider 输出格式；raw 内容不进入 `ai_task_runs` / `audit_events` / 场景验收报告。staging / prod 必须保持关闭。
 - 缺 registry/profile 路径或当前 profile 选中的 provider secret 时，启用 AIClient 的组件 fail-fast，`make dev-doctor` 对该组件报 DOWN/DEGRADED 且 reason 指向缺真实 AI provider 配置（C-9）。
 - **不允许** 把本地部署降级到单元测试 stub。stub 仅在 `APP_ENV=test`（单元测试 / 离线契约测试）下使用，由 [A3 ai-provider-and-model-routing](../../docs/spec/ai-provider-and-model-routing/spec.md) 承接。
 

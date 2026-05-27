@@ -52,6 +52,7 @@ var defaultEnvBindings = map[string]string{
 	"AI_PROVIDER_BASE_URL":        "ai.defaultProviderBaseURL",
 	"AI_PROVIDER_API_KEY":         "ai.defaultProviderApiKey",
 	"AI_MODEL_PROFILE_PATH":       "ai.modelProfilePath",
+	"AI_DEBUG_PRINT_RAW_OUTPUT":   "ai.debugPrintRawOutput",
 	"FEATURE_FLAG_SOURCE":         "featureFlag.source",
 	"FEATURE_FLAG_FILE_PATH":      "featureFlag.filePath",
 	"POSTHOG_HOST":                "featureFlag.posthogHost",

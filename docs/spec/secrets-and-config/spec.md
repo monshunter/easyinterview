@@ -1,8 +1,8 @@
 # Secrets and Config Spec
 
-> **版本**: 2.7
+> **版本**: 2.9
 > **状态**: active
-> **更新日期**: 2026-05-26
+> **更新日期**: 2026-05-27
 
 ## 1 背景与目标
 
@@ -90,6 +90,7 @@
 | `MINIMAX_SPEECH_BASE_URL` | 条件 | `(空；仅 minimax_speech provider 被选中时需要)` | MiniMax 语音 provider-specific base URL | A4（A3 owner） |
 | `MINIMAX_SPEECH_API_KEY` | 条件 | `(空；仅 minimax_speech provider 被选中时需要)` | secret | A4（A3 owner） |
 | `AI_MODEL_PROFILE_PATH` | 是 | `config/ai-profiles.yaml` | Model Profile catalog 文件路径 | A4（A3 owner） |
+| `AI_DEBUG_PRINT_RAW_OUTPUT` | 否 | local dev/test 与本地联调默认 `true`；staging/prod 默认 `false` | 本地调试开关；为 `true` 时 backend 仅把 LLM `Complete` 原始响应打印到 stderr，用于排查 schema/格式问题；不得进入持久化审计、runtime-config 或 staging/prod 默认配置 | A4（A3 owner） |
 | `FEATURE_FLAG_SOURCE` | 是 | `file` | `file` 或 `posthog` | A4 |
 | `FEATURE_FLAG_FILE_PATH` | 条件 | `config/feature-flags.yaml` | `FEATURE_FLAG_SOURCE=file` 时必填 | A4 |
 | `POSTHOG_HOST` | 条件 | `(空)` | `FEATURE_FLAG_SOURCE=posthog` 时必填；指向自托管 PostHog；普通本地 dev 默认不填 | A4（F2 owner） |
@@ -129,6 +130,7 @@
 | `ai.doubaoSpeechBaseURL` / `ai.doubaoSpeechApiKey` | `DOUBAO_SPEECH_BASE_URL` / `DOUBAO_SPEECH_API_KEY` | baseURL 否；apiKey 是 | required only when doubao_speech provider is selected；`APP_ENV=test` may use stub | 否 | A4 + A3 |
 | `ai.minimaxSpeechBaseURL` / `ai.minimaxSpeechApiKey` | `MINIMAX_SPEECH_BASE_URL` / `MINIMAX_SPEECH_API_KEY` | baseURL 否；apiKey 是 | required only when minimax_speech provider is selected；`APP_ENV=test` may use stub | 否 | A4 + A3 |
 | `ai.modelProfilePath` | `AI_MODEL_PROFILE_PATH` | 否 | always | 否 | A4 + A3 |
+| `ai.debugPrintRawOutput` | `AI_DEBUG_PRINT_RAW_OUTPUT` | 否 | optional；local dev/test 与本地真实联调默认 `true`；staging/prod 默认 `false`；仅写 backend stderr 调试区块 | 否 | A4 + A3 |
 | `featureFlag.source` / `featureFlag.filePath` | `FEATURE_FLAG_SOURCE` / `FEATURE_FLAG_FILE_PATH` | 否 | always；filePath required when source=file | 否 | A4 |
 | `featureFlag.posthogHost` / `featureFlag.posthogSelfHosted` | `POSTHOG_HOST` / `POSTHOG_SELF_HOSTED` | 否 | required when source=posthog; staging/prod must self-host | 否 | A4 + F2 |
 | `featureFlag.posthogProjectApiKey` | `POSTHOG_PROJECT_API_KEY` | 是 | required when source=posthog | 否 | A4 + F2 |

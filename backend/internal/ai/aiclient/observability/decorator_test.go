@@ -1,6 +1,7 @@
 package observability_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -69,7 +70,7 @@ func (r staticResolver) Resolve(name string) (*aiclient.ModelProfile, error) {
 	return p, nil
 }
 
-func newTestStack(t *testing.T) (
+func newTestStack(t *testing.T, extraOpts ...observability.Option) (
 	aiclient.AIClient,
 	*observability.InMemoryRegistry,
 	*observability.MemoryLogger,
@@ -143,13 +144,16 @@ func newTestStack(t *testing.T) (
 	runWriter := &memTaskRunWriter{}
 	auditWriter := &memAuditWriter{}
 
-	wrapped, err := observability.New(inner,
+	opts := []observability.Option{
 		observability.WithRegisterer(registry),
 		observability.WithLogger(logger),
 		observability.WithAITaskRunWriter(runWriter),
 		observability.WithAuditEventWriter(auditWriter),
 		observability.WithProfileResolver(resolver),
-	)
+	}
+	opts = append(opts, extraOpts...)
+
+	wrapped, err := observability.New(inner, opts...)
 	if err != nil {
 		t.Fatalf("observability.New: %v", err)
 	}
@@ -923,6 +927,51 @@ func TestDecorator_OutputSchemaInvalidEmitsAIOutputInvalid(t *testing.T) {
 	}
 	if !gotEvent {
 		t.Errorf("expected ai.output.validation_failed log event")
+	}
+}
+
+func TestDecorator_RawOutputDebugWriterPrintsInvalidCompleteResponse(t *testing.T) {
+	var debug bytes.Buffer
+	wrap, _, _, runs, audit := newTestStack(t, observability.WithRawOutputDebugWriter(&debug))
+
+	payload := samplePayload()
+	payload.Metadata.OutputSchema = json.RawMessage(`{"type":"object"}`)
+
+	_, meta, err := wrap.Complete(context.Background(), "practice.followup.default", payload)
+	if err == nil {
+		t.Fatalf("expected output schema validation error")
+	}
+	if meta.ErrorCode != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("expected %s, got %q", sharederrors.CodeAiOutputInvalid, meta.ErrorCode)
+	}
+
+	out := debug.String()
+	for _, want := range []string{
+		"AI_RAW_OUTPUT_DEBUG_BEGIN",
+		"AI_RAW_OUTPUT_DEBUG_END",
+		"model_profile=practice.followup.default",
+		"feature_key=practice.followup",
+		"validation_status=invalid",
+		"error_code=AI_OUTPUT_INVALID",
+		"stub:practice.followup.default:",
+	} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("debug output missing %q: %s", want, out)
+		}
+	}
+	if strings.Contains(out, "tell me about yourself") {
+		t.Fatalf("debug output must contain raw response only, not prompt text: %s", out)
+	}
+
+	for _, row := range runs.Rows() {
+		if anyTaskRunContains(row, "stub:practice.followup.default:") {
+			t.Fatalf("ai_task_runs must keep raw output out of persisted rows: %+v", row)
+		}
+	}
+	for _, row := range audit.Rows() {
+		if strings.Contains(row.Metadata.ResponseHash, "stub:practice.followup.default:") {
+			t.Fatalf("audit row must keep hashed response only: %+v", row.Metadata)
+		}
 	}
 }
 

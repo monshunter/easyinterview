@@ -54,7 +54,7 @@ PY
   set +a
 
   missing=0
-  for key in APP_ENV DATABASE_URL SESSION_COOKIE_SECRET AUTH_CHALLENGE_TOKEN_PEPPER EMAIL_PROVIDER AI_PROVIDER_BASE_URL AI_PROVIDER_API_KEY VITE_EI_API_MODE VITE_EI_API_BASE_URL; do
+  for key in APP_ENV DATABASE_URL SESSION_COOKIE_SECRET AUTH_CHALLENGE_TOKEN_PEPPER EMAIL_PROVIDER AI_PROVIDER_BASE_URL AI_PROVIDER_API_KEY AI_DEBUG_PRINT_RAW_OUTPUT VITE_EI_API_MODE VITE_EI_API_BASE_URL; do
     if [ -z "${!key:-}" ]; then
       echo "MANUAL_REQUIRED missing required env: $key"
       missing=1
@@ -73,6 +73,11 @@ PY
 
   if [ "${VITE_EI_API_MODE:-}" != "real" ]; then
     echo "MANUAL_REQUIRED VITE_EI_API_MODE must be real"
+    missing=1
+  fi
+
+  if [ "${AI_DEBUG_PRINT_RAW_OUTPUT:-}" != "true" ]; then
+    echo "MANUAL_REQUIRED AI_DEBUG_PRINT_RAW_OUTPUT must be true for local real-provider debug"
     missing=1
   fi
 

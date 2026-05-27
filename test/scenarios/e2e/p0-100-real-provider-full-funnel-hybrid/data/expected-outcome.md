@@ -11,6 +11,7 @@ directory.
   `cleanup.sh` contract.
 - `deploy/dev-stack/.env` is the single real local environment source; account
   material, JD/resume/answer inputs, and checklist are present.
+- `AI_DEBUG_PRINT_RAW_OUTPUT=true` is present for local real-provider debugging.
 - Mock/stub completion paths are rejected as evidence.
 - If `deploy/dev-stack/.env` values or browser evidence are missing, `verify.sh` writes
   `result=MANUAL_REQUIRED` instead of passing the full journey.
@@ -25,3 +26,5 @@ directory.
 - Evidence records provider/profile/model/latency/task-run count only, never
   prompt/response bodies, JD text, answer text, report prose, token values, or
   session cookies.
+- Raw provider output may stay in the local backend debug log for diagnosis, but
+  the scenario evidence records only a redacted structural summary.
