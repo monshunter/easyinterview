@@ -245,6 +245,36 @@ def test_real_provider_hybrid_evidence_must_be_current_and_redacted() -> None:
     assert "run_id" in readme
 
 
+def test_real_provider_hybrid_owner_docs_capture_current_evidence_gates() -> None:
+    plan_dir = (
+        REPO_ROOT
+        / "docs"
+        / "spec"
+        / "e2e-scenarios-p0"
+        / "plans"
+        / "002-manual-uat-real-provider-full-funnel"
+    )
+    plan = (plan_dir / "plan.md").read_text(encoding="utf-8")
+    checklist = (plan_dir / "checklist.md").read_text(encoding="utf-8")
+    bdd_plan = (plan_dir / "bdd-plan.md").read_text(encoding="utf-8")
+    bdd_checklist = (plan_dir / "bdd-checklist.md").read_text(encoding="utf-8")
+
+    combined_docs = "\n".join((plan, checklist, bdd_plan, bdd_checklist))
+
+    for required in (
+        "RUN_ID",
+        "run_id",
+        "evidence redline",
+        "evidence.md",
+        "scan_evidence_redline",
+        "env consumer gate",
+        "env-setup.sh --with-migrations",
+        "env-redeploy.sh frontend",
+        "deploy/dev-stack/.env",
+    ):
+        assert required in combined_docs
+
+
 def test_scenario_run_skill_requires_env_preflight_and_hybrid_results() -> None:
     skill = (REPO_ROOT / ".agent-skills" / "scenario-run" / "SKILL.md").read_text(
         encoding="utf-8"

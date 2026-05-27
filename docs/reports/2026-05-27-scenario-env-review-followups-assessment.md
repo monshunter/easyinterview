@@ -14,6 +14,8 @@
   - `make scenario-env-redeploy TARGET=frontend ARGS='--dry-run'` / `TARGET=all`：frontend build 分支显示 source `deploy/dev-stack/.env` 并要求 `VITE_EI_API_MODE` / `VITE_EI_API_BASE_URL`。
   - `test/scenarios/env-redeploy.sh frontend`：真实 frontend build 通过；构建产物中命中 `http://127.0.0.1:8080/api/v1`。
   - 行为探针确认旧 `run_id` evidence 不会 PASS，包含 `prompt body` 的 PASS evidence 会被 `verify.sh` 拒绝。
+  - Post-follow-up owner sweep：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q` 变为 12 passed，新增反查 owner plan / checklist / BDD 中的 `RUN_ID`、`evidence.md` redline、`scan_evidence_redline` 与 env consumer gate。
+  - `E2E.P0.100` real-provider hybrid rerun：`trigger.sh` / `verify.sh` 对 `RUN_ID=e2e-p0-100-20260527T081532Z-38774` 的当前脱敏证据产出 PASS；证据位于 `.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/evidence.md`。
   - `python3 scripts/lint/check_md_links.py test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid --check-fragments`、`make docs-check`、`git diff --check`：均通过。
 
 ## 2 会话中的主要阻点/痛点
@@ -51,5 +53,5 @@
 
 ## 5 建议优先级与后续动作
 
-- 推荐下一步：用 `/plan-code-review e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel scenario --fix` 做一次 owner plan 级 follow-up sweep，把 `RUN_ID` / evidence redline / env consumer gate 固化回 plan/checklist/BDD，而不只停在脚本和 contract test。
+- 已完成：`/plan-code-review e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel scenario --fix` owner plan 级 follow-up sweep 已把 `RUN_ID` / evidence redline / env consumer gate 固化回 plan/checklist/BDD，并用 `scenario_env_contract_test.py` 与 `E2E.P0.100` PASS 验证。
 - 备选下一步：单独开一个 `test/scenarios` 链接清理任务，修复全目录 link check 已暴露的既有无关坏链。

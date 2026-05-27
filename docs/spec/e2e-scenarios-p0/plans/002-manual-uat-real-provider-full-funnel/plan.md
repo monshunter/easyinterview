@@ -1,6 +1,6 @@
 # 002 Real Provider Hybrid Full Funnel
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-05-27
 
@@ -39,7 +39,7 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior + tooling + docs + contract`。本计划覆盖用户可感知的 hybrid UAT 工作流、Mailpit 本地邮箱账号入口、真实 provider runtime 验证、Agent-first 场景脚本与人工验收材料。
-- **TDD 策略**: 本计划 v1.5 涉及场景脚本、lint contract 与 skill 指令逻辑，必须通过 `/tdd` 红绿重构执行。Red gate 为 `python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`，覆盖 `E2E.P0.100` e2e 注册、旧 `manual-uat` 入口删除、`scenario-run` 环境 preflight、`MANUAL_REQUIRED` 语义，以及禁止场景专属 env、统一读取 `deploy/dev-stack/.env` 的配置契约。
+- **TDD 策略**: 本计划 v1.6 涉及场景脚本、lint contract 与 skill 指令逻辑，必须通过 `/tdd` 红绿重构执行。Red gate 为 `python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`，覆盖 `E2E.P0.100` e2e 注册、旧 `manual-uat` 入口删除、`scenario-run` 环境 preflight、`MANUAL_REQUIRED` 语义、禁止场景专属 env、统一读取 `deploy/dev-stack/.env`、`RUN_ID` 当前轮证据匹配、`evidence.md` 脱敏红线与 env consumer gate 的 owner 文档回填。
 - **BDD 策略**: Feature plan requires BDD。本计划新增人工可接手的端到端业务流，BDD 场景 `E2E.P0.100` 记录在 [bdd-plan.md](./bdd-plan.md)，主 checklist 使用 `BDD-Gate:` 引用。该场景为 `hybrid`：AI Agent 自动验证环境/材料/配置/隐私和 result artifact，人工或浏览器 Agent 记录真实 UI/AI 结果。
 - **替代验证 gate**:
   - Mailpit / SMTP writer / config focused tests（由 local-dev-stack/backend-auth/A4 owner 承接）。
@@ -48,6 +48,7 @@
   - `make docs-check`、`sync-doc-index --check`、`validate_context.py`。
   - `rg` 负向 gate：active 场景文档不得要求 `APP_ENV=test`、`EI_E2E_P0_099_SERVER`、fixture-backed mock transport、`Prefer: example=` 或 deterministic stub AI 作为真实 UAT 完成条件。
   - secret redline：tracked materials 中不得出现真实 `AI_PROVIDER_API_KEY`、真实 session cookie、真实个人邮箱、真实手机号或可还原 token。
+  - RUN_ID / evidence redline / env consumer gate：`setup.sh` 必须写入本轮 `RUN_ID`；`trigger.sh` 必须拒绝缺失或不匹配 `run_id` 的 `evidence.md`；`trigger.sh` 与 `verify.sh` 必须通过 `scan_evidence_redline` 拒绝 provider key、auth secret、session cookie、magic-link token、prompt/body/response 明文；`env-setup.sh --with-migrations`、`env-redeploy.sh frontend` 和 `E2E.P0.100` trigger 必须共同证明真实本地联调只消费 `deploy/dev-stack/.env`。
 
 ### 3.1 Operation Matrix
 
@@ -69,6 +70,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-05-27 | 1.6 | L2 回填 owner gate：把 `RUN_ID` 当前轮证据匹配、`evidence.md` 脱敏红线扫描和 env consumer gate 固化到 plan / checklist / BDD，并由 `scenario_env_contract_test.py` 反查。 |
 | 2026-05-27 | 1.5 | 修正 hybrid UAT env 边界：`deploy/dev-stack/.env` 是真实本地联调唯一 env 来源，删除 `p0-100` 场景专属 `dev-real.env` 模板，脚本只读取 dev-stack env。 |
 | 2026-05-27 | 1.4 | 将 `E2E.P0.100` 从独立 `manual-uat` companion 迁移为标准 `e2e` hybrid 场景；新增 AI Agent first-run preflight、`MANUAL_REQUIRED` 结果语义和统一输出目录。 |
 
@@ -214,6 +216,16 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 
 更新 `deploy/dev-stack/.env.example`，让它包含 host-run backend、auth runtime、real AI provider 和 frontend real mode 所需字段。`trigger.sh` 必须只 source `deploy/dev-stack/.env` 并检查 `APP_ENV=dev`、`EMAIL_PROVIDER=mailpit`、`VITE_EI_API_MODE=real`、auth secrets 与真实 AI key；缺失时输出 `MANUAL_REQUIRED`。
 
+### Phase 7: L2 evidence gate 回填
+
+#### 7.1 RUN_ID 与 evidence redline owner gate
+
+把当前脚本事实回填到 owner 文档：`setup.sh` 每轮清理旧 `evidence.md` 并写入 `setup.env` 的 `RUN_ID`；人工或浏览器 Agent 补证时必须在 `evidence.md` 写同一 `run_id`；`trigger.sh` 只有在 `run_id` 匹配且 `scan_evidence_redline` 通过时才允许 `PASS`；`verify.sh` 对 `PASS` 结果重复执行 redline，拒绝 provider key、auth secret、session cookie、magic-link token、prompt/body/response 明文。
+
+#### 7.2 env consumer gate
+
+把真实 env 消费面固化为 owner gate：`env-setup.sh --with-migrations` 必须从 `deploy/dev-stack/.env` 派生 migration `DATABASE_URL`；`env-redeploy.sh frontend` 必须在 frontend build 前加载同一 env 中的 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL`；`E2E.P0.100` trigger 必须 source `deploy/dev-stack/.env` 并检查 backend dev env、Mailpit、真实 AI provider、raw debug 与 frontend real mode，禁止场景专属 env 或 fixture `Prefer` header 成为完成证据。
+
 ## 5 验收标准
 
 - 本计划文档集完整，`test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` 是 `E2E.P0.100` 唯一 active 场景入口。
@@ -221,6 +233,9 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 - `scenario-run` 运行 `E2E.P0.100` 时能完成 AI Agent preflight，并在缺人工/浏览器证据时生成 `MANUAL_REQUIRED` result artifact。
 - 用户可按 runbook 启动真实前端 + 真实后端 + 真实 AI provider 联调环境，不依赖 frontend mock transport 或 backend test stub。
 - `deploy/dev-stack/.env` 是真实本地联调唯一 env 来源；`p0-100` 不再维护独立 `dev-real.env` 或 env template。
+- `RUN_ID` 当前轮证据 gate 闭环：`setup.env` 的 `RUN_ID` 必须出现在 `evidence.md`，否则 `trigger.sh` 只能写 `MANUAL_REQUIRED`，不能把旧证据计为 PASS。
+- `evidence.md` redline 闭环：`trigger.sh` 与 `verify.sh` 都必须调用 `scan_evidence_redline`，禁止 provider key、auth secret、session cookie、magic-link token、prompt/body/response 明文进入 PASS 证据。
+- env consumer gate 闭环：`env-setup.sh --with-migrations`、`env-redeploy.sh frontend` 与 `E2E.P0.100` trigger 均以 `deploy/dev-stack/.env` 为输入，不允许场景专属 env、frontend fixture mock 或 `Prefer: example=<scenario>` 替代真实联调配置。
 - UAT 材料包包含 Mailpit 本地登录说明、JD、简历、作答样例、检查清单、证据归档与清理说明。
 - hybrid UAT 不新增正式 backend cmd，不直接写 session 表，且不依赖真实外部邮箱服务或真实邮箱账号。
 - BDD-Gate `E2E.P0.100` 的材料结构、Agent preflight、人工执行证据和 cleanup 边界在同一场景目录下闭环。
