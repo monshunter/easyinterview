@@ -1,8 +1,8 @@
 # Passwordless Session Bootstrap Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-05-27
 
 **关联计划**: [plan](./plan.md)
 
@@ -30,7 +30,7 @@
 ## Phase 4: Runtime config resolver, privacy, and observability
 
 - [x] 4.1 接入 A4 `/runtime-config` session resolver；验证: tests 断言 C1 只向 A4 handler 注入 session-aware resolver，未登录保持 public response，有效 session 只影响 A4 allowlist 内用户级偏好，secret / internal flag 不出 response
-- [x] 4.2 补隐私和可观测红线；验证: privacy tests / grep 确认日志、metric label、audit 不含 magic token、session cookie、完整邮箱、secret 或 PII 明文
+- [x] 4.2 补隐私和可观测红线；验证: privacy tests / grep 确认日志、metric label、audit 不含 raw challenge secret、session cookie、完整邮箱、secret 或 PII 明文
 - [x] 4.3 接入 auth metrics / audit 最小事件；验证: F1 registry preflight 断言 `auth_challenge_started_total`、`auth_session_minted_total`、`auth_failure_total` 等 metric 已登记到 F1 baseline metrics 字典或 F1 owner plan；tests / lint 断言 metric 只使用 F1 allowed labels，challenge started / session minted / logout / delete handoff / failure audit 只含 ID / hash / 状态 / trace，不含 token、session id、邮箱明文或 URL
 
 ## Phase 5: BDD and handoff
@@ -38,7 +38,7 @@
 - [x] 5.1 BDD-Gate: 验证 E2E.P0.003 通过
   <!-- verified: 2026-05-06 method=scenario bddChecklist=complete scenario=E2E.P0.003 run=.test-output/runs/20260506T1911-backend-auth-p0-003/e2e/E2E.P0.003/result.json -->
 - [x] 5.2 Handoff 给 frontend-shell；验证: backend README 或 package docs 说明 Auth API、cookie 行为、dev mail sink、错误码和前端 pendingAction 接入边界
-- [x] 5.3 active-scope 负向搜索通过；验证: backend-auth / API wiring active code 不引入 Bearer token P0 主认证、OAuth / SSO P0 行为、`external_identities` P0 读写 store、明文 token/session 存储、log-only magic token delivery、独立 worker 前置依赖或旧 AI gateway / voice route 口径；允许 A3 provider adapter 内部使用 provider-side `Authorization: Bearer`，不得误判为浏览器主认证
+- [x] 5.3 active-scope 负向搜索通过；验证: backend-auth / API wiring active code 不引入 Bearer token P0 主认证、OAuth / SSO P0 行为、`external_identities` P0 读写 store、明文 token/session 存储、log-only raw code delivery、独立 worker 前置依赖或旧 AI gateway / voice route 口径；允许 A3 provider adapter 内部使用 provider-side `Authorization: Bearer`，不得误判为浏览器主认证
   <!-- verified: 2026-05-06 method=rg scope=backend/internal/auth,backend/cmd/api,backend/internal/api/generated allowed=negative-doc-comments+internal-session-hash-only -->
 
 ## Phase 6: L2 remediation
@@ -59,3 +59,16 @@
   <!-- verified: 2026-05-06 command="cd backend && go test ./cmd/api -run 'TestBuild(AuthServiceRejectsEmptyAuthSecrets|APIHandlerLogoutPropagatesSessionResolverErrors|APIHandlerLogoutKeepsKnownSessionErrorsOptional)' -count=1" -->
 - [x] 6.8 修复 logout revoke race 的 touch zero-row 归类；验证: middleware tests 覆盖 `ResolveSession` 读到 active session 后 `TouchSession` 返回 `sql.ErrNoRows` 的并发 revoke race，`logout` optional path 仍进入 handler 并幂等清 cookie，required protected path 归类为 B1 `AUTH_UNAUTHORIZED`
   <!-- verified: 2026-05-06 command="cd backend && go test ./internal/auth -run TestSessionMiddlewareTreatsTouchLostRaceAsAuthState -count=1" -->
+
+## Phase 7: Email code and registration display-name remediation
+
+- [x] 7.1 OpenAPI additive contract and generated clients；验证: `AuthEmailStartRequest` 包含 optional `purpose`（`login` / `signup`）与 `displayName`，verify query 描述/fixture/schema 体现 6 位数字 code，`make codegen-openapi` 后 Go / TS generated artefacts 与 `openapi/openapi.yaml` 一致
+  <!-- verified: 2026-05-27 command="make codegen-openapi" evidence="OpenAPI auth email start/verify contract regenerated into backend and frontend generated artefacts" -->
+- [x] 7.2 Six-digit code + 5-minute TTL；验证: focused Go tests 覆盖默认 challenge generator 只产生 6 位数字 code、`ChallengeTTL == 5*time.Minute`、challenge code hash 入库且 session token 仍使用 secure opaque token
+  <!-- verified: 2026-05-27 command="cd backend && go test ./internal/auth -count=1 && go test ./... " evidence="auth crypto/config/service/store tests and full backend package suite passed" -->
+- [x] 7.3 Registration display-name persistence and email uniqueness；验证: handler/service/store tests 覆盖注册页传入 `purpose=signup` + displayName 后暂存到 challenge、verify 成功后新建唯一 email user 并写入 displayName、重复注册同一 email 在 start 阶段返回 409 且不创建 challenge / 不发 code / 不覆盖 displayName、登录页 `purpose=login` 只登录已注册 email 且未知 email 不隐式创建账号
+  <!-- verified: 2026-05-27 command="cd backend && go test ./internal/auth -count=1 && go test ./cmd/api -run 'Test(AuthEmail|BuildAuth|LocalDevCORS|BuildAPIHandlerMountsAuthRoutesAndSessionAwareRuntimeConfig)' -count=1 && go test ./..." evidence="duplicate signup rejected at start before challenge creation; signup/login purpose and displayName persistence covered" -->
+- [x] 7.4 Code-only Mailpit / SMTP email；验证: SMTP writer tests 覆盖邮件标题/HTML/text 只展示 6 位 code 和 5 分钟有效期，不包含 magic link、`/auth/verify?token=`、完整 URL、delivery secret、raw email 以外的内部字段或日志泄露；dev mail sink retrieval 使用 `CodeForChallenge`
+  <!-- verified: 2026-05-27 command="cd backend && go test ./internal/auth -count=1 && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/trigger.sh" evidence="SMTP/dev sink tests passed; P0.101 Mailpit mailSubject observed with mailCode redacted and no URL callback" -->
+- [x] 7.5 BDD-Gate: 验证 E2E.P0.101 通过；验证: real frontend/backend/Mailpit 使用同一邮箱完成 register -> logout -> login，注册后和再次登录后 TopBar 展示同一账号 displayName，重复注册同一 email 在发码前被拒绝且不覆盖 displayName，负向断言 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 不出现
+  <!-- verified: 2026-05-27 command="bash test/scenarios/env-redeploy.sh all && bash test/scenarios/env-verify.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/setup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/trigger.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/verify.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/cleanup.sh" evidence="P0.101 PASS: register/login meStatus=200, duplicate-register finalUrl=/auth/register meStatus=401 mailSubject=not-sent consoleErrors=0 pageErrors=0 httpFailures=0" -->

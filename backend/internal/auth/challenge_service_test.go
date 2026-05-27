@@ -23,14 +23,14 @@ func TestStartAuthEmailChallengeCreatesHashedChallengeAndDispatchesDevLink(t *te
 		Store:           store,
 		Dispatcher:      dispatcher,
 		DeliverySecrets: sink,
-		TokenGenerator:  fixedTokenGenerator("raw-token-for-test"),
+		TokenGenerator:  fixedTokenGenerator("123456"),
 		ChallengePepper: "pepper",
 		Now:             func() time.Time { return now },
 		NewID:           fixedIDs("018f2a40-0000-7000-9000-000000000010"),
 	})
 	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
 
-	body := bytes.NewBufferString(`{"email":"Candidate@Example.COM","returnTo":"/practice?planId=plan_1"}`)
+	body := bytes.NewBufferString(`{"email":"Candidate@Example.COM","purpose":"signup","displayName":" Alice Candidate ","returnTo":"/practice?planId=plan_1"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", body)
 	req.RemoteAddr = "203.0.113.20:5588"
 	req.Header.Set("User-Agent", "unit-test-agent")
@@ -43,6 +43,12 @@ func TestStartAuthEmailChallengeCreatesHashedChallengeAndDispatchesDevLink(t *te
 	}
 	if store.challenge.Email != "candidate@example.com" {
 		t.Fatalf("email normalized = %q", store.challenge.Email)
+	}
+	if store.challenge.Purpose != auth.ChallengePurposeSignup {
+		t.Fatalf("purpose = %q", store.challenge.Purpose)
+	}
+	if store.challenge.DisplayName != "Alice Candidate" {
+		t.Fatalf("displayName = %q", store.challenge.DisplayName)
 	}
 	if store.challenge.TokenHash == "" || store.challenge.TokenHash == "raw-token-for-test" {
 		t.Fatalf("challenge token must be stored as non-empty hash, got %q", store.challenge.TokenHash)
@@ -57,18 +63,18 @@ func TestStartAuthEmailChallengeCreatesHashedChallengeAndDispatchesDevLink(t *te
 		t.Fatalf("expiresAt = %s", store.challenge.ExpiresAt)
 	}
 
-	link, ok := sink.MagicLinkForChallenge("018f2a40-0000-7000-9000-000000000010")
+	code, ok := sink.CodeForChallenge("018f2a40-0000-7000-9000-000000000010")
 	if !ok {
-		t.Fatal("dev mail sink did not expose retrieval link")
+		t.Fatal("dev mail sink did not expose retrieval code")
 	}
-	if !contains(link, "token=raw-token-for-test") {
-		t.Fatalf("retrieval link missing token: %s", link)
+	if code != "123456" {
+		t.Fatalf("retrieval code = %q", code)
 	}
-	if sink.ContainsStoredSecret("raw-token-for-test") {
-		t.Fatal("dev sink stored raw token instead of transient retrieval secret")
+	if sink.ContainsStoredSecret("123456") {
+		t.Fatal("dev sink stored raw code instead of transient retrieval secret")
 	}
 	if sink.ContainsStoredSecret("http://api.test/api/v1/auth/email/verify") {
-		t.Fatal("dev sink stored full magic-link URL")
+		t.Fatal("dev sink stored verify URL")
 	}
 	if sink.ContainsStoredSecret("Candidate@Example.COM") || sink.ContainsStoredSecret("candidate@example.com") {
 		t.Fatal("dev sink stored recipient email")
@@ -76,7 +82,8 @@ func TestStartAuthEmailChallengeCreatesHashedChallengeAndDispatchesDevLink(t *te
 }
 
 type recordingChallengeStore struct {
-	challenge auth.ChallengeRecord
+	challenge    auth.ChallengeRecord
+	existingUser *auth.UserContext
 }
 
 func (s *recordingChallengeStore) CountRecentChallenges(context.Context, string, string, time.Time) (int, error) {
@@ -92,8 +99,15 @@ func (s *recordingChallengeStore) ConsumeChallenge(context.Context, string, time
 	panic("not used")
 }
 
-func (s *recordingChallengeStore) FindOrCreateUserByEmail(context.Context, string, string, time.Time) (auth.UserContext, error) {
+func (s *recordingChallengeStore) CreateUserByEmail(context.Context, string, string, string, time.Time) (auth.UserContext, error) {
 	panic("not used")
+}
+
+func (s *recordingChallengeStore) FindUserByEmail(context.Context, string) (auth.UserContext, error) {
+	if s.existingUser != nil {
+		return *s.existingUser, nil
+	}
+	return auth.UserContext{}, auth.ErrUserNotFound
 }
 
 func (s *recordingChallengeStore) CreateSession(context.Context, auth.SessionRecord) error {
@@ -154,5 +168,45 @@ func TestStartAuthEmailChallengeRejectsMalformedJSON(t *testing.T) {
 	}
 	if _, ok := payload["error"]; !ok {
 		t.Fatalf("missing B1 error envelope: %s", rec.Body.String())
+	}
+}
+
+func TestStartSignupRejectsAlreadyRegisteredEmailBeforeCreatingChallenge(t *testing.T) {
+	store := &recordingChallengeStore{
+		existingUser: &auth.UserContext{
+			ID:          "user_existing",
+			Email:       "candidate@example.com",
+			DisplayName: "Candidate",
+		},
+	}
+	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{})
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:           store,
+		Dispatcher:      auth.NewImmediateMailDispatcher(sink),
+		DeliverySecrets: sink,
+		TokenGenerator:  fixedTokenGenerator("123456"),
+		ChallengePepper: "pepper",
+		Now:             func() time.Time { return time.Date(2026, 5, 27, 10, 0, 0, 0, time.UTC) },
+		NewID:           fixedIDs("018f2a40-0000-7000-9000-000000000011"),
+	})
+	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/auth/email/start",
+		bytes.NewBufferString(`{"email":"candidate@example.com","purpose":"signup","displayName":"Different Name"}`),
+	)
+	rec := httptest.NewRecorder()
+
+	handler.StartAuthEmailChallenge(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if store.challenge.ID != "" {
+		t.Fatalf("duplicate signup created challenge %#v", store.challenge)
+	}
+	if _, ok := sink.CodeForChallenge("018f2a40-0000-7000-9000-000000000011"); ok {
+		t.Fatal("duplicate signup exposed a verification code")
 	}
 }

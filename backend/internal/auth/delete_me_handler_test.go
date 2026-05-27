@@ -113,7 +113,11 @@ func (s *deleteMeStore) ConsumeChallenge(context.Context, string, time.Time) (au
 	panic("not used")
 }
 
-func (s *deleteMeStore) FindOrCreateUserByEmail(context.Context, string, string, time.Time) (auth.UserContext, error) {
+func (s *deleteMeStore) CreateUserByEmail(context.Context, string, string, string, time.Time) (auth.UserContext, error) {
+	panic("not used")
+}
+
+func (s *deleteMeStore) FindUserByEmail(context.Context, string) (auth.UserContext, error) {
 	panic("not used")
 }
 

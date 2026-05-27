@@ -17,7 +17,7 @@
 - 让 AI Agent 成为第一执行者：先执行共享环境 preflight、四段脚本、材料/配置/隐私检查和统一 result artifact。
 - 人工或浏览器 Agent 作为第二执行者，在同一场景输出目录补齐真实凭证、真实浏览器、真实 AI provider 的脱敏证据。
 - 提供可执行的真实本地联调启动路径：Docker Compose 只提供 Postgres / Redis / MinIO / Mailpit 外部依赖，backend / frontend 使用宿主机真实进程，并统一从 `deploy/dev-stack/.env` 读取 `APP_ENV=dev`、frontend real mode、auth secrets 和真实 AI provider env。
-- 提供完整 hybrid 场景材料：Mailpit 本地 magic-link 登录、JD、简历、作答样例、验收 checklist、`deploy/dev-stack/.env` 配置说明、证据归档路径与清理说明。
+- 提供完整 hybrid 场景材料：Mailpit 本地 6 位 email-code 登录、JD、简历、作答样例、验收 checklist、`deploy/dev-stack/.env` 配置说明、证据归档路径与清理说明。
 - 明确禁止用 `APP_ENV=test`、deterministic stub AI、fixture-backed frontend mock transport、`Prefer: example=<scenario>` 或 P0.099 test server 冒充真实 AI 联调。
 - 将真实 AI LLM 连接作为验收边界：当前开发主力 provider ref 为 `deepseek` / `judge-deepseek`，真实调用通过 `AI_PROVIDER_BASE_URL` + `AI_PROVIDER_API_KEY` 指向 OpenAI-compatible provider；无真实 key 时本计划不得标记完成。
 
@@ -32,7 +32,7 @@
 - `docs/development.md` §2 规定本地集成为 `make dev-up` 外部依赖 + host-run backend/frontend + repo-tracked runner，不默认 Kind / K8s / Helm。
 - `backend/cmd/api` 在 `APP_ENV=dev` 下会通过 A3 `bootstrap.NewClient` 构建真实 AIClient；`APP_ENV=test` 才允许 stub。
 - `cmd/api` 启动 auth runtime 需要 `SESSION_COOKIE_SECRET` 与 `AUTH_CHALLENGE_TOKEN_PEPPER`；真实本地联调必须用 `deploy/dev-stack/.env` 承接 auth、AI、frontend real-mode 和共享依赖配置，不得再让单个场景维护独立 env。
-- passwordless local dev 登录已由 `local-dev-stack/001` Mailpit revision 承接：`make dev-up` 启动 Mailpit，`EMAIL_PROVIDER=mailpit` 的真实 `go run ./backend/cmd/api` 通过 SMTP writer 投递 magic-link。
+- passwordless local dev 登录已由 `local-dev-stack/001` Mailpit revision 承接：`make dev-up` 启动 Mailpit，`EMAIL_PROVIDER=mailpit` 的真实 `go run ./backend/cmd/api` 通过 SMTP writer 投递 6 位 email code。
 
 因此本计划必须明确：真实 UAT 不能复用 001 的 test server；账号入口必须走真实 passwordless flow + Mailpit 本地邮箱，不得通过 direct DB session bootstrap、新增 `backend/cmd` / Go helper 或真实外部邮箱账号完成。
 
@@ -48,7 +48,7 @@
   - `make docs-check`、`sync-doc-index --check`、`validate_context.py`。
   - `rg` 负向 gate：active 场景文档不得要求 `APP_ENV=test`、`EI_E2E_P0_099_SERVER`、fixture-backed mock transport、`Prefer: example=` 或 deterministic stub AI 作为真实 UAT 完成条件。
   - secret redline：tracked materials 中不得出现真实 `AI_PROVIDER_API_KEY`、真实 session cookie、真实个人邮箱、真实手机号或可还原 token。
-  - RUN_ID / evidence redline / env consumer gate：`setup.sh` 必须写入本轮 `RUN_ID`；`trigger.sh` 必须拒绝缺失或不匹配 `run_id` 的 `evidence.md`；`trigger.sh` 与 `verify.sh` 必须通过 `scan_evidence_redline` 拒绝 provider key、auth secret、session cookie、magic-link token、prompt/body/response 明文；`env-setup.sh --with-migrations`、`env-redeploy.sh frontend` 和 `E2E.P0.100` trigger 必须共同证明真实本地联调只消费 `deploy/dev-stack/.env`。
+  - RUN_ID / evidence redline / env consumer gate：`setup.sh` 必须写入本轮 `RUN_ID`；`trigger.sh` 必须拒绝缺失或不匹配 `run_id` 的 `evidence.md`；`trigger.sh` 与 `verify.sh` 必须通过 `scan_evidence_redline` 拒绝 provider key、auth secret、session cookie、raw email code、prompt/body/response 明文；`env-setup.sh --with-migrations`、`env-redeploy.sh frontend` 和 `E2E.P0.100` trigger 必须共同证明真实本地联调只消费 `deploy/dev-stack/.env`。
 
 ### 3.1 Operation Matrix
 
@@ -56,7 +56,7 @@
 
 | # | operation / tool | fixture | frontend consumer | backend handler / tool | persistence | AI dependency | scenario coverage |
 |---|------------------|---------|-------------------|------------------------|-------------|---------------|-------------------|
-| 0 | `startAuthEmailChallenge` + Mailpit magic link + `verifyAuthEmailChallenge` | 不使用 fixture；synthetic `.example.test` email | AuthLogin/AuthVerify 或操作级 auth gate | real backend-auth handler + `email_dispatch` handler + Mailpit SMTP writer | `auth_challenges` + `async_jobs` + `users` + `sessions` | none | `E2E.P0.100` preflight |
+| 0 | `startAuthEmailChallenge` + Mailpit 6 位 code + `verifyAuthEmailChallenge` | 不使用 fixture；synthetic `.example.test` email | AuthLogin/AuthVerify 或操作级 auth gate | real backend-auth handler + `email_dispatch` handler + Mailpit SMTP writer | `auth_challenges` + `async_jobs` + `users` + `sessions` | none | `E2E.P0.100` preflight |
 | 1 | `registerResume` | 不使用 fixture；人工粘贴材料或由真实 UI 创建 | ResumeVersions / Home handoff | real resume handler + `resume_parse` runner | `resume_assets` + `async_jobs` | `resume.parse.default` via real provider | `E2E.P0.100` |
 | 2 | `importTargetJob` | 不使用 fixture；人工粘贴 JD | HomeScreen | real targetjob handler + `target_import` runner | `target_jobs` + `jobs` | `target.import.default` via real provider | `E2E.P0.100` |
 | 3 | `getTargetJob` | N/A | ParseScreen polling | real handler | `target_jobs` | none | `E2E.P0.100` |
@@ -93,12 +93,12 @@
 确认并引用 owner gate：
 
 - `make dev-up` 启动 Mailpit，并且 `make dev-doctor` 报 `mailpit-dev` OK。
-- `EMAIL_PROVIDER=mailpit` 的 `cmd/api` 使用 SMTP writer 投递 magic link。
+- `EMAIL_PROVIDER=mailpit` 的 `cmd/api` 使用 SMTP writer 投递 6 位 code-only 邮件。
 - A4 env/config 字典包含 Mailpit SMTP keys。
 
 #### 1.2 runbook 登录路径
 
-更新 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/README.md` 与 `data/account.md`：人工输入 `manual-uat-full-funnel@example.test`，在 Mailpit `http://127.0.0.1:8025` 打开 magic-link 邮件并完成 `verifyAuthEmailChallenge`；不得保存 magic token 或 cookie value。
+更新 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/README.md` 与 `data/account.md`：人工输入 `manual-uat-full-funnel@example.test`，在 Mailpit `http://127.0.0.1:8025` 打开 code-only 邮件，在前端验证页输入 6 位 code 并完成 `verifyAuthEmailChallenge`；不得保存 raw code 或 cookie value。
 
 禁止把本登录辅助放入 `backend/cmd`、`backend/internal` 或任何正式 backend runtime package；禁止直接写 `sessions` 表绕过 auth flow。
 
@@ -132,9 +132,9 @@ runbook 必须按顺序给出：
 1. `make dev-up` / `make dev-doctor`。
 2. `DATABASE_URL=... make migrate-up`。
 3. 导出真实 env，启动 `go run ./backend/cmd/api`。
-4. 在前端提交 synthetic 邮箱，并从 Mailpit 打开 magic link。
+4. 在前端提交 synthetic 邮箱，并从 Mailpit 读取 6 位 code。
 5. 启动 frontend real mode。
-6. magic-link 验证后刷新前端进入已登录态。
+6. code 验证后刷新前端进入已登录态。
 
 #### 2.3 禁用 mock 路径说明
 
@@ -155,7 +155,7 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 
 #### 3.2 账号材料
 
-新增账号材料说明，包含 UAT 邮箱、Mailpit URL、magic-link 验证步骤、过期/重跑规则和清理说明。禁止把 magic token 或真实 cookie value 写入 tracked 文件。
+新增账号材料说明，包含 UAT 邮箱、Mailpit URL、email-code 验证步骤、过期/重跑规则和清理说明。禁止把 raw code 或真实 cookie value 写入 tracked 文件。
 
 #### 3.3 验收 checklist
 
@@ -184,7 +184,7 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 
 - 使用真实 `AI_PROVIDER_API_KEY` 启动 backend 的命令摘要（不记录 key）。
 - backend / frontend 真实进程健康证据。
-- Mailpit magic-link 登录证据摘要（不记录 token 或 cookie value）。
+- Mailpit email-code 登录证据摘要（不记录 raw code 或 cookie value）。
 - checklist 勾选结果与截图/日志路径。
 - AI provider 调用摘要：provider ref / model profile / model id / latency / task-run count，且不包含 prompt/response 明文。
 
@@ -220,7 +220,7 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 
 #### 7.1 RUN_ID 与 evidence redline owner gate
 
-把当前脚本事实回填到 owner 文档：`setup.sh` 每轮清理旧 `evidence.md` 并写入 `setup.env` 的 `RUN_ID`；人工或浏览器 Agent 补证时必须在 `evidence.md` 写同一 `run_id`；`trigger.sh` 只有在 `run_id` 匹配且 `scan_evidence_redline` 通过时才允许 `PASS`；`verify.sh` 对 `PASS` 结果重复执行 redline，拒绝 provider key、auth secret、session cookie、magic-link token、prompt/body/response 明文。
+把当前脚本事实回填到 owner 文档：`setup.sh` 每轮清理旧 `evidence.md` 并写入 `setup.env` 的 `RUN_ID`；人工或浏览器 Agent 补证时必须在 `evidence.md` 写同一 `run_id`；`trigger.sh` 只有在 `run_id` 匹配且 `scan_evidence_redline` 通过时才允许 `PASS`；`verify.sh` 对 `PASS` 结果重复执行 redline，拒绝 provider key、auth secret、session cookie、raw email code、prompt/body/response 明文。
 
 #### 7.2 env consumer gate
 
@@ -234,9 +234,9 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 - 用户可按 runbook 启动真实前端 + 真实后端 + 真实 AI provider 联调环境，不依赖 frontend mock transport 或 backend test stub。
 - `deploy/dev-stack/.env` 是真实本地联调唯一 env 来源；`p0-100` 不再维护独立 `dev-real.env` 或 env template。
 - `RUN_ID` 当前轮证据 gate 闭环：`setup.env` 的 `RUN_ID` 必须出现在 `evidence.md`，否则 `trigger.sh` 只能写 `MANUAL_REQUIRED`，不能把旧证据计为 PASS。
-- `evidence.md` redline 闭环：`trigger.sh` 与 `verify.sh` 都必须调用 `scan_evidence_redline`，禁止 provider key、auth secret、session cookie、magic-link token、prompt/body/response 明文进入 PASS 证据。
+- `evidence.md` redline 闭环：`trigger.sh` 与 `verify.sh` 都必须调用 `scan_evidence_redline`，禁止 provider key、auth secret、session cookie、raw email code、prompt/body/response 明文进入 PASS 证据。
 - env consumer gate 闭环：`env-setup.sh --with-migrations`、`env-redeploy.sh frontend` 与 `E2E.P0.100` trigger 均以 `deploy/dev-stack/.env` 为输入，不允许场景专属 env、frontend fixture mock 或 `Prefer: example=<scenario>` 替代真实联调配置。
-- UAT 材料包包含 Mailpit 本地登录说明、JD、简历、作答样例、检查清单、证据归档与清理说明。
+- UAT 材料包包含 Mailpit 本地 email-code 登录说明、JD、简历、作答样例、检查清单、证据归档与清理说明。
 - hybrid UAT 不新增正式 backend cmd，不直接写 session 表，且不依赖真实外部邮箱服务或真实邮箱账号。
 - BDD-Gate `E2E.P0.100` 的材料结构、Agent preflight、人工执行证据和 cleanup 边界在同一场景目录下闭环。
 

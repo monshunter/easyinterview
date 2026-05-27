@@ -164,7 +164,11 @@ func (s *sessionStore) ConsumeChallenge(context.Context, string, time.Time) (aut
 	panic("not used")
 }
 
-func (s *sessionStore) FindOrCreateUserByEmail(context.Context, string, string, time.Time) (auth.UserContext, error) {
+func (s *sessionStore) CreateUserByEmail(context.Context, string, string, string, time.Time) (auth.UserContext, error) {
+	panic("not used")
+}
+
+func (s *sessionStore) FindUserByEmail(context.Context, string) (auth.UserContext, error) {
 	panic("not used")
 }
 

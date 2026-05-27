@@ -1,6 +1,6 @@
 # Secrets and Config History
 
-> **版本**: 2.10
+> **版本**: 2.11
 > **状态**: active
 > **更新日期**: 2026-05-27
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-27 | 2.11 | 对齐 email-code 登录/注册：`EMAIL_VERIFY_BASE_URL` 不再作为邮件链接 base，而是 local dev frontend origin / dev CORS 推导来源；Mailpit 邮件改为 code-only。 | backend-auth/001 Phase 7 + frontend-shell/001 Phase 8 |
 | 2026-05-27 | 2.10 | 将 `EMAIL_VERIFY_BASE_URL` local dev 默认值从 backend API verify URL 改为 frontend `/auth/verify` callback；邮件链接回到前端后由 generated client 调用 backend `verifyAuthEmailChallenge` 并清理 URL token。 | frontend-shell/001 Phase 7 |
 | 2026-05-27 | 2.9 | 调整 `AI_DEBUG_PRINT_RAW_OUTPUT` 默认策略：local dev/test 与本地真实联调默认开启，以支持 AI Agent 调试真实 provider 输出格式；staging/prod 默认关闭，raw output 仍不得进入持久化审计或 runtime-config。 | local-dev-stack/001 raw debug local default |
 | 2026-05-27 | 2.8 | 新增 `AI_DEBUG_PRINT_RAW_OUTPUT` / `ai.debugPrintRawOutput` 本地调试开关：默认关闭；开启时仅将 LLM `Complete` 原始响应打印到 backend stderr，用于排查 schema/格式问题，不进入持久化审计或 runtime-config。 | AI raw output debug switch |

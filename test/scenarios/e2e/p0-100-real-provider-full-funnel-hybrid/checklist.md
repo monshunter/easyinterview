@@ -14,8 +14,8 @@
 | 0.2 | `make migrate-up` | 退出 0，schema 最新 | ☐ Pass ☐ Fail |
 | 0.3 | backend `APP_ENV=dev go run ./backend/cmd/api` | 监听 :8080；无 auth/AI secret 缺失错误 | ☐ Pass ☐ Fail |
 | 0.4 | frontend `VITE_EI_API_MODE=real` | 请求命中 `http://127.0.0.1:8080/api/v1`，无 fixture `Prefer` header | ☐ Pass ☐ Fail |
-| 0.5 | Mailpit magic-link | `manual-uat-full-funnel@example.test` 收到本地 Mailpit 邮件，点击或复制 token 验证 | ☐ Pass ☐ Fail |
-| 0.6 | magic-link 验证后刷新 | TopBar 已登录态，显示 UAT 账号；未直接写 sessions 表 | ☐ Pass ☐ Fail |
+| 0.5 | Mailpit email-code | `manual-uat-full-funnel@example.test` 收到本地 Mailpit 邮件，在前端验证页输入 6 位 code | ☐ Pass ☐ Fail |
+| 0.6 | code 验证后刷新 | TopBar 已登录态，显示 UAT 账号；未直接写 sessions 表 | ☐ Pass ☐ Fail |
 
 ## 1 Home -> Parse
 

@@ -54,6 +54,7 @@ describe("AuthLoginScreen", () => {
 
     expect(onStartChallenge).toHaveBeenCalledWith({
       email: "alice@example.com",
+      purpose: "login",
       returnTo: "/practice",
     });
     await waitFor(() =>
@@ -149,6 +150,8 @@ describe("AuthRegisterScreen", () => {
 
     expect(onStartChallenge).toHaveBeenCalledWith({
       email: "alice@example.com",
+      purpose: "signup",
+      displayName: "Alice",
     });
     await waitFor(() =>
       expect(onNavigate).toHaveBeenCalledWith({
@@ -157,10 +160,38 @@ describe("AuthRegisterScreen", () => {
       }),
     );
   });
+
+  it("shows an inline error and stays on register when signup email already exists", async () => {
+    const onStartChallenge = vi
+      .fn()
+      .mockRejectedValue(new Error("email registered"));
+    const onNavigate = vi.fn();
+    render(
+      <AuthRegisterScreen
+        route={baseRoute("auth_register")}
+        onNavigate={onNavigate}
+        onStartChallenge={onStartChallenge}
+      />,
+    );
+
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId("auth-register-name"), "Alice");
+    await user.type(
+      screen.getByTestId("auth-register-email"),
+      "alice@example.com",
+    );
+    await user.click(screen.getByTestId("auth-register-terms"));
+    await user.click(screen.getByTestId("auth-register-submit"));
+
+    await expect(
+      screen.findByTestId("auth-register-status"),
+    ).resolves.toHaveTextContent("already registered");
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
 });
 
 describe("AuthVerifyScreen", () => {
-  it("renders verify route shell, accepts code input, and triggers onVerify with token + onSuccess returnTo", async () => {
+  it("renders verify route shell, accepts six-digit code input, and triggers onVerify with token + onSuccess returnTo", async () => {
     const onVerify = vi.fn().mockResolvedValue(undefined);
     const onNavigate = vi.fn();
     render(
@@ -178,48 +209,18 @@ describe("AuthVerifyScreen", () => {
     expect(screen.getByTestId("auth-verify-resend")).toBeInTheDocument();
 
     const user = userEvent.setup();
-    await user.type(screen.getByTestId("auth-verify-code"), "654321");
+    const codeInput = screen.getByTestId("auth-verify-code");
+    expect(codeInput).toHaveAttribute("inputmode", "numeric");
+    expect(codeInput).toHaveAttribute("maxlength", "6");
+
+    await user.type(codeInput, "65a4321");
+    expect(codeInput).toHaveValue("654321");
     await user.click(screen.getByTestId("auth-verify-submit"));
 
     expect(onVerify).toHaveBeenCalledWith({ token: "654321" });
     await waitFor(() => expect(onNavigate).toHaveBeenCalled());
     const navArg = onNavigate.mock.calls[0]![0];
     expect(navArg).toMatchObject({ name: "practice" });
-  });
-
-  it("auto-consumes a magic-link token and replaces the URL after success", async () => {
-    const onVerify = vi.fn().mockResolvedValue(undefined);
-    const onNavigate = vi.fn();
-    const onReplace = vi.fn();
-    render(
-      <AuthVerifyScreen
-        route={{
-          name: "auth_verify",
-          params: {
-            token: "magic-link-token",
-            pendingRoute: "workspace",
-            pendingType: "start_practice",
-            pendingLabel: "立即面试",
-            targetJobId: "tj-1",
-          },
-        }}
-        onNavigate={onNavigate}
-        onReplace={onReplace}
-        onVerify={onVerify}
-      />,
-    );
-
-    expect(screen.getByTestId("auth-verify-link-status")).toBeInTheDocument();
-    await waitFor(() =>
-      expect(onVerify).toHaveBeenCalledWith({ token: "magic-link-token" }),
-    );
-    await waitFor(() =>
-      expect(onReplace).toHaveBeenCalledWith({
-        name: "workspace",
-        params: { targetJobId: "tj-1" },
-      }),
-    );
-    expect(onNavigate).not.toHaveBeenCalled();
   });
 
   it("restores interview context from raw returnTo query params", async () => {

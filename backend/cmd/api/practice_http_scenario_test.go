@@ -2923,7 +2923,11 @@ func (s *practiceScenarioAuthStore) ConsumeChallenge(context.Context, string, ti
 	return auth.ChallengeRecord{}, auth.ErrChallengeInvalid
 }
 
-func (s *practiceScenarioAuthStore) FindOrCreateUserByEmail(context.Context, string, string, time.Time) (auth.UserContext, error) {
+func (s *practiceScenarioAuthStore) CreateUserByEmail(context.Context, string, string, string, time.Time) (auth.UserContext, error) {
+	return auth.UserContext{}, auth.ErrSessionInvalid
+}
+
+func (s *practiceScenarioAuthStore) FindUserByEmail(context.Context, string) (auth.UserContext, error) {
 	return auth.UserContext{}, auth.ErrSessionInvalid
 }
 

@@ -38,7 +38,7 @@ func validEmailDispatchPayloadJSON(t *testing.T, challengeID string) []byte {
 	t.Helper()
 	raw, err := json.Marshal(map[string]string{
 		"authChallengeId":   challengeID,
-		"templateKey":       "auth_magic_link",
+		"templateKey":       "auth_login_code",
 		"locale":            "en",
 		"deliverySecretRef": "auth_challenge:" + challengeID,
 		"dedupeKey":         "dedupe-hash",
@@ -123,7 +123,7 @@ func TestEmailDispatchEnqueuer_InsertsEmailDispatchJob(t *testing.T) {
 	enq := auth.NewEmailDispatchEnqueuer(exec, func() string { return "job-1" }, func() time.Time { return time.Unix(0, 0).UTC() })
 	payload, err := jobs.BuildEmailDispatchPayload(map[string]string{
 		"authChallengeId":   "challenge-1",
-		"templateKey":       "auth_magic_link",
+		"templateKey":       "auth_login_code",
 		"locale":            "en",
 		"deliverySecretRef": "auth_challenge:challenge-1",
 		"dedupeKey":         "dedupe-hash",
@@ -150,7 +150,7 @@ func TestStartAuthEmailChallenge_EnqueuesEmailDispatchJob(t *testing.T) {
 		Store:               &recordingChallengeStore{},
 		Dispatcher:          enq,
 		DeliverySecrets:     sink,
-		TokenGenerator:      fixedTokenGenerator("magic-token"),
+		TokenGenerator:      fixedTokenGenerator("123456"),
 		ChallengePepper:     "pepper",
 		SessionCookieSecret: "session-secret",
 		NewID:               func() string { return "challenge-x" },

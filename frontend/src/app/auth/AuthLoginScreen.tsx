@@ -11,8 +11,8 @@ export interface AuthLoginScreenProps {
   route: Route;
   onNavigate: (next: LooseRoute) => void;
   /**
-   * Wires the passwordless email magic-link challenge. Implementations
-   * delegate to the generated `startAuthEmailChallenge` operation.
+   * Wires the passwordless email-code challenge. Implementations delegate to
+   * the generated `startAuthEmailChallenge` operation.
    */
   onStartChallenge: (req: AuthEmailStartRequest) => Promise<void>;
 }
@@ -38,7 +38,9 @@ export const AuthLoginScreen: FC<AuthLoginScreenProps> = ({
     const trimmed = email.trim();
     if (!trimmed) return;
     await onStartChallenge(
-      returnTo ? { email: trimmed, returnTo } : { email: trimmed },
+      returnTo
+        ? { email: trimmed, purpose: "login", returnTo }
+        : { email: trimmed, purpose: "login" },
     );
     // Forward the entire route.params so any encoded pendingAction (pendingRoute
     // / pendingType / pendingLabel + interview-context keys) reaches verify.

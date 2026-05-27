@@ -3,6 +3,7 @@ package auth_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,7 +38,7 @@ func TestVerifyAuthEmailChallengeConsumesTokenAndSetsSessionCookie(t *testing.T)
 		NewID:                 fixedIDs("018f2a40-0000-7000-9000-000000000101"),
 	})
 	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/email/verify?token=raw-challenge-token", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/email/verify?token=123456", nil)
 	req.RemoteAddr = "203.0.113.30:5588"
 	req.Header.Set("User-Agent", "unit-test-agent")
 	rec := httptest.NewRecorder()
@@ -47,7 +48,7 @@ func TestVerifyAuthEmailChallengeConsumesTokenAndSetsSessionCookie(t *testing.T)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if store.consumedTokenHash == "" || store.consumedTokenHash == "raw-challenge-token" {
+	if store.consumedTokenHash == "" || store.consumedTokenHash == "123456" {
 		t.Fatalf("challenge token must be looked up by hash, got %q", store.consumedTokenHash)
 	}
 	if store.session.SessionHash == "" || store.session.SessionHash == "raw-session-token" {
@@ -114,7 +115,7 @@ func TestVerifyAuthEmailChallengeRejectsInvalidExpiredOrConsumedToken(t *testing
 				NewID:                 fixedIDs("018f2a40-0000-7000-9000-000000000102"),
 			})
 			handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
-			req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/email/verify?token=bad-token", nil)
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/email/verify?token=000000", nil)
 			rec := httptest.NewRecorder()
 
 			handler.VerifyAuthEmailChallenge(rec, req)
@@ -129,12 +130,109 @@ func TestVerifyAuthEmailChallengeRejectsInvalidExpiredOrConsumedToken(t *testing
 	}
 }
 
+func TestVerifySignupChallengeCreatesUniqueEmailUserWithDisplayName(t *testing.T) {
+	store := &verifyStore{
+		challenge: auth.ChallengeRecord{
+			ID:          "challenge-signup",
+			Email:       "candidate@example.com",
+			DisplayName: "Alice Candidate",
+			Purpose:     auth.ChallengePurposeSignup,
+			ExpiresAt:   time.Date(2026, 5, 27, 10, 30, 0, 0, time.UTC),
+		},
+		user: auth.UserContext{
+			ID:                        "018f2a40-0000-7000-9000-000000000200",
+			Email:                     "candidate@example.com",
+			DisplayName:               "Alice Candidate",
+			UILanguage:                "zh-CN",
+			PreferredPracticeLanguage: "en",
+			AnalyticsOptIn:            true,
+		},
+	}
+	now := time.Date(2026, 5, 27, 10, 15, 0, 0, time.UTC)
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:                 store,
+		SessionTokenGenerator: fixedTokenGenerator("raw-session-token"),
+		ChallengePepper:       "pepper",
+		SessionCookieSecret:   "session-secret",
+		Now:                   func() time.Time { return now },
+		NewID:                 fixedIDs("018f2a40-0000-7000-9000-000000000201", "018f2a40-0000-7000-9000-000000000202"),
+	})
+
+	if _, err := service.VerifyEmailChallenge(context.Background(), auth.VerifyEmailChallengeInput{Token: "123456"}); err != nil {
+		t.Fatalf("VerifyEmailChallenge: %v", err)
+	}
+	if store.createdEmail != "candidate@example.com" || store.createdName != "Alice Candidate" {
+		t.Fatalf("signup create user = email %q displayName %q", store.createdEmail, store.createdName)
+	}
+	if store.foundEmail != "" {
+		t.Fatalf("signup must not use login lookup, foundEmail=%q", store.foundEmail)
+	}
+}
+
+func TestVerifySignupRejectsAlreadyRegisteredEmail(t *testing.T) {
+	store := &verifyStore{
+		challenge: auth.ChallengeRecord{
+			ID:          "challenge-duplicate",
+			Email:       "candidate@example.com",
+			DisplayName: "Different Name",
+			Purpose:     auth.ChallengePurposeSignup,
+			ExpiresAt:   time.Date(2026, 5, 27, 10, 30, 0, 0, time.UTC),
+		},
+		createErr: auth.ErrEmailRegistered,
+	}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               store,
+		ChallengePepper:     "pepper",
+		SessionCookieSecret: "session-secret",
+		Now:                 func() time.Time { return time.Date(2026, 5, 27, 10, 15, 0, 0, time.UTC) },
+	})
+
+	_, err := service.VerifyEmailChallenge(context.Background(), auth.VerifyEmailChallengeInput{Token: "123456"})
+	if !errors.Is(err, auth.ErrEmailRegistered) {
+		t.Fatalf("error = %v, want ErrEmailRegistered", err)
+	}
+	if store.session.ID != "" {
+		t.Fatalf("duplicate signup must not create session: %+v", store.session)
+	}
+}
+
+func TestVerifyLoginRejectsUnknownEmailWithoutCreatingUser(t *testing.T) {
+	store := &verifyStore{
+		challenge: auth.ChallengeRecord{
+			ID:        "challenge-login",
+			Email:     "missing@example.com",
+			Purpose:   auth.ChallengePurposeLogin,
+			ExpiresAt: time.Date(2026, 5, 27, 10, 30, 0, 0, time.UTC),
+		},
+		findErr: auth.ErrUserNotFound,
+	}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               store,
+		ChallengePepper:     "pepper",
+		SessionCookieSecret: "session-secret",
+		Now:                 func() time.Time { return time.Date(2026, 5, 27, 10, 15, 0, 0, time.UTC) },
+	})
+
+	_, err := service.VerifyEmailChallenge(context.Background(), auth.VerifyEmailChallengeInput{Token: "123456"})
+	if !errors.Is(err, auth.ErrUserNotFound) {
+		t.Fatalf("error = %v, want ErrUserNotFound", err)
+	}
+	if store.createdEmail != "" {
+		t.Fatalf("login must not create user, createdEmail=%q", store.createdEmail)
+	}
+}
+
 type verifyStore struct {
 	challenge         auth.ChallengeRecord
 	user              auth.UserContext
 	session           auth.SessionRecord
 	consumeErr        error
+	createErr         error
+	findErr           error
 	consumedTokenHash string
+	createdEmail      string
+	createdName       string
+	foundEmail        string
 }
 
 func (s *verifyStore) CountRecentChallenges(context.Context, string, string, time.Time) (int, error) {
@@ -153,7 +251,20 @@ func (s *verifyStore) ConsumeChallenge(_ context.Context, tokenHash string, _ ti
 	return s.challenge, nil
 }
 
-func (s *verifyStore) FindOrCreateUserByEmail(context.Context, string, string, time.Time) (auth.UserContext, error) {
+func (s *verifyStore) CreateUserByEmail(_ context.Context, email string, displayName string, _ string, _ time.Time) (auth.UserContext, error) {
+	if s.createErr != nil {
+		return auth.UserContext{}, s.createErr
+	}
+	s.createdEmail = email
+	s.createdName = displayName
+	return s.user, nil
+}
+
+func (s *verifyStore) FindUserByEmail(_ context.Context, email string) (auth.UserContext, error) {
+	if s.findErr != nil {
+		return auth.UserContext{}, s.findErr
+	}
+	s.foundEmail = email
 	return s.user, nil
 }
 

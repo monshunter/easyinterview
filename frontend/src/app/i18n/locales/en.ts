@@ -20,7 +20,7 @@ export const en: LocaleMessages = {
   "auth.login": "Sign in",
   "auth.register": "Register",
   "auth.email": "Email",
-  "auth.sendEmail": "Send sign-in email",
+  "auth.sendEmail": "Send sign-in code",
   "auth.passwordLoginUnavailable": "Password sign-in (not available yet)",
   "auth.passwordLogin": "Password sign-in",
   "auth.oauthUnavailable": "Third-party sign-in (not available yet)",
@@ -30,19 +30,20 @@ export const en: LocaleMessages = {
   "auth.setPasswordUnavailable": "Set password (not available yet)",
   "auth.acceptTerms": "I agree to the terms and privacy policy",
   "auth.createAndVerify": "Create account and verify email",
+  "auth.registerEmailExists": "This email is already registered. Sign in instead.",
   "auth.verifyTitle": "Email verification",
   "auth.verifySentPrefix": "Sent to",
-  "auth.code": "Sign-in token",
+  "auth.code": "6-digit code",
   "auth.verifyContinue": "Verify and continue",
-  "auth.verifyLinkPending": "Completing sign-in from the email link...",
+  "auth.verifyLinkPending": "Verifying the sign-in code...",
   "auth.verifyLinkFailed":
-    "The email link could not be verified. Send a new email, or paste the token from the link to continue.",
+    "The code could not be verified. Send a new code to continue.",
   "auth.resend": "Resend",
   "auth.resetTitle": "Reset sign-in",
   "auth.accountEmail": "Account email",
   "auth.sendResetUnavailable": "Send reset instructions (not available yet)",
   "auth.resetHint":
-    "Reset is not available yet. Use email-link sign-in or contact support.",
+    "Reset is not available yet. Use email-code sign-in or contact support.",
   "auth.backToLogin": "Back to sign in",
   "auth.logoutHint":
     "Signing out clears the local session. Account data stays in place.",
@@ -65,11 +66,11 @@ export const en: LocaleMessages = {
   "auth.verify.eyebrow": "EMAIL VERIFICATION",
   "auth.verify.title": "Confirm this is your email.",
   "auth.verify.sub":
-    "We sent a sign-in link to your email. Opening it completes sign-in automatically, or you can paste the token from the link.",
+    "We sent a 6-digit sign-in code to your email. The code expires in 5 minutes.",
   "auth.reset.eyebrow": "PASSWORD RESET",
   "auth.reset.title": "Reset access without losing your data.",
   "auth.reset.sub":
-    "We send a secure sign-in link to your verified email. Existing resumes, JDs, and reports remain unchanged.",
+    "We send a secure sign-in code to your verified email. Existing resumes, JDs, and reports remain unchanged.",
   "auth.logout.eyebrow": "LOGOUT",
   "auth.logout.title": "Sign out of this device?",
   "auth.logout.sub":

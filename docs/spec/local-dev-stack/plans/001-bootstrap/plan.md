@@ -198,15 +198,15 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 #### 5.3 backend-auth 与 A4 配置边界
 
-后端 `cmd/api` 在 `EMAIL_PROVIDER=mailpit` 时必须注册 SMTP `DeliveryWriter`，通过 `auth_challenges` 查询收件邮箱、从 C1 transient delivery secret store 取 magic token，并将 magic-link 邮件投递到 Mailpit SMTP。`email_dispatch` payload 仍不得包含 raw email、magic token、完整 URL、邮件正文或标题；默认 `DevMailSink` 保留给单元测试和非 Mailpit 配置。A4 env/config 字典新增 `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL`。
+后端 `cmd/api` 在 `EMAIL_PROVIDER=mailpit` 时必须注册 SMTP `DeliveryWriter`，通过 `auth_challenges` 查询收件邮箱、从 C1 transient delivery secret store 取 6 位 code，并将 code-only 邮件投递到 Mailpit SMTP。`email_dispatch` payload 仍不得包含 raw email、raw code、完整 URL、邮件正文或标题；默认 `DevMailSink` 保留给单元测试和非 Mailpit 配置。A4 env/config 字典保留 `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL`，其中 `EMAIL_VERIFY_BASE_URL` 仅作为本地 frontend origin / CORS 推导来源。
 
 #### 5.4 hybrid UAT 账号入口回收
 
-`E2E.P0.100` 不再通过直接 DB session bootstrap 取得账号；runbook 改为 synthetic `.example.test` 邮箱 + Mailpit magic link。场景工具仍只允许 shell / Python，且不得新增 `backend/cmd` / Go helper 作为验收依赖。
+`E2E.P0.100` 不再通过直接 DB session bootstrap 取得账号；runbook 改为 synthetic `.example.test` 邮箱 + Mailpit 6 位 code。场景工具仍只允许 shell / Python，且不得新增 `backend/cmd` / Go helper 作为验收依赖。
 
 #### 5.5 Phase 5 自检
 
-- Focused backend auth tests：SMTP writer 通过 fake SendMail 捕获 magic link，缺 delivery secret 不发送，lookup error 不泄露 raw email/token。
+- Focused backend auth tests：SMTP writer 通过 fake SendMail 捕获 code-only 邮件，缺 delivery secret 不发送，lookup error 不泄露 raw email/code。
 - Focused `cmd/api` test：`EMAIL_PROVIDER=mailpit` 时 `buildAuthService` 注册 `*auth.SMTPDeliveryWriter`。
 - Focused config test：canonical env bindings 覆盖 Mailpit SMTP keys。
 - Compose/static gates：`docker compose config --quiet`、`bash -n dev-doctor.sh`、`make -C deploy/dev-stack -n up`。
@@ -289,7 +289,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - 从 `deploy/dev-stack/.env` 读取非 secret 端口配置，推导 frontend dev URL、backend API base、Mailpit URL 与 MinIO Console URL。
 - 将 backend/frontend host-run 日志固定写入 `.test-output/local-dev/backend.log` 与 `.test-output/local-dev/frontend.log`。
 - 将启动进程组 PID 写入 `.test-output/local-dev/backend.pid` 与 `.test-output/local-dev/frontend.pid`。
-- 输出 `tail -f` 与 `make dev-logs SERVICE=<name>` 调试命令；不得打印 `AI_PROVIDER_API_KEY`、auth secret、session cookie 或 magic-link token。
+- 输出 `tail -f` 与 `make dev-logs SERVICE=<name>` 调试命令；不得打印 `AI_PROVIDER_API_KEY`、auth secret、session cookie 或 raw email code。
 
 #### 8.2 redeploy 闭环语义
 
@@ -310,7 +310,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 - Static contract：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q` 覆盖 helper、redeploy restart semantics、summary 输出和 README。
 - Dry-run：`test/scenarios/env-redeploy.sh backend --dry-run`、`test/scenarios/env-setup.sh --dry-run`、`test/scenarios/env-status.sh --dry-run` 均解释即将输出调试信息。
-- Live redeploy：`test/scenarios/env-redeploy.sh all` 后 `lsof` 证明 backend/frontend 监听当前端口；`.test-output/local-dev/*.log` 与 `.pid` 存在；重新触发 Mailpit 登录邮件，最新 magic-link 指向当前 `EMAIL_VERIFY_BASE_URL` 的 frontend `/auth/verify`。
+- Live redeploy：`test/scenarios/env-redeploy.sh all` 后 `lsof` 证明 backend/frontend 监听当前端口；`.test-output/local-dev/*.log` 与 `.pid` 存在；重新触发 Mailpit 登录邮件，最新邮件为 code-only，前端 origin / CORS 来源与当前 `EMAIL_VERIFY_BASE_URL` 一致。
 
 ## 5 验收标准
 

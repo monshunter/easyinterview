@@ -57,7 +57,7 @@ func TestAuthObservabilityEventsUseF1LabelsAndRedactedAuditFields(t *testing.T) 
 		Store:           &recordingChallengeStore{},
 		Dispatcher:      &recordingDispatcher{},
 		DeliverySecrets: auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: "http://api.test/api/v1/auth/email/verify"}),
-		TokenGenerator:  fixedTokenGenerator("raw-magic-token"),
+		TokenGenerator:  fixedTokenGenerator("123456"),
 		ChallengePepper: "pepper-secret",
 		Metrics:         metrics,
 		Audit:           audit,
@@ -86,7 +86,7 @@ func TestAuthObservabilityEventsUseF1LabelsAndRedactedAuditFields(t *testing.T) 
 		NewID:                 fixedIDs("session-observe"),
 	})
 	if _, err := verifyService.VerifyEmailChallenge(ctx, auth.VerifyEmailChallengeInput{
-		Token:      "raw-magic-token",
+		Token:      "123456",
 		RemoteAddr: "203.0.113.50:5588",
 		UserAgent:  "unit-test-agent",
 	}); err != nil {
@@ -129,7 +129,7 @@ func TestAuthObservabilityEventsUseF1LabelsAndRedactedAuditFields(t *testing.T) 
 		Audit:               audit,
 		Now:                 func() time.Time { return time.Date(2026, 5, 6, 11, 25, 0, 0, time.UTC) },
 	})
-	if _, err := failureService.VerifyEmailChallenge(ctx, auth.VerifyEmailChallengeInput{Token: "raw-magic-token"}); err == nil {
+	if _, err := failureService.VerifyEmailChallenge(ctx, auth.VerifyEmailChallengeInput{Token: "000000"}); err == nil {
 		t.Fatal("invalid token verify unexpectedly succeeded")
 	}
 

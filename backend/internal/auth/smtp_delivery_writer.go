@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/mail"
 	"net/smtp"
-	"net/url"
 	"strings"
 
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
@@ -98,11 +97,7 @@ func (w *SMTPDeliveryWriter) Write(payload jobs.EmailDispatchPayload) error {
 	if err != nil {
 		return fmt.Errorf("smtp from address invalid")
 	}
-	link, err := buildMagicLink(w.verifyBaseURL, token)
-	if err != nil {
-		return fmt.Errorf("magic link build failed")
-	}
-	msg, err := buildMagicLinkMessage(from, to, link)
+	msg, err := buildLoginCodeMessage(from, to, token, payload["locale"])
 	if err != nil {
 		return fmt.Errorf("email message build failed")
 	}
@@ -129,30 +124,27 @@ func parseEmailAddress(raw string) (string, error) {
 	return parsed.Address, nil
 }
 
-func buildMagicLink(base string, token string) (string, error) {
-	if strings.TrimSpace(base) == "" || strings.TrimSpace(token) == "" {
-		return "", fmt.Errorf("base url or token missing")
+func buildLoginCodeMessage(from string, to string, code string, locale string) (string, error) {
+	if strings.TrimSpace(code) == "" {
+		return "", fmt.Errorf("login code missing")
 	}
-	u, err := url.Parse(base)
-	if err != nil {
-		return "", err
+	subject := "EasyInterview sign-in code"
+	title := "Your EasyInterview sign-in code"
+	instruction := "Enter this 6-digit code in EasyInterview. It expires in 5 minutes."
+	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(locale)), "zh") {
+		subject = "EasyInterview 登录验证码"
+		title = "你的 EasyInterview 登录验证码"
+		instruction = "请在 EasyInterview 输入这 6 位验证码。验证码 5 分钟内有效。"
 	}
-	q := u.Query()
-	q.Set("token", token)
-	u.RawQuery = q.Encode()
-	return u.String(), nil
-}
-
-func buildMagicLinkMessage(from string, to string, link string) (string, error) {
 	headers := []struct {
 		name  string
 		value string
 	}{
 		{name: "From", value: from},
 		{name: "To", value: to},
-		{name: "Subject", value: "EasyInterview sign-in link"},
+		{name: "Subject", value: subject},
 		{name: "MIME-Version", value: "1.0"},
-		{name: "Content-Type", value: "text/plain; charset=UTF-8"},
+		{name: "Content-Type", value: `multipart/alternative; boundary="ei_auth_code"`},
 	}
 	var b strings.Builder
 	for _, h := range headers {
@@ -165,9 +157,30 @@ func buildMagicLinkMessage(from string, to string, link string) (string, error) 
 		b.WriteString("\r\n")
 	}
 	b.WriteString("\r\n")
-	b.WriteString("Open this EasyInterview sign-in link in the same browser to return to the app and finish sign-in:\r\n\r\n")
-	b.WriteString(link)
-	b.WriteString("\r\n")
+	b.WriteString("--ei_auth_code\r\n")
+	b.WriteString("Content-Type: text/plain; charset=UTF-8\r\n\r\n")
+	b.WriteString(title)
+	b.WriteString("\r\n\r\n")
+	b.WriteString(code)
+	b.WriteString("\r\n\r\n")
+	b.WriteString(instruction)
+	b.WriteString("\r\n\r\n")
+	b.WriteString("--ei_auth_code\r\n")
+	b.WriteString("Content-Type: text/html; charset=UTF-8\r\n\r\n")
+	b.WriteString(`<!doctype html><html><body style="margin:0;background:#f7f3ea;font-family:Inter,Arial,sans-serif;color:#241f19;">`)
+	b.WriteString(`<div style="max-width:520px;margin:0 auto;padding:28px 24px;">`)
+	b.WriteString(`<p style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8a6d3b;margin:0 0 12px;">EasyInterview</p>`)
+	b.WriteString(`<h1 style="font-size:22px;line-height:1.3;margin:0 0 18px;font-weight:650;">`)
+	b.WriteString(title)
+	b.WriteString(`</h1>`)
+	b.WriteString(`<div style="display:inline-block;border:1px solid #ded3bd;border-radius:8px;background:#fffaf0;padding:14px 18px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:32px;letter-spacing:6px;font-weight:700;">`)
+	b.WriteString(code)
+	b.WriteString(`</div>`)
+	b.WriteString(`<p style="font-size:14px;line-height:1.6;color:#665a4a;margin:18px 0 0;">`)
+	b.WriteString(instruction)
+	b.WriteString(`</p>`)
+	b.WriteString(`</div></body></html>`)
+	b.WriteString("\r\n--ei_auth_code--\r\n")
 	return b.String(), nil
 }
 

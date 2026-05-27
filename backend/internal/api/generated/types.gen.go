@@ -232,8 +232,10 @@ type UserContext struct {
 }
 
 type AuthEmailStartRequest struct {
-	Email    string  `json:"email"`
-	ReturnTo *string `json:"returnTo,omitempty"`
+	DisplayName *string `json:"displayName,omitempty"`
+	Email       string  `json:"email"`
+	Purpose     *string `json:"purpose,omitempty"`
+	ReturnTo    *string `json:"returnTo,omitempty"`
 }
 
 type Session struct {

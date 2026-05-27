@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.18
+    to: 1.19
 spec:
   defaultTarget: repo
   discovery:
@@ -24,7 +24,7 @@ spec:
       - minio
       - mailpit
       - local email
-      - magic link
+      - email code
       - smtp
       - EMAIL_PROVIDER
       - EMAIL_SMTP_HOST

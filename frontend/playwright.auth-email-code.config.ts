@@ -9,11 +9,11 @@ const artifactRoot = path.join(
   repoRoot,
   ".test-output",
   "e2e",
-  "p0-101-auth-mail-link-login-register",
+  "p0-101-auth-email-code-login-register",
 );
 
 const frontendOrigin =
-  process.env.EI_AUTH_MAIL_LINK_FRONTEND_ORIGIN ?? "http://127.0.0.1:5173";
+  process.env.EI_AUTH_EMAIL_CODE_FRONTEND_ORIGIN ?? "http://127.0.0.1:5173";
 const outputDir =
   process.env.EI_PLAYWRIGHT_OUTPUT_DIR ?? path.join(artifactRoot, "playwright");
 

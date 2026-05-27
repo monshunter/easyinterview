@@ -221,13 +221,13 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/auth/login?email=alice%40example.com&next=%2Fworkspace");
   });
 
-  it("auth_verify accepts a one-shot magic-link token while auth_login still drops it", () => {
+  it("auth_verify drops raw auth token query because email code is form-only", () => {
     expect(
       formatRouteUrl({
         name: "auth_verify",
         params: {
           email: "alice@example.com",
-          token: "magic-link-token",
+          token: "123456",
           pendingRoute: "workspace",
           pendingType: "start_practice",
           pendingLabel: "立即面试",
@@ -235,12 +235,12 @@ describe("serializeRouteToUrl", () => {
         },
       }),
     ).toBe(
-      "/auth/verify?email=alice%40example.com&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&targetJobId=tj-1&token=magic-link-token",
+      "/auth/verify?email=alice%40example.com&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&targetJobId=tj-1",
     );
     expect(
       formatRouteUrl({
         name: "auth_login",
-        params: { email: "alice@example.com", token: "magic-link-token" },
+        params: { email: "alice@example.com", token: "123456" },
       }),
     ).toBe("/auth/login?email=alice%40example.com");
   });
@@ -381,19 +381,16 @@ describe("parseUrlToRoute", () => {
     });
   });
 
-  it("parses auth_verify magic-link token only on the verify callback route", () => {
+  it("drops auth_verify token query because email code is form-only", () => {
     expect(
-      parseUrlToRoute(
-        "/auth/verify?email=alice%40example.com&token=magic-link-token",
-      ),
+      parseUrlToRoute("/auth/verify?email=alice%40example.com&token=123456"),
     ).toEqual({
       name: "auth_verify",
       params: {
         email: "alice@example.com",
-        token: "magic-link-token",
       },
     });
-    expect(parseUrlToRoute("/auth/login?token=magic-link-token")).toEqual({
+    expect(parseUrlToRoute("/auth/login?token=123456")).toEqual({
       name: "auth_login",
       params: {},
     });
@@ -480,7 +477,7 @@ describe("isSafeRouteParam", () => {
         pendingRoute: "workspace",
       })).toBe(false);
     }
-    expect(isSafeRouteParam("auth_verify", "token", {})).toBe(true);
+    expect(isSafeRouteParam("auth_verify", "token", {})).toBe(false);
     expect(isSafeRouteParam("auth_login", "token", {})).toBe(false);
     expect(isSafeRouteParam("workspace", "token", {})).toBe(false);
   });

@@ -12,7 +12,7 @@
 本目录已经有 owner plan，且本地邮箱入口已由 `deploy/dev-stack` 的 Mailpit 承接。因此：
 
 - AI Agent 可自动执行：共享环境 setup/verify、场景材料结构检查、`deploy/dev-stack/.env` preflight、mock/stub 禁用检查、result artifact 写入。
-- 需要真实本地上下文：真实 `AI_PROVIDER_API_KEY`、host-run backend/frontend 进程、Mailpit magic-link 浏览器操作和脱敏证据记录。
+- 需要真实本地上下文：真实 `AI_PROVIDER_API_KEY`、host-run backend/frontend 进程、Mailpit email-code 浏览器操作和脱敏证据记录。
 - 缺少真实本地上下文时，场景结果是 `MANUAL_REQUIRED`，不是 `PASS`，也不是框架 `ERROR`。
 
 ## 2 严格边界
@@ -24,7 +24,7 @@
 - storage: `make dev-up` 提供的真实 Postgres / Redis / MinIO / Mailpit。
 - AI: `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 指向真实 OpenAI-compatible provider，当前默认 DeepSeek。
 - raw debug: `AI_DEBUG_PRINT_RAW_OUTPUT=true` 必须来自 `deploy/dev-stack/.env`，用于本地捕获真实 provider 输出格式；raw 内容只保留在本机 backend stderr / `.test-output/` 调试日志，不写入验收报告。
-- account: 使用 synthetic 邮箱 `manual-uat-full-funnel@example.test` 触发真实 passwordless flow，并从 Mailpit `http://127.0.0.1:8025` 读取 magic link。
+- account: 使用 synthetic 邮箱 `manual-uat-full-funnel@example.test` 触发真实 passwordless flow，并从 Mailpit `http://127.0.0.1:8025` 读取 6 位 code。
 
 `test/scenarios` 目录只承接 runbook、材料、shell/Python 辅助和检查脚本；不得新增 `backend/cmd` / Go helper，也不得通过直接写 `sessions` 表绕过被测 auth flow。
 
@@ -45,7 +45,7 @@
 | Go | 启动 backend |
 | Python 3 | 仅用于可选材料检查或后续 Python 辅助脚本；当前登录不需要直接 DB helper |
 | Node + pnpm | 构建/启动 frontend |
-| Chrome 或同级现代浏览器 | 人工走查和打开 Mailpit magic link |
+| Chrome 或同级现代浏览器 | 人工走查和读取 Mailpit email code |
 | 真实 AI provider key | `AI_PROVIDER_API_KEY`，不得提交 |
 
 ## 4 环境变量
@@ -65,7 +65,7 @@ $EDITOR deploy/dev-stack/.env
 - `AUTH_CHALLENGE_TOKEN_PEPPER`
 - `AI_PROVIDER_API_KEY`
 
-`deploy/dev-stack/.env.example` 已给出本地邮箱默认值：`EMAIL_PROVIDER=mailpit`、`EMAIL_SMTP_HOST=127.0.0.1`、`EMAIL_SMTP_PORT=1025`、`EMAIL_VERIFY_BASE_URL=http://127.0.0.1:5173/auth/verify`。不要填写真实个人邮箱账号或外部 SMTP 凭证。若人工 UAT 使用 `vite preview --port 4174` 作为唯一前端入口，本地 `.env` 的 `EMAIL_VERIFY_BASE_URL` 应同步改为 `http://127.0.0.1:4174/auth/verify`。
+`deploy/dev-stack/.env.example` 已给出本地邮箱默认值：`EMAIL_PROVIDER=mailpit`、`EMAIL_SMTP_HOST=127.0.0.1`、`EMAIL_SMTP_PORT=1025`、`EMAIL_VERIFY_BASE_URL=http://127.0.0.1:5173/auth/verify`。不要填写真实个人邮箱账号或外部 SMTP 凭证。当前邮件正文为 code-only，`EMAIL_VERIFY_BASE_URL` 仅用于本地 frontend origin / dev CORS 推导。若人工 UAT 使用 `vite preview --port 4174` 作为唯一前端入口，本地 `.env` 的 `EMAIL_VERIFY_BASE_URL` 应同步改为 `http://127.0.0.1:4174/auth/verify`。
 
 `AI_PROVIDER_BASE_URL` 默认是 `https://api.deepseek.com`；如使用其他 OpenAI-compatible endpoint，必须同步确认 `config/ai-providers.yaml` / `config/ai-profiles.yaml` 支持。
 
@@ -120,7 +120,7 @@ go run ./backend/cmd/api
 - 缺 `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` 时 fail-fast。
 - 缺真实 `AI_PROVIDER_API_KEY` 时 AIClient-enabled runtime fail-fast 或后续 AI 调用失败；不得自动降级到 stub。
 
-### 6.3 Mailpit magic-link 登录
+### 6.3 Mailpit Email-Code 登录
 
 确认 Mailpit 已随 `make dev-up` 启动：
 
@@ -128,9 +128,9 @@ go run ./backend/cmd/api
 open http://127.0.0.1:8025
 ```
 
-在前端登录页或任一操作级 auth gate 中输入 `manual-uat-full-funnel@example.test` 并提交。随后在 Mailpit Web UI 打开最新邮件，点击邮件中的 `http://127.0.0.1:5173/auth/verify?token=...` magic link。前端会自动调用 `verifyAuthEmailChallenge`，浏览器收到 `ei_session` 后 URL 不再包含 token，TopBar 应显示已登录用户。
+在前端登录页或任一操作级 auth gate 中输入 `manual-uat-full-funnel@example.test` 并提交。随后在 Mailpit Web UI 打开最新邮件，把邮件中的 6 位 code 输入前端验证页。前端会调用 `verifyAuthEmailChallenge`，浏览器收到 `ei_session` 后回到目标页面，TopBar 应显示已登录用户。
 
-如果不点击链接，也可以从邮件中复制 `token` query 值，到前端 `/auth/verify?email=manual-uat-full-funnel@example.test` 的验证输入框中粘贴并提交。不要把 token 写入 tracked 文件或日志。
+不要把 raw code 写入 tracked 文件或日志。
 
 ### 6.4 前端真实模式
 
@@ -159,8 +159,8 @@ pnpm --filter @easyinterview/frontend dev
 
 1. 打开 `http://127.0.0.1:4174`。
 2. 触发登录，输入 `manual-uat-full-funnel@example.test`。
-3. 打开 Mailpit `http://127.0.0.1:8025`，从最新邮件点击前端 magic-link callback 完成验证。
-4. 前端自动清理 token 并刷新登录态，TopBar 应显示已登录用户 `manual-uat-full-funnel@example.test`。
+3. 打开 Mailpit `http://127.0.0.1:8025`，从最新邮件读取 6 位 code 并在前端验证页提交。
+4. 前端刷新登录态，TopBar 应显示已登录用户 `manual-uat-full-funnel@example.test`。
 
 ## 8 走查流程
 

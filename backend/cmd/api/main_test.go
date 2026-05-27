@@ -118,7 +118,7 @@ featureFlag:
 		Store:                 store,
 		Dispatcher:            auth.NewImmediateMailDispatcher(sink),
 		DeliverySecrets:       sink,
-		TokenGenerator:        apiFixedTokenGenerator("magic-token"),
+		TokenGenerator:        apiFixedTokenGenerator("123456"),
 		SessionTokenGenerator: apiFixedTokenGenerator("session-token"),
 		ChallengePepper:       "pepper",
 		SessionCookieSecret:   "session-secret",
@@ -2402,7 +2402,11 @@ func (s *apiAuthStore) ConsumeChallenge(context.Context, string, time.Time) (aut
 	return s.challenge, nil
 }
 
-func (s *apiAuthStore) FindOrCreateUserByEmail(context.Context, string, string, time.Time) (auth.UserContext, error) {
+func (s *apiAuthStore) CreateUserByEmail(context.Context, string, string, string, time.Time) (auth.UserContext, error) {
+	return s.user, nil
+}
+
+func (s *apiAuthStore) FindUserByEmail(context.Context, string) (auth.UserContext, error) {
 	return s.user, nil
 }
 

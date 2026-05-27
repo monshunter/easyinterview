@@ -18,7 +18,7 @@ mock auth 成功响应。
 
 场景模拟用户点击 `立即面试`，触发 `requestAuth(pendingAction)` 携带 5 个
 interview-context 参数；用户在 `auth_login` 输入邮箱、提交挑战、跳转
-`auth_verify`，再输入登录 token 完成 `verifyAuthEmailChallenge`。
+`auth_verify`，再输入 6 位登录 code 完成 `verifyAuthEmailChallenge`。
 
 ## 3 Then
 

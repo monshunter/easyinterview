@@ -1,6 +1,6 @@
 # Backend Auth History
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
 > **更新日期**: 2026-05-27
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-27 | 1.7 | 修订 passwordless 认证为 6 位 email-code：challenge TTL 改 5 分钟，`purpose=signup|login` 区分注册/登录，注册邮箱即后续登录邮箱且唯一，displayName 只在 signup 创建用户时写入。 | 001-passwordless-session-bootstrap Phase 7 |
 | 2026-05-27 | 1.6 | 修订 local Mailpit magic-link handoff：SMTP writer 可生成 frontend `/auth/verify` callback 链接，frontend 再调用 backend `GET /api/v1/auth/email/verify` 兑换 session 并清理 URL token；backend verify API 路径不变。 | frontend-shell/001 Phase 7 |
 | 2026-05-26 | 1.5 | BUG-0106 修订：对齐 ADR-Q5 与 B4 privacy deletion matrix，明确 `DELETE /api/v1/me` 受理期由 C1 同步软删 `users.deleted_at` / `users.status='deleted'` 并撤销该用户所有 session，backend internal runner 完成逐域删除后负责用户行最终 hard delete。 | backend-async-runner/001-internal-job-outbox-runner BUG-0106 remediation |
 | 2026-05-26 | 1.4 | 登记 local-dev-stack Mailpit revision：`EMAIL_PROVIDER=mailpit` 时 `cmd/api` 使用 SMTP `DeliveryWriter` 投递 magic-link 到 Mailpit；writer 从 `auth_challenges` 查询收件人、从 transient delivery secret store 取 token，保持 `email_dispatch` payload redaction，不引入独立后台进程或场景专属 `backend/cmd` helper。 | local-dev-stack/001 Mailpit revision |

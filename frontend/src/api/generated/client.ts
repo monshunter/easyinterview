@@ -89,7 +89,7 @@ export class EasyInterviewClient {
 	}
 
 
-	/** startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email magic-link challenge */
+	/** startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email-code challenge */
 	async startAuthEmailChallenge(body: Types.AuthEmailStartRequest, opts?: RequestOptions): Promise<unknown> {
 		return this.request<unknown>(
 			"POST",
@@ -99,7 +99,7 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** verifyAuthEmailChallenge — get /auth/email/verify: Verify magic-link challenge and mint a session cookie */
+	/** verifyAuthEmailChallenge — get /auth/email/verify: Verify email-code challenge and mint a session cookie */
 	async verifyAuthEmailChallenge(opts?: RequestOptions): Promise<Types.Session> {
 		return this.request<Types.Session>(
 			"GET",

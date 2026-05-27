@@ -185,7 +185,10 @@ func (s *multiUserAuthStore) CreateChallenge(context.Context, auth.ChallengeReco
 func (s *multiUserAuthStore) ConsumeChallenge(context.Context, string, time.Time) (auth.ChallengeRecord, error) {
 	return auth.ChallengeRecord{}, nil
 }
-func (s *multiUserAuthStore) FindOrCreateUserByEmail(context.Context, string, string, time.Time) (auth.UserContext, error) {
+func (s *multiUserAuthStore) CreateUserByEmail(context.Context, string, string, string, time.Time) (auth.UserContext, error) {
+	return auth.UserContext{}, nil
+}
+func (s *multiUserAuthStore) FindUserByEmail(context.Context, string) (auth.UserContext, error) {
 	return auth.UserContext{}, nil
 }
 func (s *multiUserAuthStore) CreateSession(context.Context, auth.SessionRecord) error { return nil }

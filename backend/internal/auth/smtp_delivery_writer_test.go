@@ -11,9 +11,9 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 )
 
-func TestSMTPDeliveryWriterSendsMagicLinkThroughSMTP(t *testing.T) {
+func TestSMTPDeliveryWriterSendsLoginCodeThroughSMTP(t *testing.T) {
 	secrets := auth.NewDevMailSink(auth.DevMailSinkOptions{})
-	secrets.PutDeliverySecret("auth_challenge:challenge-1", "raw-magic-token")
+	secrets.PutDeliverySecret("auth_challenge:challenge-1", "123456")
 	var captured struct {
 		addr string
 		from string
@@ -55,13 +55,19 @@ func TestSMTPDeliveryWriterSendsMagicLinkThroughSMTP(t *testing.T) {
 		t.Fatalf("smtp recipients = %#v", captured.to)
 	}
 	for _, want := range []string{
-			"To: candidate@example.test",
-			"Subject: EasyInterview sign-in link",
-			"return to the app and finish sign-in",
-			"http://127.0.0.1:5173/auth/verify?token=raw-magic-token",
+		"To: candidate@example.test",
+		"Subject: EasyInterview sign-in code",
+		"123456",
+		"expires in 5 minutes",
+		"multipart/alternative",
 	} {
 		if !strings.Contains(captured.msg, want) {
 			t.Fatalf("message missing %q:\n%s", want, captured.msg)
+		}
+	}
+	for _, forbidden := range []string{"auth/verify?token=", "raw-magic-token", "http://127.0.0.1:5173/auth/verify"} {
+		if strings.Contains(captured.msg, forbidden) {
+			t.Fatalf("message leaked forbidden auth link/token %q:\n%s", forbidden, captured.msg)
 		}
 	}
 	for _, forbidden := range []string{"auth_challenge:challenge-1", "deliverySecretRef"} {
@@ -76,7 +82,7 @@ func TestSMTPDeliveryWriterRequiresStoredDeliverySecret(t *testing.T) {
 	writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
 		SMTPAddr:        "127.0.0.1:1025",
 		FromAddress:     "noreply@easyinterview.local",
-			VerifyBaseURL:   "http://127.0.0.1:5173/auth/verify",
+		VerifyBaseURL:   "http://127.0.0.1:5173/auth/verify",
 		DeliverySecrets: auth.NewDevMailSink(auth.DevMailSinkOptions{}),
 		LookupChallengeEmail: func(string) (string, error) {
 			return "candidate@example.test", nil
@@ -98,14 +104,14 @@ func TestSMTPDeliveryWriterRequiresStoredDeliverySecret(t *testing.T) {
 
 func TestSMTPDeliveryWriterDoesNotExposeLookupErrorDetails(t *testing.T) {
 	secrets := auth.NewDevMailSink(auth.DevMailSinkOptions{})
-	secrets.PutDeliverySecret("auth_challenge:challenge-1", "raw-magic-token")
+	secrets.PutDeliverySecret("auth_challenge:challenge-1", "123456")
 	writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
 		SMTPAddr:        "127.0.0.1:1025",
 		FromAddress:     "noreply@easyinterview.local",
 		VerifyBaseURL:   "http://127.0.0.1:5173/auth/verify",
 		DeliverySecrets: secrets,
 		LookupChallengeEmail: func(string) (string, error) {
-			return "", errors.New("candidate@example.test raw-magic-token")
+			return "", errors.New("candidate@example.test 123456")
 		},
 		SendMail: func(string, smtp.Auth, string, []string, []byte) error {
 			t.Fatal("SMTP send must not run when recipient lookup fails")
@@ -117,7 +123,7 @@ func TestSMTPDeliveryWriterDoesNotExposeLookupErrorDetails(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected lookup failure")
 	}
-	for _, forbidden := range []string{"candidate@example.test", "raw-magic-token"} {
+	for _, forbidden := range []string{"candidate@example.test", "123456"} {
 		if strings.Contains(err.Error(), forbidden) {
 			t.Fatalf("error leaked %q: %v", forbidden, err)
 		}
@@ -150,7 +156,7 @@ func emailPayload(t *testing.T, challengeID string, secretRef string) jobs.Email
 	t.Helper()
 	payload, err := jobs.BuildEmailDispatchPayload(map[string]string{
 		"authChallengeId":   challengeID,
-		"templateKey":       "auth_magic_link",
+		"templateKey":       "auth_login_code",
 		"locale":            "en",
 		"deliverySecretRef": secretRef,
 		"dedupeKey":         "dedupe-hash",

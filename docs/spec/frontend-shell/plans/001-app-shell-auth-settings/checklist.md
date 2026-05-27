@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: completed
 > **更新日期**: 2026-05-27
 
@@ -65,7 +65,7 @@
 - [x] 6.5 Phase 6 operation matrix；验证: plan.md 固化 `getRuntimeConfig` / `getMe` / `startAuthEmailChallenge` / `verifyAuthEmailChallenge` / `logout` 的 operationId、fixture、frontend consumer、backend handler、persistence、AI dependency、scenario coverage；context validator 与 docs-check 通过
   <!-- verified: 2026-05-11 method=docs evidence="plan.md Phase 6 operation matrix updated; validate_context.py frontend target PASS; make docs-check PASS" -->
 
-## Phase 7: Real passwordless mail-link remediation
+## Phase 7: Historical real passwordless mail-link remediation
 
 - [x] 7.1 `startAuthEmailChallenge` empty-body success；验证: generated client focused test 使用 `new Response(null, { status: 202 })` 断言 `startAuthEmailChallenge` resolve；App auth dispatch tests 断言登录和注册提交邮箱后不会抛 `Unexpected end of JSON input`，并导航到 `auth_verify`
   <!-- verified: 2026-05-27 command="pnpm --filter @easyinterview/frontend test src/api/generatedClient.test.ts src/api/clientFactory.test.ts src/app/routeUrl.test.ts src/app/auth/AuthScreens.test.tsx src/app/AppAuthDispatch.test.tsx src/app/auth/AuthVisual.test.tsx src/app/scenarios/p0-089-url-routing-auth-privacy.test.tsx && pnpm --filter @easyinterview/frontend build" evidence="75 focused tests passed; frontend build passed; generated client accepts 202 empty body and login/register submit routes to auth_verify" -->
@@ -73,3 +73,14 @@
   <!-- verified: 2026-05-27 command="pnpm --filter @easyinterview/frontend test src/api/generatedClient.test.ts src/api/clientFactory.test.ts src/app/routeUrl.test.ts src/app/auth/AuthScreens.test.tsx src/app/AppAuthDispatch.test.tsx src/app/auth/AuthVisual.test.tsx src/app/scenarios/p0-089-url-routing-auth-privacy.test.tsx" evidence="routeUrl/auth/App tests passed; auth_verify consumes token query, calls verifyAuthEmailChallenge, replaces restored URL, and keeps manual token fallback" -->
 - [x] 7.3 Local dev Mailpit handoff；验证: `EMAIL_VERIFY_BASE_URL` 默认值、dev-stack README、P0.100 场景材料、backend SMTP writer test、dev CORS origin 派生测试与 token redline 均指向前端 `/auth/verify` callback；后端 API verify endpoint 仍只由前端 generated client 调用；frontend real mode 必须显式配置 `VITE_EI_API_BASE_URL`
   <!-- verified: 2026-05-27 command="go test ./backend/internal/auth -run 'TestSMTPDeliveryWriter|TestSQLChallengeEmailLookup|TestPasswordlessSessionBDD|TestPasswordlessService|TestAuthObservabilityDoesNotLeak' -count=1 && go test ./backend/cmd/api -run 'TestLocalDevCORS|TestBuildAuthServiceUsesMailpitDeliveryWriterWhenConfigured|TestBuildAuthServiceRejectsEmptyAuthSecrets|TestLocalDevCORSAllowsFrontendRealModeOrigins' -count=1 && go test ./backend/cmd/codegen/openapi -count=1 && make lint-config && make lint-mock-contract && make docs-check && bash -n test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh && git diff --check" evidence="backend auth/cmd/api/codegen tests passed; CORS origin derives from EMAIL_VERIFY_BASE_URL; fixtures validate; docs/index/link gates and shell syntax passed" -->
+
+## Phase 8: Email-code auth and display-name remediation
+
+- [x] 8.1 Register/login purpose and displayName pass-through；验证: AuthRegisterScreen / AppAuthDispatch tests 断言注册提交 `purpose=signup` + trimmed `displayName` 给 `startAuthEmailChallenge`，登录页提交 `purpose=login` 且不传 displayName，verify 成功恢复业务 route 时不携带 displayName
+  <!-- verified: 2026-05-27 command="pnpm --filter @easyinterview/frontend test src/app/auth/AuthScreens.test.tsx src/app/AppAuthDispatch.test.tsx src/app/routeUrl.test.ts src/app/topbar/TopBar.test.tsx" evidence="58 focused tests passed" -->
+- [x] 8.2 Six-digit code verify UI；验证: AuthVerifyScreen tests 断言 input 为 numeric one-time-code、最多 6 位、过滤非数字、generated verify query 仍传 `token=<code>`，auth/i18n 文案不含 link/token 口径
+  <!-- verified: 2026-05-27 command="pnpm --filter @easyinterview/frontend test src/app/auth/AuthScreens.test.tsx src/app/AppAuthDispatch.test.tsx src/app/routeUrl.test.ts src/app/topbar/TopBar.test.tsx && pnpm --filter @easyinterview/frontend build" evidence="manual code UI tests passed; production build passed" -->
+- [x] 8.3 TopBar user fallback cleanup；验证: TopBar tests 断言缺 displayName / emailMasked 时展示中性 fallback，不出现 `刘哲` / `Liu Zhe` / `liuzhe@example.com`
+  <!-- verified: 2026-05-27 command="pnpm --filter @easyinterview/frontend test src/app/topbar/TopBar.test.tsx" evidence="TopBar fallback tests passed" -->
+- [x] 8.4 BDD-Gate: 验证 E2E.P0.101 通过；验证: Playwright real-mode auth email-code 使用同一邮箱完成 register -> logout -> login，注册后和再次登录后 TopBar 显示同一 displayName，重复注册同一 email 在发码前被拒绝且不覆盖 displayName，邮件和 evidence 不含 magic link 或 `/auth/verify?token=`
+  <!-- verified: 2026-05-27 command="bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/setup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/trigger.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/verify.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/cleanup.sh" evidence="P0.101 PASS: register/login same email, duplicate-register finalUrl=/auth/register mailSubject=not-sent, consoleErrors=0 pageErrors=0 httpFailures=0" -->

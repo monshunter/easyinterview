@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 )
 
 type TokenGenerator interface {
@@ -20,6 +21,16 @@ func (SecureTokenGenerator) GenerateToken() (string, error) {
 		return "", fmt.Errorf("generate token: %w", err)
 	}
 	return base64.RawURLEncoding.EncodeToString(raw[:]), nil
+}
+
+type SixDigitCodeGenerator struct{}
+
+func (SixDigitCodeGenerator) GenerateToken() (string, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
+	if err != nil {
+		return "", fmt.Errorf("generate email code: %w", err)
+	}
+	return fmt.Sprintf("%06d", n.Int64()), nil
 }
 
 func hashWithPepper(pepper, value string) string {

@@ -9,7 +9,7 @@ info:
     additive-only / breaking-change rules locked in spec §4.4 and ADR review flow.
 
     Auth path follows ADR-Q1: first-party session cookie minted by
-    `GET /api/v1/auth/email/verify` after the magic-link challenge issued by
+    `GET /api/v1/auth/email/verify` after the email-code challenge issued by
     `POST /api/v1/auth/email/start`. `Authorization: Bearer` is **not** a P0
     default scheme.
   contact:
@@ -22,7 +22,7 @@ servers:
 
 tags:
   - name: Auth
-    description: Session bootstrap (magic link), session teardown, runtime user context, and public runtime config.
+    description: Session bootstrap (email code), session teardown, runtime user context, and public runtime config.
   - name: Uploads
     description: Pre-signed object-storage URLs for resume / JD attachment uploads.
   - name: Profile
@@ -116,11 +116,14 @@ paths:
     post:
       tags: [Auth]
       operationId: startAuthEmailChallenge
-      summary: Issue a passwordless email magic-link challenge
+      summary: Issue a passwordless email-code challenge
       description: |
-        Public endpoint per ADR-Q1. Sends a single-use magic link to the
-        supplied email. Rate limited per ADR-Q1 risk-control baseline; does
-        **not** carry an `Idempotency-Key` (rate-limit + challenge TTL handle
+        Public endpoint per ADR-Q1. Sends a single-use 6-digit code to the
+        supplied email. `purpose=signup` creates a registration challenge for
+        a not-yet-registered email and may include a non-unique display name;
+        `purpose=login` creates a login challenge for an already registered
+        email. Rate limited per ADR-Q1 risk-control baseline; does **not**
+        carry an `Idempotency-Key` (rate-limit + challenge TTL handle
         deduplication).
       security: []
       parameters:
@@ -144,12 +147,13 @@ paths:
     get:
       tags: [Auth]
       operationId: verifyAuthEmailChallenge
-      summary: Verify magic-link challenge and mint a session cookie
+      summary: Verify email-code challenge and mint a session cookie
       description: |
-        Public endpoint per ADR-Q1. Consumes the single-use magic-link token
+        Public endpoint per ADR-Q1. Consumes the single-use 6-digit email code
         and, on success, sets the first-party session cookie via `Set-Cookie`.
         The response body conveys non-secret hints; the cookie value never
-        appears in the JSON body.
+        appears in the JSON body. The wire query name remains `token` for B2
+        operation stability, but the value is the 6-digit code shown in email.
       security: []
       parameters:
         - name: token
@@ -157,7 +161,10 @@ paths:
           required: true
           schema:
             type: string
-          description: One-shot challenge token issued by `startAuthEmailChallenge`.
+            minLength: 6
+            maxLength: 6
+            pattern: '^[0-9]{6}$'
+          description: Six-digit one-shot email code issued by `startAuthEmailChallenge`.
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
         - $ref: '#/components/parameters/AcceptLanguage'
@@ -2374,11 +2381,24 @@ components:
     AuthEmailStartRequest:
       type: object
       required: [email]
-      description: Magic-link challenge request per ADR-Q1. No `Idempotency-Key`; rate-limited per ADR-Q1.
+      description: Email-code challenge request per ADR-Q1. No `Idempotency-Key`; rate-limited per ADR-Q1.
       properties:
         email:
           type: string
           format: email
+        purpose:
+          type: string
+          enum: [login, signup]
+          default: login
+          description: |
+            `login` verifies an already registered email. `signup` registers a
+            new unique email; display names are user profile text and are not
+            unique account identifiers.
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Optional non-unique display name captured during signup.
         returnTo:
           type: string
           description: Optional post-verify redirect path on the same origin.

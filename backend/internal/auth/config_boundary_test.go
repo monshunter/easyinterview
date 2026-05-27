@@ -12,7 +12,7 @@ func TestPasswordlessConfigBoundaryConstants(t *testing.T) {
 	if auth.SessionCookieName != "ei_session" {
 		t.Fatalf("SessionCookieName = %q", auth.SessionCookieName)
 	}
-	if auth.ChallengeTTL != 15*time.Minute {
+	if auth.ChallengeTTL != 5*time.Minute {
 		t.Fatalf("ChallengeTTL = %s", auth.ChallengeTTL)
 	}
 	if auth.SessionTTL != 30*24*time.Hour {

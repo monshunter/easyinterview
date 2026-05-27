@@ -10,7 +10,7 @@
 
 - [x] 创建 owner plan 文档并保留场景 ID `E2E.P0.100`
 - [x] 准备 hybrid e2e 场景目录 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/`
-- [x] 准备账号材料：UAT email、Mailpit URL、magic-link 验证步骤、cookie 检查和 cleanup
+- [x] 准备账号材料：UAT email、Mailpit URL、email-code 验证步骤、cookie 检查和 cleanup
 - [x] 准备输入材料：双语 JD、双语简历、作答样例、期望观察点
 - [x] 准备真实环境 runbook：dev-stack、migrate、backend real provider、frontend real mode、secret redline、无 mock/stub 边界
 - [x] 准备人工执行 checklist：全漏斗、AI provider evidence、隐私、legacy-negative、证据路径
@@ -26,7 +26,7 @@
   <!-- verified: 2026-05-27 command="bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh && cat .test-output/e2e/p0-100-real-provider-full-funnel-hybrid/result.json" evidence="AI Agent first-run scripts produced PASS only after current RUN_ID evidence was present and redline-clean; missing real-provider/browser evidence remains MANUAL_REQUIRED by contract" -->
 - [x] 统一使用 `deploy/dev-stack/.env`，不维护场景专属 `dev-real.env`
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="contract test confirms E2E.P0.100 trigger reads deploy/dev-stack/.env and rejects scenario-specific dev-real.env references" -->
-- [x] 固化 RUN_ID / evidence redline BDD gate：`setup.env` 的 `RUN_ID` 必须匹配 `evidence.md` 的 `run_id`，`scan_evidence_redline` 必须在 `trigger.sh` 与 `verify.sh` 中拒绝 provider key、auth secret、session cookie、magic-link token、prompt body、response body
+- [x] 固化 RUN_ID / evidence redline BDD gate：`setup.env` 的 `RUN_ID` 必须匹配 `evidence.md` 的 `run_id`，`scan_evidence_redline` 必须在 `trigger.sh` 与 `verify.sh` 中拒绝 provider key、auth secret、session cookie、raw email code、prompt body、response body
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh" evidence="owner docs and BDD docs expose RUN_ID/current-evidence and evidence redline gates; 12 contract tests pass; trigger/verify accepted current run evidence only after scan_evidence_redline passed" -->
 - [x] 固化 env consumer gate：`env-setup.sh --with-migrations`、`env-redeploy.sh frontend` 与 `E2E.P0.100` trigger 都必须消费 `deploy/dev-stack/.env`，并拒绝场景专属 env、frontend fixture mock 或 `Prefer: example=<scenario>`
   <!-- verified: 2026-05-27 command="bash test/scenarios/env-setup.sh --with-migrations && cd frontend && set -a && . ../deploy/dev-stack/.env && set +a && pnpm build && python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="owner docs and BDD docs expose env consumer gate for setup migrations, frontend real-mode build, and trigger; 12 contract tests pass" -->

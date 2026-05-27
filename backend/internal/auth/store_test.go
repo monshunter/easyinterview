@@ -39,6 +39,7 @@ func TestSQLStoreAuthTableBoundaries(t *testing.T) {
 			"018f2a40-0000-7000-9000-000000000001",
 			sqlmock.AnyArg(),
 			"candidate@example.com",
+			sqlmock.AnyArg(),
 			"challenge-hash",
 			"login",
 			"ip-hash",

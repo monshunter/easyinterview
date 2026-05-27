@@ -4,10 +4,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 SCENARIO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-101-auth-mail-link-login-register"
+OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-101-auth-email-code-login-register"
 RUN_ID="e2e-p0-101-$(date -u '+%Y%m%d%H%M%S')-$$"
-LOGIN_EMAIL="auth-mail-link-login-${RUN_ID}@example.test"
-REGISTER_EMAIL="auth-mail-link-register-${RUN_ID}@example.test"
+AUTH_EMAIL="auth-email-code-${RUN_ID}@example.test"
 
 mkdir -p "$OUTPUT_DIR"
 rm -rf "$OUTPUT_DIR/playwright"
@@ -33,8 +32,7 @@ done
 {
   echo "scenario=E2E.P0.101"
   echo "RUN_ID=$RUN_ID"
-  echo "LOGIN_EMAIL=$LOGIN_EMAIL"
-  echo "REGISTER_EMAIL=$REGISTER_EMAIL"
+  echo "AUTH_EMAIL=$AUTH_EMAIL"
   echo "FRONTEND_ORIGIN=http://127.0.0.1:5173"
   echo "API_BASE_URL=http://127.0.0.1:8080/api/v1"
   echo "MAILPIT_BASE_URL=http://127.0.0.1:8025"

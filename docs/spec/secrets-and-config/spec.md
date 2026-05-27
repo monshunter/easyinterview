@@ -1,6 +1,6 @@
 # Secrets and Config Spec
 
-> **版本**: 2.10
+> **版本**: 2.11
 > **状态**: active
 > **更新日期**: 2026-05-27
 
@@ -44,7 +44,7 @@
 - 真正部署 PostHog：归 [F2](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) + [E4](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)；A2 默认本地栈只要求 no-op / file-backed dev mode 不阻塞启动。
 - Vault / SOPS / platform secret 实施：归 P1 / E4；本 spec 仅锁接口，K8s Secret 不再作为当前 P0 默认路径。
 - Build-time 注入工具链（Vite envsubst / esbuild defines）：归 [D1 `frontend-shell`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) + [A5 `ci-pipeline-baseline`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)。
-- Auth / session 业务语义（magic link challenge 表、server-side sessions 表、cookie 生命周期、风控阈值）：归 [C1 `backend-auth`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md)；本 spec 只登记 C1 运行所需 secret/env key，并保证它们进入红线与 redaction。
+- Auth / session 业务语义（email-code challenge 表、server-side sessions 表、cookie 生命周期、风控阈值）：归 [C1 `backend-auth`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md)；本 spec 只登记 C1 运行所需 secret/env key，并保证它们进入红线与 redaction。
 - 数据库 migration / schema：归 [B4](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)。
 - 业务模块的 config 消费现场：归各 C / D 域。
 
@@ -81,7 +81,7 @@
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | 条件 | `(空，默认不上报)` | 配置了可选观测或生产 OTel Collector 时填写 OTLP HTTP endpoint | A4（F1 复用） |
 | `LOG_LEVEL` | 是 | `info` | `debug/info/warn/error` | A4 |
 | `SESSION_COOKIE_SECRET` | prod 必填 | `(空，dev 由 init 生成)` | secret；用于 `ei_session` first-party session cookie 签名 / 加密，server-side `sessions` 表仍是会话真理源 | A4（C1 owner，ADR-Q1） |
-| `AUTH_CHALLENGE_TOKEN_PEPPER` | prod 必填 | `(空，dev 由 init 生成)` | secret；用于 magic link challenge token hash pepper，原始 token 不入库 / 不进日志 | A4（C1 owner，ADR-Q1） |
+| `AUTH_CHALLENGE_TOKEN_PEPPER` | prod 必填 | `(空，dev 由 init 生成)` | secret；用于 email code challenge hash pepper，原始 code 不入库 / 不进日志 | A4（C1 owner，ADR-Q1） |
 | `AI_PROVIDER_REGISTRY_PATH` | 是 | `config/ai-providers.yaml` | AI provider registry 文件路径；registry 内声明 provider ref、protocol、capabilities 与 secret env ref | A4（A3 owner） |
 | `AI_PROVIDER_BASE_URL` | 条件 | `(空；仅默认 provider ref 引用时需要)` | 默认 OpenAI-compatible provider ref 可引用的 base URL env；不再代表全局唯一 AI provider contract | A4（A3 owner） |
 | `AI_PROVIDER_API_KEY` | 条件 | `(空；仅默认 provider ref 引用时需要)` | 默认 OpenAI-compatible provider ref 可引用的 API key env；非 test 环境中被选中 provider 缺 secret 时 fail-fast | A4（A3 owner） |
@@ -97,11 +97,11 @@
 | `POSTHOG_SELF_HOSTED` | 条件 | `false` | staging / prod 使用 PostHog 时必须为 `true`；防止误接 PostHog Cloud | A4（F2 owner） |
 | `POSTHOG_PROJECT_API_KEY` | 条件 | `(空)` | secret | A4（F2 owner） |
 | `POSTHOG_PUBLIC_KEY` | 条件 | `(空，dev 占位)` | 暴露给前端的 public key；仅前端 analytics 初始化需要 | A4（F2 owner） |
-| `EMAIL_PROVIDER` | prod 必填 | `mailpit`（local dev） | passwordless magic link 发件方；local dev 默认走 Mailpit，本地测试不依赖外部邮箱服务 | A4（C1 owner，ADR-Q1） |
+| `EMAIL_PROVIDER` | prod 必填 | `mailpit`（local dev） | passwordless email code 发件方；local dev 默认走 Mailpit，本地测试不依赖外部邮箱服务 | A4（C1 owner，ADR-Q1） |
 | `EMAIL_SMTP_HOST` | 条件 | `127.0.0.1` | `EMAIL_PROVIDER=mailpit` 或 SMTP writer 时的 SMTP host | A4（C1 owner） |
 | `EMAIL_SMTP_PORT` | 条件 | `1025` | `EMAIL_PROVIDER=mailpit` 或 SMTP writer 时的 SMTP port | A4（C1 owner） |
-| `EMAIL_FROM_ADDRESS` | 条件 | `noreply@easyinterview.local` | magic-link 邮件 envelope/header From；不得写个人邮箱 | A4（C1 owner） |
-| `EMAIL_VERIFY_BASE_URL` | 条件 | `http://127.0.0.1:5173/auth/verify` | magic-link 邮件中的 verify URL base；local dev 指向宿主机 frontend callback，frontend 再调用 backend verify API | A4（C1 owner） |
+| `EMAIL_FROM_ADDRESS` | 条件 | `noreply@easyinterview.local` | email-code 邮件 envelope/header From；不得写个人邮箱 | A4（C1 owner） |
+| `EMAIL_VERIFY_BASE_URL` | 条件 | `http://127.0.0.1:5173/auth/verify` | local dev frontend origin / dev CORS 推导来源；当前 code-only 邮件正文不得拼入该 URL | A4（C1 owner） |
 | `EMAIL_PROVIDER_API_KEY` | prod 必填 | `(空)` | secret | A4（C1 owner） |
 
 #### 3.1.2 Canonical config schema 分类
@@ -124,7 +124,7 @@
 | `auth.sessionCookieName` | `(无 env key；ADR-Q1 固定)` | 否 | fixed literal `ei_session` | 否 | ADR-Q1 + A4 + C1 |
 | `auth.challengeTokenPepper` | `AUTH_CHALLENGE_TOKEN_PEPPER` | 是 | prod required；dev init generated | 否 | A4 + C1 |
 | `email.provider` / `email.providerApiKey` | `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY` | provider 否；apiKey 是 | prod required；dev Mailpit 可不需要 apiKey | 否 | A4 + C1 |
-| `email.smtpHost` / `email.smtpPort` / `email.fromAddress` / `email.verifyBaseURL` | `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` | 否 | required when `EMAIL_PROVIDER=mailpit` 或 SMTP writer 启用；local dev defaults point to Mailpit on `127.0.0.1:1025` and frontend verify callback on `127.0.0.1:5173` | 否 | A4 + C1 + local-dev-stack |
+| `email.smtpHost` / `email.smtpPort` / `email.fromAddress` / `email.verifyBaseURL` | `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` | 否 | required when `EMAIL_PROVIDER=mailpit` 或 SMTP writer 启用；local dev SMTP defaults point to Mailpit on `127.0.0.1:1025`，`email.verifyBaseURL` 仅保留为 frontend origin / dev CORS 推导来源 | 否 | A4 + C1 + local-dev-stack |
 | `ai.providerRegistryPath` | `AI_PROVIDER_REGISTRY_PATH` | 否 | always | 否 | A4 + A3 |
 | `ai.defaultProviderBaseURL` / `ai.defaultProviderApiKey` | `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` | baseURL 否；apiKey 是 | required only when provider registry references these env names and the corresponding AIClient-enabled component starts；`APP_ENV=test` may use stub | 否 | A4 + A3 |
 | `ai.doubaoSpeechBaseURL` / `ai.doubaoSpeechApiKey` | `DOUBAO_SPEECH_BASE_URL` / `DOUBAO_SPEECH_API_KEY` | baseURL 否；apiKey 是 | required only when doubao_speech provider is selected；`APP_ENV=test` may use stub | 否 | A4 + A3 |

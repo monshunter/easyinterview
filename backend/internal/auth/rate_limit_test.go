@@ -77,7 +77,11 @@ func (s *rateLimitStore) ConsumeChallenge(context.Context, string, time.Time) (a
 	panic("not used")
 }
 
-func (s *rateLimitStore) FindOrCreateUserByEmail(context.Context, string, string, time.Time) (auth.UserContext, error) {
+func (s *rateLimitStore) CreateUserByEmail(context.Context, string, string, string, time.Time) (auth.UserContext, error) {
+	panic("not used")
+}
+
+func (s *rateLimitStore) FindUserByEmail(context.Context, string) (auth.UserContext, error) {
 	panic("not used")
 }
 

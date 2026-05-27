@@ -1,6 +1,6 @@
 # Frontend Shell BDD Plan
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
 > **更新日期**: 2026-05-27
 
@@ -23,9 +23,15 @@
 |---------|------|-------|------|------|----------|
 | E2E.P0.032 | Dev mock 登录态菜单与退出闭环 | 用户在 Vite dev 默认 fixture-backed mock App 中打开首页，初始没有 session | 用户完成 passwordless mock 登录，打开头像菜单，进入 profile/settings，再执行退出登录 | 默认首屏是非登录态；登录后 TopBar 显示与 `ui-design/src/app.jsx` 一致的头像 chip + dropdown；profile/settings/logout 均可从 dropdown 分流；logout 后 `/me` 回到 unauthenticated，TopBar 回到登录 / 注册，旧 inline 三按钮结构不回流 | `test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/` |
 
-## Phase 7: Real passwordless mail-link remediation
+## Phase 7: Historical real passwordless mail-link remediation
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.002 | 202 空响应 + 手动 token fallback | 未登录用户从 workspace 触发 auth gate；真实 backend 的 `startAuthEmailChallenge` 返回 `202 Accepted` 且无 response body | 前端提交邮箱并进入 `auth_verify`，用户粘贴登录 token 后验证 | generated client 不抛 JSON parse error；App 保留 pendingAction 并在验证成功后恢复 practice route | `frontend/src/api/generatedClient.test.ts` + `frontend/src/app/AppAuthDispatch.test.tsx` + `test/scenarios/e2e/p0-002-auth-pending-action-resume/` |
-| E2E.P0.100 | Mailpit magic-link callback | 本地 dev-stack 使用 Mailpit，`EMAIL_VERIFY_BASE_URL` 指向 frontend `/auth/verify` callback，frontend real mode 显式配置 backend API base | 用户在登录/注册页提交 synthetic 邮箱并点击 Mailpit 邮件链接 | 前端自动调用 `verifyAuthEmailChallenge`，签发 `ei_session`，replace 清理 URL token，TopBar 显示登录态 | `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` + focused App auth dispatch tests |
+| E2E.P0.002 | 202 空响应 + 手动 code fallback | 未登录用户从 workspace 触发 auth gate；真实 backend 的 `startAuthEmailChallenge` 返回 `202 Accepted` 且无 response body | 前端提交邮箱并进入 `auth_verify`，用户输入 6 位验证码后验证 | generated client 不抛 JSON parse error；App 保留 pendingAction 并在验证成功后恢复 practice route | `frontend/src/api/generatedClient.test.ts` + `frontend/src/app/AppAuthDispatch.test.tsx` + `test/scenarios/e2e/p0-002-auth-pending-action-resume/` |
+| E2E.P0.100 | Mailpit magic-link callback | 已由 Phase 8 code-only 邮件取代 | 不作为当前完成证据 | 不作为当前完成证据；当前 real Mailpit auth 验收使用 E2E.P0.101 | `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` + focused App auth dispatch tests |
+
+## Phase 8: Email-code auth and display-name remediation
+
+| 场景 ID | 场景 | Given | When | Then | 验证入口 |
+|---------|------|-------|------|------|----------|
+| E2E.P0.101 | Mailpit email-code register-then-login | 本地 frontend real mode、backend 和 Mailpit 可用；邮箱是唯一账号标识，注册邮箱就是后续登录邮箱；注册页填写 displayName | 用户用注册页提交唯一邮箱 + displayName，从 Mailpit 邮件正文读取 6 位验证码，在 `auth_verify` 手动输入 code；退出后用同一邮箱从登录页再次完成 code verify；再尝试用注册页重复提交同一邮箱 | 注册和再次登录均签发同一邮箱账号的 `ei_session`；注册后和再次登录后 TopBar 显示注册 displayName；重复注册同一邮箱在 start 阶段被拒绝，不进入 verify、不发送新 code、不覆盖 displayName；邮件、URL 和 evidence 不含 magic link、`/auth/verify?token=`、`刘哲` / `Liu Zhe` / `liuzhe@example.com` | `test/scenarios/e2e/p0-101-auth-email-code-login-register/` |

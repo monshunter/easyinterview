@@ -123,7 +123,11 @@ func (s *logoutStore) ConsumeChallenge(context.Context, string, time.Time) (auth
 	panic("not used")
 }
 
-func (s *logoutStore) FindOrCreateUserByEmail(context.Context, string, string, time.Time) (auth.UserContext, error) {
+func (s *logoutStore) CreateUserByEmail(context.Context, string, string, string, time.Time) (auth.UserContext, error) {
+	panic("not used")
+}
+
+func (s *logoutStore) FindUserByEmail(context.Context, string) (auth.UserContext, error) {
 	panic("not used")
 }
 

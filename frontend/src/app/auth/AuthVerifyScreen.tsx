@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type FC,
-  type FormEvent,
-} from "react";
+import { useCallback, useState, type FC, type FormEvent } from "react";
 
 import { normalizeRoute, type LooseRoute } from "../normalizeRoute";
 import { useI18n } from "../i18n/messages";
@@ -23,7 +16,6 @@ export interface AuthVerifyRequest {
 export interface AuthVerifyScreenProps {
   route: Route;
   onNavigate: (next: LooseRoute) => void;
-  onReplace?: (next: LooseRoute) => void;
   /**
    * Wires `verifyAuthEmailChallenge`. The generated client mints the session
    * cookie automatically; on success we restore the pending action route from
@@ -37,9 +29,8 @@ function buildResumeRoute(params: Record<string, string>): LooseRoute {
   const decoded = decodePendingActionRoute(params);
   if (decoded) return decoded;
 
-  // Backwards-compat path: B2 / external email links may still surface a
-  // raw `returnTo` path. Treat it as a route name candidate and pass any
-  // interview-context keys through.
+  // External auth handoffs may still surface a raw `returnTo` path. Treat it
+  // as a route name candidate and pass interview-context keys through.
   const resumeParams: Record<string, string> = {};
   for (const key of PENDING_ACTION_INTERVIEW_KEYS) {
     const value = params[key];
@@ -61,44 +52,35 @@ function buildResumeRoute(params: Record<string, string>): LooseRoute {
 export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
   route,
   onNavigate,
-  onReplace,
   onVerify,
 }) => {
   const { t } = useI18n();
   const [code, setCode] = useState("");
-  const [linkStatus, setLinkStatus] = useState<"idle" | "pending" | "failed">(
-    route.params.token ? "pending" : "idle",
-  );
-  const autoVerifyTokenRef = useRef("");
+  const [verifyFailed, setVerifyFailed] = useState(false);
   const hasPendingAction = decodePendingActionRoute(route.params) !== null;
-  const magicLinkToken = route.params.token?.trim() ?? "";
   const completeVerify = useCallback(
-    (mode: "push" | "replace") => {
+    () => {
       const next = buildResumeRoute(route.params);
-      if (mode === "replace" && onReplace) {
-        onReplace(next);
-        return;
-      }
       onNavigate(next);
     },
-    [onNavigate, onReplace, route.params],
+    [onNavigate, route.params],
   );
-
-  useEffect(() => {
-    if (!magicLinkToken || autoVerifyTokenRef.current === magicLinkToken) return;
-    autoVerifyTokenRef.current = magicLinkToken;
-    setLinkStatus("pending");
-    void onVerify({ token: magicLinkToken })
-      .then(() => completeVerify("replace"))
-      .catch(() => setLinkStatus("failed"));
-  }, [completeVerify, magicLinkToken, onVerify]);
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmed = code.trim();
-    if (!trimmed) return;
-    await onVerify({ token: trimmed });
-    completeVerify("push");
+    if (trimmed.length !== 6) return;
+    setVerifyFailed(false);
+    try {
+      await onVerify({ token: trimmed });
+      completeVerify();
+    } catch {
+      setVerifyFailed(true);
+    }
+  };
+
+  const updateCode = (value: string) => {
+    setCode(value.replace(/\D/g, "").slice(0, 6));
   };
 
   return (
@@ -117,18 +99,12 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
           {t("auth.verifySentPrefix")} {route.params.email}
         </p>
       ) : null}
-      {magicLinkToken ? (
+      {verifyFailed ? (
         <p
-          data-testid="auth-verify-link-status"
-          className={`ei-auth-status ${
-            linkStatus === "failed"
-              ? "ei-auth-status--warn"
-              : "ei-auth-status--neutral"
-          }`}
+          data-testid="auth-verify-code-status"
+          className="ei-auth-status ei-auth-status--warn"
         >
-          {linkStatus === "failed"
-            ? t("auth.verifyLinkFailed")
-            : t("auth.verifyLinkPending")}
+          {t("auth.verifyLinkFailed")}
         </p>
       ) : null}
       <form
@@ -144,11 +120,12 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
             data-testid="auth-verify-code"
             className="ei-auth-field-input"
             type="text"
-            inputMode="text"
+            inputMode="numeric"
             autoComplete="one-time-code"
-            maxLength={256}
+            pattern="[0-9]*"
+            maxLength={6}
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={(e) => updateCode(e.target.value)}
             required
           />
         </label>
@@ -156,6 +133,7 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
           type="submit"
           data-testid="auth-verify-submit"
           className="ei-auth-cta"
+          disabled={code.length !== 6}
         >
           {t("auth.verifyContinue")}
         </button>

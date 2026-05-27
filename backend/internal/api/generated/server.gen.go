@@ -15,10 +15,10 @@ import (
 // 59-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
-	// startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email magic-link challenge
+	// startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email-code challenge
 	StartAuthEmailChallenge(w http.ResponseWriter, r *http.Request)
 
-	// verifyAuthEmailChallenge — get /auth/email/verify: Verify magic-link challenge and mint a session cookie
+	// verifyAuthEmailChallenge — get /auth/email/verify: Verify email-code challenge and mint a session cookie
 	VerifyAuthEmailChallenge(w http.ResponseWriter, r *http.Request)
 
 	// logout — post /auth/logout: Invalidate the current session

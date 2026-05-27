@@ -20,7 +20,7 @@ func TestAuthPrivacyObservableSurfacesDoNotLeakSecretsOrPII(t *testing.T) {
 		Store:           &recordingChallengeStore{},
 		Dispatcher:      dispatcher,
 		DeliverySecrets: sink,
-		TokenGenerator:  fixedTokenGenerator("raw-magic-token"),
+		TokenGenerator:  fixedTokenGenerator("123456"),
 		ChallengePepper: "pepper-secret",
 		Now:             func() time.Time { return time.Date(2026, 5, 6, 11, 10, 0, 0, time.UTC) },
 		NewID:           fixedIDs("challenge-privacy"),
@@ -48,15 +48,15 @@ func TestAuthPrivacyObservableSurfacesDoNotLeakSecretsOrPII(t *testing.T) {
 		NewID:                 fixedIDs("user-privacy", "session-privacy"),
 	})
 	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: verifyService})
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/email/verify?token=raw-magic-token", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/email/verify?token=123456", nil)
 	rec := httptest.NewRecorder()
 	handler.VerifyAuthEmailChallenge(rec, req)
 	assertNoAuthLeak(t, "verify response body", rec.Body.String())
 
-	failingHandler := auth.NewEmailDispatchHandler(&failingDeliveryWriter{err: fmt.Errorf("failed raw-magic-token candidate@example.com http://api.test/verify?token=raw-magic-token")})
+	failingHandler := auth.NewEmailDispatchHandler(&failingDeliveryWriter{err: fmt.Errorf("failed 123456 candidate@example.com http://api.test/verify?token=123456")})
 	rawPayload, err := json.Marshal(map[string]string{
 		"authChallengeId":   "challenge-privacy",
-		"templateKey":       "auth_magic_link",
+		"templateKey":       "auth_login_code",
 		"locale":            "en",
 		"deliverySecretRef": "auth_challenge:challenge-privacy",
 		"dedupeKey":         "dedupe-hash",
@@ -74,7 +74,7 @@ func TestAuthPrivacyObservableSurfacesDoNotLeakSecretsOrPII(t *testing.T) {
 func assertNoAuthLeak(t *testing.T, surface string, text string) {
 	t.Helper()
 	for _, forbidden := range []string{
-		"raw-magic-token",
+		"123456",
 		"raw-session-cookie",
 		"candidate@example.com",
 		"pepper-secret",

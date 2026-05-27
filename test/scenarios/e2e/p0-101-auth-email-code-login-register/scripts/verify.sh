@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
-OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-101-auth-mail-link-login-register"
+OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-101-auth-email-code-login-register"
 LOG="$OUTPUT_DIR/trigger.log"
 RESULT_FILE="$OUTPUT_DIR/result.json"
 
@@ -14,13 +14,14 @@ fi
 
 for marker in \
   "SCENARIO_RUNNER=E2E.P0.101" \
-  "PLAYWRIGHT_SPEC=frontend/tests/e2e/auth-mail-link.spec.ts" \
-  "PLAYWRIGHT_CONFIG=frontend/playwright.auth-mail-link.config.ts" \
-  "E2E.P0.101 login mail-link flow PASS" \
-  "E2E.P0.101 register mail-link flow PASS" \
-  "E2E.P0.101 auth mail-link login/register 2 flows passed" \
-  "mailLink=http://127.0.0.1:5173/auth/verify?token=<redacted>" \
-  "finalUrl=http://127.0.0.1:5173/" \
+  "PLAYWRIGHT_SPEC=frontend/tests/e2e/auth-email-code.spec.ts" \
+  "PLAYWRIGHT_CONFIG=frontend/playwright.auth-email-code.config.ts" \
+  "E2E.P0.101 register email-code flow PASS" \
+  "E2E.P0.101 login email-code flow PASS" \
+  "E2E.P0.101 duplicate-register email-code flow PASS" \
+  "E2E.P0.101 auth email-code same-email lifecycle passed" \
+  "mailCode=<redacted>" \
+  "email=auth-email-code-" \
   "meStatus=200" \
   "consoleErrors=0" \
   "pageErrors=0" \
@@ -39,6 +40,7 @@ fi
 
 for forbidden in \
   "http://127.0.0.1:8080/api/v1/auth/email/verify" \
+  "auth/verify?token=" \
   "ei_session=" \
   "SESSION_COOKIE_SECRET" \
   "AUTH_CHALLENGE_TOKEN_PEPPER"; do
@@ -48,8 +50,8 @@ for forbidden in \
   fi
 done
 
-if grep -Eq -- "auth/verify\\?token=[A-Za-z0-9_-]{8,}" "$LOG"; then
-  echo "verify: raw magic-link token leaked into trigger log" >&2
+if grep -Eq -- "(token|code|mailCode)=[0-9]{6}" "$LOG"; then
+  echo "verify: raw email verification code leaked into trigger log" >&2
   exit 1
 fi
 

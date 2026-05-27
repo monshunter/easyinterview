@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.26
+> **版本**: 1.27
 > **状态**: active
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-05-27
 
 ## 1 修订规则
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-27 | 1.27 | Auth tag 对齐 email-code challenge：`AuthEmailStartRequest` 增加可选 `purpose=signup\|login` 与 `displayName`，`verifyAuthEmailChallenge` 的 query `token` 收窄为 6 位 code。 | backend-auth/001 Phase 7 + frontend-shell/001 Phase 8 |
 | 2026-05-21 | 1.26 | 授权 backend-profile/001 cross-owner additive：（1）`createExperienceCard` / `updateExperienceCard` 两个 side-effect operation 追加 `$ref: '#/components/parameters/IdempotencyKey'`；fixture `openapi/fixtures/Profile/createExperienceCard.json` / `updateExperienceCard.json` default scenario request 携带 `Idempotency-Key` 示例 UUID。（2）`CandidateProfile` schema `headline` / `yearsOfExperience` / `currentRole` / `region` 字段追加 `nullable: true`，承接 backend-profile D-1 seed 后空字段以 JSON `null` 返回的语义；Go/TS generated artifacts 对应字段升级为指针 / 可空类型。（3）`ApiErrorCode` enum 新增 `RESOURCE_NOT_FOUND`（由 B1 spec 1.20 授权）。§3.1.1 endpoint inventory 不变仍 59；fixture validator、inventory lint、openapi-diff、codegen-check 均同步 PASS（additive only）。真实 handler 与 `cmd/api` IK middleware 挂载由 backend-profile/001 Phase 1-4 承接。 | backend-profile/001-candidate-profile-and-experience-cards Phase 1 |
 | 2026-05-18 | 1.25 | 授权 Resume Workshop real-backend follow-up additive：`RequestResumeTailorRequest` 新增 optional `resumeVersionId`，用于把重新运行的 tailor suggestions 绑定到当前 `ResumeVersion`；同时修复 breaking-change gate 的 accepted baseline 漂移，将 `openapi/baseline/openapi-v1.0.0.yaml` 重新冻结到 `main` 已接受的 59-operation 契约（不包含本行新增字段）并同步 `openapi/diff-config.yaml` endpointCount=59，使 `make openapi-diff` 只报告本次字段为 additive。 | frontend-resume-workshop/003-branch-rewrites-and-edit follow-up / BUG-0077 |
 | 2026-05-17 | 1.24 | 授权 backend-resume/002 Phase 1 structured master additive：`Resumes` tag 新增 `POST /api/v1/resumes/{resumeAssetId}/structured-master` / `confirmResumeStructuredMaster`，同步 `ConfirmResumeStructuredMasterRequest` schema、`RESUME_STRUCTURED_MASTER_ALREADY_EXISTS` 409 error enum、fixture、inventory lint、README、Go/TS generated artifacts 与 frontend dev mock fixture client test；§3.1.1 endpoint inventory 58→59。Additive，不引入 breaking change。 | backend-resume/002-versions-tailor-runs-and-save-v1 Phase 1 |

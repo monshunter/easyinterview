@@ -117,7 +117,9 @@ export interface UserContext {
 }
 
 export interface AuthEmailStartRequest {
+	displayName?: string;
 	email: string;
+	purpose?: "login" | "signup";
 	returnTo?: string;
 }
 

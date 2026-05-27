@@ -1,6 +1,6 @@
 # Frontend Shell BDD Checklist
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
 > **更新日期**: 2026-05-27
 
@@ -43,7 +43,7 @@
 - [x] 记录验证证据
 <!-- evidence: .test-output/e2e/p0-032-dev-mock-auth-state-and-user-menu/trigger.log (1 vitest test passed; verify.sh: dev mock auth state + avatar dropdown + logout evidence present; legacy/prototype leak gates clean) -->
 
-## Phase 7: Real passwordless mail-link remediation
+## Phase 7: Historical real passwordless mail-link remediation
 
 - [x] 覆盖 `startAuthEmailChallenge` 真实 `202 Accepted` 空响应：generated client 不抛 JSON parse error，登录/注册提交后进入 `auth_verify`
   <!-- verified: 2026-05-27 method=focused-tests evidence="generatedClient.test.ts + AppAuthDispatch.test.tsx PASS; real 202 empty body no longer triggers JSON parse failure" -->
@@ -51,3 +51,11 @@
   <!-- verified: 2026-05-27 method=focused-tests evidence="routeUrl.test.ts + AuthScreens.test.tsx + AppAuthDispatch.test.tsx PASS; token query is auth_verify-only and scrubbed after verify" -->
 - [x] 覆盖本地 Mailpit handoff：`EMAIL_VERIFY_BASE_URL` 指向 frontend callback，backend dev CORS origin 从该 URL 派生，frontend real mode 显式配置 `VITE_EI_API_BASE_URL`
   <!-- verified: 2026-05-27 method=backend-config-doc-gates evidence="backend SMTP writer/cmd API tests, make lint-config, make lint-mock-contract, make docs-check, P0.100 script bash -n, and git diff --check PASS" -->
+
+## Phase 8: Email-code auth and display-name remediation
+
+- [x] 覆盖 register/login purpose + displayName pass-through：注册提交体包含 `purpose=signup` 和 trimmed `displayName`，登录提交体包含 `purpose=login` 且不包含 displayName，业务 route 恢复不携带 displayName
+- [x] 覆盖 6 位 code verify UI：用户只能输入最多 6 位数字 code，提交后 generated client 仍调用 `verifyAuthEmailChallenge?token=<code>`
+- [x] 覆盖 TopBar fallback：缺 displayName / emailMasked 时展示中性 fallback，不展示 prototype 样例身份
+- [x] 覆盖 E2E.P0.101 email-code register-then-login：同一邮箱 register -> logout -> login，Mailpit 提取 code、前端输入 code、`/me` authenticated、注册 displayName 持续显示、重复注册在 start 阶段被拒绝且不覆盖 displayName、不发新 code，mail/evidence 无 magic link/token URL
+  <!-- evidence: .test-output/e2e/p0-101-auth-email-code-login-register/trigger.log (1 Playwright test passed; P0.101 verify.sh ok) -->

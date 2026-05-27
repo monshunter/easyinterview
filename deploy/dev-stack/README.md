@@ -1,6 +1,6 @@
 # Local Dev Stack
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
 > **更新日期**: 2026-05-27
 
@@ -31,7 +31,7 @@
 | `minio-init` | `minio/mc:RELEASE.2024-11-21T17-21-54Z` | — | 复用 minio-dev 凭据 | — (一次性 init job) |
 | `mailpit-dev` | `axllent/mailpit:v1.30.0` | `${MAILPIT_WEB_HOST_PORT:-8025}` Web UI + `${MAILPIT_SMTP_HOST_PORT:-1025}` SMTP | 无账号（dev only） | — |
 
-所有服务通过 bridge network `easyinterview-dev` 互访，短名解析（`postgres-dev` / `redis-dev` / `minio-dev` / `mailpit-dev`）。MinIO init 幂等创建默认 bucket `easyinterview-dev`；Mailpit 提供本地 magic-link 收信，不需要真实外部邮箱服务或真实邮箱账号。
+所有服务通过 bridge network `easyinterview-dev` 互访，短名解析（`postgres-dev` / `redis-dev` / `minio-dev` / `mailpit-dev`）。MinIO init 幂等创建默认 bucket `easyinterview-dev`；Mailpit 提供本地 6 位邮箱验证码收信，不需要真实外部邮箱服务或真实邮箱账号。
 
 ### 2.2 项目组件
 
@@ -134,9 +134,9 @@ test/scenarios/env-redeploy.sh all
 - `EMAIL_SMTP_HOST=127.0.0.1`
 - `EMAIL_SMTP_PORT=1025`
 - `EMAIL_FROM_ADDRESS=noreply@easyinterview.local`
-- `EMAIL_VERIFY_BASE_URL=http://127.0.0.1:5173/auth/verify`
+- `EMAIL_VERIFY_BASE_URL=http://127.0.0.1:5173/auth/verify`（当前仅作为本地 frontend origin / dev CORS 推导来源保留，不拼入邮件正文）
 
-Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启动后，`startAuthEmailChallenge` 会通过 `email_dispatch` handler 向 Mailpit SMTP 投递 magic-link 邮件；邮件链接默认回到前端 `/auth/verify` callback，由前端调用 `GET /api/v1/auth/email/verify` 兑换 session 并清理 URL token。backend dev CORS allowlist 从同一个 `EMAIL_VERIFY_BASE_URL` 解析 frontend origin，避免邮件回调端口和 CORS 端口分裂。人工 UAT 使用 synthetic `.example.test` 邮箱即可完成登录，不需要真实邮箱账号。若使用 `vite preview --port 4174` 作为唯一前端入口，本地 `.env` 的 `EMAIL_VERIFY_BASE_URL` 应同步改为 `http://127.0.0.1:4174/auth/verify`。
+Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启动后，`startAuthEmailChallenge` 会通过 `email_dispatch` handler 向 Mailpit SMTP 投递 code-only 邮件；邮件正文只包含 6 位验证码和过期提示，不包含 `/auth/verify?token=...` 链接或 backend verify API URL。人工 UAT 使用 synthetic `.example.test` 邮箱即可完成注册/登录，不需要真实邮箱账号：在前端验证页输入邮件中的 6 位 code 后，由前端调用 `GET /api/v1/auth/email/verify` 兑换 session。backend dev CORS allowlist 仍从 `EMAIL_VERIFY_BASE_URL` 解析 frontend origin，避免前端端口和 CORS 端口分裂。若使用 `vite preview --port 4174` 作为唯一前端入口，本地 `.env` 的 `EMAIL_VERIFY_BASE_URL` 应同步改为 `http://127.0.0.1:4174/auth/verify`。
 
 ## 5 与场景测试的关系
 

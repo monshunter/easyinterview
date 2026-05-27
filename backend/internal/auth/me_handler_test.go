@@ -85,7 +85,11 @@ func (s *meStore) ConsumeChallenge(context.Context, string, time.Time) (auth.Cha
 	panic("not used")
 }
 
-func (s *meStore) FindOrCreateUserByEmail(context.Context, string, string, time.Time) (auth.UserContext, error) {
+func (s *meStore) CreateUserByEmail(context.Context, string, string, string, time.Time) (auth.UserContext, error) {
+	panic("not used")
+}
+
+func (s *meStore) FindUserByEmail(context.Context, string) (auth.UserContext, error) {
 	panic("not used")
 }
 

@@ -22,16 +22,35 @@ export const AuthRegisterScreen: FC<AuthRegisterScreenProps> = ({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [agreed, setAgreed] = useState(false);
+  const [startFailed, setStartFailed] = useState(false);
   const returnTo = route.params.returnTo;
   const hasPendingAction = decodePendingActionRoute(route.params) !== null;
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmedEmail = email.trim();
-    if (!trimmedEmail || !agreed) return;
-    await onStartChallenge(
-      returnTo ? { email: trimmedEmail, returnTo } : { email: trimmedEmail },
-    );
+    const trimmedName = name.trim();
+    if (!trimmedEmail || !trimmedName || !agreed) return;
+    setStartFailed(false);
+    try {
+      await onStartChallenge(
+        returnTo
+          ? {
+              email: trimmedEmail,
+              purpose: "signup",
+              displayName: trimmedName,
+              returnTo,
+            }
+          : {
+              email: trimmedEmail,
+              purpose: "signup",
+              displayName: trimmedName,
+            },
+      );
+    } catch {
+      setStartFailed(true);
+      return;
+    }
     // Forward the entire route.params so any encoded pendingAction reaches
     // verify; email + optional displayName overlay on top.
     onNavigate({
@@ -39,7 +58,6 @@ export const AuthRegisterScreen: FC<AuthRegisterScreenProps> = ({
       params: {
         ...route.params,
         email: trimmedEmail,
-        ...(name.trim() ? { displayName: name.trim() } : {}),
       },
     });
   };
@@ -52,6 +70,14 @@ export const AuthRegisterScreen: FC<AuthRegisterScreenProps> = ({
       subKey="auth.register.sub"
       pendingAction={hasPendingAction}
     >
+      {startFailed ? (
+        <p
+          data-testid="auth-register-status"
+          className="ei-auth-status ei-auth-status--warn"
+        >
+          {t("auth.registerEmailExists")}
+        </p>
+      ) : null}
       <form
         data-testid="auth-register-form"
         className="ei-auth-form"
@@ -68,6 +94,7 @@ export const AuthRegisterScreen: FC<AuthRegisterScreenProps> = ({
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
+            required
           />
         </label>
         <label className="ei-auth-field">
@@ -112,7 +139,7 @@ export const AuthRegisterScreen: FC<AuthRegisterScreenProps> = ({
           type="submit"
           data-testid="auth-register-submit"
           className="ei-auth-cta"
-          disabled={!email.trim() || !agreed}
+          disabled={!email.trim() || !name.trim() || !agreed}
         >
           {t("auth.createAndVerify")}
         </button>

@@ -18,6 +18,7 @@ scan_evidence_redline() {
 	    "ei_session=" \
 	    "auth/email/verify\\?token=" \
 	    "auth/verify\\?token=" \
+    "(token|code|mailCode)=[0-9]{6}" \
     "prompt body" \
     "response body" \
     "prompt:" \
@@ -53,6 +54,8 @@ for forbidden in \
 	  "ei_session=" \
 	  "auth/email/verify?token=" \
 	  "auth/verify?token=" \
+  "token=123456" \
+  "code=123456" \
   "prompt body" \
   "response body"; do
   if grep -Fq -- "$forbidden" "$LOG"; then

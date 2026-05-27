@@ -68,7 +68,7 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 		Store:                 auth.NewSQLStore(db),
 		Dispatcher:            auth.NewImmediateMailDispatcher(authSink),
 		DeliverySecrets:       authSink,
-		TokenGenerator:        apiFixedTokenGenerator("upload-roundtrip-magic-token"),
+		TokenGenerator:        apiFixedTokenGenerator("123456"),
 		SessionTokenGenerator: apiFixedTokenGenerator(sessionToken),
 		ChallengePepper:       "upload-roundtrip-challenge-pepper",
 		SessionCookieSecret:   "upload-roundtrip-session-secret",
@@ -91,16 +91,16 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 	handler := buildAPIHandlerWithUploadAndHandlers(loader, apiRuntimeFlags{}, authService, runtime.Handler, practiceRoutes{}, uploadRoutes, resumeRoutes{})
 
 	start := httptest.NewRecorder()
-	handler.ServeHTTP(start, httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", strings.NewReader(`{"email":"`+email+`"}`)))
+	handler.ServeHTTP(start, httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", strings.NewReader(`{"email":"`+email+`","purpose":"signup","displayName":"Upload Roundtrip"}`)))
 	if start.Code != http.StatusAccepted {
 		t.Fatalf("start auth status = %d body=%s", start.Code, start.Body.String())
 	}
-	link, ok := authSink.MagicLinkForChallenge(challengeID)
+	code, ok := authSink.CodeForChallenge(challengeID)
 	if !ok {
-		t.Fatal("auth magic link was not delivered")
+		t.Fatal("auth email code was not delivered")
 	}
 	verify := httptest.NewRecorder()
-	handler.ServeHTTP(verify, httptest.NewRequest(http.MethodGet, "/api/v1/auth/email/verify?token="+url.QueryEscape(tokenFromMagicLinkForUploadRoundtrip(t, link)), nil))
+	handler.ServeHTTP(verify, httptest.NewRequest(http.MethodGet, "/api/v1/auth/email/verify?token="+url.QueryEscape(code), nil))
 	if verify.Code != http.StatusOK {
 		t.Fatalf("verify auth status = %d body=%s", verify.Code, verify.Body.String())
 	}
@@ -317,19 +317,6 @@ func uploadRoundtripMinIOEndpoint(raw string) (string, bool, error) {
 		secure = false
 	}
 	return endpoint, secure, nil
-}
-
-func tokenFromMagicLinkForUploadRoundtrip(t *testing.T, link string) string {
-	t.Helper()
-	u, err := url.Parse(link)
-	if err != nil {
-		t.Fatalf("parse magic link: %v", err)
-	}
-	token := u.Query().Get("token")
-	if token == "" {
-		t.Fatalf("magic link missing token: %s", link)
-	}
-	return token
 }
 
 func requireUploadRoundtripSessionCookie(t *testing.T, rec *httptest.ResponseRecorder) *http.Cookie {

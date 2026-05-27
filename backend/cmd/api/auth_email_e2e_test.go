@@ -18,7 +18,7 @@ import (
 
 // TestAuthEmailEndToEnd proves the spec D-10 / D-14 contract: starting an email
 // challenge enqueues an email_dispatch async_jobs row, and the runner kernel
-// EmailDispatchHandler delivers the magic link within a single scan cycle.
+// EmailDispatchHandler delivers the login code within a single scan cycle.
 func TestAuthEmailEndToEnd(t *testing.T) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -72,7 +72,7 @@ func TestAuthEmailEndToEnd(t *testing.T) {
 		t.Fatalf("job_type=%s status=%s, want email_dispatch/queued", jobType, status)
 	}
 
-	// One kernel scan cycle delivers the magic link.
+	// One kernel scan cycle delivers the login code.
 	kernel := runner.New(runner.Options{Store: runner.NewSQLStore(db), Config: testRunnerConfig()})
 	kernel.Register(string(jobs.JobTypeEmailDispatch), auth.NewEmailDispatchHandler(sink))
 	processed, err := kernel.RunOnce(ctx)
@@ -82,8 +82,8 @@ func TestAuthEmailEndToEnd(t *testing.T) {
 	if !processed {
 		t.Fatalf("kernel did not process the email_dispatch job")
 	}
-	link, ok := sink.MagicLinkForChallenge(challengeID)
-	if !ok || link == "" {
-		t.Fatalf("magic link not delivered within one scan cycle (ok=%v)", ok)
+	code, ok := sink.CodeForChallenge(challengeID)
+	if !ok || code == "" {
+		t.Fatalf("login code not delivered within one scan cycle (ok=%v)", ok)
 	}
 }

@@ -116,8 +116,11 @@ export const TopBar: FC<TopBarProps> = ({
     },
     [accentValue, prefs],
   );
-  const userName = user?.displayName?.trim() || (prefs.lang === "en" ? "Liu Zhe" : "刘哲");
-  const userEmail = user?.emailMasked?.trim() || "liuzhe@example.com";
+  const userName =
+    user?.displayName?.trim() || (prefs.lang === "en" ? "Candidate" : "候选人");
+  const userEmail =
+    user?.emailMasked?.trim() ||
+    (prefs.lang === "en" ? "Email unavailable" : "邮箱未提供");
   const userInitials = getInitials(userName);
 
   const navigateFromUserMenu = (route: LooseRoute) => {

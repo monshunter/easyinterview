@@ -147,6 +147,31 @@ describe("TopBar user menu", () => {
       params: {},
     });
   });
+
+  it("uses neutral signed-in fallbacks instead of prototype sample identity", async () => {
+    render(
+      <DisplayPreferencesProvider initial={{ lang: "zh" }}>
+        <TopBar
+          activeRoute="home"
+          onNavigate={() => {}}
+          signedIn={true}
+          user={{ displayName: "", emailMasked: "" }}
+        />
+      </DisplayPreferencesProvider>,
+    );
+
+    expect(screen.getByTestId("topbar-user-name")).toHaveTextContent("候选人");
+    expect(screen.getByTestId("topbar-user-name")).not.toHaveTextContent("刘哲");
+
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("topbar-user-chip"));
+    expect(screen.getByTestId("topbar-user-email")).toHaveTextContent(
+      "邮箱未提供",
+    );
+    expect(screen.getByTestId("topbar-user-menu")).not.toHaveTextContent(
+      "liuzhe@example.com",
+    );
+  });
 });
 
 describe("TopBar display controls", () => {

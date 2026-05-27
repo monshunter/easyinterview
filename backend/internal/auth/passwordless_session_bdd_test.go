@@ -28,7 +28,7 @@ func TestE2EP0003PasswordlessSessionCookie(t *testing.T) {
 		Store:                 store,
 		Dispatcher:            dispatcher,
 		DeliverySecrets:       sink,
-		TokenGenerator:        &sequenceTokenGenerator{tokens: []string{"scenario-magic-token-1", "scenario-magic-token-2"}},
+		TokenGenerator:        &sequenceTokenGenerator{tokens: []string{"123456", "654321"}},
 		SessionTokenGenerator: &sequenceTokenGenerator{tokens: []string{"scenario-session-token-1", "scenario-session-token-2"}},
 		ChallengePepper:       "scenario-pepper",
 		SessionCookieSecret:   "scenario-session-secret",
@@ -40,7 +40,6 @@ func TestE2EP0003PasswordlessSessionCookie(t *testing.T) {
 			"user-bdd-1",
 			"session-bdd-1",
 			"challenge-bdd-2",
-			"user-bdd-ignored",
 			"session-bdd-2",
 			"privacy-request-bdd",
 			"job-bdd",
@@ -50,9 +49,8 @@ func TestE2EP0003PasswordlessSessionCookie(t *testing.T) {
 	traceparent := "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
 	email := "scenario.user+e2e-p0-003@example.test"
 
-	startChallenge(t, handler, email, traceparent)
-	firstLink := waitMagicLink(t, sink, "challenge-bdd-1")
-	firstToken := tokenFromMagicLink(t, firstLink)
+	startSignupChallenge(t, handler, email, "Scenario User", traceparent)
+	firstToken := waitCode(t, sink, "challenge-bdd-1")
 	assertAPIErrorStatus(t, verifyChallenge(t, handler, "invalid-token", traceparent), http.StatusUnauthorized)
 	verifyRec := verifyChallenge(t, handler, firstToken, traceparent)
 	firstCookie := requireSessionCookie(t, verifyRec)
@@ -99,8 +97,8 @@ func TestE2EP0003PasswordlessSessionCookie(t *testing.T) {
 	}
 	assertAPIErrorStatus(t, serveWithCookie(meRoute, http.MethodGet, "/api/v1/me", firstCookie), http.StatusUnauthorized)
 
-	startChallenge(t, handler, email, traceparent)
-	secondToken := tokenFromMagicLink(t, waitMagicLink(t, sink, "challenge-bdd-2"))
+	startLoginChallenge(t, handler, email, traceparent)
+	secondToken := waitCode(t, sink, "challenge-bdd-2")
 	secondCookie := requireSessionCookie(t, verifyChallenge(t, handler, secondToken, traceparent))
 	deleteRoute := auth.SessionMiddleware(service, "deleteMe", http.HandlerFunc(handler.DeleteMe))
 	firstDelete := serveDeleteMe(deleteRoute, secondCookie, "delete-key-bdd")
@@ -140,8 +138,8 @@ func TestE2EP0003PasswordlessSessionCookie(t *testing.T) {
 		fmt.Sprintf("%+v", sink),
 	}, "\n")
 	for _, forbidden := range []string{
-		"scenario-magic-token-1",
-		"scenario-magic-token-2",
+		"123456",
+		"654321",
 		"scenario-session-token-1",
 		"scenario-session-token-2",
 		email,
@@ -155,16 +153,29 @@ func TestE2EP0003PasswordlessSessionCookie(t *testing.T) {
 	}
 }
 
-func startChallenge(t *testing.T, handler *auth.Handler, email string, traceparent string) {
+func startSignupChallenge(t *testing.T, handler *auth.Handler, email string, displayName string, traceparent string) {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", bytes.NewBufferString(fmt.Sprintf(`{"email":%q}`, email)))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", bytes.NewBufferString(fmt.Sprintf(`{"email":%q,"purpose":"signup","displayName":%q}`, email, displayName)))
 	req.Header.Set("traceparent", traceparent)
 	req.RemoteAddr = "203.0.113.60:5588"
 	req.Header.Set("User-Agent", "scenario-runner")
 	rec := httptest.NewRecorder()
 	handler.StartAuthEmailChallenge(rec, req)
 	if rec.Code != http.StatusAccepted {
-		t.Fatalf("start challenge status = %d body=%s", rec.Code, rec.Body.String())
+		t.Fatalf("start signup challenge status = %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func startLoginChallenge(t *testing.T, handler *auth.Handler, email string, traceparent string) {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", bytes.NewBufferString(fmt.Sprintf(`{"email":%q,"purpose":"login"}`, email)))
+	req.Header.Set("traceparent", traceparent)
+	req.RemoteAddr = "203.0.113.60:5588"
+	req.Header.Set("User-Agent", "scenario-runner")
+	rec := httptest.NewRecorder()
+	handler.StartAuthEmailChallenge(rec, req)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("start login challenge status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -179,30 +190,17 @@ func verifyChallenge(t *testing.T, handler *auth.Handler, token string, tracepar
 	return rec
 }
 
-func waitMagicLink(t *testing.T, sink *auth.DevMailSink, challengeID string) string {
+func waitCode(t *testing.T, sink *auth.DevMailSink, challengeID string) string {
 	t.Helper()
 	deadline := time.Now().Add(time.Second)
 	for time.Now().Before(deadline) {
-		if link, ok := sink.MagicLinkForChallenge(challengeID); ok {
-			return link
+		if code, ok := sink.CodeForChallenge(challengeID); ok {
+			return code
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	t.Fatalf("magic link for %s not delivered", challengeID)
+	t.Fatalf("email code for %s not delivered", challengeID)
 	return ""
-}
-
-func tokenFromMagicLink(t *testing.T, link string) string {
-	t.Helper()
-	u, err := url.Parse(link)
-	if err != nil {
-		t.Fatalf("parse magic link: %v", err)
-	}
-	token := u.Query().Get("token")
-	if token == "" {
-		t.Fatalf("magic link missing token: %s", link)
-	}
-	return token
 }
 
 func requireSessionCookie(t *testing.T, rec *httptest.ResponseRecorder) *http.Cookie {
@@ -332,20 +330,28 @@ func (s *passwordlessScenarioStore) ConsumeChallenge(_ context.Context, tokenHas
 	return challenge.record, nil
 }
 
-func (s *passwordlessScenarioStore) FindOrCreateUserByEmail(_ context.Context, email string, userID string, _ time.Time) (auth.UserContext, error) {
-	if user, ok := s.usersByEmail[email]; ok {
-		return user, nil
+func (s *passwordlessScenarioStore) CreateUserByEmail(_ context.Context, email string, displayName string, userID string, _ time.Time) (auth.UserContext, error) {
+	if _, ok := s.usersByEmail[email]; ok {
+		return auth.UserContext{}, auth.ErrEmailRegistered
 	}
 	user := auth.UserContext{
 		ID:                        userID,
 		Email:                     email,
-		DisplayName:               "Scenario User",
+		DisplayName:               displayName,
 		UILanguage:                "zh-CN",
 		PreferredPracticeLanguage: "en",
 		AnalyticsOptIn:            true,
 	}
 	s.usersByEmail[email] = user
 	s.usersByID[user.ID] = user
+	return user, nil
+}
+
+func (s *passwordlessScenarioStore) FindUserByEmail(_ context.Context, email string) (auth.UserContext, error) {
+	user, ok := s.usersByEmail[email]
+	if !ok {
+		return auth.UserContext{}, auth.ErrUserNotFound
+	}
 	return user, nil
 }
 

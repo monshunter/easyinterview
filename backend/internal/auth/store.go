@@ -34,12 +34,14 @@ var (
 	ErrSessionInvalid    = errors.New("auth session invalid")
 	ErrSessionExpired    = errors.New("auth session expired")
 	ErrSessionRevoked    = errors.New("auth session revoked")
+	ErrEmailRegistered   = errors.New("auth email already registered")
 )
 
 type ChallengeRecord struct {
 	ID            string
 	UserID        string
 	Email         string
+	DisplayName   string
 	TokenHash     string
 	Purpose       ChallengePurpose
 	IPHash        string
@@ -76,7 +78,8 @@ type Store interface {
 	CountRecentChallenges(context.Context, string, string, time.Time) (int, error)
 	CreateChallenge(context.Context, ChallengeRecord) error
 	ConsumeChallenge(context.Context, string, time.Time) (ChallengeRecord, error)
-	FindOrCreateUserByEmail(context.Context, string, string, time.Time) (UserContext, error)
+	CreateUserByEmail(context.Context, string, string, string, time.Time) (UserContext, error)
+	FindUserByEmail(context.Context, string) (UserContext, error)
 	CreateSession(context.Context, SessionRecord) error
 	GetSessionByHash(context.Context, string, time.Time) (SessionRecord, error)
 	GetUserContext(context.Context, string) (UserContext, error)
@@ -137,16 +140,18 @@ insert into auth_challenges (
   id,
   user_id,
   email,
+  display_name,
   challenge_token_hash,
   purpose,
   ip_hash,
   user_agent_hash,
   expires_at,
   created_at
-) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
 		rec.ID,
 		userID,
 		rec.Email,
+		nullString(rec.DisplayName),
 		rec.TokenHash,
 		string(rec.Purpose),
 		rec.IPHash,
@@ -166,6 +171,7 @@ func (s *SQLStore) ConsumeChallenge(ctx context.Context, tokenHash string, now t
 	}
 	var rec ChallengeRecord
 	var userID sql.NullString
+	var displayName sql.NullString
 	var ipHash sql.NullString
 	var uaHash sql.NullString
 	var purpose string
@@ -175,13 +181,14 @@ set status = 'consumed', consumed_at = $2
 where challenge_token_hash = $1
   and status = 'pending'
   and expires_at > $2
-returning id, user_id, email, purpose, ip_hash, user_agent_hash, expires_at, created_at`,
+returning id, user_id, email, display_name, purpose, ip_hash, user_agent_hash, expires_at, created_at`,
 		tokenHash,
 		now,
 	).Scan(
 		&rec.ID,
 		&userID,
 		&rec.Email,
+		&displayName,
 		&purpose,
 		&ipHash,
 		&uaHash,
@@ -195,13 +202,14 @@ returning id, user_id, email, purpose, ip_hash, user_agent_hash, expires_at, cre
 		return ChallengeRecord{}, fmt.Errorf("consume auth challenge: %w", err)
 	}
 	rec.UserID = userID.String
+	rec.DisplayName = displayName.String
 	rec.Purpose = ChallengePurpose(purpose)
 	rec.IPHash = ipHash.String
 	rec.UserAgentHash = uaHash.String
 	return rec, nil
 }
 
-func (s *SQLStore) FindOrCreateUserByEmail(ctx context.Context, email string, userID string, now time.Time) (UserContext, error) {
+func (s *SQLStore) CreateUserByEmail(ctx context.Context, email string, displayName string, userID string, now time.Time) (UserContext, error) {
 	if s == nil || s.db == nil {
 		return UserContext{}, fmt.Errorf("auth store db is nil")
 	}
@@ -212,16 +220,20 @@ func (s *SQLStore) FindOrCreateUserByEmail(ctx context.Context, email string, us
 	defer tx.Rollback()
 	var id string
 	err = tx.QueryRowContext(ctx, `
-insert into users (id, email, updated_at)
-values ($1, $2, $3)
-on conflict (email) do update set updated_at = excluded.updated_at
+insert into users (id, email, display_name, updated_at)
+values ($1, $2, $3, $4)
+on conflict (email) do nothing
 returning id`,
 		userID,
 		email,
+		nullString(displayName),
 		now,
 	).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return UserContext{}, ErrEmailRegistered
+	}
 	if err != nil {
-		return UserContext{}, fmt.Errorf("upsert user: %w", err)
+		return UserContext{}, fmt.Errorf("insert user: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, "insert into user_settings (user_id) values ($1) on conflict (user_id) do nothing", id); err != nil {
 		return UserContext{}, fmt.Errorf("ensure user settings: %w", err)
@@ -230,6 +242,20 @@ returning id`,
 		return UserContext{}, fmt.Errorf("commit find or create user: %w", err)
 	}
 	return s.GetUserContext(ctx, id)
+}
+
+func (s *SQLStore) FindUserByEmail(ctx context.Context, email string) (UserContext, error) {
+	if s == nil || s.db == nil {
+		return UserContext{}, fmt.Errorf("auth store db is nil")
+	}
+	out, err := s.getUserContext(ctx, "u.email = $1", email)
+	if errors.Is(err, sql.ErrNoRows) {
+		return UserContext{}, ErrUserNotFound
+	}
+	if err != nil {
+		return UserContext{}, err
+	}
+	return out, nil
 }
 
 func (s *SQLStore) CreateSession(ctx context.Context, rec SessionRecord) error {
@@ -309,6 +335,14 @@ func (s *SQLStore) GetUserContext(ctx context.Context, userID string) (UserConte
 	if s == nil || s.db == nil {
 		return UserContext{}, fmt.Errorf("auth store db is nil")
 	}
+	out, err := s.getUserContext(ctx, "u.id = $1", userID)
+	if err != nil {
+		return UserContext{}, fmt.Errorf("select user context: %w", err)
+	}
+	return out, nil
+}
+
+func (s *SQLStore) getUserContext(ctx context.Context, predicate string, arg any) (UserContext, error) {
 	var out UserContext
 	var displayName sql.NullString
 	err := s.db.QueryRowContext(ctx, `
@@ -320,8 +354,8 @@ select
   us.preferred_practice_language,
   us.analytics_opt_in
 from users u join user_settings us on us.user_id = u.id
-where u.id = $1 and u.deleted_at is null`,
-		userID,
+where `+predicate+` and u.deleted_at is null`,
+		arg,
 	).Scan(
 		&out.ID,
 		&out.Email,
@@ -331,10 +365,18 @@ where u.id = $1 and u.deleted_at is null`,
 		&out.AnalyticsOptIn,
 	)
 	if err != nil {
-		return UserContext{}, fmt.Errorf("select user context: %w", err)
+		return UserContext{}, err
 	}
 	out.DisplayName = displayName.String
 	return out, nil
+}
+
+func nullString(value string) any {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+	return trimmed
 }
 
 func (s *SQLStore) TouchSession(ctx context.Context, sessionID string, now time.Time, expiresAt time.Time) error {

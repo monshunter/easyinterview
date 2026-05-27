@@ -43,6 +43,8 @@ type PasswordlessService struct {
 
 type StartEmailChallengeInput struct {
 	Email        string
+	Purpose      ChallengePurpose
+	DisplayName  string
 	ReturnTo     string
 	RemoteAddr   string
 	UserAgent    string
@@ -80,7 +82,7 @@ func NewPasswordlessService(opts PasswordlessServiceOptions) *PasswordlessServic
 	}
 	generator := opts.TokenGenerator
 	if generator == nil {
-		generator = SecureTokenGenerator{}
+		generator = SixDigitCodeGenerator{}
 	}
 	sessionGenerator := opts.SessionTokenGenerator
 	if sessionGenerator == nil {
@@ -120,6 +122,28 @@ func (s *PasswordlessService) StartEmailChallenge(ctx context.Context, in StartE
 		s.recordAuthFailure(ctx, "start_challenge", "validation", "", "")
 		return StartEmailChallengeResult{}, fmt.Errorf("email is required")
 	}
+	purpose := normalizeChallengePurpose(in.Purpose)
+	displayName := normalizeDisplayName(in.DisplayName)
+	if purpose == "" {
+		s.recordAuthFailure(ctx, "start_challenge", "validation", "", "")
+		return StartEmailChallengeResult{}, fmt.Errorf("challenge purpose is invalid")
+	}
+	if purpose == ChallengePurposeSignup && displayName == "" {
+		s.recordAuthFailure(ctx, "start_challenge", "validation", "", "")
+		return StartEmailChallengeResult{}, fmt.Errorf("display name is required for signup")
+	}
+	if purpose == ChallengePurposeLogin {
+		displayName = ""
+	}
+	if purpose == ChallengePurposeSignup {
+		if _, err := s.store.FindUserByEmail(ctx, email); err == nil {
+			s.recordAuthFailure(ctx, "start_challenge", "email_registered", "", "")
+			return StartEmailChallengeResult{}, ErrEmailRegistered
+		} else if !errors.Is(err, ErrUserNotFound) {
+			s.recordAuthFailure(ctx, "start_challenge", "store_error", "", "")
+			return StartEmailChallengeResult{}, err
+		}
+	}
 	now := s.now().UTC()
 	challengeID := s.newID()
 	ipHash := hashWithPepper(s.challengePepper, clientIP(in.RemoteAddr))
@@ -142,8 +166,9 @@ func (s *PasswordlessService) StartEmailChallenge(ctx context.Context, in StartE
 	if err := s.store.CreateChallenge(ctx, ChallengeRecord{
 		ID:            challengeID,
 		Email:         email,
+		DisplayName:   displayName,
 		TokenHash:     tokenHash,
-		Purpose:       ChallengePurposeLogin,
+		Purpose:       purpose,
 		IPHash:        ipHash,
 		UserAgentHash: uaHash,
 		ExpiresAt:     now.Add(ChallengeTTL),
@@ -157,7 +182,7 @@ func (s *PasswordlessService) StartEmailChallenge(ctx context.Context, in StartE
 	s.deliverySecrets.PutDeliverySecret(deliverySecretRef, token)
 	payload, err := jobs.BuildEmailDispatchPayload(map[string]string{
 		"authChallengeId":   challengeID,
-		"templateKey":       "auth_magic_link",
+		"templateKey":       "auth_login_code",
 		"locale":            localeOrDefault(in.AcceptLocale),
 		"deliverySecretRef": deliverySecretRef,
 		"dedupeKey":         hashWithPepper(s.challengePepper, "email:"+email),
@@ -179,7 +204,7 @@ func (s *PasswordlessService) VerifyEmailChallenge(ctx context.Context, in Verif
 		return VerifyEmailChallengeResult{}, fmt.Errorf("passwordless service store is nil")
 	}
 	token := strings.TrimSpace(in.Token)
-	if token == "" {
+	if !isSixDigitCode(token) {
 		s.recordAuthFailure(ctx, "verify_challenge", "invalid", "", "")
 		return VerifyEmailChallengeResult{}, ErrChallengeInvalid
 	}
@@ -193,8 +218,20 @@ func (s *PasswordlessService) VerifyEmailChallenge(ctx context.Context, in Verif
 		s.recordAuthFailure(ctx, "verify_challenge", "store_error", "", "")
 		return VerifyEmailChallengeResult{}, err
 	}
-	user, err := s.store.FindOrCreateUserByEmail(ctx, challenge.Email, s.newID(), now)
+	var user UserContext
+	switch challenge.Purpose {
+	case ChallengePurposeSignup:
+		user, err = s.store.CreateUserByEmail(ctx, challenge.Email, challenge.DisplayName, s.newID(), now)
+	case ChallengePurposeLogin, "":
+		user, err = s.store.FindUserByEmail(ctx, challenge.Email)
+	default:
+		err = ErrChallengeInvalid
+	}
 	if err != nil {
+		if errors.Is(err, ErrEmailRegistered) || errors.Is(err, ErrUserNotFound) || errors.Is(err, ErrChallengeInvalid) {
+			s.recordAuthFailure(ctx, "verify_challenge", challengeFailureResult(err), "", challenge.ID)
+			return VerifyEmailChallengeResult{}, err
+		}
 		s.recordAuthFailure(ctx, "verify_challenge", "store_error", "", challenge.ID)
 		return VerifyEmailChallengeResult{}, err
 	}
@@ -331,6 +368,33 @@ func normalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }
 
+func normalizeChallengePurpose(purpose ChallengePurpose) ChallengePurpose {
+	switch ChallengePurpose(strings.ToLower(strings.TrimSpace(string(purpose)))) {
+	case "", ChallengePurposeLogin:
+		return ChallengePurposeLogin
+	case ChallengePurposeSignup:
+		return ChallengePurposeSignup
+	default:
+		return ""
+	}
+}
+
+func normalizeDisplayName(name string) string {
+	return strings.Join(strings.Fields(strings.TrimSpace(name)), " ")
+}
+
+func isSixDigitCode(token string) bool {
+	if len(token) != 6 {
+		return false
+	}
+	for _, ch := range token {
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 func clientIP(remoteAddr string) string {
 	host, _, err := net.SplitHostPort(strings.TrimSpace(remoteAddr))
 	if err == nil {
@@ -423,6 +487,10 @@ func challengeFailureResult(err error) string {
 		return "expired"
 	case errors.Is(err, ErrChallengeConsumed):
 		return "consumed"
+	case errors.Is(err, ErrEmailRegistered):
+		return "email_registered"
+	case errors.Is(err, ErrUserNotFound):
+		return "user_not_found"
 	case errors.Is(err, ErrChallengeInvalid):
 		return "invalid"
 	default:

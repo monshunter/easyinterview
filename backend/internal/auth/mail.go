@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -96,7 +95,7 @@ func (s *DevMailSink) Write(payload jobs.EmailDispatchPayload) error {
 	return nil
 }
 
-func (s *DevMailSink) MagicLinkForChallenge(challengeID string) (string, bool) {
+func (s *DevMailSink) CodeForChallenge(challengeID string) (string, bool) {
 	if s == nil {
 		return "", false
 	}
@@ -107,19 +106,11 @@ func (s *DevMailSink) MagicLinkForChallenge(challengeID string) (string, bool) {
 		return "", false
 	}
 	token, ok := s.secrets[delivery.DeliverySecretRef]
-	base := s.verifyBaseURL
 	s.mu.Unlock()
-	if !ok || token == "" || base == "" {
+	if !ok || token == "" {
 		return "", false
 	}
-	u, err := url.Parse(base)
-	if err != nil {
-		return "", false
-	}
-	q := u.Query()
-	q.Set("token", token)
-	u.RawQuery = q.Encode()
-	return u.String(), true
+	return token, true
 }
 
 // ContainsStoredSecret scans only persisted sink delivery metadata. The

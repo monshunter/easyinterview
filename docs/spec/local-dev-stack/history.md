@@ -1,6 +1,6 @@
 # Local Dev Stack History
 
-> **版本**: 1.18
+> **版本**: 1.19
 > **状态**: active
 > **更新日期**: 2026-05-27
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-27 | 1.19 | 对齐 backend-auth / frontend-shell 的 email-code 修订：Mailpit 本地邮件改为 6 位验证码、5 分钟有效，`EMAIL_VERIFY_BASE_URL` 仅保留为本地 frontend origin / CORS 推导来源，不再拼入邮件链接。 | backend-auth/001 Phase 7 + frontend-shell/001 Phase 8 |
 | 2026-05-27 | 1.18 | 将 scenario redeploy 闭环修订为 rebuild + 重启 host-run backend/frontend，并要求 env setup/status/verify/redeploy 输出服务地址、PID、日志路径和容器日志命令，便于开发者接管调试。 | local-dev-stack/001 developer debug handoff |
 | 2026-05-27 | 1.17 | 修订本地 Mailpit 登录闭环：默认邮件链接进入 frontend `/auth/verify` callback，由前端调用 backend verify API、刷新 session 并清理 URL token；手动 token 仅保留为 fallback。 | frontend-shell/001 Phase 7 |
 | 2026-05-27 | 1.16 | 本地测试与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，并要求 P0.100 hybrid preflight 校验该开关；staging/prod 默认仍关闭，raw output 不进入持久化审计。 | local-dev-stack/001 raw debug local default |

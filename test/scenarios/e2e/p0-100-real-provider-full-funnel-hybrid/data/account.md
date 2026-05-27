@@ -19,20 +19,20 @@ The account is created through the real passwordless auth flow. Do not create a 
 3. Submit `manual-uat-full-funnel@example.test` on the login screen or an auth gate.
 4. Open Mailpit at `http://127.0.0.1:8025`.
 5. Open the latest message to this UAT address.
-6. Click the `http://127.0.0.1:5173/auth/verify?token=...` magic link. The frontend consumes the token, mints the session through the backend verify API, and removes the token from the URL.
+6. Copy the 6-digit code into the frontend verification page. The frontend consumes the code through the backend verify API and mints the session.
 
 The local mailbox and synthetic address remove the need for a real external email service or a real mailbox account. The flow still exercises `startAuthEmailChallenge`, `email_dispatch`, Mailpit SMTP delivery, `verifyAuthEmailChallenge`, and first-party session cookie minting.
 
 ## Expiry And Rerun
 
-- Magic links expire per backend-auth challenge TTL. If expired, submit the email again and use the newest Mailpit message.
+- Email codes expire per backend-auth challenge TTL. If expired, submit the email again and use the newest Mailpit message.
 - If auth rate limiting is hit, wait at least one auth rate-limit window before retrying.
 - Reusing the same synthetic email is expected; do not change the UAT email unless this material and the checklist are updated together.
-- Do not commit screenshots or terminal output that include the magic-link token or `ei_session` cookie value.
+- Do not commit screenshots or terminal output that include the raw email code or `ei_session` cookie value.
 
 ## Cookie Check
 
-After clicking the magic link, the frontend URL must no longer contain `token=`. DevTools -> Application -> Cookies -> `http://127.0.0.1` should show:
+After submitting the code, DevTools -> Application -> Cookies -> `http://127.0.0.1` should show:
 
 | Field | Value |
 |-------|-------|

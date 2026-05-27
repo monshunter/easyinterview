@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: 1.1
-    to: 1.6
+    to: 1.7
 spec:
   defaultTarget: scenario
   discovery:
@@ -33,7 +33,7 @@ spec:
       - APP_ENV=dev
       - no mock data
       - mailpit
-      - magic link
+      - email code
       - local mailbox
       - shell python scenario helper
       - no backend cmd helper

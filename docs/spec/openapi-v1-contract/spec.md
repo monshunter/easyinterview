@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Spec
 
-> **版本**: 1.26
+> **版本**: 1.27
 > **状态**: active
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-05-27
 
 ## 1 背景与目标
 
@@ -60,7 +60,7 @@
 | D-6 | Idempotency | 副作用 endpoint 的 `Idempotency-Key` 支持范围由本 spec §4.1 与 B1 幂等工具共同决定；`POST /practice/sessions/{sessionId}/events` 使用 `clientEventId` 去重，不混用 `Idempotency-Key` | 防止不同去重机制叠加导致 handler 语义分裂 |
 | D-7 | Job 异步 | 长耗时操作返回 `202 Accepted` + `Job` schema；客户端通过 `GET /jobs/{jobId}` 轮询 | – |
 | D-8 | content-type | 仅 `application/json` 与 `multipart/form-data`（仅 upload 端点）；不引入 protobuf / msgpack | – |
-| D-9 | v1.0.0 freeze 范围 | §3.1.1 列出 59 个 endpoint + 13 tag；本 spec 锁定范围与 additive-only 规则，B2 `001` 落地 `openapi/openapi.yaml` 后强制执行（新增 endpoint / 新增可选字段 / 新增枚举值）；Auth tag 以 ADR-Q1 的 email magic link + session cookie 路径为准；`DELETE /api/v1/me` 按 ADR-Q5 纳入 P0 删除入口；D-17 additive 升级把 `JobMatch` tag + 12 operationId（jd_match 三 tab 业务）纳入 v1.0.0 freeze；D-18 additive 升级把 `Resumes` tag 9 个 Resume Workshop operation 纳入 v1.0.0 freeze；D-20 additive 升级把 `Debriefs` tag 的 `suggestDebriefQuestions` 纳入 freeze；D-21 additive 升级把 `PracticeSessions` tag 的 `listPracticeSessions` 纳入 freeze；D-22 additive 升级把 `PracticeSessions` tag 的 `createPracticeVoiceTurn` 纳入 freeze；D-23 additive 升级把 `Resumes` tag 的 `confirmResumeStructuredMaster` 纳入 freeze | 任何 break change 必须 ADR + 本 spec 修订；本次删除旧 Mistakes / Growth 属开发期当前 product-scope / UI 授权的 freeze correction |
+| D-9 | v1.0.0 freeze 范围 | §3.1.1 列出 59 个 endpoint + 13 tag；本 spec 锁定范围与 additive-only 规则，B2 `001` 落地 `openapi/openapi.yaml` 后强制执行（新增 endpoint / 新增可选字段 / 新增枚举值）；Auth tag 以 ADR-Q1 的 email-code challenge + session cookie 路径为准，`startAuthEmailChallenge` 通过 `purpose=signup|login` 和可选 `displayName` 区分注册/登录，`verifyAuthEmailChallenge` 仍消费 query `token` 但其语义为 6 位 code；`DELETE /api/v1/me` 按 ADR-Q5 纳入 P0 删除入口；D-17 additive 升级把 `JobMatch` tag + 12 operationId（jd_match 三 tab 业务）纳入 v1.0.0 freeze；D-18 additive 升级把 `Resumes` tag 9 个 Resume Workshop operation 纳入 v1.0.0 freeze；D-20 additive 升级把 `Debriefs` tag 的 `suggestDebriefQuestions` 纳入 freeze；D-21 additive 升级把 `PracticeSessions` tag 的 `listPracticeSessions` 纳入 freeze；D-22 additive 升级把 `PracticeSessions` tag 的 `createPracticeVoiceTurn` 纳入 freeze；D-23 additive 升级把 `Resumes` tag 的 `confirmResumeStructuredMaster` 纳入 freeze | 任何 break change 必须 ADR + 本 spec 修订；本次删除旧 Mistakes / Growth 属开发期当前 product-scope / UI 授权的 freeze correction |
 | D-10 | breaking change linter | 默认 `openapi-diff`（OpenAPITools）；规则：禁止删字段、禁止改字段类型、禁止改 required、禁止改枚举（仅允许新增）、禁止删 endpoint | 本地 gate 直接失败；远端 CI 接入由 A5 后续触发条件决定 |
 | D-11 | tags 顺序 | §2.1 13 个 tag 顺序固定；新增 tag 必须递增 spec | – |
 | D-12 | privacy export 例外 | 按 [ADR-Q5](../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md)，`POST /api/v1/privacy/exports` 在 v1.0.0 freeze 中保留路径与 schema，但 P0 必须返回 `501 Not Implemented`（`error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`）；P1 切换实现时是 additive 行为变化，不算 break | 防止 P1 复用时改路径 |
