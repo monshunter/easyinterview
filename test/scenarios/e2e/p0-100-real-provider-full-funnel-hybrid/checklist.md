@@ -1,10 +1,10 @@
-# Full Funnel Real Provider Manual UAT Checklist
+# E2E.P0.100 Real Provider Full Funnel Hybrid Checklist
 
-> 配合 [`README.md`](./README.md) 执行；填写副本建议放在 `.test-output/manual-uat/full-funnel/checklist-YYYYMMDD.md`。
+> 配合 [`README.md`](./README.md) 执行；填写副本建议放在 `.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/checklist-YYYYMMDD.md`。
 > Owner: `e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel`
 > Scenario: `E2E.P0.100`
 
-走查日期：________　走查人：________　UI 语言：☐ 中文 ☐ English
+走查日期：________　执行者：☐ AI Agent ☐ Browser Agent ☐ Human　UI 语言：☐ 中文 ☐ English
 
 ## 0 环境与账号
 
@@ -22,9 +22,9 @@
 | # | 检查项 | 期望结果 | 结果 |
 |---|--------|----------|------|
 | 1.1 | Home 渲染 | 五入口 TopBar 与 Home 主入口正常 | ☐ Pass ☐ Fail |
-| 1.2 | 粘贴 `materials/jd-backend-engineer.<lang>.md` | `importTargetJob` 真实请求成功 | ☐ Pass ☐ Fail |
+| 1.2 | 粘贴 `data/jd-backend-engineer.<lang>.md` | `importTargetJob` 真实请求成功 | ☐ Pass ☐ Fail |
 | 1.3 | Parse loading | 真实 runner / polling 推进，不是 mock 即时返回 | ☐ Pass ☐ Fail |
-| 1.4 | Parse ready | 结构化 JD 字段可见，符合 `materials/expected-observations.md` 的角色/资历/技能观察点 | ☐ Pass ☐ Fail |
+| 1.4 | Parse ready | 结构化 JD 字段可见，符合 `data/expected-observations.md` 的角色/资历/技能观察点 | ☐ Pass ☐ Fail |
 
 ## 2 Workspace -> Practice
 
@@ -41,7 +41,7 @@
 |---|--------|----------|------|
 | 3.1 | 完成面试 | `completePracticeSession` 返回 report/job handoff | ☐ Pass ☐ Fail |
 | 3.2 | Generating 轮询 | 真实 `report_generate` runner 推进到 ready | ☐ Pass ☐ Fail |
-| 3.3 | Report 呈现 | ReportDashboard 与 detail tabs 正常，内容符合 `materials/expected-observations.md` 的 report 观察点 | ☐ Pass ☐ Fail |
+| 3.3 | Report 呈现 | ReportDashboard 与 detail tabs 正常，内容符合 `data/expected-observations.md` 的 report 观察点 | ☐ Pass ☐ Fail |
 | 3.4 | 进入下一轮 | `next_round` 派生 plan/session 与首轮不同，符合 next-round 观察点 | ☐ Pass ☐ Fail |
 
 ## 4 真实 AI 与隐私证据
@@ -53,13 +53,23 @@
 | 4.3 | URL/storage/console 隐私 | 不出现 JD 原文、答案全文、报告 prose、session cookie value | ☐ Pass ☐ Fail |
 | 4.4 | legacy-negative | 无 welcome/growth/mistakes/drill/followup/experiences/star/onboarding/独立 voice/`mode=debrief` 物化 | ☐ Pass ☐ Fail |
 
-## 5 判定
+## 5 Agent Preflight
+
+| # | 检查项 | 期望结果 | 结果 |
+|---|--------|----------|------|
+| 5.1 | `scripts/setup.sh` | 完成共享环境 setup + migration，并检查材料结构 | ☐ Pass ☐ Fail |
+| 5.2 | `scripts/trigger.sh` | 写入 `trigger.log` 和 `result.json`，缺真实证据时 result 为 `MANUAL_REQUIRED` | ☐ Pass ☐ Fail |
+| 5.3 | `scripts/verify.sh` | 校验 runner marker、hybrid result、secret redline | ☐ Pass ☐ Fail |
+| 5.4 | `scripts/cleanup.sh` | 不清理共享环境；真实 session 存在时仅走产品 privacy delete | ☐ Pass ☐ Fail |
+
+## 6 判定
 
 - ☐ **通过**：0-4 全部 Pass，且证据路径已记录。
+- ☐ **待人工补证**：Agent preflight Pass，`result.json` 为 `MANUAL_REQUIRED`。
 - ☐ **阻断**：记录失败项编号、截图/日志路径和推断 owner，按 `/change-intake` 路由。
 
 证据路径：
 
 ```text
-.test-output/manual-uat/full-funnel/
+.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/
 ```

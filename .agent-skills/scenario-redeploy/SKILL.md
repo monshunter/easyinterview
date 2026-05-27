@@ -41,8 +41,8 @@ The current local topology is host-run: Docker Compose provides external
 dependencies, backend/frontend processes are not deployed through a Kind, Helm,
 or cluster rollout, and `test/scenarios/env-redeploy.sh` refreshes dependencies
 and build artifacts. If a user needs a long-running backend/frontend process for
-manual UAT, use the runbook command boundary and keep secrets in ignored local
-files.
+a hybrid real-provider scenario, use the scenario README command boundary and
+keep secrets in ignored local files.
 
 ## Rules
 

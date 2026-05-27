@@ -200,9 +200,9 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 后端 `cmd/api` 在 `EMAIL_PROVIDER=mailpit` 时必须注册 SMTP `DeliveryWriter`，通过 `auth_challenges` 查询收件邮箱、从 C1 transient delivery secret store 取 magic token，并将 magic-link 邮件投递到 Mailpit SMTP。`email_dispatch` payload 仍不得包含 raw email、magic token、完整 URL、邮件正文或标题；默认 `DevMailSink` 保留给单元测试和非 Mailpit 配置。A4 env/config 字典新增 `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL`。
 
-#### 5.4 manual UAT 账号入口回收
+#### 5.4 hybrid UAT 账号入口回收
 
-`test/scenarios/manual-uat` 不再通过直接 DB session bootstrap 取得账号；runbook 改为 synthetic `.example.test` 邮箱 + Mailpit magic link。场景工具仍只允许 shell / Python，且不得新增 `backend/cmd` / Go helper 作为验收依赖。
+`E2E.P0.100` 不再通过直接 DB session bootstrap 取得账号；runbook 改为 synthetic `.example.test` 邮箱 + Mailpit magic link。场景工具仍只允许 shell / Python，且不得新增 `backend/cmd` / Go helper 作为验收依赖。
 
 #### 5.5 Phase 5 自检
 
@@ -237,7 +237,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - `scenario-env-cleanup`
 - `scenario-env-redeploy`
 
-这些 target 只委派 `test/scenarios/env-*.sh`，并透传 `ARGS` / `TARGET` 等显式参数；不得把业务场景 ID 或 `manual-uat/full-funnel` 路径写死进 Makefile。
+这些 target 只委派 `test/scenarios/env-*.sh`，并透传 `ARGS` / `TARGET` 等显式参数；不得把业务场景 ID 或 `e2e/p0-100-real-provider-full-funnel-hybrid` 路径写死进 Makefile。
 
 #### 6.3 skill 集成
 
@@ -255,7 +255,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 - 明确 `env-*.sh` 是共享环境入口，独立于具体场景用例。
 - 明确具体场景 `setup.sh` 只准备场景数据/输出目录，不能私有化共享环境 bootstrap。
-- 明确最新 manual UAT / 前后端联调可先通过 env setup + redeploy 准备基础环境，再按 runbook 启动真实 backend/frontend 进程并人工/Agent 验证目标场景。
+- 明确最新 hybrid UAT / 前后端联调可先通过 env setup + redeploy 准备基础环境，再按 runbook 启动真实 backend/frontend 进程并由 Agent/人工验证目标场景。
 
 #### 6.5 Phase 6 自检
 

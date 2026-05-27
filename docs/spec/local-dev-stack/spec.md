@@ -66,7 +66,7 @@
 
 - `make dev-up` 是否自动跑 `make migrate`：默认不自动；B4 落地后由开发者显式执行，避免数据库 schema 变更与服务启动耦合。
 - 若某个未来组件需要容器化 app service，该组件 plan 必须先补齐稳定运行入口、健康检查与资源预算，再声明自己受 `make dev-up` 覆盖；普通本地开发默认仍使用宿主机 dev command。
-- `env-redeploy.sh` 当前不启动长期运行的 backend/frontend 进程；真实 provider manual UAT 的进程启动命令仍由 runbook 与用户本地 secret 文件控制，避免 skill 在无凭证上下文中生成悬挂进程或泄露 secrets。
+- `env-redeploy.sh` 当前不启动长期运行的 backend/frontend 进程；真实 provider hybrid UAT 的进程启动命令仍由目标场景 README 与用户本地 secret 文件控制，避免 skill 在无凭证上下文中生成悬挂进程或泄露 secrets。
 
 ## 4 设计约束
 

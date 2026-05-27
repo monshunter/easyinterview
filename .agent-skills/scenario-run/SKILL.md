@@ -1,6 +1,6 @@
 ---
 name: scenario-run
-description: Execute repository-defined scenario tests. Supports single scenario, full suite, and rerun modes. Use parallel sub-agent dispatch only when the framework and suite docs explicitly mark the target scenarios as `parallel-safe`; otherwise default to serial execution. Read the framework README and target suite README before execution. Triggers on /scenario-run.
+description: Execute repository-defined scenario tests. Supports single scenario, full suite, rerun, and hybrid AI-agent-first/manual evidence modes. Use parallel sub-agent dispatch only when the framework and suite docs explicitly mark the target scenarios as `parallel-safe`; otherwise default to serial execution. Read the framework README and target suite README, then run the documented environment preflight before scenario scripts. Triggers on /scenario-run.
 ---
 
 # Scenario Run Skill
@@ -9,7 +9,7 @@ Execute scenario tests following the repository's active scenario framework.
 
 ## Prerequisites
 
-- The local scenario environment is ready and has passed verification (`/scenario-env setup` followed by `/scenario-env verify`, or the equivalent repo-tracked env entrypoints documented by the framework)
+- The local scenario environment is prepared and verified before scenario scripts run. Prefer `test/scenarios/env-setup.sh` followed by `test/scenarios/env-verify.sh`, or the equivalent repo-tracked entrypoints documented by the framework.
 - Read `test/scenarios/README.md` before first use
 - If the framework or suite README documents expected duration / long-running scenarios, treat that budget as the first-line signal for “still running vs actually stalled”
 
@@ -71,7 +71,11 @@ Execution modes:
 4. Read the framework README and target suite README once before execution
 5. If `test/scenarios/_shared/scripts/common.sh` exists, prefer its helpers for run initialization and result writing
 6. Surface any documented long-running scenarios or expected duration notes before execution starts
-7. Determine direct vs parallel mode:
+7. Run environment preflight before scenario execution:
+   - prefer `test/scenarios/env-setup.sh`, adding framework/suite documented arguments such as `--with-migrations` when required by the target scenario README
+   - then run `test/scenarios/env-verify.sh`
+   - if a suite or scenario documents additional local configuration, such as real provider env files or host-run backend/frontend commands, treat that as scenario setup evidence; do not invent secrets or start long-running processes without the required local env
+8. Determine direct vs parallel mode:
    - default to serial execution
    - only enable parallel mode when the framework and suite docs explicitly mark every resolved scenario as `parallel-safe`
    - if any resolved scenario is `shared-cluster`, keep the run serial
@@ -95,7 +99,7 @@ For each scenario:
 6. Run `scripts/verify.sh`
 7. Always run `scripts/cleanup.sh`, even after failure
 8. Verify cleanup expectations from the framework/suite/scenario docs
-9. Record the scenario result in the run output
+9. Record the scenario result in the run output. If the scenario writes a valid result artifact with `result=MANUAL_REQUIRED`, keep that state distinct from PASS/FAIL/ERROR.
 
 Notes:
 - For suite-documented long-running scenarios, lack of new stdout between phase boundaries is not by itself an execution failure signal.
@@ -135,6 +139,7 @@ Execution protocol:
 5. Run `setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` in order.
 6. Always perform cleanup verification after cleanup runs.
 7. Write a final result artifact to the output directory.
+8. For `hybrid` scenarios, AI Agent execution comes first: run the scripts and accept a `MANUAL_REQUIRED` result when local real-provider credentials, browser actions, or human observation evidence are intentionally missing. Do not convert that state into PASS or ERROR.
 ```
 
 After all sub-agents finish:
@@ -151,6 +156,11 @@ If any scenario has result `ERROR`:
 - report which scenarios had execution/tooling errors
 - suggest rerunning those scenarios individually
 
+If any scenario has result `MANUAL_REQUIRED`:
+- report that the AI Agent preflight completed but human/browser-agent evidence remains
+- point to the scenario README, checklist, and output directory
+- do not call it passed until the same scenario result artifact reports PASS
+
 If cleanup output indicates shared-environment contamination:
 - prefer targeted cleanup first
 - only escalate to full environment rebuild when narrower recovery steps fail
@@ -164,11 +174,12 @@ If a scenario appears stalled:
 Summarize:
 - run ID
 - passed / failed / errored scenarios
+- manual-required hybrid scenarios
 - cleanup contamination findings
 - paths to the run artifacts
 
 ## Output Conventions
 
 - Prefer framework helper functions for result files when available
-- Otherwise write plain JSON artifacts that at minimum include `scenario_id`, `result`, and `error` (if any)
+- Otherwise write plain JSON artifacts that at minimum include `scenario_id`, `result`, and `error` (if any). Valid result states are `PASS`, `FAIL`, `ERROR`, and `MANUAL_REQUIRED`.
 - Keep scenario output under `{TEST_OUTPUT_DIR}/runs/{run_id}/{suite_id}/{scenario_id}/`

@@ -138,8 +138,9 @@ the local scenario/local integration environment.
    - suite-documented exact rebuild/redeploy command
 4. In the current host-run topology, redeploy/rebuild is not a Kind, Helm, or
    cluster rollout. It refreshes local dependencies and build artifacts. If the
-   user needs a long-running backend/frontend process for manual UAT, point to
-   the documented runbook command and keep secrets in local ignored files.
+   user needs a long-running backend/frontend process for a hybrid real-provider
+   scenario, point to the documented scenario README command and keep secrets in
+   local ignored files.
 5. Run `/scenario-env verify` after redeploy unless the user asked for dry-run
    or inspection-only status.
 

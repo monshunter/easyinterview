@@ -1,6 +1,6 @@
 # Answer Sample: Senior Backend Engineer
 
-Use this as an optional practice answer during manual UAT. It is synthetic and contains no real PII.
+Use this as an optional practice answer during hybrid UAT. It is synthetic and contains no real PII.
 
 I led the migration of a monolithic job-processing service into an event-driven backend platform. The main risk was preserving idempotency while moving report generation, notification dispatch, and user-facing polling to asynchronous workers.
 

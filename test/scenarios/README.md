@@ -12,12 +12,6 @@
 |------|------|--------------|
 | `e2e` | 围绕真实用户目标的主链路与高风险链路验证 | automated / hybrid |
 
-Companion 目录：
-
-| 目录 | 用途 | 约束 |
-|------|------|------|
-| `manual-uat` | 人工验收 runbook、账号/session 材料、输入材料与 checklist | 必须先有 `docs/spec/*/plans/*` owner plan；不是标准 runner 套件，不要求四段脚本契约，也不以 stub/mock 自动化证据冒充人工真实 provider UAT |
-
 所有设计、计划、`BDD-Gate`、场景创建、环境操作与调查诊断，均以本目录文档为真理源。
 
 ## 2 基本原则
@@ -26,6 +20,7 @@ Companion 目录：
 - 场景编号必须使用行为导向 ID，例如 `E2E.P0.001`、`E2E.P1.003`。
 - checklist 中的 `BDD-Gate` 只能引用场景编号，不引用 `AC-*`。
 - 场景断言优先验证用户可见结果、关键证据与下一步行动建议。
+- 执行者顺序默认是 AI Agent 先运行场景脚本、环境 preflight 和可自动化证据检查；需要真实浏览器观察或真实 provider 凭证时，再由人工或浏览器 Agent 接手补齐同一场景输出目录下的脱敏证据。
 - `test/scenarios/` 新增场景工具只允许 shell / Python；需要账号、数据或环境准备时，应放在场景目录或 `_shared/` 下，不得新增正式 `backend/cmd` / Go helper 作为验收依赖。
 - 不预设 Helm、外部 Git 平台或历史项目组件名，环境契约必须由本仓库文档定义。
 - 清理与污染控制属于场景契约的一部分；失败后必须优先检查环境污染。
@@ -54,7 +49,7 @@ test/scenarios/
 
 如果这些脚本不存在，Agent 必须退回到 README 中定义的手工或 repo-tracked 命令，不能自行杜撰。
 
-`manual-uat/` 只允许作为已登记 owner plan 的 companion 材料目录出现。新增或大幅修改人工验收材料前，必须先更新对应 spec/plan/checklist/BDD，并在 manual runbook 顶部链接 owner plan。
+需要人工参与的真实 provider / 浏览器 UAT 也必须登记为标准 `e2e` 场景目录，保留 `README.md`、`data/` 和四段脚本契约。此类 `hybrid` 场景的脚本负责环境准备、材料/配置/隐私 preflight、统一 result artifact 与 `MANUAL_REQUIRED` 状态；人工或浏览器 Agent 只补齐无法无密钥自动完成的真实操作证据。
 
 ## 3.1 共享环境生命周期
 
@@ -68,7 +63,7 @@ test/scenarios/
 | `test/scenarios/env-cleanup.sh` | 清理共享环境，默认保留命名卷 | `make scenario-env-cleanup` |
 | `test/scenarios/env-redeploy.sh` | 按 `deps/backend/frontend/all` 刷新依赖或 build artifacts | `make scenario-env-redeploy TARGET=<target>` |
 
-具体场景的 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` 只负责场景数据、runner 执行证据和场景自有清理，不得把共享环境 bootstrap 私有化，也不得引用另一个具体场景作为环境前提。开发者可以只执行 `/scenario-env setup` 或 `make scenario-env-setup` 构建环境，然后人工或由 Agent 运行目标场景；最新 manual UAT / 本地联调也遵循该边界，真实 backend/frontend 长驻进程仍按 runbook 在宿主机启动。
+具体场景的 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` 只负责场景数据、runner 执行证据和场景自有清理，不得把共享环境 bootstrap 私有化，也不得引用另一个具体场景作为环境前提。开发者可以只执行 `/scenario-env setup` 或 `make scenario-env-setup` 构建环境，然后人工或由 Agent 运行目标场景；hybrid 场景与本地联调也遵循该边界，真实 backend/frontend 长驻进程仍按场景 README 在宿主机启动。
 
 ## 4 首次使用
 
@@ -105,6 +100,8 @@ test/scenarios/
 默认输出目录为 `.test-output/`。
 
 `trigger.sh` 声称执行 Vitest、Playwright、pytest、Go test、lint 或其他 runner 时，必须把 runner 输出写入场景输出目录下的日志（通常是 `trigger.log`）。`verify.sh` 必须检查日志中的实际执行证据：命令/runner marker、目标测试文件或场景路径、以及 pass marker 或退出状态证据。禁止只检查测试文件、spec 文件、脚本或目录存在来代表 runner 已执行。
+
+Hybrid 场景若已经完成 AI Agent preflight 但缺少本地真实凭证、浏览器操作或人工观察证据，`verify.sh` 必须写出 `result=MANUAL_REQUIRED` 等价 JSON artifact 并退出 0；不得把它标记为 full PASS，也不得退化为框架 ERROR。补齐脱敏证据后，同一场景可再次运行并转为 PASS。
 
 ## 8 环境污染与恢复
 

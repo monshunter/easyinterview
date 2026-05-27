@@ -1,8 +1,8 @@
-# 002 Manual UAT Real Provider Full Funnel
+# 002 Real Provider Hybrid Full Funnel
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-26
+> **更新日期**: 2026-05-27
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -10,11 +10,14 @@
 
 ## 1 目标
 
-把 P0 完整漏斗从 `001-full-funnel-happy-journey` 的自动化 stub-AI 证明，推进到可由用户人工验收的真实联调材料包：
+把 P0 完整漏斗从 `001-full-funnel-happy-journey` 的自动化 stub-AI 证明，推进到由场景框架统一管理的真实 provider hybrid 联调用例：
 
-- 先补齐设计与 owner 计划，停止把 `test/scenarios/manual-uat/` 作为未计划的游离目录扩展。
+- 保留原 owner plan，不创建 sibling，把 `E2E.P0.100` 统一登记到 `test/scenarios/e2e/INDEX.md`。
+- 删除独立 `test/scenarios/manual-uat` companion 入口，避免场景发现、执行、证据和 cleanup 工作流割裂。
+- 让 AI Agent 成为第一执行者：先执行共享环境 preflight、四段脚本、材料/配置/隐私检查和统一 result artifact。
+- 人工或浏览器 Agent 作为第二执行者，在同一场景输出目录补齐真实凭证、真实浏览器、真实 AI provider 的脱敏证据。
 - 提供可执行的真实本地联调启动路径：Docker Compose 只提供 Postgres / Redis / MinIO / Mailpit 外部依赖，backend / frontend 使用宿主机真实进程，frontend 明确 `VITE_EI_API_MODE=real`，backend 明确 `APP_ENV=dev` 和真实 AI provider env。
-- 提供完整人工验收材料：Mailpit 本地 magic-link 登录、JD、简历、作答样例、验收 checklist、环境变量模板、证据归档路径与清理说明。
+- 提供完整 hybrid 场景材料：Mailpit 本地 magic-link 登录、JD、简历、作答样例、验收 checklist、环境变量模板、证据归档路径与清理说明。
 - 明确禁止用 `APP_ENV=test`、deterministic stub AI、fixture-backed frontend mock transport、`Prefer: example=<scenario>` 或 P0.099 test server 冒充真实 AI 联调。
 - 将真实 AI LLM 连接作为验收边界：当前开发主力 provider ref 为 `deepseek` / `judge-deepseek`，真实调用通过 `AI_PROVIDER_BASE_URL` + `AI_PROVIDER_API_KEY` 指向 OpenAI-compatible provider；无真实 key 时本计划不得标记完成。
 
@@ -22,7 +25,7 @@
 
 `001-full-funnel-happy-journey` 已完成 `E2E.P0.098` / `E2E.P0.099`，证明 P0 happy 主干在真后端、真 PostgreSQL、真实 runner、但 deterministic stub AI 下端到端贯通。该交付对自动化回归是正确的，但它不覆盖人工验收前必须具备的材料完整性，也不证明真实 LLM provider 能在本地联调中被 backend runtime 使用。
 
-本次用户反馈指出当前未提交的 `test/scenarios/manual-uat/` 变更不符合流程：正常流程应先 design，确定 spec / plan 后再实施；验收材料必须完整，包括账号；并且用户需要知道如何启动真实联调环境，要求真实前端、真实后端、不再使用 mock 数据、AI LLM 也是真实连接。
+本计划 v1.3 曾把 `E2E.P0.100` 落在 `test/scenarios/manual-uat/` companion 目录，并在 `e2e/INDEX.md` 之外维护 runbook。用户反馈指出这导致执行体验割裂：执行者首先应是 AI Agent，然后才是人工；所有用例都应支持 Agent 自动执行与人工接手，且运行前必须准备并验证对应环境。
 
 当前代码事实：
 
@@ -35,15 +38,15 @@
 
 ## 3 质量门禁分类
 
-- **Plan 类型**: `feature-behavior + tooling + docs + contract`。本计划覆盖用户可感知的人工 UAT 工作流、Mailpit 本地邮箱账号入口、真实 provider runtime 验证与手工验收材料。
-- **TDD 策略**: 本计划自身只维护 manual UAT 材料；Mailpit 服务、SMTP writer 与 A4 env 字典的代码逻辑归 `local-dev-stack/001` + `backend-auth` + `secrets-and-config` 的 focused tests。runbook / materials 的结构 gate 使用 markdown / shell lint / grep 断言覆盖，不以人工勾选替代静态完整性。
-- **BDD 策略**: Feature plan requires BDD。本计划新增人工可执行的端到端业务流，BDD 场景 `E2E.P0.100` 记录在 [bdd-plan.md](./bdd-plan.md)，主 checklist 使用 `BDD-Gate:` 引用。该场景为 `manual/hybrid`：自动门禁验证材料、配置与启动命令结构，人工执行 checklist 记录真实 UI/AI 结果。
+- **Plan 类型**: `feature-behavior + tooling + docs + contract`。本计划覆盖用户可感知的 hybrid UAT 工作流、Mailpit 本地邮箱账号入口、真实 provider runtime 验证、Agent-first 场景脚本与人工验收材料。
+- **TDD 策略**: 本计划 v1.4 涉及场景脚本、lint contract 与 skill 指令逻辑，必须通过 `/tdd` 红绿重构执行。Red gate 为 `python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`，覆盖 `E2E.P0.100` e2e 注册、旧 `manual-uat` 入口删除、`scenario-run` 环境 preflight 与 `MANUAL_REQUIRED` 语义。
+- **BDD 策略**: Feature plan requires BDD。本计划新增人工可接手的端到端业务流，BDD 场景 `E2E.P0.100` 记录在 [bdd-plan.md](./bdd-plan.md)，主 checklist 使用 `BDD-Gate:` 引用。该场景为 `hybrid`：AI Agent 自动验证环境/材料/配置/隐私和 result artifact，人工或浏览器 Agent 记录真实 UI/AI 结果。
 - **替代验证 gate**:
   - Mailpit / SMTP writer / config focused tests（由 local-dev-stack/backend-auth/A4 owner 承接）。
-  - `test ! -d backend/cmd/devsession && test ! -d backend/internal/devsession`，确认不把 manual UAT 依赖放进正式 backend cmd / internal 包。
+  - `test ! -d backend/cmd/devsession && test ! -d backend/internal/devsession`，确认不把 hybrid UAT 依赖放进正式 backend cmd / internal 包。
   - `go build ./backend/cmd/api`，确认被测真实 backend 入口未被破坏。
   - `make docs-check`、`sync-doc-index --check`、`validate_context.py`。
-  - `rg` 负向 gate：`manual-uat` runbook 不得要求 `APP_ENV=test`、`EI_E2E_P0_099_SERVER`、fixture-backed mock transport、`Prefer: example=` 或 deterministic stub AI 作为真实 UAT 完成条件。
+  - `rg` 负向 gate：active 场景文档不得要求 `APP_ENV=test`、`EI_E2E_P0_099_SERVER`、fixture-backed mock transport、`Prefer: example=` 或 deterministic stub AI 作为真实 UAT 完成条件。
   - secret redline：tracked materials 中不得出现真实 `AI_PROVIDER_API_KEY`、真实 session cookie、真实个人邮箱、真实手机号或可还原 token。
 
 ### 3.1 Operation Matrix
@@ -62,13 +65,19 @@
 | 7 | `completePracticeSession` | N/A | PracticeScreen | real practice handler + report runner | `feedback_reports` + `jobs` + outbox | `report.generate.default` via real provider | `E2E.P0.100` |
 | 8 | `getFeedbackReport` / `getJob` | N/A | Generating / ReportDashboard | real reports/jobs handlers | `feedback_reports` / `jobs` | none | `E2E.P0.100` |
 
+### 3.2 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-05-27 | 1.4 | 将 `E2E.P0.100` 从独立 `manual-uat` companion 迁移为标准 `e2e` hybrid 场景；新增 AI Agent first-run preflight、`MANUAL_REQUIRED` 结果语义和统一输出目录。 |
+
 ## 4 实施步骤
 
 ### Phase 0: 设计归位与现状清理
 
 #### 0.1 owner 计划落地
 
-创建本 002 plan / checklist / BDD / context，并修订 `e2e-scenarios-p0` spec / history / plans INDEX，明确真实 provider manual UAT 是 001 之后的新验收层，不修改 001 的 stub-AI 边界。
+创建本 002 plan / checklist / BDD / context，并修订 `e2e-scenarios-p0` spec / history / plans INDEX，明确真实 provider hybrid UAT 是 001 之后的新验收层，不修改 001 的 stub-AI 边界。
 
 #### 0.2 未提交 manual-uat 目录归属
 
@@ -86,7 +95,7 @@
 
 #### 1.2 runbook 登录路径
 
-更新 `test/scenarios/manual-uat/full-funnel/README.md` 与 `materials/account.md`：人工输入 `manual-uat-full-funnel@example.test`，在 Mailpit `http://127.0.0.1:8025` 打开 magic-link 邮件并完成 `verifyAuthEmailChallenge`；不得保存 magic token 或 cookie value。
+更新 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/README.md` 与 `data/account.md`：人工输入 `manual-uat-full-funnel@example.test`，在 Mailpit `http://127.0.0.1:8025` 打开 magic-link 邮件并完成 `verifyAuthEmailChallenge`；不得保存 magic token 或 cookie value。
 
 禁止把本登录辅助放入 `backend/cmd`、`backend/internal` 或任何正式 backend runtime package；禁止直接写 `sessions` 表绕过 auth flow。
 
@@ -145,7 +154,7 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 
 #### 3.3 验收 checklist
 
-更新 `manual-uat/full-funnel/checklist.md`，覆盖：
+更新 `e2e/p0-100-real-provider-full-funnel-hybrid/checklist.md`，覆盖：
 
 - 环境 / secret / provider 就绪。
 - backend 真进程 + frontend real mode。
@@ -166,7 +175,7 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 
 #### 4.3 人工执行证据
 
-本计划最终完成需要一次真实 provider manual UAT 证据，至少包含：
+本计划最终完成需要一次真实 provider hybrid UAT 证据，至少包含：
 
 - 使用真实 `AI_PROVIDER_API_KEY` 启动 backend 的命令摘要（不记录 key）。
 - backend / frontend 真实进程健康证据。
@@ -174,13 +183,33 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 - checklist 勾选结果与截图/日志路径。
 - AI provider 调用摘要：provider ref / model profile / model id / latency / task-run count，且不包含 prompt/response 明文。
 
+### Phase 5: 统一场景框架与 Agent-first 执行
+
+#### 5.1 标准场景目录迁移
+
+将 `E2E.P0.100` 的 runbook、checklist、env template 和材料迁移到 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/`，补齐 `data/seed-input.md`、`data/expected-outcome.md` 和四段脚本。删除 `test/scenarios/manual-uat/` 独立入口。
+
+#### 5.2 INDEX 与框架文档
+
+在 `test/scenarios/e2e/INDEX.md` 登记 `E2E.P0.100` 为 `hybrid | Ready`，更新 `test/scenarios/README.md` 与 `test/scenarios/e2e/README.md`：运行前统一执行环境 preflight；hybrid 场景由 AI Agent 先运行，缺人工证据时输出 `MANUAL_REQUIRED`。
+
+#### 5.3 `scenario-run` 技能契约
+
+更新 `.agent-skills/scenario-run/SKILL.md`，让场景运行先执行 `test/scenarios/env-setup.sh` / `env-verify.sh`，并把 `MANUAL_REQUIRED` 作为独立结果状态汇总，而不是误判为 PASS 或 ERROR。
+
+#### 5.4 契约测试与零残留 gate
+
+新增/更新 `scripts/lint/scenario_env_contract_test.py`，覆盖 `E2E.P0.100` 标准场景资产、旧 `test/scenarios/manual-uat` 入口删除、`scenario-run` 环境 preflight 与 hybrid 结果语义。
+
 ## 5 验收标准
 
-- 本计划文档集完整，`test/scenarios/manual-uat/` 不再是无 owner 的未计划变更。
+- 本计划文档集完整，`test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` 是 `E2E.P0.100` 唯一 active 场景入口。
+- `test/scenarios/manual-uat/` 不再作为独立 companion 目录存在；active 场景框架文档不再引导用户去框架外执行真实 provider UAT。
+- `scenario-run` 运行 `E2E.P0.100` 时能完成 AI Agent preflight，并在缺人工/浏览器证据时生成 `MANUAL_REQUIRED` result artifact。
 - 用户可按 runbook 启动真实前端 + 真实后端 + 真实 AI provider 联调环境，不依赖 frontend mock transport 或 backend test stub。
 - UAT 材料包包含 Mailpit 本地登录说明、JD、简历、作答样例、检查清单、证据归档与清理说明。
-- manual UAT 不新增正式 backend cmd，不直接写 session 表，且不依赖真实外部邮箱服务或真实邮箱账号。
-- BDD-Gate `E2E.P0.100` 的材料结构与人工执行证据闭环。
+- hybrid UAT 不新增正式 backend cmd，不直接写 session 表，且不依赖真实外部邮箱服务或真实邮箱账号。
+- BDD-Gate `E2E.P0.100` 的材料结构、Agent preflight、人工执行证据和 cleanup 边界在同一场景目录下闭环。
 
 ## 6 风险与应对
 

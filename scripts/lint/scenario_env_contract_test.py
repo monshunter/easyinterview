@@ -142,3 +142,37 @@ def test_scenario_docs_describe_independent_env_lifecycle() -> None:
     assert "手动引导" in suite
     assert "host-run" in dev_stack
     assert "make scenario-env-setup" in dev_stack
+
+
+def test_real_provider_hybrid_uat_is_registered_as_e2e_scenario() -> None:
+    index = (SCENARIO_ROOT / "e2e" / "INDEX.md").read_text(encoding="utf-8")
+    scenario_dir = SCENARIO_ROOT / "e2e" / "p0-100-real-provider-full-funnel-hybrid"
+
+    assert "E2E.P0.100" in index
+    assert "`p0-100-real-provider-full-funnel-hybrid/`" in index
+    assert "| hybrid | Ready |" in index
+
+    assert scenario_dir.exists()
+    for rel_path in (
+        "README.md",
+        "scripts/setup.sh",
+        "scripts/trigger.sh",
+        "scripts/verify.sh",
+        "scripts/cleanup.sh",
+        "data/seed-input.md",
+        "data/expected-outcome.md",
+    ):
+        assert (scenario_dir / rel_path).exists(), f"{rel_path} is required for E2E.P0.100"
+
+    assert not (SCENARIO_ROOT / "manual-uat").exists()
+
+
+def test_scenario_run_skill_requires_env_preflight_and_hybrid_results() -> None:
+    skill = (REPO_ROOT / ".agent-skills" / "scenario-run" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "test/scenarios/env-setup.sh" in skill
+    assert "test/scenarios/env-verify.sh" in skill
+    assert "MANUAL_REQUIRED" in skill
+    assert "hybrid" in skill
