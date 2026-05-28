@@ -7,6 +7,7 @@ SCENARIO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-101-auth-email-code-login-register"
 RUN_ID="e2e-p0-101-$(date -u '+%Y%m%d%H%M%S')-$$"
 AUTH_EMAIL="auth-email-code-${RUN_ID}@example.test"
+DEV_STACK_ENV="$REPO_ROOT/deploy/dev-stack/.env"
 
 mkdir -p "$OUTPUT_DIR"
 rm -rf "$OUTPUT_DIR/playwright"
@@ -28,6 +29,25 @@ for rel_path in \
   scripts/cleanup.sh; do
   test -s "$SCENARIO_DIR/$rel_path"
 done
+
+if [ -s "$DEV_STACK_ENV" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$DEV_STACK_ENV"
+  set +a
+fi
+
+PG_DSN="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}"
+PROFILE_COLUMN_COUNT="$(psql "$PG_DSN" -tAc "
+select count(*)
+from information_schema.columns
+where table_name = 'users'
+  and column_name in ('profile_completed_at', 'terms_accepted_at');
+")"
+if [ "$PROFILE_COLUMN_COUNT" != "2" ]; then
+  echo "setup: missing users profile completion columns; run test/scenarios/env-setup.sh --with-migrations before E2E.P0.101" >&2
+  exit 1
+fi
 
 {
   echo "scenario=E2E.P0.101"

@@ -79,12 +79,12 @@ describe("TopBar primary nav", () => {
 });
 
 describe("TopBar user menu", () => {
-  it("renders login + register entries when signed-out", () => {
+  it("renders the single login entry when signed-out", () => {
     renderInProvider(
       <TopBar activeRoute="home" onNavigate={() => {}} signedIn={false} />,
     );
     expect(screen.getByTestId("topbar-login")).toBeInTheDocument();
-    expect(screen.getByTestId("topbar-register")).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
     expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("topbar-user-profile"),

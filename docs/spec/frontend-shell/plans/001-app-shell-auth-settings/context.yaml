@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.12
+    to: 1.19
 spec:
   defaultTarget: frontend
   discovery:
@@ -43,6 +43,10 @@ spec:
       - logout unauthenticated
       - user avatar dropdown
       - topbar user chip
+      - unified email login
+      - auth_profile_setup
+      - profileCompletionRequired
+      - completeMyProfile
   targets:
     frontend:
       plan: ./plan.md
@@ -80,8 +84,8 @@ spec:
           - profile
           - settings
           - auth_login
-          - auth_register
           - auth_verify
+          - auth_profile_setup
           - auth_reset
           - auth_logout
         apiNames:
@@ -89,4 +93,5 @@ spec:
           - getMe
           - startAuthEmailChallenge
           - verifyAuthEmailChallenge
+          - completeMyProfile
           - logout

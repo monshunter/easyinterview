@@ -37,6 +37,7 @@ EXPECTED_TAGS: list[str] = [
 # (tag, method, path, operationId) tuples per spec §3.1.1 plus additive owner plans.
 EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("Auth", "get", "/me", "getMe"),
+    ("Auth", "patch", "/me", "completeMyProfile"),
     ("Auth", "delete", "/me", "deleteMe"),
     ("Auth", "post", "/auth/email/start", "startAuthEmailChallenge"),
     ("Auth", "get", "/auth/email/verify", "verifyAuthEmailChallenge"),

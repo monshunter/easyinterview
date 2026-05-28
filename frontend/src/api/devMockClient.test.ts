@@ -150,8 +150,19 @@ describe("frontend dev fixture-backed mock client", () => {
 			query: { token: "654321" },
 		});
 		await expect(client.getMe()).resolves.toMatchObject({
+			displayName: "",
+			emailMasked: "new***r@example.com",
+			profileCompletionRequired: true,
+		});
+
+		await client.completeMyProfile({
 			displayName: "Alice Example",
-			emailMasked: "ali***@example.com",
+			acceptedTerms: true,
+		});
+		await expect(client.getMe()).resolves.toMatchObject({
+			displayName: "Alice Example",
+			emailMasked: "new***r@example.com",
+			profileCompletionRequired: false,
 		});
 
 		await client.logout();

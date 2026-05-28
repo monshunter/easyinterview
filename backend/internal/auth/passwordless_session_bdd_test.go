@@ -153,29 +153,29 @@ func TestE2EP0003PasswordlessSessionCookie(t *testing.T) {
 	}
 }
 
-func startSignupChallenge(t *testing.T, handler *auth.Handler, email string, displayName string, traceparent string) {
+func startSignupChallenge(t *testing.T, handler *auth.Handler, email string, _ string, traceparent string) {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", bytes.NewBufferString(fmt.Sprintf(`{"email":%q,"purpose":"signup","displayName":%q}`, email, displayName)))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", bytes.NewBufferString(fmt.Sprintf(`{"email":%q}`, email)))
 	req.Header.Set("traceparent", traceparent)
 	req.RemoteAddr = "203.0.113.60:5588"
 	req.Header.Set("User-Agent", "scenario-runner")
 	rec := httptest.NewRecorder()
 	handler.StartAuthEmailChallenge(rec, req)
 	if rec.Code != http.StatusAccepted {
-		t.Fatalf("start signup challenge status = %d body=%s", rec.Code, rec.Body.String())
+		t.Fatalf("start email challenge status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
 func startLoginChallenge(t *testing.T, handler *auth.Handler, email string, traceparent string) {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", bytes.NewBufferString(fmt.Sprintf(`{"email":%q,"purpose":"login"}`, email)))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", bytes.NewBufferString(fmt.Sprintf(`{"email":%q}`, email)))
 	req.Header.Set("traceparent", traceparent)
 	req.RemoteAddr = "203.0.113.60:5588"
 	req.Header.Set("User-Agent", "scenario-runner")
 	rec := httptest.NewRecorder()
 	handler.StartAuthEmailChallenge(rec, req)
 	if rec.Code != http.StatusAccepted {
-		t.Fatalf("start login challenge status = %d body=%s", rec.Code, rec.Body.String())
+		t.Fatalf("start email challenge status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -341,6 +341,7 @@ func (s *passwordlessScenarioStore) CreateUserByEmail(_ context.Context, email s
 		UILanguage:                "zh-CN",
 		PreferredPracticeLanguage: "en",
 		AnalyticsOptIn:            true,
+		ProfileCompletionRequired: displayName == "",
 	}
 	s.usersByEmail[email] = user
 	s.usersByID[user.ID] = user

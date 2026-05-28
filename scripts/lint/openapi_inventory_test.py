@@ -8,10 +8,17 @@ import scripts.lint.openapi_inventory as inventory
 
 class OpenAPIInventoryContractTest(unittest.TestCase):
     def test_product_scope_v12_inventory_includes_delete_me(self) -> None:
-        # 56 baseline + listPracticeSessions + createPracticeVoiceTurn.
-        self.assertEqual(58, len(inventory.EXPECTED_OPERATIONS))
+        # Current v1.0.0 pre-launch freeze after auth profile completion.
+        self.assertEqual(60, len(inventory.EXPECTED_OPERATIONS))
         self.assertIn(("Auth", "delete", "/me", "deleteMe"), inventory.EXPECTED_OPERATIONS)
         self.assertIn(("delete", "/me"), inventory.IK_REQUIRED)
+
+    def test_complete_my_profile_operation_is_registered_without_idempotency_key(self) -> None:
+        # Profile completion is guarded by the authenticated session and the
+        # latest displayName/terms payload; it is not a generic idempotent op.
+        self.assertIn(("Auth", "patch", "/me", "completeMyProfile"), inventory.EXPECTED_OPERATIONS)
+        self.assertNotIn(("patch", "/me"), inventory.IK_REQUIRED)
+        self.assertNotIn(("patch", "/me"), inventory.IK_FORBIDDEN)
 
     def test_list_practice_sessions_operation_is_registered_without_idempotency_key(self) -> None:
         # frontend-debrief/001 Phase 0 cross-owner addendum: GET

@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.7
+    to: 1.8
 spec:
   defaultTarget: backend
   discovery:
@@ -28,6 +28,10 @@ spec:
       - backend-internal mail dispatcher
       - dev mail sink runner
       - protected session middleware
+      - unified email login
+      - profileCompletionRequired
+      - completeMyProfile
+      - first-login profile setup
   targets:
     backend:
       plan: ./plan.md
@@ -56,14 +60,15 @@ spec:
           - migrations
         uiRoutes:
           - auth_login
-          - auth_register
           - auth_verify
+          - auth_profile_setup
           - auth_logout
           - settings
         apiNames:
           - startAuthEmailChallenge
           - verifyAuthEmailChallenge
           - getMe
+          - completeMyProfile
           - deleteMe
           - logout
           - getRuntimeConfig

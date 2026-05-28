@@ -63,9 +63,8 @@ IK_REQUIRED_OPERATION_IDS = {
 class FixtureSkeletonTest(unittest.TestCase):
     """Phase 1.1 structural contract."""
 
-    def test_fifty_eight_operations_expected(self) -> None:
-        # 56 baseline + listPracticeSessions + createPracticeVoiceTurn.
-        self.assertEqual(len(EXPECTED_OPERATIONS), 58)
+    def test_sixty_operations_expected(self) -> None:
+        self.assertEqual(len(EXPECTED_OPERATIONS), 60)
 
     def test_thirteen_unique_tags(self) -> None:
         tags = {tag for tag, *_ in EXPECTED_OPERATIONS}

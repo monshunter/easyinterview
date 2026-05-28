@@ -1,8 +1,8 @@
 # Passwordless Session Bootstrap Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-05-28
 
 **关联计划**: [plan](./plan.md)
 
@@ -60,15 +60,32 @@
 - [x] 6.8 修复 logout revoke race 的 touch zero-row 归类；验证: middleware tests 覆盖 `ResolveSession` 读到 active session 后 `TouchSession` 返回 `sql.ErrNoRows` 的并发 revoke race，`logout` optional path 仍进入 handler 并幂等清 cookie，required protected path 归类为 B1 `AUTH_UNAUTHORIZED`
   <!-- verified: 2026-05-06 command="cd backend && go test ./internal/auth -run TestSessionMiddlewareTreatsTouchLostRaceAsAuthState -count=1" -->
 
-## Phase 7: Email code and registration display-name remediation
+## Phase 7: Historical email-code registration split remediation
 
-- [x] 7.1 OpenAPI additive contract and generated clients；验证: `AuthEmailStartRequest` 包含 optional `purpose`（`login` / `signup`）与 `displayName`，verify query 描述/fixture/schema 体现 6 位数字 code，`make codegen-openapi` 后 Go / TS generated artefacts 与 `openapi/openapi.yaml` 一致
+> 本阶段是 2026-05-27 的历史完成记录，已被 Phase 8 的单入口邮箱登录与资料补全语义取代。以下 `purpose=signup/login`、注册页 displayName pass-through、duplicate-register 409 证据不得再作为当前验收口径。
+
+- [x] 7.1 Historical OpenAPI additive contract and generated clients；验证: 历史 `AuthEmailStartRequest` 曾包含 optional `purpose`（`login` / `signup`）与 `displayName`，verify query 描述/fixture/schema 体现 6 位数字 code，`make codegen-openapi` 后 Go / TS generated artefacts 与当时 `openapi/openapi.yaml` 一致；当前 contract 见 Phase 8.1
   <!-- verified: 2026-05-27 command="make codegen-openapi" evidence="OpenAPI auth email start/verify contract regenerated into backend and frontend generated artefacts" -->
 - [x] 7.2 Six-digit code + 5-minute TTL；验证: focused Go tests 覆盖默认 challenge generator 只产生 6 位数字 code、`ChallengeTTL == 5*time.Minute`、challenge code hash 入库且 session token 仍使用 secure opaque token
   <!-- verified: 2026-05-27 command="cd backend && go test ./internal/auth -count=1 && go test ./... " evidence="auth crypto/config/service/store tests and full backend package suite passed" -->
-- [x] 7.3 Registration display-name persistence and email uniqueness；验证: handler/service/store tests 覆盖注册页传入 `purpose=signup` + displayName 后暂存到 challenge、verify 成功后新建唯一 email user 并写入 displayName、重复注册同一 email 在 start 阶段返回 409 且不创建 challenge / 不发 code / 不覆盖 displayName、登录页 `purpose=login` 只登录已注册 email 且未知 email 不隐式创建账号
+- [x] 7.3 Historical registration display-name persistence and email uniqueness；验证: 历史 handler/service/store tests 覆盖注册页传入 `purpose=signup` + displayName 后暂存到 challenge、verify 成功后新建唯一 email user 并写入 displayName、重复注册同一 email 在 start 阶段返回 409 且不创建 challenge / 不发 code / 不覆盖 displayName、登录页 `purpose=login` 只登录已注册 email 且未知 email 不隐式创建账号；当前 start 阶段不得暴露这些分支，见 Phase 8.3
   <!-- verified: 2026-05-27 command="cd backend && go test ./internal/auth -count=1 && go test ./cmd/api -run 'Test(AuthEmail|BuildAuth|LocalDevCORS|BuildAPIHandlerMountsAuthRoutesAndSessionAwareRuntimeConfig)' -count=1 && go test ./..." evidence="duplicate signup rejected at start before challenge creation; signup/login purpose and displayName persistence covered" -->
 - [x] 7.4 Code-only Mailpit / SMTP email；验证: SMTP writer tests 覆盖邮件标题/HTML/text 只展示 6 位 code 和 5 分钟有效期，不包含 magic link、`/auth/verify?token=`、完整 URL、delivery secret、raw email 以外的内部字段或日志泄露；dev mail sink retrieval 使用 `CodeForChallenge`
   <!-- verified: 2026-05-27 command="cd backend && go test ./internal/auth -count=1 && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/trigger.sh" evidence="SMTP/dev sink tests passed; P0.101 Mailpit mailSubject observed with mailCode redacted and no URL callback" -->
-- [x] 7.5 BDD-Gate: 验证 E2E.P0.101 通过；验证: real frontend/backend/Mailpit 使用同一邮箱完成 register -> logout -> login，注册后和再次登录后 TopBar 展示同一账号 displayName，重复注册同一 email 在发码前被拒绝且不覆盖 displayName，负向断言 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 不出现
+- [x] 7.5 Historical BDD-Gate: 验证 E2E.P0.101 通过；验证: historical real frontend/backend/Mailpit 使用同一邮箱完成 register -> logout -> login，注册后和再次登录后 TopBar 展示同一账号 displayName，重复注册同一 email 在发码前被拒绝且不覆盖 displayName，负向断言 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 不出现；当前 P0.101 语义见 Phase 8.6
   <!-- verified: 2026-05-27 command="bash test/scenarios/env-redeploy.sh all && bash test/scenarios/env-verify.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/setup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/trigger.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/verify.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/cleanup.sh" evidence="P0.101 PASS: register/login meStatus=200, duplicate-register finalUrl=/auth/register meStatus=401 mailSubject=not-sent consoleErrors=0 pageErrors=0 httpFailures=0" -->
+
+## Phase 8: Unified email login and profile completion
+
+- [x] 8.1 OpenAPI contract and generated clients；验证: `AuthEmailStartRequest` 只保留 email / safe request fields，不含 `purpose` 或 `displayName`；`UserContext.profileCompletionRequired` 为必填；新增 `completeMyProfile` / `PATCH /me` request/response；fixtures 更新；`make codegen-openapi` 通过且 generated Go / TS artefacts 与 schema 一致
+  <!-- verified: 2026-05-28 commands="make codegen-openapi; python3 scripts/lint/openapi_inventory.py openapi/openapi.yaml; python3 scripts/lint/validate_fixtures.py --repo-root .; make lint-mock-contract; make openapi-diff" evidence="OpenAPI inventory and fixtures synced to 60 operations; generated Go/TS artifacts include completeMyProfile and profileCompletionRequired" -->
+- [x] 8.2 Persistence and migration；验证: 新 migration 为 `users` 添加 `profile_completed_at` / `terms_accepted_at` 并 backfill 既有 active displayName 用户；migration up/down 或 dry-run gate 通过；store tests 覆盖新邮箱用户保持未补全、既有用户为已补全
+  <!-- verified: 2026-05-28 commands="python3 scripts/lint/migrations_lint.py --repo-root .; bash -lc 'set -a; . deploy/dev-stack/.env; set +a; make migrate-status'; cd backend && go test ./..." evidence="migration lint ok; dev DB schema_migrations version=13 dirty=false; backend store tests passed in full suite" -->
+- [x] 8.3 Unified challenge start and verify semantics；验证: service/handler tests 覆盖 start 不检查账号存在、不返回 duplicate register / unknown login 差异；verify 既有邮箱直接登录、新邮箱创建未补全账号和 session；旧 `purpose=signup/login` 不参与当前分支，displayName 不在 verify 前持久化
+  <!-- verified: 2026-05-28 command="cd backend && go test ./..." evidence="auth service/handler tests cover unified start, existing-email login, new-email incomplete account creation, and no pre-verify displayName persistence" -->
+- [x] 8.4 `/me` and `completeMyProfile`；验证: handler/store tests 覆盖已登录未补全用户 `/me` 返回 200 + `profileCompletionRequired=true`，未登录仍为 B1 error；`PATCH /me` 要求 session、trimmed displayName 非空、`acceptedTerms=true`，成功后返回 `profileCompletionRequired=false` 且不修改邮箱或创建新账号
+  <!-- verified: 2026-05-28 command="cd backend && go test ./..." evidence="auth /me and completeMyProfile handler/store tests passed in full backend suite" -->
+- [x] 8.5 Privacy / metrics / old-scope negative gates；验证: focused grep/test 断言 raw code、session cookie、完整邮箱不进日志/audit/metric label；当前 active backend/openapi/frontend generated truth 不含注册分流完成证据、duplicate-register start rejection、displayName-before-verify、password/OAuth auth wire 或 magic-link URL callback
+  <!-- verified: 2026-05-28 commands="make lint-config; rg -n 'purpose=signup|purpose=login|duplicate-register|duplicate register|AuthRegisterScreen|magic link|/auth/verify\\?token=|displayName-before-verify|OAuth|password auth|Bearer token' backend/internal/auth backend/cmd/api openapi/openapi.yaml frontend/src/app frontend/src/api -g '!**/*_test.go' -g '!**/*.test.ts' -g '!**/*.test.tsx'" evidence="lint-config PASS; scoped negative search only found backend/internal/auth/doc.go redline comment" -->
+- [x] 8.6 BDD-Gate: 验证 E2E.P0.101 通过；验证: real frontend/backend/Mailpit 覆盖单入口新邮箱首次登录 -> `/me.profileCompletionRequired=true` -> 重新登录仍未补全 -> `PATCH /me` -> `/me.profileCompletionRequired=false` -> 后续同邮箱登录正常；证明邮箱唯一、displayName 不唯一且不参与账号唯一性判断
+  <!-- verified: 2026-05-28 command="bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/cleanup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/setup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/trigger.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/verify.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/cleanup.sh" evidence="P0.101 PASS: first-login-profile-setup profileCompletionRequired=true; cross-browser and logout relogin still profile setup; complete profile returns false; existing email login bypasses profile setup" -->

@@ -228,14 +228,18 @@ type UserContext struct {
 	EmailMasked               string `json:"emailMasked"`
 	Id                        string `json:"id"`
 	PreferredPracticeLanguage string `json:"preferredPracticeLanguage"`
+	ProfileCompletionRequired bool   `json:"profileCompletionRequired"`
 	UiLanguage                string `json:"uiLanguage"`
 }
 
 type AuthEmailStartRequest struct {
-	DisplayName *string `json:"displayName,omitempty"`
-	Email       string  `json:"email"`
-	Purpose     *string `json:"purpose,omitempty"`
-	ReturnTo    *string `json:"returnTo,omitempty"`
+	Email    string  `json:"email"`
+	ReturnTo *string `json:"returnTo,omitempty"`
+}
+
+type CompleteProfileRequest struct {
+	AcceptedTerms bool   `json:"acceptedTerms"`
+	DisplayName   string `json:"displayName"`
 }
 
 type Session struct {

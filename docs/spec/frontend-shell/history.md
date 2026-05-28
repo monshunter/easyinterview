@@ -1,13 +1,14 @@
 # Frontend Shell History
 
-> **版本**: 1.18
+> **版本**: 1.19
 > **状态**: active
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-05-28
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-28 | 1.19 | 修订为单入口邮箱验证码登录 + 首次资料补全：TopBar 和认证页只保留 `auth_login`，旧 `auth_register` 仅作为 legacy alias 折回登录；新邮箱 verify 后进入 `auth_profile_setup`，`/me.profileCompletionRequired` 未完成时在刷新、重开、换浏览器、退出重登和 deep link 前强制优先补全 displayName + 条款。 | 001-app-shell-auth-settings Phase 9 |
 | 2026-05-27 | 1.18 | 修订 auth 为 6 位 email-code：`auth_verify` 只承接手动 code 输入，注册传 `purpose=signup` + `displayName`，登录传 `purpose=login` 且复用同一唯一邮箱，TopBar fallback 删除 `刘哲` / `Liu Zhe` / `liuzhe@example.com`。 | 001-app-shell-auth-settings Phase 8 |
 | 2026-05-27 | 1.17 | 修订 auth magic-link callback：`auth_verify` 可短生命周期承接邮件 `token` query，前端自动调用 generated `verifyAuthEmailChallenge`，成功后 replace 到 pending route 或 Home 并清理 URL token；其他 route / pendingAction / storage 仍禁止保存 auth secret。 | 001-app-shell-auth-settings Phase 7 |
 | 2026-05-18 | 1.16 | 关闭 URL-addressable routing 004 计划：落地 `frontend/src/app/routeUrl.ts` 类型化 codec + safe-param allowlist、`frontend/src/app/routeStore.ts` Browser History store（push/replace/popstate）、`pendingAction` canonical 过滤、`scripts/spaFallback.mjs` SPA host fallback 与 `vite.config.ts` `appType: "spa"`；新增 E2E.P0.088 / 089 / 090 三场景（in-process vitest jsdom）覆盖 C-11/C-12/C-13；retired aliases 与独立 voice 路由通过负向 grep 阻断。 | 004-url-addressable-routing |

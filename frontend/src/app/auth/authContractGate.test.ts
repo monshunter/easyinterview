@@ -15,6 +15,7 @@ const AUTH_DIR = resolve(__dirname);
 const ALLOWED_AUTH_OPERATIONS = new Set<string>([
   "startAuthEmailChallenge",
   "verifyAuthEmailChallenge",
+  "completeMyProfile",
   "getMe",
   "logout",
 ]);
@@ -137,10 +138,10 @@ describe("auth contract gate (Phase 3.3)", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("App.tsx auth dispatch only references the three allowed write-side auth operations", () => {
-    // App.tsx wires startAuthEmailChallenge / verifyAuthEmailChallenge /
-    // logout. `getMe` is owned by AppRuntimeProvider (read-only auth probe);
-    // `getRuntimeConfig` is also provider-owned and not an auth surface.
+  it("App.tsx auth dispatch only references the allowed auth operations", () => {
+    // App.tsx wires the public email challenge, verify + `/me` follow-up,
+    // first-login profile completion, and logout. Other auth surfaces must
+    // still land explicit spec/OpenAPI work before appearing here.
     const file = resolve(__dirname, "../App.tsx");
     const content = readFileSync(file, "utf8");
     const used = new Set<string>();
@@ -152,6 +153,8 @@ describe("auth contract gate (Phase 3.3)", () => {
     const expected = new Set([
       "startAuthEmailChallenge",
       "verifyAuthEmailChallenge",
+      "completeMyProfile",
+      "getMe",
       "logout",
     ]);
     expect([...used].sort()).toEqual([...expected].sort());

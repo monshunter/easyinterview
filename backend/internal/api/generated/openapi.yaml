@@ -66,7 +66,7 @@ paths:
       tags: [Auth]
       operationId: getMe
       summary: Get current user context
-      description: Returns minimal context for the authenticated user (id, masked email, display name, language preferences).
+      description: Returns minimal context for the authenticated user (id, masked email, display name, language preferences, profile completion state).
       parameters:
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
@@ -75,6 +75,38 @@ paths:
       responses:
         '200':
           description: Current user context.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContext'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+    patch:
+      tags: [Auth]
+      operationId: completeMyProfile
+      summary: Complete first-login profile setup
+      description: |
+        Protected endpoint for first-login profile setup only. Stores the
+        user's non-unique display name and terms acceptance, then returns the
+        updated current-user context. Candidate profile, resume, JD, and
+        interview preferences are managed by their own domain endpoints.
+      parameters:
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteProfileRequest'
+      responses:
+        '200':
+          description: First-login profile setup completed.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/XRequestID'
@@ -119,11 +151,11 @@ paths:
       summary: Issue a passwordless email-code challenge
       description: |
         Public endpoint per ADR-Q1. Sends a single-use 6-digit code to the
-        supplied email. `purpose=signup` creates a registration challenge for
-        a not-yet-registered email and may include a non-unique display name;
-        `purpose=login` creates a login challenge for an already registered
-        email. Rate limited per ADR-Q1 risk-control baseline; does **not**
-        carry an `Idempotency-Key` (rate-limit + challenge TTL handle
+        supplied email. This is the only sign-in entry: existing emails log in
+        to the existing account, and new emails create an account after code
+        verification. The start response must not reveal whether the email is
+        already registered. Rate limited per ADR-Q1 risk-control baseline; does
+        **not** carry an `Idempotency-Key` (rate-limit + challenge TTL handle
         deduplication).
       security: []
       parameters:
@@ -2360,7 +2392,7 @@ components:
     # ----- Auth / runtime -----
     UserContext:
       type: object
-      required: [id, emailMasked, displayName, uiLanguage, preferredPracticeLanguage]
+      required: [id, emailMasked, displayName, uiLanguage, preferredPracticeLanguage, profileCompletionRequired]
       description: Minimal current-user context returned by `GET /me`.
       properties:
         id:
@@ -2377,31 +2409,35 @@ components:
         preferredPracticeLanguage:
           type: string
           description: BCP 47 preferred practice language.
+        profileCompletionRequired:
+          type: boolean
+          description: True when the signed-in account still needs first-login display name and terms completion before business actions can resume.
 
     AuthEmailStartRequest:
       type: object
       required: [email]
-      description: Email-code challenge request per ADR-Q1. No `Idempotency-Key`; rate-limited per ADR-Q1.
+      description: Single-entry email-code challenge request per ADR-Q1. No `Idempotency-Key`; rate-limited per ADR-Q1.
       properties:
         email:
           type: string
           format: email
-        purpose:
+        returnTo:
           type: string
-          enum: [login, signup]
-          default: login
-          description: |
-            `login` verifies an already registered email. `signup` registers a
-            new unique email; display names are user profile text and are not
-            unique account identifiers.
+          description: Optional post-verify redirect path on the same origin.
+
+    CompleteProfileRequest:
+      type: object
+      required: [displayName, acceptedTerms]
+      description: First-login profile setup request for the current authenticated user.
+      properties:
         displayName:
           type: string
           minLength: 1
           maxLength: 120
-          description: Optional non-unique display name captured during signup.
-        returnTo:
-          type: string
-          description: Optional post-verify redirect path on the same origin.
+          description: Non-unique display name shown in the app.
+        acceptedTerms:
+          type: boolean
+          description: Must be true to record first-login terms acceptance.
 
     Session:
       type: object

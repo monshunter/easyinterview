@@ -11,7 +11,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [product-scope](./product-scope/spec.md) | 1.8 | active | 2026-05-05 | [plans](./product-scope/plans/) |
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.21 | active | 2026-05-22 | [plans](./engineering-roadmap/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.22 | active | 2026-05-28 | [plans](./engineering-roadmap/plans/) |
 | [historical-spec-implementation-review](./historical-spec-implementation-review/spec.md) | 1.0 | active | 2026-05-04 | [plans](./historical-spec-implementation-review/plans/) |
 
 ## 2 Foundation
@@ -31,7 +31,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.20 | active | 2026-05-21 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.27 | active | 2026-05-27 | [plans](./openapi-v1-contract/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.28 | active | 2026-05-28 | [plans](./openapi-v1-contract/plans/) |
 | [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.7 | active | 2026-05-22 | [plans](./event-and-outbox-contract/plans/) |
 | [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.22 | active | 2026-05-26 | [plans](./db-migrations-baseline/plans/) |
 
@@ -46,11 +46,11 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [mock-contract-suite](./mock-contract-suite/spec.md) | 1.8 | active | 2026-05-22 | [plans](./mock-contract-suite/plans/) |
-| [frontend-shell](./frontend-shell/spec.md) | 1.18 | active | 2026-05-27 | [plans](./frontend-shell/plans/) |
+| [mock-contract-suite](./mock-contract-suite/spec.md) | 1.9 | active | 2026-05-28 | [plans](./mock-contract-suite/plans/) |
+| [frontend-shell](./frontend-shell/spec.md) | 1.19 | active | 2026-05-28 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 1.12 | completed | 2026-05-24 | [plans](./frontend-home-job-picks-and-parse/plans/) |
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.4 | active | 2026-05-23 | [plans](./frontend-workspace-and-practice/plans/) |
-| [backend-auth](./backend-auth/spec.md) | 1.7 | active | 2026-05-27 | [plans](./backend-auth/plans/) |
+| [backend-auth](./backend-auth/spec.md) | 1.8 | active | 2026-05-28 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 1.5 | active | 2026-05-21 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.11 | active | 2026-05-21 | [plans](./backend-practice/plans/) |
 | [backend-review](./backend-review/spec.md) | 1.0 | active | 2026-05-15 | [plans](./backend-review/plans/) |

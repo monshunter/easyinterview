@@ -30,8 +30,8 @@ export const FRONTEND_CANONICAL_PATHS = Object.freeze([
   "/profile",
   "/settings",
   "/auth/login",
-  "/auth/register",
   "/auth/verify",
+  "/auth/profile",
   "/auth/reset",
   "/auth/logout",
 ]);

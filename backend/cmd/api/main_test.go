@@ -2410,6 +2410,11 @@ func (s *apiAuthStore) FindUserByEmail(context.Context, string) (auth.UserContex
 	return s.user, nil
 }
 
+func (s *apiAuthStore) CompleteUserProfile(context.Context, string, string, time.Time) (auth.UserContext, error) {
+	s.user.ProfileCompletionRequired = false
+	return s.user, nil
+}
+
 func (s *apiAuthStore) CreateSession(_ context.Context, rec auth.SessionRecord) error {
 	s.session = rec
 	return nil

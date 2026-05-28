@@ -4,6 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import getMeFixture from "../../../openapi/fixtures/Auth/getMe.json";
+import completeMyProfileFixture from "../../../openapi/fixtures/Auth/completeMyProfile.json";
 import getRuntimeConfigFixture from "../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import logoutFixture from "../../../openapi/fixtures/Auth/logout.json";
 import startAuthEmailChallengeFixture from "../../../openapi/fixtures/Auth/startAuthEmailChallenge.json";
@@ -21,6 +22,7 @@ function buildClient(spy?: typeof fetch) {
     createFixtureRegistry([
       getRuntimeConfigFixture,
       getMeFixture,
+      completeMyProfileFixture,
       logoutFixture,
       startAuthEmailChallengeFixture,
       verifyAuthEmailChallengeFixture,
@@ -38,15 +40,15 @@ describe("App auth route dispatch", () => {
     const cases: Array<{
       name:
         | "auth_login"
-        | "auth_register"
         | "auth_verify"
+        | "auth_profile_setup"
         | "auth_reset"
         | "auth_logout";
       hallmarkTestId: string;
     }> = [
       { name: "auth_login", hallmarkTestId: "auth-login-email" },
-      { name: "auth_register", hallmarkTestId: "auth-register-email" },
       { name: "auth_verify", hallmarkTestId: "auth-verify-code" },
+      { name: "auth_profile_setup", hallmarkTestId: "auth-profile-name" },
       { name: "auth_reset", hallmarkTestId: "auth-reset-email" },
       { name: "auth_logout", hallmarkTestId: "auth-logout-confirm" },
     ];
@@ -118,7 +120,6 @@ describe("App auth route dispatch", () => {
     );
     expect(startCall?.body).toEqual({
       email: "alice@example.com",
-      purpose: "login",
     });
     await screen.findByTestId("route-auth_verify");
     expect(screen.getByTestId("auth-verify-email-hint")).toHaveTextContent(
@@ -128,8 +129,8 @@ describe("App auth route dispatch", () => {
 
   it("does not issue the initial /me probe on public auth entry routes", async () => {
     const cases: Array<
-      "auth_login" | "auth_register" | "auth_verify" | "auth_reset"
-    > = ["auth_login", "auth_register", "auth_verify", "auth_reset"];
+      "auth_login" | "auth_verify" | "auth_reset"
+    > = ["auth_login", "auth_verify", "auth_reset"];
     for (const name of cases) {
       const calls: Array<{ url: string; method: string }> = [];
       const fixtureFetch = createFixtureBackedFetch(
@@ -164,13 +165,51 @@ describe("App auth route dispatch", () => {
     }
   });
 
-  it("wires auth_register submit through startAuthEmailChallenge and treats empty 202 as success", async () => {
+  it("normalizes legacy auth_register route names to the single login screen", () => {
+    render(
+      <App
+        client={buildClient()}
+        initialRoute={{ name: "auth_register", params: {} }}
+      />,
+    );
+    expect(screen.getByTestId("route-auth_login")).toBeInTheDocument();
+    expect(screen.getByTestId("auth-login-email")).toBeInTheDocument();
+    expect(screen.queryByTestId("route-auth_register")).not.toBeInTheDocument();
+  });
+
+  it("redirects unauthenticated auth_profile_setup visits back to the login entry", async () => {
+    render(
+      <App
+        client={buildClient()}
+        initialRoute={{
+          name: "auth_profile_setup",
+          params: {
+            pendingRoute: "practice",
+            pendingType: "start_practice",
+            pendingLabel: "立即面试",
+            planId: "plan-1",
+          },
+        }}
+        requestOptions={{
+          getMe: { headers: { Prefer: "example=unauthenticated" } },
+        }}
+      />,
+    );
+
+    await screen.findByTestId("route-auth_login");
+    expect(screen.getByTestId("auth-login-email")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("route-auth_profile_setup"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("wires auth_profile_setup through completeMyProfile and restores the pending route", async () => {
     const calls: Array<{ url: string; method: string; body: unknown }> = [];
     const fixtureFetch = createFixtureBackedFetch(
       createFixtureRegistry([
         getRuntimeConfigFixture,
         getMeFixture,
-        startAuthEmailChallengeFixture,
+        completeMyProfileFixture,
       ]),
     );
     const spy: typeof fetch = async (input, init) => {
@@ -190,48 +229,49 @@ describe("App auth route dispatch", () => {
         }
       }
       calls.push({ url, method, body });
-      if (url.endsWith("/api/v1/auth/email/start")) {
-        return new Response(null, { status: 202, statusText: "Accepted" });
-      }
       return fixtureFetch(input, init);
     };
     const client = new EasyInterviewClient({ fetch: spy });
     render(
       <App
         client={client}
-        initialRoute={{ name: "auth_register", params: {} }}
+        initialRoute={{
+          name: "auth_profile_setup",
+          params: {
+            pendingRoute: "practice",
+            pendingType: "start_practice",
+            pendingLabel: "立即面试",
+            planId: "plan-1",
+          },
+        }}
+        requestOptions={{
+          getMe: { headers: { Prefer: "example=profileIncomplete" } },
+        }}
       />,
     );
     const user = userEvent.setup();
-    await user.type(screen.getByTestId("auth-register-name"), "Alice");
-    await user.type(
-      screen.getByTestId("auth-register-email"),
-      "alice@example.com",
-    );
-    await user.click(screen.getByTestId("auth-register-terms"));
-    await user.click(screen.getByTestId("auth-register-submit"));
+    await screen.findByTestId("route-auth_profile_setup");
+    await user.type(screen.getByTestId("auth-profile-name"), "Alice");
+    await user.click(screen.getByTestId("auth-profile-terms"));
+    await user.click(screen.getByTestId("auth-profile-submit"));
 
     await waitFor(() =>
       expect(
         calls.some(
           (c) =>
-            c.method === "POST" &&
-            c.url.endsWith("/api/v1/auth/email/start"),
+            c.method === "PATCH" &&
+            c.url.endsWith("/api/v1/me"),
         ),
       ).toBe(true),
     );
-    const startCall = calls.find((c) =>
-      c.url.endsWith("/api/v1/auth/email/start"),
+    const patchCall = calls.find((c) =>
+      c.method === "PATCH" && c.url.endsWith("/api/v1/me"),
     );
-    expect(startCall?.body).toEqual({
-      email: "alice@example.com",
-      purpose: "signup",
+    expect(patchCall?.body).toEqual({
       displayName: "Alice",
+      acceptedTerms: true,
     });
-    await screen.findByTestId("route-auth_verify");
-    expect(screen.getByTestId("auth-verify-email-hint")).toHaveTextContent(
-      "alice@example.com",
-    );
+    await screen.findByTestId("practice-session-lost");
   });
 
   it("wires auth_verify through generated verifyAuthEmailChallenge with the required token query", async () => {
@@ -305,6 +345,11 @@ describe("App auth route dispatch", () => {
     await user.type(screen.getByTestId("auth-verify-code"), "654321");
     await user.click(screen.getByTestId("auth-verify-submit"));
 
+    await screen.findByTestId("route-auth_profile_setup");
+    await user.type(screen.getByTestId("auth-profile-name"), "Alice Example");
+    await user.click(screen.getByTestId("auth-profile-terms"));
+    await user.click(screen.getByTestId("auth-profile-submit"));
+
     await waitFor(() =>
       expect(screen.getByTestId("topbar-user-area")).toHaveAttribute(
         "data-signed-in",
@@ -323,6 +368,6 @@ describe("App auth route dispatch", () => {
       ),
     );
     expect(screen.getByTestId("topbar-login")).toBeInTheDocument();
-    expect(screen.getByTestId("topbar-register")).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
   });
 });

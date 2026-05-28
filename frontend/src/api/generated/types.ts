@@ -113,14 +113,18 @@ export interface UserContext {
 	emailMasked: string;
 	id: string;
 	preferredPracticeLanguage: string;
+	profileCompletionRequired: boolean;
 	uiLanguage: string;
 }
 
 export interface AuthEmailStartRequest {
-	displayName?: string;
 	email: string;
-	purpose?: "login" | "signup";
 	returnTo?: string;
+}
+
+export interface CompleteProfileRequest {
+	acceptedTerms: boolean;
+	displayName: string;
 }
 
 export interface Session {

@@ -29,8 +29,8 @@ export interface AppRuntimeValue {
   client: EasyInterviewClient;
   runtime: RuntimeConfigState;
   auth: AuthState;
-  /** Force a re-fetch of `/me`. Used by auth screens after verify / logout. */
-  refreshAuth: () => void;
+  /** Force a re-fetch of `/me`, or commit a freshly returned user context. */
+  refreshAuth: (user?: UserContext) => void;
 }
 
 export interface AppRuntimeProviderProps {
@@ -144,7 +144,13 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
       client,
       runtime,
       auth,
-      refreshAuth: () => setAuthNonce((n) => n + 1),
+      refreshAuth: (user?: UserContext) => {
+        if (user) {
+          setAuth({ status: "authenticated", user });
+          return;
+        }
+        setAuthNonce((n) => n + 1);
+      },
     }),
     [client, runtime, auth],
   );

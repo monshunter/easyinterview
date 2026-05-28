@@ -18,13 +18,14 @@ governance violation — it bypasses the audit trail and produces silent
 incompatibility for downstream consumers (Go DTOs, TS client, Prism mock,
 docs site).
 
-Current `openapi-v1.0.0.yaml` inventory: 59 operations across 13 tags,
+Current `openapi-v1.0.0.yaml` inventory: 60 operations across 13 tags,
 including `DELETE /api/v1/me` (`operationId=deleteMe`), excluding the discarded
 independent Mistakes / Growth endpoints, and including the accepted JobMatch,
 Resume Workshop, Debrief, Practice session, Practice voice, and
-structured-master additive expansions. The project is still in a pre-launch
-P0 phase, so accepted v1.0.0 freeze corrections may re-freeze this file in
-place only when the same change updates `history.md` and `diff-config.yaml`.
+structured-master additive expansions, plus Auth `completeMyProfile` profile
+completion. The project is still in a pre-launch P0 phase, so accepted v1.0.0
+freeze corrections may re-freeze this file in place only when the same change
+updates `history.md` and `diff-config.yaml`.
 
 If a breaking change is genuinely required, follow [the SemVer upgrade
 flow](#semver-upgrade-flow) below; never modify an existing baseline file.

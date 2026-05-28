@@ -1,16 +1,18 @@
 import { useCallback, useState, type FC, type FormEvent } from "react";
 
-import { normalizeRoute, type LooseRoute } from "../normalizeRoute";
+import type { LooseRoute } from "../normalizeRoute";
 import { useI18n } from "../i18n/messages";
 import type { Route } from "../routes";
 import { AuthShell } from "./AuthShell";
-import {
-  decodePendingActionRoute,
-  PENDING_ACTION_INTERVIEW_KEYS,
-} from "./pendingAction";
+import { decodePendingActionRoute } from "./pendingAction";
+import { buildResumeRoute } from "./resumeRoute";
 
 export interface AuthVerifyRequest {
   token: string;
+}
+
+export interface AuthVerifyResult {
+  profileCompletionRequired: boolean;
 }
 
 export interface AuthVerifyScreenProps {
@@ -21,32 +23,7 @@ export interface AuthVerifyScreenProps {
    * cookie automatically; on success we restore the pending action route from
    * the verify route params.
    */
-  onVerify: (req: AuthVerifyRequest) => Promise<void>;
-}
-
-function buildResumeRoute(params: Record<string, string>): LooseRoute {
-  // Phase 3.2 source of truth: pendingAction encoded under reserved keys.
-  const decoded = decodePendingActionRoute(params);
-  if (decoded) return decoded;
-
-  // External auth handoffs may still surface a raw `returnTo` path. Treat it
-  // as a route name candidate and pass interview-context keys through.
-  const resumeParams: Record<string, string> = {};
-  for (const key of PENDING_ACTION_INTERVIEW_KEYS) {
-    const value = params[key];
-    if (value !== undefined) resumeParams[key] = value;
-  }
-  const returnTo = params.returnTo;
-  if (returnTo) {
-    const parsed = new URL(returnTo, "http://easyinterview.local");
-    for (const key of PENDING_ACTION_INTERVIEW_KEYS) {
-      const value = parsed.searchParams.get(key);
-      if (value !== null) resumeParams[key] = value;
-    }
-    const candidate = parsed.pathname.replace(/^\/+/, "") || "home";
-    return normalizeRoute({ name: candidate, params: resumeParams });
-  }
-  return { name: "home", params: resumeParams };
+  onVerify: (req: AuthVerifyRequest) => Promise<AuthVerifyResult>;
 }
 
 export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
@@ -72,7 +49,14 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
     if (trimmed.length !== 6) return;
     setVerifyFailed(false);
     try {
-      await onVerify({ token: trimmed });
+      const result = await onVerify({ token: trimmed });
+      if (result.profileCompletionRequired) {
+        onNavigate({
+          name: "auth_profile_setup",
+          params: { ...route.params },
+        });
+        return;
+      }
       completeVerify();
     } catch {
       setVerifyFailed(true);

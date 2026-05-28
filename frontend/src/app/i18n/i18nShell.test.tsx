@@ -38,9 +38,7 @@ describe("D1 shell i18n", () => {
     expect(screen.getAllByTestId("topbar-login")[0]).toHaveTextContent(
       "Sign in",
     );
-    expect(screen.getAllByTestId("topbar-register")[0]).toHaveTextContent(
-      "Register",
-    );
+    expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
     for (const languageControl of screen.getAllByTestId("topbar-lang-toggle")) {
       expect(languageControl.tagName).toBe("BUTTON");
       expect(languageControl).toHaveTextContent("English");
@@ -61,7 +59,7 @@ describe("D1 shell i18n", () => {
       "Sign in",
     );
     expect(screen.getByTestId("auth-login-submit-email")).toHaveTextContent(
-      "Send sign-in email",
+      "Send sign-in code",
     );
     expect(screen.getByTestId("route-profile")).toHaveTextContent(
       "User profile",

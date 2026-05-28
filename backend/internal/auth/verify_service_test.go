@@ -3,7 +3,6 @@ package auth_test
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -130,25 +129,25 @@ func TestVerifyAuthEmailChallengeRejectsInvalidExpiredOrConsumedToken(t *testing
 	}
 }
 
-func TestVerifySignupChallengeCreatesUniqueEmailUserWithDisplayName(t *testing.T) {
+func TestVerifyNewEmailCreatesIncompleteUserAndSession(t *testing.T) {
 	store := &verifyStore{
 		challenge: auth.ChallengeRecord{
-			ID:          "challenge-signup",
-			Email:       "candidate@example.com",
-			DisplayName: "Alice Candidate",
-			Purpose:     auth.ChallengePurposeSignup,
-			ExpiresAt:   time.Date(2026, 5, 27, 10, 30, 0, 0, time.UTC),
+			ID:        "challenge-new-email",
+			Email:     "candidate@example.com",
+			Purpose:   auth.ChallengePurposeLogin,
+			ExpiresAt: time.Date(2026, 5, 28, 10, 30, 0, 0, time.UTC),
 		},
 		user: auth.UserContext{
 			ID:                        "018f2a40-0000-7000-9000-000000000200",
 			Email:                     "candidate@example.com",
-			DisplayName:               "Alice Candidate",
 			UILanguage:                "zh-CN",
 			PreferredPracticeLanguage: "en",
 			AnalyticsOptIn:            true,
+			ProfileCompletionRequired: true,
 		},
+		findErr: auth.ErrUserNotFound,
 	}
-	now := time.Date(2026, 5, 27, 10, 15, 0, 0, time.UTC)
+	now := time.Date(2026, 5, 28, 10, 15, 0, 0, time.UTC)
 	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
 		Store:                 store,
 		SessionTokenGenerator: fixedTokenGenerator("raw-session-token"),
@@ -161,64 +160,48 @@ func TestVerifySignupChallengeCreatesUniqueEmailUserWithDisplayName(t *testing.T
 	if _, err := service.VerifyEmailChallenge(context.Background(), auth.VerifyEmailChallengeInput{Token: "123456"}); err != nil {
 		t.Fatalf("VerifyEmailChallenge: %v", err)
 	}
-	if store.createdEmail != "candidate@example.com" || store.createdName != "Alice Candidate" {
-		t.Fatalf("signup create user = email %q displayName %q", store.createdEmail, store.createdName)
+	if store.createdEmail != "candidate@example.com" || store.createdName != "" {
+		t.Fatalf("new email create user = email %q displayName %q", store.createdEmail, store.createdName)
 	}
-	if store.foundEmail != "" {
-		t.Fatalf("signup must not use login lookup, foundEmail=%q", store.foundEmail)
-	}
-}
-
-func TestVerifySignupRejectsAlreadyRegisteredEmail(t *testing.T) {
-	store := &verifyStore{
-		challenge: auth.ChallengeRecord{
-			ID:          "challenge-duplicate",
-			Email:       "candidate@example.com",
-			DisplayName: "Different Name",
-			Purpose:     auth.ChallengePurposeSignup,
-			ExpiresAt:   time.Date(2026, 5, 27, 10, 30, 0, 0, time.UTC),
-		},
-		createErr: auth.ErrEmailRegistered,
-	}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
-		Store:               store,
-		ChallengePepper:     "pepper",
-		SessionCookieSecret: "session-secret",
-		Now:                 func() time.Time { return time.Date(2026, 5, 27, 10, 15, 0, 0, time.UTC) },
-	})
-
-	_, err := service.VerifyEmailChallenge(context.Background(), auth.VerifyEmailChallengeInput{Token: "123456"})
-	if !errors.Is(err, auth.ErrEmailRegistered) {
-		t.Fatalf("error = %v, want ErrEmailRegistered", err)
-	}
-	if store.session.ID != "" {
-		t.Fatalf("duplicate signup must not create session: %+v", store.session)
+	if store.session.ID == "" || store.session.UserID != store.user.ID {
+		t.Fatalf("new email must mint session: %+v", store.session)
 	}
 }
 
-func TestVerifyLoginRejectsUnknownEmailWithoutCreatingUser(t *testing.T) {
+func TestVerifyExistingEmailLogsInWithoutCreatingUser(t *testing.T) {
 	store := &verifyStore{
 		challenge: auth.ChallengeRecord{
-			ID:        "challenge-login",
-			Email:     "missing@example.com",
+			ID:        "challenge-existing",
+			Email:     "candidate@example.com",
 			Purpose:   auth.ChallengePurposeLogin,
-			ExpiresAt: time.Date(2026, 5, 27, 10, 30, 0, 0, time.UTC),
+			ExpiresAt: time.Date(2026, 5, 28, 10, 30, 0, 0, time.UTC),
 		},
-		findErr: auth.ErrUserNotFound,
+		user: auth.UserContext{
+			ID:                        "018f2a40-0000-7000-9000-000000000210",
+			Email:                     "candidate@example.com",
+			DisplayName:               "Alice Candidate",
+			UILanguage:                "zh-CN",
+			PreferredPracticeLanguage: "en",
+			AnalyticsOptIn:            true,
+		},
 	}
 	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
-		Store:               store,
-		ChallengePepper:     "pepper",
-		SessionCookieSecret: "session-secret",
-		Now:                 func() time.Time { return time.Date(2026, 5, 27, 10, 15, 0, 0, time.UTC) },
+		Store:                 store,
+		SessionTokenGenerator: fixedTokenGenerator("raw-session-token"),
+		ChallengePepper:       "pepper",
+		SessionCookieSecret:   "session-secret",
+		Now:                   func() time.Time { return time.Date(2026, 5, 28, 10, 15, 0, 0, time.UTC) },
+		NewID:                 fixedIDs("018f2a40-0000-7000-9000-000000000211"),
 	})
 
-	_, err := service.VerifyEmailChallenge(context.Background(), auth.VerifyEmailChallengeInput{Token: "123456"})
-	if !errors.Is(err, auth.ErrUserNotFound) {
-		t.Fatalf("error = %v, want ErrUserNotFound", err)
+	if _, err := service.VerifyEmailChallenge(context.Background(), auth.VerifyEmailChallengeInput{Token: "123456"}); err != nil {
+		t.Fatalf("VerifyEmailChallenge: %v", err)
 	}
 	if store.createdEmail != "" {
-		t.Fatalf("login must not create user, createdEmail=%q", store.createdEmail)
+		t.Fatalf("existing email must not create user, createdEmail=%q", store.createdEmail)
+	}
+	if store.foundEmail != "candidate@example.com" {
+		t.Fatalf("existing email was not looked up, foundEmail=%q", store.foundEmail)
 	}
 }
 

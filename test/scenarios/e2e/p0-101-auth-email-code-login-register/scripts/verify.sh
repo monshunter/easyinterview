@@ -16,13 +16,24 @@ for marker in \
   "SCENARIO_RUNNER=E2E.P0.101" \
   "PLAYWRIGHT_SPEC=frontend/tests/e2e/auth-email-code.spec.ts" \
   "PLAYWRIGHT_CONFIG=frontend/playwright.auth-email-code.config.ts" \
-  "E2E.P0.101 register email-code flow PASS" \
-  "E2E.P0.101 login email-code flow PASS" \
-  "E2E.P0.101 duplicate-register email-code flow PASS" \
+  "E2E.P0.101 first-login-profile-setup email-code flow PASS" \
+  "E2E.P0.101 cross-browser-relogin-profile-setup email-code flow PASS" \
+  "E2E.P0.101 logout-relogin-profile-setup email-code flow PASS" \
+  "E2E.P0.101 existing-email-login email-code flow PASS" \
+  "E2E.P0.101 profile-required gates PASS" \
+  "refresh=profile-setup" \
+  "deepLink=profile-setup" \
+  "crossBrowser=profile-setup" \
+  "logoutRelogin=profile-setup" \
+  "authStartBodyKeys=email" \
+  "authRegisterLivePage=absent" \
+  "topbarRegister=absent" \
   "E2E.P0.101 auth email-code same-email lifecycle passed" \
   "mailCode=<redacted>" \
   "email=auth-email-code-" \
   "meStatus=200" \
+  "profileCompletionRequired=true" \
+  "profileCompletionRequired=false" \
   "consoleErrors=0" \
   "pageErrors=0" \
   "httpFailures=0" \
@@ -41,6 +52,10 @@ fi
 for forbidden in \
   "http://127.0.0.1:8080/api/v1/auth/email/verify" \
   "auth/verify?token=" \
+  "purpose=signup" \
+  "purpose=login" \
+  '"purpose"' \
+  '"displayName"' \
   "ei_session=" \
   "SESSION_COOKIE_SECRET" \
   "AUTH_CHALLENGE_TOKEN_PEPPER"; do

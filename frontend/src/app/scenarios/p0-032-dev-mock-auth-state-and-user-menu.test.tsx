@@ -29,7 +29,7 @@ describe("E2E.P0.032 dev mock auth state and user menu", () => {
       ),
     );
     expect(screen.getByTestId("topbar-login")).toBeInTheDocument();
-    expect(screen.getByTestId("topbar-register")).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
     expect(screen.queryByTestId("topbar-user-chip")).not.toBeInTheDocument();
 
     const user = userEvent.setup();
@@ -39,6 +39,10 @@ describe("E2E.P0.032 dev mock auth state and user menu", () => {
     await screen.findByTestId("route-auth_verify");
     await user.type(screen.getByTestId("auth-verify-code"), "654321");
     await user.click(screen.getByTestId("auth-verify-submit"));
+    await screen.findByTestId("route-auth_profile_setup");
+    await user.type(screen.getByTestId("auth-profile-name"), "Alice Example");
+    await user.click(screen.getByTestId("auth-profile-terms"));
+    await user.click(screen.getByTestId("auth-profile-submit"));
 
     await waitFor(() =>
       expect(screen.getByTestId("topbar-user-area")).toHaveAttribute(
@@ -81,7 +85,7 @@ describe("E2E.P0.032 dev mock auth state and user menu", () => {
       ),
     );
     expect(screen.getByTestId("topbar-login")).toHaveTextContent("登录");
-    expect(screen.getByTestId("topbar-register")).toHaveTextContent("注册");
+    expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
     expect(screen.queryByTestId("topbar-user-chip")).not.toBeInTheDocument();
 
     console.log(

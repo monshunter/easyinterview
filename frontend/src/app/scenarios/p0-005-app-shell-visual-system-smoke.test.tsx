@@ -204,9 +204,9 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
       /\bei-auth-cta\b/,
     );
     expect(
-      screen.getByTestId("auth-login-password-stub"),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("auth-login-oauth-stub")).toBeInTheDocument();
+      screen.queryByTestId("auth-login-password-stub"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("auth-login-oauth-stub")).not.toBeInTheDocument();
   });
 
   it("profile / settings / placeholder render the ei-screen-shell + ei-screen-card scaffold", async () => {

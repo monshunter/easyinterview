@@ -76,8 +76,8 @@
 | `profile` | User Profile / 用户画像 | 用户菜单入口 |
 | `settings` | Account & Settings | 用户菜单入口 |
 | `auth_login` | Auth | 登录页 |
-| `auth_register` | Auth | 注册页 |
 | `auth_verify` | Auth | 邮箱验证页 |
+| `auth_profile_setup` | Auth | 首次登录资料补全页 |
 | `auth_reset` | Auth | 重置登录页 |
 | `auth_logout` | Auth | 退出登录页 |
 | `company_intel` | Mock Interview / Company Intel | 从模拟面试规划页轻量卡片打开的详情页 |
@@ -98,6 +98,7 @@
 | `star` | `resume_versions` | 移除独立 STAR 编辑器；简历改写在简历模块内完成 |
 | `resume` | `resume_versions` | 移除历史简历单页；目标入口是新简历工坊 |
 | `onboarding` | `resume_versions` | 移除历史 5 分钟画像 / 经历卡片页；当前简历创建走 `flow=create` |
+| `auth_register` | `auth_login` | 移除独立注册页；邮箱验证码登录统一承担首次登录和后续登录 |
 
 ### 5.3 历史别名但不新增模块的页面
 

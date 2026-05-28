@@ -221,7 +221,7 @@ test.describe("TopBar DOM + computed style parity", () => {
       "false",
     );
     await expect(page.locator("[data-testid='topbar-login']")).toBeVisible();
-    await expect(page.locator("[data-testid='topbar-register']")).toBeVisible();
+    await expect(page.locator("[data-testid='topbar-register']")).toHaveCount(0);
 
     await page.click("[data-testid='topbar-login']");
     await page.fill("[data-testid='auth-login-email']", "alice@example.com");
@@ -339,7 +339,7 @@ test.describe("TopBar DOM + computed style parity", () => {
       "false",
     );
     await expect(page.locator("[data-testid='topbar-login']")).toBeVisible();
-    await expect(page.locator("[data-testid='topbar-register']")).toBeVisible();
+    await expect(page.locator("[data-testid='topbar-register']")).toHaveCount(0);
   });
 
   test("ui-design golden preview renders five primary nav buttons with browser-default English labels", async ({

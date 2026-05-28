@@ -4,12 +4,17 @@ info:
   version: 1.0.0
   summary: HTTP contract for easyinterview P0 — JD onboarding, mock interview, evidence-based review.
   description: |
+    BASELINE — DO NOT EDIT.
+    Any breaking change must go through ADR + spec revision. Accepted
+    pre-launch v1.0.0 freeze corrections must update history.md and
+    diff-config.yaml in the same change.
+
     Single source of truth for all easyinterview HTTP endpoints. Owned by spec
     `docs/spec/openapi-v1-contract/spec.md` (B2). Any change must follow the
     additive-only / breaking-change rules locked in spec §4.4 and ADR review flow.
 
     Auth path follows ADR-Q1: first-party session cookie minted by
-    `GET /api/v1/auth/email/verify` after the magic-link challenge issued by
+    `GET /api/v1/auth/email/verify` after the email-code challenge issued by
     `POST /api/v1/auth/email/start`. `Authorization: Bearer` is **not** a P0
     default scheme.
   contact:
@@ -22,7 +27,7 @@ servers:
 
 tags:
   - name: Auth
-    description: Session bootstrap (magic link), session teardown, runtime user context, and public runtime config.
+    description: Session bootstrap (email code), session teardown, runtime user context, and public runtime config.
   - name: Uploads
     description: Pre-signed object-storage URLs for resume / JD attachment uploads.
   - name: Profile
@@ -49,10 +54,11 @@ tags:
     description: |
       JD Match recommendations, natural-language web search, watchlist, saved
       searches, market signals, profile snapshot, and background agent scan
-      status. Frontend-first contract per spec D-1: real backend handlers /
-      candidate-pool fetchers / search runtime are owned by the future
-      `backend-jobs-recommendations` subspec; v1.0.0 freeze ships fixture-backed
-      operationId schemas only.
+      status. The v1.0.0 contract started frontend-first with fixtures; as of
+      2026-05-22, `backend-jobs-recommendations/001-jd-match-real-backend-baseline`
+      wires real cmd/api handlers, stores, AI-backed recommendation/search
+      runtime, agent-scan, privacy, and provenance paths. Fixtures remain the
+      mock/parity source for frontend dev and contract tests.
 
 # Document-level security: every endpoint requires a valid first-party session
 # cookie unless the operation overrides with `security: []` (public endpoints).
@@ -65,7 +71,7 @@ paths:
       tags: [Auth]
       operationId: getMe
       summary: Get current user context
-      description: Returns minimal context for the authenticated user (id, masked email, display name, language preferences).
+      description: Returns minimal context for the authenticated user (id, masked email, display name, language preferences, profile completion state).
       parameters:
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
@@ -74,6 +80,38 @@ paths:
       responses:
         '200':
           description: Current user context.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContext'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+    patch:
+      tags: [Auth]
+      operationId: completeMyProfile
+      summary: Complete first-login profile setup
+      description: |
+        Protected endpoint for first-login profile setup only. Stores the
+        user's non-unique display name and terms acceptance, then returns the
+        updated current-user context. Candidate profile, resume, JD, and
+        interview preferences are managed by their own domain endpoints.
+      parameters:
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteProfileRequest'
+      responses:
+        '200':
+          description: First-login profile setup completed.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/XRequestID'
@@ -115,10 +153,13 @@ paths:
     post:
       tags: [Auth]
       operationId: startAuthEmailChallenge
-      summary: Issue a passwordless email magic-link challenge
+      summary: Issue a passwordless email-code challenge
       description: |
-        Public endpoint per ADR-Q1. Sends a single-use magic link to the
-        supplied email. Rate limited per ADR-Q1 risk-control baseline; does
+        Public endpoint per ADR-Q1. Sends a single-use 6-digit code to the
+        supplied email. This is the only sign-in entry: existing emails log in
+        to the existing account, and new emails create an account after code
+        verification. The start response must not reveal whether the email is
+        already registered. Rate limited per ADR-Q1 risk-control baseline; does
         **not** carry an `Idempotency-Key` (rate-limit + challenge TTL handle
         deduplication).
       security: []
@@ -143,12 +184,13 @@ paths:
     get:
       tags: [Auth]
       operationId: verifyAuthEmailChallenge
-      summary: Verify magic-link challenge and mint a session cookie
+      summary: Verify email-code challenge and mint a session cookie
       description: |
-        Public endpoint per ADR-Q1. Consumes the single-use magic-link token
+        Public endpoint per ADR-Q1. Consumes the single-use 6-digit email code
         and, on success, sets the first-party session cookie via `Set-Cookie`.
         The response body conveys non-secret hints; the cookie value never
-        appears in the JSON body.
+        appears in the JSON body. The wire query name remains `token` for B2
+        operation stability, but the value is the 6-digit code shown in email.
       security: []
       parameters:
         - name: token
@@ -156,7 +198,10 @@ paths:
           required: true
           schema:
             type: string
-          description: One-shot challenge token issued by `startAuthEmailChallenge`.
+            minLength: 6
+            maxLength: 6
+            pattern: '^[0-9]{6}$'
+          description: Six-digit one-shot email code issued by `startAuthEmailChallenge`.
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
         - $ref: '#/components/parameters/AcceptLanguage'
@@ -323,7 +368,9 @@ paths:
       tags: [Profile]
       operationId: createExperienceCard
       summary: Create an experience card
+      description: Side-effect endpoint per backend-profile spec D-5 — requires `Idempotency-Key`. Server forces `source_type='manual'` regardless of body.
       parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
         - $ref: '#/components/parameters/AcceptLanguage'
@@ -352,6 +399,7 @@ paths:
       tags: [Profile]
       operationId: updateExperienceCard
       summary: Update an experience card
+      description: Side-effect endpoint per backend-profile spec D-5 — requires `Idempotency-Key`. Cross-user access returns 404 `RESOURCE_NOT_FOUND`.
       parameters:
         - name: cardId
           in: path
@@ -359,6 +407,7 @@ paths:
           schema:
             type: string
             format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
         - $ref: '#/components/parameters/AcceptLanguage'
@@ -1630,8 +1679,8 @@ paths:
       description: |
         Returns the aggregated profile snapshot the matching agent uses to score
         recommendations. Aggregated from resumes / target jobs / mocks /
-        debriefs by the future `backend-jobs-recommendations` subspec; the v1.0.0
-        contract is fixture-backed.
+        debriefs by the backend JD-match runtime. Fixture variants remain the
+        deterministic frontend and contract-test source.
       parameters:
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
@@ -1756,7 +1805,7 @@ paths:
       summary: Mark a recommendation as not relevant
       description: |
         Hides the recommendation from the candidate view and feeds the agent
-        learning loop owned by the future backend subspec.
+        learning loop owned by the backend JD-match runtime.
       parameters:
         - name: jobMatchId
           in: path
@@ -2094,6 +2143,7 @@ components:
         - RESUME_EXPORT_NOT_AVAILABLE
         - RESUME_STRUCTURED_MASTER_ALREADY_EXISTS
         - VALIDATION_FAILED
+        - RESOURCE_NOT_FOUND
         - IDEMPOTENCY_KEY_MISMATCH
         - RATE_LIMITED
         - AI_PROVIDER_TIMEOUT
@@ -2347,7 +2397,7 @@ components:
     # ----- Auth / runtime -----
     UserContext:
       type: object
-      required: [id, emailMasked, displayName, uiLanguage, preferredPracticeLanguage]
+      required: [id, emailMasked, displayName, uiLanguage, preferredPracticeLanguage, profileCompletionRequired]
       description: Minimal current-user context returned by `GET /me`.
       properties:
         id:
@@ -2364,11 +2414,14 @@ components:
         preferredPracticeLanguage:
           type: string
           description: BCP 47 preferred practice language.
+        profileCompletionRequired:
+          type: boolean
+          description: True when the signed-in account still needs first-login display name and terms completion before business actions can resume.
 
     AuthEmailStartRequest:
       type: object
       required: [email]
-      description: Magic-link challenge request per ADR-Q1. No `Idempotency-Key`; rate-limited per ADR-Q1.
+      description: Single-entry email-code challenge request per ADR-Q1. No `Idempotency-Key`; rate-limited per ADR-Q1.
       properties:
         email:
           type: string
@@ -2376,6 +2429,20 @@ components:
         returnTo:
           type: string
           description: Optional post-verify redirect path on the same origin.
+
+    CompleteProfileRequest:
+      type: object
+      required: [displayName, acceptedTerms]
+      description: First-login profile setup request for the current authenticated user.
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Non-unique display name shown in the app.
+        acceptedTerms:
+          type: boolean
+          description: Must be true to record first-login terms acceptance.
 
     Session:
       type: object
@@ -2463,18 +2530,22 @@ components:
       properties:
         headline:
           type: string
+          nullable: true
         yearsOfExperience:
           type: integer
           format: int32
           minimum: 0
+          nullable: true
         currentRole:
           type: string
+          nullable: true
         preferredPracticeLanguage:
           type: string
         uiLanguage:
           type: string
         region:
           type: string
+          nullable: true
 
     UpdateProfileRequest:
       type: object
@@ -3652,6 +3723,10 @@ components:
         resumeAssetId:
           type: string
           format: uuid
+        resumeVersionId:
+          type: string
+          format: uuid
+          description: Optional targeted resume version that should receive the generated suggestions. When omitted, the server falls back to the latest matching version for legacy queued jobs.
         mode:
           type: string
           enum: [gap_review, bullet_suggestions]
@@ -3976,7 +4051,7 @@ components:
       required: [resumes, jds, mocks, debriefs]
       description: |
         Aggregated counts of inputs that fed the JD-match profile snapshot.
-        Driven by the future `backend-jobs-recommendations` subspec.
+        Driven by the backend JD-match runtime.
       properties:
         resumes:
           type: integer

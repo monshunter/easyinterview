@@ -64,11 +64,11 @@
         <DCArtboard id="jdm-en" label="Recommended · English" width={FRAME_W} height={FRAME_H}><Screen route="jd_match" lang="en" /></DCArtboard>
         <DCArtboard id="company-intel" label="公司情报 · Company Intel" width={FRAME_W} height={FRAME_H}><Screen route="company_intel" /></DCArtboard>
       </DCSection>
-      <DCSection id="auth" title="账户体系 · 登录 / 注册 / 验证 / 重置" subtitle="M0 入口">
-        <DCArtboard id="auth-login" label="登录 · 邮箱密码" width={FRAME_W} height={FRAME_H}><Screen route="auth_login" /></DCArtboard>
-        <DCArtboard id="auth-register" label="注册 · 创建账户" width={FRAME_W} height={FRAME_H}><Screen route="auth_register" /></DCArtboard>
-        <DCArtboard id="auth-verify" label="邮箱验证 · 邮件链接 / token" width={FRAME_W} height={FRAME_H}><Screen route="auth_verify" /></DCArtboard>
-        <DCArtboard id="auth-reset" label="重置密码 · 60s 倒计时" width={FRAME_W} height={FRAME_H}><Screen route="auth_reset" /></DCArtboard>
+      <DCSection id="auth" title="账户体系 · 登录 / 验证 / 首次资料补全 / 重置" subtitle="M0 入口">
+        <DCArtboard id="auth-login" label="登录 · 邮箱验证码" width={FRAME_W} height={FRAME_H}><Screen route="auth_login" /></DCArtboard>
+        <DCArtboard id="auth-verify" label="邮箱验证 · 6 位验证码" width={FRAME_W} height={FRAME_H}><Screen route="auth_verify" /></DCArtboard>
+        <DCArtboard id="auth-profile-setup" label="首次资料补全 · 显示姓名" width={FRAME_W} height={FRAME_H}><Screen route="auth_profile_setup" /></DCArtboard>
+        <DCArtboard id="auth-reset" label="重置登录 · 60s 倒计时" width={FRAME_W} height={FRAME_H}><Screen route="auth_reset" /></DCArtboard>
         <DCArtboard id="auth-logout" label="退出登录 · 二次确认" width={FRAME_W} height={FRAME_H}><Screen route="auth_logout" /></DCArtboard>
       </DCSection>
       <DCSection id="profile" title="用户画像 · Profile" subtitle="设置入口的下一层">

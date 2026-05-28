@@ -1,13 +1,14 @@
 # Mock Contract Suite History
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-05-28
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-05-28 | 1.9 | 对齐 B2 D-25 Auth single-entry profile completion：mock contract fixture coverage 从 59 operation 升到 60 operation，承接 `completeMyProfile` fixture、`UserContext.profileCompletionRequired` 和单入口邮箱验证码登录契约；§2.1 / §6 C-1 与 `openapi/fixtures/README.md` 计数已同步。 | backend-auth/001 Phase 8 + frontend-shell/001 Phase 9 |
 | 2026-05-22 | 1.8 | 收窄 retired-token gate：继续拦截独立 `/voice` route / `Voice` tag，但允许 practice-voice-mvp 拥有的 `createPracticeVoiceTurn`、`/practice/sessions/{sessionId}/voice-turns` 与 `PracticeVoiceTurn*` generated artifacts；`lint-mock-contract` 与 repo-wide `make lint` 通过。 | 001-fixture-backed-mock-runtime Phase 6 |
 | 2026-05-17 | 1.7 | B2 D-20/D-21/D-22 与 backend-resume D-23 additive 落地同步：mock contract fixture coverage 从 55 operation 升到 59 operation，承接 `suggestDebriefQuestions`、`listPracticeSessions`、`createPracticeVoiceTurn` 与 `confirmResumeStructuredMaster` fixtures；§2.1 / §6 C-1 与 `openapi/fixtures/README.md` 计数已同步。 | backend-resume/002-versions-tailor-runs-and-save-v1 Phase 1 |
 | 2026-05-12 | 1.6 | B2 D-18 Resume Workshop additive 落地同步：mock contract fixture coverage 从 46 operation 升到 55 operation，承接 `Resumes` tag 新增 9 operation + 多 variant fixtures；§2.1 / §6 C-1 与 `openapi/fixtures/README.md` 计数已同步。 | openapi-v1-contract/004-resume-additive-coverage |

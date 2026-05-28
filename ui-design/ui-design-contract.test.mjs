@@ -154,8 +154,9 @@ test("P0 auth success resumes the pending action instead of always returning hom
   assert.doesNotMatch(app, /setRoute\(\{\s*name:\s*"home",\s*params:\s*\{\}\s*\}\);/);
 
   assert.match(auth, /pendingAction/);
-  assert.match(auth, /nav\("auth_register", \{ pendingAction \}\)/);
   assert.match(auth, /nav\("auth_verify", \{ email, pendingAction \}\)/);
+  assert.match(auth, /AuthProfileSetupScreen/);
+  assert.doesNotMatch(auth, /nav\("auth_register"/);
 });
 
 test("P0 company intel copy uses compliant public-signal wording", () => {

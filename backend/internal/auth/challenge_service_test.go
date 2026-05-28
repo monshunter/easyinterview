@@ -30,7 +30,7 @@ func TestStartAuthEmailChallengeCreatesHashedChallengeAndDispatchesDevLink(t *te
 	})
 	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
 
-	body := bytes.NewBufferString(`{"email":"Candidate@Example.COM","purpose":"signup","displayName":" Alice Candidate ","returnTo":"/practice?planId=plan_1"}`)
+	body := bytes.NewBufferString(`{"email":"Candidate@Example.COM","returnTo":"/practice?planId=plan_1"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", body)
 	req.RemoteAddr = "203.0.113.20:5588"
 	req.Header.Set("User-Agent", "unit-test-agent")
@@ -44,10 +44,10 @@ func TestStartAuthEmailChallengeCreatesHashedChallengeAndDispatchesDevLink(t *te
 	if store.challenge.Email != "candidate@example.com" {
 		t.Fatalf("email normalized = %q", store.challenge.Email)
 	}
-	if store.challenge.Purpose != auth.ChallengePurposeSignup {
+	if store.challenge.Purpose != auth.ChallengePurposeLogin {
 		t.Fatalf("purpose = %q", store.challenge.Purpose)
 	}
-	if store.challenge.DisplayName != "Alice Candidate" {
+	if store.challenge.DisplayName != "" {
 		t.Fatalf("displayName = %q", store.challenge.DisplayName)
 	}
 	if store.challenge.TokenHash == "" || store.challenge.TokenHash == "raw-token-for-test" {
@@ -84,6 +84,7 @@ func TestStartAuthEmailChallengeCreatesHashedChallengeAndDispatchesDevLink(t *te
 type recordingChallengeStore struct {
 	challenge    auth.ChallengeRecord
 	existingUser *auth.UserContext
+	findCalls    int
 }
 
 func (s *recordingChallengeStore) CountRecentChallenges(context.Context, string, string, time.Time) (int, error) {
@@ -104,6 +105,7 @@ func (s *recordingChallengeStore) CreateUserByEmail(context.Context, string, str
 }
 
 func (s *recordingChallengeStore) FindUserByEmail(context.Context, string) (auth.UserContext, error) {
+	s.findCalls++
 	if s.existingUser != nil {
 		return *s.existingUser, nil
 	}
@@ -171,7 +173,7 @@ func TestStartAuthEmailChallengeRejectsMalformedJSON(t *testing.T) {
 	}
 }
 
-func TestStartSignupRejectsAlreadyRegisteredEmailBeforeCreatingChallenge(t *testing.T) {
+func TestStartAuthEmailChallengeDoesNotProbeOrRevealExistingEmail(t *testing.T) {
 	store := &recordingChallengeStore{
 		existingUser: &auth.UserContext{
 			ID:          "user_existing",
@@ -194,19 +196,22 @@ func TestStartSignupRejectsAlreadyRegisteredEmailBeforeCreatingChallenge(t *test
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/api/v1/auth/email/start",
-		bytes.NewBufferString(`{"email":"candidate@example.com","purpose":"signup","displayName":"Different Name"}`),
+		bytes.NewBufferString(`{"email":"candidate@example.com"}`),
 	)
 	rec := httptest.NewRecorder()
 
 	handler.StartAuthEmailChallenge(rec, req)
 
-	if rec.Code != http.StatusConflict {
+	if rec.Code != http.StatusAccepted {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if store.challenge.ID != "" {
-		t.Fatalf("duplicate signup created challenge %#v", store.challenge)
+	if store.challenge.ID != "018f2a40-0000-7000-9000-000000000011" {
+		t.Fatalf("single-entry challenge was not created: %#v", store.challenge)
 	}
-	if _, ok := sink.CodeForChallenge("018f2a40-0000-7000-9000-000000000011"); ok {
-		t.Fatal("duplicate signup exposed a verification code")
+	if store.findCalls != 0 {
+		t.Fatalf("start must not probe account existence, findCalls=%d", store.findCalls)
+	}
+	if code, ok := sink.CodeForChallenge("018f2a40-0000-7000-9000-000000000011"); !ok || code != "123456" {
+		t.Fatalf("single-entry challenge was not dispatched, code=%q ok=%v", code, ok)
 	}
 }

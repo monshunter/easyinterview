@@ -58,29 +58,15 @@ func (h *Handler) StartAuthEmailChallenge(w http.ResponseWriter, r *http.Request
 	if body.ReturnTo != nil {
 		returnTo = *body.ReturnTo
 	}
-	purpose := ChallengePurposeLogin
-	if body.Purpose != nil {
-		purpose = ChallengePurpose(*body.Purpose)
-	}
-	displayName := ""
-	if body.DisplayName != nil {
-		displayName = *body.DisplayName
-	}
 	ctx := ContextWithAuthTraceID(r.Context(), TraceIDFromTraceparent(r.Header.Get("traceparent")))
 	_, err := h.passwordless.StartEmailChallenge(ctx, StartEmailChallengeInput{
 		Email:        body.Email,
-		Purpose:      purpose,
-		DisplayName:  displayName,
 		ReturnTo:     returnTo,
 		RemoteAddr:   r.RemoteAddr,
 		UserAgent:    r.UserAgent(),
 		AcceptLocale: r.Header.Get("Accept-Language"),
 	})
 	if err != nil {
-		if errors.Is(err, ErrEmailRegistered) {
-			writeAPIError(w, http.StatusConflict, sharederrors.CodeValidationFailed, "email is already registered; sign in instead", false)
-			return
-		}
 		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "challenge could not be accepted", false)
 		return
 	}
@@ -106,16 +92,6 @@ func (h *Handler) VerifyAuthEmailChallenge(w http.ResponseWriter, r *http.Reques
 			status = http.StatusUnauthorized
 			code = sharederrors.CodeAuthUnauthorized
 			message = "challenge code is invalid or expired"
-		}
-		if errors.Is(err, ErrEmailRegistered) {
-			status = http.StatusConflict
-			code = sharederrors.CodeValidationFailed
-			message = "email is already registered; sign in instead"
-		}
-		if errors.Is(err, ErrUserNotFound) {
-			status = http.StatusUnauthorized
-			code = sharederrors.CodeAuthUnauthorized
-			message = "email is not registered; create an account first"
 		}
 		writeAPIError(w, status, code, message, false)
 		return
@@ -159,6 +135,48 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 		DisplayName:               user.DisplayName,
 		UiLanguage:                user.UILanguage,
 		PreferredPracticeLanguage: user.PreferredPracticeLanguage,
+		ProfileCompletionRequired: user.ProfileCompletionRequired,
+	})
+}
+
+func (h *Handler) CompleteMyProfile(w http.ResponseWriter, r *http.Request) {
+	current, ok := CurrentSessionFromContext(r.Context())
+	if !ok {
+		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required or invalid", false)
+		return
+	}
+	if h == nil || h.passwordless == nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
+		return
+	}
+	var body generated.CompleteProfileRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&body); err != nil {
+		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "invalid JSON request body", false)
+		return
+	}
+	if !body.AcceptedTerms {
+		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "acceptedTerms must be true", false)
+		return
+	}
+	user, err := h.passwordless.CompleteProfile(r.Context(), CompleteProfileInput{
+		UserID:        current.UserID,
+		DisplayName:   body.DisplayName,
+		AcceptedTerms: body.AcceptedTerms,
+	})
+	if err != nil {
+		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "profile could not be completed", false)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(generated.UserContext{
+		Id:                        user.ID,
+		EmailMasked:               maskEmail(user.Email),
+		DisplayName:               user.DisplayName,
+		UiLanguage:                user.UILanguage,
+		PreferredPracticeLanguage: user.PreferredPracticeLanguage,
+		ProfileCompletionRequired: user.ProfileCompletionRequired,
 	})
 }
 

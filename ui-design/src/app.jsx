@@ -61,6 +61,7 @@ const ROUTE_ALIASES = {
   star: "resume_versions",
   resume: "resume_versions",
   onboarding: "resume_versions",
+  auth_register: "auth_login",
 };
 
 const DEFAULT_INTERVIEW_CONTEXT = {
@@ -116,6 +117,7 @@ const App = () => {
     const v = localStorage.getItem("ei-signed-in");
     return v === "1";
   });
+  const [profileComplete, setProfileComplete] = useState(() => localStorage.getItem("ei-profile-complete") === "1");
   const normalizeRoute = normalizeRouteName;
 
   // persistence
@@ -240,10 +242,7 @@ const App = () => {
     }
     setRoute({ name: "auth_login", params: { pendingAction } });
   };
-  const completeSignIn = () => {
-    setSignedIn(true);
-    localStorage.setItem("ei-signed-in", "1");
-    const pendingAction = route.params?.pendingAction;
+  const restoreAfterAuth = (pendingAction) => {
     if (pendingAction?.route) {
       const pendingParams = pendingAction.params || {};
       const pendingRoute = normalizeRoute(pendingAction.route);
@@ -260,6 +259,25 @@ const App = () => {
       return;
     }
     setRoute({ name: "home", params: stripUndefined({}) });
+  };
+  const completeSignIn = () => {
+    setSignedIn(true);
+    localStorage.setItem("ei-signed-in", "1");
+    const pendingAction = route.params?.pendingAction;
+    if (!profileComplete) {
+      setRoute({ name: "auth_profile_setup", params: { pendingAction } });
+      return;
+    }
+    restoreAfterAuth(pendingAction);
+  };
+  const completeProfile = (name) => {
+    setProfileComplete(true);
+    localStorage.setItem("ei-profile-complete", "1");
+    window.eiToast && window.eiToast(
+      lang === "en" ? `Profile ready: ${name || "Candidate"}` : `资料已完成：${name || "候选人"}`,
+      { tone: "ok", duration: 2400 }
+    );
+    restoreAfterAuth(route.params?.pendingAction);
   };
   const completeSignOut = () => {
     setSignedIn(false);
@@ -280,8 +298,8 @@ const App = () => {
     jd_match: <JDMatchScreen T={T} lang={lang} nav={nav} />,
     profile: <UserProfileScreen T={T} lang={lang} nav={nav} />,
     auth_login: <AuthLoginScreen T={T} lang={lang} nav={nav} onSignIn={completeSignIn} pendingAction={route.params.pendingAction} />,
-    auth_register: <AuthRegisterScreen T={T} lang={lang} nav={nav} pendingAction={route.params.pendingAction} />,
     auth_verify: <AuthVerifyScreen T={T} lang={lang} nav={nav} email={route.params.email} onSignIn={completeSignIn} pendingAction={route.params.pendingAction} />,
+    auth_profile_setup: <AuthProfileSetupScreen T={T} lang={lang} nav={nav} onCompleteProfile={completeProfile} pendingAction={route.params.pendingAction} />,
     auth_reset: <AuthResetScreen T={T} lang={lang} nav={nav} />,
     auth_logout: <AuthLogoutScreen T={T} lang={lang} nav={nav} signedIn={signedIn} onSignOut={completeSignOut} />,
     company_intel: <CompanyIntelScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
@@ -554,7 +572,6 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
       ) : (
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <Btn T={T} variant="ghost" size="sm" onClick={() => nav("auth_login")}>{lang === "en" ? "Sign in" : "登录"}</Btn>
-          <Btn T={T} variant="secondary" size="sm" onClick={() => nav("auth_register")}>{lang === "en" ? "Register" : "注册"}</Btn>
         </div>
       )}
     </div>

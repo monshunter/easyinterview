@@ -65,8 +65,8 @@ export interface TopBarProps {
   onNavigate: (route: LooseRoute) => void;
   /**
    * Whether the current user is authenticated. Defaults to `false`. The
-   * unauthenticated branch surfaces login / register entries; the
-   * authenticated branch surfaces the avatar chip + dropdown from
+   * unauthenticated branch surfaces the single login entry; the authenticated
+   * branch surfaces the avatar chip + dropdown from
    * ui-design/src/app.jsx::TopBar.
    */
   signedIn?: boolean;
@@ -456,24 +456,14 @@ export const TopBar: FC<TopBarProps> = ({
             )}
           </div>
         ) : (
-          <>
-            <button
-              type="button"
-              data-testid="topbar-login"
-              className="ei-topbar-auth-login"
-              onClick={() => onNavigate({ name: "auth_login", params: {} })}
-            >
-              {t("auth.login")}
-            </button>
-            <button
-              type="button"
-              data-testid="topbar-register"
-              className="ei-topbar-auth-register"
-              onClick={() => onNavigate({ name: "auth_register", params: {} })}
-            >
-              {t("auth.register")}
-            </button>
-          </>
+          <button
+            type="button"
+            data-testid="topbar-login"
+            className="ei-topbar-auth-login"
+            onClick={() => onNavigate({ name: "auth_login", params: {} })}
+          >
+            {t("auth.login")}
+          </button>
         )}
       </div>
     </header>

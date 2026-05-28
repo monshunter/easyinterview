@@ -1,8 +1,8 @@
 # Frontend Shell Spec
 
-> **版本**: 1.18
+> **版本**: 1.19
 > **状态**: active
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-05-28
 
 ## 1 背景与目标
 
@@ -18,7 +18,7 @@
 - TopBar 五个一级入口：`home`、`jd_match`、`workspace`、`resume_versions`、`debrief`。
 - 上下文页面路由：`parse`、`practice`、`generating`、`report`、`company_intel`。其中 `parse` 只由本 subject 承接 route shell / chrome / params 边界，JD 解析业务内容归后续 `frontend-home-job-picks-and-parse`。
 - 用户菜单入口：`profile`、`settings`、`auth_logout`。
-- 认证页面：`auth_login`、`auth_register`、`auth_verify`、`auth_reset`、`auth_logout`。
+- 认证页面：`auth_login`、`auth_verify`、`auth_profile_setup`、`auth_reset`、`auth_logout`。
 - `requestAuth(pendingAction)` 与登录成功后的 route / params 恢复。
 - Mailpit / email-code 验证：`auth_verify` 承接用户手动输入的 6 位验证码，调用 generated `verifyAuthEmailChallenge` 后恢复目标 route；正式邮件不包含 magic link 或 URL token。
 - 全局显示控制：主题色、暗色、语言下拉；设置页维护字体预设。
@@ -43,13 +43,14 @@
 | D-3 | Auth gate | 操作级 `requestAuth(pendingAction)` | 登录不是默认落地页；成功后恢复原动作 |
 | D-4 | 显示偏好 | TopBar 持有主题、暗色、语言；settings 持有字体预设 | 登录状态不能重置显示偏好 |
 | D-5 | 数据源 | 前端 shell 通过 generated client + fixture-backed mock transport / runtime config 取数 | 不直接 import prototype data |
-| D-6 | Auth API 边界 | D1 前端只消费 `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`logout` 和 first-party session cookie | 密码、OAuth、reset 只能作为当前 UI 壳或 stub 展示；新增真实 API 前必须修订 C1 / B2 |
+| D-6 | Auth API 边界 | D1 前端只消费 `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`completeMyProfile`、`logout` 和 first-party session cookie | 密码、OAuth、reset 只能作为当前 UI 壳或 stub 展示；新增真实 API 前必须修订 C1 / B2 |
 | D-7 | UI i18n | 正式前端至少支持 `zh` / `en` 两种 UI locale；每种语言必须有独立 locale 文件，语言元数据统一从 locale catalog 暴露，聚合层只负责导入、类型约束和 helper；UI 语言优先级为用户显式选择 > 浏览器 locale > `en` fallback，显式选择写入 `localStorage["ei-lang"]`；语言下拉只关联前端显示偏好，不依赖 runtime config 或登录态 | 语言选择必须按 `ui-design/src/app.jsx` 源码复刻为 TopBar icon dropdown：`topbar-lang-toggle` 显示 globe icon + 当前语言标签并打开 `topbar-lang-menu`，选项使用 `topbar-lang-option-{locale}`，改变用户可见文案，并通过 `Accept-Language` 影响后续 API display hint；后续新增语言只扩展 locale 文件、catalog 元数据和测试，不改变 TopBar 控件结构 |
 | D-8 | Brand / version placement | TopBar 品牌区只展示 `E` mark + `EasyInterview`，品牌名不本地化，不放解释性副标题或版本号 | App 版本属于产品元数据，通过设置页 `产品信息 / Product info` 低频展示；版本值 `v1.0` 不进入翻译，周边标签必须走 i18n |
 | D-9 | Dev mock session state | Vite dev 默认 fixture-backed mock 必须能表达未登录、登录成功和退出登录后的 session 状态变化 | operation-level fixture 存在不等于用户流程闭环；mock runtime 必须让 `verifyAuthEmailChallenge` 后的 `/me` 变为 authenticated，让 `logout` 后的 `/me` 变为 unauthenticated，且默认打开 App 必须可见非登录态 |
 | D-10 | Canonical URL routing | 保持 SPA，但把正式导航从仅内存 route / `#route=` bootstrap 升级为 Browser History path + query。URL path 是 canonical 用户地址，内部仍使用现有 `Route { name, params }` / `LooseRoute` 合约；`#route=` 只作为 static preview / pixel parity / 迁移期 adapter 输入，不作为正式 canonical URL | 用户可复制、刷新、直开当前页面；back/forward 与 App route 同步；服务端部署必须把已知 frontend path fallback 到 `index.html`。URL 不等于 REST API，不新增旧 route alias，不恢复独立 `voice` |
 | D-11 | Email code verification | `auth_verify` 只展示邮箱提示和 6 位验证码输入；generated client 仍按 B2 operation 的 `token` query 名调用 verify API，但 UI / 邮件 / 场景材料统一称为验证码，不再依赖 magic-link callback | Mailpit 邮件只给 code；code 不进入 `pendingAction`、storage、业务 route 或浏览器历史长链路 |
-| D-12 | Register vs login identity | 邮箱是唯一账号标识，注册邮箱就是后续登录邮箱；注册页提交 `purpose=signup` + displayName，登录页提交 `purpose=login`；displayName 不唯一、不用于登录或去重 | 重复注册同一邮箱不得覆盖姓名或当作新账号；登录未知邮箱不得隐式创建账号；TopBar 展示 `/me.displayName` 或中性 fallback |
+| D-12 | 单入口邮箱验证码登录 | 顶部和认证页只保留一个 `auth_login` 邮箱验证码入口；`startAuthEmailChallenge` 不再让用户选择注册或登录，也不得在发码前暴露邮箱是否已存在；邮箱验证成功后，既有账号直接登录，新邮箱创建资料未补全账号并进入 `auth_profile_setup` | 邮箱仍是唯一账号标识；displayName 不唯一、不参与登录或去重；旧 `auth_register` 不再是 live route 或可见入口 |
+| D-13 | 首次登录资料补全 | `/me.profileCompletionRequired=true` 是前端强制跳转依据；用户只要登录态存在但资料未补全，无论首次验证后、关闭浏览器后重开、换浏览器重新登录、退出后重新登录、刷新或直开业务 URL，都必须先进入 `auth_profile_setup`，完成 displayName + 条款确认后再恢复 pendingAction 或回 Home | pendingAction 必须在资料补全前保持 safe params；资料补全页不得保存 raw JD / 简历 / prompt；补全成功后刷新 `/me` 并只在 `profileCompletionRequired=false` 时恢复业务动作 |
 
 ## 4 设计约束
 
@@ -61,6 +62,8 @@
 - Browser History canonical URL 必须与现有 route catalog 对齐：primary nav、context routes、user-menu routes、auth routes 都从 `Route.name` 映射而来；未知 path / malformed params / retired aliases 只能归一到当前保留 route 或 `home`，不能 materialize 旧页面。
 - Canonical URL 只允许携带稳定、可重取的上下文标识和 display hint，例如 `targetJobId`、`resumeVersionId`、`planId`、`sessionId`、`reportId`、`roundId`、`flow`、`tab`、`mode`、`modality`、`next`；不得携带原始正文、AI 输出、表单草稿或 auth secret。
 - `auth_verify` 不得把验证码放入 URL、`pendingAction` 或 storage；组件只从受控 input 读取 6 位数字，并通过 generated `verifyAuthEmailChallenge` 的 query 参数提交给后端。
+- `auth_profile_setup` 只能出现在已认证但 `profileCompletionRequired=true` 的账号路径；未登录访问该路由应回到 `auth_login`，资料已补全访问该路由应按 pendingAction / Home 恢复，不得让用户重复填写。
+- 登录成功恢复业务 route 前必须先检查最新 `/me.profileCompletionRequired`；如果仍为 true，则替换到 `auth_profile_setup` 并携带原 pendingAction safe params。该规则不能依赖当前浏览器 session state，必须由后端 `/me` 返回值驱动。
 - `#route=...` adapter 必须保留到 static preview / Playwright pixel parity / 场景 harness 全部迁移完成；adapter 解析出的 loose route 仍经过 `normalizeRoute`，并在正式 App 中替换为 canonical path，不新增 hash-only 分支。
 - Auth `pendingAction` 与 URL 恢复必须共用同一组 safe route params：登录前可保存目标 route、稳定 ID 与轻量 display hint；登录成功后恢复原 canonical path；任何 raw payload 必须留在受控 runtime state 或重新从 API 获取。
 - History `pushState` / `replaceState` / `popstate` 必须由 router adapter 统一管理，避免组件直接拼接 `window.location`；同一路由不同参数变化必须保持 back/forward 可预期。
@@ -72,7 +75,7 @@
 - 正式前端语言菜单不得在 TopBar 内维护私有二语言数组；必须从 `src/app/i18n/localeCatalog.ts` 的 `SUPPORTED_LOCALES` 渲染选项。`ui-design/src/app.jsx` 使用同等的 `LANGUAGE_OPTIONS` 原型元数据，二者在新增语言时同步。
 - Locale 优先级为：用户显式选择 > 浏览器 locale > `en` fallback。用户显式选择必须保存到 `localStorage["ei-lang"]` 并优先于下一次打开时的浏览器 locale；`zh-CN` / `zh` 归一为 `zh`，`en-US` / `en` 归一为 `en`；未知、缺失或不支持的 BCP 47 tag fallback `en`。语言选择不依赖登录态，`/me.uiLanguage` 与 runtime `defaultUiLanguage` 不得覆盖前端显示偏好。
 - Auth bootstrap 必须使用 B2 generated client 和 C1 passwordless session cookie 契约；不得在前端私造 Bearer token、密码登录 API、OAuth API 或自定义 session storage contract。
-- Fixture-backed dev mock 不得只返回静态 `getMe.default` authenticated 响应。默认 dev preview 必须从非登录态开始；登录验证成功后仅在同一 mock session 中切换为 authenticated；退出登录成功后必须清除 mock session 并在 TopBar 回到登录 / 注册入口。该状态只用于 dev / test mock runtime，不写入 production session storage，不替代真实 first-party cookie。
+- Fixture-backed dev mock 不得只返回静态 `getMe.default` authenticated 响应。默认 dev preview 必须从非登录态开始；登录验证成功后仅在同一 mock session 中切换为 authenticated；退出登录成功后必须清除 mock session 并在 TopBar 回到单一登录入口。该状态只用于 dev / test mock runtime，不写入 production session storage，不替代真实 first-party cookie。
 - `getRuntimeConfig` 必须先经过 A4 allowlist / generated type 解析，再影响 feature flag 或公开配置；缺失或错误响应必须有可测试 fallback。UI 语言不由 runtime config 决定。
 - Generated API client 默认请求头或 App runtime request options 必须带当前 UI locale 的 `Accept-Language` display hint；该 header 不得覆盖业务字段（如 `targetLanguage` / practice language）。
 - 新增 App shell / TopBar / auth / settings 组件时必须以 `docs/ui-design/` 与 `ui-design/` 源码为唯一 UI 真理源；正式前端目标是 100% 源级复刻静态原型中的 DOM 构图、布局、间距、字号、字体层级、控件密度、颜色、阴影、边框、圆角、状态、响应式行为和交互节奏。不得引入外部品牌设计系统作为参考替代，不得由 AI 自由重设计、重新解释或重新组合视觉。主题系统必须承接 `ui-design/` 的 warm / forest / ocean / plum 与 `customAccent`，自定义 accent 不是降级项。
@@ -91,7 +94,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 默认壳可用 | 用户未登录 | 打开 App | 渲染 Home、五入口 TopBar、登录/注册和显示控制，不出现 welcome | 001-app-shell-auth-settings |
+| C-1 | 默认壳可用 | 用户未登录 | 打开 App | 渲染 Home、五入口 TopBar、单一登录入口和显示控制，不出现 welcome 或注册入口 | 001-app-shell-auth-settings |
 | C-2 | Pending action 恢复 | 未登录用户在 workspace 点击立即面试 | 完成登录 | 跳回 practice 并保留 planId / targetJobId / jdId / resumeVersionId / roundId | 001-app-shell-auth-settings |
 | C-3 | 用户菜单分流 | 用户已登录 | 打开用户菜单 | `用户画像` 与 `设置与隐私` 分别进入 profile / settings | 001-app-shell-auth-settings |
 | C-4 | 旧 route 不复活 | URL 或 localStorage 带旧 route | App normalize route | 映射到当前 route 或 Home，不产生独立旧页面 | 001-app-shell-auth-settings |
@@ -100,10 +103,11 @@
 | C-7 | 中英 UI 切换 | 用户打开默认 App shell | 通过 TopBar language dropdown 选择 English / 中文 | TopBar、auth 入口和 D1 shell 静态文案即时切换；语言优先级为用户显式选择（`localStorage["ei-lang"]`）> 浏览器 locale > English fallback；登录态和 runtime locale 不覆盖前端语言设置；后续 API 请求带 `Accept-Language`；`zh` / `en` 文案分别来自独立 locale 文件；语言控件 DOM / 图标 / 当前语言标签 / 菜单项 / 文案节奏与 `ui-design/src/app.jsx` 一致 | 001-app-shell-auth-settings |
 | C-8 | 视觉接入 100% 复刻 ui-design 真理源 | D1 已交付的 App 壳 / TopBar / 五入口 / 显示控制 / 认证页 / 用户菜单 / settings & profile placeholder | D2 视觉系统接入 | 正式前端 100% 源级复刻 `ui-design/` 静态原型：DOM 构图、布局、间距、字号、字体层级、控件密度、颜色、阴影、边框、圆角、状态、响应式行为和交互节奏必须以对应 `ui-design/src/*.jsx` 与 `docs/ui-design/` 文档为准；4 基础主题（warm 完整对齐，其余主题至少色板正确）+ `customAccent` 在 light / dark 下均通过根级 `data-theme` / `data-mode` / `data-custom-accent` 或等价 CSS variable 切换生效；字体、token、className 与组件样式从 `ui-design/src/primitives.jsx`、`ui-design/src/app.jsx` 和对应 screen 原型抽取；`E2E.P0.005` visual smoke 工具必须对关键 viewport 完成非空渲染、无核心控件重叠、主题/暗色/custom accent 可见变化检查，并包含与 `ui-design` golden preview 的 DOM 锚点、computed style、bounding box 和必要截图差异 gate；任何可见偏差不得以”风格接近”收口，必须修到与原型一致或先修改 `ui-design/` 真理源；D1 testid 与 `E2E.P0.001` / `E2E.P0.002` / `E2E.P0.004` regression 全部通过 | 002-app-shell-visual-system |
 | C-9 | 真实浏览器 pixel parity gate | D2 视觉系统已落地（`ei-shell-topbar` / `ei-screen-shell` / `ei-auth-shell` / fontsource / customAccent 全部接入），但 vitest+jsdom 不能验证 desktop / mobile viewport 下的 CSS 布局、bounding box 与截图差异 | 003 接入 Playwright + chromium 的 pixel parity gate | Playwright 在 desktop (1440×900) 与 mobile (390×844) 两个 viewport 下并行加载 `frontend/dist/index.html` 与 `ui-design/index.html` golden preview，断言：D2 testid / className / 文本内容在两边一致；warm/light 默认状态下 TopBar、auth、profile、settings、placeholder、home、parse、jd_match、workspace 的 `getBoundingClientRect()` 不重叠且 stays in viewport；authenticated user menu 必须在 mocked login 后以头像 chip + dropdown 呈现，dropdown desktop 与 chip 右对齐、mobile 不溢出 viewport，且 logout 后回到非登录态；切换 dark / customAccent 后核心元素的 computed background / color 出现可见变化；workspace full-state pixel tests 必须通过 server-bound route params 进入完整规划态，不依赖 Home recent card 的 `resume-unbound` synthetic path；`E2E.P0.006` Playwright scenario `setup→trigger→verify→cleanup` 通过；`pnpm --filter @easyinterview/frontend test:pixel-parity` 默认在 CI / 本地都可运行（前提是 chromium 二进制已安装）且不得依赖 `.gitignore` 排除的本地 screenshot baseline；任何 pixel parity 失败必须修正到与 `ui-design/` 一致或先修订 `ui-design/` 真理源，不得以”差异在阈值内”收口；E2E.P0.005（jsdom 范围）保留作为 fast smoke gate | 003-ui-design-pixel-parity-gate |
-| C-10 | 登录态菜单与退出闭环 | 用户打开 dev mock App | 默认看到登录 / 注册；完成 passwordless mock 登录后打开头像菜单；点击退出登录并确认 | 用户菜单源级复刻 `ui-design/src/app.jsx` 的头像 chip、姓名/email header、profile/settings/logout dropdown；browser-level parity gate 覆盖 desktop / mobile dropdown geometry 与 viewport-safe mobile placement；退出后 `/me` 为 unauthenticated，TopBar 回到登录 / 注册，页面可继续浏览 | 001-app-shell-auth-settings |
+| C-10 | 登录态菜单与退出闭环 | 用户打开 dev mock App | 默认看到单一登录入口；完成 passwordless mock 登录后打开头像菜单；点击退出登录并确认 | 用户菜单源级复刻 `ui-design/src/app.jsx` 的头像 chip、姓名/email header、profile/settings/logout dropdown；browser-level parity gate 覆盖 desktop / mobile dropdown geometry 与 viewport-safe mobile placement；退出后 `/me` 为 unauthenticated，TopBar 回到单一登录入口，页面可继续浏览 | 001-app-shell-auth-settings |
 | C-11 | Canonical path deep link / reload / browser history | 用户拿到一个 canonical frontend URL，例如 `/workspace?targetJobId=...&resumeVersionId=...&planId=...`、`/practice?mode=voice&modality=voice&sessionId=...` 或 `/report?sessionId=...` | 直接打开、刷新页面、通过 App 导航进入下一页，再点击浏览器 back / forward | App 使用 Browser History 解析为同一个 `Route` + safe params；TopBar active / chrome hidden 行为与 route catalog 一致；InterviewContext 从 URL safe params hydrate；reload 不丢失稳定资源上下文；back/forward 不产生双重导航或旧页面 | 004-url-addressable-routing |
 | C-12 | Auth pendingAction + URL privacy redline | 未登录用户从 URL-addressable 业务页触发登录，或打开带 safe params 的深链接并完成 Mailpit email-code 登录 | 登录前保存 pendingAction，或 `auth_verify` 手动提交 6 位验证码后登录成功 | pendingAction 只保存 route name、canonical URL 和 safe params；登录成功后回到原 canonical path；URL / pendingAction / localStorage / session storage / history / console 不含 JD 原文、简历原文、guided answers、parsed summary、suggestion、prompt、验证码或 auth secret query | 004-url-addressable-routing + 001-app-shell-auth-settings Phase 8 |
 | C-13 | Hash compatibility + legacy route negative regression | static preview / pixel parity 仍使用 `#route=...`，或用户打开 unknown / malformed / retired route / 独立 `voice` URL | App bootstrap / normalize route | `#route=...` 被 adapter 解析后进入同一 `Route` 合约并替换/等价到 canonical path；unknown / malformed path fallback `home` 或当前保留 route；retired aliases 不 materialize standalone screens；`voice` 仍不是合法 route，只能用 `practice?mode=voice&modality=voice`；server fallback 对已知 frontend path 返回 `index.html`，API path 不被 frontend fallback 吞掉 | 004-url-addressable-routing |
+| C-14 | 单入口登录与首次资料补全 | 用户使用新邮箱从单一登录入口完成 6 位验证码验证，但还没有 displayName / 条款确认 | 首次验证后关闭浏览器、换浏览器重新登录、退出后重新登录、刷新或直开带 pendingAction 的业务 URL | 每次登录后 `/me.profileCompletionRequired=true` 都先进入 `auth_profile_setup`；资料补全前不恢复业务动作；提交 displayName + 条款后 `/me.profileCompletionRequired=false`，再恢复 pendingAction 或 Home；TopBar 不显示注册入口，旧 `auth_register` 不能 materialize live page | 001-app-shell-auth-settings |
 
 ## 7 关联计划
 

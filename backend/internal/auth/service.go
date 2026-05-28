@@ -43,8 +43,6 @@ type PasswordlessService struct {
 
 type StartEmailChallengeInput struct {
 	Email        string
-	Purpose      ChallengePurpose
-	DisplayName  string
 	ReturnTo     string
 	RemoteAddr   string
 	UserAgent    string
@@ -67,6 +65,12 @@ type VerifyEmailChallengeResult struct {
 	UserID           string
 	SessionToken     string
 	SessionExpiresAt time.Time
+}
+
+type CompleteProfileInput struct {
+	UserID        string
+	DisplayName   string
+	AcceptedTerms bool
 }
 
 type CurrentSession struct {
@@ -122,28 +126,6 @@ func (s *PasswordlessService) StartEmailChallenge(ctx context.Context, in StartE
 		s.recordAuthFailure(ctx, "start_challenge", "validation", "", "")
 		return StartEmailChallengeResult{}, fmt.Errorf("email is required")
 	}
-	purpose := normalizeChallengePurpose(in.Purpose)
-	displayName := normalizeDisplayName(in.DisplayName)
-	if purpose == "" {
-		s.recordAuthFailure(ctx, "start_challenge", "validation", "", "")
-		return StartEmailChallengeResult{}, fmt.Errorf("challenge purpose is invalid")
-	}
-	if purpose == ChallengePurposeSignup && displayName == "" {
-		s.recordAuthFailure(ctx, "start_challenge", "validation", "", "")
-		return StartEmailChallengeResult{}, fmt.Errorf("display name is required for signup")
-	}
-	if purpose == ChallengePurposeLogin {
-		displayName = ""
-	}
-	if purpose == ChallengePurposeSignup {
-		if _, err := s.store.FindUserByEmail(ctx, email); err == nil {
-			s.recordAuthFailure(ctx, "start_challenge", "email_registered", "", "")
-			return StartEmailChallengeResult{}, ErrEmailRegistered
-		} else if !errors.Is(err, ErrUserNotFound) {
-			s.recordAuthFailure(ctx, "start_challenge", "store_error", "", "")
-			return StartEmailChallengeResult{}, err
-		}
-	}
 	now := s.now().UTC()
 	challengeID := s.newID()
 	ipHash := hashWithPepper(s.challengePepper, clientIP(in.RemoteAddr))
@@ -166,9 +148,8 @@ func (s *PasswordlessService) StartEmailChallenge(ctx context.Context, in StartE
 	if err := s.store.CreateChallenge(ctx, ChallengeRecord{
 		ID:            challengeID,
 		Email:         email,
-		DisplayName:   displayName,
 		TokenHash:     tokenHash,
-		Purpose:       purpose,
+		Purpose:       ChallengePurposeLogin,
 		IPHash:        ipHash,
 		UserAgentHash: uaHash,
 		ExpiresAt:     now.Add(ChallengeTTL),
@@ -218,17 +199,15 @@ func (s *PasswordlessService) VerifyEmailChallenge(ctx context.Context, in Verif
 		s.recordAuthFailure(ctx, "verify_challenge", "store_error", "", "")
 		return VerifyEmailChallengeResult{}, err
 	}
-	var user UserContext
-	switch challenge.Purpose {
-	case ChallengePurposeSignup:
-		user, err = s.store.CreateUserByEmail(ctx, challenge.Email, challenge.DisplayName, s.newID(), now)
-	case ChallengePurposeLogin, "":
+	user, err := s.store.FindUserByEmail(ctx, challenge.Email)
+	if errors.Is(err, ErrUserNotFound) {
+		user, err = s.store.CreateUserByEmail(ctx, challenge.Email, "", s.newID(), now)
+	}
+	if errors.Is(err, ErrEmailRegistered) {
 		user, err = s.store.FindUserByEmail(ctx, challenge.Email)
-	default:
-		err = ErrChallengeInvalid
 	}
 	if err != nil {
-		if errors.Is(err, ErrEmailRegistered) || errors.Is(err, ErrUserNotFound) || errors.Is(err, ErrChallengeInvalid) {
+		if errors.Is(err, ErrChallengeInvalid) {
 			s.recordAuthFailure(ctx, "verify_challenge", challengeFailureResult(err), "", challenge.ID)
 			return VerifyEmailChallengeResult{}, err
 		}
@@ -311,6 +290,24 @@ func (s *PasswordlessService) CurrentUser(ctx context.Context, userID string) (U
 	return s.store.GetUserContext(ctx, userID)
 }
 
+func (s *PasswordlessService) CompleteProfile(ctx context.Context, in CompleteProfileInput) (UserContext, error) {
+	if s == nil || s.store == nil {
+		return UserContext{}, fmt.Errorf("passwordless service store is nil")
+	}
+	userID := strings.TrimSpace(in.UserID)
+	displayName := normalizeDisplayName(in.DisplayName)
+	if userID == "" {
+		return UserContext{}, ErrSessionInvalid
+	}
+	if displayName == "" {
+		return UserContext{}, fmt.Errorf("display name is required")
+	}
+	if !in.AcceptedTerms {
+		return UserContext{}, fmt.Errorf("accepted terms is required")
+	}
+	return s.store.CompleteUserProfile(ctx, userID, displayName, s.now().UTC())
+}
+
 func (s *PasswordlessService) Logout(ctx context.Context, current CurrentSession) error {
 	if s == nil || s.store == nil {
 		return fmt.Errorf("passwordless service store is nil")
@@ -366,17 +363,6 @@ func (s *PasswordlessService) RuntimeConfigSessionResolver() func(*http.Request)
 
 func normalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
-}
-
-func normalizeChallengePurpose(purpose ChallengePurpose) ChallengePurpose {
-	switch ChallengePurpose(strings.ToLower(strings.TrimSpace(string(purpose)))) {
-	case "", ChallengePurposeLogin:
-		return ChallengePurposeLogin
-	case ChallengePurposeSignup:
-		return ChallengePurposeSignup
-	default:
-		return ""
-	}
 }
 
 func normalizeDisplayName(name string) string {

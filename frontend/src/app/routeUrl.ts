@@ -38,8 +38,8 @@ export const ROUTE_TO_PATH: Readonly<Record<RouteName, string>> = {
   profile: "/profile",
   settings: "/settings",
   auth_login: "/auth/login",
-  auth_register: "/auth/register",
   auth_verify: "/auth/verify",
+  auth_profile_setup: "/auth/profile",
   auth_reset: "/auth/reset",
   auth_logout: "/auth/logout",
 };
@@ -203,8 +203,8 @@ const AUTH_LOGIN_BASE = new Set([
   "email",
   ...PENDING_ACTION_RESERVED,
 ]);
-const AUTH_REGISTER_BASE = AUTH_LOGIN_BASE;
 const AUTH_VERIFY_BASE = new Set(["email", ...PENDING_ACTION_RESERVED]);
+const AUTH_PROFILE_SETUP_BASE = new Set(["email", ...PENDING_ACTION_RESERVED]);
 const AUTH_RESET_BASE = new Set(["next", "email"]);
 const AUTH_LOGOUT_BASE = new Set(["next"]);
 
@@ -222,16 +222,16 @@ const ROUTE_SAFE_PARAMS: Readonly<Record<RouteName, ReadonlySet<string>>> = {
   profile: new Set<string>(),
   settings: SETTINGS_SAFE,
   auth_login: AUTH_LOGIN_BASE,
-  auth_register: AUTH_REGISTER_BASE,
   auth_verify: AUTH_VERIFY_BASE,
+  auth_profile_setup: AUTH_PROFILE_SETUP_BASE,
   auth_reset: AUTH_RESET_BASE,
   auth_logout: AUTH_LOGOUT_BASE,
 };
 
 const AUTH_ROUTES_WITH_PENDING_ACTION = new Set<RouteName>([
   "auth_login",
-  "auth_register",
   "auth_verify",
+  "auth_profile_setup",
 ]);
 
 function resolveAllowedParamKeys(

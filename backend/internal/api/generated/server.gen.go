@@ -12,7 +12,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 59-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// 60-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
 	// startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email-code challenge
@@ -77,6 +77,9 @@ type ServerInterface interface {
 
 	// getMe — get /me: Get current user context
 	GetMe(w http.ResponseWriter, r *http.Request)
+
+	// completeMyProfile — patch /me: Complete first-login profile setup
+	CompleteMyProfile(w http.ResponseWriter, r *http.Request)
 
 	// createPracticePlan — post /practice/plans: Create a practice plan
 	CreatePracticePlan(w http.ResponseWriter, r *http.Request)
@@ -227,6 +230,7 @@ var AllRoutes = []Route{
 	{OperationID: "getJob", Method: "get", Path: "/jobs/{jobId}", PathParams: []string{"jobId"}},
 	{OperationID: "deleteMe", Method: "delete", Path: "/me", PathParams: nil},
 	{OperationID: "getMe", Method: "get", Path: "/me", PathParams: nil},
+	{OperationID: "completeMyProfile", Method: "patch", Path: "/me", PathParams: nil},
 	{OperationID: "createPracticePlan", Method: "post", Path: "/practice/plans", PathParams: nil},
 	{OperationID: "getPracticePlan", Method: "get", Path: "/practice/plans/{planId}", PathParams: []string{"planId"}},
 	{OperationID: "listPracticeSessions", Method: "get", Path: "/practice/sessions", PathParams: nil},

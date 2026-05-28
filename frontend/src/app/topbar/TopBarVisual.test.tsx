@@ -195,9 +195,7 @@ describe("TopBar five-entry + display controls visual (Phase 3.2)", () => {
     expect(screen.getByTestId("topbar-login").className).toMatch(
       /\bei-topbar-auth-login\b/,
     );
-    expect(screen.getByTestId("topbar-register").className).toMatch(
-      /\bei-topbar-auth-register\b/,
-    );
+    expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
   });
 
   it("custom accent picker is nested in the ui-design theme menu", async () => {

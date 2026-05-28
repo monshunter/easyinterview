@@ -302,24 +302,22 @@ Debrief
 Home 可直接访问
 
 未登录用户:
-├─ 顶部用户区显示 登录 / 注册
+├─ 顶部用户区只显示 登录
 ├─ 可粘贴 JD 和浏览公开状态
 └─ 保存、上传、跨设备继续、查看账户数据时触发认证
 
 认证页面:
 ├─ auth_login
-│  ├─ 密码登录
 │  ├─ 邮箱验证码
-│  ├─ 第三方登录
 │  └─ 忘记密码
-├─ auth_register
-│  └─ 创建账号并验证邮箱
 ├─ auth_verify
+├─ auth_profile_setup
+│  └─ 首次登录补全显示姓名和条款确认
 ├─ auth_reset
 └─ auth_logout
 ```
 
-当前静态 UI 已落独立认证页面，并已把轻量 `requestAuth(pendingAction)` 接入 `立即面试`、`复练当前轮` 和 `进入下一轮`。登录或邮箱验证成功后优先恢复待执行动作；没有 pending action 时回到 `Home`。退出登录后可重新登录或返回首页。
+当前静态 UI 已落独立认证页面，并已把轻量 `requestAuth(pendingAction)` 接入 `立即面试`、`复练当前轮` 和 `进入下一轮`。邮箱验证码成功后先读取 `/me.profileCompletionRequired`：需要补全资料时进入 `auth_profile_setup`，完成后才恢复待执行动作；没有 pending action 时回到 `Home`。退出登录后可重新登录或返回首页。旧 `auth_register` 只作为历史别名折回登录入口，不再是 live 页面。
 
 ## 12 全局显示控制流程
 

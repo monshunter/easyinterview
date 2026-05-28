@@ -10,7 +10,7 @@
  * Keep the testid contract intact (`app-shell-topbar`, `topbar-primary-nav`,
  * `topbar-display-controls`, `topbar-user-area`, `topbar-nav-*`,
    * `topbar-theme-button`, `topbar-dark-toggle`, `topbar-lang-toggle`,
-   * `topbar-login`, `topbar-register`, `topbar-user-menu`, `topbar-user-{profile,
+   * `topbar-login`, `topbar-user-menu`, `topbar-user-{profile,
    * settings,logout}`); D2 only adds theme-menu/language-menu/custom-accent
    * picker anchors.
  */
@@ -472,8 +472,7 @@
   margin: 6px 0;
 }
 
-.ei-topbar-auth-login,
-.ei-topbar-auth-register {
+.ei-topbar-auth-login {
   height: 30px;
   padding: 0 12px;
   border-radius: var(--ei-radius-sm);
@@ -492,16 +491,6 @@
 .ei-topbar-auth-login:hover {
   color: var(--ei-color-fg-primary);
   background: var(--ei-color-bg-soft);
-}
-
-.ei-topbar-auth-register {
-  background: var(--ei-color-bg-canvas);
-  border: 1px solid var(--ei-color-rule-strong);
-  color: var(--ei-color-fg-primary);
-}
-
-.ei-topbar-auth-register:hover {
-  border-color: var(--ei-color-fg-tertiary);
 }
 
 .ei-topbar-user-button {

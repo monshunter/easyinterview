@@ -1,4 +1,4 @@
-// Auth screens · login, register, verification, reset, logout
+// Auth screens · unified email login, verification, profile setup, reset, logout
 
 const AuthShell = ({ T, lang, eyebrow, title, sub, children, side }) => (
   <div className="ei-fadein" style={{ maxWidth: 1160, margin: "0 auto", padding: "54px 48px 96px" }}>
@@ -14,7 +14,7 @@ const AuthShell = ({ T, lang, eyebrow, title, sub, children, side }) => (
               <div style={{ color: T.ink2, fontSize: 13, lineHeight: 1.65 }}>
                 {lang === "en"
                   ? "The app can be browsed first. Authentication is requested only when a user needs to save, sync, export, or continue across devices."
-                  : "用户可以先进入产品浏览和开始准备；只有当需要保存、同步、导出或跨设备继续时，才进入登录或注册流程。"}
+                  : "用户可以先进入产品浏览和开始准备；只有当需要保存、同步、导出或跨设备继续时，才进入邮箱验证码登录。首次使用的邮箱会在验证后创建账号。"}
               </div>
             </>
           )}
@@ -54,15 +54,6 @@ const useResendCountdown = () => {
   return [seconds, () => setSeconds(60)];
 };
 
-const oauthStub = (provider, lang) => {
-  window.eiToast && window.eiToast(
-    lang === "en"
-      ? `${provider} sign-in is mocked in this prototype.`
-      : `${provider} 登录在原型中是模拟的，实际版本将跳转到授权页。`,
-    { tone: "neutral", duration: 2600 }
-  );
-};
-
 const PendingActionPanel = ({ T, lang, pendingAction }) => {
   if (!pendingAction) return null;
   return (
@@ -77,9 +68,7 @@ const PendingActionPanel = ({ T, lang, pendingAction }) => {
 };
 
 const AuthLoginScreen = ({ T, lang, nav, onSignIn, pendingAction }) => {
-  const [email, setEmail] = React.useState("liuzhe@example.com");
-  const [password, setPassword] = React.useState("");
-  const [mode, setMode] = React.useState("password");
+  const [email, setEmail] = React.useState("name@example.com");
   const [cooldown, startCooldown] = useResendCountdown();
   const sendCode = () => {
     if (cooldown > 0) return;
@@ -95,101 +84,63 @@ const AuthLoginScreen = ({ T, lang, nav, onSignIn, pendingAction }) => {
       T={T}
       lang={lang}
       eyebrow={lang === "en" ? "LOGIN" : "登录"}
-      title={lang === "en" ? "Continue your interview preparation." : "继续你的面试准备。"}
-      sub={lang === "en" ? "Sign in when you want to save resumes, keep mock interview history, or sync across devices." : "当你需要保存简历、保留模拟面试历史或跨设备继续时，再登录即可。"}
+      title={lang === "en" ? "Continue with your email." : "用邮箱继续。"}
+      sub={lang === "en" ? "Use one email code entry for both new and existing accounts. If this is your first time, we ask for your name after verification." : "新用户和已有用户都从这里输入邮箱验证码。首次使用该邮箱时，验证后再补充显示姓名。"}
       side={pendingAction && <PendingActionPanel T={T} lang={lang} pendingAction={pendingAction} />}
     >
       <div style={{ padding: 28 }}>
-        <div style={{ display: "flex", gap: 8, marginBottom: 22 }}>
-          {[
-            { k: "password", t: lang === "en" ? "Password" : "密码登录" },
-            { k: "code", t: lang === "en" ? "Email code" : "邮箱验证码" },
-          ].map((item) => (
-            <button key={item.k} onClick={() => setMode(item.k)} style={{
-              flex: 1, height: 36, border: `1px solid ${mode === item.k ? T.accent : T.rule}`,
-              background: mode === item.k ? T.accentSoft : T.bg, color: mode === item.k ? T.accent : T.ink2,
-              borderRadius: 2, fontSize: 13,
-            }}>{item.t}</button>
-          ))}
-        </div>
-
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <AuthField T={T} label={lang === "en" ? "Email" : "邮箱"} value={email} setValue={setEmail} placeholder="name@example.com" />
-          {mode === "password" ? (
-            <AuthField T={T} label={lang === "en" ? "Password" : "密码"} value={password} setValue={setPassword} type="password" placeholder={lang === "en" ? "Your password" : "输入密码"} />
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "end" }}>
-              <AuthField T={T} label={lang === "en" ? "6-digit code" : "6 位验证码"} value={password} setValue={setPassword} placeholder="123456" />
-              <Btn T={T} variant="secondary" size="sm" onClick={sendCode} disabled={cooldown > 0}>
-                {cooldown > 0
-                  ? (lang === "en" ? `Resend ${cooldown}s` : `${cooldown}s 后重发`)
-                  : (lang === "en" ? "Send code" : "发送验证码")}
-              </Btn>
-            </div>
-          )}
+          <div style={{ padding: 14, border: `1px solid ${T.rule}`, background: T.bgSoft, color: T.ink3, fontSize: 12.5, lineHeight: 1.6 }}>
+            {lang === "en"
+              ? "We do not ask whether you are registering or signing in. Existing emails open the existing account; new emails create an account after verification."
+              : "不需要选择注册或登录。已有邮箱会进入原账号，新邮箱会在验证后创建账号。"}
+          </div>
         </div>
 
-        <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12.5, color: T.ink3 }}>
-            <input type="checkbox" defaultChecked /> {lang === "en" ? "Keep me signed in" : "保持登录"}
-          </label>
-          <AuthActionLink T={T} onClick={() => nav("auth_reset")}>{lang === "en" ? "Forgot password?" : "忘记密码？"}</AuthActionLink>
-        </div>
-
-        <Btn T={T} variant="accent" icon="arrow_right" style={{ width: "100%", marginTop: 22 }} onClick={onSignIn}>
-          {lang === "en" ? "Sign in" : "登录"}
+        <Btn T={T} variant="accent" icon="send" style={{ width: "100%", marginTop: 22 }} onClick={() => { sendCode(); nav("auth_verify", { email, pendingAction }); }}>
+          {cooldown > 0
+            ? (lang === "en" ? `Code sent · ${cooldown}s` : `验证码已发送 · ${cooldown}s`)
+            : (lang === "en" ? "Send code and continue" : "发送验证码并继续")}
         </Btn>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 12, alignItems: "center", margin: "24px 0 18px" }}>
-          <div style={{ height: 1, background: T.rule }} />
-          <div className="ei-label" style={{ color: T.ink4 }}>{lang === "en" ? "OR" : "或"}</div>
-          <div style={{ height: 1, background: T.rule }} />
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Btn T={T} variant="secondary" icon="globe" onClick={() => oauthStub("Google", lang)}>{lang === "en" ? "Google" : "Google"}</Btn>
-          <Btn T={T} variant="secondary" icon="chat" onClick={() => oauthStub(lang === "en" ? "WeChat" : "微信", lang)}>{lang === "en" ? "WeChat" : "微信"}</Btn>
-        </div>
-
-        <div style={{ marginTop: 22, fontSize: 13, color: T.ink3, textAlign: "center" }}>
-          {lang === "en" ? "No account yet?" : "还没有账号？"}{" "}
-          <AuthActionLink T={T} onClick={() => nav("auth_register", { pendingAction })}>{lang === "en" ? "Create one" : "注册新账号"}</AuthActionLink>
+        <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
+          <span style={{ color: T.ink3 }}>{lang === "en" ? "One email can only own one account." : "一个邮箱只能对应一个账号。"}</span>
+          <AuthActionLink T={T} onClick={() => nav("auth_reset")}>{lang === "en" ? "Need help?" : "需要帮助？"}</AuthActionLink>
         </div>
       </div>
     </AuthShell>
   );
 };
 
-const AuthRegisterScreen = ({ T, lang, nav, pendingAction }) => {
-  const [name, setName] = React.useState("刘哲");
-  const [email, setEmail] = React.useState("liuzhe@example.com");
-  const [password, setPassword] = React.useState("");
+const AuthProfileSetupScreen = ({ T, lang, nav, onCompleteProfile, pendingAction }) => {
+  const [name, setName] = React.useState("");
+  const [accepted, setAccepted] = React.useState(true);
 
   return (
     <AuthShell
       T={T}
       lang={lang}
-      eyebrow={lang === "en" ? "REGISTER" : "注册"}
-      title={lang === "en" ? "Create an account only when you need persistence." : "需要保存时，再创建账号。"}
-      sub={lang === "en" ? "Registration creates the account identity. Resume, JD, and interview data remain separate assets under your control." : "注册只创建账号身份。简历、JD、模拟面试和复盘仍然是独立资产，由用户决定是否保存和删除。"}
+      eyebrow={lang === "en" ? "PROFILE SETUP" : "完善资料"}
+      title={lang === "en" ? "Tell us what to call you." : "告诉我们怎么称呼你。"}
+      sub={lang === "en" ? "This appears in your interview workspace and reports. It is not used to decide account uniqueness; your email is the account identity." : "这个名称会显示在训练工作台和报告里。账号唯一性只由邮箱决定，显示姓名不参与去重。"}
       side={pendingAction && <PendingActionPanel T={T} lang={lang} pendingAction={pendingAction} />}
     >
       <div style={{ padding: 28 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <AuthField T={T} label={lang === "en" ? "Display name" : "显示姓名"} value={name} setValue={setName} />
-          <AuthField T={T} label={lang === "en" ? "Email" : "邮箱"} value={email} setValue={setEmail} />
-          <AuthField T={T} label={lang === "en" ? "Password" : "密码"} value={password} setValue={setPassword} type="password" placeholder={lang === "en" ? "At least 8 characters" : "至少 8 位"} />
         </div>
         <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12.5, color: T.ink3, lineHeight: 1.55, marginTop: 16 }}>
-          <input type="checkbox" defaultChecked style={{ marginTop: 3 }} />
+          <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} style={{ marginTop: 3 }} />
           <span>{lang === "en" ? "I agree to the Terms and Privacy Policy. Sensitive interview data can be exported or deleted later." : "我同意服务条款和隐私政策。敏感的面试数据之后可以导出或删除。"}</span>
         </label>
-        <Btn T={T} variant="accent" icon="send" style={{ width: "100%", marginTop: 22 }} onClick={() => nav("auth_verify", { email, pendingAction })}>
-          {lang === "en" ? "Create account and verify email" : "创建账号并验证邮箱"}
+        <Btn T={T} variant="accent" icon="check" style={{ width: "100%", marginTop: 22 }} disabled={!name.trim() || !accepted} onClick={() => onCompleteProfile && onCompleteProfile(name)}>
+          {lang === "en" ? "Finish setup and continue" : "完成资料并继续"}
         </Btn>
-        <div style={{ marginTop: 22, fontSize: 13, color: T.ink3, textAlign: "center" }}>
-          {lang === "en" ? "Already have an account?" : "已有账号？"}{" "}
-          <AuthActionLink T={T} onClick={() => nav("auth_login", { pendingAction })}>{lang === "en" ? "Sign in" : "去登录"}</AuthActionLink>
+        <div style={{ marginTop: 14, color: T.ink3, fontSize: 12.5, lineHeight: 1.6 }}>
+          {lang === "en"
+            ? "If you close this browser before finishing, the next sign-in with the same email returns here first."
+            : "如果你在完成前关闭浏览器，下次用同一邮箱登录后仍会先回到这里。"}
         </div>
       </div>
     </AuthShell>
@@ -228,7 +179,7 @@ const AuthVerifyScreen = ({ T, lang, nav, email, onSignIn, pendingAction }) => {
               ? (lang === "en" ? `Resend in ${cooldown}s` : `${cooldown}s 后可重发`)
               : (lang === "en" ? "Resend code" : "重新发送验证码")}
           </AuthActionLink>
-          <AuthActionLink T={T} onClick={() => nav("auth_register", { pendingAction })}>{lang === "en" ? "Use another email" : "换一个邮箱"}</AuthActionLink>
+          <AuthActionLink T={T} onClick={() => nav("auth_login", { pendingAction })}>{lang === "en" ? "Use another email" : "换一个邮箱"}</AuthActionLink>
         </div>
       </div>
     </AuthShell>
@@ -236,7 +187,7 @@ const AuthVerifyScreen = ({ T, lang, nav, email, onSignIn, pendingAction }) => {
 };
 
 const AuthResetScreen = ({ T, lang, nav }) => {
-  const [email, setEmail] = React.useState("liuzhe@example.com");
+  const [email, setEmail] = React.useState("name@example.com");
   const [sent, setSent] = React.useState(false);
 
   return (
@@ -318,4 +269,4 @@ const AuthLogoutScreen = ({ T, lang, nav, signedIn, onSignOut }) => {
   );
 };
 
-Object.assign(window, { AuthLoginScreen, AuthRegisterScreen, AuthVerifyScreen, AuthResetScreen, AuthLogoutScreen });
+Object.assign(window, { AuthLoginScreen, AuthProfileSetupScreen, AuthVerifyScreen, AuthResetScreen, AuthLogoutScreen });

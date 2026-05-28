@@ -1,4 +1,5 @@
 import deleteMeFixture from "../../../openapi/fixtures/Auth/deleteMe.json";
+import completeMyProfileFixture from "../../../openapi/fixtures/Auth/completeMyProfile.json";
 import getMeFixture from "../../../openapi/fixtures/Auth/getMe.json";
 import getRuntimeConfigFixture from "../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import logoutFixture from "../../../openapi/fixtures/Auth/logout.json";
@@ -62,6 +63,7 @@ import {
 	EasyInterviewClient,
 	type OperationId,
 } from "./generated/client";
+import type { UserContext } from "./generated/types";
 import {
 	createFixtureBackedFetch,
 	createFixtureRegistry,
@@ -92,6 +94,7 @@ const DEV_MOCK_FIXTURES = [
 	createSavedSearchFixture,
 	getMarketSignalsFixture,
 	deleteMeFixture,
+	completeMyProfileFixture,
 	getMeFixture,
 	createPracticePlanFixture,
 	getPracticePlanFixture,
@@ -151,24 +154,38 @@ export function createDevMockClient(
 ): EasyInterviewClient {
 	const registry = createDevMockFixtureRegistry();
 	const fixtureFetch = createFixtureBackedFetch(registry, options);
-	let signedIn = false;
+	const authState = {
+		signedIn: false,
+		profileComplete: false,
+		displayName: "",
+		emailMasked: "new***r@example.com",
+		lastEmail: "",
+	};
 	const debriefJobIds = new Set<string>();
 	const debriefPracticePlanIds = new Set<string>();
 	const fetch: typeof globalThis.fetch = async (input, init) => {
 		const request = readRequest(input, init);
-		const authInit = withStatefulAuthScenario(init, request, signedIn);
+		const authResponse = respondToStatefulAuthRequest(request, authState);
+		if (authResponse) return authResponse;
 		const scenarioInit = withStatefulDebriefScenario(
-			authInit,
+			init,
 			request,
 			debriefJobIds,
 			debriefPracticePlanIds,
 		);
 		const response = await fixtureFetch(input, scenarioInit);
+		if (response.ok && request.method === "POST" && request.path === "/auth/email/start") {
+			const body = parseJsonObject(request.bodyText);
+			if (typeof body?.email === "string") {
+				authState.lastEmail = body.email;
+				authState.emailMasked = maskEmail(body.email);
+			}
+		}
 		if (response.ok && request.method === "GET" && request.path === "/auth/email/verify") {
-			signedIn = true;
+			authState.signedIn = true;
 		}
 		if (response.ok && request.method === "POST" && request.path === "/auth/logout") {
-			signedIn = false;
+			authState.signedIn = false;
 		}
 		if (response.ok && request.method === "POST" && request.path === "/debriefs") {
 			await rememberDebriefJob(response, debriefJobIds);
@@ -206,21 +223,91 @@ function readRequest(
 	};
 }
 
-function withStatefulAuthScenario(
-	init: RequestInit | undefined,
-	request: { method: string; path: string; headers: Headers },
-	signedIn: boolean,
-): RequestInit | undefined {
-	if (
-		request.method !== "GET" ||
-		request.path !== "/me" ||
-		request.headers.has("Prefer")
-	) {
-		return init;
+function respondToStatefulAuthRequest(
+	request: { method: string; path: string; headers: Headers; bodyText?: string },
+	state: {
+		signedIn: boolean;
+		profileComplete: boolean;
+		displayName: string;
+		emailMasked: string;
+		lastEmail: string;
+	},
+): Response | null {
+	if (request.headers.has("Prefer")) return null;
+	if (request.method === "GET" && request.path === "/me") {
+		if (!state.signedIn) {
+			return jsonResponse(401, {
+				error: {
+					code: "AUTH_UNAUTHORIZED",
+					message: "Session cookie is missing or expired.",
+					requestId: "req_dev_mock_auth_unauthenticated",
+					retryable: false,
+					details: { seedProfile: "unauthenticated" },
+				},
+			});
+		}
+		return jsonResponse(200, buildMockUserContext(state));
 	}
-	const headers = new Headers(request.headers);
-	headers.set("Prefer", `example=${signedIn ? "authenticated" : "unauthenticated"}`);
-	return { ...init, headers };
+	if (request.method === "PATCH" && request.path === "/me") {
+		const body = parseJsonObject(request.bodyText);
+		const displayName = typeof body?.displayName === "string" ? body.displayName.trim() : "";
+		const acceptedTerms = body?.acceptedTerms === true;
+		if (!state.signedIn) {
+			return jsonResponse(401, {
+				error: {
+					code: "AUTH_UNAUTHORIZED",
+					message: "Session cookie is missing or expired.",
+					requestId: "req_dev_mock_profile_unauthenticated",
+					retryable: false,
+					details: {},
+				},
+			});
+		}
+		if (!displayName || !acceptedTerms) {
+			return jsonResponse(400, {
+				error: {
+					code: "VALIDATION_FAILED",
+					message: "displayName and acceptedTerms are required.",
+					requestId: "req_dev_mock_profile_validation",
+					retryable: false,
+					details: {},
+				},
+			});
+		}
+		state.displayName = displayName;
+		state.profileComplete = true;
+		return jsonResponse(200, buildMockUserContext(state));
+	}
+	return null;
+}
+
+function buildMockUserContext(state: {
+	profileComplete: boolean;
+	displayName: string;
+	emailMasked: string;
+}): UserContext {
+	return {
+		id: "01918fa0-0000-7000-8000-000000000101",
+		emailMasked: state.emailMasked,
+		displayName: state.profileComplete ? state.displayName || "Alice Example" : "",
+		uiLanguage: "zh-CN",
+		preferredPracticeLanguage: "zh-CN",
+		profileCompletionRequired: !state.profileComplete,
+	};
+}
+
+function jsonResponse(status: number, body: unknown): Response {
+	return new Response(JSON.stringify(body), {
+		status,
+		headers: { "Content-Type": "application/json" },
+	});
+}
+
+function maskEmail(email: string): string {
+	const [local, domain] = email.split("@");
+	if (!local || !domain) return "new***r@example.com";
+	const prefix = local.slice(0, Math.min(3, local.length));
+	return `${prefix}***@${domain}`;
 }
 
 function withStatefulDebriefScenario(

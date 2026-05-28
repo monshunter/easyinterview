@@ -1,15 +1,15 @@
 # Frontend Shell BDD Plan
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-05-28
 
 ## Phase 2: TopBar and display controls
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.001 | 默认首页与五入口 Shell | 用户没有登录且没有保存 route | 打开 App | 用户看到 Home、五个一级入口、登录/注册、用户区和显示控制；不会看到 welcome、独立 voice 或旧模块入口 | `test/scenarios/e2e/p0-001-default-home-shell/` |
-| E2E.P0.004 | App Shell 中英语言切换 | 用户打开默认 App shell，浏览器 locale 可被归一为中文，未登录用户仍可见 TopBar | 用户通过 TopBar language dropdown 把语言从中文切到 English，并进入 auth / profile / settings shell | TopBar、登录注册、用户菜单和 D1 shell 静态文案立即切换为英文；route/testid/业务 params 不变；后续 generated client 请求携带当前 `Accept-Language` display hint；runtime locale 与登录态不覆盖前端语言设置；控件结构与 `ui-design/src/app.jsx` 一致 | `test/scenarios/e2e/p0-004-app-shell-language-switch/` |
+| E2E.P0.001 | 默认首页与五入口 Shell | 用户没有登录且没有保存 route | 打开 App | 用户看到 Home、五个一级入口、单一登录入口、用户区和显示控制；不会看到 welcome、注册入口、独立 voice 或旧模块入口 | `test/scenarios/e2e/p0-001-default-home-shell/` |
+| E2E.P0.004 | App Shell 中英语言切换 | 用户打开默认 App shell，浏览器 locale 可被归一为中文，未登录用户仍可见 TopBar | 用户通过 TopBar language dropdown 把语言从中文切到 English，并进入 auth / profile / settings shell | TopBar、单一登录入口、用户菜单和 D1 shell 静态文案立即切换为英文；route/testid/业务 params 不变；后续 generated client 请求携带当前 `Accept-Language` display hint；runtime locale 与登录态不覆盖前端语言设置；控件结构与 `ui-design/src/app.jsx` 一致 | `test/scenarios/e2e/p0-004-app-shell-language-switch/` |
 
 ## Phase 3: Auth pages and pending action
 
@@ -21,7 +21,7 @@
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.032 | Dev mock 登录态菜单与退出闭环 | 用户在 Vite dev 默认 fixture-backed mock App 中打开首页，初始没有 session | 用户完成 passwordless mock 登录，打开头像菜单，进入 profile/settings，再执行退出登录 | 默认首屏是非登录态；登录后 TopBar 显示与 `ui-design/src/app.jsx` 一致的头像 chip + dropdown；profile/settings/logout 均可从 dropdown 分流；logout 后 `/me` 回到 unauthenticated，TopBar 回到登录 / 注册，旧 inline 三按钮结构不回流 | `test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/` |
+| E2E.P0.032 | Dev mock 登录态菜单与退出闭环 | 用户在 Vite dev 默认 fixture-backed mock App 中打开首页，初始没有 session | 用户完成 passwordless mock 登录，打开头像菜单，进入 profile/settings，再执行退出登录 | 默认首屏是非登录态；登录后 TopBar 显示与 `ui-design/src/app.jsx` 一致的头像 chip + dropdown；profile/settings/logout 均可从 dropdown 分流；logout 后 `/me` 回到 unauthenticated，TopBar 回到单一登录入口，旧 inline 三按钮和注册按钮结构不回流 | `test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/` |
 
 ## Phase 7: Historical real passwordless mail-link remediation
 
@@ -34,4 +34,4 @@
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.101 | Mailpit email-code register-then-login | 本地 frontend real mode、backend 和 Mailpit 可用；邮箱是唯一账号标识，注册邮箱就是后续登录邮箱；注册页填写 displayName | 用户用注册页提交唯一邮箱 + displayName，从 Mailpit 邮件正文读取 6 位验证码，在 `auth_verify` 手动输入 code；退出后用同一邮箱从登录页再次完成 code verify；再尝试用注册页重复提交同一邮箱 | 注册和再次登录均签发同一邮箱账号的 `ei_session`；注册后和再次登录后 TopBar 显示注册 displayName；重复注册同一邮箱在 start 阶段被拒绝，不进入 verify、不发送新 code、不覆盖 displayName；邮件、URL 和 evidence 不含 magic link、`/auth/verify?token=`、`刘哲` / `Liu Zhe` / `liuzhe@example.com` | `test/scenarios/e2e/p0-101-auth-email-code-login-register/` |
+| E2E.P0.101 | Mailpit email-code single-entry login + profile setup | 本地 frontend real mode、backend 和 Mailpit 可用；邮箱是唯一账号标识；未登录 TopBar 只有登录入口；新邮箱尚未补全资料 | 用户从 `auth_login` 提交新邮箱，从 Mailpit 读取 6 位验证码，在 `auth_verify` 手动输入 code；首次 verify 后刷新资料补全页、关闭/换浏览器后用同一邮箱重新登录；随后提交 displayName + 条款确认；退出后同一邮箱再次登录 | 新邮箱首次登录签发 `ei_session` 但 `/me.profileCompletionRequired=true`，每次重新登录都先进入 `auth_profile_setup`，资料补全前不恢复 pendingAction；补全后 `/me.profileCompletionRequired=false` 且 TopBar 显示 displayName；后续同邮箱登录不再进入资料补全；注册按钮、`auth_register` live page、`purpose=signup/login` request body、displayName-before-verify、magic link URL 和 prototype fallback 均不出现 | `test/scenarios/e2e/p0-101-auth-email-code-login-register/` |

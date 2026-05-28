@@ -1,0 +1,54 @@
+{
+  "operationId": "completeMyProfile",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {},
+        "body": {
+          "displayName": "Alice Example",
+          "acceptedTerms": true
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-28T09-18-00-profile-complete"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000000101",
+          "emailMasked": "new***r@example.com",
+          "displayName": "Alice Example",
+          "uiLanguage": "zh-CN",
+          "preferredPracticeLanguage": "zh-CN",
+          "profileCompletionRequired": false
+        }
+      }
+    },
+    "terms-required": {
+      "request": {
+        "headers": {},
+        "body": {
+          "displayName": "Alice Example",
+          "acceptedTerms": false
+        }
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "X-Request-ID": "req_2026-05-28T09-18-00-terms-required"
+        },
+        "body": {
+          "error": {
+            "code": "VALIDATION_FAILED",
+            "message": "acceptedTerms must be true.",
+            "requestId": "req_2026-05-28T09-18-00-terms-required",
+            "retryable": false,
+            "details": {
+              "field": "acceptedTerms"
+            }
+          }
+        }
+      }
+    }
+  }
+}

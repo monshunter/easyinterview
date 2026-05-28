@@ -12,7 +12,8 @@
           "emailMasked": "ali***@example.com",
           "displayName": "Alice Example",
           "uiLanguage": "zh-CN",
-          "preferredPracticeLanguage": "zh-CN"
+          "preferredPracticeLanguage": "zh-CN",
+          "profileCompletionRequired": false
         }
       }
     },
@@ -27,7 +28,8 @@
           "emailMasked": "lin***@example.com",
           "displayName": "Alice Example",
           "uiLanguage": "zh-CN",
-          "preferredPracticeLanguage": "zh-CN"
+          "preferredPracticeLanguage": "zh-CN",
+          "profileCompletionRequired": false
         }
       }
     },
@@ -42,7 +44,24 @@
           "emailMasked": "ali***@example.com",
           "displayName": "Alice Example",
           "uiLanguage": "zh-CN",
-          "preferredPracticeLanguage": "zh-CN"
+          "preferredPracticeLanguage": "zh-CN",
+          "profileCompletionRequired": false
+        }
+      }
+    },
+    "profileIncomplete": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-28T09-15-00-profile-incomplete"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000000101",
+          "emailMasked": "new***r@example.com",
+          "displayName": "",
+          "uiLanguage": "zh-CN",
+          "preferredPracticeLanguage": "zh-CN",
+          "profileCompletionRequired": true
         }
       }
     },

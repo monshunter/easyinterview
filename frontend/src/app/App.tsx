@@ -7,21 +7,24 @@ import type {
 import {
   AuthLoginScreen,
   AuthLogoutScreen,
-  AuthRegisterScreen,
+  AuthProfileSetupScreen,
   AuthResetScreen,
   AuthVerifyScreen,
 } from "./auth";
+import { encodePendingAction } from "./auth/pendingAction";
+import { buildResumeRoute } from "./auth/resumeRoute";
 import {
   DisplayPreferencesProvider,
   useDisplayPreferences,
   type Lang,
 } from "./display/DisplayPreferencesProvider";
 import { NavigationProvider } from "./navigation/NavigationProvider";
-import { type LooseRoute } from "./normalizeRoute";
+import { normalizeRoute, type LooseRoute } from "./normalizeRoute";
 import {
   isChromeHidden,
   shouldCarryInterviewContext,
   type Route,
+  type RouteName,
 } from "./routes";
 import { resolveInitialRoute, useBrowserRoute } from "./routeStore";
 import {
@@ -134,19 +137,6 @@ function renderRouteScreen(
           }}
         />
       );
-    case "auth_register":
-      return (
-        <AuthRegisterScreen
-          route={route}
-          onNavigate={navigate}
-          onStartChallenge={async (req) => {
-            await runtime.client.startAuthEmailChallenge(
-              req,
-              withLocaleHeader(lang),
-            );
-          }}
-        />
-      );
     case "auth_verify":
       return (
         <AuthVerifyScreen
@@ -156,7 +146,25 @@ function renderRouteScreen(
             await runtime.client.verifyAuthEmailChallenge(
               withLocaleHeader(lang, { query: { token: req.token } }),
             );
-            runtime.refreshAuth();
+            const user = await runtime.client.getMe(withLocaleHeader(lang));
+            runtime.refreshAuth(user);
+            return {
+              profileCompletionRequired: user.profileCompletionRequired,
+            };
+          }}
+        />
+      );
+    case "auth_profile_setup":
+      return (
+        <AuthProfileSetupScreen
+          route={route}
+          onNavigate={navigate}
+          onCompleteProfile={async (req) => {
+            const user = await runtime.client.completeMyProfile(
+              req,
+              withLocaleHeader(lang),
+            );
+            runtime.refreshAuth(user);
           }}
         />
       );
@@ -204,17 +212,57 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
 }) => {
   const { route, navigate } = useBrowserRoute({ initialRoute });
   const navigationValue = useMemo(() => ({ navigate }), [navigate]);
-  const hideChrome = isChromeHidden(route.name);
   const runtime = useAppRuntimeOptional();
   const signedIn = runtime?.auth.status === "authenticated";
+  const routeForRender = useMemo<Route>(() => {
+    if (
+      runtime?.auth.status === "unauthenticated" &&
+      route.name === "auth_profile_setup"
+    ) {
+      return normalizeRoute({
+        name: "auth_login",
+        params: { ...route.params },
+      });
+    }
+    if (
+      runtime?.auth.status === "authenticated" &&
+      runtime.auth.user.profileCompletionRequired &&
+      route.name !== "auth_profile_setup" &&
+      route.name !== "auth_logout"
+    ) {
+      return normalizeRoute(buildProfileSetupRoute(route));
+    }
+    return route;
+  }, [route, runtime?.auth]);
+  const hideChrome = isChromeHidden(routeForRender.name);
   const prefs = useDisplayPreferences();
+
+  useEffect(() => {
+    if (runtime?.auth.status === "unauthenticated") {
+      if (route.name === "auth_profile_setup") {
+        navigate({ name: "auth_login", params: { ...route.params } });
+      }
+      return;
+    }
+    if (runtime?.auth.status !== "authenticated") return;
+    const { user } = runtime.auth;
+    if (user.profileCompletionRequired) {
+      if (route.name === "auth_profile_setup" || route.name === "auth_logout")
+        return;
+      navigate(buildProfileSetupRoute(route));
+      return;
+    }
+    if (route.name === "auth_profile_setup") {
+      navigate(buildResumeRoute(route.params));
+    }
+  }, [navigate, route, runtime?.auth]);
 
   return (
     <NavigationProvider value={navigationValue}>
       <div data-testid="app-root">
         {hideChrome ? null : (
           <TopBar
-            activeRoute={route.name}
+            activeRoute={routeForRender.name}
             onNavigate={navigate}
             signedIn={signedIn}
             user={runtime?.auth.status === "authenticated" ? runtime.auth.user : undefined}
@@ -222,8 +270,8 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
         )}
         <main>
           <InterviewContextProvider>
-            <InterviewContextRouteSync route={route} />
-            {renderRouteScreen(route, navigate, runtime, prefs.lang)}
+            <InterviewContextRouteSync route={routeForRender} />
+            {renderRouteScreen(routeForRender, navigate, runtime, prefs.lang)}
           </InterviewContextProvider>
         </main>
         {children}
@@ -231,6 +279,25 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
     </NavigationProvider>
   );
 };
+
+function buildProfileSetupRoute(route: Route): LooseRoute {
+  if (isAuthRouteName(route.name)) {
+    return { name: "auth_profile_setup", params: { ...route.params } };
+  }
+  return {
+    name: "auth_profile_setup",
+    params: encodePendingAction({
+      route: route.name,
+      type: "complete_profile_resume",
+      label: route.name,
+      params: route.params,
+    }),
+  };
+}
+
+function isAuthRouteName(name: RouteName): boolean {
+  return name.startsWith("auth_");
+}
 
 const InterviewContextRouteSync: FC<{ route: Route }> = ({ route }) => {
   const { dispatch } = useInterviewContext();
@@ -302,7 +369,6 @@ function shouldSkipInitialAuthProbe(initialRoute?: LooseRoute): boolean {
   const route = resolveInitialRoute({ initialRoute });
   return (
     route.name === "auth_login" ||
-    route.name === "auth_register" ||
     route.name === "auth_reset" ||
     route.name === "auth_verify"
   );

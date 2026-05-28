@@ -9,7 +9,7 @@ import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvide
 import {
   AuthLoginScreen,
   AuthLogoutScreen,
-  AuthRegisterScreen,
+  AuthProfileSetupScreen,
   AuthResetScreen,
   AuthVerifyScreen,
 } from "./index";
@@ -45,13 +45,13 @@ const SCREENS: AuthScreenSpec[] = [
     ),
   },
   {
-    name: "AuthRegisterScreen",
-    routeName: "auth_register",
+    name: "AuthProfileSetupScreen",
+    routeName: "auth_profile_setup",
     render: () => (
-      <AuthRegisterScreen
-        route={{ name: "auth_register", params: {} } as Route}
+      <AuthProfileSetupScreen
+        route={{ name: "auth_profile_setup", params: {} } as Route}
         onNavigate={noop}
-        onStartChallenge={async () => {}}
+        onCompleteProfile={async () => {}}
       />
     ),
   },
@@ -62,7 +62,7 @@ const SCREENS: AuthScreenSpec[] = [
       <AuthVerifyScreen
         route={{ name: "auth_verify", params: { email: "u@example.com" } } as Route}
         onNavigate={noop}
-        onVerify={async () => {}}
+        onVerify={async () => ({ profileCompletionRequired: false })}
       />
     ),
   },
@@ -149,7 +149,7 @@ describe("auth screen card visual contract (Phase 4.1)", () => {
 });
 
 describe("auth screen D1 regression after visual parity (Phase 4.1)", () => {
-  it("AuthLoginScreen retains email form and stub testids", () => {
+  it("AuthLoginScreen retains the single email form testids", () => {
     const { container } = render(
       withProvider(
         <AuthLoginScreen
@@ -162,28 +162,26 @@ describe("auth screen D1 regression after visual parity (Phase 4.1)", () => {
     expect(container.querySelector("[data-testid='auth-login-email-form']")).toBeTruthy();
     expect(container.querySelector("[data-testid='auth-login-email']")).toBeTruthy();
     expect(container.querySelector("[data-testid='auth-login-submit-email']")).toBeTruthy();
-    expect(container.querySelector("[data-testid='auth-login-password-stub']")).toBeTruthy();
-    expect(container.querySelector("[data-testid='auth-login-oauth-stub']")).toBeTruthy();
-    expect(container.querySelector("[data-testid='auth-login-link-register']")).toBeTruthy();
+    expect(container.querySelector("[data-testid='auth-login-password-stub']")).toBeFalsy();
+    expect(container.querySelector("[data-testid='auth-login-oauth-stub']")).toBeFalsy();
+    expect(container.querySelector("[data-testid='auth-login-link-register']")).toBeFalsy();
     expect(container.querySelector("[data-testid='auth-login-link-reset']")).toBeTruthy();
   });
 
-  it("AuthRegisterScreen retains form / submit testids", () => {
+  it("AuthProfileSetupScreen retains form / submit testids", () => {
     const { container } = render(
       withProvider(
-        <AuthRegisterScreen
-          route={{ name: "auth_register", params: {} } as Route}
+        <AuthProfileSetupScreen
+          route={{ name: "auth_profile_setup", params: {} } as Route}
           onNavigate={noop}
-          onStartChallenge={async () => {}}
+          onCompleteProfile={async () => {}}
         />,
       ),
     );
-    expect(container.querySelector("[data-testid='auth-register-form']")).toBeTruthy();
-    expect(container.querySelector("[data-testid='auth-register-name']")).toBeTruthy();
-    expect(container.querySelector("[data-testid='auth-register-email']")).toBeTruthy();
-    expect(container.querySelector("[data-testid='auth-register-password-stub']")).toBeTruthy();
-    expect(container.querySelector("[data-testid='auth-register-terms']")).toBeTruthy();
-    expect(container.querySelector("[data-testid='auth-register-submit']")).toBeTruthy();
+    expect(container.querySelector("[data-testid='auth-profile-form']")).toBeTruthy();
+    expect(container.querySelector("[data-testid='auth-profile-name']")).toBeTruthy();
+    expect(container.querySelector("[data-testid='auth-profile-terms']")).toBeTruthy();
+    expect(container.querySelector("[data-testid='auth-profile-submit']")).toBeTruthy();
   });
 
   it("AuthVerifyScreen retains code form testids", () => {
@@ -192,7 +190,7 @@ describe("auth screen D1 regression after visual parity (Phase 4.1)", () => {
         <AuthVerifyScreen
           route={{ name: "auth_verify", params: { email: "u@example.com" } } as Route}
           onNavigate={noop}
-          onVerify={async () => {}}
+          onVerify={async () => ({ profileCompletionRequired: false })}
         />,
       ),
     );

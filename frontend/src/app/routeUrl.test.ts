@@ -24,8 +24,8 @@ describe("ROUTE_TO_PATH catalog", () => {
       profile: "/profile",
       settings: "/settings",
       auth_login: "/auth/login",
-      auth_register: "/auth/register",
       auth_verify: "/auth/verify",
+      auth_profile_setup: "/auth/profile",
       auth_reset: "/auth/reset",
       auth_logout: "/auth/logout",
     });
@@ -182,6 +182,9 @@ describe("serializeRouteToUrl", () => {
     expect(serializeRouteToUrl({ name: "onboarding", params: {} }).path).toBe(
       "/resume-versions",
     );
+    expect(serializeRouteToUrl({ name: "auth_register", params: {} }).path).toBe(
+      "/auth/login",
+    );
     expect(serializeRouteToUrl({ name: "voice", params: {} }).path).toBe("/");
   });
 
@@ -243,6 +246,25 @@ describe("serializeRouteToUrl", () => {
         params: { email: "alice@example.com", token: "123456" },
       }),
     ).toBe("/auth/login?email=alice%40example.com");
+  });
+
+  it("auth_profile_setup carries pendingAction params but drops raw form data", () => {
+    expect(
+      formatRouteUrl({
+        name: "auth_profile_setup",
+        params: {
+          email: "alice@example.com",
+          pendingRoute: "practice",
+          pendingType: "start_practice",
+          pendingLabel: "立即面试",
+          planId: "plan-1",
+          displayName: "Alice",
+          token: "123456",
+        },
+      }),
+    ).toBe(
+      "/auth/profile?email=alice%40example.com&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=practice&pendingType=start_practice&planId=plan-1",
+    );
   });
 
   it("preserves report replay params for autoStartPractice / sourceSessionId / replayItems / evidenceGaps / nextRoundId on workspace", () => {
@@ -362,6 +384,10 @@ describe("parseUrlToRoute", () => {
     expect(parseUrlToRoute("/unknown")).toEqual({ name: "home", params: {} });
     expect(parseUrlToRoute("/voice")).toEqual({ name: "home", params: {} });
     expect(parseUrlToRoute("/welcome")).toEqual({ name: "home", params: {} });
+    expect(parseUrlToRoute("/auth/register")).toEqual({
+      name: "home",
+      params: {},
+    });
   });
 
   it("parses auth pendingAction restore URL", () => {
@@ -393,6 +419,22 @@ describe("parseUrlToRoute", () => {
     expect(parseUrlToRoute("/auth/login?token=123456")).toEqual({
       name: "auth_login",
       params: {},
+    });
+  });
+
+  it("parses auth_profile_setup pendingAction restore URL", () => {
+    expect(
+      parseUrlToRoute(
+        "/auth/profile?pendingRoute=workspace&pendingType=complete_profile_resume&pendingLabel=workspace&planId=plan-1&displayName=Alice",
+      ),
+    ).toEqual({
+      name: "auth_profile_setup",
+      params: {
+        pendingRoute: "workspace",
+        pendingType: "complete_profile_resume",
+        pendingLabel: "workspace",
+        planId: "plan-1",
+      },
     });
   });
 

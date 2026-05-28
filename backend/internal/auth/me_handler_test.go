@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ func TestGetMeReturnsMaskedCurrentUser(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	var body map[string]string
+	var body map[string]any
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -45,8 +46,84 @@ func TestGetMeReturnsMaskedCurrentUser(t *testing.T) {
 	if body["emailMasked"] == "" || body["emailMasked"] == "candidate@example.com" {
 		t.Fatalf("email was not masked: %+v", body)
 	}
+	if body["profileCompletionRequired"] != false {
+		t.Fatalf("profile completion flag = %+v", body["profileCompletionRequired"])
+	}
 	if contains(rec.Body.String(), "candidate@example.com") {
 		t.Fatalf("full email leaked: %s", rec.Body.String())
+	}
+}
+
+func TestGetMeReturnsProfileCompletionRequiredForIncompleteUser(t *testing.T) {
+	store := &meStore{user: auth.UserContext{
+		ID:                        "user-incomplete",
+		Email:                     "new-user@example.com",
+		UILanguage:                "zh-CN",
+		PreferredPracticeLanguage: "en",
+		ProfileCompletionRequired: true,
+	}}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{Store: store})
+	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req = req.WithContext(auth.ContextWithCurrentSession(req.Context(), auth.CurrentSession{
+		SessionID: "session-1",
+		UserID:    "user-incomplete",
+		ExpiresAt: time.Now().Add(auth.SessionTTL),
+	}))
+	rec := httptest.NewRecorder()
+
+	handler.GetMe(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body["profileCompletionRequired"] != true {
+		t.Fatalf("profile completion flag = %+v body=%s", body["profileCompletionRequired"], rec.Body.String())
+	}
+}
+
+func TestCompleteMyProfileRequiresSessionAndTermsThenClearsFlag(t *testing.T) {
+	store := &meStore{user: auth.UserContext{
+		ID:                        "user-incomplete",
+		Email:                     "new-user@example.com",
+		UILanguage:                "zh-CN",
+		PreferredPracticeLanguage: "en",
+		ProfileCompletionRequired: true,
+	}}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{Store: store})
+	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+
+	unauth := httptest.NewRecorder()
+	handler.CompleteMyProfile(unauth, httptest.NewRequest(http.MethodPatch, "/api/v1/me", nil))
+	if unauth.Code != http.StatusUnauthorized {
+		t.Fatalf("unauth status = %d body=%s", unauth.Code, unauth.Body.String())
+	}
+
+	noTermsReq := httptest.NewRequest(http.MethodPatch, "/api/v1/me", strings.NewReader(`{"displayName":" Alice Candidate ","acceptedTerms":false}`))
+	noTermsReq = noTermsReq.WithContext(auth.ContextWithCurrentSession(noTermsReq.Context(), auth.CurrentSession{SessionID: "session-1", UserID: "user-incomplete"}))
+	noTerms := httptest.NewRecorder()
+	handler.CompleteMyProfile(noTerms, noTermsReq)
+	if noTerms.Code != http.StatusBadRequest {
+		t.Fatalf("terms status = %d body=%s", noTerms.Code, noTerms.Body.String())
+	}
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/me", strings.NewReader(`{"displayName":" Alice Candidate ","acceptedTerms":true}`))
+	req = req.WithContext(auth.ContextWithCurrentSession(req.Context(), auth.CurrentSession{SessionID: "session-1", UserID: "user-incomplete"}))
+	rec := httptest.NewRecorder()
+	handler.CompleteMyProfile(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body["displayName"] != "Alice Candidate" || body["profileCompletionRequired"] != false {
+		t.Fatalf("bad completion response: %+v", body)
 	}
 }
 

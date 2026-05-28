@@ -1,8 +1,8 @@
 # Frontend Shell BDD Checklist
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-05-28
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -10,7 +10,7 @@
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-001-default-home-shell/`
 - [x] 准备测试数据：未登录状态、无保存 route、默认 runtime config
-- [x] 实现 setup / trigger / verify / cleanup；verify 必须断言 Home、五个一级入口、登录/注册、显示控制可见，welcome、独立 `voice`、Growth / Mistakes / Drill 旧入口不可见
+- [x] 实现 setup / trigger / verify / cleanup；verify 必须断言 Home、五个一级入口、单一登录入口、显示控制可见，welcome、注册入口、独立 `voice`、Growth / Mistakes / Drill 旧入口不可见
 - [x] 执行并通过场景验证
 - [x] 记录验证证据
 <!-- evidence: .test-output/e2e/p0-001-default-home-shell/trigger.log (1 vitest test passed; verify.sh: no legacy entry leaked) -->
@@ -19,7 +19,7 @@
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-004-app-shell-language-switch/`
 - [x] 准备测试数据：可归一为中文的浏览器 locale、未登录 `/me`、可触发语言切换的 TopBar 与 D1 shell route 集
-- [x] 实现 setup / trigger / verify / cleanup；verify 必须断言语言切换控件是 TopBar language dropdown，切换到 English 后 TopBar、登录/注册、用户菜单、auth/profile/settings/placeholder shell 文案为英文，route/testid/params 未被 locale 改写，generated client 请求包含 `Accept-Language`，runtime locale 与登录态不覆盖前端语言设置
+- [x] 实现 setup / trigger / verify / cleanup；verify 必须断言语言切换控件是 TopBar language dropdown，切换到 English 后 TopBar、单一登录入口、用户菜单、auth/profile/settings/placeholder shell 文案为英文，route/testid/params 未被 locale 改写，generated client 请求包含 `Accept-Language`，runtime locale 与登录态不覆盖前端语言设置
 - [x] 执行并通过场景验证
 - [x] 记录验证证据
 <!-- evidence: .test-output/e2e/p0-004-app-shell-language-switch/trigger.log (1 vitest test passed; verify.sh: language dropdown + English copy + Accept-Language evidence present; legacy/prototype leak gates clean) -->
@@ -38,7 +38,7 @@
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/`
 - [x] 准备测试数据：默认 dev mock 非登录态、passwordless verify 成功、logout 成功、`getMe` authenticated / unauthenticated 状态切换
-- [x] 实现 setup / trigger / verify / cleanup；verify 必须断言默认非登录态、登录后头像 chip + dropdown、profile/settings/logout 分流、logout 后非登录态、旧 inline 用户菜单和静态 authenticated default 负向约束
+- [x] 实现 setup / trigger / verify / cleanup；verify 必须断言默认非登录态、登录后头像 chip + dropdown、profile/settings/logout 分流、logout 后非登录态、旧 inline 用户菜单、注册按钮和静态 authenticated default 负向约束
 - [x] 执行并通过场景验证
 - [x] 记录验证证据
 <!-- evidence: .test-output/e2e/p0-032-dev-mock-auth-state-and-user-menu/trigger.log (1 vitest test passed; verify.sh: dev mock auth state + avatar dropdown + logout evidence present; legacy/prototype leak gates clean) -->
@@ -54,8 +54,16 @@
 
 ## Phase 8: Email-code auth and display-name remediation
 
-- [x] 覆盖 register/login purpose + displayName pass-through：注册提交体包含 `purpose=signup` 和 trimmed `displayName`，登录提交体包含 `purpose=login` 且不包含 displayName，业务 route 恢复不携带 displayName
+- [x] 覆盖旧 register/login purpose + displayName pass-through（历史完成项，已由 Phase 9 单入口语义取代）
 - [x] 覆盖 6 位 code verify UI：用户只能输入最多 6 位数字 code，提交后 generated client 仍调用 `verifyAuthEmailChallenge?token=<code>`
 - [x] 覆盖 TopBar fallback：缺 displayName / emailMasked 时展示中性 fallback，不展示 prototype 样例身份
-- [x] 覆盖 E2E.P0.101 email-code register-then-login：同一邮箱 register -> logout -> login，Mailpit 提取 code、前端输入 code、`/me` authenticated、注册 displayName 持续显示、重复注册在 start 阶段被拒绝且不覆盖 displayName、不发新 code，mail/evidence 无 magic link/token URL
-  <!-- evidence: .test-output/e2e/p0-101-auth-email-code-login-register/trigger.log (1 Playwright test passed; P0.101 verify.sh ok) -->
+
+## Phase 9: Unified email login and first-login profile setup
+
+- [x] 更新 `E2E.P0.101` 场景目录与索引说明，使场景名称表达 single-entry login + profile setup，而不是 register-then-login
+- [x] 准备测试数据：唯一新邮箱、资料未补全账号状态、第二 browser context / 无 cookie context、资料补全 displayName、Mailpit code-only 邮件、real frontend/backend API base、session cookie jar
+- [x] 实现 setup / trigger / verify / cleanup：从单一登录入口提交新邮箱 -> Mailpit code -> `auth_verify` 手动输入 code -> 进入 `auth_profile_setup` -> 刷新仍停留 -> 关闭/换浏览器后同邮箱重新登录仍停留 -> 提交 displayName + acceptedTerms -> `/me.profileCompletionRequired=false` + TopBar displayName -> logout -> 同邮箱再次登录不再进入资料补全
+- [x] 断言 pendingAction 路径：从业务 URL 或操作级 auth gate 登录时，资料补全前不恢复业务动作；资料补全成功后才恢复原 route 和 safe params
+- [x] 断言错误/隐私/旧口径负向路径：TopBar 注册按钮、`auth_register` live page、`purpose=signup/login` request body、displayName-before-verify、magic link URL、`/auth/verify?token=`、raw session cookie、`刘哲` / `Liu Zhe` / `liuzhe@example.com` 不出现在 UI、URL、console 或 scenario evidence
+- [x] 执行并通过场景验证，记录验证证据
+  <!-- verified: 2026-05-28 command="bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/cleanup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/setup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/trigger.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/verify.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/cleanup.sh" evidence="profile-required gates PASS refresh=profile-setup deepLink=profile-setup crossBrowser=profile-setup logoutRelogin=profile-setup authStartBodyKeys=email authRegisterLivePage=absent topbarRegister=absent" -->

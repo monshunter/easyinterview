@@ -1,8 +1,8 @@
 # EasyInterview UI 认证与默认入口
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: active
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-05-28
 
 ## 1 文档目的
 
@@ -14,10 +14,10 @@
 2. 不再展示独立未登录欢迎页。
 3. 用户未登录时，仍然可以看到首页并开始输入 JD。
 4. 当用户执行需要身份、保存、同步、导出或敏感数据处理的动作时，产品目标是再触发登录；当前静态稿已把轻量 `requestAuth(pendingAction)` 接入 `立即面试`、`复练当前轮` 和 `进入下一轮`。
-5. 当前静态稿中登录和邮箱验证成功后会优先恢复 `pendingAction`；没有待恢复动作时才回到 `Home`。
-6. 未登录顶部用户区显示 `登录`、`注册`。
+5. 当前静态稿中邮箱验证成功后先检查 `/me.profileCompletionRequired`；需要补全资料时进入 `auth_profile_setup`，完成后才恢复 `pendingAction`；没有待恢复动作时回到 `Home`。
+6. 未登录顶部用户区只显示 `登录`，登录入口同时承担首次账号创建。
 7. 已登录用户菜单显示 `用户画像`、`设置与隐私`、`退出登录`。
-8. 认证页面包括登录、注册、邮箱验证、重置登录和退出登录。
+8. 认证页面包括单入口登录、邮箱验证、首次资料补全、重置登录和退出登录；旧 `auth_register` 不再是 live route。
 9. 顶栏主题色、暗色模式和语言下拉对未登录用户也可见，不触发认证，不改变 `signedIn`。
 
 ## 3 默认入口
@@ -45,8 +45,7 @@
 
 未登录:
 └─ 用户区
-   ├─ 登录 -> auth_login
-   └─ 注册 -> auth_register
+   └─ 登录 -> auth_login
 
 已登录:
 └─ 用户菜单
@@ -55,7 +54,7 @@
    └─ 退出登录 -> auth_logout
 ```
 
-全局显示控制始终属于 TopBar，不属于认证流程。`signedIn` 只影响用户区展示 `登录 / 注册` 还是头像菜单。
+全局显示控制始终属于 TopBar，不属于认证流程。`signedIn` 只影响用户区展示 `登录` 还是头像菜单。
 
 `用户画像` 与 `设置与隐私` 不应混用：画像是系统理解用户的结构化资料，设置是账号、登录安全和隐私控制。
 
@@ -64,22 +63,20 @@
 ```text
 Auth
 ├─ auth_login
-│  ├─ 密码登录
-│  ├─ 邮箱验证码登录
-│  ├─ 第三方登录
-│  ├─ 忘记密码 -> auth_reset
-│  └─ 注册新账号 -> auth_register
-├─ auth_register
-│  ├─ 显示姓名
 │  ├─ 邮箱
-│  ├─ 密码
-│  ├─ 同意条款
-│  └─ 创建账号并验证邮箱 -> auth_verify
+│  ├─ 发送 6 位验证码
+│  ├─ 首次使用该邮箱会在验证后创建账号
+│  ├─ 忘记密码 -> auth_reset
+│  └─ 继续 -> auth_verify
 ├─ auth_verify
 │  ├─ 输入 6 位邮箱验证码
 │  ├─ 验证码 5 分钟内有效
 │  ├─ 重新发送登录验证码
-│  └─ 验证并继续
+│  └─ 验证并继续；若 profileCompletionRequired=true -> auth_profile_setup
+├─ auth_profile_setup
+│  ├─ 显示姓名
+│  ├─ 同意条款
+│  └─ 完成资料后恢复 pendingAction 或回 Home
 ├─ auth_reset
 │  ├─ 输入账号邮箱
 │  ├─ 发送重置说明
@@ -98,11 +95,13 @@ Auth
 当前静态 UI 已实现独立认证页面、顶部用户区入口和轻量业务级 `requestAuth(pendingAction)`。运行时行为是：
 
 ```text
-TopBar 登录 / 注册
-  -> auth_login / auth_register
-  -> auth_verify(注册后)
+TopBar 登录
+  -> auth_login
+  -> auth_verify
   -> success
-  -> Home(没有 pendingAction)
+  -> profileCompletionRequired?
+     ├─ true -> auth_profile_setup -> resume pendingAction 或 Home
+     └─ false -> resume pendingAction 或 Home
 
 UserMenu 退出登录
   -> auth_logout
@@ -124,7 +123,8 @@ UserAction
      ├─ false -> continue
      └─ true
         -> AuthGate(pendingAction)
-           ├─ success -> resume pendingAction
+           ├─ success + profileCompletionRequired=false -> resume pendingAction
+           ├─ success + profileCompletionRequired=true -> auth_profile_setup -> resume pendingAction
            ├─ cancel -> return source screen
            └─ error -> stay AuthGate with retry
 ```
@@ -165,7 +165,7 @@ UserAction
 
 ## 8 Pending Action
 
-`Pending Action` 是动作级登录拦截的恢复对象。当前静态 UI 会在登录 / 注册 / 邮箱验证页展示待恢复动作，并在登录成功后恢复目标 route 和 params。
+`Pending Action` 是动作级登录拦截的恢复对象。当前静态 UI 会在登录、邮箱验证和首次资料补全页展示待恢复动作。登录成功后必须先处理 `profileCompletionRequired`，确认资料补全完成后才恢复目标 route 和 params。
 
 ```text
 pendingAction
@@ -179,6 +179,9 @@ pendingAction
 
 ```text
 Auth success
+  -> if profileCompletionRequired
+       -> auth_profile_setup
+       -> complete profile
   -> read pendingAction.route
   -> restore pendingAction.params
   -> navigate target route
@@ -219,8 +222,8 @@ Home
 
 Auth Pages
 ├─ 登录
-├─ 注册
 ├─ 邮箱验证
+├─ 首次资料补全
 ├─ 重置登录
 └─ 退出登录
 ```
@@ -229,8 +232,9 @@ Auth Pages
 
 1. `hideTopBar` 不应依赖 `welcome` 作为默认未登录态。
 2. `signedIn` 不应决定是否能渲染 Home。
-3. 登录成功必须优先恢复 `pendingAction`；没有待恢复动作时才回 `Home`。
+3. 登录成功必须先检查 `/me.profileCompletionRequired`；资料补全完成后才恢复 `pendingAction`，没有待恢复动作时才回 `Home`。
 4. 认证 UI 需要明确“登录后继续刚才动作”的文案。
 5. 接入真实业务保存 / 上传 / 查看历史数据时，所有需要登录的按钮必须走统一 `requestAuth(pendingAction)`，不能在各页面散落自定义跳转。
 6. 退出登录页面必须说明账号数据不会被删除。
 7. 主题色、暗色和语言下拉不得被绑定到认证状态；登录前后应保持同一套显示控制。
+8. 旧 `auth_register`、注册按钮、注册页文案和 displayName-before-verify 入口不得作为 live UI 继续出现。

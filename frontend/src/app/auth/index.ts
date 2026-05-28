@@ -7,10 +7,11 @@ export type { PendingAction } from "./pendingAction";
 export { useRequestAuth } from "./useRequestAuth";
 export { AuthLoginScreen } from "./AuthLoginScreen";
 export type { AuthLoginScreenProps } from "./AuthLoginScreen";
-export { AuthRegisterScreen } from "./AuthRegisterScreen";
-export type { AuthRegisterScreenProps } from "./AuthRegisterScreen";
+export { AuthProfileSetupScreen } from "./AuthProfileSetupScreen";
+export type { AuthProfileSetupScreenProps } from "./AuthProfileSetupScreen";
 export { AuthVerifyScreen } from "./AuthVerifyScreen";
 export type {
+  AuthVerifyResult,
   AuthVerifyRequest,
   AuthVerifyScreenProps,
 } from "./AuthVerifyScreen";

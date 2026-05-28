@@ -17,12 +17,6 @@ export interface AuthLoginScreenProps {
   onStartChallenge: (req: AuthEmailStartRequest) => Promise<void>;
 }
 
-/**
- * D1 only wires the passwordless email path. Password / OAuth are rendered as
- * stubs to anchor the visual design but never call any API; Phase 3.3 enforces
- * this with a negative search and 4.x will only relax it after C1 / B2 ship
- * the matching backend contracts.
- */
 export const AuthLoginScreen: FC<AuthLoginScreenProps> = ({
   route,
   onNavigate,
@@ -39,8 +33,8 @@ export const AuthLoginScreen: FC<AuthLoginScreenProps> = ({
     if (!trimmed) return;
     await onStartChallenge(
       returnTo
-        ? { email: trimmed, purpose: "login", returnTo }
-        : { email: trimmed, purpose: "login" },
+        ? { email: trimmed, returnTo }
+        : { email: trimmed },
     );
     // Forward the entire route.params so any encoded pendingAction (pendingRoute
     // / pendingType / pendingLabel + interview-context keys) reaches verify.
@@ -84,42 +78,7 @@ export const AuthLoginScreen: FC<AuthLoginScreenProps> = ({
           {t("auth.sendEmail")}
         </button>
       </form>
-      <fieldset
-        data-testid="auth-login-password-stub"
-        className="ei-auth-stub"
-        disabled
-      >
-        <legend className="ei-text-label">
-          {t("auth.passwordLoginUnavailable")}
-        </legend>
-        <input
-          aria-label="password"
-          type="password"
-          autoComplete="current-password"
-          className="ei-auth-field-input"
-        />
-        <button type="button" className="ei-auth-secondary-link">
-          {t("auth.passwordLogin")}
-        </button>
-      </fieldset>
-      <div
-        data-testid="auth-login-oauth-stub"
-        aria-disabled="true"
-        className="ei-auth-stub"
-      >
-        <span className="ei-text-label">{t("auth.oauthUnavailable")}</span>
-      </div>
       <div className="ei-auth-link-row">
-        <button
-          type="button"
-          data-testid="auth-login-link-register"
-          className="ei-auth-secondary-link"
-          onClick={() =>
-            onNavigate({ name: "auth_register", params: { ...route.params } })
-          }
-        >
-          {t("auth.registerNew")}
-        </button>
         <button
           type="button"
           data-testid="auth-login-link-reset"

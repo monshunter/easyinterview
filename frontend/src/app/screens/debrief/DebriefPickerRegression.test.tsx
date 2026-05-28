@@ -29,6 +29,7 @@ const user: UserContext = {
   emailMasked: "c***@example.com",
   id: "user-1",
   preferredPracticeLanguage: "en-US",
+  profileCompletionRequired: false,
   uiLanguage: "en",
 };
 

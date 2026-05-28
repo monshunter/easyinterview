@@ -54,7 +54,7 @@ EasyInterview 的核心工作流已经围绕真实 JD、target job、resume vers
 | `profile` | `/profile` | none | visible |
 | `settings` | `/settings` | `tab` | visible |
 | `auth_login` | `/auth/login` | `next`, `email` display hint only, plus encoded pendingAction safe params (`pendingRoute`, `pendingType`, `pendingLabel` and target-route safe params) | visible |
-| `auth_register` | `/auth/register` | `next`, `email` display hint only, plus encoded pendingAction safe params | visible |
+| `auth_register` | `/auth/register` | legacy alias only；must normalize to `auth_login` and must not materialize an independent live route | visible as login |
 | `auth_verify` | `/auth/verify` | `email` display hint only, short-lived verification code handled by the auth form/client boundary, plus encoded pendingAction safe params | visible |
 | `auth_reset` | `/auth/reset` | `next`, `email` display hint only | visible |
 | `auth_logout` | `/auth/logout` | `next` | visible |

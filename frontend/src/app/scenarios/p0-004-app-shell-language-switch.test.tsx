@@ -49,6 +49,7 @@ function buildClient(
             displayName: "Alice Example",
             uiLanguage: "zh-CN",
             preferredPracticeLanguage: "zh-CN",
+            profileCompletionRequired: false,
           });
         }
         return jsonResponse(
@@ -96,7 +97,7 @@ describe("E2E.P0.004 app shell language switch", () => {
       "Job Picks",
     );
     expect(screen.getByTestId("topbar-login")).toHaveTextContent("Sign in");
-    expect(screen.getByTestId("topbar-register")).toHaveTextContent("Register");
+    expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId("topbar-login"));
     expect(screen.getByTestId("route-auth_login")).toHaveAttribute(
@@ -118,6 +119,7 @@ describe("E2E.P0.004 app shell language switch", () => {
     );
 
     signedOut.unmount();
+    window.history.replaceState(null, "", "/");
     render(<App client={buildClient(seen, "authenticated")} />);
     await waitFor(() =>
       expect(screen.getByTestId("topbar-user-area")).toHaveAttribute(
@@ -153,7 +155,7 @@ describe("E2E.P0.004 app shell language switch", () => {
         screen.queryByTestId(`topbar-nav-${legacy}`),
       ).not.toBeInTheDocument();
     }
-    console.log("E2E.P0.004 evidence: language dropdown Home Job Picks Sign in Register Accept-Language: en");
+    console.log("E2E.P0.004 evidence: language dropdown Home Job Picks Sign in Accept-Language: en");
   });
 });
 

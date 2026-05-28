@@ -6,7 +6,7 @@ import userEvent from "@testing-library/user-event";
 import {
   AuthLoginScreen,
   AuthLogoutScreen,
-  AuthRegisterScreen,
+  AuthProfileSetupScreen,
   AuthResetScreen,
   AuthVerifyScreen,
 } from "./index";
@@ -15,7 +15,7 @@ import type { Route } from "../routes";
 const baseRoute = (name: Route["name"]): Route => ({ name, params: {} });
 
 describe("AuthLoginScreen", () => {
-  it("renders the login route shell with email + password / OAuth stubs and inline links", () => {
+  it("renders the single email-code login route shell", () => {
     render(
       <AuthLoginScreen
         route={baseRoute("auth_login")}
@@ -25,13 +25,9 @@ describe("AuthLoginScreen", () => {
     );
     expect(screen.getByTestId("route-auth_login")).toBeInTheDocument();
     expect(screen.getByTestId("auth-login-email")).toBeInTheDocument();
-    // Password is rendered as a stub-only input (no real submit wire); presence
-    // is enforced so 4.x can later assert it does not call any new API.
-    expect(screen.getByTestId("auth-login-password-stub")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-login-oauth-stub")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("auth-login-link-register"),
-    ).toBeInTheDocument();
+    expect(screen.queryByTestId("auth-login-password-stub")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("auth-login-oauth-stub")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("auth-login-link-register")).not.toBeInTheDocument();
     expect(screen.getByTestId("auth-login-link-reset")).toBeInTheDocument();
   });
 
@@ -54,7 +50,6 @@ describe("AuthLoginScreen", () => {
 
     expect(onStartChallenge).toHaveBeenCalledWith({
       email: "alice@example.com",
-      purpose: "login",
       returnTo: "/practice",
     });
     await waitFor(() =>
@@ -65,7 +60,7 @@ describe("AuthLoginScreen", () => {
     );
   });
 
-  it("navigates to register / reset routes from inline links", async () => {
+  it("navigates to reset route from the inline link", async () => {
     const onNavigate = vi.fn();
     render(
       <AuthLoginScreen
@@ -75,24 +70,22 @@ describe("AuthLoginScreen", () => {
       />,
     );
     const user = userEvent.setup();
-    await user.click(screen.getByTestId("auth-login-link-register"));
     await user.click(screen.getByTestId("auth-login-link-reset"));
-    expect(onNavigate).toHaveBeenNthCalledWith(1, {
-      name: "auth_register",
-      params: {},
-    });
-    expect(onNavigate).toHaveBeenNthCalledWith(2, {
+    expect(onNavigate).toHaveBeenCalledWith({
       name: "auth_reset",
       params: {},
     });
   });
+});
 
-  it("preserves pending action params when switching from login to register", async () => {
+describe("AuthProfileSetupScreen", () => {
+  it("renders profile setup fields and routes to the pending action after completion", async () => {
+    const onCompleteProfile = vi.fn().mockResolvedValue(undefined);
     const onNavigate = vi.fn();
     render(
-      <AuthLoginScreen
+      <AuthProfileSetupScreen
         route={{
-          name: "auth_login",
+          name: "auth_profile_setup",
           params: {
             pendingRoute: "practice",
             pendingType: "start_practice",
@@ -101,98 +94,58 @@ describe("AuthLoginScreen", () => {
           },
         }}
         onNavigate={onNavigate}
-        onStartChallenge={async () => {}}
+        onCompleteProfile={onCompleteProfile}
       />,
     );
+    expect(screen.getByTestId("route-auth_profile_setup")).toBeInTheDocument();
+    expect(screen.getByTestId("auth-profile-name")).toBeInTheDocument();
+    expect(screen.getByTestId("auth-profile-terms")).toBeInTheDocument();
 
     const user = userEvent.setup();
-    await user.click(screen.getByTestId("auth-login-link-register"));
+    await user.type(screen.getByTestId("auth-profile-name"), "Alice");
+    await user.click(screen.getByTestId("auth-profile-terms"));
+    await user.click(screen.getByTestId("auth-profile-submit"));
 
+    expect(onCompleteProfile).toHaveBeenCalledWith({
+      displayName: "Alice",
+      acceptedTerms: true,
+    });
     expect(onNavigate).toHaveBeenCalledWith({
-      name: "auth_register",
+      name: "practice",
       params: expect.objectContaining({
-        pendingRoute: "practice",
-        pendingType: "start_practice",
-        pendingLabel: "立即面试",
         planId: "plan-tj-1",
       }),
     });
   });
-});
 
-describe("AuthRegisterScreen", () => {
-  it("renders register form fields and routes to verify on submit (passwordless wire)", async () => {
-    const onStartChallenge = vi.fn().mockResolvedValue(undefined);
+  it("shows an inline error and stays on profile setup when completion fails", async () => {
+    const onCompleteProfile = vi.fn().mockRejectedValue(new Error("terms required"));
     const onNavigate = vi.fn();
     render(
-      <AuthRegisterScreen
-        route={baseRoute("auth_register")}
+      <AuthProfileSetupScreen
+        route={baseRoute("auth_profile_setup")}
         onNavigate={onNavigate}
-        onStartChallenge={onStartChallenge}
-      />,
-    );
-    expect(screen.getByTestId("route-auth_register")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-register-name")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-register-email")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("auth-register-password-stub"),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("auth-register-terms")).toBeInTheDocument();
-
-    const user = userEvent.setup();
-    await user.type(screen.getByTestId("auth-register-name"), "Alice");
-    await user.type(
-      screen.getByTestId("auth-register-email"),
-      "alice@example.com",
-    );
-    await user.click(screen.getByTestId("auth-register-terms"));
-    await user.click(screen.getByTestId("auth-register-submit"));
-
-    expect(onStartChallenge).toHaveBeenCalledWith({
-      email: "alice@example.com",
-      purpose: "signup",
-      displayName: "Alice",
-    });
-    await waitFor(() =>
-      expect(onNavigate).toHaveBeenCalledWith({
-        name: "auth_verify",
-        params: expect.objectContaining({ email: "alice@example.com" }),
-      }),
-    );
-  });
-
-  it("shows an inline error and stays on register when signup email already exists", async () => {
-    const onStartChallenge = vi
-      .fn()
-      .mockRejectedValue(new Error("email registered"));
-    const onNavigate = vi.fn();
-    render(
-      <AuthRegisterScreen
-        route={baseRoute("auth_register")}
-        onNavigate={onNavigate}
-        onStartChallenge={onStartChallenge}
+        onCompleteProfile={onCompleteProfile}
       />,
     );
 
     const user = userEvent.setup();
-    await user.type(screen.getByTestId("auth-register-name"), "Alice");
-    await user.type(
-      screen.getByTestId("auth-register-email"),
-      "alice@example.com",
-    );
-    await user.click(screen.getByTestId("auth-register-terms"));
-    await user.click(screen.getByTestId("auth-register-submit"));
+    await user.type(screen.getByTestId("auth-profile-name"), "Alice");
+    await user.click(screen.getByTestId("auth-profile-terms"));
+    await user.click(screen.getByTestId("auth-profile-submit"));
 
     await expect(
-      screen.findByTestId("auth-register-status"),
-    ).resolves.toHaveTextContent("already registered");
+      screen.findByTestId("auth-profile-status"),
+    ).resolves.toHaveTextContent("failed");
     expect(onNavigate).not.toHaveBeenCalled();
   });
 });
 
 describe("AuthVerifyScreen", () => {
   it("renders verify route shell, accepts six-digit code input, and triggers onVerify with token + onSuccess returnTo", async () => {
-    const onVerify = vi.fn().mockResolvedValue(undefined);
+    const onVerify = vi.fn().mockResolvedValue({
+      profileCompletionRequired: false,
+    });
     const onNavigate = vi.fn();
     render(
       <AuthVerifyScreen
@@ -223,8 +176,46 @@ describe("AuthVerifyScreen", () => {
     expect(navArg).toMatchObject({ name: "practice" });
   });
 
+  it("routes to profile setup before restoring pending action when /me requires completion", async () => {
+    const onVerify = vi.fn().mockResolvedValue({
+      profileCompletionRequired: true,
+    });
+    const onNavigate = vi.fn();
+    render(
+      <AuthVerifyScreen
+        route={{
+          name: "auth_verify",
+          params: {
+            email: "alice@example.com",
+            pendingRoute: "practice",
+            pendingType: "start_practice",
+            pendingLabel: "立即面试",
+            planId: "plan_1",
+          },
+        }}
+        onNavigate={onNavigate}
+        onVerify={onVerify}
+      />,
+    );
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId("auth-verify-code"), "654321");
+    await user.click(screen.getByTestId("auth-verify-submit"));
+
+    await waitFor(() =>
+      expect(onNavigate).toHaveBeenCalledWith({
+        name: "auth_profile_setup",
+        params: expect.objectContaining({
+          pendingRoute: "practice",
+          planId: "plan_1",
+        }),
+      }),
+    );
+  });
+
   it("restores interview context from raw returnTo query params", async () => {
-    const onVerify = vi.fn().mockResolvedValue(undefined);
+    const onVerify = vi.fn().mockResolvedValue({
+      profileCompletionRequired: false,
+    });
     const onNavigate = vi.fn();
     render(
       <AuthVerifyScreen

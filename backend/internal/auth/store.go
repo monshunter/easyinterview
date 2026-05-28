@@ -70,6 +70,7 @@ type UserContext struct {
 	UILanguage                string
 	PreferredPracticeLanguage string
 	AnalyticsOptIn            bool
+	ProfileCompletionRequired bool
 }
 
 // Store is the P0 passwordless session persistence surface. It intentionally
@@ -80,6 +81,7 @@ type Store interface {
 	ConsumeChallenge(context.Context, string, time.Time) (ChallengeRecord, error)
 	CreateUserByEmail(context.Context, string, string, string, time.Time) (UserContext, error)
 	FindUserByEmail(context.Context, string) (UserContext, error)
+	CompleteUserProfile(context.Context, string, string, time.Time) (UserContext, error)
 	CreateSession(context.Context, SessionRecord) error
 	GetSessionByHash(context.Context, string, time.Time) (SessionRecord, error)
 	GetUserContext(context.Context, string) (UserContext, error)
@@ -219,14 +221,22 @@ func (s *SQLStore) CreateUserByEmail(ctx context.Context, email string, displayN
 	}
 	defer tx.Rollback()
 	var id string
+	profileCompletedAt := any(nil)
+	termsAcceptedAt := any(nil)
+	if strings.TrimSpace(displayName) != "" {
+		profileCompletedAt = now
+		termsAcceptedAt = now
+	}
 	err = tx.QueryRowContext(ctx, `
-insert into users (id, email, display_name, updated_at)
-values ($1, $2, $3, $4)
+insert into users (id, email, display_name, profile_completed_at, terms_accepted_at, updated_at)
+values ($1, $2, $3, $4, $5, $6)
 on conflict (email) do nothing
 returning id`,
 		userID,
 		email,
 		nullString(displayName),
+		profileCompletedAt,
+		termsAcceptedAt,
 		now,
 	).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -256,6 +266,34 @@ func (s *SQLStore) FindUserByEmail(ctx context.Context, email string) (UserConte
 		return UserContext{}, err
 	}
 	return out, nil
+}
+
+func (s *SQLStore) CompleteUserProfile(ctx context.Context, userID string, displayName string, now time.Time) (UserContext, error) {
+	if s == nil || s.db == nil {
+		return UserContext{}, fmt.Errorf("auth store db is nil")
+	}
+	result, err := s.db.ExecContext(ctx, `
+update users
+set display_name = $2,
+    terms_accepted_at = coalesce(terms_accepted_at, $3),
+    profile_completed_at = coalesce(profile_completed_at, $3),
+    updated_at = $3
+where id = $1 and deleted_at is null`,
+		userID,
+		nullString(displayName),
+		now,
+	)
+	if err != nil {
+		return UserContext{}, fmt.Errorf("complete user profile: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return UserContext{}, fmt.Errorf("complete user profile rows affected: %w", err)
+	}
+	if rows == 0 {
+		return UserContext{}, ErrUserNotFound
+	}
+	return s.GetUserContext(ctx, userID)
 }
 
 func (s *SQLStore) CreateSession(ctx context.Context, rec SessionRecord) error {
@@ -345,11 +383,15 @@ func (s *SQLStore) GetUserContext(ctx context.Context, userID string) (UserConte
 func (s *SQLStore) getUserContext(ctx context.Context, predicate string, arg any) (UserContext, error) {
 	var out UserContext
 	var displayName sql.NullString
+	var profileCompletedAt sql.NullTime
+	var termsAcceptedAt sql.NullTime
 	err := s.db.QueryRowContext(ctx, `
 select
   u.id,
   u.email,
   u.display_name,
+  u.profile_completed_at,
+  u.terms_accepted_at,
   us.ui_language,
   us.preferred_practice_language,
   us.analytics_opt_in
@@ -360,6 +402,8 @@ where `+predicate+` and u.deleted_at is null`,
 		&out.ID,
 		&out.Email,
 		&displayName,
+		&profileCompletedAt,
+		&termsAcceptedAt,
 		&out.UILanguage,
 		&out.PreferredPracticeLanguage,
 		&out.AnalyticsOptIn,
@@ -368,6 +412,7 @@ where `+predicate+` and u.deleted_at is null`,
 		return UserContext{}, err
 	}
 	out.DisplayName = displayName.String
+	out.ProfileCompletionRequired = strings.TrimSpace(displayName.String) == "" || !profileCompletedAt.Valid || !termsAcceptedAt.Valid
 	return out, nil
 }
 
