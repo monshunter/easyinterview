@@ -16,6 +16,7 @@ run_step() {
 
 (
   cd "$REPO_ROOT"
+  echo "SCENARIO_RUNNER=E2E.P0.102"
   run_step ui-design-contract \
     node --test ui-design/ui-design-contract.test.mjs
   run_step frontend-auth-gate \
@@ -24,7 +25,7 @@ run_step() {
       src/app/screens/home/HomeAuthGate.test.tsx \
       src/app/AppAuthDispatch.test.tsx
   run_step backend-session-policy \
-    bash -c 'cd backend && go test ./internal/auth -run TestSessionPolicyClassifiesPublicOptionalAndProtectedOperations -count=1'
+    bash -c 'cd backend && go test -v ./internal/auth -run TestSessionPolicyClassifiesPublicOptionalAndProtectedOperations -count=1'
   run_step backend-route-middleware \
-    bash -c 'cd backend && go test ./cmd/api -run '"'"'TestBuildAPIHandlerMounts(TargetJobRoutes|UploadPresign|ResumeRoutes|PracticeAndProfileRoutes|ReportRoutes|JobRoute)BehindSessionMiddleware|TestJDMatchRoutesRequireSessionOnAllRoutes'"'"' -count=1'
+    bash -c 'cd backend && go test -v ./cmd/api -run '"'"'TestBuildAPIHandlerMounts(TargetJobRoutes|UploadPresign|ResumeRoutes|PracticeAndProfileRoutes|ReportRoutes|JobRoute)BehindSessionMiddleware|TestJDMatchRoutesRequireSessionOnAllRoutes'"'"' -count=1'
 ) | tee "$OUTPUT_DIR/trigger.log"

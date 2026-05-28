@@ -31,12 +31,21 @@ describe("AuthLoginScreen", () => {
     expect(screen.getByTestId("auth-login-link-reset")).toBeInTheDocument();
   });
 
-  it("submits the email challenge through onStartChallenge with returnTo from pending action when provided", async () => {
+  it("submits the email challenge with email only and carries pendingAction params to verify", async () => {
     const onStartChallenge = vi.fn().mockResolvedValue(undefined);
     const onNavigate = vi.fn();
     render(
       <AuthLoginScreen
-        route={{ name: "auth_login", params: { returnTo: "/practice" } }}
+        route={{
+          name: "auth_login",
+          params: {
+            returnTo: "/practice?planId=legacy-return-to",
+            pendingRoute: "practice",
+            pendingType: "start_practice",
+            pendingLabel: "立即面试",
+            planId: "plan-tj-1",
+          },
+        }}
         onNavigate={onNavigate}
         onStartChallenge={onStartChallenge}
       />,
@@ -50,14 +59,18 @@ describe("AuthLoginScreen", () => {
 
     expect(onStartChallenge).toHaveBeenCalledWith({
       email: "alice@example.com",
-      returnTo: "/practice",
     });
     await waitFor(() =>
       expect(onNavigate).toHaveBeenCalledWith({
         name: "auth_verify",
-        params: expect.objectContaining({ email: "alice@example.com" }),
+        params: expect.objectContaining({
+          email: "alice@example.com",
+          pendingRoute: "practice",
+          planId: "plan-tj-1",
+        }),
       }),
     );
+    expect(onNavigate.mock.calls[0]?.[0].params).not.toHaveProperty("returnTo");
   });
 
   it("navigates to reset route from the inline link", async () => {
@@ -80,7 +93,9 @@ describe("AuthLoginScreen", () => {
 
 describe("AuthProfileSetupScreen", () => {
   it("renders profile setup fields and routes to the pending action after completion", async () => {
-    const onCompleteProfile = vi.fn().mockResolvedValue(undefined);
+    const onCompleteProfile = vi.fn().mockResolvedValue({
+      profileCompletionRequired: false,
+    });
     const onNavigate = vi.fn();
     render(
       <AuthProfileSetupScreen
@@ -134,6 +149,42 @@ describe("AuthProfileSetupScreen", () => {
     await user.click(screen.getByTestId("auth-profile-terms"));
     await user.click(screen.getByTestId("auth-profile-submit"));
 
+    await expect(
+      screen.findByTestId("auth-profile-status"),
+    ).resolves.toHaveTextContent("failed");
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it("does not restore the pending route until completeMyProfile confirms the profile flag is cleared", async () => {
+    const onCompleteProfile = vi.fn().mockResolvedValue({
+      profileCompletionRequired: true,
+    });
+    const onNavigate = vi.fn();
+    render(
+      <AuthProfileSetupScreen
+        route={{
+          name: "auth_profile_setup",
+          params: {
+            pendingRoute: "practice",
+            pendingType: "start_practice",
+            pendingLabel: "立即面试",
+            planId: "plan-tj-1",
+          },
+        }}
+        onNavigate={onNavigate}
+        onCompleteProfile={onCompleteProfile}
+      />,
+    );
+
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId("auth-profile-name"), "Alice");
+    await user.click(screen.getByTestId("auth-profile-terms"));
+    await user.click(screen.getByTestId("auth-profile-submit"));
+
+    expect(onCompleteProfile).toHaveBeenCalledWith({
+      displayName: "Alice",
+      acceptedTerms: true,
+    });
     await expect(
       screen.findByTestId("auth-profile-status"),
     ).resolves.toHaveTextContent("failed");

@@ -51,7 +51,7 @@ const SCREENS: AuthScreenSpec[] = [
       <AuthProfileSetupScreen
         route={{ name: "auth_profile_setup", params: {} } as Route}
         onNavigate={noop}
-        onCompleteProfile={async () => {}}
+        onCompleteProfile={async () => ({ profileCompletionRequired: false })}
       />
     ),
   },
@@ -174,7 +174,7 @@ describe("auth screen D1 regression after visual parity (Phase 4.1)", () => {
         <AuthProfileSetupScreen
           route={{ name: "auth_profile_setup", params: {} } as Route}
           onNavigate={noop}
-          onCompleteProfile={async () => {}}
+          onCompleteProfile={async () => ({ profileCompletionRequired: false })}
         />,
       ),
     );

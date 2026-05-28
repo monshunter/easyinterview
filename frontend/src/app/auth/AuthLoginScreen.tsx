@@ -24,23 +24,19 @@ export const AuthLoginScreen: FC<AuthLoginScreenProps> = ({
 }) => {
   const { t } = useI18n();
   const [email, setEmail] = useState("");
-  const returnTo = route.params.returnTo;
   const hasPendingAction = decodePendingActionRoute(route.params) !== null;
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmed = email.trim();
     if (!trimmed) return;
-    await onStartChallenge(
-      returnTo
-        ? { email: trimmed, returnTo }
-        : { email: trimmed },
-    );
+    await onStartChallenge({ email: trimmed });
     // Forward the entire route.params so any encoded pendingAction (pendingRoute
     // / pendingType / pendingLabel + interview-context keys) reaches verify.
+    const { returnTo: _returnTo, ...safeRouteParams } = route.params;
     onNavigate({
       name: "auth_verify",
-      params: { ...route.params, email: trimmed },
+      params: { ...safeRouteParams, email: trimmed },
     });
   };
 

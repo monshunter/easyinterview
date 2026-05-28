@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.14
+> **版本**: 1.15
 > **状态**: completed
 > **更新日期**: 2026-05-28
 
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`，并补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程；browser-level parity 还必须覆盖 desktop / mobile dropdown geometry 与 logout flow。修订 v1.11 修复真实联调 passwordless 链路：登录和注册提交 `startAuthEmailChallenge` 时必须兼容后端 `202 Accepted` 空响应并导航到 verify 页；Mailpit magic link 必须落到前端 `auth_verify`，由前端自动消费 token、刷新 session，并用 replace 导航清理 URL token。修订 v1.12 将真实联调入口从 Mailpit magic link 改为 Mailpit 6 位 email code，并锁定邮箱是唯一账号标识：注册页传 `purpose=signup` + displayName，后续登录同一邮箱传 `purpose=login`，displayName 不唯一且不参与账号去重；TopBar 不再使用 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 样例 fallback。修订 v1.13 将注册和登录合并为单一邮箱验证码入口：新邮箱 verify 后进入 `auth_profile_setup` 完成 displayName + 条款确认，`/me.profileCompletionRequired` 是强制跳转依据；旧 `auth_register` 不再是 live route 或可见入口。修订 v1.14 修复未登录 Home 展示 Recent mock interviews 与 raw backend unauthorized error 的回归，并把面试相关业务 route 统一前置到 `auth_login(pendingAction)`。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
+落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`，并补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程；browser-level parity 还必须覆盖 desktop / mobile dropdown geometry 与 logout flow。修订 v1.11 修复真实联调 passwordless 链路：登录和注册提交 `startAuthEmailChallenge` 时必须兼容后端 `202 Accepted` 空响应并导航到 verify 页；Mailpit magic link 必须落到前端 `auth_verify`，由前端自动消费 token、刷新 session，并用 replace 导航清理 URL token。修订 v1.12 将真实联调入口从 Mailpit magic link 改为 Mailpit 6 位 email code，并锁定邮箱是唯一账号标识：注册页传 `purpose=signup` + displayName，后续登录同一邮箱传 `purpose=login`，displayName 不唯一且不参与账号去重；TopBar 不再使用 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 样例 fallback。修订 v1.13 将注册和登录合并为单一邮箱验证码入口：新邮箱 verify 后进入 `auth_profile_setup` 完成 displayName + 条款确认，`/me.profileCompletionRequired` 是强制跳转依据；旧 `auth_register` 不再是 live route 或可见入口。修订 v1.14 修复未登录 Home 展示 Recent mock interviews 与 raw backend unauthorized error 的回归，并把面试相关业务 route 统一前置到 `auth_login(pendingAction)`。修订 v1.15 收紧 L2 验收缺口：`AuthLoginScreen` 发码请求体只提交 email、`auth_profile_setup` 只在 `/me.profileCompletionRequired=false` 后恢复 pendingAction，且 P0.102 wrapper 直接校验 runner / Go `--- PASS` 证据。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
 
 ## 2 背景
 
@@ -148,7 +148,7 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `getRuntimeConfig` | `openapi/fixtures/Auth/getRuntimeConfig.json#default` | `AppRuntimeProvider`、`topbar.spec.ts` mocked bootstrap | backend-auth runtime config handler | 无 | 无 | focused runtime tests、E2E.P0.032、E2E.P0.006 topbar |
 | `getMe` | `openapi/fixtures/Auth/getMe.json#authenticated|unauthenticated` | `AppRuntimeProvider`、`TopBar` user area、`createDevMockClient` | backend-auth current-user handler | backend session cookie lookup；frontend 不持久化 session | 无 | devMockClient tests、E2E.P0.032、E2E.P0.006 topbar |
-| `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json#default` | Auth login screen；request body 只包含 email / returnTo，不传 `purpose` 或 `displayName` | backend-auth challenge issue handler | backend auth challenge/session storage；frontend 无持久化 | 无 | AppAuthDispatch tests、E2E.P0.032、E2E.P0.006 topbar、E2E.P0.101 |
+| `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json#default` | Auth login screen；request body 只包含 email；`returnTo` 仅属于历史 auth route param，不得提交给发码 API；不传 `purpose` 或 `displayName` | backend-auth challenge issue handler | backend auth challenge/session storage；frontend 无持久化 | 无 | AppAuthDispatch tests、E2E.P0.032、E2E.P0.006 topbar、E2E.P0.101 |
 | `verifyAuthEmailChallenge` | `openapi/fixtures/Auth/verifyAuthEmailChallenge.json#default` | Auth verify screen、`createDevMockClient` state transition；成功后读取 `/me.profileCompletionRequired` 决定是否进入资料补全 | backend-auth verify handler | backend mints first-party session cookie；frontend mock client 仅有实例内状态 | 无 | devMockClient tests、E2E.P0.032、E2E.P0.006 topbar、E2E.P0.101 |
 | `completeMyProfile` | `openapi/fixtures/Auth/completeMyProfile.json#default` | Auth profile setup screen；提交 trimmed displayName + `acceptedTerms=true` | backend-auth `PATCH /me` handler | backend `users.display_name` / `profile_completed_at` / `terms_accepted_at` | 无 | AuthProfileSetup tests、E2E.P0.101 |
 | `logout` | `openapi/fixtures/Auth/logout.json#default` | Auth logout screen、TopBar logout route、`createDevMockClient` reset | backend-auth logout handler | backend clears session cookie/session；frontend mock client 仅重置实例内状态 | 无 | devMockClient tests、E2E.P0.032、E2E.P0.006 topbar |
@@ -173,7 +173,7 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 
 #### 8.1 Historical register displayName pass-through
 
-历史注册页提交 `startAuthEmailChallenge` 时曾传 `purpose=signup` 与 trimmed `displayName`；登录页曾传 `purpose=login` 且不传 displayName。当前 `AuthLoginScreen` 只提交 email / returnTo，displayName 只能在 `auth_profile_setup` 通过 `completeMyProfile` 提交。
+历史注册页提交 `startAuthEmailChallenge` 时曾传 `purpose=signup` 与 trimmed `displayName`；登录页曾传 `purpose=login` 且不传 displayName。当前 `AuthLoginScreen` 只提交 normalized email；pendingAction / legacy `returnTo` 只作为 auth route params 在登录、验证和资料补全页之间传递，不进入 `startAuthEmailChallenge` request body；displayName 只能在 `auth_profile_setup` 通过 `completeMyProfile` 提交。
 
 #### 8.2 Six-digit code verify UI
 

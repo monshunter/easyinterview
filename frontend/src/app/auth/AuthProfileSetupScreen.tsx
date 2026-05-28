@@ -11,7 +11,13 @@ import { buildResumeRoute } from "./resumeRoute";
 export interface AuthProfileSetupScreenProps {
   route: Route;
   onNavigate: (next: LooseRoute) => void;
-  onCompleteProfile: (req: CompleteProfileRequest) => Promise<void>;
+  onCompleteProfile: (
+    req: CompleteProfileRequest,
+  ) => Promise<AuthProfileSetupResult>;
+}
+
+export interface AuthProfileSetupResult {
+  profileCompletionRequired: boolean;
 }
 
 export const AuthProfileSetupScreen: FC<AuthProfileSetupScreenProps> = ({
@@ -30,12 +36,17 @@ export const AuthProfileSetupScreen: FC<AuthProfileSetupScreenProps> = ({
     const trimmed = displayName.trim();
     if (!trimmed || !agreed) return;
     setSubmitFailed(false);
+    let result: AuthProfileSetupResult;
     try {
-      await onCompleteProfile({
+      result = await onCompleteProfile({
         displayName: trimmed,
         acceptedTerms: true,
       });
     } catch {
+      setSubmitFailed(true);
+      return;
+    }
+    if (result.profileCompletionRequired) {
       setSubmitFailed(true);
       return;
     }

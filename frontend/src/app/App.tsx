@@ -165,6 +165,9 @@ function renderRouteScreen(
               withLocaleHeader(lang),
             );
             runtime.refreshAuth(user);
+            return {
+              profileCompletionRequired: user.profileCompletionRequired,
+            };
           }}
         />
       );

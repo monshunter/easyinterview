@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-05-28](2026-05-28.md) | `fix(frontend-shell): close auth profile L2 gaps (BUG-0116)` | #fix #ui #test #docs #bdd |
 | [2026-05-28](2026-05-28.md) | `fix(frontend-shell): gate protected routes before login (BUG-0115)` | #fix #ui #test #docs #bdd |
 | [2026-05-28](2026-05-28.md) | `feat(auth): unify email login flow with profile setup` | #feat #api #ui #test #docs |
 | [2026-05-27](2026-05-27.md) | `fix(auth): enforce email identity semantics (BUG-0114)` | #fix #ui #test #docs #bdd |
